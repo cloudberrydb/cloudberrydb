@@ -19,7 +19,7 @@
 
 #include "executor/spi.h"
 #include "mb/pg_wchar.h"
-#include "parser/parse_expr.h"
+#include "nodes/nodeFuncs.h"
 #include "utils/builtins.h"
 #include "utils/date.h"
 #include "utils/datetime.h"
