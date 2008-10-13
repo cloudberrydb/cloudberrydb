@@ -1031,6 +1031,15 @@ DATA(insert OID = 3484 (  ">>="	   PGNSP PGUID b f f 195 195 16 3483 3481 comple
 DATA(insert OID = 7095 (  "/"    PGNSP PGUID b f f 1186  1186 701          0  0 interval_interval_div - - ));
 DATA(insert OID = 7096 (  "%"    PGNSP PGUID b f f 1186  1186 1186         0  0 interval_interval_mod - - ));
 
+/* generic record comparison operators */
+DATA(insert OID = 2988 (  "="	   PGNSP PGUID b t f 2249 2249 16 2988 2989 record_eq eqsel eqjoinsel ));
+DATA(insert OID = 2989 (  "<>"	   PGNSP PGUID b f f 2249 2249 16 2989 2988 record_ne neqsel neqjoinsel ));
+DATA(insert OID = 2990 (  "<"	   PGNSP PGUID b f f 2249 2249 16 2991 2993 record_lt scalarltsel scalarltjoinsel ));
+DATA(insert OID = 2991 (  ">"	   PGNSP PGUID b f f 2249 2249 16 2990 2992 record_gt scalargtsel scalargtjoinsel ));
+DATA(insert OID = 2992 (  "<="	   PGNSP PGUID b f f 2249 2249 16 2993 2991 record_le scalarltsel scalarltjoinsel ));
+DATA(insert OID = 2993 (  ">="	   PGNSP PGUID b f f 2249 2249 16 2992 2990 record_ge scalargtsel scalargtjoinsel ));
+
+
 /*
  * function prototypes
  */

@@ -143,6 +143,7 @@ DATA(insert OID = 1981 ( 403	oid_ops		PGNSP PGUID 1989   26 t 0 ));
 DATA(insert (	405		oid_ops				PGNSP PGUID 1990   26 t 0 ));
 DATA(insert (	403		oidvector_ops		PGNSP PGUID 1991   30 t 0 ));
 DATA(insert (	405		oidvector_ops		PGNSP PGUID 1992   30 t 0 ));
+DATA(insert (	403		record_ops			PGNSP PGUID 2994 2249 t 0 ));
 DATA(insert (	403		text_ops			PGNSP PGUID 1994   25 t 0 ));
 DATA(insert (	405		text_ops			PGNSP PGUID 1995   25 t 0 ));
 DATA(insert (	403		time_ops			PGNSP PGUID 1996 1083 t 0 ));

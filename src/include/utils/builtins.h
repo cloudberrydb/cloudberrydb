@@ -583,6 +583,13 @@ extern Datum record_in(PG_FUNCTION_ARGS);
 extern Datum record_out(PG_FUNCTION_ARGS);
 extern Datum record_recv(PG_FUNCTION_ARGS);
 extern Datum record_send(PG_FUNCTION_ARGS);
+extern Datum record_eq(PG_FUNCTION_ARGS);
+extern Datum record_ne(PG_FUNCTION_ARGS);
+extern Datum record_lt(PG_FUNCTION_ARGS);
+extern Datum record_gt(PG_FUNCTION_ARGS);
+extern Datum record_le(PG_FUNCTION_ARGS);
+extern Datum record_ge(PG_FUNCTION_ARGS);
+extern Datum btrecordcmp(PG_FUNCTION_ARGS);
 
 /* ruleutils.c */
 extern Datum pg_get_ruledef(PG_FUNCTION_ARGS);
