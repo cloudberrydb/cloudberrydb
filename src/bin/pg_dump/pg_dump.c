@@ -26,7 +26,7 @@
  *	http://archives.postgresql.org/pgsql-bugs/2010-02/msg00187.php
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/bin/pg_dump/pg_dump.c,v 1.482.2.2 2009/04/01 18:54:33 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/bin/pg_dump/pg_dump.c,v 1.546 2009/08/04 19:46:51 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -11639,7 +11639,8 @@ dumpTrigger(Archive *fout, TriggerInfo *tginfo)
 	appendPQExpBuffer(query, "EXECUTE PROCEDURE %s(",
 					  tginfo->tgfname);
 
-	tgargs = (char *) PQunescapeBytea(tginfo->tgargs, &lentgargs);
+	tgargs = (char *) PQunescapeBytea((unsigned char *) tginfo->tgargs,
+									  &lentgargs);
 	p = tgargs;
 	for (findx = 0; findx < tginfo->tgnargs; findx++)
 	{
