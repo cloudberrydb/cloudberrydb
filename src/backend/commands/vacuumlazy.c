@@ -849,14 +849,15 @@ lazy_scan_heap(Relation onerel, LVRelStats *vacrelstats,
 		}
 		else if (PageIsAllVisible(page) && !all_visible)
 		{
-			elog(WARNING, "PD_ALL_VISIBLE flag was incorrectly set");
+			elog(WARNING, "PD_ALL_VISIBLE flag was incorrectly set in relation \"%s\" page %u",
+				 relname, blkno);
 			PageClearAllVisible(page);
 			MarkBufferDirty(buf);
 
 			/*
 			 * Normally, we would drop the lock on the heap page before
-			 * updating the visibility map, but since this is a can't-happen
-			 * case anyway, don't bother.
+			 * updating the visibility map, but since this case shouldn't
+			 * happen anyway, don't worry about that.
 			 */
 			visibilitymap_clear(onerel, blkno);
 		}

@@ -223,7 +223,8 @@ extern void log_heap_newpage(Relation rel,
 							 BlockNumber bno);
 extern XLogRecPtr log_heap_move(Relation reln, Buffer oldbuf,
 			  ItemPointerData from,
-			  Buffer newbuf, HeapTuple newtup);
+			  Buffer newbuf, HeapTuple newtup,
+			  bool all_visible_cleared, bool new_all_visible_cleared);
 extern XLogRecPtr log_heap_clean(Relation reln, Buffer buffer,
 			   OffsetNumber *redirected, int nredirected,
 			   OffsetNumber *nowdead, int ndead,

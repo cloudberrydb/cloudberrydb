@@ -83,7 +83,8 @@ static HeapScanDesc heap_beginscan_internal(Relation relation,
 						bool allow_strat, bool allow_sync,
 						bool is_bitmapscan);
 static XLogRecPtr log_heap_update(Relation reln, Buffer oldbuf,
-		   ItemPointerData from, Buffer newbuf, HeapTuple newtup, bool move);
+		   ItemPointerData from, Buffer newbuf, HeapTuple newtup, bool move,
+		   bool all_visible_cleared, bool new_all_visible_cleared);
 static bool HeapSatisfiesHOTUpdate(Relation relation, Bitmapset *hot_attrs,
 					   HeapTuple oldtup, HeapTuple newtup);
 
@@ -3513,30 +3514,7 @@ l2:
 	/* record address of new tuple in t_ctid of old one */
 	oldtup.t_data->t_ctid = heaptup->t_self;
 
-	if (newbuf != buffer)
-		MarkBufferDirty(newbuf);
-	MarkBufferDirty(buffer);
-
-	/*
-	 * Note: we mustn't clear PD_ALL_VISIBLE flags before writing the WAL
-	 * record, because log_heap_update looks at those flags to set the
-	 * corresponding flags in the WAL record.
-	 */
-
-	/* XLOG stuff */
-	if (!relation->rd_istemp)
-	{
-		XLogRecPtr	recptr = log_heap_update(relation, buffer, oldtup.t_self,
-											 newbuf, heaptup, false);
-
-		if (newbuf != buffer)
-		{
-			PageSetLSN(BufferGetPage(newbuf), recptr);
-		}
-		PageSetLSN(BufferGetPage(buffer), recptr);
-	}
-
-	/* Clear PD_ALL_VISIBLE flags */
+	/* clear PD_ALL_VISIBLE flags */
 	if (PageIsAllVisible(BufferGetPage(buffer)))
 	{
 		all_visible_cleared = true;
@@ -3546,6 +3524,25 @@ l2:
 	{
 		all_visible_cleared_new = true;
 		PageClearAllVisible(BufferGetPage(newbuf));
+	}
+
+	if (newbuf != buffer)
+		MarkBufferDirty(newbuf);
+	MarkBufferDirty(buffer);
+
+	/* XLOG stuff */
+	if (!relation->rd_istemp)
+	{
+		XLogRecPtr	recptr = log_heap_update(relation, buffer, oldtup.t_self,
+											 newbuf, heaptup, false,
+											 all_visible_cleared,
+											 all_visible_cleared_new);
+
+		if (newbuf != buffer)
+		{
+			PageSetLSN(BufferGetPage(newbuf), recptr);
+		}
+		PageSetLSN(BufferGetPage(buffer), recptr);
 	}
 
 	END_CRIT_SECTION();
@@ -4894,7 +4891,8 @@ log_heap_freeze(Relation reln, Buffer buffer,
  */
 static XLogRecPtr
 log_heap_update(Relation reln, Buffer oldbuf, ItemPointerData from,
-				Buffer newbuf, HeapTuple newtup, bool move)
+				Buffer newbuf, HeapTuple newtup, bool move,
+				bool all_visible_cleared, bool new_all_visible_cleared)
 {
 	/*
 	 * Note: xlhdr is declared to have adequate size and correct alignment for
@@ -4932,9 +4930,9 @@ log_heap_update(Relation reln, Buffer oldbuf, ItemPointerData from,
 
 	xlrec.target.node = reln->rd_node;
 	xlrec.target.tid = from;
-	xlrec.all_visible_cleared = PageIsAllVisible(BufferGetPage(oldbuf));
+	xlrec.all_visible_cleared = all_visible_cleared;
 	xlrec.newtid = newtup->t_self;
-	xlrec.new_all_visible_cleared = PageIsAllVisible(BufferGetPage(newbuf));
+	xlrec.new_all_visible_cleared = new_all_visible_cleared;
 
 	rdata[0].data = (char *) &xlrec;
 	rdata[0].len = SizeOfHeapUpdate;
@@ -5001,9 +4999,11 @@ log_heap_update(Relation reln, Buffer oldbuf, ItemPointerData from,
  */
 XLogRecPtr
 log_heap_move(Relation reln, Buffer oldbuf, ItemPointerData from,
-			  Buffer newbuf, HeapTuple newtup)
+			  Buffer newbuf, HeapTuple newtup,
+			  bool all_visible_cleared, bool new_all_visible_cleared)
 {
-	return log_heap_update(reln, oldbuf, from, newbuf, newtup, true);
+	return log_heap_update(reln, oldbuf, from, newbuf, newtup, true,
+						   all_visible_cleared, new_all_visible_cleared);
 }
 
 
@@ -5314,8 +5314,8 @@ heap_xlog_delete(XLogRecPtr lsn, XLogRecord *record)
 	blkno = ItemPointerGetBlockNumber(&(xlrec->target.tid));
 
 	/*
-	 * The visibility map always needs to be updated, even if the heap page
-	 * is already up-to-date.
+	 * The visibility map may need to be fixed even if the heap page is
+	 * already up-to-date.
 	 */
 	if (xlrec->all_visible_cleared)
 	{
@@ -5425,8 +5425,8 @@ heap_xlog_insert(XLogRecPtr lsn, XLogRecord *record)
 	blkno = ItemPointerGetBlockNumber(&(xlrec->target.tid));
 
 	/*
-	 * The visibility map always needs to be updated, even if the heap page
-	 * is already up-to-date.
+	 * The visibility map may need to be fixed even if the heap page is
+	 * already up-to-date.
 	 */
 	if (xlrec->all_visible_cleared)
 	{
@@ -5565,8 +5565,8 @@ heap_xlog_update(XLogRecPtr lsn, XLogRecord *record, bool move, bool hot_update)
 	Size		freespace;
 
 	/*
-	 * The visibility map always needs to be updated, even if the heap page
-	 * is already up-to-date.
+	 * The visibility map may need to be fixed even if the heap page is
+	 * already up-to-date.
 	 */
 	if (xlrec->all_visible_cleared)
 	{
@@ -5671,8 +5671,8 @@ heap_xlog_update(XLogRecPtr lsn, XLogRecord *record, bool move, bool hot_update)
 
 newt:;
 	/*
-	 * The visibility map always needs to be updated, even if the heap page
-	 * is already up-to-date.
+	 * The visibility map may need to be fixed even if the heap page is
+	 * already up-to-date.
 	 */
 	if (xlrec->new_all_visible_cleared)
 	{
