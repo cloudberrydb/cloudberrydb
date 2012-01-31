@@ -101,7 +101,7 @@ test: misc
 # ----------
 # Another group of parallel tests
 # ----------
-test: select_views portals_p2 cluster dependency guc tsearch tsdicts
+test: select_views portals_p2 cluster dependency guc tsearch tsdicts json
 
 # 'rules' test is disabled in GPDB. Maintaining the list of views in it is
 # too painful, and there are also errors because of cross-segment UPDATEs

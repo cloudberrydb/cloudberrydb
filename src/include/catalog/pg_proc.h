@@ -4215,6 +4215,16 @@ DESCR("evaluate XPath expression, with namespaces support");
 DATA(insert OID = 2932 (  xpath		 PGNSP PGUID 14 1 0 f f t f i 2 143 "25 142" _null_ _null_ _null_ "select pg_catalog.xpath($1, $2, ''{}''::pg_catalog.text[])" - _null_ _null_ ));
 DESCR("evaluate XPath expression");
 
+/* json */
+DATA(insert OID = 321 (  json_in		   PGNSP PGUID 12 1 0 f f t f s 1 3114 "2275" _null_ _null_ _null_ json_in - _null_ _null_ ));
+DESCR("I/O");
+DATA(insert OID = 322 (  json_out		   PGNSP PGUID 12 1 0 f f t f i 1 2275 "3114" _null_ _null_ _null_ json_out - _null_ _null_ ));
+DESCR("I/O");
+DATA(insert OID = 323 (  json_recv		   PGNSP PGUID 12 1 0 f f t f s 1 3114 "2281" _null_ _null_ _null_	json_recv - _null_ _null_ ));
+DESCR("I/O");
+DATA(insert OID = 324 (  json_send		   PGNSP PGUID 12 1 0 f f t f s 1 17 "3114" _null_ _null_ _null_ json_send - _null_ _null_ ));
+DESCR("I/O");
+
 /* uuid */
 DATA(insert OID = 2952 (  uuid_in		   PGNSP PGUID 12 1 0 f f t f i 1 2950 "2275" _null_ _null_ _null_ uuid_in - _null_ _null_ ));
 DESCR("I/O");
