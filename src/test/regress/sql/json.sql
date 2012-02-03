@@ -54,3 +54,27 @@ SELECT 'truf'::json;			-- ERROR, not a keyword
 SELECT 'trues'::json;			-- ERROR, not a keyword
 SELECT ''::json;				-- ERROR, no value
 SELECT '    '::json;			-- ERROR, no value
+
+--constructors
+-- array_to_json
+
+SELECT array_to_json(array(select 1 as a));
+
+-- FIXME: deleted some tests that call array_agg(RECORD), as it is not currently supported
+
+SELECT array_to_json(array_agg(x),false) from generate_series(5,10) x;
+SELECT array_to_json('{{1,5},{99,100}}'::int[]);
+
+-- row_to_json
+SELECT row_to_json(row(1,'foo'));
+
+-- FIXME: deleted some tests that call array_agg(RECORD), as it is not currently supported
+
+CREATE TEMP TABLE _rows AS
+SELECT x, 'txt' || x as y
+FROM generate_series(1,3) AS x;
+
+SELECT row_to_json(q,true) 
+FROM _rows q ORDER BY x;
+
+SELECT row_to_json(row((select array_agg(x) as d from generate_series(5,10) x)),false);

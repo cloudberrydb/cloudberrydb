@@ -18,6 +18,9 @@
 
 
 /* Type categories (kluge ... ought to be extensible) */
+/* Type categories (see TYPCATEGORY_xxx symbols in catalog/pg_type.h) */
+typedef char TYPCATEGORY;
+
 typedef enum CATEGORY
 {
 	INVALID_TYPE,

@@ -689,6 +689,12 @@ DATA(insert OID = 3311 (	_gpxlogloc	   PGNSP PGUID -1 f b t \054 0	3310 0 array_
  */
 DATA(insert OID = 2249 ( record			PGNSP PGUID -1 f p t \054 0 0 0 record_in record_out record_recv record_send - - - d x f 0 -1 0 _null_ _null_ ));
 #define RECORDOID		2249
+/* FIXME: RECORDARRAYOID's original oid was 2287, replaced by 3287
+ * due to conflict with pg_proc.h's pg_total_relation_size
+ * while importing json code
+ */
+DATA(insert OID = 3287 ( _record		PGNSP PGUID -1 f p t \054 0 2249 0 array_in array_out array_recv array_send - - - d x f 0 -1 0 _null_ _null_ ));
+#define RECORDARRAYOID	3287
 DATA(insert OID = 2275 ( cstring		PGNSP PGUID -2 f p t \054 0 0 1263 cstring_in cstring_out cstring_recv cstring_send - - - c p f 0 -1 0 _null_ _null_ ));
 #define CSTRINGOID		2275
 DATA(insert OID = 2276 ( any			PGNSP PGUID  4 t p t \054 0 0 0 any_in any_out - - - - - i p f 0 -1 0 _null_ _null_ ));
@@ -745,10 +751,9 @@ DATA(insert OID = 6994 (gp_relation_node PGNSP PGUID -1 f c t \054 5094 0 0 reco
 #define  TYPTYPE_PSEUDO		'p' /* pseudo-type */
 
 /* 
- * typcategory is from Postgres 9.0 catalog changes and is not actually reflected
- * anywhere in gpdb code.
+ * typcategory is from Postgres 9.0 catalog changes.
+ * Used only (so far) for JSON functions
  */
-#if 0
 # define  TYPCATEGORY_INVALID			'\0'	/* not an allowed category */
 # define  TYPCATEGORY_ARRAY				'A'
 # define  TYPCATEGORY_BOOLEAN			'B'
@@ -764,7 +769,6 @@ DATA(insert OID = 6994 (gp_relation_node PGNSP PGUID -1 f c t \054 5094 0 0 reco
 # define  TYPCATEGORY_USER				'U'
 # define  TYPCATEGORY_BITSTRING			'V'		/* er ... "varbit"? */
 # define  TYPCATEGORY_UNKNOWN			'X'
-#endif
 
 /* Is a type OID a polymorphic pseudotype?	(Beware of multiple evaluation) */
 #define IsPolymorphicType(typid)  \
