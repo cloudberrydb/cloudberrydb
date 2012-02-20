@@ -86,6 +86,11 @@ static void array_to_json_internal(Datum array, StringInfo result, bool use_line
 
 TYPCATEGORY TypeCategoryJsonGPDB(Oid type);
 
+/* fake type category for JSON so we can distinguish it in datum_to_json */
+#define TYPCATEGORY_JSON 'j'
+/* letters appearing in numeric output that aren't valid in a JSON number */
+#define NON_NUMERIC_LETTER "NnAnIiFfTtYy"
+
 /*
  * Input.
  */
@@ -721,10 +726,20 @@ datum_to_json(Datum val, StringInfo result, TYPCATEGORY tcategory,
 		case TYPCATEGORY_NUMERIC:
 			outputstr = OidOutputFunctionCall(typoutputfunc, val);
 			/*
-			 * Don't call escape_json here. Numeric output should
-			 * be a valid JSON number and JSON numbers shouldn't
-			 * be quoted.
+			 * Don't call escape_json here if it's a valid JSON
+			 * number. Numeric output should usually be a valid 
+			 * JSON number and JSON numbers shouldn't be quoted. 
+			 * Quote cases like "Nan" and "Infinity", however.
 			 */
+			if (strpbrk(outputstr,NON_NUMERIC_LETTER) == NULL)
+				appendStringInfoString(result, outputstr);
+			else
+				escape_json(result, outputstr);
+			pfree(outputstr);
+			break;
+		case TYPCATEGORY_JSON:
+			/* JSON will already be escaped */
+			outputstr = OidOutputFunctionCall(typoutputfunc, val);
 			appendStringInfoString(result, outputstr);
 			pfree(outputstr);
 			break;
@@ -820,9 +835,10 @@ array_to_json_internal(Datum array, StringInfo result, bool use_line_feeds)
 					  typalign, &elements, &nulls,
 					  &nitems);
 
-	/* can't have an array of arrays, so this is the only special case here */
 	if (element_type == RECORDOID)
 		tcategory = TYPCATEGORY_COMPOSITE;
+	else if (element_type == JSONOID)
+		tcategory = TYPCATEGORY_JSON;
 	else
 		tcategory = TypeCategoryJsonGPDB(element_type);
 
@@ -890,6 +906,8 @@ composite_to_json(Datum composite, StringInfo result, bool use_line_feeds)
 			tcategory = TYPCATEGORY_ARRAY;
 		else if (tupdesc->attrs[i]->atttypid == RECORDOID)
 			tcategory = TYPCATEGORY_COMPOSITE;
+		else if (tupdesc->attrs[i]->atttypid == JSONOID)
+			tcategory = TYPCATEGORY_JSON;
 		else
 			tcategory = TypeCategoryJsonGPDB(tupdesc->attrs[i]->atttypid);
 
