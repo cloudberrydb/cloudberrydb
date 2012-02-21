@@ -89,7 +89,7 @@ TYPCATEGORY TypeCategoryJsonGPDB(Oid type);
 /* fake type category for JSON so we can distinguish it in datum_to_json */
 #define TYPCATEGORY_JSON 'j'
 /* letters appearing in numeric output that aren't valid in a JSON number */
-#define NON_NUMERIC_LETTER "NnAnIiFfTtYy"
+#define NON_NUMERIC_LETTER "NnAaIiFfTtYy"
 
 /*
  * Input.
