@@ -422,7 +422,7 @@ json_lex_string(JsonLexContext *lex)
 	for (s = lex->token_start + 1; *s != '"'; ++s)
 	{
 		/* Per RFC4627, these characters MUST be escaped. */
-		if (*s < 32)
+		if ((unsigned char) *s < 32)
 		{
 			/* A NUL byte marks the (premature) end of the string. */
 			if (*s == '\0')
@@ -435,8 +435,8 @@ json_lex_string(JsonLexContext *lex)
 					 errmsg("invalid input syntax for type json"),
 					 /* FIXME: replace by errdetail_internal
 					    (commit 5384a73f98d9829725186a7b65bf4f8adb3cfaf1) */
-					 errdetail("line %d: Character \"%c\" must be escaped.",
-						lex->line_number, *s)));
+					 errdetail("line %d: Character with value \"0x%02x\" must be escaped.",
+						lex->line_number, (unsigned char) *s)));
 		}
 		else if (*s == '\\')
 		{
@@ -650,7 +650,7 @@ report_parse_error(JsonParseStack *stack, JsonLexContext *lex)
 				lex->input),
 			 /* FIXME: replace by errdetail_internal
 			    (commit 5384a73f98d9829725186a7b65bf4f8adb3cfaf1) */
- 			 errdetail(detail, lex->line_number, token)));
+			 detail ? errdetail(detail, lex->line_number, token) : 0));
 }
 
 /*
