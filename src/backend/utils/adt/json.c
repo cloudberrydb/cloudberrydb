@@ -433,10 +433,8 @@ json_lex_string(JsonLexContext *lex)
 			ereport(ERROR,
 					(errcode(ERRCODE_INVALID_TEXT_REPRESENTATION),
 					 errmsg("invalid input syntax for type json"),
-					 /* FIXME: replace by errdetail_internal
-					    (commit 5384a73f98d9829725186a7b65bf4f8adb3cfaf1) */
 					 errdetail("line %d: Character with value \"0x%02x\" must be escaped.",
-						lex->line_number, (unsigned char) *s)));
+									 lex->line_number, (unsigned char) *s)));
 		}
 		else if (*s == '\\')
 		{
@@ -470,10 +468,8 @@ json_lex_string(JsonLexContext *lex)
 						ereport(ERROR,
 								(errcode(ERRCODE_INVALID_TEXT_REPRESENTATION),
 								 errmsg("invalid input syntax for type json"),
-					 			 /* FIXME: replace by errdetail_internal
-					 				(commit 5384a73f98d9829725186a7b65bf4f8adb3cfaf1) */
 								 errdetail("line %d: \"\\u\" must be followed by four hexadecimal digits.",
-									lex->line_number)));
+													lex->line_number)));
 					}
 				}
 
@@ -486,10 +482,8 @@ json_lex_string(JsonLexContext *lex)
 				ereport(ERROR,
 						(errcode(ERRCODE_INVALID_TEXT_REPRESENTATION),
 						 errmsg("invalid input syntax for type json"),
-					     /* FIXME: replace by errdetail_internal
-					 	    (commit 5384a73f98d9829725186a7b65bf4f8adb3cfaf1) */
 						 errdetail("line %d: Invalid escape \"\\%s\".",
-							lex->line_number, extract_mb_char(s))));
+									 lex->line_number, extract_mb_char(s))));
 			}
 		}
 	}
@@ -602,10 +596,8 @@ report_parse_error(JsonParseStack *stack, JsonLexContext *lex)
 		ereport(ERROR,
 				(errcode(ERRCODE_INVALID_TEXT_REPRESENTATION),
 				 errmsg("invalid input syntax for type json: \"%s\"",
-					lex->input),
-			     /* FIXME: replace by errdetail_internal
-			 	    (commit 5384a73f98d9829725186a7b65bf4f8adb3cfaf1) */
-	 			 errdetail("The input string ended unexpectedly.")));
+						lex->input),
+				 errdetail("The input string ended unexpectedly.")));
 
 	/* Work out the offending token. */
 	toklen = lex->token_terminator - lex->token_start;
@@ -647,10 +639,8 @@ report_parse_error(JsonParseStack *stack, JsonLexContext *lex)
 	ereport(ERROR,
 			(errcode(ERRCODE_INVALID_TEXT_REPRESENTATION),
 			 errmsg("invalid input syntax for type json: \"%s\"",
-				lex->input),
-			 /* FIXME: replace by errdetail_internal
-			    (commit 5384a73f98d9829725186a7b65bf4f8adb3cfaf1) */
-			 detail ? errdetail(detail, lex->line_number, token) : 0));
+					lex->input),
+		  detail ? errdetail(detail, lex->line_number, token) : 0));
 }
 
 /*
@@ -670,10 +660,8 @@ report_invalid_token(JsonLexContext *lex)
 	ereport(ERROR,
 			(errcode(ERRCODE_INVALID_TEXT_REPRESENTATION),
 			 errmsg("invalid input syntax for type json"),
-			 /* FIXME: replace by errdetail_internal
-			    (commit 5384a73f98d9829725186a7b65bf4f8adb3cfaf1) */
 			 errdetail("line %d: Token \"%s\" is invalid.",
-				lex->line_number, token)));
+								lex->line_number, token)));
 }
 
 /*
