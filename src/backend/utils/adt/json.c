@@ -1066,7 +1066,7 @@ array_to_json(PG_FUNCTION_ARGS)
 	array_to_json_internal(array, result, false);
 
 	PG_RETURN_TEXT_P(cstring_to_text(result->data));
-};
+}
 
 /*
  * SQL function array_to_json(row, prettybool)
@@ -1083,7 +1083,7 @@ array_to_json_pretty(PG_FUNCTION_ARGS)
 	array_to_json_internal(array, result, use_line_feeds);
 
 	PG_RETURN_TEXT_P(cstring_to_text(result->data));
-};
+}
 
 /*
  * SQL function row_to_json(row)
@@ -1099,7 +1099,7 @@ row_to_json(PG_FUNCTION_ARGS)
 	composite_to_json(array, result, false);
 
 	PG_RETURN_TEXT_P(cstring_to_text(result->data));
-};
+}
 
 /*
  * SQL function row_to_json(row, prettybool)
@@ -1116,7 +1116,7 @@ row_to_json_pretty(PG_FUNCTION_ARGS)
 	composite_to_json(array, result, use_line_feeds);
 
 	PG_RETURN_TEXT_P(cstring_to_text(result->data));
-};
+}
 
 /*
  * Produce a JSON string literal, properly escaping characters in the text.
