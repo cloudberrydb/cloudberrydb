@@ -204,6 +204,7 @@ extern int interval_cmp_internal(const Interval *interval1, const Interval *inte
 extern Datum interval_interval_div(PG_FUNCTION_ARGS);  /*GPDB*/
 extern Datum interval_interval_mod(PG_FUNCTION_ARGS);		/*GPDB*/
 extern Datum interval_accum(PG_FUNCTION_ARGS);
+extern Datum interval_accum_inv(PG_FUNCTION_ARGS);
 extern Datum interval_avg(PG_FUNCTION_ARGS);
 extern Datum interval_amalg(PG_FUNCTION_ARGS);              /*CDB*/
 
