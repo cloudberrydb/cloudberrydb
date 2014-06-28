@@ -300,6 +300,26 @@ SELECT
   lag(1) OVER (PARTITION BY depname ORDER BY salary,enroll_date,empno)
 FROM empsalary;
 
+-- Test pushdown of quals into a subquery containing window functions
+
+-- pushdown is safe because all PARTITION BY clauses include depname:
+EXPLAIN (COSTS OFF)
+SELECT * FROM
+  (SELECT depname,
+          sum(salary) OVER (PARTITION BY depname) depsalary,
+          min(salary) OVER (PARTITION BY depname || 'A', depname) depminsalary
+   FROM empsalary) emp
+WHERE depname = 'sales';
+
+-- pushdown is unsafe because there's a PARTITION BY clause without depname:
+EXPLAIN (COSTS OFF)
+SELECT * FROM
+  (SELECT depname,
+          sum(salary) OVER (PARTITION BY enroll_date) enroll_salary,
+          min(salary) OVER (PARTITION BY depname) depminsalary
+   FROM empsalary) emp
+WHERE depname = 'sales';
+
 -- cleanup
 DROP TABLE empsalary;
 

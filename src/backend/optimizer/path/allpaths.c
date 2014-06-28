@@ -113,6 +113,7 @@ static void check_output_expressions(Query *subquery,
 						 pushdown_safety_info *safetyInfo);
 static void compare_tlist_datatypes(List *tlist, List *colTypes,
 						pushdown_safety_info *safetyInfo);
+static bool targetIsInAllPartitionLists(TargetEntry *tle, Query *query);
 static bool qual_is_pushdown_safe(Query *subquery, Index rti, Node *qual,
 					  pushdown_safety_info *safetyInfo);
 static void subquery_push_qual(Query *subquery,
@@ -2134,19 +2135,22 @@ push_down_restrict(PlannerInfo *root, RelOptInfo *rel,
  * 1. If the subquery has a LIMIT clause, we must not push down any quals,
  * since that could change the set of rows returned.
  *
- * 2. If the subquery contains any window functions, we can't push quals
- * into it, because that could change the results.
- *
- * 3. If the subquery contains EXCEPT or EXCEPT ALL set ops we cannot push
+ * 2. If the subquery contains EXCEPT or EXCEPT ALL set ops we cannot push
  * quals into it, because that could change the results.
  *
- * 4. If the subquery uses DISTINCT, we cannot push volatile quals into it.
+ * 3. If the subquery uses DISTINCT, we cannot push volatile quals into it.
  * This is because upper-level quals should semantically be evaluated only
  * once per distinct row, not once per original row, and if the qual is
  * volatile then extra evaluations could change the results.  (This issue
  * does not apply to other forms of aggregation such as GROUP BY, because
  * when those are present we push into HAVING not WHERE, so that the quals
  * are still applied after aggregation.)
+ *
+ * 4. If the subquery contains window functions, we cannot push volatile quals
+ * into it.  The issue here is a bit different from DISTINCT: a volatile qual
+ * might succeed for some rows of a window partition and fail for others,
+ * thereby changing the partition contents and thus the window functions'
+ * results for rows that remain.
  *
  * 5. Do not push down quals if the subquery is a grouping extension
  * query, since this may change the meaning of the query.
@@ -2172,6 +2176,18 @@ push_down_restrict(PlannerInfo *root, RelOptInfo *rel,
  * more than we save by eliminating rows before the DISTINCT step.  But it
  * would be very hard to estimate that at this stage, and in practice pushdown
  * seldom seems to make things worse, so we ignore that problem too.
+ *
+ * Note: likewise, pushing quals into a subquery with window functions is a
+ * bit dubious: the quals might remove some rows of a window partition while
+ * leaving others, causing changes in the window functions' results for the
+ * surviving rows.  We insist that such a qual reference only partitioning
+ * columns, but again that only protects us if the qual does not distinguish
+ * values that the partitioning equality operator sees as equal.  The risks
+ * here are perhaps larger than for DISTINCT, since no de-duplication of rows
+ * occurs and thus there is no theoretical problem with such a qual.  But
+ * we'll do this anyway because the potential performance benefits are very
+ * large, and we've seen no field complaints about the longstanding comparable
+ * behavior with DISTINCT.
  */
 static bool
 subquery_is_pushdown_safe(Query *subquery, Query *topquery,
@@ -2183,12 +2199,8 @@ subquery_is_pushdown_safe(Query *subquery, Query *topquery,
 	if (subquery->limitOffset != NULL || subquery->limitCount != NULL)
 		return false;
 
-	/* Check point 2 */
-	if (subquery->hasWindowFuncs)
-		return false;
-
-	/* Check point 4 */
-	if (subquery->distinctClause)
+	/* Check points 3 and 4 */
+	if (subquery->distinctClause || subquery->hasWindowFuncs)
 		safetyInfo->unsafeVolatile = true;
 
 	/* Check point 5 */
@@ -2249,7 +2261,7 @@ recurse_pushdown_safe(Node *setOp, Query *topquery,
 	{
 		SetOperationStmt *op = (SetOperationStmt *) setOp;
 
-		/* EXCEPT is no good (point 3 for subquery_is_pushdown_safe) */
+		/* EXCEPT is no good (point 2 for subquery_is_pushdown_safe) */
 		if (op->op == SETOP_EXCEPT)
 			return false;
 		/* Else recurse */
@@ -2289,6 +2301,15 @@ recurse_pushdown_safe(Node *setOp, Query *topquery,
  * there are no non-DISTINCT output columns, so we needn't check.  Note that
  * subquery_is_pushdown_safe already reported that we can't use volatile
  * quals if there's DISTINCT or DISTINCT ON.)
+ *
+ * 4. If the subquery has any window functions, we must not push down quals
+ * that reference any output columns that are not listed in all the subquery's
+ * window PARTITION BY clauses.  We can push down quals that use only
+ * partitioning columns because they should succeed or fail identically for
+ * every row of any one window partition, and totally excluding some
+ * partitions will not change a window function's results for remaining
+ * partitions.  (Again, this also requires nonvolatile quals, but
+ * subquery_is_pushdown_safe handles that.)
  */
 static void
 check_output_expressions(Query *subquery, pushdown_safety_info *safetyInfo)
@@ -2329,11 +2350,20 @@ check_output_expressions(Query *subquery, pushdown_safety_info *safetyInfo)
 			continue;
 		}
 
+		/* If subquery uses window functions, check point 4 */
+		if (subquery->hasWindowFuncs &&
+			!targetIsInAllPartitionLists(tle, subquery))
+		{
+			/* not present in all PARTITION BY clauses, so mark it unsafe */
+			safetyInfo->unsafeColumns[tle->resno] = true;
+			continue;
+		}
+
 		/* Refuse subplans */
 		if (contain_subplans((Node *) tle->expr))
 		{
 			safetyInfo->unsafeColumns[tle->resno] = true;
-			break;
+			continue;
 		}
 	}
 }
@@ -2376,6 +2406,31 @@ compare_tlist_datatypes(List *tlist, List *colTypes,
 	}
 	if (colType != NULL)
 		elog(ERROR, "wrong number of tlist entries");
+}
+
+/*
+ * targetIsInAllPartitionLists
+ *		True if the TargetEntry is listed in the PARTITION BY clause
+ *		of every window defined in the query.
+ *
+ * It would be safe to ignore windows not actually used by any window
+ * function, but it's not easy to get that info at this stage; and it's
+ * unlikely to be useful to spend any extra cycles getting it, since
+ * unreferenced window definitions are probably infrequent in practice.
+ */
+static bool
+targetIsInAllPartitionLists(TargetEntry *tle, Query *query)
+{
+	ListCell   *lc;
+
+	foreach(lc, query->windowClause)
+	{
+		WindowClause *wc = (WindowClause *) lfirst(lc);
+
+		if (!targetIsInSortList(tle, InvalidOid, wc->partitionClause))
+			return false;
+	}
+	return true;
 }
 
 /*
