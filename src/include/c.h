@@ -736,14 +736,14 @@ typedef NameData *Name;
  */
 #ifndef USE_ASSERT_CHECKING
 
-#define Assert(condition)
+#define Assert(condition)	((void)true)
 #define AssertMacro(condition)	((void)true)
-#define AssertArg(condition)
-#define AssertState(condition)
-#define AssertPointerAlignment(ptr, bndr)   ((void)true)
-#define AssertImply(condition1, condition2)
-#define AssertEquivalent(cond1, cond2)
-#define Trap(condition, errorType)
+#define AssertArg(condition)	((void)true)
+#define AssertState(condition)	((void)true)
+#define AssertPointerAlignment(ptr, bndr)	((void)true)
+#define AssertImply(condition1, condition2)	((void)true)
+#define AssertEquivalent(cond1, cond2)	((void)true)
+#define Trap(condition, errorType)	((void)true)
 #define TrapMacro(condition, errorType) (true)
 
 #elif defined(FRONTEND)
