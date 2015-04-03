@@ -283,9 +283,13 @@ FileRepPrimary_StartRecoveryInChangeTracking(void)
 		}
 		
 		XLogInChangeTrackingTransition();
-				
-		/* NOTE: Any error during change tracking will result in disabling Change Tracking */
-		FileRepSubProcess_SetState(FileRepStateReady);
+
+		getFileRepRoleAndState(&fileRepRole, &segmentState, &dataState, NULL, NULL);
+		if (segmentState != SegmentStateChangeTrackingDisabled)
+		{
+			/* NOTE: Any error during change tracking will result in disabling Change Tracking */
+			FileRepSubProcess_SetState(FileRepStateReady);
+		}
 		
 		/* database is resumed */
 		primaryMirrorSetIOSuspended(FALSE);
@@ -306,9 +310,12 @@ static void
 FileRepPrimary_RunChangeTrackingCompacting(void)
 {
 	int		retry = 0;
-	
-	FileRep_InsertConfigLogEntry("run change tracking compacting if records has to be discarded");
-	
+
+	if (segmentState != SegmentStateChangeTrackingDisabled)
+		FileRep_InsertConfigLogEntry("run change tracking compacting if records has to be discarded");
+	else
+		FileRep_InsertConfigLogEntry("change tracking disabled, so skipping compaction");
+
 	/*
 	 * We have to check if any records have to be discarded from Change Tracking log file.
 	 * Due to crash it can happen that the highest change tracking log lsn > the highest xlog lsn.
@@ -332,16 +339,17 @@ FileRepPrimary_RunChangeTrackingCompacting(void)
 	 */
 	FileRepSubProcess_InitHeapAccess();
 
-	ChangeTracking_DoFullCompactingRoundIfNeeded();
+	if (segmentState != SegmentStateChangeTrackingDisabled)
+		ChangeTracking_DoFullCompactingRoundIfNeeded();
 
-	
 	/*
 	 * Periodically check if compacting is required. 
 	 * Periodic compacting is required in order to
 	 *		a) reduce space for change tracking log file
 	 *		b) reduce time for transition from Change Tracking to Resync
 	 */
-	FileRep_InsertConfigLogEntry("run change tracking compacting");
+	if (segmentState != SegmentStateChangeTrackingDisabled)
+		FileRep_InsertConfigLogEntry("run change tracking compacting");
 	while (1) {
 		
 		FileRepSubProcess_ProcessSignals();

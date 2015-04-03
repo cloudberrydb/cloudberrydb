@@ -53,7 +53,16 @@ readChangeTrackingPage(CTContext *context)
 	}
 	
 	if (nread != 0)
-		elog(ERROR, "Unexpected partial page read of %d bytes", (int) nread);
+	{
+		/*
+		 * Erroring is not good here, as can lead to rolling DB down during
+		 * recovery. Hence instead disable changeTracking and let DB come-up.
+		 */
+		elog(WARNING, "Unexpected partial page read of %d bytes", (int) nread);
+
+		/* This sets state to CT disabled */
+		ChangeTracking_MarkFullResync();
+	}
 
 	return false;
 }
@@ -66,9 +75,12 @@ ReadRecord(CTContext* context)
 {
 	ChangeTrackingRecord 		*record;
 	ChangeTrackingPageHeader	*header;
+	ChangeTrackingPageHeader	*tempheader;
 	char	   *buffer;
 	uint32		header_len = sizeof(ChangeTrackingPageHeader);
 	uint32		record_len = sizeof(ChangeTrackingRecord);
+	pg_crc32    calc_checksum;
+	pg_crc32    read_checksum;
 
 	if (context->logRecOff <= 0 || context->recs_read == context->recs_in_page)
 	{
@@ -78,14 +90,40 @@ ReadRecord(CTContext* context)
 		
 		context->logRecOff = 0;
 		context->recs_read = 0;
-		
+
+		tempheader = (ChangeTrackingPageHeader *)context->pageBuffer;
+		if (tempheader->blockversion != CHANGETRACKING_STORAGE_VERSION)
+		{
+			ereport(WARNING,
+					(errmsg("gp_changetracking_log incorrect header version, disabling changetracking"),
+					errdetail("Required version %d found %d",
+				CHANGETRACKING_STORAGE_VERSION, tempheader->blockversion)));
+			ChangeTracking_MarkFullResync();
+			return false;
+		}
+
+		/* Set the checksum to 0 to include header also in the crc calculation */
+		read_checksum = tempheader->checksum;		
+		tempheader->checksum = 0;
+
+		INIT_CRC32C(calc_checksum);
+		COMP_CRC32C(calc_checksum, context->pageBuffer, CHANGETRACKING_BLCKSZ);
+		FIN_CRC32C(calc_checksum);
+		if (read_checksum != calc_checksum)
+		{
+			ereport(WARNING,
+					(errcode(ERRCODE_DATA_CORRUPTED),
+					 errmsg("changetracking log corrupted, disabling changetracking"),
+					 errdetail("Checksum mismatch read:0x%08X compute:0x%08X",
+						 read_checksum, calc_checksum)));
+			ChangeTracking_MarkFullResync();
+			return false;
+		}
+
 		/* read page header */
 		memcpy(context->readHeaderBuf, context->pageBuffer, header_len);
 		header = (ChangeTrackingPageHeader *)context->readHeaderBuf;
-		
-		if(header->blockversion != 1)
-			elog(ERROR, "gp_changetracking_log currently supports storage version 1 only");
-		
+
 		context->recs_in_page = header->numrecords;		
 		context->logRecOff += sizeof(ChangeTrackingPageHeader);
 	}

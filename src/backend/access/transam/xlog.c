@@ -11674,7 +11674,11 @@ int XLogAddRecordsToChangeTracking(
 	 */
 	if (lastChangeTrackingEndLoc == NULL)
 	{
-		ChangeTracking_GetLastChangeTrackingLogEndLoc(&lastChangeTrackingLogEndLoc);
+		if (!ChangeTracking_GetLastChangeTrackingLogEndLoc(&lastChangeTrackingLogEndLoc))
+		{
+			return 0;
+		}
+		
 		elog(LOG, "last changetracked location in changetracking full log %s",
 				XLogLocationToString(&lastChangeTrackingLogEndLoc));
 	}

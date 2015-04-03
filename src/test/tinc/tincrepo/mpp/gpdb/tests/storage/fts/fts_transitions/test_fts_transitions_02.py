@@ -35,6 +35,30 @@ class FtsTransitionsPart02(FTSTestCase):
         tinctest.logger.info("\n ===============================================")
         self.gpstate_resync_object_count()
 
+    def test_ctchecksum_resync(self):
+        tinctest.logger.info("\n ======================================================")
+        tinctest.logger.info("\n Starting New Test: CT Checksum corruption inc resync")
+        tinctest.logger.info("\n ======================================================")
+        self.checksum_ct_logfile_recoverseg()
+
+    def test_ctchecksum_restart_after_corrupt_inline(self):
+        tinctest.logger.info("\n ===================================================================================")
+        tinctest.logger.info("\n Starting New Test: CT Checksum corruption restart DB after corruping CT file inline")
+        tinctest.logger.info("\n ===================================================================================")
+        self.checksum_ct_logfile_restartdb_corrupt_inline()
+
+    def test_ctchecksum_restart_after_corrupt_by_appending_partial_page(self):
+        tinctest.logger.info("\n ============================================================================================")
+        tinctest.logger.info("\n Starting New Test: CT Checksum corruption restart DB after appending partial page to CT file")
+        tinctest.logger.info("\n ============================================================================================")
+        self.checksum_ct_logfile_restartdb_corrupt_by_appending_partial_page()
+
+    def test_ctchecksum_resync_restart(self):
+        tinctest.logger.info("\n ======================================================")
+        tinctest.logger.info("\n Starting New Test: CT Checksum corruption resync and restart DB")
+        tinctest.logger.info("\n ======================================================")
+        self.checksum_ct_logfile_recoverseg_restartdb()
+
     def test_sync_postmaster_reset(self):
         '''
         @data_provider sync_postmaster_tests

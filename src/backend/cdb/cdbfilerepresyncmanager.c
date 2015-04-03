@@ -767,13 +767,13 @@ FileRepPrimary_StartResyncManager(void)
 		{
 			status = FileRepResyncManager_InResyncTransition();
 		}
-				
+
 		if (status != STATUS_OK ||
 			! (FileRepSubProcess_GetState() == FileRepStateReady &&
 			   dataState == DataStateInResync))
 		{
 			continue;
-		}		
+		}
 		
 		status = FileRepPrimary_RunResyncManager();
 
@@ -874,6 +874,11 @@ FileRepResyncManager_InResyncTransition(void)
 		FileRep_InsertConfigLogEntry("run resync transition, mark page incremental");
 		
 		PersistentFileSysObj_MarkPageIncrementalFromChangeLog();
+		if (segmentState == SegmentStateChangeTrackingDisabled)
+		{
+			status = STATUS_ERROR;
+			goto exit;
+		}
 
 		/*
 		 * Finally, find any Append-Only tables that have mirror data loss.
@@ -1204,53 +1209,26 @@ FileRepPrimary_RunResyncManager(void)
 			}
 		}
 
-		
-		if (Debug_filerep_print)
+		if (Debug_filerep_config_print)
 		{
 			elog(LOG,
-					  "resync running identifier'%s' index '%d' rel storage mgr '%s(%d)' mirror sync state:'%s(%d)' "
-					  "ao loss eof " INT64_FORMAT " ao new eof " INT64_FORMAT " changed page count " INT64_FORMAT " "
-					  "resync ckpt lsn '%d/%d' resync ckpt blkno '%u' ",
-					  entry.fileName, 
-					  ii++,
-					  PersistentFileSysRelStorageMgr_Name(entry.relStorageMgr),
-					  entry.relStorageMgr,
-					  MirroredRelDataSynchronizationState_Name(entry.mirrorDataSynchronizationState),
-					  entry.mirrorDataSynchronizationState,
-					  entry.mirrorAppendOnlyLossEof,
-					  entry.mirrorAppendOnlyNewEof,
-					  entry.mirrorBufpoolResyncChangedPageCount,
-					  entry.mirrorBufpoolResyncCkptLoc.xlogid,
-					  entry.mirrorBufpoolResyncCkptLoc.xrecoff,
-					  entry.mirrorBufpoolResyncCkptBlockNum);			
+				 "resync scheduled %s index %d rel storage mgr %s(%d) mirror sync state:%s(%d) "
+				 "ao loss eof " INT64_FORMAT " ao new eof " INT64_FORMAT " changed page count " INT64_FORMAT " "
+				 "resync ckpt lsn %s resync ckpt blkno %u TID %s serial num " INT64_FORMAT "",
+				 entry.fileName,
+				 ii++,
+				 PersistentFileSysRelStorageMgr_Name(entry.relStorageMgr),
+				 entry.relStorageMgr,
+				 MirroredRelDataSynchronizationState_Name(entry.mirrorDataSynchronizationState),
+				 entry.mirrorDataSynchronizationState,
+				 entry.mirrorAppendOnlyLossEof,
+				 entry.mirrorAppendOnlyNewEof,
+				 entry.mirrorBufpoolResyncChangedPageCount,
+				 XLogLocationToString(&entry.mirrorBufpoolResyncCkptLoc),
+				 entry.mirrorBufpoolResyncCkptBlockNum,
+				 ItemPointerToString(&entry.persistentTid),
+				 entry.persistentSerialNum);
 		}
-		else
-		{
-			char	tmpBuf[FILEREP_MAX_LOG_DESCRIPTION_LEN];
-			
-			snprintf(tmpBuf, sizeof(tmpBuf), 
-					 "resync running identifier'%s' index '%d' rel storage mgr '%s(%d)' mirror sync state:'%s(%d)' ",
-					 entry.fileName, 
-					 ii++,
-					 PersistentFileSysRelStorageMgr_Name(entry.relStorageMgr),
-					 entry.relStorageMgr,
-					 MirroredRelDataSynchronizationState_Name(entry.mirrorDataSynchronizationState),
-					 entry.mirrorDataSynchronizationState);
-			
-			FileRep_InsertConfigLogEntry(tmpBuf);
-			
-			snprintf(tmpBuf, sizeof(tmpBuf), 
-					 "resync running identifier'%s' ao loss eof " INT64_FORMAT " ao new eof " INT64_FORMAT " changed page count " INT64_FORMAT " resync ckpt lsn '%d/%d' resync ckpt blkno '%u' ",
-					 entry.fileName, 
-					 entry.mirrorAppendOnlyLossEof,
-					 entry.mirrorAppendOnlyNewEof,
-					 entry.mirrorBufpoolResyncChangedPageCount,
-					 entry.mirrorBufpoolResyncCkptLoc.xlogid,
-					 entry.mirrorBufpoolResyncCkptLoc.xrecoff,
-					 entry.mirrorBufpoolResyncCkptBlockNum);
-			
-					 FileRep_InsertConfigLogEntry(tmpBuf);			
-		}		
 	}
 	
 	FileRepResync_Cleanup();

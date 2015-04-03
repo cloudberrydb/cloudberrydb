@@ -177,6 +177,7 @@ ReadCTRecord(void)
 		printf("-----------------------------------\n");
 		printf("block version: %d\n", header->blockversion);
 		printf("block number : %d\n", ++block_number);
+		printf("block checksum: 0x%08X\n", header->checksum);
 		printf("records in block: %d\n", header->numrecords);
 		printf("-----------------------------------\n");
 		

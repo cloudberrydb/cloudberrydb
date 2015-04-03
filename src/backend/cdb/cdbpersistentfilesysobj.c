@@ -5669,6 +5669,12 @@ void PersistentFileSysObj_MarkPageIncrementalFromChangeLog(void)
 	 * we pass in a NULL lsn to signify we want all CT records.
 	 */
 	ChangeTracking_DoFullCompactingRound(NULL);
+	if (segmentState == SegmentStateChangeTrackingDisabled)
+	{
+		elog(LOG,
+			 "PersistentFileSysObj_MarkPageIncrementalFromChangeLog returning as SegmentState is ChangeTrackingDisabled");
+		return;
+	}
 
 	/* get a list of relations that had 1 or more blocks changed */
 	incrementalChangeList = ChangeTracking_GetIncrementalChangeList();
@@ -5698,14 +5704,13 @@ void PersistentFileSysObj_MarkPageIncrementalFromChangeLog(void)
 
 		Assert(incrementalChangeList->entries[i].numblocks > 0);
 
+		if (Debug_filerep_config_print)
 		{
-			char	tmpBuf[FILEREP_MAX_LOG_DESCRIPTION_LEN];
-
-			snprintf(tmpBuf, sizeof(tmpBuf),
-					 "marking page incremental for serial number '" INT64_FORMAT "' ",
-					 incrementalChangeList->entries[i].persistentSerialNum);
-
-			FileRep_InsertConfigLogEntry(tmpBuf);
+			elog(LOG,
+				 "resync TID %s serial number " INT64_FORMAT " numBlocks changed " INT64_FORMAT "",
+				 ItemPointerToString(&incrementalChangeList->entries[i].persistentTid),
+				 incrementalChangeList->entries[i].persistentSerialNum,
+				 incrementalChangeList->entries[i].numblocks);
 		}
 
 		PersistentFileSysObj_MarkPageIncremental(

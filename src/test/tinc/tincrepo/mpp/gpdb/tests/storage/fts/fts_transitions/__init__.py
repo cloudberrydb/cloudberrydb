@@ -24,6 +24,9 @@ from mpp.lib.config import GPDBConfig
 from tinctest.lib import local_path, run_shell_command
 from mpp.lib.filerep_util import Filerepe2e_Util
 from mpp.lib.gprecoverseg import GpRecover
+from gppylib.gparray import GpArray
+from gppylib.db import dbconn
+from mpp.gpdb.tests.storage.lib.dbstate import DbStateClass
 from mpp.gpdb.tests.storage.lib.common_utils import Gpstate
 from mpp.gpdb.tests.storage.lib.common_utils import Gpprimarymirror
 from gppylib.commands.base import Command
@@ -81,9 +84,32 @@ class FtsTransitions(MPPTestCase):
         ''' Resume the fault issues '''
         self.fileutil.inject_fault(f=fault_name, y='resume', r=role)
 
+    def corrupt_ct_logfile(self, write_string='*', corruption_offset=1, start_of_file=True):
+        # Force flush CT file to disk
+        PSQL.run_sql_command("CHECKPOINT", flags = '-q -t', dbname= 'postgres')
+
+        gparray = GpArray.initFromCatalog(dbconn.DbURL())
+        primary_segs = [seg for seg in gparray.getDbList() if seg.isSegmentPrimary()]
+        for seg in primary_segs:
+            file = '%s/pg_changetracking/CT_LOG_FULL' % seg.datadir
+            try:
+                with open(file, "r+b") as f:
+                    if start_of_file:
+                        f.seek(corruption_offset, 0)
+                    else:
+                        f.seek(corruption_offset, 2)
+                    f.write(write_string)
+                    f.close()
+            except Exception, e:
+                pass
+
     def incremental_recoverseg(self, workerPool=False):
         gprecover = GpRecover(GPDBConfig())
         gprecover.incremental(workerPool)
+
+    def full_recoverseg(self):
+        gprecover = GpRecover(GPDBConfig())
+        gprecover.full()
 
     def run_recoverseg_if_ct(self):
         gpconfig = GPDBConfig()
@@ -129,6 +155,9 @@ class FtsTransitions(MPPTestCase):
 
     def run_fts_test_ddl_dml_ct(self):
         PSQL.run_sql_file(local_path('fts_test_ddl_dml_ct.sql'))
+
+    def run_fts_test_ddl_dml_checksum_ct_recoverseg(self):
+        PSQL.run_sql_file(local_path('fts_test_ddl_dml_checksum_ct_recoverseg.sql'))
 
     def restart_db(self):
         self.gpstop.run_gpstop_cmd(immediate = True)

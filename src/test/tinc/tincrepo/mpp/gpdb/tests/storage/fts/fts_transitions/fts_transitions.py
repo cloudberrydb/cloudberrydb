@@ -160,6 +160,107 @@ class FTSTestCase(ScenarioTestCase, MPPTestCase):
 
         self.fts_test_run('primary','ct')
 
+    # This test creates multiple blocks to CT_FULL file, corrupts first block
+    # and validates incremental resync detects corrupted CT file, fails and full
+    # resync brings cluster back in sync. In this case mutlipe blocks are
+    # required to be created to CT_FULL file, to deterministically corrupt first
+    # block without worrying about it getting overwritten later.
+    def checksum_ct_logfile_recoverseg(self):
+        self.check_system()
+
+        test_case_list0 = []
+        test_case_list0.append('mpp.gpdb.tests.storage.fts.fts_transitions.FtsTransitions.run_fts_test_ddl_dml_before_ct')
+        test_case_list0.append(('mpp.gpdb.tests.storage.fts.fts_transitions.FtsTransitions.set_faults', ['filerep_consumer', 'fault', 'primary']))
+        test_case_list0.append('mpp.gpdb.tests.storage.fts.fts_transitions.FtsTransitions.run_trigger_sql')
+        test_case_list0.append('mpp.gpdb.tests.storage.fts.fts_transitions.FtsTransitions.wait_till_change_tracking')
+        test_case_list0.append('mpp.gpdb.tests.storage.fts.fts_transitions.FtsTransitions.run_fts_test_ddl_dml_ct')
+        # This allows to generate work-load to create multiple blocks in CT_FULL file
+        test_case_list0.append('mpp.gpdb.tests.storage.fts.fts_transitions.FtsTransitions.run_fts_test_ddl_dml_checksum_ct_recoverseg')
+        test_case_list0.append('mpp.gpdb.tests.storage.fts.fts_transitions.FtsTransitions.corrupt_ct_logfile')
+
+        test_case_list0.append('mpp.gpdb.tests.storage.fts.fts_transitions.FtsTransitions.incremental_recoverseg')
+        test_case_list0.append('mpp.gpdb.tests.storage.fts.fts_transitions.FtsTransitions.wait_till_change_tracking')
+        test_case_list0.append('mpp.gpdb.tests.storage.fts.fts_transitions.FtsTransitions.full_recoverseg')
+        test_case_list0.append('mpp.gpdb.tests.storage.fts.fts_transitions.FtsTransitions.wait_till_insync')
+        self.test_case_scenario.append(test_case_list0, serial=True)
+
+    # Gets cluster in CT state, corrupts CT file and restart DB. Validates DB
+    # doesn't go into rolling PANICs but instead moves to CT disabled
+    # state. Incremental resync fails and only full resync brings it back to
+    # sync state.
+    def checksum_ct_logfile_restartdb_corrupt_inline(self):
+        self.check_system()
+
+        test_case_list0 = []
+        test_case_list0.append('mpp.gpdb.tests.storage.fts.fts_transitions.FtsTransitions.run_fts_test_ddl_dml_before_ct')
+        test_case_list0.append(('mpp.gpdb.tests.storage.fts.fts_transitions.FtsTransitions.set_faults', ['filerep_consumer', 'fault', 'primary']))
+        test_case_list0.append('mpp.gpdb.tests.storage.fts.fts_transitions.FtsTransitions.run_trigger_sql')
+        test_case_list0.append('mpp.gpdb.tests.storage.fts.fts_transitions.FtsTransitions.wait_till_change_tracking')
+        test_case_list0.append('mpp.gpdb.tests.storage.fts.fts_transitions.FtsTransitions.run_fts_test_ddl_dml_ct')
+        test_case_list0.append('mpp.gpdb.tests.storage.fts.fts_transitions.FtsTransitions.corrupt_ct_logfile')
+
+        test_case_list0.append('mpp.gpdb.tests.storage.fts.fts_transitions.FtsTransitions.restart_db')
+        test_case_list0.append('mpp.gpdb.tests.storage.fts.fts_transitions.FtsTransitions.incremental_recoverseg')
+        test_case_list0.append('mpp.gpdb.tests.storage.fts.fts_transitions.FtsTransitions.wait_till_change_tracking')
+        test_case_list0.append('mpp.gpdb.tests.storage.fts.fts_transitions.FtsTransitions.full_recoverseg')
+        test_case_list0.append('mpp.gpdb.tests.storage.fts.fts_transitions.FtsTransitions.wait_till_insync')
+        self.test_case_scenario.append(test_case_list0, serial=True)
+
+    # In this test, instead of corrupting the perfect CT_BLOCK_SIZE block,
+    # inline. Appends dirty data at end of file to simulate partial write
+    # case. This scenario restart detects issue with CT files, moves to CT
+    # disabled state, then validates incremental resync fails.
+    def checksum_ct_logfile_restartdb_corrupt_by_appending_partial_page(self):
+        self.check_system()
+
+        test_case_list0 = []
+        test_case_list0.append('mpp.gpdb.tests.storage.fts.fts_transitions.FtsTransitions.run_fts_test_ddl_dml_before_ct')
+        test_case_list0.append(('mpp.gpdb.tests.storage.fts.fts_transitions.FtsTransitions.set_faults', ['filerep_consumer', 'fault', 'primary']))
+        test_case_list0.append('mpp.gpdb.tests.storage.fts.fts_transitions.FtsTransitions.run_trigger_sql')
+        test_case_list0.append('mpp.gpdb.tests.storage.fts.fts_transitions.FtsTransitions.wait_till_change_tracking')
+        test_case_list0.append('mpp.gpdb.tests.storage.fts.fts_transitions.FtsTransitions.run_fts_test_ddl_dml_ct')
+        test_case_list0.append(('mpp.gpdb.tests.storage.fts.fts_transitions.FtsTransitions.corrupt_ct_logfile', ['LetsCorruptFileByWritingThisPartialCTBlock', 0, False]))
+
+        test_case_list0.append('mpp.gpdb.tests.storage.fts.fts_transitions.FtsTransitions.restart_db')
+        test_case_list0.append('mpp.gpdb.tests.storage.fts.fts_transitions.FtsTransitions.wait_till_change_tracking')
+        test_case_list0.append('mpp.gpdb.tests.storage.fts.fts_transitions.FtsTransitions.incremental_recoverseg')
+        test_case_list0.append('mpp.gpdb.tests.storage.fts.fts_transitions.FtsTransitions.wait_till_change_tracking')
+        # Make sure further attempts of incremental recovery also fail.
+        test_case_list0.append('mpp.gpdb.tests.storage.fts.fts_transitions.FtsTransitions.incremental_recoverseg')
+        test_case_list0.append('mpp.gpdb.tests.storage.fts.fts_transitions.FtsTransitions.wait_till_change_tracking')
+        # Only final recovery should bring us back to sync state.
+        test_case_list0.append('mpp.gpdb.tests.storage.fts.fts_transitions.FtsTransitions.full_recoverseg')
+        test_case_list0.append('mpp.gpdb.tests.storage.fts.fts_transitions.FtsTransitions.wait_till_insync')
+        self.test_case_scenario.append(test_case_list0, serial=True)
+
+    # In this scenario, incremental resync detects issue with CT files, moves to
+    # CT disabled state. Then validates on restart, it remains in CT disabled
+    # state, incremental resync fails.
+    def checksum_ct_logfile_recoverseg_restartdb(self):
+        self.check_system()
+
+        test_case_list0 = []
+        test_case_list0.append('mpp.gpdb.tests.storage.fts.fts_transitions.FtsTransitions.run_fts_test_ddl_dml_before_ct')
+        test_case_list0.append(('mpp.gpdb.tests.storage.fts.fts_transitions.FtsTransitions.set_faults', ['filerep_consumer', 'fault', 'primary']))
+        test_case_list0.append('mpp.gpdb.tests.storage.fts.fts_transitions.FtsTransitions.run_trigger_sql')
+        test_case_list0.append('mpp.gpdb.tests.storage.fts.fts_transitions.FtsTransitions.wait_till_change_tracking')
+        test_case_list0.append('mpp.gpdb.tests.storage.fts.fts_transitions.FtsTransitions.run_fts_test_ddl_dml_ct')
+        test_case_list0.append('mpp.gpdb.tests.storage.fts.fts_transitions.FtsTransitions.run_fts_test_ddl_dml_checksum_ct_recoverseg')
+        test_case_list0.append('mpp.gpdb.tests.storage.fts.fts_transitions.FtsTransitions.corrupt_ct_logfile')
+
+        test_case_list0.append('mpp.gpdb.tests.storage.fts.fts_transitions.FtsTransitions.incremental_recoverseg')
+        test_case_list0.append('mpp.gpdb.tests.storage.fts.fts_transitions.FtsTransitions.wait_till_change_tracking')
+
+        # Restart and make sure DB stays in CT and incremental recovery is not permitted
+        test_case_list0.append('mpp.gpdb.tests.storage.fts.fts_transitions.FtsTransitions.restart_db')
+        test_case_list0.append('mpp.gpdb.tests.storage.fts.fts_transitions.FtsTransitions.wait_till_change_tracking')
+        test_case_list0.append('mpp.gpdb.tests.storage.fts.fts_transitions.FtsTransitions.incremental_recoverseg')
+        test_case_list0.append('mpp.gpdb.tests.storage.fts.fts_transitions.FtsTransitions.wait_till_change_tracking')
+
+        test_case_list0.append('mpp.gpdb.tests.storage.fts.fts_transitions.FtsTransitions.full_recoverseg')
+        test_case_list0.append('mpp.gpdb.tests.storage.fts.fts_transitions.FtsTransitions.wait_till_insync')
+        self.test_case_scenario.append(test_case_list0, serial=True)
+
     def gpstate_resync_object_count(self):
         self.check_system()
 

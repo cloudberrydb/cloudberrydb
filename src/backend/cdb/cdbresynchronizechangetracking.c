@@ -29,6 +29,7 @@
 #include "utils/memutils.h"
 #include "utils/palloc.h"
 #include "utils/faultinjector.h"
+#include "utils/pg_crc.h"
 
 #include "cdb/cdbfilerep.h"
 #include "cdb/cdbfilerepresyncmanager.h"
@@ -70,7 +71,7 @@ static void ChangeTracking_AddResultEntry(ChangeTrackingResult *result,
 										  Oid rel,
 										  BlockNumber blocknum,
 										  XLogRecPtr* lsn_end);
-static int ChangeTracking_MarkFullResyncLockAcquired(void);
+static void ChangeTracking_MarkFullResyncLockAcquired(void);
 static void ChangeTracking_HandleWriteError(CTFType ft);
 static void ChangeTracking_CreateTransientLogIfNeeded(void);
 static void ChangeTracking_ResetBufStatus(ChangeTrackingBufStatusData* bufstat);
@@ -2024,13 +2025,13 @@ static void ChangeTracking_ResetCompactingStatus(ChangeTrackingLogCompactingStat
 static int ChangeTracking_WriteBuffer(File file, CTFType ftype)
 {
 	ChangeTrackingBufStatusData *bufstat;
-	ChangeTrackingPageHeader	header;
+	ChangeTrackingPageHeader *headerptr;
 	char*	buf;
-	void	*headerptr;
 	int 	freespace;
 	int 	wrote = 0;
 	int64	restartpos;
 	int64 actualpos = 0;
+	pg_crc32    crc;
 	
 	Assert(ftype != CTF_META);
 	Assert(ftype != CTF_LOG_TRANSIENT);
@@ -2052,15 +2053,23 @@ static int ChangeTracking_WriteBuffer(File file, CTFType ftype)
 
 	if(bufstat->recordcount == 0)
 		elog(ERROR, "ChangeTracking_WriteBuffer called with empty buffer");
-		
-	/* set the page header and copy it */	
-	header.blockversion = CHANGETRACKING_STORAGE_VERSION;
-	header.numrecords = bufstat->recordcount;
-	headerptr = &header;
-	memcpy(buf, headerptr, sizeof(ChangeTrackingPageHeader));
-	
-	/* pad end of page with zeros */	
+
+	/* Set the checksum to 0 to include header also in the crc calculation */
+	headerptr = (ChangeTrackingPageHeader*)buf;
+	headerptr->blockversion = CHANGETRACKING_STORAGE_VERSION;
+	headerptr->numrecords = bufstat->recordcount;
+	headerptr->checksum = 0;
+
+	/* pad end of page with zeros */
 	MemSet(buf + bufstat->bufsize, 0, freespace);
+
+	/* Calculate checksum for the whole buffer, including the header.*/
+	Assert(bufstat->maxbufsize == CHANGETRACKING_BLCKSZ);
+	INIT_CRC32C(crc);
+	COMP_CRC32C(crc, buf, bufstat->maxbufsize);
+	FIN_CRC32C(crc);
+	
+	headerptr->checksum = crc;
 	
 	/*
 	 * 1) set the file write position with FileSeek.
@@ -2243,7 +2252,7 @@ void ChangeTracking_MarkFullResync(void)
 	LWLockRelease(ChangeTrackingWriteLock);
 }
 
-static int
+static void
 ChangeTracking_MarkFullResyncLockAcquired(void)
 {
 	File	file;
@@ -2287,8 +2296,7 @@ ChangeTracking_MarkFullResyncLockAcquired(void)
 				 errmsg("write error for change tracking meta file in "
 						"ChangeTracking_MarkFullResyncLockAcquired. "
 						"Change Tracking disabled : %m"),
-						errSendAlert(true)));	
-		return -1;
+						errSendAlert(true)));
 	}
 
 	ChangeTracking_CloseFile(file);
@@ -2300,13 +2308,11 @@ ChangeTracking_MarkFullResyncLockAcquired(void)
 	setFullResync(changeTrackingResyncMeta->resync_mode_full); 
 	
 	getFileRepRoleAndState(&fileRepRole, &segmentState, &dataState, NULL, NULL);
-	
-	if (dataState == DataStateInChangeTracking)
-	{
-		FileRep_SetSegmentState(SegmentStateChangeTrackingDisabled, FaultTypeNotInitialized);
-	}	
 
-	return 0;
+	FileRep_SetSegmentState(SegmentStateChangeTrackingDisabled, FaultTypeNotInitialized);
+
+	getFileRepRoleAndState(&fileRepRole, &segmentState, &dataState, NULL, NULL);
+	Assert(segmentState == SegmentStateChangeTrackingDisabled);
 }
 
 /*
@@ -2461,7 +2467,7 @@ ChangeTracking_RecordLastChangeTrackedLoc(void)
 			char	tmpBuf[FILEREP_MAX_LOG_DESCRIPTION_LEN];
 			
 			snprintf(tmpBuf, sizeof(tmpBuf), 
-					 "no ct records to flush count '%u' size '%u' max '%u' offset " INT64_FORMAT " fileseg '%u' ",
+					 "number of ct records to flush count '%u' size '%u' max '%u' offset " INT64_FORMAT " fileseg '%u' ",
 					 CTMainWriteBufStatus->recordcount,
 					 CTMainWriteBufStatus->bufsize,
 					 CTMainWriteBufStatus->maxbufsize,
@@ -3032,6 +3038,8 @@ void ChangeTracking_DoFullCompactingRound(XLogRecPtr* upto_lsn)
 		upto_lsn = NULL;
 		changeTrackingCompState->xlog_end_location.xlogid = 0;
 		changeTrackingCompState->xlog_end_location.xrecoff = 0;
+		if (segmentState == SegmentStateChangeTrackingDisabled)
+			return;
 	}
 
 	/* step (2) */
@@ -3044,8 +3052,10 @@ void ChangeTracking_DoFullCompactingRound(XLogRecPtr* upto_lsn)
 		ChangeTracking_ResetBufStatus(CTCompactWriteBufStatus);
 		ChangeTracking_CompactLogFile(CTF_LOG_TRANSIENT, CTF_LOG_COMPACT, upto_lsn);
 		ChangeTracking_DropLogFile(CTF_LOG_TRANSIENT);
+		if (segmentState == SegmentStateChangeTrackingDisabled)
+			return;
 	}
-	
+
 	/* step (3) */
 	ChangeTracking_ResetBufStatus(CTCompactWriteBufStatus);
 	ChangeTracking_RenameLogFile(CTF_LOG_COMPACT, CTF_LOG_TRANSIENT);
@@ -3112,8 +3122,9 @@ int ChangeTracking_CompactLogFile(CTFType source, CTFType dest, XLogRecPtr*	upto
 		/* Do the query. */
 		ret = SPI_execute(sqlstmt.data, true, 0);
 		proc = SPI_processed;
-				
-		if (ret > 0 && SPI_tuptable != NULL)
+
+		if ((segmentState != SegmentStateChangeTrackingDisabled) &&
+			ret > 0 && SPI_tuptable != NULL)
 		{
 			TupleDesc 		tupdesc = SPI_tuptable->tupdesc;
 			SPITupleTable*	tuptable = SPI_tuptable;
@@ -3211,7 +3222,7 @@ int ChangeTracking_CompactLogFile(CTFType source, CTFType dest, XLogRecPtr*	upto
 /* 
  * find last LSN recorded in Change Tracking Full Log file
  */
-void
+bool
 ChangeTracking_GetLastChangeTrackingLogEndLoc(XLogRecPtr *lastChangeTrackingLogEndLoc)
 {
 	File		file;
@@ -3220,6 +3231,7 @@ ChangeTracking_GetLastChangeTrackingLogEndLoc(XLogRecPtr *lastChangeTrackingLogE
 	int64		numBlocks = 0;
 	int			nbytes = 0;
 	char		*buf = NULL;
+	bool		retval = true;
 
 	LWLockAcquire(ChangeTrackingWriteLock, LW_EXCLUSIVE);
 
@@ -3231,7 +3243,7 @@ ChangeTracking_GetLastChangeTrackingLogEndLoc(XLogRecPtr *lastChangeTrackingLogE
 		if (file > 0)
 		{
 			position = FileSeek(file, 0, SEEK_END); 
-			
+
 			if (position < 0)
 			{
 				ereport(WARNING,
@@ -3239,7 +3251,35 @@ ChangeTracking_GetLastChangeTrackingLogEndLoc(XLogRecPtr *lastChangeTrackingLogE
 						 errmsg("unable to seek to end in change tracking '%s' file : %m",
 								ChangeTracking_FtypeToString(ftype))));			
 				break;
-			}			
+			}
+
+			/*
+			 * If file didn't exist and was created by call
+			 * ChangeTracking_OpenFile above or empty.
+			 */
+			if (position == 0)
+				break;
+
+			/*
+			 * CT files are always written in term of CHANGETRACKING_BLCKSZ,
+			 * so while reading must have it aligned to same. If not
+			 * something went missing or is extra in file and hence treat it
+			 * as corruption and act accordingly.
+			 */
+			if (position % CHANGETRACKING_BLCKSZ)
+			{
+				ereport(WARNING,
+						(errcode(ERRCODE_DATA_CORRUPTED),
+						 errmsg("changetracking log (CTF_LOG_FULL) not CHANGETRACKING_BLCKSZ aligned, disabling changetracking"),
+						 errdetail("CTF_LOG_FULL file size:%lu",
+								   position)));
+				ChangeTracking_CloseFile(file);
+				file = 0;
+				/* Marks segment state as CT disabled and deletes all the CT files */
+				ChangeTracking_MarkFullResyncLockAcquired();
+				retval = false;
+				break;
+			}
 			
 			numBlocks = position / CHANGETRACKING_BLCKSZ;
 			
@@ -3251,7 +3291,7 @@ ChangeTracking_GetLastChangeTrackingLogEndLoc(XLogRecPtr *lastChangeTrackingLogE
 			{ 
 				position = (numBlocks - 1) * CHANGETRACKING_BLCKSZ;
 			}
-			
+
 			FileSeek(file, position, SEEK_SET); 		
 		}
 		else
@@ -3284,21 +3324,46 @@ ChangeTracking_GetLastChangeTrackingLogEndLoc(XLogRecPtr *lastChangeTrackingLogE
 			ChangeTrackingPageHeader	*header;
 			ChangeTrackingRecord		*record;
 			char						*bufTemp = buf;
+			pg_crc32    read_checksum;
+			pg_crc32    calc_checksum;
 
 			header = (ChangeTrackingPageHeader *) bufTemp;
+			read_checksum = header->checksum;
+			header->checksum = 0;
+			INIT_CRC32C(calc_checksum);
+			COMP_CRC32C(calc_checksum, buf, CHANGETRACKING_BLCKSZ);
+			FIN_CRC32C(calc_checksum);
+			if (read_checksum != calc_checksum)
+			{
+				ereport(WARNING,
+						(errcode(ERRCODE_DATA_CORRUPTED),
+						 errmsg("changetracking log (CTF_LOG_FULL) corrupted, disabling changetracking"),
+						 errdetail("checksum mismatch read:0x%08X compute:0x%08X",
+							 read_checksum, calc_checksum)));
+				ChangeTracking_CloseFile(file);
+				file = 0;
+				/* Marks segment state as CT disabled and deletes all the CT files */
+				ChangeTracking_MarkFullResyncLockAcquired();
+				retval = false;
+				break;
+			}
+	
 			bufTemp += sizeof(ChangeTrackingPageHeader) + sizeof(ChangeTrackingRecord) * (header->numrecords - 1);
 			record = (ChangeTrackingRecord *) bufTemp;
-			
 			*lastChangeTrackingLogEndLoc = record->xlogLocation;
 		}
 		else
 		{
 			ereport(WARNING,
 					(errcode_for_file_access(),
-					 errmsg("unable to read change tracking '%s' file : %m",
-							ChangeTracking_FtypeToString(ftype))));		
+					 errmsg("unable to read change tracking '%s' file (read only %d bytes) : %m",
+							ChangeTracking_FtypeToString(ftype), nbytes)));
+			ChangeTracking_CloseFile(file);
+			file = 0;
+			/* Marks segment state as CT disabled and deletes all the CT files */
+			ChangeTracking_MarkFullResyncLockAcquired();
+			retval = false;
 		}
-		
 		break;
 	}
 	
@@ -3313,6 +3378,8 @@ ChangeTracking_GetLastChangeTrackingLogEndLoc(XLogRecPtr *lastChangeTrackingLogE
 	{
 		pfree(buf);
 	}
+
+	return retval;
 }	
 
 /*
@@ -3333,19 +3400,7 @@ int ChangeTracking_GetInfoArrayDesiredMaxLength(RmgrId rmid, uint8 info)
 
 static void ChangeTracking_HandleWriteError(CTFType ft)
 {
-
-	if(ChangeTracking_MarkFullResyncLockAcquired() != -1)
-	{
-		FileRep_SetSegmentState(SegmentStateChangeTrackingDisabled, FaultTypeNotInitialized);
-		
-		ereport(WARNING, 
-				(errcode_for_file_access(),
-				 errmsg("write error for change tracking %s file, "
-						"change tracking disabled : %m", 
-						ChangeTracking_FtypeToString(ft)),
-				 errSendAlert(true)));	
-	}
-	
+	ChangeTracking_MarkFullResyncLockAcquired();
 }
 
 char *ChangeTracking_FtypeToString(CTFType ftype)

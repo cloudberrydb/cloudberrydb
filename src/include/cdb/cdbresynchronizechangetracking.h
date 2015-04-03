@@ -13,9 +13,10 @@
 #include "access/xlog.h"
 #include "access/xlogdefs.h"
 #include "storage/relfilenode.h"
+#include "utils/pg_crc.h"
 
 #define CHANGETRACKINGDIR  "pg_changetracking"
-#define CHANGETRACKING_STORAGE_VERSION 1
+#define CHANGETRACKING_STORAGE_VERSION 2
 #define CHANGETRACKING_BLCKSZ BLCKSZ
 #define	CHANGETRACKING_XLOGDATASZ (128 * 1024)
 #define CHANGETRACKING_METABUFLEN 128
@@ -238,8 +239,9 @@ typedef struct ChangeTrackingRecord
  */
 typedef struct ChangeTrackingPageHeader
 {
-	uint32		blockversion;		/* version == 1. increment if we change the block layout in the future */
+	uint32		blockversion;		/* version == CHANGETRACKING_STORAGE_VERSION. increment if we change the block layout in the future */
 	uint32		numrecords;			/* number of records stored in the current block */
+	pg_crc32	checksum;			/* checksum of the current block */
 	
 } ChangeTrackingPageHeader;
 
@@ -339,7 +341,7 @@ extern ChangeTrackingResult* ChangeTracking_GetChanges(ChangeTrackingRequest* re
 extern void ChangeTracking_FreeRequest(ChangeTrackingRequest* request);
 extern void ChangeTracking_FreeResult(ChangeTrackingResult* result);
 
-extern void ChangeTracking_GetLastChangeTrackingLogEndLoc(XLogRecPtr *lastChangeTrackingLogEndLoc);
+extern bool ChangeTracking_GetLastChangeTrackingLogEndLoc(XLogRecPtr *lastChangeTrackingLogEndLoc);
 
 // -----------------------------------------------------------------------------
 // Shmem
