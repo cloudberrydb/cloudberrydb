@@ -3677,6 +3677,11 @@ def impl(context, filepath, line):
     if line not in open(filepath).read():
         raise Exception("The file '%s' does not contain '%s'" % (filepath, line))
 
+@then('verify that the file "{filepath}" does not contain "{line}"')
+def impl(context, filepath, line):
+    if line in open(filepath).read():
+        raise Exception("The file '%s' does contain '%s'" % (filepath, line))
+
 @then('verify that gptransfer is in order of "{filepath}"')
 def impl(context, filepath):
     table = []

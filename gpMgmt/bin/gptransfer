@@ -554,6 +554,14 @@ def create_parser():
              ', '.join(validator_factory.get_available_validators())
     )
 
+    validation_option_group.add_option(
+        '--no-final-count',
+        dest='no_final_count_validation',
+        default=False,
+        action='store_true',
+        help='Do not run final count validation'
+    )
+
     parser.add_option_group(validation_option_group)
 
     parser.setHelp(__help__)
@@ -2371,6 +2379,11 @@ class GpTransfer(object):
         if self._options.exclusive_lock:
             logger.info("Exclusive locks will be used during table transfers.")
 
+        if not self._options.no_final_count_validation:
+            self._validator_class = validator_factory.get_validator('count')
+        else:
+            self._validator_class = None
+
         # Get number of gpfdists per source host
         source_host_count = len(self._host_map.keys())
         self._gpfdist_instance_count = \
@@ -2486,6 +2499,9 @@ class GpTransfer(object):
                     'This file can be used with the -f option to continue')
                 logger.warn('the data transfer.')
                 return 1
+            else:
+                if self._validator_class:
+                   self._final_count_validation()
         else:
             # dry run
             self._dry_run()
@@ -2930,6 +2946,30 @@ class GpTransfer(object):
         if self._options.delimiter == ',' and self._options.format.lower() == 'text':
             raise ProgramArgumentValidationException(
                 'Invalid --delimiter. Default delimiter "," is not allowed in TEXT format. Specify --delimiter option for TEXT')
+
+    def _final_count_validation(self):
+        logger.info('Running final table row count validation on destination tables...')
+        for table_pair in self._table_transfer_set:
+            try:
+                url = DbURL(self._options.source_host, self._options.source_port, table_pair.source.database, self._options.source_user)
+                src_conn = connect(url)
+                url = DbURL(self._options.dest_host, self._options.dest_port, table_pair.dest.database, self._options.dest_user)
+                dest_conn = connect(url)
+                validator = self._validator_class(self._work_dir,
+                                                  table_pair,
+                                                  src_conn,
+                                                  dest_conn)
+                if not validator.validate():
+                   logger.error('Validation failed for %s', table_pair.dest)
+                else:
+                   logger.info('Validation of %s successful', table_pair.dest)
+            except Exception, e:
+                raise Exception("Final count validation failed for %s" % e)
+            finally:
+                if src_conn:
+                    src_conn.close()
+                if dest_conn:
+                    dest_conn.close()
 
     # Validate if destination system is missing required filespaces
     def _validate_filespace(self, source_host, source_port, source_user, dest_host, dest_port, dest_user, full):

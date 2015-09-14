@@ -1364,6 +1364,39 @@ Feature: gptransfer tests
         Then gptransfer should return a return code of 0 
         And gptransfer should print \[DEBUG\] to stdout
 
+    Scenario: gptransfer full in CSV format with final count validation
+        Given the database is running
+        And the database "gptransfer_destdb" does not exist
+        And the database "gptransfer_testdb1" does not exist
+        And the database "gptransfer_testdb2" does not exist
+        And the database "gptransfer_testdb3" does not exist
+        And the database "gptransfer_testdb4" does not exist
+        And the database "gptransfer_testdb5" does not exist
+        And the user runs "gptransfer --full --source-port $GPTRANSFER_SOURCE_PORT --source-host $GPTRANSFER_SOURCE_HOST --source-user $GPTRANSFER_SOURCE_USER --dest-user $GPTRANSFER_DEST_USER --dest-port $GPTRANSFER_DEST_PORT --dest-host $GPTRANSFER_DEST_HOST --source-map-file $GPTRANSFER_MAP_FILE --format=csv > /tmp/gptransfer_stdout.txt"
+        Then gptransfer should return a return code of 0 
+        And verify that the file "/tmp/gptransfer_stdout.txt" contains "Running final count validation on destination tables"
+        And verify that table "t0" in "gptransfer_testdb1" has "100" rows 
+        And verify that table "t1" in "gptransfer_testdb1" has "200" rows 
+        And verify that table "t2" in "gptransfer_testdb1" has "300" rows 
+        And verify that table "t3" in "gptransfer_testdb2" has "400" rows 
+        And verify that table "t4" in "gptransfer_testdb2" has "500" rows 
+        And verify that table "t5" in "gptransfer_testdb2" has "600" rows 
+        And verify that table "t0" in "gptransfer_testdb3" has "700" rows 
+        And verify that table "empty_table" in "gptransfer_testdb4" has "0" rows 
+        And verify that table "one_row_table" in "gptransfer_testdb4" has "1" rows 
+        And verify that table "wide_rows" in "gptransfer_testdb5" has "10" rows
+
+    Scenario: gptransfer full with --no-final-count option
+        Given the database is running
+        And the database "gptransfer_destdb" does not exist
+        And the database "gptransfer_testdb1" does not exist
+        And the database "gptransfer_testdb2" does not exist
+        And the database "gptransfer_testdb3" does not exist
+        And the database "gptransfer_testdb4" does not exist
+        And the database "gptransfer_testdb5" does not exist
+        And the user runs "gptransfer --full --source-port $GPTRANSFER_SOURCE_PORT --source-host $GPTRANSFER_SOURCE_HOST --source-user $GPTRANSFER_SOURCE_USER --dest-user $GPTRANSFER_DEST_USER --dest-port $GPTRANSFER_DEST_PORT --dest-host $GPTRANSFER_DEST_HOST --source-map-file $GPTRANSFER_MAP_FILE --no-final-count > /tmp/gptransfer_stdout.txt"
+        Then gptransfer should return a return code of 0
+        And verify that the file "/tmp/gptransfer_stdout.txt" does not contain "Running final count validation on destination tables"
 
     @T339830
     Scenario: gptransfer full with all types of database objects created
