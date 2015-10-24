@@ -3,7 +3,8 @@
  * rewriteDefine.c
  *	  routines for defining a rewrite rule
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 2006-2009, Greenplum inc
+ * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -15,6 +16,7 @@
 #include "postgres.h"
 
 #include "access/heapam.h"
+#include "catalog/catquery.h"
 #include "catalog/dependency.h"
 #include "catalog/indexing.h"
 #include "catalog/pg_rewrite.h"
@@ -28,7 +30,13 @@
 #include "utils/acl.h"
 #include "utils/builtins.h"
 #include "utils/lsyscache.h"
+#include "utils/rel.h"
 #include "utils/syscache.h"
+#include "cdb/cdbvars.h"
+#include "cdb/cdbdisp.h"
+#include "cdb/cdbmirroredfilesysobj.h"
+#include "catalog/heap.h"
+#include "cdb/cdbpersistentfilesysobj.h"
 
 
 static void checkRuleResultList(List *targetList, TupleDesc resultDesc,
@@ -50,27 +58,28 @@ InsertRule(char *rulname,
 		   bool evinstead,
 		   Node *event_qual,
 		   List *action,
-		   bool replace)
+		   bool replace,
+		   Oid ruleOid)
 {
 	char	   *evqual = nodeToString(event_qual);
 	char	   *actiontree = nodeToString((Node *) action);
 	int			i;
 	Datum		values[Natts_pg_rewrite];
-	char		nulls[Natts_pg_rewrite];
-	char		replaces[Natts_pg_rewrite];
+	bool		nulls[Natts_pg_rewrite];
+	bool		replaces[Natts_pg_rewrite];
 	NameData	rname;
-	Relation	pg_rewrite_desc;
 	HeapTuple	tup,
 				oldtup;
 	Oid			rewriteObjectId;
 	ObjectAddress myself,
 				referenced;
 	bool		is_update = false;
+	cqContext  *pcqCtx;
 
 	/*
 	 * Set up *nulls and *values arrays
 	 */
-	MemSet(nulls, ' ', sizeof(nulls));
+	MemSet(nulls, false, sizeof(nulls));
 
 	i = 0;
 	namestrcpy(&rname, rulname);
@@ -79,21 +88,26 @@ InsertRule(char *rulname,
 	values[i++] = Int16GetDatum(evslot_index);	/* ev_attr */
 	values[i++] = CharGetDatum(evtype + '0');	/* ev_type */
 	values[i++] = BoolGetDatum(evinstead);		/* is_instead */
-	values[i++] = DirectFunctionCall1(textin, CStringGetDatum(evqual)); /* ev_qual */
-	values[i++] = DirectFunctionCall1(textin, CStringGetDatum(actiontree));		/* ev_action */
+	values[i++] = CStringGetTextDatum(evqual);	/* ev_qual */
+	values[i++] = CStringGetTextDatum(actiontree);		/* ev_action */
 
 	/*
 	 * Ready to store new pg_rewrite tuple
 	 */
-	pg_rewrite_desc = heap_open(RewriteRelationId, RowExclusiveLock);
 
 	/*
 	 * Check to see if we are replacing an existing tuple
 	 */
-	oldtup = SearchSysCache(RULERELNAME,
-							ObjectIdGetDatum(eventrel_oid),
-							PointerGetDatum(rulname),
-							0, 0);
+	pcqCtx = caql_beginscan(
+			NULL,
+			cql("SELECT * FROM pg_rewrite "
+				" WHERE ev_class = :1 "
+				" AND rulename = :2 "
+				" FOR UPDATE ",
+				ObjectIdGetDatum(eventrel_oid),
+				CStringGetDatum(rulname)));
+	
+	oldtup = caql_getnext(pcqCtx);
 
 	if (HeapTupleIsValid(oldtup))
 	{
@@ -106,32 +120,32 @@ InsertRule(char *rulname,
 		/*
 		 * When replacing, we don't need to replace every attribute
 		 */
-		MemSet(replaces, ' ', sizeof(replaces));
-		replaces[Anum_pg_rewrite_ev_attr - 1] = 'r';
-		replaces[Anum_pg_rewrite_ev_type - 1] = 'r';
-		replaces[Anum_pg_rewrite_is_instead - 1] = 'r';
-		replaces[Anum_pg_rewrite_ev_qual - 1] = 'r';
-		replaces[Anum_pg_rewrite_ev_action - 1] = 'r';
+		MemSet(replaces, false, sizeof(replaces));
+		replaces[Anum_pg_rewrite_ev_attr - 1] = true;
+		replaces[Anum_pg_rewrite_ev_type - 1] = true;
+		replaces[Anum_pg_rewrite_is_instead - 1] = true;
+		replaces[Anum_pg_rewrite_ev_qual - 1] = true;
+		replaces[Anum_pg_rewrite_ev_action - 1] = true;
 
-		tup = heap_modifytuple(oldtup, RelationGetDescr(pg_rewrite_desc),
-							   values, nulls, replaces);
+		tup = caql_modify_current(pcqCtx,
+								  values, nulls, replaces);
 
-		simple_heap_update(pg_rewrite_desc, &tup->t_self, tup);
-
-		ReleaseSysCache(oldtup);
+		caql_update_current(pcqCtx, tup);
+		/* and Update indexes (implicit) */
 
 		rewriteObjectId = HeapTupleGetOid(tup);
 		is_update = true;
 	}
 	else
 	{
-		tup = heap_formtuple(pg_rewrite_desc->rd_att, values, nulls);
+		tup = caql_form_tuple(pcqCtx, values, nulls);
 
-		rewriteObjectId = simple_heap_insert(pg_rewrite_desc, tup);
+		if (OidIsValid(ruleOid))
+			HeapTupleSetOid(tup, ruleOid);
+
+		rewriteObjectId = caql_insert(pcqCtx, tup);
+		/* and Update indexes (implicit) */
 	}
-
-	/* Need to update indexes in either case */
-	CatalogUpdateIndexes(pg_rewrite_desc, tup);
 
 	heap_freetuple(tup);
 
@@ -172,7 +186,7 @@ InsertRule(char *rulname,
 							   DEPENDENCY_NORMAL);
 	}
 
-	heap_close(pg_rewrite_desc, RowExclusiveLock);
+	caql_endscan(pcqCtx);
 
 	return rewriteObjectId;
 }
@@ -188,7 +202,6 @@ DefineQueryRewrite(RuleStmt *stmt)
 	List	   *action = stmt->actions;
 	Relation	event_relation;
 	Oid			ev_relid;
-	Oid			ruleId;
 	int			event_attno;
 	ListCell   *l;
 	Query	   *query;
@@ -260,7 +273,7 @@ DefineQueryRewrite(RuleStmt *stmt)
 		 */
 		query = (Query *) linitial(action);
 		if (!is_instead ||
-			query->commandType != CMD_SELECT || query->into != NULL)
+			query->commandType != CMD_SELECT || query->intoClause != NULL)
 			ereport(ERROR,
 					(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
 				 errmsg("rules on SELECT must have action INSTEAD SELECT")));
@@ -411,14 +424,15 @@ DefineQueryRewrite(RuleStmt *stmt)
 	/* discard rule if it's null action and not INSTEAD; it's a no-op */
 	if (action != NIL || is_instead)
 	{
-		ruleId = InsertRule(stmt->rulename,
+		stmt->ruleOid = InsertRule(stmt->rulename,
 							event_type,
 							ev_relid,
 							event_attno,
 							is_instead,
 							event_qual,
 							action,
-							replace);
+							replace,
+							stmt->ruleOid);
 
 		/*
 		 * Set pg_class 'relhasrules' field TRUE for event relation. If
@@ -440,12 +454,77 @@ DefineQueryRewrite(RuleStmt *stmt)
 	 */
 	if (RelisBecomingView)
 	{
-		RelationOpenSmgr(event_relation);
-		smgrscheduleunlink(event_relation->rd_smgr, event_relation->rd_istemp);
+		PersistentFileSysRelStorageMgr relStorageMgr;
+
+		relStorageMgr = ((RelationIsAoRows(event_relation) || RelationIsAoCols(event_relation)) ?
+														PersistentFileSysRelStorageMgr_AppendOnly:
+														PersistentFileSysRelStorageMgr_BufferPool);
+		
+		if (relStorageMgr == PersistentFileSysRelStorageMgr_BufferPool)
+		{
+			MirroredFileSysObj_ScheduleDropBufferPoolRel(event_relation);
+			
+			DeleteGpRelationNodeTuple(
+							event_relation,
+							/* segmentFileNum */ 0);
+		}
+		else
+		{
+			Relation relNodeRelation;
+
+			GpRelationNodeScan	gpRelationNodeScan;
+			
+			HeapTuple tuple;
+			
+			int32 segmentFileNum;
+			
+			ItemPointerData persistentTid;
+			int64 persistentSerialNum;
+			
+			relNodeRelation = heap_open(GpRelationNodeRelationId, RowExclusiveLock);
+
+			GpRelationNodeBeginScan(
+							SnapshotNow,
+							relNodeRelation,
+							event_relation->rd_id,
+							event_relation->rd_rel->relfilenode,
+							&gpRelationNodeScan);
+			
+			while ((tuple = GpRelationNodeGetNext(
+									&gpRelationNodeScan,
+									&segmentFileNum,
+									&persistentTid,
+									&persistentSerialNum)))
+			{
+				if (Debug_persistent_print)
+					elog(Persistent_DebugPrintLevel(), 
+						 "DefineQueryRewrite: For Append-Only relation %u relfilenode %u scanned segment file #%d, serial number " INT64_FORMAT " at TID %s for DROP",
+						 event_relation->rd_id,
+						 event_relation->rd_rel->relfilenode,
+						 segmentFileNum,
+						 persistentSerialNum,
+						 ItemPointerToString(&persistentTid));
+				
+				simple_heap_delete(relNodeRelation, &tuple->t_self);
+				
+				MirroredFileSysObj_ScheduleDropAppendOnlyFile(
+												&event_relation->rd_node,
+												segmentFileNum,
+												event_relation->rd_rel->relname.data,
+												&persistentTid,
+												persistentSerialNum);
+			}
+			
+			GpRelationNodeEndScan(&gpRelationNodeScan);
+		
+			heap_close(relNodeRelation, RowExclusiveLock);		
+		}
+		
 	}
 
 	/* Close rel, but keep lock till commit... */
 	heap_close(event_relation, NoLock);
+	
 }
 
 /*
@@ -588,6 +667,14 @@ setRuleCheckAsUser_Query(Query *qry, Oid userid)
 			rte->checkAsUser = userid;
 	}
 
+	/* Recurse into subquery-in-WITH */
+	foreach(l, qry->cteList)
+	{
+		CommonTableExpr *cte = (CommonTableExpr *) lfirst(l);
+
+		setRuleCheckAsUser_Query((Query *) cte->ctequery, userid);
+	}
+
 	/* If there are sublinks, search for them and process their RTEs */
 	/* ignore subqueries in rtable because we already processed them */
 	if (qry->hasSubLinks)
@@ -608,13 +695,22 @@ RenameRewriteRule(Oid owningRel, const char *oldName,
 {
 	Relation	pg_rewrite_desc;
 	HeapTuple	ruletup;
+	cqContext	cqc;
+	cqContext  *pcqCtx;
 
 	pg_rewrite_desc = heap_open(RewriteRelationId, RowExclusiveLock);
 
-	ruletup = SearchSysCacheCopy(RULERELNAME,
-								 ObjectIdGetDatum(owningRel),
-								 PointerGetDatum(oldName),
-								 0, 0);
+	pcqCtx = caql_addrel(cqclr(&cqc), pg_rewrite_desc);
+
+	ruletup = caql_getfirst(
+			pcqCtx,
+			cql("SELECT * FROM pg_rewrite "
+				" WHERE ev_class = :1 "
+				" AND rulename = :2 "
+				" FOR UPDATE ",
+				ObjectIdGetDatum(owningRel),
+				CStringGetDatum(oldName)));
+
 	if (!HeapTupleIsValid(ruletup))
 		ereport(ERROR,
 				(errcode(ERRCODE_UNDEFINED_OBJECT),
@@ -630,10 +726,7 @@ RenameRewriteRule(Oid owningRel, const char *oldName,
 
 	namestrcpy(&(((Form_pg_rewrite) GETSTRUCT(ruletup))->rulename), newName);
 
-	simple_heap_update(pg_rewrite_desc, &ruletup->t_self, ruletup);
-
-	/* keep system catalog indexes current */
-	CatalogUpdateIndexes(pg_rewrite_desc, ruletup);
+	caql_update_current(pcqCtx, ruletup); /* implicit update of index as well*/
 
 	heap_freetuple(ruletup);
 	heap_close(pg_rewrite_desc, RowExclusiveLock);

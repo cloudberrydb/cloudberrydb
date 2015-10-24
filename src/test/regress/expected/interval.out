@@ -2,6 +2,7 @@
 -- INTERVAL
 --
 SET DATESTYLE = 'ISO';
+SET IntervalStyle to postgres;
 -- check acceptance of "time zone style"
 SELECT INTERVAL '01:00' AS "One hour";
  One hour 
@@ -19,12 +20,6 @@ SELECT INTERVAL '-08:00' AS "Eight hours";
  Eight hours 
 -------------
  -08:00:00
-(1 row)
-
-SELECT INTERVAL '-05' AS "Five hours";
- Five hours 
-------------
- -05:00:00
 (1 row)
 
 SELECT INTERVAL '-1 +02:03' AS "22 hours ago...";
@@ -74,85 +69,85 @@ ERROR:  invalid input syntax for type interval: "badly formatted interval"
 INSERT INTO INTERVAL_TBL (f1) VALUES ('@ 30 eons ago');
 ERROR:  invalid input syntax for type interval: "@ 30 eons ago"
 -- test interval operators
-SELECT '' AS ten, * FROM INTERVAL_TBL;
+SELECT '' AS ten, * FROM INTERVAL_TBL ORDER BY 2;
  ten |       f1        
 -----+-----------------
+     | -00:00:14
      | 00:01:00
      | 05:00:00
-     | 10 days
-     | 34 years
-     | 3 mons
-     | -00:00:14
      | 1 day 02:03:04
-     | 6 years
+     | 10 days
+     | 3 mons
      | 5 mons
      | 5 mons 12:00:00
+     | 6 years
+     | 34 years
 (10 rows)
 
 SELECT '' AS nine, * FROM INTERVAL_TBL
-   WHERE INTERVAL_TBL.f1 <> interval '@ 10 days';
+   WHERE INTERVAL_TBL.f1 <> interval '@ 10 days' ORDER BY 2;
  nine |       f1        
 ------+-----------------
+      | -00:00:14
       | 00:01:00
       | 05:00:00
-      | 34 years
-      | 3 mons
-      | -00:00:14
       | 1 day 02:03:04
-      | 6 years
+      | 3 mons
       | 5 mons
       | 5 mons 12:00:00
+      | 6 years
+      | 34 years
 (9 rows)
 
 SELECT '' AS three, * FROM INTERVAL_TBL
-   WHERE INTERVAL_TBL.f1 <= interval '@ 5 hours';
+   WHERE INTERVAL_TBL.f1 <= interval '@ 5 hours' ORDER BY 2;
  three |    f1     
 -------+-----------
+       | -00:00:14
        | 00:01:00
        | 05:00:00
-       | -00:00:14
 (3 rows)
 
 SELECT '' AS three, * FROM INTERVAL_TBL
-   WHERE INTERVAL_TBL.f1 < interval '@ 1 day';
+   WHERE INTERVAL_TBL.f1 < interval '@ 1 day' ORDER BY 2;
  three |    f1     
 -------+-----------
+       | -00:00:14
        | 00:01:00
        | 05:00:00
-       | -00:00:14
 (3 rows)
 
 SELECT '' AS one, * FROM INTERVAL_TBL
-   WHERE INTERVAL_TBL.f1 = interval '@ 34 years';
+   WHERE INTERVAL_TBL.f1 = interval '@ 34 years' ORDER BY 2;
  one |    f1    
 -----+----------
      | 34 years
 (1 row)
 
 SELECT '' AS five, * FROM INTERVAL_TBL 
-   WHERE INTERVAL_TBL.f1 >= interval '@ 1 month';
+   WHERE INTERVAL_TBL.f1 >= interval '@ 1 month' ORDER BY 2;
  five |       f1        
 ------+-----------------
-      | 34 years
       | 3 mons
-      | 6 years
       | 5 mons
       | 5 mons 12:00:00
+      | 6 years
+      | 34 years
 (5 rows)
 
 SELECT '' AS nine, * FROM INTERVAL_TBL
-   WHERE INTERVAL_TBL.f1 > interval '@ 3 seconds ago';
+   WHERE INTERVAL_TBL.f1 > interval '@ 3 seconds ago' ORDER BY 2;
  nine |       f1        
 ------+-----------------
       | 00:01:00
       | 05:00:00
-      | 10 days
-      | 34 years
-      | 3 mons
       | 1 day 02:03:04
-      | 6 years
+      | 10 days
+      | 3 mons
       | 5 mons
       | 5 mons 12:00:00
+      | 6 years
+      | 34 years
 (9 rows)
 
 SELECT '' AS fortyfive, r1.*, r2.*
@@ -218,76 +213,77 @@ SELECT '' AS fortyfive, r1.*, r2.*
 CREATE TABLE INTERVAL_MULDIV_TBL (span interval);
 COPY INTERVAL_MULDIV_TBL FROM STDIN;
 SELECT span * 0.3 AS product
-FROM INTERVAL_MULDIV_TBL;
+FROM INTERVAL_MULDIV_TBL ORDER BY 1;
               product               
 ------------------------------------
- 1 year 12 days 122:24:00
  -1 years -12 days +93:36:00
- -3 days -14:24:00
- 2 mons 13 days 01:22:28.80
  -10 mons +120 days 37:28:21.6567
+ -3 days -14:24:00
  1 mon 6 days
+ 2 mons 13 days 01:22:28.8
  4 mons 6 days
+ 1 year 12 days 122:24:00
  24 years 11 mons 320 days 16:48:00
 (8 rows)
 
 SELECT span * 8.2 AS product
-FROM INTERVAL_MULDIV_TBL;
+FROM INTERVAL_MULDIV_TBL ORDER BY 1;
                    product                   
 ---------------------------------------------
- 28 years 104 days 2961:36:00
  -28 years -104 days +2942:24:00
- -98 days -09:36:00
- 6 years 1 mon -197 days +93:34:27.20
  -24 years -7 mons +3946 days 640:15:11.9498
+ -98 days -09:36:00
  2 years 8 mons 24 days
+ 6 years 1 mon -197 days +93:34:27.2
  9 years 6 mons 24 days
+ 28 years 104 days 2961:36:00
  682 years 7 mons 8215 days 19:12:00
 (8 rows)
 
 SELECT span / 10 AS quotient
-FROM INTERVAL_MULDIV_TBL;
+FROM INTERVAL_MULDIV_TBL ORDER BY 1;
              quotient             
 ----------------------------------
- 4 mons 4 days 40:48:00
  -4 mons -4 days +31:12:00
- -1 days -04:48:00
- 25 days -15:32:30.40
  -3 mons +30 days 12:29:27.2189
+ -1 days -04:48:00
  12 days
+ 25 days -15:32:30.4
  1 mon 12 days
+ 4 mons 4 days 40:48:00
  8 years 3 mons 126 days 21:36:00
 (8 rows)
 
 SELECT span / 100 AS quotient
-FROM INTERVAL_MULDIV_TBL;
+FROM INTERVAL_MULDIV_TBL ORDER BY 1;
         quotient         
 -------------------------
- 12 days 13:40:48
  -12 days -06:28:48
- -02:52:48
- 2 days 10:26:44.96
  -6 days +01:14:56.72189
+ -02:52:48
  1 day 04:48:00
+ 2 days 10:26:44.96
  4 days 04:48:00
+ 12 days 13:40:48
  9 mons 39 days 16:33:36
 (8 rows)
 
 DROP TABLE INTERVAL_MULDIV_TBL;
 SET DATESTYLE = 'postgres';
-SELECT '' AS ten, * FROM INTERVAL_TBL;
+SET IntervalStyle to postgres_verbose;
+SELECT '' AS ten, * FROM INTERVAL_TBL ORDER BY 2;
  ten |              f1               
 -----+-------------------------------
+     | @ 14 secs ago
      | @ 1 min
      | @ 5 hours
-     | @ 10 days
-     | @ 34 years
-     | @ 3 mons
-     | @ 14 secs ago
      | @ 1 day 2 hours 3 mins 4 secs
-     | @ 6 years
+     | @ 10 days
+     | @ 3 mons
      | @ 5 mons
      | @ 5 mons 12 hours
+     | @ 6 years
+     | @ 34 years
 (10 rows)
 
 -- test avg(interval), which is somewhat fragile since people have been
@@ -304,6 +300,13 @@ select '4 millenniums 5 centuries 4 decades 1 year 4 months 4 days 17 minutes 31
                   interval                  
 --------------------------------------------
  @ 4541 years 4 mons 4 days 17 mins 31 secs
+(1 row)
+
+-- test long interval output
+select '100000000y 10mon -1000000000d -1000000000h -10min -10.000001s ago'::interval;
+                                         interval                                          
+-------------------------------------------------------------------------------------------
+ @ 100000000 years 10 mons -1000000000 days -1000000000 hours -10 mins -10.000001 secs ago
 (1 row)
 
 -- test justify_hours() and justify_days()
@@ -326,3 +329,35 @@ SELECT justify_interval(interval '1 month -1 hour') as "1 month -1 hour";
  @ 29 days 23 hours
 (1 row)
 
+-- test fractional second input, and detection of duplicate units
+SET DATESTYLE = 'ISO';
+SET IntervalStyle TO postgres;
+SELECT '1 millisecond'::interval, '1 microsecond'::interval,
+       '500 seconds 99 milliseconds 51 microseconds'::interval;
+   interval   |    interval     |    interval     
+--------------+-----------------+-----------------
+ 00:00:00.001 | 00:00:00.000001 | 00:08:20.099051
+(1 row)
+
+SELECT '3 days 5 milliseconds'::interval;
+      interval       
+---------------------
+ 3 days 00:00:00.005
+(1 row)
+
+SELECT '1 second 2 seconds'::interval;              -- error
+ERROR:  invalid input syntax for type interval: "1 second 2 seconds"
+LINE 1: SELECT '1 second 2 seconds'::interval;
+               ^
+SELECT '10 milliseconds 20 milliseconds'::interval; -- error
+ERROR:  invalid input syntax for type interval: "10 milliseconds 20 milliseconds"
+LINE 1: SELECT '10 milliseconds 20 milliseconds'::interval;
+               ^
+SELECT '5.5 seconds 3 milliseconds'::interval;      -- error
+ERROR:  invalid input syntax for type interval: "5.5 seconds 3 milliseconds"
+LINE 1: SELECT '5.5 seconds 3 milliseconds'::interval;
+               ^
+SELECT '1:20:05 5 microseconds'::interval;          -- error
+ERROR:  invalid input syntax for type interval: "1:20:05 5 microseconds"
+LINE 1: SELECT '1:20:05 5 microseconds'::interval;
+               ^

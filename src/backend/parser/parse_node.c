@@ -3,7 +3,7 @@
  * parse_node.c
  *	  various routines that make nodes for querytrees
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2008, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -14,6 +14,7 @@
  */
 #include "postgres.h"
 
+#include "catalog/catquery.h"
 #include "catalog/pg_type.h"
 #include "mb/pg_wchar.h"
 #include "nodes/makefuncs.h"
@@ -23,6 +24,7 @@
 #include "parser/parse_relation.h"
 #include "utils/builtins.h"
 #include "utils/int8.h"
+#include "utils/hsearch.h"
 #include "utils/syscache.h"
 #include "utils/varbit.h"
 
@@ -40,6 +42,9 @@ make_parsestate(ParseState *parentParseState)
 
 	pstate->parentParseState = parentParseState;
 
+	/* disable propagateSetopTypes by default */
+	pstate->p_propagateSetopTypes = false;
+
 	/* Fill in fields that don't start at null/false/zero */
 	pstate->p_next_resno = 1;
 
@@ -47,11 +52,67 @@ make_parsestate(ParseState *parentParseState)
 	{
 		pstate->p_sourcetext = parentParseState->p_sourcetext;
 		pstate->p_variableparams = parentParseState->p_variableparams;
+		if (parentParseState->p_propagateSetopTypes)
+		{
+			pstate->p_setopTypes = parentParseState->p_setopTypes;
+			pstate->p_setopTypmods = parentParseState->p_setopTypmods;
+		}
 	}
 
 	return pstate;
 }
 
+/*
+ * free_parsestate
+ *		Release a ParseState and any subsidiary resources.
+ */
+void
+free_parsestate(ParseState *pstate)
+{
+	if (pstate->p_namecache)
+		hash_destroy(pstate->p_namecache);
+
+	pfree(pstate);
+}
+
+/*
+ * parser_get_namecache()
+ *
+ * Returns the allocated object name hash table associated with the given parse
+ * state.  This cache is used by parse routines that need to allocate multiple
+ * ChooseRelationName() values that need to be distinct from each other.
+ *
+ * The cache is allocated by the first caller of this function.
+ */
+struct HTAB *
+parser_get_namecache(ParseState *pstate)
+{
+	/*
+	 * The cache is always stored in the TOP level parse state, so if this is
+	 * a substate start by walking up the pstate tree.
+	 */
+	while (pstate->parentParseState != NULL)
+		pstate = pstate->parentParseState;
+
+	/* The first caller allocates the cache */
+	if (!pstate->p_namecache)
+	{
+		HASHCTL  cacheInfo;
+		int      cacheFlags;
+
+		memset(&cacheInfo, 0, sizeof(cacheInfo));
+		cacheInfo.keysize = NAMEDATALEN;
+		cacheInfo.entrysize = NAMEDATALEN;
+		cacheInfo.hcxt = CurrentMemoryContext;
+		cacheFlags = HASH_ELEM | HASH_CONTEXT;
+
+		pstate->p_namecache = hash_create("parse state object name cache",
+										   256, &cacheInfo, cacheFlags);
+	}
+
+	/* Return the cache */
+	return pstate->p_namecache;
+}
 
 /*
  * parser_errposition
@@ -89,7 +150,7 @@ parser_errposition(ParseState *pstate, int location)
  *		Build a Var node for an attribute identified by RTE and attrno
  */
 Var *
-make_var(ParseState *pstate, RangeTblEntry *rte, int attrno)
+make_var(ParseState *pstate, RangeTblEntry *rte, int attrno, int location)
 {
 	int			vnum,
 				sublevels_up;
@@ -109,27 +170,27 @@ Oid
 transformArrayType(Oid arrayType)
 {
 	Oid			elementType;
-	HeapTuple	type_tuple_array;
-	Form_pg_type type_struct_array;
+	int			fetchCount;
 
 	/* Get the type tuple for the array */
-	type_tuple_array = SearchSysCache(TYPEOID,
-									  ObjectIdGetDatum(arrayType),
-									  0, 0, 0);
-	if (!HeapTupleIsValid(type_tuple_array))
+	elementType = caql_getoid_plus(
+			NULL,
+			&fetchCount,
+			NULL,
+			cql("SELECT typelem FROM pg_type "
+				" WHERE oid = :1 ",
+				ObjectIdGetDatum(arrayType)));
+
+	if (!fetchCount)
 		elog(ERROR, "cache lookup failed for type %u", arrayType);
-	type_struct_array = (Form_pg_type) GETSTRUCT(type_tuple_array);
 
 	/* needn't check typisdefined since this will fail anyway */
 
-	elementType = type_struct_array->typelem;
-	if (elementType == InvalidOid)
+	if (!OidIsValid(elementType))
 		ereport(ERROR,
 				(errcode(ERRCODE_DATATYPE_MISMATCH),
 				 errmsg("cannot subscript type %s because it is not an array",
 						format_type_be(arrayType))));
-
-	ReleaseSysCache(type_tuple_array);
 
 	return elementType;
 }
@@ -225,7 +286,8 @@ transformArraySubscripts(ParseState *pstate,
 												subexpr, exprType(subexpr),
 												INT4OID, -1,
 												COERCION_ASSIGNMENT,
-												COERCE_IMPLICIT_CAST);
+												COERCE_IMPLICIT_CAST,
+												-1);
 				if (subexpr == NULL)
 					ereport(ERROR,
 							(errcode(ERRCODE_DATATYPE_MISMATCH),
@@ -235,6 +297,7 @@ transformArraySubscripts(ParseState *pstate,
 			{
 				/* Make a constant 1 */
 				subexpr = (Node *) makeConst(INT4OID,
+											 -1,
 											 sizeof(int32),
 											 Int32GetDatum(1),
 											 false,
@@ -248,7 +311,8 @@ transformArraySubscripts(ParseState *pstate,
 										subexpr, exprType(subexpr),
 										INT4OID, -1,
 										COERCION_ASSIGNMENT,
-										COERCE_IMPLICIT_CAST);
+										COERCE_IMPLICIT_CAST,
+										-1);
 		if (subexpr == NULL)
 			ereport(ERROR,
 					(errcode(ERRCODE_DATATYPE_MISMATCH),
@@ -269,7 +333,8 @@ transformArraySubscripts(ParseState *pstate,
 										   assignFrom, typesource,
 										   typeneeded, elementTypMod,
 										   COERCION_ASSIGNMENT,
-										   COERCE_IMPLICIT_CAST);
+										   COERCE_IMPLICIT_CAST,
+										   -1);
 		if (assignFrom == NULL)
 			ereport(ERROR,
 					(errcode(ERRCODE_DATATYPE_MISMATCH),
@@ -314,7 +379,7 @@ transformArraySubscripts(ParseState *pstate,
  *	too many examples that fail if we try.
  */
 Const *
-make_const(Value *value)
+make_const(ParseState *pstate, Value *value, int location)
 {
 	Datum		val;
 	int64		val64;
@@ -357,7 +422,7 @@ make_const(Value *value)
 
 					typeid = INT8OID;
 					typelen = sizeof(int64);
-					typebyval = false;	/* XXX might change someday */
+					typebyval = true;	/* XXX might change someday */
 				}
 			}
 			else
@@ -399,6 +464,7 @@ make_const(Value *value)
 		case T_Null:
 			/* return a null const */
 			con = makeConst(UNKNOWNOID,
+							-1,
 							-2,
 							(Datum) 0,
 							true,
@@ -411,6 +477,7 @@ make_const(Value *value)
 	}
 
 	con = makeConst(typeid,
+			        -1,
 					typelen,
 					val,
 					false,

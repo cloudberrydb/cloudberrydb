@@ -24,7 +24,7 @@
  * AMs support this.
  *
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2008, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * $PostgreSQL: pgsql/src/include/catalog/pg_opclass.h,v 1.71 2006/07/21 20:51:33 tgl Exp $
@@ -38,12 +38,30 @@
 #ifndef PG_OPCLASS_H
 #define PG_OPCLASS_H
 
-/* ----------------
- *		postgres.h contains the system type definitions and the
- *		CATALOG(), BKI_BOOTSTRAP and DATA() sugar words so this file
- *		can be read by both genbki.sh and the C compiler.
- * ----------------
- */
+#include "catalog/genbki.h"
+
+/* TIDYCAT_BEGINFAKEDEF
+
+   CREATE TABLE pg_opclass
+   with (camelcase=OperatorClass, shared=false, relid=2616)
+   (
+   opcamid       oid     ,
+   opcname       name    ,
+   opcnamespace  oid     ,
+   opcowner      oid     ,
+   opcintype     oid     ,
+   opcdefault    boolean ,
+   opckeytype    oid     
+   );
+
+   create unique index on pg_opclass(opcamid, opcname, opcnamespace) with (indexid=2686, CamelCase=OpclassAmNameNsp, syscacheid=CLAAMNAMENSP, syscache_nbuckets=64);
+   create unique index on pg_opclass(oid) with (indexid=2687, CamelCase=OpclassOid, syscacheid=CLAOID, syscache_nbuckets=64);
+
+   alter table pg_opclass add fk opcnamespace on pg_namespace(oid);
+   alter table pg_opclass add fk opcowner on pg_authid(oid);
+
+   TIDYCAT_ENDFAKEDEF
+*/
 
 /* ----------------
  *		pg_opclass definition.	cpp turns this into
@@ -120,6 +138,7 @@ DATA(insert OID = 1978 (	403		int4_ops		PGNSP PGUID   23 t 0 ));
 #define INT4_BTREE_OPS_OID 1978
 DATA(insert OID = 1979 (	405		int4_ops		PGNSP PGUID   23 t 0 ));
 DATA(insert OID = 1980 (	403		int8_ops		PGNSP PGUID   20 t 0 ));
+#define INT8_BTREE_OPS_OID 1980
 DATA(insert OID = 1981 (	405		int8_ops		PGNSP PGUID   20 t 0 ));
 DATA(insert OID = 1982 (	403		interval_ops	PGNSP PGUID 1186 t 0 ));
 DATA(insert OID = 1983 (	405		interval_ops	PGNSP PGUID 1186 t 0 ));
@@ -129,6 +148,7 @@ DATA(insert OID = 1986 (	403		name_ops		PGNSP PGUID   19 t 0 ));
 #define NAME_BTREE_OPS_OID 1986
 DATA(insert OID = 1987 (	405		name_ops		PGNSP PGUID   19 t 0 ));
 DATA(insert OID = 1988 (	403		numeric_ops		PGNSP PGUID 1700 t 0 ));
+DATA(insert OID = 7676 (	405		numeric_ops		PGNSP PGUID 1700 t 0 ));
 DATA(insert OID = 1989 (	403		oid_ops			PGNSP PGUID   26 t 0 ));
 #define OID_BTREE_OPS_OID 1989
 DATA(insert OID = 1990 (	405		oid_ops			PGNSP PGUID   26 t 0 ));
@@ -207,5 +227,45 @@ DATA(insert OID = 2777 (	2742	_timestamp_ops	PGNSP PGUID  1115 t 1114 ));
 DATA(insert OID = 2778 (	2742	_money_ops		PGNSP PGUID  791 t 790 ));
 DATA(insert OID = 2779 (	2742	_reltime_ops	PGNSP PGUID  1024 t 703 ));
 DATA(insert OID = 2780 (	2742	_tinterval_ops	PGNSP PGUID  1025 t 704 ));
+DATA(insert OID = 2904 (	403		xlogloc_ops		PGNSP PGUID  3310 t 0 ));
+
+/*
+ * the operators for the on-disk bitmap index.
+ */
+DATA(insert OID = 3014 (	3013	abstime_ops		PGNSP PGUID  702 t 0 ));
+DATA(insert OID = 3015 (	3013	array_ops		PGNSP PGUID 2277 t 0 ));
+DATA(insert OID = 3016 (	3013	bit_ops			PGNSP PGUID 1560 t 0 ));
+DATA(insert OID = 3017 (	3013	bool_ops		PGNSP PGUID   16 t 0 ));
+DATA(insert OID = 3018 (	3013	bpchar_ops		PGNSP PGUID 1042 t 0 ));
+DATA(insert OID = 3019 (	3013	bytea_ops		PGNSP PGUID   17 t 0 ));
+DATA(insert OID = 3020 (	3013	char_ops		PGNSP PGUID   18 t 0 ));
+DATA(insert OID = 3021 (	3013	cidr_ops		PGNSP PGUID  650 t 0 ));
+DATA(insert OID = 3022 (	3013	date_ops		PGNSP PGUID 1082 t 0 ));
+DATA(insert OID = 3023 (	3013	float4_ops		PGNSP PGUID  700 t 0 ));
+DATA(insert OID = 3024 (	3013	float8_ops		PGNSP PGUID  701 t 0 ));
+DATA(insert OID = 3025 (	3013	inet_ops		PGNSP PGUID  869 t 0 ));
+DATA(insert OID = 3026 (	3013	int2_ops		PGNSP PGUID   21 t 0 ));
+DATA(insert OID = 3027 (	3013	int4_ops        PGNSP PGUID   23 t 0 ));
+DATA(insert OID = 3028 (	3013	int8_ops		PGNSP PGUID   20 t 0 ));
+DATA(insert OID = 3029 (	3013	interval_ops	PGNSP PGUID 1186 t 0 ));
+DATA(insert OID = 3030 (	3013	macaddr_ops		PGNSP PGUID  829 t 0 ));
+DATA(insert OID = 3031 (	3013	name_ops		PGNSP PGUID   19 t 0 ));
+DATA(insert OID = 3032 (	3013	numeric_ops		PGNSP PGUID 1700 t 0 ));
+DATA(insert OID = 3033 (	3013	oid_ops			PGNSP PGUID   26 t 0 ));
+DATA(insert OID = 3034 (	3013	oidvector_ops	PGNSP PGUID   30 t 0 ));
+DATA(insert OID = 3035 (	3013	text_ops		PGNSP PGUID   25 t 0 ));
+DATA(insert OID = 3036 (	3013	time_ops		PGNSP PGUID 1083 t 0 ));
+DATA(insert OID = 3037 (	3013	timestamptz_ops PGNSP PGUID 1184 t 0 ));
+DATA(insert OID = 3038 (	3013	timetz_ops		PGNSP PGUID 1266 t 0 ));
+DATA(insert OID = 3039 (	3013	varbit_ops		PGNSP PGUID 1562 t 0 ));
+DATA(insert OID = 3040 (	3013	varchar_ops		PGNSP PGUID 1043 t 0 ));
+DATA(insert OID = 3041 (	3013	timestamp_ops	PGNSP PGUID 1114 t 0 ));
+DATA(insert OID = 3042 (	3013	text_pattern_ops	PGNSP PGUID   25 f 0 ));
+DATA(insert OID = 3043 (	3013	varchar_pattern_ops PGNSP PGUID 1043 f 0 ));
+DATA(insert OID = 3044 (	3013	bpchar_pattern_ops	PGNSP PGUID 1042 f 0 ));
+DATA(insert OID = 3045 (	3013	name_pattern_ops	PGNSP PGUID   19 f 0 ));
+DATA(insert OID = 3046 (	3013	money_ops		PGNSP PGUID  790 t 0 ));
+DATA(insert OID = 3047 (	3013	reltime_ops		PGNSP PGUID  703 t 0 ));
+DATA(insert OID = 3048 (	3013	tinterval_ops	PGNSP PGUID  704 t 0 ));
 
 #endif   /* PG_OPCLASS_H */

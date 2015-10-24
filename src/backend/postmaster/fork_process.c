@@ -4,10 +4,10 @@
  *	 EXEC_BACKEND case; it might be extended to do so, but it would be
  *	 considerably more complex.
  *
- * Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Copyright (c) 1996-2009, PostgreSQL Global Development Group
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/postmaster/fork_process.c,v 1.6 2006/03/05 15:58:35 momjian Exp $
+ *	  $PostgreSQL: pgsql/src/backend/postmaster/fork_process.c,v 1.9 2009/01/01 17:23:46 momjian Exp $
  */
 #include "postgres.h"
 #include "postmaster/fork_process.h"
@@ -15,6 +15,9 @@
 #include <time.h>
 #include <sys/time.h>
 #include <unistd.h>
+#ifdef USE_SSL
+#include <openssl/rand.h>
+#endif
 
 #ifndef WIN32
 /*
@@ -60,6 +63,12 @@ fork_process(void)
 		setitimer(ITIMER_PROF, &prof_itimer, NULL);
 #endif
 
+		/*
+		 * Make sure processes do not share OpenSSL randomness state.
+		 */
+#ifdef USE_SSL
+		RAND_cleanup();
+#endif
 	}
 
 	return result;

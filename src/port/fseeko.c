@@ -3,12 +3,12 @@
  * fseeko.c
  *	  64-bit versions of fseeko/ftello()
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2010, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/port/fseeko.c,v 1.20 2006/03/05 15:59:10 momjian Exp $
+ *	  $PostgreSQL: pgsql/src/port/fseeko.c,v 1.25 2010/05/15 10:14:20 momjian Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -21,7 +21,7 @@
 
 #include "c.h"
 
-#ifdef bsdi
+#ifdef __bsdi__
 #include <pthread.h>
 #endif
 #include <sys/stat.h>
@@ -44,7 +44,7 @@ fseeko(FILE *stream, off_t offset, int whence)
 	switch (whence)
 	{
 		case SEEK_CUR:
-#ifdef bsdi
+#ifdef __bsdi__
 			flockfile(stream);
 #endif
 			if (fgetpos(stream, &floc) != 0)
@@ -52,7 +52,7 @@ fseeko(FILE *stream, off_t offset, int whence)
 			floc += offset;
 			if (fsetpos(stream, &floc) != 0)
 				goto failure;
-#ifdef bsdi
+#ifdef __bsdi__
 			funlockfile(stream);
 #endif
 			return 0;
@@ -63,7 +63,7 @@ fseeko(FILE *stream, off_t offset, int whence)
 			return 0;
 			break;
 		case SEEK_END:
-#ifdef bsdi
+#ifdef __bsdi__
 			flockfile(stream);
 #endif
 			fflush(stream);		/* force writes to fd for stat() */
@@ -73,7 +73,7 @@ fseeko(FILE *stream, off_t offset, int whence)
 			floc += offset;
 			if (fsetpos(stream, &floc) != 0)
 				goto failure;
-#ifdef bsdi
+#ifdef __bsdi__
 			funlockfile(stream);
 #endif
 			return 0;
@@ -84,7 +84,7 @@ fseeko(FILE *stream, off_t offset, int whence)
 	}
 
 failure:
-#ifdef bsdi
+#ifdef __bsdi__
 	funlockfile(stream);
 #endif
 	return -1;

@@ -52,7 +52,7 @@ SELECT * FROM vw_getfoo;
 -- sql, proretset = f, prorettype = c
 DROP VIEW vw_getfoo;
 DROP FUNCTION getfoo(int);
-CREATE FUNCTION getfoo(int) RETURNS foo AS 'SELECT * FROM foo WHERE fooid = $1;' LANGUAGE SQL;
+CREATE FUNCTION getfoo(int) RETURNS foo AS 'SELECT * FROM foo WHERE fooid = $1 ORDER BY fooname DESC /* ORDER BY to force the Joe row to be returned */ ;' LANGUAGE SQL;
 SELECT * FROM getfoo(1) AS t1;
 CREATE VIEW vw_getfoo AS SELECT * FROM getfoo(1);
 SELECT * FROM vw_getfoo;
@@ -68,7 +68,7 @@ SELECT * FROM vw_getfoo;
 -- sql, proretset = f, prorettype = record
 DROP VIEW vw_getfoo;
 DROP FUNCTION getfoo(int);
-CREATE FUNCTION getfoo(int) RETURNS RECORD AS 'SELECT * FROM foo WHERE fooid = $1;' LANGUAGE SQL;
+CREATE FUNCTION getfoo(int) RETURNS RECORD AS 'SELECT * FROM foo WHERE fooid = $1 ORDER BY fooname DESC /* ORDER BY to force the Joe row to be returned */ ;' LANGUAGE SQL;
 SELECT * FROM getfoo(1) AS t1(fooid int, foosubid int, fooname text);
 CREATE VIEW vw_getfoo AS SELECT * FROM getfoo(1) AS 
 (fooid int, foosubid int, fooname text);
@@ -94,7 +94,7 @@ SELECT * FROM vw_getfoo;
 -- plpgsql, proretset = f, prorettype = c
 DROP VIEW vw_getfoo;
 DROP FUNCTION getfoo(int);
-CREATE FUNCTION getfoo(int) RETURNS foo AS 'DECLARE footup foo%ROWTYPE; BEGIN SELECT * into footup FROM foo WHERE fooid = $1; RETURN footup; END;' LANGUAGE plpgsql;
+CREATE FUNCTION getfoo(int) RETURNS foo AS 'DECLARE footup foo%ROWTYPE; BEGIN SELECT * into footup FROM foo WHERE fooid = $1 ORDER BY fooname DESC /* ORDER BY to force the Joe row to be returned */ ; RETURN footup; END;' LANGUAGE plpgsql;
 SELECT * FROM getfoo(1) AS t1;
 CREATE VIEW vw_getfoo AS SELECT * FROM getfoo(1);
 SELECT * FROM vw_getfoo;

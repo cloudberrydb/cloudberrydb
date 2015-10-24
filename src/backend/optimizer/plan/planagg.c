@@ -3,12 +3,13 @@
  * planagg.c
  *	  Special planning for aggregate queries.
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 2006-2008, Greenplum inc
+ * Portions Copyright (c) 1996-2008, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/optimizer/plan/planagg.c,v 1.22 2006/10/04 00:29:54 momjian Exp $
+ *	  $PostgreSQL: pgsql/src/backend/optimizer/plan/planagg.c,v 1.22.2.1 2007/02/06 06:50:33 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -28,6 +29,8 @@
 #include "parser/parsetree.h"
 #include "utils/lsyscache.h"
 #include "utils/syscache.h"
+
+#include "cdb/cdbllize.h"                   /* pull_up_Flow() */
 
 
 typedef struct
@@ -69,6 +72,7 @@ Plan *
 optimize_minmax_aggregates(PlannerInfo *root, List *tlist, Path *best_path)
 {
 	Query	   *parse = root->parse;
+	FromExpr   *jtnode;
 	RangeTblRef *rtr;
 	RangeTblEntry *rte;
 	RelOptInfo *rel;
@@ -101,14 +105,19 @@ optimize_minmax_aggregates(PlannerInfo *root, List *tlist, Path *best_path)
 	 * We also restrict the query to reference exactly one table, since join
 	 * conditions can't be handled reasonably.  (We could perhaps handle a
 	 * query containing cartesian-product joins, but it hardly seems worth the
-	 * trouble.)
+	 * trouble.)  However, the single real table could be buried in several
+	 * levels of FromExpr.
 	 */
-	Assert(parse->jointree != NULL && IsA(parse->jointree, FromExpr));
-	if (list_length(parse->jointree->fromlist) != 1)
+	jtnode = parse->jointree;
+	while (IsA(jtnode, FromExpr))
+	{
+		if (list_length(jtnode->fromlist) != 1)
+			return NULL;
+		jtnode = linitial(jtnode->fromlist);
+	}
+	if (!IsA(jtnode, RangeTblRef))
 		return NULL;
-	rtr = (RangeTblRef *) linitial(parse->jointree->fromlist);
-	if (!IsA(rtr, RangeTblRef))
-		return NULL;
+	rtr = (RangeTblRef *) jtnode;
 	rte = rt_fetch(rtr->rtindex, parse->rtable);
 	if (rte->rtekind != RTE_RELATION || rte->inh)
 		return NULL;
@@ -155,7 +164,7 @@ optimize_minmax_aggregates(PlannerInfo *root, List *tlist, Path *best_path)
 	cost_agg(&agg_p, root, AGG_PLAIN, list_length(aggs_list),
 			 0, 0,
 			 best_path->startup_cost, best_path->total_cost,
-			 best_path->parent->rows);
+			 best_path->parent->rows, 0.0, 0.0, 0.0, false);
 
 	if (total_cost > agg_p.total_cost)
 		return NULL;			/* too expensive */
@@ -184,7 +193,7 @@ optimize_minmax_aggregates(PlannerInfo *root, List *tlist, Path *best_path)
 	plan = (Plan *) make_result(tlist, hqual, NULL);
 
 	/* Account for evaluation cost of the tlist (make_result did the rest) */
-	cost_qual_eval(&tlist_cost, tlist);
+	cost_qual_eval(&tlist_cost, tlist, root);
 	plan->startup_cost += tlist_cost.startup;
 	plan->total_cost += tlist_cost.startup + tlist_cost.per_tuple;
 
@@ -440,12 +449,33 @@ make_agg_subplan(PlannerInfo *root, MinMaxAggInfo *info)
 	subparse->resultRelation = 0;
 	subparse->resultRelations = NIL;
 	subparse->returningLists = NIL;
-	subparse->into = NULL;
+	subparse->intoClause = NULL;
 	subparse->hasAggs = false;
 	subparse->groupClause = NIL;
 	subparse->havingQual = NULL;
 	subparse->distinctClause = NIL;
 	subroot.hasHavingQual = false;
+	
+	/* TODO Should we also generate a "temporary" root as in,
+	 *       e.g., inheritance planning?
+	 *
+	 * Generate modified query with this rel as target.  We have to be
+	 * prepared to translate varnos in in_info_list as well as in the
+	 * Query proper.
+	 *
+	memcpy(&subroot, root, sizeof(PlannerInfo));
+	subroot.parse = (Query *)
+	adjust_appendrel_attrs((Node *) parse,
+						   appinfo);
+	subroot.in_info_list = (List *)
+	adjust_appendrel_attrs((Node *) root->in_info_list,
+						   appinfo);
+	// There shouldn't be any OJ info to translate, as yet
+	Assert(subroot.oj_info_list == NIL);
+	
+	subroot->resultRelations = NIL;
+	subroot->returningLists = NIL;
+	 */
 
 	/* single tlist entry that is the aggregate target */
 	tle = makeTargetEntry(copyObject(info->target),
@@ -462,9 +492,9 @@ make_agg_subplan(PlannerInfo *root, MinMaxAggInfo *info)
 
 	/* set up LIMIT 1 */
 	subparse->limitOffset = NULL;
-	subparse->limitCount = (Node *) makeConst(INT8OID, sizeof(int64),
+	subparse->limitCount = (Node *) makeConst(INT8OID, -1, sizeof(int64),
 											  Int64GetDatum(1),
-											  false, false /* not by val */ );
+											  false, true /* not by val */ );
 
 	/*
 	 * Generate the plan for the subquery.	We already have a Path for the
@@ -484,7 +514,8 @@ make_agg_subplan(PlannerInfo *root, MinMaxAggInfo *info)
 	 */
 	plan = create_plan(&subroot, (Path *) info->path);
 
-	plan->targetlist = copyObject(subparse->targetList);
+    /* Replace the plan's tlist with a copy of the one we built above. */
+    plan = plan_pushdown_tlist(plan, copyObject(subparse->targetList));
 
 	if (IsA(plan, Result))
 		iplan = plan->lefttree;
@@ -502,6 +533,9 @@ make_agg_subplan(PlannerInfo *root, MinMaxAggInfo *info)
 							   subparse->limitOffset,
 							   subparse->limitCount,
 							   0, 1);
+
+    /* Decorate the Limit node with a Flow node. */
+    plan->flow = pull_up_Flow(plan, plan->lefttree, false);
 
 	/*
 	 * Convert the plan into an InitPlan, and make a Param for its result.

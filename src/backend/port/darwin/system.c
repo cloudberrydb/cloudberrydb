@@ -1,4 +1,7 @@
-/* only needed in OS X 10.1 and possibly early 10.2 releases */
+/*
+ * $PostgreSQL: pgsql/src/backend/port/darwin/system.c,v 1.8 2009/06/11 14:49:00 momjian Exp $
+ *
+ * only needed in OS X 10.1 and possibly early 10.2 releases */
 #include <AvailabilityMacros.h>
 #if MAC_OS_X_VERSION_MAX_ALLOWED <= MAC_OS_X_VERSION_10_2 || !defined(MAC_OS_X_VERSION_10_2)
 
@@ -14,11 +17,7 @@
  * 2. Redistributions in binary form must reproduce the above copyright
  *	  notice, this list of conditions and the following disclaimer in the
  *	  documentation and/or other materials provided with the distribution.
- * 3. All advertising materials mentioning features or use of this software
- *	  must display the following acknowledgement:
- *	This product includes software developed by the University of
- *	California, Berkeley and its contributors.
- * 4. Neither the name of the University nor the names of its contributors
+ * 3. Neither the name of the University nor the names of its contributors
  *	  may be used to endorse or promote products derived from this software
  *	  without specific prior written permission.
  *

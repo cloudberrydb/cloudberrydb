@@ -1,8 +1,7 @@
-# $PostgreSQL: pgsql/src/win32.mak,v 1.14 2006/08/08 22:44:05 momjian Exp $
+# $PostgreSQL: pgsql/src/win32.mak,v 1.16 2007/08/03 10:47:10 mha Exp $
 
-# Makefile for Microsoft Visual C++ 5.0 (or compat)
-# Top-file makefile for Win32 parts of postgresql.
-# Note that most parts are not ported to Win32!
+# Top-file makefile for building Win32 libpq with Visual C++ 7.1.
+# (see src/tools/msvc for tools to build with Visual C++ 2005 and newer)
 
 !IF "$(OS)" == "Windows_NT"
 NULL=
@@ -17,23 +16,11 @@ ALL:
    cd ..
    cd interfaces\libpq
    nmake /f win32.mak $(MAKEMACRO)
-   cd ..\..\bin\psql
-   nmake /f win32.mak $(MAKEMACRO)
-   cd ..\..\bin\pg_dump
-   nmake /f win32.mak $(MAKEMACRO)
-   cd ..\..\bin\pg_config
-   nmake /f win32.mak $(MAKEMACRO)
    cd ..\..
    echo All Win32 parts have been built!
 
 CLEAN:
    cd interfaces\libpq
-   nmake /f win32.mak CLEAN
-   cd ..\..\bin\psql
-   nmake /f win32.mak CLEAN
-   cd ..\..\bin\pg_dump
-   nmake /f win32.mak CLEAN
-   cd ..\..\bin\pg_config
    nmake /f win32.mak CLEAN
    cd ..\..
    echo All Win32 parts have been cleaned!

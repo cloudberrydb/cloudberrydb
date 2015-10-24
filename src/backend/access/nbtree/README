@@ -1,4 +1,7 @@
-$PostgreSQL: pgsql/src/backend/access/nbtree/README,v 1.14 2006/11/01 19:43:17 tgl Exp $
+$PostgreSQL: pgsql/src/backend/access/nbtree/README,v 1.20 2008/03/21 13:23:27 momjian Exp $
+
+Btree Indexing
+==============
 
 This directory contains a correct implementation of Lehman and Yao's
 high-concurrency B-tree management algorithm (P. Lehman and S. Yao,
@@ -8,7 +11,7 @@ use a simplified version of the deletion logic described in Lanin and
 Shasha (V. Lanin and D. Shasha, A Symmetric Concurrent B-Tree Algorithm,
 Proceedings of 1986 Fall Joint Computer Conference, pp 380-389).
 
-The Lehman and Yao algorithm and insertions
+The Lehman and Yao Algorithm and Insertions
 -------------------------------------------
 
 We have made the following changes in order to incorporate the L&Y algorithm
@@ -125,7 +128,7 @@ each of the resulting pages.  Note we must include the incoming item in
 this calculation, otherwise it is possible to find that the incoming
 item doesn't fit on the split page where it needs to go!
 
-The deletion algorithm
+The Deletion Algorithm
 ----------------------
 
 Before deleting a leaf item, we get a super-exclusive lock on the target
@@ -320,24 +323,24 @@ positives, so long as it never gives a false negative.  This makes it
 possible to implement the test with a small counter value stored on each
 index page.
 
-On-the-fly deletion of index tuples
+On-the-Fly Deletion Of Index Tuples
 -----------------------------------
 
 If a process visits a heap tuple and finds that it's dead and removable
 (ie, dead to all open transactions, not only that process), then we can
 return to the index and mark the corresponding index entry "known dead",
 allowing subsequent index scans to skip visiting the heap tuple.  The
-"known dead" marking uses the LP_DELETE bit in ItemIds.  This is currently
-only done in plain indexscans, not bitmap scans, because only plain scans
-visit the heap and index "in sync" and so there's not a convenient way
-to do it for bitmap scans.
+"known dead" marking works by setting the index item's lp_flags state
+to LP_DEAD.  This is currently only done in plain indexscans, not bitmap
+scans, because only plain scans visit the heap and index "in sync" and so
+there's not a convenient way to do it for bitmap scans.
 
-Once an index tuple has been marked LP_DELETE it can actually be removed
+Once an index tuple has been marked LP_DEAD it can actually be removed
 from the index immediately; since index scans only stop "between" pages,
 no scan can lose its place from such a deletion.  We separate the steps
-because we allow LP_DELETE to be set with only a share lock (it's exactly
+because we allow LP_DEAD to be set with only a share lock (it's exactly
 like a hint bit for a heap tuple), but physically removing tuples requires
-exclusive lock.  In the current code we try to remove LP_DELETE tuples when
+exclusive lock.  In the current code we try to remove LP_DEAD tuples when
 we are otherwise faced with having to split a page to do an insertion (and
 hence have exclusive lock on it already).
 
@@ -349,7 +352,7 @@ same situation is created by REINDEX, since it doesn't enter dead
 tuples into the index.)
 
 It's sufficient to have an exclusive lock on the index page, not a
-super-exclusive lock, to do deletion of LP_DELETE items.  It might seem
+super-exclusive lock, to do deletion of LP_DEAD items.  It might seem
 that this breaks the interlock between VACUUM and indexscans, but that is
 not so: as long as an indexscanning process has a pin on the page where
 the index item used to be, VACUUM cannot complete its btbulkdelete scan
@@ -357,7 +360,7 @@ and so cannot remove the heap tuple.  This is another reason why
 btbulkdelete has to get super-exclusive lock on every leaf page, not only
 the ones where it actually sees items to delete.
 
-WAL considerations
+WAL Considerations
 ------------------
 
 The insertion and deletion algorithms in themselves don't guarantee btree
@@ -398,7 +401,7 @@ of the WAL entry.)  If the parent page becomes half-dead but is not
 immediately deleted due to a subsequent crash, there is no loss of
 consistency, and the empty page will be picked up by the next VACUUM.
 
-Other things that are handy to know
+Other Things That Are Handy to Know
 -----------------------------------
 
 Page zero of every btree is a meta-data page.  This page stores the
@@ -443,7 +446,7 @@ original search scankey is consulted as each index entry is sequentially
 scanned to decide whether to return the entry and whether the scan can
 stop (see _bt_checkkeys()).
 
-Notes about data representation
+Notes About Data Representation
 -------------------------------
 
 The right-sibling link required by L&Y is kept in the page "opaque
@@ -477,10 +480,55 @@ item is irrelevant, and need not be stored at all.  This arrangement
 corresponds to the fact that an L&Y non-leaf page has one more pointer
 than key.
 
-Notes to operator class implementors
+Notes to Operator Class Implementors
 ------------------------------------
 
-With this implementation, we require each supported datatype to supply
-us with a comparison procedure via pg_amproc.  This procedure must take
-two nonnull values A and B and return an int32 < 0, 0, or > 0 if A < B,
-A = B, or A > B, respectively.  See nbtcompare.c for examples.
+With this implementation, we require each supported combination of
+datatypes to supply us with a comparison procedure via pg_amproc.
+This procedure must take two nonnull values A and B and return an int32 < 0,
+0, or > 0 if A < B, A = B, or A > B, respectively.  The procedure must
+not return INT_MIN for "A < B", since the value may be negated before
+being tested for sign.  A null result is disallowed, too.  See nbtcompare.c
+for examples.
+
+There are some basic assumptions that a btree operator family must satisfy:
+
+An = operator must be an equivalence relation; that is, for all non-null
+values A,B,C of the datatype:
+
+	A = A is true						reflexive law
+	if A = B, then B = A					symmetric law
+	if A = B and B = C, then A = C				transitive law
+
+A < operator must be a strong ordering relation; that is, for all non-null
+values A,B,C:
+
+	A < A is false						irreflexive law
+	if A < B and B < C, then A < C				transitive law
+
+Furthermore, the ordering is total; that is, for all non-null values A,B:
+
+	exactly one of A < B, A = B, and B < A is true		trichotomy law
+
+(The trichotomy law justifies the definition of the comparison support
+procedure, of course.)
+
+The other three operators are defined in terms of these two in the obvious way,
+and must act consistently with them.
+
+For an operator family supporting multiple datatypes, the above laws must hold
+when A,B,C are taken from any datatypes in the family.  The transitive laws
+are the trickiest to ensure, as in cross-type situations they represent
+statements that the behaviors of two or three different operators are
+consistent.  As an example, it would not work to put float8 and numeric into
+an opfamily, at least not with the current semantics that numerics are
+converted to float8 for comparison to a float8.  Because of the limited
+accuracy of float8, this means there are distinct numeric values that will
+compare equal to the same float8 value, and thus the transitive law fails.
+
+It should be fairly clear why a btree index requires these laws to hold within
+a single datatype: without them there is no ordering to arrange the keys with.
+Also, index searches using a key of a different datatype require comparisons
+to behave sanely across two datatypes.  The extensions to three or more
+datatypes within a family are not strictly required by the btree index
+mechanism itself, but the planner relies on them for optimization purposes.

@@ -1,4 +1,9 @@
-Proposal for function-manager redesign			19-Nov-2000
+$PostgreSQL: pgsql/src/backend/utils/fmgr/README,v 1.16 2008/10/31 19:37:56 tgl Exp $
+
+Function Manager
+================
+
+Proposal For Function-Manager Redesign			19-Nov-2000
 --------------------------------------
 
 We know that the existing mechanism for calling Postgres functions needs
@@ -25,7 +30,7 @@ written in the old style can be left in place indefinitely, to provide
 backward compatibility for user-written C functions.
 
 
-Changes in pg_proc (system data about a function)
+Changes In pg_proc (System Data About a Function)
 -------------------------------------------------
 
 A new column "proisstrict" will be added to the system pg_proc table.
@@ -45,7 +50,7 @@ more useful case for functions expressed in SQL or a PL language, but
 am open to arguments for the other choice.
 
 
-The new function-manager interface
+The New Function-Manager Interface
 ----------------------------------
 
 The core of the new design is revised data structures for representing
@@ -65,6 +70,7 @@ typedef struct
     short       fn_nargs;   /* 0..FUNC_MAX_ARGS, or -1 if variable arg count */
     bool        fn_strict;  /* function is "strict" (NULL in => NULL out) */
     bool        fn_retset;  /* function returns a set (over multiple calls) */
+    unsigned char fn_stats; /* collect stats if track_functions > this */
     void       *fn_extra;   /* extra space for use by handler */
     MemoryContext fn_mcxt;  /* memory context to store fn_extra in */
     Node       *fn_expr;    /* expression parse tree for call, or NULL */
@@ -81,10 +87,11 @@ a function handler could set it to avoid making repeated lookups of its
 own when the same FmgrInfo is used repeatedly during a query.)  fn_nargs
 is the number of arguments expected by the function, fn_strict is its
 strictness flag, and fn_retset shows whether it returns a set; all of
-these values come from the function's pg_proc entry.  If the function is
-being called as part of a SQL expression, fn_expr will point to the
-expression parse tree for the function call; this can be used to extract
-parse-time knowledge about the actual arguments.
+these values come from the function's pg_proc entry.  fn_stats is also
+set up to control whether or not to track runtime statistics for calling
+this function.  If the function is being called as part of a SQL expression,
+fn_expr will point to the expression parse tree for the function call; this
+can be used to extract parse-time knowledge about the actual arguments.
 
 FmgrInfo already exists in the current code, but has fewer fields.  This
 change should be transparent at the source-code level.
@@ -165,7 +172,7 @@ through a function pointer declared with exactly that signature, we
 should have no portability or optimization problems.
 
 
-Function coding conventions
+Function Coding Conventions
 ---------------------------
 
 As an example, int4 addition goes from old-style
@@ -206,14 +213,11 @@ also amenable to machine processing --- for example, we could probably
 write a script that scans code like this and extracts argument and result
 type info for comparison to the pg_proc table.
 
-For the standard data types float4, float8, and int8, these macros should
-hide the indirection and space allocation involved, so that the function's
-code is not explicitly aware that these types are pass-by-reference.  This
-will offer a considerable gain in readability, and it also opens up the
-opportunity to make these types be pass-by-value on machines where it's
-feasible to do so.  (For example, on an Alpha it's pretty silly to make int8
-be pass-by-ref, since Datum is going to be 64 bits anyway.  float4 could
-become pass-by-value on all machines...)
+For the standard data types float4, float8, and int8, these macros should hide
+whether the types are pass-by-value or pass-by reference, by incorporating
+indirection and space allocation if needed.  This will offer a considerable
+gain in readability, and it also opens up the opportunity to make these types
+be pass-by-value on machines where it's feasible to do so.
 
 Here are the proposed macros and coding conventions:
 
@@ -243,20 +247,22 @@ which expands to
 Argument values are ordinarily fetched using code like
 	int32	name = PG_GETARG_INT32(number);
 
-For float4, float8, and int8, the PG_GETARG macros will hide the pass-by-
-reference nature of the data types; for example PG_GETARG_FLOAT4 expands to
-	(* (float4 *) DatumGetPointer(fcinfo->arg[number]))
+For float4, float8, and int8, the PG_GETARG macros will hide whether the
+types are pass-by-value or pass-by-reference.  For example, if float8 is
+pass-by-reference then PG_GETARG_FLOAT8 expands to
+	(* (float8 *) DatumGetPointer(fcinfo->arg[number]))
 and would typically be called like this:
-	float4  arg = PG_GETARG_FLOAT4(0);
-Note that "float4" and "float8" are the recommended typedefs to use, not
-"float32data" and "float64data", and the macros are named accordingly.
-But 64-bit ints should be declared as "int64".
+	float8  arg = PG_GETARG_FLOAT8(0);
+For what are now historical reasons, the float-related typedefs and macros
+express the type width in bytes (4 or 8), whereas we prefer to label the
+widths of integer types in bits.
 
 Non-null values are returned with a PG_RETURN_XXX macro of the appropriate
 type.  For example, PG_RETURN_INT32 expands to
 	return Int32GetDatum(x)
-PG_RETURN_FLOAT4, PG_RETURN_FLOAT8, and PG_RETURN_INT64 hide the pass-by-
-reference nature of their datatypes.
+PG_RETURN_FLOAT4, PG_RETURN_FLOAT8, and PG_RETURN_INT64 hide whether their
+data types are pass-by-value or pass-by-reference, by doing a palloc if
+needed.
 
 fmgr.h will provide PG_GETARG and PG_RETURN macros for all the basic data
 types.  Modules or header files that define specialized SQL datatypes
@@ -277,7 +283,7 @@ fields of FunctionCallInfo, it should just do it.  I doubt that providing
 syntactic-sugar macros for these cases is useful.
 
 
-Call-site coding conventions
+Call-Site Coding Conventions
 ----------------------------
 
 There are many places in the system that call either a specific function
@@ -329,9 +335,8 @@ Again, this style of coding does not allow for expressing NULL inputs
 or receiving a NULL result.
 
 As with the callee-side situation, I propose adding argument conversion
-macros that hide the pass-by-reference nature of int8, float4, and
-float8, with an eye to making those types relatively painless to convert
-to pass-by-value.
+macros that hide whether int8, float4, and float8 are pass-by-value or
+pass-by-reference.
 
 The existing helper functions fmgr(), fmgr_c(), etc will be left in
 place until all uses of them are gone.  Of course their internals will
@@ -339,7 +344,7 @@ have to change in the first step of implementation, but they can
 continue to support the same external appearance.
 
 
-Support for TOAST-able data types
+Support for TOAST-Able Data Types
 ---------------------------------
 
 For TOAST-able data types, the PG_GETARG macro will deliver a de-TOASTed
@@ -372,7 +377,7 @@ context.  When and if the value is actually stored into a tuple, the
 tuple toaster will decide whether toasting is needed.
 
 
-Functions accepting or returning sets
+Functions Accepting or Returning Sets
 -------------------------------------
 
 [ this section revised 29-Aug-2002 for 7.3 ]
@@ -427,8 +432,13 @@ function is called in).  The function stores pointers to the Tuplestore and
 TupleDesc into ReturnSetInfo, sets returnMode to indicate materialize mode,
 and returns null.  isDone is not used and should be left at ExprSingleResult.
 
-If the function is being called as a table function (ie, it appears in a
-FROM item), then the expected tuple descriptor is passed in ReturnSetInfo;
+The Tuplestore must be created with randomAccess = true if
+SFRM_Materialize_Random is set in allowedModes, but it can (and preferably
+should) be created with randomAccess = false if not.  Callers that can support
+both ValuePerCall and Materialize mode will set SFRM_Materialize_Preferred,
+or not, depending on which mode they prefer.
+
+If available, the expected tuple descriptor is passed in ReturnSetInfo;
 in other contexts the expectedDesc field will be NULL.  The function need
 not pay attention to expectedDesc, but it may be useful in special cases.
 
@@ -436,7 +446,7 @@ There is no support for functions accepting sets; instead, the function will
 be called multiple times, once for each element of the input set.
 
 
-Notes about function handlers
+Notes About Function Handlers
 -----------------------------
 
 Handlers for classes of functions should find life much easier and
@@ -458,7 +468,7 @@ in any case it is required to be a context at least as long-lived as the
 FmgrInfo itself.
 
 
-Telling the difference between old- and new-style functions
+Telling the Difference Between Old- and New-Style Functions
 -----------------------------------------------------------
 
 During the conversion process, we carried two different pg_language

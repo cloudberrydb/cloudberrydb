@@ -1,4 +1,4 @@
-/* $PostgreSQL: pgsql/src/interfaces/ecpg/preproc/type.c,v 1.71 2006/08/13 10:18:30 meskes Exp $ */
+/* $PostgreSQL: pgsql/src/interfaces/ecpg/preproc/type.c,v 1.83 2009/06/11 14:49:13 momjian Exp $ */
 
 #include "postgres_fe.h"
 
@@ -6,7 +6,7 @@
 
 #define indicator_set ind_type != NULL && ind_type->type != ECPGt_NO_INDICATOR
 
-struct ECPGstruct_member struct_no_indicator = {"no_indicator", &ecpg_no_indicator, NULL};
+static struct ECPGstruct_member struct_no_indicator = {"no_indicator", &ecpg_no_indicator, NULL};
 
 /* malloc + error check */
 void *
@@ -15,7 +15,7 @@ mm_alloc(size_t size)
 	void	   *ptr = malloc(size);
 
 	if (ptr == NULL)
-		mmerror(OUT_OF_MEMORY, ET_FATAL, "Out of memory\n");
+		mmerror(OUT_OF_MEMORY, ET_FATAL, "out of memory");
 
 	return ptr;
 }
@@ -27,7 +27,7 @@ mm_strdup(const char *string)
 	char	   *new = strdup(string);
 
 	if (new == NULL)
-		mmerror(OUT_OF_MEMORY, ET_FATAL, "Out of memory\n");
+		mmerror(OUT_OF_MEMORY, ET_FATAL, "out of memory");
 
 	return new;
 }
@@ -57,10 +57,10 @@ ECPGstruct_member_dup(struct ECPGstruct_member * rm)
 				if (rm->type->u.element->type == ECPGt_struct)
 					type = ECPGmake_struct_type(rm->type->u.element->u.members, rm->type->u.element->type, rm->type->u.element->struct_sizeof);
 				else
-					type = ECPGmake_array_type(ECPGmake_simple_type(rm->type->u.element->type, rm->type->u.element->size), rm->type->size);
+					type = ECPGmake_array_type(ECPGmake_simple_type(rm->type->u.element->type, rm->type->u.element->size, rm->type->u.element->lineno), rm->type->size);
 				break;
 			default:
-				type = ECPGmake_simple_type(rm->type->type, rm->type->size);
+				type = ECPGmake_simple_type(rm->type->type, rm->type->size, rm->type->lineno);
 				break;
 		}
 
@@ -80,7 +80,7 @@ ECPGmake_struct_member(char *name, struct ECPGtype * type, struct ECPGstruct_mem
 			   *ne =
 	(struct ECPGstruct_member *) mm_alloc(sizeof(struct ECPGstruct_member));
 
-	ne->name = strdup(name);
+	ne->name = mm_strdup(name);
 	ne->type = type;
 	ne->next = NULL;
 
@@ -93,7 +93,7 @@ ECPGmake_struct_member(char *name, struct ECPGtype * type, struct ECPGstruct_mem
 }
 
 struct ECPGtype *
-ECPGmake_simple_type(enum ECPGttype type, char *size)
+ECPGmake_simple_type(enum ECPGttype type, char *size, int lineno)
 {
 	struct ECPGtype *ne = (struct ECPGtype *) mm_alloc(sizeof(struct ECPGtype));
 
@@ -101,6 +101,7 @@ ECPGmake_simple_type(enum ECPGttype type, char *size)
 	ne->size = size;
 	ne->u.element = NULL;
 	ne->struct_sizeof = NULL;
+	ne->lineno = lineno;		/* only needed for varchar */
 
 	return ne;
 }
@@ -108,7 +109,7 @@ ECPGmake_simple_type(enum ECPGttype type, char *size)
 struct ECPGtype *
 ECPGmake_array_type(struct ECPGtype * type, char *size)
 {
-	struct ECPGtype *ne = ECPGmake_simple_type(ECPGt_array, size);
+	struct ECPGtype *ne = ECPGmake_simple_type(ECPGt_array, size, 0);
 
 	ne->u.element = type;
 
@@ -118,7 +119,7 @@ ECPGmake_array_type(struct ECPGtype * type, char *size)
 struct ECPGtype *
 ECPGmake_struct_type(struct ECPGstruct_member * rm, enum ECPGttype type, char *struct_sizeof)
 {
-	struct ECPGtype *ne = ECPGmake_simple_type(type, make_str("1"));
+	struct ECPGtype *ne = ECPGmake_simple_type(type, make_str("1"), 0);
 
 	ne->u.members = ECPGstruct_member_dup(rm);
 	ne->struct_sizeof = struct_sizeof;
@@ -200,7 +201,7 @@ get_type(enum ECPGttype type)
 			return ("ECPGt_timestamp");
 			break;
 		default:
-			mmerror(PARSE_ERROR, ET_ERROR, "illegal variable type %d\n", type);
+			mmerror(PARSE_ERROR, ET_ERROR, "unrecognized variable type code %d", type);
 	}
 
 	return NULL;
@@ -222,7 +223,7 @@ get_type(enum ECPGttype type)
  */
 static void ECPGdump_a_simple(FILE *o, const char *name, enum ECPGttype type,
 				  char *varcharsize,
-				  char *arrsiz, const char *siz, const char *prefix);
+				  char *arrsiz, const char *siz, const char *prefix, int);
 static void ECPGdump_a_struct(FILE *o, const char *name, const char *ind_name, char *arrsiz,
 				  struct ECPGtype * type, struct ECPGtype * ind_type, const char *offset, const char *prefix, const char *ind_prefix);
 
@@ -237,11 +238,11 @@ ECPGdump_a_type(FILE *o, const char *name, struct ECPGtype * type,
 	{
 		case ECPGt_array:
 			if (indicator_set && ind_type->type != ECPGt_array)
-				mmerror(INDICATOR_NOT_ARRAY, ET_FATAL, "Indicator for array/pointer has to be array/pointer.\n");
+				mmerror(INDICATOR_NOT_ARRAY, ET_FATAL, "indicator for array/pointer has to be array/pointer");
 			switch (type->u.element->type)
 			{
 				case ECPGt_array:
-					mmerror(PARSE_ERROR, ET_ERROR, "No nested arrays allowed (except strings)");		/* array of array */
+					mmerror(PARSE_ERROR, ET_ERROR, "nested arrays are not supported (except strings)"); /* array of array */
 					break;
 				case ECPGt_struct:
 				case ECPGt_union:
@@ -254,56 +255,56 @@ ECPGdump_a_type(FILE *o, const char *name, struct ECPGtype * type,
 					break;
 				default:
 					if (!IS_SIMPLE_TYPE(type->u.element->type))
-						yyerror("Internal error: unknown datatype, please inform pgsql-bugs@postgresql.org");
+						base_yyerror("internal error: unknown datatype, please report this to <pgsql-bugs@postgresql.org>");
 
 					ECPGdump_a_simple(o, name,
 									  type->u.element->type,
-							type->u.element->size, type->size, NULL, prefix);
+									  type->u.element->size, type->size, NULL, prefix, type->u.element->lineno);
 
 					if (ind_type != NULL)
 					{
 						if (ind_type->type == ECPGt_NO_INDICATOR)
-							ECPGdump_a_simple(o, ind_name, ind_type->type, ind_type->size, make_str("-1"), NULL, ind_prefix);
+							ECPGdump_a_simple(o, ind_name, ind_type->type, ind_type->size, make_str("-1"), NULL, ind_prefix, 0);
 						else
 						{
 							ECPGdump_a_simple(o, ind_name, ind_type->u.element->type,
-											  ind_type->u.element->size, ind_type->size, NULL, ind_prefix);
+											  ind_type->u.element->size, ind_type->size, NULL, ind_prefix, 0);
 						}
 					}
 			}
 			break;
 		case ECPGt_struct:
 			if (indicator_set && ind_type->type != ECPGt_struct)
-				mmerror(INDICATOR_NOT_STRUCT, ET_FATAL, "Indicator for struct has to be struct.\n");
+				mmerror(INDICATOR_NOT_STRUCT, ET_FATAL, "indicator for struct has to be a struct");
 
 			ECPGdump_a_struct(o, name, ind_name, make_str("1"), type, ind_type, NULL, prefix, ind_prefix);
 			break;
 		case ECPGt_union:		/* cannot dump a complete union */
-			yyerror("Type of union has to be specified");
+			base_yyerror("type of union has to be specified");
 			break;
 		case ECPGt_char_variable:
 			if (indicator_set && (ind_type->type == ECPGt_struct || ind_type->type == ECPGt_array))
-				mmerror(INDICATOR_NOT_SIMPLE, ET_FATAL, "Indicator for simple datatype has to be simple.\n");
+				mmerror(INDICATOR_NOT_SIMPLE, ET_FATAL, "indicator for simple data type has to be simple");
 
-			ECPGdump_a_simple(o, name, type->type, make_str("1"), (arr_str_siz && strcmp(arr_str_siz, "0") != 0) ? arr_str_siz : make_str("1"), struct_sizeof, prefix);
+			ECPGdump_a_simple(o, name, type->type, make_str("1"), (arr_str_siz && strcmp(arr_str_siz, "0") != 0) ? arr_str_siz : make_str("1"), struct_sizeof, prefix, 0);
 			if (ind_type != NULL)
-				ECPGdump_a_simple(o, ind_name, ind_type->type, ind_type->size, (arr_str_siz && strcmp(arr_str_siz, "0") != 0) ? arr_str_siz : make_str("-1"), ind_struct_sizeof, ind_prefix);
+				ECPGdump_a_simple(o, ind_name, ind_type->type, ind_type->size, (arr_str_siz && strcmp(arr_str_siz, "0") != 0) ? arr_str_siz : make_str("-1"), ind_struct_sizeof, ind_prefix, 0);
 			break;
 		case ECPGt_descriptor:
 			if (indicator_set && (ind_type->type == ECPGt_struct || ind_type->type == ECPGt_array))
-				mmerror(INDICATOR_NOT_SIMPLE, ET_FATAL, "Indicator for simple datatype has to be simple.\n");
+				mmerror(INDICATOR_NOT_SIMPLE, ET_FATAL, "indicator for simple data type has to be simple");
 
-			ECPGdump_a_simple(o, name, type->type, NULL, make_str("-1"), NULL, prefix);
+			ECPGdump_a_simple(o, name, type->type, NULL, make_str("-1"), NULL, prefix, 0);
 			if (ind_type != NULL)
-				ECPGdump_a_simple(o, ind_name, ind_type->type, ind_type->size, make_str("-1"), NULL, ind_prefix);
+				ECPGdump_a_simple(o, ind_name, ind_type->type, ind_type->size, make_str("-1"), NULL, ind_prefix, 0);
 			break;
 		default:
 			if (indicator_set && (ind_type->type == ECPGt_struct || ind_type->type == ECPGt_array))
-				mmerror(INDICATOR_NOT_SIMPLE, ET_FATAL, "Indicator for simple datatype has to be simple.\n");
+				mmerror(INDICATOR_NOT_SIMPLE, ET_FATAL, "indicator for simple data type has to be simple");
 
-			ECPGdump_a_simple(o, name, type->type, type->size, (arr_str_siz && strcmp(arr_str_siz, "0") != 0) ? arr_str_siz : make_str("-1"), struct_sizeof, prefix);
+			ECPGdump_a_simple(o, name, type->type, type->size, (arr_str_siz && strcmp(arr_str_siz, "0") != 0) ? arr_str_siz : make_str("-1"), struct_sizeof, prefix, type->lineno);
 			if (ind_type != NULL)
-				ECPGdump_a_simple(o, ind_name, ind_type->type, ind_type->size, (arr_str_siz && strcmp(arr_str_siz, "0") != 0) ? arr_str_siz : make_str("-1"), ind_struct_sizeof, ind_prefix);
+				ECPGdump_a_simple(o, ind_name, ind_type->type, ind_type->size, (arr_str_siz && strcmp(arr_str_siz, "0") != 0) ? arr_str_siz : make_str("-1"), ind_struct_sizeof, ind_prefix, 0);
 			break;
 	}
 }
@@ -316,8 +317,8 @@ ECPGdump_a_simple(FILE *o, const char *name, enum ECPGttype type,
 				  char *varcharsize,
 				  char *arrsize,
 				  const char *siz,
-				  const char *prefix
-)
+				  const char *prefix,
+				  int lineno)
 {
 	if (type == ECPGt_NO_INDICATOR)
 		fprintf(o, "\n\tECPGt_NO_INDICATOR, NULL , 0L, 0L, 0L, ");
@@ -327,7 +328,9 @@ ECPGdump_a_simple(FILE *o, const char *name, enum ECPGttype type,
 	else
 	{
 		char	   *variable = (char *) mm_alloc(strlen(name) + ((prefix == NULL) ? 0 : strlen(prefix)) + 4);
-		char	   *offset = (char *) mm_alloc(strlen(name) + strlen("sizeof(struct varchar_)") + 1 + strlen(varcharsize));
+		char	   *offset = (char *) mm_alloc(strlen(name) + strlen("sizeof(struct varchar_)") + 1 + strlen(varcharsize) + sizeof(int) * CHAR_BIT * 10 / 3);
+		char	   *var_name,
+				   *ptr;
 
 		switch (type)
 		{
@@ -349,7 +352,16 @@ ECPGdump_a_simple(FILE *o, const char *name, enum ECPGttype type,
 				else
 					sprintf(variable, "&(%s%s)", prefix ? prefix : "", name);
 
-				sprintf(offset, "sizeof(struct varchar_%s)", name);
+				/* remove trailing [] is name is array element */
+				var_name = mm_strdup(name);
+				ptr = strchr(var_name, '[');
+				if (ptr)
+					*ptr = '\0';
+				if (lineno)
+					sprintf(offset, "sizeof(struct varchar_%s_%d)", var_name, lineno);
+				else
+					sprintf(offset, "sizeof(struct varchar_%s)", var_name);
+				free(var_name);
 				break;
 			case ECPGt_char:
 			case ECPGt_unsigned_char:
@@ -423,14 +435,14 @@ ECPGdump_a_simple(FILE *o, const char *name, enum ECPGttype type,
 				else
 					sprintf(variable, "&(%s%s)", prefix ? prefix : "", name);
 
-				sprintf(offset, "sizeof(%s)", ECPGtype_name(type));
+				sprintf(offset, "sizeof(%s)", ecpg_type_name(type));
 				break;
 		}
 
 		if (atoi(arrsize) < 0)
 			strcpy(arrsize, "1");
 
-		if (siz == NULL || strcmp(arrsize, "0") == 0 || strcmp(arrsize, "1") == 0)
+		if (siz == NULL || strlen(siz) == 0 || strcmp(arrsize, "0") == 0 || strcmp(arrsize, "1") == 0)
 			fprintf(o, "\n\t%s,%s,(long)%s,(long)%s,%s, ", get_type(type), variable, varcharsize, arrsize, offset);
 		else
 			fprintf(o, "\n\t%s,%s,(long)%s,(long)%s,%s, ", get_type(type), variable, varcharsize, arrsize, siz);
@@ -521,7 +533,7 @@ ECPGfree_type(struct ECPGtype * type)
 				switch (type->u.element->type)
 				{
 					case ECPGt_array:
-						yyerror("internal error, found multidimensional array\n");
+						base_yyerror("internal error: found multidimensional array\n");
 						break;
 					case ECPGt_struct:
 					case ECPGt_union:
@@ -531,7 +543,7 @@ ECPGfree_type(struct ECPGtype * type)
 						break;
 					default:
 						if (!IS_SIMPLE_TYPE(type->u.element->type))
-							yyerror("Internal error: unknown datatype, please inform pgsql-bugs@postgresql.org");
+							base_yyerror("internal error: unknown datatype, please report this to <pgsql-bugs@postgresql.org>");
 
 						free(type->u.element);
 				}
@@ -541,7 +553,7 @@ ECPGfree_type(struct ECPGtype * type)
 				ECPGfree_struct_member(type->u.members);
 				break;
 			default:
-				mmerror(PARSE_ERROR, ET_ERROR, "illegal variable type %d\n", type->type);
+				mmerror(PARSE_ERROR, ET_ERROR, "unrecognized variable type code %d", type->type);
 				break;
 		}
 	}
@@ -600,7 +612,7 @@ get_dtype(enum ECPGdtype type)
 		case ECPGd_cardinality:
 			return ("ECPGd_cardinality");
 		default:
-			mmerror(PARSE_ERROR, ET_ERROR, "illegal descriptor item %d\n", type);
+			mmerror(PARSE_ERROR, ET_ERROR, "unrecognized descriptor item code %d", type);
 	}
 
 	return NULL;

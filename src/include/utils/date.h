@@ -4,7 +4,7 @@
  *	  Definitions for the SQL92 "date" and "time" types.
  *
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2008, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * $PostgreSQL: pgsql/src/include/utils/date.h,v 1.34 2006/07/13 16:49:20 momjian Exp $
@@ -29,13 +29,23 @@ typedef float8 TimeADT;
 
 typedef struct
 {
-#ifdef HAVE_INT64_TIMESTAMP
-	int64		time;			/* all time units other than months and years */
-#else
-	double		time;			/* all time units other than months and years */
-#endif
+	TimeADT		time;			/* all time units other than months and years */
 	int32		zone;			/* numeric time zone, in seconds */
 } TimeTzADT;
+
+/*
+ * Infinity and minus infinity must be the max and min values of DateADT.
+ * We could use INT_MIN and INT_MAX here, but seems better to not assume that
+ * int32 == int.
+ */
+#define DATEVAL_NOBEGIN		((DateADT) (-0x7fffffff - 1))
+#define DATEVAL_NOEND		((DateADT) 0x7fffffff)
+
+#define DATE_NOBEGIN(j)		((j) = DATEVAL_NOBEGIN)
+#define DATE_IS_NOBEGIN(j)	((j) == DATEVAL_NOBEGIN)
+#define DATE_NOEND(j)		((j) = DATEVAL_NOEND)
+#define DATE_IS_NOEND(j)	((j) == DATEVAL_NOEND)
+#define DATE_NOT_FINITE(j)	(DATE_IS_NOBEGIN(j) || DATE_IS_NOEND(j))
 
 /*
  * Macros for fmgr-callable functions.
@@ -79,6 +89,22 @@ typedef struct
 #define PG_RETURN_TIMEADT(x)	 return TimeADTGetDatum(x)
 #define PG_RETURN_TIMETZADT_P(x) return TimeTzADTPGetDatum(x)
 
+/* Difference (in days) between two DateADT.  Provides external
+ * access to algorithm and used in implementation of date_mi.
+ */
+static inline int32 date_diff(DateADT d1, DateADT d2)
+{
+	return (int32) (d1 - d2);
+}
+
+/* Advance DateADT by given number of day.  Positive and
+ * negative days handled correctly.  Provides external
+ * access to algoritm and uses in implementation of date_pli.
+ */
+static inline DateADT date_pl_days(DateADT date, int32 days)
+{
+	return (DateADT) (date  + days);
+}
 
 /* date.c */
 extern Datum date_in(PG_FUNCTION_ARGS);
@@ -161,7 +187,9 @@ extern Datum time_text(PG_FUNCTION_ARGS);
 extern Datum time_pl_interval(PG_FUNCTION_ARGS);
 extern Datum time_mi_interval(PG_FUNCTION_ARGS);
 extern Datum time_part(PG_FUNCTION_ARGS);
-
+extern float8 time_li_fraction(TimeADT x, TimeADT x0, TimeADT x1, 
+							   bool *eq_bounds, bool *eq_abscissas);
+extern TimeADT time_li_value(float8 f, TimeADT y0, TimeADT y1);
 extern Datum timetz_in(PG_FUNCTION_ARGS);
 extern Datum timetz_out(PG_FUNCTION_ARGS);
 extern Datum timetz_recv(PG_FUNCTION_ARGS);

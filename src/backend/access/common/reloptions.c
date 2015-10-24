@@ -3,12 +3,12 @@
  * reloptions.c
  *	  Core support for relation options (pg_class.reloptions)
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2008, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/access/common/reloptions.c,v 1.2 2006/10/04 00:29:47 momjian Exp $
+ *	  $PostgreSQL: pgsql/src/backend/access/common/reloptions.c,v 1.3 2007/01/05 22:19:21 momjian Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -17,11 +17,203 @@
 
 #include "access/reloptions.h"
 #include "catalog/pg_type.h"
+#include "cdb/cdbappendonlyam.h"
+#include "cdb/cdbvars.h"
 #include "commands/defrem.h"
+#include "nodes/makefuncs.h"
 #include "utils/array.h"
 #include "utils/builtins.h"
+#include "utils/formatting.h"
 #include "utils/rel.h"
+#include "utils/guc.h"
+#include "utils/guc_tables.h"
+#include "miscadmin.h"
+/*
+ * This is set whenever the GUC gp_default_storage_options is set.
+ */
+static StdRdOptions ao_storage_opts;
 
+inline bool
+isDefaultAOCS(void)
+{
+	return ao_storage_opts.columnstore && !gp_upgrade_mode;
+}
+
+inline bool
+isDefaultAO(void)
+{
+	return ao_storage_opts.appendonly && !gp_upgrade_mode;
+}
+
+/*
+ * Accumulate a new datum for one AO storage option.
+ */
+static void
+accumAOStorageOpt(char *name, int namelen, char *value,
+				  ArrayBuildState *astate, bool *foundAO, bool *aovalue)
+{
+	text *t = NULL;
+	bool boolval;
+	int intval, len;
+	Assert(astate);
+	if (namelen == strlen(SOPT_APPENDONLY) &&
+		pg_strcasecmp(SOPT_APPENDONLY, name) == 0)
+	{
+		if (!parse_bool(value, &boolval))
+			elog(ERROR, "invalid bool value \"%s\" for "
+					 "storage option \"%s\"", value, name);
+		/* "appendonly" option is explicitly specified. */
+		if (foundAO != NULL)
+			*foundAO = true;
+		if (aovalue != NULL)
+			*aovalue = boolval;
+		len = VARHDRSZ + strlen(SOPT_APPENDONLY) + 1 + strlen(value);
+		/* +1 leaves room for sprintf's trailing null */
+		t = (text *) palloc(len + 1);
+		SET_VARSIZE(t, len);
+		/*
+		 * Record value of "appendonly" option as true always.  Return
+		 * the value specified by user in aovalue.  Setting
+		 * appendonly=true always in the array of datums enables us to
+		 * reuse default_reloptions() and
+		 * validateAppendOnlyRelOptions().  If validations are
+		 * successful, we keep the user specified value for
+		 * appendonly.
+		 */
+		sprintf(VARDATA(t), "%s=%s", SOPT_APPENDONLY, "true");
+	}
+	else if (namelen == strlen(SOPT_BLOCKSIZE) &&
+			 pg_strcasecmp(SOPT_BLOCKSIZE, name) == 0)
+	{
+		if (!parse_int(value, &intval, 0 /* unit flags */,
+					   NULL /* hint message */))
+			elog(ERROR, "invalid integer value \"%s\" for "
+				 "storage option \"%s\"", value, name);
+		len = VARHDRSZ + strlen(SOPT_BLOCKSIZE) + 1 + strlen(value);
+		/* +1 leaves room for sprintf's trailing null */
+		t = (text *) palloc(len + 1);
+		SET_VARSIZE(t, len);
+		sprintf(VARDATA(t), "%s=%d", SOPT_BLOCKSIZE, intval);
+	}
+	else if (namelen == strlen(SOPT_COMPTYPE) &&
+			 pg_strcasecmp(SOPT_COMPTYPE, name) == 0)
+	{
+		len = VARHDRSZ + strlen(SOPT_COMPTYPE) + 1 + strlen(value);
+		/* +1 leaves room for sprintf's trailing null */
+		t = (text *) palloc(len + 1);
+		SET_VARSIZE(t, len);
+		sprintf(VARDATA(t), "%s=%s", SOPT_COMPTYPE, value);
+	}
+	else if (namelen == strlen(SOPT_COMPLEVEL) &&
+			 pg_strcasecmp(SOPT_COMPLEVEL, name) == 0)
+	{
+		if (!parse_int(value, &intval, 0 /* unit flags */,
+					   NULL /* hint message */))
+			elog(ERROR, "invalid integer value \"%s\" for "
+				 "storage option \"%s\"", value, name);
+		len = VARHDRSZ + strlen(SOPT_COMPLEVEL) + 1 + strlen(value);
+		/* +1 leaves room for sprintf's trailing null */
+		t = (text *) palloc(len + 1);
+		SET_VARSIZE(t, len);
+		sprintf(VARDATA(t), "%s=%d", SOPT_COMPLEVEL, intval);
+	}
+	else if (namelen == strlen(SOPT_CHECKSUM) &&
+			 pg_strcasecmp(SOPT_CHECKSUM, name) == 0)
+	{
+		if (!parse_bool(value, &boolval))
+			elog(ERROR, "invalid bool value \"%s\" for "
+					 "storage option \"%s\"", value, name);
+		len = VARHDRSZ + strlen(SOPT_CHECKSUM) + 1 + strlen(value);
+		/* +1 leaves room for sprintf's trailing null */
+		t = (text *) palloc(len + 1);
+		SET_VARSIZE(t, len);
+		sprintf(VARDATA(t), "%s=%s", SOPT_CHECKSUM, boolval?"true":"false");
+	}
+	else if (namelen == strlen(SOPT_ORIENTATION) &&
+			 pg_strcasecmp(SOPT_ORIENTATION, name) == 0)
+	{
+		if ((pg_strcasecmp(value, "row") != 0) &&
+			(pg_strcasecmp(value, "column") != 0))
+		{
+			elog(ERROR, "invalid value \"%s\" for storage option \"%s\"",
+				 value, name);
+		}
+		len = VARHDRSZ + strlen(SOPT_ORIENTATION) + 1 + strlen(value);
+		/* +1 leaves room for sprintf's trailing null */
+		t = (text *) palloc(len + 1);
+		SET_VARSIZE(t, len);
+		sprintf(VARDATA(t), "%s=%s", SOPT_ORIENTATION, value);
+	}
+	else
+	{
+		elog(ERROR, "invalid storage option \"%s\"", name);
+	}
+	accumArrayResult(astate, PointerGetDatum(t), /* disnull */ false,
+					 TEXTOID, CurrentMemoryContext);
+}
+
+/*
+ * Reset appendonly storage options to factory defaults.  Callers must
+ * free ao_opts->compresstype before calling this method.
+ */
+inline void
+resetAOStorageOpts(StdRdOptions *ao_opts)
+{
+	ao_opts->appendonly = AO_DEFAULT_APPENDONLY;
+	ao_opts->blocksize = AO_DEFAULT_BLOCKSIZE;
+	ao_opts->checksum = AO_DEFAULT_CHECKSUM;
+	ao_opts->columnstore = AO_DEFAULT_COLUMNSTORE;
+	ao_opts->compresslevel = AO_DEFAULT_COMPRESSLEVEL;
+	ao_opts->compresstype = NULL;
+}
+
+/*
+ * This needs to happen whenever gp_default_storage_options GUC is
+ * reset.
+ */
+void
+resetDefaultAOStorageOpts(void)
+{
+	if (ao_storage_opts.compresstype)
+		free(ao_storage_opts.compresstype);
+	resetAOStorageOpts(&ao_storage_opts);
+}
+
+const StdRdOptions *
+currentAOStorageOptions(void)
+{
+	return (const StdRdOptions *) &ao_storage_opts;
+}
+
+/*
+ * Set global appendonly storage options.
+ */
+void
+setDefaultAOStorageOpts(StdRdOptions *copy)
+{
+	if (ao_storage_opts.compresstype)
+	{
+		free(ao_storage_opts.compresstype);
+		ao_storage_opts.compresstype = NULL;
+	}
+	memcpy(&ao_storage_opts, copy, sizeof(ao_storage_opts));
+	if (copy->compresstype != NULL)
+	{
+		if (pg_strcasecmp(copy->compresstype, "none") == 0)
+		{
+			/* Represent compresstype=none as NULL (MPP-25073). */
+			ao_storage_opts.compresstype = NULL;
+		}
+		else
+		{
+			ao_storage_opts.compresstype = strdup(copy->compresstype);
+			if (ao_storage_opts.compresstype == NULL)
+				elog(ERROR, "out of memory");
+		}
+	}
+}
+
+static int setDefaultCompressionLevel(char* compresstype);
 
 /*
  * Transform a relation options list (list of DefElem) into the text array
@@ -57,7 +249,7 @@ transformRelOptions(Datum oldOptions, List *defList,
 	astate = NULL;
 
 	/* Copy any oldOptions that aren't to be replaced */
-	if (oldOptions != (Datum) 0)
+	if (DatumGetPointer(oldOptions) != 0)
 	{
 		ArrayType  *array = DatumGetArrayTypeP(oldOptions);
 		Datum	   *oldoptions;
@@ -72,8 +264,8 @@ transformRelOptions(Datum oldOptions, List *defList,
 		for (i = 0; i < noldoptions; i++)
 		{
 			text	   *oldoption = DatumGetTextP(oldoptions[i]);
-			char	   *text_str = (char *) VARATT_DATA(oldoption);
-			int			text_len = VARATT_SIZE(oldoption) - VARHDRSZ;
+			char	   *text_str = VARDATA(oldoption);
+			int			text_len = VARSIZE(oldoption) - VARHDRSZ;
 
 			/* Search for a match in defList */
 			foreach(cell, defList)
@@ -114,7 +306,7 @@ transformRelOptions(Datum oldOptions, List *defList,
 		else
 		{
 			text	   *t;
-			const char *value;
+			char *value;
 			Size		len;
 
 			if (ignoreOids && pg_strcasecmp(def->defname, "oids") == 0)
@@ -124,15 +316,29 @@ transformRelOptions(Datum oldOptions, List *defList,
 			 * Flatten the DefElem into a text string like "name=arg". If we
 			 * have just "name", assume "name=true" is meant.
 			 */
+
+			bool need_free_value = false;
 			if (def->arg != NULL)
-				value = defGetString(def);
+			{
+				value = defGetString(def, &need_free_value);
+			}
 			else
+			{
 				value = "true";
+			}
 			len = VARHDRSZ + strlen(def->defname) + 1 + strlen(value);
 			/* +1 leaves room for sprintf's trailing null */
 			t = (text *) palloc(len + 1);
-			VARATT_SIZEP(t) = len;
-			sprintf((char *) VARATT_DATA(t), "%s=%s", def->defname, value);
+			SET_VARSIZE(t, len);
+			sprintf(VARDATA(t), "%s=%s", def->defname, value);
+
+			if (need_free_value)
+			{
+				pfree(value);
+				value = NULL;
+			}
+
+			AssertImply(need_free_value, NULL == value);
 
 			astate = accumArrayResult(astate, PointerGetDatum(t),
 									  false, TEXTOID,
@@ -144,6 +350,504 @@ transformRelOptions(Datum oldOptions, List *defList,
 		result = makeArrayResult(astate, CurrentMemoryContext);
 	else
 		result = (Datum) 0;
+
+	return result;
+}
+
+/*
+ * Accept a string of the form "name=value,name=value,...".  Space
+ * around ',' and '=' is allowed.  Parsed values are stored in
+ * corresponding fields of StdRdOptions object.  The parser is a
+ * finite state machine that changes states for each input character
+ * scanned.
+ */
+Datum
+parseAOStorageOpts(const char *opts_str, bool *aovalue)
+{
+	int dims[1];
+	int lbs[1];
+	Datum result;
+	ArrayBuildState *astate;
+
+	bool foundAO = false;
+	const char *cp;
+	const char *name_st=NULL;
+	const char *value_st=NULL;
+	char *name=NULL, *value=NULL;
+	enum state {
+		/*
+		 * Consume whitespace at the beginning of a name token.
+		 */
+		LEADING_NAME,
+
+		/*
+		 * Name token is being scanned.  Allowed characters are
+		 * alphabets, whitespace and '='.
+		 */
+		NAME_TOKEN,
+
+		/*
+		 * Name token was terminated by whitespace.  This state scans
+		 * the trailing whitespace after name token.
+		 */
+		TRAILING_NAME,
+
+		/*
+		 * Whitespace after '=' and before value token.
+		 */
+		LEADING_VALUE,
+
+		/*
+		 * Value token is being scanned.  Allowed characters are
+		 * alphabets, digits, '_'.  Value should be delimited by a
+		 * ',', whitespace or end of string '\0'.
+		 */
+		VALUE_TOKEN,
+
+		/*
+		 * Whitespace after value token.
+		 */
+		TRAILING_VALUE,
+
+		/*
+		 * End of string.  This state can only be entered from
+		 * VALUE_TOKEN or TRAILING_VALUE.
+		 */
+		EOS
+	};
+	enum state st = LEADING_NAME;
+
+	/*
+	 * Initialize ArrayBuildState ourselves rather than leaving it to
+	 * accumArrayResult().  This aviods the catalog lookup (pg_type)
+	 * performed by accumArrayResult().
+	 */
+	astate = (ArrayBuildState *) palloc(sizeof(ArrayBuildState));
+	astate->mcontext = CurrentMemoryContext;
+	astate->alen = 10; /* Initial number of name=value pairs. */
+	astate->dvalues = (Datum *) palloc(astate->alen * sizeof(Datum));
+	astate->dnulls = (bool *) palloc(astate->alen * sizeof(bool));
+	astate->nelems = 0;
+	astate->element_type = TEXTOID;
+	astate->typlen = -1;
+	astate->typbyval = false;
+	astate->typalign = 'i';
+
+	cp = opts_str-1;
+	do
+	{
+		++cp;
+		switch(st)
+		{
+			case LEADING_NAME:
+				if (isalpha(*cp))
+				{
+					st = NAME_TOKEN;
+					name_st = cp;
+				}
+				else if (!isspace(*cp))
+				{
+					elog(ERROR, "invalid storage option name in \"%s\"",
+						 opts_str);
+				}
+				break;
+			case NAME_TOKEN:
+				if (isspace(*cp))
+					st = TRAILING_NAME;
+				else if (*cp == '=')
+					st = LEADING_VALUE;
+				else if (!isalpha(*cp))
+					elog(ERROR, "invalid storage option name in \"%s\"",
+						 opts_str);
+				if (st != NAME_TOKEN)
+				{
+					name = palloc(cp - name_st + 1);
+					strncpy(name, name_st, cp-name_st);
+					name[cp-name_st] = '\0';
+					for (name_st = name; *name_st != '\0'; ++name_st)
+						*(char *)name_st = pg_tolower(*name_st);
+				}
+				break;
+			case TRAILING_NAME:
+				if (*cp == '=')
+					st = LEADING_VALUE;
+				else if (!isspace(*cp))
+					elog(ERROR, "invalid value for option \"%s\", "
+						 "expected \"=\"", name);
+				break;
+			case LEADING_VALUE:
+				if (isalnum(*cp))
+				{
+					st = VALUE_TOKEN;
+					value_st = cp;
+				}
+				else if (!isspace(*cp))
+					elog(ERROR, "invalid value for option \"%s\"", name);
+				break;
+			case VALUE_TOKEN:
+				if (isspace(*cp))
+					st = TRAILING_VALUE;
+				else if (*cp == '\0')
+					st = EOS;
+				else if (*cp == ',')
+					st = LEADING_NAME;
+				/* Need to check '_' for rle_type */
+				else if (!(isalnum(*cp) || *cp == '_'))
+					elog(ERROR, "invalid value for option \"%s\"", name);
+				if (st != VALUE_TOKEN)
+				{
+					value = palloc(cp - value_st + 1);
+					strncpy(value, value_st, cp-value_st);
+					value[cp-value_st] = '\0';
+					for (value_st = value; *value_st != '\0'; ++value_st)
+						*(char *)value_st = pg_tolower(*value_st);
+					Assert(name);
+					accumAOStorageOpt(name, strlen(name), value, astate,
+									  &foundAO, aovalue);
+					pfree(name);
+					name = NULL;
+					pfree(value);
+					value = NULL;
+				}
+				break;
+			case TRAILING_VALUE:
+				if (*cp == ',')
+					st = LEADING_NAME;
+				else if (*cp == '\0')
+					st = EOS;
+				else if (!isspace(*cp))
+					elog(ERROR, "syntax error after \"%s\"", value);
+				break;
+			case EOS:
+				/*
+				 * We better get out of the loop right after entering
+				 * this state.  Therefore, we should never get here.
+				 */
+				elog(ERROR, "invalid value \"%s\" for GUC", opts_str);
+				break;
+		};
+	} while(*cp != '\0');
+	if (st != EOS)
+		elog(ERROR, "invalid value \"%s\" for GUC", opts_str);
+	if (!foundAO)
+	{
+		/*
+		 * Add "appendonly=true" datum if it was not explicitly
+		 * specified by user.  This is needed to validate the array of
+		 * datums constructed from user specified options.
+		 */
+		accumAOStorageOpt(SOPT_APPENDONLY, strlen(SOPT_APPENDONLY),
+						  "true", astate, NULL, NULL);
+	}
+
+	lbs[0] = 1;
+	dims[0] = astate->nelems;
+	result = makeMdArrayResult(astate, 1, dims, lbs, CurrentMemoryContext, false);
+	pfree(astate->dvalues);
+	pfree(astate->dnulls);
+	pfree(astate);
+	return result;
+}
+
+/*
+ * Return a datum that is array of "name=value" strings for each
+ * appendonly storage option in opts.  This datum is used to populate
+ * pg_class.reloptions during relation creation.
+ *
+ * To avoid catalog bloat, we only create "name=value" item for those
+ * values in opts that are not specified in WITH clause and are
+ * different from their initial defaults.
+ */
+Datum
+transformAOStdRdOptions(StdRdOptions *opts, Datum withOpts)
+{
+	char *strval;
+	char intval[MAX_SOPT_VALUE_LEN];
+	Datum *withDatums = NULL;
+	text *t;
+	int len, i, withLen, soptLen, nWithOpts = 0;
+	ArrayType *withArr;
+	ArrayBuildState *astate = NULL;
+	bool foundAO = false, foundBlksz = false, foundComptype = false,
+			foundComplevel = false, foundChecksum = false,
+			foundOrientation = false;
+	/*
+	 * withOpts must be parsed to see if an option was spcified in
+	 * WITH() clause.
+	 */
+	if (DatumGetPointer(withOpts) != NULL)
+	{
+		withArr = DatumGetArrayTypeP(withOpts);
+		Assert(ARR_ELEMTYPE(withArr) == TEXTOID);
+		deconstruct_array(withArr, TEXTOID, -1, false, 'i', &withDatums,
+						  NULL, &nWithOpts);
+		/*
+		 * Include options specified in WITH() clause in the same
+		 * order as they are specified.  Otherwise we will end up with
+		 * regression failures due to diff with respect to answer
+		 * file.
+		 */
+		for (i = 0; i < nWithOpts; ++i)
+		{
+			t = DatumGetTextP(withDatums[i]);
+			strval = VARDATA(t);
+			/*
+			 * Text datums are usually not null terminated.  We must
+			 * never access beyond their length.
+			 */
+			withLen = VARSIZE(t) - VARHDRSZ;
+
+			/*
+			 * withDatums[i] may not be used directly.  It may be
+			 * e.g. "aPPendOnly=tRue".  Therefore we don't set it as
+			 * reloptions as is.
+			 */
+			soptLen = strlen(SOPT_APPENDONLY);
+			if (withLen > soptLen &&
+				pg_strncasecmp(strval, SOPT_APPENDONLY, soptLen) == 0)
+			{
+				foundAO = true;
+				strval = opts->appendonly ? "true" : "false";
+				len = VARHDRSZ + strlen(SOPT_APPENDONLY) + 1 + strlen(strval);
+				/* +1 leaves room for sprintf's trailing null */
+				t = (text *) palloc(len + 1);
+				SET_VARSIZE(t, len);
+				sprintf(VARDATA(t), "%s=%s", SOPT_APPENDONLY, strval);
+				astate = accumArrayResult(astate, PointerGetDatum(t), false,
+										  TEXTOID, CurrentMemoryContext);
+			}
+			soptLen = strlen(SOPT_BLOCKSIZE);
+			if (withLen > soptLen &&
+				pg_strncasecmp(strval, SOPT_BLOCKSIZE, soptLen) == 0)
+			{
+				foundBlksz = true;
+				snprintf(intval, MAX_SOPT_VALUE_LEN, "%d", opts->blocksize);
+				len = VARHDRSZ + strlen(SOPT_BLOCKSIZE) + 1 + strlen(intval);
+				/* +1 leaves room for sprintf's trailing null */
+				t = (text *) palloc(len + 1);
+				SET_VARSIZE(t, len);
+				sprintf(VARDATA(t), "%s=%s", SOPT_BLOCKSIZE, intval);
+				astate = accumArrayResult(astate, PointerGetDatum(t), false,
+										  TEXTOID, CurrentMemoryContext);
+			}
+			soptLen = strlen(SOPT_COMPTYPE);
+			if (withLen > soptLen &&
+				pg_strncasecmp(strval, SOPT_COMPTYPE, soptLen) == 0)
+			{
+				foundComptype = true;
+				/*
+				 * Record "none" as compresstype in reloptions if it
+				 * was explicitly specified in WITH clause.
+				 */
+				strval = (opts->compresstype != NULL) ?
+						opts->compresstype : "none";
+				len = VARHDRSZ + strlen(SOPT_COMPTYPE) + 1 + strlen(strval);
+				/* +1 leaves room for sprintf's trailing null */
+				t = (text *) palloc(len + 1);
+				SET_VARSIZE(t, len);
+				sprintf(VARDATA(t), "%s=%s", SOPT_COMPTYPE, strval);
+				astate = accumArrayResult(astate, PointerGetDatum(t), false,
+										  TEXTOID, CurrentMemoryContext);
+			}
+			soptLen = strlen(SOPT_COMPLEVEL);
+			if (withLen > soptLen &&
+				pg_strncasecmp(strval, SOPT_COMPLEVEL, soptLen) == 0)
+			{
+				foundComplevel = true;
+				snprintf(intval, MAX_SOPT_VALUE_LEN, "%d", opts->compresslevel);
+				len = VARHDRSZ + strlen(SOPT_COMPLEVEL) + 1 + strlen(intval);
+				/* +1 leaves room for sprintf's trailing null */
+				t = (text *) palloc(len + 1);
+				SET_VARSIZE(t, len);
+				sprintf(VARDATA(t), "%s=%s", SOPT_COMPLEVEL, intval);
+				astate = accumArrayResult(astate, PointerGetDatum(t), false,
+										  TEXTOID, CurrentMemoryContext);
+			}
+			soptLen = strlen(SOPT_CHECKSUM);
+			if (withLen > soptLen &&
+				pg_strncasecmp(strval, SOPT_CHECKSUM, soptLen) == 0)
+			{
+				foundChecksum = true;
+				strval = opts->checksum ? "true" : "false";
+				len = VARHDRSZ + strlen(SOPT_CHECKSUM) + 1 + strlen(strval);
+				/* +1 leaves room for sprintf's trailing null */
+				t = (text *) palloc(len + 1);
+				SET_VARSIZE(t, len);
+				sprintf(VARDATA(t), "%s=%s", SOPT_CHECKSUM, strval);
+				astate = accumArrayResult(astate, PointerGetDatum(t), false,
+										  TEXTOID, CurrentMemoryContext);
+			}
+			soptLen = strlen(SOPT_ORIENTATION);
+			if (withLen > soptLen &&
+				pg_strncasecmp(strval, SOPT_ORIENTATION, soptLen) == 0)
+			{
+				foundOrientation = true;
+				strval = opts->columnstore ? "column" : "row";
+				len = VARHDRSZ + strlen(SOPT_ORIENTATION) + 1 + strlen(strval);
+				/* +1 leaves room for sprintf's trailing null */
+				t = (text *) palloc(len + 1);
+				SET_VARSIZE(t, len);
+				sprintf(VARDATA(t), "%s=%s", SOPT_ORIENTATION, strval);
+				astate = accumArrayResult(astate, PointerGetDatum(t), false,
+										  TEXTOID, CurrentMemoryContext);
+			}
+			/*
+			 * Record fillfactor only if it's specified in WITH
+			 * clause.  Default fillfactor is assumed otherwise.
+			 */
+			soptLen = strlen(SOPT_FILLFACTOR);
+			if (withLen > soptLen &&
+				pg_strncasecmp(strval, SOPT_FILLFACTOR, soptLen) == 0)
+			{
+				snprintf(intval, MAX_SOPT_VALUE_LEN, "%d", opts->fillfactor);
+				len = VARHDRSZ + strlen(SOPT_FILLFACTOR) + 1 + strlen(intval);
+				/* +1 leaves room for sprintf's trailing null */
+				t = (text *) palloc(len + 1);
+				SET_VARSIZE(t, len);
+				sprintf(VARDATA(t), "%s=%s", SOPT_FILLFACTOR, intval);
+				astate = accumArrayResult(astate, PointerGetDatum(t), false,
+										  TEXTOID, CurrentMemoryContext);
+			}
+		}
+	}
+	/* Include options that are not defaults and not already included. */
+	if ((opts->appendonly != AO_DEFAULT_APPENDONLY) && !foundAO)
+	{
+		/* appendonly */
+		strval = opts->appendonly ? "true" : "false";
+		len = VARHDRSZ + strlen(SOPT_APPENDONLY) + 1 + strlen(strval);
+		/* +1 leaves room for sprintf's trailing null */
+		t = (text *) palloc(len + 1);
+		SET_VARSIZE(t, len);
+		sprintf(VARDATA(t), "%s=%s", SOPT_APPENDONLY, strval);
+		astate = accumArrayResult(astate, PointerGetDatum(t),
+								  false, TEXTOID,
+								  CurrentMemoryContext);
+	}
+	if ((opts->blocksize != AO_DEFAULT_BLOCKSIZE) && !foundBlksz)
+	{
+		/* blocksize */
+		snprintf(intval, MAX_SOPT_VALUE_LEN, "%d", opts->blocksize);
+		len = VARHDRSZ + strlen(SOPT_BLOCKSIZE) + 1 + strlen(intval);
+		/* +1 leaves room for sprintf's trailing null */
+		t = (text *) palloc(len + 1);
+		SET_VARSIZE(t, len);
+		sprintf(VARDATA(t), "%s=%s", SOPT_BLOCKSIZE, intval);
+		astate = accumArrayResult(astate, PointerGetDatum(t),
+								  false, TEXTOID,
+								  CurrentMemoryContext);
+	}
+	/*
+	 * Record compression options only if compression is enabled.  No
+	 * need to check compresstype here as by the time we get here,
+	 * "opts" should have been set by default_reloptions() correctly.
+	 */
+	if (opts->compresslevel > AO_DEFAULT_COMPRESSLEVEL &&
+		opts->compresstype != NULL)
+	{
+		if (!foundComptype && (
+				(pg_strcasecmp(opts->compresstype, AO_DEFAULT_COMPRESSTYPE) == 0
+				 && opts->compresslevel == 1 && !foundComplevel) ||
+				pg_strcasecmp(opts->compresstype,
+							  AO_DEFAULT_COMPRESSTYPE) != 0))
+		{
+			/* compress type */
+			strval = opts->compresstype;
+			len = VARHDRSZ + strlen(SOPT_COMPTYPE) + 1 + strlen(strval);
+			/* +1 leaves room for sprintf's trailing null */
+			t = (text *) palloc(len + 1);
+			SET_VARSIZE(t, len);
+			sprintf(VARDATA(t), "%s=%s", SOPT_COMPTYPE, strval);
+			astate = accumArrayResult(astate, PointerGetDatum(t),
+									  false, TEXTOID,
+									  CurrentMemoryContext);
+		}
+		/* When compression is enabled, default compresslevel is 1. */
+		if ((opts->compresslevel != 1) &&
+			!foundComplevel)
+		{
+			/* compress level */
+			snprintf(intval, MAX_SOPT_VALUE_LEN, "%d", opts->compresslevel);
+			len = VARHDRSZ + strlen(SOPT_COMPLEVEL) + 1 + strlen(intval);
+			/* +1 leaves room for sprintf's trailing null */
+			t = (text *) palloc(len + 1);
+			SET_VARSIZE(t, len);
+			sprintf(VARDATA(t), "%s=%s", SOPT_COMPLEVEL, intval);
+			astate = accumArrayResult(astate, PointerGetDatum(t),
+									  false, TEXTOID,
+									  CurrentMemoryContext);
+		}
+	}
+	if ((opts->checksum != AO_DEFAULT_CHECKSUM) && !foundChecksum)
+	{
+		/* checksum */
+		strval = opts->checksum ? "true" : "false";
+		len = VARHDRSZ + strlen(SOPT_CHECKSUM) + 1 + strlen(strval);
+		/* +1 leaves room for sprintf's trailing null */
+		t = (text *) palloc(len + 1);
+		SET_VARSIZE(t, len);
+		sprintf(VARDATA(t), "%s=%s", SOPT_CHECKSUM, strval);
+		astate = accumArrayResult(astate, PointerGetDatum(t),
+								  false, TEXTOID,
+								  CurrentMemoryContext);
+	}
+	if ((opts->columnstore != AO_DEFAULT_COLUMNSTORE) && !foundOrientation)
+	{
+		/* orientation */
+		strval = opts->columnstore ? "column" : "row";
+		len = VARHDRSZ + strlen(SOPT_ORIENTATION) + 1 + strlen(strval);
+		/* +1 leaves room for sprintf's trailing null */
+		t = (text *) palloc(len + 1);
+		SET_VARSIZE(t, len);
+		sprintf(VARDATA(t), "%s=%s", SOPT_ORIENTATION, strval);
+		astate = accumArrayResult(astate, PointerGetDatum(t),
+								  false, TEXTOID,
+								  CurrentMemoryContext);
+	}
+	return astate ?
+			makeArrayResult(astate, CurrentMemoryContext) :
+			PointerGetDatum(NULL);
+}
+
+/*
+ * Convert the text-array format of reloptions into a List of DefElem.
+ * This is the inverse of transformRelOptions().
+ */
+List *
+untransformRelOptions(Datum options)
+{
+	List	   *result = NIL;
+	ArrayType  *array;
+	Datum	   *optiondatums;
+	int			noptions;
+	int			i;
+
+	/* Nothing to do if no options */
+	if (options == (Datum) 0)
+		return result;
+
+	array = DatumGetArrayTypeP(options);
+
+	Assert(ARR_ELEMTYPE(array) == TEXTOID);
+
+	deconstruct_array(array, TEXTOID, -1, false, 'i',
+					  &optiondatums, NULL, &noptions);
+
+	for (i = 0; i < noptions; i++)
+	{
+		char	   *s;
+		char	   *p;
+		Node	   *val = NULL;
+
+		s = DatumGetCString(DirectFunctionCall1(textout, optiondatums[i]));
+		p = strchr(s, '=');
+		if (p)
+		{
+			*p++ = '\0';
+			val = (Node *) makeString(pstrdup(p));
+		}
+		result = lappend(result, makeDefElem(pstrdup(s), val));
+	}
 
 	return result;
 }
@@ -170,15 +874,17 @@ parseRelOptions(Datum options, int numkeywords, const char *const * keywords,
 	Datum	   *optiondatums;
 	int			noptions;
 	int			i;
+	bool	isArrayToBeFreed = false;
 
 	/* Initialize to "all defaulted" */
 	MemSet(values, 0, numkeywords * sizeof(char *));
 
 	/* Done if no options */
-	if (options == (Datum) 0)
+	if (DatumGetPointer(options) == 0)
 		return;
 
 	array = DatumGetArrayTypeP(options);
+	isArrayToBeFreed = (array != DatumGetPointer(options));
 
 	Assert(ARR_ELEMTYPE(array) == TEXTOID);
 
@@ -188,8 +894,8 @@ parseRelOptions(Datum options, int numkeywords, const char *const * keywords,
 	for (i = 0; i < noptions; i++)
 	{
 		text	   *optiontext = DatumGetTextP(optiondatums[i]);
-		char	   *text_str = (char *) VARATT_DATA(optiontext);
-		int			text_len = VARATT_SIZE(optiontext) - VARHDRSZ;
+		char	   *text_str = VARDATA(optiontext);
+		int			text_len = VARSIZE(optiontext) - VARHDRSZ;
 		int			j;
 
 		/* Search for a match in keywords */
@@ -230,50 +936,427 @@ parseRelOptions(Datum options, int numkeywords, const char *const * keywords,
 					 errmsg("unrecognized parameter \"%s\"", s)));
 		}
 	}
+	pfree(optiondatums);
+
+	if (isArrayToBeFreed)
+	{
+		pfree(array);
+	}
 }
 
-
 /*
- * Parse reloptions for anything using StdRdOptions (ie, fillfactor only)
+ * Merge user-specified reloptions with pre-configured default storage
+ * options and return a StdRdObtions object.
  */
 bytea *
-default_reloptions(Datum reloptions, bool validate,
+default_reloptions(Datum reloptions, bool validate, char relkind,
 				   int minFillfactor, int defaultFillfactor)
 {
-	static const char *const default_keywords[1] = {"fillfactor"};
-	char	   *values[1];
-	int32		fillfactor;
-	StdRdOptions *result;
+	StdRdOptions *result = (StdRdOptions *) palloc0(sizeof(StdRdOptions));
+	SET_VARSIZE(result, sizeof(StdRdOptions));
+	if (validate && (relkind == RELKIND_RELATION))
+	{
+		/*
+		 * Relation creation is in progress.  reloptions are specified
+		 * by user.  We should merge currently configured default
+		 * storage options along with user-specified ones.  It is
+		 * assumed that auxiliary relations (relkind != 'r') such as
+		 * toast, aoseg, etc are heap relations.
+		 */
+		result->appendonly = ao_storage_opts.appendonly;
+		result->blocksize = ao_storage_opts.blocksize;
+		result->checksum = ao_storage_opts.checksum;
+		result->columnstore = ao_storage_opts.columnstore;
+		result->compresslevel = ao_storage_opts.compresslevel;
+		if (ao_storage_opts.compresstype)
+		{
+			result->compresstype = pstrdup(ao_storage_opts.compresstype);
+		}
+	}
+	else
+	{
+		/*
+		 * We are called for either creating an auxiliary relation or
+		 * through heap_open().  If we are doing heap_open(),
+		 * reloptions argument contains pg_class.reloptions for the
+		 * relation being opened.
+		 */
+		resetAOStorageOpts(result);
+	}
+	result->fillfactor = defaultFillfactor;
 
-	parseRelOptions(reloptions, 1, default_keywords, values, validate);
-
-	/*
-	 * If no options, we can just return NULL rather than doing anything.
-	 * (defaultFillfactor is thus not used, but we require callers to pass it
-	 * anyway since we would need it if more options were added.)
-	 */
-	if (values[0] == NULL)
-		return NULL;
-
-	fillfactor = pg_atoi(values[0], sizeof(int32), 0);
-	if (fillfactor < minFillfactor || fillfactor > 100)
+	parse_validate_reloptions(result, reloptions, validate, relkind);
+	if (result->appendonly == false &&
+		(result->fillfactor < minFillfactor || result->fillfactor > 100))
 	{
 		if (validate)
 			ereport(ERROR,
 					(errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-					 errmsg("fillfactor=%d is out of range (should be between %d and 100)",
-							fillfactor, minFillfactor)));
-		return NULL;
+					 errmsg("fillfactor=%d is out of range (should "
+							"be between %d and 100)",
+							result->fillfactor, minFillfactor)));
+
+		result->fillfactor = defaultFillfactor;
 	}
-
-	result = (StdRdOptions *) palloc(sizeof(StdRdOptions));
-	VARATT_SIZEP(result) = sizeof(StdRdOptions);
-
-	result->fillfactor = fillfactor;
-
 	return (bytea *) result;
 }
 
+void
+parse_validate_reloptions(StdRdOptions *result, Datum reloptions,
+						  bool validate, char relkind)
+{
+	static const char *const default_keywords[] = {
+			SOPT_FILLFACTOR,
+			SOPT_APPENDONLY,
+			SOPT_BLOCKSIZE,
+			SOPT_COMPTYPE,
+			SOPT_COMPLEVEL,
+			SOPT_CHECKSUM,
+			SOPT_ORIENTATION
+	};
+	char	   *values[ARRAY_SIZE(default_keywords)];
+	int			j = 0;
+
+	parseRelOptions(reloptions, ARRAY_SIZE(default_keywords),
+					default_keywords, values, validate);
+
+	/* fillfactor */
+	if (values[0] != NULL)
+	{
+		result->fillfactor = pg_atoi(values[0], sizeof(int32), 0);
+	}
+
+	/* appendonly */
+	if (values[1] != NULL)
+	{
+		if (relkind != RELKIND_RELATION)
+			ereport(ERROR,
+					(errcode(ERRCODE_INVALID_PARAMETER_VALUE),
+					 errmsg("usage of parameter \"appendonly\" in a non "
+							"relation object is not supported"),
+					 errOmitLocation(false)));
+
+		if (!parse_bool(values[1], &result->appendonly))
+		{
+			ereport(ERROR,
+					(errcode(ERRCODE_INVALID_PARAMETER_VALUE),
+					 errmsg("invalid parameter value for \"appendonly\": "
+							"\"%s\"", values[1])));
+		}
+	}
+
+	/* blocksize */
+	if (values[2] != NULL)
+	{
+		if (relkind != RELKIND_RELATION && validate)
+			ereport(ERROR,
+					(errcode(ERRCODE_INVALID_PARAMETER_VALUE),
+					 errmsg("usage of parameter \"blocksize\" in a non "
+							"relation object is not supported"),
+					 errOmitLocation(false)));
+
+		if (!result->appendonly && validate)
+			ereport(ERROR,
+					(errcode(ERRCODE_GP_FEATURE_NOT_SUPPORTED),
+					 errmsg("invalid option 'blocksize' for base relation. "
+							"Only valid for Append Only relations")));
+
+		result->blocksize = pg_atoi(values[2], sizeof(int32), 0);
+
+		if (result->blocksize < MIN_APPENDONLY_BLOCK_SIZE ||
+			result->blocksize > MAX_APPENDONLY_BLOCK_SIZE ||
+			result->blocksize % MIN_APPENDONLY_BLOCK_SIZE != 0)
+		{
+			if (validate)
+				ereport(ERROR,
+						(errcode(ERRCODE_INVALID_PARAMETER_VALUE),
+						 errmsg("block size must be between 8KB and 2MB and be"
+								" an 8KB multiple. Got %d", result->blocksize)));
+
+			result->blocksize = DEFAULT_APPENDONLY_BLOCK_SIZE;
+		}
+
+	}
+
+	/* compression type */
+	if (values[3] != NULL)
+	{
+		if (relkind != RELKIND_RELATION && validate)
+			ereport(ERROR,
+					(errcode(ERRCODE_INVALID_PARAMETER_VALUE),
+					 errmsg("usage of parameter \"compresstype\" in a non "
+							"relation object is not supported"),
+					 errOmitLocation(false)));
+
+		if (!result->appendonly && validate)
+			ereport(ERROR,
+					(errcode(ERRCODE_GP_FEATURE_NOT_SUPPORTED),
+					 errmsg("invalid option \"compresstype\" for base relation."
+							" Only valid for Append Only relations")));
+
+		result->compresstype = pstrdup(values[3]);
+		if (!compresstype_is_valid(result->compresstype))
+			ereport(ERROR,
+					(errcode(ERRCODE_UNDEFINED_OBJECT),
+					 errmsg("unknown compresstype \"%s\"",
+							result->compresstype)));
+		for (j = 0; j < strlen(result->compresstype); j++)
+			result->compresstype[j] = pg_tolower(result->compresstype[j]);
+	}
+
+	/* compression level */
+	if (values[4] != NULL)
+	{
+		if (relkind != RELKIND_RELATION && validate)
+			ereport(ERROR,
+					(errcode(ERRCODE_INVALID_PARAMETER_VALUE),
+					 errmsg("usage of parameter \"compresslevel\" in a non "
+							"relation object is not supported"),
+					 errOmitLocation(false)));
+
+		if (!result->appendonly && validate)
+			ereport(ERROR,
+					(errcode(ERRCODE_GP_FEATURE_NOT_SUPPORTED),
+					 errmsg("invalid option 'compresslevel' for base "
+							"relation. Only valid for Append Only relations")));
+
+		result->compresslevel = pg_atoi(values[4], sizeof(int32), 0);
+
+		if (result->compresstype &&
+			pg_strcasecmp(result->compresstype, "none") != 0 &&
+			result->compresslevel == 0 && validate)
+			ereport(ERROR,
+					(errcode(ERRCODE_INVALID_PARAMETER_VALUE),
+					 errmsg("compresstype can\'t be used with compresslevel 0")));
+		if (result->compresslevel < 0 || result->compresslevel > 9)
+		{
+			if (validate)
+				ereport(ERROR,
+						(errcode(ERRCODE_INVALID_PARAMETER_VALUE),
+						 errmsg("compresslevel=%d is out of range (should be "
+								"between 0 and 9)",
+								result->compresslevel)));
+
+			result->compresslevel = setDefaultCompressionLevel(
+					result->compresstype);
+		}
+
+		/*
+		 * use the default compressor if compresslevel was indicated but not
+		 * compresstype. must make a copy otherwise str_tolower below will
+		 * crash.
+		 */
+		if (result->compresslevel > 0 && !result->compresstype)
+			result->compresstype = pstrdup(AO_DEFAULT_COMPRESSTYPE);
+
+		if (result->compresstype &&
+			(pg_strcasecmp(result->compresstype, "quicklz") == 0) &&
+			(result->compresslevel != 1))
+		{
+			if (validate)
+				ereport(ERROR,
+						(errcode(ERRCODE_INVALID_PARAMETER_VALUE),
+						 errmsg("compresslevel=%d is out of range for "
+								"quicklz (should be 1)",
+								result->compresslevel),
+						 errOmitLocation(true)));
+
+			result->compresslevel = setDefaultCompressionLevel(
+					result->compresstype);
+		}
+
+		if (result->compresstype &&
+			(pg_strcasecmp(result->compresstype, "rle_type") == 0) &&
+			(result->compresslevel > 4))
+		{
+			if (validate)
+				ereport(ERROR,
+						(errcode(ERRCODE_INVALID_PARAMETER_VALUE),
+						 errmsg("compresslevel=%d is out of range for rle_type"
+								" (should be in the range 1 to 4)",
+								result->compresslevel)));
+
+			result->compresslevel = setDefaultCompressionLevel(
+					result->compresstype);
+		}
+	}
+
+	/* checksum */
+	if (values[5] != NULL)
+	{
+		if (relkind != RELKIND_RELATION && validate)
+			ereport(ERROR,
+					(errcode(ERRCODE_INVALID_PARAMETER_VALUE),
+					 errmsg("usage of parameter \"checksum\" in a non relation "
+							"object is not supported"),
+					 errOmitLocation(false)));
+
+		if (!result->appendonly && validate)
+			ereport(ERROR,
+					(errcode(ERRCODE_GP_FEATURE_NOT_SUPPORTED),
+					 errmsg("invalid option \"checksum\" for base relation. "
+							"Only valid for Append Only relations")));
+
+		if (!parse_bool(values[5], &result->checksum) && validate)
+		{
+			ereport(ERROR,
+					(errcode(ERRCODE_INVALID_PARAMETER_VALUE),
+					 errmsg("invalid parameter value for \"checksum\": \"%s\"",
+							values[5])));
+		}
+	}
+	/* Disable checksum for heap relations. */
+	else if (result->appendonly == false)
+		result->checksum = false;
+
+	/* columnstore */
+	if (values[6] != NULL)
+	{
+		if (relkind != RELKIND_RELATION && validate)
+			ereport(ERROR,
+					(errcode(ERRCODE_INVALID_PARAMETER_VALUE),
+					 errmsg("usage of parameter \"orientation\" in a non "
+							"relation object is not supported"),
+					 errOmitLocation(false)));
+
+		if (!result->appendonly && validate)
+			ereport(ERROR,
+					(errcode(ERRCODE_GP_FEATURE_NOT_SUPPORTED),
+					 errmsg("invalid option \"orientation\" for base relation. "
+							"Only valid for Append Only relations")));
+
+		if (!(pg_strcasecmp(values[6], "column") == 0 ||
+			  pg_strcasecmp(values[6], "row") == 0) &&
+			validate)
+		{
+			ereport(ERROR,
+					(errcode(ERRCODE_INVALID_PARAMETER_VALUE),
+					 errmsg("invalid parameter value for \"orientation\": "
+							"\"%s\"", values[6])));
+		}
+
+		result->columnstore = (pg_strcasecmp(values[6], "column") == 0 ?
+							   true : false);
+
+		if (result->compresstype &&
+			(pg_strcasecmp(result->compresstype, "rle_type") == 0) &&
+			! result->columnstore)
+		{
+			if (validate)
+				ereport(ERROR,
+						(errcode(ERRCODE_INVALID_PARAMETER_VALUE),
+						 errmsg("%s cannot be used with Append Only relations "
+								"row orientation", result->compresstype)));
+		}
+	}
+
+	if (result->appendonly && result->compresstype != NULL)
+		if (result->compresslevel == AO_DEFAULT_COMPRESSLEVEL)
+			result->compresslevel = setDefaultCompressionLevel(
+					result->compresstype);
+	for (int i = 0; i < ARRAY_SIZE(default_keywords); i++)
+	{
+		if (values[i])
+		{
+			pfree(values[i]);
+		}
+	}
+}
+
+/**
+ *  This function parses the tidycat option.
+ *  In the tidycat definition, the WITH clause contains "shared",
+ *  "reloid", etc. Those are the tidycat option.
+ */
+TidycatOptions*
+tidycat_reloptions(Datum reloptions)
+{
+	static const char *const default_keywords[] = {
+		/* tidycat option for table */
+		"relid",
+		"reltype_oid",
+		"toast_oid",
+		"toast_index",
+		"toast_reltype",
+
+		/* tidycat option for index */
+		"indexid",
+	};
+
+	TidycatOptions *result;
+	char	       *values[ARRAY_SIZE(default_keywords)];
+
+	parseRelOptions(reloptions, ARRAY_SIZE(default_keywords), default_keywords, values, false);
+
+	result = (TidycatOptions *) palloc(sizeof(TidycatOptions));
+	result->relid         = (values[0] != NULL) ? pg_atoi(values[0], sizeof(int32), 0):InvalidOid;
+	result->reltype_oid   = (values[1] != NULL) ? pg_atoi(values[1], sizeof(int32), 0):InvalidOid;
+	result->toast_oid     = (values[2] != NULL) ? pg_atoi(values[2], sizeof(int32), 0):InvalidOid;
+	result->toast_index   = (values[3] != NULL) ? pg_atoi(values[3], sizeof(int32), 0):InvalidOid;
+	result->toast_reltype = (values[4] != NULL) ? pg_atoi(values[4], sizeof(int32), 0):InvalidOid;
+	result->indexid       = (values[5] != NULL) ? pg_atoi(values[5], sizeof(int32), 0):InvalidOid;
+
+	return result;
+}
+
+void
+heap_test_override_reloptions(char relkind, StdRdOptions *stdRdOptions, int *safewrite)
+{
+	if (IsBootstrapProcessingMode())
+		return;
+
+	if (relkind != RELKIND_RELATION)
+		return;
+
+	/*
+	 * Normally, the default is a regular table.
+	 * If the override is on, change the default to be an appendonly
+	 * table.
+	 */
+	if (!stdRdOptions->appendonly && Test_appendonly_override)
+	{
+		stdRdOptions->appendonly = true;
+	}
+
+	if (!stdRdOptions->appendonly)
+		return;
+
+	/*
+	 * Normally, appendonly tables are not compressed by default.
+	 * If the override is on, compress it with the override value.
+	 */
+	if (Test_compresslevel_override != DEFAULT_COMPRESS_LEVEL)
+	{
+		stdRdOptions->compresslevel = Test_compresslevel_override;
+
+		stdRdOptions->compresstype = AO_DEFAULT_COMPRESSTYPE;
+	}
+
+	/*
+	 * Normally, appendonly tables are created with the default 32KB block
+	 * size. If the override has a different value - use the override value.
+	 */
+	if (Test_blocksize_override != DEFAULT_APPENDONLY_BLOCK_SIZE)
+	{
+		stdRdOptions->blocksize = Test_blocksize_override;
+	}
+
+	/*
+	 * Same for safefswritesize.
+	 */
+	if (Test_safefswritesize_override != DEFAULT_FS_SAFE_WRITE_SIZE)
+	{
+		*safewrite = Test_safefswritesize_override;
+	}
+
+    /*
+     * Testing for columnstore override
+     */
+    if (gp_test_orientation_override)
+    {
+        stdRdOptions->columnstore = true;
+    }
+}
 
 /*
  * Parse options for heaps (and perhaps someday toast tables).
@@ -282,6 +1365,7 @@ bytea *
 heap_reloptions(char relkind, Datum reloptions, bool validate)
 {
 	return default_reloptions(reloptions, validate,
+							  relkind,
 							  HEAP_MIN_FILLFACTOR,
 							  HEAP_DEFAULT_FILLFACTOR);
 }
@@ -304,7 +1388,7 @@ index_reloptions(RegProcedure amoptions, Datum reloptions, bool validate)
 	Assert(RegProcedureIsValid(amoptions));
 
 	/* Assume function is strict */
-	if (reloptions == (Datum) 0)
+	if (DatumGetPointer(reloptions) == 0)
 		return NULL;
 
 	/* Can't use OidFunctionCallN because we might get a NULL result */
@@ -323,4 +1407,121 @@ index_reloptions(RegProcedure amoptions, Datum reloptions, bool validate)
 		return NULL;
 
 	return DatumGetByteaP(result);
+}
+
+/*
+ * validateAppendOnlyRelOptions
+ *
+ *		Various checks for validity of appendonly relation rules.
+ */
+void validateAppendOnlyRelOptions(bool ao,
+								  int blocksize,
+								  int safewrite,
+								  int complevel,
+								  char* comptype,
+								  bool checksum,
+								  char relkind,
+								  bool co)
+{
+	if (relkind != RELKIND_RELATION)
+	{
+		if(ao)
+			ereport(ERROR,
+					(errcode(ERRCODE_GP_FEATURE_NOT_SUPPORTED),
+					 errmsg("appendonly may only be specified for base relations")));
+
+		if(checksum)
+			ereport(ERROR,
+					(errcode(ERRCODE_GP_FEATURE_NOT_SUPPORTED),
+					 errmsg("checksum may only be specified for base relations")));
+
+		if(comptype)
+			ereport(ERROR,
+					(errcode(ERRCODE_GP_FEATURE_NOT_SUPPORTED),
+					 errmsg("compresstype may only be specified for base relations")));
+	}
+
+	/*
+	 * If this is not an appendonly relation, no point in going
+	 * further.
+	 */
+	if (!ao)
+		return;
+
+	if (comptype &&
+		(pg_strcasecmp(comptype, "quicklz") == 0 ||
+		 pg_strcasecmp(comptype, "zlib") == 0 ||
+		 pg_strcasecmp(comptype, "rle_type") == 0))
+	{
+
+		if (! co &&
+			pg_strcasecmp(comptype, "rle_type") == 0)
+		{
+			ereport(ERROR,
+					(errcode(ERRCODE_INVALID_PARAMETER_VALUE),
+					 errmsg("%s cannot be used with Append Only relations row orientation",
+							comptype)));
+		}
+
+		if (comptype && complevel == 0)
+			ereport(ERROR,
+					(errcode(ERRCODE_INVALID_PARAMETER_VALUE),
+					 errmsg("compresstype cannot be used with compresslevel 0")));
+
+		if (complevel < 0 || complevel > 9)
+			ereport(ERROR,
+					(errcode(ERRCODE_INVALID_PARAMETER_VALUE),
+					 errmsg("compresslevel=%d is out of range (should be between 0 and 9)",
+							complevel)));
+
+		if (comptype && (pg_strcasecmp(comptype, "quicklz") == 0) &&
+			(complevel != 1))
+		{
+				ereport(ERROR,
+						(errcode(ERRCODE_INVALID_PARAMETER_VALUE),
+						 errmsg("compresslevel=%d is out of range for quicklz "
+								 "(should be 1)", complevel)));
+		}
+		if (comptype && (pg_strcasecmp(comptype, "rle_type") == 0) &&
+			(complevel > 4))
+		{
+			ereport(ERROR,
+					(errcode(ERRCODE_INVALID_PARAMETER_VALUE),
+					 errmsg("compresslevel=%d is out of range for rle_type "
+							"(should be in the range 1 to 4)", complevel)));
+		}
+	}
+
+	if (blocksize < MIN_APPENDONLY_BLOCK_SIZE || blocksize > MAX_APPENDONLY_BLOCK_SIZE ||
+	    blocksize % MIN_APPENDONLY_BLOCK_SIZE != 0)
+		ereport(ERROR,
+				(errcode(ERRCODE_INVALID_PARAMETER_VALUE),
+				 errmsg("block size must be between 8KB and 2MB and "
+						"be an 8KB multiple, Got %d", blocksize)));
+
+	if (safewrite > MAX_APPENDONLY_BLOCK_SIZE || safewrite % 8 != 0)
+		ereport(ERROR,
+				(errcode(ERRCODE_INVALID_PARAMETER_VALUE),
+				 errmsg("safefswrite size must be less than 8MB and "
+						"be a multiple of 8")));
+
+	if (gp_safefswritesize > blocksize)
+		ereport(ERROR,
+				(errcode(ERRCODE_INVALID_PARAMETER_VALUE),
+				 errmsg("block size (%d) is smaller gp_safefswritesize (%d). "
+						"increase blocksize or decrease gp_safefswritesize if it "
+						"is safe to do so on this file system",
+						blocksize, gp_safefswritesize)));
+}
+
+/*
+ * if no compressor type was specified, we set to no compression (level 0)
+ * otherwise default for both zlib, quicklz and RLE to level 1.
+ */
+static int setDefaultCompressionLevel(char* compresstype)
+{
+	if(!compresstype || pg_strcasecmp(compresstype, "none") == 0)
+		return 0;
+	else
+		return 1;
 }

@@ -12,7 +12,8 @@
  * We may also need junk tlist entries for Vars used in the RETURNING list.
  *
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 2006-2008, Greenplum inc
+ * Portions Copyright (c) 1996-2008, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
@@ -24,8 +25,10 @@
 #include "postgres.h"
 
 #include "access/heapam.h"
+#include "catalog/gp_policy.h"     /* CDB: POLICYTYPE_PARTITIONED */
 #include "catalog/pg_type.h"
 #include "nodes/makefuncs.h"
+#include "optimizer/plancat.h"
 #include "optimizer/prep.h"
 #include "optimizer/subselect.h"
 #include "optimizer/tlist.h"
@@ -33,11 +36,14 @@
 #include "parser/analyze.h"
 #include "parser/parsetree.h"
 #include "parser/parse_coerce.h"
-
+#include "parser/parse_relation.h"
+#include "utils/lsyscache.h"
 
 static List *expand_targetlist(List *tlist, int command_type,
 				  Index result_relation, List *range_table);
-
+static List * supplement_simply_updatable_targetlist(DeclareCursorStmt *stmt,
+													 List *range_table,
+													 List *tlist);
 
 /*
  * preprocess_targetlist
@@ -66,7 +72,7 @@ preprocess_targetlist(PlannerInfo *root, List *tlist)
 	}
 
 	/*
-	 * for heap_formtuple to work, the targetlist must match the exact order
+	 * for heap_form_tuple to work, the targetlist must match the exact order
 	 * of the attributes. We also need to fill in any missing attributes. -ay
 	 * 10/94
 	 */
@@ -83,16 +89,42 @@ preprocess_targetlist(PlannerInfo *root, List *tlist)
 	 */
 	if (command_type == CMD_UPDATE || command_type == CMD_DELETE)
 	{
-		TargetEntry *tle;
-		Var		   *var;
-
-		var = makeVar(result_relation, SelfItemPointerAttributeNumber,
+		TargetEntry *tleCtid = NULL;
+		Var			*varCtid = NULL;
+		
+		TargetEntry *tleSegid = NULL;
+		Var 		*varSegid = NULL;
+		
+		varCtid = makeVar(result_relation, SelfItemPointerAttributeNumber,
 					  TIDOID, -1, 0);
 
-		tle = makeTargetEntry((Expr *) var,
-							  list_length(tlist) + 1,
-							  pstrdup("ctid"),
-							  true);
+		tleCtid = makeTargetEntry((Expr *) varCtid,
+							  list_length(tlist) + 1, 	/* resno */
+							  pstrdup("ctid"),			/* resname */
+							  true);					/* resjunk */
+		/* Get type info for segid column */
+		Oid			reloid,
+					vartypeid;
+		int32		type_mod;
+		
+		reloid = getrelid(result_relation, parse->rtable);
+		
+		get_atttypetypmod(reloid, GpSegmentIdAttributeNumber, &vartypeid, &type_mod);
+
+		varSegid = makeVar
+					(
+					result_relation,
+					GpSegmentIdAttributeNumber,
+					vartypeid,
+					type_mod,
+					0
+					);
+
+		tleSegid = makeTargetEntry((Expr *) varSegid,
+							  list_length(tlist) + 2,	/* resno */
+							  pstrdup("gp_segment_id"),	/* resname */
+							  true);					/* resjunk */
+		
 
 		/*
 		 * For an UPDATE, expand_targetlist already created a fresh tlist. For
@@ -102,7 +134,19 @@ preprocess_targetlist(PlannerInfo *root, List *tlist)
 		if (command_type == CMD_DELETE)
 			tlist = list_copy(tlist);
 
-		tlist = lappend(tlist, tle);
+		tlist = lappend(tlist, tleCtid);
+		tlist = lappend(tlist, tleSegid);
+	} 
+
+	/* simply updatable cursors */
+	if (command_type == CMD_SELECT && 
+		parse->utilityStmt &&
+		IsA(parse->utilityStmt, DeclareCursorStmt) &&
+		((DeclareCursorStmt *) parse->utilityStmt)->is_simply_updatable)
+	{
+		tlist = supplement_simply_updatable_targetlist((DeclareCursorStmt *) parse->utilityStmt, 
+													   range_table,
+													   tlist);
 	}
 
 	/*
@@ -124,7 +168,7 @@ preprocess_targetlist(PlannerInfo *root, List *tlist)
 		/*
 		 * Currently the executor only supports FOR UPDATE/SHARE at top level
 		 */
-		if (PlannerQueryLevel > 1)
+		if (root->query_level > 1)
 			ereport(ERROR,
 					(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
 			errmsg("SELECT FOR UPDATE/SHARE is not allowed in subqueries")));
@@ -135,6 +179,19 @@ preprocess_targetlist(PlannerInfo *root, List *tlist)
 			Var		   *var;
 			char	   *resname;
 			TargetEntry *tle;
+            RangeTblEntry  *rte;
+            Relation    relation;
+            bool        isdistributed = false;
+
+            /* CDB: Don't try to fetch CTIDs for distributed relation. */
+            rte = rt_fetch(rc->rti, parse->rtable);
+            relation = heap_open(rte->relid, NoLock);
+            if (relation->rd_cdbpolicy &&
+                relation->rd_cdbpolicy->ptype == POLICYTYPE_PARTITIONED)
+                isdistributed = true;
+            heap_close(relation, NoLock);
+            if (isdistributed)
+                continue;
 
 			var = makeVar(rc->rti,
 						  SelfItemPointerAttributeNumber,
@@ -281,6 +338,7 @@ expand_targetlist(List *tlist, int command_type,
 					if (!att_tup->attisdropped)
 					{
 						new_expr = (Node *) makeConst(atttype,
+								                      -1,
 													  att_tup->attlen,
 													  (Datum) 0,
 													  true,		/* isnull */
@@ -289,6 +347,7 @@ expand_targetlist(List *tlist, int command_type,
 													InvalidOid, -1,
 													atttype,
 													COERCE_IMPLICIT_CAST,
+													-1,
 													false,
 													false);
 					}
@@ -296,10 +355,11 @@ expand_targetlist(List *tlist, int command_type,
 					{
 						/* Insert NULL for dropped column */
 						new_expr = (Node *) makeConst(INT4OID,
+								                      -1,
 													  sizeof(int32),
 													  (Datum) 0,
 													  true,		/* isnull */
-													  true /* byval */ );
+													  true /* byval */);
 					}
 					break;
 				case CMD_UPDATE:
@@ -318,7 +378,8 @@ expand_targetlist(List *tlist, int command_type,
 													  sizeof(int32),
 													  (Datum) 0,
 													  true,		/* isnull */
-													  true /* byval */ );
+													  true /* byval */,
+													  -1);
 					}
 					break;
 				default:
@@ -365,4 +426,72 @@ expand_targetlist(List *tlist, int command_type,
 	heap_close(rel, NoLock);
 
 	return new_tlist;
+}
+
+
+/*
+ * supplement_simply_updatable_targetlist
+ * 
+ * For a simply updatable cursor, we supplement the targetlist with junk metadata for
+ * gp_segment_id, ctid, and tableoid. The handling of a CURRENT OF invocation will rely
+ * on this junk information during its constant folding. Thus, in a nutshell, it is the 
+ * responsibility of this routine to ensure whatever information needed to uniquely
+ * identify the currently positioned tuple is available in the tuple itself.
+ */
+static List *
+supplement_simply_updatable_targetlist(DeclareCursorStmt *stmt, List *range_table, List *tlist) 
+{
+	Assert(stmt->is_simply_updatable);
+	Index varno = extractSimplyUpdatableRTEIndex(range_table);
+
+	/* ctid */
+	Var         *varCtid = makeVar(varno,
+								   SelfItemPointerAttributeNumber,
+								   TIDOID,
+								   -1,
+								   0);
+	TargetEntry *tleCtid = makeTargetEntry((Expr *) varCtid,
+										   list_length(tlist) + 1,   /* resno */
+										   pstrdup("ctid"),          /* resname */
+										   true);                    /* resjunk */
+	tlist = lappend(tlist, tleCtid);
+
+	/* gp_segment_id */
+	Oid         reloid 		= InvalidOid,
+				vartypeid 	= InvalidOid;
+	int32       type_mod 	= -1;
+	reloid = getrelid(varno, range_table);
+	get_atttypetypmod(reloid, GpSegmentIdAttributeNumber, &vartypeid, &type_mod);
+	Var         *varSegid = makeVar(varno,
+									GpSegmentIdAttributeNumber,
+									vartypeid,
+									type_mod,
+									0);
+	TargetEntry *tleSegid = makeTargetEntry((Expr *) varSegid,
+											list_length(tlist) + 1,   /* resno */
+											pstrdup("gp_segment_id"), /* resname */
+											true);                    /* resjunk */
+
+	tlist = lappend(tlist, tleSegid);
+
+	/*
+	 * tableoid is only needed in the case of inheritance, in order to supplement 
+	 * our ability to uniquely identify a tuple. Without inheritance, we omit tableoid
+	 * to avoid the overhead of carrying tableoid for each tuple in the result set.
+	 */
+	if (find_inheritance_children(reloid) != NIL)
+	{
+		Var         *varTableoid = makeVar(varno,
+										   TableOidAttributeNumber,
+										   OIDOID,
+										   -1,
+										   0);
+		TargetEntry *tleTableoid = makeTargetEntry((Expr *) varTableoid,
+												   list_length(tlist) + 1,  /* resno */
+												   pstrdup("tableoid"),     /* resname */
+												   true);                   /* resjunk */
+		tlist = lappend(tlist, tleTableoid);
+	}
+	
+	return tlist;
 }

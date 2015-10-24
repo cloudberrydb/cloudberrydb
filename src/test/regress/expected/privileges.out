@@ -1,6 +1,7 @@
 --
 -- Test access privileges
 --
+set optimizer=off;
 -- Clean up in case a prior regression run failed
 -- Suppress NOTICE messages when users/groups don't exist
 SET client_min_messages TO 'error';
@@ -10,21 +11,23 @@ DROP ROLE IF EXISTS regressuser1;
 DROP ROLE IF EXISTS regressuser2;
 DROP ROLE IF EXISTS regressuser3;
 DROP ROLE IF EXISTS regressuser4;
+DROP ROLE IF EXISTS regressuser5;
 RESET client_min_messages;
 -- test proper begins here
 CREATE USER regressuser1;
 CREATE USER regressuser2;
 CREATE USER regressuser3;
 CREATE USER regressuser4;
-CREATE USER regressuser4;	-- duplicate
-ERROR:  role "regressuser4" already exists
+CREATE USER regressuser5;
+CREATE USER regressuser5;	-- duplicate
+ERROR:  role "regressuser5" already exists
 CREATE GROUP regressgroup1;
 CREATE GROUP regressgroup2 WITH USER regressuser1, regressuser2;
 ALTER GROUP regressgroup1 ADD USER regressuser4;
 ALTER GROUP regressgroup2 ADD USER regressuser2;	-- duplicate
 NOTICE:  role "regressuser2" is already a member of role "regressgroup2"
 ALTER GROUP regressgroup2 DROP USER regressuser2;
-ALTER GROUP regressgroup2 ADD USER regressuser4;
+GRANT regressgroup2 TO regressuser4 WITH ADMIN OPTION;
 -- test owner privileges
 SET SESSION AUTHORIZATION regressuser1;
 SELECT session_user, current_user;
@@ -34,6 +37,8 @@ SELECT session_user, current_user;
 (1 row)
 
 CREATE TABLE atest1 ( a int, b text );
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Greenplum Database data distribution key for this table.
+HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 SELECT * FROM atest1;
  a | b 
 ---+---
@@ -41,9 +46,11 @@ SELECT * FROM atest1;
 
 INSERT INTO atest1 VALUES (1, 'one');
 DELETE FROM atest1;
-UPDATE atest1 SET a = 1 WHERE b = 'blech';
+UPDATE atest1 SET b = 'blech' WHERE a = 213;
+TRUNCATE atest1;
 LOCK atest1 IN ACCESS EXCLUSIVE MODE;
 REVOKE ALL ON atest1 FROM PUBLIC;
+NOTICE:  no privileges could be revoked from role PUBLIC on object atest1
 SELECT * FROM atest1;
  a | b 
 ---+---
@@ -57,9 +64,12 @@ SELECT * FROM atest1;
 (0 rows)
 
 CREATE TABLE atest2 (col1 varchar(10), col2 boolean);
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'col1' as the Greenplum Database data distribution key for this table.
+HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 GRANT SELECT ON atest2 TO regressuser2;
 GRANT UPDATE ON atest2 TO regressuser3;
 GRANT INSERT ON atest2 TO regressuser4;
+GRANT TRUNCATE ON atest2 TO regressuser5;
 SET SESSION AUTHORIZATION regressuser2;
 SELECT session_user, current_user;
  session_user | current_user 
@@ -82,19 +92,21 @@ INSERT INTO atest1 VALUES (2, 'two'); -- ok
 INSERT INTO atest2 VALUES ('foo', true); -- fail
 ERROR:  permission denied for relation atest2
 INSERT INTO atest1 SELECT 1, b FROM atest1; -- ok
-UPDATE atest1 SET a = 1 WHERE a = 2; -- ok
+UPDATE atest1 SET b = 'twotwo' WHERE a = 2; -- ok
 UPDATE atest2 SET col2 = NOT col2; -- fail
 ERROR:  permission denied for relation atest2
 SELECT * FROM atest1 FOR UPDATE; -- ok
- a |  b  
----+-----
+ a |   b    
+---+--------
  1 | two
- 1 | two
+ 2 | twotwo
 (2 rows)
 
 SELECT * FROM atest2 FOR UPDATE; -- fail
 ERROR:  permission denied for relation atest2
 DELETE FROM atest2; -- fail
+ERROR:  permission denied for relation atest2
+TRUNCATE atest2; -- fail
 ERROR:  permission denied for relation atest2
 LOCK atest2 IN ACCESS EXCLUSIVE MODE; -- fail
 ERROR:  permission denied for relation atest2
@@ -121,10 +133,10 @@ SELECT session_user, current_user;
 (1 row)
 
 SELECT * FROM atest1; -- ok
- a |  b  
----+-----
+ a |   b    
+---+--------
  1 | two
- 1 | two
+ 2 | twotwo
 (2 rows)
 
 SELECT * FROM atest2; -- fail
@@ -135,7 +147,7 @@ INSERT INTO atest2 VALUES ('foo', true); -- fail
 ERROR:  permission denied for relation atest2
 INSERT INTO atest1 SELECT 1, b FROM atest1; -- fail
 ERROR:  permission denied for relation atest1
-UPDATE atest1 SET a = 1 WHERE a = 2; -- fail
+UPDATE atest1 SET b = 'twotwo' WHERE a = 2; -- fail
 ERROR:  permission denied for relation atest1
 UPDATE atest2 SET col2 = NULL; -- ok
 UPDATE atest2 SET col2 = NOT col2; -- fails; requires SELECT on atest2
@@ -146,6 +158,8 @@ ERROR:  permission denied for relation atest1
 SELECT * FROM atest2 FOR UPDATE; -- fail
 ERROR:  permission denied for relation atest2
 DELETE FROM atest2; -- fail
+ERROR:  permission denied for relation atest2
+TRUNCATE atest2; -- fail
 ERROR:  permission denied for relation atest2
 LOCK atest2 IN ACCESS EXCLUSIVE MODE; -- ok
 COPY atest2 FROM stdin; -- fail
@@ -158,15 +172,17 @@ ERROR:  permission denied for relation atest2
 SET SESSION AUTHORIZATION regressuser4;
 COPY atest2 FROM stdin; -- ok
 SELECT * FROM atest1; -- ok
- a |  b  
----+-----
+ a |   b    
+---+--------
  1 | two
- 1 | two
+ 2 | twotwo
 (2 rows)
 
 -- groups
 SET SESSION AUTHORIZATION regressuser3;
 CREATE TABLE atest3 (one int, two int, three int);
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'one' as the Greenplum Database data distribution key for this table.
+HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 GRANT DELETE ON atest3 TO GROUP regressgroup2;
 SET SESSION AUTHORIZATION regressuser1;
 SELECT * FROM atest3; -- fail
@@ -179,10 +195,10 @@ CREATE VIEW atestv1 AS SELECT * FROM atest1; -- ok
 CREATE VIEW atestv2 AS SELECT * FROM atest2;
 CREATE VIEW atestv3 AS SELECT * FROM atest3; -- ok
 SELECT * FROM atestv1; -- ok
- a |  b  
----+-----
+ a |   b    
+---+--------
  1 | two
- 1 | two
+ 2 | twotwo
 (2 rows)
 
 SELECT * FROM atestv2; -- fail
@@ -191,10 +207,10 @@ GRANT SELECT ON atestv1, atestv3 TO regressuser4;
 GRANT SELECT ON atestv2 TO regressuser2;
 SET SESSION AUTHORIZATION regressuser4;
 SELECT * FROM atestv1; -- ok
- a |  b  
----+-----
+ a |   b    
+---+--------
  1 | two
- 1 | two
+ 2 | twotwo
 (2 rows)
 
 SELECT * FROM atestv2; -- fail
@@ -239,8 +255,8 @@ HINT:  Only superusers may use untrusted languages.
 SET SESSION AUTHORIZATION regressuser1;
 GRANT USAGE ON LANGUAGE sql TO regressuser2; -- fail
 WARNING:  no privileges were granted for "sql"
-CREATE FUNCTION testfunc1(int) RETURNS int AS 'select 2 * $1;' LANGUAGE sql;
-CREATE FUNCTION testfunc2(int) RETURNS int AS 'select 3 * $1;' LANGUAGE sql;
+CREATE FUNCTION testfunc1(int) RETURNS int AS 'select 2 * $1;' LANGUAGE sql CONTAINS SQL;
+CREATE FUNCTION testfunc2(int) RETURNS int AS 'select 3 * $1;' LANGUAGE sql CONTAINS SQL;
 REVOKE ALL ON FUNCTION testfunc1(int), testfunc2(int) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION testfunc1(int), testfunc2(int) TO regressuser2;
 GRANT USAGE ON FUNCTION testfunc1(int) TO regressuser3; -- semantic error
@@ -250,7 +266,7 @@ GRANT ALL PRIVILEGES ON FUNCTION testfunc_nosuch(int) TO regressuser4;
 ERROR:  function testfunc_nosuch(integer) does not exist
 CREATE FUNCTION testfunc4(boolean) RETURNS text
   AS 'select col1 from atest2 where col2 = $1;'
-  LANGUAGE sql SECURITY DEFINER;
+  LANGUAGE sql SECURITY DEFINER READS SQL DATA;
 GRANT EXECUTE ON FUNCTION testfunc4(boolean) TO regressuser3;
 SET SESSION AUTHORIZATION regressuser2;
 SELECT testfunc1(5), testfunc2(5); -- ok
@@ -259,7 +275,7 @@ SELECT testfunc1(5), testfunc2(5); -- ok
         10 |        15
 (1 row)
 
-CREATE FUNCTION testfunc3(int) RETURNS int AS 'select 2 * $1;' LANGUAGE sql; -- fail
+CREATE FUNCTION testfunc3(int) RETURNS int AS 'select 2 * $1;' LANGUAGE sql CONTAINS SQL; -- fail
 ERROR:  permission denied for language sql
 SET SESSION AUTHORIZATION regressuser3;
 SELECT testfunc1(5); -- fail
@@ -285,6 +301,11 @@ ERROR:  must be owner of function testfunc1
 DROP FUNCTION testfunc1(int); -- ok
 -- restore to sanity
 GRANT ALL PRIVILEGES ON LANGUAGE sql TO PUBLIC;
+-- truncate
+SET SESSION AUTHORIZATION regressuser5;
+TRUNCATE atest2; -- ok
+TRUNCATE atest3; -- fail
+ERROR:  permission denied for relation atest3
 -- has_table_privilege function
 -- bad-input checks
 select has_table_privilege(NULL,'pg_authid','select');
@@ -294,7 +315,11 @@ select has_table_privilege(NULL,'pg_authid','select');
 (1 row)
 
 select has_table_privilege('pg_shad','select');
-ERROR:  relation "pg_shad" does not exist
+ has_table_privilege 
+---------------------
+ 
+(1 row)
+
 select has_table_privilege('nosuchuser','pg_authid','select');
 ERROR:  role "nosuchuser" does not exist
 select has_table_privilege('pg_authid','sel');
@@ -302,7 +327,11 @@ ERROR:  unrecognized privilege type: "sel"
 select has_table_privilege(-999999,'pg_authid','update');
 ERROR:  role with OID 4293967297 does not exist
 select has_table_privilege(1,'select');
-ERROR:  relation with OID 1 does not exist
+ has_table_privilege 
+---------------------
+ 
+(1 row)
+
 -- superuser
 \c -
 select has_table_privilege(current_user,'pg_authid','select');
@@ -370,6 +399,12 @@ select has_table_privilege('pg_authid','update');
 (1 row)
 
 select has_table_privilege('pg_authid','delete');
+ has_table_privilege 
+---------------------
+ t
+(1 row)
+
+select has_table_privilege('pg_authid','truncate');
  has_table_privilege 
 ---------------------
  t
@@ -452,6 +487,12 @@ select has_table_privilege('pg_class','delete');
  f
 (1 row)
 
+select has_table_privilege('pg_class','truncate');
+ has_table_privilege 
+---------------------
+ f
+(1 row)
+
 select has_table_privilege(t1.oid,'select')
 from (select oid from pg_class where relname = 'pg_class') as t1;
  has_table_privilege 
@@ -527,6 +568,12 @@ select has_table_privilege('atest1','delete');
  f
 (1 row)
 
+select has_table_privilege('atest1','truncate');
+ has_table_privilege 
+---------------------
+ f
+(1 row)
+
 select has_table_privilege(t1.oid,'select')
 from (select oid from pg_class where relname = 'atest1') as t1;
  has_table_privilege 
@@ -544,6 +591,8 @@ from (select oid from pg_class where relname = 'atest1') as t1;
 -- Grant options
 SET SESSION AUTHORIZATION regressuser1;
 CREATE TABLE atest4 (a int);
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Greenplum Database data distribution key for this table.
+HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 GRANT SELECT ON atest4 TO regressuser2 WITH GRANT OPTION;
 GRANT UPDATE ON atest4 TO regressuser2;
 GRANT SELECT ON atest4 TO GROUP regressgroup1 WITH GRANT OPTION;
@@ -553,6 +602,7 @@ GRANT UPDATE ON atest4 TO regressuser3; -- fail
 WARNING:  no privileges were granted for "atest4"
 SET SESSION AUTHORIZATION regressuser1;
 REVOKE SELECT ON atest4 FROM regressuser3; -- does nothing
+NOTICE:  no privileges could be revoked from role regressuser3 on object atest4
 SELECT has_table_privilege('regressuser3', 'atest4', 'SELECT'); -- true
  has_table_privilege 
 ---------------------
@@ -581,6 +631,79 @@ SELECT has_table_privilege('regressuser1', 'atest4', 'SELECT WITH GRANT OPTION')
  t
 (1 row)
 
+-- Admin options
+SET SESSION AUTHORIZATION regressuser4;
+CREATE FUNCTION dogrant_ok() RETURNS void LANGUAGE sql SECURITY DEFINER AS
+	'GRANT regressgroup2 TO regressuser5';
+GRANT regressgroup2 TO regressuser5; -- ok: had ADMIN OPTION
+SET ROLE regressgroup2;
+GRANT regressgroup2 TO regressuser5; -- fails: SET ROLE suspended privilege
+ERROR:  must have admin option on role "regressgroup2"
+SET SESSION AUTHORIZATION regressuser1;
+GRANT regressgroup2 TO regressuser5; -- fails: no ADMIN OPTION
+ERROR:  must have admin option on role "regressgroup2"
+SELECT dogrant_ok();			-- ok: SECURITY DEFINER conveys ADMIN
+NOTICE:  role "regressuser5" is already a member of role "regressgroup2"
+CONTEXT:  SQL function "dogrant_ok" statement 1
+ dogrant_ok 
+------------
+ 
+(1 row)
+
+SET ROLE regressgroup2;
+GRANT regressgroup2 TO regressuser5; -- fails: SET ROLE did not help
+ERROR:  must have admin option on role "regressgroup2"
+SET SESSION AUTHORIZATION regressgroup2;
+GRANT regressgroup2 TO regressuser5; -- ok: a role can self-admin
+NOTICE:  role "regressuser5" is already a member of role "regressgroup2"
+CREATE FUNCTION dogrant_fails() RETURNS void LANGUAGE sql SECURITY DEFINER AS
+	'GRANT regressgroup2 TO regressuser5';
+SELECT dogrant_fails();			-- fails: no self-admin in SECURITY DEFINER
+ERROR:  must have admin option on role "regressgroup2"
+CONTEXT:  SQL function "dogrant_fails" statement 1
+DROP FUNCTION dogrant_fails();
+SET SESSION AUTHORIZATION regressuser4;
+DROP FUNCTION dogrant_ok();
+REVOKE regressgroup2 FROM regressuser5;
+-- test that dependent privileges are revoked (or not) properly
+\c -
+set session role regressuser1;
+create table dep_priv_test (a int);
+grant select on dep_priv_test to regressuser2 with grant option;
+grant select on dep_priv_test to regressuser3 with grant option;
+set session role regressuser2;
+grant select on dep_priv_test to regressuser4 with grant option;
+set session role regressuser3;
+grant select on dep_priv_test to regressuser4 with grant option;
+set session role regressuser4;
+grant select on dep_priv_test to regressuser5;
+\dp dep_priv_test
+                                                                                     Access privileges for database "regression"
+ Schema |     Name      | Type  |                                                                                  Access privileges                                                                                  
+--------+---------------+-------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ public | dep_priv_test | table | {regressuser1=arwdDxt/regressuser1,regressuser2=r*/regressuser1,regressuser3=r*/regressuser1,regressuser4=r*/regressuser2,regressuser4=r*/regressuser3,regressuser5=r/regressuser4}
+(1 row)
+
+set session role regressuser2;
+revoke select on dep_priv_test from regressuser4 cascade;
+\dp dep_priv_test
+                                                         Access privileges for database "regression"
+ Schema |     Name      | Type  |                                                     Access privileges                                                      
+--------+---------------+-------+----------------------------------------------------------------------------------------------------------------------------
+ public | dep_priv_test | table | {regressuser1=arwdDxt/regressuser1,regressuser2=r*/regressuser1,regressuser3=r*/regressuser1,regressuser4=r*/regressuser3}
+(1 row)
+
+set session role regressuser3;
+revoke select on dep_priv_test from regressuser4 cascade;
+\dp dep_priv_test
+                                          Access privileges for database "regression"
+ Schema |     Name      | Type  |                                       Access privileges                                       
+--------+---------------+-------+-----------------------------------------------------------------------------------------------
+ public | dep_priv_test | table | {regressuser1=arwdDxt/regressuser1,regressuser2=r*/regressuser1,regressuser3=r*/regressuser1}
+(1 row)
+
+set session role regressuser1;
+drop table dep_priv_test;
 -- clean up
 \c regression
 DROP FUNCTION testfunc2(int);
@@ -605,3 +728,5 @@ DROP USER regressuser1;
 DROP USER regressuser2;
 DROP USER regressuser3;
 DROP USER regressuser4;
+DROP USER regressuser5;
+reset optimizer;

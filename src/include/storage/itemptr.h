@@ -4,10 +4,10 @@
  *	  POSTGRES disk item pointer definitions.
  *
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
- * $PostgreSQL: pgsql/src/include/storage/itemptr.h,v 1.29 2006/08/25 04:06:57 tgl Exp $
+ * $PostgreSQL: pgsql/src/include/storage/itemptr.h,v 1.32 2009/01/01 17:24:01 momjian Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -142,5 +142,7 @@ typedef ItemPointerData *ItemPointer;
 
 extern bool ItemPointerEquals(ItemPointer pointer1, ItemPointer pointer2);
 extern int32 ItemPointerCompare(ItemPointer arg1, ItemPointer arg2);
+extern char *ItemPointerToString(ItemPointer tid);
+extern char *ItemPointerToString2(ItemPointer tid);
 
 #endif   /* ITEMPTR_H */

@@ -3,7 +3,7 @@
  * hash.c
  *	  Implementation of Margo Seltzer's Hashing package for postgres.
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2008, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -17,12 +17,13 @@
  */
 
 #include "postgres.h"
-
+#include "miscadmin.h"
 #include "access/genam.h"
 #include "access/hash.h"
 #include "catalog/index.h"
 #include "commands/vacuum.h"
-
+#include "nodes/tidbitmap.h"
+#include "cdb/cdbfilerepprimary.h"
 
 /* Working state for hashbuild and its callback */
 typedef struct
@@ -31,7 +32,7 @@ typedef struct
 } HashBuildState;
 
 static void hashbuildCallback(Relation index,
-				  HeapTuple htup,
+				  ItemPointer tupleId,
 				  Datum *values,
 				  bool *isnull,
 				  bool tupleIsAlive,
@@ -66,8 +67,8 @@ hashbuild(PG_FUNCTION_ARGS)
 	buildstate.indtuples = 0;
 
 	/* do the heap scan */
-	reltuples = IndexBuildHeapScan(heap, index, indexInfo,
-								   hashbuildCallback, (void *) &buildstate);
+	reltuples = IndexBuildScan(heap, index, indexInfo,
+							   hashbuildCallback, (void *) &buildstate);
 
 	/*
 	 * Return statistics
@@ -85,10 +86,10 @@ hashbuild(PG_FUNCTION_ARGS)
  */
 static void
 hashbuildCallback(Relation index,
-				  HeapTuple htup,
+				  ItemPointer tupleId,
 				  Datum *values,
 				  bool *isnull,
-				  bool tupleIsAlive,
+				  bool tupleIsAlive __attribute__((unused)),
 				  void *state)
 {
 	HashBuildState *buildstate = (HashBuildState *) state;
@@ -96,7 +97,7 @@ hashbuildCallback(Relation index,
 
 	/* form an index tuple and point it at the heap tuple */
 	itup = index_form_tuple(RelationGetDescr(index), values, isnull);
-	itup->t_tid = htup->t_self;
+	itup->t_tid = *tupleId;
 
 	/* Hash indexes don't index nulls, see notes in hashinsert */
 	if (IndexTupleHasNulls(itup))
@@ -165,6 +166,8 @@ hashinsert(PG_FUNCTION_ARGS)
 Datum
 hashgettuple(PG_FUNCTION_ARGS)
 {
+	MIRROREDLOCK_BUFMGR_DECLARE;
+
 	IndexScanDesc scan = (IndexScanDesc) PG_GETARG_POINTER(0);
 	ScanDirection dir = (ScanDirection) PG_GETARG_INT32(1);
 	HashScanOpaque so = (HashScanOpaque) scan->opaque;
@@ -177,6 +180,10 @@ hashgettuple(PG_FUNCTION_ARGS)
 	 * We hold pin but not lock on current buffer while outside the hash AM.
 	 * Reacquire the read lock here.
 	 */
+
+	// -------- MirroredLock ----------
+	MIRROREDLOCK_BUFMGR_LOCK;
+
 	if (BufferIsValid(so->hashso_curbuf))
 		_hash_chgbufaccess(rel, so->hashso_curbuf, HASH_NOLOCK, HASH_READ);
 
@@ -233,39 +240,46 @@ hashgettuple(PG_FUNCTION_ARGS)
 	/* Release read lock on current buffer, but keep it pinned */
 	if (BufferIsValid(so->hashso_curbuf))
 		_hash_chgbufaccess(rel, so->hashso_curbuf, HASH_READ, HASH_NOLOCK);
-
+	
+	MIRROREDLOCK_BUFMGR_UNLOCK;
+	// -------- MirroredLock ----------
+	
 	PG_RETURN_BOOL(res);
 }
 
-
 /*
- *	hashgetmulti() -- get multiple tuples at once
- *
- * This is a somewhat generic implementation: it avoids lock reacquisition
- * overhead, but there's no smarts about picking especially good stopping
- * points such as index page boundaries.
+ * hashgetmulti() -- get the next bitmap for the scan.
  */
 Datum
 hashgetmulti(PG_FUNCTION_ARGS)
 {
-	IndexScanDesc scan = (IndexScanDesc) PG_GETARG_POINTER(0);
-	ItemPointer tids = (ItemPointer) PG_GETARG_POINTER(1);
-	int32		max_tids = PG_GETARG_INT32(2);
-	int32	   *returned_tids = (int32 *) PG_GETARG_POINTER(3);
-	HashScanOpaque so = (HashScanOpaque) scan->opaque;
-	Relation	rel = scan->indexRelation;
-	bool		res = true;
-	int32		ntids = 0;
+	MIRROREDLOCK_BUFMGR_DECLARE;
+
+	IndexScanDesc 	scan = (IndexScanDesc) PG_GETARG_POINTER(0);
+	Node		   *n = (Node *) PG_GETARG_POINTER(1);
+	HashBitmap	   *hashBitmap;
+	HashScanOpaque	so = (HashScanOpaque) scan->opaque;
+	Relation		rel = scan->indexRelation;
+
+	if (n == NULL || IsA(n, StreamBitmap))
+		hashBitmap = tbm_create(work_mem * 1024L);
+	else
+		hashBitmap = (HashBitmap *)n;
 
 	/*
 	 * We hold pin but not lock on current buffer while outside the hash AM.
 	 * Reacquire the read lock here.
 	 */
+	
+	// -------- MirroredLock ----------
+	MIRROREDLOCK_BUFMGR_LOCK;
+	
 	if (BufferIsValid(so->hashso_curbuf))
 		_hash_chgbufaccess(rel, so->hashso_curbuf, HASH_NOLOCK, HASH_READ);
 
-	while (ntids < max_tids)
+	while (true)
 	{
+		bool res;
 		/*
 		 * Start scan, or advance to next tuple.
 		 */
@@ -295,18 +309,26 @@ hashgetmulti(PG_FUNCTION_ARGS)
 		if (!res)
 			break;
 		/* Save tuple ID, and continue scanning */
-		tids[ntids] = scan->xs_ctup.t_self;
-		ntids++;
+		tbm_add_tuples(hashBitmap, &(scan->xs_ctup.t_self), 1);
 	}
 
 	/* Release read lock on current buffer, but keep it pinned */
 	if (BufferIsValid(so->hashso_curbuf))
 		_hash_chgbufaccess(rel, so->hashso_curbuf, HASH_READ, HASH_NOLOCK);
+	
+	MIRROREDLOCK_BUFMGR_UNLOCK;
+	// -------- MirroredLock ----------
+	
+	if(n && IsA(n, StreamBitmap))
+	{
+		stream_add_node((StreamBitmap *)n,
+			tbm_create_stream_node(hashBitmap), BMS_OR);
+		PG_RETURN_POINTER(n);
+	}
 
-	*returned_tids = ntids;
-	PG_RETURN_BOOL(res);
+
+	PG_RETURN_POINTER(hashBitmap);
 }
-
 
 /*
  *	hashbeginscan() -- start a scan on a hash index
@@ -480,6 +502,8 @@ hashrestrpos(PG_FUNCTION_ARGS)
 Datum
 hashbulkdelete(PG_FUNCTION_ARGS)
 {
+	MIRROREDLOCK_BUFMGR_DECLARE;
+
 	IndexVacuumInfo *info = (IndexVacuumInfo *) PG_GETARG_POINTER(0);
 	IndexBulkDeleteResult *stats = (IndexBulkDeleteResult *) PG_GETARG_POINTER(1);
 	IndexBulkDeleteCallback callback = (IndexBulkDeleteCallback) PG_GETARG_POINTER(2);
@@ -506,6 +530,10 @@ hashbulkdelete(PG_FUNCTION_ARGS)
 	 * array cannot change under us; and it beats rereading the metapage for
 	 * each bucket.
 	 */
+	
+	// -------- MirroredLock ----------
+	MIRROREDLOCK_BUFMGR_LOCK;
+	
 	metabuf = _hash_getbuf(rel, HASH_METAPAGE, HASH_READ);
 	_hash_checkpage(rel, metabuf, LH_META_PAGE);
 	metap = (HashMetaPage) BufferGetPage(metabuf);
@@ -646,6 +674,9 @@ loop_top:
 
 	_hash_wrtbuf(rel, metabuf);
 
+	MIRROREDLOCK_BUFMGR_UNLOCK;
+	// -------- MirroredLock ----------
+
 	/* return statistics */
 	if (stats == NULL)
 		stats = (IndexBulkDeleteResult *) palloc0(sizeof(IndexBulkDeleteResult));
@@ -682,12 +713,12 @@ hashvacuumcleanup(PG_FUNCTION_ARGS)
 
 
 void
-hash_redo(XLogRecPtr lsn, XLogRecord *record)
+hash_redo(XLogRecPtr beginLoc __attribute__((unused)), XLogRecPtr lsn __attribute__((unused)), XLogRecord *record __attribute__((unused)))
 {
 	elog(PANIC, "hash_redo: unimplemented");
 }
 
 void
-hash_desc(StringInfo buf, uint8 xl_info, char *rec)
+hash_desc(StringInfo buf __attribute__((unused)), XLogRecPtr beginLoc, XLogRecord *record __attribute__((unused)))
 {
 }

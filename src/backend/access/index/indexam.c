@@ -3,7 +3,7 @@
  * indexam.c
  *	  general index access method routines
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -21,7 +21,7 @@
  *		index_markpos	- mark a scan position
  *		index_restrpos	- restore a scan position
  *		index_getnext	- get the next tuple from a scan
- *		index_getmulti	- get multiple tuples from a scan
+ *		index_getmulti	- get the next bitmap from a scan
  *		index_bulk_delete	- bulk deletion of index tuples
  *		index_vacuum_cleanup	- post-deletion cleanup of an index
  *		index_getprocid - get a support procedure OID
@@ -62,10 +62,17 @@
 
 #include "postgres.h"
 
+#include "miscadmin.h"
+
 #include "access/genam.h"
 #include "access/heapam.h"
+#include "access/relscan.h"
+#include "access/transam.h"
 #include "pgstat.h"
+#include "storage/bufmgr.h"
+#include "storage/lmgr.h"
 #include "utils/relcache.h"
+#include "cdb/cdbfilerepprimary.h"
 
 
 /* ----------------------------------------------------------------
@@ -145,8 +152,6 @@ index_open(Oid relationId, LOCKMODE lockmode)
 				 errmsg("\"%s\" is not an index",
 						RelationGetRelationName(r))));
 
-	pgstat_initstats(&r->pgstat_info, r);
-
 	return r;
 }
 
@@ -185,25 +190,40 @@ index_insert(Relation indexRelation,
 			 Relation heapRelation,
 			 bool check_uniqueness)
 {
+	MIRROREDLOCK_BUFMGR_VERIFY_NO_LOCK_LEAK_DECLARE;
+
 	FmgrInfo   *procedure;
+
+	bool result;
+
+	MIRROREDLOCK_BUFMGR_VERIFY_NO_LOCK_LEAK_ENTER;
 
 	RELATION_CHECKS;
 	GET_REL_PROCEDURE(aminsert);
 
+	// Fetch gp_persistent_relation_node information that will be added to XLOG record.
+	RelationFetchGpRelationNodeForXLog(indexRelation);
+
 	/*
 	 * have the am's insert proc do all the work.
 	 */
-	return DatumGetBool(FunctionCall6(procedure,
+	result = DatumGetBool(FunctionCall6(procedure,
 									  PointerGetDatum(indexRelation),
 									  PointerGetDatum(values),
 									  PointerGetDatum(isnull),
 									  PointerGetDatum(heap_t_ctid),
 									  PointerGetDatum(heapRelation),
 									  BoolGetDatum(check_uniqueness)));
+
+	MIRROREDLOCK_BUFMGR_VERIFY_NO_LOCK_LEAK_EXIT;
+
+	return result;
 }
 
 /*
  * index_beginscan - start a scan of an index with amgettuple
+ *
+ * Caller must be holding suitable locks on the heap and the index.
  *
  * Note: heapRelation may be NULL if there is no intention of calling
  * index_getnext on this scan; index_getnext_indexitem will not use the
@@ -218,45 +238,44 @@ index_beginscan(Relation heapRelation,
 				Snapshot snapshot,
 				int nkeys, ScanKey key)
 {
-	IndexScanDesc scan;
-
-	scan = index_beginscan_internal(indexRelation, nkeys, key);
-
-	/*
-	 * Save additional parameters into the scandesc.  Everything else was set
-	 * up by RelationGetIndexScan.
-	 */
-	scan->is_multiscan = false;
-	scan->heapRelation = heapRelation;
-	scan->xs_snapshot = snapshot;
-
-	return scan;
+	return index_beginscan_generic(heapRelation, indexRelation,
+			snapshot, nkeys, key, false /* isMultiscan */);
 }
 
 /*
- * index_beginscan_multi - start a scan of an index with amgetmulti
+ * index_beginscan_generic - start a scan of an index
+ * 							with amgetmulti
  *
  * As above, caller had better be holding some lock on the parent heap
  * relation, even though it's not explicitly mentioned here.
  */
 IndexScanDesc
-index_beginscan_multi(Relation indexRelation,
-					  Snapshot snapshot,
-					  int nkeys, ScanKey key)
+index_beginscan_generic(Relation heapRelation,
+						Relation indexRelation,
+						Snapshot snapshot,
+						int nkeys, ScanKey key, bool isMultiscan)
 {
+	MIRROREDLOCK_BUFMGR_VERIFY_NO_LOCK_LEAK_DECLARE;
+
 	IndexScanDesc scan;
+
+	MIRROREDLOCK_BUFMGR_VERIFY_NO_LOCK_LEAK_ENTER;
 
 	scan = index_beginscan_internal(indexRelation, nkeys, key);
 
 	/*
-	 * Save additional parameters into the scandesc.  Everything else was set
-	 * up by RelationGetIndexScan.
+	 * Save additional parameters into the scandesc.  Everything else was
+	 * set up by RelationGetIndexScan.
 	 */
-	scan->is_multiscan = true;
+	scan->is_multiscan = isMultiscan;
+	scan->heapRelation = heapRelation;
 	scan->xs_snapshot = snapshot;
+
+	MIRROREDLOCK_BUFMGR_VERIFY_NO_LOCK_LEAK_EXIT;
 
 	return scan;
 }
+
 
 /*
  * index_beginscan_internal --- common code for index_beginscan variants
@@ -399,6 +418,8 @@ index_restrpos(IndexScanDesc scan)
 HeapTuple
 index_getnext(IndexScanDesc scan, ScanDirection direction)
 {
+	MIRROREDLOCK_BUFMGR_DECLARE;
+
 	HeapTuple	heapTuple = &scan->xs_ctup;
 	FmgrInfo   *procedure;
 
@@ -433,14 +454,14 @@ index_getnext(IndexScanDesc scan, ScanDirection direction)
 			return NULL;		/* failure exit */
 		}
 
-		pgstat_count_index_tuples(&scan->xs_pgstat_info, 1);
+		pgstat_count_index_tuples(scan->indexRelation, 1);
 
 		/*
 		 * Fetch the heap tuple and see if it matches the snapshot.
 		 */
 		if (heap_release_fetch(scan->heapRelation, scan->xs_snapshot,
 							   heapTuple, &scan->xs_cbuf, true,
-							   &scan->xs_pgstat_info))
+							   scan->indexRelation))
 			break;
 
 		/* Skip if no undeleted tuple at this location */
@@ -455,13 +476,21 @@ index_getnext(IndexScanDesc scan, ScanDirection direction)
 		 * We told heap_release_fetch to keep a pin on the buffer, so we can
 		 * re-access the tuple here.  But we must re-lock the buffer first.
 		 */
+
+		// -------- MirroredLock ----------
+		MIRROREDLOCK_BUFMGR_LOCK;
+
 		LockBuffer(scan->xs_cbuf, BUFFER_LOCK_SHARE);
 
 		if (HeapTupleSatisfiesVacuum(heapTuple->t_data, RecentGlobalXmin,
-									 scan->xs_cbuf) == HEAPTUPLE_DEAD)
+									 scan->xs_cbuf, true) == HEAPTUPLE_DEAD)
 			scan->kill_prior_tuple = true;
 
 		LockBuffer(scan->xs_cbuf, BUFFER_LOCK_UNLOCK);
+		
+		MIRROREDLOCK_BUFMGR_UNLOCK;
+		// -------- MirroredLock ----------
+		
 	}
 
 	/* Success exit */
@@ -501,32 +530,19 @@ index_getnext_indexitem(IndexScanDesc scan,
 									   PointerGetDatum(scan),
 									   Int32GetDatum(direction)));
 
-	if (found)
-		pgstat_count_index_tuples(&scan->xs_pgstat_info, 1);
+	pgstat_count_index_tuples(scan->indexRelation, 1 /*ntids*/);
 
 	return found;
 }
 
-/* ----------------
- *		index_getmulti - get multiple tuples from an index scan
- *
- * Collects the TIDs of multiple heap tuples satisfying the scan keys.
- * Since there's no interlock between the index scan and the eventual heap
- * access, this is only safe to use with MVCC-based snapshots: the heap
- * item slot could have been replaced by a newer tuple by the time we get
- * to it.
- *
- * A TRUE result indicates more calls should occur; a FALSE result says the
- * scan is done.  *returned_tids could be zero or nonzero in either case.
- * ----------------
+/*
+ *		index_getmulti - get the next bitmap from an index scan.
  */
-bool
-index_getmulti(IndexScanDesc scan,
-			   ItemPointer tids, int32 max_tids,
-			   int32 *returned_tids)
+Node *
+index_getmulti(IndexScanDesc scan, Node *bitmap)
 {
 	FmgrInfo   *procedure;
-	bool		found;
+	Node		*bm;
 
 	SCAN_CHECKS;
 	GET_SCAN_PROCEDURE(amgetmulti);
@@ -536,16 +552,13 @@ index_getmulti(IndexScanDesc scan,
 
 	/*
 	 * have the am's getmulti proc do all the work.
+	 * index_beginscan_multi already set up fn_getmulti.
 	 */
-	found = DatumGetBool(FunctionCall4(procedure,
-									   PointerGetDatum(scan),
-									   PointerGetDatum(tids),
-									   Int32GetDatum(max_tids),
-									   PointerGetDatum(returned_tids)));
+	bm = (Node *)DatumGetPointer(FunctionCall2(procedure,
+									  PointerGetDatum(scan),
+									  PointerGetDatum(bitmap)));
 
-	pgstat_count_index_tuples(&scan->xs_pgstat_info, *returned_tids);
-
-	return found;
+	return bm;
 }
 
 /* ----------------
@@ -608,13 +621,13 @@ index_vacuum_cleanup(IndexVacuumInfo *info,
 /* ----------------
  *		index_getprocid
  *
- *		Some indexed access methods may require support routines that are
- *		not in the operator class/operator model imposed by pg_am.	These
- *		access methods may store the OIDs of registered procedures they
- *		need in pg_amproc.	These registered procedure OIDs are ordered in
- *		a way that makes sense to the access method, and used only by the
- *		access method.	The general index code doesn't know anything about
- *		the routines involved; it just builds an ordered list of them for
+ *		Index access methods typically require support routines that are
+ *		not directly the implementation of any WHERE-clause query operator
+ *		and so cannot be kept in pg_amop.  Instead, such routines are kept
+ *		in pg_amproc.  These registered procedure OIDs are assigned numbers
+ *		according to a convention established by the access method.
+ *		The general index code doesn't know anything about the routines
+ *		involved; it just builds an ordered list of them for
  *		each attribute on which an index is defined.
  *
  *		This routine returns the requested procedure OID for a particular
@@ -647,7 +660,8 @@ index_getprocid(Relation irel,
  *		index_getprocinfo
  *
  *		This routine allows index AMs to keep fmgr lookup info for
- *		support procs in the relcache.
+ *		support procs in the relcache.	As above, only the "default"
+ *		functions for any particular indexed attribute are cached.
  *
  * Note: the return value points into cached data that will be lost during
  * any relcache rebuild!  Therefore, either use the callinfo right away,

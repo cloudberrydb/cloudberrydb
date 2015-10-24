@@ -1,9 +1,9 @@
 /*-------------------------------------------------------------------------
  *
  * pg_freespacemap.c
- *	  display some contents of the free space relation and page maps.
+ *	  display contents of a free space map
  *
- *	  $PostgreSQL: pgsql/contrib/pg_freespacemap/pg_freespacemap.c,v 1.9 2006/10/19 18:32:46 tgl Exp $
+ *	  $PostgreSQL: pgsql/contrib/pg_freespacemap/pg_freespacemap.c,v 1.9.4.1 2009/04/07 18:10:56 tgl Exp $
  *-------------------------------------------------------------------------
  */
 #include "postgres.h"
@@ -11,6 +11,7 @@
 #include "funcapi.h"
 #include "access/heapam.h"
 #include "catalog/pg_type.h"
+#include "storage/block.h"
 #include "storage/freespace.h"
 
 
@@ -94,6 +95,7 @@ pg_freespacemap_pages(PG_FUNCTION_ARGS)
 	if (SRF_IS_FIRSTCALL())
 	{
 		int			i;
+		int			nchunks;	/* Size of freespace.c's arena. */
 		int			numPages;	/* Max possible no. of pages in map. */
 		int			nPages;		/* Mapped pages for a relation. */
 
@@ -102,7 +104,10 @@ pg_freespacemap_pages(PG_FUNCTION_ARGS)
 		 */
 		FreeSpaceMap = GetFreeSpaceMap();
 
-		numPages = MaxFSMPages;
+		/* this must match calculation in InitFreeSpaceMap(): */
+		nchunks = (MaxFSMPages - 1) / CHUNKPAGES + 1;
+		/* Worst case (lots of indexes) could have this many pages: */
+		numPages = nchunks * INDEXCHUNKPAGES;
 
 		funcctx = SRF_FIRSTCALL_INIT();
 

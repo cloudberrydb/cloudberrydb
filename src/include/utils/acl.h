@@ -4,7 +4,7 @@
  *	  Definition of (and support for) access control list data structures.
  *
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2008, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * $PostgreSQL: pgsql/src/include/utils/acl.h,v 1.98 2006/10/04 00:30:10 momjian Exp $
@@ -128,6 +128,7 @@ typedef ArrayType Acl;
 #define ACL_SELECT_CHR			'r'		/* formerly known as "read" */
 #define ACL_UPDATE_CHR			'w'		/* formerly known as "write" */
 #define ACL_DELETE_CHR			'd'
+#define ACL_TRUNCATE_CHR		'D'		/* super-delete, as it were */
 #define ACL_REFERENCES_CHR		'x'
 #define ACL_TRIGGER_CHR			't'
 #define ACL_EXECUTE_CHR			'X'
@@ -137,14 +138,17 @@ typedef ArrayType Acl;
 #define ACL_CONNECT_CHR			'c'
 
 /* string holding all privilege code chars, in order by bitmask position */
-#define ACL_ALL_RIGHTS_STR	"arwdRxtXUCTc"
+#define ACL_ALL_RIGHTS_STR	"arwdDxtXUCTc"
 
 /*
  * Bitmasks defining "all rights" for each supported object type
  */
-#define ACL_ALL_RIGHTS_RELATION		(ACL_INSERT|ACL_SELECT|ACL_UPDATE|ACL_DELETE|ACL_REFERENCES|ACL_TRIGGER)
+#define ACL_ALL_RIGHTS_RELATION		(ACL_INSERT|ACL_SELECT|ACL_UPDATE|ACL_DELETE|ACL_TRUNCATE|ACL_REFERENCES|ACL_TRIGGER)
 #define ACL_ALL_RIGHTS_SEQUENCE		(ACL_USAGE|ACL_SELECT|ACL_UPDATE)
 #define ACL_ALL_RIGHTS_DATABASE		(ACL_CREATE|ACL_CREATE_TEMP|ACL_CONNECT)
+#define ACL_ALL_RIGHTS_FDW			(ACL_USAGE)
+#define ACL_ALL_RIGHTS_FOREIGN_SERVER (ACL_USAGE)
+#define ACL_ALL_RIGHTS_EXTPROTOCOL  (ACL_INSERT|ACL_SELECT)
 #define ACL_ALL_RIGHTS_FUNCTION		(ACL_EXECUTE)
 #define ACL_ALL_RIGHTS_LANGUAGE		(ACL_USAGE)
 #define ACL_ALL_RIGHTS_NAMESPACE	(ACL_USAGE|ACL_CREATE)
@@ -180,6 +184,10 @@ typedef enum AclObjectKind
 	ACL_KIND_OPCLASS,			/* pg_opclass */
 	ACL_KIND_CONVERSION,		/* pg_conversion */
 	ACL_KIND_TABLESPACE,		/* pg_tablespace */
+	ACL_KIND_FILESPACE,         /* pg_filespace */
+	ACL_KIND_FDW,				/* pg_foreign_data_wrapper */
+	ACL_KIND_FOREIGN_SERVER,	/* pg_foreign_server */
+	ACL_KIND_EXTPROTOCOL,		/* pg_extprotocol */
 	MAX_ACL_KIND				/* MUST BE LAST */
 } AclObjectKind;
 
@@ -201,6 +209,7 @@ typedef struct
 	List	   *grantees;
 	bool		grant_option;
 	DropBehavior behavior;
+	List	   *cooked_privs; /* precooked AclItems from partitioning code */
 } InternalGrant;
 
 /*
@@ -208,7 +217,7 @@ typedef struct
  */
 extern Acl *acldefault(GrantObjectType objtype, Oid ownerId);
 extern Acl *aclupdate(const Acl *old_acl, const AclItem *mod_aip,
-		  int modechg, Oid ownerId, DropBehavior behavior);
+		  int modechg, Oid ownerId, DropBehavior behavior, char *objName);
 extern Acl *aclnewowner(const Acl *old_acl, Oid oldOwnerId, Oid newOwnerId);
 
 extern AclMode aclmask(const Acl *acl, Oid roleid, Oid ownerId,
@@ -257,6 +266,12 @@ extern AclMode pg_namespace_aclmask(Oid nsp_oid, Oid roleid,
 					 AclMode mask, AclMaskHow how);
 extern AclMode pg_tablespace_aclmask(Oid spc_oid, Oid roleid,
 					  AclMode mask, AclMaskHow how);
+extern AclMode pg_foreign_data_wrapper_aclmask(Oid fdw_oid, Oid roleid,
+								AclMode mask, AclMaskHow how);
+extern AclMode pg_foreign_server_aclmask(Oid srv_oid, Oid roleid,
+						  AclMode mask, AclMaskHow how);
+extern AclMode pg_extprotocol_aclmask(Oid ptc_oid, Oid roleid,
+					   AclMode mask, AclMaskHow how);
 
 extern AclResult pg_class_aclcheck(Oid table_oid, Oid roleid, AclMode mode);
 extern AclResult pg_database_aclcheck(Oid db_oid, Oid roleid, AclMode mode);
@@ -264,6 +279,9 @@ extern AclResult pg_proc_aclcheck(Oid proc_oid, Oid roleid, AclMode mode);
 extern AclResult pg_language_aclcheck(Oid lang_oid, Oid roleid, AclMode mode);
 extern AclResult pg_namespace_aclcheck(Oid nsp_oid, Oid roleid, AclMode mode);
 extern AclResult pg_tablespace_aclcheck(Oid spc_oid, Oid roleid, AclMode mode);
+extern AclResult pg_foreign_data_wrapper_aclcheck(Oid fdw_oid, Oid roleid, AclMode mode);
+extern AclResult pg_foreign_server_aclcheck(Oid srv_oid, Oid roleid, AclMode mode);
+extern AclResult pg_extprotocol_aclcheck(Oid ptc_oid, Oid roleid, AclMode mode);
 
 extern void aclcheck_error(AclResult aclerr, AclObjectKind objectkind,
 			   const char *objectname);
@@ -275,8 +293,11 @@ extern bool pg_oper_ownercheck(Oid oper_oid, Oid roleid);
 extern bool pg_proc_ownercheck(Oid proc_oid, Oid roleid);
 extern bool pg_namespace_ownercheck(Oid nsp_oid, Oid roleid);
 extern bool pg_tablespace_ownercheck(Oid spc_oid, Oid roleid);
+extern bool pg_filespace_ownercheck(Oid fs_oid, Oid roleid);
 extern bool pg_opclass_ownercheck(Oid opc_oid, Oid roleid);
 extern bool pg_database_ownercheck(Oid db_oid, Oid roleid);
 extern bool pg_conversion_ownercheck(Oid conv_oid, Oid roleid);
+extern bool pg_foreign_server_ownercheck(Oid srv_oid, Oid roleid);
+extern bool pg_extprotocol_ownercheck(Oid ptc_oid, Oid roleid);
 
 #endif   /* ACL_H */

@@ -1,0 +1,289 @@
+# Set the shell
+SHELL=/bin/bash
+
+# Determine the default target architecture on this machine, if override not set
+ifeq "$(BLD_ARCH)" ""
+export BLD_ARCH:=$(shell $(BLD_TOP)/releng/set_bld_arch.sh)
+endif
+
+# map builds on OpenSUSE to look like SUSE enterprise 10, for now
+ifeq "$(BLD_ARCH)" "suse11.4_x86_64"
+export BLD_ARCH=suse10_x86_64
+endif
+
+# include thirdparty infrastructure which depends on WHERE_THE...
+BLD_WHERE_THE_LIBRARY_THINGS_ARE=LD_LIBRARY_PATH
+aix5_ppc_64_WHERE_THE_LIBRARY_THINGS_ARE=LIBPATH
+aix5_ppc_32_WHERE_THE_LIBRARY_THINGS_ARE=LIBPATH
+osx106_x86_WHERE_THE_LIBRARY_THINGS_ARE=DYLD_LIBRARY_PATH
+ifneq "$($(BLD_ARCH)_WHERE_THE_LIBRARY_THINGS_ARE)" ""
+BLD_WHERE_THE_LIBRARY_THINGS_ARE=$($(BLD_ARCH)_WHERE_THE_LIBRARY_THINGS_ARE)
+endif
+
+include $(BLD_TOP)/Makefile.thirdparty
+
+# get current working directory with symlinks maintained
+HERE:=$(shell pwd -L)
+
+# override MPP_ARCH values on BLD_ARCH's not native to the build server (e.g., 32-bit builds on 64-bit OSes)
+sol10_x86_32_MPP_ARCH=SOL-i386
+sol10_sparc_64_MPP_ARCH=SOL10-sparc_64
+sol10_sparc_32_MPP_ARCH=SOL10-sparc_32
+ifneq "$($(BLD_ARCH)_MPP_ARCH)" ""
+export MPP_ARCH=$($(BLD_ARCH)_MPP_ARCH)
+endif
+
+# take over the gcc version we use
+BLD_CC=gcc
+hpux_ia64_CC=gcc
+osx106_x86_CC=gcc
+
+ifneq "$($(BLD_ARCH)_CC)" ""
+BLD_CC=$($(BLD_ARCH)_CC)
+export CC=$(BLD_CC)
+export CPP=$(subst gcc,cpp,$(BLD_CC))
+export CXX=$(subst gcc,g++,$(BLD_CC))
+endif
+
+sol10_x86_64_CXX=g++ -m64
+ifneq "$($(BLD_ARCH)_CXX)" ""
+export CXX=$($(BLD_ARCH)_CXX)
+endif
+
+# take over the path
+ifneq "$(BLD_PATH_FIXED)" "true"
+aix5_ppc_64_PATH_PREPEND=/opt/freeware/bin
+aix5_ppc_32_PATH_PREPEND=/opt/freeware/bin
+osx106_x86_PATH_PREPEND=$(BLD_THIRDPARTY_BIN_DIR)
+sol10_x86_32_PATH_PREPEND=/opt/python32-2.5.1/bin
+sol10_sparc_64_PATH_PREPEND=/opt/gcc-4.1.1/bin
+sol10_sparc_32_PATH_PREPEND=/opt/python32-2.5.1/bin:/opt/gcc-4.1.1/bin
+BLD_PATH_PREPEND=$($(BLD_ARCH)_PATH_PREPEND)
+ifneq "$(BLD_PATH_PREPEND)" ""
+export PATH:=$(BLD_PATH_PREPEND):$(PATH)
+endif
+export BLD_PATH_FIXED=true
+endif
+
+# take over the library search path
+aix5_ppc_64_LD_LIBRARY_PATH_PREPEND=/opt/freeware/lib
+aix5_ppc_32_LD_LIBRARY_PATH_PREPEND=/opt/freeware/lib
+ifneq "$(BLD_LD_LIBRARY_PATH_FIXED)" "true"
+sol10_x86_32_LD_LIBRARY_PATH_PREPEND=/opt/python32-2.5.1/lib
+sol10_sparc_32_LD_LIBRARY_PATH_PREPEND=/opt/python32-2.5.1/lib
+endif
+BLD_LD_LIBRARY_PATH_PREPEND=$($(BLD_ARCH)_LD_LIBRARY_PATH_PREPEND)
+ifneq "$(BLD_LD_LIBRARY_PATH_PREPEND)" ""
+export $(BLD_WHERE_THE_LIBRARY_THINGS_ARE):=$(BLD_LD_LIBRARY_PATH_PREPEND):$($(BLD_WHERE_THE_LIBRARY_THINGS_ARE))
+endif
+export BLD_LD_LIBRARY_PATH_FIXED=true
+
+# specify python version to use for build-time and run-time
+aix5_ppc_32_PYTHON=/opt/pware
+aix5_ppc_64_PYTHON=/opt/pware64
+hpux_ia64_PYTHON=$(BLD_THIRDPARTY_DIR)/python-2.5.6
+osx106_x86_PYTHON=$(BLD_THIRDPARTY_DIR)/python-2.6.2
+rhel5_x86_32_PYTHON=$(BLD_THIRDPARTY_DIR)/python-2.6.2
+rhel5_x86_64_PYTHON=$(BLD_THIRDPARTY_DIR)/python-2.6.2
+rhel6_x86_64_PYTHON=$(BLD_THIRDPARTY_DIR)/python-2.6.2
+sol10_x86_64_PYTHON=$(BLD_THIRDPARTY_DIR)/python-2.6.2
+sol10_x86_32_PYTHON=/opt/python32-2.5.1
+sol10_sparc_64_PYTHON=$(BLD_THIRDPARTY_DIR)/python-2.6.2
+sol10_sparc_32_PYTHON=/opt/python32-2.5.1
+suse10_x86_64_PYTHON=$(BLD_THIRDPARTY_DIR)/python-2.6.2
+suse11_x86_64_PYTHON=$(BLD_THIRDPARTY_DIR)/python-2.6.2
+BLD_PYTHON=$($(BLD_ARCH)_PYTHON)
+
+# perfmon version of python since at some point
+# it may diverge from the GPDB version
+aix5_ppc_32_PYTHON_PERFMON=/opt/pware
+aix5_ppc_64_PYTHON_PERFMON=/opt/pware64
+osx106_x86_PYTHON_PERFMON=$(BLD_THIRDPARTY_DIR)/python-2.6.2
+rhel5_x86_32_PYTHON_PERFMON=$(BLD_THIRDPARTY_DIR)/python-2.6.2
+rhel5_x86_64_PYTHON_PERFMON=$(BLD_THIRDPARTY_DIR)/python-2.6.2
+rhel6_x86_64_PYTHON_PERFMON=$(BLD_THIRDPARTY_DIR)/python-2.6.2
+sol10_x86_64_PYTHON_PERFMON=$(BLD_THIRDPARTY_DIR)/python-2.6.2
+sol10_x86_32_PYTHON_PERFMON=/opt/python32-2.5.1
+sol10_sparc_64_PYTHON_PERFMON=$(BLD_THIRDPARTY_DIR)/python-2.6.2
+sol10_sparc_32_PYTHON_PERFMON=/opt/python32-2.5.1
+suse10_x86_64_PYTHON_PERFMON=$(BLD_THIRDPARTY_DIR)/python-2.6.2
+suse11_x86_64_PYTHON_PERFMON=$(BLD_THIRDPARTY_DIR)/python-2.6.2
+BLD_PYTHON_PERFMON=$($(BLD_ARCH)_PYTHON_PERFMON)
+
+# if PYTHON was specified above, use it for the build
+ifneq "$(BLD_PYTHON)" ""
+ifeq "$(findstring $(BLD_ARCH),aix5_ppc_32 aix5_ppc_64)" ""
+tmpPATH=$(BLD_PYTHON)/bin:$(PATH)
+export PATH:=$(tmpPATH)
+tmpLD_LIBRARY_PATH=$(BLD_PYTHON)/lib:$($(BLD_WHERE_THE_LIBRARY_THINGS_ARE))
+export $(BLD_WHERE_THE_LIBRARY_THINGS_ARE):=$(tmpLD_LIBRARY_PATH)
+export PYTHONHOME=$(BLD_PYTHON)
+endif
+endif
+
+##
+## Control if PATH and LD_LIBRARY_PATH|DYLD_LIBRARY_PATH values are displayed.
+##
+
+ifeq "$(ENABLE_MAKE_WARNING)" "true"
+$(warning PATH=$(PATH))
+$(warning $(BLD_WHERE_THE_LIBRARY_THINGS_ARE)=$($(BLD_WHERE_THE_LIBRARY_THINGS_ARE)))
+endif
+
+# set MACOSX_DEPLOYMENT_TARGET to deal with new OSX versions ahead of our supported version(s)
+osx106_x86_MACOSX_DEPLOYMENT_TARGET=10.6
+osx106_x86_DEPLOYMENT_SETTING=MACOSX_DEPLOYMENT_TARGET=$(osx106_x86_MACOSX_DEPLOYMENT_SETTING)
+BLD_DEPLOYMENT_SETTING=$($(BLD_ARCH)_DEPLOYMENT_SETTING)
+ifneq "$(BLD_DEPLOYMENT_SETTING)" ""
+export MACOSX_DEPLOYMENT_TARGET=$($(BLD_ARCH)_MACOSX_DEPLOYMENT_TARGET)
+$(warning BLD_ARCH=$(BLD_ARCH))
+$(warning MACOSX_DEPLOYMENT_TARGET=$(MACOSX_DEPLOYMENT_TARGET))
+endif
+
+# disable our gcc wrapper
+export NO_M64=1
+
+# 32-bit/64-bit compiler/linker flag settings
+hpux_ia64_BLD_CFLAGS=-mlp64 -D_XOPEN_SOURCE_EXTENDED
+rhel6_x86_64_BLD_CFLAGS=-m64
+rhel5_x86_64_BLD_CFLAGS=-m64
+rhel5_x86_32_BLD_CFLAGS=-m32
+sol10_sparc_64_BLD_CFLAGS=-m64 -mcpu=v9
+sol10_sparc_32_BLD_CFLAGS=-m32
+sol10_sparc_BLD_CFLAGS=-m64 -mcpu=v9
+sol10_x86_64_BLD_CFLAGS=-m64
+sol10_x86_32_BLD_CFLAGS=-m32
+suse10_x86_64_BLD_CFLAGS=-m64
+suse11_x86_64_BLD_CFLAGS=-m64 -msse4.2 -DSUSE11SP2
+win64_BLD_CFLAGS=-m64
+win32_BLD_CFLAGS=-m32
+aix5_ppc_64_BLD_CFLAGS=-maix64
+aix5_ppc_32_BLD_CFLAGS=
+BLD_CFLAGS=$($(BLD_ARCH)_BLD_CFLAGS)
+
+aix5_ppc_64_BLD_LDFLAGS=-maix64 -Wl,-bbigtoc
+rhel5_x86_32_BLD_LDFLAGS=-m32
+BLD_LDFLAGS=$($(BLD_ARCH)_BLD_LDFLAGS)
+
+# See http://www.postgresql.org/docs/faqs.FAQ_AIX.html for an explanation of this
+ifeq "$(BLD_ARCH)" "aix5_ppc_64"
+export OBJECT_MODE=64
+export CONFIG_SHELL=/usr/bin/bash
+endif
+ifeq "$(BLD_ARCH)" "aix5_ppc_32"
+export OBJECT_MODE=32
+export CONFIG_SHELL=/usr/bin/bash
+endif
+
+BLD_BITS:=$(strip $(findstring 32,$(BLD_ARCH)) $(findstring 64,$(BLD_ARCH)))
+ifeq "$(BLD_BITS)" ""
+sol10_sparc_BLD_BITS=64
+osx106_x86_BLD_BITS=32
+aix5_ppc_64_BLD_BITS=64
+aix5_ppc_32_BLD_BITS=32
+BLD_BITS=$($(BLD_ARCH)_BLD_BITS)
+endif
+
+ifeq "$(BLD_ARCH)" ""
+$(error Unable to determine value for BLD_ARCH!  You may set this on the command line.)
+endif
+
+ifeq "$(BLD_BITS)" ""
+$(error Unable to determine value for BLD_BITS!  You may set this on the command line.)
+endif
+
+# grep by platform
+GREP=grep
+aix5_ppc_64_GREP=/opt/freeware/bin/grep
+aix5_ppc_32_GREP=/opt/freeware/bin/grep
+sol10_x86_64_GREP=ggrep
+sol10_x86_32_GREP=ggrep
+sol10_sparc_64_GREP=ggrep
+sol10_sparc_32_GREP=ggrep
+sol10_sparc_GREP=ggrep
+ifneq "$($(BLD_ARCH)_GREP)" ""
+GREP=$($(BLD_ARCH)_GREP)
+endif
+
+# ldd by platform
+LDD=ldd
+osx106_x86_LDD=otool -L
+ifneq "$($(BLD_ARCH)_LDD)" ""
+LDD=$($(BLD_ARCH)_LDD)
+endif
+
+LDD_FILTER_NULL=cat
+LDD_FILTER=$(GREP) '\=>' | awk '{print $$3}' | perl -p -i -e 's,\.so.*$$,\.so,'
+aix5_ppc_32_LDD_FILTER=$(GREP) -v 'needs:' | $(AWK) -F\( '{print $$1}' | $(AWK) '{print $$1}' | $(GREP) -E -v '^/unix$$'
+aix5_ppc_64_LDD_FILTER=$(GREP) -v 'needs:' | $(AWK) -F\( '{print $$1}' | $(AWK) '{print $$1}' | $(GREP) -E -v '^/unix$$'
+osx106_x86_LDD_FILTER=awk '{print $$1}' | perl -p -i -e 's,\.[0-9\.]*\.$(LDD_LIB_SUFFIX)$$,\.,'
+ifneq "$($(BLD_ARCH)_LDD_FILTER)" ""
+LDD_FILTER=$($(BLD_ARCH)_LDD_FILTER)
+endif
+
+LDD_LIB_SUFFIX=
+osx106_x86_LDD_LIB_SUFFIX=dylib
+ifneq "$($(BLD_ARCH)_LDD_LIB_SUFFIX)" ""
+LDD_LIB_SUFFIX=$($(BLD_ARCH)_LDD_LIB_SUFFIX)
+endif
+
+# tar by platform
+TAR=tar
+aix5_ppc_32_TAR=gtar
+aix5_ppc_64_TAR=gtar
+sol10_x86_32_TAR=gtar
+sol10_x86_64_TAR=gtar
+sol10_sparc_TAR=gtar
+sol10_sparc_32_TAR=gtar
+sol10_sparc_64_TAR=gtar
+ifneq "$($(BLD_ARCH)_TAR)" ""
+TAR=$($(BLD_ARCH)_TAR)
+endif
+
+# awk by platform
+aix5_ppc_32_AWK=gawk
+aix5_ppc_64_AWK=gawk
+sol10_x86_32_AWK=nawk
+sol10_x86_64_AWK=nawk
+sol10_sparc_AWK=nawk
+sol10_sparc_32_AWK=nawk
+sol10_sparc_64_AWK=nawk
+ifneq "$($(BLD_ARCH)_AWK)" ""
+AWK=$($(BLD_ARCH)_AWK)
+else
+AWK=awk
+endif
+
+# Functions for use in this and including makefiles
+
+# function: echocute
+# purpose: echo the argument to stdout and then execute the argument
+# issue: GNU make-3.79.1 on 32-bit Linux can't handle this
+echocute=echo "$(1)"; $(1)
+
+# function: check_pipe_for_errors
+# purpose: detect cases where a member of a pipe sequence fails; make normally only checks the last command in the pipe
+ifeq "$(origin check_pipe_for_errors)" "undefined"
+check_pipe_for_errors=; if [ x`echo $${PIPESTATUS[*]} | sed -e s,0,,g | sed -e s,\ ,,g` != x ]; then echo "`date` -- ERROR: failure detected in piped operation"; exit 1; fi
+endif
+
+##
+## If PARALLEL_BUILD is set to any value, calculate parallel execution
+## value.  Developers have the ability to control the parallel
+## execution characteristics.  This is performed by adjusting the max
+## system load limit (parallelexec_maxlimit) and number of CPUs
+## parallel job factor (parallelexec_cpufactor).
+##
+##   from "Optimizing Build Times Using Parallel "make"
+##   (http://developers.sun.com/solaris/articles/parallel_make.html)
+##
+##     A common rule-of-thumb is to request the number of parallel
+##     jobs to be approximately 1.5 times the number of available CPUs
+##     on the machine.
+##
+
+ifneq "$(PARALLEL_BUILD)" ""
+parallelexec_maxlimit=3.5
+parallelexec_cpufactor=1.5
+parallelexec_opts=-l$(parallelexec_maxlimit) -j$(shell PYTHONHOME=$(BLD_PYTHON) $(BLD_PYTHON)/bin/python -c "import multiprocessing ; print int((multiprocessing.cpu_count() * $(parallelexec_cpufactor)))" )
+endif

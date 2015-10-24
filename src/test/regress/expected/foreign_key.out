@@ -24,37 +24,18 @@ INSERT INTO FKTABLE VALUES (100, 2);
 ERROR:  insert or update on table "fktable" violates foreign key constraint "fktable_ftest1_fkey"
 DETAIL:  Key (ftest1)=(100) is not present in table "pktable".
 -- Check FKTABLE
-SELECT * FROM FKTABLE;
- ftest1 | ftest2 
---------+--------
-      1 |      2
-      2 |      3
-      3 |      4
-        |      1
-(4 rows)
-
+SELECT * FROM FKTABLE ORDER BY 1,2,3;
+ERROR:  ORDER BY position 3 is not in select list
 -- Delete a row from PK TABLE
 DELETE FROM PKTABLE WHERE ptest1=1;
 -- Check FKTABLE for removal of matched row
-SELECT * FROM FKTABLE;
- ftest1 | ftest2 
---------+--------
-      2 |      3
-      3 |      4
-        |      1
-(3 rows)
-
+SELECT * FROM FKTABLE ORDER BY 1,2,3;
+ERROR:  ORDER BY position 3 is not in select list
 -- Update a row from PK TABLE
 UPDATE PKTABLE SET ptest1=1 WHERE ptest1=2;
 -- Check FKTABLE for update of matched row
-SELECT * FROM FKTABLE;
- ftest1 | ftest2 
---------+--------
-      3 |      4
-        |      1
-      1 |      3
-(3 rows)
-
+SELECT * FROM FKTABLE ORDER BY 1,2,3;
+ERROR:  ORDER BY position 3 is not in select list
 DROP TABLE FKTABLE;
 DROP TABLE PKTABLE;
 --
@@ -96,7 +77,7 @@ INSERT INTO FKTABLE VALUES (1, NULL, 4);
 ERROR:  insert or update on table "fktable" violates foreign key constraint "constrname"
 DETAIL:  MATCH FULL does not allow mixing of null and nonnull key values.
 -- Check FKTABLE
-SELECT * FROM FKTABLE;
+SELECT * FROM FKTABLE ORDER BY 1,2,3;
  ftest1 | ftest2 | ftest3 
 --------+--------+--------
       1 |      2 |      4
@@ -109,7 +90,7 @@ SELECT * FROM FKTABLE;
 -- Delete a row from PK TABLE
 DELETE FROM PKTABLE WHERE ptest1=1 and ptest2=2;
 -- Check FKTABLE for removal of matched row
-SELECT * FROM FKTABLE;
+SELECT * FROM FKTABLE ORDER BY 1,2,3;
  ftest1 | ftest2 | ftest3 
 --------+--------+--------
       1 |      3 |      5
@@ -122,7 +103,7 @@ SELECT * FROM FKTABLE;
 -- Delete another row from PK TABLE
 DELETE FROM PKTABLE WHERE ptest1=5 and ptest2=10;
 -- Check FKTABLE (should be no change)
-SELECT * FROM FKTABLE;
+SELECT * FROM FKTABLE ORDER BY 1,2,3;
  ftest1 | ftest2 | ftest3 
 --------+--------+--------
       1 |      3 |      5
@@ -135,7 +116,7 @@ SELECT * FROM FKTABLE;
 -- Update a row from PK TABLE
 UPDATE PKTABLE SET ptest1=1 WHERE ptest1=2;
 -- Check FKTABLE for update of matched row
-SELECT * FROM FKTABLE;
+SELECT * FROM FKTABLE ORDER BY 1,2,3;
  ftest1 | ftest2 | ftest3 
 --------+--------+--------
       1 |      3 |      5
@@ -148,16 +129,16 @@ SELECT * FROM FKTABLE;
 -- Try altering the column type where foreign keys are involved
 ALTER TABLE PKTABLE ALTER COLUMN ptest1 TYPE bigint;
 ALTER TABLE FKTABLE ALTER COLUMN ftest1 TYPE bigint;
-SELECT * FROM PKTABLE;
+SELECT * FROM PKTABLE ORDER BY 1,2,3;
  ptest1 | ptest2 | ptest3  
 --------+--------+---------
       1 |      3 | Test1-2
+      1 |      4 | Test2
       3 |      6 | Test3
       4 |      8 | Test4
-      1 |      4 | Test2
 (4 rows)
 
-SELECT * FROM FKTABLE;
+SELECT * FROM FKTABLE ORDER BY 1,2,3;
  ftest1 | ftest2 | ftest3 
 --------+--------+--------
       1 |      3 |      5
@@ -206,7 +187,7 @@ INSERT INTO FKTABLE VALUES (1, NULL, 4);
 ERROR:  insert or update on table "fktable" violates foreign key constraint "constrname2"
 DETAIL:  MATCH FULL does not allow mixing of null and nonnull key values.
 -- Check FKTABLE
-SELECT * FROM FKTABLE;
+SELECT * FROM FKTABLE ORDER BY 1,2,3;
  ftest1 | ftest2 | ftest3 
 --------+--------+--------
       1 |      2 |      4
@@ -219,40 +200,40 @@ SELECT * FROM FKTABLE;
 -- Delete a row from PK TABLE
 DELETE FROM PKTABLE WHERE ptest1=1 and ptest2=2;
 -- Check FKTABLE to check for removal
-SELECT * FROM FKTABLE;
+SELECT * FROM FKTABLE ORDER BY 1,2,3;
  ftest1 | ftest2 | ftest3 
 --------+--------+--------
+     -1 |     -2 |      4
       1 |      3 |      5
       2 |      4 |      8
       3 |      6 |     12
         |        |      0
-     -1 |     -2 |      4
 (5 rows)
 
 -- Delete another row from PK TABLE
 DELETE FROM PKTABLE WHERE ptest1=5 and ptest2=10;
 -- Check FKTABLE (should be no change)
-SELECT * FROM FKTABLE;
+SELECT * FROM FKTABLE ORDER BY 1,2,3;
  ftest1 | ftest2 | ftest3 
 --------+--------+--------
+     -1 |     -2 |      4
       1 |      3 |      5
       2 |      4 |      8
       3 |      6 |     12
         |        |      0
-     -1 |     -2 |      4
 (5 rows)
 
 -- Update a row from PK TABLE
 UPDATE PKTABLE SET ptest1=1 WHERE ptest1=2;
 -- Check FKTABLE for update of matched row
-SELECT * FROM FKTABLE;
+SELECT * FROM FKTABLE ORDER BY 1,2,3;
  ftest1 | ftest2 | ftest3 
 --------+--------+--------
+     -1 |     -2 |      4
+     -1 |     -2 |      8
       1 |      3 |      5
       3 |      6 |     12
         |        |      0
-     -1 |     -2 |      4
-     -1 |     -2 |      8
 (5 rows)
 
 -- this should fail for lack of CASCADE
@@ -285,17 +266,10 @@ INSERT INTO FKTABLE VALUES (100, 2);
 ERROR:  insert or update on table "fktable" violates foreign key constraint "fktable_ftest1_fkey"
 DETAIL:  Key (ftest1)=(100) is not present in table "pktable".
 -- Check FKTABLE
-SELECT * FROM FKTABLE;
- ftest1 | ftest2 
---------+--------
-      1 |      2
-      2 |      3
-      3 |      4
-        |      1
-(4 rows)
-
+SELECT * FROM FKTABLE ORDER BY 1,2,3;
+ERROR:  ORDER BY position 3 is not in select list
 -- Check PKTABLE
-SELECT * FROM PKTABLE;
+SELECT * FROM PKTABLE ORDER BY 1,2;
  ptest1 | ptest2 
 --------+--------
       1 | Test1
@@ -312,7 +286,7 @@ DETAIL:  Key (ptest1)=(1) is still referenced from table "fktable".
 -- Delete a row from PK TABLE (should succeed)
 DELETE FROM PKTABLE WHERE ptest1=5;
 -- Check PKTABLE for deletes
-SELECT * FROM PKTABLE;
+SELECT * FROM PKTABLE ORDER BY 1,2;
  ptest1 | ptest2 
 --------+--------
       1 | Test1
@@ -328,13 +302,13 @@ DETAIL:  Key (ptest1)=(2) is still referenced from table "fktable".
 -- Update a row from PK TABLE (should succeed)
 UPDATE PKTABLE SET ptest1=0 WHERE ptest1=4;
 -- Check PKTABLE for updates
-SELECT * FROM PKTABLE;
+SELECT * FROM PKTABLE ORDER BY 1,2;
  ptest1 | ptest2 
 --------+--------
+      0 | Test4
       1 | Test1
       2 | Test2
       3 | Test3
-      0 | Test4
 (4 rows)
 
 DROP TABLE FKTABLE;
@@ -361,12 +335,12 @@ INSERT INTO FKTABLE VALUES (1, 2, 7, 6);
 ERROR:  insert or update on table "fktable" violates foreign key constraint "constrname3"
 DETAIL:  Key (ftest1,ftest2,ftest3)=(1,2,7) is not present in table "pktable".
 -- Show FKTABLE
-SELECT * from FKTABLE;
+SELECT * from FKTABLE ORDER BY 1,2;
  ftest1 | ftest2 | ftest3 | ftest4 
 --------+--------+--------+--------
       1 |      2 |      3 |      1
-        |      2 |      3 |      2
       2 |        |      3 |      3
+        |      2 |      3 |      2
         |      2 |      7 |      4
         |      3 |      4 |      5
 (5 rows)
@@ -384,7 +358,7 @@ DETAIL:  Key (ptest1,ptest2,ptest3)=(1,2,3) is still referenced from table "fkta
 -- Try to delete something that should work
 DELETE FROM PKTABLE where ptest1=2;
 -- Show PKTABLE and FKTABLE
-SELECT * from PKTABLE;
+SELECT * from PKTABLE ORDER BY 1,2,3;
  ptest1 | ptest2 | ptest3 | ptest4 
 --------+--------+--------+--------
       1 |      2 |      3 | test1
@@ -392,12 +366,12 @@ SELECT * from PKTABLE;
       1 |      3 |      4 | test3
 (3 rows)
 
-SELECT * from FKTABLE;
+SELECT * from FKTABLE ORDER BY 1,2;
  ftest1 | ftest2 | ftest3 | ftest4 
 --------+--------+--------+--------
       1 |      2 |      3 |      1
-        |      2 |      3 |      2
       2 |        |      3 |      3
+        |      2 |      3 |      2
         |      2 |      7 |      4
         |      3 |      4 |      5
 (5 rows)
@@ -426,12 +400,12 @@ INSERT INTO FKTABLE VALUES (1, 2, 7, 6);
 ERROR:  insert or update on table "fktable" violates foreign key constraint "constrname3"
 DETAIL:  Key (ftest1,ftest2,ftest3)=(1,2,7) is not present in table "pktable".
 -- Show FKTABLE
-SELECT * from FKTABLE;
+SELECT * from FKTABLE ORDER BY 1,2;
  ftest1 | ftest2 | ftest3 | ftest4 
 --------+--------+--------+--------
       1 |      2 |      3 |      1
-        |      2 |      3 |      2
       2 |        |      3 |      3
+        |      2 |      3 |      2
         |      2 |      7 |      4
         |      3 |      4 |      5
 (5 rows)
@@ -441,41 +415,41 @@ UPDATE PKTABLE set ptest2=5 where ptest2=2;
 -- Try to update something that should not cascade
 UPDATE PKTABLE set ptest1=1 WHERE ptest2=3;
 -- Show PKTABLE and FKTABLE
-SELECT * from PKTABLE;
+SELECT * from PKTABLE ORDER BY 1,2,3;
  ptest1 | ptest2 | ptest3 | ptest4 
 --------+--------+--------+--------
-      2 |      4 |      5 | test4
-      1 |      5 |      3 | test1
       1 |      3 |      3 | test2
       1 |      3 |      4 | test3
+      1 |      5 |      3 | test1
+      2 |      4 |      5 | test4
 (4 rows)
 
-SELECT * from FKTABLE;
+SELECT * from FKTABLE ORDER BY 1,2;
  ftest1 | ftest2 | ftest3 | ftest4 
 --------+--------+--------+--------
-        |      2 |      3 |      2
+      1 |      5 |      3 |      1
       2 |        |      3 |      3
+        |      2 |      3 |      2
         |      2 |      7 |      4
         |      3 |      4 |      5
-      1 |      5 |      3 |      1
 (5 rows)
 
 -- Try to delete something that should cascade
 DELETE FROM PKTABLE where ptest1=1 and ptest2=5 and ptest3=3;
 -- Show PKTABLE and FKTABLE
-SELECT * from PKTABLE;
+SELECT * from PKTABLE ORDER BY 1,2,3;
  ptest1 | ptest2 | ptest3 | ptest4 
 --------+--------+--------+--------
-      2 |      4 |      5 | test4
       1 |      3 |      3 | test2
       1 |      3 |      4 | test3
+      2 |      4 |      5 | test4
 (3 rows)
 
-SELECT * from FKTABLE;
+SELECT * from FKTABLE ORDER BY 1,2;
  ftest1 | ftest2 | ftest3 | ftest4 
 --------+--------+--------+--------
-        |      2 |      3 |      2
       2 |        |      3 |      3
+        |      2 |      3 |      2
         |      2 |      7 |      4
         |      3 |      4 |      5
 (4 rows)
@@ -483,18 +457,18 @@ SELECT * from FKTABLE;
 -- Try to delete something that should not have a cascade
 DELETE FROM PKTABLE where ptest1=2;
 -- Show PKTABLE and FKTABLE
-SELECT * from PKTABLE;
+SELECT * from PKTABLE ORDER BY 1,2,3;
  ptest1 | ptest2 | ptest3 | ptest4 
 --------+--------+--------+--------
       1 |      3 |      3 | test2
       1 |      3 |      4 | test3
 (2 rows)
 
-SELECT * from FKTABLE;
+SELECT * from FKTABLE ORDER BY 1,2;
  ftest1 | ftest2 | ftest3 | ftest4 
 --------+--------+--------+--------
-        |      2 |      3 |      2
       2 |        |      3 |      3
+        |      2 |      3 |      2
         |      2 |      7 |      4
         |      3 |      4 |      5
 (4 rows)
@@ -524,13 +498,13 @@ INSERT INTO FKTABLE VALUES (1, 2, 7, 6);
 ERROR:  insert or update on table "fktable" violates foreign key constraint "constrname3"
 DETAIL:  Key (ftest1,ftest2,ftest3)=(1,2,7) is not present in table "pktable".
 -- Show FKTABLE
-SELECT * from FKTABLE;
+SELECT * from FKTABLE ORDER BY 1,2;
  ftest1 | ftest2 | ftest3 | ftest4 
 --------+--------+--------+--------
       1 |      2 |      3 |      1
       2 |      3 |      4 |      1
-        |      2 |      3 |      2
       2 |        |      3 |      3
+        |      2 |      3 |      2
         |      2 |      7 |      4
         |      3 |      4 |      5
 (6 rows)
@@ -540,67 +514,67 @@ UPDATE PKTABLE set ptest2=5 where ptest2=2;
 -- Try to update something that should not set null
 UPDATE PKTABLE set ptest2=2 WHERE ptest2=3 and ptest1=1;
 -- Show PKTABLE and FKTABLE
-SELECT * from PKTABLE;
+SELECT * from PKTABLE ORDER BY 1,2,3;
  ptest1 | ptest2 | ptest3 | ptest4 
 --------+--------+--------+--------
+      1 |      2 |      3 | test2
+      1 |      5 |      3 | test1
       2 |      3 |      4 | test3
       2 |      4 |      5 | test4
-      1 |      5 |      3 | test1
-      1 |      2 |      3 | test2
 (4 rows)
 
-SELECT * from FKTABLE;
+SELECT * from FKTABLE ORDER BY 1,2;
  ftest1 | ftest2 | ftest3 | ftest4 
 --------+--------+--------+--------
+      1 |        |      3 |      1
       2 |      3 |      4 |      1
-        |      2 |      3 |      2
       2 |        |      3 |      3
+        |      2 |      3 |      2
         |      2 |      7 |      4
         |      3 |      4 |      5
-      1 |        |      3 |      1
 (6 rows)
 
 -- Try to delete something that should set default
 DELETE FROM PKTABLE where ptest1=2 and ptest2=3 and ptest3=4;
 -- Show PKTABLE and FKTABLE
-SELECT * from PKTABLE;
+SELECT * from PKTABLE ORDER BY 1,2,3;
  ptest1 | ptest2 | ptest3 | ptest4 
 --------+--------+--------+--------
-      2 |      4 |      5 | test4
-      1 |      5 |      3 | test1
       1 |      2 |      3 | test2
+      1 |      5 |      3 | test1
+      2 |      4 |      5 | test4
 (3 rows)
 
-SELECT * from FKTABLE;
+SELECT * from FKTABLE ORDER BY 1,2;
  ftest1 | ftest2 | ftest3 | ftest4 
 --------+--------+--------+--------
-        |      2 |      3 |      2
+      0 |        |        |      1
+      1 |        |      3 |      1
       2 |        |      3 |      3
+        |      2 |      3 |      2
         |      2 |      7 |      4
         |      3 |      4 |      5
-      1 |        |      3 |      1
-      0 |        |        |      1
 (6 rows)
 
 -- Try to delete something that should not set default
 DELETE FROM PKTABLE where ptest2=5;
 -- Show PKTABLE and FKTABLE
-SELECT * from PKTABLE;
+SELECT * from PKTABLE ORDER BY 1,2,3;
  ptest1 | ptest2 | ptest3 | ptest4 
 --------+--------+--------+--------
-      2 |      4 |      5 | test4
       1 |      2 |      3 | test2
+      2 |      4 |      5 | test4
 (2 rows)
 
-SELECT * from FKTABLE;
+SELECT * from FKTABLE ORDER BY 1,2;
  ftest1 | ftest2 | ftest3 | ftest4 
 --------+--------+--------+--------
-        |      2 |      3 |      2
+      0 |        |        |      1
+      1 |        |      3 |      1
       2 |        |      3 |      3
+        |      2 |      3 |      2
         |      2 |      7 |      4
         |      3 |      4 |      5
-      1 |        |      3 |      1
-      0 |        |        |      1
 (6 rows)
 
 DROP TABLE FKTABLE;
@@ -630,14 +604,14 @@ INSERT INTO FKTABLE VALUES (1, 2, 7, 6);
 ERROR:  insert or update on table "fktable" violates foreign key constraint "constrname3"
 DETAIL:  Key (ftest1,ftest2,ftest3)=(1,2,7) is not present in table "pktable".
 -- Show FKTABLE
-SELECT * from FKTABLE;
+SELECT * from FKTABLE ORDER BY 1,2;
  ftest1 | ftest2 | ftest3 | ftest4 
 --------+--------+--------+--------
       1 |      2 |      3 |      1
       2 |      3 |      4 |      1
       2 |      4 |      5 |      1
-        |      2 |      3 |      2
       2 |        |      3 |      3
+        |      2 |      3 |      2
         |      2 |      7 |      4
         |      3 |      4 |      5
 (7 rows)
@@ -646,79 +620,78 @@ SELECT * from FKTABLE;
 UPDATE PKTABLE set ptest2=5 where ptest2=2;
 ERROR:  insert or update on table "fktable" violates foreign key constraint "constrname3"
 DETAIL:  Key (ftest1,ftest2,ftest3)=(1,-1,3) is not present in table "pktable".
-CONTEXT:  SQL statement "UPDATE ONLY "public"."fktable" SET "ftest2" = DEFAULT WHERE "ftest1" = $1 AND "ftest2" = $2 AND "ftest3" = $3"
 -- Try to update something that will set default
 UPDATE PKTABLE set ptest1=0, ptest2=5, ptest3=10 where ptest2=2;
 UPDATE PKTABLE set ptest2=10 where ptest2=4;
 -- Try to update something that should not set default
 UPDATE PKTABLE set ptest2=2 WHERE ptest2=3 and ptest1=1;
 -- Show PKTABLE and FKTABLE
-SELECT * from PKTABLE;
+SELECT * from PKTABLE ORDER BY 1,2,3;
  ptest1 | ptest2 | ptest3 | ptest4 
 --------+--------+--------+--------
-      2 |      3 |      4 | test3
-      2 |     -1 |      5 | test5
       0 |      5 |     10 | test1
-      2 |     10 |      5 | test4
       1 |      2 |      3 | test2
+      2 |     -1 |      5 | test5
+      2 |      3 |      4 | test3
+      2 |     10 |      5 | test4
 (5 rows)
 
-SELECT * from FKTABLE;
+SELECT * from FKTABLE ORDER BY 1,2;
  ftest1 | ftest2 | ftest3 | ftest4 
 --------+--------+--------+--------
-      2 |      3 |      4 |      1
-        |      2 |      3 |      2
-      2 |        |      3 |      3
-        |      2 |      7 |      4
-        |      3 |      4 |      5
       0 |     -1 |        |      1
       2 |     -1 |      5 |      1
+      2 |      3 |      4 |      1
+      2 |        |      3 |      3
+        |      2 |      7 |      4
+        |      2 |      3 |      2
+        |      3 |      4 |      5
 (7 rows)
 
 -- Try to delete something that should set null
 DELETE FROM PKTABLE where ptest1=2 and ptest2=3 and ptest3=4;
 -- Show PKTABLE and FKTABLE
-SELECT * from PKTABLE;
+SELECT * from PKTABLE ORDER BY 1,2,3;
  ptest1 | ptest2 | ptest3 | ptest4 
 --------+--------+--------+--------
-      2 |     -1 |      5 | test5
       0 |      5 |     10 | test1
-      2 |     10 |      5 | test4
       1 |      2 |      3 | test2
+      2 |     -1 |      5 | test5
+      2 |     10 |      5 | test4
 (4 rows)
 
-SELECT * from FKTABLE;
+SELECT * from FKTABLE ORDER BY 1,2;
  ftest1 | ftest2 | ftest3 | ftest4 
 --------+--------+--------+--------
-        |      2 |      3 |      2
-      2 |        |      3 |      3
-        |      2 |      7 |      4
-        |      3 |      4 |      5
       0 |     -1 |        |      1
       2 |     -1 |      5 |      1
+      2 |        |      3 |      3
+        |      2 |      7 |      4
+        |      2 |      3 |      2
+        |      3 |      4 |      5
         |        |        |      1
 (7 rows)
 
 -- Try to delete something that should not set null
 DELETE FROM PKTABLE where ptest2=5;
 -- Show PKTABLE and FKTABLE
-SELECT * from PKTABLE;
+SELECT * from PKTABLE ORDER BY 1,2,3;
  ptest1 | ptest2 | ptest3 | ptest4 
 --------+--------+--------+--------
+      1 |      2 |      3 | test2
       2 |     -1 |      5 | test5
       2 |     10 |      5 | test4
-      1 |      2 |      3 | test2
 (3 rows)
 
-SELECT * from FKTABLE;
+SELECT * from FKTABLE ORDER BY 1,2;
  ftest1 | ftest2 | ftest3 | ftest4 
 --------+--------+--------+--------
-        |      2 |      3 |      2
-      2 |        |      3 |      3
-        |      2 |      7 |      4
-        |      3 |      4 |      5
       0 |     -1 |        |      1
       2 |     -1 |      5 |      1
+      2 |        |      3 |      3
+        |      2 |      7 |      4
+        |      2 |      3 |      2
+        |      3 |      4 |      5
         |        |        |      1
 (7 rows)
 
@@ -1067,14 +1040,11 @@ NOTICE:  drop cascades to constraint fktable_fk_fkey on table fktable
 -- where the index cannot be used because of type incompatibilities.
 CREATE TEMP TABLE pktable (
         id1     INT4 PRIMARY KEY,
-        id2     VARCHAR(4) UNIQUE,
-        id3     REAL UNIQUE,
-        UNIQUE(id1, id2, id3)
+        id2     VARCHAR(4) /*UNIQUE*/,
+        id3     REAL /*UNIQUE,*/
+        /*UNIQUE(id1, id2, id3)*/
 );
 NOTICE:  CREATE TABLE / PRIMARY KEY will create implicit index "pktable_pkey" for table "pktable"
-NOTICE:  CREATE TABLE / UNIQUE will create implicit index "pktable_id2_key" for table "pktable"
-NOTICE:  CREATE TABLE / UNIQUE will create implicit index "pktable_id3_key" for table "pktable"
-NOTICE:  CREATE TABLE / UNIQUE will create implicit index "pktable_id1_key" for table "pktable"
 CREATE TEMP TABLE fktable (
         x1      INT4 REFERENCES pktable(id1),
         x2      VARCHAR(4) REFERENCES pktable(id2),
@@ -1082,70 +1052,55 @@ CREATE TEMP TABLE fktable (
         x4      TEXT,
         x5      INT2
 );
+ERROR:  there is no unique constraint matching given keys for referenced table "pktable"
 -- check individual constraints with alter table.
 -- should generate warnings
 ALTER TABLE fktable ADD CONSTRAINT fk_2_3
 FOREIGN KEY (x2) REFERENCES pktable(id3);
-WARNING:  foreign key constraint "fk_2_3" will require costly sequential scans
-DETAIL:  Key columns "x2" and "id3" are of different types: character varying and real.
+ERROR:  relation "fktable" does not exist
 ALTER TABLE fktable ADD CONSTRAINT fk_2_1
 FOREIGN KEY (x2) REFERENCES pktable(id1);
-WARNING:  foreign key constraint "fk_2_1" will require costly sequential scans
-DETAIL:  Key columns "x2" and "id1" are of different types: character varying and integer.
+ERROR:  relation "fktable" does not exist
 ALTER TABLE fktable ADD CONSTRAINT fk_3_1
 FOREIGN KEY (x3) REFERENCES pktable(id1);
-WARNING:  foreign key constraint "fk_3_1" will require costly sequential scans
-DETAIL:  Key columns "x3" and "id1" are of different types: real and integer.
+ERROR:  relation "fktable" does not exist
 -- should NOT generate warnings
 -- int4 promotes to text, so this is ok
 ALTER TABLE fktable ADD CONSTRAINT fk_1_2
 FOREIGN KEY (x1) REFERENCES pktable(id2);
+ERROR:  relation "fktable" does not exist
 -- int4 promotes to real
 ALTER TABLE fktable ADD CONSTRAINT fk_1_3
 FOREIGN KEY (x1) REFERENCES pktable(id3);
+ERROR:  relation "fktable" does not exist
 -- text is compatible with varchar
 ALTER TABLE fktable ADD CONSTRAINT fk_4_2
 FOREIGN KEY (x4) REFERENCES pktable(id2);
+ERROR:  relation "fktable" does not exist
 -- int2 is part of int4 opclass as of 8.0
 ALTER TABLE fktable ADD CONSTRAINT fk_5_1
 FOREIGN KEY (x5) REFERENCES pktable(id1);
+ERROR:  relation "fktable" does not exist
 -- check multikey cases, especially out-of-order column lists
 -- no warnings here
 ALTER TABLE fktable ADD CONSTRAINT fk_123_123
 FOREIGN KEY (x1,x2,x3) REFERENCES pktable(id1,id2,id3);
+ERROR:  relation "fktable" does not exist
 ALTER TABLE fktable ADD CONSTRAINT fk_213_213
 FOREIGN KEY (x2,x1,x3) REFERENCES pktable(id2,id1,id3);
+ERROR:  relation "fktable" does not exist
 ALTER TABLE fktable ADD CONSTRAINT fk_253_213
 FOREIGN KEY (x2,x5,x3) REFERENCES pktable(id2,id1,id3);
+ERROR:  relation "fktable" does not exist
 -- warnings here
 ALTER TABLE fktable ADD CONSTRAINT fk_123_231
 FOREIGN KEY (x1,x2,x3) REFERENCES pktable(id2,id3,id1);
-WARNING:  foreign key constraint "fk_123_231" will require costly sequential scans
-DETAIL:  Key columns "x2" and "id3" are of different types: character varying and real.
-WARNING:  foreign key constraint "fk_123_231" will require costly sequential scans
-DETAIL:  Key columns "x3" and "id1" are of different types: real and integer.
+ERROR:  relation "fktable" does not exist
 ALTER TABLE fktable ADD CONSTRAINT fk_241_132
 FOREIGN KEY (x2,x4,x1) REFERENCES pktable(id1,id3,id2);
-WARNING:  foreign key constraint "fk_241_132" will require costly sequential scans
-DETAIL:  Key columns "x2" and "id1" are of different types: character varying and integer.
-WARNING:  foreign key constraint "fk_241_132" will require costly sequential scans
-DETAIL:  Key columns "x4" and "id3" are of different types: text and real.
+ERROR:  relation "fktable" does not exist
 DROP TABLE pktable, fktable CASCADE;
-NOTICE:  drop cascades to constraint fk_241_132 on table fktable
-NOTICE:  drop cascades to constraint fk_123_231 on table fktable
-NOTICE:  drop cascades to constraint fk_253_213 on table fktable
-NOTICE:  drop cascades to constraint fk_213_213 on table fktable
-NOTICE:  drop cascades to constraint fk_123_123 on table fktable
-NOTICE:  drop cascades to constraint fk_5_1 on table fktable
-NOTICE:  drop cascades to constraint fk_3_1 on table fktable
-NOTICE:  drop cascades to constraint fk_2_1 on table fktable
-NOTICE:  drop cascades to constraint fktable_x1_fkey on table fktable
-NOTICE:  drop cascades to constraint fk_4_2 on table fktable
-NOTICE:  drop cascades to constraint fk_1_2 on table fktable
-NOTICE:  drop cascades to constraint fktable_x2_fkey on table fktable
-NOTICE:  drop cascades to constraint fk_1_3 on table fktable
-NOTICE:  drop cascades to constraint fk_2_3 on table fktable
-NOTICE:  drop cascades to constraint fktable_x3_fkey on table fktable
+ERROR:  table "fktable" does not exist
 -- test a tricky case: we can elide firing the FK check trigger during
 -- an UPDATE if the UPDATE did not change the foreign key
 -- field. However, we can't do this if our transaction was the one that
@@ -1156,7 +1111,7 @@ CREATE TEMP TABLE pktable (
     id int primary key,
     other int
 );
-NOTICE:  CREATE TABLE / PRIMARY KEY will create implicit index "pktable_pkey" for table "pktable"
+ERROR:  relation "pktable" already exists
 CREATE TEMP TABLE fktable (
     id int primary key,
     fk int references pktable deferrable initially deferred
@@ -1172,3 +1127,108 @@ UPDATE fktable SET id = id + 1;
 COMMIT;
 ERROR:  insert or update on table "fktable" violates foreign key constraint "fktable_fk_fkey"
 DETAIL:  Key (fk)=(20) is not present in table "pktable".
+-- check same case when insert is in a different subtransaction than update
+BEGIN;
+-- doesn't match PK, but no error yet
+INSERT INTO fktable VALUES (0, 20);
+-- UPDATE will be in a subxact
+SAVEPOINT savept1;
+-- don't change FK
+UPDATE fktable SET id = id + 1;
+-- should catch error from initial INSERT
+COMMIT;
+ERROR:  insert or update on table "fktable" violates foreign key constraint "fktable_fk_fkey"
+DETAIL:  Key (fk)=(20) is not present in table "pktable".
+BEGIN;
+-- INSERT will be in a subxact
+SAVEPOINT savept1;
+-- doesn't match PK, but no error yet
+INSERT INTO fktable VALUES (0, 20);
+RELEASE SAVEPOINT savept1;
+-- don't change FK
+UPDATE fktable SET id = id + 1;
+-- should catch error from initial INSERT
+COMMIT;
+ERROR:  insert or update on table "fktable" violates foreign key constraint "fktable_fk_fkey"
+DETAIL:  Key (fk)=(20) is not present in table "pktable".
+BEGIN;
+-- doesn't match PK, but no error yet
+INSERT INTO fktable VALUES (0, 20);
+-- UPDATE will be in a subxact
+SAVEPOINT savept1;
+-- don't change FK
+UPDATE fktable SET id = id + 1;
+-- Roll back the UPDATE
+ROLLBACK TO savept1;
+-- should catch error from initial INSERT
+COMMIT;
+ERROR:  insert or update on table "fktable" violates foreign key constraint "fktable_fk_fkey"
+DETAIL:  Key (fk)=(20) is not present in table "pktable".
+-- test order of firing of FK triggers when several RI-induced changes need to
+-- be made to the same row.  This was broken by subtransaction-related
+-- changes in 8.0.
+CREATE TEMP TABLE users (
+  id INT PRIMARY KEY,
+  name VARCHAR NOT NULL
+);
+NOTICE:  CREATE TABLE / PRIMARY KEY will create implicit index "users_pkey" for table "users"
+INSERT INTO users VALUES (1, 'Jozko');
+INSERT INTO users VALUES (2, 'Ferko');
+INSERT INTO users VALUES (3, 'Samko');
+CREATE TEMP TABLE tasks (
+  id INT PRIMARY KEY,
+  owner INT REFERENCES users ON UPDATE CASCADE ON DELETE SET NULL,
+  worker INT REFERENCES users ON UPDATE CASCADE ON DELETE SET NULL,
+  checked_by INT REFERENCES users ON UPDATE CASCADE ON DELETE SET NULL
+);
+NOTICE:  CREATE TABLE / PRIMARY KEY will create implicit index "tasks_pkey" for table "tasks"
+INSERT INTO tasks VALUES (1,1,NULL,NULL);
+INSERT INTO tasks VALUES (2,2,2,NULL);
+INSERT INTO tasks VALUES (3,3,3,3);
+SELECT * FROM tasks;
+ id | owner | worker | checked_by 
+----+-------+--------+------------
+  1 |     1 |        |           
+  2 |     2 |      2 |           
+  3 |     3 |      3 |          3
+(3 rows)
+
+UPDATE users SET id = 4 WHERE id = 3;
+SELECT * FROM tasks;
+ id | owner | worker | checked_by 
+----+-------+--------+------------
+  1 |     1 |        |           
+  2 |     2 |      2 |           
+  3 |     4 |      4 |          4
+(3 rows)
+
+DELETE FROM users WHERE id = 4;
+SELECT * FROM tasks;
+ id | owner | worker | checked_by 
+----+-------+--------+------------
+  1 |     1 |        |           
+  2 |     2 |      2 |           
+  3 |       |        |           
+(3 rows)
+
+-- could fail with only 2 changes to make, if row was already updated
+BEGIN;
+UPDATE tasks set id=id WHERE id=2;
+SELECT * FROM tasks;
+ id | owner | worker | checked_by 
+----+-------+--------+------------
+  1 |     1 |        |           
+  3 |       |        |           
+  2 |     2 |      2 |           
+(3 rows)
+
+DELETE FROM users WHERE id = 2;
+SELECT * FROM tasks;
+ id | owner | worker | checked_by 
+----+-------+--------+------------
+  1 |     1 |        |           
+  3 |       |        |           
+  2 |       |        |           
+(3 rows)
+
+COMMIT;

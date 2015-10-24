@@ -1,7 +1,7 @@
 CREATE TABLE delete_test (
     id SERIAL PRIMARY KEY,
     a INT
-);
+) DISTRIBUTED BY (id);
 NOTICE:  CREATE TABLE will create implicit sequence "delete_test_id_seq" for serial column "delete_test.id"
 NOTICE:  CREATE TABLE / PRIMARY KEY will create implicit index "delete_test_pkey" for table "delete_test"
 INSERT INTO delete_test (a) VALUES (10);

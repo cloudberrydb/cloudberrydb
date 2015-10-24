@@ -3,7 +3,7 @@
  *
  * Resource managers definition
  *
- * $PostgreSQL: pgsql/src/include/access/rmgr.h,v 1.17 2006/11/05 22:42:10 tgl Exp $
+ * $PostgreSQL: pgsql/src/include/access/rmgr.h,v 1.19 2008/11/19 10:34:52 heikki Exp $
  */
 #ifndef RMGR_H
 #define RMGR_H
@@ -30,6 +30,9 @@ typedef uint8 RmgrId;
 #define RM_GIN_ID				13
 #define RM_GIST_ID				14
 #define RM_SEQ_ID				15
-#define RM_MAX_ID				RM_SEQ_ID
+#define RM_BITMAP_ID			16
+#define RM_DISTRIBUTEDLOG_ID	17
+#define RM_MMXLOG_ID			18
+#define RM_MAX_ID				RM_MMXLOG_ID
 
 #endif   /* RMGR_H */

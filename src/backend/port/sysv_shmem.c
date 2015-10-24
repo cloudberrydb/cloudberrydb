@@ -6,11 +6,11 @@
  * These routines represent a fairly thin layer on top of SysV shared
  * memory functionality.
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/port/sysv_shmem.c,v 1.47 2006/07/14 05:28:28 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/port/sysv_shmem.c,v 1.54 2009/01/01 17:23:46 momjian Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -79,28 +79,75 @@ InternalIpcMemoryCreate(IpcMemoryKey memKey, Size size)
 
 	if (shmid < 0)
 	{
+		int			shmget_errno = errno;
+
 		/*
 		 * Fail quietly if error indicates a collision with existing segment.
 		 * One would expect EEXIST, given that we said IPC_EXCL, but perhaps
 		 * we could get a permission violation instead?  Also, EIDRM might
 		 * occur if an old seg is slated for destruction but not gone yet.
 		 */
-		if (errno == EEXIST || errno == EACCES
+		if (shmget_errno == EEXIST || shmget_errno == EACCES
 #ifdef EIDRM
-			|| errno == EIDRM
+			|| shmget_errno == EIDRM
 #endif
 			)
 			return NULL;
 
 		/*
-		 * Else complain and abort
+		 * Some BSD-derived kernels are known to return EINVAL, not EEXIST, if
+		 * there is an existing segment but it's smaller than "size" (this is
+		 * a result of poorly-thought-out ordering of error tests). To
+		 * distinguish between collision and invalid size in such cases, we
+		 * make a second try with size = 0.  These kernels do not test size
+		 * against SHMMIN in the preexisting-segment case, so we will not get
+		 * EINVAL a second time if there is such a segment.
 		 */
+		if (shmget_errno == EINVAL)
+		{
+			shmid = shmget(memKey, 0, IPC_CREAT | IPC_EXCL | IPCProtection);
+
+			if (shmid < 0)
+			{
+				/* As above, fail quietly if we verify a collision */
+				if (errno == EEXIST || errno == EACCES
+#ifdef EIDRM
+					|| errno == EIDRM
+#endif
+					)
+					return NULL;
+				/* Otherwise, fall through to report the original error */
+			}
+			else
+			{
+				/*
+				 * On most platforms we cannot get here because SHMMIN is
+				 * greater than zero.  However, if we do succeed in creating a
+				 * zero-size segment, free it and then fall through to report
+				 * the original error.
+				 */
+				if (shmctl(shmid, IPC_RMID, NULL) < 0)
+					elog(LOG, "shmctl(%d, %d, 0) failed: %m",
+						 (int) shmid, IPC_RMID);
+			}
+		}
+
+		/*
+		 * Else complain and abort.
+		 *
+		 * Note: at this point EINVAL should mean that either SHMMIN or SHMMAX
+		 * is violated.  SHMALL violation might be reported as either ENOMEM
+		 * (BSDen) or ENOSPC (Linux); the Single Unix Spec fails to say which
+		 * it should be.  SHMMNI violation is ENOSPC, per spec.  Just plain
+		 * not-enough-RAM is ENOMEM.
+		 */
+		errno = shmget_errno;
 		ereport(FATAL,
 				(errmsg("could not create shared memory segment: %m"),
 		  errdetail("Failed system call was shmget(key=%lu, size=%lu, 0%o).",
 					(unsigned long) memKey, (unsigned long) size,
 					IPC_CREAT | IPC_EXCL | IPCProtection),
-				 (errno == EINVAL) ?
+				 (shmget_errno == EINVAL) ?
 				 errhint("This error usually means that PostgreSQL's request for a shared memory "
 		  "segment exceeded your kernel's SHMMAX parameter.  You can either "
 						 "reduce the request size or reconfigure the kernel with larger SHMMAX.  "
@@ -113,7 +160,7 @@ InternalIpcMemoryCreate(IpcMemoryKey memKey, Size size)
 		"The PostgreSQL documentation contains more information about shared "
 						 "memory configuration.",
 						 (unsigned long) size, NBuffers, MaxBackends) : 0,
-				 (errno == ENOMEM) ?
+				 (shmget_errno == ENOMEM) ?
 				 errhint("This error usually means that PostgreSQL's request for a shared "
 				   "memory segment exceeded available memory or swap space. "
 				  "To reduce the request size (currently %lu bytes), reduce "
@@ -122,7 +169,7 @@ InternalIpcMemoryCreate(IpcMemoryKey memKey, Size size)
 		"The PostgreSQL documentation contains more information about shared "
 						 "memory configuration.",
 						 (unsigned long) size, NBuffers, MaxBackends) : 0,
-				 (errno == ENOSPC) ?
+				 (shmget_errno == ENOSPC) ?
 				 errhint("This error does *not* mean that you have run out of disk space. "
 						 "It occurs either if all available shared memory IDs have been taken, "
 						 "in which case you need to raise the SHMMNI parameter in your kernel, "
@@ -195,15 +242,12 @@ PGSharedMemoryIsInUse(unsigned long id1, unsigned long id2)
 {
 	IpcMemoryId shmId = (IpcMemoryId) id2;
 	struct shmid_ds shmStat;
-
-#ifndef WIN32
 	struct stat statbuf;
 	PGShmemHeader *hdr;
-#endif
 
 	/*
 	 * We detect whether a shared memory segment is in use by seeing whether
-	 * it (a) exists and (b) has any processes are attached to it.
+	 * it (a) exists and (b) has any processes attached to it.
 	 */
 	if (shmctl(shmId, IPC_STAT, &shmStat) < 0)
 	{
@@ -224,6 +268,18 @@ PGSharedMemoryIsInUse(unsigned long id1, unsigned long id2)
 			return false;
 
 		/*
+		 * Some Linux kernel versions (in fact, all of them as of July 2007)
+		 * sometimes return EIDRM when EINVAL is correct.  The Linux kernel
+		 * actually does not have any internal state that would justify
+		 * returning EIDRM, so we can get away with assuming that EIDRM is
+		 * equivalent to EINVAL on that platform.
+		 */
+#ifdef HAVE_LINUX_EIDRM_BUG
+		if (errno == EIDRM)
+			return false;
+#endif
+
+		/*
 		 * Otherwise, we had better assume that the segment is in use. The
 		 * only likely case is EIDRM, which implies that the segment has been
 		 * IPC_RMID'd but there are still processes attached to it.
@@ -238,11 +294,8 @@ PGSharedMemoryIsInUse(unsigned long id1, unsigned long id2)
 	/*
 	 * Try to attach to the segment and see if it matches our data directory.
 	 * This avoids shmid-conflict problems on machines that are running
-	 * several postmasters under the same userid.  On Windows, which doesn't
-	 * have useful inode numbers, we can't do this so we punt and assume there
-	 * is a conflict.
+	 * several postmasters under the same userid.
 	 */
-#ifndef WIN32
 	if (stat(DataDir, &statbuf) < 0)
 		return true;			/* if can't stat, be conservative */
 
@@ -265,7 +318,6 @@ PGSharedMemoryIsInUse(unsigned long id1, unsigned long id2)
 
 	/* Trouble --- looks a lot like there's still live backends */
 	shmdt((void *) hdr);
-#endif
 
 	return true;
 }
@@ -296,10 +348,7 @@ PGSharedMemoryCreate(Size size, bool makePrivate, int port)
 	void	   *memAddress;
 	PGShmemHeader *hdr;
 	IpcMemoryId shmid;
-
-#ifndef WIN32
 	struct stat statbuf;
-#endif
 
 	/* Room for a header? */
 	Assert(size > MAXALIGN(sizeof(PGShmemHeader)));
@@ -372,7 +421,6 @@ PGSharedMemoryCreate(Size size, bool makePrivate, int port)
 	hdr->creatorPID = getpid();
 	hdr->magic = PGShmemMagic;
 
-#ifndef WIN32
 	/* Fill in the data directory ID info, too */
 	if (stat(DataDir, &statbuf) < 0)
 		ereport(FATAL,
@@ -381,7 +429,6 @@ PGSharedMemoryCreate(Size size, bool makePrivate, int port)
 						DataDir)));
 	hdr->device = statbuf.st_dev;
 	hdr->inode = statbuf.st_ino;
-#endif
 
 	/*
 	 * Initialize space allocation status for segment.

@@ -4,7 +4,7 @@
  *	  postgres transaction access method support code
  *
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2008, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * $PostgreSQL: pgsql/src/include/access/transam.h,v 1.59 2006/11/05 22:42:10 tgl Exp $
@@ -14,6 +14,7 @@
 #ifndef TRANSAM_H
 #define TRANSAM_H
 
+#include "catalog/pg_magic_oid.h"
 
 /* ----------------
  *		Special transaction ID values
@@ -49,32 +50,6 @@
 			(dest) = FirstNormalTransactionId; \
 	} while(0)
 
-
-/* ----------
- *		Object ID (OID) zero is InvalidOid.
- *
- *		OIDs 1-9999 are reserved for manual assignment (see the files
- *		in src/include/catalog/).
- *
- *		OIDS 10000-16383 are reserved for assignment during initdb
- *		using the OID generator.  (We start the generator at 10000.)
- *
- *		OIDs beginning at 16384 are assigned from the OID generator
- *		during normal multiuser operation.	(We force the generator up to
- *		16384 as soon as we are in normal operation.)
- *
- * The choices of 10000 and 16384 are completely arbitrary, and can be moved
- * if we run low on OIDs in either category.  Changing the macros below
- * should be sufficient to do this.
- *
- * NOTE: if the OID generator wraps around, we skip over OIDs 0-16383
- * and resume with 16384.  This minimizes the odds of OID conflict, by not
- * reassigning OIDs that might have been assigned during initdb.
- * ----------
- */
-#define FirstBootstrapObjectId	10000
-#define FirstNormalObjectId		16384
-
 /*
  * VariableCache is placed in shmem and used by
  * backends to get next available OID & XID.
@@ -108,6 +83,9 @@ typedef VariableCacheData *VariableCache;
 /* in transam/varsup.c */
 extern VariableCache ShmemVariableCache;
 
+extern int xid_stop_limit;
+extern int xid_warn_limit;
+
 
 /*
  * prototypes for functions in transam/transam.c
@@ -125,7 +103,7 @@ extern bool TransactionIdFollows(TransactionId id1, TransactionId id2);
 extern bool TransactionIdFollowsOrEquals(TransactionId id1, TransactionId id2);
 
 /* in transam/varsup.c */
-extern TransactionId GetNewTransactionId(bool isSubXact);
+extern TransactionId GetNewTransactionId(bool isSubXact, bool setProcXid);
 extern TransactionId ReadNewTransactionId(void);
 extern void SetTransactionIdLimit(TransactionId oldest_datfrozenxid,
 					  Name oldest_datname);

@@ -4,11 +4,11 @@
  *	  page utilities routines for the postgres inverted index access method.
  *
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2008, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
- *			$PostgreSQL: pgsql/src/backend/access/gin/ginentrypage.c,v 1.5 2006/11/12 06:55:53 neilc Exp $
+ *			$PostgreSQL: pgsql/src/backend/access/gin/ginentrypage.c,v 1.5.2.1 2007/06/04 15:59:19 teodor Exp $
  *-------------------------------------------------------------------------
  */
 
@@ -237,7 +237,7 @@ entryLocateLeafEntry(GinBtree btree, GinBtreeStack *stack)
 }
 
 static OffsetNumber
-entryFindChildPtr(GinBtree btree, Page page, BlockNumber blkno, OffsetNumber storedOff)
+entryFindChildPtr(GinBtree btree __attribute__((unused)), Page page, BlockNumber blkno, OffsetNumber storedOff)
 {
 	OffsetNumber i,
 				maxoff = PageGetMaxOffsetNumber(page);
@@ -278,7 +278,7 @@ entryFindChildPtr(GinBtree btree, Page page, BlockNumber blkno, OffsetNumber sto
 }
 
 static BlockNumber
-entryGetLeftMostPage(GinBtree btree, Page page)
+entryGetLeftMostPage(GinBtree btree __attribute__((unused)), Page page)
 {
 	IndexTuple	itup;
 
@@ -354,6 +354,7 @@ entryPlaceToPage(GinBtree btree, Buffer buf, OffsetNumber off, XLogRecData **prd
 	static XLogRecData rdata[3];
 	OffsetNumber placed;
 	static ginxlogInsert data;
+	int 	cnt=0;
 
 	*prdata = rdata;
 	data.updateBlkno = entryPreparePage(btree, page, off);
@@ -371,23 +372,60 @@ entryPlaceToPage(GinBtree btree, Buffer buf, OffsetNumber off, XLogRecData **prd
 	data.isData = false;
 	data.isLeaf = GinPageIsLeaf(page) ? TRUE : FALSE;
 
-	rdata[0].buffer = buf;
-	rdata[0].buffer_std = TRUE;
-	rdata[0].data = NULL;
-	rdata[0].len = 0;
-	rdata[0].next = &rdata[1];
+    /*
+	 * Prevent full page write if child's split occurs. That is needed
+	 * to remove incomplete splits while replaying WAL
+	 *
+	 * data.updateBlkno contains new block number (of newly created right page)
+	 * for recently splited page.
+	 */
+	if ( data.updateBlkno == InvalidBlockNumber ) 
+	{
+		rdata[0].buffer = buf;
+		rdata[0].buffer_std = TRUE;
+		rdata[0].data = NULL;
+		rdata[0].len = 0;
+		rdata[0].next = &rdata[1];
+		cnt++;
+	}
 
-	rdata[1].buffer = InvalidBuffer;
-	rdata[1].data = (char *) &data;
-	rdata[1].len = sizeof(ginxlogInsert);
-	rdata[1].next = &rdata[2];
+	rdata[cnt].buffer = InvalidBuffer;
+	rdata[cnt].data = (char *) &data;
+	rdata[cnt].len = sizeof(ginxlogInsert);
+	rdata[cnt].next = &rdata[cnt+1];
+	cnt++;
 
-	rdata[2].buffer = InvalidBuffer;
-	rdata[2].data = (char *) btree->entry;
-	rdata[2].len = IndexTupleSize(btree->entry);
-	rdata[2].next = NULL;
+	rdata[cnt].buffer = InvalidBuffer;
+	rdata[cnt].data = (char *) btree->entry;
+	rdata[cnt].len = IndexTupleSize(btree->entry);
+	rdata[cnt].next = NULL;
 
 	btree->entry = NULL;
+}
+
+/*
+ * Returns new tuple with copied value from source tuple.
+ * New tuple will not store posting list
+ */
+static IndexTuple
+copyIndexTuple(IndexTuple itup, Page page)
+{
+	IndexTuple	nitup;
+
+	if (GinPageIsLeaf(page) && !GinIsPostingTree(itup))
+	{
+		nitup = (IndexTuple) palloc(MAXALIGN(GinGetOrigSizePosting(itup)));
+		memcpy(nitup, itup, GinGetOrigSizePosting(itup));
+		nitup->t_info &= ~INDEX_SIZE_MASK;
+		nitup->t_info |= GinGetOrigSizePosting(itup);
+	}
+	else
+	{
+		nitup = (IndexTuple) palloc(MAXALIGN(IndexTupleSize(itup)));
+		memcpy(nitup, itup, IndexTupleSize(itup));
+	}
+
+	return nitup;
 }
 
 /*
@@ -411,8 +449,6 @@ entrySplitPage(GinBtree btree, Buffer lbuf, Buffer rbuf, OffsetNumber off, XLogR
 	IndexTuple	itup,
 				leftrightmost = NULL;
 	static ginxlogSplit data;
-	Datum		value;
-	bool		isnull;
 	Page		page;
 	Page		lpage = GinPageGetCopyPage(BufferGetPage(lbuf));
 	Page		rpage = BufferGetPage(rbuf);
@@ -481,9 +517,9 @@ entrySplitPage(GinBtree btree, Buffer lbuf, Buffer rbuf, OffsetNumber off, XLogR
 		ptr += MAXALIGN(IndexTupleSize(itup));
 	}
 
-	value = index_getattr(leftrightmost, FirstOffsetNumber, btree->ginstate->tupdesc, &isnull);
-	btree->entry = GinFormTuple(btree->ginstate, value, NULL, 0);
+	btree->entry = copyIndexTuple(leftrightmost, lpage);
 	ItemPointerSet(&(btree->entry)->t_tid, BufferGetBlockNumber(lbuf), InvalidOffsetNumber);
+
 	btree->rightblkno = BufferGetBlockNumber(rbuf);
 
 	data.node = btree->index->rd_node;
@@ -520,20 +556,9 @@ ginPageGetLinkItup(Buffer buf)
 	Page		page = BufferGetPage(buf);
 
 	itup = getRightMostTuple(page);
-	if (GinPageIsLeaf(page) && !GinIsPostingTree(itup))
-	{
-		nitup = (IndexTuple) palloc(MAXALIGN(GinGetOrigSizePosting(itup)));
-		memcpy(nitup, itup, GinGetOrigSizePosting(itup));
-		nitup->t_info &= ~INDEX_SIZE_MASK;
-		nitup->t_info |= GinGetOrigSizePosting(itup);
-	}
-	else
-	{
-		nitup = (IndexTuple) palloc(MAXALIGN(IndexTupleSize(itup)));
-		memcpy(nitup, itup, IndexTupleSize(itup));
-	}
-
+	nitup = copyIndexTuple(itup, page);
 	ItemPointerSet(&nitup->t_tid, BufferGetBlockNumber(buf), InvalidOffsetNumber);
+
 	return nitup;
 }
 
@@ -542,7 +567,7 @@ ginPageGetLinkItup(Buffer buf)
  * Also called from ginxlog, should not use btree
  */
 void
-entryFillRoot(GinBtree btree, Buffer root, Buffer lbuf, Buffer rbuf)
+entryFillRoot(GinBtree btree __attribute__((unused)), Buffer root, Buffer lbuf, Buffer rbuf)
 {
 	Page		page;
 	IndexTuple	itup;

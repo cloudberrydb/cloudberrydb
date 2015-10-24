@@ -4,7 +4,7 @@
  *	  utilities routines for the postgres GiST index access method.
  *
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
@@ -18,6 +18,11 @@
 #include "access/reloptions.h"
 #include "storage/freespace.h"
 
+#include "storage/lmgr.h"
+#include "storage/bufmgr.h"
+#include "utils/rel.h"
+#include "cdb/cdbfilerepprimary.h"
+
 /*
  * static *S used for temrorary storage (saves stack and palloc() call)
  */
@@ -26,7 +31,7 @@ static Datum attrS[INDEX_MAX_KEYS];
 static bool isnullS[INDEX_MAX_KEYS];
 
 /*
- * Write itup vector to page, has no control of free space
+ * Write itup vector to page, has no control of free space.
  */
 OffsetNumber
 gistfillbuffer(Relation r, Page page, IndexTuple *itup,
@@ -559,10 +564,10 @@ GISTInitBuffer(Buffer b, uint32 f)
 	PageInit(page, pageSize, sizeof(GISTPageOpaqueData));
 
 	opaque = GistPageGetOpaque(page);
-	opaque->flags = f;
-	opaque->rightlink = InvalidBlockNumber;
 	/* page was already zeroed by PageInit, so this is not needed: */
 	/* memset(&(opaque->nsn), 0, sizeof(GistNSN)); */
+	opaque->rightlink = InvalidBlockNumber;
+	opaque->flags = f;
 }
 
 /*
@@ -585,7 +590,8 @@ gistcheckpage(Relation rel, Buffer buf)
 			 errmsg("index \"%s\" contains unexpected zero page at block %u",
 					RelationGetRelationName(rel),
 					BufferGetBlockNumber(buf)),
-				 errhint("Please REINDEX it.")));
+				 errhint("Please REINDEX it."),
+				 errSendAlert(true)));
 
 	/*
 	 * Additionally check that the special area looks sane.
@@ -597,7 +603,8 @@ gistcheckpage(Relation rel, Buffer buf)
 				 errmsg("index \"%s\" contains corrupted page at block %u",
 						RelationGetRelationName(rel),
 						BufferGetBlockNumber(buf)),
-				 errhint("Please REINDEX it.")));
+				 errhint("Please REINDEX it."),
+				 errSendAlert(true)));
 }
 
 
@@ -613,6 +620,8 @@ gistNewBuffer(Relation r)
 {
 	Buffer		buffer;
 	bool		needLock;
+
+	MIRROREDLOCK_BUFMGR_MUST_ALREADY_BE_HELD;
 
 	/* First, try to get a page from FSM */
 	for (;;)
@@ -670,6 +679,7 @@ gistoptions(PG_FUNCTION_ARGS)
 	bytea	   *result;
 
 	result = default_reloptions(reloptions, validate,
+								RELKIND_INDEX,
 								GIST_MIN_FILLFACTOR,
 								GIST_DEFAULT_FILLFACTOR);
 	if (result)

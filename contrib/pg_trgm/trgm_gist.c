@@ -97,7 +97,7 @@ gtrgm_compress(PG_FUNCTION_ARGS)
 	if (entry->leafkey)
 	{							/* trgm */
 		TRGM	   *res;
-		text	   *val = (text *) DatumGetPointer(PG_DETOAST_DATUM(entry->key));
+		text	   *val = DatumGetTextP(entry->key);
 
 		res = generate_trgm(VARDATA(val), VARSIZE(val) - VARHDRSZ);
 		retval = (GISTENTRY *) palloc(sizeof(GISTENTRY));
@@ -113,14 +113,15 @@ gtrgm_compress(PG_FUNCTION_ARGS)
 		TRGM	   *res;
 		BITVECP		sign = GETSIGN(DatumGetPointer(entry->key));
 
-		LOOPBYTE(
-				 if ((sign[i] & 0xff) != 0xff)
-				 PG_RETURN_POINTER(retval);
-		);
+		LOOPBYTE
+		{
+			if ((sign[i] & 0xff) != 0xff)
+				PG_RETURN_POINTER(retval);
+		}
 
 		len = CALCGTSIZE(SIGNKEY | ALLISTRUE, 0);
 		res = (TRGM *) palloc(len);
-		res->len = len;
+		SET_VARSIZE(res, len);
 		res->flag = SIGNKEY | ALLISTRUE;
 
 		retval = (GISTENTRY *) palloc(sizeof(GISTENTRY));
@@ -134,7 +135,25 @@ gtrgm_compress(PG_FUNCTION_ARGS)
 Datum
 gtrgm_decompress(PG_FUNCTION_ARGS)
 {
-	PG_RETURN_DATUM(PG_GETARG_DATUM(0));
+	GISTENTRY  *entry = (GISTENTRY *) PG_GETARG_POINTER(0);
+	GISTENTRY  *retval;
+	text	   *key;
+
+	key = DatumGetTextP(entry->key);
+
+	if (key != (text *) DatumGetPointer(entry->key))
+	{
+		/* need to pass back the decompressed item */
+		retval = palloc(sizeof(GISTENTRY));
+		gistentryinit(*retval, PointerGetDatum(key),
+					  entry->rel, entry->page, entry->offset, entry->leafkey);
+		PG_RETURN_POINTER(retval);
+	}
+	else
+	{
+		/* we can return the entry as-is */
+		PG_RETURN_POINTER(entry);
+	}
 }
 
 Datum
@@ -192,9 +211,8 @@ unionkey(BITVECP sbase, TRGM * add)
 		if (ISALLTRUE(add))
 			return 1;
 
-		LOOPBYTE(
-				 sbase[i] |= sadd[i];
-		);
+		LOOPBYTE
+			sbase[i] |= sadd[i];
 	}
 	else
 	{
@@ -235,10 +253,11 @@ gtrgm_union(PG_FUNCTION_ARGS)
 	flag |= SIGNKEY;
 	len = CALCGTSIZE(flag, 0);
 	result = (TRGM *) palloc(len);
-	*size = result->len = len;
+	SET_VARSIZE(result, len);
 	result->flag = flag;
 	if (!ISALLTRUE(result))
 		memcpy((void *) GETSIGN(result), (void *) base, sizeof(BITVEC));
+	*size = len;
 
 	PG_RETURN_POINTER(result);
 }
@@ -265,13 +284,14 @@ gtrgm_same(PG_FUNCTION_ARGS)
 						sb = GETSIGN(b);
 
 			*result = true;
-			LOOPBYTE(
-					 if (sa[i] != sb[i])
-					 {
-				*result = false;
-				break;
+			LOOPBYTE
+			{
+				if (sa[i] != sb[i])
+				{
+					*result = false;
+					break;
+				}
 			}
-			);
 		}
 	}
 	else
@@ -306,9 +326,8 @@ sizebitvec(BITVECP sign)
 	int4		size = 0,
 				i;
 
-	LOOPBYTE(
-			 size += number_of_ones[(unsigned char) sign[i]];
-	);
+	LOOPBYTE
+		size += number_of_ones[(unsigned char) sign[i]];
 	return size;
 }
 
@@ -319,10 +338,11 @@ hemdistsign(BITVECP a, BITVECP b)
 				diff,
 				dist = 0;
 
-	LOOPBYTE(
-			 diff = (unsigned char) (a[i] ^ b[i]);
-	dist += number_of_ones[diff];
-	);
+	LOOPBYTE
+	{
+		diff = (unsigned char) (a[i] ^ b[i]);
+		dist += number_of_ones[diff];
+	}
 	return dist;
 }
 
@@ -374,10 +394,10 @@ typedef struct
 {
 	bool		allistrue;
 	BITVEC		sign;
-}	CACHESIGN;
+} CACHESIGN;
 
 static void
-fillcache(CACHESIGN * item, TRGM * key)
+fillcache(CACHESIGN *item, TRGM * key)
 {
 	item->allistrue = false;
 	if (ISARRKEY(key))
@@ -393,7 +413,7 @@ typedef struct
 {
 	OffsetNumber pos;
 	int4		cost;
-}	SPLITCOST;
+} SPLITCOST;
 
 static int
 comparecost(const void *a, const void *b)
@@ -406,7 +426,7 @@ comparecost(const void *a, const void *b)
 
 
 static int
-hemdistcache(CACHESIGN * a, CACHESIGN * b)
+hemdistcache(CACHESIGN *a, CACHESIGN *b)
 {
 	if (a->allistrue)
 	{
@@ -486,26 +506,26 @@ gtrgm_picksplit(PG_FUNCTION_ARGS)
 	if (cache[seed_1].allistrue)
 	{
 		datum_l = (TRGM *) palloc(CALCGTSIZE(SIGNKEY | ALLISTRUE, 0));
-		datum_l->len = CALCGTSIZE(SIGNKEY | ALLISTRUE, 0);
+		SET_VARSIZE(datum_l, CALCGTSIZE(SIGNKEY | ALLISTRUE, 0));
 		datum_l->flag = SIGNKEY | ALLISTRUE;
 	}
 	else
 	{
 		datum_l = (TRGM *) palloc(CALCGTSIZE(SIGNKEY, 0));
-		datum_l->len = CALCGTSIZE(SIGNKEY, 0);
+		SET_VARSIZE(datum_l, CALCGTSIZE(SIGNKEY, 0));
 		datum_l->flag = SIGNKEY;
 		memcpy((void *) GETSIGN(datum_l), (void *) cache[seed_1].sign, sizeof(BITVEC));
 	}
 	if (cache[seed_2].allistrue)
 	{
 		datum_r = (TRGM *) palloc(CALCGTSIZE(SIGNKEY | ALLISTRUE, 0));
-		datum_r->len = CALCGTSIZE(SIGNKEY | ALLISTRUE, 0);
+		SET_VARSIZE(datum_r, CALCGTSIZE(SIGNKEY | ALLISTRUE, 0));
 		datum_r->flag = SIGNKEY | ALLISTRUE;
 	}
 	else
 	{
 		datum_r = (TRGM *) palloc(CALCGTSIZE(SIGNKEY, 0));
-		datum_r->len = CALCGTSIZE(SIGNKEY, 0);
+		SET_VARSIZE(datum_r, CALCGTSIZE(SIGNKEY, 0));
 		datum_r->flag = SIGNKEY;
 		memcpy((void *) GETSIGN(datum_r), (void *) cache[seed_2].sign, sizeof(BITVEC));
 	}
@@ -575,9 +595,8 @@ gtrgm_picksplit(PG_FUNCTION_ARGS)
 			else
 			{
 				ptr = cache[j].sign;
-				LOOPBYTE(
-						 union_l[i] |= ptr[i];
-				);
+				LOOPBYTE
+					union_l[i] |= ptr[i];
 			}
 			*left++ = j;
 			v->spl_nleft++;
@@ -592,9 +611,8 @@ gtrgm_picksplit(PG_FUNCTION_ARGS)
 			else
 			{
 				ptr = cache[j].sign;
-				LOOPBYTE(
-						 union_r[i] |= ptr[i];
-				);
+				LOOPBYTE
+					union_r[i] |= ptr[i];
 			}
 			*right++ = j;
 			v->spl_nright++;

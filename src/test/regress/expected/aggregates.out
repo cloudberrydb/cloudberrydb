@@ -2,15 +2,15 @@
 -- AGGREGATES
 --
 SELECT avg(four) AS avg_1 FROM onek;
-       avg_1        
---------------------
- 1.5000000000000000
+ avg_1 
+-------
+   1.5
 (1 row)
 
 SELECT avg(a) AS avg_32 FROM aggtest WHERE a < 100;
-       avg_32        
----------------------
- 32.6666666666666667
+      avg_32      
+------------------
+ 32.6666666666667
 (1 row)
 
 -- In 7.1, avg(float4) is computed using float8 arithmetic.
@@ -102,7 +102,7 @@ SELECT var_samp(b) FROM aggtest;
 SELECT stddev_pop(b::numeric) FROM aggtest;
     stddev_pop    
 ------------------
- 151.389361431288
+ 131.107032862199
 (1 row)
 
 SELECT stddev_samp(b::numeric) FROM aggtest;
@@ -114,7 +114,7 @@ SELECT stddev_samp(b::numeric) FROM aggtest;
 SELECT var_pop(b::numeric) FROM aggtest;
       var_pop       
 --------------------
- 22918.738754573025
+ 17189.054065929769
 (1 row)
 
 SELECT var_samp(b::numeric) FROM aggtest;
@@ -238,9 +238,9 @@ group by ten order by ten;
 
 -- user-defined aggregates
 SELECT newavg(four) AS avg_1 FROM onek;
-       avg_1        
---------------------
- 1.5000000000000000
+ avg_1 
+-------
+   1.5
 (1 row)
 
 SELECT newsum(four) AS sum_1500 FROM onek;
@@ -280,11 +280,11 @@ group by ten
 having exists (select 1 from onek b where sum(distinct a.four) = b.four);
  ten | sum 
 -----+-----
-   0 |   2
    2 |   2
-   4 |   2
    6 |   2
+   0 |   2
    8 |   2
+   4 |   2
 (5 rows)
 
 -- this should fail because subquery has an agg of its own in WHERE
@@ -304,6 +304,8 @@ CREATE TEMPORARY TABLE bitwise_test(
   x INT2,
   y BIT(4)
 );
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'i2' as the Greenplum Database data distribution key for this table.
+HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 -- empty case
 SELECT 
   BIT_AND(i2) AS "?",
@@ -379,6 +381,8 @@ CREATE TEMPORARY TABLE bool_test(
   b2 BOOL,
   b3 BOOL,
   b4 BOOL);
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'b1' as the Greenplum Database data distribution key for this table.
+HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 -- empty case
 SELECT
   BOOL_AND(b1)   AS "n",
@@ -477,10 +481,441 @@ select f1, (select min(unique1) from tenk1 where unique1 > f1) AS gt
 from int4_tbl;
      f1      | gt 
 -------------+----
-           0 |  1
       123456 |   
+ -2147483647 |  0
+           0 |  1
      -123456 |  0
   2147483647 |   
- -2147483647 |  0
 (5 rows)
+
+-- check some cases that were handled incorrectly in 8.3.0
+select distinct max(unique2) from tenk1;
+ max  
+------
+ 9999
+(1 row)
+
+select max(unique2) from tenk1 order by 1;
+ max  
+------
+ 9999
+(1 row)
+
+select max(unique2) from tenk1 order by max(unique2);
+ max  
+------
+ 9999
+(1 row)
+
+select max(unique2) from tenk1 order by max(unique2)+1;
+ max  
+------
+ 9999
+(1 row)
+
+-- MPP: This works in Postgres
+select max(unique2), generate_series(1,3) as g from tenk1 order by g desc;
+ERROR:  set-valued function called in context that cannot accept a set
+--
+-- Test combinations of DISTINCT and/or ORDER BY
+--
+select array_agg(a order by b)
+  from (values (1,4),(2,3),(3,1),(4,2)) v(a,b);
+ array_agg 
+-----------
+ {3,4,2,1}
+(1 row)
+
+select array_agg(a order by a)
+  from (values (1,4),(2,3),(3,1),(4,2)) v(a,b);
+ array_agg 
+-----------
+ {1,2,3,4}
+(1 row)
+
+select array_agg(a order by a desc)
+  from (values (1,4),(2,3),(3,1),(4,2)) v(a,b);
+ array_agg 
+-----------
+ {4,3,2,1}
+(1 row)
+
+select array_agg(b order by a desc)
+  from (values (1,4),(2,3),(3,1),(4,2)) v(a,b);
+ array_agg 
+-----------
+ {2,1,3,4}
+(1 row)
+
+select array_agg(distinct a)
+  from (values (1),(2),(1),(3),(null),(2)) v(a);
+ array_agg 
+-----------
+ {1,2,3}
+(1 row)
+
+-- TODO: support distinct + order by
+/*
+select array_agg(distinct a order by a)
+  from (values (1),(2),(1),(3),(null),(2)) v(a);
+select array_agg(distinct a order by a desc)
+  from (values (1),(2),(1),(3),(null),(2)) v(a);
+select array_agg(distinct a order by a desc nulls last)
+  from (values (1),(2),(1),(3),(null),(2)) v(a);
+*/
+-- multi-arg aggs, strict/nonstrict, distinct/order by
+select aggfstr(a,b,c)
+  from (values (1,3,'foo'),(0,null,null),(2,2,'bar'),(3,1,'baz')) v(a,b,c);
+                aggfstr                
+---------------------------------------
+ {"(1,3,foo)","(2,2,bar)","(3,1,baz)"}
+(1 row)
+
+select aggfns(a,b,c)
+  from (values (1,3,'foo'),(0,null,null),(2,2,'bar'),(3,1,'baz')) v(a,b,c);
+                    aggfns                     
+-----------------------------------------------
+ {"(1,3,foo)","(0,,)","(2,2,bar)","(3,1,baz)"}
+(1 row)
+
+/*
+select aggfstr(distinct a,b,c)
+  from (values (1,3,'foo'),(0,null,null),(2,2,'bar'),(3,1,'baz')) v(a,b,c),
+       generate_series(1,3) i;
+select aggfns(distinct a,b,c)
+  from (values (1,3,'foo'),(0,null,null),(2,2,'bar'),(3,1,'baz')) v(a,b,c),
+       generate_series(1,3) i;
+
+select aggfstr(distinct a,b,c order by b)
+  from (values (1,3,'foo'),(0,null,null),(2,2,'bar'),(3,1,'baz')) v(a,b,c),
+       generate_series(1,3) i;
+select aggfns(distinct a,b,c order by b)
+  from (values (1,3,'foo'),(0,null,null),(2,2,'bar'),(3,1,'baz')) v(a,b,c),
+       generate_series(1,3) i;
+
+-- test specific code paths
+
+select aggfns(distinct a,a,c order by c using ~<~,a)
+  from (values (1,3,'foo'),(0,null,null),(2,2,'bar'),(3,1,'baz')) v(a,b,c),
+       generate_series(1,2) i;
+select aggfns(distinct a,a,c order by c using ~<~)
+  from (values (1,3,'foo'),(0,null,null),(2,2,'bar'),(3,1,'baz')) v(a,b,c),
+       generate_series(1,2) i;
+select aggfns(distinct a,a,c order by a)
+  from (values (1,3,'foo'),(0,null,null),(2,2,'bar'),(3,1,'baz')) v(a,b,c),
+       generate_series(1,2) i;
+select aggfns(distinct a,b,c order by a,c using ~<~,b)
+  from (values (1,3,'foo'),(0,null,null),(2,2,'bar'),(3,1,'baz')) v(a,b,c),
+       generate_series(1,2) i;
+*/
+-- check node I/O via view creation and usage, also deparsing logic
+create view agg_view1 as
+  select aggfns(a,b,c)
+    from (values (1,3,'foo'),(0,null,null),(2,2,'bar'),(3,1,'baz')) v(a,b,c);
+select * from agg_view1;
+                    aggfns                     
+-----------------------------------------------
+ {"(1,3,foo)","(0,,)","(2,2,bar)","(3,1,baz)"}
+(1 row)
+
+select pg_get_viewdef('agg_view1'::regclass);
+                                                                     pg_get_viewdef                                                                     
+--------------------------------------------------------------------------------------------------------------------------------------------------------
+ SELECT aggfns(v.a, v.b, v.c) AS aggfns FROM (VALUES (1,3,'foo'::text), (0,NULL::integer,NULL::text), (2,2,'bar'::text), (3,1,'baz'::text)) v(a, b, c);
+(1 row)
+
+create or replace view agg_view1 as
+  select aggfns(distinct a,b,c)
+    from (values (1,3,'foo'),(0,null,null),(2,2,'bar'),(3,1,'baz')) v(a,b,c),
+         generate_series(1,3) i;
+select * from agg_view1;
+ERROR:  DISTINCT is supported only for single-argument aggregates
+select pg_get_viewdef('agg_view1'::regclass);
+                                                                                       pg_get_viewdef                                                                                        
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ SELECT aggfns(DISTINCT v.a, v.b, v.c) AS aggfns FROM (VALUES (1,3,'foo'::text), (0,NULL::integer,NULL::text), (2,2,'bar'::text), (3,1,'baz'::text)) v(a, b, c), generate_series(1, 3) i(i);
+(1 row)
+
+-- TODO: support distinct + order by
+/*
+create or replace view agg_view1 as
+  select aggfns(distinct a,b,c order by b)
+    from (values (1,3,'foo'),(0,null,null),(2,2,'bar'),(3,1,'baz')) v(a,b,c),
+         generate_series(1,3) i;
+
+select * from agg_view1;
+select pg_get_viewdef('agg_view1'::regclass);
+*/
+create or replace view agg_view1 as
+  select aggfns(a,b,c order by b+1)
+    from (values (1,3,'foo'),(0,null,null),(2,2,'bar'),(3,1,'baz')) v(a,b,c);
+select * from agg_view1;
+                    aggfns                     
+-----------------------------------------------
+ {"(3,1,baz)","(2,2,bar)","(1,3,foo)","(0,,)"}
+(1 row)
+
+select pg_get_viewdef('agg_view1'::regclass);
+                                                                              pg_get_viewdef                                                                               
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ SELECT aggfns(v.a, v.b, v.c ORDER BY (v.b + 1)) AS aggfns FROM (VALUES (1,3,'foo'::text), (0,NULL::integer,NULL::text), (2,2,'bar'::text), (3,1,'baz'::text)) v(a, b, c);
+(1 row)
+
+create or replace view agg_view1 as
+  select aggfns(a,a,c order by b)
+    from (values (1,3,'foo'),(0,null,null),(2,2,'bar'),(3,1,'baz')) v(a,b,c);
+select * from agg_view1;
+                     aggfns                     
+------------------------------------------------
+ {"(3,3,baz)","(2,2,bar)","(1,1,foo)","(0,0,)"}
+(1 row)
+
+select pg_get_viewdef('agg_view1'::regclass);
+                                                                           pg_get_viewdef                                                                            
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ SELECT aggfns(v.a, v.a, v.c ORDER BY v.b) AS aggfns FROM (VALUES (1,3,'foo'::text), (0,NULL::integer,NULL::text), (2,2,'bar'::text), (3,1,'baz'::text)) v(a, b, c);
+(1 row)
+
+create or replace view agg_view1 as
+  select aggfns(a,b,c order by c using ~<~)
+    from (values (1,3,'foo'),(0,null,null),(2,2,'bar'),(3,1,'baz')) v(a,b,c);
+select * from agg_view1;
+                    aggfns                     
+-----------------------------------------------
+ {"(2,2,bar)","(3,1,baz)","(1,3,foo)","(0,,)"}
+(1 row)
+
+select pg_get_viewdef('agg_view1'::regclass);
+                                                                                pg_get_viewdef                                                                                 
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ SELECT aggfns(v.a, v.b, v.c ORDER BY v.c USING ~<~) AS aggfns FROM (VALUES (1,3,'foo'::text), (0,NULL::integer,NULL::text), (2,2,'bar'::text), (3,1,'baz'::text)) v(a, b, c);
+(1 row)
+
+-- TODO: support distinct + order by
+/*
+create or replace view agg_view1 as
+  select aggfns(distinct a,b,c order by a,c using ~<~,b)
+    from (values (1,3,'foo'),(0,null,null),(2,2,'bar'),(3,1,'baz')) v(a,b,c),
+         generate_series(1,2) i;
+
+select * from agg_view1;
+select pg_get_viewdef('agg_view1'::regclass);
+*/
+drop view agg_view1;
+-- incorrect DISTINCT usage errors
+select array_agg(distinct a,b,c order by i)
+  from (values (1,1,'foo')) v(a,b,c), generate_series(1,2) i;
+ERROR:  function array_agg(integer, integer, text) does not exist
+LINE 1: select array_agg(distinct a,b,c order by i)
+               ^
+HINT:  No function matches the given name and argument types. You may need to add explicit type casts.
+select array_agg(distinct a,b,c order by a,b+1)
+  from (values (1,1,'foo')) v(a,b,c), generate_series(1,2) i;
+ERROR:  function array_agg(integer, integer, text) does not exist
+LINE 1: select array_agg(distinct a,b,c order by a,b+1)
+               ^
+HINT:  No function matches the given name and argument types. You may need to add explicit type casts.
+select array_agg(distinct a,b,c order by a,b,i,c)
+  from (values (1,1,'foo')) v(a,b,c), generate_series(1,2) i;
+ERROR:  function array_agg(integer, integer, text) does not exist
+LINE 1: select array_agg(distinct a,b,c order by a,b,i,c)
+               ^
+HINT:  No function matches the given name and argument types. You may need to add explicit type casts.
+select array_agg(distinct a,a,c order by a,b)
+  from (values (1,1,'foo')) v(a,b,c), generate_series(1,2) i;
+ERROR:  function array_agg(integer, integer, text) does not exist
+LINE 1: select array_agg(distinct a,a,c order by a,b)
+               ^
+HINT:  No function matches the given name and argument types. You may need to add explicit type casts.
+-- string_agg tests
+select string_agg(a) from (values('aaaa'),('bbbb'),('cccc')) g(a);
+  string_agg  
+--------------
+ aaaabbbbcccc
+(1 row)
+
+select string_agg(a,',') from (values('aaaa'),('bbbb'),('cccc')) g(a);
+   string_agg   
+----------------
+ aaaa,bbbb,cccc
+(1 row)
+
+select string_agg(a,',') from (values('aaaa'),(null),('bbbb'),('cccc')) g(a);
+   string_agg   
+----------------
+ aaaa,bbbb,cccc
+(1 row)
+
+select string_agg(a,',') from (values(null),(null),('bbbb'),('cccc')) g(a);
+ string_agg 
+------------
+ bbbb,cccc
+(1 row)
+
+select string_agg(a,',') from (values(null),(null)) g(a);
+ string_agg 
+------------
+ 
+(1 row)
+
+-- array_agg tests
+SELECT array_agg(a order by a) as a_by_a from aggtest;
+    a_by_a     
+---------------
+ {0,42,56,100}
+(1 row)
+
+SELECT array_agg(b order by b) as b_by_b from aggtest;
+           b_by_b            
+-----------------------------
+ {0.09561,7.8,99.097,324.78}
+(1 row)
+
+SELECT array_agg(a order by a) as a_by_a, 
+       array_agg(a order by b) as a_by_b,
+       array_agg(b order by a) as b_by_a,
+       array_agg(b order by b) as b_by_b 
+  FROM aggtest;
+    a_by_a     |    a_by_b     |           b_by_a            |           b_by_b            
+---------------+---------------+-----------------------------+-----------------------------
+ {0,42,56,100} | {0,56,100,42} | {0.09561,324.78,7.8,99.097} | {0.09561,7.8,99.097,324.78}
+(1 row)
+
+-- Negative test cases for ordered aggregate syntax
+SELECT count(order by a) from aggtest;       -- zero parameter aggregate
+ERROR:  syntax error at or near "order"
+LINE 1: SELECT count(order by a) from aggtest;
+                     ^
+SELECT count(a order by a) from aggtest;     -- regular (non-orderd) aggregate
+ERROR:  ORDER BY specified, but count is not an ordered aggregate function
+LINE 1: SELECT count(a order by a) from aggtest;
+               ^
+SELECT abs(a order by a) from aggtest;       -- regular function
+ERROR:  ORDER BY specified, but abs is not an ordered aggregate function
+LINE 1: SELECT abs(a order by a) from aggtest;
+               ^
+SELECT a(aggtest order by a) from aggtest;   -- function-like column reference
+ERROR:  function a(aggtest) does not exist
+LINE 1: SELECT a(aggtest order by a) from aggtest;
+               ^
+HINT:  No function matches the given name and argument types. You may need to add explicit type casts.
+SELECT nosuchagg(a order by a) FROM aggtest; -- no such function
+ERROR:  function nosuchagg(smallint) does not exist
+LINE 1: SELECT nosuchagg(a order by a) FROM aggtest;
+               ^
+HINT:  No function matches the given name and argument types. You may need to add explicit type casts.
+SELECT lag(a order by a) from aggtest;       -- window function (no window clause)
+ERROR:  ORDER BY specified, but lag is not an ordered aggregate function
+LINE 1: SELECT lag(a order by a) from aggtest;
+               ^
+SELECT lag(a order by a) over (order by a) FROM aggtest;  -- window function
+ERROR:  ORDER BY specified, but lag is not an ordered aggregate function
+LINE 1: SELECT lag(a order by a) over (order by a) FROM aggtest;
+               ^
+SELECT count(a order by a) over (order by a) FROM aggtest;  -- window derived aggregate
+ERROR:  aggregate ORDER BY is not implemented for window functions
+LINE 1: SELECT count(a order by a) over (order by a) FROM aggtest;
+               ^
+SELECT array_agg(a order by a) over (order by a) FROM aggtest; -- window derived ordered aggregate
+ERROR:  aggregate ORDER BY is not implemented for window functions
+LINE 1: SELECT array_agg(a order by a) over (order by a) FROM aggtes...
+               ^
+-- check for mpp-2687
+CREATE TEMPORARY TABLE mpp2687t (
+    dk text,
+    gk text
+) DISTRIBUTED BY (dk);
+CREATE VIEW mpp2687v AS
+    SELECT DISTINCT gk
+    FROM mpp2687t 
+    GROUP BY gk;
+NOTICE:  view "mpp2687v" will be a temporary view
+SELECT * FROM mpp2687v;
+ gk 
+----
+(0 rows)
+
+-- MPP-4617
+select case when ten < 5 then ten else ten * 2 end, count(distinct two), count(distinct four) from tenk1 group by 1;
+ case | count | count 
+------+-------+-------
+    3 |     1 |     2
+    1 |     1 |     2
+    2 |     1 |     2
+    0 |     1 |     2
+   16 |     1 |     2
+   10 |     1 |     2
+   14 |     1 |     2
+   12 |     1 |     2
+    4 |     1 |     2
+   18 |     1 |     2
+(10 rows)
+
+select ten, ten, count(distinct two), count(distinct four) from tenk1 group by 1,2;
+ ten | ten | count | count 
+-----+-----+-------+-------
+   3 |   3 |     1 |     2
+   5 |   5 |     1 |     2
+   4 |   4 |     1 |     2
+   6 |   6 |     1 |     2
+   1 |   1 |     1 |     2
+   0 |   0 |     1 |     2
+   2 |   2 |     1 |     2
+   8 |   8 |     1 |     2
+   9 |   9 |     1 |     2
+   7 |   7 |     1 |     2
+(10 rows)
+
+--MPP-20151: distinct is transformed to a group-by
+select distinct two from tenk1 order by two;
+ two 
+-----
+   0
+   1
+(2 rows)
+
+select distinct two, four from tenk1 order by two, four;
+ two | four 
+-----+------
+   0 |    0
+   0 |    2
+   1 |    1
+   1 |    3
+(4 rows)
+
+select distinct two, max(two) over() from tenk1 order by two;
+ two | max 
+-----+-----
+   0 |   1
+   1 |   1
+(2 rows)
+
+select distinct two, sum(four) over() from tenk1 order by two;
+ two |  sum  
+-----+-------
+   0 | 15000
+   1 | 15000
+(2 rows)
+
+select distinct two, sum(four) from tenk1 group by two order by two;
+ two |  sum  
+-----+-------
+   0 |  5000
+   1 | 10000
+(2 rows)
+
+select distinct two, sum(four) from tenk1 group by two having sum(four) > 5000;
+ two |  sum  
+-----+-------
+   1 | 10000
+(1 row)
+
+select distinct t1.two, t2.two, t1.four, t2.four from tenk1 t1, tenk1 t2 where t1.hundred=t2.hundred order by t1.two, t1.four;
+ two | two | four | four 
+-----+-----+------+------
+   0 |   0 |    0 |    0
+   0 |   0 |    2 |    2
+   1 |   1 |    1 |    1
+   1 |   1 |    3 |    3
+(4 rows)
 

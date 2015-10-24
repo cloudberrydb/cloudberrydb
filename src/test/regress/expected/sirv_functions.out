@@ -1,0 +1,226 @@
+drop schema if exists sirvf cascade;
+NOTICE:  schema "sirvf" does not exist, skipping
+create schema sirvf;
+set search_path=sirvf;
+--
+-- distributed tables
+--
+create table read_dist(x int) distributed by (x);
+insert into read_dist select generate_series(1,10);
+create table scratch_dist(x int) distributed by (x);
+analyze read_dist;
+analyze scratch_dist;
+--
+-- UDF that reads distributed tables and writes to distributed scratch tables
+--
+create or replace function f1_dist (i text) returns text as
+$$
+declare
+  v_c int;
+begin
+  insert into scratch_dist select * from read_dist;
+
+  -- Some SELECT
+  select count(*) as count from scratch_dist into v_c;
+
+  delete from scratch_dist;
+
+  return 'abc' || v_c || '_' || i || '_dist';
+end;
+$$
+language plpgsql volatile MODIFIES SQL DATA;
+--
+-- 1) CTAS with f1 in the targetlist
+--
+create table t1 as select f1_dist('booya');
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column(s) named 'f1_dist' as the Greenplum Database data distribution key for this table.
+HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
+select * from t1;
+     f1_dist      
+------------------
+ abc10_booya_dist
+(1 row)
+
+drop table if exists t1;
+-- workaround
+create table t1 as select (select f1_dist('booya'));
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column(s) named '?column?' as the Greenplum Database data distribution key for this table.
+HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
+select * from t1;
+     ?column?     
+------------------
+ abc10_booya_dist
+(1 row)
+
+drop table if exists t1;
+--
+-- 2) CTAS with f1 in the from clause
+--
+create table t1 as select * from f1_dist('booya');
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column(s) named 'f1_dist' as the Greenplum Database data distribution key for this table.
+HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
+select * from t1;
+     f1_dist      
+------------------
+ abc10_booya_dist
+(1 row)
+
+drop table if exists t1;
+-- workaround
+create table t1 as select * from (select (select f1_dist('booya'))) as A;
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column(s) named '?column?' as the Greenplum Database data distribution key for this table.
+HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
+select * from t1;
+     ?column?     
+------------------
+ abc10_booya_dist
+(1 row)
+
+drop table if exists t1;
+--
+-- 3) Insert with f1_dist in the targetlist
+--
+create table t1 (x text);
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'x' as the Greenplum Database data distribution key for this table.
+HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
+insert into t1 select f1_dist('booya');
+select * from t1;
+        x         
+------------------
+ abc10_booya_dist
+(1 row)
+
+drop table if exists t1;
+-- workaround
+create table t1 (x text);
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'x' as the Greenplum Database data distribution key for this table.
+HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
+insert into t1 select (select f1_dist('booya'));
+select * from t1;
+        x         
+------------------
+ abc10_booya_dist
+(1 row)
+
+drop table if exists t1;
+--
+-- 4) Insert with f1 in the from clause
+--
+create table t1 (x text);
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'x' as the Greenplum Database data distribution key for this table.
+HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
+insert into t1 select * from f1_dist('booya');
+select * from t1;
+        x         
+------------------
+ abc10_booya_dist
+(1 row)
+
+drop table if exists t1;
+-- workaround
+create table t1 (x text);
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'x' as the Greenplum Database data distribution key for this table.
+HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
+insert into t1 select * from (select (select f1_dist('booya'))) as A;
+select * from t1;
+        x         
+------------------
+ abc10_booya_dist
+(1 row)
+
+drop table if exists t1;
+--
+-- Functions that returns records
+--
+drop table if exists foo cascade;
+NOTICE:  table "foo" does not exist, skipping
+create table foo(i int, t text);
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'i' as the Greenplum Database data distribution key for this table.
+HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
+insert into foo select 1, 'hello world';
+create or replace function nextfoo(i int) returns foo as $$
+declare
+	r foo;
+begin
+	execute 'select i+1, t  from foo order by i desc limit 1' into r;
+	return r;
+end
+$$ language plpgsql READS SQL DATA;
+-- Select statements
+select * from foo;
+ i |      t      
+---+-------------
+ 1 | hello world
+(1 row)
+
+select * from nextfoo(1);
+ i |      t      
+---+-------------
+ 2 | hello world
+(1 row)
+
+-- Inserts
+insert into foo select * from nextfoo(1);
+select * from foo order by 1,2;
+ i |      t      
+---+-------------
+ 1 | hello world
+ 2 | hello world
+(2 rows)
+
+insert into foo(t) select f.t from nextfoo(1) f;
+select * from foo order by 1,2;
+ i |      t      
+---+-------------
+ 1 | hello world
+ 2 | hello world
+   | hello world
+(3 rows)
+
+-- More complex expression
+insert into foo(t) select f.t || '100' from nextfoo(1) f;
+select * from foo order by 1,2;
+ i |       t        
+---+----------------
+ 1 | hello world
+ 2 | hello world
+   | hello world
+   | hello world100
+(4 rows)
+
+--
+-- Nested function calls.
+--
+create table t1 as select substring(f1_dist('booya'),0,3);
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column(s) named 'substring' as the Greenplum Database data distribution key for this table.
+HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
+select * from t1;
+ substring 
+-----------
+ ab
+(1 row)
+
+drop table if exists t1;
+create table t1 as select * from substring(f1_dist('booya'),0,3);
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column(s) named 'substring' as the Greenplum Database data distribution key for this table.
+HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
+select * from t1;
+ substring 
+-----------
+ ab
+(1 row)
+
+drop table if exists t1;
+--
+-- MPP-16071. Multiple sirvfs in the from clause
+--
+create table t1 as select * from f1_dist('booya1') a, f1_dist('booya2');
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column(s) named 'a' as the Greenplum Database data distribution key for this table.
+HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
+select * from t1;
+         a         |      f1_dist      
+-------------------+-------------------
+ abc10_booya1_dist | abc10_booya2_dist
+(1 row)
+
+drop table if exists t1;

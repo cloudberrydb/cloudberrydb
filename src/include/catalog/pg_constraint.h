@@ -5,7 +5,7 @@
  *	  along with the relation's initial contents.
  *
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2008, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * $PostgreSQL: pgsql/src/include/catalog/pg_constraint.h,v 1.23 2006/06/28 22:11:01 neilc Exp $
@@ -19,14 +19,44 @@
 #ifndef PG_CONSTRAINT_H
 #define PG_CONSTRAINT_H
 
+#include "catalog/genbki.h"
 #include "nodes/pg_list.h"
+#include "access/attnum.h"
 
-/* ----------------
- *		postgres.h contains the system type definitions and the
- *		CATALOG(), BKI_BOOTSTRAP and DATA() sugar words so this file
- *		can be read by both genbki.sh and the C compiler.
- * ----------------
- */
+/* TIDYCAT_BEGINFAKEDEF
+
+   CREATE TABLE pg_constraint
+   with (relid=2606, toast_oid=2832, toast_index=2833)
+   (
+   conname        name, 
+   connamespace   oid, 
+   contype        "char", 
+   condeferrable  boolean, 
+   condeferred    boolean, 
+   conrelid       oid, 
+   contypid       oid, 
+   confrelid      oid, 
+   confupdtype    "char", 
+   confdeltype    "char", 
+   confmatchtype  "char", 
+   conkey         smallint[], 
+   confkey        smallint[], 
+   conbin         text, 
+   consrc         text
+   );
+
+   create unique index on pg_constraint(oid) with (indexid=2667, CamelCase=ConstraintOid);
+   create index on pg_constraint(conname, connamespace) with (indexid=2664, CamelCase=ConstraintNameNsp);
+   create index on pg_constraint(conrelid) with (indexid=2665, CamelCase=ConstraintRelid);
+   create index on pg_constraint(contypid) with (indexid=2666, CamelCase=ConstraintTypid);
+
+   alter table pg_constraint add fk connamespace on pg_namespace(oid);
+   alter table pg_constraint add fk conrelid on pg_class(oid);
+   alter table pg_constraint add fk contypid on pg_type(oid);
+   alter table pg_constraint add fk confrelid on pg_class(oid);
+
+   TIDYCAT_ENDFAKEDEF
+*/
 
 /* ----------------
  *		pg_constraint definition.  cpp turns this into
@@ -157,24 +187,25 @@ typedef enum ConstraintCategory
  * prototypes for functions in pg_constraint.c
  */
 extern Oid CreateConstraintEntry(const char *constraintName,
-					  Oid constraintNamespace,
-					  char constraintType,
-					  bool isDeferrable,
-					  bool isDeferred,
-					  Oid relId,
-					  const int16 *constraintKey,
-					  int constraintNKeys,
-					  Oid domainId,
-					  Oid foreignRelId,
-					  const int16 *foreignKey,
-					  int foreignNKeys,
-					  char foreignUpdateType,
-					  char foreignDeleteType,
-					  char foreignMatchType,
-					  Oid indexRelId,
-					  Node *conExpr,
-					  const char *conBin,
-					  const char *conSrc);
+								 Oid conOid,
+								 Oid constraintNamespace,
+								 char constraintType,
+								 bool isDeferrable,
+								 bool isDeferred,
+								 Oid relId,
+								 const int16 *constraintKey,
+								 int constraintNKeys,
+								 Oid domainId,
+								 Oid foreignRelId,
+								 const int16 *foreignKey,
+								 int foreignNKeys,
+								 char foreignUpdateType,
+								 char foreignDeleteType,
+								 char foreignMatchType,
+								 Oid indexRelId,
+								 Node *conExpr,
+								 const char *conBin,
+								 const char *conSrc);
 
 extern void RemoveConstraintById(Oid conId);
 
@@ -186,7 +217,15 @@ extern char *ChooseConstraintName(const char *name1, const char *name2,
 
 extern char *GetConstraintNameForTrigger(Oid triggerId);
 
+extern char * GetConstraintNameByOid(Oid constraintId);
+
 extern void AlterConstraintNamespaces(Oid ownerId, Oid oldNspId,
 						  Oid newNspId, bool isType);
+
+/**
+ * Identify primary key column from foreign key column.
+ */
+extern bool ConstraintGetPrimaryKeyOf(Oid relid, AttrNumber attno, 
+					Oid *pkrelid, AttrNumber *pkattno);
 
 #endif   /* PG_CONSTRAINT_H */

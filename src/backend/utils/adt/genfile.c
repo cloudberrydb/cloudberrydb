@@ -4,7 +4,7 @@
  *		Functions for direct access to files
  *
  *
- * Copyright (c) 2004-2006, PostgreSQL Global Development Group
+ * Copyright (c) 2004-2008, PostgreSQL Global Development Group
  *
  * Author: Andreas Pflug <pgadmin@pse-consulting.de>
  *
@@ -29,6 +29,19 @@
 #include "utils/builtins.h"
 #include "utils/memutils.h"
 #include "utils/timestamp.h"
+#include "utils/datetime.h"
+
+
+#ifdef WIN32
+
+#ifdef rename
+#undef rename
+#endif
+
+#ifdef unlink
+#undef unlink
+#endif
+#endif
 
 typedef struct
 {
@@ -81,6 +94,18 @@ convert_and_check_filename(text *arg)
 	}
 }
 
+/*
+ * check for superuser, bark if not.
+ */
+static void
+requireSuperuser(void)
+{
+	if (!superuser())
+		ereport(ERROR,
+				(errcode(ERRCODE_INSUFFICIENT_PRIVILEGE),
+			  (errmsg("only superuser may access generic file functions"))));
+}
+
 
 /*
  * Read a section of a file, returning it as text
@@ -118,7 +143,7 @@ pg_read_file(PG_FUNCTION_ARGS)
 	if (bytes_to_read < 0)
 		ereport(ERROR,
 				(errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-				 errmsg("requested length may not be negative")));
+				 errmsg("requested length cannot be negative")));
 
 	/* not sure why anyone thought that int64 length was a good idea */
 	if (bytes_to_read > (MaxAllocSize - VARHDRSZ))
@@ -135,7 +160,7 @@ pg_read_file(PG_FUNCTION_ARGS)
 				(errcode_for_file_access(),
 				 errmsg("could not read file \"%s\": %m", filename)));
 
-	VARATT_SIZEP(buf) = nbytes + VARHDRSZ;
+	SET_VARSIZE(buf, nbytes + VARHDRSZ);
 
 	FreeFile(file);
 	pfree(filename);
@@ -201,7 +226,7 @@ pg_stat_file(PG_FUNCTION_ARGS)
 	isnull[3] = true;
 	values[4] = TimestampTzGetDatum(time_t_to_timestamptz(fst.st_ctime));
 #endif
-	values[5] = BoolGetDatum(fst.st_mode & S_IFDIR);
+	values[5] = BoolGetDatum(S_ISDIR(fst.st_mode));
 
 	tuple = heap_form_tuple(tupdesc, values, isnull);
 
@@ -261,7 +286,7 @@ pg_ls_dir(PG_FUNCTION_ARGS)
 			continue;
 
 		result = palloc(len + VARHDRSZ);
-		VARATT_SIZEP(result) = len + VARHDRSZ;
+		SET_VARSIZE(result, len + VARHDRSZ);
 		memcpy(VARDATA(result), de->d_name, len);
 
 		SRF_RETURN_NEXT(funcctx, PointerGetDatum(result));
@@ -270,4 +295,334 @@ pg_ls_dir(PG_FUNCTION_ARGS)
 	FreeDir(fctx->dirdesc);
 
 	SRF_RETURN_DONE(funcctx);
+}
+
+/* ------------------------------------
+ * generic file handling functions
+ */
+
+Datum
+pg_file_write(PG_FUNCTION_ARGS)
+{
+	FILE	   *f;
+	char	   *filename;
+	text	   *data;
+	int64		count = 0;
+
+	requireSuperuser();
+
+	filename = convert_and_check_filename(PG_GETARG_TEXT_P(0));
+	data = PG_GETARG_TEXT_P(1);
+
+	if (!PG_GETARG_BOOL(2))
+	{
+		struct stat fst;
+
+		if (stat(filename, &fst) >= 0)
+			ereport(ERROR,
+					(ERRCODE_DUPLICATE_FILE,
+					 errmsg("file \"%s\" exists", filename)));
+
+		f = fopen(filename, "wb");
+	}
+	else
+		f = fopen(filename, "ab");
+
+	if (!f)
+		ereport(ERROR,
+				(errcode_for_file_access(),
+				 errmsg("could not open file \"%s\" for writing: %m",
+						filename)));
+
+	if (VARSIZE(data) != 0)
+	{
+		count = fwrite(VARDATA(data), 1, VARSIZE(data) - VARHDRSZ, f);
+
+		if (count != VARSIZE(data) - VARHDRSZ)
+			ereport(ERROR,
+					(errcode_for_file_access(),
+					 errmsg("could not write file \"%s\": %m", filename)));
+	}
+	fclose(f);
+
+	PG_RETURN_INT64(count);
+}
+
+
+Datum
+pg_file_rename(PG_FUNCTION_ARGS)
+{
+	char	   *fn1,
+			   *fn2,
+			   *fn3;
+	int			rc;
+
+	requireSuperuser();
+
+	if (PG_ARGISNULL(0) || PG_ARGISNULL(1))
+		PG_RETURN_NULL();
+
+	fn1 = convert_and_check_filename(PG_GETARG_TEXT_P(0));
+	fn2 = convert_and_check_filename(PG_GETARG_TEXT_P(1));
+	if (PG_ARGISNULL(2))
+		fn3 = 0;
+	else
+		fn3 = convert_and_check_filename(PG_GETARG_TEXT_P(2));
+
+	if (access(fn1, W_OK) < 0)
+	{
+		ereport(WARNING,
+				(errcode_for_file_access(),
+				 errmsg("file \"%s\" is not accessible: %m", fn1)));
+
+		PG_RETURN_BOOL(false);
+	}
+
+	if (fn3 && access(fn2, W_OK) < 0)
+	{
+		ereport(WARNING,
+				(errcode_for_file_access(),
+				 errmsg("file \"%s\" is not accessible: %m", fn2)));
+
+		PG_RETURN_BOOL(false);
+	}
+
+	rc = access(fn3 ? fn3 : fn2, 2);
+	if (rc >= 0 || errno != ENOENT)
+	{
+		ereport(ERROR,
+				(ERRCODE_DUPLICATE_FILE,
+				 errmsg("cannot rename to target file \"%s\"",
+						fn3 ? fn3 : fn2)));
+	}
+
+	if (fn3)
+	{
+		if (rename(fn2, fn3) != 0)
+		{
+			ereport(ERROR,
+					(errcode_for_file_access(),
+					 errmsg("could not rename \"%s\" to \"%s\": %m",
+							fn2, fn3)));
+		}
+		if (rename(fn1, fn2) != 0)
+		{
+			ereport(WARNING,
+					(errcode_for_file_access(),
+					 errmsg("could not rename \"%s\" to \"%s\": %m",
+							fn1, fn2)));
+
+			if (rename(fn3, fn2) != 0)
+			{
+				ereport(ERROR,
+						(errcode_for_file_access(),
+						 errmsg("could not rename \"%s\" back to \"%s\": %m",
+								fn3, fn2)));
+			}
+			else
+			{
+				ereport(ERROR,
+						(ERRCODE_UNDEFINED_FILE,
+						 errmsg("renaming \"%s\" to \"%s\" was reverted",
+								fn2, fn3)));
+			}
+		}
+	}
+	else if (rename(fn1, fn2) != 0)
+	{
+		ereport(ERROR,
+				(errcode_for_file_access(),
+				 errmsg("could not rename \"%s\" to \"%s\": %m", fn1, fn2)));
+	}
+
+	PG_RETURN_BOOL(true);
+}
+
+
+Datum
+pg_file_unlink(PG_FUNCTION_ARGS)
+{
+	char	   *filename;
+
+	requireSuperuser();
+
+	filename = convert_and_check_filename(PG_GETARG_TEXT_P(0));
+
+	if (access(filename, W_OK) < 0)
+	{
+		if (errno == ENOENT)
+			PG_RETURN_BOOL(false);
+		else
+			ereport(ERROR,
+					(errcode_for_file_access(),
+					 errmsg("file \"%s\" is not accessible: %m", filename)));
+	}
+
+	if (unlink(filename) < 0)
+	{
+		ereport(WARNING,
+				(errcode_for_file_access(),
+				 errmsg("could not unlink file \"%s\": %m", filename)));
+
+		PG_RETURN_BOOL(false);
+	}
+	PG_RETURN_BOOL(true);
+}
+
+
+Datum
+pg_logdir_ls(PG_FUNCTION_ARGS)
+{
+	FuncCallContext *funcctx;
+	struct dirent *de;
+	directory_fctx *fctx;
+    bool prefix_is_gpdb = true;
+
+	if (!superuser())
+		ereport(ERROR,
+				(errcode(ERRCODE_INSUFFICIENT_PRIVILEGE),
+				 (errmsg("only superuser can list the log directory"))));
+
+	if (strcmp(Log_filename, "gpdb-%Y-%m-%d_%H%M%S.csv") != 0 &&
+        strcmp(Log_filename, "gpdb-%Y-%m-%d_%H%M%S.log") != 0 &&
+        strcmp(Log_filename, "postgresql-%Y-%m-%d_%H%M%S.log") != 0 )
+		ereport(ERROR,
+				(errcode(ERRCODE_INVALID_PARAMETER_VALUE),
+				 (errmsg("the log_filename parameter must equal 'gpdb-%%Y-%%m-%%d_%%H%%M%%S.csv'"))));
+
+    if (strncmp(Log_filename, "gpdb", 4) != 0)
+        prefix_is_gpdb = false;
+
+	if (SRF_IS_FIRSTCALL())
+	{
+		MemoryContext oldcontext;
+		TupleDesc	tupdesc;
+
+		funcctx = SRF_FIRSTCALL_INIT();
+		oldcontext = MemoryContextSwitchTo(funcctx->multi_call_memory_ctx);
+
+		fctx = palloc(sizeof(directory_fctx));
+
+		tupdesc = CreateTemplateTupleDesc(2, false);
+		TupleDescInitEntry(tupdesc, (AttrNumber) 1, "starttime",
+						   TIMESTAMPOID, -1, 0);
+		TupleDescInitEntry(tupdesc, (AttrNumber) 2, "filename",
+						   TEXTOID, -1, 0);
+
+		funcctx->attinmeta = TupleDescGetAttInMetadata(tupdesc);
+
+		fctx->location = pstrdup(Log_directory);
+		fctx->dirdesc = AllocateDir(fctx->location);
+
+		if (!fctx->dirdesc)
+			ereport(ERROR,
+					(errcode_for_file_access(),
+					 errmsg("could not read directory \"%s\": %m",
+							fctx->location)));
+
+		funcctx->user_fctx = fctx;
+		MemoryContextSwitchTo(oldcontext);
+	}
+
+	funcctx = SRF_PERCALL_SETUP();
+	fctx = (directory_fctx *) funcctx->user_fctx;
+
+	while ((de = ReadDir(fctx->dirdesc, fctx->location)) != NULL)
+	{
+		char	   *values[2];
+		HeapTuple	tuple;
+		char		timestampbuf[32];
+		char	   *field[MAXDATEFIELDS];
+		char		lowstr[MAXDATELEN + 1];
+		int			dtype;
+		int			nf,
+					ftype[MAXDATEFIELDS];
+		fsec_t		fsec;
+		int			tz = 0;
+		struct pg_tm date;
+
+        if (prefix_is_gpdb)
+        {
+            int end = 17;
+            /*
+		     * Default format: gpdb-YYYY-MM-DD_HHMMSS.log or gpdb-YYYY-MM-DD_HHMMSS.csv
+		     */
+		    if (strlen(de->d_name) != 26
+			    || strncmp(de->d_name, "gpdb-", 5) != 0
+			    || de->d_name[15] != '_'
+			    || (strcmp(de->d_name + 22, ".log") != 0 && strcmp(de->d_name + 22, ".csv") != 0))
+            {
+			    
+                /* 
+                 * Not our normal format.  Maybe old format without TIME fields?
+                 */
+             
+                if (strlen(de->d_name) != 26
+			    || strncmp(de->d_name, "gpdb-", 5) != 0
+			    || de->d_name[15] != '_'
+			    || (strcmp(de->d_name + 22, ".log") != 0 && strcmp(de->d_name + 22, ".csv") != 0))
+                    continue;
+
+                end = 10;
+
+            }
+		    /* extract timestamp portion of filename */
+		    strcpy(timestampbuf, de->d_name + 5);
+		    timestampbuf[end] = '\0';
+        }
+        else
+        {
+		    /*
+		     * Default format: postgresql-YYYY-MM-DD_HHMMSS.log
+		     */
+		    if (strlen(de->d_name) != 32
+			    || strncmp(de->d_name, "postgresql-", 11) != 0
+			    || de->d_name[21] != '_'
+			    || strcmp(de->d_name + 28, ".log") != 0)
+			    continue;
+
+		    /* extract timestamp portion of filename */
+		    strcpy(timestampbuf, de->d_name + 11);
+		    timestampbuf[17] = '\0';
+        }
+
+		/* parse and decode expected timestamp to verify it's OK format */
+		if (ParseDateTime(timestampbuf, lowstr, MAXDATELEN, field, ftype, MAXDATEFIELDS, &nf))
+			continue;
+
+		if (DecodeDateTime(field, ftype, nf, &dtype, &date, &fsec, &tz))
+			continue;
+
+		/* Seems the timestamp is OK; prepare and return tuple */
+
+		values[0] = timestampbuf;
+		values[1] = palloc(strlen(fctx->location) + strlen(de->d_name) + 2);
+		sprintf(values[1], "%s/%s", fctx->location, de->d_name);
+
+		tuple = BuildTupleFromCStrings(funcctx->attinmeta, values);
+
+		SRF_RETURN_NEXT(funcctx, HeapTupleGetDatum(tuple));
+	}
+
+	FreeDir(fctx->dirdesc);
+	SRF_RETURN_DONE(funcctx);
+}
+
+Datum
+pg_file_length(PG_FUNCTION_ARGS)
+{
+	text	   *filename_t = PG_GETARG_TEXT_P(0);
+	char	   *filename;
+	struct stat fst;
+
+	requireSuperuser();
+
+	filename = convert_and_check_filename(filename_t);
+
+	if (stat(filename, &fst) < 0)
+		ereport(ERROR,
+				(errcode_for_file_access(),
+				 errmsg("could not stat file \"%s\": %m", filename)));
+
+	PG_RETURN_INT64((int64) fst.st_size);
 }

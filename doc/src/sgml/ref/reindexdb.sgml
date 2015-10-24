@@ -213,6 +213,13 @@ PostgreSQL documentation
     </listitem>
    </varlistentry>
   </variablelist>
+
+  <para>
+   This utility, like most other <productname>PostgreSQL</> utilities,
+   also uses the environment variables supported by <application>libpq</>
+   (see <xref linkend="libpq-envars">).
+  </para>
+
  </refsect1>
 
 
@@ -270,7 +277,6 @@ PostgreSQL documentation
 
   <simplelist type="inline">
    <member><xref linkend="sql-reindex" endterm="sql-reindex-title"></member>
-   <member>Environment Variables (<xref linkend="libpq-envars">)</member>
   </simplelist>
  </refsect1>
 

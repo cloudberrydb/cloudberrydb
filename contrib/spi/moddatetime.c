@@ -1,7 +1,7 @@
 /*
 moddatetime.c
 
-$PostgreSQL: pgsql/contrib/spi/moddatetime.c,v 1.13 2006/05/30 22:12:13 tgl Exp $
+$PostgreSQL: pgsql/contrib/spi/moddatetime.c,v 1.15 2009/01/07 13:44:36 tgl Exp $
 
 What is this?
 It is a function to be called from a trigger for the purpose of updating
@@ -13,9 +13,11 @@ not really know what I am doing.  I also had help from
 Jan Wieck <jwieck@debis.com> who told me about the timestamp_in("now") function.
 OH, me, I'm Terry Mackintosh <terry@terrym.com>
 */
+#include "postgres.h"
 
-#include "executor/spi.h"		/* this is what you need to work with SPI */
-#include "commands/trigger.h"	/* -"- and triggers */
+#include "catalog/pg_type.h"
+#include "executor/spi.h"
+#include "commands/trigger.h"
 
 PG_MODULE_MAGIC;
 
@@ -43,7 +45,7 @@ moddatetime(PG_FUNCTION_ARGS)
 
 	if (TRIGGER_FIRED_FOR_STATEMENT(trigdata->tg_event))
 		/* internal error */
-		elog(ERROR, "moddatetime: can't process STATEMENT events");
+		elog(ERROR, "moddatetime: cannot process STATEMENT events");
 
 	if (TRIGGER_FIRED_AFTER(trigdata->tg_event))
 		/* internal error */
@@ -56,7 +58,7 @@ moddatetime(PG_FUNCTION_ARGS)
 		rettuple = trigdata->tg_newtuple;
 	else
 		/* internal error */
-		elog(ERROR, "moddatetime: can't process DELETE events");
+		elog(ERROR, "moddatetime: cannot process DELETE events");
 
 	rel = trigdata->tg_relation;
 	relname = SPI_getrelname(rel);

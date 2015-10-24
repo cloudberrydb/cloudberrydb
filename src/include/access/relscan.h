@@ -4,7 +4,7 @@
  *	  POSTGRES relation scan descriptor definitions.
  *
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2008, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * $PostgreSQL: pgsql/src/include/access/relscan.h,v 1.50 2006/10/04 00:30:07 momjian Exp $
@@ -14,7 +14,10 @@
 #ifndef RELSCAN_H
 #define RELSCAN_H
 
+#include "access/formatter.h"
 #include "access/skey.h"
+#include "access/memtup.h"
+#include "access/aosegfiles.h"
 #include "storage/bufpage.h"
 #include "utils/tqual.h"
 
@@ -37,20 +40,23 @@ typedef struct HeapScanDescData
 	/* NB: if rs_cbuf is not InvalidBuffer, we hold a pin on that buffer */
 	ItemPointerData rs_mctid;	/* marked scan position, if any */
 
-	PgStat_Info rs_pgstat_info; /* statistics collector hook */
-
-	/* these fields only used in page-at-a-time mode */
+	/* these fields only used in page-at-a-time mode and for bitmap scans */
 	int			rs_cindex;		/* current tuple's index in vistuples */
 	int			rs_mindex;		/* marked tuple's saved index */
 	int			rs_ntuples;		/* number of visible tuples on page */
 	OffsetNumber rs_vistuples[MaxHeapTuplesPerPage];	/* their offsets */
+
+	struct {
+		BlockNumber block;
+		Buffer	    buffer;
+	} rs_rahead[16];
 } HeapScanDescData;
 
 typedef HeapScanDescData *HeapScanDesc;
 
 /*
  * We use the same IndexScanDescData structure for both amgettuple-based
- * and amgetmulti-based index scans.  Some fields are only relevant in
+ * and amgetbitmap-based index scans.  Some fields are only relevant in
  * amgettuple-based scans.
  */
 typedef struct IndexScanDescData
@@ -81,12 +87,78 @@ typedef struct IndexScanDescData
 	HeapTupleData xs_ctup;		/* current heap tuple, if any */
 	Buffer		xs_cbuf;		/* current heap buffer in scan, if any */
 	/* NB: if xs_cbuf is not InvalidBuffer, we hold a pin on that buffer */
-
-	PgStat_Info xs_pgstat_info; /* statistics collector hook */
 } IndexScanDescData;
 
 typedef IndexScanDescData *IndexScanDesc;
 
+/*
+ * HiddenScanDesc is used only in systable API.  This is intended to
+ * supply additional tuples in catalog without bumping up the catalog
+ * version.
+ */
+typedef struct HiddenScanDescData
+{
+	Relation	hdn_rel;		/* base relation */
+	int			hdn_nkeys;		/* number of scan keys */
+	ScanKey		hdn_key;		/* array of scan key descriptors */
+	HeapTuple  *hdn_tuples;		/* in-memory array of tuples */
+	int			hdn_len;		/* number of hidden tuples */
+	HeapTuple	hdn_lasttuple;	/* just-fetched tuple */
+	int			hdn_idx;		/* current reading cursor */
+} HiddenScanDescData;
+
+typedef HiddenScanDescData *HiddenScanDesc;
+
+/*
+ * used for scan of external relations with the file protocol
+ */
+typedef struct FileScanDescData
+{
+	/* scan parameters */
+	Relation	fs_rd;			/* target relation descriptor */
+	Index       fs_scanrelid;
+	FILE	   *fs_file;		/* the file pointer to our URI */
+	char	   *fs_uri;			/* the URI string */
+	bool		fs_noop;		/* no op. this segdb has no file to scan */
+	uint32      fs_scancounter;	/* copied from struct ExternalScan in plan */
+	
+	/* current file parse state */
+	struct CopyStateData *fs_pstate;
+
+	Form_pg_attribute *attr;
+	AttrNumber	num_phys_attrs;
+	Datum	   *values;
+	bool	   *nulls;
+	int		   *attr_offsets;
+	FmgrInfo   *in_functions;
+	Oid		   *typioparams;
+	Oid			in_func_oid;
+	ErrorContextCallback errcontext;
+	
+	/* current file scan state */
+	bool		fs_inited;		/* false = scan not init'd yet */
+	TupleDesc	fs_tupDesc;
+	HeapTupleData fs_ctup;		/* current tuple in scan, if any */
+	Buffer		fs_cbuf;		/* always invalid buffer */
+
+	/* custom data formatter */
+	FormatterData *fs_formatter;
+
+	/* external partition */
+	bool		fs_hasConstraints;
+	List		**fs_constraintExprs;	
+}	FileScanDescData;
+
+typedef FileScanDescData *FileScanDesc;
+
+/*
+ * used for scan of append only relations using BufferedRead and VarBlocks
+ * Defined in cdb/cdbappendonlyam.h
+ */
+
+/*
+  typedef AppendOnlyScanDescData *AppendOnlyScanDesc;
+ */
 
 /*
  * HeapScanIsValid

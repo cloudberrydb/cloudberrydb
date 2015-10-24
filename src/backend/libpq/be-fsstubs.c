@@ -3,12 +3,12 @@
  * be-fsstubs.c
  *	  Builtin functions for open/close/read/write operations on large objects
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2010, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/libpq/be-fsstubs.c,v 1.83 2006/09/07 15:37:25 momjian Exp $
+ *	  $PostgreSQL: pgsql/src/backend/libpq/be-fsstubs.c,v 1.94 2010/02/26 02:00:42 momjian Exp $
  *
  * NOTES
  *	  This should be moved to a more appropriate place.  It is here
@@ -47,8 +47,14 @@
 #include "miscadmin.h"
 #include "storage/fd.h"
 #include "storage/large_object.h"
+#include "utils/acl.h"
+#include "utils/builtins.h"
 #include "utils/memutils.h"
 
+/*
+ * compatibility flag for permission checks
+ */
+bool		lo_compat_privileges;
 
 /*#define FSDB 1*/
 #define BUFSIZE			8192
@@ -79,6 +85,7 @@ static MemoryContext fscxt = NULL;
 
 static int	newLOfd(LargeObjectDesc *lobjCookie);
 static void deleteLOfd(int fd);
+static Oid	lo_import_internal(text *filename, Oid lobjOid);
 
 
 /*****************************************************************************
@@ -120,12 +127,10 @@ lo_close(PG_FUNCTION_ARGS)
 	int32		fd = PG_GETARG_INT32(0);
 
 	if (fd < 0 || fd >= cookies_size || cookies[fd] == NULL)
-	{
 		ereport(ERROR,
 				(errcode(ERRCODE_UNDEFINED_OBJECT),
 				 errmsg("invalid large-object descriptor: %d", fd)));
-		PG_RETURN_INT32(-1);
-	}
+
 #if FSDB
 	elog(DEBUG4, "lo_close(%d)", fd);
 #endif
@@ -152,12 +157,22 @@ lo_read(int fd, char *buf, int len)
 	int			status;
 
 	if (fd < 0 || fd >= cookies_size || cookies[fd] == NULL)
-	{
 		ereport(ERROR,
 				(errcode(ERRCODE_UNDEFINED_OBJECT),
 				 errmsg("invalid large-object descriptor: %d", fd)));
-		return -1;
-	}
+
+#if 0
+	/* Permission checks */
+	if (!lo_compat_privileges &&
+		pg_largeobject_aclcheck_snapshot(cookies[fd]->id,
+										 GetUserId(),
+										 ACL_SELECT,
+									   cookies[fd]->snapshot) != ACLCHECK_OK)
+		ereport(ERROR,
+				(errcode(ERRCODE_INSUFFICIENT_PRIVILEGE),
+				 errmsg("permission denied for large object %u",
+						cookies[fd]->id)));
+#endif
 
 	status = inv_read(cookies[fd], buf, len);
 
@@ -170,18 +185,28 @@ lo_write(int fd, const char *buf, int len)
 	int			status;
 
 	if (fd < 0 || fd >= cookies_size || cookies[fd] == NULL)
-	{
 		ereport(ERROR,
 				(errcode(ERRCODE_UNDEFINED_OBJECT),
 				 errmsg("invalid large-object descriptor: %d", fd)));
-		return -1;
-	}
 
 	if ((cookies[fd]->flags & IFS_WRLOCK) == 0)
 		ereport(ERROR,
 				(errcode(ERRCODE_OBJECT_NOT_IN_PREREQUISITE_STATE),
 			  errmsg("large object descriptor %d was not opened for writing",
 					 fd)));
+
+#if 0
+	/* Permission checks */
+	if (!lo_compat_privileges &&
+		pg_largeobject_aclcheck_snapshot(cookies[fd]->id,
+										 GetUserId(),
+										 ACL_UPDATE,
+									   cookies[fd]->snapshot) != ACLCHECK_OK)
+		ereport(ERROR,
+				(errcode(ERRCODE_INSUFFICIENT_PRIVILEGE),
+				 errmsg("permission denied for large object %u",
+						cookies[fd]->id)));
+#endif
 
 	status = inv_write(cookies[fd], buf, len);
 
@@ -198,12 +223,9 @@ lo_lseek(PG_FUNCTION_ARGS)
 	int			status;
 
 	if (fd < 0 || fd >= cookies_size || cookies[fd] == NULL)
-	{
 		ereport(ERROR,
 				(errcode(ERRCODE_UNDEFINED_OBJECT),
 				 errmsg("invalid large-object descriptor: %d", fd)));
-		PG_RETURN_INT32(-1);
-	}
 
 	status = inv_seek(cookies[fd], offset, whence);
 
@@ -248,12 +270,9 @@ lo_tell(PG_FUNCTION_ARGS)
 	int32		fd = PG_GETARG_INT32(0);
 
 	if (fd < 0 || fd >= cookies_size || cookies[fd] == NULL)
-	{
 		ereport(ERROR,
 				(errcode(ERRCODE_UNDEFINED_OBJECT),
 				 errmsg("invalid large-object descriptor: %d", fd)));
-		PG_RETURN_INT32(-1);
-	}
 
 	PG_RETURN_INT32(inv_tell(cookies[fd]));
 }
@@ -262,6 +281,15 @@ Datum
 lo_unlink(PG_FUNCTION_ARGS)
 {
 	Oid			lobjId = PG_GETARG_OID(0);
+
+#if 0
+	/* Must be owner of the largeobject */
+	if (!lo_compat_privileges &&
+		!pg_largeobject_ownercheck(lobjId, GetUserId()))
+		ereport(ERROR,
+				(errcode(ERRCODE_INSUFFICIENT_PRIVILEGE),
+				 errmsg("must be owner of large object %u", lobjId)));
+#endif
 
 	/*
 	 * If there are any open LO FDs referencing that ID, close 'em.
@@ -304,7 +332,7 @@ loread(PG_FUNCTION_ARGS)
 
 	retval = (bytea *) palloc(VARHDRSZ + len);
 	totalread = lo_read(fd, VARDATA(retval), len);
-	VARATT_SIZEP(retval) = totalread + VARHDRSZ;
+	SET_VARSIZE(retval, totalread + VARHDRSZ);
 
 	PG_RETURN_BYTEA_P(retval);
 }
@@ -333,14 +361,34 @@ lowrite(PG_FUNCTION_ARGS)
 Datum
 lo_import(PG_FUNCTION_ARGS)
 {
-	text	   *filename = PG_GETARG_TEXT_P(0);
+	text	   *filename = PG_GETARG_TEXT_PP(0);
+
+	PG_RETURN_OID(lo_import_internal(filename, InvalidOid));
+}
+
+/*
+ * lo_import_with_oid -
+ *	  imports a file as an (inversion) large object specifying oid.
+ */
+Datum
+lo_import_with_oid(PG_FUNCTION_ARGS)
+{
+	text	   *filename = PG_GETARG_TEXT_PP(0);
+	Oid			oid = PG_GETARG_OID(1);
+
+	PG_RETURN_OID(lo_import_internal(filename, oid));
+}
+
+static Oid
+lo_import_internal(text *filename, Oid lobjOid)
+{
 	File		fd;
 	int			nbytes,
 				tmp;
 	char		buf[BUFSIZE];
 	char		fnamebuf[MAXPGPATH];
 	LargeObjectDesc *lobj;
-	Oid			lobjOid;
+	Oid			oid;
 
 #ifndef ALLOW_DANGEROUS_LO_FUNCTIONS
 	if (!superuser())
@@ -355,11 +403,7 @@ lo_import(PG_FUNCTION_ARGS)
 	/*
 	 * open the file to be read in
 	 */
-	nbytes = VARSIZE(filename) - VARHDRSZ;
-	if (nbytes >= MAXPGPATH)
-		nbytes = MAXPGPATH - 1;
-	memcpy(fnamebuf, VARDATA(filename), nbytes);
-	fnamebuf[nbytes] = '\0';
+	text_to_cstring_buffer(filename, fnamebuf, sizeof(fnamebuf));
 	fd = PathNameOpenFile(fnamebuf, O_RDONLY | PG_BINARY, 0666);
 	if (fd < 0)
 		ereport(ERROR,
@@ -370,12 +414,12 @@ lo_import(PG_FUNCTION_ARGS)
 	/*
 	 * create an inversion object
 	 */
-	lobjOid = inv_create(InvalidOid);
+	oid = inv_create(lobjOid);
 
 	/*
 	 * read in from the filesystem and write to the inversion object
 	 */
-	lobj = inv_open(lobjOid, INV_WRITE, fscxt);
+	lobj = inv_open(oid, INV_WRITE, fscxt);
 
 	while ((nbytes = FileRead(fd, buf, BUFSIZE)) > 0)
 	{
@@ -392,7 +436,7 @@ lo_import(PG_FUNCTION_ARGS)
 	inv_close(lobj);
 	FileClose(fd);
 
-	PG_RETURN_OID(lobjOid);
+	return oid;
 }
 
 /*
@@ -403,7 +447,7 @@ Datum
 lo_export(PG_FUNCTION_ARGS)
 {
 	Oid			lobjId = PG_GETARG_OID(0);
-	text	   *filename = PG_GETARG_TEXT_P(1);
+	text	   *filename = PG_GETARG_TEXT_PP(1);
 	File		fd;
 	int			nbytes,
 				tmp;
@@ -434,11 +478,7 @@ lo_export(PG_FUNCTION_ARGS)
 	 * 022. This code used to drop it all the way to 0, but creating
 	 * world-writable export files doesn't seem wise.
 	 */
-	nbytes = VARSIZE(filename) - VARHDRSZ;
-	if (nbytes >= MAXPGPATH)
-		nbytes = MAXPGPATH - 1;
-	memcpy(fnamebuf, VARDATA(filename), nbytes);
-	fnamebuf[nbytes] = '\0';
+	text_to_cstring_buffer(filename, fnamebuf, sizeof(fnamebuf));
 	oumask = umask((mode_t) 0022);
 	fd = PathNameOpenFile(fnamebuf, O_CREAT | O_WRONLY | O_TRUNC | PG_BINARY, 0666);
 	umask(oumask);
@@ -465,6 +505,39 @@ lo_export(PG_FUNCTION_ARGS)
 	inv_close(lobj);
 
 	PG_RETURN_INT32(1);
+}
+
+/*
+ * lo_truncate -
+ *	  truncate a large object to a specified length
+ */
+Datum
+lo_truncate(PG_FUNCTION_ARGS)
+{
+	int32		fd = PG_GETARG_INT32(0);
+	int32		len = PG_GETARG_INT32(1);
+
+	if (fd < 0 || fd >= cookies_size || cookies[fd] == NULL)
+		ereport(ERROR,
+				(errcode(ERRCODE_UNDEFINED_OBJECT),
+				 errmsg("invalid large-object descriptor: %d", fd)));
+
+#if 0
+	/* Permission checks */
+	if (!lo_compat_privileges &&
+		pg_largeobject_aclcheck_snapshot(cookies[fd]->id,
+										 GetUserId(),
+										 ACL_UPDATE,
+									   cookies[fd]->snapshot) != ACLCHECK_OK)
+		ereport(ERROR,
+				(errcode(ERRCODE_INSUFFICIENT_PRIVILEGE),
+				 errmsg("permission denied for large object %u",
+						cookies[fd]->id)));
+#endif
+
+	inv_truncate(cookies[fd], len);
+
+	PG_RETURN_INT32(0);
 }
 
 /*

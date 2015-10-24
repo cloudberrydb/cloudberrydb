@@ -11,7 +11,7 @@
  * LWLocks to protect its shared state.
  *
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
@@ -23,8 +23,11 @@
 
 #include "access/clog.h"
 #include "access/multixact.h"
+#include "access/distributedlog.h"
 #include "access/subtrans.h"
 #include "miscadmin.h"
+#include "pg_trace.h"
+#include "storage/barrier.h"
 #include "storage/ipc.h"
 #include "storage/proc.h"
 #include "storage/spin.h"
@@ -40,6 +43,7 @@ typedef struct LWLock
 	bool		releaseOK;		/* T if ok to release waiters */
 	char		exclusive;		/* # of exclusive holders (0 or 1) */
 	int			shared;			/* # of shared holders (0..MaxBackends) */
+	int			exclusivePid;	/* PID of the exclusive holder. */
 	PGPROC	   *head;			/* head of list of waiting PGPROCs */
 	PGPROC	   *tail;			/* tail of list of waiting PGPROCs */
 	/* tail is undefined when head is NULL */
@@ -80,9 +84,19 @@ NON_EXEC_STATIC LWLockPadded *LWLockArray = NULL;
  * ever be held simultaneously.
  */
 #define MAX_SIMUL_LWLOCKS	100
+#define MAX_FRAME_DEPTH  	64
+
+/* LW lock object id current PGPPROC is sleeping on (valid when PGPROC->lwWaiting = true) */
+static LWLockId lwWaitingLockId = NullLock;
 
 static int	num_held_lwlocks = 0;
 static LWLockId held_lwlocks[MAX_SIMUL_LWLOCKS];
+static bool held_lwlocks_exclusive[MAX_SIMUL_LWLOCKS];
+
+#ifdef USE_TEST_UTILS_X86
+static void *held_lwlocks_addresses[MAX_SIMUL_LWLOCKS][MAX_FRAME_DEPTH];
+static int32 held_lwlocks_depth[MAX_SIMUL_LWLOCKS];
+#endif /* USE_TEST_UTILS_X86 */
 
 static int	lock_addin_request = 0;
 static bool lock_addin_request_allowed = true;
@@ -101,9 +115,9 @@ inline static void
 PRINT_LWDEBUG(const char *where, LWLockId lockid, const volatile LWLock *lock)
 {
 	if (Trace_lwlocks)
-		elog(LOG, "%s(%d): excl %d shared %d head %p rOK %d",
+		elog(LOG, "%s(%d): excl %d excl pid %d shared %d head %p rOK %d",
 			 where, (int) lockid,
-			 (int) lock->exclusive, lock->shared, lock->head,
+			 (int) lock->exclusive, lock->exclusivePid, lock->shared, lock->head,
 			 (int) lock->releaseOK);
 }
 
@@ -169,14 +183,23 @@ NumLWLocks(void)
 
 	/* subtrans.c needs one per SubTrans buffer */
 	numLocks += NUM_SUBTRANS_BUFFERS;
+    
+    /* cdbtm.c needs one lock */
+    numLocks++;
+    
+    /* cdbfts.c needs one lock */
+    numLocks++;
 
 	/* multixact.c needs two SLRU areas */
 	numLocks += NUM_MXACTOFFSET_BUFFERS + NUM_MXACTMEMBER_BUFFERS;
 
+	/* cdbdistributedlog.c needs one per DistributedLog buffer */
+	numLocks += NUM_DISTRIBUTEDLOG_BUFFERS;
+    
 	/*
 	 * Add any requested by loadable modules; for backwards-compatibility
-	 * reasons, allocate at least NUM_USER_DEFINED_LWLOCKS of them even
-	 * if there are no explicit requests.
+	 * reasons, allocate at least NUM_USER_DEFINED_LWLOCKS of them even if
+	 * there are no explicit requests.
 	 */
 	lock_addin_request_allowed = false;
 	numLocks += Max(lock_addin_request, NUM_USER_DEFINED_LWLOCKS);
@@ -299,6 +322,71 @@ LWLockAssign(void)
 	return result;
 }
 
+#ifdef LOCK_DEBUG
+
+static void
+LWLockTryLockWaiting(
+		PGPROC	   *proc, 
+		LWLockId lockid, 
+		LWLockMode mode)
+{
+	volatile LWLock *lock = &(LWLockArray[lockid].lock);
+	int 			milliseconds = 0;
+	int				exclusivePid;
+	
+	while(true)
+	{
+		pg_usleep(5000L);
+		if (PGSemaphoreTryLock(&proc->sem))
+		{
+			if (milliseconds >= 750)
+				elog(LOG, "Done waiting on lockid %d", lockid);
+			return;
+		}
+
+		milliseconds += 5;
+		if (milliseconds == 750)
+		{
+			int l;
+			int count = 0;
+			char buffer[200];
+
+			SpinLockAcquire(&lock->mutex);
+			
+			if (lock->exclusive > 0)
+				exclusivePid = lock->exclusivePid;
+			else
+				exclusivePid = 0;
+			
+			SpinLockRelease(&lock->mutex);
+
+			memcpy(buffer, "none", 5);
+			
+			for (l = 0; l < num_held_lwlocks; l++)
+			{
+				if (l == 0)
+					count += sprintf(&buffer[count],"(");
+				else
+					count += sprintf(&buffer[count],", ");
+				
+				count += sprintf(&buffer[count],
+							    "lockid %d",
+							    held_lwlocks[l]);
+			}
+			if (num_held_lwlocks > 0)
+				count += sprintf(&buffer[count],")");
+				
+			elog(LOG, "Waited .75 seconds on lockid %d with no success. Exclusive pid %d. Already held: %s", 
+				 lockid, exclusivePid, buffer);
+
+		}
+	}
+}
+
+#endif
+
+// Turn this on if we find a deadlock or missing unlock issue...
+// #define LWLOCK_TRACE_MIRROREDLOCK
 
 /*
  * LWLockAcquire - acquire a lightweight lock in the specified mode
@@ -327,6 +415,11 @@ LWLockAcquire(LWLockId lockid, LWLockMode mode)
 		sh_acquire_counts = calloc(numLocks, sizeof(int));
 		ex_acquire_counts = calloc(numLocks, sizeof(int));
 		block_counts = calloc(numLocks, sizeof(int));
+
+		if(!sh_acquire_counts || !ex_acquire_counts || !block_counts)
+			ereport(ERROR, errcode(ERRCODE_OUT_OF_MEMORY),
+				errmsg("LWLockAcquire failed: out of memory"));
+
 		counts_for_pid = MyProcPid;
 		on_shmem_exit(print_lwlock_stats, 0);
 	}
@@ -374,6 +467,7 @@ LWLockAcquire(LWLockId lockid, LWLockMode mode)
 	for (;;)
 	{
 		bool		mustwait;
+		int			c;
 
 		/* Acquire mutex.  Time spent holding mutex should be short! */
 		SpinLockAcquire(&lock->mutex);
@@ -388,6 +482,7 @@ LWLockAcquire(LWLockId lockid, LWLockMode mode)
 			if (lock->exclusive == 0 && lock->shared == 0)
 			{
 				lock->exclusive++;
+				lock->exclusivePid = MyProcPid;
 				mustwait = false;
 			}
 			else
@@ -405,7 +500,10 @@ LWLockAcquire(LWLockId lockid, LWLockMode mode)
 		}
 
 		if (!mustwait)
+		{
+			LOG_LWDEBUG("LWLockAcquire", lockid, "acquired!");
 			break;				/* got the lock */
+		}
 
 		/*
 		 * Add myself to wait queue.
@@ -419,13 +517,14 @@ LWLockAcquire(LWLockId lockid, LWLockMode mode)
 
 		proc->lwWaiting = true;
 		proc->lwExclusive = (mode == LW_EXCLUSIVE);
+		lwWaitingLockId = lockid;
 		proc->lwWaitLink = NULL;
 		if (lock->head == NULL)
 			lock->head = proc;
 		else
 			lock->tail->lwWaitLink = proc;
 		lock->tail = proc;
-
+		
 		/* Can release the mutex now */
 		SpinLockRelease(&lock->mutex);
 
@@ -443,16 +542,31 @@ LWLockAcquire(LWLockId lockid, LWLockMode mode)
 		 */
 		LOG_LWDEBUG("LWLockAcquire", lockid, "waiting");
 
+#ifdef LWLOCK_TRACE_MIRROREDLOCK
+	if (lockid == MirroredLock)
+		elog(LOG, "LWLockAcquire: waiting for MirroredLock (PID %u)", MyProcPid);
+#endif
+
 #ifdef LWLOCK_STATS
 		block_counts[lockid]++;
 #endif
+
+		for (c = 0; c < num_held_lwlocks; c++)
+		{
+			if (held_lwlocks[c] == lockid)
+				elog(PANIC, "Waiting on lock already held!");
+		}
 
 		PG_TRACE2(lwlock__startwait, lockid, mode);
 
 		for (;;)
 		{
 			/* "false" means cannot accept cancel/die interrupt here. */
+#ifndef LOCK_DEBUG
 			PGSemaphoreLock(&proc->sem, false);
+#else
+			LWLockTryLockWaiting(proc, lockid, mode);
+#endif
 			if (!proc->lwWaiting)
 				break;
 			extraWaits++;
@@ -462,6 +576,10 @@ LWLockAcquire(LWLockId lockid, LWLockMode mode)
 
 		LOG_LWDEBUG("LWLockAcquire", lockid, "awakened");
 
+#ifdef LWLOCK_TRACE_MIRROREDLOCK
+		if (lockid == MirroredLock)
+			elog(LOG, "LWLockAcquire: awakened for MirroredLock (PID %u)", MyProcPid);
+#endif
 		/* Now loop back and try to acquire lock again. */
 		retry = true;
 	}
@@ -471,7 +589,22 @@ LWLockAcquire(LWLockId lockid, LWLockMode mode)
 
 	PG_TRACE2(lwlock__acquire, lockid, mode);
 
+#ifdef LWLOCK_TRACE_MIRROREDLOCK
+	if (lockid == MirroredLock)
+		elog(LOG, "LWLockAcquire: MirroredLock by PID %u in held_lwlocks[%d] %s", 
+			 MyProcPid, 
+			 num_held_lwlocks,
+			 (mode == LW_EXCLUSIVE ? "Exclusive" : "Shared"));
+#endif
+
+#ifdef USE_TEST_UTILS_X86
+	/* keep track of stack trace where lock got acquired */
+	held_lwlocks_depth[num_held_lwlocks] =
+			gp_backtrace(held_lwlocks_addresses[num_held_lwlocks], MAX_FRAME_DEPTH);
+#endif /* USE_TEST_UTILS_X86 */
+
 	/* Add lock to list of locks held by this backend */
+	held_lwlocks_exclusive[num_held_lwlocks] = (mode == LW_EXCLUSIVE);
 	held_lwlocks[num_held_lwlocks++] = lockid;
 
 	/*
@@ -516,6 +649,7 @@ LWLockConditionalAcquire(LWLockId lockid, LWLockMode mode)
 		if (lock->exclusive == 0 && lock->shared == 0)
 		{
 			lock->exclusive++;
+			lock->exclusivePid = MyProcPid;
 			mustwait = false;
 		}
 		else
@@ -544,7 +678,22 @@ LWLockConditionalAcquire(LWLockId lockid, LWLockMode mode)
 	}
 	else
 	{
+#ifdef LWLOCK_TRACE_MIRROREDLOCK
+		if (lockid == MirroredLock)
+			elog(LOG, "LWLockConditionalAcquire: MirroredLock by PID %u in held_lwlocks[%d] %s", 
+				 MyProcPid, 
+				 num_held_lwlocks,
+				 (mode == LW_EXCLUSIVE ? "Exclusive" : "Shared"));
+#endif
+
+#ifdef USE_TEST_UTILS_X86
+		/* keep track of stack trace where lock got acquired */
+		held_lwlocks_depth[num_held_lwlocks] =
+				gp_backtrace(held_lwlocks_addresses[num_held_lwlocks], MAX_FRAME_DEPTH);
+#endif /* USE_TEST_UTILS_X86 */
+
 		/* Add lock to list of locks held by this backend */
+		held_lwlocks_exclusive[num_held_lwlocks] = (mode == LW_EXCLUSIVE);
 		held_lwlocks[num_held_lwlocks++] = lockid;
 		PG_TRACE2(lwlock__condacquire, lockid, mode);
 	}
@@ -562,6 +711,7 @@ LWLockRelease(LWLockId lockid)
 	PGPROC	   *head;
 	PGPROC	   *proc;
 	int			i;
+	bool		saveExclusive;
 
 	PRINT_LWDEBUG("LWLockRelease", lockid, lock);
 
@@ -576,16 +726,57 @@ LWLockRelease(LWLockId lockid)
 	}
 	if (i < 0)
 		elog(ERROR, "lock %d is not held", (int) lockid);
+
+	saveExclusive = held_lwlocks_exclusive[i];
+	if (InterruptHoldoffCount <= 0)
+		elog(PANIC, "upon entering lock release, the interrupt holdoff count is bad (%d) for release of lock %d (%s)", 
+			 InterruptHoldoffCount,
+			 (int)lockid,
+			 (saveExclusive ? "Exclusive" : "Shared"));
+
+#ifdef LWLOCK_TRACE_MIRROREDLOCK
+	if (lockid == MirroredLock)
+		elog(LOG, 
+			 "LWLockRelease: release for MirroredLock by PID %u in held_lwlocks[%d] %s", 
+			 MyProcPid, 
+			 i,
+			 (held_lwlocks_exclusive[i] ? "Exclusive" : "Shared"));
+#endif
+	
 	num_held_lwlocks--;
 	for (; i < num_held_lwlocks; i++)
+	{
+		held_lwlocks_exclusive[i] = held_lwlocks_exclusive[i + 1];
 		held_lwlocks[i] = held_lwlocks[i + 1];
+#ifdef USE_TEST_UTILS_X86
+		/* shift stack traces */
+		held_lwlocks_depth[i] = held_lwlocks_depth[i + 1];
+		memcpy
+			(
+			held_lwlocks_addresses[i],
+			held_lwlocks_addresses[i + 1],
+			held_lwlocks_depth[i] * sizeof(*held_lwlocks_depth)
+			)
+			;
+#endif /* USE_TEST_UTILS_X86 */
+	}
+
+	// Clear out old last entry.
+	held_lwlocks_exclusive[num_held_lwlocks] = false;
+	held_lwlocks[num_held_lwlocks] = 0;
+#ifdef USE_TEST_UTILS_X86
+	held_lwlocks_depth[num_held_lwlocks] = 0;
+#endif /* USE_TEST_UTILS_X86 */
 
 	/* Acquire mutex.  Time spent holding mutex should be short! */
 	SpinLockAcquire(&lock->mutex);
 
 	/* Release my hold on lock */
 	if (lock->exclusive > 0)
+	{
 		lock->exclusive--;
+		lock->exclusivePid = 0;
+	}
 	else
 	{
 		Assert(lock->shared > 0);
@@ -613,13 +804,24 @@ LWLockRelease(LWLockId lockid)
 			{
 				while (proc->lwWaitLink != NULL &&
 					   !proc->lwWaitLink->lwExclusive)
+				{
 					proc = proc->lwWaitLink;
+					if (proc->pid != 0)
+					{
+						lock->releaseOK = false;
+					}					
+				}
 			}
 			/* proc is now the last PGPROC to be released */
 			lock->head = proc->lwWaitLink;
 			proc->lwWaitLink = NULL;
-			/* prevent additional wakeups until retryer gets to run */
-			lock->releaseOK = false;
+			
+			/* proc->pid can be 0 if process exited while waiting for lock */
+			if (proc->pid != 0)
+			{
+				/* prevent additional wakeups until retryer gets to run */
+				lock->releaseOK = false;
+			}
 		}
 		else
 		{
@@ -638,10 +840,15 @@ LWLockRelease(LWLockId lockid)
 	 */
 	while (head != NULL)
 	{
+#ifdef LWLOCK_TRACE_MIRROREDLOCK
+		if (lockid == MirroredLock)
+			elog(LOG, "LWLockRelease: release waiter for MirroredLock (this PID %u", MyProcPid);
+#endif
 		LOG_LWDEBUG("LWLockRelease", lockid, "release waiter");
 		proc = head;
 		head = proc->lwWaitLink;
 		proc->lwWaitLink = NULL;
+		pg_write_barrier();
 		proc->lwWaiting = false;
 		PGSemaphoreUnlock(&proc->sem);
 	}
@@ -649,9 +856,74 @@ LWLockRelease(LWLockId lockid)
 	/*
 	 * Now okay to allow cancel/die interrupts.
 	 */
+	if (InterruptHoldoffCount <= 0)
+		elog(PANIC, "upon exiting lock release, the interrupt holdoff count is bad (%d) for release of lock %d (%s)", 
+			 InterruptHoldoffCount,
+			 (int)lockid,
+			 (saveExclusive ? "Exclusive" : "Shared"));
 	RESUME_INTERRUPTS();
 }
 
+/*
+ * LWLockWaitCancel - cancel currently waiting on LW lock
+ *
+ * Used to clean up before immediate exit in certain very special situations
+ * like shutdown request to Filerep Resync Manger or Workers. Although this is
+ * not the best practice it is necessary to avoid any starvation situations
+ * during filerep transition situations (Resync Mode -> Changetracking mode)
+ *
+ * Note:- This function should not be used for normal situations. It is strictly
+ * written for very special situations. If you need to use this, you may want
+ * to re-think your design.
+ */
+void
+LWLockWaitCancel(void)
+{
+	volatile PGPROC *proc = MyProc;
+	volatile LWLock *lwWaitingLock = NULL;
+
+	/* We better have a PGPROC structure */
+	Assert(proc != NULL);
+
+	/* If we're not waiting on any LWLock then nothing doing here */
+	if (!proc->lwWaiting)
+		return;
+
+	lwWaitingLock = &(LWLockArray[lwWaitingLockId].lock);
+
+	/* Protect from other modifiers */
+	SpinLockAcquire(&lwWaitingLock->mutex);
+
+	PGPROC *currProc = lwWaitingLock->head;
+
+	/* Search our PROC in the waiters list and remove it */
+	if (proc == lwWaitingLock->head)
+	{
+		lwWaitingLock->head = currProc = proc->lwWaitLink;
+		proc->lwWaitLink = NULL;
+	}
+	else
+	{
+		while(currProc != NULL)
+		{
+			if (currProc->lwWaitLink == proc)
+			{
+				currProc->lwWaitLink = proc->lwWaitLink;
+				proc->lwWaitLink = NULL;
+				break;
+			}
+			currProc = currProc->lwWaitLink;
+		}
+	}
+
+	if (lwWaitingLock->tail == proc)
+		lwWaitingLock->tail = currProc;
+
+	/* Done with modification */
+	SpinLockRelease(&lwWaitingLock->mutex);
+
+	return;
+}
 
 /*
  * LWLockReleaseAll - release all currently-held locks
@@ -692,3 +964,131 @@ LWLockHeldByMe(LWLockId lockid)
 	}
 	return false;
 }
+
+/*
+ * LWLockHeldByMe - test whether my process currently holds an exclusive lock
+ *
+ * This is meant as debug support only.  We do not distinguish whether the
+ * lock is held shared or exclusive.
+ */
+bool
+LWLockHeldExclusiveByMe(LWLockId lockid)
+{
+	int			i;
+
+	for (i = 0; i < num_held_lwlocks; i++)
+	{
+		if (held_lwlocks[i] == lockid &&
+			held_lwlocks_exclusive[i])
+			return true;
+	}
+	return false;
+}
+
+#ifdef USE_TEST_UTILS_X86
+
+/*
+ * Return number of locks held by my process
+ */
+uint32
+LWLocksHeld()
+{
+	Assert(num_held_lwlocks >= 0);
+
+	uint32 locks = 0, i = 0;
+
+	for (i = 0; i < num_held_lwlocks; i++)
+	{
+		if (LWLOCK_IS_PREDEFINED(held_lwlocks[i]))
+		{
+			locks++;
+		}
+	}
+
+	return locks;
+}
+
+
+/*
+ * Get lock id of the most lately acquired lwlock
+ */
+LWLockId
+LWLockHeldLatestId()
+{
+	Assert(num_held_lwlocks > 0);
+
+	uint32 i = 0;
+
+	for (i = num_held_lwlocks; i > 0; i--)
+	{
+		if (LWLOCK_IS_PREDEFINED(held_lwlocks[i - 1]))
+		{
+			return held_lwlocks[i - 1];
+		}
+	}
+
+	Assert(!"No predefined lwlock held");
+	return MaxDynamicLWLock;
+}
+
+
+/*
+ * Get caller address for the most lately acquired lwlock
+ */
+void *
+LWLockHeldLatestCaller()
+{
+	Assert(num_held_lwlocks > 0);
+
+	uint32 i = 0;
+
+	for (i = num_held_lwlocks; i > 0; i--)
+	{
+		if (LWLOCK_IS_PREDEFINED(held_lwlocks[i - 1]))
+		{
+			return held_lwlocks_addresses[i - 1][1];
+		}
+	}
+
+	return 0;
+}
+
+
+/*
+ * Build string containing stack traces where all exclusively-held
+ * locks were acquired;
+ */
+const char*
+LWLocksHeldStackTraces()
+{
+	if (num_held_lwlocks == 0)
+	{
+		return NULL;
+	}
+
+	StringInfo append = makeStringInfo();	/* palloc'd */
+	uint32 i = 0, cnt = 1;
+
+	/* append stack trace for each held lock */
+	for (i = 0; i < num_held_lwlocks; i++)
+	{
+		if (!LWLOCK_IS_PREDEFINED(held_lwlocks[i]))
+		{
+			continue;
+		}
+
+		appendStringInfo(append, "%d: LWLock %d:\n", cnt++, held_lwlocks[i] );
+
+		char *stackTrace =
+				gp_stacktrace(held_lwlocks_addresses[i], held_lwlocks_depth[i]);
+
+		Assert(stackTrace != NULL);
+		appendStringInfoString(append, stackTrace);
+		pfree(stackTrace);
+	}
+
+	Assert(append->len > 0);
+	return append->data;
+}
+
+#endif /* USE_TEST_UTILS_X86 */

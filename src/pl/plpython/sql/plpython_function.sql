@@ -91,6 +91,29 @@ return words'
 	LANGUAGE plpythonu;
 
 
+-- check module contents
+
+CREATE FUNCTION module_contents() RETURNS text AS
+$$
+contents = list(filter(lambda x: not x.startswith("__"), dir(plpy)))
+contents.sort()
+return ", ".join(contents)
+$$ LANGUAGE plpythonu;
+
+
+CREATE FUNCTION elog_test() RETURNS void
+AS $$
+plpy.debug('debug')
+plpy.log('log')
+plpy.info('info')
+plpy.info(37)
+plpy.info()
+plpy.info('info', 37, [1, 2, 3]) 
+plpy.notice('notice')
+plpy.warning('warning')
+plpy.error('error')
+$$ LANGUAGE plpythonu;
+
 -- these triggers are dedicated to HPHC of RI who
 -- decided that my kid's name was william not willem, and
 -- vigorously resisted all efforts at correction.  they have
@@ -141,6 +164,7 @@ CREATE TRIGGER users_delete_trig BEFORE DELETE ON users FOR EACH ROW
 
 
 -- dump trigger data
+DROP TABLE IF EXISTS trigger_test; 
 
 CREATE TABLE trigger_test
 	(i int, v text );
@@ -330,6 +354,22 @@ return seq
 '
 	LANGUAGE plpythonu;
 
+
+--
+-- plan and result objects
+--
+
+CREATE FUNCTION result_nrows_test() RETURNS int 
+AS $$
+plan = plpy.prepare("SELECT 1 UNION SELECT 2")
+plpy.info(plan.status()) # not really documented or useful
+result = plpy.execute(plan)
+if result.status() > 0:
+   return result.nrows()
+else:
+   return None
+$$ LANGUAGE plpythonu;
+
 --
 -- Universal Newline Support
 -- 
@@ -391,8 +431,12 @@ $$ LANGUAGE plpythonu;
 
 
 --
--- Test named parameters
+-- Test named and nameless parameters
 --
+CREATE FUNCTION test_param_names0(integer, integer) RETURNS int AS $$
+return args[0] + args[1]
+$$ LANGUAGE plpythonu;
+
 CREATE FUNCTION test_param_names1(a0 integer, a1 text) RETURNS boolean AS $$
 assert a0 == args[0]
 assert a1 == args[1]
@@ -445,6 +489,34 @@ return producer(count, content)
 $$ LANGUAGE plpythonu;
 
 
+CREATE FUNCTION test_setof_spi_in_iterator() RETURNS SETOF text AS
+$$
+    for s in ('Hello', 'Brave', 'New', 'World'):
+        plpy.execute('select 1')
+        yield s
+        plpy.execute('select 2')
+$$
+LANGUAGE plpythonu;
+
+
+-- test of exception handling 
+
+CREATE OR REPLACE FUNCTION queryexec( query text )
+        returns boolean
+AS $$
+try:
+  plan = plpy.prepare( query )
+  rv = plpy.execute( plan )
+except:
+  plpy.notice( 'Error Trapped' )
+  return False
+
+for r in rv:
+  plpy.notice( str( r ) )
+
+return True
+$$ LANGUAGE plpythonu;
+
 --
 -- Test returning tuples
 --
@@ -479,4 +551,194 @@ elif typ == 'obj':
 	type_record.second = second
 	return type_record
 $$ LANGUAGE plpythonu;
+
+CREATE FUNCTION test_in_out_params(first in text, second out text) AS $$
+return first + '_in_to_out';
+$$ LANGUAGE plpythonu;
+
+-- this doesn't work yet :-(
+CREATE FUNCTION test_in_out_params_multi(first in text,
+                                         second out text, third out text) AS $$
+return first + '_record_in_to_out';
+$$ LANGUAGE plpythonu;
+
+CREATE FUNCTION test_inout_params(first inout text) AS $$
+return first + '_inout';
+$$ LANGUAGE plpythonu;
+
+CREATE FUNCTION test_type_conversion_bool(x bool) returns bool AS $$ return x $$ language plpythonu;
+CREATE FUNCTION test_type_conversion_char(x char) returns char AS $$ return x $$ language plpythonu;
+CREATE FUNCTION test_type_conversion_int2(x int2) returns int2 AS $$ return x $$ language plpythonu;
+CREATE FUNCTION test_type_conversion_int4(x int4) returns int4 AS $$ return x $$ language plpythonu;
+CREATE FUNCTION test_type_conversion_int8(x int8) returns int8 AS $$ return x $$ language plpythonu;
+CREATE FUNCTION test_type_conversion_float4(x float4) returns float4 AS $$ return x $$ language plpythonu;
+CREATE FUNCTION test_type_conversion_float8(x float8) returns float8 AS $$ return x $$ language plpythonu;
+CREATE FUNCTION test_type_conversion_numeric(x numeric) returns numeric AS $$ return x $$ language plpythonu;
+CREATE FUNCTION test_type_conversion_text(x text) returns text AS $$ return x $$ language plpythonu;
+CREATE FUNCTION test_type_conversion_bytea(x bytea) returns bytea AS $$ return x $$ language plpythonu;
+CREATE FUNCTION test_type_marshal() returns bytea AS $$ 
+import marshal
+return marshal.dumps('hello world')
+$$ language plpythonu;
+CREATE FUNCTION test_type_unmarshal(x bytea) returns text AS $$
+import marshal
+return marshal.loads(x)
+$$ language plpythonu;
+
+-- RETURN value testing
+CREATE FUNCTION test_return_void(s text) 
+RETURNS void AS $$
+  exec('y = ' + s)
+  return y
+$$ language plpythonu;
+CREATE FUNCTION test_return_bool(s text) 
+RETURNS bool AS $$
+  exec('y = ' + s)
+  return y
+$$ language plpythonu;
+CREATE FUNCTION test_return_text(s text) 
+RETURNS text AS $$
+  exec('y = ' + s)
+  return y
+$$ language plpythonu;
+CREATE FUNCTION test_return_bytea(s text) 
+RETURNS bytea AS $$
+  exec('y = ' + s)
+  return y
+$$ language plpythonu;
+CREATE FUNCTION test_return_circle(s text) 
+RETURNS circle AS $$
+  exec('y = ' + s)
+  return y
+$$ language plpythonu;
+CREATE FUNCTION test_return_setof_void(s text) 
+RETURNS setof void AS $$
+  exec('y = ' + s)
+  return y
+$$ language plpythonu;
+CREATE FUNCTION test_return_setof_bool(s text) 
+RETURNS setof bool AS $$
+  exec('y = ' + s)
+  return y
+$$ language plpythonu;
+CREATE FUNCTION test_return_setof_text(s text) 
+RETURNS setof text AS $$
+  exec('y = ' + s)
+  return y
+$$ language plpythonu;
+CREATE FUNCTION test_return_setof_bytea(s text) 
+RETURNS setof bytea AS $$
+  exec('y = ' + s)
+  return y
+$$ language plpythonu;
+CREATE FUNCTION test_return_setof_circle(s text) 
+RETURNS setof circle AS $$
+  exec('y = ' + s)
+  return y
+$$ language plpythonu;
+
+-- RETURNS record types
+CREATE FUNCTION test_return_table_record(s text) 
+RETURNS table_record AS $$
+  exec('y = ' + s)
+  return y
+$$ language plpythonu;
+CREATE FUNCTION test_return_type_record(s text) 
+RETURNS type_record AS $$
+  exec('y = ' + s)
+  return y
+$$ language plpythonu;
+CREATE FUNCTION test_return_setof_table_record(s text) 
+RETURNS table_record AS $$
+  exec('y = ' + s)
+  return y
+$$ language plpythonu;
+CREATE FUNCTION test_return_setof_type_record(s text) 
+RETURNS type_record AS $$
+  exec('y = ' + s)
+  return y
+$$ language plpythonu;
+
+-- RETURNS with OUT Parameters
+CREATE FUNCTION test_return_out_text(s text, OUT text) 
+AS $$
+  exec('y = ' + s)
+  return y
+$$ language plpythonu;
+CREATE FUNCTION test_return_out_setof_text(s text, OUT text) 
+RETURNS setof text AS $$
+  exec('y = ' + s)
+  return y
+$$ language plpythonu;
+CREATE FUNCTION test_return_out_record(s text, OUT first text, OUT second int4) 
+AS $$
+  exec('y = ' + s)
+  return y
+$$ language plpythonu;
+CREATE FUNCTION test_return_out_setof_record(s text, OUT first text, OUT second int4)
+RETURNS setof record AS $$
+  exec('y = ' + s)
+  return y
+$$ language plpythonu;
+
+-- RETURNS TABLE
+CREATE FUNCTION test_return_table(s text) RETURNS TABLE(first text, second int4)
+AS $$
+  exec('y = ' + s)
+  return y
+$$ language plpythonu;
+
+CREATE OR REPLACE FUNCTION unnamed_tuple_test() RETURNS VOID LANGUAGE plpythonu AS $$
+plpy.execute("SHOW client_min_messages")
+$$;
+
+CREATE FUNCTION named_tuple_test() RETURNS VARCHAR LANGUAGE plpythonu AS $$
+return plpy.execute("SELECT setting FROM pg_settings WHERE name='client_min_messages'")[0]['setting']
+$$;
+
+create or replace function split(input int) returns setof ab_tuple as
+$$
+	plpy.log("Returning the FIRST tuple")
+	yield [input, input + 1]
+	plpy.log("Returning the SECOND tuple"); 
+	yield [input+2, input + 3]
+$$
+language plpythonu; 
+
+CREATE OR REPLACE FUNCTION oneline() returns text as $$ 
+return 'No spaces' 
+$$ language plpythonu;
+
+CREATE OR REPLACE FUNCTION oneline2() returns text as $$  
+x = "\""
+y = ''
+z = ""
+w = '\'' + 'a string with # and "" inside ' + "another string with #  and '' inside "
+return x + y + z + w
+$$ language plpythonu;
+
+CREATE OR REPLACE FUNCTION multiline() returns text as $$ 
+return """ One space
+  Two spaces
+   Three spaces
+No spaces""" 
+$$ language plpythonu;
+
+CREATE OR REPLACE FUNCTION multiline2() returns text as $$
+# If there's something in my comment it can mess things up
+return '''
+The ' in the comment should not cause this line to begin with a tab
+''' + 'This is a rather long string containing\n\
+    several lines of text just as you would do in C.\n\
+     Note that whitespace at the beginning of the line is\
+significant. The string can contain both \' and ".\n' + r"This is an another long string containing\n\
+two lines of text and defined with the r\"...\" syntax."
+$$ language plpythonu; 
+
+CREATE OR REPLACE FUNCTION multiline3() returns text as $$  
+# This is a comment
+x = """ 
+  # This is not a comment so the quotes at the end of the line do end the string """ 
+return x
+$$ language plpythonu;
 

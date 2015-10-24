@@ -1,4 +1,4 @@
-dnl $PostgreSQL: pgsql/aclocal.m4,v 1.18 2004/04/23 18:15:47 momjian Exp $
+dnl aclocal.m4
 m4_include([config/ac_func_accept_argtypes.m4])
 m4_include([config/acx_pthread.m4])
 m4_include([config/c-compiler.m4])
@@ -10,3 +10,5 @@ m4_include([config/perl.m4])
 m4_include([config/programs.m4])
 m4_include([config/python.m4])
 m4_include([config/tcl.m4])
+m4_include([config/curl.m4])
+m4_include([config/ax_python_module.m4])

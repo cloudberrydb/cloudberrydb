@@ -4,7 +4,7 @@
  *	  Split page algorithm
  *
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2008, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
@@ -289,7 +289,7 @@ supportSecondarySplit(Relation r, GISTSTATE *giststate, int attno, GIST_SPLITVEC
  */
 static bool
 gistUserPicksplit(Relation r, GistEntryVector *entryvec, int attno, GistSplitVector *v,
-				  IndexTuple *itup, int len, GISTSTATE *giststate)
+				  IndexTuple *itup, int len __attribute__((unused)), GISTSTATE *giststate)
 {
 	GIST_SPLITVEC *sv = &v->splitVector;
 
@@ -582,6 +582,14 @@ gistSplitByKey(Relation r, Page page, IndexTuple *itup, int len, GISTSTATE *gist
 				backupSplit.spl_right = (OffsetNumber *) palloc(sizeof(OffsetNumber) * len);
 				memcpy(backupSplit.spl_right, v->splitVector.spl_right, sizeof(OffsetNumber) * v->splitVector.spl_nright);
 
+				/*
+				 * Backup the original spl_equiv, since the following gistSplitByKey() may
+				 * change its value (by re-allocating space with size newlen, which is most
+				 * likely smaller than len). spl_equiv is needed later in gistunionsubkey()
+				 * to reunion left and right datums.
+				 */
+				bool *orig_spl_equiv = v->spl_equiv;
+
 				gistSplitByKey(r, page, newitup, newlen, giststate, v, entryvec, attno + 1);
 
 				/* merge result of subsplit */
@@ -591,6 +599,10 @@ gistSplitByKey(Relation r, Page page, IndexTuple *itup, int len, GISTSTATE *gist
 					backupSplit.spl_right[backupSplit.spl_nright++] = map[v->splitVector.spl_right[i] - 1];
 
 				v->splitVector = backupSplit;
+
+				/* Reset the spl_equiv */
+				v->spl_equiv = orig_spl_equiv;
+				
 				/* reunion left and right datums */
 				gistunionsubkey(giststate, itup, v, attno);
 			}

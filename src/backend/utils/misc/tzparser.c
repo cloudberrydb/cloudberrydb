@@ -9,11 +9,11 @@
  * probably fix with PG_TRY if necessary.
  *
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/utils/misc/tzparser.c,v 1.3 2006/10/06 17:14:00 petere Exp $
+ *	  $PostgreSQL: pgsql/src/backend/utils/misc/tzparser.c,v 1.8 2009/05/02 22:02:37 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -326,12 +326,41 @@ ParseTzFile(const char *filename, int depth,
 	tzFile = AllocateFile(file_path, "r");
 	if (!tzFile)
 	{
-		/* at level 0, if file doesn't exist, guc.c's complaint is enough */
+		/*
+		 * Check to see if the problem is not the filename but the directory.
+		 * This is worth troubling over because if the installation share/
+		 * directory is missing or unreadable, this is likely to be the first
+		 * place we notice a problem during postmaster startup.
+		 */
+		int			save_errno = errno;
+		DIR		   *tzdir;
+
+		snprintf(file_path, sizeof(file_path), "%s/timezonesets",
+				 share_path);
+		tzdir = AllocateDir(file_path);
+		if (tzdir == NULL)
+		{
+			ereport(tz_elevel,
+					(errcode_for_file_access(),
+					 errmsg("could not open directory \"%s\": %m",
+							file_path),
+					 errhint("This may indicate an incomplete PostgreSQL installation, or that the file \"%s\" has been moved away from its proper location.",
+							 my_exec_path)));
+			return -1;
+		}
+		FreeDir(tzdir);
+		errno = save_errno;
+
+		/*
+		 * otherwise, if file doesn't exist and it's level 0, guc.c's
+		 * complaint is enough
+		 */
 		if (errno != ENOENT || depth > 0)
 			ereport(tz_elevel,
 					(errcode_for_file_access(),
 					 errmsg("could not read time zone file \"%s\": %m",
 							filename)));
+
 		return -1;
 	}
 
@@ -381,7 +410,7 @@ ParseTzFile(const char *filename, int depth,
 			{
 				ereport(tz_elevel,
 						(errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-						 errmsg("@INCLUDE without filename in time zone file \"%s\", line %d",
+						 errmsg("@INCLUDE without file name in time zone file \"%s\", line %d",
 								filename, lineno)));
 				return -1;
 			}

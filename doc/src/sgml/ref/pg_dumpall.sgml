@@ -1,5 +1,5 @@
 <!--
-$PostgreSQL: pgsql/doc/src/sgml/ref/pg_dumpall.sgml,v 1.58 2006/10/07 20:59:04 petere Exp $
+$PostgreSQL: pgsql/doc/src/sgml/ref/pg_dumpall.sgml,v 1.58.2.3 2007/03/26 17:23:45 tgl Exp $
 PostgreSQL documentation
 -->
 
@@ -134,7 +134,7 @@ PostgreSQL documentation
       <term><option>--globals-only</option></term>
       <listitem>
        <para>
-        Dump only global objects (users and groups), no databases.
+        Dump only global objects (roles and tablespaces), no databases.
        </para>
       </listitem>
      </varlistentry>
@@ -189,6 +189,17 @@ PostgreSQL documentation
         (or the same user that owns all of the objects in the script).
         To make a script that can be restored by any user, but will give
         that user ownership of all the objects, specify <option>-O</>.
+       </para>
+      </listitem>
+     </varlistentry>
+
+     <varlistentry>
+      <term><option>-r</option></term>
+      <term><option>--resource-queues</option></term>
+      <listitem>
+       <para>
+        Dump <literal>resource queues</literal> and <literal>role</literal>
+        to <literal>resource queue</literal> associations. 
        </para>
       </listitem>
      </varlistentry>
@@ -355,6 +366,13 @@ PostgreSQL documentation
     </listitem>
    </varlistentry>
   </variablelist>
+
+  <para>
+   This utility, like most other <productname>PostgreSQL</> utilities,
+   also uses the environment variables supported by <application>libpq</>
+   (see <xref linkend="libpq-envars">).
+  </para>
+
  </refsect1>
 
 
@@ -410,9 +428,8 @@ PostgreSQL documentation
   <title>See Also</title>
 
   <para>
-    <xref linkend="app-pgdump">.  Check there for details on possible
-    error conditions.  Also see supported environment variables
-    (<xref linkend="libpq-envars">).
+    Check <xref linkend="app-pgdump"> for details on possible
+    error conditions.
   </para>
  </refsect1>   
 

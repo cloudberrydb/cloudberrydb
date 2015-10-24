@@ -34,11 +34,12 @@
  *		plan normally and pass back the results.
  *
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 2005-2008, Greenplum inc.
+ * Portions Copyright (c) 1996-2008, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/executor/nodeResult.c,v 1.34 2006/03/05 15:58:26 momjian Exp $
+ *	  $PostgreSQL: pgsql/src/backend/executor/nodeResult.c,v 1.34.2.4 2007/02/16 03:49:10 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -49,6 +50,68 @@
 #include "executor/nodeResult.h"
 #include "utils/memutils.h"
 
+#include "catalog/pg_type.h"
+#include "utils/lsyscache.h"
+
+#include "cdb/cdbhash.h"
+#include "cdb/cdbvars.h"
+#include "cdb/memquota.h"
+#include "executor/spi.h"
+
+static TupleTableSlot *NextInputSlot(ResultState *node);
+static bool TupleMatchesHashFilter(Result *resultNode, TupleTableSlot *resultSlot);
+
+/**
+ * Returns the next valid input tuple from the left subtree
+ */
+static TupleTableSlot *NextInputSlot(ResultState *node)
+{
+	Assert(outerPlanState(node));
+
+	TupleTableSlot *inputSlot = NULL;
+
+	while (!inputSlot)
+	{
+		PlanState  *outerPlan = outerPlanState(node);
+
+		TupleTableSlot *candidateInputSlot = ExecProcNode(outerPlan);
+
+		if (TupIsNull(candidateInputSlot))
+		{
+			/**
+			 * No more input tuples.
+			 */
+			break;
+		}
+
+		ExprContext *econtext = node->ps.ps_ExprContext;
+
+		/*
+		 * Reset per-tuple memory context to free any expression evaluation
+		 * storage allocated in the previous tuple cycle.  Note this can't happen
+		 * until we're done projecting out tuples from a scan tuple.
+		 */
+		ResetExprContext(econtext);
+
+		node->ps.ps_OuterTupleSlot = candidateInputSlot;
+		econtext->ecxt_outertuple = candidateInputSlot;
+		econtext->ecxt_scantuple = candidateInputSlot;
+
+		/**
+		 * Extract out qual in case result node is also performing filtering.
+		 */
+		List *qual = node->ps.qual;
+		bool passesFilter = !qual || ExecQual(qual, econtext, false);
+
+		if (passesFilter)
+		{
+			inputSlot = candidateInputSlot;
+		}
+	}
+
+	return inputSlot;
+
+}
 
 /* ----------------------------------------------------------------
  *		ExecResult(node)
@@ -66,11 +129,7 @@
 TupleTableSlot *
 ExecResult(ResultState *node)
 {
-	TupleTableSlot *outerTupleSlot;
-	TupleTableSlot *resultSlot;
-	PlanState  *outerPlan;
 	ExprContext *econtext;
-	ExprDoneCond isDone;
 
 	econtext = node->ps.ps_ExprContext;
 
@@ -86,85 +145,213 @@ ExecResult(ResultState *node)
 		node->rs_checkqual = false;
 		if (!qualResult)
 		{
-			node->rs_done = true;
 			return NULL;
 		}
 	}
 
-	/*
-	 * Check to see if we're still projecting out tuples from a previous scan
-	 * tuple (because there is a function-returning-set in the projection
-	 * expressions).  If so, try to project another one.
-	 */
-	if (node->ps.ps_TupFromTlist)
+	TupleTableSlot *outputSlot = NULL;
+
+	while (!outputSlot)
 	{
-		resultSlot = ExecProject(node->ps.ps_ProjInfo, &isDone);
-		if (isDone == ExprMultipleResult)
-			return resultSlot;
-		/* Done with that source tuple... */
-		node->ps.ps_TupFromTlist = false;
-	}
+		TupleTableSlot *candidateOutputSlot = NULL;
 
-	/*
-	 * Reset per-tuple memory context to free any expression evaluation
-	 * storage allocated in the previous tuple cycle.  Note this can't happen
-	 * until we're done projecting out tuples from a scan tuple.
-	 */
-	ResetExprContext(econtext);
-
-	/*
-	 * if rs_done is true then it means that we were asked to return a
-	 * constant tuple and we already did the last time ExecResult() was
-	 * called, OR that we failed the constant qual check. Either way, now we
-	 * are through.
-	 */
-	while (!node->rs_done)
-	{
-		outerPlan = outerPlanState(node);
-
-		if (outerPlan != NULL)
+		/*
+		 * Check to see if we're still projecting out tuples from a previous scan
+		 * tuple (because there is a function-returning-set in the projection
+		 * expressions).  If so, try to project another one.
+		 */
+		if (node->isSRF && node->lastSRFCond == ExprMultipleResult)
 		{
-			/*
-			 * retrieve tuples from the outer plan until there are no more.
-			 */
-			outerTupleSlot = ExecProcNode(outerPlan);
+			ExprDoneCond isDone;
 
-			if (TupIsNull(outerTupleSlot))
-				return NULL;
+			candidateOutputSlot = ExecProject(node->ps.ps_ProjInfo, &isDone);
 
-			node->ps.ps_OuterTupleSlot = outerTupleSlot;
-
-			/*
-			 * XXX gross hack. use outer tuple as scan tuple for projection
-			 */
-			econtext->ecxt_outertuple = outerTupleSlot;
-			econtext->ecxt_scantuple = outerTupleSlot;
+			Assert(isDone != ExprSingleResult);
+			node->lastSRFCond = isDone;
 		}
-		else
+
+		/**
+		 * If we did not find an input slot yet, we need to return from the outer plan node.
+		 */
+		if (TupIsNull(candidateOutputSlot) && outerPlanState(node))
 		{
+			TupleTableSlot *inputSlot = NextInputSlot(node);
+
+			if (TupIsNull(inputSlot))
+			{
+				/**
+				 * Did not find an input tuple. No point going further.
+				 */
+				break;
+			}
+
 			/*
-			 * if we don't have an outer plan, then we are just generating the
-			 * results from a constant target list.  Do it only once.
+			 * Reset per-tuple memory context to free any expression evaluation
+			 * storage allocated in the previous tuple cycle.  Note this can't happen
+			 * until we're done projecting out tuples from a scan tuple.
 			 */
-			node->rs_done = true;
+			ResetExprContext(econtext);
+
+			node->ps.ps_OuterTupleSlot = inputSlot;
+			econtext->ecxt_outertuple = inputSlot;
+			econtext->ecxt_scantuple = inputSlot;
+
+			ExprDoneCond isDone;
+
+			/*
+			 * form the result tuple using ExecProject(), and return it --- unless
+			 * the projection produces an empty set, in which case we must loop
+			 * back to see if there are more outerPlan tuples.
+			 */
+			candidateOutputSlot = ExecProject(node->ps.ps_ProjInfo, &isDone);
+			if (isDone != ExprSingleResult)
+			{
+				node->isSRF = true;
+				node->lastSRFCond = isDone;
+			}
+		}
+		else if (TupIsNull(candidateOutputSlot) && !outerPlanState(node) && !(node->inputFullyConsumed))
+		{
+			ExprDoneCond isDone;
+
+			/*
+			 * form the result tuple using ExecProject(), and return it --- unless
+			 * the projection produces an empty set, in which case we must loop
+			 * back to see if there are more outerPlan tuples.
+			 */
+			candidateOutputSlot = ExecProject(node->ps.ps_ProjInfo, &isDone);
+			node->inputFullyConsumed = true;
+			if (isDone != ExprSingleResult)
+			{
+				node->isSRF = true;
+				node->lastSRFCond = isDone;
+			}
+		}
+
+		if (!TupIsNull(candidateOutputSlot))
+		{
+			Result *result = (Result *)node->ps.plan;
+			if (TupleMatchesHashFilter(result, candidateOutputSlot))
+			{
+				outputSlot = candidateOutputSlot;
+			}
 		}
 
 		/*
-		 * form the result tuple using ExecProject(), and return it --- unless
-		 * the projection produces an empty set, in which case we must loop
-		 * back to see if there are more outerPlan tuples.
+		 * Under these conditions, we don't expect to find any more tuples.
 		 */
-		resultSlot = ExecProject(node->ps.ps_ProjInfo, &isDone);
-
-		if (isDone != ExprEndResult)
+		if (TupIsNull(candidateOutputSlot)
+				&& (!node->isSRF
+						|| (node->isSRF && node->inputFullyConsumed)
+					)
+			)
 		{
-			node->ps.ps_TupFromTlist = (isDone == ExprMultipleResult);
-			return resultSlot;
+			break;
 		}
 	}
 
-	return NULL;
+	return outputSlot;
 }
+
+/**
+ * Returns true if tuple matches hash filter.
+ */
+static bool TupleMatchesHashFilter(Result *resultNode, TupleTableSlot *resultSlot)
+{
+	bool res = true;
+
+	Assert(resultNode);
+	Assert(!TupIsNull(resultSlot));
+
+	if (resultNode->hashFilter)
+	{
+		Assert(resultNode->hashFilter);
+		ListCell	*cell = NULL;
+
+		Assert(list_length(resultNode->hashList) <= resultSlot->tts_tupleDescriptor->natts);
+
+		CdbHash *hash = makeCdbHash(GpIdentity.numsegments, HASH_FNV_1);
+		cdbhashinit(hash);
+		foreach(cell, resultNode->hashList)
+		{
+			/**
+			 * Note that a table may be randomly distributed. The hashList will be empty.
+			 */
+			Datum		hAttr;
+			bool		isnull;
+			Oid			att_type;
+
+			int attnum = lfirst_int(cell);
+
+			Assert(attnum > 0);
+			hAttr = slot_getattr(resultSlot, attnum, &isnull);
+			if (!isnull)
+			{
+				att_type = resultSlot->tts_tupleDescriptor->attrs[attnum - 1]->atttypid;
+
+				if (get_typtype(att_type) == 'd')
+					att_type = getBaseType(att_type);
+
+				/* CdbHash treats all array-types as ANYARRAYOID, it doesn't know how to hash
+				 * the individual types (why is this ?) */
+				switch (att_type)
+				{
+					case INT2ARRAYOID:
+					case INT4ARRAYOID:
+					case INT8ARRAYOID:
+					case FLOAT4ARRAYOID:
+					case FLOAT8ARRAYOID:
+					case REGTYPEARRAYOID:
+						att_type = ANYARRAYOID;
+						/* fall through */
+					default:
+						break;
+				}
+				cdbhash(hash, hAttr, att_type);
+			}
+			else
+				cdbhashnull(hash);
+		}
+		int targetSeg = cdbhashreduce(hash);
+
+		pfree(hash);
+
+		res = (targetSeg == GpIdentity.segindex);
+	}
+
+	return res;
+}
+
+/* ----------------------------------------------------------------
+ *		ExecResultMarkPos
+ * ----------------------------------------------------------------
+ */
+void
+ExecResultMarkPos(ResultState *node)
+{
+	PlanState  *outerPlan = outerPlanState(node);
+
+	if (outerPlan != NULL)
+		ExecMarkPos(outerPlan);
+	else
+		elog(DEBUG2, "Result nodes do not support mark/restore");
+}
+
+/* ----------------------------------------------------------------
+ *		ExecResultRestrPos
+ * ----------------------------------------------------------------
+ */
+void
+ExecResultRestrPos(ResultState *node)
+{
+	PlanState  *outerPlan = outerPlanState(node);
+
+	if (outerPlan != NULL)
+		ExecRestrPos(outerPlan);
+	else
+		insist_log(false, "Result nodes do not support mark/restore");
+}
+
 
 /* ----------------------------------------------------------------
  *		ExecInitResult
@@ -180,8 +367,8 @@ ExecInitResult(Result *node, EState *estate, int eflags)
 	ResultState *resstate;
 
 	/* check for unsupported flags */
-	Assert(!(eflags & EXEC_FLAG_MARK));
-	Assert(!(eflags & EXEC_FLAG_BACKWARD) || outerPlan(node) != NULL);
+	Assert(!(eflags & (EXEC_FLAG_MARK | EXEC_FLAG_BACKWARD)) ||
+		   outerPlan(node) != NULL);
 
 	/*
 	 * create state structure
@@ -190,7 +377,7 @@ ExecInitResult(Result *node, EState *estate, int eflags)
 	resstate->ps.plan = (Plan *) node;
 	resstate->ps.state = estate;
 
-	resstate->rs_done = false;
+	resstate->inputFullyConsumed = false;
 	resstate->rs_checkqual = (node->resconstantqual == NULL) ? false : true;
 
 	/*
@@ -199,6 +386,8 @@ ExecInitResult(Result *node, EState *estate, int eflags)
 	 * create expression context for node
 	 */
 	ExecAssignExprContext(estate, &resstate->ps);
+
+	resstate->isSRF = false;
 
 #define RESULT_NSLOTS 1
 
@@ -233,7 +422,15 @@ ExecInitResult(Result *node, EState *estate, int eflags)
 	 * initialize tuple type and projection info
 	 */
 	ExecAssignResultTypeFromTL(&resstate->ps);
-	ExecAssignProjectionInfo(&resstate->ps);
+	ExecAssignProjectionInfo(&resstate->ps, NULL);
+
+	if (gp_resqueue_memory_policy != RESQUEUE_MEMORY_POLICY_NONE
+			&& IsResultMemoryIntesive(node))
+	{
+		SPI_ReserveMemory(((Plan *)node)->operatorMemKB * 1024L);
+	}
+
+	initGpmonPktForResult((Plan *)node, &resstate->ps.gpmon_pkt, estate);
 
 	return resstate;
 }
@@ -267,20 +464,36 @@ ExecEndResult(ResultState *node)
 	 * shut down subplans
 	 */
 	ExecEndNode(outerPlanState(node));
+
+	EndPlanStateGpmonPkt(&node->ps);
+
 }
 
 void
 ExecReScanResult(ResultState *node, ExprContext *exprCtxt)
 {
-	node->rs_done = false;
-	node->ps.ps_TupFromTlist = false;
+	node->inputFullyConsumed = false;
+	node->isSRF = false;
 	node->rs_checkqual = (node->resconstantqual == NULL) ? false : true;
 
 	/*
-	 * if chgParam of subnode is not null then plan will be re-scanned by
-	 * first ExecProcNode.
+	 * If chgParam of subnode is not null then plan will be re-scanned by
+	 * first ExecProcNode.  However, if caller is passing us an exprCtxt
+	 * then forcibly rescan the subnode now, so that we can pass the
+	 * exprCtxt down to the subnode (needed for gated indexscan).
 	 */
-	if (((PlanState *) node)->lefttree &&
-		((PlanState *) node)->lefttree->chgParam == NULL)
-		ExecReScan(((PlanState *) node)->lefttree, exprCtxt);
+	if (node->ps.lefttree &&
+		(node->ps.lefttree->chgParam == NULL || exprCtxt != NULL))
+		ExecReScan(node->ps.lefttree, exprCtxt);
+}
+
+void
+initGpmonPktForResult(Plan *planNode, gpmon_packet_t *gpmon_pkt, EState *estate)
+{
+	Assert(planNode != NULL && gpmon_pkt != NULL && IsA(planNode, Result));
+
+	{
+		Assert(GPMON_RESULT_TOTAL <= (int)GPMON_QEXEC_M_COUNT);
+		InitPlanNodeGpmonPkt(planNode, gpmon_pkt, estate, PMNT_Result, (int64)0, NULL);
+	}
 }

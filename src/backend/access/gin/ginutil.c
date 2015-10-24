@@ -4,7 +4,7 @@
  *	  utilities routines for the postgres inverted index access method.
  *
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2008, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
@@ -18,6 +18,7 @@
 #include "access/heapam.h"
 #include "access/reloptions.h"
 #include "storage/freespace.h"
+#include "cdb/cdbfilerepprimary.h"
 
 void
 initGinState(GinState *state, Relation index)
@@ -53,6 +54,8 @@ GinNewBuffer(Relation index)
 {
 	Buffer		buffer;
 	bool		needLock;
+
+	MIRROREDLOCK_BUFMGR_MUST_ALREADY_BE_HELD;
 
 	/* First, try to get a page from FSM */
 	for (;;)
@@ -235,6 +238,7 @@ ginoptions(PG_FUNCTION_ARGS)
 #define GIN_DEFAULT_FILLFACTOR		100
 
 	result = default_reloptions(reloptions, validate,
+								RELKIND_INDEX,
 								GIN_MIN_FILLFACTOR,
 								GIN_DEFAULT_FILLFACTOR);
 	if (result)

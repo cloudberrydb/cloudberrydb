@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<dxl:DXLMessage xmlns:dxl="http://greenplum.com/dxl/2010/12/">
+  <dxl:ScalarExpr>
+             <dxl:FuncExpr FuncId="0.1317.1.0" FuncRetSet="false" TypeMdid="0.23.1.0">
+             <dxl:ConstValue TypeMdid="0.25.1.0" IsNull="false" IsByValue="false" Value="AAAAClRob21hcw==" LintValue="278553470"/>
+             </dxl:FuncExpr>
+  </dxl:ScalarExpr>
+</dxl:DXLMessage>

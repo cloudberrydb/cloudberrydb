@@ -3,12 +3,12 @@
  * joininfo.c
  *	  joininfo list manipulation routines
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2008, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/optimizer/util/joininfo.c,v 1.44 2006/03/05 15:58:31 momjian Exp $
+ *	  $PostgreSQL: pgsql/src/backend/optimizer/util/joininfo.c,v 1.44.2.2 2007/02/16 00:14:07 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -24,7 +24,8 @@
  *		the two given relations.
  */
 bool
-have_relevant_joinclause(RelOptInfo *rel1, RelOptInfo *rel2)
+have_relevant_joinclause(PlannerInfo *root,
+						 RelOptInfo *rel1, RelOptInfo *rel2)
 {
 	bool		result = false;
 	Relids		join_relids;

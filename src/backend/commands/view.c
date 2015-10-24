@@ -3,7 +3,8 @@
  * view.c
  *	  use rewrite rules to construct views
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 2006-2008, Greenplum inc
+ * Portions Copyright (c) 1996-2008, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -18,6 +19,8 @@
 #include "access/xact.h"
 #include "catalog/dependency.h"
 #include "catalog/namespace.h"
+#include "catalog/pg_depend.h"
+#include "catalog/pg_type.h"
 #include "commands/defrem.h"
 #include "commands/tablecmds.h"
 #include "commands/view.h"
@@ -31,6 +34,12 @@
 #include "rewrite/rewriteSupport.h"
 #include "utils/acl.h"
 #include "utils/lsyscache.h"
+
+
+#include "cdb/cdbdisp.h"
+#include "cdb/cdbsrlz.h"
+#include "cdb/cdbvars.h"
+#include "cdb/cdbcat.h"
 
 
 static void checkViewTupleDesc(TupleDesc newdesc, TupleDesc olddesc);
@@ -96,13 +105,27 @@ isViewOnTempTable_walker(Node *node, void *context)
  *---------------------------------------------------------------------
  */
 static Oid
-DefineVirtualRelation(const RangeVar *relation, List *tlist, bool replace)
+DefineVirtualRelation(const RangeVar *relation, List *tlist, bool replace, Oid viewOid, Oid * comptypeOid)
 {
-	Oid			viewOid,
-				namespaceId;
+	Oid			namespaceId;
 	CreateStmt *createStmt = makeNode(CreateStmt);
 	List	   *attrList;
 	ListCell   *t;
+
+	createStmt->oidInfo.relOid = viewOid;
+	if (comptypeOid)
+		createStmt->oidInfo.comptypeOid = *comptypeOid;
+	else
+		createStmt->oidInfo.comptypeOid = 0;
+	createStmt->oidInfo.toastOid = 0;
+	createStmt->oidInfo.toastIndexOid = 0;
+	createStmt->oidInfo.aosegOid = 0;
+	createStmt->oidInfo.aosegIndexOid = 0;
+	createStmt->oidInfo.aoblkdirOid = 0;
+	createStmt->oidInfo.aoblkdirIndexOid = 0;
+	createStmt->oidInfo.aovisimapOid = 0;
+	createStmt->oidInfo.aovisimapIndexOid = 0;
+	createStmt->ownerid = GetUserId();
 
 	/*
 	 * create a list of ColumnDef nodes based on the names and types of the
@@ -118,7 +141,7 @@ DefineVirtualRelation(const RangeVar *relation, List *tlist, bool replace)
 			ColumnDef  *def = makeNode(ColumnDef);
 
 			def->colname = pstrdup(tle->resname);
-			def->typename = makeTypeNameFromOid(exprType((Node *) tle->expr),
+			def->typname = makeTypeNameFromOid(exprType((Node *) tle->expr),
 											 exprTypmod((Node *) tle->expr));
 			def->inhcount = 0;
 			def->is_local = true;
@@ -179,6 +202,17 @@ DefineVirtualRelation(const RangeVar *relation, List *tlist, bool replace)
 		descriptor = BuildDescForRelation(attrList);
 		checkViewTupleDesc(descriptor, rel->rd_att);
 
+		/* During upgrade mode, use the "alter table add column" code to add new
+		 * columns to the view definition.
+		 */
+		if (gp_upgrade_mode && descriptor->natts > rel->rd_att->natts)
+		{
+			int i = 0;
+			foreach_with_count(t, attrList, i)
+				if (i >= rel->rd_att->natts)
+					ATAddColumn(rel, (ColumnDef*)lfirst(t));
+		}
+
 		/*
 		 * Seems okay, so return the OID of the pre-existing view.
 		 */
@@ -188,6 +222,7 @@ DefineVirtualRelation(const RangeVar *relation, List *tlist, bool replace)
 	}
 	else
 	{
+		Oid newviewOid;
 		/*
 		 * now set the parameters for keys/inheritance etc. All of these are
 		 * uninteresting for views...
@@ -195,17 +230,23 @@ DefineVirtualRelation(const RangeVar *relation, List *tlist, bool replace)
 		createStmt->relation = (RangeVar *) relation;
 		createStmt->tableElts = attrList;
 		createStmt->inhRelations = NIL;
+		createStmt->inhOids = NIL;
+		createStmt->parentOidCount = 0;
 		createStmt->constraints = NIL;
 		createStmt->options = list_make1(defWithOids(false));
 		createStmt->oncommit = ONCOMMIT_NOOP;
 		createStmt->tablespacename = NULL;
+		createStmt->relKind = RELKIND_VIEW;
 
 		/*
 		 * finally create the relation (this will error out if there's an
 		 * existing view, so we don't need more code to complain if "replace"
 		 * is false).
 		 */
-		return DefineRelation(createStmt, RELKIND_VIEW);
+		newviewOid =  DefineRelation(createStmt, RELKIND_VIEW, RELSTORAGE_VIRTUAL);
+		if(comptypeOid)
+			*comptypeOid = createStmt->oidInfo.comptypeOid;
+		return newviewOid;
 	}
 }
 
@@ -219,13 +260,22 @@ checkViewTupleDesc(TupleDesc newdesc, TupleDesc olddesc)
 {
 	int			i;
 
-	if (newdesc->natts != olddesc->natts)
+	/* The number of columns in the view can't change,
+	 * except during upgrade where the number of col
+	 * can increase.
+	 */
+	if (!gp_upgrade_mode && newdesc->natts != olddesc->natts)
 		ereport(ERROR,
 				(errcode(ERRCODE_INVALID_TABLE_DEFINITION),
 				 errmsg("cannot change number of columns in view")));
+	if (gp_upgrade_mode && newdesc->natts < olddesc->natts)
+		ereport(ERROR,
+				(errcode(ERRCODE_INVALID_TABLE_DEFINITION),
+				 errmsg("cannot reduce the number of columns in view")));
+
 	/* we can ignore tdhasoid */
 
-	for (i = 0; i < newdesc->natts; i++)
+	for (i = 0; i < olddesc->natts; i++)
 	{
 		Form_pg_attribute newattr = newdesc->attrs[i];
 		Form_pg_attribute oldattr = olddesc->attrs[i];
@@ -259,7 +309,7 @@ checkViewTupleDesc(TupleDesc newdesc, TupleDesc olddesc)
 }
 
 static RuleStmt *
-FormViewRetrieveRule(const RangeVar *view, Query *viewParse, bool replace)
+FormViewRetrieveRule(const RangeVar *view, Query *viewParse, bool replace, Oid rewriteOid)
 {
 	RuleStmt   *rule;
 
@@ -275,12 +325,13 @@ FormViewRetrieveRule(const RangeVar *view, Query *viewParse, bool replace)
 	rule->instead = true;
 	rule->actions = list_make1(viewParse);
 	rule->replace = replace;
+	rule->ruleOid = rewriteOid;
 
 	return rule;
 }
 
 static void
-DefineViewRules(const RangeVar *view, Query *viewParse, bool replace)
+DefineViewRules(const RangeVar *view, Query *viewParse, bool replace, Oid* rewriteOid)
 {
 	RuleStmt   *retrieve_rule;
 
@@ -290,7 +341,7 @@ DefineViewRules(const RangeVar *view, Query *viewParse, bool replace)
 	RuleStmt   *delete_rule;
 #endif
 
-	retrieve_rule = FormViewRetrieveRule(view, viewParse, replace);
+	retrieve_rule = FormViewRetrieveRule(view, viewParse, replace, *rewriteOid);
 
 #ifdef NOTYET
 	replace_rule = FormViewReplaceRule(view, viewParse);
@@ -299,6 +350,7 @@ DefineViewRules(const RangeVar *view, Query *viewParse, bool replace)
 #endif
 
 	DefineQueryRewrite(retrieve_rule);
+	*rewriteOid = retrieve_rule->ruleOid;
 
 #ifdef NOTYET
 	DefineQueryRewrite(replace_rule);
@@ -387,10 +439,15 @@ UpdateRangeTableOfViewParse(Oid viewOid, Query *viewParse)
  *-------------------------------------------------------------------
  */
 void
-DefineView(RangeVar *view, Query *viewParse, bool replace)
+DefineView(ViewStmt *stmt)
 {
-	Oid			viewOid;
+	Oid			viewOid = stmt->relOid;
+	RangeVar   *view = stmt->view;
+	Query	   *viewParse = stmt->query;
+	bool		replace = stmt->replace;
 
+	if (Gp_role != GP_ROLE_EXECUTE)
+		viewOid = 0;
 	/*
 	 * If the user didn't explicitly ask for a temporary view, check whether
 	 * we need one implicitly.
@@ -399,6 +456,7 @@ DefineView(RangeVar *view, Query *viewParse, bool replace)
 	{
 		view->istemp = isViewOnTempTable(viewParse);
 		if (view->istemp)
+			if (Gp_role != GP_ROLE_EXECUTE)
 			ereport(NOTICE,
 					(errmsg("view \"%s\" will be a temporary view",
 							view->relname)));
@@ -410,7 +468,9 @@ DefineView(RangeVar *view, Query *viewParse, bool replace)
 	 * NOTE: if it already exists and replace is false, the xact will be
 	 * aborted.
 	 */
-	viewOid = DefineVirtualRelation(view, viewParse->targetList, replace);
+	viewOid = DefineVirtualRelation(view, viewParse->targetList, replace, viewOid, &stmt->comptypeOid);
+
+	stmt->relOid = viewOid;
 
 	/*
 	 * The relation we have just created is not visible to any other commands
@@ -428,7 +488,13 @@ DefineView(RangeVar *view, Query *viewParse, bool replace)
 	/*
 	 * Now create the rules associated with the view.
 	 */
-	DefineViewRules(view, viewParse, replace);
+	DefineViewRules(view, viewParse, replace, &stmt->rewriteOid);
+
+	if (Gp_role == GP_ROLE_DISPATCH)
+	{
+		CdbDispatchUtilityStatement((Node *) stmt, "DefineView");
+
+	}
 }
 
 /*
@@ -450,6 +516,13 @@ RemoveView(const RangeVar *view, DropBehavior behavior)
 	object.classId = RelationRelationId;
 	object.objectId = viewOid;
 	object.objectSubId = 0;
+
+	if (Gp_role == GP_ROLE_DISPATCH)
+	{
+		LockRelationOid(RelationRelationId, RowExclusiveLock);
+		LockRelationOid(TypeRelationId, RowExclusiveLock);
+		LockRelationOid(DependRelationId, RowExclusiveLock);
+	}
 
 	performDeletion(&object, behavior);
 }

@@ -4,7 +4,7 @@
  *	  private declarations for GiST -- declarations related to the
  *	  internal implementation of GiST, not the public API
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2008, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * $PostgreSQL: pgsql/src/include/access/gist_private.h,v 1.24 2006/10/04 00:30:07 momjian Exp $
@@ -60,6 +60,12 @@ typedef struct GISTSTATE
 	TupleDesc	tupdesc;
 } GISTSTATE;
 
+typedef struct MatchedItemPtr 
+{
+        ItemPointerData         heapPtr;
+        OffsetNumber            pageOffset; /* offset in index page */
+} MatchedItemPtr;
+
 /*
  *	When we're doing a scan, we need to keep track of the parent stack
  *	for the marked and current items.
@@ -73,6 +79,13 @@ typedef struct GISTScanOpaqueData
 	MemoryContext tempCxt;
 	Buffer		curbuf;
 	Buffer		markbuf;
+
+	MatchedItemPtr 	pageData[BLCKSZ/sizeof(IndexTupleData)];
+	OffsetNumber    nPageData;
+	OffsetNumber    curPageData;
+	MatchedItemPtr 	markPageData[BLCKSZ/sizeof(IndexTupleData)];
+	OffsetNumber    markNPageData;
+	OffsetNumber    markCurPageData;
 } GISTScanOpaqueData;
 
 typedef GISTScanOpaqueData *GISTScanOpaque;
@@ -89,8 +102,10 @@ extern const XLogRecPtr XLogRecPtrForTemp;
 
 typedef struct gistxlogPageUpdate
 {
-	RelFileNode node;
-	BlockNumber blkno;
+	RelFileNode 	node;
+	ItemPointerData persistentTid;
+	int64 			persistentSerialNum;
+	BlockNumber 	blkno;
 
 	/*
 	 * It used to identify completeness of insert. Sets to leaf itup
@@ -107,8 +122,11 @@ typedef struct gistxlogPageUpdate
 
 typedef struct gistxlogPageSplit
 {
-	RelFileNode node;
-	BlockNumber origblkno;		/* splitted page */
+	RelFileNode 	node;
+	ItemPointerData persistentTid;
+	int64 			persistentSerialNum;
+
+	BlockNumber  origblkno;		/* splitted page */
 	bool		origleaf;		/* was splitted page a leaf page? */
 	uint16		npage;
 
@@ -119,6 +137,14 @@ typedef struct gistxlogPageSplit
 	 * follow: 1. gistxlogPage and array of IndexTupleData per page
 	 */
 } gistxlogPageSplit;
+
+typedef struct gistxlogCreateIndex
+{
+	RelFileNode 	node;
+	ItemPointerData persistentTid;
+	int64 			persistentSerialNum;
+
+} gistxlogCreateIndex;
 
 typedef struct gistxlogPage
 {
@@ -134,8 +160,10 @@ typedef struct gistxlogInsertComplete
 
 typedef struct gistxlogPageDelete
 {
-	RelFileNode node;
-	BlockNumber blkno;
+	RelFileNode 	node;
+	ItemPointerData persistentTid;
+	int64 			persistentSerialNum;
+	BlockNumber 	blkno;
 } gistxlogPageDelete;
 
 /* SplitedPageLayout - gistSplit function result */
@@ -198,8 +226,6 @@ typedef struct GistSplitVector
 								 * distributed between left and right pages */
 } GistSplitVector;
 
-#define XLogRecPtrIsInvalid( r )	( (r).xlogid == 0 && (r).xrecoff == 0 )
-
 typedef struct
 {
 	Relation	r;
@@ -250,20 +276,22 @@ extern SplitedPageLayout *gistSplit(Relation r, Page page, IndexTuple *itup,
 extern GISTInsertStack *gistFindPath(Relation r, BlockNumber child);
 
 /* gistxlog.c */
-extern void gist_redo(XLogRecPtr lsn, XLogRecord *record);
-extern void gist_desc(StringInfo buf, uint8 xl_info, char *rec);
+extern void gist_redo(XLogRecPtr beginLoc, XLogRecPtr lsn, XLogRecord *record);
+extern void gist_desc(StringInfo buf, XLogRecPtr beginLoc, XLogRecord *record);
 extern void gist_xlog_startup(void);
 extern void gist_xlog_cleanup(void);
 extern bool gist_safe_restartpoint(void);
 extern IndexTuple gist_form_invalid_tuple(BlockNumber blkno);
 
-extern XLogRecData *formUpdateRdata(RelFileNode node, Buffer buffer,
+extern XLogRecData *formUpdateRdata(Relation r, Buffer buffer,
 				OffsetNumber *todelete, int ntodelete,
 				IndexTuple *itup, int ituplen, ItemPointer key);
 
-extern XLogRecData *formSplitRdata(RelFileNode node,
+extern XLogRecData *formSplitRdata(Relation r,
 			   BlockNumber blkno, bool page_is_leaf,
 			   ItemPointer key, SplitedPageLayout *dist);
+
+extern XLogRecData *formCreateRData(Relation r);
 
 extern XLogRecPtr gistxlogInsertCompletion(RelFileNode node, ItemPointerData *keys, int len);
 

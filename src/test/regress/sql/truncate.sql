@@ -1,5 +1,5 @@
 -- Test basic TRUNCATE functionality.
-CREATE TABLE truncate_a (col1 integer primary key);
+CREATE TABLE truncate_a (col1 integer primary key) DISTRIBUTED BY (col1);
 INSERT INTO truncate_a VALUES (1);
 INSERT INTO truncate_a VALUES (2);
 SELECT * FROM truncate_a;
@@ -16,7 +16,7 @@ SELECT * FROM truncate_a;
 
 -- Test foreign-key checks
 CREATE TABLE trunc_b (a int REFERENCES truncate_a);
-CREATE TABLE trunc_c (a serial PRIMARY KEY);
+CREATE TABLE trunc_c (a serial PRIMARY KEY) DISTRIBUTED BY (a);
 CREATE TABLE trunc_d (a int REFERENCES trunc_c);
 CREATE TABLE trunc_e (a int REFERENCES truncate_a, b int REFERENCES trunc_c);
 

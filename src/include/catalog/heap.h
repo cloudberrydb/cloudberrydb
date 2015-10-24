@@ -4,7 +4,8 @@
  *	  prototypes for functions in backend/catalog/heap.c
  *
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 2005-2008, Greenplum inc
+ * Portions Copyright (c) 1996-2008, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * $PostgreSQL: pgsql/src/include/catalog/heap.h,v 1.85 2006/07/13 16:49:19 momjian Exp $
@@ -15,13 +16,7 @@
 #define HEAP_H
 
 #include "parser/parse_node.h"
-
-
-typedef struct RawColumnDefault
-{
-	AttrNumber	attnum;			/* attribute to attach default to */
-	Node	   *raw_default;	/* default value (untransformed parse tree) */
-} RawColumnDefault;
+#include "catalog/gp_persistent.h"
 
 typedef struct CookedConstraint
 {
@@ -36,9 +31,12 @@ extern Relation heap_create(const char *relname,
 			Oid reltablespace,
 			Oid relid,
 			TupleDesc tupDesc,
+			Oid relam,
 			char relkind,
+			char relstorage,
 			bool shared_relation,
-			bool allow_system_table_mods);
+			bool allow_system_table_mods,
+			bool bufferPoolBulkLoad);
 
 extern Oid heap_create_with_catalog(const char *relname,
 						 Oid relnamespace,
@@ -46,13 +44,21 @@ extern Oid heap_create_with_catalog(const char *relname,
 						 Oid relid,
 						 Oid ownerid,
 						 TupleDesc tupdesc,
+						 Oid relam,
 						 char relkind,
+						 char relstorage,
 						 bool shared_relation,
 						 bool oidislocal,
+						 bool bufferPoolBulkLoad,
 						 int oidinhcount,
 						 OnCommitAction oncommit,
+                         const struct GpPolicy *policy,    /* MPP */
 						 Datum reloptions,
-						 bool allow_system_table_mods);
+						 bool allow_system_table_mods,
+						 bool valid_opts,
+						 Oid *comptypeOid, /* MPP */
+						 ItemPointer persistentTid,
+						 int64 *persistentSerialNum);
 
 extern void heap_drop_with_catalog(Oid relid);
 
@@ -67,11 +73,32 @@ extern void InsertPgClassTuple(Relation pg_class_desc,
 				   Oid new_rel_oid,
 				   Datum reloptions);
 
+extern void InsertGpRelationNodeTuple(
+	Relation 		gp_relation_node,
+	Oid				relationId,
+	char			*relname,
+	Oid				relation,
+	int32			segmentFileNum,
+	bool			updateIndex,
+	ItemPointer		persistentTid,
+	int64			persistentSerialNum);
+extern void UpdateGpRelationNodeTuple(
+		Relation	gp_relation_node,
+		HeapTuple	tuple,
+		Oid 		relation,
+		int32		segmentFileNum,
+		ItemPointer persistentTid,
+		int64		persistentSerialNum);
+
 extern List *AddRelationRawConstraints(Relation rel,
 						  List *rawColDefaults,
 						  List *rawConstraints);
+extern List *AddRelationConstraints(Relation rel,
+						  List *rawColDefaults,
+						  List *constraints);
 
-extern void StoreAttrDefault(Relation rel, AttrNumber attnum, char *adbin);
+extern Oid StoreAttrDefault(Relation rel, AttrNumber attnum, Node *expr,
+							Oid defoid);
 
 extern Node *cookDefault(ParseState *pstate,
 			Node *raw_default,
@@ -85,7 +112,7 @@ extern int RemoveRelConstraints(Relation rel, const char *constrName,
 extern void DeleteRelationTuple(Oid relid);
 extern void DeleteAttributeTuples(Oid relid);
 extern void RemoveAttributeById(Oid relid, AttrNumber attnum);
-extern void RemoveAttrDefault(Oid relid, AttrNumber attnum,
+extern Oid RemoveAttrDefault(Oid relid, AttrNumber attnum,
 				  DropBehavior behavior, bool complain);
 extern void RemoveAttrDefaultById(Oid attrdefId);
 extern void RemoveStatistics(Oid relid, AttrNumber attnum);
@@ -99,5 +126,30 @@ extern Form_pg_attribute SystemAttributeByName(const char *attname,
 extern void CheckAttributeNamesTypes(TupleDesc tupdesc, char relkind);
 
 extern void CheckAttributeType(const char *attname, Oid atttypid);
+extern void SetRelationNumChecks(Relation rel, int numchecks);
+
+extern Oid setNewRelfilenode(Relation relation);
+
+extern Oid setNewRelfilenodeToOid(Relation relation, Oid newrelfilenode);
+
+/* MPP-6929: metadata tracking */
+extern void MetaTrackAddObject(Oid		classid, 
+							   Oid		objoid, 
+							   Oid		relowner,
+							   char*	actionname,
+							   char*	subtype);
+extern void MetaTrackUpdObject(Oid		classid, 
+							   Oid		objoid, 
+							   Oid		relowner,
+							   char*	actionname,
+							   char*	subtype);
+extern void MetaTrackDropObject(Oid		classid, 
+								Oid		objoid);
+
+#define MetaTrackValidRelkind(relkind) \
+		(((relkind) == RELKIND_RELATION) \
+		|| ((relkind) == RELKIND_INDEX) \
+		|| ((relkind) == RELKIND_SEQUENCE) \
+		|| ((relkind) == RELKIND_VIEW)) 
 
 #endif   /* HEAP_H */

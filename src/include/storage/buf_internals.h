@@ -5,7 +5,7 @@
  *	  strategy.
  *
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2008, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * $PostgreSQL: pgsql/src/include/storage/buf_internals.h,v 1.88 2006/10/19 18:32:47 tgl Exp $
@@ -18,7 +18,9 @@
 #include "storage/buf.h"
 #include "storage/lwlock.h"
 #include "storage/shmem.h"
+#include "storage/smgr.h"
 #include "storage/spin.h"
+#include "utils/relcache.h"
 #include "utils/rel.h"
 
 
@@ -35,6 +37,7 @@
 #define BM_IO_ERROR				(1 << 4)		/* previous I/O failed */
 #define BM_JUST_DIRTIED			(1 << 5)		/* dirtied since write started */
 #define BM_PIN_COUNT_WAITER		(1 << 6)		/* have waiter for sole pin */
+// unused #define BM_CHECKPOINT_NEEDED	(1 << 7)		/* must write for checkpoint */
 
 typedef bits16 BufFlags;
 
@@ -162,7 +165,7 @@ typedef struct sbufdesc
 
 
 /* in buf_init.c */
-extern DLLIMPORT BufferDesc *BufferDescriptors;
+extern PGDLLIMPORT volatile BufferDesc *BufferDescriptors;
 
 /* in localbuf.c */
 extern BufferDesc *LocalBufferDescriptors;
@@ -199,7 +202,9 @@ extern int	BufTableInsert(BufferTag *tagPtr, uint32 hashcode, int buf_id);
 extern void BufTableDelete(BufferTag *tagPtr, uint32 hashcode);
 
 /* localbuf.c */
-extern BufferDesc *LocalBufferAlloc(Relation reln, BlockNumber blockNum,
+/*extern BufferDesc *LocalBufferAlloc(Relation reln, BlockNumber blockNum,
+  bool *foundPtr);*/
+extern BufferDesc *LocalBufferAlloc_SMgr(SMgrRelation reln, BlockNumber blockNum,
 				 bool *foundPtr);
 extern void MarkLocalBufferDirty(Buffer buffer);
 extern void DropRelFileNodeLocalBuffers(RelFileNode rnode,

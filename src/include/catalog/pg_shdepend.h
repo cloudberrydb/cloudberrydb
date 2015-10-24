@@ -5,7 +5,7 @@
  *	  along with the relation's initial contents.
  *
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2008, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * $PostgreSQL: pgsql/src/include/catalog/pg_shdepend.h,v 1.4 2006/03/05 15:58:55 momjian Exp $
@@ -19,12 +19,30 @@
 #ifndef PG_SHDEPEND_H
 #define PG_SHDEPEND_H
 
-/* ----------------
- *		postgres.h contains the system type definitions and the
- *		CATALOG(), BKI_BOOTSTRAP and DATA() sugar words so this file
- *		can be read by both genbki.sh and the C compiler.
- * ----------------
- */
+#include "catalog/genbki.h"
+
+/* TIDYCAT_BEGINFAKEDEF
+
+   CREATE TABLE pg_shdepend
+   with (camelcase=SharedDepend, shared=true, oid=false, relid=1214, content=SEGMENT_LOCAL)
+   (
+   dbid        oid, 
+   classid     oid, 
+   objid       oid, 
+   refclassid  oid, 
+   refobjid    oid, 
+   deptype     "char"
+   );
+
+   create index on pg_shdepend(dbid, classid, objid) with (indexid=1232, CamelCase=SharedDependDepender);
+   create index on pg_shdepend(refclassid, refobjid) with (indexid=1233, CamelCase=SharedDependReference);
+
+   alter table pg_shdepend add fk dbid on pg_database(oid);
+   alter table pg_shdepend add fk classid on pg_class(oid);
+   alter table pg_shdepend add fk refclassid on pg_class(oid);
+
+   TIDYCAT_ENDFAKEDEF
+*/
 
 /* ----------------
  *		pg_shdepend definition.  cpp turns this into

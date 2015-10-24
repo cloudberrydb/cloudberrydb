@@ -3,10 +3,10 @@
  * tzparser.h
  *	  Timezone offset file parsing definitions.
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
- * $PostgreSQL: pgsql/src/include/utils/tzparser.h,v 1.2 2006/10/04 00:30:11 momjian Exp $
+ * $PostgreSQL: pgsql/src/include/utils/tzparser.h,v 1.5 2009/01/01 17:24:02 momjian Exp $
  *
  *-------------------------------------------------------------------------
  */

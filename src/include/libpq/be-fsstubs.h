@@ -4,10 +4,10 @@
  *
  *
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2010, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
- * $PostgreSQL: pgsql/src/include/libpq/be-fsstubs.h,v 1.27 2006/09/07 15:37:25 momjian Exp $
+ * $PostgreSQL: pgsql/src/include/libpq/be-fsstubs.h,v 1.35 2010/02/26 02:01:24 momjian Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -20,6 +20,7 @@
  * LO functions available via pg_proc entries
  */
 extern Datum lo_import(PG_FUNCTION_ARGS);
+extern Datum lo_import_with_oid(PG_FUNCTION_ARGS);
 extern Datum lo_export(PG_FUNCTION_ARGS);
 
 extern Datum lo_creat(PG_FUNCTION_ARGS);
@@ -34,6 +35,12 @@ extern Datum lowrite(PG_FUNCTION_ARGS);
 extern Datum lo_lseek(PG_FUNCTION_ARGS);
 extern Datum lo_tell(PG_FUNCTION_ARGS);
 extern Datum lo_unlink(PG_FUNCTION_ARGS);
+extern Datum lo_truncate(PG_FUNCTION_ARGS);
+
+/*
+ * compatibility option for access control
+ */
+extern bool lo_compat_privileges;
 
 /*
  * These are not fmgr-callable, but are available to C code.

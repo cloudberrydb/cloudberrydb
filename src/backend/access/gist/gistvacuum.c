@@ -4,7 +4,7 @@
  *	  interface routines for the postgres GiST index access method.
  *
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2008, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
@@ -21,6 +21,7 @@
 #include "miscadmin.h"
 #include "storage/freespace.h"
 #include "utils/memutils.h"
+#include "cdb/cdbfilerepprimary.h"
 
 
 typedef struct GistBulkDeleteResult
@@ -83,6 +84,8 @@ gistDeleteSubtree(GistVacuum *gv, BlockNumber blkno)
 	Buffer		buffer;
 	Page		page;
 
+	MIRROREDLOCK_BUFMGR_MUST_ALREADY_BE_HELD;
+
 	buffer = ReadBuffer(gv->index, blkno);
 	LockBuffer(buffer, GIST_EXCLUSIVE);
 	page = (Page) BufferGetPage(buffer);
@@ -114,7 +117,12 @@ gistDeleteSubtree(GistVacuum *gv, BlockNumber blkno)
 		XLogRecPtr	recptr;
 		gistxlogPageDelete xlrec;
 
+		// Fetch gp_persistent_relation_node information that will be added to XLOG record.
+		RelationFetchGpRelationNodeForXLog(gv->index);
+
 		xlrec.node = gv->index->rd_node;
+		xlrec.persistentTid = gv->index->rd_segfile0_relationnodeinfo.persistentTid;
+		xlrec.persistentSerialNum = gv->index->rd_segfile0_relationnodeinfo.persistentSerialNum;
 		xlrec.blkno = blkno;
 
 		rdata[0].buffer = buffer;
@@ -161,8 +169,13 @@ vacuumSplitPage(GistVacuum *gv, Page tempPage, Buffer buffer, IndexTuple *addon,
 			   *ptr;
 	int			i,
 				veclen = 0;
-	BlockNumber blkno = BufferGetBlockNumber(buffer);
-	MemoryContext oldCtx = MemoryContextSwitchTo(gv->opCtx);
+	BlockNumber blkno;
+	MemoryContext oldCtx;
+
+	MIRROREDLOCK_BUFMGR_MUST_ALREADY_BE_HELD;
+	
+	blkno = BufferGetBlockNumber(buffer);
+	oldCtx = MemoryContextSwitchTo(gv->opCtx);
 
 	vec = gistextractpage(tempPage, &veclen);
 	vec = gistjoinvector(vec, &veclen, addon, curlenaddon);
@@ -235,7 +248,7 @@ vacuumSplitPage(GistVacuum *gv, Page tempPage, Buffer buffer, IndexTuple *addon,
 
 		ItemPointerSet(&key, blkno, TUPLE_IS_VALID);
 
-		rdata = formSplitRdata(gv->index->rd_node, blkno,
+		rdata = formSplitRdata(gv->index, blkno,
 							   false, &key, dist);
 		xlinfo = rdata->data;
 
@@ -281,6 +294,8 @@ vacuumSplitPage(GistVacuum *gv, Page tempPage, Buffer buffer, IndexTuple *addon,
 static ArrayTuple
 gistVacuumUpdate(GistVacuum *gv, BlockNumber blkno, bool needunion)
 {
+	MIRROREDLOCK_BUFMGR_DECLARE;
+
 	ArrayTuple	res = {NULL, 0, false};
 	Buffer		buffer;
 	Page		page,
@@ -302,6 +317,9 @@ gistVacuumUpdate(GistVacuum *gv, BlockNumber blkno, bool needunion)
 				lencompleted = 16;
 
 	vacuum_delay_point();
+
+	// -------- MirroredLock ----------
+	MIRROREDLOCK_BUFMGR_LOCK;
 
 	buffer = ReadBuffer(gv->index, blkno);
 	LockBuffer(buffer, GIST_EXCLUSIVE);
@@ -453,7 +471,7 @@ gistVacuumUpdate(GistVacuum *gv, BlockNumber blkno, bool needunion)
 				XLogRecPtr	recptr;
 				char	   *xlinfo;
 
-				rdata = formUpdateRdata(gv->index->rd_node, buffer,
+				rdata = formUpdateRdata(gv->index, buffer,
 										offToDelete, nOffToDelete,
 										addon, curlenaddon, NULL);
 				xlinfo = rdata->next->data;
@@ -488,6 +506,8 @@ gistVacuumUpdate(GistVacuum *gv, BlockNumber blkno, bool needunion)
 			gistxlogInsertCompletion(gv->index->rd_node, completed, ncompleted);
 	}
 
+	MIRROREDLOCK_BUFMGR_UNLOCK;
+	// -------- MirroredLock ----------
 
 	for (i = 0; i < curlenaddon; i++)
 		pfree(addon[i]);
@@ -511,6 +531,8 @@ gistVacuumUpdate(GistVacuum *gv, BlockNumber blkno, bool needunion)
 Datum
 gistvacuumcleanup(PG_FUNCTION_ARGS)
 {
+	MIRROREDLOCK_BUFMGR_DECLARE;
+
 	IndexVacuumInfo *info = (IndexVacuumInfo *) PG_GETARG_POINTER(0);
 	GistBulkDeleteResult *stats = (GistBulkDeleteResult *) PG_GETARG_POINTER(1);
 	Relation	rel = info->index;
@@ -600,6 +622,9 @@ gistvacuumcleanup(PG_FUNCTION_ARGS)
 
 		vacuum_delay_point();
 
+		// -------- MirroredLock ----------
+		MIRROREDLOCK_BUFMGR_LOCK;
+
 		buffer = ReadBuffer(rel, blkno);
 		LockBuffer(buffer, GIST_SHARE);
 		page = (Page) BufferGetPage(buffer);
@@ -613,6 +638,9 @@ gistvacuumcleanup(PG_FUNCTION_ARGS)
 		else
 			lastFilledBlock = blkno;
 		UnlockReleaseBuffer(buffer);
+
+		MIRROREDLOCK_BUFMGR_UNLOCK;
+		// -------- MirroredLock ----------
 	}
 	lastBlock = npages - 1;
 
@@ -628,7 +656,8 @@ gistvacuumcleanup(PG_FUNCTION_ARGS)
 			}
 
 		if (lastBlock > lastFilledBlock)
-			RelationTruncate(rel, lastFilledBlock + 1);
+			RelationTruncate(rel, lastFilledBlock + 1,
+							 /* markPersistentAsPhysicallyTruncated */ true);
 		stats->std.pages_removed = lastBlock - lastFilledBlock;
 	}
 
@@ -685,6 +714,8 @@ pushStackIfSplited(Page page, GistBDItem *stack)
 Datum
 gistbulkdelete(PG_FUNCTION_ARGS)
 {
+	MIRROREDLOCK_BUFMGR_DECLARE;
+
 	IndexVacuumInfo *info = (IndexVacuumInfo *) PG_GETARG_POINTER(0);
 	GistBulkDeleteResult *stats = (GistBulkDeleteResult *) PG_GETARG_POINTER(1);
 	IndexBulkDeleteCallback callback = (IndexBulkDeleteCallback) PG_GETARG_POINTER(2);
@@ -704,13 +735,18 @@ gistbulkdelete(PG_FUNCTION_ARGS)
 
 	while (stack)
 	{
-		Buffer		buffer = ReadBuffer(rel, stack->blkno);
+		Buffer		buffer;
 		Page		page;
 		OffsetNumber i,
 					maxoff;
 		IndexTuple	idxtuple;
 		ItemId		iid;
 
+		// -------- MirroredLock ----------
+		MIRROREDLOCK_BUFMGR_LOCK;
+
+		buffer = ReadBuffer(rel, stack->blkno);
+		
 		LockBuffer(buffer, GIST_SHARE);
 		gistcheckpage(rel, buffer);
 		page = (Page) BufferGetPage(buffer);
@@ -728,6 +764,10 @@ gistbulkdelete(PG_FUNCTION_ARGS)
 			{
 				/* only the root can become non-leaf during relock */
 				UnlockReleaseBuffer(buffer);
+
+				MIRROREDLOCK_BUFMGR_UNLOCK;
+				// -------- MirroredLock ----------
+
 				/* one more check */
 				continue;
 			}
@@ -775,7 +815,7 @@ gistbulkdelete(PG_FUNCTION_ARGS)
 					XLogRecPtr	recptr;
 					gistxlogPageUpdate *xlinfo;
 
-					rdata = formUpdateRdata(rel->rd_node, buffer,
+					rdata = formUpdateRdata(rel, buffer,
 											todelete, ntodelete,
 											NULL, 0,
 											NULL);
@@ -819,6 +859,9 @@ gistbulkdelete(PG_FUNCTION_ARGS)
 		}
 
 		UnlockReleaseBuffer(buffer);
+
+		MIRROREDLOCK_BUFMGR_UNLOCK;
+		// -------- MirroredLock ----------
 
 		ptr = stack->next;
 		pfree(stack);

@@ -3,11 +3,12 @@
  * rewriteHandler.c
  *		Primary module of query rewriter.
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 2006-2008, Greenplum inc
+ * Portions Copyright (c) 1996-2008, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/rewrite/rewriteHandler.c,v 1.168 2006/10/06 17:13:59 petere Exp $
+ *	  $PostgreSQL: pgsql/src/backend/rewrite/rewriteHandler.c,v 1.168.2.1 2007/03/01 18:50:36 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -50,8 +51,8 @@ static TargetEntry *process_matched_tle(TargetEntry *src_tle,
 static Node *get_assignment_input(Node *node);
 static void rewriteValuesRTE(RangeTblEntry *rte, Relation target_relation,
 				 List *attrnos);
-static void markQueryForLocking(Query *qry, bool forUpdate, bool noWait,
-					bool skipOldNew);
+static void markQueryForLocking(Query *qry, Node *jtnode,
+								bool forUpdate, bool noWait);
 static List *matchLocks(CmdType event, RuleLock *rulelocks,
 		   int varno, Query *parsetree);
 static Query *fireRIRrules(Query *parsetree, List *activeRIRs);
@@ -104,6 +105,7 @@ AcquireRewriteLocks(Query *parsetree)
 		RangeTblEntry *rte = (RangeTblEntry *) lfirst(l);
 		Relation	rel;
 		LOCKMODE	lockmode;
+		bool        needLockUpgrade;
 		List	   *newaliasvars;
 		Index		curinputvarno;
 		RangeTblEntry *curinputrte;
@@ -125,16 +127,46 @@ AcquireRewriteLocks(Query *parsetree)
 				 * just grab AccessShareLock because then the executor would
 				 * be trying to upgrade the lock, leading to possible
 				 * deadlocks.
+                 *
+                 * CDB: The proper lock mode depends on whether the relation is
+                 * local or distributed, which is discovered by heap_open().
+				 * To handle this we make use of CdbOpenRelation().
 				 */
+				needLockUpgrade = false;
 				if (rt_index == parsetree->resultRelation)
 					lockmode = RowExclusiveLock;
 				else if (get_rowmark(parsetree, rt_index))
 					lockmode = RowShareLock;
 				else
 					lockmode = AccessShareLock;
+								
+                /* Target of INSERT/UPDATE/DELETE? */
+                if (rt_index == parsetree->resultRelation)
+                {
+					lockmode = RowExclusiveLock;
+                	if (parsetree->commandType != CMD_INSERT)
+						needLockUpgrade = true;
+                }
 
-				rel = heap_open(rte->relid, lockmode);
-				heap_close(rel, NoLock);
+                /* FOR UPDATE/SHARE? */
+				else if (get_rowmark(parsetree, rt_index) != NULL)
+				{
+					needLockUpgrade = true;
+				}
+
+
+				/* Take a lock either using CDB lock promotion or not */
+				if (needLockUpgrade)
+				{
+					rel = CdbOpenRelation(rte->relid, lockmode, false, NULL);
+				}
+				else
+				{
+					rel = heap_open(rte->relid, lockmode);
+				}
+
+                /* Close the relcache entry without releasing the lock. */
+                heap_close(rel, NoLock);
 				break;
 
 			case RTE_JOIN:
@@ -191,7 +223,7 @@ AcquireRewriteLocks(Query *parsetree)
 							 * now-dropped type OID, but it doesn't really
 							 * matter what type the Const claims to be.
 							 */
-							aliasvar = (Var *) makeNullConst(INT4OID);
+							aliasvar = (Var *) makeNullConst(INT4OID, -1);
 						}
 					}
 					newaliasvars = lappend(newaliasvars, aliasvar);
@@ -212,6 +244,14 @@ AcquireRewriteLocks(Query *parsetree)
 				/* ignore other types of RTEs */
 				break;
 		}
+	}
+
+	/* Recurse into subqueries in WITH */
+	foreach(l, parsetree->cteList)
+	{
+		CommonTableExpr *cte = (CommonTableExpr *) lfirst(l);
+
+		AcquireRewriteLocks((Query *) cte->ctequery);
 	}
 
 	/*
@@ -346,6 +386,41 @@ rewriteRuleAction(Query *parsetree,
 									 sub_action->rtable);
 
 	/*
+	 * There could have been some SubLinks in parsetree's rtable, in which
+	 * case we'd better mark the sub_action correctly.
+	 */
+	if (parsetree->hasSubLinks && !sub_action->hasSubLinks)
+	{
+		ListCell   *lc;
+
+		foreach(lc, parsetree->rtable)
+		{
+			RangeTblEntry *rte = (RangeTblEntry *) lfirst(lc);
+
+			switch (rte->rtekind)
+			{
+				case RTE_TABLEFUNCTION:
+					sub_action->hasSubLinks =
+						checkExprHasSubLink(rte->funcexpr);
+					break;
+				case RTE_FUNCTION:
+					sub_action->hasSubLinks =
+						checkExprHasSubLink(rte->funcexpr);
+					break;
+				case RTE_VALUES:
+					sub_action->hasSubLinks =
+						checkExprHasSubLink((Node *) rte->values_lists);
+					break;
+				default:
+					/* other RTE types don't contain bare expressions */
+					break;
+			}
+			if (sub_action->hasSubLinks)
+				break;		/* no need to keep scanning rtable */
+		}
+	}
+
+	/*
 	 * Each rule action's jointree should be the main parsetree's jointree
 	 * plus that rule's jointree, but usually *without* the original rtindex
 	 * that we're replacing (if present, which it won't be for INSERT). Note
@@ -454,6 +529,14 @@ rewriteRuleAction(Query *parsetree,
 					   rule_action->returningList,
 					   CMD_SELECT,
 					   0);
+
+		/*
+		 * There could have been some SubLinks in parsetree's returningList,
+		 * in which case we'd better mark the rule_action correctly.
+		 */
+		if (parsetree->hasSubLinks && !rule_action->hasSubLinks)
+			rule_action->hasSubLinks =
+					checkExprHasSubLink((Node *) rule_action->returningList);
 	}
 
 	return rule_action;
@@ -643,6 +726,7 @@ rewriteTargetList(Query *parsetree, Relation target_relation,
 				else
 				{
 					new_expr = (Node *) makeConst(att_tup->atttypid,
+												  -1,
 												  att_tup->attlen,
 												  (Datum) 0,
 												  true, /* isnull */
@@ -652,6 +736,7 @@ rewriteTargetList(Query *parsetree, Relation target_relation,
 												InvalidOid, -1,
 												att_tup->atttypid,
 												COERCE_IMPLICIT_CAST,
+												-1,
 												false,
 												false);
 				}
@@ -884,7 +969,8 @@ build_column_default(Relation rel, int attrno)
 								 expr, exprtype,
 								 atttype, atttypmod,
 								 COERCION_ASSIGNMENT,
-								 COERCE_IMPLICIT_CAST);
+								 COERCE_IMPLICIT_CAST,
+								 -1);
 	if (expr == NULL)
 		ereport(ERROR,
 				(errcode(ERRCODE_DATATYPE_MISMATCH),
@@ -981,6 +1067,7 @@ rewriteValuesRTE(RangeTblEntry *rte, Relation target_relation, List *attrnos)
 				if (!new_expr)
 				{
 					new_expr = (Node *) makeConst(att_tup->atttypid,
+												  -1,
 												  att_tup->attlen,
 												  (Datum) 0,
 												  true, /* isnull */
@@ -990,6 +1077,7 @@ rewriteValuesRTE(RangeTblEntry *rte, Relation target_relation, List *attrnos)
 												InvalidOid, -1,
 												att_tup->atttypid,
 												COERCE_IMPLICIT_CAST,
+												-1,
 												false,
 												false);
 				}
@@ -1122,8 +1210,8 @@ ApplyRetrieveRule(Query *parsetree,
 		/*
 		 * Set up the view's referenced tables as if FOR UPDATE/SHARE.
 		 */
-		markQueryForLocking(rule_action, rc->forUpdate,
-							rc->noWait, true);
+		markQueryForLocking(rule_action, (Node *) rule_action->jointree,
+							rc->forUpdate, rc->noWait);
 	}
 
 	return parsetree;
@@ -1135,24 +1223,20 @@ ApplyRetrieveRule(Query *parsetree,
  * This may generate an invalid query, eg if some sub-query uses an
  * aggregate.  We leave it to the planner to detect that.
  *
- * NB: this must agree with the parser's transformLocking() routine.
+ * NB: this must agree with the parser's transformLockingClause() routine.
+ * However, unlike the parser we have to be careful not to mark a view's
+ * OLD and NEW rels for updating.  The best way to handle that seems to be
+ * to scan the jointree to determine which rels are used.
  */
 static void
-markQueryForLocking(Query *qry, bool forUpdate, bool noWait, bool skipOldNew)
+markQueryForLocking(Query *qry, Node *jtnode, bool forUpdate, bool noWait)
 {
-	Index		rti = 0;
-	ListCell   *l;
-
-	foreach(l, qry->rtable)
+	if (jtnode == NULL)
+		return;
+	if (IsA(jtnode, RangeTblRef))
 	{
-		RangeTblEntry *rte = (RangeTblEntry *) lfirst(l);
-
-		rti++;
-
-		/* Ignore OLD and NEW entries if we are at top level of view */
-		if (skipOldNew &&
-			(rti == PRS2_OLD_VARNO || rti == PRS2_NEW_VARNO))
-			continue;
+		int			rti = ((RangeTblRef *) jtnode)->rtindex;
+		RangeTblEntry *rte = rt_fetch(rti, qry->rtable);
 
 		if (rte->rtekind == RTE_RELATION)
 		{
@@ -1162,9 +1246,28 @@ markQueryForLocking(Query *qry, bool forUpdate, bool noWait, bool skipOldNew)
 		else if (rte->rtekind == RTE_SUBQUERY)
 		{
 			/* FOR UPDATE/SHARE of subquery is propagated to subquery's rels */
-			markQueryForLocking(rte->subquery, forUpdate, noWait, false);
+			markQueryForLocking(rte->subquery, (Node *) rte->subquery->jointree,
+								forUpdate, noWait);
 		}
 	}
+	else if (IsA(jtnode, FromExpr))
+	{
+		FromExpr   *f = (FromExpr *) jtnode;
+		ListCell   *l;
+
+		foreach(l, f->fromlist)
+			markQueryForLocking(qry, lfirst(l), forUpdate, noWait);
+	}
+	else if (IsA(jtnode, JoinExpr))
+	{
+		JoinExpr   *j = (JoinExpr *) jtnode;
+
+		markQueryForLocking(qry, j->larg, forUpdate, noWait);
+		markQueryForLocking(qry, j->rarg, forUpdate, noWait);
+	}
+	else
+		elog(ERROR, "unrecognized node type: %d",
+			 (int) nodeTag(jtnode));
 }
 
 
@@ -1237,7 +1340,7 @@ fireRIRrules(Query *parsetree, List *activeRIRs)
 		 * do to this level of the query, but we must recurse into the
 		 * subquery to expand any rule references in it.
 		 */
-		if (rte->rtekind == RTE_SUBQUERY)
+		if (rte->rtekind == RTE_SUBQUERY || rte->rtekind == RTE_TABLEFUNCTION)
 		{
 			rte->subquery = fireRIRrules(rte->subquery, activeRIRs);
 			continue;
@@ -1323,6 +1426,16 @@ fireRIRrules(Query *parsetree, List *activeRIRs)
 		}
 
 		heap_close(rel, NoLock);
+	}
+
+	/* Recurse into subqueries in WITH */
+	ListCell *lc;
+	foreach(lc, parsetree->cteList)
+	{
+		CommonTableExpr *cte = (CommonTableExpr *) lfirst(lc);
+
+		cte->ctequery = (Node *)
+			fireRIRrules((Query *) cte->ctequery, activeRIRs);
 	}
 
 	/*

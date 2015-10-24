@@ -1,18 +1,6 @@
 @echo off
-SET STARTDIR=%CD%
-
-perl mkvcbuild.pl
-if errorlevel 1 goto :eof
-
-if exist ..\msvc if exist ..\..\..\src cd ..\..\..
-SET CONFIG=
-if "%1" == "" set CONFIG=Debug
-if "%CONFIG%" == "" if "%1" == "DEBUG" set CONFIG=Debug
-if "%CONFIG%" == "" if "%1" == "RELEASE" set CONFIG=Release
-if not "%CONFIG%" == "" shift
-if "%CONFIG%" == "" set CONFIG=Debug
-
-if "%1" == "" msbuild pgsql.sln /p:Configuration=%CONFIG%
-if not "%1" == "" vcbuild %1.vcproj %CONFIG%
-
-cd %STARTDIR%
+REM src/tools/msvc/build.bat
+REM all the logic for this now belongs in build.pl. This file really
+REM only exists so you don't have to type "perl build.pl"
+REM Resist any temptation to add any logic here.
+@perl build.pl %*

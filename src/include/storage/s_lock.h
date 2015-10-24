@@ -63,10 +63,10 @@
  *	when using the SysV semaphore code.
  *
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2010, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
- *	  $PostgreSQL: pgsql/src/include/storage/s_lock.h,v 1.157 2006/06/07 22:24:45 momjian Exp $
+ *	  $PostgreSQL: pgsql/src/include/storage/s_lock.h,v 1.171 2010/01/05 11:06:28 mha Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -78,7 +78,7 @@
 #ifdef HAVE_SPINLOCKS	/* skip spinlocks if requested */
 
 
-#if defined(__GNUC__) || defined(__ICC)
+#if defined(__GNUC__) || defined(__INTEL_COMPILER)
 /*************************************************************************
  * All the gcc inlines
  * Gcc consistently defines the CPU as __cpu__.
@@ -556,6 +556,48 @@ do \
 #endif /* __mips__ && !__sgi */
 
 
+#if defined(__m32r__) && defined(HAVE_SYS_TAS_H)	/* Renesas' M32R */
+#define HAS_TEST_AND_SET
+
+#include <sys/tas.h>
+
+typedef int slock_t;
+
+#define TAS(lock) tas(lock)
+
+#endif /* __m32r__ */
+
+
+#if defined(__sh__)				/* Renesas' SuperH */
+#define HAS_TEST_AND_SET
+
+typedef unsigned char slock_t;
+
+#define TAS(lock) tas(lock)
+
+static __inline__ int
+tas(volatile slock_t *lock)
+{
+	register int _res;
+
+	/*
+	 * This asm is coded as if %0 could be any register, but actually SuperH
+	 * restricts the target of xor-immediate to be R0.  That's handled by
+	 * the "z" constraint on _res.
+	 */
+	__asm__ __volatile__(
+		"	tas.b @%2    \n"
+		"	movt  %0     \n"
+		"	xor   #1,%0  \n"
+:		"=z"(_res), "+m"(*lock)
+:		"r"(lock)
+:		"memory", "t");
+	return _res;
+}
+
+#endif	 /* __sh__ */
+
+
 /* These live in s_lock.c, but only for gcc */
 
 
@@ -566,7 +608,7 @@ typedef unsigned char slock_t;
 #endif
 
 
-#endif	/* __GNUC__ */
+#endif	/* defined(__GNUC__) || defined(__INTEL_COMPILER) */
 
 
 
@@ -641,7 +683,7 @@ typedef struct
 	int			sema[4];
 } slock_t;
 
-#define TAS_ACTIVE_WORD(lock)	((volatile int *) (((long) (lock) + 15) & ~15))
+#define TAS_ACTIVE_WORD(lock)	((volatile int *) (((uintptr_t) (lock) + 15) & ~15))
 
 #if defined(__GNUC__)
 
@@ -738,10 +780,12 @@ typedef abilock_t slock_t;
  */
 #define HAS_TEST_AND_SET
 
-typedef unsigned int slock_t;
+#include <sys/atomic_op.h>
 
-#define TAS(lock)			_check_lock(lock, 0, 1)
-#define S_UNLOCK(lock)		_clear_lock(lock, 0)
+typedef int slock_t;
+
+#define TAS(lock)			_check_lock((slock_t *) (lock), 0, 1)
+#define S_UNLOCK(lock)		_clear_lock((slock_t *) (lock), 0)
 #endif	 /* _AIX */
 
 
@@ -768,7 +812,7 @@ typedef unsigned char slock_t;
 #endif
 
 
-#if defined(__sun) && (defined(__i386) || defined(__x86_64__) || defined(__sparc__) || defined(__sparc))
+#if defined(__SUNPRO_C) && (defined(__i386) || defined(__x86_64__) || defined(__sparc__) || defined(__sparc))
 #define HAS_TEST_AND_SET
 
 #if defined(__i386) || defined(__x86_64__) || defined(__sparcv9) || defined(__sparcv8plus)
@@ -792,12 +836,23 @@ typedef LONG slock_t;
 
 #define SPIN_DELAY() spin_delay()
 
+/* If using Visual C++ on Win64, inline assembly is unavailable.
+ * Use a _mm_pause instrinsic instead of rep nop.
+ */
+#if defined(_WIN64)
+static __forceinline void
+spin_delay(void)
+{
+	_mm_pause();
+}
+#else
 static __forceinline void
 spin_delay(void)
 {
 	/* See comment for gcc code. Same code, MASM syntax */
 	__asm rep nop;
 }
+#endif
 
 #endif
 
@@ -880,6 +935,6 @@ extern void s_lock(volatile slock_t *lock, const char *file, int line);
 #define DEFAULT_SPINS_PER_DELAY  100
 
 extern void set_spins_per_delay(int shared_spins_per_delay);
-extern int	update_spins_per_delay(int shared_spins_per_delay);
+extern int	recompute_spins_per_delay(int shared_spins_per_delay);
 
 #endif	 /* S_LOCK_H */

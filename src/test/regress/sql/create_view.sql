@@ -1,4 +1,11 @@
 --
+-- Exercise outfuncs
+--
+
+set Debug_print_parse=on;
+set Debug_print_plan=on;
+
+--
 -- CREATE_VIEW
 -- Virtual class definitions
 --	(this also tests the query rewrite system)
@@ -42,12 +49,12 @@ CREATE OR REPLACE VIEW viewtest AS
 CREATE OR REPLACE VIEW viewtest AS
 	SELECT * FROM viewtest_tbl WHERE a > 10;
 
-SELECT * FROM viewtest;
+SELECT * FROM viewtest ORDER BY 1;
 
 CREATE OR REPLACE VIEW viewtest AS
 	SELECT a, b FROM viewtest_tbl WHERE a > 5 ORDER BY b DESC;
 
-SELECT * FROM viewtest;
+SELECT * FROM viewtest ORDER BY 1,2;
 
 -- should fail
 CREATE OR REPLACE VIEW viewtest AS

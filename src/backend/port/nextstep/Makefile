@@ -4,7 +4,7 @@
 #    Makefile for port/nextstep
 #
 # IDENTIFICATION
-#    $PostgreSQL: pgsql/src/backend/port/nextstep/Makefile,v 1.9 2006/07/15 03:33:14 tgl Exp $
+#    $PostgreSQL: pgsql/src/backend/port/nextstep/Makefile,v 1.11 2008/02/19 15:29:58 petere Exp $
 #
 #-------------------------------------------------------------------------
 
@@ -14,17 +14,4 @@ include $(top_builddir)/src/Makefile.global
 
 OBJS = port.o
 
-all: SUBSYS.o
-
-SUBSYS.o: $(OBJS)
-	$(LD) $(LDREL) $(LDOUT) SUBSYS.o $(OBJS)
-
-depend dep:
-	$(CC) -MM $(CFLAGS) *.c >depend
-
-clean:
-	rm -f SUBSYS.o $(OBJS)
-
-ifeq (depend,$(wildcard depend))
-include depend
-endif
+include $(top_srcdir)/src/backend/common.mk

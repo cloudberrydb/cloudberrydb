@@ -1,14 +1,14 @@
-$PostgreSQL: pgsql/src/backend/utils/mmgr/README,v 1.9 2006/09/07 22:52:01 tgl Exp $
+$PostgreSQL: pgsql/src/backend/utils/mmgr/README,v 1.15 2008/04/09 01:00:46 momjian Exp $
 
-Notes about memory allocation redesign
---------------------------------------
+Notes About Memory Allocation Redesign
+======================================
 
 Up through version 7.0, Postgres had serious problems with memory leakage
 during large queries that process a lot of pass-by-reference data.  There
-was no provision for recycling memory until end of query.  This needs to be
-fixed, even more so with the advent of TOAST which will allow very large
+was no provision for recycling memory until end of query.  This needed to be
+fixed, even more so with the advent of TOAST which will allowed very large
 chunks of data to be passed around in the system.  This document describes
-the new memory management plan implemented in 7.1.
+the new memory management system implemented in 7.1.
 
 
 Background
@@ -53,7 +53,7 @@ that can be reset or deleted at strategic times within a query, such as
 after each tuple.
 
 
-Some notes about the palloc API versus standard C library
+Some Notes About the palloc API Versus Standard C Library
 ---------------------------------------------------------
 
 The behavior of palloc and friends is similar to the standard C library's
@@ -73,7 +73,7 @@ Similarly, repalloc allows realloc'ing to zero size.
 * pfree and repalloc do not accept a NULL pointer.  This is intentional.
 
 
-pfree/repalloc no longer depend on CurrentMemoryContext
+pfree/repalloc No Longer Depend On CurrentMemoryContext
 -------------------------------------------------------
 
 In this proposal, pfree() and repalloc() can be applied to any chunk
@@ -101,7 +101,7 @@ do".  So there'd still need to be a global variable specifying a suitable
 temporary-allocation context.  That might as well be CurrentMemoryContext.
 
 
-Additions to the memory-context mechanism
+Additions to the Memory-Context Mechanism
 -----------------------------------------
 
 If we are going to have more contexts, we need more mechanism for keeping
@@ -130,7 +130,7 @@ children of a given context, but don't reset or delete that context
 itself".
 
 
-Globally known contexts
+Globally Known Contexts
 -----------------------
 
 There will be several widely-known contexts that will typically be
@@ -210,7 +210,7 @@ Generally it is not appropriate for any code to use QueryContext as an
 allocation target --- from the point of view of any code that would be
 referencing the QueryContext variable, it's a read-only context.
 
-PortalContext --- this is not actually a separate context either, but a
+PortalContext --- this is not actually a separate context, but a
 global variable pointing to the per-portal context of the currently active
 execution portal.  This can be used if it's necessary to allocate storage
 that will live just as long as the execution of the current portal requires.
@@ -223,15 +223,13 @@ if the backend has run out of memory otherwise.  This allows out-of-memory
 to be treated as a normal ERROR condition, not a FATAL error.
 
 
-Contexts for prepared statements and portals
+Contexts For Prepared Statements And Portals
 --------------------------------------------
 
 A prepared-statement object has an associated private context, in which
 the parse and plan trees for its query are stored.  Because these trees
 are read-only to the executor, the prepared statement can be re-used many
-times without further copying of these trees.  QueryContext points at this
-private context while executing any portal built from the prepared
-statement.
+times without further copying of these trees.
 
 An execution-portal object has a private context that is referenced by
 PortalContext when the portal is active.  In the case of a portal created
@@ -241,7 +239,7 @@ from prepared statements simply reference the prepared statements' trees,
 and won't actually need any storage allocated in their private contexts.
 
 
-Transient contexts during execution
+Transient Contexts During Execution
 -----------------------------------
 
 When creating a prepared statement, the parse and plan trees will be built
@@ -329,7 +327,7 @@ processing.  (Eventually we might have an even better solution from
 nested transactions, but this'll do fine for now.)
 
 
-Mechanisms to allow multiple types of contexts
+Mechanisms to Allow Multiple Types of Contexts
 ----------------------------------------------
 
 We may want several different types of memory contexts with different
@@ -400,7 +398,7 @@ compared to the existing code, so I think we're doing fine without
 squeezing out that last little bit ...
 
 
-More control over aset.c behavior
+More Control Over aset.c Behavior
 ---------------------------------
 
 Currently, aset.c allocates an 8K block upon the first allocation in
@@ -428,7 +426,7 @@ back to malloc() during reset, but just cleared.  This avoids malloc
 thrashing.
 
 
-Other notes
+Other Notes
 -----------
 
 The original version of this proposal suggested that functions returning

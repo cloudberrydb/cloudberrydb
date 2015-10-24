@@ -1,9 +1,9 @@
 /*
  * psql - the PostgreSQL interactive terminal
  *
- * Copyright (c) 2000-2006, PostgreSQL Global Development Group
+ * Copyright (c) 2000-2010, PostgreSQL Global Development Group
  *
- * $PostgreSQL: pgsql/src/bin/psql/print.h,v 1.32 2006/08/29 22:25:07 tgl Exp $
+ * src/bin/psql/print.h
  */
 #ifndef PRINT_H
 #define PRINT_H
@@ -11,26 +11,65 @@
 #include "libpq-fe.h"
 
 
-extern FILE *PageOutput(int lines, unsigned short int pager);
-extern void ClosePager(FILE *pagerpipe);
-
-extern void html_escaped_print(const char *in, FILE *fout);
-
 enum printFormat
 {
 	PRINT_NOTHING = 0,			/* to make sure someone initializes this */
 	PRINT_UNALIGNED,
 	PRINT_ALIGNED,
+	PRINT_WRAPPED,
 	PRINT_HTML,
 	PRINT_LATEX,
 	PRINT_TROFF_MS
 	/* add your favourite output format here ... */
 };
 
-
-typedef struct _printTableOpt
+typedef struct printTextLineFormat
 {
-	enum printFormat format;	/* one of the above */
+	/* Line drawing characters to be used in various contexts */
+	const char *hrule;			/* horizontal line character */
+	const char *leftvrule;		/* left vertical line (+horizontal) */
+	const char *midvrule;		/* intra-column vertical line (+horizontal) */
+	const char *rightvrule;		/* right vertical line (+horizontal) */
+} printTextLineFormat;
+
+typedef enum printTextRule
+{
+	/* Additional context for selecting line drawing characters */
+	PRINT_RULE_TOP,				/* top horizontal line */
+	PRINT_RULE_MIDDLE,			/* intra-data horizontal line */
+	PRINT_RULE_BOTTOM,			/* bottom horizontal line */
+	PRINT_RULE_DATA				/* data line (hrule is unused here) */
+} printTextRule;
+
+typedef enum printTextLineWrap
+{
+	/* Line wrapping conditions */
+	PRINT_LINE_WRAP_NONE,		/* No wrapping */
+	PRINT_LINE_WRAP_WRAP,		/* Wraparound due to overlength line */
+	PRINT_LINE_WRAP_NEWLINE		/* Newline in data */
+} printTextLineWrap;
+
+typedef struct printTextFormat
+{
+	/* A complete line style */
+	const char *name;			/* for display purposes */
+	printTextLineFormat lrule[4];		/* indexed by enum printTextRule */
+	const char *midvrule_nl;	/* vertical line for continue after newline */
+	const char *midvrule_wrap;	/* vertical line for wrapped data */
+	const char *midvrule_blank; /* vertical line for blank data */
+	const char *header_nl_left; /* left mark after newline */
+	const char *header_nl_right;	/* right mark for newline */
+	const char *nl_left;		/* left mark after newline */
+	const char *nl_right;		/* right mark for newline */
+	const char *wrap_left;		/* left mark after wrapped data */
+	const char *wrap_right;		/* right mark for wrapped data */
+	bool		wrap_right_border;		/* use right-hand border for wrap
+										 * marks when border=0? */
+} printTextFormat;
+
+typedef struct printTableOpt
+{
+	enum printFormat format;	/* see enum above */
 	bool		expanded;		/* expanded/vertical output (if supported by
 								 * output format) */
 	unsigned short int border;	/* Print a border around the table. 0=none,
@@ -41,34 +80,55 @@ typedef struct _printTableOpt
 	bool		start_table;	/* print start decoration, eg <table> */
 	bool		stop_table;		/* print stop decoration, eg </table> */
 	unsigned long prior_records;	/* start offset for record counters */
+	const printTextFormat *line_style;	/* line style (NULL for default) */
 	char	   *fieldSep;		/* field separator for unaligned text mode */
 	char	   *recordSep;		/* record separator for unaligned text mode */
 	bool		numericLocale;	/* locale-aware numeric units separator and
 								 * decimal marker */
 	char	   *tableAttr;		/* attributes for HTML <table ...> */
 	int			encoding;		/* character encoding */
+	int			env_columns;	/* $COLUMNS on psql start, 0 is unset */
+	int			columns;		/* target width for wrapped format */
 } printTableOpt;
 
+/*
+ * Table footers are implemented as a singly-linked list.
+ *
+ * This is so that you don't need to know the number of footers in order to
+ * initialise the printTableContent struct, which is very convenient when
+ * preparing complex footers (as in describeOneTableDetails).
+ */
+typedef struct printTableFooter
+{
+	char	   *data;
+	struct printTableFooter *next;
+} printTableFooter;
 
 /*
- * Use this to print just any table in the supported formats.
- * - title is just any string (NULL is fine)
- * - headers is the column headings (NULL ptr terminated). It must be given and
- *	 complete since the column count is generated from this.
- * - cells are the data cells to be printed. Now you know why the correct
- *	 column count is important
- * - footers are lines to be printed below the table
- * - align is an 'l' or an 'r' for every column, if the output format needs it.
- *	 (You must specify this long enough. Otherwise anything could happen.)
-*/
-void printTable(const char *title, const char *const * headers,
-		   const char *const * cells, const char *const * footers,
-		   const char *align,
-		   const printTableOpt *opt, FILE *fout, FILE *flog);
+ * The table content struct holds all the information which will be displayed
+ * by printTable().
+ */
+typedef struct printTableContent
+{
+	const printTableOpt *opt;
+	const char *title;			/* May be NULL */
+	int			ncolumns;		/* Specified in Init() */
+	int			nrows;			/* Specified in Init() */
+	const char **headers;		/* NULL-terminated array of header strings */
+	const char **header;		/* Pointer to the last added header */
+	const char **cells;			/* NULL-terminated array of cell content
+								 * strings */
+	const char **cell;			/* Pointer to the last added cell */
+	long		cellsadded;		/* Number of cells added this far */
+	bool	   *cellmustfree;	/* true for cells that need to be free()d */
+	printTableFooter *footers;	/* Pointer to the first footer */
+	printTableFooter *footer;	/* Pointer to the last added footer */
+	char	   *aligns;			/* Array of alignment specifiers; 'l' or 'r',
+								 * one per column */
+	char	   *align;			/* Pointer to the last added alignment */
+} printTableContent;
 
-
-
-typedef struct _printQueryOpt
+typedef struct printQueryOpt
 {
 	printTableOpt topt;			/* the options above */
 	char	   *nullPrint;		/* how to print null entities */
@@ -76,17 +136,40 @@ typedef struct _printQueryOpt
 	char	   *title;			/* override title */
 	char	  **footers;		/* override footer (default is "(xx rows)") */
 	bool		default_footer; /* print default footer if footers==NULL */
+	bool		translate_header;		/* do gettext on column headers */
+	const bool *translate_columns;		/* translate_columns[i-1] => do
+										 * gettext on col i */
 } printQueryOpt;
 
-/*
- * Use this to print query results
- *
- * It calls the printTable above with all the things set straight.
- */
-void printQuery(const PGresult *result, const printQueryOpt *opt,
+
+extern const printTextFormat pg_asciiformat;
+extern const printTextFormat pg_asciiformat_old;
+extern const printTextFormat pg_utf8format;
+
+
+extern FILE *PageOutput(int lines, unsigned short int pager);
+extern void ClosePager(FILE *pagerpipe);
+
+extern void html_escaped_print(const char *in, FILE *fout);
+
+extern void printTableInit(printTableContent *const content,
+			   const printTableOpt *opt, const char *title,
+			   const int ncolumns, const int nrows);
+extern void printTableAddHeader(printTableContent *const content,
+				 const char *header, const bool translate, const char align);
+extern void printTableAddCell(printTableContent *const content,
+				const char *cell, const bool translate, const bool mustfree);
+extern void printTableAddFooter(printTableContent *const content,
+					const char *footer);
+extern void printTableSetFooter(printTableContent *const content,
+					const char *footer);
+extern void printTableCleanup(printTableContent *const content);
+extern void printTable(const printTableContent *cont, FILE *fout, FILE *flog);
+extern void printQuery(const PGresult *result, const printQueryOpt *opt,
 		   FILE *fout, FILE *flog);
 
-void		setDecimalLocale(void);
+extern void setDecimalLocale(void);
+extern const printTextFormat *get_line_style(const printTableOpt *opt);
 
 #ifndef __CYGWIN__
 #define DEFAULT_PAGER "more"

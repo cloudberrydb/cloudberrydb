@@ -3,7 +3,7 @@
  *
  * PostgreSQL transaction log manager utility routines
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2008, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * $PostgreSQL: pgsql/src/include/access/xlogutils.h,v 1.21 2006/04/14 20:27:24 tgl Exp $
@@ -21,7 +21,7 @@ extern void XLogCloseRelationCache(void);
 
 extern Relation XLogOpenRelation(RelFileNode rnode);
 extern void XLogDropRelation(RelFileNode rnode);
-extern void XLogDropDatabase(Oid dbid);
+extern void XLogDropDatabase(Oid tblspc, Oid dbid);
 extern void XLogTruncateRelation(RelFileNode rnode, BlockNumber nblocks);
 
 extern Buffer XLogReadBuffer(Relation reln, BlockNumber blkno, bool init);

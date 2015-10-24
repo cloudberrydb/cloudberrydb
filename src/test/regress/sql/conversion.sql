@@ -21,9 +21,20 @@ COMMENT ON CONVERSION myconv_bad IS 'foo';
 COMMENT ON CONVERSION myconv IS 'bar';
 COMMENT ON CONVERSION myconv IS NULL;
 --
+-- rename conversion
+--
+ALTER CONVERSION myconv RENAME TO myconv1;
+ALTER CONVERSION myconv1 OWNER TO conversion_test_user;
+
+-- 
+-- list all conversions 
+-- 
+\dc;
+
+--
 -- drop user defined conversion
 --
-DROP CONVERSION myconv;
+DROP CONVERSION myconv1;
 DROP CONVERSION mydef;
 --
 -- make sure all pre-defined conversions are fine.

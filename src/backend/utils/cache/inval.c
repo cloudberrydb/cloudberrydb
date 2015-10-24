@@ -76,7 +76,7 @@
  *	simplicity we keep the controlling list-of-lists in TopTransactionContext.
  *
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2008, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
@@ -89,12 +89,14 @@
 #include "access/twophase_rmgr.h"
 #include "access/xact.h"
 #include "catalog/catalog.h"
+#include "catalog/gp_policy.h"
 #include "miscadmin.h"
 #include "storage/sinval.h"
 #include "storage/smgr.h"
 #include "utils/inval.h"
 #include "utils/memutils.h"
 #include "utils/relcache.h"
+#include "utils/simex.h"
 #include "utils/syscache.h"
 
 
@@ -275,6 +277,23 @@ AppendInvalidationMessageList(InvalidationChunk **destHdr,
 		} \
 	} while (0)
 
+/*
+ * Process a list of invalidation messages group-wise.
+ *
+ * As above, but the code fragment can handle an array of messages.
+ * The fragment should refer to the messages as msgs[], with n entries.
+ */
+#define ProcessMessageListMulti(listHdr, codeFragment) \
+	do { \
+		InvalidationChunk *_chunk; \
+		for (_chunk = (listHdr); _chunk != NULL; _chunk = _chunk->next) \
+		{ \
+			SharedInvalidationMessage *msgs = _chunk->msgs; \
+			int		n = _chunk->nitems; \
+			codeFragment; \
+		} \
+	} while (0)
+
 
 /* ----------------------------------------------------------------
  *				Invalidation set support functions
@@ -371,6 +390,18 @@ ProcessInvalidationMessages(InvalidationListHeader *hdr,
 	ProcessMessageList(hdr->rclist, func(msg));
 }
 
+/*
+ * As above, but the function is able to process an array of messages
+ * rather than just one at a time.
+ */
+static void
+ProcessInvalidationMessageMulti(InvalidationListHeader *hdr,
+				 void (*func) (const SharedInvalidationMessage *msgs, int n))
+{
+	ProcessMessageListMulti(hdr->cclist, func(msgs, n));
+	ProcessMessageListMulti(hdr->rclist, func(msgs, n));
+}
+
 /* ----------------------------------------------------------------
  *					  private support functions
  * ----------------------------------------------------------------
@@ -403,6 +434,14 @@ RegisterRelcacheInvalidation(Oid dbId, Oid relId)
 								   dbId, relId);
 
 	/*
+	 * Most of the time, relcache invalidation is associated with system
+	 * catalog updates, but there are a few cases where it isn't.  Quick
+	 * hack to ensure that the next CommandCounterIncrement() will think
+	 * that we need to do CommandEndInvalidationMessages().
+	 */
+	(void) GetCurrentCommandId(/*true*/);
+
+	/*
 	 * If the relation being invalidated is one of those cached in the
 	 * relcache init file, mark that we need to zap that file at commit.
 	 */
@@ -420,7 +459,44 @@ RegisterSmgrInvalidation(RelFileNode rnode)
 {
 	AddSmgrInvalidationMessage(&transInvalInfo->CurrentCmdInvalidMsgs,
 							   rnode);
+							   
+	/*
+	 * As above, just in case there is not an associated catalog change.
+	 */
+	(void) GetCurrentCommandId(/*true*/);
 }
+
+#ifdef USE_ASSERT_CHECKING
+static char *
+si_to_str(SharedInvalidationMessage *msg)
+{
+	StringInfoData buf;
+	int i;
+	char *s;
+
+	initStringInfo(&buf);
+	appendStringInfo(&buf, "message id = %d", msg->id);
+	s = (char *)&(msg->cc);
+	for (i = 0; i < sizeof(SharedInvalCatcacheMsg); i++)
+	{
+		if (i == 0)
+			appendStringInfo(&buf, " CC:");
+
+		appendStringInfo(&buf, " %x", *(s + i));
+
+	}
+	s = (char *)&(msg->rc);
+	for (i = 0; i < sizeof(SharedInvalRelcacheMsg); i++)
+	{
+		if (i == 0)
+			appendStringInfo(&buf, " RC:");
+
+		appendStringInfo(&buf, " %x", *(s + i));
+
+	}
+	return buf.data;
+}
+#endif
 
 /*
  * LocalExecuteInvalidationMessage
@@ -475,7 +551,12 @@ LocalExecuteInvalidationMessage(SharedInvalidationMessage *msg)
 		smgrclosenode(msg->sm.rnode);
 	}
 	else
+	{
+#ifdef USE_ASSERT_CHECKING
+		elog(NOTICE, "invalid SI message: %s", si_to_str(msg));
+#endif
 		elog(FATAL, "unrecognized SI message id: %d", msg->id);
+	}
 }
 
 /*
@@ -592,8 +673,30 @@ PrepareForTupleInvalidation(Relation relation, HeapTuple tuple)
 		 * This essentially means that only backends in this same database
 		 * will react to the relcache flush request. This is in fact
 		 * appropriate, since only those backends could see our pg_attribute
-		 * change anyway.  It looks a bit ugly though.
+		 * change anyway.  It looks a bit ugly though.	(In practice, shared
+		 * relations can't have schema changes after bootstrap, so we should
+		 * never come here for a shared rel anyway.)
 		 */
+		databaseId = MyDatabaseId;
+	}
+	else if (tupleRelId == GpPolicyRelationId)
+	{
+		FormData_gp_policy *gptup = (FormData_gp_policy *) GETSTRUCT(tuple);
+
+		relationId = gptup->localoid;
+		databaseId = MyDatabaseId;
+	}
+	else if (tupleRelId == IndexRelationId)
+	{
+		Form_pg_index indextup = (Form_pg_index) GETSTRUCT(tuple);
+
+		/*
+		 * When a pg_index row is updated, we should send out a relcache inval
+		 * for the index relation.	As above, we don't know the shared status
+		 * of the index, but in practice it doesn't matter since indexes of
+		 * shared catalogs can't have such updates.
+		 */
+		relationId = indextup->indexrelid;
 		databaseId = MyDatabaseId;
 	}
 	else
@@ -625,34 +728,60 @@ AcceptInvalidationMessages(void)
 	ReceiveSharedInvalidMessages(LocalExecuteInvalidationMessage,
 								 InvalidateSystemCaches);
 
+	Assert(SysCacheFlushForce_IsValid(gp_test_system_cache_flush_force));
+
+#ifdef USE_TEST_UTILS
 	/*
 	 * Test code to force cache flushes anytime a flush could happen.
 	 *
-	 * If used with CLOBBER_FREED_MEMORY, CLOBBER_CACHE_ALWAYS provides a
-	 * fairly thorough test that the system contains no cache-flush hazards.
+	 * If used with CLOBBER_FREED_MEMORY, gp_test_system_cache_flush_force provides
+	 * a fairly thorough test that the system contains no cache-flush hazards.
 	 * However, it also makes the system unbelievably slow --- the regression
 	 * tests take about 100 times longer than normal.
 	 *
-	 * If you're a glutton for punishment, try CLOBBER_CACHE_RECURSIVELY. This
-	 * slows things by at least a factor of 10000, so I wouldn't suggest
+	 * gp_test_system_cache_flush_force_recursive slows things by
+	 * at least a factor of 10000, so I wouldn't suggest
 	 * trying to run the entire regression tests that way.	It's useful to try
 	 * a few simple tests, to make sure that cache reload isn't subject to
 	 * internal cache-flush hazards, but after you've done a few thousand
 	 * recursive reloads it's unlikely you'll learn more.
 	 */
-#if defined(CLOBBER_CACHE_ALWAYS)
+	if (SysCacheFlushForce_Recursive == gp_test_system_cache_flush_force)
+	{
+		/* potentially recursive cache invalidation */
+		InvalidateSystemCaches();
+	}
+	else
 	{
 		static bool in_recursion = false;
 
 		if (!in_recursion)
 		{
-			in_recursion = true;
-			InvalidateSystemCaches();
-			in_recursion = false;
+			bool invalidate = (SysCacheFlushForce_NonRecursive == gp_test_system_cache_flush_force);
+
+			if (!invalidate &&
+				gp_simex_init &&
+				gp_simex_run && 
+				gp_simex_class == SimExESClass_CacheInvalidation)
+			{
+				/*
+				 * Same basic idea as above, except using the SimEx facility, the main
+				 * advantage of this approach is that it only triggers the invalidation
+				 * once per unique call stack, which should make testing significantly
+				 * faster.
+				 */
+				invalidate = (SimExESSubClass_CacheInvalidation == SimEx_CheckInject());
+			}
+
+			if (invalidate)
+			{
+				/* avoid recursive cache invalidation */
+				in_recursion = true;
+				InvalidateSystemCaches();
+				in_recursion = false;
+			}
 		}
 	}
-#elif defined(CLOBBER_CACHE_RECURSIVELY)
-	InvalidateSystemCaches();
 #endif
 }
 
@@ -764,7 +893,7 @@ inval_twophase_postcommit(TransactionId xid, uint16 info,
 		case TWOPHASE_INFO_MSG:
 			msg = (SharedInvalidationMessage *) recdata;
 			Assert(len == sizeof(SharedInvalidationMessage));
-			SendSharedInvalidMessage(msg);
+			SendSharedInvalidMessages(msg, 1);
 			break;
 		case TWOPHASE_INFO_FILE_BEFORE:
 			RelationCacheInitFileInvalidate(true);
@@ -822,8 +951,8 @@ AtEOXact_Inval(bool isCommit)
 		AppendInvalidationMessages(&transInvalInfo->PriorCmdInvalidMsgs,
 								   &transInvalInfo->CurrentCmdInvalidMsgs);
 
-		ProcessInvalidationMessages(&transInvalInfo->PriorCmdInvalidMsgs,
-									SendSharedInvalidMessage);
+		ProcessInvalidationMessageMulti(&transInvalInfo->PriorCmdInvalidMsgs,
+										SendSharedInvalidMessages);
 
 		if (transInvalInfo->RelcacheInitFileInval)
 			RelationCacheInitFileInvalidate(false);

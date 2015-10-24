@@ -4,7 +4,7 @@
  *	  POSTGRES free space map for quickly finding free space in relations
  *
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2008, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
@@ -67,6 +67,7 @@
 #include "storage/lwlock.h"
 #include "storage/shmem.h"
 
+#include "cdb/cdbvars.h"
 
 /*----------
  * During database shutdown, we store the contents of FSM into a disk file,
@@ -152,6 +153,11 @@ static int	fsm_calc_target_allocation(int myRequest);
 static int	fsm_current_chunks(FSMRelation *fsmrel);
 static int	fsm_current_allocation(FSMRelation *fsmrel);
 
+/*
+ * List of relations that are in the vacuum process and have not been
+ * commited.
+ */
+static List *vacuumRels = NIL;
 
 /*
  * Exported routines
@@ -566,11 +572,11 @@ FreeSpaceMapForgetRel(RelFileNode *rel)
 /*
  * FreeSpaceMapForgetDatabase - forget all relations of a database.
  *
- * This is called during DROP DATABASE.  As above, might as well reclaim
- * map space sooner instead of later.
+ * This is called during DROP DATABASE and DROP TABLESPACE.  As above,
+ * might as well reclaim map space sooner instead of later.
  */
 void
-FreeSpaceMapForgetDatabase(Oid dbid)
+FreeSpaceMapForgetDatabase(Oid tblspc, Oid dbid)
 {
 	FSMRelation *fsmrel,
 			   *nextrel;
@@ -579,8 +585,12 @@ FreeSpaceMapForgetDatabase(Oid dbid)
 	for (fsmrel = FreeSpaceMap->usageList; fsmrel; fsmrel = nextrel)
 	{
 		nextrel = fsmrel->nextUsage;	/* in case we delete it */
-		if (fsmrel->key.dbNode == dbid)
-			delete_fsm_rel(fsmrel);
+		if (!OidIsValid(tblspc) ||
+			fsmrel->key.spcNode == tblspc)
+		{
+			if (fsmrel->key.dbNode == dbid)
+				delete_fsm_rel(fsmrel);
+		}
 	}
 	LWLockRelease(FreeSpaceLock);
 }
@@ -631,7 +641,8 @@ PrintFreeSpaceMapStatistics(int elevel)
 			  MaxFSMPages, MaxFSMRelations,
 			  (double) FreeSpaceShmemSize() / 1024.0)));
 
-	CheckFreeSpaceMapStatistics(NOTICE, numRels, needed);
+	if (Gp_role != GP_ROLE_DISPATCH) /* not interesting on the dispatch node */
+		CheckFreeSpaceMapStatistics(NOTICE, numRels, needed);
 	/* Print to server logs too because is deals with a config variable. */
 	CheckFreeSpaceMapStatistics(LOG, numRels, needed);
 }
@@ -1804,6 +1815,67 @@ GetFreeSpaceMap(void)
 	return FreeSpaceMap;
 }
 
+/*
+ * Append relations that are in the vacuum process to the vacuumRels list.
+ *
+ * Only support non-index relations.
+ */
+List *
+AppendRelToVacuumRels(Relation rel)
+{
+	RelFileNode *relfilenode = palloc(sizeof(RelFileNode));
+
+	/* This relation should not be an index. */
+	Assert(!OidIsValid(rel->rd_rel->relam));
+
+	relfilenode->spcNode = (rel->rd_node).spcNode;
+	relfilenode->dbNode = (rel->rd_node).dbNode;
+	relfilenode->relNode = (rel->rd_node).relNode;
+	vacuumRels = lappend(vacuumRels, relfilenode);
+
+	elog(DEBUG2, "Add relation %d/%d/%d to VacuumRels",
+		 relfilenode->spcNode, relfilenode->dbNode, relfilenode->relNode);
+
+	return vacuumRels;
+}
+
+/*
+ * Remove all relations in the vacuumRels list. This should be called during
+ * commit.
+ */
+void
+ResetVacuumRels()
+{
+	if (vacuumRels == NULL)
+		return;
+	
+	list_free_deep(vacuumRels);
+	vacuumRels = NIL;
+	elog(DEBUG2, "Reset VacuumRels");
+}
+
+/*
+ * Clear the freespace map entries for relations that are in vacuumRels.
+ */
+void
+ClearFreeSpaceForVacuumRels()
+{
+	ListCell *lc;
+
+	if (vacuumRels == NULL)
+		return;
+	
+	foreach (lc, vacuumRels)
+	{
+		RelFileNode *relfilenode = (RelFileNode *)lfirst(lc);
+		RecordRelationFreeSpace(relfilenode, 0, 0, NULL);
+
+		elog(DEBUG2, "Clear the freespace map entry for relation %d/%d/%d in VacuumRels",
+			 relfilenode->spcNode, relfilenode->dbNode, relfilenode->relNode);
+	}
+
+	ResetVacuumRels();
+}
 
 #ifdef FREESPACE_DEBUG
 /*

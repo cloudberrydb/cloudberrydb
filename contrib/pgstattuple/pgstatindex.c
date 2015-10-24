@@ -32,6 +32,7 @@
 #include "access/transam.h"
 #include "catalog/namespace.h"
 #include "catalog/pg_type.h"
+#include "miscadmin.h"
 #include "utils/builtins.h"
 #include "utils/inval.h"
 
@@ -63,14 +64,15 @@ extern Datum pg_relpages(PG_FUNCTION_ARGS);
 #define IS_INDEX(r) ((r)->rd_rel->relkind == 'i')
 #define IS_BTREE(r) ((r)->rd_rel->relam == BTREE_AM_OID)
 
-#define CHECK_PAGE_OFFSET_RANGE(page, offset) { \
-		if ( !(FirstOffsetNumber<=(offset) && \
-						(offset)<=PageGetMaxOffsetNumber(page)) ) \
-			 elog(ERROR, "Page offset number out of range."); }
+#define CHECK_PAGE_OFFSET_RANGE(pg, offnum) { \
+		if ( !(FirstOffsetNumber <= (offnum) && \
+						(offnum) <= PageGetMaxOffsetNumber(pg)) ) \
+			 elog(ERROR, "page offset number out of range"); }
 
+/* note: BlockNumber is unsigned, hence can't be negative */
 #define CHECK_RELATION_BLOCK_RANGE(rel, blkno) { \
-		if ( (blkno)<0 && RelationGetNumberOfBlocks((rel))<=(blkno) ) \
-			 elog(ERROR, "Block number out of range."); }
+		if ( RelationGetNumberOfBlocks(rel) <= (BlockNumber) (blkno) ) \
+			 elog(ERROR, "block number out of range"); }
 
 /* ------------------------------------------------
  * structure for single btree page statistics
@@ -238,6 +240,11 @@ pgstatindex(PG_FUNCTION_ARGS)
 	uint32		blkno;
 	BTIndexStat indexStat;
 
+	if (!superuser())
+		ereport(ERROR,
+				(errcode(ERRCODE_INSUFFICIENT_PRIVILEGE),
+				 (errmsg("must be superuser to use pgstattuple functions"))));
+
 	relrv = makeRangeVarFromNameList(textToQualifiedNameList(relname));
 	rel = relation_openrv(relrv, AccessShareLock);
 
@@ -395,6 +402,11 @@ bt_page_stats(PG_FUNCTION_ARGS)
 	RangeVar   *relrv;
 	Datum		result;
 
+	if (!superuser())
+		ereport(ERROR,
+				(errcode(ERRCODE_INSUFFICIENT_PRIVILEGE),
+				 (errmsg("must be superuser to use pgstattuple functions"))));
+
 	relrv = makeRangeVarFromNameList(textToQualifiedNameList(relname));
 	rel = relation_openrv(relrv, AccessShareLock);
 
@@ -500,6 +512,11 @@ bt_page_items(PG_FUNCTION_ARGS)
 	FuncCallContext *fctx;
 	MemoryContext mctx;
 	struct user_args *uargs = NULL;
+
+	if (!superuser())
+		ereport(ERROR,
+				(errcode(ERRCODE_INSUFFICIENT_PRIVILEGE),
+				 (errmsg("must be superuser to use pgstattuple functions"))));
 
 	if (blkno == 0)
 		elog(ERROR, "Block 0 is a meta page.");
@@ -628,6 +645,11 @@ bt_metap(PG_FUNCTION_ARGS)
 	RangeVar   *relrv;
 	Datum		result;
 
+	if (!superuser())
+		ereport(ERROR,
+				(errcode(ERRCODE_INSUFFICIENT_PRIVILEGE),
+				 (errmsg("must be superuser to use pgstattuple functions"))));
+
 	relrv = makeRangeVarFromNameList(textToQualifiedNameList(relname));
 	rel = relation_openrv(relrv, AccessShareLock);
 
@@ -694,6 +716,11 @@ pg_relpages(PG_FUNCTION_ARGS)
 	Relation	rel;
 	RangeVar   *relrv;
 	int4		relpages;
+
+	if (!superuser())
+		ereport(ERROR,
+				(errcode(ERRCODE_INSUFFICIENT_PRIVILEGE),
+				 (errmsg("must be superuser to use pgstattuple functions"))));
 
 	relrv = makeRangeVarFromNameList(textToQualifiedNameList(relname));
 	rel = relation_openrv(relrv, AccessShareLock);

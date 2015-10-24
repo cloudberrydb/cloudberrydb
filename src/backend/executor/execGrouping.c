@@ -3,7 +3,7 @@
  * execGrouping.c
  *	  executor utility routines for grouping, hashing, and aggregation
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -235,7 +235,7 @@ execTuplesHashPrepare(TupleDesc tupdesc,
 		optup = equality_oper(typid, false);
 		eq_opr = oprid(optup);
 		eq_function = oprfuncid(optup);
-		ReleaseSysCache(optup);
+		ReleaseOperator(optup);
 		hash_function = get_op_hash_function(eq_opr);
 		if (!OidIsValid(hash_function)) /* should not happen */
 			elog(ERROR, "could not find hash function for hash operator %u",
@@ -265,7 +265,9 @@ execTuplesHashPrepare(TupleDesc tupdesc,
  *	tablecxt: memory context in which to store table and table entries
  *	tempcxt: short-lived context for evaluation hash and comparison functions
  *
- * The function arrays may be made with execTuplesHashPrepare().
+ * The function arrays may be made with execTuplesHashPrepare().  Note they
+ * are not cross-type functions, but expect to see the table datatype(s)
+ * on both sides.
  *
  * Note that keyColIdx, eqfunctions, and hashfunctions must be allocated in
  * storage that will live as long as the hashtable does.
@@ -311,7 +313,7 @@ BuildTupleHashTable(int numCols, AttrNumber *keyColIdx,
 
 /*
  * Find or create a hashtable entry for the tuple group containing the
- * given tuple.
+ * given tuple.  The tuple must be the same type as the hashtable entries.
  *
  * If isnew is NULL, we do not create new entries; we return NULL if no
  * match is found.
@@ -357,6 +359,7 @@ LookupTupleHashEntry(TupleHashTable hashtable, TupleTableSlot *slot,
 	 * invoke this code re-entrantly.
 	 */
 	hashtable->inputslot = slot;
+
 	saveCurHT = CurTupleHashTable;
 	CurTupleHashTable = hashtable;
 
@@ -387,7 +390,7 @@ LookupTupleHashEntry(TupleHashTable hashtable, TupleTableSlot *slot,
 
 			/* Copy the first tuple into the table context */
 			MemoryContextSwitchTo(hashtable->tablecxt);
-			entry->firstTuple = ExecCopySlotMinimalTuple(slot);
+			entry->firstTuple = ExecCopySlotMemTuple(slot);
 
 			*isnew = true;
 		}
@@ -419,7 +422,7 @@ LookupTupleHashEntry(TupleHashTable hashtable, TupleTableSlot *slot,
 static uint32
 TupleHashTableHash(const void *key, Size keysize)
 {
-	MinimalTuple tuple = ((const TupleHashEntryData *) key)->firstTuple;
+	MemTuple tuple = ((const TupleHashEntryData *) key)->firstTuple;
 	TupleTableSlot *slot;
 	TupleHashTable hashtable = CurTupleHashTable;
 	int			numCols = hashtable->numCols;
@@ -437,7 +440,7 @@ TupleHashTableHash(const void *key, Size keysize)
 		/* Process a tuple already stored in the table */
 		/* (this case never actually occurs in current dynahash.c code) */
 		slot = hashtable->tableslot;
-		ExecStoreMinimalTuple(tuple, slot, false);
+		ExecStoreMemTuple(tuple, slot, false);
 	}
 
 	for (i = 0; i < numCols; i++)
@@ -478,10 +481,10 @@ TupleHashTableHash(const void *key, Size keysize)
 static int
 TupleHashTableMatch(const void *key1, const void *key2, Size keysize)
 {
-	MinimalTuple tuple1 = ((const TupleHashEntryData *) key1)->firstTuple;
+	MemTuple tuple1 = ((const TupleHashEntryData *) key1)->firstTuple;
 
 #ifdef USE_ASSERT_CHECKING
-	MinimalTuple tuple2 = ((const TupleHashEntryData *) key2)->firstTuple;
+	MemTuple tuple2 = ((const TupleHashEntryData *) key2)->firstTuple;
 #endif
 	TupleTableSlot *slot1;
 	TupleTableSlot *slot2;
@@ -495,7 +498,7 @@ TupleHashTableMatch(const void *key1, const void *key2, Size keysize)
 	 */
 	Assert(tuple1 != NULL);
 	slot1 = hashtable->tableslot;
-	ExecStoreMinimalTuple(tuple1, slot1, false);
+	ExecStoreMemTuple(tuple1, slot1, false);
 	Assert(tuple2 == NULL);
 	slot2 = hashtable->inputslot;
 

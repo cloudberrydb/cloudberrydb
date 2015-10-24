@@ -1,54 +1,54 @@
 --
 -- Cursor regression tests
 --
-
+SET optimizer_disable_missing_stats_collection=true;
 BEGIN;
 
-DECLARE foo1 SCROLL CURSOR FOR SELECT * FROM tenk1;
+DECLARE foo1 CURSOR FOR SELECT * FROM tenk1 ORDER BY 1,2,3,4;
 
-DECLARE foo2 SCROLL CURSOR FOR SELECT * FROM tenk2;
+DECLARE foo2 CURSOR FOR SELECT * FROM tenk2 ORDER BY 1,2,3,4;
 
-DECLARE foo3 SCROLL CURSOR FOR SELECT * FROM tenk1;
+DECLARE foo3 CURSOR FOR SELECT * FROM tenk1 ORDER BY 1,2,3,4;
 
-DECLARE foo4 SCROLL CURSOR FOR SELECT * FROM tenk2;
+DECLARE foo4 CURSOR FOR SELECT * FROM tenk2 ORDER BY 1,2,3,4;
 
-DECLARE foo5 SCROLL CURSOR FOR SELECT * FROM tenk1;
+DECLARE foo5 CURSOR FOR SELECT * FROM tenk1 ORDER BY 1,2,3,4;
 
-DECLARE foo6 SCROLL CURSOR FOR SELECT * FROM tenk2;
+DECLARE foo6 CURSOR FOR SELECT * FROM tenk2 ORDER BY 1,2,3,4;
 
-DECLARE foo7 SCROLL CURSOR FOR SELECT * FROM tenk1;
+DECLARE foo7 CURSOR FOR SELECT * FROM tenk1 ORDER BY 1,2,3,4;
 
-DECLARE foo8 SCROLL CURSOR FOR SELECT * FROM tenk2;
+DECLARE foo8 CURSOR FOR SELECT * FROM tenk2 ORDER BY 1,2,3,4;
 
-DECLARE foo9 SCROLL CURSOR FOR SELECT * FROM tenk1;
+DECLARE foo9 CURSOR FOR SELECT * FROM tenk1 ORDER BY 1,2,3,4;
 
-DECLARE foo10 SCROLL CURSOR FOR SELECT * FROM tenk2;
+DECLARE foo10 CURSOR FOR SELECT * FROM tenk2 ORDER BY 1,2,3,4;
 
-DECLARE foo11 SCROLL CURSOR FOR SELECT * FROM tenk1;
+DECLARE foo11 CURSOR FOR SELECT * FROM tenk1 ORDER BY 1,2,3,4;
 
-DECLARE foo12 SCROLL CURSOR FOR SELECT * FROM tenk2;
+DECLARE foo12 CURSOR FOR SELECT * FROM tenk2 ORDER BY 1,2,3,4;
 
-DECLARE foo13 SCROLL CURSOR FOR SELECT * FROM tenk1;
+DECLARE foo13 CURSOR FOR SELECT * FROM tenk1 ORDER BY 1,2,3,4;
 
-DECLARE foo14 SCROLL CURSOR FOR SELECT * FROM tenk2;
+DECLARE foo14 CURSOR FOR SELECT * FROM tenk2 ORDER BY 1,2,3,4;
 
-DECLARE foo15 SCROLL CURSOR FOR SELECT * FROM tenk1;
+DECLARE foo15 CURSOR FOR SELECT * FROM tenk1 ORDER BY 1,2,3,4;
 
-DECLARE foo16 SCROLL CURSOR FOR SELECT * FROM tenk2;
+DECLARE foo16 CURSOR FOR SELECT * FROM tenk2 ORDER BY 1,2,3,4;
 
-DECLARE foo17 SCROLL CURSOR FOR SELECT * FROM tenk1;
+DECLARE foo17 CURSOR FOR SELECT * FROM tenk1 ORDER BY 1,2,3,4;
 
-DECLARE foo18 SCROLL CURSOR FOR SELECT * FROM tenk2;
+DECLARE foo18 CURSOR FOR SELECT * FROM tenk2 ORDER BY 1,2,3,4;
 
-DECLARE foo19 SCROLL CURSOR FOR SELECT * FROM tenk1;
+DECLARE foo19 CURSOR FOR SELECT * FROM tenk1 ORDER BY 1,2,3,4;
 
-DECLARE foo20 SCROLL CURSOR FOR SELECT * FROM tenk2;
+DECLARE foo20 CURSOR FOR SELECT * FROM tenk2 ORDER BY 1,2,3,4;
 
-DECLARE foo21 SCROLL CURSOR FOR SELECT * FROM tenk1;
+DECLARE foo21 CURSOR FOR SELECT * FROM tenk1 ORDER BY 1,2,3,4;
 
-DECLARE foo22 SCROLL CURSOR FOR SELECT * FROM tenk2;
+DECLARE foo22 CURSOR FOR SELECT * FROM tenk2 ORDER BY 1,2,3,4;
 
-DECLARE foo23 SCROLL CURSOR FOR SELECT * FROM tenk1;
+DECLARE foo23 CURSOR FOR SELECT * FROM tenk1 ORDER BY 1,2,3,4;
 
 FETCH 1 in foo1;
 
@@ -96,51 +96,6 @@ FETCH 22 in foo22;
 
 FETCH 23 in foo23;
 
-FETCH backward 1 in foo23;
-
-FETCH backward 2 in foo22;
-
-FETCH backward 3 in foo21;
-
-FETCH backward 4 in foo20;
-
-FETCH backward 5 in foo19;
-
-FETCH backward 6 in foo18;
-
-FETCH backward 7 in foo17;
-
-FETCH backward 8 in foo16;
-
-FETCH backward 9 in foo15;
-
-FETCH backward 10 in foo14;
-
-FETCH backward 11 in foo13;
-
-FETCH backward 12 in foo12;
-
-FETCH backward 13 in foo11;
-
-FETCH backward 14 in foo10;
-
-FETCH backward 15 in foo9;
-
-FETCH backward 16 in foo8;
-
-FETCH backward 17 in foo7;
-
-FETCH backward 18 in foo6;
-
-FETCH backward 19 in foo5;
-
-FETCH backward 20 in foo4;
-
-FETCH backward 21 in foo3;
-
-FETCH backward 22 in foo2;
-
-FETCH backward 23 in foo1;
 
 CLOSE foo1;
 
@@ -170,11 +125,11 @@ CLOSE foo12;
 
 -- record this in the system view as well (don't query the time field there
 -- however)
-SELECT name, statement, is_holdable, is_binary, is_scrollable FROM pg_cursors;
+SELECT name, statement, is_holdable, is_binary, is_scrollable FROM pg_cursors ORDER BY name;
 
 END;
 
-SELECT name, statement, is_holdable, is_binary, is_scrollable FROM pg_cursors;
+SELECT name, statement, is_holdable, is_binary, is_scrollable FROM pg_cursors ORDER BY name;
 
 --
 -- NO SCROLL disallows backward fetching
@@ -182,7 +137,7 @@ SELECT name, statement, is_holdable, is_binary, is_scrollable FROM pg_cursors;
 
 BEGIN;
 
-DECLARE foo24 NO SCROLL CURSOR FOR SELECT * FROM tenk1;
+DECLARE foo24 NO SCROLL CURSOR FOR SELECT * FROM tenk1 ORDER BY 1,2,3,4;
 
 FETCH 1 FROM foo24;
 
@@ -195,11 +150,11 @@ END;
 --
 
 
-SELECT name, statement, is_holdable, is_binary, is_scrollable FROM pg_cursors;
+SELECT name, statement, is_holdable, is_binary, is_scrollable FROM pg_cursors ORDER BY name;
 
 BEGIN;
 
-DECLARE foo25 SCROLL CURSOR WITH HOLD FOR SELECT * FROM tenk2;
+DECLARE foo25 CURSOR WITH HOLD FOR SELECT * FROM tenk2 ORDER BY 1,2,3,4;
 
 FETCH FROM foo25;
 
@@ -209,11 +164,11 @@ COMMIT;
 
 FETCH FROM foo25;
 
-FETCH BACKWARD FROM foo25;
+--FETCH BACKWARD FROM foo25;
 
-FETCH ABSOLUTE -1 FROM foo25;
+--FETCH ABSOLUTE -1 FROM foo25;
 
-SELECT name, statement, is_holdable, is_binary, is_scrollable FROM pg_cursors;
+SELECT name, statement, is_holdable, is_binary, is_scrollable FROM pg_cursors ORDER BY name;
 
 CLOSE foo25;
 
@@ -223,7 +178,7 @@ CLOSE foo25;
 
 BEGIN;
 
-DECLARE foo26 CURSOR WITH HOLD FOR SELECT * FROM tenk1;
+DECLARE foo26 CURSOR WITH HOLD FOR SELECT * FROM tenk1 ORDER BY 1,2,3,4;
 
 ROLLBACK;
 
@@ -239,7 +194,7 @@ BEGIN;
 CREATE FUNCTION declares_cursor(text)
    RETURNS void
    AS 'DECLARE c CURSOR FOR SELECT stringu1 FROM tenk1 WHERE stringu1 LIKE $1;'
-   LANGUAGE SQL;
+   LANGUAGE SQL READS SQL DATA;
 
 SELECT declares_cursor('AB%');
 
@@ -252,14 +207,13 @@ ROLLBACK;
 -- in particular we want to see what happens during commit of a holdable
 -- cursor
 --
-
 create temp table tt1(f1 int);
 
 create function count_tt1_v() returns int8 as
-'select count(*) from tt1' language sql volatile;
+'select count(*) from tt1' language sql volatile READS SQL DATA;
 
 create function count_tt1_s() returns int8 as
-'select count(*) from tt1' language sql stable;
+'select count(*) from tt1' language sql stable READS SQL DATA;
 
 begin;
 
@@ -269,7 +223,7 @@ declare c1 cursor for select count_tt1_v(), count_tt1_s();
 
 insert into tt1 values(2);
 
-fetch all from c1;
+-- fetch all from c1; -- DISABLED: see open JIRA MPP-835
 
 rollback;
 
@@ -285,7 +239,7 @@ commit;
 
 delete from tt1;
 
-fetch all from c2;
+-- fetch all from c2; -- DISABLED: see open JIRA MPP-835
 
 drop function count_tt1_v();
 drop function count_tt1_s();
@@ -293,13 +247,13 @@ drop function count_tt1_s();
 
 -- Create a cursor with the BINARY option and check the pg_cursors view
 BEGIN;
-SELECT name, statement, is_holdable, is_binary, is_scrollable FROM pg_cursors;
+SELECT name, statement, is_holdable, is_binary, is_scrollable FROM pg_cursors ORDER BY name;
 DECLARE bc BINARY CURSOR FOR SELECT * FROM tenk1;
-SELECT name, statement, is_holdable, is_binary, is_scrollable FROM pg_cursors;
+SELECT name, statement, is_holdable, is_binary, is_scrollable FROM pg_cursors ORDER BY name;
 ROLLBACK;
 
 -- We should not see the portal that is created internally to
 -- implement EXECUTE in pg_cursors
 PREPARE cprep AS
-  SELECT name, statement, is_holdable, is_binary, is_scrollable FROM pg_cursors;
+  SELECT name, statement, is_holdable, is_binary, is_scrollable FROM pg_cursors ORDER BY name;
 EXECUTE cprep;

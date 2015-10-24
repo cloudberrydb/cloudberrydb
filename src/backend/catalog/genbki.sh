@@ -6,12 +6,12 @@
 #    files.  These .bki files are used to initialize the postgres template
 #    database.
 #
-# Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+# Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
 # Portions Copyright (c) 1994, Regents of the University of California
 #
 #
 # IDENTIFICATION
-#    $PostgreSQL: pgsql/src/backend/catalog/genbki.sh,v 1.40 2006/07/31 01:16:36 tgl Exp $
+#    $PostgreSQL: pgsql/src/backend/catalog/genbki.sh,v 1.46 2009/01/01 17:23:36 momjian Exp $
 #
 # NOTES
 #    non-essential whitespace is removed from the generated file.
@@ -59,7 +59,7 @@ do
             echo "  $CMDNAME [ -I dir ] --set-version=VERSION -o prefix files..."
             echo
             echo "Options:"
-            echo "  -I  path to postgres_ext.h and pg_config_manual.h files"
+            echo "  -I  path to include files"
             echo "  -o  prefix of output files"
             echo "  --set-version  PostgreSQL version number for initdb cross-check"
             echo
@@ -106,10 +106,16 @@ TMPFILE="genbkitmp$$.c"
 trap "rm -f $TMPFILE ${OUTPUT_PREFIX}.bki.$$ ${OUTPUT_PREFIX}.description.$$ ${OUTPUT_PREFIX}.shdescription.$$" 0 1 2 3 15
 
 
+# CAUTION: be wary about what symbols you substitute into the .bki file here!
+# It's okay to substitute things that are expected to be really constant
+# within a given Postgres release, such as fixed OIDs.  Do not substitute
+# anything that could depend on platform or configuration.  (The right place
+# to handle those sorts of things is in initdb.c's bootstrap_template1().)
+
 # Get NAMEDATALEN from postgres_ext.h
 for dir in $INCLUDE_DIRS; do
-    if [ -f "$dir/postgres_ext.h" ]; then
-        NAMEDATALEN=`grep '^#define[ 	]*NAMEDATALEN' $dir/postgres_ext.h | $AWK '{ print $3 }'`
+    if [ -f "$dir/pg_config_manual.h" ]; then
+        NAMEDATALEN=`grep '^#define[ 	]*NAMEDATALEN' $dir/pg_config_manual.h | $AWK '{ print $3 }'`
         break
     fi
 done
@@ -126,6 +132,7 @@ done
 for dir in $INCLUDE_DIRS; do
     if [ -f "$dir/catalog/pg_namespace.h" ]; then
         PG_CATALOG_NAMESPACE=`grep '^#define[ 	]*PG_CATALOG_NAMESPACE' $dir/catalog/pg_namespace.h | $AWK '{ print $3 }'`
+        PG_TOAST_NAMESPACE=`grep '^#define[ 	]*PG_TOAST_NAMESPACE' $dir/catalog/pg_namespace.h | $AWK '{ print $3 }'`
         break
     fi
 done
@@ -165,6 +172,7 @@ sed -e "s/;[ 	]*$//g" \
     -e "s/PGUID/$BOOTSTRAP_SUPERUSERID/g" \
     -e "s/NAMEDATALEN/$NAMEDATALEN/g" \
     -e "s/PGNSP/$PG_CATALOG_NAMESPACE/g" \
+    -e "s/TOASTNSP/$PG_TOAST_NAMESPACE/g" \
 | $AWK '
 # ----------------
 #	now use awk to process remaining .h file..

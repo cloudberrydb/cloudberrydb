@@ -1,0 +1,18 @@
+#!/bin/bash
+
+GP_VERSION=4.3.99.00
+
+# Pickup environment variable for suffix.
+# This allows team branches to look like a special build.
+if [ -n "${GP_VERSION_SUFFIX}" ] ; then
+    GP_VERSION=${GP_VERSION}${GP_VERSION_SUFFIX}
+fi
+
+GP_BUILDNUMBER=dev
+if [ -f BUILD_NUMBER ] ; then
+    GP_BUILDNUMBER=`cat BUILD_NUMBER`
+fi
+
+echo "${GP_VERSION} build ${GP_BUILDNUMBER}"
+
+exit 0

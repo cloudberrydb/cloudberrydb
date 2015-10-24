@@ -5,75 +5,75 @@
 CREATE FUNCTION widget_in(cstring)
    RETURNS widget
    AS '@abs_builddir@/regress@DLSUFFIX@'
-   LANGUAGE C STRICT;
+   LANGUAGE C IMMUTABLE STRICT NO SQL;
 
 CREATE FUNCTION widget_out(widget)
    RETURNS cstring
    AS '@abs_builddir@/regress@DLSUFFIX@'
-   LANGUAGE C STRICT;
+   LANGUAGE C IMMUTABLE STRICT NO SQL;
 
 CREATE FUNCTION int44in(cstring)
    RETURNS city_budget
    AS '@abs_builddir@/regress@DLSUFFIX@'
-   LANGUAGE C STRICT;
+   LANGUAGE C IMMUTABLE STRICT NO SQL;
 
 CREATE FUNCTION int44out(city_budget)
    RETURNS cstring
    AS '@abs_builddir@/regress@DLSUFFIX@'
-   LANGUAGE C STRICT;
+   LANGUAGE C IMMUTABLE STRICT NO SQL;
 
 CREATE FUNCTION check_primary_key ()
 	RETURNS trigger
-	AS '@abs_builddir@/../../../contrib/spi/refint@DLSUFFIX@'
-	LANGUAGE C;
+	AS '@abs_builddir@/regress@DLSUFFIX@'
+	LANGUAGE C READS SQL DATA;
 
 CREATE FUNCTION check_foreign_key ()
 	RETURNS trigger
-	AS '@abs_builddir@/../../../contrib/spi/refint@DLSUFFIX@'
-	LANGUAGE C;
+	AS '@abs_builddir@/regress@DLSUFFIX@'
+	LANGUAGE C READS SQL DATA;
 
 CREATE FUNCTION autoinc ()
 	RETURNS trigger
-	AS '@abs_builddir@/../../../contrib/spi/autoinc@DLSUFFIX@'
-	LANGUAGE C;
+	AS '@abs_builddir@/regress@DLSUFFIX@'
+	LANGUAGE C READS SQL DATA;
 
 CREATE FUNCTION funny_dup17 ()
         RETURNS trigger
         AS '@abs_builddir@/regress@DLSUFFIX@'
-        LANGUAGE C;
+        LANGUAGE C READS SQL DATA;
 
 CREATE FUNCTION ttdummy ()
         RETURNS trigger
         AS '@abs_builddir@/regress@DLSUFFIX@'
-        LANGUAGE C;
+        LANGUAGE C READS SQL DATA;
 
 CREATE FUNCTION set_ttdummy (int4)
         RETURNS int4
         AS '@abs_builddir@/regress@DLSUFFIX@'
-        LANGUAGE C STRICT;
+        LANGUAGE C STRICT READS SQL DATA;
 
 -- Things that shouldn't work:
 
-CREATE FUNCTION test1 (int) RETURNS int LANGUAGE SQL
+CREATE FUNCTION test1 (int) RETURNS int LANGUAGE SQL CONTAINS SQL
     AS 'SELECT ''not an integer'';';
 
-CREATE FUNCTION test1 (int) RETURNS int LANGUAGE SQL
+CREATE FUNCTION test1 (int) RETURNS int LANGUAGE SQL CONTAINS SQL
     AS 'not even SQL';
 
-CREATE FUNCTION test1 (int) RETURNS int LANGUAGE SQL
+CREATE FUNCTION test1 (int) RETURNS int LANGUAGE SQL CONTAINS SQL
     AS 'SELECT 1, 2, 3;';
 
-CREATE FUNCTION test1 (int) RETURNS int LANGUAGE SQL
+CREATE FUNCTION test1 (int) RETURNS int LANGUAGE SQL CONTAINS SQL
     AS 'SELECT $2;';
 
-CREATE FUNCTION test1 (int) RETURNS int LANGUAGE SQL
+CREATE FUNCTION test1 (int) RETURNS int LANGUAGE SQL CONTAINS SQL
     AS 'a', 'b';
 
-CREATE FUNCTION test1 (int) RETURNS int LANGUAGE C
+CREATE FUNCTION test1 (int) RETURNS int LANGUAGE C NO SQL
     AS 'nosuchfile';
 
-CREATE FUNCTION test1 (int) RETURNS int LANGUAGE C
+CREATE FUNCTION test1 (int) RETURNS int LANGUAGE C NO SQL
     AS '@abs_builddir@/regress@DLSUFFIX@', 'nosuchsymbol';
 
-CREATE FUNCTION test1 (int) RETURNS int LANGUAGE internal
+CREATE FUNCTION test1 (int) RETURNS int LANGUAGE internal NO SQL
     AS 'nosuch';

@@ -4,12 +4,12 @@
  *		Functions for finding and validating executable files
  *
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/port/exec.c,v 1.43 2006/09/11 20:10:30 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/port/exec.c,v 1.63 2009/06/11 14:49:15 momjian Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -22,6 +22,7 @@
 
 #include <grp.h>
 #include <pwd.h>
+#include <signal.h>
 #include <sys/stat.h>
 #include <sys/wait.h>
 #include <unistd.h>
@@ -54,6 +55,9 @@ static int	validate_exec(const char *path);
 static int	resolve_symlinks(char *path);
 static char *pipe_read_line(char *cmd, char *line, int maxsize);
 
+#ifdef WIN32
+static BOOL GetUserSid(PSID *ppSidUser, HANDLE hToken);
+#endif
 
 /*
  * validate_exec -- validate "path" as an executable file
@@ -76,15 +80,15 @@ validate_exec(const char *path)
 #else
 	char		path_exe[MAXPGPATH + sizeof(".exe") - 1];
 #endif
-	int			is_r = 0;
-	int			is_x = 0;
+	int			is_r;
+	int			is_x;
 
 #ifdef WIN32
 	/* Win32 requires a .exe suffix for stat() */
 	if (strlen(path) >= strlen(".exe") &&
 		pg_strcasecmp(path + strlen(path) - strlen(".exe"), ".exe") != 0)
 	{
-		strcpy(path_exe, path);
+		strlcpy(path_exe, path, sizeof(path_exe) - 4);
 		strcat(path_exe, ".exe");
 		path = path_exe;
 	}
@@ -99,7 +103,7 @@ validate_exec(const char *path)
 	if (stat(path, &buf) < 0)
 		return -1;
 
-	if ((buf.st_mode & S_IFMT) != S_IFREG)
+	if (!S_ISREG(buf.st_mode))
 		return -1;
 
 	/*
@@ -327,7 +331,7 @@ resolve_symlinks(char *path)
 			fname = path;
 
 		if (lstat(fname, &buf) < 0 ||
-			(buf.st_mode & S_IFMT) != S_IFLNK)
+			!S_ISLNK(buf.st_mode))
 			break;
 
 		rllen = readlink(fname, link_buf, sizeof(link_buf));
@@ -341,7 +345,7 @@ resolve_symlinks(char *path)
 	}
 
 	/* must copy final component out of 'path' temporarily */
-	strcpy(link_buf, fname);
+	strlcpy(link_buf, fname, sizeof(link_buf));
 
 	if (!getcwd(path, MAXPGPATH))
 	{
@@ -388,13 +392,21 @@ find_other_exec(const char *argv0, const char *target,
 	if (validate_exec(retpath) != 0)
 		return -1;
 
-	snprintf(cmd, sizeof(cmd), "\"%s\" -V 2>%s", retpath, DEVNULL);
+	/*
+	 * In PostgreSQL, the version check is always performed. In GPDB, this
+	 * is also used to find scripts that don't necessarily have the same
+	 * version output (in particular, pg_regress uses this to find gpdiff.pl)
+	 */
+	if (versionstr)
+	{
+		snprintf(cmd, sizeof(cmd), "\"%s\" -V 2>%s", retpath, DEVNULL);
 
-	if (!pipe_read_line(cmd, line, sizeof(line)))
-		return -1;
+		if (!pipe_read_line(cmd, line, sizeof(line)))
+			return -1;
 
-	if (strcmp(line, versionstr) != 0)
-		return -2;
+		if (strcmp(line, versionstr) != 0)
+			return -2;
+	}
 
 	return 0;
 }
@@ -582,8 +594,22 @@ pclose_check(FILE *stream)
 		log_error(_("child process exited with exit code %d"),
 				  WEXITSTATUS(exitstatus));
 	else if (WIFSIGNALED(exitstatus))
+#if defined(WIN32)
+		log_error(_("child process was terminated by exception 0x%X"),
+				  WTERMSIG(exitstatus));
+#elif defined(HAVE_DECL_SYS_SIGLIST) && HAVE_DECL_SYS_SIGLIST
+	{
+		char		str[256];
+
+		snprintf(str, sizeof(str), "%d: %s", WTERMSIG(exitstatus),
+				 WTERMSIG(exitstatus) < NSIG ?
+				 sys_siglist[WTERMSIG(exitstatus)] : "(unknown)");
+		log_error(_("child process was terminated by signal %s"), str);
+	}
+#else
 		log_error(_("child process was terminated by signal %d"),
 				  WTERMSIG(exitstatus));
+#endif
 	else
 		log_error(_("child process exited with unrecognized status %d"),
 				  exitstatus);
@@ -612,7 +638,7 @@ set_pglocale_pgservice(const char *argv0, const char *app)
 																 * PGLOCALEDIR */
 
 	/* don't set LC_ALL in the backend */
-	if (strcmp(app, "postgres") != 0)
+	if (strcmp(app, PG_TEXTDOMAIN("postgres")) != 0)
 		setlocale(LC_ALL, "");
 
 	if (find_my_exec(argv0, my_exec_path) < 0)
@@ -642,3 +668,214 @@ set_pglocale_pgservice(const char *argv0, const char *app)
 		putenv(strdup(env_path));
 	}
 }
+
+#ifdef WIN32
+
+/*
+ * AddUserToDacl(HANDLE hProcess)
+ *
+ * This function adds the current user account to the default DACL
+ * which gets attached to the restricted token used when we create
+ * a restricted process.
+ *
+ * This is required because of some security changes in Windows
+ * that appeared in patches to XP/2K3 and in Vista/2008.
+ *
+ * On these machines, the Administrator account is not included in
+ * the default DACL - you just get Administrators + System. For
+ * regular users you get User + System. Because we strip Administrators
+ * when we create the restricted token, we are left with only System
+ * in the DACL which leads to access denied errors for later CreatePipe()
+ * and CreateProcess() calls when running as Administrator.
+ *
+ * This function fixes this problem by modifying the DACL of the
+ * specified process and explicitly re-adding the current user account.
+ * This is still secure because the Administrator account inherits it's
+ * privileges from the Administrators group - it doesn't have any of
+ * it's own.
+ */
+BOOL
+AddUserToDacl(HANDLE hProcess)
+{
+	int			i;
+	ACL_SIZE_INFORMATION asi;
+	ACCESS_ALLOWED_ACE *pace;
+	DWORD		dwNewAclSize;
+	DWORD		dwSize = 0;
+	DWORD		dwTokenInfoLength = 0;
+	HANDLE		hToken = NULL;
+	PACL		pacl = NULL;
+	PSID		psidUser = NULL;
+	TOKEN_DEFAULT_DACL tddNew;
+	TOKEN_DEFAULT_DACL *ptdd = NULL;
+	TOKEN_INFORMATION_CLASS tic = TokenDefaultDacl;
+	BOOL		ret = FALSE;
+
+	/* Get the token for the process */
+	if (!OpenProcessToken(hProcess, TOKEN_QUERY | TOKEN_ADJUST_DEFAULT, &hToken))
+	{
+		log_error("could not open process token: %lu", GetLastError());
+		goto cleanup;
+	}
+
+	/* Figure out the buffer size for the DACL info */
+	if (!GetTokenInformation(hToken, tic, (LPVOID) NULL, dwTokenInfoLength, &dwSize))
+	{
+		if (GetLastError() == ERROR_INSUFFICIENT_BUFFER)
+		{
+			ptdd = (TOKEN_DEFAULT_DACL *) LocalAlloc(LPTR, dwSize);
+			if (ptdd == NULL)
+			{
+				log_error("could not allocate %lu bytes of memory", dwSize);
+				goto cleanup;
+			}
+
+			if (!GetTokenInformation(hToken, tic, (LPVOID) ptdd, dwSize, &dwSize))
+			{
+				log_error("could not get token information: %lu", GetLastError());
+				goto cleanup;
+			}
+		}
+		else
+		{
+			log_error("could not get token information buffer size: %lu", GetLastError());
+			goto cleanup;
+		}
+	}
+
+	/* Get the ACL info */
+	if (!GetAclInformation(ptdd->DefaultDacl, (LPVOID) &asi,
+						   (DWORD) sizeof(ACL_SIZE_INFORMATION),
+						   AclSizeInformation))
+	{
+		log_error("could not get ACL information: %lu", GetLastError());
+		goto cleanup;
+	}
+
+	/* Get the SID for the current user. We need to add this to the ACL. */
+	if (!GetUserSid(&psidUser, hToken))
+	{
+		log_error("could not get user SID: %lu", GetLastError());
+		goto cleanup;
+	}
+
+	/* Figure out the size of the new ACL */
+	dwNewAclSize = asi.AclBytesInUse + sizeof(ACCESS_ALLOWED_ACE) + GetLengthSid(psidUser) -sizeof(DWORD);
+
+	/* Allocate the ACL buffer & initialize it */
+	pacl = (PACL) LocalAlloc(LPTR, dwNewAclSize);
+	if (pacl == NULL)
+	{
+		log_error("could not allocate %lu bytes of memory", dwNewAclSize);
+		goto cleanup;
+	}
+
+	if (!InitializeAcl(pacl, dwNewAclSize, ACL_REVISION))
+	{
+		log_error("could not initialize ACL: %lu", GetLastError());
+		goto cleanup;
+	}
+
+	/* Loop through the existing ACEs, and build the new ACL */
+	for (i = 0; i < (int) asi.AceCount; i++)
+	{
+		if (!GetAce(ptdd->DefaultDacl, i, (LPVOID *) &pace))
+		{
+			log_error("could not get ACE: %lu", GetLastError());
+			goto cleanup;
+		}
+
+		if (!AddAce(pacl, ACL_REVISION, MAXDWORD, pace, ((PACE_HEADER) pace)->AceSize))
+		{
+			log_error("could not add ACE: %lu", GetLastError());
+			goto cleanup;
+		}
+	}
+
+	/* Add the new ACE for the current user */
+	if (!AddAccessAllowedAce(pacl, ACL_REVISION, GENERIC_ALL, psidUser))
+	{
+		log_error("could not add access allowed ACE: %lu", GetLastError());
+		goto cleanup;
+	}
+
+	/* Set the new DACL in the token */
+	tddNew.DefaultDacl = pacl;
+
+	if (!SetTokenInformation(hToken, tic, (LPVOID) &tddNew, dwNewAclSize))
+	{
+		log_error("could not set token information: %lu", GetLastError());
+		goto cleanup;
+	}
+
+	ret = TRUE;
+
+cleanup:
+	if (psidUser)
+		FreeSid(psidUser);
+
+	if (pacl)
+		LocalFree((HLOCAL) pacl);
+
+	if (ptdd)
+		LocalFree((HLOCAL) ptdd);
+
+	if (hToken)
+		CloseHandle(hToken);
+
+	return ret;
+}
+
+/*
+ * GetUserSid*PSID *ppSidUser, HANDLE hToken)
+ *
+ * Get the SID for the current user
+ */
+static BOOL
+GetUserSid(PSID *ppSidUser, HANDLE hToken)
+{
+	DWORD		dwLength;
+	PTOKEN_USER pTokenUser = NULL;
+
+
+	if (!GetTokenInformation(hToken,
+							 TokenUser,
+							 pTokenUser,
+							 0,
+							 &dwLength))
+	{
+		if (GetLastError() == ERROR_INSUFFICIENT_BUFFER)
+		{
+			pTokenUser = (PTOKEN_USER) HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, dwLength);
+
+			if (pTokenUser == NULL)
+			{
+				log_error("could not allocate %lu bytes of memory", dwLength);
+				return FALSE;
+			}
+		}
+		else
+		{
+			log_error("could not get token information buffer size: %lu", GetLastError());
+			return FALSE;
+		}
+	}
+
+	if (!GetTokenInformation(hToken,
+							 TokenUser,
+							 pTokenUser,
+							 dwLength,
+							 &dwLength))
+	{
+		HeapFree(GetProcessHeap(), 0, pTokenUser);
+		pTokenUser = NULL;
+
+		log_error("could not get token information: %lu", GetLastError());
+		return FALSE;
+	}
+
+	*ppSidUser = pTokenUser->User.Sid;
+	return TRUE;
+}
+
+#endif

@@ -1,4 +1,4 @@
-/* $PostgreSQL: pgsql/src/interfaces/ecpg/preproc/ecpg.c,v 1.94 2006/02/08 09:10:04 meskes Exp $ */
+/* $PostgreSQL: pgsql/src/interfaces/ecpg/preproc/ecpg.c,v 1.110 2009/06/11 14:49:13 momjian Exp $ */
 
 /* New main for ecpg, the PostgreSQL embedded SQL precompiler. */
 /* (C) Michael Meskes <meskes@postgresql.org> Feb 5th, 1998 */
@@ -8,12 +8,7 @@
 
 #include <unistd.h>
 #include <string.h>
-#ifdef HAVE_GETOPT_H
-#include <getopt.h>
-#endif
-
-extern int	optind;
-extern char *optarg;
+#include "getopt_long.h"
 
 #include "extern.h"
 
@@ -22,7 +17,11 @@ int			ret_value = 0,
 			auto_create_c = false,
 			system_includes = false,
 			force_indicator = true,
-			header_mode = false;
+			questionmarks = false,
+			regression_mode = false,
+			auto_prepare = false;
+
+char	   *output_filename;
 
 enum COMPAT_MODE compat = ECPG_COMPAT_PGSQL;
 
@@ -34,32 +33,33 @@ struct _defines *defines = NULL;
 static void
 help(const char *progname)
 {
-	printf("%s is the PostgreSQL embedded SQL preprocessor for C programs.\n\n",
+	printf(_("%s is the PostgreSQL embedded SQL preprocessor for C programs.\n\n"),
 		   progname);
-	printf("Usage:\n"
-		   "  %s [OPTION]... FILE...\n\n",
+	printf(_("Usage:\n"
+			 "  %s [OPTION]... FILE...\n\n"),
 		   progname);
-	printf("Options:\n");
-	printf("  -c             automatically generate C code from embedded SQL code;\n"
-		   "                 currently this works for EXEC SQL TYPE\n");
-	printf("  -C MODE        set compatibility mode;\n"
-	  "                 MODE may be one of \"INFORMIX\", \"INFORMIX_SE\"\n");
+	printf(_("Options:\n"));
+	printf(_("  -c             automatically generate C code from embedded SQL code;\n"
+			 "                 this affects EXEC SQL TYPE\n"));
+	printf(_("  -C MODE        set compatibility mode; MODE can be one of\n"
+			 "                 \"INFORMIX\", \"INFORMIX_SE\"\n"));
 #ifdef YYDEBUG
-	printf("  -d             generate parser debug output\n");
+	printf(_("  -d             generate parser debug output\n"));
 #endif
-	printf("  -D SYMBOL      define SYMBOL\n");
-	printf("  -h             parse a header file, this option includes option \"-c\"\n");
-	printf("  -i             parse system include files as well\n");
-	printf("  -I DIRECTORY   search DIRECTORY for include files\n");
-	printf("  -o OUTFILE     write result to OUTFILE\n");
-	printf("  -r OPTION      specify runtime behaviour;\n"
-		   "                 OPTION may only be \"no_indicator\"\n");
-	printf("  -t             turn on autocommit of transactions\n");
-	printf("  --help         show this help, then exit\n");
-	printf("  --version      output version information, then exit\n");
-	printf("\nIf no output file is specified, the name is formed by adding .c to the\n"
-		   "input file name, after stripping off .pgc if present.\n");
-	printf("\nReport bugs to <pgsql-bugs@postgresql.org>.\n");
+	printf(_("  -D SYMBOL      define SYMBOL\n"));
+	printf(_("  -h             parse a header file, this option includes option \"-c\"\n"));
+	printf(_("  -i             parse system include files as well\n"));
+	printf(_("  -I DIRECTORY   search DIRECTORY for include files\n"));
+	printf(_("  -o OUTFILE     write result to OUTFILE\n"));
+	printf(_("  -r OPTION      specify run-time behavior; OPTION can be:\n"
+	 "                 \"no_indicator\", \"prepare\", \"questionmarks\"\n"));
+	printf(_("  --regression   run in regression testing mode\n"));
+	printf(_("  -t             turn on autocommit of transactions\n"));
+	printf(_("  --help         show this help, then exit\n"));
+	printf(_("  --version      output version information, then exit\n"));
+	printf(_("\nIf no output file is specified, the name is formed by adding .c to the\n"
+			 "input file name, after stripping off .pgc if present.\n"));
+	printf(_("\nReport bugs to <pgsql-bugs@postgresql.org>.\n"));
 }
 
 static void
@@ -112,50 +112,78 @@ add_preprocessor_define(char *define)
 	defines->next = pd;
 }
 
+#define ECPG_GETOPT_LONG_HELP			1
+#define ECPG_GETOPT_LONG_VERSION		2
+#define ECPG_GETOPT_LONG_REGRESSION		3
 int
 main(int argc, char *const argv[])
 {
+	static struct option ecpg_options[] = {
+		{"help", no_argument, NULL, ECPG_GETOPT_LONG_HELP},
+		{"version", no_argument, NULL, ECPG_GETOPT_LONG_VERSION},
+		{"regression", no_argument, NULL, ECPG_GETOPT_LONG_REGRESSION},
+		{NULL, 0, NULL, 0}
+	};
+
 	int			fnr,
 				c,
 				verbose = false,
+				header_mode = false,
 				out_option = 0;
 	struct _include_path *ip;
 	const char *progname;
 	char		my_exec_path[MAXPGPATH];
 	char		include_path[MAXPGPATH];
 
-	progname = get_progname(argv[0]);
+	set_pglocale_pgservice(argv[0], PG_TEXTDOMAIN("ecpg"));
 
-	if (argc > 1)
-	{
-		if (strcmp(argv[1], "--help") == 0 || strcmp(argv[1], "-?") == 0)
-		{
-			help(progname);
-			exit(0);
-		}
-		else if (strcmp(argv[1], "--version") == 0)
-		{
-			printf("ecpg (PostgreSQL %s) %d.%d.%d\n", PG_VERSION,
-				   MAJOR_VERSION, MINOR_VERSION, PATCHLEVEL);
-			exit(0);
-		}
-	}
+	progname = get_progname(argv[0]);
 
 	find_my_exec(argv[0], my_exec_path);
 
-	while ((c = getopt(argc, argv, "vcio:I:tD:dC:r:h")) != -1)
+	output_filename = NULL;
+	while ((c = getopt_long(argc, argv, "vcio:I:tD:dC:r:h?", ecpg_options, NULL)) != -1)
 	{
 		switch (c)
 		{
+			case ECPG_GETOPT_LONG_VERSION:
+				printf("ecpg (PostgreSQL %s) %d.%d.%d\n", PG_VERSION,
+					   MAJOR_VERSION, MINOR_VERSION, PATCHLEVEL);
+				exit(0);
+			case ECPG_GETOPT_LONG_HELP:
+				help(progname);
+				exit(0);
+
+				/*
+				 * -? is an alternative spelling of --help. However it is also
+				 * returned by getopt_long for unknown options. We can
+				 * distinguish both cases by means of the optopt variable
+				 * which is set to 0 if it was really -? and not an unknown
+				 * option character.
+				 */
+			case '?':
+				if (optopt == 0)
+				{
+					help(progname);
+					exit(0);
+				}
+				break;
+			case ECPG_GETOPT_LONG_REGRESSION:
+				regression_mode = true;
+				break;
 			case 'o':
-				if (strcmp(optarg, "-") == 0)
+				output_filename = optarg;
+				if (strcmp(output_filename, "-") == 0)
 					yyout = stdout;
 				else
-					yyout = fopen(optarg, PG_BINARY_W);
+					yyout = fopen(output_filename, PG_BINARY_W);
 
 				if (yyout == NULL)
-					fprintf(stderr, "%s: could not open file \"%s\": %s\n",
-							progname, optarg, strerror(errno));
+				{
+					fprintf(stderr, _("%s: could not open file \"%s\": %s\n"),
+							progname, output_filename, strerror(errno));
+					output_filename = NULL;
+				}
 				else
 					out_option = 1;
 				break;
@@ -171,7 +199,7 @@ main(int argc, char *const argv[])
 			case 'h':
 				header_mode = true;
 				/* this must include "-c" to make sense */
-				/* so do not place a break; here */
+				/* so do not place a "break;" here */
 			case 'c':
 				auto_create_c = true;
 				break;
@@ -185,27 +213,26 @@ main(int argc, char *const argv[])
 					char		informix_path[MAXPGPATH];
 
 					compat = (strcmp(optarg, "INFORMIX") == 0) ? ECPG_COMPAT_INFORMIX : ECPG_COMPAT_INFORMIX_SE;
-					/* system_includes = true; */
-					add_preprocessor_define("dec_t=decimal");
-					add_preprocessor_define("intrvl_t=interval");
-					add_preprocessor_define("dtime_t=timestamp");
-
 					get_pkginclude_path(my_exec_path, pkginclude_path);
 					snprintf(informix_path, MAXPGPATH, "%s/informix/esql", pkginclude_path);
 					add_include_path(informix_path);
 				}
 				else
 				{
-					fprintf(stderr, "Try '%s --help' for more information.\n", argv[0]);
+					fprintf(stderr, _("Try \"%s --help\" for more information.\n"), argv[0]);
 					return ILLEGAL_OPTION;
 				}
 				break;
 			case 'r':
 				if (strcmp(optarg, "no_indicator") == 0)
 					force_indicator = false;
+				else if (strcmp(optarg, "prepare") == 0)
+					auto_prepare = true;
+				else if (strcmp(optarg, "questionmarks") == 0)
+					questionmarks = true;
 				else
 				{
-					fprintf(stderr, "Try '%s --help' for more information.\n", argv[0]);
+					fprintf(stderr, _("Try \"%s --help\" for more information.\n"), argv[0]);
 					return ILLEGAL_OPTION;
 				}
 				break;
@@ -216,12 +243,12 @@ main(int argc, char *const argv[])
 #ifdef YYDEBUG
 				yydebug = 1;
 #else
-				fprintf(stderr, "%s: parser debug support (-d) not available\n",
+				fprintf(stderr, _("%s: parser debug support (-d) not available\n"),
 						progname);
 #endif
 				break;
 			default:
-				fprintf(stderr, "Try '%s --help' for more information.\n", argv[0]);
+				fprintf(stderr, _("Try \"%s --help\" for more information.\n"), argv[0]);
 				return ILLEGAL_OPTION;
 		}
 	}
@@ -234,19 +261,19 @@ main(int argc, char *const argv[])
 
 	if (verbose)
 	{
-		fprintf(stderr, "%s, the PostgreSQL embedded C preprocessor, version %d.%d.%d\n",
+		fprintf(stderr, _("%s, the PostgreSQL embedded C preprocessor, version %d.%d.%d\n"),
 				progname, MAJOR_VERSION, MINOR_VERSION, PATCHLEVEL);
-		fprintf(stderr, "exec sql include ... search starts here:\n");
+		fprintf(stderr, _("EXEC SQL INCLUDE ... search starts here:\n"));
 		for (ip = include_paths; ip != NULL; ip = ip->next)
 			fprintf(stderr, " %s\n", ip->path);
-		fprintf(stderr, "end of search list\n");
+		fprintf(stderr, _("end of search list\n"));
 		return 0;
 	}
 
 	if (optind >= argc)			/* no files specified */
 	{
-		fprintf(stderr, "%s: no input files specified\n", progname);
-		fprintf(stderr, "Try '%s --help' for more information.\n", argv[0]);
+		fprintf(stderr, _("%s: no input files specified\n"), progname);
+		fprintf(stderr, _("Try \"%s --help\" for more information.\n"), argv[0]);
 		return (ILLEGAL_OPTION);
 	}
 	else
@@ -254,8 +281,7 @@ main(int argc, char *const argv[])
 		/* after the options there must not be anything but filenames */
 		for (fnr = optind; fnr < argc; fnr++)
 		{
-			char	   *output_filename = NULL,
-					   *ptr2ext;
+			char	   *ptr2ext;
 
 			/* If argv[fnr] is "-" we have to read from stdin */
 			if (strcmp(argv[fnr], "-") == 0)
@@ -305,7 +331,7 @@ main(int argc, char *const argv[])
 					yyout = fopen(output_filename, PG_BINARY_W);
 					if (yyout == NULL)
 					{
-						fprintf(stderr, "%s: could not open file \"%s\": %s\n",
+						fprintf(stderr, _("%s: could not open file \"%s\": %s\n"),
 								progname, output_filename, strerror(errno));
 						free(output_filename);
 						free(input_filename);
@@ -315,7 +341,7 @@ main(int argc, char *const argv[])
 			}
 
 			if (yyin == NULL)
-				fprintf(stderr, "%s: could not open file \"%s\": %s\n",
+				fprintf(stderr, _("%s: could not open file \"%s\": %s\n"),
 						progname, argv[fnr], strerror(errno));
 			else
 			{
@@ -405,11 +431,14 @@ main(int argc, char *const argv[])
 
 				/* we need several includes */
 				/* but not if we are in header mode */
-				fprintf(yyout, "/* Processed by ecpg (%d.%d.%d) */\n", MAJOR_VERSION, MINOR_VERSION, PATCHLEVEL);
+				if (regression_mode)
+					fprintf(yyout, "/* Processed by ecpg (regression mode) */\n");
+				else
+					fprintf(yyout, "/* Processed by ecpg (%d.%d.%d) */\n", MAJOR_VERSION, MINOR_VERSION, PATCHLEVEL);
 
 				if (header_mode == false)
 				{
-					fprintf(yyout, "/* These include files are added by the preprocessor */\n#include <ecpgtype.h>\n#include <ecpglib.h>\n#include <ecpgerrno.h>\n#include <sqlca.h>\n");
+					fprintf(yyout, "/* These include files are added by the preprocessor */\n#include <ecpglib.h>\n#include <ecpgerrno.h>\n#include <sqlca.h>\n");
 
 					/* add some compatibility headers */
 					if (INFORMIX_MODE)
@@ -418,27 +447,21 @@ main(int argc, char *const argv[])
 					fprintf(yyout, "/* End of automatic include section */\n");
 				}
 
+				if (regression_mode)
+					fprintf(yyout, "#define ECPGdebug(X,Y) ECPGdebug((X)+100,(Y))\n");
+
 				output_line_number();
 
 				/* and parse the source */
-				yyparse();
+				base_yyparse();
 
-				/* check if all cursors were indeed opened */
-				for (ptr = cur; ptr != NULL;)
-				{
-					char		errortext[128];
-
+				/*
+				 * Check whether all cursors were indeed opened.  It does not
+				 * really make sense to declare a cursor but not open it.
+				 */
+				for (ptr = cur; ptr != NULL; ptr = ptr->next)
 					if (!(ptr->opened))
-					{
-						/*
-						 * Does not really make sense to declare a cursor but
-						 * not open it
-						 */
-						snprintf(errortext, sizeof(errortext), "cursor \"%s\" has been declared but not opened\n", ptr->name);
-						mmerror(PARSE_ERROR, ET_WARNING, errortext);
-					}
-					ptr = ptr->next;
-				}
+						mmerror(PARSE_ERROR, ET_WARNING, "cursor \"%s\" has been declared but not opened", ptr->name);
 
 				if (yyin != NULL && yyin != stdin)
 					fclose(yyin);
@@ -446,7 +469,7 @@ main(int argc, char *const argv[])
 					fclose(yyout);
 			}
 
-			if (output_filename)
+			if (output_filename && out_option == 0)
 				free(output_filename);
 
 			free(input_filename);

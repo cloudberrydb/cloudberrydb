@@ -3,7 +3,7 @@
  * bufpage.c
  *	  POSTGRES standard buffer page code.
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2008, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -39,6 +39,7 @@ PageInit(Page page, Size pageSize, Size specialSize)
 	/* Make sure all fields of page are zero, as well as unused space */
 	MemSet(p, 0, pageSize);
 
+	/* p->pd_flags = 0;								done by above MemSet */
 	p->pd_lower = SizeOfPageHeaderData;
 	p->pd_upper = pageSize - specialSize;
 	p->pd_special = pageSize - specialSize;
@@ -73,6 +74,7 @@ PageHeaderIsValid(PageHeader page)
 	/* Check normal case */
 	if (PageGetPageSize(page) == BLCKSZ &&
 		PageGetPageLayoutVersion(page) == PG_PAGE_LAYOUT_VERSION &&
+		(page->pd_flags & ~PD_VALID_FLAG_BITS) == 0 &&
 		page->pd_lower >= SizeOfPageHeaderData &&
 		page->pd_lower <= page->pd_upper &&
 		page->pd_upper <= page->pd_special &&
@@ -165,14 +167,27 @@ PageAddItem(Page page,
 	else
 	{
 		/* offsetNumber was not passed in, so find a free slot */
-		/* look for "recyclable" (unused & deallocated) ItemId */
-		for (offsetNumber = 1; offsetNumber < limit; offsetNumber++)
-		{
-			itemId = PageGetItemId(phdr, offsetNumber);
-			if (!ItemIdIsUsed(itemId) && ItemIdGetLength(itemId) == 0)
-				break;
-		}
 		/* if no free slot, we'll put it at limit (1st open slot) */
+		if (PageHasFreeLinePointers(phdr))
+		{
+			/* look for "recyclable" (unused & deallocated) ItemId */
+			for (offsetNumber = 1; offsetNumber < limit; offsetNumber++)
+			{
+				itemId = PageGetItemId(phdr, offsetNumber);
+				if (!ItemIdIsUsed(itemId) && ItemIdGetLength(itemId) == 0)
+					break;
+			}
+			if (offsetNumber >= limit)
+			{
+				/* the hint is wrong, so reset it */
+				PageClearHasFreeLinePointers(phdr);
+			}
+		}
+		else
+		{
+			/* don't bother searching if hint says there's no free slot */
+			offsetNumber = limit;
+		}
 	}
 
 	if (offsetNumber > limit)
@@ -331,7 +346,8 @@ PageRepairFragmentation(Page page, OffsetNumber *unused)
 		ereport(ERROR,
 				(errcode(ERRCODE_DATA_CORRUPTED),
 				 errmsg("corrupted page pointers: lower = %u, upper = %u, special = %u",
-						pd_lower, pd_upper, pd_special)));
+						pd_lower, pd_upper, pd_special),
+				 errSendAlert(true)));
 
 	nline = PageGetMaxOffsetNumber(page);
 	nused = 0;
@@ -374,7 +390,8 @@ PageRepairFragmentation(Page page, OffsetNumber *unused)
 					ereport(ERROR,
 							(errcode(ERRCODE_DATA_CORRUPTED),
 							 errmsg("corrupted item pointer: %u",
-									itemidptr->itemoff)));
+									itemidptr->itemoff),
+							 errSendAlert(true)));
 				itemidptr->alignedlen = MAXALIGN(ItemIdGetLength(lp));
 				totallen += itemidptr->alignedlen;
 				itemidptr++;
@@ -389,7 +406,8 @@ PageRepairFragmentation(Page page, OffsetNumber *unused)
 			ereport(ERROR,
 					(errcode(ERRCODE_DATA_CORRUPTED),
 			   errmsg("corrupted item lengths: total %u, available space %u",
-					  (unsigned int) totallen, pd_special - pd_lower)));
+					  (unsigned int) totallen, pd_special - pd_lower),
+			   errSendAlert(true)));
 
 		/* sort itemIdSortData array into decreasing itemoff order */
 		qsort((char *) itemidbase, nused, sizeof(itemIdSortData),
@@ -412,6 +430,12 @@ PageRepairFragmentation(Page page, OffsetNumber *unused)
 
 		pfree(itemidbase);
 	}
+
+	/* Set hint bit for PageAddItem */
+	if (nused < nline)
+		PageSetHasFreeLinePointers(page);
+	else
+		PageClearHasFreeLinePointers(page);
 
 	return (nline - nused);
 }
@@ -469,7 +493,8 @@ PageIndexTupleDelete(Page page, OffsetNumber offnum)
 		ereport(ERROR,
 				(errcode(ERRCODE_DATA_CORRUPTED),
 				 errmsg("corrupted page pointers: lower = %u, upper = %u, special = %u",
-						phdr->pd_lower, phdr->pd_upper, phdr->pd_special)));
+						phdr->pd_lower, phdr->pd_upper, phdr->pd_special),
+				 errSendAlert(true)));
 
 	nline = PageGetMaxOffsetNumber(page);
 	if ((int) offnum <= 0 || (int) offnum > nline)
@@ -487,7 +512,8 @@ PageIndexTupleDelete(Page page, OffsetNumber offnum)
 		ereport(ERROR,
 				(errcode(ERRCODE_DATA_CORRUPTED),
 				 errmsg("corrupted item pointer: offset = %u, size = %u",
-						offset, (unsigned int) size)));
+						offset, (unsigned int) size),
+				 errSendAlert(true)));
 
 	/*
 	 * First, we want to get rid of the pd_linp entry for the index tuple. We
@@ -597,7 +623,8 @@ PageIndexMultiDelete(Page page, OffsetNumber *itemnos, int nitems)
 		ereport(ERROR,
 				(errcode(ERRCODE_DATA_CORRUPTED),
 				 errmsg("corrupted page pointers: lower = %u, upper = %u, special = %u",
-						pd_lower, pd_upper, pd_special)));
+						pd_lower, pd_upper, pd_special),
+				 errSendAlert(true)));
 
 	/*
 	 * Scan the item pointer array and build a list of just the ones we are
@@ -621,7 +648,8 @@ PageIndexMultiDelete(Page page, OffsetNumber *itemnos, int nitems)
 			ereport(ERROR,
 					(errcode(ERRCODE_DATA_CORRUPTED),
 					 errmsg("corrupted item pointer: offset = %u, size = %u",
-							offset, (unsigned int) size)));
+							offset, (unsigned int) size),
+					 errSendAlert(true)));
 
 		if (nextitm < nitems && offnum == itemnos[nextitm])
 		{
@@ -648,7 +676,8 @@ PageIndexMultiDelete(Page page, OffsetNumber *itemnos, int nitems)
 		ereport(ERROR,
 				(errcode(ERRCODE_DATA_CORRUPTED),
 			   errmsg("corrupted item lengths: total %u, available space %u",
-					  (unsigned int) totallen, pd_special - pd_lower)));
+					  (unsigned int) totallen, pd_special - pd_lower),
+			   errSendAlert(true)));
 
 	/* sort itemIdSortData array into decreasing itemoff order */
 	qsort((char *) itemidbase, nused, sizeof(itemIdSortData),

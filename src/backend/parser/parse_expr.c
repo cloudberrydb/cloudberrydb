@@ -3,7 +3,7 @@
  * parse_expr.c
  *	  handle expressions in parser
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2008, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -15,6 +15,7 @@
 
 #include "postgres.h"
 
+#include "catalog/namespace.h"
 #include "catalog/pg_type.h"
 #include "commands/dbcommands.h"
 #include "mb/pg_wchar.h"
@@ -22,15 +23,19 @@
 #include "nodes/makefuncs.h"
 #include "nodes/plannodes.h"
 #include "optimizer/clauses.h"
+#include "optimizer/var.h"
 #include "parser/analyze.h"
 #include "parser/gramparse.h"
+#include "parser/parse_agg.h"
 #include "parser/parse_coerce.h"
+#include "parser/parse_clause.h"
 #include "parser/parse_expr.h"
 #include "parser/parse_func.h"
 #include "parser/parse_oper.h"
 #include "parser/parse_relation.h"
 #include "parser/parse_target.h"
 #include "parser/parse_type.h"
+#include "rewrite/rewriteManip.h"
 #include "utils/builtins.h"
 #include "utils/lsyscache.h"
 
@@ -49,10 +54,10 @@ static Node *transformAExprNullIf(ParseState *pstate, A_Expr *a);
 static Node *transformAExprOf(ParseState *pstate, A_Expr *a);
 static Node *transformAExprIn(ParseState *pstate, A_Expr *a);
 static Node *transformFuncCall(ParseState *pstate, FuncCall *fn);
-static Node *transformCaseExpr(ParseState *pstate, CaseExpr *c);
 static Node *transformSubLink(ParseState *pstate, SubLink *sublink);
 static Node *transformArrayExpr(ParseState *pstate, ArrayExpr *a);
 static Node *transformRowExpr(ParseState *pstate, RowExpr *r);
+static Node *transformTableValueExpr(ParseState *pstate, TableValueExpr *t);
 static Node *transformCoalesceExpr(ParseState *pstate, CoalesceExpr *c);
 static Node *transformMinMaxExpr(ParseState *pstate, MinMaxExpr *m);
 static Node *transformBooleanTest(ParseState *pstate, BooleanTest *b);
@@ -62,14 +67,19 @@ static Node *transformWholeRowRef(ParseState *pstate, char *schemaname,
 static Node *transformBooleanTest(ParseState *pstate, BooleanTest *b);
 static Node *transformIndirection(ParseState *pstate, Node *basenode,
 					 List *indirection);
+static Node *transformGroupingFunc(ParseState *pstate, GroupingFunc *gf);
+static Node *transformPercentileExpr(ParseState *pstate, PercentileExpr *p);
 static Node *typecast_expression(ParseState *pstate, Node *expr,
-					TypeName *typename);
+					TypeName *typname);
 static Node *make_row_comparison_op(ParseState *pstate, List *opname,
 					   List *largs, List *rargs, int location);
 static Node *make_row_distinct_op(ParseState *pstate, List *opname,
 					 RowExpr *lrow, RowExpr *rrow, int location);
 static Expr *make_distinct_op(ParseState *pstate, List *opname,
 				 Node *ltree, Node *rtree, int location);
+static bool isWhenIsNotDistinctFromExpr(Node *warg);
+static char *percentileFuncString(PercentileExpr *p, Oid *argtypes, int arglen,
+					 Oid *sorttypes, int sortlen);
 
 
 /*
@@ -95,17 +105,29 @@ static Expr *make_distinct_op(ParseState *pstate, List *opname,
  * another, such as A_Const => Const; we just do nothing when handed
  * a Const.  More care is needed for node types that are used as both
  * input and output of transformExpr; see SubLink for example.
+ *
+ * CDB: On return, pstate->breadcrumb.node points to the original 'expr' node.
+ * This is intended to provide a default cursor location in case an error is
+ * reported during further processing of the result, such as conversion to a
+ * target type.
  */
 Node *
 transformExpr(ParseState *pstate, Node *expr)
 {
 	Node	   *result = NULL;
+	ParseStateBreadCrumb savebreadcrumb;
 
 	if (expr == NULL)
 		return NULL;
 
 	/* Guard against stack overflow due to overly complex expressions */
 	check_stack_depth();
+
+	/* CDB: Drop a breadcrumb, then push location stack. Must pop before return! */
+	Assert(pstate);
+	pstate->p_breadcrumb.node = (Node *) expr;
+	savebreadcrumb = pstate->p_breadcrumb;
+	pstate->p_breadcrumb.pop = &savebreadcrumb;
 
 	switch (nodeTag(expr))
 	{
@@ -122,10 +144,10 @@ transformExpr(ParseState *pstate, Node *expr)
 				A_Const    *con = (A_Const *) expr;
 				Value	   *val = &con->val;
 
-				result = (Node *) make_const(val);
-				if (con->typename != NULL)
+				result = (Node *) make_const(pstate, val, -1);
+				if (con->typname != NULL)
 					result = typecast_expression(pstate, result,
-												 con->typename);
+												 con->typname);
 				break;
 			}
 
@@ -144,7 +166,7 @@ transformExpr(ParseState *pstate, Node *expr)
 				TypeCast   *tc = (TypeCast *) expr;
 				Node	   *arg = transformExpr(pstate, tc->arg);
 
-				result = typecast_expression(pstate, arg, tc->typename);
+				result = typecast_expression(pstate, arg, tc->typname);
 				break;
 			}
 
@@ -194,6 +216,7 @@ transformExpr(ParseState *pstate, Node *expr)
 			result = transformFuncCall(pstate, (FuncCall *) expr);
 			break;
 
+
 		case T_SubLink:
 			result = transformSubLink(pstate, (SubLink *) expr);
 			break;
@@ -208,6 +231,10 @@ transformExpr(ParseState *pstate, Node *expr)
 
 		case T_RowExpr:
 			result = transformRowExpr(pstate, (RowExpr *) expr);
+			break;
+
+		case T_TableValueExpr:
+			result = transformTableValueExpr(pstate, (TableValueExpr *) expr);
 			break;
 
 		case T_CoalesceExpr:
@@ -230,6 +257,104 @@ transformExpr(ParseState *pstate, Node *expr)
 
 		case T_BooleanTest:
 			result = transformBooleanTest(pstate, (BooleanTest *) expr);
+			break;
+
+		case T_CurrentOfExpr:
+			{
+				/*
+				 * The target RTE must be simply updatable. If not, we error out
+				 * early here to avoid having to deal with error cases later:
+				 * rewriting/planning against views, for example.
+				 */
+				Assert(pstate->p_target_rangetblentry != NULL);
+				if (!isSimplyUpdatableRelation(pstate->p_target_rangetblentry->relid))
+					ereport(ERROR,
+							(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
+							 errmsg("\"%s\" is not simply updatable",
+									pstate->p_target_relation->rd_rel->relname.data)));
+
+				CurrentOfExpr *c = (CurrentOfExpr *) expr;
+				int sublevels_up;
+				c->cvarno = RTERangeTablePosn(pstate,
+											  pstate->p_target_rangetblentry,
+											  &sublevels_up);
+				c->target_relid = pstate->p_target_rangetblentry->relid;
+				Assert(sublevels_up == 0);
+				result = expr;
+				break;
+			}
+
+		case T_GroupingFunc:
+			{
+				GroupingFunc *gf = (GroupingFunc *)expr;
+				result = transformGroupingFunc(pstate, gf);
+				break;
+			}
+
+		case T_PartitionBoundSpec:
+			{
+				PartitionBoundSpec *in = (PartitionBoundSpec *)expr;
+				PartitionRangeItem *ri;
+				List *out = NIL;
+				ListCell *lc;
+
+				if (in->partStart)
+				{
+					ri = (PartitionRangeItem *)in->partStart;
+
+					/* ALTER TABLE ... ADD PARTITION might feed
+					 * "pre-cooked" expressions into the boundspec for
+					 * range items (which are Lists) 
+					 */
+					{
+						Assert(IsA(in->partStart, PartitionRangeItem));
+
+						foreach(lc, ri->partRangeVal)
+						{
+							Node *n = lfirst(lc);
+							out = lappend(out, transformExpr(pstate, n));
+						}
+						ri->partRangeVal = out;
+						out = NIL;
+					}
+				}
+				if (in->partEnd)
+				{
+					ri = (PartitionRangeItem *)in->partEnd;
+
+					/* ALTER TABLE ... ADD PARTITION might feed
+					 * "pre-cooked" expressions into the boundspec for
+					 * range items (which are Lists) 
+					 */
+					{
+						Assert(IsA(in->partEnd, PartitionRangeItem));
+						foreach(lc, ri->partRangeVal)
+						{
+							Node *n = lfirst(lc);
+							out = lappend(out, transformExpr(pstate, n));
+						}
+						ri->partRangeVal = out;
+						out = NIL;
+					}
+				}
+				if (in->partEvery)
+				{
+					ri = (PartitionRangeItem *)in->partEvery;
+					Assert(IsA(in->partEvery, PartitionRangeItem));
+					foreach(lc, ri->partRangeVal)
+					{
+						Node *n = lfirst(lc);
+						out = lappend(out, transformExpr(pstate, n));
+					}
+					ri->partRangeVal = out;
+				}
+
+				result = (Node *)in;
+			}
+			break;
+
+		case T_PercentileExpr:
+			result = transformPercentileExpr(pstate, (PercentileExpr *) expr);
 			break;
 
 			/*********************************************
@@ -259,6 +384,8 @@ transformExpr(ParseState *pstate, Node *expr)
 		case T_CoerceToDomain:
 		case T_CoerceToDomainValue:
 		case T_SetToDefault:
+		case T_GroupId:
+		case T_Integer:
 			{
 				result = (Node *) expr;
 				break;
@@ -270,8 +397,190 @@ transformExpr(ParseState *pstate, Node *expr)
 			break;
 	}
 
+	/* CDB: Pop error location stack, leaving breadcrumb on our input expr. */
+	Assert(pstate->p_breadcrumb.pop == &savebreadcrumb);
+	pstate->p_breadcrumb = savebreadcrumb;
+
 	return result;
 }
+
+
+/*
+ * parse_expr_location
+ *
+ * Looks for a node with a 'location' field in the given parse tree expression.
+ * Returns the location (the byte offset of a token within the source string),
+ * or -1 if unknown.
+ *
+ * NB: For best results, expr should be an untransformed expression, because
+ * after transformExpr() most nodes have no 'location' field.
+ */
+int
+parse_expr_location(Expr *expr)
+{
+    int         loc;
+    ListCell   *cell;
+
+    if (expr == NULL)
+         return -1;
+
+    switch (nodeTag(expr))
+    {
+        case T_ColumnRef:
+            loc = ((ColumnRef *)expr)->location;
+            break;
+
+        case T_ParamRef:
+            loc = ((ParamRef *)expr)->location;
+            break;
+
+        case T_A_Const:
+            loc = ((A_Const *)expr)->location;
+            break;
+
+        case T_A_Indirection:
+        {
+            A_Indirection  *ind = (A_Indirection *)expr;
+
+            loc = parse_expr_location((Expr *)ind->arg);
+            if (loc < 0)
+                loc = parse_expr_location((Expr *)ind->indirection);
+            break;
+        }
+
+        case T_TypeCast:
+        {
+            TypeCast   *typecast = (TypeCast *)expr;
+
+            loc = parse_expr_location((Expr *)typecast->arg);
+            if (loc < 0)
+                loc = parse_expr_location((Expr *)typecast->typname);
+            break;
+        }
+
+        case T_A_Expr:
+            loc = ((A_Expr *)expr)->location;
+            break;
+
+        case T_FuncCall:
+            loc = ((FuncCall *)expr)->location;
+            break;
+
+        case T_SubLink:
+            loc = ((SubLink *)expr)->location;
+            break;
+
+        case T_CaseExpr:
+        {
+            CaseExpr   *caseexpr = (CaseExpr *)expr;
+            CaseWhen   *casewhen;
+
+            loc = parse_expr_location(caseexpr->arg);
+            foreach(cell, caseexpr->args)
+            {
+                if (loc >= 0)
+                    break;
+                casewhen = (CaseWhen *)lfirst(cell);
+                loc = parse_expr_location(casewhen->expr);
+                if (loc < 0)
+                    loc = parse_expr_location(casewhen->result);
+            }
+            if (loc < 0)
+                loc = parse_expr_location(caseexpr->defresult);
+            break;
+        }
+
+        case T_ArrayExpr:
+            loc = parse_expr_location((Expr *)((ArrayExpr *)expr)->elements);
+            break;
+
+        case T_RowExpr:
+            loc = parse_expr_location((Expr *)((RowExpr *)expr)->args);
+            break;
+
+        case T_CoalesceExpr:
+            loc = parse_expr_location((Expr *)((CoalesceExpr *)expr)->args);
+            break;
+
+        case T_MinMaxExpr:
+            loc = parse_expr_location((Expr *)((MinMaxExpr *)expr)->args);
+            break;
+
+        case T_NullTest:
+            loc = parse_expr_location(((NullTest *)expr)->arg);
+            break;
+
+        case T_BooleanTest:
+            loc = parse_expr_location(((BooleanTest *)expr)->arg);
+            break;
+
+        case T_GroupingFunc:
+            loc = parse_expr_location((Expr *)((GroupingFunc *)expr)->args);
+            break;
+
+        /* Above nodes taken from transformExpr().  Additional nodes below. */
+
+        case T_JoinExpr:
+            loc = parse_expr_location((Expr *)((JoinExpr *)expr)->rarg);
+            break;
+
+        case T_List:
+            loc = -1;
+            foreach(cell, (List *)expr)
+            {
+                loc = parse_expr_location((Expr *)lfirst(cell));
+                if (loc >= 0)
+                    break;
+            }
+            break;
+
+        case T_RangeFunction:
+            loc = parse_expr_location((Expr *)((RangeFunction *)expr)->funccallnode);
+            break;
+
+        case T_RangeSubselect:
+            loc = parse_expr_location((Expr *)((RangeSubselect *)expr)->subquery);
+            break;
+
+        case T_RangeVar:
+            loc = ((RangeVar *)expr)->location;
+            break;
+
+        case T_ResTarget:
+            loc = ((ResTarget *)expr)->location;
+            break;
+
+        case T_SelectStmt:
+        {
+            SelectStmt *ss = (SelectStmt *)expr;
+
+            if (ss->larg)
+                loc = parse_expr_location((Expr *)ss->larg);        /* set op */
+            else if (ss->valuesLists)
+                loc = parse_expr_location((Expr *)ss->valuesLists); /* VALUES */
+            else
+                loc = parse_expr_location((Expr *)ss->targetList);  /* SELECT */
+            break;
+        }
+
+        case T_TypeName:
+            loc = ((TypeName *)expr)->location;
+            break;
+
+        case T_WindowSpec:
+            loc = ((WindowSpec *)expr)->location;
+            break;
+
+		case T_PercentileExpr:
+			loc = ((PercentileExpr *) expr)->location;
+			break;
+
+        default:
+            loc = -1;
+    }
+    return loc;
+}                               /* parse_expr_location */
+
 
 static Node *
 transformIndirection(ParseState *pstate, Node *basenode, List *indirection)
@@ -279,6 +588,12 @@ transformIndirection(ParseState *pstate, Node *basenode, List *indirection)
 	Node	   *result = basenode;
 	List	   *subscripts = NIL;
 	ListCell   *i;
+	ParseStateBreadCrumb    savebreadcrumb;
+
+	/* CDB: Push error location stack.  Must pop before return! */
+	Assert(pstate);
+	savebreadcrumb = pstate->p_breadcrumb;
+	pstate->p_breadcrumb.pop = &savebreadcrumb;
 
 	/*
 	 * We have to split any field-selection operations apart from
@@ -309,8 +624,8 @@ transformIndirection(ParseState *pstate, Node *basenode, List *indirection)
 			result = ParseFuncOrColumn(pstate,
 									   list_make1(n),
 									   list_make1(result),
-									   false, false, true,
-									   -1);
+                                       NIL, false, false, true,
+                                       NULL, -1, NULL);
 		}
 	}
 	/* process trailing subscripts, if any */
@@ -323,6 +638,10 @@ transformIndirection(ParseState *pstate, Node *basenode, List *indirection)
 												   subscripts,
 												   NULL);
 
+	/* CDB: Pop error location stack. */
+	Assert(pstate->p_breadcrumb.pop == &savebreadcrumb);
+	pstate->p_breadcrumb = savebreadcrumb;
+
 	return result;
 }
 
@@ -332,6 +651,13 @@ transformColumnRef(ParseState *pstate, ColumnRef *cref)
 	int			numnames = list_length(cref->fields);
 	Node	   *node;
 	int			levels_up;
+	ParseStateBreadCrumb    savebreadcrumb;
+
+	/* CDB: Push error location stack.  Must pop before return! */
+	Assert(pstate);
+	savebreadcrumb = pstate->p_breadcrumb;
+	pstate->p_breadcrumb.pop = &savebreadcrumb;
+	pstate->p_breadcrumb.node = (Node *)cref;
 
 	/*----------
 	 * The allowed syntaxes are:
@@ -391,7 +717,7 @@ transformColumnRef(ParseState *pstate, ColumnRef *cref)
 					 * PostQUEL-inspired syntax.  The preferred form now is
 					 * "rel.*".
 					 */
-					if (refnameRangeTblEntry(pstate, NULL, name,
+					if (refnameRangeTblEntry(pstate, NULL, name, cref->location,
 											 &levels_up) != NULL)
 						node = transformWholeRowRef(pstate, NULL, name,
 													cref->location);
@@ -432,8 +758,8 @@ transformColumnRef(ParseState *pstate, ColumnRef *cref)
 					node = ParseFuncOrColumn(pstate,
 											 list_make1(makeString(name2)),
 											 list_make1(node),
-											 false, false, true,
-											 cref->location);
+											 NIL, false, false, true, NULL,
+											 cref->location, NULL);
 				}
 				break;
 			}
@@ -462,8 +788,8 @@ transformColumnRef(ParseState *pstate, ColumnRef *cref)
 					node = ParseFuncOrColumn(pstate,
 											 list_make1(makeString(name3)),
 											 list_make1(node),
-											 false, false, true,
-											 cref->location);
+											 NIL, false, false, true, NULL,
+											 cref->location, NULL);
 				}
 				break;
 			}
@@ -503,8 +829,8 @@ transformColumnRef(ParseState *pstate, ColumnRef *cref)
 					node = ParseFuncOrColumn(pstate,
 											 list_make1(makeString(name4)),
 											 list_make1(node),
-											 false, false, true,
-											 cref->location);
+											 NIL, false, false, true, NULL,
+											 cref->location, NULL);
 				}
 				break;
 			}
@@ -517,6 +843,10 @@ transformColumnRef(ParseState *pstate, ColumnRef *cref)
 			node = NULL;		/* keep compiler quiet */
 			break;
 	}
+
+	/* CDB: Pop error location stack. */
+	Assert(pstate->p_breadcrumb.pop == &savebreadcrumb);
+	pstate->p_breadcrumb = savebreadcrumb;
 
 	return node;
 }
@@ -629,6 +959,9 @@ transformAExprOp(ParseState *pstate, A_Expr *a)
 		Assert(IsA(lexpr, RowExpr));
 		Assert(IsA(rexpr, RowExpr));
 
+		/* CDB: Drop a breadcrumb in case of error. */
+		pstate->p_breadcrumb.node = (Node *)a;
+
 		result = make_row_comparison_op(pstate,
 										a->name,
 										((RowExpr *) lexpr)->args,
@@ -640,6 +973,9 @@ transformAExprOp(ParseState *pstate, A_Expr *a)
 		/* Ordinary scalar operator */
 		lexpr = transformExpr(pstate, lexpr);
 		rexpr = transformExpr(pstate, rexpr);
+
+		/* CDB: Drop a breadcrumb in case of error. */
+		pstate->p_breadcrumb.node = (Node *)a;
 
 		result = (Node *) make_op(pstate,
 								  a->name,
@@ -661,7 +997,7 @@ transformAExprAnd(ParseState *pstate, A_Expr *a)
 	rexpr = coerce_to_boolean(pstate, rexpr, "AND");
 
 	return (Node *) makeBoolExpr(AND_EXPR,
-								 list_make2(lexpr, rexpr));
+								 list_make2(lexpr, rexpr), a->location);
 }
 
 static Node *
@@ -674,7 +1010,7 @@ transformAExprOr(ParseState *pstate, A_Expr *a)
 	rexpr = coerce_to_boolean(pstate, rexpr, "OR");
 
 	return (Node *) makeBoolExpr(OR_EXPR,
-								 list_make2(lexpr, rexpr));
+								 list_make2(lexpr, rexpr), a->location);
 }
 
 static Node *
@@ -685,7 +1021,7 @@ transformAExprNot(ParseState *pstate, A_Expr *a)
 	rexpr = coerce_to_boolean(pstate, rexpr, "NOT");
 
 	return (Node *) makeBoolExpr(NOT_EXPR,
-								 list_make1(rexpr));
+								 list_make1(rexpr), a->location);
 }
 
 static Node *
@@ -803,12 +1139,12 @@ transformAExprOf(ParseState *pstate, A_Expr *a)
 static Node *
 transformAExprIn(ParseState *pstate, A_Expr *a)
 {
+	Node	   *result = NULL;
 	Node	   *lexpr;
 	List	   *rexprs;
 	List	   *typeids;
 	bool		useOr;
 	bool		haveRowExpr;
-	Node	   *result;
 	ListCell   *l;
 
 	/*
@@ -840,6 +1176,9 @@ transformAExprIn(ParseState *pstate, A_Expr *a)
 		rexprs = lappend(rexprs, rexpr);
 		typeids = lappend_oid(typeids, exprType(rexpr));
 	}
+
+	/* CDB: Drop a breadcrumb in case of error. */
+	pstate->p_breadcrumb.node = (Node *)a;
 
 	/*
 	 * If not forced by presence of RowExpr, try to resolve a common scalar
@@ -898,7 +1237,6 @@ transformAExprIn(ParseState *pstate, A_Expr *a)
 	/*
 	 * Must do it the hard way, ie, with a boolean expression tree.
 	 */
-	result = NULL;
 	foreach(l, rexprs)
 	{
 		Node	   *rexpr = (Node *) lfirst(l);
@@ -930,7 +1268,7 @@ transformAExprIn(ParseState *pstate, A_Expr *a)
 			result = cmp;
 		else
 			result = (Node *) makeBoolExpr(useOr ? OR_EXPR : AND_EXPR,
-										   list_make2(result, cmp));
+										   list_make2(result, cmp), a->location);
 	}
 
 	return result;
@@ -956,16 +1294,43 @@ transformFuncCall(ParseState *pstate, FuncCall *fn)
 									 (Node *) lfirst(args));
 	}
 
+	/* CDB: Drop a breadcrumb in case of error. */
+	pstate->p_breadcrumb.node = (Node *)fn;
+    
 	return ParseFuncOrColumn(pstate,
 							 fn->funcname,
 							 targs,
+                             fn->agg_order,
 							 fn->agg_star,
 							 fn->agg_distinct,
 							 false,
-							 fn->location);
+							 (WindowSpec *)fn->over,
+							 fn->location, 
+							 fn->agg_filter);
 }
 
-static Node *
+/*
+ * Check if this is CASE x WHEN IS NOT DISTINCT FROM y:
+ * From the raw grammar output, we produce AEXPR_NOT expression
+ * 		which has the rhs = AEXPR_DISTINCT expression which has its lhs = NULL
+ */
+static bool
+isWhenIsNotDistinctFromExpr(Node *warg)
+{
+	if (IsA(warg, A_Expr))
+	{
+		A_Expr *top = (A_Expr *) warg;
+		if (top->kind == AEXPR_NOT && IsA(top->rexpr, A_Expr))
+		{
+			A_Expr *expr = (A_Expr *) top->rexpr;
+			if (expr->kind == AEXPR_DISTINCT && expr->lexpr == NULL)
+				return true;
+		}
+	}
+	return false;
+}
+
+Node *
 transformCaseExpr(ParseState *pstate, CaseExpr *c)
 {
 	CaseExpr   *newc;
@@ -1022,11 +1387,29 @@ transformCaseExpr(ParseState *pstate, CaseExpr *c)
 		warg = (Node *) w->expr;
 		if (placeholder)
 		{
-			/* shorthand form was specified, so expand... */
-			warg = (Node *) makeSimpleA_Expr(AEXPR_OP, "=",
-											 (Node *) placeholder,
-											 warg,
-											 -1);
+			/* 
+			 * CASE placeholder WHEN IS NOT DISTINCT FROM warg:
+			 * 		set: warg->rhs->lhs = placeholder
+			 */
+			if (isWhenIsNotDistinctFromExpr(warg))
+			{
+				A_Expr *top  = (A_Expr *) warg;
+				A_Expr *expr = (A_Expr *) top->rexpr;
+				expr->lexpr = (Node *) placeholder;
+			}
+			else
+				warg = (Node *) makeSimpleA_Expr(AEXPR_OP, "=",
+													(Node *) placeholder,
+													 warg,
+													 -1);
+		}
+		else
+		{
+			if (isWhenIsNotDistinctFromExpr(warg))
+				ereport(ERROR,
+						(errcode(ERRCODE_SYNTAX_ERROR),
+						 errmsg("syntax error at or near \"NOT\""),
+						 errhint("Missing <operand> for \"CASE <operand> WHEN IS NOT DISTINCT FROM ...\"")));
 		}
 		neww->expr = (Expr *) transformExpr(pstate, warg);
 
@@ -1060,6 +1443,9 @@ transformCaseExpr(ParseState *pstate, CaseExpr *c)
 	 * seems a little bogus to me --- tgl
 	 */
 	typeids = lcons_oid(exprType((Node *) newc->defresult), typeids);
+
+	/* CDB: Drop a breadcrumb in case of error. */
+	pstate->p_breadcrumb.node = (Node *)c;
 
 	ptype = select_common_type(typeids, "CASE");
 	Assert(OidIsValid(ptype));
@@ -1100,12 +1486,22 @@ transformSubLink(ParseState *pstate, SubLink *sublink)
 
 	pstate->p_hasSubLinks = true;
 	qtrees = parse_sub_analyze(sublink->subselect, pstate);
-	if (list_length(qtrees) != 1)
-		elog(ERROR, "bad query in sub-select");
+
+	/*
+	 * Check that we got something reasonable.	Many of these conditions are
+	 * impossible given restrictions of the grammar, but check 'em anyway.
+	 */
+	Insist(list_length(qtrees) == 1);
 	qtree = (Query *) linitial(qtrees);
-	if (qtree->commandType != CMD_SELECT ||
-		qtree->into != NULL)
-		elog(ERROR, "bad query in sub-select");
+	if (!IsA(qtree, Query) ||
+		qtree->commandType != CMD_SELECT ||
+		qtree->utilityStmt != NULL)
+		elog(ERROR, "unexpected non-SELECT command in SubLink");
+	if (qtree->intoClause)
+		ereport(ERROR,
+				(errcode(ERRCODE_SYNTAX_ERROR),
+				 errmsg("subquery cannot have SELECT INTO")));
+
 	sublink->subselect = (Node *) qtree;
 
 	if (sublink->subLinkType == EXISTS_SUBLINK)
@@ -1184,6 +1580,9 @@ transformSubLink(ParseState *pstate, SubLink *sublink)
 			right_list = lappend(right_list, param);
 		}
 
+		/* CDB: Drop a breadcrumb in case of error. */
+		pstate->p_breadcrumb.node = (Node *)sublink;
+
 		/*
 		 * We could rely on make_row_comparison_op to complain if the list
 		 * lengths differ, but we prefer to generate a more specific error
@@ -1233,6 +1632,9 @@ transformArrayExpr(ParseState *pstate, ArrayExpr *a)
 		newelems = lappend(newelems, newe);
 		typeids = lappend_oid(typeids, exprType(newe));
 	}
+
+	/* CDB: Drop a breadcrumb in case of error. */
+	pstate->p_breadcrumb.node = (Node *)a;
 
 	/* Select a common type for the elements */
 	element_type = select_common_type(typeids, "ARRAY");
@@ -1290,6 +1692,57 @@ transformRowExpr(ParseState *pstate, RowExpr *r)
 	newr->row_format = COERCE_IMPLICIT_CAST;
 
 	return (Node *) newr;
+}
+
+static Node *
+transformTableValueExpr(ParseState *pstate, TableValueExpr *t)
+{
+	List		*parsetrees;
+	Query		*query;
+
+	/* If we already transformed this node, do nothing */
+	if (IsA(t->subquery, Query))
+		return (Node*) t;
+
+	/* 
+	 * Table Value Expressions are subselects that can occur as parameters to
+	 * functions.  One result of this is that this code shares a lot with
+	 * transformRangeSubselect due to the nature of subquery resolution.
+	 */
+	pstate->p_hasTblValueExpr = true;
+
+	/* Analyze and transform the subquery */
+	parsetrees = parse_sub_analyze(t->subquery, pstate);
+
+	/* 
+	 * Check that we got something reasonable.  Most of these conditions
+	 * are probably impossible given restrictions in the grammar.
+	 */
+	Insist(list_length(parsetrees) == 1);
+	query = (Query *) linitial(parsetrees);
+	if (query == NULL || !IsA(query, Query))
+		elog(ERROR, "unexpected non-SELECT command in TableValueExpr");
+	if (query->commandType != CMD_SELECT)
+		elog(ERROR, "unexpected non-SELECT command in TableValueExpr");
+	if (query->intoClause != NULL)
+		ereport(ERROR,
+				(errcode(ERRCODE_SYNTAX_ERROR),
+				 errmsg("subquery in TABLE value expression cannot have SELECT INTO"),
+				 parser_errposition(pstate, t->location)));
+	t->subquery = (Node*) query;
+
+	/*
+	 * Insist that the TABLE value expression does not contain references to the outer
+	 * range table, this would be an unsupported correlated TABLE value expression.
+	 */
+	if (contain_vars_of_level_or_above((Node *) query, 1))
+		ereport(ERROR,
+				(errcode(ERRCODE_INVALID_COLUMN_REFERENCE),
+				 errmsg("subquery in TABLE value expression may not refer "
+						"to relation of another query level"),
+				 parser_errposition(pstate, t->location)));
+
+	return (Node*) t;
 }
 
 static Node *
@@ -1428,12 +1881,11 @@ transformWholeRowRef(ParseState *pstate, char *schemaname, char *relname,
 
 	/* Look up the referenced RTE, creating it if needed */
 
-	rte = refnameRangeTblEntry(pstate, schemaname, relname,
+	rte = refnameRangeTblEntry(pstate, schemaname, relname, location,
 							   &sublevels_up);
 
 	if (rte == NULL)
-		rte = addImplicitRTE(pstate, makeRangeVar(schemaname, relname),
-							 location);
+		rte = addImplicitRTE(pstate, makeRangeVar(schemaname, relname, location), location);
 
 	vnum = RTERangeTablePosn(pstate, rte, &sublevels_up);
 
@@ -1453,6 +1905,7 @@ transformWholeRowRef(ParseState *pstate, char *schemaname, char *relname,
 									  -1,
 									  sublevels_up);
 			break;
+		case RTE_TABLEFUNCTION:
 		case RTE_FUNCTION:
 			toid = exprType(rte->funcexpr);
 			if (toid == RECORDOID || get_typtype(toid) == 'c')
@@ -1507,6 +1960,335 @@ transformWholeRowRef(ParseState *pstate, char *schemaname, char *relname,
 	return result;
 }
 
+static Node *
+transformGroupingFunc(ParseState *pstate, GroupingFunc *gf)
+{
+	List *targs = NIL;
+	ListCell *lc;
+	GroupingFunc *new_gf;
+
+	new_gf = makeNode(GroupingFunc);
+
+	/*
+	 * Transform the list of arguments.
+	 */
+	foreach (lc, gf->args)
+		targs = lappend(targs, transformExpr(pstate, (Node *)lfirst(lc)));
+
+	new_gf->args = targs;
+
+	new_gf->ngrpcols = gf->ngrpcols;
+
+	return (Node *)new_gf;
+}
+
+/*
+ * Returns string which represents percentile signature.
+ * sorttypes and sortlen can be omitted if they are unknown.
+ */
+static char *
+percentileFuncString(PercentileExpr *p, Oid *argtypes, int arglen,
+					 Oid *sorttypes, int sortlen)
+{
+	StringInfoData	buf;
+	char		   *funcname = NULL;
+	int				i;
+
+	if (p->perckind == PERC_MEDIAN)
+		funcname = "median";
+	else if (p->perckind == PERC_CONT)
+		funcname = "percentile_cont";
+	else if (p->perckind == PERC_DISC)
+		funcname = "percentile_disc";
+	else
+		elog(ERROR, "unexpected perckind: %d", (int) p->perckind);
+
+	initStringInfo(&buf);
+	if (p->perckind == PERC_MEDIAN)
+		appendStringInfo(&buf, "%s",
+				func_signature_string(list_make1(makeString(funcname)),
+				sortlen, sorttypes));
+	else
+	{
+		appendStringInfo(&buf, "%s",
+				func_signature_string(list_make1(makeString(funcname)),
+				arglen, argtypes));
+		if (sortlen > 0)
+		{
+			appendStringInfo(&buf, " ORDER BY (");
+			for (i = 0 ; i < sortlen; i++)
+			{
+				appendStringInfo(&buf, "%s", format_type_be(sorttypes[i]));
+				if (i != sortlen - 1)
+					appendStringInfo(&buf, ", ");
+			}
+			appendStringInfo(&buf, ")");
+		}
+	}
+
+	return pstrdup(buf.data);
+}
+
+/*
+ * transformPercentileExpr
+ *
+ * Its argument expression and ORDER BY clause are transformed.
+ * Various syntax checks are also done here.
+ */
+static Node *
+transformPercentileExpr(ParseState *pstate, PercentileExpr *p)
+{
+	Node	   *arg;
+	Oid			argtype;
+	AttrNumber	save_next_resno;
+
+	/* args should be one for the moment, but can be extended later. */
+	Assert(list_length(p->args) == 1);
+
+	arg = transformExpr(pstate, linitial(p->args));
+	argtype = exprType(arg);
+	if (!IsBinaryCoercible(argtype, FLOAT8OID))
+	{
+		arg = coerce_to_target_type(pstate, arg, argtype,
+									FLOAT8OID, -1, COERCION_EXPLICIT,
+									COERCE_EXPLICIT_CALL, p->location);
+
+		/*
+		 * The argument cannot be cast to the desired type.
+		 */
+		if (!arg)
+			ereport(ERROR,
+					(errcode(ERRCODE_UNDEFINED_FUNCTION),
+					 errmsg("function \"%s\" does not exist",
+						 percentileFuncString(p, &argtype, 1, NULL, 0)),
+					 errhint("No function matches the given name and argument types. "
+							 "You may need to add explicit type casts.")));
+	}
+	argtype = FLOAT8OID;
+
+	/*
+	 * The argument check is almost same as LIMIT clause.
+	 */
+	if (contain_vars_of_level(arg, 0))
+		ereport(ERROR,
+				(errcode(ERRCODE_INVALID_COLUMN_REFERENCE),
+				 errmsg("argument of percentile function must not contain variables")));
+	if (checkExprHasAggs(arg))
+		ereport(ERROR,
+				(errcode(ERRCODE_GROUPING_ERROR),
+				 errmsg("argument of percentile function must not contain aggregates")));
+	if (checkExprHasWindFuncs(arg))
+		ereport(ERROR,
+				(errcode(ERRCODE_GROUPING_ERROR),
+				 errmsg("argument of percentile function must not contain window functions")));
+	if (checkExprHasGroupExtFuncs(arg))
+		ereport(ERROR,
+				(errcode(ERRCODE_GROUPING_ERROR),
+				 errmsg("argument of percentile function must not contain grouping(), or group_id()")));
+	/*
+	 * The argument should be stable within a group.  We don't know what is the
+	 * right behavior for the volatile argument.  Simply erroring out for now.
+	 */
+	if (contain_volatile_functions(arg))
+		ereport(ERROR,
+				(errcode(ERRCODE_GROUPING_ERROR),
+				 errmsg("argument of percentile function must not contain volatile functions")));
+	/*
+	 * It might be possible to support SubLink in the argument, but the limitation
+	 * here is as LIMIT clause.  Erroring out for now.
+	 */
+	if (checkExprHasSubLink(arg))
+		ereport(ERROR,
+				(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
+				 errmsg("argument of percentile function must not contain subqueries")));
+	/*
+	 * Percentile functions support only one sort key.
+	 */
+	if (list_length(p->sortClause) != 1)
+		ereport(ERROR,
+				(errcode(ERRCODE_SYNTAX_ERROR),
+				 errmsg("function \"%s\" cannot accept more than one expression in ORDER BY",
+					 percentileFuncString(p, &argtype, 1, NULL, 0))));
+
+
+	p->args = list_make1(arg);
+
+	/*
+	 * sortClause should not be transformed twice, and !sortTargets is
+	 * not a good test to know if it's done, but it's ok for now.
+	 */
+	if (!p->sortTargets)
+	{
+		List		   *tlist = NIL, *sortlist = NIL, *pre_tlist = NIL;
+		ListCell	   *l;
+		int				i;
+		int				min_varlevel;
+		int				sortlen;
+		Oid			   *sorttypes;
+		struct _FuncCandidateList	float8_sig,
+									timestamp_sig,
+									timestamptz_sig,
+									interval_sig,
+									*candidates;
+		int		ncandidates;
+
+		/*
+		 * This part is similar to transformSortClause(), but there is a reason
+		 * we are not able to use it;  each expression should be coerced to
+		 * the type this function desires, as the argument expressions are treated.
+		 * Also, another task is function resolution by input types.
+		 * As we consider ORDER BY clause as arguments, the resolution process
+		 * is different from normal func_get_detail().  Though, some parts
+		 * can be shared without reinventing.
+		 *
+		 * Save resno and start from 1 for only this part of transformation.
+		 */
+		save_next_resno = pstate->p_next_resno;
+		pstate->p_next_resno = 1;
+
+		sortlen = list_length(p->sortClause);
+		sorttypes = (Oid *) palloc0(sizeof(Oid) * sortlen);
+		foreach_with_count (l, p->sortClause, i)
+		{
+			SortBy		   *sortby = lfirst(l);
+			Node		   *expr;
+			TargetEntry	   *tle;
+			Oid				sorttype;
+
+			expr = transformExpr(pstate, sortby->node);
+			tle = transformTargetEntry(pstate, sortby->node, expr, NULL, true);
+
+			sorttype = exprType((Node *) tle->expr);
+			sorttypes[i] = sorttype;
+			pre_tlist = lappend(pre_tlist, tle);
+		}
+
+		/*
+		 * The logic for function resolution is same as the normal case except
+		 * that we look for candidates by ORDER BY clause.  Because PercentileExpr
+		 * supports limited number of data types, we write possible types here manually.
+		 * The code should look similar to func_get_detail().
+		 */
+		float8_sig.nargs = 1;
+		float8_sig.args[0] = FLOAT8OID;
+		timestamp_sig.nargs = 1;
+		timestamp_sig.args[0] = TIMESTAMPOID;
+		timestamptz_sig.nargs = 1;
+		timestamptz_sig.args[0] = TIMESTAMPTZOID;
+		interval_sig.nargs = 1;
+		interval_sig.args[0] = INTERVALOID;
+		float8_sig.next = &timestamp_sig;
+		timestamp_sig.next = &timestamptz_sig;
+		timestamptz_sig.next = &interval_sig;
+		interval_sig.next = NULL;
+
+		ncandidates = func_match_argtypes(sortlen, sorttypes, &float8_sig, &candidates);
+
+		/*
+		 * Multiple candidates? then better decide or throw an error...
+		 */
+		if (ncandidates > 1)
+		{
+			candidates = func_select_candidate(sortlen, sorttypes, candidates);
+			if (!candidates)
+				ereport(ERROR,
+						(errcode(ERRCODE_AMBIGUOUS_FUNCTION),
+						 errmsg("function \"%s\" is not unique",
+							percentileFuncString(p, &argtype, 1, sorttypes, sortlen)),
+						 errhint("Could not choose a best candidate function. "
+								 "You may need to add explicit type casts.")));
+		}
+		else if (ncandidates == 0)
+		{
+			ereport(ERROR,
+					(errcode(ERRCODE_UNDEFINED_FUNCTION),
+					 errmsg("function \"%s\" does not exist",
+						percentileFuncString(p, &argtype, 1, sorttypes, sortlen)),
+					 errhint("No function matches the given name and argument types. "
+							 "You may need to add explicit type casts.")));
+		}
+
+		p->perctype = candidates->args[0];
+
+		/*
+		 * Coerce each of ORDER BY clause to the types which this function desires.
+		 */
+		foreach_with_count (l, pre_tlist, i)
+		{
+			TargetEntry	   *tle = lfirst(l);
+			Oid				sorttype = sorttypes[i];
+			Oid				candtype = candidates->args[i];
+			SortBy		   *sortby = list_nth(p->sortClause, i);
+
+			if (!IsBinaryCoercible(sorttype, candtype))
+			{
+				tle->expr = (Expr *) coerce_to_target_type(pstate,
+														   (Node *) tle->expr,
+														   sorttype,
+														   candtype,
+														   -1,
+														   COERCION_EXPLICIT,
+														   COERCE_EXPLICIT_CALL,
+														   p->location);
+				/*
+				 * Cast should succeed as we checked above.
+				 */
+				Assert(tle->expr);
+			}
+
+			tlist = lappend(tlist, tle);
+			/*
+			 * Now we can add this target entry to the list.
+			 */
+			sortlist = addTargetToSortList(pstate, tle,
+										   sortlist, tlist,
+										   sortby->sortby_kind,
+										   sortby->useOp,
+										   true);
+
+		}
+		p->sortClause = sortlist;
+		p->sortTargets = tlist;
+		pfree(sorttypes);
+		/*
+		 * Restore back the saved resno.
+		 */
+		pstate->p_next_resno = save_next_resno;
+
+		/*
+		 * Although its argument is not allowed to refer to any Var,
+		 * ORDER BY is allowed.  Since PercentileExpr is semantically Aggref,
+		 * when it refers to outer vars, the whole expression should be
+		 * treated as an outer var.  However, it is too invasive to do it
+		 * for PercentileExpr, and as we plan to integrate it Aggref, we
+		 * just disallow such cases for now.  Revisit later.
+		 */
+		min_varlevel = find_minimum_var_level((Node *) p->sortTargets);
+		if (min_varlevel > 0)
+			ereport(ERROR,
+					(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
+					 errmsg("percentile functions cannot reference columns from outer queries")));
+
+		if (checkExprHasAggs((Node *) p->sortTargets))
+			ereport(ERROR,
+					(errcode(ERRCODE_GROUPING_ERROR),
+					 errmsg("argument of percentile function must not contain aggregates")));
+		if (checkExprHasWindFuncs((Node *) p->sortTargets))
+			ereport(ERROR,
+					(errcode(ERRCODE_GROUPING_ERROR),
+					 errmsg("argument of percentile function must not contain window functions")));
+		if (checkExprHasGroupExtFuncs((Node *) p->sortTargets))
+			ereport(ERROR,
+					(errcode(ERRCODE_GROUPING_ERROR),
+					 errmsg("argument of percentile function must not contain grouping(), or group_id()")));
+	}
+
+	/* Percentiles are actually aggregates. */
+	pstate->p_hasAggs = true;
+
+	return (Node *) p;
+}
+
 /*
  *	exprType -
  *	  returns the Oid of the type of the expression. (Used for typechecking.)
@@ -1532,6 +2314,9 @@ exprType(Node *expr)
 			break;
 		case T_Aggref:
 			type = ((Aggref *) expr)->aggtype;
+			break;
+		case T_WindowRef:
+			type = ((WindowRef *) expr)->restype;
 			break;
 		case T_ArrayRef:
 			type = ((ArrayRef *) expr)->refrestype;
@@ -1598,20 +2383,16 @@ exprType(Node *expr)
 					subplan->subLinkType == ARRAY_SUBLINK)
 				{
 					/* get the type of the subselect's first target column */
-					TargetEntry *tent;
-
-					tent = (TargetEntry *) linitial(subplan->plan->targetlist);
-					Assert(IsA(tent, TargetEntry));
-					Assert(!tent->resjunk);
-					type = exprType((Node *) tent->expr);
+					Oid itemtype = subplan->firstColType;
+					type = itemtype;
 					if (subplan->subLinkType == ARRAY_SUBLINK)
 					{
-						type = get_array_type(type);
+						type = get_array_type(itemtype);
 						if (!OidIsValid(type))
 							ereport(ERROR,
 									(errcode(ERRCODE_UNDEFINED_OBJECT),
 									 errmsg("could not find array type for data type %s",
-							format_type_be(exprType((Node *) tent->expr)))));
+							format_type_be(itemtype))));
 					}
 				}
 				else
@@ -1648,6 +2429,9 @@ exprType(Node *expr)
 		case T_RowExpr:
 			type = ((RowExpr *) expr)->row_typeid;
 			break;
+		case T_TableValueExpr:
+			type = ANYTABLEOID;  /* MULTISET values are a special pseudotype */
+			break;
 		case T_RowCompareExpr:
 			type = BOOLOID;
 			break;
@@ -1674,6 +2458,39 @@ exprType(Node *expr)
 			break;
 		case T_SetToDefault:
 			type = ((SetToDefault *) expr)->typeId;
+			break;
+		case T_CurrentOfExpr:
+			type = BOOLOID;
+			break;
+		case T_GroupingFunc:
+			type = INT8OID;
+			break;
+		case T_Grouping:
+			type = INT8OID;
+			break;
+		case T_GroupId:
+			type = INT4OID;
+			break;
+		case T_PercentileExpr:
+			type = ((PercentileExpr *) expr)->perctype;
+			break;
+		case T_DMLActionExpr:
+			type = INT4OID;
+			break;
+		case T_PartOidExpr:
+			type = OIDOID;
+			break;
+		case T_PartDefaultExpr:
+			type = BOOLOID;
+			break;
+		case T_PartBoundExpr:
+			type = ((PartBoundExpr *) expr)->boundType;
+			break;
+		case T_PartBoundInclusionExpr:
+			type = BOOLOID;
+			break;
+		case T_PartBoundOpenExpr:
+			type = BOOLOID;
 			break;
 		default:
 			elog(ERROR, "unrecognized node type: %d", (int) nodeTag(expr));
@@ -1906,27 +2723,28 @@ exprIsLengthCoercion(Node *expr, int32 *coercedTypmod)
  * the type name and then apply any necessary coercion function(s).
  */
 static Node *
-typecast_expression(ParseState *pstate, Node *expr, TypeName *typename)
+typecast_expression(ParseState *pstate, Node *expr, TypeName *typname)
 {
 	Oid			inputType = exprType(expr);
 	Oid			targetType;
 
-	targetType = typenameTypeId(pstate, typename);
+	targetType = typenameTypeId(pstate, typname);
 
 	if (inputType == InvalidOid)
 		return expr;			/* do nothing if NULL input */
 
 	expr = coerce_to_target_type(pstate, expr, inputType,
-								 targetType, typename->typmod,
+								 targetType, typname->typmod,
 								 COERCION_EXPLICIT,
-								 COERCE_EXPLICIT_CAST);
+								 COERCE_EXPLICIT_CAST,
+								 -1);
 	if (expr == NULL)
 		ereport(ERROR,
 				(errcode(ERRCODE_CANNOT_COERCE),
 				 errmsg("cannot cast type %s to %s",
 						format_type_be(inputType),
 						format_type_be(targetType)),
-				 parser_errposition(pstate, typename->location)));
+				 parser_errposition(pstate, typname->location)));
 
 	return expr;
 }
@@ -2125,9 +2943,9 @@ make_row_comparison_op(ParseState *pstate, List *opname,
 	 * the system thinks BoolExpr is N-argument anyway.
 	 */
 	if (rctype == ROWCOMPARE_EQ)
-		return (Node *) makeBoolExpr(AND_EXPR, opexprs);
+		return (Node *) makeBoolExpr(AND_EXPR, opexprs, location);
 	if (rctype == ROWCOMPARE_NE)
-		return (Node *) makeBoolExpr(OR_EXPR, opexprs);
+		return (Node *) makeBoolExpr(OR_EXPR, opexprs, location);
 
 	/*
 	 * Otherwise we need to determine exactly which opclass to associate with
@@ -2227,7 +3045,7 @@ make_row_distinct_op(ParseState *pstate, List *opname,
 			result = cmp;
 		else
 			result = (Node *) makeBoolExpr(OR_EXPR,
-										   list_make2(result, cmp));
+										   list_make2(result, cmp), location);
 	}
 
 	if (result == NULL)

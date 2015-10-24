@@ -51,7 +51,7 @@
  * calls in portal and cursor manipulations.
  *
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2008, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * $PostgreSQL: pgsql/src/include/tcop/dest.h,v 1.52 2006/08/30 23:34:22 tgl Exp $
@@ -65,7 +65,7 @@
 
 
 /* buffer size to use for command completion tags */
-#define COMPLETION_TAG_BUFSIZE	64
+#define COMPLETION_TAG_BUFSIZE	72
 
 
 /* ----------------
@@ -133,5 +133,8 @@ extern void EndCommand(const char *commandTag, CommandDest dest);
 
 extern void NullCommand(CommandDest dest);
 extern void ReadyForQuery(CommandDest dest);
+extern void ReadyForQuery_QEWriter(CommandDest dest);
+
+extern void sendQEDetails(void);
 
 #endif   /* DEST_H */

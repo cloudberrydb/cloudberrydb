@@ -8,28 +8,36 @@
  * stepping on each others' toes.  Formerly we used table-level locks
  * on pg_database, but that's too coarse-grained.
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 2005-2010, Greenplum inc
+ * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/commands/dbcommands.c,v 1.187 2006/11/05 22:42:08 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/commands/dbcommands.c,v 1.187.2.4 2010/03/25 14:45:21 alvherre Exp $
  *
  *-------------------------------------------------------------------------
  */
 #include "postgres.h"
 
 #include <fcntl.h>
+#include <locale.h>
 #include <unistd.h>
 #include <sys/stat.h>
 
 #include "access/genam.h"
 #include "access/heapam.h"
+#include "catalog/heap.h"
 #include "access/xact.h"
+#include "access/transam.h"				/* InvalidTransactionId */
 #include "catalog/catalog.h"
+#include "catalog/catquery.h"
 #include "catalog/dependency.h"
 #include "catalog/indexing.h"
+#include "catalog/pg_attribute.h"
 #include "catalog/pg_authid.h"
+#include "catalog/pg_class.h"
+#include "catalog/pg_namespace.h"
 #include "catalog/pg_database.h"
 #include "catalog/pg_tablespace.h"
 #include "commands/comment.h"
@@ -37,17 +45,44 @@
 #include "commands/tablespace.h"
 #include "mb/pg_wchar.h"
 #include "miscadmin.h"
-#include "postmaster/bgwriter.h"
+#include "pgstat.h"
+#include "postmaster/checkpoint.h"
 #include "storage/freespace.h"
+#include "storage/ipc.h"
 #include "storage/procarray.h"
+#include "storage/smgr.h"
 #include "utils/acl.h"
 #include "utils/builtins.h"
 #include "utils/flatfiles.h"
 #include "utils/fmgroids.h"
 #include "utils/guc.h"
 #include "utils/lsyscache.h"
+#include "utils/pg_locale.h"
 #include "utils/syscache.h"
 
+#include "cdb/cdbdisp.h"
+#include "cdb/cdbdispatchresult.h"
+#include "cdb/cdbsreh.h"
+#include "cdb/cdbsrlz.h"
+#include "cdb/cdbvars.h"
+#include "cdb/cdbcat.h"
+#include "cdb/cdbpersistentdatabase.h"
+#include "cdb/cdbpersistentrelation.h"
+#include "cdb/cdbmirroredfilesysobj.h"
+#include "cdb/cdbmirroredappendonly.h"
+#include "cdb/cdbmirroredbufferpool.h"
+#include "cdb/cdbmirroredflatfile.h"
+#include "cdb/cdbdatabaseinfo.h"
+#include "cdb/cdbdirectopen.h"
+#include "cdb/cdbpersistentfilesysobj.h"
+
+#include "utils/pg_rusage.h"
+
+typedef struct
+{
+	Oid			src_dboid;		/* source (template) DB */
+	Oid			dest_dboid;		/* DB we are trying to create */
+} createdb_failure_params;
 
 /* non-export function prototypes */
 static bool get_db_info(const char *name, LOCKMODE lockmode,
@@ -56,31 +91,553 @@ static bool get_db_info(const char *name, LOCKMODE lockmode,
 			Oid *dbLastSysOidP, TransactionId *dbFrozenXidP,
 			Oid *dbTablespace);
 static bool have_createdb_privilege(void);
-static void remove_dbtablespaces(Oid db_id);
 static bool check_db_file_conflict(Oid db_id);
 
+static void createdb_int(CreatedbStmt *stmt, CdbDispatcherState *ds);
+
+/*
+ * Create target database directories (under transaction).
+ */
+static void create_target_directories(
+	DatabaseInfo 			*info,
+
+	Oid						sourceDefaultTablespace,
+
+	Oid						destDefaultTablespace,
+
+	Oid						destDatabase)
+{
+	int t;
+
+	for (t = 0; t < info->tablespacesCount; t++)
+	{
+		ItemPointerData persistentTid;
+		int64 persistentSerialNum;
+
+		Oid tablespace = info->tablespaces[t];
+		DbDirNode dbDirNode;
+		
+		CHECK_FOR_INTERRUPTS();
+		
+		if (tablespace == GLOBALTABLESPACE_OID)
+			continue;
+
+		if (tablespace == sourceDefaultTablespace)
+			tablespace = destDefaultTablespace;
+
+		dbDirNode.tablespace = tablespace;
+		dbDirNode.database = destDatabase;
+		
+		MirroredFileSysObj_TransactionCreateDbDir(
+											&dbDirNode,
+											&persistentTid,
+											&persistentSerialNum);
+
+		set_short_version(NULL, &dbDirNode, true);
+	}
+}
+
+static void make_dst_relfilenode(
+	Oid						tablespace,
+
+	Oid						relfilenode,
+
+	Oid						srcDefaultTablespace,
+
+	Oid						dstDefaultTablespace,
+
+	Oid						dstDatabase,
+
+	RelFileNode				*dstRelFileNode)
+{
+	if (tablespace == srcDefaultTablespace)
+		tablespace = dstDefaultTablespace;
+	
+	dstRelFileNode->spcNode = tablespace;
+	
+	dstRelFileNode->dbNode = dstDatabase;
+	
+	dstRelFileNode->relNode = relfilenode;
+}
+
+typedef struct StoredRelationPersistentInfo
+{
+	ItemPointerData		tid;
+
+	int32				serialNum;
+} StoredRelationPersistentInfo;
+
+static void update_gp_relation_node(
+	Relation 				gpRelationNodeRel,
+	Oid						dstDefaultTablespace,
+	Oid						dstDatabase,
+	ItemPointer				gpRelationNodeTid,
+	Oid						relationNode,
+	int32					segmentFileNum,
+	ItemPointer				persistentTid,
+	int64					persistentSerialNum)
+{
+	HeapTupleData	tuple;
+	Buffer			buffer;
+
+	bool			nulls[Natts_gp_relation_node];
+	Datum			values[Natts_gp_relation_node];
+
+	Oid				verifyRelationNode;
+	int32			verifySegmentFileNum;
+	
+	Datum			repl_val[Natts_gp_relation_node];
+	bool			repl_null[Natts_gp_relation_node];
+	bool			repl_repl[Natts_gp_relation_node];
+	HeapTuple		newtuple;
+
+	tuple.t_self = *gpRelationNodeTid;
+	
+	if (!heap_fetch(gpRelationNodeRel, SnapshotAny,
+					&tuple, &buffer, false, NULL))
+		elog(ERROR, "Failed to fetch gp_relation_node tuple at TID %s",
+			 ItemPointerToString(&tuple.t_self));
+	
+	heap_deform_tuple(&tuple, RelationGetDescr(gpRelationNodeRel), values, nulls);
+	
+	Assert(!nulls[Anum_gp_relation_node_relfilenode_oid - 1]);
+	verifyRelationNode = DatumGetObjectId(values[Anum_gp_relation_node_relfilenode_oid - 1]);
+
+	Assert(verifyRelationNode == relationNode);
+
+	Assert(!nulls[Anum_gp_relation_node_segment_file_num - 1]);
+	verifySegmentFileNum = DatumGetInt32(values[Anum_gp_relation_node_segment_file_num - 1]);
+
+	Assert(verifySegmentFileNum == segmentFileNum);
+
+	memset(repl_val, 0, sizeof(repl_val));
+	memset(repl_null, false, sizeof(repl_null));
+	memset(repl_repl, 0, sizeof(repl_null));
+	
+	repl_val[Anum_gp_relation_node_persistent_tid - 1] = PointerGetDatum(persistentTid);
+	repl_repl[Anum_gp_relation_node_persistent_tid - 1] = true;
+	repl_val[Anum_gp_relation_node_persistent_serial_num - 1] = Int64GetDatum(persistentSerialNum);
+	repl_repl[Anum_gp_relation_node_persistent_serial_num - 1] = true;
+	
+	newtuple = heap_modify_tuple(&tuple, RelationGetDescr(gpRelationNodeRel), repl_val, repl_null, repl_repl);
+	
+	heap_inplace_update(gpRelationNodeRel, newtuple);
+	
+	heap_freetuple(newtuple);
+
+	ReleaseBuffer(buffer);
+}
+
+static void copy_buffer_pool_files(
+	RelFileNode 	*srcRelFileNode,
+	RelFileNode		*dstRelFileNode,
+	char			*relationName,
+	ItemPointer		persistentTid,
+	int64			persistentSerialNum,
+	char			*buffer,
+	bool			useWal)
+{
+	SMgrRelation	srcrel;
+	int32			nblocks;
+
+	SMgrRelation	dstrel;
+
+	int32		blkno;
+
+	MirroredBufferPoolBulkLoadInfo bulkLoadInfo;
+
+	srcrel = smgropen(*srcRelFileNode);
+
+	nblocks = smgrnblocks(srcrel);
+
+	dstrel = smgropen(*dstRelFileNode);
+
+	if (!useWal)
+	{
+		MirroredBufferPool_BeginBulkLoad(
+								dstRelFileNode,
+								persistentTid,
+								persistentSerialNum,
+								&bulkLoadInfo);
+	}
+	else
+	{
+		if (Debug_persistent_print)
+		{
+			elog(Persistent_DebugPrintLevel(),
+				 "copy_buffer_pool_files %u/%u/%u: not bypassing the WAL -- not using bulk load, persistent serial num " INT64_FORMAT ", TID %s",
+				 dstRelFileNode->spcNode,
+				 dstRelFileNode->dbNode,
+				 dstRelFileNode->relNode,
+				 persistentSerialNum,
+				 ItemPointerToString(persistentTid));
+		}
+		MemSet(&bulkLoadInfo, 0, sizeof(MirroredBufferPoolBulkLoadInfo));
+	}
+	
+	/*
+	 * Do the data copying.
+	 */
+	for (blkno = 0; blkno < nblocks; blkno++)
+	{
+		xl_heap_newpage xlrec;
+		XLogRecPtr	recptr;
+		XLogRecData rdata[2];
+		
+		smgrread(srcrel, blkno, buffer);
+
+		CHECK_FOR_INTERRUPTS();
+
+		if (useWal)
+		{
+			/*
+			 * We XLOG buffer pool relations for 2 reasons:
+			 *
+			 *   1) To support master mirroring which replays the XLOG to the
+			 *       standby master.
+			 *   2) Better CREATE DATABASE performance.  If we fsync each file
+			 *       as we copy, it slows things down.
+			 */
+		
+			/* NO ELOG(ERROR) from here till newpage op is logged */
+			START_CRIT_SECTION();
+		
+			/* XXX consolidate with heap_logpage() */
+			xlrec.heapnode.node = dstrel->smgr_rnode;
+			xlrec.heapnode.persistentTid = *persistentTid;
+			xlrec.heapnode.persistentSerialNum = persistentSerialNum;
+			xlrec.blkno = blkno;
+		
+			rdata[0].data = (char *) &xlrec;
+			rdata[0].len = SizeOfHeapNewpage;
+			rdata[0].buffer = InvalidBuffer;
+			rdata[0].next = &(rdata[1]);
+		
+			rdata[1].data = (char *) buffer;
+			rdata[1].len = BLCKSZ;
+			rdata[1].buffer = InvalidBuffer;
+			rdata[1].next = NULL;
+		
+			recptr = XLogInsert(RM_HEAP_ID, XLOG_HEAP_NEWPAGE, rdata);
+		
+			PageSetLSN(buffer, recptr);
+			PageSetTLI(buffer, ThisTimeLineID);
+		
+			END_CRIT_SECTION();
+
+		}
+
+		// -------- MirroredLock ----------
+		LWLockAcquire(MirroredLock, LW_SHARED);
+
+		smgrwrite(dstrel, blkno, buffer, false);
+
+		LWLockRelease(MirroredLock);
+		// -------- MirroredLock ----------
+	}
+
+	/*
+	 * It's obvious that we must fsync this when not WAL-logging the copy. It's
+	 * less obvious that we have to do it even if we did WAL-log the copied
+	 * pages. The reason is that since we're copying outside shared buffers, a
+	 * CHECKPOINT occurring during the copy has no way to flush the previously
+	 * written data to disk (indeed it won't know the new rel even exists).  A
+	 * crash later on would replay WAL from the checkpoint, therefore it
+	 * wouldn't replay our earlier WAL entries. If we do not fsync those pages
+	 * here, they might still not be on disk when the crash occurs.
+	 */
+	
+	// -------- MirroredLock ----------
+	LWLockAcquire(MirroredLock, LW_SHARED);
+	
+	smgrimmedsync(dstrel);
+	
+	LWLockRelease(MirroredLock);
+	// -------- MirroredLock ----------
+
+	smgrclose(dstrel);
+
+	smgrclose(srcrel);
+
+	if (!useWal)
+	{
+		bool mirrorDataLossOccurred;
+	
+		/*
+		 * We may have to catch-up the mirror since bulk loading of data is
+		 * ignored by resynchronize.
+		 */
+		while (true)
+		{
+			bool bulkLoadFinished;
+	
+			bulkLoadFinished = 
+				MirroredBufferPool_EvaluateBulkLoadFinish(
+												&bulkLoadInfo);
+	
+			if (bulkLoadFinished)
+			{
+				/*
+				 * The flush was successful to the mirror (or the mirror is
+				 * not configured).
+				 *
+				 * We have done a state-change from 'Bulk Load Create Pending'
+				 * to 'Create Pending'.
+				 */
+				break;
+			}
+	
+			/*
+			 * Copy primary data to mirror and flush.
+			 */
+			MirroredBufferPool_CopyToMirror(
+									dstRelFileNode,
+									relationName,
+									persistentTid,
+									persistentSerialNum,
+									bulkLoadInfo.mirrorDataLossTrackingState,
+									bulkLoadInfo.mirrorDataLossTrackingSessionNum,
+									nblocks,
+									&mirrorDataLossOccurred);
+		}
+	}
+}
+
+static void copy_append_only_segment_file(
+	RelFileNode 	*srcRelFileNode,
+	RelFileNode		*dstRelFileNode,
+	int32			segmentFileNum,
+	char			*relationName,
+	int64			eof,
+	ItemPointer		persistentTid,
+	int64			persistentSerialNum,
+	char			*buffer)
+{
+	MIRRORED_LOCK_DECLARE;
+
+	char srcFileName[MAXPGPATH];
+	char dstFileName[MAXPGPATH];
+	char extension[12];
+
+	File		srcFile;
+
+	MirroredAppendOnlyOpen mirroredDstOpen;
+
+	int64	endOffset;
+	int64	readOffset;
+	int32	bufferLen;
+	int 	retval;
+
+	int primaryError;
+
+	bool mirrorDataLossOccurred;
+
+	bool mirrorCatchupRequired;
+
+	MirrorDataLossTrackingState 	originalMirrorDataLossTrackingState;
+	int64 							originalMirrorDataLossTrackingSessionNum;
+
+	Assert(eof > 0);
+
+	if (Debug_persistent_print)
+		elog(Persistent_DebugPrintLevel(), 
+			 "copy_append_only_segment_file: Enter %u/%u/%u, segment file #%d, serial number " INT64_FORMAT ", TID %s, EOF " INT64_FORMAT,
+			 dstRelFileNode->spcNode,
+			 dstRelFileNode->dbNode,
+			 dstRelFileNode->relNode,
+			 segmentFileNum,
+			 persistentSerialNum,
+			 ItemPointerToString(persistentTid),
+			 eof);
+
+	if (segmentFileNum > 0)
+	{
+		sprintf(extension, ".%u", segmentFileNum);
+	}
+	else
+		extension[0] = '\0';
+	
+	CopyRelPath(srcFileName, MAXPGPATH, *srcRelFileNode);
+	if (segmentFileNum > 0)
+	{
+		strcat(srcFileName, extension);
+	}
+
+	/*
+	 * Open the files
+	 */
+	srcFile = PathNameOpenFile(srcFileName, O_RDONLY | PG_BINARY, 0);
+	if (srcFile < 0)
+		ereport(ERROR,
+				(errcode_for_file_access(),
+				 errmsg("could not open file \"%s\": %m", srcFileName)));
+
+	CopyRelPath(dstFileName, MAXPGPATH, *dstRelFileNode);
+	if (segmentFileNum > 0)
+	{
+		strcat(dstFileName, extension);
+	}
+
+	MirroredAppendOnly_OpenReadWrite(
+							&mirroredDstOpen,
+							dstRelFileNode,
+							segmentFileNum,
+							relationName,
+							/* logicalEof */ 0,	// NOTE: This is the START EOF.  Since we are copying, we start at 0.
+							/* traceOpenFlags */ false,
+							persistentTid,
+							persistentSerialNum,
+							&primaryError);
+	if (primaryError != 0)
+		ereport(ERROR,
+				(errcode_for_file_access(),
+				 errmsg("could not open file \"%s\": %s",
+				 		dstFileName,
+				 		strerror(primaryError))));
+
+	/*
+	 * Do the data copying.
+	 */
+	endOffset = eof;
+	readOffset = 0;
+	bufferLen = (Size) Min(2*BLCKSZ, endOffset);
+	while (readOffset < endOffset)
+	{
+		CHECK_FOR_INTERRUPTS();
+		
+		retval = FileRead(srcFile, buffer, bufferLen);
+		if (retval != bufferLen) 
+		{
+			ereport(ERROR,
+					(errcode_for_file_access(),
+					 errmsg("could not read from position: " INT64_FORMAT " in file '%s' : %m",
+							readOffset, 
+							srcFileName)));
+			
+			break;
+		}						
+		
+		MirroredAppendOnly_Append(
+							  &mirroredDstOpen,
+							  buffer,
+							  bufferLen,
+							  &primaryError,
+							  &mirrorDataLossOccurred);
+		if (primaryError != 0)
+			ereport(ERROR,
+					(errcode_for_file_access(),
+					 errmsg("could not write file \"%s\": %s",
+							dstFileName,
+							strerror(primaryError))));
+		
+		readOffset += bufferLen;
+		
+		bufferLen = (Size) Min(2*BLCKSZ, endOffset - readOffset);						
+	}
+
+	/*
+	 * Use the MirroredLock here to cover the flush (and close) and evaluation below whether
+	 * we must catchup the mirror.
+	 */
+	MIRRORED_LOCK;
+
+	MirroredAppendOnly_FlushAndClose(
+							&mirroredDstOpen,
+							&primaryError,
+							&mirrorDataLossOccurred,
+							&mirrorCatchupRequired,
+							&originalMirrorDataLossTrackingState,
+							&originalMirrorDataLossTrackingSessionNum);
+	if (primaryError != 0)
+		ereport(ERROR,
+				(errcode_for_file_access(),
+				 errmsg("could not flush (fsync) file \"%s\": %s",
+						dstFileName,
+						strerror(primaryError))));
+
+	FileClose(srcFile);
+	
+	if (eof > 0)
+	{
+		/* 
+		 * This routine will handle both updating the persistent information about the
+		 * new EOFs and copy data to the mirror if we are now in synchronized state.
+		 */
+		if (Debug_persistent_print)
+			elog(Persistent_DebugPrintLevel(), 
+				 "copy_append_only_segment_file: Exit %u/%u/%u, segment file #%d, serial number " INT64_FORMAT ", TID %s, mirror catchup required %s, "
+				 "mirror data loss tracking (state '%s', session num " INT64_FORMAT "), mirror new EOF " INT64_FORMAT,
+				 dstRelFileNode->spcNode,
+				 dstRelFileNode->dbNode,
+				 dstRelFileNode->relNode,
+				 segmentFileNum,
+				 persistentSerialNum,
+				 ItemPointerToString(persistentTid),
+				 (mirrorCatchupRequired ? "true" : "false"),
+				 MirrorDataLossTrackingState_Name(originalMirrorDataLossTrackingState),
+				 originalMirrorDataLossTrackingSessionNum,
+				 eof);
+		MirroredAppendOnly_AddMirrorResyncEofs(
+										dstRelFileNode,
+										segmentFileNum,
+										relationName,
+										persistentTid,
+										persistentSerialNum,
+										&mirroredLockLocalVars,
+										mirrorCatchupRequired,
+										originalMirrorDataLossTrackingState,
+										originalMirrorDataLossTrackingSessionNum,
+										eof);
+
+	}
+	
+	MIRRORED_UNLOCK;
+
+}
+
+// -----------------------------------------------------------------------------
 
 /*
  * CREATE DATABASE
  */
 void
-createdb(const CreatedbStmt *stmt)
+createdb(CreatedbStmt *stmt)
 {
-	HeapScanDesc scan;
-	Relation	rel;
-	Oid			src_dboid;
+	volatile struct CdbDispatcherState ds = {NULL, NULL};
+
+	PG_TRY();
+	{
+		createdb_int(stmt, (struct CdbDispatcherState *)&ds);
+		cdbdisp_finishCommand((struct CdbDispatcherState *)&ds, NULL, NULL);
+	}
+	PG_CATCH();
+	{
+		/* If dispatched, stop QEs and clean up after them. */
+		if (ds.primaryResults)
+			cdbdisp_handleError((struct CdbDispatcherState *)&ds);
+
+		PG_RE_THROW();
+		/* not reached */
+	}
+	PG_END_TRY();
+}
+
+static void
+createdb_int(CreatedbStmt *stmt, CdbDispatcherState *ds)
+{
+	Oid			src_dboid = InvalidOid;
 	Oid			src_owner;
-	int			src_encoding;
-	bool		src_istemplate;
+	int			src_encoding = -1;
+	bool		src_istemplate = false;
 	bool		src_allowconn;
-	Oid			src_lastsysoid;
-	TransactionId src_frozenxid;
-	Oid			src_deftablespace;
+	Oid			src_lastsysoid = InvalidOid;
+	TransactionId src_frozenxid = InvalidTransactionId;
+	Oid			src_deftablespace = InvalidOid;
 	volatile Oid dst_deftablespace;
 	Relation	pg_database_rel;
 	HeapTuple	tuple;
 	Datum		new_record[Natts_pg_database];
-	char		new_record_nulls[Natts_pg_database];
+	bool		new_record_nulls[Natts_pg_database];
 	Oid			dboid;
 	Oid			datdba;
 	ListCell   *option;
@@ -95,8 +652,23 @@ createdb(const CreatedbStmt *stmt)
 	int			encoding = -1;
 	int			dbconnlimit = -1;
 
-	/* don't call this in a transaction block */
-	PreventTransactionChain((void *) stmt, "CREATE DATABASE");
+	bool		shouldDispatch = (Gp_role == GP_ROLE_DISPATCH);
+	cqContext	cqc;
+	cqContext  *pcqCtx;
+
+	if (shouldDispatch)
+		if (Persistent_BeforePersistenceWork())
+			elog(NOTICE, " Create database dispatch before persistence work!");
+
+
+	if (Gp_role != GP_ROLE_EXECUTE)
+	{
+		/*
+		 * Don't allow master to call this in a transaction block. Segments
+		 * are ok as distributed transaction participants. 
+		 */
+		PreventTransactionChain((void *) stmt, "CREATE DATABASE");
+	}
 
 	/* Extract options from the statement node tree */
 	foreach(option, stmt->options)
@@ -187,6 +759,13 @@ createdb(const CreatedbStmt *stmt)
 		else
 			elog(ERROR, "unrecognized node type: %d",
 				 nodeTag(dencoding->arg));
+
+		if (encoding == PG_SQL_ASCII && shouldDispatch)
+		{
+			ereport(ERROR,
+					(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
+					 errmsg("server encoding 'SQL_ASCII' is not supported")));
+		}
 	}
 	if (dconnlimit && dconnlimit->arg)
 		dbconnlimit = intVal(dconnlimit->arg);
@@ -266,6 +845,33 @@ createdb(const CreatedbStmt *stmt)
 				(errcode(ERRCODE_WRONG_OBJECT_TYPE),
 				 errmsg("invalid server encoding %d", encoding)));
 
+	/* check whether encoding and locale are compatible - see also related check in initdb */
+	if (gp_encoding_check_locale_compatibility)
+	{
+		char *lc_ctype = GetConfigOptionByName("lc_ctype", NULL);
+		char *lc_collate = GetConfigOptionByName("lc_collate", NULL);
+		if (!check_locale_encoding(lc_ctype, encoding))
+		{
+			ereport(ERROR,
+					(errmsg("Encoding mismatch"),
+					 errdetail("The encoding you selected (%s) and the encoding that the\n"
+								"selected locale uses (%s) do not match.  This would lead to\n"
+								"misbehavior in various character string processing functions.\n",
+							pg_encoding_to_char(encoding),
+							lc_ctype)));
+		}
+		if(!check_locale_encoding(lc_collate,encoding))
+		{
+			ereport(ERROR,
+					(errmsg("Encoding mismatch"),
+					 errdetail("The encoding you selected (%s) and the encoding that the\n"
+								"selected locale uses (%s) do not match.  This would lead to\n"
+								"misbehavior in various character string processing functions.\n",
+							pg_encoding_to_char(encoding),
+							lc_collate)));
+		}
+	}
+
 	/* Resolve default tablespace for new database */
 	if (dtablespacename && dtablespacename->arg)
 	{
@@ -285,6 +891,12 @@ createdb(const CreatedbStmt *stmt)
 		if (aclresult != ACLCHECK_OK)
 			aclcheck_error(aclresult, ACL_KIND_TABLESPACE,
 						   tablespacename);
+
+		/* pg_global must never be the default tablespace */
+		if (dst_deftablespace == GLOBALTABLESPACE_OID)
+			ereport(ERROR,
+					(errcode(ERRCODE_INVALID_PARAMETER_VALUE),
+				  errmsg("pg_global cannot be used as default tablespace")));
 
 		/*
 		 * If we are trying to change the default tablespace of the template,
@@ -340,11 +952,41 @@ createdb(const CreatedbStmt *stmt)
 	 * directories.
 	 */
 	pg_database_rel = heap_open(DatabaseRelationId, RowExclusiveLock);
+	pcqCtx = caql_beginscan(
+							caql_addrel(cqclr(&cqc), pg_database_rel), 
+							cql("INSERT INTO pg_database",
+								NULL));
 
-	do
+	if (Gp_role == GP_ROLE_EXECUTE && stmt->dbOid != 0)
+		dboid = stmt->dbOid;
+	else
 	{
-		dboid = GetNewOid(pg_database_rel);
-	} while (check_db_file_conflict(dboid));
+		do
+		{
+			dboid = GetNewOid(pg_database_rel);
+		} while (check_db_file_conflict(dboid));
+	}
+
+
+	/* Remember this for dispatching to segDBs */
+	stmt->dbOid = dboid;
+
+	if (shouldDispatch)
+	{
+		elog(DEBUG5, "shouldDispatch = true, dbOid = %d", dboid);
+
+        /* 
+              * Dispatch the command to all primary segments.
+              *
+              * Doesn't wait for the QEs to finish execution.
+              */
+        cdbdisp_dispatchUtilityStatement((Node *)stmt,
+                                         true,      /* cancelOnError */
+                                     	 true,      /* startTransaction */
+                                     	 true,      /* withSnapshot */
+                                     	 ds,
+									 	 "createdb_int");
+	}
 
 	/*
 	 * Insert a new tuple into pg_database.  This establishes our ownership of
@@ -354,7 +996,7 @@ createdb(const CreatedbStmt *stmt)
 
 	/* Form tuple */
 	MemSet(new_record, 0, sizeof(new_record));
-	MemSet(new_record_nulls, ' ', sizeof(new_record_nulls));
+	MemSet(new_record_nulls, false, sizeof(new_record_nulls));
 
 	new_record[Anum_pg_database_datname - 1] =
 		DirectFunctionCall1(namein, CStringGetDatum(dbname));
@@ -373,18 +1015,15 @@ createdb(const CreatedbStmt *stmt)
 	 * a bad idea when the owner is not the same as the template's owner. It's
 	 * more debatable whether datconfig should be copied.
 	 */
-	new_record_nulls[Anum_pg_database_datconfig - 1] = 'n';
-	new_record_nulls[Anum_pg_database_datacl - 1] = 'n';
+	new_record_nulls[Anum_pg_database_datconfig - 1] = true;
+	new_record_nulls[Anum_pg_database_datacl - 1] = true;
 
-	tuple = heap_formtuple(RelationGetDescr(pg_database_rel),
-						   new_record, new_record_nulls);
+	tuple = caql_form_tuple(pcqCtx, 
+							new_record, new_record_nulls);
 
 	HeapTupleSetOid(tuple, dboid);
 
-	simple_heap_insert(pg_database_rel, tuple);
-
-	/* Update indexes */
-	CatalogUpdateIndexes(pg_database_rel, tuple);
+	caql_insert(pcqCtx, tuple); /* implicit update of index as well */
 
 	/*
 	 * Now generate additional catalog entries associated with the new DB
@@ -396,6 +1035,17 @@ createdb(const CreatedbStmt *stmt)
 	/* Create pg_shdepend entries for objects within database */
 	copyTemplateDependencies(src_dboid, dboid);
 
+	/* MPP-6929: metadata tracking */
+	if (Gp_role == GP_ROLE_DISPATCH)
+		MetaTrackAddObject(DatabaseRelationId,
+						   dboid,
+						   GetUserId(),
+						   "CREATE", "DATABASE"
+				);
+
+	
+	CHECK_FOR_INTERRUPTS();
+	
 	/*
 	 * Force dirty buffers out to disk, to ensure source database is
 	 * up-to-date for the copy.  (We really only need to flush buffers for the
@@ -403,132 +1053,263 @@ createdb(const CreatedbStmt *stmt)
 	 */
 	BufferSync();
 
-	/*
-	 * Once we start copying subdirectories, we need to be able to clean 'em
-	 * up if we fail.  Establish a TRY block to make sure this happens. (This
-	 * is not a 100% solution, because of the possibility of failure during
-	 * transaction commit after we leave this routine, but it should handle
-	 * most scenarios.)
-	 */
-	PG_TRY();
+	CHECK_FOR_INTERRUPTS();
+	
 	{
+		PGRUsage	ru_start;
+		DatabaseInfo *info;
+		int r;
+		char *buffer;
+		ItemPointerData	gpRelationNodePersistentTid;
+		int64 gpRelationNodePersistentSerialNum;
+		Relation gp_relation_node;
+
+		MemSet(&gpRelationNodePersistentTid, 0, sizeof(ItemPointerData));
+		gpRelationNodePersistentSerialNum = 0;
+
 		/*
-		 * Iterate through all tablespaces of the template database, and copy
-		 * each one to the new database.
+		 * Collect information of source database's relations.
 		 */
-		rel = heap_open(TableSpaceRelationId, AccessShareLock);
-		scan = heap_beginscan(rel, SnapshotNow, 0, NULL);
-		while ((tuple = heap_getnext(scan, ForwardScanDirection)) != NULL)
+		if (Debug_database_command_print)
+			pg_rusage_init(&ru_start);
+
+		info = DatabaseInfo_Collect(
+							src_dboid, 
+							src_deftablespace,
+							/* collectGpRelationNodeInfo */ true,
+							/* collectAppendOnlyCatalogSegmentInfo */ true,
+							/* scanFileSystem */ true);
+		
+		if (Debug_database_command_print)
+			elog(NOTICE, "collect phase: %s",
+				 pg_rusage_show(&ru_start));
+
+
+		CHECK_FOR_INTERRUPTS();
+
+//		if (Debug_database_command_print)
+//			DatabaseInfo_Trace(info);
+
+		/*
+		 * Verify integrity of databae information.
+		 */
+		if (Debug_database_command_print)
+			pg_rusage_init(&ru_start);
+
+//		DatabaseInfo_Check(info);
+
+		if (Debug_database_command_print)
+			elog(NOTICE, "check phase: %s",
+				 pg_rusage_show(&ru_start));
+
+		if (Debug_database_command_print)
+			pg_rusage_init(&ru_start);
+
+		/*
+		 * Create target database directories (under transaction).
+		 */
+		create_target_directories(
+								info,
+								src_deftablespace,
+								dst_deftablespace,
+								dboid);
+
+		if (Debug_database_command_print)
+			elog(NOTICE, "created db dirs phase: %s",
+				 pg_rusage_show(&ru_start));
+
+
+		/*
+		 * Create each physical destination relation segment file and copy the data.
+		 */
+		if (Debug_database_command_print)
+			pg_rusage_init(&ru_start);
+		
+		/* Use palloc to ensure we get a maxaligned buffer */		
+		buffer = palloc(2*BLCKSZ);
+
+		for (r = 0; r < info->dbInfoRelArrayCount; r++)
 		{
-			Oid			srctablespace = HeapTupleGetOid(tuple);
-			Oid			dsttablespace;
-			char	   *srcpath;
-			char	   *dstpath;
-			struct stat st;
+			DbInfoRel *dbInfoRel = &info->dbInfoRelArray[r];
 
-			/* No need to copy global tablespace */
-			if (srctablespace == GLOBALTABLESPACE_OID)
+			Oid tablespace;
+			Oid relfilenode;
+
+			RelFileNode srcRelFileNode;
+			RelFileNode dstRelFileNode;
+
+			PersistentFileSysRelStorageMgr relStorageMgr;
+
+			tablespace = dbInfoRel->reltablespace;
+			if (tablespace == GLOBALTABLESPACE_OID)
 				continue;
 
-			srcpath = GetDatabasePath(src_dboid, srctablespace);
+			CHECK_FOR_INTERRUPTS();
 
-			if (stat(srcpath, &st) < 0 || !S_ISDIR(st.st_mode) ||
-				directory_is_empty(srcpath))
+			relfilenode = dbInfoRel->relfilenodeOid;
+			
+			srcRelFileNode.spcNode = tablespace;
+			srcRelFileNode.dbNode = info->database;
+			srcRelFileNode.relNode = relfilenode;
+			
+			make_dst_relfilenode(
+							tablespace,
+							relfilenode,
+							src_deftablespace,
+							dst_deftablespace,
+							dboid,
+							&dstRelFileNode);
+			
+			relStorageMgr = (
+					 (dbInfoRel->relstorage == RELSTORAGE_AOROWS ||
+					  dbInfoRel->relstorage == RELSTORAGE_AOCOLS	) ?
+									PersistentFileSysRelStorageMgr_AppendOnly :
+									PersistentFileSysRelStorageMgr_BufferPool);
+
+			if (relStorageMgr == PersistentFileSysRelStorageMgr_BufferPool)
 			{
-				/* Assume we can ignore it */
-				pfree(srcpath);
-				continue;
-			}
+				bool useWal;
+				
+				PersistentFileSysRelStorageMgr localRelStorageMgr;
+				PersistentFileSysRelBufpoolKind relBufpoolKind;
+				
+				useWal = !XLog_CanBypassWal();
+				
+				GpPersistentRelationNode_GetRelationInfo(
+													dbInfoRel->relkind,
+													dbInfoRel->relstorage,
+													dbInfoRel->relam,
+													&localRelStorageMgr,
+													&relBufpoolKind);
+				Assert(localRelStorageMgr == PersistentFileSysRelStorageMgr_BufferPool);
 
-			if (srctablespace == src_deftablespace)
-				dsttablespace = dst_deftablespace;
+				/*
+				 * Generate new page XLOG records with the one persistent TID and
+				 * serial number for the Buffer Pool managed relation.
+				 */
+				MirroredFileSysObj_TransactionCreateBufferPoolFile(
+													smgropen(dstRelFileNode),
+													relBufpoolKind,
+													/* isLocalBuf */ false,
+													dbInfoRel->relname,
+													/* doJustInTimeDirCreate */ false,
+													/* bufferPoolBulkLoad */ !useWal,
+													&dbInfoRel->gpRelationNodes[0].persistentTid,		// OUTPUT
+													&dbInfoRel->gpRelationNodes[0].persistentSerialNum);	// OUTPUT
+
+				if (dstRelFileNode.relNode == GpRelationNodeRelationId)
+				{
+					gpRelationNodePersistentTid = dbInfoRel->gpRelationNodes[0].persistentTid;
+					gpRelationNodePersistentSerialNum = dbInfoRel->gpRelationNodes[0].persistentSerialNum;
+				}
+
+				copy_buffer_pool_files(
+								&srcRelFileNode,
+								&dstRelFileNode,
+								dbInfoRel->relname,
+								&dbInfoRel->gpRelationNodes[0].persistentTid,
+								dbInfoRel->gpRelationNodes[0].persistentSerialNum,
+								buffer,
+								useWal);
+			}
 			else
-				dsttablespace = srctablespace;
-
-			dstpath = GetDatabasePath(dboid, dsttablespace);
-
-			/*
-			 * Copy this subdirectory to the new location
-			 *
-			 * We don't need to copy subdirectories
-			 */
-			copydir(srcpath, dstpath, false);
-
-			/* Record the filesystem change in XLOG */
 			{
-				xl_dbase_create_rec xlrec;
-				XLogRecData rdata[1];
+				int i;
 
-				xlrec.db_id = dboid;
-				xlrec.tablespace_id = dsttablespace;
-				xlrec.src_db_id = src_dboid;
-				xlrec.src_tablespace_id = srctablespace;
+				DatabaseInfo_AlignAppendOnly(info, dbInfoRel);
 
-				rdata[0].data = (char *) &xlrec;
-				rdata[0].len = sizeof(xl_dbase_create_rec);
-				rdata[0].buffer = InvalidBuffer;
-				rdata[0].next = NULL;
+				for (i = 0; i < dbInfoRel->gpRelationNodesCount; i++)
+				{
+					DbInfoGpRelationNode *dbInfoGpRelationNode = 
+												&dbInfoRel->gpRelationNodes[i];
 
-				(void) XLogInsert(RM_DBASE_ID, XLOG_DBASE_CREATE, rdata);
-			}
+					MirroredFileSysObj_TransactionCreateAppendOnlyFile(
+														&dstRelFileNode,
+														dbInfoGpRelationNode->segmentFileNum,
+														dbInfoRel->relname,
+														/* doJustInTimeDirCreate */ false,
+														&dbInfoGpRelationNode->persistentTid,			// OUTPUT
+														&dbInfoGpRelationNode->persistentSerialNum); 	// OUTPUT
+
+
+					if (dbInfoGpRelationNode->logicalEof > 0)
+					{
+						copy_append_only_segment_file(
+										&srcRelFileNode,
+										&dstRelFileNode,
+										dbInfoGpRelationNode->segmentFileNum,
+										dbInfoRel->relname,
+										dbInfoGpRelationNode->logicalEof,
+										&dbInfoGpRelationNode->persistentTid,
+										dbInfoGpRelationNode->persistentSerialNum,
+										buffer);
+					}
+				}
+			}			
 		}
-		heap_endscan(scan);
-		heap_close(rel, AccessShareLock);
+
+		pfree(buffer);
+
+		if (Debug_database_command_print)
+			elog(NOTICE, "copy stored relations phase: %s",
+				 pg_rusage_show(&ru_start));
 
 		/*
-		 * We force a checkpoint before committing.  This effectively means
-		 * that committed XLOG_DBASE_CREATE operations will never need to be
-		 * replayed (at least not in ordinary crash recovery; we still have to
-		 * make the XLOG entry for the benefit of PITR operations). This
-		 * avoids two nasty scenarios:
+		 * Use our direct open feature so we can set the persistent information.
 		 *
-		 * #1: When PITR is off, we don't XLOG the contents of newly created
-		 * indexes; therefore the drop-and-recreate-whole-directory behavior
-		 * of DBASE_CREATE replay would lose such indexes.
-		 *
-		 * #2: Since we have to recopy the source database during DBASE_CREATE
-		 * replay, we run the risk of copying changes in it that were
-		 * committed after the original CREATE DATABASE command but before the
-		 * system crash that led to the replay.  This is at least unexpected
-		 * and at worst could lead to inconsistencies, eg duplicate table
-		 * names.
-		 *
-		 * (Both of these were real bugs in releases 8.0 through 8.0.3.)
-		 *
-		 * In PITR replay, the first of these isn't an issue, and the second
-		 * is only a risk if the CREATE DATABASE and subsequent template
-		 * database change both occur while a base backup is being taken.
-		 * There doesn't seem to be much we can do about that except document
-		 * it as a limitation.
-		 *
-		 * Perhaps if we ever implement CREATE DATABASE in a less cheesy way,
-		 * we can avoid this.
+		 * Note:  The index will not get inserts -- we'll rebuild afterwards.
 		 */
-		RequestCheckpoint(true, false);
+		gp_relation_node = 
+				DirectOpen_GpRelationNodeOpen(
+								dst_deftablespace, 
+								dboid);
 
 		/*
-		 * Close pg_database, but keep lock till commit (this is important to
-		 * prevent any risk of deadlock failure while updating flat file)
+		 * Manually set the persistence information so it will get recorded in
+		 * the insert XLOG records.
 		 */
-		heap_close(pg_database_rel, NoLock);
+		gp_relation_node->rd_segfile0_relationnodeinfo.isPresent = true;
+		gp_relation_node->rd_segfile0_relationnodeinfo.persistentTid = gpRelationNodePersistentTid;
+		gp_relation_node->rd_segfile0_relationnodeinfo.persistentSerialNum = gpRelationNodePersistentSerialNum;
+		
+		for (r = 0; r < info->dbInfoRelArrayCount; r++)
+		{
+			DbInfoRel *dbInfoRel = &info->dbInfoRelArray[r];
 
-		/*
-		 * Set flag to update flat database file at commit.
-		 */
-		database_file_update_needed();
+			int g;
+			
+			for (g = 0; g < dbInfoRel->gpRelationNodesCount; g++)
+			{
+				DbInfoGpRelationNode *dbInfoGpRelationNode = 
+											&dbInfoRel->gpRelationNodes[g];
+			
+				update_gp_relation_node(
+							gp_relation_node,
+							dst_deftablespace,
+							dboid,
+							&dbInfoGpRelationNode->gpRelationNodeTid,
+							dbInfoRel->relfilenodeOid,
+							dbInfoGpRelationNode->segmentFileNum,
+							&dbInfoGpRelationNode->persistentTid,		// INPUT
+							dbInfoGpRelationNode->persistentSerialNum);	// INPUT
+			}
+
+		}
+
+		DirectOpen_GpRelationNodeClose(gp_relation_node);
 	}
-	PG_CATCH();
-	{
-		/* Release lock on source database before doing recursive remove */
-		UnlockSharedObject(DatabaseRelationId, src_dboid, 0,
-						   ShareLock);
 
-		/* Throw away any successfully copied subdirectories */
-		remove_dbtablespaces(dboid);
+	/*
+	 * Close pg_database, but keep lock till commit (this is important to
+	 * prevent any risk of deadlock failure while updating flat file)
+	 */
+	heap_close(pg_database_rel, NoLock);
+	caql_endscan(pcqCtx);
 
-		PG_RE_THROW();
-	}
-	PG_END_TRY();
+	/*
+	 * Set flag to update flat database file at commit.
+	 */
+	database_file_update_needed();
 }
 
 
@@ -538,14 +1319,21 @@ createdb(const CreatedbStmt *stmt)
 void
 dropdb(const char *dbname, bool missing_ok)
 {
-	Oid			db_id;
-	bool		db_istemplate;
+	Oid			db_id = InvalidOid;
+	bool		db_istemplate = true;
+	Oid			defaultTablespace = InvalidOid;
 	Relation	pgdbrel;
-	HeapTuple	tup;
-
-	PreventTransactionChain((void *) dbname, "DROP DATABASE");
 
 	AssertArg(dbname);
+
+	if (Gp_role != GP_ROLE_EXECUTE)
+	{
+		/*
+		 * Don't allow master tp call this in a transaction block.  Segments are ok as
+		 * distributed transaction participants. 
+		 */
+		PreventTransactionChain((void *) dbname, "DROP DATABASE");
+	}
 
 	if (strcmp(dbname, get_database_name(MyDatabaseId)) == 0)
 		ereport(ERROR,
@@ -562,7 +1350,7 @@ dropdb(const char *dbname, bool missing_ok)
 	pgdbrel = heap_open(DatabaseRelationId, RowExclusiveLock);
 
 	if (!get_db_info(dbname, AccessExclusiveLock, &db_id, NULL, NULL,
-					 &db_istemplate, NULL, NULL, NULL, NULL))
+					 &db_istemplate, NULL, NULL, NULL, &defaultTablespace))
 	{
 		if (!missing_ok)
 		{
@@ -572,12 +1360,27 @@ dropdb(const char *dbname, bool missing_ok)
 		}
 		else
 		{
-			/* Close pg_database, release the lock, since we changed nothing */
-			heap_close(pgdbrel, RowExclusiveLock);
-			ereport(NOTICE,
-					(errmsg("database \"%s\" does not exist, skipping",
-							dbname)));
-			return;
+			if ( missing_ok && Gp_role == GP_ROLE_EXECUTE )
+			{
+				/* This branch exists just to facilitate cleanup of a failed
+				 * CREATE DATABASE.  Other callers will supply missing_ok as
+				 * FALSE.  The role check is just insurance. 
+				 */
+				elog(DEBUG1, "ignored request to drop non-existent "
+					 "database \"%s\"", dbname);
+				
+				heap_close(pgdbrel, RowExclusiveLock);
+				return;
+			}
+			else
+			{
+				/* Release the lock, since we changed nothing */
+				heap_close(pgdbrel, RowExclusiveLock);
+				ereport(NOTICE,
+						(errmsg("database \"%s\" does not exist, skipping",
+								dbname)));
+				return;
+			}
 		}
 	}
 
@@ -609,17 +1412,38 @@ dropdb(const char *dbname, bool missing_ok)
 						dbname)));
 
 	/*
+	 * Free the database on the segDBs
+	 *
+	 */
+	if (Gp_role == GP_ROLE_DISPATCH)
+	{
+		StringInfoData buffer;
+
+		initStringInfo(&buffer);
+
+		appendStringInfo(&buffer, "DROP DATABASE IF EXISTS \"%s\"", dbname);
+
+
+		/*
+		 * Do the DROP DATABASE as part of a distributed transaction.
+		 */
+		CdbDoCommand(buffer.data, true, true);
+	}
+
+	/*
 	 * Remove the database's tuple from pg_database.
 	 */
-	tup = SearchSysCache(DATABASEOID,
-						 ObjectIdGetDatum(db_id),
-						 0, 0, 0);
-	if (!HeapTupleIsValid(tup))
+
+	cqContext	cqc2;
+
+	if (0 == caql_getcount(
+				caql_addrel(cqclr(&cqc2), pgdbrel),
+				cql("DELETE FROM pg_database "
+					" WHERE oid = :1 ",
+					ObjectIdGetDatum(db_id))))
+	{
 		elog(ERROR, "cache lookup failed for database %u", db_id);
-
-	simple_heap_delete(pgdbrel, &tup->t_self);
-
-	ReleaseSysCache(tup);
+	}
 
 	/*
 	 * Delete any comments associated with the database.
@@ -632,29 +1456,161 @@ dropdb(const char *dbname, bool missing_ok)
 	dropDatabaseDependencies(db_id);
 
 	/*
-	 * Drop pages for this database that are in the shared buffer cache. This
-	 * is important to ensure that no remaining backend tries to write out a
-	 * dirty buffer to the dead database later...
+	 * Tell the stats collector to forget it immediately, too.
 	 */
-	DropDatabaseBuffers(db_id);
+	pgstat_drop_database(db_id);
+	
+	/* MPP-6929: metadata tracking */
+	if (Gp_role == GP_ROLE_DISPATCH)
+		MetaTrackDropObject(DatabaseRelationId,
+							db_id);
 
 	/*
 	 * Also, clean out any entries in the shared free space map.
 	 */
-	FreeSpaceMapForgetDatabase(db_id);
+	FreeSpaceMapForgetDatabase(InvalidOid, db_id);
 
 	/*
-	 * On Windows, force a checkpoint so that the bgwriter doesn't hold any
-	 * open files, which would cause rmdir() to fail.
+	 * Force a checkpoint to make sure the bgwriter to push all pages to disk.
 	 */
-#ifdef WIN32
 	RequestCheckpoint(true, false);
-#endif
 
+	
 	/*
-	 * Remove all tablespace subdirs belonging to the database.
+	 * Collect information on the database's relations from pg_class and from scanning
+	 * the file-system directories.
+	 *
+	 * Schedule the relation files and database directories for deletion at transaction
+	 * commit.
 	 */
-	remove_dbtablespaces(db_id);
+	{
+		DatabaseInfo *info;
+		int r;
+
+		DbDirNode dbDirNode;
+		PersistentFileSysState state;
+		
+		ItemPointerData persistentTid;
+		int64 persistentSerialNum;
+		
+		info = DatabaseInfo_Collect(
+								db_id, 
+								defaultTablespace,
+								/* collectGpRelationNodeInfo */ true,
+								/* collectAppendOnlyCatalogSegmentInfo */ false,
+								/* scanFileSystem */ true);
+
+//		if (Debug_database_command_print)
+//			DatabaseInfo_Trace(info);
+		
+		if (info->parentlessGpRelationNodesCount > 0)
+		{
+//			DatabaseInfo_Trace(info);
+
+//			pg_usleep(60 * 1000000L);
+			
+			elog(ERROR, "Found %d parentless gp_relation_node entries",
+				 info->parentlessGpRelationNodesCount);
+		}
+
+		/*
+		 * Verify the relation information from pg_class matches what we found on disk.
+		 */
+//		DatabaseInfo_Check(info);
+
+		/*
+		 * Schedule relation file deletes for transaction commit.
+		 */
+		for (r = 0; r < info->dbInfoRelArrayCount; r++)
+		{
+			DbInfoRel *dbInfoRel = &info->dbInfoRelArray[r];
+			
+			RelFileNode relFileNode;
+			PersistentFileSysRelStorageMgr relStorageMgr;
+
+			int g;
+			if (dbInfoRel->reltablespace == GLOBALTABLESPACE_OID)
+				continue;
+			
+			relFileNode.spcNode = dbInfoRel->reltablespace;
+			relFileNode.dbNode = db_id;
+			relFileNode.relNode = dbInfoRel->relfilenodeOid;
+
+			CHECK_FOR_INTERRUPTS();
+
+			/*
+			 * Schedule the relation drop.
+			 */
+			relStorageMgr = (
+					 (dbInfoRel->relstorage == RELSTORAGE_AOROWS ||
+					  dbInfoRel->relstorage == RELSTORAGE_AOCOLS    ) ?
+									PersistentFileSysRelStorageMgr_AppendOnly :
+									PersistentFileSysRelStorageMgr_BufferPool);
+
+			if (relStorageMgr == PersistentFileSysRelStorageMgr_BufferPool)
+			{
+				DbInfoGpRelationNode *dbInfoGpRelationNode;
+				
+				dbInfoGpRelationNode = &dbInfoRel->gpRelationNodes[0];
+
+				MirroredFileSysObj_ScheduleDropBufferPoolFile(
+												&relFileNode,
+												/* isLocalBuf */ false,
+												dbInfoRel->relname,
+												&dbInfoGpRelationNode->persistentTid,
+												dbInfoGpRelationNode->persistentSerialNum);
+			}
+			else
+			{
+				for (g = 0; g < dbInfoRel->gpRelationNodesCount; g++)
+				{
+					DbInfoGpRelationNode *dbInfoGpRelationNode;
+					
+					dbInfoGpRelationNode = &dbInfoRel->gpRelationNodes[g];
+
+					MirroredFileSysObj_ScheduleDropAppendOnlyFile(
+													&relFileNode,
+													dbInfoGpRelationNode->segmentFileNum,
+													dbInfoRel->relname,
+													&dbInfoGpRelationNode->persistentTid,
+													dbInfoGpRelationNode->persistentSerialNum);
+				}
+			}
+		}
+
+		/*
+		 * Schedule all persistent database directory removals for transaction commit.
+		 */
+		PersistentDatabase_DirIterateInit();
+		while (PersistentDatabase_DirIterateNext(
+										&dbDirNode,
+										&state,
+										&persistentTid,
+										&persistentSerialNum))
+		{
+			if (dbDirNode.database != db_id)
+				continue;
+
+			/*
+			 * Database directory objects can linger in 'Drop Pending' state, etc,
+			 * when the mirror is down and needs drop work.  So only pay attention
+			 * to 'Created' objects.
+			 */
+			if (state != PersistentFileSysState_Created)
+				continue;
+	
+			elog(LOG, "scheduling database drop of %u/%u",
+				 dbDirNode.tablespace, dbDirNode.database);
+
+			MirroredFileSysObj_ScheduleDropDbDir(
+											&dbDirNode,
+											&persistentTid,
+											persistentSerialNum);
+		}
+	}
+
+	/* Cleanup error log files for this database. */
+	ErrorLogDelete(db_id, InvalidOid);
 
 	/*
 	 * Close pg_database, but keep lock till commit (this is important to
@@ -675,9 +1631,11 @@ dropdb(const char *dbname, bool missing_ok)
 void
 RenameDatabase(const char *oldname, const char *newname)
 {
-	Oid			db_id;
+	Oid			db_id = InvalidOid;
 	HeapTuple	newtup;
 	Relation	rel;
+	cqContext	cqc;
+	cqContext  *pcqCtx;
 
 	/*
 	 * Look up the target database's OID, and get exclusive lock on it. We
@@ -730,14 +1688,28 @@ RenameDatabase(const char *oldname, const char *newname)
 				 errmsg("permission denied to rename database")));
 
 	/* rename */
-	newtup = SearchSysCacheCopy(DATABASEOID,
-								ObjectIdGetDatum(db_id),
-								0, 0, 0);
+
+	pcqCtx = caql_addrel(cqclr(&cqc), rel);
+	newtup = caql_getfirst(
+			pcqCtx,
+			cql("SELECT * FROM pg_database "
+				" WHERE oid = :1 "
+				" FOR UPDATE ",
+				ObjectIdGetDatum(db_id)));
+
 	if (!HeapTupleIsValid(newtup))
 		elog(ERROR, "cache lookup failed for database %u", db_id);
 	namestrcpy(&(((Form_pg_database) GETSTRUCT(newtup))->datname), newname);
-	simple_heap_update(rel, &newtup->t_self, newtup);
-	CatalogUpdateIndexes(rel, newtup);
+
+	caql_update_current(pcqCtx, newtup); /* implicit update of index as well */
+
+	/* MPP-6929: metadata tracking */
+	if (Gp_role == GP_ROLE_DISPATCH)
+		MetaTrackUpdObject(DatabaseRelationId,
+						   db_id,
+						   GetUserId(),
+						   "ALTER", "RENAME"
+				);
 
 	/*
 	 * Close pg_database, but keep lock till commit (this is important to
@@ -761,14 +1733,15 @@ AlterDatabase(AlterDatabaseStmt *stmt)
 	Relation	rel;
 	HeapTuple	tuple,
 				newtuple;
-	ScanKeyData scankey;
-	SysScanDesc scan;
+	cqContext	cqc;
+	cqContext  *pcqCtx;
 	ListCell   *option;
 	int			connlimit = -1;
 	DefElem    *dconnlimit = NULL;
 	Datum		new_record[Natts_pg_database];
-	char		new_record_nulls[Natts_pg_database];
-	char		new_record_repl[Natts_pg_database];
+	bool		new_record_nulls[Natts_pg_database];
+	bool		new_record_repl[Natts_pg_database];
+	Oid			dboid = InvalidOid;
 
 	/* Extract options from the statement node tree */
 	foreach(option, stmt->options)
@@ -797,19 +1770,23 @@ AlterDatabase(AlterDatabaseStmt *stmt)
 	 * connections.
 	 */
 	rel = heap_open(DatabaseRelationId, RowExclusiveLock);
-	ScanKeyInit(&scankey,
-				Anum_pg_database_datname,
-				BTEqualStrategyNumber, F_NAMEEQ,
-				NameGetDatum(stmt->dbname));
-	scan = systable_beginscan(rel, DatabaseNameIndexId, true,
-							  SnapshotNow, 1, &scankey);
-	tuple = systable_getnext(scan);
+
+	pcqCtx = caql_addrel(cqclr(&cqc), rel);
+
+	tuple = caql_getfirst(
+			pcqCtx,
+			cql("SELECT * FROM pg_database" 
+				" WHERE datname = :1 FOR UPDATE", 
+				CStringGetDatum(stmt->dbname)));
+
 	if (!HeapTupleIsValid(tuple))
 		ereport(ERROR,
 				(errcode(ERRCODE_UNDEFINED_DATABASE),
 				 errmsg("database \"%s\" does not exist", stmt->dbname)));
 
-	if (!pg_database_ownercheck(HeapTupleGetOid(tuple), GetUserId()))
+	dboid = HeapTupleGetOid(tuple);
+
+	if (!pg_database_ownercheck(dboid, GetUserId()))
 		aclcheck_error(ACLCHECK_NOT_OWNER, ACL_KIND_DATABASE,
 					   stmt->dbname);
 
@@ -817,26 +1794,42 @@ AlterDatabase(AlterDatabaseStmt *stmt)
 	 * Build an updated tuple, perusing the information just obtained
 	 */
 	MemSet(new_record, 0, sizeof(new_record));
-	MemSet(new_record_nulls, ' ', sizeof(new_record_nulls));
-	MemSet(new_record_repl, ' ', sizeof(new_record_repl));
+	MemSet(new_record_nulls, false, sizeof(new_record_nulls));
+	MemSet(new_record_repl, false, sizeof(new_record_repl));
 
 	if (dconnlimit)
 	{
 		new_record[Anum_pg_database_datconnlimit - 1] = Int32GetDatum(connlimit);
-		new_record_repl[Anum_pg_database_datconnlimit - 1] = 'r';
+		new_record_repl[Anum_pg_database_datconnlimit - 1] = true;
 	}
 
-	newtuple = heap_modifytuple(tuple, RelationGetDescr(rel), new_record,
-								new_record_nulls, new_record_repl);
-	simple_heap_update(rel, &tuple->t_self, newtuple);
+	newtuple = caql_modify_current(pcqCtx, new_record,
+								   new_record_nulls, new_record_repl);
+	caql_update_current(pcqCtx, newtuple); 
+	/* and Update indexes (implicit) */
 
-	/* Update indexes */
-	CatalogUpdateIndexes(rel, newtuple);
-
-	systable_endscan(scan);
+	/* MPP-6929: metadata tracking */
+	if (Gp_role == GP_ROLE_DISPATCH)
+		MetaTrackUpdObject(DatabaseRelationId,
+						   dboid,
+						   GetUserId(),
+						   "ALTER", "CONNECTION LIMIT"
+				);
 
 	/* Close pg_database, but keep lock till commit */
 	heap_close(rel, NoLock);
+
+	if (Gp_role == GP_ROLE_DISPATCH)
+	{
+
+		StringInfoData buffer;
+
+		initStringInfo(&buffer);
+
+		appendStringInfo(&buffer, "ALTER DATABASE \"%s\" CONNECTION LIMIT %d", stmt->dbname, connlimit);
+
+		CdbDoCommand(buffer.data, false, /*start txn*/ true);
+	}
 
 	/*
 	 * We don't bother updating the flat file since the existing options for
@@ -853,13 +1846,15 @@ AlterDatabaseSet(AlterDatabaseSetStmt *stmt)
 {
 	char	   *valuestr;
 	HeapTuple	tuple,
-				newtuple;
+		newtuple;
 	Relation	rel;
-	ScanKeyData scankey;
-	SysScanDesc scan;
+	cqContext	cqc;
+	cqContext  *pcqCtx;
 	Datum		repl_val[Natts_pg_database];
-	char		repl_null[Natts_pg_database];
-	char		repl_repl[Natts_pg_database];
+	bool		repl_null[Natts_pg_database];
+	bool		repl_repl[Natts_pg_database];
+	Oid			dboid = InvalidOid;
+	char	   *alter_subtype = "SET"; /* metadata tracking */
 
 	valuestr = flatten_set_variable_args(stmt->variable, stmt->value);
 
@@ -869,30 +1864,56 @@ AlterDatabaseSet(AlterDatabaseSetStmt *stmt)
 	 * connections.
 	 */
 	rel = heap_open(DatabaseRelationId, RowExclusiveLock);
-	ScanKeyInit(&scankey,
-				Anum_pg_database_datname,
-				BTEqualStrategyNumber, F_NAMEEQ,
-				NameGetDatum(stmt->dbname));
-	scan = systable_beginscan(rel, DatabaseNameIndexId, true,
-							  SnapshotNow, 1, &scankey);
-	tuple = systable_getnext(scan);
+
+	pcqCtx = caql_addrel(cqclr(&cqc), rel);
+
+	tuple = caql_getfirst(
+			pcqCtx,
+			cql("SELECT * FROM pg_database" 
+				" WHERE datname = :1 FOR UPDATE", 
+				CStringGetDatum(stmt->dbname)));
+
 	if (!HeapTupleIsValid(tuple))
 		ereport(ERROR,
 				(errcode(ERRCODE_UNDEFINED_DATABASE),
 				 errmsg("database \"%s\" does not exist", stmt->dbname)));
 
-	if (!pg_database_ownercheck(HeapTupleGetOid(tuple), GetUserId()))
+	dboid = HeapTupleGetOid(tuple);
+
+	if (!pg_database_ownercheck(dboid, GetUserId()))
 		aclcheck_error(ACLCHECK_NOT_OWNER, ACL_KIND_DATABASE,
 					   stmt->dbname);
 
-	MemSet(repl_repl, ' ', sizeof(repl_repl));
-	repl_repl[Anum_pg_database_datconfig - 1] = 'r';
+	memset(repl_repl, false, sizeof(repl_repl));
+	repl_repl[Anum_pg_database_datconfig - 1] = true;
 
 	if (strcmp(stmt->variable, "all") == 0 && valuestr == NULL)
 	{
-		/* RESET ALL */
-		repl_null[Anum_pg_database_datconfig - 1] = 'n';
-		repl_val[Anum_pg_database_datconfig - 1] = (Datum) 0;
+		alter_subtype = "RESET ALL";
+
+		ArrayType  *new = NULL;
+		Datum		datum;
+		bool		isnull;
+
+		/*
+		 * in RESET ALL, request GUC to reset the settings array; if none
+		 * left, we can set datconfig to null; otherwise use the returned
+		 * array
+		 */
+		datum = heap_getattr(tuple, Anum_pg_database_datconfig,
+							 RelationGetDescr(rel), &isnull);
+		if (!isnull)
+			new = GUCArrayReset(DatumGetArrayTypeP(datum));
+		if (new)
+		{
+			repl_val[Anum_pg_database_datconfig - 1] = PointerGetDatum(new);
+			repl_null[Anum_pg_database_datconfig - 1] = false;
+		}
+		else
+		{
+			repl_null[Anum_pg_database_datconfig - 1] = true;
+			repl_val[Anum_pg_database_datconfig - 1] = (Datum) 0;
+		}
 	}
 	else
 	{
@@ -900,7 +1921,7 @@ AlterDatabaseSet(AlterDatabaseSetStmt *stmt)
 		bool		isnull;
 		ArrayType  *a;
 
-		repl_null[Anum_pg_database_datconfig - 1] = ' ';
+		repl_null[Anum_pg_database_datconfig - 1] = false;
 
 		datum = heap_getattr(tuple, Anum_pg_database_datconfig,
 							 RelationGetDescr(rel), &isnull);
@@ -910,24 +1931,88 @@ AlterDatabaseSet(AlterDatabaseSetStmt *stmt)
 		if (valuestr)
 			a = GUCArrayAdd(a, stmt->variable, valuestr);
 		else
+		{
+			alter_subtype = "RESET";
 			a = GUCArrayDelete(a, stmt->variable);
+		}
 
 		if (a)
 			repl_val[Anum_pg_database_datconfig - 1] = PointerGetDatum(a);
 		else
-			repl_null[Anum_pg_database_datconfig - 1] = 'n';
+			repl_null[Anum_pg_database_datconfig - 1] = true;
 	}
 
-	newtuple = heap_modifytuple(tuple, RelationGetDescr(rel), repl_val, repl_null, repl_repl);
-	simple_heap_update(rel, &tuple->t_self, newtuple);
+	newtuple = caql_modify_current(pcqCtx,
+								   repl_val, repl_null, repl_repl);
+	caql_update_current(pcqCtx, newtuple); 
+	/* and Update indexes (implicit) */
 
-	/* Update indexes */
-	CatalogUpdateIndexes(rel, newtuple);
-
-	systable_endscan(scan);
+	/* MPP-6929: metadata tracking */
+	if (Gp_role == GP_ROLE_DISPATCH)
+		MetaTrackUpdObject(DatabaseRelationId,
+						   dboid,
+						   GetUserId(),
+						   "ALTER", alter_subtype
+				);
 
 	/* Close pg_database, but keep lock till commit */
 	heap_close(rel, NoLock);
+	
+	if (Gp_role == GP_ROLE_DISPATCH)
+	{
+
+		StringInfoData buffer;
+
+		initStringInfo(&buffer);
+
+		appendStringInfo(&buffer, "ALTER DATABASE \"%s\" ", stmt->dbname);
+		
+		if (strcmp(stmt->variable, "all") == 0 && valuestr == NULL)
+		{
+			appendStringInfo(&buffer, "RESET ALL");
+		}
+		else if (valuestr == NULL)
+		{
+			appendStringInfo(&buffer, "RESET \"%s\"", stmt->variable);
+		}
+		else
+		{
+			ListCell   *l;
+	
+			
+			appendStringInfo(&buffer, "SET \"%s\" TO ",stmt->variable);
+		
+
+		
+			/* Parse string into list of identifiers */
+
+			foreach(l, stmt->value)
+			{
+				A_Const    *arg = (A_Const *) lfirst(l);
+				if (l != list_head(stmt->value))
+					appendStringInfo(&buffer, ",");
+				
+				switch (nodeTag(&arg->val))
+				{
+					case T_Integer:
+						appendStringInfo(&buffer, "%ld", intVal(&arg->val));
+						break;
+					case T_Float:
+						/* represented as a string, so just copy it */
+						appendStringInfoString(&buffer, strVal(&arg->val));
+						break;
+					case T_String:
+						appendStringInfo(&buffer,"'%s'", strVal(&arg->val));
+						break;
+					default:
+						appendStringInfo(&buffer, "%s", quote_identifier(strVal(&arg->val)));
+				}
+			}
+
+		}
+
+		CdbDoCommand(buffer.data, false, /*start txn*/ true);
+	}
 
 	/*
 	 * We don't bother updating the flat file since ALTER DATABASE SET doesn't
@@ -944,29 +2029,33 @@ AlterDatabaseOwner(const char *dbname, Oid newOwnerId)
 {
 	HeapTuple	tuple;
 	Relation	rel;
-	ScanKeyData scankey;
-	SysScanDesc scan;
+	cqContext	cqc;
+	cqContext  *pcqCtx;
 	Form_pg_database datForm;
-
+	Oid			dboid = InvalidOid;
 	/*
 	 * Get the old tuple.  We don't need a lock on the database per se,
 	 * because we're not going to do anything that would mess up incoming
 	 * connections.
 	 */
 	rel = heap_open(DatabaseRelationId, RowExclusiveLock);
-	ScanKeyInit(&scankey,
-				Anum_pg_database_datname,
-				BTEqualStrategyNumber, F_NAMEEQ,
-				NameGetDatum(dbname));
-	scan = systable_beginscan(rel, DatabaseNameIndexId, true,
-							  SnapshotNow, 1, &scankey);
-	tuple = systable_getnext(scan);
+
+	pcqCtx = caql_addrel(cqclr(&cqc), rel);
+
+	tuple = caql_getfirst(
+			pcqCtx,
+			cql("SELECT * FROM pg_database" 
+				" WHERE datname = :1 FOR UPDATE", 
+				CStringGetDatum((char *)dbname)));
+
 	if (!HeapTupleIsValid(tuple))
 		ereport(ERROR,
 				(errcode(ERRCODE_UNDEFINED_DATABASE),
 				 errmsg("database \"%s\" does not exist", dbname)));
 
 	datForm = (Form_pg_database) GETSTRUCT(tuple);
+
+	dboid = HeapTupleGetOid(tuple);
 
 	/*
 	 * If the new owner is the same as the existing owner, consider the
@@ -976,15 +2065,15 @@ AlterDatabaseOwner(const char *dbname, Oid newOwnerId)
 	if (datForm->datdba != newOwnerId)
 	{
 		Datum		repl_val[Natts_pg_database];
-		char		repl_null[Natts_pg_database];
-		char		repl_repl[Natts_pg_database];
+		bool		repl_null[Natts_pg_database];
+		bool		repl_repl[Natts_pg_database];
 		Acl		   *newAcl;
 		Datum		aclDatum;
 		bool		isNull;
 		HeapTuple	newtuple;
 
 		/* Otherwise, must be owner of the existing object */
-		if (!pg_database_ownercheck(HeapTupleGetOid(tuple), GetUserId()))
+		if (!pg_database_ownercheck(dboid, GetUserId()))
 			aclcheck_error(ACLCHECK_NOT_OWNER, ACL_KIND_DATABASE,
 						   dbname);
 
@@ -1005,10 +2094,10 @@ AlterDatabaseOwner(const char *dbname, Oid newOwnerId)
 					(errcode(ERRCODE_INSUFFICIENT_PRIVILEGE),
 				   errmsg("permission denied to change owner of database")));
 
-		memset(repl_null, ' ', sizeof(repl_null));
-		memset(repl_repl, ' ', sizeof(repl_repl));
+		memset(repl_null, false, sizeof(repl_null));
+		memset(repl_repl, false, sizeof(repl_repl));
 
-		repl_repl[Anum_pg_database_datdba - 1] = 'r';
+		repl_repl[Anum_pg_database_datdba - 1] = true;
 		repl_val[Anum_pg_database_datdba - 1] = ObjectIdGetDatum(newOwnerId);
 
 		/*
@@ -1023,22 +2112,30 @@ AlterDatabaseOwner(const char *dbname, Oid newOwnerId)
 		{
 			newAcl = aclnewowner(DatumGetAclP(aclDatum),
 								 datForm->datdba, newOwnerId);
-			repl_repl[Anum_pg_database_datacl - 1] = 'r';
+			repl_repl[Anum_pg_database_datacl - 1] = true;
 			repl_val[Anum_pg_database_datacl - 1] = PointerGetDatum(newAcl);
 		}
 
-		newtuple = heap_modifytuple(tuple, RelationGetDescr(rel), repl_val, repl_null, repl_repl);
-		simple_heap_update(rel, &newtuple->t_self, newtuple);
-		CatalogUpdateIndexes(rel, newtuple);
+		newtuple = caql_modify_current(pcqCtx,
+									   repl_val, repl_null, repl_repl);
+		caql_update_current(pcqCtx, newtuple); 
+		/* and Update indexes (implicit) */
 
 		heap_freetuple(newtuple);
 
 		/* Update owner dependency reference */
 		changeDependencyOnOwner(DatabaseRelationId, HeapTupleGetOid(tuple),
 								newOwnerId);
-	}
 
-	systable_endscan(scan);
+		/* MPP-6929: metadata tracking */
+		if (Gp_role == GP_ROLE_DISPATCH)
+			MetaTrackUpdObject(DatabaseRelationId,
+							   dboid,
+							   GetUserId(),
+							   "ALTER", "OWNER"
+					);
+
+	}
 
 	/* Close pg_database, but keep lock till commit */
 	heap_close(rel, NoLock);
@@ -1074,6 +2171,8 @@ get_db_info(const char *name, LOCKMODE lockmode,
 
 	/* Caller may wish to grab a better lock on pg_database beforehand... */
 	relation = heap_open(DatabaseRelationId, AccessShareLock);
+	/* XXX XXX: should this be RowExclusive, depending on lockmode? We
+	 * try to get a lock later... */
 
 	/*
 	 * Loop covers the rare case where the database is renamed before we can
@@ -1082,35 +2181,30 @@ get_db_info(const char *name, LOCKMODE lockmode,
 	 */
 	for (;;)
 	{
-		ScanKeyData scanKey;
-		SysScanDesc scan;
+		cqContext	cqc;
+		cqContext  *pcqCtx;
 		HeapTuple	tuple;
 		Oid			dbOid;
+		int			fetchCount;
 
 		/*
 		 * there's no syscache for database-indexed-by-name, so must do it the
 		 * hard way
 		 */
-		ScanKeyInit(&scanKey,
-					Anum_pg_database_datname,
-					BTEqualStrategyNumber, F_NAMEEQ,
-					NameGetDatum(name));
 
-		scan = systable_beginscan(relation, DatabaseNameIndexId, true,
-								  SnapshotNow, 1, &scanKey);
+		dbOid = caql_getoid_plus(
+				caql_addrel(cqclr(&cqc), relation),
+				&fetchCount,
+				NULL,
+				cql("SELECT oid FROM pg_database" 
+					" WHERE datname = :1 ", 
+					CStringGetDatum((char *) name)));
 
-		tuple = systable_getnext(scan);
-
-		if (!HeapTupleIsValid(tuple))
+		if (!fetchCount)
 		{
 			/* definitely no database of that name */
-			systable_endscan(scan);
 			break;
 		}
-
-		dbOid = HeapTupleGetOid(tuple);
-
-		systable_endscan(scan);
 
 		/*
 		 * Now that we have a database OID, we can try to lock the DB.
@@ -1123,9 +2217,14 @@ get_db_info(const char *name, LOCKMODE lockmode,
 		 * the same name, we win; else, drop the lock and loop back to try
 		 * again.
 		 */
-		tuple = SearchSysCache(DATABASEOID,
-							   ObjectIdGetDatum(dbOid),
-							   0, 0, 0);
+		pcqCtx = caql_beginscan(
+				caql_addrel(cqclr(&cqc), relation),
+				cql("SELECT * FROM pg_database "
+					" WHERE oid = :1 ",
+					ObjectIdGetDatum(dbOid)));
+
+		tuple = caql_getnext(pcqCtx);
+
 		if (HeapTupleIsValid(tuple))
 		{
 			Form_pg_database dbform = (Form_pg_database) GETSTRUCT(tuple);
@@ -1156,13 +2255,15 @@ get_db_info(const char *name, LOCKMODE lockmode,
 				/* default tablespace for this database */
 				if (dbTablespace)
 					*dbTablespace = dbform->dattablespace;
-				ReleaseSysCache(tuple);
+				
+				caql_endscan(pcqCtx);
 				result = true;
 				break;
 			}
 			/* can only get here if it was just renamed */
-			ReleaseSysCache(tuple);
+
 		}
+		caql_endscan(pcqCtx);
 
 		if (lockmode != NoLock)
 			UnlockSharedObject(DatabaseRelationId, dbOid, 0, lockmode);
@@ -1179,82 +2280,26 @@ have_createdb_privilege(void)
 {
 	bool		result = false;
 	HeapTuple	utup;
+	cqContext  *pcqCtx;
 
 	/* Superusers can always do everything */
 	if (superuser())
 		return true;
 
-	utup = SearchSysCache(AUTHOID,
-						  ObjectIdGetDatum(GetUserId()),
-						  0, 0, 0);
+	pcqCtx = caql_beginscan(
+			NULL,
+			cql("SELECT * FROM pg_authid "
+				" WHERE oid = :1 ",
+				ObjectIdGetDatum(GetUserId())));
+
+	utup = caql_getnext(pcqCtx);
+
 	if (HeapTupleIsValid(utup))
-	{
 		result = ((Form_pg_authid) GETSTRUCT(utup))->rolcreatedb;
-		ReleaseSysCache(utup);
-	}
+
+	caql_endscan(pcqCtx);
+
 	return result;
-}
-
-/*
- * Remove tablespace directories
- *
- * We don't know what tablespaces db_id is using, so iterate through all
- * tablespaces removing <tablespace>/db_id
- */
-static void
-remove_dbtablespaces(Oid db_id)
-{
-	Relation	rel;
-	HeapScanDesc scan;
-	HeapTuple	tuple;
-
-	rel = heap_open(TableSpaceRelationId, AccessShareLock);
-	scan = heap_beginscan(rel, SnapshotNow, 0, NULL);
-	while ((tuple = heap_getnext(scan, ForwardScanDirection)) != NULL)
-	{
-		Oid			dsttablespace = HeapTupleGetOid(tuple);
-		char	   *dstpath;
-		struct stat st;
-
-		/* Don't mess with the global tablespace */
-		if (dsttablespace == GLOBALTABLESPACE_OID)
-			continue;
-
-		dstpath = GetDatabasePath(db_id, dsttablespace);
-
-		if (lstat(dstpath, &st) < 0 || !S_ISDIR(st.st_mode))
-		{
-			/* Assume we can ignore it */
-			pfree(dstpath);
-			continue;
-		}
-
-		if (!rmtree(dstpath, true))
-			ereport(WARNING,
-					(errmsg("could not remove database directory \"%s\"",
-							dstpath)));
-
-		/* Record the filesystem change in XLOG */
-		{
-			xl_dbase_drop_rec xlrec;
-			XLogRecData rdata[1];
-
-			xlrec.db_id = db_id;
-			xlrec.tablespace_id = dsttablespace;
-
-			rdata[0].data = (char *) &xlrec;
-			rdata[0].len = sizeof(xl_dbase_drop_rec);
-			rdata[0].buffer = InvalidBuffer;
-			rdata[0].next = NULL;
-
-			(void) XLogInsert(RM_DBASE_ID, XLOG_DBASE_DROP, rdata);
-		}
-
-		pfree(dstpath);
-	}
-
-	heap_endscan(scan);
-	heap_close(rel, AccessShareLock);
 }
 
 /*
@@ -1273,13 +2318,14 @@ static bool
 check_db_file_conflict(Oid db_id)
 {
 	bool		result = false;
-	Relation	rel;
-	HeapScanDesc scan;
+	cqContext  *pcqCtx;
 	HeapTuple	tuple;
 
-	rel = heap_open(TableSpaceRelationId, AccessShareLock);
-	scan = heap_beginscan(rel, SnapshotNow, 0, NULL);
-	while ((tuple = heap_getnext(scan, ForwardScanDirection)) != NULL)
+	pcqCtx = caql_beginscan(
+			NULL,
+			cql("SELECT * FROM pg_tablespace ", NULL));
+
+	while (HeapTupleIsValid(tuple = caql_getnext(pcqCtx)))
 	{
 		Oid			dsttablespace = HeapTupleGetOid(tuple);
 		char	   *dstpath;
@@ -1302,8 +2348,7 @@ check_db_file_conflict(Oid db_id)
 		pfree(dstpath);
 	}
 
-	heap_endscan(scan);
-	heap_close(rel, AccessShareLock);
+	caql_endscan(pcqCtx);
 	return result;
 }
 
@@ -1315,34 +2360,24 @@ check_db_file_conflict(Oid db_id)
 Oid
 get_database_oid(const char *dbname)
 {
-	Relation	pg_database;
-	ScanKeyData entry[1];
-	SysScanDesc scan;
-	HeapTuple	dbtuple;
 	Oid			oid;
+	int			fetchCount;
 
 	/*
 	 * There's no syscache for pg_database indexed by name, so we must look
 	 * the hard way.
 	 */
-	pg_database = heap_open(DatabaseRelationId, AccessShareLock);
-	ScanKeyInit(&entry[0],
-				Anum_pg_database_datname,
-				BTEqualStrategyNumber, F_NAMEEQ,
-				CStringGetDatum(dbname));
-	scan = systable_beginscan(pg_database, DatabaseNameIndexId, true,
-							  SnapshotNow, 1, entry);
-
-	dbtuple = systable_getnext(scan);
+	oid = caql_getoid_plus(
+			NULL,
+			&fetchCount,
+			NULL,
+			cql("SELECT oid FROM pg_database" 
+				" WHERE datname = :1 ", 
+				CStringGetDatum((char *) dbname)));
 
 	/* We assume that there can be at most one matching tuple */
-	if (HeapTupleIsValid(dbtuple))
-		oid = HeapTupleGetOid(dbtuple);
-	else
+	if (!fetchCount)
 		oid = InvalidOid;
-
-	systable_endscan(scan);
-	heap_close(pg_database, AccessShareLock);
 
 	return oid;
 }
@@ -1356,19 +2391,13 @@ get_database_oid(const char *dbname)
 char *
 get_database_name(Oid dbid)
 {
-	HeapTuple	dbtuple;
 	char	   *result;
 
-	dbtuple = SearchSysCache(DATABASEOID,
-							 ObjectIdGetDatum(dbid),
-							 0, 0, 0);
-	if (HeapTupleIsValid(dbtuple))
-	{
-		result = pstrdup(NameStr(((Form_pg_database) GETSTRUCT(dbtuple))->datname));
-		ReleaseSysCache(dbtuple);
-	}
-	else
-		result = NULL;
+	result = caql_getcstring(
+			NULL,
+			cql("SELECT datname FROM pg_database "
+				" WHERE oid = :1 ",
+				ObjectIdGetDatum(dbid)));
 
 	return result;
 }
@@ -1377,7 +2406,7 @@ get_database_name(Oid dbid)
  * DATABASE resource manager's routines
  */
 void
-dbase_redo(XLogRecPtr lsn, XLogRecord *record)
+dbase_redo(XLogRecPtr beginLoc  __attribute__((unused)), XLogRecPtr lsn  __attribute__((unused)), XLogRecord *record)
 {
 	uint8		info = record->xl_info & ~XLR_INFO_MASK;
 
@@ -1418,36 +2447,15 @@ dbase_redo(XLogRecPtr lsn, XLogRecord *record)
 		 */
 		copydir(src_path, dst_path, false);
 	}
-	else if (info == XLOG_DBASE_DROP)
-	{
-		xl_dbase_drop_rec *xlrec = (xl_dbase_drop_rec *) XLogRecGetData(record);
-		char	   *dst_path;
-
-		dst_path = GetDatabasePath(xlrec->db_id, xlrec->tablespace_id);
-
-		/* Drop pages for this database that are in the shared buffer cache */
-		DropDatabaseBuffers(xlrec->db_id);
-
-		/* Also, clean out any entries in the shared free space map */
-		FreeSpaceMapForgetDatabase(xlrec->db_id);
-
-		/* Clean out the xlog relcache too */
-		XLogDropDatabase(xlrec->db_id);
-
-		/* And remove the physical files */
-		if (!rmtree(dst_path, true))
-			ereport(WARNING,
-					(errmsg("could not remove database directory \"%s\"",
-							dst_path)));
-	}
 	else
 		elog(PANIC, "dbase_redo: unknown op code %u", info);
 }
 
 void
-dbase_desc(StringInfo buf, uint8 xl_info, char *rec)
+dbase_desc(StringInfo buf, XLogRecPtr beginLoc, XLogRecord *record)
 {
-	uint8		info = xl_info & ~XLR_INFO_MASK;
+	uint8		info = record->xl_info & ~XLR_INFO_MASK;
+	char		*rec = XLogRecGetData(record);
 
 	if (info == XLOG_DBASE_CREATE)
 	{
@@ -1455,13 +2463,6 @@ dbase_desc(StringInfo buf, uint8 xl_info, char *rec)
 
 		appendStringInfo(buf, "create db: copy dir %u/%u to %u/%u",
 						 xlrec->src_db_id, xlrec->src_tablespace_id,
-						 xlrec->db_id, xlrec->tablespace_id);
-	}
-	else if (info == XLOG_DBASE_DROP)
-	{
-		xl_dbase_drop_rec *xlrec = (xl_dbase_drop_rec *) rec;
-
-		appendStringInfo(buf, "drop db: dir %u/%u",
 						 xlrec->db_id, xlrec->tablespace_id);
 	}
 	else

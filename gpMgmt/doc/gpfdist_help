@@ -1,0 +1,254 @@
+COMMAND NAME: gpfdist
+
+Serves data files to or writes data files out from Greenplum Database 
+segments. 
+
+*****************************************************
+SYNOPSIS
+*****************************************************
+
+gpfdist [-d <directory>] [-p <http_port>] [-l <log_file>] [-t <timeout>] 
+[-S] [-w <time>] [-v | -V] [-m <max_length>] [--ssl <certificate_path>]
+
+gpfdist [-? | --help] | --version
+
+
+*****************************************************
+DESCRIPTION
+*****************************************************
+
+gpfdist is Greenplum's parallel file distribution program. It is used 
+by readable external tables and gpload to serve external table files to 
+all Greenplum Database segments in parallel. It is used by writable 
+external tables to accept output streams from Greenplum Database 
+segments in parallel and write them out to a file. 
+
+In order for gpfdist to be used by an external table, the LOCATION 
+clause of the external table definition must specify the external table 
+data using the gpfdist:// protocol (see the Greenplum Database command 
+CREATE EXTERNAL TABLE). 
+
+NOTE: If the --ssl option is specified to enable SSL security, create 
+the external table with the gpfdists:// protocol. 
+
+The benefit of using gpfdist is that you are guaranteed maximum 
+parallelism while reading from or writing to external tables, thereby 
+offering the best performance as well as easier administration of 
+external tables. 
+
+For readable external tables, gpfdist parses and serves data files 
+evenly to all the segment instances in the Greenplum Database system 
+when users SELECT from the external table. For writable external tables, 
+gpfdist accepts parallel output streams from the segments when users 
+INSERT into the external table, and writes to an output file. 
+
+For readable external tables, if load files are compressed using gzip or 
+bzip2 (have a .gz or .bz2 file extension), gpfdist uncompresses the 
+files automatically before loading provided that gunzip or bunzip2 is in 
+your path. 
+
+NOTE: Currently, readable external tables do not support compression on 
+Windows platforms, and writable external tables do not support 
+compression on any platforms. 
+
+Most likely, you will want to run gpfdist on your ETL machines rather 
+than the hosts where Greenplum Database is installed. To install gpfdist 
+on another host, simply copy the utility over to that host and add 
+gpfdist to your $PATH. 
+
+NOTE: When using IPv6, always enclose the numeric IP address in 
+brackets. 
+
+You can also run gpfdist as a Windows Service. See the section "Running 
+gpfdist as a Windows Service" for more details. 
+
+
+*****************************************************
+OPTIONS
+*****************************************************
+
+-d <directory> 
+
+ The directory from which gpfdist will serve files for readable external 
+ tables or create output files for writable external tables. If not 
+ specified, defaults to the current directory. 
+
+ 
+-l <log_file> 
+
+ The fully qualified path and log file name where standard output 
+ messages are to be logged. 
+
+ 
+-p <http_port> 
+
+ The HTTP port on which gpfdist will serve files. Defaults to 8080. 
+
+
+-t <timeout> 
+
+ Sets the time allowed for Greenplum Database to establish a connection 
+ to a gpfdist process. Default is 5 seconds. Allowed values are 2 to 600 
+ seconds. May need to be increased on systems with a lot of network 
+ traffic. 
+
+
+-m <max_length> 
+
+ Sets the maximum allowed data row length in bytes. Default is 32768. 
+ Should be used when user data includes very wide rows (or when a "line too 
+ long" error message occurs). Should not be used otherwise as it increases 
+ resource allocation. Valid range is 32K to 256MB. (The upper limit is 
+ 1MB on Windows systems.) 
+
+
+-S (use O_SYNC) 
+
+ Opens the file for synchronous I/O with the O_SYNC flag. Any writes to 
+ the resulting file descriptor block gpfdist until the data is physically 
+ written to the underlying hardware. 
+
+
+-w <time> 
+
+ Sets the number of seconds that Greenplum Database delays before closing 
+ a target file such as a named pipe. The default value is 0, no delay. 
+ The maximum value is 600 seconds, 10 minutes. 
+
+ For a Greenplum Database with multiple segments, there might be a delay 
+ between segments when writing data from different segments to the file. 
+ You can specify a time to wait before Greenplum Database closes the file 
+ to ensure all the data is written to the file. 
+
+
+--ssl <certificate_path> 
+
+ Adds SSL encryption to data transferred with gpfdist. After executing 
+ gpfdist with the --ssl <certificate_path> option, the only way to load 
+ data from this file server is with the gpfdists protocol. For 
+ information on the gpfdists protocol, see the "Greenplum Database 
+ Administrator Guide". 
+
+ The location specified in certificate_path must contain the following 
+ files: 
+
+ * The server certificate file, server.crt 
+ * The server private key file, server.key 
+ * The trusted certificate authorities, root.crt 
+
+ The root directory (/) cannot be specified as certificate_path. 
+
+
+-v (verbose) 
+
+ Verbose mode shows progress and status messages. 
+
+
+-V (very verbose) 
+
+ Verbose mode shows all output messages generated by this utility. 
+
+ 
+-? (help) 
+
+ Displays the online help. 
+
+ 
+--version 
+
+ Displays the version of this utility. 
+
+
+*****************************************************
+RUNNING GPFDIST AS A WINDOWS SERVICE
+*****************************************************
+
+Greenplum Loaders allow gpfdist to run as a Windows Service. 
+
+Follow the instructions below to download, register and activate gpfdist 
+as a service: 
+
+1. Update your Greenplum Loader package to the latest version. This 
+   package is available from the EMC Download Center. 
+   (https://emc.subscribenet.com)
+
+2. Register gpfdist as a Windows service: 
+
+   a. Open a Windows command window 
+
+   b. Run the following command: 
+
+     sc create gpfdist binpath= "path_to_gpfdist.exe -p 8081 
+       -d External\load\files\path -l Log\file\path" 
+
+   You can create multiple instances of gpfdist by running the same command 
+   again, with a unique name and port number for each instance, for 
+   example: 
+
+   sc create gpfdistN binpath= "path_to_gpfdist.exe -p 8082 
+     -d External\load\files\path -l Log\file\path" 
+
+3. Activate the gpfdist service: 
+
+   a. Open the Windows Control Panel and select 
+      Administrative Tools>Services. 
+
+   b. Highlight then right-click on the gpfdist service in the list of 
+      services. 
+
+   c. Select Properties from the right-click menu, the Service Properties 
+      window opens. 
+
+      Note that you can also stop this service from the Service Properties 
+      window. 
+
+   d. Optional: Change the Startup Type to Automatic (after a system 
+      restart, this service will be running), then under Service status, 
+      click Start. 
+
+   e. Click OK. 
+
+Repeat the above steps for each instance of gpfdist that you created. 
+
+
+*****************************************************
+EXAMPLES
+*****************************************************
+
+Serve files from a specified directory using port 8081 (and start 
+gpfdist in the background): 
+
+  gpfdist -d /var/load_files -p 8081 & 
+
+  
+Start gpfdist in the background and redirect output and errors to a log 
+file: 
+
+  gpfdist -d /var/load_files -p 8081 -l /home/gpadmin/log & 
+
+  
+To stop gpfdist when it is running in the background: 
+
+  --First find its process id: 
+
+     ps ax | grep gpfdist 
+
+   OR on Solaris 
+
+     ps -ef | grep gpfdist 
+
+  --Then kill the process, for example: 
+
+    kill 3456 
+
+    
+*****************************************************
+SEE ALSO
+*****************************************************
+
+CREATE EXTERNAL TABLE, gpload 
+
+See the "Greenplum Database Reference Guide" for information 
+about CREATE EXTERNAL TABLE. 
+
+

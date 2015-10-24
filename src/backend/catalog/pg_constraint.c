@@ -3,7 +3,7 @@
  * pg_constraint.c
  *	  routines to support manipulation of the pg_constraint relation
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -16,6 +16,7 @@
 
 #include "access/genam.h"
 #include "access/heapam.h"
+#include "catalog/catquery.h"
 #include "catalog/dependency.h"
 #include "catalog/indexing.h"
 #include "catalog/pg_constraint.h"
@@ -23,9 +24,12 @@
 #include "catalog/pg_trigger.h"
 #include "catalog/pg_type.h"
 #include "commands/defrem.h"
+#include "commands/tablecmds.h"
 #include "utils/array.h"
 #include "utils/builtins.h"
 #include "utils/fmgroids.h"
+#include "utils/lsyscache.h"
+#include "utils/rel.h"
 #include "utils/syscache.h"
 
 
@@ -39,6 +43,7 @@
  */
 Oid
 CreateConstraintEntry(const char *constraintName,
+					  Oid conOid,
 					  Oid constraintNamespace,
 					  char constraintType,
 					  bool isDeferrable,
@@ -58,18 +63,20 @@ CreateConstraintEntry(const char *constraintName,
 					  const char *conBin,
 					  const char *conSrc)
 {
-	Relation	conDesc;
-	Oid			conOid;
 	HeapTuple	tup;
-	char		nulls[Natts_pg_constraint];
+	bool		nulls[Natts_pg_constraint];
 	Datum		values[Natts_pg_constraint];
 	ArrayType  *conkeyArray;
 	ArrayType  *confkeyArray;
 	NameData	cname;
 	int			i;
 	ObjectAddress conobject;
+	cqContext  *pcqCtx;
 
-	conDesc = heap_open(ConstraintRelationId, RowExclusiveLock);
+	pcqCtx = caql_beginscan(
+			NULL,
+			cql("INSERT INTO pg_constraint",
+				NULL));
 
 	Assert(constraintName);
 	namestrcpy(&cname, constraintName);
@@ -106,8 +113,8 @@ CreateConstraintEntry(const char *constraintName,
 	/* initialize nulls and values */
 	for (i = 0; i < Natts_pg_constraint; i++)
 	{
-		nulls[i] = ' ';
-		values[i] = (Datum) NULL;
+		nulls[i] = false;
+		values[i] = (Datum) 0;
 	}
 
 	values[Anum_pg_constraint_conname - 1] = NameGetDatum(&cname);
@@ -125,43 +132,43 @@ CreateConstraintEntry(const char *constraintName,
 	if (conkeyArray)
 		values[Anum_pg_constraint_conkey - 1] = PointerGetDatum(conkeyArray);
 	else
-		nulls[Anum_pg_constraint_conkey - 1] = 'n';
+		nulls[Anum_pg_constraint_conkey - 1] = true;
 
 	if (confkeyArray)
 		values[Anum_pg_constraint_confkey - 1] = PointerGetDatum(confkeyArray);
 	else
-		nulls[Anum_pg_constraint_confkey - 1] = 'n';
+		nulls[Anum_pg_constraint_confkey - 1] = true;
 
 	/*
 	 * initialize the binary form of the check constraint.
 	 */
 	if (conBin)
 		values[Anum_pg_constraint_conbin - 1] = DirectFunctionCall1(textin,
-													CStringGetDatum(conBin));
+													CStringGetDatum((char *) conBin));
 	else
-		nulls[Anum_pg_constraint_conbin - 1] = 'n';
+		nulls[Anum_pg_constraint_conbin - 1] = true;
 
 	/*
 	 * initialize the text form of the check constraint
 	 */
 	if (conSrc)
 		values[Anum_pg_constraint_consrc - 1] = DirectFunctionCall1(textin,
-													CStringGetDatum(conSrc));
+													CStringGetDatum((char *) conSrc));
 	else
-		nulls[Anum_pg_constraint_consrc - 1] = 'n';
+		nulls[Anum_pg_constraint_consrc - 1] = true;
 
-	tup = heap_formtuple(RelationGetDescr(conDesc), values, nulls);
+	tup = caql_form_tuple(pcqCtx, values, nulls);
 
-	conOid = simple_heap_insert(conDesc, tup);
-
-	/* update catalog indexes */
-	CatalogUpdateIndexes(conDesc, tup);
+	/* force tuple to have the desired OID */
+	if (OidIsValid(conOid))
+		HeapTupleSetOid(tup, conOid);
+	conOid = caql_insert(pcqCtx, tup); /* implicit update of index as well */
 
 	conobject.classId = ConstraintRelationId;
 	conobject.objectId = conOid;
 	conobject.objectSubId = 0;
 
-	heap_close(conDesc, RowExclusiveLock);
+	caql_endscan(pcqCtx);
 
 	if (OidIsValid(relId))
 	{
@@ -279,28 +286,23 @@ ConstraintNameIsUsed(ConstraintCategory conCat, Oid objId,
 {
 	bool		found;
 	Relation	conDesc;
-	SysScanDesc conscan;
-	ScanKeyData skey[2];
 	HeapTuple	tup;
+	cqContext  *pcqCtx;
+	cqContext	cqc;
 
 	conDesc = heap_open(ConstraintRelationId, AccessShareLock);
 
 	found = false;
 
-	ScanKeyInit(&skey[0],
-				Anum_pg_constraint_conname,
-				BTEqualStrategyNumber, F_NAMEEQ,
-				CStringGetDatum(conname));
+	pcqCtx = caql_beginscan(
+			caql_addrel(cqclr(&cqc), conDesc),
+			cql("SELECT * FROM pg_constraint "
+				" WHERE conname = :1 "
+				" AND connamespace = :2 ",
+				CStringGetDatum((char *) conname),
+				ObjectIdGetDatum(objNamespace)));
 
-	ScanKeyInit(&skey[1],
-				Anum_pg_constraint_connamespace,
-				BTEqualStrategyNumber, F_OIDEQ,
-				ObjectIdGetDatum(objNamespace));
-
-	conscan = systable_beginscan(conDesc, ConstraintNameNspIndexId, true,
-								 SnapshotNow, 2, skey);
-
-	while (HeapTupleIsValid(tup = systable_getnext(conscan)))
+	while (HeapTupleIsValid(tup = caql_getnext(pcqCtx)))
 	{
 		Form_pg_constraint con = (Form_pg_constraint) GETSTRUCT(tup);
 
@@ -316,7 +318,7 @@ ConstraintNameIsUsed(ConstraintCategory conCat, Oid objId,
 		}
 	}
 
-	systable_endscan(conscan);
+	caql_endscan(pcqCtx);
 	heap_close(conDesc, AccessShareLock);
 
 	return found;
@@ -354,8 +356,7 @@ ChooseConstraintName(const char *name1, const char *name2,
 	char	   *conname = NULL;
 	char		modlabel[NAMEDATALEN];
 	Relation	conDesc;
-	SysScanDesc conscan;
-	ScanKeyData skey[2];
+	cqContext	cqc;
 	bool		found;
 	ListCell   *l;
 
@@ -381,22 +382,14 @@ ChooseConstraintName(const char *name1, const char *name2,
 
 		if (!found)
 		{
-			ScanKeyInit(&skey[0],
-						Anum_pg_constraint_conname,
-						BTEqualStrategyNumber, F_NAMEEQ,
-						CStringGetDatum(conname));
-
-			ScanKeyInit(&skey[1],
-						Anum_pg_constraint_connamespace,
-						BTEqualStrategyNumber, F_OIDEQ,
-						ObjectIdGetDatum(namespace));
-
-			conscan = systable_beginscan(conDesc, ConstraintNameNspIndexId, true,
-										 SnapshotNow, 2, skey);
-
-			found = (HeapTupleIsValid(systable_getnext(conscan)));
-
-			systable_endscan(conscan);
+			found = 
+					(0 != caql_getcount(
+							caql_addrel(cqclr(&cqc), conDesc),
+							cql("SELECT COUNT(*) FROM pg_constraint "
+								" WHERE conname = :1 "
+								" AND connamespace = :2 ",
+								CStringGetDatum(conname),
+								ObjectIdGetDatum(namespace))));
 		}
 
 		if (!found)
@@ -419,22 +412,22 @@ void
 RemoveConstraintById(Oid conId)
 {
 	Relation	conDesc;
-	ScanKeyData skey[1];
-	SysScanDesc conscan;
 	HeapTuple	tup;
+	cqContext	cqc;
+	cqContext  *pcqCtx;
 	Form_pg_constraint con;
 
 	conDesc = heap_open(ConstraintRelationId, RowExclusiveLock);
 
-	ScanKeyInit(&skey[0],
-				ObjectIdAttributeNumber,
-				BTEqualStrategyNumber, F_OIDEQ,
-				ObjectIdGetDatum(conId));
+	pcqCtx = caql_addrel(cqclr(&cqc), conDesc);
 
-	conscan = systable_beginscan(conDesc, ConstraintOidIndexId, true,
-								 SnapshotNow, 1, skey);
+	tup = caql_getfirst(
+			pcqCtx,
+			cql("SELECT * FROM pg_constraint "
+				" WHERE oid = :1 "
+				" FOR UPDATE ",
+				ObjectIdGetDatum(conId)));
 
-	tup = systable_getnext(conscan);
 	if (!HeapTupleIsValid(tup))
 		elog(ERROR, "could not find tuple for constraint %u", conId);
 	con = (Form_pg_constraint) GETSTRUCT(tup);
@@ -445,6 +438,7 @@ RemoveConstraintById(Oid conId)
 	if (OidIsValid(con->conrelid))
 	{
 		Relation	rel;
+		bool		is_part_child = false;
 
 		/*
 		 * If the constraint is for a relation, open and exclusive-lock the
@@ -462,11 +456,20 @@ RemoveConstraintById(Oid conId)
 			Relation	pgrel;
 			HeapTuple	relTup;
 			Form_pg_class classForm;
+			cqContext	cqc2;
+			cqContext  *pcqCtx2;
 
 			pgrel = heap_open(RelationRelationId, RowExclusiveLock);
-			relTup = SearchSysCacheCopy(RELOID,
-										ObjectIdGetDatum(con->conrelid),
-										0, 0, 0);
+
+			pcqCtx2 = caql_addrel(cqclr(&cqc2), pgrel);
+
+			relTup = caql_getfirst(
+					pcqCtx2,
+					cql("SELECT * FROM pg_class "
+						" WHERE oid = :1 "
+						" FOR UPDATE ",
+						ObjectIdGetDatum(con->conrelid)));
+
 			if (!HeapTupleIsValid(relTup))
 				elog(ERROR, "cache lookup failed for relation %u",
 					 con->conrelid);
@@ -476,18 +479,23 @@ RemoveConstraintById(Oid conId)
 				elog(ERROR, "relation \"%s\" has relchecks = 0",
 					 RelationGetRelationName(rel));
 			classForm->relchecks--;
-
-			simple_heap_update(pgrel, &relTup->t_self, relTup);
-
-			CatalogUpdateIndexes(pgrel, relTup);
+			
+			caql_update_current(pcqCtx2, relTup);
+			/* and Update indexes (implicit) */
 
 			heap_freetuple(relTup);
 
 			heap_close(pgrel, RowExclusiveLock);
 		}
 
-		/* Keep lock on constraint's rel until end of xact */
-		heap_close(rel, NoLock);
+		is_part_child = !rel_needs_long_lock(RelationGetRelid(rel));
+
+		if (is_part_child)
+			/* sufficiently locked, in the case of a partitioned table */
+			heap_close(rel, AccessExclusiveLock);
+		else
+			/* Keep lock on constraint's rel until end of xact */
+			heap_close(rel, NoLock);
 	}
 	else if (OidIsValid(con->contypid))
 	{
@@ -502,10 +510,9 @@ RemoveConstraintById(Oid conId)
 		elog(ERROR, "constraint %u is not of a known type", conId);
 
 	/* Fry the constraint itself */
-	simple_heap_delete(conDesc, &tup->t_self);
+	caql_delete_current(pcqCtx);
 
 	/* Clean up */
-	systable_endscan(conscan);
 	heap_close(conDesc, RowExclusiveLock);
 }
 
@@ -533,6 +540,7 @@ GetConstraintNameForTrigger(Oid triggerId)
 	 */
 	depRel = heap_open(DependRelationId, AccessShareLock);
 
+	/* CaQL UNDONE: no test coverage */
 	ScanKeyInit(&key[0],
 				Anum_pg_depend_classid,
 				BTEqualStrategyNumber, F_OIDEQ,
@@ -567,6 +575,7 @@ GetConstraintNameForTrigger(Oid triggerId)
 
 	conRel = heap_open(ConstraintRelationId, AccessShareLock);
 
+	/* CaQL UNDONE: no test coverage */
 	ScanKeyInit(&key[0],
 				ObjectIdAttributeNumber,
 				BTEqualStrategyNumber, F_OIDEQ,
@@ -597,6 +606,29 @@ GetConstraintNameForTrigger(Oid triggerId)
 }
 
 /*
+ * GetConstraintNameByOid
+ *		Get the name of the constraint with the given oid, if any.
+ *
+ * Returns a palloc'd string, or NULL if no constraint can be found.
+ */
+char *
+GetConstraintNameByOid(Oid constraintId)
+{
+	char *result = NULL;
+	
+	if (!OidIsValid(constraintId))
+		return NULL;
+	
+	result = caql_getcstring(
+			NULL,
+			cql("SELECT conname FROM pg_constraint "
+				" WHERE oid = :1 ",
+				ObjectIdGetDatum(constraintId)));
+	
+	return result;
+}
+
+/*
  * AlterConstraintNamespaces
  *		Find any constraints belonging to the specified object,
  *		and move them to the specified new namespace.
@@ -607,35 +639,29 @@ void
 AlterConstraintNamespaces(Oid ownerId, Oid oldNspId,
 						  Oid newNspId, bool isType)
 {
-	Relation	conRel;
-	ScanKeyData key[1];
-	SysScanDesc scan;
 	HeapTuple	tup;
-
-	conRel = heap_open(ConstraintRelationId, RowExclusiveLock);
+	cqContext  *pcqCtx;
 
 	if (isType)
 	{
-		ScanKeyInit(&key[0],
-					Anum_pg_constraint_contypid,
-					BTEqualStrategyNumber, F_OIDEQ,
-					ObjectIdGetDatum(ownerId));
-
-		scan = systable_beginscan(conRel, ConstraintTypidIndexId, true,
-								  SnapshotNow, 1, key);
+		pcqCtx = caql_beginscan(
+				NULL,
+				cql("SELECT * FROM pg_constraint "
+					" WHERE contypid = :1 "
+					" FOR UPDATE ",
+					ObjectIdGetDatum(ownerId)));
 	}
 	else
 	{
-		ScanKeyInit(&key[0],
-					Anum_pg_constraint_conrelid,
-					BTEqualStrategyNumber, F_OIDEQ,
-					ObjectIdGetDatum(ownerId));
-
-		scan = systable_beginscan(conRel, ConstraintRelidIndexId, true,
-								  SnapshotNow, 1, key);
+		pcqCtx = caql_beginscan(
+				NULL,
+				cql("SELECT * FROM pg_constraint "
+					" WHERE conrelid = :1 "
+					" FOR UPDATE ",
+					ObjectIdGetDatum(ownerId)));
 	}
 
-	while (HeapTupleIsValid((tup = systable_getnext(scan))))
+	while (HeapTupleIsValid((tup = caql_getnext(pcqCtx))))
 	{
 		Form_pg_constraint conform = (Form_pg_constraint) GETSTRUCT(tup);
 
@@ -646,8 +672,7 @@ AlterConstraintNamespaces(Oid ownerId, Oid oldNspId,
 
 			conform->connamespace = newNspId;
 
-			simple_heap_update(conRel, &tup->t_self, tup);
-			CatalogUpdateIndexes(conRel, tup);
+			caql_update_current(pcqCtx, tup);
 
 			/*
 			 * Note: currently, the constraint will not have its own
@@ -657,7 +682,99 @@ AlterConstraintNamespaces(Oid ownerId, Oid oldNspId,
 		}
 	}
 
-	systable_endscan(scan);
+	caql_endscan(pcqCtx);
 
-	heap_close(conRel, RowExclusiveLock);
+}
+
+/**
+ * This method determines if the input attribute is a foreign key and if so,
+ * retrieves the primary key's relation oid and attribute number. It looks at
+ * the pg_constraint system table to determine the answer.
+ * 
+ * Input:
+ * 	relid - relation whose attribute we are examining
+ *  attno - attribute number of the said column
+ *  
+ * Output:
+ * 	*pkrelid - relation id of the table that contains the primary key
+ *  *pkattno - attribute number of the primary key
+ * 	return   - true if found/ false otherwise
+ * 
+ * It returns a value of true if (relid, attno) is indeed a foreign key. It also
+ * sets the output pkrelid and pkattno. If it returns false, then this
+ * column is not a primary key and these output variables are not modified.
+ */
+
+bool
+ConstraintGetPrimaryKeyOf(Oid relid, AttrNumber attno, Oid *pkrelid, AttrNumber *pkattno)
+{
+	bool		found;
+	Relation	conDesc;
+	HeapTuple	tup;
+	cqContext  *pcqCtx;
+	cqContext	cqc;
+
+	conDesc = heap_open(ConstraintRelationId, AccessShareLock);
+
+	found = false;
+
+	pcqCtx = caql_beginscan(
+			caql_addrel(cqclr(&cqc), conDesc),
+			cql("SELECT * FROM pg_constraint "
+				" WHERE conrelid = :1 ",
+				ObjectIdGetDatum(relid)));
+
+	while (HeapTupleIsValid(tup = caql_getnext(pcqCtx)))
+	{
+		Form_pg_constraint con = (Form_pg_constraint) GETSTRUCT(tup);
+		
+		if (con->conrelid == relid && con->contype == CONSTRAINT_FOREIGN)
+		{
+			Datum		val;
+			bool		valisnull;
+			Datum		*valarray;
+			int          valarray_length;
+
+			/* first ensure that this is the right key */
+			val = heap_getattr(tup, Anum_pg_constraint_conkey,
+					RelationGetDescr(conDesc), &valisnull);
+
+			Assert(!valisnull);
+
+			deconstruct_array(DatumGetArrayTypeP(val),
+					INT2OID, 2, true, 's',
+					&valarray, NULL, &valarray_length);
+
+			if (valarray_length == 1 && DatumGetInt16(valarray[0]) == attno)
+			{
+				Datum		fval;
+				bool		fvalisnull;
+				Datum		*fvalarray;
+				int          fvalarray_length;
+
+				/* this is the right key, now extract the primary table,key */
+				Assert(con->confrelid != InvalidOid);
+
+				fval = heap_getattr(tup, Anum_pg_constraint_confkey,
+						RelationGetDescr(conDesc), &fvalisnull);
+
+				Assert(!fvalisnull);
+				deconstruct_array(DatumGetArrayTypeP(fval),
+						INT2OID, 2, true, 's',
+						&fvalarray, NULL, &fvalarray_length);
+
+				Assert(fvalarray_length == 1);
+
+				found = true;
+				*pkrelid = con->confrelid;
+				*pkattno = (AttrNumber) DatumGetInt16(fvalarray[0]);
+				break;
+			}
+		}
+	}
+	
+	caql_endscan(pcqCtx);
+	heap_close(conDesc, AccessShareLock);
+
+	return found;
 }

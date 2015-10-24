@@ -1,0 +1,122 @@
+===========================================
+04/06/10
+
+    Svec / Smat / Dmat
+    Mathematics extensions to Greenplum
+
+==========================================================================================
+BUGS
+==========================================================================================
+OPEN
+DONE
+- Direct operations between float8[] and svec
+- Fixed: Constant (Scalar) handling is broken for left operators
+- Fixed: Lack of a binary send/recv function causes interconnect to SEGV
+- Added ^ operator for exponentiation
+- Added >,<,<>,=,==,<=,>= operators (ORDER BY works)
+- Added index support
+- Added dmin and dmax operators for scalars
+- unnest operator that returns setof(double) and takes svec input
+- svec_dimension operator that returns an int and takes svec input
+- concat operator mapped to "||" that returns svec and takes (svec,svec)
+- Serialization format should avoid copies more often
+- array_agg function converts relation to svec
+- vec_median implements partition selection on float8[]
+- Bug: array_agg would fail with incorrect results when there were many duplicate values
+- implement vec_median for svec (using the sparsity to drive the partition selection)
+
+==========================================================================================
+IMPROVEMENTS
+==========================================================================================
+TODO
+- implement an svec_agg_distinct that reorders and distincts to maximize RLE compression
+	- implement an in memory median aggregate MEDIAN_INMEMORY that uses svec_agg_distinct
+	as a PREFUNC and feeds svecs into svec_concat as the SFUNC, then vec_median as
+	FINALFUNC
+- [off topic] implement MEDIAN using only a FINALFUNC that implements an out-of-core
+	partition selection algorithm as follows:
+		- As the data arrives, fill runs of svec using svec_agg_distinct until
+		work_mem size is reached.
+		- when a run is filled, partition select it into lower and upper halves
+		and output both to disk appending to two files (lower, upper)
+		- repeat until end of input with the same pivot value, there are now
+		two files pivoted around one value
+		- Choose random pivot index, continue partition selection using runs
+		of svec, discarding whichever file is not needed
+		- There should be no more than 2 writes of relation to disk, all 
+		sequential IO
+- implement PERCENTILE using the same logic as vec_median
+- phrase match that returns the weight of a match and the locations where the phrases are
+    for each document relative to an input phrase (see README_term_proximity)
+- set "contains" operator that returns the intersection of two vectors (Elbit, LinkedIn)
+- slice operator that returns an svec and takes svec,min,max input
+- svec_pivot_count aggregate returns svec and takes (array dictionary,text term)
+- svec_pivot_sum aggregate returns svec and takes (array dictionary, text term, double value)
+- The complete set of scalar operators present in Postgres
+- Complete set of R vector operators
+- Rename or alias svec to _float8_sparse
+- Hash function for the type (for GROUP BY and HASH JOIN)
+---- Like hash_numeric()
+- Vector cross product, outer product %o%
+- Matrices
+---- "R" matrix functions and notation
+---- "R" multi-dimensional arrays
+---- Blocked matrix addressing for very large distributed matrices
+
+==========================================================================================
+Reference material about R operators from
+ http://cran.r-project.org/doc/manuals/R-lang.html#Operators
+==========================================================================================
+
+-	Minus, can be unary or binary 
++	Plus, can be unary or binary 
+!	Unary not 
+~	Tilde, used for model formulae, can be either unary or binary 
+?	Help 
+:	Sequence, binary (in model formulae: interaction) 
+*	Multiplication, binary 
+/	Division, binary 
+^	Exponentiation, binary 
+%x%	Special binary operators, x can be replaced by any valid name 
+%%	Modulus, binary 
+%/%	Integer divide, binary 
+%*%	Matrix product, binary 
+%o%	Outer product, binary 
+%x%	Kronecker product, binary 
+%in%	Matching operator, binary (in model formulae: nesting) 
+<	Less than, binary 
+>	Greater than, binary 
+==	Equal to, binary 
+>=	Greater than or equal to, binary 
+<=	Less than or equal to, binary 
+&	And, binary, vectorized 
+&&	And, binary, not vectorized 
+|	Or, binary, vectorized 
+||	Or, binary, not vectorized 
+<-	Left assignment, binary 
+->	Right assignment, binary 
+$	List subset, binary 
+
+R deals with entire vectors of data at a time, and most of the elementary operators and basic mathematical functions like log are vectorized (as indicated in the table above). This means that e.g. adding two vectors of the same length will create a vector containing the element-wise sums, implicitly looping over the vector index. This applies also to other operators like -, *, and / as well as to higher dimensional structures. Notice in particular that multiplying two matrices does not produce the usual matrix product (the %*% operator exists for that purpose). Some finer points relating to vectorized operations will be discussed in Elementary arithmetic operations.
+
+3.4 Indexing
+
+R contains several constructs which allow access to individual elements or subsets through indexing operations. In the case of the basic vector types one can access the i-th element using x[i], but there is also indexing of lists, matrices, and multi-dimensional arrays. There are several forms of indexing in addition to indexing with a single integer. Indexing can be used both to extract part of an object and to replace parts of an object (or to add parts).
+
+R has three basic indexing operators, with syntax displayed by the following examples
+
+     x[i]
+     x[i, j]
+     x[[i]]
+     x[[i, j]]
+     x$a
+     x$"a"
+For vectors and matrices the [[ forms are rarely used, although they have some slight semantic differences from the [ form (e.g. it drops any names or dimnames attribute, and that partial matching is used for character indices). When indexing multi-dimensional structures with a single index, x[[i]] or x[i] will return the ith sequential element of x.
+
+For lists, one generally uses [[ to select any single element, whereas [ returns a list of the selected elements.
+
+The [[ form allows only a single element to be selected using integer or character indices, whereas [ allows indexing by vectors. Note though that for a list or other recursive object, the index can be a vector and each element of the vector is applied in turn to the list, the selected component, the selected component of that component, and so on. The result is still a single element.
+
+The form using $ applies to recursive objects such as lists and pairlists. It allows only a literal character string or a symbol as the index. That is, the index is not computable: for cases where you need to evaluate an expression to find the index, use x[[expr]]. When $ is applied to a non-recursive object the result used to be always NULL: as from R 2.6.0 this is an error.
+
+

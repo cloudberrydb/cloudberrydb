@@ -1,12 +1,30 @@
 #!/bin/sh
 
-# $PostgreSQL: pgsql/src/tools/pgindent/pgindent,v 1.89 2006/10/04 00:02:10 momjian Exp $
+# src/tools/pgindent/pgindent
 
 # Known bugs:
 #
-# Blank line is added after, seen as a function definition, no space
+# Blank line is added after parentheses; seen as a function definition, no space
 # after *:
 #	y = (int) x *y;
+#
+# Structure/union pointers in function prototypes and definitions have an extra
+# space after the asterisk:
+#
+#	void x(struct xxc * a);
+
+if [ "$#" -lt 2 ]
+then	echo "Usage:  $(basename $0) typedefs file [...]" 1>&2
+	exit 1
+fi
+
+TYPEDEFS="$1"
+shift
+
+if [ -z "$INDENT" ]
+then
+	INDENT=indent
+fi
 
 trap "rm -f /tmp/$$ /tmp/$$a" 0 1 2 3 15
 entab </dev/null >/dev/null
@@ -16,35 +34,49 @@ then	echo "Go to the src/tools/entab directory and do a 'make' and 'make install
 	echo "Then run $0 again."
 	exit 1
 fi
-indent -? </dev/null >/dev/null 2>&1
+$INDENT -? </dev/null >/dev/null 2>&1
 if [ "$?" -ne 1 ]
 then	echo "You do not appear to have 'indent' installed on your system." >&2
 	exit 1
 fi
-indent -gnu </dev/null >/dev/null 2>&1
+$INDENT -gnu </dev/null >/dev/null 2>&1
 if [ "$?" -eq 0 ]
 then	echo "You appear to have GNU indent rather than BSD indent." >&2
 	echo "See the pgindent/README file for a description of its problems." >&2
 	EXTRA_OPTS="-cdb -bli0 -npcs -cli4 -sc"
-else	echo "Hope you installed /src/tools/pgindent/indent.bsd.patch." >&2
+else
 	EXTRA_OPTS="-cli1"
 fi
 
 for FILE
 do
 	cat "$FILE" |
-# convert // comments to /* */
+
+# Convert // comments to /* */
 	sed 's;^\([ 	]*\)//\(.*\)$;\1/* \2 */;g' |
+
 # Avoid bug that converts 'x =- 1' to 'x = -1'
 	sed 's;=- ;-= ;g' |
-# mark some comments for special treatment later
+
+# Mark some comments for special treatment later
 	sed 's;/\*  *---;/*---X_X;g' |
-# workaround for indent bug with 'else' handling
-# indent comment so BSD indent will move it
-	sed 's;\([} 	]\)else[ 	]*\(/\*.*\)$;\1else\
-    \2;g' | 
+
+# 'else' followed by a single-line comment, followed by
+# a brace on the next line confuses BSD indent, so we push
+# the comment down to the next line, then later pull it
+# back up again.  Add space before _PGMV or indent will add
+# it for us.
+	sed 's;\([} 	]\)else[ 	]*\(/\*\)\(.*\*/\)[ 	]*$;\1else\
+    \2 _PGMV\3;g' |
+
+# Indent multi-line after-'else' comment so BSD indent will move it properly.
+# We already moved down single-line comments above.  Check for '*' to make
+# sure we are not in a single-line comment that has other text on the line.
+	sed 's;\([} 	]\)else[ 	]*\(/\*[^\*]*\)[ 	]*$;\1else\
+    \2;g' |
 	detab -t4 -qc |
-# work around bug where function that defines no local variables misindents
+
+# Work around bug where function that defines no local variables misindents
 # switch() case lines and line after #else.  Do not do for struct/enum.
 	awk '	BEGIN	{line1 = ""; line2 = ""}
 		{
@@ -66,7 +98,8 @@ do
 			if (NR >= 1)
 				print line1;
 		}' |
-# prevent indenting of code in 'extern "C"' blocks
+
+# Prevent indenting of code in 'extern "C"' blocks.
 	awk '	BEGIN	{line1 = ""; line2 = ""; skips = 0}
 		{
 			line2 = $0;
@@ -100,1803 +133,50 @@ do
 			if (NR >= 1 && skips <= 1)
 				print line1;
 		}' |
-# protect backslashes in DATA()
+
+# Protect backslashes in DATA().
 	sed 's;^DATA(.*$;/*&*/;' |
-# protect wrapping in CATALOG()
+
+# Protect wrapping in CATALOG().
 	sed 's;^CATALOG(.*$;/*&*/;' >/tmp/$$a
 
 # We get the list of typedef's from /src/tools/find_typedef
-	indent -bad -bap -bc -bl -d0 -cdb -nce -nfc1 -di12 -i4 -l79 \
+	$INDENT -bad -bap -bc -bl -d0 -cdb -nce -nfc1 -di12 -i4 -l79 \
 		-lp -nip -npro -bbb $EXTRA_OPTS \
--TAES_KEY \
--TAMT \
--TAMTS \
--TASN1_BIT_STRING \
--TASN1_BMPSTRING \
--TASN1_BOOLEAN \
--TASN1_CTX \
--TASN1_ENCODING \
--TASN1_ENUMERATED \
--TASN1_GENERALIZEDTIME \
--TASN1_GENERALSTRING \
--TASN1_HEADER \
--TASN1_IA5STRING \
--TASN1_INTEGER \
--TASN1_ITEM \
--TASN1_ITEM_EXP \
--TASN1_METHOD \
--TASN1_NULL \
--TASN1_OBJECT \
--TASN1_OCTET_STRING \
--TASN1_PRINTABLESTRING \
--TASN1_STRING \
--TASN1_STRING_TABLE \
--TASN1_T61STRING \
--TASN1_TEMPLATE \
--TASN1_TIME \
--TASN1_TLC \
--TASN1_TYPE \
--TASN1_UNIVERSALSTRING \
--TASN1_UTCTIME \
--TASN1_UTF8STRING \
--TASN1_VALUE \
--TASN1_VISIBLESTRING \
--TAV \
--TA_Const \
--TA_Expr \
--TA_Expr_Kind \
--TA_Indices \
--TA_Indirection \
--TAbsoluteTime \
--TAcl \
--TAclItem \
--TAclMaskHow \
--TAclMode \
--TAclObjectKind \
--TAclResult \
--TAfterTriggerEvent \
--TAfterTriggerEventData \
--TAfterTriggerEventList \
--TAfterTriggers \
--TAfterTriggersData \
--TAgg \
--TAggClauseCounts \
--TAggHashEntry \
--TAggHashEntryData \
--TAggInfo \
--TAggState \
--TAggStatePerAgg \
--TAggStatePerAggData \
--TAggStatePerGroup \
--TAggStatePerGroupData \
--TAggStrategy \
--TAggref \
--TAggrefExprState \
--TAlias \
--TAllocBlock \
--TAllocBlockData \
--TAllocChunk \
--TAllocChunkData \
--TAllocPointer \
--TAllocSet \
--TAllocSetContext \
--TAllocateDesc \
--TAllocateDescKind \
--TAlterDatabaseSetStmt \
--TAlterDatabaseStmt \
--TAlterDomainStmt \
--TAlterFunctionStmt \
--TAlterObjectSchemaStmt \
--TAlterOwnerStmt \
--TAlterRoleSetStmt \
--TAlterRoleStmt \
--TAlterSeqStmt \
--TAlterTableCmd \
--TAlterTableStmt \
--TAlterTableType \
--TAlteredTableInfo \
--TAnalyzeAttrFetchFunc \
--TAnlIndexData \
--TAppend \
--TAppendPath \
--TAppendRelInfo \
--TAppendState \
--TArchive \
--TArchiveEntryPtr \
--TArchiveFormat \
--TArchiveHandle \
--TArchiveMode \
--TArchiverStage \
--TArrayBuildState \
--TArrayConstIterState \
--TArrayExpr \
--TArrayExprIterState \
--TArrayExprState \
--TArrayMapState \
--TArrayMetaState \
--TArrayParseState \
--TArrayRef \
--TArrayRefExprState \
--TArrayTuple \
--TArrayType \
--TAttInMetadata \
--TAttrDefInfo \
--TAttrDefault \
--TAttrNumber \
--TAuthRequest \
--TBF_KEY \
--TBIGNUM \
--TBINOP \
--TBIO \
--TBIO_F_BUFFER_CTX \
--TBIO_METHOD \
--TBIO_dummy \
--TBIT_STRING_BITNAME \
--TBLOCK \
--TBMS_Membership \
--TBN_BLINDING \
--TBN_CTX \
--TBN_MONT_CTX \
--TBN_RECP_CTX \
--TBOX \
--TBTBuildState \
--TBTCycleId \
--TBTMetaPageData \
--TBTOneVacInfo \
--TBTPageOpaque \
--TBTPageOpaqueData \
--TBTPageState \
--TBTScanOpaque \
--TBTScanOpaqueData \
--TBTScanPos \
--TBTScanPosData \
--TBTScanPosItem \
--TBTSpool \
--TBTStack \
--TBTStackData \
--TBTVacInfo \
--TBTVacState \
--TBTWriteState \
--TBUF_MEM \
--TBackend \
--TBackendId \
--TBackslashQuoteType \
--TBgWriterRequest \
--TBgWriterShmemStruct \
--TBitmapAnd \
--TBitmapAndPath \
--TBitmapAndState \
--TBitmapHeapPath \
--TBitmapHeapScan \
--TBitmapHeapScanState \
--TBitmapIndexScan \
--TBitmapIndexScanState \
--TBitmapOr \
--TBitmapOrPath \
--TBitmapOrState \
--TBitmapset \
--TBkpBlock \
--TBlock \
--TBlockId \
--TBlockIdData \
--TBlockNumber \
--TBlockSampler \
--TBlockSamplerData \
--TBoolExpr \
--TBoolExprState \
--TBoolExprType \
--TBoolPtr \
--TBoolTestType \
--TBooleanTest \
--TBpChar \
--TBucket \
--TBufFile \
--TBufFlags \
--TBuffer \
--TBufferDesc \
--TBufferLookupEnt \
--TBufferStrategyControl \
--TBufferTag \
--TBuildAccumulator \
--TByte \
--TBytef \
--TCAC_state \
--TCAST_KEY \
--TCATEGORY \
--TCFuncHashTabEntry \
--TCIRCLE \
--TCOMP_CTX \
--TCOMP_METHOD \
--TCONDOP \
--TCOP \
--TCPFunction \
--TCPPFunction \
--TCRYPTO_EX_DATA \
--TCRYPTO_EX_DATA_FUNCS \
--TCRYPTO_EX_DATA_IMPL \
--TCRYPTO_EX_dup \
--TCRYPTO_EX_free \
--TCRYPTO_EX_new \
--TCRYPTO_MEM_LEAK_CB \
--TCRYPTO_dynlock \
--TCURCUR \
--TCV \
--TCacheCallbackFunction \
--TCancelRequestPacket \
--TCaseExpr \
--TCaseExprState \
--TCaseTestExpr \
--TCaseWhen \
--TCaseWhenState \
--TCash \
--TCastInfo \
--TCatCList \
--TCatCTup \
--TCatCache \
--TCatCacheHeader \
--TCatalogId \
--TCatalogIndexState \
--TChangeVarNodes_context \
--TCheckPoint \
--TCheckPointStmt \
--TChromosome \
--TCity \
--TClientData \
--TClosePortalStmt \
--TClosePtr \
--TClusterStmt \
--TCmdType \
--TCoalesceExpr \
--TCoalesceExprState \
--TCoerceToDomain \
--TCoerceToDomainState \
--TCoerceToDomainValue \
--TCoercionCodes \
--TCoercionContext \
--TCoercionForm \
--TColumnDef \
--TColumnIOData \
--TColumnRef \
--TCommandDest \
--TCommandId \
--TCommentItem \
--TCommentStmt \
--TCompositeTypeStmt \
--TConnStatusType \
--TConst \
--TConstrCheck \
--TConstrType \
--TConstraint \
--TConstraintCategory \
--TConstraintInfo \
--TConstraintsSetStmt \
--TContextNode \
--TControlFileData \
--TConvInfo \
--TConvertRowtypeExpr \
--TConvertRowtypeExprState \
--TCookedConstraint \
--TCopyDest \
--TCopyState \
--TCopyStateData \
--TCopyStmt \
--TCost \
--TCostSelector \
--TCreateCastStmt \
--TCreateConversionStmt \
--TCreateDomainStmt \
--TCreateFunctionStmt \
--TCreateOpClassItem \
--TCreateOpClassStmt \
--TCreatePLangStmt \
--TCreateRoleStmt \
--TCreateSchemaStmt \
--TCreateSchemaStmtContext \
--TCreateSeqStmt \
--TCreateStmt \
--TCreateStmtContext \
--TCreateStmtLikeOption \
--TCreateTableSpaceStmt \
--TCreateTrigStmt \
--TCreatedbStmt \
--TCred \
--TCtlCommand \
--TCustomOutPtr \
--TDBState \
--TDCHCacheEntry \
--TDCH_poz \
--TDEADLOCK_INFO \
--TDES_cblock \
--TDES_key_schedule \
--TDH \
--TDH_METHOD \
--TDIR \
--TDR_copy \
--TDR_intorel \
--TDR_printtup \
--TDSA \
--TDSA_METHOD \
--TDSA_SIG \
--TDataDumperPtr \
--TDataPageDeleteStack \
--TDateADT \
--TDatum \
--TDatumPtr \
--TDatumTupleFields \
--TDeallocateStmt \
--TDeclareCursorStmt \
--TDefElem \
--TDefineStmt \
--TDeleteStmt \
--TDependencyType \
--TDestReceiver \
--TDistinctExpr \
--TDl_info \
--TDlelem \
--TDllist \
--TDomainConstraintState \
--TDomainConstraintType \
--TDomainIOData \
--TDropBehavior \
--TDropCastStmt \
--TDropOwnedStmt \
--TDropPLangStmt \
--TDropPropertyStmt \
--TDropRoleStmt \
--TDropStmt \
--TDropTableSpaceStmt \
--TDropdbStmt \
--TDumpId \
--TDumpableObject \
--TDumpableObjectType \
--TDynamicFileList \
--TEDGE \
--TENGINE \
--TERR_FNS \
--TERR_STATE \
--TERR_STRING_DATA \
--TEState \
--TEVP_CIPHER \
--TEVP_CIPHER_CTX \
--TEVP_CIPHER_INFO \
--TEVP_ENCODE_CTX \
--TEVP_MD \
--TEVP_MD_CTX \
--TEVP_PBE_KEYGEN \
--TEVP_PKEY \
--TEdge \
--TEndBlobPtr \
--TEndBlobsPtr \
--TEndDataPtr \
--TEntryAccumulator \
--TEolType \
--TErrorContextCallback \
--TErrorData \
--TExceptionLabelMap \
--TExecContext \
--TExecContextData \
--TExecRowMark \
--TExecScanAccessMtd \
--TExecStatus \
--TExecStatusType \
--TExecuteStmt \
--TExplainState \
--TExplainStmt \
--TExpr \
--TExprContext \
--TExprContextCallbackFunction \
--TExprContext_CB \
--TExprDoneCond \
--TExprState \
--TExprStateEvalFunc \
--TFF \
--TFILE \
--TFSMHeader \
--TFSMPageData \
--TFSMRelation \
--TFUNMAP \
--TFetchDirection \
--TFetchStmt \
--TFieldSelect \
--TFieldSelectState \
--TFieldStore \
--TFieldStoreState \
--TFile \
--TFileName \
--TFindSplitData \
--TFkConstraint \
--TFmgrBuiltin \
--TFmgrInfo \
--TFormData_pg_aggregate \
--TFormData_pg_am \
--TFormData_pg_amop \
--TFormData_pg_amproc \
--TFormData_pg_attrdef \
--TFormData_pg_attribute \
--TFormData_pg_auth_members \
--TFormData_pg_authid \
--TFormData_pg_autovacuum \
--TFormData_pg_cast \
--TFormData_pg_class \
--TFormData_pg_constraint \
--TFormData_pg_conversion \
--TFormData_pg_database \
--TFormData_pg_depend \
--TFormData_pg_description \
--TFormData_pg_index \
--TFormData_pg_inherits \
--TFormData_pg_language \
--TFormData_pg_largeobject \
--TFormData_pg_listener \
--TFormData_pg_namespace \
--TFormData_pg_opclass \
--TFormData_pg_operator \
--TFormData_pg_pltemplate \
--TFormData_pg_proc \
--TFormData_pg_rewrite \
--TFormData_pg_sequence \
--TFormData_pg_shdepend \
--TFormData_pg_shdescription \
--TFormData_pg_statistic \
--TFormData_pg_tablespace \
--TFormData_pg_trigger \
--TFormData_pg_type \
--TForm_pg_aggregate \
--TForm_pg_am \
--TForm_pg_amop \
--TForm_pg_amproc \
--TForm_pg_attrdef \
--TForm_pg_attribute \
--TForm_pg_auth_members \
--TForm_pg_authid \
--TForm_pg_autovacuum \
--TForm_pg_cast \
--TForm_pg_class \
--TForm_pg_constraint \
--TForm_pg_conversion \
--TForm_pg_database \
--TForm_pg_depend \
--TForm_pg_description \
--TForm_pg_index \
--TForm_pg_inherits \
--TForm_pg_language \
--TForm_pg_largeobject \
--TForm_pg_listener \
--TForm_pg_namespace \
--TForm_pg_opclass \
--TForm_pg_operator \
--TForm_pg_pltemplate \
--TForm_pg_proc \
--TForm_pg_rewrite \
--TForm_pg_sequence \
--TForm_pg_shdepend \
--TForm_pg_shdescription \
--TForm_pg_statistic \
--TForm_pg_tablespace \
--TForm_pg_trigger \
--TForm_pg_type \
--TFormatNode \
--TFromExpr \
--TFsmCacheFileHeader \
--TFsmCacheRelHeader \
--TFuncCall \
--TFuncCallContext \
--TFuncCandidateList \
--TFuncDetailCode \
--TFuncExpr \
--TFuncExprState \
--TFuncInfo \
--TFuncWithArgs \
--TFunction \
--TFunctionCallInfo \
--TFunctionCallInfoData \
--TFunctionParameter \
--TFunctionParameterMode \
--TFunctionScan \
--TFunctionScanState \
--TGEN_SESSION_CB \
--TGISTBuildState \
--TGISTENTRY \
--TGISTInsertStack \
--TGISTInsertState \
--TGISTPageOpaque \
--TGISTPageOpaqueData \
--TGISTSTATE \
--TGISTScanOpaque \
--TGISTScanOpaqueData \
--TGISTSearchStack \
--TGIST_SPLITVEC \
--TGP \
--TGV \
--TGVOP \
--TGene \
--TGenericExprState \
--TGeqoEvalData \
--TGinBtree \
--TGinBtreeData \
--TGinBtreeStack \
--TGinBuildState \
--TGinNSN \
--TGinPageOpaque \
--TGinPageOpaqueData \
--TGinPostingTreeScan \
--TGinScanEntry \
--TGinScanEntryData \
--TGinScanKey \
--TGinScanKeyData \
--TGinScanOpaque \
--TGinScanOpaqueData \
--TGinState \
--TGinVacuumState \
--TGistBDItem \
--TGistBulkDeleteResult \
--TGistEntryVector \
--TGistNSN \
--TGistSplitUnion \
--TGistSplitVector \
--TGistVacuum \
--TGlobalTransaction \
--TGlobalTransactionData \
--TGrantObjectType \
--TGrantRoleStmt \
--TGrantStmt \
--TGroup \
--TGroupClause \
--TGroupState \
--TGroupVarInfo \
--TGucBoolAssignHook \
--TGucContext \
--TGucIntAssignHook \
--TGucRealAssignHook \
--TGucShowHook \
--TGucSource \
--TGucStack \
--TGucStringAssignHook \
--THASHACTION \
--THASHBUCKET \
--THASHCTL \
--THASHELEMENT \
--THASHHDR \
--THASHSEGMENT \
--THASH_SEQ_STATUS \
--THE \
--THEK \
--THISTORY_STATE \
--THIST_ENTRY \
--THTAB \
--THTSU_Result \
--THTSV_Result \
--THV \
--THash \
--THashAllocFunc \
--THashBuildState \
--THashCompareFunc \
--THashCopyFunc \
--THashJoin \
--THashJoinState \
--THashJoinTable \
--THashJoinTableData \
--THashJoinTuple \
--THashJoinTupleData \
--THashMetaPage \
--THashMetaPageData \
--THashPageOpaque \
--THashPageOpaqueData \
--THashPath \
--THashScanList \
--THashScanListData \
--THashScanOpaque \
--THashScanOpaqueData \
--THashState \
--THashValueFunc \
--THeapScanDesc \
--THeapScanDescData \
--THeapTuple \
--THeapTupleData \
--THeapTupleFields \
--THeapTupleHeader \
--THeapTupleHeaderData \
--THistControl \
--TI16 \
--TI32 \
--TI8 \
--TIO \
--TIOFuncSelector \
--TIV \
--TIV64 \
--TInClauseInfo \
--TIncrementVarSublevelsUp_context \
--TIndex \
--TIndexArrayKeyInfo \
--TIndexAttributeBitMap \
--TIndexAttributeBitMapData \
--TIndexBuildCallback \
--TIndexBuildResult \
--TIndexBulkDeleteCallback \
--TIndexBulkDeleteResult \
--TIndexElem \
--TIndexFSMPageData \
--TIndexInfo \
--TIndexList \
--TIndexOptInfo \
--TIndexPath \
--TIndexRuntimeKeyInfo \
--TIndexScan \
--TIndexScanDesc \
--TIndexScanDescData \
--TIndexScanState \
--TIndexStmt \
--TIndexTuple \
--TIndexTupleData \
--TIndexVacuumInfo \
--TIndirectBlock \
--TIndxInfo \
--TInfoItem \
--TInhInfo \
--TInhOption \
--TInhPaths \
--TInhRelation \
--TInnerIndexscanInfo \
--TInsertStmt \
--TInstrumentation \
--TInt8TransTypeData \
--TIntArray \
--TInternalGrant \
--TInterval \
--TInvalidationChunk \
--TInvalidationListHeader \
--TIpcMemoryId \
--TIpcMemoryKey \
--TIpcSemaphoreId \
--TIpcSemaphoreKey \
--TItem \
--TItemId \
--TItemIdData \
--TItemIdFlags \
--TItemLength \
--TItemOffset \
--TItemPointer \
--TItemPointerData \
--TJMPENV \
--TJoin \
--TJoinExpr \
--TJoinHashEntry \
--TJoinPath \
--TJoinState \
--TJoinType \
--TJunkFilter \
--TKBsort \
--TKEYMAP_ENTRY \
--TKEYMAP_ENTRY_ARRAY \
--TKeySuffix \
--TKeyWord \
--TKeymap \
--TLHASH \
--TLHASH_COMP_FN_TYPE \
--TLHASH_DOALL_ARG_FN_TYPE \
--TLHASH_DOALL_FN_TYPE \
--TLHASH_HASH_FN_TYPE \
--TLHASH_NODE \
--TLINE \
--TLISTOP \
--TLOCALLOCK \
--TLOCALLOCKOWNER \
--TLOCALLOCKTAG \
--TLOCK \
--TLOCKMASK \
--TLOCKMETHODID \
--TLOCKMODE \
--TLOCKTAG \
--TLOGOP \
--TLOOP \
--TLSEG \
--TLVRelStats \
--TLWLock \
--TLWLockId \
--TLWLockMode \
--TLWLockNode \
--TLWLockPadded \
--TLargeObjectDesc \
--TLimit \
--TLimitState \
--TLimitStateCond \
--TList \
--TListCell \
--TListenStmt \
--TLoadStmt \
--TLocalBufferLookupEnt \
--TLocationIndex \
--TLockAcquireResult \
--TLockData \
--TLockInfo \
--TLockInfoData \
--TLockMethod \
--TLockMethodData \
--TLockRelId \
--TLockStmt \
--TLockTagType \
--TLockTupleMode \
--TLockingClause \
--TLogStmtLevel \
--TLogicalTape \
--TLogicalTapeSet \
--TMAGIC \
--TMD2_CTX \
--TMD4_CTX \
--TMD5_CTX \
--TMDC2_CTX \
--TMGVTBL \
--TMaterial \
--TMaterialPath \
--TMaterialState \
--TMdfdVec \
--TMemoryContext \
--TMemoryContextData \
--TMemoryContextMethods \
--TMergeFunctionKind \
--TMergeJoin \
--TMergeJoinClause \
--TMergeJoinClauseData \
--TMergeJoinState \
--TMergePath \
--TMinMaxAggInfo \
--TMinMaxExpr \
--TMinMaxExprState \
--TMinMaxOp \
--TMinimalTuple \
--TMinimalTupleData \
--TMsgType \
--TMultiXactId \
--TMultiXactOffset \
--TMultiXactStateData \
--TNETSCAPE_CERT_SEQUENCE \
--TNETSCAPE_SPKAC \
--TNETSCAPE_SPKI \
--TNUMCacheEntry \
--TNUMDesc \
--TNUMProc \
--TNUM_poz \
--TNV \
--TName \
--TNameData \
--TNamespaceInfo \
--TNestLoop \
--TNestLoopState \
--TNestPath \
--TNewColumnValue \
--TNewConstraint \
--TNewPage \
--TNode \
--TNodeTag \
--TNotifyStmt \
--TNullIfExpr \
--TNullTest \
--TNullTestState \
--TNullTestType \
--TNumeric \
--TNumericData \
--TNumericDigit \
--TNumericVar \
--TOBJ_NAME \
--TOP \
--TObjectAddress \
--TObjectAddresses \
--TObjectClass \
--TObjectType \
--TOffset \
--TOffsetNumber \
--TOffsetVarNodes_context \
--TOid \
--TOidOptions \
--TOldstyle_fnextra \
--TOnCommitAction \
--TOnCommitItem \
--TOpClassCacheEnt \
--TOpClassMember \
--TOpExpr \
--TOpclassInfo \
--TOperator \
--TOprInfo \
--TOuterJoinInfo \
--TOutputContext \
--TOutrec \
--TPADOFFSET \
--TPATH \
--TPBE2PARAM \
--TPBEPARAM \
--TPBKDF2PARAM \
--TPEM_CTX \
--TPEM_ENCODE_SEAL_CTX \
--TPEM_USER \
--TPERL_CONTEXT \
--TPERL_SI \
--TPGAsyncStatusType \
--TPGErrorVerbosity \
--TPGFInfoFunction \
--TPGFunction \
--TPGLZ_DecompState \
--TPGLZ_Header \
--TPGLZ_HistEntry \
--TPGLZ_Strategy \
--TPGMessageField \
--TPGModuleMagicFunction \
--TPGNoticeHooks \
--TPGPROC \
--TPGQueryClass \
--TPGRUsage \
--TPGSemaphore \
--TPGSemaphoreData \
--TPGSetenvStatusType \
--TPGShmemHeader \
--TPGTransactionStatusType \
--TPGVerbosity \
--TPG_Lock_Status \
--TPG_fini_t \
--TPG_init_t \
--TPGcancel \
--TPGconn \
--TPGlobjfuncs \
--TPGnotify \
--TPGresAttDesc \
--TPGresAttValue \
--TPGresParamDesc \
--TPGresult \
--TPGresult_data \
--TPKCS7 \
--TPKCS7_DIGEST \
--TPKCS7_ENCRYPT \
--TPKCS7_ENC_CONTENT \
--TPKCS7_ENVELOPE \
--TPKCS7_ISSUER_AND_SERIAL \
--TPKCS7_RECIP_INFO \
--TPKCS7_SIGNED \
--TPKCS7_SIGNER_INFO \
--TPKCS7_SIGN_ENVELOPE \
--TPKCS8_PRIV_KEY_INFO \
--TPLTemplate \
--TPLpgSQL_arrayelem \
--TPLpgSQL_condition \
--TPLpgSQL_datum \
--TPLpgSQL_diag_item \
--TPLpgSQL_dstring \
--TPLpgSQL_exception \
--TPLpgSQL_exception_block \
--TPLpgSQL_execstate \
--TPLpgSQL_expr \
--TPLpgSQL_func_hashkey \
--TPLpgSQL_function \
--TPLpgSQL_ns \
--TPLpgSQL_nsitem \
--TPLpgSQL_plugin \
--TPLpgSQL_rec \
--TPLpgSQL_recfield \
--TPLpgSQL_row \
--TPLpgSQL_stmt \
--TPLpgSQL_stmt_assign \
--TPLpgSQL_stmt_block \
--TPLpgSQL_stmt_close \
--TPLpgSQL_stmt_dynexecute \
--TPLpgSQL_stmt_dynfors \
--TPLpgSQL_stmt_execsql \
--TPLpgSQL_stmt_exit \
--TPLpgSQL_stmt_fetch \
--TPLpgSQL_stmt_fori \
--TPLpgSQL_stmt_fors \
--TPLpgSQL_stmt_getdiag \
--TPLpgSQL_stmt_if \
--TPLpgSQL_stmt_loop \
--TPLpgSQL_stmt_open \
--TPLpgSQL_stmt_perform \
--TPLpgSQL_stmt_raise \
--TPLpgSQL_stmt_return \
--TPLpgSQL_stmt_return_next \
--TPLpgSQL_stmt_while \
--TPLpgSQL_trigarg \
--TPLpgSQL_type \
--TPLpgSQL_var \
--TPLpgSQL_variable \
--TPMOP \
--TPMSignalReason \
--TPOLYGON \
--TPQArgBlock \
--TPQEnvironmentOption \
--TPQExpBuffer \
--TPQExpBufferData \
--TPQconninfoOption \
--TPQnoticeProcessor \
--TPQnoticeReceiver \
--TPQprintOpt \
--TPROCLOCK \
--TPROCLOCKTAG \
--TPROC_HDR \
--TPROC_QUEUE \
--TPSQL_ECHO \
--TPSQL_ECHO_HIDDEN \
--TPSQL_ERROR_ROLLBACK \
--TPV \
--TPVOP \
--TPacketLen \
--TPage \
--TPageFreeSpaceInfo \
--TPageHeader \
--TPageHeaderData \
--TPageSplitRecord \
--TPageUpdateRecord \
--TPagetableEntry \
--TParam \
--TParamExecData \
--TParamExternData \
--TParamKind \
--TParamListInfo \
--TParamListInfoData \
--TParamRef \
--TParseState \
--TPath \
--TPathKeyItem \
--TPathKeysComparison \
--TPattern_Prefix_Status \
--TPattern_Type \
--TPendingOperationEntry \
--TPendingRelDelete \
--TPerlExitListEntry \
--TPerlInterpreter \
--TPgBackendStatus \
--TPgStat_Counter \
--TPgStat_Info \
--TPgStat_Msg \
--TPgStat_MsgAnalyze \
--TPgStat_MsgAutovacStart \
--TPgStat_MsgDropdb \
--TPgStat_MsgDummy \
--TPgStat_MsgHdr \
--TPgStat_MsgResetcounter \
--TPgStat_MsgTabpurge \
--TPgStat_MsgTabstat \
--TPgStat_MsgVacuum \
--TPgStat_StatDBEntry \
--TPgStat_StatTabEntry \
--TPgStat_TableEntry \
--TPg_finfo_record \
--TPg_magic_struct \
--TPlan \
--TPlanState \
--TPlannerInfo \
--TPlannerParamItem \
--TPoint \
--TPointer \
--TPool \
--TPort \
--TPortal \
--TPortalData \
--TPortalHashEnt \
--TPortalStatus \
--TPortalStrategy \
--TPostgresPollingStatusType \
--TPostingItem \
--TPredClass \
--TPredIterInfo \
--TPredIterInfoData \
--TPrepareStmt \
--TPreparedStatement \
--TPrintExtraTocPtr \
--TPrintTocDataPtr \
--TPrintfArgType \
--TPrintfArgValue \
--TPrintfTarget \
--TPrinttupAttrInfo \
--TPrivGrantee \
--TPrivTarget \
--TProcArrayStruct \
--TProcLangInfo \
--TProcState \
--TProcessingMode \
--TProjectionInfo \
--TProtocolVersion \
--TPsqlScanResult \
--TPsqlScanState \
--TPsqlScanStateData \
--TPsqlSettings \
--TQualCost \
--TQuery \
--TQueryDesc \
--TQuerySource \
--TRC2_KEY \
--TRC4_KEY \
--TREGEXP \
--TRIPEMD160_CTX \
--TRI_QueryHashEntry \
--TRI_QueryKey \
--TRSA \
--TRSA_METHOD \
--TRTEKind \
--TRangeFunction \
--TRangeQueryClause \
--TRangeSubselect \
--TRangeTblEntry \
--TRangeTblRef \
--TRangeVar \
--TRawColumnDefault \
--TReadBufPtr \
--TReadBytePtr \
--TReadExtraTocPtr \
--TReassignOwnedStmt \
--TRecordCacheEntry \
--TRecordIOData \
--TRegProcedure \
--TReindexStmt \
--TRelFileNode \
--TRelIdCacheEnt \
--TRelOptInfo \
--TRelOptKind \
--TRelToCheck \
--TRelToCluster \
--TRelabelType \
--TRelation \
--TRelationAmInfo \
--TRelationData \
--TRelationPtr \
--TRelativeTime \
--TRelids \
--TRemoveFuncStmt \
--TRemoveOpClassStmt \
--TRenameStmt \
--TResTarget \
--TResolveNew_context \
--TResourceOwner \
--TResourceOwnerData \
--TResourceReleaseCallback \
--TResourceReleaseCallbackItem \
--TResourceReleasePhase \
--TRestoreOptions \
--TRestrictInfo \
--TResult \
--TResultPath \
--TResultRelInfo \
--TResultState \
--TReturnSetInfo \
--TRewriteRule \
--TRmgrData \
--TRmgrId \
--TRoleStmtType \
--TRowCompareExpr \
--TRowCompareExprState \
--TRowCompareType \
--TRowExpr \
--TRowExprState \
--TRowMarkClause \
--TRuleInfo \
--TRuleLock \
--TRuleStmt \
--TSHA_CTX \
--TSHMEM_OFFSET \
--TSHM_QUEUE \
--TSISeg \
--TSMgrRelation \
--TSMgrRelationData \
--TSPITupleTable \
--TSQLFunctionCache \
--TSQLFunctionCachePtr \
--TSSL \
--TSSL2_STATE \
--TSSL3_BUFFER \
--TSSL3_RECORD \
--TSSL3_STATE \
--TSSL_CIPHER \
--TSSL_COMP \
--TSSL_CTX \
--TSSL_METHOD \
--TSSL_SESSION \
--TSTACK \
--TSTRLEN \
--TSUBLEXINFO \
--TSV \
--TSVOP \
--TSaOpControl \
--TSaveArchivePtr \
--TScalarArrayOpExpr \
--TScalarArrayOpExprState \
--TScalarItem \
--TScalarMCVItem \
--TScan \
--TScanDirection \
--TScanKey \
--TScanKeyData \
--TScanKeyword \
--TScanState \
--TSchemaQuery \
--TSelectStmt \
--TSelectivity \
--TSeqScan \
--TSeqScanState \
--TSeqTable \
--TSeqTableData \
--TSetConstraintState \
--TSetConstraintStateData \
--TSetConstraintTrigger \
--TSetConstraintTriggerData \
--TSetFunctionReturnMode \
--TSetOp \
--TSetOpCmd \
--TSetOpState \
--TSetOperation \
--TSetOperationStmt \
--TSetToDefault \
--TSharedDependencyType \
--TSharedInvalCatcacheMsg \
--TSharedInvalRelcacheMsg \
--TSharedInvalSmgrMsg \
--TSharedInvalidationMessage \
--TShellTypeInfo \
--TShmemIndexEnt \
--TShutdownMode \
--TSigHandler \
--TSighandler_t \
--TSigsave_t \
--TSize \
--TSlruCtl \
--TSlruCtlData \
--TSlruErrorCause \
--TSlruFlush \
--TSlruFlushData \
--TSlruPageStatus \
--TSlruShared \
--TSlruSharedData \
--TSnapshot \
--TSnapshotData \
--TSockAddr \
--TSort \
--TSortBy \
--TSortClause \
--TSortFunctionKind \
--TSortState \
--TSortTuple \
--TSplitedPageLayout \
--TStackElem \
--TStandardChunkHeader \
--TStartBlobPtr \
--TStartBlobsPtr \
--TStartDataPtr \
--TStartupPacket \
--TStatMsgType \
--TStdAnalyzeData \
--TStdRdOptions \
--TStrategyNumber \
--TStringInfo \
--TStringInfoData \
--TSubLink \
--TSubLinkType \
--TSubPlan \
--TSubPlanState \
--TSubTransactionId \
--TSubXactCallback \
--TSubXactCallbackItem \
--TSubXactEvent \
--TSubqueryScan \
--TSubqueryScanState \
--TSysScanDesc \
--TSysScanDescData \
--TTAR_MEMBER \
--TTBMIterateResult \
--TTBMStatus \
--TTBlockState \
--TTIDBitmap \
--TTStoreState \
--TTabStatArray \
--TTableDataInfo \
--TTableInfo \
--TTargetEntry \
--TTclStubHooks \
--TTclStubs \
--TTcl_AppInitProc \
--TTcl_AsyncHandler \
--TTcl_AsyncProc \
--TTcl_CallFrame \
--TTcl_Channel \
--TTcl_ChannelProc \
--TTcl_ChannelType \
--TTcl_ChannelTypeVersion \
--TTcl_CloseProc \
--TTcl_CmdDeleteProc \
--TTcl_CmdInfo \
--TTcl_CmdProc \
--TTcl_CmdTraceProc \
--TTcl_Command \
--TTcl_Condition \
--TTcl_CreateFileHandlerProc \
--TTcl_DString \
--TTcl_DeleteFileHandlerProc \
--TTcl_DriverBlockModeProc \
--TTcl_DriverClose2Proc \
--TTcl_DriverCloseProc \
--TTcl_DriverFlushProc \
--TTcl_DriverGetHandleProc \
--TTcl_DriverGetOptionProc \
--TTcl_DriverHandlerProc \
--TTcl_DriverInputProc \
--TTcl_DriverOutputProc \
--TTcl_DriverSeekProc \
--TTcl_DriverSetOptionProc \
--TTcl_DriverWatchProc \
--TTcl_DupInternalRepProc \
--TTcl_Encoding \
--TTcl_EncodingConvertProc \
--TTcl_EncodingFreeProc \
--TTcl_EncodingState \
--TTcl_EncodingType \
--TTcl_EolTranslation \
--TTcl_Event \
--TTcl_EventCheckProc \
--TTcl_EventDeleteProc \
--TTcl_EventProc \
--TTcl_EventSetupProc \
--TTcl_ExitProc \
--TTcl_FileFreeProc \
--TTcl_FileProc \
--TTcl_FreeInternalRepProc \
--TTcl_FreeProc \
--TTcl_HashEntry \
--TTcl_HashSearch \
--TTcl_HashTable \
--TTcl_IdleProc \
--TTcl_Interp \
--TTcl_InterpDeleteProc \
--TTcl_MainLoopProc \
--TTcl_MathProc \
--TTcl_Mutex \
--TTcl_Namespace \
--TTcl_NamespaceDeleteProc \
--TTcl_NotifierProcs \
--TTcl_Obj \
--TTcl_ObjCmdProc \
--TTcl_ObjType \
--TTcl_PackageInitProc \
--TTcl_PanicProc \
--TTcl_Parse \
--TTcl_PathType \
--TTcl_Pid \
--TTcl_QueuePosition \
--TTcl_RegExp \
--TTcl_RegExpIndices \
--TTcl_RegExpInfo \
--TTcl_SavedResult \
--TTcl_SetFromAnyProc \
--TTcl_SetTimerProc \
--TTcl_Stat_ \
--TTcl_TcpAcceptProc \
--TTcl_ThreadCreateProc \
--TTcl_ThreadDataKey \
--TTcl_ThreadId \
--TTcl_Time \
--TTcl_TimerProc \
--TTcl_TimerToken \
--TTcl_Token \
--TTcl_Trace \
--TTcl_UniChar \
--TTcl_UpdateStringProc \
--TTcl_Value \
--TTcl_ValueType \
--TTcl_Var \
--TTcl_VarTraceProc \
--TTcl_WaitForEventProc \
--TThingFile \
--TThread \
--TTidPath \
--TTidScan \
--TTidScanState \
--TTimeADT \
--TTimeInterval \
--TTimeIntervalData \
--TTimeLineID \
--TTimeTzADT \
--TTimestamp \
--TTimestampTz \
--TTimevalStruct \
--TTmFromChar \
--TTmToChar \
--TTocEntry \
--TTrackItem \
--TTransInvalidationInfo \
--TTransState \
--TTransactionId \
--TTransactionState \
--TTransactionStateData \
--TTransactionStmt \
--TTransactionStmtKind \
--TTrigger \
--TTriggerData \
--TTriggerDesc \
--TTriggerEvent \
--TTriggerInfo \
--TTruncateStmt \
--TTupOutputState \
--TTupSortStatus \
--TTupStoreStatus \
--TTupleConstr \
--TTupleDesc \
--TTupleHashEntry \
--TTupleHashEntryData \
--TTupleHashIterator \
--TTupleHashTable \
--TTupleHashTableData \
--TTupleTable \
--TTupleTableData \
--TTupleTableSlot \
--TTuplesortstate \
--TTuplestorestate \
--TTwoPhaseCallback \
--TTwoPhaseFileHeader \
--TTwoPhaseLockRecord \
--TTwoPhaseRecordOnDisk \
--TTwoPhaseRmgrId \
--TTwoPhaseStateData \
--TType \
--TTypeCacheEntry \
--TTypeCast \
--TTypeFuncClass \
--TTypeInfo \
--TTypeName \
--TU16 \
--TU32 \
--TU8 \
--TUI \
--TUI_METHOD \
--TUI_STRING \
--TUNDO_LIST \
--TUNOP \
--TUV \
--TUnique \
--TUniquePath \
--TUniquePathMethod \
--TUniqueState \
--TUnlistenStmt \
--TUpdateStmt \
--TUserAuth \
--TVFunction \
--TVRelStats \
--TVTupleLink \
--TVTupleLinkData \
--TVTupleMove \
--TVTupleMoveData \
--TVacAttrStats \
--TVacAttrStatsP \
--TVacPage \
--TVacPageData \
--TVacPageList \
--TVacPageListData \
--TVacuumStmt \
--TValue \
--TValuesScan \
--TValuesScanState \
--TVar \
--TVarBit \
--TVarChar \
--TVariableAssignHook \
--TVariableCache \
--TVariableCacheData \
--TVariableResetStmt \
--TVariableSetStmt \
--TVariableShowStmt \
--TVariableSpace \
--TVariableStatData \
--TVfd \
--TViewStmt \
--TWAIT_ORDER \
--TWorking_State \
--TWriteBufPtr \
--TWriteBytePtr \
--TWriteDataPtr \
--TWriteExtraTocPtr \
--TX509 \
--TX509_ALGOR \
--TX509_ATTRIBUTE \
--TX509_CERT_AUX \
--TX509_CERT_FILE_CTX \
--TX509_CINF \
--TX509_CRL \
--TX509_CRL_INFO \
--TX509_EXTENSION \
--TX509_HASH_DIR_CTX \
--TX509_INFO \
--TX509_LOOKUP \
--TX509_LOOKUP_METHOD \
--TX509_NAME \
--TX509_NAME_ENTRY \
--TX509_OBJECT \
--TX509_OBJECTS \
--TX509_PKEY \
--TX509_PUBKEY \
--TX509_REQ \
--TX509_REQ_INFO \
--TX509_REVOKED \
--TX509_SIG \
--TX509_STORE \
--TX509_STORE_CTX \
--TX509_TRUST \
--TX509_VAL \
--TXLogContRecord \
--TXLogCtlData \
--TXLogCtlInsert \
--TXLogCtlWrite \
--TXLogLongPageHeader \
--TXLogLongPageHeaderData \
--TXLogPageHeader \
--TXLogPageHeaderData \
--TXLogRecData \
--TXLogRecPtr \
--TXLogRecord \
--TXLogRelCacheEntry \
--TXLogRelDesc \
--TXLogwrtResult \
--TXLogwrtRqst \
--TXPV \
--TXPVAV \
--TXPVBM \
--TXPVCV \
--TXPVFM \
--TXPVGV \
--TXPVHV \
--TXPVIO \
--TXPVIV \
--TXPVLV \
--TXPVMG \
--TXPVNV \
--TXPVUV \
--TXRV \
--TXactCallback \
--TXactCallbackItem \
--TXactEvent \
--TXidStatus \
--TYYSTYPE \
--TYY_BUFFER_STATE \
--TYY_CHAR \
--T_LIB_VERSION_TYPE \
--T_RuneEntry \
--T_RuneLocale \
--T_RuneRange \
--T_SPI_connection \
--T_SPI_plan \
--T_ossl_old_des_cblock \
--T_ossl_old_des_key_schedule \
--Taclitem \
--Talc_extra \
--Talloc_func \
--Tanyarray \
--Tassoc_list \
--Tatc_extra \
--Tattribute_used_context \
--Tauth_entry \
--Tauthmem_entry \
--Tautovac_dbase \
--Tautovac_table \
--TbackslashResult \
--Tbio_info_cb \
--Tbitmapword \
--Tbits16 \
--Tbits32 \
--Tbits8 \
--Tbool \
--Tbt_incomplete_split \
--Tbytea \
--Tcached_re_str \
--Tcaddr_t \
--Tcc_t \
--Tcelt \
--Tchar \
--Tcharf \
--TcheckExprHasAggs_context \
--Tcheck_parameter_resolution_context \
--Tcheck_ungrouped_columns_context \
--Tchr \
--Tclock_t \
--Tclockid_t \
--Tcodes_t \
--Tcolor \
--Tcomment_t \
--Tconst_DES_cblock \
--Tcontain_var_reference_context \
--Tconvert_testexpr_context \
--Tcv_flags_t \
--Tdaddr_t \
--Tdatetkn \
--Tdecimal \
--Tdeparse_context \
--Tdeparse_namespace \
--Tdev_t \
--Tdirectory_fctx \
--Tdiv_t \
--Tdouble \
--TevalPlanQual \
--Teval_const_expressions_context \
--Texecution_state \
--Texpectation \
--Tf_smgr \
--Tfd_mask \
--Tfd_set \
--Tfilter_t \
--Tfinalize_primnode_context \
--Tfind_expr_references_context \
--Tfind_minimum_var_level_context \
--Tfixpt_t \
--Tflatten_join_alias_vars_context \
--Tfloat \
--Tfloat32 \
--Tfloat32data \
--Tfloat4 \
--Tfloat64 \
--Tfloat64data \
--Tfloat8 \
--TfmNodePtr \
--TfmStringInfo \
--Tfp_except \
--Tfp_rnd \
--Tfpclass_t \
--Tfpos_t \
--Tfree_func \
--Tfsec_t \
--Tfunc_ptr \
--Tgenerate_series_fctx \
--Tgid_t \
--TginIncompleteSplit \
--TginxlogCreatePostingTree \
--TginxlogDeletePage \
--TginxlogInsert \
--TginxlogSplit \
--TginxlogVacuumPage \
--TgistIncompleteInsert \
--TgistxlogInsertComplete \
--TgistxlogPage \
--TgistxlogPageDelete \
--TgistxlogPageSplit \
--TgistxlogPageUpdate \
--TgzFile \
--Thashnode \
--ThbaPort \
--Thelp_handler \
--Tin_addr_t \
--Tin_port_t \
--Tindexed_tlist \
--Tinet \
--Tinet_struct \
--Tino_t \
--Tinstr_time \
--Tint \
--Tint16 \
--Tint16_t \
--Tint16m_t \
--Tint2 \
--Tint2vector \
--Tint32 \
--Tint32_t \
--Tint32m_t \
--Tint4 \
--Tint64 \
--Tint64_t \
--Tint64m_t \
--Tint8 \
--Tint8_t \
--Tint8m_t \
--Tintf \
--TitemIdSort \
--TitemIdSortData \
--Tjmp_buf \
--Tjoin_references_context \
--Tkey_t \
--TlclContext \
--TlclTocEntry \
--Tldiv_t \
--Tline_t \
--TmXactCacheEnt \
--Tmacaddr \
--Tmb2wchar_with_len_converter \
--Tmbdisplaylen_converter \
--Tmblen_converter \
--Tmbverifier \
--TmixedStruct \
--Tmode_t \
--Tnlink_t \
--Tnls_uint32 \
--Tnumeric \
--TobjectType \
--TobjnameArg \
--Toff_t \
--Toidvector \
--Top_tr_array \
--Topcode \
--Topindex \
--ToptType \
--Tpcolor \
--Tpem_password_cb \
--TpgParameterStatus \
--Tpg_conv_map \
--Tpg_crc32 \
--Tpg_enc \
--Tpg_enc2name \
--Tpg_encname \
--Tpg_local_to_utf \
--Tpg_time_t \
--Tpg_tz \
--Tpg_tzenum \
--Tpg_utf_to_local \
--Tpg_wchar \
--Tpg_wchar_tbl \
--Tpgpid_t \
--Tpgsql_thing_t \
--Tpgthreadlock_t \
--Tpid_t \
--Tplperl_call_data \
--Tplperl_proc_desc \
--Tplperl_query_desc \
--Tplpgsql_HashEnt \
--Tpltcl_proc_desc \
--Tpltcl_query_desc \
--Tpqbool \
--Tpqsigfunc \
--TprintQueryOpt \
--TprintTableOpt \
--TpromptStatus_t \
--Tpthread_attr_t \
--Tpthread_cond_t \
--Tpthread_condattr_t \
--Tpthread_key_t \
--Tpthread_mutex_t \
--Tpthread_mutexattr_t \
--Tpthread_once_t \
--Tpthread_t \
--Tptrdiff_t \
--Tpull_var_clause_context \
--Tpull_varnos_context \
--Tpvcontents \
--Tq128_t \
--Tqaddr_t \
--Tqsort_arg_comparator \
--Tquad_t \
--TrangeTableEntry_used_context \
--Treduce_outer_joins_state \
--Tregcomp_t \
--Tregex_t \
--Tregexec_t \
--Tregexp \
--Tregister_t \
--Tregmatch_t \
--Tregnode \
--Tregoff_t \
--Tregproc \
--TremoteDep \
--TrendezvousHashEntry \
--Treplace_vars_with_subplan_refs_context \
--Trewrite_event \
--Trm_detail_t \
--Trune_t \
--Trunops_proc_t \
--Tsa_family_t \
--Tsegsz_t \
--Tsequence_magic \
--Tsig_atomic_t \
--Tsig_t \
--Tsighandler_cxt \
--Tsigjmp_buf \
--Tsignedbitmapword \
--Tsigset_t \
--Tsize_t \
--Tslock_t \
--Tsmgrid \
--Tsocklen_t \
--Tspeed_t \
--TsqlparseInfo \
--TsqlparseState \
--Tssize_t \
--Tssl_crock_st \
--Tstack_t \
--Tstrconst \
--Tsubstitute_actual_parameters_context \
--Tsvindex \
--Tsvtype \
--Tswblk_t \
--Ttcflag_t \
--Ttcp_seq \
--TteReqs \
--Ttext \
--Ttime_t \
--Ttlist_vinfo \
--Tts_db_fctx \
--TtzEntry \
--TuInt \
--TuIntf \
--TuLong \
--TuLongf \
--Tu_char \
--Tu_int \
--Tu_int16_t \
--Tu_int16m_t \
--Tu_int32_t \
--Tu_int32m_t \
--Tu_int64_t \
--Tu_int64m_t \
--Tu_int8_t \
--Tu_int8m_t \
--Tu_long \
--Tu_quad_t \
--Tu_short \
--Tuchr \
--Tuid_t \
--Tuint \
--Tuint16 \
--Tuint32 \
--Tuint64 \
--Tuint8 \
--Tunknown \
--Tushort \
--Tv_i_state \
--Tva_list \
--Tvarattrib \
--Tvm_offset_t \
--Tvm_size_t \
--Tvoid \
--Tvoidp \
--Tvoidpf \
--Twchar_t \
--Twctype_t \
--Twint_t \
--Txl_btree_delete \
--Txl_btree_delete_page \
--Txl_btree_insert \
--Txl_btree_metadata \
--Txl_btree_newroot \
--Txl_btree_split \
--Txl_btreetid \
--Txl_dbase_create_rec \
--Txl_dbase_create_rec_old \
--Txl_dbase_drop_rec \
--Txl_dbase_drop_rec_old \
--Txl_heap_clean \
--Txl_heap_delete \
--Txl_heap_header \
--Txl_heap_inplace \
--Txl_heap_insert \
--Txl_heap_lock \
--Txl_heap_newpage \
--Txl_heap_update \
--Txl_heaptid \
--Txl_invalid_page \
--Txl_invalid_page_key \
--Txl_multixact_create \
--Txl_seq_rec \
--Txl_smgr_create \
--Txl_smgr_truncate \
--Txl_tblspc_create_rec \
--Txl_tblspc_drop_rec \
--Txl_xact_abort \
--Txl_xact_abort_prepared \
--Txl_xact_commit \
--Txl_xact_commit_prepared \
--Tyy_size_t \
--Tyy_state_type \
--Tyysigned_char \
--Tz_stream \
--Tz_streamp \
-/tmp/$$a >/tmp/$$ 2>&1
+		`egrep -v '^(FD_SET|date|interval|timestamp|ANY)$' "$TYPEDEFS" | sed -e '/^$/d' -e 's/.*/-T& /'` \
+		/tmp/$$a >/tmp/$$ 2>&1
+
 	if [ "$?" -ne 0 -o -s /tmp/$$ ]
 	then	echo
 		echo "$FILE"
 		cat /tmp/$$
 	fi
 	cat /tmp/$$a |
-# restore DATA/CATALOG lines
+
+# Restore DATA/CATALOG lines.
 	sed 's;^/\*\(DATA(.*\)\*/$;\1;' |
 	sed 's;^/\*\(CATALOG(.*\)\*/$;\1;' |
-# remove tabs and retab with four spaces
+
+# Remove tabs and retab with four spaces.
 	detab -t8 -qc |
 	entab -t4 -qc |
 	sed 's;^/\* Open extern \"C\" \*/$;{;' |
 	sed 's;^/\* Close extern \"C\" \*/$;};' |
 	sed 's;/\*---X_X;/* ---;g' |
-# workaround indent bug
+
+# Workaround indent bug for 'static'.
 	sed 's;^static[ 	][ 	]*;static ;g' |
+
+# Remove too much indenting after closing brace.
 	sed 's;^}	[ 	]*;}	;' |
-# pull in #endif comments
+
+# Indent single-line after-'else' comment by only one tab.
+	sed 's;\([} 	]\)else[ 	]*\(/\*.*\*/\)[ 	]*$;\1else	\2;g' |
+
+# Pull in #endif comments.
 	sed 's;^#endif[ 	][ 	]*/\*;#endif   /*;' |
-# work around #else indenting next line if #ifdef defines variables at top
-# work around misindenting of function with no variables defined
+
+# Work around misindenting of function with no variables defined.
 	awk '
 	{
 		if ($0 ~ /^[ 	]*int[ 	]*pgindent_func_no_var_fix;/)
@@ -1906,16 +186,19 @@ do
 		}
 		else 	print $0;
 	}' |
-# add space after comments that start on tab stops
+
+# Add space after comments that start on tab stops.
 	sed 's;\([^ 	]\)\(/\*.*\*/\)$;\1	\2;' |
-# move trailing * in function return type
+
+# Move trailing * in function return type.
 	sed 's;^\([A-Za-z_][^ 	]*\)[ 	][ 	]*\*$;\1 *;' |
-# remove un-needed braces around single statements
+
+# Remove un-needed braces around single statements.
 # Do not use because it uglifies PG_TRY/PG_CATCH blocks and probably
 # isn't needed for general use.
 #	awk '
 #	{
-#			line3 = $0;  
+#			line3 = $0;
 #			if (skips > 0)
 #				skips--;
 #			if (line1 ~ /		*{$/ &&
@@ -1939,15 +222,16 @@ do
 #			if (NR >= 1 && skips <= 2)
 #				print line2;
 #		}' |
-# remove blank line between opening brace and block comment
+
+# Remove blank line between opening brace and block comment.
 	awk '
 	{
-			line3 = $0;  
+			line3 = $0;
 			if (skips > 0)
 				skips--;
 			if (line1 ~ /	*{$/ &&
 			    line2 ~ /^$/ &&
-			    line3 ~ /		*\/\*$/)
+			    line3 ~ /		*\/[*]$/)
 			{
 				print line1;
 				print line3;
@@ -1967,7 +251,34 @@ do
 			if (NR >= 1 && skips <= 2)
 				print line2;
 		}' |
-# remove trailing blank lines, helps with adding blank before trailing #endif
+
+# Pull up single-line comment after 'else' that was pulled down above
+	awk '
+		{
+			if (NR != 1)
+			{
+				if ($0 ~ "/[*] _PGMV")
+				{
+					# remove tag
+					sub(" _PGMV", "", $0);
+					# remove leading whitespace
+					sub("^[ 	]*", "", $0);
+					# add comment with single tab prefix
+					print prev_line"	"$0;
+					# throw away current line
+					getline;
+				}
+				else
+					print prev_line;
+			}
+			prev_line = $0;
+		}
+		END {
+			if (NR >= 1)
+				print prev_line;
+		}' |
+
+# Remove trailing blank lines, helps with adding blank before trailing #endif.
 	awk '	BEGIN	{blank_lines = 0;}
 		{
 			line1 = $0;
@@ -1980,7 +291,8 @@ do
 				print line1;
 			}
 		}' |
-# remove blank line before #else, #elif, and #endif
+
+# Remove blank line before #else, #elif, and #endif.
 	awk '	BEGIN	{line1 = ""; line2 = ""; skips = 0}
 		{
 			line2 = $0;
@@ -2004,7 +316,8 @@ do
 			if (NR >= 1 && skips <= 1)
 				print line1;
 		}' |
-# add blank line before #endif if it is the last line in the file
+
+# Add blank line before #endif if it is the last line in the file.
 	awk '	BEGIN	{line1 = ""; line2 = ""}
 		{
 			line2 = $0;
@@ -2017,10 +330,11 @@ do
 				printf "\n";
 			print line1;
 		}' |
-#  Move prototype names to the same line as return type.  Useful for ctags. 
+
+#  Move prototype names to the same line as return type.  Useful for ctags.
 #  Indent should do this, but it does not.  It formats prototypes just
 #  like real functions.
-	awk '	BEGIN	{paren_level = 0}  
+	awk '	BEGIN	{paren_level = 0}
 	{
 		if ($0 ~ /^[a-zA-Z_][a-zA-Z_0-9]*[^\(]*$/)
 		{
@@ -2060,7 +374,8 @@ do
 		}
 		else	print $0;
 	}' |
-# fix indenting of typedef caused by __cplusplus in libpq-fe.h
+
+# Fix indenting of typedef caused by __cplusplus in libpq-fe.h.
 	(
 		if echo "$FILE" | grep -q 'libpq-fe.h$'
 		then	sed 's/^[	]*typedef enum/typedef enum/'

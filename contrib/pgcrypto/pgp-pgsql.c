@@ -26,7 +26,7 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- * $PostgreSQL: pgsql/contrib/pgcrypto/pgp-pgsql.c,v 1.8 2006/11/10 06:28:29 neilc Exp $
+ * $PostgreSQL: pgsql/contrib/pgcrypto/pgp-pgsql.c,v 1.11 2009/06/11 14:48:52 momjian Exp $
  */
 
 #include "postgres.h"
@@ -34,6 +34,7 @@
 #include "fmgr.h"
 #include "parser/scansup.h"
 #include "mb/pg_wchar.h"
+#include "utils/builtins.h"
 
 #include "mbuf.h"
 #include "px.h"
@@ -78,7 +79,7 @@ PG_FUNCTION_INFO_V1(pg_dearmor);
  * Mix a block of data into RNG.
  */
 static void
-add_block_entropy(PX_MD * md, text *data)
+add_block_entropy(PX_MD *md, text *data)
 {
 	uint8		sha1[20];
 
@@ -140,7 +141,6 @@ static text *
 convert_charset(text *src, int cset_from, int cset_to)
 {
 	int			src_len = VARSIZE(src) - VARHDRSZ;
-	int			dst_len;
 	unsigned char *dst;
 	unsigned char *csrc = (unsigned char *) VARDATA(src);
 	text	   *res;
@@ -149,10 +149,7 @@ convert_charset(text *src, int cset_from, int cset_to)
 	if (dst == csrc)
 		return src;
 
-	dst_len = strlen((char *) dst);
-	res = palloc(dst_len + VARHDRSZ);
-	memcpy(VARDATA(res), dst, dst_len);
-	VARATT_SIZEP(res) = VARHDRSZ + dst_len;
+	res = cstring_to_text((char *) dst);
 	pfree(dst);
 	return res;
 }
@@ -218,7 +215,7 @@ fill_expect(struct debug_expect * ex, int text_mode)
 	} while (0)
 
 static void
-check_expect(PGP_Context * ctx, struct debug_expect * ex)
+check_expect(PGP_Context *ctx, struct debug_expect * ex)
 {
 	EX_CHECK(cipher_algo);
 	EX_CHECK(s2k_mode);
@@ -238,7 +235,7 @@ show_debug(const char *msg)
 }
 
 static int
-set_arg(PGP_Context * ctx, char *key, char *val,
+set_arg(PGP_Context *ctx, char *key, char *val,
 		struct debug_expect * ex)
 {
 	int			res = 0;
@@ -365,7 +362,7 @@ downcase_convert(const uint8 *s, int len)
 }
 
 static int
-parse_args(PGP_Context * ctx, uint8 *args, int arg_len,
+parse_args(PGP_Context *ctx, uint8 *args, int arg_len,
 		   struct debug_expect * ex)
 {
 	char	   *str = downcase_convert(args, arg_len);
@@ -410,7 +407,7 @@ create_mbuf_from_vardata(text *data)
 }
 
 static void
-init_work(PGP_Context ** ctx_p, int is_text,
+init_work(PGP_Context **ctx_p, int is_text,
 		  text *args, struct debug_expect * ex)
 {
 	int			err = pgp_init(ctx_p);
@@ -514,7 +511,7 @@ encrypt_internal(int is_pubenc, int is_text,
 	/* res_len includes VARHDRSZ */
 	res_len = mbuf_steal_data(dst, &restmp);
 	res = (bytea *) restmp;
-	VARATT_SIZEP(res) = res_len;
+	SET_VARSIZE(res, res_len);
 
 	if (tmp_data)
 		clear_and_pfree(tmp_data);
@@ -615,7 +612,7 @@ out:
 
 	/* res_len includes VARHDRSZ */
 	res = (bytea *) restmp;
-	VARATT_SIZEP(res) = res_len;
+	SET_VARSIZE(res, res_len);
 
 	if (need_text && got_unicode)
 	{
@@ -858,7 +855,7 @@ pg_armor(PG_FUNCTION_ARGS)
 		ereport(ERROR,
 				(errcode(ERRCODE_EXTERNAL_ROUTINE_INVOCATION_EXCEPTION),
 				 errmsg("Overflow - encode estimate too small")));
-	VARATT_SIZEP(res) = VARHDRSZ + res_len;
+	SET_VARSIZE(res, VARHDRSZ + res_len);
 
 	PG_FREE_IF_COPY(data, 0);
 	PG_RETURN_TEXT_P(res);
@@ -889,7 +886,7 @@ pg_dearmor(PG_FUNCTION_ARGS)
 		ereport(ERROR,
 				(errcode(ERRCODE_EXTERNAL_ROUTINE_INVOCATION_EXCEPTION),
 				 errmsg("Overflow - decode estimate too small")));
-	VARATT_SIZEP(res) = VARHDRSZ + res_len;
+	SET_VARSIZE(res, VARHDRSZ + res_len);
 
 	PG_FREE_IF_COPY(data, 0);
 	PG_RETURN_TEXT_P(res);
@@ -917,7 +914,7 @@ pgp_key_id_w(PG_FUNCTION_ARGS)
 		ereport(ERROR,
 				(errcode(ERRCODE_EXTERNAL_ROUTINE_INVOCATION_EXCEPTION),
 				 errmsg("%s", px_strerror(res_len))));
-	VARATT_SIZEP(res) = VARHDRSZ + res_len;
+	SET_VARSIZE(res, VARHDRSZ + res_len);
 
 	PG_FREE_IF_COPY(data, 0);
 	PG_RETURN_TEXT_P(res);

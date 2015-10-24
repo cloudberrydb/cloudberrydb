@@ -3,12 +3,12 @@
 --
 
 SET DATESTYLE = 'ISO';
+SET IntervalStyle to postgres;
 
 -- check acceptance of "time zone style"
 SELECT INTERVAL '01:00' AS "One hour";
 SELECT INTERVAL '+02:00' AS "Two hours";
 SELECT INTERVAL '-08:00' AS "Eight hours";
-SELECT INTERVAL '-05' AS "Five hours";
 SELECT INTERVAL '-1 +02:03' AS "22 hours ago...";
 SELECT INTERVAL '-1 days +02:03' AS "22 hours ago...";
 SELECT INTERVAL '1.5 weeks' AS "Ten days twelve hours";
@@ -34,25 +34,25 @@ INSERT INTO INTERVAL_TBL (f1) VALUES ('@ 30 eons ago');
 
 -- test interval operators
 
-SELECT '' AS ten, * FROM INTERVAL_TBL;
+SELECT '' AS ten, * FROM INTERVAL_TBL ORDER BY 2;
 
 SELECT '' AS nine, * FROM INTERVAL_TBL
-   WHERE INTERVAL_TBL.f1 <> interval '@ 10 days';
+   WHERE INTERVAL_TBL.f1 <> interval '@ 10 days' ORDER BY 2;
 
 SELECT '' AS three, * FROM INTERVAL_TBL
-   WHERE INTERVAL_TBL.f1 <= interval '@ 5 hours';
+   WHERE INTERVAL_TBL.f1 <= interval '@ 5 hours' ORDER BY 2;
 
 SELECT '' AS three, * FROM INTERVAL_TBL
-   WHERE INTERVAL_TBL.f1 < interval '@ 1 day';
+   WHERE INTERVAL_TBL.f1 < interval '@ 1 day' ORDER BY 2;
 
 SELECT '' AS one, * FROM INTERVAL_TBL
-   WHERE INTERVAL_TBL.f1 = interval '@ 34 years';
+   WHERE INTERVAL_TBL.f1 = interval '@ 34 years' ORDER BY 2;
 
 SELECT '' AS five, * FROM INTERVAL_TBL 
-   WHERE INTERVAL_TBL.f1 >= interval '@ 1 month';
+   WHERE INTERVAL_TBL.f1 >= interval '@ 1 month' ORDER BY 2;
 
 SELECT '' AS nine, * FROM INTERVAL_TBL
-   WHERE INTERVAL_TBL.f1 > interval '@ 3 seconds ago';
+   WHERE INTERVAL_TBL.f1 > interval '@ 3 seconds ago' ORDER BY 2;
 
 SELECT '' AS fortyfive, r1.*, r2.*
    FROM INTERVAL_TBL r1, INTERVAL_TBL r2
@@ -81,22 +81,23 @@ COPY INTERVAL_MULDIV_TBL FROM STDIN;
 \.
 
 SELECT span * 0.3 AS product
-FROM INTERVAL_MULDIV_TBL;
+FROM INTERVAL_MULDIV_TBL ORDER BY 1;
 
 SELECT span * 8.2 AS product
-FROM INTERVAL_MULDIV_TBL;
+FROM INTERVAL_MULDIV_TBL ORDER BY 1;
 
 SELECT span / 10 AS quotient
-FROM INTERVAL_MULDIV_TBL;
+FROM INTERVAL_MULDIV_TBL ORDER BY 1;
 
 SELECT span / 100 AS quotient
-FROM INTERVAL_MULDIV_TBL;
+FROM INTERVAL_MULDIV_TBL ORDER BY 1;
 
 DROP TABLE INTERVAL_MULDIV_TBL;
 
 SET DATESTYLE = 'postgres';
+SET IntervalStyle to postgres_verbose;
 
-SELECT '' AS ten, * FROM INTERVAL_TBL;
+SELECT '' AS ten, * FROM INTERVAL_TBL ORDER BY 2;
 
 -- test avg(interval), which is somewhat fragile since people have been
 -- known to change the allowed input syntax for type interval without
@@ -107,6 +108,8 @@ select avg(f1) from interval_tbl;
 -- test long interval input
 select '4 millenniums 5 centuries 4 decades 1 year 4 months 4 days 17 minutes 31 seconds'::interval;
 
+-- test long interval output
+select '100000000y 10mon -1000000000d -1000000000h -10min -10.000001s ago'::interval;
 
 -- test justify_hours() and justify_days()
 
@@ -116,3 +119,16 @@ SELECT justify_days(interval '6 months 36 days 5 hours 4 minutes 3 seconds') as 
 -- test justify_interval()
 
 SELECT justify_interval(interval '1 month -1 hour') as "1 month -1 hour";
+
+-- test fractional second input, and detection of duplicate units
+SET DATESTYLE = 'ISO';
+SET IntervalStyle TO postgres;
+
+SELECT '1 millisecond'::interval, '1 microsecond'::interval,
+       '500 seconds 99 milliseconds 51 microseconds'::interval;
+SELECT '3 days 5 milliseconds'::interval;
+
+SELECT '1 second 2 seconds'::interval;              -- error
+SELECT '10 milliseconds 20 milliseconds'::interval; -- error
+SELECT '5.5 seconds 3 milliseconds'::interval;      -- error
+SELECT '1:20:05 5 microseconds'::interval;          -- error

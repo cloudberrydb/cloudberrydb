@@ -4,7 +4,7 @@
  *	  fetch tuples from a GiST scan.
  *
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2008, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
@@ -16,8 +16,11 @@
 
 #include "access/gist_private.h"
 #include "executor/execdebug.h"
+#include "miscadmin.h"    /* work_mem */
+#include "nodes/tidbitmap.h"
 #include "pgstat.h"
 #include "utils/memutils.h"
+#include "cdb/cdbfilerepprimary.h"
 
 
 static OffsetNumber gistfindnext(IndexScanDesc scan, OffsetNumber n,
@@ -29,63 +32,47 @@ static bool gistindex_keytest(IndexTuple tuple, IndexScanDesc scan,
 static void
 killtuple(Relation r, GISTScanOpaque so, ItemPointer iptr)
 {
-	Buffer		buffer = so->curbuf;
+	MIRROREDLOCK_BUFMGR_DECLARE;
 
-	for (;;)
+	Page        p;
+	OffsetNumber offset;
+
+	// -------- MirroredLock ----------
+	MIRROREDLOCK_BUFMGR_LOCK;
+
+	LockBuffer(so->curbuf, GIST_SHARE);
+	gistcheckpage(r, so->curbuf);
+	p = (Page) BufferGetPage(so->curbuf);
+
+	if (XLByteEQ(so->stack->lsn, PageGetLSN(p)))
 	{
-		Page		p;
-		BlockNumber blkno;
-		OffsetNumber offset,
-					maxoff;
-
-		LockBuffer(buffer, GIST_SHARE);
-		gistcheckpage(r, buffer);
-		p = (Page) BufferGetPage(buffer);
-
-		if (buffer == so->curbuf && XLByteEQ(so->stack->lsn, PageGetLSN(p)))
-		{
-			/* page unchanged, so all is simple */
-			offset = ItemPointerGetOffsetNumber(iptr);
-			PageGetItemId(p, offset)->lp_flags |= LP_DELETE;
-			SetBufferCommitInfoNeedsSave(buffer);
-			LockBuffer(buffer, GIST_UNLOCK);
-			break;
-		}
-
-		maxoff = PageGetMaxOffsetNumber(p);
+		/* page unchanged, so all is simple */
+		offset = ItemPointerGetOffsetNumber(iptr);
+		PageGetItemId(p, offset)->lp_flags |= LP_DELETE;
+		SetBufferCommitInfoNeedsSave(so->curbuf);
+	}
+	else
+	{
+		OffsetNumber maxoff = PageGetMaxOffsetNumber(p);
 
 		for (offset = FirstOffsetNumber; offset <= maxoff; offset = OffsetNumberNext(offset))
 		{
-			IndexTuple	ituple = (IndexTuple) PageGetItem(p, PageGetItemId(p, offset));
+			IndexTuple  ituple = (IndexTuple) PageGetItem(p, PageGetItemId(p, offset));
 
 			if (ItemPointerEquals(&(ituple->t_tid), iptr))
 			{
 				/* found */
 				PageGetItemId(p, offset)->lp_flags |= LP_DELETE;
-				SetBufferCommitInfoNeedsSave(buffer);
-				LockBuffer(buffer, GIST_UNLOCK);
-				if (buffer != so->curbuf)
-					ReleaseBuffer(buffer);
-				return;
+				SetBufferCommitInfoNeedsSave(so->curbuf);
+				break;
 			}
 		}
-
-		/* follow right link */
-
-		/*
-		 * ??? is it good? if tuple dropped by concurrent vacuum, we will read
-		 * all leaf pages...
-		 */
-		blkno = GistPageGetOpaque(p)->rightlink;
-		LockBuffer(buffer, GIST_UNLOCK);
-		if (buffer != so->curbuf)
-			ReleaseBuffer(buffer);
-
-		if (blkno == InvalidBlockNumber)
-			/* can't found, dropped by somebody else */
-			return;
-		buffer = ReadBuffer(r, blkno);
 	}
+
+	LockBuffer(so->curbuf, GIST_UNLOCK);
+
+	MIRROREDLOCK_BUFMGR_UNLOCK;
+	// -------- MirroredLock ----------
 }
 
 /*
@@ -123,13 +110,29 @@ Datum
 gistgetmulti(PG_FUNCTION_ARGS)
 {
 	IndexScanDesc scan = (IndexScanDesc) PG_GETARG_POINTER(0);
-	ItemPointer tids = (ItemPointer) PG_GETARG_POINTER(1);
-	int32		max_tids = PG_GETARG_INT32(2);
-	int32	   *returned_tids = (int32 *) PG_GETARG_POINTER(3);
+	Node		   *n = (Node *) PG_GETARG_POINTER(1);
+	HashBitmap	   *hashBitmap;
+	ItemPointer tids;
+	int ntids;
 
-	*returned_tids = gistnext(scan, ForwardScanDirection, tids, max_tids, false);
+	if (n == NULL || IsA(n, StreamBitmap))
+		hashBitmap = tbm_create(work_mem * 1024L);
+	else
+		hashBitmap = (HashBitmap *)n;
 
-	PG_RETURN_BOOL(*returned_tids == max_tids);
+#define MAX_TIDS 1024
+	tids = (ItemPointer)palloc0(MAX_TIDS * sizeof(ItemPointerData));
+
+	while ((ntids = gistnext(scan, ForwardScanDirection, tids, MAX_TIDS, false)) > 0)
+		tbm_add_tuples(hashBitmap, tids, ntids);
+
+	if(n && IsA(n, StreamBitmap))
+	{
+		stream_add_node((StreamBitmap *)n,
+			tbm_create_stream_node(hashBitmap), BMS_OR);
+		PG_RETURN_POINTER(n);
+	}
+	PG_RETURN_POINTER(hashBitmap);
 }
 
 /*
@@ -140,16 +143,20 @@ gistgetmulti(PG_FUNCTION_ARGS)
 static int
 gistnext(IndexScanDesc scan, ScanDirection dir, ItemPointer tids, int maxtids, bool ignore_killed_tuples)
 {
+	MIRROREDLOCK_BUFMGR_DECLARE;
+
 	Page		p;
 	OffsetNumber n;
 	GISTScanOpaque so;
 	GISTSearchStack *stk;
 	IndexTuple	it;
 	GISTPageOpaque opaque;
-	bool		resetoffset = false;
 	int			ntids = 0;
 
 	so = (GISTScanOpaque) scan->opaque;
+
+	// -------- MirroredLock ----------
+	MIRROREDLOCK_BUFMGR_LOCK;
 
 	if (ItemPointerIsValid(&scan->currentItemData) == false)
 	{
@@ -164,11 +171,63 @@ gistnext(IndexScanDesc scan, ScanDirection dir, ItemPointer tids, int maxtids, b
 		stk->next = NULL;
 		stk->block = GIST_ROOT_BLKNO;
 
-		pgstat_count_index_scan(&scan->xs_pgstat_info);
+			pgstat_count_index_scan(scan->indexRelation);
 	}
 	else if (so->curbuf == InvalidBuffer)
 	{
+		MIRROREDLOCK_BUFMGR_UNLOCK;
+		// -------- MirroredLock ----------
+
 		return 0;
+	}
+
+	/*
+	 * check stored pointers from last visit 
+	 */
+	if ( so->nPageData > 0 ) 
+	{
+		while( ntids < maxtids && so->curPageData < so->nPageData )
+		{
+			tids[ ntids ] = scan->xs_ctup.t_self = so->pageData[ so->curPageData ].heapPtr;
+			ItemPointerSet(&scan->currentItemData,
+							   BufferGetBlockNumber(so->curbuf), 
+							   so->pageData[ so->curPageData ].pageOffset);
+
+				
+			so->curPageData ++;
+			ntids++;
+		}
+
+		if ( ntids == maxtids )
+		{
+			MIRROREDLOCK_BUFMGR_UNLOCK;
+			// -------- MirroredLock ----------
+
+			return ntids;
+		}
+		
+		/*
+		 * Go to the next page
+		 */
+		stk = so->stack->next;
+		pfree(so->stack);
+		so->stack = stk;
+
+		/* If we're out of stack entries, we're done */
+		if (so->stack == NULL)
+		{
+			ReleaseBuffer(so->curbuf);
+			so->curbuf = InvalidBuffer;
+
+			MIRROREDLOCK_BUFMGR_UNLOCK;
+			// -------- MirroredLock ----------
+
+			return ntids;
+		}
+
+		so->curbuf = ReleaseAndReadBuffer(so->curbuf,
+										  scan->indexRelation,
+										  stk->block);
 	}
 
 	for (;;)
@@ -179,30 +238,25 @@ gistnext(IndexScanDesc scan, ScanDirection dir, ItemPointer tids, int maxtids, b
 		gistcheckpage(scan->indexRelation, so->curbuf);
 		p = BufferGetPage(so->curbuf);
 		opaque = GistPageGetOpaque(p);
-		resetoffset = false;
 
-		if (XLogRecPtrIsInvalid(so->stack->lsn) || !XLByteEQ(so->stack->lsn, PageGetLSN(p)))
-		{
-			/* page changed from last visit or visit first time , reset offset */
-			so->stack->lsn = PageGetLSN(p);
-			resetoffset = true;
+		/* remember lsn to identify page changed for tuple's killing */
+		so->stack->lsn = PageGetLSN(p);
 
-			/* check page split, occured from last visit or visit to parent */
-			if (!XLogRecPtrIsInvalid(so->stack->parentlsn) &&
-				XLByteLT(so->stack->parentlsn, opaque->nsn) &&
-				opaque->rightlink != InvalidBlockNumber /* sanity check */ &&
-				(so->stack->next == NULL || so->stack->next->block != opaque->rightlink)		/* check if already
+		/* check page split, occured from last visit or visit to parent */
+		if (!XLogRecPtrIsInvalid(so->stack->parentlsn) &&
+			XLByteLT(so->stack->parentlsn, opaque->nsn) &&
+			opaque->rightlink != InvalidBlockNumber /* sanity check */ &&
+			(so->stack->next == NULL || so->stack->next->block != opaque->rightlink)		/* check if already
 					added */ )
-			{
-				/* detect page split, follow right link to add pages */
+		{
+			/* detect page split, follow right link to add pages */
 
-				stk = (GISTSearchStack *) palloc(sizeof(GISTSearchStack));
-				stk->next = so->stack->next;
-				stk->block = opaque->rightlink;
-				stk->parentlsn = so->stack->parentlsn;
-				memset(&(stk->lsn), 0, sizeof(GistNSN));
-				so->stack->next = stk;
-			}
+			stk = (GISTSearchStack *) palloc(sizeof(GISTSearchStack));
+			stk->next = so->stack->next;
+			stk->block = opaque->rightlink;
+			stk->parentlsn = so->stack->parentlsn;
+			memset(&(stk->lsn), 0, sizeof(GistNSN));
+			so->stack->next = stk;
 		}
 
 		/* if page is empty, then just skip it */
@@ -217,6 +271,10 @@ gistnext(IndexScanDesc scan, ScanDirection dir, ItemPointer tids, int maxtids, b
 			{
 				ReleaseBuffer(so->curbuf);
 				so->curbuf = InvalidBuffer;
+
+				MIRROREDLOCK_BUFMGR_UNLOCK;
+				// -------- MirroredLock ----------
+
 				return ntids;
 			}
 
@@ -225,25 +283,13 @@ gistnext(IndexScanDesc scan, ScanDirection dir, ItemPointer tids, int maxtids, b
 			continue;
 		}
 
-		if (!GistPageIsLeaf(p) || resetoffset ||
-			!ItemPointerIsValid(&scan->currentItemData))
-		{
-			if (ScanDirectionIsBackward(dir))
-				n = PageGetMaxOffsetNumber(p);
-			else
-				n = FirstOffsetNumber;
-		}
+		if (ScanDirectionIsBackward(dir))
+			n = PageGetMaxOffsetNumber(p);
 		else
-		{
-			n = ItemPointerGetOffsetNumber(&(scan->currentItemData));
-
-			if (ScanDirectionIsBackward(dir))
-				n = OffsetNumberPrev(n);
-			else
-				n = OffsetNumberNext(n);
-		}
+			n = FirstOffsetNumber;
 
 		/* wonderful, we can look at page */
+		so->nPageData = so->curPageData = 0;
 
 		for (;;)
 		{
@@ -251,6 +297,29 @@ gistnext(IndexScanDesc scan, ScanDirection dir, ItemPointer tids, int maxtids, b
 
 			if (!OffsetNumberIsValid(n))
 			{
+				while( ntids < maxtids && so->curPageData < so->nPageData )
+				{
+					tids[ ntids ] = scan->xs_ctup.t_self = 
+						so->pageData[ so->curPageData ].heapPtr;
+				
+					ItemPointerSet(&scan->currentItemData,
+								   BufferGetBlockNumber(so->curbuf), 
+								   so->pageData[ so->curPageData ].pageOffset);
+
+					so->curPageData ++;
+					ntids++;
+				}
+
+				if ( ntids == maxtids )
+				{
+					LockBuffer(so->curbuf, GIST_UNLOCK);
+					
+					MIRROREDLOCK_BUFMGR_UNLOCK;
+					// -------- MirroredLock ----------
+					
+					return ntids;
+				}
+
 				/*
 				 * We ran out of matching index entries on the current page,
 				 * so pop the top stack entry and use it to continue the
@@ -267,6 +336,10 @@ gistnext(IndexScanDesc scan, ScanDirection dir, ItemPointer tids, int maxtids, b
 				{
 					ReleaseBuffer(so->curbuf);
 					so->curbuf = InvalidBuffer;
+					
+					MIRROREDLOCK_BUFMGR_UNLOCK;
+					// -------- MirroredLock ----------
+					
 					return ntids;
 				}
 
@@ -285,20 +358,12 @@ gistnext(IndexScanDesc scan, ScanDirection dir, ItemPointer tids, int maxtids, b
 				 * we can efficiently resume the index scan later.
 				 */
 
-				ItemPointerSet(&(scan->currentItemData),
-							   BufferGetBlockNumber(so->curbuf), n);
-
 				if (!(ignore_killed_tuples && ItemIdDeleted(PageGetItemId(p, n))))
 				{
 					it = (IndexTuple) PageGetItem(p, PageGetItemId(p, n));
-					tids[ntids] = scan->xs_ctup.t_self = it->t_tid;
-					ntids++;
-
-					if (ntids == maxtids)
-					{
-						LockBuffer(so->curbuf, GIST_UNLOCK);
-						return ntids;
-					}
+					so->pageData[ so->nPageData ].heapPtr = it->t_tid;
+					so->pageData[ so->nPageData ].pageOffset = n;
+					so->nPageData ++;
 				}
 			}
 			else
@@ -326,6 +391,9 @@ gistnext(IndexScanDesc scan, ScanDirection dir, ItemPointer tids, int maxtids, b
 				n = OffsetNumberNext(n);
 		}
 	}
+
+	MIRROREDLOCK_BUFMGR_UNLOCK;
+	// -------- MirroredLock ----------
 
 	return ntids;
 }

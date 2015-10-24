@@ -1,10 +1,10 @@
-/* Processed by ecpg (4.2.1) */
+/* Processed by ecpg (regression mode) */
 /* These include files are added by the preprocessor */
-#include <ecpgtype.h>
 #include <ecpglib.h>
 #include <ecpgerrno.h>
 #include <sqlca.h>
 /* End of automatic include section */
+#define ECPGdebug(X,Y) ECPGdebug((X)+100,(Y))
 
 #line 1 "array.pgc"
 #include <locale.h>
@@ -20,13 +20,13 @@
 #ifndef POSTGRES_SQLCA_H
 #define POSTGRES_SQLCA_H
 
-#ifndef DLLIMPORT
+#ifndef PGDLLIMPORT
 #if  defined(WIN32) || defined(__CYGWIN__)
-#define DLLIMPORT __declspec (dllimport)
+#define PGDLLIMPORT __declspec (dllimport)
 #else
-#define DLLIMPORT
+#define PGDLLIMPORT
 #endif   /* __CYGWIN__ */
-#endif   /* DLLIMPORT */
+#endif   /* PGDLLIMPORT */
 
 #define SQLERRMC_LEN	150
 
@@ -109,22 +109,22 @@ main (void)
 	 
 
 #line 14 "array.pgc"
- int  i   = 1 ;
+ int i = 1 ;
  
 #line 15 "array.pgc"
- int * did   = & i ;
+ int * did = & i ;
  
 #line 16 "array.pgc"
- int  a [ 10 ]   = { 9 , 8 , 7 , 6 , 5 , 4 , 3 , 2 , 1 , 0 } ;
+ int a [ 10 ] = { 9 , 8 , 7 , 6 , 5 , 4 , 3 , 2 , 1 , 0 } ;
  
 #line 17 "array.pgc"
- char  text [ 25 ]   = "klmnopqrst" ;
+ char text [ 25 ] = "klmnopqrst" ;
  
 #line 18 "array.pgc"
- char * t   = ( char * ) malloc ( 11 ) ;
+ char * t = ( char * ) malloc ( 11 ) ;
  
 #line 19 "array.pgc"
- double  f    ;
+ double f ;
 /* exec sql end declare section */
 #line 20 "array.pgc"
 
@@ -134,7 +134,7 @@ main (void)
 
 	ECPGdebug(1, stderr);
 
-        { ECPGconnect(__LINE__, 0, "regress1" , NULL,NULL , NULL, 0); 
+        { ECPGconnect(__LINE__, 0, "regress1" , NULL, NULL , NULL, 0); 
 #line 27 "array.pgc"
 
 if (sqlca.sqlcode < 0) sqlprint();}
@@ -148,28 +148,28 @@ if (sqlca.sqlcode < 0) sqlprint();}
 #line 29 "array.pgc"
 
 
- 	{ ECPGtrans(__LINE__, NULL, "begin transaction ");
+ 	{ ECPGtrans(__LINE__, NULL, "begin work");
 #line 31 "array.pgc"
 
 if (sqlca.sqlcode < 0) sqlprint();}
 #line 31 "array.pgc"
 
 
-	{ ECPGdo(__LINE__, 0, 1, NULL, "create  table test ( f float    , i int   , a int [ 10 ]   , text char  ( 10 )    )    ", ECPGt_EOIT, ECPGt_EORT);
+	{ ECPGdo(__LINE__, 0, 1, NULL, 0, ECPGst_normal, "create table test ( f float , i int , a int [ 10 ] , text char ( 10 ) )", ECPGt_EOIT, ECPGt_EORT);
 #line 33 "array.pgc"
 
 if (sqlca.sqlcode < 0) sqlprint();}
 #line 33 "array.pgc"
 
 
-	{ ECPGdo(__LINE__, 0, 1, NULL, "insert into test ( f  , i  , a  , text  ) values ( 404.90 , 3 , '{0,1,2,3,4,5,6,7,8,9}' , 'abcdefghij' ) ", ECPGt_EOIT, ECPGt_EORT);
+	{ ECPGdo(__LINE__, 0, 1, NULL, 0, ECPGst_normal, "insert into test ( f , i , a , text ) values ( 404.90 , 3 , '{0,1,2,3,4,5,6,7,8,9}' , 'abcdefghij' )", ECPGt_EOIT, ECPGt_EORT);
 #line 35 "array.pgc"
 
 if (sqlca.sqlcode < 0) sqlprint();}
 #line 35 "array.pgc"
 
 
-	{ ECPGdo(__LINE__, 0, 1, NULL, "insert into test ( f  , i  , a  , text  ) values ( 140787.0 , 2 ,  ? ,  ? ) ", 
+	{ ECPGdo(__LINE__, 0, 1, NULL, 0, ECPGst_normal, "insert into test ( f , i , a , text ) values ( 140787.0 , 2 , $1  , $2  )", 
 	ECPGt_int,(a),(long)1,(long)10,sizeof(int), 
 	ECPGt_NO_INDICATOR, NULL , 0L, 0L, 0L, 
 	ECPGt_char,(text),(long)25,(long)1,(25)*sizeof(char), 
@@ -179,8 +179,8 @@ if (sqlca.sqlcode < 0) sqlprint();}
 if (sqlca.sqlcode < 0) sqlprint();}
 #line 37 "array.pgc"
 
-	
-	{ ECPGdo(__LINE__, 0, 1, NULL, "insert into test ( f  , i  , a  , text  ) values ( 14.07 ,  ? ,  ? ,  ? ) ", 
+
+	{ ECPGdo(__LINE__, 0, 1, NULL, 0, ECPGst_normal, "insert into test ( f , i , a , text ) values ( 14.07 , $1  , $2  , $3  )", 
 	ECPGt_int,&(did),(long)1,(long)0,sizeof(int), 
 	ECPGt_NO_INDICATOR, NULL , 0L, 0L, 0L, 
 	ECPGt_int,(a),(long)1,(long)10,sizeof(int), 
@@ -200,14 +200,14 @@ if (sqlca.sqlcode < 0) sqlprint();}
 #line 41 "array.pgc"
 
 
-	{ ECPGtrans(__LINE__, NULL, "begin transaction ");
+	{ ECPGtrans(__LINE__, NULL, "begin work");
 #line 43 "array.pgc"
 
 if (sqlca.sqlcode < 0) sqlprint();}
 #line 43 "array.pgc"
  
 
-	{ ECPGdo(__LINE__, 0, 1, NULL, "select  f , text  from test where i = 1  ", ECPGt_EOIT, 
+	{ ECPGdo(__LINE__, 0, 1, NULL, 0, ECPGst_normal, "select f , text from test where i = 1", ECPGt_EOIT, 
 	ECPGt_double,&(f),(long)1,(long)1,sizeof(double), 
 	ECPGt_NO_INDICATOR, NULL , 0L, 0L, 0L, 
 	ECPGt_char,(text),(long)25,(long)1,(25)*sizeof(char), 
@@ -221,7 +221,7 @@ if (sqlca.sqlcode < 0) sqlprint();}
 	printf("Found f=%f text=%10.10s\n", f, text);
 
 	f=140787;
-	{ ECPGdo(__LINE__, 0, 1, NULL, "select  a , text  from test where f =  ?  ", 
+	{ ECPGdo(__LINE__, 0, 1, NULL, 0, ECPGst_normal, "select a , text from test where f = $1 ", 
 	ECPGt_double,&(f),(long)1,(long)1,sizeof(double), 
 	ECPGt_NO_INDICATOR, NULL , 0L, 0L, 0L, ECPGt_EOIT, 
 	ECPGt_int,(a),(long)1,(long)10,sizeof(int), 
@@ -239,7 +239,7 @@ if (sqlca.sqlcode < 0) sqlprint();}
 
 	printf("Found text=%10.10s\n", t);
 
-	{ ECPGdo(__LINE__, 0, 1, NULL, "select  a  from test where f =  ?  ", 
+	{ ECPGdo(__LINE__, 0, 1, NULL, 0, ECPGst_normal, "select a from test where f = $1 ", 
 	ECPGt_double,&(f),(long)1,(long)1,sizeof(double), 
 	ECPGt_NO_INDICATOR, NULL , 0L, 0L, 0L, ECPGt_EOIT, 
 	ECPGt_char,(text),(long)25,(long)1,(25)*sizeof(char), 
@@ -252,7 +252,7 @@ if (sqlca.sqlcode < 0) sqlprint();}
 
 	printf("Found text=%s\n", text);
 
-	{ ECPGdo(__LINE__, 0, 1, NULL, "drop table test ", ECPGt_EOIT, ECPGt_EORT);
+	{ ECPGdo(__LINE__, 0, 1, NULL, 0, ECPGst_normal, "drop table test", ECPGt_EOIT, ECPGt_EORT);
 #line 70 "array.pgc"
 
 if (sqlca.sqlcode < 0) sqlprint();}

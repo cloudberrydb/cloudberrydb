@@ -4,13 +4,15 @@
  * Postgres transaction log manager record pointer and
  * timeline number definitions
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2008, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * $PostgreSQL: pgsql/src/include/access/xlogdefs.h,v 1.15 2006/03/05 15:58:54 momjian Exp $
  */
 #ifndef XLOG_DEFS_H
 #define XLOG_DEFS_H
+
+#include <fcntl.h>				/* need open() flags */
 
 /*
  * Pointer to a location in the XLOG.  These pointers are 64 bits wide,
@@ -33,6 +35,8 @@ typedef struct XLogRecPtr
 	uint32		xrecoff;		/* byte offset of location in log file */
 } XLogRecPtr;
 
+#define XLogRecPtrIsInvalid(r)	((r).xrecoff == 0)
+
 
 /*
  * Macros for comparing XLogRecPtrs
@@ -50,6 +54,22 @@ typedef struct XLogRecPtr
 
 #define XLByteEQ(a, b)		\
 			((a).xlogid == (b).xlogid && (a).xrecoff == (b).xrecoff)
+
+
+/*
+ * Macro for advancing a record pointer by the specified number of bytes.
+ */
+#define XLByteAdvance(recptr, nbytes)						\
+	do {													\
+		if (recptr.xrecoff + nbytes >= XLogFileSize)		\
+		{													\
+			recptr.xlogid += 1;								\
+			recptr.xrecoff									\
+				= recptr.xrecoff + nbytes - XLogFileSize;	\
+		}													\
+		else												\
+			recptr.xrecoff += nbytes;						\
+	} while (0)
 
 
 /*

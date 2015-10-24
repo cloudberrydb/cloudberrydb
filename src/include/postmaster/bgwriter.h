@@ -3,7 +3,7 @@
  * bgwriter.h
  *	  Exports from postmaster/bgwriter.c.
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2008, PostgreSQL Global Development Group
  *
  * $PostgreSQL: pgsql/src/include/postmaster/bgwriter.h,v 1.8 2006/03/05 15:58:58 momjian Exp $
  *
@@ -18,17 +18,17 @@
 
 /* GUC options */
 extern int	BgWriterDelay;
-extern int	CheckPointTimeout;
-extern int	CheckPointWarning;
 
 extern void BackgroundWriterMain(void);
 
-extern void RequestCheckpoint(bool waitforit, bool warnontime);
+extern void RequestCheckpointSmgrCloseAll(void);
 
 extern bool ForwardFsyncRequest(RelFileNode rnode, BlockNumber segno);
 extern void AbsorbFsyncRequests(void);
 
 extern Size BgWriterShmemSize(void);
 extern void BgWriterShmemInit(void);
+
+extern bool AmBackgroundWriterProcess(void);
 
 #endif   /* _BGWRITER_H */

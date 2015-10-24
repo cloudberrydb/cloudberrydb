@@ -24,9 +24,25 @@ ERROR:  conversion "myconv_bad" does not exist
 COMMENT ON CONVERSION myconv IS 'bar';
 COMMENT ON CONVERSION myconv IS NULL;
 --
+-- rename conversion
+--
+ALTER CONVERSION myconv RENAME TO myconv1;
+ALTER CONVERSION myconv1 OWNER TO conversion_test_user;
+-- 
+-- list all conversions 
+-- 
+\dc;
+                List of conversions
+ Schema |  Name   | Source | Destination | Default? 
+--------+---------+--------+-------------+----------
+ public | myconv1 | LATIN1 | UTF8        | no
+ public | mydef   | LATIN1 | UTF8        | yes
+(2 rows)
+
+--
 -- drop user defined conversion
 --
-DROP CONVERSION myconv;
+DROP CONVERSION myconv1;
 DROP CONVERSION mydef;
 --
 -- make sure all pre-defined conversions are fine.

@@ -4,7 +4,7 @@
  *	  POSTGRES index tuple definitions.
  *
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2008, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * $PostgreSQL: pgsql/src/include/access/itup.h,v 1.47 2006/07/13 16:49:19 momjian Exp $
@@ -117,7 +117,7 @@ typedef IndexAttributeBitMapData *IndexAttributeBitMap;
 		(att_isnull((attnum)-1, (char *)(tup) + sizeof(IndexTupleData))) ? \
 		( \
 			*(isnull) = true, \
-			(Datum)NULL \
+			(Datum)0 \
 		) \
 		: \
 		( \

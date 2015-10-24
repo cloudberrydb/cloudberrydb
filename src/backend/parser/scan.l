@@ -20,11 +20,11 @@
  * resulting "lex.backup" file says that no backing up is needed.
  *
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2010, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/parser/scan.l,v 1.138 2006/09/22 21:39:57 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/parser/scan.l,v 1.153 2009/05/05 21:09:23 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -36,9 +36,24 @@
 #include "parser/gramparse.h"
 #include "parser/keywords.h"
 /* Not needed now that this file is compiled as part of gram.y */
-/* #include "parser/parse.h" */
+/* #include "parser/gram.h" */
 #include "parser/scansup.h"
 #include "mb/pg_wchar.h"
+
+#define unify_version(a,b,c) ((a<<16)+(b<<8)+c)
+#if unify_version(YY_FLEX_MAJOR_VERSION,YY_FLEX_MINOR_VERSION,YY_FLEX_SUBMINOR_VERSION) < unify_version(2,5,35)
+int base_yyget_lineno  (void);
+FILE *base_yyget_in  (void);
+FILE *base_yyget_out  (void);
+int base_yyget_leng  (void);
+char *base_yyget_text  (void);
+void base_yyset_lineno (int  line_number );
+void base_yyset_in (FILE *  in_str );
+void base_yyset_out (FILE *  out_str );
+int base_yyget_debug  (void);
+void base_yyset_debug (int  bdebug );
+int base_yylex_destroy  (void);
+#endif
 
 
 /* Avoid exit() on fatal scanner errors (a bit ugly -- see yy_fatal_error) */
@@ -48,6 +63,10 @@
 static int		xcdepth = 0;	/* depth of nesting in slash-star comments */
 static char    *dolqstart;      /* current $foo$ quote start string */
 
+/* first part of UTF16 surrogate for unicode escapes */
+static uint32	utf16_top_part;
+
+
 /*
  * GUC variables.  This is a DIRECT violation of the warning given at the
  * head of gram.y, ie flex/bison code must not depend on any GUC variables;
@@ -55,11 +74,12 @@ static char    *dolqstart;      /* current $foo$ quote start string */
  * But we shall have to live with it as a short-term thing until the switch
  * to SQL-standard string syntax is complete.
  */
-BackslashQuoteType backslash_quote = BACKSLASH_QUOTE_SAFE_ENCODING;
+int				backslash_quote = BACKSLASH_QUOTE_SAFE_ENCODING;
 bool			escape_string_warning = true;
 bool			standard_conforming_strings = false;
 
 static bool		warn_on_first_escape;
+static bool		saw_non_ascii = false;
 
 /*
  * literalbuf is used to accumulate literal values when multiple rules
@@ -75,8 +95,10 @@ static int		literalalloc;	/* current allocated buffer size */
 static void addlit(char *ytext, int yleng);
 static void addlitchar(unsigned char ychar);
 static char *litbufdup(void);
+static char *litbuf_udeescape(unsigned char escape);
 
-static int	lexer_errposition(void);
+#define lexer_errposition()  scanner_errposition(yylloc)
+
 static void check_escape_warning(void);
 static void check_string_escape_warning(unsigned char ychar);
 
@@ -94,12 +116,14 @@ static YY_BUFFER_STATE scanbufhandle;
 static char *scanbuf;
 
 static unsigned char unescape_single_char(unsigned char c);
+static void addunicode(pg_wchar c);
 
 %}
 
 %option 8bit
 %option never-interactive
 %option nodefault
+%option noinput
 %option nounput
 %option noyywrap
 %option prefix="base_yy"
@@ -122,6 +146,9 @@ static unsigned char unescape_single_char(unsigned char c);
  *  <xq> standard quoted strings
  *  <xe> extended quoted strings (support backslash escape sequences)
  *  <xdolq> $foo$ quoted strings
+ *  <xui> quoted identifier with Unicode escapes
+ *  <xus> quoted string with Unicode escapes
+ *  <xeu> Unicode surrogate escape in extended string
  */
 
 %x xb
@@ -131,6 +158,9 @@ static unsigned char unescape_single_char(unsigned char c);
 %x xe
 %x xq
 %x xdolq
+%x xui
+%x xus
+%x xeu
 
 /*
  * In order to make the world safe for Windows and Mac clients as well as
@@ -209,6 +239,8 @@ xeinside		[^\\']+
 xeescape		[\\][^0-7]
 xeoctesc		[\\][0-7]{1,3}
 xehexesc		[\\]x[0-9A-Fa-f]{1,2}
+xeunicode		[\\](u[0-9A-Fa-f]{4}|U[0-9A-Fa-f]{8})
+xeunicodebad	[\\]([uU])
 
 /* Extended quote
  * xqdouble implements embedded quote, ''''
@@ -240,6 +272,25 @@ xdstart			{dquote}
 xdstop			{dquote}
 xddouble		{dquote}{dquote}
 xdinside		[^"]+
+
+/* Unicode escapes */
+uescape			[uU][eE][sS][cC][aA][pP][eE]{whitespace}*{quote}[^']{quote}
+/* error rule to avoid backup */
+uescapefail		("-"|[uU][eE][sS][cC][aA][pP][eE]{whitespace}*"-"|[uU][eE][sS][cC][aA][pP][eE]{whitespace}*{quote}[^']|[uU][eE][sS][cC][aA][pP][eE]{whitespace}*{quote}|[uU][eE][sS][cC][aA][pP][eE]{whitespace}*|[uU][eE][sS][cC][aA][pP]|[uU][eE][sS][cC][aA]|[uU][eE][sS][cC]|[uU][eE][sS]|[uU][eE]|[uU])
+
+/* Quoted identifier with Unicode escapes */
+xuistart		[uU]&{dquote}
+xuistop1		{dquote}{whitespace}*{uescapefail}?
+xuistop2		{dquote}{whitespace}*{uescape}
+
+/* Quoted string with Unicode escapes */
+xusstart		[uU]&{quote}
+xusstop1		{quote}{whitespace}*{uescapefail}?
+xusstop2		{quote}{whitespace}*{uescape}
+
+/* error rule to avoid backup */
+xufailed		[uU]&
+
 
 /* C-style comments
  *
@@ -426,6 +477,7 @@ other			.
 
 {xqstart}		{
 					warn_on_first_escape = true;
+					saw_non_ascii = false;
 					SET_YYLLOC();
 					if (standard_conforming_strings)
 						BEGIN(xq);
@@ -435,26 +487,101 @@ other			.
 				}
 {xestart}		{
 					warn_on_first_escape = false;
+					saw_non_ascii = false;
 					SET_YYLLOC();
 					BEGIN(xe);
+					startlit();
+				}
+{xusstart}		{
+					SET_YYLLOC();
+					if (!standard_conforming_strings)
+						ereport(ERROR,
+								(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
+								 errmsg("unsafe use of string constant with Unicode escapes"),
+								 errdetail("String constants with Unicode escapes cannot be used when standard_conforming_strings is off."),
+								 lexer_errposition()));
+					BEGIN(xus);
 					startlit();
 				}
 <xq,xe>{quotestop}	|
 <xq,xe>{quotefail} {
 					yyless(1);
 					BEGIN(INITIAL);
+					/*
+					 * check that the data remains valid if it might have been
+					 * made invalid by unescaping any chars.
+					 */
+					if (saw_non_ascii)
+						pg_verifymbstr(literalbuf, literallen, false);
 					yylval.str = litbufdup();
 					return SCONST;
 				}
-<xq,xe>{xqdouble} {
+<xus>{xusstop1} {
+					/* throw back all but the quote */
+					yyless(1);
+					BEGIN(INITIAL);
+					yylval.str = litbuf_udeescape('\\');
+					return SCONST;
+				}
+<xus>{xusstop2} {
+					BEGIN(INITIAL);
+					yylval.str = litbuf_udeescape(yytext[yyleng-2]);
+					return SCONST;
+				}
+<xq,xe,xus>{xqdouble} {
 					addlitchar('\'');
 				}
-<xq>{xqinside}  {
+<xq,xus>{xqinside}  {
 					addlit(yytext, yyleng);
 				}
 <xe>{xeinside}  {
 					addlit(yytext, yyleng);
 				}
+<xe>{xeunicode} {
+					pg_wchar c = strtoul(yytext+2, NULL, 16);
+
+					check_escape_warning();
+
+					/*
+					 * handle UTF-16 surrogates:
+					 *   [0xD800..0xDC00) - first elem.
+					 *   [0xDC00..0xE000) - second elem.
+					 */
+					if (c >= 0xD800 && c < 0xE000)
+					{
+						if (c >= 0xDC00)
+							yyerror("invalid Unicode surrogate pair");
+
+						utf16_top_part = ((c & 0x3FF) << 10) + 0x10000;
+						BEGIN(xeu);
+					}
+					else
+						addunicode(c);
+				}
+<xeu>{xeunicode} {
+					pg_wchar c = strtoul(yytext+2, NULL, 16);
+
+					if (c < 0xDC00 || c >= 0xE000)
+						yyerror("invalid Unicode surrogate pair");
+
+					c = (c & 0x3FF) + utf16_top_part;
+
+					addunicode(c);
+
+					BEGIN(xe);
+				}
+<xeu>.			|
+<xeu>\n			|
+<xeu><<EOF>>	{ yyerror("invalid Unicode surrogate pair"); }
+
+<xe>{xeunicodebad}	{
+						ereport(ERROR,
+								(errcode(ERRCODE_INVALID_ESCAPE_SEQUENCE),
+								 errmsg("invalid Unicode escape"),
+								 errhint("Unicode escapes must be full-length: \\uXXXX or \\UXXXXXXXX."),
+								 lexer_errposition()));
+					}
+
 <xe>{xeescape}  {
 					if (yytext[1] == '\'')
 					{
@@ -465,6 +592,7 @@ other			.
 									(errcode(ERRCODE_NONSTANDARD_USE_OF_ESCAPE_CHARACTER),
 									 errmsg("unsafe use of \\' in a string literal"),
 									 errhint("Use '' to write quotes in strings. \\' is insecure in client-only encodings."),
+									 errOmitLocation(true),
 									 lexer_errposition()));
 					}
 					check_string_escape_warning(yytext[1]);
@@ -475,21 +603,25 @@ other			.
 
 					check_escape_warning();
 					addlitchar(c);
+					if (c == '\0' || IS_HIGHBIT_SET(c))
+						saw_non_ascii = true;
 				}
 <xe>{xehexesc}  {
 					unsigned char c = strtoul(yytext+2, NULL, 16);
 
 					check_escape_warning();
 					addlitchar(c);
+					if (c == '\0' || IS_HIGHBIT_SET(c))
+						saw_non_ascii = true;
 				}
-<xq,xe>{quotecontinue} {
+<xq,xe,xus>{quotecontinue} {
 					/* ignore */
 				}
 <xe>.			{
 					/* This is only needed for \ just before EOF */
 					addlitchar(yytext[0]);
 				}
-<xq,xe><<EOF>>		{ yyerror("unterminated quoted string"); }
+<xq,xe,xus><<EOF>>		{ yyerror("unterminated quoted string"); }
 
 {dolqdelim}		{
 					SET_YYLLOC();
@@ -498,6 +630,7 @@ other			.
 					startlit();
 				}
 {dolqfailed}	{
+					SET_YYLLOC();
 					/* throw back all but the initial "$" */
 					yyless(1);
 					/* and treat it as {other} */
@@ -539,6 +672,11 @@ other			.
 					BEGIN(xd);
 					startlit();
 				}
+{xuistart}		{
+					SET_YYLLOC();
+					BEGIN(xui);
+					startlit();
+				}
 <xd>{xdstop}	{
 					char		   *ident;
 
@@ -551,13 +689,51 @@ other			.
 					yylval.str = ident;
 					return IDENT;
 				}
-<xd>{xddouble}	{
+<xui>{xuistop1}	{
+					char		   *ident;
+
+					BEGIN(INITIAL);
+					if (literallen == 0)
+						yyerror("zero-length delimited identifier");
+					ident = litbuf_udeescape('\\');
+					if (literallen >= NAMEDATALEN)
+						truncate_identifier(ident, literallen, true);
+					yylval.str = ident;
+					/* throw back all but the quote */
+					yyless(1);
+					return IDENT;
+				}
+<xui>{xuistop2}	{
+					char		   *ident;
+
+					BEGIN(INITIAL);
+					if (literallen == 0)
+						yyerror("zero-length delimited identifier");
+					ident = litbuf_udeescape(yytext[yyleng - 2]);
+					if (literallen >= NAMEDATALEN)
+						truncate_identifier(ident, literallen, true);
+					yylval.str = ident;
+					return IDENT;
+				}
+<xd,xui>{xddouble}	{
 					addlitchar('"');
 				}
-<xd>{xdinside}	{
+<xd,xui>{xdinside}	{
 					addlit(yytext, yyleng);
 				}
-<xd><<EOF>>		{ yyerror("unterminated quoted identifier"); }
+<xd,xui><<EOF>>		{ yyerror("unterminated quoted identifier"); }
+
+{xufailed}	{
+					char		   *ident;
+
+					SET_YYLLOC();
+					/* throw back all but the initial u/U */
+					yyless(1);
+					/* and treat it as {identifier} */
+					ident = downcase_truncate_identifier(yytext, yyleng, true);
+					yylval.str = ident;
+					return IDENT;
+				}
 
 {typecast}		{
 					SET_YYLLOC();
@@ -743,22 +919,27 @@ other			.
 %%
 
 /*
- * lexer_errposition
- *		Report a lexical-analysis-time cursor position, if possible.
+ * scanner_errposition
+ *		Report a lexer or grammar error cursor position, if possible.
  *
  * This is expected to be used within an ereport() call.  The return value
  * is a dummy (always 0, in fact).
  *
- * Note that this can only be used for messages from the lexer itself,
- * since it depends on scanbuf to still be valid.
+ * Note that this can only be used for messages emitted during raw parsing
+ * (essentially, scan.l and gram.y), since it requires scanbuf to still be
+ * valid.
  */
-static int
-lexer_errposition(void)
+int
+scanner_errposition(int location)
 {
 	int		pos;
 
+	Assert(scanbuf != NULL);	/* else called from wrong place */
+	if (location < 0)
+		return 0;				/* no-op if location is unknown */
+
 	/* Convert byte offset to character number */
-	pos = pg_mbstrlen_with_len(scanbuf, yylloc) + 1;
+	pos = pg_mbstrlen_with_len(scanbuf, location) + 1;
 	/* And pass it to the ereport mechanism */
 	return errposition(pos);
 }
@@ -782,16 +963,18 @@ yyerror(const char *message)
 	{
 		ereport(ERROR,
 				(errcode(ERRCODE_SYNTAX_ERROR),
-				 /* translator: %s is typically "syntax error" */
+				 /* translator: %s is typically the translation of "syntax error" */
 				 errmsg("%s at end of input", _(message)),
+				 errOmitLocation(true),
 				 lexer_errposition()));
 	}
 	else
 	{
 		ereport(ERROR,
 				(errcode(ERRCODE_SYNTAX_ERROR),
-				 /* translator: first %s is typically "syntax error" */
+				 /* translator: first %s is typically the translation of "syntax error" */
 				 errmsg("%s at or near \"%s\"", _(message), loc),
+				 errOmitLocation(true),
 				 lexer_errposition()));
 	}
 }
@@ -820,7 +1003,7 @@ scanner_init(const char *str)
 	scanbufhandle = yy_scan_buffer(scanbuf, slen + 2);
 
 	/* initialize literal buffer to a reasonable but expansible size */
-	literalalloc = 128;
+	literalalloc = 1024;
 	literalbuf = (char *) palloc(literalalloc);
 	startlit();
 
@@ -836,6 +1019,7 @@ scanner_finish(void)
 {
 	yy_delete_buffer(scanbufhandle);
 	pfree(scanbuf);
+	scanbuf = NULL;
 }
 
 
@@ -888,6 +1072,104 @@ litbufdup(void)
 	return new;
 }
 
+static int
+hexval(unsigned char c)
+{
+	if (c >= '0' && c <= '9')
+		return c - '0';
+	if (c >= 'a' && c <= 'f')
+		return c - 'a' + 0xA;
+	if (c >= 'A' && c <= 'F')
+		return c - 'A' + 0xA;
+	elog(ERROR, "invalid hexadecimal digit");
+	return 0; /* not reached */
+}
+
+static void
+check_unicode_value(pg_wchar c, char * loc)
+{
+	if (GetDatabaseEncoding() == PG_UTF8)
+		return;
+
+	if (c > 0x7F)
+	{
+		yylloc += (char *) loc - literalbuf + 3;   /* 3 for U&" */
+		yyerror("Unicode escape values cannot be used for code point values above 007F when the server encoding is not UTF8");
+	}
+}
+
+static char *
+litbuf_udeescape(unsigned char escape)
+{
+	char *new;
+	char *in, *out;
+
+	if (isxdigit(escape)
+		|| escape == '+'
+		|| escape == '\''
+		|| escape == '"'
+		|| scanner_isspace(escape))
+	{
+		yylloc += literallen + yyleng + 1;
+		yyerror("invalid Unicode escape character");
+	}
+
+	/*
+	 * This relies on the subtle assumption that a UTF-8 expansion
+	 * cannot be longer than its escaped representation.
+	 */
+	new = palloc(literallen + 1);
+
+	in = literalbuf;
+	out = new;
+	while (*in)
+	{
+		if (in[0] == escape)
+		{
+			if (in[1] == escape)
+			{
+				*out++ = escape;
+				in += 2;
+			}
+			else if (isxdigit(in[1]) && isxdigit(in[2]) && isxdigit(in[3]) && isxdigit(in[4]))
+			{
+				pg_wchar unicode = hexval(in[1]) * 16*16*16 + hexval(in[2]) * 16*16 + hexval(in[3]) * 16 + hexval(in[4]);
+				check_unicode_value(unicode, in);
+				unicode_to_utf8(unicode, (unsigned char *) out);
+				in += 5;
+				out += pg_mblen(out);
+			}
+			else if (in[1] == '+'
+					 && isxdigit(in[2]) && isxdigit(in[3])
+					 && isxdigit(in[4]) && isxdigit(in[5])
+					 && isxdigit(in[6]) && isxdigit(in[7]))
+			{
+				pg_wchar unicode = hexval(in[2]) * 16*16*16*16*16 + hexval(in[3]) * 16*16*16*16 + hexval(in[4]) * 16*16*16
+									+ hexval(in[5]) * 16*16 + hexval(in[6]) * 16 + hexval(in[7]);
+				check_unicode_value(unicode, in);
+				unicode_to_utf8(unicode, (unsigned char *) out);
+				in += 8;
+				out += pg_mblen(out);
+			}
+			else
+			{
+				yylloc += in - literalbuf + 3;   /* 3 for U&" */
+				yyerror("invalid Unicode escape value");
+			}
+		}
+		else
+			*out++ = *in++;
+	}
+
+	*out = '\0';
+	/*
+	 * We could skip pg_verifymbstr if we didn't process any non-7-bit-ASCII
+	 * codes; but it's probably not worth the trouble, since this isn't
+	 * likely to be a performance-critical path.
+	 */
+	pg_verifymbstr(new, out - new, false);
+	return new;
+}
 
 static unsigned char
 unescape_single_char(unsigned char c)
@@ -905,8 +1187,29 @@ unescape_single_char(unsigned char c)
 		case 't':
 			return '\t';
 		default:
+			/* check for backslash followed by non-7-bit-ASCII */
+			if (c == '\0' || IS_HIGHBIT_SET(c))
+				saw_non_ascii = true;
+
 			return c;
 	}
+}
+
+static void
+addunicode(pg_wchar c)
+{
+	char buf[8];
+
+	if (c == 0 || c > 0x10FFFF)
+		yyerror("invalid Unicode escape value");
+	if (c > 0x7F)
+	{
+		if (GetDatabaseEncoding() != PG_UTF8)
+			yyerror("Unicode escape values cannot be used for code point values above 007F when the server encoding is not UTF8");
+		saw_non_ascii = true;
+	}
+	unicode_to_utf8(c, (unsigned char *)buf);
+	addlit(buf, pg_mblen(buf));
 }
 
 static void
@@ -919,6 +1222,7 @@ check_string_escape_warning(unsigned char ychar)
 					(errcode(ERRCODE_NONSTANDARD_USE_OF_ESCAPE_CHARACTER),
 					 errmsg("nonstandard use of \\' in a string literal"),
 					 errhint("Use '' to write quotes in strings, or use the escape string syntax (E'...')."),
+					 errOmitLocation(true),
 					 lexer_errposition()));
 		warn_on_first_escape = false;	/* warn only once per string */
 	}
@@ -929,6 +1233,7 @@ check_string_escape_warning(unsigned char ychar)
 					(errcode(ERRCODE_NONSTANDARD_USE_OF_ESCAPE_CHARACTER),
 					 errmsg("nonstandard use of \\\\ in a string literal"),
 					 errhint("Use the escape string syntax for backslashes, e.g., E'\\\\'."),
+					 errOmitLocation(true),
 					 lexer_errposition()));
 		warn_on_first_escape = false;	/* warn only once per string */
 	}
@@ -944,6 +1249,7 @@ check_escape_warning(void)
 				(errcode(ERRCODE_NONSTANDARD_USE_OF_ESCAPE_CHARACTER),
 				 errmsg("nonstandard use of escape in a string literal"),
 				 errhint("Use the escape string syntax for escapes, e.g., E'\\r\\n'."),
+				 errOmitLocation(true),
 				 lexer_errposition()));
 	warn_on_first_escape = false;	/* warn only once per string */
 }

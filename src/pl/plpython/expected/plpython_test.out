@@ -37,7 +37,8 @@ SELECT global_test_two();
 -- import python modules
 --
 SELECT import_fail();
-NOTICE:  ('import socket failed -- No module named foosocket',)
+NOTICE:  import socket failed -- No module named foosocket
+CONTEXT:  PL/Python function "import_fail"
     import_fail     
 --------------------
  failed as expected
@@ -103,7 +104,7 @@ select spi_prepared_plan_test_nested('smith');
 
 -- quick peek at the table
 --
-SELECT * FROM users;
+SELECT * FROM users order by userid;
  fname  | lname | username | userid 
 --------+-------+----------+--------
  jane   | doe   | j_doe    |      1
@@ -119,7 +120,7 @@ UPDATE users SET fname = 'william' WHERE fname = 'willem';
 --
 INSERT INTO users (fname, lname) VALUES ('william', 'smith');
 INSERT INTO users (fname, lname, username) VALUES ('charles', 'darwin', 'beagle');
-SELECT * FROM users;
+SELECT * FROM users order by userid;
   fname  | lname  | username | userid 
 ---------+--------+----------+--------
  jane    | doe    | j_doe    |      1
@@ -130,35 +131,62 @@ SELECT * FROM users;
  charles | darwin | beagle   |      6
 (6 rows)
 
-SELECT join_sequences(sequences) FROM sequences;
- join_sequences 
-----------------
- ABCDEFGHIJKL
- ABCDEF
- ABCDEF
- ABCDEF
- ABCDEF
- ABCDEF
-(6 rows)
+-- Greenplum doesn't support functions that execute SQL from segments
+--
+--  SELECT join_sequences(sequences) FROM sequences;
+--  SELECT join_sequences(sequences) FROM sequences
+--  	WHERE join_sequences(sequences) ~* '^A';
+--  SELECT join_sequences(sequences) FROM sequences
+--  	WHERE join_sequences(sequences) ~* '^B';
+SELECT result_nrows_test();
+INFO:  True
+CONTEXT:  PL/Python function "result_nrows_test"
+ result_nrows_test 
+-------------------
+                 2
+(1 row)
 
-SELECT join_sequences(sequences) FROM sequences
-	WHERE join_sequences(sequences) ~* '^A';
- join_sequences 
-----------------
- ABCDEFGHIJKL
- ABCDEF
- ABCDEF
- ABCDEF
- ABCDEF
- ABCDEF
-(6 rows)
+-- test of exception handling
+SELECT queryexec('SELECT 2'); 
+NOTICE:  {'?column?': 2}
+CONTEXT:  PL/Python function "queryexec"
+ queryexec 
+-----------
+ t
+(1 row)
 
-SELECT join_sequences(sequences) FROM sequences
-	WHERE join_sequences(sequences) ~* '^B';
- join_sequences 
-----------------
-(0 rows)
+SELECT queryexec('SELECT X'); 
+NOTICE:  Error Trapped
+CONTEXT:  PL/Python function "queryexec"
+ queryexec 
+-----------
+ f
+(1 row)
 
+select module_contents();
+                                                     module_contents                                                      
+--------------------------------------------------------------------------------------------------------------------------
+ Error, Fatal, SPIError, debug, error, execute, fatal, info, log, notice, prepare, spiexceptions, subtransaction, warning
+(1 row)
+
+SELECT elog_test();
+INFO:  info
+CONTEXT:  PL/Python function "elog_test"
+INFO:  37
+CONTEXT:  PL/Python function "elog_test"
+INFO:  ()
+CONTEXT:  PL/Python function "elog_test"
+INFO:  ('info', 37, [1, 2, 3])
+CONTEXT:  PL/Python function "elog_test"
+NOTICE:  notice
+CONTEXT:  PL/Python function "elog_test"
+WARNING:  warning
+CONTEXT:  PL/Python function "elog_test"
+ERROR:  plpy.Error: error (plpython.c:4652)
+CONTEXT:  Traceback (most recent call last):
+  PL/Python function "elog_test", line 10, in <module>
+    plpy.error('error')
+PL/Python function "elog_test"
 -- error in trigger
 --
 --
@@ -190,15 +218,22 @@ SELECT test_void_func1(), test_void_func1() IS NULL AS "is null";
 (1 row)
 
 SELECT test_void_func2(); -- should fail
-ERROR:  invalid return value from plpython function
-DETAIL:  Functions returning type "void" must return None.
+ERROR:  PL/Python function with return type "void" did not return None
+CONTEXT:  while creating return value
+PL/Python function "test_void_func2"
 SELECT test_return_none(), test_return_none() IS NULL AS "is null";
  test_return_none | is null 
 ------------------+---------
                   | t
 (1 row)
 
--- Test for functions with named parameters
+-- Test for functions with named and nameless parameters
+SELECT test_param_names0(2,7);
+ test_param_names0 
+-------------------
+                 9
+(1 row)
+
 SELECT test_param_names1(1,'text');
  test_param_names1 
 -------------------
@@ -208,12 +243,12 @@ SELECT test_param_names1(1,'text');
 SELECT test_param_names2(users) from users;
                              test_param_names2                              
 ----------------------------------------------------------------------------
- {'lname': 'doe', 'username': 'j_doe', 'userid': 1, 'fname': 'jane'}
  {'lname': 'doe', 'username': 'johnd', 'userid': 2, 'fname': 'john'}
- {'lname': 'doe', 'username': 'w_doe', 'userid': 3, 'fname': 'willem'}
  {'lname': 'smith', 'username': 'slash', 'userid': 4, 'fname': 'rick'}
- {'lname': 'smith', 'username': 'w_smith', 'userid': 5, 'fname': 'willem'}
  {'lname': 'darwin', 'username': 'beagle', 'userid': 6, 'fname': 'charles'}
+ {'lname': 'doe', 'username': 'j_doe', 'userid': 1, 'fname': 'jane'}
+ {'lname': 'doe', 'username': 'w_doe', 'userid': 3, 'fname': 'willem'}
+ {'lname': 'smith', 'username': 'w_smith', 'userid': 5, 'fname': 'willem'}
 (6 rows)
 
 SELECT test_param_names3(1);
@@ -297,6 +332,15 @@ SELECT test_setof_as_iterator(2, null);
  
  
 (2 rows)
+
+SELECT test_setof_spi_in_iterator();
+ test_setof_spi_in_iterator 
+----------------------------
+ Hello
+ Brave
+ New
+ World
+(4 rows)
 
 -- Test tuple returning functions
 SELECT * FROM test_table_record_as('dict', null, null, false);
@@ -538,4 +582,207 @@ SELECT * FROM test_type_record_as('obj', null, null, true);
 -------+--------
        |       
 (1 row)
+
+SELECT * FROM test_in_out_params('test_in');
+      second       
+-------------------
+ test_in_in_to_out
+(1 row)
+
+-- this doesn't work yet :-(
+SELECT * FROM test_in_out_params_multi('test_in');
+ERROR:  length of returned sequence did not match number of columns in row
+CONTEXT:  while creating return value
+PL/Python function "test_in_out_params_multi"
+SELECT * FROM test_inout_params('test_in');
+     first     
+---------------
+ test_in_inout
+(1 row)
+
+SELECT * FROM test_type_conversion_bool(true);
+ test_type_conversion_bool 
+---------------------------
+ t
+(1 row)
+
+SELECT * FROM test_type_conversion_bool(false);
+ test_type_conversion_bool 
+---------------------------
+ f
+(1 row)
+
+SELECT * FROM test_type_conversion_bool(null);
+ test_type_conversion_bool 
+---------------------------
+ 
+(1 row)
+
+SELECT * FROM test_type_conversion_char('a');
+ test_type_conversion_char 
+---------------------------
+ a
+(1 row)
+
+SELECT * FROM test_type_conversion_char(null);
+ test_type_conversion_char 
+---------------------------
+ 
+(1 row)
+
+SELECT * FROM test_type_conversion_int2(100::int2);
+ test_type_conversion_int2 
+---------------------------
+                       100
+(1 row)
+
+SELECT * FROM test_type_conversion_int2(null);
+ test_type_conversion_int2 
+---------------------------
+                          
+(1 row)
+
+SELECT * FROM test_type_conversion_int4(100);
+ test_type_conversion_int4 
+---------------------------
+                       100
+(1 row)
+
+SELECT * FROM test_type_conversion_int4(null);
+ test_type_conversion_int4 
+---------------------------
+                          
+(1 row)
+
+SELECT * FROM test_type_conversion_int8(100);
+ test_type_conversion_int8 
+---------------------------
+                       100
+(1 row)
+
+SELECT * FROM test_type_conversion_int8(null);
+ test_type_conversion_int8 
+---------------------------
+                          
+(1 row)
+
+SELECT * FROM test_type_conversion_float4(100);
+ test_type_conversion_float4 
+-----------------------------
+                         100
+(1 row)
+
+SELECT * FROM test_type_conversion_float4(null);
+ test_type_conversion_float4 
+-----------------------------
+                            
+(1 row)
+
+SELECT * FROM test_type_conversion_float8(100);
+ test_type_conversion_float8 
+-----------------------------
+                         100
+(1 row)
+
+SELECT * FROM test_type_conversion_float8(null);
+ test_type_conversion_float8 
+-----------------------------
+                            
+(1 row)
+
+SELECT * FROM test_type_conversion_numeric(100);
+ test_type_conversion_numeric 
+------------------------------
+                        100.0
+(1 row)
+
+SELECT * FROM test_type_conversion_numeric(null);
+ test_type_conversion_numeric 
+------------------------------
+                             
+(1 row)
+
+SELECT * FROM test_type_conversion_text('hello world');
+ test_type_conversion_text 
+---------------------------
+ hello world
+(1 row)
+
+SELECT * FROM test_type_conversion_text(null);
+ test_type_conversion_text 
+---------------------------
+ 
+(1 row)
+
+SELECT * FROM test_type_conversion_bytea('hello world');
+ test_type_conversion_bytea 
+----------------------------
+ hello world
+(1 row)
+
+SELECT * FROM test_type_conversion_bytea(null);
+ test_type_conversion_bytea 
+----------------------------
+ 
+(1 row)
+
+SELECT test_type_unmarshal(x) FROM test_type_marshal() x;
+ test_type_unmarshal 
+---------------------
+ hello world
+(1 row)
+
+SELECT (split(10)).*; 
+ a  | b  
+----+----
+ 10 | 11
+ 12 | 13
+(2 rows)
+
+SELECT * FROM split(100); 
+  a  |  b  
+-----+-----
+ 100 | 101
+ 102 | 103
+(2 rows)
+
+select unnamed_tuple_test(); 
+ unnamed_tuple_test 
+--------------------
+ 
+(1 row)
+
+select named_tuple_test(); 
+ named_tuple_test 
+------------------
+ notice
+(1 row)
+
+select oneline() 
+union all 
+select oneline2()
+union all 
+select multiline() 
+union all 
+select multiline2() 
+union all 
+select multiline3()
+                                                  oneline                                                   
+------------------------------------------------------------------------------------------------------------
+ No spaces
+ "'a string with # and "" inside another string with #  and '' inside 
+  One space                                                                                                 
+   Two spaces                                                                                               
+    Three spaces                                                                                            
+ No spaces
+                                                                                                            
+ The ' in the comment should not cause this line to begin with a tab                                        
+ This is a rather long string containing                                                                    
+     several lines of text just as you would do in C.                                                       
+      Note that whitespace at the beginning of the line issignificant. The string can contain both ' and ". 
+ This is an another long string containing\n\                                                               
+ two lines of text and defined with the r\"...\" syntax.
+                                                                                                            
+   # This is not a comment so the quotes at the end of the line do end the string 
+(5 rows)
 

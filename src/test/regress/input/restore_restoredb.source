@@ -1,0 +1,122 @@
+-- start_ignore
+-- find version info
+select version();
+\! gp_restore --version
+\! pg_restore --version
+
+drop database if exists regressrestoretest1;
+create database regressrestoretest1;
+
+\! gp_restore --gp-d=@abs_builddir@/results/gpdump_datatype_dump --gp-k=`find @abs_builddir@/results/gpdump_datatype_dump/gp* -exec basename '{}' \; | head -1 | cut -f 1 -d '.' | cut -f 5 -d '_'` -d regressrestoretest1
+
+drop database if exists regressrestoretest2;
+create database regressrestoretest2;
+
+\! gp_restore -s --gp-d=@abs_builddir@/results/gpdump_datatype_schemadump --gp-k=`find @abs_builddir@/results/gpdump_datatype_schemadump/gp* -exec basename '{}' \; | head -1 | cut -f 1 -d '.' | cut -f 5 -d '_'` -d regressrestoretest2
+\! gp_restore -a --gp-d=@abs_builddir@/results/gpdump_datatype_datadump --gp-k=`find @abs_builddir@/results/gpdump_datatype_datadump/gp* -exec basename '{}' \; | head -1 | cut -f 1 -d '.' | cut -f 5 -d '_'` -d regressrestoretest2
+
+drop database if exists regressrestoretest3;
+create database regressrestoretest3;
+
+\! gp_restore --gp-d=@abs_builddir@/results/gpdump_datatype_dump_s6 --gp-k=`find @abs_builddir@/results/gpdump_datatype_dump_s6/gp* -exec basename '{}' \; | head -1 | cut -f 1 -d '.' | cut -f 5 -d '_'` -d regressrestoretest3
+
+drop database if exists regressrestoretest4;
+create database regressrestoretest4;
+
+\! gp_restore --gp-d=@abs_builddir@/results/gpdump_datatype_dump_t1 --gp-k=`find @abs_builddir@/results/gpdump_datatype_dump_t1/gp* -exec basename '{}' \; | head -1 | cut -f 1 -d '.' | cut -f 5 -d '_'` -d regressrestoretest4
+
+drop database if exists regressrestoretest5;
+create database regressrestoretest5;
+
+\! gp_restore --gp-d=@abs_builddir@/results/gpdump_datatype_dump_oid --gp-k=`find @abs_builddir@/results/gpdump_datatype_dump_oid/gp* -exec basename '{}' \; | head -1 | cut -f 1 -d '.' | cut -f 5 -d '_'` -d regressrestoretest5
+
+drop database if exists regressrestoretest6;
+create database regressrestoretest6;
+
+\! gp_restore --gp-d=@abs_builddir@/results/gpdump_datatype_dump_noowner --gp-k=`find @abs_builddir@/results/gpdump_datatype_dump_noowner/gp* -exec basename '{}' \; | head -1 | cut -f 1 -d '.' | cut -f 5 -d '_'` -d regressrestoretest6
+
+drop database if exists regressrestoretest7;
+create database regressrestoretest7;
+
+\! gp_restore --gp-c --gp-d=@abs_builddir@/results/gpdump_datatype_dump_zip --gp-k=`find @abs_builddir@/results/gpdump_datatype_dump_zip/gp* -exec basename '{}' \; | head -1 | cut -f 1 -d '.' | cut -f 5 -d '_'` -d regressrestoretest7
+
+-- The following will crash.  Move it to last.  See Jira MPP 1543
+drop database if exists regressrestoretest8;
+create database regressrestoretest8;
+
+\! gp_restore --gp-d=@abs_builddir@/results/gpdump_datatype_dump_seg --gp-k=`find @abs_builddir@/results/gpdump_datatype_dump_seg/gp* -exec basename '{}' \; | head -1 | cut -f 1 -d '.' | cut -f 5 -d '_'` -d regressrestoretest8
+
+\echo Now test pg_restore
+drop database if exists regressrestoretest9;
+create database regressrestoretest9;
+\! pg_restore -d regressrestoretest9 @abs_builddir@/results/pgdump_datatype/regressbkuptest1_fc
+
+drop database if exists regressrestoretest10;
+create database regressrestoretest10;
+\c regressrestoretest10
+\i @abs_builddir@/results/pgdump_datatype/regressbkuptest1_fp
+\c regression
+
+drop database if exists regressrestoretest11;
+create database regressrestoretest11;
+\! pg_restore -d regressrestoretest11 @abs_builddir@/results/pgdump_datatype/regressbkuptest1_ft
+
+drop database if exists regressrestoretest12;
+create database regressrestoretest12;
+\! pg_restore -d regressrestoretest12 @abs_builddir@/results/pgdump_datatype/regressbkuptest1_fc_Z
+
+drop database if exists regressrestoretest13;
+create database regressrestoretest13;
+\! pg_restore -d regressrestoretest13 @abs_builddir@/results/pgdump_datatype/regressbkuptest1_fc_schema
+\! pg_restore -d regressrestoretest13 @abs_builddir@/results/pgdump_datatype/regressbkuptest1_fc_data
+
+drop database if exists regressrestoretest14;
+create database regressrestoretest14;
+\! pg_restore -d regressrestoretest14 @abs_builddir@/results/pgdump_datatype/regressbkuptest1_fc_blobs
+
+drop database if exists regressrestoretest15;
+create database regressrestoretest15;
+\! pg_restore -d regressrestoretest15 @abs_builddir@/results/pgdump_datatype/regressbkuptest1_fc_create
+
+drop database if exists regressrestoretest16;
+create database regressrestoretest16;
+\! pg_restore -d regressrestoretest16 @abs_builddir@/results/pgdump_datatype/regressbkuptest1_fc_enc
+
+drop database if exists regressrestoretest17;
+create database regressrestoretest17;
+\! pg_restore -d regressrestoretest17 @abs_builddir@/results/pgdump_datatype/regressbkuptest1_fc_s6
+
+drop database if exists regressrestoretest18;
+create database regressrestoretest18;
+\! pg_restore -d regressrestoretest18 @abs_builddir@/results/pgdump_datatype/regressbkuptest1_fc_nos6
+
+drop database if exists regressrestoretest19;
+create database regressrestoretest19;
+\! pg_restore -d regressrestoretest19 @abs_builddir@/results/pgdump_datatype/regressbkuptest1_fc_t1
+
+drop database if exists regressrestoretest20;
+create database regressrestoretest20;
+\! pg_restore -d regressrestoretest20 @abs_builddir@/results/pgdump_datatype/regressbkuptest1_fc_not1
+
+drop database if exists regressrestoretest21;
+create database regressrestoretest21;
+\! pg_restore -d regressrestoretest21 @abs_builddir@/results/pgdump_datatype/regressbkuptest1_fc_oid
+
+drop database if exists regressrestoretest22;
+create database regressrestoretest22;
+\! pg_restore -d regressrestoretest22 @abs_builddir@/results/pgdump_datatype/regressbkuptest1_fc_noowner
+
+drop database if exists regressrestoretest23;
+create database regressrestoretest23;
+\! pg_restore -d regressrestoretest23 @abs_builddir@/results/pgdump_datatype/regressbkuptest1_fc_nopriv
+
+drop database if exists regressrestoretest24;
+create database regressrestoretest24;
+\! pg_restore -d regressrestoretest24 @abs_builddir@/results/pgdump_datatype/regressbkuptest1_fc_sqlquote
+
+drop database if exists regressrestoretest25;
+create database regressrestoretest25;
+\! pg_restore -d regressrestoretest25 @abs_builddir@/results/pgdump_datatype/regressbkuptest1_fc_gpsyntax
+
+-- end_ignore
+

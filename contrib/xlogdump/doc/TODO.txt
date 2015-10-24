@@ -1,0 +1,8 @@
+Todo list for xlogdump:
+
+* Refactor and cleanup code
+* Try to reuse more backend code as much as possible
+* Decode more types (arrays)
+* Remove necessity of database connection for decoding statements and names translations
+* Output DDL statements
+* Make xlogviewer module work with the xlogdump program, to make possible query the logs within a running cluster

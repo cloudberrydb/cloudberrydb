@@ -1,0 +1,2145 @@
+#!/bin/bash
+#	Filename:-		gpinitsystem
+#	Status:-		Released	
+#	Author:-		L Lonergan/G Coombe	
+#	Contact:-		gcoombe@greenplum.com
+#	Release date:-		March 2006
+#	Release stat:-		Released
+#                               Copyright (c) Metapa 2005. All Rights Reserved.
+#                               Copyright Greenplum database cluster
+#******************************************************************************
+# Update History
+#******************************************************************************
+# 	Date		Who		Update
+#	12/05/2006	G Coombe	Added a parallel create segment option
+#	4/26/2007	cmcdevitt	renamed from gpcreatecluster.sh
+#
+#******************************************************************************
+# Detailed Description
+#******************************************************************************
+#******************************************************************************
+# Prep Code
+
+WORKDIR=`dirname $0`
+
+# Source required functions file, this required for script to run
+# exit if cannot locate this file. Change location of FUNCTIONS variable
+# as required.
+FUNCTIONS=$WORKDIR/lib/gp_bash_functions.sh
+if [ -f $FUNCTIONS ]; then
+    . $FUNCTIONS
+else
+    echo "[FATAL]:-Cannot source $FUNCTIONS file Script Exits!"
+    exit 2
+fi
+
+#******************************************************************************
+# Script Specific Variables
+#******************************************************************************
+# Log file that will record script actions
+CUR_DATE=`$DATE +%Y%m%d`
+FILE_TIME=`$DATE +%H%M%S`
+PROG_NAME=`$BASENAME $0`
+HELP_DOC_NAME=`$ECHO $PROG_NAME|$AWK -F'.' '{print $1}'`_help
+BACKOUT_FILE=$DEFLOGDIR/backout_gpinitsystem_${USER_NAME}_${CUR_DATE}_$FILE_TIME
+# Level of script feedback 0=small 1=verbose
+VERBOSE=1
+INTERACTIVE=1
+MIRRORING=0
+INST_COUNT=0
+# Greenplum database specific parameters
+GP_USER=$USER_NAME
+# System table names
+GP_TBL=gp_id
+GP_CONFIG_TBL=gp_segment_configuration
+PG_SYSTEM_FILESPACE=3052
+GP_FAILOVER_CONFIG_TBL=gp_fault_strategy
+unset PG_CONF_ADD_FILE
+#unset QD_PRIMARY_ARRAY QE_PRIMARY_ARRAY QE_MIRROR_ARRAY
+EXIT_STATUS=0
+# ED_PG_CONF search text values
+PORT_TXT="#port"
+LOG_STATEMENT_TXT="#log_statement ="
+LISTEN_ADR_TXT="listen_addresses"
+CHKPOINT_SEG_TXT="checkpoint_segments"
+INIT_STANDBY_PROG=$GPINITSTANDBY
+QE_MIRROR_ARRAY=""
+GP_PASSWD=gparray
+TMP_PG_HBA=/tmp/pg_hba_conf_master.$$
+TMP_FILE=/tmp/cluster_tmp_file.$$
+TMP_HOSTNAME_FILE=/tmp/hostname_test_file.$$
+PARALLEL_STATUS_FILE=/tmp/gpinitsystem_parallel_status_file.$$
+GPCREATESEG=$WORKDIR/lib/gpcreateseg.sh
+ULIMIT_WARN=0
+MIRROR_TYPE=0
+REMOTE_HOST_COUNT=0
+SINGLE_HOST_BATCH_LIMIT=4
+INPUT_CONFIG=""
+OUTPUT_CONFIG=""
+GPHOSTCACHELOOKUP=$WORKDIR/lib/gphostcachelookup.py
+
+#******************************************************************************
+# DCA Specific Variables
+#******************************************************************************
+DCA_VERSION_FILE="/etc/gpdb-appliance-version"
+
+DCA_RESQUEUE_PRIORITY_NAME="gp_resqueue_priority"
+DCA_RESQUEUE_PRIORITY_CPUCORES_PER_SEGMENT_NAME="gp_resqueue_priority_cpucores_per_segment"
+DCA_RESQUEUE_PRIORITY_SWEEPER_INTERVAL_NAME="gp_resqueue_priority_sweeper_interval"
+
+DCA_MASTER_RESQUEUE_PRIORITY_VAL="on"
+DCA_MASTER_RESQUEUE_PRIORITY_CPUCORES_PER_SEGMENT_VAL=24
+DCA_MASTER_RESQUEUE_PRIORITY_SWEEPER_INTERVAL_VAL=1000
+
+DCA_SEGMENT_RESQUEUE_PRIORITY_VAL="on"
+DCA_SEGMENT_RESQUEUE_PRIORITY_CPUCORES_PER_SEGMENT_VAL=4
+DCA_SEGMENT_RESQUEUE_PRIORITY_SWEEPER_INTERVAL_VAL=1000
+
+#******************************************************************************
+# Functions
+#******************************************************************************
+USAGE () {
+	if [ -f ${GPDOCDIR}/$HELP_DOC_NAME ] && [ x"" == x"$SCRIPT_USAGE" ];then
+		$LESSCMD ${GPDOCDIR}/$HELP_DOC_NAME
+		exit 0
+	else
+		$ECHO
+		$ECHO "      `basename $0` -c gp_config_file [OPTIONS]"
+		$ECHO
+		$ECHO "      Creates a new Greenplum Database instance on a Master host and a number of"
+		$ECHO "      segment instance hosts."
+		$ECHO
+		$ECHO "      General options:"
+		$ECHO "      -?, display this help message & exit"
+		$ECHO "      -v, display version information & exit"
+		$ECHO
+		$ECHO "      Logging options:"
+		$ECHO "      -q, quiet mode, do not log progress to screen [default:- verbose output to screen]"
+		$ECHO "      -a, don't ask to confirm instance creation [default:- ask]"
+		$ECHO "      -l, logfile_directory [optional]"
+		$ECHO "          Alternative logfile directory"
+		$ECHO "      -D, set log output to debug level, shows all function calls"
+		$ECHO
+		$ECHO "      Configuration options:"
+		$ECHO "      -c, gp_config_file [mandatory]"
+		$ECHO "          Supplies all Greenplum configuration information required by this utility."
+		$ECHO "          Full description of all parameters contained within the example file"
+		$ECHO "          supplied with this distribution."
+		$ECHO "          Also see gpinitsystem_INSTRUCTIONS file for greater detail on"
+		$ECHO "          the operation and configuration of this script"
+		$ECHO "      -h, gp_hostlist_file [optional]"
+		$ECHO "          Contains a list of all segment instance hostnames required to participate in"
+		$ECHO "          the new Greenplum instance. Normally set in gp_config_file."
+		$ECHO "      -p, postgresql_conf_gp_additions [optional]"
+		$ECHO "          List of additional PostgreSQL parameters to be applied to each Master/Segment"
+		$ECHO "          postgresql.conf file during Greenplum database initialization."
+		$ECHO "      -s, standby_hostname [optional]"
+		$ECHO "      -P, standby_port [optional]"
+		$ECHO "      -F, standby_filespaces [optiona]"
+		$ECHO "      -i, do not initialize standby sync process [default:- start process]"
+		$ECHO "      -m, maximum number of connections for master instance [default ${DEFAULT_QD_MAX_CONNECT}]"
+		$ECHO "      -b, shared_buffers per instance [default $DEFAULT_BUFFERS]"
+		$ECHO "          Specify either the number of database I/O buffers (without suffix) or the"
+		$ECHO "          amount of memory to use for buffers (with suffix 'kB', 'MB' or 'GB')."
+		$ECHO "          Applies to master and all segments."
+		$ECHO "      -e, <password>, password to set for Greenplum superuser in database [default $GP_PASSWD]"
+		$ECHO "      -n, <locale>, setting for locale to be set when database initialized [default $DEFAULT_LOCALE_SETTING]"
+		$ECHO "      -B, <number> run this batch of create segment processes in parallel [default $BATCH_DEFAULT]"
+		$ECHO "      -S, configure spread mirroring [default group]"
+		$ECHO
+		$ECHO "      Return codes:"
+		$ECHO "      0 - No problems encountered with requested operation"
+		$ECHO "      1 - Warning generated, but instance operational"
+		$ECHO "      2 - Fatal error, instance not created/started, or in an inconsistent state,"
+	    	$ECHO "            see log file for failure reason."
+		$ECHO
+		exit $EXIT_STATUS
+	fi
+}
+
+# derive proper options for gpstart/gpstop based on VERBOSE and DEBUG_LEVEL.  
+# sample use:
+#     GPSTOP_OPTS=$(OUTPUT_LEVEL_OPTS)
+#
+OUTPUT_LEVEL_OPTS () {
+    if [ $VERBOSE ]; then
+        if [ $DEBUG_LEVEL -eq 1 ]; then
+    	    echo ' -v '
+        else
+    	    echo ''
+        fi
+    else
+        echo ' -q '
+    fi
+}
+
+# Check whether two intervals ($1, $2), ($3, $4) overlap
+# Returns 0 if the intervals overlap, 1 otherwise
+CHK_OVERLAP() {
+	if [[ $1 -ge $3 && $1 -le $4 ]]; then
+	   return 0;
+	elif [[ $3 -ge $1 && $3 -le $2 ]]; then
+	   return 0;
+	else
+       return 1;
+    fi
+}
+
+CHK_PARAMS () {
+		LOG_MSG "[INFO]:-Start Function $FUNCNAME"
+		LOG_MSG "[INFO]:-Checking configuration parameters, please wait..." 1
+		if [ $USER_NAME == "root" ]; then
+				ERROR_EXIT "[FATAL]:-Unable to run this script as $USER" 2
+		fi
+		if [ x"" = x"$GPHOME" ]; then
+				LOG_MSG "[FATAL]:-Environment variable \$GPHOME not set" 1
+				ERROR_EXIT "[FATAL]:-Unable to continue" 2
+		fi
+		# Check that we can see initdb
+		if [ x"$INITDB" = x"" ] || [ ! -x $INITDB ];then
+			ERROR_EXIT "[FATAL]:-Unable to locate initdb" 2
+		fi
+		# Make sure that script has been supplied a config file
+		if [ x"" == x"$CLUSTER_CONFIG" ] && [ x"" == x"$INPUT_CONFIG" ] ; then
+				ERROR_EXIT "[FATAL]:-Greenplum configuration filename [-c] option or [-I] option not provided." 2
+		fi
+		
+		if [ x"" != x"$CLUSTER_CONFIG" ] ; then
+		    # Check that we have a non-zero configuration file
+		    CHK_FILE $CLUSTER_CONFIG
+		    
+		    if [ $EXISTS -ne 0 ]; then
+		        ERROR_EXIT "[FATAL]:-Configuration file $CLUSTER_CONFIG does not exist." 2
+		    fi
+		    
+		    # Make sure old CLUSTER_CONFIG settings are not hanging around.
+		    unset PORT_BASE SEG_PREFIX DATA_DIRECTORY REPLICATION_PORT_BASE
+
+		    # Make sure it is not a dos file with CTRL M at end of each line
+		    $CAT $CLUSTER_CONFIG|$SED -e 's/^M$//g' > $TMP_FILE
+		    $MV $TMP_FILE $CLUSTER_CONFIG
+		    LOG_MSG "[INFO]:-Dumping $CLUSTER_CONFIG to logfile for reference"
+		    $CAT $CLUSTER_CONFIG|$GREP -v "^#" >> $LOG_FILE
+		    LOG_MSG "[INFO]:-Completed $CLUSTER_CONFIG dump to logfile"
+		    # Source the cluster configuration file
+		    LOG_MSG "[INFO]:-Reading Greenplum configuration file $CLUSTER_CONFIG" 1
+		    . $CLUSTER_CONFIG
+		    
+		    if [ x"" != x"$QD_PRIMARY_ARRAY" ] ; then
+			    ERROR_EXIT "[FATAL]:-Cannot specify QD_PRIMARY_ARRAY in '-c <config file>'.  Only valid with '-I <input file>'" 2
+		    fi
+
+		    if [ x"" = x"$PORT_BASE" ]; then
+			    ERROR_EXIT "[FATAL]:-PORT_BASE not specified in $CLUSTER_CONFIG file, is this the correct instance configuration file." 2
+		    fi
+
+		    if [ $MIRROR_PORT_BASE ]; then
+			    MIRRORING=1
+		    fi
+
+		else
+		    LOG_MSG "[INFO]:-Reading Greenplum input configuration file $INPUT_CONFIG"
+		    READ_INPUT_CONFIG
+		fi
+
+		if [ x"" != x"$REQ_LOCALE_SETTING" ];then LOCALE_SETTING=$REQ_LOCALE_SETTING;fi
+
+		
+		if [ x"" == x"$INPUT_CONFIG" ] ; then 
+		    if [ x"" != x"$MACHINE_LIST_FILE_ALT" ];then
+                        MACHINE_LIST_FILE=$MACHINE_LIST_FILE_ALT
+                    fi
+		    # Now check to see if MACHINE_LIST_FILE is still empty
+		    if [ x"" == x"$MACHINE_LIST_FILE" ];then
+			LOG_MSG "[FATAL]:-MACHINE_LIST_FILE variable is unset, and -h option not supplied" 1
+			ERROR_EXIT "[FATAL]:-Unable to continue" 2
+		    fi
+		fi
+
+		# Check for required definitions in the CLUSTER_CONFIG file
+		if [ x"" = x"$SEG_PREFIX" ]; then
+			ERROR_EXIT "[FATAL]:-SEG_PREFIX not specified in $CLUSTER_CONFIG file, is this the correct instance configuration file." 2
+		fi
+		if [ x"" = x"$DATA_DIRECTORY" ]; then
+			ERROR_EXIT "[FATAL]:-DATA_DIRECTORY not specified in $CLUSTER_CONFIG file, is this the correct instance configuration file." 2
+		fi
+		if [ x"" == x"$LOCALE_SETTING" ];then
+			LOG_MSG "[INFO]:-Locale has not been set in $CLUSTER_CONFIG, will set to default value" 1
+			LOCALE_SETTING=$DEFAULT_LOCALE_SETTING
+			# Now check to see if the system has this locale available
+			CHK_LOCALE_KNOWN
+			LOG_MSG "[INFO]:-Locale set to $DEFAULT_LOCALE_SETTING" 1
+		else
+			LOG_MSG "[INFO]:-Locale set to $LOCALE_SETTING"
+			CHK_LOCALE_KNOWN
+		fi
+		LOG_MSG "[INFO]:-Dump current system locale to log file"
+		$LOCALE >> $LOG_FILE
+		LOG_MSG "[INFO]:-End of system locale dump"
+		if [ ! -f $GPCREATESEG ];then
+			ERROR_EXIT "[FATAL]:-No $GPCREATESEG exists" 2
+		fi
+
+		if [ x"" == x"$INPUT_CONFIG" ] ; then
+		    # Check the other files that are required to be able to continue
+		    FILE_LIST=($MACHINE_LIST_FILE)
+		    for FILE in "${FILE_LIST[@]}"
+		    do
+			CHK_FILE $FILE
+			if [ $EXISTS -ne 0 ]; then
+			    ERROR_EXIT "[FATAL]:-Problem with $FILE file" 2
+			else
+			    LOG_MSG "[INFO]:-Completed check of file $FILE"
+			fi
+		    done
+		    CHK_DUPLICATES
+		    # Set up the machine list array
+		    LOG_MSG "[INFO]:-Setting up segment instance list array"
+		    declare -a MACHINE_LIST=(`$CAT $MACHINE_LIST_FILE|$SORT`)
+		fi
+		# Now process contents for the configuration file
+		if [ ! "$ARRAY_NAME" ]; then
+			LOG_MSG "[WARN]:-ARRAY_NAME variable not set, will provide default value" 1
+			EXIT_STATUS=1
+			ARRAY_NAME="Greenplum Instance"
+		fi
+		export ARRAY_NAME
+
+		if [ x"" = x"$MASTER_HOSTNAME" ]; then
+			ERROR_EXIT "[FATAL]:MASTER_HOSTNAME variable not set" 2
+		fi
+
+		# Make sure that this script is running on the QD host
+		if [ $MASTER_HOSTNAME != `$HOSTNAME` ]; then
+			LOG_MSG "[WARN]:-Master hostname $MASTER_HOSTNAME does not match hostname output" 1
+			LOG_MSG "[INFO]:-Checking to see if $MASTER_HOSTNAME can be resolved on this host" 1
+			$TRUSTED_SHELL $MASTER_HOSTNAME "$TOUCH $TMP_HOSTNAME_FILE"
+			if [ -f $TMP_HOSTNAME_FILE ];then
+				LOG_MSG "[INFO]:-Can resolve $MASTER_HOSTNAME to this host" 1
+				$RM -f $TMP_HOSTNAME_FILE
+			else
+				$TRUSTED_SHELL $MASTER_HOSTNAME "$RM -f $TMP_HOSTNAME_FILE"
+				LOG_MSG "[FATAL]:-Master hostname in configuration file is ${MASTER_HOSTNAME}" 1
+				LOG_MSG "[FATAL]:-Operating system command returns `$HOSTNAME`" 1
+				LOG_MSG "[FATAL]:-Unable to resolve $MASTER_HOSTNAME on this host" 1
+				ERROR_EXIT "[FATAL]:-Master hostname in gpinitsystem configuration file must be $MASTER_HOSTNAME" 2
+			fi
+		fi
+
+
+		# Deal with issue of mixed case segment names being created in all lower case on tails but mixed
+		# case in head system tables.
+		LWR_CASE_SEG_PREFIX=`$ECHO $SEG_PREFIX|$TR '[A-Z]' '[a-z]'`
+		SEG_PREFIX=$LWR_CASE_SEG_PREFIX
+
+		# MASTER_PORT
+		if [ x"" = x"$MASTER_PORT" ]; then
+			ERROR_EXIT "[FATAL]:-MASTER_PORT variable not set" 2
+		fi
+
+		# DATA_DIRECTORY
+		((QE_PRIMARY_COUNT=${#DATA_DIRECTORY[@]}))
+		if [ $QE_PRIMARY_COUNT -eq 0 ]; then
+			ERROR_EXIT "[FATAL]:-Number of primary directories 0 (zero)" 2
+		fi
+
+		# MASTER_DIRECTORY
+		if [ x"" = x"$MASTER_DIRECTORY" ]; then
+			ERROR_EXIT "[FATAL]:-MASTER_DIRECTORY variable not set" 2
+		fi
+		# Check that we have write access to the proposed master data directory
+                W_DIR=$MASTER_DIRECTORY
+                LOG_MSG "[INFO]:-Checking write access to $W_DIR on master host"
+                $TOUCH ${W_DIR}/tmp_file_test
+                RETVAL=$?
+                if [ $RETVAL -ne 0 ];then
+                        ERROR_EXIT "[FATAL]:-Cannot write to $W_DIR on master host " 2
+                else
+                        $RM -f ${W_DIR}/tmp_file_test
+                        LOG_MSG "[INFO]:-Write test passed $W_DIR directory on master host"
+		fi	
+		# Check that the master segment directory does not exist
+		if [ -d ${MASTER_DIRECTORY}/${SEG_PREFIX}-1 ];then
+			ERROR_EXIT "[FATAL]:-Master host data directory ${MASTER_DIRECTORY}/${SEG_PREFIX}-1 already exists" 2
+		fi
+		# DATABASE_PREFIX
+		if [ x"" = x"$DATABASE_NAME" ]; then
+			LOG_MSG "[INFO]:-No DATABASE_NAME set, will exit following $DEFAULTDB updates" 1
+		else
+			LOG_MSG "[INFO]:-Will create database $DATABASE_NAME"
+		fi
+		if [ ! $TRUSTED_SHELL ]; then
+				ERROR_EXIT "[FATAL]:-TRUSTED_SHELL variable not set" 2
+		fi
+		# CHECK_POINT_SEGMENTS
+		if [ ! $CHECK_POINT_SEGMENTS ]; then
+			LOG_MSG "[WARN]:-CHECK_POINT_SEGMENTS variable not set, will set to default value"  1
+			CHECK_POINT_SEGMENTS=$DEFAULT_CHK_PT_SEG
+		fi
+		# ENCODING
+		if [ ! $ENCODING ]; then
+			LOG_MSG "[WARN]:-ENCODING variable not set, will set to default UTF-8" 1
+			EXIT_STATUS=1
+			ENCODING="UTF-8"
+		fi
+		if [ x"SQL_ASCII" = x"$ENCODING" ]; then
+			ERROR_EXIT "[FATAL]:-SQL_ASCII is no longer supported as a server encoding" 2
+		fi
+		# MASTER_MAX_CONNECT
+		if [ ! $MASTER_MAX_CONNECT ];then
+			LOG_MSG "[INFO]:-MASTER_MAX_CONNECT not set, will set to default value $DEFAULT_QD_MAX_CONNECT" 1
+			MASTER_MAX_CONNECT=$DEFAULT_QD_MAX_CONNECT
+		else
+			if [ $MASTER_MAX_CONNECT -lt 1 ];then
+				ERROR_EXIT "[FATAL]:-MASTER_MAX_CONNECT less than 1" 2
+			fi
+		fi
+		((QE_MAX_CONNECT=$MASTER_MAX_CONNECT*$QE_CONNECT_FACTOR))
+		LOG_MSG "[INFO]:-Setting segment instance MAX_CONNECTIONS to $QD_MAX_CONNECT"
+		if [ x"" == x"$NEW_BUFFERS" ];then
+			MASTER_SHARED_BUFFERS=$DEFAULT_BUFFERS
+			QE_SHARED_BUFFERS=$DEFAULT_BUFFERS
+		else
+			# removed code that forced at least 1000 buffers -kh 3/14/07
+			MASTER_SHARED_BUFFERS=$NEW_BUFFERS
+			QE_SHARED_BUFFERS=$NEW_BUFFERS
+			LOG_MSG "[INFO]:-Set shared buffers to $NEW_BUFFERS"
+		fi
+		# Number of QE hosts in this configuration
+		((NUM_QES=${#MACHINE_LIST[*]}))
+		if [ $NUM_QES -eq 0 ]; then
+			ERROR_EXIT "[FATAL]:-Number of Segment instances's 0 (zero)" 2
+		else
+			LOG_MSG "[INFO]:-Number of segment instance hosts = $NUM_QES"
+			if [ $NUM_QES -eq 1 ];then
+				# This is a single host array, re-tune the BATCH_DEFAULT to 4
+				if [ $BATCH_DEFAULT -gt $SINGLE_HOST_BATCH_LIMIT ];then
+				LOG_MSG "[INFO]:-Detected a single host GPDB array build, reducing value of BATCH_DEFAULT from $BATCH_DEFAULT to $SINGLE_HOST_BATCH_LIMIT" 1
+				BATCH_DEFAULT=$SINGLE_HOST_BATCH_LIMIT
+				fi
+			fi
+		fi
+
+		# Mirror configuration
+		if [ $MIRRORING -eq 1 ]; then
+			((NUM_MIRROR_DIRECTORY=${#MIRROR_DATA_DIRECTORY[@]}))
+			if [ x"" == x"$INPUT_CONFIG" ] ; then
+				if [ $NUM_MIRROR_DIRECTORY -ne $QE_PRIMARY_COUNT ]; then
+					ERROR_EXIT "[FATAL]:-Number of primary directories does not match number of mirror directories" 2
+				fi
+			fi
+			
+			for dir in "${DATA_DIRECTORY[@]}"
+			do
+				for mirrordir in "${MIRROR_DATA_DIRECTORY[@]}"
+				do
+					if [ $dir == $mirrordir ] ; then
+						ERROR_EXIT "[FATAL]:-Conflict between data directory and mirror data directory ($dir)." 2
+					fi
+				done
+			done
+		fi
+
+		# Check open files value
+		MASTER_OPEN=`ulimit -n`
+		if [ $MASTER_OPEN -lt $OS_OPENFILES ];then
+			LOG_MSG "[WARN]:-Master open file limit is $MASTER_OPEN should be >= $OS_OPENFILES" 1
+			EXIT_STATUS=1
+			ULIMIT_WARN=1
+		fi
+		# Get IP address of the master host
+
+		MASTER_IP_ADDRESS_ALL=(`$IFCONFIG $IFCONFIG_TXT |$GREP "inet "|$GREP -v "127.0.0"|$AWK '{print $2}'|$CUT -d: -f2`)
+		ERROR_CHK $? "obtain IP address of Master host" 2
+		MASTER_IPV6_LOCAL_ADDRESS_ALL=(`$IPV6_ADDR_LIST_CMD |$GREP inet6|$AWK '{print $2}' |$CUT -d'/' -f1`)
+		MASTER_IP_ADDRESS=(`$ECHO ${MASTER_IP_ADDRESS_ALL[@]} ${MASTER_IPV6_LOCAL_ADDRESS_ALL[@]}|$TR ' ' '\n'|$SORT -u|$TR '\n' ' '`)
+		LOG_MSG "[INFO]:-Master IP address array = ${MASTER_IP_ADDRESS[@]}"
+		if [ x"" != x"$STANDBY_HOSTNAME" ];then
+			STANDBY_IP_ADDRESS_ALL=(`$TRUSTED_SHELL $STANDBY_HOSTNAME "$IFCONFIG $IFCONFIG_TXT |$GREP \"inet \"|$GREP -v \"127.0.0\"|$AWK '{print \\$2}'|$CUT -d: -f2" 2>>$LOG_FILE`) 
+            STANDBY_IPV6_ADDRESS_ALL=(`$TRUSTED_SHELL $STANDBY_HOSTNAME "$IPV6_ADDR_LIST_CMD |$GREP inet6|$AWK '{print \\$2}' |$CUT -d'/' -f1" 2>>$LOG_FILE`)
+			STANDBY_IP_ADDRESS=(`$ECHO ${STANDBY_IP_ADDRESS_ALL[@]} ${STANDBY_IPV6_ADDRESS_ALL[@]}|$TR ' ' '\n'|$SORT -u|$TR '\n' ' '`)
+			ERROR_CHK $? "obtain IP address of standby Master host" 2
+			LOG_MSG "[INFO]:-Standby IP address array = ${STANDBY_IP_ADDRESS[@]}"
+			#Check open files value
+			STANDBY_MASTER_OPEN=`$TRUSTED_SHELL $STANDBY_HOSTNAME "ulimit -n"`
+			if [ $STANDBY_MASTER_OPEN -lt $OS_OPENFILES ];then
+				LOG_MSG "[WARN]:-Standby Master open file limit is $STANDBY_MASTER_OPEN should be >= $OS_OPENFILES" 1
+				EXIT_STATUS=1
+				ULIMIT_WARN=1
+			fi
+		fi
+		
+		# Validate that the different locale settings are available of the system
+		# Note: This check is performed on the master only.  There is an assumption
+		# being made that the locales available on the master are available on the
+		# segment hosts.
+		if [ x"" != x"$REQ_LOCALE_SETTING" ]; then
+			IN_ARRAY $REQ_LOCALE_SETTING "`locale -a`"
+			if [ $? -eq 0 ]; then
+				ERROR_EXIT "[FATAL]-Value $REQ_LOCALE_SETTING is not a valid value for --locale on this system." 2
+			fi
+		fi
+		if [ x"" != x"$LCCOLLATE" ]; then
+			IN_ARRAY $LCCOLLATE "`locale -a`"
+			if [ $? -eq 0 ]; then
+				ERROR_EXIT "[FATAL]-Value $LCCOLLATE is not a valid value for --lc-collate on this system." 2
+			fi	
+		fi
+		if [ x"" != x"$LCCTYPE" ]; then
+			IN_ARRAY $LCCTYPE "`locale -a`"
+			if [ $? -eq 0 ]; then
+				ERROR_EXIT "[FATAL]-Value $LCCTYPE is not a valid value for --lc-ctype on this system." 2
+			fi
+		fi
+		if [ x"" != x"$LCMESSAGES" ]; then
+			IN_ARRAY $LCMESSAGES "`locale -a`"
+			if [ $? -eq 0 ]; then
+				ERROR_EXIT "[FATAL]-Value $LCMESSAGES is not a valid value for --lc-messages on this system." 2
+			fi
+		fi
+		
+		if [ x"" != x"$LCMONETARY" ]; then
+			IN_ARRAY $LCMONETARY "`locale -a`"
+			if [ $? -eq 0 ]; then
+				ERROR_EXIT "[FATAL]-Value $LCMONETARY is not a valid value for --lc-monetary on this system." 2
+			fi
+		fi
+		
+		if [ x"" != x"$LCNUMERIC" ]; then
+			IN_ARRAY $LCNUMERIC "`locale -a`"
+			if [ $? -eq 0 ]; then
+				ERROR_EXIT "[FATAL]-Value $LCNUMERIC is not a valid value for --lc-numeric on this system." 2
+			fi
+		fi
+		
+		if [ x"" != x"$LCTIME" ]; then
+			IN_ARRAY $LCTIME "`locale -a`"
+			if [ $? -eq 0 ]; then
+				ERROR_EXIT "[FATAL]-Value $LCTIME is not a valid value for --lc-time on this system." 2
+			fi
+		fi
+		LOG_MSG "[INFO]:-Checking configuration parameters, Completed" 1
+		LOG_MSG "[INFO]:-End Function $FUNCNAME"
+}
+
+CHK_MULTI_HOME () {
+	LOG_MSG "[INFO]:-Start Function $FUNCNAME"
+	LOG_MSG "[INFO]:-Commencing multi-home checks, please wait..." 1
+
+	# For MPP-12043 we need a way to sort that we can't get with the sort command
+	# so we'll use a little command line python script.
+
+read -d '' HOSTNAME_SORTER <<"END_PYTHON_CODE"
+import sys, re
+
+standard_host_re = re.compile(r'([a-zA-Z]+)((\\d+)(-(\\d+))?)')
+
+def standard_host_cmp(h1, h2):
+	m1 = standard_host_re.match(h1)
+	m2 = standard_host_re.match(h2)
+
+	if not m1 or not m2:
+		if h1 == h2:
+		        return 0
+		elif h1 < h2:
+		        return -1
+		else:
+		        return 1
+	else:
+		if m1.group(1) <= m2.group(1):
+			if not int(m1.group(3)) == int(m2.group(3)):
+				return int(m1.group(3)) - int(m2.group(3))
+			elif m1.group(5):
+				return int(m1.group(5)) - int(m2.group(5))
+			else:
+				return 0
+		else:
+			return 1
+
+hl = sys.stdin.readlines()
+for h in sorted(hl,cmp=standard_host_cmp):
+        print h,
+END_PYTHON_CODE
+
+	MACHINE_LIST=(`$CAT $MACHINE_LIST_FILE|python -c "$HOSTNAME_SORTER"`)
+	M_HOST_ARRAY=()
+	MCOUNT=0
+	for MHOST in ${MACHINE_LIST[@]}
+	do
+		if [ $DEBUG_LEVEL -eq 0 ] && [ x"" != x"$VERBOSE" ];then $NOLINE_ECHO ".\c";fi
+		PING_HOST $MHOST
+		SEG_HOSTNAME=`$TRUSTED_SHELL $MHOST "$HOSTNAME"`
+		if [ $? -ne 0 ];then
+			LOG_MSG "[FATAL]:-Remote command to host $MHOST failed to get value of hostname"
+			$ECHO "[FATAL]:-Remote command to host $MHOST failed to get value of hostname"
+			LOG_MSG "[FATAL]:-Check to see that you have setup trusted remote ssh on all hosts"
+			$ECHO "[FATAL]:-Check to see that you have setup trusted remote ssh on all hosts"
+
+			ERROR_EXIT "[FATAL]:-Unable to get hostname output for $MHOST" 2
+		fi
+		if [ `$ECHO ${T_SEG_ARRAY[@]}|$TR ' ' '\n'|$GREP -c "^${SEG_HOSTNAME}$"` -eq 0 ];then
+			T_SEG_ARRAY=(${T_SEG_ARRAY[@]} $SEG_HOSTNAME)
+		fi
+		T_HOST_ARRAY=(${T_HOST_ARRAY[@]} ${MHOST}~$SEG_HOSTNAME)	
+		((MCOUNT=$MCOUNT+1))
+	done
+	if [ $DEBUG_LEVEL -eq 0 ] && [ x"" != x"$VERBOSE" ];then $ECHO;fi
+	# Now sort the array to ensure that all SEG_HOSTNAME values together
+	for S_HOST in ${T_SEG_ARRAY[@]}
+	do
+		M_HOST_ARRAY=(${M_HOST_ARRAY[@]} `$ECHO ${T_HOST_ARRAY[@]}|$TR ' ' '\n'|$GREP "~${S_HOST}$"|$TR '\n' ' '`)
+	done
+	. $CLUSTER_CONFIG
+	NUM_DATADIR=${#DATA_DIRECTORY[@]}
+	if [ `$ECHO ${M_HOST_ARRAY[@]}|$TR ' ' '\n'|$AWK -F"~" '{print $2}'|$SORT -u|$WC -l` -ne $MCOUNT ];then
+		LOG_MSG "[INFO]:-Configuring build for multi-home array" 1
+		MULTI_HOME=1
+		# Now make sure that we have same number of unique hostnames as there are data directories declared
+		HOST1=`$ECHO ${M_HOST_ARRAY[0]}|$AWK -F"~" '{print $2}'`
+		NUM_MHOST_NODE=`$ECHO ${M_HOST_ARRAY[@]}|$TR ' ' '\n'|$GREP "~${HOST1}$"|$WC -l`
+
+                ((REMAINDER=$NUM_DATADIR % $NUM_MHOST_NODE))                
+                ((MULTIPLE=$NUM_DATADIR / $NUM_MHOST_NODE))
+                if [ $REMAINDER -ne 0 ] || [ $MULTIPLE -eq 0 ] ;then                        
+		    LOG_MSG "[FATAL]:-Inconsistency between number of multi-home hostnames and number of segments per host" 1
+		    LOG_MSG "[INFO]:-Have $NUM_DATADIR data directories and $NUM_MHOST_NODE multi-home hostnames for each host" 1
+		    LOG_MSG "[INFO]:-For multi-home configuration, number of segment instance data directories per host must be multiple of" 1
+                    LOG_MSG "[INFO]:-the number of multi-home hostnames within the GPDB array" 1
+                    ERROR_EXIT "[FATAL]:-Unable to continue" 2
+                fi
+
+		if [ $MULTIPLE -gt 1 ] ; then
+			# Now need to increase the size of M_HOME_ARRAY to fake a multi-home array
+			HOME_COUNT=1
+			FAKE_M_HOST_ARRAY=(${M_HOST_ARRAY[@]})                
+			while [ $HOME_COUNT -lt $MULTIPLE ]
+			do
+				FAKE_M_HOST_ARRAY=(${FAKE_M_HOST_ARRAY[@]} ${M_HOST_ARRAY[@]})
+				((HOME_COUNT=$HOME_COUNT+1))
+			done
+			M_HOST_ARRAY=()
+			for S_HOST in ${T_SEG_ARRAY[@]}
+			do
+				M_HOST_ARRAY=(${M_HOST_ARRAY[@]} `$ECHO ${FAKE_M_HOST_ARRAY[@]}|$TR ' ' '\n'|$GREP "~${S_HOST}$"| $SORT | $TR '\n' ' '`)
+			done
+		fi
+	else
+		LOG_MSG "[INFO]:-Configuring build for standard array" 1
+		MULTI_HOME=0
+		# Now need to increase the size of M_HOME_ARRAY to fake a multi-home array
+		HOME_COUNT=1
+		FAKE_M_HOST_ARRAY=(${M_HOST_ARRAY[@]})
+		while [ $HOME_COUNT -lt $NUM_DATADIR ]
+		do
+			FAKE_M_HOST_ARRAY=(${FAKE_M_HOST_ARRAY[@]} ${M_HOST_ARRAY[@]})
+			((HOME_COUNT=$HOME_COUNT+1))
+		done
+		M_HOST_ARRAY=(`$ECHO ${FAKE_M_HOST_ARRAY[@]}|$TR ' ' '\n'|$SORT |$TR '\n' ' '`)
+	fi
+	NUM_SEP_HOSTS=`$ECHO ${M_HOST_ARRAY[@]}|$TR ' ' '\n'|$AWK -F"~" '{print $2}'|$SORT -u|$WC -l`
+	if [ $MIRRORING -eq 1 ] && [ $MIRROR_TYPE -eq 1 ];then
+	# Mirroring is on and spread mirror configuration has been requested, make sure sufficient hosts
+		if [ $NUM_SEP_HOSTS -eq 1 ] || [ $NUM_SEP_HOSTS -le $NUM_DATADIR ];then
+			LOG_MSG "[FATAL]:-Request made for spread mirroring via -S option, but insufficient hosts available" 1
+			LOG_MSG "[INFO]:-Number of separate hosts must be greater than number of segment instances per host" 1
+			ERROR_EXIT "[FATAL]:-Unable to continue" 2
+		else
+			LOG_MSG "[INFO]:-Sufficient hosts for spread mirroring request" 1
+		fi 
+	fi
+	if [ $MIRRORING -eq 0 ] && [ $MIRROR_TYPE -eq 1 ];then
+		LOG_MSG "[WARN]:-Option -S supplied, but no mirrors have been defined, ignoring -S option" 1
+		MIRROR_TYPE=0
+		EXIT_STATUS=1
+	fi
+	LOG_MSG "[INFO]:-Commencing multi-home checks, Completed" 1
+	LOG_MSG "[INFO]:-End Function $FUNCNAME"
+}
+
+
+CHK_LOCALE_KNOWN () {
+	LOG_MSG "[INFO]:-Start Function $FUNCNAME"
+	if [ $# -eq 0 ];then
+		if [ `$LOCALE -a |$GREP -ic $LOCALE_SETTING` -eq 0 ];then
+			LOG_MSG "[INFO]:-Master host available locale values"
+			$LOCALE -a >> $LOG_FILE
+			LOG_MSG "[FATAL]:-Unable to locate locale value $LOCALE_SETTING on this host" 1
+			LOG_MSG "[INFO]:-Select another locale value via -n option to this utility" 1
+			LOG_MSG "[INFO]:-Avaliable locale values have been dumped to the log file" 1
+			ERROR_EXIT "[FATAL]:-Unable to continue" 2
+		else
+			LOG_MSG "[INFO]:-Locale check passed on this host" 
+		fi
+	else
+		# Hostname has been passed so check remote locale value
+		if [ `$TRUSTED_SHELL $1 "$LOCALE -a|$GREP -ic '$LOCALE_SETTING'"` -eq 0 ];then
+			LOG_MSG "[INFO]:-Host $1 available locale values"
+			`$TRUSTED_SHELL $1 "$LOCALE -a"` >> $LOG_FILE
+			LOG_MSG "[FATAL]:-Unable to locate locale value $LOCALE_SETTING on $1" 1
+			LOG_MSG "[INFO]:-Select another locale value via -n option to this utility" 1
+			LOG_MSG "[INFO]:-Avaliable locale values have been dumped to the log file" 1 
+			ERROR_EXIT "[FATAL]:-Unable to continue" 2
+		else
+			LOG_MSG "[INFO]:-Locale check passed on $1" 
+		fi
+	fi
+	LOG_MSG "[INFO]:-End Function $FUNCNAME"
+}
+
+CHK_DUPLICATES () {
+		LOG_MSG "[INFO]:-Start Function $FUNCNAME"
+		if [ `$ECHO | $CAT $MACHINE_LIST_FILE - |$GREP -v $"^$"|$WC -l` -ne `$CAT $MACHINE_LIST_FILE|$GREP -v "^$"|$SORT -u|$WC -l` ]
+		then
+			ERROR_EXIT "[FATAL]:-Duplicate segment instance hostname exists in $MACHINE_LIST_FILE" 2
+		fi
+		LOG_MSG "[INFO]:-No duplicate segment instance hostnames found, will proceed"
+		LOG_MSG "[INFO]:-End Function $FUNCNAME"
+}
+
+CHK_OPEN_FILES () {
+	LOG_MSG "[INFO]:-Start Function $FUNCNAME"
+	LOG_MSG "[INFO]:-Checking $1"
+	OPEN_VALUE=`$TRUSTED_SHELL $1 "ulimit -n"`
+	if [ $OPEN_VALUE -lt $OS_OPENFILES ];then
+		LOG_MSG "[WARN]:-Host $1 open files limit is $OPEN_VALUE should be >= $OS_OPENFILES" 1
+		EXIT_STATUS=1
+		ULIMIT_WARN=1
+	fi
+	LOG_MSG "[INFO]:-End Function $FUNCNAME"
+}
+
+CHK_QES () {
+	LOG_MSG "[INFO]:-Start Function $FUNCNAME"
+	LOG_MSG "[INFO]:-Checking Master host" 1
+	SET_VAR $QD_PRIMARY_ARRAY
+	CHK_DIR $GP_DIR
+	if [ $EXISTS -eq 0 ]; then
+		ERROR_EXIT "[FATAL]:-Master directory $GP_DIR already exists" 2
+	fi
+	GET_PG_PID_ACTIVE $GP_PORT
+	if [ $PID -ne 0 ];then
+		ERROR_EXIT "[FATAL]:-Found indication of postmaster process on port $GP_PORT on Master host" 2
+	fi
+	LOG_MSG "[INFO]:-Checking new segment hosts, please wait..." 1
+
+    CHECK_LIST=(`$ECHO ${MACHINE_LIST[@]} | $TR ' ' '\n' | $GREP -v "${HOSTNAME}\$" | $SORT | $TR '\n' ' '`)
+    for QE_ID in ${CHECK_LIST[@]}
+    do
+        CHK_LOCALE_KNOWN $QE_ID
+        CHK_OPEN_FILES $GP_HOSTADDRESS
+        POSTGRES_VERSION_CHK $GP_HOSTADDRESS
+        if [ $VERSION_MATCH -ne 1 ] ; then
+            ERROR_EXIT "Postgres version does not match" 2
+        fi
+
+        # Check to ensure have required QE directories
+        for DIR in "${DATA_DIRECTORY[@]}"
+        do
+            if [ $DEBUG_LEVEL -eq 0 ] && [ x"" != x"$VERBOSE" ];then $NOLINE_ECHO ".\c";fi
+            LOG_MSG "[INFO]:-Checking segment instance $QE_ID directory $DIR"
+            CHK_DIR $DIR $QE_ID
+            if [ $EXISTS -ne 0 ]; then
+                ERROR_EXIT "[FATAL]:-No $DIR on segment instance $QE_ID" 2
+            else
+                LOG_MSG "[INFO]:-$QE_ID $DIR checked"
+            fi
+        done
+        # Check that we have a GP_LIBRARY_PATH directory on the QE
+        CHK_DIR $GP_LIBRARY_PATH $QE_ID
+        if [ $EXISTS -ne 0 ]; then
+            ERROR_EXIT "[FATAL]:-No $GP_LIBRARY_PATH on segment instance $QE_ID" 2
+        else
+            LOG_MSG "[INFO]:-Segment instance $QE_ID $GP_LIBRARY_PATH checked"
+        fi
+    done
+
+    # Check to ensure that instance directories do not exist on hosts
+    LOG_MSG "[INFO]:-Primary segment instance directory check"
+    for I in "${QE_PRIMARY_ARRAY[@]}"
+    do
+        if [ $DEBUG_LEVEL -eq 0 ] && [ x"" != x"$VERBOSE" ];then $NOLINE_ECHO ".\c";fi
+        SET_VAR $I
+        LOG_MSG "[INFO]:-Checking $GP_HOSTADDRESS for dir $GP_DIR"
+        CHK_DIR $GP_DIR $GP_HOSTADDRESS
+        if [ $EXISTS -eq 0 ]; then
+            ERROR_EXIT "[FATAL]:-Instance directory $GP_DIR exists on segment instance $GP_HOSTADDRESS" 2
+        fi
+        # Check that the hostname is not associated with local host
+        LOG_MSG "[INFO]:-Checking $GP_HOSTADDRESS $HOSTFILE for localhost set as $GP_HOSTADDRESS"
+        LOCAL_COUNT=`$TRUSTED_SHELL $GP_HOSTADDRESS "$GREP $GP_HOSTADDRESS $HOSTFILE|$GREP -c localhost"`
+        if [ $LOCAL_COUNT -ne 0 ];then
+            LOG_MSG "[WARN]:-----------------------------------------------------------" 1
+            LOG_MSG "[WARN]:-Host $GP_HOSTADDRESS is assigned as localhost in $HOSTFILE"  1
+            LOG_MSG "[WARN]:-This will cause segment->master communication failures" 1
+            LOG_MSG "[WARN]:-Remove $GP_HOSTADDRESS from local host line in /etc/hosts" 1
+            LOG_MSG "[WARN]:-----------------------------------------------------------" 1
+            EXIT_STATUS=1
+        fi
+        # Check that we can write to the QE directory
+        W_DIR=`$DIRNAME $GP_DIR`
+        LOG_MSG "[INFO]:-Checking write access to $W_DIR on $GP_HOSTADDRESS"
+        $TRUSTED_SHELL $GP_HOSTADDRESS "$TOUCH ${W_DIR}/tmp_file_test"
+        RETVAL=$?
+        if [ $RETVAL -ne 0 ];then
+            ERROR_EXIT "[FATAL]:-Cannot write to $W_DIR on $GP_HOSTADDRESS " 2
+        else
+            $TRUSTED_SHELL $GP_HOSTADDRESS "$RM -f ${W_DIR}/tmp_file_test"
+            LOG_MSG "[INFO]:-Write test passed on $GP_HOSTADDRESS $W_DIR directory"
+        fi
+
+    done
+    # Check for mirror directories if mirroring configured
+    if [ $MIRRORING -ne 0 ]; then
+        LOG_MSG "[INFO]:-Mirror segment instance directory check"
+        for I in "${QE_MIRROR_ARRAY[@]}"
+        do
+            if [ $DEBUG_LEVEL -eq 0 ] && [ x"" != x"$VERBOSE" ];then $NOLINE_ECHO ".\c";fi
+            SET_VAR $I
+            LOG_MSG "[INFO]:-Checking $GP_HOSTADDRESS for dir $GP_DIR"
+            CHK_DIR $GP_DIR $GP_HOSTADDRESS
+            if [ $EXISTS -eq 0 ]; then
+                ERROR_EXIT "[FATAL]:-Instance directory $GP_DIR exists on segment instance $GP_HOSTADDRESS" 2
+            fi
+                            # Check that we can write to the QE directory
+                        W_DIR=`$DIRNAME $GP_DIR`
+            LOG_MSG "[INFO]:-Checking write access to $W_DIR on $GP_HOSTADDRESS"
+            $TRUSTED_SHELL $GP_HOSTADDRESS "$TOUCH ${W_DIR}/tmp_file_test"
+            RETVAL=$?
+            if [ $RETVAL -ne 0 ];then
+                ERROR_EXIT "[FATAL]:-Cannot write to $W_DIR on $GP_HOSTADDRESS " 2
+            else
+                $TRUSTED_SHELL $GP_HOSTADDRESS "$RM -f ${W_DIR}/tmp_file_test"
+                LOG_MSG "[INFO]:-Write test passed on $GP_HOSTADDRESS $W_DIR directory"
+            fi
+        done
+    else
+        LOG_MSG "[INFO]:-Mirror segment instance directory check skipped, mirroring=Off"
+    fi
+
+    if [ x"" != x"$STANDBY_HOSTNAME" ];then
+        PING_HOST $STANDBY_HOSTNAME 
+        CHK_LOCALE_KNOWN $STANDBY_HOSTNAME
+        CHK_OPEN_FILES $GP_HOSTADDRESS
+        # Check standby host directory
+        CHK_DIR $MASTER_DIRECTORY $STANDBY_HOSTNAME
+        if [ $EXISTS -ne 0 ];then
+            ERROR_EXIT "[FATAL]:-Standby host directory $MASTER_DIRECTORY, does not exist" 2
+        fi
+    fi
+
+	if [ $DEBUG_LEVEL -eq 0 ] && [ x"" != x"$VERBOSE" ];then $ECHO;fi
+
+	LOG_MSG "[INFO]:-Checking new segment hosts, Completed" 1
+	LOG_MSG "[INFO]:-End Function $FUNCNAME"
+}
+
+CHK_SEG () {
+    LOG_MSG "[INFO]:-Start Function $FUNCNAME"
+    SET_VAR $1
+    
+    # We need QE_ID to be able to re-use some functions.
+    QE_ID=$GP_HOSTADDRESS
+    CHK_LOCALE_KNOWN $QE_ID
+	CHK_OPEN_FILES $GP_HOSTADDRESS
+	POSTGRES_VERSION_CHK $GP_HOSTADDRESS
+	if [ $VERSION_MATCH -ne 1 ] ; then
+	   ERROR_EXIT "Postgres version does not match" 2
+	fi
+	
+	# since this is from the input config file we only check our one datadir
+	#CHK_DIR $GP_DIR $QE_ID
+	#if [ $EXISTS -ne 0 ]; then
+	#	ERROR_EXIT "[FATAL]:-No $GP_DIR on segment instance $QE_ID" 2
+	#else
+	#	LOG_MSG "[INFO]:-$QE_ID $GP_DIR checked"
+	#fi
+	
+	#make sure we can write to it.
+	# Check that we can write to the QE directory
+    W_DIR=`$DIRNAME $GP_DIR`
+    LOG_MSG "[INFO]:-Checking write access to $W_DIR on $GP_HOSTADDRESS"
+    $TRUSTED_SHELL $GP_HOSTADDRESS "$TOUCH ${W_DIR}/tmp_file_test"
+    RETVAL=$?
+    if [ $RETVAL -ne 0 ];then
+         ERROR_EXIT "[FATAL]:-Cannot write to $W_DIR on $GP_HOSTADDRESS " 2
+    else
+             $TRUSTED_SHELL $GP_HOSTADDRESS "$RM -f ${W_DIR}/tmp_file_test"
+             LOG_MSG "[INFO]:-Write test passed on $GP_HOSTADDRESS $W_DIR directory"
+    fi
+    
+	
+	# Check that we have a GP_LIBRARY_PATH directory on the QE
+	CHK_DIR $GP_LIBRARY_PATH $GP_HOSTADDRESS
+	if [ $EXISTS -ne 0 ]; then
+		ERROR_EXIT "[FATAL]:-No $GP_LIBRARY_PATH on segment $GP_HOSTADDRESS:$GP_DIR" 2
+	else
+		LOG_MSG "[INFO]:-Segment instance $GP_HOSTADDRESS:$GP_DIR $GP_LIBRARY_PATH checked"
+	fi
+	LOG_MSG "[INFO]:-End Function $FUNCNAME"
+
+}
+
+CHK_QES_FROM_INPUTFILE () {
+		LOG_MSG "[INFO]:-Start Function $FUNCNAME"
+		LOG_MSG "[INFO]:-Checking Master host" 1
+		SET_VAR $QD_PRIMARY_ARRAY
+                CHK_DIR $GP_DIR
+                if [ $EXISTS -eq 0 ]; then
+                                ERROR_EXIT "[FATAL]:-Master directory $GP_DIR already exists" 2
+                fi
+		GET_PG_PID_ACTIVE $GP_PORT
+		if [ $PID -ne 0 ];then
+			ERROR_EXIT "[FATAL]:-Found indication of postmaster process on port $GP_PORT on Master host" 2
+		fi
+		LOG_MSG "[INFO]:-Checking new segment hosts, please wait..." 1
+
+        for QE in ${QE_PRIMARY_ARRAY[@]}
+        do
+            CHK_SEG $QE            
+        done
+        
+        for QE in ${QE_MIRROR_ARRAY[@]}
+        do
+            CHK_SEG $QE            
+        done
+                
+        if [ x"" != x"$STANDBY_HOSTNAME" ];then
+            PING_HOST $STANDBY_HOSTNAME 
+            CHK_LOCALE_KNOWN $STANDBY_HOSTNAME
+            CHK_OPEN_FILES $GP_HOSTADDRESS
+            #Check standby host directory
+            CHK_DIR $MASTER_DIRECTORY $STANDBY_HOSTNAME
+            if [ $EXISTS -ne 0 ];then
+                ERROR_EXIT "[FATAL]:-Standby host directory $MASTER_DIRECTORY, does not exist" 2
+            fi
+        fi
+
+		if [ $DEBUG_LEVEL -eq 0 ] && [ x"" != x"$VERBOSE" ];then $ECHO;fi
+		LOG_MSG "[INFO]:-Checking new segment hosts, Completed" 1
+		LOG_MSG "[INFO]:-End Function $FUNCNAME"
+}
+
+POSTGRES_PORT_CHK () {
+	LOG_MSG "[INFO]:-Start Function $FUNCNAME"
+	GET_PG_PID_ACTIVE $1 $2
+	if [ x"$PID" != x0 ];then
+		ERROR_EXIT "[FATAL]:-Host $2 has an active database process on port = $1" 2
+	fi
+	LOG_MSG "[INFO]:-End Function $FUNCNAME"
+}
+
+
+CREATE_QE_ARRAY () {
+	LOG_MSG "[INFO]:-Start Function $FUNCNAME"
+	LOG_MSG "[INFO]:-Building primary segment instance array, please wait..." 1
+	#Set up initial variables
+	. $CLUSTER_CONFIG
+	if [ x"" != x"$REQ_LOCALE_SETTING" ];then LOCALE_SETTING=$REQ_LOCALE_SETTING;fi
+	if [ `$ECHO ${M_HOST_ARRAY[@]}|$TR ' ' '\n'|$GREP -c "~${MASTER_HOSTNAME}\$"` -gt 0 ]; then
+		MASTER_LIST=(`$ECHO ${M_HOST_ARRAY[@]}|$TR ' ' '\n'|$GREP "~${MASTER_HOSTNAME}\$"`)
+		M_HOST_ARRAY=(${MASTER_LIST[@]} `$ECHO ${M_HOST_ARRAY[@]}|$TR ' ' '\n'|$GREP -v "~${MASTER_HOSTNAME}\$"`)
+	fi
+	if [ $MIRRORING -eq 1 ] && [ $MIRROR_TYPE -eq 0 ];then
+		# Move first host to other end of the array
+		# Get first hostname
+		HOST_MOVE=`$ECHO ${M_HOST_ARRAY[0]}|$AWK -F"~" '{print $2}'`
+		M_MIR_HOST_ARRAY=(`$ECHO ${M_HOST_ARRAY[@]}|$TR ' ' '\n'|$GREP -v "~${HOST_MOVE}"|$TR '\n' ' '` `$ECHO ${M_HOST_ARRAY[@]}|$TR ' ' '\n'|$GREP "~${HOST_MOVE}"|$TR '\n' ' '`)
+	fi
+	DBID_COUNT=1
+	CONTENT_COUNT=-1
+	PORT_COUNT=0
+	LAST_HOST=X
+	SEG_DIR_VECTOR=0
+	MIR_COUNT=-1
+	QD_PRIMARY_ARRAY=${MASTER_HOSTNAME}~${MASTER_PORT}~${MASTER_DIRECTORY}/${SEG_PREFIX}${CONTENT_COUNT}~${DBID_COUNT}~${CONTENT_COUNT}~0
+	((DBID_COUNT=$DBID_COUNT+1));((CONTENT_COUNT=$CONTENT_COUNT+1))
+	for QE_PAIR in ${M_HOST_ARRAY[@]}
+	do
+		if [ $DEBUG_LEVEL -eq 0 ] && [ x"" != x"$VERBOSE" ];then $NOLINE_ECHO ".\c";fi
+		QE_NAME=`$ECHO $QE_PAIR|$AWK -F"~" '{print $1}'`
+		QE_HOST=`$ECHO $QE_PAIR|$AWK -F"~" '{print $2}'`
+		if [ $LAST_HOST == $QE_HOST ];then
+			((PORT_COUNT=$PORT_COUNT+1))
+		else
+			SEG_DIR_VECTOR=0
+			PORT_COUNT=0
+		fi
+		((GP_PORT=$PORT_BASE+$PORT_COUNT))
+		
+		if [ x"" == x"$REPLICATION_PORT_BASE" ];then
+			REPL_PORT=0
+		else
+			((REPL_PORT=$REPLICATION_PORT_BASE+$PORT_COUNT))
+		fi
+		GP_DIR=${DATA_DIRECTORY[$SEG_DIR_VECTOR]}
+		QE_PRIMARY_ARRAY=(${QE_PRIMARY_ARRAY[@]} ${QE_NAME}~${GP_PORT}~${GP_DIR}/${SEG_PREFIX}${CONTENT_COUNT}~${DBID_COUNT}~$CONTENT_COUNT~${REPL_PORT})
+		POSTGRES_PORT_CHK $GP_PORT $QE_NAME
+		((DBID_COUNT=$DBID_COUNT+1))
+		((CONTENT_COUNT=$CONTENT_COUNT+1))
+		((SEG_DIR_VECTOR=$SEG_DIR_VECTOR+1))
+		LAST_HOST=$QE_HOST
+	done
+	if [ $DEBUG_LEVEL -eq 0 ] && [ x"" != x"$VERBOSE" ];then $ECHO;fi
+	if [ $MIRRORING -eq 1 ] ;then
+		((MIRROR_OFFSET=$MIRROR_PORT_BASE-$PORT_BASE))
+		((MIRROR_REPLICATION_PORT_OFFSET=$MIRROR_REPLICATION_PORT_BASE-$REPLICATION_PORT_BASE))
+		if [ $MIRROR_TYPE -eq 1 ];then
+			CREATE_SPREAD_MIRROR_ARRAY
+		else
+			CREATE_GROUP_MIRROR_ARRAY
+		fi
+	fi 
+	((TOTAL_SEG=${#QE_PRIMARY_ARRAY[@]}))
+	# Now re-order the array so that it is ordered by PORT to spread out the number of parallel processes initiated on each host
+	LOG_MSG "[INFO]:-End Function $FUNCNAME"
+}
+
+ARRAY_REORDER() {
+    LOG_MSG "[INFO]:-Start Function $FUNCNAME"
+
+    # Now re-order the array so that it is ordered by PORT to spread out the 
+    # number of parallel processes initiated on each host
+    #
+    # MPP-13617: If segment contains a ~, we assume ~ is the field delimiter.
+    # Otherwise we assume : is the delimiter.  This allows us to easily 
+    # handle IPv6 addresses which may contain a : by using a ~ as a delimiter. 
+    # 
+    case `$ECHO ${QE_PRIMARY_ARRAY[@]}` in 
+        *~*)
+	    S="~"
+            ;;
+        *)
+	    S=":"
+            ;;
+    esac
+
+    QE_REORDER_ARRAY=(`$ECHO ${QE_PRIMARY_ARRAY[@]}|$TR ' ' '\n'|$SORT -t$S -k2,2|$TR '\n' ' '`)
+    QE_PRIMARY_ARRAY=(${QE_REORDER_ARRAY[@]})
+    if [ $MIRROR_TYPE -eq 1 ];then
+	QE_REORDER_ARRAY=(`$ECHO ${QE_MIRROR_ARRAY[@]}|$TR ' ' '\n'|$SORT -t$S -k2,2|$TR '\n' ' '`)
+	QE_MIRROR_ARRAY=(${QE_REORDER_ARRAY[@]})
+    fi
+    LOG_MSG "[INFO]:-End Function $FUNCNAME"
+}
+
+DISPLAY_CONFIG () {
+		LOG_MSG "[INFO]:-Start Function $FUNCNAME"
+		if [ x"" == x"$INPUT_CONFIG" ] ; then
+		    . $CLUSTER_CONFIG
+		    if [ x"" != x"$REQ_LOCALE_SETTING" ];then
+			LOCALE_SETTING=$REQ_LOCALE_SETTING;
+		    fi
+		    if [ x"" != x"$MACHINE_LIST_FILE_ALT" ];then
+			MACHINE_LIST_FILE=$MACHINE_LIST_FILE_ALT
+		    fi
+
+		    if [ `$CAT ${MACHINE_LIST_FILE}| $GREP -c "${MASTER_HOSTNAME}\$"` -eq 0 ]; then
+			declare -a MACHINE_LIST=(`$CAT $MACHINE_LIST_FILE`)
+		    else
+			declare -a MACHINE_LIST=($MASTER_HOSTNAME `$CAT $MACHINE_LIST_FILE|$GREP -v "${MASTER_HOSTNAME}\$"`)
+		    fi
+		fi
+		((NUM_QES=${#MACHINE_LIST[*]}))
+		if [  x"" == x"$PG_CONF_ADD_FILE" ]; then
+				PG_ADD=Off
+		else
+				PG_ADD=On
+		fi
+		export QD_DIR=$GP_DIR
+	if [ x"" != x"$INTERACTIVE" ];then
+		SET_VAR $QD_PRIMARY_ARRAY
+		LOG_MSG "[INFO]:-Greenplum Database Creation Parameters" 1
+		LOG_MSG "[INFO]:---------------------------------------" 1
+		LOG_MSG "[INFO]:-Master Configuration" 1
+		LOG_MSG "[INFO]:---------------------------------------" 1
+		LOG_MSG "[INFO]:-Master instance name       = $ARRAY_NAME" 1
+		LOG_MSG "[INFO]:-Master hostname            = $GP_HOSTADDRESS" 1
+		LOG_MSG "[INFO]:-Master port                = $MASTER_PORT" 1
+		LOG_MSG "[INFO]:-Master instance dir        = $GP_DIR" 1
+		LOG_MSG "[INFO]:-Master LOCALE              = $LOCALE_SETTING" 1
+		LOG_MSG "[INFO]:-Greenplum segment prefix   = $SEG_PREFIX" 1
+		LOG_MSG "[INFO]:-Master Database            = $DATABASE_NAME" 1
+		LOG_MSG "[INFO]:-Master connections         = $MASTER_MAX_CONNECT" 1
+		LOG_MSG "[INFO]:-Master buffers             = $MASTER_SHARED_BUFFERS" 1
+		LOG_MSG "[INFO]:-Segment connections        = $QE_MAX_CONNECT" 1
+		LOG_MSG "[INFO]:-Segment buffers            = $QE_SHARED_BUFFERS" 1
+		LOG_MSG "[INFO]:-Checkpoint segments        = $CHECK_POINT_SEGMENTS" 1
+		LOG_MSG "[INFO]:-Encoding                   = $ENCODING" 1
+		LOG_MSG "[INFO]:-Postgres param file        = $PG_ADD" 1
+		LOG_MSG "[INFO]:-Initdb to be used          = $INITDB" 1
+		LOG_MSG "[INFO]:-GP_LIBRARY_PATH is         = $GP_LIBRARY_PATH" 1
+		if [ $ULIMIT_WARN -eq 1 ];then
+			LOG_MSG "[WARN]:-Ulimit check               = Warnings generated, see log file $WARN_MARK" 1
+		else
+			LOG_MSG "[INFO]:-Ulimit check               = Passed" 1
+		fi
+		if [ $MULTI_HOME -eq 0 ];then
+			LOG_MSG "[INFO]:-Array host connect type    = Single hostname per node" 1
+		else
+			LOG_MSG "[INFO]:-Array host connect type    = Multi hostname per node" 1
+		fi
+		IP_COUNT=1
+		for MASTER_IP in "${MASTER_IP_ADDRESS[@]}"
+		do
+			LOG_MSG "[INFO]:-Master IP address [$IP_COUNT]      = $MASTER_IP" 1
+			((IP_COUNT=$IP_COUNT+1))
+		done
+
+        if [ x"" != x"$STANDBY_HOSTNAME" ];then
+            LOG_MSG "[INFO]:-Standby Master             = $STANDBY_HOSTNAME" 1
+        else
+            LOG_MSG "[INFO]:-Standby Master             = Not Configured" 1
+        fi
+        LOG_MSG "[INFO]:-Primary segment #          = $QE_PRIMARY_COUNT" 1
+        if [ x"" != x"$STANDBY_HOSTNAME" ];then
+            for STANDBY_IP in "${STANDBY_IP_ADDRESS[@]}"
+            do
+                LOG_MSG "[INFO]:-Standby IP address         = $STANDBY_IP" 1
+            done
+        fi
+        LOG_MSG "[INFO]:-Total Database segments    = $TOTAL_SEG" 1
+        LOG_MSG "[INFO]:-Trusted shell              = $TRUSTED_SHELL" 1
+        ((NUM_QES=${#MACHINE_LIST[*]}))
+        LOG_MSG "[INFO]:-Number segment hosts       = $NUM_QES" 1
+        if [ $MIRROR_PORT_BASE ]; then
+            LOG_MSG "[INFO]:-Mirror port base           = $MIRROR_PORT_BASE" 1
+            LOG_MSG "[INFO]:-Replicaton port base       = $REPLICATION_PORT_BASE" 1
+            LOG_MSG "[INFO]:-Mirror replicaton port base= $MIRROR_REPLICATION_PORT_BASE" 1
+            ((NUM_MIRROR_DIRECTORY=${#MIRROR_DATA_DIRECTORY[@]}))
+            LOG_MSG "[INFO]:-Mirror segment #           = $NUM_MIRROR_DIRECTORY" 1
+            LOG_MSG "[INFO]:-Mirroring config           = ON" 1
+            if [ x"$INPUT_CONFIG" != x"" ];then
+                LOG_MSG "[INFO]:-Mirroring type             = Custom" 1
+            else
+                if [ $MIRROR_TYPE -eq 0 ];then
+                    LOG_MSG "[INFO]:-Mirroring type             = Group" 1
+                else
+                    LOG_MSG "[INFO]:-Mirroring type             = Spread" 1
+                fi
+            fi
+        else
+            LOG_MSG "[INFO]:-Mirroring config           = OFF" 1
+        fi
+        LOG_MSG "[INFO]:----------------------------------------" 1
+        LOG_MSG "[INFO]:-Greenplum Primary Segment Configuration" 1
+        LOG_MSG "[INFO]:----------------------------------------" 1
+        for I in "${QE_PRIMARY_ARRAY[@]}"
+        do
+            if [ $MIRRORING -ne 0 ]; then
+                TXT=`$ECHO $I|$AWK -F"~" '{print $1" \t"$3" \t"$2" \t"$4" \t"$5" \t"$6}'`
+            else
+                TXT=`$ECHO $I|$AWK -F"~" '{print $1" \t"$3" \t"$2" \t"$4" \t"$5}'`
+            fi
+            LOG_MSG "[INFO]:-$TXT" 1
+        done
+        if [ $MIRRORING -ne 0 ]; then
+            LOG_MSG "[INFO]:---------------------------------------" 1
+            LOG_MSG "[INFO]:-Greenplum Mirror Segment Configuration" 1
+            LOG_MSG "[INFO]:---------------------------------------" 1
+            for I in  "${QE_MIRROR_ARRAY[@]}"
+            do
+                TXT=`$ECHO $I|$AWK -F"~" '{print $1" \t"$3" \t"$2" \t"$4" \t"$5" \t"$6}'`
+                LOG_MSG "[INFO]:-$TXT" 1
+            done
+        fi
+
+		GET_REPLY "Continue with Greenplum creation" 
+	fi
+	LOG_MSG "[INFO]:-End Function $FUNCNAME"
+}
+
+SET_VAR () {
+    # 
+    # MPP-13617: If segment contains a ~, we assume ~ is the field delimiter.
+    # Otherwise we assume : is the delimiter.  This allows us to easily 
+    # handle IPv6 addresses which may contain a : by using a ~ as a delimiter. 
+    # 
+    I=$1
+    case $I in
+        *~*)
+	    S="~"
+            ;;
+        *)
+	    S=":"
+            ;;
+    esac
+    GP_HOSTADDRESS=`$ECHO $I|$CUT -d$S -f1`
+    GP_PORT=`$ECHO $I|$CUT -d$S -f2`
+    GP_DIR=`$ECHO $I|$CUT -d$S -f3`
+    GP_DBID=`$ECHO $I|$CUT -d$S -f4`
+    GP_CONTENT=`$ECHO $I|$CUT -d$S -f5`
+    GP_REPLICATION_PORT=`$ECHO $I|$CUT -d$S -f6`
+}
+
+CREATE_QD_DB () {
+		LOG_MSG "[INFO]:-Start Function $FUNCNAME"
+		LOG_MSG "[INFO]:-Building the Master instance database, please wait..." 1
+		SET_VAR $QD_PRIMARY_ARRAY
+		LOG_MSG "[INFO]:-Initializing Master Postgres instance $GP_DIR"
+		$EXPORT_LIB_PATH
+
+        #
+        # note: is_filerep_mirrored is no because the QD is not mirrored by filerep right now (standby master works differently)
+        #
+        
+        if [ x"" != x"$LCCOLLATE" ]; then
+			LC_COLLATE_SETTING="--lc-collate=$LCCOLLATE"
+		fi
+		
+        if [ x"" != x"$LCCTYPE" ]; then
+			LC_CTYPE_SETTING="--lc-ctype=$LCCTYPE"
+		fi
+		
+		if [ x"" != x"$LCMESSAGES" ]; then
+			LC_MESSAGES_SETTING="--lc-messages=$LCMESSAGES"
+		fi
+		
+		if [ x"" != x"$LCMONETARY" ]; then
+			LC_MONETARY_SETTING="--lc-monetary=$LCMONETARY"
+		fi
+		
+		if [ x"" != x"$LCNUMERIC" ]; then
+			LC_NUMERIC_SETTING="--lc-numeric=$LCNUMERIC"
+		fi
+		
+        if [ x"" != x"$LCTIME" ]; then
+			LC_TIME_SETTING="--lc-time=$LCTIME"
+		fi
+		
+		LC_ALL_SETTINGS=" $LC_COLLATE_SETTING $LC_CTYPE_SETTING $LC_MESSAGES_SETTING $LC_MONETARY_SETTING $LC_NUMERIC_SETTING $LC_TIME_SETTING"
+
+
+		# build initdb command, capturing output in ${GP_DIR}.initdb
+		cmd="$INITDB"
+		cmd="$cmd -E $ENCODING"
+		cmd="$cmd -D $GP_DIR"
+		cmd="$cmd --locale=$LOCALE_SETTING"
+		cmd="$cmd $LC_ALL_SETTINGS"
+		cmd="$cmd --max_connections=$MASTER_MAX_CONNECT"
+		cmd="$cmd --shared_buffers=$MASTER_SHARED_BUFFERS"
+		cmd="$cmd --is_filerep_mirrored=no"
+		cmd="$cmd --backend_output=$GP_DIR.initdb"
+
+		LOG_MSG "[INFO]:-Commencing local $cmd"
+		$cmd >> $LOG_FILE 2>&1
+		RETVAL=$?
+
+		# if there was an error, copy ${GP_DIR}.initdb to the log
+		if [ $RETVAL -ne 0 ]; then
+		    $CAT ${GP_DIR}.initdb >> $LOG_FILE
+		fi    
+		$RM -f ${GP_DIR}.initdb
+		if [ $RETVAL -ne 0 ]; then
+		    ERROR_EXIT "[FATAL]:- Command $cmd failed with error status $RETVAL, see log file $LOG_FILE for more detail" 2
+		fi
+
+		BACKOUT_COMMAND "if [ -d $GP_DIR ]; then $RM -Rf $GP_DIR; fi"
+		BACKOUT_COMMAND "$ECHO Removing Master data directory files"
+		LOG_MSG "[INFO]:-Completed Master instance initialization"
+		$ECHO "#Greenplum specific configuration parameters for Master instance database" >> ${GP_DIR}/$PG_CONF
+		$ECHO "#------------------------------------------------------------------------" >> ${GP_DIR}/$PG_CONF
+		LOG_MSG "[INFO]:-Setting the Master port to $GP_PORT"
+		ED_PG_CONF ${GP_DIR}/$PG_CONF "$PORT_TXT" port=$GP_PORT 0
+		ERROR_CHK $? "set Master port=$GP_PORT in $PG_CONF" 2
+		LOG_MSG "[INFO]:-Completed setting the Master port to $MASTER_PORT"
+		LOG_MSG "[INFO]:-Setting Master logging option"
+		ED_PG_CONF ${GP_DIR}/$PG_CONF "$LOG_STATEMENT_TXT" log_statement=all 0
+		ERROR_CHK $? "set log_statement=all in ${GP_DIR}/$PG_CONF" 1
+		LOG_MSG "[INFO]:-Setting Master instance check point segments"
+		ED_PG_CONF ${GP_DIR}/$PG_CONF "$CHKPOINT_SEG_TXT" "checkpoint_segments=$CHECK_POINT_SEGMENTS" 0
+		ERROR_CHK $? "set checkpoint_segments=$CHECK_POINT_SEGMENTS in ${GP_DIR}/$PG_CONF" 1
+		
+		if [  x"" != x"$PG_CONF_ADD_FILE" ]; then
+				LOG_MSG "[INFO]:-Processing additional configuration parameters"
+				for NEW_PARAM in `$CAT $PG_CONF_ADD_FILE|$TR -s ' '|$TR -d ' '|$GREP -v "^#"`
+						do
+						LOG_MSG "[INFO]:-Adding config $NEW_PARAM to Master"
+						SEARCH_TXT=`$ECHO $NEW_PARAM |$CUT -d"=" -f1`
+						ED_PG_CONF ${GP_DIR}/$PG_CONF $SEARCH_TXT $NEW_PARAM 0
+						ERROR_CHK $? "set $NEW_PARAM ${GP_DIR}/$PG_CONF" 1
+				done
+		fi
+		LOG_MSG "[INFO]:-Adding gp_dumpall access to $PG_HBA for master host"
+		BUILD_MASTER_PG_HBA_FILE $GP_DIR
+		LOG_MSG "[INFO]:-Creating perfmon directories and configuration file"
+		BUILD_PERFMON $GP_DIR
+		ERROR_CHK $? "create perfmon directories and configuration file" 1
+		LOG_MSG "[INFO]:-Starting the Master in admin mode" 1
+		export PGPORT=$GP_PORT;$PG_CTL -w -l $GP_DIR/pg_log/startup.log -D $GP_DIR -o "-i -p $GP_PORT -c gp_role=utility -M master -b 1 -C -1 -z 0 -m" start >> /dev/null 2>&1
+		RET_TEXT="`$PG_CTL status -D $GP_DIR`"
+		RUNNING=`$ECHO $RET_TEXT|$EGREP -c "not running|neither"`
+		if [ $RUNNING -ne 0 ]; then
+				$CAT ${GP_DIR}.log|$TEE -a $LOG_FILE
+				ERROR_EXIT "[FATAL]:-Failed to start the Master database in admin mode" 2
+		fi
+		BACKOUT_COMMAND "$RM -f /tmp/.s.PGSQL.${GP_PORT}*"
+		BACKOUT_COMMAND "$ECHO \"Removing Master lock files\""
+		BACKOUT_COMMAND "$RM -f ${GP_DIR}.log"
+		BACKOUT_COMMAND "$ECHO Removing Master log file"
+		BACKOUT_COMMAND "if [ -d $GP_DIR ]; then $EXPORT_LIB_PATH;export PGPORT=$GP_PORT; $PG_CTL -D $GP_DIR stop; fi"
+		BACKOUT_COMMAND "$ECHO \"Stopping Master instance\""
+		LOG_MSG "[INFO]:-Completed starting the Master in admin mode"
+		$SLEEP 2
+		GP_HOSTNAME=`HOST_LOOKUP $GP_HOSTADDRESS`
+		if [ x"$GP_HOSTNAME" = x"__lookup_of_hostname_failed__" ]; then
+			ERROR_EXIT "[FATAL]:-Hostname lookup for host $GP_HOSTADDRESS failed." 2
+		fi
+		PING_HOST $GP_HOSTNAME
+		RETVAL=$?
+		if [ $RETVAL -ne 0 ]; then
+			ERROR_EXIT "[FATAL]:-Could not establish connection to hostname $GP_HOSTNAME. Please check your configuration." 2
+		fi
+		UPDATE_GPCONFIG $GP_PORT $GP_DBID $GP_CONTENT $GP_HOSTNAME $GP_HOSTADDRESS $GP_PORT $GP_DIR p $GP_REPLICATION_PORT
+		LOAD_QE_SYSTEM_DATA $DEFAULTDB
+		SET_VAR $QD_PRIMARY_ARRAY
+		LOG_MSG "[INFO]:-End Function $FUNCNAME"
+}
+
+# returns hostname for given address or "__lookup_of_hostname_failed__" if hostname not found
+HOST_LOOKUP() {
+	res=`echo $1 | $GPHOSTCACHELOOKUP`
+	err_index=`echo $res | awk '{print index($0,"__lookup_of_hostname_failed__")}'`
+	if [ $err_index -ne 0 ]; then
+		echo "__lookup_of_hostname_failed__"
+	else
+		echo $res
+	fi
+}
+
+UPDATE_GPCONFIG () {
+		LOG_MSG "[INFO]:-Start Function $FUNCNAME"
+		MASTER_PORT=$1
+		U_DBID=$2
+		U_CONTENT=$3
+		U_HOSTNAME=$4
+		U_ADDRESS=$5
+		U_PORT=$6
+		U_DIR=$7
+		U_ROLE=$8
+		if [ $9 -eq 0 ]; then
+			U_REPLICATION_PORT=null
+		else 
+			U_REPLICATION_PORT=$9
+		fi
+
+        if [ $MIRRORING -ne 1 ]; then
+            U_REPLICATION_PORT=null
+        fi
+
+		U_DB=$DEFAULTDB
+		CHK_COUNT=`env PGOPTIONS="-c gp_session_role=utility" $PSQL -p $MASTER_PORT -d "$U_DB" -A -t -c "SELECT count(*) FROM $GP_CONFIG_TBL WHERE content=${U_CONTENT} AND preferred_role='${U_ROLE}';" 2>/dev/null` >> $LOG_FILE 2>&1
+		ERROR_CHK $? "obtain psql count Master $GP_CONFIG_TBL" 2
+		if [ $CHK_COUNT -eq 0 ]; then
+				LOG_MSG "[INFO]:-Adding $U_CONTENT on $U_HOSTNAME $U_DIR to system configuration table"
+				env PGOPTIONS="-c gp_session_role=utility" $PSQL -p $MASTER_PORT -d "$U_DB" -c "INSERT INTO $GP_CONFIG_TBL (dbid, content, role, preferred_role, mode, status, hostname, address, port, replication_port) VALUES (${U_DBID}, ${U_CONTENT}, '${U_ROLE}', '${U_ROLE}', 's', 'u', '${U_HOSTNAME}', '${U_ADDRESS}', ${U_PORT}, ${U_REPLICATION_PORT});" >> $LOG_FILE 2>&1
+				ERROR_CHK $? "add $U_CONTENT on $U_HOSTNAME to Master gp_segment_configuration" 2
+
+				LOG_MSG "[INFO]:-Adding $U_CONTENT on $U_HOSTNAME $U_DIR to Master gp_filespace_entry"
+				env PGOPTIONS="-c gp_session_role=utility" $PSQL -p $MASTER_PORT -d "$U_DB" -c "insert into pg_filespace_entry (fsefsoid, fsedbid, fselocation) values (${PG_SYSTEM_FILESPACE}, ${U_DBID}, '${U_DIR}');" >> $LOG_FILE 2>&1
+				ERROR_CHK $? "add $U_CONTENT on $U_HOSTNAME $U_DIR to Master pg_filespace_entry" 2
+		else
+				LOG_MSG "[INFO]:-Content $U_CONTENT already exists in gp_segment_configuration system table"
+		fi
+		if [ $U_CONTENT -eq -1 ]
+		then
+			MAKE_DBID_FILE $U_DBID $U_HOSTNAME $U_DIR
+		fi
+		LOG_MSG "[INFO]:-End Function $FUNCNAME"
+}
+
+
+LOAD_QE_SYSTEM_DATA () {
+		LOG_MSG "[INFO]:-Start Function $FUNCNAME"
+		SET_VAR $QD_PRIMARY_ARRAY
+		TARGET_DB=$1
+		QD_DBNAME=$DEFAULTDB
+		for I in "${QE_PRIMARY_ARRAY[@]}"
+		do
+				SET_VAR $I
+				LOG_MSG "[INFO]:-Adding segment $GP_HOSTADDRESS to Master system tables"
+				GP_HOSTNAME=`HOST_LOOKUP $GP_HOSTADDRESS`
+				if [ x"$GP_HOSTNAME" = x"__lookup_of_hostname_failed__" ]; then
+					ERROR_EXIT "[FATAL]:-Hostname lookup for host $GP_HOSTADDRESS failed." 2
+				fi
+				PING_HOST $GP_HOSTNAME
+				RETVAL=$?
+				if [ $RETVAL -ne 0 ]; then
+					ERROR_EXIT "[FATAL]:-Could not establish connection to hostname $GP_HOSTNAME. Please check your configuration." 2
+				fi				
+				UPDATE_GPCONFIG $MASTER_PORT $GP_DBID $GP_CONTENT $GP_HOSTNAME $GP_HOSTADDRESS $GP_PORT $GP_DIR p $GP_REPLICATION_PORT
+				LOG_MSG "[INFO]:-Successfully added segment $GP_HOSTADDRESS to Master system tables"
+		done
+		if [ $MIRRORING -eq 1 ]; then
+				for I in "${QE_MIRROR_ARRAY[@]}"
+				do
+					SET_VAR $I
+					LOG_MSG "[INFO]:-Adding segment $GP_HOSTADDRESS, $GP_DBID, $GP_DIR to Master system tables as mirror"
+					GP_HOSTNAME=`HOST_LOOKUP $GP_HOSTADDRESS`
+					if [ x"$GP_HOSTNAME" = x"__lookup_of_hostname_failed__" ]; then
+						ERROR_EXIT "[FATAL]:-Hostname lookup for host $GP_HOSTADDRESS failed." 2
+					fi
+					PING_HOST $GP_HOSTNAME
+					RETVAL=$?
+					if [ $RETVAL -ne 0 ]; then
+						ERROR_EXIT "[FATAL]:-Could not establish connection to hostname $GP_HOSTNAME. Please check your configuration." 2
+					fi					
+					UPDATE_GPCONFIG $MASTER_PORT $GP_DBID $GP_CONTENT $GP_HOSTNAME $GP_HOSTADDRESS $GP_PORT $GP_DIR m $GP_REPLICATION_PORT
+					LOG_MSG "[INFO]:-Successfully added segment $GP_HOSTADDRESS to Master system tables as mirror"
+				done
+		fi
+		LOG_MSG "[INFO]:-End Function $FUNCNAME"
+}
+
+CREATE_QES_PRIMARY () {
+		LOG_MSG "[INFO]:-Start Function $FUNCNAME"
+		#
+		# PARALLEL BUILD OF PRIMARIES
+		#
+		LOG_MSG "[INFO]:-Commencing parallel build of primary segment instances" 1
+		BATCH_LIMIT=${#QE_PRIMARY_ARRAY[@]}
+		PARALLEL_SETUP  $PARALLEL_STATUS_FILE
+		for I in "${QE_PRIMARY_ARRAY[@]}"
+		do
+			export PG_CONF_ADD_FILE
+			export STANDBY_HOSTNAME
+			export ENCODING
+			export LOCALE_SETTING
+			export LC_ALL_SETTINGS
+			export BACKOUT_FILE
+			export LOG_FILE
+			export PARALLEL_STATUS_FILE
+			export TOTAL_SEG
+			export ARRAY_NAME
+			export CHECK_POINT_SEGMENTS
+			export QE_MAX_CONNECT
+			export QE_SHARED_BUFFERS
+			export SEG_PREFIX
+			if [ $DEBUG_LEVEL -eq 0 ] && [ x"" != x"$VERBOSE" ];then $NOLINE_ECHO ".\c";fi
+			FLAG=""
+			if [ x"" != x"$PG_CONF_ADD_FILE" ] ; then
+			    FLAG="-p $PG_CONF_ADD_FILE"
+			fi
+
+            HAS_MIRRORS_OPTION=
+            if [ $MIRRORING -ne 0 ]; then
+                HAS_MIRRORS_OPTION=yes
+            else
+                HAS_MIRRORS_OPTION=no
+            fi
+
+			$GPCREATESEG $FLAG $$ 1 $I IS_PRIMARY $HAS_MIRRORS_OPTION $INST_COUNT  $LOG_FILE \
+`$ECHO ${MASTER_IP_ADDRESS[@]}|$TR ' ' '~'` \
+`$ECHO ${STANDBY_IP_ADDRESS[@]}|$TR ' ' '~'` &
+			PARALLEL_COUNT $BATCH_LIMIT $BATCH_DEFAULT
+		done
+		PARALLEL_SUMMARY_STATUS_REPORT $PARALLEL_STATUS_FILE
+		if [ $REPORT_FAIL -ne 0 ];then
+			$CAT $PARALLEL_STATUS_FILE >> $LOG_FILE
+		fi
+		$RM -f $PARALLEL_STATUS_FILE
+
+		LOG_MSG "[INFO]:-End Function $FUNCNAME"
+}
+
+CREATE_QES_MIRROR () {
+	LOG_MSG "[INFO]:-Start Function $FUNCNAME"
+	LOG_MSG "[INFO]:-Commencing parallel build of mirror segment instances" 1
+	BATCH_LIMIT=${#QE_MIRROR_ARRAY[@]}
+
+        # MPP-13617: If segment contains a ~, we assume ~ is the field delimiter.
+        # Otherwise we assume : is the delimiter.  This allows us to easily 
+        # handle IPv6 addresses which may contain a : by using a ~ as a delimiter. 
+        # 
+	case `$ECHO ${QE_PRIMARY_ARRAY[@]}` in 
+            *~*)
+		S="~"
+		;;
+            *)
+		S=":"
+		;;
+	esac
+
+	REORDERING=(`$ECHO ${QE_PRIMARY_ARRAY[@]}|$TR ' ' '\n'|$SORT -t$S -k5,5|$TR '\n' ' '`)
+	PRIMARIES_ORDERED_BY_CONTENT_ID=(${REORDERING[@]})
+
+	REORDERING=(`$ECHO ${QE_MIRROR_ARRAY[@]}|$TR ' ' '\n'|$SORT -t$S -k5,5|$TR '\n' ' '`)
+	MIRRORS_ORDERED_BY_CONTENT_ID=(${REORDERING[@]})
+
+	PARALLEL_SETUP  $PARALLEL_STATUS_FILE
+                for ((I_INDEX=0; I_INDEX < $CONTENT_COUNT; I_INDEX++))
+	do
+		export PG_CONF_ADD_FILE
+		export STANDBY_HOSTNAME
+		export ENCODING
+		export LOCALE_SETTING
+		export BACKOUT_FILE
+		export LOG_FILE
+		export PARALLEL_STATUS_FILE
+		export TOTAL_SEG
+		export ARRAY_NAME
+		export QE_MAX_CONNECT
+		export QE_SHARED_BUFFERS
+		export CHECK_POINT_SEGMENTS
+		export SEG_PREFIX
+		if [ $DEBUG_LEVEL -eq 0 ] && [ x"" != x"$VERBOSE" ];then $NOLINE_ECHO ".\c";fi
+		FLAG=""
+		if [ x"" != x"$PG_CONF_ADD_FILE" ] ; then
+		    FLAG="-p $PG_CONF_ADD_FILE"
+		fi
+
+		$GPCREATESEG $FLAG $$ 1 ${MIRRORS_ORDERED_BY_CONTENT_ID[$I_INDEX]} ${PRIMARIES_ORDERED_BY_CONTENT_ID[$I_INDEX]} no $INST_COUNT  $LOG_FILE \
+`$ECHO ${MASTER_IP_ADDRESS[@]}|$TR ' ' '~'` \
+`$ECHO ${STANDBY_IP_ADDRESS[@]}|$TR ' ' '~'` &
+		PARALLEL_COUNT $BATCH_LIMIT $BATCH_DEFAULT
+	done
+	PARALLEL_SUMMARY_STATUS_REPORT $PARALLEL_STATUS_FILE
+	if [ $REPORT_FAIL -ne 0 ];then
+		$CAT $PARALLEL_STATUS_FILE >> $LOG_FILE
+	fi
+	$RM -f $PARALLEL_STATUS_FILE
+
+	LOG_MSG "[INFO]:-End Function $FUNCNAME"
+}
+
+
+STOP_QD_PRODUCTION () {
+    LOG_MSG "[INFO]:-Start Function $FUNCNAME"
+    LOG_MSG "[INFO]:-Restarting the Greenplum instance in production mode" 1
+    if [ -f $GPSTOP ]; then
+	GPSTOP_OPTS=$(OUTPUT_LEVEL_OPTS)
+	export MASTER_DATA_DIRECTORY=${MASTER_DIRECTORY}/${SEG_PREFIX}-1
+	$GPSTOP -a -i -m -d $MASTER_DATA_DIRECTORY $GPSTOP_OPTS
+	RETVAL=$?
+	case $RETVAL in
+	    0 ) LOG_MSG "[INFO]:-Successfully shutdown the new Greenplum instance" ;;
+	    1 ) LOG_MSG "[WARN]:-Non fatal error from Greenplum instance shutdown, check log files, will continue"
+		EXIT_STATUS=1 ;;
+	    * ) ERROR_EXIT "[FATAL]:-Failed to stop new Greenplum instance, check log file" 2
+	esac
+    else
+	ERROR_EXIT "[FATAL]:-$GPSTOP not located" 2
+    fi
+    LOG_MSG "[INFO]:-End Function $FUNCNAME"
+}
+
+CREATE_STANDBY_QD () {
+	LOG_MSG "[INFO]:-Start Function $FUNCNAME"
+	if [ ! -f $INIT_STANDBY_PROG ]; then
+		LOG_MSG "[WARN]:-Unable to locate $INIT_STANDBY_PROG, hence unable to initialize standby master $STANDBY_HOSTNAME"
+		EXIT_STATUS=1
+	else
+		LOG_MSG "[INFO]:-Starting initialization of standby master $STANDBY_HOSTNAME" 1
+		INIT_STANDBY_ARGS=""
+		if [ x"" != x"$STANDBY_PORT" ]; then
+			INIT_STANDBY_ARGS+=" -P $STANDBY_PORT"
+		fi
+		if [ x"" != x"$STANDBY_FILESPACES" ]; then
+			INIT_STANDBY_ARGS+=" -F $STANDBY_FILESPACES"
+		fi
+		export MASTER_DATA_DIRECTORY=${MASTER_DIRECTORY}/${SEG_PREFIX}-1;$INIT_STANDBY_PROG -s $STANDBY_HOSTNAME $INIT_STANDBY_ARGS -a
+		RETCODE=$?
+		case $RETCODE in
+			0) LOG_MSG "[INFO]:-Successfully completed standby master initialization" 1 ;;
+			1) LOG_MSG "[WARN]:-Non-fatal issue with standby master initialization, check gpstate -f output" 1 ;;
+			*) ERROR_EXIT "[FATAL]:-Initialization of standby master failed"
+		esac
+		BACKOUT_COMMAND "$TRUSTED_SHELL ${STANDBY_HOSTNAME} \"$RM -Rf ${QD_DIR}\""
+		BACKOUT_COMMAND "$ECHO \"Removing standby directory ${QD_DIR} on $STANDBY_HOSTNAME\""
+		BACKOUT_COMMAND "$TRUSTED_SHELL $STANDBY_HOSTNAME \"if [ -d $GP_DIR ]; then ${EXPORT_LIB_PATH};export PGPORT=${MASTER_PORT}; $PG_CTL -w -D ${MASTER_DIRECTORY}/${SEG_PREFIX}-1 -o \"-i -p ${MASTER_PORT}\" -m immediate  stop; fi\""
+		BACKOUT_COMMAND "$ECHO \"Stopping standby instance on $STANDBY_HOSTNAME\""
+	fi 
+	LOG_MSG "[INFO]:-End Function $FUNCNAME"
+}
+
+START_QD_PRODUCTION () {
+    LOG_MSG "[INFO]:-Start Function $FUNCNAME"
+    if [ -f $GPSTART ]; then
+	GPSTART_OPTS=$(OUTPUT_LEVEL_OPTS)
+	export MASTER_DATA_DIRECTORY=${MASTER_DIRECTORY}/${SEG_PREFIX}-1
+	$GPSTART -a -d $MASTER_DATA_DIRECTORY $GPSTART_OPTS
+
+        if [ $? -eq 0 ];then
+            LOG_MSG "[INFO]:-Successfully started new Greenplum instance"
+        else
+
+            # this text is duplicated below
+            LOG_MSG "[WARN]:" 1
+            LOG_MSG "[WARN]:-Failed to start Greenplum instance; review gpstart output to" 1
+            LOG_MSG "[WARN]:- determine why gpstart failed and reinitialize cluster after resolving" 1
+            LOG_MSG "[WARN]:- issues.  Not all initialization tasks have completed so the cluster" 1
+            LOG_MSG "[WARN]:- should not be used." 1
+
+            LOG_MSG "[WARN]:-gpinitsystem will now try to stop the cluster" 1
+            LOG_MSG "[WARN]:" 1
+            if [ -f $GPSTOP ]; then
+		GPSTOP_OPTS=$(OUTPUT_LEVEL_OPTS)
+                export MASTER_DATA_DIRECTORY=${MASTER_DIRECTORY}/${SEG_PREFIX}-1
+                $GPSTOP -a -i -d $MASTER_DATA_DIRECTORY $GPSTOP_OPTS
+
+                RETVAL=$?
+                case $RETVAL in
+                    0 ) LOG_MSG "[INFO]:-Successfully shutdown the Greenplum instance" 1;;
+                    1 ) LOG_MSG "[WARN]:-Non fatal error from Greenplum instance shutdown" 1;;
+                    * ) ERROR_EXIT "[WARN]:-Failed to stop new Greenplum instance" 2
+                esac
+            else
+                LOG_MSG "[WARN]:-$GPSTOP not located" 1
+            fi
+
+            # this text is duplicated above
+            LOG_MSG "[WARN]:" 1
+            LOG_MSG "[WARN]:-Failed to start Greenplum instance; review gpstart output to" 1
+            LOG_MSG "[WARN]:- determine why gpstart failed and reinitialize cluster after resolving" 1
+            LOG_MSG "[WARN]:- issues.  Not all initialization tasks have completed so the cluster" 1
+            LOG_MSG "[WARN]:- should not be used." 1
+            LOG_MSG "[WARN]:" 1
+            ERROR_EXIT "[FATAL]: starting new instance failed;" 2
+        fi
+    else
+	ERROR_EXIT "[FATAL]:-$GPSTART not located" 2
+    fi
+    LOG_MSG "[INFO]:-Completed restart of Greenplum instance in production mode" 1
+    LOG_MSG "[INFO]:-End Function $FUNCNAME"
+}
+
+SET_GP_USER_PW () {
+    LOG_MSG "[INFO]:-Start Function $FUNCNAME"
+    $PSQL -p $MASTER_PORT -d "$DEFAULTDB" -c"alter user $USER_NAME password '$GP_PASSWD';" >> $LOG_FILE 2>&1
+    ERROR_CHK $? "update Greenplum superuser password" 1
+    LOG_MSG "[INFO]:-End Function $FUNCNAME"
+}
+
+CREATE_DATABASE () {
+		LOG_MSG "[INFO]:-Start Function $FUNCNAME"
+		SET_VAR $QD_PRIMARY_ARRAY
+		$PSQL -p $GP_PORT -d "$DEFAULTDB" -c"create database \"${DATABASE_NAME}\";" >> $LOG_FILE 2>&1
+		ERROR_CHK $? "create database $DATABASE_NAME" 2
+		LOG_MSG "[INFO]:-End Function $FUNCNAME"
+}
+
+SCAN_LOG () {
+	LOG_MSG "[INFO]:-Start Function $FUNCNAME"
+	LOG_MSG "[INFO]:-Scanning utility log file for any warning messages" 1
+	SCAN_STRING="\[WARN\]|invalid|warning:|fatal|error"
+	if [ `$EGREP -i "$SCAN_STRING" $LOG_FILE|$GREP -v "\[INFO\]"|$GREP -v "[Start|End] Function ERROR_CHK"|$GREP -v "WARNING: enabling \"trust\" authentication for local connections"|$WC -l` -ne 0 ];then
+		LOG_MSG "[WARN]:-*******************************************************" 1
+		LOG_MSG "[WARN]:-Scan of log file indicates that some warnings or errors" 1
+		LOG_MSG "[WARN]:-were generated during the array creation" 1
+		LOG_MSG "[INFO]:-Please review contents of log file" 1
+		LOG_MSG "[INFO]:-$LOG_FILE" 1
+		LOG_MSG "[INFO]:-To determine level of criticality" 1
+		if [ `$GREP -ci "\[INFO]:-Start Main" $LOG_FILE` -gt 1 ];then
+		LOG_MSG "[INFO]:-These messages could be from a previous run of the utility" 1
+		LOG_MSG "[INFO]:-that was called today!" 1
+		fi
+		LOG_MSG "[WARN]:-*******************************************************" 1
+		EXIT_STATUS=1
+	else
+		LOG_MSG "[INFO]:-Log file scan check passed" 1
+	fi
+	LOG_MSG "[INFO]:-End Function $FUNCNAME"
+}
+
+DUMP_OUTPUT_CONFIG () {
+    $ECHO "ARRAY_NAME=\"$ARRAY_NAME\"" > $OUTPUT_CONFIG
+    if [ x"" != x"$IP_ALLOW" ] ; then
+	$ECHO "IP_ALLOW=$IP_ALLOW" >> $OUTPUT_CONFIG
+    fi
+    if [ x"" != x"$TRUSTED_SHELL" ] ; then
+	$ECHO "TRUSTED_SHELL=$TRUSTED_SHELL" >> $OUTPUT_CONFIG
+    fi
+    if [ x"" != x"$CHECK_POINT_SEGMENTS" ] ; then
+	$ECHO "CHECK_POINT_SEGMENTS=$CHECK_POINT_SEGMENTS" >> $OUTPUT_CONFIG
+    fi
+    if [ x"" != x"$ENCODING" ] ; then
+	$ECHO "ENCODING=$ENCODING" >> $OUTPUT_CONFIG
+    fi
+    
+    $ECHO "SEG_PREFIX=$SEG_PREFIX" >> $OUTPUT_CONFIG
+
+    $ECHO "QD_PRIMARY_ARRAY=$QD_PRIMARY_ARRAY" >> $OUTPUT_CONFIG
+    $ECHO "declare -a PRIMARY_ARRAY=(" >> $OUTPUT_CONFIG
+    for qe in ${QE_PRIMARY_ARRAY[@]}
+    do
+	$ECHO "$qe" >> $OUTPUT_CONFIG
+    done
+    $ECHO ")" >> $OUTPUT_CONFIG
+    if [ $MIRRORING -ne 0 ] ; then
+	$ECHO "declare -a MIRROR_ARRAY=(" >> $OUTPUT_CONFIG
+	for qe in ${QE_MIRROR_ARRAY[@]}
+	do
+	    $ECHO "$qe" >> $OUTPUT_CONFIG
+	done    
+	$ECHO ")" >> $OUTPUT_CONFIG
+    fi
+    
+
+}
+
+READ_INPUT_CONFIG () {
+   # Check that we have a non-zero configuration file
+    CHK_FILE $INPUT_CONFIG
+    if [ $EXISTS -ne 0 ]; then
+        ERROR_EXIT "[FATAL]:-Problem with $INPUT_CONFIG file" 2
+    fi
+    
+    # Make sure old CLUSTER_CONFIG settings are not hanging around.
+    unset PORT_BASE SEG_PREFIX DATA_DIRECTORY
+
+    # Validation
+    if [ x"" != x"${MASTER_PORT}" ] ; then
+        ERROR_EXIT "[FATAL]:-Problem with configuration. Cannot specify MASTER_PORT and QD_PRIMARY_ARRAY" 2             
+    fi
+
+    if [ x"" != x"${MASTER_HOSTNAME}" ] ; then
+        ERROR_EXIT "[FATAL]:-Problem with configuration file. Cannot specify MASTER_HOSTNAME and QD_PRIMARY_ARRAY" 2                            
+    fi
+
+    if [ x"" != x"${MASTER_DIRECTORY}" ] ; then
+        ERROR_EXIT "[FATAL]:-Problem with configuration file. Cannot specify MASTER_DIRECTORY and QD_PRIMARY_ARRAY" 2                           
+    fi
+
+    # Make sure it is not a dos file with CTRL M at end of each line
+    $CAT $INPUT_CONFIG|$SED -e 's/^M$//g' > $TMP_FILE
+    $MV $TMP_FILE $INPUT_CONFIG
+    LOG_MSG "[INFO]:-Dumping $INPUT_CONFIG to logfile for reference"
+    $CAT $INPUT_CONFIG|$GREP -v "^#" >> $LOG_FILE
+    LOG_MSG "[INFO]:-Completed $INPUT_CONFIG dump to logfile"
+    # Source the cluster configuration file
+    LOG_MSG "[INFO]:-Reading Greenplum configuration file $INPUT_CONFIG"
+
+    . $INPUT_CONFIG
+    SET_VAR $QD_PRIMARY_ARRAY
+    MASTER_HOSTNAME=$GP_HOSTADDRESS
+    MASTER_DIRECTORY=`$DIRNAME $GP_DIR`
+    MASTER_PORT=$GP_PORT
+    SEG_PREFIX=`$BASENAME $GP_DIR -1`
+
+    MACHINE_LIST=()
+    DATA_DIRECTORY=()
+    CONTENT_COUNT=0
+    for QE in ${PRIMARY_ARRAY[@]}
+    do
+        SET_VAR $QE
+
+        DATA_DIRECTORY=(${DATA_DIRECTORY[@]} `$DIRNAME $GP_DIR`)
+        MACHINE_LIST=(${MACHINE_LIST[@]} $GP_HOSTADDRESS)
+
+        ((CONTENT_COUNT=$CONTENT_COUNT+1))
+    done
+
+    DATA_DIRECTORY=(`$ECHO ${DATA_DIRECTORY[@]} | $TR ' ' '\n' | $SORT | $TR '\n' ' '`)
+    
+    if [ x"" != x"${MIRROR_ARRAY}" ] ; then
+        MIRRORING=1
+        MIRROR_DATA_DIRECTORY=()
+        for QE in ${MIRROR_ARRAY[@]}
+        do
+            SET_VAR $QE
+
+            MIRROR_DATA_DIRECTORY=(${MIRROR_DATA_DIRECTORY[@]} `$DIRNAME $GP_DIR`)
+            MACHINE_LIST=(${MACHINE_LIST[@]} $GP_HOSTADDRESS)
+        done
+
+        MIRROR_DATA_DIRECTORY=(`$ECHO ${MIRROR_DATA_DIRECTORY[@]} | $TR ' ' '\n' | $SORT | $TR '\n' ' '`)
+    fi
+
+    MACHINE_LIST=(`$ECHO ${MACHINE_LIST[@]} | $TR ' ' '\n' | $SORT -u | $TR '\n' ' '`)
+    if [ `$ECHO ${MACHINE_LIST[@]}| $TR ' ' '\n' | $GREP -c "${MASTER_HOSTNAME}\$"` -gt 0 ]; then
+        MACHINE_LIST=($MASTER_HOSTNAME `$ECHO ${MACHINE_LIST[@]} | $TR ' ' '\n' | $GREP -v "${MASTER_HOSTNAME}\$" | $TR '\n' ' '`)
+    fi
+
+    QE_PRIMARY_ARRAY=(${PRIMARY_ARRAY[@]})
+    QE_MIRROR_ARRAY=(${MIRROR_ARRAY[@]})
+    ((TOTAL_SEG=${#QE_PRIMARY_ARRAY[@]}))
+    ((TOTAL_MIRRORS=${#MIRROR_ARRAY[@]}))
+    MIRROR_TYPE=0
+    MULTI_HOME=0
+
+    if [ $TOTAL_MIRRORS -ne 0 ] ; then
+        if [ $TOTAL_SEG -ne $TOTAL_MIRRORS ] ; then
+            ERROR_EXIT "[FATAL]:-Problem with configuration file. Cannot specify different number of primary and mirror segments." 2   
+        fi
+    fi
+}
+
+
+CHK_QE_ARRAY_PORT_RANGES () {
+
+    #
+    # calculate port ranges
+    #
+
+    MIN_PORT=1000000
+    MIN_REPLICATION_PORT=100000000
+    MAX_PORT=0
+    MAX_REPLICATION_PORT=0
+    for QE in ${QE_PRIMARY_ARRAY[@]}
+    do
+        SET_VAR $QE
+        if [ $GP_PORT -lt $MIN_PORT ] ; then
+            MIN_PORT=$GP_PORT
+        fi
+        if [ $GP_PORT -gt $MAX_PORT ] ; then
+            MAX_PORT=$GP_PORT
+        fi
+        if [ $GP_REPLICATION_PORT -lt $MIN_REPLICATION_PORT ]; then
+            MIN_REPLICATION_PORT=$GP_REPLICATION_PORT
+        fi
+        if [ $GP_REPLICATION_PORT -gt $MAX_REPLICATION_PORT ]; then
+            MAX_REPLICATION_PORT=$GP_REPLICATION_PORT
+        fi
+    done
+
+    PORT_BASE=$MIN_PORT
+    REPLICATION_PORT_BASE=$MIN_REPLICATION_PORT
+
+    if [ x"" != x"${QE_MIRROR_ARRAY}" ] ; then
+        MIN_MIRROR_PORT=100000000
+        MIN_MIRROR_REPLICATION_PORT=100000000
+        MAX_MIRROR_PORT=0
+        MAX_MIRROR_REPLICATION_PORT=0
+        for QE in ${QE_MIRROR_ARRAY[@]}
+        do
+            SET_VAR $QE
+            if [ $GP_PORT -lt $MIN_MIRROR_PORT ] ; then
+                MIN_MIRROR_PORT=$GP_PORT
+            fi
+            if [ $GP_PORT -gt $MAX_MIRROR_PORT ] ; then
+                MAX_MIRROR_PORT=$GP_PORT
+            fi
+            if [ $GP_REPLICATION_PORT -lt $MIN_MIRROR_REPLICATION_PORT ]; then
+                MIN_MIRROR_REPLICATION_PORT=$GP_REPLICATION_PORT
+            fi
+            if [ $GP_REPLICATION_PORT -gt $MAX_MIRROR_REPLICATION_PORT ]; then
+                MAX_MIRROR_REPLICATION_PORT=$GP_REPLICATION_PORT
+            fi
+        done
+    fi
+
+    MIRROR_PORT_BASE=$MIN_MIRROR_PORT
+    MIRROR_REPLICATION_PORT_BASE=$MIN_MIRROR_REPLICATION_PORT
+
+    #
+    # now look for range conflicts
+    #
+
+    if CHK_OVERLAP $MASTER_PORT $MASTER_PORT $MIN_PORT $MAX_PORT; then
+	ERROR_EXIT "[FATAL]:-MASTER_PORT overlaps with PORT_BASE." 2
+    fi
+    
+    # Mirror configuration
+    if [ $MIRROR_PORT_BASE ]; then
+	
+	if [ x"" = x"$REPLICATION_PORT_BASE" ]; then
+	    ERROR_EXIT "[FATAL]:-REPLICATION_PORT_BASE variable not set" 2
+	fi
+
+	if [ x"" = x"$MIRROR_REPLICATION_PORT_BASE" ]; then
+	    ERROR_EXIT "[FATAL]:-MIRROR_REPLICATION_PORT_BASE variable not set" 2
+	fi
+
+	if CHK_OVERLAP $MASTER_PORT $MASTER_PORT $MIN_MIRROR_PORT $MAX_MIRROR_PORT; then
+	    ERROR_EXIT "[FATAL]:-MASTER_PORT overlaps with MIRROR_PORT_BASE." 2
+	fi
+	
+	if CHK_OVERLAP $MASTER_PORT $MASTER_PORT $MIN_REPLICATION_PORT $MAX_REPLICATION_PORT; then
+	    ERROR_EXIT "[FATAL]:-MASTER_PORT overlaps with REPLICATION_PORT_BASE." 2
+	fi
+	
+	if CHK_OVERLAP $MASTER_PORT $MASTER_PORT $MIN_MIRROR_REPLICATION_PORT $MAX_MIRROR_REPLICATION_PORT; then
+	    ERROR_EXIT "[FATAL]:-MASTER_PORT overlaps with MIRROR_REPLICATION_PORT_BASE." 2
+	fi
+	
+	if CHK_OVERLAP $MIN_PORT $MAX_PORT $MIN_MIRROR_PORT $MAX_MIRROR_PORT; then
+	    ERROR_EXIT "[FATAL]:-PORT_BASE AND MIRROR_PORT_BASE define overlapping ranges." 2
+	fi
+
+	if CHK_OVERLAP $MIN_PORT $MAX_PORT $MIN_REPLICATION_PORT $MAX_REPLICATION_PORT; then
+	    ERROR_EXIT "[FATAL]:-PORT_BASE AND REPLICATION_PORT_BASE define overlapping ranges." 2
+	fi
+	
+	if CHK_OVERLAP $MIN_PORT $MAX_PORT $MIN_MIRROR_REPLICATION_PORT $MAX_MIRROR_REPLICATION_PORT; then
+	    ERROR_EXIT "[FATAL]:-PORT_BASE AND MIRROR_REPLICATION_PORT_BASE define overlapping ranges." 2
+	fi
+	
+	if CHK_OVERLAP $MIN_MIRROR_PORT $MAX_MIRROR_PORT $MIN_REPLICATION_PORT $MAX_REPLICATION_PORT; then
+	    ERROR_EXIT "[FATAL]:-MIRROR_PORT_BASE AND REPLICATION_PORT_BASE define overlapping ranges." 2
+	fi
+	
+	if CHK_OVERLAP $MIN_MIRROR_PORT $MAX_MIRROR_PORT $MIN_MIRROR_REPLICATION_PORT $MAX_MIRROR_REPLICATION_PORT; then
+	    ERROR_EXIT "[FATAL]:-MIRROR_PORT_BASE AND MIRROR_REPLICATION_PORT_BASE define overlapping ranges." 2
+	fi
+	
+	if CHK_OVERLAP $MIN_REPLICATION_PORT $MAX_REPLICATION_PORT $MIN_MIRROR_REPLICATION_PORT $MAX_MIRROR_REPLICATION_PORT; then
+	    ERROR_EXIT "[FATAL]:-REPLICATION_PORT_BASE AND MIRROR_REPLICATION_PORT_BASE define overlapping ranges." 2
+	fi
+    fi
+
+    # PORT_BASE
+    if [ x"" = x"$PORT_BASE" ]; then
+	    ERROR_EXIT "[FATAL]:-PORT_BASE variable not set" 2
+    fi
+    QE_PORT=$PORT_BASE
+}
+
+
+
+LOAD_GP_TOOLKIT () {
+	LOG_MSG "[INFO]:-Loading gp_toolkit..." 1
+	ROLNAME=`$PSQL -q -t -A -c "select rolname from pg_authid where oid=10" template1`
+	if [ x"$ROLNAME" == x"" ];then
+		ERROR_EXIT "[FATAL]:-Failed to retrieve rolname." 2
+	fi
+
+	BACKOUT_COMMAND "$RM -f /tmp/_gp_toolkit_tmp_${CUR_DATE}_$FILE_TIME"
+
+	# We need SET SESSION AUTH here to load the toolkit
+	$ECHO "SET SESSION AUTHORIZATION $ROLNAME;" >> /tmp/_gp_toolkit_tmp_${CUR_DATE}_$FILE_TIME 2>&1
+	RETVAL=$?
+	if [ $RETVAL -ne 0 ];then
+		ERROR_EXIT "[FATAL]:-Failed to create the gp_toolkit sql file." 2
+	fi
+
+	$CAT $GPHOME/share/postgresql/gp_toolkit.sql >> /tmp/_gp_toolkit_tmp_${CUR_DATE}_$FILE_TIME 2>&1
+	RETVAL=$?
+	if [ $RETVAL -ne 0 ];then
+		ERROR_EXIT "[FATAL]:-Failed to create the gp_toolkit sql file." 2
+	fi
+
+	$PSQL -q -f /tmp/_gp_toolkit_tmp_${CUR_DATE}_$FILE_TIME template1 >> $LOG_FILE 2>&1 
+	RETVAL=$?
+	if [ $RETVAL -ne 0 ];then
+		ERROR_EXIT "[FATAL]:-Failed to create the gp_toolkit schema." 2
+	fi
+
+	$PSQL -q -f /tmp/_gp_toolkit_tmp_${CUR_DATE}_$FILE_TIME postgres >> $LOG_FILE 2>&1 
+	RETVAL=$?
+	if [ $RETVAL -ne 0 ];then
+		ERROR_EXIT "[FATAL]:-Failed to create the gp_toolkit schema." 2
+	fi
+
+	$RM /tmp/_gp_toolkit_tmp_${CUR_DATE}_$FILE_TIME
+}
+
+SET_DCA_CONFIG_SETTINGS () {
+	LOG_MSG "[INFO]:-Setting DCA specific configuration values..." 1
+
+	LOG_MSG "[INFO]:-$GPCONFIG -c $DCA_RESQUEUE_PRIORITY_NAME -v $DCA_SEGMENT_RESQUEUE_PRIORITY_VAL -m $DCA_MASTER_RESQUEUE_PRIORITY_VAL" 1
+	$GPCONFIG -c $DCA_RESQUEUE_PRIORITY_NAME -v $DCA_SEGMENT_RESQUEUE_PRIORITY_VAL -m $DCA_MASTER_RESQUEUE_PRIORITY_VAL
+	RETVAL=$?
+	if [ $RETVAL -ne 0 ]; then
+		LOG_MSG "[WARN]:-Failed to set value for $DCA_RESQUEUE_PRIORITY_NAME" 1
+	fi
+	
+	LOG_MSG "[INFO]:-$GPCONFIG -c $DCA_RESQUEUE_PRIORITY_CPUCORES_PER_SEGMENT_NAME -v $DCA_SEGMENT_RESQUEUE_PRIORITY_CPUCORES_PER_SEGMENT_VAL -m $DCA_MASTER_RESQUEUE_PRIORITY_CPUCORES_PER_SEGMENT_VAL" 1
+	$GPCONFIG -c $DCA_RESQUEUE_PRIORITY_CPUCORES_PER_SEGMENT_NAME -v $DCA_SEGMENT_RESQUEUE_PRIORITY_CPUCORES_PER_SEGMENT_VAL -m $DCA_MASTER_RESQUEUE_PRIORITY_CPUCORES_PER_SEGMENT_VAL
+	RETVAL=$?
+	if [ $RETVAL -ne 0 ]; then
+		LOG_MSG "[WARN]:-Failed to set value for $DCA_RESQUEUE_PRIORITY_CPUCORES_PER_SEGMENT_NAME" 1
+	fi
+
+	LOG_MSG "[INFO]:-$GPCONFIG -c $DCA_RESQUEUE_PRIORITY_SWEEPER_INTERVAL_NAME -v $DCA_SEGMENT_RESQUEUE_PRIORITY_SWEEPER_INTERVAL_VAL -m $DCA_MASTER_RESQUEUE_PRIORITY_SWEEPER_INTERVAL_VAL" 1
+	$GPCONFIG -c $DCA_RESQUEUE_PRIORITY_SWEEPER_INTERVAL_NAME -v $DCA_SEGMENT_RESQUEUE_PRIORITY_SWEEPER_INTERVAL_VAL -m $DCA_MASTER_RESQUEUE_PRIORITY_SWEEPER_INTERVAL_VAL
+	RETVAL=$?
+	if [ $RETVAL -ne 0 ]; then
+		LOG_MSG "[WARN]:-Failed to set value for $DCA_RESQUEUE_PRIORITY_SWEEPER_INTERVAL_NAME" 1
+	fi
+}
+
+#******************************************************************************
+# Main Section
+#******************************************************************************
+trap 'ERROR_EXIT "[FATAL]:-Received INT or TERM signal" 2' INT TERM
+while getopts ":v'?'aiqe:c:l:-:p:m:h:on:s:P:F:b:!DB:SI:O:" opt
+		do
+		case $opt in
+				v ) VERSION_INFO ;;
+				'?' ) USAGE ;;
+				! ) SCRIPT_USAGE=1
+				    USAGE ;;
+				a ) unset INTERACTIVE ;;
+				q ) unset VERBOSE ;;
+				c ) CLUSTER_CONFIG=$OPTARG ;;
+				l ) LOG_DIR=$OPTARG ;;
+				e ) GP_PASSWD=$OPTARG ;;
+				p ) PG_CONF_ADD_FILE=$OPTARG ;;
+				h ) MACHINE_LIST_FILE_ALT=$OPTARG ;;
+				m ) MASTER_MAX_CONNECT=$OPTARG ;;
+				b ) NEW_BUFFERS=$OPTARG ;;
+				s ) STANDBY_HOSTNAME=$OPTARG ;;
+				P ) STANDBY_PORT=$OPTARG ;;
+				F ) STANDBY_FILESPACES=$OPTARG ;;
+				n ) REQ_LOCALE_SETTING=$OPTARG ;;
+				D ) DEBUG_LEVEL=1 ;;
+				B ) BATCH_DEFAULT=$OPTARG ;;
+				S ) MIRROR_TYPE=1 ;;
+				I ) INPUT_CONFIG=$OPTARG ;;
+				O ) OUTPUT_CONFIG=$OPTARG ;;
+				- ) # Long options ...
+					NAME=${OPTARG%%=*}
+					VAL=${OPTARG#*=}
+					# Check if we are missing the long option value.  Currently all
+					# long options require a value so we can just do the check once.
+					if [ x"$NAME" == x"$VAL" ]; then
+						LOG_MSG "[FATAL]:-Missing value for option $NAME" 1;
+						USAGE;
+					fi
+					case $NAME in
+						"max_connections" ) MASTER_MAX_CONNECT=$VAL ;;
+						"shared_buffers"  ) NEW_BUFFERS=$VAL ;;
+						"su_password"     ) GP_PASSWD=$VAL ;;
+						"locale"          ) REQ_LOCALE_SETTING=$VAL ;;
+						"lc-collate"      ) LCCOLLATE=$VAL ;;
+						"lc-ctype"        ) LCCTYPE=$VAL ;;
+						"lc-messages"     ) LCMESSAGES=$VAL ;;
+						"lc-monetary"     ) LCMONETARY=$VAL ;;
+						"lc-numeric"      ) LCNUMERIC=$VAL ;;
+						"lc-time"         ) LCTIME=$VAL ;;
+						* ) USAGE ;;
+					esac
+					;;
+				* ) USAGE ;;
+		esac
+done
+
+if [ x"$CLUSTER_CONFIG" = x"" ] && [ x"$INPUT_CONFIG" = x"" ]; then
+		USAGE
+fi
+
+if [ x"" != x"$PG_CONF_ADD_FILE" ]; then
+	CHK_FILE $PG_CONF_ADD_FILE
+	if [ $EXISTS -ne 0 ]; then
+		ERROR_EXIT "[FATAL]:-Issue with postgres additions file $PG_CONF_ADD_FILE" 2
+	fi
+fi
+if [ x"" != x"$LOG_DIR" ];then
+        CHK_DIR $LOG_DIR
+        if [ $EXISTS -eq 1 ]; then
+                LOG_MSG "[WARN]:-Log directory $LOG_DIR does not exist, using default log directory" 1
+                EXIT_STATUS=1
+                BACKOUT_FILE=$DEFLOGDIR/backout_${PROG_NAME}_${USER_NAME}_${CUR_DATE}_$FILE_TIME
+        else
+                LOG_FILE=$LOG_DIR/${PROG_NAME}_${CUR_DATE}.log
+                BACKOUT_FILE=$LOG_DIR/backout_${PROG_NAME}_${USER_NAME}_${CUR_DATE}_$FILE_TIME
+        fi
+else
+        BACKOUT_FILE=$DEFLOGDIR/backout_${PROG_NAME}_${USER_NAME}_${CUR_DATE}_$FILE_TIME
+fi
+
+LOG_MSG "[INFO]:-Start Main"
+LOG_MSG "[INFO]:-Command line options passed to utility = $*"
+if [ x"$INPUT_CONFIG" != x"" ] ; then
+    CHK_GPDB_ID
+    CHK_PARAMS
+    CHK_QE_ARRAY_PORT_RANGES
+    CHK_QES_FROM_INPUTFILE
+
+    if [ x"" != x"$OUTPUT_CONFIG" ] ; then
+	DUMP_OUTPUT_CONFIG
+	exit 0
+    fi
+
+    DISPLAY_CONFIG
+
+else
+    CHK_GPDB_ID
+    CHK_PARAMS
+    CHK_MULTI_HOME
+    CREATE_QE_ARRAY
+    CHK_QE_ARRAY_PORT_RANGES
+    CHK_QES
+
+    if [ x"" != x"$OUTPUT_CONFIG" ] ; then
+	DUMP_OUTPUT_CONFIG
+	exit 0
+    fi
+
+    DISPLAY_CONFIG
+    ARRAY_REORDER
+fi
+
+CREATE_QD_DB		
+
+CREATE_QES_PRIMARY
+if [ $MIRRORING -ne 0 ]; then
+	CREATE_QES_MIRROR
+	# We've created a FILEREP mirror -- set the failover strategy to 'f'
+	env PGOPTIONS="-c gp_session_role=utility" $PSQL -p $MASTER_PORT -d "$U_DB" -c "INSERT INTO $GP_FAILOVER_CONFIG_TBL VALUES ('f');" >> $LOG_FILE 2>&1
+else
+	# We have no FILEREP mirror -- set the failover strategy to 'n'
+	env PGOPTIONS="-c gp_session_role=utility" $PSQL -p $MASTER_PORT -d "$U_DB" -c "INSERT INTO $GP_FAILOVER_CONFIG_TBL VALUES ('n');" >> $LOG_FILE 2>&1
+fi
+if [ $REPORT_FAIL -ne 0 ];then
+	LOG_MSG "[FATAL]:-Errors generated from parallel processes" 1
+	LOG_MSG "[INFO]:-Dumped contents of status file to the log file" 1
+	# Need to build a central backout file
+	LOG_MSG "[INFO]:-Building composite backout file" 1
+	for I in /tmp/gpsegcreate.sh_backout*
+	do
+		$CAT $I >> $BACKOUT_FILE
+		$RM -f $I
+	done
+	$ECHO "$RM -f $BACKOUT_FILE" >> $BACKOUT_FILE
+	ERROR_EXIT "[FATAL]:-Failures detected, see log file $LOG_FILE for more detail" 2
+else
+	LOG_MSG "[INFO]:-Deleting distributed backout files" 1
+	for I in ls /tmp/gpsegcreate.sh_backout*
+	do
+		$RM -f $I
+	done
+	LOG_MSG "[INFO]:-Removing back out file" 1
+	$RM -f $BACKOUT_FILE
+	LOG_MSG "[INFO]:-No errors generated from parallel processes" 1
+fi
+
+if [ x"" != x"$STANDBY_HOSTNAME" ];then
+	CREATE_STANDBY_QD
+fi
+
+if [ -f $DCA_VERSION_FILE ]; then
+	SET_DCA_CONFIG_SETTINGS	
+fi
+
+env PGOPTIONS="-c gp_session_role=utility" $PSQL -p $MASTER_PORT -d "$U_DB" -c "CHECKPOINT;" >> $LOG_FILE 2>&1
+STOP_QD_PRODUCTION
+START_QD_PRODUCTION
+
+LOAD_GP_TOOLKIT
+
+if [ x"" != x"$DATABASE_NAME" ]; then
+	CREATE_DATABASE
+fi
+
+SET_GP_USER_PW
+
+SCAN_LOG
+LOG_MSG "[INFO]:-Greenplum Database instance successfully created" 1
+LOG_MSG "[INFO]:-------------------------------------------------------" 1
+LOG_MSG "[INFO]:-To complete the environment configuration, please " 1
+LOG_MSG "[INFO]:-update $USER_NAME .bashrc file with the following" 1
+LOG_MSG "[INFO]:-1. Ensure that the greenplum_path.sh file is sourced" 1
+LOG_MSG "[INFO]:-2. Add \"export MASTER_DATA_DIRECTORY=${MASTER_DIRECTORY}/${SEG_PREFIX}-1\"" 1
+LOG_MSG "[INFO]:-   to access the Greenplum scripts for this instance:" 1
+LOG_MSG "[INFO]:-   or, use -d ${MASTER_DIRECTORY}/${SEG_PREFIX}-1 option for the Greenplum scripts" 1
+LOG_MSG "[INFO]:-   Example gpstate -d ${MASTER_DIRECTORY}/${SEG_PREFIX}-1" 1
+LOG_MSG "[INFO]:-Script log file = $LOG_FILE" 1
+LOG_MSG "[INFO]:-To remove instance, run gpdeletesystem utility" 1
+if [ x"" != x"$STANDBY_HOSTNAME" ];then
+LOG_MSG "[INFO]:-Standby Master $STANDBY_HOSTNAME has been configured" 1
+LOG_MSG "[INFO]:-To activate the Standby Master Segment in the event of Master" 1
+LOG_MSG "[INFO]:-failure review options for gpactivatestandby" 1
+else
+LOG_MSG "[INFO]:-To initialize a Standby Master Segment for this Greenplum instance" 1
+LOG_MSG "[INFO]:-Review options for gpinitstandby" 1
+fi
+LOG_MSG "[INFO]:-------------------------------------------------------" 1
+LOG_MSG "[INFO]:-The Master ${MASTER_DATA_DIRECTORY}/$PG_HBA post gpinitsystem" 1
+LOG_MSG "[INFO]:-has been configured to allow all hosts within this new" 1
+LOG_MSG "[INFO]:-array to intercommunicate. Any hosts external to this" 1
+LOG_MSG "[INFO]:-new array must be explicitly added to this file" 1
+LOG_MSG "[INFO]:-Refer to the Greenplum Admin support guide which is" 1
+LOG_MSG "[INFO]:-located in the $GPHOME/docs directory" 1
+LOG_MSG "[INFO]:-------------------------------------------------------" 1
+LOG_MSG "[INFO]:-End Main"
+exit $EXIT_STATUS

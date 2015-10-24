@@ -3,12 +3,12 @@
  * md.c
  *	  This code manages relations that reside on magnetic disk.
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/storage/smgr/md.c,v 1.123 2006/11/20 01:07:56 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/storage/smgr/md.c,v 1.123.2.2 2007/04/12 17:11:00 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -17,7 +17,13 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <sys/file.h>
+#include <glob.h>
+#include <dirent.h>
+#include <sys/types.h>
+#include <sys/stat.h>
 
+
+#include "access/appendonlywriter.h" 
 #include "catalog/catalog.h"
 #include "miscadmin.h"
 #include "postmaster/bgwriter.h"
@@ -25,10 +31,32 @@
 #include "storage/smgr.h"
 #include "utils/hsearch.h"
 #include "utils/memutils.h"
+#include "cdb/cdbmirroredbufferpool.h"
+#include "cdb/cdbpersistenttablespace.h"
+#include "cdb/cdbfilerepprimary.h"
+#include "utils/guc.h"
+#include "catalog/pg_tablespace.h"
 
 
 /* interval for calling AbsorbFsyncRequests in mdsync */
 #define FSYNCS_PER_ABSORB		10
+
+/* special values for the segno arg to RememberFsyncRequest */
+#define FORGET_RELATION_FSYNC	(InvalidBlockNumber)
+#define FORGET_DATABASE_FSYNC	(InvalidBlockNumber-1)
+
+/*
+ * On Windows, we have to interpret EACCES as possibly meaning the same as
+ * ENOENT, because if a file is unlinked-but-not-yet-gone on that platform,
+ * that's what you get.  Ugh.  This code is designed so that we don't
+ * actually believe these cases are okay without further evidence (namely,
+ * a pending fsync request getting revoked ... see mdsync).
+ */
+#ifndef WIN32
+#define FILE_POSSIBLY_DELETED(err)  ((err) == ENOENT)
+#else
+#define FILE_POSSIBLY_DELETED(err)  ((err) == ENOENT || (err) == EACCES)
+#endif
 
 /*
  *	The magnetic disk storage manager keeps track of open file
@@ -60,7 +88,7 @@
  *	per segment.  But note the md_fd pointer can be NULL, indicating
  *	relation not open.
  *
- *	Also note that mdfd_chain == NULL does not necessarily mean the relation
+ *	Also note that mdmir_chain == NULL does not necessarily mean the relation
  *	doesn't have another segment after this one; we may just not have
  *	opened the next segment yet.  (We could not have "all segments are
  *	in the chain" as an invariant anyway, since another backend could
@@ -75,14 +103,15 @@
  *	code has not been tested in a long time and is probably bit-rotted.
  */
 
-typedef struct _MdfdVec
+typedef struct _MdMirVec
 {
-	File		mdfd_vfd;		/* fd number in fd.c's pool */
-	BlockNumber mdfd_segno;		/* segment number, from 0 */
+	MirroredBufferPoolOpen		mdmir_open;
+
+	BlockNumber mdmir_segno;		/* segment number, from 0 */
 #ifndef LET_OS_MANAGE_FILESIZE	/* for large relations */
-	struct _MdfdVec *mdfd_chain;	/* next segment, or NULL */
+	struct _MdMirVec *mdmir_chain;	/* next segment, or NULL */
 #endif
-} MdfdVec;
+} MdMirVec;
 
 static MemoryContext MdCxt;		/* context for all md.c allocations */
 
@@ -92,9 +121,8 @@ static MemoryContext MdCxt;		/* context for all md.c allocations */
  * we keep track of pending fsync operations: we need to remember all relation
  * segments that have been written since the last checkpoint, so that we can
  * fsync them down to disk before completing the next checkpoint.  This hash
- * table remembers the pending operations.	We use a hash table not because
- * we want to look up individual operations, but simply as a convenient way
- * of eliminating duplicate requests.
+ * table remembers the pending operations.	We use a hash table mostly as
+ * a convenient way of eliminating duplicate requests.
  *
  * (Regular backends do not track pending operations locally, but forward
  * them to the bgwriter.)
@@ -103,23 +131,33 @@ typedef struct
 {
 	RelFileNode rnode;			/* the targeted relation */
 	BlockNumber segno;			/* which segment */
+} PendingOperationTag;
+
+typedef uint16 CycleCtr;		/* can be any convenient integer size */
+
+typedef struct
+{
+	PendingOperationTag tag;	/* hash table key (must be first!) */
+	bool		canceled;		/* T => request canceled, not yet removed */
+	CycleCtr	cycle_ctr;		/* mdsync_cycle_ctr when request was made */
 } PendingOperationEntry;
 
 static HTAB *pendingOpsTable = NULL;
 
+static CycleCtr mdsync_cycle_ctr = 0;
 
 /* local routines */
-static MdfdVec *mdopen(SMgrRelation reln, bool allowNotFound);
-static bool register_dirty_segment(SMgrRelation reln, MdfdVec *seg);
-static MdfdVec *_fdvec_alloc(void);
+static MdMirVec *mdopen(SMgrRelation reln, bool allowNotFound);
+static bool register_dirty_segment(SMgrRelation reln, MdMirVec *seg);
+static MdMirVec *_mirvec_alloc(void);
 
 #ifndef LET_OS_MANAGE_FILESIZE
-static MdfdVec *_mdfd_openseg(SMgrRelation reln, BlockNumber segno,
-			  int oflags);
+static MdMirVec *_mdmir_openseg(SMgrRelation reln, BlockNumber segno,
+			  bool createIfDoesntExist);
 #endif
-static MdfdVec *_mdfd_getseg(SMgrRelation reln, BlockNumber blkno,
+static MdMirVec *_mdmir_getseg(SMgrRelation reln, BlockNumber blkno,
 			 bool allowNotFound);
-static BlockNumber _mdnblocks(File file, Size blcksz);
+static BlockNumber _mdnblocks(MirroredBufferPoolOpen *mirroredOpen, Size blcksz);
 
 
 /*
@@ -145,7 +183,7 @@ mdinit(void)
 		HASHCTL		hash_ctl;
 
 		MemSet(&hash_ctl, 0, sizeof(hash_ctl));
-		hash_ctl.keysize = sizeof(PendingOperationEntry);
+		hash_ctl.keysize = sizeof(PendingOperationTag);
 		hash_ctl.entrysize = sizeof(PendingOperationEntry);
 		hash_ctl.hash = tag_hash;
 		hash_ctl.hcxt = MdCxt;
@@ -158,29 +196,552 @@ mdinit(void)
 	return true;
 }
 
+static int errdetail_nonexistent_relation(
+	int				error,
+
+	RelFileNode		*relFileNode)
+{
+#define MAX_MSG_LEN MAXPGPATH + 100
+
+	char *buffer;
+	int snprintfResult;
+
+	char *primaryFilespaceLocation = NULL;
+	char *mirrorFilespaceLocation = NULL;
+
+	struct stat fst;
+
+	if (!FILE_POSSIBLY_DELETED(error))
+	{
+		/*
+		 * No call to errdetail.
+		 */
+		return 0;
+	}
+
+	buffer = (char*)palloc(MAX_MSG_LEN);
+
+	if (IsBuiltinTablespace(relFileNode->spcNode))
+	{
+		/*
+		 * Assume filespace and tablespace exists.
+		 */
+	}
+	else
+	{		
+		char *tablespacePath;
+
+		/*
+		 * Investigate whether the containing directories exist to give more detail.
+		 */
+		PersistentTablespace_GetPrimaryAndMirrorFilespaces(
+											relFileNode->spcNode,
+											&primaryFilespaceLocation,
+											&mirrorFilespaceLocation);
+		if (primaryFilespaceLocation == NULL ||
+			strlen(primaryFilespaceLocation) == 0)
+		{
+			elog(ERROR, "Empty primary filespace directory location");
+		}
+
+		if (mirrorFilespaceLocation != NULL)
+		{
+			pfree(mirrorFilespaceLocation);
+			mirrorFilespaceLocation = NULL;
+		}
+
+		/*
+		 * Does the filespace directory exist?
+		 */
+		if (stat(primaryFilespaceLocation, &fst) < 0)
+		{
+			int saved_err;
+
+			saved_err = errno;
+
+			if (FILE_POSSIBLY_DELETED(saved_err))
+			{
+				snprintfResult = 
+					snprintf(
+						buffer,
+						MAX_MSG_LEN,
+						"Filespace directory \"%s\" does not exist",
+						primaryFilespaceLocation);
+			}
+			else
+			{
+				snprintfResult = 
+					snprintf(
+						buffer,
+						MAX_MSG_LEN,
+						"Filespace directory \"%s\" existence check: %s",
+						primaryFilespaceLocation,
+						strerror(saved_err));
+			}
+			
+			Assert(snprintfResult >= 0);
+			Assert(snprintfResult < MAX_MSG_LEN);
+
+			/*
+			 * Give DETAIL on the filespace directory!
+			 */
+			errdetail("%s", buffer);
+			pfree(buffer);
+
+			pfree(primaryFilespaceLocation);
+			return 0;
+		}
+		else
+		{
+			if (Debug_persistent_recovery_print)
+			{
+				/*
+				 * Since we are being invoked inside an elog, we don't want to
+				 * recurse.  So, use errdetail instead!
+				 */
+				snprintfResult = 
+					snprintf(
+						buffer,
+						MAX_MSG_LEN,
+						"Filespace directory \"%s\" does exist",
+						primaryFilespaceLocation);
+				
+				Assert(snprintfResult >= 0);
+				Assert(snprintfResult < MAX_MSG_LEN);
+				
+				errdetail("%s",buffer);
+			}
+		}
+	
+		tablespacePath = (char*)palloc(MAXPGPATH + 1);
+
+		FormTablespacePath(
+					tablespacePath,
+					primaryFilespaceLocation,
+					relFileNode->spcNode);
+
+		/*
+		 * Does the tablespace directory exist?
+		 */
+		if (stat(tablespacePath, &fst) < 0)
+		{
+			int saved_err;
+
+			saved_err = errno;
+
+			if (FILE_POSSIBLY_DELETED(saved_err))
+			{
+				snprintfResult = 
+					snprintf(
+						buffer,
+						MAX_MSG_LEN,
+						"Tablespace directory \"%s\" does not exist",
+						tablespacePath);
+			}
+			else
+			{
+				snprintfResult = 
+					snprintf(
+						buffer,
+						MAX_MSG_LEN,
+						"Tablespace directory \"%s\" existence check: %s",
+						tablespacePath,
+						strerror(saved_err));
+			}
+			
+			Assert(snprintfResult >= 0);
+			Assert(snprintfResult < MAX_MSG_LEN);
+
+			/*
+			 * Give DETAIL on the tablespace directory!
+			 */
+			errdetail("%s", buffer);
+			pfree(buffer);
+
+			if (primaryFilespaceLocation != NULL)
+				pfree(primaryFilespaceLocation);
+
+			pfree(tablespacePath);
+			return 0;
+		}
+		else
+		{
+			if (Debug_persistent_recovery_print)
+			{
+				snprintfResult = 
+					snprintf(
+						buffer,
+						MAX_MSG_LEN,
+						"Tablespace directory \"%s\" does exist",
+						tablespacePath);
+				
+				Assert(snprintfResult >= 0);
+				Assert(snprintfResult < MAX_MSG_LEN);
+				
+				errdetail("%s", buffer);
+			}
+		}
+
+		pfree(tablespacePath);
+	}
+
+	if (relFileNode->spcNode != GLOBALTABLESPACE_OID)
+	{
+		char *dbPath;
+
+		dbPath = (char*)palloc(MAXPGPATH + 1);
+		
+		FormDatabasePath(
+					dbPath,
+					primaryFilespaceLocation,
+					relFileNode->spcNode,
+					relFileNode->dbNode);
+
+		/*
+		 * Does the database directory exist?
+		 */
+		if (stat(dbPath, &fst) < 0)
+		{
+			int saved_err;
+		
+			saved_err = errno;
+		
+			if (FILE_POSSIBLY_DELETED(saved_err))
+			{
+				snprintfResult = 
+					snprintf(
+						buffer,
+						MAX_MSG_LEN,
+						"Database directory \"%s\" does not exist",
+						dbPath);
+			}
+			else
+			{
+				snprintfResult = 
+					snprintf(
+						buffer,
+						MAX_MSG_LEN,
+						"Database directory \"%s\" existence check: %s",
+						dbPath,
+						strerror(saved_err));
+			}
+			
+			Assert(snprintfResult >= 0);
+			Assert(snprintfResult < MAX_MSG_LEN);
+		
+			/*
+			 * Give DETAIL on the database directory!
+			 */
+			errdetail("%s", buffer);
+			pfree(buffer);
+		
+			if (primaryFilespaceLocation != NULL)
+				pfree(primaryFilespaceLocation);
+
+			pfree(dbPath);
+			return 0;
+		}
+		else
+		{
+			if (Debug_persistent_recovery_print)
+			{
+				snprintfResult = 
+					snprintf(
+						buffer,
+						MAX_MSG_LEN,
+						"Database directory \"%s\" does exist",
+						dbPath);
+				
+				Assert(snprintfResult >= 0);
+				Assert(snprintfResult < MAX_MSG_LEN);
+				
+				errdetail("%s", buffer);
+			}
+		}
+
+		pfree(dbPath);
+	}
+	
+	pfree(buffer);
+	if (primaryFilespaceLocation != NULL)
+		pfree(primaryFilespaceLocation);
+
+	/*
+	 * No (normal) call to errdetail.
+	 */
+	return 0;
+}
+
+/*
+ *	mdcreatefilespacedir() -- Create a new filespace directory on magnetic disk.
+ *
+ * If isRedo is true, it's okay for the filespace directory to exist already.
+ */
+void
+mdcreatefilespacedir(
+	Oid 						filespaceOid,
+
+	char						*primaryFilespaceLocation,
+								/* 
+								 * The primary filespace directory path.  NOT Blank padded.
+								 * Just a NULL terminated string.
+								 */
+
+	char						*mirrorFilespaceLocation,
+
+	StorageManagerMirrorMode	mirrorMode,
+
+	bool						ignoreAlreadyExists,
+
+	int 						*primaryError,
+
+	bool						*mirrorDataLossOccurred)
+{
+	int mirrorStatus = FileRepStatusSuccess;
+	*primaryError = 0;
+	*mirrorDataLossOccurred = false;
+
+	if (StorageManagerMirrorMode_SendToMirror(mirrorMode) &&
+		!*mirrorDataLossOccurred)
+	{
+		mirrorStatus = FileRepPrimary_MirrorCreate(
+												   FileRep_GetDirFilespaceIdentifier(
+																					 mirrorFilespaceLocation),
+												   FileRepRelationTypeDir,
+												   ignoreAlreadyExists);
+		
+		*mirrorDataLossOccurred = FileRepPrimary_IsMirrorDataLossOccurred();		
+	}
+
+	if (StorageManagerMirrorMode_DoPrimaryWork(mirrorMode))
+	{
+		if (mkdir(primaryFilespaceLocation, 0700) < 0)
+			*primaryError = errno;
+	}
+	
+	if (StorageManagerMirrorMode_SendToMirror(mirrorMode) &&
+		!*mirrorDataLossOccurred)
+	{
+		FileRepPrimary_IsOperationCompleted(
+											FileRep_GetDirFilespaceIdentifier(
+																			  mirrorFilespaceLocation),
+											FileRepRelationTypeDir);
+		
+		*mirrorDataLossOccurred = FileRepPrimary_IsMirrorDataLossOccurred();
+		
+		if (! *mirrorDataLossOccurred)
+		{
+			mirrorStatus = FileRepPrimary_GetMirrorStatus();
+
+			if (mirrorStatus != FileRepStatusSuccess) 
+			{
+				ereport(ERROR,
+						(errcode(ERRCODE_GP_COMMAND_ERROR),
+						 errmsg("could not create dbdir on mirror '%s' ",
+						 FileRepStatusToString[mirrorStatus])));
+			}
+		}
+	}
+}
+
+/*
+ *	mdcreatetablespacedir() -- Create a new tablespace directory on magnetic disk.
+ *
+ * If isRedo is true, it's okay for the tablespace directory to exist already.
+ */
+void
+mdcreatetablespacedir(
+	Oid							tablespaceOid,
+
+	StorageManagerMirrorMode 	mirrorMode,
+
+	bool						ignoreAlreadyExists,
+
+	int							*primaryError,
+
+	bool						*mirrorDataLossOccurred)
+{
+	char *primaryFilespaceLocation;
+	char *mirrorFilespaceLocation;
+	char tablespacePath[MAXPGPATH];
+
+	*primaryError = 0;
+	*mirrorDataLossOccurred = false;
+	
+	PersistentTablespace_GetPrimaryAndMirrorFilespaces(
+										tablespaceOid,
+										&primaryFilespaceLocation,
+										&mirrorFilespaceLocation);
+
+	if (StorageManagerMirrorMode_SendToMirror(mirrorMode) &&
+		!*mirrorDataLossOccurred)
+	{
+		FileRepPrimary_MirrorCreate(
+									FileRep_GetDirTablespaceIdentifier(
+																	   mirrorFilespaceLocation,
+																	   tablespaceOid),
+									FileRepRelationTypeDir,
+									TRUE);
+		
+		*mirrorDataLossOccurred = FileRepPrimary_IsMirrorDataLossOccurred();		
+	}
+	
+	if (StorageManagerMirrorMode_DoPrimaryWork(mirrorMode))
+	{
+		FormTablespacePath(
+					tablespacePath,
+					primaryFilespaceLocation,
+					tablespaceOid);
+
+		if (mkdir(tablespacePath, 0700) < 0)
+			*primaryError = errno;
+	}
+
+	if (StorageManagerMirrorMode_SendToMirror(mirrorMode) &&
+		!*mirrorDataLossOccurred)
+	{
+		FileRepPrimary_IsOperationCompleted(
+											FileRep_GetDirTablespaceIdentifier(
+																			   mirrorFilespaceLocation,
+																			   tablespaceOid),
+											FileRepRelationTypeDir);	
+		
+		*mirrorDataLossOccurred = FileRepPrimary_IsMirrorDataLossOccurred();
+	}
+		
+	if (primaryFilespaceLocation)
+		pfree(primaryFilespaceLocation);
+	if (mirrorFilespaceLocation)
+		pfree(mirrorFilespaceLocation);
+}
+
+/*
+ *	mdcreatedbdir() -- Create a new database directory on magnetic disk.
+ *
+ * If isRedo is true, it's okay for the database directory to exist already.
+ */
+void
+mdcreatedbdir(
+	DbDirNode					*dbDirNode,
+
+	StorageManagerMirrorMode 	mirrorMode,
+
+	bool						ignoreAlreadyExists,
+
+	int							*primaryError,
+
+	bool						*mirrorDataLossOccurred)
+{
+	char *primaryFilespaceLocation;
+	char *mirrorFilespaceLocation;
+	char dbPath[MAXPGPATH];
+
+	*primaryError = 0;
+	*mirrorDataLossOccurred = false;
+	
+	PersistentTablespace_GetPrimaryAndMirrorFilespaces(
+										dbDirNode->tablespace,
+										&primaryFilespaceLocation,
+										&mirrorFilespaceLocation);
+	
+	if (StorageManagerMirrorMode_SendToMirror(mirrorMode) &&
+		!*mirrorDataLossOccurred)
+	{
+		FileRepPrimary_MirrorCreate(
+									FileRep_GetDirDatabaseIdentifier(
+																	 mirrorFilespaceLocation,
+																	 *dbDirNode),
+									FileRepRelationTypeDir,
+									TRUE);
+
+		*mirrorDataLossOccurred = FileRepPrimary_IsMirrorDataLossOccurred();
+
+	}
+
+	if (StorageManagerMirrorMode_DoPrimaryWork(mirrorMode))
+	{
+		FormDatabasePath(
+					dbPath,
+					primaryFilespaceLocation,
+					dbDirNode->tablespace,
+					dbDirNode->database);
+
+		if (mkdir(dbPath, 0700) < 0)
+		{
+			if (ignoreAlreadyExists && (errno == EEXIST))
+			{
+				elog(LOG, "Directory already exists %s", dbPath);
+			}
+			else
+			{
+				*primaryError = errno;
+			}
+		}
+	}
+	
+	if (StorageManagerMirrorMode_SendToMirror(mirrorMode) &&
+		!*mirrorDataLossOccurred)
+	{
+		FileRepPrimary_IsOperationCompleted(
+											FileRep_GetDirDatabaseIdentifier(
+																			 mirrorFilespaceLocation,
+																			 *dbDirNode),
+											FileRepRelationTypeDir);
+
+		*mirrorDataLossOccurred = FileRepPrimary_IsMirrorDataLossOccurred();
+	}
+
+	if (primaryFilespaceLocation)
+		pfree(primaryFilespaceLocation);
+	if (mirrorFilespaceLocation)
+		pfree(mirrorFilespaceLocation);
+}
+
+
 /*
  *	mdcreate() -- Create a new relation on magnetic disk.
- *
- * If isRedo is true, it's okay for the relation to exist already.
  */
-bool
-mdcreate(SMgrRelation reln, bool isRedo)
+void
+mdcreate(
+	SMgrRelation 				reln,
+
+	bool 						isLocalBuf, 
+
+	char						*relationName,
+					/* For tracing only.  Can be NULL in some execution paths. */
+
+	MirrorDataLossTrackingState mirrorDataLossTrackingState,
+
+	int64						mirrorDataLossTrackingSessionNum,
+	
+	bool						ignoreAlreadyExists,
+
+	int							*primaryError,
+
+	bool						*mirrorDataLossOccurred)
 {
-	char	   *path;
-	File		fd;
+	MirroredBufferPoolOpen		mirroredOpen;
 
-	if (isRedo && reln->md_fd != NULL)
-		return true;			/* created and opened already... */
+	*primaryError = 0;
+	*mirrorDataLossOccurred = false;
 
-	Assert(reln->md_fd == NULL);
+	if (reln->md_mirvec != NULL)
+		mdclose(reln);		// Don't assume it has been created -- make sure it gets created on both mirrors.
 
-	path = relpath(reln->smgr_rnode);
-
-	fd = PathNameOpenFile(path, O_RDWR | O_CREAT | O_EXCL | PG_BINARY, 0600);
-
-	if (fd < 0)
+	Assert(reln->md_mirvec == NULL);
+	
+	MirroredBufferPool_Create(
+					&mirroredOpen,
+					&reln->smgr_rnode,
+					/* segmentFileNum */ 0,
+					relationName,
+					mirrorDataLossTrackingState,
+					mirrorDataLossTrackingSessionNum,
+					primaryError,
+					mirrorDataLossOccurred);
+	if (*primaryError != 0)
 	{
-		int			save_errno = errno;
+		int			savePrimaryError = *primaryError;
 
 		/*
 		 * During bootstrap, there are cases where a system relation will be
@@ -188,29 +749,30 @@ mdcreate(SMgrRelation reln, bool isRedo)
 		 * script nominally creates it.  Therefore, allow the file to exist
 		 * already, even if isRedo is not set.	(See also mdopen)
 		 */
-		if (isRedo || IsBootstrapProcessingMode())
-			fd = PathNameOpenFile(path, O_RDWR | PG_BINARY, 0600);
-		if (fd < 0)
+		if (ignoreAlreadyExists || IsBootstrapProcessingMode())
+			MirroredBufferPool_Open(
+						&mirroredOpen,
+						&reln->smgr_rnode,
+						/* segmentFileNum */ 0,
+						relationName,
+						primaryError,
+						mirrorDataLossOccurred);
+		if (!MirroredBufferPool_IsActive(&mirroredOpen))
 		{
-			pfree(path);
 			/* be sure to return the error reported by create, not open */
-			errno = save_errno;
-			return false;
+			*primaryError = savePrimaryError;
+			return;
 		}
 		errno = 0;
 	}
 
-	pfree(path);
+	reln->md_mirvec = _mirvec_alloc();
 
-	reln->md_fd = _fdvec_alloc();
-
-	reln->md_fd->mdfd_vfd = fd;
-	reln->md_fd->mdfd_segno = 0;
+	reln->md_mirvec->mdmir_open = mirroredOpen;
+	reln->md_mirvec->mdmir_segno = 0;
 #ifndef LET_OS_MANAGE_FILESIZE
-	reln->md_fd->mdfd_chain = NULL;
+	reln->md_mirvec->mdmir_chain = NULL;
 #endif
-
-	return true;
 }
 
 /*
@@ -222,58 +784,443 @@ mdcreate(SMgrRelation reln, bool isRedo)
  * If isRedo is true, it's okay for the relation to be already gone.
  */
 bool
-mdunlink(RelFileNode rnode, bool isRedo)
+mdunlink(
+	RelFileNode 				rnode, 
+
+	char						*relationName,
+					/* For tracing only.  Can be NULL in some execution paths. */
+	
+	bool  						primaryOnly,
+
+	bool						isRedo,
+
+	bool 						ignoreNonExistence,
+
+	bool						*mirrorDataLossOccurred)
 {
-	bool		status = true;
-	int			save_errno = 0;
-	char	   *path;
+	bool		 status		  = true;
+	int			 primaryError = 0;
+	char		 tmp[MAXPGPATH];
+	char		*path;
+	int			 segmentFileNum;
 
+	/*
+	 * We have to clean out any pending fsync requests for the doomed relation,
+	 * else the next mdsync() will fail.
+	 */
+	ForgetRelationFsyncRequests(rnode);
+
+	/* 
+	 * Delete All segment file extensions
+	 *
+	 * This code used to be implemented via glob(), but globbing data is slow
+	 * when there are many files in a directory, so using glob is to be avoided.
+	 * Instead we perform point lookups for files and delete the ones we find.
+	 * There are different rules for this depending on the type of table:
+	 *
+	 *   Heap Tables: contiguous extensions, no upper bound
+	 *   AO Tables: non contiguous extensions [.1 - .127]
+	 *   CO Tables: non contiguous extensions
+	 *          [  .1 - .127] for first column
+	 *          [.128 - .255] for second column
+	 *          [.256 - .283] for third column
+	 *          etc
+	 *
+	 * mdunlink is only called on Heap Tables, AO/CO tables are handled by a
+	 * different code path.  The following logic assumes that the files are
+	 * a single contiguous range of numbers.
+	 *
+	 * UNDONE: Probably should have mirror do pattern match too.
+	 *    It is conceivably possible that the primary/mirror may have a 
+	 *    different set of segment files, so doing the pattern match only
+	 *    in one place is dangerous.
+	 *
+	 * UNDONE: This is broken for mirroring !!!
+	 *    The fundamental problem is that if we drop a file on the mirror
+	 *    then fail over before we have dropped the file on the primary
+	 *    then the mirror is unaware that the file still needs to be dropped
+	 *    on the old primary.  
+	 *
+	 * The above two issues are tracked in MPP-11724
+	 */
+
+	/* 
+	 * We do this in two passes because it is safer to drop the files in reverse
+	 * order so as to prevent the creation of holes, but we need to scan forward
+	 * to know what files actually exist.
+	 */
 	path = relpath(rnode);
-
-	/* Delete the first segment, or only segment if not doing segmenting */
-	if (unlink(path) < 0)
+	for (segmentFileNum = 0; /* break in code */ ; segmentFileNum++)
 	{
-		if (!isRedo || errno != ENOENT)
-		{
-			status = false;
-			save_errno = errno;
-		}
+		struct stat sbuf;
+		
+		/* the zero segment file does not have the ".0" extension */
+		if (segmentFileNum == 0)
+			snprintf(tmp, sizeof(tmp), "%s", path);
+		else
+			snprintf(tmp, sizeof(tmp), "%s.%d", path, segmentFileNum);
+
+		if (stat(tmp, &sbuf) < 0)
+			break;  /* No such file, loop is done */
 	}
-
-#ifndef LET_OS_MANAGE_FILESIZE
-	/* Delete the additional segments, if any */
-	if (status)
-	{
-		char	   *segpath = (char *) palloc(strlen(path) + 12);
-		BlockNumber segno;
-
-		/*
-		 * Note that because we loop until getting ENOENT, we will
-		 * correctly remove all inactive segments as well as active ones.
-		 */
-		for (segno = 1;; segno++)
-		{
-			sprintf(segpath, "%s.%u", path, segno);
-			if (unlink(segpath) < 0)
-			{
-				/* ENOENT is expected after the last segment... */
-				if (errno != ENOENT)
-				{
-					status = false;
-					save_errno = errno;
-				}
-				break;
-			}
-		}
-		pfree(segpath);
-	}
-#endif
-
 	pfree(path);
 
-	errno = save_errno;
+	/* If the zero segment didn't exist raise an error if requested */
+	if (segmentFileNum == 0)
+	{
+		if (!ignoreNonExistence)
+		{
+			primaryError = ENOENT;
+			status = false;
+		}
+		else
+		{
+			/* 
+			 * Mirror can still have the file, so lets attempt to delete 
+			 * atleast zero segment file.
+			 */
+			int temp_primaryError = 0;
+			MirroredBufferPool_Drop(&rnode, segmentFileNum, relationName, 
+						primaryOnly, isRedo, &temp_primaryError,
+						mirrorDataLossOccurred);
+		}
+	}
+
+	/* second pass perform the drops in reverse order: important for REDO */
+	for(segmentFileNum--; segmentFileNum >= 0; segmentFileNum--)
+	{
+		MirroredBufferPool_Drop(&rnode, segmentFileNum, relationName, 
+								primaryOnly, isRedo, &primaryError,
+								mirrorDataLossOccurred);
+		if (primaryError != 0)
+		{
+			status = false;
+			break;
+		}
+	}
+
+	errno = primaryError;
 	return status;
 }
+
+static void mdsetupdropobjmirroraccess(	
+	bool						primaryOnly,
+
+	bool						mirrorOnly,
+	
+	StorageManagerMirrorMode	*mirrorMode,
+
+	bool						*mirrorDataLossOccurred)
+{
+	MirrorDataLossTrackingState mirrorDataLossTrackingState;
+	int64						mirrorDataLossTrackingSessionNum;
+
+	*mirrorMode = StorageManagerMirrorMode_None;
+	*mirrorDataLossOccurred = false;	// Assume.
+
+	mirrorDataLossTrackingState = 
+				FileRepPrimary_GetMirrorDataLossTrackingSessionNum(
+												&mirrorDataLossTrackingSessionNum);
+
+	if (gp_initdb_mirrored)
+	{
+		/* Kludge for initdb */
+		*mirrorMode = StorageManagerMirrorMode_Both;
+	}
+	else
+	{
+		switch (mirrorDataLossTrackingState)
+		{
+		case MirrorDataLossTrackingState_MirrorNotConfigured:
+			if (mirrorOnly)
+				elog(ERROR, "No mirror configured for mirror only");
+			
+			*mirrorMode = StorageManagerMirrorMode_PrimaryOnly;
+			break;
+			
+		case MirrorDataLossTrackingState_MirrorCurrentlyUpInSync:
+			if (primaryOnly)
+				*mirrorMode = StorageManagerMirrorMode_PrimaryOnly;
+			else if (!mirrorOnly)
+				*mirrorMode = StorageManagerMirrorMode_Both;
+			else
+				*mirrorMode = StorageManagerMirrorMode_MirrorOnly;
+			break;
+				
+		case MirrorDataLossTrackingState_MirrorCurrentlyUpInResync:
+			if (primaryOnly)
+				*mirrorMode = StorageManagerMirrorMode_PrimaryOnly;
+			else if (!mirrorOnly)
+				*mirrorMode = StorageManagerMirrorMode_Both;
+			else
+				*mirrorMode = StorageManagerMirrorMode_MirrorOnly;
+			break;	
+		case MirrorDataLossTrackingState_MirrorDown:
+			if (!mirrorOnly)
+				*mirrorMode = StorageManagerMirrorMode_PrimaryOnly;
+			else
+				*mirrorMode = StorageManagerMirrorMode_MirrorOnly;	// Mirror only operations fails from the outset.
+
+			*mirrorDataLossOccurred = true; 	// Mirror communication is down.
+			break;
+			
+		default:
+			elog(ERROR, "Unexpected mirror data loss tracking state: %d",
+				 mirrorDataLossTrackingState);
+			*mirrorMode = StorageManagerMirrorMode_None; 	// A happy optimizer is the sound of one hand clapping.
+		}
+	}
+
+}
+
+/*
+ *	mdrmfilespacedir() -- Remove a filespace directory on magnetic disk.
+ *
+ * If isRedo is true, it's okay for the filespace directory to exist already.
+ */
+bool
+mdrmfilespacedir(
+	Oid							filespaceOid,
+
+	char						*primaryFilespaceLocation,
+								/* 
+								 * The primary filespace directory path.  NOT Blank padded.
+								 * Just a NULL terminated string.
+								 */
+	
+	char						*mirrorFilespaceLocation,
+	
+	bool						primaryOnly,
+
+	bool					 	mirrorOnly,
+
+	bool 						ignoreNonExistence,
+
+	bool						*mirrorDataLossOccurred)
+{
+	StorageManagerMirrorMode	mirrorMode;
+
+	bool result;
+
+	*mirrorDataLossOccurred = false;
+
+	mdsetupdropobjmirroraccess(
+							primaryOnly,
+							mirrorOnly,
+							&mirrorMode,
+							mirrorDataLossOccurred);
+
+	if (StorageManagerMirrorMode_SendToMirror(mirrorMode) &&
+		!*mirrorDataLossOccurred)
+	{
+		FileRepPrimary_MirrorDrop(
+								  FileRep_GetDirFilespaceIdentifier(
+																	mirrorFilespaceLocation),
+								  FileRepRelationTypeDir);
+
+		*mirrorDataLossOccurred = FileRepPrimary_IsMirrorDataLossOccurred();
+
+	}
+			
+	if (StorageManagerMirrorMode_DoPrimaryWork(mirrorMode))
+	{
+		// The rmtree routine unfortunately emits errors, so there is not errno available...  
+		// Just a bool.
+		result = rmtree(primaryFilespaceLocation, true);
+	}
+	else
+		result = true;
+
+	if (StorageManagerMirrorMode_SendToMirror(mirrorMode) &&
+		!*mirrorDataLossOccurred)
+	{
+		FileRepPrimary_IsOperationCompleted(
+											FileRep_GetDirFilespaceIdentifier(
+																			  mirrorFilespaceLocation),
+											FileRepRelationTypeDir);
+		
+		*mirrorDataLossOccurred = FileRepPrimary_IsMirrorDataLossOccurred();		
+	}
+
+	return result;
+}
+
+/*
+ *	mdrmtablespacedir() -- Remove a tablespace directory on magnetic disk.
+ *
+ * If isRedo is true, it's okay for the tablespace directory to exist already.
+ */
+bool
+mdrmtablespacedir(
+	Oid							tablespaceOid,
+	
+	bool						primaryOnly,
+
+	bool					 	mirrorOnly,
+
+	bool 						ignoreNonExistence,
+
+	bool						*mirrorDataLossOccurred)
+{
+	StorageManagerMirrorMode	mirrorMode;
+
+	char *primaryFilespaceLocation;
+	char *mirrorFilespaceLocation;
+	char tablespacePath[MAXPGPATH];
+	bool result;
+
+	*mirrorDataLossOccurred = false;
+
+	mdsetupdropobjmirroraccess(
+							primaryOnly,
+							mirrorOnly,
+							&mirrorMode,
+							mirrorDataLossOccurred);
+
+	PersistentTablespace_GetPrimaryAndMirrorFilespaces(
+										tablespaceOid,
+										&primaryFilespaceLocation,
+										&mirrorFilespaceLocation);
+
+	if (StorageManagerMirrorMode_SendToMirror(mirrorMode) &&
+		!*mirrorDataLossOccurred)
+	{
+		FileRepPrimary_MirrorDrop(
+								  FileRep_GetDirTablespaceIdentifier(
+																	 mirrorFilespaceLocation,
+																	 tablespaceOid),
+								  FileRepRelationTypeDir);
+		
+		*mirrorDataLossOccurred = FileRepPrimary_IsMirrorDataLossOccurred();
+
+	}
+	
+	if (StorageManagerMirrorMode_DoPrimaryWork(mirrorMode))
+	{
+		/*
+		 * We've removed all relations, so all that is left are PG* files and work files.
+		 */
+		FormTablespacePath(
+					tablespacePath,
+					primaryFilespaceLocation,
+					tablespaceOid);
+			
+		// The rmtree routine unfortunately emits errors, so there is not errno available...  
+		// Just a bool.
+		result = rmtree(tablespacePath, true);
+	}
+	else
+		result = true;
+
+	if (StorageManagerMirrorMode_SendToMirror(mirrorMode) &&
+		!*mirrorDataLossOccurred)
+	{
+		FileRepPrimary_IsOperationCompleted(
+											FileRep_GetDirTablespaceIdentifier(
+																			   mirrorFilespaceLocation,
+																			   tablespaceOid),
+											FileRepRelationTypeDir);
+		
+		*mirrorDataLossOccurred = FileRepPrimary_IsMirrorDataLossOccurred();
+	}
+
+	if (primaryFilespaceLocation != NULL)
+		pfree(primaryFilespaceLocation);
+	if (mirrorFilespaceLocation != NULL)
+		pfree(mirrorFilespaceLocation);
+
+	return result;
+}
+
+
+/*
+ *	mdrmbdir() -- Remove a database directory on magnetic disk.
+ *
+ * If isRedo is true, it's okay for the database directory to exist already.
+ */
+bool
+mdrmdbdir(
+	DbDirNode					*dbDirNode,
+	
+	bool						primaryOnly,
+
+	bool					 	mirrorOnly,
+
+	bool 						ignoreNonExistence,
+
+	bool						*mirrorDataLossOccurred)
+{
+	StorageManagerMirrorMode	mirrorMode;
+
+	char *primaryFilespaceLocation;
+	char *mirrorFilespaceLocation;
+	char dbPath[MAXPGPATH];
+	bool result;
+
+	*mirrorDataLossOccurred = false;
+
+	mdsetupdropobjmirroraccess(
+							primaryOnly,
+							mirrorOnly,
+							&mirrorMode,
+							mirrorDataLossOccurred);
+
+	PersistentTablespace_GetPrimaryAndMirrorFilespaces(
+										dbDirNode->tablespace,
+										&primaryFilespaceLocation,
+										&mirrorFilespaceLocation);
+	
+	if (StorageManagerMirrorMode_SendToMirror(mirrorMode) &&
+		!*mirrorDataLossOccurred)
+	{
+		FileRepPrimary_MirrorDrop(
+								  FileRep_GetDirDatabaseIdentifier(
+																   mirrorFilespaceLocation,
+																   *dbDirNode),
+								  FileRepRelationTypeDir);
+		
+		*mirrorDataLossOccurred = FileRepPrimary_IsMirrorDataLossOccurred();
+
+	}
+	
+	if (StorageManagerMirrorMode_DoPrimaryWork(mirrorMode))
+	{
+		/*
+		 * We've removed all relations, so all that is left are PG* files and work files.
+		 */
+		FormDatabasePath(
+					dbPath,
+					primaryFilespaceLocation,
+					dbDirNode->tablespace,
+					dbDirNode->database);
+			
+		// The rmtree routine unfortunately emits errors, so there is not errno available...  
+		// Just a bool.
+		result = rmtree(dbPath, true);
+	}
+	else
+		result = true;
+
+	if (StorageManagerMirrorMode_SendToMirror(mirrorMode) &&
+		!*mirrorDataLossOccurred)
+	{
+		FileRepPrimary_IsOperationCompleted(
+											FileRep_GetDirDatabaseIdentifier(
+																			 mirrorFilespaceLocation,
+																			 *dbDirNode),
+											FileRepRelationTypeDir);	
+		
+		*mirrorDataLossOccurred = FileRepPrimary_IsMirrorDataLossOccurred();
+	}
+
+	if (primaryFilespaceLocation != NULL)
+		pfree(primaryFilespaceLocation);
+	if (mirrorFilespaceLocation != NULL)
+		pfree(mirrorFilespaceLocation);
+
+	return result;
+}
+
 
 /*
  *	mdextend() -- Add a block to the specified relation.
@@ -289,10 +1236,12 @@ bool
 mdextend(SMgrRelation reln, BlockNumber blocknum, char *buffer, bool isTemp)
 {
 	long		seekpos;
+#ifdef suppress
 	int			nbytes;
-	MdfdVec    *v;
+#endif
+	MdMirVec    *v;
 
-	v = _mdfd_getseg(reln, blocknum, false);
+	v = _mdmir_getseg(reln, blocknum, false);
 
 #ifndef LET_OS_MANAGE_FILESIZE
 	seekpos = (long) (BLCKSZ * (blocknum % ((BlockNumber) RELSEG_SIZE)));
@@ -310,6 +1259,16 @@ mdextend(SMgrRelation reln, BlockNumber blocknum, char *buffer, bool isTemp)
 	 * to dump another buffer of the same file to make room for the new page's
 	 * buffer.
 	 */
+
+	if (!MirroredBufferPool_Write(
+							&v->mdmir_open,
+							seekpos,
+							buffer,
+							BLCKSZ))
+		return false;
+
+#ifdef suppress
+	// UNDONE: What do we do with this partial write / truncate back madness????
 	if (FileSeek(v->mdfd_vfd, seekpos, SEEK_SET) != seekpos)
 		return false;
 
@@ -326,6 +1285,7 @@ mdextend(SMgrRelation reln, BlockNumber blocknum, char *buffer, bool isTemp)
 		}
 		return false;
 	}
+#endif
 
 	if (!isTemp)
 	{
@@ -334,7 +1294,7 @@ mdextend(SMgrRelation reln, BlockNumber blocknum, char *buffer, bool isTemp)
 	}
 
 #ifndef LET_OS_MANAGE_FILESIZE
-	Assert(_mdnblocks(v->mdfd_vfd, BLCKSZ) <= ((BlockNumber) RELSEG_SIZE));
+	Assert(_mdnblocks(&v->mdmir_open, BLCKSZ) <= ((BlockNumber) RELSEG_SIZE));
 #endif
 
 	return true;
@@ -346,22 +1306,27 @@ mdextend(SMgrRelation reln, BlockNumber blocknum, char *buffer, bool isTemp)
  *
  * Note we only open the first segment, when there are multiple segments.
  */
-static MdfdVec *
+static MdMirVec *
 mdopen(SMgrRelation reln, bool allowNotFound)
 {
-	MdfdVec    *mdfd;
-	char	   *path;
-	File		fd;
+	int	primaryError;
+	bool mirrorDataLossOccurred;
+
+	MdMirVec    *v;
+	MirroredBufferPoolOpen		mirroredOpen;
 
 	/* No work if already open */
-	if (reln->md_fd)
-		return reln->md_fd;
+	if (reln->md_mirvec)
+		return reln->md_mirvec;
 
-	path = relpath(reln->smgr_rnode);
-
-	fd = PathNameOpenFile(path, O_RDWR | PG_BINARY, 0600);
-
-	if (fd < 0)
+	MirroredBufferPool_Open(
+				&mirroredOpen,
+				&reln->smgr_rnode,
+				/* segmentFileNum */ 0,
+				/* relationName */ NULL,		// Ok to be NULL -- we don't know the name here.
+				&primaryError,
+				&mirrorDataLossOccurred);
+	if (primaryError != 0)
 	{
 		/*
 		 * During bootstrap, there are cases where a system relation will be
@@ -370,33 +1335,53 @@ mdopen(SMgrRelation reln, bool allowNotFound)
 		 * substitute for mdcreate() in bootstrap mode only. (See mdcreate)
 		 */
 		if (IsBootstrapProcessingMode())
-			fd = PathNameOpenFile(path, O_RDWR | O_CREAT | O_EXCL | PG_BINARY, 0600);
-		if (fd < 0)
 		{
-			pfree(path);
-			if (allowNotFound && errno == ENOENT)
+			
+			MirrorDataLossTrackingState mirrorDataLossTrackingState;
+			int64						mirrorDataLossTrackingSessionNum;
+			
+			mirrorDataLossTrackingState = 
+						FileRepPrimary_GetMirrorDataLossTrackingSessionNum(
+														&mirrorDataLossTrackingSessionNum);
+			MirroredBufferPool_Create(
+							&mirroredOpen,
+							&reln->smgr_rnode,
+							/* segmentFileNum */ 0,
+							/* relationName */ NULL,		// Ok to be NULL -- we don't know the name here.
+							mirrorDataLossTrackingState,
+							mirrorDataLossTrackingSessionNum,
+							&primaryError,
+							&mirrorDataLossOccurred);
+		}
+		if (!MirroredBufferPool_IsActive(&mirroredOpen))
+		{
+			int saved_err;
+
+			if (allowNotFound && FILE_POSSIBLY_DELETED(errno))
 				return NULL;
+
+			saved_err = errno;
 			ereport(ERROR,
 					(errcode_for_file_access(),
-					 errmsg("could not open relation %u/%u/%u: %m",
+					 errmsg("could not open relation %u/%u/%u: %s",
 							reln->smgr_rnode.spcNode,
 							reln->smgr_rnode.dbNode,
-							reln->smgr_rnode.relNode)));
+							reln->smgr_rnode.relNode,
+							strerror(saved_err)),
+					 errdetail_nonexistent_relation(saved_err, &reln->smgr_rnode)));
 		}
 	}
 
-	pfree(path);
+	reln->md_mirvec = v = _mirvec_alloc();
 
-	reln->md_fd = mdfd = _fdvec_alloc();
-
-	mdfd->mdfd_vfd = fd;
-	mdfd->mdfd_segno = 0;
+	v->mdmir_open = mirroredOpen;
+	v->mdmir_segno = 0;
 #ifndef LET_OS_MANAGE_FILESIZE
-	mdfd->mdfd_chain = NULL;
-	Assert(_mdnblocks(fd, BLCKSZ) <= ((BlockNumber) RELSEG_SIZE));
+	v->mdmir_chain = NULL;
+	Assert(_mdnblocks(&v->mdmir_open, BLCKSZ) <= ((BlockNumber) RELSEG_SIZE));
 #endif
 
-	return mdfd;
+	return v;
 }
 
 /*
@@ -407,29 +1392,29 @@ mdopen(SMgrRelation reln, bool allowNotFound)
 bool
 mdclose(SMgrRelation reln)
 {
-	MdfdVec    *v = reln->md_fd;
+	MdMirVec    *v = reln->md_mirvec;
 
 	/* No work if already closed */
 	if (v == NULL)
 		return true;
 
-	reln->md_fd = NULL;			/* prevent dangling pointer after error */
+	reln->md_mirvec = NULL;			/* prevent dangling pointer after error */
 
 #ifndef LET_OS_MANAGE_FILESIZE
 	while (v != NULL)
 	{
-		MdfdVec    *ov = v;
+		MdMirVec    *ov = v;
 
 		/* if not closed already */
-		if (v->mdfd_vfd >= 0)
-			FileClose(v->mdfd_vfd);
+		if (MirroredBufferPool_IsActive(&v->mdmir_open))
+			MirroredBufferPool_Close(&v->mdmir_open);
 		/* Now free vector */
-		v = v->mdfd_chain;
+		v = v->mdmir_chain;
 		pfree(ov);
 	}
 #else
-	if (v->mdfd_vfd >= 0)
-		FileClose(v->mdfd_vfd);
+	if (MirroredBufferPool_IsActive(&v->mdmir_open))
+		MirroredBufferPool_Close(&v->mdmir_open);
 	pfree(v);
 #endif
 
@@ -445,9 +1430,9 @@ mdread(SMgrRelation reln, BlockNumber blocknum, char *buffer)
 	bool		status;
 	long		seekpos;
 	int			nbytes;
-	MdfdVec    *v;
+	MdMirVec    *v;
 
-	v = _mdfd_getseg(reln, blocknum, false);
+	v = _mdmir_getseg(reln, blocknum, false);
 
 #ifndef LET_OS_MANAGE_FILESIZE
 	seekpos = (long) (BLCKSZ * (blocknum % ((BlockNumber) RELSEG_SIZE)));
@@ -456,11 +1441,15 @@ mdread(SMgrRelation reln, BlockNumber blocknum, char *buffer)
 	seekpos = (long) (BLCKSZ * (blocknum));
 #endif
 
-	if (FileSeek(v->mdfd_vfd, seekpos, SEEK_SET) != seekpos)
+	if (MirroredBufferPool_SeekSet(&v->mdmir_open, seekpos) != seekpos)
 		return false;
 
 	status = true;
-	if ((nbytes = FileRead(v->mdfd_vfd, buffer, BLCKSZ)) != BLCKSZ)
+	if ((nbytes = MirroredBufferPool_Read(
+								&v->mdmir_open,
+								seekpos,
+								buffer, 
+								BLCKSZ)) != BLCKSZ)
 	{
 		/*
 		 * If we are at or past EOF, return zeroes without complaining. Also
@@ -471,7 +1460,7 @@ mdread(SMgrRelation reln, BlockNumber blocknum, char *buffer)
 		 * pages are initialized out-of-order.
 		 */
 		if (nbytes == 0 ||
-			(nbytes > 0 && mdnblocks(reln) == blocknum))
+			(nbytes > 0 && mdnblocks(reln, false) == blocknum))
 			MemSet(buffer, 0, BLCKSZ);
 		else
 			status = false;
@@ -487,9 +1476,9 @@ bool
 mdwrite(SMgrRelation reln, BlockNumber blocknum, char *buffer, bool isTemp)
 {
 	long		seekpos;
-	MdfdVec    *v;
+	MdMirVec    *v;
 
-	v = _mdfd_getseg(reln, blocknum, false);
+	v = _mdmir_getseg(reln, blocknum, false);
 
 #ifndef LET_OS_MANAGE_FILESIZE
 	seekpos = (long) (BLCKSZ * (blocknum % ((BlockNumber) RELSEG_SIZE)));
@@ -498,10 +1487,11 @@ mdwrite(SMgrRelation reln, BlockNumber blocknum, char *buffer, bool isTemp)
 	seekpos = (long) (BLCKSZ * (blocknum));
 #endif
 
-	if (FileSeek(v->mdfd_vfd, seekpos, SEEK_SET) != seekpos)
-		return false;
-
-	if (FileWrite(v->mdfd_vfd, buffer, BLCKSZ) != BLCKSZ)
+	if (!MirroredBufferPool_Write(
+							&v->mdmir_open,
+							seekpos,
+							buffer,
+							BLCKSZ))
 		return false;
 
 	if (!isTemp)
@@ -517,16 +1507,20 @@ mdwrite(SMgrRelation reln, BlockNumber blocknum, char *buffer, bool isTemp)
  *	mdnblocks() -- Get the number of blocks stored in a relation.
  *
  *		Important side effect: all active segments of the relation are opened
- *		and added to the mdfd_chain list.  If this routine has not been
+ *		and added to the mdmir_chain list.  If this routine has not been
  *		called, then only segments up to the last one actually touched
  *		are present in the chain.
  *
  *		Returns # of blocks, or InvalidBlockNumber on error.
  */
 BlockNumber
-mdnblocks(SMgrRelation reln)
+mdnblocks(SMgrRelation reln, bool allowNotFound)
 {
-	MdfdVec    *v = mdopen(reln, false);
+	MdMirVec    *v = mdopen(reln, allowNotFound);
+	if (NULL == v)
+	{
+		return InvalidBlockNumber;
+	}
 
 #ifndef LET_OS_MANAGE_FILESIZE
 	BlockNumber nblocks;
@@ -544,42 +1538,44 @@ mdnblocks(SMgrRelation reln)
 	 * flush, it could have segment chain entries for inactive segments;
 	 * that's OK because the bgwriter never needs to compute relation size.)
 	 */
-	while (v->mdfd_chain != NULL)
+	while (v->mdmir_chain != NULL)
 	{
 		segno++;
-		v = v->mdfd_chain;
+		v = v->mdmir_chain;
 	}
 
 	for (;;)
 	{
-		nblocks = _mdnblocks(v->mdfd_vfd, BLCKSZ);
+		nblocks = _mdnblocks(&v->mdmir_open, BLCKSZ);
 		if (nblocks > ((BlockNumber) RELSEG_SIZE))
 			elog(FATAL, "segment too big");
 		if (nblocks < ((BlockNumber) RELSEG_SIZE))
+		{
 			return (segno * ((BlockNumber) RELSEG_SIZE)) + nblocks;
+        }
 
 		/*
 		 * If segment is exactly RELSEG_SIZE, advance to next one.
 		 */
 		segno++;
 
-		if (v->mdfd_chain == NULL)
+		if (v->mdmir_chain == NULL)
 		{
 			/*
-			 * Because we pass O_CREAT, we will create the next segment (with
+			 * Because we pass true for createIfDoesntExist, we will create the next segment (with
 			 * zero length) immediately, if the last segment is of length
 			 * RELSEG_SIZE.  While perhaps not strictly necessary, this keeps
 			 * the logic simple.
 			 */
-			v->mdfd_chain = _mdfd_openseg(reln, segno, O_CREAT);
-			if (v->mdfd_chain == NULL)
+			v->mdmir_chain = _mdmir_openseg(reln, segno, true /* createIfDoesntExist */);
+			if (v->mdmir_chain == NULL)
 				return InvalidBlockNumber;		/* failed? */
 		}
 
-		v = v->mdfd_chain;
+		v = v->mdmir_chain;
 	}
 #else
-	return _mdnblocks(v->mdfd_vfd, BLCKSZ);
+	return _mdnblocks(&v->mdmir_open, BLCKSZ);
 #endif
 }
 
@@ -589,9 +1585,9 @@ mdnblocks(SMgrRelation reln)
  *		Returns # of blocks or InvalidBlockNumber on error.
  */
 BlockNumber
-mdtruncate(SMgrRelation reln, BlockNumber nblocks, bool isTemp)
+mdtruncate(SMgrRelation reln, BlockNumber nblocks, bool isTemp, bool allowNotFound)
 {
-	MdfdVec    *v;
+	MdMirVec    *v;
 	BlockNumber curnblk;
 
 #ifndef LET_OS_MANAGE_FILESIZE
@@ -602,38 +1598,43 @@ mdtruncate(SMgrRelation reln, BlockNumber nblocks, bool isTemp)
 	 * NOTE: mdnblocks makes sure we have opened all active segments, so
 	 * that truncation loop will get them all!
 	 */
-	curnblk = mdnblocks(reln);
+	curnblk = mdnblocks(reln, allowNotFound);
 	if (curnblk == InvalidBlockNumber)
 		return InvalidBlockNumber;		/* mdnblocks failed */
 	if (nblocks > curnblk)
 		return InvalidBlockNumber;		/* bogus request */
-	if (nblocks == curnblk)
+	/*
+	 * Resync issues truncate to mirror only. In that case on primary nblocks will be always identical to curnblock
+	 * since nblocks is allocated while holding LockRelationForResyncExtension.
+	 */
+	if (nblocks == curnblk && ! FileRepPrimary_IsResyncWorker())
 		return nblocks;			/* no work */
 
 	v = mdopen(reln, false);
 
 #ifndef LET_OS_MANAGE_FILESIZE
 	priorblocks = 0;
+	
 	while (v != NULL)
 	{
-		MdfdVec    *ov = v;
+		MdMirVec    *ov = v;
 
 		if (priorblocks > nblocks)
 		{
 			/*
 			 * This segment is no longer active (and has already been
-			 * unlinked from the mdfd_chain). We truncate the file, but do
+			 * unlinked from the mdmir_chain). We truncate the file, but do
 			 * not delete it, for reasons explained in the header comments.
 			 */
-			if (FileTruncate(v->mdfd_vfd, 0) < 0)
+			if (!MirroredBufferPool_Truncate(&v->mdmir_open, 0))
 				return InvalidBlockNumber;
 			if (!isTemp)
 			{
 				if (!register_dirty_segment(reln, v))
 					return InvalidBlockNumber;
 			}
-			v = v->mdfd_chain;
-			Assert(ov != reln->md_fd);	/* we never drop the 1st segment */
+			v = v->mdmir_chain;
+			Assert(ov != reln->md_mirvec);	/* we never drop the 1st segment */
 			pfree(ov);
 		}
 		else if (priorblocks + ((BlockNumber) RELSEG_SIZE) > nblocks)
@@ -648,15 +1649,15 @@ mdtruncate(SMgrRelation reln, BlockNumber nblocks, bool isTemp)
 			 */
 			BlockNumber lastsegblocks = nblocks - priorblocks;
 
-			if (FileTruncate(v->mdfd_vfd, lastsegblocks * BLCKSZ) < 0)
+			if (!MirroredBufferPool_Truncate(&v->mdmir_open, lastsegblocks * BLCKSZ) < 0)
 				return InvalidBlockNumber;
 			if (!isTemp)
 			{
 				if (!register_dirty_segment(reln, v))
 					return InvalidBlockNumber;
 			}
-			v = v->mdfd_chain;
-			ov->mdfd_chain = NULL;
+			v = v->mdmir_chain;
+			ov->mdmir_chain = NULL;
 		}
 		else
 		{
@@ -664,12 +1665,12 @@ mdtruncate(SMgrRelation reln, BlockNumber nblocks, bool isTemp)
 			 * We still need this segment and 0 or more blocks beyond it, so
 			 * nothing to do here.
 			 */
-			v = v->mdfd_chain;
+			v = v->mdmir_chain;
 		}
 		priorblocks += RELSEG_SIZE;
 	}
 #else
-	if (FileTruncate(v->mdfd_vfd, nblocks * BLCKSZ) < 0)
+	if (!MirroredBufferPool_Truncate(&v->mdmir_open, nblocks * BLCKSZ) < 0)
 		return InvalidBlockNumber;
 	if (!isTemp)
 	{
@@ -690,14 +1691,14 @@ mdtruncate(SMgrRelation reln, BlockNumber nblocks, bool isTemp)
 bool
 mdimmedsync(SMgrRelation reln)
 {
-	MdfdVec    *v;
+	MdMirVec    *v;
 	BlockNumber curnblk;
 
 	/*
 	 * NOTE: mdnblocks makes sure we have opened all active segments, so
 	 * that fsync loop will get them all!
 	 */
-	curnblk = mdnblocks(reln);
+	curnblk = mdnblocks(reln, false);
 	if (curnblk == InvalidBlockNumber)
 		return false;			/* mdnblocks failed */
 
@@ -706,12 +1707,12 @@ mdimmedsync(SMgrRelation reln)
 #ifndef LET_OS_MANAGE_FILESIZE
 	while (v != NULL)
 	{
-		if (FileSync(v->mdfd_vfd) < 0)
+		if (!MirroredBufferPool_Flush(&v->mdmir_open))
 			return false;
-		v = v->mdfd_chain;
+		v = v->mdmir_chain;
 	}
 #else
-	if (FileSync(v->mdfd_vfd) < 0)
+	if (!MirroredBufferPool_Flush(&v->mdmir_open) < 0)
 		return false;
 #endif
 
@@ -720,48 +1721,102 @@ mdimmedsync(SMgrRelation reln)
 
 /*
  *	mdsync() -- Sync previous writes to stable storage.
- *
- * This is only called during checkpoints, and checkpoints should only
- * occur in processes that have created a pendingOpsTable.
  */
 bool
 mdsync(void)
 {
+	static bool mdsync_in_progress = false;
+
 	HASH_SEQ_STATUS hstat;
 	PendingOperationEntry *entry;
 	int			absorb_counter;
 
+	/*
+	 * This is only called during checkpoints, and checkpoints should only
+	 * occur in processes that have created a pendingOpsTable.
+	 */
 	if (!pendingOpsTable)
 		return false;
 
 	/*
 	 * If we are in the bgwriter, the sync had better include all fsync
-	 * requests that were queued by backends before the checkpoint REDO point
-	 * was determined.	We go that a little better by accepting all requests
-	 * queued up to the point where we start fsync'ing.
+	 * requests that were queued by backends before the checkpoint REDO
+	 * point was determined.  We go that a little better by accepting all
+	 * requests queued up to the point where we start fsync'ing.
 	 */
 	AbsorbFsyncRequests();
 
+	/*
+	 * To avoid excess fsync'ing (in the worst case, maybe a never-terminating
+	 * checkpoint), we want to ignore fsync requests that are entered into the
+	 * hashtable after this point --- they should be processed next time,
+	 * instead.  We use mdsync_cycle_ctr to tell old entries apart from new
+	 * ones: new ones will have cycle_ctr equal to the incremented value of
+	 * mdsync_cycle_ctr.
+	 *
+	 * In normal circumstances, all entries present in the table at this
+	 * point will have cycle_ctr exactly equal to the current (about to be old)
+	 * value of mdsync_cycle_ctr.  However, if we fail partway through the
+	 * fsync'ing loop, then older values of cycle_ctr might remain when we
+	 * come back here to try again.  Repeated checkpoint failures would
+	 * eventually wrap the counter around to the point where an old entry
+	 * might appear new, causing us to skip it, possibly allowing a checkpoint
+	 * to succeed that should not have.  To forestall wraparound, any time
+	 * the previous mdsync() failed to complete, run through the table and
+	 * forcibly set cycle_ctr = mdsync_cycle_ctr.
+	 *
+	 * Think not to merge this loop with the main loop, as the problem is
+	 * exactly that that loop may fail before having visited all the entries.
+	 * From a performance point of view it doesn't matter anyway, as this
+	 * path will never be taken in a system that's functioning normally.
+	 */
+	if (mdsync_in_progress)
+	{
+		/* prior try failed, so update any stale cycle_ctr values */
+		hash_seq_init(&hstat, pendingOpsTable);
+		while ((entry = (PendingOperationEntry *) hash_seq_search(&hstat)) != NULL)
+		{
+			entry->cycle_ctr = mdsync_cycle_ctr;
+		}
+	}
+
+	/* Advance counter so that new hashtable entries are distinguishable */
+	mdsync_cycle_ctr++;
+
+	/* Set flag to detect failure if we don't reach the end of the loop */
+	mdsync_in_progress = true;
+
+	/* Now scan the hashtable for fsync requests to process */
 	absorb_counter = FSYNCS_PER_ABSORB;
 	hash_seq_init(&hstat, pendingOpsTable);
 	while ((entry = (PendingOperationEntry *) hash_seq_search(&hstat)) != NULL)
 	{
 		/*
-		 * If fsync is off then we don't have to bother opening the file at
-		 * all.  (We delay checking until this point so that changing fsync on
-		 * the fly behaves sensibly.)
+		 * If the entry is new then don't process it this time.  Note that
+		 * "continue" bypasses the hash-remove call at the bottom of the loop.
 		 */
-		if (enableFsync)
+		if (entry->cycle_ctr == mdsync_cycle_ctr)
+			continue;
+
+		/* Else assert we haven't missed it */
+		Assert((CycleCtr) (entry->cycle_ctr + 1) == mdsync_cycle_ctr);
+
+		/*
+		 * If fsync is off then we don't have to bother opening the file
+		 * at all.  (We delay checking until this point so that changing
+		 * fsync on the fly behaves sensibly.)  Also, if the entry is
+		 * marked canceled, fall through to delete it.
+		 */
+		if (enableFsync && !entry->canceled)
 		{
-			SMgrRelation reln;
-			MdfdVec    *seg;
+			int			failures;
 
 			/*
-			 * If in bgwriter, absorb pending requests every so often to
-			 * prevent overflow of the fsync request queue.  The hashtable
-			 * code does not specify whether entries added by this will be
-			 * visited by our search, but we don't really care: it's OK if we
-			 * do, and OK if we don't.
+			 * If in bgwriter, we want to absorb pending requests every so
+			 * often to prevent overflow of the fsync request queue.  It is
+			 * unspecified whether newly-added entries will be visited by
+			 * hash_seq_search, but we don't care since we don't need to
+			 * process them anyway.
 			 */
 			if (--absorb_counter <= 0)
 			{
@@ -770,54 +1825,103 @@ mdsync(void)
 			}
 
 			/*
-			 * Find or create an smgr hash entry for this relation. This may
-			 * seem a bit unclean -- md calling smgr?  But it's really the
-			 * best solution.  It ensures that the open file reference isn't
-			 * permanently leaked if we get an error here. (You may say "but
-			 * an unreferenced SMgrRelation is still a leak!" Not really,
-			 * because the only case in which a checkpoint is done by a
-			 * process that isn't about to shut down is in the bgwriter, and
-			 * it will periodically do smgrcloseall().	This fact justifies
-			 * our not closing the reln in the success path either, which is a
-			 * good thing since in non-bgwriter cases we couldn't safely do
-			 * that.)  Furthermore, in many cases the relation will have been
-			 * dirtied through this same smgr relation, and so we can save a
-			 * file open/close cycle.
+			 * The fsync table could contain requests to fsync segments that
+			 * have been deleted (unlinked) by the time we get to them.
+			 * Rather than just hoping an ENOENT (or EACCES on Windows) error
+			 * can be ignored, what we do on error is absorb pending requests
+			 * and then retry.  Since mdunlink() queues a "revoke" message
+			 * before actually unlinking, the fsync request is guaranteed to
+			 * be marked canceled after the absorb if it really was this case.
+			 * DROP DATABASE likewise has to tell us to forget fsync requests
+			 * before it starts deletions.
 			 */
-			reln = smgropen(entry->rnode);
-
-			/*
-			 * It is possible that the relation has been dropped or truncated
-			 * since the fsync request was entered.  Therefore, we have to
-			 * allow file-not-found errors.  This applies both during
-			 * _mdfd_getseg() and during FileSync, since fd.c might have
-			 * closed the file behind our back.
-			 */
-			seg = _mdfd_getseg(reln,
-							   entry->segno * ((BlockNumber) RELSEG_SIZE),
-							   true);
-			if (seg)
+			for (failures = 0; ; failures++)	/* loop exits at "break" */
 			{
-				if (FileSync(seg->mdfd_vfd) < 0 &&
-					errno != ENOENT)
+				SMgrRelation reln;
+				MdMirVec    *seg;
+
+				/*
+				 * Find or create an smgr hash entry for this relation. This
+				 * may seem a bit unclean -- md calling smgr?  But it's really
+				 * the best solution.  It ensures that the open file reference
+				 * isn't permanently leaked if we get an error here. (You may
+				 * say "but an unreferenced SMgrRelation is still a leak!" Not
+				 * really, because the only case in which a checkpoint is done
+				 * by a process that isn't about to shut down is in the
+				 * bgwriter, and it will periodically do smgrcloseall(). This
+				 * fact justifies our not closing the reln in the success path
+				 * either, which is a good thing since in non-bgwriter cases
+				 * we couldn't safely do that.)  Furthermore, in many cases
+				 * the relation will have been dirtied through this same smgr
+				 * relation, and so we can save a file open/close cycle.
+				 */
+				reln = smgropen(entry->tag.rnode);
+
+				/*
+				 * It is possible that the relation has been dropped or
+				 * truncated since the fsync request was entered.  Therefore,
+				 * allow ENOENT, but only if we didn't fail already on
+				 * this file.  This applies both during _mdfd_getseg() and
+				 * during FileSync, since fd.c might have closed the file
+				 * behind our back.
+				 */
+				seg = _mdmir_getseg(reln,
+								   entry->tag.segno * ((BlockNumber) RELSEG_SIZE),
+								   true);
+				if (seg != NULL &&
+					MirroredBufferPool_Flush(&seg->mdmir_open))
+					break;		/* success; break out of retry loop */
+
+				/*
+				 * XXX is there any point in allowing more than one retry?
+				 * Don't see one at the moment, but easy to change the
+				 * test here if so.
+				 */
+				if (!FILE_POSSIBLY_DELETED(errno) ||
+					failures > 0)
 				{
 					ereport(LOG,
 							(errcode_for_file_access(),
 							 errmsg("could not fsync segment %u of relation %u/%u/%u: %m",
-									entry->segno,
-									entry->rnode.spcNode,
-									entry->rnode.dbNode,
-									entry->rnode.relNode)));
+									entry->tag.segno,
+									entry->tag.rnode.spcNode,
+									entry->tag.rnode.dbNode,
+									entry->tag.rnode.relNode)));
+					hash_seq_term(&hstat);
 					return false;
 				}
-			}
+				else
+					ereport(DEBUG1,
+							(errcode_for_file_access(),
+							 errmsg("could not fsync segment %u of relation %u/%u/%u, but retrying: %m",
+									entry->tag.segno,
+									entry->tag.rnode.spcNode,
+									entry->tag.rnode.dbNode,
+									entry->tag.rnode.relNode)));
+
+				/*
+				 * Absorb incoming requests and check to see if canceled.
+				 */
+				AbsorbFsyncRequests();
+				absorb_counter = FSYNCS_PER_ABSORB;	/* might as well... */
+
+				if (entry->canceled)
+					break;
+			}	/* end retry loop */
 		}
 
-		/* Okay, delete this entry */
-		if (hash_search(pendingOpsTable, entry,
+		/*
+		 * If we get here, either we fsync'd successfully, or we don't have
+		 * to because enableFsync is off, or the entry is (now) marked
+		 * canceled.  Okay to delete it.
+		 */
+		if (hash_search(pendingOpsTable, &entry->tag,
 						HASH_REMOVE, NULL) == NULL)
 			elog(ERROR, "pendingOpsTable corrupted");
-	}
+	}	/* end loop over hashtable entries */
+
+	/* Flag successful completion of mdsync */
+	mdsync_in_progress = false;
 
 	return true;
 }
@@ -835,27 +1939,21 @@ mdsync(void)
  * valid for error reporting.
  */
 static bool
-register_dirty_segment(SMgrRelation reln, MdfdVec *seg)
+register_dirty_segment(SMgrRelation reln, MdMirVec *seg)
 {
 	if (pendingOpsTable)
 	{
-		PendingOperationEntry entry;
-
-		/* ensure any pad bytes in the struct are zeroed */
-		MemSet(&entry, 0, sizeof(entry));
-		entry.rnode = reln->smgr_rnode;
-		entry.segno = seg->mdfd_segno;
-
-		(void) hash_search(pendingOpsTable, &entry, HASH_ENTER, NULL);
+		/* push it into local pending-ops table */
+		RememberFsyncRequest(reln->smgr_rnode, seg->mdmir_segno);
 		return true;
 	}
 	else
 	{
-		if (ForwardFsyncRequest(reln->smgr_rnode, seg->mdfd_segno))
+		if (ForwardFsyncRequest(reln->smgr_rnode, seg->mdmir_segno))
 			return true;
 	}
 
-	if (FileSync(seg->mdfd_vfd) < 0)
+	if (!MirroredBufferPool_Flush(&seg->mdmir_open))
 		return false;
 	return true;
 }
@@ -865,29 +1963,166 @@ register_dirty_segment(SMgrRelation reln, MdfdVec *seg)
  *
  * We stuff the fsync request into the local hash table for execution
  * during the bgwriter's next checkpoint.
+ *
+ * The range of possible segment numbers is way less than the range of
+ * BlockNumber, so we can reserve high values of segno for special purposes.
+ * We define two: FORGET_RELATION_FSYNC means to cancel pending fsyncs for
+ * a relation, and FORGET_DATABASE_FSYNC means to cancel pending fsyncs for
+ * a whole database.  (These are a tad slow because the hash table has to be
+ * searched linearly, but it doesn't seem worth rethinking the table structure
+ * for them.)
  */
 void
 RememberFsyncRequest(RelFileNode rnode, BlockNumber segno)
 {
-	PendingOperationEntry entry;
-
 	Assert(pendingOpsTable);
 
-	/* ensure any pad bytes in the struct are zeroed */
-	MemSet(&entry, 0, sizeof(entry));
-	entry.rnode = rnode;
-	entry.segno = segno;
+	/*
+	 * bgwriter don't do fsync after we import checkpointer process,
+	 * so we don't add anything into it's hash table.
+	 */
+	if (AmBackgroundWriterProcess())
+		return;
 
-	(void) hash_search(pendingOpsTable, &entry, HASH_ENTER, NULL);
+	if (segno == FORGET_RELATION_FSYNC)
+	{
+		/* Remove any pending requests for the entire relation */
+		HASH_SEQ_STATUS hstat;
+		PendingOperationEntry *entry;
+
+		hash_seq_init(&hstat, pendingOpsTable);
+		while ((entry = (PendingOperationEntry *) hash_seq_search(&hstat)) != NULL)
+		{
+			if (RelFileNodeEquals(entry->tag.rnode, rnode))
+			{
+				/* Okay, cancel this entry */
+				entry->canceled = true;
+			}
+		}
+	}
+	else if (segno == FORGET_DATABASE_FSYNC)
+	{
+		/* Remove any pending requests for the entire database */
+		HASH_SEQ_STATUS hstat;
+		PendingOperationEntry *entry;
+
+		hash_seq_init(&hstat, pendingOpsTable);
+		while ((entry = (PendingOperationEntry *) hash_seq_search(&hstat)) != NULL)
+		{
+			if (!OidIsValid(rnode.spcNode) ||
+				entry->tag.rnode.spcNode == rnode.spcNode)
+			{
+				if (entry->tag.rnode.dbNode == rnode.dbNode)
+				{
+					/* Okay, cancel this entry */
+					entry->canceled = true;
+				}
+			}
+		}
+	}
+	else
+	{
+		/* Normal case: enter a request to fsync this segment */
+		PendingOperationTag key;
+		PendingOperationEntry *entry;
+		bool		found;
+
+		/* ensure any pad bytes in the hash key are zeroed */
+		MemSet(&key, 0, sizeof(key));
+		key.rnode = rnode;
+		key.segno = segno;
+
+		entry = (PendingOperationEntry *) hash_search(pendingOpsTable,
+													  &key,
+													  HASH_ENTER,
+													  &found);
+		/* if new or previously canceled entry, initialize it */
+		if (!found || entry->canceled)
+		{
+			entry->canceled = false;
+			entry->cycle_ctr = mdsync_cycle_ctr;
+		}
+		/*
+		 * NB: it's intentional that we don't change cycle_ctr if the entry
+		 * already exists.  The fsync request must be treated as old, even
+		 * though the new request will be satisfied too by any subsequent
+		 * fsync.
+		 *
+		 * However, if the entry is present but is marked canceled, we should
+		 * act just as though it wasn't there.  The only case where this could
+		 * happen would be if a file had been deleted, we received but did not
+		 * yet act on the cancel request, and the same relfilenode was then
+		 * assigned to a new file.  We mustn't lose the new request, but
+		 * it should be considered new not old.
+		 */
+	}
 }
 
 /*
- *	_fdvec_alloc() -- Make a MdfdVec object.
+ * ForgetRelationFsyncRequests -- ensure any fsyncs for a rel are forgotten
  */
-static MdfdVec *
-_fdvec_alloc(void)
+void
+ForgetRelationFsyncRequests(RelFileNode rnode)
 {
-	return (MdfdVec *) MemoryContextAlloc(MdCxt, sizeof(MdfdVec));
+	if (pendingOpsTable)
+	{
+		/* standalone backend or startup process: fsync state is local */
+		RememberFsyncRequest(rnode, FORGET_RELATION_FSYNC);
+	}
+	else if (IsUnderPostmaster)
+	{
+		/*
+		 * Notify the bgwriter about it.  If we fail to queue the revoke
+		 * message, we have to sleep and try again ... ugly, but hopefully
+		 * won't happen often.
+		 *
+		 * XXX should we CHECK_FOR_INTERRUPTS in this loop?  Escaping with
+		 * an error would leave the no-longer-used file still present on
+		 * disk, which would be bad, so I'm inclined to assume that the
+		 * bgwriter will always empty the queue soon.
+		 */
+		while (!ForwardFsyncRequest(rnode, FORGET_RELATION_FSYNC))
+			pg_usleep(10000L);	/* 10 msec seems a good number */
+		/*
+		 * Note we don't wait for the bgwriter to actually absorb the
+		 * revoke message; see mdsync() for the implications.
+		 */
+	}
+}
+
+/*
+ * ForgetDatabaseFsyncRequests -- ensure any fsyncs for a DB are forgotten
+ */
+void
+ForgetDatabaseFsyncRequests(Oid tblspc, Oid dbid)
+{
+	RelFileNode rnode;
+
+	rnode.dbNode = dbid;
+	rnode.spcNode = tblspc;
+	rnode.relNode = 0;
+
+	if (pendingOpsTable)
+	{
+		/* standalone backend or startup process: fsync state is local */
+		RememberFsyncRequest(rnode, FORGET_DATABASE_FSYNC);
+	}
+	else if (IsUnderPostmaster)
+	{
+		/* see notes in ForgetRelationFsyncRequests */
+		while (!ForwardFsyncRequest(rnode, FORGET_DATABASE_FSYNC))
+			pg_usleep(10000L);	/* 10 msec seems a good number */
+	}
+}
+
+
+/*
+ *	_mirvec_alloc() -- Make a MdfdVec object.
+ */
+static MdMirVec *
+_mirvec_alloc(void)
+{
+	return (MdMirVec *) MemoryContextAllocZero(MdCxt, sizeof(MdMirVec));
 }
 
 #ifndef LET_OS_MANAGE_FILESIZE
@@ -895,43 +2130,64 @@ _fdvec_alloc(void)
 /*
  * Open the specified segment of the relation,
  * and make a MdfdVec object for it.  Returns NULL on failure.
+ *
+ * @param createIfDoesntExist if true then create the segment file if it doesn't already exist
  */
-static MdfdVec *
-_mdfd_openseg(SMgrRelation reln, BlockNumber segno, int oflags)
+static MdMirVec *
+_mdmir_openseg(SMgrRelation reln, BlockNumber segno, bool createIfDoesntExist)
 {
-	MdfdVec    *v;
-	int			fd;
-	char	   *path,
-			   *fullpath;
+	int	primaryError;
+	bool mirrorDataLossOccurred;
 
-	path = relpath(reln->smgr_rnode);
+	MdMirVec    *v;
 
-	if (segno > 0)
-	{
-		/* be sure we have enough space for the '.segno' */
-		fullpath = (char *) palloc(strlen(path) + 12);
-		sprintf(fullpath, "%s.%u", path, segno);
-		pfree(path);
-	}
-	else
-		fullpath = path;
+	MirroredBufferPoolOpen		mirroredOpen;
 
 	/* open the file */
-	fd = PathNameOpenFile(fullpath, O_RDWR | PG_BINARY | oflags, 0600);
+	MirroredBufferPool_Open(
+					&mirroredOpen,
+					&reln->smgr_rnode,
+					segno,
+					/* relationName */ NULL,		// Ok to be NULL -- we don't know the name here.
+					&primaryError,
+					&mirrorDataLossOccurred);
 
-	pfree(fullpath);
+	if (!MirroredBufferPool_IsActive(&mirroredOpen))
+	{
+	    if ( createIfDoesntExist )
+	    {
+            MirrorDataLossTrackingState mirrorDataLossTrackingState;
+            int64						mirrorDataLossTrackingSessionNum;
 
-	if (fd < 0)
-		return NULL;
+            mirrorDataLossTrackingState =
+                FileRepPrimary_GetMirrorDataLossTrackingSessionNum(&mirrorDataLossTrackingSessionNum);
 
+	        MirroredBufferPool_Create(
+					&mirroredOpen,
+					&reln->smgr_rnode,
+					segno,
+					/* relationName */ NULL,		// Ok to be NULL -- we don't know the name here.
+					mirrorDataLossTrackingState,
+					mirrorDataLossTrackingSessionNum,
+					&primaryError,
+					&mirrorDataLossOccurred);
+
+        }
+
+        /* check again now that we may have done create */
+        if (!MirroredBufferPool_IsActive(&mirroredOpen))
+        {
+            return NULL;
+        }
+    }
 	/* allocate an mdfdvec entry for it */
-	v = _fdvec_alloc();
+	v = _mirvec_alloc();
 
 	/* fill the entry */
-	v->mdfd_vfd = fd;
-	v->mdfd_segno = segno;
-	v->mdfd_chain = NULL;
-	Assert(_mdnblocks(fd, BLCKSZ) <= ((BlockNumber) RELSEG_SIZE));
+	v->mdmir_open = mirroredOpen;
+	v->mdmir_segno = segno;
+	v->mdmir_chain = NULL;
+	Assert(_mdnblocks(&v->mdmir_open, BLCKSZ) <= ((BlockNumber) RELSEG_SIZE));
 
 	/* all done */
 	return v;
@@ -943,10 +2199,10 @@ _mdfd_openseg(SMgrRelation reln, BlockNumber segno, int oflags)
  *		specified block.  ereport's on failure.
  *		(Optionally, can return NULL instead of ereport for ENOENT.)
  */
-static MdfdVec *
-_mdfd_getseg(SMgrRelation reln, BlockNumber blkno, bool allowNotFound)
+static MdMirVec *
+_mdmir_getseg(SMgrRelation reln, BlockNumber blkno, bool allowNotFound)
 {
-	MdfdVec    *v = mdopen(reln, allowNotFound);
+	MdMirVec    *v = mdopen(reln, allowNotFound);
 
 #ifndef LET_OS_MANAGE_FILESIZE
 	BlockNumber segstogo;
@@ -959,7 +2215,7 @@ _mdfd_getseg(SMgrRelation reln, BlockNumber blkno, bool allowNotFound)
 		 segstogo > 0;
 		 nextsegno++, segstogo--)
 	{
-		if (v->mdfd_chain == NULL)
+		if (v->mdmir_chain == NULL)
 		{
 			/*
 			 * We will create the next segment only if the target block is
@@ -979,24 +2235,32 @@ _mdfd_getseg(SMgrRelation reln, BlockNumber blkno, bool allowNotFound)
 			 * want to go ahead and create the segments so we can finish out
 			 * the replay.
 			 */
-			v->mdfd_chain = _mdfd_openseg(reln,
+			bool createIfDoesntExist = segstogo == 1 || InRecovery;
+			v->mdmir_chain = _mdmir_openseg(reln,
 										  nextsegno,
-								(segstogo == 1 || InRecovery) ? O_CREAT : 0);
-			if (v->mdfd_chain == NULL)
+								          createIfDoesntExist);
+			if (v->mdmir_chain == NULL)
 			{
-				if (allowNotFound && errno == ENOENT)
+				int saved_err;
+				
+				if (allowNotFound && FILE_POSSIBLY_DELETED(errno))
 					return NULL;
+
+				saved_err = errno;
+
 				ereport(ERROR,
 						(errcode_for_file_access(),
-						 errmsg("could not open segment %u of relation %u/%u/%u (target block %u): %m",
+						 errmsg("could not open segment %u of relation %u/%u/%u (target block %u): %s",
 								nextsegno,
 								reln->smgr_rnode.spcNode,
 								reln->smgr_rnode.dbNode,
 								reln->smgr_rnode.relNode,
-								blkno)));
+								blkno,
+								strerror(saved_err)),
+						 errdetail_nonexistent_relation(saved_err, &reln->smgr_rnode)));
 			}
 		}
-		v = v->mdfd_chain;
+		v = v->mdmir_chain;
 	}
 #endif
 
@@ -1007,11 +2271,14 @@ _mdfd_getseg(SMgrRelation reln, BlockNumber blkno, bool allowNotFound)
  * Get number of blocks present in a single disk file
  */
 static BlockNumber
-_mdnblocks(File file, Size blcksz)
+_mdnblocks(MirroredBufferPoolOpen *mirroredOpen, Size blcksz)
 {
 	long		len;
 
-	len = FileSeek(file, 0L, SEEK_END);
+	Assert(mirroredOpen != NULL);
+	Assert(MirroredBufferPool_IsActive(mirroredOpen));
+	
+	len = MirroredBufferPool_SeekEnd(mirroredOpen);
 	if (len < 0)
 		return 0;				/* on failure, assume file is empty */
 	return (BlockNumber) (len / blcksz);

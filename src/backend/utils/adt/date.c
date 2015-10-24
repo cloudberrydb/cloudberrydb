@@ -3,12 +3,12 @@
  * date.c
  *	  implements DATE and TIME data types specified in SQL-92 standard
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2008, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994-5, Regents of the University of California
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/utils/adt/date.c,v 1.125 2006/07/14 14:52:23 momjian Exp $
+ *	  $PostgreSQL: pgsql/src/backend/utils/adt/date.c,v 1.125.2.1 2007/06/02 16:41:15 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -250,7 +250,7 @@ date_mi(PG_FUNCTION_ARGS)
 	DateADT		dateVal1 = PG_GETARG_DATEADT(0);
 	DateADT		dateVal2 = PG_GETARG_DATEADT(1);
 
-	PG_RETURN_INT32((int32) (dateVal1 - dateVal2));
+	PG_RETURN_INT32(date_diff(dateVal1, dateVal2));
 }
 
 /* Add a number of days to a date, giving a new date.
@@ -262,7 +262,7 @@ date_pli(PG_FUNCTION_ARGS)
 	DateADT		dateVal = PG_GETARG_DATEADT(0);
 	int32		days = PG_GETARG_INT32(1);
 
-	PG_RETURN_DATEADT(dateVal + days);
+	PG_RETURN_DATEADT(date_pl_days(dateVal, days));
 }
 
 /* Subtract a number of days from a date, giving a new date.
@@ -281,15 +281,26 @@ date_mii(PG_FUNCTION_ARGS)
  * time zone
  */
 
+static Timestamp
+date2timestamp(DateADT dateVal)
+{
+	Timestamp result;
+
 #ifdef HAVE_INT64_TIMESTAMP
-/* date is days since 2000, timestamp is microseconds since same... */
-#define date2timestamp(dateVal) \
-	((Timestamp) ((dateVal) * USECS_PER_DAY))
+	/* date is days since 2000, timestamp is microseconds since same... */
+	result = dateVal * USECS_PER_DAY;
+		/* Date's range is wider than timestamp's, so check for overflow */
+	if (result / USECS_PER_DAY != dateVal)
+		ereport(ERROR,
+				(errcode(ERRCODE_DATETIME_VALUE_OUT_OF_RANGE),
+				 errmsg("date out of range for timestamp")));
 #else
-/* date is days since 2000, timestamp is seconds since same... */
-#define date2timestamp(dateVal) \
-	((Timestamp) ((dateVal) * (double)SECS_PER_DAY))
+	/* date is days since 2000, timestamp is seconds since same... */
+	result = dateVal * (double) SECS_PER_DAY;
 #endif
+
+	return result;
+}
 
 static TimestampTz
 date2timestamptz(DateADT dateVal)
@@ -305,10 +316,15 @@ date2timestamptz(DateADT dateVal)
 	tm->tm_hour = 0;
 	tm->tm_min = 0;
 	tm->tm_sec = 0;
-	tz = DetermineTimeZoneOffset(tm, global_timezone);
+	tz = DetermineTimeZoneOffset(tm, session_timezone);
 
 #ifdef HAVE_INT64_TIMESTAMP
 	result = dateVal * USECS_PER_DAY + tz * USECS_PER_SEC;
+		/* Date's range is wider than timestamp's, so check for overflow */
+	if ((result - tz * USECS_PER_SEC) / USECS_PER_DAY != dateVal)
+		ereport(ERROR,
+				(errcode(ERRCODE_DATETIME_VALUE_OUT_OF_RANGE),
+				 errmsg("date out of range for timestamp")));
 #else
 	result = dateVal * (double) SECS_PER_DAY + tz;
 #endif
@@ -836,8 +852,8 @@ date_text(PG_FUNCTION_ARGS)
 
 	result = palloc(len);
 
-	VARATT_SIZEP(result) = len;
-	memmove(VARDATA(result), str, (len - VARHDRSZ));
+	SET_VARSIZE(result, len);
+	memcpy(VARDATA(result), str, (len - VARHDRSZ));
 
 	pfree(str);
 
@@ -863,8 +879,9 @@ text_date(PG_FUNCTION_ARGS)
 		ereport(ERROR,
 				(errcode(ERRCODE_INVALID_DATETIME_FORMAT),
 				 errmsg("invalid input syntax for type date: \"%s\"",
-						VARDATA(str))));
-
+						DatumGetCString(DirectFunctionCall1(textout,
+													PointerGetDatum(str))))));
+	
 	sp = VARDATA(str);
 	dp = dstr;
 	for (i = 0; i < (VARSIZE(str) - VARHDRSZ); i++)
@@ -931,8 +948,10 @@ tm2time(struct pg_tm * tm, fsec_t fsec, TimeADT *result)
 
 /* time2tm()
  * Convert time data type to POSIX time structure.
- * For dates within the system-supported time_t range, convert to the
- *	local time zone. If out of this range, leave as GMT. - tgl 97/05/27
+ *
+ * For dates within the range of pg_time_t, convert to the local time zone.
+ * If out of this range, leave as UTC (in practice that could only happen
+ * if pg_time_t is just 32 bits) - thomas 97/05/27
  */
 static int
 time2tm(TimeADT time, struct pg_tm * tm, fsec_t *fsec)
@@ -1490,14 +1509,12 @@ time_mi_time(PG_FUNCTION_ARGS)
 	PG_RETURN_INTERVAL_P(result);
 }
 
-/* time_pl_interval()
- * Add interval to time.
+/* time_pl_interval_internal()
+ * Common code to add interval to time.
  */
-Datum
-time_pl_interval(PG_FUNCTION_ARGS)
+static inline TimeADT
+time_pl_interval_internal(TimeADT time, Interval *span)
 {
-	TimeADT		time = PG_GETARG_TIMEADT(0);
-	Interval   *span = PG_GETARG_INTERVAL_P(1);
 	TimeADT		result;
 
 #ifdef HAVE_INT64_TIMESTAMP
@@ -1513,10 +1530,86 @@ time_pl_interval(PG_FUNCTION_ARGS)
 	if (result < 0)
 		result += SECS_PER_DAY;
 #endif
+	
+	return result;
+}
 
+/* time_pl_interval()
+ * Add interval to time.
+ */
+Datum
+time_pl_interval(PG_FUNCTION_ARGS)
+{
+	TimeADT		time = PG_GETARG_TIMEADT(0);
+	Interval   *span = PG_GETARG_INTERVAL_P(1);
+	TimeADT		result = time_pl_interval_internal(time, span);
+	
 	PG_RETURN_TIMEADT(result);
 }
 
+
+/*
+ * time_li_fraction
+ *
+ * What fraction of interval <x0, x1> does <x0, x> represent?
+ */
+float8
+time_li_fraction(TimeADT x, TimeADT x0, TimeADT x1, 
+				 bool *eq_bounds, bool *eq_abscissas)
+{
+	float8 result;
+	Interval diffx;
+	Interval diffx1;
+	
+	Assert(eq_bounds && eq_abscissas);
+	*eq_bounds = false;
+	*eq_abscissas = false;
+	
+	diffx.time = x - x0;
+	diffx.month = 0;
+	diffx.day = 0;
+	
+	diffx1.time = x1 - x0;
+	diffx1.month = 0;
+	diffx1.day = 0;
+	
+	if ( ! interval_div_internal(&diffx, &diffx1, &result, NULL) )
+	{
+		*eq_bounds = true;
+		*eq_abscissas = (x == x0);
+		result = NAN;
+	}
+	return result;
+}
+
+/*
+ * time_li_value
+ *
+ * What interval value lies fraction <f> of the way into interval
+ * <y0, y1>? 
+ * 
+ * Note
+ *		li_value(0.0, y0, y1) --> y0
+ *		li_value(1.0, y0, y1) --> y1
+ */
+Timestamp
+time_li_value(float8 f, TimeADT y0, TimeADT y1)
+{
+	TimeADT y;
+	Interval diffy;
+	Interval *offset;
+	
+	diffy.month = 0;
+	diffy.day = 0;
+	diffy.time = y1 - y0;
+	
+	offset = DatumGetIntervalP(DirectFunctionCall2(interval_mul, IntervalPGetDatum(&diffy),
+									Float8GetDatum(f)));
+	y = time_pl_interval_internal(y0, offset);
+	pfree(offset);
+	
+	return y;
+}
 /* time_mi_interval()
  * Subtract interval from time.
  */
@@ -1563,8 +1656,8 @@ time_text(PG_FUNCTION_ARGS)
 
 	result = palloc(len);
 
-	VARATT_SIZEP(result) = len;
-	memmove(VARDATA(result), str, (len - VARHDRSZ));
+	SET_VARSIZE(result, len);
+	memcpy(VARDATA(result), str, (len - VARHDRSZ));
 
 	pfree(str);
 
@@ -1590,7 +1683,8 @@ text_time(PG_FUNCTION_ARGS)
 		ereport(ERROR,
 				(errcode(ERRCODE_INVALID_DATETIME_FORMAT),
 				 errmsg("invalid input syntax for type time: \"%s\"",
-						VARDATA(str))));
+						DatumGetCString(DirectFunctionCall1(textout, 
+													PointerGetDatum(str))))));
 
 	sp = VARDATA(str);
 	dp = dstr;
@@ -2250,7 +2344,7 @@ time_timetz(PG_FUNCTION_ARGS)
 
 	GetCurrentDateTime(tm);
 	time2tm(time, tm, &fsec);
-	tz = DetermineTimeZoneOffset(tm, global_timezone);
+	tz = DetermineTimeZoneOffset(tm, session_timezone);
 
 	result = (TimeTzADT *) palloc(sizeof(TimeTzADT));
 
@@ -2332,8 +2426,8 @@ timetz_text(PG_FUNCTION_ARGS)
 
 	result = palloc(len);
 
-	VARATT_SIZEP(result) = len;
-	memmove(VARDATA(result), str, (len - VARHDRSZ));
+	SET_VARSIZE(result, len);
+	memcpy(VARDATA(result), str, (len - VARHDRSZ));
 
 	pfree(str);
 
@@ -2359,7 +2453,8 @@ text_timetz(PG_FUNCTION_ARGS)
 		ereport(ERROR,
 				(errcode(ERRCODE_INVALID_DATETIME_FORMAT),
 		  errmsg("invalid input syntax for type time with time zone: \"%s\"",
-				 VARDATA(str))));
+				 DatumGetCString(DirectFunctionCall1(textout, 
+													 PointerGetDatum(str))))));
 
 	sp = VARDATA(str);
 	dp = dstr;
@@ -2505,40 +2600,42 @@ timetz_zone(PG_FUNCTION_ARGS)
 	int			tz;
 	char		tzname[TZ_STRLEN_MAX + 1];
 	int			len;
+	char	   *lowzone;
+	int			type,
+				val;
 	pg_tz	   *tzp;
 
 	/*
-	 * Look up the requested timezone.	First we look in the timezone database
-	 * (to handle cases like "America/New_York"), and if that fails, we look
-	 * in the date token table (to handle cases like "EST").
+	 * Look up the requested timezone.  First we look in the date token table
+	 * (to handle cases like "EST"), and if that fails, we look in the
+	 * timezone database (to handle cases like "America/New_York").  (This
+	 * matches the order in which timestamp input checks the cases; it's
+	 * important because the timezone database unwisely uses a few zone names
+	 * that are identical to offset abbreviations.)
 	 */
-	len = Min(VARSIZE(zone) - VARHDRSZ, TZ_STRLEN_MAX);
-	memcpy(tzname, VARDATA(zone), len);
-	tzname[len] = '\0';
-	tzp = pg_tzset(tzname);
-	if (tzp)
-	{
-		/* Get the offset-from-GMT that is valid today for the selected zone */
-		pg_time_t	now;
-		struct pg_tm *tm;
+	lowzone = downcase_truncate_identifier(VARDATA(zone),
+										   VARSIZE(zone) - VARHDRSZ,
+										   false);
+	type = DecodeSpecial(0, lowzone, &val);
 
-		now = time(NULL);
-		tm = pg_localtime(&now, tzp);
-		tz = -tm->tm_gmtoff;
-	}
+	if (type == TZ || type == DTZ)
+		tz = val * 60;
 	else
 	{
-		char	   *lowzone;
-		int			type,
-					val;
+		len = Min(VARSIZE(zone) - VARHDRSZ, TZ_STRLEN_MAX);
+		memcpy(tzname, VARDATA(zone), len);
+		tzname[len] = '\0';
+		tzp = pg_tzset(tzname);
+		if (tzp)
+		{
+			/* Get the offset-from-GMT that is valid today for the zone */
+			pg_time_t	now;
+			struct pg_tm *tm;
 
-		lowzone = downcase_truncate_identifier(VARDATA(zone),
-											   VARSIZE(zone) - VARHDRSZ,
-											   false);
-		type = DecodeSpecial(0, lowzone, &val);
-
-		if (type == TZ || type == DTZ)
-			tz = val * 60;
+			now = time(NULL);
+			tm = pg_localtime(&now, tzp);
+			tz = -tm->tm_gmtoff;
+		}
 		else
 		{
 			ereport(ERROR,

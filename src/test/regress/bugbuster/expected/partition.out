@@ -1,0 +1,1957 @@
+set enable_partition_rules = off;
+set gp_enable_hash_partitioned_tables = true;
+DROP TABLE if exists mpp3033;
+NOTICE:  table "mpp3033" does not exist, skipping
+DROP TABLE if exists mpp3033a;
+NOTICE:  table "mpp3033a" does not exist, skipping
+DROP TABLE if exists mpp3033b;
+NOTICE:  table "mpp3033b" does not exist, skipping
+CREATE TABLE mpp3033 (
+        unique1         int4,
+        unique2         int4,
+        two                     int4,
+        four            int4,
+        ten                     int4,
+        twenty          int4,
+        hundred         int4,
+        thousand        int4,
+        twothousand     int4,
+        fivethous       int4,
+        tenthous        int4,
+        odd                     int4,
+        even            int4,
+        stringu1        name,
+        stringu2        name,
+        string4         name
+);
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'unique1' as the Greenplum Database data distribution key for this table.
+HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
+\echo -- start_ignore
+-- start_ignore
+\copy mpp3033 from 'bugbuster/data/onek.data';
+\echo -- end_ignore
+-- end_ignore
+CREATE TABLE mpp3033a (
+        unique1         int4,
+        unique2         int4,
+        two                     int4,
+        four            int4,
+        ten                     int4,
+        twenty          int4,
+        hundred         int4,
+        thousand        int4,
+        twothousand     int4,
+        fivethous       int4,
+        tenthous        int4,
+        odd                     int4,
+        even            int4,
+        stringu1        name,
+        stringu2        name,
+        string4         name
+) distributed by (unique1) partition by hash (unique1) partitions 4;
+NOTICE:  CREATE TABLE will create partition "mpp3033a_1_prt_1" for table "mpp3033a"
+NOTICE:  CREATE TABLE will create partition "mpp3033a_1_prt_2" for table "mpp3033a"
+NOTICE:  CREATE TABLE will create partition "mpp3033a_1_prt_3" for table "mpp3033a"
+NOTICE:  CREATE TABLE will create partition "mpp3033a_1_prt_4" for table "mpp3033a"
+CREATE TABLE mpp3033b (
+        unique1         int4,
+        unique2         int4,
+        two                     int4,
+        four            int4,
+        ten                     int4,
+        twenty          int4,
+        hundred         int4,
+        thousand        int4,
+        twothousand     int4,
+        fivethous       int4,
+        tenthous        int4,
+        odd                     int4,
+        even            int4,
+        stringu1        name,
+        stringu2        name,
+        string4         name
+) distributed by (unique1) partition by hash (unique1)
+subpartition by hash (unique2)
+(
+partition aa (subpartition cc, subpartition dd),
+partition bb (subpartition cc, subpartition dd)
+);
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'unique1' as the Greenplum Database data distribution key for this table.
+HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
+NOTICE:  CREATE TABLE will create partition "mpp3033b_1_prt_aa" for table "mpp3033b"
+NOTICE:  CREATE TABLE will create partition "mpp3033b_1_prt_bb" for table "mpp3033b"
+NOTICE:  CREATE TABLE will create partition "mpp3033b_1_prt_aa_2_prt_cc" for table "mpp3033b_1_prt_aa"
+NOTICE:  CREATE TABLE will create partition "mpp3033b_1_prt_aa_2_prt_dd" for table "mpp3033b_1_prt_aa"
+NOTICE:  CREATE TABLE will create partition "mpp3033b_1_prt_bb_2_prt_cc" for table "mpp3033b_1_prt_bb"
+NOTICE:  CREATE TABLE will create partition "mpp3033b_1_prt_bb_2_prt_dd" for table "mpp3033b_1_prt_bb"
+insert into mpp3033a select * from mpp3033;
+insert into mpp3033b select * from mpp3033;
+\echo -- start_ignore
+-- start_ignore
+DROP INDEX if exists mpp3033a_unique1;
+NOTICE:  index "mpp3033a_unique1" does not exist, skipping
+DROP INDEX if exists mpp3033a_unique2;
+NOTICE:  index "mpp3033a_unique2" does not exist, skipping
+DROP INDEX if exists mpp3033a_hundred;
+NOTICE:  index "mpp3033a_hundred" does not exist, skipping
+DROP INDEX if exists mpp3033a_stringu1;
+NOTICE:  index "mpp3033a_stringu1" does not exist, skipping
+DROP INDEX if exists mpp3033b_unique1;
+NOTICE:  index "mpp3033b_unique1" does not exist, skipping
+DROP INDEX if exists mpp3033b_unique2;
+NOTICE:  index "mpp3033b_unique2" does not exist, skipping
+DROP INDEX if exists mpp3033b_hundred;
+NOTICE:  index "mpp3033b_hundred" does not exist, skipping
+DROP INDEX if exists mpp3033b_stringu1;
+NOTICE:  index "mpp3033b_stringu1" does not exist, skipping
+\echo -- end_ignore
+-- end_ignore
+CREATE INDEX mpp3033a_unique1 ON mpp3033a USING btree(unique1 int4_ops);
+NOTICE:  building index for child partition "mpp3033a_1_prt_1"
+NOTICE:  building index for child partition "mpp3033a_1_prt_2"
+NOTICE:  building index for child partition "mpp3033a_1_prt_3"
+NOTICE:  building index for child partition "mpp3033a_1_prt_4"
+CREATE INDEX mpp3033a_unique2 ON mpp3033a USING btree(unique2 int4_ops);
+NOTICE:  building index for child partition "mpp3033a_1_prt_1"
+NOTICE:  building index for child partition "mpp3033a_1_prt_2"
+NOTICE:  building index for child partition "mpp3033a_1_prt_3"
+NOTICE:  building index for child partition "mpp3033a_1_prt_4"
+CREATE INDEX mpp3033a_hundred ON mpp3033a USING btree(hundred int4_ops);
+NOTICE:  building index for child partition "mpp3033a_1_prt_1"
+NOTICE:  building index for child partition "mpp3033a_1_prt_2"
+NOTICE:  building index for child partition "mpp3033a_1_prt_3"
+NOTICE:  building index for child partition "mpp3033a_1_prt_4"
+CREATE INDEX mpp3033a_stringu1 ON mpp3033a USING btree(stringu1 name_ops);
+NOTICE:  building index for child partition "mpp3033a_1_prt_1"
+NOTICE:  building index for child partition "mpp3033a_1_prt_2"
+NOTICE:  building index for child partition "mpp3033a_1_prt_3"
+NOTICE:  building index for child partition "mpp3033a_1_prt_4"
+CREATE INDEX mpp3033b_unique1 ON mpp3033b USING btree(unique1 int4_ops);
+NOTICE:  building index for child partition "mpp3033b_1_prt_aa"
+NOTICE:  building index for child partition "mpp3033b_1_prt_bb"
+NOTICE:  building index for child partition "mpp3033b_1_prt_aa_2_prt_cc"
+NOTICE:  building index for child partition "mpp3033b_1_prt_aa_2_prt_dd"
+NOTICE:  building index for child partition "mpp3033b_1_prt_bb_2_prt_cc"
+NOTICE:  building index for child partition "mpp3033b_1_prt_bb_2_prt_dd"
+CREATE INDEX mpp3033b_unique2 ON mpp3033b USING btree(unique2 int4_ops);
+NOTICE:  building index for child partition "mpp3033b_1_prt_aa"
+NOTICE:  building index for child partition "mpp3033b_1_prt_bb"
+NOTICE:  building index for child partition "mpp3033b_1_prt_aa_2_prt_cc"
+NOTICE:  building index for child partition "mpp3033b_1_prt_aa_2_prt_dd"
+NOTICE:  building index for child partition "mpp3033b_1_prt_bb_2_prt_cc"
+NOTICE:  building index for child partition "mpp3033b_1_prt_bb_2_prt_dd"
+CREATE INDEX mpp3033b_hundred ON mpp3033b USING btree(hundred int4_ops);
+NOTICE:  building index for child partition "mpp3033b_1_prt_aa"
+NOTICE:  building index for child partition "mpp3033b_1_prt_bb"
+NOTICE:  building index for child partition "mpp3033b_1_prt_aa_2_prt_cc"
+NOTICE:  building index for child partition "mpp3033b_1_prt_aa_2_prt_dd"
+NOTICE:  building index for child partition "mpp3033b_1_prt_bb_2_prt_cc"
+NOTICE:  building index for child partition "mpp3033b_1_prt_bb_2_prt_dd"
+CREATE INDEX mpp3033b_stringu1 ON mpp3033b USING btree(stringu1 name_ops);
+NOTICE:  building index for child partition "mpp3033b_1_prt_aa"
+NOTICE:  building index for child partition "mpp3033b_1_prt_bb"
+NOTICE:  building index for child partition "mpp3033b_1_prt_aa_2_prt_cc"
+NOTICE:  building index for child partition "mpp3033b_1_prt_aa_2_prt_dd"
+NOTICE:  building index for child partition "mpp3033b_1_prt_bb_2_prt_cc"
+NOTICE:  building index for child partition "mpp3033b_1_prt_bb_2_prt_dd"
+select count(*) from mpp3033a;
+ count 
+-------
+  1000
+(1 row)
+
+select count(*) from mpp3033b;
+ count 
+-------
+  1000
+(1 row)
+
+reindex index mpp3033a_unique1;
+reindex index mpp3033a_unique2;
+reindex index mpp3033a_hundred;
+reindex index mpp3033a_stringu1;
+reindex index mpp3033b_unique1;
+reindex index mpp3033b_unique2;
+reindex index mpp3033b_hundred;
+reindex index mpp3033b_stringu1;
+select count(*) from mpp3033a;
+ count 
+-------
+  1000
+(1 row)
+
+select count(*) from mpp3033b;
+ count 
+-------
+  1000
+(1 row)
+
+drop index mpp3033a_unique1;
+WARNING:  Only dropped the index "mpp3033a_unique1"
+HINT:  To drop other indexes on child partitions, drop each one explicitly.
+drop index mpp3033a_unique2;
+WARNING:  Only dropped the index "mpp3033a_unique2"
+HINT:  To drop other indexes on child partitions, drop each one explicitly.
+drop index mpp3033a_hundred;
+WARNING:  Only dropped the index "mpp3033a_hundred"
+HINT:  To drop other indexes on child partitions, drop each one explicitly.
+drop index mpp3033a_stringu1;
+WARNING:  Only dropped the index "mpp3033a_stringu1"
+HINT:  To drop other indexes on child partitions, drop each one explicitly.
+drop index mpp3033b_unique1;
+WARNING:  Only dropped the index "mpp3033b_unique1"
+HINT:  To drop other indexes on child partitions, drop each one explicitly.
+drop index mpp3033b_unique2;
+WARNING:  Only dropped the index "mpp3033b_unique2"
+HINT:  To drop other indexes on child partitions, drop each one explicitly.
+drop index mpp3033b_hundred;
+WARNING:  Only dropped the index "mpp3033b_hundred"
+HINT:  To drop other indexes on child partitions, drop each one explicitly.
+drop index mpp3033b_stringu1;
+WARNING:  Only dropped the index "mpp3033b_stringu1"
+HINT:  To drop other indexes on child partitions, drop each one explicitly.
+CREATE INDEX mpp3033a_unique1 ON mpp3033a (unique1);
+NOTICE:  building index for child partition "mpp3033a_1_prt_1"
+NOTICE:  building index for child partition "mpp3033a_1_prt_2"
+NOTICE:  building index for child partition "mpp3033a_1_prt_3"
+NOTICE:  building index for child partition "mpp3033a_1_prt_4"
+CREATE INDEX mpp3033a_unique2 ON mpp3033a (unique2);
+NOTICE:  building index for child partition "mpp3033a_1_prt_1"
+NOTICE:  building index for child partition "mpp3033a_1_prt_2"
+NOTICE:  building index for child partition "mpp3033a_1_prt_3"
+NOTICE:  building index for child partition "mpp3033a_1_prt_4"
+CREATE INDEX mpp3033a_hundred ON mpp3033a (hundred);
+NOTICE:  building index for child partition "mpp3033a_1_prt_1"
+NOTICE:  building index for child partition "mpp3033a_1_prt_2"
+NOTICE:  building index for child partition "mpp3033a_1_prt_3"
+NOTICE:  building index for child partition "mpp3033a_1_prt_4"
+CREATE INDEX mpp3033a_stringu1 ON mpp3033a (stringu1);
+NOTICE:  building index for child partition "mpp3033a_1_prt_1"
+NOTICE:  building index for child partition "mpp3033a_1_prt_2"
+NOTICE:  building index for child partition "mpp3033a_1_prt_3"
+NOTICE:  building index for child partition "mpp3033a_1_prt_4"
+CREATE INDEX mpp3033b_unique1 ON mpp3033b (unique1);
+NOTICE:  building index for child partition "mpp3033b_1_prt_aa"
+NOTICE:  building index for child partition "mpp3033b_1_prt_bb"
+NOTICE:  building index for child partition "mpp3033b_1_prt_aa_2_prt_cc"
+NOTICE:  building index for child partition "mpp3033b_1_prt_aa_2_prt_dd"
+NOTICE:  building index for child partition "mpp3033b_1_prt_bb_2_prt_cc"
+NOTICE:  building index for child partition "mpp3033b_1_prt_bb_2_prt_dd"
+CREATE INDEX mpp3033b_unique2 ON mpp3033b (unique2);
+NOTICE:  building index for child partition "mpp3033b_1_prt_aa"
+NOTICE:  building index for child partition "mpp3033b_1_prt_bb"
+NOTICE:  building index for child partition "mpp3033b_1_prt_aa_2_prt_cc"
+NOTICE:  building index for child partition "mpp3033b_1_prt_aa_2_prt_dd"
+NOTICE:  building index for child partition "mpp3033b_1_prt_bb_2_prt_cc"
+NOTICE:  building index for child partition "mpp3033b_1_prt_bb_2_prt_dd"
+CREATE INDEX mpp3033b_hundred ON mpp3033b (hundred);
+NOTICE:  building index for child partition "mpp3033b_1_prt_aa"
+NOTICE:  building index for child partition "mpp3033b_1_prt_bb"
+NOTICE:  building index for child partition "mpp3033b_1_prt_aa_2_prt_cc"
+NOTICE:  building index for child partition "mpp3033b_1_prt_aa_2_prt_dd"
+NOTICE:  building index for child partition "mpp3033b_1_prt_bb_2_prt_cc"
+NOTICE:  building index for child partition "mpp3033b_1_prt_bb_2_prt_dd"
+CREATE INDEX mpp3033b_stringu1 ON mpp3033b (stringu1);
+NOTICE:  building index for child partition "mpp3033b_1_prt_aa"
+NOTICE:  building index for child partition "mpp3033b_1_prt_bb"
+NOTICE:  building index for child partition "mpp3033b_1_prt_aa_2_prt_cc"
+NOTICE:  building index for child partition "mpp3033b_1_prt_aa_2_prt_dd"
+NOTICE:  building index for child partition "mpp3033b_1_prt_bb_2_prt_cc"
+NOTICE:  building index for child partition "mpp3033b_1_prt_bb_2_prt_dd"
+select count(*) from mpp3033a;
+ count 
+-------
+  1000
+(1 row)
+
+select count(*) from mpp3033b;
+ count 
+-------
+  1000
+(1 row)
+
+reindex index mpp3033a_unique1;
+reindex index mpp3033a_unique2;
+reindex index mpp3033a_hundred;
+reindex index mpp3033a_stringu1;
+reindex index mpp3033b_unique1;
+reindex index mpp3033b_unique2;
+reindex index mpp3033b_hundred;
+reindex index mpp3033b_stringu1;
+select count(*) from mpp3033a;
+ count 
+-------
+  1000
+(1 row)
+
+select count(*) from mpp3033b;
+ count 
+-------
+  1000
+(1 row)
+
+drop index mpp3033a_unique1;
+WARNING:  Only dropped the index "mpp3033a_unique1"
+HINT:  To drop other indexes on child partitions, drop each one explicitly.
+drop index mpp3033a_unique2;
+WARNING:  Only dropped the index "mpp3033a_unique2"
+HINT:  To drop other indexes on child partitions, drop each one explicitly.
+drop index mpp3033a_hundred;
+WARNING:  Only dropped the index "mpp3033a_hundred"
+HINT:  To drop other indexes on child partitions, drop each one explicitly.
+drop index mpp3033a_stringu1;
+WARNING:  Only dropped the index "mpp3033a_stringu1"
+HINT:  To drop other indexes on child partitions, drop each one explicitly.
+drop index mpp3033b_unique1;
+WARNING:  Only dropped the index "mpp3033b_unique1"
+HINT:  To drop other indexes on child partitions, drop each one explicitly.
+drop index mpp3033b_unique2;
+WARNING:  Only dropped the index "mpp3033b_unique2"
+HINT:  To drop other indexes on child partitions, drop each one explicitly.
+drop index mpp3033b_hundred;
+WARNING:  Only dropped the index "mpp3033b_hundred"
+HINT:  To drop other indexes on child partitions, drop each one explicitly.
+drop index mpp3033b_stringu1;
+WARNING:  Only dropped the index "mpp3033b_stringu1"
+HINT:  To drop other indexes on child partitions, drop each one explicitly.
+CREATE UNIQUE INDEX mpp3033a_unique1 ON mpp3033a (unique1);
+NOTICE:  building index for child partition "mpp3033a_1_prt_1"
+NOTICE:  building index for child partition "mpp3033a_1_prt_2"
+NOTICE:  building index for child partition "mpp3033a_1_prt_3"
+NOTICE:  building index for child partition "mpp3033a_1_prt_4"
+CREATE UNIQUE INDEX mpp3033a_unique2 ON mpp3033a (unique2);
+NOTICE:  building index for child partition "mpp3033a_1_prt_1"
+NOTICE:  building index for child partition "mpp3033a_1_prt_2"
+NOTICE:  building index for child partition "mpp3033a_1_prt_3"
+NOTICE:  building index for child partition "mpp3033a_1_prt_4"
+ERROR:  UNIQUE index must contain all columns in the distribution key of relation "mpp3033a"
+CREATE UNIQUE INDEX mpp3033a_hundred ON mpp3033a (hundred);
+NOTICE:  building index for child partition "mpp3033a_1_prt_1"
+NOTICE:  building index for child partition "mpp3033a_1_prt_2"
+NOTICE:  building index for child partition "mpp3033a_1_prt_3"
+NOTICE:  building index for child partition "mpp3033a_1_prt_4"
+ERROR:  UNIQUE index must contain all columns in the distribution key of relation "mpp3033a"
+CREATE UNIQUE INDEX mpp3033a_stringu1 ON mpp3033a (stringu1);
+NOTICE:  building index for child partition "mpp3033a_1_prt_1"
+NOTICE:  building index for child partition "mpp3033a_1_prt_2"
+NOTICE:  building index for child partition "mpp3033a_1_prt_3"
+NOTICE:  building index for child partition "mpp3033a_1_prt_4"
+ERROR:  UNIQUE index must contain all columns in the distribution key of relation "mpp3033a"
+CREATE UNIQUE INDEX mpp3033b_unique1 ON mpp3033b (unique1);
+NOTICE:  building index for child partition "mpp3033b_1_prt_aa"
+NOTICE:  building index for child partition "mpp3033b_1_prt_bb"
+NOTICE:  building index for child partition "mpp3033b_1_prt_aa_2_prt_cc"
+NOTICE:  building index for child partition "mpp3033b_1_prt_aa_2_prt_dd"
+NOTICE:  building index for child partition "mpp3033b_1_prt_bb_2_prt_cc"
+NOTICE:  building index for child partition "mpp3033b_1_prt_bb_2_prt_dd"
+CREATE UNIQUE INDEX mpp3033b_unique2 ON mpp3033b (unique2);
+NOTICE:  building index for child partition "mpp3033b_1_prt_aa"
+NOTICE:  building index for child partition "mpp3033b_1_prt_bb"
+NOTICE:  building index for child partition "mpp3033b_1_prt_aa_2_prt_cc"
+NOTICE:  building index for child partition "mpp3033b_1_prt_aa_2_prt_dd"
+NOTICE:  building index for child partition "mpp3033b_1_prt_bb_2_prt_cc"
+NOTICE:  building index for child partition "mpp3033b_1_prt_bb_2_prt_dd"
+ERROR:  UNIQUE index must contain all columns in the distribution key of relation "mpp3033b"
+CREATE UNIQUE INDEX mpp3033b_hundred ON mpp3033b (hundred);
+NOTICE:  building index for child partition "mpp3033b_1_prt_aa"
+NOTICE:  building index for child partition "mpp3033b_1_prt_bb"
+NOTICE:  building index for child partition "mpp3033b_1_prt_aa_2_prt_cc"
+NOTICE:  building index for child partition "mpp3033b_1_prt_aa_2_prt_dd"
+NOTICE:  building index for child partition "mpp3033b_1_prt_bb_2_prt_cc"
+NOTICE:  building index for child partition "mpp3033b_1_prt_bb_2_prt_dd"
+ERROR:  UNIQUE index must contain all columns in the distribution key of relation "mpp3033b"
+CREATE UNIQUE INDEX mpp3033b_stringu1 ON mpp3033b (stringu1);
+NOTICE:  building index for child partition "mpp3033b_1_prt_aa"
+NOTICE:  building index for child partition "mpp3033b_1_prt_bb"
+NOTICE:  building index for child partition "mpp3033b_1_prt_aa_2_prt_cc"
+NOTICE:  building index for child partition "mpp3033b_1_prt_aa_2_prt_dd"
+NOTICE:  building index for child partition "mpp3033b_1_prt_bb_2_prt_cc"
+NOTICE:  building index for child partition "mpp3033b_1_prt_bb_2_prt_dd"
+ERROR:  UNIQUE index must contain all columns in the distribution key of relation "mpp3033b"
+select count(*) from mpp3033a;
+ count 
+-------
+  1000
+(1 row)
+
+select count(*) from mpp3033b;
+ count 
+-------
+  1000
+(1 row)
+
+reindex index mpp3033a_unique1;
+reindex index mpp3033a_unique2;
+ERROR:  relation "mpp3033a_unique2" does not exist
+reindex index mpp3033a_hundred;
+ERROR:  relation "mpp3033a_hundred" does not exist
+reindex index mpp3033a_stringu1;
+ERROR:  relation "mpp3033a_stringu1" does not exist
+reindex index mpp3033b_unique1;
+reindex index mpp3033b_unique2;
+ERROR:  relation "mpp3033b_unique2" does not exist
+reindex index mpp3033b_hundred;
+ERROR:  relation "mpp3033b_hundred" does not exist
+reindex index mpp3033b_stringu1;
+ERROR:  relation "mpp3033b_stringu1" does not exist
+select count(*) from mpp3033a;
+ count 
+-------
+  1000
+(1 row)
+
+select count(*) from mpp3033b;
+ count 
+-------
+  1000
+(1 row)
+
+drop index mpp3033a_unique1;
+WARNING:  Only dropped the index "mpp3033a_unique1"
+HINT:  To drop other indexes on child partitions, drop each one explicitly.
+drop index mpp3033a_unique2;
+ERROR:  index "mpp3033a_unique2" does not exist
+drop index mpp3033a_hundred;
+ERROR:  index "mpp3033a_hundred" does not exist
+drop index mpp3033a_stringu1;
+ERROR:  index "mpp3033a_stringu1" does not exist
+drop index mpp3033b_unique1;
+WARNING:  Only dropped the index "mpp3033b_unique1"
+HINT:  To drop other indexes on child partitions, drop each one explicitly.
+drop index mpp3033b_unique2;
+ERROR:  index "mpp3033b_unique2" does not exist
+drop index mpp3033b_hundred;
+ERROR:  index "mpp3033b_hundred" does not exist
+drop index mpp3033b_stringu1;
+ERROR:  index "mpp3033b_stringu1" does not exist
+CREATE INDEX mpp3033a_unique1 ON mpp3033a USING bitmap (unique1);
+NOTICE:  building index for child partition "mpp3033a_1_prt_1"
+NOTICE:  building index for child partition "mpp3033a_1_prt_2"
+NOTICE:  building index for child partition "mpp3033a_1_prt_3"
+NOTICE:  building index for child partition "mpp3033a_1_prt_4"
+CREATE INDEX mpp3033a_unique2 ON mpp3033a USING bitmap (unique2);
+NOTICE:  building index for child partition "mpp3033a_1_prt_1"
+NOTICE:  building index for child partition "mpp3033a_1_prt_2"
+NOTICE:  building index for child partition "mpp3033a_1_prt_3"
+NOTICE:  building index for child partition "mpp3033a_1_prt_4"
+CREATE INDEX mpp3033a_hundred ON mpp3033a USING bitmap (hundred);
+NOTICE:  building index for child partition "mpp3033a_1_prt_1"
+NOTICE:  building index for child partition "mpp3033a_1_prt_2"
+NOTICE:  building index for child partition "mpp3033a_1_prt_3"
+NOTICE:  building index for child partition "mpp3033a_1_prt_4"
+CREATE INDEX mpp3033a_stringu1 ON mpp3033a USING bitmap (stringu1);
+NOTICE:  building index for child partition "mpp3033a_1_prt_1"
+NOTICE:  building index for child partition "mpp3033a_1_prt_2"
+NOTICE:  building index for child partition "mpp3033a_1_prt_3"
+NOTICE:  building index for child partition "mpp3033a_1_prt_4"
+CREATE INDEX mpp3033b_unique1 ON mpp3033b USING bitmap (unique1);
+NOTICE:  building index for child partition "mpp3033b_1_prt_aa"
+NOTICE:  building index for child partition "mpp3033b_1_prt_bb"
+NOTICE:  building index for child partition "mpp3033b_1_prt_aa_2_prt_cc"
+NOTICE:  building index for child partition "mpp3033b_1_prt_aa_2_prt_dd"
+NOTICE:  building index for child partition "mpp3033b_1_prt_bb_2_prt_cc"
+NOTICE:  building index for child partition "mpp3033b_1_prt_bb_2_prt_dd"
+CREATE INDEX mpp3033b_unique2 ON mpp3033b USING bitmap (unique2);
+NOTICE:  building index for child partition "mpp3033b_1_prt_aa"
+NOTICE:  building index for child partition "mpp3033b_1_prt_bb"
+NOTICE:  building index for child partition "mpp3033b_1_prt_aa_2_prt_cc"
+NOTICE:  building index for child partition "mpp3033b_1_prt_aa_2_prt_dd"
+NOTICE:  building index for child partition "mpp3033b_1_prt_bb_2_prt_cc"
+NOTICE:  building index for child partition "mpp3033b_1_prt_bb_2_prt_dd"
+CREATE INDEX mpp3033b_hundred ON mpp3033b USING bitmap (hundred);
+NOTICE:  building index for child partition "mpp3033b_1_prt_aa"
+NOTICE:  building index for child partition "mpp3033b_1_prt_bb"
+NOTICE:  building index for child partition "mpp3033b_1_prt_aa_2_prt_cc"
+NOTICE:  building index for child partition "mpp3033b_1_prt_aa_2_prt_dd"
+NOTICE:  building index for child partition "mpp3033b_1_prt_bb_2_prt_cc"
+NOTICE:  building index for child partition "mpp3033b_1_prt_bb_2_prt_dd"
+CREATE INDEX mpp3033b_stringu1 ON mpp3033b USING bitmap (stringu1);
+NOTICE:  building index for child partition "mpp3033b_1_prt_aa"
+NOTICE:  building index for child partition "mpp3033b_1_prt_bb"
+NOTICE:  building index for child partition "mpp3033b_1_prt_aa_2_prt_cc"
+NOTICE:  building index for child partition "mpp3033b_1_prt_aa_2_prt_dd"
+NOTICE:  building index for child partition "mpp3033b_1_prt_bb_2_prt_cc"
+NOTICE:  building index for child partition "mpp3033b_1_prt_bb_2_prt_dd"
+select count(*) from mpp3033a;
+ count 
+-------
+  1000
+(1 row)
+
+select count(*) from mpp3033b;
+ count 
+-------
+  1000
+(1 row)
+
+reindex index mpp3033a_unique1;
+reindex index mpp3033a_unique2;
+reindex index mpp3033a_hundred;
+reindex index mpp3033a_stringu1;
+reindex index mpp3033b_unique1;
+reindex index mpp3033b_unique2;
+reindex index mpp3033b_hundred;
+reindex index mpp3033b_stringu1;
+select count(*) from mpp3033a;
+ count 
+-------
+  1000
+(1 row)
+
+select count(*) from mpp3033b;
+ count 
+-------
+  1000
+(1 row)
+
+-- partition_list_index.sql
+-- Test partition with CREATE INDEX
+DROP TABLE if exists mpp3033;
+DROP TABLE if exists mpp3033a;
+DROP TABLE if exists mpp3033b;
+CREATE TABLE mpp3033 (
+        unique1         int4,
+        unique2         int4,
+        two                     int4,
+        four            int4,
+        ten                     int4,
+        twenty          int4,
+        hundred         int4,
+        thousand        int4,
+        twothousand     int4,
+        fivethous       int4,
+        tenthous        int4,
+        odd                     int4,
+        even            int4,
+        stringu1        name,
+        stringu2        name,
+        string4         name
+);
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'unique1' as the Greenplum Database data distribution key for this table.
+HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
+\echo -- start_ignore
+-- start_ignore
+\copy mpp3033 from 'bugbuster/data/onek.data';
+\echo -- end_ignore
+-- end_ignore
+CREATE TABLE mpp3033a (
+        unique1         int4,
+        unique2         int4,
+        two                     int4,
+        four            int4,
+        ten                     int4,
+        twenty          int4,
+        hundred         int4,
+        thousand        int4,
+        twothousand     int4,
+        fivethous       int4,
+        tenthous        int4,
+        odd                     int4,
+        even            int4,
+        stringu1        name,
+        stringu2        name,
+        string4         name
+) distributed by (unique1) partition by list (unique1) (
+partition aa values (1,2,3,4,5,6,7,8,9,10),
+partition bb values (11,12,13,14,15,16,17,18,19,20),
+default partition default_part
+);
+NOTICE:  CREATE TABLE will create partition "mpp3033a_1_prt_aa" for table "mpp3033a"
+NOTICE:  CREATE TABLE will create partition "mpp3033a_1_prt_bb" for table "mpp3033a"
+NOTICE:  CREATE TABLE will create partition "mpp3033a_1_prt_default_part" for table "mpp3033a"
+CREATE TABLE mpp3033b (
+        unique1         int4,
+        unique2         int4,
+        two                     int4,
+        four            int4,
+        ten                     int4,
+        twenty          int4,
+        hundred         int4,
+        thousand        int4,
+        twothousand     int4,
+        fivethous       int4,
+        tenthous        int4,
+        odd                     int4,
+        even            int4,
+        stringu1        name,
+        stringu2        name,
+        string4         name
+) distributed by (unique1) partition by list (unique1)
+subpartition by list (unique2)
+(
+partition aa values (1,2,3,4,5,6,7,8,9,10) (subpartition cc values (1,2,3), subpartition dd values (4,5,6) ),
+partition bb values (11,12,13,14,15,16,17,18,19,20) (subpartition cc values (1,2,3), subpartition dd values (4,5,6) )
+);
+NOTICE:  CREATE TABLE will create partition "mpp3033b_1_prt_aa" for table "mpp3033b"
+NOTICE:  CREATE TABLE will create partition "mpp3033b_1_prt_bb" for table "mpp3033b"
+NOTICE:  CREATE TABLE will create partition "mpp3033b_1_prt_aa_2_prt_cc" for table "mpp3033b_1_prt_aa"
+NOTICE:  CREATE TABLE will create partition "mpp3033b_1_prt_aa_2_prt_dd" for table "mpp3033b_1_prt_aa"
+NOTICE:  CREATE TABLE will create partition "mpp3033b_1_prt_bb_2_prt_cc" for table "mpp3033b_1_prt_bb"
+NOTICE:  CREATE TABLE will create partition "mpp3033b_1_prt_bb_2_prt_dd" for table "mpp3033b_1_prt_bb"
+alter table mpp3033b add default partition default_part;
+NOTICE:  CREATE TABLE will create partition "mpp3033b_1_prt_default_part" for table "mpp3033b"
+ERROR:  no partitions specified at depth 2
+insert into mpp3033a select * from mpp3033;
+insert into mpp3033b select * from mpp3033;
+ERROR:  no partition for partitioning key  (seg0 usenjaltarmbp:18506 pid=23916)
+CREATE INDEX mpp3033a_unique1 ON mpp3033a USING btree(unique1 int4_ops);
+NOTICE:  building index for child partition "mpp3033a_1_prt_aa"
+NOTICE:  building index for child partition "mpp3033a_1_prt_bb"
+NOTICE:  building index for child partition "mpp3033a_1_prt_default_part"
+CREATE INDEX mpp3033a_unique2 ON mpp3033a USING btree(unique2 int4_ops);
+NOTICE:  building index for child partition "mpp3033a_1_prt_aa"
+NOTICE:  building index for child partition "mpp3033a_1_prt_bb"
+NOTICE:  building index for child partition "mpp3033a_1_prt_default_part"
+CREATE INDEX mpp3033a_hundred ON mpp3033a USING btree(hundred int4_ops);
+NOTICE:  building index for child partition "mpp3033a_1_prt_aa"
+NOTICE:  building index for child partition "mpp3033a_1_prt_bb"
+NOTICE:  building index for child partition "mpp3033a_1_prt_default_part"
+CREATE INDEX mpp3033a_stringu1 ON mpp3033a USING btree(stringu1 name_ops);
+NOTICE:  building index for child partition "mpp3033a_1_prt_aa"
+NOTICE:  building index for child partition "mpp3033a_1_prt_bb"
+NOTICE:  building index for child partition "mpp3033a_1_prt_default_part"
+CREATE INDEX mpp3033b_unique1 ON mpp3033b USING btree(unique1 int4_ops);
+NOTICE:  building index for child partition "mpp3033b_1_prt_aa"
+NOTICE:  building index for child partition "mpp3033b_1_prt_bb"
+NOTICE:  building index for child partition "mpp3033b_1_prt_aa_2_prt_cc"
+NOTICE:  building index for child partition "mpp3033b_1_prt_aa_2_prt_dd"
+NOTICE:  building index for child partition "mpp3033b_1_prt_bb_2_prt_cc"
+NOTICE:  building index for child partition "mpp3033b_1_prt_bb_2_prt_dd"
+CREATE INDEX mpp3033b_unique2 ON mpp3033b USING btree(unique2 int4_ops);
+NOTICE:  building index for child partition "mpp3033b_1_prt_aa"
+NOTICE:  building index for child partition "mpp3033b_1_prt_bb"
+NOTICE:  building index for child partition "mpp3033b_1_prt_aa_2_prt_cc"
+NOTICE:  building index for child partition "mpp3033b_1_prt_aa_2_prt_dd"
+NOTICE:  building index for child partition "mpp3033b_1_prt_bb_2_prt_cc"
+NOTICE:  building index for child partition "mpp3033b_1_prt_bb_2_prt_dd"
+CREATE INDEX mpp3033b_hundred ON mpp3033b USING btree(hundred int4_ops);
+NOTICE:  building index for child partition "mpp3033b_1_prt_aa"
+NOTICE:  building index for child partition "mpp3033b_1_prt_bb"
+NOTICE:  building index for child partition "mpp3033b_1_prt_aa_2_prt_cc"
+NOTICE:  building index for child partition "mpp3033b_1_prt_aa_2_prt_dd"
+NOTICE:  building index for child partition "mpp3033b_1_prt_bb_2_prt_cc"
+NOTICE:  building index for child partition "mpp3033b_1_prt_bb_2_prt_dd"
+CREATE INDEX mpp3033b_stringu1 ON mpp3033b USING btree(stringu1 name_ops);
+NOTICE:  building index for child partition "mpp3033b_1_prt_aa"
+NOTICE:  building index for child partition "mpp3033b_1_prt_bb"
+NOTICE:  building index for child partition "mpp3033b_1_prt_aa_2_prt_cc"
+NOTICE:  building index for child partition "mpp3033b_1_prt_aa_2_prt_dd"
+NOTICE:  building index for child partition "mpp3033b_1_prt_bb_2_prt_cc"
+NOTICE:  building index for child partition "mpp3033b_1_prt_bb_2_prt_dd"
+select count(*) from mpp3033a;
+ count 
+-------
+  1000
+(1 row)
+
+select count(*) from mpp3033b;
+ count 
+-------
+     0
+(1 row)
+
+reindex index mpp3033a_unique1;
+reindex index mpp3033a_unique2;
+reindex index mpp3033a_hundred;
+reindex index mpp3033a_stringu1;
+reindex index mpp3033b_unique1;
+reindex index mpp3033b_unique2;
+reindex index mpp3033b_hundred;
+reindex index mpp3033b_stringu1;
+select count(*) from mpp3033a;
+ count 
+-------
+  1000
+(1 row)
+
+select count(*) from mpp3033b;
+ count 
+-------
+     0
+(1 row)
+
+drop index mpp3033a_unique1;
+WARNING:  Only dropped the index "mpp3033a_unique1"
+HINT:  To drop other indexes on child partitions, drop each one explicitly.
+drop index mpp3033a_unique2;
+WARNING:  Only dropped the index "mpp3033a_unique2"
+HINT:  To drop other indexes on child partitions, drop each one explicitly.
+drop index mpp3033a_hundred;
+WARNING:  Only dropped the index "mpp3033a_hundred"
+HINT:  To drop other indexes on child partitions, drop each one explicitly.
+drop index mpp3033a_stringu1;
+WARNING:  Only dropped the index "mpp3033a_stringu1"
+HINT:  To drop other indexes on child partitions, drop each one explicitly.
+drop index mpp3033b_unique1;
+WARNING:  Only dropped the index "mpp3033b_unique1"
+HINT:  To drop other indexes on child partitions, drop each one explicitly.
+drop index mpp3033b_unique2;
+WARNING:  Only dropped the index "mpp3033b_unique2"
+HINT:  To drop other indexes on child partitions, drop each one explicitly.
+drop index mpp3033b_hundred;
+WARNING:  Only dropped the index "mpp3033b_hundred"
+HINT:  To drop other indexes on child partitions, drop each one explicitly.
+drop index mpp3033b_stringu1;
+WARNING:  Only dropped the index "mpp3033b_stringu1"
+HINT:  To drop other indexes on child partitions, drop each one explicitly.
+CREATE INDEX mpp3033a_unique1 ON mpp3033a (unique1);
+NOTICE:  building index for child partition "mpp3033a_1_prt_aa"
+NOTICE:  building index for child partition "mpp3033a_1_prt_bb"
+NOTICE:  building index for child partition "mpp3033a_1_prt_default_part"
+CREATE INDEX mpp3033a_unique2 ON mpp3033a (unique2);
+NOTICE:  building index for child partition "mpp3033a_1_prt_aa"
+NOTICE:  building index for child partition "mpp3033a_1_prt_bb"
+NOTICE:  building index for child partition "mpp3033a_1_prt_default_part"
+CREATE INDEX mpp3033a_hundred ON mpp3033a (hundred);
+NOTICE:  building index for child partition "mpp3033a_1_prt_aa"
+NOTICE:  building index for child partition "mpp3033a_1_prt_bb"
+NOTICE:  building index for child partition "mpp3033a_1_prt_default_part"
+CREATE INDEX mpp3033a_stringu1 ON mpp3033a (stringu1);
+NOTICE:  building index for child partition "mpp3033a_1_prt_aa"
+NOTICE:  building index for child partition "mpp3033a_1_prt_bb"
+NOTICE:  building index for child partition "mpp3033a_1_prt_default_part"
+CREATE INDEX mpp3033b_unique1 ON mpp3033b (unique1);
+NOTICE:  building index for child partition "mpp3033b_1_prt_aa"
+NOTICE:  building index for child partition "mpp3033b_1_prt_bb"
+NOTICE:  building index for child partition "mpp3033b_1_prt_aa_2_prt_cc"
+NOTICE:  building index for child partition "mpp3033b_1_prt_aa_2_prt_dd"
+NOTICE:  building index for child partition "mpp3033b_1_prt_bb_2_prt_cc"
+NOTICE:  building index for child partition "mpp3033b_1_prt_bb_2_prt_dd"
+CREATE INDEX mpp3033b_unique2 ON mpp3033b (unique2);
+NOTICE:  building index for child partition "mpp3033b_1_prt_aa"
+NOTICE:  building index for child partition "mpp3033b_1_prt_bb"
+NOTICE:  building index for child partition "mpp3033b_1_prt_aa_2_prt_cc"
+NOTICE:  building index for child partition "mpp3033b_1_prt_aa_2_prt_dd"
+NOTICE:  building index for child partition "mpp3033b_1_prt_bb_2_prt_cc"
+NOTICE:  building index for child partition "mpp3033b_1_prt_bb_2_prt_dd"
+CREATE INDEX mpp3033b_hundred ON mpp3033b (hundred);
+NOTICE:  building index for child partition "mpp3033b_1_prt_aa"
+NOTICE:  building index for child partition "mpp3033b_1_prt_bb"
+NOTICE:  building index for child partition "mpp3033b_1_prt_aa_2_prt_cc"
+NOTICE:  building index for child partition "mpp3033b_1_prt_aa_2_prt_dd"
+NOTICE:  building index for child partition "mpp3033b_1_prt_bb_2_prt_cc"
+NOTICE:  building index for child partition "mpp3033b_1_prt_bb_2_prt_dd"
+CREATE INDEX mpp3033b_stringu1 ON mpp3033b (stringu1);
+NOTICE:  building index for child partition "mpp3033b_1_prt_aa"
+NOTICE:  building index for child partition "mpp3033b_1_prt_bb"
+NOTICE:  building index for child partition "mpp3033b_1_prt_aa_2_prt_cc"
+NOTICE:  building index for child partition "mpp3033b_1_prt_aa_2_prt_dd"
+NOTICE:  building index for child partition "mpp3033b_1_prt_bb_2_prt_cc"
+NOTICE:  building index for child partition "mpp3033b_1_prt_bb_2_prt_dd"
+select count(*) from mpp3033a;
+ count 
+-------
+  1000
+(1 row)
+
+select count(*) from mpp3033b;
+ count 
+-------
+     0
+(1 row)
+
+reindex index mpp3033a_unique1;
+reindex index mpp3033a_unique2;
+reindex index mpp3033a_hundred;
+reindex index mpp3033a_stringu1;
+reindex index mpp3033b_unique1;
+reindex index mpp3033b_unique2;
+reindex index mpp3033b_hundred;
+reindex index mpp3033b_stringu1;
+select count(*) from mpp3033a;
+ count 
+-------
+  1000
+(1 row)
+
+select count(*) from mpp3033b;
+ count 
+-------
+     0
+(1 row)
+
+drop index mpp3033a_unique1;
+WARNING:  Only dropped the index "mpp3033a_unique1"
+HINT:  To drop other indexes on child partitions, drop each one explicitly.
+drop index mpp3033a_unique2;
+WARNING:  Only dropped the index "mpp3033a_unique2"
+HINT:  To drop other indexes on child partitions, drop each one explicitly.
+drop index mpp3033a_hundred;
+WARNING:  Only dropped the index "mpp3033a_hundred"
+HINT:  To drop other indexes on child partitions, drop each one explicitly.
+drop index mpp3033a_stringu1;
+WARNING:  Only dropped the index "mpp3033a_stringu1"
+HINT:  To drop other indexes on child partitions, drop each one explicitly.
+drop index mpp3033b_unique1;
+WARNING:  Only dropped the index "mpp3033b_unique1"
+HINT:  To drop other indexes on child partitions, drop each one explicitly.
+drop index mpp3033b_unique2;
+WARNING:  Only dropped the index "mpp3033b_unique2"
+HINT:  To drop other indexes on child partitions, drop each one explicitly.
+drop index mpp3033b_hundred;
+WARNING:  Only dropped the index "mpp3033b_hundred"
+HINT:  To drop other indexes on child partitions, drop each one explicitly.
+drop index mpp3033b_stringu1;
+WARNING:  Only dropped the index "mpp3033b_stringu1"
+HINT:  To drop other indexes on child partitions, drop each one explicitly.
+CREATE UNIQUE INDEX mpp3033a_unique1 ON mpp3033a (unique1);
+NOTICE:  building index for child partition "mpp3033a_1_prt_aa"
+NOTICE:  building index for child partition "mpp3033a_1_prt_bb"
+NOTICE:  building index for child partition "mpp3033a_1_prt_default_part"
+CREATE UNIQUE INDEX mpp3033a_unique2 ON mpp3033a (unique2);
+NOTICE:  building index for child partition "mpp3033a_1_prt_aa"
+NOTICE:  building index for child partition "mpp3033a_1_prt_bb"
+NOTICE:  building index for child partition "mpp3033a_1_prt_default_part"
+ERROR:  UNIQUE index must contain all columns in the distribution key of relation "mpp3033a"
+CREATE UNIQUE INDEX mpp3033a_hundred ON mpp3033a (hundred);
+NOTICE:  building index for child partition "mpp3033a_1_prt_aa"
+NOTICE:  building index for child partition "mpp3033a_1_prt_bb"
+NOTICE:  building index for child partition "mpp3033a_1_prt_default_part"
+ERROR:  UNIQUE index must contain all columns in the distribution key of relation "mpp3033a"
+CREATE UNIQUE INDEX mpp3033a_stringu1 ON mpp3033a (stringu1);
+NOTICE:  building index for child partition "mpp3033a_1_prt_aa"
+NOTICE:  building index for child partition "mpp3033a_1_prt_bb"
+NOTICE:  building index for child partition "mpp3033a_1_prt_default_part"
+ERROR:  UNIQUE index must contain all columns in the distribution key of relation "mpp3033a"
+CREATE UNIQUE INDEX mpp3033b_unique1 ON mpp3033b (unique1);
+NOTICE:  building index for child partition "mpp3033b_1_prt_aa"
+NOTICE:  building index for child partition "mpp3033b_1_prt_bb"
+NOTICE:  building index for child partition "mpp3033b_1_prt_aa_2_prt_cc"
+NOTICE:  building index for child partition "mpp3033b_1_prt_aa_2_prt_dd"
+NOTICE:  building index for child partition "mpp3033b_1_prt_bb_2_prt_cc"
+NOTICE:  building index for child partition "mpp3033b_1_prt_bb_2_prt_dd"
+CREATE UNIQUE INDEX mpp3033b_unique2 ON mpp3033b (unique2);
+NOTICE:  building index for child partition "mpp3033b_1_prt_aa"
+NOTICE:  building index for child partition "mpp3033b_1_prt_bb"
+NOTICE:  building index for child partition "mpp3033b_1_prt_aa_2_prt_cc"
+NOTICE:  building index for child partition "mpp3033b_1_prt_aa_2_prt_dd"
+NOTICE:  building index for child partition "mpp3033b_1_prt_bb_2_prt_cc"
+NOTICE:  building index for child partition "mpp3033b_1_prt_bb_2_prt_dd"
+ERROR:  UNIQUE index must contain all columns in the distribution key of relation "mpp3033b"
+CREATE UNIQUE INDEX mpp3033b_hundred ON mpp3033b (hundred);
+NOTICE:  building index for child partition "mpp3033b_1_prt_aa"
+NOTICE:  building index for child partition "mpp3033b_1_prt_bb"
+NOTICE:  building index for child partition "mpp3033b_1_prt_aa_2_prt_cc"
+NOTICE:  building index for child partition "mpp3033b_1_prt_aa_2_prt_dd"
+NOTICE:  building index for child partition "mpp3033b_1_prt_bb_2_prt_cc"
+NOTICE:  building index for child partition "mpp3033b_1_prt_bb_2_prt_dd"
+ERROR:  UNIQUE index must contain all columns in the distribution key of relation "mpp3033b"
+CREATE UNIQUE INDEX mpp3033b_stringu1 ON mpp3033b (stringu1);
+NOTICE:  building index for child partition "mpp3033b_1_prt_aa"
+NOTICE:  building index for child partition "mpp3033b_1_prt_bb"
+NOTICE:  building index for child partition "mpp3033b_1_prt_aa_2_prt_cc"
+NOTICE:  building index for child partition "mpp3033b_1_prt_aa_2_prt_dd"
+NOTICE:  building index for child partition "mpp3033b_1_prt_bb_2_prt_cc"
+NOTICE:  building index for child partition "mpp3033b_1_prt_bb_2_prt_dd"
+ERROR:  UNIQUE index must contain all columns in the distribution key of relation "mpp3033b"
+select count(*) from mpp3033a;
+ count 
+-------
+  1000
+(1 row)
+
+select count(*) from mpp3033b;
+ count 
+-------
+     0
+(1 row)
+
+reindex index mpp3033a_unique1;
+reindex index mpp3033a_unique2;
+ERROR:  relation "mpp3033a_unique2" does not exist
+reindex index mpp3033a_hundred;
+ERROR:  relation "mpp3033a_hundred" does not exist
+reindex index mpp3033a_stringu1;
+ERROR:  relation "mpp3033a_stringu1" does not exist
+reindex index mpp3033b_unique1;
+reindex index mpp3033b_unique2;
+ERROR:  relation "mpp3033b_unique2" does not exist
+reindex index mpp3033b_hundred;
+ERROR:  relation "mpp3033b_hundred" does not exist
+reindex index mpp3033b_stringu1;
+ERROR:  relation "mpp3033b_stringu1" does not exist
+select count(*) from mpp3033b;
+ count 
+-------
+     0
+(1 row)
+
+drop index mpp3033a_unique1;
+WARNING:  Only dropped the index "mpp3033a_unique1"
+HINT:  To drop other indexes on child partitions, drop each one explicitly.
+drop index mpp3033a_unique2;
+ERROR:  index "mpp3033a_unique2" does not exist
+drop index mpp3033a_hundred;
+ERROR:  index "mpp3033a_hundred" does not exist
+drop index mpp3033a_stringu1;
+ERROR:  index "mpp3033a_stringu1" does not exist
+drop index mpp3033b_unique1;
+WARNING:  Only dropped the index "mpp3033b_unique1"
+HINT:  To drop other indexes on child partitions, drop each one explicitly.
+drop index mpp3033b_unique2;
+ERROR:  index "mpp3033b_unique2" does not exist
+drop index mpp3033b_hundred;
+ERROR:  index "mpp3033b_hundred" does not exist
+drop index mpp3033b_stringu1;
+ERROR:  index "mpp3033b_stringu1" does not exist
+CREATE INDEX mpp3033a_unique1 ON mpp3033a USING bitmap (unique1);
+NOTICE:  building index for child partition "mpp3033a_1_prt_aa"
+NOTICE:  building index for child partition "mpp3033a_1_prt_bb"
+NOTICE:  building index for child partition "mpp3033a_1_prt_default_part"
+CREATE INDEX mpp3033a_unique2 ON mpp3033a USING bitmap (unique2);
+NOTICE:  building index for child partition "mpp3033a_1_prt_aa"
+NOTICE:  building index for child partition "mpp3033a_1_prt_bb"
+NOTICE:  building index for child partition "mpp3033a_1_prt_default_part"
+CREATE INDEX mpp3033a_hundred ON mpp3033a USING bitmap (hundred);
+NOTICE:  building index for child partition "mpp3033a_1_prt_aa"
+NOTICE:  building index for child partition "mpp3033a_1_prt_bb"
+NOTICE:  building index for child partition "mpp3033a_1_prt_default_part"
+CREATE INDEX mpp3033a_stringu1 ON mpp3033a USING bitmap (stringu1);
+NOTICE:  building index for child partition "mpp3033a_1_prt_aa"
+NOTICE:  building index for child partition "mpp3033a_1_prt_bb"
+NOTICE:  building index for child partition "mpp3033a_1_prt_default_part"
+CREATE INDEX mpp3033b_unique1 ON mpp3033b USING bitmap (unique1);
+NOTICE:  building index for child partition "mpp3033b_1_prt_aa"
+NOTICE:  building index for child partition "mpp3033b_1_prt_bb"
+NOTICE:  building index for child partition "mpp3033b_1_prt_aa_2_prt_cc"
+NOTICE:  building index for child partition "mpp3033b_1_prt_aa_2_prt_dd"
+NOTICE:  building index for child partition "mpp3033b_1_prt_bb_2_prt_cc"
+NOTICE:  building index for child partition "mpp3033b_1_prt_bb_2_prt_dd"
+CREATE INDEX mpp3033b_unique2 ON mpp3033b USING bitmap (unique2);
+NOTICE:  building index for child partition "mpp3033b_1_prt_aa"
+NOTICE:  building index for child partition "mpp3033b_1_prt_bb"
+NOTICE:  building index for child partition "mpp3033b_1_prt_aa_2_prt_cc"
+NOTICE:  building index for child partition "mpp3033b_1_prt_aa_2_prt_dd"
+NOTICE:  building index for child partition "mpp3033b_1_prt_bb_2_prt_cc"
+NOTICE:  building index for child partition "mpp3033b_1_prt_bb_2_prt_dd"
+CREATE INDEX mpp3033b_hundred ON mpp3033b USING bitmap (hundred);
+NOTICE:  building index for child partition "mpp3033b_1_prt_aa"
+NOTICE:  building index for child partition "mpp3033b_1_prt_bb"
+NOTICE:  building index for child partition "mpp3033b_1_prt_aa_2_prt_cc"
+NOTICE:  building index for child partition "mpp3033b_1_prt_aa_2_prt_dd"
+NOTICE:  building index for child partition "mpp3033b_1_prt_bb_2_prt_cc"
+NOTICE:  building index for child partition "mpp3033b_1_prt_bb_2_prt_dd"
+CREATE INDEX mpp3033b_stringu1 ON mpp3033b USING bitmap (stringu1);
+NOTICE:  building index for child partition "mpp3033b_1_prt_aa"
+NOTICE:  building index for child partition "mpp3033b_1_prt_bb"
+NOTICE:  building index for child partition "mpp3033b_1_prt_aa_2_prt_cc"
+NOTICE:  building index for child partition "mpp3033b_1_prt_aa_2_prt_dd"
+NOTICE:  building index for child partition "mpp3033b_1_prt_bb_2_prt_cc"
+NOTICE:  building index for child partition "mpp3033b_1_prt_bb_2_prt_dd"
+select count(*) from mpp3033a;
+ count 
+-------
+  1000
+(1 row)
+
+select count(*) from mpp3033b;
+ count 
+-------
+     0
+(1 row)
+
+reindex index mpp3033a_unique1;
+reindex index mpp3033a_unique2;
+reindex index mpp3033a_hundred;
+reindex index mpp3033a_stringu1;
+reindex index mpp3033b_unique1;
+reindex index mpp3033b_unique2;
+reindex index mpp3033b_hundred;
+reindex index mpp3033b_stringu1;
+select count(*) from mpp3033a;
+ count 
+-------
+  1000
+(1 row)
+
+select count(*) from mpp3033b;
+ count 
+-------
+     0
+(1 row)
+
+-- partition_range_index.sql
+\echo -- start_ignore
+-- start_ignore
+drop schema partition_range cascade;
+ERROR:  schema "partition_range" does not exist
+create schema partition_range;
+\echo -- end_ignore
+-- end_ignore
+-- Test partition with CREATE INDEX
+\echo -- start_ignore
+-- start_ignore
+DROP TABLE if exists mpp3033;
+DROP TABLE if exists mpp3033a;
+DROP TABLE if exists mpp3033b;
+\echo -- end_ignore
+-- end_ignore
+CREATE TABLE mpp3033 (
+        unique1         int4,
+        unique2         int4,
+        two                     int4,
+        four            int4,
+        ten                     int4,
+        twenty          int4,
+        hundred         int4,
+        thousand        int4,
+        twothousand     int4,
+        fivethous       int4,
+        tenthous        int4,
+        odd                     int4,
+        even            int4,
+        stringu1        name,
+        stringu2        name,
+        string4         name
+);
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'unique1' as the Greenplum Database data distribution key for this table.
+HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
+\echo -- start_ignore
+-- start_ignore
+\copy mpp3033 from 'bugbuster/data/onek.data';
+\echo -- end_ignore
+-- end_ignore
+CREATE TABLE mpp3033a (
+        unique1         int4,
+        unique2         int4,
+        two                     int4,
+        four            int4,
+        ten                     int4,
+        twenty          int4,
+        hundred         int4,
+        thousand        int4,
+        twothousand     int4,
+        fivethous       int4,
+        tenthous        int4,
+        odd                     int4,
+        even            int4,
+        stringu1        name,
+        stringu2        name,
+        string4         name
+) distributed by (unique1) partition by range (unique1)
+( partition aa start (0) end (1000) every (100), default partition default_part );
+NOTICE:  CREATE TABLE will create partition "mpp3033a_1_prt_default_part" for table "mpp3033a"
+NOTICE:  CREATE TABLE will create partition "mpp3033a_1_prt_aa_1" for table "mpp3033a"
+NOTICE:  CREATE TABLE will create partition "mpp3033a_1_prt_aa_2" for table "mpp3033a"
+NOTICE:  CREATE TABLE will create partition "mpp3033a_1_prt_aa_3" for table "mpp3033a"
+NOTICE:  CREATE TABLE will create partition "mpp3033a_1_prt_aa_4" for table "mpp3033a"
+NOTICE:  CREATE TABLE will create partition "mpp3033a_1_prt_aa_5" for table "mpp3033a"
+NOTICE:  CREATE TABLE will create partition "mpp3033a_1_prt_aa_6" for table "mpp3033a"
+NOTICE:  CREATE TABLE will create partition "mpp3033a_1_prt_aa_7" for table "mpp3033a"
+NOTICE:  CREATE TABLE will create partition "mpp3033a_1_prt_aa_8" for table "mpp3033a"
+NOTICE:  CREATE TABLE will create partition "mpp3033a_1_prt_aa_9" for table "mpp3033a"
+NOTICE:  CREATE TABLE will create partition "mpp3033a_1_prt_aa_10" for table "mpp3033a"
+CREATE TABLE mpp3033b (
+        unique1         int4,
+        unique2         int4,
+        two                     int4,
+        four            int4,
+        ten                     int4,
+        twenty          int4,
+        hundred         int4,
+        thousand        int4,
+        twothousand     int4,
+        fivethous       int4,
+        tenthous        int4,
+        odd                     int4,
+        even            int4,
+        stringu1        name,
+        stringu2        name,
+        string4         name
+) distributed by (unique1) partition by range (unique1)
+subpartition by range (unique2) subpartition template ( start (0) end (1000) every (500) )
+( start (0) end (1000) every (200));
+NOTICE:  CREATE TABLE will create partition "mpp3033b_1_prt_1" for table "mpp3033b"
+NOTICE:  CREATE TABLE will create partition "mpp3033b_1_prt_2" for table "mpp3033b"
+NOTICE:  CREATE TABLE will create partition "mpp3033b_1_prt_3" for table "mpp3033b"
+NOTICE:  CREATE TABLE will create partition "mpp3033b_1_prt_4" for table "mpp3033b"
+NOTICE:  CREATE TABLE will create partition "mpp3033b_1_prt_5" for table "mpp3033b"
+NOTICE:  CREATE TABLE will create partition "mpp3033b_1_prt_1_2_prt_1" for table "mpp3033b_1_prt_1"
+NOTICE:  CREATE TABLE will create partition "mpp3033b_1_prt_1_2_prt_2" for table "mpp3033b_1_prt_1"
+NOTICE:  CREATE TABLE will create partition "mpp3033b_1_prt_2_2_prt_1" for table "mpp3033b_1_prt_2"
+NOTICE:  CREATE TABLE will create partition "mpp3033b_1_prt_2_2_prt_2" for table "mpp3033b_1_prt_2"
+NOTICE:  CREATE TABLE will create partition "mpp3033b_1_prt_3_2_prt_1" for table "mpp3033b_1_prt_3"
+NOTICE:  CREATE TABLE will create partition "mpp3033b_1_prt_3_2_prt_2" for table "mpp3033b_1_prt_3"
+NOTICE:  CREATE TABLE will create partition "mpp3033b_1_prt_4_2_prt_1" for table "mpp3033b_1_prt_4"
+NOTICE:  CREATE TABLE will create partition "mpp3033b_1_prt_4_2_prt_2" for table "mpp3033b_1_prt_4"
+NOTICE:  CREATE TABLE will create partition "mpp3033b_1_prt_5_2_prt_1" for table "mpp3033b_1_prt_5"
+NOTICE:  CREATE TABLE will create partition "mpp3033b_1_prt_5_2_prt_2" for table "mpp3033b_1_prt_5"
+alter table mpp3033b add default partition default_part;
+NOTICE:  CREATE TABLE will create partition "mpp3033b_1_prt_default_part" for table "mpp3033b"
+NOTICE:  CREATE TABLE will create partition "mpp3033b_1_prt_default_part_2_prt_1" for table "mpp3033b_1_prt_default_part"
+NOTICE:  CREATE TABLE will create partition "mpp3033b_1_prt_default_part_2_prt_2" for table "mpp3033b_1_prt_default_part"
+insert into mpp3033a select * from mpp3033;
+insert into mpp3033b select * from mpp3033;
+drop index if exists mpp3033a_unique1;
+NOTICE:  index "mpp3033a_unique1" does not exist, skipping
+drop index if exists mpp3033a_unique2;
+NOTICE:  index "mpp3033a_unique2" does not exist, skipping
+drop index if exists mpp3033a_hundred;
+NOTICE:  index "mpp3033a_hundred" does not exist, skipping
+drop index if exists mpp3033a_stringu1;
+NOTICE:  index "mpp3033a_stringu1" does not exist, skipping
+drop index if exists mpp3033b_unique1;
+NOTICE:  index "mpp3033b_unique1" does not exist, skipping
+drop index if exists mpp3033b_unique2;
+NOTICE:  index "mpp3033b_unique2" does not exist, skipping
+drop index if exists mpp3033b_hundred;
+NOTICE:  index "mpp3033b_hundred" does not exist, skipping
+drop index if exists mpp3033b_stringu1;
+NOTICE:  index "mpp3033b_stringu1" does not exist, skipping
+CREATE INDEX mpp3033a_unique1 ON mpp3033a USING btree(unique1 int4_ops);
+NOTICE:  building index for child partition "mpp3033a_1_prt_default_part"
+NOTICE:  building index for child partition "mpp3033a_1_prt_aa_1"
+NOTICE:  building index for child partition "mpp3033a_1_prt_aa_2"
+NOTICE:  building index for child partition "mpp3033a_1_prt_aa_3"
+NOTICE:  building index for child partition "mpp3033a_1_prt_aa_4"
+NOTICE:  building index for child partition "mpp3033a_1_prt_aa_5"
+NOTICE:  building index for child partition "mpp3033a_1_prt_aa_6"
+NOTICE:  building index for child partition "mpp3033a_1_prt_aa_7"
+NOTICE:  building index for child partition "mpp3033a_1_prt_aa_8"
+NOTICE:  building index for child partition "mpp3033a_1_prt_aa_9"
+NOTICE:  building index for child partition "mpp3033a_1_prt_aa_10"
+CREATE INDEX mpp3033a_unique2 ON mpp3033a USING btree(unique2 int4_ops);
+NOTICE:  building index for child partition "mpp3033a_1_prt_default_part"
+NOTICE:  building index for child partition "mpp3033a_1_prt_aa_1"
+NOTICE:  building index for child partition "mpp3033a_1_prt_aa_2"
+NOTICE:  building index for child partition "mpp3033a_1_prt_aa_3"
+NOTICE:  building index for child partition "mpp3033a_1_prt_aa_4"
+NOTICE:  building index for child partition "mpp3033a_1_prt_aa_5"
+NOTICE:  building index for child partition "mpp3033a_1_prt_aa_6"
+NOTICE:  building index for child partition "mpp3033a_1_prt_aa_7"
+NOTICE:  building index for child partition "mpp3033a_1_prt_aa_8"
+NOTICE:  building index for child partition "mpp3033a_1_prt_aa_9"
+NOTICE:  building index for child partition "mpp3033a_1_prt_aa_10"
+CREATE INDEX mpp3033a_hundred ON mpp3033a USING btree(hundred int4_ops);
+NOTICE:  building index for child partition "mpp3033a_1_prt_default_part"
+NOTICE:  building index for child partition "mpp3033a_1_prt_aa_1"
+NOTICE:  building index for child partition "mpp3033a_1_prt_aa_2"
+NOTICE:  building index for child partition "mpp3033a_1_prt_aa_3"
+NOTICE:  building index for child partition "mpp3033a_1_prt_aa_4"
+NOTICE:  building index for child partition "mpp3033a_1_prt_aa_5"
+NOTICE:  building index for child partition "mpp3033a_1_prt_aa_6"
+NOTICE:  building index for child partition "mpp3033a_1_prt_aa_7"
+NOTICE:  building index for child partition "mpp3033a_1_prt_aa_8"
+NOTICE:  building index for child partition "mpp3033a_1_prt_aa_9"
+NOTICE:  building index for child partition "mpp3033a_1_prt_aa_10"
+CREATE INDEX mpp3033a_stringu1 ON mpp3033a USING btree(stringu1 name_ops);
+NOTICE:  building index for child partition "mpp3033a_1_prt_default_part"
+NOTICE:  building index for child partition "mpp3033a_1_prt_aa_1"
+NOTICE:  building index for child partition "mpp3033a_1_prt_aa_2"
+NOTICE:  building index for child partition "mpp3033a_1_prt_aa_3"
+NOTICE:  building index for child partition "mpp3033a_1_prt_aa_4"
+NOTICE:  building index for child partition "mpp3033a_1_prt_aa_5"
+NOTICE:  building index for child partition "mpp3033a_1_prt_aa_6"
+NOTICE:  building index for child partition "mpp3033a_1_prt_aa_7"
+NOTICE:  building index for child partition "mpp3033a_1_prt_aa_8"
+NOTICE:  building index for child partition "mpp3033a_1_prt_aa_9"
+NOTICE:  building index for child partition "mpp3033a_1_prt_aa_10"
+CREATE INDEX mpp3033b_unique1 ON mpp3033b USING btree(unique1 int4_ops);
+NOTICE:  building index for child partition "mpp3033b_1_prt_2"
+NOTICE:  building index for child partition "mpp3033b_1_prt_4"
+NOTICE:  building index for child partition "mpp3033b_1_prt_3"
+NOTICE:  building index for child partition "mpp3033b_1_prt_1"
+NOTICE:  building index for child partition "mpp3033b_1_prt_5"
+NOTICE:  building index for child partition "mpp3033b_1_prt_default_part"
+NOTICE:  building index for child partition "mpp3033b_1_prt_2_2_prt_1"
+NOTICE:  building index for child partition "mpp3033b_1_prt_2_2_prt_2"
+NOTICE:  building index for child partition "mpp3033b_1_prt_4_2_prt_1"
+NOTICE:  building index for child partition "mpp3033b_1_prt_4_2_prt_2"
+NOTICE:  building index for child partition "mpp3033b_1_prt_3_2_prt_2"
+NOTICE:  building index for child partition "mpp3033b_1_prt_3_2_prt_1"
+NOTICE:  building index for child partition "mpp3033b_1_prt_1_2_prt_1"
+NOTICE:  building index for child partition "mpp3033b_1_prt_1_2_prt_2"
+NOTICE:  building index for child partition "mpp3033b_1_prt_5_2_prt_1"
+NOTICE:  building index for child partition "mpp3033b_1_prt_5_2_prt_2"
+NOTICE:  building index for child partition "mpp3033b_1_prt_default_part_2_prt_1"
+NOTICE:  building index for child partition "mpp3033b_1_prt_default_part_2_prt_2"
+CREATE INDEX mpp3033b_unique2 ON mpp3033b USING btree(unique2 int4_ops);
+NOTICE:  building index for child partition "mpp3033b_1_prt_2"
+NOTICE:  building index for child partition "mpp3033b_1_prt_4"
+NOTICE:  building index for child partition "mpp3033b_1_prt_3"
+NOTICE:  building index for child partition "mpp3033b_1_prt_1"
+NOTICE:  building index for child partition "mpp3033b_1_prt_5"
+NOTICE:  building index for child partition "mpp3033b_1_prt_default_part"
+NOTICE:  building index for child partition "mpp3033b_1_prt_2_2_prt_1"
+NOTICE:  building index for child partition "mpp3033b_1_prt_2_2_prt_2"
+NOTICE:  building index for child partition "mpp3033b_1_prt_4_2_prt_1"
+NOTICE:  building index for child partition "mpp3033b_1_prt_4_2_prt_2"
+NOTICE:  building index for child partition "mpp3033b_1_prt_3_2_prt_2"
+NOTICE:  building index for child partition "mpp3033b_1_prt_3_2_prt_1"
+NOTICE:  building index for child partition "mpp3033b_1_prt_1_2_prt_1"
+NOTICE:  building index for child partition "mpp3033b_1_prt_1_2_prt_2"
+NOTICE:  building index for child partition "mpp3033b_1_prt_5_2_prt_1"
+NOTICE:  building index for child partition "mpp3033b_1_prt_5_2_prt_2"
+NOTICE:  building index for child partition "mpp3033b_1_prt_default_part_2_prt_1"
+NOTICE:  building index for child partition "mpp3033b_1_prt_default_part_2_prt_2"
+CREATE INDEX mpp3033b_hundred ON mpp3033b USING btree(hundred int4_ops);
+NOTICE:  building index for child partition "mpp3033b_1_prt_2"
+NOTICE:  building index for child partition "mpp3033b_1_prt_4"
+NOTICE:  building index for child partition "mpp3033b_1_prt_3"
+NOTICE:  building index for child partition "mpp3033b_1_prt_1"
+NOTICE:  building index for child partition "mpp3033b_1_prt_5"
+NOTICE:  building index for child partition "mpp3033b_1_prt_default_part"
+NOTICE:  building index for child partition "mpp3033b_1_prt_2_2_prt_1"
+NOTICE:  building index for child partition "mpp3033b_1_prt_2_2_prt_2"
+NOTICE:  building index for child partition "mpp3033b_1_prt_4_2_prt_1"
+NOTICE:  building index for child partition "mpp3033b_1_prt_4_2_prt_2"
+NOTICE:  building index for child partition "mpp3033b_1_prt_3_2_prt_2"
+NOTICE:  building index for child partition "mpp3033b_1_prt_3_2_prt_1"
+NOTICE:  building index for child partition "mpp3033b_1_prt_1_2_prt_1"
+NOTICE:  building index for child partition "mpp3033b_1_prt_1_2_prt_2"
+NOTICE:  building index for child partition "mpp3033b_1_prt_5_2_prt_1"
+NOTICE:  building index for child partition "mpp3033b_1_prt_5_2_prt_2"
+NOTICE:  building index for child partition "mpp3033b_1_prt_default_part_2_prt_1"
+NOTICE:  building index for child partition "mpp3033b_1_prt_default_part_2_prt_2"
+CREATE INDEX mpp3033b_stringu1 ON mpp3033b USING btree(stringu1 name_ops);
+NOTICE:  building index for child partition "mpp3033b_1_prt_2"
+NOTICE:  building index for child partition "mpp3033b_1_prt_4"
+NOTICE:  building index for child partition "mpp3033b_1_prt_3"
+NOTICE:  building index for child partition "mpp3033b_1_prt_1"
+NOTICE:  building index for child partition "mpp3033b_1_prt_5"
+NOTICE:  building index for child partition "mpp3033b_1_prt_default_part"
+NOTICE:  building index for child partition "mpp3033b_1_prt_2_2_prt_1"
+NOTICE:  building index for child partition "mpp3033b_1_prt_2_2_prt_2"
+NOTICE:  building index for child partition "mpp3033b_1_prt_4_2_prt_1"
+NOTICE:  building index for child partition "mpp3033b_1_prt_4_2_prt_2"
+NOTICE:  building index for child partition "mpp3033b_1_prt_3_2_prt_2"
+NOTICE:  building index for child partition "mpp3033b_1_prt_3_2_prt_1"
+NOTICE:  building index for child partition "mpp3033b_1_prt_1_2_prt_1"
+NOTICE:  building index for child partition "mpp3033b_1_prt_1_2_prt_2"
+NOTICE:  building index for child partition "mpp3033b_1_prt_5_2_prt_1"
+NOTICE:  building index for child partition "mpp3033b_1_prt_5_2_prt_2"
+NOTICE:  building index for child partition "mpp3033b_1_prt_default_part_2_prt_1"
+NOTICE:  building index for child partition "mpp3033b_1_prt_default_part_2_prt_2"
+select count(*) from mpp3033a;
+ count 
+-------
+  1000
+(1 row)
+
+select count(*) from mpp3033b;
+ count 
+-------
+  1000
+(1 row)
+
+reindex index mpp3033a_unique1;
+reindex index mpp3033a_unique2;
+reindex index mpp3033a_hundred;
+reindex index mpp3033a_stringu1;
+reindex index mpp3033b_unique1;
+reindex index mpp3033b_unique2;
+reindex index mpp3033b_hundred;
+reindex index mpp3033b_stringu1;
+select count(*) from mpp3033a;
+ count 
+-------
+  1000
+(1 row)
+
+select count(*) from mpp3033b;
+ count 
+-------
+  1000
+(1 row)
+
+drop index mpp3033a_unique1;
+WARNING:  Only dropped the index "mpp3033a_unique1"
+HINT:  To drop other indexes on child partitions, drop each one explicitly.
+drop index mpp3033a_unique2;
+WARNING:  Only dropped the index "mpp3033a_unique2"
+HINT:  To drop other indexes on child partitions, drop each one explicitly.
+drop index mpp3033a_hundred;
+WARNING:  Only dropped the index "mpp3033a_hundred"
+HINT:  To drop other indexes on child partitions, drop each one explicitly.
+drop index mpp3033a_stringu1;
+WARNING:  Only dropped the index "mpp3033a_stringu1"
+HINT:  To drop other indexes on child partitions, drop each one explicitly.
+drop index mpp3033b_unique1;
+WARNING:  Only dropped the index "mpp3033b_unique1"
+HINT:  To drop other indexes on child partitions, drop each one explicitly.
+drop index mpp3033b_unique2;
+WARNING:  Only dropped the index "mpp3033b_unique2"
+HINT:  To drop other indexes on child partitions, drop each one explicitly.
+drop index mpp3033b_hundred;
+WARNING:  Only dropped the index "mpp3033b_hundred"
+HINT:  To drop other indexes on child partitions, drop each one explicitly.
+drop index mpp3033b_stringu1;
+WARNING:  Only dropped the index "mpp3033b_stringu1"
+HINT:  To drop other indexes on child partitions, drop each one explicitly.
+CREATE INDEX mpp3033a_unique1 ON mpp3033a (unique1);
+NOTICE:  building index for child partition "mpp3033a_1_prt_default_part"
+NOTICE:  building index for child partition "mpp3033a_1_prt_aa_1"
+NOTICE:  building index for child partition "mpp3033a_1_prt_aa_2"
+NOTICE:  building index for child partition "mpp3033a_1_prt_aa_3"
+NOTICE:  building index for child partition "mpp3033a_1_prt_aa_4"
+NOTICE:  building index for child partition "mpp3033a_1_prt_aa_5"
+NOTICE:  building index for child partition "mpp3033a_1_prt_aa_6"
+NOTICE:  building index for child partition "mpp3033a_1_prt_aa_7"
+NOTICE:  building index for child partition "mpp3033a_1_prt_aa_8"
+NOTICE:  building index for child partition "mpp3033a_1_prt_aa_9"
+NOTICE:  building index for child partition "mpp3033a_1_prt_aa_10"
+CREATE INDEX mpp3033a_unique2 ON mpp3033a (unique2);
+NOTICE:  building index for child partition "mpp3033a_1_prt_default_part"
+NOTICE:  building index for child partition "mpp3033a_1_prt_aa_1"
+NOTICE:  building index for child partition "mpp3033a_1_prt_aa_2"
+NOTICE:  building index for child partition "mpp3033a_1_prt_aa_3"
+NOTICE:  building index for child partition "mpp3033a_1_prt_aa_4"
+NOTICE:  building index for child partition "mpp3033a_1_prt_aa_5"
+NOTICE:  building index for child partition "mpp3033a_1_prt_aa_6"
+NOTICE:  building index for child partition "mpp3033a_1_prt_aa_7"
+NOTICE:  building index for child partition "mpp3033a_1_prt_aa_8"
+NOTICE:  building index for child partition "mpp3033a_1_prt_aa_9"
+NOTICE:  building index for child partition "mpp3033a_1_prt_aa_10"
+CREATE INDEX mpp3033a_hundred ON mpp3033a (hundred);
+NOTICE:  building index for child partition "mpp3033a_1_prt_default_part"
+NOTICE:  building index for child partition "mpp3033a_1_prt_aa_1"
+NOTICE:  building index for child partition "mpp3033a_1_prt_aa_2"
+NOTICE:  building index for child partition "mpp3033a_1_prt_aa_3"
+NOTICE:  building index for child partition "mpp3033a_1_prt_aa_4"
+NOTICE:  building index for child partition "mpp3033a_1_prt_aa_5"
+NOTICE:  building index for child partition "mpp3033a_1_prt_aa_6"
+NOTICE:  building index for child partition "mpp3033a_1_prt_aa_7"
+NOTICE:  building index for child partition "mpp3033a_1_prt_aa_8"
+NOTICE:  building index for child partition "mpp3033a_1_prt_aa_9"
+NOTICE:  building index for child partition "mpp3033a_1_prt_aa_10"
+CREATE INDEX mpp3033a_stringu1 ON mpp3033a (stringu1);
+NOTICE:  building index for child partition "mpp3033a_1_prt_default_part"
+NOTICE:  building index for child partition "mpp3033a_1_prt_aa_1"
+NOTICE:  building index for child partition "mpp3033a_1_prt_aa_2"
+NOTICE:  building index for child partition "mpp3033a_1_prt_aa_3"
+NOTICE:  building index for child partition "mpp3033a_1_prt_aa_4"
+NOTICE:  building index for child partition "mpp3033a_1_prt_aa_5"
+NOTICE:  building index for child partition "mpp3033a_1_prt_aa_6"
+NOTICE:  building index for child partition "mpp3033a_1_prt_aa_7"
+NOTICE:  building index for child partition "mpp3033a_1_prt_aa_8"
+NOTICE:  building index for child partition "mpp3033a_1_prt_aa_9"
+NOTICE:  building index for child partition "mpp3033a_1_prt_aa_10"
+CREATE INDEX mpp3033b_unique1 ON mpp3033b (unique1);
+NOTICE:  building index for child partition "mpp3033b_1_prt_2"
+NOTICE:  building index for child partition "mpp3033b_1_prt_4"
+NOTICE:  building index for child partition "mpp3033b_1_prt_3"
+NOTICE:  building index for child partition "mpp3033b_1_prt_1"
+NOTICE:  building index for child partition "mpp3033b_1_prt_5"
+NOTICE:  building index for child partition "mpp3033b_1_prt_default_part"
+NOTICE:  building index for child partition "mpp3033b_1_prt_2_2_prt_1"
+NOTICE:  building index for child partition "mpp3033b_1_prt_2_2_prt_2"
+NOTICE:  building index for child partition "mpp3033b_1_prt_4_2_prt_1"
+NOTICE:  building index for child partition "mpp3033b_1_prt_4_2_prt_2"
+NOTICE:  building index for child partition "mpp3033b_1_prt_3_2_prt_2"
+NOTICE:  building index for child partition "mpp3033b_1_prt_3_2_prt_1"
+NOTICE:  building index for child partition "mpp3033b_1_prt_1_2_prt_1"
+NOTICE:  building index for child partition "mpp3033b_1_prt_1_2_prt_2"
+NOTICE:  building index for child partition "mpp3033b_1_prt_5_2_prt_1"
+NOTICE:  building index for child partition "mpp3033b_1_prt_5_2_prt_2"
+NOTICE:  building index for child partition "mpp3033b_1_prt_default_part_2_prt_1"
+NOTICE:  building index for child partition "mpp3033b_1_prt_default_part_2_prt_2"
+CREATE INDEX mpp3033b_unique2 ON mpp3033b (unique2);
+NOTICE:  building index for child partition "mpp3033b_1_prt_2"
+NOTICE:  building index for child partition "mpp3033b_1_prt_4"
+NOTICE:  building index for child partition "mpp3033b_1_prt_3"
+NOTICE:  building index for child partition "mpp3033b_1_prt_1"
+NOTICE:  building index for child partition "mpp3033b_1_prt_5"
+NOTICE:  building index for child partition "mpp3033b_1_prt_default_part"
+NOTICE:  building index for child partition "mpp3033b_1_prt_2_2_prt_1"
+NOTICE:  building index for child partition "mpp3033b_1_prt_2_2_prt_2"
+NOTICE:  building index for child partition "mpp3033b_1_prt_4_2_prt_1"
+NOTICE:  building index for child partition "mpp3033b_1_prt_4_2_prt_2"
+NOTICE:  building index for child partition "mpp3033b_1_prt_3_2_prt_2"
+NOTICE:  building index for child partition "mpp3033b_1_prt_3_2_prt_1"
+NOTICE:  building index for child partition "mpp3033b_1_prt_1_2_prt_1"
+NOTICE:  building index for child partition "mpp3033b_1_prt_1_2_prt_2"
+NOTICE:  building index for child partition "mpp3033b_1_prt_5_2_prt_1"
+NOTICE:  building index for child partition "mpp3033b_1_prt_5_2_prt_2"
+NOTICE:  building index for child partition "mpp3033b_1_prt_default_part_2_prt_1"
+NOTICE:  building index for child partition "mpp3033b_1_prt_default_part_2_prt_2"
+CREATE INDEX mpp3033b_hundred ON mpp3033b (hundred);
+NOTICE:  building index for child partition "mpp3033b_1_prt_2"
+NOTICE:  building index for child partition "mpp3033b_1_prt_4"
+NOTICE:  building index for child partition "mpp3033b_1_prt_3"
+NOTICE:  building index for child partition "mpp3033b_1_prt_1"
+NOTICE:  building index for child partition "mpp3033b_1_prt_5"
+NOTICE:  building index for child partition "mpp3033b_1_prt_default_part"
+NOTICE:  building index for child partition "mpp3033b_1_prt_2_2_prt_1"
+NOTICE:  building index for child partition "mpp3033b_1_prt_2_2_prt_2"
+NOTICE:  building index for child partition "mpp3033b_1_prt_4_2_prt_1"
+NOTICE:  building index for child partition "mpp3033b_1_prt_4_2_prt_2"
+NOTICE:  building index for child partition "mpp3033b_1_prt_3_2_prt_2"
+NOTICE:  building index for child partition "mpp3033b_1_prt_3_2_prt_1"
+NOTICE:  building index for child partition "mpp3033b_1_prt_1_2_prt_1"
+NOTICE:  building index for child partition "mpp3033b_1_prt_1_2_prt_2"
+NOTICE:  building index for child partition "mpp3033b_1_prt_5_2_prt_1"
+NOTICE:  building index for child partition "mpp3033b_1_prt_5_2_prt_2"
+NOTICE:  building index for child partition "mpp3033b_1_prt_default_part_2_prt_1"
+NOTICE:  building index for child partition "mpp3033b_1_prt_default_part_2_prt_2"
+CREATE INDEX mpp3033b_stringu1 ON mpp3033b (stringu1);
+NOTICE:  building index for child partition "mpp3033b_1_prt_2"
+NOTICE:  building index for child partition "mpp3033b_1_prt_4"
+NOTICE:  building index for child partition "mpp3033b_1_prt_3"
+NOTICE:  building index for child partition "mpp3033b_1_prt_1"
+NOTICE:  building index for child partition "mpp3033b_1_prt_5"
+NOTICE:  building index for child partition "mpp3033b_1_prt_default_part"
+NOTICE:  building index for child partition "mpp3033b_1_prt_2_2_prt_1"
+NOTICE:  building index for child partition "mpp3033b_1_prt_2_2_prt_2"
+NOTICE:  building index for child partition "mpp3033b_1_prt_4_2_prt_1"
+NOTICE:  building index for child partition "mpp3033b_1_prt_4_2_prt_2"
+NOTICE:  building index for child partition "mpp3033b_1_prt_3_2_prt_2"
+NOTICE:  building index for child partition "mpp3033b_1_prt_3_2_prt_1"
+NOTICE:  building index for child partition "mpp3033b_1_prt_1_2_prt_1"
+NOTICE:  building index for child partition "mpp3033b_1_prt_1_2_prt_2"
+NOTICE:  building index for child partition "mpp3033b_1_prt_5_2_prt_1"
+NOTICE:  building index for child partition "mpp3033b_1_prt_5_2_prt_2"
+NOTICE:  building index for child partition "mpp3033b_1_prt_default_part_2_prt_1"
+NOTICE:  building index for child partition "mpp3033b_1_prt_default_part_2_prt_2"
+select count(*) from mpp3033a;
+ count 
+-------
+  1000
+(1 row)
+
+select count(*) from mpp3033b;
+ count 
+-------
+  1000
+(1 row)
+
+reindex index mpp3033a_unique1;
+reindex index mpp3033a_unique2;
+reindex index mpp3033a_hundred;
+reindex index mpp3033a_stringu1;
+reindex index mpp3033b_unique1;
+reindex index mpp3033b_unique2;
+reindex index mpp3033b_hundred;
+reindex index mpp3033b_stringu1;
+select count(*) from mpp3033a;
+ count 
+-------
+  1000
+(1 row)
+
+select count(*) from mpp3033b;
+ count 
+-------
+  1000
+(1 row)
+
+drop index mpp3033a_unique1;
+WARNING:  Only dropped the index "mpp3033a_unique1"
+HINT:  To drop other indexes on child partitions, drop each one explicitly.
+drop index mpp3033a_unique2;
+WARNING:  Only dropped the index "mpp3033a_unique2"
+HINT:  To drop other indexes on child partitions, drop each one explicitly.
+drop index mpp3033a_hundred;
+WARNING:  Only dropped the index "mpp3033a_hundred"
+HINT:  To drop other indexes on child partitions, drop each one explicitly.
+drop index mpp3033a_stringu1;
+WARNING:  Only dropped the index "mpp3033a_stringu1"
+HINT:  To drop other indexes on child partitions, drop each one explicitly.
+drop index mpp3033b_unique1;
+WARNING:  Only dropped the index "mpp3033b_unique1"
+HINT:  To drop other indexes on child partitions, drop each one explicitly.
+drop index mpp3033b_unique2;
+WARNING:  Only dropped the index "mpp3033b_unique2"
+HINT:  To drop other indexes on child partitions, drop each one explicitly.
+drop index mpp3033b_hundred;
+WARNING:  Only dropped the index "mpp3033b_hundred"
+HINT:  To drop other indexes on child partitions, drop each one explicitly.
+drop index mpp3033b_stringu1;
+WARNING:  Only dropped the index "mpp3033b_stringu1"
+HINT:  To drop other indexes on child partitions, drop each one explicitly.
+CREATE UNIQUE INDEX mpp3033a_unique1 ON mpp3033a (unique1);
+NOTICE:  building index for child partition "mpp3033a_1_prt_default_part"
+NOTICE:  building index for child partition "mpp3033a_1_prt_aa_1"
+NOTICE:  building index for child partition "mpp3033a_1_prt_aa_2"
+NOTICE:  building index for child partition "mpp3033a_1_prt_aa_3"
+NOTICE:  building index for child partition "mpp3033a_1_prt_aa_4"
+NOTICE:  building index for child partition "mpp3033a_1_prt_aa_5"
+NOTICE:  building index for child partition "mpp3033a_1_prt_aa_6"
+NOTICE:  building index for child partition "mpp3033a_1_prt_aa_7"
+NOTICE:  building index for child partition "mpp3033a_1_prt_aa_8"
+NOTICE:  building index for child partition "mpp3033a_1_prt_aa_9"
+NOTICE:  building index for child partition "mpp3033a_1_prt_aa_10"
+CREATE UNIQUE INDEX mpp3033a_unique2 ON mpp3033a (unique2);
+NOTICE:  building index for child partition "mpp3033a_1_prt_default_part"
+NOTICE:  building index for child partition "mpp3033a_1_prt_aa_1"
+NOTICE:  building index for child partition "mpp3033a_1_prt_aa_2"
+NOTICE:  building index for child partition "mpp3033a_1_prt_aa_3"
+NOTICE:  building index for child partition "mpp3033a_1_prt_aa_4"
+NOTICE:  building index for child partition "mpp3033a_1_prt_aa_5"
+NOTICE:  building index for child partition "mpp3033a_1_prt_aa_6"
+NOTICE:  building index for child partition "mpp3033a_1_prt_aa_7"
+NOTICE:  building index for child partition "mpp3033a_1_prt_aa_8"
+NOTICE:  building index for child partition "mpp3033a_1_prt_aa_9"
+NOTICE:  building index for child partition "mpp3033a_1_prt_aa_10"
+ERROR:  UNIQUE index must contain all columns in the distribution key of relation "mpp3033a"
+CREATE UNIQUE INDEX mpp3033a_hundred ON mpp3033a (hundred);
+NOTICE:  building index for child partition "mpp3033a_1_prt_default_part"
+NOTICE:  building index for child partition "mpp3033a_1_prt_aa_1"
+NOTICE:  building index for child partition "mpp3033a_1_prt_aa_2"
+NOTICE:  building index for child partition "mpp3033a_1_prt_aa_3"
+NOTICE:  building index for child partition "mpp3033a_1_prt_aa_4"
+NOTICE:  building index for child partition "mpp3033a_1_prt_aa_5"
+NOTICE:  building index for child partition "mpp3033a_1_prt_aa_6"
+NOTICE:  building index for child partition "mpp3033a_1_prt_aa_7"
+NOTICE:  building index for child partition "mpp3033a_1_prt_aa_8"
+NOTICE:  building index for child partition "mpp3033a_1_prt_aa_9"
+NOTICE:  building index for child partition "mpp3033a_1_prt_aa_10"
+ERROR:  UNIQUE index must contain all columns in the distribution key of relation "mpp3033a"
+CREATE UNIQUE INDEX mpp3033a_stringu1 ON mpp3033a (stringu1);
+NOTICE:  building index for child partition "mpp3033a_1_prt_default_part"
+NOTICE:  building index for child partition "mpp3033a_1_prt_aa_1"
+NOTICE:  building index for child partition "mpp3033a_1_prt_aa_2"
+NOTICE:  building index for child partition "mpp3033a_1_prt_aa_3"
+NOTICE:  building index for child partition "mpp3033a_1_prt_aa_4"
+NOTICE:  building index for child partition "mpp3033a_1_prt_aa_5"
+NOTICE:  building index for child partition "mpp3033a_1_prt_aa_6"
+NOTICE:  building index for child partition "mpp3033a_1_prt_aa_7"
+NOTICE:  building index for child partition "mpp3033a_1_prt_aa_8"
+NOTICE:  building index for child partition "mpp3033a_1_prt_aa_9"
+NOTICE:  building index for child partition "mpp3033a_1_prt_aa_10"
+ERROR:  UNIQUE index must contain all columns in the distribution key of relation "mpp3033a"
+CREATE UNIQUE INDEX mpp3033b_unique1 ON mpp3033b (unique1);
+NOTICE:  building index for child partition "mpp3033b_1_prt_2"
+NOTICE:  building index for child partition "mpp3033b_1_prt_4"
+NOTICE:  building index for child partition "mpp3033b_1_prt_3"
+NOTICE:  building index for child partition "mpp3033b_1_prt_1"
+NOTICE:  building index for child partition "mpp3033b_1_prt_5"
+NOTICE:  building index for child partition "mpp3033b_1_prt_default_part"
+NOTICE:  building index for child partition "mpp3033b_1_prt_2_2_prt_1"
+NOTICE:  building index for child partition "mpp3033b_1_prt_2_2_prt_2"
+NOTICE:  building index for child partition "mpp3033b_1_prt_4_2_prt_1"
+NOTICE:  building index for child partition "mpp3033b_1_prt_4_2_prt_2"
+NOTICE:  building index for child partition "mpp3033b_1_prt_3_2_prt_2"
+NOTICE:  building index for child partition "mpp3033b_1_prt_3_2_prt_1"
+NOTICE:  building index for child partition "mpp3033b_1_prt_1_2_prt_1"
+NOTICE:  building index for child partition "mpp3033b_1_prt_1_2_prt_2"
+NOTICE:  building index for child partition "mpp3033b_1_prt_5_2_prt_1"
+NOTICE:  building index for child partition "mpp3033b_1_prt_5_2_prt_2"
+NOTICE:  building index for child partition "mpp3033b_1_prt_default_part_2_prt_1"
+NOTICE:  building index for child partition "mpp3033b_1_prt_default_part_2_prt_2"
+CREATE UNIQUE INDEX mpp3033b_unique2 ON mpp3033b (unique2);
+NOTICE:  building index for child partition "mpp3033b_1_prt_2"
+NOTICE:  building index for child partition "mpp3033b_1_prt_4"
+NOTICE:  building index for child partition "mpp3033b_1_prt_3"
+NOTICE:  building index for child partition "mpp3033b_1_prt_1"
+NOTICE:  building index for child partition "mpp3033b_1_prt_5"
+NOTICE:  building index for child partition "mpp3033b_1_prt_default_part"
+NOTICE:  building index for child partition "mpp3033b_1_prt_2_2_prt_1"
+NOTICE:  building index for child partition "mpp3033b_1_prt_2_2_prt_2"
+NOTICE:  building index for child partition "mpp3033b_1_prt_4_2_prt_1"
+NOTICE:  building index for child partition "mpp3033b_1_prt_4_2_prt_2"
+NOTICE:  building index for child partition "mpp3033b_1_prt_3_2_prt_2"
+NOTICE:  building index for child partition "mpp3033b_1_prt_3_2_prt_1"
+NOTICE:  building index for child partition "mpp3033b_1_prt_1_2_prt_1"
+NOTICE:  building index for child partition "mpp3033b_1_prt_1_2_prt_2"
+NOTICE:  building index for child partition "mpp3033b_1_prt_5_2_prt_1"
+NOTICE:  building index for child partition "mpp3033b_1_prt_5_2_prt_2"
+NOTICE:  building index for child partition "mpp3033b_1_prt_default_part_2_prt_1"
+NOTICE:  building index for child partition "mpp3033b_1_prt_default_part_2_prt_2"
+ERROR:  UNIQUE index must contain all columns in the distribution key of relation "mpp3033b"
+CREATE UNIQUE INDEX mpp3033b_hundred ON mpp3033b (hundred);
+NOTICE:  building index for child partition "mpp3033b_1_prt_2"
+NOTICE:  building index for child partition "mpp3033b_1_prt_4"
+NOTICE:  building index for child partition "mpp3033b_1_prt_3"
+NOTICE:  building index for child partition "mpp3033b_1_prt_1"
+NOTICE:  building index for child partition "mpp3033b_1_prt_5"
+NOTICE:  building index for child partition "mpp3033b_1_prt_default_part"
+NOTICE:  building index for child partition "mpp3033b_1_prt_2_2_prt_1"
+NOTICE:  building index for child partition "mpp3033b_1_prt_2_2_prt_2"
+NOTICE:  building index for child partition "mpp3033b_1_prt_4_2_prt_1"
+NOTICE:  building index for child partition "mpp3033b_1_prt_4_2_prt_2"
+NOTICE:  building index for child partition "mpp3033b_1_prt_3_2_prt_2"
+NOTICE:  building index for child partition "mpp3033b_1_prt_3_2_prt_1"
+NOTICE:  building index for child partition "mpp3033b_1_prt_1_2_prt_1"
+NOTICE:  building index for child partition "mpp3033b_1_prt_1_2_prt_2"
+NOTICE:  building index for child partition "mpp3033b_1_prt_5_2_prt_1"
+NOTICE:  building index for child partition "mpp3033b_1_prt_5_2_prt_2"
+NOTICE:  building index for child partition "mpp3033b_1_prt_default_part_2_prt_1"
+NOTICE:  building index for child partition "mpp3033b_1_prt_default_part_2_prt_2"
+ERROR:  UNIQUE index must contain all columns in the distribution key of relation "mpp3033b"
+CREATE UNIQUE INDEX mpp3033b_stringu1 ON mpp3033b (stringu1);
+NOTICE:  building index for child partition "mpp3033b_1_prt_2"
+NOTICE:  building index for child partition "mpp3033b_1_prt_4"
+NOTICE:  building index for child partition "mpp3033b_1_prt_3"
+NOTICE:  building index for child partition "mpp3033b_1_prt_1"
+NOTICE:  building index for child partition "mpp3033b_1_prt_5"
+NOTICE:  building index for child partition "mpp3033b_1_prt_default_part"
+NOTICE:  building index for child partition "mpp3033b_1_prt_2_2_prt_1"
+NOTICE:  building index for child partition "mpp3033b_1_prt_2_2_prt_2"
+NOTICE:  building index for child partition "mpp3033b_1_prt_4_2_prt_1"
+NOTICE:  building index for child partition "mpp3033b_1_prt_4_2_prt_2"
+NOTICE:  building index for child partition "mpp3033b_1_prt_3_2_prt_2"
+NOTICE:  building index for child partition "mpp3033b_1_prt_3_2_prt_1"
+NOTICE:  building index for child partition "mpp3033b_1_prt_1_2_prt_1"
+NOTICE:  building index for child partition "mpp3033b_1_prt_1_2_prt_2"
+NOTICE:  building index for child partition "mpp3033b_1_prt_5_2_prt_1"
+NOTICE:  building index for child partition "mpp3033b_1_prt_5_2_prt_2"
+NOTICE:  building index for child partition "mpp3033b_1_prt_default_part_2_prt_1"
+NOTICE:  building index for child partition "mpp3033b_1_prt_default_part_2_prt_2"
+ERROR:  UNIQUE index must contain all columns in the distribution key of relation "mpp3033b"
+select count(*) from mpp3033a;
+ count 
+-------
+  1000
+(1 row)
+
+select count(*) from mpp3033b;
+ count 
+-------
+  1000
+(1 row)
+
+reindex index mpp3033a_unique1;
+reindex index mpp3033a_unique2;
+ERROR:  relation "mpp3033a_unique2" does not exist
+reindex index mpp3033a_hundred;
+ERROR:  relation "mpp3033a_hundred" does not exist
+reindex index mpp3033a_stringu1;
+ERROR:  relation "mpp3033a_stringu1" does not exist
+reindex index mpp3033b_unique1;
+reindex index mpp3033b_unique2;
+ERROR:  relation "mpp3033b_unique2" does not exist
+reindex index mpp3033b_hundred;
+ERROR:  relation "mpp3033b_hundred" does not exist
+reindex index mpp3033b_stringu1;
+ERROR:  relation "mpp3033b_stringu1" does not exist
+select count(*) from mpp3033a;
+ count 
+-------
+  1000
+(1 row)
+
+select count(*) from mpp3033b;
+ count 
+-------
+  1000
+(1 row)
+
+drop index mpp3033a_unique1;
+WARNING:  Only dropped the index "mpp3033a_unique1"
+HINT:  To drop other indexes on child partitions, drop each one explicitly.
+drop index mpp3033a_unique2;
+ERROR:  index "mpp3033a_unique2" does not exist
+drop index mpp3033a_hundred;
+ERROR:  index "mpp3033a_hundred" does not exist
+drop index mpp3033a_stringu1;
+ERROR:  index "mpp3033a_stringu1" does not exist
+drop index mpp3033b_unique1;
+WARNING:  Only dropped the index "mpp3033b_unique1"
+HINT:  To drop other indexes on child partitions, drop each one explicitly.
+drop index mpp3033b_unique2;
+ERROR:  index "mpp3033b_unique2" does not exist
+drop index mpp3033b_hundred;
+ERROR:  index "mpp3033b_hundred" does not exist
+drop index mpp3033b_stringu1;
+ERROR:  index "mpp3033b_stringu1" does not exist
+CREATE INDEX mpp3033a_unique1 ON mpp3033a USING bitmap (unique1);
+NOTICE:  building index for child partition "mpp3033a_1_prt_default_part"
+NOTICE:  building index for child partition "mpp3033a_1_prt_aa_1"
+NOTICE:  building index for child partition "mpp3033a_1_prt_aa_2"
+NOTICE:  building index for child partition "mpp3033a_1_prt_aa_3"
+NOTICE:  building index for child partition "mpp3033a_1_prt_aa_4"
+NOTICE:  building index for child partition "mpp3033a_1_prt_aa_5"
+NOTICE:  building index for child partition "mpp3033a_1_prt_aa_6"
+NOTICE:  building index for child partition "mpp3033a_1_prt_aa_7"
+NOTICE:  building index for child partition "mpp3033a_1_prt_aa_8"
+NOTICE:  building index for child partition "mpp3033a_1_prt_aa_9"
+NOTICE:  building index for child partition "mpp3033a_1_prt_aa_10"
+CREATE INDEX mpp3033a_unique2 ON mpp3033a USING bitmap (unique2);
+NOTICE:  building index for child partition "mpp3033a_1_prt_default_part"
+NOTICE:  building index for child partition "mpp3033a_1_prt_aa_1"
+NOTICE:  building index for child partition "mpp3033a_1_prt_aa_2"
+NOTICE:  building index for child partition "mpp3033a_1_prt_aa_3"
+NOTICE:  building index for child partition "mpp3033a_1_prt_aa_4"
+NOTICE:  building index for child partition "mpp3033a_1_prt_aa_5"
+NOTICE:  building index for child partition "mpp3033a_1_prt_aa_6"
+NOTICE:  building index for child partition "mpp3033a_1_prt_aa_7"
+NOTICE:  building index for child partition "mpp3033a_1_prt_aa_8"
+NOTICE:  building index for child partition "mpp3033a_1_prt_aa_9"
+NOTICE:  building index for child partition "mpp3033a_1_prt_aa_10"
+CREATE INDEX mpp3033a_hundred ON mpp3033a USING bitmap (hundred);
+NOTICE:  building index for child partition "mpp3033a_1_prt_default_part"
+NOTICE:  building index for child partition "mpp3033a_1_prt_aa_1"
+NOTICE:  building index for child partition "mpp3033a_1_prt_aa_2"
+NOTICE:  building index for child partition "mpp3033a_1_prt_aa_3"
+NOTICE:  building index for child partition "mpp3033a_1_prt_aa_4"
+NOTICE:  building index for child partition "mpp3033a_1_prt_aa_5"
+NOTICE:  building index for child partition "mpp3033a_1_prt_aa_6"
+NOTICE:  building index for child partition "mpp3033a_1_prt_aa_7"
+NOTICE:  building index for child partition "mpp3033a_1_prt_aa_8"
+NOTICE:  building index for child partition "mpp3033a_1_prt_aa_9"
+NOTICE:  building index for child partition "mpp3033a_1_prt_aa_10"
+CREATE INDEX mpp3033a_stringu1 ON mpp3033a USING bitmap (stringu1);
+NOTICE:  building index for child partition "mpp3033a_1_prt_default_part"
+NOTICE:  building index for child partition "mpp3033a_1_prt_aa_1"
+NOTICE:  building index for child partition "mpp3033a_1_prt_aa_2"
+NOTICE:  building index for child partition "mpp3033a_1_prt_aa_3"
+NOTICE:  building index for child partition "mpp3033a_1_prt_aa_4"
+NOTICE:  building index for child partition "mpp3033a_1_prt_aa_5"
+NOTICE:  building index for child partition "mpp3033a_1_prt_aa_6"
+NOTICE:  building index for child partition "mpp3033a_1_prt_aa_7"
+NOTICE:  building index for child partition "mpp3033a_1_prt_aa_8"
+NOTICE:  building index for child partition "mpp3033a_1_prt_aa_9"
+NOTICE:  building index for child partition "mpp3033a_1_prt_aa_10"
+CREATE INDEX mpp3033b_unique1 ON mpp3033b USING bitmap (unique1);
+NOTICE:  building index for child partition "mpp3033b_1_prt_2"
+NOTICE:  building index for child partition "mpp3033b_1_prt_4"
+NOTICE:  building index for child partition "mpp3033b_1_prt_3"
+NOTICE:  building index for child partition "mpp3033b_1_prt_1"
+NOTICE:  building index for child partition "mpp3033b_1_prt_5"
+NOTICE:  building index for child partition "mpp3033b_1_prt_default_part"
+NOTICE:  building index for child partition "mpp3033b_1_prt_2_2_prt_1"
+NOTICE:  building index for child partition "mpp3033b_1_prt_2_2_prt_2"
+NOTICE:  building index for child partition "mpp3033b_1_prt_4_2_prt_1"
+NOTICE:  building index for child partition "mpp3033b_1_prt_4_2_prt_2"
+NOTICE:  building index for child partition "mpp3033b_1_prt_3_2_prt_2"
+NOTICE:  building index for child partition "mpp3033b_1_prt_3_2_prt_1"
+NOTICE:  building index for child partition "mpp3033b_1_prt_1_2_prt_1"
+NOTICE:  building index for child partition "mpp3033b_1_prt_1_2_prt_2"
+NOTICE:  building index for child partition "mpp3033b_1_prt_5_2_prt_1"
+NOTICE:  building index for child partition "mpp3033b_1_prt_5_2_prt_2"
+NOTICE:  building index for child partition "mpp3033b_1_prt_default_part_2_prt_1"
+NOTICE:  building index for child partition "mpp3033b_1_prt_default_part_2_prt_2"
+CREATE INDEX mpp3033b_unique2 ON mpp3033b USING bitmap (unique2);
+NOTICE:  building index for child partition "mpp3033b_1_prt_2"
+NOTICE:  building index for child partition "mpp3033b_1_prt_4"
+NOTICE:  building index for child partition "mpp3033b_1_prt_3"
+NOTICE:  building index for child partition "mpp3033b_1_prt_1"
+NOTICE:  building index for child partition "mpp3033b_1_prt_5"
+NOTICE:  building index for child partition "mpp3033b_1_prt_default_part"
+NOTICE:  building index for child partition "mpp3033b_1_prt_2_2_prt_1"
+NOTICE:  building index for child partition "mpp3033b_1_prt_2_2_prt_2"
+NOTICE:  building index for child partition "mpp3033b_1_prt_4_2_prt_1"
+NOTICE:  building index for child partition "mpp3033b_1_prt_4_2_prt_2"
+NOTICE:  building index for child partition "mpp3033b_1_prt_3_2_prt_2"
+NOTICE:  building index for child partition "mpp3033b_1_prt_3_2_prt_1"
+NOTICE:  building index for child partition "mpp3033b_1_prt_1_2_prt_1"
+NOTICE:  building index for child partition "mpp3033b_1_prt_1_2_prt_2"
+NOTICE:  building index for child partition "mpp3033b_1_prt_5_2_prt_1"
+NOTICE:  building index for child partition "mpp3033b_1_prt_5_2_prt_2"
+NOTICE:  building index for child partition "mpp3033b_1_prt_default_part_2_prt_1"
+NOTICE:  building index for child partition "mpp3033b_1_prt_default_part_2_prt_2"
+CREATE INDEX mpp3033b_hundred ON mpp3033b USING bitmap (hundred);
+NOTICE:  building index for child partition "mpp3033b_1_prt_2"
+NOTICE:  building index for child partition "mpp3033b_1_prt_4"
+NOTICE:  building index for child partition "mpp3033b_1_prt_3"
+NOTICE:  building index for child partition "mpp3033b_1_prt_1"
+NOTICE:  building index for child partition "mpp3033b_1_prt_5"
+NOTICE:  building index for child partition "mpp3033b_1_prt_default_part"
+NOTICE:  building index for child partition "mpp3033b_1_prt_2_2_prt_1"
+NOTICE:  building index for child partition "mpp3033b_1_prt_2_2_prt_2"
+NOTICE:  building index for child partition "mpp3033b_1_prt_4_2_prt_1"
+NOTICE:  building index for child partition "mpp3033b_1_prt_4_2_prt_2"
+NOTICE:  building index for child partition "mpp3033b_1_prt_3_2_prt_2"
+NOTICE:  building index for child partition "mpp3033b_1_prt_3_2_prt_1"
+NOTICE:  building index for child partition "mpp3033b_1_prt_1_2_prt_1"
+NOTICE:  building index for child partition "mpp3033b_1_prt_1_2_prt_2"
+NOTICE:  building index for child partition "mpp3033b_1_prt_5_2_prt_1"
+NOTICE:  building index for child partition "mpp3033b_1_prt_5_2_prt_2"
+NOTICE:  building index for child partition "mpp3033b_1_prt_default_part_2_prt_1"
+NOTICE:  building index for child partition "mpp3033b_1_prt_default_part_2_prt_2"
+CREATE INDEX mpp3033b_stringu1 ON mpp3033b USING bitmap (stringu1);
+NOTICE:  building index for child partition "mpp3033b_1_prt_2"
+NOTICE:  building index for child partition "mpp3033b_1_prt_4"
+NOTICE:  building index for child partition "mpp3033b_1_prt_3"
+NOTICE:  building index for child partition "mpp3033b_1_prt_1"
+NOTICE:  building index for child partition "mpp3033b_1_prt_5"
+NOTICE:  building index for child partition "mpp3033b_1_prt_default_part"
+NOTICE:  building index for child partition "mpp3033b_1_prt_2_2_prt_1"
+NOTICE:  building index for child partition "mpp3033b_1_prt_2_2_prt_2"
+NOTICE:  building index for child partition "mpp3033b_1_prt_4_2_prt_1"
+NOTICE:  building index for child partition "mpp3033b_1_prt_4_2_prt_2"
+NOTICE:  building index for child partition "mpp3033b_1_prt_3_2_prt_2"
+NOTICE:  building index for child partition "mpp3033b_1_prt_3_2_prt_1"
+NOTICE:  building index for child partition "mpp3033b_1_prt_1_2_prt_1"
+NOTICE:  building index for child partition "mpp3033b_1_prt_1_2_prt_2"
+NOTICE:  building index for child partition "mpp3033b_1_prt_5_2_prt_1"
+NOTICE:  building index for child partition "mpp3033b_1_prt_5_2_prt_2"
+NOTICE:  building index for child partition "mpp3033b_1_prt_default_part_2_prt_1"
+NOTICE:  building index for child partition "mpp3033b_1_prt_default_part_2_prt_2"
+select count(*) from mpp3033a;
+ count 
+-------
+  1000
+(1 row)
+
+select count(*) from mpp3033b;
+ count 
+-------
+  1000
+(1 row)
+
+reindex index mpp3033a_unique1;
+reindex index mpp3033a_unique2;
+reindex index mpp3033a_hundred;
+reindex index mpp3033a_stringu1;
+reindex index mpp3033b_unique1;
+reindex index mpp3033b_unique2;
+reindex index mpp3033b_hundred;
+reindex index mpp3033b_stringu1;
+select count(*) from mpp3033a;
+ count 
+-------
+  1000
+(1 row)
+
+select count(*) from mpp3033b;
+ count 
+-------
+  1000
+(1 row)
+
+create table ggg (a char(1), b char(2), d char(3))
+distributed by (a)
+partItion by hash(b)
+partitions 3;
+NOTICE:  CREATE TABLE will create partition "ggg_1_prt_1" for table "ggg"
+NOTICE:  CREATE TABLE will create partition "ggg_1_prt_2" for table "ggg"
+NOTICE:  CREATE TABLE will create partition "ggg_1_prt_3" for table "ggg"
+drop table ggg cascade;
+create table ggg (a char(1), b char(2), d char(3))
+distributed by (a)
+partition by hash (b)
+(
+partition aa (subpartition cc, subpartition dd),
+partition bb (subpartition cc, subpartition dd)
+);
+ERROR:  missing SUBPARTITION BY clause for subpartition specification
+LINE 5: partition aa (subpartition cc, subpartition dd),
+        ^
+drop table ggg cascade;
+ERROR:  table "ggg" does not exist
+create table ggg (a char(1), b char(2), d char(3))
+distributed by (a)
+partition by hash (b)
+subpartition by hash (d) 
+(
+partition aa (subpartition cc, subpartition dd),
+partition bb (subpartition cc, subpartition dd)
+);
+NOTICE:  CREATE TABLE will create partition "ggg_1_prt_aa" for table "ggg"
+NOTICE:  CREATE TABLE will create partition "ggg_1_prt_bb" for table "ggg"
+NOTICE:  CREATE TABLE will create partition "ggg_1_prt_aa_2_prt_cc" for table "ggg_1_prt_aa"
+NOTICE:  CREATE TABLE will create partition "ggg_1_prt_aa_2_prt_dd" for table "ggg_1_prt_aa"
+NOTICE:  CREATE TABLE will create partition "ggg_1_prt_bb_2_prt_cc" for table "ggg_1_prt_bb"
+NOTICE:  CREATE TABLE will create partition "ggg_1_prt_bb_2_prt_dd" for table "ggg_1_prt_bb"
+drop table ggg cascade;
+create table fff (a char(1), b char(2), d char(3)) distributed by (a)
+partition by list (b) (partition aa values ('2'));
+NOTICE:  CREATE TABLE will create partition "fff_1_prt_aa" for table "fff"
+drop table fff cascade;
+create table ggg (a char(1), b numeric, d numeric)
+distributed by (a)
+partition by range (b,d)
+(
+partition aa start (2007,1) end (2008,2),
+partition bb start (2008,2) end (2009,3)
+);
+ERROR:  too many columns for RANGE partition -- only one column is allowed.
+LINE 3: partition by range (b,d)
+                     ^
+drop table ggg cascade;
+ERROR:  table "ggg" does not exist
+create table ggg (a char(1), b date, d char(3), e numeric)
+distributed by (a)
+partition by range (b)
+subpartition by list(d),
+subpartition by hash(e) subpartitions 3
+(
+partition aa 
+start  (date '2007-01-01') 
+end (date '2008-01-01') 
+       (subpartition dd values (1,2,3), subpartition ee values (4,5,6)),
+partition bb
+start  (date '2008-01-01') 
+end (date '2009-01-01') 
+       (subpartition dd values (1,2,3), subpartition ee values (4,5,6))
+);
+NOTICE:  CREATE TABLE will create partition "ggg_1_prt_aa" for table "ggg"
+NOTICE:  CREATE TABLE will create partition "ggg_1_prt_bb" for table "ggg"
+NOTICE:  CREATE TABLE will create partition "ggg_1_prt_aa_2_prt_dd" for table "ggg_1_prt_aa"
+NOTICE:  CREATE TABLE will create partition "ggg_1_prt_aa_2_prt_ee" for table "ggg_1_prt_aa"
+NOTICE:  CREATE TABLE will create partition "ggg_1_prt_aa_2_prt_dd_3_prt_1" for table "ggg_1_prt_aa_2_prt_dd"
+NOTICE:  CREATE TABLE will create partition "ggg_1_prt_aa_2_prt_dd_3_prt_2" for table "ggg_1_prt_aa_2_prt_dd"
+NOTICE:  CREATE TABLE will create partition "ggg_1_prt_aa_2_prt_dd_3_prt_3" for table "ggg_1_prt_aa_2_prt_dd"
+NOTICE:  CREATE TABLE will create partition "ggg_1_prt_aa_2_prt_ee_3_prt_1" for table "ggg_1_prt_aa_2_prt_ee"
+NOTICE:  CREATE TABLE will create partition "ggg_1_prt_aa_2_prt_ee_3_prt_2" for table "ggg_1_prt_aa_2_prt_ee"
+NOTICE:  CREATE TABLE will create partition "ggg_1_prt_aa_2_prt_ee_3_prt_3" for table "ggg_1_prt_aa_2_prt_ee"
+NOTICE:  CREATE TABLE will create partition "ggg_1_prt_bb_2_prt_dd" for table "ggg_1_prt_bb"
+NOTICE:  CREATE TABLE will create partition "ggg_1_prt_bb_2_prt_ee" for table "ggg_1_prt_bb"
+NOTICE:  CREATE TABLE will create partition "ggg_1_prt_bb_2_prt_dd_3_prt_1" for table "ggg_1_prt_bb_2_prt_dd"
+NOTICE:  CREATE TABLE will create partition "ggg_1_prt_bb_2_prt_dd_3_prt_2" for table "ggg_1_prt_bb_2_prt_dd"
+NOTICE:  CREATE TABLE will create partition "ggg_1_prt_bb_2_prt_dd_3_prt_3" for table "ggg_1_prt_bb_2_prt_dd"
+NOTICE:  CREATE TABLE will create partition "ggg_1_prt_bb_2_prt_ee_3_prt_1" for table "ggg_1_prt_bb_2_prt_ee"
+NOTICE:  CREATE TABLE will create partition "ggg_1_prt_bb_2_prt_ee_3_prt_2" for table "ggg_1_prt_bb_2_prt_ee"
+NOTICE:  CREATE TABLE will create partition "ggg_1_prt_bb_2_prt_ee_3_prt_3" for table "ggg_1_prt_bb_2_prt_ee"
+drop table ggg cascade;
+create table ggg (a char(1), b date, d char(3)) 
+distributed by (a)
+partition by range (b)
+(
+partition bb start (date '2008-01-01') end (date '2009-01-01'),
+partition aa start (date '2007-01-01') end (date '2006-01-01')
+);
+ERROR:  START greater than END for partition "aa"
+LINE 6: partition aa start (date '2007-01-01') end (date '2006-01-01...
+                     ^
+drop table ggg cascade;
+ERROR:  table "ggg" does not exist
+create table ggg (a char(1), b varchar(2), d varchar(2))
+distributed by (a)
+partition by hash(b)
+partitions 3;
+NOTICE:  CREATE TABLE will create partition "ggg_1_prt_1" for table "ggg"
+NOTICE:  CREATE TABLE will create partition "ggg_1_prt_2" for table "ggg"
+NOTICE:  CREATE TABLE will create partition "ggg_1_prt_3" for table "ggg"
+insert into ggg values (1,1,1);
+insert into ggg values (2,2,1);
+insert into ggg values (1,3,1);
+insert into ggg values (2,2,3);
+insert into ggg values (1,4,5);
+insert into ggg values (2,2,4);
+insert into ggg values (1,5,6);
+insert into ggg values (2,7,3);
+insert into ggg values (1,'a','b');
+insert into ggg values (2,'c','c');
+select * from ggg;
+ a | b | d 
+---+---+---
+ 1 | 1 | 1
+ 1 | 3 | 1
+ 1 | 4 | 5
+ 1 | 5 | 6
+ 1 | a | b
+ 2 | 7 | 3
+ 2 | 2 | 1
+ 2 | 2 | 3
+ 2 | 2 | 4
+ 2 | c | c
+(10 rows)
+
+select * from ggg_1_prt_1;
+ a | b | d 
+---+---+---
+ 2 | 7 | 3
+ 1 | 1 | 1
+ 1 | 3 | 1
+(3 rows)
+
+select * from ggg_1_prt_2;
+ a | b | d 
+---+---+---
+ 1 | 4 | 5
+(1 row)
+
+select * from ggg_1_prt_3;
+ a | b | d 
+---+---+---
+ 1 | 5 | 6
+ 1 | a | b
+ 2 | 2 | 1
+ 2 | 2 | 3
+ 2 | 2 | 4
+ 2 | c | c
+(6 rows)
+
+drop table ggg cascade;

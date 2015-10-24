@@ -1,31 +1,32 @@
+/* $PostgreSQL: pgsql/contrib/pg_trgm/pg_trgm.sql.in,v 1.7 2007/12/09 02:22:46 tgl Exp $ */
+
+-- Adjust this setting to control where the objects get created.
 SET search_path = public;
 
-BEGIN;
-
-create function set_limit(float4)
-returns float4
+CREATE OR REPLACE FUNCTION set_limit(float4)
+RETURNS float4
 AS 'MODULE_PATHNAME'
-LANGUAGE C RETURNS NULL ON NULL INPUT IMMUTABLE;
+LANGUAGE C STRICT VOLATILE;
 
-create function show_limit()
-returns float4
+CREATE OR REPLACE FUNCTION show_limit()
+RETURNS float4
 AS 'MODULE_PATHNAME'
-LANGUAGE C RETURNS NULL ON NULL INPUT IMMUTABLE;
+LANGUAGE C STRICT STABLE;
 
-create function show_trgm(text)
-returns _text
+CREATE OR REPLACE FUNCTION show_trgm(text)
+RETURNS _text
 AS 'MODULE_PATHNAME'
-LANGUAGE C RETURNS NULL ON NULL INPUT IMMUTABLE;
+LANGUAGE C STRICT IMMUTABLE;
 
-create function similarity(text,text)
-returns float4
+CREATE OR REPLACE FUNCTION similarity(text,text)
+RETURNS float4
 AS 'MODULE_PATHNAME'
-LANGUAGE C RETURNS NULL ON NULL INPUT IMMUTABLE;
+LANGUAGE C STRICT IMMUTABLE;
 
-create function similarity_op(text,text)
-returns bool
+CREATE OR REPLACE FUNCTION similarity_op(text,text)
+RETURNS bool
 AS 'MODULE_PATHNAME'
-LANGUAGE C RETURNS NULL ON NULL INPUT IMMUTABLE;
+LANGUAGE C STRICT STABLE;
 
 CREATE OPERATOR % (
         LEFTARG = text,
@@ -36,16 +37,16 @@ CREATE OPERATOR % (
         JOIN = contjoinsel
 );
 
---gist key
-CREATE FUNCTION gtrgm_in(cstring)
+-- gist key
+CREATE OR REPLACE FUNCTION gtrgm_in(cstring)
 RETURNS gtrgm
 AS 'MODULE_PATHNAME'
-LANGUAGE C RETURNS NULL ON NULL INPUT;
+LANGUAGE C STRICT;
 
-CREATE FUNCTION gtrgm_out(gtrgm)
+CREATE OR REPLACE FUNCTION gtrgm_out(gtrgm)
 RETURNS cstring
 AS 'MODULE_PATHNAME'
-LANGUAGE C RETURNS NULL ON NULL INPUT;
+LANGUAGE C STRICT;
 
 CREATE TYPE gtrgm (
         INTERNALLENGTH = -1,
@@ -53,43 +54,43 @@ CREATE TYPE gtrgm (
         OUTPUT = gtrgm_out
 );
 
--- support functions
-CREATE FUNCTION gtrgm_consistent(gtrgm,internal,int4)
+-- support functions for gist
+CREATE OR REPLACE FUNCTION gtrgm_consistent(gtrgm,internal,int4)
 RETURNS bool
 AS 'MODULE_PATHNAME'
-LANGUAGE C;
+LANGUAGE C IMMUTABLE STRICT;
  
-CREATE FUNCTION gtrgm_compress(internal)
+CREATE OR REPLACE FUNCTION gtrgm_compress(internal)
 RETURNS internal
 AS 'MODULE_PATHNAME'
-LANGUAGE C;
+LANGUAGE C IMMUTABLE STRICT;
 
-CREATE FUNCTION gtrgm_decompress(internal)
+CREATE OR REPLACE FUNCTION gtrgm_decompress(internal)
 RETURNS internal
 AS 'MODULE_PATHNAME'
-LANGUAGE C;
+LANGUAGE C IMMUTABLE STRICT;
 
-CREATE FUNCTION gtrgm_penalty(internal,internal,internal)
+CREATE OR REPLACE FUNCTION gtrgm_penalty(internal,internal,internal)
 RETURNS internal
 AS 'MODULE_PATHNAME'
-LANGUAGE C RETURNS NULL ON NULL INPUT;
+LANGUAGE C IMMUTABLE STRICT;
 
-CREATE FUNCTION gtrgm_picksplit(internal, internal)
+CREATE OR REPLACE FUNCTION gtrgm_picksplit(internal, internal)
 RETURNS internal
 AS 'MODULE_PATHNAME'
-LANGUAGE C;
+LANGUAGE C IMMUTABLE STRICT;
 
-CREATE FUNCTION gtrgm_union(bytea, internal)
+CREATE OR REPLACE FUNCTION gtrgm_union(bytea, internal)
 RETURNS _int4
 AS 'MODULE_PATHNAME'
-LANGUAGE C;
+LANGUAGE C IMMUTABLE STRICT;
 
-CREATE FUNCTION gtrgm_same(gtrgm, gtrgm, internal)
+CREATE OR REPLACE FUNCTION gtrgm_same(gtrgm, gtrgm, internal)
 RETURNS internal
 AS 'MODULE_PATHNAME'
-LANGUAGE C;
+LANGUAGE C IMMUTABLE STRICT;
 
--- create the operator class
+-- create the operator class for gist
 CREATE OPERATOR CLASS gist_trgm_ops
 FOR TYPE text USING gist
 AS
@@ -103,5 +104,29 @@ AS
         FUNCTION        7       gtrgm_same (gtrgm, gtrgm, internal),
         STORAGE         gtrgm;
 
+-- support functions for gin
+CREATE OR REPLACE FUNCTION gin_extract_trgm(text, internal)
+RETURNS internal
+AS 'MODULE_PATHNAME'
+LANGUAGE C IMMUTABLE STRICT;
 
-COMMIT;
+CREATE OR REPLACE FUNCTION gin_extract_trgm(text, internal, internal)
+RETURNS internal
+AS 'MODULE_PATHNAME'
+LANGUAGE C IMMUTABLE STRICT;
+
+CREATE OR REPLACE FUNCTION gin_trgm_consistent(internal, internal, text)
+RETURNS internal
+AS 'MODULE_PATHNAME'
+LANGUAGE C IMMUTABLE STRICT;
+
+-- create the operator class for gin
+CREATE OPERATOR CLASS gin_trgm_ops
+FOR TYPE text USING gin
+AS
+        OPERATOR        1       % (text, text) RECHECK,
+        FUNCTION        1       btint4cmp (int4, int4),
+        FUNCTION        2       gin_extract_trgm (text, internal),
+        FUNCTION        3       gin_extract_trgm (text, internal, internal),
+        FUNCTION        4       gin_trgm_consistent (internal, internal, text),
+        STORAGE         int4;

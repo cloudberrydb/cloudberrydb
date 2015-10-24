@@ -1,11 +1,12 @@
 <!--
-$PostgreSQL: pgsql/doc/src/sgml/ref/vacuum.sgml,v 1.43 2006/11/05 22:42:07 tgl Exp $
+$PostgreSQL: pgsql/doc/src/sgml/ref/vacuum.sgml,v 1.55 2009/03/24 20:17:08 tgl Exp $
 PostgreSQL documentation
 -->
 
 <refentry id="SQL-VACUUM">
  <refmeta>
   <refentrytitle id="sql-vacuum-title">VACUUM</refentrytitle>
+  <manvolnum>7</manvolnum>
   <refmiscinfo>SQL - Language Statements</refmiscinfo>
  </refmeta>
 
@@ -29,7 +30,7 @@ VACUUM [ FULL ] [ FREEZE ] [ VERBOSE ] ANALYZE [ <replaceable class="PARAMETER">
   <title>Description</title>
 
   <para>
-   <command>VACUUM</command> reclaims storage occupied by deleted tuples.
+   <command>VACUUM</command> reclaims storage occupied by dead tuples.
    In normal <productname>PostgreSQL</productname> operation, tuples that
    are deleted or obsoleted by an update are not physically removed from
    their table; they remain present until a <command>VACUUM</command> is
@@ -39,8 +40,8 @@ VACUUM [ FULL ] [ FREEZE ] [ VERBOSE ] ANALYZE [ <replaceable class="PARAMETER">
 
   <para>
    With no parameter, <command>VACUUM</command> processes every table in the
-   current database.  With a parameter, <command>VACUUM</command> processes
-   only that table.
+   current database that the current user has permission to vacuum.
+   With a parameter, <command>VACUUM</command> processes only that table.
   </para>
 
   <para>
@@ -72,7 +73,7 @@ VACUUM [ FULL ] [ FREEZE ] [ VERBOSE ] ANALYZE [ <replaceable class="PARAMETER">
     <term><literal>FULL</literal></term>
     <listitem>
      <para>
-      Selects <quote>full</quote> vacuum, which may reclaim more
+      Selects <quote>full</quote> vacuum, which can reclaim more
       space, but takes much longer and exclusively locks the table.
      </para>
     </listitem>
@@ -146,14 +147,31 @@ VACUUM [ FULL ] [ FREEZE ] [ VERBOSE ] ANALYZE [ <replaceable class="PARAMETER">
   <title>Notes</title>
 
    <para>
+    To vacuum a table, one must ordinarily be the table's owner or a
+    superuser.  However, database owners are allowed to
+    vacuum all tables in their databases, except shared catalogs.
+    (The restriction for shared catalogs means that a true database-wide
+    <command>VACUUM</> can only be performed by a superuser.)
+    <command>VACUUM</> will skip over any tables that the calling user
+    does not have permission to vacuum.
+   </para>
+
+   <para>
     <command>VACUUM</> cannot be executed inside a transaction block.
+   </para>
+
+   <para>
+    For tables with <acronym>GIN</> indexes, <command>VACUUM</command> (in
+    any form) also completes any pending index insertions, by moving pending
+    index entries to the appropriate places in the main <acronym>GIN</> index
+    structure.  See <xref linkend="gin-fast-update"> for details.
    </para>
 
    <para>
     We recommend that active production databases be
     vacuumed frequently (at least nightly), in order to
-    remove expired rows. After adding or deleting a large number
-    of rows, it may be a good idea to issue a <command>VACUUM
+    remove dead rows. After adding or deleting a large number
+    of rows, it might be a good idea to issue a <command>VACUUM
     ANALYZE</command> command for the affected table. This will update the
     system catalogs with
     the results of all recent changes, and allow the
@@ -163,15 +181,19 @@ VACUUM [ FULL ] [ FREEZE ] [ VERBOSE ] ANALYZE [ <replaceable class="PARAMETER">
 
    <para>
     The <option>FULL</option> option is not recommended for routine use,
-    but may be useful in special cases.  An example is when you have deleted
-    most of the rows in a table and would like the table to physically shrink
-    to occupy less disk space.  <command>VACUUM FULL</command> will usually
-    shrink the table more than a plain <command>VACUUM</command> would.
+    but might be useful in special cases.  An example is when you have deleted
+    or updated most of the rows in a table and would like the table to
+    physically shrink to occupy less disk space and allow faster table
+    scans. <command>VACUUM FULL</command> will usually shrink the table
+    more than a plain <command>VACUUM</command> would.  The
+    <option>FULL</option> option does not shrink indexes; a periodic
+    <command>REINDEX</> is still recommended.  In fact, it is often faster
+    to drop all indexes, <command>VACUUM FULL</>, and recreate the indexes.
    </para>
 
    <para>
     <command>VACUUM</command> causes a substantial increase in I/O traffic,
-    which can cause poor performance for other active sessions.  Therefore,
+    which might cause poor performance for other active sessions.  Therefore,
     it is sometimes advisable to use the cost-based vacuum delay feature.
     See <xref linkend="runtime-config-resource-vacuum-cost"> for details.
    </para>
@@ -238,6 +260,7 @@ VACUUM
   <simplelist type="inline">
    <member><xref linkend="app-vacuumdb" endterm="app-vacuumdb-title"></member>
    <member><xref linkend="runtime-config-resource-vacuum-cost" endterm="runtime-config-resource-vacuum-cost-title"></member>
+   <member><xref linkend="autovacuum" endterm="autovacuum-title"></member>
   </simplelist>
  </refsect1>
 </refentry>

@@ -176,7 +176,7 @@ ROLLBACK;
 COMMIT;		-- should not be in a transaction block
 WARNING:  there is no transaction in progress
 		
-SELECT * FROM savepoints;
+SELECT * FROM savepoints ORDER BY 1;
  a 
 ---
  1
@@ -193,7 +193,7 @@ ERROR:  column "foo" does not exist
 LINE 1: SELECT foo;
                ^
 COMMIT;
-SELECT * FROM savepoints;
+SELECT * FROM savepoints ORDER BY 1;
  a 
 ---
  1
@@ -228,7 +228,7 @@ BEGIN;
 	ROLLBACK TO SAVEPOINT one;
 		INSERT INTO savepoints VALUES (11);
 COMMIT;
-SELECT a FROM savepoints WHERE a in (9, 10, 11);
+SELECT a FROM savepoints WHERE a in (9, 10, 11) ORDER BY 1;
  a  
 ----
   9
@@ -255,7 +255,7 @@ BEGIN;
 			SAVEPOINT three;
 				INSERT INTO savepoints VALUES (17);
 COMMIT;
-SELECT a FROM savepoints WHERE a BETWEEN 12 AND 17;
+SELECT a FROM savepoints WHERE a BETWEEN 12 AND 17 ORDER BY 1;
  a  
 ----
  12
@@ -275,7 +275,7 @@ BEGIN;
 	ROLLBACK TO SAVEPOINT one;
 		INSERT INTO savepoints VALUES (22);
 COMMIT;
-SELECT a FROM savepoints WHERE a BETWEEN 18 AND 22;
+SELECT a FROM savepoints WHERE a BETWEEN 18 AND 22 ORDER BY 1;
  a  
 ----
  18
@@ -315,7 +315,7 @@ SELECT 1;			-- this should work
 
 -- check non-transactional behavior of cursors
 BEGIN;
-	DECLARE c CURSOR FOR SELECT unique2 FROM tenk1;
+	DECLARE c CURSOR FOR SELECT unique2 FROM tenk1 ORDER BY 1;
 	SAVEPOINT one;
 		FETCH 10 FROM c;
  unique2 
@@ -365,7 +365,7 @@ BEGIN;
 (10 rows)
 
 	CLOSE c;
-	DECLARE c CURSOR FOR SELECT unique2/0 FROM tenk1;
+	DECLARE c CURSOR FOR SELECT unique2/0 FROM tenk1 ORDER BY 1;
 	SAVEPOINT two;
 		FETCH 10 FROM c;
 ERROR:  division by zero

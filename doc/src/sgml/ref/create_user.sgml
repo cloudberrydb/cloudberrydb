@@ -1,11 +1,12 @@
 <!--
-$PostgreSQL: pgsql/doc/src/sgml/ref/create_user.sgml,v 1.39 2006/09/16 00:30:17 momjian Exp $
+$PostgreSQL: pgsql/doc/src/sgml/ref/create_user.sgml,v 1.41 2008/11/14 10:22:46 petere Exp $
 PostgreSQL documentation
 -->
 
 <refentry id="SQL-CREATEUSER">
  <refmeta>
   <refentrytitle id="sql-createuser-title">CREATE USER</refentrytitle>
+  <manvolnum>7</manvolnum>
   <refmiscinfo>SQL - Language Statements</refmiscinfo>
  </refmeta>
 
@@ -39,6 +40,7 @@ where <replaceable class="PARAMETER">option</replaceable> can be:
     | ADMIN <replaceable class="PARAMETER">rolename</replaceable> [, ...]
     | USER <replaceable class="PARAMETER">rolename</replaceable> [, ...]
     | SYSID <replaceable class="PARAMETER">uid</replaceable> 
+    | RESOURCE QUEUE <replaceable class="PARAMETER">queuename</replaceable>
 </synopsis>
  </refsynopsisdiv>
 
@@ -47,8 +49,7 @@ where <replaceable class="PARAMETER">option</replaceable> can be:
 
   <para>
    <command>CREATE USER</command> is now an alias for
-   <xref linkend="sql-createrole" endterm="sql-createrole-title">,
-   which see for more information.
+   <xref linkend="sql-createrole" endterm="sql-createrole-title">.
    The only difference is that when the command is spelled
    <command>CREATE USER</command>, <literal>LOGIN</> is assumed
    by default, whereas <literal>NOLOGIN</> is assumed when
@@ -75,3 +76,4 @@ where <replaceable class="PARAMETER">option</replaceable> can be:
   </simplelist>
  </refsect1>
 </refentry>
+

@@ -24,58 +24,53 @@ INSERT INTO POINT_TBL(f1) VALUES ('(10.0 10.0)');
 INSERT INTO POINT_TBL(f1) VALUES ('(10.0,10.0');
 
 
-SELECT '' AS six, * FROM POINT_TBL;
+SELECT '' AS six, * FROM POINT_TBL ORDER BY f1[0],f1[1];
 
 -- left of 
-SELECT '' AS three, p.* FROM POINT_TBL p WHERE p.f1 << '(0.0, 0.0)';
+SELECT '' AS three, p.* FROM POINT_TBL p WHERE p.f1 << '(0.0, 0.0)' ORDER BY f1[0],f1[1];
 
 -- right of 
-SELECT '' AS three, p.* FROM POINT_TBL p WHERE '(0.0,0.0)' >> p.f1;
+SELECT '' AS three, p.* FROM POINT_TBL p WHERE '(0.0,0.0)' >> p.f1 ORDER BY f1[0],f1[1];
 
 -- above 
-SELECT '' AS one, p.* FROM POINT_TBL p WHERE '(0.0,0.0)' >^ p.f1;
+SELECT '' AS one, p.* FROM POINT_TBL p WHERE '(0.0,0.0)' >^ p.f1 ORDER BY f1[0],f1[1];
 
 -- below 
-SELECT '' AS one, p.* FROM POINT_TBL p WHERE p.f1 <^ '(0.0, 0.0)';
+SELECT '' AS one, p.* FROM POINT_TBL p WHERE p.f1 <^ '(0.0, 0.0)' ORDER BY f1[0],f1[1];
 
 -- equal 
-SELECT '' AS one, p.* FROM POINT_TBL p WHERE p.f1 ~= '(5.1, 34.5)';
+SELECT '' AS one, p.* FROM POINT_TBL p WHERE p.f1 ~= '(5.1, 34.5)' ORDER BY f1[0],f1[1];
 
 -- point in box 
 SELECT '' AS three, p.* FROM POINT_TBL p
-   WHERE p.f1 <@ box '(0,0,100,100)';
+   WHERE p.f1 <@ box '(0,0,100,100)' ORDER BY f1[0],f1[1];
 
 SELECT '' AS three, p.* FROM POINT_TBL p
-   WHERE not p.f1 <@ box '(0,0,100,100)';
+   WHERE not p.f1 <@ box '(0,0,100,100)' ORDER BY f1[0],f1[1];
 
 SELECT '' AS two, p.* FROM POINT_TBL p
-   WHERE p.f1 <@ path '[(0,0),(-10,0),(-10,10)]';
+   WHERE p.f1 <@ path '[(0,0),(-10,0),(-10,10)]' ORDER BY f1[0],f1[1];
 
 SELECT '' AS six, p.f1, p.f1 <-> point '(0,0)' AS dist
    FROM POINT_TBL p
-   ORDER BY dist;
-
-SET geqo TO 'off';
+   ORDER BY dist ;
 
 SELECT '' AS thirtysix, p1.f1 AS point1, p2.f1 AS point2, p1.f1 <-> p2.f1 AS dist
    FROM POINT_TBL p1, POINT_TBL p2
-   ORDER BY dist, point1 using <<, point2 using <<;
+   ORDER BY dist, p1.f1[0], p2.f1[0];
 
 SELECT '' AS thirty, p1.f1 AS point1, p2.f1 AS point2
    FROM POINT_TBL p1, POINT_TBL p2
-   WHERE (p1.f1 <-> p2.f1) > 3;
+   WHERE (p1.f1 <-> p2.f1) > 3 ORDER BY p1.f1[0],p1.f1[1],p2.f1[0],p2.f1[1];
 
 -- put distance result into output to allow sorting with GEQ optimizer - tgl 97/05/10
 SELECT '' AS fifteen, p1.f1 AS point1, p2.f1 AS point2, (p1.f1 <-> p2.f1) AS distance
    FROM POINT_TBL p1, POINT_TBL p2
    WHERE (p1.f1 <-> p2.f1) > 3 and p1.f1 << p2.f1
-   ORDER BY distance, point1 using <<, point2 using <<;
+   ORDER BY distance, p1.f1[0], p2.f1[0];
 
 -- put distance result into output to allow sorting with GEQ optimizer - tgl 97/05/10
 SELECT '' AS three, p1.f1 AS point1, p2.f1 AS point2, (p1.f1 <-> p2.f1) AS distance
    FROM POINT_TBL p1, POINT_TBL p2 
    WHERE (p1.f1 <-> p2.f1) > 3 and p1.f1 << p2.f1 and p1.f1 >^ p2.f1
    ORDER BY distance;
-
-RESET geqo;
-

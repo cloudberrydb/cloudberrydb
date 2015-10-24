@@ -9,7 +9,7 @@ NULL=nul
 CPP=cl.exe
 PERL=perl.exe
 FLEX=flex.exe
-YACC=bison.exe
+BISON=bison.exe
 MV=move
 
 !IFDEF DEBUG
@@ -37,7 +37,7 @@ CPP_PROJ=/nologo $(OPT) /W3 /EHsc /D "WIN32" $(DEBUGDEF) /D "_CONSOLE" /D\
 CPP_OBJS=$(INTDIR)/
 CPP_SBRS=.
 
-ALL : ..\..\backend\parser\parse.h "..\..\port\pg_config_paths.h" \
+ALL : ..\..\backend\parser\gram.h "..\..\port\pg_config_paths.h" \
  "$(OUTDIR)\pg_dump.exe" "$(OUTDIR)\pg_dumpall.exe" "$(OUTDIR)\pg_restore.exe"
 
 CLEAN :
@@ -59,6 +59,7 @@ CLEAN :
 	-@erase "$(INTDIR)\pgstrcasecmp.obj"
 	-@erase "$(INTDIR)\sprompt.obj"
 	-@erase "$(INTDIR)\snprintf.obj"
+	-@erase "$(INTDIR)\qsort.obj"
 #	-@erase "$(INTDIR)\pg_dump.pch"
 	-@erase "$(OUTDIR)\pg_dump.obj"
 	-@erase "$(OUTDIR)\pg_dump.exe"
@@ -67,7 +68,7 @@ CLEAN :
 	-@erase "$(INTDIR)\pg_restore.obj"
 	-@erase "$(OUTDIR)\pg_restore.exe"
 #	-@erase "$(INTDIR)\..\..\port\pg_config_paths.h"
-#	-@erase "$(INTDIR)\..\..\backend\parser\parse.h" 
+#	-@erase "$(INTDIR)\..\..\backend\parser\gram.h" 
 #	-@erase "$(INTDIR)\..\..\backend\parser\gram.c"
 
 LINK32=link.exe
@@ -97,7 +98,8 @@ LINK32_OBJS= \
 	"$(INTDIR)\strlcpy.obj" \
 	"$(INTDIR)\pgstrcasecmp.obj" \
 	"$(INTDIR)\sprompt.obj" \
-	"$(INTDIR)\snprintf.obj"
+	"$(INTDIR)\snprintf.obj" \
+	"$(INTDIR)\qsort.obj"
 
 LINK32_OBJS_DMP= \
 	"$(INTDIR)\common.obj" \
@@ -188,10 +190,13 @@ LINK32_OBJS	= $(LINK32_OBJS) "..\..\interfaces\libpq\Release\libpqdll.lib"
     $(CPP_PROJ) ..\..\port\snprintf.c
 <<
 
-..\..\backend\parser\parse.h : ..\..\backend\parser\gram.y
-	$(YACC) -y -d  ..\..\backend\parser\gram.y
-	$(MV) ..\..\backend\parser\y.tab.h ..\..\backend\parser\parse.h 
-	$(MV) ..\..\backend\parser\y.tab.c ..\..\backend\parser\gram.c
+"$(INTDIR)\qsort.obj" : "$(INTDIR)" ..\..\port\qsort.c
+    $(CPP) @<<
+    $(CPP_PROJ) ..\..\port\qsort.c
+<<
+
+..\..\backend\parser\gram.h : ..\..\backend\parser\gram.y
+	$(BISON)  -d  ..\..\backend\parser\gram.y
 
 .c{$(CPP_OBJS)}.obj::
    $(CPP) @<<

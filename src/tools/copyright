@@ -1,11 +1,14 @@
 #!/bin/sh
 
-# $PostgreSQL: pgsql/src/tools/copyright,v 1.11 2006/03/11 04:38:41 momjian Exp $
+# src/tools/copyright
+
+echo "Using current year:  `date '+%Y'`"
 
 rgrep -l 'Copyright.*PostgreSQL Global Development Group' | while read FILE
 do
-	pipe sed 's/^\(.*Copyright (c) [12][0-9][0-9][0-9]-\)[12][0-9][0-9][0-9]\(, PostgreSQL Global Development Group.*\)$/\12006\2/' $FILE
+	pipe sed 's/^\(.*Copyright (c) [12][0-9][0-9][0-9]\) \?- \?[12][0-9][0-9][0-9] \?,\?\( PostgreSQL Global Development Group.*\)$/\1-'`date '+%Y'`',\2/' $FILE
+	# handle cases where only one year appears
+	pipe sed 's/^\(.*Copyright (c) [12][0-9][0-9][0-9]\) \?,\?\( PostgreSQL Global Development Group.*\)$/\1-'`date '+%Y'`',\2/' $FILE
 done
 
-echo "Manually update doc/src/sgml/legal.sgml too" 1>&2
-
+echo "Manually update doc/src/sgml/legal.sgml and src/interfaces/libpq/libpq.rc.in too" 1>&2

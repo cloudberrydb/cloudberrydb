@@ -1,0 +1,3 @@
+rsqname|rsqcountlimit|rsqcostlimit|rsqovercommit|rsqignorecostlimit
+6055|pg_default|20|-1|f|0
+\.

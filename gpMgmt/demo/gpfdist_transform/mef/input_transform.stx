@@ -1,0 +1,17 @@
+<?xml version="1.0"?>
+<stx:transform version="1.0"
+   xmlns:stx="http://stx.sourceforge.net/2002/ns"
+   xmlns:e="http://www.irs.gov/efile">
+
+  <stx:template match="/e:Return">
+    <stx:process-children/>
+    <stx:value-of select="$id"/>
+  </stx:template>
+
+  <stx:variable name="id"/>
+
+  <stx:template match="e:ReturnId">
+    <stx:assign name="id" select="."/>
+  </stx:template>
+
+</stx:transform>

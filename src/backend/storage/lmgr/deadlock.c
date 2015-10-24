@@ -7,7 +7,7 @@
  * detection and resolution algorithms.
  *
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2008, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -29,6 +29,8 @@
 #include "miscadmin.h"
 #include "storage/proc.h"
 #include "utils/memutils.h"
+#include "executor/execdesc.h"
+#include "utils/resscheduler.h"
 
 
 /* One edge in the waits-for graph */
@@ -246,8 +248,11 @@ DeadLockCheck(PGPROC *proc)
 		PrintLockQueue(lock, "rearranged to:");
 #endif
 
-		/* See if any waiters for the lock can be woken up now */
-		ProcLockWakeup(GetLocksMethodTable(lock), lock);
+		/* See if any waiters for the lock can be woken up now.
+		 * Except for resource queue because without release resource
+		 * no one can procced. */
+		if (lock->tag.locktag_type != LOCKTAG_RESOURCE_QUEUE)
+			ProcLockWakeup(GetLocksMethodTable(lock), lock);
 	}
 	return false;
 }
@@ -864,11 +869,29 @@ DescribeLockTag(StringInfo buf, const LOCKTAG *lock)
 							 _("transaction %u"),
 							 lock->locktag_field1);
 			break;
+		case LOCKTAG_RELATION_RESYNCHRONIZE:
+			appendStringInfo(buf,
+							 _("resynchronize of relation %u of database %u"),
+							 lock->locktag_field2,
+							 lock->locktag_field1);
+			break;
+		case LOCKTAG_RELATION_APPENDONLY_SEGMENT_FILE:
+			appendStringInfo(buf,
+							 _("append-only segment file #%d in relation %u of database %u"),
+							 lock->locktag_field3,
+							 lock->locktag_field2,
+							 lock->locktag_field1);
+			break;
 		case LOCKTAG_OBJECT:
 			appendStringInfo(buf,
 							 _("object %u of class %u of database %u"),
 							 lock->locktag_field3,
 							 lock->locktag_field2,
+							 lock->locktag_field1);
+			break;
+		case LOCKTAG_RESOURCE_QUEUE:
+			appendStringInfo(buf,
+							 _("resource queue %u"),
 							 lock->locktag_field1);
 			break;
 		case LOCKTAG_USERLOCK:

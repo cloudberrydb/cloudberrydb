@@ -10,7 +10,7 @@ CREATE TABLE arrtest (
 	e 			float8[],
 	f			char(5)[],
 	g			varchar(5)[]
-);
+) DISTRIBUTED RANDOMLY;
 
 --
 -- only the 'e' array is 0-based, the others are 1-based.
@@ -35,32 +35,36 @@ INSERT INTO arrtest (a, b[1:2], c, d[1:2])
    VALUES ('{}', '{3,4}', '{foo,bar}', '{bar,foo}');
 
 
-SELECT * FROM arrtest;
+SELECT * FROM arrtest ORDER BY 1,2,3,4;
 
 SELECT arrtest.a[1],
           arrtest.b[1][1][1],
           arrtest.c[1],
           arrtest.d[1][1], 
           arrtest.e[0]
-   FROM arrtest;
+   FROM arrtest ORDER BY 1,2,3,4;
 
 SELECT a[1], b[1][1][1], c[1], d[1][1], e[0]
-   FROM arrtest;
+   FROM arrtest ORDER BY 1,2,3,4;
 
 SELECT a[1:3],
           b[1:1][1:2][1:2],
           c[1:2], 
           d[1:1][1:2]
-   FROM arrtest;
+   FROM arrtest ORDER BY 1,2,3,4;
+
+-- array_ndims exists in postgres, but not in gp
+-- SELECT array_ndims(a) AS a,array_ndims(b) AS b,array_ndims(c) AS c
+--    FROM arrtest;
 
 SELECT array_dims(a) AS a,array_dims(b) AS b,array_dims(c) AS c
-   FROM arrtest;
+   FROM arrtest ORDER BY 1,2;
 
 -- returns nothing 
 SELECT *
    FROM arrtest
    WHERE a[1] < 5 and 
-         c = '{"foobar"}'::_name;
+         c = '{"foobar"}'::_name ORDER BY 1,2,3,4;
 
 UPDATE arrtest
   SET a[1:2] = '{16,25}'
@@ -75,25 +79,25 @@ UPDATE arrtest
   SET c[2:2] = '{"new_word"}'
   WHERE array_dims(c) is not null;
 
-SELECT a,b,c FROM arrtest;
+SELECT a,b,c FROM arrtest ORDER BY 1,2,3;
 
 SELECT a[1:3],
           b[1:1][1:2][1:2],
           c[1:2], 
           d[1:1][2:2]
-   FROM arrtest;
+   FROM arrtest ORDER BY 1,2,3,4;
 
 INSERT INTO arrtest(a) VALUES('{1,null,3}');
-SELECT a FROM arrtest;
+SELECT a FROM arrtest ORDER BY 1;
 UPDATE arrtest SET a[4] = NULL WHERE a[2] IS NULL;
-SELECT a FROM arrtest WHERE a[2] IS NULL;
+SELECT a FROM arrtest WHERE a[2] IS NULL ORDER BY 1;
 DELETE FROM arrtest WHERE a[2] IS NULL AND b IS NULL;
-SELECT a,b,c FROM arrtest;
+SELECT a,b,c FROM arrtest ORDER BY 1,2,3;
 
 --
 -- test array extension
 --
-CREATE TEMP TABLE arrtest1 (i int[], t text[]);
+CREATE TEMP TABLE arrtest1 (i int[], t text[]) DISTRIBUTED RANDOMLY;
 insert into arrtest1 values(array[1,2,null,4], array['one','two',null,'four']);
 select * from arrtest1;
 update arrtest1 set i[2] = 22, t[2] = 'twenty-two';
@@ -131,7 +135,7 @@ select * from arrtest1;
 --
 
 -- table creation and INSERTs
-CREATE TEMP TABLE arrtest2 (i integer ARRAY[4], f float8[], n numeric[], t text[], d timestamp[]);
+CREATE TEMP TABLE arrtest2 (i integer ARRAY[4], f float8[], n numeric[], t text[], d timestamp[]) DISTRIBUTED RANDOMLY;
 INSERT INTO arrtest2 VALUES(
   ARRAY[[[113,142],[1,147]]],
   ARRAY[1.1,1.2,1.3]::float8[],
@@ -141,7 +145,7 @@ INSERT INTO arrtest2 VALUES(
 );
 
 -- some more test data
-CREATE TEMP TABLE arrtest_f (f0 int, f1 text, f2 float8);
+CREATE TEMP TABLE arrtest_f (f0 int, f1 text, f2 float8) DISTRIBUTED RANDOMLY;
 insert into arrtest_f values(1,'cat1',1.21);
 insert into arrtest_f values(2,'cat1',1.24);
 insert into arrtest_f values(3,'cat1',1.18);
@@ -152,7 +156,7 @@ insert into arrtest_f values(7,'cat2',1.26);
 insert into arrtest_f values(8,'cat2',1.32);
 insert into arrtest_f values(9,'cat2',1.30);
 
-CREATE TEMP TABLE arrtest_i (f0 int, f1 text, f2 int);
+CREATE TEMP TABLE arrtest_i (f0 int, f1 text, f2 int) DISTRIBUTED RANDOMLY;
 insert into arrtest_i values(1,'cat1',21);
 insert into arrtest_i values(2,'cat1',24);
 insert into arrtest_i values(3,'cat1',18);
@@ -169,7 +173,9 @@ SELECT t.f[1][3][1] AS "131", t.f[2][2][1] AS "221" FROM (
 ) AS t;
 SELECT ARRAY[[[[[['hello'],['world']]]]]];
 SELECT ARRAY[ARRAY['hello'],ARRAY['world']];
-SELECT ARRAY(select f2 from arrtest_f order by f2) AS "ARRAY";
+SELECT ARRAY(select f2 from arrtest_f order by f2) AS "ARRAY" ORDER BY 1; -- MPP-11853
+-- check no merge on Motion
+EXPLAIN SELECT ARRAY(select f2 from arrtest_f) AS "ARRAY";
 
 -- with nulls
 SELECT '{1,null,3}'::int[];
@@ -234,7 +240,7 @@ select 33 * any (44);
 -- nulls
 select 33 = any (null::int[]);
 select null::int = any ('{1,2,3}');
-select 33 = any ('{1,null,3}');
+-- select 33 = any ('{1,null,3}');  -- MPP: 11852
 select 33 = any ('{1,null,33}');
 select 33 = all (null::int[]);
 select null::int = all ('{1,2,3}');
@@ -242,7 +248,7 @@ select 33 = all ('{1,null,3}');
 select 33 = all ('{33,null,33}');
 
 -- test indexes on arrays
-create temp table arr_tbl (f1 int[] unique);
+create temp table arr_tbl (f1 int[] unique) DISTRIBUTED BY (f1);
 insert into arr_tbl values ('{1,2,3}');
 insert into arr_tbl values ('{1,2}');
 -- failure expected:
@@ -253,8 +259,9 @@ insert into arr_tbl values ('{1,2,10}');
 
 set enable_seqscan to off;
 set enable_bitmapscan to off;
-select * from arr_tbl where f1 > '{1,2,3}' and f1 <= '{1,5,3}';
--- note: if above select doesn't produce the expected tuple order,
+select * from arr_tbl where f1 > '{1,2,3}' and f1 <= '{1,5,3}' ORDER BY 1;
+select * from arr_tbl where f1 >= '{1,2,3}' and f1 < '{1,5,3}' ORDER BY 1;
+-- note: if above selects don't produce the expected tuple order,
 -- then you didn't get an indexscan plan, and something is busted.
 reset enable_seqscan;
 reset enable_bitmapscan;
@@ -280,6 +287,7 @@ select E'{{1,2},\\{2,3}}'::text[];
 select '{{"1 2" x},{3}}'::text[];
 select '{}}'::text[];
 select '{ }}'::text[];
+-- select array[];  -- MPP-11851
 -- none of the above should be accepted
 
 -- all of the following should be accepted
@@ -292,10 +300,12 @@ select '{
            0 second,
            @ 1 hour @ 42 minutes @ 20 seconds
          }'::interval[];
+-- select array[]::text[];  -- MPP-11851
+select '[0:1]={1.1,2.2}'::float8[];
 -- all of the above should be accepted
 
 -- tests for array aggregates
-CREATE TEMP TABLE arraggtest ( f1 INT[], f2 TEXT[][], f3 FLOAT[]);
+CREATE TEMP TABLE arraggtest ( f1 INT[], f2 TEXT[][], f3 FLOAT[]) DISTRIBUTED RANDOMLY;
 
 INSERT INTO arraggtest (f1, f2, f3) VALUES
 ('{1,2,3,4}','{{grey,red},{blue,blue}}','{1.6, 0.0}');

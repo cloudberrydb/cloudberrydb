@@ -3,15 +3,20 @@
  * pgtime.h
  *	  PostgreSQL internal timezone library
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/include/pgtime.h,v 1.14 2006/10/18 16:43:14 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/include/pgtime.h,v 1.19 2009/01/01 17:23:55 momjian Exp $
  *
  *-------------------------------------------------------------------------
  */
 #ifndef _PGTIME_H
 #define _PGTIME_H
+
+#include <sys/time.h>
+
+#define USECS_PER_SECOND 1000000
+#define MSECS_PER_SECOND 1000
 
 
 /*
@@ -52,6 +57,7 @@ extern int pg_next_dst_boundary(const pg_time_t *timep,
 extern size_t pg_strftime(char *s, size_t max, const char *format,
 			const struct pg_tm * tm);
 
+extern void pg_timezone_pre_initialize(void);
 extern void pg_timezone_initialize(void);
 extern pg_tz *pg_tzset(const char *tzname);
 extern bool tz_acceptable(pg_tz *tz);
@@ -62,9 +68,91 @@ extern pg_tzenum *pg_tzenumerate_start(void);
 extern pg_tz *pg_tzenumerate_next(pg_tzenum *dir);
 extern void pg_tzenumerate_end(pg_tzenum *dir);
 
-extern pg_tz *global_timezone;
+extern pg_tz *session_timezone;
+extern pg_tz *log_timezone;
+extern pg_tz *gmt_timezone;
 
 /* Maximum length of a timezone name (not including trailing null) */
 #define TZ_STRLEN_MAX 255
+
+/*
+ * GpMonotonicTime: used to guarantee that the elapsed time is in
+ * the monotonic order between two gp_get_monotonic_time calls.
+ */
+typedef struct GpMonotonicTime
+{
+	struct timeval beginTime;
+	struct timeval endTime;
+} GpMonotonicTime;
+
+/*
+ * gp_set_monotonic_begin_time: set the beginTime to the current
+ * time.
+ */
+void gp_set_monotonic_begin_time(GpMonotonicTime *time);
+
+/*
+ * Compare two times.
+ *
+ * If t1 > t2, return 1.
+ * If t1 == t2, return 0.
+ * If t1 < t2, return -1;
+ */
+static inline int
+timeCmp(struct timeval *t1, struct timeval *t2)
+{
+	if (t1->tv_sec == t2->tv_sec &&
+		t1->tv_usec == t2->tv_usec)
+		return 0;
+	
+	if (t1->tv_sec > t2->tv_sec ||
+		(t1->tv_sec == t2->tv_sec &&
+		 t1->tv_usec > t2->tv_usec))
+		return 1;
+	
+	return -1;
+}
+
+/*
+ * gp_get_monotonic_time
+ *    This function returns the time in the monotonic order.
+ *
+ * The new time is stored in time->endTime, which has a larger value than
+ * anything stored there when this function is called. The original
+ * endTime is copied to beginTime, and the original beginTime will be
+ * overwritten.
+ *
+ * This function is intended for computing elapsed time between two
+ * calls. It is not for getting the system time.
+ */
+extern void gp_get_monotonic_time(GpMonotonicTime *time);
+
+/*
+ * gp_get_elapsed_us -- return the elapsed time in microseconds
+ * after the given time->beginTime.
+ *
+ * If time->beginTime is not set (0), then return 0.
+ *
+ * Note that the beginTime is not changed, but the endTime is set
+ * to the current time.
+ */
+static inline uint64
+gp_get_elapsed_us(GpMonotonicTime *time)
+{
+	if (time->beginTime.tv_sec == 0 &&
+		time->beginTime.tv_usec == 0)
+		return 0;
+
+	gp_get_monotonic_time(time);
+
+	return ((time->endTime.tv_sec - time->beginTime.tv_sec) * USECS_PER_SECOND +
+			(time->endTime.tv_usec - time->beginTime.tv_usec));
+}
+
+static inline uint64
+gp_get_elapsed_ms(GpMonotonicTime *time)
+{
+    return gp_get_elapsed_us(time) / (USECS_PER_SECOND / MSECS_PER_SECOND);
+}
 
 #endif   /* _PGTIME_H */

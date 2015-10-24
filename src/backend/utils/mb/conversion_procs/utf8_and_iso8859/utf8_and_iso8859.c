@@ -2,11 +2,11 @@
  *
  *	  ISO 8859 2-16 <--> UTF8
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/utils/mb/conversion_procs/utf8_and_iso8859/utf8_and_iso8859.c,v 1.24 2006/11/27 15:50:54 petere Exp $
+ *	  $PostgreSQL: pgsql/src/backend/utils/mb/conversion_procs/utf8_and_iso8859/utf8_and_iso8859.c,v 1.30 2009/01/29 19:23:42 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -120,21 +120,20 @@ iso8859_to_utf8(PG_FUNCTION_ARGS)
 	int			len = PG_GETARG_INT32(4);
 	int			i;
 
-	Assert(PG_GETARG_INT32(1) == PG_UTF8);
-	Assert(len >= 0);
+	CHECK_ENCODING_CONVERSION_ARGS(-1, PG_UTF8);
 
 	for (i = 0; i < sizeof(maps) / sizeof(pg_conv_map); i++)
 	{
 		if (encoding == maps[i].encoding)
 		{
-			LocalToUtf(src, dest, maps[i].map1, maps[i].size1, encoding, len);
+			LocalToUtf(src, dest, maps[i].map1, NULL, maps[i].size1, 0, encoding, len);
 			PG_RETURN_VOID();
 		}
 	}
 
 	ereport(ERROR,
 			(errcode(ERRCODE_INTERNAL_ERROR),
-	   errmsg("unexpected encoding ID %d for ISO 8859 character sets", encoding)));
+			 errmsg("unexpected encoding ID %d for ISO 8859 character sets", encoding)));
 
 	PG_RETURN_VOID();
 }
@@ -148,21 +147,20 @@ utf8_to_iso8859(PG_FUNCTION_ARGS)
 	int			len = PG_GETARG_INT32(4);
 	int			i;
 
-	Assert(PG_GETARG_INT32(0) == PG_UTF8);
-	Assert(len >= 0);
+	CHECK_ENCODING_CONVERSION_ARGS(PG_UTF8, -1);
 
 	for (i = 0; i < sizeof(maps) / sizeof(pg_conv_map); i++)
 	{
 		if (encoding == maps[i].encoding)
 		{
-			UtfToLocal(src, dest, maps[i].map2, maps[i].size2, encoding, len);
+			UtfToLocal(src, dest, maps[i].map2, NULL, maps[i].size2, 0, encoding, len);
 			PG_RETURN_VOID();
 		}
 	}
 
 	ereport(ERROR,
 			(errcode(ERRCODE_INTERNAL_ERROR),
-	   errmsg("unexpected encoding ID %d for ISO 8859 character sets", encoding)));
+			 errmsg("unexpected encoding ID %d for ISO 8859 character sets", encoding)));
 
 	PG_RETURN_VOID();
 }

@@ -2,24 +2,20 @@
 #
 # Makefile for src/tools/fsync
 #
-# Copyright (c) 2003-2006, PostgreSQL Global Development Group
+# Copyright (c) 2003-2009, PostgreSQL Global Development Group
 #
-# $PostgreSQL: pgsql/src/tools/fsync/Makefile,v 1.3 2006/10/13 14:19:29 momjian Exp $
+# $PostgreSQL: pgsql/src/tools/fsync/Makefile,v 1.7 2009/01/01 17:24:05 momjian Exp $
 #
 #-------------------------------------------------------------------------
+
+PROGRAM = test_fsync
+OBJS    = test_fsync.o
 
 subdir = src/tools/fsync
 top_builddir = ../../..
 include $(top_builddir)/src/Makefile.global
+include $(top_srcdir)/contrib/contrib-global.mk
 
-override CPPFLAGS := -DFRONTEND -I$(libpq_srcdir) $(CPPFLAGS)
-
-OBJS= test_fsync.o
+override CPPFLAGS := -I$(libpq_srcdir) $(CPPFLAGS)
 
 all: submake-libpq submake-libpgport test_fsync
-
-test_fsync: test_fsync.o $(libpq_builddir)/libpq.a
-	$(CC) $(CFLAGS) test_fsync.o $(libpq_pgport) $(LDFLAGS) $(LIBS) -o $@$(X)
-
-clean distclean maintainer-clean:
-	rm -f test_fsync$(X) $(OBJS)

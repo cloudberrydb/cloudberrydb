@@ -2,20 +2,15 @@ For All Releases (major, minor, beta, RC)
 ================
 
 * Release version number changes
-	o doc/bug.template
-	o bump Win32 interface version numbers
-		- src/include/pg_config.h.win32
-		- src/interfaces/libpq/libpq.rc.in
-		- src/port/win32ver.rc
-	o update doc/FAQ and doc/src/FAQ/FAQ.html
-	o copy FAQs from HEAD to top-most branch
-	o configure.in, and run autoconf or update configure (by packager)
+	o run src/tools/version_stamp.pl, then run autoconf
+	  (by packager) (beta)
 
 * Release notes
 	o scan cvs logs, use pgcvslog and flags in comments
 	o update doc/src/sgml/release.sgml
 	o run spellchecker on result
 	o add SGML markup
+	o check if 'gmake HISTORY.html' works for <link>s
 
 * Update timezone data to match latest zic database (see src/timezone/README)
 
@@ -31,30 +26,57 @@ For Major Releases
 ==================
 (in addition to the above)
 
-* Bump library versions, if appropriate (see below)
+* Bump minor library versions, major if appropriate (see below)
 	o src/interfaces/*/Makefile
 	o src/interfaces/*/*/Makefile
 
 * Release notes
-	o check that dashed items from the TODO list are complete
-	o remove dashed TODO items
+	o check completion of items that have been marked as completed at
+	  http://wiki.postgresql.org/wiki/Todo
+	o remove completed TODO items
 	o group items into categories
 	o select major features
 	o select incompatibilities
-	o add documenation for items
+	o add documentation for items
 
 * Documentation
-	document all new features
-	update help output from inside the programs
-	doc/src/sgml/ref manual pages
-	convert any literal "<" and ">" characters, use tools/find_gt_lt
+	o document all new features
+	o update help output from inside the programs
+	o doc/src/sgml/ref manual pages
+	o convert any literal "<" and ">" characters, use tools/find_gt_lt
 
 * Ports
-	update config.guess and config.sub at the start of beta
-	update ports list in doc/src/sgml/installation.sgml
-	update platform-specific FAQ's, if needed
+	o update config.guess and config.sub at the start of beta
+	  (from http://savannah.gnu.org/projects/config)
+	o update ports list in doc/src/sgml/installation.sgml
+	o update platform-specific FAQ's, if needed
 
 * Update inet/cidr data types with newest Bind patches
+
+
+Starting a New Development Cycle
+================================
+
+* Create a branch in CVS for maintenance of the previous release
+
+* Increment the major version number in src/tools/version_stamp.pl
+
+* Run "src/tools/version_stamp.pl devel", then run autoconf
+
+
+Creating Back-Branch Release Notes
+==================================
+
+* Do 'cvs log' on each back-branch and run pgcvslog
+
+* In CVS HEAD, edit and create SGML markup for the most recent branch
+  in that branch's release-N.N.sgml file
+
+* Copy this into older branches' release-N.N.sgml files, then remove
+  items that do not apply based on cvs logs for that branch (and add
+  any that are needed)
+
+* Copy the appropriate release-N.N.sgml files into each back CVS branch
 
 
 ---------------------------------------------------------------------------
@@ -80,18 +102,23 @@ previously taken to shield users from such a change, for example by
 such structures only ever being allocated/instantiated by a library
 function which would give the new field a suitable default value.
 
-Adding a new function would NOT force an increase in the major version
-number. When the major version is increased all applications which
-link to the library MUST be recompiled - this is not desirable. When
+Adding a new function should NOT force an increase in the major version
+number. (Packagers will see the standard minor number update and install
+the new library.)  When the major version is increased all applications
+which link to the library MUST be recompiled - this is not desirable. When
 the major version is updated the minor version gets reset.
 
 Minor Version
 =============
 
-The minor version number should be updated whenever the functionality
-of the library has changed, typically and change in source code
-between releases would mean an increase in the minor version number so
-long as it does not require a major version increase.
+The minor version number should be updated whenever the functionality of
+the library has changed, typically a change in source code between releases
+would mean an increase in the minor version number so long as it does not
+require a major version increase.
+
+Given that we make at least minor changes to our libraries in every major
+PostgreSQL version, we always bump all minor library version numbers at the
+start of each development cycle as a matter of policy.
 
 Minimizing Changes
 ==================

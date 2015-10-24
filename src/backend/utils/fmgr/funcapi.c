@@ -4,7 +4,7 @@
  *	  Utility and convenience functions for fmgr functions that return
  *	  sets and/or composite types.
  *
- * Copyright (c) 2002-2006, PostgreSQL Global Development Group
+ * Copyright (c) 2002-2008, PostgreSQL Global Development Group
  *
  * IDENTIFICATION
  *	  $PostgreSQL: pgsql/src/backend/utils/fmgr/funcapi.c,v 1.31 2006/07/11 16:35:33 momjian Exp $
@@ -13,16 +13,19 @@
  */
 #include "postgres.h"
 
+#include "catalog/catquery.h"
 #include "access/heapam.h"
 #include "catalog/namespace.h"
 #include "catalog/pg_proc.h"
 #include "catalog/pg_type.h"
+#include "executor/executor.h"          /* ReturnSetInfo, RegisterExprContextCallback */
 #include "funcapi.h"
 #include "parser/parse_coerce.h"
 #include "parser/parse_expr.h"
 #include "utils/array.h"
 #include "utils/builtins.h"
 #include "utils/lsyscache.h"
+#include "utils/memutils.h"
 #include "utils/syscache.h"
 #include "utils/typcache.h"
 
@@ -64,12 +67,22 @@ init_MultiFuncCall(PG_FUNCTION_ARGS)
 		 * First call
 		 */
 		ReturnSetInfo *rsi = (ReturnSetInfo *) fcinfo->resultinfo;
+		MemoryContext multi_call_ctx;
+
+		/*
+		 * Create a suitably long-lived context to hold cross-call data
+		 */
+		multi_call_ctx = AllocSetContextCreate(fcinfo->flinfo->fn_mcxt,
+											   "SRF multi-call context",
+											   ALLOCSET_SMALL_MINSIZE,
+											   ALLOCSET_SMALL_INITSIZE,
+											   ALLOCSET_SMALL_MAXSIZE);
 
 		/*
 		 * Allocate suitably long-lived space and zero it
 		 */
 		retval = (FuncCallContext *)
-			MemoryContextAllocZero(fcinfo->flinfo->fn_mcxt,
+			MemoryContextAllocZero(multi_call_ctx,
 								   sizeof(FuncCallContext));
 
 		/*
@@ -81,7 +94,7 @@ init_MultiFuncCall(PG_FUNCTION_ARGS)
 		retval->user_fctx = NULL;
 		retval->attinmeta = NULL;
 		retval->tuple_desc = NULL;
-		retval->multi_call_memory_ctx = fcinfo->flinfo->fn_mcxt;
+		retval->multi_call_memory_ctx = multi_call_ctx;
 
 		/*
 		 * save the pointer for cross-call use
@@ -99,7 +112,7 @@ init_MultiFuncCall(PG_FUNCTION_ARGS)
 	else
 	{
 		/* second and subsequent calls */
-		elog(ERROR, "init_MultiFuncCall may not be called more than once");
+		elog(ERROR, "init_MultiFuncCall cannot be called more than once");
 
 		/* never reached, but keep compiler happy */
 		retval = NULL;
@@ -168,13 +181,11 @@ shutdown_MultiFuncCall(Datum arg)
 	flinfo->fn_extra = NULL;
 
 	/*
-	 * Caller is responsible to free up memory for individual struct elements
-	 * other than att_in_funcinfo and elements.
+	 * Delete context that holds all multi-call data, including the
+	 * FuncCallContext itself
 	 */
-	if (funcctx->attinmeta != NULL)
-		pfree(funcctx->attinmeta);
-
-	pfree(funcctx);
+	MemoryContextSwitchTo(flinfo->fn_mcxt);
+	MemoryContextDelete(funcctx->multi_call_memory_ctx);
 }
 
 
@@ -193,8 +204,8 @@ shutdown_MultiFuncCall(Datum arg)
  * only when we couldn't resolve the actual rowtype for lack of information.
  *
  * The other hard case that this handles is resolution of polymorphism.
- * We will never return ANYELEMENT or ANYARRAY, either as a scalar result
- * type or as a component of a rowtype.
+ * We will never return polymorphic pseudotypes (ANYELEMENT etc), either
+ * as a scalar result type or as a component of a rowtype.
  *
  * This function is relatively expensive --- in a function returning set,
  * try to call it only the first time through.
@@ -270,6 +281,47 @@ get_func_result_type(Oid functionId,
 }
 
 /*
+ * assign_func_result_transient_type
+ *		assign typmod if the result of function is transient type.
+ *
+ */
+void
+assign_func_result_transient_type(Oid funcid)
+{
+	HeapTuple	tp;
+	Form_pg_proc procform;
+	TupleDesc	tupdesc;
+	cqContext  *pcqCtx;
+
+	pcqCtx = caql_beginscan(
+			NULL,
+			cql("SELECT * FROM pg_proc "
+				" WHERE oid = :1 ",
+				ObjectIdGetDatum(funcid)));
+
+	tp = caql_getnext(pcqCtx);
+
+	caql_endscan(pcqCtx);
+
+	if (!HeapTupleIsValid(tp))
+		elog(ERROR, "cache lookup failed for function %u", funcid);
+	procform = (Form_pg_proc) GETSTRUCT(tp);
+
+	tupdesc = build_function_result_tupdesc_t(tp);
+	if (tupdesc == NULL)
+		return;
+
+	if (resolve_polymorphic_tupdesc(tupdesc,
+									&procform->proargtypes,
+									NULL))
+	{
+		if (tupdesc->tdtypeid == RECORDOID &&
+			tupdesc->tdtypmod < 0)
+			assign_record_type_typmod(tupdesc);
+	}
+}
+
+/*
  * internal_get_result_type -- workhorse code implementing all the above
  *
  * funcid must always be supplied.	call_expr and rsinfo can be NULL if not
@@ -289,11 +341,17 @@ internal_get_result_type(Oid funcid,
 	Form_pg_proc procform;
 	Oid			rettype;
 	TupleDesc	tupdesc;
+	cqContext  *pcqCtx;
 
 	/* First fetch the function's pg_proc row to inspect its rettype */
-	tp = SearchSysCache(PROCOID,
-						ObjectIdGetDatum(funcid),
-						0, 0, 0);
+	pcqCtx = caql_beginscan(
+			NULL,
+			cql("SELECT * FROM pg_proc "
+				" WHERE oid = :1 ",
+				ObjectIdGetDatum(funcid)));
+
+	tp = caql_getnext(pcqCtx);
+
 	if (!HeapTupleIsValid(tp))
 		elog(ERROR, "cache lookup failed for function %u", funcid);
 	procform = (Form_pg_proc) GETSTRUCT(tp);
@@ -330,7 +388,7 @@ internal_get_result_type(Oid funcid,
 			result = TYPEFUNC_RECORD;
 		}
 
-		ReleaseSysCache(tp);
+		caql_endscan(pcqCtx);
 
 		return result;
 	}
@@ -338,11 +396,11 @@ internal_get_result_type(Oid funcid,
 	/*
 	 * If scalar polymorphic result, try to resolve it.
 	 */
-	if (rettype == ANYARRAYOID || rettype == ANYELEMENTOID)
+	if (IsPolymorphicType(rettype))
 	{
 		Oid			newrettype = exprType(call_expr);
 
-		if (newrettype == InvalidOid)	/* this probably should not happen */
+		if (!OidIsValid(newrettype))	/* this probably should not happen */
 			ereport(ERROR,
 					(errcode(ERRCODE_DATATYPE_MISMATCH),
 					 errmsg("could not determine actual result type for function \"%s\" declared to return type %s",
@@ -382,16 +440,16 @@ internal_get_result_type(Oid funcid,
 			break;
 	}
 
-	ReleaseSysCache(tp);
+	caql_endscan(pcqCtx);
 
 	return result;
 }
 
 /*
  * Given the result tuple descriptor for a function with OUT parameters,
- * replace any polymorphic columns (ANYELEMENT/ANYARRAY) with correct data
- * types deduced from the input arguments.	Returns TRUE if able to deduce
- * all types, FALSE if not.
+ * replace any polymorphic columns (ANYELEMENT etc) with correct data types
+ * deduced from the input arguments. Returns TRUE if able to deduce all types,
+ * FALSE if not.
  */
 static bool
 resolve_polymorphic_tupdesc(TupleDesc tupdesc, oidvector *declared_args,
@@ -489,11 +547,11 @@ resolve_polymorphic_tupdesc(TupleDesc tupdesc, oidvector *declared_args,
 }
 
 /*
- * Given the declared argument types and modes for a function,
- * replace any polymorphic types (ANYELEMENT/ANYARRAY) with correct data
- * types deduced from the input arguments.	Returns TRUE if able to deduce
- * all types, FALSE if not.  This is the same logic as
- * resolve_polymorphic_tupdesc, but with a different argument representation.
+ * Given the declared argument types and modes for a function, replace any
+ * polymorphic types (ANYELEMENT etc) with correct data types deduced from the
+ * input arguments.  Returns TRUE if able to deduce all types, FALSE if not.
+ * This is the same logic as resolve_polymorphic_tupdesc, but with a different
+ * argument representation.
  *
  * argmodes may be NULL, in which case all arguments are assumed to be IN mode.
  */
@@ -517,7 +575,7 @@ resolve_polymorphic_argtypes(int numargs, Oid *argtypes, char *argmodes,
 		switch (argtypes[i])
 		{
 			case ANYELEMENTOID:
-				if (argmode == PROARGMODE_OUT)
+				if (argmode == PROARGMODE_OUT || argmode == PROARGMODE_TABLE)
 					have_anyelement_result = true;
 				else
 				{
@@ -532,7 +590,7 @@ resolve_polymorphic_argtypes(int numargs, Oid *argtypes, char *argmodes,
 				}
 				break;
 			case ANYARRAYOID:
-				if (argmode == PROARGMODE_OUT)
+				if (argmode == PROARGMODE_OUT || argmode == PROARGMODE_TABLE)
 					have_anyarray_result = true;
 				else
 				{
@@ -549,7 +607,7 @@ resolve_polymorphic_argtypes(int numargs, Oid *argtypes, char *argmodes,
 			default:
 				break;
 		}
-		if (argmode != PROARGMODE_OUT)
+		if (argmode != PROARGMODE_OUT && argmode != PROARGMODE_TABLE)
 			inargno++;
 	}
 
@@ -754,11 +812,17 @@ get_func_result_name(Oid functionId)
 	int			numoutargs;
 	int			nargnames;
 	int			i;
+	cqContext  *pcqCtx;
 
 	/* First fetch the function's pg_proc row */
-	procTuple = SearchSysCache(PROCOID,
-							   ObjectIdGetDatum(functionId),
-							   0, 0, 0);
+	pcqCtx = caql_beginscan(
+			NULL,
+			cql("SELECT * FROM pg_proc "
+				" WHERE oid = :1 ",
+				ObjectIdGetDatum(functionId)));
+
+	procTuple = caql_getnext(pcqCtx);
+
 	if (!HeapTupleIsValid(procTuple))
 		elog(ERROR, "cache lookup failed for function %u", functionId);
 
@@ -769,13 +833,13 @@ get_func_result_name(Oid functionId)
 	else
 	{
 		/* Get the data out of the tuple */
-		proargmodes = SysCacheGetAttr(PROCOID, procTuple,
-									  Anum_pg_proc_proargmodes,
-									  &isnull);
+		proargmodes = caql_getattr(pcqCtx,
+								   Anum_pg_proc_proargmodes,
+								   &isnull);
 		Assert(!isnull);
-		proargnames = SysCacheGetAttr(PROCOID, procTuple,
-									  Anum_pg_proc_proargnames,
-									  &isnull);
+		proargnames = caql_getattr(pcqCtx,
+								   Anum_pg_proc_proargnames,
+								   &isnull);
 		Assert(!isnull);
 
 		/*
@@ -807,10 +871,12 @@ get_func_result_name(Oid functionId)
 		numoutargs = 0;
 		for (i = 0; i < numargs; i++)
 		{
-			if (argmodes[i] == PROARGMODE_IN)
+			if (argmodes[i] == PROARGMODE_IN ||
+				argmodes[i] == PROARGMODE_VARIADIC)
 				continue;
 			Assert(argmodes[i] == PROARGMODE_OUT ||
-				   argmodes[i] == PROARGMODE_INOUT);
+				   argmodes[i] == PROARGMODE_INOUT ||
+				   argmodes[i] == PROARGMODE_TABLE);
 			if (++numoutargs > 1)
 			{
 				/* multiple out args, so forget it */
@@ -828,7 +894,7 @@ get_func_result_name(Oid functionId)
 		}
 	}
 
-	ReleaseSysCache(procTuple);
+	caql_endscan(pcqCtx);
 
 	return result;
 }
@@ -958,23 +1024,34 @@ build_function_result_tupdesc_d(Datum proallargtypes,
 	{
 		char	   *pname;
 
-		if (argmodes[i] == PROARGMODE_IN)
-			continue;
-		Assert(argmodes[i] == PROARGMODE_OUT ||
-			   argmodes[i] == PROARGMODE_INOUT);
-		outargtypes[numoutargs] = argtypes[i];
-		if (argnames)
-			pname = DatumGetCString(DirectFunctionCall1(textout, argnames[i]));
-		else
-			pname = NULL;
-		if (pname == NULL || pname[0] == '\0')
+		switch (argmodes[i])
 		{
-			/* Parameter is not named, so gin up a column name */
-			pname = (char *) palloc(32);
-			snprintf(pname, 32, "column%d", numoutargs + 1);
+			/* input modes */
+			case PROARGMODE_IN:
+			case PROARGMODE_VARIADIC:
+				break;
+
+			/* input and output */
+			case PROARGMODE_INOUT:
+				/* fallthrough */
+
+			/* output modes */
+			case PROARGMODE_OUT:
+			case PROARGMODE_TABLE:
+				outargtypes[numoutargs] = argtypes[i];
+				if (argnames)
+					pname = DatumGetCString(DirectFunctionCall1(textout, argnames[i]));
+				else
+					pname = NULL;
+				if (pname == NULL || pname[0] == '\0')
+				{
+					/* Parameter is not named, so gin up a column name */
+					pname = (char *) palloc(32);
+					snprintf(pname, 32, "column%d", numoutargs + 1);
+				}
+				outargnames[numoutargs] = pname;
+				numoutargs++;
 		}
-		outargnames[numoutargs] = pname;
-		numoutargs++;
 	}
 
 	/*
@@ -1077,6 +1154,7 @@ TypeGetTupleDesc(Oid typeoid, List *colaliases)
 			/* The tuple type is now an anonymous record type */
 			tupdesc->tdtypeid = RECORDOID;
 			tupdesc->tdtypmod = -1;
+			tupdesc->tdqdtypmod = -1;
 		}
 	}
 	else if (functypclass == TYPEFUNC_SCALAR)

@@ -4,7 +4,7 @@
  *		Internal definitions for parser
  *
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * $PostgreSQL: pgsql/src/include/parser/parse_node.h,v 1.50 2006/10/04 00:30:09 momjian Exp $
@@ -15,7 +15,19 @@
 #define PARSE_NODE_H
 
 #include "nodes/parsenodes.h"
+#include "utils/relcache.h"
 #include "utils/rel.h"
+
+struct HTAB;  /* utils/hsearch.h */
+
+/*
+ * CDB: Parse analysis location stack for error reporting
+ */
+typedef struct ParseStateBreadCrumb 
+{
+	Node						   *node;
+	struct ParseStateBreadCrumb	   *pop; 
+} ParseStateBreadCrumb;
 
 /*
  * State information used during parse analysis
@@ -62,12 +74,15 @@
 typedef struct ParseState
 {
 	struct ParseState *parentParseState;		/* stack link */
+	ParseStateBreadCrumb    p_breadcrumb;       /* top of err location stack */
 	const char *p_sourcetext;	/* source text, or NULL if not available */
 	List	   *p_rtable;		/* range table so far */
 	List	   *p_joinlist;		/* join items so far (will become FromExpr
 								 * node's fromlist) */
 	List	   *p_relnamespace; /* current namespace for relations */
 	List	   *p_varnamespace; /* current namespace for columns */
+	List       *p_ctenamespace; /* current namespace for common-table-expressions */
+	List	   *p_future_ctes;	/* common table exprs not yet in namespace */
 	Oid		   *p_paramtypes;	/* OIDs of types for $n parameter symbols */
 	int			p_numparams;	/* allocated size of p_paramtypes[] */
 	int			p_next_resno;	/* next targetlist resno to assign */
@@ -75,17 +90,30 @@ typedef struct ParseState
 	Node	   *p_value_substitute;		/* what to replace VALUE with, if any */
 	bool		p_variableparams;
 	bool		p_hasAggs;
+	bool		p_hasWindFuncs;
 	bool		p_hasSubLinks;
+	bool		p_hasModifyingCTE;
 	bool		p_is_insert;
 	bool		p_is_update;
 	Relation	p_target_relation;
 	RangeTblEntry *p_target_rangetblentry;
+	List	   *p_win_clauses;	/* list of window specifications */
+	Node       *having_qual; /* Having clause */
+	struct HTAB *p_namecache;  /* parse state object name cache */
+	bool        p_hasTblValueExpr;
+	bool        p_hasDynamicFunction; /* function w/unstable return type */
+	List	   *p_setopTypes;		/* predicated types on Setop */
+	List	   *p_setopTypmods;		/* predicated typmods on Setop */
+	bool        p_propagateSetopTypes;      /* if possible to propagate types on Setop */
 } ParseState;
 
 extern ParseState *make_parsestate(ParseState *parentParseState);
+extern void free_parsestate(ParseState *pstate);
+extern struct HTAB *parser_get_namecache(ParseState *pstate);
 extern int	parser_errposition(ParseState *pstate, int location);
 
-extern Var *make_var(ParseState *pstate, RangeTblEntry *rte, int attrno);
+extern Var *make_var(ParseState *pstate, RangeTblEntry *rte, int attrno,
+		 int location);
 extern Oid	transformArrayType(Oid arrayType);
 extern ArrayRef *transformArraySubscripts(ParseState *pstate,
 						 Node *arrayBase,
@@ -94,6 +122,6 @@ extern ArrayRef *transformArraySubscripts(ParseState *pstate,
 						 int32 elementTypMod,
 						 List *indirection,
 						 Node *assignFrom);
-extern Const *make_const(Value *value);
+extern Const *make_const(ParseState *pstate, Value *value, int location);
 
 #endif   /* PARSE_NODE_H */

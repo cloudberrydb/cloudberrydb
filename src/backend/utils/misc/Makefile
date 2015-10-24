@@ -12,9 +12,14 @@ subdir = src/backend/utils/misc
 top_builddir = ../../../..
 include $(top_builddir)/src/Makefile.global
 
+SUBDIRS     := fstream
+
+
 override CPPFLAGS := -I$(srcdir) $(CPPFLAGS)
 
-OBJS = guc.o help_config.o pg_rusage.o ps_status.o superuser.o tzparser.o
+OBJS = guc.o help_config.o pg_rusage.o ps_status.o superuser.o tzparser.o uriparser.o \
+       faultinjector.o netcheck.o simex.o simexsys.o syncbitvector.o testutils.o atomic.o \
+	   bitstream.o bitmap_compression.o size.o
 
 # This location might depend on the installation directories. Therefore
 # we can't subsitute it into pg_config.h.
@@ -22,11 +27,7 @@ ifdef krb_srvtab
 override CPPFLAGS += -DPG_KRB_SRVTAB='"$(krb_srvtab)"'
 endif
 
-
-all: SUBSYS.o
-
-SUBSYS.o: $(OBJS)
-	$(LD) $(LDREL) $(LDOUT) SUBSYS.o $(OBJS)
+include $(top_srcdir)/src/backend/common.mk
 
 # guc-file is compiled as part of guc
 guc.o: $(srcdir)/guc-file.c
@@ -41,12 +42,6 @@ endif
 # Note: guc-file.c is not deleted by 'make clean',
 # since we want to ship it in distribution tarballs.
 clean: 
+	for dir in $(SUBDIRS); do $(MAKE) -C $$dir $@ || exit; done
 	rm -f SUBSYS.o $(OBJS)
 	@rm -f lex.yy.c
-
-depend dep:
-	$(CC) -MM $(CFLAGS) *.c >depend
-
-ifeq (depend,$(wildcard depend))
-include depend
-endif

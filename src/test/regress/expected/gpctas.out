@@ -1,0 +1,112 @@
+set optimizer_disable_missing_stats_collection = on;
+drop table if exists ctas_src;
+NOTICE:  table "ctas_src" does not exist, skipping
+drop table if exists ctas_dst;
+NOTICE:  table "ctas_dst" does not exist, skipping
+create table ctas_src (domain integer, class integer, attr text, value integer) distributed by (domain);
+insert into ctas_src values(1, 1, 'A', 1);
+insert into ctas_src values(2, 1, 'A', 0);
+insert into ctas_src values(3, 0, 'B', 1);
+-- MPP-2859
+create table ctas_dst as 
+SELECT attr, class, (select count(distinct class) from ctas_src) as dclass FROM ctas_src GROUP BY attr, class distributed by (attr);
+drop table ctas_dst;
+create table ctas_dst as 
+SELECT attr, class, (select max(class) from ctas_src) as maxclass FROM ctas_src GROUP BY attr, class distributed by (attr);
+drop table ctas_dst;
+create table ctas_dst as 
+SELECT attr, class, (select count(distinct class) from ctas_src) as dclass, (select max(class) from ctas_src) as maxclass, (select min(class) from ctas_src) as minclass FROM ctas_src GROUP BY attr, class distributed by (attr);
+-- MPP-4298: "unknown" datatypes.
+drop table if exists ctas_foo;
+NOTICE:  table "ctas_foo" does not exist, skipping
+drop table if exists ctas_bar;
+NOTICE:  table "ctas_bar" does not exist, skipping
+drop table if exists ctas_baz;
+NOTICE:  table "ctas_baz" does not exist, skipping
+create table ctas_foo as select * from generate_series(1, 100);
+NOTICE:  Table doesn't have 'distributed by' clause. Creating a NULL policy entry.
+create table ctas_bar as select a.generate_series as a, b.generate_series as b from ctas_foo a, ctas_foo b;
+NOTICE:  Table doesn't have 'distributed by' clause. Creating a NULL policy entry.
+create table ctas_baz as select 'delete me' as action, * from ctas_bar distributed by (a);
+WARNING:  column "action" has type "unknown"
+DETAIL:  Proceeding with relation creation anyway.
+-- "action" has no type.
+\d ctas_baz
+   Table "public.ctas_baz"
+ Column |  Type   | Modifiers 
+--------+---------+-----------
+ action | unknown | 
+ a      | integer | 
+ b      | integer | 
+Distributed by: (a)
+
+select action, b from ctas_baz order by 1,2 limit 5;
+  action   | b 
+-----------+---
+ delete me | 1
+ delete me | 1
+ delete me | 1
+ delete me | 1
+ delete me | 1
+(5 rows)
+
+select action, b from ctas_baz order by 2 limit 5;
+  action   | b 
+-----------+---
+ delete me | 1
+ delete me | 1
+ delete me | 1
+ delete me | 1
+ delete me | 1
+(5 rows)
+
+select action::text, b from ctas_baz order by 1,2 limit 5;
+  action   | b 
+-----------+---
+ delete me | 1
+ delete me | 1
+ delete me | 1
+ delete me | 1
+ delete me | 1
+(5 rows)
+
+alter table ctas_baz alter column action type text;
+\d ctas_baz
+   Table "public.ctas_baz"
+ Column |  Type   | Modifiers 
+--------+---------+-----------
+ action | text    | 
+ a      | integer | 
+ b      | integer | 
+Distributed by: (a)
+
+select action, b from ctas_baz order by 1,2 limit 5;
+  action   | b 
+-----------+---
+ delete me | 1
+ delete me | 1
+ delete me | 1
+ delete me | 1
+ delete me | 1
+(5 rows)
+
+select action, b from ctas_baz order by 2 limit 5;
+  action   | b 
+-----------+---
+ delete me | 1
+ delete me | 1
+ delete me | 1
+ delete me | 1
+ delete me | 1
+(5 rows)
+
+select action::text, b from ctas_baz order by 1,2 limit 5;
+  action   | b 
+-----------+---
+ delete me | 1
+ delete me | 1
+ delete me | 1
+ delete me | 1
+ delete me | 1
+(5 rows)
+

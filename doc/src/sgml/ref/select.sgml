@@ -1,1165 +1,2402 @@
 <!--
+
 $PostgreSQL: pgsql/doc/src/sgml/ref/select.sgml,v 1.94 2006/12/01 20:49:53 tgl Exp $
+
 PostgreSQL documentation
+
 -->
 
+
+
 <refentry id="SQL-SELECT">
+
  <refmeta>
+
   <refentrytitle id="sql-select-title">SELECT</refentrytitle>
+
   <refmiscinfo>SQL - Language Statements</refmiscinfo>
+
  </refmeta>
 
+
+
  <refnamediv>
+
   <refname>SELECT</refname>
+
   <refpurpose>retrieve rows from a table or view</refpurpose>
+
  </refnamediv>
 
+
+
  <indexterm zone="sql-select">
+
   <primary>SELECT</primary>
+
  </indexterm>
 
+
+
  <refsynopsisdiv>
+
 <synopsis>
+
+[ WITH <replaceable class="parameter">with_query</replaceable> [, ...] ]
 SELECT [ ALL | DISTINCT [ ON ( <replaceable class="parameter">expression</replaceable> [, ...] ) ] ]
-    * | <replaceable class="parameter">expression</replaceable> [ AS <replaceable class="parameter">output_name</replaceable> ] [, ...]
+
+    * | <replaceable class="parameter">expression</replaceable> [ [AS] <replaceable class="parameter">output_name</replaceable> ] [, ...]
+
     [ FROM <replaceable class="parameter">from_item</replaceable> [, ...] ]
+
     [ WHERE <replaceable class="parameter">condition</replaceable> ]
-    [ GROUP BY <replaceable class="parameter">expression</replaceable> [, ...] ]
+
+    [ GROUP BY <replaceable class="parameter">grouping_element</replaceable> [, ...] ]
+
     [ HAVING <replaceable class="parameter">condition</replaceable> [, ...] ]
+
+	[ WINDOW <replaceable class="parameter">window_name</replaceable> AS (<replaceable class="parameter">window_specification</replaceable>) ]
+
     [ { UNION | INTERSECT | EXCEPT } [ ALL ] <replaceable class="parameter">select</replaceable> ]
+
     [ ORDER BY <replaceable class="parameter">expression</replaceable> [ ASC | DESC | USING <replaceable class="parameter">operator</replaceable> ] [, ...] ]
+
     [ LIMIT { <replaceable class="parameter">count</replaceable> | ALL } ]
+
     [ OFFSET <replaceable class="parameter">start</replaceable> ]
+
     [ FOR { UPDATE | SHARE } [ OF <replaceable class="parameter">table_name</replaceable> [, ...] ] [ NOWAIT ] [...] ]
+
+	
+
+where <replaceable class="parameter">grouping_element</replaceable> can be one of:
+
+    ()
+
+    <replaceable class="parameter">expression</replaceable>
+
+    ROLLUP ( [ <replaceable class="parameter">expression</replaceable> [, ...] ] )
+
+    CUBE ( [ <replaceable class="parameter">expression</replaceable> [, ...] ] )
+
+    GROUPING SETS ( ( <replaceable class="parameter">grouping_element</replaceable> [, ...] ) ) 
+
+	
+
+
+
+where <replaceable class="parameter">window_specification</replaceable> can be:
+
+    [ <replaceable class="parameter">window_name</replaceable> ]
+
+    [ PARTITION BY <replaceable class="parameter">expression</replaceable> [, ...] ]
+
+    [ ORDER BY <replaceable class="parameter">expression</replaceable> [ ASC | DESC | USING <replaceable class="parameter">operator</replaceable> ] [, ...] ]
+
+    [ {RANGE | ROWS} 
+
+           { UNBOUNDED PRECEDING
+
+           | <replaceable class="parameter">expression</replaceable> PRECEDING
+
+           | CURRENT ROW
+
+           | BETWEEN <replaceable class="parameter">window_frame_bound</replaceable> AND <replaceable class="parameter">window_frame_bound</replaceable> } ]
+
+     where <replaceable class="parameter">window_frame_bound</replaceable> can be one of:
+
+           UNBOUNDED PRECEDING
+
+           <replaceable class="parameter">expression</replaceable> PRECEDING
+
+           CURRENT ROW
+
+           <replaceable class="parameter">expression</replaceable> FOLLOWING
+
+           UNBOUNDED FOLLOWING
+
+
 
 where <replaceable class="parameter">from_item</replaceable> can be one of:
 
+
+
     [ ONLY ] <replaceable class="parameter">table_name</replaceable> [ * ] [ [ AS ] <replaceable class="parameter">alias</replaceable> [ ( <replaceable class="parameter">column_alias</replaceable> [, ...] ) ] ]
+
     ( <replaceable class="parameter">select</replaceable> ) [ AS ] <replaceable class="parameter">alias</replaceable> [ ( <replaceable class="parameter">column_alias</replaceable> [, ...] ) ]
+
     <replaceable class="parameter">function_name</replaceable> ( [ <replaceable class="parameter">argument</replaceable> [, ...] ] ) [ AS ] <replaceable class="parameter">alias</replaceable> [ ( <replaceable class="parameter">column_alias</replaceable> [, ...] | <replaceable class="parameter">column_definition</replaceable> [, ...] ) ]
+
     <replaceable class="parameter">function_name</replaceable> ( [ <replaceable class="parameter">argument</replaceable> [, ...] ] ) AS ( <replaceable class="parameter">column_definition</replaceable> [, ...] )
+
     <replaceable class="parameter">from_item</replaceable> [ NATURAL ] <replaceable class="parameter">join_type</replaceable> <replaceable class="parameter">from_item</replaceable> [ ON <replaceable class="parameter">join_condition</replaceable> | USING ( <replaceable class="parameter">join_column</replaceable> [, ...] ) ]
+
+
+
+where <replaceable class="parameter">group_elem</replaceable> can be one of:
+
+    <replaceable class="parameter">expression</replaceable> [, ...] ]
+
+    ROLLUP ( <replaceable class="parameter">expression</replaceable> [, ...] ] )
+
+    CUBE ( <replaceable class="parameter">expression</replaceable> [, ...] ] )
+
+    GROUPING SETS ( <replaceable class="parameter">group_elem</replaceable> [, ...] ] )
+
+    ( )
+
+
+and <replaceable class="parameter">with_query</replaceable> can be:
+
+    <replaceable class="parameter">query_name</replaceable> [ ( <replaceable class="parameter">column</replaceable> [, ...] ) ]
+    AS ( { VALUES ( <replaceable class="PARAMETER">expression</replaceable> [, ...] ) | <replaceable class="parameter">query</replaceable> } )
+
+
 </synopsis>
+
+
 
  </refsynopsisdiv>
 
+
+
  <refsect1>
+
   <title>Description</title>
 
+
+
   <para>
+
    <command>SELECT</command> retrieves rows from zero or more tables.
+
    The general processing of <command>SELECT</command> is as follows:
 
+
+
    <orderedlist>
+
     <listitem>
+
      <para>
+
       All elements in the <literal>FROM</literal> list are computed.
+
       (Each element in the <literal>FROM</literal> list is a real or
+
       virtual table.)  If more than one element is specified in the
+
       <literal>FROM</literal> list, they are cross-joined together.
+
       (See <xref linkend="sql-from" endterm="sql-from-title"> below.)
+
      </para>
+
     </listitem>
 
+
+
     <listitem>
+
      <para>
+
       If the <literal>WHERE</literal> clause is specified, all rows
+
       that do not satisfy the condition are eliminated from the
+
       output.  (See <xref linkend="sql-where"
+
       endterm="sql-where-title"> below.)
+
      </para>
+
     </listitem>
 
+
+
     <listitem>
+
      <para>
+
       If the <literal>GROUP BY</literal> clause is specified, the
+
       output is divided into groups of rows that match on one or more
+
       values.  If the <literal>HAVING</literal> clause is present, it
+
       eliminates groups that do not satisfy the given condition.  (See
+
       <xref linkend="sql-groupby" endterm="sql-groupby-title"> and
+
       <xref linkend="sql-having" endterm="sql-having-title"> below.)
+
      </para>
+
     </listitem>
 
+
+
     <listitem>
+
      <para>
+
       The actual output rows are computed using the
+
       <command>SELECT</command> output expressions for each selected
+
       row.  (See
+
       <xref linkend="sql-select-list" endterm="sql-select-list-title">
+
       below.)
+
      </para>
+
     </listitem>
 
+
+
     <listitem>
+
      <para>
+
       Using the operators <literal>UNION</literal>,
+
       <literal>INTERSECT</literal>, and <literal>EXCEPT</literal>, the
+
       output of more than one <command>SELECT</command> statement can
+
       be combined to form a single result set.  The
+
       <literal>UNION</literal> operator returns all rows that are in
+
       one or both of the result sets.  The
+
       <literal>INTERSECT</literal> operator returns all rows that are
+
       strictly in both result sets.  The <literal>EXCEPT</literal>
+
       operator returns the rows that are in the first result set but
+
       not in the second.  In all three cases, duplicate rows are
+
       eliminated unless <literal>ALL</literal> is specified. (See
+
       <xref linkend="sql-union" endterm="sql-union-title">, <xref
+
       linkend="sql-intersect" endterm="sql-intersect-title">, and
+
       <xref linkend="sql-except" endterm="sql-except-title"> below.)
+
      </para>
+
     </listitem>
 
+
+
     <listitem>
+
      <para>
+
       If the <literal>ORDER BY</literal> clause is specified, the
+
       returned rows are sorted in the specified order.  If
+
       <literal>ORDER BY</literal> is not given, the rows are returned
+
       in whatever order the system finds fastest to produce.  (See
+
       <xref linkend="sql-orderby" endterm="sql-orderby-title"> below.)
+
      </para>
+
     </listitem>
 
+
+
     <listitem>
+
      <para>
+
       <literal>DISTINCT</literal> eliminates duplicate rows from the
+
       result.  <literal>DISTINCT ON</literal> eliminates rows that
+
       match on all the specified expressions.  <literal>ALL</literal>
+
       (the default) will return all candidate rows, including
+
       duplicates.  (See <xref linkend="sql-distinct"
+
       endterm="sql-distinct-title"> below.)
+
      </para>
+
     </listitem>
 
+
+
     <listitem>
+
      <para>
+
       If the <literal>LIMIT</literal> or <literal>OFFSET</literal>
+
       clause is specified, the <command>SELECT</command> statement
+
       only returns a subset of the result rows. (See <xref
+
       linkend="sql-limit" endterm="sql-limit-title"> below.)
+
      </para>
+
     </listitem>
 
+
+
     <listitem>
+
      <para>
+
       If <literal>FOR UPDATE</literal> or <literal>FOR SHARE</literal>
+
       is specified, the
+
       <command>SELECT</command> statement locks the selected rows
+
       against concurrent updates.  (See <xref linkend="sql-for-update-share"
+
       endterm="sql-for-update-share-title"> below.)
+
      </para>
+
     </listitem>
+
    </orderedlist>
+
   </para>
+
+
 
   <para>
+
    You must have <literal>SELECT</literal> privilege on a table to
+
    read its values.  The use of <literal>FOR UPDATE</literal> or
+
    <literal>FOR SHARE</literal> requires
+
    <literal>UPDATE</literal> privilege as well.
+
   </para>
+
  </refsect1>
 
+
+
  <refsect1>
+
   <title>Parameters</title>
 
+
+
   <refsect2 id="SQL-FROM">
+
    <title id="sql-from-title"><literal>FROM</literal> Clause</title>
 
-   <para>
-    The <literal>FROM</literal> clause specifies one or more source
-    tables for the <command>SELECT</command>.  If multiple sources are
-    specified, the result is the Cartesian product (cross join) of all
-    the sources.  But usually qualification conditions
-    are added to restrict the returned rows to a small subset of the
-    Cartesian product.
-   </para>
+
 
    <para>
+
+    The <literal>FROM</literal> clause specifies one or more source
+
+    tables for the <command>SELECT</command>.  If multiple sources are
+
+    specified, the result is the Cartesian product (cross join) of all
+
+    the sources.  But usually qualification conditions
+
+    are added to restrict the returned rows to a small subset of the
+
+    Cartesian product.
+
+   </para>
+
+
+
+   <para>
+
     The <literal>FROM</literal> clause can contain the following
+
     elements:
 
+
+
     <variablelist>
-     <varlistentry>
-      <term><replaceable class="parameter">table_name</replaceable></term>
-      <listitem>
-       <para>
-        The name (optionally schema-qualified) of an existing table or
-        view.  If <literal>ONLY</> is specified, only that table is
-        scanned.  If <literal>ONLY</> is not specified, the table and
-        all its descendant tables (if any) are scanned.  <literal>*</>
-        can be appended to the table name to indicate that descendant
-        tables are to be scanned, but in the current version, this is
-        the default behavior.  (In releases before 7.1,
-        <literal>ONLY</> was the default behavior.)  The default
-        behavior can be modified by changing the <xref
-        linkend="guc-sql-inheritance"> configuration option.
-       </para>
-      </listitem>
-     </varlistentry>
-     
-     <varlistentry>
-      <term><replaceable class="parameter">alias</replaceable></term>
-      <listitem>
-       <para>
-        A substitute name for the <literal>FROM</> item containing the
-        alias.  An alias is used for brevity or to eliminate ambiguity
-        for self-joins (where the same table is scanned multiple
-        times).  When an alias is provided, it completely hides the
-        actual name of the table or function; for example given
-        <literal>FROM foo AS f</>, the remainder of the
-        <command>SELECT</command> must refer to this <literal>FROM</>
-        item as <literal>f</> not <literal>foo</>.  If an alias is
-        written, a column alias list can also be written to provide
-        substitute names for one or more columns of the table.
-       </para>
-      </listitem>
-     </varlistentry>
-     
-     <varlistentry>
-      <term><replaceable class="parameter">select</replaceable></term>
-      <listitem>
-       <para>
-        A sub-<command>SELECT</command> can appear in the
-        <literal>FROM</literal> clause.  This acts as though its
-        output were created as a temporary table for the duration of
-        this single <command>SELECT</command> command.  Note that the
-        sub-<command>SELECT</command> must be surrounded by
-        parentheses, and an alias <emphasis>must</emphasis> be
-        provided for it.  A
-        <xref linkend="sql-values" endterm="sql-values-title"> command
-        can also be used here.
-       </para>
-      </listitem>
-     </varlistentry>
 
      <varlistentry>
-      <term><replaceable class="parameter">function_name</replaceable></term>
+
+      <term><replaceable class="parameter">table_name</replaceable></term>
+
       <listitem>
+
        <para>
-        Function calls can appear in the <literal>FROM</literal>
-        clause.  (This is especially useful for functions that return
-        result sets, but any function can be used.)  This acts as
-        though its output were created as a temporary table for the
-        duration of this single <command>SELECT</command> command. An
-        alias may also be used. If an alias is written, a column alias
-        list can also be written to provide substitute names for one
-        or more attributes of the function's composite return type. If
-        the function has been defined as returning the <type>record</>
-        data type, then an alias or the key word <literal>AS</> must
-        be present, followed by a column definition list in the form
-        <literal>( <replaceable
-        class="parameter">column_name</replaceable> <replaceable
-        class="parameter">data_type</replaceable> <optional>, ... </>
-        )</literal>.  The column definition list must match the actual
-        number and types of columns returned by the function.
+
+        The name (optionally schema-qualified) of an existing table or
+
+        view.  If <literal>ONLY</> is specified, only that table is
+
+        scanned.  If <literal>ONLY</> is not specified, the table and
+
+        all its descendant tables (if any) are scanned.  <literal>*</>
+
+        can be appended to the table name to indicate that descendant
+
+        tables are to be scanned, but in the current version, this is
+
+        the default behavior.  (In releases before 7.1,
+
+        <literal>ONLY</> was the default behavior.)  The default
+
+        behavior can be modified by changing the <xref
+
+        linkend="guc-sql-inheritance"> configuration option.
+
        </para>
+
       </listitem>
+
      </varlistentry>
+
      
+
      <varlistentry>
-      <term><replaceable class="parameter">join_type</replaceable></term>
+
+      <term><replaceable class="parameter">alias</replaceable></term>
+
       <listitem>
+
        <para>
+
+        A substitute name for the <literal>FROM</> item containing the
+
+        alias.  An alias is used for brevity or to eliminate ambiguity
+
+        for self-joins (where the same table is scanned multiple
+
+        times).  When an alias is provided, it completely hides the
+
+        actual name of the table or function; for example given
+
+        <literal>FROM foo AS f</>, the remainder of the
+
+        <command>SELECT</command> must refer to this <literal>FROM</>
+
+        item as <literal>f</> not <literal>foo</>.  If an alias is
+
+        written, a column alias list can also be written to provide
+
+        substitute names for one or more columns of the table.
+
+       </para>
+
+      </listitem>
+
+     </varlistentry>
+
+     
+
+     <varlistentry>
+
+      <term><replaceable class="parameter">select</replaceable></term>
+
+      <listitem>
+
+       <para>
+
+        A sub-<command>SELECT</command> can appear in the
+
+        <literal>FROM</literal> clause.  This acts as though its
+
+        output were created as a temporary table for the duration of
+
+        this single <command>SELECT</command> command.  Note that the
+
+        sub-<command>SELECT</command> must be surrounded by
+
+        parentheses, and an alias <emphasis>must</emphasis> be
+
+        provided for it.  A
+
+        <xref linkend="sql-values" endterm="sql-values-title"> command
+
+        can also be used here.
+
+       </para>
+
+      </listitem>
+
+     </varlistentry>
+
+
+
+     <varlistentry>
+
+      <term><replaceable class="parameter">function_name</replaceable></term>
+
+      <listitem>
+
+       <para>
+
+        Function calls can appear in the <literal>FROM</literal>
+
+        clause.  (This is especially useful for functions that return
+
+        result sets, but any function can be used.)  This acts as
+
+        though its output were created as a temporary table for the
+
+        duration of this single <command>SELECT</command> command. An
+
+        alias may also be used. If an alias is written, a column alias
+
+        list can also be written to provide substitute names for one
+
+        or more attributes of the function's composite return type. If
+
+        the function has been defined as returning the <type>record</>
+
+        data type, then an alias or the key word <literal>AS</> must
+
+        be present, followed by a column definition list in the form
+
+        <literal>( <replaceable
+
+        class="parameter">column_name</replaceable> <replaceable
+
+        class="parameter">data_type</replaceable> <optional>, ... </>
+
+        )</literal>.  The column definition list must match the actual
+
+        number and types of columns returned by the function.
+
+       </para>
+
+      </listitem>
+
+     </varlistentry>
+
+     
+
+     <varlistentry>
+
+      <term><replaceable class="parameter">join_type</replaceable></term>
+
+      <listitem>
+
+       <para>
+
         One of
+
         <itemizedlist>
+
          <listitem>
+
           <para><literal>[ INNER ] JOIN</literal></para>
+
          </listitem>
+
          <listitem>
+
           <para><literal>LEFT [ OUTER ] JOIN</literal></para>
+
          </listitem>
+
          <listitem>
+
           <para><literal>RIGHT [ OUTER ] JOIN</literal></para>
+
          </listitem>
+
          <listitem>
+
           <para><literal>FULL [ OUTER ] JOIN</literal></para>
+
          </listitem>
+
          <listitem>
+
           <para><literal>CROSS JOIN</literal></para>
+
          </listitem>
+
         </itemizedlist>
 
+
+
         For the <literal>INNER</> and <literal>OUTER</> join types, a
+
         join condition must be specified, namely exactly one of
+
         <literal>NATURAL</>, <literal>ON <replaceable
+
         class="parameter">join_condition</replaceable></literal>, or
+
         <literal>USING (<replaceable
+
         class="parameter">join_column</replaceable> [, ...])</literal>.
+
         See below for the meaning.  For <literal>CROSS JOIN</literal>,
+
         none of these clauses may appear.
+
        </para>
 
+
+
        <para>
+
         A <literal>JOIN</literal> clause combines two
+
         <literal>FROM</> items.  Use parentheses if necessary to
+
         determine the order of nesting.  In the absence of parentheses,
+
         <literal>JOIN</literal>s nest left-to-right.  In any case
+
         <literal>JOIN</literal> binds more tightly than the commas
+
         separating <literal>FROM</> items.
+
        </para>
 
+
+
        <para>
+
         <literal>CROSS JOIN</> and <literal>INNER JOIN</literal>
+
         produce a simple Cartesian product, the same result as you get from
+
         listing the two items at the top level of <literal>FROM</>,
+
         but restricted by the join condition (if any).
+
         <literal>CROSS JOIN</> is equivalent to <literal>INNER JOIN ON
+
         (TRUE)</>, that is, no rows are removed by qualification.
+
         These join types are just a notational convenience, since they
+
         do nothing you couldn't do with plain <literal>FROM</> and
+
         <literal>WHERE</>.
+
        </para>
 
+
+
        <para>
+
         <literal>LEFT OUTER JOIN</> returns all rows in the qualified
+
         Cartesian product (i.e., all combined rows that pass its join
+
         condition), plus one copy of each row in the left-hand table
+
         for which there was no right-hand row that passed the join
+
         condition.  This left-hand row is extended to the full width
+
         of the joined table by inserting null values for the
+
         right-hand columns.  Note that only the <literal>JOIN</>
+
         clause's own condition is considered while deciding which rows
+
         have matches.  Outer conditions are applied afterwards.
+
        </para>
 
+
+
        <para>
+
         Conversely, <literal>RIGHT OUTER JOIN</> returns all the
+
         joined rows, plus one row for each unmatched right-hand row
+
         (extended with nulls on the left).  This is just a notational
+
         convenience, since you could convert it to a <literal>LEFT
+
         OUTER JOIN</> by switching the left and right inputs.
+
        </para>
 
+
+
        <para>
+
         <literal>FULL OUTER JOIN</> returns all the joined rows, plus
+
         one row for each unmatched left-hand row (extended with nulls
+
         on the right), plus one row for each unmatched right-hand row
+
         (extended with nulls on the left).
+
        </para>
+
       </listitem>
-     </varlistentry>
-     
-     <varlistentry>
-      <term><literal>ON <replaceable class="parameter">join_condition</replaceable></literal></term>
-      <listitem>
-       <para>
-        <replaceable class="parameter">join_condition</replaceable> is
-        an expression resulting in a value of type
-        <type>boolean</type> (similar to a <literal>WHERE</literal>
-        clause) that specifies which rows in a join are considered to
-        match.
-       </para>
-      </listitem>
-     </varlistentry>
-     
-     <varlistentry>
-      <term><literal>USING (<replaceable class="parameter">join_column</replaceable> [, ...])</literal></term>
-      <listitem>
-       <para>
-        A clause of the form <literal>USING ( a, b, ... )</literal> is
-        shorthand for <literal>ON left_table.a = right_table.a AND
-        left_table.b = right_table.b ...</literal>.  Also,
-        <literal>USING</> implies that only one of each pair of
-        equivalent columns will be included in the join output, not
-        both.
-       </para>
-      </listitem>
+
      </varlistentry>
 
+     
+
      <varlistentry>
-      <term><literal>NATURAL</literal></term>
+
+      <term><literal>ON <replaceable class="parameter">join_condition</replaceable></literal></term>
+
       <listitem>
+
        <para>
-        <literal>NATURAL</literal> is shorthand for a
-        <literal>USING</> list that mentions all columns in the two
-        tables that have the same names.
+
+        <replaceable class="parameter">join_condition</replaceable> is
+
+        an expression resulting in a value of type
+
+        <type>boolean</type> (similar to a <literal>WHERE</literal>
+
+        clause) that specifies which rows in a join are considered to
+
+        match.
+
        </para>
+
       </listitem>
+
      </varlistentry>
+
+     
+
+     <varlistentry>
+
+      <term><literal>USING (<replaceable class="parameter">join_column</replaceable> [, ...])</literal></term>
+
+      <listitem>
+
+       <para>
+
+        A clause of the form <literal>USING ( a, b, ... )</literal> is
+
+        shorthand for <literal>ON left_table.a = right_table.a AND
+
+        left_table.b = right_table.b ...</literal>.  Also,
+
+        <literal>USING</> implies that only one of each pair of
+
+        equivalent columns will be included in the join output, not
+
+        both.
+
+       </para>
+
+      </listitem>
+
+     </varlistentry>
+
+
+
+     <varlistentry>
+
+      <term><literal>NATURAL</literal></term>
+
+      <listitem>
+
+       <para>
+
+        <literal>NATURAL</literal> is shorthand for a
+
+        <literal>USING</> list that mentions all columns in the two
+
+        tables that have the same names.
+
+       </para>
+
+      </listitem>
+
+     </varlistentry>
+
     </variablelist>
+
    </para>
+
   </refsect2>
+
    
+
   <refsect2 id="SQL-WHERE">
+
    <title id="sql-where-title"><literal>WHERE</literal> Clause</title>
 
+
+
    <para>
+
     The optional <literal>WHERE</literal> clause has the general form
+
 <synopsis>
+
 WHERE <replaceable class="parameter">condition</replaceable>
+
 </synopsis>
+
     where <replaceable class="parameter">condition</replaceable> is
+
     any expression that evaluates to a result of type
+
     <type>boolean</type>.  Any row that does not satisfy this
+
     condition will be eliminated from the output.  A row satisfies the
+
     condition if it returns true when the actual row values are
+
     substituted for any variable references.
+
    </para>
+
   </refsect2>
+
   
+
   <refsect2 id="SQL-GROUPBY">
+
    <title id="sql-groupby-title"><literal>GROUP BY</literal> Clause</title>
 
+
+
    <para>
+
     The optional <literal>GROUP BY</literal> clause has the general form
+
 <synopsis>
+
 GROUP BY <replaceable class="parameter">expression</replaceable> [, ...]
+
 </synopsis>
+
    </para>
 
+
+
    <para>
+
     <literal>GROUP BY</literal> will condense into a single row all
+
     selected rows that share the same values for the grouped
+
     expressions.  <replaceable
+
     class="parameter">expression</replaceable> can be an input column
+
     name, or the name or ordinal number of an output column
+
     (<command>SELECT</command> list item), or an arbitrary
+
     expression formed from input-column values.  In case of ambiguity,
+
     a <literal>GROUP BY</literal> name will be interpreted as an
+
     input-column name rather than an output column name.
+
    </para>
 
+
+
    <para>
+
     Aggregate functions, if any are used, are computed across all rows
+
     making up each group, producing a separate value for each group
+
     (whereas without <literal>GROUP BY</literal>, an aggregate
+
     produces a single value computed across all the selected rows).
+
     When <literal>GROUP BY</literal> is present, it is not valid for
+
     the <command>SELECT</command> list expressions to refer to
+
     ungrouped columns except within aggregate functions, since there
+
     would be more than one possible value to return for an ungrouped
+
     column.
+
    </para>
+
   </refsect2>
+
+
 
   <refsect2 id="SQL-HAVING">
+
    <title id="sql-having-title"><literal>HAVING</literal> Clause</title>
 
+
+
    <para>
+
     The optional <literal>HAVING</literal> clause has the general form
+
 <synopsis>
+
 HAVING <replaceable class="parameter">condition</replaceable>
+
 </synopsis>
+
     where <replaceable class="parameter">condition</replaceable> is
+
     the same as specified for the <literal>WHERE</literal> clause.
+
    </para>
+
     
+
    <para>
+
     <literal>HAVING</literal> eliminates group rows that do not
+
     satisfy the condition.  <literal>HAVING</literal> is different
+
     from <literal>WHERE</literal>: <literal>WHERE</literal> filters
+
     individual rows before the application of <literal>GROUP
+
     BY</literal>, while <literal>HAVING</literal> filters group rows
+
     created by <literal>GROUP BY</literal>.  Each column referenced in
+
     <replaceable class="parameter">condition</replaceable> must
+
     unambiguously reference a grouping column, unless the reference
+
     appears within an aggregate function.
+
    </para>
+
     
+
    <para>
+
     The presence of <literal>HAVING</literal> turns a query into a grouped
+
     query even if there is no <literal>GROUP BY</> clause.  This is the
+
     same as what happens when the query contains aggregate functions but
+
     no <literal>GROUP BY</> clause.  All the selected rows are considered to
+
     form a single group, and the <command>SELECT</command> list and
+
     <literal>HAVING</literal> clause can only reference table columns from
+
     within aggregate functions.  Such a query will emit a single row if the
+
     <literal>HAVING</literal> condition is true, zero rows if it is not true.
+
    </para>
+
   </refsect2>
+
+
 
   <refsect2 id="sql-select-list">
+
    <title id="sql-select-list-title"><command>SELECT</command> List</title>
 
-   <para>
-    The <command>SELECT</command> list (between the key words
-    <literal>SELECT</> and <literal>FROM</>) specifies expressions
-    that form the output rows of the <command>SELECT</command>
-    statement.  The expressions can (and usually do) refer to columns
-    computed in the <literal>FROM</> clause.  Using the clause
-    <literal>AS <replaceable
-    class="parameter">output_name</replaceable></literal>, another
-    name can be specified for an output column.  This name is
-    primarily used to label the column for display.  It can also be
-    used to refer to the column's value in <literal>ORDER BY</> and
-    <literal>GROUP BY</> clauses, but not in the <literal>WHERE</> or
-    <literal>HAVING</> clauses; there you must write out the
-    expression instead.
-   </para>
+
 
    <para>
-    Instead of an expression, <literal>*</literal> can be written in
-    the output list as a shorthand for all the columns of the selected
-    rows.  Also, one can write <literal><replaceable
-    class="parameter">table_name</replaceable>.*</literal> as a
-    shorthand for the columns coming from just that table.
+
+    The <command>SELECT</command> list (between the key words
+
+    <literal>SELECT</> and <literal>FROM</>) specifies expressions
+
+    that form the output rows of the <command>SELECT</command>
+
+    statement.  The expressions can (and usually do) refer to columns
+
+    computed in the <literal>FROM</> clause.  Using the clause
+
+    <literal>AS <replaceable
+
+    class="parameter">output_name</replaceable></literal>, another
+
+    name can be specified for an output column.  This name is
+
+    primarily used to label the column for display.  It can also be
+
+    used to refer to the column's value in <literal>ORDER BY</> and
+
+    <literal>GROUP BY</> clauses, but not in the <literal>WHERE</> or
+
+    <literal>HAVING</> clauses; there you must write out the
+
+    expression instead.
+
    </para>
+
+
+
+   <para>
+
+    Instead of an expression, <literal>*</literal> can be written in
+
+    the output list as a shorthand for all the columns of the selected
+
+    rows.  Also, one can write <literal><replaceable
+
+    class="parameter">table_name</replaceable>.*</literal> as a
+
+    shorthand for the columns coming from just that table.
+
+   </para>
+
   </refsect2>
+
   
+
   <refsect2 id="SQL-UNION">
+
    <title id="sql-union-title"><literal>UNION</literal> Clause</title>
 
+
+
    <para>
+
     The <literal>UNION</literal> clause has this general form:
+
 <synopsis>
+
 <replaceable class="parameter">select_statement</replaceable> UNION [ ALL ] <replaceable class="parameter">select_statement</replaceable>
+
 </synopsis>
+
     <replaceable class="parameter">select_statement</replaceable> is
+
     any <command>SELECT</command> statement without an <literal>ORDER
+
     BY</>, <literal>LIMIT</>, <literal>FOR UPDATE</literal>, or
+
     <literal>FOR SHARE</literal> clause.
+
     (<literal>ORDER BY</> and <literal>LIMIT</> can be attached to a
+
     subexpression if it is enclosed in parentheses.  Without
+
     parentheses, these clauses will be taken to apply to the result of
+
     the <literal>UNION</literal>, not to its right-hand input
+
     expression.)
+
    </para>
+
     
+
    <para>
+
     The <literal>UNION</literal> operator computes the set union of
+
     the rows returned by the involved <command>SELECT</command>
+
     statements.  A row is in the set union of two result sets if it
+
     appears in at least one of the result sets.  The two
+
     <command>SELECT</command> statements that represent the direct
+
     operands of the <literal>UNION</literal> must produce the same
+
     number of columns, and corresponding columns must be of compatible
+
     data types.
+
    </para>
+
     
+
    <para>
+
     The result of <literal>UNION</> does not contain any duplicate
+
     rows unless the <literal>ALL</> option is specified.
+
     <literal>ALL</> prevents elimination of duplicates.  (Therefore,
+
     <literal>UNION ALL</> is usually significantly quicker than
+
     <literal>UNION</>; use <literal>ALL</> when you can.)
+
    </para>
+
     
+
    <para>
+
     Multiple <literal>UNION</> operators in the same
+
     <command>SELECT</command> statement are evaluated left to right,
+
     unless otherwise indicated by parentheses.
+
    </para>
+
     
+
    <para>
+
     Currently, <literal>FOR UPDATE</> and <literal>FOR SHARE</> may not be
+
     specified either for a <literal>UNION</> result or for any input of a
+
     <literal>UNION</>.
+
    </para>
+
   </refsect2>
+
+
 
   <refsect2 id="SQL-INTERSECT">
+
    <title id="sql-intersect-title"><literal>INTERSECT</literal> Clause</title>
 
-   <para>
-    The <literal>INTERSECT</literal> clause has this general form:
-<synopsis>
-<replaceable class="parameter">select_statement</replaceable> INTERSECT [ ALL ] <replaceable class="parameter">select_statement</replaceable>
-</synopsis>
-    <replaceable class="parameter">select_statement</replaceable> is
-    any <command>SELECT</command> statement without an <literal>ORDER
-    BY</>, <literal>LIMIT</>, <literal>FOR UPDATE</literal>, or
-    <literal>FOR SHARE</literal> clause.
-   </para>
+
 
    <para>
+
+    The <literal>INTERSECT</literal> clause has this general form:
+
+<synopsis>
+
+<replaceable class="parameter">select_statement</replaceable> INTERSECT [ ALL ] <replaceable class="parameter">select_statement</replaceable>
+
+</synopsis>
+
+    <replaceable class="parameter">select_statement</replaceable> is
+
+    any <command>SELECT</command> statement without an <literal>ORDER
+
+    BY</>, <literal>LIMIT</>, <literal>FOR UPDATE</literal>, or
+
+    <literal>FOR SHARE</literal> clause.
+
+   </para>
+
+
+
+   <para>
+
     The <literal>INTERSECT</literal> operator computes the set
+
     intersection of the rows returned by the involved
+
     <command>SELECT</command> statements.  A row is in the
+
     intersection of two result sets if it appears in both result sets.
+
    </para>
+
     
+
    <para>
+
     The result of <literal>INTERSECT</literal> does not contain any
+
     duplicate rows unless the <literal>ALL</> option is specified.
+
     With <literal>ALL</>, a row that has <replaceable>m</> duplicates in the
+
     left table and <replaceable>n</> duplicates in the right table will appear
+
     min(<replaceable>m</>,<replaceable>n</>) times in the result set.
+
    </para>
+
     
+
    <para>
+
     Multiple <literal>INTERSECT</literal> operators in the same
+
     <command>SELECT</command> statement are evaluated left to right,
+
     unless parentheses dictate otherwise.
+
     <literal>INTERSECT</literal> binds more tightly than
+
     <literal>UNION</literal>.  That is, <literal>A UNION B INTERSECT
+
     C</literal> will be read as <literal>A UNION (B INTERSECT
+
     C)</literal>.
+
    </para>
+
     
+
    <para>
+
     Currently, <literal>FOR UPDATE</> and <literal>FOR SHARE</> may not be
+
     specified either for an <literal>INTERSECT</> result or for any input of
+
     an <literal>INTERSECT</>.
+
    </para>
+
   </refsect2>
+
+
 
   <refsect2 id="SQL-EXCEPT">
+
    <title id="sql-except-title"><literal>EXCEPT</literal> Clause</title>
 
-   <para>
-    The <literal>EXCEPT</literal> clause has this general form:
-<synopsis>
-<replaceable class="parameter">select_statement</replaceable> EXCEPT [ ALL ] <replaceable class="parameter">select_statement</replaceable>
-</synopsis>
-    <replaceable class="parameter">select_statement</replaceable> is
-    any <command>SELECT</command> statement without an <literal>ORDER
-    BY</>, <literal>LIMIT</>, <literal>FOR UPDATE</literal>, or
-    <literal>FOR SHARE</literal> clause.
-   </para>
+
 
    <para>
+
+    The <literal>EXCEPT</literal> clause has this general form:
+
+<synopsis>
+
+<replaceable class="parameter">select_statement</replaceable> EXCEPT [ ALL ] <replaceable class="parameter">select_statement</replaceable>
+
+</synopsis>
+
+    <replaceable class="parameter">select_statement</replaceable> is
+
+    any <command>SELECT</command> statement without an <literal>ORDER
+
+    BY</>, <literal>LIMIT</>, <literal>FOR UPDATE</literal>, or
+
+    <literal>FOR SHARE</literal> clause.
+
+   </para>
+
+
+
+   <para>
+
     The <literal>EXCEPT</literal> operator computes the set of rows
+
     that are in the result of the left <command>SELECT</command>
+
     statement but not in the result of the right one.
+
    </para>
+
     
+
    <para>
+
     The result of <literal>EXCEPT</literal> does not contain any
+
     duplicate rows unless the <literal>ALL</> option is specified.
+
     With <literal>ALL</>, a row that has <replaceable>m</> duplicates in the
+
     left table and <replaceable>n</> duplicates in the right table will appear
+
     max(<replaceable>m</>-<replaceable>n</>,0) times in the result set.
+
    </para>
+
     
+
    <para>
+
     Multiple <literal>EXCEPT</literal> operators in the same
+
     <command>SELECT</command> statement are evaluated left to right,
+
     unless parentheses dictate otherwise.  <literal>EXCEPT</> binds at
+
     the same level as <literal>UNION</>.
+
    </para>
+
     
+
    <para>
+
     Currently, <literal>FOR UPDATE</> and <literal>FOR SHARE</> may not be
+
     specified either for an <literal>EXCEPT</> result or for any input of
+
     an <literal>EXCEPT</>.
+
    </para>
+
   </refsect2>
+
+
 
   <refsect2 id="SQL-ORDERBY">
+
    <title id="sql-orderby-title"><literal>ORDER BY</literal> Clause</title>
 
+
+
    <para>
+
     The optional <literal>ORDER BY</literal> clause has this general form:
+
 <synopsis>
+
 ORDER BY <replaceable class="parameter">expression</replaceable> [ ASC | DESC | USING <replaceable class="parameter">operator</replaceable> ] [, ...]
+
 </synopsis>
+
     <replaceable class="parameter">expression</replaceable> can be the
+
     name or ordinal number of an output column
+
     (<command>SELECT</command> list item), or it can be an arbitrary
+
     expression formed from input-column values.
+
    </para>
 
+
+
    <para>
+
     The <literal>ORDER BY</literal> clause causes the result rows to
+
     be sorted according to the specified expressions.  If two rows are
+
     equal according to the leftmost expression, the are compared
+
     according to the next expression and so on.  If they are equal
+
     according to all specified expressions, they are returned in
+
     an implementation-dependent order.
+
    </para>
 
+
+
    <para>
+
     The ordinal number refers to the ordinal (left-to-right) position
+
     of the result column. This feature makes it possible to define an
+
     ordering on the basis of a column that does not have a unique
+
     name.  This is never absolutely necessary because it is always
+
     possible to assign a name to a result column using the
+
     <literal>AS</> clause.
+
    </para>
+
     
+
    <para>
+
     It is also possible to use arbitrary expressions in the
+
     <literal>ORDER BY</literal> clause, including columns that do not
+
     appear in the <command>SELECT</command> result list.  Thus the
+
     following statement is valid:
+
 <programlisting>
+
 SELECT name FROM distributors ORDER BY code;
+
 </programlisting>
+
     A limitation of this feature is that an <literal>ORDER BY</>
+
     clause applying to the result of a <literal>UNION</>,
+
     <literal>INTERSECT</>, or <literal>EXCEPT</> clause may only
+
     specify an output column name or number, not an expression.
+
    </para>
 
+
+
    <para>
+
     If an <literal>ORDER BY</> expression is a simple name that
+
     matches both a result column name and an input column name,
+
     <literal>ORDER BY</> will interpret it as the result column name.
+
     This is the opposite of the choice that <literal>GROUP BY</> will
+
     make in the same situation.  This inconsistency is made to be
+
     compatible with the SQL standard.
+
    </para>
+
     
+
    <para>
+
     Optionally one may add the key word <literal>ASC</> (ascending) or
+
     <literal>DESC</> (descending) after any expression in the
+
     <literal>ORDER BY</> clause.  If not specified, <literal>ASC</> is
+
     assumed by default.  Alternatively, a specific ordering operator
+
     name may be specified in the <literal>USING</> clause.
+
     <literal>ASC</> is usually equivalent to <literal>USING &lt;</> and
+
     <literal>DESC</> is usually equivalent to <literal>USING &gt;</>.
+
     (But the creator of a user-defined data type can define exactly what the
+
     default sort ordering is, and it might correspond to operators with other
+
     names.)
+
    </para>
 
+
+
    <para>
+
     The null value sorts higher than any other value. In other words,
+
     with ascending sort order, null values sort at the end, and with
+
     descending sort order, null values sort at the beginning.
+
    </para>
 
+
+
    <para>
+
     Character-string data is sorted according to the locale-specific
+
     collation order that was established when the database cluster
+
     was initialized.
+
    </para>
+
   </refsect2>
+
+
 
   <refsect2 id="sql-distinct">
+
    <title id="sql-distinct-title"><literal>DISTINCT</literal> Clause</title>
 
+
+
    <para>
+
     If <literal>DISTINCT</> is specified, all duplicate rows are
+
     removed from the result set (one row is kept from each group of
+
     duplicates).  <literal>ALL</> specifies the opposite: all rows are
+
     kept; that is the default.
+
    </para>
 
+
+
    <para>
+
     <literal>DISTINCT ON ( <replaceable
+
     class="parameter">expression</replaceable> [, ...] )</literal>
+
     keeps only the first row of each set of rows where the given
+
     expressions evaluate to equal.  The <literal>DISTINCT ON</literal>
+
     expressions are interpreted using the same rules as for
+
     <literal>ORDER BY</> (see above).  Note that the <quote>first
+
     row</quote> of each set is unpredictable unless <literal>ORDER
+
     BY</> is used to ensure that the desired row appears first.  For
+
     example,
+
 <programlisting>
+
 SELECT DISTINCT ON (location) location, time, report
+
     FROM weather_reports
+
     ORDER BY location, time DESC;
+
 </programlisting>
+
     retrieves the most recent weather report for each location.  But
+
     if we had not used <literal>ORDER BY</> to force descending order
+
     of time values for each location, we'd have gotten a report from
+
     an unpredictable time for each location.
+
    </para>
 
+
+
    <para>
+
     The <literal>DISTINCT ON</> expression(s) must match the leftmost
+
     <literal>ORDER BY</> expression(s).  The <literal>ORDER BY</> clause
+
     will normally contain additional expression(s) that determine the
+
     desired precedence of rows within each <literal>DISTINCT ON</> group.
+
    </para>
+
   </refsect2>
+
   
+
   <refsect2 id="SQL-LIMIT">
+
    <title id="sql-limit-title"><literal>LIMIT</literal> Clause</title>
 
+
+
    <para>
+
     The <literal>LIMIT</literal> clause consists of two independent
+
     sub-clauses:
+
 <synopsis>
+
 LIMIT { <replaceable class="parameter">count</replaceable> | ALL }
+
 OFFSET <replaceable class="parameter">start</replaceable>
+
 </synopsis>
+
     <replaceable class="parameter">count</replaceable> specifies the
+
     maximum number of rows to return, while <replaceable
+
     class="parameter">start</replaceable> specifies the number of rows
+
     to skip before starting to return rows.  When both are specified,
+
     <replaceable class="parameter">start</replaceable> rows are skipped
+
     before starting to count the <replaceable
+
     class="parameter">count</replaceable> rows to be returned.
+
    </para>
 
+
+
    <para>
+
     When using <literal>LIMIT</>, it is a good idea to use an
+
     <literal>ORDER BY</> clause that constrains the result rows into a
+
     unique order.  Otherwise you will get an unpredictable subset of
+
     the query's rows &mdash; you may be asking for the tenth through
+
     twentieth rows, but tenth through twentieth in what ordering?  You
+
     don't know what ordering unless you specify <literal>ORDER BY</>.
+
    </para>
 
+
+
    <para>
+
     The query planner takes <literal>LIMIT</> into account when
+
     generating a query plan, so you are very likely to get different
+
     plans (yielding different row orders) depending on what you use
+
     for <literal>LIMIT</> and <literal>OFFSET</>.  Thus, using
+
     different <literal>LIMIT</>/<literal>OFFSET</> values to select
+
     different subsets of a query result <emphasis>will give
+
     inconsistent results</emphasis> unless you enforce a predictable
+
     result ordering with <literal>ORDER BY</>.  This is not a bug; it
+
     is an inherent consequence of the fact that SQL does not promise
+
     to deliver the results of a query in any particular order unless
+
     <literal>ORDER BY</> is used to constrain the order.
+
    </para>
+
   </refsect2>
+
+
 
   <refsect2 id="SQL-FOR-UPDATE-SHARE">
+
    <title id="sql-for-update-share-title"><literal>FOR UPDATE</literal>/<literal>FOR SHARE</literal> Clause</title>
 
+
+
    <para>
+
     The <literal>FOR UPDATE</literal> clause has this form:
+
 <synopsis>
+
 FOR UPDATE [ OF <replaceable class="parameter">table_name</replaceable> [, ...] ] [ NOWAIT ]
+
 </synopsis>
+
    </para>
 
+
+
    <para>
+
     The closely related <literal>FOR SHARE</literal> clause has this form:
+
 <synopsis>
+
 FOR SHARE [ OF <replaceable class="parameter">table_name</replaceable> [, ...] ] [ NOWAIT ]
+
 </synopsis>
+
    </para>
 
+
+
    <para>
+
     <literal>FOR UPDATE</literal> causes the rows retrieved by the
+
     <command>SELECT</command> statement to be locked as though for
+
     update.  This prevents them from being modified or deleted by
+
     other transactions until the current transaction ends.  That is,
+
     other transactions that attempt <command>UPDATE</command>,
+
     <command>DELETE</command>, or <command>SELECT FOR UPDATE</command>
+
     of these rows will be blocked until the current transaction ends.
+
     Also, if an <command>UPDATE</command>, <command>DELETE</command>,
+
     or <command>SELECT FOR UPDATE</command> from another transaction
+
     has already locked a selected row or rows, <command>SELECT FOR
+
     UPDATE</command> will wait for the other transaction to complete,
+
     and will then lock and return the updated row (or no row, if the
+
     row was deleted).  For further discussion see <xref
+
     linkend="mvcc">.
+
    </para>
 
+
+
    <para>
+
     To prevent the operation from waiting for other transactions to commit,
+
     use the <literal>NOWAIT</> option.  <command>SELECT FOR UPDATE
+
     NOWAIT</command> reports an error, rather than waiting, if a selected row
+
     cannot be locked immediately.  Note that <literal>NOWAIT</> applies only
+
     to the row-level lock(s) &mdash; the required <literal>ROW SHARE</literal>
+
     table-level lock is still taken in the ordinary way (see
+
     <xref linkend="mvcc">).  You can use the <literal>NOWAIT</> option of
+
     <xref linkend="sql-lock" endterm="sql-lock-title">
+
     if you need to acquire the table-level lock without waiting.
+
    </para>
 
+
+
    <para>
+
     <literal>FOR SHARE</literal> behaves similarly, except that it
+
     acquires a shared rather than exclusive lock on each retrieved
+
     row.  A shared lock blocks other transactions from performing
+
     <command>UPDATE</command>, <command>DELETE</command>, or <command>SELECT
+
     FOR UPDATE</command> on these rows, but it does not prevent them
+
     from performing <command>SELECT FOR SHARE</command>.
+
    </para>
 
+
+
    <para>
+
     If specific tables are named in <literal>FOR UPDATE</literal>
+
     or <literal>FOR SHARE</literal>,
+
     then only rows coming from those tables are locked; any other
+
     tables used in the <command>SELECT</command> are simply read as
+
     usual.  A <literal>FOR UPDATE</literal> or <literal>FOR SHARE</literal>
+
     clause without a table list affects all tables used in the command.
+
     If <literal>FOR UPDATE</literal> or <literal>FOR SHARE</literal> is
+
     applied to a view or sub-query, it affects all tables used in
+
     the view or sub-query.
+
    </para>
 
+
+
    <para>
+
     Multiple <literal>FOR UPDATE</literal> and <literal>FOR SHARE</literal>
+
     clauses can be written if it is necessary to specify different locking
+
     behavior for different tables.  If the same table is mentioned (or
+
     implicitly affected) by both <literal>FOR UPDATE</literal> and
+
     <literal>FOR SHARE</literal> clauses, then it is processed as
+
     <literal>FOR UPDATE</literal>.  Similarly, a table is processed
+
     as <literal>NOWAIT</> if that is specified in any of the clauses
+
     affecting it.
+
    </para>
 
+
+
    <para>
+
     <literal>FOR UPDATE</literal> and <literal>FOR SHARE</literal> cannot be
+
     used in contexts where returned rows can't be clearly identified with
+
     individual table rows; for example they can't be used with aggregation.
+
    </para>
 
+
+
   <caution>
+
    <para>
+
     Avoid locking a row and then modifying it within a later savepoint or
+
     <application>PL/pgSQL</application> exception block.  A subsequent
+
     rollback would cause the lock to be lost.  For example,
+
 <programlisting>
+
 BEGIN;
+
 SELECT * FROM mytable WHERE key = 1 FOR UPDATE;
+
 SAVEPOINT s;
+
 UPDATE mytable SET ... WHERE key = 1;
+
 ROLLBACK TO s;
+
 </programlisting>
+
     After the <command>ROLLBACK</>, the row is effectively unlocked, rather
+
     than returned to its pre-savepoint state of being locked but not modified.
+
     This hazard occurs if a row locked in the current transaction is updated
+
     or deleted, or if a shared lock is upgraded to exclusive: in all these
+
     cases, the former lock state is forgotten.  If the transaction is then
+
     rolled back to a state between the original locking command and the
+
     subsequent change, the row will appear not to be locked at all.  This is
+
     an implementation deficiency which will be addressed in a future release
+
     of <productname>PostgreSQL</productname>.
+
    </para>
+
   </caution>
 
+
+
   <caution>
+
    <para>
+
     It is possible for a <command>SELECT</> command using both
+
     <literal>LIMIT</literal> and  <literal>FOR UPDATE/SHARE</literal>
+
     clauses to return fewer rows than specified by <literal>LIMIT</literal>.
+
     This is because <literal>LIMIT</> is applied first.  The command
+
     selects the specified number of rows,
+
     but might then block trying to obtain lock on one or more of them.
+
     Once the <literal>SELECT</> unblocks, the row might have been deleted
+
     or updated so that it does not meet the query <literal>WHERE</> condition
+
     anymore, in which case it will not be returned.
+
    </para>
+
   </caution>
+
   </refsect2>
+
  </refsect1>
 
+
+
  <refsect1>
+
   <title>Examples</title>
 
+
+
   <para>
+
    To join the table <literal>films</literal> with the table
+
    <literal>distributors</literal>:
 
+
+
 <programlisting>
+
 SELECT f.title, f.did, d.name, f.date_prod, f.kind
+
     FROM distributors d, films f
+
     WHERE f.did = d.did
 
+
+
        title       | did |     name     | date_prod  |   kind
+
 -------------------+-----+--------------+------------+----------
+
  The Third Man     | 101 | British Lion | 1949-12-23 | Drama
+
  The African Queen | 101 | British Lion | 1951-08-11 | Romantic
+
  ...
+
 </programlisting>
+
   </para>
 
+
+
   <para>
+
    To sum the column <literal>len</literal> of all films and group
+
    the results by <literal>kind</literal>:
 
+
+
 <programlisting>
+
 SELECT kind, sum(len) AS total FROM films GROUP BY kind;
 
+
+
    kind   | total
+
 ----------+-------
+
  Action   | 07:34
+
  Comedy   | 02:58
+
  Drama    | 14:28
+
  Musical  | 06:42
+
  Romantic | 04:38
+
 </programlisting>
+
   </para>
 
+
+
   <para>
+
    To sum the column <literal>len</literal> of all films, group
+
    the results by <literal>kind</literal> and show those group totals
+
    that are less than 5 hours:
 
+
+
 <programlisting>
+
 SELECT kind, sum(len) AS total
+
     FROM films
+
     GROUP BY kind
+
     HAVING sum(len) &lt; interval '5 hours';
 
+
+
    kind   | total
+
 ----------+-------
+
  Comedy   | 02:58
+
  Romantic | 04:38
+
 </programlisting>
+
   </para>
 
+
+
   <para>
+
    The following two examples are identical ways of sorting the individual
+
    results according to the contents of the second column
+
    (<literal>name</literal>):
 
+
+
 <programlisting>
+
 SELECT * FROM distributors ORDER BY name;
+
 SELECT * FROM distributors ORDER BY 2;
 
+
+
  did |       name
+
 -----+------------------
+
  109 | 20th Century Fox
+
  110 | Bavaria Atelier
+
  101 | British Lion
+
  107 | Columbia
+
  102 | Jean Luc Godard
+
  113 | Luso films
+
  104 | Mosfilm
+
  103 | Paramount
+
  106 | Toho
+
  105 | United Artists
+
  111 | Walt Disney
+
  112 | Warner Bros.
+
  108 | Westward
+
 </programlisting>
+
   </para>
 
+
+
   <para>
+
    The next example shows how to obtain the union of the tables
+
    <literal>distributors</literal> and
+
    <literal>actors</literal>, restricting the results to those that begin
+
    with the letter W in each table.  Only distinct rows are wanted, so the
+
    key word <literal>ALL</literal> is omitted.
 
+
+
 <programlisting>
+
 distributors:               actors:
+
  did |     name              id |     name
+
 -----+--------------        ----+----------------
+
  108 | Westward               1 | Woody Allen
+
  111 | Walt Disney            2 | Warren Beatty
+
  112 | Warner Bros.           3 | Walter Matthau
+
  ...                         ...
 
+
+
 SELECT distributors.name
+
     FROM distributors
+
     WHERE distributors.name LIKE 'W%'
+
 UNION
+
 SELECT actors.name
+
     FROM actors
+
     WHERE actors.name LIKE 'W%';
 
+
+
       name
+
 ----------------
+
  Walt Disney
+
  Walter Matthau
+
  Warner Bros.
+
  Warren Beatty
+
  Westward
+
  Woody Allen
+
 </programlisting>
+
   </para>
 
+
+
   <para>
+
    This example shows how to use a function in the <literal>FROM</>
+
    clause, both with and without a column definition list:
 
+
+
 <programlisting>
+
 CREATE FUNCTION distributors(int) RETURNS SETOF distributors AS $$
+
     SELECT * FROM distributors WHERE did = $1;
+
 $$ LANGUAGE SQL;
+
+
 
 SELECT * FROM distributors(111);
+
  did |    name
+
 -----+-------------
+
  111 | Walt Disney
+
+
 
 CREATE FUNCTION distributors_2(int) RETURNS SETOF record AS $$
+
     SELECT * FROM distributors WHERE did = $1;
+
 $$ LANGUAGE SQL;
 
+
+
 SELECT * FROM distributors_2(111) AS (f1 int, f2 text);
+
  f1  |     f2
+
 -----+-------------
+
  111 | Walt Disney
+
 </programlisting>
+
   </para>
+
  </refsect1>
+
  
+
  <refsect1>
+
   <title>Compatibility</title>
 
+
+
   <para>
+
    Of course, the <command>SELECT</command> statement is compatible
+
    with the SQL standard.  But there are some extensions and some
+
    missing features.
+
   </para>
+
   
+
   <refsect2>
+
    <title>Omitted <literal>FROM</literal> Clauses</title>
 
+
+
    <para>
+
     <productname>PostgreSQL</productname> allows one to omit the
+
     <literal>FROM</literal> clause.  It has a straightforward use to
+
     compute the results of simple expressions:
+
 <programlisting>
+
 SELECT 2+2;
 
+
+
  ?column?
+
 ----------
+
         4
+
 </programlisting>
+
     Some other <acronym>SQL</acronym> databases cannot do this except
+
     by introducing a dummy one-row table from which to do the
+
     <command>SELECT</command>.
+
    </para>
+
+
 
    <para>
+
     Note that if a <literal>FROM</literal> clause is not specified,
+
     the query cannot reference any database tables. For example, the
+
     following query is invalid:
+
 <programlisting>
+
 SELECT distributors.* WHERE distributors.name = 'Westward';
+
 </programlisting>
+
     <productname>PostgreSQL</productname> releases prior to
+
     8.1 would accept queries of this form, and add an implicit entry
+
     to the query's <literal>FROM</literal> clause for each table
+
     referenced by the query. This is no longer the default behavior,
+
     because it does not comply with the SQL standard, and is
+
     considered by many to be error-prone. For compatibility with
+
     applications that rely on this behavior the <xref
+
     linkend="guc-add-missing-from"> configuration variable can be
+
     enabled.
+
    </para>
+
   </refsect2>
 
+
+
   <refsect2>
+
    <title>The <literal>AS</literal> Key Word</title>
 
+
+
    <para>
+
     In the SQL standard, the optional key word <literal>AS</> is just
+
     noise and can be omitted without affecting the meaning.  The
+
     <productname>PostgreSQL</productname> parser requires this key
+
     word when renaming output columns because the type extensibility
+
     features lead to parsing ambiguities without it.
+
     <literal>AS</literal> is optional in <literal>FROM</literal>
+
     items, however.
+
    </para>
+
   </refsect2>
 
+
+
   <refsect2>
+
    <title>Namespace Available to <literal>GROUP BY</literal> and <literal>ORDER BY</literal></title>
 
-   <para>
-    In the SQL-92 standard, an <literal>ORDER BY</literal> clause may
-    only use result column names or numbers, while a <literal>GROUP
-    BY</literal> clause may only use expressions based on input column
-    names.  <productname>PostgreSQL</productname> extends each of
-    these clauses to allow the other choice as well (but it uses the
-    standard's interpretation if there is ambiguity).
-    <productname>PostgreSQL</productname> also allows both clauses to
-    specify arbitrary expressions.  Note that names appearing in an
-    expression will always be taken as input-column names, not as
-    result-column names.
-   </para>
+
 
    <para>
-    SQL:1999 and later use a slightly different definition which is not
-    entirely upward compatible with SQL-92.  
-    In most cases, however, <productname>PostgreSQL</productname>
-    will interpret an <literal>ORDER BY</literal> or <literal>GROUP
-    BY</literal> expression the same way SQL:1999 does.
+
+    In the SQL-92 standard, an <literal>ORDER BY</literal> clause may
+
+    only use result column names or numbers, while a <literal>GROUP
+
+    BY</literal> clause may only use expressions based on input column
+
+    names.  <productname>PostgreSQL</productname> extends each of
+
+    these clauses to allow the other choice as well (but it uses the
+
+    standard's interpretation if there is ambiguity).
+
+    <productname>PostgreSQL</productname> also allows both clauses to
+
+    specify arbitrary expressions.  Note that names appearing in an
+
+    expression will always be taken as input-column names, not as
+
+    result-column names.
+
    </para>
+
+
+
+   <para>
+
+    SQL:1999 and later use a slightly different definition which is not
+
+    entirely upward compatible with SQL-92.  
+
+    In most cases, however, <productname>PostgreSQL</productname>
+
+    will interpret an <literal>ORDER BY</literal> or <literal>GROUP
+
+    BY</literal> expression the same way SQL:1999 does.
+
+   </para>
+
   </refsect2>
+
+
 
   <refsect2>
+
    <title>Nonstandard Clauses</title>
 
+
+
    <para>
+
     The clauses <literal>DISTINCT ON</literal>,
+
     <literal>LIMIT</literal>, and <literal>OFFSET</literal> are not
+
     defined in the SQL standard.
+
    </para>
+
   </refsect2>
+
  </refsect1>
+
 </refentry>
+

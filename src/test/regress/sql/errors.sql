@@ -47,6 +47,15 @@ select distinct on (foobar) * from pg_database;
 -- missing relation name (this had better not wildcard!) 
 delete from;
 
+
+-- start_matchsubs
+--
+-- # SPARC diff:
+-- m/ERROR\:.*does not exist.* \(SOMEFILE\:SOMEFUNC\)/
+-- s/\(SOMEFILE\:SOMEFUNC\)//
+--
+-- end_matchsubs
+
 -- no such relation 
 delete from nonesuch;
 
@@ -244,6 +253,20 @@ drop tuple rule nonesuch;
 drop instance rule nonesuch on noplace;
 drop rewrite rule nonesuch;
 
+
+-- start_matchsubs
+--
+-- # SPARC diff for divide by zero:
+-- # ignore the floating point error
+-- m/ERROR\:.*floating\-point exception/
+-- s/(.*)/GP_IGNORE: $1/
+--
+-- # change the detail to the "correct" error
+-- m/DETAIL\:\s+An invalid floating\-point operation was signaled.*division by zer/
+-- s/(.*)/ERROR:  division by zero/
+--
+-- end_matchsubs
+
 --
 -- Check that division-by-zero is properly caught.
 --
@@ -371,6 +394,13 @@ NULL);
 -- Check that stack depth detection mechanism works and
 -- max_stack_depth is not set too high
 create function infinite_recurse() returns int as
-'select infinite_recurse()' language sql;
+'select infinite_recurse()' language sql CONTAINS SQL;
 \set VERBOSITY terse
+-- start_matchsubs
+-- # mpp-2756
+-- m/(ERROR|WARNING|CONTEXT|NOTICE):.*stack depth limit exceeded\s+at\s+character/
+-- s/\s+at\s+character.*//
+-- end_matchsubs
 select infinite_recurse();
+
+select 1; -- test that this works

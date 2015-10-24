@@ -2,9 +2,9 @@
 #
 # Makefile for src/bin/pg_config
 #
-# Copyright (c) 1998-2006, PostgreSQL Global Development Group
+# Copyright (c) 1998-2009, PostgreSQL Global Development Group
 #
-# $PostgreSQL: pgsql/src/bin/pg_config/Makefile,v 1.17 2006/03/05 15:58:50 momjian Exp $
+# $PostgreSQL: pgsql/src/bin/pg_config/Makefile,v 1.21 2009/01/01 17:23:54 momjian Exp $
 #
 #-------------------------------------------------------------------------
 
@@ -15,19 +15,28 @@ include $(top_builddir)/src/Makefile.global
 
 OBJS=   pg_config.o $(WIN32RES)
 
+# The frontend doesn't need everything that's in LIBS, some are backend only
+LIBS := $(filter-out -lresolv -lbz2 -lnetsnmp, $(LIBS))
+# This program isn't interactive, so doesn't need these
+LIBS := $(filter-out -lreadline -ledit -ltermcap -lncurses -lcurses -lcurl -lssl -lcrypto -lz, $(LIBS))
+
+
+
 # don't include subdirectory-path-dependent -I and -L switches
-STD_CPPFLAGS := $(filter-out -I$(top_srcdir)/src/include -I$(top_builddir)/src/include,$(CPPFLAGS))
-STD_LDFLAGS := $(filter-out -L$(top_builddir)/src/port,$(LDFLAGS))
+STD_CPPFLAGS := $(filter-out -I%,$(CPPFLAGS))
+STD_CFLAGS := $(filter-out -I%,$(CFLAGS))
+STD_LDFLAGS := $(filter-out -L%,$(LDFLAGS))
+STD_LIBS := $(filter-out -L%,$(LIBS))
 
 override CPPFLAGS += -DFRONTEND
 override CPPFLAGS += -DVAL_CONFIGURE="\"$(configure_args)\""
 override CPPFLAGS += -DVAL_CC="\"$(CC)\""
 override CPPFLAGS += -DVAL_CPPFLAGS="\"$(STD_CPPFLAGS)\""
-override CPPFLAGS += -DVAL_CFLAGS="\"$(CFLAGS)\""
+override CPPFLAGS += -DVAL_CFLAGS="\"$(STD_CFLAGS)\""
 override CPPFLAGS += -DVAL_CFLAGS_SL="\"$(CFLAGS_SL)\""
 override CPPFLAGS += -DVAL_LDFLAGS="\"$(STD_LDFLAGS)\""
 override CPPFLAGS += -DVAL_LDFLAGS_SL="\"$(LDFLAGS_SL)\""
-override CPPFLAGS += -DVAL_LIBS="\"$(LIBS)\""
+override CPPFLAGS += -DVAL_LIBS="\"$(STD_LIBS)\""
 
 all: submake-libpgport pg_config
 
@@ -38,7 +47,7 @@ install: all installdirs
 	$(INSTALL_SCRIPT) pg_config$(X) '$(DESTDIR)$(bindir)/pg_config$(X)'
 
 installdirs:
-	$(mkinstalldirs) '$(DESTDIR)$(bindir)'
+	$(MKDIR_P) '$(DESTDIR)$(bindir)'
 
 uninstall:
 	rm -f '$(DESTDIR)$(bindir)/pg_config$(X)'

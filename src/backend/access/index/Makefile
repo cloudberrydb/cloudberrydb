@@ -4,7 +4,7 @@
 #    Makefile for access/index
 #
 # IDENTIFICATION
-#    $PostgreSQL: pgsql/src/backend/access/index/Makefile,v 1.12 2003/11/29 19:51:40 pgsql Exp $
+#    $PostgreSQL: pgsql/src/backend/access/index/Makefile,v 1.14 2008/02/19 10:30:06 petere Exp $
 #
 #-------------------------------------------------------------------------
 
@@ -14,17 +14,7 @@ include $(top_builddir)/src/Makefile.global
 
 OBJS = genam.o indexam.o
 
-all: SUBSYS.o
+include $(top_srcdir)/src/backend/common.mk
 
-SUBSYS.o: $(OBJS)
-	$(LD) $(LDREL) $(LDOUT) SUBSYS.o $(OBJS)
-
-depend dep:
-	$(CC) -MM $(CFLAGS) *.c >depend
-
-clean: 
+clean:
 	rm -f SUBSYS.o $(OBJS)
-
-ifeq (depend,$(wildcard depend))
-include depend
-endif

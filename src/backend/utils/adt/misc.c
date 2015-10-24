@@ -3,12 +3,12 @@
  * misc.c
  *
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/utils/adt/misc.c,v 1.55 2006/11/21 20:59:53 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/utils/adt/misc.c,v 1.71 2009/06/11 14:49:03 momjian Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -20,15 +20,18 @@
 #include <math.h>
 
 #include "access/xact.h"
+#include "catalog/pg_type.h"
 #include "catalog/pg_tablespace.h"
 #include "commands/dbcommands.h"
 #include "funcapi.h"
 #include "miscadmin.h"
+#include "parser/keywords.h"
 #include "postmaster/syslogger.h"
 #include "storage/fd.h"
 #include "storage/pmsignal.h"
 #include "storage/procarray.h"
 #include "utils/builtins.h"
+#include "tcop/tcopprot.h"
 
 #define atooid(x)  ((Oid) strtoul((x), NULL, 10))
 
@@ -70,6 +73,21 @@ current_database(PG_FUNCTION_ARGS)
 	PG_RETURN_NAME(db);
 }
 
+
+/*
+ * current_query()
+ *	Expose the current query to the user (useful in stored procedures)
+ *	We might want to use ActivePortal->sourceText someday.
+ */
+Datum
+current_query(PG_FUNCTION_ARGS)
+{
+	/* there is no easy way to access the more concise 'query_string' */
+	if (debug_query_string)
+		PG_RETURN_TEXT_P(cstring_to_text(debug_query_string));
+	else
+		PG_RETURN_NULL();
+}
 
 /*
  * Functions to send signals to other backends.
@@ -115,6 +133,66 @@ pg_cancel_backend(PG_FUNCTION_ARGS)
 }
 
 Datum
+pg_terminate_backend(PG_FUNCTION_ARGS)
+{
+	PG_RETURN_BOOL(pg_signal_backend(PG_GETARG_INT32(0), SIGTERM));
+}
+
+/*
+ * gp_cancel_query_internal
+ *    Cancel the query that is identified by (sessionId, commandId) pair.
+ *
+ * This function errors out if this is called by non-super user.
+ * This function prints a warning and returns false when (sessionId, commandId) does not
+ * exist.
+ *
+ * In all other cases, this function finds the process id from procArray, and sends
+ * an interrupt signal to the process.
+ */
+static bool
+gp_cancel_query_internal(int sessionId, int commandId)
+{
+	if (!superuser())
+	{
+		ereport(ERROR,
+				(errcode(ERRCODE_INSUFFICIENT_PRIVILEGE),
+				 (errmsg("must be superuser to cancel a query"))));
+	}
+
+	if (!(sessionId > 0 && commandId > 0))
+	{
+		ereport(WARNING, 
+				(errcode(ERRCODE_WARNING),
+				 errmsg("invalid session_id or command_id for query (session_id, command_id): (%d, %d)",
+						DatumGetInt32(sessionId), DatumGetInt32(commandId))));
+		return false;
+	}
+
+	bool succeed = FindAndSignalProcess(sessionId, commandId);
+	if (!succeed)
+	{
+		ereport(WARNING, 
+				(errcode(ERRCODE_WARNING),
+				 errmsg("failed to cancel query (session_id, command_id): (%d, %d)",
+						DatumGetInt32(sessionId), DatumGetInt32(commandId))));
+		return false;
+	}
+
+	return true;
+}
+
+/*
+ * gp_cancel_query
+ *    Cancel the query that is identified by (sessionId, commandId) pair.
+ */
+Datum
+gp_cancel_query(PG_FUNCTION_ARGS)
+{
+	PG_RETURN_BOOL(gp_cancel_query_internal(PG_GETARG_INT32(0),
+											PG_GETARG_INT32(1)));
+}
+
+Datum
 pg_reload_conf(PG_FUNCTION_ARGS)
 {
 	if (!superuser())
@@ -154,17 +232,6 @@ pg_rotate_logfile(PG_FUNCTION_ARGS)
 	SendPostmasterSignal(PMSIGNAL_ROTATE_LOGFILE);
 	PG_RETURN_BOOL(true);
 }
-
-#ifdef NOT_USED
-
-/* Disabled in 8.0 due to reliability concerns; FIXME someday */
-Datum
-pg_terminate_backend(PG_FUNCTION_ARGS)
-{
-	PG_RETURN_INT32(pg_signal_backend(PG_GETARG_INT32(0), SIGTERM));
-}
-#endif
-
 
 /* Function to find out which databases make use of a tablespace */
 
@@ -312,4 +379,83 @@ pg_sleep(PG_FUNCTION_ARGS)
 	}
 
 	PG_RETURN_VOID();
+}
+
+/* Function to return the list of grammar keywords */
+Datum
+pg_get_keywords(PG_FUNCTION_ARGS)
+{
+	FuncCallContext *funcctx;
+
+	if (SRF_IS_FIRSTCALL())
+	{
+		MemoryContext oldcontext;
+		TupleDesc	tupdesc;
+
+		funcctx = SRF_FIRSTCALL_INIT();
+		oldcontext = MemoryContextSwitchTo(funcctx->multi_call_memory_ctx);
+
+		tupdesc = CreateTemplateTupleDesc(3, false);
+		TupleDescInitEntry(tupdesc, (AttrNumber) 1, "word",
+						   TEXTOID, -1, 0);
+		TupleDescInitEntry(tupdesc, (AttrNumber) 2, "catcode",
+						   CHAROID, -1, 0);
+		TupleDescInitEntry(tupdesc, (AttrNumber) 3, "catdesc",
+						   TEXTOID, -1, 0);
+
+		funcctx->attinmeta = TupleDescGetAttInMetadata(tupdesc);
+
+		MemoryContextSwitchTo(oldcontext);
+	}
+
+	funcctx = SRF_PERCALL_SETUP();
+
+	if (&ScanKeywords[funcctx->call_cntr] < LastScanKeyword)
+	{
+		char	   *values[3];
+		HeapTuple	tuple;
+
+		/* cast-away-const is ugly but alternatives aren't much better */
+		values[0] = (char *) ScanKeywords[funcctx->call_cntr].name;
+
+		switch (ScanKeywords[funcctx->call_cntr].category)
+		{
+			case UNRESERVED_KEYWORD:
+				values[1] = "U";
+				values[2] = _("unreserved");
+				break;
+			case COL_NAME_KEYWORD:
+				values[1] = "C";
+				values[2] = _("unreserved (cannot be function or type name)");
+				break;
+			case TYPE_FUNC_NAME_KEYWORD:
+				values[1] = "T";
+				values[2] = _("reserved (can be function or type name)");
+				break;
+			case RESERVED_KEYWORD:
+				values[1] = "R";
+				values[2] = _("reserved");
+				break;
+			default:			/* shouldn't be possible */
+				values[1] = NULL;
+				values[2] = NULL;
+				break;
+		}
+
+		tuple = BuildTupleFromCStrings(funcctx->attinmeta, values);
+
+		SRF_RETURN_NEXT(funcctx, HeapTupleGetDatum(tuple));
+	}
+
+	SRF_RETURN_DONE(funcctx);
+}
+
+
+/*
+ * Return the type of the argument.
+ */
+Datum
+pg_typeof(PG_FUNCTION_ARGS)
+{
+	PG_RETURN_OID(get_fn_expr_argtype(fcinfo->flinfo, 0));
 }

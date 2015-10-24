@@ -20,14 +20,25 @@
  * step 2 ...
  *
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
- * $PostgreSQL: pgsql/src/bin/pg_resetxlog/pg_resetxlog.c,v 1.53 2006/10/04 00:30:05 momjian Exp $
+ * $PostgreSQL: pgsql/src/bin/pg_resetxlog/pg_resetxlog.c,v 1.53.2.1 2008/09/24 08:59:44 mha Exp $
  *
  *-------------------------------------------------------------------------
  */
+
+/*
+ * We have to use postgres.h not postgres_fe.h here, because there's so much
+ * backend-only stuff in the XLOG include files we need.  But we need a
+ * frontend-ish environment otherwise.  Hence this ugly hack.
+ */
+#ifndef FRONTEND
+#define FRONTEND 1
+#endif 
+
 #include "postgres.h"
+#include "pgtime.h"
 
 #include <dirent.h>
 #include <fcntl.h>
@@ -41,10 +52,12 @@
 #endif
 
 #include "access/transam.h"
+#include "access/tuptoaster.h"
 #include "access/multixact.h"
 #include "access/xlog_internal.h"
 #include "catalog/catversion.h"
 #include "catalog/pg_control.h"
+#include "postmaster/primary_mirror_mode.h"
 
 extern int	optind;
 extern char *optarg;
@@ -64,6 +77,9 @@ static void KillExistingXLOG(void);
 static void WriteEmptyXLOG(void);
 static void usage(void);
 
+#ifndef BUFFER_LEN
+#define BUFFER_LEN (2 * (MAXPGPATH))
+#endif
 
 int
 main(int argc, char *argv[])
@@ -71,11 +87,11 @@ main(int argc, char *argv[])
 	int			c;
 	bool		force = false;
 	bool		noupdate = false;
-	uint32		set_xid_epoch = -1;
+	uint32		set_xid_epoch = (uint32) -1;
 	TransactionId set_xid = 0;
 	Oid			set_oid = 0;
 	MultiXactId set_mxid = 0;
-	MultiXactOffset set_mxoff = -1;
+	MultiXactOffset set_mxoff = (MultiXactOffset) -1;
 	uint32		minXlogTli = 0,
 				minXlogId = 0,
 				minXlogSeg = 0;
@@ -86,7 +102,7 @@ main(int argc, char *argv[])
 	int			fd;
 	char		path[MAXPGPATH];
 
-	set_pglocale_pgservice(argv[0], "pg_resetxlog");
+	set_pglocale_pgservice(argv[0], PG_TEXTDOMAIN("pg_resetxlog"));
 
 	progname = get_progname(argv[0]);
 
@@ -99,7 +115,12 @@ main(int argc, char *argv[])
 		}
 		if (strcmp(argv[1], "--version") == 0 || strcmp(argv[1], "-V") == 0)
 		{
-			puts("pg_resetxlog (PostgreSQL) " PG_VERSION);
+			puts("pg_resetxlog (Greenplum Database) " PG_VERSION);
+			exit(0);
+		}
+		if (strcmp(argv[1], "--gp-version") == 0)
+		{
+			puts("pg_resetxlog (Greenplum Database) " GP_VERSION);
 			exit(0);
 		}
 	}
@@ -335,7 +356,7 @@ main(int argc, char *argv[])
 	if (ControlFile.state != DB_SHUTDOWNED && !force)
 	{
 		printf(_("The database server was not shut down cleanly.\n"
-				 "Resetting the transaction log may cause data to be lost.\n"
+			   "Resetting the transaction log might cause data to be lost.\n"
 				 "If you want to proceed anyway, use -f to force reset.\n"));
 		exit(1);
 	}
@@ -366,7 +387,7 @@ ReadControlFile(void)
 	char	   *buffer;
 	pg_crc32	crc;
 
-	if ((fd = open(XLOG_CONTROL_FILE, O_RDONLY, 0)) < 0)
+	if ((fd = open(XLOG_CONTROL_FILE, O_RDONLY | PG_BINARY, 0)) < 0)
 	{
 		/*
 		 * If pg_control is not there at all, or we can't read it, the odds
@@ -399,6 +420,17 @@ ReadControlFile(void)
 	  ((ControlFileData *) buffer)->pg_control_version == PG_CONTROL_VERSION)
 	{
 		/* Check the CRC. */
+		crc = crc32c(crc32cInit(), buffer, offsetof(ControlFileData, crc));
+		crc32cFinish(crc);
+
+		if (EQ_CRC32(crc, ((ControlFileData *) buffer)->crc))
+		{
+			/* Valid data... */
+			memcpy(&ControlFile, buffer, sizeof(ControlFile));
+			return true;
+		}
+
+		/* Check the CRC using old algorithm. */
 		INIT_CRC32(crc);
 		COMP_CRC32(crc,
 				   buffer,
@@ -465,12 +497,10 @@ GuessControlValues(void)
 	ControlFile.checkPointCopy.nextOid = FirstBootstrapObjectId;
 	ControlFile.checkPointCopy.nextMulti = FirstMultiXactId;
 	ControlFile.checkPointCopy.nextMultiOffset = 0;
-	ControlFile.checkPointCopy.time = time(NULL);
+	ControlFile.checkPointCopy.time = (pg_time_t) time(NULL);
 
 	ControlFile.state = DB_SHUTDOWNED;
-	ControlFile.time = time(NULL);
-	ControlFile.logId = 0;
-	ControlFile.logSeg = 1;
+	ControlFile.time = (pg_time_t) time(NULL);
 	ControlFile.checkPoint = ControlFile.checkPointCopy.redo;
 
 	ControlFile.maxAlign = MAXIMUM_ALIGNOF;
@@ -609,25 +639,29 @@ RewriteControlFile(void)
 	ControlFile.checkPointCopy.redo.xlogid = newXlogId;
 	ControlFile.checkPointCopy.redo.xrecoff =
 		newXlogSeg * XLogSegSize + SizeOfXLogLongPHD;
-	ControlFile.checkPointCopy.undo = ControlFile.checkPointCopy.redo;
-	ControlFile.checkPointCopy.time = time(NULL);
+	ControlFile.checkPointCopy.time = (pg_time_t) time(NULL);
 
 	ControlFile.state = DB_SHUTDOWNED;
-	ControlFile.time = time(NULL);
-	ControlFile.logId = newXlogId;
-	ControlFile.logSeg = newXlogSeg + 1;
+	ControlFile.time = (pg_time_t) time(NULL);
 	ControlFile.checkPoint = ControlFile.checkPointCopy.redo;
 	ControlFile.prevCheckPoint.xlogid = 0;
 	ControlFile.prevCheckPoint.xrecoff = 0;
 	ControlFile.minRecoveryPoint.xlogid = 0;
 	ControlFile.minRecoveryPoint.xrecoff = 0;
+	ControlFile.backupStartPoint.xlogid = 0;
+	ControlFile.backupStartPoint.xrecoff = 0;
+	ControlFile.backupEndRequired = false;
 
 	/* Contents are protected with a CRC */
+	ControlFile.crc = crc32c(crc32cInit(), &ControlFile, offsetof(ControlFileData, crc));
+	crc32cFinish(ControlFile.crc);
+	/*
 	INIT_CRC32(ControlFile.crc);
 	COMP_CRC32(ControlFile.crc,
 			   (char *) &ControlFile,
 			   offsetof(ControlFileData, crc));
 	FIN_CRC32(ControlFile.crc);
+	*/
 
 	/*
 	 * We write out PG_CONTROL_SIZE bytes into pg_control, zero-padding the
@@ -749,6 +783,9 @@ WriteEmptyXLOG(void)
 	char		path[MAXPGPATH];
 	int			fd;
 	int			nbytes;
+	FILE		*fp = NULL;
+	char 		*pch = NULL;
+	char 		buf[BUFFER_LEN];
 
 	/* Use malloc() to ensure buffer is MAXALIGNED */
 	buffer = (char *) malloc(XLOG_BLCKSZ);
@@ -780,15 +817,47 @@ WriteEmptyXLOG(void)
 	memcpy(XLogRecGetData(record), &ControlFile.checkPointCopy,
 		   sizeof(CheckPoint));
 
+	crc = crc32c(crc32cInit(), &ControlFile.checkPointCopy, sizeof(CheckPoint));
+	crc = crc32c(crc, (char *) record + sizeof(pg_crc32), SizeOfXLogRecord - sizeof(pg_crc32));
+	crc32cFinish(crc);
+	/*
 	INIT_CRC32(crc);
 	COMP_CRC32(crc, &ControlFile.checkPointCopy, sizeof(CheckPoint));
 	COMP_CRC32(crc, (char *) record + sizeof(pg_crc32),
 			   SizeOfXLogRecord - sizeof(pg_crc32));
 	FIN_CRC32(crc);
+	*/
 	record->xl_crc = crc;
 
+	/* 
+	 * If we make the filespace for transaction files configurable, then
+	 * pg_resetxlog should pick up the XLOG files from the right location.
+	 * Check the flat file for determining the right location of XLOG files
+	 */
+	fp = fopen(TXN_FILESPACE_FLATFILE, "r");
+	if (fp)
+        {
+                MemSet(buf, 0, BUFFER_LEN);
+                if (fgets(buf, BUFFER_LEN, fp))
+			;	/* First line is Filespace OID, skip it */
+
+                MemSet(buf, 0, BUFFER_LEN);
+                if (fgets(buf, BUFFER_LEN, fp))
+                {
+                        buf[strlen(buf)-1]='\0';
+                        pch = strtok(buf, " ");	/* The first part is DBID. Skip it */
+                        pch = strtok(NULL, " ");
+                        sprintf(path,"%s/%s", pch, XLOGDIR);
+                }
+	}
+	else
+	{
+		/* No flat file. Use the default pg_system filespace */
+		sprintf(path, "%s", XLOGDIR);
+	}
+
 	/* Write the first page */
-	XLogFilePath(path, ControlFile.checkPointCopy.ThisTimeLineID,
+	XLogFilePath2(path, ControlFile.checkPointCopy.ThisTimeLineID,
 				 newXlogId, newXlogSeg);
 
 	unlink(path);
@@ -844,6 +913,7 @@ usage(void)
 	printf(_("%s resets the PostgreSQL transaction log.\n\n"), progname);
 	printf(_("Usage:\n  %s [OPTION]... DATADIR\n\n"), progname);
 	printf(_("Options:\n"));
+	printf(_("  -e XIDEPOCH     set next transaction ID epoch\n"));
 	printf(_("  -f              force update to be done\n"));
 	printf(_("  -l TLI,FILE,SEG force minimum WAL starting location for new transaction log\n"));
 	printf(_("  -m XID          set next multitransaction ID\n"));
@@ -851,8 +921,8 @@ usage(void)
 	printf(_("  -o OID          set next OID\n"));
 	printf(_("  -O OFFSET       set next multitransaction offset\n"));
 	printf(_("  -x XID          set next transaction ID\n"));
-	printf(_("  -e XIDEPOCH     set next transaction ID epoch\n"));
 	printf(_("  --help          show this help, then exit\n"));
 	printf(_("  --version       output version information, then exit\n"));
+	printf(_("  --gp-version    output Greenplum version information, then exit\n"));
 	printf(_("\nReport bugs to <pgsql-bugs@postgresql.org>.\n"));
 }

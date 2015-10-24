@@ -9,14 +9,12 @@
 # to build using the surrounding source tree.
 #
 # IDENTIFICATION
-#    $PostgreSQL: pgsql/src/tutorial/Makefile,v 1.19 2005/09/27 17:13:14 tgl Exp $
+#    $PostgreSQL: pgsql/src/tutorial/Makefile,v 1.21 2008/04/07 14:15:58 petere Exp $
 #
 #-------------------------------------------------------------------------
 
 MODULES = complex funcs
 DATA_built = advanced.sql basics.sql complex.sql funcs.sql syscat.sql
-
-SHLIB_LINK = $(BE_DLLLIBS)
 
 ifdef NO_PGXS
 subdir = src/tutorial
@@ -24,7 +22,8 @@ top_builddir = ../..
 include $(top_builddir)/src/Makefile.global
 include $(top_srcdir)/src/makefiles/pgxs.mk
 else
-PGXS := $(shell pg_config --pgxs)
+PG_CONFIG = pg_config
+PGXS := $(shell $(PG_CONFIG) --pgxs)
 include $(PGXS)
 endif
 

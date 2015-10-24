@@ -334,6 +334,15 @@ select count(*) from tenk1 a where unique1 in
   (select unique1 from tenk1 b join tenk1 c using (unique1)
    where b.unique2 = 42);
 
+--
+-- regression test: check for failure to generate a plan with multiple
+-- degenerate IN clauses
+--
+select count(*) from tenk1 x where
+  x.unique1 in (select a.f1 from int4_tbl a,float8_tbl b where a.f1=b.f1) and
+  x.unique1 = 0 and
+  x.unique1 in (select aa.f1 from int4_tbl aa,float8_tbl bb where aa.f1=bb.f1);
+
 
 --
 -- Clean up
@@ -352,6 +361,7 @@ DROP TABLE J2_TBL;
 CREATE TEMP TABLE t1 (a int, b int);
 CREATE TEMP TABLE t2 (a int, b int);
 CREATE TEMP TABLE t3 (x int, y int);
+CREATE TEMP TABLE t4 (x int, y int);
 
 INSERT INTO t1 VALUES (5, 10);
 INSERT INTO t1 VALUES (15, 20);
@@ -362,11 +372,12 @@ INSERT INTO t3 VALUES (5, 20);
 INSERT INTO t3 VALUES (6, 7);
 INSERT INTO t3 VALUES (7, 8);
 INSERT INTO t3 VALUES (500, 100);
+INSERT INTO t4 SELECT * FROM t3;
 
 DELETE FROM t3 USING t1 table1 WHERE t3.x = table1.a;
 SELECT * FROM t3;
-DELETE FROM t3 USING t1 JOIN t2 USING (a) WHERE t3.x > t1.a;
-SELECT * FROM t3;
+DELETE FROM t4 USING t1 JOIN t2 USING (a) WHERE t4.x > t1.a;
+SELECT * FROM t4;
 DELETE FROM t3 USING t3 t3_other WHERE t3.x = t3_other.x AND t3.y = t3_other.y;
 SELECT * FROM t3;
 
@@ -390,3 +401,89 @@ set enable_nestloop to off;
 select tt1.*, tt2.* from tt1 left join tt2 on tt1.joincol = tt2.joincol;
 
 select tt1.*, tt2.* from tt2 right join tt1 on tt1.joincol = tt2.joincol;
+
+reset enable_hashjoin;
+reset enable_nestloop;
+
+--
+-- regression test for 8.2 bug with improper re-ordering of left joins
+--
+
+create temp table tt3(f1 int, f2 text);
+insert into tt3 select x, repeat('xyzzy', 100) from generate_series(1,10000) x;
+create index tt3i on tt3(f1);
+analyze tt3;
+
+create temp table tt4(f1 int);
+insert into tt4 values (0),(1),(9999);
+analyze tt4;
+
+SELECT a.f1
+FROM tt4 a
+LEFT JOIN (
+        SELECT b.f1
+        FROM tt3 b LEFT JOIN tt3 c ON (b.f1 = c.f1)
+        WHERE c.f1 IS NULL
+) AS d ON (a.f1 = d.f1)
+WHERE d.f1 IS NULL;
+
+--
+-- regression test for problems of the sort depicted in bug #3494
+--
+
+create temp table tt5(f1 int, f2 int);
+create temp table tt6(f1 int, f2 int);
+
+insert into tt5 values(1, 10);
+insert into tt5 values(1, 11);
+
+insert into tt6 values(1, 9);
+insert into tt6 values(1, 2);
+insert into tt6 values(2, 9);
+
+select * from tt5,tt6 where tt5.f1 = tt6.f1 and tt5.f1 = tt5.f2 - tt6.f2;
+
+--
+-- regression test for problems of the sort depicted in bug #3588
+--
+
+create temp table xx (pkxx int);
+create temp table yy (pkyy int, pkxx int);
+
+insert into xx values (1);
+insert into xx values (2);
+insert into xx values (3);
+
+insert into yy values (101, 1);
+insert into yy values (201, 2);
+insert into yy values (301, NULL);
+
+select yy.pkyy as yy_pkyy, yy.pkxx as yy_pkxx, yya.pkyy as yya_pkyy,
+       xxa.pkxx as xxa_pkxx, xxb.pkxx as xxb_pkxx
+from yy
+     left join (SELECT * FROM yy where pkyy = 101) as yya ON yy.pkyy = yya.pkyy
+     left join xx xxa on yya.pkxx = xxa.pkxx
+     left join xx xxb on coalesce (xxa.pkxx, 1) = xxb.pkxx;
+
+--
+-- regression test for improper pushing of constants across outer-join clauses
+-- (as seen in early 8.2.x releases)
+--
+
+create temp table zt1 (f1 int primary key);
+create temp table zt2 (f2 int primary key);
+create temp table zt3 (f3 int primary key);
+insert into zt1 values(53);
+insert into zt2 values(53);
+
+select * from
+  zt2 left join zt3 on (f2 = f3)
+      left join zt1 on (f3 = f1)
+where f2 = 53;
+
+create temp view zv1 as select *,'dummy'::text AS junk from zt1;
+
+select * from
+  zt2 left join zt3 on (f2 = f3)
+      left join zv1 on (f3 = f1)
+where f2 = 53;

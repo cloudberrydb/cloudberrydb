@@ -4,7 +4,8 @@
  *	  Virtual file descriptor definitions.
  *
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 2007-2008, Greenplum inc
+ * Portions Copyright (c) 1996-2008, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * $PostgreSQL: pgsql/src/include/storage/fd.h,v 1.56 2006/03/05 15:58:59 momjian Exp $
@@ -61,14 +62,31 @@ extern int	max_files_per_process;
 /* Operations on virtual Files --- equivalent to Unix kernel file ops */
 extern File FileNameOpenFile(FileName fileName, int fileFlags, int fileMode);
 extern File PathNameOpenFile(FileName fileName, int fileFlags, int fileMode);
-extern File OpenTemporaryFile(bool interXact);
+
+File
+OpenTemporaryFile(const char   *fileName,
+                  int           extentseqnum,
+                  bool          makenameunique,
+                  bool          create,
+                  bool          delOnClose,
+                  bool          closeAtEOXact);
+
+File
+OpenNamedFile(const char   *fileName,
+                  bool          create,
+                  bool          delOnClose,
+                  bool          closeAtEOXact);
+
 extern void FileClose(File file);
 extern void FileUnlink(File file);
 extern int	FileRead(File file, char *buffer, int amount);
+extern int	FileReadIntr(File file, char *buffer, int amount, bool fRetryInt);
 extern int	FileWrite(File file, char *buffer, int amount);
 extern int	FileSync(File file);
-extern long FileSeek(File file, long offset, int whence);
-extern int	FileTruncate(File file, long offset);
+extern int64 FileSeek(File file, int64 offset, int whence);
+extern int64 FileNonVirtualCurSeek(File file);
+extern int	FileTruncate(File file, int64 offset);
+extern int64 FileDiskSize(File file);
 
 /* Operations that allow use of regular stdio --- USE WITH CAUTION */
 extern FILE *AllocateFile(const char *name, const char *mode);
@@ -94,9 +112,13 @@ extern int	pg_fsync(int fd);
 extern int	pg_fsync_no_writethrough(int fd);
 extern int	pg_fsync_writethrough(int fd);
 extern int	pg_fdatasync(int fd);
+extern int gp_retry_close(int fd);
+extern char *make_database_relative(const char *filename);
 
 /* Filename components for OpenTemporaryFile */
 #define PG_TEMP_FILES_DIR "pgsql_tmp"
 #define PG_TEMP_FILE_PREFIX "pgsql_tmp"
+
+extern size_t GetTempFilePrefix(char * buf, size_t buflen, const char * fileName);
 
 #endif   /* FD_H */

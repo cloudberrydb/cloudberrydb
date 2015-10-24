@@ -4,7 +4,7 @@
  *
  *	  Routines for operator manipulation commands
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2008, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -34,7 +34,9 @@
  */
 #include "postgres.h"
 
+#include "access/genam.h"
 #include "access/heapam.h"
+#include "catalog/catquery.h"
 #include "catalog/dependency.h"
 #include "catalog/indexing.h"
 #include "catalog/namespace.h"
@@ -47,6 +49,8 @@
 #include "utils/lsyscache.h"
 #include "utils/syscache.h"
 
+#include "cdb/cdbvars.h"
+#include "cdb/cdbdisp.h"
 
 static void AlterOperatorOwner_internal(Relation rel, Oid operOid, Oid newOwnerId);
 
@@ -59,7 +63,7 @@ static void AlterOperatorOwner_internal(Relation rel, Oid operOid, Oid newOwnerI
  * 'parameters' is a list of DefElem
  */
 void
-DefineOperator(List *names, List *parameters)
+DefineOperator(List *names, List *parameters, Oid newOid)
 {
 	char	   *oprName;
 	Oid			oprNamespace;
@@ -80,6 +84,7 @@ DefineOperator(List *names, List *parameters)
 	List	   *ltCompareName = NIL;	/* optional < compare operator */
 	List	   *gtCompareName = NIL;	/* optional > compare operator */
 	ListCell   *pl;
+	Oid    opOid;
 
 	/* Convert list of names to a name and namespace */
 	oprNamespace = QualifiedNameGetCreationNamespace(names, &oprName);
@@ -179,7 +184,7 @@ DefineOperator(List *names, List *parameters)
 	/*
 	 * now have OperatorCreate do all the work..
 	 */
-	OperatorCreate(oprName,		/* operator name */
+	opOid = OperatorCreateWithOid(oprName,		/* operator name */
 				   oprNamespace,	/* namespace */
 				   typeId1,		/* left type id */
 				   typeId2,		/* right type id */
@@ -192,7 +197,21 @@ DefineOperator(List *names, List *parameters)
 				   leftSortName,	/* optional left sort operator */
 				   rightSortName,		/* optional right sort operator */
 				   ltCompareName,		/* optional < comparison op */
-				   gtCompareName);		/* optional < comparison op */
+				   gtCompareName,		/* optional < comparison op */
+				   newOid);
+				   
+	if (Gp_role == GP_ROLE_DISPATCH)
+	{
+		DefineStmt * stmt = makeNode(DefineStmt);
+		stmt->kind = OBJECT_OPERATOR;
+		stmt->oldstyle = false;
+		stmt->defnames = names;
+		stmt->args = NIL;
+		stmt->definition = parameters;
+		stmt->newOid = opOid;
+		stmt->shadowOid = 0;
+		CdbDispatchUtilityStatement((Node *) stmt, "DefineOperator");
+	}
 }
 
 
@@ -207,7 +226,8 @@ RemoveOperator(RemoveFuncStmt *stmt)
 	TypeName   *typeName1 = (TypeName *) linitial(stmt->args);
 	TypeName   *typeName2 = (TypeName *) lsecond(stmt->args);
 	Oid			operOid;
-	HeapTuple	tup;
+	Oid			operNsp;
+	int			fetchCount = 0;
 	ObjectAddress object;
 
 	Assert(list_length(stmt->args) == 2);
@@ -223,20 +243,24 @@ RemoveOperator(RemoveFuncStmt *stmt)
 		return;
 	}
 
-	tup = SearchSysCache(OPEROID,
-						 ObjectIdGetDatum(operOid),
-						 0, 0, 0);
-	if (!HeapTupleIsValid(tup)) /* should not happen */
+	operNsp = caql_getoid_plus(
+			NULL,
+			&fetchCount,
+			NULL,
+			cql("SELECT oprnamespace FROM pg_operator "
+				" WHERE oid = :1 ",
+				ObjectIdGetDatum(operOid)));
+
+	if (0 == fetchCount) /* should not happen */
 		elog(ERROR, "cache lookup failed for operator %u", operOid);
 
 	/* Permission check: must own operator or its namespace */
 	if (!pg_oper_ownercheck(operOid, GetUserId()) &&
-		!pg_namespace_ownercheck(((Form_pg_operator) GETSTRUCT(tup))->oprnamespace,
+		!pg_namespace_ownercheck(operNsp,
 								 GetUserId()))
 		aclcheck_error(ACLCHECK_NOT_OWNER, ACL_KIND_OPER,
 					   NameListToString(operatorName));
 
-	ReleaseSysCache(tup);
 
 	/*
 	 * Do the deletion
@@ -246,6 +270,11 @@ RemoveOperator(RemoveFuncStmt *stmt)
 	object.objectSubId = 0;
 
 	performDeletion(&object, stmt->behavior);
+	
+	if (Gp_role == GP_ROLE_DISPATCH)
+	{
+		CdbDispatchUtilityStatement((Node *) stmt, "RemoveOperator");
+	}
 }
 
 /*
@@ -254,22 +283,15 @@ RemoveOperator(RemoveFuncStmt *stmt)
 void
 RemoveOperatorById(Oid operOid)
 {
-	Relation	relation;
-	HeapTuple	tup;
-
-	relation = heap_open(OperatorRelationId, RowExclusiveLock);
-
-	tup = SearchSysCache(OPEROID,
-						 ObjectIdGetDatum(operOid),
-						 0, 0, 0);
-	if (!HeapTupleIsValid(tup)) /* should not happen */
+	if (0 == caql_getcount(
+				NULL,
+				cql("DELETE FROM pg_operator "
+					" WHERE oid = :1 ",
+					ObjectIdGetDatum(operOid))))
+	{
+		/* should not happen */
 		elog(ERROR, "cache lookup failed for operator %u", operOid);
-
-	simple_heap_delete(relation, &tup->t_self);
-
-	ReleaseSysCache(tup);
-
-	heap_close(relation, RowExclusiveLock);
+	}
 }
 
 void
@@ -311,12 +333,20 @@ AlterOperatorOwner_internal(Relation rel, Oid operOid, Oid newOwnerId)
 	HeapTuple	tup;
 	AclResult	aclresult;
 	Form_pg_operator oprForm;
+	cqContext	cqc;
+	cqContext  *pcqCtx;
 
 	Assert(RelationGetRelid(rel) == OperatorRelationId);
 
-	tup = SearchSysCacheCopy(OPEROID,
-							 ObjectIdGetDatum(operOid),
-							 0, 0, 0);
+	pcqCtx = caql_addrel(cqclr(&cqc), rel);
+
+	tup = caql_getfirst(
+			pcqCtx,
+			cql("SELECT * FROM pg_operator "
+				" WHERE oid = :1 "
+				" FOR UPDATE ",
+				ObjectIdGetDatum(operOid)));
+
 	if (!HeapTupleIsValid(tup)) /* should not happen */
 		elog(ERROR, "cache lookup failed for operator %u", operOid);
 
@@ -353,9 +383,7 @@ AlterOperatorOwner_internal(Relation rel, Oid operOid, Oid newOwnerId)
 		 */
 		oprForm->oprowner = newOwnerId;
 
-		simple_heap_update(rel, &tup->t_self, tup);
-
-		CatalogUpdateIndexes(rel, tup);
+		caql_update_current(pcqCtx, tup); /* implicit update of index as well*/
 
 		/* Update owner dependency reference */
 		changeDependencyOnOwner(OperatorRelationId, operOid, newOwnerId);

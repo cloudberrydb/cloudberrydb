@@ -4,12 +4,12 @@
  *		Routines for handling specialized SET variables.
  *
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/commands/variable.c,v 1.119 2006/10/04 00:29:52 momjian Exp $
+ *	  $PostgreSQL: pgsql/src/backend/commands/variable.c,v 1.119.2.2 2009/09/03 22:08:29 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -19,6 +19,7 @@
 #include <ctype.h>
 
 #include "access/xact.h"
+#include "catalog/catquery.h"
 #include "catalog/pg_authid.h"
 #include "commands/variable.h"
 #include "miscadmin.h"
@@ -27,6 +28,8 @@
 #include "utils/syscache.h"
 #include "utils/tqual.h"
 #include "mb/pg_wchar.h"
+
+#include "cdb/cdbvars.h"
 
 /*
  * DATESTYLE
@@ -271,9 +274,9 @@ assign_timezone(const char *value, bool doit, GucSource source)
 
 		/*
 		 * Try to parse it.  XXX an invalid interval format will result in
-		 * ereport, which is not desirable for GUC.  We did what we could to
-		 * guard against this in flatten_set_variable_args, but a string
-		 * coming in from postgresql.conf might contain anything.
+		 * ereport(ERROR), which is not desirable for GUC.  We did what we
+		 * could to guard against this in flatten_set_variable_args, but a
+		 * string coming in from postgresql.conf might contain anything.
 		 */
 		interval = DatumGetIntervalP(DirectFunctionCall3(interval_in,
 														 CStringGetDatum(val),
@@ -344,7 +347,7 @@ assign_timezone(const char *value, bool doit, GucSource source)
 			 */
 			if (doit)
 			{
-				const char *curzone = pg_get_timezone_name(global_timezone);
+				const char *curzone = pg_get_timezone_name(session_timezone);
 
 				if (curzone)
 					value = curzone;
@@ -381,7 +384,7 @@ assign_timezone(const char *value, bool doit, GucSource source)
 			if (doit)
 			{
 				/* Save the changed TZ */
-				global_timezone = new_tz;
+				session_timezone = new_tz;
 				HasCTZSet = false;
 			}
 		}
@@ -434,7 +437,112 @@ show_timezone(void)
 											  IntervalPGetDatum(&interval)));
 	}
 	else
-		tzn = pg_get_timezone_name(global_timezone);
+		tzn = pg_get_timezone_name(session_timezone);
+
+	if (tzn != NULL)
+		return tzn;
+
+	return "unknown";
+}
+
+
+/*
+ * LOG_TIMEZONE
+ *
+ * For log_timezone, we don't support the interval-based methods of setting a
+ * zone, which are only there for SQL spec compliance not because they're
+ * actually useful.
+ */
+
+/*
+ * assign_log_timezone: GUC assign_hook for log_timezone
+ */
+const char *
+assign_log_timezone(const char *value, bool doit, GucSource source)
+{
+	char	   *result;
+
+	if (pg_strcasecmp(value, "UNKNOWN") == 0)
+	{
+		/*
+		 * UNKNOWN is the value shown as the "default" for log_timezone in
+		 * guc.c.  We interpret it as being a complete no-op; we don't change
+		 * the timezone setting.  Note that if there is a known timezone
+		 * setting, we will return that name rather than UNKNOWN as the
+		 * canonical spelling.
+		 *
+		 * During GUC initialization, since the timezone library isn't set up
+		 * yet, pg_get_timezone_name will return NULL and we will leave the
+		 * setting as UNKNOWN.	If this isn't overridden from the config file
+		 * then pg_timezone_initialize() will eventually select a default
+		 * value from the environment.
+		 */
+		if (doit)
+		{
+			const char *curzone = pg_get_timezone_name(log_timezone);
+
+			if (curzone)
+				value = curzone;
+		}
+	}
+	else
+	{
+		/*
+		 * Otherwise assume it is a timezone name, and try to load it.
+		 */
+		pg_tz	   *new_tz;
+
+		new_tz = pg_tzset(value);
+
+		if (!new_tz)
+		{
+			ereport((source >= PGC_S_INTERACTIVE) ? ERROR : LOG,
+					(errcode(ERRCODE_INVALID_PARAMETER_VALUE),
+					 errmsg("unrecognized time zone name: \"%s\"",
+							value)));
+			return NULL;
+		}
+
+		if (!tz_acceptable(new_tz))
+		{
+			ereport((source >= PGC_S_INTERACTIVE) ? ERROR : LOG,
+					(errcode(ERRCODE_INVALID_PARAMETER_VALUE),
+					 errmsg("time zone \"%s\" appears to use leap seconds",
+							value),
+					 errdetail("PostgreSQL does not support leap seconds.")));
+			return NULL;
+		}
+
+		if (doit)
+		{
+			/* Save the changed TZ */
+			log_timezone = new_tz;
+		}
+	}
+
+	/*
+	 * If we aren't going to do the assignment, just return OK indicator.
+	 */
+	if (!doit)
+		return value;
+
+	/*
+	 * Prepare the canonical string to return.	GUC wants it malloc'd.
+	 */
+	result = strdup(value);
+
+	return result;
+}
+
+/*
+ * show_log_timezone: GUC show_hook for log_timezone
+ */
+const char *
+show_log_timezone(void)
+{
+	const char *tzn;
+
+	tzn = pg_get_timezone_name(log_timezone);
 
 	if (tzn != NULL)
 		return tzn;
@@ -450,54 +558,57 @@ show_timezone(void)
 const char *
 assign_XactIsoLevel(const char *value, bool doit, GucSource source)
 {
-	if (SerializableSnapshot != NULL)
-	{
-		if (source >= PGC_S_INTERACTIVE)
-			ereport(ERROR,
-					(errcode(ERRCODE_ACTIVE_SQL_TRANSACTION),
-					 errmsg("SET TRANSACTION ISOLATION LEVEL must be called before any query")));
-		/* source == PGC_S_OVERRIDE means do it anyway, eg at xact abort */
-		else if (source != PGC_S_OVERRIDE)
-			return NULL;
-	}
-	if (IsSubTransaction())
-	{
-		if (source >= PGC_S_INTERACTIVE)
-			ereport(ERROR,
-					(errcode(ERRCODE_ACTIVE_SQL_TRANSACTION),
-					 errmsg("SET TRANSACTION ISOLATION LEVEL must not be called in a subtransaction")));
-		/* source == PGC_S_OVERRIDE means do it anyway, eg at xact abort */
-		else if (source != PGC_S_OVERRIDE)
-			return NULL;
-	}
+	int			newXactIsoLevel;
 
 	if (strcmp(value, "serializable") == 0)
 	{
-		if (doit)
-			XactIsoLevel = XACT_SERIALIZABLE;
+		newXactIsoLevel = XACT_SERIALIZABLE;
 	}
 	else if (strcmp(value, "repeatable read") == 0)
 	{
 		if (doit)
-			XactIsoLevel = XACT_REPEATABLE_READ;
+			elog(ERROR, "Greenplum Database does not support REPEATABLE READ transactions.");
+
+		newXactIsoLevel = XACT_REPEATABLE_READ;
 	}
 	else if (strcmp(value, "read committed") == 0)
 	{
-		if (doit)
-			XactIsoLevel = XACT_READ_COMMITTED;
+		newXactIsoLevel = XACT_READ_COMMITTED;
 	}
 	else if (strcmp(value, "read uncommitted") == 0)
 	{
-		if (doit)
-			XactIsoLevel = XACT_READ_UNCOMMITTED;
+		newXactIsoLevel = XACT_READ_UNCOMMITTED;
 	}
 	else if (strcmp(value, "default") == 0)
 	{
-		if (doit)
-			XactIsoLevel = DefaultXactIsoLevel;
+		newXactIsoLevel = DefaultXactIsoLevel;
 	}
 	else
 		return NULL;
+
+	/* source == PGC_S_OVERRIDE means do it anyway, eg at xact abort */
+	if (source != PGC_S_OVERRIDE &&
+			newXactIsoLevel != XactIsoLevel && IsTransactionState())
+	{
+		if (SerializableSnapshot != NULL)
+		{
+			if (source >= PGC_S_INTERACTIVE)
+				ereport(ERROR,
+						(errcode(ERRCODE_ACTIVE_SQL_TRANSACTION),
+						 errmsg("SET TRANSACTION ISOLATION LEVEL must be called before any query")));
+		}
+		if (IsSubTransaction())
+		{
+			if (source >= PGC_S_INTERACTIVE)
+				ereport(ERROR,
+						(errcode(ERRCODE_ACTIVE_SQL_TRANSACTION),
+						 errmsg("SET TRANSACTION ISOLATION LEVEL must not be called in a subtransaction")));
+			/* source == PGC_S_OVERRIDE means do it anyway, eg at xact abort */
+		}
+	}
+
+	if (doit)
+		XactIsoLevel = newXactIsoLevel;
 
 	return value;
 }
@@ -619,6 +730,7 @@ assign_session_authorization(const char *value, bool doit, GucSource source)
 	{
 		/* not a saved ID, so look it up */
 		HeapTuple	roleTup;
+		cqContext  *pcqCtx;
 
 		if (!IsTransactionState())
 		{
@@ -630,9 +742,13 @@ assign_session_authorization(const char *value, bool doit, GucSource source)
 			return NULL;
 		}
 
-		roleTup = SearchSysCache(AUTHNAME,
-								 PointerGetDatum(value),
-								 0, 0, 0);
+		pcqCtx = caql_beginscan(
+				NULL,
+				cql("SELECT * FROM pg_authid "
+					" WHERE rolname = :1 ",
+					CStringGetDatum((char *) value)));
+
+		roleTup = caql_getnext(pcqCtx);
 		if (!HeapTupleIsValid(roleTup))
 		{
 			if (source >= PGC_S_INTERACTIVE)
@@ -646,7 +762,7 @@ assign_session_authorization(const char *value, bool doit, GucSource source)
 		is_superuser = ((Form_pg_authid) GETSTRUCT(roleTup))->rolsuper;
 		actual_rolename = value;
 
-		ReleaseSysCache(roleTup);
+		caql_endscan(pcqCtx);
 	}
 
 	if (doit)
@@ -676,6 +792,9 @@ show_session_authorization(void)
 	const char *value = session_authorization_string;
 	Oid			savedoid;
 	char	   *endptr;
+
+	if(!value)
+		return NULL;
 
 	Assert(strspn(value, "x") == NAMEDATALEN &&
 		   (value[NAMEDATALEN] == 'T' || value[NAMEDATALEN] == 'F'));
@@ -732,6 +851,7 @@ assign_role(const char *value, bool doit, GucSource source)
 	{
 		/* not a saved ID, so look it up */
 		HeapTuple	roleTup;
+		cqContext  *pcqCtx;
 
 		if (!IsTransactionState())
 		{
@@ -743,9 +863,13 @@ assign_role(const char *value, bool doit, GucSource source)
 			return NULL;
 		}
 
-		roleTup = SearchSysCache(AUTHNAME,
-								 PointerGetDatum(value),
-								 0, 0, 0);
+		pcqCtx = caql_beginscan(
+				NULL,
+				cql("SELECT * FROM pg_authid "
+					" WHERE rolname = :1 ",
+					CStringGetDatum((char *) value)));
+
+		roleTup = caql_getnext(pcqCtx);
 		if (!HeapTupleIsValid(roleTup))
 		{
 			if (source >= PGC_S_INTERACTIVE)
@@ -758,7 +882,7 @@ assign_role(const char *value, bool doit, GucSource source)
 		roleid = HeapTupleGetOid(roleTup);
 		is_superuser = ((Form_pg_authid) GETSTRUCT(roleTup))->rolsuper;
 
-		ReleaseSysCache(roleTup);
+		caql_endscan(pcqCtx);
 
 		/*
 		 * Verify that session user is allowed to become this role

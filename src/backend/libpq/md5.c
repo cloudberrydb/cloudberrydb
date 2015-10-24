@@ -10,11 +10,11 @@
  *
  *	Sverre H. Huseby <sverrehu@online.no>
  *
- *	Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ *	Portions Copyright (c) 1996-2010, PostgreSQL Global Development Group
  *	Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/libpq/md5.c,v 1.33 2006/06/20 19:56:52 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/libpq/md5.c,v 1.40 2010/02/26 02:00:43 momjian Exp $
  */
 
 /* This is intended to be used in both frontend and backend, so use c.h */
@@ -298,6 +298,13 @@ pg_md5_hash(const void *buff, size_t len, char *hexsum)
 	return true;
 }
 
+bool
+pg_md5_binary(const void *buff, size_t len, void *outbuf)
+{
+	if (!calculateDigestFromBuffer((uint8 *) buff, len, outbuf))
+		return false;
+	return true;
+}
 
 
 /*
@@ -314,7 +321,9 @@ pg_md5_encrypt(const char *passwd, const char *salt, size_t salt_len,
 			   char *buf)
 {
 	size_t		passwd_len = strlen(passwd);
-	char	   *crypt_buf = malloc(passwd_len + salt_len);
+
+	/* +1 here is just to avoid risk of unportable malloc(0) */
+	char	   *crypt_buf = malloc(passwd_len + salt_len + 1);
 	bool		ret;
 
 	if (!crypt_buf)
@@ -324,7 +333,7 @@ pg_md5_encrypt(const char *passwd, const char *salt, size_t salt_len,
 	 * Place salt at the end because it may be known by users trying to crack
 	 * the MD5 output.
 	 */
-	strcpy(crypt_buf, passwd);
+	memcpy(crypt_buf, passwd, passwd_len);
 	memcpy(crypt_buf + passwd_len, salt, salt_len);
 
 	strcpy(buf, "md5");

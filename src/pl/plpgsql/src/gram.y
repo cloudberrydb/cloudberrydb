@@ -4,19 +4,32 @@
  * gram.y				- Parser for the PL/pgSQL
  *						  procedural language
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/pl/plpgsql/src/gram.y,v 1.95 2006/08/14 21:14:41 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/pl/plpgsql/src/gram.y,v 1.95.2.2 2009/02/02 20:25:50 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
 
 #include "plpgsql.h"
 
+#include "catalog/pg_type.h"
 #include "parser/parser.h"
+
+
+/*
+ * Bison doesn't allocate anything that needs to live across parser calls,
+ * so we can easily have it use palloc instead of malloc.  This prevents
+ * memory leaks if we error out during parsing.  Note this only works with
+ * bison >= 2.0.  However, in bison 1.875 the default is to use alloca()
+ * if possible, so there's not really much problem anyhow, at least if
+ * you're building with gcc.
+ */
+#define YYMALLOC palloc
+#define YYFREE   pfree
 
 
 static PLpgSQL_expr		*read_sql_construct(int until,
@@ -47,6 +60,7 @@ static	void			 check_labels(const char *start_label,
 
 %}
 
+%expect 0
 %name-prefix="plpgsql_yy"
 
 %union {
@@ -122,7 +136,7 @@ static	void			 check_labels(const char *start_label,
 %type <loop_body>	loop_body
 %type <stmt>	proc_stmt pl_block
 %type <stmt>	stmt_assign stmt_if stmt_loop stmt_while stmt_exit
-%type <stmt>	stmt_return stmt_raise stmt_execsql stmt_execsql_insert
+%type <stmt>	stmt_return stmt_raise stmt_execsql
 %type <stmt>	stmt_dynexecute stmt_for stmt_perform stmt_getdiag
 %type <stmt>	stmt_open stmt_fetch stmt_close stmt_null
 
@@ -272,7 +286,6 @@ decl_sect		: opt_block_label
 						$$.label	  = $1;
 						$$.n_initvars = 0;
 						$$.initvarnos = NULL;
-						plpgsql_add_initdatums(NULL);
 					}
 				| opt_block_label decl_start
 					{
@@ -280,7 +293,6 @@ decl_sect		: opt_block_label
 						$$.label	  = $1;
 						$$.n_initvars = 0;
 						$$.initvarnos = NULL;
-						plpgsql_add_initdatums(NULL);
 					}
 				| opt_block_label decl_start decl_stmts
 					{
@@ -289,12 +301,16 @@ decl_sect		: opt_block_label
 							$$.label = $3;
 						else
 							$$.label = $1;
+						/* Remember variables declared in decl_stmts */
 						$$.n_initvars = plpgsql_add_initdatums(&($$.initvarnos));
 					}
 				;
 
 decl_start		: K_DECLARE
 					{
+						/* Forget any variables created before block */
+						plpgsql_add_initdatums(NULL);
+						/* Make variable names be local to block */
 						plpgsql_ns_setlocal(true);
 					}
 				;
@@ -557,9 +573,7 @@ decl_defkey		: K_ASSIGN
 				;
 
 proc_sect		:
-					{
-						$$ = NIL;
-					}
+					{ $$ = NIL; }
 				| proc_stmts
 					{ $$ = $1; }
 				;
@@ -574,7 +588,7 @@ proc_stmts		: proc_stmts proc_stmt
 				| proc_stmt
 						{
 							if ($1 == NULL)
-								$$ = NULL;
+								$$ = NIL;
 							else
 								$$ = list_make1($1);
 						}
@@ -599,8 +613,6 @@ proc_stmt		: pl_block ';'
 				| stmt_raise
 						{ $$ = $1; }
 				| stmt_execsql
-						{ $$ = $1; }
-				| stmt_execsql_insert
 						{ $$ = $1; }
 				| stmt_dynexecute
 						{ $$ = $1; }
@@ -990,9 +1002,6 @@ for_control		:
 																				  -1),
 														   true);
 
-								/* put the for-variable into the local block */
-								plpgsql_add_initdatums(NULL);
-
 								new = palloc0(sizeof(PLpgSQL_stmt_fori));
 								new->cmd_type = PLPGSQL_STMT_FORI;
 								new->lineno   = $1;
@@ -1258,25 +1267,13 @@ stmt_execsql	: execsql_start lno
 					}
 				;
 
-/* this matches any otherwise-unrecognized starting keyword */
-execsql_start	: T_WORD
+/* T_WORD+T_ERROR match any otherwise-unrecognized starting keyword */
+execsql_start	: K_INSERT
+					{ $$ = pstrdup(yytext); }
+				| T_WORD
 					{ $$ = pstrdup(yytext); }
 				| T_ERROR
 					{ $$ = pstrdup(yytext); }
-				;
-
-stmt_execsql_insert : K_INSERT lno K_INTO
-					{
-						/*
-						 * We have to special-case INSERT so that its INTO
-						 * won't be treated as an INTO-variables clause.
-						 *
-						 * Fortunately, this is the only valid use of INTO
-						 * in a pl/pgsql SQL command, and INTO is already
-						 * a fully reserved word in the main grammar.
-						 */
-						$$ = make_execsql_stmt("INSERT INTO", $2);
-					}
 				;
 
 stmt_dynexecute : K_EXECUTE lno
@@ -1884,14 +1881,29 @@ make_execsql_stmt(const char *sqlstart, int lineno)
 	PLpgSQL_row			*row = NULL;
 	PLpgSQL_rec			*rec = NULL;
 	int					tok;
+	int					prev_tok;
 	bool				have_into = false;
 	bool				have_strict = false;
 
 	plpgsql_dstring_init(&ds);
 	plpgsql_dstring_append(&ds, sqlstart);
 
+	/*
+	 * We have to special-case the sequence INSERT INTO, because we don't want
+	 * that to be taken as an INTO-variables clause.  Fortunately, this is the
+	 * only valid use of INTO in a pl/pgsql SQL command, and INTO is already a
+	 * fully reserved word in the main grammar.  We have to treat it that way
+	 * anywhere in the string, not only at the start; consider CREATE RULE
+	 * containing an INSERT statement.
+	 */
+	if (pg_strcasecmp(sqlstart, "insert") == 0)
+		tok = K_INSERT;
+	else
+		tok = 0;
+
 	for (;;)
 	{
+		prev_tok = tok;
 		tok = yylex();
 		if (tok == ';')
 			break;
@@ -1902,7 +1914,8 @@ make_execsql_stmt(const char *sqlstart, int lineno)
 					(errcode(ERRCODE_SYNTAX_ERROR),
 					 errmsg("unexpected end of function definition")));
 		}
-		if (tok == K_INTO)
+
+		if (tok == K_INTO && prev_tok != K_INSERT)
 		{
 			if (have_into)
 			{

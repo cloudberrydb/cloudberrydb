@@ -3,7 +3,7 @@
  * varsup.c
  *	  postgres OID & XID variables support routines
  *
- * Copyright (c) 2000-2006, PostgreSQL Global Development Group
+ * Copyright (c) 2000-2008, PostgreSQL Global Development Group
  *
  * IDENTIFICATION
  *	  $PostgreSQL: pgsql/src/backend/access/transam/varsup.c,v 1.76 2006/11/05 22:42:07 tgl Exp $
@@ -21,6 +21,9 @@
 #include "storage/pmsignal.h"
 #include "storage/proc.h"
 #include "utils/builtins.h"
+#include "utils/guc.h"
+#include "access/distributedlog.h"
+#include "cdb/cdbpersistentstore.h"
 
 
 /* Number of OIDs to prefetch (preallocate) per XLOG write */
@@ -29,22 +32,31 @@
 /* pointer to "variable cache" in shared memory (set up by shmem.c) */
 VariableCache ShmemVariableCache = NULL;
 
+int xid_stop_limit;
+int xid_warn_limit;
 
 /*
- * Allocate the next XID for my new transaction.
+ * Allocate the next XID for my new transaction or subtransaction.
  */
 TransactionId
-GetNewTransactionId(bool isSubXact)
+GetNewTransactionId(bool isSubXact, bool setProcXid)
 {
 	TransactionId xid;
+
+	MIRRORED_LOCK_DECLARE;
 
 	/*
 	 * During bootstrap initialization, we return the special bootstrap
 	 * transaction id.
 	 */
 	if (IsBootstrapProcessingMode())
+	{
+		Assert(!isSubXact);
+		//MyProc->xid = BootstrapTransactionId;
 		return BootstrapTransactionId;
+	}
 
+	MIRRORED_LOCK;
 	LWLockAcquire(XidGenLock, LW_EXCLUSIVE);
 
 	xid = ShmemVariableCache->nextXid;
@@ -70,9 +82,15 @@ GetNewTransactionId(bool isSubXact)
 		 * To avoid swamping the postmaster with signals, we issue the
 		 * autovac request only once per 64K transaction starts.  This
 		 * still gives plenty of chances before we get into real trouble.
+		 *
+		 * if (IsUnderPostmaster && (xid % 65536) == 0)
+		 * {
+		 * 		elog(LOG, "GetNewTransactionId: requesting autovac (xid %u xidVacLimit %u)", xid, ShmemVariableCache->xidVacLimit);
+		 * 		SendPostmasterSignal(PMSIGNAL_START_AUTOVAC);
+		 * }
+		 *
+		 * MPP-19652: autovacuum disabled
 		 */
-		if (IsUnderPostmaster && (xid % 65536) == 0)
-			SendPostmasterSignal(PMSIGNAL_START_AUTOVAC);
 
 		if (IsUnderPostmaster &&
 		 TransactionIdFollowsOrEquals(xid, ShmemVariableCache->xidStopLimit))
@@ -80,15 +98,15 @@ GetNewTransactionId(bool isSubXact)
 					(errcode(ERRCODE_PROGRAM_LIMIT_EXCEEDED),
 					 errmsg("database is not accepting commands to avoid wraparound data loss in database \"%s\"",
 							NameStr(ShmemVariableCache->limit_datname)),
-					 errhint("Stop the postmaster and use a standalone backend to vacuum database \"%s\".",
+					 errhint("Shutdown Greenplum Database. Lower the xid_stop_limit GUC. Execute a full-database VACUUM in \"%s\". Reset the xid_stop_limit GUC.",
 							 NameStr(ShmemVariableCache->limit_datname))));
 		else if (TransactionIdFollowsOrEquals(xid, ShmemVariableCache->xidWarnLimit))
 			ereport(WARNING,
-			(errmsg("database \"%s\" must be vacuumed within %u transactions",
-					NameStr(ShmemVariableCache->limit_datname),
-					ShmemVariableCache->xidWrapLimit - xid),
-			 errhint("To avoid a database shutdown, execute a full-database VACUUM in \"%s\".",
-					 NameStr(ShmemVariableCache->limit_datname))));
+					(errmsg("database \"%s\" must be vacuumed within %u transactions",
+							NameStr(ShmemVariableCache->limit_datname),
+							ShmemVariableCache->xidWrapLimit - xid),
+					 errhint("To avoid a database shutdown, execute a full-database VACUUM in \"%s\".",
+							 NameStr(ShmemVariableCache->limit_datname))));
 	}
 
 	/*
@@ -102,6 +120,7 @@ GetNewTransactionId(bool isSubXact)
 	 */
 	ExtendCLOG(xid);
 	ExtendSUBTRANS(xid);
+	DistributedLog_Extend(xid);
 
 	/*
 	 * Now advance the nextXid counter.  This must not happen until after we
@@ -138,11 +157,11 @@ GetNewTransactionId(bool isSubXact)
 	 * race-condition window, in that the new XID will not appear as running
 	 * until its parent link has been placed into pg_subtrans. However, that
 	 * will happen before anyone could possibly have a reason to inquire about
-	 * the status of the XID, so it seems OK. (Snapshots taken during this
+	 * the status of the XID, so it seems OK.  (Snapshots taken during this
 	 * window *will* include the parent XID, so they will deliver the correct
 	 * answer later on when someone does have a reason to inquire.)
 	 */
-	if (MyProc != NULL)
+	if (setProcXid && MyProc != NULL)
 	{
 		/*
 		 * Use volatile pointer to prevent code rearrangement; other backends
@@ -170,6 +189,7 @@ GetNewTransactionId(bool isSubXact)
 	}
 
 	LWLockRelease(XidGenLock);
+	MIRRORED_UNLOCK;
 
 	return xid;
 }
@@ -219,47 +239,51 @@ SetTransactionIdLimit(TransactionId oldest_datfrozenxid,
 
 	/*
 	 * We'll refuse to continue assigning XIDs in interactive mode once we get
-	 * within 1M transactions of data loss.  This leaves lots of room for the
-	 * DBA to fool around fixing things in a standalone backend, while not
-	 * being significant compared to total XID space. (Note that since
+	 * within xid_stop_limit transactions of data loss.  This leaves lots of
+	 * room for the DBA to fool around fixing things in a standalone backend,
+	 * while not being significant compared to total XID space. (Note that since
 	 * vacuuming requires one transaction per table cleaned, we had better be
 	 * sure there's lots of XIDs left...)
 	 */
-	xidStopLimit = xidWrapLimit - 1000000;
+	xidStopLimit = xidWrapLimit - (TransactionId)xid_stop_limit;
 	if (xidStopLimit < FirstNormalTransactionId)
 		xidStopLimit -= FirstNormalTransactionId;
 
 	/*
-	 * We'll start complaining loudly when we get within 10M transactions of
-	 * the stop point.	This is kind of arbitrary, but if you let your gas
-	 * gauge get down to 1% of full, would you be looking for the next gas
-	 * station?  We need to be fairly liberal about this number because there
-	 * are lots of scenarios where most transactions are done by automatic
-	 * clients that won't pay attention to warnings. (No, we're not gonna make
-	 * this configurable.  If you know enough to configure it, you know enough
-	 * to not get in this kind of trouble in the first place.)
+	 * We'll start complaining loudly when we get within xid_warn_limit
+	 * transactions of the stop point.	This is kind of arbitrary, but if
+	 * you let your gas gauge get down to 1% of full, would you be looking for
+	 * the next gas station?  We need to be fairly liberal about this number
+	 * because there are lots of scenarios where most transactions are done by
+	 * automatic clients that won't pay attention to warnings. (No, we're not
+	 * gonna make this configurable.  If you know enough to configure it, you
+	 * know enough to not get in this kind of trouble in the first place.)
 	 */
-	xidWarnLimit = xidStopLimit - 10000000;
+	xidWarnLimit = xidStopLimit  - (TransactionId)xid_warn_limit;
 	if (xidWarnLimit < FirstNormalTransactionId)
 		xidWarnLimit -= FirstNormalTransactionId;
 
 	/*
-	 * We'll start trying to force autovacuums when oldest_datfrozenxid
-	 * gets to be more than autovacuum_freeze_max_age transactions old.
+	 * We'll start trying to force autovacuums when oldest_datfrozenxid gets
+	 * to be more than autovacuum_freeze_max_age transactions old.
 	 *
-	 * Note: guc.c ensures that autovacuum_freeze_max_age is in a sane
-	 * range, so that xidVacLimit will be well before xidWarnLimit.
+	 * Note: guc.c ensures that autovacuum_freeze_max_age is in a sane range,
+	 * so that xidVacLimit will be well before xidWarnLimit.
 	 *
 	 * Note: autovacuum_freeze_max_age is a PGC_POSTMASTER parameter so that
 	 * we don't have to worry about dealing with on-the-fly changes in its
 	 * value.  It doesn't look practical to update shared state from a GUC
 	 * assign hook (too many processes would try to execute the hook,
-	 * resulting in race conditions as well as crashes of those not
-	 * connected to shared memory).  Perhaps this can be improved someday.
+	 * resulting in race conditions as well as crashes of those not connected
+	 * to shared memory).  Perhaps this can be improved someday.
+	 *
+	 * MPP-19652: autovacuum disabled
+	 * 
+	 *	xidVacLimit = oldest_datfrozenxid + autovacuum_freeze_max_age;
+	 *	if (xidVacLimit < FirstNormalTransactionId)
+	 *		xidVacLimit += FirstNormalTransactionId;
 	 */
-	xidVacLimit = oldest_datfrozenxid + autovacuum_freeze_max_age;
-	if (xidVacLimit < FirstNormalTransactionId)
-		xidVacLimit += FirstNormalTransactionId;
+	xidVacLimit = xidWarnLimit;
 
 	/* Grab lock for just long enough to set the new limit values */
 	LWLockAcquire(XidGenLock, LW_EXCLUSIVE);
@@ -283,10 +307,13 @@ SetTransactionIdLimit(TransactionId oldest_datfrozenxid,
 	 * database per invocation.  Once it's finished cleaning up the oldest
 	 * database, it'll call here, and we'll signal the postmaster to start
 	 * another iteration immediately if there are still any old databases.
+	 *
+	 * MPP-19652: autovacuum disabled
+	 *
+	 *  if (TransactionIdFollowsOrEquals(curXid, xidVacLimit) &&
+	 * 		IsUnderPostmaster)
+	 *		SendPostmasterSignal(PMSIGNAL_START_AUTOVAC);
 	 */
-	if (TransactionIdFollowsOrEquals(curXid, xidVacLimit) &&
-		IsUnderPostmaster)
-		SendPostmasterSignal(PMSIGNAL_START_AUTOVAC);
 
 	/* Give an immediate warning if past the wrap warn point */
 	if (TransactionIdFollowsOrEquals(curXid, xidWarnLimit))

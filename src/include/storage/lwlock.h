@@ -4,7 +4,7 @@
  *	  Lightweight lock manager
  *
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * $PostgreSQL: pgsql/src/include/storage/lwlock.h,v 1.32 2006/10/15 22:04:07 tgl Exp $
@@ -18,6 +18,7 @@
  * It's a bit odd to declare NUM_BUFFER_PARTITIONS and NUM_LOCK_PARTITIONS
  * here, but we need them to set up enum LWLockId correctly, and having
  * this file include lock.h or bufmgr.h would be backwards.
+ * This also applies for WORKFILE_HASHSTABLE_NUM_PARTITIONS.
  */
 
 /* Number of partitions of the shared buffer mapping hashtable */
@@ -27,6 +28,12 @@
 #define LOG2_NUM_LOCK_PARTITIONS  4
 #define NUM_LOCK_PARTITIONS  (1 << LOG2_NUM_LOCK_PARTITIONS)
 
+/* Number of partitions of the workfile manager hashtable */
+#define NUM_WORKFILEMGR_PARTITIONS 32
+
+/* Number of partitions of the workfile query diskspace hashtable */
+#define NUM_WORKFILE_QUERYSPACE_PARTITIONS 128
+
 /*
  * We have a number of predefined LWLocks, plus a bunch of LWLocks that are
  * dynamically assigned (e.g., for shared buffers).  The LWLock structures
@@ -35,15 +42,21 @@
  * by allowing values not listed in the enum declaration to be assigned.
  * The extra value MaxDynamicLWLock is there to keep the compiler from
  * deciding that the enum can be represented as char or short ...
+ *
+ * If you remove a lock, please replace it with a placeholder. This retains
+ * the lock numbering, which is helpful for DTrace and other external
+ * debugging scripts.
  */
 typedef enum LWLockId
 {
+	NullLock = 0,		// Have 0 be no lock.
 	BufFreelistLock,
 	ShmemIndexLock,
 	OidGenLock,
 	XidGenLock,
 	ProcArrayLock,
-	SInvalLock,
+	SInvalReadLock,
+	SInvalWriteLock,
 	FreeSpaceLock,
 	WALInsertLock,
 	WALWriteLock,
@@ -61,15 +74,38 @@ typedef enum LWLockId
 	TablespaceCreateLock,
 	BtreeVacuumLock,
 	AddinShmemInitLock,
-	FirstBufMappingLock,
+	AutovacuumLock,
+	AutovacuumScheduleLock,
+	SharedSnapshotLock,
+	DistributedLogControlLock,
+	TemporarySerializePreparesLock,
+	SeqServerControlLock,
+	AOSegFileLock,
+	PersistentObjLock,
+	FileRepShmemLock,
+	FileRepAckShmemLock,	
+	FileRepAckHashShmemLock,
+	ChangeTrackingTransitionLock,
+	ChangeTrackingWriteLock,
+	ChangeTrackingCompactLock,
+	MirroredLock,
+	ResQueueLock,
+	FileRepAppendOnlyCommitCountLock,
+	SyncRepLock,
+	ErrorLogLock,
+	FirstWorkfileMgrLock,
+	FirstWorkfileQuerySpaceLock = FirstWorkfileMgrLock + NUM_WORKFILEMGR_PARTITIONS,
+	FirstBufMappingLock = FirstWorkfileQuerySpaceLock + NUM_WORKFILE_QUERYSPACE_PARTITIONS,
 	FirstLockMgrLock = FirstBufMappingLock + NUM_BUFFER_PARTITIONS,
+	SessionStateLock = FirstLockMgrLock + NUM_LOCK_PARTITIONS,
 
 	/* must be last except for MaxDynamicLWLock: */
-	NumFixedLWLocks = FirstLockMgrLock + NUM_LOCK_PARTITIONS,
+	NumFixedLWLocks,
 
 	MaxDynamicLWLock = 1000000000
 } LWLockId;
 
+#define LWLOCK_IS_PREDEFINED(lwlock) (lwlock < NumFixedLWLocks + NUM_LOCK_PARTITIONS)
 
 typedef enum LWLockMode
 {
@@ -87,7 +123,16 @@ extern void LWLockAcquire(LWLockId lockid, LWLockMode mode);
 extern bool LWLockConditionalAcquire(LWLockId lockid, LWLockMode mode);
 extern void LWLockRelease(LWLockId lockid);
 extern void LWLockReleaseAll(void);
+extern void LWLockWaitCancel(void);
 extern bool LWLockHeldByMe(LWLockId lockid);
+extern bool LWLockHeldExclusiveByMe(LWLockId lockid);
+
+#ifdef USE_TEST_UTILS_X86
+extern uint32 LWLocksHeld(void);
+extern LWLockId LWLockHeldLatestId(void);
+extern void *LWLockHeldLatestCaller(void);
+extern const char *LWLocksHeldStackTraces(void);
+#endif /* USE_TEST_UTILS_X86 */
 
 extern int	NumLWLocks(void);
 extern Size LWLockShmemSize(void);

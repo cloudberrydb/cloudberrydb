@@ -16,7 +16,7 @@
  *
  *
  * IDENTIFICATION
- *		$PostgreSQL: pgsql/src/bin/pg_dump/pg_backup_tar.c,v 1.56 2006/11/01 15:59:26 tgl Exp $
+ *		$PostgreSQL: pgsql/src/bin/pg_dump/pg_backup_tar.c,v 1.56.2.3 2007/08/29 16:31:45 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -29,6 +29,7 @@
 #include <ctype.h>
 #include <limits.h>
 #include <unistd.h>
+#include <fcntl.h>
 
 static void _ArchiveEntry(ArchiveHandle *AH, TocEntry *te);
 static void _StartData(ArchiveHandle *AH, TocEntry *te);
@@ -49,6 +50,8 @@ static void _StartBlob(ArchiveHandle *AH, TocEntry *te, Oid oid);
 static void _EndBlob(ArchiveHandle *AH, TocEntry *te, Oid oid);
 static void _EndBlobs(ArchiveHandle *AH, TocEntry *te);
 
+static FILE *newTempFile(void);
+
 #define K_STD_BUF_SIZE 1024
 
 
@@ -67,30 +70,26 @@ typedef struct
 	FILE	   *tmpFH;
 	char	   *targetFile;
 	char		mode;
-	off_t		pos;
-	off_t		fileLen;
+	pgoff_t		pos;
+	pgoff_t		fileLen;
 	ArchiveHandle *AH;
 } TAR_MEMBER;
 
 /*
  * Maximum file size for a tar member: The limit inherent in the
  * format is 2^33-1 bytes (nearly 8 GB).  But we don't want to exceed
- * what we can represent by an off_t.
+ * what we can represent in pgoff_t.
  */
-#ifdef INT64_IS_BUSTED
-#define MAX_TAR_MEMBER_FILELEN INT_MAX
-#else
-#define MAX_TAR_MEMBER_FILELEN (((int64) 1 << Min(33, sizeof(off_t)*8 - 1)) - 1)
-#endif
+#define MAX_TAR_MEMBER_FILELEN (((int64) 1 << Min(33, sizeof(pgoff_t)*8 - 1)) - 1)
 
 typedef struct
 {
 	int			hasSeek;
-	off_t		filePos;
+	pgoff_t		filePos;
 	TAR_MEMBER *blobToc;
 	FILE	   *tarFH;
-	off_t		tarFHpos;
-	off_t		tarNextMember;
+	pgoff_t		tarFHpos;
+	pgoff_t		tarNextMember;
 	TAR_MEMBER *FH;
 	int			isSpecialScript;
 	TAR_MEMBER *scriptTH;
@@ -102,7 +101,7 @@ typedef struct
 	char	   *filename;
 } lclTocEntry;
 
-static char *modulename = gettext_noop("tar archiver");
+static const char *modulename = gettext_noop("tar archiver");
 
 static void _LoadBlobs(ArchiveHandle *AH, RestoreOptions *ropt);
 
@@ -172,7 +171,6 @@ InitArchiveFmt_Tar(ArchiveHandle *AH)
 	 */
 	if (AH->mode == archModeWrite)
 	{
-
 		if (AH->fSpec && strcmp(AH->fSpec, "") != 0)
 			ctx->tarFH = fopen(AH->fSpec, PG_BINARY_W);
 		else
@@ -354,14 +352,13 @@ tarOpen(ArchiveHandle *AH, const char *filename, char mode)
 #else
 		tm->nFH = ctx->tarFH;
 #endif
-
 	}
 	else
 	{
 		tm = calloc(1, sizeof(TAR_MEMBER));
 
 #ifndef WIN32
-		tm->tmpFH = tmpfile();
+		tm->tmpFH = newTempFile();
 #else
 
 		/*
@@ -402,7 +399,6 @@ tarOpen(ArchiveHandle *AH, const char *filename, char mode)
 			tm->zFH = gzdopen(dup(fileno(tm->tmpFH)), fmode);
 			if (tm->zFH == NULL)
 				die_horribly(AH, modulename, "could not open temporary file\n");
-
 		}
 		else
 			tm->nFH = tm->tmpFH;
@@ -420,6 +416,105 @@ tarOpen(ArchiveHandle *AH, const char *filename, char mode)
 
 	return tm;
 
+}
+
+/*
+ * newTempFile - creates and opens a stream over a unlinked file.  This
+ * function provides an implmentation of the <stdio.h>/tmpfile() function
+ * that respects the TMPDIR variable.
+ */
+static FILE *
+newTempFile(void)
+{
+	int			count;
+	int			fd;
+	char	   *tmpdir;
+	struct stat buf;
+	char	   *tempFileName = NULL;
+	FILE	   *f = NULL;
+	static int	tmpdirChecked = 0;
+
+	/*
+	 * In some systems, the tempnam() function does't respect the value of the
+	 * TMPDIR environment variable.  To provide predictable operation of this
+	 * function, the value of TMPDIR is obtained and validated to provide it
+	 * as the first argument to tempnam().
+	 */
+	if ((tmpdir = getenv("TMPDIR")) != NULL)
+	{
+		if (!(stat(tmpdir, &buf) == 0 && S_ISDIR(buf.st_mode)))
+		{
+			if (!tmpdirChecked)
+			{
+				tmpdirChecked = 1;
+				write_msg(modulename, "TMPDIR value \"%s\" is not an existing directory; using system default\n", tmpdir);
+			}
+			tmpdir = NULL;
+		}
+	}
+
+	/*
+	 * Attempt to generate and open exclusively a new temporary file. Repeat
+	 * until a new file is opened exclusively or TMP_MAX attempts have failed.
+	 * This section of code largely mirrors what the mkstemp() function might
+	 * do given "${TMPDIR}/GPDB_XXXXXX" as an argument.  Why not just use
+	 * mkstemp()?  Because the different supported OSes have different
+	 * admonitions about which functions are preferred and Solaris prefers
+	 * tmpfile() over mkstemp().
+	 */
+	for (count = 0; count < TMP_MAX; count++)
+	{
+		free(tempFileName);
+
+		/*
+		 * Use of the tempnam() function generates a warning in GCC; the code
+		 * surrounding this use addresses the exposure of which the warning
+		 * informs.
+		 */
+		tempFileName = tempnam(tmpdir, "GPDB_");
+		if (tempFileName == NULL)
+		{
+			/* All name generation errors are fatal. */
+			return NULL;
+		}
+
+		/*
+		 * Create and open the file in exclusive mode with access limited to
+		 * the current user. If an "exists" error is returned, try another
+		 * file name; otherwise return the error.
+		 */
+		if ((fd = open(tempFileName, O_RDWR | O_CREAT | O_EXCL, S_IRUSR | S_IWUSR)) < 0)
+		{
+			/* open() failed */
+			if (errno == EEXIST)
+			{
+				/* The temp file name is already in use; try again */
+				continue;
+			}
+
+			/* Error is considered fatal. */
+			return NULL;
+		}
+
+		break;
+	}
+
+	/*
+	 * We've created and opened a new file.  Make it temporary by unlinking
+	 * it; the file will exist only until the file descriptor is open.	This
+	 * code segment completes what tmpfile() would do.
+	 */
+	unlink(tempFileName);
+	free(tempFileName);
+
+	/* Now attempt to open a stream over the temporary file. */
+	if ((f = fdopen(fd, "w+b")) == NULL)
+	{
+		/* Can't open stream over file; all errors are fatal. */
+		close(fd);
+	}
+
+	return f;
 }
 
 static void
@@ -510,7 +605,7 @@ _tarReadRaw(ArchiveHandle *AH, void *buf, size_t len, TAR_MEMBER *th, FILE *fh)
 			used = avail;
 
 		/* Copy, and adjust buffer pos */
-		memcpy(buf, AH->lookahead, used);
+		memcpy(buf, AH->lookahead + AH->lookaheadPos, used);
 		AH->lookaheadPos += used;
 
 		/* Adjust required length */
@@ -532,11 +627,6 @@ _tarReadRaw(ArchiveHandle *AH, void *buf, size_t len, TAR_MEMBER *th, FILE *fh)
 		else
 			die_horribly(AH, modulename, "internal error -- neither th nor fh specified in tarReadRaw()\n");
 	}
-
-#if 0
-	write_msg(modulename, "requested %d bytes, got %d from lookahead and %d from file\n",
-			  reqLen, used, res);
-#endif
 
 	ctx->tarFHpos += res + used;
 
@@ -566,7 +656,7 @@ tarWrite(const void *buf, size_t len, TAR_MEMBER *th)
 {
 	size_t		res;
 
-	if (th->zFH != 0)
+	if (th->zFH != NULL)
 		res = GZWRITE((void *) buf, 1, len, th->zFH);
 	else
 		res = fwrite(buf, 1, len, th->nFH);
@@ -733,11 +823,12 @@ _LoadBlobs(ArchiveHandle *AH, RestoreOptions *ropt)
 		else
 		{
 			tarClose(AH, th);
+
 			/*
-			 * Once we have found the first blob, stop at the first
-			 * non-blob entry (which will be 'blobs.toc').  This coding would
-			 * eat all the rest of the archive if there are no blobs ... but
-			 * this function shouldn't be called at all in that case.
+			 * Once we have found the first blob, stop at the first non-blob
+			 * entry (which will be 'blobs.toc').  This coding would eat all
+			 * the rest of the archive if there are no blobs ... but this
+			 * function shouldn't be called at all in that case.
 			 */
 			if (foundBlob)
 				break;
@@ -766,12 +857,13 @@ static int
 _ReadByte(ArchiveHandle *AH)
 {
 	lclContext *ctx = (lclContext *) AH->formatData;
-	int			res;
-	char		c = '\0';
+	size_t		res;
+	unsigned char c;
 
 	res = tarRead(&c, 1, ctx->FH);
-	if (res != EOF)
-		ctx->filePos += res;
+	if (res != 1)
+		die_horribly(AH, modulename, "unexpected end of file\n");
+	ctx->filePos += 1;
 	return c;
 }
 
@@ -1048,7 +1140,7 @@ _tarAddFile(ArchiveHandle *AH, TAR_MEMBER *th)
 	FILE	   *tmp = th->tmpFH;	/* Grab it for convenience */
 	char		buf[32768];
 	size_t		cnt;
-	off_t		len = 0;
+	pgoff_t		len = 0;
 	size_t		res;
 	size_t		i,
 				pad;
@@ -1058,36 +1150,38 @@ _tarAddFile(ArchiveHandle *AH, TAR_MEMBER *th)
 	 */
 	fseeko(tmp, 0, SEEK_END);
 	th->fileLen = ftello(tmp);
+	fseeko(tmp, 0, SEEK_SET);
 
 	/*
-	 * Some compilers with throw a warning knowing this test can never be true
-	 * because off_t can't exceed the compared maximum.
+	 * Some compilers will throw a warning knowing this test can never be true
+	 * because pgoff_t can't exceed the compared maximum on their platform.
 	 */
 	if (th->fileLen > MAX_TAR_MEMBER_FILELEN)
 		die_horribly(AH, modulename, "archive member too large for tar format\n");
-	fseeko(tmp, 0, SEEK_SET);
 
 	_tarWriteHeader(th);
 
-	while ((cnt = fread(&buf[0], 1, 32767, tmp)) > 0)
+	while ((cnt = fread(buf, 1, sizeof(buf), tmp)) > 0)
 	{
-		res = fwrite(&buf[0], 1, cnt, th->tarFH);
+		res = fwrite(buf, 1, cnt, th->tarFH);
 		if (res != cnt)
 			die_horribly(AH, modulename,
-					"could not write to output file: %s\n", strerror(errno));
+						 "could not write to output file: %s\n",
+						 strerror(errno));
 		len += res;
 	}
 
 	if (fclose(tmp) != 0)		/* This *should* delete it... */
-		die_horribly(AH, modulename, "could not close temporary file: %s\n", strerror(errno));
+		die_horribly(AH, modulename, "could not close temporary file: %s\n",
+					 strerror(errno));
 
 	if (len != th->fileLen)
 	{
-		char		buf1[100],
-					buf2[100];
+		char		buf1[32],
+					buf2[32];
 
 		snprintf(buf1, sizeof(buf1), INT64_FORMAT, (int64) len);
-		snprintf(buf2, sizeof(buf2), INT64_FORMAT, (int64) th->pos);
+		snprintf(buf2, sizeof(buf2), INT64_FORMAT, (int64) th->fileLen);
 		die_horribly(AH, modulename, "actual file length (%s) does not match expected (%s)\n",
 					 buf1, buf2);
 	}
@@ -1139,20 +1233,19 @@ _tarPositionTo(ArchiveHandle *AH, const char *filename)
 		ahlog(AH, 4, "now at file position %s\n", buf);
 	}
 
-	/* We are at the start of the file. or at the next member */
+	/* We are at the start of the file, or at the next member */
 
 	/* Get the header */
 	if (!_tarGetHeader(AH, th))
 	{
 		if (filename)
-			die_horribly(AH, modulename, "could not find header for file %s in tar archive\n", filename);
+			die_horribly(AH, modulename, "could not find header for file \"%s\" in tar archive\n", filename);
 		else
-
+		{
 			/*
-			 * We're just scanning the archibe for the next file, so return
+			 * We're just scanning the archive for the next file, so return
 			 * null
 			 */
-		{
 			free(th);
 			return NULL;
 		}
@@ -1176,8 +1269,7 @@ _tarPositionTo(ArchiveHandle *AH, const char *filename)
 			_tarReadRaw(AH, &header[0], 512, NULL, ctx->tarFH);
 
 		if (!_tarGetHeader(AH, th))
-			die_horribly(AH, modulename, "could not find header for file %s in tar archive\n", filename);
-
+			die_horribly(AH, modulename, "could not find header for file \"%s\" in tar archive\n", filename);
 	}
 
 	ctx->tarNextMember = ctx->tarFHpos + ((th->fileLen + 511) & ~511);
@@ -1197,7 +1289,7 @@ _tarGetHeader(ArchiveHandle *AH, TAR_MEMBER *th)
 				chk;
 	size_t		len;
 	unsigned long ullen;
-	off_t		hPos;
+	pgoff_t		hPos;
 	bool		gotBlock = false;
 
 	while (!gotBlock)
@@ -1366,5 +1458,4 @@ _tarWriteHeader(TAR_MEMBER *th)
 
 	if (fwrite(h, 1, 512, th->tarFH) != 512)
 		die_horribly(th->AH, modulename, "could not write to output file: %s\n", strerror(errno));
-
 }

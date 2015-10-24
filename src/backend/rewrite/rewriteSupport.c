@@ -3,7 +3,7 @@
  * rewriteSupport.c
  *
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2008, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -15,23 +15,11 @@
 #include "postgres.h"
 
 #include "access/heapam.h"
+#include "catalog/catquery.h"
 #include "catalog/indexing.h"
 #include "rewrite/rewriteSupport.h"
 #include "utils/inval.h"
 #include "utils/syscache.h"
-
-
-/*
- * Is there a rule by the given name?
- */
-bool
-IsDefinedRewriteRule(Oid owningRel, const char *ruleName)
-{
-	return SearchSysCacheExists(RULERELNAME,
-								ObjectIdGetDatum(owningRel),
-								PointerGetDatum(ruleName),
-								0, 0);
-}
 
 
 /*
@@ -54,14 +42,23 @@ SetRelationRuleStatus(Oid relationId, bool relHasRules,
 	Relation	relationRelation;
 	HeapTuple	tuple;
 	Form_pg_class classForm;
+	cqContext	cqc;
+	cqContext  *pcqCtx;
 
 	/*
 	 * Find the tuple to update in pg_class, using syscache for the lookup.
 	 */
 	relationRelation = heap_open(RelationRelationId, RowExclusiveLock);
-	tuple = SearchSysCacheCopy(RELOID,
-							   ObjectIdGetDatum(relationId),
-							   0, 0, 0);
+
+	pcqCtx = caql_addrel(cqclr(&cqc), relationRelation);
+
+	tuple = caql_getfirst(
+			pcqCtx,
+			cql("SELECT * FROM pg_class "
+				" WHERE oid = :1 "
+				" FOR UPDATE ",
+				ObjectIdGetDatum(relationId)));
+
 	if (!HeapTupleIsValid(tuple))
 		elog(ERROR, "cache lookup failed for relation %u", relationId);
 	classForm = (Form_pg_class) GETSTRUCT(tuple);
@@ -72,12 +69,12 @@ SetRelationRuleStatus(Oid relationId, bool relHasRules,
 		/* Do the update */
 		classForm->relhasrules = relHasRules;
 		if (relIsBecomingView)
+		{
 			classForm->relkind = RELKIND_VIEW;
+			classForm->relstorage = RELSTORAGE_VIRTUAL;
+		}
 
-		simple_heap_update(relationRelation, &tuple->t_self, tuple);
-
-		/* Keep the catalog indexes up to date */
-		CatalogUpdateIndexes(relationRelation, tuple);
+		caql_update_current(pcqCtx, tuple); /* implicit update of index  */
 	}
 	else
 	{

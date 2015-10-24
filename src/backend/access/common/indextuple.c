@@ -4,12 +4,12 @@
  *	   This file contains index tuple accessor and mutator routines,
  *	   as well as various tuple utilities.
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2008, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/access/common/indextuple.c,v 1.79 2006/07/14 19:05:52 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/access/common/indextuple.c,v 1.81 2007-02-27 23:48:06 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -72,11 +72,10 @@ index_form_tuple(TupleDesc tupleDescriptor,
 		 * If value is stored EXTERNAL, must fetch it so we are not depending
 		 * on outside storage.	This should be improved someday.
 		 */
-		if (VARATT_IS_EXTERNAL(values[i]))
+		if (VARATT_IS_EXTERNAL_D(values[i]))
 		{
-			untoasted_values[i] = PointerGetDatum(
-												  heap_tuple_fetch_attr(
-								  (varattrib *) DatumGetPointer(values[i])));
+			untoasted_values[i] =
+				PointerGetDatum(heap_tuple_fetch_attr(DatumGetPointer(values[i])));
 			untoasted_free[i] = true;
 		}
 
@@ -84,8 +83,9 @@ index_form_tuple(TupleDesc tupleDescriptor,
 		 * If value is above size target, and is of a compressible datatype,
 		 * try to compress it in-line.
 		 */
-		if (VARATT_SIZE(untoasted_values[i]) > TOAST_INDEX_TARGET &&
-			!VARATT_IS_EXTENDED(untoasted_values[i]) &&
+		if (!VARATT_IS_SHORT_D(untoasted_values[i]) &&
+			VARSIZE_D(untoasted_values[i]) > TOAST_INDEX_TARGET &&
+			!VARATT_IS_COMPRESSED_D(untoasted_values[i]) &&
 			(att->attstorage == 'x' || att->attstorage == 'm'))
 		{
 			Datum		cvalue = toast_compress_datum(untoasted_values[i]);
@@ -183,7 +183,7 @@ index_form_tuple(TupleDesc tupleDescriptor,
  *
  *		This caches attribute offsets in the attribute descriptor.
  *
- *		An alternate way to speed things up would be to cache offsets
+ *		An alternative way to speed things up would be to cache offsets
  *		with the tuple, but that seems more difficult unless you take
  *		the storage hit of actually putting those offsets into the
  *		tuple you send to disk.  Yuck.
@@ -237,7 +237,7 @@ nocache_index_getattr(IndexTuple tup,
 	{
 #ifdef IN_MACRO
 /* This is handled in the macro */
-		if (att[attnum]->attcacheoff != -1)
+		if (att[attnum]->attcacheoff >= 0)
 		{
 			return fetchatt(att[attnum],
 							(char *) tup + data_off +
@@ -296,7 +296,9 @@ nocache_index_getattr(IndexTuple tup,
 	tp = (char *) tup + data_off;
 
 	/*
-	 * now check for any non-fixed length attrs before our attribute
+	 * now check for any non-fixed length attrs before our attribute. Note that
+	 * we use <= not < because we can't use cached offsets even for the first
+	 * varlena any more.
 	 */
 	if (!slow)
 	{
@@ -309,7 +311,7 @@ nocache_index_getattr(IndexTuple tup,
 		{
 			int			j;
 
-			for (j = 0; j < attnum; j++)
+			for (j = 0; j <= attnum; j++)
 			{
 				if (att[j]->attlen <= 0)
 				{
@@ -378,19 +380,27 @@ nocache_index_getattr(IndexTuple tup,
 				off = att[i]->attcacheoff;
 			else
 			{
-				off = att_align(off, att[i]->attalign);
-
-				if (usecache)
+				/* if it's a varlena it may or may not be aligned becuase
+				 * heap_deform_tuple compressees short varlenas using 1-byte
+				 * headers, so check for something that looks like a padding byte
+				 * before aligning. If we're already aligned it may be the leading
+				 * byte of a 4-byte header but then the att_align is harmless.
+				 * Don't bother looking if it's not a varlena though.*/
+				if (att[i]->attlen != -1 || !tp[off])
+					off = att_align(off, att[i]->attalign);
+				if (usecache && att[i]->attlen != -1)
 					att[i]->attcacheoff = off;
 			}
 
-			off = att_addlength(off, att[i]->attlen, tp + off);
-
-			if (usecache && att[i]->attlen <= 0)
+			if (att[i]->attlen < 0)
 				usecache = false;
+
+			off = att_addlength(off, att[i]->attlen, PointerGetDatum(tp + off));
+
 		}
 
-		off = att_align(off, att[attnum]->attalign);
+		if (att[attnum]->attlen != -1 || !tp[off])
+			off = att_align(off, att[attnum]->attalign);
 
 		return fetchatt(att[attnum], tp + off);
 	}

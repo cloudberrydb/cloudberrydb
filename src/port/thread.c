@@ -5,9 +5,9 @@
  *		  Prototypes and macros around system calls, used to help make
  *		  threaded libraries reentrant and safe to use from threaded applications.
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
  *
- * $PostgreSQL: pgsql/src/port/thread.c,v 1.35 2006/09/27 18:40:10 tgl Exp $
+ * $PostgreSQL: pgsql/src/port/thread.c,v 1.41 2009/01/14 21:18:30 momjian Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -15,13 +15,6 @@
 #include "c.h"
 
 #include <pwd.h>
-#if defined(FRONTEND) && defined(ENABLE_THREAD_SAFETY)
-#ifdef WIN32
-#include "pthread-win32.h"
-#else
-#include <pthread.h>
-#endif
-#endif
 
 
 /*
@@ -50,12 +43,12 @@
  *	The current setup is to try threading in this order:
  *
  *		use *_r function names if they exit
- *			(*_THREADSAFE=ye)
+ *			(*_THREADSAFE=yes)
  *		use non-*_r functions if they are thread-safe
  *
  *	One thread-safe solution for gethostbyname() might be to use getaddrinfo().
  *
- *	Run src/tools/thread to see if your operating system has thread-safe
+ *	Run src/test/thread to test if your operating system has thread-safe
  *	non-*_r functions.
  */
 
@@ -67,7 +60,7 @@
 char *
 pqStrerror(int errnum, char *strerrbuf, size_t buflen)
 {
-#if defined(FRONTEND) && defined(ENABLE_THREAD_SAFETY) && defined(HAVE_STRERROR_R)
+#if defined(ENABLE_THREAD_SAFETY) && defined(HAVE_STRERROR_R)
 	/* reentrant strerror_r is available */
 #ifdef STRERROR_R_INT
 	/* SUSv3 version */
@@ -92,11 +85,58 @@ pqStrerror(int errnum, char *strerrbuf, size_t buflen)
  * behaviour, if it is not available or required.
  */
 #ifndef WIN32
+
+/* header for geteuid */
+#include <sys/types.h>
+#include <unistd.h>
+
+struct passwd *get_gp_passwdptr()
+{
+	static struct passwd *gp_passwd_ptr = NULL;
+
+#if defined(ENABLE_THREAD_SAFETY) && defined(HAVE_GETPWUID_R)
+	static char gp_passwd_buf[BUFSIZ];
+	static struct passwd gp_passwd;
+
+	/* First check if we have an singleton */
+	if(gp_passwd_ptr!=NULL)
+		return gp_passwd_ptr;
+#ifdef GETPWUID_R_5ARG
+	/* POSIX version */
+	getpwuid_r(geteuid(), &gp_passwd, 
+			gp_passwd_buf, sizeof(gp_passwd_buf),
+			&gp_passwd_ptr
+		  ); 
+#else
+	/*
+	 * Early POSIX draft of getpwuid_r() returns 'struct passwd *'.
+	 * getpwuid_r(uid, resultbuf, buffer, buflen)
+	 */
+	gp_passwd_ptr = getpwuid_r(geteuid(), &gp_passwd, gp_passwd_buf, sizeof(gp_passwd_buf)); 
+#endif
+#else
+	/* First check if we have an singleton */
+	if(gp_passwd_ptr!=NULL)
+		return gp_passwd_ptr;
+
+	/* no getpwuid_r() available, just use getpwuid() */
+	gp_passwd_ptr = getpwuid(geteuid());
+#endif
+	return gp_passwd_ptr;
+}
+#endif
+
+
+/*
+ * Wrapper around getpwuid() or getpwuid_r() to mimic POSIX getpwuid_r()
+ * behaviour, if it is not available or required.
+ */
+#ifndef WIN32
 int
 pqGetpwuid(uid_t uid, struct passwd * resultbuf, char *buffer,
 		   size_t buflen, struct passwd ** result)
 {
-#if defined(FRONTEND) && defined(ENABLE_THREAD_SAFETY) && defined(HAVE_GETPWUID_R)
+#if defined(ENABLE_THREAD_SAFETY) && defined(HAVE_GETPWUID_R)
 
 #ifdef GETPWUID_R_5ARG
 	/* POSIX version */
@@ -132,7 +172,7 @@ pqGethostbyname(const char *name,
 				struct hostent ** result,
 				int *herrno)
 {
-#if defined(FRONTEND) && defined(ENABLE_THREAD_SAFETY) && defined(HAVE_GETHOSTBYNAME_R)
+#if defined(ENABLE_THREAD_SAFETY) && defined(HAVE_GETHOSTBYNAME_R)
 
 	/*
 	 * broken (well early POSIX draft) gethostbyname_r() which returns 'struct

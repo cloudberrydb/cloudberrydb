@@ -28,7 +28,7 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- * $PostgreSQL: pgsql/contrib/pgcrypto/md5.c,v 1.13 2005/07/11 15:07:59 tgl Exp $
+ * $PostgreSQL: pgsql/contrib/pgcrypto/md5.c,v 1.15 2009/06/11 14:48:52 momjian Exp $
  */
 
 #include "postgres.h"
@@ -37,11 +37,6 @@
 
 #include "px.h"
 #include "md5.h"
-
-/* sanity check */
-#if !defined(BYTE_ORDER) || (BYTE_ORDER != LITTLE_ENDIAN && BYTE_ORDER != BIG_ENDIAN)
-#error Define BYTE_ORDER to be equal to either LITTLE_ENDIAN or BIG_ENDIAN
-#endif
 
 #define SHIFT(X, s) (((X) << (s)) | ((X) >> (32 - (s))))
 
@@ -141,7 +136,7 @@ static const uint8 md5_paddat[MD5_BUFLEN] = {
 static void md5_calc(uint8 *, md5_ctxt *);
 
 void
-md5_init(md5_ctxt * ctxt)
+md5_init(md5_ctxt *ctxt)
 {
 	ctxt->md5_n = 0;
 	ctxt->md5_i = 0;
@@ -153,7 +148,7 @@ md5_init(md5_ctxt * ctxt)
 }
 
 void
-md5_loop(md5_ctxt * ctxt, const uint8 *input, unsigned len)
+md5_loop(md5_ctxt *ctxt, const uint8 *input, unsigned len)
 {
 	unsigned int gap,
 				i;
@@ -180,7 +175,7 @@ md5_loop(md5_ctxt * ctxt, const uint8 *input, unsigned len)
 }
 
 void
-md5_pad(md5_ctxt * ctxt)
+md5_pad(md5_ctxt *ctxt)
 {
 	unsigned int gap;
 
@@ -201,10 +196,9 @@ md5_pad(md5_ctxt * ctxt)
 	}
 
 	/* 8 byte word */
-#if BYTE_ORDER == LITTLE_ENDIAN
+#ifndef WORDS_BIGENDIAN
 	memmove(&ctxt->md5_buf[56], &ctxt->md5_n8[0], 8);
-#endif
-#if BYTE_ORDER == BIG_ENDIAN
+#else
 	ctxt->md5_buf[56] = ctxt->md5_n8[7];
 	ctxt->md5_buf[57] = ctxt->md5_n8[6];
 	ctxt->md5_buf[58] = ctxt->md5_n8[5];
@@ -219,13 +213,12 @@ md5_pad(md5_ctxt * ctxt)
 }
 
 void
-md5_result(uint8 *digest, md5_ctxt * ctxt)
+md5_result(uint8 *digest, md5_ctxt *ctxt)
 {
 	/* 4 byte words */
-#if BYTE_ORDER == LITTLE_ENDIAN
+#ifndef WORDS_BIGENDIAN
 	memmove(digest, &ctxt->md5_st8[0], 16);
-#endif
-#if BYTE_ORDER == BIG_ENDIAN
+#else
 	digest[0] = ctxt->md5_st8[3];
 	digest[1] = ctxt->md5_st8[2];
 	digest[2] = ctxt->md5_st8[1];
@@ -245,22 +238,21 @@ md5_result(uint8 *digest, md5_ctxt * ctxt)
 #endif
 }
 
-#if BYTE_ORDER == BIG_ENDIAN
+#ifdef WORDS_BIGENDIAN
 static uint32 X[16];
 #endif
 
 static void
-md5_calc(uint8 *b64, md5_ctxt * ctxt)
+md5_calc(uint8 *b64, md5_ctxt *ctxt)
 {
 	uint32		A = ctxt->md5_sta;
 	uint32		B = ctxt->md5_stb;
 	uint32		C = ctxt->md5_stc;
 	uint32		D = ctxt->md5_std;
 
-#if BYTE_ORDER == LITTLE_ENDIAN
+#ifndef WORDS_BIGENDIAN
 	uint32	   *X = (uint32 *) b64;
-#endif
-#if BYTE_ORDER == BIG_ENDIAN
+#else
 	/* 4 byte words */
 	/* what a brute force but fast! */
 	uint8	   *y = (uint8 *) X;

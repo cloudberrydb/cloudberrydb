@@ -85,7 +85,7 @@ CREATE SEQUENCE INSERT_SEQ;
 
 CREATE TABLE INSERT_TBL (x INT DEFAULT nextval('insert_seq'),
 	y TEXT DEFAULT '-NULL-',
-	z INT DEFAULT -1 * currval('insert_seq'),
+	z INT DEFAULT -1 * (nextval('insert_seq')-1),
 	CONSTRAINT INSERT_CON CHECK (x >= 3 AND y <> 'check failed' AND x < 8),
 	CHECK (x + z = 0));
 
@@ -116,7 +116,7 @@ SELECT 'seven' AS one, nextval('insert_seq');
 
 INSERT INTO INSERT_TBL(y) VALUES ('Y');
 
-SELECT 'eight' AS one, currval('insert_seq');
+SELECT 'eight' AS one, nextval('insert_seq');
 
 -- According to SQL92, it is OK to insert a record that gives rise to NULL
 -- constraint-condition results.  Postgres used to reject this, but it
@@ -150,7 +150,7 @@ DELETE FROM INSERT_TBL;
 
 ALTER SEQUENCE INSERT_SEQ RESTART WITH 4;
 
-CREATE TABLE tmp (xd INT, yd TEXT, zd INT);
+CREATE TABLE tmp (xd INT, yd TEXT, zd INT) distributed by (xd);
 
 INSERT INTO tmp VALUES (null, 'Y', null);
 INSERT INTO tmp VALUES (5, '!check failed', null);
@@ -171,10 +171,9 @@ DROP TABLE tmp;
 -- Check constraints on UPDATE
 --
 
-UPDATE INSERT_TBL SET x = NULL WHERE x = 5;
-UPDATE INSERT_TBL SET x = 6 WHERE x = 6;
-UPDATE INSERT_TBL SET x = -z, z = -x;
-UPDATE INSERT_TBL SET x = z, z = x;
+--UPDATE INSERT_TBL SET x = NULL WHERE x = 5;
+--UPDATE INSERT_TBL SET x = 6 WHERE x = 6;
+--UPDATE INSERT_TBL SET x = -z, z = -x;
 
 SELECT * FROM INSERT_TBL;
 
@@ -200,7 +199,7 @@ SELECT * FROM COPY_TBL;
 -- Primary keys
 --
 
-CREATE TABLE PRIMARY_TBL (i int PRIMARY KEY, t text);
+CREATE TABLE PRIMARY_TBL (i int PRIMARY KEY, t text) DISTRIBUTED BY (i);
 
 INSERT INTO PRIMARY_TBL VALUES (1, 'one');
 INSERT INTO PRIMARY_TBL VALUES (2, 'two');
@@ -214,7 +213,7 @@ SELECT '' AS four, * FROM PRIMARY_TBL;
 DROP TABLE PRIMARY_TBL;
 
 CREATE TABLE PRIMARY_TBL (i int, t text,
-	PRIMARY KEY(i,t));
+	PRIMARY KEY(i,t)) DISTRIBUTED BY (i);
 
 INSERT INTO PRIMARY_TBL VALUES (1, 'one');
 INSERT INTO PRIMARY_TBL VALUES (2, 'two');
@@ -231,7 +230,7 @@ DROP TABLE PRIMARY_TBL;
 -- Unique keys
 --
 
-CREATE TABLE UNIQUE_TBL (i int UNIQUE, t text);
+CREATE TABLE UNIQUE_TBL (i int UNIQUE, t text) DISTRIBUTED BY (i);
 
 INSERT INTO UNIQUE_TBL VALUES (1, 'one');
 INSERT INTO UNIQUE_TBL VALUES (2, 'two');
@@ -246,7 +245,7 @@ SELECT '' AS five, * FROM UNIQUE_TBL;
 DROP TABLE UNIQUE_TBL;
 
 CREATE TABLE UNIQUE_TBL (i int, t text,
-	UNIQUE(i,t));
+	UNIQUE(i,t)) DISTRIBUTED BY (i);
 
 INSERT INTO UNIQUE_TBL VALUES (1, 'one');
 INSERT INTO UNIQUE_TBL VALUES (2, 'two');

@@ -1,0 +1,42 @@
+
+This package consists of several components:
+
+   formatter : defines database stored procedures for formatting binary data
+   sender    : defines an executable to handle database -> SAS IO
+   receiver  : defines an executable to handle SAS -> database IO
+   sas       : Dummy executables that pretend to be SAS
+   sql       : Example schema and usage
+   test      : Simple test framework
+
+Basic dataflow:
+
+ * Reading From the database:
+  
+    1) SAS Process opens sockets to receive data
+
+    2) SAS Process calls database query:  
+	   INSERT into example_out  SELECT * FROM example
+
+    3) External table uses formatter to convert records to binary output
+
+	4) External table sends binary data to sender executable
+
+	5) sender executable connects to SAS sockets and sends data
+
+	6) Data completes sender closes sockets, sas processes do calculations
+
+ * Writing To the database
+
+    1) SAS Process calls database query
+	   INSERT into example    SELECT * FROM example_in;
+
+	2) External Table launches listener to receive data from SAS
+
+    3) listener opens sockets to receive data
+
+	4) SAS Process connects to sockets and starts sending data
+
+	5) listerer receives binary data and sends it to external table
+
+	6) External table uses formmatter function to translate binary data
+	   into database records.

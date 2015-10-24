@@ -28,7 +28,7 @@
  * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * $PostgreSQL: pgsql/src/backend/regex/regc_lex.c,v 1.5 2005/10/15 02:49:24 momjian Exp $
+ * $PostgreSQL: pgsql/src/backend/regex/regc_lex.c,v 1.9 2009/06/11 14:49:01 momjian Exp $
  *
  */
 
@@ -201,8 +201,8 @@ prefixes(struct vars * v)
  */
 static void
 lexnest(struct vars * v,
-		chr *beginp,			/* start of interpolation */
-		chr *endp)				/* one past end of interpolation */
+		const chr *beginp,		/* start of interpolation */
+		const chr *endp)		/* one past end of interpolation */
 {
 	assert(v->savenow == NULL); /* only one level of nesting */
 	v->savenow = v->now;
@@ -214,47 +214,47 @@ lexnest(struct vars * v,
 /*
  * string constants to interpolate as expansions of things like \d
  */
-static chr	backd[] = {			/* \d */
+static const chr backd[] = {	/* \d */
 	CHR('['), CHR('['), CHR(':'),
 	CHR('d'), CHR('i'), CHR('g'), CHR('i'), CHR('t'),
 	CHR(':'), CHR(']'), CHR(']')
 };
-static chr	backD[] = {			/* \D */
+static const chr backD[] = {	/* \D */
 	CHR('['), CHR('^'), CHR('['), CHR(':'),
 	CHR('d'), CHR('i'), CHR('g'), CHR('i'), CHR('t'),
 	CHR(':'), CHR(']'), CHR(']')
 };
-static chr	brbackd[] = {		/* \d within brackets */
+static const chr brbackd[] = {	/* \d within brackets */
 	CHR('['), CHR(':'),
 	CHR('d'), CHR('i'), CHR('g'), CHR('i'), CHR('t'),
 	CHR(':'), CHR(']')
 };
-static chr	backs[] = {			/* \s */
+static const chr backs[] = {	/* \s */
 	CHR('['), CHR('['), CHR(':'),
 	CHR('s'), CHR('p'), CHR('a'), CHR('c'), CHR('e'),
 	CHR(':'), CHR(']'), CHR(']')
 };
-static chr	backS[] = {			/* \S */
+static const chr backS[] = {	/* \S */
 	CHR('['), CHR('^'), CHR('['), CHR(':'),
 	CHR('s'), CHR('p'), CHR('a'), CHR('c'), CHR('e'),
 	CHR(':'), CHR(']'), CHR(']')
 };
-static chr	brbacks[] = {		/* \s within brackets */
+static const chr brbacks[] = {	/* \s within brackets */
 	CHR('['), CHR(':'),
 	CHR('s'), CHR('p'), CHR('a'), CHR('c'), CHR('e'),
 	CHR(':'), CHR(']')
 };
-static chr	backw[] = {			/* \w */
+static const chr backw[] = {	/* \w */
 	CHR('['), CHR('['), CHR(':'),
 	CHR('a'), CHR('l'), CHR('n'), CHR('u'), CHR('m'),
 	CHR(':'), CHR(']'), CHR('_'), CHR(']')
 };
-static chr	backW[] = {			/* \W */
+static const chr backW[] = {	/* \W */
 	CHR('['), CHR('^'), CHR('['), CHR(':'),
 	CHR('a'), CHR('l'), CHR('n'), CHR('u'), CHR('m'),
 	CHR(':'), CHR(']'), CHR('_'), CHR(']')
 };
-static chr	brbackw[] = {		/* \w within brackets */
+static const chr brbackw[] = {	/* \w within brackets */
 	CHR('['), CHR(':'),
 	CHR('a'), CHR('l'), CHR('n'), CHR('u'), CHR('m'),
 	CHR(':'), CHR(']'), CHR('_')
@@ -722,7 +722,7 @@ lexescape(struct vars * v)
 	static chr	esc[] = {
 		CHR('E'), CHR('S'), CHR('C')
 	};
-	chr		   *save;
+	const chr  *save;
 
 	assert(v->cflags & REG_ADVF);
 
@@ -846,7 +846,7 @@ lexescape(struct vars * v)
 			if (ISERR())
 				FAILW(REG_EESCAPE);
 			/* ugly heuristic (first test is "exactly 1 digit?") */
-			if (v->now - save == 0 || (int) c <= v->nsubexp)
+			if (v->now - save == 0 || ((int) c > 0 && (int) c <= v->nsubexp))
 			{
 				NOTE(REG_UBACKREF);
 				RETV(BACKREF, (chr) c);
@@ -1071,6 +1071,7 @@ brenext(struct vars * v,
 	}
 
 	assert(NOTREACHED);
+	return 0;
 }
 
 /*
@@ -1079,7 +1080,7 @@ brenext(struct vars * v,
 static void
 skip(struct vars * v)
 {
-	chr		   *start = v->now;
+	const chr  *start = v->now;
 
 	assert(v->cflags & REG_EXPANDED);
 
@@ -1118,8 +1119,8 @@ newline(void)
  */
 static chr
 chrnamed(struct vars * v,
-		 chr *startp,			/* start of name */
-		 chr *endp,				/* just past end of name */
+		 const chr *startp,		/* start of name */
+		 const chr *endp,		/* just past end of name */
 		 chr lastresort)		/* what to return if name lookup fails */
 {
 	celt		c;

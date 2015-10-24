@@ -4,7 +4,7 @@
  * scan.l		- Scanner for the PL/pgSQL
  *			  procedural language
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2008, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -25,6 +25,22 @@
 /* Avoid exit() on fatal scanner errors (a bit ugly -- see yy_fatal_error) */
 #undef fprintf
 #define fprintf(file, fmt, msg)  ereport(ERROR, (errmsg_internal("%s", msg)))
+
+#define unify_version(a,b,c) ((a<<16)+(b<<8)+c)
+#if unify_version(YY_FLEX_MAJOR_VERSION,YY_FLEX_MINOR_VERSION,YY_FLEX_SUBMINOR_VERSION) < unify_version(2,5,35)
+int plpgsql_base_yyget_lineno  (void);
+FILE *plpgsql_base_yyget_in  (void);
+FILE *plpgsql_base_yyget_out  (void);
+int plpgsql_base_yyget_leng  (void);
+char *plpgsql_base_yyget_text  (void);
+void plpgsql_base_yyset_lineno (int  line_number );
+void plpgsql_base_yyset_in (FILE *  in_str );
+void plpgsql_base_yyset_out (FILE *  out_str );
+int plpgsql_base_yyget_debug  (void);
+void plpgsql_base_yyset_debug (int  bdebug );
+int plpgsql_base_yylex_destroy  (void);
+#endif
+
 
 /* Handles to the buffer that the lexer uses internally */
 static YY_BUFFER_STATE scanbufhandle;
@@ -47,6 +63,7 @@ bool plpgsql_SpaceScanned = false;
 %option 8bit
 %option never-interactive
 %option nodefault
+%option noinput
 %option nounput
 %option noyywrap
 %option prefix="plpgsql_base_yy"

@@ -1,3 +1,10 @@
+/* $PostgreSQL: pgsql/contrib/dblink/dblink.sql.in,v 1.17 2008/04/05 02:44:42 momjian Exp $ */
+
+-- Adjust this setting to control where the objects get created.
+SET search_path = public;
+
+-- dblink_connect now restricts non-superusers to password
+-- authenticated connections
 CREATE OR REPLACE FUNCTION dblink_connect (text)
 RETURNS text
 AS 'MODULE_PATHNAME','dblink_connect'
@@ -7,6 +14,22 @@ CREATE OR REPLACE FUNCTION dblink_connect (text, text)
 RETURNS text
 AS 'MODULE_PATHNAME','dblink_connect'
 LANGUAGE C STRICT;
+
+-- dblink_connect_u allows non-superusers to use
+-- non-password authenticated connections, but initially
+-- privileges are revoked from public
+CREATE OR REPLACE FUNCTION dblink_connect_u (text)
+RETURNS text
+AS 'MODULE_PATHNAME','dblink_connect'
+LANGUAGE C STRICT SECURITY DEFINER;
+
+CREATE OR REPLACE FUNCTION dblink_connect_u (text, text)
+RETURNS text
+AS 'MODULE_PATHNAME','dblink_connect'
+LANGUAGE C STRICT SECURITY DEFINER;
+
+REVOKE ALL ON FUNCTION dblink_connect_u (text) FROM public;
+REVOKE ALL ON FUNCTION dblink_connect_u (text, text) FROM public;
 
 CREATE OR REPLACE FUNCTION dblink_disconnect ()
 RETURNS text
@@ -142,8 +165,8 @@ LANGUAGE C STRICT;
 
 CREATE OR REPLACE FUNCTION dblink_current_query ()
 RETURNS text
-AS 'MODULE_PATHNAME','dblink_current_query'
-LANGUAGE C;
+AS 'SELECT pg_catalog.current_query()'
+LANGUAGE SQL;
 
 CREATE OR REPLACE FUNCTION dblink_send_query(text, text)
 RETURNS int4

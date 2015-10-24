@@ -26,7 +26,7 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- * $PostgreSQL: pgsql/contrib/pgcrypto/px.h,v 1.16 2005/10/15 02:49:06 momjian Exp $
+ * $PostgreSQL: pgsql/contrib/pgcrypto/px.h,v 1.19 2009/06/11 14:48:52 momjian Exp $
  */
 
 #ifndef __PX_H
@@ -34,13 +34,6 @@
 
 #include <sys/types.h>
 #include <sys/param.h>
-#ifdef HAVE_ENDIAN_H
-#include <endian.h>
-#endif
-
-#ifndef BYTE_ORDER
-#error BYTE_ORDER must be defined as LITTLE_ENDIAN or BIG_ENDIAN
-#endif
 
 /* keep debug messages? */
 #define PX_DEBUG
@@ -85,8 +78,7 @@ void		px_free(void *p);
 #define PXE_BAD_SALT_ROUNDS			-15
 #define PXE_MCRYPT_INTERNAL			-16
 #define PXE_NO_RANDOM				-17
-
-#define PXE_MBUF_SHORT_READ			-50
+#define PXE_DECRYPT_FAILED			-18
 
 #define PXE_PGP_CORRUPT_DATA		-100
 #define PXE_PGP_CORRUPT_ARMOR		-101
@@ -122,12 +114,12 @@ typedef struct px_combo PX_Combo;
 
 struct px_digest
 {
-	unsigned	(*result_size) (PX_MD * h);
-	unsigned	(*block_size) (PX_MD * h);
-	void		(*reset) (PX_MD * h);
-	void		(*update) (PX_MD * h, const uint8 *data, unsigned dlen);
-	void		(*finish) (PX_MD * h, uint8 *dst);
-	void		(*free) (PX_MD * h);
+	unsigned	(*result_size) (PX_MD *h);
+	unsigned	(*block_size) (PX_MD *h);
+	void		(*reset) (PX_MD *h);
+	void		(*update) (PX_MD *h, const uint8 *data, unsigned dlen);
+	void		(*finish) (PX_MD *h, uint8 *dst);
+	void		(*free) (PX_MD *h);
 	/* private */
 	union
 	{
@@ -138,19 +130,19 @@ struct px_digest
 
 struct px_alias
 {
-	char	   *alias;
-	char	   *name;
+	char		*alias;
+	char		*name;
 };
 
 struct px_hmac
 {
-	unsigned	(*result_size) (PX_HMAC * h);
-	unsigned	(*block_size) (PX_HMAC * h);
-	void		(*reset) (PX_HMAC * h);
-	void		(*update) (PX_HMAC * h, const uint8 *data, unsigned dlen);
-	void		(*finish) (PX_HMAC * h, uint8 *dst);
-	void		(*free) (PX_HMAC * h);
-	void		(*init) (PX_HMAC * h, const uint8 *key, unsigned klen);
+	unsigned	(*result_size) (PX_HMAC *h);
+	unsigned	(*block_size) (PX_HMAC *h);
+	void		(*reset) (PX_HMAC *h);
+	void		(*update) (PX_HMAC *h, const uint8 *data, unsigned dlen);
+	void		(*finish) (PX_HMAC *h, uint8 *dst);
+	void		(*free) (PX_HMAC *h);
+	void		(*init) (PX_HMAC *h, const uint8 *key, unsigned klen);
 
 	PX_MD	   *md;
 	/* private */
@@ -163,14 +155,14 @@ struct px_hmac
 
 struct px_cipher
 {
-	unsigned	(*block_size) (PX_Cipher * c);
-	unsigned	(*key_size) (PX_Cipher * c);	/* max key len */
-	unsigned	(*iv_size) (PX_Cipher * c);
+	unsigned	(*block_size) (PX_Cipher *c);
+	unsigned	(*key_size) (PX_Cipher *c);		/* max key len */
+	unsigned	(*iv_size) (PX_Cipher *c);
 
-	int			(*init) (PX_Cipher * c, const uint8 *key, unsigned klen, const uint8 *iv);
-	int			(*encrypt) (PX_Cipher * c, const uint8 *data, unsigned dlen, uint8 *res);
-	int			(*decrypt) (PX_Cipher * c, const uint8 *data, unsigned dlen, uint8 *res);
-	void		(*free) (PX_Cipher * c);
+	int			(*init) (PX_Cipher *c, const uint8 *key, unsigned klen, const uint8 *iv);
+	int			(*encrypt) (PX_Cipher *c, const uint8 *data, unsigned dlen, uint8 *res);
+	int			(*decrypt) (PX_Cipher *c, const uint8 *data, unsigned dlen, uint8 *res);
+	void		(*free) (PX_Cipher *c);
 	/* private */
 	void	   *ptr;
 	int			pstat;			/* mcrypt uses it */
@@ -178,24 +170,24 @@ struct px_cipher
 
 struct px_combo
 {
-	int			(*init) (PX_Combo * cx, const uint8 *key, unsigned klen,
+	int			(*init) (PX_Combo *cx, const uint8 *key, unsigned klen,
 									 const uint8 *iv, unsigned ivlen);
-	int			(*encrypt) (PX_Combo * cx, const uint8 *data, unsigned dlen,
+	int			(*encrypt) (PX_Combo *cx, const uint8 *data, unsigned dlen,
 										uint8 *res, unsigned *rlen);
-	int			(*decrypt) (PX_Combo * cx, const uint8 *data, unsigned dlen,
+	int			(*decrypt) (PX_Combo *cx, const uint8 *data, unsigned dlen,
 										uint8 *res, unsigned *rlen);
-	unsigned	(*encrypt_len) (PX_Combo * cx, unsigned dlen);
-	unsigned	(*decrypt_len) (PX_Combo * cx, unsigned dlen);
-	void		(*free) (PX_Combo * cx);
+	unsigned	(*encrypt_len) (PX_Combo *cx, unsigned dlen);
+	unsigned	(*decrypt_len) (PX_Combo *cx, unsigned dlen);
+	void		(*free) (PX_Combo *cx);
 
 	PX_Cipher  *cipher;
 	unsigned	padding;
 };
 
-int			px_find_digest(const char *name, PX_MD ** res);
-int			px_find_hmac(const char *name, PX_HMAC ** res);
-int			px_find_cipher(const char *name, PX_Cipher ** res);
-int			px_find_combo(const char *name, PX_Combo ** res);
+int			px_find_digest(const char *name, PX_MD **res);
+int			px_find_hmac(const char *name, PX_HMAC **res);
+int			px_find_cipher(const char *name, PX_Cipher **res);
+int			px_find_combo(const char *name, PX_Combo **res);
 
 int			px_get_random_bytes(uint8 *dst, unsigned count);
 int			px_get_pseudo_random_bytes(uint8 *dst, unsigned count);
@@ -205,7 +197,7 @@ unsigned	px_acquire_system_randomness(uint8 *dst);
 
 const char *px_strerror(int err);
 
-const char *px_resolve_alias(const PX_Alias * aliases, const char *name);
+const char *px_resolve_alias(const PX_Alias *aliases, const char *name);
 
 void		px_set_debug_handler(void (*handler) (const char *));
 

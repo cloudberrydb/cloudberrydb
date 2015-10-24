@@ -1,42 +1,42 @@
-/* $PostgreSQL: pgsql/src/interfaces/ecpg/ecpglib/memory.c,v 1.8 2006/11/08 10:46:47 meskes Exp $ */
+/* $PostgreSQL: pgsql/src/interfaces/ecpg/ecpglib/memory.c,v 1.12 2007/11/15 21:14:45 momjian Exp $ */
 
 #define POSTGRES_ECPG_INTERNAL
 #include "postgres_fe.h"
 
+#include "ecpg-pthread-win32.h"
 #include "ecpgtype.h"
 #include "ecpglib.h"
 #include "ecpgerrno.h"
 #include "extern.h"
 
 void
-ECPGfree(void *ptr)
+ecpg_free(void *ptr)
 {
 	free(ptr);
 }
 
 char *
-ECPGalloc(long size, int lineno)
+ecpg_alloc(long size, int lineno)
 {
 	char	   *new = (char *) calloc(1L, size);
 
 	if (!new)
 	{
-		ECPGraise(lineno, ECPG_OUT_OF_MEMORY, ECPG_SQLSTATE_ECPG_OUT_OF_MEMORY, NULL);
+		ecpg_raise(lineno, ECPG_OUT_OF_MEMORY, ECPG_SQLSTATE_ECPG_OUT_OF_MEMORY, NULL);
 		return NULL;
 	}
 
-	memset(new, '\0', size);
 	return (new);
 }
 
 char *
-ECPGrealloc(void *ptr, long size, int lineno)
+ecpg_realloc(void *ptr, long size, int lineno)
 {
 	char	   *new = (char *) realloc(ptr, size);
 
 	if (!new)
 	{
-		ECPGraise(lineno, ECPG_OUT_OF_MEMORY, ECPG_SQLSTATE_ECPG_OUT_OF_MEMORY, NULL);
+		ecpg_raise(lineno, ECPG_OUT_OF_MEMORY, ECPG_SQLSTATE_ECPG_OUT_OF_MEMORY, NULL);
 		return NULL;
 	}
 
@@ -44,7 +44,7 @@ ECPGrealloc(void *ptr, long size, int lineno)
 }
 
 char *
-ECPGstrdup(const char *string, int lineno)
+ecpg_strdup(const char *string, int lineno)
 {
 	char	   *new;
 
@@ -54,7 +54,7 @@ ECPGstrdup(const char *string, int lineno)
 	new = strdup(string);
 	if (!new)
 	{
-		ECPGraise(lineno, ECPG_OUT_OF_MEMORY, ECPG_SQLSTATE_ECPG_OUT_OF_MEMORY, NULL);
+		ecpg_raise(lineno, ECPG_OUT_OF_MEMORY, ECPG_SQLSTATE_ECPG_OUT_OF_MEMORY, NULL);
 		return NULL;
 	}
 
@@ -62,53 +62,92 @@ ECPGstrdup(const char *string, int lineno)
 }
 
 /* keep a list of memory we allocated for the user */
-static struct auto_mem
+struct auto_mem
 {
 	void	   *pointer;
 	struct auto_mem *next;
-}	*auto_allocs = NULL;
+};
+
+#ifdef ENABLE_THREAD_SAFETY
+static pthread_key_t auto_mem_key;
+static pthread_once_t auto_mem_once = PTHREAD_ONCE_INIT;
+
+static void
+auto_mem_destructor(void *arg)
+{
+	ECPGfree_auto_mem();
+}
+
+static void
+auto_mem_key_init(void)
+{
+	pthread_key_create(&auto_mem_key, auto_mem_destructor);
+}
+
+static struct auto_mem *
+get_auto_allocs(void)
+{
+	pthread_once(&auto_mem_once, auto_mem_key_init);
+	return (struct auto_mem *) pthread_getspecific(auto_mem_key);
+}
+
+static void
+set_auto_allocs(struct auto_mem * am)
+{
+	pthread_setspecific(auto_mem_key, am);
+}
+#else
+static struct auto_mem *auto_allocs = NULL;
+
+#define get_auto_allocs()		(auto_allocs)
+#define set_auto_allocs(am)		do { auto_allocs = (am); } while(0)
+#endif
 
 void
-ECPGadd_mem(void *ptr, int lineno)
+ecpg_add_mem(void *ptr, int lineno)
 {
-	struct auto_mem *am = (struct auto_mem *) ECPGalloc(sizeof(struct auto_mem), lineno);
+	struct auto_mem *am = (struct auto_mem *) ecpg_alloc(sizeof(struct auto_mem), lineno);
 
 	am->pointer = ptr;
-	am->next = auto_allocs;
-	auto_allocs = am;
+	am->next = get_auto_allocs();
+	set_auto_allocs(am);
 }
 
 void
 ECPGfree_auto_mem(void)
 {
-	struct auto_mem *am;
+	struct auto_mem *am = get_auto_allocs();
 
 	/* free all memory we have allocated for the user */
-	for (am = auto_allocs; am;)
+	if (am)
 	{
-		struct auto_mem *act = am;
+		do
+		{
+			struct auto_mem *act = am;
 
-		am = am->next;
-		ECPGfree(act->pointer);
-		ECPGfree(act);
+			am = am->next;
+			ecpg_free(act->pointer);
+			ecpg_free(act);
+		} while (am);
+		set_auto_allocs(NULL);
 	}
-
-	auto_allocs = NULL;
 }
 
 void
-ECPGclear_auto_mem(void)
+ecpg_clear_auto_mem(void)
 {
-	struct auto_mem *am;
+	struct auto_mem *am = get_auto_allocs();
 
 	/* only free our own structure */
-	for (am = auto_allocs; am;)
+	if (am)
 	{
-		struct auto_mem *act = am;
+		do
+		{
+			struct auto_mem *act = am;
 
-		am = am->next;
-		ECPGfree(act);
+			am = am->next;
+			ecpg_free(act);
+		} while (am);
+		set_auto_allocs(NULL);
 	}
-
-	auto_allocs = NULL;
 }

@@ -218,7 +218,7 @@ COPY main_table (a,b) FROM stdin;
 80	15
 \.
 
-CREATE FUNCTION trigger_func() RETURNS trigger LANGUAGE plpgsql AS '
+CREATE FUNCTION trigger_func() RETURNS trigger LANGUAGE plpgsql NO SQL AS '
 BEGIN
 	RAISE NOTICE ''trigger_func() called: action = %, when = %, level = %'', TG_OP, TG_WHEN, TG_LEVEL;
 	RETURN NULL;
@@ -264,7 +264,7 @@ create function trigtest() returns trigger as $$
 begin
 	raise notice '% % % %', TG_RELNAME, TG_OP, TG_WHEN, TG_LEVEL;
 	return new;
-end;$$ language plpgsql;
+end;$$ language plpgsql immutable NO SQL;
 
 create trigger trigtest_b_row_tg before insert or update or delete on trigtest
 for each row execute procedure trigtest();
@@ -303,7 +303,7 @@ CREATE TABLE trigger_test (
 );
 
 CREATE OR REPLACE FUNCTION trigger_data()  RETURNS trigger 
-LANGUAGE plpgsql AS $$
+LANGUAGE plpgsql NO SQL AS $$
 
 declare
 
@@ -375,7 +375,7 @@ DROP TABLE trigger_test;
 CREATE TABLE trigger_test (f1 int, f2 text, f3 text);
 
 -- this is the obvious (and wrong...) way to compare rows
-CREATE FUNCTION mytrigger() RETURNS trigger LANGUAGE plpgsql as $$
+CREATE FUNCTION mytrigger() RETURNS trigger LANGUAGE plpgsql CONTAINS SQL as $$
 begin
 	if row(old.*) = row(new.*) then
 		raise notice 'row % not changed', new.f1;
@@ -398,7 +398,7 @@ UPDATE trigger_test SET f3 = NULL;
 UPDATE trigger_test SET f3 = NULL;
 
 -- the right way when considering nulls is
-CREATE OR REPLACE FUNCTION mytrigger() RETURNS trigger LANGUAGE plpgsql as $$
+CREATE OR REPLACE FUNCTION mytrigger() RETURNS trigger LANGUAGE plpgsql CONTAINS SQL as $$
 begin
 	if row(old.*) is distinct from row(new.*) then
 		raise notice 'row % changed', new.f1;

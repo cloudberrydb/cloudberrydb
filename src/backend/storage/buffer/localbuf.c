@@ -4,12 +4,12 @@
  *	  local buffer manager. Fast buffer manager for temporary tables,
  *	  which never need to be WAL-logged or checkpointed, etc.
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2008, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994-5, Regents of the University of California
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/storage/buffer/localbuf.c,v 1.74 2006/03/31 23:32:06 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/storage/buffer/localbuf.c,v 1.74.2.1 2006/12/27 22:31:59 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -48,6 +48,7 @@ static HTAB *LocalBufHash = NULL;
 
 
 static void InitLocalBuffers(void);
+static Block GetLocalBufferStorage(void);
 
 
 /*
@@ -59,7 +60,7 @@ static void InitLocalBuffers(void);
  * does not get set.
  */
 BufferDesc *
-LocalBufferAlloc(Relation reln, BlockNumber blockNum, bool *foundPtr)
+LocalBufferAlloc_SMgr(SMgrRelation smgr, BlockNumber blockNum, bool *foundPtr)
 {
 	BufferTag	newTag;			/* identity of requested block */
 	LocalBufferLookupEnt *hresult;
@@ -68,7 +69,9 @@ LocalBufferAlloc(Relation reln, BlockNumber blockNum, bool *foundPtr)
 	int			trycounter;
 	bool		found;
 
-	INIT_BUFFERTAG(newTag, reln, blockNum);
+	//INIT_BUFFERTAG(newTag, reln, blockNum);
+	newTag.rnode = smgr->smgr_rnode;
+	newTag.blockNum = blockNum;
 
 	/* Initialize local buffers if first request in this session */
 	if (LocalBufHash == NULL)
@@ -150,11 +153,18 @@ LocalBufferAlloc(Relation reln, BlockNumber blockNum, bool *foundPtr)
 		/* Find smgr relation for buffer */
 		oreln = smgropen(bufHdr->tag.rnode);
 
+		// -------- MirroredLock ----------
+		// UNDONE: Unfortunately, I think we write temp relations to the mirror...
+		LWLockAcquire(MirroredLock, LW_SHARED);
+
 		/* And write... */
 		smgrwrite(oreln,
 				  bufHdr->tag.blockNum,
 				  (char *) LocalBufHdrGetBlock(bufHdr),
 				  true);
+
+		LWLockRelease(MirroredLock);
+		// -------- MirroredLock ----------
 
 		/* Mark not-dirty now in case we error out below */
 		bufHdr->flags &= ~BM_DIRTY;
@@ -167,12 +177,8 @@ LocalBufferAlloc(Relation reln, BlockNumber blockNum, bool *foundPtr)
 	 */
 	if (LocalBufHdrGetBlock(bufHdr) == NULL)
 	{
-		char	   *data;
-
-		data = (char *) MemoryContextAlloc(TopMemoryContext, BLCKSZ);
-
 		/* Set pointer for use by BufferGetBlock() macro */
-		LocalBufHdrGetBlock(bufHdr) = (Block) data;
+		LocalBufHdrGetBlock(bufHdr) = GetLocalBufferStorage();
 	}
 
 	/*
@@ -183,8 +189,7 @@ LocalBufferAlloc(Relation reln, BlockNumber blockNum, bool *foundPtr)
 		hresult = (LocalBufferLookupEnt *)
 			hash_search(LocalBufHash, (void *) &bufHdr->tag,
 						HASH_REMOVE, NULL);
-		if (!hresult)			/* shouldn't happen */
-			elog(ERROR, "local buffer hash table corrupted");
+		insist_log(hresult, "local buffer hash table corrupted");
 		/* mark buffer invalid just in case hash insert fails */
 		CLEAR_BUFFERTAG(bufHdr->tag);
 		bufHdr->flags &= ~(BM_VALID | BM_TAG_VALID);
@@ -192,8 +197,7 @@ LocalBufferAlloc(Relation reln, BlockNumber blockNum, bool *foundPtr)
 
 	hresult = (LocalBufferLookupEnt *)
 		hash_search(LocalBufHash, (void *) &newTag, HASH_ENTER, &found);
-	if (found)					/* shouldn't happen */
-		elog(ERROR, "local buffer hash table corrupted");
+	insist_log(!found, "local buffer hash table corrupted");
 	hresult->id = b;
 
 	/*
@@ -268,8 +272,7 @@ DropRelFileNodeLocalBuffers(RelFileNode rnode, BlockNumber firstDelBlock)
 			hresult = (LocalBufferLookupEnt *)
 				hash_search(LocalBufHash, (void *) &bufHdr->tag,
 							HASH_REMOVE, NULL);
-			if (!hresult)		/* shouldn't happen */
-				elog(ERROR, "local buffer hash table corrupted");
+			insist_log(hresult, "local buffer hash table corrupted");
 			/* Mark buffer invalid */
 			CLEAR_BUFFERTAG(bufHdr->tag);
 			bufHdr->flags = 0;
@@ -327,11 +330,58 @@ InitLocalBuffers(void)
 							   &info,
 							   HASH_ELEM | HASH_FUNCTION);
 
-	if (!LocalBufHash)
-		elog(ERROR, "could not initialize local buffer hash table");
+	insist_log(LocalBufHash, "could not initialize local buffer hash table");
 
 	/* Initialization done, mark buffers allocated */
 	NLocBuffer = nbufs;
+}
+
+/*
+ * GetLocalBufferStorage - allocate memory for a local buffer
+ *
+ * The idea of this function is to aggregate our requests for storage
+ * so that the memory manager doesn't see a whole lot of relatively small
+ * requests.  Since we'll never give back a local buffer once it's created
+ * within a particular process, no point in burdening memmgr with separately
+ * managed chunks.
+ */
+static Block
+GetLocalBufferStorage(void)
+{
+	static char *cur_block = NULL;
+	static int	next_buf_in_block = 0;
+	static int	num_bufs_in_block = 0;
+	static int	total_bufs_allocated = 0;
+
+	char	   *this_buf;
+
+	Assert(total_bufs_allocated < NLocBuffer);
+
+	if (next_buf_in_block >= num_bufs_in_block)
+	{
+		/* Need to make a new request to memmgr */
+		int		num_bufs;
+
+		/* Start with a 16-buffer request; subsequent ones double each time */
+		num_bufs = Max(num_bufs_in_block * 2, 16);
+		/* But not more than what we need for all remaining local bufs */
+		num_bufs = Min(num_bufs, NLocBuffer - total_bufs_allocated);
+		/* And don't overflow MaxAllocSize, either */
+		num_bufs = Min(num_bufs, MaxAllocSize / BLCKSZ);
+
+		/* Allocate space from TopMemoryContext so it never goes away */
+		cur_block = (char *) MemoryContextAlloc(TopMemoryContext,
+												num_bufs * BLCKSZ);
+		next_buf_in_block = 0;
+		num_bufs_in_block = num_bufs;
+	}
+
+	/* Allocate next buffer in current memory block */
+	this_buf = cur_block + next_buf_in_block * BLCKSZ;
+	next_buf_in_block++;
+	total_bufs_allocated++;
+
+	return (Block) this_buf;
 }
 
 /*

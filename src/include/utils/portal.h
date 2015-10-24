@@ -12,7 +12,7 @@
  * to let the client suspend an update-type query partway through!	Because
  * the query rewriter does not allow arbitrary ON SELECT rewrite rules,
  * only queries that were originally update-type could produce multiple
- * parse/plan trees; so the restriction to a single query is not a problem
+ * plan trees; so the restriction to a single query is not a problem
  * in practice.
  *
  * For SQL cursors, we support three kinds of scroll behavior:
@@ -36,7 +36,7 @@
  * to look like NO SCROLL cursors.
  *
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2008, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * $PostgreSQL: pgsql/src/include/utils/portal.h,v 1.71 2006/10/04 00:30:10 momjian Exp $
@@ -49,6 +49,10 @@
 #include "executor/execdesc.h"
 #include "utils/resowner.h"
 #include "utils/timestamp.h"
+
+
+
+struct Tuplestorestate;                 /* #include "utils/tuplestore.h" */
 
 /*
  * We have several execution strategies for Portals, depending on what
@@ -94,11 +98,13 @@ typedef enum PortalStrategy
  */
 typedef enum PortalStatus
 {
-	PORTAL_NEW,					/* in process of creation */
+	PORTAL_NEW = 0,				/* in process of creation */
 	PORTAL_READY,				/* PortalStart complete, can run it */
+	PORTAL_QUEUE, 				/* portal is queued (cannot delete it) */
 	PORTAL_ACTIVE,				/* portal is running (can't delete it) */
 	PORTAL_DONE,				/* portal is finished (don't re-run it) */
-	PORTAL_FAILED				/* portal got error (can't re-run it) */
+	PORTAL_FAILED,				/* portal got error (can't re-run it) */
+	PORTAL_STATUSMAX
 } PortalStatus;
 
 /*
@@ -121,11 +127,19 @@ typedef struct PortalData
 	 * a previous transaction
 	 */
 
+	/*
+	 * if Resource Scheduling is enabled, we need to save the original
+	 * statement type, keep a unique id for name portals (i.e CURSORS) and
+	 * remember which queue wanted a lock on this portal.
+	 */
+	uint32		portalId;		/* id of this portal 0 for unnamed */
+	NodeTag	    sourceTag;		/* nodetag for the original query */
+	Oid			queueId;		/* Oid of queue locking this portal */
+
 	/* The query or queries the portal will execute */
-	const char *sourceText;		/* text of query, if known (may be NULL) */
+	const char *sourceText;		/* text of query (as of PlannedStmt, never NULL) */
 	const char *commandTag;		/* command tag for original query */
-	List	   *parseTrees;		/* parse tree(s) */
-	List	   *planTrees;		/* plan tree(s) */
+	List	   *stmts;			/* PlannedStmts and/or utility Querys */
 	MemoryContext queryContext; /* where the parse trees live */
 
 	/*
@@ -143,7 +157,8 @@ typedef struct PortalData
 	int			cursorOptions;	/* DECLARE CURSOR option bits */
 
 	/* Status data */
-	PortalStatus status;		/* see above */
+	PortalStatus portal_status;		/* see above */
+	bool	releaseResLock;	/* true => resscheduler lock must be released */
 
 	/* If not NULL, Executor is active; call ExecutorEnd eventually: */
 	QueryDesc  *queryDesc;		/* info needed for executor invocation */
@@ -158,7 +173,7 @@ typedef struct PortalData
 	 * PORTAL_UTIL_SELECT query.  (A cursor held past the end of its
 	 * transaction no longer has any active executor state.)
 	 */
-	Tuplestorestate *holdStore; /* store for holdable cursors */
+	struct Tuplestorestate *holdStore; /* store for holdable cursors */
 	MemoryContext holdContext;	/* memory containing holdStore */
 
 	/*
@@ -173,12 +188,20 @@ typedef struct PortalData
 	bool		atStart;
 	bool		atEnd;
 	bool		posOverflow;
-	long		portalPos;
+	int64		portalPos;
 
 	/* Presentation data, primarily used by the pg_cursors system view */
 	TimestampTz creation_time;	/* time at which this portal was defined */
 	bool		visible;		/* include this portal in pg_cursors? */
+	
+	/* MPP: is this portal a CURSOR, or protocol level portal? */	
+	bool		is_extended_query; /* simple or extended query protocol? */
+	bool		is_simply_updatable;
 } PortalData;
+
+extern PortalStatus PortalGetStatus(PortalData *p);
+extern const char *PortalGetStatusString(PortalData *p);
+extern void PortalSetStatus(PortalData *p, PortalStatus s);
 
 /*
  * PortalIsValid
@@ -191,7 +214,7 @@ typedef struct PortalData
  */
 #define PortalGetQueryDesc(portal)	((portal)->queryDesc)
 #define PortalGetHeapMemory(portal) ((portal)->heap)
-#define PortalGetPrimaryQuery(portal) PortalListGetPrimaryQuery((portal)->parseTrees)
+#define PortalGetPrimaryStmt(portal) PortalListGetPrimaryStmt((portal)->stmts)
 
 
 /* Prototypes for functions in utils/mmgr/portalmem.c */
@@ -216,11 +239,16 @@ extern Portal GetPortalByName(const char *name);
 extern void PortalDefineQuery(Portal portal,
 				  const char *prepStmtName,
 				  const char *sourceText,
+				  NodeTag	  sourceTag, /* GPDB */
 				  const char *commandTag,
-				  List *parseTrees,
-				  List *planTrees,
+				  List *stmts,
+//				  List *parseTrees,
+//				  List *planTrees,
 				  MemoryContext queryContext);
-extern Query *PortalListGetPrimaryQuery(List *parseTrees);
+extern Node *PortalListGetPrimaryStmt(List *stmts);
 extern void PortalCreateHoldStore(Portal portal);
+extern void AtExitCleanup_ResPortals(void);
+extern void TotalResPortalIncrements(int pid, Oid queueid,
+									 Cost *totalIncrements, int *num);
 
 #endif   /* PORTAL_H */

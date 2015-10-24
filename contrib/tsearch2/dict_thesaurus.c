@@ -1,4 +1,4 @@
-/* $PostgreSQL: pgsql/contrib/tsearch2/dict_thesaurus.c,v 1.6 2006/10/04 00:29:46 momjian Exp $ */
+/* $PostgreSQL: pgsql/contrib/tsearch2/dict_thesaurus.c,v 1.9 2007/07/15 22:57:48 tgl Exp $ */
 
 /*
  * thesaurus
@@ -118,7 +118,7 @@ addWrd(DictThesaurus * d, char *b, char *e, uint16 idsubst, uint16 nwrd, uint16 
 	{
 		nres = ntres = 0;
 
-		if (idsubst <= d->nsubst)
+		if (idsubst >= d->nsubst)
 		{
 			if (d->nsubst == 0)
 			{
@@ -186,7 +186,7 @@ thesaurusRead(char *filename, DictThesaurus * d)
 
 	fh = fopen(to_absfilename(filename), "r");
 	if (!fh)
-		elog(ERROR, "Thesaurus: can't open '%s' file", filename);
+		elog(ERROR, "Thesaurus: cannot open '%s' file", filename);
 
 	while (fgets(str, sizeof(str), fh))
 	{
@@ -696,10 +696,13 @@ thesaurus_init(PG_FUNCTION_ARGS)
 static LexemeInfo *
 findTheLexeme(DictThesaurus * d, char *lexeme)
 {
-	TheLexeme	key = {lexeme, NULL}, *res;
+	TheLexeme	key, *res;
 
 	if (d->nwrds == 0)
 		return NULL;
+
+	key.lexeme = lexeme;
+	key.entries = NULL;
 
 	res = bsearch(&key, d->wrds, d->nwrds, sizeof(TheLexeme), cmpLexemeQ);
 

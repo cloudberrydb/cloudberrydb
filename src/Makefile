@@ -13,7 +13,7 @@ top_builddir = ..
 include Makefile.global
 
 
-all install installdirs uninstall dep depend distprep:
+all install installdirs uninstall distprep:
 	$(MAKE) -C port $@
 	$(MAKE) -C timezone $@
 	$(MAKE) -C backend $@
@@ -24,6 +24,7 @@ all install installdirs uninstall dep depend distprep:
 	$(MAKE) -C pl $@
 	$(MAKE) -C makefiles $@
 	$(MAKE) -C test/regress $@
+	$(MAKE) -C tools/fsync $@
 
 install: install-local
 
@@ -36,7 +37,7 @@ install-local: installdirs-local
 installdirs: installdirs-local
 
 installdirs-local:
-	$(mkinstalldirs) '$(DESTDIR)$(pgxsdir)/$(subdir)'
+	$(MKDIR_P) '$(DESTDIR)$(pgxsdir)/$(subdir)'
 
 uninstall: uninstall-local
 
@@ -55,19 +56,22 @@ clean:
 	$(MAKE) -C test $@
 	$(MAKE) -C tutorial NO_PGXS=1 $@
 	$(MAKE) -C test/thread $@
+	$(MAKE) -C tools/fsync $@
 
 distclean maintainer-clean:
-	-$(MAKE) -C port $@
-	-$(MAKE) -C timezone $@
-	-$(MAKE) -C backend $@
-	-$(MAKE) -C include $@
-	-$(MAKE) -C interfaces $@
-	-$(MAKE) -C bin $@
-	-$(MAKE) -C pl $@
-	-$(MAKE) -C makefiles $@
-	-$(MAKE) -C test $@
-	-$(MAKE) -C tutorial NO_PGXS=1 $@
-	-$(MAKE) -C test/thread $@
+	$(MAKE) -C port $@
+	$(MAKE) -C timezone $@
+	$(MAKE) -C backend $@
+	#$(MAKE) -C backend/snowball $@
+	$(MAKE) -C include $@
+	$(MAKE) -C interfaces $@
+	$(MAKE) -C bin $@
+	$(MAKE) -C pl $@
+	$(MAKE) -C makefiles $@
+	$(MAKE) -C test $@
+	$(MAKE) -C tutorial NO_PGXS=1 $@
+	$(MAKE) -C test/thread $@
+	$(MAKE) -C tools/fsync $@
 	rm -f Makefile.port Makefile.global
 
 

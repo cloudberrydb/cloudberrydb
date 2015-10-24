@@ -2,7 +2,7 @@
  *
  * dgux.h
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2008, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * $PostgreSQL: pgsql/src/backend/port/dynloader/dgux.h,v 1.20 2006/03/05 15:58:35 momjian Exp $

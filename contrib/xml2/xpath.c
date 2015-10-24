@@ -1,12 +1,17 @@
-/* Parser interface for DOM-based parser (libxml) rather than
-   stream-based SAX-type parser */
-
+/*
+ * $PostgreSQL: pgsql/contrib/xml2/xpath.c,v 1.23 2009/06/11 14:48:53 momjian Exp $
+ *
+ * Parser interface for DOM-based parser (libxml) rather than
+ * stream-based SAX-type parser
+ */
 #include "postgres.h"
-#include "fmgr.h"
+
 #include "executor/spi.h"
+#include "fmgr.h"
 #include "funcapi.h"
-#include "miscadmin.h"
 #include "lib/stringinfo.h"
+#include "miscadmin.h"
+#include "utils/builtins.h"
 
 /* libxml includes */
 
@@ -31,15 +36,15 @@ void		elog_error(int level, char *explain, int force);
 void		pgxml_parser_init(void);
 
 static xmlChar *pgxmlNodeSetToText(xmlNodeSetPtr nodeset,
-				   xmlChar * toptagname, xmlChar * septagname,
-				   xmlChar * plainsep);
+				   xmlChar *toptagname, xmlChar *septagname,
+				   xmlChar *plainsep);
 
-text *pgxml_result_to_text(xmlXPathObjectPtr res, xmlChar * toptag,
-					 xmlChar * septag, xmlChar * plainsep);
+text *pgxml_result_to_text(xmlXPathObjectPtr res, xmlChar *toptag,
+					 xmlChar *septag, xmlChar *plainsep);
 
 xmlChar    *pgxml_texttoxmlchar(text *textstring);
 
-static xmlXPathObjectPtr pgxml_xpath(text *document, xmlChar * xpath);
+static xmlXPathObjectPtr pgxml_xpath(text *document, xmlChar *xpath);
 
 
 Datum		xml_is_well_formed(PG_FUNCTION_ARGS);
@@ -54,11 +59,6 @@ Datum		xpath_table(PG_FUNCTION_ARGS);
 /* Global variables */
 char	   *errbuf;				/* per line error buffer */
 char	   *pgxml_errorMsg = NULL;		/* overall error message */
-
-/* Convenience macros */
-
-#define GET_TEXT(cstrp) DatumGetTextP(DirectFunctionCall1(textin, CStringGetDatum(cstrp)))
-#define GET_STR(textp) DatumGetCString(DirectFunctionCall1(textout, PointerGetDatum(textp)))
 
 #define ERRBUF_SIZE 200
 
@@ -199,7 +199,6 @@ xml_encode_special_chars(PG_FUNCTION_ARGS)
 {
 	text	   *tin = PG_GETARG_TEXT_P(0);
 	text	   *tout;
-	int32		ressize;
 	xmlChar    *ts,
 			   *tt;
 
@@ -209,10 +208,7 @@ xml_encode_special_chars(PG_FUNCTION_ARGS)
 
 	pfree(ts);
 
-	ressize = strlen(tt);
-	tout = (text *) palloc(ressize + VARHDRSZ);
-	memcpy(VARDATA(tout), tt, ressize);
-	VARATT_SIZEP(tout) = ressize + VARHDRSZ;
+	tout = cstring_to_text((char *) tt);
 
 	xmlFree(tt);
 
@@ -220,11 +216,11 @@ xml_encode_special_chars(PG_FUNCTION_ARGS)
 }
 
 static xmlChar
-*
+		   *
 pgxmlNodeSetToText(xmlNodeSetPtr nodeset,
-				   xmlChar * toptagname,
-				   xmlChar * septagname,
-				   xmlChar * plainsep)
+				   xmlChar *toptagname,
+				   xmlChar *septagname,
+				   xmlChar *plainsep)
 {
 	/* Function translates a nodeset into a text representation */
 
@@ -265,7 +261,7 @@ pgxmlNodeSetToText(xmlNodeSetPtr nodeset,
 
 				/* If this isn't the last entry, write the plain sep. */
 				if (i < (nodeset->nodeNr) - 1)
-					xmlBufferWriteChar(buf, plainsep);
+					xmlBufferWriteChar(buf, (char *) plainsep);
 			}
 			else
 			{
@@ -311,14 +307,7 @@ pgxmlNodeSetToText(xmlNodeSetPtr nodeset,
 xmlChar *
 pgxml_texttoxmlchar(text *textstring)
 {
-	xmlChar    *res;
-	int32		txsize;
-
-	txsize = VARSIZE(textstring) - VARHDRSZ;
-	res = (xmlChar *) palloc(txsize + 1);
-	memcpy((char *) res, VARDATA(textstring), txsize);
-	res[txsize] = '\0';
-	return res;
+	return (xmlChar *) text_to_cstring(textstring);
 }
 
 /* Public visible XPath functions */
@@ -521,7 +510,7 @@ xpath_bool(PG_FUNCTION_ARGS)
 /* Core function to evaluate XPath query */
 
 xmlXPathObjectPtr
-pgxml_xpath(text *document, xmlChar * xpath)
+pgxml_xpath(text *document, xmlChar *xpath)
 {
 
 	xmlDocPtr	doctree;
@@ -577,12 +566,11 @@ pgxml_xpath(text *document, xmlChar * xpath)
 text
 		   *
 pgxml_result_to_text(xmlXPathObjectPtr res,
-					 xmlChar * toptag,
-					 xmlChar * septag,
-					 xmlChar * plainsep)
+					 xmlChar *toptag,
+					 xmlChar *septag,
+					 xmlChar *plainsep)
 {
 	xmlChar    *xpresstr;
-	int32		ressize;
 	text	   *xpres;
 
 	if (res == NULL)
@@ -604,15 +592,12 @@ pgxml_result_to_text(xmlXPathObjectPtr res,
 
 		default:
 			elog(NOTICE, "unsupported XQuery result: %d", res->type);
-			xpresstr = xmlStrdup("<unsupported/>");
+			xpresstr = xmlStrdup((const xmlChar *) "<unsupported/>");
 	}
 
 
 	/* Now convert this result back to text */
-	ressize = strlen(xpresstr);
-	xpres = (text *) palloc(ressize + VARHDRSZ);
-	memcpy(VARDATA(xpres), xpresstr, ressize);
-	VARATT_SIZEP(xpres) = ressize + VARHDRSZ;
+	xpres = cstring_to_text((char *) xpresstr);
 
 	/* Free various storage */
 	xmlCleanupParser();
@@ -651,16 +636,16 @@ xpath_table(PG_FUNCTION_ARGS)
 	MemoryContext oldcontext;
 
 /* Function parameters */
-	char	   *pkeyfield = GET_STR(PG_GETARG_TEXT_P(0));
-	char	   *xmlfield = GET_STR(PG_GETARG_TEXT_P(1));
-	char	   *relname = GET_STR(PG_GETARG_TEXT_P(2));
-	char	   *xpathset = GET_STR(PG_GETARG_TEXT_P(3));
-	char	   *condition = GET_STR(PG_GETARG_TEXT_P(4));
+	char	   *pkeyfield = text_to_cstring(PG_GETARG_TEXT_PP(0));
+	char	   *xmlfield = text_to_cstring(PG_GETARG_TEXT_PP(1));
+	char	   *relname = text_to_cstring(PG_GETARG_TEXT_PP(2));
+	char	   *xpathset = text_to_cstring(PG_GETARG_TEXT_PP(3));
+	char	   *condition = text_to_cstring(PG_GETARG_TEXT_PP(4));
 
 	char	  **values;
 	xmlChar   **xpaths;
-	xmlChar    *pos;
-	xmlChar    *pathsep = "|";
+	char	   *pos;
+	const char *pathsep = "|";
 
 	int			numpaths;
 	int			ret;
@@ -705,7 +690,9 @@ xpath_table(PG_FUNCTION_ARGS)
 	 * Create the tuplestore - work_mem is the max in-memory size before a
 	 * file is created on disk to hold it.
 	 */
-	tupstore = tuplestore_begin_heap(true, false, work_mem);
+	tupstore =
+		tuplestore_begin_heap(rsinfo->allowedModes & SFRM_Materialize_Random,
+							  false, work_mem);
 
 	MemoryContextSwitchTo(oldcontext);
 
@@ -738,7 +725,7 @@ xpath_table(PG_FUNCTION_ARGS)
 	pos = xpathset;
 	do
 	{
-		xpaths[numpaths] = pos;
+		xpaths[numpaths] = (xmlChar *) pos;
 		pos = strstr(pos, pathsep);
 		if (pos != NULL)
 		{
@@ -808,11 +795,9 @@ xpath_table(PG_FUNCTION_ARGS)
 		xmlXPathCompExprPtr comppath;
 
 		/* Extract the row data as C Strings */
-
 		spi_tuple = tuptable->vals[i];
 		pkey = SPI_getvalue(spi_tuple, spi_tupdesc, 1);
 		xmldoc = SPI_getvalue(spi_tuple, spi_tupdesc, 2);
-
 
 		/*
 		 * Clear the values array, so that not-well-formed documents return
@@ -827,11 +812,14 @@ xpath_table(PG_FUNCTION_ARGS)
 		values[0] = pkey;
 
 		/* Parse the document */
-		doctree = xmlParseMemory(xmldoc, strlen(xmldoc));
+		if (xmldoc)
+			doctree = xmlParseMemory(xmldoc, strlen(xmldoc));
+		else	/* treat NULL as not well-formed */
+			doctree = NULL;
 
 		if (doctree == NULL)
-		{						/* not well-formed, so output all-NULL tuple */
-
+		{
+			/* not well-formed, so output all-NULL tuple */
 			ret_tuple = BuildTupleFromCStrings(attinmeta, values);
 			oldcontext = MemoryContextSwitchTo(per_query_ctx);
 			tuplestore_puttuple(tupstore, ret_tuple);
@@ -893,7 +881,7 @@ xpath_table(PG_FUNCTION_ARGS)
 
 							default:
 								elog(NOTICE, "unsupported XQuery result: %d", res->type);
-								resstr = xmlStrdup("<unsupported/>");
+								resstr = xmlStrdup((const xmlChar *) "<unsupported/>");
 						}
 
 
@@ -901,7 +889,7 @@ xpath_table(PG_FUNCTION_ARGS)
 						 * Insert this into the appropriate column in the
 						 * result tuple.
 						 */
-						values[j + 1] = resstr;
+						values[j + 1] = (char *) resstr;
 					}
 					xmlXPathFreeContext(ctxt);
 				}
@@ -923,8 +911,10 @@ xpath_table(PG_FUNCTION_ARGS)
 
 		xmlFreeDoc(doctree);
 
-		pfree(pkey);
-		pfree(xmldoc);
+		if (pkey)
+			pfree(pkey);
+		if (xmldoc)
+			pfree(xmldoc);
 	}
 
 	xmlCleanupParser();

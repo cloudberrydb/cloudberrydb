@@ -4,7 +4,7 @@
  *	  WAL replay logic for btrees.
  *
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2008, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
@@ -14,8 +14,12 @@
  */
 #include "postgres.h"
 
+#include "miscadmin.h"
+
 #include "access/nbtree.h"
 #include "access/transam.h"
+#include "utils/guc.h"
+#include "cdb/cdbfilerepprimary.h"
 
 /*
  * We must keep track of expected insertions due to page splits, and apply
@@ -157,6 +161,8 @@ _bt_restore_meta(Relation reln, XLogRecPtr lsn,
 	BTMetaPageData *md;
 	BTPageOpaque pageop;
 
+	MIRROREDLOCK_BUFMGR_MUST_ALREADY_BE_HELD;
+
 	metabuf = XLogReadBuffer(reln, BTREE_METAPAGE, true);
 	Assert(BufferIsValid(metabuf));
 	metapg = BufferGetPage(metabuf);
@@ -191,6 +197,8 @@ static void
 btree_xlog_insert(bool isleaf, bool ismeta,
 				  XLogRecPtr lsn, XLogRecord *record)
 {
+	MIRROREDLOCK_BUFMGR_DECLARE;
+
 	xl_btree_insert *xlrec = (xl_btree_insert *) XLogRecGetData(record);
 	Relation	reln;
 	Buffer		buffer;
@@ -220,15 +228,20 @@ btree_xlog_insert(bool isleaf, bool ismeta,
 
 	reln = XLogOpenRelation(xlrec->target.node);
 
+	// -------- MirroredLock ----------
+	MIRROREDLOCK_BUFMGR_LOCK;
+	
 	if (!(record->xl_info & XLR_BKP_BLOCK_1))
 	{
 		buffer = XLogReadBuffer(reln,
 							 ItemPointerGetBlockNumber(&(xlrec->target.tid)),
 								false);
+		REDO_PRINT_READ_BUFFER_NOT_FOUND(reln, ItemPointerGetBlockNumber(&(xlrec->target.tid)), buffer, lsn);
 		if (BufferIsValid(buffer))
 		{
 			page = (Page) BufferGetPage(buffer);
 
+			REDO_PRINT_LSN_APPLICATION(reln, ItemPointerGetBlockNumber(&(xlrec->target.tid)), page, lsn);
 			if (XLByteLE(lsn, PageGetLSN(page)))
 			{
 				UnlockReleaseBuffer(buffer);
@@ -253,6 +266,9 @@ btree_xlog_insert(bool isleaf, bool ismeta,
 						 md.root, md.level,
 						 md.fastroot, md.fastlevel);
 
+	MIRROREDLOCK_BUFMGR_UNLOCK;
+	// -------- MirroredLock ----------
+	
 	/* Forget any split this insertion completes */
 	if (!isleaf)
 		forget_matching_split(xlrec->target.node, downlink, false);
@@ -262,6 +278,8 @@ static void
 btree_xlog_split(bool onleft, bool isroot,
 				 XLogRecPtr lsn, XLogRecord *record)
 {
+	MIRROREDLOCK_BUFMGR_DECLARE;
+
 	xl_btree_split *xlrec = (xl_btree_split *) XLogRecGetData(record);
 	Relation	reln;
 	BlockNumber targetblk;
@@ -278,6 +296,9 @@ btree_xlog_split(bool onleft, bool isroot,
 	targetoff = ItemPointerGetOffsetNumber(&(xlrec->target.tid));
 	leftsib = (onleft) ? targetblk : xlrec->otherblk;
 	rightsib = (onleft) ? xlrec->otherblk : targetblk;
+
+	// -------- MirroredLock ----------
+	MIRROREDLOCK_BUFMGR_LOCK;
 
 	/* Left (original) sibling */
 	buffer = XLogReadBuffer(reln, leftsib, true);
@@ -351,10 +372,12 @@ btree_xlog_split(bool onleft, bool isroot,
 		if (xlrec->rightblk != P_NONE)
 		{
 			buffer = XLogReadBuffer(reln, xlrec->rightblk, false);
+			REDO_PRINT_READ_BUFFER_NOT_FOUND(reln, xlrec->rightblk, buffer, lsn);
 			if (BufferIsValid(buffer))
 			{
 				page = (Page) BufferGetPage(buffer);
 
+				REDO_PRINT_LSN_APPLICATION(reln, xlrec->rightblk, page, lsn);
 				if (XLByteLE(lsn, PageGetLSN(page)))
 				{
 					UnlockReleaseBuffer(buffer);
@@ -373,6 +396,9 @@ btree_xlog_split(bool onleft, bool isroot,
 		}
 	}
 
+	MIRROREDLOCK_BUFMGR_UNLOCK;
+	// -------- MirroredLock ----------
+
 	/* Forget any split this insertion completes */
 	if (xlrec->level > 0)
 		forget_matching_split(xlrec->target.node, downlink, false);
@@ -385,6 +411,8 @@ btree_xlog_split(bool onleft, bool isroot,
 static void
 btree_xlog_delete(XLogRecPtr lsn, XLogRecord *record)
 {
+	MIRROREDLOCK_BUFMGR_DECLARE;
+
 	xl_btree_delete *xlrec;
 	Relation	reln;
 	Buffer		buffer;
@@ -395,15 +423,27 @@ btree_xlog_delete(XLogRecPtr lsn, XLogRecord *record)
 		return;
 
 	xlrec = (xl_btree_delete *) XLogRecGetData(record);
-	reln = XLogOpenRelation(xlrec->node);
+	reln = XLogOpenRelation(xlrec->btreenode.node);
+
+	// -------- MirroredLock ----------
+	MIRROREDLOCK_BUFMGR_LOCK;
+
 	buffer = XLogReadBuffer(reln, xlrec->block, false);
+	REDO_PRINT_READ_BUFFER_NOT_FOUND(reln, xlrec->block, buffer, lsn);
 	if (!BufferIsValid(buffer))
+	{
+		MIRROREDLOCK_BUFMGR_UNLOCK;
+		// -------- MirroredLock ----------
 		return;
+	}
 	page = (Page) BufferGetPage(buffer);
 
+	REDO_PRINT_LSN_APPLICATION(reln, xlrec->block, page, lsn);
 	if (XLByteLE(lsn, PageGetLSN(page)))
 	{
 		UnlockReleaseBuffer(buffer);
+		MIRROREDLOCK_BUFMGR_UNLOCK;
+		// -------- MirroredLock ----------
 		return;
 	}
 
@@ -429,11 +469,17 @@ btree_xlog_delete(XLogRecPtr lsn, XLogRecord *record)
 	PageSetTLI(page, ThisTimeLineID);
 	MarkBufferDirty(buffer);
 	UnlockReleaseBuffer(buffer);
+	
+	MIRROREDLOCK_BUFMGR_UNLOCK;
+	// -------- MirroredLock ----------
+	
 }
 
 static void
 btree_xlog_delete_page(uint8 info, XLogRecPtr lsn, XLogRecord *record)
 {
+	MIRROREDLOCK_BUFMGR_DECLARE;
+
 	xl_btree_delete_page *xlrec = (xl_btree_delete_page *) XLogRecGetData(record);
 	Relation	reln;
 	BlockNumber parent;
@@ -450,14 +496,19 @@ btree_xlog_delete_page(uint8 info, XLogRecPtr lsn, XLogRecord *record)
 	leftsib = xlrec->leftblk;
 	rightsib = xlrec->rightblk;
 
+	// -------- MirroredLock ----------
+	MIRROREDLOCK_BUFMGR_LOCK;
+
 	/* parent page */
 	if (!(record->xl_info & XLR_BKP_BLOCK_1))
 	{
 		buffer = XLogReadBuffer(reln, parent, false);
+		REDO_PRINT_READ_BUFFER_NOT_FOUND(reln, parent, buffer, lsn);
 		if (BufferIsValid(buffer))
 		{
 			page = (Page) BufferGetPage(buffer);
 			pageop = (BTPageOpaque) PageGetSpecialPointer(page);
+			REDO_PRINT_LSN_APPLICATION(reln, parent, page, lsn);
 			if (XLByteLE(lsn, PageGetLSN(page)))
 			{
 				UnlockReleaseBuffer(buffer);
@@ -500,9 +551,11 @@ btree_xlog_delete_page(uint8 info, XLogRecPtr lsn, XLogRecord *record)
 	if (!(record->xl_info & XLR_BKP_BLOCK_2))
 	{
 		buffer = XLogReadBuffer(reln, rightsib, false);
+		REDO_PRINT_READ_BUFFER_NOT_FOUND(reln, rightsib, buffer, lsn);
 		if (BufferIsValid(buffer))
 		{
 			page = (Page) BufferGetPage(buffer);
+			REDO_PRINT_LSN_APPLICATION(reln, rightsib, page, lsn);
 			if (XLByteLE(lsn, PageGetLSN(page)))
 			{
 				UnlockReleaseBuffer(buffer);
@@ -526,9 +579,11 @@ btree_xlog_delete_page(uint8 info, XLogRecPtr lsn, XLogRecord *record)
 		if (leftsib != P_NONE)
 		{
 			buffer = XLogReadBuffer(reln, leftsib, false);
+			REDO_PRINT_READ_BUFFER_NOT_FOUND(reln, leftsib, buffer, lsn);
 			if (BufferIsValid(buffer))
 			{
 				page = (Page) BufferGetPage(buffer);
+				REDO_PRINT_LSN_APPLICATION(reln, leftsib, page, lsn);
 				if (XLByteLE(lsn, PageGetLSN(page)))
 				{
 					UnlockReleaseBuffer(buffer);
@@ -578,6 +633,9 @@ btree_xlog_delete_page(uint8 info, XLogRecPtr lsn, XLogRecord *record)
 						 md.fastroot, md.fastlevel);
 	}
 
+	MIRROREDLOCK_BUFMGR_UNLOCK;
+	// -------- MirroredLock ----------
+
 	/* Forget any completed deletion */
 	forget_matching_deletion(xlrec->target.node, target);
 
@@ -589,6 +647,8 @@ btree_xlog_delete_page(uint8 info, XLogRecPtr lsn, XLogRecord *record)
 static void
 btree_xlog_newroot(XLogRecPtr lsn, XLogRecord *record)
 {
+	MIRROREDLOCK_BUFMGR_DECLARE;
+
 	xl_btree_newroot *xlrec = (xl_btree_newroot *) XLogRecGetData(record);
 	Relation	reln;
 	Buffer		buffer;
@@ -596,7 +656,11 @@ btree_xlog_newroot(XLogRecPtr lsn, XLogRecord *record)
 	BTPageOpaque pageop;
 	BlockNumber downlink = 0;
 
-	reln = XLogOpenRelation(xlrec->node);
+	reln = XLogOpenRelation(xlrec->btreenode.node);
+	
+	// -------- MirroredLock ----------
+	MIRROREDLOCK_BUFMGR_LOCK;
+	
 	buffer = XLogReadBuffer(reln, xlrec->rootblk, true);
 	Assert(BufferIsValid(buffer));
 	page = (Page) BufferGetPage(buffer);
@@ -633,14 +697,17 @@ btree_xlog_newroot(XLogRecPtr lsn, XLogRecord *record)
 					 xlrec->rootblk, xlrec->level,
 					 xlrec->rootblk, xlrec->level);
 
+	MIRROREDLOCK_BUFMGR_UNLOCK;
+	// -------- MirroredLock ----------
+
 	/* Check to see if this satisfies any incomplete insertions */
 	if (record->xl_len > SizeOfBtreeNewroot)
-		forget_matching_split(xlrec->node, downlink, true);
+		forget_matching_split(xlrec->btreenode.node, downlink, true);
 }
 
 
 void
-btree_redo(XLogRecPtr lsn, XLogRecord *record)
+btree_redo(XLogRecPtr beginLoc, XLogRecPtr lsn, XLogRecord *record)
 {
 	uint8		info = record->xl_info & ~XLR_INFO_MASK;
 
@@ -684,116 +751,294 @@ btree_redo(XLogRecPtr lsn, XLogRecord *record)
 }
 
 static void
+out_relfilenode(StringInfo buf, RelFileNode *relFileNode)
+{
+	appendStringInfo(buf, "rel %u/%u/%u",
+			 relFileNode->spcNode, relFileNode->dbNode, relFileNode->relNode);
+}
+
+static void
+out_tid(StringInfo buf, ItemPointer tid)
+{
+	appendStringInfo(buf, "; tid %s",
+					 ItemPointerToString(tid));
+}
+
+static void
 out_target(StringInfo buf, xl_btreetid *target)
 {
-	appendStringInfo(buf, "rel %u/%u/%u; tid %u/%u",
-			 target->node.spcNode, target->node.dbNode, target->node.relNode,
-					 ItemPointerGetBlockNumber(&(target->tid)),
-					 ItemPointerGetOffsetNumber(&(target->tid)));
+	out_relfilenode(buf, &target->node);
+	out_tid(buf, &(target->tid));
+}
+
+static void
+out_insert(StringInfo buf, bool isleaf, bool ismeta, XLogRecord *record)
+{
+	char			*rec = XLogRecGetData(record);
+	xl_btree_insert *xlrec = (xl_btree_insert *) rec;
+
+	char	   *datapos;
+	int			datalen;
+	xl_btree_metadata md;
+	BlockNumber downlink = 0;
+
+	datapos = (char *) xlrec + SizeOfBtreeInsert;
+	datalen = record->xl_len - SizeOfBtreeInsert;
+	if (!isleaf)
+	{
+		memcpy(&downlink, datapos, sizeof(BlockNumber));
+		datapos += sizeof(BlockNumber);
+		datalen -= sizeof(BlockNumber);
+	}
+	if (ismeta)
+	{
+		memcpy(&md, datapos, sizeof(xl_btree_metadata));
+		datapos += sizeof(xl_btree_metadata);
+		datalen -= sizeof(xl_btree_metadata);
+	}
+
+	out_relfilenode(buf, &(xlrec->target.node));
+
+	if ((record->xl_info & XLR_BKP_BLOCK_1) && !ismeta && isleaf)
+	{
+		appendStringInfo(buf, "; page %u",
+						 ItemPointerGetBlockNumber(&(xlrec->target.tid)));
+		return;					/* nothing to do */
+	}
+
+	out_tid(buf, &(xlrec->target.tid));
+
+	if (!(record->xl_info & XLR_BKP_BLOCK_1))
+	{
+		appendStringInfo(buf, "; add length %d item at offset %d in page %u",
+						 datalen, 
+						 ItemPointerGetOffsetNumber(&(xlrec->target.tid)),
+						 ItemPointerGetBlockNumber(&(xlrec->target.tid)));
+	}
+
+	if (ismeta)
+		appendStringInfo(buf, "; restore metadata page 0 (root page value %u, level %d, fastroot page value %u, fastlevel %d)",
+						 md.root, 
+						 md.level,
+						 md.fastroot, 
+						 md.fastlevel);
+
+	/* Forget any split this insertion completes */
+//	if (!isleaf)
+//		appendStringInfo(buf, "; completes split for page %u",
+//		 				 downlink);
+}
+
+static void
+out_split(StringInfo buf, bool onleft, bool isroot, XLogRecord *record)
+{
+	char			*rec = XLogRecGetData(record);
+	xl_btree_split 	*xlrec = (xl_btree_split *) rec;
+	BlockNumber targetblk;
+	OffsetNumber targetoff;
+	BlockNumber leftsib;
+	BlockNumber rightsib;
+
+	out_target(buf, &(xlrec->target));
+
+	targetblk = ItemPointerGetBlockNumber(&(xlrec->target.tid));
+	targetoff = ItemPointerGetOffsetNumber(&(xlrec->target.tid));
+	leftsib = (onleft) ? targetblk : xlrec->otherblk;
+	rightsib = (onleft) ? xlrec->otherblk : targetblk;
+
+	/* Left (original) sibling */
+	appendStringInfo(buf, "; init and restore left original sibling (prev page value %u, next page value %u, level %d)",
+					 xlrec->leftblk,
+					 rightsib,
+					 xlrec->level);
+	if (onleft && xlrec->level > 0)
+	{
+		/* UNDONE: This would require a deeper examining of page data... */
+		/* extract downlink in the target tuple */
+	}
+
+	/* Right (new) sibling */
+	appendStringInfo(buf, "; init and restore right sibling page %u (prev page value %u, next page value %u, level %d)",
+					 rightsib,
+					 leftsib,
+					 xlrec->rightblk,
+					 xlrec->level);
+
+	if (!onleft && xlrec->level > 0)
+	{
+		/* UNDONE: This would require a deeper examining of page data... */
+		/* extract downlink in the target tuple */
+	}
+
+	/* Fix left-link of right (next) page */
+	if (!(record->xl_info & XLR_BKP_BLOCK_1))
+	{
+		if (xlrec->rightblk != P_NONE)
+		{
+			appendStringInfo(buf, "; fix left-link of right (next) page %u (right sibliing page value %u)",
+							 xlrec->rightblk,
+							 rightsib);
+		}
+	}
+
+}
+
+static void
+out_delete(StringInfo buf, XLogRecord *record)
+{
+	char			*rec = XLogRecGetData(record);
+	xl_btree_delete *xlrec = (xl_btree_delete *) rec;
+
+	if (record->xl_info & XLR_BKP_BLOCK_1)
+		return;
+
+	out_relfilenode(buf, &xlrec->btreenode.node);
+	appendStringInfo(buf, "; page %u",
+					 xlrec->block);
+
+	xlrec = (xl_btree_delete *) XLogRecGetData(record);
+
+	if (record->xl_len > SizeOfBtreeDelete)
+	{
+		OffsetNumber *unused;
+		OffsetNumber *unend;
+
+		unused = (OffsetNumber *) ((char *) xlrec + SizeOfBtreeDelete);
+		unend = (OffsetNumber *) ((char *) xlrec + record->xl_len);
+
+		appendStringInfo(buf, "; page index (unend - unused = %u)",
+						 (unsigned int)(unend - unused));
+	}
+}
+
+static void
+out_delete_page(StringInfo buf, uint8 info, XLogRecord *record)
+{
+	char					*rec = XLogRecGetData(record);
+	xl_btree_delete_page 	*xlrec = (xl_btree_delete_page *) rec;
+	BlockNumber parent;
+	BlockNumber target;
+	BlockNumber leftsib;
+	BlockNumber rightsib;
+	parent = ItemPointerGetBlockNumber(&(xlrec->target.tid));
+	target = xlrec->deadblk;
+	leftsib = xlrec->leftblk;
+	rightsib = xlrec->rightblk;
+
+	out_target(buf, &(xlrec->target));
+
+	/* parent page */
+	if (!(record->xl_info & XLR_BKP_BLOCK_1))
+	{
+		appendStringInfo(buf, "; parent page %u",
+						 parent);
+	}
+
+	/* Fix left-link of right sibling */
+	if (!(record->xl_info & XLR_BKP_BLOCK_2))
+	{
+		appendStringInfo(buf, "; fix left-link of right sibiling page %u",
+						 rightsib);
+	}
+
+	/* Fix right-link of left sibling, if any */
+	if (!(record->xl_info & XLR_BKP_BLOCK_3))
+	{
+		if (leftsib != P_NONE)
+		{
+			appendStringInfo(buf, "; fix right-link of left sibiling page %u",
+							 leftsib);
+		}
+	}
+
+	/* Rewrite target page as empty deleted page */
+	appendStringInfo(buf, "; rewrite target page as empty deleted page %u",
+					 target);
+
+	/* Update metapage if needed */
+	if (info == XLOG_BTREE_DELETE_PAGE_META)
+	{
+		xl_btree_metadata md;
+
+		memcpy(&md, (char *) xlrec + SizeOfBtreeDeletePage,
+			   sizeof(xl_btree_metadata));
+		appendStringInfo(buf, "; update metadata page 0 (root page value %u, level %d, fastroot page value %u, fastlevel %d)",
+						 md.root, 
+						 md.level,
+						 md.fastroot, 
+						 md.fastlevel);
+	}
+}
+
+static void
+out_newroot(StringInfo buf, XLogRecord *record)
+{
+	char				*rec = XLogRecGetData(record);
+	xl_btree_newroot 	*xlrec = (xl_btree_newroot *) rec;
+
+	out_relfilenode(buf, &xlrec->btreenode.node);
+	appendStringInfo(buf, "; root %u level %u",
+					 xlrec->rootblk,
+					 xlrec->level);
+
+	appendStringInfo(buf, "; update metadata page 0 (root page value %u, level %d, fastroot page value %u, fastlevel %d)",
+					 xlrec->rootblk, xlrec->level,
+					 xlrec->rootblk, xlrec->level);
 }
 
 void
-btree_desc(StringInfo buf, uint8 xl_info, char *rec)
+btree_desc(StringInfo buf, XLogRecPtr beginLoc, XLogRecord *record)
 {
-	uint8		info = xl_info & ~XLR_INFO_MASK;
+	uint8		info = record->xl_info & ~XLR_INFO_MASK;
 
+	/*
+	 * To get the extra information about the 2nd and 3rd blocks afftected by redo,
+	 * we model the call hierarchy here after the btree_redo routine.
+	 */
 	switch (info)
 	{
 		case XLOG_BTREE_INSERT_LEAF:
-			{
-				xl_btree_insert *xlrec = (xl_btree_insert *) rec;
-
-				appendStringInfo(buf, "insert: ");
-				out_target(buf, &(xlrec->target));
-				break;
-			}
+			appendStringInfo(buf, "insert: ");
+			out_insert(buf, /* isleaf */ true, /* ismeta */ false, record);
+			break;
 		case XLOG_BTREE_INSERT_UPPER:
-			{
-				xl_btree_insert *xlrec = (xl_btree_insert *) rec;
-
-				appendStringInfo(buf, "insert_upper: ");
-				out_target(buf, &(xlrec->target));
-				break;
-			}
+			appendStringInfo(buf, "insert_upper: ");
+			out_insert(buf, /* isleaf */ false, /* ismeta */ false, record);
+			break;
 		case XLOG_BTREE_INSERT_META:
-			{
-				xl_btree_insert *xlrec = (xl_btree_insert *) rec;
-
-				appendStringInfo(buf, "insert_meta: ");
-				out_target(buf, &(xlrec->target));
-				break;
-			}
+			appendStringInfo(buf, "insert_meta: ");
+			out_insert(buf, /* isleaf */ false, /* ismeta */ true, record);
+			break;
 		case XLOG_BTREE_SPLIT_L:
-			{
-				xl_btree_split *xlrec = (xl_btree_split *) rec;
-
-				appendStringInfo(buf, "split_l: ");
-				out_target(buf, &(xlrec->target));
-				appendStringInfo(buf, "; oth %u; rgh %u",
-								 xlrec->otherblk, xlrec->rightblk);
-				break;
-			}
+			appendStringInfo(buf, "split_l: ");
+			out_split(buf, /* onleft */ true, /* isroot */ false, record);
+			break;
 		case XLOG_BTREE_SPLIT_R:
-			{
-				xl_btree_split *xlrec = (xl_btree_split *) rec;
-
-				appendStringInfo(buf, "split_r: ");
-				out_target(buf, &(xlrec->target));
-				appendStringInfo(buf, "; oth %u; rgh %u",
-								 xlrec->otherblk, xlrec->rightblk);
-				break;
-			}
+			appendStringInfo(buf, "split_r: ");
+			out_split(buf, /* onleft */ false, /* isroot */ false, record);
+			break;
 		case XLOG_BTREE_SPLIT_L_ROOT:
-			{
-				xl_btree_split *xlrec = (xl_btree_split *) rec;
-
-				appendStringInfo(buf, "split_l_root: ");
-				out_target(buf, &(xlrec->target));
-				appendStringInfo(buf, "; oth %u; rgh %u",
-								 xlrec->otherblk, xlrec->rightblk);
-				break;
-			}
+			appendStringInfo(buf, "split_l_root: ");
+			out_split(buf, /* onleft */ true, /* isroot */ true, record);
+			break;
 		case XLOG_BTREE_SPLIT_R_ROOT:
-			{
-				xl_btree_split *xlrec = (xl_btree_split *) rec;
-
-				appendStringInfo(buf, "split_r_root: ");
-				out_target(buf, &(xlrec->target));
-				appendStringInfo(buf, "; oth %u; rgh %u",
-								 xlrec->otherblk, xlrec->rightblk);
-				break;
-			}
+			appendStringInfo(buf, "split_r_root: ");
+			out_split(buf, /* onleft */ false, /* isroot */ true, record);
+			break;
 		case XLOG_BTREE_DELETE:
-			{
-				xl_btree_delete *xlrec = (xl_btree_delete *) rec;
-
-				appendStringInfo(buf, "delete: rel %u/%u/%u; blk %u",
-								 xlrec->node.spcNode, xlrec->node.dbNode,
-								 xlrec->node.relNode, xlrec->block);
-				break;
-			}
+			appendStringInfo(buf, "delete: ");
+			out_delete(buf, record);
+			break;
 		case XLOG_BTREE_DELETE_PAGE:
 		case XLOG_BTREE_DELETE_PAGE_META:
 		case XLOG_BTREE_DELETE_PAGE_HALF:
-			{
-				xl_btree_delete_page *xlrec = (xl_btree_delete_page *) rec;
-
-				appendStringInfo(buf, "delete_page: ");
-				out_target(buf, &(xlrec->target));
-				appendStringInfo(buf, "; dead %u; left %u; right %u",
-							xlrec->deadblk, xlrec->leftblk, xlrec->rightblk);
-				break;
-			}
+			appendStringInfo(buf, "delete_page: ");
+			out_delete_page(buf, info, record);
+			break;
 		case XLOG_BTREE_NEWROOT:
-			{
-				xl_btree_newroot *xlrec = (xl_btree_newroot *) rec;
-
-				appendStringInfo(buf, "newroot: rel %u/%u/%u; root %u lev %u",
-								 xlrec->node.spcNode, xlrec->node.dbNode,
-								 xlrec->node.relNode,
-								 xlrec->rootblk, xlrec->level);
-				break;
-			}
+			appendStringInfo(buf, "newroot: ");
+			out_newroot(buf, record);
+			break;
 		default:
 			appendStringInfo(buf, "UNKNOWN");
 			break;
@@ -809,6 +1054,8 @@ btree_xlog_startup(void)
 void
 btree_xlog_cleanup(void)
 {
+	MIRROREDLOCK_BUFMGR_DECLARE;
+
 	ListCell   *l;
 
 	foreach(l, incomplete_actions)
@@ -828,6 +1075,9 @@ btree_xlog_cleanup(void)
 						rpageop;
 			bool		is_only;
 
+			// -------- MirroredLock ----------
+			MIRROREDLOCK_BUFMGR_LOCK;
+
 			lbuf = XLogReadBuffer(reln, action->leftblk, false);
 			/* failure is impossible because we wrote this page earlier */
 			if (!BufferIsValid(lbuf))
@@ -846,16 +1096,27 @@ btree_xlog_cleanup(void)
 
 			_bt_insert_parent(reln, lbuf, rbuf, NULL,
 							  action->is_root, is_only);
+
+			MIRROREDLOCK_BUFMGR_UNLOCK;
+			// -------- MirroredLock ----------
+
 		}
 		else
 		{
 			/* finish an incomplete deletion (of a half-dead page) */
 			Buffer		buf;
 
+			// -------- MirroredLock ----------
+			MIRROREDLOCK_BUFMGR_LOCK;
+
 			buf = XLogReadBuffer(reln, action->delblk, false);
 			if (BufferIsValid(buf))
 				if (_bt_pagedel(reln, buf, NULL, true) == 0)
 					elog(PANIC, "btree_xlog_cleanup: _bt_pagdel failed");
+				
+			MIRROREDLOCK_BUFMGR_UNLOCK;
+			// -------- MirroredLock ----------
+				
 		}
 	}
 	incomplete_actions = NIL;

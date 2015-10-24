@@ -4,7 +4,7 @@
  *	  Display type names "nicely".
  *
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2008, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
@@ -17,10 +17,12 @@
 
 #include <ctype.h>
 
+#include "catalog/catquery.h"
 #include "catalog/namespace.h"
 #include "catalog/pg_type.h"
 #include "utils/builtins.h"
 #include "utils/datetime.h"
+#include "utils/fmgroids.h"
 #include "utils/lsyscache.h"
 #include "utils/numeric.h"
 #include "utils/syscache.h"
@@ -120,15 +122,24 @@ format_type_internal(Oid type_oid, int32 typemod,
 	Oid			array_base_type;
 	bool		is_array;
 	char	   *buf;
+	cqContext  *typcqCtx;
+	cqContext  *basecqCtx;
 
 	if (type_oid == InvalidOid && allow_invalid)
 		return pstrdup("-");
 
-	tuple = SearchSysCache(TYPEOID,
-						   ObjectIdGetDatum(type_oid),
-						   0, 0, 0);
+	typcqCtx = caql_beginscan(
+			NULL,
+			cql("SELECT * FROM pg_type "
+				" WHERE oid = :1 ",
+				ObjectIdGetDatum(type_oid)));
+
+	tuple = caql_getnext(typcqCtx);
+
 	if (!HeapTupleIsValid(tuple))
 	{
+		caql_endscan(typcqCtx);
+
 		if (allow_invalid)
 			return pstrdup("???");
 		else
@@ -143,31 +154,98 @@ format_type_internal(Oid type_oid, int32 typemod,
 	 * than checking typlen we check the toast property, and don't deconstruct
 	 * "plain storage" array types --- this is because we don't want to show
 	 * oidvector as oid[].
+	 *
+	 * *** MPP-5137 patch ***
+	 * The intent of this routine is to replace an array type reference with
+	 * an array of the underlying base type if, and only if, the array
+	 * reference is to the system-defined array type over a base type.
+	 *
+	 * Checking only typstorage = 'p' causes format_type failures when
+	 * processing user-defined array types having typstorage != 'p'.
+	 *
+	 * To avoid this, at least until 8.3, different checking is in order.
+	 * Until 8.3, all system-defined array types have names beginning with an
+	 * underscore ('_') with the remainder of the name the same as the base
+	 * element type name and have a typinput value of array_in.  Base type
+	 * array replacement will occur only if both conditions are met.  All
+	 * other references are left intact.
+	 *
+	 * User-defined and system-defined fixed-length types (like "name" and
+	 * "oidvector") can not use array_in; all of the system-defined
+	 * fixed-length types use specialized typinput routines, not array_in, so
+	 * checking for array_in clears the system types. (See comments in array.h
+	 * about fixed-length arrays.)
 	 */
 	array_base_type = typeform->typelem;
 
-	if (array_base_type != InvalidOid &&
-		typeform->typstorage != 'p' &&
-		typeform->typtype != 'd')
+	if (OidIsValid(array_base_type) &&
+		typeform->typtype != TYPTYPE_DOMAIN &&
+		/* TODO: Change test to use pg_type.typarray when introducing 8.3 updates */
+		NameStr(typeform->typname)[0] == '_' &&
+		typeform->typinput == F_ARRAY_IN)
 	{
+		HeapTuple base_tuple;
+		Form_pg_type base_typeform;
+
 		/* Switch our attention to the array element type */
-		ReleaseSysCache(tuple);
-		tuple = SearchSysCache(TYPEOID,
-							   ObjectIdGetDatum(array_base_type),
-							   0, 0, 0);
-		if (!HeapTupleIsValid(tuple))
+		basecqCtx = caql_beginscan(
+				NULL,
+				cql("SELECT * FROM pg_type "
+					" WHERE oid = :1 ",
+					ObjectIdGetDatum(array_base_type)));
+
+		base_tuple = caql_getnext(basecqCtx);
+
+		if (!HeapTupleIsValid(base_tuple))
 		{
 			if (allow_invalid)
+			{
+				caql_endscan(basecqCtx);
+				caql_endscan(typcqCtx);
 				return pstrdup("???[]");
+			}
 			else
+			{
 				elog(ERROR, "cache lookup failed for type %u", type_oid);
+			}
 		}
-		typeform = (Form_pg_type) GETSTRUCT(tuple);
-		type_oid = array_base_type;
-		is_array = true;
+		base_typeform = (Form_pg_type) GETSTRUCT(base_tuple);
+
+		/*
+		 * Now make final checks for system-defined array type before
+		 * substituting the array form of a base type for an array type
+		 * reference.
+		 *
+		 * TODO: Eliminate the name check when merging 8.3 updates and typarray checked
+		 */
+		if (strcmp(NameStr(base_typeform->typname), NameStr(typeform->typname)+1) == 0)
+		{
+			/* NOTE: a little grotesque, but since we are switching
+			 * the base tuple for the type tuple, free the typcqctx,
+			 * then switch the caql context for the base tuple as well
+			 * so it gets freed at the end
+			 */
+
+			caql_endscan(typcqCtx);
+
+			tuple = base_tuple;
+
+			typcqCtx = basecqCtx; /* NOTE: switch the caql ctx */
+
+			typeform = base_typeform;
+			type_oid = array_base_type;
+			is_array = true;
+		}
+		else
+		{
+			caql_endscan(basecqCtx);
+			is_array = false;
+		}
 	}
 	else
+	{
 		is_array = false;
+	}
 
 	/*
 	 * See if we want to special-case the output for certain built-in types.
@@ -401,7 +479,9 @@ format_type_internal(Oid type_oid, int32 typemod,
 	if (is_array)
 		buf = psnprintf(strlen(buf) + 3, "%s[]", buf);
 
-	ReleaseSysCache(tuple);
+	caql_endscan(typcqCtx); /* NOTE: this could be the base tuple ctx
+							 * if it was an array 
+							 */
 
 	return buf;
 }

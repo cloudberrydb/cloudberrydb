@@ -2,7 +2,7 @@
 #
 # Makefile for the pltcl shared object
 #
-# $PostgreSQL: pgsql/src/pl/tcl/Makefile,v 1.50 2006/07/21 00:24:04 tgl Exp $
+# $PostgreSQL: pgsql/src/pl/tcl/Makefile,v 1.53 2008/10/02 08:11:11 petere Exp $
 #
 #-------------------------------------------------------------------------
 
@@ -29,15 +29,12 @@ endif
 endif
 
 
+SHLIB_LINK = $(TCL_LIB_SPEC)
 ifneq ($(PORTNAME), win32)
-SHLIB_LINK = $(BE_DLLLIBS) $(TCL_LIB_SPEC) $(TCL_LIBS) -lc
-else
-SHLIB_LINK = $(TCL_LIB_SPEC) $(BE_DLLLIBS)
+SHLIB_LINK += $(TCL_LIBS) -lc
 endif
 
 NAME = pltcl
-SO_MAJOR_VERSION = 2
-SO_MINOR_VERSION = 0
 OBJS = pltcl.o
 
 REGRESS_OPTS = --dbname=$(PL_TESTDB) --load-language=pltcl
@@ -52,47 +49,17 @@ ifeq ($(TCL_SHARED_BUILD), 1)
 all: all-lib
 	$(MAKE) -C modules $@
 
-# When doing a VPATH build, copy over the .sql and .out files so that the
-# test script can find them.  See comments in src/test/regress/GNUmakefile.
-ifdef VPATH
-
-ifneq ($(PORTNAME),win32)
-abs_srcdir := $(shell cd $(srcdir) && pwd)
-abs_builddir := $(shell pwd)
-else
-abs_srcdir := $(shell cd $(srcdir) && pwd -W)
-abs_builddir := $(shell pwd -W)
-endif
-
-test_files_src := $(wildcard $(srcdir)/sql/*.sql) $(wildcard $(srcdir)/expected/*.out)
-test_files_build := $(patsubst $(srcdir)/%, $(abs_builddir)/%, $(test_files_src))
-
-all: $(test_files_build)
-$(test_files_build): $(abs_builddir)/%: $(srcdir)/%
-	ln -s $< $@
-
-endif
-
-install: all installdirs
-ifeq ($(enable_shared), yes)
-	$(INSTALL_SHLIB) $(shlib) '$(DESTDIR)$(pkglibdir)/$(NAME)$(DLSUFFIX)'
-else
-	@echo "*****"; \
-	 echo "* PL/Tcl was not installed due to lack of shared library support."; \
-	 echo "*****"
-endif
+install: all installdirs install-lib
 	$(MAKE) -C modules $@
 
-installdirs:
-	$(mkinstalldirs) '$(DESTDIR)$(pkglibdir)'
+installdirs: installdirs-lib
 	$(MAKE) -C modules $@
 
-uninstall:
-	rm -f '$(DESTDIR)$(pkglibdir)/$(NAME)$(DLSUFFIX)'
+uninstall: uninstall-lib
 	$(MAKE) -C modules $@
 
 installcheck: submake
-	$(top_builddir)/src/test/regress/pg_regress --psqldir=$(PSQLDIR) $(REGRESS_OPTS) $(REGRESS)
+	$(top_builddir)/src/test/regress/pg_regress --inputdir=$(srcdir) --psqldir=$(PSQLDIR) $(REGRESS_OPTS) $(REGRESS)
 
 .PHONY: submake
 submake:

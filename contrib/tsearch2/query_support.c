@@ -9,7 +9,7 @@ Datum		tsquery_numnode(PG_FUNCTION_ARGS);
 Datum
 tsquery_numnode(PG_FUNCTION_ARGS)
 {
-	QUERYTYPE  *query = (QUERYTYPE *) DatumGetPointer(PG_DETOAST_DATUM_COPY(PG_GETARG_DATUM(0)));
+	QUERYTYPE  *query = (QUERYTYPE *) PG_DETOAST_DATUM_COPY(PG_GETARG_DATUM(0));
 	int			nnode = query->size;
 
 	PG_FREE_IF_COPY(query, 0);
@@ -40,8 +40,8 @@ Datum		tsquery_and(PG_FUNCTION_ARGS);
 Datum
 tsquery_and(PG_FUNCTION_ARGS)
 {
-	QUERYTYPE  *a = (QUERYTYPE *) DatumGetPointer(PG_DETOAST_DATUM_COPY(PG_GETARG_DATUM(0)));
-	QUERYTYPE  *b = (QUERYTYPE *) DatumGetPointer(PG_DETOAST_DATUM_COPY(PG_GETARG_DATUM(1)));
+	QUERYTYPE  *a = (QUERYTYPE *) PG_DETOAST_DATUM_COPY(PG_GETARG_DATUM(0));
+	QUERYTYPE  *b = (QUERYTYPE *) PG_DETOAST_DATUM_COPY(PG_GETARG_DATUM(1));
 	QTNode	   *res;
 	QUERYTYPE  *query;
 
@@ -75,8 +75,8 @@ Datum		tsquery_or(PG_FUNCTION_ARGS);
 Datum
 tsquery_or(PG_FUNCTION_ARGS)
 {
-	QUERYTYPE  *a = (QUERYTYPE *) DatumGetPointer(PG_DETOAST_DATUM_COPY(PG_GETARG_DATUM(0)));
-	QUERYTYPE  *b = (QUERYTYPE *) DatumGetPointer(PG_DETOAST_DATUM_COPY(PG_GETARG_DATUM(1)));
+	QUERYTYPE  *a = (QUERYTYPE *) PG_DETOAST_DATUM_COPY(PG_GETARG_DATUM(0));
+	QUERYTYPE  *b = (QUERYTYPE *) PG_DETOAST_DATUM_COPY(PG_GETARG_DATUM(1));
 	QTNode	   *res;
 	QUERYTYPE  *query;
 
@@ -110,7 +110,7 @@ Datum		tsquery_not(PG_FUNCTION_ARGS);
 Datum
 tsquery_not(PG_FUNCTION_ARGS)
 {
-	QUERYTYPE  *a = (QUERYTYPE *) DatumGetPointer(PG_DETOAST_DATUM_COPY(PG_GETARG_DATUM(0)));
+	QUERYTYPE  *a = (QUERYTYPE *) PG_DETOAST_DATUM_COPY(PG_GETARG_DATUM(0));
 	QTNode	   *res;
 	QUERYTYPE  *query;
 
@@ -144,9 +144,9 @@ CompareTSQ(QUERYTYPE * a, QUERYTYPE * b)
 	{
 		return (a->size < b->size) ? -1 : 1;
 	}
-	else if (a->len != b->len)
+	else if (VARSIZE(a) != VARSIZE(b))
 	{
-		return (a->len < b->len) ? -1 : 1;
+		return (VARSIZE(a) < VARSIZE(b)) ? -1 : 1;
 	}
 	else
 	{
@@ -170,8 +170,8 @@ Datum		tsquery_cmp(PG_FUNCTION_ARGS);
 Datum
 tsquery_cmp(PG_FUNCTION_ARGS)
 {
-	QUERYTYPE  *a = (QUERYTYPE *) DatumGetPointer(PG_DETOAST_DATUM_COPY(PG_GETARG_DATUM(0)));
-	QUERYTYPE  *b = (QUERYTYPE *) DatumGetPointer(PG_DETOAST_DATUM_COPY(PG_GETARG_DATUM(1)));
+	QUERYTYPE  *a = (QUERYTYPE *) PG_DETOAST_DATUM_COPY(PG_GETARG_DATUM(0));
+	QUERYTYPE  *b = (QUERYTYPE *) PG_DETOAST_DATUM_COPY(PG_GETARG_DATUM(1));
 	int			res = CompareTSQ(a, b);
 
 	PG_FREE_IF_COPY(a, 0);
@@ -180,21 +180,22 @@ tsquery_cmp(PG_FUNCTION_ARGS)
 	PG_RETURN_INT32(res);
 }
 
-#define CMPFUNC( NAME, ACTION )										\
-PG_FUNCTION_INFO_V1(NAME);										\
-Datum	NAME(PG_FUNCTION_ARGS);										\
+#define CMPFUNC( NAME, ACTION )									\
+Datum	NAME(PG_FUNCTION_ARGS);									\
 													\
 Datum													\
 NAME(PG_FUNCTION_ARGS) {										\
-	QUERYTYPE  *a = (QUERYTYPE *) DatumGetPointer(PG_DETOAST_DATUM_COPY(PG_GETARG_DATUM(0)));	\
-	QUERYTYPE  *b = (QUERYTYPE *) DatumGetPointer(PG_DETOAST_DATUM_COPY(PG_GETARG_DATUM(1)));	\
+	QUERYTYPE  *a = (QUERYTYPE *) PG_DETOAST_DATUM_COPY(PG_GETARG_DATUM(0));	\
+	QUERYTYPE  *b = (QUERYTYPE *) PG_DETOAST_DATUM_COPY(PG_GETARG_DATUM(1));	\
 	int res = CompareTSQ(a,b);									\
 													\
 	PG_FREE_IF_COPY(a,0);										\
 	PG_FREE_IF_COPY(b,1);										\
 													\
 	PG_RETURN_BOOL( ACTION );									\
-}
+}													\
+													\
+PG_FUNCTION_INFO_V1(NAME)
 
 CMPFUNC(tsquery_lt, res < 0);
 CMPFUNC(tsquery_le, res <= 0);

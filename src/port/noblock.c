@@ -3,11 +3,11 @@
  * noblock.c
  *	  set a file descriptor as non-blocking
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2010, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/port/noblock.c,v 1.10 2006/03/05 15:59:10 momjian Exp $
+ *	  $PostgreSQL: pgsql/src/port/noblock.c,v 1.15 2010/01/10 14:16:08 mha Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -18,7 +18,7 @@
 
 
 bool
-pg_set_noblock(int sock)
+pg_set_noblock(pgsocket sock)
 {
 #if !defined(WIN32)
 	return (fcntl(sock, F_SETFL, O_NONBLOCK) != -1);
@@ -32,7 +32,7 @@ pg_set_noblock(int sock)
 
 
 bool
-pg_set_block(int sock)
+pg_set_block(pgsocket sock)
 {
 #if !defined(WIN32)
 	int			flags;

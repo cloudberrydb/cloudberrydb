@@ -1,0 +1,118 @@
+01234567890123456789012345678901234567890123456789012345678901234567890123456789
+In finding the proximity of several terms, we first need to represent the
+positions of the terms in the document.  Let's say we use the following to
+represent a set of term occurrences:
+	doc1	term1:1		term2:2		term3:3
+	doc2	term1:30	term2:10	term3:20
+
+if we performed a search query against these two documents using the query:
+(term1 && term2 && term3), we would like the weight of results to reflect the
+proximity of these terms.  In document1, the three terms are clustered together
+without separation and in document2 they are separated by 10 positions, so we
+would expect the weight of search results to reflect this.
+
+One possible weight of the search would take the like of matching terms for each
+document and construct a weight like:
+	Matching Weight = MAX(positions) - MIN(positions)
+
+Using this metric for our test case, document1 would have a weight of 2 and
+document2 would have a weight of 20.  We can easily construct a method to
+determine the best match.
+
+But what if there are multiple positions at which the terms appear? For
+instance, what if the term occurrences in documents 3 and 4 looked like this:
+	doc3	term1:1,40,4	term2:2		term3:3
+	doc4	term1:1     	term2:2,30,50	term3:3,10
+
+Now the proximity grouping of term1,2,3 is obscured by our previous weight,
+document 3 and 4 evaluate to weights of 39 and 49 for this search.
+
+============================================
+A sparse matrix method for term proximity
+============================================
+If we consider the list of positions for each term as a "position vector" that
+has an entry for each place the term occurs in a document, then we can write our
+terms and frequencies like a matrix for each document where each column is a
+position vector with a 1 where the term exists in the document and zeros where
+it doesn't exist, like this:
+	doc1
+	    	term1		term2		term3		term4
+count at pos1	0		1		0		0
+count at pos2	1		0		0		0
+count at pos3	0		0		1		0
+count at pos4	1		0		0		0
+...
+count at posN	0		0		1		0
+
+The dimensions of this matrix are (Nterms x Npositions).
+
+If we were to look for the query (term1 && term3) in the above document, we
+could construct a query vector with a 1 in each of the 1 and 3 term positions
+and zeros elsewhere like this:
+	query
+		term1	1
+		term2	0
+		term3	1
+		term4	0
+
+Now we can get a histogram of term occurrences by evaluating the matrix x vector
+product like this:
+	histogram 	= |doc1| %*% query
+
+This yields the following vector for this case (assuming we only have 4 positions):
+	histogram
+		term1	2
+		term2	0
+		term3	1
+		term4	0
+	
+We desire a weighting by proximity: now that we have an arithmetic for
+calculating intersections of queries with occurrences perhaps we can amend the
+weighting of the positions to accomplish a proximity weight?
+
+Consider the following two vectors of term positions for terms 1 and 3 in
+document 1:
+	    	term1		term3
+count at pos1	0		0
+count at pos2	0		0
+count at pos3	0		1
+count at pos4	1		0
+...
+count at posN	0		1
+
+In this case, we have two occurrences of term3, but only one is close to term1.
+If we evaluate the histogram, we'll simply get two matches of term3 and one
+match of term1 without any bias or consideration that we have terms close to
+each other.
+	histogram
+		term1	1
+		term2	0
+		term3	2
+		term4	0
+	
+What if we were to amend the term positions, allowing them to "bleed" across the
+position boundaries like this:
+	    	term1	term3
+count at pos1	 0	 0
+count at pos2	 0	.1
+count at pos3	.1	 1
+count at pos4	 1	.1
+count at pos5	.1	 0
+...
+count at posN-1	 0	.1
+count at posN	 0	 1
+
+We can then compose a "blended term vector" that is the scalar multiplication of
+these weighted term position vectors (insert proper matrix multiplication here)
+so that we have a reinforcement of overlapping positions.  Where the two terms
+are separated by one position, there will be a value of 1.1.
+
+We can extend this blending to provide a distribution of values across a larger
+range of positions.  For example if we use a distribution like:
+	0.2,0.4,0.8,1.0,0.8,0.4,0.2
+
+If we have a value of 1.8 we know that the terms are next to each other and if
+we have 1.2 we know they are 3 characters apart.
+
+With multiple search terms, this becomes a continuous weighting factor that can
+be normalized by the number of search terms.

@@ -2,9 +2,9 @@
  *
  * clusterdb
  *
- * Portions Copyright (c) 2002-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 2002-2009, PostgreSQL Global Development Group
  *
- * $PostgreSQL: pgsql/src/bin/scripts/clusterdb.c,v 1.14 2006/03/05 15:58:52 momjian Exp $
+ * $PostgreSQL: pgsql/src/bin/scripts/clusterdb.c,v 1.25 2009/02/26 16:02:38 petere Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -14,12 +14,12 @@
 #include "dumputils.h"
 
 
-static void cluster_one_database(const char *dbname, const char *table,
+static void cluster_one_database(const char *dbname, bool verbose, const char *table,
 					 const char *host, const char *port,
-					 const char *username, bool password,
-					 const char *progname, bool echo, bool quiet);
-static void cluster_all_databases(const char *host, const char *port,
-					  const char *username, bool password,
+					 const char *username, enum trivalue prompt_password,
+					 const char *progname, bool echo);
+static void cluster_all_databases(bool verbose, const char *host, const char *port,
+					  const char *username, enum trivalue prompt_password,
 					  const char *progname, bool echo, bool quiet);
 
 static void help(const char *progname);
@@ -32,12 +32,14 @@ main(int argc, char *argv[])
 		{"host", required_argument, NULL, 'h'},
 		{"port", required_argument, NULL, 'p'},
 		{"username", required_argument, NULL, 'U'},
+		{"no-password", no_argument, NULL, 'w'},
 		{"password", no_argument, NULL, 'W'},
 		{"echo", no_argument, NULL, 'e'},
 		{"quiet", no_argument, NULL, 'q'},
 		{"dbname", required_argument, NULL, 'd'},
 		{"all", no_argument, NULL, 'a'},
 		{"table", required_argument, NULL, 't'},
+		{"verbose", no_argument, NULL, 'v'},
 		{NULL, 0, NULL, 0}
 	};
 
@@ -49,18 +51,19 @@ main(int argc, char *argv[])
 	char	   *host = NULL;
 	char	   *port = NULL;
 	char	   *username = NULL;
-	bool		password = false;
+	enum trivalue prompt_password = TRI_DEFAULT;
 	bool		echo = false;
 	bool		quiet = false;
 	bool		alldb = false;
 	char	   *table = NULL;
+	bool		verbose = false;
 
 	progname = get_progname(argv[0]);
-	set_pglocale_pgservice(argv[0], "pgscripts");
+	set_pglocale_pgservice(argv[0], PG_TEXTDOMAIN("pgscripts"));
 
 	handle_help_version_opts(argc, argv, "clusterdb", help);
 
-	while ((c = getopt_long(argc, argv, "h:p:U:Weqd:at:", long_options, &optindex)) != -1)
+	while ((c = getopt_long(argc, argv, "h:p:U:wWeqd:at:v", long_options, &optindex)) != -1)
 	{
 		switch (c)
 		{
@@ -73,8 +76,11 @@ main(int argc, char *argv[])
 			case 'U':
 				username = optarg;
 				break;
+			case 'w':
+				prompt_password = TRI_NO;
+				break;
 			case 'W':
-				password = true;
+				prompt_password = TRI_YES;
 				break;
 			case 'e':
 				echo = true;
@@ -90,6 +96,13 @@ main(int argc, char *argv[])
 				break;
 			case 't':
 				table = optarg;
+				break;
+			/*
+			 * -v accepted for PostgreSQL compatability, although GPDB
+			 * doesn't actually handle CLUSTER VERBOSE.
+			 */
+			case 'v':
+				verbose = true;
 				break;
 			default:
 				fprintf(stderr, _("Try \"%s --help\" for more information.\n"), progname);
@@ -111,6 +124,8 @@ main(int argc, char *argv[])
 			exit(1);
 	}
 
+	setup_cancel_handler();
+
 	if (alldb)
 	{
 		if (dbname)
@@ -126,7 +141,7 @@ main(int argc, char *argv[])
 			exit(1);
 		}
 
-		cluster_all_databases(host, port, username, password,
+		cluster_all_databases(verbose, host, port, username, prompt_password,
 							  progname, echo, quiet);
 	}
 	else
@@ -141,9 +156,9 @@ main(int argc, char *argv[])
 				dbname = get_user_name(progname);
 		}
 
-		cluster_one_database(dbname, table,
-							 host, port, username, password,
-							 progname, echo, quiet);
+		cluster_one_database(dbname, verbose, table,
+							 host, port, username, prompt_password,
+							 progname, echo);
 	}
 
 	exit(0);
@@ -151,30 +166,26 @@ main(int argc, char *argv[])
 
 
 static void
-cluster_one_database(const char *dbname, const char *table,
+cluster_one_database(const char *dbname, bool verbose, const char *table,
 					 const char *host, const char *port,
-					 const char *username, bool password,
-					 const char *progname, bool echo, bool quiet)
+					 const char *username, enum trivalue prompt_password,
+					 const char *progname, bool echo)
 {
 	PQExpBufferData sql;
 
 	PGconn	   *conn;
-	PGresult   *result;
 
 	initPQExpBuffer(&sql);
 
 	appendPQExpBuffer(&sql, "CLUSTER");
+	if (verbose)
+		appendPQExpBuffer(&sql, " VERBOSE");
 	if (table)
 		appendPQExpBuffer(&sql, " %s", fmtId(table));
 	appendPQExpBuffer(&sql, ";\n");
 
-	conn = connectDatabase(dbname, host, port, username, password, progname);
-
-	if (echo)
-		printf("%s", sql.data);
-	result = PQexec(conn, sql.data);
-
-	if (PQresultStatus(result) != PGRES_COMMAND_OK)
+	conn = connectDatabase(dbname, host, port, username, prompt_password, progname);
+	if (!executeMaintenanceCommand(conn, sql.data, echo))
 	{
 		if (table)
 			fprintf(stderr, _("%s: clustering of table \"%s\" in database \"%s\" failed: %s"),
@@ -185,30 +196,22 @@ cluster_one_database(const char *dbname, const char *table,
 		PQfinish(conn);
 		exit(1);
 	}
-
-	PQclear(result);
 	PQfinish(conn);
 	termPQExpBuffer(&sql);
-
-	if (!quiet)
-	{
-		puts("CLUSTER");
-		fflush(stdout);
-	}
 }
 
 
 static void
-cluster_all_databases(const char *host, const char *port,
-					  const char *username, bool password,
+cluster_all_databases(bool verbose, const char *host, const char *port,
+					  const char *username, enum trivalue prompt_password,
 					  const char *progname, bool echo, bool quiet)
 {
 	PGconn	   *conn;
 	PGresult   *result;
 	int			i;
 
-	conn = connectDatabase("postgres", host, port, username, password, progname);
-	result = executeQuery(conn, "SELECT datname FROM pg_database WHERE datallowconn;", progname, echo);
+	conn = connectDatabase("postgres", host, port, username, prompt_password, progname);
+	result = executeQuery(conn, "SELECT datname FROM pg_database WHERE datallowconn ORDER BY 1;", progname, echo);
 	PQfinish(conn);
 
 	for (i = 0; i < PQntuples(result); i++)
@@ -216,11 +219,14 @@ cluster_all_databases(const char *host, const char *port,
 		char	   *dbname = PQgetvalue(result, i, 0);
 
 		if (!quiet)
-			fprintf(stderr, _("%s: clustering database \"%s\"\n"), progname, dbname);
+		{
+			printf(_("%s: clustering database \"%s\"\n"), progname, dbname);
+			fflush(stdout);
+		}
 
-		cluster_one_database(dbname, NULL,
-							 host, port, username, password,
-							 progname, echo, quiet);
+		cluster_one_database(dbname, verbose, NULL,
+							 host, port, username, prompt_password,
+							 progname, echo);
 	}
 
 	PQclear(result);
@@ -236,16 +242,18 @@ help(const char *progname)
 	printf(_("\nOptions:\n"));
 	printf(_("  -a, --all                 cluster all databases\n"));
 	printf(_("  -d, --dbname=DBNAME       database to cluster\n"));
-	printf(_("  -t, --table=TABLE         cluster specific table only\n"));
 	printf(_("  -e, --echo                show the commands being sent to the server\n"));
 	printf(_("  -q, --quiet               don't write any messages\n"));
+	printf(_("  -t, --table=TABLE         cluster specific table only\n"));
+	//printf(_("  -v, --verbose             write a lot of output\n"));
 	printf(_("  --help                    show this help, then exit\n"));
 	printf(_("  --version                 output version information, then exit\n"));
 	printf(_("\nConnection options:\n"));
 	printf(_("  -h, --host=HOSTNAME       database server host or socket directory\n"));
 	printf(_("  -p, --port=PORT           database server port\n"));
 	printf(_("  -U, --username=USERNAME   user name to connect as\n"));
-	printf(_("  -W, --password            prompt for password\n"));
+	printf(_("  -w, --no-password         never prompt for password\n"));
+	printf(_("  -W, --password            force password prompt\n"));
 	printf(_("\nRead the description of the SQL command CLUSTER for details.\n"));
 	printf(_("\nReport bugs to <pgsql-bugs@postgresql.org>.\n"));
 }

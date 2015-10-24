@@ -2,7 +2,7 @@
 /*
  * Scanner for the configuration file
  *
- * Copyright (c) 2000-2006, PostgreSQL Global Development Group
+ * Copyright (c) 2000-2008, PostgreSQL Global Development Group
  *
  * $PostgreSQL: pgsql/src/backend/utils/misc/guc-file.l,v 1.45 2006/08/14 02:27:26 momjian Exp $
  */
@@ -17,6 +17,24 @@
 #include "miscadmin.h"
 #include "storage/fd.h"
 #include "utils/guc.h"
+
+#define unify_version(a,b,c) ((a<<16)+(b<<8)+c)
+#if unify_version(YY_FLEX_MAJOR_VERSION,YY_FLEX_MINOR_VERSION,YY_FLEX_SUBMINOR_VERSION) < unify_version(2,5,35)
+int GUC_yylex_destroy  (void);
+int GUC_yyget_lineno  (void);
+FILE *GUC_yyget_in  (void);
+FILE *GUC_yyget_out  (void);
+int GUC_yyget_leng  (void);
+char *GUC_yyget_text  (void);
+void GUC_yyset_lineno (int  line_number );
+void GUC_yyset_in (FILE *  in_str );
+void GUC_yyset_out (FILE *  out_str );
+int GUC_yyget_debug  (void);
+void GUC_yyset_debug (int  bdebug );
+int GUC_yylex_destroy  (void);
+#endif
+
+
 
 
 /* Avoid exit() on fatal scanner errors (a bit ugly -- see yy_fatal_error) */
@@ -59,6 +77,7 @@ static char *GUC_scanstr(const char *s);
 %option 8bit
 %option never-interactive
 %option nodefault
+%option noinput
 %option nounput
 %option noyywrap
 %option prefix="GUC_yy"
@@ -137,15 +156,9 @@ ProcessConfigFile(GucContext context)
 						 &head, &tail))
 		goto cleanup_list;
 
-	/* Check if all options are valid */
-	for (item = head; item; item = item->next)
-	{
-		if (!set_config_option(item->name, item->value, context,
-							   PGC_S_FILE, false, false))
-			goto cleanup_list;
-	}
-
-	/* If we got here all the options checked out okay, so apply them. */
+	/* try to apply options brute-force; depending on the context bad ones will be
+	 * logged accordingly;
+	 */
 	for (item = head; item; item = item->next)
 	{
 		set_config_option(item->name, item->value, context,
@@ -208,6 +221,8 @@ ParseConfigFile(const char *config_file, const char *calling_file,
 				(errcode(ERRCODE_PROGRAM_LIMIT_EXCEEDED),
 				 errmsg("could not open configuration file \"%s\": maximum nesting depth exceeded",
 						config_file)));
+
+		Assert(PGC_POSTMASTER != context || IsUnderPostmaster);
 		return false;
 	}
 
@@ -232,6 +247,8 @@ ParseConfigFile(const char *config_file, const char *calling_file,
 				(errcode_for_file_access(),
 				 errmsg("could not open configuration file \"%s\": %m",
 						config_file)));
+
+		Assert(PGC_POSTMASTER != context || IsUnderPostmaster);
 		return false;
 	}
 
@@ -291,6 +308,7 @@ ParseConfigFile(const char *config_file, const char *calling_file,
 								 depth + 1, context, elevel,
 								 head_p, tail_p))
 			{
+				Assert(PGC_POSTMASTER != context || IsUnderPostmaster);
 				pfree(opt_name);
 				pfree(opt_value);
 				OK = false;
@@ -306,16 +324,10 @@ ParseConfigFile(const char *config_file, const char *calling_file,
 			/*
 			 * This variable must be processed first as it controls
 			 * the validity of other variables; so apply immediately.
+			 * This may fail; plow through, all failures get logged properly.
 			 */
-			if (!set_config_option(opt_name, opt_value, context,
-								   PGC_S_FILE, false, true))
-			{
-				pfree(opt_name);
-				pfree(opt_value);
-				/* we assume error message was logged already */
-				OK = false;
-				goto cleanup_exit;
-			}
+			set_config_option(opt_name, opt_value, context,
+								   PGC_S_FILE, false, true);
 			pfree(opt_name);
 			pfree(opt_value);
 		}
@@ -359,6 +371,9 @@ ParseConfigFile(const char *config_file, const char *calling_file,
 cleanup_exit:
 	yy_delete_buffer(lex_buffer);
 	FreeFile(fp);
+	
+	Assert(OK || (context == PGC_POSTMASTER && IsUnderPostmaster) || context == PGC_SIGHUP);
+
 	return OK;
 }
 

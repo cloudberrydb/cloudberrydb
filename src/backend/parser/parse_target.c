@@ -3,7 +3,7 @@
  * parse_target.c
  *	  handle target lists
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2008, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -26,6 +26,7 @@
 #include "parser/parse_relation.h"
 #include "parser/parse_target.h"
 #include "parser/parse_type.h"
+#include "parser/parse_cte.h"
 #include "utils/builtins.h"
 #include "utils/lsyscache.h"
 #include "utils/typcache.h"
@@ -101,10 +102,19 @@ transformTargetList(ParseState *pstate, List *targetlist)
 {
 	List	   *p_target = NIL;
 	ListCell   *o_target;
+	ParseStateBreadCrumb    savebreadcrumb;
+
+	/* CDB: Push error location stack.  Must pop before return! */
+	Assert(pstate);
+	savebreadcrumb = pstate->p_breadcrumb;
+	pstate->p_breadcrumb.pop = &savebreadcrumb;
 
 	foreach(o_target, targetlist)
 	{
 		ResTarget  *res = (ResTarget *) lfirst(o_target);
+
+		/* CDB: Drop a breadcrumb in case of error. */
+		pstate->p_breadcrumb.node = (Node *)res;
 
 		/*
 		 * Check for "something.*".  Depending on the complexity of the
@@ -151,6 +161,10 @@ transformTargetList(ParseState *pstate, List *targetlist)
 												false));
 	}
 
+	/* CDB: Pop error location stack. */
+	Assert(pstate->p_breadcrumb.pop == &savebreadcrumb);
+	pstate->p_breadcrumb = savebreadcrumb;
+
 	return p_target;
 }
 
@@ -168,10 +182,19 @@ transformExpressionList(ParseState *pstate, List *exprlist)
 {
 	List	   *result = NIL;
 	ListCell   *lc;
+	ParseStateBreadCrumb    savebreadcrumb;
+
+	/* CDB: Push error location stack.  Must pop before return! */
+	Assert(pstate);
+	savebreadcrumb = pstate->p_breadcrumb;
+	pstate->p_breadcrumb.pop = &savebreadcrumb;
 
 	foreach(lc, exprlist)
 	{
 		Node	   *e = (Node *) lfirst(lc);
+
+		/* CDB: Drop a breadcrumb in case of error. */
+		pstate->p_breadcrumb.node = (Node *)e;
 
 		/*
 		 * Check for "something.*".  Depending on the complexity of the
@@ -213,6 +236,10 @@ transformExpressionList(ParseState *pstate, List *exprlist)
 		result = lappend(result,
 						 transformExpr(pstate, e));
 	}
+
+	/* CDB: Pop error location stack. */
+	Assert(pstate->p_breadcrumb.pop == &savebreadcrumb);
+	pstate->p_breadcrumb = savebreadcrumb;
 
 	return result;
 }
@@ -283,6 +310,25 @@ markTargetListOrigin(ParseState *pstate, TargetEntry *tle,
 				tle->resorigcol = ste->resorigcol;
 			}
 			break;
+		case RTE_CTE:
+			/* Similar to RTE_SUBQUERY */
+			if (attnum != InvalidAttrNumber)
+			{
+				/* Find the CommonTableExpr based on the query name */
+				CommonTableExpr *cte = GetCTEForRTE(pstate, rte, netlevelsup);
+				Assert(cte != NULL);
+				
+				TargetEntry *ste = get_tle_by_resno(GetCTETargetList(cte), attnum);
+				if (ste == NULL || ste->resjunk)
+				{
+					elog(ERROR, "WITH query %s does not have attribute %d",
+						 rte->ctename, attnum);
+				}
+				
+				tle->resorigtbl = ste->resorigtbl;
+				tle->resorigcol = ste->resorigcol;
+			}
+			break;
 		case RTE_JOIN:
 			/* Join RTE --- recursively inspect the alias variable */
 			if (attnum != InvalidAttrNumber)
@@ -295,8 +341,10 @@ markTargetListOrigin(ParseState *pstate, TargetEntry *tle,
 			}
 			break;
 		case RTE_SPECIAL:
+		case RTE_TABLEFUNCTION:
 		case RTE_FUNCTION:
 		case RTE_VALUES:
+        case RTE_VOID:
 			/* not a simple relation, leave it unmarked */
 			break;
 	}
@@ -393,7 +441,7 @@ transformAssignedExpr(ParseState *pstate,
 			 * is not really a source value to work with. Insert a NULL
 			 * constant as the source value.
 			 */
-			colVar = (Node *) makeNullConst(attrtype);
+			colVar = (Node *) makeNullConst(attrtype, -1);
 		}
 		else
 		{
@@ -402,7 +450,7 @@ transformAssignedExpr(ParseState *pstate,
 			 */
 			colVar = (Node *) make_var(pstate,
 									   pstate->p_target_rangetblentry,
-									   attrno);
+									   attrno, location);
 		}
 
 		expr = (Expr *)
@@ -427,7 +475,8 @@ transformAssignedExpr(ParseState *pstate,
 								  (Node *) expr, type_id,
 								  attrtype, attrtypmod,
 								  COERCION_ASSIGNMENT,
-								  COERCE_IMPLICIT_CAST);
+								  COERCE_IMPLICIT_CAST,
+								  location);
 		if (expr == NULL)
 			ereport(ERROR,
 					(errcode(ERRCODE_DATATYPE_MISMATCH),
@@ -676,7 +725,8 @@ transformAssignmentIndirection(ParseState *pstate,
 								   rhs, exprType(rhs),
 								   targetTypeId, targetTypMod,
 								   COERCION_ASSIGNMENT,
-								   COERCE_IMPLICIT_CAST);
+								   COERCE_IMPLICIT_CAST,
+								   location);
 	if (result == NULL)
 	{
 		if (targetIsArray)
@@ -826,9 +876,12 @@ ExpandColumnRefStar(ParseState *pstate, ColumnRef *cref,
 		 * (e.g., SELECT * FROM emp, dept)
 		 *
 		 * Since the grammar only accepts bare '*' at top level of SELECT, we
-		 * need not handle the targetlist==false case here.
+		 * need not handle the targetlist==false case here.  However, we must
+		 * test for it because the grammar currently fails to distinguish
+		 * a quoted name "*" from a real asterisk.
 		 */
-		Assert(targetlist);
+		if (!targetlist)
+			elog(ERROR, "invalid use of *");
 
 		return ExpandAllTables(pstate);
 	}
@@ -883,11 +936,10 @@ ExpandColumnRefStar(ParseState *pstate, ColumnRef *cref,
 				break;
 		}
 
-		rte = refnameRangeTblEntry(pstate, schemaname, relname,
+		rte = refnameRangeTblEntry(pstate, schemaname, relname, cref->location,
 								   &sublevels_up);
 		if (rte == NULL)
-			rte = addImplicitRTE(pstate, makeRangeVar(schemaname, relname),
-								 cref->location);
+			rte = addImplicitRTE(pstate, makeRangeVar(schemaname, relname, cref->location), cref->location);
 
 		/* Require read access --- see comments in setTargetTable() */
 		rte->requiredPerms |= ACL_SELECT;
@@ -895,12 +947,12 @@ ExpandColumnRefStar(ParseState *pstate, ColumnRef *cref,
 		rtindex = RTERangeTablePosn(pstate, rte, &sublevels_up);
 
 		if (targetlist)
-			return expandRelAttrs(pstate, rte, rtindex, sublevels_up);
+			return expandRelAttrs(pstate, rte, rtindex, sublevels_up, cref->location);
 		else
 		{
 			List	   *vars;
 
-			expandRTE(rte, rtindex, sublevels_up, false,
+			expandRTE(rte, rtindex, sublevels_up, cref->location, false,
 					  NULL, &vars);
 			return vars;
 		}
@@ -937,7 +989,7 @@ ExpandAllTables(ParseState *pstate)
 		rte->requiredPerms |= ACL_SELECT;
 
 		target = list_concat(target,
-							 expandRelAttrs(pstate, rte, rtindex, 0));
+							 expandRelAttrs(pstate, rte, rtindex, 0, -1));
 	}
 
 	return target;
@@ -1082,7 +1134,7 @@ expandRecordVariable(ParseState *pstate, Var *var, int levelsup)
 				   *lvar;
 		int			i;
 
-		expandRTE(rte, var->varno, 0, false,
+		expandRTE(rte, var->varno, 0, -1, false,
 				  &names, &vars);
 
 		tupleDesc = CreateTemplateTupleDesc(list_length(vars), false);
@@ -1092,7 +1144,7 @@ expandRecordVariable(ParseState *pstate, Var *var, int levelsup)
 			char	   *label = strVal(lfirst(lname));
 			Node	   *varnode = (Node *) lfirst(lvar);
 
-			TupleDescInitEntry(tupleDesc, i,
+			TupleDescInitEntry(tupleDesc, (AttrNumber) i,
 							   label,
 							   exprType(varnode),
 							   exprTypmod(varnode),
@@ -1147,6 +1199,44 @@ expandRecordVariable(ParseState *pstate, Var *var, int levelsup)
 				/* else fall through to inspect the expression */
 			}
 			break;
+		case RTE_CTE:
+			if (!rte->self_reference)
+			{
+				/* Similar to RTE_SUBQUERY */
+				CommonTableExpr *cte = GetCTEForRTE(pstate, rte, netlevelsup);
+				Assert(cte != NULL);
+
+				TargetEntry *ste = get_tle_by_resno(GetCTETargetList(cte), attnum);
+				if (ste == NULL || ste->resjunk)
+					elog(ERROR, "WITH query %s does not have attribute %d",
+						 cte->ctename, attnum);
+				
+				expr = (Node *) ste->expr;
+				if (IsA(expr, Var))
+				{
+					/*
+					 * Recurse into the sub-select to see what its Var refers
+					 * to.	We have to build an additional level of ParseState
+					 * to keep in step with varlevelsup in the subselect.
+					 */
+					ParseState	mypstate;
+
+					MemSet(&mypstate, 0, sizeof(mypstate));
+
+					for (Index levelsup = 0;
+						 levelsup < rte->ctelevelsup + netlevelsup;
+						 levelsup++)
+						pstate = pstate->parentParseState;
+
+					mypstate.parentParseState = pstate;
+					mypstate.p_rtable = ((Query *)cte->ctequery)->rtable;
+					/* don't bother filling the rest of the fake pstate */
+
+					return expandRecordVariable(&mypstate, (Var *) expr, 0);
+				}
+				/* else fall through to inspect the expression */
+			}
+			break;
 		case RTE_JOIN:
 			/* Join RTE --- recursively inspect the alias variable */
 			Assert(attnum > 0 && attnum <= list_length(rte->joinaliasvars));
@@ -1155,6 +1245,7 @@ expandRecordVariable(ParseState *pstate, Var *var, int levelsup)
 				return expandRecordVariable(pstate, (Var *) expr, netlevelsup);
 			/* else fall through to inspect the expression */
 			break;
+		case RTE_TABLEFUNCTION:
 		case RTE_FUNCTION:
 
 			/*
@@ -1162,6 +1253,9 @@ expandRecordVariable(ParseState *pstate, Var *var, int levelsup)
 			 * its result columns as RECORD, which is not allowed.
 			 */
 			break;
+        case RTE_VOID:
+            Insist(0);
+            break;
 	}
 
 	/*
@@ -1264,9 +1358,9 @@ FigureColnameInternal(Node *node, char **name)
 			}
 			break;
 		case T_A_Const:
-			if (((A_Const *) node)->typename != NULL)
+			if (((A_Const *) node)->typname != NULL)
 			{
-				*name = strVal(llast(((A_Const *) node)->typename->names));
+				*name = strVal(llast(((A_Const *) node)->typname->names));
 				return 1;
 			}
 			break;
@@ -1275,9 +1369,9 @@ FigureColnameInternal(Node *node, char **name)
 											 name);
 			if (strength <= 1)
 			{
-				if (((TypeCast *) node)->typename != NULL)
+				if (((TypeCast *) node)->typname != NULL)
 				{
-					*name = strVal(llast(((TypeCast *) node)->typename->names));
+					*name = strVal(llast(((TypeCast *) node)->typname->names));
 					return 1;
 				}
 			}
@@ -1315,6 +1409,26 @@ FigureColnameInternal(Node *node, char **name)
 					return 2;
 			}
 			break;
+		case T_GroupingFunc:
+			*name = "grouping";
+			return 2;
+		case T_PercentileExpr:
+			switch(((PercentileExpr *) node)->perckind)
+			{
+				case PERC_MEDIAN:
+					*name = "median";
+					break;
+				case PERC_CONT:
+					*name = "percentile_cont";
+					break;
+				case PERC_DISC:
+					*name = "percentile_disc";
+					break;
+				default:
+					elog(ERROR, "unexpected percentile type");
+					break;
+			}
+			return 2;
 		default:
 			break;
 	}

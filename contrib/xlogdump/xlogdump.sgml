@@ -1,0 +1,224 @@
+<!--
+$PostgreSQL: pgsql/doc/src/sgml/ref/pg_dump.sgml,v 1.86 2006/05/13 17:10:35 momjian Exp $
+PostgreSQL documentation
+-->
+
+<refentry id="APP-XLOGDUMP">
+ <refmeta>
+  <refentrytitle>xlogdump</refentrytitle>
+  <manvolnum>1</manvolnum>
+  <refmiscinfo>Application</refmiscinfo>
+ </refmeta>
+
+ <refnamediv>
+  <refname>xlogdump</refname>
+
+  <refpurpose>
+   reads transaction log segments and outputs the operations within the file 
+  </refpurpose>
+ </refnamediv>
+
+ <indexterm zone="app-xlogdump">
+  <primary>xlogdump</primary>
+ </indexterm>
+
+ <refsynopsisdiv>
+  <cmdsynopsis>
+   <command>xlogdump</command>
+   <arg rep="repeat"><replaceable>option</replaceable></arg>
+   <arg><replaceable>segment file</replaceable></arg>
+  </cmdsynopsis>
+ </refsynopsisdiv>
+
+
+ <refsect1 id="xlogdump-description">
+  <title>
+   Description
+  </title>
+
+  <para>
+   <application>xlogdump</application> is a utility for reading a 
+   <productname>PostgreSQL</productname> transaction log segment or.
+   set of segments. It can scan segment files without connection to
+   a backend to simply return the raw data contained in  the files
+   or it can be used with the backend that created the segments to
+   translate the oids and output the names of the database objects.
+  </para>
+
+ </refsect1>
+
+ <refsect1 id="xlogdump-options">
+  <title>Options</title>
+
+  <para>
+    The following command-line options control the content and
+    format of the output.
+
+    <variablelist>
+     <varlistentry>
+      <term><replaceable class="parameter">segments</replaceable></term>
+      <listitem>
+       <para>
+        Specifies the name of the transaction log segment to be dumped. You can
+        specifie more than one file, in wich case all of them will be scanned
+	in the given order.
+       </para>
+      </listitem>
+     </varlistentry>
+
+     <varlistentry>
+      <term><option>-r  <replaceable class="parameter">operation</replaceable></option></term>
+      <term><option>--rmname  <replaceable class="parameter">operation</replaceable></option></term>
+      <listitem>
+       <para>
+        Outuputs only the transaction log records containing the specified operation.
+	The operations can be: 	XLOG, XACT, SMGR, CLOG, DBASE, TBSPC, MXACT, HEAP,
+	BTREE, HASH, RTREE, GIST, SEQ.
+       </para>
+      </listitem>
+     </varlistentry>
+
+     <varlistentry>
+      <term><option>-t</option></term>
+      <term><option>--transactions</option></term>
+      <listitem>
+       <para>
+        Outuputs only transaction info: the xid, total length and status
+        of each transaction. The status can be COMMITED, ABORTED or NOT COMMITED for implicit aborts.
+       </para>
+      </listitem>
+     </varlistentry>
+
+     <varlistentry>
+      <term><option>-s</option></term>
+      <term><option>--statements</option></term>
+      <listitem>
+       <para>
+        Tries to build fake statements that produce the physical changes found within the xlog segments.
+	This works well for INSERT commands, for UPDATE and DELETE statements
+	there's no way to rebuild the WHERE clause.
+	To use this option you must have a connection to the database.
+       </para>
+      </listitem>
+     </varlistentry>
+
+    </variablelist>
+   </para>
+
+   <para>
+    The following command-line options control the database connection parameters.
+
+    <variablelist>
+     <varlistentry>
+      <term><option>-h <replaceable class="parameter">host</replaceable></option></term>
+      <term><option>--host=<replaceable class="parameter">host</replaceable></option></term>
+      <listitem>
+       <para>
+        Specifies the host name of the machine on which the server is
+        running.  If the value begins with a slash, it is used as the
+        directory for the Unix domain socket. The default is taken
+        from the <envar>PGHOST</envar> environment variable, if set,
+        else a Unix domain socket connection is attempted.
+       </para>
+      </listitem>
+     </varlistentry>
+
+     <varlistentry>
+      <term><option>-p <replaceable class="parameter">port</replaceable></option></term>
+      <term><option>--port=<replaceable class="parameter">port</replaceable></option></term>
+      <listitem>
+       <para>
+        Specifies the TCP port or local Unix domain socket file
+        extension on which the server is listening for connections.
+        Defaults to the <envar>PGPORT</envar> environment variable, if
+        set, or a compiled-in default.
+       </para>
+      </listitem>
+     </varlistentry>
+
+     <varlistentry>
+      <term><option>-U <replaceable>username</replaceable></option></term>
+      <listitem>
+       <para>
+        Connect as the given user, it must have access to all the databases in the cluster.
+       </para>
+      </listitem>
+     </varlistentry>
+
+   </para>
+ </refsect1>
+
+ <refsect1>
+  <title>Environment</title>
+
+  <variablelist>
+   <varlistentry>
+    <term><envar>PGDATABASE</envar></term>
+    <term><envar>PGHOST</envar></term>
+    <term><envar>PGPORT</envar></term>
+    <term><envar>PGUSER</envar></term>
+
+    <listitem>
+     <para>
+      Default connection parameters.
+     </para>
+    </listitem>
+   </varlistentry>
+  </variablelist>
+ </refsect1>
+
+ <refsect1 id="xlogdump-examples">
+  <title>Examples</title>
+
+  <para>
+   To dump the contents of all segments in pg_xlog without a running backend:
+<screen>
+<prompt>$</prompt> <userinput>xlogdump $PGDATA/pg_xlog/*</userinput>
+</screen>
+  </para>
+
+  <para>
+   To get the status of all transaction in a database cluster:
+<screen>
+<prompt>$</prompt> <userinput>xlogdump -t $PGDATA/pg_xlog/*</userinput>
+</screen>
+  </para>
+
+  <para>
+   To dump the transaction logs using the object names:
+   file:
+
+<screen>
+<prompt>$</prompt> <userinput>xlogdump -h localhost $PGDATA/pg_xlog/*</userinput>
+</screen>
+  </para>
+
+ </refsect1>
+
+ <refsect1>
+  <title>See Also</title>
+
+  <simplelist type="inline">
+   <member><xref linkend="app-pgresetxlog"></member>
+   <member>Environment Variables (<xref linkend="libpq-envars">)</member>
+  </simplelist>
+ </refsect1>
+
+</refentry>
+
+<!-- Keep this comment at the end of the file
+Local variables:
+mode: sgml
+sgml-omittag:nil
+sgml-shorttag:t
+sgml-minimize-attributes:nil
+sgml-always-quote-attributes:t
+sgml-indent-step:1
+sgml-indent-data:t
+sgml-parent-document:nil
+sgml-default-dtd-file:"../reference.ced"
+sgml-exposed-tags:nil
+sgml-local-catalogs:"/usr/lib/sgml/catalog"
+sgml-local-ecat-files:nil
+End:
+-->

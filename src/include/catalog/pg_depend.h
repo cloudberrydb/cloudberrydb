@@ -5,7 +5,7 @@
  *	  along with the relation's initial contents.
  *
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2008, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * $PostgreSQL: pgsql/src/include/catalog/pg_depend.h,v 1.7 2006/03/05 15:58:54 momjian Exp $
@@ -19,12 +19,30 @@
 #ifndef PG_DEPEND_H
 #define PG_DEPEND_H
 
-/* ----------------
- *		postgres.h contains the system type definitions and the
- *		CATALOG(), BKI_BOOTSTRAP and DATA() sugar words so this file
- *		can be read by both genbki.sh and the C compiler.
- * ----------------
- */
+#include "catalog/genbki.h"
+
+/* TIDYCAT_BEGINFAKEDEF
+
+   CREATE TABLE pg_depend
+   with (oid=false, relid=2608, content=SEGMENT_LOCAL)
+   (
+   classid      oid, 
+   objid        oid, 
+   objsubid     integer, 
+   refclassid   oid, 
+   refobjid     oid, 
+   refobjsubid  integer, 
+   deptype      "char"
+   );
+
+   create index on pg_depend(classid, objid, objsubid) with (indexid=2673, CamelCase=DependDepender);
+   create index on pg_depend(refclassid, refobjid, refobjsubid) with (indexid=2674, CamelCase=DependReference);
+
+   alter table pg_depend add fk classid on pg_class(oid);
+   alter table pg_depend add fk refclassid on pg_class(oid);
+
+   TIDYCAT_ENDFAKEDEF
+*/
 
 /* ----------------
  *		pg_depend definition.  cpp turns this into

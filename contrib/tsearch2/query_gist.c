@@ -39,8 +39,8 @@ makesign(QUERYTYPE * a)
 Datum
 tsq_mcontains(PG_FUNCTION_ARGS)
 {
-	QUERYTYPE  *query = (QUERYTYPE *) DatumGetPointer(PG_DETOAST_DATUM(PG_GETARG_DATUM(0)));
-	QUERYTYPE  *ex = (QUERYTYPE *) DatumGetPointer(PG_DETOAST_DATUM(PG_GETARG_DATUM(1)));
+	QUERYTYPE  *query = (QUERYTYPE *) PG_DETOAST_DATUM(PG_GETARG_DATUM(0));
+	QUERYTYPE  *ex = (QUERYTYPE *) PG_DETOAST_DATUM(PG_GETARG_DATUM(1));
 	TPQTGist	sq,
 				se;
 	int			i,
@@ -160,7 +160,7 @@ gtsq_compress(PG_FUNCTION_ARGS)
 		TPQTGist   *sign = (TPQTGist *) palloc(sizeof(TPQTGist));
 
 		retval = (GISTENTRY *) palloc(sizeof(GISTENTRY));
-		*sign = makesign((QUERYTYPE *) DatumGetPointer(PG_DETOAST_DATUM(entry->key)));
+		*sign = makesign((QUERYTYPE *) PG_DETOAST_DATUM(entry->key));
 
 		gistentryinit(*retval, PointerGetDatum(sign),
 					  entry->rel, entry->page,
@@ -181,7 +181,7 @@ gtsq_consistent(PG_FUNCTION_ARGS)
 {
 	GISTENTRY  *entry = (GISTENTRY *) PG_GETARG_POINTER(0);
 	TPQTGist   *key = (TPQTGist *) DatumGetPointer(entry->key);
-	QUERYTYPE  *query = (QUERYTYPE *) DatumGetPointer(PG_DETOAST_DATUM(PG_GETARG_DATUM(1)));
+	QUERYTYPE  *query = (QUERYTYPE *) PG_DETOAST_DATUM(PG_GETARG_DATUM(1));
 	StrategyNumber strategy = (StrategyNumber) PG_GETARG_UINT16(2);
 	TPQTGist	sq = makesign(query);
 	bool		retval;
@@ -231,8 +231,11 @@ gtsq_same(PG_FUNCTION_ARGS)
 {
 	TPQTGist   *a = (TPQTGist *) PG_GETARG_POINTER(0);
 	TPQTGist   *b = (TPQTGist *) PG_GETARG_POINTER(1);
-
-	PG_RETURN_POINTER(*a == *b);
+ 	bool	   *result = (bool *) PG_GETARG_POINTER(2);
+  
+ 	*result = (*a == *b) ? true : false;
+ 
+ 	PG_RETURN_POINTER(result);
 }
 
 static int

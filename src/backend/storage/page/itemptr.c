@@ -3,12 +3,12 @@
  * itemptr.c
  *	  POSTGRES disk item pointer code.
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/storage/page/itemptr.c,v 1.19 2006/10/04 00:29:58 momjian Exp $
+ *	  $PostgreSQL: pgsql/src/backend/storage/page/itemptr.c,v 1.22 2009/01/01 17:23:48 momjian Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -63,3 +63,34 @@ ItemPointerCompare(ItemPointer arg1, ItemPointer arg2)
 	else
 		return 0;
 }
+
+static char *
+ItemPointerToBuffer(char *buffer, ItemPointer tid)
+{
+	// Do not assert valid ItemPointer -- it is ok if it is (0,0)...
+	BlockNumber blockNumber = BlockIdGetBlockNumber(&tid->ip_blkid);
+	OffsetNumber offsetNumber = tid->ip_posid;
+	
+	sprintf(buffer,
+		    "(%u,%u)",
+		    blockNumber, 
+		    offsetNumber);
+
+	return buffer;
+}
+
+static char itemPointerBuffer[50];
+static char itemPointerBuffer2[50];
+
+char *
+ItemPointerToString(ItemPointer tid)
+{
+	return ItemPointerToBuffer(itemPointerBuffer, tid);
+}
+
+char *
+ItemPointerToString2(ItemPointer tid)
+{
+	return ItemPointerToBuffer(itemPointerBuffer2, tid);
+}
+

@@ -3,7 +3,7 @@
  * catcache.c
  *	  System catalog cache for tuples matching a key.
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -17,6 +17,8 @@
 #include "access/genam.h"
 #include "access/hash.h"
 #include "access/heapam.h"
+#include "access/relscan.h"
+#include "access/sysattr.h"
 #include "access/valid.h"
 #include "catalog/pg_operator.h"
 #include "catalog/pg_type.h"
@@ -26,8 +28,10 @@
 #endif
 #include "utils/builtins.h"
 #include "utils/fmgroids.h"
+#include "utils/inval.h"
 #include "utils/memutils.h"
 #include "utils/relcache.h"
+#include "utils/rel.h"
 #include "utils/resowner.h"
 #include "utils/syscache.h"
 
@@ -101,30 +105,37 @@ GetCCHashEqFuncs(Oid keytype, PGFunction *hashfunc, RegProcedure *eqfunc)
 	{
 		case BOOLOID:
 			*hashfunc = hashchar;
+
 			*eqfunc = F_BOOLEQ;
 			break;
 		case CHAROID:
 			*hashfunc = hashchar;
+
 			*eqfunc = F_CHAREQ;
 			break;
 		case NAMEOID:
 			*hashfunc = hashname;
+
 			*eqfunc = F_NAMEEQ;
 			break;
 		case INT2OID:
 			*hashfunc = hashint2;
+
 			*eqfunc = F_INT2EQ;
 			break;
 		case INT2VECTOROID:
 			*hashfunc = hashint2vector;
+
 			*eqfunc = F_INT2VECTOREQ;
 			break;
 		case INT4OID:
 			*hashfunc = hashint4;
+
 			*eqfunc = F_INT4EQ;
 			break;
 		case TEXTOID:
 			*hashfunc = hashtext;
+
 			*eqfunc = F_TEXTEQ;
 			break;
 		case OIDOID:
@@ -135,15 +146,18 @@ GetCCHashEqFuncs(Oid keytype, PGFunction *hashfunc, RegProcedure *eqfunc)
 		case REGCLASSOID:
 		case REGTYPEOID:
 			*hashfunc = hashoid;
+
 			*eqfunc = F_OIDEQ;
 			break;
 		case OIDVECTOROID:
 			*hashfunc = hashoidvector;
+
 			*eqfunc = F_OIDVECTOREQ;
 			break;
 		default:
 			elog(FATAL, "type %u not supported as catcache key", keytype);
 			*hashfunc = NULL;	/* keep compiler quiet */
+
 			*eqfunc = InvalidOid;
 			break;
 	}
@@ -202,7 +216,7 @@ CatalogCacheComputeHashValue(CatCache *cache, int nkeys, ScanKey cur_skey)
 static uint32
 CatalogCacheComputeTupleHashValue(CatCache *cache, HeapTuple tuple)
 {
-	ScanKeyData cur_skey[4];
+	ScanKeyData cur_skey[CATCACHE_MAXKEYS];
 	bool		isNull = false;
 
 	/* Copy pre-initialized overhead data for scankey */
@@ -423,6 +437,18 @@ CatalogCacheIdInvalidate(int cacheId,
 	/*
 	 * sanity checks
 	 */
+#ifdef USE_ASSERT_CHECKING
+	/* Add some debug info for MPP-5739 */
+	if (!ItemPointerIsValid(pointer))
+	{
+		elog(LOG, "CatalogCacheIdInvalidate: cacheId %d, hash %u IP %p", cacheId, hashValue, pointer);
+		if (pointer != NULL)
+		{
+			elog(LOG, "CatalogCacheIdInvalidate: bogus item (?): (blkid.hi %d blkid.lo %d posid %d)",
+				 pointer->ip_blkid.bi_hi, pointer->ip_blkid.bi_lo, pointer->ip_posid);
+		}
+	}
+#endif
 	Assert(ItemPointerIsValid(pointer));
 	CACHE1_elog(DEBUG2, "CatalogCacheIdInvalidate: called");
 
@@ -649,110 +675,6 @@ ResetCatalogCaches(void)
 }
 
 /*
- *		CatalogCacheFlushRelation
- *
- *	This is called by RelationFlushRelation() to clear out cached information
- *	about a relation being dropped.  (This could be a DROP TABLE command,
- *	or a temp table being dropped at end of transaction, or a table created
- *	during the current transaction that is being dropped because of abort.)
- *	Remove all cache entries relevant to the specified relation OID.
- *
- *	A special case occurs when relId is itself one of the cacheable system
- *	tables --- although those'll never be dropped, they can get flushed from
- *	the relcache (VACUUM causes this, for example).  In that case we need
- *	to flush all cache entries that came from that table.  (At one point we
- *	also tried to force re-execution of CatalogCacheInitializeCache for
- *	the cache(s) on that table.  This is a bad idea since it leads to all
- *	kinds of trouble if a cache flush occurs while loading cache entries.
- *	We now avoid the need to do it by copying cc_tupdesc out of the relcache,
- *	rather than relying on the relcache to keep a tupdesc for us.  Of course
- *	this assumes the tupdesc of a cachable system table will not change...)
- */
-void
-CatalogCacheFlushRelation(Oid relId)
-{
-	CatCache   *cache;
-
-	CACHE2_elog(DEBUG2, "CatalogCacheFlushRelation called for %u", relId);
-
-	for (cache = CacheHdr->ch_caches; cache; cache = cache->cc_next)
-	{
-		int			i;
-
-		/* We can ignore uninitialized caches, since they must be empty */
-		if (cache->cc_tupdesc == NULL)
-			continue;
-
-		/* Does this cache store tuples of the target relation itself? */
-		if (cache->cc_tupdesc->attrs[0]->attrelid == relId)
-		{
-			/* Yes, so flush all its contents */
-			ResetCatalogCache(cache);
-			continue;
-		}
-
-		/* Does this cache store tuples associated with relations at all? */
-		if (cache->cc_reloidattr == 0)
-			continue;			/* nope, leave it alone */
-
-		/* Yes, scan the tuples and remove those related to relId */
-		for (i = 0; i < cache->cc_nbuckets; i++)
-		{
-			Dlelem	   *elt,
-					   *nextelt;
-
-			for (elt = DLGetHead(&cache->cc_bucket[i]); elt; elt = nextelt)
-			{
-				CatCTup    *ct = (CatCTup *) DLE_VAL(elt);
-				Oid			tupRelid;
-
-				nextelt = DLGetSucc(elt);
-
-				/*
-				 * Negative entries are never considered related to a rel,
-				 * even if the rel is part of their lookup key.
-				 */
-				if (ct->negative)
-					continue;
-
-				if (cache->cc_reloidattr == ObjectIdAttributeNumber)
-					tupRelid = HeapTupleGetOid(&ct->tuple);
-				else
-				{
-					bool		isNull;
-
-					tupRelid =
-						DatumGetObjectId(fastgetattr(&ct->tuple,
-													 cache->cc_reloidattr,
-													 cache->cc_tupdesc,
-													 &isNull));
-					Assert(!isNull);
-				}
-
-				if (tupRelid == relId)
-				{
-					if (ct->refcount > 0 ||
-						(ct->c_list && ct->c_list->refcount > 0))
-					{
-						ct->dead = true;
-						/* parent list must be considered dead too */
-						if (ct->c_list)
-							ct->c_list->dead = true;
-					}
-					else
-						CatCacheRemoveCTup(cache, ct);
-#ifdef CATCACHE_STATS
-					cache->cc_invals++;
-#endif
-				}
-			}
-		}
-	}
-
-	CACHE1_elog(DEBUG2, "end of CatalogCacheFlushRelation call");
-}
-
-/*
  *		InitCatCache
  *
  *	This allocates and initializes a cache for a system catalog relation.
@@ -775,7 +697,6 @@ CatCache *
 InitCatCache(int id,
 			 Oid reloid,
 			 Oid indexoid,
-			 int reloidattr,
 			 int nkeys,
 			 const int *key,
 			 int nbuckets)
@@ -839,7 +760,6 @@ InitCatCache(int id,
 	cp->cc_indexoid = indexoid;
 	cp->cc_relisshared = false; /* temporary */
 	cp->cc_tupdesc = (TupleDesc) NULL;
-	cp->cc_reloidattr = reloidattr;
 	cp->cc_ntup = 0;
 	cp->cc_nbuckets = nbuckets;
 	cp->cc_nkeys = nkeys;
@@ -1023,44 +943,66 @@ InitCatCachePhase2(CatCache *cache, bool touch_index)
  *		certain system indexes that support critical syscaches.
  *		We can't use an indexscan to fetch these, else we'll get into
  *		infinite recursion.  A plain heap scan will work, however.
- *
  *		Once we have completed relcache initialization (signaled by
  *		criticalRelcachesBuilt), we don't have to worry anymore.
+ *
+ *		Similarly, during backend startup we have to be able to use the
+ *		pg_authid and pg_auth_members syscaches for authentication even if
+ *		we don't yet have relcache entries for those catalogs' indexes.
  */
 static bool
 IndexScanOK(CatCache *cache, ScanKey cur_skey)
 {
-	if (cache->id == INDEXRELID)
+	switch (cache->id)
 	{
-		/*
-		 * Since the OIDs of indexes aren't hardwired, it's painful to figure
-		 * out which is which.	Just force all pg_index searches to be heap
-		 * scans while building the relcaches.
-		 */
-		if (!criticalRelcachesBuilt)
-			return false;
-	}
-	else if (cache->id == AMOID ||
-			 cache->id == AMNAME)
-	{
-		/*
-		 * Always do heap scans in pg_am, because it's so small there's not
-		 * much point in an indexscan anyway.  We *must* do this when
-		 * initially building critical relcache entries, but we might as well
-		 * just always do it.
-		 */
-		return false;
-	}
-	else if (cache->id == OPEROID)
-	{
-		if (!criticalRelcachesBuilt)
-		{
-			/* Looking for an OID comparison function? */
-			Oid			lookup_oid = DatumGetObjectId(cur_skey[0].sk_argument);
+		case INDEXRELID:
 
-			if (lookup_oid >= MIN_OIDCMP && lookup_oid <= MAX_OIDCMP)
+			/*
+			 * Rather than tracking exactly which indexes have to be loaded
+			 * before we can use indexscans (which changes from time to time),
+			 * just force all pg_index searches to be heap scans until we've
+			 * built the critical relcaches.
+			 */
+			if (!criticalRelcachesBuilt)
 				return false;
-		}
+			break;
+
+		case AMOID:
+		case AMNAME:
+
+			/*
+			 * Always do heap scans in pg_am, because it's so small there's
+			 * not much point in an indexscan anyway.  We *must* do this when
+			 * initially building critical relcache entries, but we might as
+			 * well just always do it.
+			 */
+			return false;
+
+		case AUTHNAME:
+		case AUTHOID:
+		case AUTHMEMMEMROLE:
+
+			/*
+			 * Protect authentication lookups occurring before relcache has
+			 * collected entries for shared indexes.
+			 */
+			if (!criticalSharedRelcachesBuilt)
+				return false;
+			break;
+
+		case OPEROID:
+		
+			if (!criticalRelcachesBuilt)
+			{
+				/* Looking for an OID comparison function? */
+				Oid			lookup_oid = DatumGetObjectId(cur_skey[0].sk_argument);
+
+				if (lookup_oid >= MIN_OIDCMP && lookup_oid <= MAX_OIDCMP)
+					return false;
+			}
+		
+		default:
+			break;
 	}
 
 	/* Normal case, allow index scan */
@@ -1090,7 +1032,7 @@ SearchCatCache(CatCache *cache,
 			   Datum v3,
 			   Datum v4)
 {
-	ScanKeyData cur_skey[4];
+	ScanKeyData cur_skey[CATCACHE_MAXKEYS];
 	uint32		hashValue;
 	Index		hashIndex;
 	Dlelem	   *elt;
@@ -1331,7 +1273,7 @@ SearchCatCacheList(CatCache *cache,
 				   Datum v3,
 				   Datum v4)
 {
-	ScanKeyData cur_skey[4];
+	ScanKeyData cur_skey[CATCACHE_MAXKEYS];
 	uint32		lHashValue;
 	Dlelem	   *elt;
 	CatCList   *cl;
@@ -1449,7 +1391,7 @@ SearchCatCacheList(CatCache *cache,
 
 		scandesc = systable_beginscan(relation,
 									  cache->cc_indexoid,
-									  true,
+									  IndexScanOK(cache, cur_skey),
 									  SnapshotNow,
 									  nkeys,
 									  cur_skey);
@@ -1670,16 +1612,16 @@ build_dummy_tuple(CatCache *cache, int nkeys, ScanKey skeys)
 	HeapTuple	ntp;
 	TupleDesc	tupDesc = cache->cc_tupdesc;
 	Datum	   *values;
-	char	   *nulls;
+	bool	   *nulls;
 	Oid			tupOid = InvalidOid;
 	NameData	tempNames[4];
 	int			i;
 
 	values = (Datum *) palloc(tupDesc->natts * sizeof(Datum));
-	nulls = (char *) palloc(tupDesc->natts * sizeof(char));
+	nulls = (bool *) palloc(tupDesc->natts * sizeof(bool));
 
 	memset(values, 0, tupDesc->natts * sizeof(Datum));
-	memset(nulls, 'n', tupDesc->natts * sizeof(char));
+	memset(nulls, true, tupDesc->natts * sizeof(bool));
 
 	for (i = 0; i < nkeys; i++)
 	{
@@ -1692,7 +1634,7 @@ build_dummy_tuple(CatCache *cache, int nkeys, ScanKey skeys)
 			 * Here we must be careful in case the caller passed a C string
 			 * where a NAME is wanted: convert the given argument to a
 			 * correctly padded NAME.  Otherwise the memcpy() done in
-			 * heap_formtuple could fall off the end of memory.
+			 * heap_form_tuple could fall off the end of memory.
 			 */
 			if (cache->cc_isname[i])
 			{
@@ -1702,7 +1644,7 @@ build_dummy_tuple(CatCache *cache, int nkeys, ScanKey skeys)
 				keyval = NameGetDatum(newval);
 			}
 			values[attindex - 1] = keyval;
-			nulls[attindex - 1] = ' ';
+			nulls[attindex - 1] = false;
 		}
 		else
 		{
@@ -1711,7 +1653,7 @@ build_dummy_tuple(CatCache *cache, int nkeys, ScanKey skeys)
 		}
 	}
 
-	ntp = heap_formtuple(tupDesc, values, nulls);
+	ntp = heap_form_tuple(tupDesc, values, nulls);
 	if (tupOid != InvalidOid)
 		HeapTupleSetOid(ntp, tupOid);
 
@@ -1766,6 +1708,7 @@ PrepareToInvalidateCacheTuple(Relation relation,
 	 */
 	Assert(RelationIsValid(relation));
 	Assert(HeapTupleIsValid(tuple));
+	Assert(function != NULL);
 	Assert(PointerIsValid(function));
 	Assert(CacheHdr != NULL);
 
@@ -1781,12 +1724,12 @@ PrepareToInvalidateCacheTuple(Relation relation,
 
 	for (ccp = CacheHdr->ch_caches; ccp; ccp = ccp->cc_next)
 	{
+		if (ccp->cc_reloid != reloid)
+			continue;
+
 		/* Just in case cache hasn't finished initialization yet... */
 		if (ccp->cc_tupdesc == NULL)
 			CatalogCacheInitializeCache(ccp);
-
-		if (ccp->cc_reloid != reloid)
-			continue;
 
 		(*function) (ccp->id,
 					 CatalogCacheComputeTupleHashValue(ccp, tuple),
@@ -1801,7 +1744,7 @@ PrepareToInvalidateCacheTuple(Relation relation,
  * that resowner.c can call them.
  */
 void
-PrintCatCacheLeakWarning(HeapTuple tuple)
+PrintCatCacheLeakWarning(HeapTuple tuple, const char *resOwnerName)
 {
 	CatCTup    *ct = (CatCTup *) (((char *) tuple) -
 								  offsetof(CatCTup, tuple));
@@ -1809,17 +1752,19 @@ PrintCatCacheLeakWarning(HeapTuple tuple)
 	/* Safety check to ensure we were handed a cache entry */
 	Assert(ct->ct_magic == CT_MAGIC);
 
-	elog(WARNING, "cache reference leak: cache %s (%d), tuple %u/%u has count %d",
+	elog(WARNING, "cache reference leak: cache %s (%d), tuple %u/%u (oid %d) has count %d, resowner '%s'",
 		 ct->my_cache->cc_relname, ct->my_cache->id,
 		 ItemPointerGetBlockNumber(&(tuple->t_self)),
 		 ItemPointerGetOffsetNumber(&(tuple->t_self)),
-		 ct->refcount);
+         tuple->t_data ? HeapTupleGetOid(tuple) : 0,
+		 ct->refcount,
+         resOwnerName);
 }
 
 void
-PrintCatCacheListLeakWarning(CatCList *list)
+PrintCatCacheListLeakWarning(CatCList *list, const char *resOwnerName)
 {
-	elog(WARNING, "cache reference leak: cache %s (%d), list %p has count %d",
+	elog(WARNING, "cache reference leak: cache %s (%d), list %p has count %d, resowner '%s'",
 		 list->my_cache->cc_relname, list->my_cache->id,
-		 list, list->refcount);
+		 list, list->refcount, resOwnerName);
 }

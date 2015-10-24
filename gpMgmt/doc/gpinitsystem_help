@@ -1,0 +1,427 @@
+COMMAND NAME: gpinitsystem
+
+Initializes a Greenplum Database system by using configuration 
+parameters specified in a configuration file (gp_init_config).
+
+
+*****************************************************
+SYNOPSIS
+*****************************************************
+
+gpinitsystem -c <gpinitsystem_config> 
+            [-h <hostfile_gpinitsystem>]
+            [-B <parallel_processes>] 
+            [-p <postgresql_conf_param_file>]
+            [-s <standby_master_host>
+                [-P <standby_master_port>] [-F <standby_master_filespaces>]]
+            [--max_connections=<number>] [--shared_buffers=<size>]
+            [--locale=<locale>] [--lc-collate=<locale>] 
+            [--lc-ctype=<locale>] [--lc-messages=<locale>] 
+            [--lc-monetary=<locale>] [--lc-numeric=<locale>] 
+            [--lc-time=<locale>] [--su_password=<password>] 
+            [-S] [-a] [-q] [-l <logfile_directory>] [-D]
+
+gpinitsystem -? 
+
+gpinitsystem -v
+
+
+*****************************************************
+DESCRIPTION
+*****************************************************
+
+The gpinitsystem utility will create a Greenplum Database instance 
+using the values defined in a configuration file. See the 
+INITIALIZATION CONFIGURATION FILE FORMAT section below. An example 
+initialization configuration file can be found in 
+$GPHOME/docs/cli_help/gpconfigs/gpinitsystem_config.
+ 
+Before running this utility, make sure that you have installed 
+the Greenplum Database software on all the hosts in the array.
+In a Greenplum Database DBMS, each database instance (the master 
+and all segments) must be initialized across all of the hosts in 
+the system in such a way that they can all work together as a 
+unified DBMS. The gpinitsystem utility takes care of initializing 
+the Greenplum master and each segment instance, and configuring 
+the system as a whole.
+
+Before running gpinitsystem, you must set the $GPHOME environment 
+variable to point to the location of your Greenplum Database 
+installation on the master host and exchange SSH keys between 
+all host addresses in the array using gpssh-exkeys.
+
+This utility performs the following tasks:
+
+* Verifies that the parameters in the configuration file are correct.
+* Ensures that a connection can be established to each host address. 
+  If a host address cannot be reached, the utility will exit.
+* Verifies the locale settings.
+* Displays the configuration that will be used and prompts the 
+  user for confirmation.
+* Initializes the master instance.
+* Initializes the standby master instance (if specified).
+* Initializes the primary segment instances.
+* Initializes the mirror segment instances (if mirroring is configured).
+* Configures the Greenplum Database system and checks for errors.
+* Starts the Greenplum Database system.
+
+
+*****************************************************
+OPTIONS
+*****************************************************
+
+-a (do not prompt)
+
+ Do not prompt the user for confirmation.
+
+
+-B <parallel_processes>
+
+ The number of segments to create in parallel. If not specified, 
+ the utility will start up to 4 parallel processes at a time.
+
+
+-c <gpinitsystem_config>
+
+ Required. The full path and filename of the configuration file, which 
+ contains all of the defined parameters to configure and initialize a 
+ new Greenplum system. See INITIALIZATION CONFIGURATION FILE FORMAT below.
+
+-D (debug)
+
+ Sets log output level to debug.
+
+
+-h <hostfile_gpinitsystem>
+
+ Optional. The full path and file name of a file that contains the host 
+ addresses of your segment hosts. If not specified on the command line, 
+ you can specify the host file using the MACHINE_LIST_FILE parameter 
+ in the gpinitsystem_config file.
+
+
+--locale=<locale> | -n <locale>  
+
+ Sets the default locale used by Greenplum Database. If not specified, 
+ the LC_ALL, LC_COLLATE, or LANG environment variable of the master 
+ host determines the locale. If these are not set, the default locale 
+ is C (POSIX). A locale identifier consists of a language identifier 
+ and a region identifier, and optionally a character set encoding. 
+ For example, sv_SE is Swedish as spoken in Sweden, en_US is U.S. 
+ English, and fr_CA is French Canadian. If more than one character 
+ set can be useful for a locale, then the specifications look like 
+ this: en_US.UTF-8 (locale specification and character set encoding). 
+ On most systems, the command locale will show the locale environment 
+ settings and locale -a will show a list of all available locales.
+
+
+--lc-collate=<locale>
+
+ Similar to --locale, but sets the locale used for collation (sorting data). 
+ The sort order cannot be changed after Greenplum Database is initialized, 
+ so it is important to choose a collation locale that is compatible with 
+ the character set encodings that you plan to use for your data. There is a 
+ special collation name of C or POSIX (byte-order sorting as opposed to 
+ dictionary-order sorting). The C collation can be used with any 
+ character encoding.
+
+
+--lc-ctype=<locale>
+
+ Similar to --locale, but sets the locale used for character classification 
+ (what character sequences are valid and how they are interpreted). This 
+ cannot be changed after Greenplum Database is initialized, so it is 
+ important to choose a character classification locale that is compatible 
+ with the data you plan to store in Greenplum Database.
+
+
+--lc-messages=<locale>
+
+ Similar to --locale, but sets the locale used for messages output by 
+ Greenplum Database. The current version of Greenplum Database does not 
+ support multiple locales for output messages (all messages are in English), 
+ so changing this setting will not have any effect.
+
+
+--lc-monetary=<locale> 
+
+ Similar to --locale, but sets the locale used for formatting currency amounts.
+
+
+--lc-numeric=<locale> 
+
+ Similar to --locale, but sets the locale used for formatting numbers.
+
+
+--lc-time=<locale>
+
+ Similar to --locale, but sets the locale used for formatting dates and times.
+
+
+-l <logfile_directory>
+
+ The directory to write the log file. Defaults to ~/gpAdminLogs.
+
+
+--max_connections=<number> | -m <number>
+
+ Sets the maximum number of client connections allowed to the master. 
+ The default is 25.
+
+
+-p <postgresql_conf_param_file>
+
+ Optional. The name of a file that contains postgresql.conf parameter 
+ settings that you want to set for Greenplum Database. These settings 
+ will be used when the individual master and segment instances are 
+ initialized. You can also set parameters after initialization using 
+ the gpconfig utility.
+
+
+-q (no screen output)
+
+ Run in quiet mode. Command output is not displayed on the screen, 
+ but is still written to the log file.
+
+
+--shared_buffers=<size> | -b <size>
+
+ Sets the amount of memory a Greenplum server instance uses for shared 
+ memory buffers. You can specify sizing in kilobytes (kB), megabytes (MB) 
+ or gigabytes (GB). The default is 125MB.
+
+
+-s <standby_master_host>
+
+ Optional. If you wish to configure a backup master host, specify the 
+ host name using this option. The Greenplum Database software must 
+ already be installed and configured on this host.
+
+
+-P <standby_master_port>
+
+ Optional and effective only when specified with -s.  This option can
+ specify the port to be used by the standby master.  The default value
+ is the same as the primary master.
+
+
+-F <standby_master_filespace>
+
+ Optional and effective only when specified with -s.  This option can
+ specify the filespace mappings.
+
+
+--su_password=<superuser_password> | -e <superuser_password>
+
+ The password to set for the Greenplum Database superuser. Defaults 
+ to 'gparray'. You can always change the superuser password at a 
+ later time using the ALTER ROLE command. Client connections over 
+ the network require a password login for the database superuser 
+ account (for example, the gpadmin user).
+
+ Best practises: Always use passwords, do not use default passwords,
+ change default passwords immediately after installation.
+
+
+-S (spread mirror configuration)
+
+ If mirroring parameters are specified, spreads the mirror segments 
+ across the available hosts. The default is to group the set of mirror 
+ segments together on an alternate host from their primary segment set. 
+ Mirror spreading will place each mirror on a different host within the 
+ Greenplum Database array. Spreading is only allowed if there is a 
+ sufficient number of hosts in the array (number of hosts is greater 
+ than the number of segment instances).
+
+
+-v (show utility version)
+
+ Displays the version of this utility.
+
+
+-? (help)
+
+ Displays the online help.
+
+
+*****************************************************
+INITIALIZATION CONFIGURATION FILE FORMAT
+*****************************************************
+
+ARRAY_NAME
+
+ Required. A name for the array you are configuring. You can use 
+ any name you like. Enclose the name in quotes if the name 
+ contains spaces.
+
+
+MACHINE_LIST_FILE
+
+ Optional. Can be used in place of the -h option. This specifies 
+ the file that contains the list of segment host address names that 
+ comprise the Greenplum system. The master host is assumed to be 
+ the host from which you are running the utility and should not be 
+ included in this file. If your segment hosts have multiple network 
+ interfaces, then this file would include all addresses for the host. 
+ Give the absolute path to the file.
+
+
+SEG_PREFIX
+
+ Required. This specifies a prefix that will be used to name the 
+ data directories on the master and segment instances. The naming 
+ convention for data directories in a Greenplum Database system 
+ is SEG_PREFIX<number> where <number> starts with 0 for segment 
+ instances (the master is always -1). So for example, if you choose 
+ the prefix gpseg, your master instance data directory would be 
+ named gpseg-1, and the segment instances would be named 
+ gpseg0, gpseg1, gpseg2, gpseg3, and so on.
+
+
+PORT_BASE
+
+ Required. This specifies the base number by which primary segment 
+ port numbers are calculated. The first primary segment port on a 
+ host is set as PORT_BASE, and then incremented by one for each 
+ additional primary segment on that host. Valid values range from 
+ 1 through 65535.
+
+
+DATA_DIRECTORY
+
+ Required. This specifies the data storage location(s) where the 
+ utility will create the primary segment data directories. The 
+ number of locations in the list dictate the number of primary 
+ segments that will get created per physical host (if multiple 
+ addresses for a host are listed in the host file, the number of 
+ segments will be spread evenly across the specified interface 
+ addresses). It is OK to list the same data storage area multiple 
+ times if you want your data directories created in the same location. 
+ The user who runs gpinitsystem (for example, the gpadmin user) must 
+ have permission to write to these directories. For example, this 
+ will create six primary segments per host:
+
+  declare -a DATA_DIRECTORY=(/data1/primary /data1/primary /data1/primary /data2/primary /data2/primary /data2/primary)
+
+
+MASTER_HOSTNAME
+
+ Required. The host name of the master instance. This host name must 
+ exactly match the configured host name of the machine (run the hostname 
+ command to determine the correct hostname).
+
+
+MASTER_DIRECTORY
+
+ Required. This specifies the location where the data directory will 
+ be created on the master host. You must make sure that the user who runs 
+ gpinitsystem (for example, the gpadmin user) has permissions to write 
+ to this directory.
+
+
+MASTER_PORT
+
+ Required. The port number for the master instance. This is the port 
+ number that users and client connections will use when accessing the 
+ Greenplum Database system.
+
+
+TRUSTED_SHELL
+
+ Required. The shell the gpinitsystem utility uses to execute commands 
+ on remote hosts. Allowed values are ssh. You must set up your trusted 
+ host environment before running the gpinitsystem utility (you can 
+ use gpssh-exkeys to do this).
+
+
+CHECK_POINT_SEGMENTS
+
+ Required. Maximum distance between automatic write ahead log (WAL) 
+ checkpoints, in log file segments (each segment is normally 16 megabytes). 
+ This will set the checkpoint_segments parameter in the postgresql.conf 
+ file for each segment instance in the Greenplum Database system.
+
+
+ENCODING
+
+ Required. The character set encoding to use. This character set must 
+ be compatible with the --locale settings used, especially --lc-collate 
+ and --lc-ctype. Greenplum Database supports the same character sets 
+ as PostgreSQL.
+
+
+DATABASE_NAME
+
+ Optional. The name of a Greenplum Database database to create after 
+ the system is initialized. You can always create a database later 
+ using the CREATE DATABASE command or the createdb utility.
+
+
+MIRROR_PORT_BASE
+
+ Optional. This specifies the base number by which mirror segment 
+ port numbers are calculated. The first mirror segment port on a 
+ host is set as MIRROR_PORT_BASE, and then incremented by one 
+ for each additional mirror segment on that host. Valid values 
+ range from 1 through 65535 and cannot conflict with the ports 
+ calculated by PORT_BASE.
+
+
+REPLICATION_PORT_BASE
+
+ Optional. This specifies the base number by which the port numbers 
+ for the primary file replication process are calculated. The 
+ first replication port on a host is set as REPLICATION_PORT_BASE, 
+ and then incremented by one for each additional primary segment 
+ on that host. Valid values range from 1 through 65535 and cannot 
+ conflict with the ports calculated by PORT_BASE or MIRROR_PORT_BASE.
+
+
+MIRROR_REPLICATION_PORT_BASE
+
+ Optional. This specifies the base number by which the port numbers 
+ for the mirror file replication process are calculated. The first 
+ mirror replication port on a host is set as MIRROR_REPLICATION_PORT_BASE, 
+ and then incremented by one for each additional mirror segment on 
+ that host. Valid values range from 1 through 65535 and cannot conflict 
+ with the ports calculated by PORT_BASE, MIRROR_PORT_BASE, 
+ or REPLICATION_PORT_BASE.
+
+
+MIRROR_DATA_DIRECTORY
+
+ Optional. This specifies the data storage location(s) where the utility 
+ will create the mirror segment data directories. There must be the same 
+ number of data directories declared for mirror segment instances as for 
+ primary segment instances (see the DATA_DIRECTORY parameter). The user 
+ who runs gpinitsystem (for example, the gpadmin user) must have permission 
+ to write to these directories. For example:
+
+  declare -a MIRROR_DATA_DIRECTORY=(/data1/mirror /data1/mirror /data1/mirror /data2/mirror /data2/mirror /data2/mirror)
+
+
+*****************************************************
+EXAMPLES
+*****************************************************
+
+Initialize a Greenplum Database array by supplying a configuration file 
+and a segment host address file, and set up a spread mirroring (-S) 
+configuration:
+
+ $ gpinitsystem -c gpinitsystem_config -h hostfile_gpinitsystem -S
+
+
+Initialize a Greenplum Database array and set the superuser remote password:
+
+ $ gpinitsystem -c gpinitsystem_config -h hostfile_gpinitsystem --su-password=mypassword
+
+
+Initialize a Greenplum Database array with an optional standby master host:
+
+ $ gpinitsystem -c gpinitsystem_config -h hostfile_gpinitsystem -s host09
+
+*****************************************************
+SEE ALSO
+*****************************************************
+
+gpseginstall, gpssh-exkeys

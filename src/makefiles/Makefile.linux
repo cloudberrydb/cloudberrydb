@@ -1,6 +1,8 @@
 AROPT = crs
 export_dynamic = -Wl,-E
-rpath = -Wl,-rpath,'$(rpathdir)'
+# Use --enable-new-dtags to generate DT_RUNPATH instead of DT_RPATH.
+# This allows LD_LIBRARY_PATH to still work when needed.
+rpath = -Wl,-rpath,'$(rpathdir)',--enable-new-dtags
 allow_nonpic_in_shlib = yes
 DLSUFFIX = .so
 
@@ -10,7 +12,6 @@ else
 CFLAGS_SL = -fpic
 endif
 
+# Rule for building a shared library from a single .o file
 %.so: %.o
-	$(CC) -shared -o $@ $<
-
-sqlmansect = 7
+	$(CC) $(CFLAGS) $(LDFLAGS) $(LDFLAGS_SL) -shared -o $@ $<

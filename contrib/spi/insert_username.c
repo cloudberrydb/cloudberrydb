@@ -1,15 +1,18 @@
 /*
  * insert_username.c
  * $Modified: Thu Oct 16 08:13:42 1997 by brook $
- * $PostgreSQL: pgsql/contrib/spi/insert_username.c,v 1.14 2006/05/30 22:12:13 tgl Exp $
+ * $PostgreSQL: pgsql/contrib/spi/insert_username.c,v 1.17 2009/01/07 13:44:36 tgl Exp $
  *
  * insert user name in response to a trigger
  * usage:  insert_username (column_name)
  */
+#include "postgres.h"
 
-#include "executor/spi.h"		/* this is what you need to work with SPI */
-#include "commands/trigger.h"	/* -"- and triggers */
-#include "miscadmin.h"			/* for GetUserName() */
+#include "catalog/pg_type.h"
+#include "commands/trigger.h"
+#include "executor/spi.h"
+#include "miscadmin.h"
+#include "utils/builtins.h"
 
 PG_MODULE_MAGIC;
 
@@ -37,7 +40,7 @@ insert_username(PG_FUNCTION_ARGS)
 		elog(ERROR, "insert_username: not fired by trigger manager");
 	if (TRIGGER_FIRED_FOR_STATEMENT(trigdata->tg_event))
 		/* internal error */
-		elog(ERROR, "insert_username: can't process STATEMENT events");
+		elog(ERROR, "insert_username: cannot process STATEMENT events");
 	if (TRIGGER_FIRED_AFTER(trigdata->tg_event))
 		/* internal error */
 		elog(ERROR, "insert_username: must be fired before event");
@@ -48,7 +51,7 @@ insert_username(PG_FUNCTION_ARGS)
 		rettuple = trigdata->tg_newtuple;
 	else
 		/* internal error */
-		elog(ERROR, "insert_username: can't process DELETE events");
+		elog(ERROR, "insert_username: cannot process DELETE events");
 
 	rel = trigdata->tg_relation;
 	relname = SPI_getrelname(rel);
@@ -77,8 +80,7 @@ insert_username(PG_FUNCTION_ARGS)
 						args[0], relname)));
 
 	/* create fields containing name */
-	newval = DirectFunctionCall1(textin,
-							CStringGetDatum(GetUserNameFromId(GetUserId())));
+	newval = CStringGetTextDatum(GetUserNameFromId(GetUserId()));
 
 	/* construct new tuple */
 	rettuple = SPI_modifytuple(rel, rettuple, 1, &attnum, &newval, NULL);

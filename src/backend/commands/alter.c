@@ -3,7 +3,7 @@
  * alter.c
  *	  Drivers for generic alter commands
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2008, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -19,6 +19,8 @@
 #include "commands/conversioncmds.h"
 #include "commands/dbcommands.h"
 #include "commands/defrem.h"
+#include "commands/extprotocolcmds.h"
+#include "commands/filespace.h"
 #include "commands/proclang.h"
 #include "commands/schemacmds.h"
 #include "commands/tablecmds.h"
@@ -31,6 +33,9 @@
 #include "tcop/utility.h"
 #include "utils/acl.h"
 #include "utils/lsyscache.h"
+
+#include "cdb/cdbvars.h"
+#include "cdb/cdbdisp.h"
 
 
 /*
@@ -52,6 +57,10 @@ ExecRenameStmt(RenameStmt *stmt)
 
 		case OBJECT_DATABASE:
 			RenameDatabase(stmt->subname, stmt->newname);
+			break;
+
+		case OBJECT_EXTPROTOCOL:
+			RenameExtProtocol(stmt->subname, stmt->newname);
 			break;
 
 		case OBJECT_FUNCTION:
@@ -78,8 +87,38 @@ ExecRenameStmt(RenameStmt *stmt)
 			RenameTableSpace(stmt->subname, stmt->newname);
 			break;
 
+		case OBJECT_FILESPACE:
+			RenameFileSpace(stmt->subname, stmt->newname);
+			break;
+
 		case OBJECT_TABLE:
 		case OBJECT_INDEX:
+		{
+			if (Gp_role == GP_ROLE_DISPATCH)
+			{
+				CheckRelationOwnership(stmt->relation, true);
+				stmt->objid = RangeVarGetRelid(stmt->relation, false);
+			}
+
+			/*
+			 * RENAME TABLE requires that we (still) hold
+			 * CREATE rights on the containing namespace, as
+			 * well as ownership of the table.
+			 */
+			Oid			namespaceId = get_rel_namespace(stmt->objid);
+			AclResult	aclresult;
+
+			aclresult = pg_namespace_aclcheck(namespaceId,
+											  GetUserId(),
+											  ACL_CREATE);
+			if (aclresult != ACLCHECK_OK)
+				aclcheck_error(aclresult, ACL_KIND_NAMESPACE,
+							   get_namespace_name(namespaceId));
+
+			renamerel(stmt->objid, stmt->newname, stmt);
+			break;
+		}
+
 		case OBJECT_COLUMN:
 		case OBJECT_TRIGGER:
 			{
@@ -91,27 +130,6 @@ ExecRenameStmt(RenameStmt *stmt)
 
 				switch (stmt->renameType)
 				{
-					case OBJECT_TABLE:
-					case OBJECT_INDEX:
-						{
-							/*
-							 * RENAME TABLE requires that we (still) hold
-							 * CREATE rights on the containing namespace, as
-							 * well as ownership of the table.
-							 */
-							Oid			namespaceId = get_rel_namespace(relid);
-							AclResult	aclresult;
-
-							aclresult = pg_namespace_aclcheck(namespaceId,
-															  GetUserId(),
-															  ACL_CREATE);
-							if (aclresult != ACLCHECK_OK)
-								aclcheck_error(aclresult, ACL_KIND_NAMESPACE,
-											get_namespace_name(namespaceId));
-
-							renamerel(relid, stmt->newname);
-							break;
-						}
 					case OBJECT_COLUMN:
 						renameatt(relid,
 								  stmt->subname,		/* old att name */
@@ -134,6 +152,11 @@ ExecRenameStmt(RenameStmt *stmt)
 			elog(ERROR, "unrecognized rename stmt type: %d",
 				 (int) stmt->renameType);
 	}
+	if (Gp_role == GP_ROLE_DISPATCH)
+	{
+		CdbDispatchUtilityStatement((Node *) stmt, "ExecRenameStmt");
+	}
+
 }
 
 /*
@@ -170,6 +193,10 @@ ExecAlterObjectSchemaStmt(AlterObjectSchemaStmt *stmt)
 			elog(ERROR, "unrecognized AlterObjectSchemaStmt type: %d",
 				 (int) stmt->objectType);
 	}
+	if (Gp_role == GP_ROLE_DISPATCH)
+	{
+		CdbDispatchUtilityStatement((Node *) stmt, "ExecAlterObjectSchemaStmt");
+	}
 }
 
 /*
@@ -192,7 +219,7 @@ ExecAlterOwnerStmt(AlterOwnerStmt *stmt)
 			break;
 
 		case OBJECT_DATABASE:
-			AlterDatabaseOwner((char *) linitial(stmt->object), newowner);
+			AlterDatabaseOwner(strVal(linitial(stmt->object)), newowner);
 			break;
 
 		case OBJECT_FUNCTION:
@@ -212,11 +239,15 @@ ExecAlterOwnerStmt(AlterOwnerStmt *stmt)
 			break;
 
 		case OBJECT_SCHEMA:
-			AlterSchemaOwner((char *) linitial(stmt->object), newowner);
+			AlterSchemaOwner(strVal(linitial(stmt->object)), newowner);
 			break;
 
 		case OBJECT_TABLESPACE:
-			AlterTableSpaceOwner((char *) linitial(stmt->object), newowner);
+			AlterTableSpaceOwner(strVal(linitial(stmt->object)), newowner);
+			break;
+
+		case OBJECT_FILESPACE:
+			AlterFileSpaceOwner(stmt->object, newowner);
 			break;
 
 		case OBJECT_TYPE:
@@ -224,8 +255,25 @@ ExecAlterOwnerStmt(AlterOwnerStmt *stmt)
 			AlterTypeOwner(stmt->object, newowner);
 			break;
 
+		case OBJECT_FDW:
+			AlterForeignDataWrapperOwner(strVal(linitial(stmt->object)),
+										 newowner);
+			break;
+
+		case OBJECT_FOREIGN_SERVER:
+			AlterForeignServerOwner(strVal(linitial(stmt->object)), newowner);
+			break;
+		
+		case OBJECT_EXTPROTOCOL:
+			AlterExtProtocolOwner(strVal(linitial(stmt->object)), newowner);
+			break;
+			
 		default:
 			elog(ERROR, "unrecognized AlterOwnerStmt type: %d",
 				 (int) stmt->objectType);
+	}
+	if (Gp_role == GP_ROLE_DISPATCH)
+	{
+		CdbDispatchUtilityStatement((Node *) stmt, "ExecAlterOwnerStmt");
 	}
 }

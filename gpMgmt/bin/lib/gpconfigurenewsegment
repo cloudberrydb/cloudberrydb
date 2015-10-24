@@ -1,0 +1,393 @@
+#!/usr/bin/env python
+
+import sys
+import os
+from optparse import Option, OptionGroup, OptionParser, OptionValueError, SUPPRESS_USAGE
+
+from gppylib.gpparseopts import OptParser, OptChecker
+from gppylib.commands.gp import ModifyPostgresqlConfSetting, SegmentStart, SegmentStop
+from gppylib.db import dbconn
+from gppylib.db import catalog
+from gppylib.commands import unix
+from gppylib.commands.pg import DbStatus
+from gppylib import gplog
+from gppylib.commands.base import *
+from gppylib.gparray import GpDB
+from gppylib.utils import canStringBeParsedAsInt
+from gppylib.gp_dbid import writeGpDbidFile
+from time import sleep
+from gppylib.operations.buildMirrorSegments import gDatabaseDirectories, gDatabaseFiles
+
+description = (""" 
+
+Configure segment directories for installation into a pre-existing GPDB array.
+
+Used by at least gpexpand, gprecoverseg, and gpaddmirrors
+
+""")
+
+DEFAULT_BATCH_SIZE=8
+EXECNAME = os.path.split(__file__)[-1]
+
+DESTINATION_FILE_SPACES_DIRECTORY = "fs_directory"
+
+class ValidationException(Exception):
+
+    def __init__(self, msg):
+        self.__msg = msg
+        Exception.__init__(self, msg)
+
+    def getMessage(self):
+        return self.__msg
+
+class ConfExpSegCmd(Command):
+    def __init__(self, name, cmdstr, datadir, port, dbid, newseg, tarfile, useLighterDirectoryValidation, isPrimary,
+                    filespaceOids, filespaceDirs, verbose, validationOnly, writeGpDbidFileOnly):
+        """
+        @param useLighterDirectoryValidation if True then we don't require an empty directory; we just require that
+                                             database stuff is not there.
+        """
+        self.datadir = datadir
+        self.port = int(port)
+        self.dbid = dbid
+        self.newseg = newseg
+        self.tarfile = tarfile
+        self.verbose = verbose
+        self.useLighterDirectoryValidation = useLighterDirectoryValidation
+        self.filespaceOids = filespaceOids
+        self.filespaceDirs = filespaceDirs
+        self.isPrimary = isPrimary
+
+        #
+        # validationOnly if True then we validate directories and other simple things only; we don't
+        #                actually configure the segment
+        #
+        self.validationOnly = validationOnly
+
+        self.writeGpDbidFileOnly = writeGpDbidFileOnly
+        Command.__init__(self, name, cmdstr)
+
+
+    def __str__(self):
+        if self.results:
+            return "%s cmdStr='%s'  had result: %s" % (self.name, self.cmdStr, self.results)
+        else:
+            return "%s cmdStr='%s'" % (self.name, self.cmdStr)
+
+    def validatePath(self, path, isSystemFilespaceDir):
+        """
+        Raises ValidationException when a validation problem is detected
+        """
+
+        if not os.path.exists(os.path.dirname(path)):
+            raise ValidationException("Parent directory for %s directory '%s' does not exist" %
+                    ( "system data" if isSystemFilespaceDir else "filespace", path) )
+
+        if not os.path.exists(path):
+            #
+            # dir doesn't exist is okay -- other scripts, or filerep mirroring code, will create it
+            #
+            return
+
+        if self.useLighterDirectoryValidation:
+
+            if isSystemFilespaceDir:
+                # validate that we don't contain database directories or files
+                for toCheck in gDatabaseDirectories:
+                    if toCheck != "pg_log": # it's okay to have pg_log -- to save old logs around to look at
+                        if os.path.exists(os.path.join(path, toCheck)):
+                            raise ValidationException("Segment directory '%s' contains directory %s but should not!" %
+                                        (path, toCheck))
+                for toCheck in gDatabaseFiles:
+                    if os.path.exists(os.path.join(path, toCheck)):
+                        raise ValidationException("Segment directory '%s' contains file %s but should not!" %
+                                    (path, toCheck))
+            else:
+
+                for name in os.listdir( path ):
+                    if name[0] in "0123456789": # the database files here will have  
+                        raise ValidationException("Filespace directory contains invalid file(s): '%s'" % path)
+        else:
+            # it better be empty
+            if len(os.listdir(path)) != 0:
+                raise ValidationException("Segment directory '%s' exists but is not empty!" % path)
+
+    def makeOrUpdatePathAsNeeded(self, path):
+        if os.path.exists(path):
+            os.chmod(path, 0700)
+        else:
+            os.mkdir(path, 0700)
+            
+    def fixupFilespaces(self):
+        """
+        This method will take file spaces stored in the system data directory and put them in their proper locations.
+        """
+        if self.filespaceOids == None:
+            return
+        try:
+            logger.info("copy filespaces to their locations")
+           # only on primary do we create it -- otherwise, mirroring code creates it on replay
+            filespaceDataDir = self.datadir + "/" + DESTINATION_FILE_SPACES_DIRECTORY
+            i = 0
+            for i in range(len(self.filespaceOids)):
+                sourceDir = filespaceDataDir + "/" + str(self.filespaceOids[i])
+                targetDir = self.filespaceDirs[i]
+                cpCmd = unix.LocalDirCopy("copy filespace from %s to %s" % (sourceDir, targetDir), sourceDir, targetDir)
+                cpCmd.run(validateAfter=True)
+            unix.RemoveFiles.local("remove filespace template after copy to proper location", filespaceDataDir)
+        except Exception, e:
+            self.set_results(CommandResult(1, '', e, True, False))
+            raise
+
+    def run(self):
+        try:
+            if self.writeGpDbidFileOnly:
+                logger.info("create gp_dbid file for segment")
+                writeGpDbidFile(self.datadir, self.dbid, logger=gplog.get_logger_if_verbose())
+            else:
+                if self.newseg:
+                    # make directories, extract template update postgresql.conf
+                    logger.info("Validate data directories for new segment")
+                    try:
+                        self.validatePath(self.datadir, True)
+                        for path in self.filespaceDirs:
+                            self.validatePath(path, False)
+                    except ValidationException, e:
+                        msg = "for segment with port %s: %s" %  (self.port, e.getMessage())
+                        self.set_results(CommandResult(1, '', msg, True, False))
+                        raise
+                    except Exception, e:
+                        self.set_results(CommandResult(1, '', e, True, False))
+                        raise
+
+                    if self.validationOnly:
+                        self.set_results(CommandResult(0, '', '', True, False))
+                        return
+
+                    logger.info("Create or update data directories for new segment")
+                    try:
+                        self.makeOrUpdatePathAsNeeded(self.datadir)
+                        if self.isPrimary:
+                            # only on primary do we create it -- otherwise, mirroring code creates it on replay
+                            for path in self.filespaceDirs:
+                                self.makeOrUpdatePathAsNeeded(path)
+                    except Exception, e:
+                        self.set_results(CommandResult(1,'',e,True,False))
+                        raise
+
+                    logger.info("extract tar file to new segment")
+                    extractTarCmd = unix.ExtractTar('extract tar file to new segment', self.tarfile, self.datadir )
+                    try:
+                        logger.debug('Extracting tar file %s to %s' % (self.tarfile, self.datadir))
+                        extractTarCmd.run(validateAfter=True)
+                    except:
+                        self.set_results(extractTarCmd.get_results())
+                        logger.error(extractTarCmd.get_results())
+                        raise
+
+                    if self.isPrimary:
+                        # only on primary do we create it -- otherwise, mirroring code creates it on replay
+                        self.fixupFilespaces()
+
+                    logger.info("create gp_dbid file for segment")
+                    writeGpDbidFile(self.datadir, self.dbid, logger=gplog.get_logger_if_verbose())
+
+                    # Create pg_xlog/archive_status for new segment in case it dosen't exist.
+                    try:
+                        self.makeOrUpdatePathAsNeeded(os.path.join(self.datadir, "pg_xlog/archive_status"))
+                    except Exception, e:
+                        self.set_results(CommandResult(1,'',e,True,False))
+                        raise
+
+                    logger.info("Updating %s/postgresql.conf" % self.datadir)
+                    modifyPostgresqlConfCmd = ModifyPostgresqlConfSetting('Updating %s/postgresql.conf' % self.datadir,
+                                                                          self.datadir + '/postgresql.conf',
+                                                                          'port', self.port, optType='number')
+                    try:
+                        modifyPostgresqlConfCmd.run(validateAfter=True)
+                    except:
+                        self.set_results(modifyPostgresqlConfCmd.get_results())
+                        raise
+
+                # We might need to stop the segment if the last setup failed past this point
+                if os.path.exists('%s/postmaster.pid' % self.datadir):
+                    logger.info('%s/postmaster.pid exists.  Stopping segment' % self.datadir)
+                    stopCmd = SegmentStop('Stop new segment', self.datadir)
+                    try:
+                        stopCmd.run(validateAfter=True)
+                    except:
+                        pass
+                    
+        except Exception, e:
+            self.set_results(CommandResult(1, '', e, True, False))
+            if self.verbose:
+                logger.exception(e)
+            return
+        else:
+            self.set_results(CommandResult(0, '', '', True, False))
+
+    def set_results(self, results):
+        self.results = results
+        
+    def get_results(self):
+        return self.results
+
+    def cancel(self):
+        self.exec_context.cancel()    
+    
+    def interrupt(self):
+        self.exec_context.interrupt()
+    
+    def was_successful(self):
+        if self.results is None:
+            return False
+        else:
+            return self.results.wasSuccessful()
+    
+        
+    def validate(self):
+        """Plain vanilla validation which expects a 0 return code."""        
+        if self.results.rc != 0:
+            raise ExecutionError("non-zero rc: %d" % self.results.rc, self)  
+
+def getOidDirLists(oidDirs):
+    """ break up list in <oid>:<dir> format into list of oid list of dir """
+    oidList = []
+    dirList = []
+    i = 0
+    while i < len(oidDirs):
+        oidList.append(oidDirs[i])
+        i = i + 1
+        dirList.append(oidDirs[i])
+        i = i + 1
+    return oidList, dirList
+        
+
+def parseargs():
+    parser = OptParser(option_class=OptChecker,
+                description=' '.join(description.split()),
+                version='%prog version $Revision: $')
+    parser.set_usage('%prog is a utility script used by gpexpand, gprecoverseg, and gpaddmirrors and is not intended to be run separately.')
+    parser.remove_option('-h')
+    
+    parser.add_option('-v','--verbose', action='store_true', help='debug output.')
+    parser.add_option('-c', '--confinfo', type='string')                        
+    parser.add_option('-t', '--tarfile', type='string')
+    parser.add_option('-n', '--newsegments', action='store_true')
+    parser.add_option('-B', '--batch-size', type='int', default=DEFAULT_BATCH_SIZE, metavar='<batch_size>')
+    parser.add_option("-V", "--validation-only", dest="validationOnly", action='store_true', default=False)
+    parser.add_option("-W", "--write-gpid-file-only", dest="writeGpidFileOnly", action='store_true', default=False)
+
+    parser.set_defaults(verbose=False, filters=[], slice=(None, None))
+    
+    # Parse the command line arguments
+    (options, args) = parser.parse_args()
+
+    if not options.confinfo:
+        raise Exception('Missing --confinfo argument.')
+
+    if options.batch_size <= 0:
+        logger.warn('batch_size was less than zero.  Setting to 1.')
+        batch_size = 1
+
+    if options.newsegments and not options.tarfile:
+        raise Exception('-n option requires -t option to be specified')
+
+    if options.validationOnly and options.writeGpidFileOnly:
+        raise Exception('Only one of --validation-only and --write-gpid-file-only can be specified')
+
+    seg_info = []
+    conf_lines = options.confinfo.split(',')
+    for line in conf_lines:
+        conf_vals = line.split(':')
+        if len(conf_vals) < 5:
+            raise Exception('Invalid configuration value: %s' % conf_vals)
+        if conf_vals[0] == '':
+            raise Exception('Missing data directory in: %s' % conf_vals)
+        if not canStringBeParsedAsInt(conf_vals[1]) or conf_vals[1] < 1024:
+            raise Exception('Invalid port in: %s' % conf_vals)
+        if conf_vals[2] != 'true' and conf_vals[2] != 'false':
+            raise Exception('Invalid isPrimary option in: %s' % conf_vals)
+        if conf_vals[3] != 'true' and conf_vals[3] != 'false':
+            raise Exception('Invalid directory validation option in: %s' % conf_vals)
+        if not canStringBeParsedAsInt(conf_vals[4]):
+            raise Exception('Invalid dbid option in: %s' % conf_vals)
+        seg_info.append(conf_vals)
+
+    seg_info_len = len(seg_info)
+    if seg_info_len == 0:
+        raise Exception('No segment configuration values found in --confinfo argument')
+    elif seg_info_len < options.batch_size:
+        # no need to have more threads than segments
+        options.batch_size = seg_info_len
+
+    return options, args, seg_info
+
+try:
+    logger = gplog.setup_tool_logging(EXECNAME, unix.getLocalHostname(), unix.getUserName())
+
+    (options, args, seg_info) = parseargs()
+    if options.verbose:
+        gplog.enable_verbose_logging()
+        
+    logger.info("Starting gpconfigurenewsegment with args: %s" % ' '.join(sys.argv[1:]))
+    
+    pool = WorkerPool(numWorkers=options.batch_size)
+    
+    for seg in seg_info:
+        dataDir = seg[0]
+        port = seg[1]
+        isPrimary = seg[2] == "true"
+        directoryValidationLevel = seg[3] == "true"
+        dbid = int(seg[4])
+        filespaceOids, filespaceDirs = getOidDirLists(seg[5:])
+
+        cmd = ConfExpSegCmd( name = 'Configure segment directory'
+                           , cmdstr = ' '.join(sys.argv)
+                           , datadir = dataDir
+                           , port = port
+                           , dbid = dbid
+                           , newseg = options.newsegments
+                           , tarfile = options.tarfile
+                           , useLighterDirectoryValidation = directoryValidationLevel
+                           , isPrimary = isPrimary
+                           , filespaceOids = filespaceOids
+                           , filespaceDirs = filespaceDirs
+                           , verbose = options.verbose
+                           , validationOnly = options.validationOnly
+                           , writeGpDbidFileOnly = options.writeGpidFileOnly
+                           )
+        pool.addCommand(cmd)
+
+    pool.join()
+
+    if options.validationOnly:
+        errors = []
+        for item in pool.getCompletedItems():
+            if item.get_results().rc != 0:
+                errors.append(str(item.get_results().stderr).replace("\n", " "))
+
+        if errors:
+            print >> sys.stderr, "\n".join(errors)
+            sys.exit(1)
+        else: sys.exit(0)
+    else:
+        try:
+            pool.check_results()
+        except Exception, e:
+            if options.verbose:
+                logger.exception(e)
+            logger.error(e)
+            print >> sys.stderr, e
+            sys.exit(1)
+
+    sys.exit(0)
+
+except Exception, msg:
+    logger.error(msg)
+    print >> sys.stderr, msg
+    sys.exit(1)
+
+finally:
+    if pool:
+        pool.haltWork()

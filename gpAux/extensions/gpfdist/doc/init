@@ -1,0 +1,58 @@
+
+INITDB
+=======
+
+HA
+===
+
+1. check $GPHOME/bin/initdb exists
+2. check data directory exists  (data directory should not exist)
+3. check database is running    (database should not run)
+4. running initdb
+
+$GPHOME/bin/initdb -E %s -D %s --locale=%s --max_connections=%d --shared_buffers=%s > /dev/null 2>&1" %
+   (encoding, data_dir, locale, max_connect, shared_buffer)
+
+5. append host and IP to pg_hba.conf
+
+Please see function gpcc_pg_hba_append in libgpcc/gpcc_pg.c
+Please see function gpcc_master_pg_hba_append in libgpcc/gpcc_pg.c
+
+
+6. update postgresql.conf
+
+please see function gpcc_pg_update_postgresql_conf in libgpcc/gpcc_pg.c
+
+7. start QD or QE in utility mode  (see start)
+
+8. update gp_id table
+
+"insert into gp_id (gpname, numsegments, dbid, content) values ('%s', %d, %d, %d)",
+		    gpname, numseg, dbid, content);
+
+9. updata gp_configuraton table
+
+"insert into gp_configuration (dbid, isprimary, content, valid, definedprimary, hostname, port, datadir) values (%d, '%s', %d, 't', '%s', '%s', %d, '%s')",
+	    dbid, primary, content, primary, hostname, seg_port, data_dir);
+
+10. if QD,  change password
+"alter user %s password '%s'", user, password);
+
+11. stop segment
+
+waitflag = (wait ? "-w" : "-W")
+option= "-i -p %d", port
+
+PGPORT=%d $GPHOME/bin/pg_ctl stop -D %s -o \"%s\" -m %s %s >> %s.log 2>&1" %
+(port, GPHOME, data_dir, option, mode, waitflag, data_dir)
+ 
+
+
+MA
+===
+
+1.  do initdb for all segment except standby QD
+2.  copy data drom master QD to standby QD
+    "scp -r %s %s:%s" % ( seginfo[master_qd_idx].dir,
+	    seginfo[standby_qd_idx].host,
+	    seginfo[standby_qd_idx].dir)

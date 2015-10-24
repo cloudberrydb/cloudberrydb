@@ -7,9 +7,11 @@ SET search_path = public;
 --
 -- Turn off echoing so that expected file does not depend on
 -- contents of dblink.sql.
+SET client_min_messages = warning;
 \set ECHO none
 \i dblink.sql
 \set ECHO all
+RESET client_min_messages;
 
 CREATE TABLE foo(f1 int, f2 text, f3 text[], primary key (f1,f2));
 INSERT INTO foo VALUES (0,'a','{"a0","b0","c0"}');
@@ -24,9 +26,6 @@ INSERT INTO foo VALUES (8,'i','{"a8","b8","c8"}');
 INSERT INTO foo VALUES (9,'j','{"a9","b9","c9"}');
 
 -- misc utilities
-
--- show the currently executing query
-SELECT 'hello' AS hello, dblink_current_query() AS query;
 
 -- list the primary key fields
 SELECT *
@@ -341,10 +340,27 @@ UNION
 (SELECT * from dblink_get_result('dtest3') as t3(f1 int, f2 text, f3 text[]))
 ORDER by f1;
 
-SELECT dblink_get_connections();
+-- dblink_get_connections returns an array with elements in a machine-dependent
+-- ordering, so we must resort to unnesting and sorting for a stable result
+create function unnest(anyarray) returns setof anyelement
+language sql strict immutable as $$
+select $1[i] from generate_series(array_lower($1,1), array_upper($1,1)) as i
+$$;
+
+SELECT * FROM unnest(dblink_get_connections()) ORDER BY 1;
+
+SELECT dblink_is_busy('dtest1');
 
 SELECT dblink_disconnect('dtest1');
 SELECT dblink_disconnect('dtest2');
 SELECT dblink_disconnect('dtest3');
+
 SELECT * from result;
 
+SELECT dblink_connect('dtest1', 'dbname=contrib_regression');
+SELECT * from 
+ dblink_send_query('dtest1', 'select * from foo where f1 < 3') as t1;
+
+SELECT dblink_cancel_query('dtest1');
+SELECT dblink_error_message('dtest1');
+SELECT dblink_disconnect('dtest1');

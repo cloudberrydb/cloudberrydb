@@ -83,19 +83,13 @@ insert into fkeys values (60, '6', 4);
 ERROR:  tuple references non-existent key
 DETAIL:  Trigger "check_fkeys_pkey2_exist" found tuple referencing non-existent key in "fkeys2".
 delete from pkeys where pkey1 = 30 and pkey2 = '3';
-NOTICE:  check_pkeys_fkey_cascade: 1 tuple(s) of fkeys are deleted
 ERROR:  "check_fkeys2_fkey_restrict": tuple is referenced in "fkeys"
 CONTEXT:  SQL statement "delete from fkeys2 where fkey21 = $1 and fkey22 = $2 "
 delete from pkeys where pkey1 = 40 and pkey2 = '4';
-NOTICE:  check_pkeys_fkey_cascade: 1 tuple(s) of fkeys are deleted
-NOTICE:  check_pkeys_fkey_cascade: 1 tuple(s) of fkeys2 are deleted
 update pkeys set pkey1 = 7, pkey2 = '70' where pkey1 = 50 and pkey2 = '5';
-NOTICE:  check_pkeys_fkey_cascade: 1 tuple(s) of fkeys are deleted
 ERROR:  "check_fkeys2_fkey_restrict": tuple is referenced in "fkeys"
 CONTEXT:  SQL statement "delete from fkeys2 where fkey21 = $1 and fkey22 = $2 "
 update pkeys set pkey1 = 7, pkey2 = '70' where pkey1 = 10 and pkey2 = '1';
-NOTICE:  check_pkeys_fkey_cascade: 1 tuple(s) of fkeys are deleted
-NOTICE:  check_pkeys_fkey_cascade: 1 tuple(s) of fkeys2 are deleted
 DROP TABLE pkeys;
 DROP TABLE fkeys;
 DROP TABLE fkeys2;
@@ -332,7 +326,7 @@ create function trigtest() returns trigger as $$
 begin
 	raise notice '% % % %', TG_RELNAME, TG_OP, TG_WHEN, TG_LEVEL;
 	return new;
-end;$$ language plpgsql;
+end;$$ language plpgsql immutable;
 create trigger trigtest_b_row_tg before insert or update or delete on trigtest
 for each row execute procedure trigtest();
 create trigger trigtest_a_row_tg after insert or update or delete on trigtest

@@ -4,7 +4,7 @@
  *	  creator functions for primitive nodes. The functions here are for
  *	  the most frequently created nodes.
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2008, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -14,6 +14,7 @@
  *-------------------------------------------------------------------------
  */
 #include "postgres.h"
+#include "funcapi.h"
 
 #include "catalog/pg_type.h"
 #include "nodes/makefuncs.h"
@@ -84,6 +85,9 @@ makeVar(Index varno,
 	var->varnoold = varno;
 	var->varoattno = varattno;
 
+	/* Likewise, we just set location to "unknown" here */
+	var->location = -1;
+
 	return var;
 }
 
@@ -98,10 +102,12 @@ makeTargetEntry(Expr *expr,
 				bool resjunk)
 {
 	TargetEntry *tle = makeNode(TargetEntry);
-
+	
 	tle->expr = expr;
 	tle->resno = resno;
 	tle->resname = resname;
+	
+	Assert(tle->resno >= 1);
 
 	/*
 	 * We always set these fields to 0. If the caller wants to change them he
@@ -140,6 +146,7 @@ flatCopyTargetEntry(TargetEntry *src_tle)
  */
 Const *
 makeConst(Oid consttype,
+		  int32 consttypmod,
 		  int constlen,
 		  Datum constvalue,
 		  bool constisnull,
@@ -152,22 +159,27 @@ makeConst(Oid consttype,
 	cnst->constvalue = constvalue;
 	cnst->constisnull = constisnull;
 	cnst->constbyval = constbyval;
+	cnst->location = -1;		/* "unknown" */
 
 	return cnst;
 }
 
 /*
  * makeNullConst -
- *	  creates a Const node representing a NULL of the specified type
+ *	  creates a Const node representing a NULL of the specified type/typmod
+ *
+ * This is a convenience routine that just saves a lookup of the type's
+ * storage properties.
  */
 Const *
-makeNullConst(Oid consttype)
+makeNullConst(Oid consttype, int consttypmod)
 {
 	int16		typLen;
 	bool		typByVal;
 
 	get_typlenbyval(consttype, &typLen, &typByVal);
 	return makeConst(consttype,
+					 consttypmod,
 					 (int) typLen,
 					 (Datum) 0,
 					 true,
@@ -182,7 +194,7 @@ Node *
 makeBoolConst(bool value, bool isnull)
 {
 	/* note that pg_type.h hardwires size of bool as 1 ... duplicate it */
-	return (Node *) makeConst(BOOLOID, 1, BoolGetDatum(value), isnull, true);
+	return (Node *) makeConst(BOOLOID, -1, 1, BoolGetDatum(value), isnull, true);
 }
 
 /*
@@ -190,12 +202,13 @@ makeBoolConst(bool value, bool isnull)
  *	  creates a BoolExpr node
  */
 Expr *
-makeBoolExpr(BoolExprType boolop, List *args)
+makeBoolExpr(BoolExprType boolop, List *args, int location)
 {
 	BoolExpr   *b = makeNode(BoolExpr);
 
 	b->boolop = boolop;
 	b->args = args;
+	b->location = location;
 
 	return (Expr *) b;
 }
@@ -230,6 +243,7 @@ makeRelabelType(Expr *arg, Oid rtype, int32 rtypmod, CoercionForm rformat)
 	r->resulttype = rtype;
 	r->resulttypmod = rtypmod;
 	r->relabelformat = rformat;
+	r->location = -1;
 
 	return r;
 }
@@ -239,7 +253,7 @@ makeRelabelType(Expr *arg, Oid rtype, int32 rtypmod, CoercionForm rformat)
  *	  creates a RangeVar node (rather oversimplified case)
  */
 RangeVar *
-makeRangeVar(char *schemaname, char *relname)
+makeRangeVar(char *schemaname, char *relname, int location)
 {
 	RangeVar   *r = makeNode(RangeVar);
 
@@ -249,6 +263,7 @@ makeRangeVar(char *schemaname, char *relname)
 	r->inhOpt = INH_DEFAULT;
 	r->istemp = false;
 	r->alias = NULL;
+	r->location = location;
 
 	return r;
 }
@@ -282,6 +297,7 @@ makeTypeNameFromNameList(List *names)
 	TypeName   *n = makeNode(TypeName);
 
 	n->names = names;
+	n->typmods = NIL;
 	n->typmod = -1;
 	n->location = -1;
 	return n;
@@ -292,11 +308,11 @@ makeTypeNameFromNameList(List *names)
  *	build a TypeName node to represent a type already known by OID.
  */
 TypeName *
-makeTypeNameFromOid(Oid typeid, int32 typmod)
+makeTypeNameFromOid(Oid typid, int32 typmod)
 {
 	TypeName   *n = makeNode(TypeName);
 
-	n->typeid = typeid;
+	n->typid = typid;
 	n->typmod = typmod;
 	n->location = -1;
 	return n;
@@ -319,6 +335,7 @@ makeFuncExpr(Oid funcid, Oid rettype, List *args, CoercionForm fformat)
 	funcexpr->funcretset = false;		/* only allowed case here */
 	funcexpr->funcformat = fformat;
 	funcexpr->args = args;
+	funcexpr->location = -1;
 
 	return funcexpr;
 }
@@ -326,6 +343,9 @@ makeFuncExpr(Oid funcid, Oid rettype, List *args, CoercionForm fformat)
 /*
  * makeDefElem -
  *	build a DefElem node
+ *
+ * This is sufficient for the "typical" case with an unqualified option name
+ * and no special action.
  */
 DefElem *
 makeDefElem(char *name, Node *arg)
@@ -334,5 +354,51 @@ makeDefElem(char *name, Node *arg)
 
 	res->defname = name;
 	res->arg = arg;
+	res->defaction = DEFELEM_UNSPEC;
 	return res;
 }
+
+/*
+ * makeDefElemExtended -
+ *	build a DefElem node with all fields available to be specified
+ */
+DefElem *
+makeDefElemExtended(/*char *nameSpace, */char *name, Node *arg,
+					DefElemAction defaction)
+{
+	DefElem    *res = makeNode(DefElem);
+
+	/*res->defnamespace = nameSpace;*/
+	res->defname = name;
+	res->arg = arg;
+	res->defaction = defaction;
+
+	return res;
+}
+
+/*
+ * makeAggrefByOid -
+ * 	make a trivial aggregate expression.
+ *
+ * If you need more info, add it to the returned pointer.
+ */
+Aggref *
+makeAggrefByOid(Oid aggfnoid, List *args)
+{
+	Aggref	   *aggref;
+	Oid			rettype;
+
+	get_func_result_type(aggfnoid, &rettype, NULL);
+	aggref = makeNode(Aggref);
+	aggref->aggfnoid = aggfnoid;
+	aggref->aggtype = rettype;
+	aggref->args = args;
+	aggref->agglevelsup = 0;
+	aggref->aggstar = false;
+	aggref->aggdistinct = false;
+	aggref->aggstage = AGGSTAGE_NORMAL;
+	aggref->aggorder = NULL;
+
+	return aggref;
+}
+

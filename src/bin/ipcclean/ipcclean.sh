@@ -48,6 +48,14 @@ EffectiveUser=`id -n -u 2>/dev/null || whoami 2>/dev/null`
 # Feel free to add yours here.
 #-----------------------------------
 #
+# Solaris '/bin/ipcs' truncates usernames to 8 characters
+#
+if [ `uname` = 'SunOS' ]; then
+    EffectiveUser=`/usr/ucb/whoami | awk '{print substr($1, 1, 8)}'`
+fi
+# end Solaris
+#
+#
 # This is based on RedHat 5.2.
 #
 if [ `uname` = 'Linux' ]; then

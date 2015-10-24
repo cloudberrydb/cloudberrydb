@@ -1,0 +1,75 @@
+******************************************************************
+ABOUT GP DEMO
+******************************************************************
+
+The GP demo program will setup a virtual Greenplum Database system on a 
+single host. It creates and starts a GP master instance and three 
+segment instances within the same directory. Running GP demo is a good 
+way to test your initial installation before deploying the Greenplum Database 
+software on a multi-host array. It is also a good way to become familiar 
+with the system without investing the time involved in a multi-host setup.
+
+******************************************************************
+BEFORE YOU BEGIN
+******************************************************************
+
+Before running GP demo, you must at least 110 MB of free disk space, 
+and have ports 18501, 18506, 18507, and 18508 free.
+
+PREREQUISITES FOR SOLARIS USERS
+
+* Make sure that make, tar, and a C compiler (gcc recommended) 
+  is in your $PATH. 
+
+* Verify that your $USER environment variable is set. 
+
+* Greenplum recommends using the bash shell to run the GP demo programs.
+
+******************************************************************
+RUNNING GP DEMO
+******************************************************************
+
+1. Login as the Greenplum designated user (i.e. 'bgadmin').
+
+	su - bgadmin
+
+2. Go to the directory where you wish to unpack and run the Greenplum demo 
+   program. This directory should have at least 110 MB of free space.
+
+3. Unzip and untar gpdemo:
+
+	tar -xvzf $GPHOME/gpMgmt/demo/gpdemo.tar.gz
+
+4. Go into the gpdemo directory you just untarred:
+
+	cd gpdemo
+
+5. Run make:
+
+	make
+
+6. If setup completes correctly, you will have a virtual Greenplum Database 
+   system running on the local host. You can connect to it using the 
+   psql client program as follows:
+
+	psql template1 -p 18501
+
+7. To exit the psql client program:
+
+	\q
+
+8. See the Greenplum Database User Guide for more information on using 
+   your Greenplum Database system.
+
+
+******************************************************************
+REMOVING GP DEMO
+******************************************************************
+
+1. From the gpdemo directory run make clean:
+
+	make clean
+
+2. This will stop all Greenplum Database demo server processes and remove all 
+   files and directories created by the GP demo program.
+

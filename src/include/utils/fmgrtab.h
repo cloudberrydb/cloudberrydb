@@ -3,10 +3,10 @@
  * fmgrtab.h
  *	  The function manager's table of internal functions.
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
- * $PostgreSQL: pgsql/src/include/utils/fmgrtab.h,v 1.26 2006/03/05 15:59:07 momjian Exp $
+ * $PostgreSQL: pgsql/src/include/utils/fmgrtab.h,v 1.29 2009/01/01 17:24:02 momjian Exp $
  *
  *-------------------------------------------------------------------------
  */

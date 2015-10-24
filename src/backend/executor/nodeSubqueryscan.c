@@ -7,12 +7,13 @@
  * we need two sets of code.  Ought to look at trying to unify the cases.
  *
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 2006-2008, Greenplum inc
+ * Portions Copyright (c) 1996-2008, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/executor/nodeSubqueryscan.c,v 1.32 2006/10/04 00:29:53 momjian Exp $
+ *	  $PostgreSQL: pgsql/src/backend/executor/nodeSubqueryscan.c,v 1.32.2.2 2006/12/26 21:37:28 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -27,8 +28,10 @@
  */
 #include "postgres.h"
 
+#include "cdb/cdbvars.h"
 #include "executor/execdebug.h"
 #include "executor/nodeSubqueryscan.h"
+#include "optimizer/var.h"              /* CDB: contain_var_reference() */
 #include "parser/parsetree.h"
 
 static TupleTableSlot *SubqueryNext(SubqueryScanState *node);
@@ -49,7 +52,6 @@ SubqueryNext(SubqueryScanState *node)
 	EState	   *estate;
 	ScanDirection direction;
 	TupleTableSlot *slot;
-	MemoryContext oldcontext;
 
 	/*
 	 * get information from the estate and scan state
@@ -63,16 +65,11 @@ SubqueryNext(SubqueryScanState *node)
 	 */
 
 	/*
-	 * Get the next tuple from the sub-query.  We have to be careful to run it
-	 * in its appropriate memory context.
+	 * Get the next tuple from the sub-query.
 	 */
 	node->sss_SubEState->es_direction = direction;
 
-	oldcontext = MemoryContextSwitchTo(node->sss_SubEState->es_query_cxt);
-
 	slot = ExecProcNode(node->subplan);
-
-	MemoryContextSwitchTo(oldcontext);
 
 	/*
 	 * We just overwrite our ScanTupleSlot with the subplan's result slot,
@@ -80,7 +77,22 @@ SubqueryNext(SubqueryScanState *node)
 	 */
 	node->ss.ss_ScanTupleSlot = slot;
 
-	return slot;
+    /*
+     * CDB: Label each row with a synthetic ctid if needed for subquery dedup.
+     */
+    if (node->cdb_want_ctid &&
+        !TupIsNull(slot))
+    {
+    	slot_set_ctid_from_fake(slot, &node->cdb_fake_ctid);
+    }
+
+    if (!TupIsNull(slot))
+    {
+        Gpmon_M_Incr_Rows_Out(GpmonPktFromSubqueryScanState(node));
+        CheckSendPlanStateGpmonPkt(&node->ss.ps);
+    }
+
+    return slot;
 }
 
 /* ----------------------------------------------------------------
@@ -110,18 +122,26 @@ SubqueryScanState *
 ExecInitSubqueryScan(SubqueryScan *node, EState *estate, int eflags)
 {
 	SubqueryScanState *subquerystate;
-	RangeTblEntry *rte;
 	EState	   *sp_estate;
-	MemoryContext oldcontext;
 
 	/* check for unsupported flags */
 	Assert(!(eflags & EXEC_FLAG_MARK));
 
 	/*
-	 * SubqueryScan should not have any "normal" children.
+	 * SubqueryScan should not have any "normal" children.  Also, if planner
+	 * left anything in subrtable, it's fishy.
 	 */
 	Assert(outerPlan(node) == NULL);
 	Assert(innerPlan(node) == NULL);
+	Assert(node->subrtable == NIL);
+
+	/*
+	 * Since subquery nodes create its own executor state,
+	 * and pass it down to its child nodes, we always
+	 * initialize the subquery node. However, some
+	 * fields are not initialized if not necessary, see
+	 * below.
+	 */
 
 	/*
 	 * create state structure
@@ -147,6 +167,10 @@ ExecInitSubqueryScan(SubqueryScan *node, EState *estate, int eflags)
 		ExecInitExpr((Expr *) node->scan.plan.qual,
 					 (PlanState *) subquerystate);
 
+	/* Check if targetlist or qual contains a var node referencing the ctid column */
+	subquerystate->cdb_want_ctid = contain_ctid_var_reference(&node->scan);
+	ItemPointerSetInvalid(&subquerystate->cdb_fake_ctid);
+
 #define SUBQUERYSCAN_NSLOTS 2
 
 	/*
@@ -159,27 +183,16 @@ ExecInitSubqueryScan(SubqueryScan *node, EState *estate, int eflags)
 	 * initialize subquery
 	 *
 	 * This should agree with ExecInitSubPlan
-	 */
-	rte = rt_fetch(node->scan.scanrelid, estate->es_range_table);
-	Assert(rte->rtekind == RTE_SUBQUERY);
-
-	/*
-	 * Do access checking on the rangetable entries in the subquery.
-	 */
-	ExecCheckRTPerms(rte->subquery->rtable);
-
-	/*
+	 *
 	 * The subquery needs its own EState because it has its own rangetable. It
-	 * shares our Param ID space, however.	XXX if rangetable access were done
-	 * differently, the subquery could share our EState, which would eliminate
-	 * some thrashing about in this module...
+	 * shares our Param ID space and es_query_cxt, however.  XXX if rangetable
+	 * access were done differently, the subquery could share our EState,
+	 * which would eliminate some thrashing about in this module...
 	 */
-	sp_estate = CreateExecutorState();
+	sp_estate = CreateSubExecutorState(estate);
 	subquerystate->sss_SubEState = sp_estate;
 
-	oldcontext = MemoryContextSwitchTo(sp_estate->es_query_cxt);
-
-	sp_estate->es_range_table = rte->subquery->rtable;
+	sp_estate->es_range_table = estate->es_range_table;
 	sp_estate->es_param_list_info = estate->es_param_list_info;
 	sp_estate->es_param_exec_vals = estate->es_param_exec_vals;
 	sp_estate->es_tupleTable =
@@ -187,15 +200,36 @@ ExecInitSubqueryScan(SubqueryScan *node, EState *estate, int eflags)
 	sp_estate->es_snapshot = estate->es_snapshot;
 	sp_estate->es_crosscheck_snapshot = estate->es_crosscheck_snapshot;
 	sp_estate->es_instrument = estate->es_instrument;
+	sp_estate->es_plannedstmt = estate->es_plannedstmt;
+
+	/*
+	 * "Loan" the global slice table and map to the subplan EState.  The
+	 * global state is already set up by the code that called us.
+	 */
+	sp_estate->es_sliceTable = estate->es_sliceTable;
+	sp_estate->currentSliceIdInPlan = estate->currentSliceIdInPlan;
+	sp_estate->currentExecutingSliceId = estate->currentExecutingSliceId;
+	sp_estate->rootSliceId = estate->currentExecutingSliceId;
+	
+	/* 
+	 * also load shared nodes list 
+	 */
+	sp_estate->es_sharenode = estate->es_sharenode;
+
+	/*
+	 * also loan the motion later state and interconnect state
+	 */
+	sp_estate->motionlayer_context = estate->motionlayer_context;
+	sp_estate->interconnect_context = estate->interconnect_context;
+
 
 	/*
 	 * Start up the subplan (this is a very cut-down form of InitPlan())
 	 */
 	subquerystate->subplan = ExecInitNode(node->subplan, sp_estate, eflags);
 
-	MemoryContextSwitchTo(oldcontext);
-
-	subquerystate->ss.ps.ps_TupFromTlist = false;
+	/* return borrowed share node list */
+	estate->es_sharenode = sp_estate->es_sharenode;
 
 	/*
 	 * Initialize scan tuple type (needed by ExecAssignScanProjectionInfo).
@@ -204,13 +238,15 @@ ExecInitSubqueryScan(SubqueryScan *node, EState *estate, int eflags)
 	 * too soon during shutdown.
 	 */
 	ExecAssignScanType(&subquerystate->ss,
-			 CreateTupleDescCopy(ExecGetResultType(subquerystate->subplan)));
+			CreateTupleDescCopy(ExecGetResultType(subquerystate->subplan)));
 
 	/*
 	 * Initialize result tuple type and projection info.
 	 */
 	ExecAssignResultTypeFromTL(&subquerystate->ss.ps);
 	ExecAssignScanProjectionInfo(&subquerystate->ss);
+
+	initGpmonPktForSubqueryScan((Plan *)node, &subquerystate->ss.ps.gpmon_pkt, estate);
 
 	return subquerystate;
 }
@@ -235,8 +271,6 @@ ExecCountSlotsSubqueryScan(SubqueryScan *node)
 void
 ExecEndSubqueryScan(SubqueryScanState *node)
 {
-	MemoryContext oldcontext;
-
 	/*
 	 * Free the exprcontext
 	 */
@@ -245,17 +279,19 @@ ExecEndSubqueryScan(SubqueryScanState *node)
 	/*
 	 * clean out the upper tuple table
 	 */
-	ExecClearTuple(node->ss.ps.ps_ResultTupleSlot);
-	node->ss.ss_ScanTupleSlot = NULL;	/* not ours to clear */
+	if (node->ss.ss_ScanTupleSlot != NULL)
+	{
+		ExecClearTuple(node->ss.ps.ps_ResultTupleSlot);
+		node->ss.ss_ScanTupleSlot = NULL;	/* not ours to clear */
+	}
+
+	/* gpmon */
+	EndPlanStateGpmonPkt(&node->ss.ps);
 
 	/*
 	 * close down subquery
 	 */
-	oldcontext = MemoryContextSwitchTo(node->sss_SubEState->es_query_cxt);
-
 	ExecEndPlan(node->subplan, node->sss_SubEState);
-
-	MemoryContextSwitchTo(oldcontext);
 
 	FreeExecutorState(node->sss_SubEState);
 }
@@ -270,11 +306,10 @@ void
 ExecSubqueryReScan(SubqueryScanState *node, ExprContext *exprCtxt)
 {
 	EState	   *estate;
-	MemoryContext oldcontext;
 
 	estate = node->ss.ps.state;
 
-	oldcontext = MemoryContextSwitchTo(node->sss_SubEState->es_query_cxt);
+	ItemPointerSet(&node->cdb_fake_ctid, 0, 0);
 
 	/*
 	 * ExecReScan doesn't know about my subplan, so I have to do
@@ -291,7 +326,25 @@ ExecSubqueryReScan(SubqueryScanState *node, ExprContext *exprCtxt)
 	if (node->subplan->chgParam == NULL)
 		ExecReScan(node->subplan, NULL);
 
-	MemoryContextSwitchTo(oldcontext);
-
 	node->ss.ss_ScanTupleSlot = NULL;
+	/*node->ss.ps.ps_TupFromTlist = false;*/
+
+	Gpmon_M_Incr(GpmonPktFromSubqueryScanState(node), GPMON_SUBQUERYSCAN_RESCAN);
+	CheckSendPlanStateGpmonPkt(&node->ss.ps);
+}
+	
+void
+initGpmonPktForSubqueryScan(Plan *planNode, gpmon_packet_t *gpmon_pkt, EState *estate)
+{
+	RangeTblEntry *rte;
+	Assert(planNode != NULL && gpmon_pkt != NULL && IsA(planNode, SubqueryScan));
+
+	rte = rt_fetch(((SubqueryScan *)planNode)->scan.scanrelid, estate->es_range_table);
+
+	if (rte && rte->rtekind != RTE_VOID)
+	{
+		InitPlanNodeGpmonPkt(planNode, gpmon_pkt, estate, PMNT_SubqueryScan,
+							 (int64)planNode->plan_rows, 
+							 rte->eref->aliasname); 
+	}
 }

@@ -3,7 +3,7 @@
  * pg_autovacuum.h
  *	  definition of the system "autovacuum" relation (pg_autovacuum)
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2008, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * $PostgreSQL: pgsql/src/include/catalog/pg_autovacuum.h,v 1.5 2006/11/05 22:42:10 tgl Exp $
@@ -13,12 +13,30 @@
 #ifndef PG_AUTOVACUUM_H
 #define PG_AUTOVACUUM_H
 
-/* ----------------
- *		postgres.h contains the system type definitions and the
- *		CATALOG(), BOOTSTRAP and DATA() sugar words so this file
- *		can be read by both genbki.sh and the C compiler.
- * ----------------
- */
+#include "catalog/genbki.h"
+
+/* TIDYCAT_BEGINFAKEDEF
+
+   CREATE TABLE pg_autovacuum
+   with (oid=false, relid=1248)
+   (
+   vacrelid          oid, 
+   enabled           boolean, 
+   vac_base_thresh   integer, 
+   vac_scale_factor  real, 
+   anl_base_thresh   integer, 
+   anl_scale_factor  real, 
+   vac_cost_delay    integer, 
+   vac_cost_limit    integer, 
+   freeze_min_age    integer, 
+   freeze_max_age    integer
+   );
+
+   create unique index on pg_autovacuum(vacrelid) with (indexid=1250, CamelCase=AutovacuumRelid);
+
+   TIDYCAT_ENDFAKEDEF
+*/
+
 
 /* ----------------
  *		pg_autovacuum definition.	cpp turns this into

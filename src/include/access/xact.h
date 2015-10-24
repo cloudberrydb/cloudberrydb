@@ -4,7 +4,7 @@
  *	  postgres transaction system definitions
  *
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * $PostgreSQL: pgsql/src/include/access/xact.h,v 1.83 2006/07/11 18:26:11 momjian Exp $
@@ -18,7 +18,9 @@
 #include "nodes/pg_list.h"
 #include "storage/relfilenode.h"
 #include "utils/timestamp.h"
+#include "access/persistentendxactrec.h"
 
+#include "cdb/cdbpublic.h"
 
 /*
  * Xact isolation levels
@@ -78,30 +80,42 @@ typedef void (*SubXactCallback) (SubXactEvent event, SubTransactionId mySubid,
 #define XLOG_XACT_ABORT				0x20
 #define XLOG_XACT_COMMIT_PREPARED	0x30
 #define XLOG_XACT_ABORT_PREPARED	0x40
+#define XLOG_XACT_DISTRIBUTED_COMMIT 0x50
+#define XLOG_XACT_DISTRIBUTED_FORGET 0x60
 
 typedef struct xl_xact_commit
 {
 	time_t		xtime;
-	int			nrels;			/* number of RelFileNodes */
+
+	int16		persistentCommitObjectCount;	
+								/* number of PersistentEndXactRec style objects */
+
 	int			nsubxacts;		/* number of subtransaction XIDs */
-	/* Array of RelFileNode(s) to drop at commit */
-	RelFileNode xnodes[1];		/* VARIABLE LENGTH ARRAY */
+
+	/* PersistentEndXactRec style objects for commit */
+	uint8 data[0];		/* VARIABLE LENGTH ARRAY */
+
 	/* ARRAY OF COMMITTED SUBTRANSACTION XIDs FOLLOWS */
 } xl_xact_commit;
 
-#define MinSizeOfXactCommit offsetof(xl_xact_commit, xnodes)
+#define MinSizeOfXactCommit offsetof(xl_xact_commit, data)
 
 typedef struct xl_xact_abort
 {
 	time_t		xtime;
-	int			nrels;			/* number of RelFileNodes */
+
+	int16		persistentAbortObjectCount;	
+								/* number of PersistentEndXactRec style objects */
+
 	int			nsubxacts;		/* number of subtransaction XIDs */
-	/* Array of RelFileNode(s) to drop at abort */
-	RelFileNode xnodes[1];		/* VARIABLE LENGTH ARRAY */
-	/* ARRAY OF ABORTED SUBTRANSACTION XIDs FOLLOWS */
+	
+	/* PersistentEndXactRec style objects for abort */
+	uint8 data[0];		/* VARIABLE LENGTH ARRAY */
+	
+	/* ARRAY OF COMMITTED SUBTRANSACTION XIDs FOLLOWS */
 } xl_xact_abort;
 
-#define MinSizeOfXactAbort offsetof(xl_xact_abort, xnodes)
+#define MinSizeOfXactAbort offsetof(xl_xact_abort, data)
 
 /*
  * COMMIT_PREPARED and ABORT_PREPARED are identical to COMMIT/ABORT records
@@ -117,7 +131,7 @@ typedef struct xl_xact_commit_prepared
 	/* MORE DATA FOLLOWS AT END OF STRUCT */
 } xl_xact_commit_prepared;
 
-#define MinSizeOfXactCommitPrepared offsetof(xl_xact_commit_prepared, crec.xnodes)
+#define MinSizeOfXactCommitPrepared offsetof(xl_xact_commit_prepared, crec.data)
 
 typedef struct xl_xact_abort_prepared
 {
@@ -126,15 +140,59 @@ typedef struct xl_xact_abort_prepared
 	/* MORE DATA FOLLOWS AT END OF STRUCT */
 } xl_xact_abort_prepared;
 
-#define MinSizeOfXactAbortPrepared offsetof(xl_xact_abort_prepared, arec.xnodes)
+#define MinSizeOfXactAbortPrepared offsetof(xl_xact_abort_prepared, arec.data)
 
+/* 
+ * xl_xact_distributed_forget - moved to cdb/cdbtm.h 
+ */
+typedef struct xl_xact_distributed_forget
+{
+	TMGXACT_LOG gxact_log;
+} xl_xact_distributed_forget;
+
+/*
+ * Maximum number of subtransactions per transaction allowed under MPP until
+ * we can move away from a static length SharedSnapshot structure.
+ */
+#define MaxGpSavePoints 100
+
+typedef enum
+{
+	XACT_INFOKIND_NONE = 0,
+	XACT_INFOKIND_COMMIT,
+	XACT_INFOKIND_ABORT,
+	XACT_INFOKIND_PREPARE
+} XactInfoKind;
+
+typedef struct XidBuffer
+{
+	uint32          max_bufs;
+	uint32          actual_bufs;
+	uint32          last_buf_cnt;
+	TransactionId   **ids_buf;
+} XidBuffer;
+
+extern XidBuffer subxbuf;
+extern File subxip_file;
 
 /* ----------------
  *		extern definitions
  * ----------------
  */
+
+/* Greenplum Database specific */ 
+extern char *XactInfoKind_Name(
+	const XactInfoKind		kind);
+extern void SetSharedTransactionId(void);
+extern void SetSharedTransactionId_reader(TransactionId xid, CommandId cid);
+extern void SetXactSeqXlog(void);
 extern bool IsTransactionState(void);
+extern bool IsAbortInProgress(void);
 extern bool IsAbortedTransactionBlockState(void);
+extern void GetAllTransactionXids(
+	DistributedTransactionId	*distribXid,
+	TransactionId				*localXid,
+	TransactionId				*subXid);
 extern TransactionId GetTopTransactionId(void);
 extern TransactionId GetCurrentTransactionId(void);
 extern TransactionId GetCurrentTransactionIdIfAny(void);
@@ -142,7 +200,9 @@ extern SubTransactionId GetCurrentSubTransactionId(void);
 extern CommandId GetCurrentCommandId(void);
 extern TimestampTz GetCurrentTransactionStartTimestamp(void);
 extern TimestampTz GetCurrentStatementStartTimestamp(void);
+extern TimestampTz GetCurrentTransactionStopTimestamp(void);
 extern void SetCurrentStatementStartTimestamp(void);
+extern void SetCurrentStatementStartTimestampToMaster(TimestampTz masterTime);
 extern int	GetCurrentTransactionNestLevel(void);
 extern bool TransactionIdIsCurrentTransactionId(TransactionId xid);
 extern void CommandCounterIncrement(void);
@@ -155,13 +215,19 @@ extern bool PrepareTransactionBlock(char *gid);
 extern void UserAbortTransactionBlock(void);
 extern void ReleaseSavepoint(List *options);
 extern void DefineSavepoint(char *name);
+extern void DefineDispatchSavepoint(char *name);
 extern void RollbackToSavepoint(List *options);
 extern void BeginInternalSubTransaction(char *name);
 extern void ReleaseCurrentSubTransaction(void);
 extern void RollbackAndReleaseCurrentSubTransaction(void);
+extern void TransactionInformationQEWriter(DistributedTransactionId *QEDistributedTransactionId, CommandId *QECommandId, bool *QEDirty);
 extern bool IsSubTransaction(void);
 extern bool IsTransactionBlock(void);
 extern bool IsTransactionOrTransactionBlock(void);
+extern bool IsTransactionDirty(void);
+extern void ExecutorMarkTransactionUsesSequences(void);
+extern void ExecutorMarkTransactionDoesWrites(void);
+extern bool ExecutorSaysTransactionDoesWrites(void);
 extern char TransactionBlockStatusCode(void);
 extern void AbortOutOfAnyTransaction(void);
 extern void PreventTransactionChain(void *stmtNode, const char *stmtType);
@@ -169,14 +235,45 @@ extern void RequireTransactionChain(void *stmtNode, const char *stmtType);
 extern bool IsInTransactionChain(void *stmtNode);
 extern void RegisterXactCallback(XactCallback callback, void *arg);
 extern void UnregisterXactCallback(XactCallback callback, void *arg);
+extern void RegisterXactCallbackOnce(XactCallback callback, void *arg);
+extern void UnregisterXactCallbackOnce(XactCallback callback, void *arg);
 extern void RegisterSubXactCallback(SubXactCallback callback, void *arg);
 extern void UnregisterSubXactCallback(SubXactCallback callback, void *arg);
 
 extern void RecordTransactionCommit(void);
+extern void RecordDistributedForgetCommitted(struct TMGXACT_LOG *gxact_log);
+extern bool RecordCrashTransactionAbortRecord(
+	TransactionId				xid,
+	PersistentEndXactRecObjects *persistentAbortObjects);
 
 extern int	xactGetCommittedChildren(TransactionId **ptr);
 
-extern void xact_redo(XLogRecPtr lsn, XLogRecord *record);
-extern void xact_desc(StringInfo buf, uint8 xl_info, char *rec);
+extern void xact_redo(XLogRecPtr beginLoc, XLogRecPtr lsn, XLogRecord *record);
+extern bool xact_redo_get_info(
+		XLogRecord					*record,
+		XactInfoKind				*infoKind,
+		TransactionId				*xid,
+		PersistentEndXactRecObjects *persistentObjects,
+		TransactionId				**subXids,
+		int 						*subXidCount);
+extern void xact_desc(StringInfo buf, XLogRecPtr beginLoc, XLogRecord *record);
+extern const char *IsoLevelAsUpperString(int IsoLevel);
+
+#ifdef WATCH_VISIBILITY_IN_ACTION
+extern char* WatchCurrentTransactionString(void);
+#endif
+
+extern bool FindXidInXidBuffer(XidBuffer *xidbuf,
+			       TransactionId xid, uint32 *cnt, int32 *index);
+extern void AddSortedToXidBuffer(XidBuffer *xidbuf, TransactionId *xids,
+                                 uint32 cnt);
+extern void ResetXidBuffer(XidBuffer *xidbuf);
+extern TransactionId GetLastTransactionIdFromSnapshot(DistributedTransactionId);
+
+void ShowSubtransactionsForSharedSnapshot(void);
+void GetSubXidsInXidBuffer(void);
+void UpdateSubtransactionsInSharedSnapshot(DistributedTransactionId dxid);
+
+extern void ClearTransactionFromPgProc_UnderLock(void);
 
 #endif   /* XACT_H */

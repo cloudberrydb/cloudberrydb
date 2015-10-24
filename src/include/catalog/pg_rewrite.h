@@ -8,7 +8,7 @@
  * --- ie, rule names are only unique among the rules of a given table.
  *
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2008, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * $PostgreSQL: pgsql/src/include/catalog/pg_rewrite.h,v 1.26 2006/03/05 15:58:55 momjian Exp $
@@ -22,12 +22,29 @@
 #ifndef PG_REWRITE_H
 #define PG_REWRITE_H
 
-/* ----------------
- *		postgres.h contains the system type definitions and the
- *		CATALOG(), BKI_BOOTSTRAP and DATA() sugar words so this file
- *		can be read by both genbki.sh and the C compiler.
- * ----------------
- */
+#include "catalog/genbki.h"
+
+/* TIDYCAT_BEGINFAKEDEF
+
+   CREATE TABLE pg_rewrite
+   with (relid=2618, toast_oid=2838, toast_index=2839)
+   (
+   rulename    name, 
+   ev_class    oid, 
+   ev_attr     smallint, 
+   ev_type     "char", 
+   is_instead  boolean, 
+   ev_qual     text, 
+   ev_action   text
+   );
+
+   create unique index on pg_rewrite(oid) with (indexid=2692, CamelCase=RewriteOid);
+   create unique index on pg_rewrite(ev_class, rulename) with (indexid=2693, CamelCase=RewriteRelRulename, syscacheid=RULERELNAME, syscache_nbuckets=1024);
+
+   alter table pg_rewrite add fk ev_class on pg_attribute(attrelid);
+
+   TIDYCAT_ENDFAKEDEF
+*/
 
 /* ----------------
  *		pg_rewrite definition.	cpp turns this into

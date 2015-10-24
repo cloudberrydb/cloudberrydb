@@ -3,12 +3,12 @@
  * nbtutils.c
  *	  Utility code for Postgres btree implementation.
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2008, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/access/nbtree/nbtutils.c,v 1.79 2006/10/04 00:29:49 momjian Exp $
+ *	  $PostgreSQL: pgsql/src/backend/access/nbtree/nbtutils.c,v 1.79.2.1 2007/03/30 00:13:05 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -24,6 +24,7 @@
 #include "miscadmin.h"
 #include "storage/lwlock.h"
 #include "storage/shmem.h"
+#include "cdb/cdbfilerepprimary.h"
 
 
 static void _bt_mark_scankey_required(ScanKey skey);
@@ -836,6 +837,8 @@ _bt_check_rowcompare(ScanKey skey, IndexTuple tuple, TupleDesc tupdesc,
 void
 _bt_killitems(IndexScanDesc scan, bool haveLock)
 {
+	MIRROREDLOCK_BUFMGR_DECLARE;
+
 	BTScanOpaque so = (BTScanOpaque) scan->opaque;
 	Page		page;
 	BTPageOpaque opaque;
@@ -847,7 +850,16 @@ _bt_killitems(IndexScanDesc scan, bool haveLock)
 	Assert(BufferIsValid(so->currPos.buf));
 
 	if (!haveLock)
+	{
+		// -------- MirroredLock ----------
+		MIRROREDLOCK_BUFMGR_LOCK;
+		
 		LockBuffer(so->currPos.buf, BT_READ);
+	}
+	else
+	{
+		MIRROREDLOCK_BUFMGR_MUST_ALREADY_BE_HELD;
+	}
 
 	page = BufferGetPage(so->currPos.buf);
 	opaque = (BTPageOpaque) PageGetSpecialPointer(page);
@@ -895,7 +907,13 @@ _bt_killitems(IndexScanDesc scan, bool haveLock)
 	}
 
 	if (!haveLock)
+	{
 		LockBuffer(so->currPos.buf, BUFFER_LOCK_UNLOCK);
+		
+		MIRROREDLOCK_BUFMGR_UNLOCK;
+		// -------- MirroredLock ----------
+		
+	}
 
 	/*
 	 * Always reset the scan state, so we don't look for same items on other
@@ -974,8 +992,11 @@ _bt_vacuum_cycleid(Relation rel)
 /*
  * _bt_start_vacuum --- assign a cycle ID to a just-starting VACUUM operation
  *
- * Note: the caller must guarantee (via PG_TRY) that it will eventually call
- * _bt_end_vacuum, else we'll permanently leak an array slot.
+ * Note: the caller must guarantee that it will eventually call
+ * _bt_end_vacuum, else we'll permanently leak an array slot.  To ensure
+ * that this happens even in elog(FATAL) scenarios, the appropriate coding
+ * is not just a PG_TRY, but
+ *		PG_ENSURE_ERROR_CLEANUP(_bt_end_vacuum_callback, PointerGetDatum(rel))
  */
 BTCycleId
 _bt_start_vacuum(Relation rel)
@@ -998,13 +1019,25 @@ _bt_start_vacuum(Relation rel)
 		vac = &btvacinfo->vacuums[i];
 		if (vac->relid.relId == rel->rd_lockInfo.lockRelId.relId &&
 			vac->relid.dbId == rel->rd_lockInfo.lockRelId.dbId)
+		{
+			/*
+			 * Unlike most places in the backend, we have to explicitly
+			 * release our LWLock before throwing an error.  This is because
+			 * we expect _bt_end_vacuum() to be called before transaction
+			 * abort cleanup can run to release LWLocks.
+			 */
+			LWLockRelease(BtreeVacuumLock);
 			elog(ERROR, "multiple active vacuums for index \"%s\"",
 				 RelationGetRelationName(rel));
+		}
 	}
 
 	/* OK, add an entry */
 	if (btvacinfo->num_vacuums >= btvacinfo->max_vacuums)
+	{
+		LWLockRelease(BtreeVacuumLock);
 		elog(ERROR, "out of btvacinfo slots");
+	}
 	vac = &btvacinfo->vacuums[btvacinfo->num_vacuums];
 	vac->relid = rel->rd_lockInfo.lockRelId;
 	vac->cycleid = result;
@@ -1043,6 +1076,15 @@ _bt_end_vacuum(Relation rel)
 	}
 
 	LWLockRelease(BtreeVacuumLock);
+}
+
+/*
+ * _bt_end_vacuum wrapped as an on_shmem_exit callback function
+ */
+void
+_bt_end_vacuum_callback(int code __attribute__((unused)), Datum arg)
+{
+	_bt_end_vacuum((Relation) DatumGetPointer(arg));
 }
 
 /*
@@ -1097,6 +1139,7 @@ btoptions(PG_FUNCTION_ARGS)
 	bytea	   *result;
 
 	result = default_reloptions(reloptions, validate,
+								RELKIND_INDEX,
 								BTREE_MIN_FILLFACTOR,
 								BTREE_DEFAULT_FILLFACTOR);
 	if (result)

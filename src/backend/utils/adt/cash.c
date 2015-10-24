@@ -9,7 +9,7 @@
  * workings can be found in the book "Software Solutions in C" by
  * Dale Schumacher, Academic Press, ISBN: 0-12-632360-7.
  *
- * $PostgreSQL: pgsql/src/backend/utils/adt/cash.c,v 1.68 2006/07/14 14:52:23 momjian Exp $
+ * $PostgreSQL: pgsql/src/backend/utils/adt/cash.c,v 1.69 2007/01/03 01:19:50 darcy Exp $
  */
 
 #include "postgres.h"
@@ -740,7 +740,7 @@ cash_words(PG_FUNCTION_ARGS)
 
 	/* make a text type for output */
 	result = (text *) palloc(strlen(buf) + VARHDRSZ);
-	VARATT_SIZEP(result) = strlen(buf) + VARHDRSZ;
+	SET_VARSIZE(result, strlen(buf) + VARHDRSZ);
 	memcpy(VARDATA(result), buf, strlen(buf));
 
 	PG_RETURN_TEXT_P(result);

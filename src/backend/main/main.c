@@ -8,12 +8,12 @@
  * dispatches to the proper FooMain() routine for the incarnation.
  *
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/main/main.c,v 1.105 2006/10/04 00:29:53 momjian Exp $
+ *	  $PostgreSQL: pgsql/src/backend/main/main.c,v 1.112 2009/01/01 17:23:43 momjian Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -44,6 +44,7 @@
 #include "libpq/pqsignal.h"
 #endif
 
+#include "catalog/catversion.h"
 
 const char *progname;
 
@@ -87,7 +88,7 @@ main(int argc, char *argv[])
 	 * error messages to be localized.
 	 */
 
-	set_pglocale_pgservice(argv[0], "postgres");
+	set_pglocale_pgservice(argv[0], PG_TEXTDOMAIN("postgres"));
 
 #ifdef WIN32
 
@@ -146,7 +147,18 @@ main(int argc, char *argv[])
 		}
 		if (strcmp(argv[1], "--version") == 0 || strcmp(argv[1], "-V") == 0)
 		{
-			puts("postgres (PostgreSQL) " PG_VERSION);
+			puts("postgres (Greenplum Database) " PG_VERSION);
+			exit(0);
+		}
+		if (strcmp(argv[1], "--gp-version") == 0)
+		{
+			puts("postgres (Greenplum Database) " GP_VERSION);
+			exit(0);
+		}
+		if (strcmp(argv[1], "--catalog-version") == 0 )
+		{
+			printf(_("Catalog version number:               %u\n"),
+				   CATALOG_VERSION_NO);
 			exit(0);
 		}
 	}
@@ -177,13 +189,19 @@ main(int argc, char *argv[])
 #endif
 
 	if (argc > 1 && strcmp(argv[1], "--boot") == 0)
-		exit(BootstrapMain(argc, argv));
+		AuxiliaryProcessMain(argc, argv);		/* does not return */
 
 	if (argc > 1 && strcmp(argv[1], "--describe-config") == 0)
 		exit(GucInfoMain());
 
 	if (argc > 1 && strcmp(argv[1], "--single") == 0)
-		exit(PostgresMain(argc, argv, get_current_username(progname)));
+		exit(PostgresMain(argc, argv, NULL, get_current_username(progname)));
+
+	if (strcmp(progname, "postmaster") == 0)
+	{
+		/* Called as "postmaster" */
+		exit(PostmasterMain(argc, argv));
+	}
 
 	exit(PostmasterMain(argc, argv));
 }
@@ -258,7 +276,10 @@ startup_hacks(const char *progname)
 }
 
 
-
+/*
+ * Help display should match the options accepted by PostmasterMain()
+ * and PostgresMain().
+ */
 static void
 help(const char *progname)
 {
@@ -289,6 +310,8 @@ help(const char *progname)
 	printf(_("  --describe-config  describe configuration parameters, then exit\n"));
 	printf(_("  --help          show this help, then exit\n"));
 	printf(_("  --version       output version information, then exit\n"));
+	printf(_("  --gp-version    output Greenplum version information, then exit\n"));
+	printf(_("  --catalog-version output the catalog version, then exit\n"));
 
 	printf(_("\nDeveloper options:\n"));
 	printf(_("  -f s|i|n|m|h    forbid use of some plan types\n"));
@@ -298,6 +321,12 @@ help(const char *progname)
 	printf(_("  -t pa|pl|ex     show timings after each query\n"));
 	printf(_("  -T              send SIGSTOP to all backend servers if one dies\n"));
 	printf(_("  -W NUM          wait NUM seconds to allow attach from a debugger\n"));
+
+	printf(_("\nOptions for maintenance mode:\n"));
+	printf(_("  -m              start the system in maintenance mode\n"));
+
+	printf(_("\nOptions for upgrade mode:\n"));
+	printf(_("  -U              start the system in upgrade mode\n"));
 
 	printf(_("\nOptions for single-user mode:\n"));
 	printf(_("  --single        selects single-user mode (must be first argument)\n"));
@@ -312,6 +341,11 @@ help(const char *progname)
 	printf(_("  DBNAME          database name (mandatory argument in bootstrapping mode)\n"));
 	printf(_("  -r FILENAME     send stdout and stderr to given file\n"));
 	printf(_("  -x NUM          internal use\n"));
+
+	printf(_("\nGPDB-specific options:\n"));
+	printf(_("  -b <dbid>       startup with a particular db-id\n"));
+	printf(_("  -C <contentid>  startup with a particular content-id\n"));
+	printf(_("  -z <seg-count>  startup with a given number of content-ids\n"));
 
 	printf(_("\nPlease read the documentation for the complete list of run-time\n"
 	 "configuration settings and how to set them on the command line or in\n"
@@ -349,6 +383,7 @@ check_root(const char *progname)
 		exit(1);
 	}
 #else							/* WIN32 */
+#if 0
 	if (pgwin32_is_admin())
 	{
 		write_stderr("Execution of PostgreSQL by a user with administrative permissions is not\n"
@@ -358,6 +393,7 @@ check_root(const char *progname)
 				  "more information on how to properly start the server.\n");
 		exit(1);
 	}
+#endif
 #endif   /* WIN32 */
 }
 

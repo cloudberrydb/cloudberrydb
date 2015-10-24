@@ -24,9 +24,9 @@
 
 static const char *modulename = gettext_noop("archiver (db)");
 
-static void _check_database_version(ArchiveHandle *AH, bool ignoreVersion);
+static void _check_database_version(ArchiveHandle *AH);
 static PGconn *_connectDB(ArchiveHandle *AH, const char *newdbname, const char *newUser);
-static void notice_processor(void *arg, const char *message);
+static void notice_processor(void *arg __attribute__((unused)), const char *message);
 static char *_sendSQLLine(ArchiveHandle *AH, char *qry, char *eos);
 static char *_sendCopyLine(ArchiveHandle *AH, char *qry, char *eos);
 
@@ -48,7 +48,7 @@ _parse_version(ArchiveHandle *AH, const char *versionString)
 }
 
 static void
-_check_database_version(ArchiveHandle *AH, bool ignoreVersion)
+_check_database_version(ArchiveHandle *AH)
 {
 	int			myversion;
 	const char *remoteversion_str;
@@ -64,6 +64,8 @@ _check_database_version(ArchiveHandle *AH, bool ignoreVersion)
 
 	AH->public.remoteVersionStr = strdup(remoteversion_str);
 	AH->public.remoteVersion = remoteversion;
+	if (!AH->archiveRemoteVersion)
+		AH->archiveRemoteVersion = AH->public.remoteVersionStr;
 
 	if (myversion != remoteversion
 		&& (remoteversion < AH->public.minRemoteVersion ||
@@ -71,10 +73,7 @@ _check_database_version(ArchiveHandle *AH, bool ignoreVersion)
 	{
 		write_msg(NULL, "server version: %s; %s version: %s\n",
 				  remoteversion_str, progname, PG_VERSION);
-		if (ignoreVersion)
-			write_msg(NULL, "proceeding despite version mismatch\n");
-		else
-			die_horribly(AH, NULL, "aborting because of version mismatch  (Use the -i option to proceed anyway.)\n");
+		die_horribly(AH, NULL, "aborting because of server version mismatch\n");
 	}
 }
 
@@ -119,31 +118,36 @@ ReconnectToServer(ArchiveHandle *AH, const char *dbname, const char *username)
 
 /*
  * Connect to the db again.
+ *
+ * Note: it's not really all that sensible to use a single-entry password
+ * cache if the username keeps changing.  In current usage, however, the
+ * username never does change, so one savedPassword is sufficient.	We do
+ * update the cache on the off chance that the password has changed since the
+ * start of the run.
  */
 static PGconn *
 _connectDB(ArchiveHandle *AH, const char *reqdb, const char *requser)
 {
-	int			need_pass;
 	PGconn	   *newConn;
-	char	   *password = NULL;
-	int			badPwd = 0;
-	int			noPwd = 0;
-	char	   *newdb;
-	char	   *newuser;
+	const char *newdb;
+	const char *newuser;
+	char	   *password = AH->savedPassword;
+	bool		new_pass;
 
 	if (!reqdb)
 		newdb = PQdb(AH->connection);
 	else
-		newdb = (char *) reqdb;
+		newdb = reqdb;
 
-	if (!requser || (strlen(requser) == 0))
+	if (!requser || strlen(requser) == 0)
 		newuser = PQuser(AH->connection);
 	else
-		newuser = (char *) requser;
+		newuser = requser;
 
-	ahlog(AH, 1, "connecting to database \"%s\" as user \"%s\"\n", newdb, newuser);
+	ahlog(AH, 1, "connecting to database \"%s\" as user \"%s\"\n",
+		  newdb, newuser);
 
-	if (AH->requirePassword)
+	if (AH->promptPassword == TRI_YES && password == NULL)
 	{
 		password = simple_prompt("Password: ", 100, false);
 		if (password == NULL)
@@ -152,45 +156,68 @@ _connectDB(ArchiveHandle *AH, const char *reqdb, const char *requser)
 
 	do
 	{
-		need_pass = false;
-		newConn = PQsetdbLogin(PQhost(AH->connection), PQport(AH->connection),
-							   NULL, NULL, newdb,
-							   newuser, password);
+#define PARAMS_ARRAY_SIZE	7
+		const char **keywords = malloc(PARAMS_ARRAY_SIZE * sizeof(*keywords));
+		const char **values = malloc(PARAMS_ARRAY_SIZE * sizeof(*values));
+
+		if (!keywords || !values)
+			die_horribly(AH, modulename, "out of memory\n");
+
+		keywords[0] = "host";
+		values[0] = PQhost(AH->connection);
+		keywords[1] = "port";
+		values[1] = PQport(AH->connection);
+		keywords[2] = "user";
+		values[2] = newuser;
+		keywords[3] = "password";
+		values[3] = password;
+		keywords[4] = "dbname";
+		values[4] = newdb;
+		keywords[5] = "fallback_application_name";
+		values[5] = progname;
+		keywords[6] = NULL;
+		values[6] = NULL;
+
+		new_pass = false;
+		newConn = PQconnectdbParams(keywords, values, true);
+
+		free(keywords);
+		free(values);
+
 		if (!newConn)
 			die_horribly(AH, modulename, "failed to reconnect to database\n");
 
 		if (PQstatus(newConn) == CONNECTION_BAD)
 		{
-			noPwd = (strcmp(PQerrorMessage(newConn),
-							PQnoPasswordSupplied) == 0);
-			badPwd = (strncmp(PQerrorMessage(newConn),
-						"Password authentication failed for user", 39) == 0);
-
-			if (noPwd || badPwd)
-			{
-				if (badPwd)
-					fprintf(stderr, "Password incorrect\n");
-
-				fprintf(stderr, "Connecting to %s as %s\n",
-						newdb, newuser);
-
-				need_pass = true;
-				if (password)
-					free(password);
-				password = simple_prompt("Password: ", 100, false);
-			}
-			else
+			if (!PQconnectionNeedsPassword(newConn))
 				die_horribly(AH, modulename, "could not reconnect to database: %s",
 							 PQerrorMessage(newConn));
 			PQfinish(newConn);
-		}
-	} while (need_pass);
 
-	if (password)
-		free(password);
+			if (password)
+				fprintf(stderr, "Password incorrect\n");
+
+			fprintf(stderr, "Connecting to %s as %s\n",
+					newdb, newuser);
+
+			if (password)
+				free(password);
+
+			if (AH->promptPassword != TRI_NO)
+				password = simple_prompt("Password: ", 100, false);
+			else
+				die_horribly(AH, modulename, "connection needs password\n");
+
+			if (password == NULL)
+				die_horribly(AH, modulename, "out of memory\n");
+			new_pass = true;
+		}
+	} while (new_pass);
+
+	AH->savedPassword = password;
 
 	/* check for version mismatch */
-	_check_database_version(AH, true);
+	_check_database_version(AH);
 
 	PQsetNoticeProcessor(newConn, notice_processor, NULL);
 
@@ -202,6 +229,10 @@ _connectDB(ArchiveHandle *AH, const char *reqdb, const char *requser)
  * Make a database connection with the given parameters.  The
  * connection handle is returned, the parameters are stored in AHX.
  * An interactive password prompt is automatically issued if required.
+ *
+ * Note: it's not really all that sensible to use a single-entry password
+ * cache if the username keeps changing.  In current usage, however, the
+ * username never does change, so one savedPassword is sufficient.
  */
 PGconn *
 ConnectDatabase(Archive *AHX,
@@ -209,25 +240,22 @@ ConnectDatabase(Archive *AHX,
 				const char *pghost,
 				const char *pgport,
 				const char *username,
-				const int reqPwd,
-				const int ignoreVersion)
+				enum trivalue prompt_password)
 {
 	ArchiveHandle *AH = (ArchiveHandle *) AHX;
-	char	   *password = NULL;
-	bool		need_pass = false;
+	char	   *password = AH->savedPassword;
+	bool		new_pass;
 
 	if (AH->connection)
 		die_horribly(AH, modulename, "already connected to a database\n");
 
-	if (reqPwd)
+	if (prompt_password == TRI_YES && password == NULL)
 	{
 		password = simple_prompt("Password: ", 100, false);
 		if (password == NULL)
 			die_horribly(AH, modulename, "out of memory\n");
-		AH->requirePassword = true;
 	}
-	else
-		AH->requirePassword = false;
+	AH->promptPassword = prompt_password;
 
 	/*
 	 * Start the connection.  Loop until we have a password if requested by
@@ -235,27 +263,51 @@ ConnectDatabase(Archive *AHX,
 	 */
 	do
 	{
-		need_pass = false;
-		AH->connection = PQsetdbLogin(pghost, pgport, NULL, NULL,
-									  dbname, username, password);
+#define PARAMS_ARRAY_SIZE	7
+		const char **keywords = malloc(PARAMS_ARRAY_SIZE * sizeof(*keywords));
+		const char **values = malloc(PARAMS_ARRAY_SIZE * sizeof(*values));
+
+		if (!keywords || !values)
+			die_horribly(AH, modulename, "out of memory\n");
+
+		keywords[0] = "host";
+		values[0] = pghost;
+		keywords[1] = "port";
+		values[1] = pgport;
+		keywords[2] = "user";
+		values[2] = username;
+		keywords[3] = "password";
+		values[3] = password;
+		keywords[4] = "dbname";
+		values[4] = dbname;
+		keywords[5] = "fallback_application_name";
+		values[5] = progname;
+		keywords[6] = NULL;
+		values[6] = NULL;
+
+		new_pass = false;
+		AH->connection = PQconnectdbParams(keywords, values, true);
+
+		free(keywords);
+		free(values);
 
 		if (!AH->connection)
 			die_horribly(AH, modulename, "failed to connect to database\n");
 
 		if (PQstatus(AH->connection) == CONNECTION_BAD &&
-		 strcmp(PQerrorMessage(AH->connection), PQnoPasswordSupplied) == 0 &&
-			!feof(stdin))
+			PQconnectionNeedsPassword(AH->connection) &&
+			password == NULL &&
+			prompt_password != TRI_NO)
 		{
 			PQfinish(AH->connection);
-			need_pass = true;
-			free(password);
-			password = NULL;
 			password = simple_prompt("Password: ", 100, false);
+			if (password == NULL)
+				die_horribly(AH, modulename, "out of memory\n");
+			new_pass = true;
 		}
-	} while (need_pass);
+	} while (new_pass);
 
-	if (password)
-		free(password);
+	AH->savedPassword = password;
 
 	/* check to see that the backend connection was successfully made */
 	if (PQstatus(AH->connection) == CONNECTION_BAD)
@@ -263,7 +315,7 @@ ConnectDatabase(Archive *AHX,
 					 PQdb(AH->connection), PQerrorMessage(AH->connection));
 
 	/* check for version mismatch */
-	_check_database_version(AH, ignoreVersion);
+	_check_database_version(AH);
 
 	PQsetNoticeProcessor(AH->connection, notice_processor, NULL);
 
@@ -272,7 +324,7 @@ ConnectDatabase(Archive *AHX,
 
 
 static void
-notice_processor(void *arg, const char *message)
+notice_processor(void *arg __attribute__((unused)), const char *message)
 {
 	write_msg(NULL, "%s", message);
 }
@@ -280,27 +332,31 @@ notice_processor(void *arg, const char *message)
 
 /* Public interface */
 /* Convenience function to send a query. Monitors result to handle COPY statements */
-static int
-ExecuteSqlCommand(ArchiveHandle *AH, PQExpBuffer qry, char *desc)
+static void
+ExecuteSqlCommand(ArchiveHandle *AH, const char *qry, const char *desc)
 {
 	PGconn	   *conn = AH->connection;
 	PGresult   *res;
 	char		errStmt[DB_MAX_ERR_STMT];
 
-	/* fprintf(stderr, "Executing: '%s'\n\n", qry->data); */
-	res = PQexec(conn, qry->data);
-	if (!res)
-		die_horribly(AH, modulename, "%s: no result from server\n", desc);
+#ifdef NOT_USED
+	fprintf(stderr, "Executing: '%s'\n\n", qry);
+#endif
+	res = PQexec(conn, qry);
 
-	if (PQresultStatus(res) != PGRES_COMMAND_OK && PQresultStatus(res) != PGRES_TUPLES_OK)
+	switch (PQresultStatus(res))
 	{
-		if (PQresultStatus(res) == PGRES_COPY_IN)
-		{
+		case PGRES_COMMAND_OK:
+		case PGRES_TUPLES_OK:
+			/* A-OK */
+			break;
+		case PGRES_COPY_IN:
+			/* Assume this is an expected result */
 			AH->pgCopyIn = true;
-		}
-		else
-		{
-			strncpy(errStmt, qry->data, DB_MAX_ERR_STMT);
+			break;
+		default:
+			/* trouble */
+			strncpy(errStmt, qry, DB_MAX_ERR_STMT);
 			if (errStmt[DB_MAX_ERR_STMT - 1] != '\0')
 			{
 				errStmt[DB_MAX_ERR_STMT - 4] = '.';
@@ -309,14 +365,11 @@ ExecuteSqlCommand(ArchiveHandle *AH, PQExpBuffer qry, char *desc)
 				errStmt[DB_MAX_ERR_STMT - 1] = '\0';
 			}
 			warn_or_die_horribly(AH, modulename, "%s: %s    Command was: %s\n",
-								 desc, PQerrorMessage(AH->connection),
-								 errStmt);
-		}
+								 desc, PQerrorMessage(conn), errStmt);
+			break;
 	}
 
 	PQclear(res);
-
-	return strlen(qry->data);
 }
 
 /*
@@ -441,7 +494,7 @@ _sendSQLLine(ArchiveHandle *AH, char *qry, char *eos)
 					 * the buffer.
 					 */
 					appendPQExpBufferChar(AH->sqlBuf, ';');		/* inessential */
-					ExecuteSqlCommand(AH, AH->sqlBuf,
+					ExecuteSqlCommand(AH, AH->sqlBuf->data,
 									  "could not execute query");
 					resetPQExpBuffer(AH->sqlBuf);
 					AH->sqlparse.lastChar = '\0';
@@ -640,25 +693,13 @@ ExecuteSqlCommandBuf(ArchiveHandle *AH, void *qryv, size_t bufLen)
 void
 StartTransaction(ArchiveHandle *AH)
 {
-	PQExpBuffer qry = createPQExpBuffer();
-
-	appendPQExpBuffer(qry, "BEGIN");
-
-	ExecuteSqlCommand(AH, qry, "could not start database transaction");
-
-	destroyPQExpBuffer(qry);
+	ExecuteSqlCommand(AH, "BEGIN", "could not start database transaction");
 }
 
 void
 CommitTransaction(ArchiveHandle *AH)
 {
-	PQExpBuffer qry = createPQExpBuffer();
-
-	appendPQExpBuffer(qry, "COMMIT");
-
-	ExecuteSqlCommand(AH, qry, "could not commit database transaction");
-
-	destroyPQExpBuffer(qry);
+	ExecuteSqlCommand(AH, "COMMIT", "could not commit database transaction");
 }
 
 static bool

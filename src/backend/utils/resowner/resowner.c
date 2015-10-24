@@ -9,7 +9,7 @@
  * See utils/resowner/README for more info.
  *
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2008, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -21,10 +21,13 @@
 #include "postgres.h"
 
 #include "access/hash.h"
+#include "cdb/cdbvars.h"
 #include "storage/proc.h"
 #include "utils/memutils.h"
 #include "utils/resowner.h"
 #include "utils/relcache.h"
+#include "executor/execdesc.h"
+#include "utils/resscheduler.h"
 
 
 /*
@@ -159,6 +162,15 @@ ResourceOwnerRelease(ResourceOwner owner,
 	/* Rather than PG_TRY at every level of recursion, set it up once */
 	ResourceOwner save;
 
+	/*
+	 * Greenplum: For some reason we've been calling this when the owner is NULL.
+	 */
+	if (owner == NULL)
+	{
+		elog((Debug_print_full_dtm ? LOG : DEBUG5),"ResourceOwnerRelease found owner = NULL");
+		return;
+	}
+
 	save = CurrentResourceOwner;
 	PG_TRY();
 	{
@@ -241,7 +253,12 @@ ResourceOwnerReleaseInternal(ResourceOwner owner,
 			 * the top of the recursion.
 			 */
 			if (owner == TopTransactionResourceOwner)
+			{
 				ProcReleaseLocks(isCommit);
+				
+				if (Gp_role == GP_ROLE_DISPATCH && ResourceScheduler)
+ 					ResLockWaitCancel();
+			}
 		}
 		else
 		{
@@ -270,14 +287,16 @@ ResourceOwnerReleaseInternal(ResourceOwner owner,
 		while (owner->ncatrefs > 0)
 		{
 			if (isCommit)
-				PrintCatCacheLeakWarning(owner->catrefs[owner->ncatrefs - 1]);
+				PrintCatCacheLeakWarning(owner->catrefs[owner->ncatrefs - 1],
+                                         owner->name);
 			ReleaseCatCache(owner->catrefs[owner->ncatrefs - 1]);
 		}
 		/* Ditto for catcache lists */
 		while (owner->ncatlistrefs > 0)
 		{
 			if (isCommit)
-				PrintCatCacheListLeakWarning(owner->catlistrefs[owner->ncatlistrefs - 1]);
+				PrintCatCacheListLeakWarning(owner->catlistrefs[owner->ncatlistrefs - 1],
+                                             owner->name);
 			ReleaseCatCacheList(owner->catlistrefs[owner->ncatlistrefs - 1]);
 		}
 		/* Ditto for tupdesc references */

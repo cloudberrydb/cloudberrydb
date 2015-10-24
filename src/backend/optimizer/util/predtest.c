@@ -4,28 +4,51 @@
  *	  Routines to attempt to prove logical implications between predicate
  *	  expressions.
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2008, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/optimizer/util/predtest.c,v 1.10 2006/10/04 00:29:55 momjian Exp $
+ *	  $PostgreSQL: pgsql/src/backend/optimizer/util/predtest.c,v 1.10.2.2 2007/07/24 17:22:13 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
 #include "postgres.h"
 
+#include "catalog/catquery.h"
 #include "catalog/pg_amop.h"
 #include "catalog/pg_proc.h"
+#include "catalog/pg_operator.h"
 #include "catalog/pg_type.h"
 #include "executor/executor.h"
+#include "miscadmin.h"
 #include "optimizer/clauses.h"
 #include "optimizer/predtest.h"
 #include "parser/parse_expr.h"
 #include "utils/array.h"
 #include "utils/lsyscache.h"
 #include "utils/syscache.h"
+#include "cdb/cdbhash.h"
+#include "access/hash.h"
+#include "nodes/makefuncs.h"
 
+#include "catalog/pg_operator.h"
+#include "optimizer/paths.h"
+/*
+ * Proof attempts involving many AND or OR branches are likely to require
+ * O(N^2) time, and more often than not fail anyway.  So we set an arbitrary
+ * limit on the number of branches that we will allow at any one level of
+ * clause.  (Note that this is only effective because the trees have been
+ * AND/OR flattened!)  XXX is it worth exposing this as a GUC knob?
+ */
+#define MAX_BRANCHES_TO_TEST    100
+
+#define INT16MAX (32767)
+#define INT16MIN (-32768)
+#define INT32MAX (2147483647)
+#define INT32MIN (-2147483648)
+
+static const bool kUseFnEvaluationForPredicates = true;
 
 /*
  * To avoid redundant coding in predicate_implied_by_recurse and
@@ -83,9 +106,21 @@ static void arrayexpr_cleanup_fn(PredIterInfo info);
 static bool predicate_implied_by_simple_clause(Expr *predicate, Node *clause);
 static bool predicate_refuted_by_simple_clause(Expr *predicate, Node *clause);
 static Node *extract_not_arg(Node *clause);
+static bool list_member_strip(List *list, Expr *datum);
 static bool btree_predicate_proof(Expr *predicate, Node *clause,
 					  bool refute_it);
 
+static HTAB* CreateNodeSetHashTable();
+static void AddValue(PossibleValueSet *pvs, Const *valueToCopy);
+static void RemoveValue(PossibleValueSet *pvs, Const *value);
+static bool ContainsValue(PossibleValueSet *pvs, Const *value);
+static void AddUnmatchingValues( PossibleValueSet *pvs, PossibleValueSet *toCheck );
+static void RemoveUnmatchingValues(PossibleValueSet *pvs, PossibleValueSet *toCheck);
+static PossibleValueSet ProcessAndClauseForPossibleValues( PredIterInfoData *clauseInfo, Node *clause, Node *variable);
+static PossibleValueSet ProcessOrClauseForPossibleValues( PredIterInfoData *clauseInfo, Node *clause, Node *variable);
+static bool TryProcessEqualityNodeForPossibleValues(OpExpr *expr, Node *variable, PossibleValueSet *resultOut );
+
+static bool simple_equality_predicate_refuted(Node *clause, Node *predicate);
 
 /*
  * predicate_implied_by
@@ -127,6 +162,14 @@ predicate_implied_by(List *predicate_list, List *restrictinfo_list)
  * This is NOT the same as !(predicate_implied_by), though it is similar
  * in the technique and structure of the code.
  *
+ * An important fine point is that truth of the clauses must imply that
+ * the predicate returns FALSE, not that it does not return TRUE.  This
+ * is normally used to try to refute CHECK constraints, and the only
+ * thing we can assume about a CHECK constraint is that it didn't return
+ * FALSE --- a NULL result isn't a violation per the SQL spec.  (Someday
+ * perhaps this code should be extended to support both "strong" and
+ * "weak" refutation, but for now we only need "strong".)
+ *
  * The top-level List structure of each list corresponds to an AND list.
  * We assume that eval_const_expressions() has been applied and so there
  * are no un-flattened ANDs or ORs (e.g., no AND immediately within an AND,
@@ -148,7 +191,15 @@ predicate_refuted_by(List *predicate_list, List *restrictinfo_list)
 		return false;			/* no restriction: refutation must fail */
 
 	/* Otherwise, away we go ... */
-	return predicate_refuted_by_recurse((Node *) restrictinfo_list,
+	if ( predicate_refuted_by_recurse((Node *) restrictinfo_list,
+										(Node *) predicate_list))
+    {
+        return true;
+    }
+
+    if ( ! kUseFnEvaluationForPredicates )
+        return false;
+    return simple_equality_predicate_refuted((Node *) restrictinfo_list,
 										(Node *) predicate_list);
 }
 
@@ -406,10 +457,11 @@ predicate_implied_by_recurse(Node *clause, Node *predicate)
  *
  * In addition, if the predicate is a NOT-clause then we can use
  *	A R=> NOT B if:					A => B
- * while if the restriction clause is a NOT-clause then we can use
- *	NOT A R=> B if:					B => A
  * This works for several different SQL constructs that assert the non-truth
  * of their argument, ie NOT, IS FALSE, IS NOT TRUE, IS UNKNOWN.
+ * Unfortunately we *cannot* use
+ *	NOT A R=> B if:					B => A
+ * because this type of reasoning fails to prove that B doesn't yield NULL.
  *
  * Other comments are as for predicate_implied_by_recurse().
  *----------
@@ -593,13 +645,21 @@ predicate_refuted_by_recurse(Node *clause, Node *predicate)
 
 		case CLASS_ATOM:
 
+#ifdef NOT_USED
 			/*
 			 * If A is a NOT-clause, A R=> B if B => A's arg
+			 *
+			 * Unfortunately not: this would only prove that B is not-TRUE,
+			 * not that it's not NULL either.  Keep this code as a comment
+			 * because it would be useful if we ever had a need for the
+			 * weak form of refutation.
 			 */
 			not_arg = extract_not_arg(clause);
 			if (not_arg &&
 				predicate_implied_by_recurse(predicate, not_arg))
 				return true;
+#endif
+
 			switch (pclass)
 			{
 				case CLASS_AND:
@@ -668,6 +728,13 @@ predicate_refuted_by_recurse(Node *clause, Node *predicate)
  *
  * If the expression is classified as AND- or OR-type, then *info is filled
  * in with the functions needed to iterate over its components.
+ *
+ * This function also implements enforcement of MAX_BRANCHES_TO_TEST: if an
+ * AND/OR expression has too many branches, we just classify it as an atom.
+ * (This will result in its being passed as-is to the simple_clause functions,
+ * which will fail to prove anything about it.)  Note that we cannot just stop
+ * after considering MAX_BRANCHES_TO_TEST branches; in general that would
+ * result in wrong proofs rather than failing to prove anything.
  */
 static PredClass
 predicate_classify(Node *clause, PredIterInfo info)
@@ -959,11 +1026,11 @@ predicate_implied_by_simple_clause(Expr *predicate, Node *clause)
 		if (!type_is_rowtype(exprType((Node *) nonnullarg)))
 		{
 			if (is_opclause(clause) &&
-				list_member(((OpExpr *) clause)->args, nonnullarg) &&
+				list_member_strip(((OpExpr *) clause)->args, nonnullarg) &&
 				op_strict(((OpExpr *) clause)->opno))
 				return true;
 			if (is_funcclause(clause) &&
-				list_member(((FuncExpr *) clause)->args, nonnullarg) &&
+				list_member_strip(((FuncExpr *) clause)->args, nonnullarg) &&
 				func_strict(((FuncExpr *) clause)->funcid))
 				return true;
 		}
@@ -986,7 +1053,12 @@ predicate_implied_by_simple_clause(Expr *predicate, Node *clause)
  *
  * When the predicate is of the form "foo IS NULL", we can conclude that
  * the predicate is refuted if the clause is a strict operator or function
- * that has "foo" as an input.	See notes for implication case.
+ * that has "foo" as an input (see notes for implication case), or if the
+ * clause is "foo IS NOT NULL".  A clause "foo IS NULL" refutes a predicate
+ * "foo IS NOT NULL", but unfortunately does not refute strict predicates,
+ * because we are looking for strong refutation.  (The motivation for covering
+ * these cases is to support using IS NULL/IS NOT NULL as partition-defining
+ * constraints.)
  *
  * Finally, we may be able to deduce something using knowledge about btree
  * operator classes; this is encapsulated in btree_predicate_proof().
@@ -1000,24 +1072,51 @@ predicate_refuted_by_simple_clause(Expr *predicate, Node *clause)
 	if ((Node *) predicate == clause)
 		return false;
 
-	/* Try the IS NULL case */
+	/* Try the predicate-IS-NULL case */
 	if (predicate && IsA(predicate, NullTest) &&
 		((NullTest *) predicate)->nulltesttype == IS_NULL)
 	{
 		Expr	   *isnullarg = ((NullTest *) predicate)->arg;
 
 		/* row IS NULL does not act in the simple way we have in mind */
-		if (!type_is_rowtype(exprType((Node *) isnullarg)))
-		{
-			if (is_opclause(clause) &&
-				list_member(((OpExpr *) clause)->args, isnullarg) &&
-				op_strict(((OpExpr *) clause)->opno))
-				return true;
-			if (is_funcclause(clause) &&
-				list_member(((FuncExpr *) clause)->args, isnullarg) &&
-				func_strict(((FuncExpr *) clause)->funcid))
-				return true;
-		}
+		if (type_is_rowtype(exprType((Node *) isnullarg)))
+			return false;
+
+		/* Any strict op/func on foo refutes foo IS NULL */
+		if (is_opclause(clause) &&
+			list_member_strip(((OpExpr *) clause)->args, isnullarg) &&
+			op_strict(((OpExpr *) clause)->opno))
+			return true;
+		if (is_funcclause(clause) &&
+			list_member_strip(((FuncExpr *) clause)->args, isnullarg) &&
+			func_strict(((FuncExpr *) clause)->funcid))
+			return true;
+
+		/* foo IS NOT NULL refutes foo IS NULL */
+		if (clause && IsA(clause, NullTest) &&
+			((NullTest *) clause)->nulltesttype == IS_NOT_NULL &&
+			equal(((NullTest *) clause)->arg, isnullarg))
+			return true;
+
+		return false;			/* we can't succeed below... */
+	}
+
+	/* Try the clause-IS-NULL case */
+	if (clause && IsA(clause, NullTest) &&
+		((NullTest *) clause)->nulltesttype == IS_NULL)
+	{
+		Expr	   *isnullarg = ((NullTest *) clause)->arg;
+
+		/* row IS NULL does not act in the simple way we have in mind */
+		if (type_is_rowtype(exprType((Node *) isnullarg)))
+			return false;
+
+		/* foo IS NULL refutes foo IS NOT NULL */
+		if (predicate && IsA(predicate, NullTest) &&
+			((NullTest *) predicate)->nulltesttype == IS_NOT_NULL &&
+			equal(((NullTest *) predicate)->arg, isnullarg))
+			return true;
+
 		return false;			/* we can't succeed below... */
 	}
 
@@ -1025,6 +1124,162 @@ predicate_refuted_by_simple_clause(Expr *predicate, Node *clause)
 	return btree_predicate_proof(predicate, clause, true);
 }
 
+/**
+ * If n is a List, then return an AND tree of the nodes of the list
+ * Otherwise return n.
+ */
+static Node *
+convertToExplicitAndsShallowly( Node *n)
+{
+    if ( IsA(n, List))
+    {
+        ListCell *cell;
+        List *list = (List*)n;
+        Node *result = NULL;
+
+        Assert(list_length(list) != 0 );
+
+        foreach( cell, list )
+        {
+            Node *value = (Node*) lfirst(cell);
+            if ( result == NULL)
+            {
+                result = value;
+            }
+            else
+            {
+                result = (Node *) makeBoolExpr(AND_EXPR, list_make2(result, value), -1 /* parse location */);
+            }
+        }
+        return result;
+    }
+    else return n;
+}
+
+/**
+ * Check to see if the predicate is expr=constant or constant=expr. In that case, try to evaluate the clause
+ *   by replacing every occurrence of expr with the constant.  If the clause can then be reduced to FALSE, we
+ *   conclude that the expression is refuted
+ *
+ * Returns true only if evaluation is possible AND expression is refuted based on evaluation results
+ *
+ * MPP-18979:
+ * This mechanism cannot be used to prove implication. One example expression is
+ * "F(x)=1 and x=2", where F(x) is an immutable function that returns 1 for any input x.
+ * In this case, replacing x with 2 produces F(2)=1 and 2=2. Although evaluating the resulting
+ * expression gives TRUE, we cannot conclude that (x=2) is implied by the whole expression.
+ *
+ */
+static bool
+simple_equality_predicate_refuted(Node *clause, Node *predicate)
+{
+	OpExpr *predicateExpr;
+	Node *leftPredicateOp, *rightPredicateOp;
+    Node *constExprInPredicate, *varExprInPredicate;
+	List *list;
+
+    /* BEGIN inspecting the predicate: this only works for a simple equality predicate */
+    if ( nodeTag(predicate) != T_List )
+        return false;
+
+    if ( clause == predicate )
+        return false; /* don't both doing for self-refutation ... let normal behavior handle that */
+
+    list = (List *) predicate;
+    if ( list_length(list) != 1 )
+        return false;
+
+    predicate = linitial(list);
+	if ( ! is_opclause(predicate))
+		return false;
+
+	predicateExpr = (OpExpr*) predicate;
+	leftPredicateOp = get_leftop((Expr*)predicate);
+	rightPredicateOp = get_rightop((Expr*)predicate);
+	if (!leftPredicateOp || !rightPredicateOp)
+		return false;
+
+	/* check if it's equality operation */
+	if ( ! is_builtin_true_equality_between_same_type(predicateExpr->opno))
+		return false;
+
+	/* check if one operand is a constant */
+	if ( IsA(rightPredicateOp, Const))
+	{
+		varExprInPredicate = leftPredicateOp;
+		constExprInPredicate = rightPredicateOp;
+	}
+	else if ( IsA(leftPredicateOp, Const))
+	{
+		constExprInPredicate = leftPredicateOp;
+		varExprInPredicate = rightPredicateOp;
+	}
+	else
+	{
+	    return false;
+	}
+
+    if ( IsA(varExprInPredicate, RelabelType))
+    {
+        RelabelType *rt = (RelabelType*) varExprInPredicate;
+        varExprInPredicate = (Node*) rt->arg;
+    }
+
+    if ( ! IsA(varExprInPredicate, Var))
+    {
+        /* for now, this code is targeting predicates used in value partitions ...
+         *   so don't apply it for other expressions.  This check can probably
+         *   simply be removed and some test cases built. */
+        return false;
+    }
+    
+    /* DONE inspecting the predicate */
+
+	/* clause may have non-immutable functions...don't eval if that's the case:
+	 *
+	 * Note that since we are replacing elements of the clause that match
+	 *   varExprInPredicate, there is no need to also check varExprInPredicate
+	 *   for mutable functions (note that this is only relevant when the
+	 *   earlier check for varExprInPredicate being a Var is removed.
+	 */
+	if ( contain_mutable_functions(clause))
+		return false;
+
+	/* now do the evaluation */
+	{
+		Node *newClause, *reducedExpression;
+		ReplaceExpressionMutatorReplacement replacement;
+		bool result = false;
+		SwitchedMemoryContext memContext;
+
+		replacement.replaceThis = varExprInPredicate;
+		replacement.withThis = constExprInPredicate;
+        replacement.numReplacementsDone = 0;
+
+        memContext = AllocSetCreateDefaultContextInCurrentAndSwitchTo( "Predtest");
+
+		newClause = replace_expression_mutator(clause, &replacement);
+
+        if ( replacement.numReplacementsDone > 0)
+        {
+            newClause = convertToExplicitAndsShallowly(newClause);
+            reducedExpression = eval_const_expressions(NULL, newClause);
+
+            if ( IsA(reducedExpression, Const ))
+            {
+                Const *c = (Const *) reducedExpression;
+                if ( c->consttype == BOOLOID &&
+                     ! c->constisnull )
+                {
+                	result = (DatumGetBool(c->constvalue) == false);
+                }
+            }
+        }
+
+        DeleteAndRestoreSwitchedMemoryContext(memContext);
+        return result;
+	}
+}
 
 /*
  * If clause asserts the non-truth of a subclause, return that subclause;
@@ -1052,6 +1307,36 @@ extract_not_arg(Node *clause)
 			return (Node *) btest->arg;
 	}
 	return NULL;
+}
+
+
+/*
+ * Check whether an Expr is equal() to any member of a list, ignoring
+ * any top-level RelabelType nodes.  This is legitimate for the purposes
+ * we use it for (matching IS [NOT] NULL arguments to arguments of strict
+ * functions) because RelabelType doesn't change null-ness.  It's helpful
+ * for cases such as a varchar argument of a strict function on text.
+ */
+static bool
+list_member_strip(List *list, Expr *datum)
+{
+	ListCell   *cell;
+
+	if (datum && IsA(datum, RelabelType))
+		datum = ((RelabelType *) datum)->arg;
+
+	foreach(cell, list)
+	{
+		Expr *elem = (Expr *) lfirst(cell);
+
+		if (elem && IsA(elem, RelabelType))
+			elem = ((RelabelType *) elem)->arg;
+
+		if (equal(elem, datum))
+			return true;
+	}
+
+	return false;
 }
 
 
@@ -1287,9 +1572,13 @@ btree_predicate_proof(Expr *predicate, Node *clause, bool refute_it)
 	 * corresponding test operator.  This should work for any logically
 	 * consistent opclasses.
 	 */
-	catlist = SearchSysCacheList(AMOPOPID, 1,
-								 ObjectIdGetDatum(pred_op),
-								 0, 0, 0);
+	catlist = caql_begin_CacheList(
+			NULL,
+			cql("SELECT * FROM pg_amop "
+				" WHERE amopopr = :1 "
+				" ORDER BY amopopr, "
+				" amopclaid ",
+				ObjectIdGetDatum(pred_op)));
 
 	/*
 	 * If we couldn't find any opclass containing the pred_op, perhaps it is a
@@ -1302,10 +1591,17 @@ btree_predicate_proof(Expr *predicate, Node *clause, bool refute_it)
 		if (OidIsValid(pred_op_negator))
 		{
 			pred_op_negated = true;
-			ReleaseSysCacheList(catlist);
-			catlist = SearchSysCacheList(AMOPOPID, 1,
-										 ObjectIdGetDatum(pred_op_negator),
-										 0, 0, 0);
+
+			caql_end_CacheList(catlist);
+
+			catlist = caql_begin_CacheList(
+					NULL,
+					cql("SELECT * FROM pg_amop "
+						" WHERE amopopr = :1 "
+						" ORDER BY amopopr, "
+						" amopclaid ",
+						ObjectIdGetDatum(pred_op_negator)));
+
 		}
 	}
 
@@ -1318,6 +1614,7 @@ btree_predicate_proof(Expr *predicate, Node *clause, bool refute_it)
 		HeapTuple	pred_tuple = &catlist->members[i]->tuple;
 		Form_pg_amop pred_form = (Form_pg_amop) GETSTRUCT(pred_tuple);
 		HeapTuple	clause_tuple;
+		cqContext  *amcqCtx;
 
 		opclass_id = pred_form->amopclaid;
 
@@ -1344,10 +1641,16 @@ btree_predicate_proof(Expr *predicate, Node *clause, bool refute_it)
 		 * From the same opclass, find a strategy number for the clause_op, if
 		 * possible
 		 */
-		clause_tuple = SearchSysCache(AMOPOPID,
-									  ObjectIdGetDatum(clause_op),
-									  ObjectIdGetDatum(opclass_id),
-									  0, 0);
+		amcqCtx = caql_beginscan(
+				NULL,
+				cql("SELECT * FROM pg_amop "
+					" WHERE amopopr = :1 "
+					" AND amopclaid = :2 ",
+					ObjectIdGetDatum(clause_op),
+					ObjectIdGetDatum(opclass_id)));
+
+		clause_tuple = caql_getnext(amcqCtx);
+
 		if (HeapTupleIsValid(clause_tuple))
 		{
 			Form_pg_amop clause_form = (Form_pg_amop) GETSTRUCT(clause_tuple);
@@ -1356,14 +1659,22 @@ btree_predicate_proof(Expr *predicate, Node *clause, bool refute_it)
 			clause_strategy = (StrategyNumber) clause_form->amopstrategy;
 			Assert(clause_strategy >= 1 && clause_strategy <= 5);
 			clause_subtype = clause_form->amopsubtype;
-			ReleaseSysCache(clause_tuple);
+			caql_endscan(amcqCtx);
 		}
 		else if (OidIsValid(clause_op_negator))
 		{
-			clause_tuple = SearchSysCache(AMOPOPID,
-										  ObjectIdGetDatum(clause_op_negator),
-										  ObjectIdGetDatum(opclass_id),
-										  0, 0);
+			caql_endscan(amcqCtx);
+
+			amcqCtx = caql_beginscan(
+					NULL,
+					cql("SELECT * FROM pg_amop "
+						" WHERE amopopr = :1 "
+						" AND amopclaid = :2 ",
+						ObjectIdGetDatum(clause_op_negator),
+						ObjectIdGetDatum(opclass_id)));
+
+			clause_tuple = caql_getnext(amcqCtx);
+
 			if (HeapTupleIsValid(clause_tuple))
 			{
 				Form_pg_amop clause_form = (Form_pg_amop) GETSTRUCT(clause_tuple);
@@ -1372,7 +1683,8 @@ btree_predicate_proof(Expr *predicate, Node *clause, bool refute_it)
 				clause_strategy = (StrategyNumber) clause_form->amopstrategy;
 				Assert(clause_strategy >= 1 && clause_strategy <= 5);
 				clause_subtype = clause_form->amopsubtype;
-				ReleaseSysCache(clause_tuple);
+
+				caql_endscan(amcqCtx);
 
 				/* Only consider negators that are = */
 				if (clause_strategy != BTEqualStrategyNumber)
@@ -1380,10 +1692,16 @@ btree_predicate_proof(Expr *predicate, Node *clause, bool refute_it)
 				clause_strategy = BTNE;
 			}
 			else
+			{
+				caql_endscan(amcqCtx);
 				continue;
+			}
 		}
 		else
+		{
+			caql_endscan(amcqCtx);
 			continue;
+		}
 
 		/*
 		 * Look up the "test" strategy number in the implication table
@@ -1434,7 +1752,7 @@ btree_predicate_proof(Expr *predicate, Node *clause, bool refute_it)
 		}
 	}
 
-	ReleaseSysCacheList(catlist);
+	caql_end_CacheList(catlist);
 
 	if (!found)
 	{
@@ -1478,4 +1796,604 @@ btree_predicate_proof(Expr *predicate, Node *clause, bool refute_it)
 		return false;
 	}
 	return DatumGetBool(test_result);
+}
+
+typedef struct ConstHashValue
+{
+	Const * c;
+} ConstHashValue;
+
+static void
+CalculateHashWithHashAny(void *clientData, void *buf, size_t len)
+{
+	uint32 *result = (uint32*) clientData;
+	*result = hash_any((unsigned char *)buf, len );
+}
+
+static uint32
+ConstHashTableHash(const void *keyPtr, Size keysize)
+{
+	uint32 result;
+	Const *c = *((Const **)keyPtr);
+
+	if ( c->constisnull)
+	{
+		hashNullDatum(CalculateHashWithHashAny, &result);
+	}
+	else
+	{
+		hashDatum(c->constvalue, c->consttype, CalculateHashWithHashAny, &result);
+	}
+	return result;
+}
+
+static int
+ConstHashTableMatch(const void*keyPtr1, const void *keyPtr2, Size keysize)
+{
+	Node *left = *((Node **)keyPtr1);
+	Node *right = *((Node **)keyPtr2);
+	return equal(left, right) ? 0 : 1;
+}
+
+/**
+ * returns a hashtable that can be used to map from a node to itself
+ */
+static HTAB*
+CreateNodeSetHashTable(MemoryContext memoryContext)
+{
+	HASHCTL	hash_ctl;
+
+	MemSet(&hash_ctl, 0, sizeof(hash_ctl));
+
+	hash_ctl.keysize = sizeof(Const**);
+	hash_ctl.entrysize = sizeof(ConstHashValue);
+	hash_ctl.hash = ConstHashTableHash;
+	hash_ctl.match = ConstHashTableMatch;
+	hash_ctl.hcxt = memoryContext;
+
+	return hash_create("ConstantSet", 16, &hash_ctl, HASH_ELEM | HASH_FUNCTION | HASH_COMPARE | HASH_CONTEXT);
+}
+
+/**
+ * basic operation on PossibleValueSet:  initialize to "any value possible"
+ */
+void
+InitPossibleValueSetData(PossibleValueSet *pvs)
+{
+	pvs->memoryContext = NULL;
+	pvs->set = NULL;
+	pvs->isAnyValuePossible = true;
+}
+
+/**
+ * Take the values from the given PossibleValueSet and return them as an allocated array.
+ *
+ * @param pvs the set to turn into an array
+ * @param numValuesOut receives the length of the returned array
+ * @return the array of Node objects
+ */
+Node **
+GetPossibleValuesAsArray( PossibleValueSet *pvs, int *numValuesOut )
+{
+	HASH_SEQ_STATUS status;
+	ConstHashValue *value;
+	List *list = NULL;
+	Node ** result;
+	int numValues, i;
+	ListCell *lc;
+
+	if ( pvs->set == NULL)
+	{
+		*numValuesOut = 0;
+		return NULL;
+	}
+
+	hash_seq_init(&status, pvs->set);
+	while ((value = (ConstHashValue*) hash_seq_search(&status)) != NULL)
+	{
+		list = lappend(list, copyObject(value->c));
+	}
+
+	numValues = list_length(list);
+	result = palloc(sizeof(Node*) * numValues);
+	foreach_with_count( lc, list, i)
+	{
+		result[i] = (Node*) lfirst(lc);
+	}
+
+	*numValuesOut = numValues;
+	return result;
+}
+
+/**
+ * basic operation on PossibleValueSet:  cleanup
+ */
+void
+DeletePossibleValueSetData(PossibleValueSet *pvs)
+{
+	if ( pvs->set != NULL)
+	{
+		Assert(pvs->memoryContext != NULL);
+
+		MemoryContextDelete(pvs->memoryContext);
+		pvs->memoryContext = NULL;
+		pvs->set = NULL;
+	}
+	pvs->isAnyValuePossible = true;
+}
+
+/**
+ * basic operation on PossibleValueSet:  add a value to the set field of PossibleValueSet
+ *
+ * The caller must verify that the valueToCopy is greenplum hashable
+ */
+static void
+AddValue(PossibleValueSet *pvs, Const *valueToCopy)
+{
+	Assert( isGreenplumDbHashable(valueToCopy->consttype));
+	
+	if ( pvs->set == NULL)
+	{
+		Assert(pvs->memoryContext == NULL);
+
+		pvs->memoryContext = AllocSetContextCreate(CurrentMemoryContext,
+													   "PossibleValueSet",
+													   ALLOCSET_DEFAULT_MINSIZE,
+													   ALLOCSET_DEFAULT_INITSIZE,
+													   ALLOCSET_DEFAULT_MAXSIZE);
+		pvs->set = CreateNodeSetHashTable(pvs->memoryContext);
+	}
+
+	if ( ! ContainsValue(pvs, valueToCopy))
+	{
+		bool found; /* unused but needed in call */
+		MemoryContext oldContext = MemoryContextSwitchTo(pvs->memoryContext);
+
+		Const *key = copyObject(valueToCopy);
+		void *entry = hash_search(pvs->set, &key, HASH_ENTER, &found);
+
+		if ( entry == NULL)
+		{
+			ereport(ERROR, (errcode(ERRCODE_OUT_OF_MEMORY), errmsg("out of memory")));
+		}
+		((ConstHashValue*)entry)->c = key;
+
+		MemoryContextSwitchTo(oldContext);
+	}
+}
+
+static void
+SetToNoValuesPossible(PossibleValueSet *pvs)
+{
+	if ( pvs->memoryContext )
+	{
+		MemoryContextDelete(pvs->memoryContext);
+	}
+	pvs->memoryContext = AllocSetContextCreate(CurrentMemoryContext,
+												   "PossibleValueSet",
+												   ALLOCSET_DEFAULT_MINSIZE,
+												   ALLOCSET_DEFAULT_INITSIZE,
+												   ALLOCSET_DEFAULT_MAXSIZE);
+	pvs->set = CreateNodeSetHashTable(pvs->memoryContext);
+	pvs->isAnyValuePossible = false;
+}
+
+/**
+ * basic operation on PossibleValueSet:  remove a value from the set field of PossibleValueSet
+ */
+static void
+RemoveValue(PossibleValueSet *pvs, Const *value)
+{
+	bool found; /* unused, needed in call */
+	Assert( pvs->set != NULL);
+	hash_search(pvs->set, &value, HASH_REMOVE, &found);
+}
+
+/**
+ * basic operation on PossibleValueSet:  determine if a value is contained in the set field of PossibleValueSet
+ */
+static bool
+ContainsValue(PossibleValueSet *pvs, Const *value)
+{
+	bool found = false;
+	Assert(!pvs->isAnyValuePossible);
+	if ( pvs->set != NULL)
+		hash_search(pvs->set, &value, HASH_FIND, &found);
+	return found;
+}
+
+/**
+ * in-place union operation
+ */
+static void
+AddUnmatchingValues( PossibleValueSet *pvs, PossibleValueSet *toCheck )
+{
+	HASH_SEQ_STATUS status;
+	ConstHashValue *value;
+
+	Assert(!pvs->isAnyValuePossible);
+	Assert(!toCheck->isAnyValuePossible);
+
+	hash_seq_init(&status, toCheck->set);
+	while ((value = (ConstHashValue*) hash_seq_search(&status)) != NULL)
+	{
+		AddValue(pvs, value->c);
+	}
+}
+
+/**
+ * in-place intersection operation
+ */
+static void
+RemoveUnmatchingValues(PossibleValueSet *pvs, PossibleValueSet *toCheck)
+{
+	List *toRemove = NULL;
+	ListCell *lc;
+	HASH_SEQ_STATUS status;
+	ConstHashValue *value;
+
+	Assert(!pvs->isAnyValuePossible);
+	Assert(!toCheck->isAnyValuePossible);
+
+	hash_seq_init(&status, pvs->set);
+	while ((value = (ConstHashValue*) hash_seq_search(&status)) != NULL)
+	{
+		if ( ! ContainsValue(toCheck, value->c ))
+		{
+			toRemove = lappend(toRemove, value->c);
+		}
+	}
+
+	/* remove after so we don't mod hashtable underneath iteration */
+	foreach(lc, toRemove)
+	{
+		Const *value = (Const*) lfirst(lc);
+		RemoveValue(pvs, value);
+	}
+	list_free(toRemove);
+}
+
+/**
+ * Process an AND clause -- this can do a INTERSECTION between sets learned from child clauses
+ */
+static PossibleValueSet
+ProcessAndClauseForPossibleValues( PredIterInfoData *clauseInfo, Node *clause, Node *variable)
+{
+	PossibleValueSet result;
+	InitPossibleValueSetData(&result);
+
+	iterate_begin(child, clause, *clauseInfo)
+	{
+		PossibleValueSet childPossible = DeterminePossibleValueSet( child, variable );
+		if ( childPossible.isAnyValuePossible)
+		{
+			/* any value possible, this AND member does not add any information */
+			DeletePossibleValueSetData( &childPossible);
+		}
+		else
+		{
+			/* a particular set so this AND member can refine our estimate */
+			if ( result.isAnyValuePossible )
+			{
+				/* current result was not informative so just take the child */
+				result = childPossible;
+			}
+			else
+			{
+				/* result.set AND childPossible.set: do intersection inside result */
+				RemoveUnmatchingValues( &result, &childPossible );
+				DeletePossibleValueSetData( &childPossible);
+			}
+		}
+	}
+	iterate_end(*clauseInfo);
+
+	return result;
+}
+
+/**
+ * Process an OR clause -- this can do a UNION between sets learned from child clauses
+ */
+static PossibleValueSet
+ProcessOrClauseForPossibleValues( PredIterInfoData *clauseInfo, Node *clause, Node *variable)
+{
+	PossibleValueSet result;
+	InitPossibleValueSetData(&result);
+
+	iterate_begin(child, clause, *clauseInfo)
+	{
+		PossibleValueSet childPossible = DeterminePossibleValueSet( child, variable );
+		if ( childPossible.isAnyValuePossible)
+		{
+			/* any value is possible for the entire AND */
+			DeletePossibleValueSetData( &childPossible );
+			DeletePossibleValueSetData( &result );
+
+			/* it can't improve once a part of the OR accepts all, so just quit */
+			result.isAnyValuePossible = true;
+			break;
+		}
+
+		if ( result.isAnyValuePossible )
+		{
+			/* first one in loop so just take it */
+			result = childPossible;
+		}
+		else
+		{
+			/* result.set OR childPossible.set --> do union into result */
+			AddUnmatchingValues( &result, &childPossible );
+			DeletePossibleValueSetData( &childPossible);
+		}
+	}
+	iterate_end(*clauseInfo);
+
+	return result;
+}
+
+/**
+ * Check to see if the given OpExpr is a valid equality between the listed variable and a constant.
+ *
+ * @param expr the expression to check for being a valid quality
+ * @param variable the varaible to look for
+ * @param resultOut will be updated with the modified values
+ */
+static bool
+TryProcessEqualityNodeForPossibleValues(OpExpr *expr, Node *variable, PossibleValueSet *resultOut )
+{
+	Node *leftop, *rightop, *varExpr;
+    Const *constExpr;
+    bool constOnRight;
+
+	InitPossibleValueSetData(resultOut);
+
+	leftop = get_leftop((Expr*)expr);
+	rightop = get_rightop((Expr*)expr);
+	if (!leftop || !rightop)
+		return false;
+
+	/* check if one operand is a constant */
+	if ( IsA(rightop, Const))
+	{
+		varExpr = leftop;
+		constExpr = (Const *) rightop;
+		constOnRight = true;
+	}
+	else if ( IsA(leftop, Const))
+	{
+		constExpr = (Const *) leftop;
+		varExpr = rightop;
+		constOnRight = false;
+	}
+	else
+	{
+		/** not a constant?  Learned nothing */
+		return false;
+	}
+
+	if ( constExpr->constisnull)
+	{
+		/* null doesn't help us */
+		return false;
+	}
+
+	if ( IsA(varExpr, RelabelType))
+	{
+		RelabelType *rt = (RelabelType*) varExpr;
+		varExpr = (Node*) rt->arg;
+	}
+
+	if ( ! equal(varExpr, variable))
+	{
+		/**
+		 * Not talking about our variable?  Learned nothing
+		 */
+		return false;
+	}
+
+	/* check if it's equality operation */
+	if ( is_builtin_greenplum_hashable_equality_between_same_type(expr->opno))
+	{
+		if ( isGreenplumDbHashable(constExpr->consttype))
+		{
+			/**
+			 * Found a constant match!
+			 */
+			resultOut->isAnyValuePossible = false;
+			AddValue(resultOut, constExpr);
+		}
+		else
+		{
+			/**
+			 * Not cdb hashable, can't determine the value
+			 */
+			resultOut->isAnyValuePossible = true;
+		}
+		return true;
+	}
+	else
+	{
+		Oid consttype;
+		Datum constvalue;
+
+		/* try to handle equality between differently-sized integer types */
+		bool isOverflow = false;
+		switch ( expr->opno )
+		{
+			case Int84EqualOperator:
+			case Int48EqualOperator:
+			{
+				bool bigOnRight = expr->opno == Int48EqualOperator;
+				if ( constOnRight == bigOnRight )
+				{
+					// convert large constant to small
+					int64 val =  DatumGetInt64(constExpr->constvalue);
+
+					if ( val > INT32MAX || val < INT32MIN )
+					{
+						isOverflow = true;
+					}
+					else
+					{
+						consttype = INT4OID;
+						constvalue = Int32GetDatum((int32)val);
+					}
+				}
+				else
+				{
+					// convert small constant to small
+					int32 val =  DatumGetInt32(constExpr->constvalue);
+
+					consttype = INT8OID;
+					constvalue = Int64GetDatum(val);
+				}
+				break;
+			}
+			case Int24EqualOperator:
+			case Int42EqualOperator:
+			{
+				bool bigOnRight = expr->opno == Int24EqualOperator;
+				if ( constOnRight == bigOnRight )
+				{
+					// convert large constant to small
+					int32 val =  DatumGetInt32(constExpr->constvalue);
+
+					if ( val > INT16MAX || val < INT16MIN )
+					{
+						isOverflow = true;
+					}
+					else
+					{
+						consttype = INT2OID;
+						constvalue = Int16GetDatum((int16)val);
+					}
+				}
+				else
+				{
+					// convert small constant to small
+					int16 val =  DatumGetInt16(constExpr->constvalue);
+
+					consttype = INT4OID;
+					constvalue = Int32GetDatum(val);
+				}
+				break;
+			}
+			case Int28EqualOperator:
+			case Int82EqualOperator:
+			{
+				bool bigOnRight = expr->opno == Int28EqualOperator;
+				if ( constOnRight == bigOnRight )
+				{
+					// convert large constant to small
+					int64 val =  DatumGetInt64(constExpr->constvalue);
+
+					if ( val > INT16MAX || val < INT16MIN )
+					{
+						isOverflow = true;
+					}
+					else
+					{
+						consttype = INT2OID;
+						constvalue = Int16GetDatum((int16)val);
+					}
+				}
+				else
+				{
+					// convert small constant to small
+					int16 val =  DatumGetInt16(constExpr->constvalue);
+
+					consttype = INT8OID;
+					constvalue = Int64GetDatum(val);
+				}
+				break;
+			}
+			default:
+				/* not a useful operator ... */
+				return false;
+		}
+
+		if ( isOverflow )
+		{
+			SetToNoValuesPossible(resultOut);
+		}
+		else
+		{
+			/* okay, got a new constant value .. set it and done!*/
+			Const *newConst;
+			int constlen = 0;
+
+			Assert(isGreenplumDbHashable(consttype));
+
+			switch ( consttype)
+			{
+				case INT8OID:
+					constlen = sizeof(int64);
+					break;
+				case INT4OID:
+					constlen = sizeof(int32);
+					break;
+				case INT2OID:
+					constlen = sizeof(int16);
+					break;
+				default:
+					Assert(!"unreachable");
+			}
+
+			newConst = makeConst(consttype, /* consttypmod */ 0, constlen, constvalue,
+				/* constisnull */ false, /* constbyval */ true);
+
+
+			resultOut->isAnyValuePossible = false;
+			AddValue(resultOut, newConst);
+
+			pfree(newConst);
+		}
+		return true;
+	}
+}
+
+/**
+ *
+ * Get the possible values of variable, as determined by the given qualification clause
+ *
+ * Note that only variables whose type is greenplumDbHashtable will return an actual finite set of values.  All others
+ *    will go to the default behavior -- return that any value is possible
+ *
+ * Note that if there are two variables to check, you must call this twice.  This then means that
+ *    if the two variables are dependent you won't learn of that -- you only know that the set of
+ *    possible values is within the cross-product of the two variables' sets
+ */
+PossibleValueSet
+DeterminePossibleValueSet( Node *clause, Node *variable)
+{
+	PredIterInfoData clauseInfo;
+	PossibleValueSet result;
+
+	if ( clause == NULL )
+	{
+		InitPossibleValueSetData(&result);
+		return result;
+	}
+
+	switch (predicate_classify(clause, &clauseInfo))
+	{
+		case CLASS_AND:
+			return ProcessAndClauseForPossibleValues(&clauseInfo, clause, variable);
+		case CLASS_OR:
+			return ProcessOrClauseForPossibleValues(&clauseInfo, clause, variable);
+		case CLASS_ATOM:
+			if (IsA(clause, OpExpr) &&
+				TryProcessEqualityNodeForPossibleValues((OpExpr*)clause, variable, &result))
+			{
+				return result;
+			}
+			/* can't infer anything, so return that any value is possible */
+			InitPossibleValueSetData(&result);
+			return result;
+	}
+	
+
+	/* can't get here */
+	elog(ERROR, "predicate_classify returned a bad value");
+	return result;
 }

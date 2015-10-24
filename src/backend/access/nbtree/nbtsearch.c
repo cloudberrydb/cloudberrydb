@@ -4,11 +4,11 @@
  *	  Search code for postgres btrees.
  *
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/access/nbtree/nbtsearch.c,v 1.107 2006/10/04 00:29:49 momjian Exp $
+ *	  $PostgreSQL: pgsql/src/backend/access/nbtree/nbtsearch.c,v 1.107.2.1 2007/01/07 01:56:24 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -17,8 +17,12 @@
 
 #include "access/genam.h"
 #include "access/nbtree.h"
+#include "access/relscan.h"
+#include "miscadmin.h"
 #include "pgstat.h"
+#include "storage/bufmgr.h"
 #include "utils/lsyscache.h"
+#include "cdb/cdbfilerepprimary.h"
 
 
 static bool _bt_readpage(IndexScanDesc scan, ScanDirection dir,
@@ -53,6 +57,8 @@ _bt_search(Relation rel, int keysz, ScanKey scankey, bool nextkey,
 		   Buffer *bufP, int access)
 {
 	BTStack		stack_in = NULL;
+
+	MIRROREDLOCK_BUFMGR_MUST_ALREADY_BE_HELD;
 
 	/* Get the root page to start with */
 	*bufP = _bt_getroot(rel, access);
@@ -159,6 +165,8 @@ _bt_moveright(Relation rel,
 	BTPageOpaque opaque;
 	int32		cmpval;
 
+	MIRROREDLOCK_BUFMGR_MUST_ALREADY_BE_HELD;
+
 	page = BufferGetPage(buf);
 	opaque = (BTPageOpaque) PageGetSpecialPointer(page);
 
@@ -192,7 +200,7 @@ _bt_moveright(Relation rel,
 	}
 
 	if (P_IGNORE(opaque))
-		elog(ERROR, "fell off the end of \"%s\"",
+		elog(ERROR, "fell off the end of index \"%s\"",
 			 RelationGetRelationName(rel));
 
 	return buf;
@@ -238,6 +246,8 @@ _bt_binsrch(Relation rel,
 				high;
 	int32		result,
 				cmpval;
+
+	MIRROREDLOCK_BUFMGR_MUST_ALREADY_BE_HELD;
 
 	page = BufferGetPage(buf);
 	opaque = (BTPageOpaque) PageGetSpecialPointer(page);
@@ -435,6 +445,8 @@ _bt_compare(Relation rel,
 bool
 _bt_first(IndexScanDesc scan, ScanDirection dir)
 {
+	MIRROREDLOCK_BUFMGR_DECLARE;
+
 	Relation	rel = scan->indexRelation;
 	BTScanOpaque so = (BTScanOpaque) scan->opaque;
 	Buffer		buf;
@@ -449,7 +461,7 @@ _bt_first(IndexScanDesc scan, ScanDirection dir)
 	int			i;
 	StrategyNumber strat_total;
 
-	pgstat_count_index_scan(&scan->xs_pgstat_info);
+	pgstat_count_index_scan(rel);
 
 	/*
 	 * Examine the scan keys and eliminate any redundant keys; also mark the
@@ -617,11 +629,12 @@ _bt_first(IndexScanDesc scan, ScanDirection dir)
 			 * in the first row member makes the condition unmatchable, just
 			 * like qual_ok = false.
 			 */
-			cur = (ScanKey) DatumGetPointer(cur->sk_argument);
-			Assert(cur->sk_flags & SK_ROW_MEMBER);
-			if (cur->sk_flags & SK_ISNULL)
+			ScanKey		subkey = (ScanKey) DatumGetPointer(cur->sk_argument);
+
+			Assert(subkey->sk_flags & SK_ROW_MEMBER);
+			if (subkey->sk_flags & SK_ISNULL)
 				return false;
-			memcpy(scankeys + i, cur, sizeof(ScanKeyData));
+			memcpy(scankeys + i, subkey, sizeof(ScanKeyData));
 
 			/*
 			 * If the row comparison is the last positioning key we accepted,
@@ -632,21 +645,46 @@ _bt_first(IndexScanDesc scan, ScanDirection dir)
 			 * even if the row comparison is of ">" or "<" type, because the
 			 * condition applied to all but the last row member is effectively
 			 * ">=" or "<=", and so the extra keys don't break the positioning
-			 * scheme.
+			 * scheme.  But, by the same token, if we aren't able to use all
+			 * the row members, then the part of the row comparison that we
+			 * did use has to be treated as just a ">=" or "<=" condition, and
+			 * so we'd better adjust strat_total accordingly.
 			 */
 			if (i == keysCount - 1)
 			{
-				while (!(cur->sk_flags & SK_ROW_END))
+				bool		used_all_subkeys = false;
+
+				Assert(!(subkey->sk_flags & SK_ROW_END));
+				for(;;)
 				{
-					cur++;
-					Assert(cur->sk_flags & SK_ROW_MEMBER);
-					if (cur->sk_attno != keysCount + 1)
+					subkey++;
+					Assert(subkey->sk_flags & SK_ROW_MEMBER);
+					if (subkey->sk_attno != keysCount + 1)
 						break;	/* out-of-sequence, can't use it */
-					if (cur->sk_flags & SK_ISNULL)
+					if (subkey->sk_strategy != cur->sk_strategy)
+						break;	/* wrong direction, can't use it */
+					if (subkey->sk_flags & SK_ISNULL)
 						break;	/* can't use null keys */
 					Assert(keysCount < INDEX_MAX_KEYS);
-					memcpy(scankeys + keysCount, cur, sizeof(ScanKeyData));
+					memcpy(scankeys + keysCount, subkey, sizeof(ScanKeyData));
 					keysCount++;
+					if (subkey->sk_flags & SK_ROW_END)
+					{
+						used_all_subkeys = true;
+						break;
+					}
+				}
+				if (!used_all_subkeys)
+				{
+					switch (strat_total)
+					{
+						case BTLessStrategyNumber:
+							strat_total = BTLessEqualStrategyNumber;
+							break;
+						case BTGreaterStrategyNumber:
+							strat_total = BTGreaterEqualStrategyNumber;
+							break;
+					}
 				}
 				break;			/* done with outer loop */
 			}
@@ -790,6 +828,10 @@ _bt_first(IndexScanDesc scan, ScanDirection dir)
 	 * Use the manufactured insertion scan key to descend the tree and
 	 * position ourselves on the target leaf page.
 	 */
+	
+	// -------- MirroredLock ----------
+	MIRROREDLOCK_BUFMGR_LOCK;
+	
 	stack = _bt_search(rel, keysCount, scankeys, nextkey, &buf, BT_READ);
 
 	/* don't need to keep the stack around... */
@@ -801,6 +843,10 @@ _bt_first(IndexScanDesc scan, ScanDirection dir)
 	if (!BufferIsValid(buf))
 	{
 		/* Only get here if index is completely empty */
+		
+		MIRROREDLOCK_BUFMGR_UNLOCK;
+		// -------- MirroredLock ----------
+		
 		return false;
 	}
 
@@ -852,12 +898,21 @@ _bt_first(IndexScanDesc scan, ScanDirection dir)
 		 * the next page.  Return false if there's no matching data at all.
 		 */
 		if (!_bt_steppage(scan, dir))
+		{
+
+			MIRROREDLOCK_BUFMGR_UNLOCK;
+			// -------- MirroredLock ----------
+
 			return false;
+		}
 	}
 
 	/* Drop the lock, but not pin, on the current page */
 	LockBuffer(so->currPos.buf, BUFFER_LOCK_UNLOCK);
-
+	
+	MIRROREDLOCK_BUFMGR_UNLOCK;
+	// -------- MirroredLock ----------
+	
 	/* OK, itemIndex says what to return */
 	scan->xs_ctup.t_self = so->currPos.items[so->currPos.itemIndex].heapTid;
 
@@ -880,12 +935,18 @@ _bt_first(IndexScanDesc scan, ScanDirection dir)
 bool
 _bt_next(IndexScanDesc scan, ScanDirection dir)
 {
+	MIRROREDLOCK_BUFMGR_DECLARE;
+
 	BTScanOpaque so = (BTScanOpaque) scan->opaque;
 
 	/*
 	 * Advance to next tuple on current page; or if there's no more, try to
 	 * step to the next page with data.
 	 */
+	
+	// -------- MirroredLock ----------
+	MIRROREDLOCK_BUFMGR_LOCK;
+	
 	if (ScanDirectionIsForward(dir))
 	{
 		if (++so->currPos.itemIndex > so->currPos.lastItem)
@@ -894,7 +955,12 @@ _bt_next(IndexScanDesc scan, ScanDirection dir)
 			Assert(BufferIsValid(so->currPos.buf));
 			LockBuffer(so->currPos.buf, BT_READ);
 			if (!_bt_steppage(scan, dir))
+			{
+				MIRROREDLOCK_BUFMGR_UNLOCK;
+				// -------- MirroredLock ----------
+				
 				return false;
+			}
 			/* Drop the lock, but not pin, on the new page */
 			LockBuffer(so->currPos.buf, BUFFER_LOCK_UNLOCK);
 		}
@@ -907,12 +973,21 @@ _bt_next(IndexScanDesc scan, ScanDirection dir)
 			Assert(BufferIsValid(so->currPos.buf));
 			LockBuffer(so->currPos.buf, BT_READ);
 			if (!_bt_steppage(scan, dir))
+			{
+				
+				MIRROREDLOCK_BUFMGR_UNLOCK;
+				// -------- MirroredLock ----------
+				
 				return false;
+			}
 			/* Drop the lock, but not pin, on the new page */
 			LockBuffer(so->currPos.buf, BUFFER_LOCK_UNLOCK);
 		}
 	}
-
+	
+	MIRROREDLOCK_BUFMGR_UNLOCK;
+	// -------- MirroredLock ----------
+	
 	/* OK, itemIndex says what to return */
 	scan->xs_ctup.t_self = so->currPos.items[so->currPos.itemIndex].heapTid;
 
@@ -944,6 +1019,8 @@ _bt_readpage(IndexScanDesc scan, ScanDirection dir, OffsetNumber offnum)
 	OffsetNumber maxoff;
 	int			itemIndex;
 	bool		continuescan;
+
+	MIRROREDLOCK_BUFMGR_MUST_ALREADY_BE_HELD;
 
 	/* we must have the buffer pinned and locked */
 	Assert(BufferIsValid(so->currPos.buf));
@@ -1047,6 +1124,8 @@ _bt_steppage(IndexScanDesc scan, ScanDirection dir)
 	Relation	rel;
 	Page		page;
 	BTPageOpaque opaque;
+
+	MIRROREDLOCK_BUFMGR_MUST_ALREADY_BE_HELD;
 
 	/* we must have the buffer pinned and locked */
 	Assert(BufferIsValid(so->currPos.buf));
@@ -1176,6 +1255,8 @@ _bt_walk_left(Relation rel, Buffer buf)
 	Page		page;
 	BTPageOpaque opaque;
 
+	MIRROREDLOCK_BUFMGR_MUST_ALREADY_BE_HELD;
+
 	page = BufferGetPage(buf);
 	opaque = (BTPageOpaque) PageGetSpecialPointer(page);
 
@@ -1196,7 +1277,10 @@ _bt_walk_left(Relation rel, Buffer buf)
 		obknum = BufferGetBlockNumber(buf);
 		/* step left */
 		blkno = lblkno = opaque->btpo_prev;
-		buf = _bt_relandgetbuf(rel, buf, blkno, BT_READ);
+		_bt_relbuf(rel, buf);
+		/* check for interrupts while we're not holding any buffer lock */
+		CHECK_FOR_INTERRUPTS();
+		buf = _bt_getbuf(rel, blkno, BT_READ);
 		page = BufferGetPage(buf);
 		opaque = (BTPageOpaque) PageGetSpecialPointer(page);
 
@@ -1242,7 +1326,7 @@ _bt_walk_left(Relation rel, Buffer buf)
 			for (;;)
 			{
 				if (P_RIGHTMOST(opaque))
-					elog(ERROR, "fell off the end of \"%s\"",
+					elog(ERROR, "fell off the end of index \"%s\"",
 						 RelationGetRelationName(rel));
 				blkno = opaque->btpo_next;
 				buf = _bt_relandgetbuf(rel, buf, blkno, BT_READ);
@@ -1265,8 +1349,8 @@ _bt_walk_left(Relation rel, Buffer buf)
 			 * into an infinite loop if there's anything wrong.
 			 */
 			if (opaque->btpo_prev == lblkno)
-				elog(ERROR, "could not find left sibling in \"%s\"",
-					 RelationGetRelationName(rel));
+				elog(ERROR, "could not find left sibling of block %u in index \"%s\"",
+					 obknum, RelationGetRelationName(rel));
 			/* Okay to try again with new lblkno value */
 		}
 	}
@@ -1291,6 +1375,8 @@ _bt_get_endpoint(Relation rel, uint32 level, bool rightmost)
 	OffsetNumber offnum;
 	BlockNumber blkno;
 	IndexTuple	itup;
+
+	MIRROREDLOCK_BUFMGR_MUST_ALREADY_BE_HELD;
 
 	/*
 	 * If we are looking for a leaf page, okay to descend from fast root;
@@ -1324,7 +1410,7 @@ _bt_get_endpoint(Relation rel, uint32 level, bool rightmost)
 		{
 			blkno = opaque->btpo_next;
 			if (blkno == P_NONE)
-				elog(ERROR, "fell off the end of \"%s\"",
+				elog(ERROR, "fell off the end of index \"%s\"",
 					 RelationGetRelationName(rel));
 			buf = _bt_relandgetbuf(rel, buf, blkno, BT_READ);
 			page = BufferGetPage(buf);
@@ -1335,7 +1421,8 @@ _bt_get_endpoint(Relation rel, uint32 level, bool rightmost)
 		if (opaque->btpo.level == level)
 			break;
 		if (opaque->btpo.level < level)
-			elog(ERROR, "btree level %u not found", level);
+			elog(ERROR, "btree level %u not found in index \"%s\"",
+				 level, RelationGetRelationName(rel));
 
 		/* Descend to leftmost or rightmost child page */
 		if (rightmost)
@@ -1366,6 +1453,8 @@ _bt_get_endpoint(Relation rel, uint32 level, bool rightmost)
 static bool
 _bt_endpoint(IndexScanDesc scan, ScanDirection dir)
 {
+	MIRROREDLOCK_BUFMGR_DECLARE;
+
 	Relation	rel = scan->indexRelation;
 	BTScanOpaque so = (BTScanOpaque) scan->opaque;
 	Buffer		buf;
@@ -1378,11 +1467,19 @@ _bt_endpoint(IndexScanDesc scan, ScanDirection dir)
 	 * version of _bt_search().  We don't maintain a stack since we know we
 	 * won't need it.
 	 */
+	
+	// -------- MirroredLock ----------
+	MIRROREDLOCK_BUFMGR_LOCK;
+	
 	buf = _bt_get_endpoint(rel, 0, ScanDirectionIsBackward(dir));
 
 	if (!BufferIsValid(buf))
 	{
 		/* empty index... */
+		
+		MIRROREDLOCK_BUFMGR_UNLOCK;
+		// -------- MirroredLock ----------
+		
 		so->currPos.buf = InvalidBuffer;
 		return false;
 	}
@@ -1437,12 +1534,21 @@ _bt_endpoint(IndexScanDesc scan, ScanDirection dir)
 		 * the next page.  Return false if there's no matching data at all.
 		 */
 		if (!_bt_steppage(scan, dir))
+		{
+
+			MIRROREDLOCK_BUFMGR_UNLOCK;
+			// -------- MirroredLock ----------
+
 			return false;
+		}
 	}
 
 	/* Drop the lock, but not pin, on the current page */
 	LockBuffer(so->currPos.buf, BUFFER_LOCK_UNLOCK);
-
+	
+	MIRROREDLOCK_BUFMGR_UNLOCK;
+	// -------- MirroredLock ----------
+	
 	/* OK, itemIndex says what to return */
 	scan->xs_ctup.t_self = so->currPos.items[so->currPos.itemIndex].heapTid;
 

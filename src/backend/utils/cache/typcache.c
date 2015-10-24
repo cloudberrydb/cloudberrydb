@@ -32,7 +32,7 @@
  * entry, since that may need to change as a consequence of ALTER TABLE.
  *
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2008, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
@@ -42,6 +42,7 @@
  */
 #include "postgres.h"
 
+#include "catalog/catquery.h"
 #include "access/hash.h"
 #include "access/heapam.h"
 #include "access/nbtree.h"
@@ -51,6 +52,7 @@
 #include "utils/lsyscache.h"
 #include "utils/syscache.h"
 #include "utils/typcache.h"
+#include "cdb/cdbvars.h"
 
 
 /* The main type cache hashtable searched by lookup_type_cache */
@@ -84,7 +86,6 @@ static HTAB *RecordCacheHash = NULL;
 static TupleDesc *RecordCacheArray = NULL;
 static int32 RecordCacheArrayLen = 0;	/* allocated length of array */
 static int32 NextRecordTypmod = 0;		/* number of entries used */
-
 
 /*
  * lookup_type_cache
@@ -132,10 +133,16 @@ lookup_type_cache(Oid type_id, int flags)
 		 */
 		HeapTuple	tp;
 		Form_pg_type typtup;
+		cqContext	*pcqCtx;
 
-		tp = SearchSysCache(TYPEOID,
-							ObjectIdGetDatum(type_id),
-							0, 0, 0);
+		pcqCtx = caql_beginscan(
+				NULL,
+				cql("SELECT * FROM pg_type "
+					" WHERE oid = :1 ",
+					ObjectIdGetDatum(type_id)));
+
+		tp = caql_getnext(pcqCtx);
+
 		if (!HeapTupleIsValid(tp))
 			elog(ERROR, "cache lookup failed for type %u", type_id);
 		typtup = (Form_pg_type) GETSTRUCT(tp);
@@ -159,7 +166,7 @@ lookup_type_cache(Oid type_id, int flags)
 		typentry->typtype = typtup->typtype;
 		typentry->typrelid = typtup->typrelid;
 
-		ReleaseSysCache(tp);
+		caql_endscan(pcqCtx);
 	}
 
 	/* If we haven't already found the opclass, try to do so */
@@ -437,9 +444,23 @@ assign_record_type_typmod(TupleDesc tupDesc)
 	foreach(l, recentry->tupdescs)
 	{
 		entDesc = (TupleDesc) lfirst(l);
-		if (equalTupleDescs(tupDesc, entDesc))
+		if (equalTupleDescs(tupDesc, entDesc, true))
 		{
 			tupDesc->tdtypmod = entDesc->tdtypmod;
+
+			if (entDesc->tdqdtypmod != -1 && tupDesc->tdqdtypmod != -1)
+			{
+				Assert(tupDesc->tdqdtypmod == entDesc->tdqdtypmod);
+			}
+			else if (entDesc->tdqdtypmod != -1)
+			{
+				tupDesc->tdqdtypmod = entDesc->tdqdtypmod;
+			}
+			else if (tupDesc->tdqdtypmod != -1)
+			{
+				entDesc->tdqdtypmod = tupDesc->tdqdtypmod;
+			}
+
 			return;
 		}
 	}
@@ -510,4 +531,31 @@ flush_rowtype_cache(Oid type_id)
 		FreeTupleDesc(typentry->tupDesc);
 
 	typentry->tupDesc = NULL;
+}
+
+
+/*
+ * build_tuple_node_list
+ *
+ * Wrap TupleDesc with TupleDescNode. Return all record type in record cache.
+ */
+void
+build_tuple_node_list(List **transientTypeList)
+{
+	int i = 0;
+
+	if (NextRecordTypmod == 0)
+		return;
+
+	for (; i < NextRecordTypmod; i++)
+	{
+		TupleDesc tmp = RecordCacheArray[i];
+
+		TupleDescNode *node = palloc0(sizeof(TupleDescNode));
+		node->type = T_TupleDescNode;
+		node->natts = tmp->natts;
+		node->tuple = CreateTupleDescCopy(tmp);
+		node->tuple->tdqdtypmod = tmp->tdtypmod;
+		*transientTypeList = lappend(*transientTypeList, node);
+	}
 }

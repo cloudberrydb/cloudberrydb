@@ -28,7 +28,7 @@
  * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * $PostgreSQL: pgsql/src/backend/regex/regc_nfa.c,v 1.4 2005/10/15 02:49:24 momjian Exp $
+ * $PostgreSQL: pgsql/src/backend/regex/regc_nfa.c,v 1.7 2009/06/11 14:49:01 momjian Exp $
  *
  *
  * One or two things that technically ought to be in here
@@ -60,11 +60,12 @@ newnfa(struct vars * v,
 	nfa->nstates = 0;
 	nfa->cm = cm;
 	nfa->v = v;
+	nfa->size = 0;
 	nfa->bos[0] = nfa->bos[1] = COLORLESS;
 	nfa->eos[0] = nfa->eos[1] = COLORLESS;
+	nfa->parent = parent;		/* Precedes newfstate so parent is valid. */
 	nfa->post = newfstate(nfa, '@');	/* number 0 */
 	nfa->pre = newfstate(nfa, '>');		/* number 1 */
-	nfa->parent = parent;
 
 	nfa->init = newstate(nfa);	/* may become invalid later */
 	nfa->final = newstate(nfa);
@@ -86,6 +87,57 @@ newnfa(struct vars * v,
 		return NULL;
 	}
 	return nfa;
+}
+
+/*
+ * TooManyStates - checks if the max states exceeds the compile-time value
+ */
+static int
+TooManyStates(struct nfa * nfa)
+{
+	struct nfa *parent = nfa->parent;
+	size_t		sz = nfa->size;
+
+	while (parent != NULL)
+	{
+		sz = parent->size;
+		parent = parent->parent;
+	}
+	if (sz > REG_MAX_STATES)
+		return 1;
+	return 0;
+}
+
+/*
+ * IncrementSize - increases the tracked size of the NFA and its parents.
+ */
+static void
+IncrementSize(struct nfa * nfa)
+{
+	struct nfa *parent = nfa->parent;
+
+	nfa->size++;
+	while (parent != NULL)
+	{
+		parent->size++;
+		parent = parent->parent;
+	}
+}
+
+/*
+ * DecrementSize - decreases the tracked size of the NFA and its parents.
+ */
+static void
+DecrementSize(struct nfa * nfa)
+{
+	struct nfa *parent = nfa->parent;
+
+	nfa->size--;
+	while (parent != NULL)
+	{
+		parent->size--;
+		parent = parent->parent;
+	}
 }
 
 /*
@@ -122,6 +174,11 @@ newstate(struct nfa * nfa)
 {
 	struct state *s;
 
+	if (TooManyStates(nfa))
+	{
+		NERR(REG_ETOOBIG);
+		return NULL;
+	}
 	if (nfa->free != NULL)
 	{
 		s = nfa->free;
@@ -158,6 +215,8 @@ newstate(struct nfa * nfa)
 	}
 	s->prev = nfa->slast;
 	nfa->slast = s;
+	/* track the current size and the parent size */
+	IncrementSize(nfa);
 	return s;
 }
 
@@ -220,6 +279,7 @@ freestate(struct nfa * nfa,
 	s->prev = NULL;
 	s->next = nfa->free;		/* don't delete it, put it on the free list */
 	nfa->free = s;
+	DecrementSize(nfa);
 }
 
 /*
@@ -289,8 +349,6 @@ newarc(struct nfa * nfa,
 
 	if (COLORED(a) && nfa->parent == NULL)
 		colorchain(nfa->cm, a);
-
-	return;
 }
 
 /*
@@ -301,8 +359,6 @@ allocarc(struct nfa * nfa,
 		 struct state * s)
 {
 	struct arc *a;
-	struct arcbatch *new;
-	int			i;
 
 	/* shortcut */
 	if (s->free == NULL && s->noas < ABSIZE)
@@ -315,22 +371,25 @@ allocarc(struct nfa * nfa,
 	/* if none at hand, get more */
 	if (s->free == NULL)
 	{
-		new = (struct arcbatch *) MALLOC(sizeof(struct arcbatch));
-		if (new == NULL)
+		struct arcbatch *newAb;
+		int			i;
+
+		newAb = (struct arcbatch *) MALLOC(sizeof(struct arcbatch));
+		if (newAb == NULL)
 		{
 			NERR(REG_ESPACE);
 			return NULL;
 		}
-		new->next = s->oas.next;
-		s->oas.next = new;
+		newAb->next = s->oas.next;
+		s->oas.next = newAb;
 
 		for (i = 0; i < ABSIZE; i++)
 		{
-			new->a[i].type = 0;
-			new->a[i].freechain = &new->a[i + 1];
+			newAb->a[i].type = 0;
+			newAb->a[i].freechain = &newAb->a[i + 1];
 		}
-		new->a[ABSIZE - 1].freechain = NULL;
-		s->free = &new->a[0];
+		newAb->a[ABSIZE - 1].freechain = NULL;
+		s->free = &newAb->a[0];
 	}
 	assert(s->free != NULL);
 
@@ -435,20 +494,20 @@ cparc(struct nfa * nfa,
  */
 static void
 moveins(struct nfa * nfa,
-		struct state * old,
-		struct state * new)
+		struct state * oldState,
+		struct state * newState)
 {
 	struct arc *a;
 
-	assert(old != new);
+	assert(oldState != newState);
 
-	while ((a = old->ins) != NULL)
+	while ((a = oldState->ins) != NULL)
 	{
-		cparc(nfa, a, a->from, new);
+		cparc(nfa, a, a->from, newState);
 		freearc(nfa, a);
 	}
-	assert(old->nins == 0);
-	assert(old->ins == NULL);
+	assert(oldState->nins == 0);
+	assert(oldState->ins == NULL);
 }
 
 /*
@@ -456,15 +515,15 @@ moveins(struct nfa * nfa,
  */
 static void
 copyins(struct nfa * nfa,
-		struct state * old,
-		struct state * new)
+		struct state * oldState,
+		struct state * newState)
 {
 	struct arc *a;
 
-	assert(old != new);
+	assert(oldState != newState);
 
-	for (a = old->ins; a != NULL; a = a->inchain)
-		cparc(nfa, a, a->from, new);
+	for (a = oldState->ins; a != NULL; a = a->inchain)
+		cparc(nfa, a, a->from, newState);
 }
 
 /*
@@ -472,16 +531,16 @@ copyins(struct nfa * nfa,
  */
 static void
 moveouts(struct nfa * nfa,
-		 struct state * old,
-		 struct state * new)
+		 struct state * oldState,
+		 struct state * newState)
 {
 	struct arc *a;
 
-	assert(old != new);
+	assert(oldState != newState);
 
-	while ((a = old->outs) != NULL)
+	while ((a = oldState->outs) != NULL)
 	{
-		cparc(nfa, a, new, a->to);
+		cparc(nfa, a, newState, a->to);
 		freearc(nfa, a);
 	}
 }
@@ -491,15 +550,15 @@ moveouts(struct nfa * nfa,
  */
 static void
 copyouts(struct nfa * nfa,
-		 struct state * old,
-		 struct state * new)
+		 struct state * oldState,
+		 struct state * newState)
 {
 	struct arc *a;
 
-	assert(old != new);
+	assert(oldState != newState);
 
-	for (a = old->outs; a != NULL; a = a->outchain)
-		cparc(nfa, a, new, a->to);
+	for (a = oldState->outs; a != NULL; a = a->outchain)
+		cparc(nfa, a, newState, a->to);
 }
 
 /*
@@ -633,6 +692,8 @@ duptraverse(struct nfa * nfa,
 	for (a = s->outs; a != NULL && !NISERR(); a = a->outchain)
 	{
 		duptraverse(nfa, a->to, (struct state *) NULL);
+		if (NISERR())
+			break;
 		assert(a->to->tmp != NULL);
 		cparc(nfa, a, s->tmp, a->to->tmp);
 	}
@@ -793,6 +854,26 @@ pull(struct nfa * nfa,
 		return 1;
 	}
 
+	/*
+	 * DGP 2007-11-15: Cloning a state with a circular constraint on its list
+	 * of outs can lead to trouble [Tcl Bug 1810038], so get rid of them
+	 * first.
+	 */
+	for (a = from->outs; a != NULL; a = nexta)
+	{
+		nexta = a->outchain;
+		switch (a->type)
+		{
+			case '^':
+			case '$':
+			case BEHIND:
+			case AHEAD:
+				if (from == a->to)
+					freearc(nfa, a);
+				break;
+		}
+	}
+
 	/* first, clone from state if necessary to avoid other outarcs */
 	if (from->nouts > 1)
 	{
@@ -917,6 +998,29 @@ push(struct nfa * nfa,
 		return 1;
 	}
 
+	/*
+	 * DGP 2007-11-15: Here we duplicate the same protections as appear in
+	 * pull() above to avoid troubles with cloning a state with a circular
+	 * constraint on its list of ins.  It is not clear whether this is
+	 * necessary, or is protecting against a "can't happen". Any test case
+	 * that actually leads to a freearc() call here would be a welcome
+	 * addition to the test suite.
+	 */
+	for (a = to->ins; a != NULL; a = nexta)
+	{
+		nexta = a->inchain;
+		switch (a->type)
+		{
+			case '^':
+			case '$':
+			case BEHIND:
+			case AHEAD:
+				if (a->from == to)
+					freearc(nfa, a);
+				break;
+		}
+	}
+
 	/* first, clone to state if necessary to avoid other inarcs */
 	if (to->nins > 1)
 	{
@@ -1039,7 +1143,8 @@ fixempties(struct nfa * nfa,
 	do
 	{
 		progress = 0;
-		for (s = nfa->states; s != NULL && !NISERR(); s = nexts)
+		for (s = nfa->states; s != NULL && !NISERR() &&
+			 s->no != FREESTATE; s = nexts)
 		{
 			nexts = s->next;
 			for (a = s->outs; a != NULL && !NISERR(); a = nexta)

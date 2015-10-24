@@ -3,7 +3,7 @@
  * buf_init.c
  *	  buffer manager initialization routines
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2008, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -14,11 +14,15 @@
  */
 #include "postgres.h"
 
+#include <sys/mman.h>
+#include <sys/types.h>
+#include <sys/time.h>
+#include <sys/resource.h>
+
 #include "storage/bufmgr.h"
 #include "storage/buf_internals.h"
 
-
-BufferDesc *BufferDescriptors;
+volatile BufferDesc *BufferDescriptors;
 char	   *BufferBlocks;
 int32	   *PrivateRefCount;
 
@@ -70,6 +74,18 @@ long int	LocalBufferFlushCount;
  *		backend.
  */
 
+static void
+ProtectMemoryPoolBuffers()
+{
+	Size bufferBlocksTotalSize = mul_size((Size)NBuffers, (Size) BLCKSZ);
+	if ( ShouldMemoryProtectBufferPool() &&
+         mprotect(BufferBlocks, bufferBlocksTotalSize, PROT_NONE ))
+    {
+        ereport(ERROR,
+                (errmsg("Unable to set memory level to %d, error %d, allocation size %ud, ptr %ld", PROT_NONE,
+                errno, (unsigned int) bufferBlocksTotalSize, (long int) BufferBlocks)));
+    }
+}
 
 /*
  * Initialize shared buffer pool
@@ -80,16 +96,19 @@ long int	LocalBufferFlushCount;
 void
 InitBufferPool(void)
 {
+    Size bufferBlocksTotalSize = mul_size((Size)NBuffers, (Size) BLCKSZ);
 	bool		foundBufs,
 				foundDescs;
 
-	BufferDescriptors = (BufferDesc *)
+	BufferDescriptors = (volatile BufferDesc *)
 		ShmemInitStruct("Buffer Descriptors",
 						NBuffers * sizeof(BufferDesc), &foundDescs);
 
 	BufferBlocks = (char *)
-		ShmemInitStruct("Buffer Blocks",
-						NBuffers * (Size) BLCKSZ, &foundBufs);
+		ShmemInitStruct("Buffer Blocks", bufferBlocksTotalSize, &foundBufs);
+
+	/* GPDB: Init the buffer memory to something to help check for bugs */
+	memset(BufferBlocks,0xFE,bufferBlocksTotalSize);
 
 	if (foundDescs || foundBufs)
 	{
@@ -99,7 +118,7 @@ InitBufferPool(void)
 	}
 	else
 	{
-		BufferDesc *buf;
+		volatile BufferDesc *buf;
 		int			i;
 
 		buf = BufferDescriptors;
@@ -133,9 +152,11 @@ InitBufferPool(void)
 		BufferDescriptors[NBuffers - 1].freeNext = FREENEXT_END_OF_LIST;
 	}
 
+    ProtectMemoryPoolBuffers();
+
 	/* Init other shared buffer-management stuff */
 	StrategyInitialize(!foundDescs);
-}
+ }
 
 /*
  * Initialize access to shared buffer pool
@@ -152,6 +173,8 @@ InitBufferPool(void)
 void
 InitBufferPoolAccess(void)
 {
+	ProtectMemoryPoolBuffers();
+	
 	/*
 	 * Allocate and zero local arrays of per-buffer info.
 	 */

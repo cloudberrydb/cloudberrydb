@@ -1,0 +1,37 @@
+.\" xlogdump tool. 
+.\" Contact diogob@gmail.com for errors.
+.TH man 1 "01 September 2006" "0.1" "xlogdump man page"
+.SH NAME
+xlogdump \- Utility for extracting info from xlog files.
+.SH SINOPSIYS
+.\"
+.B xlogdump [options] xlog_file
+.SH EXAMPLES
+To make a simple dump:
+xlogdump data/pg_xlog/000000010000000000000000
+
+To extract only transactions sizes and status:
+xlogdump -t data/pg_xlog/000000010000000000000000
+
+To itranslate oids and return statements with the data:
+xlogdump -h localhost -s data/pg_xlog/000000010000000000000000
+
+.SH DESCRIPTION
+.B xlogdump
+é uma ferramenta para gerenciar projetos utilizando o framework Blokz. Somente o comando para criar um novo projeto está disponível.
+.SH OPÇÕES
+.IP \(bu 2 
+-U usuário para criação do projeto (deve ser superusuário). [postgres]
+.IP \(bu 2 
+-h host para conexão com banco de dados. [localhost]
+.IP \(bu 2 
+-b Banco de dados - nome da base de dados do projeto no PostgreSQL. [{projeto}_db]
+.IP \(bu 2 
+-u Usuário a ser utilizado pelo projeto durante a execução. [{projeto}_admin]
+.IP \(bu 2 
+-s Senha do usuário utilizado pelo projeto durante a execução. [{projeto}_admin]
+.IP \(bu 2 
+-a Caminho para o ADODB [/usr/share/adodb/ ou /usr/share/php/adodb/]
+.IP \(bu 2 
+ -c Caminho do projeto a ser criado
+

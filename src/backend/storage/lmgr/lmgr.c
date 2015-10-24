@@ -3,7 +3,8 @@
  * lmgr.c
  *	  POSTGRES lock manager code
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 2006-2008, Greenplum inc
+ * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -19,12 +20,14 @@
 #include "access/transam.h"
 #include "access/xact.h"
 #include "catalog/catalog.h"
+#include "catalog/gp_policy.h"     /* CDB: POLICYTYPE_PARTiITIONED */
 #include "catalog/namespace.h"
 #include "miscadmin.h"
 #include "storage/lmgr.h"
 #include "storage/procarray.h"
 #include "utils/inval.h"
-#include "utils/lsyscache.h"
+#include "utils/lsyscache.h"        /* CDB: get_rel_name() */
+#include "cdb/cdbvars.h"
 
 
 /*
@@ -184,6 +187,35 @@ LockRelation(Relation relation, LOCKMODE lockmode)
 }
 
 /*
+ *		LockRelationNoWait
+ *
+ * Similar to LockReation, except that it is not waiting
+ * for the lock if it is not available.
+ *
+ */
+LockAcquireResult
+LockRelationNoWait(Relation relation, LOCKMODE lockmode)
+{
+	LOCKTAG		tag;
+	LockAcquireResult res;
+
+	SET_LOCKTAG_RELATION(tag,
+						 relation->rd_lockInfo.lockRelId.dbId,
+						 relation->rd_lockInfo.lockRelId.relId);
+
+	res = LockAcquire(&tag, lockmode, false, true);
+
+	/*
+	 * Now that we have the lock, check for invalidation messages; see notes
+	 * in LockRelationOid.
+	 */
+	if (res != LOCKACQUIRE_ALREADY_HELD)
+		AcceptInvalidationMessages();
+
+	return res;
+}
+
+/*
  *		ConditionalLockRelation
  *
  * This is a convenience routine for acquiring an additional lock on an
@@ -304,6 +336,87 @@ UnlockRelationForExtension(Relation relation, LOCKMODE lockmode)
 
 	LockRelease(&tag, lockmode, false);
 }
+
+/*
+ * Separate routine for LockRelationForExtension() because resync workers do not have relation.  
+ */
+void
+LockRelationForResyncExtension(RelFileNode *relFileNode, LOCKMODE lockmode)
+{
+	LOCKTAG		tag;
+	
+	SET_LOCKTAG_RELATION_EXTEND(tag,
+								relFileNode->dbNode,
+								relFileNode->relNode);
+	
+	(void) LockAcquire(&tag, lockmode, false, false);
+}
+
+/*
+ * Separate routine for UnlockRelationForExtension() because resync workers do not have relation.
+ */
+void
+UnlockRelationForResyncExtension(RelFileNode *relFileNode, LOCKMODE lockmode)
+{
+	LOCKTAG		tag;
+	
+	SET_LOCKTAG_RELATION_EXTEND(tag,
+								relFileNode->dbNode,
+								relFileNode->relNode);
+	
+	LockRelease(&tag, lockmode, false);
+}
+
+void
+LockRelationForResynchronize(RelFileNode *relFileNode, LOCKMODE lockmode)
+{
+	LOCKTAG		tag;
+
+	SET_LOCKTAG_RELATION_RESYNCHRONIZE(tag,
+						 relFileNode->dbNode,
+						 relFileNode->relNode);
+
+	LockAcquire(&tag, lockmode, false, false);
+}
+
+void
+UnlockRelationForResynchronize(RelFileNode *relFileNode, LOCKMODE lockmode)
+{
+	LOCKTAG		tag;
+
+	SET_LOCKTAG_RELATION_RESYNCHRONIZE(tag,
+						 relFileNode->dbNode,
+						 relFileNode->relNode);
+
+	LockRelease(&tag, lockmode, false);
+}
+
+LockAcquireResult
+LockRelationAppendOnlySegmentFile(RelFileNode *relFileNode, int32 segno, LOCKMODE lockmode, bool dontWait)
+{
+	LOCKTAG		tag;
+
+	SET_LOCKTAG_RELATION_APPENDONLY_SEGMENT_FILE(tag,
+						 relFileNode->dbNode,
+						 relFileNode->relNode,
+						 segno);
+
+	return LockAcquire(&tag, lockmode, false, dontWait);
+}
+
+void
+UnlockRelationAppendOnlySegmentFile(RelFileNode *relFileNode, int32 segno, LOCKMODE lockmode)
+{
+	LOCKTAG		tag;
+
+	SET_LOCKTAG_RELATION_APPENDONLY_SEGMENT_FILE(tag,
+						 relFileNode->dbNode,
+						 relFileNode->relNode,
+						 segno);
+
+	LockRelease(&tag, lockmode, false);
+}
+
 
 /*
  *		LockPage
@@ -430,6 +543,13 @@ XactLockTableInsert(TransactionId xid)
 	LOCKTAG		tag;
 
 	SET_LOCKTAG_TRANSACTION(tag, xid);
+
+	if (LockAcquire(&tag, ExclusiveLock, false, true) == LOCKACQUIRE_NOT_AVAIL)
+	{
+		elog(LOG,"XactLockTableInsert lock for xid = %u is not available!", xid);
+		
+		return;
+	}
 
 	(void) LockAcquire(&tag, ExclusiveLock, false, false);
 }
@@ -615,6 +735,8 @@ LockTagIsTemp(const LOCKTAG *tag)
 		case LOCKTAG_RELATION_EXTEND:
 		case LOCKTAG_PAGE:
 		case LOCKTAG_TUPLE:
+		case LOCKTAG_RELATION_RESYNCHRONIZE:
+		case LOCKTAG_RELATION_APPENDONLY_SEGMENT_FILE:
 			/* check for lock on a temp relation */
 			/* field1 is dboid, field2 is reloid for all of these */
 			if ((Oid) tag->locktag_field1 == InvalidOid)

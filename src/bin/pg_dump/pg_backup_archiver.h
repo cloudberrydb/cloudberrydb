@@ -17,7 +17,7 @@
  *
  *
  * IDENTIFICATION
- *		$PostgreSQL: pgsql/src/bin/pg_dump/pg_backup_archiver.h,v 1.73 2006/10/04 00:30:05 momjian Exp $
+ *		$PostgreSQL: pgsql/src/bin/pg_dump/pg_backup_archiver.h,v 1.73.2.1 2007/02/19 15:05:21 mha Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -49,6 +49,7 @@
 #define GZCLOSE(fh) fclose(fh)
 #define GZWRITE(p, s, n, fh) (fwrite(p, s, n, fh) * (s))
 #define GZREAD(p, s, n, fh) fread(p, s, n, fh)
+/* this is just the redefinition of a libz constant */
 #define Z_DEFAULT_COMPRESSION (-1)
 
 typedef struct _z_stream
@@ -61,6 +62,7 @@ typedef struct _z_stream
 typedef z_stream *z_streamp;
 #endif
 
+/* Current archive version number (the format we can output) */
 #define K_VERS_MAJOR 1
 #define K_VERS_MINOR 10
 #define K_VERS_REV 0
@@ -70,7 +72,7 @@ typedef z_stream *z_streamp;
 #define BLK_BLOB 2
 #define BLK_BLOBS 3
 
-/* Some important version numbers (checked in code) */
+/* Historical version numbers (checked in code) */
 #define K_VERS_1_0 (( (1 * 256 + 0) * 256 + 0) * 256 + 0)
 #define K_VERS_1_2 (( (1 * 256 + 2) * 256 + 0) * 256 + 0)		/* Allow No ZLIB */
 #define K_VERS_1_3 (( (1 * 256 + 3) * 256 + 0) * 256 + 0)		/* BLOBs */
@@ -86,6 +88,7 @@ typedef z_stream *z_streamp;
 																 * tracking */
 #define K_VERS_1_10 (( (1 * 256 + 10) * 256 + 0) * 256 + 0)		/* add tablespace */
 
+/* Newest format we can read */
 #define K_VERS_MAX (( (1 * 256 + 10) * 256 + 255) * 256 + 0)
 
 
@@ -122,11 +125,7 @@ typedef void (*PrintTocDataPtr) (struct _archiveHandle * AH, struct _tocEntry * 
 
 typedef size_t (*CustomOutPtr) (struct _archiveHandle * AH, const void *buf, size_t len);
 
-typedef enum _archiveMode
-{
-	archModeWrite,
-	archModeRead
-} ArchiveMode;
+typedef void (*DieFuncPtr) (int taskRC, char * pszErrorMsg);
 
 typedef struct _outputContext
 {
@@ -205,7 +204,7 @@ typedef struct _archiveHandle
 								 * format */
 	size_t		lookaheadSize;	/* Size of allocated buffer */
 	size_t		lookaheadLen;	/* Length of data in lookahead */
-	off_t		lookaheadPos;	/* Current read position in lookahead buffer */
+	pgoff_t		lookaheadPos;	/* Current read position in lookahead buffer */
 
 	ArchiveEntryPtr ArchiveEntryPtr;	/* Called for each metadata object */
 	StartDataPtr StartDataPtr;	/* Called when table data is about to be
@@ -235,7 +234,8 @@ typedef struct _archiveHandle
 
 	/* Stuff for direct DB connection */
 	char	   *archdbname;		/* DB name *read* from archive */
-	bool		requirePassword;
+	enum trivalue promptPassword;
+	char	   *savedPassword;	/* password for ropt->username, if known */
 	PGconn	   *connection;
 	int			connectToDB;	/* Flag to indicate if direct DB connection is
 								 * required */
@@ -251,6 +251,7 @@ typedef struct _archiveHandle
 	char	   *fSpec;			/* Archive File Spec */
 	FILE	   *FH;				/* General purpose file handle */
 	void	   *OF;
+
 	int			gzOut;			/* Output file */
 
 	struct _tocEntry *toc;		/* List of TOC entries */
@@ -266,9 +267,9 @@ typedef struct _archiveHandle
 								 * etc */
 
 	/* these vars track state to avoid sending redundant SET commands */
-	char	   *currUser;		/* current username */
-	char	   *currSchema;		/* current schema */
-	char	   *currTablespace; /* current tablespace */
+	char	   *currUser;		/* current username, or NULL if unknown */
+	char	   *currSchema;		/* current schema, or NULL */
+	char	   *currTablespace; /* current tablespace, or NULL */
 	bool		currWithOids;	/* current default_with_oids setting */
 
 	void	   *lo_buf;
@@ -280,6 +281,8 @@ typedef struct _archiveHandle
 	ArchiverStage lastErrorStage;
 	struct _tocEntry *currentTE;
 	struct _tocEntry *lastErrorTE;
+
+	DieFuncPtr dieFuncPtr;      /* Called upon die to report the status */
 } ArchiveHandle;
 
 typedef struct _tocEntry
@@ -338,8 +341,8 @@ extern int	ReadInt(ArchiveHandle *AH);
 extern char *ReadStr(ArchiveHandle *AH);
 extern size_t WriteStr(ArchiveHandle *AH, const char *s);
 
-int			ReadOffset(ArchiveHandle *, off_t *);
-size_t		WriteOffset(ArchiveHandle *, off_t, int);
+int			ReadOffset(ArchiveHandle *, pgoff_t *);
+size_t		WriteOffset(ArchiveHandle *, pgoff_t, int);
 
 extern void StartRestoreBlobs(ArchiveHandle *AH);
 extern void StartRestoreBlob(ArchiveHandle *AH, Oid oid);

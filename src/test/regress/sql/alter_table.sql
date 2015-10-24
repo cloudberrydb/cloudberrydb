@@ -1,8 +1,9 @@
+set optimizer_disable_missing_stats_collection = on;
 --
 -- ALTER_TABLE
 -- add attribute
 --
-
+DROP TABLE IF EXISTS tmp;
 CREATE TABLE tmp (initial int4);
 
 COMMENT ON TABLE tmp_wrong IS 'table comment';
@@ -163,6 +164,31 @@ SELECT * FROM tmp_new2;
 DROP TABLE tmp_new;
 DROP TABLE tmp_new2;
 
+-- ALTER TABLE ... RENAME on corrupted relations
+SET allow_system_table_mods = dml;
+-- missing entry
+CREATE TABLE cor (a int, b float);
+INSERT INTO cor SELECT i, i+1 FROM generate_series(1,100)i;
+DELETE FROM pg_attribute WHERE attname='a' AND attrelid='cor'::regclass;
+ALTER TABLE cor RENAME TO oldcor;
+INSERT INTO pg_attribute SELECT distinct * FROM gp_dist_random('pg_attribute') WHERE attname='a' AND attrelid='oldcor'::regclass;
+DROP TABLE oldcor;
+
+-- typname is out of sync
+CREATE TABLE cor (a int, b float, c text);
+UPDATE pg_type SET typname='newcor' WHERE typrelid='cor'::regclass;
+ALTER TABLE cor RENAME TO newcor;
+ALTER TABLE newcor RENAME TO cor;
+DROP TABLE cor;
+
+-- relname is out of sync
+CREATE TABLE cor (a int, b int);
+UPDATE pg_class SET relname='othercor' WHERE relname='cor';
+ALTER TABLE othercor RENAME TO tmpcor;
+ALTER TABLE tmpcor RENAME TO cor;
+DROP TABLE cor;
+
+RESET allow_system_table_mods;
 
 -- ALTER TABLE ... RENAME on non-table relations
 -- renaming indexes (FIXME: this should probably test the index's functionality)
@@ -177,7 +203,7 @@ ANALYZE tenk1;
 set enable_seqscan to off;
 set enable_bitmapscan to off;
 -- 5 values, sorted 
-SELECT unique1 FROM tenk1 WHERE unique1 < 5;
+SELECT unique1 FROM tenk1 WHERE unique1 < 5 ORDER BY 1;
 reset enable_seqscan;
 reset enable_bitmapscan;
 
@@ -188,11 +214,11 @@ alter table pg_toast_stud_emp rename to stud_emp;
 
 -- FOREIGN KEY CONSTRAINT adding TEST
 
-CREATE TABLE tmp2 (a int primary key);
+CREATE TABLE tmp2 (a int primary key) distributed by (a);
 
 CREATE TABLE tmp3 (a int, b int);
 
-CREATE TABLE tmp4 (a int, b int, unique(a,b));
+CREATE TABLE tmp4 (a int, b int, unique(a,b)) distributed by (a);
 
 CREATE TABLE tmp5 (a int, b int);
 
@@ -216,10 +242,8 @@ ALTER TABLE tmp3 add constraint tmpconstr foreign key(a) references tmp2(b) matc
 -- Try (and fail) to add constraint due to invalid data
 ALTER TABLE tmp3 add constraint tmpconstr foreign key (a) references tmp2 match full;
 
--- Delete failing row
+-- Delete one row, add the constraint again -- should fail
 DELETE FROM tmp3 where a=5;
-
--- Try (and succeed)
 ALTER TABLE tmp3 add constraint tmpconstr foreign key (a) references tmp2 match full;
 
 -- Try (and fail) to create constraint from tmp5(a) to tmp4(a) - unique constraint on
@@ -240,7 +264,7 @@ DROP TABLE tmp2;
 -- Note: these tables are TEMP to avoid name conflicts when this test
 -- is run in parallel with foreign_key.sql.
 
-CREATE TEMP TABLE PKTABLE (ptest1 int PRIMARY KEY);
+CREATE TEMP TABLE PKTABLE (ptest1 int PRIMARY KEY) distributed by (ptest1);
 CREATE TEMP TABLE FKTABLE (ftest1 inet);
 -- This next should fail, because inet=int does not exist
 ALTER TABLE FKTABLE ADD FOREIGN KEY(ftest1) references pktable;
@@ -258,7 +282,8 @@ DROP TABLE pktable cascade;
 DROP TABLE fktable;
 
 CREATE TEMP TABLE PKTABLE (ptest1 int, ptest2 inet,
-                           PRIMARY KEY(ptest1, ptest2));
+                           PRIMARY KEY(ptest1, ptest2))
+                           distributed by (ptest1);
 -- This should fail, because we just chose really odd types
 CREATE TEMP TABLE FKTABLE (ftest1 cidr, ftest2 timestamp);
 ALTER TABLE FKTABLE ADD FOREIGN KEY(ftest1, ftest2) references pktable;
@@ -283,6 +308,9 @@ ALTER TABLE FKTABLE ADD FOREIGN KEY(ftest2, ftest1)
 create table atacc1 ( test int );
 -- add a check constraint
 alter table atacc1 add constraint atacc_test1 check (test>3);
+-- start_ignore
+-- Known_opt_diff: MPP-21330
+-- end_ignore
 -- should fail
 insert into atacc1 (test) values (2);
 -- should succeed
@@ -388,7 +416,7 @@ drop table atacc1;
 
 -- test unique constraint adding
 
-create table atacc1 ( test int ) with oids;
+create table atacc1 ( test int ) with oids distributed by (test);
 -- add a unique constraint
 alter table atacc1 add constraint atacc_test1 unique (test);
 -- insert first value
@@ -402,7 +430,7 @@ alter table atacc1 add constraint atacc_oid1 unique(oid);
 drop table atacc1;
 
 -- let's do one where the unique constraint fails when added
-create table atacc1 ( test int );
+create table atacc1 ( test int ) distributed by (test);
 -- insert soon to be failing rows
 insert into atacc1 (test) values (2);
 insert into atacc1 (test) values (2);
@@ -413,13 +441,13 @@ drop table atacc1;
 
 -- let's do one where the unique constraint fails
 -- because the column doesn't exist
-create table atacc1 ( test int );
+create table atacc1 ( test int ) distributed by (test);
 -- add a unique constraint (fails)
 alter table atacc1 add constraint atacc_test1 unique (test1);
 drop table atacc1;
 
 -- something a little more complicated
-create table atacc1 ( test int, test2 int);
+create table atacc1 ( test int, test2 int) distributed by (test);
 -- add a unique constraint
 alter table atacc1 add constraint atacc_test1 unique (test, test2);
 -- insert initial value
@@ -432,8 +460,19 @@ insert into atacc1 (test,test2) values (5,4);
 insert into atacc1 (test,test2) values (5,5);
 drop table atacc1;
 
+-- MPP-20466 Dis-allow duplicate constraint names for same table
+create table dupconstr (
+						i int,
+						j int constraint test CHECK (j > 10))
+						distributed by (i);
+-- should fail because of duplicate constraint name
+alter table dupconstr add constraint test unique (i);
+alter table dupconstr add constraint test primary key (i);
+-- cleanup
+drop table dupconstr;
+
 -- lets do some naming tests
-create table atacc1 (test int, test2 int, unique(test));
+create table atacc1 (test int, test2 int, unique(test)) distributed by (test);
 alter table atacc1 add unique (test2);
 -- should fail for @@ second one @@
 insert into atacc1 (test2, test) values (3, 3);
@@ -442,7 +481,7 @@ drop table atacc1;
 
 -- test primary key constraint adding
 
-create table atacc1 ( test int ) with oids;
+create table atacc1 ( test int ) with oids distributed by (test);
 -- add a primary key constraint
 alter table atacc1 add constraint atacc_test1 primary key (test);
 -- insert first value
@@ -457,12 +496,12 @@ insert into atacc1 (test) values(NULL);
 alter table atacc1 add constraint atacc_oid1 primary key(oid);
 -- drop first primary key constraint
 alter table atacc1 drop constraint atacc_test1 restrict;
--- try adding a primary key on oid (should succeed)
+-- try adding a primary key on oid (should fail)
 alter table atacc1 add constraint atacc_oid1 primary key(oid);
 drop table atacc1;
 
 -- let's do one where the primary key constraint fails when added
-create table atacc1 ( test int );
+create table atacc1 ( test int ) distributed by (test);
 -- insert soon to be failing rows
 insert into atacc1 (test) values (2);
 insert into atacc1 (test) values (2);
@@ -472,7 +511,7 @@ insert into atacc1 (test) values (3);
 drop table atacc1;
 
 -- let's do another one where the primary key constraint fails when added
-create table atacc1 ( test int );
+create table atacc1 ( test int ) distributed by (test);
 -- insert soon to be failing row
 insert into atacc1 (test) values (NULL);
 -- add a primary key (fails)
@@ -482,13 +521,23 @@ drop table atacc1;
 
 -- let's do one where the primary key constraint fails
 -- because the column doesn't exist
-create table atacc1 ( test int );
+create table atacc1 ( test int ) distributed by (test);
 -- add a primary key constraint (fails)
 alter table atacc1 add constraint atacc_test1 primary key (test1);
 drop table atacc1;
 
+-- adding a new column as primary key to a non-empty table.
+-- should fail unless the column has a non-null default value.
+create table atacc1 ( test int ) distributed by (test);
+insert into atacc1 (test) values (0);
+-- add a primary key column without a default (fails).
+alter table atacc1 add column test2 int primary key;
+-- now add a primary key column with a default (succeeds).
+alter table atacc1 add column test2 int default 0 primary key;
+drop table atacc1;
+
 -- something a little more complicated
-create table atacc1 ( test int, test2 int);
+create table atacc1 ( test int, test2 int) distributed by (test);
 -- add a primary key constraint
 alter table atacc1 add constraint atacc_test1 primary key (test, test2);
 -- try adding a second primary key - should fail
@@ -507,7 +556,7 @@ insert into atacc1 (test,test2) values (5,5);
 drop table atacc1;
 
 -- lets do some naming tests
-create table atacc1 (test int, test2 int, primary key(test));
+create table atacc1 (test int, test2 int, primary key(test)) distributed by (test);
 -- only first should succeed
 insert into atacc1 (test2, test) values (3, 3);
 insert into atacc1 (test2, test) values (2, 3);
@@ -525,7 +574,7 @@ alter table non_existent alter column bar drop not null;
 
 -- test setting columns to null and not null and vice versa
 -- test checking for null values and primary key
-create table atacc1 (test int not null) with oids;
+create table atacc1 (test int not null) with oids distributed by (test);
 alter table atacc1 add constraint "atacc1_pkey" primary key (test);
 alter table atacc1 alter column test drop not null;
 alter table atacc1 drop constraint "atacc1_pkey";
@@ -587,7 +636,7 @@ insert into def_test default values;
 alter table def_test alter column c1 set default 10;
 alter table def_test alter column c2 set default 'new_default';
 insert into def_test default values;
-select * from def_test;
+select * from def_test order by 1,2;
 
 -- set defaults to an incorrect type: this should fail
 alter table def_test alter column c1 set default 'wrong_datatype';
@@ -608,7 +657,7 @@ alter table def_view_test alter column c1 set default 45;
 insert into def_view_test default values;
 alter table def_view_test alter column c2 set default 'view_default';
 insert into def_view_test default values;
-select * from def_view_test;
+select * from def_view_test order by 1,2;
 
 drop rule def_view_test_ins on def_view_test;
 drop view def_view_test;
@@ -622,7 +671,8 @@ alter table pg_class drop column relname;
 alter table nosuchtable drop column bar;
 
 -- test dropping columns
-create table atacc1 (a int4 not null, b int4, c int4 not null, d int4) with oids;
+create table atacc1 (a int4 not null, b int4, c int4 not null, d int4) with oids
+distributed by (a);
 insert into atacc1 values (1, 2, 3, 4);
 alter table atacc1 drop a;
 alter table atacc1 drop a;
@@ -680,7 +730,7 @@ alter table atacc1 drop xmin;
 
 -- try creating a view and altering that, should fail
 create view myview as select * from atacc1;
-select * from myview;
+select * from myview order by 1,2,3;
 alter table myview drop d;
 drop view myview;
 
@@ -711,7 +761,7 @@ alter table atacc1 add unique(a);
 alter table atacc1 add unique("........pg.dropped.1........");
 alter table atacc1 add check (a > 3);
 alter table atacc1 add check ("........pg.dropped.1........" > 3);
-create table atacc2 (id int4 unique);
+create table atacc2 (id int4 unique) distributed by (id);
 alter table atacc1 add foreign key (a) references atacc2(id);
 alter table atacc1 add foreign key ("........pg.dropped.1........") references atacc2(id);
 alter table atacc2 add foreign key (id) references atacc1(a);
@@ -722,12 +772,12 @@ create index "testing_idx" on atacc1("........pg.dropped.1........");
 
 -- test create as and select into
 insert into atacc1 values (21, 22, 23);
-create table test1 as select * from atacc1;
-select * from test1;
-drop table test1;
-select * into test2 from atacc1;
-select * from test2;
-drop table test2;
+create table alter_table_test1 as select * from atacc1;
+select * from alter_table_test1 order by 1,2;
+drop table alter_table_test1;
+select * into alter_table_test2 from atacc1;
+select * from alter_table_test2 order by 1,2;
+drop table alter_table_test2;
 
 -- try dropping all columns
 alter table atacc1 drop c;
@@ -744,37 +794,37 @@ alter table parent drop a;
 create table child (d varchar(255)) inherits (parent);
 insert into child values (12, 13, 'testing');
 
-select * from parent;
+select * from parent order by 1,2,3;
 select * from child;
 alter table parent drop c;
-select * from parent;
+select * from parent order by 1,2;
 select * from child;
 
 drop table child;
 drop table parent;
 
 -- test copy in/out
-create table test (a int4, b int4, c int4);
-insert into test values (1,2,3);
-alter table test drop a;
-copy test to stdout;
-copy test(a) to stdout;
-copy test("........pg.dropped.1........") to stdout;
-copy test from stdin;
+create table alter_table_test (a int4, b int4, c int4);
+insert into alter_table_test values (1,2,3);
+alter table alter_table_test drop a;
+copy alter_table_test to stdout;
+copy alter_table_test(a) to stdout;
+copy alter_table_test("........pg.dropped.1........") to stdout;
+copy alter_table_test from stdin;
 10	11	12
 \.
-select * from test;
-copy test from stdin;
+select * from alter_table_test order by 1;
+copy alter_table_test from stdin;
 21	22
 \.
-select * from test;
-copy test(a) from stdin;
-copy test("........pg.dropped.1........") from stdin;
-copy test(b,c) from stdin;
+select * from alter_table_test order by 1;
+copy alter_table_test(a) from stdin;
+copy alter_table_test("........pg.dropped.1........") from stdin;
+copy alter_table_test(b,c) from stdin;
 31	32
 \.
-select * from test;
-drop table test;
+select * from alter_table_test order by 1;
+drop table alter_table_test;
 
 -- test inheritance
 
@@ -821,7 +871,7 @@ alter table c1 drop column f1;
 -- should work
 alter table p1 drop column f1;
 -- c1.f1 is still there, but no longer inherited
-select f1 from c1;
+select f1 from c1 order by 1;
 alter table c1 drop column f1;
 select f1 from c1;
 
@@ -912,8 +962,8 @@ create table altinhoid () inherits (altwithoid) without oids;
 
 insert into altinhoid values (1);
 
-select oid > 0, * from altwithoid;
-select oid > 0, * from altinhoid;
+select oid > 0, * from altwithoid order by col;
+select oid > 0, * from altinhoid order by col;
 
 alter table altwithoid set without oids;
 alter table altinhoid set without oids;
@@ -935,9 +985,9 @@ insert into p1 values (1,2,'abc');
 insert into c1 values(11,'xyz',33,0); -- should fail
 insert into c1 values(11,'xyz',33,22);
 
-select * from p1;
+select * from p1 order by 1,2,3;
 update p1 set a1 = a1 + 1, f2 = upper(f2);
-select * from p1;
+select * from p1 order by 1,2,3;
 
 drop table p1 cascade;
 
@@ -954,38 +1004,56 @@ drop domain mytype cascade;
 
 select * from foo;
 insert into foo values('qq','rr');
-select * from foo;
+select * from foo order by 1,2;
 update foo set f3 = 'zz';
-select * from foo;
-select f3,max(f1) from foo group by f3;
+select * from foo order by 1,2;
+select f3,max(f1) from foo group by f3 order by f3;
 
 -- Simple tests for alter table column type
 alter table foo alter f1 TYPE integer; -- fails
 alter table foo alter f1 TYPE varchar(10);
 
+--
+-- Test ALTER COLUMN TYPE after dropped column with text datatype (see MPP-19146)
+--
+drop table foo;
+create domain mytype as text;
+create temp table foo (f1 text, f2 mytype, f3 text);
+insert into foo values('aa','bb','cc');
+drop domain mytype cascade;
+alter table foo alter f1 TYPE varchar(10);
+
+drop table foo;
+create domain mytype as int;
+create temp table foo (f1 text, f2 mytype, f3 text);
+insert into foo values('aa',0,'cc');
+drop domain mytype cascade;
+alter table foo alter f1 TYPE varchar(10);
+
 create table anothertab (atcol1 serial8, atcol2 boolean,
-	constraint anothertab_chk check (atcol1 <= 3));
+	constraint anothertab_chk check (atcol1 <= 3))
+	distributed by (atcol1);
 
 insert into anothertab (atcol1, atcol2) values (default, true);
 insert into anothertab (atcol1, atcol2) values (default, false);
-select * from anothertab;
+select * from anothertab order by 1,2;
 
 alter table anothertab alter column atcol1 type boolean; -- fails
 alter table anothertab alter column atcol1 type integer;
 
-select * from anothertab;
+select * from anothertab order by 1,2;
 
 insert into anothertab (atcol1, atcol2) values (45, null); -- fails
 insert into anothertab (atcol1, atcol2) values (default, null);
 
-select * from anothertab;
+select * from anothertab order by 1,2;
 
 alter table anothertab alter column atcol2 type text
       using case when atcol2 is true then 'IT WAS TRUE' 
                  when atcol2 is false then 'IT WAS FALSE'
                  else 'IT WAS NULL!' end;
 
-select * from anothertab;
+select * from anothertab order by 1,2;
 alter table anothertab alter column atcol1 type boolean
         using case when atcol1 % 2 = 0 then true else false end; -- fails
 alter table anothertab alter column atcol1 drop default;
@@ -996,23 +1064,23 @@ alter table anothertab drop constraint anothertab_chk;
 alter table anothertab alter column atcol1 type boolean
         using case when atcol1 % 2 = 0 then true else false end;
 
-select * from anothertab;
+select * from anothertab order by 1,2;
 
 drop table anothertab;
 
-create table another (f1 int, f2 text);
+create table another (f1 int, f2 text) distributed by (f1);
 
 insert into another values(1, 'one');
 insert into another values(2, 'two');
 insert into another values(3, 'three');
 
-select * from another;
+select * from another order by 1,2;
 
 alter table another
   alter f1 type text using f2 || ' more',
   alter f2 type bigint using f1 * 10;
 
-select * from another;
+select * from another order by 1,2;
 
 drop table another;
 
@@ -1021,14 +1089,14 @@ drop table another;
 --
 create function test_strict(text) returns text as
     'select coalesce($1, ''got passed a null'');'
-    language sql returns null on null input;
+    language sql CONTAINS SQL returns null on null input;
 select test_strict(NULL);
 alter function test_strict(text) called on null input;
 select test_strict(NULL);
 
 create function non_strict(text) returns text as
     'select coalesce($1, ''got passed a null'');'
-    language sql called on null input;
+    language sql CONTAINS SQL called on null input;
 select non_strict(NULL);
 alter function non_strict(text) returns null on null input;
 select non_strict(NULL);
@@ -1040,11 +1108,11 @@ select non_strict(NULL);
 create schema alter1;
 create schema alter2;
 
-create table alter1.t1(f1 serial primary key, f2 int check (f2 > 0));
+create table alter1.t1(f1 serial primary key, f2 int check (f2 > 0)) distributed by (f1);
 
 create view alter1.v1 as select * from alter1.t1;
 
-create function alter1.plus1(int) returns int as 'select $1+1' language sql;
+create function alter1.plus1(int) returns int as 'select $1+1' language sql CONTAINS SQL;
 
 create domain alter1.posint integer check (value > 0);
 
@@ -1065,11 +1133,328 @@ drop schema alter1;
 insert into alter2.t1(f2) values(13);
 insert into alter2.t1(f2) values(14);
 
-select * from alter2.t1;
+select * from alter2.t1 order by 1;
 
-select * from alter2.v1;
+select * from alter2.v1 order by 1;
 
 select alter2.plus1(41);
 
 -- clean up
 drop schema alter2 cascade;
+
+--
+-- Test ALTER TABLE ADD COLUMN WITH NULL DEFAULT on AO TABLES
+--
+---
+--- basic support for alter add column with NULL default to AO tables
+--- 
+drop table if exists ao1;
+create table ao1(col1 varchar(2), col2 int) WITH (APPENDONLY=TRUE) distributed randomly;
+
+insert into ao1 values('aa', 1);
+insert into ao1 values('bb', 2);
+
+-- following should be OK.
+alter table ao1 add column col3 char(1) default 5;
+
+-- the following should be supported now
+alter table ao1 add column col4 char(1) default NULL;
+
+select * from ao1;
+insert into ao1 values('cc', 3);
+select * from ao1;
+
+alter table ao1 alter column col4 drop default; 
+select * from ao1;
+insert into ao1 values('dd', 4);
+select * from ao1;
+
+---
+--- check catalog contents after alter table on AO tables 
+---
+drop table if exists ao1;
+create table ao1(col1 varchar(2), col2 int) WITH (APPENDONLY=TRUE) distributed randomly;
+
+-- relnatts is 2
+select relname, relnatts from pg_class where relname = 'ao1';
+
+alter table ao1 add column col3 char(1) default NULL;
+
+-- relnatts in pg_class should be 3
+select relname, relnatts from pg_class where relname = 'ao1';
+
+-- check col details in pg_attribute
+select  pg_class.relname, attname, typname from pg_attribute, pg_class, pg_type where attrelid = pg_class.oid and pg_class.relname = 'ao1' and atttypid = pg_type.oid and attname = 'col3';
+
+-- no explicit entry in pg_attrdef for NULL default
+select relname, attname, adsrc from pg_class, pg_attribute, pg_attrdef where attrelid = pg_class.oid and adrelid = pg_class.oid and adnum = pg_attribute.attnum and pg_class.relname = 'ao1';
+
+
+--- 
+--- check with IS NOT NULL constraint
+--- 
+drop table if exists ao1;
+create table ao1(col1 varchar(2), col2 int) WITH (APPENDONLY=TRUE) distributed randomly;
+
+insert into ao1 values('a', 1); 
+
+-- should fail
+alter table ao1 add column col3 char(1) not null default NULL; 
+
+drop table if exists ao1;
+create table ao1(col1 varchar(2), col2 int) WITH (APPENDONLY=TRUE) distributed randomly;
+
+-- should pass
+alter table ao1 add column col3 char(1) not null default NULL; 
+
+-- this should fail (same behavior as heap tables)
+insert into ao1(col1, col2) values('a', 10);
+---
+--- alter add with no default should continue to fail
+---
+drop table if exists ao1;
+create table ao1(col1 varchar(1)) with (APPENDONLY=TRUE) distributed randomly;
+
+insert into ao1 values('1');
+insert into ao1 values('1');
+insert into ao1 values('1');
+insert into ao1 values('1');
+
+alter table ao1 add column col2 char(1);
+select * from ao1;
+
+--
+-- MPP-19664 
+-- Test ALTER TABLE ADD COLUMN WITH NULL DEFAULT on AO/CO TABLES
+--
+--- 
+--- basic support for alter add column with NULL default to AO/CO tables
+--- 
+drop table if exists aoco1;
+create table aoco1(col1 varchar(2), col2 int)
+WITH (APPENDONLY=TRUE, ORIENTATION=column) distributed randomly;
+
+insert into aoco1 values('aa', 1);
+insert into aoco1 values('bb', 2);
+
+-- following should be OK.
+alter table aoco1 add column col3 char(1) default 5;
+
+-- the following should be supported now
+alter table aoco1 add column col4 char(1) default NULL;
+
+select * from aoco1;
+insert into aoco1 values('cc', 3);
+select * from aoco1;
+
+alter table aoco1 alter column col4 drop default; 
+select * from aoco1;
+insert into aoco1 values('dd', 4);
+select * from aoco1;
+
+---
+--- check catalog contents after alter table on AO/CO tables 
+---
+drop table if exists aoco1;
+create table aoco1(col1 varchar(2), col2 int)
+WITH (APPENDONLY=TRUE, ORIENTATION=column) distributed randomly;
+
+-- relnatts is 2
+select relname, relnatts from pg_class where relname = 'aoco1';
+
+alter table aoco1 add column col3 char(1) default NULL;
+
+-- relnatts in pg_class should be 3
+select relname, relnatts from pg_class where relname = 'aoco1';
+
+-- check col details in pg_attribute
+select  pg_class.relname, attname, typname from pg_attribute, pg_class, pg_type where attrelid = pg_class.oid and pg_class.relname = 'aoco1' and atttypid = pg_type.oid and attname = 'col3';
+
+-- no explicit entry in pg_attrdef for NULL default
+select relname, attname, adsrc from pg_class, pg_attribute, pg_attrdef where attrelid = pg_class.oid and adrelid = pg_class.oid and adnum = pg_attribute.attnum and pg_class.relname = 'aoco1';
+
+--- 
+--- check with IS NOT NULL constraint
+--- 
+drop table if exists aoco1;
+create table aoco1(col1 varchar(2), col2 int)
+WITH (APPENDONLY=TRUE, ORIENTATION=column) distributed randomly;
+
+insert into aoco1 values('a', 1); 
+
+-- should fail (rewrite needs to do null checking) 
+alter table aoco1 add column col3 char(1) not null default NULL; 
+alter table aoco1 add column c5 int check (c5 IS NOT NULL) default NULL;
+
+-- should fail (rewrite needs to do constraint checking) 
+insert into aoco1(col1, col2) values('a', NULL);
+alter table aoco1 alter column col2 set not null; 
+
+-- should pass (rewrite needs to do constraint checking) 
+alter table aoco1 alter column col2 type int; 
+
+drop table if exists aoco1;
+create table aoco1(col1 varchar(2), col2 int)
+WITH (APPENDONLY=TRUE, ORIENTATION=column) distributed randomly;
+
+-- should pass
+alter table aoco1 add column col3 char(1) not null default NULL; 
+
+-- this should fail (same behavior as heap tables)
+insert into aoco1 (col1, col2) values('a', 10);
+
+drop table if exists aoco1;
+create table aoco1(col1 varchar(2), col2 int not null)
+WITH (APPENDONLY=TRUE, ORIENTATION=column) distributed randomly;
+
+insert into aoco1 values('aa', 1);
+alter table aoco1 add column col3 char(1) default NULL;
+insert into aoco1 values('bb', 2);
+select * from aoco1;
+alter table aoco1 add column col4 char(1) not NULL default NULL;
+select * from aoco1;
+
+---
+--- alter add with no default should continue to fail
+---
+drop table if exists aoco1;
+create table aoco1(col1 varchar(1))
+WITH (APPENDONLY=TRUE, ORIENTATION=column) distributed randomly;
+
+insert into aoco1 values('1');
+insert into aoco1 values('1');
+insert into aoco1 values('1');
+insert into aoco1 values('1');
+
+alter table aoco1 add column col2 char(1);
+select * from aoco1;
+
+drop table aoco1;
+
+---
+--- new column with a domain type
+---
+drop table if exists ao1;
+create table ao1(col1 varchar(5)) with (APPENDONLY=TRUE) distributed randomly;
+
+insert into ao1 values('abcde');
+
+drop domain zipcode;
+create domain zipcode as text
+constraint c1 not null;
+
+-- following should fail
+alter table ao1 add column col2 zipcode;
+
+alter table ao1 add column col2 zipcode default NULL;
+
+select * from ao1;
+
+-- cleanup
+drop table ao1;
+drop domain zipcode;
+drop schema if exists mpp17582 cascade;
+create schema mpp17582;
+set search_path=mpp17582;
+
+DROP TABLE testbug_char5;
+CREATE TABLE testbug_char5
+(
+timest character varying(6),
+user_id numeric(16,0) NOT NULL,
+to_be_drop char(5), -- Iterate through different data types
+tag1 char(5), -- Iterate through different data types
+tag2 char(5)
+)
+DISTRIBUTED BY (user_id)
+PARTITION BY LIST(timest)
+(
+PARTITION part201203 VALUES('201203') WITH (APPENDONLY=true, COMPRESSLEVEL=5, ORIENTATION=column),
+PARTITION part201204 VALUES('201204') WITH (APPENDONLY=true, COMPRESSLEVEL=5, ORIENTATION=row),
+PARTITION part201205 VALUES('201205')
+);
+
+create index testbug_char5_tag1 on testbug_char5 using btree(tag1);
+
+insert into testbug_char5 (timest,user_id,to_be_drop) select '201203',1111,'10000';
+insert into testbug_char5 (timest,user_id,to_be_drop) select '201204',1111,'10000';
+insert into testbug_char5 (timest,user_id,to_be_drop) select '201205',1111,'10000';
+
+select * from testbug_char5 order by 1,2;
+
+ALTER TABLE testbug_char5 drop column to_be_drop;
+
+select * from testbug_char5 order by 1,2;
+
+insert into testbug_char5 (timest,user_id,tag2) select '201203',2222,'2';
+insert into testbug_char5 (timest,user_id,tag2) select '201204',2222,'2';
+insert into testbug_char5 (timest,user_id,tag2) select '201205',2222,'2';
+
+select * from testbug_char5 order by 1,2;
+
+alter table testbug_char5 add PARTITION part201206 VALUES('201206') WITH (APPENDONLY=true, COMPRESSLEVEL=5, ORIENTATION=column);
+alter table testbug_char5 add PARTITION part201207 VALUES('201207') WITH (APPENDONLY=true, COMPRESSLEVEL=5, ORIENTATION=row);
+alter table testbug_char5 add PARTITION part201208 VALUES('201208');
+
+insert into testbug_char5 select '201206',3333,'1','2';
+insert into testbug_char5 select '201207',3333,'1','2';
+insert into testbug_char5 select '201208',3333,'1','2';
+
+
+select * from testbug_char5 order by 1,2;
+
+--
+-- Check index scan
+--
+
+set enable_seqscan=off;
+set enable_indexscan=on;
+
+select * from testbug_char5 where tag1='1';
+
+--
+-- Check NL Index scan plan
+--
+
+create table dim(tag1 char(5));
+insert into dim values('1');
+
+set enable_hashjoin=off;
+set enable_seqscan=off;
+set enable_nestloop=on;
+set enable_indexscan=on;
+
+select * from testbug_char5, dim where testbug_char5.tag1=dim.tag1;
+
+--
+-- Load from another table
+--
+
+DROP TABLE load;
+CREATE TABLE load
+(
+timest character varying(6),
+user_id numeric(16,0) NOT NULL,
+tag1 char(5),
+tag2 char(5)
+)
+DISTRIBUTED randomly;
+
+insert into load select '20120' || i , 1111 * (i + 2), '1','2' from generate_series(3,8) i;
+select * from load;
+
+insert into testbug_char5 select * from load;
+
+select * from testbug_char5;
+
+--
+-- Update values
+--
+
+update testbug_char5 set tag1='6' where tag1='1' and timest='201208';
+update testbug_char5 set tag2='7' where tag2='1' and timest='201208';
+
+select * from testbug_char5;
+
+set search_path=public;
+drop schema if exists mpp17582 cascade;

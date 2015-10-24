@@ -1,3 +1,8 @@
+/* $PostgreSQL: pgsql/contrib/dblink/uninstall_dblink.sql,v 1.5 2007/11/13 04:24:27 momjian Exp $ */
+
+-- Adjust this setting to control where the objects get dropped.
+SET search_path = public;
+
 DROP FUNCTION dblink_current_query ();
 
 DROP FUNCTION dblink_build_sql_update (text, int2vector, int4, _text, _text);

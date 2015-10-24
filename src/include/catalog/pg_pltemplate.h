@@ -5,7 +5,7 @@
  *	  along with the relation's initial contents.
  *
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2008, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * $PostgreSQL: pgsql/src/include/catalog/pg_pltemplate.h,v 1.2 2006/03/05 15:58:54 momjian Exp $
@@ -25,6 +25,24 @@
  *		can be read by both genbki.sh and the C compiler.
  * ----------------
  */
+
+/* TIDYCAT_BEGINFAKEDEF
+
+   CREATE TABLE pg_pltemplate
+   with (camelcase=PLTemplate, shared=true, oid=false, relid=1136)
+   (
+   tmplname       name, 
+   tmpltrusted    boolean, 
+   tmplhandler    text, 
+   tmplvalidator  text, 
+   tmpllibrary    text, 
+   tmplacl        aclitem[]
+   );
+   
+   create unique index on pg_pltemplate(tmplname) with (indexid=1137, CamelCase=PLTemplateName);
+
+   TIDYCAT_ENDFAKEDEF
+*/
 
 /* ----------------
  *		pg_pltemplate definition.  cpp turns this into
@@ -74,5 +92,7 @@ DATA(insert ( "pltclu"		f "pltclu_call_handler" _null_ "$libdir/pltcl" _null_ ))
 DATA(insert ( "plperl"		t "plperl_call_handler" "plperl_validator" "$libdir/plperl" _null_ ));
 DATA(insert ( "plperlu"		f "plperl_call_handler" "plperl_validator" "$libdir/plperl" _null_ ));
 DATA(insert ( "plpythonu"	f "plpython_call_handler" _null_ "$libdir/plpython" _null_ ));
-
+DATA(insert ( "plr"         f "plr_call_handler" _null_ "$libdir/plr" _null_ ));
+DATA(insert ( "pljava"      t "pljava_call_handler" _null_ "$libdir/pljava" _null_ ));
+DATA(insert ( "pljavau"     f "pljavau_call_handler" _null_ "$libdir/pljava" _null_ ));
 #endif   /* PG_PLTEMPLATE_H */

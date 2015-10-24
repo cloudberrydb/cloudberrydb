@@ -31,6 +31,10 @@ TransferError(NXStream * s)
 		free(lastError);
 	NXGetMemoryBuffer(s, &buffer, &len, &maxlen);
 	lastError = malloc(len + 1);
+	if(!lastError)
+		ereport(ERROR, errcode(ERRCODE_OUT_OF_MEMORY),
+			errmsg("Transer error failed: out of memory"));
+
 	strcpy(lastError, buffer);
 }
 

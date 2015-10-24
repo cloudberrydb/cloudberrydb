@@ -26,7 +26,7 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- * $PostgreSQL: pgsql/contrib/pgcrypto/px-crypt.c,v 1.15 2005/10/15 02:49:06 momjian Exp $
+ * contrib/pgcrypto/px-crypt.c
  */
 
 #include "postgres.h"
@@ -79,6 +79,7 @@ struct px_crypt_algo
 static const struct px_crypt_algo
 			px_crypt_list[] = {
 	{"$2a$", 4, run_crypt_bf},
+	{"$2x$", 4, run_crypt_bf},
 	{"$2$", 3, NULL},			/* N/A */
 	{"$1$", 3, run_crypt_md5},
 	{"_", 1, run_crypt_des},

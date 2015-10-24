@@ -3,10 +3,11 @@
  * pg_dump.h
  *	  Common header file for the pg_dump utility
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 2005-2010, Greenplum inc
+ * Portions Copyright (c) 1996-2008, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
- * $PostgreSQL: pgsql/src/bin/pg_dump/pg_dump.h,v 1.130 2006/10/09 23:36:59 tgl Exp $
+ * $PostgreSQL: pgsql/src/bin/pg_dump/pg_dump.h,v 1.130.2.1 2007/02/19 15:05:21 mha Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -15,7 +16,26 @@
 #define PG_DUMP_H
 
 #include "postgres_fe.h"
+#include "pqexpbuffer.h"
 
+/*
+ * WIN32 does not provide 64-bit off_t, but does provide the functions operating
+ * with 64-bit offsets.
+ */
+#ifdef WIN32
+#define pgoff_t __int64
+#undef fseeko
+#undef ftello
+#ifdef WIN32_ONLY_COMPILER
+#define fseeko(stream, offset, origin) _fseeki64(stream, offset, origin)
+#define ftello(stream) _ftelli64(stream)
+#else
+#define fseeko(stream, offset, origin) fseeko64(stream, offset, origin)
+#define ftello(stream) ftello64(stream)
+#endif
+#else
+#define pgoff_t off_t
+#endif
 
 /*
  * pg_dump uses two different mechanisms for identifying database objects:
@@ -108,8 +128,12 @@ typedef enum
 	DO_CAST,
 	DO_TABLE_DATA,
 	DO_TABLE_TYPE,
+	DO_FDW,
+	DO_FOREIGN_SERVER,
 	DO_BLOBS,
-	DO_BLOB_COMMENTS
+	DO_BLOB_COMMENTS,
+	DO_EXTPROTOCOL,
+	DO_TYPE_STORAGE_OPTIONS
 } DumpableObjectType;
 
 typedef struct _dumpableObject
@@ -145,7 +169,7 @@ typedef struct _typeInfo
 	Oid			typrelid;
 	char		typrelkind;		/* 'r', 'v', 'c', etc */
 	char		typtype;		/* 'b', 'c', etc */
-	bool		isArray;		/* true if user-defined array type */
+	bool		isArray;		/* true if auto-generated array type */
 	bool		isDefined;		/* true if typisdefined */
 	/* If it's a dumpable base type, we create a "shell type" entry for it */
 	struct _shellTypeInfo *shellType;	/* shell-type entry, or NULL */
@@ -153,6 +177,22 @@ typedef struct _typeInfo
 	int			nDomChecks;
 	struct _constraintInfo *domChecks;
 } TypeInfo;
+
+
+typedef struct _typeStorageOptions
+{
+	DumpableObject dobj;
+
+	/*
+	 * Note: dobj.name is the pg_type.typname entry.  format_type() might
+	 * produce something different than typname
+	 */
+	char     *typnamespace;
+	char     *typoptions; /* storage options */
+	char     *rolname;		/* name of owner, or empty string */
+} TypeStorageOptions;
+
+
 
 typedef struct _shellTypeInfo
 {
@@ -178,6 +218,19 @@ typedef struct _aggInfo
 	FuncInfo	aggfn;
 	/* we don't require any other fields at the moment */
 } AggInfo;
+
+typedef struct _ptcInfo
+{
+	DumpableObject dobj;
+	char	   *ptcreadfn;
+	char	   *ptcwritefn;
+	char	   *ptcowner;
+	char	   *ptcacl;
+	bool	   ptctrusted;
+	Oid		   ptcreadid;
+	Oid		   ptcwriteid;
+	Oid		   ptcvalidid;
+} ExtProtInfo;
 
 typedef struct _oprInfo
 {
@@ -207,11 +260,13 @@ typedef struct _tableInfo
 	char	   *rolname;		/* name of owner, or empty string */
 	char	   *relacl;
 	char		relkind;
+	char		relstorage;
 	char	   *reltablespace;	/* relation tablespace */
 	char	   *reloptions;		/* options specified by WITH (...) */
 	bool		hasindex;		/* does it have any indexes? */
 	bool		hasrules;		/* does it have any rules? */
 	bool		hasoids;		/* does it have OIDs? */
+	bool		istoasted;		/* does table have toast table? */
 	int			ncheck;			/* # of CHECK expressions */
 	int			ntrig;			/* # of triggers */
 	/* these two are set only if table is a sequence owned by a column: */
@@ -244,6 +299,7 @@ typedef struct _tableInfo
 	bool	   *inhAttrs;		/* true if each attribute is inherited */
 	bool	   *inhAttrDef;		/* true if attr's default is inherited */
 	bool	   *inhNotNull;		/* true if NOT NULL is inherited */
+	char    **attencoding;  /* the attribute encoding values */
 	struct _constraintInfo *checkexprs; /* CHECK constraints */
 
 	/*
@@ -251,6 +307,7 @@ typedef struct _tableInfo
 	 */
 	int			numParents;		/* number of (immediate) parent tables */
 	struct _tableInfo **parents;	/* TableInfos of immediate parents */
+	Oid			parrelid;			/* external partition's parent oid */
 } TableInfo;
 
 typedef struct _attrDefInfo
@@ -353,6 +410,26 @@ typedef struct _inhInfo
 	Oid			inhparent;		/* OID of its parent */
 } InhInfo;
 
+typedef struct _fdwInfo
+{
+	DumpableObject dobj;
+	char	   *rolname;
+	char	   *fdwvalidator;
+	char	   *fdwoptions;
+	char	   *fdwacl;
+} FdwInfo;
+
+typedef struct _foreignServerInfo
+{
+	DumpableObject dobj;
+	char	   *rolname;
+	Oid			srvfdw;
+	char	   *srvtype;
+	char	   *srvversion;
+	char	   *srvacl;
+	char	   *srvoptions;
+} ForeignServerInfo;
+
 
 /* global decls */
 extern bool force_quotes;		/* double-quotes for identifiers flag */
@@ -364,6 +441,7 @@ extern char g_comment_end[10];
 
 extern char g_opaque_type[10];	/* name for the opaque type */
 
+extern const char *EXT_PARTITION_NAME_POSTFIX;
 /*
  *	common utility functions
  */
@@ -378,6 +456,7 @@ typedef enum _OidOptions
 	zeroAsNone = 8
 } OidOptions;
 
+extern void DetectChildConstraintDropped(TableInfo *tbinfo, PQExpBuffer q); /* GPDB only */
 extern void AssignDumpId(DumpableObject *dobj);
 extern DumpId createDumpId(void);
 extern DumpId getMaxDumpId(void);
@@ -397,6 +476,7 @@ extern void simple_oid_list_append(SimpleOidList *list, Oid val);
 extern void simple_string_list_append(SimpleStringList *list, const char *val);
 extern bool simple_oid_list_member(SimpleOidList *list, Oid val);
 extern bool simple_string_list_member(SimpleStringList *list, const char *val);
+extern bool open_file_and_append_to_list(const char *fileName, SimpleStringList *list, const char *reason);
 
 extern char *pg_strdup(const char *string);
 extern void *pg_malloc(size_t size);
@@ -412,13 +492,16 @@ extern void sortDumpableObjects(DumpableObject **objs, int numObjs);
 extern void sortDumpableObjectsByTypeName(DumpableObject **objs, int numObjs);
 extern void sortDumpableObjectsByTypeOid(DumpableObject **objs, int numObjs);
 
+
 /*
  * version specific routines
  */
 extern NamespaceInfo *getNamespaces(int *numNamespaces);
 extern TypeInfo *getTypes(int *numTypes);
+extern TypeStorageOptions *getTypeStorageOptions(int *numTypes);
 extern FuncInfo *getFuncs(int *numFuncs);
 extern AggInfo *getAggregates(int *numAggregates);
+extern ExtProtInfo *getExtProtocols(int *numExtProtocols);
 extern OprInfo *getOperators(int *numOperators);
 extern OpclassInfo *getOpclasses(int *numOpclasses);
 extern ConvInfo *getConversions(int *numConversions);
@@ -431,5 +514,11 @@ extern void getTriggers(TableInfo tblinfo[], int numTables);
 extern ProcLangInfo *getProcLangs(int *numProcLangs);
 extern CastInfo *getCasts(int *numCasts);
 extern void getTableAttrs(TableInfo *tbinfo, int numTables);
+extern FdwInfo *getForeignDataWrappers(int *numForeignDataWrappers);
+extern ForeignServerInfo *getForeignServers(int *numForeignServers);
+
+extern bool testSqlMedSupport(void);
+extern bool	testExtProtocolSupport(void);
+
 
 #endif   /* PG_DUMP_H */

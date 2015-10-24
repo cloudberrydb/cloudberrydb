@@ -1,13 +1,10 @@
-
-THE PORT NUMBER MIGHT HAVE BEEN CHANGED BY THE REGRESSION SCRIPT
-
-/* Processed by ecpg (4.2.1) */
+/* Processed by ecpg (regression mode) */
 /* These include files are added by the preprocessor */
-#include <ecpgtype.h>
 #include <ecpglib.h>
 #include <ecpgerrno.h>
 #include <sqlca.h>
 /* End of automatic include section */
+#define ECPGdebug(X,Y) ECPGdebug((X)+100,(Y))
 
 #line 1 "test1.pgc"
 /*
@@ -29,27 +26,27 @@ main(void)
 	 
 
 #line 16 "test1.pgc"
- char  db [ 200 ]    ;
+ char db [ 200 ] ;
  
 #line 17 "test1.pgc"
- char  pw [ 200 ]    ;
+ char pw [ 200 ] ;
 /* exec sql end declare section */
 #line 18 "test1.pgc"
 
 
 	ECPGdebug(1, stderr);
 
-	{ ECPGconnect(__LINE__, 0, "connectdb" , NULL,NULL , "main", 0); }
+	{ ECPGconnect(__LINE__, 0, "connectdb" , NULL, NULL , "main", 0); }
 #line 22 "test1.pgc"
 
-	{ ECPGdo(__LINE__, 0, 1, NULL, "alter user connectuser  encrypted password 'connectpw'", ECPGt_EOIT, ECPGt_EORT);}
+	{ ECPGdo(__LINE__, 0, 1, NULL, 0, ECPGst_normal, "alter user connectuser encrypted password 'connectpw'", ECPGt_EOIT, ECPGt_EORT);}
 #line 23 "test1.pgc"
 
 	{ ECPGdisconnect(__LINE__, "CURRENT");}
 #line 24 "test1.pgc"
   /* <-- "main" not specified */
 
-	{ ECPGconnect(__LINE__, 0, "connectdb@localhost" , NULL,NULL , "main", 0); }
+	{ ECPGconnect(__LINE__, 0, "connectdb@localhost" , NULL, NULL , "main", 0); }
 #line 26 "test1.pgc"
 
 	{ ECPGdisconnect(__LINE__, "main");}
@@ -63,88 +60,63 @@ main(void)
 #line 30 "test1.pgc"
 
 
-	{ ECPGconnect(__LINE__, 0, "connectdb@localhost:55432" , NULL,NULL , "main", 0); }
-#line 32 "test1.pgc"
+	/* exec sql connect to :@TEMP_PORT@ as main user connectdb;
+	exec sql disconnect main; */
 
-	{ ECPGdisconnect(__LINE__, "main");}
-#line 33 "test1.pgc"
-
-
-	{ ECPGconnect(__LINE__, 0, "@localhost:55432" , "connectdb" , NULL , "main", 0); }
+	{ ECPGconnect(__LINE__, 0, "tcp:postgresql://localhost/connectdb" , "connectuser" , "connectpw" , NULL, 0); }
 #line 35 "test1.pgc"
 
-	{ ECPGdisconnect(__LINE__, "main");}
+	{ ECPGdisconnect(__LINE__, "CURRENT");}
 #line 36 "test1.pgc"
 
 
-	{ ECPGconnect(__LINE__, 0, "connectdb:55432" , NULL,NULL , "main", 0); }
+	{ ECPGconnect(__LINE__, 0, "tcp:postgresql://localhost/" , "connectdb" , NULL , NULL, 0); }
 #line 38 "test1.pgc"
 
-	{ ECPGdisconnect(__LINE__, "main");}
+	{ ECPGdisconnect(__LINE__, "CURRENT");}
 #line 39 "test1.pgc"
 
 
-	{ ECPGconnect(__LINE__, 0, ":55432" , "connectdb" , NULL , "main", 0); }
-#line 41 "test1.pgc"
+	strcpy(pw, "connectpw");
+	strcpy(db, "tcp:postgresql://localhost/connectdb");
+	{ ECPGconnect(__LINE__, 0, db , "connectuser" , pw , NULL, 0); }
+#line 43 "test1.pgc"
 
-	{ ECPGdisconnect(__LINE__, "main");}
-#line 42 "test1.pgc"
-
-
-	{ ECPGconnect(__LINE__, 0, "tcp:postgresql://localhost:55432/connectdb" , "connectuser" , "connectpw" , NULL, 0); }
+	{ ECPGdisconnect(__LINE__, "CURRENT");}
 #line 44 "test1.pgc"
 
+
+	{ ECPGconnect(__LINE__, 0, "unix:postgresql://localhost/connectdb" , "connectuser" , "connectpw" , NULL, 0); }
+#line 46 "test1.pgc"
+
 	{ ECPGdisconnect(__LINE__, "CURRENT");}
-#line 45 "test1.pgc"
-
-
-	{ ECPGconnect(__LINE__, 0, "tcp:postgresql://localhost:55432/" , "connectdb" , NULL , NULL, 0); }
 #line 47 "test1.pgc"
 
-	{ ECPGdisconnect(__LINE__, "CURRENT");}
-#line 48 "test1.pgc"
 
-
-	strcpy(pw, "connectpw");
-	strcpy(db, "tcp:postgresql://localhost:55432/connectdb");
-	{ ECPGconnect(__LINE__, 0, db , "connectuser" , pw , NULL, 0); }
-#line 52 "test1.pgc"
+	{ ECPGconnect(__LINE__, 0, "unix:postgresql://localhost/connectdb?connect_timeout=14" , "connectuser" , NULL , NULL, 0); }
+#line 49 "test1.pgc"
 
 	{ ECPGdisconnect(__LINE__, "CURRENT");}
-#line 53 "test1.pgc"
-
-
-	{ ECPGconnect(__LINE__, 0, "unix:postgresql://localhost:55432/connectdb" , "connectuser" , "connectpw" , NULL, 0); }
-#line 55 "test1.pgc"
-
-	{ ECPGdisconnect(__LINE__, "CURRENT");}
-#line 56 "test1.pgc"
-
-
-	{ ECPGconnect(__LINE__, 0, "unix:postgresql://localhost:55432/connectdb" , "connectuser" , NULL , NULL, 0); }
-#line 58 "test1.pgc"
-
-	{ ECPGdisconnect(__LINE__, "CURRENT");}
-#line 59 "test1.pgc"
+#line 50 "test1.pgc"
 
 
 	/* wrong db */
-	{ ECPGconnect(__LINE__, 0, "tcp:postgresql://localhost:55432/nonexistant" , "connectuser" , "connectpw" , NULL, 0); }
-#line 62 "test1.pgc"
+	{ ECPGconnect(__LINE__, 0, "tcp:postgresql://localhost/nonexistant" , "connectuser" , "connectpw" , NULL, 0); }
+#line 53 "test1.pgc"
 
 	{ ECPGdisconnect(__LINE__, "CURRENT");}
-#line 63 "test1.pgc"
+#line 54 "test1.pgc"
 
 
 	/* wrong port */
 	{ ECPGconnect(__LINE__, 0, "tcp:postgresql://localhost:20/connectdb" , "connectuser" , "connectpw" , NULL, 0); }
-#line 66 "test1.pgc"
+#line 57 "test1.pgc"
 
 	/* no disconnect necessary */
 
 	/* wrong password */
-	{ ECPGconnect(__LINE__, 0, "unix:postgresql://localhost:55432/connectdb" , "connectuser" , "wrongpw" , NULL, 0); }
-#line 70 "test1.pgc"
+	{ ECPGconnect(__LINE__, 0, "unix:postgresql://localhost/connectdb" , "connectuser" , "wrongpw" , NULL, 0); }
+#line 61 "test1.pgc"
 
 	/* no disconnect necessary */
 

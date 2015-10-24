@@ -1,5 +1,6 @@
+/* $PostgreSQL: pgsql/contrib/pg_freespacemap/pg_freespacemap.sql.in,v 1.8 2007/11/13 04:24:28 momjian Exp $ */
+
 -- Adjust this setting to control where the objects get created.
-BEGIN;
 SET search_path = public;
 
 
@@ -41,5 +42,3 @@ REVOKE ALL ON pg_freespacemap_pages FROM PUBLIC;
 
 REVOKE ALL ON FUNCTION pg_freespacemap_relations() FROM PUBLIC;
 REVOKE ALL ON pg_freespacemap_relations FROM PUBLIC;
-
-COMMIT;

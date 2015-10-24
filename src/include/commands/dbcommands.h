@@ -4,7 +4,7 @@
  *		Database management commands (create/drop database).
  *
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * $PostgreSQL: pgsql/src/include/commands/dbcommands.h,v 1.45 2006/03/24 04:32:13 tgl Exp $
@@ -19,7 +19,6 @@
 
 /* XLOG stuff */
 #define XLOG_DBASE_CREATE		0x00
-#define XLOG_DBASE_DROP			0x10
 
 typedef struct xl_dbase_create_rec_old
 {
@@ -52,7 +51,7 @@ typedef struct xl_dbase_drop_rec
 	Oid			tablespace_id;
 } xl_dbase_drop_rec;
 
-extern void createdb(const CreatedbStmt *stmt);
+extern void createdb(CreatedbStmt *stmt);
 extern void dropdb(const char *dbname, bool missing_ok);
 extern void RenameDatabase(const char *oldname, const char *newname);
 extern void AlterDatabase(AlterDatabaseStmt *stmt);
@@ -62,7 +61,7 @@ extern void AlterDatabaseOwner(const char *dbname, Oid newOwnerId);
 extern Oid	get_database_oid(const char *dbname);
 extern char *get_database_name(Oid dbid);
 
-extern void dbase_redo(XLogRecPtr lsn, XLogRecord *rptr);
-extern void dbase_desc(StringInfo buf, uint8 xl_info, char *rec);
+extern void dbase_redo(XLogRecPtr beginLoc  __attribute__((unused)), XLogRecPtr lsn  __attribute__((unused)), XLogRecord *rptr);
+extern void dbase_desc(StringInfo buf, XLogRecPtr beginLoc, XLogRecord *record);
 
 #endif   /* DBCOMMANDS_H */

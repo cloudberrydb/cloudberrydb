@@ -7,7 +7,8 @@
  *
  * $PostgreSQL: pgsql/src/backend/utils/misc/ps_status.c,v 1.33 2006/10/04 00:30:04 momjian Exp $
  *
- * Copyright (c) 2000-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 2005-2009, Greenplum inc
+ * Copyright (c) 2000-2009, PostgreSQL Global Development Group
  * various details abducted from various places
  *--------------------------------------------------------------------
  */
@@ -30,9 +31,11 @@
 #include "miscadmin.h"
 #include "utils/ps_status.h"
 
-extern char **environ;
-bool		update_process_title = true;
+#include "cdb/cdbvars.h"        /* Gp_role, Gp_segment, currentSliceId */
 
+extern char **environ;
+extern int PostPortNumber;
+bool		update_process_title = true;
 
 /*
  * Alternative ways of updating ps display:
@@ -74,14 +77,13 @@ bool		update_process_title = true;
 #define PS_USE_NONE
 #endif
 
-
 /* Different systems want the buffer padded differently */
+
 #if defined(_AIX) || defined(__linux__) || defined(__svr4__)
 #define PS_PADDING '\0'
 #else
 #define PS_PADDING ' '
 #endif
-
 
 #ifndef PS_USE_CLOBBER_ARGV
 /* all but one options need a buffer to write their ps line in */
@@ -91,14 +93,30 @@ static const size_t ps_buffer_size = PS_BUFFER_SIZE;
 #else							/* PS_USE_CLOBBER_ARGV */
 static char *ps_buffer;			/* will point to argv area */
 static size_t ps_buffer_size;	/* space determined at run time */
+static size_t last_status_len;  /* use to minimize length of clobber */
 #endif   /* PS_USE_CLOBBER_ARGV */
 
 static size_t ps_buffer_fixed_size;		/* size of the constant prefix */
+#if (defined(sun) && !defined(BSD))
+static size_t ps_argument_size; /* size for the first argument */
+#endif
+
+static size_t   ps_host_info_size;		/*CDB*/
+static char     ps_host_info[64];       /*CDB*/
+static char     ps_username[64];        /*CDB*/
 
 /* save the original argv[] location here */
 static int	save_argc;
 static char **save_argv;
 
+/*
+ * GPDB: the real activity location, the location right after
+ * those "con1 seg1 cmd1" strings. Sometimes we need to modify
+ * the original activity string in the ps display output. Use
+ * this pointer to get the real original activity string instead
+ * of get_ps_display(). See MPP-2329.
+ */
+static size_t real_act_prefix_size;
 
 /*
  * Call this early in startup to save the original argc/argv values.
@@ -124,9 +142,12 @@ save_ps_display_args(int argc, char **argv)
 	 */
 	{
 		char	   *end_of_area = NULL;
-		char	  **new_environ;
 		int			i;
 
+#if (defined(sun) && !defined(BSD))
+		ps_argument_size = 0;
+#endif
+		
 		/*
 		 * check for contiguous argv strings
 		 */
@@ -143,26 +164,28 @@ save_ps_display_args(int argc, char **argv)
 			return argv;
 		}
 
-		/*
-		 * check for contiguous environ strings following argv
-		 */
-		for (i = 0; environ[i] != NULL; i++)
-		{
-			if (end_of_area + 1 == environ[i])
-				end_of_area = environ[i] + strlen(environ[i]);
-		}
+#if (defined(sun) && !defined(BSD))
+		ps_argument_size = strlen(argv[0]);
+#endif
 
+		/* 
+		 * MPP-14501: only use argv area for status to preserve environment 
+		 *
+		 * Prior to this change, the code here would use all of the memory with
+		 * the initial contents of argv and environ as a buffer for the process
+		 * status line.  However that has the side effect of preventing other
+		 * processes from examining the initial argv/environ of this process.
+		 * Although we aren't concerned about argv, as of MPP-14501 we want
+		 * other processes to be able to read this process's environment to
+		 * detect the presence of the GPKILL environment variable.  So instead
+		 * of using all of the argv+environ area, we instead just use the argv
+		 * area.  We should not have to worry about the argv area on it's own
+		 * being too small to display the status information because it's
+		 * fairly large with all the arguments we pass and if that ever does
+		 * become an issue we can always just have gpstart add more arguments.
+		 */
 		ps_buffer = argv[0];
-		ps_buffer_size = end_of_area - argv[0];
-
-		/*
-		 * move the environment out of the way
-		 */
-		new_environ = (char **) malloc((i + 1) * sizeof(char *));
-		for (i = 0; environ[i] != NULL; i++)
-			new_environ[i] = strdup(environ[i]);
-		new_environ[i] = NULL;
-		environ = new_environ;
+		last_status_len = ps_buffer_size = (end_of_area - ps_buffer);
 	}
 #endif   /* PS_USE_CLOBBER_ARGV */
 
@@ -185,8 +208,23 @@ save_ps_display_args(int argc, char **argv)
 		int			i;
 
 		new_argv = (char **) malloc((argc + 1) * sizeof(char *));
+
+		if(!new_argv)
+		{
+			write_stderr("Failed to change/set argv: Out of Memory");
+			exit(1);
+		}
+
 		for (i = 0; i < argc; i++)
+		{
 			new_argv[i] = strdup(argv[i]);
+			if(!new_argv[i])
+			{
+				write_stderr("Failed to change/set argv: Out of Memory");
+				exit(1);
+			}
+		}
+
 		new_argv[argc] = NULL;
 
 #if defined(__darwin__)
@@ -207,71 +245,107 @@ save_ps_display_args(int argc, char **argv)
 
 /*
  * Call this once during subprocess startup to set the identification
- * values.	At this point, the original argv[] array may be overwritten.
+ * values.  At this point, the original argv[] array may be overwritten.
  */
 void
 init_ps_display(const char *username, const char *dbname,
 				const char *host_info, const char *initial_str)
 {
 	Assert(username);
-	Assert(dbname);
-	Assert(host_info);
+    Assert(dbname);
+    Assert(host_info);
+	
+	StrNCpy(ps_username, username, sizeof(ps_username));    /*CDB*/
 
 #ifndef PS_USE_NONE
-	/* no ps display for stand-alone backend */
-	if (!IsUnderPostmaster)
-		return;
+    /* no ps display for stand-alone backend */
+    if (!IsUnderPostmaster)
+        return;
 
-	/* no ps display if you didn't call save_ps_display_args() */
-	if (!save_argv)
-		return;
+    /* no ps display if you didn't call save_ps_display_args() */
+    if (!save_argv)
+        return;
 #ifdef PS_USE_CLOBBER_ARGV
-	/* If ps_buffer is a pointer, it might still be null */
-	if (!ps_buffer)
-		return;
+    /* If ps_buffer is a pointer, it might still be null */
+    if (!ps_buffer)
+        return;
 #endif
 
-	/*
-	 * Overwrite argv[] to point at appropriate space, if needed
-	 */
+    /*
+     * Overwrite argv[] to point at appropriate space, if needed
+     */
 
 #ifdef PS_USE_CHANGE_ARGV
-	save_argv[0] = ps_buffer;
-	save_argv[1] = NULL;
+    save_argv[0] = ps_buffer;
+    save_argv[1] = NULL;
 #endif   /* PS_USE_CHANGE_ARGV */
 
 #ifdef PS_USE_CLOBBER_ARGV
-	{
-		int			i;
 
-		/* make extra argv slots point at end_of_area (a NUL) */
-		for (i = 1; i < save_argc; i++)
-			save_argv[i] = ps_buffer + ps_buffer_size;
-	}
-#endif   /* PS_USE_CLOBBER_ARGV */
-
-	/*
-	 * Make fixed prefix of ps display.
+#if defined(__darwin__)
+    /* 
+	 * MPP-14501, keep heuristic ps and other tools appear to use working
 	 */
+	if (ps_buffer_size > save_argc)
+	{
+		last_status_len -= save_argc;
+		ps_buffer_size  -= save_argc;
+		memset(ps_buffer+ps_buffer_size, 0, save_argc);
+		ps_buffer[ps_buffer_size] = PS_PADDING;
+	}
+#endif /* darwin */
+
+    {
+        int         i;
+
+        /* make extra argv slots point at end_of_area (a NUL) */
+        for (i = 1; i < save_argc; i++)
+            save_argv[i] = (ps_buffer + ps_buffer_size);
+    }
+
+
+#endif /* PS_USE_CLOBBER_ARGV */
+
+    /*
+     * Make fixed prefix of ps display.
+     */
 
 #ifdef PS_USE_SETPROCTITLE
 
-	/*
-	 * apparently setproctitle() already adds a `progname:' prefix to the ps
-	 * line
-	 */
-	snprintf(ps_buffer, ps_buffer_size,
-			 "%s %s %s ",
-			 username, dbname, host_info);
+    /*
+     * apparently setproctitle() already adds a `progname:' prefix to the ps
+     * line
+     */
+    snprintf(ps_buffer, ps_buffer_size,
+             "port %5d, %s %s %s ",
+             PostPortNumber, username, dbname, host_info);
 #else
-	snprintf(ps_buffer, ps_buffer_size,
-			 "postgres: %s %s %s ",
-			 username, dbname, host_info);
+    snprintf(ps_buffer, ps_buffer_size,
+             "postgres: port %5d, %s %s %s ",
+             PostPortNumber, username, dbname, host_info);
+#endif /* not PS_USE_SETPROCTITLE */
+
+    ps_buffer_fixed_size = strlen(ps_buffer);
+
+	real_act_prefix_size = ps_buffer_fixed_size;
+
+    set_ps_display(initial_str, true);
+    
+    /* CDB */
+    StrNCpy(ps_host_info, host_info, sizeof(ps_host_info));
+    ps_host_info_size = snprintf(ps_buffer + ps_buffer_fixed_size,
+                                 ps_buffer_size - ps_buffer_fixed_size,
+                                 "%s ", host_info);
+	
+	/* 
+	 * MPP-14501, don't let a NUL from snprintf mess up our padding
+	 */
+#if defined(__darwin__)
+	ps_buffer[ps_buffer_fixed_size + ps_host_info_size] = PS_PADDING;
 #endif
 
-	ps_buffer_fixed_size = strlen(ps_buffer);
-
-	set_ps_display(initial_str, true);
+    ps_buffer_fixed_size += ps_host_info_size;
+	real_act_prefix_size = ps_buffer_fixed_size;
 #endif   /* not PS_USE_NONE */
 }
 
@@ -284,53 +358,116 @@ init_ps_display(const char *username, const char *dbname,
 void
 set_ps_display(const char *activity, bool force)
 {
+    char   *cp = ps_buffer + ps_buffer_fixed_size;
+    char   *ep = ps_buffer + ps_buffer_size;
 
-	if (!force && !update_process_title)
-		return;
+    if (!force && !update_process_title)
+        return;
 
 #ifndef PS_USE_NONE
-	/* no ps display for stand-alone backend */
-	if (!IsUnderPostmaster)
-		return;
+    /* no ps display for stand-alone backend */
+    if (!IsUnderPostmaster)
+        return;
 
 #ifdef PS_USE_CLOBBER_ARGV
-	/* If ps_buffer is a pointer, it might still be null */
-	if (!ps_buffer)
-		return;
+    /* If ps_buffer is a pointer, it might still be null */
+    if (!ps_buffer)
+        return;
 #endif
 
-	/* Update ps_buffer to contain both fixed part and activity */
-	strlcpy(ps_buffer + ps_buffer_fixed_size, activity,
-			ps_buffer_size - ps_buffer_fixed_size);
+	/* Drop the remote host and port from the fixed prefix. */
+	if (ps_host_info_size > 0)
+	{
+		ps_buffer_fixed_size -= ps_host_info_size;
+		cp -= ps_host_info_size;
+		ps_host_info_size = 0;
+	}
 
-	/* Transmit new setting to kernel, if necessary */
+	Assert(cp >= ps_buffer);
+	/* Add client session's global id. */
+	if (gp_session_id > 0 && ep - cp > 0)
+		cp += snprintf(cp, ep - cp, "con%d ", gp_session_id);
 
+	/* Add host and port.  (Not very useful for qExecs, so skip.) */
+	if (Gp_role != GP_ROLE_EXECUTE &&
+		ps_host_info[0] != '\0' && ep - cp > 0)
+		cp += snprintf(cp, ep - cp, "%s ", ps_host_info);
+
+	/* Which segment is accessed by this qExec? */
+	if (Gp_role == GP_ROLE_EXECUTE &&
+		Gp_segment >= -1 && ep - cp > 0)
+		cp += snprintf(cp, ep - cp, "seg%d ", Gp_segment);
+
+	/* Add count of commands received from client session. */
+	if (gp_command_count > 0 && ep - cp > 0)
+		cp += snprintf(cp, ep - cp, "cmd%d ", gp_command_count);
+
+	/* Add slice number information */
+	if (currentSliceId > 0 && ep - cp > 0)
+		cp += snprintf(cp, ep - cp, "slice%d ", currentSliceId);
+
+	/*
+	 * snprintf returns the number of bytes that *would* have been written if
+	 * enough space had been available.  This means cp might beyond, in which
+	 * case we need to trim it down to ep and real_act_prefix_size
+	 * effectively becomes ps_buffer_size.
+	 */
+	real_act_prefix_size = Min(cp, ep) - ps_buffer;
+
+	/* Append caller's activity string. */
+	if (ep - cp > 0)
+		StrNCpy(cp, activity, ep - cp);
+
+    /* Transmit new setting to kernel, if necessary */
 #ifdef PS_USE_SETPROCTITLE
-	setproctitle("%s", ps_buffer);
+    setproctitle("%s", ps_buffer);
 #endif
 
 #ifdef PS_USE_PSTAT
-	{
-		union pstun pst;
+    {
+        union pstun pst;
 
-		pst.pst_command = ps_buffer;
-		pstat(PSTAT_SETCMD, pst, strlen(ps_buffer), 0, 0);
-	}
+        pst.pst_command = ps_buffer;
+        pstat(PSTAT_SETCMD, pst, strlen(ps_buffer), 0, 0);
+    }
 #endif   /* PS_USE_PSTAT */
 
 #ifdef PS_USE_PS_STRINGS
-	PS_STRINGS->ps_nargvstr = 1;
-	PS_STRINGS->ps_argvstr = ps_buffer;
+    PS_STRINGS->ps_nargvstr = 1;
+    PS_STRINGS->ps_argvstr = ps_buffer;
 #endif   /* PS_USE_PS_STRINGS */
 
 #ifdef PS_USE_CLOBBER_ARGV
-	{
-		int			buflen;
+    {
+        int         buflen;
+#if (defined(sun) && !defined(BSD))
+		int         request_buflen = 2 * ps_argument_size + 1;
+#endif
 
-		/* pad unused memory */
-		buflen = strlen(ps_buffer);
-		MemSet(ps_buffer + buflen, PS_PADDING, ps_buffer_size - buflen);
-	}
+        /* pad unused memory */
+        buflen = strlen(ps_buffer);
+
+#if (defined(sun) && !defined(BSD))
+		/*
+		 * In Solaris, to properly show the ps status display, it requires the length of
+		 * the status at least twice of the original arguments. We pad the '.'s
+		 * if buflen is not big enough. Note that using spaces to pad does not work, 
+		 * and I don't know why.
+		 */
+		if (buflen < request_buflen)
+		{
+			int pad_len = request_buflen - buflen;
+			if (ps_buffer_size < request_buflen)
+				pad_len = ps_buffer_size - buflen;
+			MemSet(ps_buffer + buflen, '.', pad_len);
+			buflen += pad_len;
+		}
+#endif
+
+		if (last_status_len > buflen)
+			MemSet(ps_buffer + buflen, PS_PADDING, last_status_len - buflen);
+		last_status_len = buflen;
+    }
 #endif   /* PS_USE_CLOBBER_ARGV */
 
 #ifdef PS_USE_WIN32
@@ -346,7 +483,7 @@ set_ps_display(const char *activity, bool force)
 		if (ident_handle != INVALID_HANDLE_VALUE)
 			CloseHandle(ident_handle);
 
-		sprintf(name, "pgident: %s", ps_buffer);
+		sprintf(name, "pgident(%d): %s", MyProcPid, ps_buffer);
 
 		ident_handle = CreateEvent(NULL, TRUE, FALSE, name);
 	}
@@ -354,15 +491,13 @@ set_ps_display(const char *activity, bool force)
 #endif   /* not PS_USE_NONE */
 }
 
-
 /*
- * Returns what's currently in the ps display, in case someone needs
- * it.	Note that only the activity part is returned.  On some platforms
- * the string will not be null-terminated, so return the effective
- * length into *displen.
+ * Returns what's currently in the ps display with a given starting
+ * position. On some platforms the string will not be null-terminated,
+ * so return the effective length into *displen.
  */
-const char *
-get_ps_display(int *displen)
+static inline const char *
+get_ps_display_from_position(size_t pos, int *displen)
 {
 #ifdef PS_USE_CLOBBER_ARGV
 	size_t		offset;
@@ -376,13 +511,46 @@ get_ps_display(int *displen)
 
 	/* Remove any trailing spaces to offset the effect of PS_PADDING */
 	offset = ps_buffer_size;
-	while (offset > ps_buffer_fixed_size && ps_buffer[offset - 1] == PS_PADDING)
+	while (offset > pos && ps_buffer[offset-1] == PS_PADDING)
 		offset--;
 
-	*displen = offset - ps_buffer_fixed_size;
+	*displen = offset - pos;
 #else
-	*displen = strlen(ps_buffer + ps_buffer_fixed_size);
+	*displen = strlen(ps_buffer + pos);
 #endif
+	Assert(*displen >= 0);
 
-	return ps_buffer + ps_buffer_fixed_size;
+	return ps_buffer + pos;
+}
+
+/*
+ * Returns what's currently in the ps display, in case someone needs
+ * it.	Note that only the activity part is returned.  On some platforms
+ * the string will not be null-terminated, so return the effective
+ * length into *displen.
+ */
+const char *
+get_ps_display(int *displen)
+{
+	return get_ps_display_from_position(ps_buffer_fixed_size, displen);
+}
+
+
+/* CDB: Get the "username" string saved by init_ps_display().  */
+const char *
+get_ps_display_username(void)
+{
+    return ps_username;
+}                               /* get_ps_display_username */
+
+/*
+ * Returns the real activity string in the ps display without prefix
+ * strings like "con1 seg1 cmd1" for GPDB. On some platforms the
+ * string will not be null-terminated, so return the effective length
+ * into *displen.
+ */
+const char *
+get_real_act_ps_display(int *displen)
+{
+	return get_ps_display_from_position(real_act_prefix_size, displen);
 }

@@ -3,35 +3,35 @@
  * sinval.c
  *	  POSTGRES shared cache invalidation communication code.
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2012, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/storage/ipc/sinval.c,v 1.81 2006/07/14 14:52:23 momjian Exp $
+ *	  src/backend/storage/ipc/sinval.c
  *
  *-------------------------------------------------------------------------
  */
 #include "postgres.h"
 
-#include <signal.h>
-
 #include "access/xact.h"
 #include "commands/async.h"
 #include "miscadmin.h"
-#include "storage/backendid.h"
 #include "storage/ipc.h"
-#include "storage/proc.h"
 #include "storage/sinvaladt.h"
 #include "utils/inval.h"
+
+#include "cdb/cdbtm.h"          /* DtxContext */
+
+uint64		SharedInvalidMessageCounter;
 
 
 /*
  * Because backends sitting idle will not be reading sinval events, we
  * need a way to give an idle backend a swift kick in the rear and make
- * it catch up before the sinval queue overflows and forces everyone
- * through a cache reset exercise.	This is done by broadcasting SIGUSR1
- * to all backends when the queue is threatening to become full.
+ * it catch up before the sinval queue overflows and forces it to go
+ * through a cache reset exercise.	This is done by sending
+ * PROCSIG_CATCHUP_INTERRUPT to any backend that gets too far behind.
  *
  * State for catchup events consists of two flags: one saying whether
  * the signal handler is currently allowed to call ProcessCatchupEvent
@@ -48,125 +48,113 @@ static volatile int catchupInterruptOccurred = 0;
 static void ProcessCatchupEvent(void);
 
 
-/****************************************************************************/
-/*	CreateSharedInvalidationState()		 Initialize SI buffer				*/
-/*																			*/
-/*	should be called only by the POSTMASTER									*/
-/****************************************************************************/
-void
-CreateSharedInvalidationState(void)
-{
-	/* SInvalLock must be initialized already, during LWLock init */
-	SIBufferInit();
-}
-
 /*
- * InitBackendSharedInvalidationState
- *		Initialize new backend's state info in buffer segment.
+ * SendSharedInvalidMessages
+ *	Add shared-cache-invalidation message(s) to the global SI message queue.
  */
 void
-InitBackendSharedInvalidationState(void)
+SendSharedInvalidMessages(const SharedInvalidationMessage *msgs, int n)
 {
-	int			flag;
-
-	LWLockAcquire(SInvalLock, LW_EXCLUSIVE);
-	flag = SIBackendInit(shmInvalBuffer);
-	LWLockRelease(SInvalLock);
-	if (flag < 0)				/* unexpected problem */
-		elog(FATAL, "shared cache invalidation initialization failed");
-	if (flag == 0)				/* expected problem: MaxBackends exceeded */
-		ereport(FATAL,
-				(errcode(ERRCODE_TOO_MANY_CONNECTIONS),
-				 errmsg("sorry, too many clients already")));
-}
-
-/*
- * SendSharedInvalidMessage
- *	Add a shared-cache-invalidation message to the global SI message queue.
- */
-void
-SendSharedInvalidMessage(SharedInvalidationMessage *msg)
-{
-	bool		insertOK;
-
-	LWLockAcquire(SInvalLock, LW_EXCLUSIVE);
-	insertOK = SIInsertDataEntry(shmInvalBuffer, msg);
-	LWLockRelease(SInvalLock);
-	if (!insertOK)
-		elog(DEBUG4, "SI buffer overflow");
+	SIInsertDataEntries(msgs, n);
 }
 
 /*
  * ReceiveSharedInvalidMessages
  *		Process shared-cache-invalidation messages waiting for this backend
  *
+ * We guarantee to process all messages that had been queued before the
+ * routine was entered.  It is of course possible for more messages to get
+ * queued right after our last SIGetDataEntries call.
+ *
  * NOTE: it is entirely possible for this routine to be invoked recursively
  * as a consequence of processing inside the invalFunction or resetFunction.
- * Hence, we must be holding no SI resources when we call them.  The only
- * bad side-effect is that SIDelExpiredDataEntries might be called extra
- * times on the way out of a nested call.
+ * Furthermore, such a recursive call must guarantee that all outstanding
+ * inval messages have been processed before it exits.	This is the reason
+ * for the strange-looking choice to use a statically allocated buffer array
+ * and counters; it's so that a recursive call can process messages already
+ * sucked out of sinvaladt.c.
  */
 void
 ReceiveSharedInvalidMessages(
 					  void (*invalFunction) (SharedInvalidationMessage *msg),
 							 void (*resetFunction) (void))
 {
-	SharedInvalidationMessage data;
-	int			getResult;
-	bool		gotMessage = false;
+#define MAXINVALMSGS 32
+	static SharedInvalidationMessage messages[MAXINVALMSGS];
 
-	for (;;)
+	/*
+	 * We use volatile here to prevent bugs if a compiler doesn't realize that
+	 * recursion is a possibility ...
+	 */
+	static volatile int nextmsg = 0;
+	static volatile int nummsgs = 0;
+
+	/* Deal with any messages still pending from an outer recursion */
+	while (nextmsg < nummsgs)
 	{
-		/*
-		 * We can discard any pending catchup event, since we will not exit
-		 * this loop until we're fully caught up.
-		 */
-		catchupInterruptOccurred = 0;
+		SharedInvalidationMessage *msg = &messages[nextmsg++];
 
-		/*
-		 * We can run SIGetDataEntry in parallel with other backends running
-		 * SIGetDataEntry for themselves, since each instance will modify only
-		 * fields of its own backend's ProcState, and no instance will look at
-		 * fields of other backends' ProcStates.  We express this by grabbing
-		 * SInvalLock in shared mode.  Note that this is not exactly the
-		 * normal (read-only) interpretation of a shared lock! Look closely at
-		 * the interactions before allowing SInvalLock to be grabbed in shared
-		 * mode for any other reason!
-		 */
-		LWLockAcquire(SInvalLock, LW_SHARED);
-		getResult = SIGetDataEntry(shmInvalBuffer, MyBackendId, &data);
-		LWLockRelease(SInvalLock);
+		SharedInvalidMessageCounter++;
+		invalFunction(msg);
+	}
 
-		if (getResult == 0)
-			break;				/* nothing more to do */
+	do
+	{
+		int			getResult;
+
+		nextmsg = nummsgs = 0;
+
+		/* Try to get some more messages */
+		getResult = SIGetDataEntries(messages, MAXINVALMSGS);
+
 		if (getResult < 0)
 		{
 			/* got a reset message */
 			elog(DEBUG4, "cache state reset");
+			SharedInvalidMessageCounter++;
 			resetFunction();
+			break;				/* nothing more to do */
 		}
-		else
-		{
-			/* got a normal data message */
-			invalFunction(&data);
-		}
-		gotMessage = true;
-	}
 
-	/* If we got any messages, try to release dead messages */
-	if (gotMessage)
+		/* Process them, being wary that a recursive call might eat some */
+		nextmsg = 0;
+		nummsgs = getResult;
+
+		while (nextmsg < nummsgs)
+		{
+			SharedInvalidationMessage *msg = &messages[nextmsg++];
+
+			SharedInvalidMessageCounter++;
+			invalFunction(msg);
+		}
+
+		/*
+		 * We only need to loop if the last SIGetDataEntries call (which might
+		 * have been within a recursive call) returned a full buffer.
+		 */
+	} while (nummsgs == MAXINVALMSGS);
+
+	/*
+	 * We are now caught up.  If we received a catchup signal, reset that
+	 * flag, and call SICleanupQueue().  This is not so much because we need
+	 * to flush dead messages right now, as that we want to pass on the
+	 * catchup signal to the next slowest backend.	"Daisy chaining" the
+	 * catchup signal this way avoids creating spikes in system load for what
+	 * should be just a background maintenance activity.
+	 */
+	if (catchupInterruptOccurred)
 	{
-		LWLockAcquire(SInvalLock, LW_EXCLUSIVE);
-		SIDelExpiredDataEntries(shmInvalBuffer);
-		LWLockRelease(SInvalLock);
+		catchupInterruptOccurred = 0;
+		elog(DEBUG4, "sinval catchup complete, cleaning queue");
+		SICleanupQueue(false, 0);
 	}
 }
 
 
 /*
- * CatchupInterruptHandler
+ * HandleCatchupInterrupt
  *
- * This is the signal handler for SIGUSR1.
+ * This is called when PROCSIG_CATCHUP_INTERRUPT is received.
  *
  * If we are idle (catchupInterruptEnabled is set), we can safely
  * invoke ProcessCatchupEvent directly.  Otherwise, just set a flag
@@ -176,13 +164,11 @@ ReceiveSharedInvalidMessages(
  * since there's no longer any reason to do anything.)
  */
 void
-CatchupInterruptHandler(SIGNAL_ARGS)
+HandleCatchupInterrupt(void)
 {
-	int			save_errno = errno;
-
 	/*
-	 * Note: this is a SIGNAL HANDLER.	You must be very wary what you do
-	 * here.
+	 * Note: this is called by a SIGNAL HANDLER. You must be very wary what
+	 * you do here.
 	 */
 
 	/* Don't joggle the elbow of proc_exit */
@@ -236,8 +222,6 @@ CatchupInterruptHandler(SIGNAL_ARGS)
 		 */
 		catchupInterruptOccurred = 1;
 	}
-
-	errno = save_errno;
 }
 
 /*
@@ -292,8 +276,8 @@ EnableCatchupInterrupt(void)
  * a frontend command.	Signal handler execution of catchup events
  * is disabled until the next EnableCatchupInterrupt call.
  *
- * The SIGUSR2 signal handler also needs to call this, so as to
- * prevent conflicts if one signal interrupts the other.  So we
+ * The PROCSIG_NOTIFY_INTERRUPT signal handler also needs to call this,
+ * so as to prevent conflicts if one signal interrupts the other.  So we
  * must return the previous state of the flag.
  */
 bool
@@ -309,18 +293,20 @@ DisableCatchupInterrupt(void)
 /*
  * ProcessCatchupEvent
  *
- * Respond to a catchup event (SIGUSR1) from another backend.
+ * Respond to a catchup event (PROCSIG_CATCHUP_INTERRUPT) from another
+ * backend.
  *
- * This is called either directly from the SIGUSR1 signal handler,
- * or the next time control reaches the outer idle loop (assuming
- * there's still anything to do by then).
+ * This is called either directly from the PROCSIG_CATCHUP_INTERRUPT
+ * signal handler, or the next time control reaches the outer idle loop
+ * (assuming there's still anything to do by then).
  */
 static void
 ProcessCatchupEvent(void)
 {
 	bool		notify_enabled;
+	DtxContext  saveDistributedTransactionContext;
 
-	/* Must prevent SIGUSR2 interrupt while I am running */
+	/* Must prevent notify interrupt while I am running */
 	notify_enabled = DisableNotifyInterrupt();
 
 	/*
@@ -338,14 +324,23 @@ ProcessCatchupEvent(void)
 	 */
 	if (IsTransactionOrTransactionBlock())
 	{
-		elog(DEBUG4, "ProcessCatchupEvent inside transaction");
+		elog(DEBUG1, "ProcessCatchupEvent inside transaction");
 		AcceptInvalidationMessages();
 	}
 	else
 	{
-		elog(DEBUG4, "ProcessCatchupEvent outside transaction");
+		elog(DEBUG1, "ProcessCatchupEvent outside transaction");
+
+		/*
+		 * Save distributed transaction context first.
+		 */
+		saveDistributedTransactionContext = DistributedTransactionContext;
+		DistributedTransactionContext = DTX_CONTEXT_LOCAL_ONLY;
+
 		StartTransactionCommand();
 		CommitTransactionCommand();
+
+		DistributedTransactionContext = saveDistributedTransactionContext;
 	}
 
 	if (notify_enabled)

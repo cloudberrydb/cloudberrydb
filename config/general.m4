@@ -20,7 +20,7 @@ m4_define([pgac_arg_to_variable],
 # PGAC_ARG(TYPE, NAME, HELP-STRING,
 #          [ACTION-IF-YES], [ACTION-IF-NO], [ACTION-IF-ARG],
 #          [ACTION-IF-OMITTED])
-# ----------------------------------------------------------
+# ------------------------------------------------------------
 # This is the base layer. TYPE is either "with" or "enable", depending
 # on what you like. NAME is the rest of the option name, HELP-STRING
 # as usual. ACTION-IF-YES is executed if the option is given without
@@ -88,7 +88,7 @@ done])# PGAC_ARG_CHECK
 
 # PGAC_ARG_BOOL(TYPE, NAME, DEFAULT, HELP-STRING, 
 #               [ACTION-IF-YES], [ACTION-IF-NO])
-# -----------------------------------------------
+# ---------------------------------------------------
 # Accept a boolean option, that is, one that only takes yes or no.
 # ("no" is equivalent to "disable" or "without"). DEFAULT is what
 # should be done if the option is omitted; it should be "yes" or "no".
@@ -108,7 +108,7 @@ $6],
 
 
 # PGAC_ARG_REQ(TYPE, NAME, HELP-STRING, [ACTION-IF-GIVEN], [ACTION-IF-NOT-GIVEN])
-# -------------------------------------------------------------------------------
+# -------------------------------------------------------
 # This option will require an argument; "yes" or "no" will not be
 # accepted.
 
@@ -122,7 +122,7 @@ AC_DEFUN([PGAC_ARG_REQ],
 
 # PGAC_ARG_OPTARG(TYPE, NAME, HELP-STRING, [DEFAULT-ACTION], [ARG-ACTION]
 #                 [ACTION-ENABLED], [ACTION-DISABLED])
-# -----------------------------------------------------------------------
+# ----------------------------------------------------------
 # This will create an option that behaves as follows: If omitted, or
 # called with "no", then set the enable_variable to "no" and do
 # nothing else. If called with "yes", then execute DEFAULT-ACTION. If

@@ -1,0 +1,97 @@
+--
+-- Nested loop join with index scan on CO table, test for MPP-17658
+--
+create schema co_nestloop_idxscan;
+create table co_nestloop_idxscan.foo (id bigint, data text) with (appendonly=true, orientation=column)
+distributed by (id);
+create table co_nestloop_idxscan.bar (id bigint) distributed by (id);
+-- Changing the text to be smaller doesn't repro the issue
+insert into co_nestloop_idxscan.foo select 1, repeat('xxxxxxxxxx', 100000);
+insert into co_nestloop_idxscan.bar values (1);
+create index foo_id_idx on co_nestloop_idxscan.foo(id);
+-- test with hash join
+explain select f.id from co_nestloop_idxscan.foo f, co_nestloop_idxscan.bar b where f.id = b.id;
+                                         QUERY PLAN                                          
+---------------------------------------------------------------------------------------------
+ Gather Motion 2:1  (slice2; segments: 2)  (cost=0.00..431.09 rows=1 width=8)
+   ->  Nested Loop  (cost=0.00..431.09 rows=1 width=8)
+         Join Filter: true
+         ->  Broadcast Motion 2:2  (slice1; segments: 2)  (cost=0.00..431.00 rows=2 width=8)
+               ->  Table Scan on bar  (cost=0.00..431.00 rows=1 width=8)
+         ->  Bitmap Table Scan on foo  (cost=0.00..0.09 rows=1 width=8)
+               Recheck Cond: foo.id = bar.id
+               ->  Bitmap Index Scan on foo_id_idx  (cost=0.00..0.00 rows=0 width=0)
+                     Index Cond: foo.id = bar.id
+ Settings:  optimizer=on; optimizer_segments=3
+(10 rows)
+
+select f.id from co_nestloop_idxscan.foo f, co_nestloop_idxscan.bar b where f.id = b.id;
+ id 
+----
+  1
+(1 row)
+
+-- test with nested loop join
+select disable_xform('CXformInnerJoin2HashJoin');
+            disable_xform             
+--------------------------------------
+ CXformInnerJoin2HashJoin is disabled
+(1 row)
+
+set enable_hashjoin=off;
+explain select f.id from co_nestloop_idxscan.foo f, co_nestloop_idxscan.bar b where f.id = b.id;
+                                         QUERY PLAN                                          
+---------------------------------------------------------------------------------------------
+ Gather Motion 2:1  (slice2; segments: 2)  (cost=0.00..431.09 rows=1 width=8)
+   ->  Nested Loop  (cost=0.00..431.09 rows=1 width=8)
+         Join Filter: true
+         ->  Broadcast Motion 2:2  (slice1; segments: 2)  (cost=0.00..431.00 rows=2 width=8)
+               ->  Table Scan on bar  (cost=0.00..431.00 rows=1 width=8)
+         ->  Bitmap Table Scan on foo  (cost=0.00..0.09 rows=1 width=8)
+               Recheck Cond: foo.id = bar.id
+               ->  Bitmap Index Scan on foo_id_idx  (cost=0.00..0.00 rows=0 width=0)
+                     Index Cond: foo.id = bar.id
+ Settings:  enable_hashjoin=off; optimizer=on; optimizer_segments=3
+(10 rows)
+
+select f.id from co_nestloop_idxscan.foo f, co_nestloop_idxscan.bar b where f.id = b.id;
+ id 
+----
+  1
+(1 row)
+
+-- test with nested loop join and index scan
+set enable_seqscan = off;
+-- start_ignore
+-- Known_opt_diff: OPT-929
+-- end_ignore
+explain select f.id from co_nestloop_idxscan.foo f, co_nestloop_idxscan.bar b where f.id = b.id;
+                                         QUERY PLAN                                          
+---------------------------------------------------------------------------------------------
+ Gather Motion 2:1  (slice2; segments: 2)  (cost=0.00..431.09 rows=1 width=8)
+   ->  Nested Loop  (cost=0.00..431.09 rows=1 width=8)
+         Join Filter: true
+         ->  Broadcast Motion 2:2  (slice1; segments: 2)  (cost=0.00..431.00 rows=2 width=8)
+               ->  Table Scan on bar  (cost=0.00..431.00 rows=1 width=8)
+         ->  Bitmap Table Scan on foo  (cost=0.00..0.09 rows=1 width=8)
+               Recheck Cond: foo.id = bar.id
+               ->  Bitmap Index Scan on foo_id_idx  (cost=0.00..0.00 rows=0 width=0)
+                     Index Cond: foo.id = bar.id
+ Settings:  enable_hashjoin=off; enable_seqscan=off; optimizer=on; optimizer_segments=3
+(10 rows)
+
+select f.id from co_nestloop_idxscan.foo f, co_nestloop_idxscan.bar b where f.id = b.id;
+ id 
+----
+  1
+(1 row)
+
+select enable_xform('CXformInnerJoin2HashJoin');
+            enable_xform             
+-------------------------------------
+ CXformInnerJoin2HashJoin is enabled
+(1 row)
+
+drop schema co_nestloop_idxscan cascade;
+NOTICE:  drop cascades to table co_nestloop_idxscan.bar
+NOTICE:  drop cascades to append only columnar table co_nestloop_idxscan.foo

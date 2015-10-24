@@ -1,10 +1,11 @@
 <!--
-$PostgreSQL: pgsql/doc/src/sgml/ref/load.sgml,v 1.23 2006/09/16 00:30:19 momjian Exp $
+$PostgreSQL: pgsql/doc/src/sgml/ref/load.sgml,v 1.25 2008/11/14 10:22:47 petere Exp $
 -->
 
 <refentry id="SQL-LOAD">
  <refmeta>
   <refentrytitle id="SQL-LOAD-TITLE">LOAD</refentrytitle>
+  <manvolnum>7</manvolnum>
   <refmiscinfo>SQL - Language Statements</refmiscinfo>
  </refmeta>
 
@@ -40,7 +41,7 @@ LOAD '<replaceable class="PARAMETER">filename</replaceable>'
   <para>
    The file name is specified in the same way as for shared library
    names in <xref linkend="sql-createfunction" endterm="sql-createfunction-title">; in particular, one
-   may rely on a search path and automatic addition of the system's standard
+   can rely on a search path and automatic addition of the system's standard
    shared library file name extension.  See <xref linkend="xfunc-c"> for
    more information on this topic.
   </para>
@@ -50,7 +51,7 @@ LOAD '<replaceable class="PARAMETER">filename</replaceable>'
   </indexterm>
 
   <para>
-   Non-superusers may only apply <command>LOAD</> to library files
+   Non-superusers can only apply <command>LOAD</> to library files
    located in <filename>$libdir/plugins/</> &mdash; the specified
    <replaceable class="PARAMETER">filename</replaceable> must begin
    with exactly that string.  (It is the database administrator's

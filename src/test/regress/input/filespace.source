@@ -1,0 +1,125 @@
+--
+-- filespaces
+-- 
+--
+-- *********************************************************************
+-- *********************************************************************
+-- If you want to change the results of this script, you must make the
+-- changes in regress/output/filespace.source, not regress/results,
+-- and use gpsourcify.pl to regenerate the ".source" file.
+--
+-- From the regress directory invoke the command:
+--
+--    gpsourcify.pl results/filespace.out > output/filespace.source
+--
+-- *********************************************************************
+-- *********************************************************************
+
+create filespace regressionfs1 @gpfilespace_regressionfs1@ 
+
+;
+
+create tablespace regressionts1 filespace regressionfs1;
+
+create table fstest(a int, b int) tablespace regressionts1;
+
+insert into fstest select i, i from generate_series (1,1000) i;
+
+select * from fstest;
+
+comment on filespace regressionfs1 is 'groovy';
+comment on tablespace regressionts1 is 'also groovy';
+
+-- partition coverage
+
+create table cov1 (a int, b int)
+distributed by (a)
+partition by range (b)
+(
+  partition p1 start (1) end (2) 
+    with (appendonly=true) tablespace regressionts1,
+  partition p2 start (2) end (3) tablespace regressionts1,
+  partition p3 start (3) end (4) 
+    with (appendonly=true) tablespace regressionts1
+);
+
+-- view is busted??
+select tablename, partitionname, partitiontablename, parenttablespace,
+partitiontablespace from pg_partitions where tablename = 'cov1';
+
+drop table cov1;
+
+-- err: not empty
+drop tablespace regressionts1;
+
+-- err: not empty
+drop filespace regressionfs1;
+
+drop table fstest;
+
+-- bad name
+create tablespace pg_badname filespace regressionfs1;
+create tablespace rtsfake filespace badname_badfs1;
+-- reserved
+create tablespace rtsfake filespace pg_system;
+-- duplicate
+create tablespace regressionts1 filespace regressionfs1;
+
+-- caql coverage for tablecmds.c
+drop table if exists ttable;
+create tablespace ttbspace filespace regressionfs1;
+create table ttable (a int, b int) tablespace regressionts1;
+alter table ttable set tablespace ttbspace;
+drop table ttable;
+
+-- do some alters
+create user fsuser1;
+
+alter tablespace regressionts1 rename to rts2;
+alter tablespace rts2 rename to regressionts1;
+
+alter filespace regressionfs1 rename to rfs2;
+alter filespace rfs2 rename to regressionfs1;
+
+-- privs
+alter tablespace regressionts1 owner to fsuser1;
+alter filespace regressionfs1 owner to fsuser1;
+
+SET SESSION AUTHORIZATION fsuser1;
+create tablespace rtsfake filespace regressionfs1;
+create filespace regressionfs2 @gpfilespace_regressionfs2@
+
+;
+
+
+-- switch to superuser
+\c -
+
+-- bad name
+drop tablespace funky.regressionts1;
+
+-- don't do this!
+drop filespace pg_system;
+drop tablespace pg_default;
+drop tablespace pg_global;
+
+-- test tablespace and filespace aclcheck
+drop user if exists tbs_user1;
+drop user if exists tbs_user2;
+create user tbs_user1;
+create user tbs_user2;
+alter tablespace ttbspace owner to tbs_user1;
+set session authorization tbs_user1;
+alter tablespace ttbspace owner to tbs_user2;
+alter filespace regressionfs1 owner to tbs_user1;
+reset session authorization;
+
+-- cleanup
+drop tablespace regressionts1;
+drop tablespace ttbspace;
+
+drop filespace regressionfs1;
+
+drop user fsuser1;
+drop user tbs_user1;
+drop user tbs_user2;

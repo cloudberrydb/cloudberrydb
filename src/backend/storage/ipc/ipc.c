@@ -8,12 +8,12 @@
  * exit-time cleanup for either a postmaster or a backend.
  *
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/storage/ipc/ipc.c,v 1.94 2006/07/14 05:28:28 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/storage/ipc/ipc.c,v 1.105 2009/06/11 14:49:01 momjian Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -21,9 +21,15 @@
 
 #include <signal.h>
 #include <unistd.h>
+#include <sys/stat.h>
 
+#include "cdb/cdbdisp.h"
 #include "miscadmin.h"
+#ifdef PROFILE_PID_DIR
+#include "postmaster/autovacuum.h"
+#endif
 #include "storage/ipc.h"
+#include "libpq/pqsignal.h"
 
 
 /*
@@ -33,6 +39,12 @@
  */
 bool		proc_exit_inprogress = false;
 
+/*
+ * This flag tracks whether we've called atexit(2) in the current process
+ * (or in the parent postmaster).
+ */
+static bool atexit_callback_setup = false;
+extern void WaitInterconnectQuit(void);
 
 /* ----------------------------------------------------------------
  *						exit() handling stuff
@@ -52,7 +64,7 @@ bool		proc_exit_inprogress = false;
 
 static struct ONEXIT
 {
-	void		(*function) (int code, Datum arg);
+	pg_on_exit_callback function;
 	Datum		arg;
 }	on_proc_exit_list[MAX_ON_EXITS], on_shmem_exit_list[MAX_ON_EXITS];
 
@@ -65,13 +77,84 @@ static int	on_proc_exit_index,
  *
  *		this function calls all the callbacks registered
  *		for it (to free resources) and then calls exit.
+ *
  *		This should be the only function to call exit().
  *		-cim 2/6/90
+ *
+ *		Unfortunately, we can't really guarantee that add-on code
+ *		obeys the rule of not calling exit() directly.  So, while
+ *		this is the preferred way out of the system, we also register
+ *		an atexit callback that will make sure cleanup happens.
  * ----------------------------------------------------------------
  */
 void
 proc_exit(int code)
 {
+	pqsignal(SIGALRM, SIG_IGN);
+
+	/* Clean up everything that must be cleaned up */
+	proc_exit_prepare(code);
+
+#ifdef PROFILE_PID_DIR
+	{
+		/*
+		 * If we are profiling ourself then gprof's mcleanup() is about to
+		 * write out a profile to ./gmon.out.  Since mcleanup() always uses a
+		 * fixed file name, each backend will overwrite earlier profiles. To
+		 * fix that, we create a separate subdirectory for each backend
+		 * (./gprof/pid) and 'cd' to that subdirectory before we exit() - that
+		 * forces mcleanup() to write each profile into its own directory.	We
+		 * end up with something like: $PGDATA/gprof/8829/gmon.out
+		 * $PGDATA/gprof/8845/gmon.out ...
+		 *
+		 * To avoid undesirable disk space bloat, autovacuum workers are
+		 * discriminated against: all their gmon.out files go into the same
+		 * subdirectory.  Without this, an installation that is "just sitting
+		 * there" nonetheless eats megabytes of disk space every few seconds.
+		 *
+		 * Note that we do this here instead of in an on_proc_exit() callback
+		 * because we want to ensure that this code executes last - we don't
+		 * want to interfere with any other on_proc_exit() callback.  For the
+		 * same reason, we do not include it in proc_exit_prepare ... so if
+		 * you are exiting in the "wrong way" you won't drop your profile in a
+		 * nice place.
+		 */
+		char		gprofDirName[32];
+
+		if (IsAutoVacuumWorkerProcess())
+			snprintf(gprofDirName, 32, "gprof/avworker");
+		else
+			snprintf(gprofDirName, 32, "gprof/%d", (int) getpid());
+
+		mkdir("gprof", 0777);
+		mkdir(gprofDirName, 0777);
+		chdir(gprofDirName);
+	}
+#endif
+
+	elog(DEBUG3, "exit(%d)", code);
+
+	exit(code);
+}
+
+/*
+ * Code shared between proc_exit and the atexit handler.  Note that in
+ * normal exit through proc_exit, this will actually be called twice ...
+ * but the second call will have nothing to do.
+ */
+void
+proc_exit_prepare(int code)
+{
+	/*
+	 * If we came here from any critical section, we don't have safe way to
+	 * clean up shared memory or transaction state.  Though it's not a pleasant
+	 * solution, this is better than messing up database.  This is the least
+	 * desirable bail-out, and whenever you should see this situation, you
+	 * should consider to resolve the actual programming error.
+	 */
+	if (CritSectionCount > 0)
+		elog(PANIC, "process is dying from critical section");
+
 	/*
 	 * Once we set this flag, we are committed to exit.  Any ereport() will
 	 * NOT send control back to the main loop, but right back here.
@@ -91,13 +174,52 @@ proc_exit(int code)
 	InterruptHoldoffCount = 1;
 	CritSectionCount = 0;
 
-	elog(DEBUG3, "proc_exit(%d)", code);
+	/*
+	 * Also clear the error context stack, to prevent error callbacks
+	 * from being invoked by any elog/ereport calls made during proc_exit.
+	 * Whatever context they might want to offer is probably not relevant,
+	 * and in any case they are likely to fail outright after we've done
+	 * things like aborting any open transaction.  (In normal exit scenarios
+	 * the context stack should be empty anyway, but it might not be in the
+	 * case of elog(FATAL) for example.)
+	 */
+	error_context_stack = NULL;
+
+	/*
+	 * Make sure threads get cleaned up: there might be still ongoing
+	 * dispatch threads with something that will be cleaned up during
+	 * shmem_exit.  And this should be after proc_exit_inprogress = true above
+	 * so that threads will recognize we are dying and break-out from the loop
+	 * even if they're in the middle of work.  Note this call will block for
+	 * a certain time until threads get cleaned up.  While it is generally
+	 * expected for a process to die immediately in this code path, it should
+	 * be ok to block as we are most likely not in signal handler or
+	 * something.  Actually, I cannot find any better option to do the
+	 * correct work.
+	 */
+	cdbdisp_waitThreads();
+
+	/*
+	* Make sure interconnect thread quit before shmem_exit() in FATAL case.
+	* Otherwise, shmem_exit() may free MemoryContex of MotionConns in connHtab unexpectedly;
+	*
+	* For example: PORTAL_MULTI_QUERY strategy doesn't bind estate with portal,
+	* so when fatal occurs, MotionConns of estate don't get removed through
+	* TeardownInterconnect(), but MemoryContex of these MotionConns are freed.
+	*
+	* It's ok to shutdown Interconnect background thread here, process is dying, no
+	* necessary to receive more motion data.
+	*/
+	WaitInterconnectQuit();
 
 	/* do our shared memory exits first */
 	shmem_exit(code);
 
+	elog(DEBUG3, "proc_exit(%d): %d callbacks to make",
+		 code, on_proc_exit_index);
+
 	/*
-	 * call all the callbacks registered before calling exit().
+	 * call all the registered callbacks.
 	 *
 	 * Note that since we decrement on_proc_exit_index each time, if a
 	 * callback calls ereport(ERROR) or ereport(FATAL) then it won't be
@@ -109,8 +231,7 @@ proc_exit(int code)
 		(*on_proc_exit_list[on_proc_exit_index].function) (code,
 								  on_proc_exit_list[on_proc_exit_index].arg);
 
-	elog(DEBUG3, "exit(%d)", code);
-	exit(code);
+	on_proc_exit_index = 0;
 }
 
 /* ------------------
@@ -122,7 +243,8 @@ proc_exit(int code)
 void
 shmem_exit(int code)
 {
-	elog(DEBUG3, "shmem_exit(%d)", code);
+	elog(DEBUG3, "shmem_exit(%d): %d callbacks to make",
+		 code, on_shmem_exit_index);
 
 	/*
 	 * call all the registered callbacks.
@@ -138,6 +260,35 @@ shmem_exit(int code)
 }
 
 /* ----------------------------------------------------------------
+ *		atexit_callback
+ *
+ *		Backstop to ensure that direct calls of exit() don't mess us up.
+ *
+ * Somebody who was being really uncooperative could call _exit(),
+ * but for that case we have a "dead man switch" that will make the
+ * postmaster treat it as a crash --- see pmsignal.c.
+ * ----------------------------------------------------------------
+ */
+#ifdef HAVE_ATEXIT
+
+static void
+atexit_callback(void)
+{
+	/* Clean up everything that must be cleaned up */
+	/* ... too bad we don't know the real exit code ... */
+	proc_exit_prepare(-1);
+}
+#else							/* assume we have on_exit instead */
+
+static void
+atexit_callback(int exitstatus, void *arg)
+{
+	/* Clean up everything that must be cleaned up */
+	proc_exit_prepare(exitstatus);
+}
+#endif   /* HAVE_ATEXIT */
+
+/* ----------------------------------------------------------------
  *		on_proc_exit
  *
  *		this function adds a callback function to the list of
@@ -145,7 +296,7 @@ shmem_exit(int code)
  * ----------------------------------------------------------------
  */
 void
-			on_proc_exit(void (*function) (int code, Datum arg), Datum arg)
+on_proc_exit(pg_on_exit_callback function, Datum arg)
 {
 	if (on_proc_exit_index >= MAX_ON_EXITS)
 		ereport(FATAL,
@@ -156,6 +307,16 @@ void
 	on_proc_exit_list[on_proc_exit_index].arg = arg;
 
 	++on_proc_exit_index;
+
+	if (!atexit_callback_setup)
+	{
+#ifdef HAVE_ATEXIT
+		atexit(atexit_callback);
+#else
+		on_exit(atexit_callback, NULL);
+#endif
+		atexit_callback_setup = true;
+	}
 }
 
 /* ----------------------------------------------------------------
@@ -166,7 +327,7 @@ void
  * ----------------------------------------------------------------
  */
 void
-			on_shmem_exit(void (*function) (int code, Datum arg), Datum arg)
+on_shmem_exit(pg_on_exit_callback function, Datum arg)
 {
 	if (on_shmem_exit_index >= MAX_ON_EXITS)
 		ereport(FATAL,
@@ -177,6 +338,34 @@ void
 	on_shmem_exit_list[on_shmem_exit_index].arg = arg;
 
 	++on_shmem_exit_index;
+
+	if (!atexit_callback_setup)
+	{
+#ifdef HAVE_ATEXIT
+		atexit(atexit_callback);
+#else
+		on_exit(atexit_callback, NULL);
+#endif
+		atexit_callback_setup = true;
+	}
+}
+
+/* ----------------------------------------------------------------
+ *		cancel_shmem_exit
+ *
+ *		this function removes an entry, if present, from the list of
+ *		functions to be invoked by shmem_exit().  For simplicity,
+ *		only the latest entry can be removed.  (We could work harder
+ *		but there is no need for current uses.)
+ * ----------------------------------------------------------------
+ */
+void
+cancel_shmem_exit(pg_on_exit_callback function, Datum arg)
+{
+	if (on_shmem_exit_index > 0 &&
+		on_shmem_exit_list[on_shmem_exit_index - 1].function == function &&
+		on_shmem_exit_list[on_shmem_exit_index - 1].arg == arg)
+		--on_shmem_exit_index;
 }
 
 /* ----------------------------------------------------------------

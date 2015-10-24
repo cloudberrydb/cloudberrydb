@@ -3,10 +3,10 @@
  * socket.c
  *	  Microsoft Windows Win32 Socket Functions
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/port/win32/socket.c,v 1.14 2006/10/13 13:59:47 teodor Exp $
+ *	  $PostgreSQL: pgsql/src/backend/port/win32/socket.c,v 1.22 2009/06/11 14:49:00 momjian Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -103,7 +103,8 @@ pgwin32_poll_signals(void)
 }
 
 static int
-isDataGram(SOCKET s) {
+isDataGram(SOCKET s)
+{
 	int type;
 	int typelen = sizeof(type);
 
@@ -114,7 +115,7 @@ isDataGram(SOCKET s) {
 }
 
 int
-pgwin32_waitforsinglesocket(SOCKET s, int what)
+pgwin32_waitforsinglesocket(SOCKET s, int what, int timeout)
 {
 	static HANDLE waitevent = INVALID_HANDLE_VALUE;
 	static SOCKET current_socket = -1;
@@ -158,13 +159,11 @@ pgwin32_waitforsinglesocket(SOCKET s, int what)
 	events[1] = waitevent;
 
 	/* 
-	 * Just a workaround of unknown locking problem with writing
-	 * in UDP socket under high load: 
-	 * Client's pgsql backend sleeps infinitely in 
-	 * WaitForMultipleObjectsEx, pgstat process sleeps in 
-	 * pgwin32_select().  So, we will wait with small 
-	 * timeout(0.1 sec) and if sockect is still blocked, 
-	 * try WSASend (see comments in pgwin32_select) and wait again.
+	 * Just a workaround of unknown locking problem with writing in UDP socket
+	 * under high load: Client's pgsql backend sleeps infinitely in
+	 * WaitForMultipleObjectsEx, pgstat process sleeps in pgwin32_select().
+	 * So, we will wait with small timeout(0.1 sec) and if sockect is still
+	 * blocked, try WSASend (see comments in pgwin32_select) and wait again.
 	 */
 	if ((what & FD_WRITE) && isUDP)
 	{
@@ -195,7 +194,7 @@ pgwin32_waitforsinglesocket(SOCKET s, int what)
 		}
 	}
 	else
-		r = WaitForMultipleObjectsEx(2, events, FALSE, INFINITE, TRUE);
+		r = WaitForMultipleObjectsEx(2, events, FALSE, timeout, TRUE);
 
 	if (r == WAIT_OBJECT_0 || r == WAIT_IO_COMPLETION)
 	{
@@ -205,6 +204,8 @@ pgwin32_waitforsinglesocket(SOCKET s, int what)
 	}
 	if (r == WAIT_OBJECT_0 + 1)
 		return 1;
+	if (r == WAIT_TIMEOUT)
+		return 0;
 	ereport(ERROR,
 			(errmsg_internal("Bad return from WaitForMultipleObjects: %i (%i)", r, (int) GetLastError())));
 	return 0;
@@ -274,7 +275,7 @@ pgwin32_connect(SOCKET s, const struct sockaddr * addr, int addrlen)
 		return -1;
 	}
 
-	while (pgwin32_waitforsinglesocket(s, FD_CONNECT) == 0)
+	while (pgwin32_waitforsinglesocket(s, FD_CONNECT, INFINITE) == 0)
 	{
 		/* Loop endlessly as long as we are just delivering signals */
 	}
@@ -289,6 +290,7 @@ pgwin32_recv(SOCKET s, char *buf, int len, int f)
 	int			r;
 	DWORD		b;
 	DWORD		flags = f;
+	int		n;
 
 	if (pgwin32_poll_signals())
 		return -1;
@@ -310,16 +312,37 @@ pgwin32_recv(SOCKET s, char *buf, int len, int f)
 
 	/* No error, zero bytes (win2000+) or error+WSAEWOULDBLOCK (<=nt4) */
 
-	if (pgwin32_waitforsinglesocket(s, FD_READ | FD_CLOSE | FD_ACCEPT) == 0)
-		return -1;
-
-	r = WSARecv(s, &wbuf, 1, &b, &flags, NULL, NULL);
-	if (r == SOCKET_ERROR)
+	for (n = 0; n < 5; n++)
 	{
-		TranslateSocketError();
-		return -1;
+		if (pgwin32_waitforsinglesocket(s, FD_READ | FD_CLOSE | FD_ACCEPT,
+										INFINITE) == 0)
+			return -1; /* errno already set */
+	
+		r = WSARecv(s, &wbuf, 1, &b, &flags, NULL, NULL);
+		if (r == SOCKET_ERROR)
+		{
+			if (WSAGetLastError() == WSAEWOULDBLOCK)
+			{
+				/*
+				 * There seem to be cases on win2k (at least) where WSARecv
+				 * can return WSAEWOULDBLOCK even when
+				 * pgwin32_waitforsinglesocket claims the socket is readable.
+				 * In this case, just sleep for a moment and try again. We try
+				 * up to 5 times - if it fails more than that it's not likely
+				 * to ever come back.
+				 */
+				pg_usleep(10000);
+				continue;
+			}
+			TranslateSocketError();
+			return -1;
+		}
+		return b;
 	}
-	return b;
+	ereport(NOTICE,
+		(errmsg_internal("Failed to read from ready socket (after retries)")));
+	errno = EWOULDBLOCK;
+	return -1;
 }
 
 int
@@ -336,11 +359,11 @@ pgwin32_send(SOCKET s, char *buf, int len, int flags)
 	wbuf.buf = buf;
 
 	/*
-	 * Readiness of socket to send data to UDP socket 
-	 * may be not true: socket can become busy again! So loop
-	 * until send or error occurs.
+	 * Readiness of socket to send data to UDP socket may be not true: socket
+	 * can become busy again! So loop until send or error occurs.
 	 */
-	for(;;) {
+	for (;;)
+	{
 		r = WSASend(s, &wbuf, 1, &b, flags, NULL, NULL);
 		if (r != SOCKET_ERROR && b > 0)
 			/* Write succeeded right away */
@@ -355,7 +378,7 @@ pgwin32_send(SOCKET s, char *buf, int len, int flags)
 
 		/* No error, zero bytes (win2000+) or error+WSAEWOULDBLOCK (<=nt4) */
 
-		if (pgwin32_waitforsinglesocket(s, FD_WRITE | FD_CLOSE) == 0)
+		if (pgwin32_waitforsinglesocket(s, FD_WRITE | FD_CLOSE, INFINITE) == 0)
 			return -1;
 	}
 
@@ -412,6 +435,7 @@ pgwin32_select(int nfds, fd_set *readfds, fd_set *writefds, fd_set *exceptfds, c
 			r = WSASend(writefds->fd_array[i], &buf, 1, &sent, 0, NULL, NULL);
 			if (r == 0)			/* Completed - means things are fine! */
 				FD_SET(writefds->fd_array[i], &outwritefds);
+
 			else
 			{					/* Not completed */
 				if (WSAGetLastError() != WSAEWOULDBLOCK)
@@ -508,6 +532,7 @@ pgwin32_select(int nfds, fd_set *readfds, fd_set *writefds, fd_set *exceptfds, c
 					(resEvents.lNetworkEvents & FD_CLOSE))
 				{
 					FD_SET(sockets[i], &outreadfds);
+
 					nummatches++;
 				}
 			}
@@ -518,6 +543,7 @@ pgwin32_select(int nfds, fd_set *readfds, fd_set *writefds, fd_set *exceptfds, c
 					(resEvents.lNetworkEvents & FD_CLOSE))
 				{
 					FD_SET(sockets[i], &outwritefds);
+
 					nummatches++;
 				}
 			}
@@ -582,7 +608,7 @@ pgwin32_socket_strerror(int err)
 	if (FormatMessage(FORMAT_MESSAGE_IGNORE_INSERTS | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_FROM_HMODULE,
 					  handleDLL,
 					  err,
-					  MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+					  MAKELANGID(LANG_ENGLISH, SUBLANG_DEFAULT),
 					  wserrbuf,
 					  sizeof(wserrbuf) - 1,
 					  NULL) == 0)

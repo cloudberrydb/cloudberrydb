@@ -4,7 +4,7 @@
  * If dlopen() is available (Darwin 10.3 and later), we just use it.
  * Otherwise we emulate it with the older, now deprecated, NSLinkModule API.
  *
- * $PostgreSQL: pgsql/src/backend/port/dynloader/darwin.c,v 1.11 2006/10/08 19:31:03 tgl Exp $
+ * $PostgreSQL: pgsql/src/backend/port/dynloader/darwin.c,v 1.13 2007/11/15 22:25:15 momjian Exp $
  */
 #include "postgres.h"
 
@@ -43,8 +43,7 @@ pg_dlerror(void)
 {
 	return dlerror();
 }
-
-#else /* !HAVE_DLOPEN */
+#else							/* !HAVE_DLOPEN */
 
 /*
  * These routines were taken from the Apache source, but were made
@@ -76,13 +75,14 @@ pg_dlclose(void *handle)
 PGFunction
 pg_dlsym(void *handle, char *funcname)
 {
-	NSSymbol	symbol;
+	NSSymbol symbol;
 	char	   *symname = (char *) malloc(strlen(funcname) + 2);
 
 	sprintf(symname, "_%s", funcname);
 	if (NSIsSymbolNameDefined(symname))
 	{
 		symbol = NSLookupAndBindSymbol(symname);
+
 		free(symname);
 		return (PGFunction) NSAddressOfSymbol(symbol);
 	}
@@ -132,4 +132,4 @@ pg_dlerror(void)
 	return (char *) errorString;
 }
 
-#endif /* HAVE_DLOPEN */
+#endif   /* HAVE_DLOPEN */

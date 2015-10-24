@@ -1,11 +1,17 @@
-/* XSLT processing functions (requiring libxslt) */
-/* John Gray, for Torchbox 2003-04-01 */
-
+/*
+ * $PostgreSQL: pgsql/contrib/xml2/xslt_proc.c,v 1.15.2.1 2009/07/10 00:32:06 tgl Exp $
+ *
+ * XSLT processing functions (requiring libxslt)
+ *
+ * John Gray, for Torchbox 2003-04-01
+ */
 #include "postgres.h"
-#include "fmgr.h"
+
 #include "executor/spi.h"
+#include "fmgr.h"
 #include "funcapi.h"
 #include "miscadmin.h"
+#include "utils/builtins.h"
 
 /* libxml includes */
 
@@ -22,12 +28,9 @@
 
 
 /* declarations to come from xpath.c */
-
 extern void elog_error(int level, char *explain, int force);
 extern void pgxml_parser_init();
 extern xmlChar *pgxml_texttoxmlchar(text *textstring);
-
-#define GET_STR(textp) DatumGetCString(DirectFunctionCall1(textout, PointerGetDatum(textp)))
 
 /* local defs */
 static void parse_params(const char **params, text *paramstr);
@@ -35,15 +38,17 @@ static void parse_params(const char **params, text *paramstr);
 Datum		xslt_process(PG_FUNCTION_ARGS);
 
 
-#define MAXPARAMS 20
+#define MAXPARAMS 20			/* must be even, see parse_params() */
+
 
 PG_FUNCTION_INFO_V1(xslt_process);
 
 Datum
 xslt_process(PG_FUNCTION_ARGS)
 {
-
-
+	text	   *doct = PG_GETARG_TEXT_P(0);
+	text	   *ssheet = PG_GETARG_TEXT_P(1);
+	text	   *paramstr;
 	const char *params[MAXPARAMS + 1];	/* +1 for the terminator */
 	xsltStylesheetPtr stylesheet = NULL;
 	xmlDocPtr	doctree;
@@ -52,12 +57,6 @@ xslt_process(PG_FUNCTION_ARGS)
 	xmlChar    *resstr;
 	int			resstat;
 	int			reslen;
-
-	text	   *doct = PG_GETARG_TEXT_P(0);
-	text	   *ssheet = PG_GETARG_TEXT_P(1);
-	text	   *paramstr;
-	text	   *tres;
-
 
 	if (fcinfo->nargs == 3)
 	{
@@ -76,7 +75,7 @@ xslt_process(PG_FUNCTION_ARGS)
 	if (VARDATA(doct)[0] == '<')
 		doctree = xmlParseMemory((char *) VARDATA(doct), VARSIZE(doct) - VARHDRSZ);
 	else
-		doctree = xmlParseFile(GET_STR(doct));
+		doctree = xmlParseFile(text_to_cstring(doct));
 
 	if (doctree == NULL)
 	{
@@ -102,7 +101,7 @@ xslt_process(PG_FUNCTION_ARGS)
 		stylesheet = xsltParseStylesheetDoc(ssdoc);
 	}
 	else
-		stylesheet = xsltParseStylesheetFile(GET_STR(ssheet));
+		stylesheet = xsltParseStylesheetFile((xmlChar *) text_to_cstring(ssheet));
 
 
 	if (stylesheet == NULL)
@@ -127,25 +126,20 @@ xslt_process(PG_FUNCTION_ARGS)
 	if (resstat < 0)
 		PG_RETURN_NULL();
 
-	tres = palloc(reslen + VARHDRSZ);
-	memcpy(VARDATA(tres), resstr, reslen);
-	VARATT_SIZEP(tres) = reslen + VARHDRSZ;
-
-	PG_RETURN_TEXT_P(tres);
+	PG_RETURN_TEXT_P(cstring_to_text_with_len((char *) resstr, reslen));
 }
 
 
-void
+static void
 parse_params(const char **params, text *paramstr)
 {
 	char	   *pos;
 	char	   *pstr;
-
 	int			i;
 	char	   *nvsep = "=";
 	char	   *itsep = ",";
 
-	pstr = GET_STR(paramstr);
+	pstr = text_to_cstring(paramstr);
 
 	pos = pstr;
 
@@ -160,11 +154,13 @@ parse_params(const char **params, text *paramstr)
 		}
 		else
 		{
-			params[i] = NULL;
+			/* No equal sign, so ignore this "parameter" */
+			/* We'll reset params[i] to NULL below the loop */
 			break;
 		}
 		/* Value */
 		i++;
+		/* since MAXPARAMS is even, we still have i < MAXPARAMS */
 		params[i] = pos;
 		pos = strstr(pos, itsep);
 		if (pos != NULL)
@@ -173,9 +169,11 @@ parse_params(const char **params, text *paramstr)
 			pos++;
 		}
 		else
+		{
+			i++;
 			break;
-
+		}
 	}
-	if (i < MAXPARAMS)
-		params[i + 1] = NULL;
+
+	params[i] = NULL;
 }

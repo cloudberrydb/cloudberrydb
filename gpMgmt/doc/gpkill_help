@@ -1,0 +1,77 @@
+COMMAND NAME: gpkill
+
+Checks or terminates a Greenplum Database process. 
+Users other than the superuser can only use gpkill 
+to terminate their own processes.
+
+*****************************************************
+SYNOPSIS
+*****************************************************
+
+gpkill [options] pid
+gpkill --version
+gpkill -? | -h | --help
+
+*****************************************************
+DESCRIPTION
+*****************************************************
+
+
+This utility checks or terminates a Greenplum process. 
+If the process is a critical Greenplum Database process 
+or a system process that is not part of Greenplum, gpkill 
+does not terminate it.
+
+After gpkill verifies that the specified process can be 
+terminated safely, it prompts for confirmation. Prior to 
+terminating a process, gpkill attempts to capture 
+troubleshooting information, if the user has appropriate 
+operating system priviliges.
+
+* The troubleshooting information is captured, even if 
+  the user does not confirm killing the process.
+
+* Failure to capture troubleshooting information does not 
+  stop gpkill from proceeding.
+
+
+*****************************************************
+OPTIONS
+*****************************************************
+
+pid 
+The process ID to check or terminate.
+
+--check 
+Checks the specified process ID to verify that it is a 
+Greenplum process and can safely be killed, but does not 
+erminate it. 
+
+-v 
+Displays verbose debugging information. 
+
+-q
+Enables quiet mode. Informational messages are suppressed.
+
+NOTE: Choosing both the -v and -q options sends the verbose 
+debugging information to the system log, but does not display 
+informational messages on stdout.
+
+-? | -h | --help (help)
+Displays the online help.
+
+
+*****************************************************
+EXAMPLES
+*****************************************************
+
+
+Kill process 27893
+
+     gpkill 27893
+
+Check process 27893 to see if it can be killed. Send 
+debugging information to the system log, but do not 
+display informational messages.
+
+     gpkill -q -v --check 27893

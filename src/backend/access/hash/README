@@ -1,6 +1,14 @@
-$PostgreSQL: pgsql/src/backend/access/hash/README,v 1.4 2003/11/29 19:51:40 pgsql Exp $
+$PostgreSQL: pgsql/src/backend/access/hash/README,v 1.8 2008/03/20 17:55:14 momjian Exp $
 
-This directory contains an implementation of hash indexing for Postgres.
+Hash Indexing
+=============
+
+This directory contains an implementation of hash indexing for Postgres.  Most
+of the core ideas are taken from Margo Seltzer and Ozan Yigit, A New Hashing
+Package for UNIX, Proceedings of the Winter USENIX Conference, January 1991.
+(Our in-memory hashtable implementation, src/backend/utils/hash/dynahash.c,
+also relies on some of the same concepts; it is derived from code written by
+Esmond Pitt and later improved by Margo among others.)
 
 A hash index consists of two or more "buckets", into which tuples are
 placed whenever their hash key maps to the bucket number.  The
@@ -25,7 +33,7 @@ in other buckets, but we never give them back to the operating system.
 There is no provision for reducing the number of buckets, either.
 
 
-Page addressing
+Page Addressing
 ---------------
 
 There are four kinds of pages in a hash index: the meta page (page zero),
@@ -60,6 +68,11 @@ hashm_spares[N] <= hashm_spares[N+1], since the latter count includes the
 former.  The difference between the two represents the number of overflow
 pages appearing between the bucket page groups of splitpoints N and N+1.
 
+(Note: the above describes what happens when filling an initially minimally
+sized hash index.  In practice, we try to estimate the required index size
+and allocate a suitable number of splitpoints immediately, to avoid
+expensive re-splitting during initial index build.)
+
 When S splitpoints exist altogether, the array entries hashm_spares[0]
 through hashm_spares[S] are valid; hashm_spares[S] records the current
 total number of overflow pages.  New overflow pages are created as needed
@@ -71,6 +84,18 @@ effect of reserving the correct number of bucket pages at the end of the
 index, and preparing to allocate additional overflow pages after those
 bucket pages.  hashm_spares[] entries before S cannot change anymore,
 since that would require moving already-created bucket pages.
+
+The last page nominally used by the index is always determinable from
+hashm_spares[S].  To avoid complaints from smgr, the logical EOF as seen by
+the filesystem and smgr must always be greater than or equal to this page.
+We have to allow the case "greater than" because it's possible that during
+an index extension we crash after allocating filesystem space and before
+updating the metapage.  Note that on filesystems that allow "holes" in
+files, it's entirely likely that pages before the logical EOF are not yet
+allocated: when we allocate a new splitpoint's worth of bucket pages, we
+physically zero the last such page to force the EOF up, and the first such
+page will be used immediately, but the intervening pages are not written
+until needed.
 
 Since overflow pages may be recycled if enough tuples are deleted from
 their bucket, we need a way to keep track of currently-free overflow
@@ -84,12 +109,12 @@ includes the bitmap pages, which is the reason for saying that bitmap
 pages are a subset of the overflow pages.  It turns out in fact that each
 bitmap page's first bit represents itself --- this is not an essential
 property, but falls out of the fact that we only allocate another bitmap
-page when we really need one.  Bit number zero always corresponds to block
-number 3, which is the first bitmap page and is allocated during index
-creation.
+page when we really need one.  Bit number zero always corresponds to the
+first bitmap page, which is allocated during index creation just after all
+the initially created buckets.
 
 
-Lock definitions
+Lock Definitions
 ----------------
 
 We use both lmgr locks ("heavyweight" locks) and buffer context locks
@@ -144,7 +169,7 @@ be held at a time by any one process.  (The third restriction is probably
 stronger than necessary, but it makes the proof of no deadlock obvious.)
 
 
-Pseudocode algorithms
+Pseudocode Algorithms
 ---------------------
 
 The operations we need to support are: readers scanning the index for
@@ -302,8 +327,12 @@ The exclusive lock request could deadlock in some strange scenarios, but
 we can just error out without any great harm being done.
 
 
-Free space management
+Free Space Management
 ---------------------
+
+(Question: why is this so complicated?  Why not just have a linked list
+of free pages with the list head in the metapage?  It's not like we
+avoid needing to modify the metapage with all this.)
 
 Free space management consists of two sub-algorithms, one for reserving
 an overflow page to add to a bucket chain, and one for returning an empty
@@ -403,7 +432,7 @@ All the freespace operations should be called while holding no buffer
 locks.  Since they need no lmgr locks, deadlock is not possible.
 
 
-Other notes
+Other Notes
 -----------
 
 All the shenanigans with locking prevent a split occurring while *another*

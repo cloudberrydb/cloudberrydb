@@ -3,10 +3,10 @@
  * array_userfuncs.c
  *	  Misc user-visible array support functions
  *
- * Copyright (c) 2003-2006, PostgreSQL Global Development Group
+ * Copyright (c) 2003-2008, PostgreSQL Global Development Group
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/utils/adt/array_userfuncs.c,v 1.20 2006/07/14 14:52:23 momjian Exp $
+ *	  $PostgreSQL: pgsql/src/backend/utils/adt/array_userfuncs.c,v 1.21 2007/01/05 22:19:39 momjian Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -15,6 +15,7 @@
 #include "utils/array.h"
 #include "utils/builtins.h"
 #include "utils/lsyscache.h"
+#include "catalog/pg_type.h"
 
 
 /*-----------------------------------------------------------------------------
@@ -376,7 +377,7 @@ array_cat(PG_FUNCTION_ARGS)
 		nbytes = ndatabytes + ARR_OVERHEAD_NONULLS(ndims);
 	}
 	result = (ArrayType *) palloc(nbytes);
-	result->size = nbytes;
+	SET_VARSIZE(result, nbytes);
 	result->ndim = ndims;
 	result->dataoffset = dataoffset;
 	result->elemtype = element_type;
@@ -465,3 +466,314 @@ create_singleton_array(FunctionCallInfo fcinfo,
 	return construct_md_array(dvalues, NULL, ndims, dims, lbs, element_type,
 							  typlen, typbyval, typalign);
 }
+
+
+/*
+ * ARRAY_AGG aggregate function
+ */
+Datum
+array_agg_transfn(PG_FUNCTION_ARGS)
+{
+	Oid			arg1_typeid = get_fn_expr_argtype(fcinfo->flinfo, 1);
+	MemoryContext aggcontext;
+	ArrayBuildState *state;
+	Datum		elem;
+
+	if (arg1_typeid == InvalidOid)
+		ereport(ERROR,
+				(errcode(ERRCODE_INVALID_PARAMETER_VALUE),
+				 errmsg("could not determine input data type")));
+
+	if (!(fcinfo->context && IsA(fcinfo->context, AggState)))
+	{
+		/* cannot be called directly because of internal-type argument */
+		elog(ERROR, "array_agg_transfn called in non-aggregate context");
+	}
+	aggcontext = ((AggState*)fcinfo->context)->aggcontext;
+
+	state = PG_ARGISNULL(0) ? NULL : (ArrayBuildState *) PG_GETARG_POINTER(0);
+	elem = PG_ARGISNULL(1) ? (Datum) 0 : PG_GETARG_DATUM(1);
+	state = accumArrayResult(state,
+							 elem,
+							 PG_ARGISNULL(1),
+							 arg1_typeid,
+							 aggcontext);
+
+	/*
+	 * The transition type for array_agg() is declared to be "internal", which
+	 * is a pass-by-value type the same size as a pointer.	So we can safely
+	 * pass the ArrayBuildState pointer through nodeAgg.c's machinations.
+	 */
+	PG_RETURN_POINTER(state);
+}
+
+Datum
+array_agg_finalfn(PG_FUNCTION_ARGS)
+{
+	Datum		result;
+	ArrayBuildState *state;
+	int			dims[1];
+	int			lbs[1];
+
+	/*
+	 * Test for null before Asserting we are in right context.	This is to
+	 * avoid possible Assert failure in 8.4beta installations, where it is
+	 * possible for users to create NULL constants of type internal.
+	 */
+	if (PG_ARGISNULL(0))
+		PG_RETURN_NULL();		/* returns null iff no input values */
+
+	/* cannot be called directly because of internal-type argument */
+	if (!(fcinfo->context && IsA(fcinfo->context, AggState)))
+	{
+		/* cannot be called directly because of internal-type argument */
+		elog(ERROR, "array_agg_finalfn called in non-aggregate context");
+	}
+
+	state = (ArrayBuildState *) PG_GETARG_POINTER(0);
+
+	dims[0] = state->nelems;
+	lbs[0] = 1;
+
+	/*
+	 * Make the result.  We cannot release the ArrayBuildState because
+	 * sometimes aggregate final functions are re-executed.  Rather, it is
+	 * nodeAgg.c's responsibility to reset the aggcontext when it's safe to do
+	 * so.
+	 */
+	result = makeMdArrayResult(state, 1, dims, lbs,
+							   CurrentMemoryContext,
+							   false);
+
+	PG_RETURN_DATUM(result);
+}
+
+
+/* Greenplum Database Additions: */
+
+
+/*-----------------------------------------------------------------------------
+ * array_add :
+ *		add two nD integer arrays element-wise to form an nD integer array 
+ *      whose dimensions are the max of the corresponding argument dimensions.  
+ *      The result is zero-filled if necessary.
+ *
+ *      For example, adding a 2x3 matrix of 1s to a 3x2 matrix of 2s will 
+ * 		give the following 3x3 matrix:
+ *											3 3 1
+ *											3 3 1
+ *											2 2 0
+ *----------------------------------------------------------------------------
+ */
+
+static void accumToArray(int rank, int *rshape, int *rdata, int *ashape, int *adata);
+
+Datum
+array_int4_add(PG_FUNCTION_ARGS)
+{
+	ArrayType  *v1, /* */
+			   *v2;  /* */
+	int		   *dims,
+			   *lbs,
+				ndims,
+				ndatabytes,
+				nbytes;
+	int		   *dims1,
+			   *lbs1,
+				ndims1,
+				ndatabytes1;
+	int		   *dims2,
+			   *lbs2,
+				ndims2,
+				ndatabytes2;
+	bool		bigenuf1,
+				bigenuf2;
+	int			i,
+				nelem;
+	char	   *dat1,
+			   *dat2;
+	int		   *idata;
+	Oid			element_type; /* */
+	Oid			element_type1; /* */
+	Oid			element_type2; /* */
+	ArrayType  *result;
+
+	v1 = PG_GETARG_ARRAYTYPE_P(0);
+	v2 = PG_GETARG_ARRAYTYPE_P(1);
+
+	element_type1 = ARR_ELEMTYPE(v1);
+	element_type2 = ARR_ELEMTYPE(v2);
+
+	/* Make sure we have int arrays. */
+	if (element_type1 != INT4OID || element_type2 != INT4OID)
+		ereport(ERROR,
+				(errcode(ERRCODE_DATATYPE_MISMATCH),
+				 errmsg("cannot add non-int arrays"),
+				 errdetail("Arrays with element types %s and %s are not "
+						   "compatible for array_add.",
+						   format_type_be(element_type1),
+						   format_type_be(element_type2))));
+
+	/* Use the input element type as the output type too. */
+	element_type = element_type1;
+
+	/*----------
+	 * We must have one of the following combinations of inputs:
+	 * 1) one empty array, and one non-empty array
+	 * 2) both arrays empty
+	 * 3) two arrays with ndims1 == ndims2
+	 *----------
+	 */
+	ndims1 = ARR_NDIM(v1);
+	ndims2 = ARR_NDIM(v2);
+
+	/*
+	 * short circuit - if one input array is empty, and the other is not, we
+	 * return the non-empty one as the result
+	 *
+	 * if both are empty, return the first one
+	 */
+	if (ndims1 == 0 && ndims2 > 0)
+		PG_RETURN_ARRAYTYPE_P(v2);
+
+	if (ndims2 == 0)
+		PG_RETURN_ARRAYTYPE_P(v1);
+
+	/* the rest fall under rule 3 */
+	if (ndims1 != ndims2)
+		ereport(ERROR,
+				(errcode(ERRCODE_ARRAY_SUBSCRIPT_ERROR),
+				 errmsg("cannot add incompatible arrays"),
+				 errdetail("Arrays of %d and %d dimensions are not "
+						   "compatible for array_add.",
+						   ndims1, ndims2)));
+
+	/* get argument array details */
+	lbs1 = ARR_LBOUND(v1);
+	lbs2 = ARR_LBOUND(v2);
+	dims1 = ARR_DIMS(v1);
+	dims2 = ARR_DIMS(v2);
+	dat1 = ARR_DATA_PTR(v1);
+	dat2 = ARR_DATA_PTR(v2);
+
+	ndatabytes1 = ARR_SIZE(v1) - ARR_DATA_OFFSET(v1);
+	ndatabytes2 = ARR_SIZE(v2) - ARR_DATA_OFFSET(v2);
+
+	/*
+	 * resulting array is made up of the elements (possibly arrays
+	 * themselves) of the input argument arrays
+	 */
+	ndims = ndims1;
+	dims = (int *) palloc(ndims * sizeof(int));
+	lbs = (int *) palloc(ndims * sizeof(int));
+	bigenuf1 = bigenuf2 = TRUE;
+	nelem = 1; /* Neither is empty. */
+
+	for (i = 0; i < ndims; i++)
+	{
+		if ( dims1[i] == dims2[i] )
+		{
+			dims[i] = dims1[i];
+		}
+		else if ( dims1[i] < dims2[i] )
+		{
+			bigenuf1 = FALSE;
+			dims[i] = dims2[i];
+		}
+		else /* dims1[i] > dims2[i] */
+		{
+			bigenuf2 = FALSE;
+			dims[i] = dims1[i];
+		}
+		nelem *= dims[i];
+		lbs[i] = 1;
+	}
+
+	/* build the result array */
+	ndatabytes = nelem * sizeof(int);
+	nbytes = ndatabytes + ARR_OVERHEAD_NONULLS(ndims);
+	result = (ArrayType *) palloc(nbytes);
+
+	result->dataoffset = 0;
+	SET_VARSIZE(result, nbytes);
+	result->ndim = ndims;
+	result->elemtype = element_type;
+	memcpy(ARR_DIMS(result), dims, ndims * sizeof(int));
+	memcpy(ARR_LBOUND(result), lbs, ndims * sizeof(int));
+	idata = (int*) ARR_DATA_PTR(result);
+	
+	if ( bigenuf1 && bigenuf2 ) /* Conformable arrays. */
+	{
+		Assert(ndatabytes == ndatabytes1 && ndatabytes == ndatabytes2);
+		memcpy(ARR_DATA_PTR(result), dat1, ndatabytes);
+		for ( i = 0; i < nelem; i++ )
+			idata[i] += ((int*)dat2)[i];
+			
+	}
+	else if ( bigenuf1 )
+	{
+		Assert(ndatabytes == ndatabytes1);
+		memcpy(ARR_DATA_PTR(result), dat1, ndatabytes);
+		/* Add in argument 2 */
+		accumToArray(ndims, dims, idata, dims2, (int*)dat2);
+	}
+	else if ( bigenuf2 )
+	{
+		Assert(ndatabytes == ndatabytes2);
+		memcpy(ARR_DATA_PTR(result), dat2, ndatabytes);
+		/* Add in argument 1 */
+		accumToArray(ndims, dims, idata, dims1, (int*)dat1);
+	}
+	else 
+	{
+		memset(idata, 0, ndatabytes);
+		/* Add both arguments */
+		accumToArray(ndims, dims, idata, dims2, (int*)dat2);
+		accumToArray(ndims, dims, idata, dims1, (int*)dat1);
+	}
+
+	PG_RETURN_ARRAYTYPE_P(result);
+}
+
+ 
+/* Subroutine for array_add:
+ *
+ * Add the data buffer of an argument integer array to the data buffer of 
+ * a result integer array.  The two arrays must have the same non-zero number
+ * of dimensions and each dimension of the result array must be at least as
+ * large as the corresponding dimension of the argument array.  The data
+ * buffer are treated as if all their lower bounds were 0 and the elements
+ * at an index position of all zero align.  The result is zero-filled.
+ */
+void accumToArray(int rank, int *rshape, int *rdata, int *ashape, int *adata) 
+{
+	int d, i, j, k;
+	int m[MAXDIM];
+	
+	Assert( rank > 0 && rank <= MAXDIM );
+	
+	memset(m, 0, sizeof m);
+		
+	i = j = 0;
+	do
+	{
+		rdata[j] += adata[i];
+
+		for ( d = rank - 1; d >= 0; d-- )
+		{
+			
+			m[d]++;
+			if ( m[d] < ashape[d] )
+				break;
+			else
+				m[d] = 0;
+		}
+		
+		i++;
+		
+		for ( k = 1, j = m[0]; k < rank; k++ )
+			j = j * rshape[k] + m[k];
+	}
+	while ( d >= 0 );
+}
+

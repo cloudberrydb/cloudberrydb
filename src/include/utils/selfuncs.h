@@ -5,10 +5,10 @@
  *	  standard operators and index access methods.
  *
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2008, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
- * $PostgreSQL: pgsql/src/include/utils/selfuncs.h,v 1.36 2006/10/04 00:30:11 momjian Exp $
+ * $PostgreSQL: pgsql/src/include/utils/selfuncs.h,v 1.36.2.1 2007/08/31 23:35:30 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -17,6 +17,7 @@
 
 #include "fmgr.h"
 #include "access/htup.h"
+#include "catalog/catquery.h"
 #include "nodes/relation.h"
 
 
@@ -30,23 +31,23 @@
  * 1/DEFAULT_EQ_SEL.
  */
 
+/* default number of distinct values in a table */
+#define DEFAULT_NUM_DISTINCT    1000                                /*CDB*/
+
 /* default selectivity estimate for equalities such as "A = b" */
-#define DEFAULT_EQ_SEL	0.005
+#define DEFAULT_EQ_SEL	        (1.0 / DEFAULT_NUM_DISTINCT)        /*CDB*/
 
 /* default selectivity estimate for inequalities such as "A < b" */
-#define DEFAULT_INEQ_SEL  0.3333333333333333
+#define DEFAULT_INEQ_SEL        0.3333333333333333
 
 /* default selectivity estimate for range inequalities "A > b AND A < c" */
-#define DEFAULT_RANGE_INEQ_SEL	0.005
+#define DEFAULT_RANGE_INEQ_SEL	(10 * DEFAULT_EQ_SEL)               /*CDB*/
 
 /* default selectivity estimate for pattern-match operators such as LIKE */
-#define DEFAULT_MATCH_SEL	0.005
-
-/* default number of distinct values in a table */
-#define DEFAULT_NUM_DISTINCT  200
+#define DEFAULT_MATCH_SEL	    (50 * DEFAULT_EQ_SEL)               /*CDB*/
 
 /* default selectivity estimate for boolean and null test nodes */
-#define DEFAULT_UNK_SEL			0.005
+#define DEFAULT_UNK_SEL			DEFAULT_EQ_SEL                      /*CDB*/
 #define DEFAULT_NOT_UNK_SEL		(1.0 - DEFAULT_UNK_SEL)
 
 
@@ -64,24 +65,23 @@
 
 
 /* Return data from examine_variable and friends */
-typedef struct
+typedef struct VariableStatData
 {
 	Node	   *var;			/* the Var or expression tree */
 	RelOptInfo *rel;			/* Relation, or NULL if not identifiable */
-	HeapTuple	statsTuple;		/* pg_statistic tuple, or NULL if none */
+	cqContext  *statscqCtx;		/* pg_statistic cqctx, or NULL if none */
 	/* NB: if statsTuple!=NULL, it must be freed when caller is done */
+	double		numdistinctFromPrimaryKey; /* this is the numdistinct as estimated from the primary key relation. If this is < 0, then it is ignored. */
 	Oid			vartype;		/* exposed type of expression */
 	Oid			atttype;		/* type to pass to get_attstatsslot */
 	int32		atttypmod;		/* typmod to pass to get_attstatsslot */
 	bool		isunique;		/* true if matched to a unique index */
 } VariableStatData;
 
-#define ReleaseVariableStats(vardata)  \
-	do { \
-		if (HeapTupleIsValid((vardata).statsTuple)) \
-			ReleaseSysCache((vardata).statsTuple); \
-	} while(0)
-
+/* get the pg_statistic tuple, or NULL if none */
+#define getStatsTuple(vardata) \
+(((NULL != (vardata)) && (NULL != (vardata)->statscqCtx)) ?	\
+ caql_get_current((vardata)->statscqCtx) : NULL)
 
 typedef enum
 {
@@ -99,6 +99,7 @@ typedef enum
 
 extern void examine_variable(PlannerInfo *root, Node *node, int varRelid,
 				 VariableStatData *vardata);
+extern void ReleaseVariableStats(VariableStatData vardata);
 extern bool get_restriction_variable(PlannerInfo *root, List *args,
 						 int varRelid,
 						 VariableStatData *vardata, Node **other,
@@ -113,12 +114,13 @@ extern double mcv_selectivity(VariableStatData *vardata, FmgrInfo *opproc,
 extern double histogram_selectivity(VariableStatData *vardata, FmgrInfo *opproc,
 					  Datum constval, bool varonleft,
 					  int min_hist_size, int n_skip);
+extern double convert_timevalue_to_scalar(Datum value, Oid typid);
 
 extern Pattern_Prefix_Status pattern_fixed_prefix(Const *patt,
 					 Pattern_Type ptype,
 					 Const **prefix,
 					 Const **rest);
-extern Const *make_greater_string(const Const *str_const);
+extern Const *make_greater_string(const Const *str_const, FmgrInfo *ltproc);
 
 extern Datum eqsel(PG_FUNCTION_ARGS);
 extern Datum neqsel(PG_FUNCTION_ARGS);
@@ -149,7 +151,7 @@ extern Datum icnlikejoinsel(PG_FUNCTION_ARGS);
 extern Selectivity booltestsel(PlannerInfo *root, BoolTestType booltesttype,
 			Node *arg, int varRelid, JoinType jointype);
 extern Selectivity nulltestsel(PlannerInfo *root, NullTestType nulltesttype,
-			Node *arg, int varRelid);
+			Node *arg, int varRelid, JoinType jointype);
 extern Selectivity scalararraysel(PlannerInfo *root,
 			   ScalarArrayOpExpr *clause,
 			   bool is_join_clause,
@@ -173,5 +175,6 @@ extern Datum btcostestimate(PG_FUNCTION_ARGS);
 extern Datum hashcostestimate(PG_FUNCTION_ARGS);
 extern Datum gistcostestimate(PG_FUNCTION_ARGS);
 extern Datum gincostestimate(PG_FUNCTION_ARGS);
+extern Datum bmcostestimate(PG_FUNCTION_ARGS);
 
 #endif   /* SELFUNCS_H */

@@ -10,7 +10,7 @@
  * be provided by each port.
  *
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * $PostgreSQL: pgsql/src/include/storage/pg_sema.h,v 1.10 2006/10/04 00:30:10 momjian Exp $
@@ -73,6 +73,12 @@ extern void PGSemaphoreReset(PGSemaphore sema);
 
 /* Lock a semaphore (decrement count), blocking if count would be < 0 */
 extern void PGSemaphoreLock(PGSemaphore sema, bool interruptOK);
+
+/*
+ * Lock a semaphore (decrement count), blocking if count would be < 0.
+ * Return true if the lock obtained or false if an interrupt occurred.
+ */
+extern bool PGSemaphoreLockInterruptable(PGSemaphore sema);
 
 /* Unlock a semaphore (increment count) */
 extern void PGSemaphoreUnlock(PGSemaphore sema);

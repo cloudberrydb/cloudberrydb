@@ -1,0 +1,450 @@
+/*
+ * 
+ * Functional tests
+ * Parameter combination tests
+ * Improve code coverage tests
+ */
+CREATE SCHEMA ic_udp_test;
+SET search_path = ic_udp_test;
+-- Prepare some tables
+CREATE TABLE small_table(dkey INT, jkey INT, rval REAL, tval TEXT default 'abcdefghijklmnopqrstuvwxyz') DISTRIBUTED BY (dkey);
+INSERT INTO small_table VALUES(generate_series(1, 500), generate_series(501, 1000), sqrt(generate_series(501, 1000)));
+-- Functional tests
+-- Skew with gather+redistribute
+SELECT ROUND(foo.rval * foo.rval)::INT % 30 AS rval2, COUNT(*) AS count, SUM(length(foo.tval)) AS sum_len_tval
+  FROM (SELECT 501 AS jkey, rval, tval FROM small_table ORDER BY dkey LIMIT 3000) foo
+    JOIN small_table USING(jkey)
+  GROUP BY rval2
+  ORDER BY rval2;
+ rval2 | count | sum_len_tval 
+-------+-------+--------------
+     0 |    17 |          442
+     1 |    17 |          442
+     2 |    17 |          442
+     3 |    17 |          442
+     4 |    17 |          442
+     5 |    17 |          442
+     6 |    17 |          442
+     7 |    17 |          442
+     8 |    17 |          442
+     9 |    17 |          442
+    10 |    17 |          442
+    11 |    16 |          416
+    12 |    16 |          416
+    13 |    16 |          416
+    14 |    16 |          416
+    15 |    16 |          416
+    16 |    16 |          416
+    17 |    16 |          416
+    18 |    16 |          416
+    19 |    16 |          416
+    20 |    16 |          416
+    21 |    17 |          442
+    22 |    17 |          442
+    23 |    17 |          442
+    24 |    17 |          442
+    25 |    17 |          442
+    26 |    17 |          442
+    27 |    17 |          442
+    28 |    17 |          442
+    29 |    17 |          442
+(30 rows)
+
+-- Union
+SELECT jkey2, SUM(length(digits_string)) AS sum_len_dstring
+  FROM (
+    (SELECT jkey % 30 AS jkey2, repeat('0123456789', 200) AS digits_string FROM small_table GROUP BY jkey2)
+    UNION ALL
+    (SELECT jkey % 30 AS jkey2, repeat('0123456789', 200) AS digits_string FROM small_table GROUP BY jkey2)
+    UNION ALL
+    (SELECT jkey % 30 AS jkey2, repeat('0123456789', 200) AS digits_string FROM small_table GROUP BY jkey2)
+    UNION ALL
+    (SELECT jkey % 30 AS jkey2, repeat('0123456789', 200) AS digits_string FROM small_table GROUP BY jkey2)
+    UNION ALL
+    (SELECT jkey % 30 AS jkey2, repeat('0123456789', 200) AS digits_string FROM small_table GROUP BY jkey2)
+    UNION ALL
+    (SELECT jkey % 30 AS jkey2, repeat('0123456789', 200) AS digits_string FROM small_table GROUP BY jkey2)
+    UNION ALL
+    (SELECT jkey % 30 AS jkey2, repeat('0123456789', 200) AS digits_string FROM small_table GROUP BY jkey2)
+    UNION ALL
+    (SELECT jkey % 30 AS jkey2, repeat('0123456789', 200) AS digits_string FROM small_table GROUP BY jkey2)
+    UNION ALL
+    (SELECT jkey % 30 AS jkey2, repeat('0123456789', 200) AS digits_string FROM small_table GROUP BY jkey2)
+    UNION ALL
+    (SELECT jkey % 30 AS jkey2, repeat('0123456789', 200) AS digits_string FROM small_table GROUP BY jkey2)
+    UNION ALL
+    (SELECT jkey % 30 AS jkey2, repeat('0123456789', 200) AS digits_string FROM small_table GROUP BY jkey2)
+    UNION ALL
+    (SELECT jkey % 30 AS jkey2, repeat('0123456789', 200) AS digits_string FROM small_table GROUP BY jkey2)
+    UNION ALL
+    (SELECT jkey % 30 AS jkey2, repeat('0123456789', 200) AS digits_string FROM small_table GROUP BY jkey2)
+    UNION ALL
+    (SELECT jkey % 30 AS jkey2, repeat('0123456789', 200) AS digits_string FROM small_table GROUP BY jkey2)) foo
+  GROUP BY jkey2
+  ORDER BY jkey2
+  LIMIT 30;
+ jkey2 | sum_len_dstring 
+-------+-----------------
+     0 |           28000
+     1 |           28000
+     2 |           28000
+     3 |           28000
+     4 |           28000
+     5 |           28000
+     6 |           28000
+     7 |           28000
+     8 |           28000
+     9 |           28000
+    10 |           28000
+    11 |           28000
+    12 |           28000
+    13 |           28000
+    14 |           28000
+    15 |           28000
+    16 |           28000
+    17 |           28000
+    18 |           28000
+    19 |           28000
+    20 |           28000
+    21 |           28000
+    22 |           28000
+    23 |           28000
+    24 |           28000
+    25 |           28000
+    26 |           28000
+    27 |           28000
+    28 |           28000
+    29 |           28000
+(30 rows)
+
+-- Huge tuple (May need to split) 26 * 200000
+SELECT SUM(length(long_tval)) AS sum_len_tval
+  FROM (SELECT jkey, repeat(tval, 200000) AS long_tval
+          FROM small_table ORDER BY dkey LIMIT 20) foo
+            JOIN (SELECT * FROM small_table ORDER BY dkey LIMIT 50) bar USING(jkey);
+ sum_len_tval 
+--------------
+    104000000
+(1 row)
+
+-- Gather motion (Window function)
+SELECT dkey % 30 AS dkey2, MIN(rank) AS min_rank, AVG(foo.rval) AS avg_rval
+  FROM (SELECT RANK() OVER(ORDER BY rval DESC) AS rank, jkey, rval
+        FROM small_table) foo
+    JOIN small_table USING(jkey)
+  GROUP BY dkey2
+  ORDER BY dkey2;
+ dkey2 | min_rank |     avg_rval     
+-------+----------+------------------
+     0 |       21 | 27.3597781658173
+     1 |       20 |  27.084374147303
+     2 |       19 | 27.1030213973101
+     3 |       18 | 27.1216552958769
+     4 |       17 | 27.1402756186093
+     5 |       16 | 27.1588827020982
+     6 |       15 | 27.1774766585406
+     7 |       14 | 27.1960573757396
+     8 |       13 | 27.2146244049072
+     9 |       12 | 27.2331787558163
+    10 |       11 | 27.2517198674819
+    11 |       10 | 27.2702477399041
+    12 |        9 | 27.2887625974767
+    13 |        8 | 27.3072644401999
+    14 |        7 | 27.3257531558766
+    15 |        6 | 27.3442286323099
+    16 |        5 | 27.3626913182876
+    17 |        4 | 27.3811411016128
+    18 |        3 | 27.3995775334975
+    19 |        2 | 27.4180018481086
+    20 |        1 | 27.4364128112793
+    21 |       30 | 27.1933250427246
+    22 |       29 | 27.2118717432022
+    23 |       28 | 27.2304056882858
+    24 |       27 | 27.2489266395569
+    25 |       26 | 27.2674342393875
+    26 |       25 | 27.2859289646149
+    27 |       24 | 27.3044106960297
+    28 |       23 | 27.3228794336319
+    29 |       22 | 27.3413351774216
+(30 rows)
+
+-- Broadcast (call genereate_series to multiply result set)
+SELECT COUNT(*) AS count
+  FROM (SELECT generate_series(501, 530) AS jkey FROM small_table) foo
+    JOIN small_table USING(jkey);
+ count 
+-------
+ 15000
+(1 row)
+
+-- Subquery
+SELECT (SELECT tval FROM small_table bar WHERE bar.dkey + 500 = foo.jkey) AS tval
+  FROM (SELECT * FROM small_table ORDER BY jkey LIMIT 200) foo LIMIT 15;
+            tval            
+----------------------------
+ abcdefghijklmnopqrstuvwxyz
+ abcdefghijklmnopqrstuvwxyz
+ abcdefghijklmnopqrstuvwxyz
+ abcdefghijklmnopqrstuvwxyz
+ abcdefghijklmnopqrstuvwxyz
+ abcdefghijklmnopqrstuvwxyz
+ abcdefghijklmnopqrstuvwxyz
+ abcdefghijklmnopqrstuvwxyz
+ abcdefghijklmnopqrstuvwxyz
+ abcdefghijklmnopqrstuvwxyz
+ abcdefghijklmnopqrstuvwxyz
+ abcdefghijklmnopqrstuvwxyz
+ abcdefghijklmnopqrstuvwxyz
+ abcdefghijklmnopqrstuvwxyz
+ abcdefghijklmnopqrstuvwxyz
+(15 rows)
+
+SELECT (SELECT tval FROM small_table bar WHERE bar.dkey = 1) AS tval
+  FROM (SELECT * FROM small_table ORDER BY jkey LIMIT 300) foo LIMIT 15;
+            tval            
+----------------------------
+ abcdefghijklmnopqrstuvwxyz
+ abcdefghijklmnopqrstuvwxyz
+ abcdefghijklmnopqrstuvwxyz
+ abcdefghijklmnopqrstuvwxyz
+ abcdefghijklmnopqrstuvwxyz
+ abcdefghijklmnopqrstuvwxyz
+ abcdefghijklmnopqrstuvwxyz
+ abcdefghijklmnopqrstuvwxyz
+ abcdefghijklmnopqrstuvwxyz
+ abcdefghijklmnopqrstuvwxyz
+ abcdefghijklmnopqrstuvwxyz
+ abcdefghijklmnopqrstuvwxyz
+ abcdefghijklmnopqrstuvwxyz
+ abcdefghijklmnopqrstuvwxyz
+ abcdefghijklmnopqrstuvwxyz
+(15 rows)
+
+-- Target dispatch
+CREATE TABLE target_table AS SELECT * FROM small_table LIMIT 0 DISTRIBUTED BY (dkey);
+INSERT INTO target_table VALUES(1, 1, 1.0, '1');
+SELECT * FROM target_table WHERE dkey = 1;
+ dkey | jkey | rval | tval 
+------+------+------+------
+    1 |    1 |    1 | 1
+(1 row)
+
+DROP TABLE target_table;
+-- CURSOR tests
+BEGIN;
+DECLARE c1 CURSOR FOR SELECT dkey % 500 AS dkey2
+                FROM (SELECT jkey FROM small_table) foo
+                  JOIN small_table USING(jkey)
+                GROUP BY dkey2
+                ORDER BY dkey2;
+DECLARE c2 CURSOR FOR SELECT dkey % 500 AS dkey2
+                FROM (SELECT jkey FROM small_table) foo
+                  JOIN small_table USING(jkey)
+                GROUP BY dkey2
+                ORDER BY dkey2;
+DECLARE c3 CURSOR FOR SELECT dkey % 500 AS dkey2
+                FROM (SELECT jkey FROM small_table) foo
+                  JOIN small_table USING(jkey)
+                GROUP BY dkey2
+                ORDER BY dkey2;
+DECLARE c4 CURSOR FOR SELECT dkey % 500 AS dkey2
+                FROM (SELECT jkey FROM small_table) foo
+                  JOIN small_table USING(jkey)
+                GROUP BY dkey2
+                ORDER BY dkey2;
+FETCH 20 FROM c1;
+ dkey2 
+-------
+     0
+     1
+     2
+     3
+     4
+     5
+     6
+     7
+     8
+     9
+    10
+    11
+    12
+    13
+    14
+    15
+    16
+    17
+    18
+    19
+(20 rows)
+
+FETCH 20 FROM c2;
+ dkey2 
+-------
+     0
+     1
+     2
+     3
+     4
+     5
+     6
+     7
+     8
+     9
+    10
+    11
+    12
+    13
+    14
+    15
+    16
+    17
+    18
+    19
+(20 rows)
+
+FETCH 20 FROM c3;
+ dkey2 
+-------
+     0
+     1
+     2
+     3
+     4
+     5
+     6
+     7
+     8
+     9
+    10
+    11
+    12
+    13
+    14
+    15
+    16
+    17
+    18
+    19
+(20 rows)
+
+FETCH 20 FROM c4;
+ dkey2 
+-------
+     0
+     1
+     2
+     3
+     4
+     5
+     6
+     7
+     8
+     9
+    10
+    11
+    12
+    13
+    14
+    15
+    16
+    17
+    18
+    19
+(20 rows)
+
+CLOSE c1;
+CLOSE c2;
+CLOSE c3;
+CLOSE c4;
+END;
+-- Redistribute all tuples with normal settings
+SET gp_interconnect_snd_queue_depth TO 8;
+SET gp_interconnect_queue_depth TO 8;
+SELECT SUM(length(long_tval)) AS sum_len_tval
+  FROM (SELECT jkey, repeat(tval, 10000) AS long_tval
+          FROM small_table ORDER BY dkey LIMIT 20) foo
+            JOIN (SELECT * FROM small_table ORDER BY dkey LIMIT 100) bar USING(jkey);
+ sum_len_tval 
+--------------
+      5200000
+(1 row)
+
+-- Redistribute all tuples with minimize settings
+SET gp_interconnect_snd_queue_depth TO 1;
+SET gp_interconnect_queue_depth TO 1;
+SELECT SUM(length(long_tval)) AS sum_len_tval
+  FROM (SELECT jkey, repeat(tval, 10000) AS long_tval
+          FROM small_table ORDER BY dkey LIMIT 20) foo
+            JOIN (SELECT * FROM small_table ORDER BY dkey LIMIT 100) bar USING(jkey);
+ sum_len_tval 
+--------------
+      5200000
+(1 row)
+
+-- Redistribute all tuples
+SET gp_interconnect_snd_queue_depth TO 4096;
+SET gp_interconnect_queue_depth TO 1;
+SELECT SUM(length(long_tval)) AS sum_len_tval
+  FROM (SELECT jkey, repeat(tval, 10000) AS long_tval
+          FROM small_table ORDER BY dkey LIMIT 20) foo
+            JOIN (SELECT * FROM small_table ORDER BY dkey LIMIT 100) bar USING(jkey);
+ sum_len_tval 
+--------------
+      5200000
+(1 row)
+
+-- Redistribute all tuples
+SET gp_interconnect_snd_queue_depth TO 1;
+SET gp_interconnect_queue_depth TO 4096;
+SELECT SUM(length(long_tval)) AS sum_len_tval
+  FROM (SELECT jkey, repeat(tval, 10000) AS long_tval
+          FROM small_table ORDER BY dkey LIMIT 20) foo
+            JOIN (SELECT * FROM small_table ORDER BY dkey LIMIT 100) bar USING(jkey);
+ sum_len_tval 
+--------------
+      5200000
+(1 row)
+
+-- Redistribute all tuples
+SET gp_interconnect_snd_queue_depth TO 1024;
+SET gp_interconnect_queue_depth TO 1024;
+SELECT SUM(length(long_tval)) AS sum_len_tval
+  FROM (SELECT jkey, repeat(tval, 10000) AS long_tval
+          FROM small_table ORDER BY dkey LIMIT 20) foo
+            JOIN (SELECT * FROM small_table ORDER BY dkey LIMIT 100) bar USING(jkey);
+ sum_len_tval 
+--------------
+      5200000
+(1 row)
+
+-- MPP-21916
+CREATE TABLE a (i INT, j INT) DISTRIBUTED BY (i);
+INSERT INTO a (SELECT i, i * i FROM generate_series(1, 10) as i);
+SELECT a.* FROM a WHERE a.j NOT IN (SELECT j FROM a a2 WHERE a2.j = a.j AND a2.i = 1) AND a.i = 1;
+ i | j 
+---+---
+(0 rows)
+
+SELECT a.* FROM a INNER JOIN a b ON a.i = b.i WHERE a.j NOT IN (SELECT j FROM a a2 WHERE a2.j = b.j) AND a.i = 1;
+ i | j 
+---+---
+(0 rows)
+
+-- Paramter range
+SET gp_interconnect_snd_queue_depth TO -1; -- ERROR
+ERROR:  -1 is outside the valid range for parameter "gp_interconnect_snd_queue_depth" (1 .. 4096)
+SET gp_interconnect_snd_queue_depth TO 0; -- ERROR
+ERROR:  0 is outside the valid range for parameter "gp_interconnect_snd_queue_depth" (1 .. 4096)
+SET gp_interconnect_snd_queue_depth TO 4097; -- ERROR
+ERROR:  4097 is outside the valid range for parameter "gp_interconnect_snd_queue_depth" (1 .. 4096)
+SET gp_interconnect_queue_depth TO -1; -- ERROR
+ERROR:  -1 is outside the valid range for parameter "gp_interconnect_queue_depth" (1 .. 4096)
+SET gp_interconnect_queue_depth TO 0; -- ERROR
+ERROR:  0 is outside the valid range for parameter "gp_interconnect_queue_depth" (1 .. 4096)
+SET gp_interconnect_queue_depth TO 4097; -- ERROR
+ERROR:  4097 is outside the valid range for parameter "gp_interconnect_queue_depth" (1 .. 4096)
+-- Cleanup
+DROP TABLE small_table;
+DROP TABLE a;
+RESET search_path;
+DROP SCHEMA ic_udp_test CASCADE;

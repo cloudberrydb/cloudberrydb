@@ -1,3 +1,6 @@
+/*
+ * $PostgreSQL: pgsql/src/interfaces/ecpg/pgtypeslib/timestamp.c,v 1.45 2009/06/11 14:49:13 momjian Exp $
+ */
 #include "postgres_fe.h"
 
 #include <time.h>
@@ -88,44 +91,21 @@ tm2timestamp(struct tm * tm, fsec_t fsec, int *tzp, timestamp * result)
 static timestamp
 SetEpochTimestamp(void)
 {
-	timestamp	dt;
+#ifdef HAVE_INT64_TIMESTAMP
+	int64		noresult = 0;
+#else
+	double		noresult = 0.0;
+#endif
+	timestamp	dt = 0;
 	struct tm	tt,
 			   *tm = &tt;
 
-	GetEpochTime(tm);
+	if (GetEpochTime(tm) < 0)
+		return noresult;
+
 	tm2timestamp(tm, 0, NULL, &dt);
 	return dt;
 }	/* SetEpochTimestamp() */
-
-static void
-dt2time(timestamp jd, int *hour, int *min, int *sec, fsec_t *fsec)
-{
-#ifdef HAVE_INT64_TIMESTAMP
-	int64		time;
-#else
-	double		time;
-#endif
-
-	time = jd;
-
-#ifdef HAVE_INT64_TIMESTAMP
-	*hour = time / USECS_PER_HOUR;
-	time -= (*hour) * USECS_PER_HOUR;
-	*min = time / USECS_PER_MINUTE;
-	time -= (*min) * USECS_PER_MINUTE;
-	*sec = time / USECS_PER_SEC;
-	*fsec = time - *sec * USECS_PER_SEC;
-	*sec = time / USECS_PER_SEC;
-	*fsec = time - *sec * USECS_PER_SEC;
-#else
-	*hour = time / SECS_PER_HOUR;
-	time -= (*hour) * SECS_PER_HOUR;
-	*min = time / SECS_PER_MINUTE;
-	time -= (*min) * SECS_PER_MINUTE;
-	*sec = time;
-	*fsec = time - *sec;
-#endif
-}	/* dt2time() */
 
 /* timestamp2tm()
  * Convert timestamp data type to POSIX time structure.
@@ -308,7 +288,6 @@ PGTYPEStimestamp_from_asc(char *str, char **endptr)
 	fsec_t		fsec;
 	struct tm	tt,
 			   *tm = &tt;
-	int			tz;
 	int			dtype;
 	int			nf;
 	char	   *field[MAXDATEFIELDS];
@@ -317,14 +296,14 @@ PGTYPEStimestamp_from_asc(char *str, char **endptr)
 	char	   *realptr;
 	char	  **ptr = (endptr != NULL) ? endptr : &realptr;
 
-	if (strlen(str) >= sizeof(lowstr))
+	if (strlen(str) > MAXDATELEN)
 	{
 		errno = PGTYPES_TS_BAD_TIMESTAMP;
 		return (noresult);
 	}
 
-	if (ParseDateTime(str, lowstr, field, ftype, MAXDATEFIELDS, &nf, ptr) != 0 ||
-		DecodeDateTime(field, ftype, nf, &dtype, tm, &fsec, &tz, 0) != 0)
+	if (ParseDateTime(str, lowstr, field, ftype, &nf, ptr) != 0 ||
+		DecodeDateTime(field, ftype, nf, &dtype, tm, &fsec, 0) != 0)
 	{
 		errno = PGTYPES_TS_BAD_TIMESTAMP;
 		return (noresult);
@@ -400,7 +379,8 @@ PGTYPEStimestamp_current(timestamp * ts)
 	struct tm	tm;
 
 	GetCurrentDateTime(&tm);
-	tm2timestamp(&tm, 0, NULL, ts);
+	if (errno == 0)
+		tm2timestamp(&tm, 0, NULL, ts);
 	return;
 }
 
@@ -542,7 +522,7 @@ dttofmtasc_replace(timestamp * ts, date dDate, int dow, struct tm * tm,
 					 */
 				case 'g':
 					{
-						char	   *fmt = "%g"; /* Keep compiler quiet about
+						const char *fmt = "%g"; /* Keep compiler quiet about
 												 * 2-digit year */
 
 						tm->tm_mon -= 1;
@@ -744,7 +724,7 @@ dttofmtasc_replace(timestamp * ts, date dDate, int dow, struct tm * tm,
 					 */
 				case 'x':
 					{
-						char	   *fmt = "%x"; /* Keep compiler quiet about
+						const char *fmt = "%x"; /* Keep compiler quiet about
 												 * 2-digit year */
 
 						tm->tm_mon -= 1;
@@ -898,7 +878,7 @@ PGTYPEStimestamp_sub(timestamp * ts1, timestamp * ts2, interval * iv)
 	if (TIMESTAMP_NOT_FINITE(*ts1) || TIMESTAMP_NOT_FINITE(*ts2))
 		return PGTYPES_TS_ERR_EINFTIME;
 	else
-		iv->time = (ts1 - ts2);
+		iv->time = (*ts1 - *ts2);
 
 	iv->month = 0;
 

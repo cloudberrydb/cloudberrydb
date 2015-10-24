@@ -17,7 +17,10 @@ drop domain domaindroptest cascade;
 drop domain domaindroptest cascade;
 
 
--- TEST Domains.
+-- Test domain input.
+
+-- Note: the point of checking both INSERT and COPY FROM is that INSERT
+-- exercises CoerceToDomain while COPY exercises domain_in.
 
 create domain domainvarchar varchar(5);
 create domain domainnumeric numeric(8,2);
@@ -62,25 +65,38 @@ drop domain domainint4 restrict;
 drop domain domaintext;
 
 
--- Array Test
+-- Test domains over array types
+
 create domain domainint4arr int4[1];
-create domain domaintextarr text[2][3];
+create domain domainchar4arr varchar(4)[2][3];
 
 create table domarrtest
            ( testint4arr domainint4arr
-           , testtextarr domaintextarr
+           , testchar4arr domainchar4arr
             );
 INSERT INTO domarrtest values ('{2,2}', '{{"a","b"},{"c","d"}}');
 INSERT INTO domarrtest values ('{{2,2},{2,2}}', '{{"a","b"}}');
 INSERT INTO domarrtest values ('{2,2}', '{{"a","b"},{"c","d"},{"e","f"}}');
 INSERT INTO domarrtest values ('{2,2}', '{{"a"},{"c"}}');
 INSERT INTO domarrtest values (NULL, '{{"a","b","c"},{"d","e","f"}}');
+INSERT INTO domarrtest values (NULL, '{{"toolong","b","c"},{"d","e","f"}}');
 select * from domarrtest;
-select testint4arr[1], testtextarr[2:2] from domarrtest;
+select testint4arr[1], testchar4arr[2:2] from domarrtest;
+
+COPY domarrtest FROM stdin;
+{3,4}	{q,w,e}
+\N	\N
+\.
+
+COPY domarrtest FROM stdin;	-- fail
+{3,4}	{qwerty,w,e}
+\.
+
+select * from domarrtest;
 
 drop table domarrtest;
 drop domain domainint4arr restrict;
-drop domain domaintextarr restrict;
+drop domain domainchar4arr restrict;
 
 
 create domain dnotnull varchar(15) NOT NULL;
@@ -170,7 +186,8 @@ create domain dnotnulltest integer;
 create table domnotnull
 ( col1 dnotnulltest
 , col2 dnotnulltest
-);
+, id int4 -- distribute on this column, so that we can UPDATE the others
+) distributed by (id);
 
 insert into domnotnull default values;
 alter domain dnotnulltest set not null; -- fails
@@ -310,6 +327,22 @@ execute s1(NULL); -- should fail
 create function doubledecrement(p1 pos_int) returns pos_int as $$
 declare v pos_int;
 begin
+    return p1;
+end$$ language plpgsql;
+
+select doubledecrement(3); -- fail because of implicit null assignment
+
+create or replace function doubledecrement(p1 pos_int) returns pos_int as $$
+declare v pos_int := 0;
+begin
+    return p1;
+end$$ language plpgsql;
+
+select doubledecrement(3); -- fail at initialization assignment
+
+create or replace function doubledecrement(p1 pos_int) returns pos_int as $$
+declare v pos_int := 1;
+begin
     v := p1 - 1;
     return v - 1;
 end$$ language plpgsql;
@@ -319,3 +352,29 @@ select doubledecrement(0); -- fail before call
 select doubledecrement(1); -- fail at assignment to v
 select doubledecrement(2); -- fail at return
 select doubledecrement(3); -- good
+
+-- Check that ALTER DOMAIN tests columns of derived types
+
+create domain posint as int4;
+
+-- Currently, this doesn't work for composite types, but verify it complains
+create type ddtest1 as (f1 posint);
+create table ddtest2(f1 ddtest1);
+insert into ddtest2 values(row(-1));
+alter domain posint add constraint c1 check(value >= 0);
+drop table ddtest2;
+
+alter domain posint add constraint c1 check(value >= 0);
+
+create domain posint2 as posint check (value % 2 = 0);
+create table ddtest2(f1 posint2);
+insert into ddtest2 values(11); -- fail
+insert into ddtest2 values(-2); -- fail
+insert into ddtest2 values(2);
+
+alter domain posint add constraint c2 check(value >= 10); -- fail
+alter domain posint add constraint c2 check(value > 0); -- OK
+
+drop table ddtest2;
+drop type ddtest1;
+drop domain posint cascade;

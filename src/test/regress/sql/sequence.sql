@@ -9,15 +9,15 @@ INSERT INTO serialTest VALUES ('bar');
 INSERT INTO serialTest VALUES ('force', 100);
 INSERT INTO serialTest VALUES ('wrong', NULL);
  
-SELECT * FROM serialTest;
+SELECT * FROM serialTest ORDER BY 2;
 
 -- basic sequence operations using both text and oid references
 CREATE SEQUENCE sequence_test;
  
 SELECT nextval('sequence_test'::text);
 SELECT nextval('sequence_test'::regclass);
-SELECT currval('sequence_test'::text);
-SELECT currval('sequence_test'::regclass);
+--SELECT currval('sequence_test'::text);
+--SELECT currval('sequence_test'::regclass);
 SELECT setval('sequence_test'::text, 32);
 SELECT nextval('sequence_test'::regclass);
 SELECT setval('sequence_test'::text, 99, false);
@@ -38,7 +38,7 @@ DROP SEQUENCE foo_seq_new;
 -- renaming serial sequences
 ALTER TABLE serialtest_f2_seq RENAME TO serialtest_f2_foo;
 INSERT INTO serialTest VALUES ('more');
-SELECT * FROM serialTest;
+SELECT * FROM serialTest ORDER BY 2;
 
 --
 -- Check dependencies of serial and ordinary sequences
@@ -82,17 +82,17 @@ COMMENT ON SEQUENCE sequence_test2 IS NULL;
 -- Test lastval()
 CREATE SEQUENCE seq;
 SELECT nextval('seq');
-SELECT lastval();
+--SELECT lastval();
 SELECT setval('seq', 99);
-SELECT lastval();
+--SELECT lastval();
 
 CREATE SEQUENCE seq2;
 SELECT nextval('seq2');
-SELECT lastval();
+--SELECT lastval();
 
 DROP SEQUENCE seq2;
 -- should fail
-SELECT lastval();
+--SELECT lastval();
 
 CREATE USER seq_user;
 
@@ -101,7 +101,7 @@ SET LOCAL SESSION AUTHORIZATION seq_user;
 CREATE SEQUENCE seq3;
 SELECT nextval('seq3');
 REVOKE ALL ON seq3 FROM seq_user;
-SELECT lastval();
+--SELECT lastval();
 ROLLBACK;
 
 DROP USER seq_user;

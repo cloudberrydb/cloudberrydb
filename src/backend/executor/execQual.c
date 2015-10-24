@@ -3,12 +3,11 @@
  * execQual.c
  *	  Routines to evaluate qualification and targetlist expressions
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2008, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
- *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/executor/execQual.c,v 1.199 2006/11/17 16:46:27 petere Exp $
+ *	  $PostgreSQL: pgsql/src/backend/executor/execQual.c,v 1.199.2.3 2007/08/31 18:33:47 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -29,23 +28,31 @@
  *		instead of doing needless copying.	-cim 5/31/91
  *
  *		During expression evaluation, we check_stack_depth only in
- *		ExecMakeFunctionResult rather than at every single node.  This
- *		is a compromise that trades off precision of the stack limit setting
- *		to gain speed.
+ *		ExecMakeFunctionResult (and substitute routines) rather than at every
+ *		single node.  This is a compromise that trades off precision of the
+ *		stack limit setting to gain speed.
  */
 
 #include "postgres.h"
 
 #include "access/heapam.h"
 #include "access/nbtree.h"
+#include "access/tuptoaster.h"
+#include "catalog/catquery.h"
+#include "catalog/pg_proc.h"
 #include "catalog/pg_type.h"
+#include "cdb/cdbvars.h"
+#include "cdb/partitionselection.h"
 #include "commands/typecmds.h"
 #include "executor/execdebug.h"
+#include "executor/nodeAgg.h"
 #include "executor/nodeSubplan.h"
 #include "funcapi.h"
 #include "miscadmin.h"
 #include "nodes/makefuncs.h"
+#include "optimizer/clauses.h"
 #include "optimizer/planmain.h"
+#include "parser/parse_coerce.h"
 #include "parser/parse_expr.h"
 #include "utils/acl.h"
 #include "utils/builtins.h"
@@ -61,9 +68,25 @@ static Datum ExecEvalArrayRef(ArrayRefExprState *astate,
 static Datum ExecEvalAggref(AggrefExprState *aggref,
 			   ExprContext *econtext,
 			   bool *isNull, ExprDoneCond *isDone);
+static Datum ExecEvalGroupingFunc(GroupingFuncExprState *gstate,
+								  ExprContext *econtext,
+								  bool *isNull, ExprDoneCond *isDone);
+static Datum ExecEvalGrouping(ExprState *gstate,
+							  ExprContext *econtext,
+							  bool *isNull, ExprDoneCond *isDone);
+static Datum ExecEvalGroupId(ExprState *gstate,
+							 ExprContext *econtext,
+							 bool *isNull, ExprDoneCond *isDone);
+static Datum ExecEvalWindowRef(WindowRefExprState *winref,
+			   ExprContext *econtext,
+			   bool *isNull, ExprDoneCond *isDone);
 static Datum ExecEvalVar(ExprState *exprstate, ExprContext *econtext,
 			bool *isNull, ExprDoneCond *isDone);
+static Datum ExecEvalScalarVar(ExprState *exprstate, ExprContext *econtext,
+			bool *isNull, ExprDoneCond *isDone);
 static Datum ExecEvalWholeRowVar(ExprState *exprstate, ExprContext *econtext,
+					bool *isNull, ExprDoneCond *isDone);
+static Datum ExecEvalWholeRowSlow(ExprState *exprstate, ExprContext *econtext,
 					bool *isNull, ExprDoneCond *isDone);
 static Datum ExecEvalConst(ExprState *exprstate, ExprContext *econtext,
 			  bool *isNull, ExprDoneCond *isDone);
@@ -73,8 +96,15 @@ static void ShutdownFuncExpr(Datum arg);
 static TupleDesc get_cached_rowtype(Oid type_id, int32 typmod,
 				   TupleDesc *cache_field, ExprContext *econtext);
 static void ShutdownTupleDescRef(Datum arg);
-static ExprDoneCond ExecEvalFuncArgs(FunctionCallInfo fcinfo,
-				 List *argList, ExprContext *econtext);
+static void ExecPrepareTuplestoreResult(FuncExprState *fcache,
+							ExprContext *econtext,
+							Tuplestorestate *resultStore,
+							TupleDesc resultDesc);
+static void tupledesc_match(TupleDesc dst_tupdesc, TupleDesc src_tupdesc);
+static Datum ExecMakeFunctionResult(FuncExprState *fcache,
+					   ExprContext *econtext,
+					   bool *isNull,
+					   ExprDoneCond *isDone);
 static Datum ExecMakeFunctionResultNoSets(FuncExprState *fcache,
 							 ExprContext *econtext,
 							 bool *isNull, ExprDoneCond *isDone);
@@ -110,6 +140,9 @@ static Datum ExecEvalRow(RowExprState *rstate,
 static Datum ExecEvalRowCompare(RowCompareExprState *rstate,
 				   ExprContext *econtext,
 				   bool *isNull, ExprDoneCond *isDone);
+static Datum ExecEvalTableValue(ExprState   *estate,
+								ExprContext *econtext,
+								bool *isNull, ExprDoneCond *isDone);
 static Datum ExecEvalCoalesce(CoalesceExprState *coalesceExpr,
 				 ExprContext *econtext,
 				 bool *isNull, ExprDoneCond *isDone);
@@ -131,6 +164,9 @@ static Datum ExecEvalCoerceToDomain(CoerceToDomainState *cstate,
 static Datum ExecEvalCoerceToDomainValue(ExprState *exprstate,
 							ExprContext *econtext,
 							bool *isNull, ExprDoneCond *isDone);
+static Datum ExecEvalPercentileExpr(PercentileExprState *exprstate,
+					ExprContext *econtext,
+					bool *isNull, ExprDoneCond *isDone);
 static Datum ExecEvalFieldSelect(FieldSelectState *fstate,
 					ExprContext *econtext,
 					bool *isNull, ExprDoneCond *isDone);
@@ -140,6 +176,23 @@ static Datum ExecEvalFieldStore(FieldStoreState *fstate,
 static Datum ExecEvalRelabelType(GenericExprState *exprstate,
 					ExprContext *econtext,
 					bool *isNull, ExprDoneCond *isDone);
+static Datum ExecEvalPartOidExpr(PartOidExprState *exprstate,
+						ExprContext *econtext,
+						bool *isNull, ExprDoneCond *isDone);
+static Datum ExecEvalPartDefaultExpr(PartDefaultExprState *exprstate,
+						ExprContext *econtext,
+						bool *isNull, ExprDoneCond *isDone);
+static Datum ExecEvalPartBoundExpr(PartBoundExprState *exprstate,
+						ExprContext *econtext,
+						bool *isNull, ExprDoneCond *isDone);
+static Datum ExecEvalPartBoundInclusionExpr(PartBoundInclusionExprState *exprstate,
+								ExprContext *econtext,
+								bool *isNull, ExprDoneCond *isDone);
+static Datum ExecEvalPartBoundOpenExpr(PartBoundOpenExprState *exprstate,
+								ExprContext *econtext,
+								bool *isNull, ExprDoneCond *isDone);
+static bool ExecIsExprUnsafeToConst_walker(Node *node, void *context);
+static bool ExecIsExprUnsafeToConst(Node *node);
 
 
 /* ----------------------------------------------------------------
@@ -249,9 +302,9 @@ ExecEvalArrayRef(ArrayRefExprState *astate,
 	if (*isNull)
 	{
 		if (isDone && *isDone == ExprEndResult)
-			return (Datum) NULL;	/* end of set result */
+			return 0;	/* end of set result */
 		if (!isAssignment)
-			return (Datum) NULL;
+			return 0;
 	}
 
 	foreach(l, astate->refupperindexpr)
@@ -276,7 +329,7 @@ ExecEvalArrayRef(ArrayRefExprState *astate,
 						(errcode(ERRCODE_NULL_VALUE_NOT_ALLOWED),
 				  errmsg("array subscript in assignment must not be null")));
 			*isNull = true;
-			return (Datum) NULL;
+			return 0;
 		}
 	}
 
@@ -304,7 +357,7 @@ ExecEvalArrayRef(ArrayRefExprState *astate,
 							(errcode(ERRCODE_NULL_VALUE_NOT_ALLOWED),
 							 errmsg("array subscript in assignment must not be null")));
 				*isNull = true;
-				return (Datum) NULL;
+				return 0;
 			}
 		}
 		/* this can't happen unless parser messed up */
@@ -417,11 +470,114 @@ ExecEvalAggref(AggrefExprState *aggref, ExprContext *econtext,
 	return econtext->ecxt_aggvalues[aggref->aggno];
 }
 
+/*----------------------------------------------------------------
+ *		ExecEvalGroupingFunc
+ *
+ *		Returns a Datum whose value is the value of a GROUPING_ID
+ *		with respect to the given context.
+ */
+static Datum 
+ExecEvalGroupingFunc(GroupingFuncExprState *gstate,
+					 ExprContext *econtext,
+					 bool *isNull, ExprDoneCond *isDone)
+{
+	uint64 grpid = 0;
+	ListCell *tmp;
+	int num_args = list_length(gstate->args);
+	int argno = 0;
+
+	if (isDone)
+		*isDone = ExprSingleResult;
+
+	foreach(tmp, gstate->args)
+	{
+		int arg = (int)intVal(lfirst(tmp));
+		int pos_in_grpcols = gstate->ngrpcols - arg - 1;
+		int pos_in_grpingfunc = num_args - argno - 1;
+
+		Assert(pos_in_grpcols >= 0 && pos_in_grpingfunc >= 0);
+
+		if (econtext->grouping & ( ((uint64)1) << pos_in_grpcols))
+			grpid |= ( ((uint64)1) << pos_in_grpingfunc);
+
+		argno++;
+	}
+
+	*isNull = false;
+	return Int64GetDatum(grpid);
+}
+
+/*----------------------------------------------------------------
+ *		ExecEvalGrouping
+ *
+ *		Returns a Datum whose value is the value of a GROUPING
+ *		with respect to the given context.
+ */
+static Datum
+ExecEvalGrouping(ExprState *gstate, ExprContext *econtext,
+				 bool *isNull, ExprDoneCond *isDone)
+{
+	if (isDone)
+		*isDone = ExprSingleResult;
+
+	*isNull = false;
+	return Int64GetDatum(econtext->grouping);
+}
+
+/*----------------------------------------------------------------
+ *		ExecEvalGroupId
+ *
+ *		Returns a Datum whose value is the value of a GROUP_ID
+ *		with respect to the given context.
+ */
+static Datum
+ExecEvalGroupId(ExprState *gstate, ExprContext *econtext,
+				bool *isNull, ExprDoneCond *isDone)
+{
+	if (isDone)
+		*isDone = ExprSingleResult;
+
+	*isNull = false;
+	return UInt32GetDatum(econtext->group_id);
+}
+
+/* ----------------------------------------------------------------
+ *		ExecEvalWindowRef
+ *
+ *		Returns a Datum whose value is the value of the window
+ *		function with respect to the given context.
+ *
+ * XXX	Note that this routine is essentially the same as
+ *      ExecEvalAggref since we use the same buffers. However,
+ *      since the state structures for WindowRef and Aggref 
+ *      are different, we separate the execution routines, too.
+ * ----------------------------------------------------------------
+ */
+static Datum
+ExecEvalWindowRef(WindowRefExprState *winref, ExprContext *econtext,
+				  bool *isNull, ExprDoneCond *isDone)
+{
+	if (isDone)
+		*isDone = ExprSingleResult;
+	
+	if (econtext->ecxt_aggvalues == NULL)		/* safety check */
+		elog(ERROR, "no window functions in this expression context");
+
+	*isNull = econtext->ecxt_aggnulls[winref->funcno];
+	return econtext->ecxt_aggvalues[winref->funcno];
+
+}
+
 /* ----------------------------------------------------------------
  *		ExecEvalVar
  *
  *		Returns a Datum whose value is the value of a range
  *		variable with respect to given expression context.
+ *
+ * Note: ExecEvalVar is executed only the first time through in a given plan;
+ * it changes the ExprState's function pointer to pass control directly to
+ * ExecEvalScalarVar, ExecEvalWholeRowVar, or ExecEvalWholeRowSlow after
+ * making one-time checks.
  * ----------------------------------------------------------------
  */
 static Datum
@@ -435,8 +591,9 @@ ExecEvalVar(ExprState *exprstate, ExprContext *econtext,
 	if (isDone)
 		*isDone = ExprSingleResult;
 
+	Assert(econtext->ecxt_scantuple != NULL || econtext->ecxt_innertuple != NULL || econtext->ecxt_outertuple != NULL);
 	/*
-	 * Get the slot and attribute number we want
+	 * Get the input slot and attribute number we want
 	 *
 	 * The asserts check that references to system attributes only appear at
 	 * the level of a relation scan; at higher levels, system attributes must
@@ -463,35 +620,185 @@ ExecEvalVar(ExprState *exprstate, ExprContext *econtext,
 			break;
 	}
 
-#ifdef USE_ASSERT_CHECKING
-
-	/*
-	 * Some checks that are only applied for user attribute numbers (bogus
-	 * system attnums will be caught inside slot_getattr).
-	 */
-	if (attnum > 0)
+	if (attnum != InvalidAttrNumber)
 	{
-		TupleDesc	tuple_type = slot->tts_tupleDescriptor;
-
 		/*
-		 * This assert checks that the attnum is valid.
-		 */
-		Assert(attnum <= tuple_type->natts);
-
-		/*
-		 * This assert checks that the datatype the plan expects to get (as
-		 * told by our "variable" argument) is in fact the datatype of the
-		 * attribute being fetched (as seen in the current context, identified
-		 * by our "econtext" argument).  Otherwise crashes are likely.
+		 * Scalar variable case.
 		 *
-		 * Note that we can't check dropped columns, since their atttypid has
-		 * been zeroed.
+		 * If it's a user attribute, check validity (bogus system attnums will
+		 * be caught inside slot_getattr).  What we have to check for here
+		 * is the possibility of an attribute having been changed in type
+		 * since the plan tree was created.  Ideally the plan would get
+		 * invalidated and not re-used, but until that day arrives, we need
+		 * defenses.  Fortunately it's sufficient to check once on the first
+		 * time through.
+		 *
+		 * Note: we allow a reference to a dropped attribute.  slot_getattr
+		 * will force a NULL result in such cases.
+		 *
+		 * Note: ideally we'd check typmod as well as typid, but that seems
+		 * impractical at the moment: in many cases the tupdesc will have
+		 * been generated by ExecTypeFromTL(), and that can't guarantee to
+		 * generate an accurate typmod in all cases, because some expression
+		 * node types don't carry typmod.
 		 */
-		Assert(variable->vartype == tuple_type->attrs[attnum - 1]->atttypid ||
-			   tuple_type->attrs[attnum - 1]->attisdropped);
-	}
-#endif   /* USE_ASSERT_CHECKING */
+		if (attnum > 0)
+		{
+			TupleDesc	slot_tupdesc = slot->tts_tupleDescriptor;
+			Form_pg_attribute attr;
 
+			if (attnum > slot_tupdesc->natts)	/* should never happen */
+				elog(ERROR, "attribute number %d exceeds number of columns %d",
+					 attnum, slot_tupdesc->natts);
+
+			attr = slot_tupdesc->attrs[attnum - 1];
+
+			/* can't check type if dropped, since atttypid is probably 0 */
+			if (!attr->attisdropped)
+			{
+				if (variable->vartype != attr->atttypid)
+					ereport(ERROR,
+							(errmsg("attribute %d has wrong type", attnum),
+							 errdetail("Table has type %s, but query expects %s.",
+									   format_type_be(attr->atttypid),
+									   format_type_be(variable->vartype))));
+			}
+		}
+
+		/* Skip the checking on future executions of node */
+		exprstate->evalfunc = ExecEvalScalarVar;
+
+		/* Fetch the value from the slot */
+		return slot_getattr(slot, attnum, isNull);
+	}
+	else
+	{
+		/*
+		 * Whole-row variable.
+		 *
+		 * If it's a RECORD Var, we'll use the slot's type ID info.  It's
+		 * likely that the slot's type is also RECORD; if so, make sure it's
+		 * been "blessed", so that the Datum can be interpreted later.
+		 *
+		 * If the Var identifies a named composite type, we must check that
+		 * the actual tuple type is compatible with it.
+		 */
+		TupleDesc	slot_tupdesc = slot->tts_tupleDescriptor;
+		bool		needslow = false;
+
+		if (variable->vartype == RECORDOID)
+		{
+			if (slot_tupdesc->tdtypeid == RECORDOID &&
+				slot_tupdesc->tdtypmod < 0)
+				assign_record_type_typmod(slot_tupdesc);
+		}
+		else
+		{
+			TupleDesc	var_tupdesc;
+			int			i;
+
+			/*
+			 * We really only care about number of attributes and data type.
+			 * Also, we can ignore type mismatch on columns that are dropped
+			 * in the destination type, so long as the physical storage
+			 * matches.  This is helpful in some cases involving out-of-date
+			 * cached plans.  Also, we have to allow the case that the slot
+			 * has more columns than the Var's type, because we might be
+			 * looking at the output of a subplan that includes resjunk
+			 * columns.  (XXX it would be nice to verify that the extra
+			 * columns are all marked resjunk, but we haven't got access to
+			 * the subplan targetlist here...)  Resjunk columns should always
+			 * be at the end of a targetlist, so it's sufficient to ignore
+			 * them here; but we need to use ExecEvalWholeRowSlow to get
+			 * rid of them in the eventual output tuples.
+			 */
+			var_tupdesc = lookup_rowtype_tupdesc(variable->vartype, -1);
+
+			if (var_tupdesc->natts > slot_tupdesc->natts)
+				ereport(ERROR,
+						(errcode(ERRCODE_DATATYPE_MISMATCH),
+						 errmsg("table row type and query-specified row type do not match"),
+						 errdetail("Table row contains %d attributes, but query expects %d.",
+								   slot_tupdesc->natts, var_tupdesc->natts)));
+			else if (var_tupdesc->natts < slot_tupdesc->natts)
+				needslow = true;
+
+			for (i = 0; i < var_tupdesc->natts; i++)
+			{
+				Form_pg_attribute vattr = var_tupdesc->attrs[i];
+				Form_pg_attribute sattr = slot_tupdesc->attrs[i];
+
+				if (vattr->atttypid == sattr->atttypid)
+					continue;			/* no worries */
+				if (!vattr->attisdropped)
+					ereport(ERROR,
+							(errcode(ERRCODE_DATATYPE_MISMATCH),
+							 errmsg("table row type and query-specified row type do not match"),
+							 errdetail("Table has type %s at ordinal position %d, but query expects %s.",
+									   format_type_be(sattr->atttypid),
+									   i + 1,
+									   format_type_be(vattr->atttypid))));
+
+				if (vattr->attlen != sattr->attlen ||
+					vattr->attalign != sattr->attalign)
+					ereport(ERROR,
+							(errcode(ERRCODE_DATATYPE_MISMATCH),
+							 errmsg("table row type and query-specified row type do not match"),
+							 errdetail("Physical storage mismatch on dropped attribute at ordinal position %d.",
+									   i + 1)));
+			}
+
+			ReleaseTupleDesc(var_tupdesc);
+		}
+
+		/* Skip the checking on future executions of node */
+		if (needslow)
+			exprstate->evalfunc = ExecEvalWholeRowSlow;
+		else
+			exprstate->evalfunc = ExecEvalWholeRowVar;
+
+		/* Fetch the value */
+		return ExecEvalWholeRowVar(exprstate, econtext, isNull, isDone);
+	}
+}
+
+/* ----------------------------------------------------------------
+ *		ExecEvalScalarVar
+ *
+ *		Returns a Datum for a scalar variable.
+ * ----------------------------------------------------------------
+ */
+static Datum
+ExecEvalScalarVar(ExprState *exprstate, ExprContext *econtext,
+				  bool *isNull, ExprDoneCond *isDone)
+{
+	Var		   *variable = (Var *) exprstate->expr;
+	TupleTableSlot *slot;
+	AttrNumber	attnum;
+
+	if (isDone)
+		*isDone = ExprSingleResult;
+
+	/* Get the input slot and attribute number we want */
+	switch (variable->varno)
+	{
+		case INNER:				/* get the tuple from the inner node */
+			slot = econtext->ecxt_innertuple;
+			break;
+
+		case OUTER:				/* get the tuple from the outer node */
+			slot = econtext->ecxt_outertuple;
+			break;
+
+		default:				/* get the tuple from the relation being
+								 * scanned */
+			slot = econtext->ecxt_scantuple;
+			break;
+	}
+
+	attnum = variable->varattno;
+
+	/* Fetch the value from the slot */
 	return slot_getattr(slot, attnum, isNull);
 }
 
@@ -499,10 +806,6 @@ ExecEvalVar(ExprState *exprstate, ExprContext *econtext,
  *		ExecEvalWholeRowVar
  *
  *		Returns a Datum for a whole-row variable.
- *
- *		This could be folded into ExecEvalVar, but we make it a separate
- *		routine so as not to slow down ExecEvalVar with tests for this
- *		uncommon case.
  * ----------------------------------------------------------------
  */
 static Datum
@@ -510,7 +813,7 @@ ExecEvalWholeRowVar(ExprState *exprstate, ExprContext *econtext,
 					bool *isNull, ExprDoneCond *isDone)
 {
 	Var		   *variable = (Var *) exprstate->expr;
-	TupleTableSlot *slot;
+	TupleTableSlot *slot = econtext->ecxt_scantuple;
 	HeapTuple	tuple;
 	TupleDesc	tupleDesc;
 	HeapTupleHeader dtuple;
@@ -519,17 +822,7 @@ ExecEvalWholeRowVar(ExprState *exprstate, ExprContext *econtext,
 		*isDone = ExprSingleResult;
 	*isNull = false;
 
-	Assert(variable->varattno == InvalidAttrNumber);
-
-	/*
-	 * Whole-row Vars can only appear at the level of a relation scan, never
-	 * in a join.
-	 */
-	Assert(variable->varno != INNER);
-	Assert(variable->varno != OUTER);
-	slot = econtext->ecxt_scantuple;
-
-	tuple = ExecFetchSlotTuple(slot);
+	tuple = ExecFetchSlotHeapTuple(slot);
 	tupleDesc = slot->tts_tupleDescriptor;
 
 	/*
@@ -544,9 +837,6 @@ ExecEvalWholeRowVar(ExprState *exprstate, ExprContext *econtext,
 	/*
 	 * If the Var identifies a named composite type, label the tuple with that
 	 * type; otherwise use what is in the tupleDesc.
-	 *
-	 * It's likely that the slot's tupleDesc is a record type; if so, make
-	 * sure it's been "blessed", so that the Datum can be interpreted later.
 	 */
 	if (variable->vartype != RECORDOID)
 	{
@@ -555,12 +845,63 @@ ExecEvalWholeRowVar(ExprState *exprstate, ExprContext *econtext,
 	}
 	else
 	{
-		if (tupleDesc->tdtypeid == RECORDOID &&
-			tupleDesc->tdtypmod < 0)
-			assign_record_type_typmod(tupleDesc);
 		HeapTupleHeaderSetTypeId(dtuple, tupleDesc->tdtypeid);
 		HeapTupleHeaderSetTypMod(dtuple, tupleDesc->tdtypmod);
 	}
+
+	return PointerGetDatum(dtuple);
+}
+
+/* ----------------------------------------------------------------
+ *		ExecEvalWholeRowSlow
+ *
+ *		Returns a Datum for a whole-row variable, in the "slow" case where
+ *		we can't just copy the subplan's output.
+ * ----------------------------------------------------------------
+ */
+static Datum
+ExecEvalWholeRowSlow(ExprState *exprstate, ExprContext *econtext,
+					 bool *isNull, ExprDoneCond *isDone)
+{
+	Var		   *variable = (Var *) exprstate->expr;
+	TupleTableSlot *slot = econtext->ecxt_scantuple;
+	HeapTuple	tuple;
+	TupleDesc	var_tupdesc;
+	HeapTupleHeader dtuple;
+
+	if (isDone)
+		*isDone = ExprSingleResult;
+	*isNull = false;
+
+	/*
+	 * Currently, the only case handled here is stripping of trailing
+	 * resjunk fields, which we do in a slightly chintzy way by just
+	 * adjusting the tuple's natts header field.  Possibly there will someday
+	 * be a need for more-extensive rearrangements, in which case it'd
+	 * be worth disassembling and reassembling the tuple (perhaps use a
+	 * JunkFilter for that?)
+	 */
+	Assert(variable->vartype != RECORDOID);
+	var_tupdesc = lookup_rowtype_tupdesc(variable->vartype, -1);
+
+	tuple = ExecFetchSlotHeapTuple(slot);
+
+	/*
+	 * We have to make a copy of the tuple so we can safely insert the Datum
+	 * overhead fields, which are not set in on-disk tuples; not to mention
+	 * fooling with its natts field.
+	 */
+	dtuple = (HeapTupleHeader) palloc(tuple->t_len);
+	memcpy((char *) dtuple, (char *) tuple->t_data, tuple->t_len);
+
+	HeapTupleHeaderSetDatumLength(dtuple, tuple->t_len);
+	HeapTupleHeaderSetTypeId(dtuple, variable->vartype);
+	HeapTupleHeaderSetTypMod(dtuple, variable->vartypmod);
+
+	Assert(HeapTupleHeaderGetNatts(dtuple) >= var_tupdesc->natts);
+	HeapTupleHeaderSetNatts(dtuple, var_tupdesc->natts);
+
+	ReleaseTupleDesc(var_tupdesc);
 
 	return PointerGetDatum(dtuple);
 }
@@ -597,6 +938,15 @@ ExecEvalConst(ExprState *exprstate, ExprContext *econtext,
  *		so our job is to find and return the appropriate datum ("sam").
  * ----------------------------------------------------------------
  */
+
+/*
+ * Greenplum Database Changes:
+ * In executor mode, a PARAM_EXEC parameter can not be evaluated by executing
+ * the subplan.  The subplan was executed on the dispatcher prior to
+ * launching the main query.  The value of the result is passed to the qExec
+ * in the ParamInfo, with a kind of PARAM_EXEC_REMOTE.
+ * So, this function was changed to just do a lookup in that case.
+ */
 static Datum
 ExecEvalParam(ExprState *exprstate, ExprContext *econtext,
 			  bool *isNull, ExprDoneCond *isDone)
@@ -613,18 +963,22 @@ ExecEvalParam(ExprState *exprstate, ExprContext *econtext,
 		 * PARAM_EXEC params (internal executor parameters) are stored in the
 		 * ecxt_param_exec_vals array, and can be accessed by array index.
 		 */
-		ParamExecData *prm;
+		ParamExecData *prmExec = &(econtext->ecxt_param_exec_vals[thisParamId]);
 
-		prm = &(econtext->ecxt_param_exec_vals[thisParamId]);
-		if (prm->execPlan != NULL)
+		/* 
+		 * Maybe this parameter has already been evaluated. If so, execPlan
+		 * would be NULL.
+		 */
+		if (prmExec->execPlan != NULL)
 		{
 			/* Parameter not evaluated yet, so go do it */
-			ExecSetParamPlan(prm->execPlan, econtext);
+			ExecSetParamPlan(prmExec->execPlan, econtext, NULL);
 			/* ExecSetParamPlan should have processed this param... */
-			Assert(prm->execPlan == NULL);
+			Assert(prmExec->execPlan == NULL);
 		}
-		*isNull = prm->isnull;
-		return prm->value;
+
+		*isNull = prmExec->isnull;
+		return prmExec->value;
 	}
 	else
 	{
@@ -705,7 +1059,6 @@ GetAttributeByNum(HeapTupleHeader tuple,
 	 */
 	tmptup.t_len = HeapTupleHeaderGetDatumLength(tuple);
 	ItemPointerSetInvalid(&(tmptup.t_self));
-	tmptup.t_tableOid = InvalidOid;
 	tmptup.t_data = tuple;
 
 	result = heap_getattr(&tmptup,
@@ -766,7 +1119,6 @@ GetAttributeByName(HeapTupleHeader tuple, const char *attname, bool *isNull)
 	 */
 	tmptup.t_len = HeapTupleHeaderGetDatumLength(tuple);
 	ItemPointerSetInvalid(&(tmptup.t_self));
-	tmptup.t_tableOid = InvalidOid;
 	tmptup.t_data = tuple;
 
 	result = heap_getattr(&tmptup,
@@ -783,7 +1135,8 @@ GetAttributeByName(HeapTupleHeader tuple, const char *attname, bool *isNull)
  * init_fcache - initialize a FuncExprState node during first use
  */
 void
-init_fcache(Oid foid, FuncExprState *fcache, MemoryContext fcacheCxt)
+init_fcache(Oid foid, FuncExprState *fcache,
+			MemoryContext fcacheCxt, bool needDescForSets)
 {
 	AclResult	aclresult;
 
@@ -806,11 +1159,62 @@ init_fcache(Oid foid, FuncExprState *fcache, MemoryContext fcacheCxt)
 
 	/* Set up the primary fmgr lookup information */
 	fmgr_info_cxt(foid, &(fcache->func), fcacheCxt);
+	fcache->func.fn_expr = (Node *) fcache->xprstate.expr;
 
-	/* Initialize additional info */
+	/* If function returns set, prepare expected tuple descriptor */
+	if (fcache->func.fn_retset && needDescForSets)
+	{
+		TypeFuncClass functypclass;
+		Oid			funcrettype;
+		TupleDesc	tupdesc;
+		MemoryContext oldcontext;
+
+		functypclass = get_expr_result_type(fcache->func.fn_expr,
+											&funcrettype,
+											&tupdesc);
+
+		/* Must save tupdesc in fcache's context */
+		oldcontext = MemoryContextSwitchTo(fcacheCxt);
+
+		if (functypclass == TYPEFUNC_COMPOSITE)
+		{
+			/* Composite data type, e.g. a table's row type */
+			Assert(tupdesc);
+			/* Must copy it out of typcache for safety */
+			fcache->funcResultDesc = CreateTupleDescCopy(tupdesc);
+			fcache->funcReturnsTuple = true;
+		}
+		else if (functypclass == TYPEFUNC_SCALAR)
+		{
+			/* Base data type, i.e. scalar */
+			tupdesc = CreateTemplateTupleDesc(1, false);
+			TupleDescInitEntry(tupdesc,
+							   (AttrNumber) 1,
+							   NULL,
+							   funcrettype,
+							   -1,
+							   0);
+			fcache->funcResultDesc = tupdesc;
+			fcache->funcReturnsTuple = false;
+		}
+		else
+		{
+			/* Else, we will complain if function wants materialize mode */
+			fcache->funcResultDesc = NULL;
+		}
+
+		MemoryContextSwitchTo(oldcontext);
+	}
+	else
+	{
+		fcache->funcResultDesc = NULL;
+	}
+
+	/* Initialize additional state */
+	fcache->funcResultStore = NULL;
+	fcache->funcResultSlot = NULL;
 	fcache->setArgsValid = false;
 	fcache->shutdown_reg = false;
-	fcache->func.fn_expr = (Node *) fcache->xprstate.expr;
 }
 
 /*
@@ -821,6 +1225,15 @@ static void
 ShutdownFuncExpr(Datum arg)
 {
 	FuncExprState *fcache = (FuncExprState *) DatumGetPointer(arg);
+
+	/* If we have a slot, make sure it's let go of any tuplestore pointer */
+	if (fcache->funcResultSlot)
+		ExecClearTuple(fcache->funcResultSlot);
+
+	/* Release any open tuplestore */
+	if (fcache->funcResultStore)
+		tuplestore_end(fcache->funcResultStore);
+	fcache->funcResultStore = NULL;
 
 	/* Clear any active set-argument state */
 	fcache->setArgsValid = false;
@@ -887,7 +1300,7 @@ ShutdownTupleDescRef(Datum arg)
 /*
  * Evaluate arguments for a function.
  */
-static ExprDoneCond
+ExprDoneCond
 ExecEvalFuncArgs(FunctionCallInfo fcinfo,
 				 List *argList,
 				 ExprContext *econtext)
@@ -931,17 +1344,133 @@ ExecEvalFuncArgs(FunctionCallInfo fcinfo,
 }
 
 /*
+ *		ExecPrepareTuplestoreResult
+ *
+ * Subroutine for ExecMakeFunctionResult: prepare to extract rows from a
+ * tuplestore function result.  We must set up a funcResultSlot (unless
+ * already done in a previous call cycle) and verify that the function
+ * returned the expected tuple descriptor.
+ */
+static void
+ExecPrepareTuplestoreResult(FuncExprState *fcache,
+							ExprContext *econtext,
+							Tuplestorestate *resultStore,
+							TupleDesc resultDesc)
+{
+	fcache->funcResultStore = resultStore;
+
+	if (fcache->funcResultSlot == NULL)
+	{
+		/* Create a slot so we can read data out of the tuplestore */
+		MemoryContext oldcontext;
+
+		/* We must have been able to determine the result rowtype */
+		if (fcache->funcResultDesc == NULL)
+			ereport(ERROR,
+					(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
+					 errmsg("function returning setof record called in "
+							"context that cannot accept type record")));
+
+		oldcontext = MemoryContextSwitchTo(fcache->func.fn_mcxt);
+		fcache->funcResultSlot =
+			MakeSingleTupleTableSlot(fcache->funcResultDesc);
+		MemoryContextSwitchTo(oldcontext);
+	}
+
+	/*
+	 * If function provided a tupdesc, cross-check it.	We only really
+	 * need to do this for functions returning RECORD, but might as well
+	 * do it always.
+	 */
+	if (resultDesc)
+	{
+		if (fcache->funcResultDesc)
+			tupledesc_match(fcache->funcResultDesc, resultDesc);
+
+		/*
+		 * If it is a dynamically-allocated TupleDesc, free it: it is
+		 * typically allocated in a per-query context, so we must avoid
+		 * leaking it across multiple usages.
+		 */
+		if (resultDesc->tdrefcount == -1)
+			FreeTupleDesc(resultDesc);
+	}
+
+	/* Register cleanup callback if we didn't already */
+	if (!fcache->shutdown_reg)
+	{
+		RegisterExprContextCallback(econtext,
+									ShutdownFuncExpr,
+									PointerGetDatum(fcache));
+		fcache->shutdown_reg = true;
+	}
+}
+
+/*
+ * Check that function result tuple type (src_tupdesc) matches or can
+ * be considered to match what the query expects (dst_tupdesc). If
+ * they don't match, ereport.
+ *
+ * We really only care about number of attributes and data type.
+ * Also, we can ignore type mismatch on columns that are dropped in the
+ * destination type, so long as the physical storage matches.  This is
+ * helpful in some cases involving out-of-date cached plans.
+ */
+static void
+tupledesc_match(TupleDesc dst_tupdesc, TupleDesc src_tupdesc)
+{
+	int			i;
+
+	if (dst_tupdesc->natts != src_tupdesc->natts)
+		ereport(ERROR,
+				(errcode(ERRCODE_DATATYPE_MISMATCH),
+				 errmsg("function return row and query-specified return row do not match"),
+				 errdetail("Returned row contains %d attributes, but query expects %d.",
+						   src_tupdesc->natts, dst_tupdesc->natts)));
+
+	for (i = 0; i < dst_tupdesc->natts; i++)
+	{
+		Form_pg_attribute dattr = dst_tupdesc->attrs[i];
+		Form_pg_attribute sattr = src_tupdesc->attrs[i];
+
+		if (dattr->atttypid == sattr->atttypid)
+			continue;			/* no worries */
+		if (!dattr->attisdropped)
+			ereport(ERROR,
+					(errcode(ERRCODE_DATATYPE_MISMATCH),
+					 errmsg("function return row and query-specified return row do not match"),
+					 errdetail("Returned type %s at ordinal position %d, but query expects %s.",
+							   format_type_be(sattr->atttypid),
+							   i + 1,
+							   format_type_be(dattr->atttypid))));
+
+		if (dattr->attlen != sattr->attlen ||
+			dattr->attalign != sattr->attalign)
+			ereport(ERROR,
+					(errcode(ERRCODE_DATATYPE_MISMATCH),
+					 errmsg("function return row and query-specified return row do not match"),
+					 errdetail("Physical storage mismatch on dropped attribute at ordinal position %d.",
+							   i + 1)));
+	}
+}
+
+/*
  *		ExecMakeFunctionResult
  *
  * Evaluate the arguments to a function and then the function itself.
+ * init_fcache is presumed already run on the FuncExprState.
+ *
+ * This function handles the most general case, wherein the function or
+ * one of its arguments might (or might not) return a set.  If we find
+ * no sets involved, we will change the FuncExprState's function pointer
+ * to use a simpler method on subsequent calls.
  */
-Datum
+static Datum
 ExecMakeFunctionResult(FuncExprState *fcache,
 					   ExprContext *econtext,
 					   bool *isNull,
 					   ExprDoneCond *isDone)
 {
-	List	   *arguments = fcache->args;
 	Datum		result;
 	FunctionCallInfoData fcinfo;
 	ReturnSetInfo rsinfo;		/* for functions returning sets */
@@ -949,8 +1478,48 @@ ExecMakeFunctionResult(FuncExprState *fcache,
 	bool		hasSetArg;
 	int			i;
 
+restart:
+
 	/* Guard against stack overflow due to overly complex expressions */
 	check_stack_depth();
+
+	/*
+	 * If a previous call of the function returned a set result in the form
+	 * of a tuplestore, continue reading rows from the tuplestore until it's
+	 * empty.
+	 */
+	if (fcache->funcResultStore)
+	{
+		Assert(isDone);				/* it was provided before ... */
+		if (tuplestore_gettupleslot(fcache->funcResultStore, true,
+									fcache->funcResultSlot))
+		{
+			*isDone = ExprMultipleResult;
+			if (fcache->funcReturnsTuple)
+			{
+				/* We must return the whole tuple as a Datum. */
+				*isNull = false;
+				return ExecFetchSlotTupleDatum(fcache->funcResultSlot);
+			}
+			else
+			{
+				/* Extract the first column and return it as a scalar. */
+				return slot_getattr(fcache->funcResultSlot, 1, isNull);
+			}
+		}
+		/* Exhausted the tuplestore, so clean up */
+		tuplestore_end(fcache->funcResultStore);
+		fcache->funcResultStore = NULL;
+		/* We are done unless there was a set-valued argument */
+		if (!fcache->setHasSetArg)
+		{
+			*isDone = ExprEndResult;
+			*isNull = true;
+			return (Datum) 0;
+		}
+		/* If there was, continue evaluating the argument values */
+		Assert(!fcache->setArgsValid);
+	}
 
 	/*
 	 * arguments is a list of expressions to evaluate before passing to the
@@ -958,6 +1527,7 @@ ExecMakeFunctionResult(FuncExprState *fcache,
 	 * previous call (ie, we are continuing the evaluation of a set-valued
 	 * function).  Otherwise, collect the current argument values into fcinfo.
 	 */
+	List	   *arguments = fcache->args;
 	if (!fcache->setArgsValid)
 	{
 		/* Need to prep callinfo structure */
@@ -987,24 +1557,26 @@ ExecMakeFunctionResult(FuncExprState *fcache,
 	}
 
 	/*
-	 * If function returns set, prepare a resultinfo node for communication
+	 * Prepare a resultinfo node for communication.  If the function
+	 * doesn't itself return set, we don't pass the resultinfo to the
+	 * function, but we need to fill it in anyway for internal use.
 	 */
 	if (fcache->func.fn_retset)
 	{
 		fcinfo.resultinfo = (Node *) &rsinfo;
-		rsinfo.type = T_ReturnSetInfo;
-		rsinfo.econtext = econtext;
-		rsinfo.expectedDesc = NULL;
-		rsinfo.allowedModes = (int) SFRM_ValuePerCall;
-		rsinfo.returnMode = SFRM_ValuePerCall;
-		/* isDone is filled below */
-		rsinfo.setResult = NULL;
-		rsinfo.setDesc = NULL;
 	}
+	rsinfo.type = T_ReturnSetInfo;
+	rsinfo.econtext = econtext;
+	rsinfo.expectedDesc = fcache->funcResultDesc;
+	rsinfo.allowedModes = (int) (SFRM_ValuePerCall | SFRM_Materialize);
+	/* note we do not set SFRM_Materialize_Random or _Preferred */
+	rsinfo.returnMode = SFRM_ValuePerCall;
+	/* isDone is filled below */
+	rsinfo.setResult = NULL;
+	rsinfo.setDesc = NULL;
 
 	/*
-	 * now return the value gotten by calling the function manager, passing
-	 * the function the evaluated parameter values.
+	 * Now call the function, passing the evaluated parameter values.
 	 */
 	if (fcache->func.fn_retset || hasSetArg)
 	{
@@ -1060,36 +1632,69 @@ ExecMakeFunctionResult(FuncExprState *fcache,
 				*isDone = ExprEndResult;
 			}
 
-			if (*isDone != ExprEndResult)
+			/* Which protocol does function want to use? */
+			if (rsinfo.returnMode == SFRM_ValuePerCall)
 			{
-				/*
-				 * Got a result from current argument.	If function itself
-				 * returns set, save the current argument values to re-use on
-				 * the next call.
-				 */
-				if (fcache->func.fn_retset && *isDone == ExprMultipleResult)
+				if (*isDone != ExprEndResult)
 				{
-					memcpy(&fcache->setArgs, &fcinfo, sizeof(fcinfo));
-					fcache->setHasSetArg = hasSetArg;
-					fcache->setArgsValid = true;
-					/* Register cleanup callback if we didn't already */
-					if (!fcache->shutdown_reg)
+					/*
+					 * Got a result from current argument. If function itself
+					 * returns set, save the current argument values to re-use
+					 * on the next call.
+					 */
+					if (fcache->func.fn_retset &&
+						*isDone == ExprMultipleResult)
 					{
-						RegisterExprContextCallback(econtext,
-													ShutdownFuncExpr,
-													PointerGetDatum(fcache));
-						fcache->shutdown_reg = true;
+						memcpy(&fcache->setArgs, &fcinfo, sizeof(fcinfo));
+						fcache->setHasSetArg = hasSetArg;
+						fcache->setArgsValid = true;
+						/* Register cleanup callback if we didn't already */
+						if (!fcache->shutdown_reg)
+						{
+							RegisterExprContextCallback(econtext,
+														ShutdownFuncExpr,
+														PointerGetDatum(fcache));
+							fcache->shutdown_reg = true;
+						}
 					}
-				}
 
-				/*
-				 * Make sure we say we are returning a set, even if the
-				 * function itself doesn't return sets.
-				 */
-				if (hasSetArg)
-					*isDone = ExprMultipleResult;
-				break;
+					/*
+					 * Make sure we say we are returning a set, even if the
+					 * function itself doesn't return sets.
+					 */
+					if (hasSetArg)
+						*isDone = ExprMultipleResult;
+					break;
+				}
 			}
+			else if (rsinfo.returnMode == SFRM_Materialize)
+			{
+				/* check we're on the same page as the function author */
+				if (rsinfo.isDone != ExprSingleResult)
+					ereport(ERROR,
+							(errcode(ERRCODE_E_R_I_E_SRF_PROTOCOL_VIOLATED),
+							 errmsg("table-function protocol for materialize mode was not followed")));
+				if (rsinfo.setResult != NULL)
+				{
+					/* prepare to return values from the tuplestore */
+					ExecPrepareTuplestoreResult(fcache, econtext,
+												rsinfo.setResult,
+												rsinfo.setDesc);
+					/* remember whether we had set arguments */
+					fcache->setHasSetArg = hasSetArg;
+					/* loop back to top to start returning from tuplestore */
+					goto restart;
+				}
+				/* if setResult was left null, treat it as empty set */
+				*isDone = ExprEndResult;
+				*isNull = true;
+				result = (Datum) 0;
+			}
+			else
+				ereport(ERROR,
+						(errcode(ERRCODE_E_R_I_E_SRF_PROTOCOL_VIOLATED),
+						 errmsg("unrecognized table-function returnMode: %d",
+								(int) rsinfo.returnMode)));
 
 			/* Else, done with this argument */
 			if (!hasSetArg)
@@ -1216,17 +1821,17 @@ ExecMakeFunctionResultNoSets(FuncExprState *fcache,
  *		ExecMakeTableFunctionResult
  *
  * Evaluate a table function, producing a materialized result in a Tuplestore
- * object.	*returnDesc is set to the tupledesc actually returned by the
- * function, or NULL if it didn't provide one.
+ * object.
  */
 Tuplestorestate *
 ExecMakeTableFunctionResult(ExprState *funcexpr,
 							ExprContext *econtext,
 							TupleDesc expectedDesc,
-							TupleDesc *returnDesc)
+							uint64 operatorMemKB) 
 {
 	Tuplestorestate *tupstore = NULL;
 	TupleDesc	tupdesc = NULL;
+	MemTupleBinding *mt_bind = NULL;
 	Oid			funcrettype;
 	bool		returnsTuple;
 	bool		returnsSet = false;
@@ -1289,7 +1894,8 @@ ExecMakeTableFunctionResult(ExprState *funcexpr,
 		{
 			FuncExpr   *func = (FuncExpr *) fcache->xprstate.expr;
 
-			init_fcache(func->funcid, fcache, econtext->ecxt_per_query_memory);
+			init_fcache(func->funcid, fcache,
+						econtext->ecxt_per_query_memory, false);
 		}
 		returnsSet = fcache->func.fn_retset;
 
@@ -1343,9 +1949,12 @@ ExecMakeTableFunctionResult(ExprState *funcexpr,
 	for (;;)
 	{
 		Datum		result;
-		HeapTuple	tuple;
+		MemTuple	tuple;
 
 		CHECK_FOR_INTERRUPTS();
+
+		if (QueryFinishPending)
+			break;
 
 		/*
 		 * reset per-tuple memory context before each call of the function or
@@ -1424,7 +2033,10 @@ ExecMakeTableFunctionResult(ExprState *funcexpr,
 									   -1,
 									   0);
 				}
-				tupstore = tuplestore_begin_heap(true, false, work_mem);
+
+				mt_bind = create_memtuple_binding(tupdesc);
+
+				tupstore = tuplestore_begin_heap(true, false, operatorMemKB); 
 				MemoryContextSwitchTo(oldcontext);
 				rsinfo.setResult = tupstore;
 				rsinfo.setDesc = tupdesc;
@@ -1435,7 +2047,27 @@ ExecMakeTableFunctionResult(ExprState *funcexpr,
 			 */
 			if (returnsTuple)
 			{
+			    const int staticBufferLimit = 200;
 				HeapTupleHeader td;
+				Datum staticPd[staticBufferLimit];
+				bool staticNull[staticBufferLimit];
+				Datum *pd;
+				bool *pn;
+
+                /**
+                 * use memory on stack if possible, to save palloc calls
+                 */
+				if ( tupdesc->natts > staticBufferLimit)
+				{
+                    pd = (Datum *) palloc(tupdesc->natts * sizeof(Datum));
+                    pn = (bool *) palloc(tupdesc->natts * sizeof(bool));
+                }
+                else
+                {
+                    pd = staticPd;
+                    pn = staticNull;
+                }
+
 
 				td = DatumGetHeapTupleHeader(result);
 
@@ -1445,15 +2077,17 @@ ExecMakeTableFunctionResult(ExprState *funcexpr,
 				 */
 				tmptup.t_len = HeapTupleHeaderGetDatumLength(td);
 				tmptup.t_data = td;
-				tuple = &tmptup;
+
+				heap_deform_tuple(&tmptup, tupdesc, pd, pn);
+				tuple = memtuple_form_to(mt_bind, pd, pn, NULL, NULL, false);
 			}
 			else
 			{
-				tuple = heap_form_tuple(tupdesc, &result, &fcinfo.isnull);
+				tuple = memtuple_form_to(mt_bind, &result, &fcinfo.isnull, NULL, NULL, false);
 			}
 
 			oldcontext = MemoryContextSwitchTo(econtext->ecxt_per_query_memory);
-			tuplestore_puttuple(tupstore, tuple);
+			tuplestore_puttuple(tupstore, (HeapTuple) tuple);
 			MemoryContextSwitchTo(oldcontext);
 
 			/*
@@ -1491,7 +2125,7 @@ no_function_result:
 	if (rsinfo.setResult == NULL)
 	{
 		MemoryContextSwitchTo(econtext->ecxt_per_query_memory);
-		tupstore = tuplestore_begin_heap(true, false, work_mem);
+		tupstore = tuplestore_begin_heap(true, false, operatorMemKB); 
 		rsinfo.setResult = tupstore;
 		if (!returnsSet)
 		{
@@ -1503,17 +2137,37 @@ no_function_result:
 			MemoryContextSwitchTo(econtext->ecxt_per_tuple_memory);
 			nulldatums = (Datum *) palloc0(natts * sizeof(Datum));
 			nullflags = (bool *) palloc(natts * sizeof(bool));
-			memset(nullflags, true, natts * sizeof(bool));
+			MemSetAligned(nullflags, true, natts * sizeof(bool));
 			tuple = heap_form_tuple(expectedDesc, nulldatums, nullflags);
 			MemoryContextSwitchTo(econtext->ecxt_per_query_memory);
 			tuplestore_puttuple(tupstore, tuple);
 		}
 	}
 
+	/*
+	 * If function provided a tupdesc, cross-check it.	We only really
+	 * need to do this for functions returning RECORD, but might as well
+	 * do it always.
+	 */
+	if (rsinfo.setDesc)
+	{
+		tupledesc_match(expectedDesc, rsinfo.setDesc);
+
+		/*
+		 * If it is a dynamically-allocated TupleDesc, free it: it is
+		 * typically allocated in a per-query context, so we must avoid
+		 * leaking it across multiple usages.
+		 */
+		if (rsinfo.setDesc->tdrefcount == -1)
+		{
+			FreeTupleDesc(rsinfo.setDesc);
+			rsinfo.setDesc = NULL;
+		}
+	}
+
 	MemoryContextSwitchTo(callerContext);
 
-	/* The returned pointers are those in rsinfo */
-	*returnDesc = rsinfo.setDesc;
+	/* All done, pass back the tuplestore */
 	return rsinfo.setResult;
 }
 
@@ -1541,7 +2195,7 @@ ExecEvalFunc(FuncExprState *fcache,
 	FuncExpr   *func = (FuncExpr *) fcache->xprstate.expr;
 
 	/* Initialize function lookup info */
-	init_fcache(func->funcid, fcache, econtext->ecxt_per_query_memory);
+	init_fcache(func->funcid, fcache, econtext->ecxt_per_query_memory, true);
 
 	/* Go directly to ExecMakeFunctionResult on subsequent uses */
 	fcache->xprstate.evalfunc = (ExprStateEvalFunc) ExecMakeFunctionResult;
@@ -1563,7 +2217,7 @@ ExecEvalOper(FuncExprState *fcache,
 	OpExpr	   *op = (OpExpr *) fcache->xprstate.expr;
 
 	/* Initialize function lookup info */
-	init_fcache(op->opfuncid, fcache, econtext->ecxt_per_query_memory);
+	init_fcache(op->opfuncid, fcache, econtext->ecxt_per_query_memory, true);
 
 	/* Go directly to ExecMakeFunctionResult on subsequent uses */
 	fcache->xprstate.evalfunc = (ExprStateEvalFunc) ExecMakeFunctionResult;
@@ -1605,7 +2259,8 @@ ExecEvalDistinct(FuncExprState *fcache,
 	{
 		DistinctExpr *op = (DistinctExpr *) fcache->xprstate.expr;
 
-		init_fcache(op->opfuncid, fcache, econtext->ecxt_per_query_memory);
+		init_fcache(op->opfuncid, fcache,
+					econtext->ecxt_per_query_memory, true);
 		Assert(!fcache->func.fn_retset);
 	}
 
@@ -1645,6 +2300,347 @@ ExecEvalDistinct(FuncExprState *fcache,
 	return result;
 }
 
+static inline void ExecEvalFPStrict2Arg(FuncExprState *expr, ExprContext *econtext, bool *isNull, ExprDoneCond *isDone)
+{ 
+	ExprDoneCond argDone[2];
+
+	Assert(expr->fp_arg[0] && expr->fp_arg[1]);
+	if(isDone)
+		*isDone = ExprSingleResult;
+	
+	expr->fp_datum[0] = ExecEvalExpr(expr->fp_arg[0], econtext, &expr->fp_null[0], &argDone[0]);
+	expr->fp_datum[1] = ExecEvalExpr(expr->fp_arg[1], econtext, &expr->fp_null[1], &argDone[1]);
+
+	*isNull = expr->fp_null[0] || expr->fp_null[1];
+}
+
+static Datum ExecEvalFPStrict2_Int2Eq(FuncExprState *fstate, ExprContext *ctxt, bool *isNull, ExprDoneCond *isDone)
+{
+	ExecEvalFPStrict2Arg(fstate, ctxt, isNull, isDone);
+	return BoolGetDatum(
+			DatumGetInt16(fstate->fp_datum[0]) == DatumGetInt16(fstate->fp_datum[1])
+			);
+}
+
+static Datum ExecEvalFPStrict2_Int4Eq(FuncExprState *fstate, ExprContext *ctxt, bool *isNull, ExprDoneCond *isDone)
+{
+
+	ExecEvalFPStrict2Arg(fstate, ctxt, isNull, isDone);
+	return BoolGetDatum(
+			DatumGetInt32(fstate->fp_datum[0]) == DatumGetInt32(fstate->fp_datum[1])
+			);
+}
+
+static Datum ExecEvalFPStrict2_Int8Eq(FuncExprState *fstate, ExprContext *ctxt, bool *isNull, ExprDoneCond *isDone)
+{
+	ExecEvalFPStrict2Arg(fstate, ctxt, isNull, isDone);
+	return BoolGetDatum(fstate->fp_datum[0] == fstate->fp_datum[1]);
+}
+
+/* Some Oids that we want to fast path.  See pg_proc.h */
+#define INT2EQ_OID 63
+#define INT4EQ_OID 65
+#define TEXTEQ_OID 67
+#define INT8EQ_OID 467
+#define BPCHAREQ_OID 1048
+#define DATE_EQ_OID 1086
+
+/* Optimize x op y if op has no side effect.  Almost all our functions are
+ * strict, 2 args.  
+ * 
+ * NOTE: You need to implement the ExecEvalFPStrict2_FUNC FAITHFULLY.  
+ * For example, before you fast path int4add, make sure your implementation 
+ * is the same as the old int4add, that is, you need to handle under/over flow etc.
+ */
+static void FastPathStrict2Func(Oid funcoid, FuncExprState *fstate)
+{
+	static Oid strict2oid[] = {
+		INT2EQ_OID,
+		INT4EQ_OID,
+		DATE_EQ_OID,
+		INT8EQ_OID,
+	};
+	static ExprStateEvalFunc strict2func[] = {
+		(ExprStateEvalFunc) ExecEvalFPStrict2_Int2Eq,
+		(ExprStateEvalFunc) ExecEvalFPStrict2_Int4Eq,
+		(ExprStateEvalFunc) ExecEvalFPStrict2_Int4Eq, /* date_eq is int4 eq */
+		(ExprStateEvalFunc) ExecEvalFPStrict2_Int8Eq,
+	};
+
+	int i;
+
+	COMPILE_ASSERT(ARRAY_SIZE(strict2oid) == ARRAY_SIZE(strict2func));
+
+	for(i=0; i<ARRAY_SIZE(strict2oid); ++i)
+	{
+		if (strict2oid[i] == funcoid)
+		{
+			fstate->xprstate.evalfunc = strict2func[i];
+			fstate->fp_arg[0] = linitial(fstate->args);
+			fstate->fp_arg[1] = lsecond(fstate->args);
+			return;
+		}
+	}
+}
+
+static Datum
+ExecEvalFPScalarArrayInt(ScalarArrayOpExprState *sstate,
+					  ExprContext *econtext,
+					  bool *isNull, ExprDoneCond *isDone)
+{
+	ScalarArrayOpExpr *opexpr = (ScalarArrayOpExpr *) sstate->fxprstate.xprstate.expr;
+	Oid fnoid = opexpr->opfuncid;
+	ExprState *arg = linitial(sstate->fxprstate.args);
+
+	ExprDoneCond argDone;
+	Datum d;
+	bool isnull;
+
+	int i;
+
+	d = ExecEvalExpr(arg, econtext, &isnull, &argDone);
+	Assert(argDone == ExprSingleResult);
+
+	if (isDone)
+		*isDone = ExprSingleResult;
+		
+	if (isnull)
+	{
+		*isNull = true;
+		return 0;
+	}
+
+	*isNull = false;
+	if (fnoid == INT4EQ_OID || fnoid == DATE_EQ_OID)
+		d = Int32GetDatum(DatumGetInt32(d));
+	else if (fnoid != INT8EQ_OID)
+	{
+		Assert(fnoid == INT2EQ_OID);
+		d = Int16GetDatum(DatumGetInt16(d));
+	}
+
+	for(i=0; i<sstate->fp_n; ++i)
+	{
+		if(d == sstate->fp_datum[i])
+			return BoolGetDatum(true);
+	}
+
+	return BoolGetDatum(false);
+}
+
+static Datum
+ExecEvalFPScalarArrayStr(ScalarArrayOpExprState *sstate,
+					  ExprContext *econtext,
+					  bool *isNull, ExprDoneCond *isDone)
+{
+	ScalarArrayOpExpr *opexpr = (ScalarArrayOpExpr *) sstate->fxprstate.xprstate.expr;
+	Oid fnoid = opexpr->opfuncid;
+	ExprState *arg = linitial(sstate->fxprstate.args);
+
+	ExprDoneCond argDone;
+	Datum d;
+	bool isnull;
+	Datum ret;
+
+	char *p; void *tofree; int len;
+
+	int i;
+
+	d = ExecEvalExpr(arg, econtext, &isnull, &argDone);
+	Assert(argDone == ExprSingleResult);
+
+	if (isDone)
+		*isDone = ExprSingleResult;
+		
+	if (isnull)
+	{
+		*isNull = true;
+		return 0;
+	}
+
+	*isNull = false;
+
+	ret = BoolGetDatum(false);
+
+	varattrib_untoast_ptr_len(d, &p, &len, &tofree);
+
+	/* bpchareq, rid of trailing white space.  see bpeq and bcTruelen */
+	if(fnoid == BPCHAREQ_OID)
+	{
+		while(len > 0 && p[len-1] == ' ')
+			--len;
+	}
+
+	for(i=0; i<sstate->fp_n; ++i)
+	{
+		if(sstate->fp_len[i] != len)
+			continue;
+		if(memcmp(p, DatumGetPointer(sstate->fp_datum[i]), sstate->fp_len[i]) == 0)
+		{
+			ret = BoolGetDatum(true);
+			break;
+		}
+	}
+
+	if(tofree)
+		pfree(tofree);
+
+	return ret;
+}
+
+/* Optimize x in ('A', 'B', 'C') */
+static void FastPathScalarArrayOp(ScalarArrayOpExpr *opexpr, ScalarArrayOpExprState *sstate)
+{
+	ExprState *argstate;
+	Const *argconst;
+	ArrayType *arr;
+
+	char *s;
+	bits8 *bitmap;
+	int bitmask;
+
+	int16		typlen;
+	bool		typbyval;
+	char		typalign;
+
+	Oid fnoid = InvalidOid;
+
+	static int4 optimize_func_oid[] = {
+		INT2EQ_OID,
+		INT4EQ_OID,
+		TEXTEQ_OID,
+		INT8EQ_OID,
+		BPCHAREQ_OID,
+		DATE_EQ_OID,
+	};
+
+	int i;
+		
+	/* IN will be evaluated as OR */
+	if (!opexpr->useOr)
+		return;
+
+	/* Check if we optimize these types */
+	for (i=0; i<ARRAY_SIZE(optimize_func_oid); ++i)
+	{
+		if (optimize_func_oid[i] == opexpr->opfuncid)
+		{
+			fnoid = opexpr->opfuncid;
+			break;
+		}
+	}
+
+	if(fnoid == InvalidOid)
+		return;
+
+	/* Better to have just two args */
+	Assert(list_length(sstate->fxprstate.args) == 2);
+	
+	/* only if the second args are const */
+	argstate = (ExprState *) lsecond(sstate->fxprstate.args);
+	if (argstate->evalfunc != ExecEvalConst)
+		return;
+
+	argconst = (Const *) argstate->expr;
+
+	/* We do not handle null */
+	if (argconst->constisnull)
+		return;
+
+	arr = DatumGetArrayTypeP(argconst->constvalue);
+	sstate->fp_n = ArrayGetNItems(ARR_NDIM(arr), ARR_DIMS(arr));
+
+	/* We do not handle this case */
+	if (sstate->fp_n <= 0)
+		return;
+
+	sstate->fp_len = (int *) palloc(sizeof(int) * sstate->fp_n);
+	sstate->fp_datum = (Datum *) palloc(sizeof(Datum) * sstate->fp_n);
+
+	/* Type stuff */
+	if (sstate->element_type != ARR_ELEMTYPE(arr))
+	{
+		get_typlenbyvalalign(ARR_ELEMTYPE(arr),
+							 &sstate->typlen,
+							 &sstate->typbyval,
+							 &sstate->typalign);
+		sstate->element_type = ARR_ELEMTYPE(arr);
+	}
+	typlen = sstate->typlen;
+	typbyval = sstate->typbyval;
+	typalign = sstate->typalign;
+
+	/* Loop over the array elements */
+	s = (char *) ARR_DATA_PTR(arr);
+	bitmap = ARR_NULLBITMAP(arr);
+	bitmask = 1;
+
+	for (i = 0; i < sstate->fp_n; i++)
+	{
+		Datum elt;
+		
+		/* Do not deal with null yet */
+		if (bitmap && (*bitmap & bitmask) == 0)
+			return;
+		
+		elt = fetch_att(s, typbyval, typlen);
+		s = att_addlength(s, typlen, PointerGetDatum(s));
+		s = (char *) att_align(s, typalign);
+
+		/* int type */
+		if (fnoid == INT2EQ_OID)
+			sstate->fp_datum[i] = Int16GetDatum(DatumGetInt16(elt));
+		else if (fnoid == INT4EQ_OID || fnoid == DATE_EQ_OID)
+			sstate->fp_datum[i] = Int32GetDatum(DatumGetInt32(elt));
+		else if (fnoid == INT8EQ_OID)
+			sstate->fp_datum[i] = elt;
+		else if (fnoid == TEXTEQ_OID || fnoid == BPCHAREQ_OID)
+		{
+			char *p; void *tofree; int len;
+			char *pdest;
+
+			varattrib_untoast_ptr_len(elt, &p, &len, &tofree);
+
+			/* bpchareq, rid of trailing white space.  see bpeq and bcTruelen */
+			if(fnoid == BPCHAREQ_OID)
+			{
+				while(len > 0 && p[len-1] == ' ')
+					--len;
+			}
+
+			sstate->fp_len[i] = len;
+			pdest = palloc(len);
+			sstate->fp_datum[i] = PointerGetDatum(pdest);
+
+			memcpy(pdest, p, len);
+
+			if(tofree)
+				pfree(tofree);
+		}
+		else
+			Assert(!"Wrong optimize_funcoid");
+
+		/* advance bitmap pointer if any */
+		if (bitmap)
+		{
+			bitmask <<= 1;
+			if (bitmask == 0x100 /* 1<<8 */)
+			{
+				bitmap++;
+				bitmask = 1;
+			}
+		}
+	}
+
+	/* Now we are sure we can fast path this */
+	if (fnoid == INT2EQ_OID || fnoid == INT4EQ_OID || fnoid == INT8EQ_OID || fnoid == DATE_EQ_OID)
+		sstate->fxprstate.xprstate.evalfunc = (ExprStateEvalFunc) ExecEvalFPScalarArrayInt;
+	else if (fnoid == TEXTEQ_OID || fnoid == BPCHAREQ_OID) 
+		sstate->fxprstate.xprstate.evalfunc = (ExprStateEvalFunc) ExecEvalFPScalarArrayStr; 
+	else
+		Assert(!"Wrong optimize_funcoid");
+}
+	
 /*
  * ExecEvalScalarArrayOp
  *
@@ -1653,10 +2649,10 @@ ExecEvalDistinct(FuncExprState *fcache,
  * (for ANY and ALL respectively).	Of course we short-circuit as soon as
  * the result is known.
  */
-static Datum
+	static Datum
 ExecEvalScalarArrayOp(ScalarArrayOpExprState *sstate,
-					  ExprContext *econtext,
-					  bool *isNull, ExprDoneCond *isDone)
+		ExprContext *econtext,
+		bool *isNull, ExprDoneCond *isDone)
 {
 	ScalarArrayOpExpr *opexpr = (ScalarArrayOpExpr *) sstate->fxprstate.xprstate.expr;
 	bool		useOr = opexpr->useOr;
@@ -1685,7 +2681,7 @@ ExecEvalScalarArrayOp(ScalarArrayOpExprState *sstate,
 	if (sstate->fxprstate.func.fn_oid == InvalidOid)
 	{
 		init_fcache(opexpr->opfuncid, &sstate->fxprstate,
-					econtext->ecxt_per_query_memory);
+			    econtext->ecxt_per_query_memory, true);
 		Assert(!sstate->fxprstate.func.fn_retset);
 	}
 
@@ -1812,7 +2808,7 @@ ExecEvalScalarArrayOp(ScalarArrayOpExprState *sstate,
 		if (bitmap)
 		{
 			bitmask <<= 1;
-			if (bitmask == 0x100)
+			if (bitmask == 0x100 /* 1<<8 */)
 			{
 				bitmap++;
 				bitmask = 1;
@@ -2408,7 +3404,7 @@ ExecEvalArray(ArrayExprState *astate, ExprContext *econtext,
 		}
 
 		result = (ArrayType *) palloc(nbytes);
-		result->size = nbytes;
+		SET_VARSIZE(result, nbytes);
 		result->ndim = ndims;
 		result->dataoffset = dataoffset;
 		result->elemtype = element_type;
@@ -2459,7 +3455,7 @@ ExecEvalRow(RowExprState *rstate,
 	isnull = (bool *) palloc(natts * sizeof(bool));
 
 	/* preset to nulls in case rowtype has some later-added columns */
-	memset(isnull, true, natts * sizeof(bool));
+	MemSetAligned(isnull, true, natts * sizeof(bool));
 
 	/* Evaluate field values */
 	i = 0;
@@ -2547,6 +3543,32 @@ ExecEvalRowCompare(RowCompareExprState *rstate,
 
 	*isNull = false;
 	return BoolGetDatum(result);
+}
+
+/* ----------------------------------------------------------------
+ *		ExecEvalTableValue
+ * ----------------------------------------------------------------
+ */
+static Datum 
+ExecEvalTableValue(ExprState	*estate,
+				   ExprContext	*econtext,
+				   bool			*isNull, 
+				   ExprDoneCond	*isDone)
+{
+	/* Guard against stack overflow due to overly complex expressions */
+	check_stack_depth();
+
+	if (isDone)
+		*isDone = ExprSingleResult;
+
+	/*
+	 * When evaluated as an expression a TableValueExpr will return NULL,
+	 * this NULL is replaced by an AnyTable datum within nodeTableFunction.c
+	 *
+	 * Is there a better way to do this?
+	 */
+	*isNull = true;
+	return (Datum) 0;
 }
 
 /* ----------------------------------------------------------------
@@ -2663,7 +3685,8 @@ ExecEvalNullIf(FuncExprState *nullIfExpr,
 	{
 		NullIfExpr *op = (NullIfExpr *) nullIfExpr->xprstate.expr;
 
-		init_fcache(op->opfuncid, nullIfExpr, econtext->ecxt_per_query_memory);
+		init_fcache(op->opfuncid, nullIfExpr,
+					econtext->ecxt_per_query_memory, true);
 		Assert(!nullIfExpr->func.fn_retset);
 	}
 
@@ -2972,6 +3995,30 @@ ExecEvalCoerceToDomainValue(ExprState *exprstate,
 	return econtext->domainValue_datum;
 }
 
+/*
+ * ExecEvalPercentileExpr
+ *
+ * Returns a Datum whose value is the value of the precomputed
+ * the value at the percentile found in the given expression context.
+ * Actually,  this is almost same as ExecEvalAggref.  The main reason
+ * to add this is because we don't change the catalog at the moment.
+ * This will be cleaned when we can change the catalog.
+ */
+static Datum
+ExecEvalPercentileExpr(PercentileExprState *exprstate,
+					   ExprContext *econtext,
+					   bool *isNull, ExprDoneCond *isDone)
+{
+	if (isDone)
+		*isDone = ExprSingleResult;
+
+	if (econtext->ecxt_aggvalues == NULL)		/* safety check */
+		elog(ERROR, "no aggregates in this expression context");
+
+	*isNull = econtext->ecxt_aggnulls[exprstate->aggno];
+	return econtext->ecxt_aggvalues[exprstate->aggno];
+}
+
 /* ----------------------------------------------------------------
  *		ExecEvalFieldSelect
  *
@@ -2985,12 +4032,14 @@ ExecEvalFieldSelect(FieldSelectState *fstate,
 					ExprDoneCond *isDone)
 {
 	FieldSelect *fselect = (FieldSelect *) fstate->xprstate.expr;
+	AttrNumber	fieldnum = fselect->fieldnum;
 	Datum		result;
 	Datum		tupDatum;
 	HeapTupleHeader tuple;
 	Oid			tupType;
 	int32		tupTypmod;
 	TupleDesc	tupDesc;
+	Form_pg_attribute attr;
 	HeapTupleData tmptup;
 
 	tupDatum = ExecEvalExpr(fstate->arg, econtext, isNull, isDone);
@@ -3008,6 +4057,27 @@ ExecEvalFieldSelect(FieldSelectState *fstate,
 	tupDesc = get_cached_rowtype(tupType, tupTypmod,
 								 &fstate->argdesc, econtext);
 
+	/* Check for dropped column, and force a NULL result if so */
+	if (fieldnum <= 0 ||
+		fieldnum > tupDesc->natts)	/* should never happen */
+				elog(ERROR, "attribute number %d exceeds number of columns %d",
+					 fieldnum, tupDesc->natts);
+	attr = tupDesc->attrs[fieldnum - 1];
+	if (attr->attisdropped)
+	{
+		*isNull = true;
+		return (Datum) 0;
+	}
+
+	/* Check for type mismatch --- possible after ALTER COLUMN TYPE? */
+	/* As in ExecEvalVar, we should but can't check typmod */
+	if (fselect->resulttype != attr->atttypid)
+		ereport(ERROR,
+				(errmsg("attribute %d has wrong type", fieldnum),
+				 errdetail("Table has type %s, but query expects %s.",
+						   format_type_be(attr->atttypid),
+						   format_type_be(fselect->resulttype))));
+
 	/*
 	 * heap_getattr needs a HeapTuple not a bare HeapTupleHeader.  We set all
 	 * the fields in the struct just in case user tries to inspect system
@@ -3015,11 +4085,10 @@ ExecEvalFieldSelect(FieldSelectState *fstate,
 	 */
 	tmptup.t_len = HeapTupleHeaderGetDatumLength(tuple);
 	ItemPointerSetInvalid(&(tmptup.t_self));
-	tmptup.t_tableOid = InvalidOid;
 	tmptup.t_data = tuple;
 
 	result = heap_getattr(&tmptup,
-						  fselect->fieldnum,
+						  fieldnum,
 						  tupDesc,
 						  isNull);
 	return result;
@@ -3073,7 +4142,6 @@ ExecEvalFieldStore(FieldStoreState *fstate,
 		tuphdr = DatumGetHeapTupleHeader(tupDatum);
 		tmptup.t_len = HeapTupleHeaderGetDatumLength(tuphdr);
 		ItemPointerSetInvalid(&(tmptup.t_self));
-		tmptup.t_tableOid = InvalidOid;
 		tmptup.t_data = tuphdr;
 
 		heap_deform_tuple(&tmptup, tupDesc, values, isnull);
@@ -3081,7 +4149,7 @@ ExecEvalFieldStore(FieldStoreState *fstate,
 	else
 	{
 		/* Convert null input tuple into an all-nulls row */
-		memset(isnull, true, tupDesc->natts * sizeof(bool));
+		MemSetAligned(isnull, true, tupDesc->natts * sizeof(bool));
 	}
 
 	/* Result is never null */
@@ -3138,6 +4206,213 @@ ExecEvalRelabelType(GenericExprState *exprstate,
 	return ExecEvalExpr(exprstate->arg, econtext, isNull, isDone);
 }
 
+/* ----------------------------------------------------------------
+ *		ExecEvalPartOidExpr
+ *
+ *		Evaluate a PartOidExpr
+ * ----------------------------------------------------------------
+ */
+static Datum ExecEvalPartOidExpr(PartOidExprState *exprstate,
+						ExprContext *econtext,
+						bool *isNull, ExprDoneCond *isDone)
+{
+
+	Assert(NULL != exprstate);
+	Assert(NULL != isNull);
+
+	if (isDone)
+	{
+		*isDone = ExprSingleResult;
+	}
+
+	PartitionConstraints *constraint = *exprstate->acceptedLeafPart;
+	if (NULL != constraint)
+	{
+		*isNull = false;
+		return UInt32GetDatum(constraint->pRule->parchildrelid);
+	}
+
+	*isNull = true;
+	return PointerGetDatum(NULL);
+}
+
+/* ----------------------------------------------------------------
+ *		ExecEvalPartDefaultExpr
+ *
+ *		Evaluate a PartDefaultExpr
+ * ----------------------------------------------------------------
+ */
+static Datum ExecEvalPartDefaultExpr(PartDefaultExprState *exprstate,
+						ExprContext *econtext,
+						bool *isNull, ExprDoneCond *isDone)
+{
+	Assert(NULL != exprstate);
+	Assert(NULL != isNull);
+
+	PartDefaultExpr *expr = (PartDefaultExpr *) exprstate->xprstate.expr;
+	PartitionConstraints *constraint = (PartitionConstraints *) exprstate->levelPartConstraints[expr->level];
+	Assert (NULL != constraint);
+
+	if (isDone)
+	{
+		*isDone = ExprSingleResult;
+	}
+	*isNull = false;
+
+	return BoolGetDatum(constraint->defaultPart);
+}
+
+/* ----------------------------------------------------------------
+ *		ExecEvalPartBoundExpr
+ *
+ *		Evaluate a PartBoundExpr
+ * ----------------------------------------------------------------
+ */
+static Datum ExecEvalPartBoundExpr(PartBoundExprState *exprstate,
+						ExprContext *econtext,
+						bool *isNull, ExprDoneCond *isDone)
+{
+	Assert(NULL != exprstate);
+	Assert(NULL != isNull);
+
+	PartBoundExpr *expr = (PartBoundExpr *) exprstate->xprstate.expr;
+	PartitionConstraints *constraint = (PartitionConstraints *) exprstate->levelPartConstraints[expr->level];
+	Assert (NULL != constraint);
+	Const *con = constraint->upperBound;
+	if (expr->isLowerBound)
+	{
+		con = constraint->lowerBound;
+	}
+
+	if (isDone)
+	{
+		*isDone = ExprSingleResult;
+	}
+
+	if (NULL != con)
+	{
+		*isNull = con->constisnull;
+		return con->constvalue;
+	}
+
+	/* return NULL if no upper bound or lower bound exists */
+	*isNull = true;
+	return PointerGetDatum(NULL);
+}
+
+/* ----------------------------------------------------------------
+ *		ExecEvalPartBoundInclusionExpr
+ *
+ *		Evaluate a PartBoundInclusionExpr
+ * ----------------------------------------------------------------
+ */
+static Datum ExecEvalPartBoundInclusionExpr(PartBoundInclusionExprState *exprstate,
+							ExprContext *econtext,
+							bool *isNull, ExprDoneCond *isDone)
+{
+	Assert(NULL != exprstate);
+	Assert(NULL != isNull);
+
+	PartBoundInclusionExpr *expr = (PartBoundInclusionExpr *) exprstate->xprstate.expr;
+	PartitionConstraints *constraint = (PartitionConstraints *) exprstate->levelPartConstraints[expr->level];
+	Assert (NULL != constraint);
+	if (isDone)
+	{
+		*isDone = ExprSingleResult;
+	}
+	*isNull = false;
+	if (expr->isLowerBound)
+	{
+		return BoolGetDatum(constraint->lbInclusive);
+	}
+	return BoolGetDatum(constraint->upInclusive);
+}
+
+/* ----------------------------------------------------------------
+ *		ExecEvalPartBoundOpenExpr
+ *
+ *		Evaluate a PartBoundOpenExpr
+ * ----------------------------------------------------------------
+ */
+static Datum ExecEvalPartBoundOpenExpr(PartBoundOpenExprState *exprstate,
+							ExprContext *econtext,
+							bool *isNull, ExprDoneCond *isDone)
+{
+	Assert(NULL != exprstate);
+	Assert(NULL != isNull);
+
+	PartBoundOpenExpr *expr = (PartBoundOpenExpr *) exprstate->xprstate.expr;
+	PartitionConstraints *constraint = (PartitionConstraints *) exprstate->levelPartConstraints[expr->level];
+	Assert (NULL != constraint);
+	if (isDone)
+	{
+		*isDone = ExprSingleResult;
+	}
+	*isNull = false;
+	if (expr->isLowerBound)
+	{
+		return BoolGetDatum(constraint->lbOpen);
+	}
+	return BoolGetDatum(constraint->upOpen);
+}
+
+/* ----------------------------------------------------------------
+ *    ExecEvalCurrentOfExpr
+ *
+ *    Evaluate CURRENT OF
+ *
+ *    Constant folding must have bound observed values of 
+ * 	gp_segment_id, ctid, and tableoid into the CurrentOfExpr for
+ *	this function's consumption.
+ * ----------------------------------------------------------------
+ */
+static Datum
+ExecEvalCurrentOfExpr(ExprState *exprstate, ExprContext *econtext,
+						bool *isNull, ExprDoneCond *isDone)
+{
+	CurrentOfExpr 	*cexpr = (CurrentOfExpr *) exprstate->expr;
+	bool 			result = false;
+	TupleTableSlot	*slot;
+
+	if (isDone)
+		*isDone = ExprSingleResult;
+	*isNull = false;
+
+	Assert(cexpr->cvarno != INNER);
+	Assert(cexpr->cvarno != OUTER);
+
+	slot = econtext->ecxt_scantuple;
+	Assert(!TupIsNull(slot));
+
+	/* 
+	 * The currently scanned tuple must use heap storage for it to possibly
+	 * satisfy the CURRENT OF qualification. Despite our grand attempts during
+	 * parsing and constant folding to demand heap storage, the scanning of an 
+	 * AO part is still possible, when the current row uses heap storage, but the 
+	 * CURRENT OF invocation uses an unpruned scan of the partition table, yielding 
+	 * tuples from the AO parts before the desired heap tuple.
+	 */
+	if (TupHasHeapTuple(slot))
+	{
+		if (cexpr->gp_segment_id == Gp_segment &&
+			ItemPointerEquals(&cexpr->ctid, slot_get_ctid(slot)))
+		{
+			/*
+			 * If tableoid is InvalidOid, this implies that constant folding had
+			 * had determined tableoid was not necessary in uniquely identifying a tuple.
+			 * Otherwise, the given tuple's tableoid must match the CURRENT OF tableoid.
+			 */
+			if (!OidIsValid(cexpr->tableoid) ||
+				cexpr->tableoid == slot->tts_tableOid)
+			{
+				result = true;
+			}
+		}
+	}
+
+	return BoolGetDatum(result);
+}
+
 
 /*
  * ExecEvalExprSwitchContext
@@ -3158,7 +4433,6 @@ ExecEvalExprSwitchContext(ExprState *expression,
 	MemoryContextSwitchTo(oldContext);
 	return retDatum;
 }
-
 
 /*
  * ExecInitExpr: prepare an expression tree for execution
@@ -3206,15 +4480,8 @@ ExecInitExpr(Expr *node, PlanState *parent)
 	switch (nodeTag(node))
 	{
 		case T_Var:
-			{
-				Var		   *var = (Var *) node;
-
-				state = (ExprState *) makeNode(ExprState);
-				if (var->varattno != InvalidAttrNumber)
-					state->evalfunc = ExecEvalVar;
-				else
-					state->evalfunc = ExecEvalWholeRowVar;
-			}
+			state = (ExprState *) makeNode(ExprState);
+			state->evalfunc = ExecEvalVar;
 			break;
 		case T_Const:
 			state = (ExprState *) makeNode(ExprState);
@@ -3246,7 +4513,17 @@ ExecInitExpr(Expr *node, PlanState *parent)
 					aggstate->aggs = lcons(astate, aggstate->aggs);
 					naggs = ++aggstate->numaggs;
 
-					astate->args = (List *) ExecInitExpr((Expr *) aggref->args,
+					/*
+					 * Combine the argument and sortkey expressions into a single list
+					 * along with the corresponding sortkey clauses, if any.
+					 * The code here is a bit different from postgres, because
+					 * GPDB does different things in parser for the ordered aggregate;
+					 * We don't construct target list in parser but do it here.
+					 * These lists are referenced in ExecInitAgg()
+					 */
+					astate->inputTargets =
+							combineAggrefArgs(aggref, &astate->inputSortClauses);
+					astate->args = (List *) ExecInitExpr((Expr *) astate->inputTargets,
 														 parent);
 
 					/*
@@ -3266,6 +4543,58 @@ ExecInitExpr(Expr *node, PlanState *parent)
 					elog(ERROR, "aggref found in non-Agg plan node");
 				}
 				state = (ExprState *) astate;
+			}
+			break;
+		case T_GroupingFunc:
+			{
+				GroupingFunc *gf = (GroupingFunc *)node;
+				GroupingFuncExprState *gstate = makeNode(GroupingFuncExprState);
+
+				gstate->xprstate.evalfunc = (ExprStateEvalFunc) ExecEvalGroupingFunc;
+				gstate->args = gf->args;
+				gstate->ngrpcols = gf->ngrpcols;
+				state = (ExprState *) gstate;
+			}
+			break;
+		case T_Grouping:
+			{
+				ExprState *gstate = makeNode(ExprState);
+				gstate->evalfunc = (ExprStateEvalFunc) ExecEvalGrouping;
+				state = (ExprState *) gstate;
+			}
+			break;
+		case T_GroupId:
+			{
+				ExprState *gstate = makeNode(ExprState);
+				gstate->evalfunc = (ExprStateEvalFunc) ExecEvalGroupId;
+				state = (ExprState *) gstate;
+			}
+			break;
+		case T_WindowRef:
+			{
+				WindowRef *windowref = (WindowRef *)node;
+				WindowRefExprState *wrstate = makeNode(WindowRefExprState);
+				int numrefs;
+				WindowState   *winstate = (WindowState *) parent;
+				
+				wrstate->xprstate.evalfunc = 
+					(ExprStateEvalFunc) ExecEvalWindowRef;
+				
+				Insist(parent && IsA(parent, WindowState));
+
+				winstate->wrxstates = lcons(wrstate, winstate->wrxstates);
+				numrefs = list_length(winstate->wrxstates);
+
+				wrstate->args = (List *) ExecInitExpr((Expr *) windowref->args,
+													  parent);
+				/* 
+				 * Nested window functions are invalid and should not have 
+				 * reached this point in processing.
+				 */
+				if (numrefs != list_length(winstate->wrxstates))
+					elog(ERRCODE_INTERNAL_ERROR, "nested windowref calls "
+						 "found in Window plan node");
+				state = (ExprState *) wrstate;
 			}
 			break;
 		case T_ArrayRef:
@@ -3299,7 +4628,9 @@ ExecInitExpr(Expr *node, PlanState *parent)
 				fstate->args = (List *)
 					ExecInitExpr((Expr *) funcexpr->args, parent);
 				fstate->func.fn_oid = InvalidOid;		/* not initialized */
+				FastPathStrict2Func(funcexpr->funcid, fstate);
 				state = (ExprState *) fstate;
+				assign_func_result_transient_type(funcexpr->funcid);
 			}
 			break;
 		case T_OpExpr:
@@ -3311,6 +4642,7 @@ ExecInitExpr(Expr *node, PlanState *parent)
 				fstate->args = (List *)
 					ExecInitExpr((Expr *) opexpr->args, parent);
 				fstate->func.fn_oid = InvalidOid;		/* not initialized */
+				FastPathStrict2Func(opexpr->opfuncid, fstate);
 				state = (ExprState *) fstate;
 			}
 			break;
@@ -3336,6 +4668,8 @@ ExecInitExpr(Expr *node, PlanState *parent)
 					ExecInitExpr((Expr *) opexpr->args, parent);
 				sstate->fxprstate.func.fn_oid = InvalidOid;		/* not initialized */
 				sstate->element_type = InvalidOid;		/* ditto */
+
+				FastPathScalarArrayOp(opexpr, sstate);
 				state = (ExprState *) sstate;
 			}
 			break;
@@ -3540,7 +4874,7 @@ ExecInitExpr(Expr *node, PlanState *parent)
 						 * don't really care what type of NULL it is, so
 						 * always make an int4 NULL.
 						 */
-						e = (Expr *) makeNullConst(INT4OID);
+						e = (Expr *) makeNullConst(INT4OID, -1);
 					}
 					estate = ExecInitExpr(e, parent);
 					outlist = lappend(outlist, estate);
@@ -3610,6 +4944,10 @@ ExecInitExpr(Expr *node, PlanState *parent)
 				}
 				state = (ExprState *) rstate;
 			}
+			break;
+		case T_TableValueExpr:
+			state = (ExprState *) makeNode(ExprState);
+			state->evalfunc = ExecEvalTableValue;
 			break;
 		case T_CoalesceExpr:
 			{
@@ -3713,6 +5051,47 @@ ExecInitExpr(Expr *node, PlanState *parent)
 				state = (ExprState *) cstate;
 			}
 			break;
+		case T_CurrentOfExpr:
+			state = (ExprState *) makeNode(ExprState);
+			state->evalfunc = ExecEvalCurrentOfExpr;
+			break;
+		case T_PercentileExpr:
+			{
+				PercentileExpr	   *p = (PercentileExpr *) node;
+				PercentileExprState *pstate = makeNode(PercentileExprState);
+				AggState		   *aggstate = (AggState *) parent;
+				int					naggs;
+
+				if (!IsA(aggstate, AggState))
+					elog(ERROR, "PercentileExpr found in non-Agg plan node: %d",
+							(int) nodeTag(parent));
+
+				aggstate->percs = lcons(pstate, aggstate->percs);
+				naggs = ++aggstate->numaggs;
+
+				pstate->xprstate.evalfunc = (ExprStateEvalFunc) ExecEvalPercentileExpr;
+
+
+				/* This is to build TupleDesc. */
+				pstate->tlist = combinePercentileArgs(p);
+
+				/* This is to build ProjectionInfo. */
+				pstate->args = (List *) ExecInitExpr((Expr *) pstate->tlist, parent);
+
+				/*
+				 * Complain if the aggregate's arguments contain any
+				 * aggregates; nested agg functions are semantically
+				 * nonsensical.  (This should have been caught earlier,
+				 * but we defend against it here anyway.)
+				 */
+				if (naggs != aggstate->numaggs)
+					ereport(ERROR,
+							(errcode(ERRCODE_GROUPING_ERROR),
+							 errmsg("aggregate function calls may not be nested")));
+
+				state = (ExprState *) pstate;
+			}
+			break;
 		case T_TargetEntry:
 			{
 				TargetEntry *tle = (TargetEntry *) node;
@@ -3737,6 +5116,72 @@ ExecInitExpr(Expr *node, PlanState *parent)
 				/* Don't fall through to the "common" code below */
 				return (ExprState *) outlist;
 			}
+		case T_PartOidExpr:
+			{
+				Insist(parent && IsA(parent, PartitionSelectorState));
+				PartitionSelectorState *psstate = (PartitionSelectorState *) parent;
+				PartOidExprState *exprstate = makeNode(PartOidExprState);
+#if USE_ASSERT_CHECKING
+				PartOidExpr *expr = (PartOidExpr *) node;
+				Assert (expr->level == ((PartitionSelector *) psstate->ps.plan)->nLevels - 1 &&
+						"PartOidExpr can only refer to leaf level.");
+#endif
+				exprstate->xprstate.evalfunc = (ExprStateEvalFunc) ExecEvalPartOidExpr;
+				/*
+				 * exprstate->acceptedLeafPart is a double pointer, pointing
+				 * to the field in the PartitionSelector state that will
+				 * be holding the actual PartitionConstraints value (GPSQL-2956)
+				 * computed for each tuple.
+				 */
+				exprstate->acceptedLeafPart = psstate->acceptedLeafPart;
+
+				state = (ExprState *) exprstate;
+			}
+			break;
+		case T_PartDefaultExpr:
+			{
+				Insist(parent && IsA(parent, PartitionSelectorState));
+				PartitionSelectorState *psstate = (PartitionSelectorState *) parent;
+				PartDefaultExprState *exprstate = makeNode(PartDefaultExprState);
+				exprstate->xprstate.evalfunc = (ExprStateEvalFunc) ExecEvalPartDefaultExpr;
+				exprstate->levelPartConstraints = psstate->levelPartConstraints;
+
+				state = (ExprState *) exprstate;
+			}
+			break;
+		case T_PartBoundExpr:
+			{
+				Insist(parent && IsA(parent, PartitionSelectorState));
+				PartitionSelectorState *psstate = (PartitionSelectorState *) parent;
+				PartBoundExprState *exprstate = makeNode(PartBoundExprState);
+				exprstate->xprstate.evalfunc = (ExprStateEvalFunc) ExecEvalPartBoundExpr;
+				exprstate->levelPartConstraints = psstate->levelPartConstraints;
+
+				state = (ExprState *) exprstate;
+			}
+			break;
+		case T_PartBoundInclusionExpr:
+			{
+				Insist(parent && IsA(parent, PartitionSelectorState));
+				PartitionSelectorState *psstate = (PartitionSelectorState *) parent;
+				PartBoundInclusionExprState *exprstate = makeNode(PartBoundInclusionExprState);
+				exprstate->xprstate.evalfunc = (ExprStateEvalFunc) ExecEvalPartBoundInclusionExpr;
+				exprstate->levelPartConstraints = psstate->levelPartConstraints;
+
+				state = (ExprState *) exprstate;
+			}
+			break;
+		case T_PartBoundOpenExpr:
+			{
+				Insist(parent && IsA(parent, PartitionSelectorState));
+				PartitionSelectorState *psstate = (PartitionSelectorState *) parent;
+				PartBoundOpenExprState *exprstate = makeNode(PartBoundOpenExprState);
+				exprstate->xprstate.evalfunc = (ExprStateEvalFunc) ExecEvalPartBoundOpenExpr;
+				exprstate->levelPartConstraints = psstate->levelPartConstraints;
+
+				state = (ExprState *) exprstate;
+			}
+			break;
 		default:
 			elog(ERROR, "unrecognized node type: %d",
 				 (int) nodeTag(node));
@@ -3761,15 +5206,20 @@ ExecInitExprInitPlan(SubPlan *node, PlanState *parent)
 {
 	SubPlanState *sstate = makeNode(SubPlanState);
 
-	if (!parent)
-		elog(ERROR, "SubPlan found with no parent plan");
-
 	/* The subplan's state will be initialized later */
 	sstate->sub_estate = NULL;
 	sstate->planstate = NULL;
 
-	sstate->testexpr = ExecInitExpr((Expr *) node->testexpr, parent);
-	sstate->args = (List *) ExecInitExpr((Expr *) node->args, parent);
+	if (parent != NULL)
+	{
+		sstate->testexpr = ExecInitExpr((Expr *) node->testexpr, parent);
+		sstate->args = (List *) ExecInitExpr((Expr *) node->args, parent);
+	}
+	else
+	{
+		sstate->testexpr = NULL;
+		sstate->args = NULL;
+	}
 
 	sstate->xprstate.expr = (Expr *) node;
 
@@ -4101,19 +5551,6 @@ ExecVariableList(ProjectionInfo *projInfo,
 	int			i;
 
 	/*
-	 * Force extraction of all input values that we need.
-	 */
-	if (projInfo->pi_lastInnerVar > 0)
-		slot_getsomeattrs(econtext->ecxt_innertuple,
-						  projInfo->pi_lastInnerVar);
-	if (projInfo->pi_lastOuterVar > 0)
-		slot_getsomeattrs(econtext->ecxt_outertuple,
-						  projInfo->pi_lastOuterVar);
-	if (projInfo->pi_lastScanVar > 0)
-		slot_getsomeattrs(econtext->ecxt_scantuple,
-						  projInfo->pi_lastScanVar);
-
-	/*
 	 * Assign to result by direct extraction of fields from source slots ... a
 	 * mite ugly, but fast ...
 	 */
@@ -4123,8 +5560,7 @@ ExecVariableList(ProjectionInfo *projInfo,
 		TupleTableSlot *varSlot = *((TupleTableSlot **) slotptr);
 		int			varNumber = varNumbers[i] - 1;
 
-		values[i] = varSlot->tts_values[varNumber];
-		isnull[i] = varSlot->tts_isnull[varNumber];
+		values[i] = slot_getattr(varSlot, varNumber+1, &(isnull[i])); 
 	}
 }
 
@@ -4172,21 +5608,204 @@ ExecProject(ProjectionInfo *projInfo, ExprDoneCond *isDone)
 		/* simple Var list: this always succeeds with one result row */
 		if (isDone)
 			*isDone = ExprSingleResult;
+
 		ExecVariableList(projInfo,
-						 slot->tts_values,
-						 slot->tts_isnull);
+						 slot_get_values(slot),
+						 slot_get_isnull(slot));
 		ExecStoreVirtualTuple(slot);
 	}
 	else
 	{
 		if (ExecTargetList(projInfo->pi_targetlist,
 						   projInfo->pi_exprContext,
-						   slot->tts_values,
-						   slot->tts_isnull,
-						   projInfo->pi_itemIsDone,
+						   slot_get_values(slot),
+						   slot_get_isnull(slot),
+						   (ExprDoneCond *) projInfo->pi_itemIsDone,
 						   isDone))
 			ExecStoreVirtualTuple(slot);
 	}
 
 	return slot;
+}
+
+/*
+ * ExecIsExprUnsafeToConst_walker
+ *
+ * Almost all of the expressions are not allowed without the executor.
+ * Returns true as soon as possible we find such unsafe nodes.
+ */
+static bool
+ExecIsExprUnsafeToConst_walker(Node *node, void *context)
+{
+	switch(nodeTag(node))
+	{
+		/*
+		 * Param can be a Const in some situation, but the demanded use case
+		 * so far doesn't want it.
+		 */
+		case T_Const:
+		case T_CaseTestExpr:
+		case T_FuncExpr:
+		case T_OpExpr:
+		case T_DistinctExpr:
+		case T_ScalarArrayOpExpr:
+		case T_BoolExpr:
+		case T_CaseExpr:
+		case T_CoalesceExpr:
+		case T_MinMaxExpr:
+		case T_NullIfExpr:
+		case T_NullTest:
+		case T_BooleanTest:
+		case T_List:
+		case T_TypeCast:
+			return false;
+
+		default:
+			return true;
+	}
+}
+
+/*
+ * ExecIsExprUnsafeToConst
+ *
+ * Returns true if the expression cannot be evaluated to a const value.
+ */
+static bool
+ExecIsExprUnsafeToConst(Node *node)
+{
+	Assert(node != NULL);
+	return ExecIsExprUnsafeToConst_walker(node, NULL);
+}
+
+/*
+ * ExecEvalFunctionArgToConst
+ *
+ * Evaluates an argument of function expression and returns the result.
+ * This is assumed to be used in the parser stage, where
+ * dynamic evaluation such like Var is not available, though we put it
+ * here so that we can extend it to be useful in other places later.
+ */
+Datum
+ExecEvalFunctionArgToConst(FuncExpr *fexpr, int argno, bool *isnull)
+{
+	Expr		   *aexpr;
+	Oid				argtype;
+	Const		   *result;
+
+	/* argument number sanity check */
+	if (argno < 0 || list_length(fexpr->args) <= argno)
+		elog(ERROR, "invalid argument number found during evaluating function argument");
+
+	aexpr = (Expr *) list_nth(fexpr->args, argno);
+	/*
+	 * Check if the expression can be evaluated in the Const fasion.
+	 */
+	if (ExecIsExprUnsafeToConst((Node *) aexpr))
+		elog(ERROR, "unable to resolve function argument");
+
+	argtype = exprType((Node *) aexpr);
+	if (!OidIsValid(argtype))
+		elog(ERROR, "unable to resolve function argument type");
+
+	result = (Const *) evaluate_expr(aexpr, argtype);
+	/* evaluate_expr always returns Const */
+	Assert(IsA(result, Const));
+
+	if (isnull)
+		*isnull = result->constisnull;
+
+	return result->constvalue;
+}
+
+typedef struct neededColumnContext
+{
+	bool *mask;
+	int n;
+} neededColumnContext;
+
+static bool
+neededColumnContextWalker(Node *node, neededColumnContext *c)
+{
+	if (node == NULL)
+		return false;
+
+	if (IsA(node, Var))
+	{
+		Var *var = (Var *)node;
+
+		if (var->varattno > 0) 
+		{
+			Assert(var->varattno <= c->n);
+			c->mask[var->varattno - 1] = true;
+		}
+		/*
+		 * If all attributes are included,
+		 * set all entries in mask to true.
+		 */
+		else if (var->varattno == 0)
+		{
+			int i;
+
+			for (i=0; i < c->n; i++)
+				c->mask[i] = true;
+		}
+
+		return false;
+	}
+	return expression_tree_walker(node, neededColumnContextWalker, (void * )c);
+}
+
+/*
+ * n specifies the number of allowed entries in mask: we use
+ * it for bounds-checking in the walker above.
+ */
+void GetNeededColumnsForScan(Node *expr, bool *mask, int n)
+{
+	neededColumnContext c;
+
+	c.mask = mask;
+	c.n = n;
+
+	neededColumnContextWalker(expr, &c);
+}
+
+/* ----------------------------------------------------------------
+ *	isJoinExprNull
+ *
+ *	Checks if the join expression evaluates to NULL for a given
+ *	input tuple.
+ *
+ *	The input tuple has to be present in the correct TupleTableSlot
+ *	in the ExprContext. For example, if all the expressions
+ *	in joinExpr refer to the inner side of the join,
+ *	econtext->ecxt_innertuple must be valid.
+ * ----------------------------------------------------------------
+ */
+bool
+isJoinExprNull(List *joinExpr, ExprContext *econtext)
+{
+
+	Assert(NULL != joinExpr);
+	bool joinkeys_null = true;
+
+	ListCell   *lc;
+	foreach(lc, joinExpr)
+	{
+		ExprState  *keyexpr = (ExprState *) lfirst(lc);
+		bool		isNull = false;
+
+		/*
+		 * Evaluate the current join attribute value of the tuple
+		 */
+		ExecEvalExpr(keyexpr, econtext, &isNull, NULL);
+
+		if (!isNull)
+		{
+			/* Found at least one non-null join expression, we're done */
+			joinkeys_null = false;
+			break;
+		}
+	}
+
+	return joinkeys_null;
 }

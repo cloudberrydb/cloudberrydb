@@ -4,7 +4,7 @@
  *	  interface for Value nodes
  *
  *
- * Copyright (c) 2003-2006, PostgreSQL Global Development Group
+ * Copyright (c) 2003-2009, PostgreSQL Global Development Group
  *
  * $PostgreSQL: pgsql/src/include/nodes/value.h,v 1.5 2006/03/05 15:58:57 momjian Exp $
  *

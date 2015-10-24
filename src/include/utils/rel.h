@@ -4,7 +4,8 @@
  *	  POSTGRES relation descriptor (a/k/a relcache entry) definitions.
  *
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 2005-2009, Greenplum inc.
+ * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * $PostgreSQL: pgsql/src/include/utils/rel.h,v 1.92 2006/10/04 00:30:10 momjian Exp $
@@ -19,9 +20,12 @@
 #include "catalog/pg_class.h"
 #include "catalog/pg_index.h"
 #include "fmgr.h"
+#include "nodes/bitmapset.h"
 #include "rewrite/prs2lock.h"
 #include "storage/block.h"
 #include "storage/relfilenode.h"
+#include "utils/relcache.h"
+#include "catalog/gp_persistent.h"
 
 
 /*
@@ -69,9 +73,10 @@ typedef struct TriggerDesc
 	/*
 	 * Index data to identify which triggers are which.  Since each trigger
 	 * can appear in more than one class, for each class we provide a list of
-	 * integer indexes into the triggers array.
+	 * integer indexes into the triggers array.  The class codes are defined
+	 * by TRIGGER_EVENT_xxx macros in commands/trigger.h.
 	 */
-#define TRIGGER_NUM_EVENT_CLASSES  3
+#define TRIGGER_NUM_EVENT_CLASSES  4
 
 	uint16		n_before_statement[TRIGGER_NUM_EVENT_CLASSES];
 	uint16		n_before_row[TRIGGER_NUM_EVENT_CLASSES];
@@ -86,15 +91,6 @@ typedef struct TriggerDesc
 	Trigger    *triggers;
 	int			numtriggers;
 } TriggerDesc;
-
-
-/*
- * Same for the statistics collector data in Relation and scan data.
- */
-typedef struct PgStat_Info
-{
-	void	   *tabentry;
-} PgStat_Info;
 
 
 /*
@@ -118,6 +114,16 @@ typedef struct RelationAmInfo
 	FmgrInfo	amoptions;
 } RelationAmInfo;
 
+typedef struct RelationNodeInfo
+{
+	bool	isPresent;
+
+	bool	tidAllowedToBeZero;
+				// Persistent TID allowed to be zero for "Before Persistence" or Recovery.
+
+	ItemPointerData		persistentTid;
+	int64				persistentSerialNum;
+} RelationNodeInfo;
 
 /*
  * Here are the contents of a relation cache entry.
@@ -131,12 +137,21 @@ typedef struct RelationData
 	BlockNumber rd_targblock;	/* current insertion target block, or
 								 * InvalidBlockNumber */
 	int			rd_refcnt;		/* reference count */
-	bool		rd_istemp;		/* rel uses the local buffer mgr */
+	bool		rd_istemp;		/* CDB: true => skip locking, logging, fsync */
+	bool		rd_issyscat;	/* GP: true => system catalog table (has "pg_" prefix) */
 	bool		rd_isnailed;	/* rel is nailed in cache */
 	bool		rd_isvalid;		/* relcache entry is valid */
 	char		rd_indexvalid;	/* state of rd_indexlist: 0 = not valid, 1 =
 								 * valid, 2 = temporarily forced */
 	SubTransactionId rd_createSubid;	/* rel was created in current xact */
+
+	/*
+	 * Debugging information, Values from CREATE TABLE, if present.
+	 */
+	bool				rd_haveCreateDebugInfo;
+	bool				rd_createDebugIsZeroTid;
+	ItemPointerData		rd_createDebugPersistentTid;
+	int64				rd_createDebugPersistentSerialNum;
 
 	/*
 	 * rd_createSubid is the ID of the highest subtransaction the rel has
@@ -153,6 +168,9 @@ typedef struct RelationData
 	RuleLock   *rd_rules;		/* rewrite rules */
 	MemoryContext rd_rulescxt;	/* private memory cxt for rd_rules, if any */
 	TriggerDesc *trigdesc;		/* Trigger info, or NULL if rel has none */
+    struct GpPolicy *rd_cdbpolicy; /* Partitioning info if distributed rel */
+    bool        rd_cdbDefaultStatsWarningIssued;
+	bool		rd_isLocalBuf;  /* CDB: true => rel uses the local buffer mgr */
 
 	/*
 	 * rd_options is set whenever rd_rel is loaded into the relcache entry.
@@ -192,21 +210,15 @@ typedef struct RelationData
 	List	   *rd_indpred;		/* index predicate tree, if any */
 	void	   *rd_amcache;		/* available for use by index AM */
 
-	/* statistics collection area */
-	PgStat_Info pgstat_info;
+	/*
+	 * Physical file-system information.
+	 */
+	struct RelationNodeInfo rd_segfile0_relationnodeinfo;
+								/* Values from gp_relation_node, if present */
+
+	/* use "struct" here to avoid needing to include pgstat.h: */
+	struct PgStat_TableStatus *pgstat_info;		/* statistics collection area */
 } RelationData;
-
-typedef RelationData *Relation;
-
-
-/* ----------------
- *		RelationPtr is used in the executor to support index scans
- *		where we have to keep track of several index relations in an
- *		array.	-cim 9/10/89
- * ----------------
- */
-typedef Relation *RelationPtr;
-
 
 /*
  * StdRdOptions
@@ -216,14 +228,51 @@ typedef Relation *RelationPtr;
  * be applied to relations that use this format or a superset for
  * private options data.
  */
+ /* autovacuum-related reloptions. */
+typedef struct AutoVacOpts
+{
+	bool		enabled;
+	int			vacuum_threshold;
+	int			analyze_threshold;
+	int			vacuum_cost_delay;
+	int			vacuum_cost_limit;
+	int			freeze_min_age;
+	int			freeze_max_age;
+	int			freeze_table_age;
+	float8		vacuum_scale_factor;
+	float8		analyze_scale_factor;
+} AutoVacOpts;
+
 typedef struct StdRdOptions
 {
-	int32		vl_len;			/* required to be a bytea */
+	int32		vl_len_;		/* varlena header (do not touch directly!) */
 	int			fillfactor;		/* page fill factor in percent (0..100) */
+	AutoVacOpts autovacuum;		/* autovacuum-related options */
+	bool		appendonly;		/* is this an appendonly relation? */
+	int			blocksize;		/* max varblock size (AO rels only) */
+	int			compresslevel;  /* compression level (AO rels only) */
+	char*		compresstype;   /* compression type (AO rels only) */
+	bool		checksum;		/* checksum (AO rels only) */
+	bool 		columnstore;		/* columnstore (AO only) */
 } StdRdOptions;
 
 #define HEAP_MIN_FILLFACTOR			10
 #define HEAP_DEFAULT_FILLFACTOR		100
+
+typedef struct TidycatOptions
+{
+	/*
+	 *  Options only allowed during upgrade (tidycat option)
+	 *  Not all tidycat option are of interest to us:
+	 *    "shared" is not needed because it's derived from tablespace
+	 */
+	Oid         relid;          /* relid of the table in pg_class */
+	Oid         reltype_oid;    /* static reltype in pg_type */
+	Oid         toast_oid;      /* oid of the toast table */
+	Oid         toast_index;    /* oid of the toast index */
+	Oid         toast_reltype;  /* static reltype of the toast table in pg_type */
+	Oid         indexid;
+} TidycatOptions;
 
 /*
  * RelationGetFillFactor
@@ -254,6 +303,48 @@ typedef struct StdRdOptions
 #define RelationIsValid(relation) PointerIsValid(relation)
 
 #define InvalidRelation ((Relation) NULL)
+
+/*
+ * RelationIsHeap
+ * 		True iff relation has heap storage
+ */
+#define RelationIsHeap(relation) \
+	((bool)((relation)->rd_rel->relstorage == RELSTORAGE_HEAP))
+
+/*
+ * RelationIsExternal
+ * 		True iff relation has external storage
+ */
+#define RelationIsExternal(relation) \
+	((bool)((relation)->rd_rel->relstorage == RELSTORAGE_EXTERNAL))
+
+/*
+ * RelationIsAoRows
+ * 		True iff relation has append only storage with row orientation
+ */
+#define RelationIsAoRows(relation) \
+	((bool)(((relation)->rd_rel->relstorage == RELSTORAGE_AOROWS)))
+
+/*
+ * RelationIsAoCols
+ * 		True iff relation has append only storage with column orientation
+ */
+#define RelationIsAoCols(relation) \
+	((bool)(((relation)->rd_rel->relstorage == RELSTORAGE_AOCOLS)))
+
+/*
+ * RelationIsForeign
+ * 		True iff relation has foreign storage
+ */
+#define RelationIsForeign(relation) \
+	((bool)((relation)->rd_rel->relstorage == RELSTORAGE_FOREIGN))
+
+/*
+ * RelationIsBitmapIndex
+ *      True iff relation is a bitmap index
+ */
+#define RelationIsBitmapIndex(relation) \
+	((bool)((relation)->rd_rel->relam == BITMAP_AM_OID))
 
 /*
  * RelationHasReferenceCountZero

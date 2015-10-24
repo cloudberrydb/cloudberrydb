@@ -3,17 +3,17 @@
  * path.c
  *	  portable path handling routines
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/port/path.c,v 1.70 2006/10/04 00:30:14 momjian Exp $
+ *	  $PostgreSQL: pgsql/src/port/path.c,v 1.79 2009/06/11 14:49:15 momjian Exp $
  *
  *-------------------------------------------------------------------------
  */
 
-#include "c.h"
+#include "postgres.h"
 
 #include <ctype.h>
 #include <sys/stat.h>
@@ -33,7 +33,6 @@
 
 #include "pg_config_paths.h"
 
-
 #ifndef WIN32
 #define IS_DIR_SEP(ch)	((ch) == '/')
 #else
@@ -44,6 +43,34 @@
 #define IS_PATH_SEP(ch) ((ch) == ':')
 #else
 #define IS_PATH_SEP(ch) ((ch) == ';')
+#endif
+
+/*
+ * These declarations are for gp_mkdtemp on Solaris
+ *
+ * On Solaris there is no mkdtemp function, so we added our
+ * own implementation.
+ */
+#if defined pg_on_solaris
+
+/*
+ * A lower bound on the number of temporary files to attempt to
+ * generate.  The maximum total number of temporary file names that
+ * can exist for a given template is 62**6.  It should never be
+ * necessary to try all these combinations.  Instead if a reasonable
+ * number of names is tried (we define reasonable as 62**3) fail to
+ * give the system administrator the chance to remove the problems.
+ */
+#define MKDTEMP_ATTEMPTS_MIN (62 * 62 * 62)
+
+#ifndef __set_errno
+# define __set_errno(Val) errno = (Val)
+#endif
+
+	/* These are the characters used in temporary file names.  */
+static const char letters[] =
+	"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+
 #endif
 
 static void make_relative_path(char *ret_path, const char *target_path,
@@ -158,6 +185,8 @@ make_native_path(char *filename)
 	for (p = filename; *p; p++)
 		if (*p == '/')
 			*p = '\\';
+#else
+	UnusedArg(filename);
 #endif
 }
 
@@ -420,15 +449,22 @@ get_progname(const char *argv0)
 
 
 /*
- * dir_strcmp: strcmp except any two DIR_SEP characters are considered equal
+ * dir_strcmp: strcmp except any two DIR_SEP characters are considered equal,
+ * and we honor filesystem case insensitivity if known
  */
 static int
 dir_strcmp(const char *s1, const char *s2)
 {
 	while (*s1 && *s2)
 	{
-		if (*s1 != *s2 &&
-			!(IS_DIR_SEP(*s1) && IS_DIR_SEP(*s2)))
+		if (
+#ifndef WIN32
+			*s1 != *s2
+#else
+			/* On windows, paths are case-insensitive */
+			pg_tolower((unsigned char) *s1) != pg_tolower((unsigned char) *s2)
+#endif
+			&& !(IS_DIR_SEP(*s1) && IS_DIR_SEP(*s2)))
 			return (int) *s1 - (int) *s2;
 		s1++, s2++;
 	}
@@ -600,6 +636,15 @@ get_doc_path(const char *my_exec_path, char *ret_path)
 }
 
 /*
+ *	get_html_path
+ */
+void
+get_html_path(const char *my_exec_path, char *ret_path)
+{
+	make_relative_path(ret_path, HTMLDIR, PGBINDIR, my_exec_path);
+}
+
+/*
  *	get_man_path
  */
 void
@@ -628,10 +673,15 @@ get_home_path(char *ret_path)
 	strlcpy(ret_path, pwd->pw_dir, MAXPGPATH);
 	return true;
 #else
-	char		tmppath[MAX_PATH];
+	char	   *tmppath;
 
-	ZeroMemory(tmppath, sizeof(tmppath));
-	if (SHGetFolderPath(NULL, CSIDL_APPDATA, NULL, 0, tmppath) != S_OK)
+	/*
+	 * Note: We use getenv here because the more modern
+	 * SHGetSpecialFolderPath() will force us to link with shell32.lib which
+	 * eats valuable desktop heap.
+	 */
+	tmppath = getenv("APPDATA");
+	if (!tmppath)
 		return false;
 	snprintf(ret_path, MAXPGPATH, "%s/postgresql", tmppath);
 	return true;
@@ -700,4 +750,94 @@ trim_trailing_separator(char *path)
 	if (p > path)
 		for (p--; p > path && IS_DIR_SEP(*p); p--)
 			*p = '\0';
+}
+
+/*
+ * Generate a unique temporary directory name from TEMPLATE_PATH.
+ * The last six characters of TEMPLATE_PATH must be "XXXXXX";
+ * they are replaced with a string that makes the directory name unique.
+ * Then create the directory and return the template or NULL.
+ */
+char *
+gp_mkdtemp(char *template_path)
+{
+#if defined (pg_on_solaris)
+	int len;
+	char *suffix;
+	static int64 value;
+	int64 random_time_bits;
+	unsigned int count;
+	int save_errno = errno;
+	struct timeval tv;
+
+	/*
+	 * The number of times to attempt to generate a temporary file.  To
+	 * conform to POSIX, this must be no smaller than TMP_MAX.
+	 */
+#if defined TMP_MAX
+		unsigned int mkdir_attempts = MKDTEMP_ATTEMPTS_MIN < TMP_MAX ? TMP_MAX : MKDTEMP_ATTEMPTS_MIN;
+#else
+		unsigned int mkdir_attempts = MKDTEMP_ATTEMPTS_MIN;
+#endif
+
+	len = strlen (template_path);
+	if (len < 6 || strcmp (&template_path[len - 6], "XXXXXX"))
+	{
+		__set_errno (EINVAL);
+		return NULL;
+	}
+
+	/* This is where the Xs start.  */
+	suffix = &template_path[len - 6];
+
+	/* Get some more or less random data.  */
+	gettimeofday (&tv, NULL);
+	random_time_bits = ((int64) tv.tv_usec << 16) ^ tv.tv_sec;
+	value += random_time_bits ^ getpid();
+
+	for (count = 0; count < mkdir_attempts; value += 7777, ++count)
+	{
+		int64 v = value;
+
+		/* Fill in the random bits.  */
+		suffix[0] = letters[v % 62];
+		v /= 62;
+		suffix[1] = letters[v % 62];
+		v /= 62;
+		suffix[2] = letters[v % 62];
+		v /= 62;
+		suffix[3] = letters[v % 62];
+		v /= 62;
+		suffix[4] = letters[v % 62];
+		v /= 62;
+		suffix[5] = letters[v % 62];
+
+		if (mkdir(template_path, 0700) == 0)
+		{
+			__set_errno (save_errno);
+			return template_path;
+		}
+		else
+		{
+			if (errno != EEXIST)
+			{
+				return NULL;
+			}
+		}
+	}
+
+	/* We got out of the loop because we ran out of combinations to try.  */
+	__set_errno (EEXIST);
+	return NULL;
+
+#elif defined (__linux__) || defined(linux) || defined(__darwin__)
+
+	return mkdtemp(template_path);
+
+#else
+
+	fprintf(stderr, "mkdtemp not supported on this platform");
+	exit(1);				/* This could exit the postmaster */
+
+#endif
 }

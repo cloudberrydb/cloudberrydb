@@ -7,10 +7,10 @@
  * It can be used to buffer either ordinary C strings (null-terminated text)
  * or arbitrary binary data.  All storage is allocated with palloc().
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
- * $PostgreSQL: pgsql/src/include/lib/stringinfo.h,v 1.32 2006/03/05 15:58:56 momjian Exp $
+ * $PostgreSQL: pgsql/src/include/lib/stringinfo.h,v 1.36 2009/01/01 17:23:59 momjian Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -78,6 +78,15 @@ extern StringInfo makeStringInfo(void);
  */
 extern void initStringInfo(StringInfo str);
 
+extern void initStringInfoOfSize(StringInfo str, int bufsize);
+
+/*------------------------
+ * resetStringInfo
+ * Clears the current content of the StringInfo, if any. The
+ * StringInfo remains valid.
+ */
+extern void resetStringInfo(StringInfo str);
+
 /*------------------------
  * appendStringInfo
  * Format text data under the control of fmt (an sprintf-style format string)
@@ -125,17 +134,46 @@ extern void appendStringInfoChar(StringInfo str, char ch);
 	 (void)((str)->data[(str)->len] = (ch), (str)->data[++(str)->len] = '\0'))
 
 /*------------------------
+ * appendStringInfoFill
+ * Append a single byte, repeated 0 or more times, to str.
+ */
+extern void appendStringInfoFill(StringInfo str, int occurrences, char ch);
+
+/*------------------------
  * appendBinaryStringInfo
  * Append arbitrary binary data to a StringInfo, allocating more space
  * if necessary.
  */
 extern void appendBinaryStringInfo(StringInfo str,
-					   const char *data, int datalen);
+					   const void *data, int datalen);
+
+/*------------------------
+ * appendStringInfoLiteral
+ * Wrap a string literal and send to appendBinaryStringInfo, sort of
+ * the way appendStringInfoString() would do, except without having
+ * to call strlen() on something for which we already know the length 
+ *
+ * NOTE: sizeof() returns full size, including NULL.
+ */
+#define appendStringInfoLiteral(str, lit) (appendBinaryStringInfo(str, (lit), sizeof((lit)) - 1))
 
 /*------------------------
  * enlargeStringInfo
  * Make sure a StringInfo's buffer can hold at least 'needed' more bytes.
  */
 extern void enlargeStringInfo(StringInfo str, int needed);
+
+/*------------------------
+ * truncateStringInfo
+ * Make sure a StringInfo's string is no longer than 'nchars' characters.
+ */
+extern void truncateStringInfo(StringInfo str, int nchars);
+
+/*------------------------
+ * replaceStringInfoString
+ * Replace all occurances of a string in a StringInfo with a different string.
+ */
+
+extern void replaceStringInfoString(StringInfo str, char *replace, char *replacement);
 
 #endif   /* STRINGINFO_H */

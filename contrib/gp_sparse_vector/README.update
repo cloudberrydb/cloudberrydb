@@ -1,0 +1,72 @@
+On Dynamic Word Size for the RLE index
+==========================================================================
+I thought we'd use a method where we identify the size of the next word in
+the index by leveraging the top two bits of the word to describe how large
+the following word is.
+
+This idea works if the word is layed out with the "top bits" inside the
+first byte.  However, big endian systems (Intel, AMD) store the topmost
+bits of their words as the *last* byte in the word, which means that we
+can't tell what size the word is without reading the word.  We can't
+read the word without knowing the size, so this is a non-starter.
+
+We could encode the size information into the bottom bits of the word,
+but then we end up with different code paths for big endian systems and
+little endian systems.  This is dangerous, and means we would not have
+a portable binary format between systems with different endian-ness.
+
+An alternative strategy would use the entire first byte of an RLE word
+to encode the following word size.  A modification of this scheme would
+encode the word size into the top two bits of the first byte, and if
+the word size is a single byte, then the remainder of the byte would
+represent the encoded length. This preserves the worst-case compression
+of the previous scheme and introduces an additional overhead to the 
+middle compression cases equal to one byte per RLE word.
+
+==========================================================================
+A multi-platform friendly dynamic word size RLE scheme
+==========================================================================
+We have a sequence of numbers and we want a scheme that will store them in
+the most compact format possible using binary types of 8, 16, 32 and 64 bit
+widths.
+
+Let's say we have the following sequence: {13, 2000, 2*10^12, 3*10^26}. We
+can see that it would require one byte to minimally store the first number,
+two to store the second, 4 to store the third and 8 for the fourth.
+
+We can store the sequence using these minimum widths and we will have an
+array with sizes (in bytes): {1,2,4,8}.  However, to read this array, we
+need to be able to determine the width of each word.
+
+Here we will use a "length word" to describe the length of the storage
+type for each entry.  The size of the length word will always be 1 byte,
+though in the case where the stored number is less than 127, we will not
+use a length word, we'll just store a "-127" in a single byte. The value
+of the length word will be one of 1,2,4 or 8 to indicate the size of the
+following storage width.
+
+So our example would be stored in an array with the following word widths
+and contents (in parenthesis):
+	{1(-13), 1(2), 2(2000), 1(4), 4(2*10^12), 1(8), 8(3*10^26)}
+
+The total size of this array is 18 bytes, which should be compared to the
+size required if an 8 byte width was used to store all words, in which
+case we would need 32 bytes to store the array.  This is a savings of
+nearly half in this simple case.  In the worst case where we are storing
+numbers that all require 8 byte widths, we would be adding one byte per
+word, or a 12.5% overhead.  If we have lots of 1 byte words interspersed
+with an occasional 8 byte word, the savings move toward an 8:1 compression
+ratio.
+
+The algorithm for reading this array is as follows:
+	Read first byte "B"
+	if (B < 0)
+		N = -(B)
+	else
+		Copy "B" byte word into N
+
+We have to be careful about alignment when reading the dynamic sized word
+from the array - we can't just cast the next "B" bytes into the appropriate
+sized type and dereference it.  This would cause an unaligned access error,
+which will result in an abort on some architectures and poor performance on
+others.

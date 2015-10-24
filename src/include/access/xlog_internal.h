@@ -8,7 +8,7 @@
  * needed by rmgr routines (redo support for individual record types).
  * So the XLogRecord typedef and associated stuff appear in xlog.h.
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2008, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * $PostgreSQL: pgsql/src/include/access/xlog_internal.h,v 1.17 2006/10/04 00:30:07 momjian Exp $
@@ -22,6 +22,7 @@
 #include "fmgr.h"
 #include "storage/block.h"
 #include "storage/relfilenode.h"
+#include "postmaster/primary_mirror_mode.h"
 
 
 /*
@@ -193,6 +194,8 @@ typedef XLogLongPageHeaderData *XLogLongPageHeader;
  */
 #define XLOGDIR				"pg_xlog"
 #define XLOG_CONTROL_FILE	"global/pg_control"
+#define XLOG_CONTROL_FILE_SUBDIR	"global"
+#define XLOG_CONTROL_FILE_SIMPLE	"pg_control"
 
 /*
  * These macros encapsulate knowledge about the exact layout of XLog file
@@ -203,23 +206,49 @@ typedef XLogLongPageHeaderData *XLogLongPageHeader;
 #define XLogFileName(fname, tli, log, seg)	\
 	snprintf(fname, MAXFNAMELEN, "%08X%08X%08X", tli, log, seg)
 
+#define XLogFromFileName(fname, tli, log, seg)	\
+	sscanf(fname, "%08X%08X%08X", tli, log, seg)
+
 #define XLogFilePath(path, tli, log, seg)	\
-	snprintf(path, MAXPGPATH, XLOGDIR "/%08X%08X%08X", tli, log, seg)
+	do										\
+	{										\
+		char *XLogDir = makeRelativeToTxnFilespace(XLOGDIR);		\
+		snprintf(path, MAXPGPATH, "%s/%08X%08X%08X", XLogDir, tli, log, seg);	\
+		pfree(XLogDir);								\
+	}while(0)
+
+#define XLogFilePath2(path, tli, log, seg)	\
+		snprintf(path, MAXPGPATH, "%s/%08X%08X%08X", XLOGDIR, tli, log, seg);	
 
 #define TLHistoryFileName(fname, tli)	\
 	snprintf(fname, MAXFNAMELEN, "%08X.history", tli)
 
 #define TLHistoryFilePath(path, tli)	\
-	snprintf(path, MAXPGPATH, XLOGDIR "/%08X.history", tli)
+	do										\
+	{										\
+		char *XLogDir = makeRelativeToTxnFilespace(XLOGDIR);		\
+		snprintf(path, MAXPGPATH, "%s/%08X.history", XLogDir, tli);			\
+		pfree(XLogDir);								\
+	}while(0)
 
 #define StatusFilePath(path, xlog, suffix)	\
-	snprintf(path, MAXPGPATH, XLOGDIR "/archive_status/%s%s", xlog, suffix)
+	do										\
+	{										\
+		char *XLogDir = makeRelativeToTxnFilespace(XLOGDIR);		\
+		snprintf(path, MAXPGPATH, "%s/archive_status/%s%s", XLogDir, xlog, suffix);	\
+		pfree(XLogDir);								\
+	}while(0)
 
 #define BackupHistoryFileName(fname, tli, log, seg, offset) \
 	snprintf(fname, MAXFNAMELEN, "%08X%08X%08X.%08X.backup", tli, log, seg, offset)
 
 #define BackupHistoryFilePath(path, tli, log, seg, offset)	\
-	snprintf(path, MAXPGPATH, XLOGDIR "/%08X%08X%08X.%08X.backup", tli, log, seg, offset)
+	do										\
+	{										\
+		char *XLogDir = makeRelativeToTxnFilespace(XLOGDIR);		\
+		snprintf(path, MAXPGPATH, "%s/%08X%08X%08X.%08X.backup", XLogDir, tli, log, seg, offset);	\
+		pfree(XLogDir);								\
+	}while(0)
 
 
 /*
@@ -230,8 +259,8 @@ typedef XLogLongPageHeaderData *XLogLongPageHeader;
 typedef struct RmgrData
 {
 	const char *rm_name;
-	void		(*rm_redo) (XLogRecPtr lsn, XLogRecord *rptr);
-	void		(*rm_desc) (StringInfo buf, uint8 xl_info, char *rec);
+	void		(*rm_redo) (XLogRecPtr beginLoc, XLogRecPtr lsn, XLogRecord *rptr);
+	void		(*rm_desc) (StringInfo buf, XLogRecPtr beginLoc, XLogRecord *record);
 	void		(*rm_startup) (void);
 	void		(*rm_cleanup) (void);
 	bool		(*rm_safe_restartpoint) (void);
@@ -249,10 +278,10 @@ extern XLogRecPtr RequestXLogSwitch(void);
  * These aren't in xlog.h because I'd rather not include fmgr.h there.
  */
 extern Datum pg_start_backup(PG_FUNCTION_ARGS);
-extern Datum pg_stop_backup(PG_FUNCTION_ARGS);
-extern Datum pg_switch_xlog(PG_FUNCTION_ARGS);
-extern Datum pg_current_xlog_location(PG_FUNCTION_ARGS);
-extern Datum pg_current_xlog_insert_location(PG_FUNCTION_ARGS);
+extern Datum pg_stop_backup(PG_FUNCTION_ARGS __attribute__((unused)) );
+extern Datum pg_switch_xlog(PG_FUNCTION_ARGS __attribute__((unused)) );
+extern Datum pg_current_xlog_location(PG_FUNCTION_ARGS __attribute__((unused)) );
+extern Datum pg_current_xlog_insert_location(PG_FUNCTION_ARGS __attribute__((unused)) );
 extern Datum pg_xlogfile_name_offset(PG_FUNCTION_ARGS);
 extern Datum pg_xlogfile_name(PG_FUNCTION_ARGS);
 

@@ -6,10 +6,10 @@
  * NOTE: for historical reasons, this does not correspond to pqcomm.c.
  * pqcomm.c's routines are declared in libpq.h.
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2010, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
- * $PostgreSQL: pgsql/src/include/libpq/pqcomm.h,v 1.101 2006/06/07 22:24:45 momjian Exp $
+ * $PostgreSQL: pgsql/src/include/libpq/pqcomm.h,v 1.111 2010/01/02 16:58:04 momjian Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -62,7 +62,7 @@ struct sockaddr_storage
 typedef struct
 {
 	struct sockaddr_storage addr;
-	ACCEPT_TYPE_ARG3 salen;
+	socklen_t salen;
 } SockAddr;
 
 /* Configure the UNIX socket location for the well known port. */
@@ -72,6 +72,19 @@ typedef struct
 				((sockdir) && *(sockdir) != '\0') ? (sockdir) : \
 				DEFAULT_PGSOCKET_DIR, \
 				(port))
+
+/*
+ * The maximum workable length of a socket path is what will fit into
+ * struct sockaddr_un.	This is usually only 100 or so bytes :-(.
+ *
+ * For consistency, always pass a MAXPGPATH-sized buffer to UNIXSOCK_PATH(),
+ * then complain if the resulting string is >= UNIXSOCK_PATH_BUFLEN bytes.
+ * (Because the standard API for getaddrinfo doesn't allow it to complain in
+ * a useful way when the socket pathname is too long, we have to test for
+ * this explicitly, instead of just letting the subroutine return an error.)
+ */
+#define UNIXSOCK_PATH_BUFLEN sizeof(((struct sockaddr_un *) NULL)->sun_path)
+
 
 /*
  * These manipulate the frontend/backend protocol version number.
@@ -87,8 +100,8 @@ typedef struct
  * A frontend isn't required to support anything other than the current
  * version.
  */
-
-#define PG_PROTOCOL_MAJOR(v)	((v) >> 16)
+/* Upper four bits used special by GPDB */
+#define PG_PROTOCOL_MAJOR(v)	(((v) >> 16) & 0xfff)
 #define PG_PROTOCOL_MINOR(v)	((v) & 0x0000ffff)
 #define PG_PROTOCOL(m,n)	(((m) << 16) | (n))
 
@@ -144,7 +157,7 @@ extern bool Db_user_namespace;
  * denial-of-service attacks via sending enough data to run the server
  * out of memory.
  */
-#define MAX_STARTUP_PACKET_LENGTH 10000
+#define MAX_STARTUP_PACKET_LENGTH 64000
 
 
 /* These are the authentication request codes sent by the backend. */
@@ -153,9 +166,12 @@ extern bool Db_user_namespace;
 #define AUTH_REQ_KRB4		1	/* Kerberos V4. Not supported any more. */
 #define AUTH_REQ_KRB5		2	/* Kerberos V5 */
 #define AUTH_REQ_PASSWORD	3	/* Password */
-#define AUTH_REQ_CRYPT		4	/* crypt password */
+#define AUTH_REQ_CRYPT		4	/* crypt password. Not supported any more. */
 #define AUTH_REQ_MD5		5	/* md5 password */
 #define AUTH_REQ_SCM_CREDS	6	/* transfer SCM credentials */
+#define AUTH_REQ_GSS		7	/* GSSAPI without wrap() */
+#define AUTH_REQ_GSS_CONT	8	/* Continue GSS exchanges */
+#define AUTH_REQ_SSPI		9	/* SSPI negotiate without wrap() */
 
 typedef uint32 AuthRequest;
 
@@ -169,6 +185,15 @@ typedef uint32 AuthRequest;
  * we're ever likely to use.  This random choice should do.
  */
 #define CANCEL_REQUEST_CODE PG_PROTOCOL(1234,5678)
+
+/*
+ * query-finish operation is a special message betweeen QD and QE, used to
+ * indicate that QD is successfully finishing the current query so that
+ * QE can finish its work at the earliest point.  Though executor has
+ * a way to squelch QEs, it is necessary to have asynchronous message
+ * by signal.
+ */
+#define FINISH_REQUEST_CODE PG_PROTOCOL(1234,5677)
 
 typedef struct CancelRequestPacket
 {
@@ -184,5 +209,18 @@ typedef struct CancelRequestPacket
  * secure channel.
  */
 #define NEGOTIATE_SSL_CODE PG_PROTOCOL(1234,5679)
+
+/*
+ * Filerep Add a pre-startup message primary-mirror-transition-request,
+ * and a primary-mirror-transition-query
+ */
+#define PRIMARY_MIRROR_TRANSITION_REQUEST_CODE PG_PROTOCOL(1234,5680)
+#define PRIMARY_MIRROR_TRANSITION_QUERY_CODE PG_PROTOCOL(1234,5681)
+
+typedef struct PrimaryMirrorTransitionPacket
+{
+	MsgType protocolCode;
+	uint32 dataLength;
+} PrimaryMirrorTransitionPacket;
 
 #endif   /* PQCOMM_H */

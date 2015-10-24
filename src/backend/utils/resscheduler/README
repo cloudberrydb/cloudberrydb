@@ -1,0 +1,285 @@
+$PostgreSQL$
+
+Resource Scheduling
+===================
+
+Overview
+--------
+
+The resource scheduler is an attempt to provide improved control of query
+resource consumption. It is primarily aimed at DSS workloads, but is amenable
+to more traditional reporting style workloads too.
+
+-----------------------------------------------------------------------------
+
+Data Structures
+---------------
+
+The basic design makes use of data structures from the standard lock
+implementation, but adapts them to handle the differing semantics required
+for tracking transient resources.
+
+A psuedo E-R diagram for the various resource scheduling objects is:
+
+
+role >---- resource queue ----< limits
+              |
+              |
+            queue  ----< limit thresholds, limit values 
+              |
+              |
+           lock ----- proclock -----------------+
+                        |                       |
+                        |                       ^
+                      proc ---< portal ----< portal increment
+                                                 
+
+The objects that are additional to the standard lock system are are described 
+below:
+
+Limits -
+    These describe the resource itself. It contains a threshold, counter for
+    current utilization and a type.
+
+Queues -
+    A queue consists of a set of limits. It also has some attributes of its 
+    own - a flag for whether queries whose cost is > the cost limit will be
+    allowed to run (under special circumstances) and a special limit that
+    allows queries with a small cost to avoid being locked at all.
+    
+
+Resource Lock -
+    The lock related information for a queue, each queue has 1 and only 1
+    lock.
+
+Portal Increment -
+    The resource related information for a statement. This consists of the
+    process id, portal id and the set of additional changes to the limit
+    counters that will be applied should this portal execute. A portal that
+    is managed by the scheduler [1] *always* has increments - portals for 
+    queries that are not going to be locked have portalId set to InvalidOid 
+    (either because the owning role is not in a queue or the query has cost 
+    smaller than the queue's "ignore" limit - see Queues above). 
+
+Proclock -
+     Some changes have been made to the proclock structure... this should be
+     backed out and a new proclock like structure (similar to locallock) should
+     be used to track the additional elements (TODO).
+
+Portal -
+     Additional fields have been added to the portaldata structures: an id
+     for indexing, the original nodetag of the query, the queue oid that
+     is locking the portal and a flag for whether to release the resource
+     lock at portal destruction time.
+
+-----------------------------------------------------------------------------
+
+Functions
+---------
+
+The basic API consists of:
+
+    ResLockPortal(Portal portal, PlannedStmt *stmt);
+    ResUnLockPortal(Portal portal);
+
+which are inserted into PortalStart and PortalDrop respectively. In PortalStart
+the ResLockPortal call is made after planning is completed, so there is access 
+to all elements of the plan structure, thus controlling resources on the basis 
+of cost is possible.
+
+As the resource lock is taken after parse/analyze most standard locks have
+been already acquired before the resource lock is (tuple level locks are the
+exception).
+
+The internal routines are named similarly to the standard lock equivalents:
+
+    ResLockAcquire(LOCKTAG *locktag, ResPortalIncrement *incrementSet);
+    ResLockRelease(LOCKTAG *locktag, unit32 resPortalId);
+
+They require slightly different arguments, this is mainly to supply the various
+increments to the replacement for the Conflict routines:
+
+    ResLockCheckLimit(LOCK *lock, RESPROCLOCK *proclock,
+                      ResPortalIncrement *incrementSet,
+                      bool increment);
+
+This function encapsulates the fact that resource lock conflict is not 
+deterministic, but depends on whether current limit counter values are at their
+thresholds. If there is not a conflict, a statement's increments are added (or
+subtracted) to the shared counters by:
+
+    ResLockUpdateLimit(LOCK *lock, RESPROCLOCK *proclock,
+                      ResPortalIncrement *incrementSet,
+                      bool increment);
+
+Commit and Abort handling is mostly handled from the existing ResourceOwner
+code - as dropping portals unlocks them! However for WITH HOLD cursors an
+extra function to unlock any remaining portals at sesion exit is required:
+
+    AtExitCleanup_ResPortals(void);
+
+Some of the standard lock manager code is almost duplicated to handle interrupts
+,sleeping and wait queue removal:
+
+    ResLockWaitCancel(void);
+    ResProcSleep(LOCKMODE lockmode, LOCALLOCK *locallock):
+    ResRemoveFromWaitQueue(PGPROC *proc, uint32 hashcode);
+
+Deadlocks between standard and resource locks are possible, and are handled
+by the deadlock detector. We pass the lock mode as ExclusiveLock - which 
+results in overly agressive detection and rollback of deadocks. However, safety
+is the *initial* goal! More sophisticated detection logic is an obvious next
+step.
+
+Also deadlocks with oneself are possible, usually only achiveable with several
+open cursors:
+    ResCheckSelfDeadLock(LOCK *lock);
+-----------------------------------------------------------------------------
+
+Lock Design
+-----------
+
+The resource locks share the lock hash table(s) with the standard (and user) 
+locks. This means that they use the standard lock manager partitioned 
+lightweight lock(s): 
+
+  FirstLockMgrLock,..., FirstLockMgrLock + NUM_LOCK_PARTITIONS 
+
+for lightweight lock operations. 
+
+The queues themselves and their data are protected by a seperate lightweight 
+lock:
+
+  ResQueueLock
+
+so at some points the partition lock and the queue lock could be held.
+
+
+-----------------------------------------------------------------------------
+
+Admin
+-----
+
+Some new GUCs are introduced to control the scheduler:
+
+#resource_scheduler = off         # enable resource scheduling
+#max_resource_queues = 8          # no. of resource queues to create.
+#max_resource_portals_per_transaction = 64  # no. of portals per backend.
+#resource_select_only = on        # resource lock SELECT queries only.
+
+
+Some new commands are added and others amended to allow administration of the
+resource queues:
+
+Queues can be created, altered and dropped via the CREATE|ALTER|DROP QUEUE
+commands. 
+
+CREATE RESOURCE QUEUE <name> [ACTIVE THRESHOLD <int value>] 
+                             [COST THRESHOLD <float value>]
+                             [IGNORE THRESHOLD <float value>]
+                             [OVERCOMMIT|NOOVERCOMMIT];
+ALTER RESOURCE QUEUE <name>  [ACTIVE THRESHOLD <int value>] 
+                             [COST THRESHOLD <float value>]
+                             [IGNORE THRESHOLD <float value>]
+                             [OVERCOMMIT|NOOVERCOMMIT];
+DROP RESOURCE QUEUE <name>;
+
+The value used for the cost threshold *must* be a float - i.e. 2.0 or 2e+0
+not 2. This slightly annoying syntax is needed to allow values of 1e+19 or
+larger to be accepted. At this point we don't really have a good idea for what
+a maximum reasonable threshold for cost is likely to be, so we allow very large
+values.
+The ignore threshold sets a lower limit for queries to be locked for execution -
+query cost < this limit means locking will be skipped.
+The overcommit parameter controls what happens for a query whose cost > cost
+limit for the queue - it either aborts (the default) or waits until noone else
+is executing. This is to avoid the situation of querys being in the wait state 
+forever.
+These last two parameters complicate the logic considerably, needless to say!
+
+The ALTER RESOURCE QUEUE command will only allow the thresholds to be amended 
+to a value larger than the current counter for the in-memory queues. This is a 
+safety feature to prevent unexpected behaviour.
+
+The DROP RESOURCE command does not allow queues to be dropped if there are roles
+assigned to it, It does not allow it to be dropped unless all of the current 
+values for the in-memory queue are zero. 
+
+Only superuser can create, alter or drop resource queues.
+
+
+Roles are assigned to and removed from the resource queues by CREATE|ALTER ROLE
+commands:
+
+CREATE ROLE <name> [role options] [RESOURCE QUEUE <name>];
+ALTER ROLE <name>  [role options] [RESOURCE QUEUE <name>];
+ALTER ROLE <name>  [role options] [RESOURCE QUEUE none];
+
+The resource queue name 'none' is used to mean 'no resource queue thanks'.
+
+-----------------------------------------------------------------------------
+
+Catalog Changes
+---------------
+
+Resource Scheduling add one new catalog (pg_resqueue) and alters another 
+(pg_authid). This alteration is propagated to the derived view (pg_roles).
+
+The new catalog and indexes have not been added to the catcache system.
+
+
+Tables:
+
+  pg_resqueue     (new catalog with OID 6026)
+    rsqname        name  not null
+    rsqcountlimit  real  not null
+    rsqcostlimit   real  not null
+    rsqovercommit  real  not null
+    rsqignorecostlimit  real  not null
+
+
+  pg_authid       (existing catalog gets 1 new column)
+    rolresqueue    oid
+
+Indexes:
+
+  pg_resqueue_oid_index       (new unique index with OID 6027)
+    pg_resqueue.oid
+
+  pg_resqueue_rsqname_index   (new unique index with OID 6028)
+    pg_resqueue.rsqname
+
+  pg_authid_rolresqueue_index (new non-unique index with OID 6029)
+    pg_authid.rolresqueue
+
+
+Views:
+
+  pg_roles     (existing view gets 1 new column, added before pg_authid.oid)
+    pg_authid.rolresqueue
+ pg_resqueue_status (new)
+
+-----------------------------------------------------------------------------
+
+Debugging Code
+--------------
+
+There are a number of (hopefully) helpful elog messages at the DEBUG1 level -
+however the symbol RESLOCK_DEBUG must be defined before they are enabled 
+(usually done in src/include/pg_config_manual.h)
+
+-----------------------------------------------------------------------------
+
+Notes
+-----
+
+[1] "Managed by the Resource Scheduler" - this deserves some explanation,
+     In the current incarnation of the code it means:
+
+       portal->queueId != InvalidOid
+       portal->releaseResLock == true
+
+     
+     Typically every portal gets queueId set at creation, but this may get 
+     reset when the to-lock-or-not-to-lock decision comes around (see 
+     ResLockPortal).

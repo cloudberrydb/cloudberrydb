@@ -5,7 +5,7 @@
  *	  clients and standalone backends are supported here).
  *
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
@@ -20,7 +20,9 @@
 #include "libpq/pqformat.h"
 #include "tcop/pquery.h"
 #include "utils/lsyscache.h"
-
+#include "catalog/pg_type.h"
+extern void varattrib_untoast_ptr_len(Datum d, char **datastart, int *len, void **tofree);
+extern char * pg_server_to_client(const char *s, int len);
 
 static void printtup_startup(DestReceiver *self, int operation,
 				 TupleDesc typeinfo);
@@ -106,7 +108,7 @@ printtup_create_DR(CommandDest dest, Portal portal)
 }
 
 static void
-printtup_startup(DestReceiver *self, int operation, TupleDesc typeinfo)
+printtup_startup(DestReceiver *self, int operation __attribute__((unused)), TupleDesc typeinfo)
 {
 	DR_printtup *myState = (DR_printtup *) self;
 	Portal		portal = myState->portal;
@@ -300,12 +302,15 @@ printtup(TupleTableSlot *slot, DestReceiver *self)
 	for (i = 0; i < natts; ++i)
 	{
 		PrinttupAttrInfo *thisState = myState->myinfo + i;
-		Datum		origattr = slot->tts_values[i],
-					attr;
-
-		if (slot->tts_isnull[i])
+		bool 		orignull;
+		Datum		origattr = slot_getattr(slot, i+1, &orignull);
+		Datum 		attr;
+		
+		if (orignull) 
 		{
-			pq_sendint(&buf, -1, 4);
+			/* -1 is the same in both byte orders.  This is the same as pg_sendint */
+			int32 n32 = -1;
+			appendBinaryStringInfo(&buf, (char *) &n32, 4);
 			continue;
 		}
 
@@ -321,26 +326,236 @@ printtup(TupleTableSlot *slot, DestReceiver *self)
 		if (thisState->format == 0)
 		{
 			/* Text output */
-			char	   *outputstr;
+			char str[256];
+			int32 n32;
 
-			outputstr = OutputFunctionCall(&thisState->finfo, attr);
-			pq_sendcountedtext(&buf, outputstr, strlen(outputstr), false);
-			pfree(outputstr);
+			switch (typeinfo->attrs[i]->atttypid)
+			{
+			case INT2OID: /* int2 */
+			case INT4OID: /* int4 */
+				{
+					/* 
+					 * The standard postgres way is to call the output function, but that involves one or more pallocs,
+					 * and a call to sprintf, followed by a conversion to client charset.  
+					 * Do a fast conversion to string instead.
+					 */
+					char tmp[33];
+					char *tp = tmp;
+					char *sp;
+					long li = 0;
+					unsigned long v;
+					long value;
+					bool sign;
+					if (typeinfo->attrs[i]->atttypid == INT2OID)
+						value =(long)DatumGetInt16(attr);
+					else
+						value =(long)DatumGetInt32(attr);
+					sign = (value < 0);
+					if (sign)
+						v = -value;
+					else
+						v = (unsigned long)value;
+					while (v || tp == tmp)
+					{
+						li = v % 10;
+						v = v / 10;
+						*tp++ = li+'0';
+					}
+					sp = str;
+					if (sign)
+						*sp++ = '-';
+					while (tp > tmp)
+						*sp++ = *--tp;
+					*sp = 0;
+					/* send the size as a 4 byte big-endian int (same as pg_sendint) */
+#if BYTE_ORDER == LITTLE_ENDIAN
+					n32 = (uint32)((sp-str) << 24);  /* We know len is < 127, so this works, replaces htonl */
+#elif BYTE_ORDER == BIG_ENDIAN
+					n32 = (uint32) (sp-str);
+#else
+#error BYTE_ORDER must be BIG_ENDIAN or LITTLE_ENDIAN
+#endif
+					appendBinaryStringInfo(&buf, (char *) &n32, 4);
+					appendBinaryStringInfo(&buf, str, strlen(str));
+				}
+				break;
+			case INT8OID: /* int8 */
+				{
+					char tmp[33];
+					char *tp = tmp;
+					char *sp;
+					uint64 v;
+					long li = 0;
+					int64 value =DatumGetInt64(attr);
+					bool sign = (value < 0);
+					if (sign)
+						v = -value;
+					else
+						v = (uint64)value;
+					while (v || tp == tmp)
+					{
+						li = v % 10;
+						v = v / 10;
+						*tp++ = li+'0';
+					}
+					sp = str;
+					if (sign)
+						*sp++ = '-';
+					while (tp > tmp)
+						*sp++ = *--tp;
+					*sp = 0;
+#if BYTE_ORDER == LITTLE_ENDIAN
+					n32 = (uint32)((sp-str) << 24);  /* We know len is < 127, so this works, replaces htonl */
+#else
+					n32 = (uint32) (sp-str);
+#endif
+					appendBinaryStringInfo(&buf, (char *) &n32, 4);
+					appendBinaryStringInfo(&buf, str, strlen(str));
+				}
+				break;
+
+			case VARCHAROID:
+			case TEXTOID:
+			case BPCHAROID:
+				{
+					const char *s;
+					char *p;
+					int len;
+					char *dptr = DatumGetPointer(attr);
+	
+					/* 
+					 * We called PG_DETOAST_DATUM up above, so we don't 
+					 * need to do it again
+					 */
+					s = VARDATA(dptr);
+					len = VARSIZE(dptr) - VARHDRSZ;
+
+					p = pg_server_to_client(s, len);
+					if (p != s)				/* actual conversion has been done? */
+					{
+						len = strlen(p);
+						n32 = htonl((uint32) len);
+						appendBinaryStringInfo(&buf, (char *) &n32, 4);
+						appendBinaryStringInfo(&buf, p, len);
+						pfree(p);
+					}
+					else
+					{
+						n32 = htonl((uint32) len);
+						appendBinaryStringInfo(&buf, (char *) &n32, 4);
+						appendBinaryStringInfo(&buf, s, len);
+					}
+
+				}
+				break;
+				
+			default:
+				{
+					char *outputstr;
+					outputstr = OutputFunctionCall(&thisState->finfo, attr);
+					pq_sendcountedtext(&buf, outputstr, strlen(outputstr), false);
+					pfree(outputstr);
+				}
+			}
 		}
 		else
 		{
 			/* Binary output */
-			bytea	   *outputbytes;
+			int32 n32;
 
-			outputbytes = SendFunctionCall(&thisState->finfo, attr);
-			pq_sendint(&buf, VARSIZE(outputbytes) - VARHDRSZ, 4);
-			pq_sendbytes(&buf, VARDATA(outputbytes),
-						 VARSIZE(outputbytes) - VARHDRSZ);
-			pfree(outputbytes);
+			switch (typeinfo->attrs[i]->atttypid)
+			{
+			case INT2OID: /* int2 */
+				{
+					short int2 = DatumGetInt16(attr);
+#if BYTE_ORDER == LITTLE_ENDIAN
+                    int2 = htons(int2);
+					n32 = (uint32)(2 << 24);   /* replaced htonl */
+#else
+					n32 = (uint32) 2;
+#endif
+					appendBinaryStringInfo(&buf, (char *) &n32, 4);
+					appendBinaryStringInfo(&buf, &int2, 2);
+				}
+				break;
+			case INT4OID: /* int4 */
+				{
+					int32 int4 = DatumGetInt32(attr);
+#if BYTE_ORDER == LITTLE_ENDIAN
+                    int4 = htonl(int4);
+					n32 = (uint32)(4 << 24);   /* replaced htonl */
+#else
+					n32 = (uint32) 4;
+#endif
+					appendBinaryStringInfo(&buf, (char *) &n32, 4);
+					appendBinaryStringInfo(&buf, &int4, 4);
+				}
+				break;
+			case INT8OID: /* int8 */
+				{
+					int64 int8 = DatumGetInt64(attr);
+#if BYTE_ORDER == LITTLE_ENDIAN
+#define local_htonll(n)  ((((uint64) htonl(n)) << 32LL) | htonl((n) >> 32LL))
+#define local_ntohll(n)  ((((uint64) ntohl(n)) << 32LL) | (uint32) ntohl(((uint64)n) >> 32LL))
+                    int8 = local_htonll(int8);
+					n32 = (uint32)(8 << 24);   /* replaced htonl */
+#else
+					n32 = (uint32) 8;
+#endif
+					appendBinaryStringInfo(&buf, (char *) &n32, 4);
+					appendBinaryStringInfo(&buf, &int8, 8);
+				}
+				break;
+
+			case VARCHAROID:
+			case TEXTOID:
+			case BPCHAROID:
+				{
+					const char *s;
+					char *p;
+					int len;
+					char *dptr = DatumGetPointer(attr);
+	
+					/* 
+					 * We called PG_DETOAST_DATUM up above, so we don't need
+					 * to do it again
+					 */
+					s = VARDATA(dptr);
+					len = VARSIZE(dptr) - VARHDRSZ;
+
+					p = pg_server_to_client(s, len);
+					if (p != s)				/* actual conversion has been done? */
+					{
+						len = strlen(p);
+						n32 = htonl((uint32) len);
+						appendBinaryStringInfo(&buf, (char *) &n32, 4);
+						appendBinaryStringInfo(&buf, p, len);
+						pfree(p);
+					}
+					else
+					{
+						n32 = htonl((uint32) len);
+						appendBinaryStringInfo(&buf, (char *) &n32, 4);
+						appendBinaryStringInfo(&buf, s, len);
+					}
+
+				}
+				break;
+				
+			default:
+				{
+					bytea *outputbytes;
+					outputbytes = SendFunctionCall(&thisState->finfo, attr);
+					pq_sendint(&buf, VARSIZE(outputbytes) - VARHDRSZ, 4);
+					pq_sendbytes(&buf, VARDATA(outputbytes), 
+					VARSIZE(outputbytes) - VARHDRSZ);
+					pfree(outputbytes);
+				}
+			}
 		}
 
 		/* Clean up detoasted copy, if any */
-		if (attr != origattr)
+		if (DatumGetPointer(attr) != DatumGetPointer(origattr))
 			pfree(DatumGetPointer(attr));
 	}
 
@@ -381,7 +596,10 @@ printtup_20(TupleTableSlot *slot, DestReceiver *self)
 	k = 1 << 7;
 	for (i = 0; i < natts; ++i)
 	{
-		if (!slot->tts_isnull[i])
+        bool 		orignull;
+		slot_getattr(slot, i+1, &orignull);
+
+		if (!orignull) 
 			j |= k;				/* set bit if not null */
 		k >>= 1;
 		if (k == 0)				/* end of byte? */
@@ -400,11 +618,12 @@ printtup_20(TupleTableSlot *slot, DestReceiver *self)
 	for (i = 0; i < natts; ++i)
 	{
 		PrinttupAttrInfo *thisState = myState->myinfo + i;
-		Datum		origattr = slot->tts_values[i],
-					attr;
+		bool orignull;
+		Datum	origattr = slot_getattr(slot, i+1, &orignull); 
+		Datum attr;
 		char	   *outputstr;
 
-		if (slot->tts_isnull[i])
+		if (orignull)
 			continue;
 
 		Assert(thisState->format == 0);
@@ -423,7 +642,7 @@ printtup_20(TupleTableSlot *slot, DestReceiver *self)
 		pfree(outputstr);
 
 		/* Clean up detoasted copy, if any */
-		if (attr != origattr)
+		if (DatumGetPointer(attr) != DatumGetPointer(origattr))
 			pfree(DatumGetPointer(attr));
 	}
 
@@ -482,7 +701,7 @@ printatt(unsigned attributeId,
  * ----------------
  */
 void
-debugStartup(DestReceiver *self, int operation, TupleDesc typeinfo)
+debugStartup(DestReceiver *self __attribute__((unused)), int operation __attribute__((unused)), TupleDesc typeinfo)
 {
 	int			natts = typeinfo->natts;
 	Form_pg_attribute *attinfo = typeinfo->attrs;
@@ -501,7 +720,7 @@ debugStartup(DestReceiver *self, int operation, TupleDesc typeinfo)
  * ----------------
  */
 void
-debugtup(TupleTableSlot *slot, DestReceiver *self)
+debugtup(TupleTableSlot *slot, DestReceiver *self __attribute__((unused)))
 {
 	TupleDesc	typeinfo = slot->tts_tupleDescriptor;
 	int			natts = typeinfo->natts;
@@ -537,7 +756,7 @@ debugtup(TupleTableSlot *slot, DestReceiver *self)
 		pfree(value);
 
 		/* Clean up detoasted copy, if any */
-		if (attr != origattr)
+		if (DatumGetPointer(attr) != DatumGetPointer(origattr))
 			pfree(DatumGetPointer(attr));
 	}
 	printf("\t----\n");
@@ -582,7 +801,9 @@ printtup_internal_20(TupleTableSlot *slot, DestReceiver *self)
 	k = 1 << 7;
 	for (i = 0; i < natts; ++i)
 	{
-		if (!slot->tts_isnull[i])
+        bool 		orignull;
+		slot_getattr(slot, i+1, &orignull);
+		if (!orignull)
 			j |= k;				/* set bit if not null */
 		k >>= 1;
 		if (k == 0)				/* end of byte? */
@@ -601,11 +822,12 @@ printtup_internal_20(TupleTableSlot *slot, DestReceiver *self)
 	for (i = 0; i < natts; ++i)
 	{
 		PrinttupAttrInfo *thisState = myState->myinfo + i;
-		Datum		origattr = slot->tts_values[i],
-					attr;
+		bool orignull;
+		Datum	origattr = slot_getattr(slot, i+1, &orignull); 
+		Datum 	attr;
 		bytea	   *outputbytes;
 
-		if (slot->tts_isnull[i])
+		if (orignull)
 			continue;
 
 		Assert(thisState->format == 1);
@@ -627,7 +849,7 @@ printtup_internal_20(TupleTableSlot *slot, DestReceiver *self)
 		pfree(outputbytes);
 
 		/* Clean up detoasted copy, if any */
-		if (attr != origattr)
+		if (DatumGetPointer(attr) != DatumGetPointer(origattr))
 			pfree(DatumGetPointer(attr));
 	}
 

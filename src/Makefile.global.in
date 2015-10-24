@@ -18,7 +18,7 @@
 #
 # Meta configuration
 
-.PHONY: all install install-strip installdirs uninstall clean distclean maintainer-clean distprep check installcheck maintainer-check
+.PHONY: all install install-strip installdirs uninstall clean distclean maintainer-clean distprep check installcheck maintainer-check coverage installcheck-good
 .SILENT: installdirs
 
 # make `all' the default target
@@ -28,8 +28,17 @@ all:
 # started to update the file.
 .DELETE_ON_ERROR:
 
+# BLD_ARCH
+BLD_ARCH = @BLD_ARCH@
+
 # PostgreSQL version number
 VERSION = @PACKAGE_VERSION@
+MAJORVERSION = @PG_MAJORVERSION@
+
+# GPDB version number
+GP_MAJORVERSION = @GP_MAJORVERSION@
+
+ADDON_DIR = @ADDON_DIR@
 
 # Support for VPATH builds
 vpath_build = @vpath_build@
@@ -43,6 +52,8 @@ top_srcdir = $(abs_top_srcdir)
 srcdir = $(top_srcdir)/$(subdir)
 VPATH = $(srcdir)
 endif
+
+vpathsearch = `for f in $(addsuffix /$(1),$(subst :, ,. $(VPATH))); do test -r $$f && echo $$f && break; done`
 
 # Saved arguments from configure
 configure_args = @configure_args@
@@ -62,11 +73,12 @@ configure_args = @configure_args@
 
 ifndef PGXS
 
-# Note that prefix and exec_prefix aren't defined in a PGXS build;
+# Note that prefix, exec_prefix, and datarootdir aren't defined in a PGXS build;
 # makefiles may only use the derived variables such as bindir.
 
 prefix := @prefix@
 exec_prefix := @exec_prefix@
+datarootdir := @datarootdir@
 
 bindir := @bindir@
 
@@ -105,20 +117,22 @@ endif
 mandir := @mandir@
 
 docdir := @docdir@
-# docdir can be an empty string to signify --without-docdir
-ifneq (,$(docdir))
 ifeq "$(findstring pgsql, $(docdir))" ""
 ifeq "$(findstring postgres, $(docdir))" ""
 override docdir := $(docdir)/postgresql
 endif
 endif
-endif
+
+htmldir := @htmldir@
 
 localedir := @localedir@
 
 else # PGXS case
 
+# Extension makefiles should set PG_CONFIG, but older ones might not
+ifndef PG_CONFIG
 PG_CONFIG = pg_config
+endif
 
 bindir := $(shell $(PG_CONFIG) --bindir)
 datadir := $(shell $(PG_CONFIG) --sharedir)
@@ -137,6 +151,7 @@ endif # PGXS
 
 includedir_server = $(pkgincludedir)/server
 includedir_internal = $(pkgincludedir)/internal
+includedir_internal_cdb = $(pkgincludedir)/internal/cdb
 pgxsdir = $(pkglibdir)/pgxs
 
 sqlmansect_dummy = l
@@ -151,14 +166,25 @@ sqlmansect_dummy = l
 with_perl	= @with_perl@
 with_python	= @with_python@
 with_tcl	= @with_tcl@
+with_java   = @with_java@
 with_openssl	= @with_openssl@
+with_libxml     = @with_libxml
+with_system_tzdata = @with_system_tzdata@
 with_zlib	= @with_zlib@
 enable_shared	= @enable_shared@
 enable_rpath	= @enable_rpath@
 enable_nls	= @enable_nls@
 enable_debug	= @enable_debug@
 enable_dtrace	= @enable_dtrace@
+enable_coverage	= @enable_coverage@
 enable_thread_safety	= @enable_thread_safety@
+enable_largefile	= @enable_largefile@
+enable_orca		= @enable_orca@
+enable_snmp			= @enable_snmp@
+enable_email		= @enable_email@
+enable_connectemc	= @enable_connectemc@
+enable_ddboost	    = @enable_ddboost@
+enable_netbackup	= @enable_netbackup@
 
 python_includespec	= @python_includespec@
 python_libdir		= @python_libdir@
@@ -205,40 +231,89 @@ endif # not PGXS
 
 CC = @CC@
 GCC = @GCC@
+SUN_STUDIO_CC = @SUN_STUDIO_CC@
 CFLAGS = @CFLAGS@
+
+ifneq ($(findstring mingw32,$(CC)),mingw32)
+ifeq ($(GCC), yes)
+ CFLAGS += -Werror
+endif # GCC
+endif
 
 # Kind-of compilers
 
-YACC = @YACC@
-YFLAGS = @YFLAGS@
+BISON = @BISON@
+BISONFLAGS = @BISONFLAGS@ $(YFLAGS)
 FLEX = @FLEX@
 FLEXFLAGS = @FLEXFLAGS@ $(LFLAGS)
 DTRACE = @DTRACE@
 DTRACEFLAGS = @DTRACEFLAGS@
+ZIC = @ZIC@
 
 # Linking
 
+AR = @AR@
+DLLTOOL = @DLLTOOL@
+DLLWRAP = @DLLWRAP@
 LIBS = @LIBS@
 LDAP_LIBS_FE = @LDAP_LIBS_FE@
 LDAP_LIBS_BE = @LDAP_LIBS_BE@
 LD = @LD@
 with_gnu_ld = @with_gnu_ld@
 ld_R_works = @ld_R_works@
-LDFLAGS = @LDFLAGS@
-LDFLAGS_SL = @LDFLAGS_SL@
+
+# We want -L for libpgport.a to be first in LDFLAGS.  We also need LDFLAGS
+# to be a "recursively expanded" variable, else adjustments to rpathdir
+# don't work right.  So we must NOT do LDFLAGS := something, meaning this has
+# to be done first and elsewhere we must only do LDFLAGS += something.
+ifdef PGXS
+  LDFLAGS = -L$(libdir)
+else
+  LDFLAGS = -L$(top_builddir)/src/port
+endif
+LDFLAGS += @LDFLAGS@
+
+LDFLAGS_EX = @LDFLAGS_EX@
+# LDFLAGS_SL might have already been assigned by calling makefile
+LDFLAGS_SL += @LDFLAGS_SL@
+
+
 LDREL = -r
 LDOUT = -o
 RANLIB = @RANLIB@
+WINDRES = @WINDRES@
 X = @EXEEXT@
 
 # Perl 
 
-# quoted for pathname with spaces
-PERL			= "@PERL@"
+ifneq (@PERL@,)
+    # quoted to protect pathname with spaces
+    PERL		= "@PERL@"
+else
+    PERL		= $(missing) perl
+endif
 perl_archlibexp		= @perl_archlibexp@
 perl_privlibexp		= @perl_privlibexp@
 perl_useshrplib		= @perl_useshrplib@
 perl_embed_ldflags	= @perl_embed_ldflags@
+
+# Java
+ifneq (@JAVA@,)
+    # quoted to protect pathname with spaces
+	JAVA        = "@JAVA@"
+	JAVAC       = "@JAVAC@"
+	JAVAH       = "@JAVAH@"
+	JAR         = "@JAR@"
+	JAVADOC     = "@JAVADOC@"
+	JAVA_HOME   = @JAVA_HOME@
+	JAVAC_FLAGS = @JAVAC_FLAGS@
+else
+	JAVA        = $(missing) java
+	JAVAC       = $(missing) javac
+	JAVAH       = $(missing) javah
+	JAR         = $(missing) jar
+	JAVADOC     = $(missing) javadoc
+endif
 
 # Miscellaneous
 
@@ -270,6 +345,8 @@ INSTALL_SHLIB	= $(INSTALL_SHLIB_ENV) $(INSTALL) $(INSTALL_SHLIB_OPTS) $(INSTALL_
 # Override in Makefile.port if necessary
 INSTALL_SHLIB_OPTS = -m 755
 
+MKDIR_P = @MKDIR_P@
+
 mkinstalldirs	= $(SHELL) $(top_srcdir)/config/mkinstalldirs
 missing		= $(SHELL) $(top_srcdir)/config/missing
 
@@ -283,10 +360,22 @@ JADE	= @JADE@
 NSGMLS	= @NSGMLS@
 SGMLSPL	= @SGMLSPL@
 
+# Code coverage
+
+GCOV = @GCOV@
+LCOV = @LCOV@
+GENHTML = @GENHTML@
+
+ifeq ($(enable_coverage),yes)
+# ccache loses .gcno files
+export CCACHE_DISABLE = 1
+endif
+
 # Feature settings
 
 DEF_PGPORT = @default_port@
 WANTED_LANGUAGES = @WANTED_LANGUAGES@
+
 
 
 ##########################################################################
@@ -296,6 +385,8 @@ WANTED_LANGUAGES = @WANTED_LANGUAGES@
 
 # Name of the "template"
 PORTNAME= @PORTNAME@
+
+build_os = @build_os@
 
 host_tuple = @host@
 host_os = @host_os@
@@ -341,8 +432,8 @@ endif
 
 # This macro is for use by libraries linking to libpq.  (Because libpgport
 # isn't created with the same link flags as libpq, it can't be used.)
-libpq := -L$(libpq_builddir) -lpq
-  
+libpq = -L$(libpq_builddir) -lpq
+
 # If doing static linking, shared library dependency info isn't available,
 # so add in the libraries that libpq depends on.
 ifeq ($(enable_shared), no)
@@ -351,9 +442,9 @@ libpq += $(filter -lintl -lssl -lcrypto -lkrb5 -lcrypt, $(LIBS)) \
 endif
 
 # This macro is for use by client executables (not libraries) that use libpq.
-# We force clients to pull symbols from the non-shared library libpgport 
-# rather than pulling some libpgport symbols from libpq just because 
-# libpq uses those functions too.  This makes applications less 
+# We force clients to pull symbols from the non-shared library libpgport
+# rather than pulling some libpgport symbols from libpq just because
+# libpq uses those functions too.  This makes applications less
 # dependent on changes in libpq's usage of pgport.  To do this we link to
 # pgport before libpq.  This does cause duplicate -lpgport's to appear
 # on client link lines.
@@ -416,7 +507,7 @@ endif
 #
 # substitute implementations of C library routines (see src/port/)
 
-LIBOBJS = @LIBOBJS@ copydir.o dirmod.o exec.o noblock.o path.o pipe.o pgsleep.o pgstrcasecmp.o qsort.o qsort_arg.o sprompt.o thread.o
+LIBOBJS = @LIBOBJS@
 
 LIBS := -lpgport $(LIBS)
 # add location of libpgport.a to LDFLAGS
@@ -430,6 +521,8 @@ endif
 # so SHGetFolderName isn't picked up from shell32.dll
 ifeq ($(PORTNAME),win32)
 LIBS += -lws2_32 -lshfolder
+override LDFLAGS := -L$(top_builddir)/gpAux/ext/win32/kfw-3-2-2/lib $(LDFLAGS)
+override AR := /usr/bin/i686-pc-mingw32-ar
 endif
 
 # Not really standard libc functions, used by the backend.
@@ -439,6 +532,9 @@ TAS         = @TAS@
 ##########################################################################
 #
 # Global targets and rules
+
+%.i: %.c
+	$(CPP) $(CPPFLAGS) -o $@ $<
 
 %.gz: %
 	$(GZIP) -f --best $<
@@ -461,7 +557,7 @@ win32ver.rc: $(top_builddir)/src/port/win32ver.rc
 	sed -e 's;FILEDESC;$(PGFILEDESC);' -e 's;VFT_APP;$(PGFTYPE);' -e 's;_ICO_;$(PGICOSTR);' -e 's;\(VERSION.*\),0 *$$;\1,'`date '+%y%j' | sed 's/^0*//'`';' $(top_builddir)/src/port/win32ver.rc > win32ver.rc
 win32ver.o: $(top_builddir)/src/port/win32ver.rc
 	sed -e 's;FILEDESC;$(PGFILEDESC);' -e 's;VFT_APP;$(PGFTYPE);' -e 's;_ICO_;$(PGICOSTR);' -e 's;\(VERSION.*\),0 *$$;\1,'`date '+%y%j' | sed 's/^0*//'`';' $(top_builddir)/src/port/win32ver.rc > win32ver.rc
-	windres -i win32ver.rc -o win32ver.o --include-dir=$(top_builddir)/src/include
+	/usr/bin/i686-pc-mingw32-windres -i win32ver.rc -o win32ver.o --include-dir=$(top_builddir)/src/include
 	rm -f win32ver.rc
 endif
 
@@ -566,3 +662,51 @@ include $(top_srcdir)/src/nls-global.mk
 
 endif # nls.mk
 endif # enable_nls
+
+
+##########################################################################
+#
+# Coverage
+
+# Explanation of involved files:
+#   foo.c	source file
+#   foo.o	object file
+#   foo.gcno	gcov graph (a.k.a. "notes") file, created at compile time
+#		(by gcc -ftest-coverage)
+#   foo.gcda	gcov data file, created when the program is run (for
+#		programs compiled with gcc -fprofile-arcs)
+#   foo.c.gcov	gcov output file with coverage information, created by
+#		gcov from foo.gcda (by "make coverage")
+#   foo.c.gcov.out  stdout captured when foo.c.gcov is created, mildly
+#		interesting
+#   lcov.info	lcov tracefile, built from gcda files in one directory,
+#		later collected by "make coverage-html"
+
+ifeq ($(enable_coverage), yes)
+
+# There is a strange interaction between lcov and existing .gcov
+# output files.  Hence the rm command and the ordering dependency.
+
+gcda_files := $(wildcard *.gcda)
+
+lcov.info: $(gcda_files)
+	rm -f *.gcov
+	$(if $^,$(LCOV) -d . -c -o $@ $(LCOVFLAGS))
+
+%.c.gcov: %.gcda | lcov.info
+	$(GCOV) -b -f -p -o . $(GCOVFLAGS) $*.c >$*.c.gcov.out
+
+
+# hook for clean-up
+clean distclean maintainer-clean: clean-coverage
+
+.PHONY: clean-coverage
+clean-coverage:
+	rm -f *.gcda *.gcno lcov.info *.gcov *.gcov.out
+
+
+# User-callable target to reset counts between test runs
+coverage-clean:
+	rm -f `find . -name '*.gcda' -print`
+
+endif # enable_coverage

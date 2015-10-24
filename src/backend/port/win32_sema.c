@@ -3,10 +3,10 @@
  * win32_sema.c
  *	  Microsoft Windows Win32 Semaphores Emulation
  *
- * Portions Copyright (c) 1996-2005, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/port/win32_sema.c,v 1.3 2006/10/04 00:29:56 momjian Exp $
+ *	  $PostgreSQL: pgsql/src/backend/port/win32_sema.c,v 1.9 2009/06/11 14:49:00 momjian Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -82,7 +82,7 @@ PGSemaphoreCreate(PGSemaphore sema)
 	sec_attrs.bInheritHandle = TRUE;
 
 	/* We don't need a named semaphore */
-	cur_handle = CreateSemaphore(&sec_attrs, 1, 1, NULL);
+	cur_handle = CreateSemaphore(&sec_attrs, 1, 32767, NULL);
 	if (cur_handle)
 	{
 		/* Successfully done */
@@ -124,6 +124,12 @@ PGSemaphoreLock(PGSemaphore sema, bool interruptOK)
 	wh[0] = *sema;
 	wh[1] = pgwin32_signal_event;
 
+	/*
+	 * As in other implementations of PGSemaphoreLock, we need to check for
+	 * cancel/die interrupts each time through the loop.  But here, there is
+	 * no hidden magic about whether the syscall will internally service a
+	 * signal --- we do that ourselves.
+	 */
 	do
 	{
 		ImmediateInterruptOK = interruptOK;

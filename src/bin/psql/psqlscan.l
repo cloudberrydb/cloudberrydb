@@ -29,11 +29,11 @@
  * subroutine is responsible for looking back to the original string and
  * replacing FF's with the corresponding original bytes.
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2010, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/bin/psql/psqlscan.l,v 1.20 2006/05/31 22:11:44 tgl Exp $
+ *	  src/bin/psql/psqlscan.l
  *
  *-------------------------------------------------------------------------
  */
@@ -43,11 +43,25 @@
 
 #include <ctype.h>
 
-#include "mb/pg_wchar.h"
-
 #include "common.h"
 #include "settings.h"
 #include "variables.h"
+
+#define unify_version(a,b,c) ((a<<16)+(b<<8)+c)
+#if unify_version(YY_FLEX_MAJOR_VERSION,YY_FLEX_MINOR_VERSION,YY_FLEX_SUBMINOR_VERSION) < unify_version(2,5,35)
+int yyget_lineno  (void);
+FILE *yyget_in  (void);
+FILE *yyget_out  (void);
+int yyget_leng  (void);
+char *yyget_text  (void);
+void yyset_lineno (int  line_number );
+void yyset_in (FILE *  in_str );
+void yyset_out (FILE *  out_str );
+int yyget_debug  (void);
+void yyset_debug (int  bdebug );
+int yylex_destroy  (void);
+#endif
+
 
 
 /*
@@ -61,6 +75,7 @@ typedef struct StackElem
 	YY_BUFFER_STATE buf;		/* flex input control structure */
 	char	   *bufstring;		/* data actually being scanned by flex */
 	char	   *origstring;		/* copy of original data, if needed */
+	char	   *varname;		/* name of variable providing data, or NULL */
 	struct StackElem *next;
 } StackElem;
 
@@ -115,11 +130,17 @@ static char *option_quote;
 
 int	yylex(void);
 
-static void push_new_buffer(const char *newstr);
+static void push_new_buffer(const char *newstr, const char *varname);
+static void pop_buffer_stack(PsqlScanState state);
+static bool var_is_current_source(PsqlScanState state, const char *varname);
 static YY_BUFFER_STATE prepare_buffer(const char *txt, int len,
 									  char **txtcopy);
 static void emit(const char *txt, int len);
+static void escape_variable(bool as_ident);
 
+#ifdef ECHO
+#undef ECHO
+#endif
 #define ECHO emit(yytext, yyleng)
 
 %}
@@ -127,6 +148,7 @@ static void emit(const char *txt, int len);
 %option 8bit
 %option never-interactive
 %option nodefault
+%option noinput
 %option nounput
 %option noyywrap
 
@@ -157,6 +179,13 @@ static void emit(const char *txt, int len);
  *  <xq> standard quoted strings
  *  <xe> extended quoted strings (support backslash escape sequences)
  *  <xdolq> $foo$ quoted strings
+ *  <xui> quoted identifier with Unicode escapes
+ *  <xus> quoted string with Unicode escapes
+ *
+ * Note: we intentionally don't mimic the backend's <xeu> state; we have
+ * no need to distinguish it from <xe> state, and no good way to get out
+ * of it in error cases.  The backend just throws yyerror() in those
+ * cases, but that's not an option here.
  */
 
 %x xb
@@ -166,6 +195,8 @@ static void emit(const char *txt, int len);
 %x xe
 %x xq
 %x xdolq
+%x xui
+%x xus
 /* Additional exclusive states for psql only: lex backslash commands */
 %x xslashcmd
 %x xslasharg
@@ -189,6 +220,9 @@ static void emit(const char *txt, int len);
  * did not end with a newline.
  *
  * XXX perhaps \f (formfeed) should be treated as a newline as well?
+ *
+ * XXX if you change the set of whitespace characters, fix scanner_isspace()
+ * to agree, and see also the plpgsql lexer.
  */
 
 space			[ \t\n\r\f]
@@ -250,6 +284,8 @@ xeinside		[^\\']+
 xeescape		[\\][^0-7]
 xeoctesc		[\\][0-7]{1,3}
 xehexesc		[\\]x[0-9A-Fa-f]{1,2}
+xeunicode		[\\](u[0-9A-Fa-f]{4}|U[0-9A-Fa-f]{8})
+xeunicodefail	[\\](u[0-9A-Fa-f]{0,3}|U[0-9A-Fa-f]{0,7})
 
 /* Extended quote
  * xqdouble implements embedded quote, ''''
@@ -282,6 +318,25 @@ xdstop			{dquote}
 xddouble		{dquote}{dquote}
 xdinside		[^"]+
 
+/* Unicode escapes */
+uescape			[uU][eE][sS][cC][aA][pP][eE]{whitespace}*{quote}[^']{quote}
+/* error rule to avoid backup */
+uescapefail		("-"|[uU][eE][sS][cC][aA][pP][eE]{whitespace}*"-"|[uU][eE][sS][cC][aA][pP][eE]{whitespace}*{quote}[^']|[uU][eE][sS][cC][aA][pP][eE]{whitespace}*{quote}|[uU][eE][sS][cC][aA][pP][eE]{whitespace}*|[uU][eE][sS][cC][aA][pP]|[uU][eE][sS][cC][aA]|[uU][eE][sS][cC]|[uU][eE][sS]|[uU][eE]|[uU])
+
+/* Quoted identifier with Unicode escapes */
+xuistart		[uU]&{dquote}
+xuistop1		{dquote}{whitespace}*{uescapefail}?
+xuistop2		{dquote}{whitespace}*{uescape}
+
+/* Quoted string with Unicode escapes */
+xusstart		[uU]&{quote}
+xusstop1		{quote}{whitespace}*{uescapefail}?
+xusstop2		{quote}{whitespace}*{uescape}
+
+/* error rule to avoid backup */
+xufailed		[uU]&
+
+
 /* C-style comments
  *
  * The "extended comment" syntax closely resembles allowable operator syntax.
@@ -311,6 +366,8 @@ ident_cont		[A-Za-z\200-\377_0-9\$]
 identifier		{ident_start}{ident_cont}*
 
 typecast		"::"
+dot_dot			\.\.
+colon_equals	":="
 
 /*
  * "self" is the set of chars that should be returned as single-character
@@ -330,12 +387,15 @@ operator		{op_chars}+
  * instead we pass it separately to parser. there it gets
  * coerced via doNegate() -- Leon aug 20 1999
  *
+ * {decimalfail} is used because we would like "1..10" to lex as 1, dot_dot, 10.
+ *
  * {realfail1} and {realfail2} are added to prevent the need for scanner
  * backup when the {real} rule fails to match completely.
  */
 
 integer			{digit}+
 decimal			(({digit}*\.{digit}+)|({digit}+\.{digit}*))
+decimalfail		{digit}+\.\.
 real			({integer}|{decimal})[Ee][-+]?{digit}+
 realfail1		({integer}|{decimal})[Ee]
 realfail2		({integer}|{decimal})[Ee][-+]
@@ -461,19 +521,38 @@ other			.
 					BEGIN(xe);
 					ECHO;
 				}
+{xusstart}		{
+					BEGIN(xus);
+					ECHO;
+				}
 <xq,xe>{quotestop}	|
 <xq,xe>{quotefail} {
 					yyless(1);
 					BEGIN(INITIAL);
 					ECHO;
 				}
-<xq,xe>{xqdouble} {
+<xus>{xusstop1} {
+					yyless(1);
+					BEGIN(INITIAL);
 					ECHO;
 				}
-<xq>{xqinside}  {
+<xus>{xusstop2} {
+					BEGIN(INITIAL);
+					ECHO;
+				}
+<xq,xe,xus>{xqdouble} {
+					ECHO;
+				}
+<xq,xus>{xqinside}  {
 					ECHO;
 				}
 <xe>{xeinside}  {
+					ECHO;
+				}
+<xe>{xeunicode} {
+					ECHO;
+				}
+<xe>{xeunicodefail}	{
 					ECHO;
 				}
 <xe>{xeescape}  {
@@ -485,7 +564,7 @@ other			.
 <xe>{xehexesc}  {
 					ECHO;
 				}
-<xq,xe>{quotecontinue} {
+<xq,xe,xus>{quotecontinue} {
 					ECHO;
 				}
 <xe>.			{
@@ -536,18 +615,45 @@ other			.
 					BEGIN(xd);
 					ECHO;
 				}
+{xuistart}		{
+					BEGIN(xui);
+					ECHO;
+				}
 <xd>{xdstop}	{
 					BEGIN(INITIAL);
 					ECHO;
 				}
-<xd>{xddouble}	{
+<xui>{xuistop1}	{
+					yyless(1);
+					BEGIN(INITIAL);
 					ECHO;
 				}
-<xd>{xdinside}	{
+<xui>{xuistop2}	{
+					BEGIN(INITIAL);
+					ECHO;
+				}
+<xd,xui>{xddouble}	{
+					ECHO;
+				}
+<xd,xui>{xdinside}	{
+					ECHO;
+				}
+
+{xufailed}	{
+					/* throw back all but the initial u/U */
+					yyless(1);
 					ECHO;
 				}
 
 {typecast}		{
+					ECHO;
+				}
+
+{dot_dot}		{
+					ECHO;
+				}
+
+{colon_equals}	{
 					ECHO;
 				}
 
@@ -594,15 +700,28 @@ other			.
 
 :[A-Za-z0-9_]+	{
 					/* Possible psql variable substitution */
+					const char *varname = yytext + 1;
 					const char *value;
 
-					value = GetVariable(pset.vars, yytext + 1);
+					value = GetVariable(pset.vars, varname);
 
 					if (value)
 					{
-						/* It is a variable, perform substitution */
-						push_new_buffer(value);
-						/* yy_scan_string already made buffer active */
+						/* It is a variable, check for recursion */
+						if (var_is_current_source(cur_state, varname))
+						{
+							/* Recursive expansion --- don't go there */
+							psql_error("skipping recursive expansion of variable \"%s\"\n",
+									   varname);
+							/* Instead copy the string as is */
+							ECHO;
+						}
+						else
+						{
+							/* OK, perform substitution */
+							push_new_buffer(value, varname);
+							/* yy_scan_string already made buffer active */
+						}
 					}
 					else
 					{
@@ -612,6 +731,14 @@ other			.
 						 */
 						ECHO;
 					}
+				}
+
+:'[A-Za-z0-9_]+'	{
+					escape_variable(false);
+				}
+
+:\"[A-Za-z0-9_]+\"	{
+					escape_variable(true);
 				}
 
 	/*
@@ -686,6 +813,11 @@ other			.
 {decimal}		{
 					ECHO;
 				}
+{decimalfail}	{
+					/* throw back the .., and treat as integer */
+					yyless(yyleng-2);
+					ECHO;
+				}
 {real}			{
 					ECHO;
 				}
@@ -729,12 +861,7 @@ other			.
 					 * We were expanding a variable, so pop the inclusion
 					 * stack and keep lexing
 					 */
-					cur_state->buffer_stack = stackelem->next;
-					yy_delete_buffer(stackelem->buf);
-					free(stackelem->bufstring);
-					if (stackelem->origstring)
-						free(stackelem->origstring);
-					free(stackelem);
+					pop_buffer_stack(cur_state);
 
 					stackelem = cur_state->buffer_stack;
 					if (stackelem != NULL)
@@ -760,6 +887,12 @@ other			.
 
 {space}|"\\"	{
 					yyless(0);
+					return LEXRES_OK;
+				}
+				
+	/* GPDB: This rule removes the need for a space after the "!" command */
+"!"             {
+					ECHO;
 					return LEXRES_OK;
 				}
 
@@ -819,6 +952,7 @@ other			.
 						 * further examination.  This is consistent with the
 						 * pre-8.0 code behavior, if not with the way that
 						 * variables are handled outside backslash commands.
+						 * Note that we needn't guard against recursion here.
 						 */
 						if (value)
 							appendPQExpBufferStr(output_buf, value);
@@ -827,6 +961,27 @@ other			.
 					*option_quote = ':';
 
 					return LEXRES_OK;
+				}
+
+:'[A-Za-z0-9_]+'	{
+					if (option_type == OT_VERBATIM)
+						ECHO;
+					else
+					{
+						escape_variable(false);
+						return LEXRES_OK;
+					}
+				}
+
+
+:\"[A-Za-z0-9_]+\"	{
+					if (option_type == OT_VERBATIM)
+						ECHO;
+					else
+					{
+						escape_variable(true);
+						return LEXRES_OK;
+					}
 				}
 
 "|"				{
@@ -1021,7 +1176,7 @@ psql_scan_setup(PsqlScanState state,
 
 	/* Do we need to hack the character set encoding? */
 	state->encoding = pset.encoding;
-	state->safe_encoding = PG_VALID_BE_ENCODING(state->encoding);
+	state->safe_encoding = pg_valid_server_encoding_id(state->encoding);
 
 	/* needed for prepare_buffer */
 	cur_state = state;
@@ -1104,6 +1259,7 @@ psql_scan(PsqlScanState state,
 		case LEXRES_EOL:		/* end of input */
 			switch (state->start_state)
 			{
+				/* This switch must cover all non-slash-command states. */
 				case INITIAL:
 					if (state->paren_depth > 0)
 					{
@@ -1138,17 +1294,25 @@ psql_scan(PsqlScanState state,
 					result = PSCAN_INCOMPLETE;
 					*prompt = PROMPT_SINGLEQUOTE;
 					break;
-				case xq:
+				case xe:
 					result = PSCAN_INCOMPLETE;
 					*prompt = PROMPT_SINGLEQUOTE;
 					break;
-				case xe:
+				case xq:
 					result = PSCAN_INCOMPLETE;
 					*prompt = PROMPT_SINGLEQUOTE;
 					break;
 				case xdolq:
 					result = PSCAN_INCOMPLETE;
 					*prompt = PROMPT_DOLLARQUOTE;
+					break;
+				case xui:
+					result = PSCAN_INCOMPLETE;
+					*prompt = PROMPT_DOUBLEQUOTE;
+					break;
+				case xus:
+					result = PSCAN_INCOMPLETE;
+					*prompt = PROMPT_SINGLEQUOTE;
 					break;
 				default:
 					/* can't get here */
@@ -1187,16 +1351,7 @@ psql_scan_finish(PsqlScanState state)
 {
 	/* Drop any incomplete variable expansions. */
 	while (state->buffer_stack != NULL)
-	{
-		StackElem  *stackelem = state->buffer_stack;
-
-		state->buffer_stack = stackelem->next;
-		yy_delete_buffer(stackelem->buf);
-		free(stackelem->bufstring);
-		if (stackelem->origstring)
-			free(stackelem->origstring);
-		free(stackelem);
-	}
+		pop_buffer_stack(state);
 
 	/* Done with the outer scan buffer, too */
 	if (state->scanbufhandle)
@@ -1399,6 +1554,12 @@ psql_scan_slash_option(PsqlScanState state,
 					error = true;
 				}
 
+				if (PQExpBufferBroken(&output))
+				{
+					psql_error("%s: out of memory\n", cmd);
+					error = true;
+				}
+
 				/* Now done with cmd, transfer result to mybuf */
 				resetPQExpBuffer(&mybuf);
 
@@ -1527,22 +1688,6 @@ psql_scan_slash_command_end(PsqlScanState state)
 	/* There are no possible errors in this lex state... */
 }
 
-/*
- * "Push back" the passed string so that it will be rescanned by subsequent
- * psql_scan_slash_option calls.  This is presently only used in the case
- * where a single-letter command has been concatenated with its argument.
- *
- * We use the same buffer stack mechanism as for variable expansion.
- */
-void
-psql_scan_slash_pushback(PsqlScanState state, const char *str)
-{
-	/* needed for push_new_buffer */
-	cur_state = state;
-
-	push_new_buffer(str);
-}
-
 
 /*
  * Push the given string onto the stack of stuff to scan.
@@ -1552,11 +1697,19 @@ psql_scan_slash_pushback(PsqlScanState state, const char *str)
  * NOTE SIDE EFFECT: the new buffer is made the active flex input buffer.
  */
 static void
-push_new_buffer(const char *newstr)
+push_new_buffer(const char *newstr, const char *varname)
 {
 	StackElem  *stackelem;
 
 	stackelem = (StackElem *) pg_malloc(sizeof(StackElem));
+
+	/*
+	 * In current usage, the passed varname points at the current flex
+	 * input buffer; we must copy it before calling prepare_buffer()
+	 * because that will change the buffer state.
+	 */
+	stackelem->varname = varname ? pg_strdup(varname) : NULL;
+
 	stackelem->buf = prepare_buffer(newstr, strlen(newstr),
 									&stackelem->bufstring);
 	cur_state->curline = stackelem->bufstring;
@@ -1572,6 +1725,46 @@ push_new_buffer(const char *newstr)
 	}
 	stackelem->next = cur_state->buffer_stack;
 	cur_state->buffer_stack = stackelem;
+}
+
+/*
+ * Pop the topmost buffer stack item (there must be one!)
+ *
+ * NB: after this, the flex input state is unspecified; caller must
+ * switch to an appropriate buffer to continue lexing.
+ */
+static void
+pop_buffer_stack(PsqlScanState state)
+{
+	StackElem  *stackelem = state->buffer_stack;
+
+	state->buffer_stack = stackelem->next;
+	yy_delete_buffer(stackelem->buf);
+	free(stackelem->bufstring);
+	if (stackelem->origstring)
+		free(stackelem->origstring);
+	if (stackelem->varname)
+		free(stackelem->varname);
+	free(stackelem);
+}
+
+/*
+ * Check if specified variable name is the source for any string
+ * currently being scanned
+ */
+static bool
+var_is_current_source(PsqlScanState state, const char *varname)
+{
+	StackElem  *stackelem;
+
+	for (stackelem = state->buffer_stack;
+		 stackelem != NULL;
+		 stackelem = stackelem->next)
+	{
+		if (stackelem->varname && strcmp(stackelem->varname, varname) == 0)
+			return true;
+	}
+	return false;
 }
 
 /*
@@ -1645,4 +1838,52 @@ emit(const char *txt, int len)
 			appendPQExpBufferChar(output_buf, ch);
 		}
 	}
+}
+
+static void
+escape_variable(bool as_ident)
+{
+	char		saved_char;
+	const char *value;
+
+	/* Variable lookup. */
+	saved_char = yytext[yyleng - 1];
+	yytext[yyleng - 1] = '\0';
+	value = GetVariable(pset.vars, yytext + 2);
+
+	/* Escaping. */
+	if (value)
+	{
+		if (!pset.db)
+			psql_error("can't escape without active connection\n");
+		else
+		{
+			char   *escaped_value;
+
+			if (as_ident)
+				escaped_value =
+					PQescapeIdentifier(pset.db, value, strlen(value));
+			else
+				escaped_value =
+					PQescapeLiteral(pset.db, value, strlen(value));
+			if (escaped_value == NULL)
+			{
+				const char *error = PQerrorMessage(pset.db);
+				psql_error("%s", error);
+			}
+			else
+			{
+				appendPQExpBufferStr(output_buf, escaped_value);
+				PQfreemem(escaped_value);
+				return;
+			}
+		}
+	}
+
+	/*
+	 * If we reach this point, some kind of error has occurred.  Emit the
+	 * original text into the output buffer.
+	 */
+	yytext[yyleng - 1] = saved_char;
+	emit(yytext, yyleng);
 }

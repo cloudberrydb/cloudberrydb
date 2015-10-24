@@ -3,12 +3,12 @@
  * fastpath.c
  *	  routines to handle function requests from the frontend
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2008, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/tcop/fastpath.c,v 1.94 2006/10/19 22:44:11 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/tcop/fastpath.c,v 1.97 2008/01/01 19:45:52 momjian Exp $
  *
  * NOTES
  *	  This cruft is the server side of PQfn.
@@ -480,10 +480,7 @@ parse_fcall_arguments(StringInfo msgBuf, struct fp_info * fip,
 						 argsize)));
 
 			/* Reset abuf to empty, and insert raw data into it */
-			abuf.len = 0;
-			abuf.data[0] = '\0';
-			abuf.cursor = 0;
-
+			resetStringInfo(&abuf);
 			appendBinaryStringInfo(&abuf,
 								   pq_getmsgbytes(msgBuf, argsize),
 								   argsize);
@@ -613,10 +610,7 @@ parse_fcall_arguments_20(StringInfo msgBuf, struct fp_info * fip,
 						 argsize)));
 
 		/* Reset abuf to empty, and insert raw data into it */
-		abuf.len = 0;
-		abuf.data[0] = '\0';
-		abuf.cursor = 0;
-
+		resetStringInfo(&abuf);
 		appendBinaryStringInfo(&abuf,
 							   pq_getmsgbytes(msgBuf, argsize),
 							   argsize);

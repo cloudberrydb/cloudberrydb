@@ -3,20 +3,116 @@
  * bool.c
  *	  Functions for the built-in type "bool".
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2008, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/utils/adt/bool.c,v 1.37 2006/03/05 15:58:41 momjian Exp $
+ *	  $PostgreSQL: pgsql/src/backend/utils/adt/bool.c,v 1.42 2008/01/01 19:45:52 momjian Exp $
  *
  *-------------------------------------------------------------------------
  */
 
 #include "postgres.h"
 
+#include <ctype.h>
+
 #include "libpq/pqformat.h"
 #include "utils/builtins.h"
+
+/*
+ * Try to interpret value as boolean value.  Valid values are: true,
+ * false, yes, no, on, off, 1, 0; as well as unique prefixes thereof.
+ * If the string parses okay, return true, else false.
+ * If okay and result is not NULL, return the value in *result.
+ */
+bool
+parse_bool(const char *value, bool *result)
+{
+	return parse_bool_with_len(value, strlen(value), result);
+}
+
+bool
+parse_bool_with_len(const char *value, size_t len, bool *result)
+{
+	switch (*value)
+	{
+		case 't':
+		case 'T':
+			if (pg_strncasecmp(value, "true", len) == 0)
+			{
+				if (result)
+					*result = true;
+				return true;
+			}
+			break;
+		case 'f':
+		case 'F':
+			if (pg_strncasecmp(value, "false", len) == 0)
+			{
+				if (result)
+					*result = false;
+				return true;
+			}
+			break;
+		case 'y':
+		case 'Y':
+			if (pg_strncasecmp(value, "yes", len) == 0)
+			{
+				if (result)
+					*result = true;
+				return true;
+			}
+			break;
+		case 'n':
+		case 'N':
+			if (pg_strncasecmp(value, "no", len) == 0)
+			{
+				if (result)
+					*result = false;
+				return true;
+			}
+			break;
+		case 'o':
+		case 'O':
+			/* 'o' is not unique enough */
+			if (pg_strncasecmp(value, "on", (len > 2 ? len : 2)) == 0)
+			{
+				if (result)
+					*result = true;
+				return true;
+			}
+			else if (pg_strncasecmp(value, "off", (len > 2 ? len : 2)) == 0)
+			{
+				if (result)
+					*result = false;
+				return true;
+			}
+			break;
+		case '1':
+			if (len == 1)
+			{
+				if (result)
+					*result = true;
+				return true;
+			}
+			break;
+		case '0':
+			if (len == 1)
+			{
+				if (result)
+					*result = false;
+				return true;
+			}
+			break;
+		default:
+			break;
+	}
+
+	if (result)
+		*result = false;		/* suppress compiler warning */
+	return false;
+}
 
 /*****************************************************************************
  *	 USER I/O ROUTINES														 *
@@ -33,41 +129,54 @@
 Datum
 boolin(PG_FUNCTION_ARGS)
 {
-	char	   *b = PG_GETARG_CSTRING(0);
+	const char *in_str = PG_GETARG_CSTRING(0);
+	const char *str;
+	size_t		len;
 
-	switch (*b)
+	/*
+	 * Skip leading and trailing whitespace
+	 */
+	str = in_str;
+	while (isspace((unsigned char) *str))
+		str++;
+
+	len = strlen(str);
+	while (len > 0 && isspace((unsigned char) str[len - 1]))
+		len--;
+
+	switch (*str)
 	{
 		case 't':
 		case 'T':
-			if (pg_strncasecmp(b, "true", strlen(b)) == 0)
+			if (pg_strncasecmp(str, "true", len) == 0)
 				PG_RETURN_BOOL(true);
 			break;
 
 		case 'f':
 		case 'F':
-			if (pg_strncasecmp(b, "false", strlen(b)) == 0)
+			if (pg_strncasecmp(str, "false", len) == 0)
 				PG_RETURN_BOOL(false);
 			break;
 
 		case 'y':
 		case 'Y':
-			if (pg_strncasecmp(b, "yes", strlen(b)) == 0)
+			if (pg_strncasecmp(str, "yes", len) == 0)
 				PG_RETURN_BOOL(true);
 			break;
 
 		case '1':
-			if (pg_strncasecmp(b, "1", strlen(b)) == 0)
+			if (pg_strncasecmp(str, "1", len) == 0)
 				PG_RETURN_BOOL(true);
 			break;
 
 		case 'n':
 		case 'N':
-			if (pg_strncasecmp(b, "no", strlen(b)) == 0)
+			if (pg_strncasecmp(str, "no", len) == 0)
 				PG_RETURN_BOOL(false);
 			break;
 
 		case '0':
-			if (pg_strncasecmp(b, "0", strlen(b)) == 0)
+			if (pg_strncasecmp(str, "0", len) == 0)
 				PG_RETURN_BOOL(false);
 			break;
 
@@ -77,7 +186,7 @@ boolin(PG_FUNCTION_ARGS)
 
 	ereport(ERROR,
 			(errcode(ERRCODE_INVALID_TEXT_REPRESENTATION),
-			 errmsg("invalid input syntax for type boolean: \"%s\"", b)));
+		   errmsg("invalid input syntax for type boolean: \"%s\"", in_str)));
 
 	/* not reached */
 	PG_RETURN_BOOL(false);
@@ -126,6 +235,27 @@ boolsend(PG_FUNCTION_ARGS)
 	pq_sendbyte(&buf, arg1 ? 1 : 0);
 	PG_RETURN_BYTEA_P(pq_endtypsend(&buf));
 }
+
+/*
+ *		booltext			- cast function for bool => text
+ *
+ * We need this because it's different from the behavior of boolout();
+ * this function follows the SQL-spec result (except for producing lower case)
+ */
+Datum
+booltext(PG_FUNCTION_ARGS)
+{
+	bool		arg1 = PG_GETARG_BOOL(0);
+	const char *str;
+
+	if (arg1)
+		str = "true";
+	else
+		str = "false";
+
+	PG_RETURN_TEXT_P(cstring_to_text(str));
+}
+
 
 
 /*****************************************************************************

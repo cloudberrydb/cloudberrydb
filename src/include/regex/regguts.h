@@ -27,7 +27,7 @@
  * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * $PostgreSQL: pgsql/src/include/regex/regguts.h,v 1.5 2005/10/15 02:49:46 momjian Exp $
+ * $PostgreSQL: pgsql/src/include/regex/regguts.h,v 1.7 2008/02/14 17:33:37 tgl Exp $
  */
 
 
@@ -181,7 +181,7 @@ union tree
 #define tcolor	colors.ccolor
 #define tptr	ptrs.pptr
 
-/* internal per-color structure for the color machinery */
+/* internal per-color descriptor structure for the color machinery */
 struct colordesc
 {
 	uchr		nchrs;			/* number of chars of this color */
@@ -228,11 +228,11 @@ struct colormap
 #endif
 
 
-
 /*
  * Interface definitions for locale-interface functions in locale.c.
- * Multi-character collating elements (MCCEs) cause most of the trouble.
  */
+
+/* Representation of a set of characters. */
 struct cvec
 {
 	int			nchrs;			/* number of chrs */
@@ -241,16 +241,8 @@ struct cvec
 	int			nranges;		/* number of ranges (chr pairs) */
 	int			rangespace;		/* number of chrs possible */
 	chr		   *ranges;			/* pointer to vector of chr pairs */
-	int			nmcces;			/* number of MCCEs */
-	int			mccespace;		/* number of MCCEs possible */
-	int			nmccechrs;		/* number of chrs used for MCCEs */
-	chr		   *mcces[1];		/* pointers to 0-terminated MCCEs */
-	/* and both batches of chrs are on the end */
+	/* both batches of chrs are on the end */
 };
-
-/* caution:  this value cannot be changed easily */
-#define MAXMCCE 2				/* length of longest MCCE */
-
 
 
 /*
@@ -272,6 +264,7 @@ struct arc
 #define  freechain	 outchain
 	struct arc *inchain;		/* *to's ins chain */
 	struct arc *colorchain;		/* color's arc chain */
+	struct arc *colorchainRev;	/* back-link in color's arc chain */
 };
 
 struct arcbatch
@@ -311,6 +304,9 @@ struct nfa
 	struct colormap *cm;		/* the color map */
 	color		bos[2];			/* colors, if any, assigned to BOS and BOL */
 	color		eos[2];			/* colors, if any, assigned to EOS and EOL */
+	size_t		size;			/* Current NFA size; differs from nstates as
+								 * it also counts the number of states created
+								 * by children of this state. */
 	struct vars *v;				/* simplifies compile error reporting */
 	struct nfa *parent;			/* parent NFA, if any */
 };
@@ -343,7 +339,12 @@ struct cnfa
 #define ZAPCNFA(cnfa)	((cnfa).nstates = 0)
 #define NULLCNFA(cnfa)	((cnfa).nstates == 0)
 
-
+/*
+ * Used to limit the maximum NFA size to something sane. [Tcl Bug 1810264]
+ */
+#ifndef REG_MAX_STATES
+#define REG_MAX_STATES	100000
+#endif
 
 /*
  * subexpression tree

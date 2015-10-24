@@ -8,10 +8,10 @@
  * or call fmgr-callable functions.
  *
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
- * $PostgreSQL: pgsql/src/include/fmgr.h,v 1.48 2006/10/04 00:30:06 momjian Exp $
+ * $PostgreSQL: pgsql/src/include/fmgr.h,v 1.62 2009/01/01 17:23:55 momjian Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -21,8 +21,19 @@
 /* We don't want to include primnodes.h here, so make a stub reference */
 typedef struct Node *fmNodePtr;
 
+/* We are really stretching to avoid including nodes.h */
+typedef enum fmNodeTag
+{
+    fmT_ReturnSetInfo = 901
+} fmNodeTag;
+
 /* Likewise, avoid including stringinfo.h here */
 typedef struct StringInfoData *fmStringInfo;
+
+struct ExprContext;                     /* #include "nodes/execnodes.h" */
+struct tupleDesc;                       /* #include "access/tupdesc.h" */
+struct Tuplestorestate;                 /* #include "utils/tuplestore.h" */
+struct TuplestorePos;                   /* #include "utils/tuplestore.h" */
 
 
 /*
@@ -49,6 +60,7 @@ typedef struct FmgrInfo
 								 * count */
 	bool		fn_strict;		/* function is "strict" (NULL in => NULL out) */
 	bool		fn_retset;		/* function returns a set */
+	unsigned char fn_stats;		/* collect stats if track_functions > this */
 	void	   *fn_extra;		/* extra space for use by handler */
 	MemoryContext fn_mcxt;		/* memory context to store fn_extra in */
 	fmNodePtr	fn_expr;		/* expression parse tree for call, or NULL */
@@ -153,6 +165,17 @@ extern void fmgr_info_copy(FmgrInfo *dstinfo, FmgrInfo *srcinfo,
  * if you need a modifiable copy of the input.	Caller is expected to have
  * checked for null inputs first, if necessary.
  *
+ * pg_detoast_datum_packed() will return packed (1-byte header) datums
+ * unmodified.	It will still expand an externally toasted or compressed datum.
+ * The resulting datum can be accessed using VARSIZE_ANY() and VARDATA_ANY()
+ * (beware of multiple evaluations in those macros!)
+ *
+ * WARNING: It is only safe to use pg_detoast_datum_packed() and
+ * VARDATA_ANY() if you really don't care about the alignment. Either because
+ * you're working with something like text where the alignment doesn't matter
+ * or because you're not going to access its constituent parts and just use
+ * things like memcpy on it anyways.
+ *
  * Note: it'd be nice if these could be macros, but I see no way to do that
  * without evaluating the arguments multiple times, which is NOT acceptable.
  */
@@ -160,6 +183,7 @@ extern struct varlena *pg_detoast_datum(struct varlena * datum);
 extern struct varlena *pg_detoast_datum_copy(struct varlena * datum);
 extern struct varlena *pg_detoast_datum_slice(struct varlena * datum,
 					   int32 first, int32 count);
+extern struct varlena *pg_detoast_datum_packed(struct varlena * datum);
 
 #define PG_DETOAST_DATUM(datum) \
 	pg_detoast_datum((struct varlena *) DatumGetPointer(datum))
@@ -167,7 +191,10 @@ extern struct varlena *pg_detoast_datum_slice(struct varlena * datum,
 	pg_detoast_datum_copy((struct varlena *) DatumGetPointer(datum))
 #define PG_DETOAST_DATUM_SLICE(datum,f,c) \
 		pg_detoast_datum_slice((struct varlena *) DatumGetPointer(datum), \
-		(int32) f, (int32) c)
+		(int32) (f), (int32) (c))
+/* WARNING -- unaligned pointer */
+#define PG_DETOAST_DATUM_PACKED(datum) \
+	pg_detoast_datum_packed((struct varlena *) DatumGetPointer(datum))
 
 /*
  * Support for cleaning up detoasted copies of inputs.	This must only
@@ -205,11 +232,18 @@ extern struct varlena *pg_detoast_datum_slice(struct varlena * datum,
 #define PG_GETARG_RAW_VARLENA_P(n)	((struct varlena *) PG_GETARG_POINTER(n))
 /* use this if you want the input datum de-toasted: */
 #define PG_GETARG_VARLENA_P(n) PG_DETOAST_DATUM(PG_GETARG_DATUM(n))
+/* and this if you can handle 1-byte-header datums: */
+#define PG_GETARG_VARLENA_PP(n) PG_DETOAST_DATUM_PACKED(PG_GETARG_DATUM(n))
 /* DatumGetFoo macros for varlena types will typically look like this: */
+#define PG_GETARG_TID(n)	 (*((ItemPointer) DatumGetPointer(PG_GETARG_DATUM(n))))
 #define DatumGetByteaP(X)			((bytea *) PG_DETOAST_DATUM(X))
+#define DatumGetByteaPP(X)			((bytea *) PG_DETOAST_DATUM_PACKED(X))
 #define DatumGetTextP(X)			((text *) PG_DETOAST_DATUM(X))
+#define DatumGetTextPP(X)			((text *) PG_DETOAST_DATUM_PACKED(X))
 #define DatumGetBpCharP(X)			((BpChar *) PG_DETOAST_DATUM(X))
+#define DatumGetBpCharPP(X)			((BpChar *) PG_DETOAST_DATUM_PACKED(X))
 #define DatumGetVarCharP(X)			((VarChar *) PG_DETOAST_DATUM(X))
+#define DatumGetVarCharPP(X)		((VarChar *) PG_DETOAST_DATUM_PACKED(X))
 #define DatumGetHeapTupleHeader(X)	((HeapTupleHeader) PG_DETOAST_DATUM(X))
 /* And we also offer variants that return an OK-to-write copy */
 #define DatumGetByteaPCopy(X)		((bytea *) PG_DETOAST_DATUM_COPY(X))
@@ -222,11 +256,16 @@ extern struct varlena *pg_detoast_datum_slice(struct varlena * datum,
 #define DatumGetTextPSlice(X,m,n)	((text *) PG_DETOAST_DATUM_SLICE(X,m,n))
 #define DatumGetBpCharPSlice(X,m,n) ((BpChar *) PG_DETOAST_DATUM_SLICE(X,m,n))
 #define DatumGetVarCharPSlice(X,m,n) ((VarChar *) PG_DETOAST_DATUM_SLICE(X,m,n))
+
 /* GETARG macros for varlena types will typically look like this: */
 #define PG_GETARG_BYTEA_P(n)		DatumGetByteaP(PG_GETARG_DATUM(n))
+#define PG_GETARG_BYTEA_PP(n)		DatumGetByteaPP(PG_GETARG_DATUM(n))
 #define PG_GETARG_TEXT_P(n)			DatumGetTextP(PG_GETARG_DATUM(n))
+#define PG_GETARG_TEXT_PP(n)		DatumGetTextPP(PG_GETARG_DATUM(n))
 #define PG_GETARG_BPCHAR_P(n)		DatumGetBpCharP(PG_GETARG_DATUM(n))
+#define PG_GETARG_BPCHAR_PP(n)		DatumGetBpCharPP(PG_GETARG_DATUM(n))
 #define PG_GETARG_VARCHAR_P(n)		DatumGetVarCharP(PG_GETARG_DATUM(n))
+#define PG_GETARG_VARCHAR_PP(n)		DatumGetVarCharPP(PG_GETARG_DATUM(n))
 #define PG_GETARG_HEAPTUPLEHEADER(n)	DatumGetHeapTupleHeader(PG_GETARG_DATUM(n))
 /* And we also offer variants that return an OK-to-write copy */
 #define PG_GETARG_BYTEA_P_COPY(n)	DatumGetByteaPCopy(PG_GETARG_DATUM(n))
@@ -234,6 +273,7 @@ extern struct varlena *pg_detoast_datum_slice(struct varlena * datum,
 #define PG_GETARG_BPCHAR_P_COPY(n)	DatumGetBpCharPCopy(PG_GETARG_DATUM(n))
 #define PG_GETARG_VARCHAR_P_COPY(n) DatumGetVarCharPCopy(PG_GETARG_DATUM(n))
 #define PG_GETARG_HEAPTUPLEHEADER_COPY(n)	DatumGetHeapTupleHeaderCopy(PG_GETARG_DATUM(n))
+
 /* And a b-byte slice from position a -also OK to write */
 #define PG_GETARG_BYTEA_P_SLICE(n,a,b) DatumGetByteaPSlice(PG_GETARG_DATUM(n),a,b)
 #define PG_GETARG_TEXT_P_SLICE(n,a,b)  DatumGetTextPSlice(PG_GETARG_DATUM(n),a,b)
@@ -269,6 +309,56 @@ extern struct varlena *pg_detoast_datum_slice(struct varlena * datum,
 #define PG_RETURN_BPCHAR_P(x)  PG_RETURN_POINTER(x)
 #define PG_RETURN_VARCHAR_P(x) PG_RETURN_POINTER(x)
 #define PG_RETURN_HEAPTUPLEHEADER(x)  PG_RETURN_POINTER(x)
+#define PG_RETURN_XID(x)	 return TransactionIdGetDatum(x)
+
+/*-------------------------------------------------------------------------
+ *		Support for functions that might return sets (multiple rows)
+ *
+ * CDB: Moved these declarations to "fmgr.h" from "executor/execnodes.h"
+ *-------------------------------------------------------------------------
+ */
+
+/*
+ * Set-result status returned by ExecEvalExpr()
+ */
+typedef enum
+{
+	ExprSingleResult,			/* expression does not return a set */
+	ExprMultipleResult,			/* this result is an element of a set */
+	ExprEndResult				/* there are no more elements in the set */
+} ExprDoneCond;
+
+/*
+ * Return modes for functions returning sets.  Note values must be chosen
+ * as separate bits so that a bitmask can be formed to indicate supported
+ * modes.
+ */
+typedef enum
+{
+	SFRM_ValuePerCall = 0x01,	/* one value returned per call */
+	SFRM_Materialize = 0x02		/* result set instantiated in Tuplestore */
+} SetFunctionReturnMode;
+
+/*
+ * When calling a function that might return a set (multiple rows),
+ * a node of this type is passed as fcinfo->resultinfo to allow
+ * return status to be passed back.  A function returning set should
+ * raise an error if no such resultinfo is provided.
+ */
+typedef struct ReturnSetInfo
+{
+	fmNodeTag           type;           /* enum NodeTag {T_ReturnSetInfo = 901} */
+	/* values set by caller: */
+	struct ExprContext *econtext;	    /* context function is being called in */
+	struct tupleDesc   *expectedDesc;	/* tuple descriptor expected by caller */
+	int			        allowedModes;	/* bitmask: return modes caller can handle */
+	/* result status from function (but pre-initialized by caller): */
+	SetFunctionReturnMode returnMode;	/* actual return mode */
+	ExprDoneCond        isDone;		    /* status for ValuePerCall mode */
+	/* fields filled by function in Materialize return mode: */
+	struct Tuplestorestate *setResult;  /* holds the complete returned tuple set */
+	struct tupleDesc   *setDesc;        /* actual descriptor for returned tuples */
+} ReturnSetInfo;
 
 
 /*-------------------------------------------------------------------------
@@ -299,10 +389,10 @@ typedef const Pg_finfo_record *(*PGFInfoFunction) (void);
 /*
  *	Macro to build an info function associated with the given function name.
  *	Win32 loadable functions usually link with 'dlltool --export-all', but it
- *	doesn't hurt to add DLLIMPORT in case they don't.
+ *	doesn't hurt to add PGDLLIMPORT in case they don't.
  */
 #define PG_FUNCTION_INFO_V1(funcname) \
-extern DLLIMPORT const Pg_finfo_record * CppConcat(pg_finfo_,funcname)(void); \
+extern PGDLLIMPORT const Pg_finfo_record * CppConcat(pg_finfo_,funcname)(void); \
 const Pg_finfo_record * \
 CppConcat(pg_finfo_,funcname) (void) \
 { \
@@ -328,6 +418,12 @@ extern int no_such_variable
  * are custom-configurable and especially likely to break dynamically loaded
  * modules if they were compiled with other values.  Also, the length field
  * can be used to detect definition changes.
+ *
+ * Note: we compare magic blocks with memcmp(), so there had better not be
+ * any alignment pad bytes in them.
+ *
+ * Note: when changing the contents of magic blocks, be sure to adjust the
+ * incompatible_module_error() function in dfmgr.c.
  *-------------------------------------------------------------------------
  */
 
@@ -335,22 +431,53 @@ extern int no_such_variable
 typedef struct
 {
 	int			len;			/* sizeof(this struct) */
-	int			version;		/* PostgreSQL major version */
+	int			version;		/* product major version */
 	int			funcmaxargs;	/* FUNC_MAX_ARGS */
 	int			indexmaxkeys;	/* INDEX_MAX_KEYS */
 	int			namedatalen;	/* NAMEDATALEN */
+	int			float4byval;	/* FLOAT4PASSBYVAL */
+	int			float8byval;	/* FLOAT8PASSBYVAL */
+	int         product;        /* magic product code */
+	int         headerversion;/* header version number to force recompilation of libraries */
 } Pg_magic_struct;
 
+/*
+ * List of product codes for products that support some level of compatability
+ * with the postgres contrib module format. 
+ *
+ * GPDB: A patch for this has been supplied to Postgres in the hope of improved
+ * cross product compatibility.  It is currently unknown if they will accept
+ * the patch.
+ */
+typedef enum {
+	PgMagicProductNone		   = 0,
+	PgMagicProductPostgres	   = 1,
+	PgMagicProductGreenplum	   = 2180,     /* 'GPDB' cast to an integer */
+} Pg_magic_product_code;
+
+/* The header version to force recompilation of third party libraries */
+#define GP_HEADER_VERSION_NUM 1
+
 /* The actual data block contents */
-#define PG_MODULE_MAGIC_DATA \
-{ \
-	sizeof(Pg_magic_struct), \
-	PG_VERSION_NUM / 100, \
-	FUNC_MAX_ARGS, \
-	INDEX_MAX_KEYS, \
-	NAMEDATALEN \
+#define PG_MODULE_MAGIC_DATA					\
+{												\
+	sizeof(Pg_magic_struct),					\
+	GP_VERSION_NUM / 100,						\
+	FUNC_MAX_ARGS,								\
+	INDEX_MAX_KEYS,								\
+	NAMEDATALEN,								\
+	FLOAT4PASSBYVAL,							\
+	FLOAT8PASSBYVAL,							\
+	PgMagicProductGreenplum,					\
+	GP_HEADER_VERSION_NUM,                    \
 }
 
+#ifndef FLOAT4PASSBYVAL
+#define FLOAT4PASSBYVAL 1
+#endif
+#ifndef FLOAT8PASSBYVAL
+#define FLOAT8PASSBYVAL 1
+#endif
 /*
  * Declare the module magic function.  It needs to be a function as the dlsym
  * in the backend is only guaranteed to work on functions, not data
@@ -360,15 +487,25 @@ typedef const Pg_magic_struct *(*PGModuleMagicFunction) (void);
 #define PG_MAGIC_FUNCTION_NAME Pg_magic_func
 #define PG_MAGIC_FUNCTION_NAME_STRING "Pg_magic_func"
 
-#define PG_MODULE_MAGIC \
-extern DLLIMPORT const Pg_magic_struct *PG_MAGIC_FUNCTION_NAME(void); \
+/*
+ * magic function name for C++ dynamic libraries;
+ * we need a different name to avoid duplicate symbol problems
+ */
+#define PG_MAGIC_FUNCTION_NAME_CPP Pg_magic_func_cpp
+#define PG_MAGIC_FUNCTION_NAME_CPP_STRING "Pg_magic_func_cpp"
+
+#define PG_MAGIC_FUNC(func) \
+extern PGDLLIMPORT const Pg_magic_struct *func(void); \
 const Pg_magic_struct * \
-PG_MAGIC_FUNCTION_NAME(void) \
+func(void) \
 { \
 	static const Pg_magic_struct Pg_magic_data = PG_MODULE_MAGIC_DATA; \
 	return &Pg_magic_data; \
 } \
 extern int no_such_variable
+
+#define PG_MODULE_MAGIC  		PG_MAGIC_FUNC(PG_MAGIC_FUNCTION_NAME)
+#define PG_MODULE_MAGIC_CPP  	PG_MAGIC_FUNC(PG_MAGIC_FUNCTION_NAME_CPP)
 
 
 /*-------------------------------------------------------------------------
@@ -480,6 +617,7 @@ extern Oid	fmgr_internal_function(const char *proname);
 extern Oid	get_fn_expr_rettype(FmgrInfo *flinfo);
 extern Oid	get_fn_expr_argtype(FmgrInfo *flinfo, int argnum);
 extern Oid	get_call_expr_argtype(fmNodePtr expr, int argnum);
+extern bool CheckFunctionValidatorAccess(Oid validatorOid, Oid functionOid);
 
 /*
  * Routines in dfmgr.c
@@ -493,19 +631,6 @@ extern void load_file(const char *filename, bool restricted);
 extern void **find_rendezvous_variable(const char *varName);
 
 
-/*
- * !!! OLD INTERFACE !!!
- *
- * fmgr() is the only remaining vestige of the old-style caller support
- * functions.  It's no longer used anywhere in the Postgres distribution,
- * but we should leave it around for a release or two to ease the transition
- * for user-supplied C functions.  OidFunctionCallN() replaces it for new
- * code.
- */
-
-/*
- * DEPRECATED, DO NOT USE IN NEW CODE
- */
-extern char *fmgr(Oid procedureId,...);
-
 #endif   /* FMGR_H */
+
+

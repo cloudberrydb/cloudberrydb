@@ -4,10 +4,10 @@
  *	  header file for postgres hash access method implementation
  *
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2008, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
- * $PostgreSQL: pgsql/src/include/access/hash.h,v 1.73 2006/07/13 16:49:19 momjian Exp $
+ * $PostgreSQL: pgsql/src/include/access/hash.h,v 1.73.2.2 2007/06/01 15:58:02 tgl Exp $
  *
  * NOTES
  *		modeled after Margo Seltzer's hash implementation for unix.
@@ -262,6 +262,7 @@ extern Datum hashname(PG_FUNCTION_ARGS);
 extern Datum hashtext(PG_FUNCTION_ARGS);
 extern Datum hashvarlena(PG_FUNCTION_ARGS);
 extern Datum hash_any(register const unsigned char *k, register int keylen);
+extern Datum hash_uint32(uint32 k);
 
 /* private routines */
 
@@ -281,6 +282,7 @@ extern void _hash_getlock(Relation rel, BlockNumber whichlock, int access);
 extern bool _hash_try_getlock(Relation rel, BlockNumber whichlock, int access);
 extern void _hash_droplock(Relation rel, BlockNumber whichlock, int access);
 extern Buffer _hash_getbuf(Relation rel, BlockNumber blkno, int access);
+extern Buffer _hash_getnewbuf(Relation rel, BlockNumber blkno, int access);
 extern void _hash_relbuf(Relation rel, Buffer buf);
 extern void _hash_dropbuf(Relation rel, Buffer buf);
 extern void _hash_wrtbuf(Relation rel, Buffer buf);
@@ -310,7 +312,7 @@ extern uint32 _hash_log2(uint32 num);
 extern void _hash_checkpage(Relation rel, Buffer buf, int flags);
 
 /* hash.c */
-extern void hash_redo(XLogRecPtr lsn, XLogRecord *record);
-extern void hash_desc(StringInfo buf, uint8 xl_info, char *rec);
+extern void hash_redo(XLogRecPtr beginLoc, XLogRecPtr lsn, XLogRecord *record);
+extern void hash_desc(StringInfo buf, XLogRecPtr beginLoc, XLogRecord *record);
 
 #endif   /* HASH_H */

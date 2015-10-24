@@ -2,6 +2,20 @@
 -- STRINGS
 -- Test various data entry syntaxes.
 --
+-- create required tables
+CREATE TABLE CHAR_STRINGS_TBL(f1 char(4));
+INSERT INTO CHAR_STRINGS_TBL (f1) VALUES ('a'),
+('ab'),
+('abcd'),
+('abcd    ');
+CREATE TABLE VARCHAR_STRINGS_TBL(f1 varchar(4));
+INSERT INTO VARCHAR_STRINGS_TBL (f1) VALUES ('a'),
+('ab'),
+('abcd'),
+('abcd    ');
+CREATE TABLE TEXT_STRINGS_TBL (f1 text);
+INSERT INTO TEXT_STRINGS_TBL VALUES ('doh!'),
+('hi de ho neighbor');
 -- SQL92 string continuation syntax
 -- E021-03 character string literals
 SELECT 'first line'
@@ -25,7 +39,7 @@ LINE 3: ' - third line'
 -- test conversions between various string types
 -- E021-10 implicit casting among the character data types
 --
-SELECT CAST(f1 AS text) AS "text(char)" FROM CHAR_TBL;
+SELECT CAST(f1 AS text) AS "text(char)" FROM CHAR_STRINGS_TBL ORDER BY 1;
  text(char) 
 ------------
  a
@@ -34,7 +48,7 @@ SELECT CAST(f1 AS text) AS "text(char)" FROM CHAR_TBL;
  abcd
 (4 rows)
 
-SELECT CAST(f1 AS text) AS "text(varchar)" FROM VARCHAR_TBL;
+SELECT CAST(f1 AS text) AS "text(varchar)" FROM VARCHAR_STRINGS_TBL ORDER BY 1;
  text(varchar) 
 ---------------
  a
@@ -50,7 +64,7 @@ SELECT CAST(name 'namefield' AS text) AS "text(name)";
 (1 row)
 
 -- since this is an explicit cast, it should truncate w/o error:
-SELECT CAST(f1 AS char(10)) AS "char(text)" FROM TEXT_TBL;
+SELECT CAST(f1 AS char(10)) AS "char(text)" FROM TEXT_STRINGS_TBL ORDER BY 1;
  char(text) 
 ------------
  doh!      
@@ -58,14 +72,14 @@ SELECT CAST(f1 AS char(10)) AS "char(text)" FROM TEXT_TBL;
 (2 rows)
 
 -- note: implicit-cast case is tested in char.sql
-SELECT CAST(f1 AS char(20)) AS "char(text)" FROM TEXT_TBL;
+SELECT CAST(f1 AS char(20)) AS "char(text)" FROM TEXT_STRINGS_TBL ORDER BY 1;
       char(text)      
 ----------------------
  doh!                
  hi de ho neighbor   
 (2 rows)
 
-SELECT CAST(f1 AS char(10)) AS "char(varchar)" FROM VARCHAR_TBL;
+SELECT CAST(f1 AS char(10)) AS "char(varchar)" FROM VARCHAR_STRINGS_TBL ORDER BY 1;
  char(varchar) 
 ---------------
  a         
@@ -80,14 +94,14 @@ SELECT CAST(name 'namefield' AS char(10)) AS "char(name)";
  namefield 
 (1 row)
 
-SELECT CAST(f1 AS varchar) AS "varchar(text)" FROM TEXT_TBL;
+SELECT CAST(f1 AS varchar) AS "varchar(text)" FROM TEXT_STRINGS_TBL ORDER BY 1;
    varchar(text)   
 -------------------
  doh!
  hi de ho neighbor
 (2 rows)
 
-SELECT CAST(f1 AS varchar) AS "varchar(char)" FROM CHAR_TBL;
+SELECT CAST(f1 AS varchar) AS "varchar(char)" FROM CHAR_STRINGS_TBL ORDER BY 1;
  varchar(char) 
 ---------------
  a
@@ -217,9 +231,232 @@ SELECT regexp_replace('AAA aaa', 'A+', 'Z', 'gi');
  Z Z
 (1 row)
 
--- invalid option of REGEXP_REPLACE
+-- invalid regexp option
 SELECT regexp_replace('AAA aaa', 'A+', 'Z', 'z');
-ERROR:  invalid option of regexp_replace: z
+ERROR:  invalid regexp option: "z"
+-- set so we can tell NULL from empty string
+\pset null '\\N'
+-- return all matches from regexp
+SELECT regexp_matches('foobarbequebaz', $re$(bar)(beque)$re$);
+ regexp_matches 
+----------------
+ {bar,beque}
+(1 row)
+
+-- test case insensitive
+SELECT regexp_matches('foObARbEqUEbAz', $re$(bar)(beque)$re$, 'i');
+ regexp_matches 
+----------------
+ {bAR,bEqUE}
+(1 row)
+
+-- global option - more than one match
+SELECT regexp_matches('foobarbequebazilbarfbonk', $re$(b[^b]+)(b[^b]+)$re$, 'g');
+ regexp_matches 
+----------------
+ {bar,beque}
+ {bazil,barf}
+(2 rows)
+
+-- empty capture group (matched empty string)
+SELECT regexp_matches('foobarbequebaz', $re$(bar)(.*)(beque)$re$);
+ regexp_matches 
+----------------
+ {bar,"",beque}
+(1 row)
+
+-- no match
+SELECT regexp_matches('foobarbequebaz', $re$(bar)(.+)(beque)$re$);
+ regexp_matches 
+----------------
+(0 rows)
+
+-- optional capture group did not match, null entry in array
+SELECT regexp_matches('foobarbequebaz', $re$(bar)(.+)?(beque)$re$);
+  regexp_matches  
+------------------
+ {bar,NULL,beque}
+(1 row)
+
+-- no capture groups
+SELECT regexp_matches('foobarbequebaz', $re$barbeque$re$);
+ regexp_matches 
+----------------
+ {barbeque}
+(1 row)
+
+-- give me errors
+SELECT regexp_matches('foobarbequebaz', $re$(bar)(beque)$re$, 'zipper');
+ERROR:  invalid regexp option: "z"
+SELECT regexp_matches('foobarbequebaz', $re$(barbeque$re$);
+ERROR:  invalid regular expression: parentheses () not balanced
+SELECT regexp_matches('foobarbequebaz', $re$(bar)(beque){2,1}$re$);
+ERROR:  invalid regular expression: invalid repetition count(s)
+-- split string on regexp
+SELECT foo, length(foo) FROM regexp_split_to_table('the quick brown fox jumped over the lazy dog', $re$\s+$re$) AS foo;
+  foo   | length 
+--------+--------
+ the    |      3
+ quick  |      5
+ brown  |      5
+ fox    |      3
+ jumped |      6
+ over   |      4
+ the    |      3
+ lazy   |      4
+ dog    |      3
+(9 rows)
+
+SELECT regexp_split_to_array('the quick brown fox jumped over the lazy dog', $re$\s+$re$);
+             regexp_split_to_array              
+------------------------------------------------
+ {the,quick,brown,fox,jumped,over,the,lazy,dog}
+(1 row)
+
+SELECT foo, length(foo) FROM regexp_split_to_table('the quick brown fox jumped over the lazy dog', $re$\s*$re$) AS foo;
+ foo | length 
+-----+--------
+ t   |      1
+ h   |      1
+ e   |      1
+ q   |      1
+ u   |      1
+ i   |      1
+ c   |      1
+ k   |      1
+ b   |      1
+ r   |      1
+ o   |      1
+ w   |      1
+ n   |      1
+ f   |      1
+ o   |      1
+ x   |      1
+ j   |      1
+ u   |      1
+ m   |      1
+ p   |      1
+ e   |      1
+ d   |      1
+ o   |      1
+ v   |      1
+ e   |      1
+ r   |      1
+ t   |      1
+ h   |      1
+ e   |      1
+ l   |      1
+ a   |      1
+ z   |      1
+ y   |      1
+ d   |      1
+ o   |      1
+ g   |      1
+(36 rows)
+
+SELECT regexp_split_to_array('the quick brown fox jumped over the lazy dog', $re$\s*$re$);
+                           regexp_split_to_array                           
+---------------------------------------------------------------------------
+ {t,h,e,q,u,i,c,k,b,r,o,w,n,f,o,x,j,u,m,p,e,d,o,v,e,r,t,h,e,l,a,z,y,d,o,g}
+(1 row)
+
+SELECT foo, length(foo) FROM regexp_split_to_table('the quick brown fox jumped over the lazy dog', '') AS foo;
+ foo | length 
+-----+--------
+ t   |      1
+ h   |      1
+ e   |      1
+     |      1
+ q   |      1
+ u   |      1
+ i   |      1
+ c   |      1
+ k   |      1
+     |      1
+ b   |      1
+ r   |      1
+ o   |      1
+ w   |      1
+ n   |      1
+     |      1
+ f   |      1
+ o   |      1
+ x   |      1
+     |      1
+ j   |      1
+ u   |      1
+ m   |      1
+ p   |      1
+ e   |      1
+ d   |      1
+     |      1
+ o   |      1
+ v   |      1
+ e   |      1
+ r   |      1
+     |      1
+ t   |      1
+ h   |      1
+ e   |      1
+     |      1
+ l   |      1
+ a   |      1
+ z   |      1
+ y   |      1
+     |      1
+ d   |      1
+ o   |      1
+ g   |      1
+(44 rows)
+
+SELECT regexp_split_to_array('the quick brown fox jumped over the lazy dog', '');
+                                           regexp_split_to_array                                           
+-----------------------------------------------------------------------------------------------------------
+ {t,h,e," ",q,u,i,c,k," ",b,r,o,w,n," ",f,o,x," ",j,u,m,p,e,d," ",o,v,e,r," ",t,h,e," ",l,a,z,y," ",d,o,g}
+(1 row)
+
+-- case insensitive
+SELECT foo, length(foo) FROM regexp_split_to_table('thE QUick bROWn FOx jUMPed ovEr THE lazy dOG', 'e', 'i') AS foo;
+          foo          | length 
+-----------------------+--------
+ th                    |      2
+  QUick bROWn FOx jUMP |     21
+ d ov                  |      4
+ r TH                  |      4
+  lazy dOG             |      9
+(5 rows)
+
+SELECT regexp_split_to_array('thE QUick bROWn FOx jUMPed ovEr THE lazy dOG', 'e', 'i');
+                 regexp_split_to_array                  
+--------------------------------------------------------
+ {th," QUick bROWn FOx jUMP","d ov","r TH"," lazy dOG"}
+(1 row)
+
+-- no match of pattern
+SELECT foo, length(foo) FROM regexp_split_to_table('the quick brown fox jumped over the lazy dog', 'nomatch') AS foo;
+                     foo                      | length 
+----------------------------------------------+--------
+ the quick brown fox jumped over the lazy dog |     44
+(1 row)
+
+SELECT regexp_split_to_array('the quick brown fox jumped over the lazy dog', 'nomatch');
+              regexp_split_to_array               
+--------------------------------------------------
+ {"the quick brown fox jumped over the lazy dog"}
+(1 row)
+
+-- errors
+SELECT foo, length(foo) FROM regexp_split_to_table('thE QUick bROWn FOx jUMPed ovEr THE lazy dOG', 'e', 'zippy') AS foo;
+ERROR:  invalid regexp option: "z"
+SELECT regexp_split_to_array('thE QUick bROWn FOx jUMPed ovEr THE lazy dOG', 'e', 'zippy');
+ERROR:  invalid regexp option: "z"
+-- global option meaningless for regexp_split
+SELECT foo, length(foo) FROM regexp_split_to_table('thE QUick bROWn FOx jUMPed ovEr THE lazy dOG', 'e', 'g') AS foo;
+ERROR:  regexp_split does not support the global option
+SELECT regexp_split_to_array('thE QUick bROWn FOx jUMPed ovEr THE lazy dOG', 'e', 'g');
+ERROR:  regexp_split does not support the global option
+-- change NULL-display back
+\pset null ''
 -- E021-11 position expression
 SELECT POSITION('4' IN '1234567890') = '4' AS "4";
  4 
@@ -618,6 +855,110 @@ SELECT text 'text' || varchar ' and varchar' AS "Concat text to varchar";
  text and varchar
 (1 row)
 
+-- Test "unknown" from sub queries - MPP-2510
+select foo || 'bar'::text from (select 'bar' as foo) a;
+ ?column? 
+----------
+ barbar
+(1 row)
+
+select foo || 'bar'::text from (select 'bar'::text as foo) a;
+ ?column? 
+----------
+ barbar
+(1 row)
+
+select * from ( select 'a' as a) x join (select 'b' as b) y on a=b;
+ a | b 
+---+---
+(0 rows)
+
+-- Test "unknown" with typmod MPP-2658
+create table unknown_test (v varchar(20), n numeric(20, 2), t timestamp(2));
+insert into unknown_test select '100', '123.23', '2008-01-01 11:11:11';
+select 'foo'::varchar(10) || bar from (select 'bar' as bar) moo;
+ ?column? 
+----------
+ foobar
+(1 row)
+
+select '123'::numeric(4,1) + bar from (select '123' as bar) baz;
+ ?column? 
+----------
+    246.0
+(1 row)
+
+drop table unknown_test;
+-- Test nested "unknown"s from MPP-2689
+select 'foo'::text || foo from ( select foo from (select 4.5, foo from ( select
+1, 'foo' as foo) a ) b ) c;
+ ?column? 
+----------
+ foofoo
+(1 row)
+
+select 'foo'::text || foo from ( select foo from 
+ (select foo || bar as foo from ( select 'bar' as bar, 'foo' as foo) a ) b ) c;
+ ?column?  
+-----------
+ foofoobar
+(1 row)
+
+create domain u_d as text;
+prepare p1 as select $1::u_d || foo from (select 'foo' as foo) a;
+prepare p2 as select 'foo' || foo 
+from (select $1::u_d || bar as foo from (select 'bar' as bar) a ) b;
+select 'a' as a, 'b' as b, 'c' as c, 1 as d union select * from (select 'a' as a, 'b' as b, 'c' as c, 1 as d)d;
+ a | b | c | d 
+---+---+---+---
+ a | b | c | 1
+(1 row)
+
+select * from (select 'a' as a, 'b' as b, 'c' as c, 1 as d)d union select 'a' as a, 'b' as b, 'c' as c, 1 as d;
+ a | b | c | d 
+---+---+---+---
+ a | b | c | 1
+(1 row)
+
+-- Make sure we can convert unknown to other useful types (MPP-4298)
+create table t as select j as a, 'abc' as i from
+generate_series(1, 10) j;
+WARNING:  column "i" has type "unknown"
+DETAIL:  Proceeding with relation creation anyway.
+select * from t order by a;
+ a  |  i  
+----+-----
+  1 | abc
+  2 | abc
+  3 | abc
+  4 | abc
+  5 | abc
+  6 | abc
+  7 | abc
+  8 | abc
+  9 | abc
+ 10 | abc
+(10 rows)
+
+alter table t alter i type int; -- should fail
+ERROR:  invalid input syntax for integer: "abc"
+alter table t alter i type text; -- should work
+select * from t order by a;
+ a  |  i  
+----+-----
+  1 | abc
+  2 | abc
+  3 | abc
+  4 | abc
+  5 | abc
+  6 | abc
+  7 | abc
+  8 | abc
+  9 | abc
+ 10 | abc
+(10 rows)
+
+drop table t;
 --
 -- test substr with toasted text values
 --
@@ -672,15 +1013,15 @@ DROP TABLE toasttest;
 -- test substr with toasted bytea values
 --
 CREATE TABLE toasttest(f1 bytea);
-insert into toasttest values(decode(repeat('1234567890',10000),'escape'));
-insert into toasttest values(decode(repeat('1234567890',10000),'escape'));
+insert into toasttest values("decode"(repeat('1234567890',10000),'escape'));
+insert into toasttest values(pg_catalog.decode(repeat('1234567890',10000),'escape'));
 --
 -- Ensure that some values are uncompressed, to test the faster substring
 -- operation used in that case
 --
 alter table toasttest alter column f1 set storage external;
-insert into toasttest values(decode(repeat('1234567890',10000),'escape'));
-insert into toasttest values(decode(repeat('1234567890',10000),'escape'));
+insert into toasttest values("decode"(repeat('1234567890',10000),'escape'));
+insert into toasttest values(pg_catalog.decode(repeat('1234567890',10000),'escape'));
 -- If the starting position is zero or less, then return from the start of the string
 -- adjusting the length to be consistent with the "negative start" per SQL92.
 SELECT substr(f1, -1, 5) from toasttest;
@@ -716,6 +1057,26 @@ SELECT substr(f1, 99995, 10) from toasttest;
  567890
  567890
 (4 rows)
+
+DROP TABLE toasttest;
+-- test internally compressing datums
+-- note this tests compressing a datum to a very small size which tests a
+-- particular case in the packed varlena where very small compressed datums
+-- must be given a 4-byte header because there are no bits to indicate
+-- compression in a 1-byte header
+CREATE TABLE toasttest (c char(2048));
+INSERT INTO toasttest VALUES('x');
+SELECT length(c), c::text FROM toasttest;
+ length | c 
+--------+---
+      1 | x
+(1 row)
+
+SELECT c FROM toasttest;
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                c                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ x                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               
+(1 row)
 
 DROP TABLE toasttest;
 --
@@ -978,3 +1339,33 @@ select 'a\\bcd' as f1, 'a\\b\'cd' as f2, 'a\\b\'''cd' as f3, 'abcd\\'   as f4, '
  a\bcd | a\b'cd | a\b''cd | abcd\ | ab\'cd | \\
 (1 row)
 
+--
+-- test unicode escape
+--
+select E'A\u0041' as f1, E'\u0127' as f2;
+ f1 | f2
+----+----
+ AA | ħ
+(1 row)
+
+select E'\u0000';
+ERROR:  invalid Unicode escape value at or near "E'\u0000"
+LINE 1: select E'\u0000';
+               ^
+select E'\udsfs';
+ERROR:  invalid Unicode escape
+LINE 1: select E'\udsfs';
+               ^
+HINT:  Unicode escapes must be full-length: \uXXXX or \UXXXXXXXX.
+select E'\uD843\uE001';
+ERROR:  invalid Unicode surrogate pair at or near "E'\uD843\uE001"
+LINE 1: select E'\uD843\uE001';
+               ^
+select E'\uDC01';
+ERROR:  invalid Unicode surrogate pair at or near "E'\uDC01"
+LINE 1: select E'\uDC01';
+               ^
+select E'\uD834';
+ERROR:  invalid Unicode surrogate pair at or near "E'\uD834'"
+LINE 1: select E'\uD834';
+               ^

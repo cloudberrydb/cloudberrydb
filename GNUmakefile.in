@@ -8,25 +8,61 @@ subdir =
 top_builddir = .
 include $(top_builddir)/src/Makefile.global
 
+
 all:
-	$(MAKE) -C doc all
+#	$(MAKE) -C doc all
 	$(MAKE) -C src all
 	$(MAKE) -C config all
-	@echo "All of PostgreSQL successfully made. Ready to install."
+	$(MAKE) -C contrib/xlogdump all
+	$(MAKE) -C contrib/changetrackingdump all
+	$(MAKE) -C contrib/formatter all
+	$(MAKE) -C contrib/formatter_fixedwidth all
+	$(MAKE) -C contrib/fuzzystrmatch all
+	$(MAKE) -C contrib/extprotocol all	
+	$(MAKE) -C contrib/gp_sparse_vector all
+	$(MAKE) -C contrib/gp_distribution_policy all
+	$(MAKE) -C contrib/gp_internal_tools all
+	$(MAKE) -C contrib/gp_cancel_query all
+	$(MAKE) -C contrib/indexscan all
+	@echo "All of Greenplum Database successfully made. Ready to install."
 
 install:
-	$(MAKE) -C doc $@
+#	$(MAKE) -C doc $@
 	$(MAKE) -C src $@
 	$(MAKE) -C config $@
-	@echo "PostgreSQL installation complete."
+	$(MAKE) -C contrib/xlogdump $@
+	$(MAKE) -C contrib/changetrackingdump $@
+	$(MAKE) -C contrib/formatter $@
+	$(MAKE) -C contrib/formatter_fixedwidth $@
+	$(MAKE) -C contrib/fuzzystrmatch $@
+	$(MAKE) -C contrib/extprotocol $@
+	$(MAKE) -C contrib/gp_sparse_vector $@
+	$(MAKE) -C contrib/gp_distribution_policy $@
+	$(MAKE) -C contrib/gp_internal_tools $@
+	$(MAKE) -C contrib/gp_cancel_query $@
+	$(MAKE) -C contrib/indexscan $@ 
+	$(MAKE) -C gpMgmt $@
+
+	@echo "Greenplum Database installation complete."
 
 installdirs uninstall:
-	$(MAKE) -C doc $@
+#	$(MAKE) -C doc $@
 	$(MAKE) -C src $@
 	$(MAKE) -C config $@
+	$(MAKE) -C contrib/xlogdump $@
+	$(MAKE) -C contrib/changetrackingdump $@
+	$(MAKE) -C contrib/formatter $@
+	$(MAKE) -C contrib/formatter_fixedwidth $@
+	$(MAKE) -C contrib/fuzzystrmatch $@
+	$(MAKE) -C contrib/extprotocol $@
+	$(MAKE) -C contrib/gp_sparse_vector $@
+	$(MAKE) -C contrib/gp_distribution_policy $@
+	$(MAKE) -C contrib/gp_internal_tools $@
+	$(MAKE) -C contrib/gp_cancel_query $@
+	$(MAKE) -C contrib/indexscan $@ 
 
 distprep:
-	$(MAKE) -C doc $@
+#	$(MAKE) -C doc $@
 	$(MAKE) -C src $@
 	$(MAKE) -C config $@
 	$(MAKE) -C contrib $@
@@ -34,17 +70,28 @@ distprep:
 # clean, distclean, etc should apply to contrib too, even though
 # it's not built by default
 clean:
-	$(MAKE) -C doc $@
+#	$(MAKE) -C doc $@
 	$(MAKE) -C contrib $@
 	$(MAKE) -C src $@
 	$(MAKE) -C config $@
+	$(MAKE) -C contrib/xlogdump $@
+	$(MAKE) -C contrib/changetrackingdump $@
+	$(MAKE) -C contrib/formatter $@
+	$(MAKE) -C contrib/formatter_fixedwidth $@
+	$(MAKE) -C contrib/fuzzystrmatch $@
+	$(MAKE) -C contrib/extprotocol $@
+	$(MAKE) -C contrib/gp_sparse_vector $@
+	$(MAKE) -C contrib/gp_distribution_policy $@
+	$(MAKE) -C contrib/gp_internal_tools $@
+	$(MAKE) -C contrib/gp_cancel_query $@
+	$(MAKE) -C contrib/indexscan $@
 # Garbage from autoconf:
 	@rm -rf autom4te.cache/
 
 # Important: distclean `src' last, otherwise Makefile.global
 # will be gone too soon.
 distclean maintainer-clean:
-	-$(MAKE) -C doc $@
+#	-$(MAKE) -C doc $@
 	-$(MAKE) -C contrib $@
 	-$(MAKE) -C config $@
 	-$(MAKE) -C src $@
@@ -54,7 +101,7 @@ distclean maintainer-clean:
 
 check: all
 
-check installcheck installcheck-parallel:
+check installcheck installcheck-parallel installcheck-good:
 	$(MAKE) -C src/test $@
 
 GNUmakefile: GNUmakefile.in $(top_builddir)/config.status
@@ -63,9 +110,9 @@ GNUmakefile: GNUmakefile.in $(top_builddir)/config.status
 
 ##########################################################################
 
-distdir	:= postgresql-$(VERSION)
-dummy	:= =install=
-garbage := =*  "#"*  ."#"*  *~*  *.orig  *.rej  core  postgresql-*
+distdir	= postgresql-$(VERSION)
+dummy	= =install=
+garbage = =*  "#"*  ."#"*  *~*  *.orig  *.rej  core  postgresql-*
 
 dist: $(distdir).tar.gz 
 ifeq ($(split-dist), yes)
@@ -77,11 +124,12 @@ dist:
 $(distdir).tar: distdir
 	$(TAR) chf $@ $(distdir)
 
-opt_files := \
+opt_files = \
 	src/tools src/tutorial \
 	$(addprefix src/pl/, plperl plpython tcl)
 
-docs_files := doc/postgres.tar.gz doc/src doc/TODO.detail
+#docs_files = doc/postgres.tar.gz doc/src doc/TODO.detail
+docs_files :=
 
 postgresql-base-$(VERSION).tar: distdir
 	$(TAR) -c $(addprefix --exclude $(distdir)/, $(docs_files) $(opt_files) src/test) \
@@ -108,12 +156,12 @@ distdir:
 	  fi || exit; \
 	done
 	$(MAKE) -C $(distdir) distprep
-	$(MAKE) -C $(distdir)/doc/src/sgml/ HISTORY INSTALL regress_README
-	cp $(distdir)/doc/src/sgml/HISTORY $(distdir)/
-	cp $(distdir)/doc/src/sgml/INSTALL $(distdir)/
-	cp $(distdir)/doc/src/sgml/regress_README $(distdir)/src/test/regress/README
+	#$(MAKE) -C $(distdir)/doc/src/sgml/ HISTORY INSTALL regress_README
+	#cp $(distdir)/doc/src/sgml/HISTORY $(distdir)/
+	#cp $(distdir)/doc/src/sgml/INSTALL $(distdir)/
+	#cp $(distdir)/doc/src/sgml/regress_README $(distdir)/src/test/regress/README
 	$(MAKE) -C $(distdir) distclean
-	rm -f $(distdir)/README.CVS
+	-rm -f $(distdir)/README.CVS
 
 distcheck: $(distdir).tar.gz
 	-rm -rf $(dummy)

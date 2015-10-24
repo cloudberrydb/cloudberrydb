@@ -6,9 +6,9 @@
  * copyright (c) Oliver Elphick <olly@lfix.co.uk>, 2001;
  * licence: BSD
  *
- * $PostgreSQL: pgsql/src/bin/pg_controldata/pg_controldata.c,v 1.31 2006/08/21 16:16:31 tgl Exp $
+ * $PostgreSQL: pgsql/src/bin/pg_controldata/pg_controldata.c,v 1.31.2.1 2008/09/24 08:59:44 mha Exp $
  */
-#include "postgres.h"
+#include "postgres_fe.h"
 
 #include <unistd.h>
 #include <time.h>
@@ -30,6 +30,7 @@ usage(const char *progname)
 		   "Options:\n"
 		   "  --help         show this help, then exit\n"
 		   "  --version      output version information, then exit\n"
+		   "  --gp-version   output Greenplum version information, then exit\n"
 		   ),
 		 progname
 		);
@@ -52,8 +53,12 @@ dbState(DBState state)
 			return _("shutting down");
 		case DB_IN_CRASH_RECOVERY:
 			return _("in crash recovery");
-		case DB_IN_ARCHIVE_RECOVERY:
-			return _("in archive recovery");
+		case DB_IN_STANDBY_MODE:
+			return _("in standby mode");
+		case DB_IN_STANDBY_PROMOTED:
+			return _("in standby mode (promoted)");
+		case DB_IN_STANDBY_NEW_TLI_SET:
+			return _("in standby mode (new tli set)");
 		case DB_IN_PRODUCTION:
 			return _("in production");
 	}
@@ -72,7 +77,7 @@ main(int argc, char *argv[])
 	char		pgctime_str[128];
 	char		ckpttime_str[128];
 	char		sysident_str[32];
-	char	   *strftime_fmt = "%c";
+	const char *strftime_fmt = "%c";
 	const char *progname;
 
 	set_pglocale_pgservice(argv[0], "pg_controldata");
@@ -88,9 +93,15 @@ main(int argc, char *argv[])
 		}
 		if (strcmp(argv[1], "--version") == 0 || strcmp(argv[1], "-V") == 0)
 		{
-			puts("pg_controldata (PostgreSQL) " PG_VERSION);
+			puts("pg_controldata (Greenplum Database) " PG_VERSION);
 			exit(0);
 		}
+		if (strcmp(argv[1], "--gp-version") == 0)
+		{
+			puts("pg_controldata (Greenplum Database) " GP_VERSION);
+			exit(0);
+		}
+
 	}
 
 	if (argc > 1)
@@ -106,7 +117,7 @@ main(int argc, char *argv[])
 
 	snprintf(ControlFilePath, MAXPGPATH, "%s/global/pg_control", DataDir);
 
-	if ((fd = open(ControlFilePath, O_RDONLY, 0)) == -1)
+	if ((fd = open(ControlFilePath, O_RDONLY | PG_BINARY, 0)) == -1)
 	{
 		fprintf(stderr, _("%s: could not open file \"%s\" for reading: %s\n"),
 				progname, ControlFilePath, strerror(errno));
@@ -122,16 +133,27 @@ main(int argc, char *argv[])
 	close(fd);
 
 	/* Check the CRC. */
-	INIT_CRC32(crc);
-	COMP_CRC32(crc,
-			   (char *) &ControlFile,
-			   offsetof(ControlFileData, crc));
-	FIN_CRC32(crc);
+	crc = crc32c(crc32cInit(), &ControlFile, offsetof(ControlFileData, crc));
+	crc32cFinish(crc);
 
 	if (!EQ_CRC32(crc, ControlFile.crc))
-		printf(_("WARNING: Calculated CRC checksum does not match value stored in file.\n"
-				 "Either the file is corrupt, or it has a different layout than this program\n"
-				 "is expecting.  The results below are untrustworthy.\n\n"));
+	{
+		/*
+		 * Well, the crc doesn't match our computed crc32c value.
+		 * But it might be an old crc32, using the old polynomial.
+		 * If it is, it's OK.
+		 */
+		INIT_CRC32(crc);
+		COMP_CRC32(crc,
+				   (char *) &ControlFile,
+				   offsetof(ControlFileData, crc));
+		FIN_CRC32(crc);
+
+		if (!EQ_CRC32(crc, ControlFile.crc))
+			printf(_("WARNING: Calculated CRC checksum does not match value stored in file.\n"
+					 "Either the file is corrupt, or it has a different layout than this program\n"
+					 "is expecting.  The results below are untrustworthy.\n\n"));
+	}
 
 	/*
 	 * Use variable for format to suppress overly-anal-retentive gcc warning
@@ -151,6 +173,11 @@ main(int argc, char *argv[])
 
 	printf(_("pg_control version number:            %u\n"),
 		   ControlFile.pg_control_version);
+	if (ControlFile.pg_control_version % 65536 == 0 && ControlFile.pg_control_version / 65536 != 0)
+		printf(_("WARNING: possible byte ordering mismatch\n"
+				 "The byte ordering used to store the pg_control file might not match the one\n"
+				 "used by this program.  In that case the results below would be incorrect, and\n"
+				 "the PostgreSQL installation would be incompatible with this data directory.\n"));
 	printf(_("Catalog version number:               %u\n"),
 		   ControlFile.catalog_version_no);
 	printf(_("Database system identifier:           %s\n"),
@@ -191,6 +218,11 @@ main(int argc, char *argv[])
 	printf(_("Minimum recovery ending location:     %X/%X\n"),
 		   ControlFile.minRecoveryPoint.xlogid,
 		   ControlFile.minRecoveryPoint.xrecoff);
+	printf(_("Backup start location:                %X/%X\n"),
+		   ControlFile.backupStartPoint.xlogid,
+		   ControlFile.backupStartPoint.xrecoff);
+	printf(_("End-of-backup record required:        %s\n"),
+		   ControlFile.backupEndRequired ? _("yes") : _("no"));
 	printf(_("Maximum data alignment:               %u\n"),
 		   ControlFile.maxAlign);
 	/* we don't print floatFormat since can't say much useful about it */

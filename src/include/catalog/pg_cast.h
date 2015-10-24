@@ -8,7 +8,8 @@
  * but also length coercion functions.
  *
  *
- * Copyright (c) 2002-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 2006-2010, Greenplum inc
+ * Copyright (c) 2002-2008, PostgreSQL Global Development Group
  *
  * $PostgreSQL: pgsql/src/include/catalog/pg_cast.h,v 1.26 2006/03/05 15:58:54 momjian Exp $
  *
@@ -21,6 +22,34 @@
 #ifndef PG_CAST_H
 #define PG_CAST_H
 
+#include "catalog/genbki.h"
+
+/* TIDYCAT_BEGINFAKEDEF
+
+   CREATE TABLE pg_cast
+   with (relid=2605)
+   (
+   castsource   oid, 
+   casttarget   oid, 
+   castfunc     oid, 
+   castcontext  "char"
+   );
+
+   create unique index on pg_cast(oid) with (indexid=2660, CamelCase=CastOid);
+   create unique index on pg_cast(castsource, casttarget) with (indexid=2661, CamelCase=CastSourceTarget, syscacheid=CASTSOURCETARGET, syscache_nbuckets=256);
+
+   alter table pg_cast add fk castsource on pg_type(oid);
+   alter table pg_cast add fk casttarget on pg_type(oid);
+   alter table pg_cast add fk castfunc on pg_proc(oid);
+
+   TIDYCAT_ENDFAKEDEF
+*/
+
+/* ----------------
+ *		pg_cast definition.  cpp turns this into
+ *		typedef struct FormData_pg_cast
+ * ----------------
+ */
 #define CastRelationId	2605
 
 CATALOG(pg_cast,2605)
@@ -391,5 +420,20 @@ DATA(insert ( 1266 1266 1969 i ));
 DATA(insert ( 1560 1560 1685 i ));
 DATA(insert ( 1562 1562 1687 i ));
 DATA(insert ( 1700 1700 1703 i ));
+
+/*
+ * CDB: Allow explicit cast from tid to int8
+ */
+DATA(insert (   27   20 6021 e ));
+
+/* 
+ * CASTS created after 3.x must have fixed oids otherwise upgrade will not work
+ * correctly. 
+ */
+
+/* GP: Allow explicit cast between tid and aotid. */
+DATA(insert OID = 9901 (	27 3300    0 e ));
+DATA(insert OID = 9902 ( 3300	 27    0 e ));
+
 
 #endif   /* PG_CAST_H */

@@ -3,7 +3,7 @@
  * pg_trigger.h
  *
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2008, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  * $PostgreSQL: pgsql/src/include/catalog/pg_trigger.h,v 1.25 2006/03/11 04:38:38 momjian Exp $
  *
@@ -16,12 +16,39 @@
 #ifndef PG_TRIGGER_H
 #define PG_TRIGGER_H
 
-/* ----------------
- *		postgres.h contains the system type definitions and the
- *		CATALOG(), BKI_BOOTSTRAP and DATA() sugar words so this file
- *		can be read by both genbki.sh and the C compiler.
- * ----------------
- */
+#include "catalog/genbki.h"
+
+/* TIDYCAT_BEGINFAKEDEF
+
+   CREATE TABLE pg_trigger
+   with (relid=2620)
+   (
+   tgrelid         oid, 
+   tgname          name, 
+   tgfoid          oid, 
+   tgtype          smallint, 
+   tgenabled       boolean, 
+   tgisconstraint  boolean, 
+   tgconstrname    name, 
+   tgconstrrelid   oid, 
+   tgdeferrable    boolean, 
+   tginitdeferred  boolean, 
+   tgnargs         smallint, 
+   tgattr          int2vector, 
+   tgargs          bytea
+   );
+
+   create index on pg_trigger(tgconstrname) with (indexid=2699, CamelCase=TriggerConstrName);
+   create index on pg_trigger(tgconstrrelid) with (indexid=2700, CamelCase=TriggerConstrRelid);
+   create unique index on pg_trigger(tgrelid, tgname) with (indexid=2701, CamelCase=TriggerRelidName);
+   create unique index on pg_trigger(oid) with (indexid=2702, CamelCase=TriggerOid);
+
+   alter table pg_trigger add fk tgrelid on pg_class(oid);
+   alter table pg_trigger add fk tgfoid on pg_proc(oid);
+   alter table pg_trigger add fk tgconstrrelid on pg_class(oid);
+
+   TIDYCAT_ENDFAKEDEF
+*/
 
 /* ----------------
  *		pg_trigger definition.	cpp turns this into

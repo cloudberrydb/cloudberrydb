@@ -3,7 +3,8 @@
  * sequence.h
  *	  prototypes for sequence.c.
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 2006-2008, Greenplum inc.
+ * Portions Copyright (c) 1996-2008, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * $PostgreSQL: pgsql/src/include/commands/sequence.h,v 1.37 2006/07/11 13:54:24 momjian Exp $
@@ -15,6 +16,7 @@
 
 #include "nodes/parsenodes.h"
 #include "storage/relfilenode.h"
+#include "storage/itemptr.h"
 #include "access/xlog.h"
 #include "fmgr.h"
 
@@ -77,7 +79,10 @@ typedef FormData_pg_sequence *Form_pg_sequence;
 
 typedef struct xl_seq_rec
 {
-	RelFileNode node;
+	RelFileNode 	node;
+	ItemPointerData persistentTid;
+	int64 			persistentSerialNum;
+
 	/* SEQUENCE TUPLE DATA FOLLOWS AT THE END */
 } xl_seq_rec;
 
@@ -91,8 +96,8 @@ extern Datum lastval(PG_FUNCTION_ARGS);
 extern void DefineSequence(CreateSeqStmt *stmt);
 extern void AlterSequence(AlterSeqStmt *stmt);
 
-extern void seq_redo(XLogRecPtr lsn, XLogRecord *rptr);
-extern void seq_desc(StringInfo buf, uint8 xl_info, char *rec);
+extern void seq_redo(XLogRecPtr beginLoc, XLogRecPtr lsn, XLogRecord *rptr);
+extern void seq_desc(StringInfo buf, XLogRecPtr beginLoc, XLogRecord *record);
 
 /* Set the upper and lower bounds of a sequence */
 #ifndef INT64_IS_BUSTED
@@ -102,5 +107,19 @@ extern void seq_desc(StringInfo buf, uint8 xl_info, char *rec);
 #endif   /* INT64_IS_BUSTED */
 
 #define SEQ_MINVALUE	(-SEQ_MAXVALUE)
+
+/*
+ * CDB: nextval entry point called by sequence server
+ */
+void
+cdb_sequence_nextval_server(Oid    tablespaceid,
+                            Oid    dbid,
+                            Oid    relid,
+                            bool   istemp,
+                            int64 *plast,
+                            int64 *pcached,
+                            int64 *pincrement,
+                            bool  *poverflow);
+
 
 #endif   /* SEQUENCE_H */

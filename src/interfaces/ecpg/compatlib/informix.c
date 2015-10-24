@@ -1,8 +1,8 @@
-/* $PostgreSQL: pgsql/src/interfaces/ecpg/compatlib/informix.c,v 1.48 2006/10/04 00:30:11 momjian Exp $ */
+/* $PostgreSQL: pgsql/src/interfaces/ecpg/compatlib/informix.c,v 1.59 2009/06/11 14:49:13 momjian Exp $ */
 
-#include <stdlib.h>
-#include <string.h>
-#include <errno.h>
+#define POSTGRES_ECPG_INTERNAL
+#include "postgres_fe.h"
+
 #include <math.h>
 #include <ctype.h>
 #include <limits.h>
@@ -13,8 +13,8 @@
 #include <pgtypes_date.h>
 #include <pgtypes_numeric.h>
 #include <sqltypes.h>
-
-char	   *ECPGalloc(long, int);
+#include <sqlca.h>
+#include <ecpgerrno.h>
 
 static int
 deccall2(decimal *arg1, decimal *arg2, int (*ptr) (numeric *, numeric *))
@@ -151,7 +151,7 @@ static char *
 ecpg_strndup(const char *str, size_t len)
 {
 	int			real_len = strlen(str);
-	int			use_len = (real_len > len) ? len : real_len;
+	int			use_len = (real_len > len) ? (int) len : real_len;
 
 	char	   *new = malloc(use_len + 1);
 
@@ -202,10 +202,11 @@ deccvasc(char *cp, int len, decimal *np)
 		}
 		else
 		{
-			if (PGTYPESnumeric_to_decimal(result, np) != 0)
-				ret = ECPG_INFORMIX_NUM_OVERFLOW;
+			int			i = PGTYPESnumeric_to_decimal(result, np);
 
 			free(result);
+			if (i != 0)
+				ret = ECPG_INFORMIX_NUM_OVERFLOW;
 		}
 	}
 
@@ -666,7 +667,7 @@ static struct
  * initialize the struct, which holds the different forms
  * of the long value
  */
-static void
+static int
 initValue(long lng_val)
 {
 	int			i,
@@ -700,7 +701,8 @@ initValue(long lng_val)
 	value.remaining = value.digits;
 
 	/* convert the long to string */
-	value.val_string = (char *) malloc(value.digits + 1);
+	if ((value.val_string = (char *) malloc(value.digits + 1)) == NULL)
+		return -1;
 	dig = value.val;
 	for (i = value.digits, j = 0; i > 0; i--, j++)
 	{
@@ -709,6 +711,7 @@ initValue(long lng_val)
 		l /= 10;
 	}
 	value.val_string[value.digits] = '\0';
+	return 0;
 }
 
 /* return the position oft the right-most dot in some string */
@@ -752,9 +755,19 @@ rfmtlong(long lng_val, char *fmt, char *outbuf)
 				fmtchar = ' ';
 
 	temp = (char *) malloc(fmt_len + 1);
+	if (!temp)
+	{
+		errno = ENOMEM;
+		return -1;
+	}
 
 	/* put all info about the long in a struct */
-	initValue(lng_val);
+	if (initValue(lng_val) == -1)
+	{
+		free(temp);
+		errno = ENOMEM;
+		return -1;
+	}
 
 	/* '<' is the only format, where we have to align left */
 	if (strchr(fmt, (int) '<'))
@@ -990,11 +1003,28 @@ ECPG_informix_set_var(int number, void *pointer, int lineno)
 	}
 
 	/* a new one has to be added */
-	ptr = (struct var_list *) ECPGalloc(sizeof(struct var_list), lineno);
-	ptr->number = number;
-	ptr->pointer = pointer;
-	ptr->next = ivlist;
-	ivlist = ptr;
+	ptr = (struct var_list *) calloc(1L, sizeof(struct var_list));
+	if (!ptr)
+	{
+		struct sqlca_t *sqlca = ECPGget_sqlca();
+
+		/* replace constant for strncpy() below to avoid bogus warning from gcc-4.1.1 on kite12 */
+		char my_msg[6]="YE001";
+
+		sqlca->sqlcode = ECPG_OUT_OF_MEMORY;
+		strncpy(sqlca->sqlstate, my_msg, sizeof(my_msg));
+		snprintf(sqlca->sqlerrm.sqlerrmc, sizeof(sqlca->sqlerrm.sqlerrmc), "Out of memory in line %d.", lineno);
+		sqlca->sqlerrm.sqlerrml = strlen(sqlca->sqlerrm.sqlerrmc);
+		/* free all memory we have allocated for the user */
+		ECPGfree_auto_mem();
+	}
+	else
+	{
+		ptr->number = number;
+		ptr->pointer = pointer;
+		ptr->next = ivlist;
+		ivlist = ptr;
+	}
 }
 
 void *

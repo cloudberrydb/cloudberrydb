@@ -11,7 +11,7 @@ INSERT INTO serialTest VALUES ('force', 100);
 INSERT INTO serialTest VALUES ('wrong', NULL);
 ERROR:  null value in column "f2" violates not-null constraint
  
-SELECT * FROM serialTest;
+SELECT * FROM serialTest ORDER BY 2;
   f1   | f2  
 -------+-----
  foo   |   1
@@ -34,18 +34,8 @@ SELECT nextval('sequence_test'::regclass);
        2
 (1 row)
 
-SELECT currval('sequence_test'::text);
- currval 
----------
-       2
-(1 row)
-
-SELECT currval('sequence_test'::regclass);
- currval 
----------
-       2
-(1 row)
-
+--SELECT currval('sequence_test'::text);
+--SELECT currval('sequence_test'::regclass);
 SELECT setval('sequence_test'::text, 32);
  setval 
 --------
@@ -108,13 +98,13 @@ DROP SEQUENCE foo_seq_new;
 -- renaming serial sequences
 ALTER TABLE serialtest_f2_seq RENAME TO serialtest_f2_foo;
 INSERT INTO serialTest VALUES ('more');
-SELECT * FROM serialTest;
+SELECT * FROM serialTest ORDER BY 2;
   f1   | f2  
 -------+-----
  foo   |   1
  bar   |   2
- force | 100
  more  |   3
+ force | 100
 (4 rows)
 
 --
@@ -188,24 +178,14 @@ SELECT nextval('seq');
        1
 (1 row)
 
-SELECT lastval();
- lastval 
----------
-       1
-(1 row)
-
+--SELECT lastval();
 SELECT setval('seq', 99);
  setval 
 --------
      99
 (1 row)
 
-SELECT lastval();
- lastval 
----------
-      99
-(1 row)
-
+--SELECT lastval();
 CREATE SEQUENCE seq2;
 SELECT nextval('seq2');
  nextval 
@@ -213,16 +193,10 @@ SELECT nextval('seq2');
        1
 (1 row)
 
-SELECT lastval();
- lastval 
----------
-       1
-(1 row)
-
+--SELECT lastval();
 DROP SEQUENCE seq2;
 -- should fail
-SELECT lastval();
-ERROR:  lastval is not yet defined in this session
+--SELECT lastval();
 CREATE USER seq_user;
 BEGIN;
 SET LOCAL SESSION AUTHORIZATION seq_user;
@@ -234,8 +208,7 @@ SELECT nextval('seq3');
 (1 row)
 
 REVOKE ALL ON seq3 FROM seq_user;
-SELECT lastval();
-ERROR:  permission denied for sequence seq3
+--SELECT lastval();
 ROLLBACK;
 DROP USER seq_user;
 DROP SEQUENCE seq;

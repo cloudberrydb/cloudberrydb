@@ -671,9 +671,9 @@ mkSPNode(IspellDict * Conf, int low, int high, int level)
 	if (!nchar)
 		return NULL;
 
-	rs = (SPNode *) malloc(SPNHRDSZ + nchar * sizeof(SPNodeData));
+	rs = (SPNode *) malloc(SPNHDRSZ + nchar * sizeof(SPNodeData));
 	MEMOUT(rs);
-	memset(rs, 0, SPNHRDSZ + nchar * sizeof(SPNodeData));
+	memset(rs, 0, SPNHDRSZ + nchar * sizeof(SPNodeData));
 	rs->length = nchar;
 	data = rs->data;
 
@@ -1528,7 +1528,7 @@ NIFree(IspellDict * Conf)
 	if (Conf->Spell)
 	{
 		for (i = 0; i < Conf->nspell; i++)
-			pfree(Conf->Spell[i]->word);
+			pfree(Conf->Spell[i]);
 		pfree(Conf->Spell);
 	}
 

@@ -476,9 +476,8 @@ tsvector_in(PG_FUNCTION_ARGS)
 	else
 		buflen = 0;
 	totallen = CALCDATASIZE(len, buflen);
-	in = (tsvector *) palloc(totallen);
-	memset(in, 0, totallen);
-	in->len = totallen;
+	in = (tsvector *) palloc0(totallen);
+	SET_VARSIZE(in, totallen);
 	in->size = len;
 	cur = STRPTR(in);
 	inarr = ARRPTR(in);
@@ -550,6 +549,14 @@ tsvector_out(PG_FUNCTION_ARGS)
 				curout = outbuf + pos;
 				*curout++ = '\'';
 			}
+			else if (t_iseq(curin, '\\'))
+			{
+				int4		pos = curout - outbuf;
+
+				outbuf = (char *) repalloc((void *) outbuf, ++lenbuf);
+				curout = outbuf + pos;
+				*curout++ = '\\';
+			}
 			while (len--)
 				*curout++ = *curin++;
 		}
@@ -604,7 +611,12 @@ compareWORD(const void *a, const void *b)
 								  ((TSWORD *) b)->len);
 
 		if (res == 0)
+		{
+			if ( ((TSWORD *) a)->pos.pos == ((TSWORD *) b)->pos.pos )
+				return 0;
+
 			return (((TSWORD *) a)->pos.pos > ((TSWORD *) b)->pos.pos) ? 1 : -1;
+		}
 		return res;
 	}
 	return (((TSWORD *) a)->len > ((TSWORD *) b)->len) ? 1 : -1;
@@ -654,7 +666,8 @@ uniqueWORD(TSWORD * a, int4 l)
 		else
 		{
 			pfree(ptr->word);
-			if (res->pos.apos[0] < MAXNUMPOS - 1 && res->pos.apos[res->pos.apos[0]] != MAXENTRYPOS - 1)
+			if (res->pos.apos[0] < MAXNUMPOS - 1 && res->pos.apos[res->pos.apos[0]] != MAXENTRYPOS - 1 &&
+				res->pos.apos[res->pos.apos[0]] != LIMITPOS(ptr->pos.pos) )
 			{
 				if (res->pos.apos[0] + 1 >= res->alen)
 				{
@@ -699,9 +712,8 @@ makevalue(PRSTEXT * prs)
 	}
 
 	totallen = CALCDATASIZE(prs->curwords, lenstr);
-	in = (tsvector *) palloc(totallen);
-	memset(in, 0, totallen);
-	in->len = totallen;
+	in = (tsvector *) palloc0(totallen);
+	SET_VARSIZE(in, totallen);
 	in->size = prs->curwords;
 
 	ptr = ARRPTR(in);
@@ -746,7 +758,7 @@ to_tsvector(PG_FUNCTION_ARGS)
 {
 	text	   *in = PG_GETARG_TEXT_P(1);
 	PRSTEXT		prs;
-	tsvector   *out = NULL;
+	tsvector   *out;
 	TSCfgInfo  *cfg;
 
 	SET_FUNCOID();
@@ -766,7 +778,7 @@ to_tsvector(PG_FUNCTION_ARGS)
 	{
 		pfree(prs.words);
 		out = palloc(CALCDATASIZE(0, 0));
-		out->len = CALCDATASIZE(0, 0);
+		SET_VARSIZE(out, CALCDATASIZE(0, 0));
 		out->size = 0;
 	}
 	PG_RETURN_POINTER(out);
@@ -859,7 +871,7 @@ tsearch2(PG_FUNCTION_ARGS)
 	trigdata = (TriggerData *) fcinfo->context;
 	if (TRIGGER_FIRED_FOR_STATEMENT(trigdata->tg_event))
 		/* internal error */
-		elog(ERROR, "TSearch: Can't process STATEMENT events");
+		elog(ERROR, "TSearch: Cannot process STATEMENT events");
 	if (TRIGGER_FIRED_AFTER(trigdata->tg_event))
 		/* internal error */
 		elog(ERROR, "TSearch: Must be fired BEFORE event");
@@ -930,15 +942,15 @@ tsearch2(PG_FUNCTION_ARGS)
 		{
 			text	   *txttmp = (text *) DatumGetPointer(OidFunctionCall1(
 																	 funcoid,
-												 PointerGetDatum(txt_toasted)
+																	 txt_toasted
 																		   ));
 
-			txt = (text *) DatumGetPointer(PG_DETOAST_DATUM(PointerGetDatum(txttmp)));
+			txt = (text *) PG_DETOAST_DATUM(PointerGetDatum(txttmp));
 			if (txt == txttmp)
 				txt_toasted = PointerGetDatum(txt);
 		}
 		else
-			txt = (text *) DatumGetPointer(PG_DETOAST_DATUM(PointerGetDatum(txt_toasted)));
+			txt = (text *) PG_DETOAST_DATUM(txt_toasted);
 
 		parsetext_v2(cfg, &prs, VARDATA(txt), VARSIZE(txt) - VARHDRSZ);
 		if (txt != (text *) DatumGetPointer(txt_toasted))
@@ -957,7 +969,7 @@ tsearch2(PG_FUNCTION_ARGS)
 	{
 		tsvector   *out = palloc(CALCDATASIZE(0, 0));
 
-		out->len = CALCDATASIZE(0, 0);
+		SET_VARSIZE(out, CALCDATASIZE(0, 0));
 		out->size = 0;
 		datum = PointerGetDatum(out);
 		pfree(prs.words);
@@ -975,9 +987,9 @@ tsearch2(PG_FUNCTION_ARGS)
 static int
 silly_cmp_tsvector(const tsvector * a, const tsvector * b)
 {
-	if (a->len < b->len)
+	if (VARSIZE(a) < VARSIZE(b))
 		return -1;
-	else if (a->len > b->len)
+	else if (VARSIZE(a) > VARSIZE(b))
 		return 1;
 	else if (a->size < b->size)
 		return -1;
@@ -1052,8 +1064,8 @@ Datum		tsvector_ge(PG_FUNCTION_ARGS);
 Datum		tsvector_gt(PG_FUNCTION_ARGS);
 
 #define RUNCMP										\
-tsvector *a		   = (tsvector *) DatumGetPointer(PG_DETOAST_DATUM(PG_GETARG_DATUM(0)));\
-tsvector *b		   = (tsvector *) DatumGetPointer(PG_DETOAST_DATUM(PG_GETARG_DATUM(1)));\
+tsvector *a		   = (tsvector *) PG_DETOAST_DATUM(PG_GETARG_DATUM(0));\
+tsvector *b		   = (tsvector *) PG_DETOAST_DATUM(PG_GETARG_DATUM(1));\
 int res = silly_cmp_tsvector(a,b);							\
 PG_FREE_IF_COPY(a,0);									\
 PG_FREE_IF_COPY(b,1);									\

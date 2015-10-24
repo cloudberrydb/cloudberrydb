@@ -9,9 +9,10 @@
  * string is determined by the MAKE_SQLSTATE() macro, which is not defined
  * in this file; it can be defined by the caller for special purposes.
  *
- * Copyright (c) 2003-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 2005-2008, Greenplum inc.
+ * Copyright (c) 2003-2010, PostgreSQL Global Development Group
  *
- * $PostgreSQL: pgsql/src/include/utils/errcodes.h,v 1.20 2006/06/16 23:29:26 tgl Exp $
+ * $PostgreSQL: pgsql/src/include/utils/errcodes.h,v 1.32 2010/03/13 14:55:57 momjian Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -48,6 +49,10 @@
  * class defined by the standard have a subclass value that begins
  * with 'P'. In addition, error codes defined by PostgreSQL clients
  * (such as ecpg) have a class value that begins with 'Y'.
+ *
+ * An additional convention is the new error codes defined by MPP and
+ * that belong in a class defined by the standard have a subclass
+ * beginning 'M'.
  */
 
 /* Class 00 - Successful Completion */
@@ -63,6 +68,8 @@
 #define ERRCODE_WARNING_PRIVILEGE_NOT_REVOKED		MAKE_SQLSTATE('0','1', '0','0','6')
 #define ERRCODE_WARNING_STRING_DATA_RIGHT_TRUNCATION	MAKE_SQLSTATE('0','1', '0','0','4')
 #define ERRCODE_WARNING_DEPRECATED_FEATURE	MAKE_SQLSTATE('0','1', 'P','0','1')
+/*                        no longer used    MAKE_SQLSTATE('0','1', 'M','0','1') */
+#define ERRCODE_WARNING_GP_INTERCONNECTION MAKE_SQLSTATE('0','1', 'M','0','2')
 
 /* Class 02 - No Data --- this is also a warning class per SQL99 */
 /* (do not use this class for failure conditions!) */
@@ -73,6 +80,9 @@
 #define ERRCODE_SQL_STATEMENT_NOT_YET_COMPLETE		MAKE_SQLSTATE('0','3', '0','0','0')
 
 /* Class 08 - Connection Exception */
+/*  (MPP: In the QD, these should be generated only for client<-->QD
+ *   communication errors, not for QD<-->QE communication errors.
+ */
 #define ERRCODE_CONNECTION_EXCEPTION		MAKE_SQLSTATE('0','8', '0','0','0')
 #define ERRCODE_CONNECTION_DOES_NOT_EXIST	MAKE_SQLSTATE('0','8', '0','0','3')
 #define ERRCODE_CONNECTION_FAILURE			MAKE_SQLSTATE('0','8', '0','0','6')
@@ -86,6 +96,9 @@
 
 /* Class 0A - Feature Not Supported */
 #define ERRCODE_FEATURE_NOT_SUPPORTED		MAKE_SQLSTATE('0','A', '0','0','0')
+#define ERRCODE_GP_FEATURE_NOT_SUPPORTED	MAKE_SQLSTATE('0','A', 'M','0','0')
+#define ERRCODE_GP_FEATURE_NOT_YET			MAKE_SQLSTATE('0','A', 'M','0','1')
+#define ERRCODE_GP_FEATURE_NOT_CONFIGURED  MAKE_SQLSTATE('0','A', 'M','0','2')
 
 /* Class 0B - Invalid Transaction Initiation */
 #define ERRCODE_INVALID_TRANSACTION_INITIATION		MAKE_SQLSTATE('0','B', '0','0','0')
@@ -100,6 +113,9 @@
 
 /* Class 0P - Invalid Role Specification */
 #define ERRCODE_INVALID_ROLE_SPECIFICATION	MAKE_SQLSTATE('0','P', '0','0','0')
+
+/* Class 20 - Case Not Found */
+#define ERRCODE_CASE_NOT_FOUND				MAKE_SQLSTATE('2','0', '0','0','0')
 
 /* Class 21 - Cardinality Violation */
 /* (this means something returned the wrong number of rows) */
@@ -119,6 +135,8 @@
 #define ERRCODE_INDICATOR_OVERFLOW			MAKE_SQLSTATE('2','2', '0','2','2')
 #define ERRCODE_INTERVAL_FIELD_OVERFLOW		MAKE_SQLSTATE('2','2', '0','1','5')
 #define ERRCODE_INVALID_ARGUMENT_FOR_LOG	MAKE_SQLSTATE('2','2', '0','1','E')
+#define ERRCODE_INVALID_ARGUMENT_FOR_NTILE	MAKE_SQLSTATE('2','2', '0','1','4')
+#define ERRCODE_INVALID_ARGUMENT_FOR_NTH_VALUE	MAKE_SQLSTATE('2','2', '0','1','6')
 #define ERRCODE_INVALID_ARGUMENT_FOR_POWER_FUNCTION MAKE_SQLSTATE('2','2', '0', '1', 'F')
 #define ERRCODE_INVALID_ARGUMENT_FOR_WIDTH_BUCKET_FUNCTION	MAKE_SQLSTATE('2','2', '0', '1', 'G')
 #define ERRCODE_INVALID_CHARACTER_VALUE_FOR_CAST		MAKE_SQLSTATE('2','2', '0','1','8')
@@ -131,7 +149,10 @@
 #define ERRCODE_INVALID_LIMIT_VALUE			MAKE_SQLSTATE('2','2', '0','2','0')
 #define ERRCODE_INVALID_PARAMETER_VALUE		MAKE_SQLSTATE('2','2', '0','2','3')
 #define ERRCODE_INVALID_REGULAR_EXPRESSION	MAKE_SQLSTATE('2','2', '0','1','B')
+#define ERRCODE_INVALID_ROW_COUNT_IN_LIMIT_CLAUSE	MAKE_SQLSTATE('2', '2', '0', '1', 'W')
+#define ERRCODE_INVALID_ROW_COUNT_IN_RESULT_OFFSET_CLAUSE	MAKE_SQLSTATE('2', '2', '0', '1', 'X')
 #define ERRCODE_INVALID_TIME_ZONE_DISPLACEMENT_VALUE	MAKE_SQLSTATE('2','2', '0','0','9')
+#define ERRCODE_INVALID_INTERVAL_WIDTH	MAKE_SQLSTATE('2','2', '0','0','A')
 #define ERRCODE_INVALID_USE_OF_ESCAPE_CHARACTER		MAKE_SQLSTATE('2','2', '0','0','C')
 #define ERRCODE_MOST_SPECIFIC_TYPE_MISMATCH MAKE_SQLSTATE('2','2', '0','0','G')
 #define ERRCODE_NULL_VALUE_NOT_ALLOWED		MAKE_SQLSTATE('2','2', '0','0','4')
@@ -148,6 +169,13 @@
 #define ERRCODE_INVALID_BINARY_REPRESENTATION	MAKE_SQLSTATE('2','2', 'P','0','3')
 #define ERRCODE_BAD_COPY_FILE_FORMAT		MAKE_SQLSTATE('2','2', 'P','0','4')
 #define ERRCODE_UNTRANSLATABLE_CHARACTER	MAKE_SQLSTATE('2','2', 'P','0','5')
+#define ERRCODE_NOT_AN_XML_DOCUMENT			MAKE_SQLSTATE('2', '2', '0', '0', 'L')
+#define ERRCODE_INVALID_XML_DOCUMENT			MAKE_SQLSTATE('2', '2', '0', '0', 'M')
+#define ERRCODE_INVALID_XML_CONTENT			MAKE_SQLSTATE('2', '2', '0', '0', 'N')
+#define ERRCODE_INVALID_XML_COMMENT			MAKE_SQLSTATE('2', '2', '0', '0', 'S')
+#define ERRCODE_INVALID_XML_PROCESSING_INSTRUCTION	MAKE_SQLSTATE('2', '2', '0', '0', 'T')
+#define ERROR_INVALID_WINDOW_FRAME_PARAMETER		MAKE_SQLSTATE('2','2','0','1','3')
+#define	ERRCODE_NO_PARTITION_FOR_PARTITIONING_KEY	MAKE_SQLSTATE('2','2','M','0','1')
 
 /* Class 23 - Integrity Constraint Violation */
 #define ERRCODE_INTEGRITY_CONSTRAINT_VIOLATION		MAKE_SQLSTATE('2','3', '0','0','0')
@@ -156,6 +184,7 @@
 #define ERRCODE_FOREIGN_KEY_VIOLATION		MAKE_SQLSTATE('2','3', '5','0','3')
 #define ERRCODE_UNIQUE_VIOLATION			MAKE_SQLSTATE('2','3', '5','0','5')
 #define ERRCODE_CHECK_VIOLATION				MAKE_SQLSTATE('2','3', '5','1','4')
+#define ERRCODE_EXCLUSION_VIOLATION			MAKE_SQLSTATE('2','3', 'P','0','1')
 
 /* Class 24 - Invalid Cursor State */
 #define ERRCODE_INVALID_CURSOR_STATE		MAKE_SQLSTATE('2','4', '0','0','0')
@@ -172,6 +201,7 @@
 #define ERRCODE_SCHEMA_AND_DATA_STATEMENT_MIXING_NOT_SUPPORTED	MAKE_SQLSTATE('2','5', '0','0','7')
 #define ERRCODE_NO_ACTIVE_SQL_TRANSACTION	MAKE_SQLSTATE('2','5', 'P','0','1')
 #define ERRCODE_IN_FAILED_SQL_TRANSACTION	MAKE_SQLSTATE('2','5', 'P','0','2')
+#define ERRCODE_GP_OPERATION_CANCELED      MAKE_SQLSTATE('2','5', 'M','0','1')
 
 /* Class 26 - Invalid SQL Statement Name */
 /* (we take this to mean prepared statements) */
@@ -182,6 +212,7 @@
 
 /* Class 28 - Invalid Authorization Specification */
 #define ERRCODE_INVALID_AUTHORIZATION_SPECIFICATION MAKE_SQLSTATE('2','8', '0','0','0')
+#define ERRCODE_INVALID_PASSWORD MAKE_SQLSTATE('2','8', 'P','0','1')
 
 /* Class 2B - Dependent Privilege Descriptors Still Exist */
 #define ERRCODE_DEPENDENT_PRIVILEGE_DESCRIPTORS_STILL_EXIST		MAKE_SQLSTATE('2','B', '0','0','0')
@@ -230,6 +261,8 @@
 #define ERRCODE_T_R_SERIALIZATION_FAILURE	MAKE_SQLSTATE('4','0', '0','0','1')
 #define ERRCODE_T_R_STATEMENT_COMPLETION_UNKNOWN	MAKE_SQLSTATE('4','0', '0','0','3')
 #define ERRCODE_T_R_DEADLOCK_DETECTED		MAKE_SQLSTATE('4','0', 'P','0','1')
+#define ERRCODE_T_R_GP_REJECT_LIMIT_REACHED MAKE_SQLSTATE('4','0', 'M','0','0')
+#define ERRCODE_T_R_GP_ERROR_TABLE_MAY_DROP MAKE_SQLSTATE('4','0', 'M','0','1')
 
 /* Class 42 - Syntax Error or Access Rule Violation */
 #define ERRCODE_SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION		MAKE_SQLSTATE('4','2', '0','0','0')
@@ -238,6 +271,8 @@
 #define ERRCODE_INSUFFICIENT_PRIVILEGE		MAKE_SQLSTATE('4','2', '5','0','1')
 #define ERRCODE_CANNOT_COERCE				MAKE_SQLSTATE('4','2', '8','4','6')
 #define ERRCODE_GROUPING_ERROR				MAKE_SQLSTATE('4','2', '8','0','3')
+#define ERRCODE_WINDOWING_ERROR				MAKE_SQLSTATE('4','2', 'P','2','0')
+#define ERRCODE_INVALID_RECURSION			MAKE_SQLSTATE('4','2', 'P','1','9')
 #define ERRCODE_INVALID_FOREIGN_KEY			MAKE_SQLSTATE('4','2', '8','3','0')
 #define ERRCODE_INVALID_NAME				MAKE_SQLSTATE('4','2', '6','0','2')
 #define ERRCODE_NAME_TOO_LONG				MAKE_SQLSTATE('4','2', '6','2','2')
@@ -288,6 +323,7 @@
 #define ERRCODE_INVALID_SCHEMA_DEFINITION	MAKE_SQLSTATE('4','2', 'P','1','5')
 #define ERRCODE_INVALID_TABLE_DEFINITION	MAKE_SQLSTATE('4','2', 'P','1','6')
 #define ERRCODE_INVALID_OBJECT_DEFINITION	MAKE_SQLSTATE('4','2', 'P','1','7')
+#define ERRCODE_GP_COMMAND_ERROR			MAKE_SQLSTATE('4','2', 'M','0','0')
 
 /* Class 44 - WITH CHECK OPTION Violation */
 #define ERRCODE_WITH_CHECK_OPTION_VIOLATION MAKE_SQLSTATE('4','4', '0','0','0')
@@ -297,6 +333,7 @@
 #define ERRCODE_DISK_FULL					MAKE_SQLSTATE('5','3', '1','0','0')
 #define ERRCODE_OUT_OF_MEMORY				MAKE_SQLSTATE('5','3', '2','0','0')
 #define ERRCODE_TOO_MANY_CONNECTIONS		MAKE_SQLSTATE('5','3', '3','0','0')
+#define ERRCODE_GP_MEMPROT_KILL 			MAKE_SQLSTATE('5','3', '4','0','0')
 
 /* Class 54 - Program Limit Exceeded (class borrowed from DB2) */
 /* (this is for wired-in limits, not resource exhaustion problems) */
@@ -304,6 +341,7 @@
 #define ERRCODE_STATEMENT_TOO_COMPLEX		MAKE_SQLSTATE('5','4', '0','0','1')
 #define ERRCODE_TOO_MANY_COLUMNS			MAKE_SQLSTATE('5','4', '0','1','1')
 #define ERRCODE_TOO_MANY_ARGUMENTS			MAKE_SQLSTATE('5','4', '0','2','3')
+#define ERRCODE_GP_SUBTRANS_LIMIT_EXCEEDED	MAKE_SQLSTATE('5','4', 'M','3','0')
 
 /* Class 55 - Object Not In Prerequisite State (class borrowed from DB2) */
 #define ERRCODE_OBJECT_NOT_IN_PREREQUISITE_STATE	MAKE_SQLSTATE('5','5', '0','0','0')
@@ -317,12 +355,14 @@
 #define ERRCODE_ADMIN_SHUTDOWN				MAKE_SQLSTATE('5','7', 'P','0','1')
 #define ERRCODE_CRASH_SHUTDOWN				MAKE_SQLSTATE('5','7', 'P','0','2')
 #define ERRCODE_CANNOT_CONNECT_NOW			MAKE_SQLSTATE('5','7', 'P','0','3')
+#define ERRCODE_MIRROR_OR_QUIESCENT			MAKE_SQLSTATE('5','7', 'M','0','1')
 
 /* Class 58 - System Error (class borrowed from DB2) */
 /* (we define this as errors external to PostgreSQL itself) */
 #define ERRCODE_IO_ERROR					MAKE_SQLSTATE('5','8', '0','3','0')
 #define ERRCODE_UNDEFINED_FILE				MAKE_SQLSTATE('5','8', 'P','0','1')
 #define ERRCODE_DUPLICATE_FILE				MAKE_SQLSTATE('5','8', 'P','0','2')
+#define ERRCODE_GP_INTERCONNECTION_ERROR   MAKE_SQLSTATE('5','8', 'M','0','1')
 
 /* Class F0 - Configuration File Error (PostgreSQL-specific error class) */
 #define ERRCODE_CONFIG_FILE_ERROR			MAKE_SQLSTATE('F','0', '0','0','0')
@@ -339,3 +379,11 @@
 #define ERRCODE_INTERNAL_ERROR				MAKE_SQLSTATE('X','X', '0','0','0')
 #define ERRCODE_DATA_CORRUPTED				MAKE_SQLSTATE('X','X', '0','0','1')
 #define ERRCODE_INDEX_CORRUPTED				MAKE_SQLSTATE('X','X', '0','0','2')
+
+/* deprecated... */
+#define ERRCODE_CDB_FEATURE_NOT_SUPPORTED	ERRCODE_GP_FEATURE_NOT_SUPPORTED
+#define ERRCODE_CDB_FEATURE_NOT_YET			ERRCODE_GP_FEATURE_NOT_YET
+#define ERRCODE_CDB_COMMAND_ERROR			ERRCODE_GP_COMMAND_ERROR
+#define ERRCODE_CDB_INTERNAL_ERROR			ERRCODE_INTERNAL_ERROR
+#define ERRCODE_GP_INTERNAL_ERROR			ERRCODE_INTERNAL_ERROR
+

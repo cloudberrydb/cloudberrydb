@@ -1,6 +1,7 @@
-$PostgreSQL: pgsql/src/tools/make_diff/README,v 1.3 2006/03/11 04:38:42 momjian Exp $
+src/tools/make_diff/README
 
-Bruce Momjian <pgman@candle.pha.pa.us>
+scripts
+=======
 
 Here are some of the scripts I use to make development easier.
 
@@ -13,7 +14,7 @@ for every file in the current directory.  I can:
 	cporig `grep -l HeapTuple *`
 
 If I use mkid (from ftp.postgreSQL.org), I can do:
-	
+
 	cporig `lid -kn 'fsyncOff'`
 
 and get a copy of every file containing that word.  I can then do:
@@ -28,10 +29,11 @@ to edit all those files.
 
 When I am ready to generate a patch, I run 'difforig' command from the top of
 the source tree:
-	
+
 I pipe the output of this to a file to hold my patch, and the file names
 it processes appear on my screen.  It creates a nice patch for me of all
 the files I used with cporig.
 
 Finally, I remove my old copies with 'rmorig'.
 
+Bruce Momjian

@@ -3,7 +3,7 @@
  * print.c
  *	  various print routines (used mostly for debugging)
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2008, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -24,8 +24,6 @@
 #include "optimizer/clauses.h"
 #include "parser/parsetree.h"
 #include "utils/lsyscache.h"
-
-static char *plannode_type(Plan *p);
 
 /*
  * print
@@ -260,20 +258,30 @@ print_rt(List *rtable)
 	foreach(l, rtable)
 	{
 		RangeTblEntry *rte = lfirst(l);
+		const char    *name = rte->eref ? rte->eref->aliasname
+		                                : "<null>";
 
 		switch (rte->rtekind)
 		{
 			case RTE_RELATION:
 				printf("%d\t%s\t%u",
-					   i, rte->eref->aliasname, rte->relid);
+					   i, name, rte->relid);
 				break;
 			case RTE_SUBQUERY:
 				printf("%d\t%s\t[subquery]",
-					   i, rte->eref->aliasname);
+					   i, name);
+				break;
+			case RTE_CTE:
+				printf("%d\t%s\t[cte]",
+					   i, name);
+				break;
+			case RTE_TABLEFUNCTION:
+				printf("%d\t%s\t[tablefunction]",
+					   i, name);
 				break;
 			case RTE_FUNCTION:
 				printf("%d\t%s\t[rangefunction]",
-					   i, rte->eref->aliasname);
+					   i, name);
 				break;
 			case RTE_VALUES:
 				printf("%d\t%s\t[values list]",
@@ -281,15 +289,19 @@ print_rt(List *rtable)
 				break;
 			case RTE_JOIN:
 				printf("%d\t%s\t[join]",
-					   i, rte->eref->aliasname);
+					   i, name);
 				break;
 			case RTE_SPECIAL:
 				printf("%d\t%s\t[special]",
-					   i, rte->eref->aliasname);
+					   i, name);
+				break;
+			case RTE_VOID:
+				printf("%d\t%s\t[void]",
+					   i, name);
 				break;
 			default:
 				printf("%d\t%s\t[unknown rtekind]",
-					   i, rte->eref->aliasname);
+					   i, name);
 		}
 
 		printf("\t%s\t%s\n",
@@ -467,20 +479,16 @@ void
 print_slot(TupleTableSlot *slot)
 {
 	if (TupIsNull(slot))
-	{
 		printf("tuple is null.\n");
-		return;
-	}
-	if (!slot->tts_tupleDescriptor)
-	{
+	else if (!slot->tts_tupleDescriptor)
 		printf("no tuple descriptor.\n");
-		return;
-	}
+	else
+		debugtup(slot, NULL);
 
-	debugtup(slot, NULL);
+	fflush(stdout);
 }
 
-static char *
+char *
 plannode_type(Plan *p)
 {
 	switch (nodeTag(p))
@@ -499,6 +507,12 @@ plannode_type(Plan *p)
 			return "SCAN";
 		case T_SeqScan:
 			return "SEQSCAN";
+		case T_AppendOnlyScan:
+			return "APPENDONLYSCAN";
+		case T_AOCSScan:
+			return "AOCSSCAN";
+		case T_ExternalScan:
+			return "EXTERNALSCAN";
 		case T_IndexScan:
 			return "INDEXSCAN";
 		case T_BitmapIndexScan:
@@ -513,6 +527,10 @@ plannode_type(Plan *p)
 			return "FUNCTIONSCAN";
 		case T_ValuesScan:
 			return "VALUESSCAN";
+		case T_BitmapAppendOnlyScan:
+			return "BITMAPAPPENDONLYSCAN";
+		case T_BitmapTableScan:
+			return "BITMAPTABLESCAN";
 		case T_Join:
 			return "JOIN";
 		case T_NestLoop:
@@ -521,12 +539,18 @@ plannode_type(Plan *p)
 			return "MERGEJOIN";
 		case T_HashJoin:
 			return "HASHJOIN";
+		case T_ShareInputScan:
+			return "SHAREINPUTSCAN";
 		case T_Material:
 			return "MATERIAL";
 		case T_Sort:
 			return "SORT";
 		case T_Agg:
 			return "AGG";
+		case T_Window:
+			return "WINDOW";
+		case T_TableFunctionScan:
+			return "TABLEFUNCTIONSCAN";
 		case T_Unique:
 			return "UNIQUE";
 		case T_SetOp:
@@ -535,8 +559,10 @@ plannode_type(Plan *p)
 			return "LIMIT";
 		case T_Hash:
 			return "HASH";
-		case T_Group:
-			return "GROUP";
+		case T_Motion:
+			return "MOTION";
+		case T_Repeat:
+			return "REPEAT";
 		default:
 			return "UNKNOWN";
 	}
@@ -560,7 +586,8 @@ print_plan_recursive(Plan *p, Query *parsetree, int indentLevel, char *label)
 		   p->plan_rows, p->plan_width);
 	if (IsA(p, Scan) ||
 		IsA(p, SeqScan) ||
-		IsA(p, BitmapHeapScan))
+		IsA(p, BitmapHeapScan) ||
+		IsA(p, BitmapAppendOnlyScan))
 	{
 		RangeTblEntry *rte;
 

@@ -4,7 +4,7 @@
 #    Makefile for tcop
 #
 # IDENTIFICATION
-#    $PostgreSQL: pgsql/src/backend/tcop/Makefile,v 1.26 2006/10/08 17:15:34 tgl Exp $
+#    $PostgreSQL: pgsql/src/backend/tcop/Makefile,v 1.29 2008/02/19 10:30:08 petere Exp $
 #
 #-------------------------------------------------------------------------
 
@@ -14,19 +14,8 @@ include $(top_builddir)/src/Makefile.global
 
 OBJS= dest.o fastpath.o postgres.o pquery.o utility.o
 
+ifneq (,$(filter $(PORTNAME),cygwin win32))
 override CPPFLAGS += -DWIN32_STACK_RLIMIT=$(WIN32_STACK_RLIMIT)
-
-all: SUBSYS.o
-
-SUBSYS.o: $(OBJS)
-	$(LD) $(LDREL) $(LDOUT) SUBSYS.o $(OBJS)
-
-depend dep:
-	$(CC) -MM $(CFLAGS) *.c >depend
-
-clean: 
-	rm -f SUBSYS.o $(OBJS) 
-
-ifeq (depend,$(wildcard depend))
-include depend
 endif
+
+include $(top_srcdir)/src/backend/common.mk

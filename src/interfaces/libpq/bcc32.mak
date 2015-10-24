@@ -62,7 +62,7 @@ OUTFILENAME=blibpq
 USERDEFINES=FRONTEND;NDEBUG;WIN32;_WINDOWS
 
 CPP=bcc32.exe
-CPP_PROJ = -I$(BCB)\include;..\..\include;..\..\include\port\win32;..\..\include\port\win32_msvc;..\..\port -n"$(INTDIR)" -WD -c -D$(USERDEFINES) -tWM \
+CPP_PROJ = -I..\..\include\port\win32_msvc;$(BCB)\include;..\..\include;..\..\include\port\win32;..\..\port -n"$(INTDIR)" -WD -c -D$(USERDEFINES) -tWM \
 		-a8 -X -w-use -w-par -w-pia -w-csu -w-aus -w-ccc
 
 !IFDEF DEBUG
@@ -76,7 +76,6 @@ ALL : config "$(OUTDIR)" "$(OUTDIR)\blibpq.dll" "$(OUTDIR)\blibpq.lib"
 CLEAN :
 	-@erase "$(INTDIR)\getaddrinfo.obj"
 	-@erase "$(INTDIR)\pgstrcasecmp.obj"
-	-@erase "$(INTDIR)\strlcpy.obj"
 	-@erase "$(INTDIR)\thread.obj"
 	-@erase "$(INTDIR)\inet_aton.obj"
 	-@erase "$(INTDIR)\crypt.obj"
@@ -92,13 +91,20 @@ CLEAN :
 	-@erase "$(INTDIR)\fe-misc.obj"
 	-@erase "$(INTDIR)\fe-print.obj"
 	-@erase "$(INTDIR)\fe-secure.obj"
+	-@erase "$(INTDIR)\libpq-events.obj"
 	-@erase "$(INTDIR)\pqexpbuffer.obj"
 	-@erase "$(INTDIR)\pqsignal.obj"
-	-@erase "$(OUTDIR)\libpqdll.obj"
-	-@erase "$(OUTDIR)\win32.obj"
+	-@erase "$(INTDIR)\win32.obj"
 	-@erase "$(INTDIR)\wchar.obj"
 	-@erase "$(INTDIR)\encnames.obj"
 	-@erase "$(INTDIR)\pthread-win32.obj"
+	-@erase "$(INTDIR)\snprintf.obj"
+	-@erase "$(INTDIR)\strlcpy.obj"
+	-@erase "$(INTDIR)\dirent.obj"
+	-@erase "$(INTDIR)\dirmod.obj"
+	-@erase "$(INTDIR)\pgsleep.obj"
+	-@erase "$(INTDIR)\open.obj"
+	-@erase "$(INTDIR)\win32error.obj"
 	-@erase "$(OUTDIR)\$(OUTFILENAME).lib"
 	-@erase "$(OUTDIR)\$(OUTFILENAME)dll.lib"
 	-@erase "$(OUTDIR)\libpq.res"
@@ -113,7 +119,6 @@ LIB32_OBJS= \
 	"$(INTDIR)\win32.obj" \
 	"$(INTDIR)\getaddrinfo.obj" \
 	"$(INTDIR)\pgstrcasecmp.obj" \
-	"$(INTDIR)\strlcpy.obj" \
 	"$(INTDIR)\thread.obj" \
 	"$(INTDIR)\inet_aton.obj" \
 	"$(INTDIR)\crypt.obj" \
@@ -129,17 +134,28 @@ LIB32_OBJS= \
 	"$(INTDIR)\fe-misc.obj" \
 	"$(INTDIR)\fe-print.obj" \
 	"$(INTDIR)\fe-secure.obj" \
+	"$(INTDIR)\libpq-events.obj" \
 	"$(INTDIR)\pqexpbuffer.obj" \
 	"$(INTDIR)\pqsignal.obj" \
 	"$(INTDIR)\wchar.obj" \
 	"$(INTDIR)\encnames.obj" \
+	"$(INTDIR)\snprintf.obj" \
+	"$(INTDIR)\strlcpy.obj" \
+	"$(INTDIR)\dirent.obj" \
+	"$(INTDIR)\dirmod.obj" \
+	"$(INTDIR)\pgsleep.obj" \
+	"$(INTDIR)\open.obj" \
+	"$(INTDIR)\win32error.obj" \
 	"$(INTDIR)\pthread-win32.obj"
 
 
-config: ..\..\include\pg_config.h pg_config_paths.h
+config: ..\..\include\pg_config.h ..\..\include\pg_config_os.h pg_config_paths.h
 
 ..\..\include\pg_config.h: ..\..\include\pg_config.h.win32
 	copy ..\..\include\pg_config.h.win32 ..\..\include\pg_config.h
+
+..\..\include\pg_config_os.h: ..\..\include\port\win32.h
+	copy ..\..\include\port\win32.h ..\..\include\pg_config_os.h
 
 # Have to use \# so # isn't treated as a comment, but MSVC doesn't like this
 pg_config_paths.h: bcc32.mak
@@ -153,22 +169,21 @@ RSC_PROJ=-l 0x409 -i$(BCB)\include -fo"$(INTDIR)\libpq.res"
 
 LINK32=ilink32.exe
 LINK32_FLAGS = -Gn -L$(BCB)\lib;$(INTDIR); -x -Tpd -v
-LINK32_OBJS= "$(INTDIR)\libpqdll.obj"
 
 # @<< is a Response file, http://www.opussoftware.com/tutorial/TutMakefile.htm
 
-"$(OUTDIR)\blibpq.dll": "$(OUTDIR)\blibpq.lib" $(LINK32_OBJS) "$(INTDIR)\libpq.res" blibpqdll.def 
+"$(OUTDIR)\blibpq.dll": "$(OUTDIR)\blibpq.lib" "$(INTDIR)\libpq.res" blibpqdll.def 
 	$(LINK32) @<<
 	$(LINK32_FLAGS) +
-	c0d32.obj $(LINK32_OBJS), +
+	c0d32.obj , +
 	$@,, +
-	"$(OUTDIR)\blibpq.lib" import32.lib cw32mti.lib, +
+	"$(OUTDIR)\blibpq.lib" import32.lib cw32mt.lib, +
 	blibpqdll.def,"$(INTDIR)\libpq.res"
 <<
 	implib -w "$(OUTDIR)\blibpqdll.lib" blibpqdll.def $@
 
-"$(INTDIR)\libpq.res" : "$(INTDIR)" libpq.rc
-	$(RSC) $(RSC_PROJ) libpq.rc
+"$(INTDIR)\libpq.res" : "$(INTDIR)" libpq-dist.rc
+	$(RSC) $(RSC_PROJ) libpq-dist.rc
 
 "$(OUTDIR)\blibpq.lib": $(LIB32_OBJS)
 	$(LIB32) $@ @<<
@@ -185,11 +200,6 @@ LINK32_OBJS= "$(INTDIR)\libpqdll.obj"
 "$(INTDIR)\pgstrcasecmp.obj" : ..\..\port\pgstrcasecmp.c
 	$(CPP) @<<
 	$(CPP_PROJ) ..\..\port\pgstrcasecmp.c
-<<
-
-"$(INTDIR)\strlcpy.obj" : ..\..\port\strlcpy.c
-	$(CPP) @<<
-	$(CPP_PROJ) ..\..\port\strlcpy.c
 <<
 
 "$(INTDIR)\thread.obj" : ..\..\port\thread.c
@@ -232,6 +242,42 @@ LINK32_OBJS= "$(INTDIR)\libpqdll.obj"
 	$(CPP) @<<
 	$(CPP_PROJ) /I"." ..\..\backend\utils\mb\encnames.c
 <<
+
+"$(INTDIR)\snprintf.obj" : ..\..\port\snprintf.c
+	$(CPP) @<<
+	$(CPP_PROJ) /I"." ..\..\port\snprintf.c
+<<
+
+"$(INTDIR)\strlcpy.obj" : ..\..\port\strlcpy.c
+	$(CPP) @<<
+	$(CPP_PROJ) /I"." ..\..\port\strlcpy.c
+<<
+
+"$(INTDIR)\dirent.obj" : ..\..\port\dirent.c
+	$(CPP) @<<
+	$(CPP_PROJ) /I"." ..\..\port\dirent.c
+<<
+
+"$(INTDIR)\dirmod.obj" : ..\..\port\dirmod.c
+	$(CPP) @<<
+	$(CPP_PROJ) /I"." ..\..\port\dirmod.c
+<<
+
+"$(INTDIR)\pgsleep.obj" : ..\..\port\pgsleep.c
+	$(CPP) @<<
+	$(CPP_PROJ) /I"." ..\..\port\pgsleep.c
+<<
+
+"$(INTDIR)\open.obj" : ..\..\port\open.c
+	$(CPP) @<<
+	$(CPP_PROJ) /I"." ..\..\port\open.c
+<<
+
+"$(INTDIR)\win32error.obj" : ..\..\port\win32error.c
+	$(CPP) @<<
+	$(CPP_PROJ) /I"." ..\..\port\win32error.c
+<<
+
 
 .c.obj:
 	$(CPP) $(CPP_PROJ) $<

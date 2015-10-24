@@ -1,11 +1,12 @@
 <!--
-$PostgreSQL: pgsql/doc/src/sgml/ref/alter_index.sgml,v 1.11 2006/09/16 00:30:16 momjian Exp $
+$PostgreSQL: pgsql/doc/src/sgml/ref/alter_index.sgml,v 1.14 2008/11/14 10:22:45 petere Exp $
 PostgreSQL documentation
 -->
 
 <refentry id="SQL-ALTERINDEX">
  <refmeta>
   <refentrytitle id="sql-alterindex-title">ALTER INDEX</refentrytitle>
+  <manvolnum>7</manvolnum>
   <refmiscinfo>SQL - Language Statements</refmiscinfo>
  </refmeta>
 
@@ -67,7 +68,7 @@ ALTER INDEX <replaceable class="PARAMETER">name</replaceable> RESET ( <replaceab
       <xref linkend="SQL-CREATEINDEX" endterm="sql-createindex-title">
       for details on the available parameters.  Note that the index contents
       will not be modified immediately by this command; depending on the
-      parameter you may need to rebuild the index with
+      parameter you might need to rebuild the index with
       <xref linkend="SQL-REINDEX" endterm="sql-reindex-title">
       to get the desired effects.
      </para>
@@ -80,7 +81,7 @@ ALTER INDEX <replaceable class="PARAMETER">name</replaceable> RESET ( <replaceab
      <para>
       This form resets one or more index-method-specific storage parameters to
       their defaults.  As with <literal>SET</>, a <literal>REINDEX</literal>
-      may be needed to update the index entirely.
+      might be needed to update the index entirely.
      </para>
     </listitem>
    </varlistentry>
@@ -109,7 +110,7 @@ ALTER INDEX <replaceable class="PARAMETER">name</replaceable> RESET ( <replaceab
       <term><replaceable class="PARAMETER">new_name</replaceable></term>
       <listitem>
        <para>
-        New name for the index.
+        The new name for the index.
        </para>
       </listitem>
      </varlistentry>

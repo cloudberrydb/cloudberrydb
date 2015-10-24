@@ -3,12 +3,12 @@
  * pg_largeobject.c
  *	  routines to support manipulation of the pg_largeobject relation
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/catalog/pg_largeobject.c,v 1.26 2006/07/14 14:52:17 momjian Exp $
+ *	  $PostgreSQL: pgsql/src/backend/catalog/pg_largeobject.c,v 1.32 2009/01/01 17:23:37 momjian Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -20,6 +20,8 @@
 #include "catalog/pg_largeobject.h"
 #include "utils/builtins.h"
 #include "utils/fmgroids.h"
+#include "utils/rel.h"
+#include "utils/tqual.h"
 
 
 /*
@@ -35,7 +37,7 @@ LargeObjectCreate(Oid loid)
 	Relation	pg_largeobject;
 	HeapTuple	ntup;
 	Datum		values[Natts_pg_largeobject];
-	char		nulls[Natts_pg_largeobject];
+	bool		nulls[Natts_pg_largeobject];
 	int			i;
 
 	pg_largeobject = heap_open(LargeObjectRelationId, RowExclusiveLock);
@@ -45,8 +47,8 @@ LargeObjectCreate(Oid loid)
 	 */
 	for (i = 0; i < Natts_pg_largeobject; i++)
 	{
-		values[i] = (Datum) NULL;
-		nulls[i] = ' ';
+		values[i] = (Datum) 0;
+		nulls[i] = false;
 	}
 
 	i = 0;
@@ -55,7 +57,7 @@ LargeObjectCreate(Oid loid)
 	values[i++] = DirectFunctionCall1(byteain,
 									  CStringGetDatum(""));
 
-	ntup = heap_formtuple(pg_largeobject->rd_att, values, nulls);
+	ntup = heap_form_tuple(pg_largeobject->rd_att, values, nulls);
 
 	/*
 	 * Insert it
@@ -86,7 +88,7 @@ LargeObjectDrop(Oid loid)
 
 	pg_largeobject = heap_open(LargeObjectRelationId, RowExclusiveLock);
 
-	sd = systable_beginscan(pg_largeobject, LargeObjectLOidPNIndexId, true,
+	sd = systable_beginscan(pg_largeobject, LargeObjectLoidPagenoIndexId, true,
 							SnapshotNow, 1, skey);
 
 	while ((tuple = systable_getnext(sd)) != NULL)
@@ -123,7 +125,7 @@ LargeObjectExists(Oid loid)
 
 	pg_largeobject = heap_open(LargeObjectRelationId, AccessShareLock);
 
-	sd = systable_beginscan(pg_largeobject, LargeObjectLOidPNIndexId, true,
+	sd = systable_beginscan(pg_largeobject, LargeObjectLoidPagenoIndexId, true,
 							SnapshotNow, 1, skey);
 
 	if (systable_getnext(sd) != NULL)

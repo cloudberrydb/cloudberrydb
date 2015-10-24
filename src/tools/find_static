@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# $PostgreSQL: pgsql/src/tools/find_static,v 1.5 2006/07/14 14:59:00 momjian Exp $
+# src/tools/find_static
 
 trap "rm -f /tmp/$$" 0 1 2 3 15
 
@@ -26,8 +26,8 @@ echo "
 
 	copy debug from '/tmp/"$$"';
 
-	select 	* 
-	into	table debug2 
+	select 	*
+	into	table debug2
 	from 	debug;
 
 	create index idebug on debug(scope,func);
@@ -35,8 +35,8 @@ echo "
 	vacuum debug;
 	vacuum debug2;
 
-	update 	debug2 
-	set 	scope = '_' 
+	update 	debug2
+	set 	scope = '_'
 	from 	debug
 	where 	debug2.func = debug.func and
 		debug2.scope = 'T' and debug.scope = 'U';
@@ -49,4 +49,3 @@ echo "
 	where	scope = 'T' and func != 'main'
         order by file, func;
 " |psql debug
-

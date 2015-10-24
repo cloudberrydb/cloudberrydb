@@ -9,7 +9,7 @@
  * the single-user case works.
  *
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2008, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -20,6 +20,7 @@
  */
 #include "postgres.h"
 
+#include "catalog/catquery.h"
 #include "catalog/pg_authid.h"
 #include "utils/inval.h"
 #include "utils/syscache.h"
@@ -55,8 +56,9 @@ superuser(void)
 bool
 superuser_arg(Oid roleid)
 {
-	bool		result;
+	bool		result = false;
 	HeapTuple	rtup;
+	cqContext  *pcqCtx;
 
 	/* Quick out for cache hit */
 	if (OidIsValid(last_roleid) && last_roleid == roleid)
@@ -67,19 +69,20 @@ superuser_arg(Oid roleid)
 		return true;
 
 	/* OK, look up the information in pg_authid */
-	rtup = SearchSysCache(AUTHOID,
-						  ObjectIdGetDatum(roleid),
-						  0, 0, 0);
+
+	pcqCtx = caql_beginscan(
+			NULL,
+			cql("SELECT * FROM pg_authid "
+				" WHERE oid = :1 ",
+				ObjectIdGetDatum(roleid)));
+
+	rtup = caql_getnext(pcqCtx);
+
 	if (HeapTupleIsValid(rtup))
-	{
 		result = ((Form_pg_authid) GETSTRUCT(rtup))->rolsuper;
-		ReleaseSysCache(rtup);
-	}
-	else
-	{
-		/* Report "not superuser" for invalid roleids */
-		result = false;
-	}
+	/* else Report "not superuser" for invalid roleids */
+
+	caql_endscan(pcqCtx);
 
 	/* If first time through, set up callback for cache flushes */
 	if (!roleid_callback_registered)

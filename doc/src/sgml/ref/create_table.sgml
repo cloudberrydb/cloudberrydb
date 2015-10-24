@@ -1,1084 +1,2220 @@
 <!--
+
 $PostgreSQL: pgsql/doc/src/sgml/ref/create_table.sgml,v 1.105 2006/09/16 00:30:17 momjian Exp $
+
 PostgreSQL documentation
+
 -->
 
+
+
 <refentry id="SQL-CREATETABLE">
+
  <refmeta>
+
   <refentrytitle id="sql-createtable-title">CREATE TABLE</refentrytitle>
+
   <refmiscinfo>SQL - Language Statements</refmiscinfo>
+
  </refmeta>
 
+
+
  <refnamediv>
+
   <refname>CREATE TABLE</refname>
+
   <refpurpose>define a new table</refpurpose>
+
  </refnamediv>
 
+
+
  <indexterm zone="sql-createtable">
+
   <primary>CREATE TABLE</primary>
+
  </indexterm>
 
+
+
  <refsynopsisdiv>
+
 <synopsis>
-CREATE [ [ GLOBAL | LOCAL ] { TEMPORARY | TEMP } ] TABLE <replaceable class="PARAMETER">table_name</replaceable> ( [
-  { <replaceable class="PARAMETER">column_name</replaceable> <replaceable class="PARAMETER">data_type</replaceable> [ DEFAULT <replaceable>default_expr</> ] [ <replaceable class="PARAMETER">column_constraint</replaceable> [ ... ] ]
-    | <replaceable>table_constraint</replaceable>
-    | LIKE <replaceable>parent_table</replaceable> [ { INCLUDING | EXCLUDING } { DEFAULTS | CONSTRAINTS } ] ... }
-    [, ... ]
-] )
-[ INHERITS ( <replaceable>parent_table</replaceable> [, ... ] ) ]
-[ WITH ( <replaceable class="PARAMETER">storage_parameter</replaceable> [= <replaceable class="PARAMETER">value</replaceable>] [, ... ] ) | WITH OIDS | WITHOUT OIDS ]
-[ ON COMMIT { PRESERVE ROWS | DELETE ROWS | DROP } ]
-[ TABLESPACE <replaceable class="PARAMETER">tablespace</replaceable> ]
 
-where <replaceable class="PARAMETER">column_constraint</replaceable> is:
+CREATE [[GLOBAL | LOCAL] {TEMPORARY | TEMP}] TABLE table_name ( 
+[ { column_name data_type [ DEFAULT default_expr ]     [column_constraint [ ... ]
+[ ENCODING ( storage_directive [,...] ) ]
+] 
+   | table_constraint
+   | LIKE other_table [{INCLUDING | EXCLUDING} 
+                      {DEFAULTS | CONSTRAINTS}] ...}
+   [, ... ] ]
+   [column_reference_storage_directive [, …] ]
+   )
+   [ INHERITS ( parent_table [, ... ] ) ]
+   [ WITH ( storage_parameter=value [, ... ] )
+   [ ON COMMIT {PRESERVE ROWS | DELETE ROWS | DROP} ]
+   [ TABLESPACE tablespace ]
+   [ DISTRIBUTED BY (column, [ ... ] ) | DISTRIBUTED RANDOMLY ]
+   [ PARTITION BY partition_type (column)
+       [ SUBPARTITION BY partition_type (column) ] 
+          [ SUBPARTITION TEMPLATE ( template_spec ) ]
+       [...]
+    ( partition_spec ) 
+        | [ SUBPARTITION BY partition_type (column) ]
+          [...]
+    ( partition_spec 
+      [ ( subpartition_spec 
+           [(...)] 
+         ) ] 
+    )
 
-[ CONSTRAINT <replaceable class="PARAMETER">constraint_name</replaceable> ]
-{ NOT NULL | 
-  NULL | 
-  UNIQUE <replaceable class="PARAMETER">index_parameters</replaceable> |
-  PRIMARY KEY <replaceable class="PARAMETER">index_parameters</replaceable> |
-  CHECK ( <replaceable class="PARAMETER">expression</replaceable> ) |
-  REFERENCES <replaceable class="PARAMETER">reftable</replaceable> [ ( <replaceable class="PARAMETER">refcolumn</replaceable> ) ] [ MATCH FULL | MATCH PARTIAL | MATCH SIMPLE ]
-    [ ON DELETE <replaceable class="parameter">action</replaceable> ] [ ON UPDATE <replaceable class="parameter">action</replaceable> ] }
-[ DEFERRABLE | NOT DEFERRABLE ] [ INITIALLY DEFERRED | INITIALLY IMMEDIATE ]
+where storage_parameter is:
+   APPENDONLY={TRUE|FALSE}
+   BLOCKSIZE={8192-2097152}
+   ORIENTATION={COLUMN|ROW}
+   COMPRESSTYPE={ZLIB|QUICKLZ|RLE_TYPE|NONE}
+   COMPRESSLEVEL={0-9}
+   CHECKSUM={TRUE|FALSE}
+   FILLFACTOR={10-100}
+   OIDS[=TRUE|FALSE]
 
-and <replaceable class="PARAMETER">table_constraint</replaceable> is:
+where column_constraint is:
+   [CONSTRAINT constraint_name]
+   NOT NULL | NULL 
+   | UNIQUE [USING INDEX TABLESPACE tablespace]
+            [WITH ( FILLFACTOR = value )]
+   | PRIMARY KEY [USING INDEX TABLESPACE tablespace] 
+                 [WITH ( FILLFACTOR = value )]
+   | CHECK ( expression )
 
-[ CONSTRAINT <replaceable class="PARAMETER">constraint_name</replaceable> ]
-{ UNIQUE ( <replaceable class="PARAMETER">column_name</replaceable> [, ... ] ) <replaceable class="PARAMETER">index_parameters</replaceable> |
-  PRIMARY KEY ( <replaceable class="PARAMETER">column_name</replaceable> [, ... ] ) <replaceable class="PARAMETER">index_parameters</replaceable> |
-  CHECK ( <replaceable class="PARAMETER">expression</replaceable> ) |
-  FOREIGN KEY ( <replaceable class="PARAMETER">column_name</replaceable> [, ... ] ) REFERENCES <replaceable class="PARAMETER">reftable</replaceable> [ ( <replaceable class="PARAMETER">refcolumn</replaceable> [, ... ] ) ]
-    [ MATCH FULL | MATCH PARTIAL | MATCH SIMPLE ] [ ON DELETE <replaceable class="parameter">action</replaceable> ] [ ON UPDATE <replaceable class="parameter">action</replaceable> ] }
-[ DEFERRABLE | NOT DEFERRABLE ] [ INITIALLY DEFERRED | INITIALLY IMMEDIATE ]
+and table_constraint is:
+   [CONSTRAINT constraint_name]
+   UNIQUE ( column_name [, ... ] )
+          [USING INDEX TABLESPACE tablespace] 
+          [WITH ( FILLFACTOR=value )] 
+   | PRIMARY KEY ( column_name [, ... ] ) 
+                 [USING INDEX TABLESPACE tablespace] 
+                 [WITH ( FILLFACTOR=value )] 
+   | CHECK ( expression )
 
-<replaceable class="PARAMETER">index_parameters</replaceable> in <literal>UNIQUE</> and <literal>PRIMARY KEY</> constraints are:
+where partition_type is:
+    LIST
+  | RANGE
 
-[ WITH ( <replaceable class="PARAMETER">storage_parameter</replaceable> [= <replaceable class="PARAMETER">value</replaceable>] [, ... ] ) ]
-[ USING INDEX TABLESPACE <replaceable class="PARAMETER">tablespace</replaceable> ]
+where partition_specification is:
+partition_element [, ...]
+
+and partition_element is:
+   DEFAULT PARTITION name
+  | [PARTITION name] VALUES (list_value [,...] )
+  | [PARTITION name] 
+     START ([datatype] 'start_value') [INCLUSIVE | EXCLUSIVE]
+     [ END ([datatype] 'end_value') [INCLUSIVE | EXCLUSIVE] ]
+     [ EVERY ([datatype] [number | INTERVAL] 'interval_value') ]
+  | [PARTITION name] 
+     END ([datatype] 'end_value') [INCLUSIVE | EXCLUSIVE]
+     [ EVERY ([datatype] [number | INTERVAL] 'interval_value') ]
+[ WITH ( partition_storage_parameter=value [, ... ] ) ]
+[column_reference_storage_directive [, ...] ]
+
+[ TABLESPACE tablespace ]
+
+where subpartition_spec or template_spec is:
+subpartition_element [, ...]
+and subpartition_element is:
+   DEFAULT SUBPARTITION name
+  | [SUBPARTITION name] VALUES (list_value [,...] )
+  | [SUBPARTITION name] 
+     START ([datatype] 'start_value') [INCLUSIVE | EXCLUSIVE]
+     [ END ([datatype] 'end_value') [INCLUSIVE | EXCLUSIVE] ]
+     [ EVERY ([datatype] [number | INTERVAL] 'interval_value') ]
+  | [SUBPARTITION name] 
+     END ([datatype] 'end_value') [INCLUSIVE | EXCLUSIVE]
+     [ EVERY ([datatype] [number | INTERVAL] 'interval_value') ]
+[ WITH ( partition_storage_parameter=value [, ... ] ) ]
+[column_reference_storage_directive [, ...] ]
+[ TABLESPACE tablespace ]
+
+where storage_directive is:
+   COMPRESSTYPE={ZLIB | QUICKLZ | RLE_TYPE | NONE} 
+ | COMPRESSLEVEL={0-9} 
+ | BLOCKSIZE={8192-2097152}
+
+Where column_reference_storage_directive is:
+
+   COLUMN column_name ENCODING ( storage_directive [, ... ] ), ... 
+ | DEFAULT COLUMN ENCODING ( storage_directive [, ... ] )
+
 </synopsis>
+
+
 
  </refsynopsisdiv>
 
+
+
  <refsect1 id="SQL-CREATETABLE-description">
+
   <title>Description</title>
 
+
+
   <para>
+
    <command>CREATE TABLE</command> will create a new, initially empty table
+
    in the current database. The table will be owned by the user issuing the
+
    command.
+
   </para>
 
+
+
   <para>
+
    If a schema name is given (for example, <literal>CREATE TABLE
+
    myschema.mytable ...</>) then the table is created in the specified
+
    schema.  Otherwise it is created in the current schema.  Temporary
+
    tables exist in a special schema, so a schema name may not be given
+
    when creating a temporary table.  The name of the table must be
+
    distinct from the name of any other table, sequence, index, or view
+
    in the same schema.
+
   </para>
 
+
+
   <para>
+
    <command>CREATE TABLE</command> also automatically creates a data
+
    type that represents the composite type corresponding
+
    to one row of the table.  Therefore, tables cannot have the same
+
    name as any existing data type in the same schema.
+
   </para>
 
+
+
   <para>
+
    The optional constraint clauses specify constraints (tests) that
+
    new or updated rows must satisfy for an insert or update operation
+
    to succeed.  A constraint is an SQL object that helps define the
+
    set of valid values in the table in various ways.
+
+  </para>
+
+
+
+  <para>
+
+   There are two ways to define constraints: table constraints and
+
+   column constraints.  A column constraint is defined as part of a
+
+   column definition.  A table constraint definition is not tied to a
+
+   particular column, and it can encompass more than one column.
+
+   Every column constraint can also be written as a table constraint;
+
+   a column constraint is only a notational convenience for use when the
+
+   constraint only affects one column.    For more information, search for 
+   
+   "Column-level Compression" in the Greenplum Database Administrator Guide.
+
   </para>
 
   <para>
-   There are two ways to define constraints: table constraints and
-   column constraints.  A column constraint is defined as part of a
-   column definition.  A table constraint definition is not tied to a
-   particular column, and it can encompass more than one column.
-   Every column constraint can also be written as a table constraint;
-   a column constraint is only a notational convenience for use when the
-   constraint only affects one column.
-  </para>
+
+   Note: You cannot create a table with both column encodings
+ 
+   and compression parameters in a WITH clause.
+
+  </para?
+
  </refsect1>
 
+
+
  <refsect1>
+
   <title>Parameters</title>
+
+
 
   <variablelist>
 
+
+
    <varlistentry>
+
     <term><literal>TEMPORARY</> or <literal>TEMP</></term>
+
     <listitem>
+
      <para>
+
       If specified, the table is created as a temporary table.
+
       Temporary tables are automatically dropped at the end of a
+
       session, or optionally at the end of the current transaction
+
       (see <literal>ON COMMIT</literal> below).  Existing permanent
+
       tables with the same name are not visible to the current session
+
       while the temporary table exists, unless they are referenced
+
       with schema-qualified names. Any indexes created on a temporary
+
       table are automatically temporary as well.
+
      </para>
 
+
+
      <para>
+
       Optionally, <literal>GLOBAL</literal> or <literal>LOCAL</literal>
+
       can be written before <literal>TEMPORARY</> or <literal>TEMP</>.
+
       This makes no difference in <productname>PostgreSQL</>, but see
+
       <xref linkend="sql-createtable-compatibility"
+
       endterm="sql-createtable-compatibility-title">.
+
      </para>
+
     </listitem>
+
    </varlistentry>
 
+
+
    <varlistentry>
+
     <term><replaceable class="PARAMETER">table_name</replaceable></term>
+
     <listitem>
+
      <para>
+
       The name (optionally schema-qualified) of the table to be created.
+
      </para>
+
     </listitem>
+
    </varlistentry>
 
+
+
    <varlistentry>
+
     <term><replaceable class="PARAMETER">column_name</replaceable></term>
+
     <listitem>
+
      <para>
+
       The name of a column to be created in the new table.
+
      </para>
+
     </listitem>
+
    </varlistentry>
 
+
+
    <varlistentry>
+
     <term><replaceable class="PARAMETER">data_type</replaceable></term>
+
     <listitem>
+
      <para>
+
       The data type of the column. This may include array
+
       specifiers. For more information on the data types supported by
+
       <productname>PostgreSQL</productname>, refer to <xref
+
       linkend="datatype">.
+
      </para>
+
     </listitem>
+
    </varlistentry>
 
+
+
    <varlistentry>
+
     <term><literal>DEFAULT
+
     <replaceable>default_expr</replaceable></literal></term>
+
     <listitem>
+
      <para>
+
       The <literal>DEFAULT</> clause assigns a default data value for
+
       the column whose column definition it appears within.  The value
+
       is any variable-free expression (subqueries and cross-references
+
       to other columns in the current table are not allowed).  The
+
       data type of the default expression must match the data type of the
+
       column.
+
      </para>
 
+
+
      <para>
+
       The default expression will be used in any insert operation that
+
       does not specify a value for the column.  If there is no default
+
       for a column, then the default is null.
+
      </para>
+
     </listitem>
+
    </varlistentry>
 
+
+
    <varlistentry>
+
     <term><literal>INHERITS ( <replaceable>parent_table</replaceable> [, ... ] )</literal></term>
+
     <listitem>
+
      <para>
+
       The optional <literal>INHERITS</> clause specifies a list of
+
       tables from which the new table automatically inherits all
+
       columns.
+
      </para>
 
+
+
      <para>
+
       Use of <literal>INHERITS</> creates a persistent relationship
+
       between the new child table and its parent table(s).  Schema
+
       modifications to the parent(s) normally propagate to children
+
       as well, and by default the data of the child table is included in
+
       scans of the parent(s).
+
      </para>
 
+
+
      <para>
+
       If the same column name exists in more than one parent
+
       table, an error is reported unless the data types of the columns
+
       match in each of the parent tables.  If there is no conflict,
+
       then the duplicate columns are merged to form a single column in
+
       the new table.  If the column name list of the new table
+
       contains a column name that is also inherited, the data type must
+
       likewise match the inherited column(s), and the column
+
       definitions are merged into one.  However, inherited and new
+
       column declarations of the same name need not specify identical
+
       constraints: all constraints provided from any declaration are
+
       merged together and all are applied to the new table.  If the
+
       new table explicitly specifies a default value for the column,
+
       this default overrides any defaults from inherited declarations
+
       of the column.  Otherwise, any parents that specify default
+
       values for the column must all specify the same default, or an
+
       error will be reported.
+
      </para>
+
 <!--
+
      <para>
+
       <productname>PostgreSQL</> automatically allows the
+
      created table to inherit
+
       functions on tables above it in the inheritance hierarchy; that
+
       is, if we create table <literal>foo</literal> inheriting from
+
       <literal>bar</literal>, then functions that accept the tuple
+
       type <literal>bar</literal> can also be applied to instances of
+
       <literal>foo</literal>.  (Currently, this works reliably for
+
       functions on the first or only parent table, but not so well for
+
       functions on additional parents.)
+
      </para>
+
 -->
+
     </listitem>
+
    </varlistentry>
 
+
+
    <varlistentry>
+
     <term><literal>LIKE <replaceable>parent_table</replaceable> [ { INCLUDING | EXCLUDING } { DEFAULTS | CONSTRAINTS } ]</literal></term>
+
     <listitem>
+
      <para>
+
       The <literal>LIKE</literal> clause specifies a table from which
+
       the new table automatically copies all column names, their data types,
+
       and their not-null constraints.
+
      </para>
+
      <para>
+
       Unlike <literal>INHERITS</literal>, the new table and original table
+
       are completely decoupled after creation is complete.  Changes to the
+
       original table will not be applied to the new table, and it is not
+
       possible to include data of the new table in scans of the original
+
       table.
+
      </para>
+
      <para>
+
       Default expressions for the copied column definitions will only be
+
       copied if <literal>INCLUDING DEFAULTS</literal> is specified.  The
+
       default behavior is to exclude default expressions, resulting in the
+
       copied columns in the new table having null defaults.
+
      </para>
+
      <para>
+
       Not-null constraints are always copied to the new table.
+
       <literal>CHECK</literal> constraints will only be copied if
+
       <literal>INCLUDING CONSTRAINTS</literal> is specified; other types of
+
       constraints will never be copied. Also, no distinction is made between
+
       column constraints and table constraints &mdash; when constraints are
+
       requested, all check constraints are copied.
+
      </para>
+
      <para>
+
       Note also that unlike <literal>INHERITS</literal>, copied columns and
+
       constraints are not merged with similarly named columns and constraints.
+
       If the same name is specified explicitly or in another
+
       <literal>LIKE</literal> clause an error is signalled.
+
      </para>
+
     </listitem>
+
    </varlistentry>
 
+
+
    <varlistentry>
+
     <term><literal>CONSTRAINT <replaceable class="PARAMETER">constraint_name</replaceable></literal></term>
+
     <listitem>
+
      <para>
+
       An optional name for a column or table constraint.  If the
+
       constraint is violated, the constraint name is present in error messages,
+
       so constraint names like <literal>col must be positive</> can be used
+
       to communicate helpful constraint information to client applications.
+
       (Double-quotes are needed to specify constraint names that contain spaces.)
+
       If a constraint name is not specified, the system generates a name.
+
      </para>
+ 
+     <para>
+
+     Note: The specified constraint_name is used for the constraint, but a 
+
+     system-generated unique name is used for the index name. In some prior 
+  
+     releases, the provided name was used for both the constraint name 
+     and the index name. 
+     
+    </para>
+
     </listitem>
+
    </varlistentry>
 
+
+
    <varlistentry>
+
     <term><literal>NOT NULL</></term>
+
     <listitem>
+
      <para>
+
       The column is not allowed to contain null values.
+
      </para>
+
     </listitem>
+
    </varlistentry>
 
+
+
    <varlistentry>
+
     <term><literal>NULL</></term>
+
     <listitem>
-     <para>
-      The column is allowed to contain null values. This is the default.
-     </para>
 
      <para>
-      This clause is only provided for compatibility with
-      non-standard SQL databases.  Its use is discouraged in new
-      applications.
+
+      The column is allowed to contain null values. This is the default.
+
      </para>
+
+
+
+     <para>
+
+      This clause is only provided for compatibility with
+
+      non-standard SQL databases.  Its use is discouraged in new
+
+      applications.
+
+     </para>
+
     </listitem>
+
    </varlistentry>
 
+
+
    <varlistentry>
+
     <term><literal>UNIQUE</> (column constraint)</term>
+
     <term><literal>UNIQUE ( <replaceable class="PARAMETER">column_name</replaceable> [, ... ] )</> (table constraint)</term>
 
+
+
     <listitem>
+
      <para>
+
       The <literal>UNIQUE</literal> constraint specifies that a
+
       group of one or more columns of a table may contain
+
       only unique values. The behavior of the unique table constraint
+
       is the same as that for column constraints, with the additional
+
       capability to span multiple columns.
+
      </para>
 
+
+
      <para>
+
       For the purpose of a unique constraint, null values are not
+
       considered equal.
+
      </para>
 
+
+
      <para>
+
       Each unique table constraint must name a set of columns that is
+
       different from the set of columns named by any other unique or
+
       primary key constraint defined for the table.  (Otherwise it
+
       would just be the same constraint listed twice.)
+
      </para>
+
     </listitem>
+
    </varlistentry>
 
+
+
    <varlistentry>
+
     <term><literal>PRIMARY KEY</> (column constraint)</term>
+
     <term><literal>PRIMARY KEY ( <replaceable class="PARAMETER">column_name</replaceable> [, ... ] )</> (table constraint)</term>
+
     <listitem>
+
      <para>
+
       The primary key constraint specifies that a column or columns of a table
+
       may contain only unique (non-duplicate), nonnull values.
+
       Technically, <literal>PRIMARY KEY</literal> is merely a
+
       combination of <literal>UNIQUE</> and <literal>NOT NULL</>, but
+
       identifying a set of columns as primary key also provides
+
       metadata about the design of the schema, as a primary key
+
       implies that other tables
+
       may rely on this set of columns as a unique identifier for rows.
+
      </para>
 
+
+
      <para>
+
       Only one primary key can be specified for a table, whether as a
+
       column constraint or a table constraint.
+
      </para>
 
+
+
      <para>
+
       The primary key constraint should name a set of columns that is
+
       different from other sets of columns named by any unique
+
       constraint defined for the same table.
+
      </para>
+
     </listitem>
+
    </varlistentry>
 
+
+
    <varlistentry>
+
     <term><literal>CHECK ( <replaceable class="PARAMETER">expression</replaceable> )</literal></term>
+
     <listitem>
-     <para>
-      The <literal>CHECK</> clause specifies an expression producing a
-      Boolean result which new or updated rows must satisfy for an
-      insert or update operation to succeed.  Expressions evaluating
-      to TRUE or UNKNOWN succeed.  Should any row of an insert or
-      update operation produce a FALSE result an error exception is
-      raised and the insert or update does not alter the database.  A
-      check constraint specified as a column constraint should
-      reference that column's value only, while an expression
-      appearing in a table constraint may reference multiple columns.
-     </para>
 
      <para>
-      Currently, <literal>CHECK</literal> expressions cannot contain
-      subqueries nor refer to variables other than columns of the
-      current row.
+
+      The <literal>CHECK</> clause specifies an expression producing a
+
+      Boolean result which new or updated rows must satisfy for an
+
+      insert or update operation to succeed.  Expressions evaluating
+
+      to TRUE or UNKNOWN succeed.  Should any row of an insert or
+
+      update operation produce a FALSE result an error exception is
+
+      raised and the insert or update does not alter the database.  A
+
+      check constraint specified as a column constraint should
+
+      reference that column's value only, while an expression
+
+      appearing in a table constraint may reference multiple columns.
+
      </para>
+
+
+
+     <para>
+
+      Currently, <literal>CHECK</literal> expressions cannot contain
+
+      subqueries nor refer to variables other than columns of the
+
+      current row.
+
+     </para>
+
     </listitem>
+
    </varlistentry>
 
 
+
+
+
    <varlistentry>
+
     <term><literal>REFERENCES <replaceable class="parameter">reftable</replaceable> [ ( <replaceable class="parameter">refcolumn</replaceable> ) ] [ MATCH <replaceable class="parameter">matchtype</replaceable> ] [ ON DELETE <replaceable class="parameter">action</replaceable> ] [ ON UPDATE <replaceable class="parameter">action</replaceable> ]</literal> (column constraint)</term>
 
+
+
    <term><literal>FOREIGN KEY ( <replaceable class="parameter">column</replaceable> [, ... ] )
+
     REFERENCES <replaceable class="parameter">reftable</replaceable> [ ( <replaceable class="parameter">refcolumn</replaceable> [, ... ] ) ]
+
     [ MATCH <replaceable class="parameter">matchtype</replaceable> ]
+
     [ ON DELETE <replaceable class="parameter">action</replaceable> ]
+
     [ ON UPDATE <replaceable class="parameter">action</replaceable> ]</literal>
+
     (table constraint)</term>
 
+
+
     <listitem>
+
      <para>
+
       These clauses specify a foreign key constraint, which requires
+
       that a group of one or more columns of the new table must only
+
       contain values that match values in the referenced
+
       column(s) of some row of the referenced table.  If <replaceable
+
       class="parameter">refcolumn</replaceable> is omitted, the
+
       primary key of the <replaceable
+
       class="parameter">reftable</replaceable> is used.  The
+
       referenced columns must be the columns of a unique or primary
+
       key constraint in the referenced table.  Note that foreign key
+
       constraints may not be defined between temporary tables and
+
       permanent tables.
+
      </para>
 
+
+
      <para>
+
       A value inserted into the referencing column(s) is matched against the
+
       values of the referenced table and referenced columns using the
+
       given match type.  There are three match types: <literal>MATCH
+
       FULL</>, <literal>MATCH PARTIAL</>, and <literal>MATCH
+
       SIMPLE</literal>, which is also the default.  <literal>MATCH
+
       FULL</> will not allow one column of a multicolumn foreign key
+
       to be null unless all foreign key columns are null.
+
       <literal>MATCH SIMPLE</literal> allows some foreign key columns
+
       to be null while other parts of the foreign key are not
+
       null. <literal>MATCH PARTIAL</> is not yet implemented.
+
      </para>
 
+
+
      <para>
+
       In addition, when the data in the referenced columns is changed,
+
       certain actions are performed on the data in this table's
+
       columns.  The <literal>ON DELETE</literal> clause specifies the
+
       action to perform when a referenced row in the referenced table is
+
       being deleted.  Likewise, the <literal>ON UPDATE</literal>
+
       clause specifies the action to perform when a referenced column
+
       in the referenced table is being updated to a new value. If the
+
       row is updated, but the referenced column is not actually
+
       changed, no action is done. Referential actions other than the
+
       <literal>NO ACTION</literal> check cannot be deferred, even if
+
       the constraint is declared deferrable. There are the following possible
+
       actions for each clause:
 
+
+
       <variablelist>
+
        <varlistentry>
+
         <term><literal>NO ACTION</literal></term>
+
         <listitem>
+
          <para>
+
           Produce an error indicating that the deletion or update
+
           would create a foreign key constraint violation.
+
           If the constraint is deferred, this
+
           error will be produced at constraint check time if there still
+
           exist any referencing rows.  This is the default action.
+
          </para>
+
         </listitem>
+
        </varlistentry>
 
+
+
        <varlistentry>
+
         <term><literal>RESTRICT</literal></term>
+
         <listitem>
+
          <para>
+
           Produce an error indicating that the deletion or update
+
           would create a foreign key constraint violation.
+
           This is the same as <literal>NO ACTION</literal> except that
+
           the check is not deferrable.
+
          </para>
+
         </listitem>
+
        </varlistentry>
 
+
+
        <varlistentry>
+
         <term><literal>CASCADE</literal></term>
+
         <listitem>
+
          <para>
+
           Delete any rows referencing the deleted row, or update the
+
           value of the referencing column to the new value of the
+
           referenced column, respectively.
+
          </para>
+
         </listitem>
+
        </varlistentry>
 
+
+
        <varlistentry>
+
         <term><literal>SET NULL</literal></term>
+
         <listitem>
+
          <para>
+
           Set the referencing column(s) to null.
+
          </para>
+
         </listitem>
+
        </varlistentry>
+
+
 
        <varlistentry>
+
         <term><literal>SET DEFAULT</literal></term>
+
         <listitem>
+
          <para>
+
           Set the referencing column(s) to their default values.
+
          </para>
+
         </listitem>
+
        </varlistentry>
+
       </variablelist>
+
      </para>
 
+
+
      <para>
+
       If the referenced column(s) are changed frequently, it may be wise to
+
       add an index to the foreign key column so that referential actions
+
       associated with the foreign key column can be performed more
+
       efficiently.
+
      </para>
+
     </listitem>
+
    </varlistentry>
 
+
+
    <varlistentry>
+
     <term><literal>DEFERRABLE</literal></term>
+
     <term><literal>NOT DEFERRABLE</literal></term>
+
     <listitem>
+
      <para>
+
       This controls whether the constraint can be deferred.  A
+
       constraint that is not deferrable will be checked immediately
+
       after every command.  Checking of constraints that are
+
       deferrable may be postponed until the end of the transaction
+
       (using the <xref linkend="sql-set-constraints" endterm="sql-set-constraints-title"> command).
+
       <literal>NOT DEFERRABLE</literal> is the default.  Only foreign
+
       key constraints currently accept this clause.  All other
+
       constraint types are not deferrable.
+
      </para>
+
     </listitem>
+
    </varlistentry>
 
+
+
    <varlistentry>
+
     <term><literal>INITIALLY IMMEDIATE</literal></term>
+
     <term><literal>INITIALLY DEFERRED</literal></term>
+
     <listitem>
+
      <para>
+
       If a constraint is deferrable, this clause specifies the default
+
       time to check the constraint.  If the constraint is
+
       <literal>INITIALLY IMMEDIATE</literal>, it is checked after each
+
       statement. This is the default.  If the constraint is
+
       <literal>INITIALLY DEFERRED</literal>, it is checked only at the
+
       end of the transaction.  The constraint check time can be
+
       altered with the <xref linkend="sql-set-constraints" endterm="sql-set-constraints-title"> command.
+
      </para>
+
     </listitem>
+
    </varlistentry>
 
+
+
    <varlistentry>
+
     <term><literal>WITH ( <replaceable class="PARAMETER">storage_parameter</replaceable> [= <replaceable class="PARAMETER">value</replaceable>] [, ... ] )</literal></term>
+
     <listitem>
+
      <para>
+
       This clause specifies optional storage parameters for a table or index;
+
       see <xref linkend="sql-createtable-storage-parameters"
+
       endterm="sql-createtable-storage-parameters-title"> for more
+
       information.  The <literal>WITH</> clause for a
+
       table can also include <literal>OIDS=TRUE</> (or just <literal>OIDS</>)
+
       to specify that rows of the new table
+
       should have OIDs (object identifiers) assigned to them, or
+
       <literal>OIDS=FALSE</> to specify that the rows should not have OIDs.
+
       If <literal>OIDS</> is not specified, the default setting depends upon
+
       the <xref linkend="guc-default-with-oids"> configuration parameter.
+
       (If the new table inherits from any tables that have OIDs, then
+
       <literal>OIDS=TRUE</> is forced even if the command says
+
       <literal>OIDS=FALSE</>.)
+
      </para>
 
+
+
      <para>
+
       If <literal>OIDS=FALSE</literal> is specified or implied, the new
+
       table does not store OIDs and no OID will be assigned for a row inserted
+
       into it. This is generally considered worthwhile, since it
+
       will reduce OID consumption and thereby postpone the wraparound
+
       of the 32-bit OID counter. Once the counter wraps around, OIDs
+
       can no longer be assumed to be unique, which makes them
+
       considerably less useful. In addition, excluding OIDs from a
+
       table reduces the space required to store the table on disk by
+
       4 bytes per row (on most machines), slightly improving performance.
+
      </para>
 
+
+
      <para>
+
       To remove OIDs from a table after it has been created, use <xref
+
       linkend="sql-altertable" endterm="sql-altertable-title">.
+
      </para>
+
     </listitem>
+
    </varlistentry>
 
+
+
    <varlistentry>
+
     <term><literal>WITH OIDS</></term>
+
     <term><literal>WITHOUT OIDS</></term>
+
     <listitem>
+
      <para>
+
       These are obsolescent syntaxes equivalent to <literal>WITH (OIDS)</>
+
       and <literal>WITH (OIDS=FALSE)</>, respectively.  If you wish to give
+
       both an <literal>OIDS</> setting and storage parameters, you must use
+
       the <literal>WITH ( ... )</> syntax; see above.
+
      </para>
+
     </listitem>
+
    </varlistentry>
 
+
+
    <varlistentry>
+
     <term><literal>ON COMMIT</literal></term>
+
     <listitem>
+
      <para>
+
       The behavior of temporary tables at the end of a transaction
+
       block can be controlled using <literal>ON COMMIT</literal>.
+
       The three options are:
 
+
+
       <variablelist>
+
        <varlistentry>
+
         <term><literal>PRESERVE ROWS</literal></term>
+
         <listitem>
+
          <para>
+
           No special action is taken at the ends of transactions.
+
           This is the default behavior.
+
          </para>
+
         </listitem>
+
        </varlistentry>
 
+
+
        <varlistentry>
+
         <term><literal>DELETE ROWS</literal></term>
+
         <listitem>
+
          <para>
+
           All rows in the temporary table will be deleted at the end
+
           of each transaction block.  Essentially, an automatic <xref
+
           linkend="sql-truncate" endterm="sql-truncate-title"> is done
+
           at each commit.
+
          </para>
+
         </listitem>
+
        </varlistentry>
+
+
 
        <varlistentry>
+
         <term><literal>DROP</literal></term>
+
         <listitem>
+
          <para>
+
           The temporary table will be dropped at the end of the current
+
           transaction block.
+
          </para>
+
         </listitem>
+
        </varlistentry>
+
       </variablelist>
+
      </para>
+
     </listitem>
+
    </varlistentry>
 
+
+
    <varlistentry>
+
     <term><literal>TABLESPACE <replaceable class="PARAMETER">tablespace</replaceable></literal></term>
+
     <listitem>
+
      <para>
+
       The <replaceable class="PARAMETER">tablespace</replaceable> is the name
+
       of the tablespace in which the new table is to be created.
+
       If not specified,
+
       <xref linkend="guc-default-tablespace"> is used, or the database's
+
       default tablespace if <varname>default_tablespace</> is an empty
+
       string.
+
      </para>
+
     </listitem>
+
    </varlistentry>
 
+
+
    <varlistentry>
+
     <term><literal>USING INDEX TABLESPACE <replaceable class="PARAMETER">tablespace</replaceable></literal></term>
+
     <listitem>
+
      <para>
+
       This clause allows selection of the tablespace in which the index
+
       associated with a <literal>UNIQUE</literal> or <literal>PRIMARY
+
       KEY</literal> constraint will be created.
+
       If not specified,
+
       <xref linkend="guc-default-tablespace"> is used, or the database's
+
       default tablespace if <varname>default_tablespace</> is an empty
+
       string.
+
      </para>
+
     </listitem>
+
    </varlistentry>
+
+
 
   </variablelist>
 
+
+
   <refsect2 id="SQL-CREATETABLE-storage-parameters">
+
    <title id="SQL-CREATETABLE-storage-parameters-title">Storage Parameters</title>
 
+
+
    <para>
+
     The <literal>WITH</> clause can specify <firstterm>storage parameters</>
+
     for tables, and for indexes associated with a <literal>UNIQUE</literal> or
+
     <literal>PRIMARY KEY</literal> constraint.  Storage parameters for
+
     indexes are documented in <xref linkend="SQL-CREATEINDEX"
+
     endterm="sql-createindex-title">.  The only storage parameter currently
+
     available for tables is:
+
    </para>
+
+
 
    <variablelist>
 
+
+
    <varlistentry>
+
     <term><literal>FILLFACTOR</></term>
+
     <listitem>
+
      <para>
+
       The fillfactor for a table is a percentage between 10 and 100.
+
       100 (complete packing) is the default.  When a smaller fillfactor
+
       is specified, <command>INSERT</> operations pack table pages only
+
       to the indicated percentage; the remaining space on each page is
+
       reserved for updating rows on that page.  This gives <command>UPDATE</>
+
       a chance to place the updated copy of a row on the same page as the
+
       original, which is more efficient than placing it on a different page.
+
       For a table whose entries are never updated, complete packing is the
+
       best choice, but in heavily updated tables smaller fillfactors are
+
       appropriate.
+
      </para>
+
     </listitem>
+
    </varlistentry>
+
+
 
    </variablelist>
 
+
+
   </refsect2>
+
  </refsect1>
+
+
 
  <refsect1 id="SQL-CREATETABLE-notes">
+
   <title>Notes</title>
 
+
+
     <para>
+
      Using OIDs in new applications is not recommended: where
+
      possible, using a <literal>SERIAL</literal> or other sequence
+
      generator as the table's primary key is preferred. However, if
+
      your application does make use of OIDs to identify specific
+
      rows of a table, it is recommended to create a unique constraint
+
      on the <structfield>oid</> column of that table, to ensure that
+
      OIDs in the table will indeed uniquely identify rows even after
+
      counter wraparound.  Avoid assuming that OIDs are unique across
+
      tables; if you need a database-wide unique identifier, use the
+
      combination of <structfield>tableoid</> and row OID for the
+
      purpose.
+
     </para>
+
+
 
     <tip>
+
      <para>
+
       The use of <literal>OIDS=FALSE</literal> is not recommended
+
       for tables with no primary key, since without either an OID or a
+
       unique data key, it is difficult to identify specific rows.
+
      </para>
+
     </tip>
 
+
+
     <para>
+
      <productname>PostgreSQL</productname> automatically creates an
+
      index for each unique constraint and primary key constraint to
+
      enforce uniqueness.  Thus, it is not necessary to create an
+
      index explicitly for primary key columns.  (See <xref
+
      linkend="sql-createindex" endterm="sql-createindex-title"> for more information.)
+
     </para>
 
+
+
     <para>
+
      Unique constraints and primary keys are not inherited in the
+
      current implementation.  This makes the combination of
+
      inheritance and unique constraints rather dysfunctional.
+
     </para>
 
+
+
     <para>
+
      A table cannot have more than 1600 columns.  (In practice, the
+
      effective limit is usually lower because of tuple-length constraints.)
+
     </para>
+
+
 
  </refsect1>
+
+
+
 
 
  <refsect1 id="SQL-CREATETABLE-examples">
+
   <title>Examples</title>
 
+
+
   <para>
+
    Create table <structname>films</> and table
+
    <structname>distributors</>:
 
-<programlisting>
-CREATE TABLE films (
-    code        char(5) CONSTRAINT firstkey PRIMARY KEY,
-    title       varchar(40) NOT NULL,
-    did         integer NOT NULL,
-    date_prod   date,
-    kind        varchar(10),
-    len         interval hour to minute
-);
-</programlisting>
+
 
 <programlisting>
-CREATE TABLE distributors (
-     did    integer PRIMARY KEY DEFAULT nextval('serial'),
-     name   varchar(40) NOT NULL CHECK (name &lt;&gt; '')
+
+CREATE TABLE films (
+
+    code        char(5) CONSTRAINT firstkey PRIMARY KEY,
+
+    title       varchar(40) NOT NULL,
+
+    did         integer NOT NULL,
+
+    date_prod   date,
+
+    kind        varchar(10),
+
+    len         interval hour to minute
+
 );
+
 </programlisting>
+
+
+
+<programlisting>
+
+CREATE TABLE distributors (
+
+     did    integer PRIMARY KEY DEFAULT nextval('serial'),
+
+     name   varchar(40) NOT NULL CHECK (name &lt;&gt; '')
+
+);
+
+</programlisting>
+
   </para>
 
+
+
   <para>
+
    Create a table with a 2-dimensional array:
 
+
+
 <programlisting>
+
 CREATE TABLE array_int (
+
     vector  int[][]
+
 );
+
 </programlisting>
+
   </para>
 
+
+
   <para>
+
    Define a unique table constraint for the table
+
    <literal>films</literal>.  Unique table constraints can be defined
+
    on one or more columns of the table.
 
+
+
 <programlisting>
+
 CREATE TABLE films (
+
     code        char(5),
+
     title       varchar(40),
+
     did         integer,
+
     date_prod   date,
+
     kind        varchar(10),
+
     len         interval hour to minute,
+
     CONSTRAINT production UNIQUE(date_prod)
+
 );
+
 </programlisting>
+
   </para>
 
+
+
   <para>
+
    Define a check column constraint:
 
+
+
 <programlisting>
+
 CREATE TABLE distributors (
+
     did     integer CHECK (did &gt; 100),
+
     name    varchar(40)
+
 );
+
 </programlisting>
+
   </para>
 
+
+
   <para>
+
    Define a check table constraint:
 
+
+
 <programlisting>
+
 CREATE TABLE distributors (
+
     did     integer,
+
     name    varchar(40)
+
     CONSTRAINT con1 CHECK (did &gt; 100 AND name &lt;&gt; '')
+
 );
+
 </programlisting>
+
   </para>
 
+
+
   <para>
+
    Define a primary key table constraint for the table
+
    <structname>films</>:
 
+
+
 <programlisting>
+
 CREATE TABLE films (
+
     code        char(5),
+
     title       varchar(40),
+
     did         integer,
+
     date_prod   date,
+
     kind        varchar(10),
+
     len         interval hour to minute,
+
     CONSTRAINT code_title PRIMARY KEY(code,title)
+
 );
+
 </programlisting>
+
   </para>
 
+
+
   <para>
+
    Define a primary key constraint for table
+
    <structname>distributors</>.  The following two examples are
+
    equivalent, the first using the table constraint syntax, the second
+
    the column constraint syntax:
 
-<programlisting>
-CREATE TABLE distributors (
-    did     integer,
-    name    varchar(40),
-    PRIMARY KEY(did)
-);
-</programlisting>
+
 
 <programlisting>
+
 CREATE TABLE distributors (
-    did     integer PRIMARY KEY,
-    name    varchar(40)
+
+    did     integer,
+
+    name    varchar(40),
+
+    PRIMARY KEY(did)
+
 );
+
 </programlisting>
+
+
+
+<programlisting>
+
+CREATE TABLE distributors (
+
+    did     integer PRIMARY KEY,
+
+    name    varchar(40)
+
+);
+
+</programlisting>
+
   </para>
 
+
+
   <para>
+
    Assign a literal constant default value for the column
+
    <literal>name</literal>, arrange for the default value of column
+
    <literal>did</literal> to be generated by selecting the next value
+
    of a sequence object, and make the default value of
+
    <literal>modtime</literal> be the time at which the row is
+
    inserted:
 
+
+
 <programlisting>
+
 CREATE TABLE distributors (
+
     name      varchar(40) DEFAULT 'Luso Films',
+
     did       integer DEFAULT nextval('distributors_serial'),
+
     modtime   timestamp DEFAULT current_timestamp
+
 );
+
 </programlisting>
+
   </para>
 
+
+
   <para>
+
    Define two <literal>NOT NULL</> column constraints on the table
+
    <classname>distributors</classname>, one of which is explicitly
+
    given a name:
 
+
+
 <programlisting>
+
 CREATE TABLE distributors (
+
     did     integer CONSTRAINT no_null NOT NULL,
+
     name    varchar(40) NOT NULL
+
 );
+
 </programlisting>
+
     </para>
 
+
+
     <para>
+
      Define a unique constraint for the <literal>name</literal> column:
 
+
+
 <programlisting>
+
 CREATE TABLE distributors (
+
     did     integer,
+
     name    varchar(40) UNIQUE
+
 );
+
 </programlisting>
+
+
 
      The same, specified as a table constraint:
 
+
+
 <programlisting>
+
 CREATE TABLE distributors (
+
     did     integer,
+
     name    varchar(40),
+
     UNIQUE(name)
+
 );
+
 </programlisting>
+
   </para>
 
+
+
   <para>
+
    Create the same table, specifying 70% fill factor for both the table
+
    and its unique index:
 
+
+
 <programlisting>
+
 CREATE TABLE distributors (
+
     did     integer,
+
     name    varchar(40),
+
     UNIQUE(name) WITH (fillfactor=70)
+
 )
+
 WITH (fillfactor=70);
+
 </programlisting>
+
   </para>
 
+
+
   <para>
+
    Create table <structname>cinemas</> in tablespace <structname>diskvol1</>:
 
+
+
 <programlisting>
+
 CREATE TABLE cinemas (
+
         id serial,
+
         name text,
+
         location text
+
 ) TABLESPACE diskvol1;
+
 </programlisting>
+
   </para>
 
+
+
  </refsect1>
+
+
 
  <refsect1 id="SQL-CREATETABLE-compatibility">
+
   <title id="SQL-CREATETABLE-compatibility-title">Compatibility</title>
 
+
+
   <para>
+
    The <command>CREATE TABLE</command> command conforms to the
+
    <acronym>SQL</acronym> standard, with exceptions listed below.
+
   </para>
 
+
+
   <refsect2>
+
    <title>Temporary Tables</title>
 
+
+
    <para>
+
     Although the syntax of <literal>CREATE TEMPORARY TABLE</literal>
+
     resembles that of the SQL standard, the effect is not the same.  In the
+
     standard,
+
     temporary tables are defined just once and automatically exist (starting
+
     with empty contents) in every session that needs them.
+
     <productname>PostgreSQL</productname> instead
+
     requires each session to issue its own <literal>CREATE TEMPORARY
+
     TABLE</literal> command for each temporary table to be used.  This allows
+
     different sessions to use the same temporary table name for different
+
     purposes, whereas the standard's approach constrains all instances of a
+
     given temporary table name to have the same table structure.
+
    </para>
 
+
+
    <para>
+
     The standard's definition of the behavior of temporary tables is
+
     widely ignored.  <productname>PostgreSQL</productname>'s behavior
+
     on this point is similar to that of several other SQL databases.
+
    </para>
 
+
+
    <para>
+
     The standard's distinction between global and local temporary tables
+
     is not in <productname>PostgreSQL</productname>, since that distinction
+
     depends on the concept of modules, which
+
     <productname>PostgreSQL</productname> does not have.
+
     For compatibility's sake, <productname>PostgreSQL</productname> will
+
     accept the <literal>GLOBAL</literal> and <literal>LOCAL</literal> keywords
+
     in a temporary table declaration, but they have no effect.
+
    </para>
 
+
+
    <para>
+
     The <literal>ON COMMIT</literal> clause for temporary tables
+
     also resembles the SQL standard, but has some differences.
+
     If the <literal>ON COMMIT</> clause is omitted, SQL specifies that the
+
     default behavior is <literal>ON COMMIT DELETE ROWS</>.  However, the
+
     default behavior in <productname>PostgreSQL</productname> is
+
     <literal>ON COMMIT PRESERVE ROWS</literal>.  The <literal>ON COMMIT
+
     DROP</literal> option does not exist in SQL.
+
    </para>
+
   </refsect2>
 
+
+
   <refsect2>
+
    <title>Column Check Constraints</title>
 
+
+
    <para>
+
     The SQL standard says that <literal>CHECK</> column constraints
+
     may only refer to the column they apply to; only <literal>CHECK</>
+
     table constraints may refer to multiple columns.
+
     <productname>PostgreSQL</productname> does not enforce this
+
     restriction; it treats column and table check constraints alike.
+
    </para>
+
   </refsect2>
 
+
+
   <refsect2>
+
    <title><literal>NULL</literal> <quote>Constraint</quote></title>
 
+
+
    <para>
+
     The <literal>NULL</> <quote>constraint</quote> (actually a
+
     non-constraint) is a <productname>PostgreSQL</productname>
+
     extension to the SQL standard that is included for compatibility with some
+
     other database systems (and for symmetry with the <literal>NOT
+
     NULL</literal> constraint).  Since it is the default for any
+
     column, its presence is simply noise.
+
    </para>
+
   </refsect2>
 
+
+
   <refsect2>
+
    <title>Inheritance</title>
 
+
+
    <para>
+
     Multiple inheritance via the <literal>INHERITS</literal> clause is
+
     a <productname>PostgreSQL</productname> language extension.
+
     SQL:1999 and later define single inheritance using a
+
     different syntax and different semantics.  SQL:1999-style
+
     inheritance is not yet supported by
+
     <productname>PostgreSQL</productname>.
+
    </para>
+
   </refsect2>
 
+
+
   <refsect2>
+
    <title>Zero-column tables</title>
 
+
+
    <para>
+
     <productname>PostgreSQL</productname> allows a table of no columns
+
     to be created (for example, <literal>CREATE TABLE foo();</>).  This
+
     is an extension from the SQL standard, which does not allow zero-column
+
     tables.  Zero-column tables are not in themselves very useful, but
+
     disallowing them creates odd special cases for <command>ALTER TABLE
+
     DROP COLUMN</>, so it seems cleaner to ignore this spec restriction.
+
    </para>
+
   </refsect2>
 
+
+
   <refsect2>
+
    <title><literal>WITH</> clause</title>
 
+
+
    <para>
+
     The <literal>WITH</> clause is a <productname>PostgreSQL</productname>
+
     extension; neither storage parameters nor OIDs are in the standard.
+
    </para>
+
   </refsect2>
+
+
 
   <refsect2>
+
    <title>Tablespaces</title>
 
+
+
    <para>
+
     The <productname>PostgreSQL</productname> concept of tablespaces is not
+
     part of the standard.  Hence, the clauses <literal>TABLESPACE</literal>
+
     and <literal>USING INDEX TABLESPACE</literal> are extensions.
+
    </para>
+
   </refsect2>
+
  </refsect1>
+
+
+
 
 
  <refsect1>
+
   <title>See Also</title>
 
+
+
   <simplelist type="inline">
+
    <member><xref linkend="sql-altertable" endterm="sql-altertable-title"></member>
+
    <member><xref linkend="sql-droptable" endterm="sql-droptable-title"></member>
+
    <member><xref linkend="sql-createtablespace" endterm="sql-createtablespace-title"></member>
+
   </simplelist>
+
  </refsect1>
+
 </refentry>
+

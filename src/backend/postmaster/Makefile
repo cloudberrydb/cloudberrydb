@@ -4,28 +4,18 @@
 #    Makefile for src/backend/postmaster
 #
 # IDENTIFICATION
-#    $PostgreSQL: pgsql/src/backend/postmaster/Makefile,v 1.21 2005/07/14 05:13:40 tgl Exp $
+#    $PostgreSQL: pgsql/src/backend/postmaster/Makefile,v 1.24 2008/02/19 10:30:07 petere Exp $
 #
 #-------------------------------------------------------------------------
 
 subdir = src/backend/postmaster
 top_builddir = ../../..
 include $(top_builddir)/src/Makefile.global
+override CPPFLAGS := -I$(top_srcdir)/src/backend/gp_libpq_fe $(CPPFLAGS)
 
-OBJS = bgwriter.o autovacuum.o pgarch.o pgstat.o postmaster.o syslogger.o \
-	fork_process.o
+OBJS = bgwriter.o autovacuum.o checkpoint.o seqserver.o pgarch.o pgstat.o \
+	postmaster.o primary_mirror_mode.o primary_mirror_transition_client.o syslogger.o \
+	fork_process.o perfmon.o backoff.o perfmon_segmentinfo.o \
+	sendalert.o alertseverity.o
 
-all: SUBSYS.o
-
-SUBSYS.o: $(OBJS)
-	$(LD) $(LDREL) $(LDOUT) SUBSYS.o $(OBJS)
-
-depend dep:
-	$(CC) -MM $(CFLAGS) *.c >depend
-
-clean: 
-	rm -f SUBSYS.o $(OBJS) 
-
-ifeq (depend,$(wildcard depend))
-include depend
-endif
+include $(top_srcdir)/src/backend/common.mk

@@ -5,7 +5,7 @@
  * PostgreSQL Integrated Autovacuum Daemon
  *
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -18,11 +18,13 @@
 
 #include <signal.h>
 #include <sys/types.h>
+#include <sys/time.h>
 #include <time.h>
 #include <unistd.h>
 
 #include "access/genam.h"
 #include "access/heapam.h"
+#include "access/reloptions.h"
 #include "access/transam.h"
 #include "access/xact.h"
 #include "catalog/indexing.h"
@@ -39,7 +41,11 @@
 #include "postmaster/postmaster.h"
 #include "storage/fd.h"
 #include "storage/ipc.h"
+#include "storage/pmsignal.h"
 #include "storage/proc.h"
+#include "storage/procarray.h"
+#include "storage/procsignal.h"
+//#include "storage/sinvaladt.h"
 #include "storage/sinval.h"
 #include "tcop/tcopprot.h"
 #include "utils/flatfiles.h"
@@ -48,12 +54,22 @@
 #include "utils/memutils.h"
 #include "utils/ps_status.h"
 #include "utils/syscache.h"
-
+#include "cdb/cdbvars.h"
+#include "cdb/cdbpartition.h"
+#include "parser/parsetree.h"
+#include "utils/lsyscache.h"
+#include "nodes/makefuncs.h"
+#include "utils/acl.h"
+#include "catalog/catalog.h"
+#ifdef WIN32
+typedef unsigned int uint;
+#endif
 
 /*
  * GUC parameters
  */
 bool		autovacuum_start_daemon = false;
+int			autovacuum_max_workers;
 int			autovacuum_naptime;
 int			autovacuum_vac_thresh;
 double		autovacuum_vac_scale;
@@ -64,8 +80,16 @@ int			autovacuum_freeze_max_age;
 int			autovacuum_vac_cost_delay;
 int			autovacuum_vac_cost_limit;
 
+int			Log_autovacuum_min_duration = -1;
+
 /* Flag to tell if we are in the autovacuum daemon process */
 static bool am_autovacuum = false;
+
+/* how long to keep pgstat data in the launcher, in milliseconds */
+#define STATS_READ_DELAY 1000
+
+/* the minimum allowed time between two awakenings of the launcher */
+#define MIN_AUTOVAC_SLEEPTIME 100.0		/* milliseconds */
 
 /* Last time autovac daemon started/stopped (only valid in postmaster) */
 static time_t last_autovac_start_time = 0;
@@ -74,8 +98,9 @@ static time_t last_autovac_stop_time = 0;
 /* Comparison point for determining whether freeze_max_age is exceeded */
 static TransactionId recentXid;
 
-/* Default freeze_min_age to use for autovacuum (varies by database) */
+/* Default freeze ages to use for autovacuum (varies by database) */
 static int	default_freeze_min_age;
+//static int	default_freeze_table_age;
 
 /* Memory context for long-lived data */
 static MemoryContext AutovacMemCxt;
@@ -101,11 +126,85 @@ typedef struct autovac_table
 	int			vacuum_cost_limit;
 } autovac_table;
 
+/*-------------
+ * This struct holds information about a single worker's whereabouts.  We keep
+ * an array of these in shared memory, sized according to
+ * autovacuum_max_workers.
+ *
+ * wi_links		entry into free list or running list
+ * wi_dboid		OID of the database this worker is supposed to work on
+ * wi_tableoid	OID of the table currently being vacuumed
+ * wi_proc		pointer to PGPROC of the running worker, NULL if not started
+ * wi_launchtime Time at which this worker was launched
+ * wi_cost_*	Vacuum cost-based delay parameters current in this worker
+ *
+ * All fields are protected by AutovacuumLock, except for wi_tableoid which is
+ * protected by AutovacuumScheduleLock (which is read-only for everyone except
+ * that worker itself).
+ *-------------
+ */
+typedef struct WorkerInfoData
+{
+	SHM_QUEUE	wi_links;
+	Oid			wi_dboid;
+	Oid			wi_tableoid;
+	PGPROC	   *wi_proc;
+	TimestampTz wi_launchtime;
+	int			wi_cost_delay;
+	int			wi_cost_limit;
+	int			wi_cost_limit_base;
+} WorkerInfoData;
+
+typedef struct WorkerInfoData *WorkerInfo;
+
+/*
+ * Possible signals received by the launcher from remote processes.  These are
+ * stored atomically in shared memory so that other processes can set them
+ * without locking.
+ */
+typedef enum
+{
+	AutoVacForkFailed,			/* failed trying to start a worker */
+	AutoVacRebalance,			/* rebalance the cost limits */
+	AutoVacNumSignals			/* must be last */
+} AutoVacuumSignal;
+
+/*-------------
+ * The main autovacuum shmem struct.  On shared memory we store this main
+ * struct and the array of WorkerInfo structs.	This struct keeps:
+ *
+ * av_signal		set by other processes to indicate various conditions
+ * av_launcherpid	the PID of the autovacuum launcher
+ * av_freeWorkers	the WorkerInfo freelist
+ * av_runningWorkers the WorkerInfo non-free queue
+ * av_startingWorker pointer to WorkerInfo currently being started (cleared by
+ *					the worker itself as soon as it's up and running)
+ *
+ * This struct is protected by AutovacuumLock, except for av_signal and parts
+ * of the worker list (see above).
+ *-------------
+ */
+typedef struct
+{
+	sig_atomic_t av_signal[AutoVacNumSignals];
+	pid_t		av_launcherpid;
+	WorkerInfo	av_freeWorkers;
+	SHM_QUEUE	av_runningWorkers;
+	WorkerInfo	av_startingWorker;
+} AutoVacuumShmemStruct;
+
+static AutoVacuumShmemStruct *AutoVacuumShmem;
+
+/* PID of launcher, valid only in worker while shutting down */
+int			AutovacuumLauncherPid = 0;
 
 #ifdef EXEC_BACKEND
-static pid_t autovac_forkexec(void);
+static pid_t autovac_forkexec(void);  // old
+static pid_t avlauncher_forkexec(void); // new
+static pid_t avworker_forkexec(void);  // new
 #endif
 NON_EXEC_STATIC void AutoVacMain(int argc, char *argv[]);
+
 static void do_autovacuum(PgStat_StatDBEntry *dbentry);
 static List *autovac_get_database_list(void);
 static void test_rel_for_autovac(Oid relid, PgStat_StatTabEntry *tabentry,
@@ -195,6 +294,11 @@ autovac_stopped(void)
 	last_autovac_stop_time = time(NULL);
 }
 
+
+/********************************************************************
+ *					  AUTOVACUUM WORKER CODE
+ ********************************************************************/
+
 #ifdef EXEC_BACKEND
 /*
  * autovac_forkexec()
@@ -235,8 +339,14 @@ AutoVacMain(int argc, char *argv[])
 	IsUnderPostmaster = true;
 	am_autovacuum = true;
 
+	/* MPP-4990: Autovacuum always runs as utility-mode */
+	Gp_role = GP_ROLE_UTILITY;
+
 	/* reset MyProcPid */
 	MyProcPid = getpid();
+
+	/* record Start Time for logging */
+	MyStartTime = time(NULL);
 
 	/* Identify myself via ps */
 	init_ps_display("autovacuum process", "", "", "");
@@ -265,8 +375,8 @@ AutoVacMain(int argc, char *argv[])
 	pqsignal(SIGHUP, SIG_IGN);
 
 	/*
-	 * Presently, SIGINT will lead to autovacuum shutdown, because that's how
-	 * we handle ereport(ERROR).  It could be improved however.
+	 * SIGINT is used to signal cancelling the current table's vacuum; SIGTERM
+	 * means abort and exit cleanly, and SIGQUIT means abandon ship.
 	 */
 	pqsignal(SIGINT, StatementCancelHandler);
 	pqsignal(SIGTERM, die);
@@ -274,7 +384,7 @@ AutoVacMain(int argc, char *argv[])
 	pqsignal(SIGALRM, handle_sig_alarm);
 
 	pqsignal(SIGPIPE, SIG_IGN);
-	pqsignal(SIGUSR1, CatchupInterruptHandler);
+	pqsignal(SIGUSR1, procsignal_sigusr1_handler);
 	/* We don't listen for async notifies */
 	pqsignal(SIGUSR2, SIG_IGN);
 	pqsignal(SIGFPE, FloatExceptionHandler);
@@ -307,8 +417,8 @@ AutoVacMain(int argc, char *argv[])
 		EmitErrorReport();
 
 		/*
-		 * We can now go away.	Note that because we'll call InitProcess, a
-		 * callback will be registered to do ProcKill, which will clean up
+		 * We can now go away.	Note that because we called InitProcess, a
+		 * callback was registered to do ProcKill, which will clean up
 		 * necessary state.
 		 */
 		proc_exit(0);
@@ -414,7 +524,7 @@ AutoVacMain(int argc, char *argv[])
 		 * Note: if we have selected a just-deleted database (due to using
 		 * stale stats info), we'll fail and exit here.
 		 */
-		InitPostgres(db->name, NULL);
+		InitPostgres(db->name, db->oid, NULL, NULL);
 		SetProcessingMode(NormalProcessing);
 		set_ps_display(db->name, false);
 		ereport(DEBUG1,
@@ -503,7 +613,7 @@ do_autovacuum(PgStat_StatDBEntry *dbentry)
 	Form_pg_database dbForm;
 	List	   *vacuum_tables = NIL;
 	List	   *toast_table_ids = NIL;
-	ListCell   *cell;
+	ListCell   *volatile cell;
 	PgStat_StatDBEntry *shared;
 
 	/* Start a transaction so our commands have one to play into. */
@@ -517,7 +627,7 @@ do_autovacuum(PgStat_StatDBEntry *dbentry)
 	 * want to do this exactly once per DB-processing cycle, even if we find
 	 * nothing worth vacuuming in the database.
 	 */
-	pgstat_vacuum_tabstat();
+	pgstat_vacuum_stat();
 
 	/*
 	 * Find the pg_database entry and select the default freeze_min_age.
@@ -580,9 +690,12 @@ do_autovacuum(PgStat_StatDBEntry *dbentry)
 		ScanKeyData entry[1];
 		Oid			relid;
 
-		/* Consider only regular and toast tables. */
+		/* Consider only regular, toast and aosegment tables. */
 		if (classForm->relkind != RELKIND_RELATION &&
-			classForm->relkind != RELKIND_TOASTVALUE)
+			classForm->relkind != RELKIND_TOASTVALUE &&
+			classForm->relkind != RELKIND_AOSEGMENTS &&
+			classForm->relkind != RELKIND_AOBLOCKDIR &&
+			classForm->relkind != RELKIND_AOVISIMAP)
 			continue;
 
 		/*
@@ -663,8 +776,13 @@ do_autovacuum(PgStat_StatDBEntry *dbentry)
 	}
 
 	/*
-	 * Update pg_database.datfrozenxid, and truncate pg_clog if possible.
-	 * We only need to do this once, not after each table.
+	 * We leak table_toast_map here (among other things), but since we're
+	 * going away soon, it's not a problem.
+	 */
+
+	/*
+	 * Update pg_database.datfrozenxid, and truncate pg_clog if possible. We
+	 * only need to do this once, not after each table.
 	 */
 	vac_update_datfrozenxid();
 
@@ -736,6 +854,9 @@ test_rel_for_autovac(Oid relid, PgStat_StatTabEntry *tabentry,
 	 * If there is a tuple in pg_autovacuum, use it; else, use the GUC
 	 * defaults.  Note that the fields may contain "-1" (or indeed any
 	 * negative value), which means use the GUC defaults for each setting.
+	 *
+	 * Note: in cost_limit, 0 also means use the value from elsewhere,
+	 * because 0 is not a valid value for VacuumCostLimit.
 	 */
 	if (avForm != NULL)
 	{
@@ -755,9 +876,9 @@ test_rel_for_autovac(Oid relid, PgStat_StatTabEntry *tabentry,
 			Min(avForm->freeze_max_age, autovacuum_freeze_max_age) :
 			autovacuum_freeze_max_age;
 
-		vac_cost_limit = (avForm->vac_cost_limit >= 0) ?
+		vac_cost_limit = (avForm->vac_cost_limit > 0) ?
 			avForm->vac_cost_limit :
-			((autovacuum_vac_cost_limit >= 0) ?
+			((autovacuum_vac_cost_limit > 0) ?
 			 autovacuum_vac_cost_limit : VacuumCostLimit);
 
 		vac_cost_delay = (avForm->vac_cost_delay >= 0) ?
@@ -776,7 +897,7 @@ test_rel_for_autovac(Oid relid, PgStat_StatTabEntry *tabentry,
 		freeze_min_age = default_freeze_min_age;
 		freeze_max_age = autovacuum_freeze_max_age;
 
-		vac_cost_limit = (autovacuum_vac_cost_limit >= 0) ?
+		vac_cost_limit = (autovacuum_vac_cost_limit > 0) ?
 			autovacuum_vac_cost_limit : VacuumCostLimit;
 
 		vac_cost_delay = (autovacuum_vac_cost_delay >= 0) ?
@@ -863,9 +984,12 @@ test_rel_for_autovac(Oid relid, PgStat_StatTabEntry *tabentry,
 			*vacuum_tables = lappend(*vacuum_tables, tab);
 		}
 	}
-	else
-	{
-		Assert(classForm->relkind == RELKIND_TOASTVALUE);
+	else if (classForm->relkind != RELKIND_AOSEGMENTS &&
+			 classForm->relkind != RELKIND_AOBLOCKDIR &&
+			 classForm->relkind != RELKIND_AOVISIMAP)
+	{   
+        if (classForm->relkind != RELKIND_TOASTVALUE)
+            elog(ERROR,"Expected relkind to be 't' (toast), but was '%c'.",classForm->relkind);
 		if (dovacuum)
 			*toast_table_ids = lappend_oid(*toast_table_ids, relid);
 	}
@@ -880,13 +1004,12 @@ autovacuum_do_vac_analyze(Oid relid, bool dovacuum, bool doanalyze,
 						  int freeze_min_age)
 {
 	VacuumStmt *vacstmt;
-	MemoryContext old_cxt;
 
 	/*
 	 * The node must survive transaction boundaries, so make sure we create it
 	 * in a long-lived context
 	 */
-	old_cxt = MemoryContextSwitchTo(AutovacMemCxt);
+	MemoryContextSwitchTo(AutovacMemCxt);
 
 	vacstmt = makeNode(VacuumStmt);
 
@@ -903,6 +1026,7 @@ autovacuum_do_vac_analyze(Oid relid, bool dovacuum, bool doanalyze,
 	vacstmt->analyze = doanalyze;
 	vacstmt->freeze_min_age = freeze_min_age;
 	vacstmt->verbose = false;
+	vacstmt->rootonly = false;
 	vacstmt->relation = NULL;	/* not used since we pass relids list */
 	vacstmt->va_cols = NIL;
 
@@ -912,7 +1036,9 @@ autovacuum_do_vac_analyze(Oid relid, bool dovacuum, bool doanalyze,
 	vacuum(vacstmt, list_make1_oid(relid));
 
 	pfree(vacstmt);
-	MemoryContextSwitchTo(old_cxt);
+
+	/* Make sure we end up pointing to the long-lived context at exit */
+	MemoryContextSwitchTo(AutovacMemCxt);
 }
 
 /*
@@ -923,7 +1049,7 @@ autovacuum_do_vac_analyze(Oid relid, bool dovacuum, bool doanalyze,
  * equivalent command was to be issued manually.
  *
  * Note we assume that we are going to report the next command as soon as we're
- * done with the current one, and exiting right after the last one, so we don't
+ * done with the current one, and exit right after the last one, so we don't
  * bother to report "<IDLE>" or some such.
  */
 static void
@@ -969,8 +1095,7 @@ autovac_report_activity(VacuumStmt *vacstmt, Oid relid)
 bool
 AutoVacuumingActive(void)
 {
-	if (!autovacuum_start_daemon || !pgstat_collect_startcollector ||
-		!pgstat_collect_tuplelevel)
+	if (!autovacuum_start_daemon || !pgstat_track_counts)
 		return false;
 	return true;
 }
@@ -979,7 +1104,7 @@ AutoVacuumingActive(void)
  * autovac_init
  *		This is called at postmaster initialization.
  *
- * Annoy the user if he got it wrong.
+ * All we do here is annoy the user if he got it wrong.
  */
 void
 autovac_init(void)
@@ -987,7 +1112,7 @@ autovac_init(void)
 	if (!autovacuum_start_daemon)
 		return;
 
-	if (!pgstat_collect_startcollector || !pgstat_collect_tuplelevel)
+	if (!pgstat_track_counts)
 	{
 		ereport(WARNING,
 				(errmsg("autovacuum not started because of misconfiguration"),
@@ -1010,3 +1135,370 @@ IsAutoVacuumProcess(void)
 {
 	return am_autovacuum;
 }
+
+/*
+ * IsAutoVacuum functions
+ *		Return whether this is either a launcher autovacuum process or a worker
+ *		process.
+ */
+bool
+IsAutoVacuumLauncherProcess(void)
+{
+	return false; // am_autovacuum_launcher;
+}
+
+bool
+IsAutoVacuumWorkerProcess(void)
+{
+	return false; // am_autovacuum_worker;
+}
+
+
+/*
+ * AutoVacuumShmemSize
+ *		Compute space needed for autovacuum-related shared memory
+ */
+Size
+AutoVacuumShmemSize(void)
+{
+	Size		size;
+
+	/*
+	 * Need the fixed struct and the array of WorkerInfoData.
+	 */
+	size = sizeof(AutoVacuumShmemStruct);
+	size = MAXALIGN(size);
+	size = add_size(size, mul_size(autovacuum_max_workers,
+								   sizeof(WorkerInfoData)));
+	return size;
+}
+
+/*
+ * AutoVacuumShmemInit
+ *		Allocate and initialize autovacuum-related shared memory
+ */
+void
+AutoVacuumShmemInit(void)
+{
+	bool		found;
+
+	AutoVacuumShmem = (AutoVacuumShmemStruct *)
+		ShmemInitStruct("AutoVacuum Data",
+						AutoVacuumShmemSize(),
+						&found);
+	if (AutoVacuumShmem == NULL)
+		ereport(FATAL,
+				(errcode(ERRCODE_OUT_OF_MEMORY),
+				 errmsg("not enough shared memory for autovacuum")));
+
+	if (!IsUnderPostmaster)
+	{
+		WorkerInfo	worker;
+		int			i;
+
+		Assert(!found);
+
+		AutoVacuumShmem->av_launcherpid = 0;
+		AutoVacuumShmem->av_freeWorkers = NULL;
+		SHMQueueInit(&AutoVacuumShmem->av_runningWorkers);
+		AutoVacuumShmem->av_startingWorker = NULL;
+
+		worker = (WorkerInfo) ((char *) AutoVacuumShmem +
+							   MAXALIGN(sizeof(AutoVacuumShmemStruct)));
+
+		/* initialize the WorkerInfo free list */
+		for (i = 0; i < autovacuum_max_workers; i++)
+		{
+			worker[i].wi_links.next = (SHMEM_OFFSET) (SHM_QUEUE *) AutoVacuumShmem->av_freeWorkers;
+			AutoVacuumShmem->av_freeWorkers = &worker[i];
+		}
+	}
+	else
+		Assert(found);
+}
+
+/** Auto-stats related functions. */
+
+/**
+ * Forward declarations.
+ */
+void autostats_issue_analyze(Oid relationOid);
+bool autostats_on_change_check(AutoStatsCmdType cmdType, uint64 ntuples);
+bool autostats_on_no_stats_check(AutoStatsCmdType cmdType, Oid relationOid);
+const char *autostats_cmdtype_to_string(AutoStatsCmdType cmdType);
+
+/**
+ * Auto-stats employs this sub-routine to issue an analyze on a specific relation.
+ */
+void autostats_issue_analyze(Oid relationOid) 
+{
+	VacuumStmt *analyzeStmt = NULL;
+	RangeVar   *relation = NULL;
+
+	/**
+	 * If this user does not own the table, then auto-stats will not issue the analyze.
+	 */
+	if (!(pg_class_ownercheck(relationOid, GetUserId()) ||
+		  (pg_database_ownercheck(MyDatabaseId, GetUserId()) && !IsSharedRelation(relationOid))))
+	{
+		elog(DEBUG3, "Auto-stats did not issue ANALYZE on tableoid %d since the user does not have table-owner level permissions.", 
+						relationOid);
+
+		return;
+	}
+
+	relation = makeRangeVar(get_namespace_name(get_rel_namespace(relationOid)), get_rel_name(relationOid), -1);
+	analyzeStmt = makeNode(VacuumStmt);
+	/* Set up command parameters */
+	analyzeStmt->vacuum = false;
+	analyzeStmt->full = false;
+	analyzeStmt->analyze = true;
+	analyzeStmt->freeze_min_age = -1;
+	analyzeStmt->verbose = false;
+	analyzeStmt->rootonly = false;
+	analyzeStmt->relation = relation;     /* not used since we pass relids list */
+	analyzeStmt->va_cols = NIL;
+	vacuum(analyzeStmt, NIL);
+	pfree(analyzeStmt);
+}
+
+/**
+ * Method determines if auto-stats should run as per onchange auto-stats policy. This policy
+ * enables auto-analyze if the command was a CTAS, INSERT, DELETE, UPDATE or COPY
+ * and the number of tuples is greater than a threshold.
+ */
+bool autostats_on_change_check(AutoStatsCmdType cmdType, uint64 ntuples) 
+{
+	bool result = false;
+	
+	switch (cmdType) 
+	{
+		case AUTOSTATS_CMDTYPE_CTAS:
+		case AUTOSTATS_CMDTYPE_INSERT:
+		case AUTOSTATS_CMDTYPE_DELETE:
+		case AUTOSTATS_CMDTYPE_UPDATE:
+		case AUTOSTATS_CMDTYPE_COPY:
+			result = true;
+			break;
+		default:
+			break;
+	}
+
+	result = result && (ntuples > gp_autostats_on_change_threshold);
+	return result;
+}
+
+/**
+ * Method determines if auto-stats should run as per onnostats auto-stats policy. This policy
+ * enables auto-analyze if :
+ * (1) CTAS
+ * (2) I-S or COPY if there are no statistics present
+ */
+bool autostats_on_no_stats_check(AutoStatsCmdType cmdType, Oid relationOid) 
+{
+	if (cmdType == AUTOSTATS_CMDTYPE_CTAS)
+		return true;
+		
+	if (!(cmdType == AUTOSTATS_CMDTYPE_INSERT 
+			|| cmdType == AUTOSTATS_CMDTYPE_COPY))
+		return false;
+
+	/* a relation has no stats if the corresponding row in pg_class has relpages=0, reltuples=0 */
+	{
+		HeapTuple	tuple;
+		Form_pg_class classForm;
+		bool result = false;
+		
+		/*
+		 * Must get the relation's tuple from pg_class
+		 */
+		tuple = SearchSysCache(RELOID,
+				ObjectIdGetDatum(relationOid),
+				0, 0, 0);
+		if (!HeapTupleIsValid(tuple)) 
+		{
+			ereport(ERROR,
+					(errcode(ERRCODE_UNDEFINED_TABLE),
+							errmsg("relation with OID %u does not exist",
+									relationOid)));
+			return false;
+		}
+		classForm = (Form_pg_class) GETSTRUCT(tuple);
+		elog(DEBUG5, "Auto-stats ONNOSTATS check on tableoid %d has relpages = %d reltuples = %.0f.", 
+				relationOid, 
+				classForm->relpages, 
+				classForm->reltuples);
+
+		result = (classForm->relpages ==0 && classForm->reltuples < 1);
+		ReleaseSysCache(tuple);
+		return result;
+	}	
+	
+	/* we should not get here at all */
+}
+
+/**
+ * Convert command type to string for logging purposes.
+ */
+const char *autostats_cmdtype_to_string(AutoStatsCmdType cmdType) 
+{
+	switch(cmdType) 
+	{
+		case AUTOSTATS_CMDTYPE_CTAS:
+			return "CTAS";
+		case AUTOSTATS_CMDTYPE_INSERT:
+			return "INSERT";
+		case AUTOSTATS_CMDTYPE_DELETE:
+			return "DELETE";
+		case AUTOSTATS_CMDTYPE_UPDATE:
+			return "UPDATE";
+		case AUTOSTATS_CMDTYPE_COPY:
+			return "COPY";
+		default:
+			/* we should not reach here .. but this method should probably not throw an error */
+			break;
+	}
+	return "UNKNOWN";
+}
+
+/**
+ * This function extracts the command type and id of the modified relation from a
+ * a PlannedStmt. This is done in preparation to call auto_stats()
+ */
+void autostats_get_cmdtype(PlannedStmt * stmt, AutoStatsCmdType * pcmdType, Oid * prelationOid)
+{
+
+	Oid relationOid = InvalidOid;   /* relation that is modified */
+	AutoStatsCmdType cmdType = AUTOSTATS_CMDTYPE_SENTINEL; 	/* command type */
+	RangeTblEntry * rte = NULL;
+
+	switch (stmt->commandType)
+	{
+		case CMD_SELECT:
+			if (stmt->intoClause != NULL)
+			{
+				/* CTAS */
+				relationOid = stmt->intoClause->oidInfo.relOid;
+				cmdType = AUTOSTATS_CMDTYPE_CTAS;
+			}
+			break;
+		case CMD_INSERT:
+			rte = rt_fetch(lfirst_int(list_head(stmt->resultRelations)), stmt->rtable);
+			relationOid = rte->relid;
+			cmdType = AUTOSTATS_CMDTYPE_INSERT;
+			break;
+		case CMD_UPDATE:
+			rte = rt_fetch(lfirst_int(list_head(stmt->resultRelations)), stmt->rtable);
+			relationOid = rte->relid;
+			cmdType = AUTOSTATS_CMDTYPE_UPDATE;
+			break;
+		case CMD_DELETE:
+			rte = rt_fetch(lfirst_int(list_head(stmt->resultRelations)), stmt->rtable);
+			relationOid = rte->relid;
+			cmdType = AUTOSTATS_CMDTYPE_DELETE;
+			break;
+		case CMD_UTILITY:
+		case CMD_UNKNOWN:
+		case CMD_NOTHING:
+			break;
+		default:
+			Assert(false);
+			break;
+	}
+
+	Assert (cmdType >=0 && cmdType <= AUTOSTATS_CMDTYPE_SENTINEL);
+	*pcmdType = cmdType;
+	*prelationOid = relationOid;
+}
+
+/**
+ * This method takes a decision to run analyze based on the query and the number of modified tuples based
+ * on the policy set via gp_autostats_mode. The following modes are currently supported:
+ * none 		: 	no automatic analyzes are issued. simply return.
+ * on_change 	: 	if the number of modified tuples > gp_onchange_threshold, then an automatic analyze is issued.
+ * on_no_stats 	: 	if the operation is a ctas/insert-select and there are no stats on the modified table, 
+ * 					an automatic analyze is issued.
+ */
+void auto_stats(AutoStatsCmdType cmdType, Oid relationOid, uint64 ntuples, bool inFunction)
+{
+	TimestampTz start;
+	bool policyCheck = false;
+	start = GetCurrentTimestamp();
+	
+	if (Gp_role != GP_ROLE_DISPATCH || relationOid == InvalidOid || rel_is_partitioned(relationOid))
+	{
+		return;
+	}
+	
+	Assert (relationOid != InvalidOid);
+	Assert (cmdType >=0 && cmdType <= AUTOSTATS_CMDTYPE_SENTINEL); /* it is a valid command as per auto-stats */
+	
+	GpAutoStatsModeValue actual_gp_autostats_mode;
+	if (inFunction)
+	{
+		actual_gp_autostats_mode = gp_autostats_mode_in_functions;
+	}
+	else
+	{
+		actual_gp_autostats_mode = gp_autostats_mode;
+	}
+
+	switch(actual_gp_autostats_mode)
+	{
+		case GP_AUTOSTATS_ON_CHANGE:
+			policyCheck = autostats_on_change_check(cmdType, ntuples);
+			break;
+		case GP_AUTOSTATS_ON_NO_STATS:
+			policyCheck = autostats_on_no_stats_check(cmdType, relationOid);
+			break;
+		default:
+			Assert(actual_gp_autostats_mode == GP_AUTOSTATS_NONE);
+			policyCheck = false;
+			break;
+	}
+	
+	if (!policyCheck) 
+	{
+		elog(DEBUG3, "In mode %s, command %s on (dboid,tableoid)=(%d,%d) modifying %d tuples did not issue Auto-ANALYZE.", 
+				gpvars_show_gp_autostats_mode(),
+				autostats_cmdtype_to_string(cmdType), 
+				MyDatabaseId,
+				relationOid, 
+				(uint) ntuples);
+		
+		return;
+	}
+
+	if (log_autostats) 
+	{
+		const char *autostats_mode;
+		if (inFunction)
+		{
+			autostats_mode = gpvars_show_gp_autostats_mode_in_functions();
+		}
+		else
+		{
+			autostats_mode = gpvars_show_gp_autostats_mode();
+		}
+		elog(LOG, "In mode %s, command %s on (dboid,tableoid)=(%d,%d) modifying %d tuples caused Auto-ANALYZE.", 
+				autostats_mode,
+				autostats_cmdtype_to_string(cmdType), 
+				MyDatabaseId,
+				relationOid, 
+				(uint) ntuples);
+	}
+	
+	autostats_issue_analyze(relationOid);
+
+	if (log_duration) 
+	{
+		long		secs;
+		int			usecs;
+		int			msecs;
+
+		TimestampDifference(start, GetCurrentTimestamp(), &secs, &usecs);
+		msecs = usecs / 1000;
+		elog(LOG, "duration: %ld.%03d ms Auto-ANALYZE", secs * 1000 + msecs, usecs % 1000);
+	}
+
+} 

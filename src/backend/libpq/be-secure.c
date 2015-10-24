@@ -6,18 +6,18 @@
  *	  message integrity and endpoint authentication.
  *
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2010, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/libpq/be-secure.c,v 1.74 2006/10/06 17:13:59 petere Exp $
+ *	  $PostgreSQL: pgsql/src/backend/libpq/be-secure.c,v 1.102 2010/07/06 19:18:56 momjian Exp $
  *
  *	  Since the server static private key ($DataDir/server.key)
  *	  will normally be stored unencrypted so that the database
  *	  backend can restart automatically, it is important that
  *	  we select an algorithm that continues to provide confidentiality
- *	  even if the attacker has the server's private key.  Empheral
+ *	  even if the attacker has the server's private key.  Ephemeral
  *	  DH (EDH) keys provide this, and in fact provide Perfect Forward
  *	  Secrecy (PFS) except for situations where the session can
  *	  be hijacked during a periodic handshake/renegotiation.
@@ -45,32 +45,6 @@
  *	  amounts of data are sent with the same session key, the
  *	  session keys are periodically renegotiated.
  *
- * PATCH LEVEL
- *	  milestone 1: fix basic coding errors
- *	  [*] existing SSL code pulled out of existing files.
- *	  [*] SSL_get_error() after SSL_read() and SSL_write(),
- *		  SSL_shutdown(), default to TLSv1.
- *
- *	  milestone 2: provide endpoint authentication (server)
- *	  [*] client verifies server cert
- *	  [*] client verifies server hostname
- *
- *	  milestone 3: improve confidentially, support perfect forward secrecy
- *	  [ ] use 'random' file, read from '/dev/urandom?'
- *	  [*] emphermal DH keys, default values
- *	  [*] periodic renegotiation
- *	  [*] private key permissions
- *
- *	  milestone 4: provide endpoint authentication (client)
- *	  [*] server verifies client certificates
- *
- *	  milestone 5: provide informational callbacks
- *	  [*] provide informational callbacks
- *
- *	  other changes
- *	  [ ] tcp-wrappers
- *	  [ ] more informative psql
- *
  *-------------------------------------------------------------------------
  */
 
@@ -89,14 +63,21 @@
 #include <arpa/inet.h>
 #endif
 
+#include "miscadmin.h"
+
 #ifdef USE_SSL
 #include <openssl/ssl.h>
 #include <openssl/dh.h>
+#if SSLEAY_VERSION_NUMBER >= 0x0907000L
+#include <openssl/conf.h>
 #endif
+#endif   /* USE_SSL */
 
 #include "libpq/libpq.h"
 #include "tcop/tcopprot.h"
+#include "utils/memutils.h"
 
+#define ERROR_BUF_SIZE 32
 
 #ifdef USE_SSL
 
@@ -111,20 +92,24 @@ static DH  *tmp_dh_cb(SSL *s, int is_export, int keylength);
 static int	verify_cb(int, X509_STORE_CTX *);
 static void info_cb(const SSL *ssl, int type, int args);
 static void initialize_SSL(void);
-static void destroy_SSL(void);
 static int	open_server_SSL(Port *);
 static void close_SSL(Port *);
 static const char *SSLerrmessage(void);
 #endif
 
-#ifdef USE_SSL
 /*
  *	How much data can be sent across a secure connection
  *	(total in both directions) before we require renegotiation.
+ *	Set to 0 to disable renegotiation completely.
  */
-#define RENEGOTIATION_LIMIT (512 * 1024 * 1024)
+int			ssl_renegotiation_limit;
 
+#ifdef USE_SSL
 static SSL_CTX *SSL_context = NULL;
+static bool ssl_loaded_verify_locations = false;
+
+/* GUC variable controlling SSL cipher list */
+char	   *SSLCipherSuites = NULL;
 #endif
 
 /* ------------------------------------------------------------ */
@@ -132,7 +117,7 @@ static SSL_CTX *SSL_context = NULL;
 /* ------------------------------------------------------------ */
 
 /*
- *	Hardcoded DH parameters, used in empheral DH keying.
+ *	Hardcoded DH parameters, used in ephemeral DH keying.
  *	As discussed above, EDH protects the confidentiality of
  *	sessions even if the static private key is compromised,
  *	so we are *highly* motivated to ensure that we can use
@@ -144,7 +129,7 @@ static SSL_CTX *SSL_context = NULL;
  *	unsecured connection without fully informing the user.
  *	Very uncool.
  *
- *	Alternately, the backend could attempt to load these files
+ *	Alternatively, the backend could attempt to load these files
  *	on startup if SSL is enabled - and refuse to start if any
  *	do not exist - but this would tend to piss off DBAs.
  *
@@ -212,14 +197,16 @@ secure_initialize(void)
 }
 
 /*
- *	Destroy global context
+ * Indicate if we have loaded the root CA store to verify certificates
  */
-void
-secure_destroy(void)
+bool
+secure_loaded_verify_locations(void)
 {
 #ifdef USE_SSL
-	destroy_SSL();
+	return ssl_loaded_verify_locations;
 #endif
+
+	return false;
 }
 
 /*
@@ -263,6 +250,7 @@ secure_read(Port *port, void *ptr, size_t len)
 		int			err;
 
 rloop:
+		errno = 0;
 		n = SSL_read(port->ssl, ptr, len);
 		err = SSL_get_error(port->ssl, n);
 		switch (err)
@@ -272,22 +260,23 @@ rloop:
 				break;
 			case SSL_ERROR_WANT_READ:
 			case SSL_ERROR_WANT_WRITE:
+				if (port->noblock)
+				{
+					errno = EWOULDBLOCK;
+					n = -1;
+					break;
+				}
 #ifdef WIN32
 				pgwin32_waitforsinglesocket(SSL_get_fd(port->ssl),
 											(err == SSL_ERROR_WANT_READ) ?
-								   FD_READ | FD_CLOSE : FD_WRITE | FD_CLOSE);
+								   FD_READ | FD_CLOSE : FD_WRITE | FD_CLOSE,
+											INFINITE);
 #endif
 				goto rloop;
 			case SSL_ERROR_SYSCALL:
-				if (n == -1)
-					ereport(COMMERROR,
-							(errcode_for_socket_access(),
-							 errmsg("SSL SYSCALL error: %m")));
-				else
+				/* leave it to caller to ereport the value of errno */
+				if (n != -1)
 				{
-					ereport(COMMERROR,
-							(errcode(ERRCODE_PROTOCOL_VIOLATION),
-							 errmsg("SSL SYSCALL error: EOF detected")));
 					errno = ECONNRESET;
 					n = -1;
 				}
@@ -324,6 +313,26 @@ rloop:
 }
 
 /*
+ * Report a COMMERROR.
+ *
+ * This function holds an interrupt before reporting this error to avoid
+ * a self deadlock situation, see MPP-13718 for more info.
+ */
+#ifdef USE_SSL
+static void
+report_commerror(const char *err_msg)
+{
+	HOLD_INTERRUPTS();
+
+	ereport(COMMERROR,
+			(errcode(ERRCODE_PROTOCOL_VIOLATION),
+			 errmsg("%s",err_msg)));
+
+	RESUME_INTERRUPTS();
+}
+#endif
+
+/*
  *	Write data to a secure connection.
  */
 ssize_t
@@ -336,34 +345,43 @@ secure_write(Port *port, void *ptr, size_t len)
 	{
 		int			err;
 
-		if (port->count > RENEGOTIATION_LIMIT)
+		if (ssl_renegotiation_limit && port->count > ssl_renegotiation_limit * 1024L)
 		{
 			SSL_set_session_id_context(port->ssl, (void *) &SSL_context,
 									   sizeof(SSL_context));
 			if (SSL_renegotiate(port->ssl) <= 0)
-				ereport(COMMERROR,
-						(errcode(ERRCODE_PROTOCOL_VIOLATION),
-						 errmsg("SSL renegotiation failure")));
+			{
+				report_commerror("SSL renegotiation failure");
+			}
+
 			if (SSL_do_handshake(port->ssl) <= 0)
-				ereport(COMMERROR,
-						(errcode(ERRCODE_PROTOCOL_VIOLATION),
-						 errmsg("SSL renegotiation failure")));
+			{
+				report_commerror("SSL renegotiation failure");
+			}
+
 			if (port->ssl->state != SSL_ST_OK)
-				ereport(COMMERROR,
-						(errcode(ERRCODE_PROTOCOL_VIOLATION),
-						 errmsg("SSL failed to send renegotiation request")));
+			{
+				report_commerror("SSL failed to send renegotiation request");
+			}
+
 			port->ssl->state |= SSL_ST_ACCEPT;
 			SSL_do_handshake(port->ssl);
 			if (port->ssl->state != SSL_ST_OK)
-				ereport(COMMERROR,
-						(errcode(ERRCODE_PROTOCOL_VIOLATION),
-						 errmsg("SSL renegotiation failure")));
+			{
+				report_commerror("SSL renegotiation failure");
+			}
+
 			port->count = 0;
 		}
 
 wloop:
+		errno = 0;
 		n = SSL_write(port->ssl, ptr, len);
 		err = SSL_get_error(port->ssl, n);
+
+		const int ERR_MSG_LEN = ERROR_BUF_SIZE + 20;
+		char err_msg[ERR_MSG_LEN];
+
 		switch (err)
 		{
 			case SSL_ERROR_NONE:
@@ -374,44 +392,53 @@ wloop:
 #ifdef WIN32
 				pgwin32_waitforsinglesocket(SSL_get_fd(port->ssl),
 											(err == SSL_ERROR_WANT_READ) ?
-								   FD_READ | FD_CLOSE : FD_WRITE | FD_CLOSE);
+								   FD_READ | FD_CLOSE : FD_WRITE | FD_CLOSE,
+											INFINITE);
 #endif
 				goto wloop;
 			case SSL_ERROR_SYSCALL:
-				if (n == -1)
-					ereport(COMMERROR,
-							(errcode_for_socket_access(),
-							 errmsg("SSL SYSCALL error: %m")));
-				else
+				/* leave it to caller to ereport the value of errno */
+				if (n != -1)
 				{
-					ereport(COMMERROR,
-							(errcode(ERRCODE_PROTOCOL_VIOLATION),
-							 errmsg("SSL SYSCALL error: EOF detected")));
 					errno = ECONNRESET;
 					n = -1;
 				}
 				break;
 			case SSL_ERROR_SSL:
-				ereport(COMMERROR,
-						(errcode(ERRCODE_PROTOCOL_VIOLATION),
-						 errmsg("SSL error: %s", SSLerrmessage())));
+				snprintf((char *)&err_msg, ERR_MSG_LEN, "SSL error: %s", SSLerrmessage());
+				report_commerror(err_msg);
 				/* fall through */
 			case SSL_ERROR_ZERO_RETURN:
 				errno = ECONNRESET;
 				n = -1;
 				break;
 			default:
-				ereport(COMMERROR,
-						(errcode(ERRCODE_PROTOCOL_VIOLATION),
-						 errmsg("unrecognized SSL error code: %d",
-								err)));
+				snprintf((char *)&err_msg, ERR_MSG_LEN, "unrecognized SSL error code: %d", err);
+				report_commerror(err_msg);
+
 				n = -1;
 				break;
 		}
 	}
 	else
 #endif
+	{
+		bool saved_ImmediateInterruptOK = ImmediateInterruptOK;
+		CommandDest saved_CommandDest = whereToSendOutput;
+
+		whereToSendOutput = DestNone;
+		ImmediateInterruptOK = true;
+
+		if (ProcDiePending)
+		{
+			CHECK_FOR_INTERRUPTS();
+		}
+
 		n = send(port->sock, ptr, len, 0);
+
+		ImmediateInterruptOK = saved_ImmediateInterruptOK;
+		whereToSendOutput = saved_CommandDest;
+	}
 
 	return n;
 }
@@ -422,33 +449,58 @@ wloop:
 #ifdef USE_SSL
 
 /*
- * Private substitute BIO: this wraps the SSL library's standard socket BIO
- * so that we can enable and disable interrupts just while calling recv().
- * We cannot have interrupts occurring while the bulk of openssl runs,
- * because it uses malloc() and possibly other non-reentrant libc facilities.
+ * Private substitute BIO: this does the sending and receiving using send() and
+ * recv() instead. This is so that we can enable and disable interrupts
+ * just while calling recv(). We cannot have interrupts occurring while
+ * the bulk of openssl runs, because it uses malloc() and possibly other
+ * non-reentrant libc facilities. We also need to call send() and recv()
+ * directly so it gets passed through the socket/signals layer on Win32.
  *
- * As of openssl 0.9.7, we can use the reasonably clean method of interposing
- * a wrapper around the standard socket BIO's sock_read() method.  This relies
- * on the fact that sock_read() doesn't call anything non-reentrant, in fact
- * not much of anything at all except recv().  If this ever changes we'd
- * probably need to duplicate the code of sock_read() in order to push the
- * interrupt enable/disable down yet another level.
+ * They are closely modelled on the original socket implementations in OpenSSL.
  */
 
 static bool my_bio_initialized = false;
 static BIO_METHOD my_bio_methods;
-static int	(*std_sock_read) (BIO *h, char *buf, int size);
 
 static int
 my_sock_read(BIO *h, char *buf, int size)
 {
-	int			res;
+	int			res = 0;
 
 	prepare_for_client_read();
 
-	res = std_sock_read(h, buf, size);
+ 	if (buf != NULL)
+	{
+		res = recv(h->num, buf, size, 0);
+		BIO_clear_retry_flags(h);
+		if (res <= 0)
+		{
+			/* If we were interrupted, tell caller to retry */
+			if (errno == EINTR)
+			{
+				BIO_set_retry_read(h);
+			}
+		}
+	}
 
 	client_read_ended();
+
+	return res;
+}
+
+static int
+my_sock_write(BIO *h, const char *buf, int size)
+{
+	int			res = 0;
+
+	res = send(h->num, buf, size, 0);
+	if (res <= 0)
+	{
+		if (errno == EINTR)
+		{
+			BIO_set_retry_write(h);
+		}
+	}
 
 	return res;
 }
@@ -459,8 +511,8 @@ my_BIO_s_socket(void)
 	if (!my_bio_initialized)
 	{
 		memcpy(&my_bio_methods, BIO_s_socket(), sizeof(BIO_METHOD));
-		std_sock_read = my_bio_methods.bread;
 		my_bio_methods.bread = my_sock_read;
+		my_bio_methods.bwrite = my_sock_write;
 		my_bio_initialized = true;
 	}
 	return &my_bio_methods;
@@ -572,7 +624,7 @@ load_dh_buffer(const char *buffer, size_t len)
 }
 
 /*
- *	Generate an empheral DH key.  Because this can take a long
+ *	Generate an ephemeral DH key.  Because this can take a long
  *	time to compute, we can use precomputed parameters of the
  *	common key sizes.
  *
@@ -715,8 +767,13 @@ initialize_SSL(void)
 {
 	struct stat buf;
 
+	STACK_OF(X509_NAME) *root_cert_list = NULL;
+
 	if (!SSL_context)
 	{
+#if SSLEAY_VERSION_NUMBER >= 0x0907000L
+		OPENSSL_config(NULL);
+#endif
 		SSL_library_init();
 		SSL_load_error_strings();
 		SSL_context = SSL_CTX_new(SSLv23_method());
@@ -726,17 +783,16 @@ initialize_SSL(void)
 							SSLerrmessage())));
 
 		/*
-		 * Load and verify certificate and private key
+		 * Load and verify server's certificate and private key
 		 */
-		if (!SSL_CTX_use_certificate_file(SSL_context,
-										  SERVER_CERT_FILE,
-										  SSL_FILETYPE_PEM))
+		if (SSL_CTX_use_certificate_chain_file(SSL_context,
+										  SERVER_CERT_FILE) != 1)
 			ereport(FATAL,
 					(errcode(ERRCODE_CONFIG_FILE_ERROR),
 				  errmsg("could not load server certificate file \"%s\": %s",
 						 SERVER_CERT_FILE, SSLerrmessage())));
 
-		if (stat(SERVER_PRIVATE_KEY_FILE, &buf) == -1)
+		if (stat(SERVER_PRIVATE_KEY_FILE, &buf) != 0)
 			ereport(FATAL,
 					(errcode_for_file_access(),
 					 errmsg("could not access private key file \"%s\": %m",
@@ -751,60 +807,79 @@ initialize_SSL(void)
 		 * directory permission check in postmaster.c)
 		 */
 #if !defined(WIN32) && !defined(__CYGWIN__)
-		if (!S_ISREG(buf.st_mode) || (buf.st_mode & (S_IRWXG | S_IRWXO)) ||
-			buf.st_uid != geteuid())
+		if (!S_ISREG(buf.st_mode) || buf.st_mode & (S_IRWXG | S_IRWXO))
 			ereport(FATAL,
 					(errcode(ERRCODE_CONFIG_FILE_ERROR),
-					 errmsg("unsafe permissions on private key file \"%s\"",
+					 errmsg("private key file \"%s\" has group or world access",
 							SERVER_PRIVATE_KEY_FILE),
-					 errdetail("File must be owned by the database user and must have no permissions for \"group\" or \"other\".")));
+					 errdetail("Permissions should be u=rw (0600) or less.")));
 #endif
 
-		if (!SSL_CTX_use_PrivateKey_file(SSL_context,
+		if (SSL_CTX_use_PrivateKey_file(SSL_context,
 										 SERVER_PRIVATE_KEY_FILE,
-										 SSL_FILETYPE_PEM))
+										 SSL_FILETYPE_PEM) != 1)
 			ereport(FATAL,
 					(errmsg("could not load private key file \"%s\": %s",
 							SERVER_PRIVATE_KEY_FILE, SSLerrmessage())));
 
-		if (!SSL_CTX_check_private_key(SSL_context))
+		if (SSL_CTX_check_private_key(SSL_context) != 1)
 			ereport(FATAL,
 					(errmsg("check of private key failed: %s",
 							SSLerrmessage())));
 	}
 
-	/* set up empheral DH keys */
+	/* set up ephemeral DH keys, and disallow SSL v2 while at it */
 	SSL_CTX_set_tmp_dh_callback(SSL_context, tmp_dh_cb);
 	SSL_CTX_set_options(SSL_context, SSL_OP_SINGLE_DH_USE | SSL_OP_NO_SSLv2);
 
 	/* setup the allowed cipher list */
-	if (SSL_CTX_set_cipher_list(SSL_context, "ALL:!ADH:!LOW:!EXP:!MD5:@STRENGTH") != 1)
+	if (SSL_CTX_set_cipher_list(SSL_context, SSLCipherSuites) != 1)
 		elog(FATAL, "could not set the cipher list (no valid ciphers available)");
 
 	/*
-	 * Require and check client certificates only if we have a root.crt file.
+	 * Attempt to load CA store, so we can verify client certificates if
+	 * needed.
 	 */
-	if (!SSL_CTX_load_verify_locations(SSL_context, ROOT_CERT_FILE, NULL))
+		ssl_loaded_verify_locations = false;
+
+	if (access(ROOT_CERT_FILE, R_OK) != 0)
 	{
-		/* Not fatal - we do not require client certificates */
-		ereport(LOG,
+		/*
+		 * If root certificate file simply not found, don't log an error here,
+		 * because it's quite likely the user isn't planning on using client
+		 * certificates. If we can't access it for other reasons, it is an
+		 * error.
+	 */
+		if (errno != ENOENT)
+			ereport(FATAL,
+					(errmsg("could not access root certificate file \"%s\": %m",
+							ROOT_CERT_FILE)));
+		}
+	else if (SSL_CTX_load_verify_locations(SSL_context, ROOT_CERT_FILE, NULL) != 1 ||
+		  (root_cert_list = SSL_load_client_CA_file(ROOT_CERT_FILE)) == NULL)
+	{
+		/*
+		 * File was there, but we could not load it. This means the file is
+		 * somehow broken, and we cannot do verification at all - so fail.
+		 */
+		ereport(FATAL,
 				(errmsg("could not load root certificate file \"%s\": %s",
-						ROOT_CERT_FILE, SSLerrmessage()),
-				 errdetail("Will not verify client certificates.")));
+						ROOT_CERT_FILE, SSLerrmessage())));
 	}
 	else
 	{
-		/*
-		 * Check the Certificate Revocation List (CRL) if file exists.
+		/*----------
+		 * Load the Certificate Revocation List (CRL) if file exists.
 		 * http://searchsecurity.techtarget.com/sDefinition/0,,sid14_gci803160,
-		 * 00.html
+		 *----------
 		 */
 		X509_STORE *cvstore = SSL_CTX_get_cert_store(SSL_context);
 
 		if (cvstore)
 		{
 			/* Set the flags to check against the complete CRL chain */
-			if (X509_STORE_load_locations(cvstore, ROOT_CRL_FILE, NULL) != 0)
+			if (X509_STORE_load_locations(cvstore, ROOT_CRL_FILE, NULL) == 1)
+			{
 /* OpenSSL 0.96 does not support X509_V_FLAG_CRL_CHECK */
 #ifdef X509_V_FLAG_CRL_CHECK
 				X509_STORE_set_flags(cvstore,
@@ -815,6 +890,7 @@ initialize_SSL(void)
 								ROOT_CRL_FILE),
 				  errdetail("SSL library does not support certificate revocation lists.")));
 #endif
+			}
 			else
 			{
 				/* Not fatal - we do not require CRL */
@@ -822,27 +898,28 @@ initialize_SSL(void)
 						(errmsg("SSL certificate revocation list file \"%s\" not found, skipping: %s",
 								ROOT_CRL_FILE, SSLerrmessage()),
 					 errdetail("Certificates will not be checked against revocation list.")));
-			}
 		}
 
+			/*
+			 * Always ask for SSL client cert, but don't fail if it's not
+			 * presented.  We might fail such connections later, depending on
+			 * what we find in pg_hba.conf.
+			 */
 		SSL_CTX_set_verify(SSL_context,
 						   (SSL_VERIFY_PEER |
-							SSL_VERIFY_FAIL_IF_NO_PEER_CERT |
 							SSL_VERIFY_CLIENT_ONCE),
 						   verify_cb);
-	}
-}
 
-/*
- *	Destroy global SSL context.
- */
-static void
-destroy_SSL(void)
-{
-	if (SSL_context)
-	{
-		SSL_CTX_free(SSL_context);
-		SSL_context = NULL;
+			/* Set flag to remember CA store is successfully loaded */
+			ssl_loaded_verify_locations = true;
+		}
+
+		/*
+		 * Tell OpenSSL to send the list of root certs we trust to clients in
+		 * CertificateRequests.  This lets a client with a keystore select the
+		 * appropriate client certificate to send to us.
+		 */
+		SSL_CTX_set_client_CA_list(SSL_context, root_cert_list);
 	}
 }
 
@@ -864,7 +941,6 @@ open_server_SSL(Port *port)
 				(errcode(ERRCODE_PROTOCOL_VIOLATION),
 				 errmsg("could not initialize SSL connection: %s",
 						SSLerrmessage())));
-		close_SSL(port);
 		return -1;
 	}
 	if (!my_SSL_set_fd(port->ssl, port->sock))
@@ -873,7 +949,6 @@ open_server_SSL(Port *port)
 				(errcode(ERRCODE_PROTOCOL_VIOLATION),
 				 errmsg("could not set SSL socket: %s",
 						SSLerrmessage())));
-		close_SSL(port);
 		return -1;
 	}
 
@@ -889,7 +964,8 @@ aloop:
 #ifdef WIN32
 				pgwin32_waitforsinglesocket(SSL_get_fd(port->ssl),
 											(err == SSL_ERROR_WANT_READ) ?
-					   FD_READ | FD_CLOSE | FD_ACCEPT : FD_WRITE | FD_CLOSE);
+					   FD_READ | FD_CLOSE | FD_ACCEPT : FD_WRITE | FD_CLOSE,
+											INFINITE);
 #endif
 				goto aloop;
 			case SSL_ERROR_SYSCALL:
@@ -920,30 +996,59 @@ aloop:
 								err)));
 				break;
 		}
-		close_SSL(port);
 		return -1;
 	}
 
 	port->count = 0;
 
-	/* get client certificate, if available. */
+	/* Get client certificate, if available. */
 	port->peer = SSL_get_peer_certificate(port->ssl);
-	if (port->peer == NULL)
+
+	/* and extract the Common Name from it. */
+	port->peer_cn = NULL;
+	if (port->peer != NULL)
 	{
-		strncpy(port->peer_dn, "(anonymous)", sizeof(port->peer_dn));
-		strncpy(port->peer_cn, "(anonymous)", sizeof(port->peer_cn));
+		int len;
+
+		len = X509_NAME_get_text_by_NID(X509_get_subject_name(port->peer),
+						NID_commonName, NULL, 0);
+
+		if (len != -1)
+		{
+			char *peer_cn;
+
+			peer_cn = MemoryContextAlloc(TopMemoryContext, len + 1);
+			r = X509_NAME_get_text_by_NID(X509_get_subject_name(port->peer),
+						      NID_commonName, peer_cn, len+1);
+
+			peer_cn[len] = '\0';
+			if (r != len)
+			{
+				/* shouldn't happen */
+				pfree(peer_cn);
+				return -1;
+			}
+
+			/*
+			 * Reject embedded NULLs in certificate common name to prevent
+			 * attacks like CVE-2009-4034.
+			 */
+			if (len != strlen(peer_cn))
+			{
+				ereport(COMMERROR,
+					(errcode(ERRCODE_PROTOCOL_VIOLATION),
+					errmsg("SSL certificate's common name contains embedded null")));
+				pfree(peer_cn);
+				return -1;
+			}
+
+			port->peer_cn = peer_cn;
+		}
 	}
-	else
-	{
-		X509_NAME_oneline(X509_get_subject_name(port->peer),
-						  port->peer_dn, sizeof(port->peer_dn));
-		port->peer_dn[sizeof(port->peer_dn) - 1] = '\0';
-		X509_NAME_get_text_by_NID(X509_get_subject_name(port->peer),
-					   NID_commonName, port->peer_cn, sizeof(port->peer_cn));
-		port->peer_cn[sizeof(port->peer_cn) - 1] = '\0';
-	}
+
 	ereport(DEBUG2,
-			(errmsg("SSL connection from \"%s\"", port->peer_cn)));
+			(errmsg("SSL connection from \"%s\"", 
+				port->peer_cn ? port->peer_cn : "(anonymous)")));
 
 	/* set up debugging/info callback */
 	SSL_CTX_set_info_callback(SSL_context, info_cb);
@@ -969,6 +1074,12 @@ close_SSL(Port *port)
 		X509_free(port->peer);
 		port->peer = NULL;
 	}
+
+	if (port->peer_cn)
+	{
+		pfree(port->peer_cn);
+		port->peer_cn = NULL;
+	}
 }
 
 /*
@@ -983,7 +1094,7 @@ SSLerrmessage(void)
 {
 	unsigned long errcode;
 	const char *errreason;
-	static char errbuf[32];
+	static char errbuf[ERROR_BUF_SIZE];
 
 	errcode = ERR_get_error();
 	if (errcode == 0)
@@ -991,7 +1102,7 @@ SSLerrmessage(void)
 	errreason = ERR_reason_error_string(errcode);
 	if (errreason != NULL)
 		return errreason;
-	snprintf(errbuf, sizeof(errbuf), _("SSL error code %lu"), errcode);
+	snprintf(errbuf, ERROR_BUF_SIZE, _("SSL error code %lu"), errcode);
 	return errbuf;
 }
 

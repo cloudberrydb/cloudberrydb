@@ -4,7 +4,7 @@
  *	  POSTGRES tuple descriptor definitions.
  *
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2008, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * $PostgreSQL: pgsql/src/include/access/tupdesc.h,v 1.51 2006/10/04 00:30:07 momjian Exp $
@@ -74,10 +74,17 @@ typedef struct tupleDesc
 	TupleConstr *constr;		/* constraints, or NULL if none */
 	Oid			tdtypeid;		/* composite type ID for tuple type */
 	int32		tdtypmod;		/* typmod for tuple type */
+	int32		tdqdtypmod;	/* typmod for tuple type on Master */
 	bool		tdhasoid;		/* tuple has oid attribute in its header */
 	int			tdrefcount;		/* reference count, or -1 if not counting */
 }	*TupleDesc;
 
+typedef struct tupleDescNode
+{
+	NodeTag		type;
+	int			natts;
+	TupleDesc	tuple;
+} TupleDescNode;
 
 extern TupleDesc CreateTemplateTupleDesc(int natts, bool hasoid);
 
@@ -101,11 +108,11 @@ extern void DecrTupleDescRefCount(TupleDesc tupdesc);
 
 #define ReleaseTupleDesc(tupdesc) \
 	do { \
-		if ((tupdesc)->tdrefcount >= 0) \
+		if ((tupdesc)->tdrefcount > 0) \
 			DecrTupleDescRefCount(tupdesc); \
 	} while (0)
 
-extern bool equalTupleDescs(TupleDesc tupdesc1, TupleDesc tupdesc2);
+extern bool equalTupleDescs(TupleDesc tupdesc1, TupleDesc tupdesc2, bool strict);
 
 extern void TupleDescInitEntry(TupleDesc desc,
 				   AttrNumber attributeNumber,

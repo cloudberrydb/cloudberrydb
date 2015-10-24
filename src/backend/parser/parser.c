@@ -10,26 +10,28 @@
  * analyze.c and related files.
  *
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/parser/parser.c,v 1.68 2006/10/04 00:29:56 momjian Exp $
+ *	  $PostgreSQL: pgsql/src/backend/parser/parser.c,v 1.78 2009/06/11 14:49:00 momjian Exp $
  *
  *-------------------------------------------------------------------------
  */
 
 #include "postgres.h"
 
-#include "parser/gramparse.h"	/* required before parser/parse.h! */
-#include "parser/parse.h"
+#include "parser/gramparse.h"	/* required before parser/gram.h! */
+#include "parser/gram.h"
 #include "parser/parser.h"
 
 
 List	   *parsetree;			/* result of parsing is left here */
 
+static bool have_lookahead;		/* is lookahead info valid? */
 static int	lookahead_token;	/* one-token lookahead */
-static bool have_lookahead;		/* lookahead_token set? */
+static YYSTYPE lookahead_yylval;	/* yylval for lookahead token */
+static YYLTYPE lookahead_yylloc;	/* yylloc for lookahead token */
 
 
 /*
@@ -61,6 +63,36 @@ raw_parser(const char *str)
 
 
 /*
+ * pg_parse_string_token - get the value represented by a string literal
+ *
+ * Given the textual form of a SQL string literal, produce the represented
+ * value as a palloc'd string.  It is caller's responsibility that the
+ * passed string does represent one single string literal.
+ *
+ * We export this function to avoid having plpgsql depend on internal details
+ * of the core grammar (such as the token code assigned to SCONST).  Note
+ * that since the scanner isn't presently re-entrant, this cannot be used
+ * during use of the main parser/scanner.
+ */
+char *
+pg_parse_string_token(const char *token)
+{
+	int			ctoken;
+
+	scanner_init(token);
+
+	ctoken = base_yylex();
+
+	if (ctoken != SCONST)		/* caller error */
+		elog(ERROR, "expected string constant, got token code %d", ctoken);
+
+	scanner_finish();
+
+	return base_yylval.str;
+}
+
+
+/*
  * Intermediate filter between parser and base lexer (base_yylex in scan.l).
  *
  * The filter is needed because in some cases the standard SQL grammar
@@ -77,11 +109,16 @@ int
 filtered_base_yylex(void)
 {
 	int			cur_token;
+	int			next_token;
+	YYSTYPE		cur_yylval;
+	YYLTYPE		cur_yylloc;
 
 	/* Get next token --- we might already have it */
 	if (have_lookahead)
 	{
 		cur_token = lookahead_token;
+		base_yylval = lookahead_yylval;
+		base_yylloc = lookahead_yylloc;
 		have_lookahead = false;
 	}
 	else
@@ -90,10 +127,39 @@ filtered_base_yylex(void)
 	/* Do we need to look ahead for a possible multiword token? */
 	switch (cur_token)
 	{
+		case NULLS_P:
+
+			/*
+			 * NULLS FIRST and NULLS LAST must be reduced to one token
+			 */
+			cur_yylval = base_yylval;
+			cur_yylloc = base_yylloc;
+			next_token = base_yylex();
+			switch (next_token)
+			{
+				case FIRST_P:
+					cur_token = NULLS_FIRST;
+					break;
+				case LAST_P:
+					cur_token = NULLS_LAST;
+					break;
+				default:
+					/* save the lookahead token for next time */
+					lookahead_token = next_token;
+					lookahead_yylval = base_yylval;
+					lookahead_yylloc = base_yylloc;
+					have_lookahead = true;
+					/* and back up the output info to cur_token */
+					base_yylval = cur_yylval;
+					base_yylloc = cur_yylloc;
+					break;
+			}
+			break;
+			
 		case WITH:
 
 			/*
-			 * WITH CASCADED, LOCAL, or CHECK must be reduced to one token
+			 * WITH TIME, CASCADED, LOCAL, or CHECK must be reduced to one token
 			 *
 			 * XXX an alternative way is to recognize just WITH_TIME and put
 			 * the ugliness into the datetime datatype productions instead of
@@ -102,9 +168,14 @@ filtered_base_yylex(void)
 			 * (perhaps for SQL99 recursive queries), come back and simplify
 			 * this code.
 			 */
-			lookahead_token = base_yylex();
-			switch (lookahead_token)
+			cur_yylval = base_yylval;
+			cur_yylloc = base_yylloc;
+			next_token = base_yylex();
+			switch (next_token)
 			{
+				case TIME:
+					cur_token = WITH_TIME;
+					break;
 				case CASCADED:
 					cur_token = WITH_CASCADED;
 					break;
@@ -115,7 +186,14 @@ filtered_base_yylex(void)
 					cur_token = WITH_CHECK;
 					break;
 				default:
+					/* save the lookahead token for next time */
+					lookahead_token = next_token;
+					lookahead_yylval = base_yylval;
+					lookahead_yylloc = base_yylloc;
 					have_lookahead = true;
+					/* and back up the output info to cur_token */
+					base_yylval = cur_yylval;
+					base_yylloc = cur_yylloc;
 					break;
 			}
 			break;

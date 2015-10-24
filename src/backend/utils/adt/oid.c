@@ -3,12 +3,12 @@
  * oid.c
  *	  Functions for the built-in type Oid ... also oidvector.
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2008, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/utils/adt/oid.c,v 1.69 2006/10/04 00:29:59 momjian Exp $
+ *	  $PostgreSQL: pgsql/src/backend/utils/adt/oid.c,v 1.70 2007/01/05 22:19:41 momjian Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -40,8 +40,7 @@ oidin_subr(const char *funcname, const char *s, char **endloc)
 	if (*s == '\0')
 		ereport(ERROR,
 				(errcode(ERRCODE_INVALID_TEXT_REPRESENTATION),
-				 errmsg("invalid input syntax for type oid: \"%s\"",
-						s)));
+				 errmsg("invalid input syntax for type oid: \"%s\"",s)));
 
 	errno = 0;
 	cvt = strtoul(s, &endptr, 10);
@@ -54,14 +53,12 @@ oidin_subr(const char *funcname, const char *s, char **endloc)
 	if (errno && errno != ERANGE && errno != EINVAL)
 		ereport(ERROR,
 				(errcode(ERRCODE_INVALID_TEXT_REPRESENTATION),
-				 errmsg("invalid input syntax for type oid: \"%s\"",
-						s)));
+				 errmsg("invalid input syntax for type oid: \"%s\"",s)));
 
 	if (endptr == s && *s != '\0')
 		ereport(ERROR,
 				(errcode(ERRCODE_INVALID_TEXT_REPRESENTATION),
-				 errmsg("invalid input syntax for type oid: \"%s\"",
-						s)));
+				 errmsg("invalid input syntax for type oid: \"%s\"",s)));
 
 	if (errno == ERANGE)
 		ereport(ERROR,
@@ -81,8 +78,7 @@ oidin_subr(const char *funcname, const char *s, char **endloc)
 		if (*endptr)
 			ereport(ERROR,
 					(errcode(ERRCODE_INVALID_TEXT_REPRESENTATION),
-					 errmsg("invalid input syntax for type oid: \"%s\"",
-							s)));
+					 errmsg("invalid input syntax for type oid: \"%s\"",s)));
 	}
 
 	result = (Oid) cvt;
@@ -174,7 +170,7 @@ buildoidvector(const Oid *oids, int n)
 	 * Attach standard array header.  For historical reasons, we set the index
 	 * lower bound to 0 not 1.
 	 */
-	result->size = OidVectorSize(n);
+	SET_VARSIZE(result, OidVectorSize(n));
 	result->ndim = 1;
 	result->dataoffset = 0;		/* never any nulls */
 	result->elemtype = OIDOID;
@@ -211,7 +207,7 @@ oidvectorin(PG_FUNCTION_ARGS)
 				(errcode(ERRCODE_INVALID_PARAMETER_VALUE),
 				 errmsg("oidvector has too many elements")));
 
-	result->size = OidVectorSize(n);
+	SET_VARSIZE(result, OidVectorSize(n));
 	result->ndim = 1;
 	result->dataoffset = 0;		/* never any nulls */
 	result->elemtype = OIDOID;
@@ -434,7 +430,7 @@ oid_text(PG_FUNCTION_ARGS)
 
 	result = (text *) palloc(len);
 
-	VARATT_SIZEP(result) = len;
+	SET_VARSIZE(result, len);
 	memcpy(VARDATA(result), str, (len - VARHDRSZ));
 	pfree(str);
 

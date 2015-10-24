@@ -5,7 +5,7 @@
  *
  * See Ross Williams' excellent introduction
  * A PAINLESS GUIDE TO CRC ERROR DETECTION ALGORITHMS, available from
- * ftp://ftp.rocksoft.com/papers/crc_v3.txt or several other net sites.
+ * http://www.ross.net/crc/ or several other net sites.
  *
  * We use a normal (not "reflected", in Williams' terms) CRC, using initial
  * all-ones register contents and a final bit inversion.
@@ -14,14 +14,20 @@
  * code for possible future use.
  *
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2011, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
- * $PostgreSQL: pgsql/src/include/utils/pg_crc.h,v 1.15 2006/03/05 15:59:07 momjian Exp $
+ * src/include/utils/pg_crc.h
  */
 #ifndef PG_CRC_H
 #define PG_CRC_H
 
+/* ugly hack to let this be used in frontend and backend code on Cygwin */
+#ifdef FRONTEND
+#define CRCDLLIMPORT
+#else
+#define CRCDLLIMPORT PGDLLIMPORT
+#endif
 
 typedef uint32 pg_crc32;
 
@@ -48,21 +54,20 @@ do { \
 #define EQ_CRC32(c1,c2)  ((c1) == (c2))
 
 /* Constant table for CRC calculation */
-extern const uint32 pg_crc32_table[];
+extern CRCDLLIMPORT const uint32 pg_crc32_table[];
 
 
 #ifdef PROVIDE_64BIT_CRC
 
 /*
- * If we have a 64-bit integer type, then a 64-bit CRC looks just like the
- * usual sort of implementation.  If we have no working 64-bit type, then
- * fake it with two 32-bit registers.  (Note: experience has shown that the
- * two-32-bit-registers code is as fast as, or even much faster than, the
- * 64-bit code on all but true 64-bit machines.  INT64_IS_BUSTED is therefore
- * probably the wrong control symbol to use to select the implementation.)
+ * If we use a 64-bit integer type, then a 64-bit CRC looks just like the
+ * usual sort of implementation.  However, we can also fake it with two
+ * 32-bit registers.  Experience has shown that the two-32-bit-registers code
+ * is as fast as, or even much faster than, the 64-bit code on all but true
+ * 64-bit machines.  We use SIZEOF_VOID_P to check the native word width.
  */
 
-#ifdef INT64_IS_BUSTED
+#if SIZEOF_VOID_P < 8
 
 /*
  * crc0 represents the LSBs of the 64-bit value, crc1 the MSBs.  Note that
@@ -106,9 +111,9 @@ do { \
 #define EQ_CRC64(c1,c2)  ((c1).crc0 == (c2).crc0 && (c1).crc1 == (c2).crc1)
 
 /* Constant table for CRC calculation */
-extern const uint32 pg_crc64_table0[];
-extern const uint32 pg_crc64_table1[];
-#else							/* int64 works */
+extern CRCDLLIMPORT const uint32 pg_crc64_table0[];
+extern CRCDLLIMPORT const uint32 pg_crc64_table1[];
+#else							/* use int64 implementation */
 
 typedef struct pg_crc64
 {
@@ -140,8 +145,36 @@ do { \
 #define EQ_CRC64(c1,c2)  ((c1).crc0 == (c2).crc0)
 
 /* Constant table for CRC calculation */
-extern const uint64 pg_crc64_table[];
-#endif   /* INT64_IS_BUSTED */
+extern CRCDLLIMPORT const uint64 pg_crc64_table[];
+#endif   /* SIZEOF_VOID_P < 8 */
 #endif   /* PROVIDE_64BIT_CRC */
+
+/** Returns the initial value for a CRC32-C computation. */
+static inline pg_crc32 crc32cInit()
+{
+    return 0xFFFFFFFF;
+}
+
+/** Converts a partial CRC32-C computation to the final value. */
+static inline pg_crc32 crc32cFinish(pg_crc32 crc)
+{
+    return ~crc;
+}
+
+
+/** Pointer to a function that computes a CRC32C checksum.
+@arg crc Previous CRC32C value, or crc32c_init().
+@arg data Pointer to the data to be checksummed.
+@arg length length of the data in bytes.
+*/
+typedef pg_crc32 (*CRC32CFunctionPtr)(pg_crc32 crc, const void* data, int length);
+
+extern pg_crc32 crc32cSlicingBy8(pg_crc32 crc, const void* data, int length);
+extern pg_crc32 crc32cHardware32(pg_crc32 crc, const void* data, int length);
+extern pg_crc32 crc32cHardware64(pg_crc32 crc, const void* data, int length);
+
+/** This will map automatically to the "best" CRC implementation. */
+extern CRC32CFunctionPtr crc32c;
+
 
 #endif   /* PG_CRC_H */

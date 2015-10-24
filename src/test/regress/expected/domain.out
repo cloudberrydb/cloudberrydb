@@ -15,7 +15,9 @@ NOTICE:  drop cascades to type dependenttypetest
 -- this should fail because already gone
 drop domain domaindroptest cascade;
 ERROR:  type "domaindroptest" does not exist
--- TEST Domains.
+-- Test domain input.
+-- Note: the point of checking both INSERT and COPY FROM is that INSERT
+-- exercises CoerceToDomain while COPY exercises domain_in.
 create domain domainvarchar varchar(5);
 create domain domainnumeric numeric(8,2);
 create domain domainint4 int4;
@@ -72,20 +74,22 @@ drop domain domainvarchar restrict;
 drop domain domainnumeric restrict;
 drop domain domainint4 restrict;
 drop domain domaintext;
--- Array Test
+-- Test domains over array types
 create domain domainint4arr int4[1];
-create domain domaintextarr text[2][3];
+create domain domainchar4arr varchar(4)[2][3];
 create table domarrtest
            ( testint4arr domainint4arr
-           , testtextarr domaintextarr
+           , testchar4arr domainchar4arr
             );
 INSERT INTO domarrtest values ('{2,2}', '{{"a","b"},{"c","d"}}');
 INSERT INTO domarrtest values ('{{2,2},{2,2}}', '{{"a","b"}}');
 INSERT INTO domarrtest values ('{2,2}', '{{"a","b"},{"c","d"},{"e","f"}}');
 INSERT INTO domarrtest values ('{2,2}', '{{"a"},{"c"}}');
 INSERT INTO domarrtest values (NULL, '{{"a","b","c"},{"d","e","f"}}');
+INSERT INTO domarrtest values (NULL, '{{"toolong","b","c"},{"d","e","f"}}');
+ERROR:  value too long for type character varying(4)
 select * from domarrtest;
-  testint4arr  |     testtextarr     
+  testint4arr  |    testchar4arr     
 ---------------+---------------------
  {2,2}         | {{a,b},{c,d}}
  {{2,2},{2,2}} | {{a,b}}
@@ -94,9 +98,9 @@ select * from domarrtest;
                | {{a,b,c},{d,e,f}}
 (5 rows)
 
-select testint4arr[1], testtextarr[2:2] from domarrtest;
- testint4arr | testtextarr 
--------------+-------------
+select testint4arr[1], testchar4arr[2:2] from domarrtest;
+ testint4arr | testchar4arr 
+-------------+--------------
            2 | {{c,d}}
              | {}
            2 | {{c,d}}
@@ -104,9 +108,25 @@ select testint4arr[1], testtextarr[2:2] from domarrtest;
              | {{d,e,f}}
 (5 rows)
 
+COPY domarrtest FROM stdin;
+COPY domarrtest FROM stdin;	-- fail
+ERROR:  value too long for type character varying(4)
+CONTEXT:  COPY domarrtest, line 1, column testchar4arr: "{qwerty,w,e}"
+select * from domarrtest;
+  testint4arr  |    testchar4arr     
+---------------+---------------------
+ {2,2}         | {{a,b},{c,d}}
+ {{2,2},{2,2}} | {{a,b}}
+ {2,2}         | {{a,b},{c,d},{e,f}}
+ {2,2}         | {{a},{c}}
+               | {{a,b,c},{d,e,f}}
+ {3,4}         | {q,w,e}
+               | 
+(7 rows)
+
 drop table domarrtest;
 drop domain domainint4arr restrict;
-drop domain domaintextarr restrict;
+drop domain domainchar4arr restrict;
 create domain dnotnull varchar(15) NOT NULL;
 create domain dnull    varchar(15);
 create domain dcheck   varchar(15) NOT NULL CHECK (VALUE = 'a' OR VALUE = 'c' OR VALUE = 'd');
@@ -205,7 +225,8 @@ create domain dnotnulltest integer;
 create table domnotnull
 ( col1 dnotnulltest
 , col2 dnotnulltest
-);
+, id int4 -- distribute on this column, so that we can UPDATE the others
+) distributed by (id);
 insert into domnotnull default values;
 alter domain dnotnulltest set not null; -- fails
 ERROR:  column "col1" of table "domnotnull" contains null values
@@ -383,6 +404,22 @@ ERROR:  domain pos_int does not allow null values
 create function doubledecrement(p1 pos_int) returns pos_int as $$
 declare v pos_int;
 begin
+    return p1;
+end$$ language plpgsql;
+select doubledecrement(3); -- fail because of implicit null assignment
+ERROR:  domain pos_int does not allow null values
+CONTEXT:  PL/pgSQL function "doubledecrement" line 2 at block variables initialization
+create or replace function doubledecrement(p1 pos_int) returns pos_int as $$
+declare v pos_int := 0;
+begin
+    return p1;
+end$$ language plpgsql;
+select doubledecrement(3); -- fail at initialization assignment
+ERROR:  value for domain pos_int violates check constraint "pos_int_check"
+CONTEXT:  PL/pgSQL function "doubledecrement" line 2 at block variables initialization
+create or replace function doubledecrement(p1 pos_int) returns pos_int as $$
+declare v pos_int := 1;
+begin
     v := p1 - 1;
     return v - 1;
 end$$ language plpgsql;
@@ -402,3 +439,27 @@ select doubledecrement(3); -- good
                1
 (1 row)
 
+-- Check that ALTER DOMAIN tests columns of derived types
+create domain posint as int4;
+-- Currently, this doesn't work for composite types, but verify it complains
+create type ddtest1 as (f1 posint);
+create table ddtest2(f1 ddtest1);
+insert into ddtest2 values(row(-1));
+alter domain posint add constraint c1 check(value >= 0);
+ERROR:  cannot alter type "posint" because column "ddtest2"."f1" uses it
+drop table ddtest2;
+alter domain posint add constraint c1 check(value >= 0);
+create domain posint2 as posint check (value % 2 = 0);
+create table ddtest2(f1 posint2);
+insert into ddtest2 values(11); -- fail
+ERROR:  value for domain posint2 violates check constraint "posint2_check"
+insert into ddtest2 values(-2); -- fail
+ERROR:  value for domain posint2 violates check constraint "c1"
+insert into ddtest2 values(2);
+alter domain posint add constraint c2 check(value >= 10); -- fail
+ERROR:  column "f1" of table "ddtest2" contains values that violate the new constraint
+alter domain posint add constraint c2 check(value > 0); -- OK
+drop table ddtest2;
+drop type ddtest1;
+drop domain posint cascade;
+NOTICE:  drop cascades to type posint2

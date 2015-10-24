@@ -21,10 +21,10 @@
  * are different.
  *
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2010, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
- *	$PostgreSQL: pgsql/src/backend/libpq/pqformat.c,v 1.42 2006/07/14 05:28:27 tgl Exp $
+ *	$PostgreSQL: pgsql/src/backend/libpq/pqformat.c,v 1.52 2010/01/07 04:53:34 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -41,6 +41,7 @@
  *		pq_sendcountedtext - append a counted text string (with character set conversion)
  *		pq_sendtext		- append a text string (with conversion)
  *		pq_sendstring	- append a null-terminated text string (with conversion)
+ *		pq_send_ascii_string - append a null-terminated text string (without conversion)
  *		pq_endmessage	- send the completed message to the frontend
  * Note: it is also possible to append data to the StringInfo buffer using
  * the regular StringInfo routines, but this is discouraged since required
@@ -72,9 +73,6 @@
 #include <sys/param.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
-#ifdef HAVE_ENDIAN_H
-#include <endian.h>
-#endif
 
 #include "libpq/libpq.h"
 #include "libpq/pqformat.h"
@@ -187,7 +185,6 @@ void
 pq_sendstring(StringInfo buf, const char *str)
 {
 	int			slen = strlen(str);
-
 	char	   *p;
 
 	p = pg_server_to_client(str, slen);
@@ -199,6 +196,35 @@ pq_sendstring(StringInfo buf, const char *str)
 	}
 	else
 		appendBinaryStringInfo(buf, str, slen + 1);
+}
+
+/* --------------------------------
+ *		pq_send_ascii_string	- append a null-terminated text string (without conversion)
+ *
+ * This function intentionally bypasses encoding conversion, instead just
+ * silently replacing any non-7-bit-ASCII characters with question marks.
+ * It is used only when we are having trouble sending an error message to
+ * the client with normal localization and encoding conversion.  The caller
+ * should already have taken measures to ensure the string is just ASCII;
+ * the extra work here is just to make certain we don't send a badly encoded
+ * string to the client (which might or might not be robust about that).
+ *
+ * NB: passed text string must be null-terminated, and so is the data
+ * sent to the frontend.
+ * --------------------------------
+ */
+void
+pq_send_ascii_string(StringInfo buf, const char *str)
+{
+	while (*str)
+	{
+		char		ch = *str++;
+
+		if (IS_HIGHBIT_SET(ch))
+			ch = '?';
+		appendStringInfoCharMacro(buf, ch);
+	}
+	appendStringInfoChar(buf, '\0');
 }
 
 /* --------------------------------
@@ -246,12 +272,7 @@ pq_sendint64(StringInfo buf, int64 i)
 	uint32		n32;
 
 	/* High order half first, since we're doing MSB-first */
-#ifdef INT64_IS_BUSTED
-	/* don't try a right shift of 32 on a 32-bit word */
-	n32 = (i < 0) ? -1 : 0;
-#else
 	n32 = (uint32) (i >> 32);
-#endif
 	n32 = htonl(n32);
 	appendBinaryStringInfo(buf, (char *) &n32, 4);
 
@@ -301,31 +322,6 @@ pq_sendfloat4(StringInfo buf, float4 f)
 void
 pq_sendfloat8(StringInfo buf, float8 f)
 {
-#ifdef INT64_IS_BUSTED
-	union
-	{
-		float8		f;
-		uint32		h[2];
-	}			swap;
-
-	swap.f = f;
-	swap.h[0] = htonl(swap.h[0]);
-	swap.h[1] = htonl(swap.h[1]);
-
-	/* Have to figure out endianness by testing... */
-	if (((uint32) 1) == htonl((uint32) 1))
-	{
-		/* machine seems to be big-endian, send h[0] first */
-		appendBinaryStringInfo(buf, (char *) &swap.h[0], 4);
-		appendBinaryStringInfo(buf, (char *) &swap.h[1], 4);
-	}
-	else
-	{
-		/* machine seems to be little-endian, send h[1] first */
-		appendBinaryStringInfo(buf, (char *) &swap.h[1], 4);
-		appendBinaryStringInfo(buf, (char *) &swap.h[0], 4);
-	}
-#else
 	union
 	{
 		float8		f;
@@ -334,7 +330,6 @@ pq_sendfloat8(StringInfo buf, float8 f)
 
 	swap.f = f;
 	pq_sendint64(buf, swap.i);
-#endif
 }
 
 /* --------------------------------
@@ -362,7 +357,7 @@ pq_endmessage(StringInfo buf)
 void
 pq_begintypsend(StringInfo buf)
 {
-	initStringInfo(buf);
+	initStringInfoOfSize(buf, 16);
 	/* Reserve four bytes for the bytea length word */
 	appendStringInfoCharMacro(buf, '\0');
 	appendStringInfoCharMacro(buf, '\0');
@@ -386,7 +381,7 @@ pq_endtypsend(StringInfo buf)
 
 	/* Insert correct length into bytea length word */
 	Assert(buf->len >= VARHDRSZ);
-	VARATT_SIZEP(result) = buf->len;
+	SET_VARSIZE(result, buf->len);
 
 	return result;
 }
@@ -498,18 +493,9 @@ pq_getmsgint64(StringInfo msg)
 	h32 = ntohl(h32);
 	l32 = ntohl(l32);
 
-#ifdef INT64_IS_BUSTED
-	/* error out if incoming value is wider than 32 bits */
-	result = l32;
-	if ((result < 0) ? (h32 != -1) : (h32 != 0))
-		ereport(ERROR,
-				(errcode(ERRCODE_NUMERIC_VALUE_OUT_OF_RANGE),
-				 errmsg("binary value is out of range for type bigint")));
-#else
 	result = h32;
 	result <<= 32;
 	result |= l32;
-#endif
 
 	return result;
 }
@@ -542,28 +528,6 @@ pq_getmsgfloat4(StringInfo msg)
 float8
 pq_getmsgfloat8(StringInfo msg)
 {
-#ifdef INT64_IS_BUSTED
-	union
-	{
-		float8		f;
-		uint32		h[2];
-	}			swap;
-
-	/* Have to figure out endianness by testing... */
-	if (((uint32) 1) == htonl((uint32) 1))
-	{
-		/* machine seems to be big-endian, receive h[0] first */
-		swap.h[0] = pq_getmsgint(msg, 4);
-		swap.h[1] = pq_getmsgint(msg, 4);
-	}
-	else
-	{
-		/* machine seems to be little-endian, receive h[1] first */
-		swap.h[1] = pq_getmsgint(msg, 4);
-		swap.h[0] = pq_getmsgint(msg, 4);
-	}
-	return swap.f;
-#else
 	union
 	{
 		float8		f;
@@ -572,7 +536,6 @@ pq_getmsgfloat8(StringInfo msg)
 
 	swap.i = pq_getmsgint64(msg);
 	return swap.f;
-#endif
 }
 
 /* --------------------------------

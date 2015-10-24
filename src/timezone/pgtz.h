@@ -6,10 +6,10 @@
  * Note: this file contains only definitions that are private to the
  * timezone library.  Public definitions are in pgtime.h.
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2011, PostgreSQL Global Development Group
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/timezone/pgtz.h,v 1.18 2006/10/16 19:58:27 tgl Exp $
+ *	  src/timezone/pgtz.h
  *
  *-------------------------------------------------------------------------
  */
@@ -43,6 +43,8 @@ struct state
 	int			timecnt;
 	int			typecnt;
 	int			charcnt;
+	int			goback;
+	int			goahead;
 	pg_time_t	ats[TZ_MAX_TIMES];
 	unsigned char types[TZ_MAX_TIMES];
 	struct ttinfo ttis[TZ_MAX_TYPES];
@@ -64,7 +66,8 @@ struct pg_tz
 extern int	pg_open_tzfile(const char *name, char *canonname);
 
 /* in localtime.c */
-extern int	tzload(const char *name, char *canonname, struct state *sp);
-extern int	tzparse(const char *name, struct state *sp, int lastditch);
+extern int tzload(const char *name, char *canonname, struct state * sp,
+	   int doextend);
+extern int	tzparse(const char *name, struct state * sp, int lastditch);
 
 #endif   /* _PGTZ_H */

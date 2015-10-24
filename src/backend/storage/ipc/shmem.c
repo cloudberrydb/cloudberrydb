@@ -3,7 +3,7 @@
  * shmem.c
  *	  create shared memory and initialize shared memory data structures.
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2008, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -71,6 +71,7 @@
 #include "storage/pg_shmem.h"
 #include "storage/shmem.h"
 #include "storage/spin.h"
+#include <unistd.h>
 
 
 /* shared memory global variables */
@@ -86,6 +87,7 @@ slock_t    *ShmemLock;			/* spinlock for shared memory and LWLock
 
 static HTAB *ShmemIndex = NULL; /* primary index hashtable for shmem */
 
+static int ShmemSystemPageSize = 0;   /* system's page size */
 
 /*
  *	InitShmemAccess() --- set up basic pointers to shared memory.
@@ -115,6 +117,18 @@ InitShmemAllocation(void)
 
 	Assert(shmhdr != NULL);
 
+#ifdef WIN32
+    ShmemSystemPageSize = 4096;  /* Need a way to get this on Win32 */
+#else
+	ShmemSystemPageSize = sysconf(_SC_PAGESIZE);
+#endif
+	if ( ShmemSystemPageSize <= 1 ||
+		(ShmemSystemPageSize & ( ShmemSystemPageSize - 1)))  // checks for power of 2
+	{
+		ereport(ERROR,
+			(errcode(ERRCODE_INTERNAL_ERROR),
+			errmsg("invalid page size %d; must be a power of two and not an error", ShmemSystemPageSize)));
+	}
 	/*
 	 * Initialize the spinlock used by ShmemAlloc.	We have to do the space
 	 * allocation the hard way, since obviously ShmemAlloc can't be called
@@ -171,7 +185,9 @@ ShmemAlloc(Size size)
 
 	/* extra alignment for large requests, since they are probably buffers */
 	if (size >= BLCKSZ)
-		newStart = BUFFERALIGN(newStart);
+	{
+		newStart =  TYPEALIGN(ShmemSystemPageSize, newStart);
+	}
 
 	newFree = newStart + size;
 	if (newFree <= shmemseghdr->totalsize)
@@ -370,7 +386,7 @@ ShmemInitStruct(const char *name, Size size, bool *foundPtr)
 		{
 			LWLockRelease(ShmemIndexLock);
 
-			elog(WARNING, "ShmemIndex entry size is wrong");
+			elog(WARNING, "ShmemIndex entry size is wrong.  entry is %ld, we were looking for %ld", result->size, (long)size);
 			/* let caller print its message too */
 			return NULL;
 		}
@@ -401,41 +417,4 @@ ShmemInitStruct(const char *name, Size size, bool *foundPtr)
 
 	LWLockRelease(ShmemIndexLock);
 	return structPtr;
-}
-
-
-/*
- * Add two Size values, checking for overflow
- */
-Size
-add_size(Size s1, Size s2)
-{
-	Size		result;
-
-	result = s1 + s2;
-	/* We are assuming Size is an unsigned type here... */
-	if (result < s1 || result < s2)
-		ereport(ERROR,
-				(errcode(ERRCODE_PROGRAM_LIMIT_EXCEEDED),
-				 errmsg("requested shared memory size overflows size_t")));
-	return result;
-}
-
-/*
- * Multiply two Size values, checking for overflow
- */
-Size
-mul_size(Size s1, Size s2)
-{
-	Size		result;
-
-	if (s1 == 0 || s2 == 0)
-		return 0;
-	result = s1 * s2;
-	/* We are assuming Size is an unsigned type here... */
-	if (result / s2 != s1)
-		ereport(ERROR,
-				(errcode(ERRCODE_PROGRAM_LIMIT_EXCEEDED),
-				 errmsg("requested shared memory size overflows size_t")));
-	return result;
 }

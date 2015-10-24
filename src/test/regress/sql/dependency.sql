@@ -7,7 +7,7 @@ CREATE USER regression_user2;
 CREATE USER regression_user3;
 CREATE GROUP regression_group;
 
-CREATE TABLE deptest (f1 serial primary key, f2 text);
+CREATE TABLE deptest (f1 serial primary key, f2 text) DISTRIBUTED BY (f1);
 
 GRANT SELECT ON TABLE deptest TO GROUP regression_group;
 GRANT ALL ON TABLE deptest TO regression_user, regression_user2;
@@ -21,7 +21,7 @@ REVOKE SELECT ON deptest FROM GROUP regression_group;
 DROP GROUP regression_group;
 
 -- can't drop the user if we revoke the privileges partially
-REVOKE SELECT, INSERT, UPDATE, DELETE, RULE, REFERENCES ON deptest FROM regression_user;
+REVOKE SELECT, INSERT, UPDATE, DELETE, RULE, TRUNCATE, REFERENCES ON deptest FROM regression_user;
 DROP USER regression_user;
 
 -- now we are OK to drop him
@@ -57,11 +57,11 @@ REASSIGN OWNED BY regression_user1 TO regression_user0;
 -- this one is allowed
 DROP OWNED BY regression_user0;
 
-CREATE TABLE deptest1 (f1 int unique);
+CREATE TABLE deptest1 (f1 int unique) DISTRIBUTED BY (f1);
 GRANT ALL ON deptest1 TO regression_user1 WITH GRANT OPTION;
 
 SET SESSION AUTHORIZATION regression_user1;
-CREATE TABLE deptest (a serial primary key, b text);
+CREATE TABLE deptest (a serial primary key, b text) DISTRIBUTED BY (a);
 GRANT ALL ON deptest1 TO regression_user2;
 RESET SESSION AUTHORIZATION;
 \z deptest1
@@ -76,7 +76,7 @@ DROP OWNED BY regression_user1;
 GRANT ALL ON deptest1 TO regression_user1;
 
 SET SESSION AUTHORIZATION regression_user1;
-CREATE TABLE deptest (a serial primary key, b text);
+CREATE TABLE deptest (a serial primary key, b text) DISTRIBUTED BY (a);
 
 CREATE TABLE deptest2 (f1 int);
 -- make a serial column the hard way

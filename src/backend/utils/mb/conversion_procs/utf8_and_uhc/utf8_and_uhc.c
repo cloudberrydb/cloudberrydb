@@ -2,11 +2,11 @@
  *
  *	  UHC <--> UTF8
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/utils/mb/conversion_procs/utf8_and_uhc/utf8_and_uhc.c,v 1.14 2006/05/30 22:12:15 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/utils/mb/conversion_procs/utf8_and_uhc/utf8_and_uhc.c,v 1.19 2009/01/29 19:23:42 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -42,12 +42,10 @@ uhc_to_utf8(PG_FUNCTION_ARGS)
 	unsigned char *dest = (unsigned char *) PG_GETARG_CSTRING(3);
 	int			len = PG_GETARG_INT32(4);
 
-	Assert(PG_GETARG_INT32(0) == PG_UHC);
-	Assert(PG_GETARG_INT32(1) == PG_UTF8);
-	Assert(len >= 0);
+	CHECK_ENCODING_CONVERSION_ARGS(PG_UHC, PG_UTF8);
 
-	LocalToUtf(src, dest, LUmapUHC,
-			   sizeof(LUmapUHC) / sizeof(pg_local_to_utf), PG_UHC, len);
+	LocalToUtf(src, dest, LUmapUHC, NULL,
+			   sizeof(LUmapUHC) / sizeof(pg_local_to_utf), 0, PG_UHC, len);
 
 	PG_RETURN_VOID();
 }
@@ -59,12 +57,10 @@ utf8_to_uhc(PG_FUNCTION_ARGS)
 	unsigned char *dest = (unsigned char *) PG_GETARG_CSTRING(3);
 	int			len = PG_GETARG_INT32(4);
 
-	Assert(PG_GETARG_INT32(0) == PG_UTF8);
-	Assert(PG_GETARG_INT32(1) == PG_UHC);
-	Assert(len >= 0);
+	CHECK_ENCODING_CONVERSION_ARGS(PG_UTF8, PG_UHC);
 
-	UtfToLocal(src, dest, ULmapUHC,
-			   sizeof(ULmapUHC) / sizeof(pg_utf_to_local), PG_UHC, len);
+	UtfToLocal(src, dest, ULmapUHC, NULL,
+			   sizeof(ULmapUHC) / sizeof(pg_utf_to_local), 0, PG_UHC, len);
 
 	PG_RETURN_VOID();
 }

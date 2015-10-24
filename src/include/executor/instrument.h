@@ -4,7 +4,8 @@
  *	  definitions for run-time statistics collection
  *
  *
- * Copyright (c) 2001-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 2006-2009, Greenplum inc
+ * Copyright (c) 2001-2009, PostgreSQL Global Development Group
  *
  * $PostgreSQL: pgsql/src/include/executor/instrument.h,v 1.16 2006/06/09 19:30:56 tgl Exp $
  *
@@ -13,44 +14,9 @@
 #ifndef INSTRUMENT_H
 #define INSTRUMENT_H
 
-#include <sys/time.h>
+#include "portability/instr_time.h"
 
-
-/*
- * gettimeofday() does not have sufficient resolution on Windows,
- * so we must use QueryPerformanceCounter() instead.  These macros
- * also give some breathing room to use other high-precision-timing APIs
- * on yet other platforms.	(The macro-ization is not complete, however;
- * see subtraction code in instrument.c and explain.c.)
- */
-#ifndef WIN32
-
-typedef struct timeval instr_time;
-
-#define INSTR_TIME_IS_ZERO(t)	((t).tv_sec == 0 && (t).tv_usec == 0)
-#define INSTR_TIME_SET_ZERO(t)	((t).tv_sec = 0, (t).tv_usec = 0)
-#define INSTR_TIME_SET_CURRENT(t)	gettimeofday(&(t), NULL)
-#define INSTR_TIME_GET_DOUBLE(t) \
-	(((double) (t).tv_sec) + ((double) (t).tv_usec) / 1000000.0)
-#else							/* WIN32 */
-
-typedef LARGE_INTEGER instr_time;
-
-#define INSTR_TIME_IS_ZERO(t)	((t).QuadPart == 0)
-#define INSTR_TIME_SET_ZERO(t)	((t).QuadPart = 0)
-#define INSTR_TIME_SET_CURRENT(t)	QueryPerformanceCounter(&(t))
-#define INSTR_TIME_GET_DOUBLE(t) \
-	(((double) (t).QuadPart) / GetTimerFrequency())
-
-static __inline__ double
-GetTimerFrequency(void)
-{
-	LARGE_INTEGER f;
-
-	QueryPerformanceFrequency(&f);
-	return (double) f.QuadPart;
-}
-#endif   /* WIN32 */
+struct CdbExplain_NodeSummary;          /* private def in cdb/cdbexplain.c */
 
 
 typedef struct Instrumentation
@@ -66,6 +32,14 @@ typedef struct Instrumentation
 	double		total;			/* Total total time (in seconds) */
 	double		ntuples;		/* Total tuples produced */
 	double		nloops;			/* # of run cycles for this node */
+    double		execmemused;    /* CDB: executor memory used (bytes) */
+    double		workmemused;    /* CDB: work_mem actually used (bytes) */
+    double		workmemwanted;  /* CDB: work_mem to avoid scratch i/o (bytes) */
+	instr_time	firststart;		/* CDB: Start time of first iteration of node */
+	bool		workfileReused; /* TRUE if cached workfiles reused in this node */
+	bool		workfileCreated;/* TRUE if workfiles are created in this node */
+	int		numPartScanned; /* Number of part tables scanned */
+    struct CdbExplain_NodeSummary  *cdbNodeSummary; /* stats from all qExecs */
 } Instrumentation;
 
 extern Instrumentation *InstrAlloc(int n);

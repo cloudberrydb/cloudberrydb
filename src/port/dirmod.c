@@ -1,16 +1,16 @@
 /*-------------------------------------------------------------------------
  *
  * dirmod.c
- *	  rename/unlink()
+ *	  directory handling functions
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2010, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
- *	These are replacement versions of unlink and rename that work on
- *	Win32 (NT, Win2k, XP).	replace() doesn't work on Win95/98/Me.
+ *	This includes replacement versions of functions that work on
+ *	Win32 (NT4 and newer).
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/port/dirmod.c,v 1.44 2006/11/08 20:12:05 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/port/dirmod.c,v 1.63 2010/07/06 19:19:01 momjian Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -45,7 +45,7 @@
 
 /*
  *	On Windows, call non-macro versions of palloc; we can't reference
- *	CurrentMemoryContext in this file because of DLLIMPORT conflict.
+ *	CurrentMemoryContext in this file because of PGDLLIMPORT conflict.
  */
 #if defined(WIN32) || defined(__CYGWIN__)
 #undef palloc
@@ -117,10 +117,11 @@ pgrename(const char *from, const char *to)
 	int			loops = 0;
 
 	/*
-	 * We need to loop because even though PostgreSQL uses flags that
-	 * allow rename while the file is open, other applications might have
-	 * the file open without those flags.  However, we won't wait
-	 * indefinitely for someone else to close the file.
+	 * We need to loop because even though PostgreSQL uses flags that allow
+	 * rename while the file is open, other applications might have the file
+	 * open without those flags.  However, we won't wait indefinitely for
+	 * someone else to close the file, as the caller might be holding locks
+	 * and blocking other backends.
 	 */
 #if defined(WIN32) && !defined(__CYGWIN__)
 	while (!MoveFileEx(from, to, MOVEFILE_REPLACE_EXISTING))
@@ -129,13 +130,28 @@ pgrename(const char *from, const char *to)
 #endif
 	{
 #if defined(WIN32) && !defined(__CYGWIN__)
-		if (GetLastError() != ERROR_ACCESS_DENIED)
+		DWORD		err = GetLastError();
+
+		_dosmaperr(err);
+
+		/*
+		 * Modern NT-based Windows versions return ERROR_SHARING_VIOLATION if
+		 * another process has the file open without FILE_SHARE_DELETE.
+		 * ERROR_LOCK_VIOLATION has also been seen with some anti-virus
+		 * software. This used to check for just ERROR_ACCESS_DENIED, so
+		 * presumably you can get that too with some OS versions. We don't
+		 * expect real permission errors where we currently use rename().
+		 */
+		if (err != ERROR_ACCESS_DENIED &&
+			err != ERROR_SHARING_VIOLATION &&
+			err != ERROR_LOCK_VIOLATION)
+			return -1;
 #else
 		if (errno != EACCES)
-#endif
-			/* set errno? */
 			return -1;
-		if (++loops > 300)		/* time out after 30 sec */
+#endif
+
+		if (++loops > 100)		/* time out after 10 sec */
 			return -1;
 		pg_usleep(100000);		/* us */
 	}
@@ -152,25 +168,30 @@ pgunlink(const char *path)
 	int			loops = 0;
 
 	/*
-	 * We need to loop because even though PostgreSQL uses flags that
-	 * allow unlink while the file is open, other applications might have
-	 * the file open without those flags.  However, we won't wait
-	 * indefinitely for someone else to close the file.
+	 * We need to loop because even though PostgreSQL uses flags that allow
+	 * unlink while the file is open, other applications might have the file
+	 * open without those flags.  However, we won't wait indefinitely for
+	 * someone else to close the file, as the caller might be holding locks
+	 * and blocking other backends.
 	 */
 	while (unlink(path))
 	{
 		if (errno != EACCES)
-			/* set errno? */
 			return -1;
-		if (++loops > 300)		/* time out after 30 sec */
+		if (++loops > 100)		/* time out after 10 sec */
 			return -1;
 		pg_usleep(100000);		/* us */
 	}
 	return 0;
 }
 
+/* We undefined these above; now redefine for possible use below */
+#define rename(from, to)		pgrename(from, to)
+#define unlink(path)			pgunlink(path)
+#endif   /* defined(WIN32) || defined(__CYGWIN__) */
 
-#ifdef WIN32					/* Cygwin has its own symlinks */
+
+#if defined(WIN32) && !defined(__CYGWIN__)		/* Cygwin has its own symlinks */
 
 /*
  *	pgsymlink support:
@@ -199,7 +220,7 @@ typedef struct
 /*
  *	pgsymlink - uses Win32 junction points
  *
- *	For reference:	http://www.codeproject.com/w2k/junctionpoints.asp
+ *	For reference:	http://www.codeproject.com/KB/winsdk/junctionpoints.aspx
  */
 int
 pgsymlink(const char *oldpath, const char *newpath)
@@ -254,8 +275,8 @@ pgsymlink(const char *oldpath, const char *newpath)
 		errno = 0;
 		FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM,
 					  NULL, GetLastError(),
-					  MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
-					  (LPSTR) & msg, 0, NULL);
+					  MAKELANGID(LANG_ENGLISH, SUBLANG_DEFAULT),
+					  (LPSTR) &msg, 0, NULL);
 #ifndef FRONTEND
 		ereport(ERROR,
 				(errcode_for_file_access(),
@@ -276,23 +297,18 @@ pgsymlink(const char *oldpath, const char *newpath)
 
 	return 0;
 }
-#endif   /* WIN32 */
-#endif   /* defined(WIN32) || defined(__CYGWIN__) */
-
-
-/* We undefined this above, so we redefine it */
-#if defined(WIN32) || defined(__CYGWIN__)
-#define unlink(path)	pgunlink(path)
-#endif
+#endif   /* defined(WIN32) && !defined(__CYGWIN__) */
 
 
 /*
- * fnames
+ * pgfnames
  *
- * return a list of the names of objects in the argument directory
+ * return a list of the names of objects in the argument directory.  Caller
+ * must call pgfnames_cleanup later to free the memory allocated by this
+ * function.
  */
-static char **
-fnames(char *path)
+char	  **
+pgfnames(const char *path)
 {
 	DIR		   *dir;
 	struct dirent *file;
@@ -357,12 +373,12 @@ fnames(char *path)
 
 
 /*
- *	fnames_cleanup
+ *	pgfnames_cleanup
  *
  *	deallocate memory used for filenames
  */
-static void
-fnames_cleanup(char **filenames)
+void
+pgfnames_cleanup(char **filenames)
 {
 	char	  **fn;
 
@@ -380,12 +396,15 @@ fnames_cleanup(char **filenames)
  *	Assumes path points to a valid directory.
  *	Deletes everything under path.
  *	If rmtopdir is true deletes the directory too.
+ *	Returns true if successful, false if there was any problem.
+ *	(The details of the problem are reported already, so caller
+ *	doesn't really have to say anything more, but most do.)
  */
 bool
-rmtree(char *path, bool rmtopdir)
+rmtree(const char *path, bool rmtopdir)
 {
+	bool		result = true;
 	char		pathbuf[MAXPGPATH];
-	char	   *filepath;
 	char	  **filenames;
 	char	  **filename;
 	struct stat statbuf;
@@ -394,56 +413,134 @@ rmtree(char *path, bool rmtopdir)
 	 * we copy all the names out of the directory before we start modifying
 	 * it.
 	 */
-	filenames = fnames(path);
+	filenames = pgfnames(path);
 
 	if (filenames == NULL)
 		return false;
 
 	/* now we have the names we can start removing things */
-	filepath = pathbuf;
-
 	for (filename = filenames; *filename; filename++)
 	{
-		snprintf(filepath, MAXPGPATH, "%s/%s", path, *filename);
+		snprintf(pathbuf, MAXPGPATH, "%s/%s", path, *filename);
 
-		if (lstat(filepath, &statbuf) != 0)
-			goto report_and_fail;
+		/*
+		 * It's ok if the file is not there anymore; we were just about to
+		 * delete it anyway.
+		 *
+		 * This is not an academic possibility. One scenario where this
+		 * happens is when bgwriter has a pending unlink request for a file in
+		 * a database that's being dropped. In dropdb(), we call
+		 * ForgetDatabaseFsyncRequests() to flush out any such pending unlink
+		 * requests, but because that's asynchronous, it's not guaranteed that
+		 * the bgwriter receives the message in time.
+		 */
+		if (lstat(pathbuf, &statbuf) != 0)
+		{
+			if (errno != ENOENT)
+			{
+#ifndef FRONTEND
+				elog(WARNING, "could not stat file or directory \"%s\": %m",
+					 pathbuf);
+#else
+				fprintf(stderr, _("could not stat file or directory \"%s\": %s\n"),
+						pathbuf, strerror(errno));
+#endif
+				result = false;
+			}
+			continue;
+		}
 
 		if (S_ISDIR(statbuf.st_mode))
 		{
 			/* call ourselves recursively for a directory */
-			if (!rmtree(filepath, true))
+			if (!rmtree(pathbuf, true))
 			{
 				/* we already reported the error */
-				fnames_cleanup(filenames);
-				return false;
+				result = false;
 			}
 		}
 		else
 		{
-			if (unlink(filepath) != 0)
-				goto report_and_fail;
+			if (unlink(pathbuf) != 0)
+			{
+				if (errno != ENOENT)
+				{
+#ifndef FRONTEND
+					elog(WARNING, "could not remove file or directory \"%s\": %m",
+						 pathbuf);
+#else
+					fprintf(stderr, _("could not remove file or directory \"%s\": %s\n"),
+							pathbuf, strerror(errno));
+#endif
+					result = false;
+				}
+			}
 		}
 	}
 
 	if (rmtopdir)
 	{
-		filepath = path;
-		if (rmdir(filepath) != 0)
-			goto report_and_fail;
+		if (rmdir(path) != 0)
+		{
+#ifndef FRONTEND
+			elog(WARNING, "could not remove file or directory \"%s\": %m",
+				 path);
+#else
+			fprintf(stderr, _("could not remove file or directory \"%s\": %s\n"),
+					path, strerror(errno));
+#endif
+			result = false;
+		}
 	}
 
-	fnames_cleanup(filenames);
-	return true;
+	pgfnames_cleanup(filenames);
 
-report_and_fail:
-
-#ifndef FRONTEND
-	elog(WARNING, "could not remove file or directory \"%s\": %m", filepath);
-#else
-	fprintf(stderr, _("could not remove file or directory \"%s\": %s\n"),
-			filepath, strerror(errno));
-#endif
-	fnames_cleanup(filenames);
-	return false;
+	return result;
 }
+
+
+#if defined(WIN32) && !defined(__CYGWIN__)
+
+#undef stat
+
+/*
+ * The stat() function in win32 is not guaranteed to update the st_size
+ * field when run. So we define our own version that uses the Win32 API
+ * to update this field.
+ */
+int
+pgwin32_safestat(const char *path, struct stat * buf)
+{
+	int			r;
+	WIN32_FILE_ATTRIBUTE_DATA attr;
+
+	r = stat(path, buf);
+	if (r < 0)
+		return r;
+
+	// MPP-24774: just return if path refer to a windows named pipe file.
+	// no need to get size of a windows named pipe file
+	if (strlen(path) >2)
+	{
+		if (path[0] == '\\' && path[1] == '\\')
+		{
+			return r;
+		}
+	}
+
+	if (!GetFileAttributesEx(path, GetFileExInfoStandard, &attr))
+	{
+		_dosmaperr(GetLastError());
+		return -1;
+	}
+
+	/*
+	 * XXX no support for large files here, but we don't do that in general on
+	 * Win32 yet.
+	 */
+	buf->st_size = attr.nFileSizeLow;
+
+	return 0;
+}
+
+#endif

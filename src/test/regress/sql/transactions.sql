@@ -130,7 +130,7 @@ BEGIN;
 ROLLBACK;
 COMMIT;		-- should not be in a transaction block
 		
-SELECT * FROM savepoints;
+SELECT * FROM savepoints ORDER BY 1;
 
 -- test whole-tree commit on an aborted subtransaction
 BEGIN;
@@ -139,7 +139,7 @@ BEGIN;
 		INSERT INTO savepoints VALUES (5);
 		SELECT foo;
 COMMIT;
-SELECT * FROM savepoints;
+SELECT * FROM savepoints ORDER BY 1;
 
 BEGIN;
 	INSERT INTO savepoints VALUES (6);
@@ -160,7 +160,7 @@ BEGIN;
 	ROLLBACK TO SAVEPOINT one;
 		INSERT INTO savepoints VALUES (11);
 COMMIT;
-SELECT a FROM savepoints WHERE a in (9, 10, 11);
+SELECT a FROM savepoints WHERE a in (9, 10, 11) ORDER BY 1;
 -- rows 9 and 11 should have been created by different xacts
 SELECT a.xmin = b.xmin FROM savepoints a, savepoints b WHERE a.a=9 AND b.a=11;
 
@@ -177,7 +177,7 @@ BEGIN;
 			SAVEPOINT three;
 				INSERT INTO savepoints VALUES (17);
 COMMIT;
-SELECT a FROM savepoints WHERE a BETWEEN 12 AND 17;
+SELECT a FROM savepoints WHERE a BETWEEN 12 AND 17 ORDER BY 1;
 
 BEGIN;
 	INSERT INTO savepoints VALUES (18);
@@ -190,7 +190,7 @@ BEGIN;
 	ROLLBACK TO SAVEPOINT one;
 		INSERT INTO savepoints VALUES (22);
 COMMIT;
-SELECT a FROM savepoints WHERE a BETWEEN 18 AND 22;
+SELECT a FROM savepoints WHERE a BETWEEN 18 AND 22 ORDER BY 1;
 
 DROP TABLE savepoints;
 
@@ -212,7 +212,7 @@ SELECT 1;			-- this should work
 
 -- check non-transactional behavior of cursors
 BEGIN;
-	DECLARE c CURSOR FOR SELECT unique2 FROM tenk1;
+	DECLARE c CURSOR FOR SELECT unique2 FROM tenk1 ORDER BY 1;
 	SAVEPOINT one;
 		FETCH 10 FROM c;
 	ROLLBACK TO SAVEPOINT one;
@@ -220,7 +220,7 @@ BEGIN;
 	RELEASE SAVEPOINT one;
 	FETCH 10 FROM c;
 	CLOSE c;
-	DECLARE c CURSOR FOR SELECT unique2/0 FROM tenk1;
+	DECLARE c CURSOR FOR SELECT unique2/0 FROM tenk1 ORDER BY 1;
 	SAVEPOINT two;
 		FETCH 10 FROM c;
 	ROLLBACK TO SAVEPOINT two;
@@ -240,7 +240,7 @@ COMMIT;
 select * from xacttest;
 
 create or replace function max_xacttest() returns smallint language sql as
-'select max(a) from xacttest' stable;
+'select max(a) from xacttest' stable READS SQL DATA;
 
 begin;
 update xacttest set a = max_xacttest() + 10 where a > 0;
@@ -249,7 +249,7 @@ rollback;
 
 -- But a volatile function can see the partial results of the calling query
 create or replace function max_xacttest() returns smallint language sql as
-'select max(a) from xacttest' volatile;
+'select max(a) from xacttest' volatile READS SQL DATA;
 
 begin;
 update xacttest set a = max_xacttest() + 10 where a > 0;
@@ -258,7 +258,7 @@ rollback;
 
 -- Now the same test with plpgsql (since it depends on SPI which is different)
 create or replace function max_xacttest() returns smallint language plpgsql as
-'begin return max(a) from xacttest; end' stable;
+'begin return max(a) from xacttest; end' stable READS SQL DATA;
 
 begin;
 update xacttest set a = max_xacttest() + 10 where a > 0;
@@ -266,7 +266,7 @@ select * from xacttest;
 rollback;
 
 create or replace function max_xacttest() returns smallint language plpgsql as
-'begin return max(a) from xacttest; end' volatile;
+'begin return max(a) from xacttest; end' volatile READS SQL DATA;
 
 begin;
 update xacttest set a = max_xacttest() + 10 where a > 0;

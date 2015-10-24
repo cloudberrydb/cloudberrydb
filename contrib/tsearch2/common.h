@@ -8,7 +8,7 @@
 text	   *char2text(char *in);
 text	   *charl2text(char *in, int len);
 char	   *text2char(text *in);
-char	   *pnstrdup(char *in, int len);
+char	   *pnstrdup(const char *in, Size len);
 text	   *ptextdup(text *in);
 text	   *mtextdup(text *in);
 

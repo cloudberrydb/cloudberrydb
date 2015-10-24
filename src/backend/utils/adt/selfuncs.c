@@ -10,12 +10,13 @@
  *	  Index cost functions are registered in the pg_am catalog
  *	  in the "amcostestimate" attribute.
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 2006-2009, Greenplum inc
+ * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/utils/adt/selfuncs.c,v 1.214 2006/10/04 00:29:59 momjian Exp $
+ *	  $PostgreSQL: pgsql/src/backend/utils/adt/selfuncs.c,v 1.214.2.6 2007/08/31 23:35:29 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -76,9 +77,11 @@
 #include <ctype.h>
 #include <math.h>
 
+#include "catalog/catquery.h"
 #include "catalog/pg_opclass.h"
 #include "catalog/pg_statistic.h"
 #include "catalog/pg_type.h"
+#include "catalog/pg_constraint.h"
 #include "mb/pg_wchar.h"
 #include "nodes/makefuncs.h"
 #include "optimizer/clauses.h"
@@ -88,43 +91,36 @@
 #include "optimizer/plancat.h"
 #include "optimizer/restrictinfo.h"
 #include "optimizer/var.h"
+#include "parser/parse_coerce.h"
 #include "parser/parse_expr.h"
 #include "parser/parsetree.h"
 #include "utils/builtins.h"
 #include "utils/date.h"
 #include "utils/datum.h"
+#include "utils/fmgroids.h"
 #include "utils/lsyscache.h"
 #include "utils/nabstime.h"
 #include "utils/pg_locale.h"
 #include "utils/selfuncs.h"
 #include "utils/syscache.h"
 
+#include "cdb/cdbvars.h"                /* getgpsegmentCount */
 
 static double ineq_histogram_selectivity(VariableStatData *vardata,
 						   FmgrInfo *opproc, bool isgt,
 						   Datum constval, Oid consttype);
 static bool convert_to_scalar(Datum value, Oid valuetypid, double *scaledvalue,
 				  Datum lobound, Datum hibound, Oid boundstypid,
-				  double *scaledlobound, double *scaledhibound);
+				  double *scaledlobound, double *scaledhibound, bool isgt);
 static double convert_numeric_to_scalar(Datum value, Oid typid);
-static void convert_string_to_scalar(char *value,
-						 double *scaledvalue,
-						 char *lobound,
-						 double *scaledlobound,
-						 char *hibound,
-						 double *scaledhibound);
 static void convert_bytea_to_scalar(Datum value,
 						double *scaledvalue,
 						Datum lobound,
 						double *scaledlobound,
 						Datum hibound,
 						double *scaledhibound);
-static double convert_one_string_to_scalar(char *value,
-							 int rangelo, int rangehi);
 static double convert_one_bytea_to_scalar(unsigned char *value, int valuelen,
 							int rangelo, int rangehi);
-static char *convert_string_datum(Datum value, Oid typid);
-static double convert_timevalue_to_scalar(Datum value, Oid typid);
 static bool get_variable_maximum(PlannerInfo *root, VariableStatData *vardata,
 					 Oid sortop, Datum *max);
 static Selectivity prefix_selectivity(VariableStatData *vardata,
@@ -133,6 +129,15 @@ static Selectivity pattern_selectivity(Const *patt, Pattern_Type ptype);
 static Datum string_to_datum(const char *str, Oid datatype);
 static Const *string_to_const(const char *str, Oid datatype);
 static Const *string_to_bytea_const(const char *str, size_t str_len);
+
+static Selectivity 
+mcv_selectivity_cdb(VariableStatData   *vardata, 
+                    FmgrInfo           *opproc,
+				    Datum               constval, 
+                    bool                varonleft,
+				    Selectivity        *sumcommonp,     /* OUT */ 
+                    double             *nvaluesp);      /* OUT */
+
 
 
 /*
@@ -151,8 +156,8 @@ eqsel(PG_FUNCTION_ARGS)
 	List	   *args = (List *) PG_GETARG_POINTER(2);
 	int			varRelid = PG_GETARG_INT32(3);
 	VariableStatData vardata;
-	Node	   *other;
-	bool		varonleft;
+	Node	   *other = NULL;
+	bool		varonleft = false;
 	Datum	   *values;
 	int			nvalues;
 	float4	   *numbers;
@@ -178,11 +183,12 @@ eqsel(PG_FUNCTION_ARGS)
 		PG_RETURN_FLOAT8(0.0);
 	}
 
-	if (HeapTupleIsValid(vardata.statsTuple))
+	if (HeapTupleIsValid(getStatsTuple(&vardata)))
 	{
 		Form_pg_statistic stats;
+		HeapTuple tp = getStatsTuple(&vardata);
 
-		stats = (Form_pg_statistic) GETSTRUCT(vardata.statsTuple);
+		stats = (Form_pg_statistic) GETSTRUCT(tp);
 
 		if (IsA(other, Const))
 		{
@@ -198,7 +204,7 @@ eqsel(PG_FUNCTION_ARGS)
 			 * test.  If you don't like this, maybe you shouldn't be using
 			 * eqsel for your operator...)
 			 */
-			if (get_attstatsslot(vardata.statsTuple,
+			if (get_attstatsslot(tp,
 								 vardata.atttype, vardata.atttypmod,
 								 STATISTIC_KIND_MCV, InvalidOid,
 								 &values, &nvalues,
@@ -300,7 +306,7 @@ eqsel(PG_FUNCTION_ARGS)
 			 * Cross-check: selectivity should never be estimated as more than
 			 * the most common value's.
 			 */
-			if (get_attstatsslot(vardata.statsTuple,
+			if (get_attstatsslot(tp,
 								 vardata.atttype, vardata.atttypmod,
 								 STATISTIC_KIND_MCV, InvalidOid,
 								 NULL, NULL,
@@ -392,13 +398,14 @@ scalarineqsel(PlannerInfo *root, Oid operator, bool isgt,
 				hist_selec,
 				sumcommon;
 	double		selec;
+	HeapTuple	tp = getStatsTuple(vardata);
 
-	if (!HeapTupleIsValid(vardata->statsTuple))
+	if (!HeapTupleIsValid(getStatsTuple(vardata)))
 	{
 		/* no stats available, so default result */
 		return DEFAULT_INEQ_SEL;
 	}
-	stats = (Form_pg_statistic) GETSTRUCT(vardata->statsTuple);
+	stats = (Form_pg_statistic) GETSTRUCT(tp);
 
 	fmgr_info(get_opcode(operator), &opproc);
 
@@ -455,25 +462,40 @@ scalarineqsel(PlannerInfo *root, Oid operator, bool isgt,
  * The function result is the MCV selectivity, and the fraction of the
  * total population is returned into *sumcommonp.  Zeroes are returned
  * if there is no MCV list.
+ *
+ * CDB: The number of MCVs is returned into *nvaluesp.  
  */
-double
+double 
 mcv_selectivity(VariableStatData *vardata, FmgrInfo *opproc,
 				Datum constval, bool varonleft,
 				double *sumcommonp)
 {
+    return mcv_selectivity_cdb(vardata, opproc, constval, varonleft, 
+                               sumcommonp, NULL);
+}
+
+static Selectivity 
+mcv_selectivity_cdb(VariableStatData   *vardata, 
+                    FmgrInfo           *opproc,
+				    Datum               constval, 
+                    bool                varonleft,
+				    Selectivity        *sumcommonp,     /* OUT */ 
+                    double             *nvaluesp)       /* OUT */
+{
 	double		mcv_selec,
 				sumcommon;
 	Datum	   *values;
-	int			nvalues;
+	int			nvalues = 0;
 	float4	   *numbers;
 	int			nnumbers;
 	int			i;
+	HeapTuple	tp = getStatsTuple(vardata);
 
 	mcv_selec = 0.0;
 	sumcommon = 0.0;
 
-	if (HeapTupleIsValid(vardata->statsTuple) &&
-		get_attstatsslot(vardata->statsTuple,
+	if (HeapTupleIsValid(tp) &&
+		get_attstatsslot(tp,
 						 vardata->atttype, vardata->atttypmod,
 						 STATISTIC_KIND_MCV, InvalidOid,
 						 &values, &nvalues,
@@ -496,6 +518,8 @@ mcv_selectivity(VariableStatData *vardata, FmgrInfo *opproc,
 	}
 
 	*sumcommonp = sumcommon;
+    if (nvaluesp)
+        *nvaluesp = nvalues;
 	return mcv_selec;
 }
 
@@ -533,13 +557,14 @@ histogram_selectivity(VariableStatData *vardata, FmgrInfo *opproc,
 	double		result;
 	Datum	   *values;
 	int			nvalues;
+	HeapTuple	tp = getStatsTuple(vardata);
 
 	/* check sanity of parameters */
 	Assert(n_skip >= 0);
 	Assert(min_hist_size > 2 * n_skip);
 
-	if (HeapTupleIsValid(vardata->statsTuple) &&
-		get_attstatsslot(vardata->statsTuple,
+	if (HeapTupleIsValid(tp) &&
+		get_attstatsslot(tp,
 						 vardata->atttype, vardata->atttypmod,
 						 STATISTIC_KIND_HISTOGRAM, InvalidOid,
 						 &values, &nvalues,
@@ -594,6 +619,7 @@ ineq_histogram_selectivity(VariableStatData *vardata,
 	double		hist_selec;
 	Datum	   *values;
 	int			nvalues;
+	HeapTuple	tp = getStatsTuple(vardata);
 
 	hist_selec = 0.0;
 
@@ -607,8 +633,8 @@ ineq_histogram_selectivity(VariableStatData *vardata,
 	 * appears in pg_statistic is sorted the same way our operator sorts, or
 	 * the reverse way if isgt is TRUE.
 	 */
-	if (HeapTupleIsValid(vardata->statsTuple) &&
-		get_attstatsslot(vardata->statsTuple,
+	if (HeapTupleIsValid(tp) &&
+		get_attstatsslot(tp,
 						 vardata->atttype, vardata->atttypmod,
 						 STATISTIC_KIND_HISTOGRAM, InvalidOid,
 						 &values, &nvalues,
@@ -671,7 +697,7 @@ ineq_histogram_selectivity(VariableStatData *vardata,
 				if (convert_to_scalar(constval, consttype, &val,
 									  values[i - 1], values[i],
 									  vardata->vartype,
-									  &low, &high))
+									  &low, &high, isgt))
 				{
 					if (high <= low)
 					{
@@ -755,8 +781,8 @@ scalarltsel(PG_FUNCTION_ARGS)
 	List	   *args = (List *) PG_GETARG_POINTER(2);
 	int			varRelid = PG_GETARG_INT32(3);
 	VariableStatData vardata;
-	Node	   *other;
-	bool		varonleft;
+	Node	   *other = NULL;
+	bool		varonleft = false;
 	Datum		constval;
 	Oid			consttype;
 	bool		isgt;
@@ -830,8 +856,8 @@ scalargtsel(PG_FUNCTION_ARGS)
 	List	   *args = (List *) PG_GETARG_POINTER(2);
 	int			varRelid = PG_GETARG_INT32(3);
 	VariableStatData vardata;
-	Node	   *other;
-	bool		varonleft;
+	Node	   *other = NULL;
+	bool		varonleft = false;
 	Datum		constval;
 	Oid			consttype;
 	bool		isgt;
@@ -898,7 +924,7 @@ scalargtsel(PG_FUNCTION_ARGS)
  * patternsel			- Generic code for pattern-match selectivity.
  */
 static double
-patternsel(PG_FUNCTION_ARGS, Pattern_Type ptype)
+patternsel(PG_FUNCTION_ARGS, Pattern_Type ptype, bool negate)
 {
 	PlannerInfo *root = (PlannerInfo *) PG_GETARG_POINTER(0);
 	Oid			operator = PG_GETARG_OID(1);
@@ -906,8 +932,8 @@ patternsel(PG_FUNCTION_ARGS, Pattern_Type ptype)
 	int			varRelid = PG_GETARG_INT32(3);
 	VariableStatData vardata;
 	Node	   *variable;
-	Node	   *other;
-	bool		varonleft;
+	Node	   *other=NULL;
+	bool		varonleft=false;
 	Datum		constval;
 	Oid			consttype;
 	Oid			vartype;
@@ -919,22 +945,39 @@ patternsel(PG_FUNCTION_ARGS, Pattern_Type ptype)
 	double		result;
 
 	/*
+	 * If this is for a NOT LIKE or similar operator, get the corresponding
+	 * positive-match operator and work with that.  Set result to the
+	 * correct default estimate, too.
+	 */
+	if (negate)
+	{
+		operator = get_negator(operator);
+		if (!OidIsValid(operator))
+			elog(ERROR, "patternsel called for operator without a negator");
+		result = 1.0 - DEFAULT_MATCH_SEL;
+	}
+	else
+	{
+		result = DEFAULT_MATCH_SEL;
+	}
+
+	/*
 	 * If expression is not variable op constant, then punt and return a
 	 * default estimate.
 	 */
 	if (!get_restriction_variable(root, args, varRelid,
 								  &vardata, &other, &varonleft))
-		return DEFAULT_MATCH_SEL;
+		return result;
 	if (!varonleft || !IsA(other, Const))
 	{
 		ReleaseVariableStats(vardata);
-		return DEFAULT_MATCH_SEL;
+		return result;
 	}
 	variable = (Node *) linitial(args);
 
 	/*
 	 * If the constant is NULL, assume operator is strict and return zero, ie,
-	 * operator will never return TRUE.
+	 * operator will never return TRUE.  (It's zero even for a negator op.)
 	 */
 	if (((Const *) other)->constisnull)
 	{
@@ -953,7 +996,7 @@ patternsel(PG_FUNCTION_ARGS, Pattern_Type ptype)
 	if (consttype != TEXTOID && consttype != BYTEAOID)
 	{
 		ReleaseVariableStats(vardata);
-		return DEFAULT_MATCH_SEL;
+		return result;
 	}
 
 	/*
@@ -988,7 +1031,7 @@ patternsel(PG_FUNCTION_ARGS, Pattern_Type ptype)
 			break;
 		default:
 			ReleaseVariableStats(vardata);
-			return DEFAULT_MATCH_SEL;
+			return result;
 	}
 
 	/* divide pattern into fixed prefix and remainder */
@@ -1017,7 +1060,7 @@ patternsel(PG_FUNCTION_ARGS, Pattern_Type ptype)
 				elog(ERROR, "unrecognized consttype: %u",
 					 prefix->consttype);
 				ReleaseVariableStats(vardata);
-				return DEFAULT_MATCH_SEL;
+				return result;
 		}
 		prefix = string_to_const(prefixstr, vartype);
 		pfree(prefixstr);
@@ -1057,6 +1100,11 @@ patternsel(PG_FUNCTION_ARGS, Pattern_Type ptype)
 		 * the total population, this gives us a big leg up in accuracy.)
 		 */
 		Selectivity selec;
+        Selectivity eqsel;
+        Selectivity fewsel;
+        double      fewvalues = 2.0;
+        double      ncommon;
+        double      ndistinct;
 		FmgrInfo	opproc;
 		double		nullfrac,
 					mcv_selec,
@@ -1065,41 +1113,51 @@ patternsel(PG_FUNCTION_ARGS, Pattern_Type ptype)
 		/* Try to use the histogram entries to get selectivity */
 		fmgr_info(get_opcode(operator), &opproc);
 
-		selec = histogram_selectivity(&vardata, &opproc, constval, true,
-									  100, 1);
-		if (selec < 0)
-		{
-			/* Nope, so fake it with the heuristic method */
-			Selectivity prefixsel;
-			Selectivity restsel;
-
-			if (pstatus == Pattern_Prefix_Partial)
-				prefixsel = prefix_selectivity(&vardata, opclass, prefix);
-			else
-				prefixsel = 1.0;
-			restsel = pattern_selectivity(rest, ptype);
-			selec = prefixsel * restsel;
-		}
-		else
-		{
-			/* Yes, but don't believe extremely small or large estimates. */
-			if (selec < 0.0001)
-				selec = 0.0001;
-			else if (selec > 0.9999)
-				selec = 0.9999;
-		}
-
 		/*
 		 * If we have most-common-values info, add up the fractions of the MCV
 		 * entries that satisfy MCV OP PATTERN.  These fractions contribute
 		 * directly to the result selectivity.	Also add up the total fraction
 		 * represented by MCV entries.
 		 */
-		mcv_selec = mcv_selectivity(&vardata, &opproc, constval, true,
-									&sumcommon);
+		mcv_selec = mcv_selectivity_cdb(&vardata, &opproc, constval, true,
+									    &sumcommon, &ncommon);
 
-		if (HeapTupleIsValid(vardata.statsTuple))
-			nullfrac = ((Form_pg_statistic) GETSTRUCT(vardata.statsTuple))->stanullfrac;
+        /* CDB: LIKE cannot select fewer rows than "=". */
+        ndistinct = get_variable_numdistinct(&vardata) - ncommon;
+        eqsel = 1.0 / Max(1.0, ndistinct);
+
+		selec = histogram_selectivity(&vardata, &opproc, constval, true,
+									  100, 1);
+		if (selec < 0)
+		{
+			/* Nope, so fake it with the heuristic method */
+            selec = pattern_selectivity(rest, ptype);
+
+			if (pstatus == Pattern_Prefix_Partial)
+            {
+			    Selectivity prefixsel;
+
+				prefixsel = prefix_selectivity(&vardata, opclass, prefix);
+
+                /* CDB: Assume prefix matches at least a few distinct values. */
+                fewsel = (DEFAULT_RANGE_INEQ_SEL / DEFAULT_EQ_SEL) * eqsel;
+                prefixsel = Min(Max(prefixsel, fewsel), 1.0);
+
+                selec *= prefixsel;
+            }
+			else
+                fewvalues = DEFAULT_MATCH_SEL / DEFAULT_EQ_SEL;
+		}
+
+        /* CDB: Assume whole pattern matches at least a few distinct values. */
+        fewsel = fewvalues * eqsel;
+        selec = Min(Max(selec, fewsel), 1.0);
+
+		if (HeapTupleIsValid(getStatsTuple(&vardata)))
+		{
+			HeapTuple tp = getStatsTuple(&vardata);
+			nullfrac = ((Form_pg_statistic) GETSTRUCT(tp))->stanullfrac;
+		}
 		else
 			nullfrac = 0.0;
 
@@ -1124,7 +1182,7 @@ patternsel(PG_FUNCTION_ARGS, Pattern_Type ptype)
 
 	ReleaseVariableStats(vardata);
 
-	return result;
+	return negate ? (1.0 - result) : result;
 }
 
 /*
@@ -1133,7 +1191,7 @@ patternsel(PG_FUNCTION_ARGS, Pattern_Type ptype)
 Datum
 regexeqsel(PG_FUNCTION_ARGS)
 {
-	PG_RETURN_FLOAT8(patternsel(fcinfo, Pattern_Type_Regex));
+	PG_RETURN_FLOAT8(patternsel(fcinfo, Pattern_Type_Regex, false));
 }
 
 /*
@@ -1142,7 +1200,7 @@ regexeqsel(PG_FUNCTION_ARGS)
 Datum
 icregexeqsel(PG_FUNCTION_ARGS)
 {
-	PG_RETURN_FLOAT8(patternsel(fcinfo, Pattern_Type_Regex_IC));
+	PG_RETURN_FLOAT8(patternsel(fcinfo, Pattern_Type_Regex_IC, false));
 }
 
 /*
@@ -1151,7 +1209,7 @@ icregexeqsel(PG_FUNCTION_ARGS)
 Datum
 likesel(PG_FUNCTION_ARGS)
 {
-	PG_RETURN_FLOAT8(patternsel(fcinfo, Pattern_Type_Like));
+	PG_RETURN_FLOAT8(patternsel(fcinfo, Pattern_Type_Like, false));
 }
 
 /*
@@ -1160,7 +1218,7 @@ likesel(PG_FUNCTION_ARGS)
 Datum
 iclikesel(PG_FUNCTION_ARGS)
 {
-	PG_RETURN_FLOAT8(patternsel(fcinfo, Pattern_Type_Like_IC));
+	PG_RETURN_FLOAT8(patternsel(fcinfo, Pattern_Type_Like_IC, false));
 }
 
 /*
@@ -1169,11 +1227,7 @@ iclikesel(PG_FUNCTION_ARGS)
 Datum
 regexnesel(PG_FUNCTION_ARGS)
 {
-	double		result;
-
-	result = patternsel(fcinfo, Pattern_Type_Regex);
-	result = 1.0 - result;
-	PG_RETURN_FLOAT8(result);
+	PG_RETURN_FLOAT8(patternsel(fcinfo, Pattern_Type_Regex, true));
 }
 
 /*
@@ -1182,11 +1236,7 @@ regexnesel(PG_FUNCTION_ARGS)
 Datum
 icregexnesel(PG_FUNCTION_ARGS)
 {
-	double		result;
-
-	result = patternsel(fcinfo, Pattern_Type_Regex_IC);
-	result = 1.0 - result;
-	PG_RETURN_FLOAT8(result);
+	PG_RETURN_FLOAT8(patternsel(fcinfo, Pattern_Type_Regex_IC, true));
 }
 
 /*
@@ -1195,11 +1245,7 @@ icregexnesel(PG_FUNCTION_ARGS)
 Datum
 nlikesel(PG_FUNCTION_ARGS)
 {
-	double		result;
-
-	result = patternsel(fcinfo, Pattern_Type_Like);
-	result = 1.0 - result;
-	PG_RETURN_FLOAT8(result);
+	PG_RETURN_FLOAT8(patternsel(fcinfo, Pattern_Type_Like, true));
 }
 
 /*
@@ -1208,11 +1254,7 @@ nlikesel(PG_FUNCTION_ARGS)
 Datum
 icnlikesel(PG_FUNCTION_ARGS)
 {
-	double		result;
-
-	result = patternsel(fcinfo, Pattern_Type_Like_IC);
-	result = 1.0 - result;
-	PG_RETURN_FLOAT8(result);
+	PG_RETURN_FLOAT8(patternsel(fcinfo, Pattern_Type_Like_IC, true));
 }
 
 /*
@@ -1227,7 +1269,7 @@ booltestsel(PlannerInfo *root, BoolTestType booltesttype, Node *arg,
 
 	examine_variable(root, arg, varRelid, &vardata);
 
-	if (HeapTupleIsValid(vardata.statsTuple))
+	if (HeapTupleIsValid(getStatsTuple(&vardata)))
 	{
 		Form_pg_statistic stats;
 		double		freq_null;
@@ -1235,11 +1277,13 @@ booltestsel(PlannerInfo *root, BoolTestType booltesttype, Node *arg,
 		int			nvalues;
 		float4	   *numbers;
 		int			nnumbers;
+		HeapTuple	tp = getStatsTuple(&vardata);
 
-		stats = (Form_pg_statistic) GETSTRUCT(vardata.statsTuple);
+
+		stats = (Form_pg_statistic) GETSTRUCT(tp);
 		freq_null = stats->stanullfrac;
 
-		if (get_attstatsslot(vardata.statsTuple,
+		if (get_attstatsslot(tp,
 							 vardata.atttype, vardata.atttypmod,
 							 STATISTIC_KIND_MCV, InvalidOid,
 							 &values, &nvalues,
@@ -1356,12 +1400,14 @@ booltestsel(PlannerInfo *root, BoolTestType booltesttype, Node *arg,
 			case IS_TRUE:
 			case IS_NOT_FALSE:
 				selec = (double) clause_selectivity(root, arg,
-													varRelid, jointype);
+													varRelid, jointype,
+													false /* use_damping */);
 				break;
 			case IS_FALSE:
 			case IS_NOT_TRUE:
 				selec = 1.0 - (double) clause_selectivity(root, arg,
-														  varRelid, jointype);
+														  varRelid, jointype,
+														  false /* use_damping */);
 				break;
 			default:
 				elog(ERROR, "unrecognized booltesttype: %d",
@@ -1384,19 +1430,33 @@ booltestsel(PlannerInfo *root, BoolTestType booltesttype, Node *arg,
  */
 Selectivity
 nulltestsel(PlannerInfo *root, NullTestType nulltesttype,
-			Node *arg, int varRelid)
+			Node *arg, int varRelid, JoinType jointype)
 {
 	VariableStatData vardata;
 	double		selec;
 
+	/*
+	 * Special hack: an IS NULL test being applied at an outer join should not
+	 * be taken at face value, since it's very likely being used to select the
+	 * outer-side rows that don't have a match, and thus its selectivity has
+	 * nothing whatever to do with the statistics of the original table
+	 * column.  We do not have nearly enough context here to determine its
+	 * true selectivity, so for the moment punt and guess at 0.5.  Eventually
+	 * the planner should be made to provide enough info about the clause's
+	 * context to let us do better.
+	 */
+	if (IS_OUTER_JOIN(jointype) && nulltesttype == IS_NULL)
+		return (Selectivity) 0.5;
+
 	examine_variable(root, arg, varRelid, &vardata);
 
-	if (HeapTupleIsValid(vardata.statsTuple))
+	if (HeapTupleIsValid(getStatsTuple(&vardata)))
 	{
 		Form_pg_statistic stats;
+		HeapTuple tp = getStatsTuple(&vardata);
 		double		freq_null;
 
-		stats = (Form_pg_statistic) GETSTRUCT(vardata.statsTuple);
+		stats = (Form_pg_statistic) GETSTRUCT(tp);
 		freq_null = stats->stanullfrac;
 
 		switch (nulltesttype)
@@ -1451,6 +1511,63 @@ nulltestsel(PlannerInfo *root, NullTestType nulltesttype,
 }
 
 /*
+ * strip_array_coercion - strip binary-compatible relabeling from an array expr
+ *
+ * For array values, the parser doesn't generate simple RelabelType nodes,
+ * but function calls of array_type_coerce() or array_type_length_coerce().
+ * If we want to cope with binary-compatible situations we have to look
+ * through these calls whenever the element-type coercion is binary-compatible.
+ */
+static Node *
+strip_array_coercion(Node *node)
+{
+	/* could be more than one level, so loop */
+	for (;;)
+	{
+		if (node && IsA(node, RelabelType))
+		{
+			/* We don't really expect this case, but may as well cope */
+			node = (Node *) ((RelabelType *) node)->arg;
+		}
+		else if (node && IsA(node, FuncExpr))
+		{
+			FuncExpr   *fexpr = (FuncExpr *) node;
+			Node	   *arg1;
+			Oid			src_elem_type;
+			Oid			tgt_elem_type;
+			Oid			funcId;
+
+			/* must be the right function(s) */
+			if (!(fexpr->funcid == F_ARRAY_TYPE_COERCE ||
+				  fexpr->funcid == F_ARRAY_TYPE_LENGTH_COERCE))
+				break;
+
+			/* fetch source and destination array element types */
+			arg1 = (Node *) linitial(fexpr->args);
+			src_elem_type = get_element_type(exprType(arg1));
+			if (src_elem_type == InvalidOid)
+				break;			/* probably shouldn't happen */
+			tgt_elem_type = get_element_type(fexpr->funcresulttype);
+			if (tgt_elem_type == InvalidOid)
+				break;			/* probably shouldn't happen */
+
+			/* find out how to coerce */
+			if (!find_coercion_pathway(tgt_elem_type, src_elem_type,
+									   COERCION_EXPLICIT, &funcId))
+				break;			/* definitely shouldn't happen */
+
+			if (OidIsValid(funcId))
+				break;			/* non-binary-compatible coercion */
+
+			node = arg1;		/* OK to look through the node */
+		}
+		else
+			break;
+	}
+	return node;
+}
+
+/*
  *		scalararraysel		- Selectivity of ScalarArrayOpExpr Node.
  */
 Selectivity
@@ -1463,6 +1580,7 @@ scalararraysel(PlannerInfo *root,
 	bool		useOr = clause->useOr;
 	Node	   *leftop;
 	Node	   *rightop;
+	Oid			nominal_element_type;
 	RegProcedure oprsel;
 	FmgrInfo	oprselproc;
 	Datum		selarg4;
@@ -1486,6 +1604,19 @@ scalararraysel(PlannerInfo *root,
 		return (Selectivity) 0.5;
 	fmgr_info(oprsel, &oprselproc);
 
+	/* deconstruct the expression */
+	Assert(list_length(clause->args) == 2);
+	leftop = (Node *) linitial(clause->args);
+	rightop = (Node *) lsecond(clause->args);
+
+	/* get nominal (after relabeling) element type of rightop */
+	nominal_element_type = get_element_type(exprType(rightop));
+	if (!OidIsValid(nominal_element_type))
+		return (Selectivity) 0.5;			/* probably shouldn't happen */
+
+	/* look through any binary-compatible relabeling of rightop */
+	rightop = strip_array_coercion(rightop);
+
 	/*
 	 * We consider three cases:
 	 *
@@ -1498,10 +1629,6 @@ scalararraysel(PlannerInfo *root,
 	 *
 	 * 3. otherwise, make a guess ...
 	 */
-	Assert(list_length(clause->args) == 2);
-	leftop = (Node *) linitial(clause->args);
-	rightop = (Node *) lsecond(clause->args);
-
 	if (rightop && IsA(rightop, Const))
 	{
 		Datum		arraydatum = ((Const *) rightop)->constvalue;
@@ -1531,7 +1658,7 @@ scalararraysel(PlannerInfo *root,
 			Selectivity s2;
 
 			args = list_make2(leftop,
-							  makeConst(ARR_ELEMTYPE(arrayval),
+							  makeConst(nominal_element_type, -1,
 										elmlen,
 										elem_values[i],
 										elem_nulls[i],
@@ -1560,10 +1687,16 @@ scalararraysel(PlannerInfo *root,
 		s1 = useOr ? 0.0 : 1.0;
 		foreach(l, arrayexpr->elements)
 		{
+			Node	   *elem = (Node *) lfirst(l);
 			List	   *args;
 			Selectivity s2;
 
-			args = list_make2(leftop, lfirst(l));
+			/*
+			 * Theoretically, if elem isn't of nominal_element_type we should
+			 * insert a RelabelType, but it seems unlikely that any operator
+			 * estimation function would really care ...
+			 */
+			args = list_make2(leftop, elem);
 			s2 = DatumGetFloat8(FunctionCall4(&oprselproc,
 											  PointerGetDatum(root),
 											  ObjectIdGetDatum(operator),
@@ -1588,7 +1721,7 @@ scalararraysel(PlannerInfo *root,
 		 * constant; CaseTestExpr is a convenient choice.
 		 */
 		dummyexpr = makeNode(CaseTestExpr);
-		dummyexpr->typeId = get_element_type(exprType(rightop));
+		dummyexpr->typeId = nominal_element_type;
 		dummyexpr->typeMod = -1;
 		args = list_make2(leftop, dummyexpr);
 		s2 = DatumGetFloat8(FunctionCall4(&oprselproc,
@@ -1625,6 +1758,9 @@ scalararraysel(PlannerInfo *root,
 int
 estimate_array_length(Node *arrayexpr)
 {
+	/* look through any binary-compatible relabeling of arrayexpr */
+	arrayexpr = strip_array_coercion(arrayexpr);
+
 	if (arrayexpr && IsA(arrayexpr, Const))
 	{
 		Datum		arraydatum = ((Const *) arrayexpr)->constvalue;
@@ -1740,10 +1876,11 @@ eqjoinsel(PG_FUNCTION_ARGS)
 	nd1 = get_variable_numdistinct(&vardata1);
 	nd2 = get_variable_numdistinct(&vardata2);
 
-	if (HeapTupleIsValid(vardata1.statsTuple))
+	if (HeapTupleIsValid(getStatsTuple(&vardata1)))
 	{
-		stats1 = (Form_pg_statistic) GETSTRUCT(vardata1.statsTuple);
-		have_mcvs1 = get_attstatsslot(vardata1.statsTuple,
+		HeapTuple tp = getStatsTuple(&vardata1);
+		stats1 = (Form_pg_statistic) GETSTRUCT(tp);
+		have_mcvs1 = get_attstatsslot(tp,
 									  vardata1.atttype,
 									  vardata1.atttypmod,
 									  STATISTIC_KIND_MCV,
@@ -1752,10 +1889,11 @@ eqjoinsel(PG_FUNCTION_ARGS)
 									  &numbers1, &nnumbers1);
 	}
 
-	if (HeapTupleIsValid(vardata2.statsTuple))
+	if (HeapTupleIsValid(getStatsTuple(&vardata2)))
 	{
-		stats2 = (Form_pg_statistic) GETSTRUCT(vardata2.statsTuple);
-		have_mcvs2 = get_attstatsslot(vardata2.statsTuple,
+		HeapTuple tp = getStatsTuple(&vardata2);
+		stats2 = (Form_pg_statistic) GETSTRUCT(tp);
+		have_mcvs2 = get_attstatsslot(tp,
 									  vardata2.atttype,
 									  vardata2.atttypmod,
 									  STATISTIC_KIND_MCV,
@@ -1815,10 +1953,7 @@ eqjoinsel(PG_FUNCTION_ARGS)
 		 * determine which var is really on which side of the join. Perhaps
 		 * someday we should pass in more information.
 		 */
-		if (jointype == JOIN_IN ||
-			jointype == JOIN_REVERSE_IN ||
-			jointype == JOIN_UNIQUE_INNER ||
-			jointype == JOIN_UNIQUE_OUTER)
+		if (jointype == JOIN_IN)
 		{
 			float4		oneovern = 1.0 / nd2;
 
@@ -2019,12 +2154,22 @@ scalargtjoinsel(PG_FUNCTION_ARGS)
 }
 
 /*
+ * patternjoinsel		- Generic code for pattern-match join selectivity.
+ */
+static double
+patternjoinsel(PG_FUNCTION_ARGS, Pattern_Type ptype, bool negate)
+{
+	/* For the moment we just punt. */
+	return negate ? (1.0 - DEFAULT_MATCH_SEL) : DEFAULT_MATCH_SEL;
+}
+
+/*
  *		regexeqjoinsel	- Join selectivity of regular-expression pattern match.
  */
 Datum
 regexeqjoinsel(PG_FUNCTION_ARGS)
 {
-	PG_RETURN_FLOAT8(DEFAULT_MATCH_SEL);
+	PG_RETURN_FLOAT8(patternjoinsel(fcinfo, Pattern_Type_Regex, false));
 }
 
 /*
@@ -2033,7 +2178,7 @@ regexeqjoinsel(PG_FUNCTION_ARGS)
 Datum
 icregexeqjoinsel(PG_FUNCTION_ARGS)
 {
-	PG_RETURN_FLOAT8(DEFAULT_MATCH_SEL);
+	PG_RETURN_FLOAT8(patternjoinsel(fcinfo, Pattern_Type_Regex_IC, false));
 }
 
 /*
@@ -2042,7 +2187,7 @@ icregexeqjoinsel(PG_FUNCTION_ARGS)
 Datum
 likejoinsel(PG_FUNCTION_ARGS)
 {
-	PG_RETURN_FLOAT8(DEFAULT_MATCH_SEL);
+	PG_RETURN_FLOAT8(patternjoinsel(fcinfo, Pattern_Type_Like, false));
 }
 
 /*
@@ -2051,7 +2196,7 @@ likejoinsel(PG_FUNCTION_ARGS)
 Datum
 iclikejoinsel(PG_FUNCTION_ARGS)
 {
-	PG_RETURN_FLOAT8(DEFAULT_MATCH_SEL);
+	PG_RETURN_FLOAT8(patternjoinsel(fcinfo, Pattern_Type_Like_IC, false));
 }
 
 /*
@@ -2060,11 +2205,7 @@ iclikejoinsel(PG_FUNCTION_ARGS)
 Datum
 regexnejoinsel(PG_FUNCTION_ARGS)
 {
-	float8		result;
-
-	result = DatumGetFloat8(regexeqjoinsel(fcinfo));
-	result = 1.0 - result;
-	PG_RETURN_FLOAT8(result);
+	PG_RETURN_FLOAT8(patternjoinsel(fcinfo, Pattern_Type_Regex, true));
 }
 
 /*
@@ -2073,11 +2214,7 @@ regexnejoinsel(PG_FUNCTION_ARGS)
 Datum
 icregexnejoinsel(PG_FUNCTION_ARGS)
 {
-	float8		result;
-
-	result = DatumGetFloat8(icregexeqjoinsel(fcinfo));
-	result = 1.0 - result;
-	PG_RETURN_FLOAT8(result);
+	PG_RETURN_FLOAT8(patternjoinsel(fcinfo, Pattern_Type_Regex_IC, true));
 }
 
 /*
@@ -2086,11 +2223,7 @@ icregexnejoinsel(PG_FUNCTION_ARGS)
 Datum
 nlikejoinsel(PG_FUNCTION_ARGS)
 {
-	float8		result;
-
-	result = DatumGetFloat8(likejoinsel(fcinfo));
-	result = 1.0 - result;
-	PG_RETURN_FLOAT8(result);
+	PG_RETURN_FLOAT8(patternjoinsel(fcinfo, Pattern_Type_Like, true));
 }
 
 /*
@@ -2099,11 +2232,7 @@ nlikejoinsel(PG_FUNCTION_ARGS)
 Datum
 icnlikejoinsel(PG_FUNCTION_ARGS)
 {
-	float8		result;
-
-	result = DatumGetFloat8(iclikejoinsel(fcinfo));
-	result = 1.0 - result;
-	PG_RETURN_FLOAT8(result);
+	PG_RETURN_FLOAT8(patternjoinsel(fcinfo, Pattern_Type_Like_IC, true));
 }
 
 /*
@@ -2139,8 +2268,8 @@ mergejoinscansel(PlannerInfo *root, Node *clause,
 				leop,
 				revgtop,
 				revleop;
-	Datum		leftmax,
-				rightmax;
+	Datum		leftmax = 0,
+				rightmax = 0;
 	double		selec;
 
 	/* Set default results if we can't figure anything out. */
@@ -2382,7 +2511,9 @@ estimate_num_groups(PlannerInfo *root, List *groupExprs, double input_rows)
 		 * complicated.
 		 */
 		examine_variable(root, groupexpr, 0, &vardata);
-		if (vardata.statsTuple != NULL || vardata.isunique)
+		
+		if (HeapTupleIsValid(getStatsTuple(&vardata))
+			|| vardata.isunique)
 		{
 			varinfos = add_unique_group_var(root, varinfos,
 											groupexpr, &vardata);
@@ -2470,7 +2601,9 @@ estimate_num_groups(PlannerInfo *root, List *groupExprs, double input_rows)
 		/*
 		 * Sanity check --- don't divide by zero if empty relation.
 		 */
-		Assert(rel->reloptkind == RELOPT_BASEREL);
+		Assert(rel->reloptkind == RELOPT_BASEREL ||
+			   (rel->reloptkind == RELOPT_OTHER_MEMBER_REL &&
+				rel->rtekind == RTE_RELATION));
 		if (rel->tuples > 0)
 		{
 			/*
@@ -2568,11 +2701,12 @@ estimate_hash_bucketsize(PlannerInfo *root, Node *hashkey, double nbuckets)
 	/* Get number of distinct values and fraction that are null */
 	ndistinct = get_variable_numdistinct(&vardata);
 
-	if (HeapTupleIsValid(vardata.statsTuple))
+	if (HeapTupleIsValid(getStatsTuple(&vardata)))
 	{
+		HeapTuple tp = getStatsTuple(&vardata);
 		Form_pg_statistic stats;
 
-		stats = (Form_pg_statistic) GETSTRUCT(vardata.statsTuple);
+		stats = (Form_pg_statistic) GETSTRUCT(tp);
 		stanullfrac = stats->stanullfrac;
 	}
 	else
@@ -2619,9 +2753,11 @@ estimate_hash_bucketsize(PlannerInfo *root, Node *hashkey, double nbuckets)
 	 */
 	mcvfreq = 0.0;
 
-	if (HeapTupleIsValid(vardata.statsTuple))
+	if (HeapTupleIsValid(getStatsTuple(&vardata)))
 	{
-		if (get_attstatsslot(vardata.statsTuple,
+		HeapTuple tp = getStatsTuple(&vardata);
+
+		if (get_attstatsslot(tp,
 							 vardata.atttype, vardata.atttypmod,
 							 STATISTIC_KIND_MCV, InvalidOid,
 							 NULL, NULL, &numbers, &nnumbers))
@@ -2678,9 +2814,10 @@ estimate_hash_bucketsize(PlannerInfo *root, Node *hashkey, double nbuckets)
  * "double" values.  (NUMERIC values that are outside the range of "double"
  * are clamped to +/- HUGE_VAL.)
  *
- * String datatypes are converted by convert_string_to_scalar(),
- * which is explained below.  The reason why this routine deals with
- * three values at a time, not just one, is that we need it for strings.
+ * String datatypes are converted to have hi and lo bound be constants, with
+ *    the scaledvalue equally either hi or lo, depending on the value of isgt
+ *    (done so that the caller will include the entire bucket in the final
+ *     computed selectivity, even after inverting for the isgt case)
  *
  * The bytea datatype is just enough different from strings that it has
  * to be treated separately.
@@ -2693,11 +2830,16 @@ estimate_hash_bucketsize(PlannerInfo *root, Node *hashkey, double nbuckets)
  *
  * The several datatypes representing relative times (intervals) are all
  * converted to measurements expressed in seconds.
+ *
+ * isgt can be used by datatypes which cannot interpolate and instead must
+ *   return an appropriate default
+ *
  */
 static bool
 convert_to_scalar(Datum value, Oid valuetypid, double *scaledvalue,
 				  Datum lobound, Datum hibound, Oid boundstypid,
-				  double *scaledlobound, double *scaledhibound)
+				  double *scaledlobound, double *scaledhibound,
+				  bool isgt)
 {
 	/*
 	 * Both the valuetypid and the boundstypid should exactly match the
@@ -2747,16 +2889,9 @@ convert_to_scalar(Datum value, Oid valuetypid, double *scaledvalue,
 		case TEXTOID:
 		case NAMEOID:
 			{
-				char	   *valstr = convert_string_datum(value, valuetypid);
-				char	   *lostr = convert_string_datum(lobound, boundstypid);
-				char	   *histr = convert_string_datum(hibound, boundstypid);
-
-				convert_string_to_scalar(valstr, scaledvalue,
-										 lostr, scaledlobound,
-										 histr, scaledhibound);
-				pfree(valstr);
-				pfree(lostr);
-				pfree(histr);
+			    *scaledlobound = 1;
+			    *scaledhibound = 2;
+			    *scaledvalue = isgt ? 1 : 2;
 				return true;
 			}
 
@@ -2849,234 +2984,9 @@ convert_numeric_to_scalar(Datum value, Oid typid)
 }
 
 /*
- * Do convert_to_scalar()'s work for any character-string data type.
- *
- * String datatypes are converted to a scale that ranges from 0 to 1,
- * where we visualize the bytes of the string as fractional digits.
- *
- * We do not want the base to be 256, however, since that tends to
- * generate inflated selectivity estimates; few databases will have
- * occurrences of all 256 possible byte values at each position.
- * Instead, use the smallest and largest byte values seen in the bounds
- * as the estimated range for each byte, after some fudging to deal with
- * the fact that we probably aren't going to see the full range that way.
- *
- * An additional refinement is that we discard any common prefix of the
- * three strings before computing the scaled values.  This allows us to
- * "zoom in" when we encounter a narrow data range.  An example is a phone
- * number database where all the values begin with the same area code.
- * (Actually, the bounds will be adjacent histogram-bin-boundary values,
- * so this is more likely to happen than you might think.)
- */
-static void
-convert_string_to_scalar(char *value,
-						 double *scaledvalue,
-						 char *lobound,
-						 double *scaledlobound,
-						 char *hibound,
-						 double *scaledhibound)
-{
-	int			rangelo,
-				rangehi;
-	char	   *sptr;
-
-	rangelo = rangehi = (unsigned char) hibound[0];
-	for (sptr = lobound; *sptr; sptr++)
-	{
-		if (rangelo > (unsigned char) *sptr)
-			rangelo = (unsigned char) *sptr;
-		if (rangehi < (unsigned char) *sptr)
-			rangehi = (unsigned char) *sptr;
-	}
-	for (sptr = hibound; *sptr; sptr++)
-	{
-		if (rangelo > (unsigned char) *sptr)
-			rangelo = (unsigned char) *sptr;
-		if (rangehi < (unsigned char) *sptr)
-			rangehi = (unsigned char) *sptr;
-	}
-	/* If range includes any upper-case ASCII chars, make it include all */
-	if (rangelo <= 'Z' && rangehi >= 'A')
-	{
-		if (rangelo > 'A')
-			rangelo = 'A';
-		if (rangehi < 'Z')
-			rangehi = 'Z';
-	}
-	/* Ditto lower-case */
-	if (rangelo <= 'z' && rangehi >= 'a')
-	{
-		if (rangelo > 'a')
-			rangelo = 'a';
-		if (rangehi < 'z')
-			rangehi = 'z';
-	}
-	/* Ditto digits */
-	if (rangelo <= '9' && rangehi >= '0')
-	{
-		if (rangelo > '0')
-			rangelo = '0';
-		if (rangehi < '9')
-			rangehi = '9';
-	}
-
-	/*
-	 * If range includes less than 10 chars, assume we have not got enough
-	 * data, and make it include regular ASCII set.
-	 */
-	if (rangehi - rangelo < 9)
-	{
-		rangelo = ' ';
-		rangehi = 127;
-	}
-
-	/*
-	 * Now strip any common prefix of the three strings.
-	 */
-	while (*lobound)
-	{
-		if (*lobound != *hibound || *lobound != *value)
-			break;
-		lobound++, hibound++, value++;
-	}
-
-	/*
-	 * Now we can do the conversions.
-	 */
-	*scaledvalue = convert_one_string_to_scalar(value, rangelo, rangehi);
-	*scaledlobound = convert_one_string_to_scalar(lobound, rangelo, rangehi);
-	*scaledhibound = convert_one_string_to_scalar(hibound, rangelo, rangehi);
-}
-
-static double
-convert_one_string_to_scalar(char *value, int rangelo, int rangehi)
-{
-	int			slen = strlen(value);
-	double		num,
-				denom,
-				base;
-
-	if (slen <= 0)
-		return 0.0;				/* empty string has scalar value 0 */
-
-	/*
-	 * Since base is at least 10, need not consider more than about 20 chars
-	 */
-	if (slen > 20)
-		slen = 20;
-
-	/* Convert initial characters to fraction */
-	base = rangehi - rangelo + 1;
-	num = 0.0;
-	denom = base;
-	while (slen-- > 0)
-	{
-		int			ch = (unsigned char) *value++;
-
-		if (ch < rangelo)
-			ch = rangelo - 1;
-		else if (ch > rangehi)
-			ch = rangehi + 1;
-		num += ((double) (ch - rangelo)) / denom;
-		denom *= base;
-	}
-
-	return num;
-}
-
-/*
- * Convert a string-type Datum into a palloc'd, null-terminated string.
- *
- * When using a non-C locale, we must pass the string through strxfrm()
- * before continuing, so as to generate correct locale-specific results.
- */
-static char *
-convert_string_datum(Datum value, Oid typid)
-{
-	char	   *val;
-
-	switch (typid)
-	{
-		case CHAROID:
-			val = (char *) palloc(2);
-			val[0] = DatumGetChar(value);
-			val[1] = '\0';
-			break;
-		case BPCHAROID:
-		case VARCHAROID:
-		case TEXTOID:
-			{
-				char	   *str = (char *) VARDATA(DatumGetPointer(value));
-				int			strlength = VARSIZE(DatumGetPointer(value)) - VARHDRSZ;
-
-				val = (char *) palloc(strlength + 1);
-				memcpy(val, str, strlength);
-				val[strlength] = '\0';
-				break;
-			}
-		case NAMEOID:
-			{
-				NameData   *nm = (NameData *) DatumGetPointer(value);
-
-				val = pstrdup(NameStr(*nm));
-				break;
-			}
-		default:
-
-			/*
-			 * Can't get here unless someone tries to use scalarltsel on an
-			 * operator with one string and one non-string operand.
-			 */
-			elog(ERROR, "unsupported type: %u", typid);
-			return NULL;
-	}
-
-	if (!lc_collate_is_c())
-	{
-		char	   *xfrmstr;
-		size_t		xfrmlen;
-		size_t		xfrmlen2;
-
-		/*
-		 * Note: originally we guessed at a suitable output buffer size, and
-		 * only needed to call strxfrm twice if our guess was too small.
-		 * However, it seems that some versions of Solaris have buggy strxfrm
-		 * that can write past the specified buffer length in that scenario.
-		 * So, do it the dumb way for portability.
-		 *
-		 * Yet other systems (e.g., glibc) sometimes return a smaller value
-		 * from the second call than the first; thus the Assert must be <= not
-		 * == as you'd expect.  Can't any of these people program their way
-		 * out of a paper bag?
-		 */
-#if _MSC_VER == 1400			/* VS.Net 2005 */
-
-		/*
-		 * http://connect.microsoft.com/VisualStudio/feedback/ViewFeedback.aspx
-		 * ?FeedbackID=99694
-		 */
-		{
-			char		x[1];
-
-			xfrmlen = strxfrm(x, val, 0);
-		}
-#else
-		xfrmlen = strxfrm(NULL, val, 0);
-#endif
-		xfrmstr = (char *) palloc(xfrmlen + 1);
-		xfrmlen2 = strxfrm(xfrmstr, val, xfrmlen + 1);
-		Assert(xfrmlen2 <= xfrmlen);
-		pfree(val);
-		val = xfrmstr;
-	}
-
-	return val;
-}
-
-/*
  * Do convert_to_scalar()'s work for any bytea data type.
  *
- * Very similar to convert_string_to_scalar except we can't assume
+ * Very similar to the old convert_string_to_scalar except we can't assume
  * null-termination and therefore pass explicit lengths around.
  *
  * Also, assumptions about likely "normal" ranges of characters have been
@@ -3169,7 +3079,7 @@ convert_one_bytea_to_scalar(unsigned char *value, int valuelen,
 /*
  * Do convert_to_scalar()'s work for any timevalue data type.
  */
-static double
+double
 convert_timevalue_to_scalar(Datum value, Oid typid)
 {
 	switch (typid)
@@ -3296,7 +3206,7 @@ get_restriction_variable(PlannerInfo *root, List *args, int varRelid,
 	if (vardata->rel && rdata.rel == NULL)
 	{
 		*varonleft = true;
-		*other = estimate_expression_value(rdata.var);
+		*other = estimate_expression_value(root, rdata.var);
 		/* Assume we need no ReleaseVariableStats(rdata) here */
 		return true;
 	}
@@ -3304,7 +3214,7 @@ get_restriction_variable(PlannerInfo *root, List *args, int varRelid,
 	if (vardata->rel == NULL && rdata.rel)
 	{
 		*varonleft = false;
-		*other = estimate_expression_value(vardata->var);
+		*other = estimate_expression_value(root, vardata->var);
 		/* Assume we need no ReleaseVariableStats(*vardata) here */
 		*vardata = rdata;
 		return true;
@@ -3336,6 +3246,102 @@ get_join_variables(PlannerInfo *root, List *args,
 
 	examine_variable(root, left, 0, vardata1);
 	examine_variable(root, right, 0, vardata2);
+}
+
+/*
+ * This method returns a pointer to the largest child relation for an inherited (incl partitioned)
+ * relation. If there are multiple levels in the hierarchy, we delve down recursively till we
+ * find the largest (as determined from the path structure).
+ * Input: a partitioned table
+ * Output: largest child partition. If there are no child partition because all of them have been eliminated, then
+ *         returns NULL.
+ */
+static RelOptInfo* largest_child_relation(PlannerInfo *root, RelOptInfo *rel)
+{
+	AppendPath *append_path = NULL;
+	ListCell *subpath_lc = NULL;
+	RelOptInfo *largest_child_in_subpath = NULL;
+	double max_rows = -1.0;
+
+	Assert(IsA(rel->cheapest_total_path, AppendPath));
+
+	append_path = (AppendPath *) rel->cheapest_total_path;
+
+	foreach(subpath_lc, append_path->subpaths)
+	{
+		RelOptInfo *candidate_child = NULL;
+		Path *subpath = lfirst(subpath_lc);
+
+		if (IsA(subpath, AppendPath))
+		{
+			candidate_child = largest_child_relation(root, subpath->parent);
+		}
+		else
+		{
+			candidate_child = subpath->parent;
+		}
+
+		if (candidate_child && candidate_child->rows > max_rows)
+		{
+			max_rows = candidate_child->rows;
+			largest_child_in_subpath = candidate_child;
+		}
+	}
+
+	return largest_child_in_subpath;
+}
+
+/*
+ * The purpose of this method is to make the statistics (on a specific column) of a child partition
+ * representative of the parent relation. This entails the following assumptions:
+ * 1.  if ndistinct<=-1.0 in child partition, the column is a unique column in the child partition. We
+ * 	   expect the column to remain distinct in the master as well.
+ * 2.  if -1.0 < ndistinct < 0.0, the absolute number of ndistinct values in the child partition is a fraction
+ *     of the number of rows in the partition. We expect that the absolute number of ndistinct in the master
+ *     to stay the same. Therefore, we convert this to a positive number.
+ *     The method get_variable_numdistinct will multiply this by the number of tuples in the master relation.
+ * 3.  if ndistinct is positive, it indicates a small absolute number of distinct values. We expect these
+ * 	   values to be repeated in all partitions. Therefore, we expect no change in the ndistinct in the master.
+ *
+ * Input:
+ * 	   statsTuple, which is a heaptuple representing statistics on a child relation. It expects statstuple to be non-null.
+ * 	   scalefactor, which is in the range (0.0,1.0]
+ *
+ * Output:
+ * 	   This method modifies the tuple passed to it.
+ */
+static void inline adjust_partition_table_statistic_for_parent(HeapTuple statsTuple, double childtuples)
+{
+	Form_pg_statistic stats;
+
+	Assert(HeapTupleIsValid(statsTuple));
+
+	stats = (Form_pg_statistic) GETSTRUCT(statsTuple);
+
+	if (stats->stadistinct <= -1.0)
+	{
+		/*
+		 * Case 1 as described above.
+		 */
+
+		return;
+	}
+	else if (stats->stadistinct < 0.0)
+	{
+		/*
+		 * Case 2 as described above.
+		 */
+
+		stats->stadistinct = ((double) -1.0) * stats->stadistinct * childtuples;
+	}
+	else
+	{
+		/**
+		 * Case 3 as described above.
+		 */
+
+		return;
+	}
 }
 
 /*
@@ -3378,6 +3384,8 @@ examine_variable(PlannerInfo *root, Node *node, int varRelid,
 	/* Save the exposed type of the expression */
 	vardata->vartype = exprType(node);
 
+	vardata->numdistinctFromPrimaryKey = -1.0; /* ignore by default*/
+
 	/* Look inside any binary-compatible relabeling */
 
 	if (IsA(node, RelabelType))
@@ -3400,20 +3408,98 @@ examine_variable(PlannerInfo *root, Node *node, int varRelid,
 
 		rte = rt_fetch(var->varno, root->parse->rtable);
 
+		/*
+		 * If this attribute has a foreign key relationship, then first look
+		 * at primary key statistics. If there exist stats on that attribute,
+		 * we utilize those. If not, continue.
+		 */
+		
+		if (gp_statistics_use_fkeys)
+		{
+			Oid         pkrelid = InvalidOid;
+			AttrNumber  pkattno = -1;
+
+			if (ConstraintGetPrimaryKeyOf(rte->relid, var->varattno, &pkrelid, &pkattno))
+			{
+				cqContext  *relcqCtx;
+				HeapTuple	pkStatsTuple;
+
+				/* SELECT reltuples FROM pg_class */
+
+				relcqCtx = caql_beginscan(
+						NULL,
+						cql("SELECT * FROM pg_class "
+							" WHERE oid = :1 ",
+							ObjectIdGetDatum(pkrelid)));
+				
+				pkStatsTuple = caql_getnext(relcqCtx);
+
+				if (HeapTupleIsValid(pkStatsTuple)) 
+				{
+					Form_pg_class classForm = (Form_pg_class) GETSTRUCT(pkStatsTuple);
+					if (classForm->reltuples > 0)
+					{
+						vardata->numdistinctFromPrimaryKey = classForm->reltuples;
+					}
+				}
+
+				caql_endscan(relcqCtx);
+			}
+		}
 		if (rte->inh)
 		{
 			/*
-			 * XXX This means the Var represents a column of an append
-			 * relation. Later add code to look at the member relations and
-			 * try to derive some kind of combined statistics?
+			 * If gp_statistics_pullup_from_child_partition is set, we attempt to pull up statistics from
+			 * the largest child partition in an inherited or a partitioned table.
 			 */
+			if (gp_statistics_pullup_from_child_partition  &&
+				vardata->rel->cheapest_total_path != NULL)
+			{
+				RelOptInfo *childrel = largest_child_relation(root, vardata->rel);
+				vardata->statscqCtx = NULL;
+
+				if (childrel)
+				{
+					RangeTblEntry *child_rte = NULL;
+
+					child_rte = rt_fetch(childrel->relid, root->parse->rtable);
+
+					Assert(child_rte != NULL);
+
+					/*
+					 * Get statistics from the child partition.
+					 */
+					vardata->statscqCtx = caql_beginscan
+										(
+										NULL,
+										cql("SELECT * FROM pg_statistic "
+											" WHERE starelid = :1 "
+											" AND staattnum = :2 ",
+											ObjectIdGetDatum(child_rte->relid),
+											Int16GetDatum(var->varattno))
+										);
+
+					(void) caql_getnext(vardata->statscqCtx);
+
+					if (NULL != vardata->statscqCtx && NULL != vardata->statscqCtx->cq_lasttup)
+					{
+						adjust_partition_table_statistic_for_parent(vardata->statscqCtx->cq_lasttup, childrel->tuples);
+					}
+				}
+			}
 		}
 		else if (rte->rtekind == RTE_RELATION)
 		{
-			vardata->statsTuple = SearchSysCache(STATRELATT,
-												 ObjectIdGetDatum(rte->relid),
-												 Int16GetDatum(var->varattno),
-												 0, 0);
+			vardata->statscqCtx = caql_beginscan(
+					NULL,
+					cql("SELECT * FROM pg_statistic "
+						" WHERE starelid = :1 "
+						" AND staattnum = :2 ",
+						ObjectIdGetDatum(rte->relid),
+						Int16GetDatum(var->varattno)));
+			
+			/* fetch the tuple */
+			(void) caql_getnext(vardata->statscqCtx);
 		}
 		else
 		{
@@ -3530,20 +3616,38 @@ examine_variable(PlannerInfo *root, Node *node, int varRelid,
 							index->indpred == NIL)
 							vardata->isunique = true;
 						/* Has it got stats? */
-						vardata->statsTuple = SearchSysCache(STATRELATT,
-										   ObjectIdGetDatum(index->indexoid),
-													  Int16GetDatum(pos + 1),
-															 0, 0);
-						if (vardata->statsTuple)
+
+						vardata->statscqCtx = caql_beginscan(
+								NULL,
+								cql("SELECT * FROM pg_statistic "
+									" WHERE starelid = :1 "
+									" AND staattnum = :2 ",
+									ObjectIdGetDatum(index->indexoid),
+									Int16GetDatum(pos + 1)));
+			
+						/* fetch the tuple */
+						(void) caql_getnext(vardata->statscqCtx);
+
+						if (HeapTupleIsValid(getStatsTuple(vardata)))
 							break;
 					}
 					indexpr_item = lnext(indexpr_item);
 				}
 			}
-			if (vardata->statsTuple)
+			if (HeapTupleIsValid(getStatsTuple(vardata)))
 				break;
 		}
 	}
+}
+
+/**
+ * Input: vardata. Must be non-NULL.
+ */
+void ReleaseVariableStats(VariableStatData vardata)
+{
+ 	if (vardata.statscqCtx)
+		caql_endscan(vardata.statscqCtx);
+	vardata.statscqCtx = NULL;
 }
 
 /*
@@ -3561,17 +3665,27 @@ get_variable_numdistinct(VariableStatData *vardata)
 	double		stadistinct;
 	double		ntuples;
 
+	/**
+	 * If we have an estimate from the primary key, then that is the most accurate value.
+	 */
+	if (gp_statistics_use_fkeys &&
+			vardata->numdistinctFromPrimaryKey > 0.0)
+	{
+		return vardata->numdistinctFromPrimaryKey;
+	}
+
 	/*
 	 * Determine the stadistinct value to use.	There are cases where we can
 	 * get an estimate even without a pg_statistic entry, or can get a better
 	 * value than is in pg_statistic.
 	 */
-	if (HeapTupleIsValid(vardata->statsTuple))
+	if (HeapTupleIsValid(getStatsTuple(vardata)))
 	{
 		/* Use the pg_statistic entry */
 		Form_pg_statistic stats;
+		HeapTuple tp = getStatsTuple(vardata);
 
-		stats = (Form_pg_statistic) GETSTRUCT(vardata->statsTuple);
+		stats = (Form_pg_statistic) GETSTRUCT(tp);
 		stadistinct = stats->stadistinct;
 	}
 	else if (vardata->vartype == BOOLOID)
@@ -3600,6 +3714,9 @@ get_variable_numdistinct(VariableStatData *vardata)
 					break;
 				case TableOidAttributeNumber:
 					stadistinct = 1.0;	/* only 1 value */
+					break;
+				case GpSegmentIdAttributeNumber:   /*CDB*/
+					stadistinct = getgpsegmentCount();
 					break;
 				default:
 					stadistinct = 0.0;	/* means "unknown" */
@@ -3682,13 +3799,14 @@ get_variable_maximum(PlannerInfo *root, VariableStatData *vardata,
 	Datum	   *values;
 	int			nvalues;
 	int			i;
+	HeapTuple	tp = getStatsTuple(vardata);
 
-	if (!HeapTupleIsValid(vardata->statsTuple))
+	if (!HeapTupleIsValid(tp))
 	{
 		/* no stats available, so default result */
 		return false;
 	}
-	stats = (Form_pg_statistic) GETSTRUCT(vardata->statsTuple);
+	stats = (Form_pg_statistic) GETSTRUCT(tp);
 
 	get_typlenbyval(vardata->atttype, &typLen, &typByVal);
 
@@ -3699,7 +3817,7 @@ get_variable_maximum(PlannerInfo *root, VariableStatData *vardata,
 	 * the one we want, fail --- this suggests that there is data we can't
 	 * use.
 	 */
-	if (get_attstatsslot(vardata->statsTuple,
+	if (get_attstatsslot(tp,
 						 vardata->atttype, vardata->atttypmod,
 						 STATISTIC_KIND_HISTOGRAM, sortop,
 						 &values, &nvalues,
@@ -3717,7 +3835,7 @@ get_variable_maximum(PlannerInfo *root, VariableStatData *vardata,
 		Oid			rsortop = get_commutator(sortop);
 
 		if (OidIsValid(rsortop) &&
-			get_attstatsslot(vardata->statsTuple,
+			get_attstatsslot(tp,
 							 vardata->atttype, vardata->atttypmod,
 							 STATISTIC_KIND_HISTOGRAM, rsortop,
 							 &values, &nvalues,
@@ -3730,7 +3848,7 @@ get_variable_maximum(PlannerInfo *root, VariableStatData *vardata,
 			}
 			free_attstatsslot(vardata->atttype, values, nvalues, NULL, 0);
 		}
-		else if (get_attstatsslot(vardata->statsTuple,
+		else if (get_attstatsslot(tp,
 								  vardata->atttype, vardata->atttypmod,
 								  STATISTIC_KIND_HISTOGRAM, InvalidOid,
 								  &values, &nvalues,
@@ -3747,7 +3865,7 @@ get_variable_maximum(PlannerInfo *root, VariableStatData *vardata,
 	 * the MCVs.  However, usually the MCVs will not be the extreme values, so
 	 * avoid unnecessary data copying.
 	 */
-	if (get_attstatsslot(vardata->statsTuple,
+	if (get_attstatsslot(tp,
 						 vardata->atttype, vardata->atttypmod,
 						 STATISTIC_KIND_MCV, InvalidOid,
 						 &values, &nvalues,
@@ -3788,7 +3906,10 @@ get_variable_maximum(PlannerInfo *root, VariableStatData *vardata,
  * These routines support analysis of LIKE and regular-expression patterns
  * by the planner/optimizer.  It's important that they agree with the
  * regular-expression code in backend/regex/ and the LIKE code in
- * backend/utils/adt/like.c.
+ * backend/utils/adt/like.c.  Also, the computation of the fixed prefix
+ * must be conservative: if we report a string longer than the true fixed
+ * prefix, the query may produce actually wrong answers, rather than just
+ * getting a bad selectivity estimate!
  *
  * Note that the prefix-analysis functions are called from
  * backend/optimizer/path/indxpath.c as well as from routines in this file.
@@ -3820,6 +3941,7 @@ like_fixed_prefix(Const *patt_const, bool case_insensitive,
 	Oid			typeid = patt_const->consttype;
 	int			pos,
 				match_pos;
+	bool		is_multibyte = (pg_database_encoding_max_length() > 1);
 
 	/* the right-hand const is type text or bytea */
 	Assert(typeid == BYTEAOID || typeid == TEXTOID);
@@ -3863,11 +3985,16 @@ like_fixed_prefix(Const *patt_const, bool case_insensitive,
 		}
 
 		/*
-		 * XXX I suspect isalpha() is not an adequately locale-sensitive test
-		 * for characters that can vary under case folding?
+		 * XXX In multibyte character sets, we can't trust isalpha, so assume
+		 * any multibyte char is potentially case-varying.
 		 */
-		if (case_insensitive && isalpha((unsigned char) patt[pos]))
-			break;
+		if (case_insensitive)
+		{
+			if (is_multibyte && (unsigned char) patt[pos] >= 0x80)
+				break;
+			if (isalpha((unsigned char) patt[pos]))
+				break;
+		}
 
 		/*
 		 * NOTE: this code used to think that %% meant a literal %, but
@@ -3912,11 +4039,13 @@ regex_fixed_prefix(Const *patt_const, bool case_insensitive,
 	int			pos,
 				match_pos,
 				prev_pos,
-				prev_match_pos,
-				paren_depth;
+				prev_match_pos;
+	bool		have_leading_paren;
 	char	   *patt;
 	char	   *rest;
 	Oid			typeid = patt_const->consttype;
+	bool		is_basic = regex_flavor_is_basic();
+	bool		is_multibyte = (pg_database_encoding_max_length() > 1);
 
 	/*
 	 * Should be unnecessary, there are no bytea regex operators defined. As
@@ -3931,8 +4060,36 @@ regex_fixed_prefix(Const *patt_const, bool case_insensitive,
 	/* the right-hand const is type text for all of these */
 	patt = DatumGetCString(DirectFunctionCall1(textout, patt_const->constvalue));
 
+	/*
+	 * Check for ARE director prefix.  It's worth our trouble to recognize
+	 * this because similar_escape() uses it.
+	 */
+	pos = 0;
+	if (strncmp(patt, "***:", 4) == 0)
+	{
+		pos = 4;
+		is_basic = false;
+	}
+
 	/* Pattern must be anchored left */
-	if (patt[0] != '^')
+	if (patt[pos] != '^')
+	{
+		rest = patt;
+
+		*prefix_const = NULL;
+		*rest_const = string_to_const(rest, typeid);
+
+		return Pattern_Prefix_None;
+	}
+	pos++;
+
+	/*
+	 * If '|' is present in pattern, then there may be multiple alternatives
+	 * for the start of the string.  (There are cases where this isn't so,
+	 * for instance if the '|' is inside parens, but detecting that reliably
+	 * is too hard.)
+	 */
+	if (strchr(patt + pos, '|') != NULL)
 	{
 		rest = patt;
 
@@ -3942,71 +4099,68 @@ regex_fixed_prefix(Const *patt_const, bool case_insensitive,
 		return Pattern_Prefix_None;
 	}
 
-	/*
-	 * If unquoted | is present at paren level 0 in pattern, then there are
-	 * multiple alternatives for the start of the string.
-	 */
-	paren_depth = 0;
-	for (pos = 1; patt[pos]; pos++)
-	{
-		if (patt[pos] == '|' && paren_depth == 0)
-		{
-			rest = patt;
-
-			*prefix_const = NULL;
-			*rest_const = string_to_const(rest, typeid);
-
-			return Pattern_Prefix_None;
-		}
-		else if (patt[pos] == '(')
-			paren_depth++;
-		else if (patt[pos] == ')' && paren_depth > 0)
-			paren_depth--;
-		else if (patt[pos] == '\\')
-		{
-			/* backslash quotes the next character */
-			pos++;
-			if (patt[pos] == '\0')
-				break;
-		}
-	}
-
 	/* OK, allocate space for pattern */
 	match = palloc(strlen(patt) + 1);
 	prev_match_pos = match_pos = 0;
 
-	/* note start at pos 1 to skip leading ^ */
-	for (prev_pos = pos = 1; patt[pos];)
+	/*
+	 * We special-case the syntax '^(...)$' because psql uses it.  But beware:
+	 * in BRE mode these parentheses are just ordinary characters.  Also,
+	 * sequences beginning "(?" are not what they seem, unless they're "(?:".
+	 * (We should recognize that, too, because of similar_escape().)
+	 *
+	 * Note: it's a bit bogus to be depending on the current regex_flavor
+	 * setting here, because the setting could change before the pattern is
+	 * used.  We minimize the risk by trusting the flavor as little as we can,
+	 * but perhaps it would be a good idea to get rid of the "basic" setting.
+	 */
+	have_leading_paren = false;
+	if (patt[pos] == '(' && !is_basic &&
+		(patt[pos + 1] != '?' || patt[pos + 2] == ':'))
+	{
+		have_leading_paren = true;
+		pos += (patt[pos + 1] != '?' ? 1 : 3);
+	}
+
+	/* Scan remainder of pattern */
+	prev_pos = pos;
+	while (patt[pos])
 	{
 		int			len;
 
 		/*
 		 * Check for characters that indicate multiple possible matches here.
-		 * XXX I suspect isalpha() is not an adequately locale-sensitive test
-		 * for characters that can vary under case folding?
+		 * Also, drop out at ')' or '$' so the termination test works right.
 		 */
 		if (patt[pos] == '.' ||
 			patt[pos] == '(' ||
+			patt[pos] == ')' ||
 			patt[pos] == '[' ||
-			patt[pos] == '$' ||
-			(case_insensitive && isalpha((unsigned char) patt[pos])))
+			patt[pos] == '^' ||
+			patt[pos] == '$')
 			break;
 
 		/*
-		 * In AREs, backslash followed by alphanumeric is an escape, not a
-		 * quoted character.  Must treat it as having multiple possible
-		 * matches.
+		 * XXX In multibyte character sets, we can't trust isalpha, so assume
+		 * any multibyte char is potentially case-varying.
 		 */
-		if (patt[pos] == '\\' && isalnum((unsigned char) patt[pos + 1]))
-			break;
+		if (case_insensitive)
+		{
+			if (is_multibyte && (unsigned char) patt[pos] >= 0x80)
+				break;
+			if (isalpha((unsigned char) patt[pos]))
+				break;
+		}
 
 		/*
 		 * Check for quantifiers.  Except for +, this means the preceding
 		 * character is optional, so we must remove it from the prefix too!
+		 * Note: in BREs, \{ is a quantifier.
 		 */
 		if (patt[pos] == '*' ||
 			patt[pos] == '?' ||
-			patt[pos] == '{')
+			patt[pos] == '{' ||
+			(patt[pos] == '\\' && patt[pos + 1] == '{'))
 		{
 			match_pos = prev_match_pos;
 			pos = prev_pos;
@@ -4017,9 +4171,19 @@ regex_fixed_prefix(Const *patt_const, bool case_insensitive,
 			pos = prev_pos;
 			break;
 		}
+
+		/*
+		 * Normally, backslash quotes the next character.  But in AREs,
+		 * backslash followed by alphanumeric is an escape, not a quoted
+		 * character.  Must treat it as having multiple possible matches.
+		 * In BREs, \( is a parenthesis, so don't trust that either.
+		 * Note: since only ASCII alphanumerics are escapes, we don't have
+		 * to be paranoid about multibyte here.
+		 */
 		if (patt[pos] == '\\')
 		{
-			/* backslash quotes the next character */
+			if (isalnum((unsigned char) patt[pos + 1]) || patt[pos + 1] == '(')
+				break;
 			pos++;
 			if (patt[pos] == '\0')
 				break;
@@ -4036,6 +4200,9 @@ regex_fixed_prefix(Const *patt_const, bool case_insensitive,
 
 	match[match_pos] = '\0';
 	rest = &patt[pos];
+
+	if (have_leading_paren && patt[pos] == ')')
+		pos++;
 
 	if (patt[pos] == '$' && patt[pos + 1] == '\0')
 	{
@@ -4138,16 +4305,16 @@ prefix_selectivity(VariableStatData *vardata, Oid opclass, Const *prefixcon)
 	 *	"x < greaterstr".
 	 *-------
 	 */
-	greaterstrcon = make_greater_string(prefixcon);
+	cmpopr = get_opclass_member(opclass, InvalidOid,
+								BTLessStrategyNumber);
+	if (cmpopr == InvalidOid)
+		elog(ERROR, "no < operator for opclass %u", opclass);
+	fmgr_info(get_opcode(cmpopr), &opproc);
+
+	greaterstrcon = make_greater_string(prefixcon, &opproc);
 	if (greaterstrcon)
 	{
 		Selectivity topsel;
-
-		cmpopr = get_opclass_member(opclass, InvalidOid,
-									BTLessStrategyNumber);
-		if (cmpopr == InvalidOid)
-			elog(ERROR, "no < operator for opclass %u", opclass);
-		fmgr_info(get_opcode(cmpopr), &opproc);
 
 		topsel = ineq_histogram_selectivity(vardata, &opproc, false,
 											greaterstrcon->constvalue,
@@ -4184,18 +4351,22 @@ prefix_selectivity(VariableStatData *vardata, Oid opclass, Const *prefixcon)
  * For now, we use a very simplistic approach: fixed characters reduce the
  * selectivity a good deal, character ranges reduce it a little,
  * wildcards (such as % for LIKE or .* for regex) increase it.
+ *
+ * CDB: There is a gradual lessening of the change in selectivity as more
+ * fixed characters or character ranges are added.
  */
 
 #define FIXED_CHAR_SEL	0.20	/* about 1/5 */
 #define CHAR_RANGE_SEL	0.25
-#define ANY_CHAR_SEL	0.9		/* not 1, since it won't match end-of-string */
-#define FULL_WILDCARD_SEL 5.0
-#define PARTIAL_WILDCARD_SEL 2.0
+#define ANY_CHAR_SEL	0.99	/* not 1, since it won't match end-of-string */
+#define CDB_RANCHOR_SEL 0.95
+#define CDB_ROLLOFF_SEL 0.14
 
 static Selectivity
 like_selectivity(Const *patt_const, bool case_insensitive)
 {
 	Selectivity sel = 1.0;
+    Selectivity fixed_char_sel = FIXED_CHAR_SEL;
 	int			pos;
 	Oid			typeid = patt_const->consttype;
 	char	   *patt;
@@ -4225,7 +4396,7 @@ like_selectivity(Const *patt_const, bool case_insensitive)
 			pfree(bstr);
 	}
 
-	/* Skip any leading wildcard; it's already factored into initial sel */
+	/* Skip any leading %; it's already factored into initial sel */
 	for (pos = 0; pos < pattlen; pos++)
 	{
 		if (patt[pos] != '%' && patt[pos] != '_')
@@ -4236,25 +4407,32 @@ like_selectivity(Const *patt_const, bool case_insensitive)
 	{
 		/* % and _ are wildcard characters in LIKE */
 		if (patt[pos] == '%')
-			sel *= FULL_WILDCARD_SEL;
+        {}
 		else if (patt[pos] == '_')
 			sel *= ANY_CHAR_SEL;
-		else if (patt[pos] == '\\')
-		{
-			/* Backslash quotes the next character */
-			pos++;
-			if (pos >= pattlen)
-				break;
-			sel *= FIXED_CHAR_SEL;
-		}
 		else
-			sel *= FIXED_CHAR_SEL;
-	}
-	/* Could get sel > 1 if multiple wildcards */
-	if (sel > 1.0)
-		sel = 1.0;
+        {
+            if (patt[pos] == '\\')
+		    {
+			    /* Backslash quotes the next character */
+			    pos++;
+			    if (pos >= pattlen)
+				    break;
+		    }
 
-	pfree(patt);
+			sel *= fixed_char_sel;
+            fixed_char_sel += (1.0 - fixed_char_sel) * CDB_ROLLOFF_SEL;
+        }
+	}
+
+    /* CDB: If no trailing wildcard, reduce selectivity slightly. */
+    if (pos > 0 &&
+        patt[pos-1] != '%')
+        sel *= CDB_RANCHOR_SEL;
+    else if (pos >= 2 &&
+             patt[pos-2] == '\\')
+        sel *= CDB_RANCHOR_SEL;
+
 	return sel;
 }
 
@@ -4262,7 +4440,9 @@ static Selectivity
 regex_selectivity_sub(char *patt, int pattlen, bool case_insensitive)
 {
 	Selectivity sel = 1.0;
-	int			paren_depth = 0;
+    Selectivity fixed_char_sel = FIXED_CHAR_SEL;
+    Selectivity csel;
+    int			paren_depth = 0;
 	int			paren_pos = 0;	/* dummy init to keep compiler quiet */
 	int			pos;
 
@@ -4308,44 +4488,42 @@ regex_selectivity_sub(char *patt, int pattlen, bool case_insensitive)
 			while (pos < pattlen && patt[pos] != ']')
 				pos++;
 			if (paren_depth == 0)
-				sel *= (negclass ? (1.0 - CHAR_RANGE_SEL) : CHAR_RANGE_SEL);
+            {
+                csel = CHAR_RANGE_SEL / FIXED_CHAR_SEL * fixed_char_sel;
+                sel *= (negclass ? (1.0 - csel) : csel);
+                fixed_char_sel += (1.0 - fixed_char_sel) * CDB_ROLLOFF_SEL;
+            }
 		}
 		else if (patt[pos] == '.')
 		{
 			if (paren_depth == 0)
-				sel *= ANY_CHAR_SEL;
+                sel *= Max(ANY_CHAR_SEL, fixed_char_sel);
 		}
 		else if (patt[pos] == '*' ||
 				 patt[pos] == '?' ||
 				 patt[pos] == '+')
-		{
-			/* Ought to be smarter about quantifiers... */
-			if (paren_depth == 0)
-				sel *= PARTIAL_WILDCARD_SEL;
-		}
+        {}
 		else if (patt[pos] == '{')
 		{
 			while (pos < pattlen && patt[pos] != '}')
 				pos++;
-			if (paren_depth == 0)
-				sel *= PARTIAL_WILDCARD_SEL;
-		}
-		else if (patt[pos] == '\\')
-		{
-			/* backslash quotes the next character */
-			pos++;
-			if (pos >= pattlen)
-				break;
-			if (paren_depth == 0)
-				sel *= FIXED_CHAR_SEL;
 		}
 		else
 		{
+			/* backslash quotes the next character */
+            if (patt[pos] == '\\')
+            {
+                pos++;
+                if (pos >= pattlen)
+                    break;
+            }
 			if (paren_depth == 0)
-				sel *= FIXED_CHAR_SEL;
+            {
+                sel *= fixed_char_sel;
+                fixed_char_sel += (1.0 - fixed_char_sel) * CDB_ROLLOFF_SEL;
+            }
 		}
 	}
-	/* Could get sel > 1 if multiple wildcards */
 	if (sel > 1.0)
 		sel = 1.0;
 	return sel;
@@ -4379,14 +4557,12 @@ regex_selectivity(Const *patt_const, bool case_insensitive)
 	{
 		/* has trailing $ */
 		sel = regex_selectivity_sub(patt, pattlen - 1, case_insensitive);
-	}
+        sel *= CDB_RANCHOR_SEL;
+    }
 	else
 	{
 		/* no trailing $ */
 		sel = regex_selectivity_sub(patt, pattlen, case_insensitive);
-		sel *= FULL_WILDCARD_SEL;
-		if (sel > 1.0)
-			sel = 1.0;
 	}
 	return sel;
 }
@@ -4422,11 +4598,25 @@ pattern_selectivity(Const *patt, Pattern_Type ptype)
 /*
  * Try to generate a string greater than the given string or any
  * string it is a prefix of.  If successful, return a palloc'd string
- * in the form of a Const pointer; else return NULL.
+ * in the form of a Const node; else return NULL.
+ *
+ * The caller must provide the appropriate "less than" comparison function
+ * for testing the strings.
  *
  * The key requirement here is that given a prefix string, say "foo",
- * we must be able to generate another string "fop" that is greater
- * than all strings "foobar" starting with "foo".
+ * we must be able to generate another string "fop" that is greater than
+ * all strings "foobar" starting with "foo".  We can test that we have
+ * generated a string greater than the prefix string, but in non-C locales
+ * that is not a bulletproof guarantee that an extension of the string might
+ * not sort after it; an example is that "foo " is less than "foo!", but it
+ * is not clear that a "dictionary" sort ordering will consider "foo!" less
+ * than "foo bar".  CAUTION: Therefore, this function should be used only for
+ * estimation purposes when working in a non-C locale.
+ *
+ * To try to catch most cases where an extended string might otherwise sort
+ * before the result value, we determine which of the strings "Z", "z", "y",
+ * and "9" is seen as largest by the locale, and append that to the given
+ * prefix before trying to find a string that compares as larger.
  *
  * If we max out the righthand byte, truncate off the last character
  * and start incrementing the next.  For example, if "z" were the last
@@ -4435,25 +4625,29 @@ pattern_selectivity(Const *patt, Pattern_Type ptype)
  *
  * This could be rather slow in the worst case, but in most cases we
  * won't have to try more than one or two strings before succeeding.
- *
- * NOTE: at present this assumes we are in the C locale, so that simple
- * bytewise comparison applies.  However, we might be in a multibyte
- * encoding such as UTF8, so we do have to watch out for generating
- * invalid encoding sequences.
  */
 Const *
-make_greater_string(const Const *str_const)
+make_greater_string(const Const *str_const, FmgrInfo *ltproc)
 {
 	Oid			datatype = str_const->consttype;
 	char	   *workstr;
 	int			len;
+	Datum		cmpstr;
+	text	   *cmptxt = NULL;
 
-	/* Get the string and a modifiable copy */
+	/*
+	 * Get a modifiable copy of the prefix string in C-string format,
+	 * and set up the string we will compare to as a Datum.  In C locale
+	 * this can just be the given prefix string, otherwise we need to add
+	 * a suffix.  Types NAME and BYTEA sort bytewise so they don't need
+	 * a suffix either.
+	 */
 	if (datatype == NAMEOID)
 	{
 		workstr = DatumGetCString(DirectFunctionCall1(nameout,
 													  str_const->constvalue));
 		len = strlen(workstr);
+		cmpstr = str_const->constvalue;
 	}
 	else if (datatype == BYTEAOID)
 	{
@@ -4464,12 +4658,41 @@ make_greater_string(const Const *str_const)
 		memcpy(workstr, VARDATA(bstr), len);
 		if ((Pointer) bstr != DatumGetPointer(str_const->constvalue))
 			pfree(bstr);
+		cmpstr = str_const->constvalue;
 	}
 	else
 	{
 		workstr = DatumGetCString(DirectFunctionCall1(textout,
 													  str_const->constvalue));
 		len = strlen(workstr);
+		if (lc_collate_is_c() || len == 0)
+			cmpstr = str_const->constvalue;
+		else
+		{
+			/* If first time through, determine the suffix to use */
+			static char suffixchar = 0;
+
+			if (!suffixchar)
+			{
+				char *best;
+
+				best = "Z";
+				if (varstr_cmp(best, 1, "z", 1) < 0)
+					best = "z";
+				if (varstr_cmp(best, 1, "y", 1) < 0)
+					best = "y";
+				if (varstr_cmp(best, 1, "9", 1) < 0)
+					best = "9";
+				suffixchar = *best;
+			}
+
+			/* And build the string to compare to */
+			cmptxt = (text *) palloc(VARHDRSZ + len + 1);
+			SET_VARSIZE(cmptxt, VARHDRSZ + len + 1);
+			memcpy(VARDATA(cmptxt), workstr, len);
+			*(VARDATA(cmptxt) + len) = suffixchar;
+			cmpstr = PointerGetDatum(cmptxt);
+		}
 	}
 
 	while (len > 0)
@@ -4496,8 +4719,20 @@ make_greater_string(const Const *str_const)
 			else
 				workstr_const = string_to_bytea_const(workstr, len);
 
-			pfree(workstr);
-			return workstr_const;
+			if (DatumGetBool(FunctionCall2(ltproc,
+										   cmpstr,
+										   workstr_const->constvalue)))
+			{
+				/* Successfully made a string larger than cmpstr */
+				if (cmptxt)
+					pfree(cmptxt);
+				pfree(workstr);
+				return workstr_const;
+			}
+
+			/* No good, release unusable value and try again */
+			pfree(DatumGetPointer(workstr_const->constvalue));
+			pfree(workstr_const);
 		}
 
 		/* restore last byte so we don't confuse pg_mbcliplen */
@@ -4517,6 +4752,8 @@ make_greater_string(const Const *str_const)
 	}
 
 	/* Failed... */
+	if (cmptxt)
+		pfree(cmptxt);
 	pfree(workstr);
 
 	return NULL;
@@ -4537,11 +4774,11 @@ string_to_datum(const char *str, Oid datatype)
 	 * varchar constants too...
 	 */
 	if (datatype == NAMEOID)
-		return DirectFunctionCall1(namein, CStringGetDatum(str));
+		return DirectFunctionCall1(namein, CStringGetDatum((char *) str));
 	else if (datatype == BYTEAOID)
-		return DirectFunctionCall1(byteain, CStringGetDatum(str));
+		return DirectFunctionCall1(byteain, CStringGetDatum((char *) str));
 	else
-		return DirectFunctionCall1(textin, CStringGetDatum(str));
+		return DirectFunctionCall1(textin, CStringGetDatum((char *) str));
 }
 
 /*
@@ -4552,7 +4789,7 @@ string_to_const(const char *str, Oid datatype)
 {
 	Datum		conval = string_to_datum(str, datatype);
 
-	return makeConst(datatype, ((datatype == NAMEOID) ? NAMEDATALEN : -1),
+	return makeConst(datatype, -1, ((datatype == NAMEOID) ? NAMEDATALEN : -1),
 					 conval, false, false);
 }
 
@@ -4566,10 +4803,10 @@ string_to_bytea_const(const char *str, size_t str_len)
 	Datum		conval;
 
 	memcpy(VARDATA(bstr), str, str_len);
-	VARATT_SIZEP(bstr) = VARHDRSZ + str_len;
+	SET_VARSIZE(bstr, VARHDRSZ + str_len);
 	conval = PointerGetDatum(bstr);
 
-	return makeConst(BYTEAOID, -1, conval, false, false);
+	return makeConst(BYTEAOID, -1, -1, conval, false, false);
 }
 
 /*-------------------------------------------------------------------------
@@ -4665,7 +4902,8 @@ genericcostestimate(PlannerInfo *root,
 	/* Estimate the fraction of main-table tuples that will be visited */
 	*indexSelectivity = clauselist_selectivity(root, selectivityQuals,
 											   index->rel->relid,
-											   JOIN_INNER);
+											   JOIN_INNER,
+											   false /* use_damping */);
 
 	/*
 	 * If caller didn't give us an estimate, estimate the number of index
@@ -4673,14 +4911,18 @@ genericcostestimate(PlannerInfo *root,
 	 * way in order to get the right answer for partial indexes.
 	 */
 	if (numIndexTuples <= 0.0)
+	{
 		numIndexTuples = *indexSelectivity * index->rel->tuples;
 
-	/*
-	 * The estimate obtained so far counts all the tuples returned by all
-	 * scans of ScalarArrayOpExpr calls.  We want to consider the per-scan
-	 * number, so adjust.  This is a handy place to round to integer, too.
-	 */
-	numIndexTuples = rint(numIndexTuples / num_sa_scans);
+		/*
+		 * The above calculation counts all the tuples visited across all
+		 * scans induced by ScalarArrayOpExpr nodes.  We want to consider the
+		 * average per-indexscan number, so adjust.  This is a handy place to
+		 * round to integer, too.  (If caller supplied tuple estimate, it's
+		 * responsible for handling these considerations.)
+		 */
+		numIndexTuples = rint(numIndexTuples / num_sa_scans);
+	}
 
 	/*
 	 * We can bound the number of tuples by the index size in any case. Also,
@@ -4786,14 +5028,16 @@ genericcostestimate(PlannerInfo *root,
 	 * evaluated once at the start of the scan to reduce them to runtime keys
 	 * to pass to the index AM (see nodeIndexscan.c).  We model the per-tuple
 	 * CPU costs as cpu_index_tuple_cost plus one cpu_operator_cost per
-	 * indexqual operator.
+	 * indexqual operator.  Because we have numIndexTuples as a per-scan
+	 * number, we have to multiply by num_sa_scans to get the correct result
+	 * for ScalarArrayOpExpr cases.
 	 *
 	 * Note: this neglects the possible costs of rechecking lossy operators
 	 * and OR-clause expressions.  Detecting that that might be needed seems
 	 * more expensive than it's worth, though, considering all the other
 	 * inaccuracies here ...
 	 */
-	cost_qual_eval(&index_qual_cost, indexQuals);
+	cost_qual_eval(&index_qual_cost, indexQuals, root);
 	qual_op_cost = cpu_operator_cost * list_length(indexQuals);
 	qual_arg_cost = index_qual_cost.startup +
 		index_qual_cost.per_tuple - qual_op_cost;
@@ -4801,7 +5045,22 @@ genericcostestimate(PlannerInfo *root,
 		qual_arg_cost = 0;
 	*indexStartupCost = qual_arg_cost;
 	*indexTotalCost += qual_arg_cost;
-	*indexTotalCost += numIndexTuples * (cpu_index_tuple_cost + qual_op_cost);
+	*indexTotalCost += numIndexTuples * num_sa_scans * (cpu_index_tuple_cost + qual_op_cost);
+
+	/*
+	 * We also add a CPU-cost component to represent the general costs of 
+	 * starting an indexscan, such as analysis of btree index keys and
+	 * initial tree descent.  This is estimated at 100x cpu_operator_cost,
+	 * which is a bit arbitrary but seems the right order of magnitude.
+	 * (As noted above, we don't charge any I/O for touching upper tree
+	 * levels, but charging nothing at all has been found too optimistic.)
+	 *
+	 * Although this is startup cost with respect to any one scan, we add
+	 * it to the "total" cost component because it's only very interesting
+	 * in the many-ScalarArrayOpExpr-scan case, and there it will be paid
+	 * over the life of the scan node.
+	 */
+	*indexTotalCost += num_sa_scans * 100.0 * cpu_operator_cost;
 
 	/*
 	 * Generic assumption about index correlation: there isn't any.
@@ -4829,7 +5088,18 @@ btcostestimate(PG_FUNCTION_ARGS)
 	int			indexcol;
 	bool		eqQualHere;
 	bool		found_saop;
+	double		num_sa_scans;
 	ListCell   *l;
+	cqContext  *stacqCtx;
+
+    /*
+     * CDB: Tell caller how many leading indexcols are matched by '=' quals.
+     *
+     * CDB TODO: The num_leading_eq field doesn't really belong in IndexOptInfo.
+     * It's just a kludgy way to return an extra result parameter, because we
+     * don't have access here to the IndexPath node where this info should go.
+     */
+    index->num_leading_eq = 0;
 
 	/*
 	 * For a btree scan, only leading '=' quals plus inequality quals for the
@@ -4852,6 +5122,7 @@ btcostestimate(PG_FUNCTION_ARGS)
 	indexcol = 0;
 	eqQualHere = false;
 	found_saop = false;
+	num_sa_scans = 1;
 	foreach(l, indexQuals)
 	{
 		RestrictInfo *rinfo = (RestrictInfo *) lfirst(l);
@@ -4927,7 +5198,23 @@ btcostestimate(PG_FUNCTION_ARGS)
 											  index->classlist[indexcol]);
 		Assert(op_strategy != 0);		/* not a member of opclass?? */
 		if (op_strategy == BTEqualStrategyNumber)
+        {
 			eqQualHere = true;
+
+            /* CDB: Count leading indexcols having '=' quals. */
+            if (!IsA(clause, ScalarArrayOpExpr))
+                index->num_leading_eq = indexcol + 1;
+        }
+
+		/* count up number of SA scans induced by indexBoundQuals only */
+		if (IsA(clause, ScalarArrayOpExpr))
+		{
+			ScalarArrayOpExpr *saop = (ScalarArrayOpExpr *) clause;
+			int			alength = estimate_array_length(lsecond(saop->args));
+
+			if (alength > 1)
+				num_sa_scans *= alength;
+		}
 		indexBoundQuals = lappend(indexBoundQuals, rinfo);
 	}
 
@@ -4937,9 +5224,7 @@ btcostestimate(PG_FUNCTION_ARGS)
 	 * clauselist_selectivity calculations.
 	 */
 	if (index->unique &&
-		indexcol == index->ncolumns - 1 &&
-		eqQualHere &&
-		!found_saop)
+        index->num_leading_eq == index->ncolumns)
 		numIndexTuples = 1.0;
 	else
 	{
@@ -4947,8 +5232,15 @@ btcostestimate(PG_FUNCTION_ARGS)
 
 		btreeSelectivity = clauselist_selectivity(root, indexBoundQuals,
 												  index->rel->relid,
-												  JOIN_INNER);
+												  JOIN_INNER,
+												  false /* use_damping */);
 		numIndexTuples = btreeSelectivity * index->rel->tuples;
+		/*
+		 * As in genericcostestimate(), we have to adjust for any
+		 * ScalarArrayOpExpr quals included in indexBoundQuals, and then
+		 * round to integer.
+		 */
+		numIndexTuples = rint(numIndexTuples / num_sa_scans);
 	}
 
 	genericcostestimate(root, index, indexQuals, outer_rel, numIndexTuples,
@@ -4984,10 +5276,15 @@ btcostestimate(PG_FUNCTION_ARGS)
 		colnum = 1;
 	}
 
-	tuple = SearchSysCache(STATRELATT,
-						   ObjectIdGetDatum(relid),
-						   Int16GetDatum(colnum),
-						   0, 0);
+	stacqCtx = caql_beginscan(
+			NULL,
+			cql("SELECT * FROM pg_statistic "
+				" WHERE starelid = :1 "
+				" AND staattnum = :2 ",
+				ObjectIdGetDatum(relid),
+				Int16GetDatum(colnum)));
+
+	tuple = caql_getnext(stacqCtx);
 
 	if (HeapTupleIsValid(tuple))
 	{
@@ -5011,8 +5308,8 @@ btcostestimate(PG_FUNCTION_ARGS)
 
 			free_attstatsslot(InvalidOid, NULL, 0, numbers, nnumbers);
 		}
-		ReleaseSysCache(tuple);
 	}
+	caql_endscan(stacqCtx);
 
 	PG_RETURN_VOID();
 }
@@ -5068,6 +5365,82 @@ gincostestimate(PG_FUNCTION_ARGS)
 	double	   *indexCorrelation = (double *) PG_GETARG_POINTER(7);
 
 	genericcostestimate(root, index, indexQuals, outer_rel, 0.0,
+						indexStartupCost, indexTotalCost,
+						indexSelectivity, indexCorrelation);
+
+	PG_RETURN_VOID();
+}
+
+Datum
+bmcostestimate(PG_FUNCTION_ARGS)
+{
+	PlannerInfo *root = (PlannerInfo *) PG_GETARG_POINTER(0);
+	IndexOptInfo *index = (IndexOptInfo *) PG_GETARG_POINTER(1);
+	List	   *indexQuals = (List *) PG_GETARG_POINTER(2);
+	RelOptInfo *outer_rel = (RelOptInfo *) PG_GETARG_POINTER(3);
+	Cost	   *indexStartupCost = (Cost *) PG_GETARG_POINTER(4);
+	Cost	   *indexTotalCost = (Cost *) PG_GETARG_POINTER(5);
+	Selectivity *indexSelectivity = (Selectivity *) PG_GETARG_POINTER(6);
+	double	   *indexCorrelation = (double *) PG_GETARG_POINTER(7);
+
+	List *selectivityQuals;
+	double numIndexTuples;
+	List *groupExprs = NIL;
+	int i;
+	double numDistinctValues;
+	
+	/*
+	 * Estimate the number of index tuples. This is basically the same
+	 * as the one in genericcostestimate(), except that
+	 * (1) We don't consider ScalarArrayOpExpr in the calculation, since
+	 *     each value has its own bit vector.
+	 * (2) since the bitmap index stores bit vectors, one for each distinct
+	 *     value, we adjust the number of index tuples by dividing the
+	 *     value with the number of distinct values.
+	 */
+	if (index->indpred != NIL)
+	{
+		List	   *strippedQuals;
+		List	   *predExtraQuals;
+
+		strippedQuals = get_actual_clauses(indexQuals);
+		predExtraQuals = list_difference(index->indpred, strippedQuals);
+		selectivityQuals = list_concat(predExtraQuals, indexQuals);
+	}
+	else
+		selectivityQuals = indexQuals;
+
+	/* Estimate the fraction of main-table tuples that will be visited */
+	*indexSelectivity = clauselist_selectivity(root, selectivityQuals,
+											   index->rel->relid,
+											   JOIN_INNER,
+											   false /* use_damping */);
+
+	/*
+	 * Construct a list of index keys, so that we can estimate the number
+	 * of distinct values for those keys.
+	 */
+	for (i = 0; i < index->ncolumns; i ++)
+	{
+		if (index->indexkeys[i] > 0)
+		{
+			Var *var = find_indexkey_var(root, index->rel, (AttrNumber) index->indexkeys[i]);
+			
+			groupExprs = lappend(groupExprs, var);
+		}
+	}
+	if (index->indexprs != NULL)
+		groupExprs = list_concat_unique(groupExprs, index->indexprs);
+
+	Assert(groupExprs != NULL);
+	numDistinctValues = estimate_num_groups(root, groupExprs, index->rel->rows);
+	if (numDistinctValues == 0)
+		numDistinctValues = 1;
+
+	numIndexTuples = *indexSelectivity * index->rel->tuples;
+	numIndexTuples = rint(numIndexTuples / numDistinctValues);
+
+	genericcostestimate(root, index, indexQuals, outer_rel, numIndexTuples,
 						indexStartupCost, indexTotalCost,
 						indexSelectivity, indexCorrelation);
 

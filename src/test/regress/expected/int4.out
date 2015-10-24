@@ -27,91 +27,91 @@ INSERT INTO INT4_TBL(f1) VALUES ('123       5');
 ERROR:  invalid input syntax for integer: "123       5"
 INSERT INTO INT4_TBL(f1) VALUES ('');
 ERROR:  invalid input syntax for integer: ""
-SELECT '' AS five, * FROM INT4_TBL;
+SELECT '' AS five, * FROM INT4_TBL  order by f1;
  five |     f1      
 ------+-------------
+      | -2147483647
+      |     -123456
       |           0
       |      123456
-      |     -123456
       |  2147483647
-      | -2147483647
 (5 rows)
 
-SELECT '' AS four, i.* FROM INT4_TBL i WHERE i.f1 <> int2 '0';
+SELECT '' AS four, i.* FROM INT4_TBL i WHERE i.f1 <> int2 '0'  order by f1;
  four |     f1      
 ------+-------------
-      |      123456
-      |     -123456
-      |  2147483647
       | -2147483647
+      |     -123456
+      |      123456
+      |  2147483647
 (4 rows)
 
-SELECT '' AS four, i.* FROM INT4_TBL i WHERE i.f1 <> int4 '0';
+SELECT '' AS four, i.* FROM INT4_TBL i WHERE i.f1 <> int4 '0'  order by f1;
  four |     f1      
 ------+-------------
-      |      123456
-      |     -123456
-      |  2147483647
       | -2147483647
+      |     -123456
+      |      123456
+      |  2147483647
 (4 rows)
 
-SELECT '' AS one, i.* FROM INT4_TBL i WHERE i.f1 = int2 '0';
+SELECT '' AS one, i.* FROM INT4_TBL i WHERE i.f1 = int2 '0'  order by f1;
  one | f1 
 -----+----
      |  0
 (1 row)
 
-SELECT '' AS one, i.* FROM INT4_TBL i WHERE i.f1 = int4 '0';
+SELECT '' AS one, i.* FROM INT4_TBL i WHERE i.f1 = int4 '0'  order by f1;
  one | f1 
 -----+----
      |  0
 (1 row)
 
-SELECT '' AS two, i.* FROM INT4_TBL i WHERE i.f1 < int2 '0';
+SELECT '' AS two, i.* FROM INT4_TBL i WHERE i.f1 < int2 '0'  order by f1;
  two |     f1      
 -----+-------------
-     |     -123456
      | -2147483647
+     |     -123456
 (2 rows)
 
-SELECT '' AS two, i.* FROM INT4_TBL i WHERE i.f1 < int4 '0';
+SELECT '' AS two, i.* FROM INT4_TBL i WHERE i.f1 < int4 '0'  order by f1;
  two |     f1      
 -----+-------------
-     |     -123456
      | -2147483647
+     |     -123456
 (2 rows)
 
-SELECT '' AS three, i.* FROM INT4_TBL i WHERE i.f1 <= int2 '0';
+SELECT '' AS three, i.* FROM INT4_TBL i WHERE i.f1 <= int2 '0'  order by f1;
  three |     f1      
 -------+-------------
-       |           0
-       |     -123456
        | -2147483647
+       |     -123456
+       |           0
 (3 rows)
 
-SELECT '' AS three, i.* FROM INT4_TBL i WHERE i.f1 <= int4 '0';
+SELECT '' AS three, i.* FROM INT4_TBL i WHERE i.f1 <= int4 '0'  order by f1;
  three |     f1      
 -------+-------------
-       |           0
-       |     -123456
        | -2147483647
+       |     -123456
+       |           0
 (3 rows)
 
-SELECT '' AS two, i.* FROM INT4_TBL i WHERE i.f1 > int2 '0';
+SELECT '' AS two, i.* FROM INT4_TBL i WHERE i.f1 > int2 '0'  order by f1;
  two |     f1     
 -----+------------
      |     123456
      | 2147483647
 (2 rows)
 
-SELECT '' AS two, i.* FROM INT4_TBL i WHERE i.f1 > int4 '0';
+SELECT '' AS two, i.* FROM INT4_TBL i WHERE i.f1 > int4 '0'  order by f1;
  two |     f1     
 -----+------------
      |     123456
      | 2147483647
 (2 rows)
 
-SELECT '' AS three, i.* FROM INT4_TBL i WHERE i.f1 >= int2 '0';
+SELECT '' AS three, i.* FROM INT4_TBL i WHERE i.f1 >= int2 '0'  order by f1;
  three |     f1     
 -------+------------
        |          0
@@ -119,7 +119,7 @@ SELECT '' AS three, i.* FROM INT4_TBL i WHERE i.f1 >= int2 '0';
        | 2147483647
 (3 rows)
 
-SELECT '' AS three, i.* FROM INT4_TBL i WHERE i.f1 >= int4 '0';
+SELECT '' AS three, i.* FROM INT4_TBL i WHERE i.f1 >= int4 '0'  order by f1;
  three |     f1     
 -------+------------
        |          0
@@ -128,109 +128,109 @@ SELECT '' AS three, i.* FROM INT4_TBL i WHERE i.f1 >= int4 '0';
 (3 rows)
 
 -- positive odds
-SELECT '' AS one, i.* FROM INT4_TBL i WHERE (i.f1 % int2 '2') = int2 '1';
+SELECT '' AS one, i.* FROM INT4_TBL i WHERE (i.f1 % int2 '2') = int2 '1'  order by f1;
  one |     f1     
 -----+------------
      | 2147483647
 (1 row)
 
 -- any evens
-SELECT '' AS three, i.* FROM INT4_TBL i WHERE (i.f1 % int4 '2') = int2 '0';
+SELECT '' AS three, i.* FROM INT4_TBL i WHERE (i.f1 % int4 '2') = int2 '0'  order by f1;
  three |   f1    
 -------+---------
+       | -123456
        |       0
        |  123456
-       | -123456
 (3 rows)
 
-SELECT '' AS five, i.f1, i.f1 * int2 '2' AS x FROM INT4_TBL i;
+SELECT '' AS five, i.f1, i.f1 * int2 '2' AS x FROM INT4_TBL i  order by f1;
 ERROR:  integer out of range
 SELECT '' AS five, i.f1, i.f1 * int2 '2' AS x FROM INT4_TBL i
-WHERE abs(f1) < 1073741824;
+WHERE abs(f1) < 1073741824 order by f1;
  five |   f1    |    x    
 ------+---------+---------
+      | -123456 | -246912
       |       0 |       0
       |  123456 |  246912
-      | -123456 | -246912
 (3 rows)
 
-SELECT '' AS five, i.f1, i.f1 * int4 '2' AS x FROM INT4_TBL i;
+SELECT '' AS five, i.f1, i.f1 * int4 '2' AS x FROM INT4_TBL i order by f1;
 ERROR:  integer out of range
 SELECT '' AS five, i.f1, i.f1 * int4 '2' AS x FROM INT4_TBL i
-WHERE abs(f1) < 1073741824;
+WHERE abs(f1) < 1073741824 order by f1;
  five |   f1    |    x    
 ------+---------+---------
+      | -123456 | -246912
       |       0 |       0
       |  123456 |  246912
-      | -123456 | -246912
 (3 rows)
 
-SELECT '' AS five, i.f1, i.f1 + int2 '2' AS x FROM INT4_TBL i;
+SELECT '' AS five, i.f1, i.f1 + int2 '2' AS x FROM INT4_TBL i order by f1;
 ERROR:  integer out of range
 SELECT '' AS five, i.f1, i.f1 + int2 '2' AS x FROM INT4_TBL i
-WHERE f1 < 2147483646;
+WHERE f1 < 2147483646 order by f1;
  five |     f1      |      x      
 ------+-------------+-------------
+      | -2147483647 | -2147483645
+      |     -123456 |     -123454
       |           0 |           2
       |      123456 |      123458
-      |     -123456 |     -123454
-      | -2147483647 | -2147483645
 (4 rows)
 
-SELECT '' AS five, i.f1, i.f1 + int4 '2' AS x FROM INT4_TBL i;
+SELECT '' AS five, i.f1, i.f1 + int4 '2' AS x FROM INT4_TBL i order by f1;
 ERROR:  integer out of range
 SELECT '' AS five, i.f1, i.f1 + int4 '2' AS x FROM INT4_TBL i
-WHERE f1 < 2147483646;
+WHERE f1 < 2147483646 order by f1;
  five |     f1      |      x      
 ------+-------------+-------------
+      | -2147483647 | -2147483645
+      |     -123456 |     -123454
       |           0 |           2
       |      123456 |      123458
-      |     -123456 |     -123454
-      | -2147483647 | -2147483645
 (4 rows)
 
-SELECT '' AS five, i.f1, i.f1 - int2 '2' AS x FROM INT4_TBL i;
+SELECT '' AS five, i.f1, i.f1 - int2 '2' AS x FROM INT4_TBL i order by f1;
 ERROR:  integer out of range
 SELECT '' AS five, i.f1, i.f1 - int2 '2' AS x FROM INT4_TBL i
-WHERE f1 > -2147483647;
+WHERE f1 > -2147483647 order by f1;
  five |     f1     |     x      
 ------+------------+------------
+      |    -123456 |    -123458
       |          0 |         -2
       |     123456 |     123454
-      |    -123456 |    -123458
       | 2147483647 | 2147483645
 (4 rows)
 
-SELECT '' AS five, i.f1, i.f1 - int4 '2' AS x FROM INT4_TBL i;
+SELECT '' AS five, i.f1, i.f1 - int4 '2' AS x FROM INT4_TBL i order by f1;
 ERROR:  integer out of range
 SELECT '' AS five, i.f1, i.f1 - int4 '2' AS x FROM INT4_TBL i
-WHERE f1 > -2147483647;
+WHERE f1 > -2147483647 order by f1;
  five |     f1     |     x      
 ------+------------+------------
+      |    -123456 |    -123458
       |          0 |         -2
       |     123456 |     123454
-      |    -123456 |    -123458
       | 2147483647 | 2147483645
 (4 rows)
 
-SELECT '' AS five, i.f1, i.f1 / int2 '2' AS x FROM INT4_TBL i;
+SELECT '' AS five, i.f1, i.f1 / int2 '2' AS x FROM INT4_TBL i order by f1;
  five |     f1      |      x      
 ------+-------------+-------------
+      | -2147483647 | -1073741823
+      |     -123456 |      -61728
       |           0 |           0
       |      123456 |       61728
-      |     -123456 |      -61728
       |  2147483647 |  1073741823
-      | -2147483647 | -1073741823
 (5 rows)
 
-SELECT '' AS five, i.f1, i.f1 / int4 '2' AS x FROM INT4_TBL i;
+SELECT '' AS five, i.f1, i.f1 / int4 '2' AS x FROM INT4_TBL i order by f1;
  five |     f1      |      x      
 ------+-------------+-------------
+      | -2147483647 | -1073741823
+      |     -123456 |      -61728
       |           0 |           0
       |      123456 |       61728
-      |     -123456 |      -61728
       |  2147483647 |  1073741823
-      | -2147483647 | -1073741823
 (5 rows)
 
 --

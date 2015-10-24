@@ -5,15 +5,17 @@
  *
  * Code originally contributed by Adriaan Joubert.
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
- * $PostgreSQL: pgsql/src/include/utils/varbit.h,v 1.23 2006/03/05 15:59:08 momjian Exp $
+ * $PostgreSQL: pgsql/src/include/utils/varbit.h,v 1.28 2009/01/01 17:24:02 momjian Exp $
  *
  *-------------------------------------------------------------------------
  */
 #ifndef VARBIT_H
 #define VARBIT_H
+
+#include <limits.h>
 
 #include "fmgr.h"
 
@@ -22,8 +24,7 @@
  */
 typedef struct
 {
-	int32		vl_len;			/* standard varlena header (total size in
-								 * bytes) */
+	int32		vl_len_;		/* varlena header (do not touch directly!) */
 	int32		bit_len;		/* number of valid bits */
 	bits8		bit_dat[1];		/* bit string, most sig. byte first */
 } VarBit;
@@ -54,6 +55,11 @@ typedef struct
 /* Number of bytes needed to store a bit string of a given length */
 #define VARBITTOTALLEN(BITLEN)	(((BITLEN) + BITS_PER_BYTE-1)/BITS_PER_BYTE + \
 								 VARHDRSZ + VARBITHDRSZ)
+/*
+ * Maximum number of bits.  Several code sites assume no overflow from
+ * computing bitlen + X; VARBITTOTALLEN() has the largest such X.
+ */
+#define VARBITMAXLEN		(INT_MAX - BITS_PER_BYTE + 1)
 /* pointer beyond the end of the bit string (like end() in STL containers) */
 #define VARBITEND(PTR)		(((bits8 *) (PTR)) + VARSIZE(PTR))
 /* Mask that will cover exactly one byte, i.e. BITS_PER_BYTE bits */
@@ -64,10 +70,14 @@ extern Datum bit_in(PG_FUNCTION_ARGS);
 extern Datum bit_out(PG_FUNCTION_ARGS);
 extern Datum bit_recv(PG_FUNCTION_ARGS);
 extern Datum bit_send(PG_FUNCTION_ARGS);
+extern Datum bittypmodin(PG_FUNCTION_ARGS);
+extern Datum bittypmodout(PG_FUNCTION_ARGS);
 extern Datum varbit_in(PG_FUNCTION_ARGS);
 extern Datum varbit_out(PG_FUNCTION_ARGS);
 extern Datum varbit_recv(PG_FUNCTION_ARGS);
 extern Datum varbit_send(PG_FUNCTION_ARGS);
+extern Datum varbittypmodin(PG_FUNCTION_ARGS);
+extern Datum varbittypmodout(PG_FUNCTION_ARGS);
 extern Datum bit(PG_FUNCTION_ARGS);
 extern Datum varbit(PG_FUNCTION_ARGS);
 extern Datum biteq(PG_FUNCTION_ARGS);

@@ -6,10 +6,10 @@
  * It can be used to buffer either ordinary C strings (null-terminated text)
  * or arbitrary binary data.  All storage is allocated with palloc().
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
- *	  $PostgreSQL: pgsql/src/backend/lib/stringinfo.c,v 1.43 2006/03/05 15:58:27 momjian Exp $
+ *	  $PostgreSQL: pgsql/src/backend/lib/stringinfo.c,v 1.50 2009/01/01 17:23:42 momjian Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -45,12 +45,42 @@ makeStringInfo(void)
 void
 initStringInfo(StringInfo str)
 {
-	int			size = 256;		/* initial default buffer size */
+	int			size = 1024;		/* initial default buffer size */
 
 	str->data = (char *) palloc(size);
 	str->maxlen = size;
 	str->len = 0;
 	str->data[0] = '\0';
+	str->cursor = 0;
+}
+
+/*
+ * initStringInfoOfSize
+ *
+ * Initialize a StringInfoData struct with data buffer of 'size' bytes 
+ */
+void
+initStringInfoOfSize(StringInfo str, int size)
+{
+
+	str->data = (char *) palloc(size);
+	str->maxlen = size;
+	str->len = 0;
+	str->data[0] = '\0';
+	str->cursor = 0;
+}
+
+/*
+ * resetStringInfo
+ *
+ * Reset the StringInfo: the data buffer remains valid, but its
+ * previous content, if any, is cleared.
+ */
+void
+resetStringInfo(StringInfo str)
+{
+	str->data[0] = '\0';
+	str->len = 0;
 	str->cursor = 0;
 }
 
@@ -175,13 +205,35 @@ appendStringInfoChar(StringInfo str, char ch)
 }
 
 /*
+ * appendStringInfoFill
+ *
+ * Append a single byte, repeated 0 or more times, to str.
+ */
+void
+appendStringInfoFill(StringInfo str, int occurrences, char ch)
+{
+    /* Length must not overflow. */
+    if (str->len + occurrences <= str->len)
+        return;
+
+    /* Make more room if needed */
+    if (str->len + occurrences >= str->maxlen)
+	    enlargeStringInfo(str, occurrences);
+
+    /* Fill specified number of bytes with the character. */
+    memset(str->data + str->len, ch, occurrences);
+    str->len += occurrences;
+    str->data[str->len] = '\0';
+}
+
+/*
  * appendBinaryStringInfo
  *
  * Append arbitrary binary data to a StringInfo, allocating more space
  * if necessary.
  */
 void
-appendBinaryStringInfo(StringInfo str, const char *data, int datalen)
+appendBinaryStringInfo(StringInfo str, const void *data, int datalen)
 {
 	Assert(str != NULL);
 
@@ -222,14 +274,17 @@ enlargeStringInfo(StringInfo str, int needed)
 	int			newlen;
 
 	/*
-	 * Guard against ridiculous "needed" values, which can occur if we're fed
-	 * bogus data.	Without this, we can get an overflow or infinite loop in
-	 * the following.
+	 * Guard against out-of-range "needed" values.  Without this, we can get
+	 * an overflow or infinite loop in the following.
 	 */
-	if (needed < 0 ||
-		((Size) needed) >= (MaxAllocSize - (Size) str->len))
-		elog(ERROR, "invalid string enlargement request size %d",
-			 needed);
+	if (needed < 0)				/* should not happen */
+		elog(ERROR, "invalid string enlargement request size: %d", needed);
+	if (((Size) needed) >= (MaxAllocSize - (Size) str->len))
+		ereport(ERROR,
+				(errcode(ERRCODE_PROGRAM_LIMIT_EXCEEDED),
+				 errmsg("out of memory"),
+				 errdetail("Cannot enlarge string buffer containing %d bytes by %d more bytes.",
+						   str->len, needed)));
 
 	needed += str->len + 1;		/* total space required now */
 
@@ -252,10 +307,55 @@ enlargeStringInfo(StringInfo str, int needed)
 	 * here that MaxAllocSize <= INT_MAX/2, else the above loop could
 	 * overflow.  We will still have newlen >= needed.
 	 */
-	if (newlen > (int) MaxAllocSize)
-		newlen = (int) MaxAllocSize;
+	if (newlen >= (int) MaxAllocSize)
+	{
+		/*
+		 * Currently we support allocations only up to MaxAllocSize - 1
+		 * (see AllocSizeIsValid()).
+		 */
+		newlen = (int) MaxAllocSize - 1;
+	}
 
 	str->data = (char *) repalloc(str->data, newlen);
 
 	str->maxlen = newlen;
 }
+
+
+/*------------------------
+ * truncateStringInfo
+ * Make sure a StringInfo's string is no longer than 'nchars' characters.
+ */
+void 
+truncateStringInfo(StringInfo str, int nchars)
+{
+    if (str &&
+        str->len > nchars)
+    {
+        Assert(str->data != NULL && 
+               str->len <= str->maxlen);
+        str->len = nchars;
+        str->data[nchars] = '\0';
+    }
+}                               /* truncateStringInfo */
+
+/*
+ * Replace all occurances of a string in a StringInfo with a different string.
+ */
+void
+replaceStringInfoString(StringInfo str, char *replace, char *replacement)
+{
+	char	   *ptr;
+
+	while ((ptr = strstr(str->data, replace)) != NULL)
+	{
+		char	   *dup = pstrdup(str->data);
+
+		resetStringInfo(str);
+		appendBinaryStringInfo(str, dup, ptr - str->data);
+		appendStringInfoString(str, replacement);
+		appendStringInfoString(str, dup + (ptr - str->data) + strlen(replace));		
+		pfree(dup);
+	}
+}
+

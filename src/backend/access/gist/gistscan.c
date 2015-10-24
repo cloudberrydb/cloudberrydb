@@ -4,7 +4,7 @@
  *	  routines to manage scans on GiST index relations
  *
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2008, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
@@ -67,6 +67,7 @@ gistrescan(PG_FUNCTION_ARGS)
 			ReleaseBuffer(so->markbuf);
 			so->markbuf = InvalidBuffer;
 		}
+
 	}
 	else
 	{
@@ -81,6 +82,8 @@ gistrescan(PG_FUNCTION_ARGS)
 
 		scan->opaque = so;
 	}
+
+	so->nPageData = so->curPageData = 0;
 
 	/* Update scan key, if a new one is given */
 	if (key && scan->numberOfKeys > 0)
@@ -148,6 +151,11 @@ gistmarkpos(PG_FUNCTION_ARGS)
 		so->markbuf = so->curbuf;
 	}
 
+	so->markNPageData = so->nPageData;
+	so->markCurPageData = so->curPageData;
+	if ( so->markNPageData > 0 )
+		memcpy( so->markPageData, so->pageData, sizeof(MatchedItemPtr) * so->markNPageData );		
+
 	PG_RETURN_VOID();
 }
 
@@ -196,6 +204,11 @@ gistrestrpos(PG_FUNCTION_ARGS)
 		IncrBufferRefCount(so->markbuf);
 		so->curbuf = so->markbuf;
 	}
+
+	so->nPageData = so->markNPageData;
+	so->curPageData = so->markNPageData;
+	if ( so->markNPageData > 0 )
+		memcpy( so->pageData, so->markPageData, sizeof(MatchedItemPtr) * so->markNPageData );		
 
 	PG_RETURN_VOID();
 }

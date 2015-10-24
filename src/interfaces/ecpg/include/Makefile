@@ -24,12 +24,12 @@ install-headers: $(ecpg_headers) $(informix_headers)
 	$(INSTALL_DATA) $(ecpg_config_h) '$(DESTDIR)$(includedir)'
 
 installdirs:
-	$(mkinstalldirs) '$(DESTDIR)$(includedir)' '$(DESTDIR)$(informix_esql_dir)'
+	$(MKDIR_P) '$(DESTDIR)$(includedir)' '$(DESTDIR)$(informix_esql_dir)'
 
 uninstall:
 	rm -f $(addprefix '$(DESTDIR)$(includedir)'/, $(ecpg_headers))
 	rm -f $(addprefix '$(DESTDIR)$(informix_esql_dir)'/, $(informix_headers))
+	rm -f '$(DESTDIR)$(includedir)'/$(notdir $(ecpg_config_h))
 
 distclean maintainer-clean:
-	rm -f ecpg_config.h
-
+	rm -f ecpg_config.h stamp-h

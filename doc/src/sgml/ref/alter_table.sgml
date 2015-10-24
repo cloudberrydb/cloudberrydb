@@ -20,38 +20,106 @@ PostgreSQL documentation
 
  <refsynopsisdiv>
 <synopsis>
-ALTER TABLE [ ONLY ] <replaceable class="PARAMETER">name</replaceable> [ * ]
-    <replaceable class="PARAMETER">action</replaceable> [, ... ]
-ALTER TABLE [ ONLY ] <replaceable class="PARAMETER">name</replaceable> [ * ]
-    RENAME [ COLUMN ] <replaceable class="PARAMETER">column</replaceable> TO <replaceable class="PARAMETER">new_column</replaceable>
-ALTER TABLE <replaceable class="PARAMETER">name</replaceable>
-    RENAME TO <replaceable class="PARAMETER">new_name</replaceable>
-ALTER TABLE <replaceable class="PARAMETER">name</replaceable>
-    SET SCHEMA <replaceable class="PARAMETER">new_schema</replaceable>
+ALTER TABLE [ONLY] name RENAME [COLUMN] column TO new_column
 
-where <replaceable class="PARAMETER">action</replaceable> is one of:
+ALTER TABLE name RENAME TO new_name
 
-    ADD [ COLUMN ] <replaceable class="PARAMETER">column</replaceable> <replaceable class="PARAMETER">type</replaceable> [ <replaceable class="PARAMETER">column_constraint</replaceable> [ ... ] ]
-    DROP [ COLUMN ] <replaceable class="PARAMETER">column</replaceable> [ RESTRICT | CASCADE ]
-    ALTER [ COLUMN ] <replaceable class="PARAMETER">column</replaceable> TYPE <replaceable class="PARAMETER">type</replaceable> [ USING <replaceable class="PARAMETER">expression</replaceable> ]
-    ALTER [ COLUMN ] <replaceable class="PARAMETER">column</replaceable> SET DEFAULT <replaceable class="PARAMETER">expression</replaceable>
-    ALTER [ COLUMN ] <replaceable class="PARAMETER">column</replaceable> DROP DEFAULT
-    ALTER [ COLUMN ] <replaceable class="PARAMETER">column</replaceable> { SET | DROP } NOT NULL
-    ALTER [ COLUMN ] <replaceable class="PARAMETER">column</replaceable> SET STATISTICS <replaceable class="PARAMETER">integer</replaceable>
-    ALTER [ COLUMN ] <replaceable class="PARAMETER">column</replaceable> SET STORAGE { PLAIN | EXTERNAL | EXTENDED | MAIN }
-    ADD <replaceable class="PARAMETER">table_constraint</replaceable>
-    DROP CONSTRAINT <replaceable class="PARAMETER">constraint_name</replaceable> [ RESTRICT | CASCADE ]
-    DISABLE TRIGGER [ <replaceable class="PARAMETER">trigger_name</replaceable> | ALL | USER ]
-    ENABLE TRIGGER [ <replaceable class="PARAMETER">trigger_name</replaceable> | ALL | USER ]
-    CLUSTER ON <replaceable class="PARAMETER">index_name</replaceable>
-    SET WITHOUT CLUSTER
-    SET WITHOUT OIDS
-    SET ( <replaceable class="PARAMETER">storage_parameter</replaceable> = <replaceable class="PARAMETER">value</replaceable> [, ... ] )
-    RESET ( <replaceable class="PARAMETER">storage_parameter</replaceable> [, ... ] )
-    INHERIT <replaceable class="PARAMETER">parent_table</replaceable>
-    NO INHERIT <replaceable class="PARAMETER">parent_table</replaceable>
-    OWNER TO <replaceable class="PARAMETER">new_owner</replaceable>
-    SET TABLESPACE <replaceable class="PARAMETER">new_tablespace</replaceable>
+ALTER TABLE name SET SCHEMA new_schema
+
+ALTER TABLE [ONLY] name SET 
+     DISTRIBUTED BY (column, [ ... ] ) 
+   | DISTRIBUTED RANDOMLY 
+   | WITH (REORGANIZE=true|false) 
+
+ALTER TABLE [ONLY] name action [, ... ]
+
+ALTER TABLE name 
+   [ ALTER PARTITION { partition_name | FOR (RANK(number)) 
+                     | FOR (value) } partition_action [...] ] 
+   partition_action
+
+where action is one of:
+  ADD [COLUMN] column_name type
+      [ ENCODING ( storage_directive [,...] ) ] 
+      [column_constraint [ ... ]]
+  DROP [COLUMN] column [RESTRICT | CASCADE]
+  ALTER [COLUMN] column TYPE type [USING expression]
+  ALTER [COLUMN] column SET DEFAULT expression
+  ALTER [COLUMN] column DROP DEFAULT
+  ALTER [COLUMN] column { SET | DROP } NOT NULL
+  ALTER [COLUMN] column SET STATISTICS integer
+  ADD table_constraint
+  DROP CONSTRAINT constraint_name [RESTRICT | CASCADE]
+  DISABLE TRIGGER [trigger_name | ALL | USER]
+  ENABLE TRIGGER [trigger_name | ALL | USER]
+  CLUSTER ON index_name
+  SET WITHOUT CLUSTER
+  SET WITHOUT OIDS
+  SET (FILLFACTOR = value)
+  RESET (FILLFACTOR)
+  INHERIT parent_table
+  NO INHERIT parent_table
+  OWNER TO new_owner
+  SET TABLESPACE new_tablespace
+
+where partition_action is one of:
+  ALTER DEFAULT PARTITION
+  DROP DEFAULT PARTITION [IF EXISTS]
+  DROP PARTITION [IF EXISTS] { partition_name | 
+      FOR (RANK(number)) | FOR (value) } [CASCADE]
+  TRUNCATE DEFAULT PARTITION
+  TRUNCATE PARTITION { partition_name | FOR (RANK(number)) | 
+      FOR (value) }
+  RENAME DEFAULT PARTITION TO new_partition_name
+  RENAME PARTITION { partition_name | FOR (RANK(number)) | 
+      FOR (value) } TO new_partition_name
+  ADD DEFAULT PARTITION name [ ( subpartition_spec ) ]
+  ADD PARTITION [name] partition_element
+      [ ( subpartition_spec ) ]
+  EXCHANGE PARTITION { partition_name | FOR (RANK(number)) | 
+       FOR (value) } WITH TABLE table_name 
+        [ WITH | WITHOUT VALIDATION ]
+  EXCHANGE DEFAULT PARTITION WITH TABLE table_name
+   [ WITH | WITHOUT VALIDATION ]
+  SET SUBPARTITION TEMPLATE (subpartition_spec)
+  SPLIT DEFAULT PARTITION
+    {  AT (list_value)
+     | START([datatype] range_value) [INCLUSIVE | EXCLUSIVE] 
+        END([datatype] range_value) [INCLUSIVE | EXCLUSIVE] }
+    [ INTO ( PARTITION new_partition_name, 
+             PARTITION default_partition_name ) ]
+  SPLIT PARTITION { partition_name | FOR (RANK(number)) | 
+     FOR (value) } AT (value) 
+    [ INTO (PARTITION partition_name, PARTITION partition_name)]  
+
+where partition_element is:
+    VALUES (list_value [,...] )
+  | START ([datatype] 'start_value') [INCLUSIVE | EXCLUSIVE]
+     [ END ([datatype] 'end_value') [INCLUSIVE | EXCLUSIVE] ]
+  | END ([datatype] 'end_value') [INCLUSIVE | EXCLUSIVE]
+[ WITH ( partition_storage_parameter=value [, ... ] ) ]
+[ TABLESPACE tablespace ]
+
+where subpartition_spec is:
+subpartition_element [, ...]
+and subpartition_element is:
+   DEFAULT SUBPARTITION subpartition_name
+  | [SUBPARTITION subpartition_name] VALUES (list_value [,...] )
+  | [SUBPARTITION subpartition_name] 
+     START ([datatype] 'start_value') [INCLUSIVE | EXCLUSIVE]
+     [ END ([datatype] 'end_value') [INCLUSIVE | EXCLUSIVE] ]
+     [ EVERY ( [number | datatype] 'interval_value') ]
+  | [SUBPARTITION subpartition_name] 
+     END ([datatype] 'end_value') [INCLUSIVE | EXCLUSIVE]
+     [ EVERY ( [number | datatype] 'interval_value') ]
+[ WITH ( partition_storage_parameter=value [, ... ] ) ]
+[ TABLESPACE tablespace ]
+
+Where column_reference_storage_directive is:
+
+   COLUMN column_name ENCODING ( storage_directive [, ... ] ), ... 
+ | DEFAULT COLUMN ENCODING ( storage_directive [, ... ] )
+
 </synopsis>
  </refsynopsisdiv>
 
@@ -381,6 +449,14 @@ where <replaceable class="PARAMETER">action</replaceable> is one of:
    is possible to add several columns and/or alter the type of several
    columns in a single command.  This is particularly useful with large
    tables, since only one pass over the table need be made.
+  </para>
+
+  <para>
+   Note: If you add a partition to a table that 
+   has subpartition encodings, the new partition 
+   inherits the storage directives for the subpartitions. 
+   For more information, search for "Precedence of Compression Settings" 
+   in the Greenplum Database Administrator Guide.
   </para>
 
   <para>
@@ -846,3 +922,5 @@ ALTER TABLE myschema.distributors SET SCHEMA yourschema;
   </para>
  </refsect1>
 </refentry>
+
+

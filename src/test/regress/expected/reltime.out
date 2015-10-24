@@ -14,70 +14,70 @@ ERROR:  invalid input syntax for type reltime: "badly formatted reltime"
 INSERT INTO RELTIME_TBL (f1) VALUES ('@ 30 eons ago');
 ERROR:  invalid input syntax for type reltime: "@ 30 eons ago"
 -- test reltime operators
-SELECT '' AS six, * FROM RELTIME_TBL;
+SELECT '' AS six, * FROM RELTIME_TBL ORDER BY 2;
  six |      f1       
 -----+---------------
+     | @ 14 secs ago
      | @ 1 min
      | @ 5 hours
      | @ 10 days
-     | @ 34 years
      | @ 3 mons
-     | @ 14 secs ago
+     | @ 34 years
 (6 rows)
 
 SELECT '' AS five, * FROM RELTIME_TBL
-   WHERE RELTIME_TBL.f1 <> reltime '@ 10 days';
+   WHERE RELTIME_TBL.f1 <> reltime '@ 10 days' ORDER BY 2;
  five |      f1       
 ------+---------------
+      | @ 14 secs ago
       | @ 1 min
       | @ 5 hours
-      | @ 34 years
       | @ 3 mons
-      | @ 14 secs ago
+      | @ 34 years
 (5 rows)
 
 SELECT '' AS three, * FROM RELTIME_TBL
-   WHERE RELTIME_TBL.f1 <= reltime '@ 5 hours';
+   WHERE RELTIME_TBL.f1 <= reltime '@ 5 hours' ORDER BY 2;
  three |      f1       
 -------+---------------
+       | @ 14 secs ago
        | @ 1 min
        | @ 5 hours
-       | @ 14 secs ago
 (3 rows)
 
 SELECT '' AS three, * FROM RELTIME_TBL
-   WHERE RELTIME_TBL.f1 < reltime '@ 1 day';
+   WHERE RELTIME_TBL.f1 < reltime '@ 1 day' ORDER BY 2;
  three |      f1       
 -------+---------------
+       | @ 14 secs ago
        | @ 1 min
        | @ 5 hours
-       | @ 14 secs ago
 (3 rows)
 
 SELECT '' AS one, * FROM RELTIME_TBL
-   WHERE RELTIME_TBL.f1 = reltime '@ 34 years';
+   WHERE RELTIME_TBL.f1 = reltime '@ 34 years' ORDER BY 2;
  one |     f1     
 -----+------------
      | @ 34 years
 (1 row)
 
 SELECT '' AS two, * FROM RELTIME_TBL
-   WHERE RELTIME_TBL.f1 >= reltime '@ 1 month';
+   WHERE RELTIME_TBL.f1 >= reltime '@ 1 month' ORDER BY 2;
  two |     f1     
 -----+------------
-     | @ 34 years
      | @ 3 mons
+     | @ 34 years
 (2 rows)
 
 SELECT '' AS five, * FROM RELTIME_TBL
-   WHERE RELTIME_TBL.f1 > reltime '@ 3 seconds ago';
+   WHERE RELTIME_TBL.f1 > reltime '@ 3 seconds ago' ORDER BY 2;
  five |     f1     
 ------+------------
       | @ 1 min
       | @ 5 hours
       | @ 10 days
-      | @ 34 years
       | @ 3 mons
+      | @ 34 years
 (5 rows)
 
 SELECT '' AS fifteen, r1.*, r2.*

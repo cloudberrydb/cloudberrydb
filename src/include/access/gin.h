@@ -2,7 +2,7 @@
  * gin.h
  *	  header file for postgres inverted index access method implementation.
  *
- *	Copyright (c) 2006, PostgreSQL Global Development Group
+ *	Copyright (c) 2006-2008, PostgreSQL Global Development Group
  *	$PostgreSQL: pgsql/src/include/access/gin.h,v 1.9 2006/10/05 17:57:40 tgl Exp $
  *--------------------------------------------------------------------------
  */
@@ -12,7 +12,7 @@
 #define GIN_H
 
 #include "access/relscan.h"
-#include "access/skey.h"
+#include "access/sdir.h"
 #include "access/xlog.h"
 #include "access/xlogdefs.h"
 #include "storage/bufpage.h"
@@ -242,8 +242,8 @@ extern Datum ginbuild(PG_FUNCTION_ARGS);
 extern Datum gininsert(PG_FUNCTION_ARGS);
 
 /* ginxlog.c */
-extern void gin_redo(XLogRecPtr lsn, XLogRecord *record);
-extern void gin_desc(StringInfo buf, uint8 xl_info, char *rec);
+extern void gin_redo(XLogRecPtr beginLoc, XLogRecPtr lsn, XLogRecord *record);
+extern void gin_desc(StringInfo buf, XLogRecPtr beginLoc, XLogRecord *record);
 extern void gin_xlog_startup(void);
 extern void gin_xlog_cleanup(void);
 extern bool gin_safe_restartpoint(void);
@@ -356,14 +356,16 @@ typedef struct GinScanEntryData
 	/* entry, got from extractQueryFn */
 	Datum		entry;
 
-	/* current ItemPointer to heap, its offset in buffer and buffer */
-	ItemPointerData curItem;
-	OffsetNumber offset;
+	/* Current page in posting tree */
 	Buffer		buffer;
 
-	/* in case of Posing list */
+	/* current ItemPointer to heap */
+	ItemPointerData curItem;
+
+	/* used for Posting list and one page in Posting tree */
 	ItemPointerData *list;
-	uint32		nlist;
+	uint32			 nlist;
+	OffsetNumber     offset;
 
 	bool		isFinished;
 	bool		reduceResult;
@@ -413,7 +415,7 @@ extern Datum ginrestrpos(PG_FUNCTION_ARGS);
 extern void newScanKey(IndexScanDesc scan);
 
 /* ginget.c */
-extern DLLIMPORT int GinFuzzySearchLimit;
+extern PGDLLIMPORT int GinFuzzySearchLimit;
 
 #define ItemPointerSetMax(p)	ItemPointerSet( (p), (BlockNumber)0xffffffff, (OffsetNumber)0xffff )
 #define ItemPointerIsMax(p) ( ItemPointerGetBlockNumber(p) == (BlockNumber)0xffffffff && ItemPointerGetOffsetNumber(p) == (OffsetNumber)0xffff )
@@ -450,7 +452,7 @@ typedef struct
 	uint32		maxdepth;
 	EntryAccumulator **stack;
 	uint32		stackpos;
-	uint32		allocatedMemory;
+	long		allocatedMemory;
 
 	uint32		length;
 	EntryAccumulator *entryallocator;

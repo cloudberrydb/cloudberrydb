@@ -4,12 +4,18 @@
  *		Hash functions for use in dynahash.c hashtables
  *
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
  * IDENTIFICATION
  *	  $PostgreSQL: pgsql/src/backend/utils/hash/hashfn.c,v 1.29 2006/10/04 00:30:02 momjian Exp $
+ *
+ * NOTES
+ *	  It is expected that every bit of a hash function's 32-bit result is
+ *	  as random as every other; failure to ensure this is likely to lead
+ *	  to poor performance of hash tables.  In most cases a hash
+ *	  function should use hash_any() or its variant hash_uint32().
  *
  *-------------------------------------------------------------------------
  */
@@ -60,6 +66,15 @@ oid_hash(const void *key, Size keysize)
 	Assert(keysize == sizeof(Oid));
 	/* We don't actually bother to do anything to the OID value ... */
 	return (uint32) *((const Oid *) key);
+}
+
+/*
+ * int32_hash: hash function for int32: no-op
+ */
+uint32
+int32_hash(const void *key, Size keysize)
+{
+	return *(uint32 *)key;
 }
 
 /*

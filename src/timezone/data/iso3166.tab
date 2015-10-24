@@ -1,26 +1,28 @@
 # ISO 3166 alpha-2 country codes
 #
-# @(#)iso3166.tab	8.3
+# This file is in the public domain, so clarified as of
+# 2009-05-17 by Arthur David Olson.
 #
-# From Paul Eggert (2006-09-27):
+# From Paul Eggert (2015-05-02):
+# This file contains a table of two-letter country codes.  Columns are
+# separated by a single tab.  Lines beginning with '#' are comments.
+# All text uses UTF-8 encoding.  The columns of the table are as follows:
 #
-# This file contains a table with the following columns:
 # 1.  ISO 3166-1 alpha-2 country code, current as of
-#     ISO 3166-1 Newsletter No. V-12 (2006-09-26).  See:
-#     <a href="http://www.iso.org/iso/en/prods-services/iso3166ma/index.html">
-#     ISO 3166 Maintenance agency (ISO 3166/MA)
-#     </a>.
-# 2.  The usual English name for the country,
+#     ISO 3166-1 Newsletter VI-16 (2013-07-11).  See: Updates on ISO 3166
+#   http://www.iso.org/iso/home/standards/country_codes/updates_on_iso_3166.htm
+# 2.  The usual English name for the coded region,
 #     chosen so that alphabetic sorting of subsets produces helpful lists.
 #     This is not the same as the English name in the ISO 3166 tables.
 #
-# Columns are separated by a single tab.
 # The table is sorted by country code.
 #
-# Lines beginning with `#' are comments.
+# This table is intended as an aid for users, to help them select time
+# zone data appropriate for their practical needs.  It is not intended
+# to take or endorse any position on legal or territorial claims.
 #
 #country-
-#code	country name
+#code	name of country, territory, area, or subdivision
 AD	Andorra
 AE	United Arab Emirates
 AF	Afghanistan
@@ -28,7 +30,6 @@ AG	Antigua & Barbuda
 AI	Anguilla
 AL	Albania
 AM	Armenia
-AN	Netherlands Antilles
 AO	Angola
 AQ	Antarctica
 AR	Argentina
@@ -36,7 +37,7 @@ AS	Samoa (American)
 AT	Austria
 AU	Australia
 AW	Aruba
-AX	Aaland Islands
+AX	Åland Islands
 AZ	Azerbaijan
 BA	Bosnia & Herzegovina
 BB	Barbados
@@ -47,9 +48,11 @@ BG	Bulgaria
 BH	Bahrain
 BI	Burundi
 BJ	Benin
+BL	St Barthelemy
 BM	Bermuda
 BN	Brunei
 BO	Bolivia
+BQ	Caribbean Netherlands
 BR	Brazil
 BS	Bahamas
 BT	Bhutan
@@ -63,7 +66,7 @@ CD	Congo (Dem. Rep.)
 CF	Central African Rep.
 CG	Congo (Rep.)
 CH	Switzerland
-CI	Cote d'Ivoire
+CI	Côte d'Ivoire
 CK	Cook Islands
 CL	Chile
 CM	Cameroon
@@ -72,6 +75,7 @@ CO	Colombia
 CR	Costa Rica
 CU	Cuba
 CV	Cape Verde
+CW	Curacao
 CX	Christmas Island
 CY	Cyprus
 CZ	Czech Republic
@@ -92,7 +96,7 @@ FI	Finland
 FJ	Fiji
 FK	Falkland Islands
 FM	Micronesia
-FO	Faeroe Islands
+FO	Faroe Islands
 FR	France
 GA	Gabon
 GB	Britain (UK)
@@ -159,6 +163,7 @@ MA	Morocco
 MC	Monaco
 MD	Moldova
 ME	Montenegro
+MF	St Martin (French part)
 MG	Madagascar
 MH	Marshall Islands
 MK	Macedonia
@@ -205,7 +210,7 @@ PT	Portugal
 PW	Palau
 PY	Paraguay
 QA	Qatar
-RE	Reunion
+RE	Réunion
 RO	Romania
 RS	Serbia
 RU	Russia
@@ -225,8 +230,10 @@ SM	San Marino
 SN	Senegal
 SO	Somalia
 SR	Suriname
+SS	South Sudan
 ST	Sao Tome & Principe
 SV	El Salvador
+SX	St Maarten (Dutch part)
 SY	Syria
 SZ	Swaziland
 TC	Turks & Caicos Is

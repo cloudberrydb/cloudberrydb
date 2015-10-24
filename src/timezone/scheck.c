@@ -1,28 +1,27 @@
 /*
  * This file is in the public domain, so clarified as of
- * 1996-06-05 by Arthur David Olson (arthur_david_olson@nih.gov).
+ * 2006-07-17 by Arthur David Olson.
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/timezone/scheck.c,v 1.7 2005/10/15 02:49:51 momjian Exp $
+ *	  $PostgreSQL: pgsql/src/timezone/scheck.c,v 1.9 2008/02/16 21:16:04 tgl Exp $
  */
 
-#include "postgres.h"
+#include "postgres_fe.h"
 
 #include "private.h"
 
 
-char *
+const char *
 scheck(const char *string, const char *format)
 {
 	char	   *fbuf;
 	const char *fp;
 	char	   *tp;
 	int			c;
-	char	   *result;
+	const char *result;
 	char		dummy;
-	static char nada;
 
-	result = &nada;
+	result = "";
 	if (string == NULL || format == NULL)
 		return result;
 	fbuf = imalloc((int) (2 * strlen(format) + 4));

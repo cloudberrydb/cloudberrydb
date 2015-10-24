@@ -1,0 +1,350 @@
+--
+-- xml.sql
+--
+-- This file is based on src/test/regress/sql/xml.sql from the PostgreSQL 9.1
+-- distributon.  The primary differences between this test and the original are
+-- as follows:
+--
+-- 1. tests for xmlconcat, xmlelement, xmlattributes, xmlpi, xmlroot, 
+--    xmlparse, xmlserialize, IS DOCUMENT, IS CONTENT, SET XML OPTION
+--    were removed since only XPath function support was added to GPDB.
+--
+-- 2. DROP TABLE commands were added in places to make the test more hygienic.
+--
+DROP TABLE IF EXISTS xmltest;
+NOTICE:  table "xmltest" does not exist, skipping
+CREATE TABLE xmltest (
+    id int,
+    data xml
+);
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'id' as the Greenplum Database data distribution key for this table.
+HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
+INSERT INTO xmltest VALUES (1, '<value>one</value>');
+INSERT INTO xmltest VALUES (2, '<value>two</value>');
+INSERT INTO xmltest VALUES (3, '<wrong');
+ERROR:  invalid XML document
+DETAIL:  Entity: line 1: parser error : Couldn't find end of Start Tag wrong line 1
+<wrong
+      ^
+SELECT * FROM xmltest;
+ id |        data        
+----+--------------------
+  2 | <value>two</value>
+  1 | <value>one</value>
+(2 rows)
+
+SELECT xmlcomment('test');
+ xmlcomment  
+-------------
+ <!--test-->
+(1 row)
+
+SELECT xmlcomment('-test');
+  xmlcomment  
+--------------
+ <!---test-->
+(1 row)
+
+SELECT xmlcomment('test-');
+ERROR:  invalid XML comment
+SELECT xmlcomment('--test');
+ERROR:  invalid XML comment
+SELECT xmlcomment('te st');
+  xmlcomment  
+--------------
+ <!--te st-->
+(1 row)
+
+SELECT xmlconcat2(xmlcomment('hello'),
+                 xmlcomment('world'));
+        xmlconcat2        
+--------------------------
+ <!--hello--><!--world-->
+(1 row)
+
+SELECT xmlconcat2('hello', 'you');
+ERROR:  invalid XML document
+LINE 1: SELECT xmlconcat2('hello', 'you');
+               ^
+DETAIL:  Entity: line 1: parser error : Start tag expected, '<' not found
+hello
+^
+SELECT xmlconcat2(1, 2);
+ERROR:  function xmlconcat2(integer, integer) does not exist
+LINE 1: SELECT xmlconcat2(1, 2);
+               ^
+HINT:  No function matches the given name and argument types. You may need to add explicit type casts.
+SELECT xmlconcat2('bad', '<syntax');
+ERROR:  invalid XML document
+LINE 1: SELECT xmlconcat2('bad', '<syntax');
+               ^
+DETAIL:  Entity: line 1: parser error : Start tag expected, '<' not found
+bad
+^
+SELECT xmlconcat2('<foo/>', '<?xml version="1.1" standalone="no"?><bar/>');
+  xmlconcat2  
+--------------
+ <foo/><bar/>
+(1 row)
+
+SELECT xmlconcat2('<?xml version="1.1"?><foo/>', '<?xml version="1.1" standalone="no"?><bar/>');
+            xmlconcat2             
+-----------------------------------
+ <?xml version="1.1"?><foo/><bar/>
+(1 row)
+
+SELECT xmlconcat2('<?xml version="1.1"?><foo/>', NULL);
+ xmlconcat2 
+------------
+ 
+(1 row)
+
+SELECT xmlconcat2(NULL, NULL);
+ xmlconcat2 
+------------
+ 
+(1 row)
+
+SELECT xml_is_well_formed_document('<foo>bar</foo><bar>foo</bar>');
+ xml_is_well_formed_document 
+-----------------------------
+ f
+(1 row)
+
+SELECT xml_is_well_formed_document('<abc/>');
+ xml_is_well_formed_document 
+-----------------------------
+ t
+(1 row)
+
+SELECT xml_is_well_formed_document('abc');
+ xml_is_well_formed_document 
+-----------------------------
+ f
+(1 row)
+
+SELECT xml_is_well_formed_document('<>');
+ xml_is_well_formed_document 
+-----------------------------
+ f
+(1 row)
+
+-- order by to make input to aggregate deterministic
+SELECT xmlagg(data order by text(data)) from xmltest;
+                xmlagg                
+--------------------------------------
+ <value>one</value><value>two</value>
+(1 row)
+
+SELECT xmlagg(data) FROM xmltest WHERE id > 10;
+ xmlagg 
+--------
+ 
+(1 row)
+
+-- Text XPath expressions evaluation
+SELECT xpath('/value', data) FROM xmltest;
+        xpath         
+----------------------
+ {<value>one</value>}
+ {<value>two</value>}
+(2 rows)
+
+SELECT xpath(NULL, NULL) IS NULL FROM xmltest;
+ ?column? 
+----------
+ t
+ t
+(2 rows)
+
+SELECT xpath('', '<!-- error -->');
+ERROR:  invalid XML document
+LINE 1: SELECT xpath('', '<!-- error -->');
+               ^
+DETAIL:  Entity: line 1: parser error : Start tag expected, '<' not found
+<!-- error -->
+              ^
+SELECT xpath('//text()', '<local:data xmlns:local="http://127.0.0.1"><local:piece id="1">number one</local:piece><local:piece id="2" /></local:data>');
+     xpath      
+----------------
+ {"number one"}
+(1 row)
+
+SELECT xpath('//loc:piece/@id', '<local:data xmlns:local="http://127.0.0.1"><local:piece id="1">number one</local:piece><local:piece id="2" /></local:data>', ARRAY[ARRAY['loc', 'http://127.0.0.1']]);
+ xpath 
+-------
+ {1,2}
+(1 row)
+
+SELECT xpath('//b', '<a>one <b>two</b> three <b>etc</b></a>');
+          xpath          
+-------------------------
+ {<b>two</b>,<b>etc</b>}
+(1 row)
+
+-- Test xpath_exists
+SELECT xpath_exists('//town[text() = ''Toronto'']','<towns><town>Bidford-on-Avon</town><town>Cwmbran</town><town>Bristol</town></towns>'::xml);
+ xpath_exists 
+--------------
+ f
+(1 row)
+
+SELECT xpath_exists('//town[text() = ''Cwmbran'']','<towns><town>Bidford-on-Avon</town><town>Cwmbran</town><town>Bristol</town></towns>'::xml);
+ xpath_exists 
+--------------
+ t
+(1 row)
+
+INSERT INTO xmltest VALUES (4, '<menu><beers><name>Budvar</name><cost>free</cost><name>Carling</name><cost>lots</cost></beers></menu>'::xml);
+INSERT INTO xmltest VALUES (5, '<menu><beers><name>Molson</name><cost>free</cost><name>Carling</name><cost>lots</cost></beers></menu>'::xml);
+INSERT INTO xmltest VALUES (6, '<myns:menu xmlns:myns="http://myns.com"><myns:beers><myns:name>Budvar</myns:name><myns:cost>free</myns:cost><myns:name>Carling</myns:name><myns:cost>lots</myns:cost></myns:beers></myns:menu>'::xml);
+INSERT INTO xmltest VALUES (7, '<myns:menu xmlns:myns="http://myns.com"><myns:beers><myns:name>Molson</myns:name><myns:cost>free</myns:cost><myns:name>Carling</myns:name><myns:cost>lots</myns:cost></myns:beers></myns:menu>'::xml);
+SELECT COUNT(id) FROM xmltest WHERE xpath_exists('/menu/beer',data);
+ count 
+-------
+     0
+(1 row)
+
+SELECT COUNT(id) FROM xmltest WHERE xpath_exists('/menu/beers',data);
+ count 
+-------
+     2
+(1 row)
+
+SELECT COUNT(id) FROM xmltest WHERE xpath_exists('/menu/beers/name[text() = ''Molson'']',data);
+ count 
+-------
+     1
+(1 row)
+
+SELECT COUNT(id) FROM xmltest WHERE xpath_exists('/myns:menu/myns:beer',data,ARRAY[ARRAY['myns','http://myns.com']]);
+ count 
+-------
+     0
+(1 row)
+
+SELECT COUNT(id) FROM xmltest WHERE xpath_exists('/myns:menu/myns:beers',data,ARRAY[ARRAY['myns','http://myns.com']]);
+ count 
+-------
+     2
+(1 row)
+
+SELECT COUNT(id) FROM xmltest WHERE xpath_exists('/myns:menu/myns:beers/myns:name[text() = ''Molson'']',data,ARRAY[ARRAY['myns','http://myns.com']]);
+ count 
+-------
+     1
+(1 row)
+
+DROP TABLE IF EXISTS query;
+NOTICE:  table "query" does not exist, skipping
+CREATE TABLE query ( expr TEXT );
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'expr' as the Greenplum Database data distribution key for this table.
+HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
+INSERT INTO query VALUES ('/menu/beers/cost[text() = ''lots'']');
+SELECT COUNT(id) FROM xmltest, query WHERE xpath_exists(expr, data);
+ count 
+-------
+     2
+(1 row)
+
+-- Test xml_is_well_formed and variants
+SELECT xml_is_well_formed_document('<foo>bar</foo>');
+ xml_is_well_formed_document 
+-----------------------------
+ t
+(1 row)
+
+SELECT xml_is_well_formed_document('abc');
+ xml_is_well_formed_document 
+-----------------------------
+ f
+(1 row)
+
+SELECT xml_is_well_formed_content('<foo>bar</foo>');
+ xml_is_well_formed_content 
+----------------------------
+ t
+(1 row)
+
+SELECT xml_is_well_formed_content('abc');
+ xml_is_well_formed_content 
+----------------------------
+ t
+(1 row)
+
+SELECT xml_is_well_formed('abc');
+ xml_is_well_formed 
+--------------------
+ f
+(1 row)
+
+SELECT xml_is_well_formed('<>');
+ xml_is_well_formed 
+--------------------
+ f
+(1 row)
+
+SELECT xml_is_well_formed('<abc/>');
+ xml_is_well_formed 
+--------------------
+ t
+(1 row)
+
+SELECT xml_is_well_formed('<foo>bar</foo>');
+ xml_is_well_formed 
+--------------------
+ t
+(1 row)
+
+SELECT xml_is_well_formed('<foo>bar</foo');
+ xml_is_well_formed 
+--------------------
+ f
+(1 row)
+
+SELECT xml_is_well_formed('<foo><bar>baz</foo>');
+ xml_is_well_formed 
+--------------------
+ f
+(1 row)
+
+SELECT xml_is_well_formed('<local:data xmlns:local="http://127.0.0.1"><local:piece id="1">number one</local:piece><local:piece id="2" /></local:data>');
+ xml_is_well_formed 
+--------------------
+ t
+(1 row)
+
+SELECT xml_is_well_formed('<pg:foo xmlns:pg="http://postgresql.org/stuff">bar</my:foo>');
+ xml_is_well_formed 
+--------------------
+ f
+(1 row)
+
+SELECT xml_is_well_formed('<pg:foo xmlns:pg="http://postgresql.org/stuff">bar</pg:foo>');
+ xml_is_well_formed 
+--------------------
+ t
+(1 row)
+
+DROP TABLE query;
+DROP TABLE xmltest;
+-- External entity references should not leak filesystem information.
+SELECT xml_is_well_formed_document('<!DOCTYPE foo [<!ENTITY c SYSTEM "/etc/passwd">]><foo>&c;</foo>');
+ xml_is_well_formed_document 
+-----------------------------
+ t
+(1 row)
+
+SELECT xml_is_well_formed_document('<!DOCTYPE foo [<!ENTITY c SYSTEM "/etc/no.such.file">]><foo>&c;</foo>');
+ xml_is_well_formed_document 
+-----------------------------
+ t
+(1 row)
+
+-- This might or might not load the requested DTD, but it mustn't throw error.
+SELECT xml_is_well_formed_document('<!DOCTYPE chapter PUBLIC "-//OASIS//DTD DocBook XML V4.1.2//EN" "http://www.oasis-open.org/docbook/xml/4.1.2/docbookx.dtd"><chapter>&nbsp;</chapter>');
+ xml_is_well_formed_document 
+-----------------------------
+ t
+(1 row)
+

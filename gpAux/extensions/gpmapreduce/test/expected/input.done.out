@@ -1,0 +1,10 @@
+ a |  b  
+---+-----
+ 1 | one
+ 2 | two
+(2 rows)
+
+DROP TABLE
+DROP TABLE
+DROP SCHEMA
+DROP SCHEMA

@@ -8,22 +8,37 @@ Marko Kreen <markokr@gmail.com>
 1.  Installation
 -----------------
 
-Run following commands:
+// Note: These installation instructions assume you have obtained a
+   precompiled build of pgcrypto from Greenplum.
 
-    make
-    make install
-    make installcheck
+1. Unzip and untar the pgcrypto package. For example:
 
-The `make installcheck` command is important.  It runs regression tests
-for the module.  They make sure the functions here produce correct
-results.
+   unzip greenplum-pgcrypto-<version>-<platform>.tar.zip
+   mkdir pgcrypto
+   mv greenplum-pgcrypto-<version>-<platform>.tar pgcrypto
+   untar -xvf pgcryto/greenplum-pgcrypto-<version>-<platform>.tar 
 
-Next, to put the functions into a particular database, run the commands in
-file pgcrypto.sql, which has been installed into the shared files directory.
+2. Copy the pgcrypto.so file to your Greenplum installation's
+   library directory. 
 
-Example using psql:
+   cp pgcrypto/lib/postgresql/pgcrypto.so $GPHOME/lib/postgresql
 
-    psql -d DBNAME -f pgcrypto.sql
+3. (optional) Edit the pgcrypto.sql file and edit the initial 
+   SET command that specifies the schema where the pgcrypto
+   objects will be created. By default they will be created in
+   the 'public' schema. For example:
+
+    vi pgcrypto/share/postgresql/contrib/pgcrypto.sql
+     
+      SET search_path = YOUR_SCHEMA;
+
+4. Run the commands in the pgcrypto.sql file using psql to 
+   install the pgcrypto objects in your database. For example:
+
+    psql -d DBNAME -f pgcrypto/share/postgresql/contrib/pgcrypto.sql
+
+
+// Note: To uninstall the pgcrypto objects, use uninstall_pgcrypto.sql
 
 
 2.  Notes
@@ -32,9 +47,8 @@ Example using psql:
 2.1.  Configuration
 ~~~~~~~~~~~~~~~~~~~~
 
-pgcrypto configures itself according to the findings of main PostgreSQL
-`configure` script.  The options that affect it are `--with-zlib` and
-`--with-openssl`.
+Greenplum's build of pgcrypto is compiled with zlib and
+OpenSSL linked in.
 
 When compiled with zlib, PGP encryption functions are able to
 compress data before encrypting.

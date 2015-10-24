@@ -3,7 +3,7 @@
  * pg_depend.c
  *	  routines to support manipulation of the pg_depend relation
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -16,11 +16,16 @@
 
 #include "access/genam.h"
 #include "access/heapam.h"
+#include "catalog/catquery.h"
 #include "catalog/dependency.h"
 #include "catalog/indexing.h"
+#include "catalog/pg_constraint.h"
 #include "catalog/pg_depend.h"
 #include "miscadmin.h"
 #include "utils/fmgroids.h"
+#include "utils/lsyscache.h"
+#include "utils/rel.h"
+#include "utils/tqual.h"
 
 
 static bool isObjectPinned(const ObjectAddress *object, Relation rel);
@@ -52,11 +57,12 @@ recordMultipleDependencies(const ObjectAddress *depender,
 						   DependencyType behavior)
 {
 	Relation	dependDesc;
-	CatalogIndexState indstate;
 	HeapTuple	tup;
 	int			i;
-	char		nulls[Natts_pg_depend];
+	bool		nulls[Natts_pg_depend];
 	Datum		values[Natts_pg_depend];
+	cqContext	cqc;
+	cqContext  *pcqCtx;
 
 	if (nreferenced <= 0)
 		return;					/* nothing to do */
@@ -70,10 +76,12 @@ recordMultipleDependencies(const ObjectAddress *depender,
 
 	dependDesc = heap_open(DependRelationId, RowExclusiveLock);
 
-	/* Don't open indexes unless we need to make an update */
-	indstate = NULL;
+	pcqCtx = caql_beginscan(
+			caql_addrel(cqclr(&cqc), dependDesc),
+			cql("INSERT INTO pg_depend ",
+				NULL));
 
-	memset(nulls, ' ', sizeof(nulls));
+	memset(nulls, false, sizeof(nulls));
 
 	for (i = 0; i < nreferenced; i++, referenced++)
 	{
@@ -98,22 +106,16 @@ recordMultipleDependencies(const ObjectAddress *depender,
 
 			values[Anum_pg_depend_deptype - 1] = CharGetDatum((char) behavior);
 
-			tup = heap_formtuple(dependDesc->rd_att, values, nulls);
+			tup = caql_form_tuple(pcqCtx, values, nulls);
 
-			simple_heap_insert(dependDesc, tup);
-
-			/* keep indexes current */
-			if (indstate == NULL)
-				indstate = CatalogOpenIndexes(dependDesc);
-
-			CatalogIndexInsert(indstate, tup);
+			caql_insert(pcqCtx, tup);
+			/* and Update indexes (implicit) */
 
 			heap_freetuple(tup);
 		}
 	}
 
-	if (indstate != NULL)
-		CatalogCloseIndexes(indstate);
+	caql_endscan(pcqCtx);
 
 	heap_close(dependDesc, RowExclusiveLock);
 }
@@ -130,34 +132,14 @@ long
 deleteDependencyRecordsFor(Oid classId, Oid objectId)
 {
 	long		count = 0;
-	Relation	depRel;
-	ScanKeyData key[2];
-	SysScanDesc scan;
-	HeapTuple	tup;
 
-	depRel = heap_open(DependRelationId, RowExclusiveLock);
-
-	ScanKeyInit(&key[0],
-				Anum_pg_depend_classid,
-				BTEqualStrategyNumber, F_OIDEQ,
-				ObjectIdGetDatum(classId));
-	ScanKeyInit(&key[1],
-				Anum_pg_depend_objid,
-				BTEqualStrategyNumber, F_OIDEQ,
-				ObjectIdGetDatum(objectId));
-
-	scan = systable_beginscan(depRel, DependDependerIndexId, true,
-							  SnapshotNow, 2, key);
-
-	while (HeapTupleIsValid(tup = systable_getnext(scan)))
-	{
-		simple_heap_delete(depRel, &tup->t_self);
-		count++;
-	}
-
-	systable_endscan(scan);
-
-	heap_close(depRel, RowExclusiveLock);
+	count = caql_getcount(
+			NULL,
+			cql("DELETE FROM pg_depend "
+				" WHERE classid = :1 "
+				" AND objid = :2 ",
+				ObjectIdGetDatum(classId),
+				ObjectIdGetDatum(objectId)));
 
 	return count;
 }
@@ -181,8 +163,8 @@ changeDependencyFor(Oid classId, Oid objectId,
 {
 	long		count = 0;
 	Relation	depRel;
-	ScanKeyData key[2];
-	SysScanDesc scan;
+	cqContext  *pcqCtx;
+	cqContext	cqc;
 	HeapTuple	tup;
 	ObjectAddress objAddr;
 	bool		newIsPinned;
@@ -214,19 +196,16 @@ changeDependencyFor(Oid classId, Oid objectId,
 	newIsPinned = isObjectPinned(&objAddr, depRel);
 
 	/* Now search for dependency records */
-	ScanKeyInit(&key[0],
-				Anum_pg_depend_classid,
-				BTEqualStrategyNumber, F_OIDEQ,
-				ObjectIdGetDatum(classId));
-	ScanKeyInit(&key[1],
-				Anum_pg_depend_objid,
-				BTEqualStrategyNumber, F_OIDEQ,
-				ObjectIdGetDatum(objectId));
+	pcqCtx = caql_beginscan(
+			caql_addrel(cqclr(&cqc), depRel),
+			cql("SELECT * FROM pg_depend "
+				" WHERE classid = :1 "
+				" AND objid = :2 "
+				" FOR UPDATE ",
+				ObjectIdGetDatum(classId),
+				ObjectIdGetDatum(objectId)));
 
-	scan = systable_beginscan(depRel, DependDependerIndexId, true,
-							  SnapshotNow, 2, key);
-
-	while (HeapTupleIsValid((tup = systable_getnext(scan))))
+	while (HeapTupleIsValid((tup = caql_getnext(pcqCtx))))
 	{
 		Form_pg_depend depform = (Form_pg_depend) GETSTRUCT(tup);
 
@@ -234,7 +213,7 @@ changeDependencyFor(Oid classId, Oid objectId,
 			depform->refobjid == oldRefObjectId)
 		{
 			if (newIsPinned)
-				simple_heap_delete(depRel, &tup->t_self);
+				caql_delete_current(pcqCtx);
 			else
 			{
 				/* make a modifiable copy */
@@ -243,8 +222,7 @@ changeDependencyFor(Oid classId, Oid objectId,
 
 				depform->refobjid = newRefObjectId;
 
-				simple_heap_update(depRel, &tup->t_self, tup);
-				CatalogUpdateIndexes(depRel, tup);
+				caql_update_current(pcqCtx, tup);
 
 				heap_freetuple(tup);
 			}
@@ -253,12 +231,60 @@ changeDependencyFor(Oid classId, Oid objectId,
 		}
 	}
 
-	systable_endscan(scan);
+	caql_endscan(pcqCtx);
 
 	heap_close(depRel, RowExclusiveLock);
 
 	return count;
 }
+
+/*
+ * isObjectPinned()
+ *
+ * Test if an object is required for basic database functionality.
+ * Caller must already have opened pg_depend.
+ *
+ * The passed subId, if any, is ignored; we assume that only whole objects
+ * are pinned (and that this implies pinning their components).
+ */
+static bool
+isObjectPinned(const ObjectAddress *object, Relation rel)
+{
+	bool		ret = false;
+	cqContext	cqc;
+	HeapTuple	tup;
+
+	tup = caql_getfirst(
+			caql_addrel(cqclr(&cqc), rel),
+			cql("SELECT * FROM pg_depend "
+				" WHERE refclassid = :1 "
+				" AND refobjid = :2 ",
+				ObjectIdGetDatum(object->classId),
+				ObjectIdGetDatum(object->objectId)));
+
+	/*
+	 * Since we won't generate additional pg_depend entries for pinned
+	 * objects, there can be at most one entry referencing a pinned object.
+	 * Hence, it's sufficient to look at the first returned tuple; we don't
+	 * need to loop.
+	 */
+
+	if (HeapTupleIsValid(tup))
+	{
+		Form_pg_depend foundDep = (Form_pg_depend) GETSTRUCT(tup);
+
+		if (foundDep->deptype == DEPENDENCY_PIN)
+			ret = true;
+	}
+
+	return ret;
+}
+
+
+/*
+ * Various special-purpose lookups and manipulations of pg_depend.
+ */
+
 
 /*
  * Detect whether a sequence is marked as "owned" by a column
@@ -275,26 +301,19 @@ bool
 sequenceIsOwned(Oid seqId, Oid *tableId, int32 *colId)
 {
 	bool		ret = false;
-	Relation	depRel;
-	ScanKeyData key[2];
-	SysScanDesc scan;
+	cqContext  *pcqCtx;
 	HeapTuple	tup;
 
-	depRel = heap_open(DependRelationId, AccessShareLock);
 
-	ScanKeyInit(&key[0],
-				Anum_pg_depend_classid,
-				BTEqualStrategyNumber, F_OIDEQ,
-				ObjectIdGetDatum(RelationRelationId));
-	ScanKeyInit(&key[1],
-				Anum_pg_depend_objid,
-				BTEqualStrategyNumber, F_OIDEQ,
-				ObjectIdGetDatum(seqId));
+	pcqCtx = caql_beginscan(
+			NULL,
+			cql("SELECT * FROM pg_depend "
+				" WHERE classid = :1 "
+				" AND objid = :2 ",
+				ObjectIdGetDatum(RelationRelationId),
+				ObjectIdGetDatum(seqId)));
 
-	scan = systable_beginscan(depRel, DependDependerIndexId, true,
-							  SnapshotNow, 2, key);
-
-	while (HeapTupleIsValid((tup = systable_getnext(scan))))
+	while (HeapTupleIsValid((tup = caql_getnext(pcqCtx))))
 	{
 		Form_pg_depend depform = (Form_pg_depend) GETSTRUCT(tup);
 
@@ -308,9 +327,7 @@ sequenceIsOwned(Oid seqId, Oid *tableId, int32 *colId)
 		}
 	}
 
-	systable_endscan(scan);
-
-	heap_close(depRel, AccessShareLock);
+	caql_endscan(pcqCtx);
 
 	return ret;
 }
@@ -324,87 +341,126 @@ sequenceIsOwned(Oid seqId, Oid *tableId, int32 *colId)
 void
 markSequenceUnowned(Oid seqId)
 {
-	Relation	depRel;
-	ScanKeyData key[2];
-	SysScanDesc scan;
+	cqContext  *pcqCtx;
 	HeapTuple	tup;
 
-	depRel = heap_open(DependRelationId, RowExclusiveLock);
+	pcqCtx = caql_beginscan(
+			NULL,
+			cql("SELECT * FROM pg_depend "
+				" WHERE classid = :1 "
+				" AND objid = :2 "
+				" FOR UPDATE ",
+				ObjectIdGetDatum(RelationRelationId),
+				ObjectIdGetDatum(seqId)));
 
-	ScanKeyInit(&key[0],
-				Anum_pg_depend_classid,
-				BTEqualStrategyNumber, F_OIDEQ,
-				ObjectIdGetDatum(RelationRelationId));
-	ScanKeyInit(&key[1],
-				Anum_pg_depend_objid,
-				BTEqualStrategyNumber, F_OIDEQ,
-				ObjectIdGetDatum(seqId));
-
-	scan = systable_beginscan(depRel, DependDependerIndexId, true,
-							  SnapshotNow, 2, key);
-
-	while (HeapTupleIsValid((tup = systable_getnext(scan))))
+	while (HeapTupleIsValid((tup = caql_getnext(pcqCtx))))
 	{
 		Form_pg_depend depform = (Form_pg_depend) GETSTRUCT(tup);
 
 		if (depform->refclassid == RelationRelationId &&
 			depform->deptype == DEPENDENCY_AUTO)
 		{
-			simple_heap_delete(depRel, &tup->t_self);
+			caql_delete_current(pcqCtx);
 		}
 	}
 
-	systable_endscan(scan);
+	caql_endscan(pcqCtx);
+}
 
-	heap_close(depRel, RowExclusiveLock);
+
+/*
+ * get_constraint_index
+ *		Given the OID of a unique or primary-key constraint, return the
+ *		OID of the underlying unique index.
+ *
+ * Return InvalidOid if the index couldn't be found; this suggests the
+ * given OID is bogus, but we leave it to caller to decide what to do.
+ */
+Oid
+get_constraint_index(Oid constraintId)
+{
+	Oid			indexId = InvalidOid;
+	HeapTuple	tup;
+	cqContext  *pcqCtx;
+
+	/* Search the dependency table for the dependent index */
+
+	pcqCtx = caql_beginscan(
+			NULL,
+			cql("SELECT * FROM pg_depend "
+				" WHERE refclassid = :1 "
+				" AND refobjid = :2 "
+				" AND refobjsubid = :3 ",
+				ObjectIdGetDatum(ConstraintRelationId),
+				ObjectIdGetDatum(constraintId),
+				Int32GetDatum(0)));
+
+	while (HeapTupleIsValid(tup = caql_getnext(pcqCtx)))
+	{
+		Form_pg_depend deprec = (Form_pg_depend) GETSTRUCT(tup);
+
+		/*
+		 * We assume any internal dependency of an index on the constraint
+		 * must be what we are looking for.  (The relkind test is just
+		 * paranoia; there shouldn't be any such dependencies otherwise.)
+		 */
+		if (deprec->classid == RelationRelationId &&
+			deprec->objsubid == 0 &&
+			deprec->deptype == DEPENDENCY_INTERNAL &&
+			get_rel_relkind(deprec->objid) == RELKIND_INDEX)
+		{
+			indexId = deprec->objid;
+			break;
+		}
+	}
+
+	caql_endscan(pcqCtx);
+
+	return indexId;
 }
 
 /*
- * isObjectPinned()
- *
- * Test if an object is required for basic database functionality.
- * Caller must already have opened pg_depend.
- *
- * The passed subId, if any, is ignored; we assume that only whole objects
- * are pinned (and that this implies pinning their components).
+ * get_index_constraint
+ *		Given the OID of an index, return the OID of the owning unique or
+ *		primary-key constraint, or InvalidOid if no such constraint.
  */
-static bool
-isObjectPinned(const ObjectAddress *object, Relation rel)
+Oid
+get_index_constraint(Oid indexId)
 {
-	bool		ret = false;
-	SysScanDesc scan;
+	Oid			constraintId = InvalidOid;
 	HeapTuple	tup;
-	ScanKeyData key[2];
+	cqContext  *pcqCtx;
 
-	ScanKeyInit(&key[0],
-				Anum_pg_depend_refclassid,
-				BTEqualStrategyNumber, F_OIDEQ,
-				ObjectIdGetDatum(object->classId));
+	/* Search the dependency table for the index */
 
-	ScanKeyInit(&key[1],
-				Anum_pg_depend_refobjid,
-				BTEqualStrategyNumber, F_OIDEQ,
-				ObjectIdGetDatum(object->objectId));
+	pcqCtx = caql_beginscan(
+			NULL,
+			cql("SELECT * FROM pg_depend "
+				" WHERE classid = :1 "
+				" AND objid = :2 "
+				" AND objsubid = :3 ",
+				ObjectIdGetDatum(RelationRelationId),
+				ObjectIdGetDatum(indexId),
+				Int32GetDatum(0)));
 
-	scan = systable_beginscan(rel, DependReferenceIndexId, true,
-							  SnapshotNow, 2, key);
-
-	/*
-	 * Since we won't generate additional pg_depend entries for pinned
-	 * objects, there can be at most one entry referencing a pinned object.
-	 * Hence, it's sufficient to look at the first returned tuple; we don't
-	 * need to loop.
-	 */
-	tup = systable_getnext(scan);
-	if (HeapTupleIsValid(tup))
+	while (HeapTupleIsValid(tup = caql_getnext(pcqCtx)))
 	{
-		Form_pg_depend foundDep = (Form_pg_depend) GETSTRUCT(tup);
+		Form_pg_depend deprec = (Form_pg_depend) GETSTRUCT(tup);
 
-		if (foundDep->deptype == DEPENDENCY_PIN)
-			ret = true;
+		/*
+		 * We assume any internal dependency on a constraint must be what we
+		 * are looking for.
+		 */
+		if (deprec->refclassid == ConstraintRelationId &&
+			deprec->refobjsubid == 0 &&
+			deprec->deptype == DEPENDENCY_INTERNAL)
+		{
+			constraintId = deprec->refobjid;
+			break;
+		}
 	}
 
-	systable_endscan(scan);
+	caql_endscan(pcqCtx);
 
-	return ret;
+	return constraintId;
 }

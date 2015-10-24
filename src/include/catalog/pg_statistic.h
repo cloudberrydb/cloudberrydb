@@ -5,7 +5,8 @@
  *	  along with the relation's initial contents.
  *
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Copyright (c) 2006-2010, Greenplum inc.
+ * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * $PostgreSQL: pgsql/src/include/catalog/pg_statistic.h,v 1.31 2006/03/05 15:58:55 momjian Exp $
@@ -19,18 +20,52 @@
 #ifndef PG_STATISTIC_H
 #define PG_STATISTIC_H
 
-/* ----------------
- *		postgres.h contains the system type definitions and the
- *		CATALOG(), BKI_BOOTSTRAP and DATA() sugar words so this file
- *		can be read by both genbki.sh and the C compiler.
- * ----------------
- */
+#include "catalog/genbki.h"
 
 /*
  * Keep C compiler happy with anyarray, below.	This will need to go elsewhere
  * if we ever use anyarray for more than pg_statistic.
  */
 typedef struct varlena anyarray;
+
+/* TIDYCAT_BEGINFAKEDEF
+
+   CREATE TABLE pg_statistic
+   with (camelcase=Statistic, oid=false, relid=2619, toast_oid=2840, toast_index=2841, content=SEGMENT_LOCAL)
+   (
+   starelid     oid, 
+   staattnum    smallint, 
+   stanullfrac  real, 
+   stawidth     integer, 
+   stadistinct  real, 
+   stakind1     smallint, 
+   stakind2     smallint, 
+   stakind3     smallint, 
+   stakind4     smallint, 
+   staop1       oid, 
+   staop2       oid, 
+   staop3       oid, 
+   staop4       oid, 
+   stanumbers1  real[], 
+   stanumbers2  real[], 
+   stanumbers3  real[], 
+   stanumbers4  real[], 
+   stavalues1   text, 
+   stavalues2   text, 
+   stavalues3   text, 
+   stavalues4   text
+   );
+
+   create unique index on pg_statistic(starelid, staattnum) with (indexid=2696, CamelCase=StatisticRelidAttnum, syscacheid=STATRELATT, syscache_nbuckets=1024);
+
+   alter table pg_statistic add fk starelid on pg_attribute(attrelid);
+   alter table pg_statistic add fk staop1 on pg_operator(oid);
+   alter table pg_statistic add fk staop2 on pg_operator(oid);
+   alter table pg_statistic add fk staop3 on pg_operator(oid);
+   alter table pg_statistic add fk staop4 on pg_operator(oid);
+
+   TIDYCAT_ENDFAKEDEF
+*/
 
 /* ----------------
  *		pg_statistic definition.  cpp turns this into
@@ -232,5 +267,148 @@ typedef FormData_pg_statistic *Form_pg_statistic;
  * their actual tuple positions.  The coefficient ranges from +1 to -1.
  */
 #define STATISTIC_KIND_CORRELATION	3
+
+
+/* TIDYCAT_BEGINFAKEDEF
+
+   CREATE TABLE pg_stat_last_operation
+   with (camelcase=StatLastOp, oid=false, relid=6052, reltype_oid=6440, content=MASTER_ONLY)
+   (
+   classid        oid, 
+   objid          oid, 
+   staactionname  name, 
+   stasysid       oid, 
+   stausename     name, 
+   stasubtype     text, 
+   statime        timestamp with time zone
+   );
+
+   create index on pg_stat_last_operation(classid, objid) with (indexid=6053, CamelCase=StatLastOpClassidObjid);
+   create unique index on pg_stat_last_operation(classid, objid, staactionname) with (indexid=6054, CamelCase=StatLastOpClassidObjidStaactionname);
+
+   alter table pg_stat_last_operation add fk classid on pg_class(oid);
+   alter table pg_stat_last_operation add fk stasysid on pg_authid(oid);
+
+   TIDYCAT_ENDFAKEDEF
+*/
+/* quoting pg_authid and gp_configuration: */
+
+/*
+ * The CATALOG definition has to refer to the type of log_time as
+ * "timestamptz" (lower case) so that bootstrap mode recognizes it.  But
+ * the C header files define this type as TimestampTz.	Since the field is
+ * potentially-null and therefore can't be accessed directly from C code,
+ * there is no particular need for the C struct definition to show the
+ * field type as TimestampTz --- instead we just make it Datum.
+ */
+
+#define timestamptz Datum
+
+/* MPP-6929: metadata tracking */
+#define StatLastOpRelationName		"pg_stat_last_operation"
+
+#define StatLastOpRelationId 6052
+
+CATALOG(pg_stat_last_operation,6052) BKI_WITHOUT_OIDS
+{
+	/* unique key */
+	Oid			classid;		/* OID of table containing object */
+	Oid			objid;			/* OID of object itself */
+	NameData	staactionname;	/* name of action */
+
+	/* */
+	Oid			stasysid;		/* OID of user (when action was performed) */
+	NameData	stausename;		/* name of user (when action was performed) */
+	text		stasubtype;		/* action subtype */
+	timestamptz	statime;
+} FormData_pg_statlastop;
+
+#undef timestamptz
+
+/* ----------------
+ *		Form_pg_statlastop corresponds to a pointer to a tuple with
+ *		the format of pg_statlastop relation.
+ * ----------------
+ */
+typedef FormData_pg_statlastop *Form_pg_statlastop;
+
+/* ----------------
+ *		compiler constants for pg_stat_last_operation
+ * ----------------
+ */
+#define Natts_pg_statlastop					7
+#define Anum_pg_statlastop_classid			1
+#define Anum_pg_statlastop_objid			2
+#define Anum_pg_statlastop_staactionname	3
+#define Anum_pg_statlastop_stasysid			4
+#define Anum_pg_statlastop_stausename		5
+#define Anum_pg_statlastop_stasubtype		6
+#define Anum_pg_statlastop_statime			7
+
+/* here is the "shared" version */
+
+/* TIDYCAT_BEGINFAKEDEF
+
+   CREATE TABLE pg_stat_last_shoperation
+   with (camelcase=StatLastShOp, shared=true, oid=false, relid=6056, reltype_oid=6441, content=MASTER_ONLY)
+   (
+   classid        oid, 
+   objid          oid, 
+   staactionname  name, 
+   stasysid       oid, 
+   stausename     name, 
+   stasubtype     text, 
+   statime        timestamp with time zone
+   );
+
+   create index on pg_stat_last_shoperation(classid, objid) with (indexid=6057, CamelCase=StatLastShOpClassidObjid);
+   create unique index on pg_stat_last_shoperation(classid, objid, staactionname) with (indexid=6058, CamelCase=StatLastShOpClassidObjidStaactionname);
+
+   alter table pg_stat_last_shoperation add fk classid on pg_class(oid);
+   alter table pg_stat_last_shoperation add fk stasysid on pg_authid(oid);
+
+   TIDYCAT_ENDFAKEDEF
+*/
+#define timestamptz Datum
+
+#define StatLastShOpRelationName		"pg_stat_last_shoperation"
+
+#define StatLastShOpRelationId 6056
+
+CATALOG(pg_stat_last_shoperation,6056)  BKI_SHARED_RELATION BKI_WITHOUT_OIDS
+{
+	/* unique key */
+	Oid			classid;		/* OID of table containing object */
+	Oid			objid;			/* OID of object itself */
+	NameData	staactionname;	/* name of action */
+
+	/* */
+	Oid			stasysid;		/* OID of user (when action was performed) */
+	NameData	stausename;		/* name of user (when action was performed) */
+	text		stasubtype;		/* action subtype */
+	timestamptz	statime;
+} FormData_pg_statlastshop;
+
+#undef timestamptz
+
+/* ----------------
+ *		Form_pg_statlastshop corresponds to a pointer to a tuple with
+ *		the format of pg_statlastshop relation.
+ * ----------------
+ */
+typedef FormData_pg_statlastshop *Form_pg_statlastshop;
+
+/* ----------------
+ *		compiler constants for pg_stat_last_shoperation
+ * ----------------
+ */
+#define Natts_pg_statlastshop				7
+#define Anum_pg_statlastshop_classid		1
+#define Anum_pg_statlastshop_objid			2
+#define Anum_pg_statlastshop_staactionname	3
+#define Anum_pg_statlastshop_stasysid		4
+#define Anum_pg_statlastshop_stausename		5
+#define Anum_pg_statlastshop_stasubtype		6
+#define Anum_pg_statlastshop_statime		7
 
 #endif   /* PG_STATISTIC_H */

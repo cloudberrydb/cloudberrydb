@@ -1,7 +1,7 @@
-$PostgreSQL: pgsql/src/backend/executor/README,v 1.5 2005/04/28 21:47:12 tgl Exp $
+$PostgreSQL: pgsql/src/backend/executor/README,v 1.8 2009/01/09 15:46:10 tgl Exp $
 
 The Postgres Executor
----------------------
+=====================
 
 The executor processes a tree of "plan nodes".  The plan tree is essentially
 a demand-pull pipeline of tuple processing operations.  Each node, when
@@ -124,7 +124,8 @@ be hidden inside function calls).  This case has a flow of control like
 		creates per-tuple context
 
 	ExecPrepareExpr
-		switch to per-query context to run ExecInitExpr
+		temporarily switch to per-query context
+		run the expression through expression_planner
 		ExecInitExpr
 
 	Repeatedly do:
@@ -137,7 +138,7 @@ be hidden inside function calls).  This case has a flow of control like
 		(a separate FreeExprContext call is not necessary)
 
 
-EvalPlanQual (READ COMMITTED update checking)
+EvalPlanQual (READ COMMITTED Update Checking)
 ---------------------------------------------
 
 For simple SELECTs, the executor need only pay attention to tuples that are

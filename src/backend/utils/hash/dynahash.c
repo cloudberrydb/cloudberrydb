@@ -21,12 +21,17 @@
  * lookup key's hash value as a partition number --- this will work because
  * of the way calc_bucket() maps hash values to bucket numbers.
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * For hash tables in shared memory, the memory allocator function should
+ * match malloc's semantics of returning NULL on failure.  For hash tables
+ * in local memory, we typically use palloc() which will throw error on
+ * failure.  The code in this file has to cope with both cases.
+ *
+ * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/utils/hash/dynahash.c,v 1.73 2006/10/04 00:30:02 momjian Exp $
+ *	  $PostgreSQL: pgsql/src/backend/utils/hash/dynahash.c,v 1.79 2009/01/01 17:23:51 momjian Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -63,6 +68,7 @@
 
 #include "postgres.h"
 
+#include "access/xact.h"
 #include "storage/shmem.h"
 #include "storage/spin.h"
 #include "utils/dynahash.h"
@@ -160,6 +166,9 @@ struct HTAB
 	char	   *tabname;		/* table name (for error messages) */
 	bool		isshared;		/* true if table is in shared memory */
 
+	/* freezing a shared table isn't allowed, so we can keep state here */
+	bool		frozen;			/* true = no more inserts allowed */
+
 	/* We keep local copies of these fixed values to reduce contention */
 	Size		keysize;		/* hash key length in bytes */
 	long		ssize;			/* segment size --- must be power of 2 */
@@ -195,6 +204,9 @@ static void hdefault(HTAB *hashp);
 static int	choose_nelem_alloc(Size entrysize);
 static bool init_htab(HTAB *hashp, long nelem);
 static void hash_corrupted(HTAB *hashp);
+static void register_seq_scan(HTAB *hashp);
+static void deregister_seq_scan(HTAB *hashp);
+static bool has_seq_scans(HTAB *hashp);
 
 
 /*
@@ -356,6 +368,8 @@ hash_create(const char *tabname, long nelem, HASHCTL *info, int flags)
 					 errmsg("out of memory")));
 	}
 
+	hashp->frozen = false;
+
 	hdefault(hashp);
 
 	hctl = hashp->hctl;
@@ -407,7 +421,7 @@ hash_create(const char *tabname, long nelem, HASHCTL *info, int flags)
 
 	/* Build the hash directory structure */
 	if (!init_htab(hashp, nelem))
-		elog(ERROR, "failed to initialize hash table");
+		elog(ERROR, "failed to initialize hash table \"%s\"", hashp->tabname);
 
 	/*
 	 * For a shared hash table, preallocate the requested number of elements.
@@ -809,6 +823,31 @@ hash_search_with_hash_value(HTAB *hashp,
 #endif
 
 	/*
+	 * If inserting, check if it's time to split the bucket.
+	 *
+	 * NOTE: failure to expand table is not a fatal error, it just means we
+	 * have to run at higher fill factor than we wanted. However, if we're
+	 * using the palloc allocator then it will throw error anyway on
+	 * out-of-memory, so we must do this before modifying the table.
+	 */
+	if (action == HASH_ENTER || action == HASH_ENTER_NULL)
+	{
+		/* ENTER_NULL does not work with palloc-based allocator */
+		if (action == HASH_ENTER_NULL)
+			Assert(hashp->alloc != DynaHashAlloc);
+
+		/*
+		 * Can't split if running in partitioned mode, nor if frozen, nor if
+		 * table is the subject of any active hash_seq_search scans.  Strange
+		 * order of these tests is to try to check cheaper conditions first.
+		 */
+		if (!IS_PARTITIONED(hctl) && !hashp->frozen &&
+			hctl->nentries / (long) (hctl->max_bucket + 1) >= hctl->ffactor &&
+			!has_seq_scans(hashp))
+			(void)expand_table(hashp);
+	}
+
+	/*
 	 * Do the initial lookup
 	 */
 	bucket = calc_bucket(hctl, hashvalue);
@@ -889,14 +928,17 @@ hash_search_with_hash_value(HTAB *hashp,
 			return NULL;
 
 		case HASH_ENTER_NULL:
-			/* ENTER_NULL does not work with palloc-based allocator */
-			Assert(hashp->alloc != DynaHashAlloc);
 			/* FALL THRU */
 
 		case HASH_ENTER:
 			/* Return existing element if found, else create one */
 			if (currBucket != NULL)
 				return (void *) ELEMENTKEY(currBucket);
+
+			/* disallow inserts if frozen */
+			if (hashp->frozen)
+				elog(ERROR, "cannot insert into frozen hashtable \"%s\"",
+					 hashp->tabname);
 
 			currBucket = get_hash_entry(hashp);
 			if (currBucket == NULL)
@@ -923,20 +965,12 @@ hash_search_with_hash_value(HTAB *hashp,
 			currBucket->hashvalue = hashvalue;
 			hashp->keycopy(ELEMENTKEY(currBucket), keyPtr, keysize);
 
-			/* caller is expected to fill the data field on return */
-
-			/* Check if it is time to split a bucket */
-			/* Can't split if running in partitioned mode */
-			if (!IS_PARTITIONED(hctl) &&
-			 hctl->nentries / (long) (hctl->max_bucket + 1) >= hctl->ffactor)
-			{
-				/*
-				 * NOTE: failure to expand table is not a fatal error, it just
-				 * means we have to run at higher fill factor than we wanted.
-				 */
-				expand_table(hashp);
-			}
-
+			/*
+			 * Caller is expected to fill the data field on return. DO NOT
+			 * insert any code that could possibly throw error here, as doing
+			 * so would leave the table entry incomplete and hence corrupt the
+			 * caller's data structure.
+			 */
 			return (void *) ELEMENTKEY(currBucket);
 	}
 
@@ -1001,9 +1035,13 @@ hash_get_num_entries(HTAB *hashp)
 }
 
 /*
- * hash_seq_init/_search
+ * hash_seq_init/_search/_term
  *			Sequentially search through hash table and return
  *			all the elements one by one, return NULL when no more.
+ *
+ * hash_seq_term should be called if and only if the scan is abandoned before
+ * completion; if hash_seq_search returns NULL then it has already done the
+ * end-of-scan cleanup.
  *
  * NOTE: caller may delete the returned element before continuing the scan.
  * However, deleting any other element while the scan is in progress is
@@ -1011,8 +1049,16 @@ hash_get_num_entries(HTAB *hashp)
  * if elements are added to the table while the scan is in progress, it is
  * unspecified whether they will be visited by the scan or not.
  *
+ * NOTE: it is possible to use hash_seq_init/hash_seq_search without any
+ * worry about hash_seq_term cleanup, if the hashtable is first locked against
+ * further insertions by calling hash_freeze.  This is used by nodeAgg.c,
+ * wherein it is inconvenient to track whether a scan is still open, and
+ * there's no possibility of further insertions after readout has begun.
+ *
  * NOTE: to use this with a partitioned hashtable, caller had better hold
  * at least shared lock on all partitions of the table throughout the scan!
+ * We can cope with insertions or deletions by our own backend, but *not*
+ * with concurrent insertions or deletions by another.
  */
 void
 hash_seq_init(HASH_SEQ_STATUS *status, HTAB *hashp)
@@ -1020,6 +1066,9 @@ hash_seq_init(HASH_SEQ_STATUS *status, HTAB *hashp)
 	status->hashp = hashp;
 	status->curBucket = 0;
 	status->curEntry = NULL;
+
+	if (hashp && !hashp->frozen)
+		register_seq_scan(hashp);
 }
 
 void *
@@ -1049,12 +1098,18 @@ hash_seq_search(HASH_SEQ_STATUS *status)
 	 */
 	curBucket = status->curBucket;
 	hashp = status->hashp;
+	if(!hashp)
+		return NULL;
+
 	hctl = hashp->hctl;
 	ssize = hashp->ssize;
 	max_bucket = hctl->max_bucket;
 
 	if (curBucket > max_bucket)
+	{
+		hash_seq_term(status);
 		return NULL;			/* search is done */
+	}
 
 	/*
 	 * first find the right segment in the table directory.
@@ -1076,6 +1131,7 @@ hash_seq_search(HASH_SEQ_STATUS *status)
 		if (++curBucket > max_bucket)
 		{
 			status->curBucket = curBucket;
+			hash_seq_term(status);
 			return NULL;		/* search is done */
 		}
 		if (++segment_ndx >= ssize)
@@ -1092,6 +1148,37 @@ hash_seq_search(HASH_SEQ_STATUS *status)
 		++curBucket;
 	status->curBucket = curBucket;
 	return (void *) ELEMENTKEY(curElem);
+}
+
+void
+hash_seq_term(HASH_SEQ_STATUS *status)
+{
+	if (!status->hashp->frozen)
+		deregister_seq_scan(status->hashp);
+}
+
+/*
+ * hash_freeze
+ *			Freeze a hashtable against future insertions (deletions are
+ *			still allowed)
+ *
+ * The reason for doing this is that by preventing any more bucket splits,
+ * we no longer need to worry about registering hash_seq_search scans,
+ * and thus caller need not be careful about ensuring hash_seq_term gets
+ * called at the right times.
+ *
+ * Multiple calls to hash_freeze() are allowed, but you can't freeze a table
+ * with active scans (since hash_seq_term would then do the wrong thing).
+ */
+void
+hash_freeze(HTAB *hashp)
+{
+	if (hashp->isshared)
+		elog(ERROR, "cannot freeze shared hashtable \"%s\"", hashp->tabname);
+	if (!hashp->frozen && has_seq_scans(hashp))
+		elog(ERROR, "cannot freeze hashtable \"%s\" because it has active scans",
+			 hashp->tabname);
+	hashp->frozen = true;
 }
 
 
@@ -1323,4 +1410,138 @@ my_log2(long num)
 	for (i = 0, limit = 1; limit < num; i++, limit <<= 1)
 		;
 	return i;
+}
+
+
+/************************* SEQ SCAN TRACKING ************************/
+
+/*
+ * We track active hash_seq_search scans here.  The need for this mechanism
+ * comes from the fact that a scan will get confused if a bucket split occurs
+ * while it's in progress: it might visit entries twice, or even miss some
+ * entirely (if it's partway through the same bucket that splits).  Hence
+ * we want to inhibit bucket splits if there are any active scans on the
+ * table being inserted into.  This is a fairly rare case in current usage,
+ * so just postponing the split until the next insertion seems sufficient.
+ *
+ * Given present usages of the function, only a few scans are likely to be
+ * open concurrently; so a finite-size stack of open scans seems sufficient,
+ * and we don't worry that linear search is too slow.  Note that we do
+ * allow multiple scans of the same hashtable to be open concurrently.
+ *
+ * This mechanism can support concurrent scan and insertion in a shared
+ * hashtable if it's the same backend doing both.  It would fail otherwise,
+ * but locking reasons seem to preclude any such scenario anyway, so we don't
+ * worry.
+ *
+ * This arrangement is reasonably robust if a transient hashtable is deleted
+ * without notifying us.  The absolute worst case is we might inhibit splits
+ * in another table created later at exactly the same address.  We will give
+ * a warning at transaction end for reference leaks, so any bugs leading to
+ * lack of notification should be easy to catch.
+ */
+
+#define MAX_SEQ_SCANS 100
+
+static HTAB *seq_scan_tables[MAX_SEQ_SCANS];	/* tables being scanned */
+static int	seq_scan_level[MAX_SEQ_SCANS];		/* subtransaction nest level */
+static int	num_seq_scans = 0;
+
+
+/* Register a table as having an active hash_seq_search scan */
+static void
+register_seq_scan(HTAB *hashp)
+{
+	if (num_seq_scans >= MAX_SEQ_SCANS)
+		elog(ERROR, "too many active hash_seq_search scans, cannot start one on \"%s\"",
+			 hashp->tabname);
+	seq_scan_tables[num_seq_scans] = hashp;
+	seq_scan_level[num_seq_scans] = GetCurrentTransactionNestLevel();
+	num_seq_scans++;
+}
+
+/* Deregister an active scan */
+static void
+deregister_seq_scan(HTAB *hashp)
+{
+	int		i;
+
+	/* Search backward since it's most likely at the stack top */
+	for (i = num_seq_scans - 1; i >= 0; i--)
+	{
+		if (seq_scan_tables[i] == hashp)
+		{
+			seq_scan_tables[i] = seq_scan_tables[num_seq_scans - 1];
+			seq_scan_level[i] = seq_scan_level[num_seq_scans - 1];
+			num_seq_scans--;
+			return;
+		}
+	}
+	elog(ERROR, "no hash_seq_search scan for hash table \"%s\"",
+		 hashp->tabname);
+}
+
+/* Check if a table has any active scan */
+static bool
+has_seq_scans(HTAB *hashp)
+{
+	int		i;
+
+	for (i = 0; i < num_seq_scans; i++)
+	{
+		if (seq_scan_tables[i] == hashp)
+			return true;
+	}
+	return false;
+}
+
+/* Clean up any open scans at end of transaction */
+void
+AtEOXact_HashTables(bool isCommit)
+{
+	/*
+	 * During abort cleanup, open scans are expected; just silently clean 'em
+	 * out.  An open scan at commit means someone forgot a hash_seq_term()
+	 * call, so complain.
+	 *
+	 * Note: it's tempting to try to print the tabname here, but refrain for
+	 * fear of touching deallocated memory.  This isn't a user-facing message
+	 * anyway, so it needn't be pretty.
+	 */
+	if (isCommit)
+	{
+		int		i;
+
+		for (i = 0; i < num_seq_scans; i++)
+		{
+			elog(WARNING, "leaked hash_seq_search scan for hash table %p",
+				 seq_scan_tables[i]);
+		}
+	}
+	num_seq_scans = 0;
+}
+
+/* Clean up any open scans at end of subtransaction */
+void
+AtEOSubXact_HashTables(bool isCommit, int nestDepth)
+{
+	int		i;
+
+	/*
+	 * Search backward to make cleanup easy.  Note we must check all entries,
+	 * not only those at the end of the array, because deletion technique
+	 * doesn't keep them in order.
+	 */
+	for (i = num_seq_scans - 1; i >= 0; i--)
+	{
+		if (seq_scan_level[i] >= nestDepth)
+		{
+			if (isCommit)
+				elog(WARNING, "leaked hash_seq_search scan for hash table %p",
+					 seq_scan_tables[i]);
+			seq_scan_tables[i] = seq_scan_tables[num_seq_scans - 1];
+			seq_scan_level[i] = seq_scan_level[num_seq_scans - 1];
+			num_seq_scans--;
+		}
+	}
 }

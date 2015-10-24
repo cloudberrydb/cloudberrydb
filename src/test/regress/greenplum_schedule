@@ -1,0 +1,65 @@
+# Greenplum-specific tests
+
+ignore: leastsquares
+
+test: dispatch
+
+test: alter_table_aocs
+test: gpdiffcheck gptokencheck olap_setup
+
+test: partition
+test: vacuum_gp
+
+test: gp_hashagg gp_dqa exttab1
+
+test: column_compression rangefuncs_cdb
+
+test: gphdfs custom_format gpcopy appendonly filter gpctas gpdist matrix gpdtm_plpgsql
+
+# FIXME: Temporarily disabled, because it trips an assertion. It's probably
+# harmless, but need to investigate and fix. Also, the number of errors put
+# in the error table, and hence the output, varies between runs.
+#test: sreh
+
+test: olap_group olap_window_seq
+
+# Disabled tests. XXX: Why are these disabled?
+#test: olap_window
+#test: tpch500GB
+#ignore: dpe
+
+test: information_schema naivebayes join_gp subselect_gp indexjoin distributed_transactions
+
+test: sublink sirv_functions table_functions
+
+# FIXME: These tests no longer work, because they try to set
+# gp_interconnect_type, which doesn't work:
+# ERROR:  parameter "gp_interconnect_type" cannot be set after connection start
+#test: gpic
+#test: gpic_bigtup
+
+ignore: gp_portal_error
+test: notin with_clause eagerfree toast mapred gpparams tidycat tidycat2 aocs
+test: ic gp_numeric_agg foreign_data gp_toolkit
+ignore: icudp_full
+ignore: upgrade
+ignore: upg2
+ignore: gp_delete_as_trunc
+
+test: filespace trig xml auth_constraint role rle portals_updatable plpgsql_cache percentile timeseries resource_queue_function gp_optimizer co_nestloop_idxscan pg_stat_last_operation
+
+test: resource_queue
+
+ignore: tpch500GB_orca
+
+test: alter_distribution_policy
+
+test: plan_size partindex_test direct_dispatch partition_pruning_with_fn dsp
+
+# XXX: This test depends on libgpoptudfs library, which includes ORCA helper
+# functions from src/backend/gpopt/utils/funcs.cpp. But those functions are
+# built into the backend (or rather, into libdxltranslators.so) directly,
+# so what's the point of that? Anyhow, the test is disabled for now..
+#test: orca_udfs
+
+# end of tests

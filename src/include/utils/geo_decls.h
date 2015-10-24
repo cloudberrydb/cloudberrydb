@@ -3,10 +3,10 @@
  * geo_decls.h - Declarations for various 2D constructs.
  *
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2008, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
- * $PostgreSQL: pgsql/src/include/utils/geo_decls.h,v 1.51 2006/07/13 16:49:20 momjian Exp $
+ * $PostgreSQL: pgsql/src/include/utils/geo_decls.h,v 1.52 2007/01/05 22:19:59 momjian Exp $
  *
  * NOTE
  *	  These routines do *not* use the float types from adt/.
@@ -78,7 +78,7 @@ typedef struct
  *-------------------------------------------------------------------*/
 typedef struct
 {
-	int32		size;			/* XXX varlena */
+	int32		vl_len_;		/* varlena header (do not touch directly!) */
 	int32		npts;
 	int32		closed;			/* is this a closed polygon? */
 	int32		dummy;			/* padding to make it double align */
@@ -121,7 +121,7 @@ typedef struct
  *-------------------------------------------------------------------*/
 typedef struct
 {
-	int32		size;			/* XXX varlena */
+	int32		vl_len_;		/* varlena header (do not touch directly!) */
 	int32		npts;
 	BOX			boundbox;
 	Point		p[1];			/* variable length array of POINTs */

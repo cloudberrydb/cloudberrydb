@@ -4,7 +4,7 @@
  *	  Routines to support inter-object dependencies.
  *
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2008, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * $PostgreSQL: pgsql/src/include/catalog/dependency.h,v 1.27 2006/08/21 00:57:26 tgl Exp $
@@ -137,6 +137,12 @@ typedef enum ObjectClass
 	OCLASS_ROLE,				/* pg_authid */
 	OCLASS_DATABASE,			/* pg_database */
 	OCLASS_TBLSPACE,			/* pg_tablespace */
+	OCLASS_FILESPACE,           /* pg_filespace */
+	OCLASS_FDW,					/* pg_foreign_data_wrapper */
+	OCLASS_FOREIGN_SERVER,		/* pg_foreign_server */
+	OCLASS_USER_MAPPING,		/* pg_user_mapping */
+	OCLASS_EXTPROTOCOL,			/* pg_extprotocol */
+	OCLASS_COMPRESSION,			/* pg_compression */
 	MAX_OCLASS					/* MUST BE LAST */
 } ObjectClass;
 
@@ -171,7 +177,7 @@ extern void add_exact_object_address(const ObjectAddress *object,
 						 ObjectAddresses *addrs);
 
 extern bool object_address_present(const ObjectAddress *object,
-					   ObjectAddresses *addrs);
+					   const ObjectAddresses *addrs);
 
 extern void free_object_addresses(ObjectAddresses *addrs);
 
@@ -195,6 +201,10 @@ extern long changeDependencyFor(Oid classId, Oid objectId,
 extern bool sequenceIsOwned(Oid seqId, Oid *tableId, int32 *colId);
 
 extern void markSequenceUnowned(Oid seqId);
+
+extern Oid	get_constraint_index(Oid constraintId);
+
+extern Oid	get_index_constraint(Oid indexId);
 
 /* in pg_shdepend.c */
 

@@ -2138,6 +2138,19 @@ select count(*) from tenk1 a where unique1 in
 (1 row)
 
 --
+-- regression test: check for failure to generate a plan with multiple
+-- degenerate IN clauses
+--
+select count(*) from tenk1 x where
+  x.unique1 in (select a.f1 from int4_tbl a,float8_tbl b where a.f1=b.f1) and
+  x.unique1 = 0 and
+  x.unique1 in (select aa.f1 from int4_tbl aa,float8_tbl bb where aa.f1=bb.f1);
+ count 
+-------
+     1
+(1 row)
+
+--
 -- Clean up
 --
 DROP TABLE t1;
@@ -2209,4 +2222,102 @@ select tt1.*, tt2.* from tt2 right join tt1 on tt1.joincol = tt2.joincol;
       1 |      11 |     21 |      11
       2 |         |        |        
 (3 rows)
+
+reset enable_hashjoin;
+reset enable_nestloop;
+--
+-- regression test for 8.2 bug with improper re-ordering of left joins
+--
+create temp table tt3(f1 int, f2 text);
+insert into tt3 select x, repeat('xyzzy', 100) from generate_series(1,10000) x;
+create index tt3i on tt3(f1);
+analyze tt3;
+create temp table tt4(f1 int);
+insert into tt4 values (0),(1),(9999);
+analyze tt4;
+SELECT a.f1
+FROM tt4 a
+LEFT JOIN (
+        SELECT b.f1
+        FROM tt3 b LEFT JOIN tt3 c ON (b.f1 = c.f1)
+        WHERE c.f1 IS NULL
+) AS d ON (a.f1 = d.f1)
+WHERE d.f1 IS NULL;
+  f1  
+------
+    0
+    1
+ 9999
+(3 rows)
+
+--
+-- regression test for problems of the sort depicted in bug #3494
+--
+create temp table tt5(f1 int, f2 int);
+create temp table tt6(f1 int, f2 int);
+insert into tt5 values(1, 10);
+insert into tt5 values(1, 11);
+insert into tt6 values(1, 9);
+insert into tt6 values(1, 2);
+insert into tt6 values(2, 9);
+select * from tt5,tt6 where tt5.f1 = tt6.f1 and tt5.f1 = tt5.f2 - tt6.f2;
+ f1 | f2 | f1 | f2 
+----+----+----+----
+  1 | 10 |  1 |  9
+(1 row)
+
+--
+-- regression test for problems of the sort depicted in bug #3588
+--
+create temp table xx (pkxx int);
+create temp table yy (pkyy int, pkxx int);
+insert into xx values (1);
+insert into xx values (2);
+insert into xx values (3);
+insert into yy values (101, 1);
+insert into yy values (201, 2);
+insert into yy values (301, NULL);
+select yy.pkyy as yy_pkyy, yy.pkxx as yy_pkxx, yya.pkyy as yya_pkyy,
+       xxa.pkxx as xxa_pkxx, xxb.pkxx as xxb_pkxx
+from yy
+     left join (SELECT * FROM yy where pkyy = 101) as yya ON yy.pkyy = yya.pkyy
+     left join xx xxa on yya.pkxx = xxa.pkxx
+     left join xx xxb on coalesce (xxa.pkxx, 1) = xxb.pkxx;
+ yy_pkyy | yy_pkxx | yya_pkyy | xxa_pkxx | xxb_pkxx 
+---------+---------+----------+----------+----------
+     101 |       1 |      101 |        1 |        1
+     201 |       2 |          |          |        1
+     301 |         |          |          |        1
+(3 rows)
+
+--
+-- regression test for improper pushing of constants across outer-join clauses
+-- (as seen in early 8.2.x releases)
+--
+create temp table zt1 (f1 int primary key);
+NOTICE:  CREATE TABLE / PRIMARY KEY will create implicit index "zt1_pkey" for table "zt1"
+create temp table zt2 (f2 int primary key);
+NOTICE:  CREATE TABLE / PRIMARY KEY will create implicit index "zt2_pkey" for table "zt2"
+create temp table zt3 (f3 int primary key);
+NOTICE:  CREATE TABLE / PRIMARY KEY will create implicit index "zt3_pkey" for table "zt3"
+insert into zt1 values(53);
+insert into zt2 values(53);
+select * from
+  zt2 left join zt3 on (f2 = f3)
+      left join zt1 on (f3 = f1)
+where f2 = 53;
+ f2 | f3 | f1 
+----+----+----
+ 53 |    |   
+(1 row)
+
+create temp view zv1 as select *,'dummy'::text AS junk from zt1;
+select * from
+  zt2 left join zt3 on (f2 = f3)
+      left join zv1 on (f3 = f1)
+where f2 = 53;
+ f2 | f3 | f1 | junk 
+----+----+----+------
+ 53 |    |    | 
+(1 row)
 

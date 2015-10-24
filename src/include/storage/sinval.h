@@ -4,7 +4,7 @@
  *	  POSTGRES shared cache invalidation communication definitions.
  *
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2008, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * $PostgreSQL: pgsql/src/include/storage/sinval.h,v 1.44 2006/03/05 15:59:00 momjian Exp $
@@ -51,7 +51,7 @@
 typedef struct
 {
 	/* note: field layout chosen with an eye to alignment concerns */
-	int16		id;				/* cache ID --- must be first */
+	int32		id;				/* cache ID --- must be first */
 	ItemPointerData tuplePtr;	/* tuple identifier in cached relation */
 	Oid			dbId;			/* database ID, or 0 if a shared relation */
 	uint32		hashValue;		/* hash value of key for this catcache */
@@ -61,7 +61,7 @@ typedef struct
 
 typedef struct
 {
-	int16		id;				/* type field --- must be first */
+	int32		id;				/* type field --- must be first */
 	Oid			dbId;			/* database ID, or 0 if a shared relation */
 	Oid			relId;			/* relation ID */
 } SharedInvalRelcacheMsg;
@@ -70,30 +70,31 @@ typedef struct
 
 typedef struct
 {
-	int16		id;				/* type field --- must be first */
+	int32		id;				/* type field --- must be first */
 	RelFileNode rnode;			/* physical file ID */
 } SharedInvalSmgrMsg;
 
 typedef union
 {
-	int16		id;				/* type field --- must be first */
+	int32		id;				/* type field --- must be first */
 	SharedInvalCatcacheMsg cc;
 	SharedInvalRelcacheMsg rc;
 	SharedInvalSmgrMsg sm;
 } SharedInvalidationMessage;
 
 
-extern Size SInvalShmemSize(void);
-extern void CreateSharedInvalidationState(void);
-extern void InitBackendSharedInvalidationState(void);
+/* Counter of messages processed; don't worry about overflow. */
+extern uint64 SharedInvalidMessageCounter;
 
-extern void SendSharedInvalidMessage(SharedInvalidationMessage *msg);
+
+extern void SendSharedInvalidMessages(const SharedInvalidationMessage *msgs,
+						  int n);
 extern void ReceiveSharedInvalidMessages(
 					  void (*invalFunction) (SharedInvalidationMessage *msg),
 							 void (*resetFunction) (void));
 
-/* signal handler for catchup events (SIGUSR1) */
-extern void CatchupInterruptHandler(SIGNAL_ARGS);
+/* signal handler for catchup events (PROCSIG_CATCHUP_INTERRUPT) */
+extern void HandleCatchupInterrupt(void);
 
 /*
  * enable/disable processing of catchup events directly from signal handler.

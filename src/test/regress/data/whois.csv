@@ -1,0 +1,1303 @@
+source_line_number,domain,subdomain,tld,ip_address,ip_address_int,reverse_ip_address,reverse_ip_address_int,registrar,registrar_url,whois_server,harvest_date,creation_date,updated_date,expiration_date,rank,status,update_status,nameserver1,nameserver1_domain,nameserver1_subdomain,nameserver1_tld,nameserver2,nameserver2_domain,nameserver2_subdomain,nameserver2_tld,nameserver3,nameserver3_domain,nameserver3_subdomain,nameserver3_tld,nameserver4,nameserver4_domain,nameserver4_subdomain,nameserver4_tld,nameserver5,nameserver5_domain,nameserver5_subdomain,nameserver5_tld,registrant_name,registrant_org,registrant_email,registrant_email_domain,registrant_email_subdomain,registrant_email_tld,registrant_phone,registrant_fax,registrant_street_address,registrant_address1,registrant_address2,registrant_address3,registrant_city,registrant_region,registrant_postal_code,registrant_country,tech_name,tech_org,tech_email,tech_email_domain,tech_email_subdomain,tech_email_tld,tech_phone,tech_fax,tech_street_address,tech_address1,tech_address2,tech_address3,tech_city,tech_region,tech_postal_code,tech_country,admin_name,admin_org,admin_email,admin_email_domain,admin_email_subdomain,admin_email_tld,admin_phone,admin_fax,admin_street_address,admin_street1,admin_street2,admin_street3,admin_city,admin_region,admin_postal_code,admin_country,path,raw_record
+2,00111.net,net,net,,,,,,,,2006-06-16 19:33:12.11421,2006-02-17,2006-02-18 01:19:53,2007-02-17,3,,,ns1.cnolnic.net,cnolnic.net,net,net,ns2.cnolnic.net,cnolnic.net,net,net,,,,,,,,,,,,,wu guishan,wu guishan,wuabcd@163.com,163.com,com,com,+86.05962196589,,"xianchen|zhangzhou, Fujian, cn 363000",xianchen,,,zhangzhou,Fujian,363000,cn,wu guishan,wu guishan,wuabcd@163.com,163.com,com,com,+86.05962196589,"jian, cn 363000|+86.05962196589","xianchen|zhangzhou, Fujian, cn 363000",xianchen,,,zhangzhou,Fujian,363000,cn,wu guishan,wu guishan,wuabcd@163.com,163.com,com,com,+86.05962196589,"jian, cn 363000|+86.05962196589","xianchen|zhangzhou, Fujian, cn 363000",xianchen,,,zhangzhou,Fujian,363000,cn,,"<rec>The Data in Web Commerce Communications Limited (""WEBCC"")'s WHOIS database 
+is provided by WEBCC for information purposes, and to assist in obtaining 
+information about or related to a domain name registration record. WEBCC 
+does not guarantee its accuracy. By submitting a WHOIS query, you agree 
+that you will use this Data only for lawful purposes and that, under no 
+circumstances will you use this Data to:
+
+(1) allow, enable, or otherwise support the transmission of mass unsolicited, 
+    commercial advertising or solicitations via e-mail (spam).
+(2) enable high volume, automated, electronic processes that apply to WEBCC 
+    (or its systems).
+
+The compilation, repackaging, dissemination or other use of this Data is 
+expressly prohibited without the prior written consent of WEBCC. WEBCC 
+reserves the right to terminate your access to the WEBCC WHOIS database in 
+its sole discretion, including without limitation, for excessive querying 
+of the WHOIS database or for failure to otherwise abide by this policy. 
+WEBCC reserves the right to modify these terms at any time.
+
+
+Domain: 00111.NET
+Status: Protected
+
+DNS:
+	ns1.cnolnic.net
+	ns2.cnolnic.net
+
+Created: 2006-02-17
+Expires: 2007-02-17
+Last Modified: 2006-02-18 01:19:53
+
+Registrant Contact:
+	wu guishan
+	wu guishan (wuabcd@163.com)
+	xianchen 
+	zhangzhou, Fujian, cn 363000
+	P: +86.05962196589	 F: +86.05962196589
+
+Administrative Contact:
+	wu guishan
+	wu guishan (wuabcd@163.com)
+	xianchen 
+	zhangzhou, Fujian, cn 363000
+	P: +86.05962196589	 F: +86.05962196589
+	
+Technical Contact:
+	wu guishan
+	wu guishan (wuabcd@163.com)
+	xianchen 
+	zhangzhou, Fujian, cn 363000
+	P: +86.05962196589	 F: +86.05962196589
+
+Billing Contact:
+	wu guishan
+	wu guishan (wuabcd@163.com)
+	xianchen 
+	zhangzhou, Fujian, cn 363000
+	P: +86.05962196589	 F: +86.05962196589</rec>"
+62,007china.net,net,net,,,,,,,,2006-06-16 19:33:12.22845,2005-09-05,,2006-09-05,3,,,ns1.4everdns.com,4everdns.com,com,com,ns2.4everdns.com,4everdns.com,com,com,,,,,,,,,,,,,YIN JIANPING,,shiguangzh@163.com,163.com,com,com,,,Xige street No 87 Zhongshan north road|Xuzhou Jiangsu 221000|cn,Xige street No 87 Zhongshan north road,,,Xuzhou Jiangsu,,221000,cn,jianping yin,,shiguangzh@163.com,163.com,com,com,86-0516-7821111,86-0516-7825555,xige street No 87 zhongshan north road|xuzhou jiangsu 221000|cn,xige street No 87 zhongshan north road,,,xuzhou jiangsu,,221000,cn,JIANPING YIN,,sjiguangzh@163.com,163.com,com,com,86-0516-7821111,86-0516-7825555,xige street No87 zhongshan north road|xuzhou jiangsu 221000|cn,xige street No87 zhongshan north road,,,xuzhou jiangsu,,221000,cn,,"<rec>The data in this whois database is provided to you for information
+purposes only, that is, to assist you in obtaining information about or
+related to a domain name registration record. We make this information
+available ""as is,"" and do not guarantee its accuracy. By submitting a
+whois query, you agree that you will use this data only for lawful
+purposes and that, under no circumstances will you use this data to: (1)
+enable high volume, automated, electronic processes that stress or load
+this whois database system providing you this information; or (2) allow,
+enable, or otherwise support the transmission of mass unsolicited,
+commercial advertising or solicitations via direct mail, electronic
+mail, or by telephone.  The compilation, repackaging, dissemination or
+other use of this data is expressly prohibited without prior written
+consent from us.  We reserve the right to modify these terms at any time.
+By submitting this query, you agree to abide by these terms.
+
+Domain name: 007china.net
+
+Registrant Contact:
+   YIN JIANPING
+   JIANPING YIN shiguangzh@163.com
+   86-0516-7821111 fax: 86-0516-7825555
+   Xige street No 87 Zhongshan north road
+   Xuzhou Jiangsu 221000
+   cn
+
+Administrative Contact:
+   JIANPING YIN sjiguangzh@163.com
+   86-0516-7821111 fax: 86-0516-7825555
+   xige street No87 zhongshan north road
+   xuzhou jiangsu 221000
+   cn
+
+Technical Contact:
+   jianping yin shiguangzh@163.com
+   86-0516-7821111 fax: 86-0516-7825555
+   xige street No 87 zhongshan north road
+   xuzhou jiangsu 221000
+   cn
+
+Billing Contact:
+   jianping yin shiguangzh@163.com
+   86-0516-7821111 fax: 86-0516-7825555
+   xige street No 87 zhongshan north road
+   xuzhou jiangsu 221000
+   cn
+
+DNS:
+ns1.4everdns.com
+ns2.4everdns.com
+
+Created: 2005-09-05
+Expires: 2006-09-05</rec>"
+116,001web.net,net,net,,,,,,,,2006-06-16 19:33:13.195138,2003-12-15,,2006-12-15,3,,,dns.bizcn.com,bizcn.com,com,com,dns.cnmsn.net,cnmsn.net,net,net,,,,,,,,,,,,,Yuanxijun,,webmaster@001web.net,001web.net,net,net,,,"2403#,022F,6# beimengqiao road|Nanjing jiangsu 210018|cn","2403#,022F,6# beimengqiao road",,,Nanjing jiangsu,,210018,cn,tinghai zhang,,webmaster@yz114.com,yz114.com,com,com,+86.5147239297,+86.5147229089,"105#,38F,shaibei three village|yangzhou jiangsu 225000|cn","105#,38F,shaibei three village",,,yangzhou jiangsu,,225000,cn,tinghai zhang,,webmaster@yz114.com,yz114.com,com,com,+86.5147239297,+86.5147229089,"105#,38F,shaibei three village|yangzhou jiangsu 225000|cn","105#,38F,shaibei three village",,,yangzhou jiangsu,,225000,cn,,"<rec>The data in this whois database is provided to you for information
+purposes only, that is, to assist you in obtaining information about or
+related to a domain name registration record. We make this information
+available ""as is,"" and do not guarantee its accuracy. By submitting a
+whois query, you agree that you will use this data only for lawful
+purposes and that, under no circumstances will you use this data to: (1)
+enable high volume, automated, electronic processes that stress or load
+this whois database system providing you this information; or (2) allow,
+enable, or otherwise support the transmission of mass unsolicited,
+commercial advertising or solicitations via direct mail, electronic
+mail, or by telephone.  The compilation, repackaging, dissemination or
+other use of this data is expressly prohibited without prior written
+consent from us.  We reserve the right to modify these terms at any time.
+By submitting this query, you agree to abide by these terms.
+
+Domain name: 001web.net
+
+Registrant Contact:
+   Yuanxijun
+   xijun yuan webmaster@001web.net
+   +86.2584714502 fax: +86.2584714502
+   2403#,022F,6# beimengqiao road
+   Nanjing jiangsu 210018
+   cn
+
+Administrative Contact:
+   tinghai zhang webmaster@yz114.com
+   +86.5147239297 fax: +86.5147229089
+   105#,38F,shaibei three village
+   yangzhou jiangsu 225000
+   cn
+
+Technical Contact:
+   tinghai zhang webmaster@yz114.com
+   +86.5147239297 fax: +86.5147229089
+   105#,38F,shaibei three village
+   yangzhou jiangsu 225000
+   cn
+
+Billing Contact:
+   tinghai zhang webmaster@yz114.com
+   +86.5147239297 fax: +86.5147229089
+   105#,38F,shaibei three village
+   yangzhou jiangsu 225000
+   cn
+
+DNS:
+dns.bizcn.com
+dns.cnmsn.net
+
+Created: 2003-12-15
+Expires: 2006-12-15</rec>"
+170,007toys.net,net,net,,,,,,,,2006-06-16 19:33:13.935131,14-Jun-2006,15-Jun-2006,2007-06-14,3,,,dns.dns-parking-service.com,dns-parking-service.com,com,com,dns1.dns-parking-service.com,dns-parking-service.com,com,com,dns2.dns-parking-service.com,dns-parking-service.com,com,com,,,,,,,,,Wang Lee (007TOYS-NET-DOM),,contact@wangleedomains.com,wangleedomains.com,com,com,+852.3014916,,"255 King's Road|North Point,|Hong Kong",255 King's Road,,,"North Point,",,,Hong Kong,Wang Lee,,contact@wangleedomains.com,wangleedomains.com,com,com,+852.3014916,85230149162,"255 King's Road|North Point,|Hong Kong|Record last updated on 15-Jun-2006.|Record expires on 14-Jun-2007.",255 King's Road,"North Point,",Hong Kong,Record expires on,,14-Jun-2007.,,Wang Lee,,contact@wangleedomains.com,wangleedomains.com,com,com,+852.3014916,85230149162,"255 King's Road|North Point,|Hong Kong",255 King's Road,,,"North Point,",,,Hong Kong,,"<rec>This whois service shows the information for .COM, .NET and .ORG domains 
+The fact that your query returns ""NOT FOUND"" does not necessarily mean that
+the domain may be available for registration. To search all domains, please
+go to the shared registry whois located at:
+http://www.internic.net/whois.html
+
+
+Registrant:
+   Wang Lee (007TOYS-NET-DOM)
+   Olympia Plaza
+   255 King's Road
+   North Point,  
+   Hong Kong
+   +852.30149162
+   +852.30149162
+   contact@wangleedomains.com
+
+   Domain Name: 007TOYS.NET
+   Status: PROTECTED
+
+   Administrative Contact:
+      Wang Lee contact@wangleedomains.com
+      Olympia Plaza
+      255 King's Road
+      North Point,  
+      Hong Kong
+      +852.30149162
+      Fax- +852.30149162
+
+   Technical Contact, Zone Contact:
+      Wang Lee contact@wangleedomains.com
+      Olympia Plaza
+      255 King's Road
+      North Point,  
+      Hong Kong
+      +852.30149162
+      Fax- +852.30149162
+
+   Record last updated on 15-Jun-2006.
+   Record expires on 14-Jun-2007.
+   Record created on 14-Jun-2006.
+
+   Domain servers in listed order:
+      Name Server: DNS2.DNS-PARKING-SERVICE.COM
+      Name Server: DNS1.DNS-PARKING-SERVICE.COM
+      Name Server: DNS.DNS-PARKING-SERVICE.COM</rec>"
+218,007cybermall.net,net,net,,,,,,,,2006-06-16 19:33:14.012383,2001-03-17 09:28:20 EST,2005-03-19 22:03:20 EST,2007-03-17,3,,,ns.sbbank.net,sbbank.net,net,net,ns2.sbbank.net,sbbank.net,net,net,,,,,,,,,,,,,"Hyoung Geun, Kim",,khg882@hanmail.net,hanmail.net,net,net,02-508-7321,02-508-7844,"1803-2, HallaClassic-Offistel, 824-11, Yuksam-dong, Gangnam-gu,Seoul,Korea|135-080|KR","1803-2, HallaClassic-Offistel, 824-11, Yuksam-dong, Gangnam-gu,Seoul,Korea",,,,,135-080,KR,"Jonghyun, Lee",,webmaster@domain7.co.kr,domain7.co.kr,co.kr,kr,02-585-2011,02-525-1116,"#B07,Hyochun B/D,1425-10,Seocho-dong,Seocho-Gu, Seoul, Korea|137-070|KR","#B07,Hyochun B/D,1425-10,Seocho-dong,Seocho-Gu, Seoul, Korea",,,,,137-070,KR,"Hyoung Geun, Kim",,zit001@kornet.net,kornet.net,net,net,053-261-9469,053-621-3001,"102-610 Chilkok Woobang APT Umnae-dong, Puk-gu, Taegu|702848|KR","102-610 Chilkok Woobang APT Umnae-dong, Puk-gu, Taegu",,,,,702848,KR,,"<rec>-----------------------------------------------
+Queried Domain Information as follows
+-----------------------------------------------
+
+Domain Name : 007cybermall.net
+
+::Registrant::
+	Name      : Hyoung Geun, Kim
+	Email     : khg882@hanmail.net
+	Address   : 1803-2, HallaClassic-Offistel, 824-11, Yuksam-dong, Gangnam-gu,Seoul,Korea
+	Zipcode   : 135-080
+	Nation    : KR
+	Tel       : 02-508-7321
+	Fax       : 02-508-7844
+
+::Administrative Contact::
+	Name      : Hyoung Geun, Kim
+	Email     : zit001@kornet.net
+	Address   : 102-610 Chilkok Woobang APT  Umnae-dong, Puk-gu, Taegu
+	Zipcode   : 702848
+	Nation    : KR
+	Tel       : 053-261-9469
+	Fax       : 053-621-3001
+
+::Technical Contact::
+	Name      : Jonghyun, Lee
+	Email     : webmaster@domain7.co.kr
+	Address   : #B07,Hyochun B/D,1425-10,Seocho-dong,Seocho-Gu, Seoul, Korea
+	Zipcode   : 137-070
+	Nation    : KR
+	Tel       : 02-585-2011
+	Fax       : 02-525-1116
+
+::Name Servers::
+	NS2.SBBANK.NET
+	NS.SBBANK.NET
+
+::Dates & Status::
+	Created Date   2001-03-17 09:28:20 EST
+	Updated Date   2005-03-19 22:03:20 EST
+	Valid Date     2007-03-17 09:28:20 EST
+	Status         ACTIVE</rec>"
+261,007hk.net,net,net,,,,,,,,2006-06-16 19:33:14.086281,2004-11-01,,2006-11-01,3,,,ns1.4everdns.com,4everdns.com,com,com,ns2.4everdns.com,4everdns.com,com,com,,,,,,,,,,,,,007,,yangxinan@163.com,163.com,com,com,,,hongkong88hao|hongkong Henan 000007|cn,hongkong88hao,,,hongkong Henan,,000007,cn,sheng song,,yangxinan@163.com,163.com,com,com,13907555645,07755745078,hongkong88hao|hongkong Henan 000007|cn,hongkong88hao,,,hongkong Henan,,000007,cn,sheng song,,yangxinan@163.com,163.com,com,com,13907555645,07755745078,hongkong88hao|hongkong Henan 000007|cn,hongkong88hao,,,hongkong Henan,,000007,cn,,"<rec>The data in this whois database is provided to you for information
+purposes only, that is, to assist you in obtaining information about or
+related to a domain name registration record. We make this information
+available ""as is,"" and do not guarantee its accuracy. By submitting a
+whois query, you agree that you will use this data only for lawful
+purposes and that, under no circumstances will you use this data to: (1)
+enable high volume, automated, electronic processes that stress or load
+this whois database system providing you this information; or (2) allow,
+enable, or otherwise support the transmission of mass unsolicited,
+commercial advertising or solicitations via direct mail, electronic
+mail, or by telephone.  The compilation, repackaging, dissemination or
+other use of this data is expressly prohibited without prior written
+consent from us.  We reserve the right to modify these terms at any time.
+By submitting this query, you agree to abide by these terms.
+
+Domain name: 007hk.net
+
+Registrant Contact:
+   007
+   sheng song yangxinan@163.com
+   13907555645 fax: 07755745078
+   hongkong88hao
+   hongkong Henan 000007
+   cn
+
+Administrative Contact:
+   sheng song yangxinan@163.com
+   13907555645 fax: 07755745078
+   hongkong88hao
+   hongkong Henan 000007
+   cn
+
+Technical Contact:
+   sheng song yangxinan@163.com
+   13907555645 fax: 07755745078
+   hongkong88hao
+   hongkong Henan 000007
+   cn
+
+Billing Contact:
+   sheng song yangxinan@163.com
+   13907555645 fax: 07755745078
+   hongkong88hao
+   hongkong Henan 000007
+   cn
+
+DNS:
+ns1.4everdns.com
+ns2.4everdns.com
+
+Created: 2004-11-01
+Expires: 2006-11-01</rec>"
+315,007adulthosting.net,net,net,,,,,"TUCOWS, INC.",,,2006-06-16 19:33:14.917354,15-Nov-2000,26-Apr-2006,2006-11-15,3,,,ns1.california.net,california.net,net,net,ns1.oakweb.com,oakweb.com,com,com,,,,,,,,,,,,,"Reliablehosting.com / Black Oak Computers, Inc.",,,,,,,,"11110 W. Oakland Park Blvd.|#379|Sunrise, FL 33351|US",11110 W. Oakland Park Blvd.,#379,,Sunrise,FL,33351,US,"Reliablehosting.com, Mr.",,getrenewed@reliablehosting.com,reliablehosting.com,com,com,954-452-7781,415-467-7690,"11110 W. Oakland Park Blvd.|#379|Sunrise, FL 33351|US",11110 W. Oakland Park Blvd.,#379,,Sunrise,FL,33351,US,"Reliablehosting.com, Mr.",,getrenewed@reliablehosting.com,reliablehosting.com,com,com,954-452-7781,415-467-7690,"11110 W. Oakland Park Blvd.|#379|Sunrise, FL 33351|US",11110 W. Oakland Park Blvd.,#379,,Sunrise,FL,33351,US,,"<rec>Registrant:
+ Reliablehosting.com / Black Oak Computers, Inc.
+ 11110 W. Oakland Park Blvd.
+ #379
+ Sunrise, FL 33351
+ US
+
+ Domain name: 007ADULTHOSTING.NET
+
+ Administrative Contact:
+    Reliablehosting.com, Mr.  getrenewed@reliablehosting.com
+    11110 W. Oakland Park Blvd.
+    #379
+    Sunrise, FL 33351
+    US
+    954-452-7781    Fax: 415-467-7690
+
+ Technical Contact:
+    Reliablehosting.com, Mr.  getrenewed@reliablehosting.com
+    11110 W. Oakland Park Blvd.
+    #379
+    Sunrise, FL 33351
+    US
+    954-452-7781    Fax: 415-467-7690
+
+
+
+ Registration Service Provider:
+    California.net / Reliablehosting, webmaster@reliablehosting.com
+    877-402-9532
+    http://www.reliablehosting.com
+    This company may be contacted for domain login/passwords,
+    DNS/Nameserver changes, and general domain support questions.
+
+
+ Registrar of Record: TUCOWS, INC.
+ Record last updated on 26-Apr-2006.
+ Record expires on 15-Nov-2006.
+ Record created on 15-Nov-2000.
+
+ Domain servers in listed order:
+    NS1.CALIFORNIA.NET   216.131.95.20
+    NS1.OAKWEB.COM   216.131.94.5
+
+
+ Domain status: ACTIVE
+
+The Data in the Tucows Registrar WHOIS database is provided to you by Tucows
+for information purposes only, and may be used to assist you in obtaining
+information about or related to a domain name's registration record.
+
+Tucows makes this information available ""as is,"" and does not guarantee its
+accuracy.
+
+By submitting a WHOIS query, you agree that you will use this data only for
+lawful purposes and that, under no circumstances will you use this data to:
+a) allow, enable, or otherwise support the transmission by e-mail,
+telephone, or facsimile of mass, unsolicited, commercial advertising or
+solicitations to entities other than the data recipient's own existing
+customers; or (b) enable high volume, automated, electronic processes that
+send queries or data to the systems of any Registry Operator or
+ICANN-Accredited registrar, except as reasonably necessary to register
+domain names or modify existing registrations.
+
+The compilation, repackaging, dissemination or other use of this Data is
+expressly prohibited without the prior written consent of Tucows.
+
+Tucows reserves the right to terminate your access to the Tucows WHOIS
+database in its sole discretion, including without limitation, for excessive
+querying of the WHOIS database or for failure to otherwise abide by this
+policy.
+
+Tucows reserves the right to modify these terms at any time.
+
+By submitting this query, you agree to abide by these terms.
+
+NOTE: THE WHOIS DATABASE IS A CONTACT DATABASE ONLY.  LACK OF A DOMAIN
+RECORD DOES NOT SIGNIFY DOMAIN AVAILABILITY.</rec>"
+396,00-1.net,net,net,,,,,,,,2006-06-16 19:33:15.145672,2005-10-17,2006-02-22,2008-10-17,3,,,ns1.dnsfamily.com,dnsfamily.com,com,com,ns2.dnsfamily.com,dnsfamily.com,com,com,,,,,,,,,,,,,ming wen,,,,,,,,guangzhou|528455,guangzhou,,,528455,,,,ming wen,ming wen,wm343400@163.com,163.com,com,com,86263960,7358469,guangzhou|guangzhou Beijing|CN,guangzhou,,,guangzhou Beijing,,,CN,ming wen,ming wen,wm343400@163.com,163.com,com,com,028 86263960,0208 7358469,guangzhou|guangzhou Guangdong|CN,guangzhou,,,guangzhou Guangdong,,,CN,,"<rec>The Data in Paycenter's WHOIS database is provided by Paycenter 
+for information purposes, and to assist persons in obtaining 
+information about or related to a domain name registration 
+record.
+Paycenter does not guarantee its accuracy.  By submitting 
+a WHOIS query, you agree that you will use this Data only 
+for lawful purposes and that, under no circumstances will 
+you use this Data to:
+(1) allow, enable, or otherwise support the transmission 
+of mass unsolicited, commercial advertising or solicitations 
+via e-mail (spam); or  
+(2) enable high volume, automated, electronic processes that 
+apply to Paycenter or its systems.  
+Paycenter reserves the right to modify these terms at any time. 
+By submitting this query, you agree to abide by this policy.	
+        
+Domain Name:00-1.net
+
+
+Registrant: 
+ming wen
+	guangzhou
+	528455
+	
+	
+
+Administrative Contact: 
+ming wen
+	ming wen
+	guangzhou
+	guangzhou Guangdong 
+	CN
+	tel:  028 86263960 
+	fax:  0208 7358469 
+	wm343400@163.com
+	
+Technical Contact: 
+ming wen
+	ming wen
+	guangzhou
+	guangzhou Beijing 
+	CN
+	tel:   86263960 
+	fax:   7358469 
+	wm343400@163.com
+	
+Billing Contact: 
+ming wen
+	ming wen
+	guangzhou
+	guangzhou Beijing 
+	CN
+	tel:   86263960 
+	fax:   7358469 
+	wm343400@163.com
+	
+ Registration Date: 2005-10-17
+       Update Date: 2006-02-22
+   Expiration Date: 2008-10-17
+	
+    Primary DNS:  ns1.DNSFAMILY.com		218.85.132.246
+  Secondary DNS:  ns2.DNSFAMILY.com		218.107.216.80</rec>"
+460,00045.net,net,net,,,,,,,,2006-06-16 19:33:16.008923,2005-04-16,2005-04-16 15:36:51,2006-04-16,3,,,ns1.cnolnic.net,cnolnic.net,net,net,ns2.cnolnic.net,cnolnic.net,net,net,,,,,,,,,,,,,wu shanlun,wu shanlun,jakemt@21cn.com,21cn.com,com,com,+86.07593339000,,"Room BD402,CuiFuYuan,No.19,Lane 6,haibin Road,ChiKan District|zhanjiang, Guangdong, cn 524000","Room BD402,CuiFuYuan,No.19,Lane 6,haibin Road,ChiKan District",,,zhanjiang,Guangdong,524000,cn,jones jones,jones,jakemt@21cn.com,21cn.com,com,com,+86.07593339000,"Yuan,No.19,Lane 6,haibin Road,ChiKan District|+86.","Room BD402,CuiFuYuan,No.19,Lane 6,haibin Road,ChiKan District|zhanjiang, Guangdong, cn 524000","Room BD402,CuiFuYuan,No.19,Lane 6,haibin Road,ChiKan District",,,zhanjiang,Guangdong,524000,cn,jones jones,jones,jakemt@21cn.com,21cn.com,com,com,+86.07593339000,"Yuan,No.19,Lane 6,haibin Road,ChiKan District|+86.","Room BD402,CuiFuYuan,No.19,Lane 6,haibin Road,ChiKan District|zhanjiang, Guangdong, cn 524000","Room BD402,CuiFuYuan,No.19,Lane 6,haibin Road,ChiKan District",,,zhanjiang,Guangdong,524000,cn,,"<rec>The Data in Web Commerce Communications Limited (""WEBCC"")'s WHOIS database 
+is provided by WEBCC for information purposes, and to assist in obtaining 
+information about or related to a domain name registration record. WEBCC 
+does not guarantee its accuracy. By submitting a WHOIS query, you agree 
+that you will use this Data only for lawful purposes and that, under no 
+circumstances will you use this Data to:
+
+(1) allow, enable, or otherwise support the transmission of mass unsolicited, 
+    commercial advertising or solicitations via e-mail (spam).
+(2) enable high volume, automated, electronic processes that apply to WEBCC 
+    (or its systems).
+
+The compilation, repackaging, dissemination or other use of this Data is 
+expressly prohibited without the prior written consent of WEBCC. WEBCC 
+reserves the right to terminate your access to the WEBCC WHOIS database in 
+its sole discretion, including without limitation, for excessive querying 
+of the WHOIS database or for failure to otherwise abide by this policy. 
+WEBCC reserves the right to modify these terms at any time.
+
+
+Domain: 00045.NET
+Status: 
+
+DNS:
+	ns1.cnolnic.net
+	ns2.cnolnic.net
+
+Created: 2005-04-16
+Expires: 2006-04-16
+Last Modified: 2005-04-16 15:36:51
+
+Registrant Contact:
+	wu shanlun
+	wu shanlun (jakemt@21cn.com)
+	Room BD402,CuiFuYuan,No.19,Lane 6,haibin  Road,ChiKan District
+	zhanjiang, Guangdong, cn 524000
+	P: +86.07593339000	 F: +86.07593339000
+
+Administrative Contact:
+	jones
+	jones jones (jakemt@21cn.com)
+	Room BD402,CuiFuYuan,No.19,Lane 6,haibin  Road,ChiKan District
+	zhanjiang, Guangdong, cn 524000
+	P: +86.07593339000	 F: +86.07593339000
+	
+Technical Contact:
+	jones
+	jones jones (jakemt@21cn.com)
+	Room BD402,CuiFuYuan,No.19,Lane 6,haibin  Road,ChiKan District
+	zhanjiang, Guangdong, cn 524000
+	P: +86.07593339000	 F: +86.07593339000
+
+Billing Contact:
+	jones
+	jones jones (jakemt@21cn.com)
+	Room BD402,CuiFuYuan,No.19,Lane 6,haibin  Road,ChiKan District
+	zhanjiang, Guangdong, cn 524000
+	P: +86.07593339000	 F: +86.07593339000</rec>"
+520,007-melodiasmoviles.net,net,net,,,,,Register.com,http://www.register.com,whois.register.com,2006-06-16 19:33:16.113883,"Fri, Jan 31, 2003","Thu, Feb 23, 2006",2008-01-31,3,,,dns27.register.com,register.com,com,com,dns28.register.com,register.com,com,com,,,,,,,,,,,,,Joaquin Edo,Joaquin Edo,joaquinedo@eresmas.com,eresmas.com,com,com,964539036,964532357,"C/ Sardenya, 29|Vila-real, CS 12540|ES","C/ Sardenya, 29",,,Vila-real,CS,12540,ES,Domain Registrar,Register.Com,domain-registrar@register.com,register.com,com,com,902-749-2701,902-749-5429,"575 8th Avenue|New York, NY 10018|US",575 8th Avenue,,,New York,NY,10018,US,Joaquin Edo,Joaquin Edo,chimo@nrs-group.com,nrs-group.com,com,com,964539036,964532357,"C/ Sardenya, 29|Vila-real, CS 12540|ES","C/ Sardenya, 29",,,Vila-real,CS,12540,ES,,"<rec>The data in Register.com's WHOIS database is provided to you by
+Register.com for information purposes only, that is, to assist you in
+obtaining information about or related to a domain name registration
+record.  Register.com makes this information available ""as is,"" and
+does not guarantee its accuracy.  By submitting a WHOIS query, you
+agree that you will use this data only for lawful purposes and that,
+under no circumstances will you use this data to: (1) allow, enable,
+or otherwise support the transmission of mass unsolicited, commercial
+advertising or solicitations via direct mail, electronic mail, or by
+telephone; or (2) enable high volume, automated, electronic processes
+that apply to Register.com (or its systems).  The compilation,
+repackaging, dissemination or other use of this data is expressly
+prohibited without the prior written consent of Register.com. 
+Register.com reserves the right to modify these terms at any time.
+By submitting this query, you agree to abide by these terms.
+
+
+   Organization:
+      Joaquin Edo
+      Joaquin Edo
+      C/ Sardenya, 29
+      Vila-real, CS 12540
+      ES
+      Phone: 964539036
+      Fax..: 964532357
+      Email: joaquinedo@eresmas.com
+
+   Registrar Name....: Register.com
+   Registrar Whois...: whois.register.com
+   Registrar Homepage: http://www.register.com
+
+   Domain Name: 007-MELODIASMOVILES.NET
+
+      Created on..............: Fri, Jan 31, 2003
+      Expires on..............: Thu, Jan 31, 2008
+      Record last updated on..: Thu, Feb 23, 2006
+
+   Administrative Contact:
+      Joaquin Edo
+      Joaquin Edo
+      C/ Sardenya, 29
+      Vila-real, CS 12540
+      ES
+      Phone: 964539036
+      Fax..: 964532357
+      Email: chimo@nrs-group.com
+
+   Technical Contact:
+      Register.Com
+      Domain Registrar
+      575 8th Avenue
+      New York, NY 10018
+      US
+      Phone: 902-749-2701
+      Fax..: 902-749-5429
+      Email: domain-registrar@register.com
+
+   Zone Contact:
+      Register.Com
+      Domain Registrar
+      575 8th Avenue
+      New York, NY 10018
+      US
+      Phone: 902-749-2701
+      Fax..: 902-749-5429
+      Email: domain-registrar@register.com
+
+   Domain servers in listed order:
+
+   DNS27.REGISTER.COM                                216.21.234.84     
+   DNS28.REGISTER.COM                                216.21.226.84     
+
+Register your domain name at http://www.register.com</rec>"
+596,007dy.net,net,net,,,,,,,,2006-06-16 19:33:16.186276,2005-06-21,,2007-06-21,3,,,ns5.cnmsn.net,cnmsn.net,net,net,ns6.cnmsn.net,cnmsn.net,net,net,,,,,,,,,,,,,zhangyuanzong,,aaaqqq616@sohu.com,sohu.com,com,com,,,anxi|Xiamen Fujian 362400|cn,anxi,,,Xiamen Fujian,,362400,cn,yuanzong zhang,,aaaqqq616@sohu.com,sohu.com,com,com,13959805966,0592-7220135,anxi|Xiamen Fujian 362400|cn,anxi,,,Xiamen Fujian,,362400,cn,yuanzong zhang,,aaaqqq616@sohu.com,sohu.com,com,com,13959805966,0592-7220135,anxi|Xiamen Fujian 362400|cn,anxi,,,Xiamen Fujian,,362400,cn,,"<rec>The data in this whois database is provided to you for information
+purposes only, that is, to assist you in obtaining information about or
+related to a domain name registration record. We make this information
+available ""as is,"" and do not guarantee its accuracy. By submitting a
+whois query, you agree that you will use this data only for lawful
+purposes and that, under no circumstances will you use this data to: (1)
+enable high volume, automated, electronic processes that stress or load
+this whois database system providing you this information; or (2) allow,
+enable, or otherwise support the transmission of mass unsolicited,
+commercial advertising or solicitations via direct mail, electronic
+mail, or by telephone.  The compilation, repackaging, dissemination or
+other use of this data is expressly prohibited without prior written
+consent from us.  We reserve the right to modify these terms at any time.
+By submitting this query, you agree to abide by these terms.
+
+Domain name: 007dy.net
+
+Registrant Contact:
+   zhangyuanzong
+   yuanzong zhang aaaqqq616@sohu.com
+   13959805966 fax: 0592-7220135
+   anxi
+   Xiamen Fujian 362400
+   cn
+
+Administrative Contact:
+   yuanzong zhang aaaqqq616@sohu.com
+   13959805966 fax: 0592-7220135
+   anxi
+   Xiamen Fujian 362400
+   cn
+
+Technical Contact:
+   yuanzong zhang aaaqqq616@sohu.com
+   13959805966 fax: 0592-7220135
+   anxi
+   Xiamen Fujian 362400
+   cn
+
+Billing Contact:
+   Bishuang Chen jeffcai@hotmail.com
+   0592-8611101 fax: 0592-5880619
+   Unit 501,E2 Building,Fushan Garden,No.663 South Hubin Road
+   Xiamen Fujian 361004
+   cn
+
+DNS:
+ns5.cnmsn.net
+ns6.cnmsn.net
+
+Created: 2005-06-21
+Expires: 2007-06-21</rec>"
+650,00163.net,net,net,,,,,,,,2006-06-16 19:33:16.339013,03-11-2004,,2007-03-11,3,,,ns0.directnic.com,directnic.com,com,com,ns1.directnic.com,directnic.com,com,com,,,,,,,,,,,,,"NOLDC, Inc",,,,,,504-523-0360,504-274-0360,"838 Camp Street|Apartment C|New Orleans, LA 70130|US",838 Camp Street,Apartment C,,New Orleans,LA,70130,US,"Purchase, Domain",,support@noldc.com,noldc.com,com,com,504-523-0360,504-274-0360,"838 Camp Street|Apartment C|New Orleans, LA 70130|US",838 Camp Street,Apartment C,,New Orleans,LA,70130,US,"Purchase, Domain",,support@noldc.com,noldc.com,com,com,504-523-0360,504-274-0360,"838 Camp Street|Apartment C|New Orleans, LA 70130|US",838 Camp Street,Apartment C,,New Orleans,LA,70130,US,,"<rec>Registration and WHOIS Service provided by directNIC.com
+
+Intercosmos Media Group, Inc. provides the data in the directNIC.com
+Registrar WHOIS database for informational purposes only.  The information
+may only be used to assist in obtaining information about a domain name's
+registration record.
+
+directNIC makes this information available ""as is"", and does not guarantee
+its accuracy.
+
+
+Registrant:
+ NOLDC, Inc
+ 838 Camp Street
+ Apartment C
+ New Orleans, LA 70130
+ US
+ 504-523-0360 
+Fax:504-274-0360
+
+
+Domain Name: 00163.NET
+
+Administrative Contact: 
+ Purchase, Domain support@noldc.com
+ 838 Camp Street
+ Apartment C
+ New Orleans, LA 70130
+ US
+ 504-523-0360 
+Fax:504-274-0360
+
+
+Technical Contact: 
+ Purchase, Domain support@noldc.com
+ 838 Camp Street
+ Apartment C
+ New Orleans, LA 70130
+ US
+ 504-523-0360 
+Fax:504-274-0360
+
+
+Record last updated 03-11-2004 03:24:56 PM
+Record expires on 03-11-2007
+Record created on 03-11-2004
+
+Domain servers in listed order:
+	NS0.DIRECTNIC.COM	204.251.10.100
+	NS1.DIRECTNIC.COM	206.251.177.2
+
+
+By submitting a WHOIS query, you agree you will use this data only for
+lawful purposes.  You also agree that, under no circumstances, will you use
+this data to:  (a) allow, enable, or otherwise support the transmission by
+email, telephone, or facsimile of mass, unsolicited, commercial advertising
+or solicitations to entities other than the data recipient's own existing
+customers; or to (b) enable high volume, automated, electronic processes
+that send queries or data to the systems of any Registry Operator or
+ICANN-accredited registrar.
+
+The compilation, repackaging, dissemination, or other use of this WHOIS
+data is expressly prohibited without the prior written consent of
+directNIC.com.
+
+directNIC.com reserves the right to terminate your access to its WHOIS
+database in its sole discretion, including without limitation, for
+excessive querying of the database or for failure to otherwise abide by
+this policy.
+
+directNIC reserves the right to modify these terms at any time.
+
+NOTE: THE WHOIS DATABASE IS A CONTACT DATABASE ONLY.  
+LACK OF A DOMAIN RECORD DOES NOT SIGNIFY DOMAIN AVAILABILITY.</rec>"
+725,0-sexyteens.net,net,net,,,,,,,,2006-06-16 19:47:19.247488,"March 25, 2002","May 11, 2006",2007-03-25,3,,,ns1.maturedns.com,maturedns.com,com,com,ns2.maturedns.com,maturedns.com,com,com,,,,,,,,,,,,,"SecureWhois, Inc.",QHdNKgNBRqs@securewhois.com,904 S. Roselle Road #136,904,,,+1.6306727455,,"Schaumburg, IL 60193 US","Schaumburg, IL 60193 US",,,,,,,"SecureWhois, Inc.",xFGFKPPcrWV@securewhois.com,904 S. Roselle Road #136,904,,,+1.6306727455,+1.6306727455,"Schaumburg, IL 60193 US","Schaumburg, IL 60193 US",,,,,,,"SecureWhois, Inc.",qFgflfDcXRV@securewhois.com,904 S. Roselle Road #136,904,,,+1.6306727455,+1.6306727455,"Schaumburg, IL 60193 US","Schaumburg, IL 60193 US",,,,,,,,"<rec>The Data in ItsYourDomain's WHOIS database is provided by ItsYourDomain.com 
+for information purposes, and to assist persons in obtaining information 
+about or related to a domain name registration record.  ItsYourDomain.com 
+does not guarantee its accuracy.  By submitting a WHOIS query, you agree 
+that you will use this Data only for lawful purposes and that, under no 
+circumstances will you use this Data to: (1) allow, enable, or otherwise 
+support the transmission of mass unsolicited, commercial advertising or 
+solicitations via e-mail (spam); or (2) enable high volume, automated, 
+electronic processes that apply to ItsYourDomain.com, its systems, or its 
+customers. ItsYourDomain reserves the right to modify these terms at any 
+time.By submitting this query, you agree to abide by this policy.
+
+
+ Domain: 0-sexyteens.net
+
+ Registrant 
+   SecureWhois, Inc.
+   QHdNKgNBRqs@securewhois.com
+   904 S. Roselle Road #136
+   Schaumburg, IL 60193 US 
+   +1.6306727455
+   +1.6306727455 (FAX)
+
+ Administrative 
+   SecureWhois, Inc.
+   qFgflfDcXRV@securewhois.com
+   904 S. Roselle Road #136
+   Schaumburg, IL 60193 US 
+   +1.6306727455
+   +1.6306727455 (FAX)
+
+ Billing 
+   SecureWhois, Inc.
+   xFGFKPPcrWV@securewhois.com
+   904 S. Roselle Road #136
+   Schaumburg, IL 60193 US 
+   +1.6306727455
+   +1.6306727455 (FAX)
+
+ Technical 
+   SecureWhois, Inc.
+   xFGFKPPcrWV@securewhois.com
+   904 S. Roselle Road #136
+   Schaumburg, IL 60193 US 
+   +1.6306727455
+   +1.6306727455 (FAX)
+
+ Record created on March 25, 2002
+ Record last updated on May 11, 2006
+ Record expires on March 25, 2007
+
+ Domain Name Servers:
+   NS1.MATUREDNS.COM
+   NS2.MATUREDNS.COM</rec>"
+782,0000ff.net,net,net,,,,,,,,2006-06-16 19:47:19.833943,2005-01-20 00:00:00,2005-01-20 00:00:00,2008-01-20,3,,,ns1.phpwebhosting.com,phpwebhosting.com,com,com,ns2.phpwebhosting.com,phpwebhosting.com,com,com,,,,,,,,,,,,,Jeff Berk,,jeffreyberk@gmail.com,gmail.com,com,com,+1 (978) 887-6502,,"62 Rowley Road|Boxford, MA 01921|United States",62 Rowley Road,,,Boxford,MA,01921,United States,Jeff Berk,,jeffreyberk@gmail.com,gmail.com,com,com,+1 (978) 887-6502,,"62 Rowley Road|Boxford, MA 01921|United States",62 Rowley Road,,,Boxford,MA,01921,United States,Jeff Berk,,jeffreyberk@gmail.com,gmail.com,com,com,+1 (978) 887-6502,,"62 Rowley Road|Boxford, MA 01921|United States",62 Rowley Road,,,Boxford,MA,01921,United States,,"<rec>The information below is provided by NAMES4EVER for personal use only.
+NAMES4EVER does not guarantee its accuracy. By submitting a query, you
+agree that you will use this information only for lawful purposes and
+that; under no circumstances will you use this information from
+NAMES4EVER to: (a) allow, enable, or otherwise support the
+transmission of mass commercial advertising or solicitations via e-mail;
+(b) enable high volume, automated, electronic processes that apply to
+NAMES4EVER and (c) sell the information. NAMES4EVER reserves the right
+to modify these terms at any time. By submitting this query, you agree
+to abide by this policy by NAMES4EVER. NAMES4EVER is ICANN accredited
+Registrar for .com .org and .net domain names.
+
+Domain name: 0000ff.net
+
+Registrant:
+   Jeff Berk (MHDUW) jeffreyberk@gmail.com
+   62 Rowley Road
+   Boxford,    MA    01921
+   United States
+   Phone: +1 (978) 887-6502
+
+Administrative Contact:
+   Jeff Berk (PUJBP) jeffreyberk@gmail.com
+   62 Rowley Road
+   Boxford,    MA    01921
+   United States
+   Phone: +1 (978) 887-6502
+
+Technical Contact:
+   Jeff Berk (MHDUW) jeffreyberk@gmail.com
+   62 Rowley Road
+   Boxford,    MA    01921
+   United States
+   Phone: +1 (978) 887-6502
+
+Billing Contact:
+   Jeff Berk (F2KPR) jeffreyberk@gmail.com
+   62 Rowley Road
+   Boxford,    MA    01921
+   United States
+   Phone: +1 (978) 887-6502
+
+Record last updated on 2005-01-20 00:00:00
+Record created on 2005-01-20 00:00:00
+Record expires on 2008-01-20 00:00:00
+
+Domain servers in listed order:
+   ns1.phpwebhosting.com   64.65.1.112
+   ns2.phpwebhosting.com   64.65.34.231
+
+Registration Service Provider: AplusNet(APRO)
+   apro-n4e-racc@abac.com
+   
+   http://www.aplus.net
+
+Registrar: NAMES4EVER, http://www.names4ever.com</rec>"
+839,0041.net,net,net,,,,,,,,2006-06-16 19:47:20.313468,2004-03-09,2004-03-09,2007-03-09,3,,,ns.xinnet.cn,xinnet.cn,cn,cn,ns.xinnetdns.com,xinnetdns.com,com,com,,,,,,,,,,,,,zheng minjie,,,,,,,,zhejiangsheng xiangshanxian danchengzhen xinfengxiaoqu 3zhuang 104shi|315700,zhejiangsheng xiangshanxian danchengzhen xinfengxiaoqu 3zhuang 104shi,,,315700,,,,wang wei,Ningbo Haishu E-time Electron,diso@21cn.com,21cn.com,com,com,86 574 87365478,86 574 87365450,Room 602 No.43 changshong road|Ningbo Zhejiang 315012|China,Room 602 No.43 changshong road,,,Ningbo Zhejiang,,315012,China,wang wei,zheng minjie,diso@21cn.com,21cn.com,com,com,86 574 87365478,86 574 87365450,zhejiangsheng xiangshanxian danchengzhen xinfengxiaoqu 3zhuang 104shi|xiangshan Zhejiang 315700|China,zhejiangsheng xiangshanxian danchengzhen xinfengxiaoqu 3zhuang 104shi,,,xiangshan Zhejiang,,315700,China,,"<rec>The Data in Paycenter's WHOIS database is provided by Paycenter 
+for information purposes, and to assist persons in obtaining 
+information about or related to a domain name registration 
+record.
+Paycenter does not guarantee its accuracy.  By submitting 
+a WHOIS query, you agree that you will use this Data only 
+for lawful purposes and that, under no circumstances will 
+you use this Data to:
+(1) allow, enable, or otherwise support the transmission 
+of mass unsolicited, commercial advertising or solicitations 
+via e-mail (spam); or  
+(2) enable high volume, automated, electronic processes that 
+apply to Paycenter or its systems.  
+Paycenter reserves the right to modify these terms at any time. 
+By submitting this query, you agree to abide by this policy.	
+        
+Domain Name:0041.net
+
+
+Registrant: 
+zheng minjie
+	zhejiangsheng xiangshanxian danchengzhen xinfengxiaoqu 3zhuang 104shi
+	315700
+	
+	
+
+Administrative Contact: 
+wang wei
+	zheng minjie
+	zhejiangsheng xiangshanxian danchengzhen xinfengxiaoqu 3zhuang 104shi
+	xiangshan Zhejiang 315700
+	China
+	tel: 86 574 87365478 
+	fax: 86 574 87365450 
+	diso@21cn.com
+	
+Technical Contact: 
+wang wei
+	Ningbo Haishu E-time Electron
+	Room 602 No.43 changshong road
+	Ningbo Zhejiang 315012
+	China
+	tel: 86 574 87365478 
+	fax: 86 574 87365450 
+	diso@21cn.com
+	
+Billing Contact: 
+wang wei
+	Ningbo Haishu E-time Electron
+	Room 602 No.43 changshong road
+	Ningbo Zhejiang 315012
+	China
+	tel: 86 574 87365478 
+	fax: 86 574 87365450 
+	diso@21cn.com
+	
+ Registration Date: 2004-03-09
+       Update Date: 2004-03-09
+   Expiration Date: 2007-03-09
+	
+    Primary DNS:  ns.xinnetdns.com		210.51.170.66
+  Secondary DNS:  ns.xinnet.cn		210.51.171.209</rec>"
+903,0086-595.net,net,net,,,,,,,,2006-06-16 19:52:07.9191,2004-03-08,2004-03-08,2007-03-08,3,,,ns.xinnet.cn,xinnet.cn,cn,cn,ns.xinnetdns.com,xinnetdns.com,com,com,,,,,,,,,,,,,zhegn minjie,,,,,,,,zhejiangsheng xiangshanxian danchengzhen xinfengxiaoqu 3zhuang 104shi|315700,zhejiangsheng xiangshanxian danchengzhen xinfengxiaoqu 3zhuang 104shi,,,315700,,,,wang wei,Ningbo Haishu E-time Electron,diso@21cn.com,21cn.com,com,com,86 574 87365478,86 574 87365450,Room 602 No.43 changshong road|Ningbo Zhejiang 315012|China,Room 602 No.43 changshong road,,,Ningbo Zhejiang,,315012,China,wang wei,zhegn minjie,diso@21cn.com,21cn.com,com,com,86 574 87365478,86 574 87365450,zhejiangsheng xiangshanxian danchengzhen xinfengxiaoqu 3zhuang 104shi|xiangshan Zhejiang 315700|China,zhejiangsheng xiangshanxian danchengzhen xinfengxiaoqu 3zhuang 104shi,,,xiangshan Zhejiang,,315700,China,,"<rec>The Data in Paycenter's WHOIS database is provided by Paycenter 
+for information purposes, and to assist persons in obtaining 
+information about or related to a domain name registration 
+record.
+Paycenter does not guarantee its accuracy.  By submitting 
+a WHOIS query, you agree that you will use this Data only 
+for lawful purposes and that, under no circumstances will 
+you use this Data to:
+(1) allow, enable, or otherwise support the transmission 
+of mass unsolicited, commercial advertising or solicitations 
+via e-mail (spam); or  
+(2) enable high volume, automated, electronic processes that 
+apply to Paycenter or its systems.  
+Paycenter reserves the right to modify these terms at any time. 
+By submitting this query, you agree to abide by this policy.	
+        
+Domain Name:0086-595.net
+
+
+Registrant: 
+zhegn minjie
+	zhejiangsheng xiangshanxian danchengzhen xinfengxiaoqu 3zhuang 104shi
+	315700
+	
+	
+
+Administrative Contact: 
+wang wei
+	zhegn minjie
+	zhejiangsheng xiangshanxian danchengzhen xinfengxiaoqu 3zhuang 104shi
+	xiangshan Zhejiang 315700
+	China
+	tel: 86 574 87365478 
+	fax: 86 574 87365450 
+	diso@21cn.com
+	
+Technical Contact: 
+wang wei
+	Ningbo Haishu E-time Electron
+	Room 602 No.43 changshong road
+	Ningbo Zhejiang 315012
+	China
+	tel: 86 574 87365478 
+	fax: 86 574 87365450 
+	diso@21cn.com
+	
+Billing Contact: 
+wang wei
+	Ningbo Haishu E-time Electron
+	Room 602 No.43 changshong road
+	Ningbo Zhejiang 315012
+	China
+	tel: 86 574 87365478 
+	fax: 86 574 87365450 
+	diso@21cn.com
+	
+ Registration Date: 2004-03-08
+       Update Date: 2004-03-08
+   Expiration Date: 2007-03-08
+	
+    Primary DNS:  ns.xinnetdns.com		210.51.170.66
+  Secondary DNS:  ns.xinnet.cn		210.51.171.209</rec>"
+967,000gps.net,net,net,,,,,,,,2006-06-16 19:59:55.74642,30-MAR-04,30-MAR-05,,3,N,,,,,,,,,,,,,,,,,,,,,,Reno USA,,,,,,,,"PO Box 669875|Marietta, GA 30066|US",PO Box 669875,,,Marietta,GA,30066,US,,,,,,,,,,,,,,,,,"Farah, Dawoud david@kvms.com",,,,,,1.8005867948|1.7709712639,,"Reno USA|PO Box 669875|Marietta, GA 30066|US",Reno USA,PO Box 669875,,Marietta,GA,30066,US,,"<rec>The information in this whois database is provided for the sole
+purpose of assisting you in obtaining information about domain
+name registration records. This information is available ""as is,""
+and we do not guarantee its accuracy. By submitting a whois
+query, you agree that you will use this data only for lawful
+purposes and that, under no circumstances will you use this data
+to: (1) enable high volume, automated, electronic processes that
+stress or load this whois database system providing you this
+information; or (2) allow,enable, or otherwise support the
+transmission of mass, unsolicited, commercial advertising or
+solicitations via facsimile, electronic mail, or by telephone to
+entitites other than your own existing customers.  The
+compilation, repackaging, dissemination or other use of this data
+is expressly prohibited without prior written consent from this
+company. We reserve the right to modify these terms at any
+time. By submitting an inquiry, you agree to these terms of usage
+and limitations of warranty.  Please limit your queries to 10 per
+minute and one connection.
+
+   Domain Services Provided By:
+      000domains, support@000domains.com
+      http://www.000domains.com
+
+Registrant:
+   Reno USA
+   PO Box 669875
+   Marietta, GA  30066
+   US
+
+   Registrar: 000DOM
+   Domain Name: 000GPS.NET
+      Created on: 30-MAR-04
+      Expires on: 19-SEP-06
+      Last Updated on: 30-MAR-05
+
+   Administrative, Technical Contact:
+      Farah, Dawoud  david@kvms.com
+      Reno USA
+      PO Box 669875
+      Marietta, GA  30066
+      US
+      1.8005867948
+      1.7709712639
+
+
+   Domain servers in listed order:
+      FWNS1.000DOMAINS.COM 
+      FWNS2.000DOMAINS.COM 
+
+End of Whois Information</rec>"
+1019,0086-534.net,net,net,,,,,,,,2006-06-16 20:09:15.945701,2004-03-08,2004-03-08,2007-03-08,3,,,ns.xinnet.cn,xinnet.cn,cn,cn,ns.xinnetdns.com,xinnetdns.com,com,com,,,,,,,,,,,,,zheng minjie,,,,,,,,zhejiangsheng xiangshanxian danchengzhen xinfengxiaoqu 3zhuang 104shi|315700,zhejiangsheng xiangshanxian danchengzhen xinfengxiaoqu 3zhuang 104shi,,,315700,,,,wang wei,Ningbo Haishu E-time Electron,diso@21cn.com,21cn.com,com,com,86 574 87365478,86 574 87365450,Room 602 No.43 changshong road|Ningbo Zhejiang 315012|China,Room 602 No.43 changshong road,,,Ningbo Zhejiang,,315012,China,wang wei,zheng minjie,diso@21cn.com,21cn.com,com,com,86 574 87365478,86 574 87365450,zhejiangsheng xiangshanxian danchengzhen xinfengxiaoqu 3zhuang 104shi|xiangshan Zhejiang 315700|China,zhejiangsheng xiangshanxian danchengzhen xinfengxiaoqu 3zhuang 104shi,,,xiangshan Zhejiang,,315700,China,,"<rec>The Data in Paycenter's WHOIS database is provided by Paycenter 
+for information purposes, and to assist persons in obtaining 
+information about or related to a domain name registration 
+record.
+Paycenter does not guarantee its accuracy.  By submitting 
+a WHOIS query, you agree that you will use this Data only 
+for lawful purposes and that, under no circumstances will 
+you use this Data to:
+(1) allow, enable, or otherwise support the transmission 
+of mass unsolicited, commercial advertising or solicitations 
+via e-mail (spam); or  
+(2) enable high volume, automated, electronic processes that 
+apply to Paycenter or its systems.  
+Paycenter reserves the right to modify these terms at any time. 
+By submitting this query, you agree to abide by this policy.	
+        
+Domain Name:0086-534.net
+
+
+Registrant: 
+zheng minjie
+	zhejiangsheng xiangshanxian danchengzhen xinfengxiaoqu 3zhuang 104shi
+	315700
+	
+	
+
+Administrative Contact: 
+wang wei
+	zheng minjie
+	zhejiangsheng xiangshanxian danchengzhen xinfengxiaoqu 3zhuang 104shi
+	xiangshan Zhejiang 315700
+	China
+	tel: 86 574 87365478 
+	fax: 86 574 87365450 
+	diso@21cn.com
+	
+Technical Contact: 
+wang wei
+	Ningbo Haishu E-time Electron
+	Room 602 No.43 changshong road
+	Ningbo Zhejiang 315012
+	China
+	tel: 86 574 87365478 
+	fax: 86 574 87365450 
+	diso@21cn.com
+	
+Billing Contact: 
+wang wei
+	Ningbo Haishu E-time Electron
+	Room 602 No.43 changshong road
+	Ningbo Zhejiang 315012
+	China
+	tel: 86 574 87365478 
+	fax: 86 574 87365450 
+	diso@21cn.com
+	
+ Registration Date: 2004-03-08
+       Update Date: 2004-03-08
+   Expiration Date: 2007-03-08
+	
+    Primary DNS:  ns.xinnetdns.com		210.51.170.66
+  Secondary DNS:  ns.xinnet.cn		210.51.171.209</rec>"
+1083,0-l.net,net,net,,,,,"GoDaddy.com, Inc.",http://www.godaddy.com,whois.godaddy.com,2006-06-16 20:17:31.778459,12-Jan-06,03-Aug-06,2007-01-12,3,,,ns1.sedoparking.com,sedoparking.com,com,com,ns2.sedoparking.com,sedoparking.com,com,com,,,,,,,,,,,,,Central Equities,,,,,,,,"Kirkegardsvegen 3|Tromso, Tromso N-9009|Norway",Kirkegardsvegen 3,,,Tromso,Tromso,N-9009,Norway,"Fosshaug, Karl-Oskar",Central Equities,central@equities.no,equities.no,no,no,90123466,,"Kirkegardsvegen 3|Tromso, Tromso N-9009|Norway",Kirkegardsvegen 3,,,Tromso,Tromso,N-9009,Norway,"Fosshaug, Karl-Oskar",Central Equities,central@equities.no,equities.no,no,no,90123466,,"Kirkegardsvegen 3|Tromso, Tromso N-9009|Norway|",Kirkegardsvegen 3,,,Tromso,Tromso,N-9009,Norway,,"<rec>The data contained in GoDaddy.com, Inc.'s WhoIs database,
+while believed by the company to be reliable, is provided ""as is""
+with no guarantee or warranties regarding its accuracy.  This
+information is provided for the sole purpose of assisting you
+in obtaining information about domain name registration records.
+Any use of this data for any other purpose is expressly forbidden without the prior written
+permission of GoDaddy.com, Inc.  By submitting an inquiry,
+you agree to these terms of usage and limitations of warranty.  In particular,
+you agree not to use this data to allow, enable, or otherwise make possible,
+dissemination or collection of this data, in part or in its entirety, for any
+purpose, such as the transmission of unsolicited advertising and
+and solicitations of any kind, including spam.  You further agree
+not to use this data to enable high volume, automated or robotic electronic
+processes designed to collect or compile this data for any purpose,
+including mining this data for your own personal or commercial purposes. 
+
+Please note: the registrant of the domain name is specified
+in the ""registrant"" field.  In most cases, GoDaddy.com, Inc. 
+is not the registrant of domain names listed in this database.
+
+
+Registrant:
+   Central Equities
+   Kirkegardsvegen 3
+   Tromso, Tromso N-9009
+   Norway
+
+   Registered through: GoDaddy.com, Inc. (http://www.godaddy.com)
+   Domain Name: 0-L.NET
+      Created on: 12-Jan-06
+      Expires on: 12-Jan-07
+      Last Updated on: 03-Aug-06
+
+   Administrative Contact:
+      Fosshaug, Karl-Oskar  central@equities.no
+      Central Equities
+      Kirkegardsvegen 3
+      Tromso, Tromso N-9009
+      Norway
+      90123466      Fax -- 
+
+   Technical Contact:
+      Fosshaug, Karl-Oskar  central@equities.no
+      Central Equities
+      Kirkegardsvegen 3
+      Tromso, Tromso N-9009
+      Norway
+      90123466      Fax -- 
+
+   Domain servers in listed order:
+      NS1.SEDOPARKING.COM
+      NS2.SEDOPARKING.COM</rec>"
+1137,0049165.net,net,net,,,,,"TUCOWS, INC.",,,2006-06-17 09:36:12.986089,18-Apr-2001,27-Jun-2006,2007-04-18,3,,,ns.komplex.net,komplex.net,net,net,ns2.komplex.net,komplex.net,net,net,ns3.komplex.net,komplex.net,net,net,,,,,,,,,FreeCity GmbH,,,,,,,,"Bismarckstr. 120|Duisburg, 47057|DE",Bismarckstr. 120,,,Duisburg,,47057,DE,"Hostmaster, KomPlex",,hostmaster@komplex.net,komplex.net,net,net,+49.2033094100,+49.2033094110,"Ruhrorter Str. 100|Duisburg, 47059|DE",Ruhrorter Str. 100,,,Duisburg,,47059,DE,"Klinkhammer, Uli",,uk@komplex.net,komplex.net,net,net,+49.20330940,+49.2033094232,"Koloniestr. 98|Duisburg, 47057|DE",Koloniestr. 98,,,Duisburg,,47057,DE,,"<rec>Registrant:
+ FreeCity GmbH
+ Bismarckstr. 120
+ Duisburg,  47057
+ DE
+
+ Domain name: 0049165.NET
+
+ Administrative Contact:
+    Klinkhammer, Uli  uk@komplex.net
+    Koloniestr. 98
+    Duisburg,  47057
+    DE
+    +49.20330940    Fax: +49.2033094232
+
+ Technical Contact:
+    Hostmaster, KomPlex  hostmaster@komplex.net
+    Ruhrorter Str. 100
+    Duisburg,  47059
+    DE
+    +49.2033094100    Fax: +49.2033094110
+
+
+
+ Registrar of Record: TUCOWS, INC.
+ Record last updated on 27-Jun-2006.
+ Record expires on 18-Apr-2007.
+ Record created on 18-Apr-2001.
+
+ Domain servers in listed order:
+    NS.KOMPLEX.NET   81.88.32.17
+    NS2.KOMPLEX.NET   81.88.36.18
+    NS3.KOMPLEX.NET   134.91.19.6
+
+
+ Domain status: REGISTRAR-LOCK
+
+The Data in the Tucows Registrar WHOIS database is provided to you by Tucows
+for information purposes only, and may be used to assist you in obtaining
+information about or related to a domain name's registration record.
+
+Tucows makes this information available ""as is,"" and does not guarantee its
+accuracy.
+
+By submitting a WHOIS query, you agree that you will use this data only for
+lawful purposes and that, under no circumstances will you use this data to:
+a) allow, enable, or otherwise support the transmission by e-mail,
+telephone, or facsimile of mass, unsolicited, commercial advertising or
+solicitations to entities other than the data recipient's own existing
+customers; or (b) enable high volume, automated, electronic processes that
+send queries or data to the systems of any Registry Operator or
+ICANN-Accredited registrar, except as reasonably necessary to register
+domain names or modify existing registrations.
+
+The compilation, repackaging, dissemination or other use of this Data is
+expressly prohibited without the prior written consent of Tucows.
+
+Tucows reserves the right to terminate your access to the Tucows WHOIS
+database in its sole discretion, including without limitation, for excessive
+querying of the WHOIS database or for failure to otherwise abide by this
+policy.
+
+Tucows reserves the right to modify these terms at any time.
+
+By submitting this query, you agree to abide by these terms.
+
+NOTE: THE WHOIS DATABASE IS A CONTACT DATABASE ONLY.  LACK OF A DOMAIN
+RECORD DOES NOT SIGNIFY DOMAIN AVAILABILITY.</rec>"
+1208,00791.net,net,net,,,,,"TUCOWS, INC.",,,2006-06-17 09:45:07.111594,28-May-2004,28-Apr-2006,2007-05-28,3,,,a.ns.ultsearch.com,ultsearch.com,com,com,b.ns.ultsearch.com,ultsearch.com,com,com,,,,,,,,,,,,,Contactprivacy.com,,,,,,,,"96 Mowat Ave|Toronto, ON M6K 3M1|CA",96 Mowat Ave,,,Toronto,ON M6K,3M1,CA,"contactprivacy.com,",,00791.net@contactprivacy.com,contactprivacy.com,com,com,+1.4165385457,,"96 Mowat Ave|Toronto, ON M6K 3M1|CA",96 Mowat Ave,,,Toronto,ON M6K,3M1,CA,"contactprivacy.com,",,00791.net@contactprivacy.com,contactprivacy.com,com,com,+1.4165385457,,"96 Mowat Ave|Toronto, ON M6K 3M1|CA",96 Mowat Ave,,,Toronto,ON M6K,3M1,CA,,"<rec>Registrant:
+ Contactprivacy.com
+ 96 Mowat Ave
+ Toronto, ON M6K 3M1
+ CA
+
+ Domain name: 00791.NET
+
+ Administrative Contact:
+    contactprivacy.com,   00791.net@contactprivacy.com
+    96 Mowat Ave
+    Toronto, ON M6K 3M1
+    CA
+    +1.4165385457
+ Technical Contact:
+    contactprivacy.com,   00791.net@contactprivacy.com
+    96 Mowat Ave
+    Toronto, ON M6K 3M1
+    CA
+    +1.4165385457
+
+
+ Registrar of Record: TUCOWS, INC.
+ Record last updated on 28-Apr-2006.
+ Record expires on 28-May-2007.
+ Record created on 28-May-2004.
+
+ Domain servers in listed order:
+    A.NS.ULTSEARCH.COM   66.116.109.47
+    B.NS.ULTSEARCH.COM   66.116.109.48
+
+
+ Domain status: REGISTRAR-LOCK
+
+
+This domain's privacy is protected by contactprivacy.com. To reach the domain contacts, please go to http://www.contactprivacy.com and follow the instructions.
+
+The Data in the Tucows Registrar WHOIS database is provided to you by Tucows
+for information purposes only, and may be used to assist you in obtaining
+information about or related to a domain name's registration record.
+
+Tucows makes this information available ""as is,"" and does not guarantee its
+accuracy.
+
+By submitting a WHOIS query, you agree that you will use this data only for
+lawful purposes and that, under no circumstances will you use this data to:
+a) allow, enable, or otherwise support the transmission by e-mail,
+telephone, or facsimile of mass, unsolicited, commercial advertising or
+solicitations to entities other than the data recipient's own existing
+customers; or (b) enable high volume, automated, electronic processes that
+send queries or data to the systems of any Registry Operator or
+ICANN-Accredited registrar, except as reasonably necessary to register
+domain names or modify existing registrations.
+
+The compilation, repackaging, dissemination or other use of this Data is
+expressly prohibited without the prior written consent of Tucows.
+
+Tucows reserves the right to terminate your access to the Tucows WHOIS
+database in its sole discretion, including without limitation, for excessive
+querying of the WHOIS database or for failure to otherwise abide by this
+policy.
+
+Tucows reserves the right to modify these terms at any time.
+
+By submitting this query, you agree to abide by these terms.
+
+NOTE: THE WHOIS DATABASE IS A CONTACT DATABASE ONLY.  LACK OF A DOMAIN
+RECORD DOES NOT SIGNIFY DOMAIN AVAILABILITY.</rec>"
+1279,000askexperts.net,net,net,,,,,,,,2006-06-17 11:01:44.848426,2000-02-21,,2007-02-21,3,,,ns1.virtualstoredirectory.com,virtualstoredirectory.com,com,com,ns2.virtualstoredirectory.com,virtualstoredirectory.com,com,com,,,,,,,,,,,,,Internet Promotion Service,,,,,,,,501 West Broadway|San Diego|92101|CA|UNITED STATES,501 West Broadway,,,San Diego,92101,CA,UNITED STATES,S.J. Paul,,webmaster@000askexperts.com,000askexperts.com,com,com,619-615-7474,,501 West Broadway|San Diego|92101|CA|UNITED STATES,501 West Broadway,,,San Diego,92101,CA,UNITED STATES,S.J. Paul,,webmaster@000askexperts.com,000askexperts.com,com,com,619-615-7474,,501 West Broadway|San Diego|92101|CA|UNITED STATES,501 West Broadway,,,San Diego,92101,CA,UNITED STATES,,"<rec>Domain Name.......... 000askexperts.net
+  Creation Date........ 2000-02-21
+  Registration Date.... 2000-02-21
+  Expiry Date.......... 2007-02-21
+  Organisation Name.... Internet Promotion Service
+  Organisation Address. 501 West Broadway
+  Organisation Address. 
+  Organisation Address. San Diego
+  Organisation Address. 92101
+  Organisation Address. CA
+  Organisation Address. UNITED STATES
+
+Admin Name........... S.J. Paul
+  Admin Address........ 501 West Broadway
+  Admin Address........ 
+  Admin Address........ San Diego
+  Admin Address........ 92101
+  Admin Address........ CA
+  Admin Address........ UNITED STATES
+  Admin Email.......... webmaster@000askexperts.com
+  Admin Phone.......... 619-615-7474
+  Admin Fax............ 
+
+Tech Name............ S.J. Paul
+  Tech Address......... 501 West Broadway
+  Tech Address......... 
+  Tech Address......... San Diego
+  Tech Address......... 92101
+  Tech Address......... CA
+  Tech Address......... UNITED STATES
+  Tech Email........... webmaster@000askexperts.com
+  Tech Phone........... 619-615-7474
+  Tech Fax............. 
+  Name Server.......... ns1.virtualstoredirectory.com
+  Name Server.......... ns2.virtualstoredirectory.com</rec>"
+1318,0029.net,net,net,,,,,,,,2006-06-17 11:01:46.143617,,,2009-02-16,3,,,ns1.neoken.co.kr,neoken.co.kr,co.kr,kr,,,,,,,,,,,,,,,,,hanil,,,,,,,,"Incheon, 407050|KR","Incheon, 407050",,,,,,KR,,,,,,,,,,,,,,,,,NEOKEN,,admin@neoken.co.kr,neoken.co.kr,co.kr,kr,822703988782262309889,82262309889,"Seoul, 121816|KR","Seoul, 121816",,,,,,KR,,"<rec>Welcome to Inames Co., Ltd. dba inames.co.kr's WHOIS Service
+
+Domain Name: 0029.NET 
+Domain Status: ACTIVE
+Registrar: Inames Co., Ltd. dba inames.co.kr
+Referral URL: http://www.inames.co.kr
+
+Domain Registration Date....: 2004-02-17 GMT.
+Domain Expiration Date......: 2009-02-17 GMT.
+
+
+Registrant:
+    hanil
+    Gyesan-dong, Gyeyang-gu, 1083-2
+    Incheon,  407050
+    KR
+
+Administrative Contact:
+    NEOKEN    admin@neoken.co.kr
+    Donggyo-dong, Mapo-gu,  113~159
+    Seoul,  121816
+    KR
+    (PHONE) +82-2-703-9887    (FAX) +82-2-6230-9889
+
+Technical, Billing Contact:
+    too top    admin@neoken.co.kr
+    Gangbyeon Hanshin Core Bldg. Mapo-dong, Mapo-gu, #414
+    Seoul,  121703
+    KR
+    (PHONE) +82-2-703-9887    (FAX) +82-2-6230-9889
+
+		
+Domain Name Servers in listed order:  
+    NS1.NEOKEN.CO.KR		220.90.213.144</rec>"

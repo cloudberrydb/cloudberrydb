@@ -3,7 +3,8 @@
  * proc.c
  *	  routines to manage per-process shared memory data structure
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 2006-2008, Greenplum inc
+ * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -38,31 +39,40 @@
 #include "access/transam.h"
 #include "access/xact.h"
 #include "miscadmin.h"
+#include "postmaster/autovacuum.h"
+#include "replication/syncrep.h"
 #include "storage/ipc.h"
+#include "storage/spin.h"
 #include "storage/proc.h"
 #include "storage/procarray.h"
-#include "storage/spin.h"
+#include "storage/pmsignal.h"
+#include "executor/execdesc.h"
+#include "utils/resscheduler.h"
+#include "utils/timestamp.h"
+#include "utils/portal.h"
 
+#include "utils/tqual.h"  /*SharedLocalSnapshotSlot*/
+
+#include "cdb/cdblocaldistribxact.h"
+#include "cdb/cdbgang.h"
+#include "cdb/cdbvars.h"  /*Gp_is_writer*/
+#include "utils/atomic.h"
+#include "utils/session_state.h"
 
 /* GUC variables */
 int			DeadlockTimeout = 1000;
 int			StatementTimeout = 0;
+int			IdleSessionGangTimeout = 18000;
 
 /* Pointer to this process's PGPROC struct, if any */
 PGPROC	   *MyProc = NULL;
 
-/*
- * This spinlock protects the freelist of recycled PGPROC structures.
- * We cannot use an LWLock because the LWLock manager depends on already
- * having a PGPROC and a wait semaphore!  But these structures are touched
- * relatively infrequently (only at backend startup or shutdown) and not for
- * very long, so a spinlock is okay.
- */
-NON_EXEC_STATIC slock_t *ProcStructLock = NULL;
+/* Special for MPP reader gangs */
+PGPROC	   *lockHolderProcPtr = NULL;
 
 /* Pointers to shared-memory structures */
 NON_EXEC_STATIC PROC_HDR *ProcGlobal = NULL;
-NON_EXEC_STATIC PGPROC *DummyProcs = NULL;
+NON_EXEC_STATIC PGPROC *AuxiliaryProcs = NULL;
 
 /* If we are waiting for a lock, this points to the associated LOCALLOCK */
 static LOCALLOCK *lockAwaited = NULL;
@@ -78,9 +88,8 @@ static TimestampTz statement_fin_time;
 
 static void RemoveProcFromArray(int code, Datum arg);
 static void ProcKill(int code, Datum arg);
-static void DummyProcKill(int code, Datum arg);
+static void AuxiliaryProcKill(int code, Datum arg);
 static bool CheckStatementTimeout(void);
-
 
 /*
  * Report shared-memory space needed by InitProcGlobal.
@@ -92,12 +101,10 @@ ProcGlobalShmemSize(void)
 
 	/* ProcGlobal */
 	size = add_size(size, sizeof(PROC_HDR));
-	/* DummyProcs */
-	size = add_size(size, mul_size(NUM_DUMMY_PROCS, sizeof(PGPROC)));
-	/* MyProcs */
+	/* AuxiliaryProcs */
+	size = add_size(size, mul_size(NUM_AUXILIARY_PROCS, sizeof(PGPROC)));
+	/* MyProcs, including autovacuum */
 	size = add_size(size, mul_size(MaxBackends, sizeof(PGPROC)));
-	/* ProcStructLock */
-	size = add_size(size, sizeof(slock_t));
 
 	return size;
 }
@@ -108,8 +115,11 @@ ProcGlobalShmemSize(void)
 int
 ProcGlobalSemas(void)
 {
-	/* We need a sema per backend, plus one for each dummy process. */
-	return MaxBackends + NUM_DUMMY_PROCS;
+	/*
+	 * We need a sema per backend (including autovacuum), plus one for each
+	 * auxiliary process.
+	 */
+	return MaxBackends + NUM_AUXILIARY_PROCS;
 }
 
 /*
@@ -125,19 +135,19 @@ ProcGlobalSemas(void)
  *	  running out when trying to start another backend is a common failure.
  *	  So, now we grab enough semaphores to support the desired max number
  *	  of backends immediately at initialization --- if the sysadmin has set
- *	  MaxBackends higher than his kernel will support, he'll find out sooner
- *	  rather than later.
+ *	  MaxConnections or autovacuum_max_workers higher than his kernel will
+ *	  support, he'll find out sooner rather than later.
  *
  *	  Another reason for creating semaphores here is that the semaphore
  *	  implementation typically requires us to create semaphores in the
  *	  postmaster, not in backends.
  *
  * Note: this is NOT called by individual backends under a postmaster,
- * not even in the EXEC_BACKEND case.  The ProcGlobal and DummyProcs
+ * not even in the EXEC_BACKEND case.  The ProcGlobal and AuxiliaryProcs
  * pointers must be propagated specially for EXEC_BACKEND operation.
  */
 void
-InitProcGlobal(void)
+InitProcGlobal(int mppLocalProcessCounter)
 {
 	PGPROC	   *procs;
 	int			i;
@@ -149,11 +159,11 @@ InitProcGlobal(void)
 	Assert(!found);
 
 	/*
-	 * Create the PGPROC structures for dummy (bgwriter) processes, too. These
-	 * do not get linked into the freeProcs list.
+	 * Create the PGPROC structures for auxiliary (bgwriter) processes, too.
+	 * These do not get linked into the freeProcs list.
 	 */
-	DummyProcs = (PGPROC *)
-		ShmemInitStruct("DummyProcs", NUM_DUMMY_PROCS * sizeof(PGPROC),
+	AuxiliaryProcs = (PGPROC *)
+		ShmemInitStruct("AuxiliaryProcs", NUM_AUXILIARY_PROCS * sizeof(PGPROC),
 						&found);
 	Assert(!found);
 
@@ -163,6 +173,8 @@ InitProcGlobal(void)
 	ProcGlobal->freeProcs = INVALID_OFFSET;
 
 	ProcGlobal->spins_per_delay = DEFAULT_SPINS_PER_DELAY;
+
+	ProcGlobal->mppLocalProcessCounter = mppLocalProcessCounter;
 
 	/*
 	 * Pre-create the PGPROC structures and create a semaphore for each.
@@ -176,20 +188,114 @@ InitProcGlobal(void)
 	for (i = 0; i < MaxBackends; i++)
 	{
 		PGSemaphoreCreate(&(procs[i].sem));
+		InitSharedLatch(&(procs[i].procLatch));
+
 		procs[i].links.next = ProcGlobal->freeProcs;
 		ProcGlobal->freeProcs = MAKE_OFFSET(&procs[i]);
 	}
+	ProcGlobal->procs = procs;
+	ProcGlobal->numFreeProcs = MaxBackends;
 
-	MemSet(DummyProcs, 0, NUM_DUMMY_PROCS * sizeof(PGPROC));
-	for (i = 0; i < NUM_DUMMY_PROCS; i++)
+	MemSet(AuxiliaryProcs, 0, NUM_AUXILIARY_PROCS * sizeof(PGPROC));
+	for (i = 0; i < NUM_AUXILIARY_PROCS; i++)
 	{
-		DummyProcs[i].pid = 0;	/* marks dummy proc as not in use */
-		PGSemaphoreCreate(&(DummyProcs[i].sem));
+		AuxiliaryProcs[i].pid = 0;		/* marks auxiliary proc as not in use */
+		AuxiliaryProcs[i].postmasterResetRequired = true;
+		PGSemaphoreCreate(&(AuxiliaryProcs[i].sem));
+		InitSharedLatch(&(AuxiliaryProcs[i].procLatch));
+	}
+}
+
+/*
+ * Prepend -- prepend the entry to the free list of ProcGlobal.
+ *
+ * Use compare_and_swap to avoid using lock and guarantee atomic operation.
+ */
+static void
+Prepend(PGPROC *myProc)
+{
+	int pid = myProc->pid;
+	
+	myProc->pid = 0;
+	
+	int32 casResult = false;
+	
+	/* Update freeProcs atomically. */
+	while (!casResult)
+	{
+		myProc->links.next = ProcGlobal->freeProcs;
+		
+		casResult = compare_and_swap_ulong(&ProcGlobal->freeProcs,
+										   myProc->links.next,
+										   MAKE_OFFSET(myProc));
+		
+		if (gp_debug_pgproc && !casResult)
+		{
+			elog(LOG, "need to retry moving PGPROC entry to freelist: pid=%d "
+				 "(myOffset=%ld, oldHeadOffset=%ld, newHeadOffset=%ld)",
+				 pid, MAKE_OFFSET(myProc), myProc->links.next, ProcGlobal->freeProcs);
+		}
+		
 	}
 
-	/* Create ProcStructLock spinlock, too */
-	ProcStructLock = (slock_t *) ShmemAlloc(sizeof(slock_t));
-	SpinLockInit(ProcStructLock);
+	/* Atomically increment numFreeProcs */
+	gp_atomic_add_32(&ProcGlobal->numFreeProcs, 1);
+}
+
+
+/*
+ * RemoveFirst -- remove the first entry in the free list of ProcGlobal.
+ *
+ * Use compare_and_swap to avoid using lock and guarantee atomic operation.
+ */
+static PGPROC *
+RemoveFirst()
+{
+	volatile PROC_HDR *procglobal = ProcGlobal;
+	SHMEM_OFFSET myOffset;
+	PGPROC *freeProc = NULL;
+
+	/*
+	 * Decrement numFreeProcs before removing the first entry from the
+	 * free list.
+	 */
+	gp_atomic_add_32(&procglobal->numFreeProcs, -1);
+
+	int32 casResult = false;
+	while(!casResult)
+	{
+		myOffset = procglobal->freeProcs;
+
+		if (myOffset == INVALID_OFFSET)
+		{
+			freeProc = NULL;
+			break;
+		}
+		
+		freeProc = (PGPROC *) MAKE_PTR(myOffset);
+			
+		casResult = compare_and_swap_ulong(&((PROC_HDR *)procglobal)->freeProcs,
+										   myOffset,
+										   freeProc->links.next);
+
+		if (gp_debug_pgproc && !casResult)
+		{
+			elog(LOG, "need to retry allocating a PGPROC entry: pid=%d (oldHeadOffset=%ld, newHeadOffset=%ld)",
+				 MyProcPid, myOffset, procglobal->freeProcs);
+		}
+
+	}
+
+	if (freeProc == NULL)
+	{
+		/*
+		 * Increment numFreeProcs since we didn't remove any entry from
+		 * the free list.
+		 */
+		gp_atomic_add_32(&procglobal->numFreeProcs, 1);
+	}
+
+	return freeProc;
 }
 
 /*
@@ -200,7 +306,6 @@ InitProcess(void)
 {
 	/* use volatile pointer to prevent code rearrangement */
 	volatile PROC_HDR *procglobal = ProcGlobal;
-	SHMEM_OFFSET myOffset;
 	int			i;
 
 	/*
@@ -214,36 +319,49 @@ InitProcess(void)
 		elog(ERROR, "you already exist");
 
 	/*
-	 * Try to get a proc struct from the free list.  If this fails, we must be
-	 * out of PGPROC structures (not to mention semaphores).
-	 *
-	 * While we are holding the ProcStructLock, also copy the current shared
-	 * estimate of spins_per_delay to local storage.
+	 * Initialize process-local latch support.  This could fail if the kernel
+	 * is low on resources, and if so we want to exit cleanly before acquiring
+	 * any shared-memory resources.
 	 */
-	SpinLockAcquire(ProcStructLock);
+	InitializeLatchSupport();
 
-	set_spins_per_delay(procglobal->spins_per_delay);
-
-	myOffset = procglobal->freeProcs;
-
-	if (myOffset != INVALID_OFFSET)
+	MyProc = RemoveFirst();
+	
+	if (MyProc == NULL)
 	{
-		MyProc = (PGPROC *) MAKE_PTR(myOffset);
-		procglobal->freeProcs = MyProc->links.next;
-		SpinLockRelease(ProcStructLock);
-	}
-	else
-	{
-		/*
-		 * If we reach here, all the PGPROCs are in use.  This is one of the
-		 * possible places to detect "too many backends", so give the standard
-		 * error message.
-		 */
-		SpinLockRelease(ProcStructLock);
 		ereport(FATAL,
 				(errcode(ERRCODE_TOO_MANY_CONNECTIONS),
 				 errmsg("sorry, too many clients already")));
 	}
+	
+	if (gp_debug_pgproc)
+	{
+		elog(LOG, "allocating PGPROC entry for pid %d, freeProcs (prev offset, new offset): (%ld, %ld)",
+			 MyProcPid, MAKE_OFFSET(MyProc), MyProc->links.next);
+	}
+
+	set_spins_per_delay(procglobal->spins_per_delay);
+
+	int mppLocalProcessSerial = gp_atomic_add_32(&procglobal->mppLocalProcessCounter, 1);
+
+	lockHolderProcPtr = MyProc;
+
+	/* Set the next pointer to INVALID_OFFSET */
+	MyProc->links.next = INVALID_OFFSET;
+
+	/*
+	 * Now that we have a PGPROC, mark ourselves as an active postmaster
+	 * child; this is so that the postmaster can detect it if we exit without
+	 * cleaning up.  (XXX autovac launcher currently doesn't participate in
+	 * this; it probably should.)
+	 *
+	 * Ideally, we should create functions similar to IsAutoVacuumProcess()
+	 * for ftsProber, SeqServer etc who call InitProcess().
+	 * But MyPMChildSlot helps to get away with it.
+	 */
+	if (IsUnderPostmaster && !IsAutoVacuumProcess()
+		&& MyPMChildSlot > 0)
+		MarkPostmasterChildActive();
 
 	/*
 	 * Initialize all fields of MyProc, except for the semaphore which was
@@ -252,12 +370,16 @@ InitProcess(void)
 	SHMQueueElemInit(&(MyProc->links));
 	MyProc->waitStatus = STATUS_OK;
 	MyProc->xid = InvalidTransactionId;
+	LocalDistribXactRef_Init(&MyProc->localDistribXactRef);
 	MyProc->xmin = InvalidTransactionId;
+	MyProc->serializableIsoLevel = false;
+	MyProc->inDropTransaction = false;
 	MyProc->pid = MyProcPid;
 	/* databaseId and roleId will be filled in later */
 	MyProc->databaseId = InvalidOid;
 	MyProc->roleId = InvalidOid;
 	MyProc->inVacuum = false;
+	MyProc->postmasterResetRequired = true;
 	MyProc->lwWaiting = false;
 	MyProc->lwExclusive = false;
 	MyProc->lwWaitLink = NULL;
@@ -266,12 +388,56 @@ InitProcess(void)
 	for (i = 0; i < NUM_LOCK_PARTITIONS; i++)
 		SHMQueueInit(&(MyProc->myProcLocks[i]));
 
+    /* 
+     * mppLocalProcessSerial uniquely identifies this backend process among
+     * all those that our parent postmaster process creates over its lifetime. 
+     *
+  	 * Since we use the process serial number to decide if we should
+	 * deliver a response from a server under this spin, we need to 
+	 * assign it under the spin lock.
+	 */
+    MyProc->mppLocalProcessSerial = mppLocalProcessSerial;
+
+    /* 
+     * A nonzero gp_session_id uniquely identifies an MPP client session 
+     * over the lifetime of the entry postmaster process.  A qDisp passes
+     * its gp_session_id down to all of its qExecs.  If this is a qExec,
+     * we have already received the gp_session_id from the qDisp.
+     */
+    elog(DEBUG1,"InitProcess(): gp_session_id %d, gp_is_callback %d",gp_session_id,gp_is_callback);
+    Assert(gp_session_id > 0 || !gp_is_callback);
+    if (Gp_role == GP_ROLE_DISPATCH && gp_session_id == -1)
+        gp_session_id = mppLocalProcessSerial;
+    MyProc->mppSessionId = gp_session_id;
+    
+    MyProc->mppIsWriter = Gp_is_writer;
+    
+    if (Gp_role == GP_ROLE_DISPATCH)
+    	MyProc->mppIsWriter = !gp_is_callback;
+
+	/* Initialize fields for sync rep */
+	MyProc->waitLSN.xlogid = 0;
+	MyProc->waitLSN.xrecoff = 0;
+	MyProc->syncRepState = SYNC_REP_NOT_WAITING;
+	SHMQueueElemInit(&(MyProc->syncRepLinks));
+
+	/*
+	 * Acquire ownership of the PGPROC's latch, so that we can use WaitLatch.
+	 * Note that there's no particular need to do ResetLatch here.
+	 */
+	OwnLatch(&MyProc->procLatch);
+
 	/*
 	 * We might be reusing a semaphore that belonged to a failed process. So
 	 * be careful and reinitialize its value here.	(This is not strictly
 	 * necessary anymore, but seems like a good idea for cleanliness.)
 	 */
 	PGSemaphoreReset(&MyProc->sem);
+
+	/* Set wait portal (do not check if resource scheduling is enabled) */
+	MyProc->waitPortalId = INVALID_PORTALID;
+
+	MyProc->queryCommandId = -1;
 
 	/*
 	 * Arrange to clean up at backend exit.
@@ -298,14 +464,6 @@ InitProcessPhase2(void)
 	Assert(MyProc != NULL);
 
 	/*
-	 * We should now know what database we're in, so advertise that.  (We need
-	 * not do any locking here, since no other backend can yet see our
-	 * PGPROC.)
-	 */
-	Assert(OidIsValid(MyDatabaseId));
-	MyProc->databaseId = MyDatabaseId;
-
-	/*
 	 * Add our PGPROC to the PGPROC array in shared memory.
 	 */
 	ProcArrayAdd(MyProc);
@@ -317,21 +475,23 @@ InitProcessPhase2(void)
 }
 
 /*
- * InitDummyProcess -- create a dummy per-process data structure
+ * InitAuxiliaryProcess -- create a per-auxiliary-process data structure
  *
  * This is called by bgwriter and similar processes so that they will have a
  * MyProc value that's real enough to let them wait for LWLocks.  The PGPROC
  * and sema that are assigned are one of the extra ones created during
  * InitProcGlobal.
  *
- * Dummy processes are presently not expected to wait for real (lockmgr)
+ * Auxiliary processes are presently not expected to wait for real (lockmgr)
  * locks, so we need not set up the deadlock checker.  They are never added
- * to the ProcArray or the sinval messaging mechanism, either.
+ * to the ProcArray or the sinval messaging mechanism, either.	They also
+ * don't get a VXID assigned, since this is only useful when we actually
+ * hold lockmgr locks.
  */
 void
-InitDummyProcess(void)
+InitAuxiliaryProcess(void)
 {
-	PGPROC	   *dummyproc;
+	PGPROC	   *auxproc;
 	int			proctype;
 	int			i;
 
@@ -339,45 +499,43 @@ InitDummyProcess(void)
 	 * ProcGlobal should be set up already (if we are a backend, we inherit
 	 * this by fork() or EXEC_BACKEND mechanism from the postmaster).
 	 */
-	if (ProcGlobal == NULL || DummyProcs == NULL)
+	if (ProcGlobal == NULL || AuxiliaryProcs == NULL)
 		elog(PANIC, "proc header uninitialized");
 
 	if (MyProc != NULL)
 		elog(ERROR, "you already exist");
 
 	/*
-	 * We use the ProcStructLock to protect assignment and releasing of
-	 * DummyProcs entries.
-	 *
-	 * While we are holding the ProcStructLock, also copy the current shared
-	 * estimate of spins_per_delay to local storage.
+	 * Initialize process-local latch support.  This could fail if the kernel
+	 * is low on resources, and if so we want to exit cleanly before acquiring
+	 * any shared-memory resources.
 	 */
-	SpinLockAcquire(ProcStructLock);
+	InitializeLatchSupport();
+
+	/*
+	 * Find a free auxproc entry. Use compare_and_swap to avoid locking.
+	 */
+	for (proctype = 0; proctype < NUM_AUXILIARY_PROCS; proctype++)
+	{
+		auxproc = &AuxiliaryProcs[proctype];
+		if (compare_and_swap_32((uint32*)(&(auxproc->pid)),
+								0,
+								MyProcPid))
+		{
+			/* Find a free entry, break here. */
+			break;
+		}
+	}
+	
+	if (proctype >= NUM_AUXILIARY_PROCS)
+	{
+		elog(FATAL, "all AuxiliaryProcs are in use");
+	}
 
 	set_spins_per_delay(ProcGlobal->spins_per_delay);
 
-	/*
-	 * Find a free dummyproc ... *big* trouble if there isn't one ...
-	 */
-	for (proctype = 0; proctype < NUM_DUMMY_PROCS; proctype++)
-	{
-		dummyproc = &DummyProcs[proctype];
-		if (dummyproc->pid == 0)
-			break;
-	}
-	if (proctype >= NUM_DUMMY_PROCS)
-	{
-		SpinLockRelease(ProcStructLock);
-		elog(FATAL, "all DummyProcs are in use");
-	}
-
-	/* Mark dummy proc as in use by me */
-	/* use volatile pointer to prevent code rearrangement */
-	((volatile PGPROC *) dummyproc)->pid = MyProcPid;
-
-	MyProc = dummyproc;
-
-	SpinLockRelease(ProcStructLock);
+	MyProc = auxproc;
+	lockHolderProcPtr = auxproc;
 
 	/*
 	 * Initialize all fields of MyProc, except for the semaphore which was
@@ -386,10 +544,17 @@ InitDummyProcess(void)
 	SHMQueueElemInit(&(MyProc->links));
 	MyProc->waitStatus = STATUS_OK;
 	MyProc->xid = InvalidTransactionId;
+	LocalDistribXactRef_Init(&MyProc->localDistribXactRef);
 	MyProc->xmin = InvalidTransactionId;
+	MyProc->serializableIsoLevel = false;
+	MyProc->inDropTransaction = false;
 	MyProc->databaseId = InvalidOid;
 	MyProc->roleId = InvalidOid;
+    MyProc->mppLocalProcessSerial = 0;
+    MyProc->mppSessionId = 0;
+    MyProc->mppIsWriter = false;
 	MyProc->inVacuum = false;
+	MyProc->postmasterResetRequired = true;
 	MyProc->lwWaiting = false;
 	MyProc->lwExclusive = false;
 	MyProc->lwWaitLink = NULL;
@@ -399,46 +564,42 @@ InitDummyProcess(void)
 		SHMQueueInit(&(MyProc->myProcLocks[i]));
 
 	/*
+	 * Auxiliary process doesn't bother with sync rep.  Though it was
+	 * originally supposed to not do transaction work, but it does in GPDB,
+	 * we mark it and avoid sync rep work.
+	 */
+	MyProc->syncRepState = SYNC_REP_DISABLED;
+
+	/*
+	 * Acquire ownership of the PGPROC's latch, so that we can use WaitLatch.
+	 * Note that there's no particular need to do ResetLatch here.
+	 */
+	OwnLatch(&MyProc->procLatch);
+
+	/*
 	 * We might be reusing a semaphore that belonged to a failed process. So
 	 * be careful and reinitialize its value here.	(This is not strictly
 	 * necessary anymore, but seems like a good idea for cleanliness.)
 	 */
 	PGSemaphoreReset(&MyProc->sem);
 
+	MyProc->queryCommandId = -1;
+
 	/*
 	 * Arrange to clean up at process exit.
 	 */
-	on_shmem_exit(DummyProcKill, Int32GetDatum(proctype));
+	on_shmem_exit(AuxiliaryProcKill, Int32GetDatum(proctype));
 }
 
 /*
  * Check whether there are at least N free PGPROC objects.
- *
- * Note: this is designed on the assumption that N will generally be small.
  */
 bool
 HaveNFreeProcs(int n)
 {
-	SHMEM_OFFSET offset;
-	PGPROC	   *proc;
-
-	/* use volatile pointer to prevent code rearrangement */
-	volatile PROC_HDR *procglobal = ProcGlobal;
-
-	SpinLockAcquire(ProcStructLock);
-
-	offset = procglobal->freeProcs;
-
-	while (n > 0 && offset != INVALID_OFFSET)
-	{
-		proc = (PGPROC *) MAKE_PTR(offset);
-		offset = proc->links.next;
-		n--;
-	}
-
-	SpinLockRelease(ProcStructLock);
-
-	return (n <= 0);
+	Assert(n >= 0);
+	
+	return (ProcGlobal->numFreeProcs >= n);
 }
 
 /*
@@ -457,6 +618,11 @@ LockWaitCancel(void)
 
 	/* Nothing to do if we weren't waiting for a lock */
 	if (lockAwaited == NULL)
+		return false;
+
+	/* Don't try to cancel resource locks.*/
+	if (Gp_role == GP_ROLE_DISPATCH && ResourceScheduler &&
+		LOCALLOCK_LOCKMETHOD(*lockAwaited) == RESOURCE_LOCKMETHOD)
 		return false;
 
 	/* Turn off the deadlock timer, if it's still running (see ProcSleep) */
@@ -540,7 +706,26 @@ static void
 RemoveProcFromArray(int code, Datum arg)
 {
 	Assert(MyProc != NULL);
-	ProcArrayRemove(MyProc);
+	ProcArrayRemove(MyProc, /* forPrepare */ false, /* (not used) isCommit */ false);
+}
+
+/*
+ * update_spins_per_delay
+ *   Update spins_per_delay value in ProcGlobal.
+ */
+static void update_spins_per_delay()
+{
+	volatile PROC_HDR *procglobal = ProcGlobal;
+	bool casResult = false;
+
+	while (!casResult)
+	{
+		int old_spins_per_delay = procglobal->spins_per_delay;
+		int new_spins_per_delay = recompute_spins_per_delay(old_spins_per_delay);
+		casResult = compare_and_swap_32((uint32*)&procglobal->spins_per_delay,
+										old_spins_per_delay,
+										new_spins_per_delay);
+	}
 }
 
 /*
@@ -550,10 +735,41 @@ RemoveProcFromArray(int code, Datum arg)
 static void
 ProcKill(int code, Datum arg)
 {
-	/* use volatile pointer to prevent code rearrangement */
-	volatile PROC_HDR *procglobal = ProcGlobal;
-
 	Assert(MyProc != NULL);
+
+	/* Make sure we're out of the sync rep lists */
+	SyncRepCleanupAtProcExit();
+
+	/* 
+	 * Cleanup for any resource locks on portals - from holdable cursors or
+	 * unclean process abort (assertion failures).
+	 */
+	if (Gp_role == GP_ROLE_DISPATCH && ResourceScheduler)
+		AtExitCleanup_ResPortals();
+
+	/*
+	 * Remove the shared snapshot slot.
+	 */
+	if (SharedLocalSnapshotSlot != NULL)
+	{
+		if (Gp_role == GP_ROLE_DISPATCH)
+		{
+			SharedSnapshotRemove(SharedLocalSnapshotSlot,
+								 "Query Dispatcher");
+		}
+	    else if (Gp_segment == -1 && Gp_role == GP_ROLE_EXECUTE && !Gp_is_writer)
+	    {
+			/* 
+			 * Entry db singleton QE is a user of the shared snapshot -- not a creator.
+			 */	
+	    }
+		else if (Gp_role == GP_ROLE_EXECUTE && Gp_is_writer)
+		{
+			SharedSnapshotRemove(SharedLocalSnapshotSlot,
+								 "Writer qExec");
+		}
+		SharedLocalSnapshotSlot = NULL;
+	}
 
 	/*
 	 * Release any LW locks I am holding.  There really shouldn't be any, but
@@ -562,53 +778,82 @@ ProcKill(int code, Datum arg)
 	 */
 	LWLockReleaseAll();
 
-	SpinLockAcquire(ProcStructLock);
+	/* Release ownership of the process's latch, too */
+	DisownLatch(&MyProc->procLatch);
 
-	/* Return PGPROC structure (and semaphore) to freelist */
-	MyProc->links.next = procglobal->freeProcs;
-	procglobal->freeProcs = MAKE_OFFSET(MyProc);
+	/* Update shared estimate of spins_per_delay */
+	update_spins_per_delay();
+
+	LocalDistribXactRef_Release(&MyProc->localDistribXactRef);
+    MyProc->mppLocalProcessSerial = 0;
+    MyProc->mppSessionId = 0;
+    MyProc->mppIsWriter = false;
+
+	if (code == 0 || code == 1)
+	{
+		MyProc->postmasterResetRequired = false;
+	}
 
 	/* PGPROC struct isn't mine anymore */
 	MyProc = NULL;
+	lockHolderProcPtr = NULL;
 
-	/* Update shared estimate of spins_per_delay */
-	procglobal->spins_per_delay = update_spins_per_delay(procglobal->spins_per_delay);
-
-	SpinLockRelease(ProcStructLock);
+	/*
+	 * This process is no longer present in shared memory in any meaningful
+	 * way, so tell the postmaster we've cleaned up acceptably well.
+	 */
+	if (IsUnderPostmaster && !IsAutoVacuumProcess()
+		&& MyPMChildSlot > 0)
+		MarkPostmasterChildInactive();
 }
 
 /*
- * DummyProcKill() -- Cut-down version of ProcKill for dummy (bgwriter)
- *		processes.	The PGPROC and sema are not released, only marked
- *		as not-in-use.
+ * AuxiliaryProcKill() -- Cut-down version of ProcKill for auxiliary
+ *		processes (bgwriter, etc).	The PGPROC and sema are not released, only
+ *		marked as not-in-use.
  */
 static void
-DummyProcKill(int code, Datum arg)
+AuxiliaryProcKill(int code, Datum arg)
 {
 	int			proctype = DatumGetInt32(arg);
-	PGPROC	   *dummyproc;
+	PGPROC	   *auxproc;
 
-	Assert(proctype >= 0 && proctype < NUM_DUMMY_PROCS);
+	Assert(proctype >= 0 && proctype < NUM_AUXILIARY_PROCS);
 
-	dummyproc = &DummyProcs[proctype];
+	auxproc = &AuxiliaryProcs[proctype];
 
-	Assert(MyProc == dummyproc);
+	Assert(MyProc == auxproc);
 
 	/* Release any LW locks I am holding (see notes above) */
 	LWLockReleaseAll();
 
-	SpinLockAcquire(ProcStructLock);
+	/* Release ownership of the process's latch, too */
+	DisownLatch(&MyProc->procLatch);
 
-	/* Mark dummy proc no longer in use */
-	MyProc->pid = 0;
+	/* Update shared estimate of spins_per_delay */
+	update_spins_per_delay();
+
+	if (code == 0 || code == 1)
+	{
+		MyProc->postmasterResetRequired = false;
+	}
+
+	/*
+	 * If the parent process of this auxiliary process does not exist,
+	 * we want to set the proc array entry free here. The postmaster may
+	 * not own this process, so that it can't set the entry free. This
+	 * could happen to the filerep subprocesses when the filerep main
+	 * process dies unexpectedly.
+	 */
+	if (!ParentProcIsAlive())
+	{
+		MyProc->pid = 0;
+		MyProc->postmasterResetRequired = true;
+	}
 
 	/* PGPROC struct isn't mine anymore */
 	MyProc = NULL;
-
-	/* Update shared estimate of spins_per_delay */
-	ProcGlobal->spins_per_delay = update_spins_per_delay(ProcGlobal->spins_per_delay);
-
-	SpinLockRelease(ProcStructLock);
+	lockHolderProcPtr = NULL;
 }
 
 
@@ -969,8 +1214,12 @@ ProcLockWakeup(LockMethod lockMethodTable, LOCK *lock)
  * We only get to this routine if we got SIGALRM after DeadlockTimeout
  * while waiting for a lock to be released by some other process.  Look
  * to see if there's a deadlock; if not, just return and continue waiting.
+ * (But signal ProcSleep to log a message, if log_lock_waits is true.)
  * If we have a real deadlock, remove ourselves from the lock's wait queue
  * and signal an error to ProcSleep.
+ *
+ * NB: this is run inside a signal handler, so be very wary about what is done
+ * here or in called routines.
  */
 static void
 CheckDeadLock(void)
@@ -993,9 +1242,9 @@ CheckDeadLock(void)
 	/*
 	 * Check to see if we've been awoken by anyone in the interim.
 	 *
-	 * If we have we can return and resume our transaction -- happy day.
-	 * Before we are awoken the process releasing the lock grants it to us so
-	 * we know that we don't have to wait anymore.
+	 * If we have, we can return and resume our transaction -- happy day.
+	 * Before we are awoken the process releasing the lock grants it to us
+	 * so we know that we don't have to wait anymore.
 	 *
 	 * We check by looking to see if we've been unlinked from the wait queue.
 	 * This is quicker than checking our semaphore's state, since no kernel
@@ -1020,15 +1269,26 @@ CheckDeadLock(void)
 	 * Oops.  We have a deadlock.
 	 *
 	 * Get this process out of wait state.	(Note: we could do this more
-	 * efficiently by relying on lockAwaited, but use this coding to preserve
-	 * the flexibility to kill some other transaction than the one detecting
-	 * the deadlock.)
+	 * efficiently by relying on lockAwaited, but use this coding to
+	 * preserve the flexibility to kill some other transaction than the
+	 * one detecting the deadlock.)
 	 *
 	 * RemoveFromWaitQueue sets MyProc->waitStatus to STATUS_ERROR, so
-	 * ProcSleep will report an error after we return from the signal handler.
+	 * ProcSleep will report an error after we return from the signal
+	 * handler.
 	 */
 	Assert(MyProc->waitLock != NULL);
-	RemoveFromWaitQueue(MyProc, LockTagHashCode(&(MyProc->waitLock->tag)));
+	if (Gp_role == GP_ROLE_DISPATCH && ResourceScheduler && 
+		LOCK_LOCKMETHOD(*(MyProc->waitLock)) == RESOURCE_LOCKMETHOD)
+	{
+		ResRemoveFromWaitQueue(MyProc, 
+							   LockTagHashCode(&(MyProc->waitLock->tag)));
+	}
+	else
+	{
+		RemoveFromWaitQueue(MyProc, 
+							LockTagHashCode(&(MyProc->waitLock->tag)));
+	}
 
 	/*
 	 * Unlock my semaphore so that the interrupted ProcSleep() call can
@@ -1108,7 +1368,7 @@ ProcSendSignal(int pid)
 bool
 enable_sig_alarm(int delayms, bool is_statement_timeout)
 {
-	TimestampTz fin_time;
+ 	TimestampTz fin_time;
 	struct itimerval timeval;
 
 	if (is_statement_timeout)
@@ -1220,6 +1480,47 @@ disable_sig_alarm(bool is_statement_timeout)
 	return true;
 }
 
+/*
+ * We get here when a session has been idle for a while (waiting for the
+ * client to send us SQL to execute).  The idea is to consume less resources while sitting idle,
+ * so we can support more sessions being logged on.
+ *
+ * The expectation is that if the session is logged on, but nobody is sending us work to do,
+ * we want to free up whatever resources we can.  Usually it means there is a human being at the
+ * other end of the connection, and that person has walked away from their terminal, or just hasn't
+ * decided what to do next.  We could be idle for a very long time (many hours).
+ *
+ * Of course, freeing gangs means that the next time the user does send in an SQL statement,
+ * we need to allocate gangs (at least the writer gang) to do anything.  This entails extra work,
+ * so we don't want to do this if we don't think the session has gone idle.
+ *
+ * We can call cleanupIdleReaderGangs() to just free some resources, or cleanupAllIdleGangs() to
+ * free up everything possible on the segDB side.  At the moment, I can't find a reason to
+ * use cleanupIdleReaderGangs(), but it we wanted to, we would have two timeouts:  The first
+ * when we free the reader gangs, and the second later time free the writer gang.
+ * My current thinking is that it is better to free all the gangs as soon as we decide
+ * the session is idle.
+ *
+ * P.s:  Is there anything we can free up on the master (QD) side?  I can't think of anything.
+ *
+ */
+static void
+HandleClientWaitTimeout(void)
+{
+	elog(DEBUG2,"HandleClientWaitTimeout");
+	/*
+	 * cancel the timer, as there is no reason we need it to go off again.
+	 */
+	disable_sig_alarm(false);
+	/*
+	 * Free gangs to free up resources on the segDBs.
+	 */
+	if (gangsExist())
+	{
+		cleanupAllIdleGangs();
+	}
+
+}
 
 /*
  * Check for statement timeout.  If the timeout time has come,
@@ -1235,6 +1536,10 @@ CheckStatementTimeout(void)
 
 	if (!statement_timeout_active)
 		return true;			/* do nothing if not active */
+
+	/* QD takes care of timeouts for QE. */
+	if (Gp_role == GP_ROLE_EXECUTE)
+		return true;
 
 	now = GetCurrentTimestamp();
 
@@ -1275,6 +1580,12 @@ CheckStatementTimeout(void)
 	return true;
 }
 
+/*
+ * need DoingCommandRead to be extern so we can test it here.
+ * Or would it be better to have some routine to call to get the
+ * value of the bool?  This is simpler.
+ */
+extern bool DoingCommandRead;
 
 /*
  * Signal handler for SIGALRM
@@ -1289,14 +1600,311 @@ handle_sig_alarm(SIGNAL_ARGS)
 {
 	int			save_errno = errno;
 
-	if (deadlock_timeout_active)
+	/* SIGALRM is cause for waking anything waiting on the process latch */
+	if (MyProc)
+		SetLatch(&MyProc->procLatch);
+
+	/* don't joggle the elbow of proc_exit */
+	if (!proc_exit_inprogress)
 	{
-		deadlock_timeout_active = false;
-		CheckDeadLock();
+		/*
+		 * Idle session timeout shares with the deadlock timeout.
+		 * If DoingCommandRead is true, we are deciding the session is idle
+		 * In that case, we can't possibly be in a deadlock, so no point
+		 * in running the deadlock detection.
+		 */
+
+		if (deadlock_timeout_active && !DoingCommandRead)
+		{
+			deadlock_timeout_active = false;
+			CheckDeadLock();
+		}
+
+		if (statement_timeout_active)
+			(void) CheckStatementTimeout();
+
+		/*
+		 * If we are DoingCommandRead, it means we are sitting idle waiting for
+		 * the user to send us some SQL.
+		 */
+		if (DoingCommandRead)
+		{
+			(void) HandleClientWaitTimeout();
+			deadlock_timeout_active = false;
+		}
 	}
 
-	if (statement_timeout_active)
-		(void) CheckStatementTimeout();
-
 	errno = save_errno;
+}
+
+/*
+ * ResProcSleep -- put a process to sleep (that is waiting for a resource lock).
+ *
+ * Notes:
+ * 	Locktable's masterLock must be held at entry, and will be held
+ * 	at exit.
+ *
+ *	This is merely a version of ProcSleep modified for resource locks.
+ *	The logic here could have been merged into ProcSleep, however it was
+ *	requested to keep as much as possible of this resource lock code 
+ *	seperate from its standard lock relatives - in the interest of not
+ *	introducing new bugs or performance regressions into the lock code.
+ */
+int
+ResProcSleep(LOCKMODE lockmode, LOCALLOCK *locallock, void *incrementSet)
+{
+	LOCK	   *lock = locallock->lock;
+	PROCLOCK   *proclock = locallock->proclock;
+	PROC_QUEUE	*waitQueue = &(lock->waitProcs);
+	PGPROC		*proc;
+	uint32		hashcode = locallock->hashcode;
+	LWLockId	partitionLock = LockHashPartitionLock(hashcode);
+
+	bool		selflock = true;		/* initialize result for error. */
+
+	/*
+	 * Don't check my held locks, as we just add at the end of the queue.
+	 */
+	proc = (PGPROC *) &(waitQueue->links);
+	SHMQueueInsertBefore(&(proc->links), &(MyProc->links));
+	waitQueue->size++;
+
+	lock->waitMask |= LOCKBIT_ON(lockmode);
+
+	/*
+	 * reflect this in PGPROC object, too.
+	 */
+	MyProc->waitLock = lock;
+	MyProc->waitProcLock = (PROCLOCK *) proclock;
+	MyProc->waitLockMode = lockmode;
+
+	MyProc->waitStatus = STATUS_ERROR;	/* initialize result for error */
+
+	/* Now check the status of the self lock footgun. */
+	selflock = ResCheckSelfDeadLock(lock, proclock, incrementSet);
+	if (selflock)
+	{
+		LWLockRelease(partitionLock);
+		ereport(ERROR,
+				(errcode(ERRCODE_T_R_DEADLOCK_DETECTED),
+				 errmsg("deadlock detected, locking against self")));
+	}
+
+	/* Mark that we are waiting for a lock */
+	lockAwaited = locallock;
+
+	/* Ok to wait.*/
+	LWLockRelease(partitionLock);
+
+	if (!enable_sig_alarm(DeadlockTimeout, false))
+   		elog(FATAL, "could not set timer for (resource lock) process wakeup");
+
+	/*
+	 * Sleep on the semaphore.
+	 */
+	PGSemaphoreLock(&MyProc->sem, true);
+
+	if (!disable_sig_alarm(false))
+		elog(FATAL, "could not disable timer for (resource lock) process wakeup");
+
+	/*
+	 * Have been awakened, so continue.
+	 */
+	LWLockAcquire(partitionLock, LW_EXCLUSIVE);
+
+	/*
+	 * We no longer want (Res)LockWaitCancel to do anything.
+	 */
+	lockAwaited = NULL;
+
+	return MyProc->waitStatus;
+}
+
+
+/*
+ * ResLockWaitCancel -- Cancel any pending wait for a resource lock, when 
+ *	aborting a transaction.
+ */
+void
+ResLockWaitCancel(void)
+{
+	LWLockId	partitionLock;
+
+	if (lockAwaited != NULL)
+	{
+		/* Unlink myself from the wait queue, if on it  */
+		partitionLock = LockHashPartition(lockAwaited->hashcode);
+		LWLockAcquire(partitionLock, LW_EXCLUSIVE);
+
+		if (MyProc->links.next != INVALID_OFFSET)
+		{
+			/* We could not have been granted the lock yet */
+			Assert(MyProc->waitStatus == STATUS_ERROR);
+
+			/* We should only be trying to cancel resource locks. */
+			Assert(LOCALLOCK_LOCKMETHOD(*lockAwaited) == RESOURCE_LOCKMETHOD);
+
+			ResRemoveFromWaitQueue(MyProc, lockAwaited->hashcode);
+		}
+
+		lockAwaited = NULL;
+
+		LWLockRelease(partitionLock);
+	}
+
+	/*
+	 * Reset the proc wait semaphore to zero. This is necessary in the
+	 * scenario where someone else granted us the lock we wanted before we
+	 * were able to remove ourselves from the wait-list.
+	 */
+	PGSemaphoreReset(&MyProc->sem);
+
+	return;
+}
+
+bool ProcGetMppLocalProcessCounter(int *mppLocalProcessCounter)
+{
+	Assert(mppLocalProcessCounter != NULL);
+
+	if (ProcGlobal == NULL)
+		return false;
+
+	*mppLocalProcessCounter = ProcGlobal->mppLocalProcessCounter;
+
+	return true;
+}
+
+bool ProcCanSetMppSessionId(void)
+{
+	if (ProcGlobal == NULL || MyProc == NULL)
+		return false;
+
+	return true;
+}
+
+void ProcNewMppSessionId(int *newSessionId)
+{
+	Assert(newSessionId != NULL);
+
+    *newSessionId = MyProc->mppSessionId =
+		gp_atomic_add_32(&ProcGlobal->mppLocalProcessCounter, 1);
+
+    /*
+     * Make sure that our SessionState entry correctly records our
+     * new session id.
+     */
+    if (NULL != MySessionState)
+    {
+    	/* This should not happen outside of dispatcher on the master */
+    	Assert(GpIdentity.segindex == MASTER_CONTENT_ID && Gp_role == GP_ROLE_DISPATCH);
+
+    	ereport(gp_sessionstate_loglevel, (errmsg("ProcNewMppSessionId: changing session id (old: %d, new: %d), pinCount: %d, activeProcessCount: %d",
+    			MySessionState->sessionId, *newSessionId, MySessionState->pinCount, MySessionState->activeProcessCount), errprintstack(true)));
+
+#ifdef USE_ASSERT_CHECKING
+    	MySessionState->isModifiedSessionId = true;
+#endif
+
+    	MySessionState->sessionId = *newSessionId;
+    }
+}
+
+/*
+ * freeAuxiliaryProcEntryAndReturnReset -- free proc entry in AuxiliaryProcs array,
+ * and return the postmasterResetRequired value.
+ *
+ * We don't need to hold a lock to update auxiliary proc entry, since
+ * no one will be using the given entry.
+ *
+ * If inArray is not NULL, it will be set to true when the given pid is found
+ * in AuxiliaryProcs array.
+ */
+bool
+freeAuxiliaryProcEntryAndReturnReset(int pid, bool *inArray)
+{
+	bool resetRequired = true;
+	bool myInArray = false;
+
+	for (int i=0; i < NUM_AUXILIARY_PROCS; i++)
+	{
+		PGPROC *myProc = &AuxiliaryProcs[i];
+		
+		if (myProc->pid == pid)
+		{
+			resetRequired = myProc->postmasterResetRequired;
+
+			/* Set this entry to free */
+			myProc->pid = 0;
+
+			myInArray = true;
+						
+			break;
+		}
+	}
+
+	if (inArray != NULL)
+	{
+		*inArray = myInArray;
+	}
+
+	if (myInArray && gp_debug_pgproc)
+	{
+		elog(LOG, "setting auxiliary proc to free: pid=%d (resetRequired=%d)",
+			 pid, resetRequired);
+	}
+
+	return resetRequired;
+}
+
+/*
+ * freeProcEntryAndReturnReset -- free proc entry in PGPROC or AuxiliaryProcs array,
+ * and return the postmasterResetRequired value.
+ *
+ * To avoid holding a lock on PGPROC structure, we use compare_and_swap to put
+ * PGPROC entry back to the free list.
+ */
+bool
+freeProcEntryAndReturnReset(int pid)
+{
+	Assert(ProcGlobal != NULL);
+	bool resetRequired = true;
+	
+	PGPROC *procs = ProcGlobal->procs;
+	
+    /* Return PGPROC structure to freelist */
+	for (int i = 0; i < MaxBackends; i++)
+	{
+		PGPROC *myProc = &procs[i];
+
+		if (myProc->pid == pid)
+		{
+			resetRequired = myProc->postmasterResetRequired;
+			myProc->postmasterResetRequired = true;
+
+			Prepend(myProc);
+
+			if (gp_debug_pgproc)
+			{
+				elog(LOG, "moving PGPROC entry to freelist: pid=%d (resetRequired=%d)",
+					 pid, resetRequired);
+				elog(LOG, "freeing PGPROC entry for pid %d, freeProcs (prev offset, new offset): (%ld, %ld)",
+					 pid, myProc->links.next, MAKE_OFFSET(myProc));
+			}
+			
+			return resetRequired;
+		}
+	}
+
+	bool found = false;
+	resetRequired = freeAuxiliaryProcEntryAndReturnReset(pid, &found);
+	
+	if (found)
+		return resetRequired;
+	
+	if (gp_debug_pgproc)
+	{
+		elog(LOG, "proc entry not found: pid=%d", pid);
+	}
+
+	return resetRequired;
 }

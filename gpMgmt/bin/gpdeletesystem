@@ -1,0 +1,323 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+#
+# Copyright (c) Greenplum Inc 2010. All Rights Reserved. 
+#
+
+# System imports
+import os
+import sys
+import signal
+from optparse import OptionGroup
+
+# import GPDB modules
+try:
+    from gppylib.db import dbconn
+    from gppylib.gpparseopts import OptParser, OptChecker
+    from gppylib.gparray import *
+    from gppylib.gplog import *
+    from gppylib.gpcoverage import GpCoverage
+    from gppylib.commands import unix, gp, base
+    from gppylib.db import dbconn
+    from gppylib import gparray, pgconf
+    from gppylib.operations.deletesystem import validate_pgport
+    from gppylib.userinput import *
+except ImportError, e:
+    sys.exit('ERROR: Cannot import modules.  Please check that you '
+             'have sourced greenplum_path.sh.  Detail: ' + str(e))
+
+EXECNAME = os.path.split(__file__)[-1]
+
+DEFAULT_BATCH_SIZE=32
+MAX_BATCH_SIZE=128
+
+_description = """
+
+"""
+
+_usage = """
+"""
+
+# Generic exception for all things activatestandby
+class GpDeleteSystemException(Exception):
+    pass
+
+#-------------------------------------------------------------------------
+# parseargs() - parses and validates command line args
+#-------------------------------------------------------------------------
+def parseargs():
+    parser = OptParser(option_class=OptChecker,
+                       description=' '.join(_description.split()),
+                       version='%prog version $Revision$')
+    parser.setHelp([])
+    parser.remove_option('-h')
+    parser.remove_option('--version')
+    
+    # General options section
+    optgrp = OptionGroup(parser, 'General options')
+    optgrp.add_option('-?', '--help', dest='help', action='store_true',
+                      help='Display this help message and exit')
+    optgrp.add_option('-v', '--version', dest='version', action='store_true',
+                      help='Display version information and exit.')
+    parser.add_option_group(optgrp)
+
+    # Logging options section
+    optgrp = OptionGroup(parser, 'Logging options')
+    optgrp.add_option('-l', '--logfile', type='string', default=None,
+                      help='Alternative log file directory')
+    optgrp.add_option('-D', '--verbose', help='Enable debug logging.',
+                      dest='verbose', default=False, action='store_true')
+    parser.add_option_group(optgrp)
+
+    # Standby activation options section
+    optgrp = OptionGroup(parser, 'Delete system options')
+    optgrp.add_option('-d', '--master-data-directory', dest='master_data_dir', 
+                      type='string', help='Master data directory.')
+    optgrp.add_option('-f', '--force', action='store_true',
+                      help='Force deletion.  Ignore any database backup files.')
+    optgrp.add_option('-B', '--batch-size', type='int', dest='batch_size',
+                      default=DEFAULT_BATCH_SIZE,
+                      help='Number of batches to run in parallel. (Default %s)' % DEFAULT_BATCH_SIZE)
+    parser.add_option_group(optgrp)
+
+    # Parse the command line arguments
+    (options, args) = parser.parse_args()
+
+    if options.help:
+        parser.print_help()
+        parser.exit(0, None)
+        
+    if options.version:
+        parser.print_version()
+        parser.exit(0, None)
+
+    # check we got the -d option
+    if not options.master_data_dir:
+        logger.fatal('Required option --master-data-directory is missing.')
+        parser.exit(2, None)
+
+    # We have to normalize this path for a later comparison
+    options.master_data_dir = os.path.normpath(options.master_data_dir)
+
+    # check that there isn't a conflict between -d option and MASTER_DATA_DIRECTORY env
+    env_master_data_dir = os.getenv('MASTER_DATA_DIRECTORY', None)
+    if not env_master_data_dir:
+        logger.fatal('MASTER_DATA_DIRECTORY environment variable not set.')
+        parser.exit(2, None)
+        
+    if os.path.normpath(env_master_data_dir) != options.master_data_dir:
+        logger.fatal('Current setting of MASTER_DATA_DIRECTORY not same as -d parameter.')
+        parser.exit(2, None)
+        
+    # Check that master data directory exists
+    if not os.path.exists(options.master_data_dir) or not os.path.isdir(options.master_data_dir):
+        logger.fatal('Master data directory supplied %s does not exist' % options.master_data_dir)
+        parser.exit(2, None)
+
+    if options.logfile and not os.path.exists(options.logfile):
+        logger.fatal('Log directory %s does not exist.' % options.logfile)
+        parser.exit(2, None)
+
+    options.pgport = validate_pgport(options.master_data_dir)
+
+    # Set log level
+    if options.verbose:
+        enable_verbose_logging()
+
+    # verify batch size
+    if options.batch_size < 1 or options.batch_size > MAX_BATCH_SIZE:
+        logger.fatal('--batch-size value must be from 1 to %s' % MAX_BATCH_SIZE)
+        parser.exit(2, None)
+
+    # There shouldn't be any args
+    if len(args) > 0:
+        logger.error('Unknown arguments:')
+        for arg in args:
+            logger.error('  %s' % args)
+        parser.exit(2, None)
+        
+    return options, args
+
+
+#-------------------------------------------------------------------------
+# display_params() - displays delete system parameters.
+#-------------------------------------------------------------------------
+def display_params(options, dburl, standby, segments, dumpDirsExist):
+    global g_warnings_generated
+    logger.info('Greenplum Instance Deletion Parameters')
+    logger.info('--------------------------------------')
+    logger.info('Greenplum Master hostname                  = %s' % dburl.pghost)
+    logger.info('Greenplum Master data directory            = %s' % options.master_data_dir)
+    logger.info('Greenplum Master port                      = %s' % dburl.pgport)
+    if standby:
+        logger.info('Greenplum Master standby host              = %s' % standby.getSegmentHostName())
+        logger.info('Greenplum Master standby data directory    = %s' % standby.getSegmentDataDirectory())
+        logger.info('Greenplum Master standby port              = %s' % standby.getSegmentPort())
+    if options.force:
+        logger.info('Greenplum Force delete of dump files       = ON')
+    else:
+        logger.info('Greenplum Force delete of dump files       = OFF')
+    logger.info('Batch size                                 = %s' % options.batch_size)
+    logger.info('--------------------------------------')
+    logger.info(' Segment Instance List ')
+    logger.info('--------------------------------------')
+    logger.info('Host:Datadir:Port')
+    for segdb in segments:
+        host = segdb.getSegmentHostName()
+        datadir = segdb.getSegmentDataDirectory()
+        port = segdb.getSegmentPort()
+        logger.info('%s:%s:%s' % (host, datadir, port))
+        
+    yn = ask_yesno('', 'Continue with Greenplum instance deletion?', 'N')
+    if yn:
+        logger.info('FINAL WARNING, you are about to delete the Greenplum instance')
+        logger.info('on master host %s.' % dburl.pghost)
+        if dumpDirsExist and options.force:
+            logger.warn('There are database dump files, these will be DELETED if you continue!')
+            g_warnings_generated = True
+        yn = ask_yesno('', 'Continue with Greenplum instance deletion?', 'N')
+        if not yn:
+            raise GpDeleteSystemException('User canceled')
+    else:
+        raise GpDeleteSystemException('User canceled')
+
+
+#-------------------------------------------------------------------------
+# check_for_dump_files() - checks if there are database dump files
+#-------------------------------------------------------------------------
+def check_for_dump_files(options):
+    logger.info('Checking for database dump files...')
+    return gp.GpDumpDirsExist.local('check for dump dirs', options.master_data_dir)
+
+#-------------------------------------------------------------------------
+# delete_system() - deletes a GPDB system
+#-------------------------------------------------------------------------
+def delete_cluster(options):
+    global g_warnings_generated
+    
+    # check for dumps if needed
+    dump_files_exist = check_for_dump_files(options)
+    if not options.force and dump_files_exist:
+            logger.fatal('Located possible database dump file on Master instance host')
+            logger.fatal('in directory %s' % options.master_data_dir)
+            logger.fatal('To override database dump file checking use -f option')
+            raise GpDeleteSystemException('Dump files exist')
+        
+    # get gparray object
+    logger.info('Getting segment information...')
+    dburl = dbconn.DbURL(port=options.pgport)
+    try:
+        array = gparray.GpArray.initFromCatalog(dburl, True)
+    except Exception, ex:
+        raise GpDeleteSystemException('Failed to get database configuration: %s' % ex.__str__())
+    # get all segdbs
+    segments = array.getDbList()
+    
+    # getSegmentsByHostName(segments)
+    segdbs_by_host = gparray.GpArray.getSegmentsByHostName(segments)
+    standby = array.standbyMaster
+    
+    # Display the options
+    display_params(options, dburl, standby, segments, dump_files_exist)
+    
+    # stop database
+    logger.info('Stopping database...')
+    try:
+        cmd = gp.GpStop('stop database', fast=True, datadir=options.master_data_dir)
+        cmd.run(validateAfter=True)
+    except:
+        results = cmd.get_results()
+        if results.rc > 1:
+            raise GpDeleteSystemException('Failed to stop database.')
+        logger.warn('Warnings were generated while stopping the database.')
+        g_warnings_generated=True
+
+    # From this point on we don't want ctrl-c to happen
+    signal.signal(signal.SIGINT,signal.SIG_IGN)
+    
+    # create pool
+    pool = base.WorkerPool(numWorkers=options.batch_size)
+    
+    logger.info('Deleting segments and removing data directories...')
+    for segdb in segments:
+        filespaces = segdb.getSegmentFilespaces().items()
+        for (oid, filespace) in filespaces:
+            logger.debug('Queueing up command to remove %s:%s' % (segdb.getSegmentHostName(), 
+                                                                  filespace))
+            cmd = unix.RemoveFiles('remove fs dir', filespace, ctxt=base.REMOTE, 
+                                       remoteHost=segdb.getSegmentHostName())
+            pool.addCommand(cmd)
+
+    logger.info('Waiting for worker threads to complete...')
+    pool.join()
+    pool.haltWork()
+    pool.joinWorkers()
+
+    # Re-enable ctrl-c
+    signal.signal(signal.SIGINT,signal.default_int_handler)
+
+
+#-------------------------------------------------------------------------
+# main 
+#-------------------------------------------------------------------------
+
+g_warnings_generated = False
+g_errors_generated = False
+
+coverage = GpCoverage()
+coverage.start()
+
+# setup logging
+logger = get_default_logger()
+setup_tool_logging(EXECNAME,unix.getLocalHostname(),unix.getUserName())
+
+# parse args and options
+(options, args) = parseargs()
+
+# if we got a new log dir, we can now set it up.
+if options.logfile:
+    setup_tool_logging(EXECNAME,unix.getLocalHostname(),unix.getUserName(),logdir=options.logfile)
+
+
+try:
+    # save off cwd
+    cwd = os.getcwd()
+    # chdir to home to prevent from trying to delete a dir while we are in it
+    home = os.getenv('USERPROFILE') or os.getenv('HOME')
+    os.chdir(home)
+	
+    # do the delete
+    delete_cluster(options)
+    
+    # now try to go back into the original cwd
+    try:
+        os.chdir(cwd)
+    except:
+        # we can ignore this as cwd must no longer exist
+        pass
+    
+except GpDeleteSystemException, ex:
+    g_errors_generated = True
+    if ex.__str__() == 'User canceled':
+        logger.info(ex.__str__())
+    else:
+        logger.fatal(ex.__str__())
+    if options.verbose:
+        logger.exception(ex)
+except Exception, ex:
+    g_errors_generated = True
+    logger.fatal('Error deleting system: %s' % ex.__str__())
+    if options.verbose:
+        logger.exception(ex)
+finally:
+    coverage.stop()
+    coverage.generate_report()
+    if g_errors_generated:
+        logger.error('Delete system failed')
+        sys.exit(2)
+    elif g_warnings_generated:
+        logger.warn('Delete system completed but warnings were generated.')
+        sys.exit(1)
+    else:
+        logger.info('Delete system successful.')
+        sys.exit(0)

@@ -1,11 +1,12 @@
 <!--
-$PostgreSQL: pgsql/doc/src/sgml/ref/show.sgml,v 1.42 2006/09/16 00:30:20 momjian Exp $
+$PostgreSQL: pgsql/doc/src/sgml/ref/show.sgml,v 1.47 2008/11/14 10:22:47 petere Exp $
 PostgreSQL documentation
 -->
 
 <refentry id="SQL-SHOW">
  <refmeta>
   <refentrytitle id="SQL-SHOW-TITLE">SHOW</refentrytitle>
+  <manvolnum>7</manvolnum>
   <refmiscinfo>SQL - Language Statements</refmiscinfo>
  </refmeta>
 
@@ -36,7 +37,7 @@ SHOW ALL
    the <envar>PGOPTIONS</envar> environmental variable (when using
    <application>libpq</> or a <application>libpq</>-based
    application), or through command-line flags when starting the
-   <command>postgres</command>.  See <xref
+   <command>postgres</command> server.  See <xref
    linkend="runtime-config"> for details.
   </para>
  </refsect1>
@@ -82,8 +83,8 @@ SHOW ALL
          <para>
           Shows the database's locale setting for collation (text
           ordering).  At present, this parameter can be shown but not
-          set, because the setting is determined at
-          <command>initdb</> time.
+          set, because the setting is determined at database creation
+          time.
          </para>
         </listitem>
        </varlistentry>
@@ -94,8 +95,8 @@ SHOW ALL
          <para>
           Shows the database's locale setting for character
           classification.  At present, this parameter can be shown but
-          not set, because the setting is determined at
-          <command>initdb</> time.
+          not set, because the setting is determined at database creation
+          time.
          </para>
         </listitem>
        </varlistentry>
@@ -104,8 +105,7 @@ SHOW ALL
         <term><literal>IS_SUPERUSER</literal></term>
         <listitem>
          <para>
-          True if the current session authorization identifier has
-          superuser privileges.
+          True if the current role has superuser privileges.
          </para>
         </listitem>
        </varlistentry>
@@ -130,7 +130,11 @@ SHOW ALL
 
   <para>
    The function <function>current_setting</function> produces
-   equivalent output. See <xref linkend="functions-admin">.
+   equivalent output; see <xref linkend="functions-admin">.
+   Also, the
+   <link linkend="view-pg-settings"><structname>pg_settings</structname></link>
+   system view produces the same information.
+
   </para>
  </refsect1>
 
@@ -167,7 +171,7 @@ SHOW ALL;
               name              |            setting             |                                         description                                          
 --------------------------------+--------------------------------+----------------------------------------------------------------------------------------------
  add_missing_from               | off                            | Automatically adds missing table references to FROM clauses.
- archive_command                | unset                          | WAL archiving command.
+ allow_system_table_mods        | off                            | Allows modifications of the structure of system tables.
     .
     .
     .

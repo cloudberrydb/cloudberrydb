@@ -14,18 +14,4 @@ include $(top_builddir)/src/Makefile.global
 
 OBJS = heapam.o hio.o tuptoaster.o
 
-all: SUBSYS.o
-
-SUBSYS.o: $(OBJS)
-	$(LD) $(LDREL) $(LDOUT) SUBSYS.o $(OBJS)
-
-depend dep:
-	$(CC) -MM $(CFLAGS) *.c >depend
-
-clean: 
-	rm -f SUBSYS.o $(OBJS)
-
-ifeq (depend,$(wildcard depend))
-include depend
-endif
-
+include $(top_srcdir)/src/backend/common.mk

@@ -1,0 +1,10 @@
+Docs
+--------
+http://gpdb.docs.pivotal.io/4360/utility_guide/admin_utilities/gpfdist.html
+
+Compiling
+-------------
+## Do not source greenplum_path.sh (although you can find $GPHOME in there)
+./configure --enable-transformations --prefix=<Location of $GPHOME>
+make
+make install

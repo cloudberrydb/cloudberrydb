@@ -12,7 +12,7 @@
 # note: we exclude BKI_BOOTSTRAP relations since they are expected to have
 # matching DATA lines in pg_class.h
 
-cat pg_*.h toasting.h indexing.h | \
+DUPS=`cat pg_*.h gp_*.h toasting.h indexing.h | \
 egrep -v -e '^CATALOG\(.*BKI_BOOTSTRAP' | \
 sed -n	-e 's/^DATA(insert *OID *= *\([0-9][0-9]*\).*$/\1/p' \
 	-e 's/^CATALOG([^,]*, *\([0-9][0-9]*\).*$/\1/p' \
@@ -21,6 +21,8 @@ sed -n	-e 's/^DATA(insert *OID *= *\([0-9][0-9]*\).*$/\1/p' \
 	-e 's/^DECLARE_TOAST([^,]*, *\([0-9][0-9]*\), *\([0-9][0-9]*\).*$/\1,\2/p' | \
 tr ',' '\n' | \
 sort -n | \
-uniq -d
+uniq -d`
+
+test "$DUPS" && echo "Duplicate OIDS\n--------------\n$DUPS" && exit 1
 
 exit 0

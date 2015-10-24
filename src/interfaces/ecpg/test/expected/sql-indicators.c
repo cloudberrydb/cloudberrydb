@@ -1,10 +1,10 @@
-/* Processed by ecpg (4.2.1) */
+/* Processed by ecpg (regression mode) */
 /* These include files are added by the preprocessor */
-#include <ecpgtype.h>
 #include <ecpglib.h>
 #include <ecpgerrno.h>
 #include <sqlca.h>
 /* End of automatic include section */
+#define ECPGdebug(X,Y) ECPGdebug((X)+100,(Y))
 
 #line 1 "indicators.pgc"
 #include <stdio.h>
@@ -14,13 +14,13 @@
 #ifndef POSTGRES_SQLCA_H
 #define POSTGRES_SQLCA_H
 
-#ifndef DLLIMPORT
+#ifndef PGDLLIMPORT
 #if  defined(WIN32) || defined(__CYGWIN__)
-#define DLLIMPORT __declspec (dllimport)
+#define PGDLLIMPORT __declspec (dllimport)
 #else
-#define DLLIMPORT
+#define PGDLLIMPORT
 #endif   /* __CYGWIN__ */
-#endif   /* DLLIMPORT */
+#endif   /* PGDLLIMPORT */
 
 #define SQLERRMC_LEN	150
 
@@ -91,100 +91,99 @@ struct sqlca_t *ECPGget_sqlca(void);
 #line 4 "indicators.pgc"
 
 
-
-int main(int argc, char **argv)
+int main()
 {
 	/* exec sql begin declare section */
 		   
 		   
 	
-#line 10 "indicators.pgc"
- int  intvar   = 5 ;
+#line 9 "indicators.pgc"
+ int intvar = 5 ;
  
-#line 11 "indicators.pgc"
- int  nullind   = - 1 ;
+#line 10 "indicators.pgc"
+ int nullind = - 1 ;
 /* exec sql end declare section */
-#line 12 "indicators.pgc"
+#line 11 "indicators.pgc"
 
 
 	ECPGdebug(1,stderr);
 
-	{ ECPGconnect(__LINE__, 0, "regress1" , NULL,NULL , NULL, 0); }
-#line 16 "indicators.pgc"
+	{ ECPGconnect(__LINE__, 0, "regress1" , NULL, NULL , NULL, 0); }
+#line 15 "indicators.pgc"
 
 	{ ECPGsetcommit(__LINE__, "off", NULL);}
-#line 17 "indicators.pgc"
+#line 16 "indicators.pgc"
 
 
-	{ ECPGdo(__LINE__, 0, 1, NULL, "create  table test ( \"id\" int   primary key   , \"str\" text   not null , val int   null )    ", ECPGt_EOIT, ECPGt_EORT);}
+	{ ECPGdo(__LINE__, 0, 1, NULL, 0, ECPGst_normal, "create table indicator_test ( \"id\" int primary key , \"str\" text not null , val int null )", ECPGt_EOIT, ECPGt_EORT);}
+#line 21 "indicators.pgc"
+
+	{ ECPGtrans(__LINE__, NULL, "commit work");}
 #line 22 "indicators.pgc"
 
-	{ ECPGtrans(__LINE__, NULL, "commit");}
-#line 23 "indicators.pgc"
 
-
-	{ ECPGdo(__LINE__, 0, 1, NULL, "insert into test ( id  , str  , val  ) values ( 1 , 'Hello' , 0 ) ", ECPGt_EOIT, ECPGt_EORT);}
-#line 25 "indicators.pgc"
+	{ ECPGdo(__LINE__, 0, 1, NULL, 0, ECPGst_normal, "insert into indicator_test ( id , str , val ) values ( 1 , 'Hello' , 0 )", ECPGt_EOIT, ECPGt_EORT);}
+#line 24 "indicators.pgc"
 
 
 	/* use indicator in insert */
-	{ ECPGdo(__LINE__, 0, 1, NULL, "insert into test ( id  , str  , val  ) values ( 2 , 'Hi there' ,  ? ) ", 
+	{ ECPGdo(__LINE__, 0, 1, NULL, 0, ECPGst_normal, "insert into indicator_test ( id , str , val ) values ( 2 , 'Hi there' , $1  )", 
 	ECPGt_int,&(intvar),(long)1,(long)1,sizeof(int), 
 	ECPGt_int,&(nullind),(long)1,(long)1,sizeof(int), ECPGt_EOIT, ECPGt_EORT);}
-#line 28 "indicators.pgc"
+#line 27 "indicators.pgc"
 
 	nullind = 0;
-	{ ECPGdo(__LINE__, 0, 1, NULL, "insert into test ( id  , str  , val  ) values ( 3 , 'Good evening' ,  ? ) ", 
+	{ ECPGdo(__LINE__, 0, 1, NULL, 0, ECPGst_normal, "insert into indicator_test ( id , str , val ) values ( 3 , 'Good evening' , $1  )", 
 	ECPGt_int,&(intvar),(long)1,(long)1,sizeof(int), 
 	ECPGt_int,&(nullind),(long)1,(long)1,sizeof(int), ECPGt_EOIT, ECPGt_EORT);}
-#line 30 "indicators.pgc"
+#line 29 "indicators.pgc"
 
-	{ ECPGtrans(__LINE__, NULL, "commit");}
-#line 31 "indicators.pgc"
+	{ ECPGtrans(__LINE__, NULL, "commit work");}
+#line 30 "indicators.pgc"
 
 
 	/* use indicators to get information about selects */
-	{ ECPGdo(__LINE__, 0, 1, NULL, "select  val  from test where id = 1  ", ECPGt_EOIT, 
+	{ ECPGdo(__LINE__, 0, 1, NULL, 0, ECPGst_normal, "select val from indicator_test where id = 1", ECPGt_EOIT, 
 	ECPGt_int,&(intvar),(long)1,(long)1,sizeof(int), 
 	ECPGt_NO_INDICATOR, NULL , 0L, 0L, 0L, ECPGt_EORT);}
+#line 33 "indicators.pgc"
+
+	{ ECPGdo(__LINE__, 0, 1, NULL, 0, ECPGst_normal, "select val from indicator_test where id = 2", ECPGt_EOIT, 
+	ECPGt_int,&(intvar),(long)1,(long)1,sizeof(int), 
+	ECPGt_int,&(nullind),(long)1,(long)1,sizeof(int), ECPGt_EORT);}
 #line 34 "indicators.pgc"
 
-	{ ECPGdo(__LINE__, 0, 1, NULL, "select  val  from test where id = 2  ", ECPGt_EOIT, 
-	ECPGt_int,&(intvar),(long)1,(long)1,sizeof(int), 
-	ECPGt_int,&(nullind),(long)1,(long)1,sizeof(int), ECPGt_EORT);}
-#line 35 "indicators.pgc"
-
 	printf("intvar: %d, nullind: %d\n", intvar, nullind);
-	{ ECPGdo(__LINE__, 0, 1, NULL, "select  val  from test where id = 3  ", ECPGt_EOIT, 
+	{ ECPGdo(__LINE__, 0, 1, NULL, 0, ECPGst_normal, "select val from indicator_test where id = 3", ECPGt_EOIT, 
 	ECPGt_int,&(intvar),(long)1,(long)1,sizeof(int), 
 	ECPGt_int,&(nullind),(long)1,(long)1,sizeof(int), ECPGt_EORT);}
-#line 37 "indicators.pgc"
+#line 36 "indicators.pgc"
 
 	printf("intvar: %d, nullind: %d\n", intvar, nullind);
 
 	/* use indicators for update */
 	intvar = 5; nullind = -1;
-	{ ECPGdo(__LINE__, 0, 1, NULL, "update test set val  =  ?  where id = 1 ", 
+	{ ECPGdo(__LINE__, 0, 1, NULL, 0, ECPGst_normal, "update indicator_test set val = $1  where id = 1", 
 	ECPGt_int,&(intvar),(long)1,(long)1,sizeof(int), 
 	ECPGt_int,&(nullind),(long)1,(long)1,sizeof(int), ECPGt_EOIT, ECPGt_EORT);}
-#line 42 "indicators.pgc"
+#line 41 "indicators.pgc"
 
-	{ ECPGdo(__LINE__, 0, 1, NULL, "select  val  from test where id = 1  ", ECPGt_EOIT, 
+	{ ECPGdo(__LINE__, 0, 1, NULL, 0, ECPGst_normal, "select val from indicator_test where id = 1", ECPGt_EOIT, 
 	ECPGt_int,&(intvar),(long)1,(long)1,sizeof(int), 
 	ECPGt_int,&(nullind),(long)1,(long)1,sizeof(int), ECPGt_EORT);}
-#line 43 "indicators.pgc"
+#line 42 "indicators.pgc"
 
 	printf("intvar: %d, nullind: %d\n", intvar, nullind);
 
-	{ ECPGdo(__LINE__, 0, 1, NULL, "drop table test ", ECPGt_EOIT, ECPGt_EORT);}
-#line 46 "indicators.pgc"
+	{ ECPGdo(__LINE__, 0, 1, NULL, 0, ECPGst_normal, "drop table indicator_test", ECPGt_EOIT, ECPGt_EORT);}
+#line 45 "indicators.pgc"
 
-	{ ECPGtrans(__LINE__, NULL, "commit");}
-#line 47 "indicators.pgc"
+	{ ECPGtrans(__LINE__, NULL, "commit work");}
+#line 46 "indicators.pgc"
 
 
 	{ ECPGdisconnect(__LINE__, "CURRENT");}
-#line 49 "indicators.pgc"
+#line 48 "indicators.pgc"
 
 	return 0;
 }

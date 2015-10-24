@@ -236,7 +236,7 @@ Datum
 rewrite_accum(PG_FUNCTION_ARGS)
 {
 	QUERYTYPE  *acc = (QUERYTYPE *) PG_GETARG_POINTER(0);
-	ArrayType  *qa = (ArrayType *) DatumGetPointer(PG_DETOAST_DATUM_COPY(PG_GETARG_DATUM(1)));
+	ArrayType  *qa = (ArrayType *) PG_DETOAST_DATUM_COPY(PG_GETARG_DATUM(1));
 	QUERYTYPE  *q;
 	QTNode	   *qex,
 			   *subs = NULL,
@@ -250,7 +250,7 @@ rewrite_accum(PG_FUNCTION_ARGS)
 	if (acc == NULL || PG_ARGISNULL(0))
 	{
 		acc = (QUERYTYPE *) MEMALLOC(AggMemory, sizeof(QUERYTYPE));
-		acc->len = HDRSIZEQT;
+		SET_VARSIZE(acc, HDRSIZEQT);
 		acc->size = 0;
 	}
 
@@ -287,7 +287,7 @@ rewrite_accum(PG_FUNCTION_ARGS)
 
 	if (!acc->size)
 	{
-		if (acc->len > HDRSIZEQT)
+		if (VARSIZE(acc) > HDRSIZEQT)
 		{
 			pfree(elemsp);
 			PG_RETURN_POINTER(acc);
@@ -328,7 +328,7 @@ rewrite_accum(PG_FUNCTION_ARGS)
 		else
 		{
 			acc = (QUERYTYPE *) MEMALLOC(AggMemory, HDRSIZEQT * 2);
-			acc->len = HDRSIZEQT * 2;
+			SET_VARSIZE(acc, HDRSIZEQT * 2);
 			acc->size = 0;
 		}
 	}
@@ -353,12 +353,12 @@ rewrite_finish(PG_FUNCTION_ARGS)
 	if (acc == NULL || PG_ARGISNULL(0) || acc->size == 0)
 	{
 		acc = (QUERYTYPE *) palloc(sizeof(QUERYTYPE));
-		acc->len = HDRSIZEQT;
+		SET_VARSIZE(acc, HDRSIZEQT);
 		acc->size = 0;
 	}
 
-	rewrited = (QUERYTYPE *) palloc(acc->len);
-	memcpy(rewrited, acc, acc->len);
+	rewrited = (QUERYTYPE *) palloc(VARSIZE(acc));
+	memcpy(rewrited, acc, VARSIZE(acc));
 	pfree(acc);
 
 	PG_RETURN_POINTER(rewrited);
@@ -369,7 +369,7 @@ Datum		tsquery_rewrite(PG_FUNCTION_ARGS);
 Datum
 tsquery_rewrite(PG_FUNCTION_ARGS)
 {
-	QUERYTYPE  *query = (QUERYTYPE *) DatumGetPointer(PG_DETOAST_DATUM_COPY(PG_GETARG_DATUM(0)));
+	QUERYTYPE  *query = (QUERYTYPE *) PG_DETOAST_DATUM_COPY(PG_GETARG_DATUM(0));
 	text	   *in = PG_GETARG_TEXT_P(1);
 	QUERYTYPE  *rewrited = query;
 	QTNode	   *tree;
@@ -429,8 +429,8 @@ tsquery_rewrite(PG_FUNCTION_ARGS)
 
 			if (!isnull)
 			{
-				QUERYTYPE  *qtex = (QUERYTYPE *) DatumGetPointer(PG_DETOAST_DATUM(qdata));
-				QUERYTYPE  *qtsubs = (QUERYTYPE *) DatumGetPointer(PG_DETOAST_DATUM(sdata));
+				QUERYTYPE  *qtex = (QUERYTYPE *) PG_DETOAST_DATUM(qdata);
+				QUERYTYPE  *qtsubs = (QUERYTYPE *) PG_DETOAST_DATUM(sdata);
 				QTNode	   *qex,
 						   *qsubs = NULL;
 
@@ -481,7 +481,7 @@ tsquery_rewrite(PG_FUNCTION_ARGS)
 	}
 	else
 	{
-		rewrited->len = HDRSIZEQT;
+		SET_VARSIZE(rewrited, HDRSIZEQT);
 		rewrited->size = 0;
 	}
 
@@ -497,9 +497,9 @@ Datum		tsquery_rewrite_query(PG_FUNCTION_ARGS);
 Datum
 tsquery_rewrite_query(PG_FUNCTION_ARGS)
 {
-	QUERYTYPE  *query = (QUERYTYPE *) DatumGetPointer(PG_DETOAST_DATUM_COPY(PG_GETARG_DATUM(0)));
-	QUERYTYPE  *ex = (QUERYTYPE *) DatumGetPointer(PG_DETOAST_DATUM(PG_GETARG_DATUM(1)));
-	QUERYTYPE  *subst = (QUERYTYPE *) DatumGetPointer(PG_DETOAST_DATUM(PG_GETARG_DATUM(2)));
+	QUERYTYPE  *query = (QUERYTYPE *) PG_DETOAST_DATUM_COPY(PG_GETARG_DATUM(0));
+	QUERYTYPE  *ex = (QUERYTYPE *) PG_DETOAST_DATUM(PG_GETARG_DATUM(1));
+	QUERYTYPE  *subst = (QUERYTYPE *) PG_DETOAST_DATUM(PG_GETARG_DATUM(2));
 	QUERYTYPE  *rewrited = query;
 	QTNode	   *tree,
 			   *qex,
@@ -529,7 +529,7 @@ tsquery_rewrite_query(PG_FUNCTION_ARGS)
 
 	if (!tree)
 	{
-		rewrited->len = HDRSIZEQT;
+		SET_VARSIZE(rewrited, HDRSIZEQT);
 		rewrited->size = 0;
 		PG_FREE_IF_COPY(ex, 1);
 		PG_FREE_IF_COPY(subst, 2);

@@ -16,14 +16,14 @@ include $(top_builddir)/src/Makefile.global
 all: ipcclean
 
 ipcclean: ipcclean.sh
-	cp $< $@
+	cp -f $< $@
 	chmod a+x $@
 
 install: all installdirs
 	$(INSTALL_SCRIPT) ipcclean '$(DESTDIR)$(bindir)/ipcclean'
 
 installdirs:
-	$(mkinstalldirs) '$(DESTDIR)$(bindir)'
+	$(MKDIR_P) '$(DESTDIR)$(bindir)'
 
 uninstall:
 	rm -f '$(DESTDIR)$(bindir)/ipcclean'

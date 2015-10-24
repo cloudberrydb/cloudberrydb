@@ -1,0 +1,69 @@
+GP START
+========
+
+HA
+===
+
+Start segment
+=============
+
+if utility mode:
+   option="-i -p %d -c gp_role=utility" % pgport
+else:
+   option="-i -p %d" % pgport
+
+waitflag = (wait ? "-w" : "")
+
+
+"PGPORT=%d GPHOME/bin/pg_ctl start -D %s -l %s.log -o \"%s\" %s >> %s.log 2>&1" % 
+(port, datadir, datadir, option, waitflag, datadir)
+
+
+
+Start master QD
+=====================
+
+1.  kill gpsyncmaster
+
+2.  start master QD
+
+waitflag = (wait ? "-w" : "")
+
+#  gpstart -R option start in restricted mode.  Only users with superuser privilege are allowed to connect.
+if num_restrict_conn > 0:
+    option = "-c superuser_reserved_connections=%d " % num_restrict_conn
+fi
+
+if standby_qd not start:
+    option += "-y "
+fi
+
+if utility mode:
+    option += " -i -p %d -c gp_role=utility" % pgport
+else:
+    option += " -i -E -p %d" % pgport
+fi
+
+
+"PGPORT=%d GPHOME/bin/pg_ctl start -D %s -l %s.log -o \"%s\" %s >> %s.log 2>&1" % 
+(port, datadir, datadir, option, waitflag, datadir)
+
+
+
+Start Standby Sync master
+=========================
+
+$GPHOME/bin/gpsyncmaster -p %d -D %s -i >> %s.log 2>&1 &" % (pgport, datadir, datadir)
+
+
+
+MA
+===
+
+1. Start QD in utility mode
+2. select * from gp_configuration by dbid
+3. show max_connection (for -R option,   num_restricted_conn = "show max_connection")
+3. Stop QD
+4. Start valid Segment
+5. Start QD
+6. Start Standby QD

@@ -1,0 +1,278 @@
+<!--
+$PostgreSQL: pgsql/doc/src/sgml/ref/alter_resource_queue.sgml,v 1.4.2.1 2006/10/06 13:15:10 dhutchinson Exp $
+PostgreSQL documentation
+-->
+
+<refentry id="SQL-ALTERRESOURCEQUEUE">
+ <refmeta>
+  <refentrytitle id="sql-alterresourcequeue-title">ALTER RESOURCE QUEUE</refentrytitle>
+  <refmiscinfo>SQL - Language Statements</refmiscinfo>
+ </refmeta>
+
+ <refnamediv>
+  <refname>ALTER RESOURCE QUEUE</refname>
+  <refpurpose>change attributes of a resource queue</refpurpose>
+ </refnamediv>
+
+ <indexterm zone="sql-alterresourcequeue">
+  <primary>ALTER RESOURCE QUEUE</primary>
+ </indexterm>
+
+ <refsynopsisdiv>
+<synopsis>
+
+ALTER RESOURCE QUEUE name WITH ( queue_attribute=value [, ... ] ) 
+where queue_attribute is:
+   ACTIVE_STATEMENTS=integer
+   MEMORY_LIMIT='memory_units'
+   MAX_COST=float
+   COST_OVERCOMMIT={TRUE|FALSE}
+   MIN_COST=float
+   PRIORITY={MIN|LOW|MEDIUM|HIGH|MAX}
+
+ALTER RESOURCE QUEUE name WITHOUT ( queue_attribute=value [, ... ] ) 
+where queue_attribute is:
+   ACTIVE_STATEMENTS
+   MEMORY_LIMIT
+   MAX_COST
+   COST_OVERCOMMIT
+   MIN_COST
+
+   Note: A resource queue must have either an ACTIVE_STATEMENTS 
+   or a MAX_COST value. Do not remove both these queue_attributes 
+   from a resource queue.
+
+</synopsis>
+ </refsynopsisdiv>
+
+ <refsect1>
+  <title>Description</title>
+
+  <para>
+   ALTER RESOURCE QUEUE changes the limits of a resource queue. 
+   Only a superuser can alter a resource queue. A resource queue 
+   must have either an ACTIVE_STATEMENTS or a MAX_COST value 
+   (or it can have both). You can also set or reset priority for 
+   a resource queue to control the relative share of available CPU 
+   resources used by queries associated with the queue, or memory 
+   limit of a resource queue to control the amount of memory that 
+   all queries submitted through the queue can consume on a segment host.
+  </para>
+
+  <para>
+   ALTER RESOURCE QUEUE WITHOUT removes the specified limits on 
+   a resource that were previously set. A resource queue must have 
+   either an ACTIVE_STATEMENTS or a MAX_COST value. Do not remove both 
+   these queue_attributes from a resource queue.
+
+  </para>
+
+  </refsect1>
+
+ <refsect1>
+  <title>Parameters</title>
+
+    <variablelist>
+     <varlistentry>
+      <term><replaceable class="parameter">name</replaceable></term>
+      <listitem>
+       <para>
+        The name of the resource queue.
+       </para>
+      </listitem>
+     </varlistentry>
+
+     <varlistentry>
+      <term><literal>ACTIVE_STATEMENTS</literal> <replaceable class="parameter">integer</replaceable></term>
+       <listitem>
+       <para>
+        Resource queues with an <literal>ACTIVE_STATEMENTS</literal> threshold
+        limit the number of queries that can be executed by roles assigned 
+        to that queue. It controls the number of active queries that are 
+        allowed to run at the same time. The value for <literal>ACTIVE_STATEMENTS</literal> 
+        should be an integer greater than 0, or -1. A setting of -1 means no 
+        <literal>ACTIVE_STATEMENTS</literal> limit.
+      </para>
+      </listitem>
+     </varlistentry>
+
+<varlistentry>
+      <term><literal>MEMORY_LIMIT</literal> <replaceable class="parameter">float</replaceable></term>
+       <listitem>
+       <para>
+        Sets the total memory quota for all statements submitted from users 
+        in this resource queue. Memory units can be specified in kB, MB or GB. 
+        The minimum memory quota for a resource queue is 10MB. There is no maximum; 
+        however the upper boundary at query execution time is limited by the physical 
+        memory of a segment host. The default value is no limit (-1).
+       </para>
+      </listitem>
+     </varlistentry>
+
+     <varlistentry>
+      <term><literal>MAX_COST</literal> <replaceable class="parameter">float</replaceable></term>
+       <listitem>
+       <para>
+        Resource queues with a <literal>MAX_COST</literal> limit the total cost of 
+        queries that can be executed by roles assigned to that queue. Cost 
+        is measured in the estimated total cost for the query as determined 
+        by the query planner (as shown in the <command>EXPLAIN</command> output for a query). 
+        Therefore, an administrator must be familiar with the queries typically 
+        executed on the system in order to set an appropriate cost threshold for 
+        a queue. Cost is measured in units of disk page fetches; 1.0 equals one 
+        sequential disk page read. The value for <literal>MAX_COST</literal> 
+        is specified as a floating point number (for example 100.0) or can also be 
+        specified as an exponent (for example 1e+2). A value of -1.0 means no
+        <literal>MAX_COST</literal> limit.
+       </para>
+      </listitem>
+     </varlistentry>
+
+     <varlistentry>
+      <term><literal>MIN_COST</literal> <replaceable class="parameter">float</replaceable></term>
+       <listitem>
+       <para>
+        If a Resource queue has <literal>MIN_COST</literal> &gt; 0 
+        any query whose cost is &lt; this value s not queued i.e it is ignored
+        for resource scheduling purposes.
+       </para>
+
+       <para>
+        A value of 0.0 means all no queries are ignored. This is the default.
+       </para>
+      </listitem>
+     </varlistentry>
+
+     <varlistentry>
+      <term><literal>COST_OVERCOMMIT</literal></term>
+       <listitem>
+       <para>
+       These clauses determine whether the <literal>resource queue</literal>
+       will allow statements whose potential <literal>cost</literal> is 
+       larger than the queue's <literal>costlimit</literal> to execute.
+       </para>
+       <para>
+       In the default <literal>COST_OVERCOMMIT=FALSE</literal> case, such statements
+       produce an error. If <literal>COST_OVERCOMMIT</literal> is enabled for the 
+       queue, then they will be allowed to run when there are no other
+       statements in the queue.
+       </para>
+       </listitem>
+     </varlistentry>
+
+     </variablelist>
+ </refsect1> 
+
+ <refsect1>
+  <title>Notes</title>
+  <para>
+   To enable the resource scheduling and workload management feature,
+   you must set the <literal>postgresql.conf</literal> parameter 
+   <literal>resource_scheduler</literal> to <literal>on</literal>.
+  </para>
+
+  <para>
+   The <literal>threshold</literal> changes are effective immediately. 
+   However, alterations to a <literal>resource queue</literal> that is in use 
+   are not permitted.
+  </para>
+
+
+  <para>
+   Use <xref linkend="SQL-CREATERESOURCEQUEUE" endterm="SQL-CREATERESOURCEQUEUE-title"> to
+   create a new resource queue, and <xref linkend="SQL-DROPRESOURCEQUEUE"
+   endterm="SQL-DROPRESOURCEQUEUE-title"> to remove a resource queue.  
+  </para>
+
+  <para>
+   Use <xref linkend="SQL-ALTERROLE" endterm="SQL-ALTERROLE-title"> 
+   to add or remove users from a resource queue.  
+  </para>
+
+  <para>
+   Use the <literal>pg_resqueue</literal> system catalog table to look up 
+   information about an existing resource queue.  
+  </para>
+
+
+   </refsect1>
+
+ <refsect1>
+  <title>Examples</title>
+
+  <para>
+   Set a resource queue's active query limit to 20:
+<programlisting>
+ALTER RESOURCE QUEUE myqueue WITH (ACTIVE_STATEMENTS=20);
+</programlisting>
+  </para>
+
+  <para>
+   Set a resource queue's query cost limit to 3000.0:
+<programlisting>
+ALTER RESOURCE QUEUE webusers WITH (COSTLIMIT=3000.0);
+</programlisting>
+  </para>
+
+  <para>
+   Clear the query cost limit on a resource queue (no cost limit):
+
+<programlisting>
+ALTER RESOURCE QUEUE powerusers WITH (COSTLIMIT=-1.0);
+</programlisting>
+  </para>
+
+  <para> 
+   Change both the active query and cost limits for a resource queue:
+<programlisting>
+ALTER RESOURCE QUEUE myqueue WITH (ACTIVE_STATEMENTS=30, MAX_COST=5000.00);
+</programlisting>
+  </para>
+
+  <para>
+   Remove the MAX_COST and MEMORY_LIMIT limits from a resource queue:
+<programlisting>
+ALTER RESOURCE QUEUE myqueue WITHOUT (MAX_COST, MEMORY_LIMIT);
+</programlisting>
+  </para>
+
+
+ </refsect1>
+ 
+ <refsect1>
+  <title>Compatibility</title>
+
+  <para>
+   There is no <command>ALTER RESOURCE QUEUE</command> in the SQL standard.
+   Resource scheduling is a feature of Bizgres and Greenplum Database.
+  </para>
+   </refsect1>
+
+ <refsect1>
+  <title>See Also</title>
+
+  <simplelist type="inline">
+   <member><xref linkend="sql-createrole" endterm="sql-createrole-title"></member>
+   <member><xref linkend="sql-alterrole" endterm="sql-alterrole-title"></member>
+   <member><xref linkend="sql-createresourcequeue" endterm="sql-createresourcequeue-title"></member>
+   <member><xref linkend="sql-dropresourcequeue" endterm="sql-dropresourcequeue-title"></member>
+     </simplelist>
+ </refsect1>
+</refentry>
+
+<!-- Keep this comment at the end of the file
+Local variables:
+mode: sgml
+sgml-omittag:nil
+sgml-shorttag:t
+sgml-minimize-attributes:nil
+sgml-always-quote-attributes:t
+sgml-indent-step:1
+sgml-indent-data:t
+sgml-parent-document:nil
+sgml-default-dtd-file:"../reference.ced"
+sgml-exposed-tags:nil
+sgml-local-catalogs:"/usr/lib/sgml/catalog"
+sgml-local-ecat-files:nil
+End:
+-->

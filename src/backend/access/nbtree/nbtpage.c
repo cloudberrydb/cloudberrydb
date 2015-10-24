@@ -4,7 +4,7 @@
  *	  BTree-specific page management code for the Postgres btree access
  *	  method.
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2008, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -28,7 +28,9 @@
 #include "storage/freespace.h"
 #include "storage/lmgr.h"
 #include "utils/inval.h"
-
+#include "access/heapam.h"	// For RelationFetchGpRelationNodeForXLog.
+#include "utils/guc.h"
+#include "cdb/cdbfilerepprimary.h"
 
 /*
  *	_bt_initmetapage() -- Fill a page buffer with a correct metapage image
@@ -58,6 +60,43 @@ _bt_initmetapage(Page page, BlockNumber rootbknum, uint32 level)
 	 */
 	((PageHeader) page)->pd_lower =
 		((char *) metad + sizeof(BTMetaPageData)) - (char *) page;
+}
+
+/*
+ * _bt_lognewpage() -- create an XLOG entry for a new page of the btree.
+ */
+void
+_bt_lognewpage(Relation index,
+			   Page newPage,
+			   BlockNumber blockNo)
+{
+	/* We use the heap NEWPAGE record type for this */
+	xl_heap_newpage xlrec;
+	XLogRecPtr	recptr;
+	XLogRecData rdata[2];
+	
+	/* NO ELOG(ERROR) from here till newpage op is logged */
+	START_CRIT_SECTION();
+	
+	xl_heapnode_set(&xlrec.heapnode, index);
+	xlrec.blkno = blockNo;
+	
+	rdata[0].data = (char *) &xlrec;
+	rdata[0].len = SizeOfHeapNewpage;
+	rdata[0].buffer = InvalidBuffer;
+	rdata[0].next = &(rdata[1]);
+	
+	rdata[1].data = (char *) newPage;
+	rdata[1].len = BLCKSZ;
+	rdata[1].buffer = InvalidBuffer;
+	rdata[1].next = NULL;
+	
+	recptr = XLogInsert(RM_HEAP_ID, XLOG_HEAP_NEWPAGE, rdata);
+	
+	PageSetLSN(newPage, recptr);
+	PageSetTLI(newPage, ThisTimeLineID);
+	
+	END_CRIT_SECTION();
 }
 
 /*
@@ -100,6 +139,8 @@ _bt_getroot(Relation rel, int access)
 	BlockNumber rootblkno;
 	uint32		rootlevel;
 	BTMetaPageData *metad;
+
+	MIRROREDLOCK_BUFMGR_MUST_ALREADY_BE_HELD;
 
 	/*
 	 * Try to use previously-cached metapage data to find the root.  This
@@ -174,6 +215,9 @@ _bt_getroot(Relation rel, int access)
 			return InvalidBuffer;
 		}
 
+		// Fetch gp_persistent_relation_node information that will be added to XLOG record.
+		RelationFetchGpRelationNodeForXLog(rel);
+		
 		/* trade in our read lock for a write lock */
 		LockBuffer(metabuf, BUFFER_LOCK_UNLOCK);
 		LockBuffer(metabuf, BT_WRITE);
@@ -227,7 +271,7 @@ _bt_getroot(Relation rel, int access)
 			XLogRecPtr	recptr;
 			XLogRecData rdata;
 
-			xlrec.node = rel->rd_node;
+			xl_btreenode_set(&(xlrec.btreenode), rel);
 			xlrec.rootblk = rootblkno;
 			xlrec.level = 0;
 
@@ -293,14 +337,14 @@ _bt_getroot(Relation rel, int access)
 
 			/* it's dead, Jim.  step right one page */
 			if (P_RIGHTMOST(rootopaque))
-				elog(ERROR, "no live root page found in \"%s\"",
+				elog(ERROR, "no live root page found in index \"%s\"",
 					 RelationGetRelationName(rel));
 			rootblkno = rootopaque->btpo_next;
 		}
 
 		/* Note: can't check btpo.level on deleted pages */
 		if (rootopaque->btpo.level != rootlevel)
-			elog(ERROR, "root page %u of \"%s\" has level %u, expected %u",
+			elog(ERROR, "root page %u of index \"%s\" has level %u, expected %u",
 				 rootblkno, RelationGetRelationName(rel),
 				 rootopaque->btpo.level, rootlevel);
 	}
@@ -338,6 +382,8 @@ _bt_gettrueroot(Relation rel)
 	BlockNumber rootblkno;
 	uint32		rootlevel;
 	BTMetaPageData *metad;
+
+	MIRROREDLOCK_BUFMGR_MUST_ALREADY_BE_HELD;
 
 	/*
 	 * We don't try to use cached metapage data here, since (a) this path is
@@ -395,14 +441,14 @@ _bt_gettrueroot(Relation rel)
 
 		/* it's dead, Jim.  step right one page */
 		if (P_RIGHTMOST(rootopaque))
-			elog(ERROR, "no live root page found in \"%s\"",
+			elog(ERROR, "no live root page found in index \"%s\"",
 				 RelationGetRelationName(rel));
 		rootblkno = rootopaque->btpo_next;
 	}
 
 	/* Note: can't check btpo.level on deleted pages */
 	if (rootopaque->btpo.level != rootlevel)
-		elog(ERROR, "root page %u of \"%s\" has level %u, expected %u",
+		elog(ERROR, "root page %u of index \"%s\" has level %u, expected %u",
 			 rootblkno, RelationGetRelationName(rel),
 			 rootopaque->btpo.level, rootlevel);
 
@@ -441,7 +487,8 @@ _bt_checkpage(Relation rel, Buffer buf)
 				 errmsg("index \"%s\" contains corrupted page at block %u",
 						RelationGetRelationName(rel),
 						BufferGetBlockNumber(buf)),
-				 errhint("Please REINDEX it.")));
+				 errhint("Please REINDEX it."),
+				 errSendAlert(true)));
 }
 
 /*
@@ -459,6 +506,8 @@ Buffer
 _bt_getbuf(Relation rel, BlockNumber blkno, int access)
 {
 	Buffer		buf;
+
+	MIRROREDLOCK_BUFMGR_MUST_ALREADY_BE_HELD;
 
 	if (blkno != P_NEW)
 	{
@@ -575,6 +624,8 @@ _bt_relandgetbuf(Relation rel, Buffer obuf, BlockNumber blkno, int access)
 {
 	Buffer		buf;
 
+	MIRROREDLOCK_BUFMGR_MUST_ALREADY_BE_HELD;
+
 	Assert(blkno != P_NEW);
 	if (BufferIsValid(obuf))
 		LockBuffer(obuf, BUFFER_LOCK_UNLOCK);
@@ -590,8 +641,10 @@ _bt_relandgetbuf(Relation rel, Buffer obuf, BlockNumber blkno, int access)
  * Lock and pin (refcount) are both dropped.
  */
 void
-_bt_relbuf(Relation rel, Buffer buf)
+_bt_relbuf(Relation rel __attribute__((unused)), Buffer buf)
 {
+	MIRROREDLOCK_BUFMGR_MUST_ALREADY_BE_HELD;
+
 	UnlockReleaseBuffer(buf);
 }
 
@@ -650,10 +703,18 @@ _bt_page_recyclable(Page page)
  */
 void
 _bt_delitems(Relation rel, Buffer buf,
-			 OffsetNumber *itemnos, int nitems)
+			 OffsetNumber *itemnos, int nitems,
+			 bool inVacuum)
 {
-	Page		page = BufferGetPage(buf);
+	Page		page;
 	BTPageOpaque opaque;
+
+	MIRROREDLOCK_BUFMGR_MUST_ALREADY_BE_HELD;
+
+	page = BufferGetPage(buf);
+
+	// Fetch gp_persistent_relation_node information that will be added to XLOG record.
+	RelationFetchGpRelationNodeForXLog(rel);
 
 	/* No ereport(ERROR) until changes are logged */
 	START_CRIT_SECTION();
@@ -662,11 +723,12 @@ _bt_delitems(Relation rel, Buffer buf,
 	PageIndexMultiDelete(page, itemnos, nitems);
 
 	/*
-	 * We can clear the vacuum cycle ID since this page has certainly been
-	 * processed by the current vacuum scan.
+	 * If this is within VACUUM, we can clear the vacuum cycleID since this
+	 * page has certainly been processed by the current vacuum scan.
 	 */
 	opaque = (BTPageOpaque) PageGetSpecialPointer(page);
-	opaque->btpo_cycleid = 0;
+	if (inVacuum)
+		opaque->btpo_cycleid = 0;
 
 	/*
 	 * Mark the page as not containing any LP_DELETE items.  This is not
@@ -686,7 +748,7 @@ _bt_delitems(Relation rel, Buffer buf,
 		XLogRecPtr	recptr;
 		XLogRecData rdata[2];
 
-		xlrec.node = rel->rd_node;
+		xl_btreenode_set(&(xlrec.btreenode), rel);
 		xlrec.block = BufferGetBlockNumber(buf);
 
 		rdata[0].data = (char *) &xlrec;
@@ -749,6 +811,8 @@ _bt_parent_deletion_safe(Relation rel, BlockNumber target, BTStack stack)
 	Page		page;
 	BTPageOpaque opaque;
 
+	MIRROREDLOCK_BUFMGR_MUST_ALREADY_BE_HELD;
+
 	/*
 	 * In recovery mode, assume the deletion being replayed is valid.  We
 	 * can't always check it because we won't have a full search stack,
@@ -761,7 +825,7 @@ _bt_parent_deletion_safe(Relation rel, BlockNumber target, BTStack stack)
 	ItemPointerSet(&(stack->bts_btentry.t_tid), target, P_HIKEY);
 	pbuf = _bt_getstackbuf(rel, stack, BT_READ);
 	if (pbuf == InvalidBuffer)
-		elog(ERROR, "failed to re-find parent key in \"%s\" for deletion target page %u",
+		elog(ERROR, "failed to re-find parent key in index \"%s\" for deletion target page %u",
 			 RelationGetRelationName(rel), target);
 	parent = stack->bts_blkno;
 	poffset = stack->bts_offset;
@@ -859,6 +923,11 @@ _bt_pagedel(Relation rel, Buffer buf, BTStack stack, bool vacuum_full)
 	BTMetaPageData *metad = NULL;
 	Page		page;
 	BTPageOpaque opaque;
+
+	MIRROREDLOCK_BUFMGR_MUST_ALREADY_BE_HELD;
+
+	// Fetch gp_persistent_relation_node information that will be added to XLOG record.
+	RelationFetchGpRelationNodeForXLog(rel);
 
 	/*
 	 * We can never delete rightmost pages nor root pages.	While at it, check
@@ -1019,7 +1088,7 @@ _bt_pagedel(Relation rel, Buffer buf, BTStack stack, bool vacuum_full)
 		return 0;
 	}
 	if (opaque->btpo_prev != leftsib)
-		elog(ERROR, "left link changed unexpectedly in block %u of \"%s\"",
+		elog(ERROR, "left link changed unexpectedly in block %u of index \"%s\"",
 			 target, RelationGetRelationName(rel));
 
 	/*
@@ -1027,6 +1096,13 @@ _bt_pagedel(Relation rel, Buffer buf, BTStack stack, bool vacuum_full)
 	 */
 	rightsib = opaque->btpo_next;
 	rbuf = _bt_getbuf(rel, rightsib, BT_WRITE);
+	page = BufferGetPage(rbuf);
+	opaque = (BTPageOpaque) PageGetSpecialPointer(page);
+	if (opaque->btpo_prev != target)
+		elog(ERROR, "right sibling's left-link doesn't match: "
+			 "block %u links to %u instead of expected %u in index \"%s\"",
+			 rightsib, opaque->btpo_prev, target,
+			 RelationGetRelationName(rel));
 
 	/*
 	 * Next find and write-lock the current parent of the target page. This is
@@ -1035,7 +1111,7 @@ _bt_pagedel(Relation rel, Buffer buf, BTStack stack, bool vacuum_full)
 	ItemPointerSet(&(stack->bts_btentry.t_tid), target, P_HIKEY);
 	pbuf = _bt_getstackbuf(rel, stack, BT_WRITE);
 	if (pbuf == InvalidBuffer)
-		elog(ERROR, "failed to re-find parent key in \"%s\" for deletion target page %u",
+		elog(ERROR, "failed to re-find parent key in index \"%s\" for deletion target page %u",
 			 RelationGetRelationName(rel), target);
 	parent = stack->bts_blkno;
 	poffset = stack->bts_offset;
@@ -1056,7 +1132,7 @@ _bt_pagedel(Relation rel, Buffer buf, BTStack stack, bool vacuum_full)
 		if (poffset == P_FIRSTDATAKEY(opaque))
 			parent_half_dead = true;
 		else
-			elog(ERROR, "failed to delete rightmost child %u of %u in \"%s\"",
+			elog(ERROR, "failed to delete rightmost child %u of block %u in index \"%s\"",
 				 target, parent, RelationGetRelationName(rel));
 	}
 	else
@@ -1105,6 +1181,38 @@ _bt_pagedel(Relation rel, Buffer buf, BTStack stack, bool vacuum_full)
 	}
 
 	/*
+	 * Check that the parent-page index items we're about to delete/overwrite
+	 * contain what we expect.  This can fail if the index has become
+	 * corrupt for some reason.  We want to throw any error before entering
+	 * the critical section --- otherwise it'd be a PANIC.
+	 *
+	 * The test on the target item is just an Assert because _bt_getstackbuf
+	 * should have guaranteed it has the expected contents.  The test on the
+	 * next-child downlink is known to sometimes fail in the field, though.
+	 */
+	page = BufferGetPage(pbuf);
+	opaque = (BTPageOpaque) PageGetSpecialPointer(page);
+
+#ifdef USE_ASSERT_CHECKING
+	itemid = PageGetItemId(page, poffset);
+	itup = (IndexTuple) PageGetItem(page, itemid);
+	Assert(ItemPointerGetBlockNumber(&(itup->t_tid)) == target);
+#endif
+
+	if (!parent_half_dead)
+	{
+		OffsetNumber nextoffset;
+
+		nextoffset = OffsetNumberNext(poffset);
+		itemid = PageGetItemId(page, nextoffset);
+		itup = (IndexTuple) PageGetItem(page, itemid);
+		if (ItemPointerGetBlockNumber(&(itup->t_tid)) != rightsib)
+			elog(ERROR, "right sibling %u of block %u is not next child %u of block %u in index \"%s\"",
+				 rightsib, target, ItemPointerGetBlockNumber(&(itup->t_tid)),
+				 parent, RelationGetRelationName(rel));
+	}
+
+	/*
 	 * Here we begin doing the deletion.
 	 */
 
@@ -1117,8 +1225,6 @@ _bt_pagedel(Relation rel, Buffer buf, BTStack stack, bool vacuum_full)
 	 * to copy the right sibling's downlink over the target downlink, and then
 	 * delete the following item.
 	 */
-	page = BufferGetPage(pbuf);
-	opaque = (BTPageOpaque) PageGetSpecialPointer(page);
 	if (parent_half_dead)
 	{
 		PageIndexTupleDelete(page, poffset);
@@ -1130,22 +1236,16 @@ _bt_pagedel(Relation rel, Buffer buf, BTStack stack, bool vacuum_full)
 
 		itemid = PageGetItemId(page, poffset);
 		itup = (IndexTuple) PageGetItem(page, itemid);
-		Assert(ItemPointerGetBlockNumber(&(itup->t_tid)) == target);
 		ItemPointerSet(&(itup->t_tid), rightsib, P_HIKEY);
 
 		nextoffset = OffsetNumberNext(poffset);
-		/* This part is just for double-checking */
-		itemid = PageGetItemId(page, nextoffset);
-		itup = (IndexTuple) PageGetItem(page, itemid);
-		if (ItemPointerGetBlockNumber(&(itup->t_tid)) != rightsib)
-			elog(PANIC, "right sibling is not next child in \"%s\"",
-				 RelationGetRelationName(rel));
 		PageIndexTupleDelete(page, nextoffset);
 	}
 
 	/*
 	 * Update siblings' side-links.  Note the target page's side-links will
-	 * continue to point to the siblings.
+	 * continue to point to the siblings.  Asserts here are just rechecking
+	 * things we already verified above.
 	 */
 	if (BufferIsValid(lbuf))
 	{
@@ -1196,8 +1296,7 @@ _bt_pagedel(Relation rel, Buffer buf, BTStack stack, bool vacuum_full)
 		XLogRecData rdata[5];
 		XLogRecData *nextrdata;
 
-		xlrec.target.node = rel->rd_node;
-		ItemPointerSet(&(xlrec.target.tid), parent, poffset);
+		xl_btreetid_set(&(xlrec.target), rel, parent, poffset);
 		xlrec.deadblk = target;
 		xlrec.leftblk = leftsib;
 		xlrec.rightblk = rightsib;

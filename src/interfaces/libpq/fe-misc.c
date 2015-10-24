@@ -19,11 +19,11 @@
  * routines.
  *
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2012, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/interfaces/libpq/fe-misc.c,v 1.130 2006/10/04 00:30:13 momjian Exp $
+ *	  src/interfaces/libpq/fe-misc.c
  *
  *-------------------------------------------------------------------------
  */
@@ -66,6 +66,28 @@ static int pqSocketCheck(PGconn *conn, int forRead, int forWrite,
 			  time_t end_time);
 static int	pqSocketPoll(int sock, int forRead, int forWrite, time_t end_time);
 
+/*
+ * PQlibVersion: return the libpq version number
+ */
+int
+PQlibVersion(void)
+{
+	return PG_VERSION_NUM;
+}
+
+/*
+ * fputnbytes: print exactly N bytes to a file
+ *
+ * We avoid using %.*s here because it can misbehave if the data
+ * is not valid in what libc thinks is the prevailing encoding.
+ */
+static void
+fputnbytes(FILE *f, const char *str, size_t n)
+{
+	while (n-- > 0)
+		fputc(*str++, f);
+}
+
 
 /*
  * pqGetc: get 1 character from the connection
@@ -106,14 +128,14 @@ pqPutc(char c, PGconn *conn)
 
 
 /*
- * pqGets:
+ * pqGets[_append]:
  * get a null-terminated string from the connection,
  * and store it in an expansible PQExpBuffer.
  * If we run out of memory, all of the string is still read,
  * but the excess characters are silently discarded.
  */
-int
-pqGets(PQExpBuffer buf, PGconn *conn)
+static int
+pqGets_internal(PQExpBuffer buf, PGconn *conn, bool resetbuffer)
 {
 	/* Copy conn data to locals for faster search loop */
 	char	   *inBuffer = conn->inBuffer;
@@ -129,7 +151,9 @@ pqGets(PQExpBuffer buf, PGconn *conn)
 
 	slen = inCursor - conn->inCursor;
 
-	resetPQExpBuffer(buf);
+	if (resetbuffer)
+		resetPQExpBuffer(buf);
+
 	appendBinaryPQExpBuffer(buf, inBuffer + conn->inCursor, slen);
 
 	conn->inCursor = ++inCursor;
@@ -139,6 +163,18 @@ pqGets(PQExpBuffer buf, PGconn *conn)
 				buf->data);
 
 	return 0;
+}
+
+int
+pqGets(PQExpBuffer buf, PGconn *conn)
+{
+	return pqGets_internal(buf, conn, true);
+}
+
+int
+pqGets_append(PQExpBuffer buf, PGconn *conn)
+{
+	return pqGets_internal(buf, conn, false);
 }
 
 
@@ -164,7 +200,7 @@ pqPuts(const char *s, PGconn *conn)
 int
 pqGetnchar(char *s, size_t len, PGconn *conn)
 {
-	if (len < 0 || len > (size_t) (conn->inEnd - conn->inCursor))
+	if (len > (size_t) (conn->inEnd - conn->inCursor))
 		return EOF;
 
 	memcpy(s, conn->inBuffer + conn->inCursor, len);
@@ -173,8 +209,37 @@ pqGetnchar(char *s, size_t len, PGconn *conn)
 	conn->inCursor += len;
 
 	if (conn->Pfdebug)
-		fprintf(conn->Pfdebug, "From backend (%lu)> %.*s\n",
-				(unsigned long) len, (int) len, s);
+	{
+		fprintf(conn->Pfdebug, "From backend (%lu)> ", (unsigned long) len);
+		fputnbytes(conn->Pfdebug, s, len);
+		fprintf(conn->Pfdebug, "\n");
+	}
+
+	return 0;
+}
+
+/*
+ * pqSkipnchar:
+ *	skip over len bytes in input buffer.
+ *
+ * Note: this is primarily useful for its debug output, which should
+ * be exactly the same as for pqGetnchar.  We assume the data in question
+ * will actually be used, but just isn't getting copied anywhere as yet.
+ */
+int
+pqSkipnchar(size_t len, PGconn *conn)
+{
+	if (len > (size_t) (conn->inEnd - conn->inCursor))
+		return EOF;
+
+	if (conn->Pfdebug)
+	{
+		fprintf(conn->Pfdebug, "From backend (%lu)> ", (unsigned long) len);
+		fputnbytes(conn->Pfdebug, conn->inBuffer + conn->inCursor, len);
+		fprintf(conn->Pfdebug, "\n");
+	}
+
+	conn->inCursor += len;
 
 	return 0;
 }
@@ -190,7 +255,11 @@ pqPutnchar(const char *s, size_t len, PGconn *conn)
 		return EOF;
 
 	if (conn->Pfdebug)
-		fprintf(conn->Pfdebug, "To backend> %.*s\n", (int) len, s);
+	{
+		fprintf(conn->Pfdebug, "To backend> ");
+		fputnbytes(conn->Pfdebug, s, len);
+		fprintf(conn->Pfdebug, "\n");
+	}
 
 	return 0;
 }
@@ -278,12 +347,12 @@ pqPutInt(int value, size_t bytes, PGconn *conn)
  * Returns 0 on success, EOF if failed to enlarge buffer
  */
 int
-pqCheckOutBufferSpace(int bytes_needed, PGconn *conn)
+pqCheckOutBufferSpace(size_t bytes_needed, PGconn *conn)
 {
 	int			newsize = conn->outBufSize;
 	char	   *newbuf;
 
-	if (bytes_needed <= newsize)
+	if (bytes_needed <= (size_t) newsize)
 		return 0;
 
 	/*
@@ -296,9 +365,9 @@ pqCheckOutBufferSpace(int bytes_needed, PGconn *conn)
 	do
 	{
 		newsize *= 2;
-	} while (bytes_needed > newsize && newsize > 0);
+	} while (newsize > 0 && bytes_needed > (size_t) newsize);
 
-	if (bytes_needed <= newsize)
+	if (newsize > 0 && bytes_needed <= (size_t) newsize)
 	{
 		newbuf = realloc(conn->outBuffer, newsize);
 		if (newbuf)
@@ -314,9 +383,9 @@ pqCheckOutBufferSpace(int bytes_needed, PGconn *conn)
 	do
 	{
 		newsize += 8192;
-	} while (bytes_needed > newsize && newsize > 0);
+	} while (newsize > 0 && bytes_needed > (size_t) newsize);
 
-	if (bytes_needed <= newsize)
+	if (newsize > 0 && bytes_needed <= (size_t) newsize)
 	{
 		newbuf = realloc(conn->outBuffer, newsize);
 		if (newbuf)
@@ -341,12 +410,12 @@ pqCheckOutBufferSpace(int bytes_needed, PGconn *conn)
  * Returns 0 on success, EOF if failed to enlarge buffer
  */
 int
-pqCheckInBufferSpace(int bytes_needed, PGconn *conn)
+pqCheckInBufferSpace(size_t bytes_needed, PGconn *conn)
 {
 	int			newsize = conn->inBufSize;
 	char	   *newbuf;
 
-	if (bytes_needed <= newsize)
+	if (bytes_needed <= (size_t) newsize)
 		return 0;
 
 	/*
@@ -359,9 +428,9 @@ pqCheckInBufferSpace(int bytes_needed, PGconn *conn)
 	do
 	{
 		newsize *= 2;
-	} while (bytes_needed > newsize && newsize > 0);
+	} while (newsize > 0 && bytes_needed > (size_t) newsize);
 
-	if (bytes_needed <= newsize)
+	if (newsize > 0 && bytes_needed <= (size_t) newsize)
 	{
 		newbuf = realloc(conn->inBuffer, newsize);
 		if (newbuf)
@@ -377,9 +446,9 @@ pqCheckInBufferSpace(int bytes_needed, PGconn *conn)
 	do
 	{
 		newsize += 8192;
-	} while (bytes_needed > newsize && newsize > 0);
+	} while (newsize > 0 && bytes_needed > (size_t) newsize);
 
-	if (bytes_needed <= newsize)
+	if (newsize > 0 && bytes_needed <= (size_t) newsize)
 	{
 		newbuf = realloc(conn->inBuffer, newsize);
 		if (newbuf)
@@ -535,7 +604,6 @@ pqReadData(PGconn *conn)
 {
 	int			someread = 0;
 	int			nread;
-	char		sebuf[256];
 
 	if (conn->sock < 0)
 	{
@@ -572,7 +640,7 @@ pqReadData(PGconn *conn)
 	 */
 	if (conn->inBufSize - conn->inEnd < 8192)
 	{
-		if (pqCheckInBufferSpace(conn->inEnd + 8192, conn))
+		if (pqCheckInBufferSpace(conn->inEnd + (size_t) 8192, conn))
 		{
 			/*
 			 * We don't insist that the enlarge worked, but we need some room
@@ -604,9 +672,7 @@ retry3:
 		if (SOCK_ERRNO == ECONNRESET)
 			goto definitelyFailed;
 #endif
-		printfPQExpBuffer(&conn->errorMessage,
-				   libpq_gettext("could not receive data from server: %s\n"),
-						  SOCK_STRERROR(SOCK_ERRNO, sebuf, sizeof(sebuf)));
+		/* pqsecure_read set the error message for us */
 		return -1;
 	}
 	if (nread > 0)
@@ -666,6 +732,11 @@ retry3:
 			/* ready for read */
 			break;
 		default:
+			printfPQExpBuffer(&conn->errorMessage,
+							  libpq_gettext(
+								"server closed the connection unexpectedly\n"
+				   "\tThis probably means the server terminated abnormally\n"
+							 "\tbefore or while processing the request.\n"));
 			goto definitelyFailed;
 	}
 
@@ -694,9 +765,7 @@ retry4:
 		if (SOCK_ERRNO == ECONNRESET)
 			goto definitelyFailed;
 #endif
-		printfPQExpBuffer(&conn->errorMessage,
-				   libpq_gettext("could not receive data from server: %s\n"),
-						  SOCK_STRERROR(SOCK_ERRNO, sebuf, sizeof(sebuf)));
+		/* pqsecure_read set the error message for us */
 		return -1;
 	}
 	if (nread > 0)
@@ -707,14 +776,10 @@ retry4:
 
 	/*
 	 * OK, we are getting a zero read even though select() says ready. This
-	 * means the connection has been closed.  Cope.
+	 * means the connection has been closed.  Cope.  Note that errorMessage
+	 * has been set already.
 	 */
 definitelyFailed:
-	printfPQExpBuffer(&conn->errorMessage,
-					  libpq_gettext(
-								"server closed the connection unexpectedly\n"
-				   "\tThis probably means the server terminated abnormally\n"
-							 "\tbefore or while processing the request.\n"));
 	conn->status = CONNECTION_BAD;		/* No more connection to backend */
 	pqsecure_close(conn);
 	closesocket(conn->sock);
@@ -750,17 +815,22 @@ pqSendSome(PGconn *conn, int len)
 	while (len > 0)
 	{
 		int			sent;
-		char		sebuf[256];
 
+#ifndef WIN32
 		sent = pqsecure_write(conn, ptr, len);
+#else
+
+		/*
+		 * Windows can fail on large sends, per KB article Q201213. The
+		 * failure-point appears to be different in different versions of
+		 * Windows, but 64k should always be safe.
+		 */
+		sent = pqsecure_write(conn, ptr, Min(len, 65536));
+#endif
 
 		if (sent < 0)
 		{
-			/*
-			 * Anything except EAGAIN/EWOULDBLOCK/EINTR is trouble. If it's
-			 * EPIPE or ECONNRESET, assume we've lost the backend connection
-			 * permanently.
-			 */
+			/* Anything except EAGAIN/EWOULDBLOCK/EINTR is trouble */
 			switch (SOCK_ERRNO)
 			{
 #ifdef EAGAIN
@@ -774,15 +844,8 @@ pqSendSome(PGconn *conn, int len)
 				case EINTR:
 					continue;
 
-				case EPIPE:
-#ifdef ECONNRESET
-				case ECONNRESET:
-#endif
-					printfPQExpBuffer(&conn->errorMessage,
-									  libpq_gettext(
-								"server closed the connection unexpectedly\n"
-					"\tThis probably means the server terminated abnormally\n"
-							 "\tbefore or while processing the request.\n"));
+				default:
+					/* pqsecure_write set the error message for us */
 
 					/*
 					 * We used to close the socket here, but that's a bad idea
@@ -792,14 +855,6 @@ pqSendSome(PGconn *conn, int len)
 					 * pqReadData finds no more data can be read.  But abandon
 					 * attempt to send data.
 					 */
-					conn->outCount = 0;
-					return -1;
-
-				default:
-					printfPQExpBuffer(&conn->errorMessage,
-						libpq_gettext("could not send data to server: %s\n"),
-							SOCK_STRERROR(SOCK_ERRNO, sebuf, sizeof(sebuf)));
-					/* We don't assume it's a fatal error... */
 					conn->outCount = 0;
 					return -1;
 			}
@@ -1051,6 +1106,7 @@ pqSocketPoll(int sock, int forRead, int forWrite, time_t end_time)
 	FD_ZERO(&except_mask);
 	if (forRead)
 		FD_SET(sock, &input_mask);
+
 	if (forWrite)
 		FD_SET(sock, &output_mask);
 	FD_SET(sock, &except_mask);
@@ -1112,7 +1168,11 @@ PQenv2encoding(void)
 
 	str = getenv("PGCLIENTENCODING");
 	if (str && *str != '\0')
+	{
 		encoding = pg_char_to_encoding(str);
+		if (encoding < 0)
+			encoding = PG_SQL_ASCII;
+	}
 	return encoding;
 }
 
@@ -1139,7 +1199,7 @@ libpq_gettext(const char *msgid)
 		ldir = getenv("PGLOCALEDIR");
 		if (!ldir)
 			ldir = LOCALEDIR;
-		bindtextdomain("libpq", ldir);
+		bindtextdomain(PG_TEXTDOMAIN("libpq"), ldir);
 #ifdef WIN32
 		SetLastError(save_errno);
 #else
@@ -1147,7 +1207,7 @@ libpq_gettext(const char *msgid)
 #endif
 	}
 
-	return dgettext("libpq", msgid);
+	return dgettext(PG_TEXTDOMAIN("libpq"), msgid);
 }
 
 #endif   /* ENABLE_NLS */

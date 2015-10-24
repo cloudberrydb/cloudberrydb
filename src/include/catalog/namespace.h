@@ -4,7 +4,7 @@
  *	  prototypes for functions in backend/catalog/namespace.c
  *
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2008, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * $PostgreSQL: pgsql/src/include/catalog/namespace.h,v 1.42 2006/05/01 23:22:43 tgl Exp $
@@ -58,6 +58,11 @@ extern void DeconstructQualifiedName(List *names,
 						 char **nspname_p,
 						 char **objname_p);
 extern Oid	LookupExplicitNamespace(const char *nspname);
+
+extern void DropTempTableNamespaceForResetSession(Oid namespaceOid);
+extern void SetTempNamespace(Oid namespaceOid);
+extern Oid  ResetTempNamespace(void);
+extern bool TempNamespaceOidIsValid(void);  /* GPDB only:  used by cdbgang.c */
 
 extern Oid	LookupCreationNamespace(const char *nspname);
 extern Oid	QualifiedNameGetCreationNamespace(List *names, char **objname_p);

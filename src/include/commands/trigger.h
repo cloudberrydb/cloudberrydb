@@ -3,7 +3,7 @@
  * trigger.h
  *	  Declarations for trigger handling.
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2008, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * $PostgreSQL: pgsql/src/include/commands/trigger.h,v 1.59 2006/09/04 21:15:56 tgl Exp $
@@ -15,6 +15,9 @@
 
 #include "nodes/execnodes.h"
 #include "nodes/parsenodes.h"
+#include "utils/rel.h"
+#include "storage/buf.h"
+#include "executor/instrument.h"
 
 /*
  * TriggerData is the node type that is passed as fmgr "context" info
@@ -165,7 +168,7 @@ extern void AfterTriggerEndXact(bool isCommit);
 extern void AfterTriggerBeginSubXact(void);
 extern void AfterTriggerEndSubXact(bool isCommit);
 extern void AfterTriggerSetState(ConstraintsSetStmt *stmt);
-extern void AfterTriggerCheckTruncate(List *relids);
+extern bool AfterTriggerPendingOnRel(Oid relid);
 
 
 /*
@@ -184,5 +187,13 @@ extern bool RI_Initial_Check(FkConstraint *fkconstraint,
 #define RI_TRIGGER_NONE 0		/* is not an RI trigger function */
 
 extern int	RI_FKey_trigger_type(Oid tgfoid);
+
+extern HeapTuple ExecCallTriggerFunc(TriggerData *trigdata,
+ 					int tgindx,
+ 					FmgrInfo *finfo,
+ 					Instrumentation *instr,
+ 					MemoryContext per_tuple_context);
+ 
+
 
 #endif   /* TRIGGER_H */

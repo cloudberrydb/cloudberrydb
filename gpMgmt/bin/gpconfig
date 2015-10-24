@@ -1,0 +1,390 @@
+#!/usr/bin/env python
+#
+# Copyright (c) Greenplum Inc 2009. All Rights Reserved. 
+
+import os, sys, re
+
+try:
+    from optparse import Option, OptionParser 
+    from gppylib.gpparseopts import OptParser, OptChecker
+    from gppylib.gparray import GpArray
+    from gppylib.gphostcache import *
+    from gppylib.gplog import *
+    from gppylib.commands.unix import *
+    from gppylib.commands.gp import *
+    from gppylib.db import dbconn
+    from gppylib.userinput import *
+    from pygresql.pg import DatabaseError
+    from gppylib.gpcoverage import GpCoverage
+except ImportError, e:    
+    sys.exit('Cannot import modules.  Please check that you have sourced greenplum_path.sh.  Detail: ' + str(e))
+
+EXECNAME = os.path.split(__file__)[-1]
+
+prohibitedGucs = set(["port", "listen_addresses"])
+longShow = set(["port"])
+
+def parseargs():
+
+    parser = OptParser(option_class=OptChecker)
+    parser.remove_option('-h')
+    parser.add_option('-h', '-?', '--help', action='help')
+    parser.add_option('--verbose', action='store_true')
+    parser.add_option('--skipvalidation', action='store_true')
+    parser.add_option('--masteronly', action='store_true')
+    parser.add_option('--debug', action='store_true')
+    parser.add_option('-c', '--change', type='string')
+    parser.add_option('-r', '--remove', type='string')
+    parser.add_option('-s', '--show', type='string')
+    parser.add_option('-v', '--value', type='string')
+    parser.add_option('-m', '--mastervalue', type='string')
+    parser.add_option('-l', '--list', action='store_true')
+    parser.add_option('-P', '--primaryvalue', type='string')
+    parser.add_option('-M', '--mirrorvalue', type='string')
+    (options, args) = parser.parse_args()
+
+    USER=os.getenv('USER')
+    if USER is None or USER is ' ':
+        logger.error('USER environment variable must be set.')
+        parser.exit()
+
+    if options.list:
+        doList(options.skipvalidation)
+        parser.exit()
+
+    if options.show:
+
+        if options.skipvalidation:
+            logger.error('--skipvalidation can not be combined with --show')
+        elif options.show in longShow:
+            doShow(options.show, longform=True)
+        else:
+            doShow(options.show, longform=False)
+
+        parser.exit()
+
+    if options.change and options.remove:
+        logger.error("Multiple actions specified.  See the --help info.")
+        parser.exit()
+
+    if options.change:
+        options.entry = options.change
+    elif options.remove:
+        options.entry = options.remove
+        options.remove = True
+    else:
+        logger.error("No action specified.  See the --help info.")
+        parser.exit()
+
+    if options.remove and (options.value or options.primaryvalue or options.mirrorvalue or options.mastervalue):
+        logger.error("remove action does not take a value, primary value, mirror value or master value parameter")
+        parser.exit()
+
+    if options.change and (not options.value and (not options.mirrorvalue and not options.primaryvalue)):
+        logger.error("change requested but value not specified")
+        parser.exit()
+
+    if options.change and options.mastervalue and options.masteronly:
+        logger.error("when changing a parameter on the master only specify the --value not --mastervalue")
+        parser.exit()
+
+    if options.change and (options.value and (options.primaryvalue or options.mirrorvalue)):
+        logger.error("cannot use both value option and primaryvalue/mirrorvalue option")
+        parser.exit()
+
+    if options.value and (not options.mastervalue):
+        options.mastervalue = options.value
+
+    return options
+
+class JetPackQuery:
+    def __init__(self, name):
+        self.query = "select * from gp_toolkit.gp_param_setting('%s')" % name
+
+class JetPackGuc:
+    def __init__(self,row): 
+        self.context = row[0]
+        self.name = row[1]
+        self.value = row[2]
+
+    def Print(self):
+        print "[context: %s] [name: %s] [value: %s]" % (self.context, self.name, self.value)
+
+class GucQuery:
+    def __init__(self, name=None):
+        self.query = 'SELECT name, setting, unit, short_desc, context, vartype, min_val, max_val FROM pg_settings'
+        if name:
+            self.query = self.query + " where name = '" + name + "'"
+
+class Guc:
+    def __init__(self,row): 
+        self.name = row[0]
+        self.setting = row[1]
+        self.unit = row[2]
+        self.short_desc = row[3]
+        self.context = row[4]
+        self.vartype = row[5]
+        self.min_val = row[6]
+        self.max_val = row[7]
+
+    def validate(self, newval, newmasterval):
+        # todo add code here...
+        # be careful 128KB in postgresql.conf is translated into 32KB units
+
+        if self.name == "max_connections" and (not options.masteronly):
+            try:
+                s = int(newval)
+                m = int(newmasterval)
+                if s <= m:
+                    return "the value of max_connections must be greater on the segments than on the master"
+            except:
+                return "invalid value for max_connections"
+
+        elif self.name == 'unix_socket_permissions':
+            if newval[0] != '0':
+                logger.warn('Permission not entered in octal format.It was interpreted as Decimal.  %s in Octal = 0%s' % (newval, int(newval, 8)))
+        elif self.name == "gp_default_storage_options":
+            newval = newval.strip()
+            # Value must be enclosed in single quotes else postgres
+            # will fail to start due to syntax errors in config file.
+            if (not newval.startswith("'")) or (not newval.endswith("'")):
+                return ("Value must be enclosed in single quotes: '...'")
+            newval = newval.strip("'")
+            # Ensure that newval is of the form 'name=value,...'.
+            for pair in newval.split(","):
+                try:
+                    name, value = pair.strip().split("=")
+                    name = name.strip()
+                    value = value.strip()
+                    if re.match("^[a-z][a-z]*$", name) is None:
+                        return ("Invalid option name \"%s\"" % name)
+                    if re.match("^[a-z0-9_][a-z0-9_]*$", value) is None:
+                        return ("Invalid value \"%s\" for option %s" %
+                                (value, name))
+                except ValueError:
+                    return ("Valid values are of the form 'name=value,...'.")
+        return "ok"
+
+    def Print(self):
+        print "[name: %s] [unit: %s] [context: %s] [vartype: %s] [min_val: %s] [max_val: %s]" % (self.name, self.unit, self.context, self.vartype, self.min_val, self.max_val)
+
+def userConfirm():
+    if not ask_yesno('', "Are you sure you want to ignore unreachable hosts?",'N'):                            
+        logger.info("User Aborted. Exiting...")
+        sys.exit(0)
+
+def verbosePrint(options, normalized_hostname, hostname, directory):
+    if options.verbose:
+        msg = "normalized_host=%s host=%s dir=%s" % (normalized_hostname, hostname, directory)
+        logger.info(msg)
+
+def doList(skipvalidation):
+    try:
+        dburl = dbconn.DbURL()
+        conn = dbconn.connect(dburl, True)
+        rows = dbconn.execSQL(conn, GucQuery().query)
+
+        for row in rows:
+            guc = Guc(row)
+            if skipvalidation or (guc.name not in prohibitedGucs):
+                guc.Print()
+    
+        conn.close()
+
+    except DatabaseError, ex:
+        logger.error('Failed to connect to database, this script can only be run when the database is up.')
+
+def doShow(gucname, longform):
+    try:
+        dburl = dbconn.DbURL()
+        conn = dbconn.connect(dburl, False)
+        query = JetPackQuery(gucname).query
+        rows = dbconn.execSQL(conn, query)
+
+        mastervalue = None
+        value = None
+        valid = True
+    
+        if longform:
+
+            print "GUC                 : %s" % gucname
+            for row in rows:
+                guc = JetPackGuc(row)
+                print "Context: %5s Value: %s" % (guc.context, guc.value)
+
+        else:
+            for row in rows:
+                guc = JetPackGuc(row)
+    
+                if guc.context == -1:
+                    mastervalue = guc.value
+    
+                elif not value:
+                    value = guc.value
+    
+                elif value == guc.value:
+                    pass
+            
+                else:
+                    valid = False
+                    break
+    
+            if valid:
+                print "Values on all segments are consistent"
+                print "GUC          : %s" % gucname
+                print "Master  value: %s" % mastervalue
+                print "Segment value: %s" % value
+            
+            else:
+                print "WARNING: GUCS ARE OUT OF SYNC: "
+    
+                rows = dbconn.execSQL(conn, query)
+                for row in rows:
+                    guc = JetPackGuc(row)
+                    guc.Print()
+    
+        conn.close()
+
+    except DatabaseError, ex:
+
+        if re.search("unrecognized configuration parameter", ex.__str__()):
+            logger.error('Failed to retrieve GUC information, guc does not exist: ' + gucname)
+        elif re.search("could not connect to server", ex.__str__()):
+            logger.error('Failed to retrieve GUC information, the database is not accesible')
+        else:
+            logger.error('Failed to retrieve GUC information: ' + ex.__str__())
+
+
+def doAddConfigScript(pool, hostname, segs, value):
+    directory_string = None
+    
+    for seg in segs:
+   
+        if directory_string:
+            directory_string = directory_string + "\n" + seg.datadir
+        else:
+            directory_string = seg.datadir
+    
+        verbosePrint(options, hostname, seg.hostname, seg.datadir)
+    
+    cmd = GpAddConfigScript(hostname, directory_string, options.entry, value, options.remove, ctxt=REMOTE, remoteHost=hostname)
+    pool.addCommand(cmd)
+
+#------------------------------- Mainline --------------------------------
+
+coverage = GpCoverage()
+coverage.start()
+
+logger = get_default_logger()
+setup_tool_logging(EXECNAME,getLocalHostname(),getUserName())
+
+options = parseargs()
+
+if options.debug:
+    enable_verbose_logging()
+
+if options.masteronly and options.entry == "gp_default_storage_options":
+    logger.fatal("gp_default_storage_options is not a masteronly parameter.")
+    sys.exit(1)
+
+try:
+    dburl = dbconn.DbURL()
+
+    gparray = GpArray.initFromCatalog(dburl,utility=True)
+
+    if not options.skipvalidation:
+
+        conn = dbconn.connect(dburl, True)
+    
+        rows = dbconn.execSQL(conn, GucQuery(options.entry).query)
+
+        guc = None
+
+        for row in rows:
+            if guc:
+                logger.fatal("more than 1 GUC matches: " + options.entry)
+                sys.exit(1)
+
+            guc = Guc(row)
+    
+        if not guc:
+            logger.fatal("not a valid GUC: " + options.entry)
+            sys.exit(1)
+    
+        conn.close()
+
+        if options.entry in prohibitedGucs:
+            logger.fatal("The parameter '%s' is not modifiable with this tool" % options.entry)
+            sys.exit(1)
+    
+        if options.value:
+            msg = guc.validate(options.value, options.mastervalue)
+            if msg != "ok":
+                logger.fatal("new GUC value failed validation: " + msg )
+                sys.exit(1)
+except DatabaseError, ex:
+    logger.error(ex.__str__())
+    logger.error('Failed to connect to database, exiting without action. This script can only be run when the database is up.')
+    sys.exit(1)
+
+pool = WorkerPool()
+
+hostCache = GpHostCache(gparray, pool)
+failedPings = hostCache.ping_hosts(pool)
+
+if len(failedPings):
+    for i in failedPings:
+        logger.warning('unreachable host: ' + i.hostname)
+    userConfirm()
+
+try:
+    # do the segments
+    if not options.masteronly:
+        for h in hostCache.get_hosts():
+            directory_string = None
+            
+            if options.primaryvalue:
+                doAddConfigScript(pool, h.hostname, [seg for seg in h.dbs if seg.isSegmentPrimary()], options.primaryvalue)
+
+            if options.mirrorvalue:
+                doAddConfigScript(pool, h.hostname, [seg for seg in h.dbs if seg.isSegmentMirror()], options.mirrorvalue)
+                
+            if not options.primaryvalue and not options.mirrorvalue:
+                doAddConfigScript(pool, h.hostname, h.dbs, options.value)
+    
+    # do the master
+    if options.mastervalue or options.remove:
+        verbosePrint(options, gparray.master.hostname, gparray.master.hostname, gparray.master.datadir)
+        cmd = GpAddConfigScript("master", gparray.master.datadir, options.entry, options.mastervalue, options.remove, ctxt=REMOTE, remoteHost=gparray.master.hostname)
+        pool.addCommand(cmd)
+    
+        # do the standby master
+        if gparray.standbyMaster:
+            verbosePrint(options, gparray.standbyMaster.hostname, gparray.standbyMaster.hostname, gparray.standbyMaster.datadir)
+            cmd = GpAddConfigScript("standbymaster", gparray.standbyMaster.datadir, options.entry, options.mastervalue, options.remove, ctxt=REMOTE, remoteHost=gparray.standbyMaster.hostname)
+            pool.addCommand(cmd)
+
+    pool.join()
+    items = pool.getCompletedItems()
+    failure = False
+    for i in items:
+        if not i.was_successful():
+            logger.error('failed updating the postgresql.conf files on host: ' + i.remoteHost)
+            failure = True
+        
+    pool.check_results()
+except Exception, e:
+    logger.error('errors in job:')
+    logger.error(e.__str__())
+    logger.error('exiting early')
+
+pool.haltWork()
+pool.joinWorkers()
+
+if failure:
+    logger.error('finished with errors')
+else:
+    logger.info("completed successfully")
+
+coverage.stop()
+coverage.generate_report()

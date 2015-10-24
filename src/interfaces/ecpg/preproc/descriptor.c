@@ -1,7 +1,7 @@
 /*
  * functions needed for descriptor handling
  *
- * $PostgreSQL: pgsql/src/interfaces/ecpg/preproc/descriptor.c,v 1.24 2006/03/11 04:38:40 momjian Exp $
+ * $PostgreSQL: pgsql/src/interfaces/ecpg/preproc/descriptor.c,v 1.28 2009/01/23 12:43:32 petere Exp $
  *
  * since descriptor might be either a string constant or a string var
  * we need to check for a constant if we expect a constant
@@ -15,7 +15,7 @@
  * assignment handling function (descriptor)
  */
 
-struct assignment *assignments;
+static struct assignment *assignments;
 
 void
 push_assignment(char *var, enum ECPGdtype value)
@@ -43,7 +43,7 @@ drop_assignments(void)
 }
 
 static void
-ECPGnumeric_lvalue(FILE *f, char *name)
+ECPGnumeric_lvalue(char *name)
 {
 	const struct variable *v = find_variable(name);
 
@@ -61,7 +61,7 @@ ECPGnumeric_lvalue(FILE *f, char *name)
 			fputs(name, yyout);
 			break;
 		default:
-			mmerror(PARSE_ERROR, ET_ERROR, "variable %s: numeric type needed", name);
+			mmerror(PARSE_ERROR, ET_ERROR, "variable \"%s\" must have a numeric type", name);
 			break;
 	}
 }
@@ -121,7 +121,7 @@ drop_descriptor(char *name, char *connection)
 			}
 		}
 	}
-	mmerror(PARSE_ERROR, ET_WARNING, "unknown descriptor %s", name);
+	mmerror(PARSE_ERROR, ET_WARNING, "descriptor \"%s\" does not exist", name);
 }
 
 struct descriptor
@@ -143,7 +143,7 @@ lookup_descriptor(char *name, char *connection)
 				return i;
 		}
 	}
-	mmerror(PARSE_ERROR, ET_WARNING, "unknown descriptor %s", name);
+	mmerror(PARSE_ERROR, ET_WARNING, "descriptor \"%s\" does not exist", name);
 	return NULL;
 }
 
@@ -156,9 +156,9 @@ output_get_descr_header(char *desc_name)
 	for (results = assignments; results != NULL; results = results->next)
 	{
 		if (results->value == ECPGd_count)
-			ECPGnumeric_lvalue(yyout, results->variable);
+			ECPGnumeric_lvalue(results->variable);
 		else
-			mmerror(PARSE_ERROR, ET_WARNING, "unknown descriptor header item '%d'", results->value);
+			mmerror(PARSE_ERROR, ET_WARNING, "descriptor header item \"%d\" does not exist", results->value);
 	}
 
 	drop_assignments();
@@ -205,9 +205,9 @@ output_set_descr_header(char *desc_name)
 	for (results = assignments; results != NULL; results = results->next)
 	{
 		if (results->value == ECPGd_count)
-			ECPGnumeric_lvalue(yyout, results->variable);
+			ECPGnumeric_lvalue(results->variable);
 		else
-			mmerror(PARSE_ERROR, ET_WARNING, "unknown descriptor header item '%d'", results->value);
+			mmerror(PARSE_ERROR, ET_WARNING, "descriptor header item \"%d\" does not exist", results->value);
 	}
 
 	drop_assignments();
@@ -274,7 +274,7 @@ output_set_descr(char *desc_name, char *index)
 			case ECPGd_di_precision:
 			case ECPGd_precision:
 			case ECPGd_scale:
-				mmerror(PARSE_ERROR, ET_FATAL, "descriptor item %s is not implemented",
+				mmerror(PARSE_ERROR, ET_FATAL, "descriptor item \"%s\" is not implemented",
 						descriptor_item_name(results->value));
 				break;
 
@@ -284,7 +284,7 @@ output_set_descr(char *desc_name, char *index)
 			case ECPGd_octet:
 			case ECPGd_ret_length:
 			case ECPGd_ret_octet:
-				mmerror(PARSE_ERROR, ET_FATAL, "descriptor item %s cannot be set",
+				mmerror(PARSE_ERROR, ET_FATAL, "descriptor item \"%s\" cannot be set",
 						descriptor_item_name(results->value));
 				break;
 
@@ -317,13 +317,12 @@ struct variable *
 descriptor_variable(const char *name, int input)
 {
 	static char descriptor_names[2][MAX_DESCRIPTOR_NAMELEN];
-	static const struct ECPGtype descriptor_type = {ECPGt_descriptor, NULL};
+	static const struct ECPGtype descriptor_type = {ECPGt_descriptor, NULL, NULL, {NULL}, 0};
 	static const struct variable varspace[2] = {
 		{descriptor_names[0], (struct ECPGtype *) & descriptor_type, 0, NULL},
 		{descriptor_names[1], (struct ECPGtype *) & descriptor_type, 0, NULL}
 	};
 
-	strncpy(descriptor_names[input], name, MAX_DESCRIPTOR_NAMELEN);
-	descriptor_names[input][MAX_DESCRIPTOR_NAMELEN - 1] = 0;
+	strlcpy(descriptor_names[input], name, sizeof(descriptor_names[input]));
 	return (struct variable *) & varspace[input];
 }

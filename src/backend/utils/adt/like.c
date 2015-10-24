@@ -7,11 +7,11 @@
  *		A big hack of the regexp.c code!! Contributed by
  *		Keith Parks <emkxp01@mtcc.demon.co.uk> (7/95).
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2008, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
- *	$PostgreSQL: pgsql/src/backend/utils/adt/like.c,v 1.66 2006/10/04 00:29:59 momjian Exp $
+ *	$PostgreSQL: pgsql/src/backend/utils/adt/like.c,v 1.67 2007/01/05 22:19:41 momjian Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -532,7 +532,7 @@ like_escape_bytea(PG_FUNCTION_ARGS)
 		}
 	}
 
-	VARATT_SIZEP(result) = r - ((char *) result);
+	SET_VARSIZE(result, r - ((char *) result));
 
 	PG_RETURN_BYTEA_P(result);
 }

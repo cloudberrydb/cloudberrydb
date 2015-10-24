@@ -1,0 +1,5 @@
+set confirm off
+b do_write 
+continue
+return
+quit

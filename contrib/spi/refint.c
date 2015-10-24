@@ -1,13 +1,17 @@
 /*
+ * $PostgreSQL: pgsql/contrib/spi/refint.c,v 1.35 2009/06/11 14:48:52 momjian Exp $
+ *
+ *
  * refint.c --	set of functions to define referential integrity
  *		constraints using general triggers.
  */
+#include "postgres.h"
 
-#include "executor/spi.h"		/* this is what you need to work with SPI */
-
-#include "commands/trigger.h"	/* -"- and triggers */
 #include <ctype.h>
 
+#include "commands/trigger.h"
+#include "executor/spi.h"
+#include "utils/builtins.h"
 
 PG_MODULE_MAGIC;
 
@@ -19,15 +23,15 @@ typedef struct
 {
 	char	   *ident;
 	int			nplans;
-	void	  **splan;
-}	EPlan;
+	SPIPlanPtr *splan;
+} EPlan;
 
 static EPlan *FPlans = NULL;
 static int	nFPlans = 0;
 static EPlan *PPlans = NULL;
 static int	nPPlans = 0;
 
-static EPlan *find_plan(char *ident, EPlan ** eplan, int *nplans);
+static EPlan *find_plan(char *ident, EPlan **eplan, int *nplans);
 
 /*
  * check_primary_key () -- check that key in tuple being inserted/updated
@@ -77,7 +81,7 @@ check_primary_key(PG_FUNCTION_ARGS)
 	/* Should be called for ROW trigger */
 	if (TRIGGER_FIRED_FOR_STATEMENT(trigdata->tg_event))
 		/* internal error */
-		elog(ERROR, "check_primary_key: can't process STATEMENT events");
+		elog(ERROR, "check_primary_key: cannot process STATEMENT events");
 
 	/* If INSERTion then must check Tuple to being inserted */
 	if (TRIGGER_FIRED_BY_INSERT(trigdata->tg_event))
@@ -86,7 +90,7 @@ check_primary_key(PG_FUNCTION_ARGS)
 	/* Not should be called for DELETE */
 	else if (TRIGGER_FIRED_BY_DELETE(trigdata->tg_event))
 		/* internal error */
-		elog(ERROR, "check_primary_key: can't process DELETE events");
+		elog(ERROR, "check_primary_key: cannot process DELETE events");
 
 	/* If UPDATion the must check new Tuple, not old one */
 	else
@@ -163,7 +167,7 @@ check_primary_key(PG_FUNCTION_ARGS)
 	 */
 	if (plan->nplans <= 0)
 	{
-		void	   *pplan;
+		SPIPlanPtr	pplan;
 		char		sql[8192];
 
 		/*
@@ -191,7 +195,7 @@ check_primary_key(PG_FUNCTION_ARGS)
 		if (pplan == NULL)
 			/* internal error */
 			elog(ERROR, "check_primary_key: SPI_saveplan returned %d", SPI_result);
-		plan->splan = (void **) malloc(sizeof(void *));
+		plan->splan = (SPIPlanPtr *) malloc(sizeof(SPIPlanPtr));
 		*(plan->splan) = pplan;
 		plan->nplans = 1;
 	}
@@ -277,12 +281,12 @@ check_foreign_key(PG_FUNCTION_ARGS)
 	/* Should be called for ROW trigger */
 	if (TRIGGER_FIRED_FOR_STATEMENT(trigdata->tg_event))
 		/* internal error */
-		elog(ERROR, "check_foreign_key: can't process STATEMENT events");
+		elog(ERROR, "check_foreign_key: cannot process STATEMENT events");
 
 	/* Not should be called for INSERT */
 	if (TRIGGER_FIRED_BY_INSERT(trigdata->tg_event))
 		/* internal error */
-		elog(ERROR, "check_foreign_key: can't process INSERT events");
+		elog(ERROR, "check_foreign_key: cannot process INSERT events");
 
 	/* Have to check tg_trigtuple - tuple being deleted */
 	trigtuple = trigdata->tg_trigtuple;
@@ -413,11 +417,11 @@ check_foreign_key(PG_FUNCTION_ARGS)
 	 */
 	if (plan->nplans <= 0)
 	{
-		void	   *pplan;
+		SPIPlanPtr	pplan;
 		char		sql[8192];
 		char	  **args2 = args;
 
-		plan->splan = (void **) malloc(nrefs * sizeof(void *));
+		plan->splan = (SPIPlanPtr *) malloc(nrefs * sizeof(SPIPlanPtr));
 
 		for (r = 0; r < nrefs; r++)
 		{
@@ -609,7 +613,7 @@ check_foreign_key(PG_FUNCTION_ARGS)
 }
 
 static EPlan *
-find_plan(char *ident, EPlan ** eplan, int *nplans)
+find_plan(char *ident, EPlan **eplan, int *nplans)
 {
 	EPlan	   *newp;
 	int			i;

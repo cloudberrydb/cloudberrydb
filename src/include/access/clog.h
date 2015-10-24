@@ -3,7 +3,7 @@
  *
  * PostgreSQL transaction-commit-log manager
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * $PostgreSQL: pgsql/src/include/access/clog.h,v 1.18 2006/11/05 22:42:09 tgl Exp $
@@ -33,7 +33,11 @@ typedef int XidStatus;
 
 
 extern void TransactionIdSetStatus(TransactionId xid, XidStatus status);
+
 extern XidStatus TransactionIdGetStatus(TransactionId xid);
+extern XidStatus InRecoveryTransactionIdGetStatus(TransactionId xid, bool *valid);
+
+extern char *XidStatus_Name(XidStatus status);
 
 extern Size CLOGShmemSize(void);
 extern void CLOGShmemInit(void);
@@ -43,12 +47,16 @@ extern void ShutdownCLOG(void);
 extern void CheckPointCLOG(void);
 extern void ExtendCLOG(TransactionId newestXact);
 extern void TruncateCLOG(TransactionId oldestXact);
+extern bool CLOGScanForPrevStatus(
+	TransactionId	*indexXid,
+	XidStatus		*status);
+extern bool CLOGTransactionIsOld(TransactionId xid);
 
 /* XLOG stuff */
 #define CLOG_ZEROPAGE		0x00
 #define CLOG_TRUNCATE		0x10
 
-extern void clog_redo(XLogRecPtr lsn, XLogRecord *record);
-extern void clog_desc(StringInfo buf, uint8 xl_info, char *rec);
+extern void clog_redo(XLogRecPtr beginLoc, XLogRecPtr lsn, XLogRecord *record);
+extern void clog_desc(StringInfo buf, XLogRecPtr beginLoc, XLogRecord *record);
 
 #endif   /* CLOG_H */

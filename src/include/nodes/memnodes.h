@@ -4,7 +4,8 @@
  *	  POSTGRES memory context node definitions.
  *
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 2007-2008, Greenplum inc
+ * Portions Copyright (c) 1996-2008, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * $PostgreSQL: pgsql/src/include/nodes/memnodes.h,v 1.31 2006/03/05 15:58:56 momjian Exp $
@@ -41,10 +42,12 @@ typedef struct MemoryContextMethods
 	void	   *(*realloc) (MemoryContext context, void *pointer, Size size);
 	void		(*init) (MemoryContext context);
 	void		(*reset) (MemoryContext context);
-	void		(*delete) (MemoryContext context);
+	void		(*delete_context) (MemoryContext context);
 	Size		(*get_chunk_space) (MemoryContext context, void *pointer);
 	bool		(*is_empty) (MemoryContext context);
-	void		(*stats) (MemoryContext context);
+	void		(*stats) (MemoryContext context, uint64 *nBlocks, uint64 *nChunks, uint64 *currentAvailable, uint64 *allAllocated, uint64 *allFreed, uint64 *maxHeld);
+	void		(*release_accounting)(MemoryContext context);
+	void		(*update_generation)(MemoryContext context);
 #ifdef MEMORY_CONTEXT_CHECKING
 	void		(*check) (MemoryContext context);
 #endif
@@ -54,11 +57,20 @@ typedef struct MemoryContextMethods
 typedef struct MemoryContextData
 {
 	NodeTag		type;			/* identifies exact kind of context */
-	MemoryContextMethods *methods;		/* virtual function table */
+	MemoryContextMethods methods;		/* virtual function table */
 	MemoryContext parent;		/* NULL if no parent (toplevel context) */
 	MemoryContext firstchild;	/* head of linked list of children */
 	MemoryContext nextchild;	/* next child of same parent */
 	char	   *name;			/* context name (just for debugging) */
+    /* CDB: Lifetime cumulative stats for this context and all descendants */
+    uint64      allBytesAlloc;  /* bytes allocated from lower level mem mgr */
+    uint64      allBytesFreed;  /* bytes returned to lower level mem mgr */
+    Size        maxBytesHeld;   /* high-water mark for total bytes held */
+    Size        localMinHeld;   /* low-water mark since last increase in hwm */
+#ifdef CDB_PALLOC_CALLER_ID
+    const char *callerFile;     /* __FILE__ of most recent caller */
+    int         callerLine;     /* __LINE__ of most recent caller */
+#endif
 } MemoryContextData;
 
 /* utils/palloc.h contains typedef struct MemoryContextData *MemoryContext */
@@ -72,6 +84,9 @@ typedef struct MemoryContextData
  */
 #define MemoryContextIsValid(context) \
 	((context) != NULL && \
-	 (IsA((context), AllocSetContext)))
+	 ( IsA((context), AllocSetContext) || \
+       IsA((context), AsetDirectContext) || \
+       IsA((context), MPoolContext) ))
+
 
 #endif   /* MEMNODES_H */

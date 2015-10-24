@@ -1,3 +1,6 @@
+/* $PostgreSQL: pgsql/contrib/cube/uninstall_cube.sql,v 1.8 2008/04/14 17:05:32 tgl Exp $ */
+
+-- Adjust this setting to control where the objects get dropped.
 SET search_path = public;
 
 DROP OPERATOR CLASS gist_cube_ops USING gist;

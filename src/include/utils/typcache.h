@@ -6,7 +6,7 @@
  * The type cache exists to speed lookup of certain information about data
  * types that is not directly available from a type's pg_type row.
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2008, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * $PostgreSQL: pgsql/src/include/utils/typcache.h,v 1.12 2006/10/04 00:30:11 momjian Exp $
@@ -85,4 +85,5 @@ extern void assign_record_type_typmod(TupleDesc tupDesc);
 
 extern void flush_rowtype_cache(Oid type_id);
 
+extern void build_tuple_node_list(List **transientTypeList);
 #endif   /* TYPCACHE_H */

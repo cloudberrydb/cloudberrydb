@@ -1,0 +1,111 @@
+<!--
+$PostgreSQL: pgsql/doc/src/sgml/ref/drop_external_table.sgml,v 1.25 2006/09/16 00:30:18 momjian Exp $
+PostgreSQL documentation
+-->
+
+<refentry id="SQL-DROPEXTERNALTABLE">
+ <refmeta>
+  <refentrytitle id="SQL-DROPEXTERNALTABLE-TITLE">DROP EXTERNAL TABLE</refentrytitle>
+  <refmiscinfo>SQL - Language Statements</refmiscinfo>
+ </refmeta>
+
+ <refnamediv>
+  <refname>DROP EXTERNAL TABLE</refname>
+  <refpurpose>remove an external table definition</refpurpose>
+ </refnamediv>
+
+ <indexterm zone="sql-dropexternaltable">
+  <primary>DROP EXTERNAL TABLE</primary>
+ </indexterm>
+
+ <refsynopsisdiv>
+<synopsis>
+DROP EXTERNAL [WEB] TABLE [ IF EXISTS ] <replaceable class="PARAMETER">name</replaceable> [ CASCADE | RESTRICT ]
+</synopsis>
+ </refsynopsisdiv>
+ 
+ <refsect1>
+  <title>Description</title>
+
+  <para>
+   <command>DROP EXTERNAL TABLE</command> drops an existing external table 
+   definition from the database. The external data source files are not 
+   deleted — they will remain on disk. To execute this command you must 
+   be the owner of the external table.
+  </para>
+ </refsect1>
+  
+ <refsect1>
+  <title>Parameters</title>
+
+  <variablelist>
+   <varlistentry>
+    <term><literal>IF EXISTS</literal></term>
+    <listitem>
+     <para>
+      Do not throw an error if the external table does not exist. A notice is issued 
+      in this case.
+     </para>
+    </listitem>
+   </varlistentry>
+
+   <varlistentry>
+    <term><replaceable class="PARAMETER">name</replaceable></term>
+    <listitem>
+     <para>
+      The name (optionally schema-qualified) of the external table to drop.
+     </para>
+    </listitem>
+   </varlistentry>
+
+   <varlistentry>
+    <term><literal>CASCADE</literal></term>
+    <listitem>
+     <para>
+      Automatically drop objects that depend on the external table (such as
+      views).
+     </para>
+    </listitem>
+   </varlistentry>
+
+   <varlistentry>
+    <term><literal>RESTRICT</literal></term>
+    <listitem>
+     <para>
+      Refuse to drop the external table if any objects depend on it.  This is
+      the default.
+     </para>
+    </listitem>
+   </varlistentry>
+  </variablelist>
+ </refsect1>
+
+ <refsect1>
+  <title>Examples</title>
+
+  <para>
+   Remove the external table named <literal>staging</literal> if it exists:
+
+<programlisting>
+DROP EXTERNAL TABLE IF EXISTS staging;
+</programlisting>
+  </para>
+ </refsect1>
+ 
+ <refsect1>
+  <title>Compatibility</title>
+
+  <para>
+   There is no <command>DROP EXTERNAL TABLE</command> statement in the <acronym>SQL</> standard.
+  </para>
+ </refsect1>
+
+ <refsect1>
+  <title>See Also</title>
+
+  <simplelist type="inline">
+   <member><xref linkend="sql-createexternaltable" endterm="sql-createexternaltable-title"></member>
+  </simplelist>
+ </refsect1>
+
+</refentry>

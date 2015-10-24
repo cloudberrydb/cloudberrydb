@@ -4,12 +4,12 @@
  * bootscanner.l
  *	  a lexical scanner for the bootstrap parser
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/bootstrap/bootscanner.l,v 1.43 2006/07/31 01:16:36 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/bootstrap/bootscanner.l,v 1.48 2009/01/01 17:23:36 momjian Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -36,8 +36,29 @@
 #include "storage/off.h"
 #include "utils/rel.h"
 
+#define unify_version(a,b,c) ((a<<16)+(b<<8)+c)
+
+#if unify_version(YY_FLEX_MAJOR_VERSION,YY_FLEX_MINOR_VERSION,YY_FLEX_SUBMINOR_VERSION) < unify_version(2,5,35)
+/* These routines aren't used, but are defined to supress warnings from gcc */
+int boot_yyget_lineno  (void);
+FILE *boot_yyget_in  (void);
+FILE *boot_yyget_out  (void);
+int boot_yyget_leng  (void);
+char *boot_yyget_text  (void);
+void boot_yyset_lineno (int  line_number );
+void boot_yyset_in (FILE *  in_str );
+void boot_yyset_out (FILE *  out_str );
+int boot_yyget_debug  (void);
+void boot_yyset_debug (int  bdebug );
+int boot_yylex_destroy  (void);
+#endif
+
+
+
+
+
 /* Not needed now that this file is compiled as part of bootparse. */
-/* #include "bootstrap_tokens.h" */
+/* #include "bootparse.h" */
 
 
 /* Avoid exit() on fatal scanner errors (a bit ugly -- see yy_fatal_error) */
@@ -52,6 +73,7 @@ static int	yyline = 1;			/* line number for error reporting */
 %option 8bit
 %option never-interactive
 %option nodefault
+%option noinput
 %option nounput
 %option noyywrap
 %option prefix="boot_yy"

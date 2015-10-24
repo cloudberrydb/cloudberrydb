@@ -4,7 +4,7 @@
  *	  this is a simple doubly linked list implementation
  *	  the elements of the lists are void*
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -31,18 +31,8 @@ DLNewList(void)
 {
 	Dllist	   *l;
 
-	l = (Dllist *) malloc(sizeof(Dllist));
-	if (l == NULL)
-	{
-#ifdef FRONTEND
-		fprintf(stderr, "memory exhausted in DLNewList\n");
-		exit(1);
-#else
-		ereport(ERROR,
-				(errcode(ERRCODE_OUT_OF_MEMORY),
-				 errmsg("out of memory")));
-#endif
-	}
+	l = (Dllist *) palloc(sizeof(Dllist));
+
 	l->dll_head = NULL;
 	l->dll_tail = NULL;
 
@@ -66,9 +56,9 @@ DLFreeList(Dllist *list)
 	Dlelem	   *curr;
 
 	while ((curr = DLRemHead(list)) != NULL)
-		free(curr);
+		pfree(curr);
 
-	free(list);
+	pfree(list);
 }
 
 Dlelem *
@@ -76,18 +66,8 @@ DLNewElem(void *val)
 {
 	Dlelem	   *e;
 
-	e = (Dlelem *) malloc(sizeof(Dlelem));
-	if (e == NULL)
-	{
-#ifdef FRONTEND
-		fprintf(stderr, "memory exhausted in DLNewElem\n");
-		exit(1);
-#else
-		ereport(ERROR,
-				(errcode(ERRCODE_OUT_OF_MEMORY),
-				 errmsg("out of memory")));
-#endif
-	}
+	e = (Dlelem *) palloc(sizeof(Dlelem));
+
 	e->dle_next = NULL;
 	e->dle_prev = NULL;
 	e->dle_val = val;
@@ -107,7 +87,7 @@ DLInitElem(Dlelem *e, void *val)
 void
 DLFreeElem(Dlelem *e)
 {
-	free(e);
+	pfree(e);
 }
 
 void

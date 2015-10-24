@@ -2,7 +2,7 @@
 #
 # Makefile for src/bin/pgevent
 #
-# Copyright (c) 1996-2006, PostgreSQL Global Development Group
+# Copyright (c) 1996-2009, PostgreSQL Global Development Group
 #
 #-------------------------------------------------------------------------
 
@@ -21,11 +21,11 @@ all: $(NAME)
 
 install: all install-lib
 
-pgevent.dll: $(OBJS) pgevent.def
-	dllwrap --def pgevent.def -o $(NAME) $(OBJS)
+pgevent.dll: pgevent.def $(OBJS)
+	$(DLLWRAP) --def $< -o $(NAME) $(OBJS)
 
 pgmsgevent.o: pgmsgevent.rc win32ver.rc
-	windres pgmsgevent.rc -o pgmsgevent.o --include-dir=$(top_builddir)/src/include
+	$(WINDRES) $< -o $@ --include-dir=$(top_builddir)/src/include --include-dir=$(top_srcdir)/src/include --include-dir=$(srcdir)
 
 all-lib: $(NAME)
 

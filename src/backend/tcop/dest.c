@@ -4,7 +4,7 @@
  *	  support for communication destinations
  *
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2008, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
@@ -36,6 +36,12 @@
 #include "libpq/libpq.h"
 #include "libpq/pqformat.h"
 #include "utils/portal.h"
+
+#include "cdb/cdbtm.h"
+#include "cdb/cdbvars.h"
+#include "utils/vmem_tracker.h"
+
+void AddQEWriterTransactionInfo(StringInfo buf);
 
 
 /* ----------------
@@ -145,13 +151,47 @@ CreateDestReceiver(CommandDest dest, Portal portal)
 void
 EndCommand(const char *commandTag, CommandDest dest)
 {
+	StringInfoData buf;
+
+	if (Gp_role == GP_ROLE_DISPATCH)
+	{
+		/*
+		 * Just before a successful reply, let's see if the DTM has
+		 * phase 2 retry work.
+		 */
+		doDtxPhase2Retry();
+	}
+	
 	switch (dest)
 	{
 		case DestRemote:
 		case DestRemoteExecute:
-			pq_puttextmessage('C', commandTag);
-			break;
+			if (Gp_role == GP_ROLE_EXECUTE && Gp_is_writer)
+			{
+				/*
+				 * Extra information that indicates if the transaction made
+				 * updates.
+				 */
+				sendQEDetails();
 
+				pq_beginmessage(&buf, 'g');
+				pq_sendstring(&buf, commandTag);
+
+				AddQEWriterTransactionInfo(&buf);
+
+				pq_endmessage(&buf);
+			}
+			else if (Gp_role == GP_ROLE_EXECUTE)
+			{
+				sendQEDetails();
+
+				pq_beginmessage(&buf, 'C');
+				pq_sendstring(&buf, commandTag);
+				pq_endmessage(&buf);
+			}
+			else
+				pq_puttextmessage('C', commandTag);
+			break;
 		case DestNone:
 		case DestDebug:
 		case DestSPI:
@@ -224,12 +264,18 @@ ReadyForQuery(CommandDest dest)
 			{
 				StringInfoData buf;
 
+				if (Gp_role == GP_ROLE_EXECUTE)
+				{
+					sendQEDetails();
+				}
+
 				pq_beginmessage(&buf, 'Z');
 				pq_sendbyte(&buf, TransactionBlockStatusCode());
 				pq_endmessage(&buf);
 			}
 			else if (PG_PROTOCOL_MAJOR(FrontendProtocol) >= 2)
 				pq_putemptymessage('Z');
+
 			/* Flush output at end of cycle in any case. */
 			pq_flush();
 			break;
@@ -242,4 +288,86 @@ ReadyForQuery(CommandDest dest)
 		case DestCopyOut:
 			break;
 	}
+}
+
+/* ----------------
+ *		ReadyForQuery_QE - tell dest that we are ready for a new query that
+ *          includes QE Writer transaction information.
+ *
+ * ----------------
+ *
+ * NOTE: this is GPDB specific, and shouldn't fall inside the codepath
+ * of QD->client communication.
+ *
+ */
+void
+ReadyForQuery_QEWriter(CommandDest dest)
+{
+	switch (dest)
+	{
+		case DestRemote:
+		case DestRemoteExecute:
+			if (PG_PROTOCOL_MAJOR(FrontendProtocol) >= 3)
+			{
+				StringInfoData buf;
+
+				sendQEDetails();
+
+				pq_beginmessage(&buf, 'z');
+				pq_sendbyte(&buf, TransactionBlockStatusCode());
+				AddQEWriterTransactionInfo(&buf);
+				pq_endmessage(&buf);
+			}
+			else if (PG_PROTOCOL_MAJOR(FrontendProtocol) >= 2)
+				pq_putemptymessage('Z');
+
+			/* Flush output at end of cycle in any case. */
+			pq_flush();
+			break;
+
+		case DestNone:
+		case DestDebug:
+		case DestSPI:
+		case DestTuplestore:
+		case DestIntoRel:
+		case DestCopyOut:
+			break;
+	}
+}
+
+/* ----------------
+ *		AddQEWriterTransactionInfo - Add QE writer transction information.
+ * ----------------
+ */
+void
+AddQEWriterTransactionInfo(StringInfo buf)
+{
+	DistributedTransactionId	QEDistributedTransactionId;
+	CommandId					QECommandId;
+	bool						QEDirty;
+
+	TransactionInformationQEWriter(&QEDistributedTransactionId, &QECommandId, &QEDirty);
+
+	elog(DEBUG5,"QEWriterTransactionInfo: (DistributedTransactionId = %u, CommandId = %u, and Dirty = %s)",
+	     QEDistributedTransactionId, QECommandId, (QEDirty ? "true" : "false"));
+
+	pq_sendint(buf, QEDistributedTransactionId, 4);
+	pq_sendint(buf, QECommandId, 4);
+	pq_sendbyte(buf, (QEDirty ? 'T' : 'F'));
+}
+
+/*
+ * Send a gpdb libpq message.
+ */
+void
+sendQEDetails(void)
+{
+	StringInfoData buf;
+
+	pq_beginmessage(&buf, 'w');
+	pq_sendint(&buf, (int32) Gp_listener_port, sizeof(int32));			
+	pq_sendint64(&buf, VmemTracker_GetMaxReservedVmemBytes());
+	pq_sendint(&buf, sizeof(PG_VERSION_STR), sizeof(int32));
+	pq_sendbytes(&buf, PG_VERSION_STR, sizeof(PG_VERSION_STR));
+	pq_endmessage(&buf);
 }

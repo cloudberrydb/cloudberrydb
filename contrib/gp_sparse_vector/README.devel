@@ -1,0 +1,63 @@
+================================================================================
+Structure of the sparse type support
+================================================================================
+
+There are two parts to the sparse types:
+1) an in-memory data structure and computational library for sparse data called
+SparseData.
+
+2) a Greenplum/Postgres datatype for each case, initially a sparse vector which
+uses only (double) as it's data
+
+Eventually there will be sparse vector support for other base types like float,
+complex double, integer, char and bit.  There will also be matrix support,
+which will use the SparseData structure to compose higher dimension structures.
+
+=========================
+Design
+=========================
+
+The Sparse Vector type is a variable length Postgres datatype, which means that
+its data is stored in a "varlena".  A varlena is a structure that has an integer
+that identifies the length of it's data area as it's first item.
+
+For the Sparse Vector, the varlena has a leading integer that describes the size
+or "dimension" of the vector it represents, followed by a serialized SparseData
+of type FLOAT8OID.
+
+All of the operators required for the datatype support are wrappers that use the
+SparseData operators.  In order to use a SparseData operator, the serialized
+SparseData inside the Sparse Vector is used to create an in-place accessible
+SparseData (no copy required), and then this is passed to the SparseData
+functions.
+
+If you want to implement a new operator or function for Sparse Vector, you should
+try to implement it inside of operators.c using existing SparseData functions or
+building on other Sparse Vector functions first.  If something isn't there, you
+can build a base level function inside of the SparseData.h as an inline function
+or inside SparseData.c as a non-inline function, then wrap it in a Sparse Vector
+function in operators.c.
+
+The sparse_vector.c file is for creation and management functions related to the
+type.
+
+=========================
+Code structure
+=========================
+
+SparseData structure and functions:
+------------------------------------------------------------------------
+SparseData.c, SparseData.h
+
+Sparse vector datatype:
+------------------------------------------------------------------------
+sparse_vector.c, sparse_vector.h, operators.c
+
+Functions for text processing (Sparse Feature Vector or SFV):
+------------------------------------------------------------------------
+gp_sfv.c
+
+Definitions for IEEE double and float types including special denormalized
+types defined for use herein as "no value present":
+------------------------------------------------------------------------
+float_specials.h

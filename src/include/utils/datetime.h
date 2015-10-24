@@ -6,10 +6,10 @@
  *	   including abstime, reltime, date, and time.
  *
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
- * $PostgreSQL: pgsql/src/include/utils/datetime.h,v 1.62 2006/10/18 16:43:14 tgl Exp $
+ * $PostgreSQL: pgsql/src/include/utils/datetime.h,v 1.75 2009/06/11 14:49:13 momjian Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -29,7 +29,7 @@
  * String definitions for standard time quantities.
  *
  * These strings are the defaults used to form output time strings.
- * Other alternate forms are hardcoded into token tables in datetime.c.
+ * Other alternative forms are hardcoded into token tables in datetime.c.
  * ----------------------------------------------------------------
  */
 
@@ -84,7 +84,8 @@
  *
  * Furthermore, the values for YEAR, MONTH, DAY, HOUR, MINUTE, SECOND
  * must be in the range 0..14 so that the associated bitmasks can fit
- * into the left half of an INTERVAL's typmod value.
+ * into the left half of an INTERVAL's typmod value.  Since those bits
+ * are stored in typmods, you can't change them without initdb!
  */
 
 #define RESERV	0
@@ -100,17 +101,24 @@
 #define HOUR	10
 #define MINUTE	11
 #define SECOND	12
-#define DOY		13
-#define DOW		14
-#define UNITS	15
-#define ADBC	16
+#define MILLISECOND 13
+#define MICROSECOND 14
+#define DOY		15
+#define DOW		16
+#define UNITS	17
+#define ADBC	18
 /* these are only for relative dates */
-#define AGO		17
-#define ABS_BEFORE		18
-#define ABS_AFTER		19
+#define AGO		19
+#define ABS_BEFORE		20
+#define ABS_AFTER		21
 /* generic fields to help with parsing */
-#define ISODATE 20
-#define ISOTIME 21
+#define ISODATE 22
+#define ISOTIME 23
+/* these are only for parsing intervals */
+#define WEEK		24
+#define DECADE		25
+#define CENTURY		26
+#define MILLENNIUM	27
 /* reserved for unrecognized string values */
 #define UNKNOWN_FIELD	31
 
@@ -165,6 +173,8 @@
 #define DTK_DOY			33
 #define DTK_TZ_HOUR		34
 #define DTK_TZ_MINUTE	35
+#define DTK_ISOYEAR		36
+#define DTK_ISODOW		37
 
 
 /*
@@ -173,15 +183,22 @@
 
 #define DTK_M(t)		(0x01 << (t))
 
+/* Convenience: a second, plus any fractional component */
+#define DTK_ALL_SECS_M	(DTK_M(SECOND) | DTK_M(MILLISECOND) | DTK_M(MICROSECOND))
 #define DTK_DATE_M		(DTK_M(YEAR) | DTK_M(MONTH) | DTK_M(DAY))
-#define DTK_TIME_M		(DTK_M(HOUR) | DTK_M(MINUTE) | DTK_M(SECOND))
+#define DTK_TIME_M		(DTK_M(HOUR) | DTK_M(MINUTE) | DTK_ALL_SECS_M)
 
-#define MAXDATELEN		63		/* maximum possible length of an input date
-								 * string (not counting tr. null) */
-#define MAXDATEFIELDS	25		/* maximum possible number of fields in a date
-								 * string */
-#define TOKMAXLEN		10		/* only this many chars are stored in
-								 * datetktbl */
+/*
+ * Working buffer size for input and output of interval, timestamp, etc.
+ * Inputs that need more working space will be rejected early.  Longer outputs
+ * will overrun buffers, so this must suffice for all possible output.  As of
+ * this writing, interval_out() needs the most space at ~90 bytes.
+ */
+#define MAXDATELEN		128
+/* maximum possible number of fields in a date string */
+#define MAXDATEFIELDS	25
+/* only this many chars are stored in datetktbl */
+#define TOKMAXLEN		10
 
 /* keep this struct small; it gets used a lot */
 typedef struct
@@ -282,18 +299,20 @@ extern int DecodeDateTime(char **field, int *ftype,
 extern int DecodeTimeOnly(char **field, int *ftype,
 			   int nf, int *dtype,
 			   struct pg_tm * tm, fsec_t *fsec, int *tzp);
-extern int DecodeInterval(char **field, int *ftype,
-			   int nf, int *dtype,
-			   struct pg_tm * tm, fsec_t *fsec);
+extern int DecodeInterval(char **field, int *ftype, int nf, int range,
+			   int *dtype, struct pg_tm * tm, fsec_t *fsec);
+extern int DecodeISO8601Interval(char *str,
+			   int *dtype, struct pg_tm * tm, fsec_t *fsec);
+
 extern void DateTimeParseError(int dterr, const char *str,
 				   const char *datatype);
 
 extern int	DetermineTimeZoneOffset(struct pg_tm * tm, pg_tz *tzp);
 
-extern int	EncodeDateOnly(struct pg_tm * tm, int style, char *str);
-extern int	EncodeTimeOnly(struct pg_tm * tm, fsec_t fsec, int *tzp, int style, char *str);
-extern int	EncodeDateTime(struct pg_tm * tm, fsec_t fsec, int *tzp, char **tzn, int style, char *str);
-extern int	EncodeInterval(struct pg_tm * tm, fsec_t fsec, int style, char *str);
+extern void EncodeDateOnly(struct pg_tm * tm, int style, char *str);
+extern void EncodeTimeOnly(struct pg_tm * tm, fsec_t fsec, int *tzp, int style, char *str);
+extern void EncodeDateTime(struct pg_tm * tm, fsec_t fsec, int *tzp, char **tzn, int style, char *str);
+extern void EncodeInterval(struct pg_tm * tm, fsec_t fsec, int style, char *str);
 
 extern int	DecodeSpecial(int field, char *lowtoken, int *val);
 extern int	DecodeUnits(int field, char *lowtoken, int *val);

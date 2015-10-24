@@ -3,7 +3,7 @@
  * parse_func.c
  *		handle function calls in parser
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2008, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -15,12 +15,19 @@
 #include "postgres.h"
 
 #include "access/heapam.h"
+#include "catalog/catquery.h"
+#include "access/transam.h"
+#include "catalog/pg_aggregate.h"
 #include "catalog/pg_inherits.h"
 #include "catalog/pg_proc.h"
+#include "catalog/pg_proc_callback.h"
 #include "catalog/pg_type.h"
+#include "catalog/pg_window.h"
 #include "funcapi.h"
 #include "nodes/makefuncs.h"
+#include "optimizer/walkers.h"
 #include "parser/parse_agg.h"
+#include "parser/parse_clause.h"
 #include "parser/parse_coerce.h"
 #include "parser/parse_expr.h"
 #include "parser/parse_func.h"
@@ -38,6 +45,13 @@ static Node *ParseComplexProjection(ParseState *pstate, char *funcname,
 static void unknown_attribute(ParseState *pstate, Node *relref, char *attname,
 				  int location);
 
+typedef struct
+{
+	Node *parent;
+} check_table_func_context;
+
+static bool 
+checkTableFunctions_walker(Node *node, check_table_func_context *context);
 
 /*
  *	Parse a function call
@@ -60,19 +74,22 @@ static void unknown_attribute(ParseState *pstate, Node *relref, char *attname,
  */
 Node *
 ParseFuncOrColumn(ParseState *pstate, List *funcname, List *fargs,
-				  bool agg_star, bool agg_distinct, bool is_column,
-				  int location)
+                  List *agg_order, bool agg_star, bool agg_distinct, 
+                  bool is_column, WindowSpec *over, int location, 
+                  Node *agg_filter)
 {
-	Oid			rettype;
-	Oid			funcid;
+	Oid			rettype = InvalidOid;
+	Oid			funcid = InvalidOid;
 	ListCell   *l;
 	ListCell   *nextl;
 	Node	   *first_arg = NULL;
 	int			nargs;
 	Oid			actual_arg_types[FUNC_MAX_ARGS];
-	Oid		   *declared_arg_types;
-	Node	   *retval;
-	bool		retset;
+	Oid		   *declared_arg_types = NULL;
+	Node	   *retval = NULL;
+	bool		retset = false;
+	bool        retstrict = false;
+	bool        retordered = false;
 	FuncDetailCode fdresult;
 
 	/*
@@ -87,6 +104,74 @@ ParseFuncOrColumn(ParseState *pstate, List *funcname, List *fargs,
 				 errmsg("cannot pass more than %d arguments to a function",
 						FUNC_MAX_ARGS),
 				 parser_errposition(pstate, location)));
+
+	/* 
+	 * Perform the FILTER -> CASE transform.
+	 *    FUNC(expr) FILTER (WHERE cond)  =>  FUNC(CASE WHEN cond THEN expr END)
+	 * This must be done for every parameter of the function and special handling
+	 * is needed for FUNC(*).  
+	 *
+	 * For this to be a valid transform we must assume that NULLs passed into
+	 * the function will not change the result.  This assumption is not valid
+	 * for count(*), which is why we need special processing for this case.  If
+	 * it is not a valid assumption for other cases we may need to rethink how
+	 * we implement FILTER.
+	 */
+	if (agg_filter) 
+	{
+		List *newfargs = NULL;
+
+		if (agg_star || !fargs)
+		{
+			/*
+			 * FUNC(*) => assume that datatype doesn't matter 
+			 * By converting agg_star into a conditional constant boolean 
+			 * expression we get the correct results for count(*) since it
+			 * will then supress the NULLs returned by the CASE statement.
+			 */
+			CaseExpr  *c = makeNode(CaseExpr);
+			CaseWhen  *w = makeNode(CaseWhen);
+			A_Const   *a = makeNode(A_Const);
+			a->val.type  = T_Integer;
+			a->val.val.ival = 1;    /* Actual value shouldn't matter */
+			w->expr      = (Expr *) agg_filter;
+			w->result    = (Expr *) a;
+			c->casetype  = InvalidOid;  /* will analyze in a moment */
+			c->arg       = (Expr *) NULL;
+			c->defresult = (Expr *) NULL;
+			c->args      = list_make1(w);
+			newfargs     = list_make1(c);
+		
+			/* 
+			 * Since we haven't checked the compatability of our function with
+			 * agg_star we can not clear the local bit yet, otherwise we would
+			 * loose track of the fact that this was an agg_star operation prior
+			 * to transformation.
+			 */
+		}
+		else
+		{
+			Assert(fargs && list_length(fargs) > 0);
+
+			foreach(l, fargs)
+			{
+				CaseExpr  *c = makeNode(CaseExpr);
+				CaseWhen  *w = makeNode(CaseWhen);
+				w->expr      = (Expr *) agg_filter;
+				w->result    = (Expr *) lfirst(l);
+				c->casetype  = InvalidOid;  /* will analyze in a moment */
+				c->arg       = (Expr *) NULL;
+				c->defresult = (Expr *) NULL;
+				c->args      = list_make1(w);
+
+				if (newfargs)
+					lappend(newfargs, c);
+				else
+					newfargs = list_make1(c);
+			}
+		}
+		fargs = transformExpressionList(pstate, newfargs);
+	}
 
 	/*
 	 * Extract arg type info in preparation for function lookup.
@@ -126,7 +211,8 @@ ParseFuncOrColumn(ParseState *pstate, List *funcname, List *fargs,
 	 * the "function call" could be a projection.  We also check that there
 	 * wasn't any aggregate decoration.
 	 */
-	if (nargs == 1 && !agg_star && !agg_distinct && list_length(funcname) == 1)
+	if (nargs == 1 && agg_order == NIL && !agg_star && !agg_distinct && 
+        !agg_filter && list_length(funcname) == 1)
 	{
 		Oid			argtype = actual_arg_types[0];
 
@@ -155,8 +241,8 @@ ParseFuncOrColumn(ParseState *pstate, List *funcname, List *fargs,
 	 * the function.
 	 */
 	fdresult = func_get_detail(funcname, fargs, nargs, actual_arg_types,
-							   &funcid, &rettype, &retset,
-							   &declared_arg_types);
+							   &funcid, &rettype, &retset, &retstrict,
+							   &retordered, &declared_arg_types);
 	if (fdresult == FUNCDETAIL_COERCION)
 	{
 		/*
@@ -165,7 +251,8 @@ ParseFuncOrColumn(ParseState *pstate, List *funcname, List *fargs,
 		 */
 		return coerce_type(pstate, linitial(fargs),
 						   actual_arg_types[0], rettype, -1,
-						   COERCION_EXPLICIT, COERCE_EXPLICIT_CALL);
+						   COERCION_EXPLICIT, COERCE_EXPLICIT_CALL,
+						   -1);
 	}
 	else if (fdresult == FUNCDETAIL_NORMAL)
 	{
@@ -176,15 +263,28 @@ ParseFuncOrColumn(ParseState *pstate, List *funcname, List *fargs,
 		if (agg_star)
 			ereport(ERROR,
 					(errcode(ERRCODE_WRONG_OBJECT_TYPE),
-			   errmsg("%s(*) specified, but %s is not an aggregate function",
-					  NameListToString(funcname),
-					  NameListToString(funcname)),
+					 errmsg("%s(*) specified, but %s is not an aggregate function",
+							NameListToString(funcname),
+							NameListToString(funcname)),
 					 parser_errposition(pstate, location)));
 		if (agg_distinct)
 			ereport(ERROR,
 					(errcode(ERRCODE_WRONG_OBJECT_TYPE),
-			errmsg("DISTINCT specified, but %s is not an aggregate function",
-				   NameListToString(funcname)),
+					 errmsg("DISTINCT specified, but %s is not an aggregate function",
+							NameListToString(funcname)),
+					 parser_errposition(pstate, location)));
+        if (agg_order)
+			ereport(ERROR,
+					(errcode(ERRCODE_WRONG_OBJECT_TYPE),
+					 errmsg("ORDER BY specified, but %s is not an ordered aggregate function",
+							NameListToString(funcname)),
+					 parser_errposition(pstate, location)));
+		if (agg_filter)
+		    ereport(ERROR,
+					(errcode(ERRCODE_WRONG_OBJECT_TYPE),
+					 errmsg("filter clause specified, but "
+							"%s is not an aggregate function",
+							NameListToString(funcname)),
 					 parser_errposition(pstate, location)));
 	}
 	else if (fdresult != FUNCDETAIL_AGGREGATE)
@@ -221,9 +321,24 @@ ParseFuncOrColumn(ParseState *pstate, List *funcname, List *fargs,
 					 errmsg("function %s does not exist",
 							func_signature_string(funcname, nargs,
 												  actual_arg_types)),
-			errhint("No function matches the given name and argument types. "
-					"You may need to add explicit type casts."),
+					 errhint("No function matches the given name and argument types. "
+							 "You may need to add explicit type casts."),
 					 parser_errposition(pstate, location)));
+	}
+
+	/*
+	 * The agg_filter rewrite in the case of agg_star is only valid for count(*)
+	 * otherwise we need to throw an error.
+	 */
+	if (agg_star && agg_filter && funcid != COUNT_ANY_OID)
+	{
+	    ereport(ERROR,
+				(errcode(ERRCODE_UNDEFINED_FUNCTION),
+				 errmsg("function %s() does not exist",
+						NameListToString(funcname)),
+				 errhint("No function matches the given name and argument types. "
+						 "You may need to add explicit type casts."),
+				 parser_errposition(pstate, location)));
 	}
 
 	/*
@@ -240,7 +355,7 @@ ParseFuncOrColumn(ParseState *pstate, List *funcname, List *fargs,
 	make_fn_arguments(pstate, fargs, actual_arg_types, declared_arg_types);
 
 	/* build the appropriate output structure */
-	if (fdresult == FUNCDETAIL_NORMAL)
+	if (fdresult == FUNCDETAIL_NORMAL && over == NULL)
 	{
 		FuncExpr   *funcexpr = makeNode(FuncExpr);
 
@@ -252,16 +367,99 @@ ParseFuncOrColumn(ParseState *pstate, List *funcname, List *fargs,
 
 		retval = (Node *) funcexpr;
 	}
+	else if(over != NULL)
+	{
+		/* must be a window function call */
+		WindowRef  *winref = makeNode(WindowRef);
+		HeapTuple	tuple;	
+		cqContext  *wincqCtx;
+		
+		if (retset)
+			ereport(ERROR,
+					(errcode(ERRCODE_INVALID_FUNCTION_DEFINITION),
+					 errmsg("window functions may not return sets"),
+					 parser_errposition(pstate, location)));
+
+        if (agg_order)
+            ereport(ERROR,
+                    (errcode(ERRCODE_WRONG_OBJECT_TYPE),
+                     errmsg("aggregate ORDER BY is not implemented for window functions"),
+                     parser_errposition(pstate, location)));
+
+
+        /*
+         * If this is a "true" window function, rather than an aggregate
+         * derived window function then it will have a tuple in pg_window
+         */
+
+		wincqCtx = caql_beginscan(
+				NULL,
+				cql("SELECT * FROM pg_window "
+					" WHERE winfnoid = :1 ",
+					ObjectIdGetDatum(funcid)));
+
+		tuple = caql_getnext(wincqCtx);
+
+		if (HeapTupleIsValid(tuple))
+		{
+			if (agg_filter)
+			    ereport(ERROR,
+						(errcode(ERRCODE_WRONG_OBJECT_TYPE),
+						 errmsg("window function \"%s\" can not be used with a "
+								"filter clause",
+								NameListToString(funcname)),
+						 parser_errposition(pstate, location)));
+
+			/*
+			 * We perform more checks – such as whether the window
+			 * function requires ordering or permits a frame specification –
+			 * later in transformWindowClause(). It's too early at this stage.
+			 */
+
+		}
+		caql_endscan(wincqCtx);
+
+
+		winref->winfnoid = funcid;
+		winref->restype = rettype;
+		winref->args = fargs;
+		
+		{
+			/*
+			 * Find if this "over" clause has already existed. If so,
+			 * We let the "winspec" for this WindowRef point to
+			 * the existing "over" clause. In this way, we will be able
+			 * to determine if two WindowRef nodes are actually equal,
+			 * see MPP-4268.
+			 */
+			int winspec = 0;
+			ListCell *over_lc = NULL;
+			
+			transformWindowSpec(pstate, over);
+			
+			foreach (over_lc, pstate->p_win_clauses)
+			{
+				Node *over1 = lfirst(over_lc);
+				if (equal(over1, over))
+					break;
+				winspec++;
+			}
+				
+			if (over_lc == NULL)
+				pstate->p_win_clauses = lappend(pstate->p_win_clauses, over);
+			winref->winspec = winspec;
+		}
+
+		winref->windistinct = agg_distinct;
+		winref->location = location;
+
+		transformWindowFuncCall(pstate, winref);
+		retval = (Node *) winref;
+	}
 	else
 	{
 		/* aggregate function */
-		Aggref	   *aggref = makeNode(Aggref);
-
-		aggref->aggfnoid = funcid;
-		aggref->aggtype = rettype;
-		aggref->args = fargs;
-		aggref->aggstar = agg_star;
-		aggref->aggdistinct = agg_distinct;
+		Aggref	   *aggref;
 
 		/*
 		 * Reject attempt to call a parameterless aggregate without (*)
@@ -274,16 +472,96 @@ ParseFuncOrColumn(ParseState *pstate, List *funcname, List *fargs,
 							NameListToString(funcname)),
 					 parser_errposition(pstate, location)));
 
-		/* parse_agg.c does additional aggregate-specific processing */
-		transformAggregateCall(pstate, aggref);
-
-		retval = (Node *) aggref;
+		/* 
+		 * We only support FILTER clauses over STRICT aggegation functions.
+		 *
+		 * All built in aggregations are strict except for int2_sum, 
+         * int4_sum, and int8_sum, all of which are logically strict, but are
+		 * simply defined as non-strict to bootstrap their calculations.  
+		 * Since they are logically strict we will not change their results 
+		 * by including extra nulls in the calculation so the rewrite won't 
+		 * produce incorrect results.
+		 *
+		 * For user defined functions we must enforce this restriction since
+		 * passing "extra" nulls back to a non-strict function may cause it
+		 * to return an incorrect answer, eg: count_null(i) filter (...) 
+		 * wouldn't differeniate between data nulls vs filtered values.
+		 */
+		if (agg_filter && !retstrict && 
+			(funcid < SUM_OID_MIN || funcid > SUM_OID_MAX))
+		{
+		    ereport(ERROR,
+					(errcode(ERRCODE_GP_FEATURE_NOT_SUPPORTED),
+					 errmsg("function %s is not defined as STRICT",
+							func_signature_string(funcname, nargs, 
+												  actual_arg_types)),
+					 errhint("The filter clause is only supported over functions "
+							 "defined as STRICT.")));
+		}
 
 		if (retset)
 			ereport(ERROR,
 					(errcode(ERRCODE_INVALID_FUNCTION_DEFINITION),
 					 errmsg("aggregates may not return sets"),
 					 parser_errposition(pstate, location)));
+
+		/* 
+		 * If this is not an ordered aggregate, but it was called with an
+		 * aggregate order by specification then we must raise an error.
+		 */
+		if (!retordered && agg_order != NIL)
+		{
+			ereport(ERROR,
+					(errcode(ERRCODE_WRONG_OBJECT_TYPE),
+					 errmsg("ORDER BY specified, but %s is not an ordered aggregate function",
+							NameListToString(funcname)),
+					 parser_errposition(pstate, location)));			
+		}
+
+		/* 
+		 * ordered aggregates are not compatible with distinct
+		 */
+		if (agg_distinct && agg_order != NIL)
+		{
+			ereport(ERROR,
+					(errcode(ERRCODE_GP_FEATURE_NOT_SUPPORTED),
+					 errmsg("ORDER BY and DISTINCT are mutually exclusive"),
+					 parser_errposition(pstate, location)));
+		}
+        
+        /* 
+         * Build the aggregate node and transform it
+         *
+         * Note: aggorder is handled inside transformAggregateCall()
+         */
+        aggref = makeNode(Aggref);
+		aggref->aggfnoid    = funcid;
+		aggref->aggtype     = rettype;
+		aggref->args        = fargs;
+		aggref->aggstar     = agg_star;
+		aggref->aggdistinct = agg_distinct;
+
+		transformAggregateCall(pstate, aggref, agg_order);
+
+		retval = (Node *) aggref;
+	}
+
+	/*
+	 * Mark the context if this is a dynamic typed function, if so we mustn't
+	 * allow views to be created from this statement because we cannot 
+	 * guarantee that the future return type will be the same as the current
+	 * return type.
+	 */
+	if (TypeSupportsDescribe(rettype))
+	{
+		Oid DescribeFuncOid = lookupProcCallback(funcid, PROMETHOD_DESCRIBE);
+		if (OidIsValid(DescribeFuncOid))
+		{
+			ParseState *state = pstate;
+
+			for (state = pstate; state; state = state->parentParseState)
+				state->p_hasDynamicFunction = true;
+		}
 	}
 
 	return retval;
@@ -694,6 +972,8 @@ func_get_detail(List *funcname,
 				Oid *funcid,	/* return value */
 				Oid *rettype,	/* return value */
 				bool *retset,	/* return value */
+				bool *retstrict, /* return value */
+				bool *retordered, /* return value */
 				Oid **true_typeids)		/* return value */
 {
 	FuncCandidateList raw_candidates;
@@ -766,6 +1046,8 @@ func_get_detail(List *funcname,
 					*funcid = InvalidOid;
 					*rettype = targetType;
 					*retset = false;
+					*retstrict = false;
+					*retordered = false;
 					*true_typeids = argtypes;
 					return FUNCDETAIL_COERCION;
 				}
@@ -812,23 +1094,74 @@ func_get_detail(List *funcname,
 	{
 		HeapTuple	ftup;
 		Form_pg_proc pform;
-		FuncDetailCode result;
+		bool isagg = false;
+		cqContext	*procqCtx;
 
 		*funcid = best_candidate->oid;
 		*true_typeids = best_candidate->args;
 
-		ftup = SearchSysCache(PROCOID,
-							  ObjectIdGetDatum(best_candidate->oid),
-							  0, 0, 0);
+		procqCtx = caql_beginscan(
+				NULL,
+				cql("SELECT * FROM pg_proc "
+					" WHERE oid = :1 ",
+				ObjectIdGetDatum(best_candidate->oid)));
+
+		ftup = caql_getnext(procqCtx);
+
 		if (!HeapTupleIsValid(ftup))	/* should not happen */
 			elog(ERROR, "cache lookup failed for function %u",
 				 best_candidate->oid);
 		pform = (Form_pg_proc) GETSTRUCT(ftup);
 		*rettype = pform->prorettype;
 		*retset = pform->proretset;
-		result = pform->proisagg ? FUNCDETAIL_AGGREGATE : FUNCDETAIL_NORMAL;
-		ReleaseSysCache(ftup);
-		return result;
+		*retstrict = pform->proisstrict;
+		*retordered = false;
+		isagg = pform->proisagg;
+
+		caql_endscan(procqCtx);
+
+		/* 
+		 * For aggregate functions STRICTness is defined by the 
+		 * transition function 
+		 */
+		if (isagg)
+		{
+		    Form_pg_aggregate	aggform;
+			FmgrInfo			transfn;
+			Datum				value;
+			bool				isnull;
+			cqContext		   *aggcqCtx;
+
+			aggcqCtx = caql_beginscan(
+					NULL,
+					cql("SELECT * FROM pg_aggregate "
+						" WHERE aggfnoid = :1 ",
+						ObjectIdGetDatum(best_candidate->oid)));
+
+			ftup = caql_getnext(aggcqCtx);
+
+			if (!HeapTupleIsValid(ftup))	/* should not happen */
+			    elog(ERROR, "cache lookup failed for aggregate %u",
+					 best_candidate->oid);
+			aggform = (Form_pg_aggregate) GETSTRUCT(ftup);
+			fmgr_info(aggform->aggtransfn, &transfn);
+			*retstrict = transfn.fn_strict;
+
+			/* 
+			 * Check if this is an ordered aggregate - while aggordered
+			 * should never be null it comes after a variable length field
+			 * so we must access it via caql_getattr.
+			 */
+			value = caql_getattr(aggcqCtx, 
+								 Anum_pg_aggregate_aggordered, 
+								 &isnull);
+			*retordered = (!isnull) && DatumGetBool(value);
+
+			caql_endscan(aggcqCtx);
+
+			return FUNCDETAIL_AGGREGATE;
+		}
+		return FUNCDETAIL_NORMAL;
 	}
 
 	return FUNCDETAIL_NOTFOUND;
@@ -872,8 +1205,8 @@ typeInheritsFrom(Oid subclassTypeId, Oid superclassTypeId)
 	foreach(queue_item, queue)
 	{
 		Oid			this_relid = lfirst_oid(queue_item);
-		ScanKeyData skey;
-		HeapScanDesc inhscan;
+		cqContext  *pcqCtx;
+		cqContext	cqc;		
 		HeapTuple	inhtup;
 
 		/* If we've seen this relid already, skip it */
@@ -889,14 +1222,13 @@ typeInheritsFrom(Oid subclassTypeId, Oid superclassTypeId)
 		if (queue_item != list_head(queue))
 			visited = lappend_oid(visited, this_relid);
 
-		ScanKeyInit(&skey,
-					Anum_pg_inherits_inhrelid,
-					BTEqualStrategyNumber, F_OIDEQ,
-					ObjectIdGetDatum(this_relid));
+		pcqCtx = caql_beginscan(
+				caql_addrel(cqclr(&cqc), inhrel),
+				cql("SELECT * FROM pg_inherits "
+					" WHERE inhrelid = :1 ",
+					ObjectIdGetDatum(this_relid)));
 
-		inhscan = heap_beginscan(inhrel, SnapshotNow, 1, &skey);
-
-		while ((inhtup = heap_getnext(inhscan, ForwardScanDirection)) != NULL)
+		while (HeapTupleIsValid(inhtup = caql_getnext(pcqCtx)))
 		{
 			Form_pg_inherits inh = (Form_pg_inherits) GETSTRUCT(inhtup);
 			Oid			inhparent = inh->inhparent;
@@ -912,7 +1244,7 @@ typeInheritsFrom(Oid subclassTypeId, Oid superclassTypeId)
 			queue = lappend_oid(queue, inhparent);
 		}
 
-		heap_endscan(inhscan);
+		caql_endscan(pcqCtx);
 
 		if (result)
 			break;
@@ -959,7 +1291,8 @@ make_fn_arguments(ParseState *pstate,
 												actual_arg_types[i],
 												declared_arg_types[i], -1,
 												COERCION_IMPLICIT,
-												COERCE_IMPLICIT_CAST);
+												COERCE_IMPLICIT_CAST,
+												-1);
 		}
 		i++;
 	}
@@ -1217,6 +1550,8 @@ LookupAggNameTypeNames(List *aggname, List *argtypes, bool noError)
 	Oid			oid;
 	HeapTuple	ftup;
 	Form_pg_proc pform;
+	cqContext	*pcqCtx;
+	bool		 proisagg;
 
 	argcount = list_length(argtypes);
 	if (argcount > FUNC_MAX_ARGS)
@@ -1259,16 +1594,26 @@ LookupAggNameTypeNames(List *aggname, List *argtypes, bool noError)
 	}
 
 	/* Make sure it's an aggregate */
-	ftup = SearchSysCache(PROCOID,
-						  ObjectIdGetDatum(oid),
-						  0, 0, 0);
+	/* SELECT proisagg FROM pg_proc */
+
+	pcqCtx = caql_beginscan(
+			NULL,
+			cql("SELECT * FROM pg_proc "
+				" WHERE oid = :1 ",
+				ObjectIdGetDatum(oid)));
+
+	ftup = caql_getnext(pcqCtx);
+
 	if (!HeapTupleIsValid(ftup))	/* should not happen */
 		elog(ERROR, "cache lookup failed for function %u", oid);
 	pform = (Form_pg_proc) GETSTRUCT(ftup);
 
-	if (!pform->proisagg)
+	proisagg = pform->proisagg;
+
+	caql_endscan(pcqCtx);
+
+	if (!proisagg)
 	{
-		ReleaseSysCache(ftup);
 		if (noError)
 			return InvalidOid;
 		/* we do not use the (*) notation for functions... */
@@ -1279,7 +1624,73 @@ LookupAggNameTypeNames(List *aggname, List *argtypes, bool noError)
 											  argcount, argoids))));
 	}
 
-	ReleaseSysCache(ftup);
-
 	return oid;
+}
+
+
+/*
+ * parseCheckTableFunctions
+ *
+ *	Check for TableValueExpr where they shouldn't be.  Currently the only
+ *  valid location for a TableValueExpr is within a call to a table function.
+ *  In the full SQL Standard they can exist anywhere a multiset is supported.
+ */
+void 
+parseCheckTableFunctions(ParseState *pstate, Query *qry)
+{
+	check_table_func_context context;
+	context.parent = NULL;
+	query_tree_walker(qry, 
+					  checkTableFunctions_walker,
+					  (void *) &context, 0);
+}
+
+static bool 
+checkTableFunctions_walker(Node *node, check_table_func_context *context)
+{
+	if (node == NULL)
+		return false;
+
+	/* 
+	 * TABLE() value expressions are currently only permited as parameters
+	 * to table functions called in the FROM clause.
+	 */
+	if (IsA(node, TableValueExpr))
+	{
+		if (context->parent && IsA(context->parent, FuncExpr))
+		{ 
+			FuncExpr *parent = (FuncExpr *) context->parent;
+
+			/*
+			 * This flag is set in addRangeTableEntryForFunction for functions
+			 * called as range table entries having TABLE value expressions
+			 * as arguments.
+			 */
+			if (parent->is_tablefunc)
+				return false;
+
+			/* Error message could be improved */
+			ereport(ERROR,
+					(errcode(ERRCODE_SYNTAX_ERROR),
+					 errmsg("table functions must be invoked in FROM clause")));
+		}
+		ereport(ERROR,
+				(errcode(ERRCODE_SYNTAX_ERROR),
+				 errmsg("invalid use of TABLE value expression")));
+		return true;  /* not possible, but keeps compiler happy */
+	}
+
+	context->parent = node;
+	if (IsA(node, Query))
+	{
+		return query_tree_walker((Query *) node, 
+								 checkTableFunctions_walker,
+								 (void *) context, 0);
+	}
+	else
+	{
+		return expression_tree_walker(node, 
+									  checkTableFunctions_walker, 
+									  (void *) context);
+	}
 }

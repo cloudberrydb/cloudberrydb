@@ -3,21 +3,24 @@
  * functions.c
  *	  Execution of SQL-language functions
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2008, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/executor/functions.c,v 1.108 2006/10/12 17:02:24 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/executor/functions.c,v 1.108.2.2 2007/04/02 18:49:36 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
 #include "postgres.h"
 
 #include "access/xact.h"
+#include "catalog/catalog.h"
+#include "catalog/catquery.h"
 #include "catalog/pg_proc.h"
 #include "catalog/pg_type.h"
 #include "commands/trigger.h"
+#include "executor/executor.h"          /* ExecutorStart, ExecutorRun, etc */
 #include "executor/functions.h"
 #include "funcapi.h"
 #include "parser/parse_coerce.h"
@@ -29,12 +32,18 @@
 #include "utils/lsyscache.h"
 #include "utils/syscache.h"
 #include "utils/typcache.h"
-
+#include "catalog/namespace.h"
+#include "catalog/pg_namespace.h"
+#include "cdb/cdbvars.h"
+#include "optimizer/clauses.h"
+#include "executor/spi.h"
+#include "cdb/memquota.h"
+#include "postmaster/autovacuum.h"
 
 /*
  * We have an execution_state record for each query in a function.	Each
- * record contains a querytree and plantree for its query.	If the query
- * is currently in F_EXEC_RUN state then there's a QueryDesc too.
+ * record contains a plantree for its query.  If the query is currently in
+ * F_EXEC_RUN state then there's a QueryDesc too.
  */
 typedef enum
 {
@@ -45,8 +54,7 @@ typedef struct local_es
 {
 	struct local_es *next;
 	ExecStatus	status;
-	Query	   *query;
-	Plan	   *plan;
+	Node	   *stmt;			/* PlannedStmt or utility statement */
 	QueryDesc  *qd;				/* null unless status == RUN */
 } execution_state;
 
@@ -59,9 +67,11 @@ typedef struct local_es
  */
 typedef struct
 {
+	char	   *src;			/* function body text (for error msgs) */
+
 	Oid		   *argtypes;		/* resolved types of arguments */
 	Oid			rettype;		/* actual return type */
-	int			typlen;			/* length of the return type */
+	int16		typlen;			/* length of the return type */
 	bool		typbyval;		/* true if return type is pass by value */
 	bool		returnsTuple;	/* true if returning whole tuple result */
 	bool		shutdown_reg;	/* true if registered shutdown callback */
@@ -80,10 +90,11 @@ typedef SQLFunctionCache *SQLFunctionCachePtr;
 
 /* non-export function prototypes */
 static execution_state *init_execution_state(List *queryTree_list,
+					 SQLFunctionCache *fcache,
 					 bool readonly_func);
 static void init_sql_fcache(FmgrInfo *finfo);
 static void postquel_start(execution_state *es, SQLFunctionCachePtr fcache);
-static TupleTableSlot *postquel_getnext(execution_state *es);
+static TupleTableSlot * postquel_getnext(execution_state *es, SQLFunctionCachePtr fcache);
 static void postquel_end(execution_state *es);
 static void postquel_sub_params(SQLFunctionCachePtr fcache,
 					FunctionCallInfo fcinfo);
@@ -93,10 +104,84 @@ static Datum postquel_execute(execution_state *es,
 				 MemoryContext resultcontext);
 static void sql_exec_error_callback(void *arg);
 static void ShutdownSQLFunction(Datum arg);
+static bool querytree_safe_for_segment_walker(Node *expr, void *context);
 
+/**
+ * Walker for querytree_safe_for_segment. 
+ */
+bool querytree_safe_for_segment_walker(Node *expr, void *context)
+{
+	Assert(context == NULL);
+	
+	if (!expr)
+	{
+		/**
+		 * Do not end recursion just because we have reached one leaf node.
+		 */
+		return false;
+	}
+
+	switch(nodeTag(expr))
+	{
+		case T_Query:
+			{
+				Query *q = (Query *) expr;
+				
+				if (!allow_segment_DML &&
+					(q->commandType != CMD_SELECT
+					 || q->intoClause != NULL
+					 || q->resultRelation > 0))
+				{
+					elog(ERROR, "function cannot execute on segment because it issues a non-SELECT statement");
+				}
+				
+				ListCell * f = NULL;
+				foreach(f,q->rtable)
+				{
+					RangeTblEntry *rte = (RangeTblEntry *) lfirst(f);
+
+					if (rte->rtekind == RTE_RELATION)
+					{
+						Assert(rte->relid != InvalidOid);
+						
+						Oid namespaceId = get_rel_namespace(rte->relid);
+
+						Assert(namespaceId != InvalidOid);
+						
+						if (!(IsSystemNamespace(namespaceId) ||
+							  IsToastNamespace(namespaceId) ||
+							  IsAoSegmentNamespace(namespaceId)))
+						{
+							elog(ERROR, "function cannot execute on segment because it accesses relation \"%s.%s\"", 
+									quote_identifier(get_namespace_name(namespaceId)), quote_identifier(get_rel_name(rte->relid)));
+						}
+					}
+				}
+				query_tree_walker(q, querytree_safe_for_segment_walker, context, 0);
+				break;
+			}
+		default:
+			break;
+	}
+	
+	return expression_tree_walker(expr, querytree_safe_for_segment_walker, context);
+}
+
+
+/**
+ * This function determines if the query tree is safe to be planned and executed on a segment. The checks it performs are:
+ * 1. The query cannot access any non-catalog relation.
+ * 2. The query must be select only.
+ * In case of a problem, the method spits out an error.
+ */
+void querytree_safe_for_segment(Query *query)
+{
+	Assert(query);
+	querytree_safe_for_segment_walker((Node *)query, NULL);
+}
 
 static execution_state *
-init_execution_state(List *queryTree_list, bool readonly_func)
+init_execution_state(List *queryTree_list, SQLFunctionCache *fcache, bool readonly_func)
 {
 	execution_state *firstes = NULL;
 	execution_state *preves = NULL;
@@ -104,27 +189,31 @@ init_execution_state(List *queryTree_list, bool readonly_func)
 
 	foreach(qtl_item, queryTree_list)
 	{
-		Query	   *queryTree = lfirst(qtl_item);
-		Plan	   *planTree;
+		Query	   *queryTree = (Query *) lfirst(qtl_item);
+		Node	   *stmt;
 		execution_state *newes;
 
+		Assert(IsA(queryTree, Query));
+
+		if (queryTree->commandType == CMD_UTILITY)
+			stmt = queryTree->utilityStmt;
+		else
+			stmt = (Node *) pg_plan_query(queryTree, NULL);
+
 		/* Precheck all commands for validity in a function */
-		if (queryTree->commandType == CMD_UTILITY &&
-			IsA(queryTree->utilityStmt, TransactionStmt))
+		if (IsA(stmt, TransactionStmt))
 			ereport(ERROR,
 					(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
 			/* translator: %s is a SQL statement name */
 					 errmsg("%s is not allowed in a SQL function",
-							CreateQueryTag(queryTree))));
+							CreateCommandTag(stmt))));
 
-		if (readonly_func && !QueryIsReadOnly(queryTree))
+		if (readonly_func && !CommandIsReadOnly(stmt))
 			ereport(ERROR,
 					(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
 			/* translator: %s is a SQL statement name */
 					 errmsg("%s is not allowed in a non-volatile function",
-							CreateQueryTag(queryTree))));
-
-		planTree = pg_plan_query(queryTree, NULL);
+							CreateCommandTag(stmt))));
 
 		newes = (execution_state *) palloc(sizeof(execution_state));
 		if (preves)
@@ -134,8 +223,7 @@ init_execution_state(List *queryTree_list, bool readonly_func)
 
 		newes->next = NULL;
 		newes->status = F_EXEC_START;
-		newes->query = queryTree;
-		newes->plan = planTree;
+		newes->stmt = stmt;
 		newes->qd = NULL;
 
 		preves = newes;
@@ -144,33 +232,35 @@ init_execution_state(List *queryTree_list, bool readonly_func)
 	return firstes;
 }
 
-
 static void
 init_sql_fcache(FmgrInfo *finfo)
 {
 	Oid			foid = finfo->fn_oid;
 	Oid			rettype;
 	HeapTuple	procedureTuple;
-	HeapTuple	typeTuple;
 	Form_pg_proc procedureStruct;
-	Form_pg_type typeStruct;
 	SQLFunctionCachePtr fcache;
 	Oid		   *argOidVect;
-	bool		haspolyarg;
-	char	   *src;
 	int			nargs;
 	List	   *queryTree_list;
 	Datum		tmp;
 	bool		isNull;
+	ListCell * list_item;
+	cqContext  *pcqCtx;
 
 	fcache = (SQLFunctionCachePtr) palloc0(sizeof(SQLFunctionCache));
 
 	/*
 	 * get the procedure tuple corresponding to the given function Oid
 	 */
-	procedureTuple = SearchSysCache(PROCOID,
-									ObjectIdGetDatum(foid),
-									0, 0, 0);
+	pcqCtx = caql_beginscan(
+			NULL,
+			cql("SELECT * FROM pg_proc "
+				" WHERE oid = :1 ",
+				ObjectIdGetDatum(foid)));
+
+	procedureTuple = caql_getnext(pcqCtx);
+
 	if (!HeapTupleIsValid(procedureTuple))
 		elog(ERROR, "cache lookup failed for function %u", foid);
 	procedureStruct = (Form_pg_proc) GETSTRUCT(procedureTuple);
@@ -193,35 +283,17 @@ init_sql_fcache(FmgrInfo *finfo)
 
 	fcache->rettype = rettype;
 
+	/* Fetch the typlen and byval info for the result type */
+	get_typlenbyval(rettype, &fcache->typlen, &fcache->typbyval);
+
 	/* Remember if function is STABLE/IMMUTABLE */
 	fcache->readonly_func =
 		(procedureStruct->provolatile != PROVOLATILE_VOLATILE);
 
-	/* Now look up the actual result type */
-	typeTuple = SearchSysCache(TYPEOID,
-							   ObjectIdGetDatum(rettype),
-							   0, 0, 0);
-	if (!HeapTupleIsValid(typeTuple))
-		elog(ERROR, "cache lookup failed for type %u", rettype);
-	typeStruct = (Form_pg_type) GETSTRUCT(typeTuple);
-
 	/*
-	 * get the type length and by-value flag from the type tuple; also do a
-	 * preliminary check for returnsTuple (this may prove inaccurate, see
-	 * below).
-	 */
-	fcache->typlen = typeStruct->typlen;
-	fcache->typbyval = typeStruct->typbyval;
-	fcache->returnsTuple = (typeStruct->typtype == 'c' ||
-							rettype == RECORDOID);
-
-	/*
-	 * Parse and rewrite the queries.  We need the argument type info to pass
-	 * to the parser.
+	 * We need the actual argument types to pass to the parser.
 	 */
 	nargs = procedureStruct->pronargs;
-	haspolyarg = false;
-
 	if (nargs > 0)
 	{
 		int			argnum;
@@ -244,7 +316,6 @@ init_sql_fcache(FmgrInfo *finfo)
 							 errmsg("could not determine actual type of argument declared %s",
 									format_type_be(argOidVect[argnum]))));
 				argOidVect[argnum] = argtype;
-				haspolyarg = true;
 			}
 		}
 	}
@@ -252,44 +323,88 @@ init_sql_fcache(FmgrInfo *finfo)
 		argOidVect = NULL;
 	fcache->argtypes = argOidVect;
 
-	tmp = SysCacheGetAttr(PROCOID,
-						  procedureTuple,
-						  Anum_pg_proc_prosrc,
-						  &isNull);
+	/*
+	 * Parse and rewrite the queries in the function text.
+	 */
+	tmp = caql_getattr(pcqCtx,
+					   Anum_pg_proc_prosrc,
+					   &isNull);
 	if (isNull)
 		elog(ERROR, "null prosrc for function %u", foid);
-	src = DatumGetCString(DirectFunctionCall1(textout, tmp));
+	fcache->src = TextDatumGetCString(tmp);
 
-	queryTree_list = pg_parse_and_rewrite(src, argOidVect, nargs);
+	queryTree_list = pg_parse_and_rewrite(fcache->src, argOidVect, nargs);
+	
 
 	/*
-	 * If the function has any arguments declared as polymorphic types, then
-	 * it wasn't type-checked at definition time; must do so now.
+	 * If we have only SELECT statements with no FROM clauses, we should
+	 * be able to execute them locally, even on the QE.  Most often, this is something 
+	 * like   SELECT $1
+	 * Functions use that type of SELECT to evaluate expressions, so without those,
+	 * no functions would be useful.
+	 * 
+	 * We also need to execute certain catalog queries locally.  The Fault-Tolerance system
+	 * does queries of gp_configuration, and some DDL and Utility commands do selects from the 
+	 * catalog table, etc.    So, if the FROM clause consists only of catalog tables, we 
+	 * will run the query locally.
+	 * 
+	 */
+	if (Gp_role == GP_ROLE_EXECUTE)
+	{
+		bool canRunLocal = true;
+		foreach(list_item, queryTree_list)
+		{
+			Node	   *parsetree = (Node *) lfirst(list_item);
+			if (IsA(parsetree,Query))
+			{
+				/* This will error out if there is a problem with the query tree */
+				querytree_safe_for_segment((Query*)parsetree);
+			}
+			else
+			{
+				canRunLocal = false;
+				break;
+			}		
+		}
+		
+		if (!canRunLocal)
+		{
+			if (procedureStruct->provolatile == PROVOLATILE_VOLATILE)
+				elog(ERROR,"Volatile SQL function %s cannot be executed from the segment databases",NameStr(procedureStruct->proname));	
+			else if (procedureStruct->provolatile == PROVOLATILE_STABLE)
+				elog(ERROR,"Stable SQL function %s cannot be executed from the segment databases",NameStr(procedureStruct->proname));
+			else 
+				elog(ERROR,"SQL function %s cannot be executed from the segment databases",NameStr(procedureStruct->proname));		
+		}
+	}
+
+	/*
+	 * Check that the function returns the type it claims to.  Although
+	 * in simple cases this was already done when the function was defined,
+	 * we have to recheck because database objects used in the function's
+	 * queries might have changed type.  We'd have to do it anyway if the
+	 * function had any polymorphic arguments.
 	 *
-	 * Also, force a type-check if the declared return type is a rowtype; we
-	 * need to find out whether we are actually returning the whole tuple
-	 * result, or just regurgitating a rowtype expression result. In the
+	 * Note: we set fcache->returnsTuple according to whether we are
+	 * returning the whole tuple result or just a single column.  In the
 	 * latter case we clear returnsTuple because we need not act different
-	 * from the scalar result case.
+	 * from the scalar result case, even if it's a rowtype column.
 	 *
 	 * In the returnsTuple case, check_sql_fn_retval will also construct a
 	 * JunkFilter we can use to coerce the returned rowtype to the desired
 	 * form.
 	 */
-	if (haspolyarg || fcache->returnsTuple)
-		fcache->returnsTuple = check_sql_fn_retval(foid,
-												   rettype,
-												   queryTree_list,
-												   &fcache->junkFilter);
+	fcache->returnsTuple = check_sql_fn_retval(foid,
+											   rettype,
+											   queryTree_list,
+											   &fcache->junkFilter);
 
 	/* Finally, plan the queries */
 	fcache->func_state = init_execution_state(queryTree_list,
+											  fcache,
 											  fcache->readonly_func);
 
-	pfree(src);
-
-	ReleaseSysCache(typeTuple);
-	ReleaseSysCache(procedureTuple);
+	caql_endscan(pcqCtx);
 
 	finfo->fn_extra = (void *) fcache;
 }
@@ -317,15 +432,47 @@ postquel_start(execution_state *es, SQLFunctionCachePtr fcache)
 		snapshot = CopySnapshot(GetTransactionSnapshot());
 	}
 
-	es->qd = CreateQueryDesc(es->query, es->plan,
-							 snapshot, InvalidSnapshot,
-							 None_Receiver,
-							 fcache->paramLI, false);
+	if (IsA(es->stmt, PlannedStmt))
+	{
+		es->qd = CreateQueryDesc((PlannedStmt *) es->stmt,
+								 fcache->src,
+								 snapshot, InvalidSnapshot,
+								 None_Receiver,
+								 fcache->paramLI, false);
+
+		if (gp_enable_gpperfmon 
+			&& Gp_role == GP_ROLE_DISPATCH 
+			&& log_min_messages < DEBUG4)
+		{
+			/* For log level of DEBUG4, gpmon is sent information about queries inside SQL functions as well */
+			Assert(fcache->src);
+			gpmon_qlog_query_text(es->qd->gpmon_pkt,
+					fcache->src,
+					application_name,
+					NULL /* resqueue name */,
+					NULL /* priority */);
+
+		}
+		else
+		{
+			/* Otherwise, we do not record information about internal queries. */
+			es->qd->gpmon_pkt = NULL;
+		}
+	}
+	
+	else
+	{
+		es->qd = CreateUtilityQueryDesc(es->stmt,
+										fcache->src,
+										snapshot,
+										None_Receiver,
+										fcache->paramLI);
+	}
 
 	/* We assume we don't need to set up ActiveSnapshot for ExecutorStart */
 
 	/* Utility commands don't need Executor. */
-	if (es->qd->operation != CMD_UTILITY)
+	if (es->qd->utilitystmt == NULL)
 	{
 		/*
 		 * Only set up to collect queued triggers if it's not a SELECT.
@@ -335,6 +482,14 @@ postquel_start(execution_state *es, SQLFunctionCachePtr fcache)
 		 */
 		if (es->qd->operation != CMD_SELECT)
 			AfterTriggerBeginQuery();
+		
+		
+		if (gp_resqueue_memory_policy != RESQUEUE_MEMORY_POLICY_NONE
+			&& SPI_IsMemoryReserved())
+		{
+			es->qd->plannedstmt->query_mem = SPI_GetMemoryReservation();
+		}
+
 		ExecutorStart(es->qd, 0);
 	}
 
@@ -342,7 +497,7 @@ postquel_start(execution_state *es, SQLFunctionCachePtr fcache)
 }
 
 static TupleTableSlot *
-postquel_getnext(execution_state *es)
+postquel_getnext(execution_state *es, SQLFunctionCachePtr fcache)
 {
 	TupleTableSlot *result;
 	Snapshot	saveActiveSnapshot;
@@ -354,9 +509,15 @@ postquel_getnext(execution_state *es)
 	{
 		ActiveSnapshot = es->qd->snapshot;
 
-		if (es->qd->operation == CMD_UTILITY)
+		if (es->qd->utilitystmt != NULL)
 		{
-			ProcessUtility(es->qd->parsetree->utilityStmt, es->qd->params,
+			/* ProcessUtility needs the PlannedStmt for DECLARE CURSOR */
+			ProcessUtility((es->qd->plannedstmt ?
+							(Node *) es->qd->plannedstmt :
+							es->qd->utilitystmt), 
+						   fcache->src,
+						   es->qd->params,
+						   false, /* not top level */
 						   es->qd->dest, NULL);
 			result = NULL;
 		}
@@ -370,7 +531,7 @@ postquel_getnext(execution_state *es)
 			 */
 			if (LAST_POSTQUEL_COMMAND(es) &&
 				es->qd->operation == CMD_SELECT &&
-				es->qd->parsetree->into == NULL)
+				es->qd->plannedstmt->intoClause == NULL)
 				count = 1L;
 			else
 				count = 0L;
@@ -400,7 +561,7 @@ postquel_end(execution_state *es)
 	es->status = F_EXEC_DONE;
 
 	/* Utility commands don't need Executor. */
-	if (es->qd->operation != CMD_UTILITY)
+	if (es->qd->utilitystmt == NULL)
 	{
 		/* Make our snapshot the active one for any called functions */
 		saveActiveSnapshot = ActiveSnapshot;
@@ -411,6 +572,15 @@ postquel_end(execution_state *es)
 			if (es->qd->operation != CMD_SELECT)
 				AfterTriggerEndQuery(es->qd->estate);
 			ExecutorEnd(es->qd);
+
+			/* MPP-14001: Running auto_stats */
+			if (Gp_role == GP_ROLE_DISPATCH)
+			{
+				Oid			relationOid = InvalidOid; 					/* relation that is modified */
+				AutoStatsCmdType cmdType = AUTOSTATS_CMDTYPE_SENTINEL; 	/* command type */
+				autostats_get_cmdtype(es->qd->plannedstmt, &cmdType, &relationOid);
+				auto_stats(cmdType, relationOid, es->qd->es_processed, true /* inFunction */);
+			}
 		}
 		PG_CATCH();
 		{
@@ -476,7 +646,7 @@ postquel_execute(execution_state *es,
 	if (es->status == F_EXEC_START)
 		postquel_start(es, fcache);
 
-	slot = postquel_getnext(es);
+	slot = postquel_getnext(es, fcache);
 
 	if (TupIsNull(slot))
 	{
@@ -486,7 +656,7 @@ postquel_execute(execution_state *es,
 		 */
 		postquel_end(es);
 		fcinfo->isnull = true;
-		return (Datum) NULL;
+		return 0;
 	}
 
 	/*
@@ -638,17 +808,39 @@ fmgr_sql(PG_FUNCTION_ARGS)
 	while (es && es->status == F_EXEC_DONE)
 		es = es->next;
 
-	/*
-	 * Execute each command in the function one after another until we're
-	 * executing the final command and get a result or we run out of commands.
-	 */
-	while (es)
+	bool orig_gp_enable_gpperfmon = gp_enable_gpperfmon;
+
+	PG_TRY();
 	{
-		result = postquel_execute(es, fcinfo, fcache, oldcontext);
-		if (es->status != F_EXEC_DONE)
-			break;
-		es = es->next;
+		/*
+		 * Temporarily disable gpperfmon since we don't send information for internal queries in
+		 * most cases, except when the debugging level is set to DEBUG4 or DEBUG5.
+		 */
+		if (log_min_messages > DEBUG4)
+		{
+			gp_enable_gpperfmon = false;
+		}
+
+		/*
+		 * Execute each command in the function one after another until we're
+		 * executing the final command and get a result or we run out of commands.
+		 */
+		while (es)
+		{
+			result = postquel_execute(es, fcinfo, fcache, oldcontext);
+			if (es->status != F_EXEC_DONE)
+				break;
+			es = es->next;
+		}
+
+		gp_enable_gpperfmon = orig_gp_enable_gpperfmon;
 	}
+	PG_CATCH();
+	{
+		gp_enable_gpperfmon = orig_gp_enable_gpperfmon;
+		PG_RE_THROW();
+	}
+	PG_END_TRY();
 
 	/*
 	 * If we've gone through every command in this function, we are done.
@@ -751,13 +943,22 @@ sql_exec_error_callback(void *arg)
 	Form_pg_proc functup;
 	char	   *fn_name;
 	int			syntaxerrposition;
+	cqContext  *pcqCtx;
 
 	/* Need access to function's pg_proc tuple */
-	func_tuple = SearchSysCache(PROCOID,
-								ObjectIdGetDatum(flinfo->fn_oid),
-								0, 0, 0);
+	pcqCtx = caql_beginscan(
+			NULL,
+			cql("SELECT * FROM pg_proc "
+				" WHERE oid = :1 ",
+				ObjectIdGetDatum(flinfo->fn_oid)));
+
+	func_tuple = caql_getnext(pcqCtx);
+
 	if (!HeapTupleIsValid(func_tuple))
+	{
+		caql_endscan(pcqCtx);
 		return;					/* shouldn't happen */
+	}
 	functup = (Form_pg_proc) GETSTRUCT(func_tuple);
 	fn_name = NameStr(functup->proname);
 
@@ -771,8 +972,9 @@ sql_exec_error_callback(void *arg)
 		Datum		tmp;
 		char	   *prosrc;
 
-		tmp = SysCacheGetAttr(PROCOID, func_tuple, Anum_pg_proc_prosrc,
-							  &isnull);
+		tmp = caql_getattr(pcqCtx,
+						   Anum_pg_proc_prosrc,
+						   &isnull);
 		if (isnull)
 			elog(ERROR, "null prosrc");
 		prosrc = DatumGetCString(DirectFunctionCall1(textout, tmp));
@@ -822,7 +1024,7 @@ sql_exec_error_callback(void *arg)
 		errcontext("SQL function \"%s\" during startup", fn_name);
 	}
 
-	ReleaseSysCache(func_tuple);
+	caql_endscan(pcqCtx);
 }
 
 
@@ -858,15 +1060,14 @@ ShutdownSQLFunction(Datum arg)
  * the final query in the function.  We do some ad-hoc type checking here
  * to be sure that the user is returning the type he claims.
  *
- * This is normally applied during function definition, but in the case
- * of a function with polymorphic arguments, we instead apply it during
- * function execution startup.	The rettype is then the actual resolved
- * output type of the function, rather than the declared type.	(Therefore,
- * we should never see ANYARRAY or ANYELEMENT as rettype.)
+ * For a polymorphic function the passed rettype must be the actual resolved
+ * output type of the function; we should never see ANYARRAY or ANYELEMENT
+ * as rettype.  (This means we can't check the type during function definition
+ * of a polymorphic function.)
  *
- * The return value is true if the function returns the entire tuple result
- * of its final SELECT, and false otherwise.  Note that because we allow
- * "SELECT rowtype_expression", this may be false even when the declared
+ * This function returns true if the sql function returns the entire tuple
+ * result of its final SELECT, and false otherwise.  Note that because we
+ * allow "SELECT rowtype_expression", this may be false even when the declared
  * function return type is a rowtype.
  *
  * If junkFilter isn't NULL, then *junkFilter is set to a JunkFilter defined
@@ -879,7 +1080,6 @@ check_sql_fn_retval(Oid func_id, Oid rettype, List *queryTreeList,
 					JunkFilter **junkFilter)
 {
 	Query	   *parse;
-	bool		isSelect;
 	List	   *tlist;
 	ListCell   *tlistitem;
 	int			tlistlen;
@@ -905,32 +1105,32 @@ check_sql_fn_retval(Oid func_id, Oid rettype, List *queryTreeList,
 	parse = (Query *) lfirst(list_tail(queryTreeList));
 
 	/*
-	 * Note: eventually replace this with QueryReturnsTuples?  We'd need a
-	 * more general method of determining the output type, though.
+	 * If the last query isn't a SELECT, the return type must be VOID.
+	 *
+	 * Note: eventually replace this test with QueryReturnsTuples?  We'd need
+	 * a more general method of determining the output type, though.
 	 */
-	isSelect = (parse->commandType == CMD_SELECT && parse->into == NULL);
-
-	/*
-	 * The last query must be a SELECT if and only if return type isn't VOID.
-	 */
-	if (rettype == VOIDOID)
+	if (!(parse->commandType == CMD_SELECT && 
+		  parse->intoClause == NULL &&
+		  parse->utilityStmt == NULL))
 	{
-		if (isSelect)
+		if (rettype != VOIDOID)
 			ereport(ERROR,
 					(errcode(ERRCODE_INVALID_FUNCTION_DEFINITION),
 			 errmsg("return type mismatch in function declared to return %s",
 					format_type_be(rettype)),
-			 errdetail("Function's final statement must not be a SELECT.")));
+				 errdetail("Function's final statement must be a SELECT.")));
 		return false;
 	}
 
-	/* by here, the function is declared to return some type */
-	if (!isSelect)
-		ereport(ERROR,
-				(errcode(ERRCODE_INVALID_FUNCTION_DEFINITION),
-			 errmsg("return type mismatch in function declared to return %s",
-					format_type_be(rettype)),
-				 errdetail("Function's final statement must be a SELECT.")));
+	/*
+	 * OK, it's a SELECT, so it must return something matching the declared
+	 * type.  (We used to insist that the declared type not be VOID in this
+	 * case, but that makes it hard to write a void function that exits
+	 * after calling another void function.  Instead, we insist that the
+	 * SELECT return void ... so void is treated as if it were a scalar type
+	 * below.)
+	 */
 
 	/*
 	 * Count the non-junk entries in the result targetlist.
@@ -940,10 +1140,11 @@ check_sql_fn_retval(Oid func_id, Oid rettype, List *queryTreeList,
 
 	fn_typtype = get_typtype(rettype);
 
-	if (fn_typtype == 'b' || fn_typtype == 'd')
+	if (fn_typtype == 'b' || fn_typtype == 'd' ||
+		rettype == VOIDOID)
 	{
 		/*
-		 * For base-type returns, the target list should have exactly one
+		 * For scalar-type returns, the target list should have exactly one
 		 * entry, and its type should agree with what the user declared. (As
 		 * of Postgres 7.2, we accept binary-compatible types too.)
 		 */
@@ -993,7 +1194,10 @@ check_sql_fn_retval(Oid func_id, Oid rettype, List *queryTreeList,
 			 * what the caller expects will happen at runtime.
 			 */
 			if (junkFilter)
-				*junkFilter = ExecInitJunkFilter(tlist, false, NULL);
+			  {
+			    TupleDesc cleanTupType = ExecCleanTypeFromTL(tlist, false /* hasoid */);
+			    *junkFilter = ExecInitJunkFilter(tlist, cleanTupType, NULL);
+			  }
 			return true;
 		}
 		Assert(tupdesc);

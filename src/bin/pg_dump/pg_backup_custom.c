@@ -19,7 +19,7 @@
  *
  *
  * IDENTIFICATION
- *		$PostgreSQL: pgsql/src/bin/pg_dump/pg_backup_custom.c,v 1.36 2006/10/04 00:30:05 momjian Exp $
+ *		$PostgreSQL: pgsql/src/bin/pg_dump/pg_backup_custom.c,v 1.36.2.2 2007/08/06 01:38:24 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -70,14 +70,14 @@ typedef struct
 	char	   *zlibIn;
 	size_t		inSize;
 	int			hasSeek;
-	off_t		filePos;
-	off_t		dataStart;
+	pgoff_t		filePos;
+	pgoff_t		dataStart;
 } lclContext;
 
 typedef struct
 {
 	int			dataState;
-	off_t		dataPos;
+	pgoff_t		dataPos;
 } lclTocEntry;
 
 
@@ -88,10 +88,10 @@ typedef struct
 static void _readBlockHeader(ArchiveHandle *AH, int *type, int *id);
 static void _StartDataCompressor(ArchiveHandle *AH, TocEntry *te);
 static void _EndDataCompressor(ArchiveHandle *AH, TocEntry *te);
-static off_t _getFilePos(ArchiveHandle *AH, lclContext *ctx);
+static pgoff_t _getFilePos(ArchiveHandle *AH, lclContext *ctx);
 static int	_DoDeflate(ArchiveHandle *AH, lclContext *ctx, int flush);
 
-static char *modulename = gettext_noop("custom archiver");
+static const char *modulename = gettext_noop("custom archiver");
 
 
 
@@ -169,23 +169,38 @@ InitArchiveFmt_Custom(ArchiveHandle *AH)
 	if (AH->mode == archModeWrite)
 	{
 		if (AH->fSpec && strcmp(AH->fSpec, "") != 0)
+		{
 			AH->FH = fopen(AH->fSpec, PG_BINARY_W);
+			if (!AH->FH)
+				die_horribly(AH, modulename, "could not open output file \"%s\": %s\n",
+							 AH->fSpec, strerror(errno));
+		}
 		else
+		{
 			AH->FH = stdout;
-
-		if (!AH->FH)
-			die_horribly(AH, modulename, "could not open output file \"%s\": %s\n", AH->fSpec, strerror(errno));
+			if (!AH->FH)
+				die_horribly(AH, modulename, "could not open output file: %s\n",
+							 strerror(errno));
+		}
 
 		ctx->hasSeek = checkSeek(AH->FH);
 	}
 	else
 	{
 		if (AH->fSpec && strcmp(AH->fSpec, "") != 0)
+		{
 			AH->FH = fopen(AH->fSpec, PG_BINARY_R);
+			if (!AH->FH)
+				die_horribly(AH, modulename, "could not open input file \"%s\": %s\n",
+							 AH->fSpec, strerror(errno));
+		}
 		else
+		{
 			AH->FH = stdin;
-		if (!AH->FH)
-			die_horribly(AH, modulename, "could not open input file \"%s\": %s\n", AH->fSpec, strerror(errno));
+			if (!AH->FH)
+				die_horribly(AH, modulename, "could not open input file: %s\n",
+							 strerror(errno));
+		}
 
 		ctx->hasSeek = checkSeek(AH->FH);
 
@@ -461,7 +476,7 @@ _PrintTocData(ArchiveHandle *AH, TocEntry *te, RestoreOptions *ropt)
 	}
 	else
 	{
-		/* Grab it */
+		/* We can just seek to the place we need to be. */
 		if (fseeko(AH->FH, tctx->dataPos, SEEK_SET) != 0)
 			die_horribly(AH, modulename, "error during file seek: %s\n", strerror(errno));
 
@@ -712,7 +727,7 @@ _WriteByte(ArchiveHandle *AH, const int i)
  *
  * Called by the archiver to read bytes & integers from the archive.
  * These routines are only used to read & write headers & TOC.
- *
+ * EOF should be treated as a fatal error.
  */
 static int
 _ReadByte(ArchiveHandle *AH)
@@ -720,9 +735,10 @@ _ReadByte(ArchiveHandle *AH)
 	lclContext *ctx = (lclContext *) AH->formatData;
 	int			res;
 
-	res = fgetc(AH->FH);
-	if (res != EOF)
-		ctx->filePos += 1;
+	res = getc(AH->FH);
+	if (res == EOF)
+		die_horribly(AH, modulename, "unexpected end of file\n");
+	ctx->filePos += 1;
 	return res;
 }
 
@@ -791,7 +807,7 @@ static void
 _CloseArchive(ArchiveHandle *AH)
 {
 	lclContext *ctx = (lclContext *) AH->formatData;
-	off_t		tpos;
+	pgoff_t		tpos;
 
 	if (AH->mode == archModeWrite)
 	{
@@ -827,10 +843,10 @@ _CloseArchive(ArchiveHandle *AH)
 /*
  * Get the current position in the archive file.
  */
-static off_t
+static pgoff_t
 _getFilePos(ArchiveHandle *AH, lclContext *ctx)
 {
-	off_t		pos;
+	pgoff_t		pos;
 
 	if (ctx->hasSeek)
 	{
@@ -841,7 +857,7 @@ _getFilePos(ArchiveHandle *AH, lclContext *ctx)
 
 			/*
 			 * Prior to 1.7 (pg7.3) we relied on the internally maintained
-			 * pointer. Now we rely on off_t always. pos = ctx->filePos;
+			 * pointer. Now we rely on pgoff_t always.
 			 */
 		}
 	}

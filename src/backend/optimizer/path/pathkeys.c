@@ -7,7 +7,8 @@
  * the nature and use of path keys.
  *
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 2005-2008, Greenplum inc
+ * Portions Copyright (c) 1996-2008, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
@@ -24,11 +25,17 @@
 #include "optimizer/planmain.h"
 #include "optimizer/tlist.h"
 #include "optimizer/var.h"
+#include "optimizer/restrictinfo.h"
 #include "parser/parsetree.h"
 #include "parser/parse_expr.h"
+#include "parser/parse_func.h"
+#include "parser/parse_oper.h" /* for compatible_oper_opid() */
 #include "utils/lsyscache.h"
 #include "utils/memutils.h"
+#include "utils/datum.h"
 
+#include "cdb/cdbdef.h"         /* CdbSwap() */
+#include "cdb/cdbpullup.h"      /* cdbpullup_expr(), cdbpullup_make_var() */
 
 static PathKeyItem *makePathKeyItem(Node *key, Oid sortop, bool checkType);
 static void generate_outer_join_implications(PlannerInfo *root,
@@ -44,18 +51,38 @@ static void process_implied_const_eq(PlannerInfo *root,
 						 Relids item1_relids,
 						 bool delete_it);
 static List *make_canonical_pathkey(PlannerInfo *root, PathKeyItem *item);
-static Var *find_indexkey_var(PlannerInfo *root, RelOptInfo *rel,
-				  AttrNumber varattno);
 
 
 /*
  * makePathKeyItem
  *		create a PathKeyItem node
+ *
+ * Generally, callers specify 'checkType' as false if they know that 'key'
+ * is the left or right operand of a mergejoinable comparison whose left
+ * (resp. right) sortop is 'sortop'.  In this case, any needed coercions
+ * have already been built in to the 'key' expr so that its result type is
+ * the same as the sortop's input type.
+ *
+ * Callers specify 'checkType' as true if 'key' is known to be binary
+ * compatible with the sortop's input type but might not be exactly the
+ * same... for example, 'key' might be VARCHAR while its sortop expects
+ * TEXT.  By convention, a RelabelType node is added to document the fact
+ * that the sortop can use the expr result directly without change of
+ * representation.
+ *
+ * [Why not simply strip off all RelabelType nodes from atop PathKeyItem and
+ * targetlist exprs?  The benefit of allowing them to remain is still a
+ * mystery to me.  I won't try removing them today because it's late in
+ * our release cycle. kh 4/07]
  */
 static PathKeyItem *
 makePathKeyItem(Node *key, Oid sortop, bool checkType)
 {
 	PathKeyItem *item = makeNode(PathKeyItem);
+
+    /* CDB: Store the set of relids referenced by the key expr. */
+    item->cdb_key_relids = pull_varnos(key);
+    item->cdb_num_relids = bms_num_members(item->cdb_key_relids);
 
 	/*
 	 * Some callers pass expressions that are not necessarily of the same type
@@ -95,9 +122,22 @@ makePathKeyItem(Node *key, Oid sortop, bool checkType)
  * any two in a set to be equal).  As described above, we will subsequently
  * use direct pointers to one of these sublists to represent any pathkey
  * that involves an equijoined variable.
+ *
+ * CDB: Within an equijoin set, the order of the PathKeyItem nodes is
+ * arbitrary; except that, if a set contains one or more constant exprs,
+ * then a constant expr is kept at the head of the list.  By looking
+ * at the first item, the CdbPathkeyIsConstant() macro can quickly test
+ * whether there is a constant expr in the set.  (Here a "constant expr"
+ * is one that mentions no Vars of the current level.)
  */
 void
 add_equijoined_keys(PlannerInfo *root, RestrictInfo *restrictinfo)
+{
+    add_equijoined_keys_to_list(&(root->equi_key_list), restrictinfo);
+}
+
+void
+add_equijoined_keys_to_list(List **ptrToList, RestrictInfo *restrictinfo)
 {
 	Expr	   *clause = restrictinfo->clause;
 	PathKeyItem *item1 = makePathKeyItem(get_leftop(clause),
@@ -106,8 +146,10 @@ add_equijoined_keys(PlannerInfo *root, RestrictInfo *restrictinfo)
 	PathKeyItem *item2 = makePathKeyItem(get_rightop(clause),
 										 restrictinfo->right_sortop,
 										 false);
-	List	   *newset;
-	ListCell   *cursetlink;
+    List       *set1 = NULL;
+    List       *set2 = NULL;
+    List       *newset;
+    ListCell   *equi_key_cell;
 
 	/* We might see a clause X=X; don't make a single-element list from it */
 	if (equal(item1, item2))
@@ -131,49 +173,404 @@ add_equijoined_keys(PlannerInfo *root, RestrictInfo *restrictinfo)
 	 */
 	newset = NIL;
 
-	/* cannot use foreach here because of possible lremove */
-	cursetlink = list_head(root->equi_key_list);
-	while (cursetlink)
+    /* Find first equijoin set that contains either item. */
+    foreach(equi_key_cell, *ptrToList)
+    {
+        set1 = (List *)lfirst(equi_key_cell);
+        if (list_member(set1, item1))
+        {
+            /* All done if the items are already in the same equijoin set. */
+            if (list_member(set1, item2))
+                return;
+            break;
+        }
+        if (list_member(set1, item2))
+        {
+            /* Let item1 be the item found in set1. */
+            CdbSwap(PathKeyItem *, item1, item2);
+            break;
+        }
+    }
+
+    /* Build new set if neither item was found. */
+    if (!equi_key_cell)
+    {
+        /* CDB: If item2 is a constant expr, swap it to the front. */
+        if (CdbPathKeyItemIsConstant(item2))
+            CdbSwap(PathKeyItem *, item1, item2);
+
+        newset = list_make2(item1, item2);
+        *ptrToList = lcons(newset, *ptrToList);
+        return;
+    }
+
+    /* Found item1.  Keep looking for a set that contains item2. */
+    for_each_cell(equi_key_cell, lnext(equi_key_cell))
+    {
+        set2 = (List *)lfirst(equi_key_cell);
+        if (list_member(set2, item2))
+            break;
+    }
+
+    /* Add item2 to item1's set if didn't find it in another set. */
+    if (!equi_key_cell)
+    {
+        if (CdbPathKeyItemIsConstant(item2))
+            newset = lcons(item2, set1);
+        else
+            newset = lappend(set1, item2);
+    }
+
+    /* Combine two existing sets. */
+    else
+    {
+        /* CDB: If set2 contains a constant expr, swap it to the front. */
+        if (CdbPathkeyEqualsConstant(set2))
+            CdbSwap(List *, set1, set2);
+
+        /* Alter set1 in place to append the members of set2. */
+        newset = list_concat(set1, set2);
+        Assert(newset == set1);
+
+        /* Remove the set2 List node from equi_key_list and free it.
+         * Don't free its members... they belong to set1 now.
+         */
+        *ptrToList = list_delete_ptr(*ptrToList, set2);
+        pfree(set2);
+        pfree(item2);
+    }
+
+    pfree(item1);
+}                               /* add_equijoined_keys */
+
+/**
+ * replace_expression_mutator
+ *
+ * Copy an expression tree, but replace all occurrences of one node with
+ *   another.
+ *
+ * The replacement is passed in the context as a pointer to
+ *    ReplaceExpressionMutatorReplacement
+ *
+ * context should be ReplaceExpressionMutatorReplacement*
+ */
+Node *
+replace_expression_mutator(Node *node, void *context)
+{
+    ReplaceExpressionMutatorReplacement * repl;
+    if (node == NULL)
+        return NULL;
+
+    if ( IsA(node, RestrictInfo))
+    {
+        RestrictInfo *info = (RestrictInfo *) node;
+        return replace_expression_mutator((Node*) info->clause, context);
+    }
+
+    repl = (ReplaceExpressionMutatorReplacement*) context;
+    if ( equal(node, repl->replaceThis))
+    {
+        repl->numReplacementsDone++;
+        return copyObject(repl->withThis);
+    }
+    return expression_tree_mutator(node, replace_expression_mutator, (void *) context);
+}
+
+/**
+ * Do relations in qualscope fall on the nullable side of an outer join?
+ */
+static bool
+isBelowNullableSideOfOuterJoin( PlannerInfo *root, Relids qualscope)
+{
+    ListCell *curOuterJoinInfo;
+
+    foreach(curOuterJoinInfo, root->oj_info_list)
+    {
+        OuterJoinInfo * oj = (OuterJoinInfo *) lfirst(curOuterJoinInfo);
+        if (bms_overlap(qualscope, oj->syn_righthand))
+            return true;
+
+        if (oj->join_type == JOIN_FULL &&
+            bms_overlap(qualscope, oj->syn_lefthand))
+            return true;
+    }
+
+    return false;
+}
+
+/**
+ * Iterate on the given list of restrict infos, and build a new list that contains
+ * only the elements that have outerjoin_delayed= false
+ */
+static List *remove_outer_join_restrict_infos(List *restrictinfolist)
+{
+	List *newlist = NIL;
+
+	ListCell *lc = NULL;
+	foreach (lc, restrictinfolist)
 	{
-		List	   *curset = (List *) lfirst(cursetlink);
-		bool		item1here = list_member(curset, item1);
-		bool		item2here = list_member(curset, item2);
-
-		/* must advance cursetlink before lremove possibly pfree's it */
-		cursetlink = lnext(cursetlink);
-
-		if (item1here || item2here)
+		RestrictInfo *rinfo = (RestrictInfo *) lfirst(lc);
+		if (!rinfo->outerjoin_delayed)
 		{
-			/*
-			 * If find both in same equivalence set, no need to do any more
-			 */
-			if (item1here && item2here)
-			{
-				/* Better not have seen only one in an earlier set... */
-				Assert(newset == NIL);
-				return;
-			}
-
-			/* Build the new set only when we know we must */
-			if (newset == NIL)
-				newset = list_make2(item1, item2);
-
-			/* Found a set to merge into our new set */
-			newset = list_concat_unique(newset, curset);
-
-			/*
-			 * Remove old set from equi_key_list.
-			 */
-			root->equi_key_list = list_delete_ptr(root->equi_key_list, curset);
-			list_free(curset);	/* might as well recycle old cons cells */
+			newlist = lappend(newlist, rinfo);
 		}
 	}
 
-	/* Build the new set only when we know we must */
-	if (newset == NIL)
-		newset = list_make2(item1, item2);
+	return newlist;
+}
 
-	root->equi_key_list = lcons(newset, root->equi_key_list);
+/**
+ * Given a list of pathkey items, extract out all relevant known clauses.
+ * This is done by finding all relations represented in the pathkey item.
+ * Then, we extract out all the restrictinfos from these relations and find
+ * the additional relations mentioned in these clauses. These restrictinfo
+ * clauses are appended into one big list
+ * Input:
+ * 	root - planner information
+ * 	lpkitems - list of equivalent pathkey items
+ */
+static List *relevant_known_clauses(PlannerInfo *root, List *lpkitems)
+{
+	/**
+	 * Find all the relevant relids from pathkey list and corresponding restrict
+	 * infos.
+	 */
+	Relids relevant_relids = NULL;
+
+	/**
+	 * First look at pathkey items
+	 */
+	ListCell     *lcpk = NULL;
+	Relids pathkey_relids = NULL;
+	foreach (lcpk, lpkitems)
+	{
+		PathKeyItem *item1 = (PathKeyItem *) lfirst(lcpk);
+		pathkey_relids = bms_union(pathkey_relids, pull_varnos(item1->key));
+	}
+
+	relevant_relids = bms_copy(pathkey_relids);
+
+	/**
+	 * Next look the restrictinfos for every relation that has a pathkey entry
+	 * and then extract out these relids as well
+	 */
+	int relid;
+	while ((relid = bms_first_member(pathkey_relids)) >= 0)
+	{
+		RelOptInfo *rel1 = find_base_rel(root, relid);
+
+		List *restrictinfolist = list_union(rel1->baserestrictinfo, remove_outer_join_restrict_infos(rel1->joininfo));
+		List *restrictlistclauses = list_union(
+				extract_actual_clauses(restrictinfolist, true),
+				extract_actual_clauses(restrictinfolist, false)
+		);
+
+		relevant_relids = bms_union(relevant_relids, pull_varnos((Node *) restrictlistclauses));
+	}
+	bms_free(pathkey_relids);
+
+	/**
+	 * Build a list of clauses by iterating over all relevant relations
+	 */
+	List *relevant_clauses = NIL;
+	Relids relevant_relids_c = bms_copy(relevant_relids);
+	while ((relid = bms_first_member(relevant_relids_c)) >= 0)
+	{
+		RelOptInfo *rel1 = find_base_rel(root, relid);
+
+		List *restrictinfolist = list_union(rel1->baserestrictinfo, remove_outer_join_restrict_infos(rel1->joininfo));
+		List *restrictlistclauses = list_union(
+				extract_actual_clauses(restrictinfolist, true),
+				extract_actual_clauses(restrictinfolist, false)
+		);
+		relevant_clauses = list_concat(relevant_clauses, restrictlistclauses);
+	}
+
+	return relevant_clauses;
+}
+
+/**
+ * Generate implied qual
+ * Input:
+ * 	root - planner information
+ * 	relevant_clauses - all previously known clauses
+ * 	old_clause - old clause to infer from
+ * 	old_pk - the pathkey item to be replaced
+ * 	new_pk - new pathkey item replacing it
+ * Output:
+ *  New list of relevant clauses
+ */
+static List *gen_implied_qual(PlannerInfo *root,
+		List *relevant_clauses, /* This list may be modified */
+		Node *old_clause,
+		Node *old_pk,
+		Node *new_pk
+		)
+{
+
+	/* Expression types must match */
+	Assert(exprType(old_pk) == exprType(new_pk)
+			&& exprTypmod(old_pk) == exprTypmod(new_pk));
+
+	/* clone the clause, replacing first node with
+	 *    clone of second
+	 */
+	ReplaceExpressionMutatorReplacement ctx;
+	ctx.replaceThis = old_pk;
+	ctx.withThis = new_pk;
+	ctx.numReplacementsDone = 0;
+	Node *new_clause = (Node*) replace_expression_mutator(
+			(Node*)old_clause, &ctx);
+
+	Relids old_qualscope = pull_varnos(old_clause);
+	Relids new_qualscope = pull_varnos(new_clause);
+
+	bool inferrable = new_qualscope != NULL /* distribute_qual_to_rels doesn't accept pseudoconstants */
+			&& (ctx.numReplacementsDone > 0)
+			&& !list_member(relevant_clauses, new_clause)
+			&& !subexpression_match((Expr *) new_pk, (Expr *) old_clause);
+
+	/**
+	 * No inferences may be performed across an outer join
+	 */
+	inferrable = inferrable
+			&& !isBelowNullableSideOfOuterJoin(root, old_qualscope)
+			&& !isBelowNullableSideOfOuterJoin(root, new_qualscope);
+
+	if (inferrable)
+	{
+		distribute_qual_to_rels(root, new_clause,
+				true, /* is_deduced */
+				true, /* is_deduced_but_not_equijoin */
+				false,
+				new_qualscope, /* qualscope */
+				NULL, /* ojscope */
+				NULL, /* outerjoin_nonnullable */
+				NULL, /* local equi join scope */
+				NULL /* postponed_qual_list */
+		);
+		relevant_clauses = lappend(relevant_clauses, new_clause);
+	}
+
+	return relevant_clauses;
+}
+
+/**
+ * Generate all qualifications that are implied by the equivalence specified
+ *   by the given pathkey list
+ * Input:
+ * - root: planner info structure
+ * - lpkitems: list of equivalent pathkey items
+ */
+static void
+gen_implied_quals_for_equi_key_list(PlannerInfo *root, List *lpkitems)
+{
+	List *relevant_clauses = relevant_known_clauses(root, lpkitems);
+
+    /**
+     * For every triple (pkey1, clause, pkey2), we try to replace pkey1 in clause
+     * with pkey2 and add it as an inferred clause since pkey1 = pkey2
+     */
+    ListCell     *lcpk1 = NULL;
+    foreach(lcpk1, lpkitems)
+    {
+    	PathKeyItem *item1 = (PathKeyItem *) lfirst(lcpk1);
+    	Relids relidspk1 = pull_varnos(item1->key);
+
+    	/**
+    	 * Only look at pathkeys that correspond to a single relation
+    	 */
+    	if ( bms_membership(relidspk1) == BMS_SINGLETON)
+    	{
+
+    		/**
+    		 * Iterate over all clauses
+    		 */
+    		ListCell   *lcclause = NULL;
+    		foreach(lcclause, relevant_clauses)
+    		{
+    			Node *old_clause = (Node *) lfirst(lcclause);
+
+    			/**
+    			 * Is it safe to infer from old_clause?
+    			 */
+    			bool safe_to_infer =
+    					!contain_volatile_functions(old_clause)
+    					&& !contain_subplans(old_clause);
+
+    			if (safe_to_infer)
+    			{
+
+    				ListCell *lcpk2 = NULL;
+
+    				/* now try to apply to others in the equivalence class */
+    				foreach(lcpk2, lpkitems)
+    				{
+    					PathKeyItem *item2 = (PathKeyItem *) lfirst(lcpk2);;
+
+    					if (exprType(item1->key) == exprType(item2->key)
+    							&& exprTypmod(item1->key) == exprTypmod(item2->key))
+    					{
+
+    						relevant_clauses = gen_implied_qual(root,
+    								relevant_clauses,
+    								old_clause,
+    								item1->key,
+    								item2->key);
+    					}
+    				} /* foreach lcpk2 */
+    			} /* safe_to_infer */
+    		} /* foreach lcclause */
+    	} /* BMS_SINGLETON */
+    } /* foreach lcpk1 */
+}
+
+/* TODO:
+ *
+ * note that we require types to be the same.  We could try converting them
+ *   (introducing relabel nodes) as long as the conversion is a widening
+ *   conversion (clause on int4 can be applied to int2 type by widening the
+ *   int2 to an int4 when creating the replicated clause)
+ *   likewise, is varchar(10) vs varchar(50) an issue at this point?
+ */
+void
+generate_implied_quals(PlannerInfo *root)
+{
+	ListCell   *cursetlink;
+    ListCell *curOuterJoinInfo;
+
+    if ( ! root->config->gp_enable_predicate_propagation )
+        return;
+
+    /* generate using the query-global equi-key-list */
+	foreach(cursetlink, root->equi_key_list)
+	{
+		List *curset = (List *) lfirst(cursetlink);
+        gen_implied_quals_for_equi_key_list(
+                root, curset);
+	}
+
+    /* generate using the local (to nullable side of outer join) equi-key-lists */
+    foreach(curOuterJoinInfo, root->oj_info_list)
+    {
+        OuterJoinInfo * oj = (OuterJoinInfo *) lfirst(curOuterJoinInfo);
+
+        /* left equi key lists exist only for full outer join */
+        Assert(oj->left_equi_key_list == NULL || oj->join_type == JOIN_FULL);
+
+        foreach(cursetlink, oj->left_equi_key_list)
+        {
+            List *curset = (List *) lfirst(cursetlink);
+            gen_implied_quals_for_equi_key_list(
+                root, curset);
+        }
+        foreach(cursetlink, oj->right_equi_key_list)
+        {
+            List *curset = (List *) lfirst(cursetlink);
+            gen_implied_quals_for_equi_key_list(
+                root, curset);
+        }
+    }
 }
 
 /*
@@ -423,15 +820,16 @@ sub_generate_join_implications(PlannerInfo *root,
 									 false);
 
 			/*
-			 * We can remove explicit tests of this outer-join qual, too,
-			 * since we now have tests forcing each of its sides to the same
-			 * value.
+			 * We used to think we could remove explicit tests of this
+			 * outer-join qual, too, since we now have tests forcing each of
+			 * its sides to the same value.  However, that fails in some
+			 * corner cases where lower outer joins could cause one of the
+			 * variables to go to NULL.  (BUG in 8.2 through 8.2.6.)
+			 * So now we just leave it in place, but mark it with selectivity
+			 * 1.0 so that we don't underestimate the join size output ---
+			 * it's mostly redundant with the constant constraints.
 			 */
-			process_implied_equality(root,
-									 leftop, rightop,
-									 rinfo->left_sortop, rinfo->right_sortop,
-									 rinfo->left_relids, rinfo->right_relids,
-									 true);
+			rinfo->this_selec = 1.0;
 
 			/*
 			 * And recurse to see if we can deduce anything from INNERVAR =
@@ -465,15 +863,16 @@ sub_generate_join_implications(PlannerInfo *root,
 									 false);
 
 			/*
-			 * We can remove explicit tests of this outer-join qual, too,
-			 * since we now have tests forcing each of its sides to the same
-			 * value.
+			 * We used to think we could remove explicit tests of this
+			 * outer-join qual, too, since we now have tests forcing each of
+			 * its sides to the same value.  However, that fails in some
+			 * corner cases where lower outer joins could cause one of the
+			 * variables to go to NULL.  (BUG in 8.2 through 8.2.6.)
+			 * So now we just leave it in place, but mark it with selectivity
+			 * 1.0 so that we don't underestimate the join size output ---
+			 * it's mostly redundant with the constant constraints.
 			 */
-			process_implied_equality(root,
-									 leftop, rightop,
-									 rinfo->left_sortop, rinfo->right_sortop,
-									 rinfo->left_relids, rinfo->right_relids,
-									 true);
+			rinfo->this_selec = 1.0;
 
 			/*
 			 * And recurse to see if we can deduce anything from INNERVAR =
@@ -542,25 +941,22 @@ sub_generate_join_implications(PlannerInfo *root,
 										 rinfo->right_sortop,
 										 rinfo->right_relids,
 										 false);
-				/* ... and remove COALESCE() = CONSTANT */
-				process_implied_const_eq(root, equi_key_set, relids,
-										 item1,
-										 sortop1,
-										 item1_relids,
-										 true);
 
 				/*
-				 * We can remove explicit tests of this outer-join qual, too,
-				 * since we now have tests forcing each of its sides to the
-				 * same value.
+				 * We used to think we could remove explicit tests of this
+				 * outer-join qual, too, since we now have tests forcing each
+				 * of its sides to the same value.  However, that fails in
+				 * some corner cases where lower outer joins could cause one
+				 * of the variables to go to NULL.  (BUG in 8.2 through
+				 * 8.2.6.)  So now we just leave it in place, but mark it with
+				 * selectivity 1.0 so that we don't underestimate the join
+				 * size output --- it's mostly redundant with the constant
+				 * constraints.
+				 *
+				 * Ideally we'd do that for the COALESCE() = CONSTANT rinfo,
+				 * too, but we don't have easy access to that here.
 				 */
-				process_implied_equality(root,
-										 leftop, rightop,
-										 rinfo->left_sortop,
-										 rinfo->right_sortop,
-										 rinfo->left_relids,
-										 rinfo->right_relids,
-										 true);
+				rinfo->this_selec = 1.0;
 
 				/*
 				 * And recurse to see if we can deduce anything from LEFTVAR =
@@ -964,7 +1360,7 @@ build_index_pathkeys(PlannerInfo *root,
 
 		/* Eliminate redundant ordering info if requested */
 		if (canonical)
-			retval = list_append_unique_ptr(retval, cpathkey);
+		retval = list_append_unique_ptr(retval, cpathkey);
 		else
 			retval = lappend(retval, cpathkey);
 
@@ -984,7 +1380,7 @@ build_index_pathkeys(PlannerInfo *root,
  * but not in join clauses or in the SELECT target list).  In that case,
  * gin up a Var node the hard way.
  */
-static Var *
+Var *
 find_indexkey_var(PlannerInfo *root, RelOptInfo *rel, AttrNumber varattno)
 {
 	ListCell   *temp;
@@ -1198,6 +1594,187 @@ build_join_pathkeys(PlannerInfo *root,
 	return truncate_useless_pathkeys(root, joinrel, outer_pathkeys);
 }
 
+
+/****************************************************************************
+ *		PATHKEYS FOR DISTRIBUTED QUERIES
+ ****************************************************************************/
+
+/*
+ * cdb_make_pathkey_for_expr_non_canonical
+ *	  Returns a a non canonicalized pathkey item.
+ *
+ *    The caller specifies the name of the equality operator thus:
+ *          list_make1(makeString("="))
+ *
+ *    The 'sortop' field of the expr's PathKeyItem node is filled
+ *    with the Oid of the sort operator that would be used for a
+ *    merge join with another expr of the same data type, using the
+ *    equality operator whose name is given.  Partitioning doesn't
+ *    itself use the sort operator, but its Oid is needed to
+ *    associate the PathKeyItem with the same equivalence class
+ *    (canonical pathkey) as any other expressions to which
+ *    our expr is constrained by compatible merge-joinable
+ *    equality operators.  (We assume, in what may be a temporary
+ *    excess of optimism, that our hashed partitioning function
+ *    implements the same notion of equality as these operators.)
+ */
+
+PathKeyItem*
+cdb_make_pathkey_for_expr_non_canonical(PlannerInfo    *root,
+					      Node     *expr,
+                          List     *eqopname)
+{
+    Oid             typeoid = InvalidOid;
+    Oid	            eqopoid = InvalidOid;
+    Oid             leftsortop = InvalidOid;
+    Oid             rightsortop = InvalidOid;
+    PathKeyItem    *item = NULL;
+
+    /* Get the expr's data type. */
+    typeoid = exprType(expr);
+
+    /* Get oid of the equality operator applied to two values of that type. */
+    eqopoid = compatible_oper_opid(eqopname, typeoid, typeoid, true);
+
+    /* Get oid of the sort operator that would be used for a
+     * sort-merge equijoin on a pair of exprs of the same type.
+     */
+    if (eqopoid != InvalidOid &&
+    		op_mergejoinable(eqopoid, &leftsortop, &rightsortop))
+    {
+    	item = makePathKeyItem((Node *)expr, leftsortop, true);
+    }
+    else
+    {
+    	/* Don't balk if caller wants to repartition on an expr whose type has no
+    	 * mergejoinable "=" operator.  Hope the executor knows how to hash it.
+    	 * E.g., cdbpath_dedup_fixup_unique() repartitions on CTID without
+    	 * bothering to insert a coercion to INT8.
+    	 */
+    	item = makePathKeyItem((Node *)expr, InvalidOid, false);
+    }
+    Assert(item);
+    return item;
+}                               /* cdb_make_pathkey_for_expr */
+
+/*
+ * cdb_make_pathkey_for_expr
+ *	  Returns a canonicalized pathkey (a List of PathKeyItem)
+ *    which represents an equivalence class of expressions
+ *    that must be equal to the given expression.
+ *
+ *    The caller specifies the name of the equality operator thus:
+ *          list_make1(makeString("="))
+ *
+ *    The 'sortop' field of the expr's PathKeyItem node is filled
+ *    with the Oid of the sort operator that would be used for a
+ *    merge join with another expr of the same data type, using the
+ *    equality operator whose name is given.  Partitioning doesn't
+ *    itself use the sort operator, but its Oid is needed to
+ *    associate the PathKeyItem with the same equivalence class
+ *    (canonical pathkey) as any other expressions to which
+ *    our expr is constrained by compatible merge-joinable
+ *    equality operators.  (We assume, in what may be a temporary
+ *    excess of optimism, that our hashed partitioning function
+ *    implements the same notion of equality as these operators.)
+ */
+List *
+cdb_make_pathkey_for_expr(PlannerInfo    *root,
+					      Node     *expr,
+                          List     *eqopname)
+{
+	List *pathkeyList = NIL;
+    PathKeyItem    *item = cdb_make_pathkey_for_expr_non_canonical(root, expr, eqopname);
+    Assert(item);
+    pathkeyList = make_canonical_pathkey(root, item);
+    Assert(pathkeyList);
+    return pathkeyList;
+}                               /* cdb_make_pathkey_for_expr */
+
+/*
+ * cdb_pull_up_pathkey
+ *
+ * Given a pathkey, finds a PathKeyItem whose key expr can be projected
+ * thru a given targetlist.  If found, builds the transformed key expr
+ * and returns the canonical pathkey representing its equivalence class.
+ *
+ * Returns NULL if the given pathkey does not have a PathKeyItem whose
+ * key expr can be rewritten in terms of the projected output columns.
+ *
+ * Note that this function does not unite the pre- and post-projection
+ * equivalence classes.  Equivalences known on one side of the projection
+ * are not made known on the other side.  Although that might be useful,
+ * it would have to be done at an earlier point in the planner.
+ *
+ * At present this function doesn't support pull-up from a subquery into a
+ * containing query: there is no provision for adjusting the varlevelsup
+ * field in Var nodes for outer references.  This could be added if needed.
+ *
+ * 'pathkey' is a List of PathKeyItem.
+ * 'relids' is the set of relids that may occur in the targetlist exprs.
+ * 'targetlist' specifies the projection.  It is a List of TargetEntry
+ *      or merely a List of Expr.
+ * 'newvarlist' is an optional List of Expr, in 1-1 correspondence with
+ *      'targetlist'.  If specified, instead of creating a Var node to
+ *      reference a targetlist item, we plug in a copy of the corresponding
+ *      newvarlist item.
+ * 'newrelid' is the RTE index of the projected result, for finding or
+ *      building Var nodes that reference the projected columns.
+ *      Ignored if 'newvarlist' is specified.
+ *
+ * NB: We ignore the presence or absence of a RelabelType node atop either
+ * expr in determining whether a PathKeyItem expr matches a targetlist expr.
+ */
+List *
+cdb_pull_up_pathkey(PlannerInfo    *root,
+                    List           *pathkey,
+                    Relids          relids,
+                    List           *targetlist,
+                    List           *newvarlist,
+                    Index           newrelid)
+{
+    PathKeyItem    *item;
+    Expr           *newexpr;
+
+    Assert(pathkey);
+    Assert(!newvarlist ||
+           list_length(newvarlist) == list_length(targetlist));
+
+        /* Find an expr that we can rewrite to use the projected columns. */
+        item = cdbpullup_findPathKeyItemInTargetList(pathkey,
+                                                     relids,
+                                                     targetlist,
+                                                 NULL);
+
+        /* Replace expr's Var nodes with new ones referencing the targetlist. */
+    if (item)
+            newexpr = cdbpullup_expr((Expr *)item->key,
+                                     targetlist,
+                                     newvarlist,
+                                     newrelid);
+
+    /* If not found, see if the equiv class contains a constant expr. */
+    else if (CdbPathkeyEqualsConstant(pathkey))
+        {
+        item = (PathKeyItem *)linitial(pathkey);
+        newexpr = (Expr *)copyObject(item->key);
+    }
+
+    /* Fail if no usable expr. */
+    else
+        return NULL;
+
+    Insist(newexpr);
+
+    /* Make new PathKeyItem, keeping same sortop. */
+    item = makePathKeyItem((Node *)newexpr, item->sortop, true);
+
+    /* Find or create the equivalence class for the transformed expr. */
+    return make_canonical_pathkey(root, item);
+}                               /* cdb_pull_up_pathkey */
+
+
+
 /****************************************************************************
  *		PATHKEYS AND SORT CLAUSES
  ****************************************************************************/
@@ -1239,6 +1816,71 @@ make_pathkeys_for_sortclauses(List *sortclauses,
 		 */
 		pathkeys = lappend(pathkeys, list_make1(pathkey));
 	}
+	return pathkeys;
+}
+
+/****************************************************************************
+ *      PATHKEYS AND GROUPCLAUSES AND GROUPINGCLAUSE
+ ***************************************************************************/
+
+/*
+ * make_pathkeys_for_groupclause
+ *   Generate a pathkeys list that represents the sort order specified by
+ *   a list of GroupClauses or GroupingClauses.
+ *
+ * Note: similar to make_pathkeys_for_sortclauses, the result is NOT in
+ * canonical form.
+ */
+List *
+make_pathkeys_for_groupclause(List *groupclause,
+							  List *tlist)
+{
+	List *pathkeys = NIL;
+	ListCell *l;
+
+	List *sub_pathkeys = NIL;
+
+	foreach(l, groupclause)
+	{
+		Node	   *sortkey;
+		PathKeyItem *pathkey;
+
+		Node *node = lfirst(l);
+
+		if (node == NULL)
+			continue;
+
+		if (IsA(node, GroupClause))
+		{
+			GroupClause *gc = (GroupClause*) node;
+			sortkey = get_sortgroupclause_expr(gc, tlist);
+			pathkey = makePathKeyItem(sortkey, gc->sortop, true);
+
+			/*
+			 * Similar to SortClauses, the pathkey becomes a one-elment sublist.
+			 * canonicalize_pathkeys() might replace it with a longer sublist later.
+			 */
+			pathkeys = lappend(pathkeys, list_make1(pathkey));
+		}
+
+		else if (IsA(node, List))
+		{
+			pathkeys = list_concat(pathkeys,
+								   make_pathkeys_for_groupclause((List *)node,
+																 tlist));
+		}
+
+		else if (IsA(node, GroupingClause))
+		{
+			sub_pathkeys =
+				list_concat(sub_pathkeys,
+							make_pathkeys_for_groupclause(((GroupingClause*)node)->groupsets,
+															 tlist));
+		}
+	}
+
+	pathkeys = list_concat(pathkeys, sub_pathkeys);
+
 	return pathkeys;
 }
 
@@ -1563,4 +2205,90 @@ truncate_useless_pathkeys(PlannerInfo *root,
 		return pathkeys;
 	else
 		return list_truncate(list_copy(pathkeys), nuseful);
+}
+
+/*
+ * remove_pathkey_item
+ *
+ * Remove a PathKeyItem for a given key from the given equivalence key list.
+ * If such a key is not in the list, nothing is done to the given equivalence
+ * key list.
+ */
+List *
+remove_pathkey_item(List *equi_key_list,
+					Node *key)
+{
+	ListCell *lc;
+	List *new_list = NIL;
+	
+	foreach (lc, equi_key_list)
+	{
+		List *keys = (List *) lfirst(lc);
+		ListCell *key_lc;
+		List *new_keys = NIL;
+
+		Assert(IsA(keys, List));
+		
+		foreach (key_lc, keys)
+		{
+			PathKeyItem *item = (PathKeyItem *)lfirst(key_lc);
+			Assert(IsA(item, PathKeyItem));
+			
+			if (!equal(item->key, key))
+				new_keys = lappend(new_keys, item);
+		}
+		if (list_length(new_keys) > 0)
+			new_list = lappend(new_list, new_keys);
+	}
+
+	return new_list;
+}
+
+/*
+ * construct_equivalencekey_list
+ *    Construct a new equivalence key list from a given list based on
+ *    the old and new target list correspondence.
+ */
+List *
+construct_equivalencekey_list(List *equi_key_list,
+							  int *resno_map,
+							  List *orig_tlist,
+							  List *new_tlist)
+{
+	List *new_equi_key_list = NIL;
+	ListCell *lc;
+	
+	foreach (lc, equi_key_list)
+	{
+		List *keys = (List *) lfirst(lc);
+		ListCell *key_lc;
+		List *new_keys = NIL;
+		
+		Assert(IsA(keys, List));
+
+		foreach (key_lc, keys)
+		{
+			PathKeyItem *item = (PathKeyItem *) lfirst(key_lc);
+			TargetEntry *tle;
+			PathKeyItem *new_item;
+			TargetEntry *new_tle;
+			
+			Assert(IsA(item, PathKeyItem));
+
+			tle = tlist_member(item->key, orig_tlist);
+			if (tle != NULL)
+			{
+				Assert(resno_map[tle->resno - 1] > 0);
+				new_tle = list_nth(new_tlist, resno_map[tle->resno - 1] - 1);
+				Assert(new_tle != NULL);
+				new_item = makePathKeyItem((Node *)new_tle->expr, item->sortop, true);
+				new_keys = lappend(new_keys, new_item);
+			}
+		}
+		
+		if (list_length(new_keys) > 1)
+			new_equi_key_list = lappend(new_equi_key_list, new_keys);
+	}
+
+	return new_equi_key_list;
 }

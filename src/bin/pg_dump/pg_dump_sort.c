@@ -4,7 +4,7 @@
  *	  Sort the items of a dump into a safe order for dumping
  *
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2008, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -16,7 +16,7 @@
 #include "pg_backup_archiver.h"
 
 
-static char *modulename = gettext_noop("sorter");
+static const char *modulename = gettext_noop("sorter");
 
 /*
  * Sort priority for object types when dumping a pre-7.3 database.
@@ -45,8 +45,11 @@ static const int oldObjectTypePriority[] =
 	2,							/* DO_CAST */
 	9,							/* DO_TABLE_DATA */
 	7,							/* DO_TABLE_TYPE */
+	3,							/* DO_FDW */
+	4,							/* DO_FOREIGN_SERVER */
 	10,							/* DO_BLOBS */
-	11							/* DO_BLOB_COMMENTS */
+	11,							/* DO_BLOB_COMMENTS */
+	3,							/* DO_EXTPROTOCOL */
 };
 
 /*
@@ -74,8 +77,12 @@ static const int newObjectTypePriority[] =
 	8,							/* DO_CAST */
 	13,							/* DO_TABLE_DATA */
 	11,							/* DO_TABLE_TYPE */
+	14,							/* DO_FDW */
+	15,							/* DO_FOREIGN_SERVER */
 	14,							/* DO_BLOBS */
-	15							/* DO_BLOB_COMMENTS */
+	15,							/* DO_BLOB_COMMENTS */
+	8,							/* DO_EXTPROTOCOL */
+	15,							/* DO_TYPE_STORAGE_OPTIONS */
 };
 
 
@@ -971,6 +978,11 @@ describeDumpableObject(DumpableObject *obj, char *buf, int bufsize)
 					 "TYPE %s  (ID %d OID %u)",
 					 obj->name, obj->dumpId, obj->catId.oid);
 			return;
+		case DO_TYPE_STORAGE_OPTIONS:
+			snprintf(buf, bufsize,
+					 "TYPE STORAGE OPTIONS FOR TYPE %s.%s  (ID %d OID %u) OPTIONS %s",
+					 ((TypeStorageOptions *)obj)->typnamespace, obj->name, obj->dumpId, obj->catId.oid, ((TypeStorageOptions *)obj)->typoptions);
+			return;
 		case DO_SHELL_TYPE:
 			snprintf(buf, bufsize,
 					 "SHELL TYPE %s  (ID %d OID %u)",
@@ -984,6 +996,11 @@ describeDumpableObject(DumpableObject *obj, char *buf, int bufsize)
 		case DO_AGG:
 			snprintf(buf, bufsize,
 					 "AGGREGATE %s  (ID %d OID %u)",
+					 obj->name, obj->dumpId, obj->catId.oid);
+			return;
+		case DO_EXTPROTOCOL:
+			snprintf(buf, bufsize,
+					 "PROTOCOL %s  (ID %d OID %u)",
 					 obj->name, obj->dumpId, obj->catId.oid);
 			return;
 		case DO_OPERATOR:
@@ -1058,6 +1075,16 @@ describeDumpableObject(DumpableObject *obj, char *buf, int bufsize)
 		case DO_TABLE_TYPE:
 			snprintf(buf, bufsize,
 					 "TABLE TYPE %s  (ID %d OID %u)",
+					 obj->name, obj->dumpId, obj->catId.oid);
+			return;
+		case DO_FDW:
+			snprintf(buf, bufsize,
+					 "FOREIGN DATA WRAPPER %s  (ID %d OID %u)",
+					 obj->name, obj->dumpId, obj->catId.oid);
+			return;
+		case DO_FOREIGN_SERVER:
+			snprintf(buf, bufsize,
+					 "FOREIGN SERVER %s  (ID %d OID %u)",
 					 obj->name, obj->dumpId, obj->catId.oid);
 			return;
 		case DO_BLOBS:

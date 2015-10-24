@@ -1,0 +1,4 @@
+EMAIL_DETAIL:
+ DBNAME: testdb1
+      FROM: RRP_MPE2_DCA_1
+        SUBJECT: backup completed for Database 'testdb1'

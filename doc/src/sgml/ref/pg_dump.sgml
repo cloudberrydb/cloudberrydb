@@ -1,5 +1,5 @@
 <!--
-$PostgreSQL: pgsql/doc/src/sgml/ref/pg_dump.sgml,v 1.92 2006/11/28 22:54:18 tgl Exp $
+$PostgreSQL: pgsql/doc/src/sgml/ref/pg_dump.sgml,v 1.92.2.2 2007/03/26 17:23:44 tgl Exp $
 PostgreSQL documentation
 -->
 
@@ -455,23 +455,18 @@ PostgreSQL documentation
       <term><option>--table=<replaceable class="parameter">table</replaceable></option></term>
       <listitem>
        <para>
-        Dump only tables (or views or sequences) matching <replaceable
-        class="parameter">table</replaceable>.  Multiple tables can be
-        selected by writing multiple <option>-t</> switches.  Also, the
-        <replaceable class="parameter">table</replaceable> parameter is
-        interpreted as a pattern according to the same rules used by
-        <application>psql</>'s <literal>\d</> commands (see <xref
-        linkend="APP-PSQL-patterns" endterm="APP-PSQL-patterns-title">),
-        so multiple tables can also be selected by writing wildcard characters
-        in the pattern.  When using wildcards, be careful to quote the pattern
-        if needed to prevent the shell from expanding the wildcards.
-       </para>
-
-       <para>
-        The <option>-n</> and <option>-N</> switches have no effect when
-        <option>-t</> is used, because tables selected by <option>-t</> will
-        be dumped regardless of those switches, and non-table objects will not
-        be dumped.
+       Dump only tables (or views or sequences) matching the table pattern.
+       Specify the table in the format schema.table.
+ 
+       Multiple tables can be selected by writing multiple -t switches. 
+       Also, the table parameter is interpreted as a pattern according 
+       to the same rules used by the <literal>\d</> commands in psql, so multiple tables 
+       can also be selected by writing wildcard characters in the pattern. 
+       When using wildcards, be careful to quote the pattern if needed 
+       to prevent the shell from expanding the wildcards. The -n and -N 
+       switches have no effect when -t is used, because tables
+       selected by -t will be dumped regardless of those switches, 
+       and non-table objects will not be dumped. 
        </para>
 
        <note>
@@ -486,14 +481,8 @@ PostgreSQL documentation
 
        <note>
         <para>
-         The behavior of the <option>-t</> switch is not entirely upward
-         compatible with pre-8.2 <productname>PostgreSQL</productname>
-         versions.  Formerly, writing <literal>-t tab</> would dump all
-         tables named <literal>tab</>, but now it just dumps whichever one
-         is visible in your default search path.  To get the old behavior
-         you can write <literal>-t '*.tab'</>.  Also, you must write something
-         like <literal>-t sch.tab</> to select a table in a particular schema,
-         rather than the old locution of <literal>-n sch -t tab</>.
+         -t cannot be used to specify a child table partition. 
+         To dump a partitioned table, you must specify the parent table name.
         </para>
        </note>
       </listitem>
@@ -504,11 +493,13 @@ PostgreSQL documentation
       <term><option>--exclude-table=<replaceable class="parameter">table</replaceable></option></term>
       <listitem>
        <para>
-        Do not dump any tables matching the <replaceable
-        class="parameter">table</replaceable> pattern.  The pattern is
-        interpreted according to the same rules as for <option>-t</>.
-        <option>-T</> can be given more than once to exclude tables
-        matching any of several patterns.
+       Do not dump any tables matching the table pattern. 
+       The pattern is interpreted according to the same rules as for -t. 
+       -T can be given more than once to exclude tables matching any of 
+       several patterns. When both -t and -T are given, the behavior is 
+       to dump just the tables that match at least one -t switch but 
+       no -T switches. If -T appears without -t, then tables matching -T 
+       are excluded from what is otherwise a normal dump.
        </para>
 
        <para>
@@ -602,9 +593,14 @@ PostgreSQL documentation
       <term><option>--compress=<replaceable class="parameter">0..9</replaceable></option></term>
       <listitem>
        <para>
-        Specify the compression level to use in archive formats that
-        support compression.  (Currently only the custom archive
-        format supports compression.)
+        Specify the compression level to use.  Zero means no compression.
+        For the custom archive format, this specifies compression of
+        individual table-data segments, and the default is to compress
+        at a moderate level.
+        For plain text output, setting a nonzero compression level causes
+        the entire output file to be compressed, as though it had been
+        fed through <application>gzip</>; but the default is not to compress.
+        The tar archive format currently does not support compression at all.
        </para>
       </listitem>
      </varlistentry>
@@ -681,6 +677,13 @@ PostgreSQL documentation
     </listitem>
    </varlistentry>
   </variablelist>
+
+  <para>
+   This utility, like most other <productname>PostgreSQL</> utilities,
+   also uses the environment variables supported by <application>libpq</>
+   (see <xref linkend="libpq-envars">).
+  </para>
+
  </refsect1>
 
  <refsect1 id="app-pgdump-diagnostics">
@@ -691,7 +694,9 @@ PostgreSQL documentation
    <command>SELECT</command> statements. If you have problems running
    <application>pg_dump</application>, make sure you are able to
    select information from the database using, for example, <xref
-   linkend="app-psql">.
+   linkend="app-psql">.  Also, any default connection settings and environment
+   variables used by the <application>libpq</application> front-end
+   library will apply.
   </para>
  </refsect1>
 
@@ -875,7 +880,6 @@ CREATE DATABASE foo WITH TEMPLATE template0;
    <member><xref linkend="app-pg-dumpall"></member>
    <member><xref linkend="app-pgrestore"></member>
    <member><xref linkend="app-psql"></member>
-   <member>Environment Variables (<xref linkend="libpq-envars">)</member>
   </simplelist>
  </refsect1>
 

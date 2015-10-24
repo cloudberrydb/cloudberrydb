@@ -39,7 +39,16 @@ test: copy copyselect
 # ----------
 # The third group of parallel test
 # ----------
-test: constraints triggers create_misc create_aggregate create_operator inherit vacuum drop_if_exists
+test: constraints create_misc create_aggregate create_operator vacuum drop_if_exists
+
+# 'inherit' test is disabled in GPDB. FIXME: why?
+#test: inherit
+
+# 'triggers' test is disabled in GPDB, because it contains a trigger function
+# that would need to access rows on other segments, which doens't work. You
+# get errors like:
+# ERROR: function cannot execute on segment because it accesses relation "public.pkeys"
+#test: triggers
 
 # Depends on the above
 test: create_index create_view
@@ -47,8 +56,10 @@ test: create_index create_view
 # ----------
 # sanity_check does a vacuum, affecting the sort order of SELECT *
 # results. So it should not run parallel to other tests.
+#
+# Disabled in GPDB. FIXME: why?
 # ----------
-test: sanity_check
+#test: sanity_check
 
 # ----------
 # Believe it or not, select creates a table, subsequent
@@ -61,24 +72,68 @@ ignore: random
 # ----------
 # The fourth group of parallel test
 # ----------
-test: select_into select_distinct select_distinct_on select_implicit select_having subselect union case join aggregates transactions random portals arrays btree_index hash_index update namespace prepared_xacts delete
+test: select_into select_distinct select_distinct_on select_implicit select_having subselect union case join aggregates random portals arrays btree_index hash_index update delete
+
+# In PostgreSQL, namespace test is run as part of the fourth group, but there
+# are some GPDB additions in it that will show diff if concurrent tests use
+# temporary tables. So run it separately.
+test: namespace
+
+# 2-phase commit is not supported by GPDB.
+#test: prepared_xacts
+
+# The 'transactions' test is disabled in GPDB, because it uses functions
+# in segments in a way that doesn't work:
+# ERROR:  function cannot execute on segment because it accesses relation "public.xacttest"
+#test: transactions
 
 test: privileges
-test: misc
+
+# misc test is temporarily disabled in GPDB.
+#test: misc
 
 # ----------
 # The fifth group of parallel test
 # ----------
-test: select_views portals_p2 rules foreign_key cluster dependency guc
+test: select_views portals_p2 cluster dependency guc
+
+# 'rules' test is disabled in GPDB. Maintaining the list of views in it is
+# too painful, and there are also errors because of cross-segment UPDATEs
+# and functions.
+#test: rules
+
+# Output of the 'combocid' test contains ctid and cmin values, which will
+# differ depending on how many segments are used. Hence disabled in GPDB.
+#test: combocid
+
+# 'foreign_key' test is disabled, because it contains several tables with
+# multiple UNIQUE constraints, which is not supported in GPDB.
+#test: foreign_key
 
 # ----------
 # The sixth group of parallel test
 # ----------
 # "plpgsql" cannot run concurrently with "rules"
-test: limit plpgsql copy2 temp domain rangefuncs prepare without_oid conversion truncate alter_table sequence polymorphism rowtypes returning
+test: limit temp domain rangefuncs prepare without_oid conversion truncate alter_table sequence polymorphism rowtypes
+
+# 'plpgsql' test is disabled in GPDB, because it produces a lot of errors on
+# because of cross-segment accesses in functions.
+#test: plpgsql
+
+# 'copy2' is temporarily disabled in GPDB
+#test: copy2
+
+# INSERT RETURNING is not supported by GPDB
+#test: returning
 
 # run stats by itself because its delay may be insufficient under heavy load
-test: stats
+#
+# 'stats' test has been disabled in GPDB, because it tries to set stats-related
+# GUCs stats_block_level and stats_row_level, which have been removed from
+# GPDB.
+#test: stats
 
 # run tablespace by itself
-test: tablespace
+# Disabled because tablespaces live in filespaces in GPDB, so the syntax
+# is quite different.
+#test: tablespace

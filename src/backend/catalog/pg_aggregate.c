@@ -3,7 +3,7 @@
  * pg_aggregate.c
  *	  routines to support manipulation of the pg_aggregate relation
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -15,6 +15,7 @@
 #include "postgres.h"
 
 #include "access/heapam.h"
+#include "catalog/catquery.h"
 #include "catalog/dependency.h"
 #include "catalog/indexing.h"
 #include "catalog/pg_aggregate.h"
@@ -37,37 +38,43 @@ static Oid lookup_agg_function(List *fnName, int nargs, Oid *input_types,
 
 
 /*
- * AggregateCreate
+ * AggregateCreateWithOid
  */
-void
-AggregateCreate(const char *aggName,
-				Oid aggNamespace,
-				Oid *aggArgTypes,
-				int numArgs,
-				List *aggtransfnName,
-				List *aggfinalfnName,
-				List *aggsortopName,
-				Oid aggTransType,
-				const char *agginitval)
+Oid
+AggregateCreateWithOid(const char		*aggName,
+					   Oid				 aggNamespace,
+					   Oid				*aggArgTypes,
+					   int				 numArgs,
+					   List				*aggtransfnName,
+					   List				*aggprelimfnName,
+					   List				*aggfinalfnName,
+					   List				*aggsortopName,
+					   Oid				 aggTransType,
+					   const char		*agginitval,
+					   bool              aggordered,
+					   Oid				 procOid)
 {
-	Relation	aggdesc;
 	HeapTuple	tup;
-	char		nulls[Natts_pg_aggregate];
+	bool		nulls[Natts_pg_aggregate];
 	Datum		values[Natts_pg_aggregate];
 	Form_pg_proc proc;
 	Oid			transfn;
+	Oid			invtransfn = InvalidOid; /* MPP windowing optimization */
+	Oid			prelimfn = InvalidOid;	/* if omitted, disables MPP 2-stage for this aggregate */
+	Oid			invprelimfn = InvalidOid; /* MPP windowing optimization */
 	Oid			finalfn = InvalidOid;	/* can be omitted */
 	Oid			sortop = InvalidOid;	/* can be omitted */
 	bool		hasPolyArg;
 	Oid			rettype;
 	Oid			finaltype;
+	Oid			prelimrettype;
 	Oid		   *fnArgs;
 	int			nargs_transfn;
-	Oid			procOid;
-	TupleDesc	tupDesc;
 	int			i;
 	ObjectAddress myself,
 				referenced;
+	cqContext  *pcqCtx;
+	cqContext  *pcqCtx2;
 
 	/* sanity checks (caller should have caught these) */
 	if (!aggName)
@@ -106,6 +113,12 @@ AggregateCreate(const char *aggName,
 	memcpy(fnArgs + 1, aggArgTypes, numArgs * sizeof(Oid));
 	transfn = lookup_agg_function(aggtransfnName, nargs_transfn, fnArgs,
 								  &rettype);
+	
+	elog(DEBUG5,"AggregateCreateWithOid: successfully located transition "
+				"function %s with return type %d", 
+				func_signature_string(aggtransfnName, nargs_transfn, fnArgs), 
+				rettype);
+	
 
 	/*
 	 * Return type of transfn (possibly after refinement by
@@ -124,9 +137,14 @@ AggregateCreate(const char *aggName,
 						NameListToString(aggtransfnName),
 						format_type_be(aggTransType))));
 
-	tup = SearchSysCache(PROCOID,
-						 ObjectIdGetDatum(transfn),
-						 0, 0, 0);
+	pcqCtx2 = caql_beginscan(
+			NULL,
+			cql("SELECT * FROM pg_proc "
+				" WHERE oid = :1 ",
+				ObjectIdGetDatum(transfn)));
+
+	tup = caql_getnext(pcqCtx2);
+
 	if (!HeapTupleIsValid(tup))
 		elog(ERROR, "cache lookup failed for function %u", transfn);
 	proc = (Form_pg_proc) GETSTRUCT(tup);
@@ -144,7 +162,41 @@ AggregateCreate(const char *aggName,
 					(errcode(ERRCODE_INVALID_FUNCTION_DEFINITION),
 					 errmsg("must not omit initial value when transition function is strict and transition type is not compatible with input type")));
 	}
-	ReleaseSysCache(tup);
+	caql_endscan(pcqCtx2);
+	
+	/* handle prelimfn, if supplied */
+	if (aggprelimfnName)
+	{
+		/* 
+		 * The preliminary state function (pfunc) input arguments are the results of the 
+		 * state transition function (sfunc) and therefore must be of the same types.
+		 */
+		fnArgs[0] = rettype;
+		fnArgs[1] = rettype;
+		
+		/*
+		 * Check that such a function name and prototype exists in the catalog.
+		 */		
+		prelimfn = lookup_agg_function(aggprelimfnName, 2, fnArgs, &prelimrettype);
+		
+		elog(DEBUG5,"AggregateCreateWithOid: successfully located preliminary "
+					"function %s with return type %d", 
+					func_signature_string(aggprelimfnName, 2, fnArgs), 
+					prelimrettype);
+		
+		Assert(OidIsValid(prelimrettype));
+		
+		/*
+		 * The preliminary return type must be of the same type as the internal 
+		 * state. (See similar error checking for transition types above)
+		 */
+		if (prelimrettype != rettype)
+			ereport(ERROR,
+					(errcode(ERRCODE_DATATYPE_MISMATCH),
+					 errmsg("return type of preliminary function %s is not %s",
+							NameListToString(aggprelimfnName),
+							format_type_be(rettype))));		
+	}
 
 	/* handle finalfn, if supplied */
 	if (aggfinalfnName)
@@ -202,9 +254,11 @@ AggregateCreate(const char *aggName,
 							  finaltype,		/* returnType */
 							  INTERNALlanguageId,		/* languageObjectId */
 							  InvalidOid,		/* no validator */
+							  InvalidOid,		/* no describe function */
 							  "aggregate_dummy",		/* placeholder proc */
 							  "-",		/* probin */
 							  true,		/* isAgg */
+							  false,	/* isWin */
 							  false,	/* security invoker (currently not
 										 * definable for agg) */
 							  false,	/* isStrict (not needed for agg) */
@@ -214,8 +268,9 @@ AggregateCreate(const char *aggName,
 											 numArgs),	/* paramTypes */
 							  PointerGetDatum(NULL),	/* allParamTypes */
 							  PointerGetDatum(NULL),	/* parameterModes */
-							  PointerGetDatum(NULL));	/* parameterNames */
-
+							  PointerGetDatum(NULL),	/* parameterNames */
+							  PRODATAACCESS_NONE,		/* prodataaccess */
+							  procOid);
 	/*
 	 * Okay to create the pg_aggregate entry.
 	 */
@@ -223,29 +278,34 @@ AggregateCreate(const char *aggName,
 	/* initialize nulls and values */
 	for (i = 0; i < Natts_pg_aggregate; i++)
 	{
-		nulls[i] = ' ';
-		values[i] = (Datum) NULL;
+		nulls[i] = false;
+		values[i] = (Datum) 0;
 	}
 	values[Anum_pg_aggregate_aggfnoid - 1] = ObjectIdGetDatum(procOid);
 	values[Anum_pg_aggregate_aggtransfn - 1] = ObjectIdGetDatum(transfn);
+	values[Anum_pg_aggregate_agginvtransfn - 1] = ObjectIdGetDatum(invtransfn); 
+	values[Anum_pg_aggregate_aggprelimfn - 1] = ObjectIdGetDatum(prelimfn);
+	values[Anum_pg_aggregate_agginvprelimfn - 1] = ObjectIdGetDatum(invprelimfn);
 	values[Anum_pg_aggregate_aggfinalfn - 1] = ObjectIdGetDatum(finalfn);
 	values[Anum_pg_aggregate_aggsortop - 1] = ObjectIdGetDatum(sortop);
 	values[Anum_pg_aggregate_aggtranstype - 1] = ObjectIdGetDatum(aggTransType);
 	if (agginitval)
-		values[Anum_pg_aggregate_agginitval - 1] =
-			DirectFunctionCall1(textin, CStringGetDatum(agginitval));
+		values[Anum_pg_aggregate_agginitval - 1] = CStringGetTextDatum(agginitval);
 	else
-		nulls[Anum_pg_aggregate_agginitval - 1] = 'n';
+		nulls[Anum_pg_aggregate_agginitval - 1] = true;
+	values[Anum_pg_aggregate_aggordered - 1] = BoolGetDatum(aggordered);
 
-	aggdesc = heap_open(AggregateRelationId, RowExclusiveLock);
-	tupDesc = aggdesc->rd_att;
+	pcqCtx = caql_beginscan(
+			NULL,
+			cql("INSERT INTO pg_aggregate",
+				NULL));
 
-	tup = heap_formtuple(tupDesc, values, nulls);
-	simple_heap_insert(aggdesc, tup);
+	tup = caql_form_tuple(pcqCtx, values, nulls);
 
-	CatalogUpdateIndexes(aggdesc, tup);
+	/* insert a new tuple */
+	caql_insert(pcqCtx, tup); /* implicit update of index as well */
 
-	heap_close(aggdesc, RowExclusiveLock);
+	caql_endscan(pcqCtx);
 
 	/*
 	 * Create dependencies for the aggregate (above and beyond those already
@@ -261,6 +321,33 @@ AggregateCreate(const char *aggName,
 	referenced.objectId = transfn;
 	referenced.objectSubId = 0;
 	recordDependencyOn(&myself, &referenced, DEPENDENCY_NORMAL);
+
+	/* Depends on inverse transition function, if any */
+	if (OidIsValid(invtransfn))
+	{
+		referenced.classId = ProcedureRelationId;
+		referenced.objectId = invtransfn;
+		referenced.objectSubId = 0;
+		recordDependencyOn(&myself, &referenced, DEPENDENCY_NORMAL);
+	}
+
+	/* Depends on preliminary aggregation function, if any */
+	if (OidIsValid(prelimfn))
+	{
+		referenced.classId = ProcedureRelationId;
+		referenced.objectId = prelimfn;
+		referenced.objectSubId = 0;
+		recordDependencyOn(&myself, &referenced, DEPENDENCY_NORMAL);
+	}
+
+	/* Depends on inverse preliminary aggregation function, if any */
+	if (OidIsValid(invprelimfn))
+	{
+		referenced.classId = ProcedureRelationId;
+		referenced.objectId = invprelimfn;
+		referenced.objectSubId = 0;
+		recordDependencyOn(&myself, &referenced, DEPENDENCY_NORMAL);
+	}
 
 	/* Depends on final function, if any */
 	if (OidIsValid(finalfn))
@@ -279,10 +366,12 @@ AggregateCreate(const char *aggName,
 		referenced.objectSubId = 0;
 		recordDependencyOn(&myself, &referenced, DEPENDENCY_NORMAL);
 	}
+	
+	return procOid;
 }
 
 /*
- * lookup_agg_function -- common code for finding both transfn and finalfn
+ * lookup_agg_function -- common code for finding transfn, prelimfn and finalfn
  */
 static Oid
 lookup_agg_function(List *fnName,
@@ -292,6 +381,8 @@ lookup_agg_function(List *fnName,
 {
 	Oid			fnOid;
 	bool		retset;
+	bool        retstrict;
+	bool        retordered;
 	Oid		   *true_oid_array;
 	FuncDetailCode fdresult;
 	AclResult	aclresult;
@@ -306,8 +397,8 @@ lookup_agg_function(List *fnName,
 	 * the function.
 	 */
 	fdresult = func_get_detail(fnName, NIL, nargs, input_types,
-							   &fnOid, rettype, &retset,
-							   &true_oid_array);
+							   &fnOid, rettype, &retset, &retstrict,
+							   &retordered, &true_oid_array);
 
 	/* only valid case is a normal function not returning a set */
 	if (fdresult != FUNCDETAIL_NORMAL || !OidIsValid(fnOid))

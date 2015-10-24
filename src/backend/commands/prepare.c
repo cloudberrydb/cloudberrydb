@@ -7,7 +7,7 @@
  * accessed via the extended FE/BE query protocol.
  *
  *
- * Copyright (c) 2002-2006, PostgreSQL Global Development Group
+ * Copyright (c) 2002-2009, PostgreSQL Global Development Group
  *
  * IDENTIFICATION
  *	  $PostgreSQL: pgsql/src/backend/commands/prepare.c,v 1.66 2006/10/04 00:29:51 momjian Exp $
@@ -18,10 +18,18 @@
 
 #include "access/heapam.h"
 #include "access/xact.h"
+#include "catalog/gp_policy.h"
 #include "catalog/pg_type.h"
 #include "commands/explain.h"
 #include "commands/prepare.h"
+#include "executor/executor.h"
 #include "funcapi.h"
+#include "miscadmin.h"
+#include "nodes/nodeFuncs.h"
+#include "parser/analyze.h"
+#include "parser/parse_coerce.h"
+#include "parser/parse_expr.h"
+#include "parser/parse_type.h"
 #include "rewrite/rewriteHandler.h"
 #include "tcop/pquery.h"
 #include "tcop/tcopprot.h"
@@ -29,6 +37,12 @@
 #include "utils/builtins.h"
 #include "utils/memutils.h"
 
+#include "commands/tablespace.h"
+#include "catalog/catalog.h"
+#include "catalog/pg_type.h"
+
+extern char *savedSeqServerHost;
+extern int savedSeqServerPort;
 
 /*
  * The hash table in which prepared queries are stored. This is
@@ -47,12 +61,14 @@ static Datum build_regtype_array(List *oid_list);
  * Implements the 'PREPARE' utility statement.
  */
 void
-PrepareQuery(PrepareStmt *stmt)
+PrepareQuery(PrepareStmt *stmt, const char *queryString)
 {
-	const char *commandTag;
-	Query	   *query;
-	List	   *query_list,
-			   *plan_list;
+	const char	*commandTag = NULL;
+	Query		*query = NULL;
+	List		*query_list = NIL;
+	List		*plan_list = NIL;
+	List		*query_list_copy = NIL;
+	NodeTag		srctag;  /* GPDB */
 
 	/*
 	 * Disallow empty-string statement name (conflicts with protocol-level
@@ -67,21 +83,26 @@ PrepareQuery(PrepareStmt *stmt)
 	{
 		case CMD_SELECT:
 			commandTag = "SELECT";
+			srctag = T_SelectStmt;
 			break;
 		case CMD_INSERT:
 			commandTag = "INSERT";
+			srctag = T_InsertStmt;
 			break;
 		case CMD_UPDATE:
 			commandTag = "UPDATE";
+			srctag = T_UpdateStmt;
 			break;
 		case CMD_DELETE:
 			commandTag = "DELETE";
+			srctag = T_DeleteStmt;
 			break;
 		default:
 			ereport(ERROR,
 					(errcode(ERRCODE_INVALID_PSTATEMENT_DEFINITION),
 					 errmsg("utility statements cannot be prepared")));
 			commandTag = NULL;	/* keep compiler quiet */
+			srctag = T_Query;
 			break;
 	}
 
@@ -104,33 +125,40 @@ PrepareQuery(PrepareStmt *stmt)
 	AcquireRewriteLocks(query);
 	query_list = QueryRewrite(query);
 
+	query_list_copy = copyObject(query_list); /* planner scribbles on query tree */
+	
 	/* Generate plans for queries.	Snapshot is already set. */
 	plan_list = pg_plan_queries(query_list, NULL, false);
-
+	
 	/*
 	 * Save the results.  We don't have the query string for this PREPARE, but
 	 * we do have the string we got from the client, so use that.
 	 */
 	StorePreparedStatement(stmt->name,
-						   debug_query_string,
+						   queryString, /* WAS global debug_query_string, */
+						   srctag,
 						   commandTag,
-						   query_list,
-						   plan_list,
+						   query_list_copy,
 						   stmt->argtype_oids,
 						   true);
 }
 
 /*
  * Implements the 'EXECUTE' utility statement.
+ *
+ * Note: this is one of very few places in the code that needs to deal with
+ * two query strings at once.  The passed-in queryString is that of the
+ * EXECUTE, which we might need for error reporting while processing the
+ * parameter expressions.  The query_string that we copy from the plan
+ * source is that of the original PREPARE.
  */
 void
-ExecuteQuery(ExecuteStmt *stmt, ParamListInfo params,
+ExecuteQuery(ExecuteStmt *stmt, const char *queryString,
+			 ParamListInfo params,
 			 DestReceiver *dest, char *completionTag)
 {
 	PreparedStatement *entry;
-	char	   *query_string;
-	List	   *query_list,
-			   *plan_list;
+	List	   *stmt_list;
 	MemoryContext qcontext;
 	ParamListInfo paramLI = NULL;
 	EState	   *estate = NULL;
@@ -139,12 +167,7 @@ ExecuteQuery(ExecuteStmt *stmt, ParamListInfo params,
 	/* Look it up in the hash table */
 	entry = FetchPreparedStatement(stmt->name, true);
 
-	query_string = entry->query_string;
-	query_list = entry->query_list;
-	plan_list = entry->plan_list;
 	qcontext = entry->context;
-
-	Assert(list_length(query_list) == list_length(plan_list));
 
 	/* Evaluate parameters, if any */
 	if (entry->argtype_list != NIL)
@@ -163,6 +186,22 @@ ExecuteQuery(ExecuteStmt *stmt, ParamListInfo params,
 	/* Don't display the portal in pg_cursors, it is for internal use only */
 	portal->visible = false;
 
+	/* Plan the query.  If this is a CTAS, copy the "into" information into
+	 * the query so that we construct the plan correctly.  Else the table
+	 * might not be created on the segments.  (MPP-8135) */
+	{
+		List *query_list = copyObject(entry->query_list); /* planner scribbles on query tree :( */
+		
+		if ( stmt->into )
+		{
+			Query *query = (Query*)linitial(query_list);
+			Assert(IsA(query, Query) && query->intoClause == NULL);
+			query->intoClause = copyObject(stmt->into);
+		}
+		
+		stmt_list = pg_plan_queries(query_list, paramLI, false);
+	}
+
 	/*
 	 * For CREATE TABLE / AS EXECUTE, make a copy of the stored query so that
 	 * we can modify its destination (yech, but this has always been ugly).
@@ -172,48 +211,63 @@ ExecuteQuery(ExecuteStmt *stmt, ParamListInfo params,
 	if (stmt->into)
 	{
 		MemoryContext oldContext;
-		Query	   *query;
+		PlannedStmt	 *pstmt;
+
+		if (list_length(stmt_list) != 1)
+			ereport(ERROR,
+					(errcode(ERRCODE_WRONG_OBJECT_TYPE),
+					 errmsg("prepared statement is not a SELECT")));
 
 		oldContext = MemoryContextSwitchTo(PortalGetHeapMemory(portal));
 
-		if (query_string)
-			query_string = pstrdup(query_string);
-		query_list = copyObject(query_list);
-		plan_list = copyObject(plan_list);
+		stmt_list = copyObject(stmt_list);
 		qcontext = PortalGetHeapMemory(portal);
-
-		if (list_length(query_list) != 1)
+		pstmt = (PlannedStmt *) linitial(stmt_list);
+		pstmt->qdContext = qcontext;
+		if (pstmt->commandType != CMD_SELECT)
 			ereport(ERROR,
 					(errcode(ERRCODE_WRONG_OBJECT_TYPE),
 					 errmsg("prepared statement is not a SELECT")));
-		query = (Query *) linitial(query_list);
-		if (query->commandType != CMD_SELECT)
-			ereport(ERROR,
-					(errcode(ERRCODE_WRONG_OBJECT_TYPE),
-					 errmsg("prepared statement is not a SELECT")));
-		query->into = copyObject(stmt->into);
-		query->intoOptions = copyObject(stmt->intoOptions);
-		query->intoOnCommit = stmt->into_on_commit;
-		if (stmt->into_tbl_space)
-			query->intoTableSpaceName = pstrdup(stmt->into_tbl_space);
 
+		pstmt->intoClause = copyObject(stmt->into);
+
+		/* XXX  Is it legitimate to assign a constant default policy without 
+		 *      even checking the relation?
+		 */
+		pstmt->intoPolicy = palloc0(sizeof(GpPolicy)- sizeof(pstmt->intoPolicy->attrs)
+									+ 255 * sizeof(pstmt->intoPolicy->attrs[0]));
+		pstmt->intoPolicy->nattrs = 1;			
+		pstmt->intoPolicy->ptype = POLICYTYPE_PARTITIONED;
+		pstmt->intoPolicy->attrs[0] = 1;
+		
 		MemoryContextSwitchTo(oldContext);
 	}
+
+	/* Copy the plan's saved query string into the portal's memory */
+	Assert(entry->query_string != NULL); 
+	char *query_string = MemoryContextStrdup(PortalGetHeapMemory(portal),
+					   entry->query_string);
 
 	PortalDefineQuery(portal,
 					  NULL,
 					  query_string,
+					  entry->sourceTag,
 					  entry->commandTag,
-					  query_list,
-					  plan_list,
+					  stmt_list,
 					  qcontext);
 
 	/*
 	 * Run the portal to completion.
 	 */
-	PortalStart(portal, paramLI, ActiveSnapshot);
+	PortalStart(portal, paramLI, ActiveSnapshot,
+				savedSeqServerHost, savedSeqServerPort);
 
-	(void) PortalRun(portal, FETCH_ALL, dest, dest, completionTag);
+	(void) PortalRun(portal, 
+					FETCH_ALL, 
+					 true, /* Effectively always top level. */
+					 dest, 
+					 dest, 
+					 completionTag);
 
 	PortalDrop(portal, false);
 
@@ -300,13 +354,15 @@ InitQueryHashTable(void)
  * Exception: commandTag is presumed to be a pointer to a constant string,
  * or possibly NULL, so it need not be copied.	Note that commandTag should
  * be NULL only if the original query (before rewriting) was empty.
+ * The original query nodetag is saved as well, only used if resource 
+ * scheduling is enabled.
  */
 void
 StorePreparedStatement(const char *stmt_name,
 					   const char *query_string,
+					   NodeTag	   sourceTag,
 					   const char *commandTag,
 					   List *query_list,
-					   List *plan_list,
 					   List *argtype_list,
 					   bool from_sql)
 {
@@ -345,8 +401,7 @@ StorePreparedStatement(const char *stmt_name,
 	 * incomplete (ie corrupt) hashtable entry.
 	 */
 	qstring = query_string ? pstrdup(query_string) : NULL;
-	query_list = (List *) copyObject(query_list);
-	plan_list = (List *) copyObject(plan_list);
+	query_list = (List *)copyObject(query_list);
 	argtype_list = list_copy(argtype_list);
 
 	/* Now we can add entry to hash table */
@@ -362,9 +417,9 @@ StorePreparedStatement(const char *stmt_name,
 
 	/* Fill in the hash table entry with copied data */
 	entry->query_string = qstring;
+	entry->sourceTag = sourceTag;
 	entry->commandTag = commandTag;
 	entry->query_list = query_list;
-	entry->plan_list = plan_list;
 	entry->argtype_list = argtype_list;
 	entry->context = entrycxt;
 	entry->prepare_time = GetCurrentStatementStartTimestamp();
@@ -435,7 +490,7 @@ FetchPreparedStatementResultDesc(PreparedStatement *stmt)
 			return ExecCleanTypeFromTL(query->targetList, false);
 
 		case PORTAL_ONE_RETURNING:
-			query = PortalListGetPrimaryQuery(stmt->query_list);
+			query = (Query *) PortalListGetPrimaryStmt(stmt->query_list);
 			return ExecCleanTypeFromTL(query->returningList, false);
 
 		case PORTAL_UTIL_SELECT:
@@ -479,6 +534,10 @@ PreparedStatementReturnsTuples(PreparedStatement *stmt)
  * targetlist.	Returns NIL if the statement doesn't have a determinable
  * targetlist.
  *
+ * Note: this is pretty ugly, but since it's only used in corner cases like
+ * Describe Statement on an EXECUTE command, we don't worry too much about
+ * efficiency.
+
  * Note: do not modify the result.
  *
  * XXX be careful to keep this in sync with FetchPortalTargetList,
@@ -492,7 +551,7 @@ FetchPreparedStatementTargetList(PreparedStatement *stmt)
 	if (strategy == PORTAL_ONE_SELECT)
 		return ((Query *) linitial(stmt->query_list))->targetList;
 	if (strategy == PORTAL_ONE_RETURNING)
-		return (PortalListGetPrimaryQuery(stmt->query_list))->returningList;
+		return ((Query *)(PortalListGetPrimaryStmt(stmt->query_list)))->returningList;
 	if (strategy == PORTAL_UTIL_SELECT)
 	{
 		Node	   *utilityStmt;
@@ -569,15 +628,14 @@ DropPreparedStatement(const char *stmt_name, bool showError)
  * Implements the 'EXPLAIN EXECUTE' utility statement.
  */
 void
-ExplainExecuteQuery(ExplainStmt *stmt, ParamListInfo params,
+ExplainExecuteQuery(ExecuteStmt *execstmt, ExplainStmt *stmt, const char * queryString, ParamListInfo params,
 					TupOutputState *tstate)
 {
-	ExecuteStmt *execstmt = (ExecuteStmt *) stmt->query->utilityStmt;
 	PreparedStatement *entry;
 	ListCell   *q,
 			   *p;
 	List	   *query_list,
-			   *plan_list;
+			   *stmt_list;
 	ParamListInfo paramLI = NULL;
 	EState	   *estate = NULL;
 
@@ -586,11 +644,6 @@ ExplainExecuteQuery(ExplainStmt *stmt, ParamListInfo params,
 
 	/* Look it up in the hash table */
 	entry = FetchPreparedStatement(execstmt->name, true);
-
-	query_list = entry->query_list;
-	plan_list = entry->plan_list;
-
-	Assert(list_length(query_list) == list_length(plan_list));
 
 	/* Evaluate parameters, if any */
 	if (entry->argtype_list != NIL)
@@ -604,13 +657,24 @@ ExplainExecuteQuery(ExplainStmt *stmt, ParamListInfo params,
 		paramLI = EvaluateParams(estate, execstmt->params,
 								 entry->argtype_list);
 	}
+	
+	
+	query_list = copyObject(entry->query_list); /* planner scribbles on query tree */
+	stmt_list = pg_plan_queries(query_list, paramLI, false);
+	
+	Assert(list_length(query_list) == list_length(stmt_list));
 
 	/* Explain each query */
-	forboth(q, query_list, p, plan_list)
+	forboth(q, query_list, p, stmt_list)
 	{
-		Query	   *query = (Query *) lfirst(q);
-		Plan	   *plan = (Plan *) lfirst(p);
-		bool		is_last_query;
+		PlannedStmt *plannedstmt;
+		Query *query;
+		Plan *plan;
+		bool is_last_query;
+		
+		query = (Query *) lfirst(q);
+		plannedstmt = (PlannedStmt*) lfirst(p);
+		plan = plannedstmt->planTree;
 
 		is_last_query = (lnext(p) == NULL);
 
@@ -623,8 +687,6 @@ ExplainExecuteQuery(ExplainStmt *stmt, ParamListInfo params,
 		}
 		else
 		{
-			QueryDesc  *qdesc;
-
 			if (execstmt->into)
 			{
 				if (query->commandType != CMD_SELECT)
@@ -635,25 +697,16 @@ ExplainExecuteQuery(ExplainStmt *stmt, ParamListInfo params,
 				/* Copy the query so we can modify it */
 				query = copyObject(query);
 
-				query->into = execstmt->into;
+				if ( execstmt->into )
+				{
+					Assert(query->intoClause == NULL);
+					query->intoClause = makeNode(IntoClause);
+					query->intoClause->rel = execstmt->into->rel;
+				}
 			}
 
-			/*
-			 * Update snapshot command ID to ensure this query sees results of
-			 * any previously executed queries.  (It's a bit cheesy to modify
-			 * ActiveSnapshot without making a copy, but for the limited ways
-			 * in which EXPLAIN can be invoked, I think it's OK, because the
-			 * active snapshot shouldn't be shared with anything else anyway.)
-			 */
-			ActiveSnapshot->curcid = GetCurrentCommandId();
 
-			/* Create a QueryDesc requesting no output */
-			qdesc = CreateQueryDesc(query, plan,
-									ActiveSnapshot, InvalidSnapshot,
-									None_Receiver,
-									paramLI, stmt->analyze);
-
-			ExplainOnePlan(qdesc, stmt, tstate);
+			ExplainOnePlan(plannedstmt, stmt, "EXECUTE", paramLI, tstate);
 		}
 
 		/* No need for CommandCounterIncrement, as ExplainOnePlan did it */
@@ -674,91 +727,98 @@ ExplainExecuteQuery(ExplainStmt *stmt, ParamListInfo params,
 Datum
 pg_prepared_statement(PG_FUNCTION_ARGS)
 {
-	FuncCallContext *funcctx;
-	HASH_SEQ_STATUS *hash_seq;
-	PreparedStatement *prep_stmt;
+	ReturnSetInfo *rsinfo = (ReturnSetInfo *) fcinfo->resultinfo;
+	TupleDesc	tupdesc;
+	Tuplestorestate *tupstore;
+	MemoryContext per_query_ctx;
+	MemoryContext oldcontext;
 
-	/* stuff done only on the first call of the function */
-	if (SRF_IS_FIRSTCALL())
+	/* check to see if caller supports us returning a tuplestore */
+	if (rsinfo == NULL || !IsA(rsinfo, ReturnSetInfo))
+		ereport(ERROR,
+				(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
+				 errmsg("set-valued function called in context that cannot accept a set")));
+	if (!(rsinfo->allowedModes & SFRM_Materialize))
+		ereport(ERROR,
+				(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
+				 errmsg("materialize mode required, but it is not " \
+						"allowed in this context")));
+
+	/* need to build tuplestore in query context */
+	per_query_ctx = rsinfo->econtext->ecxt_per_query_memory;
+	oldcontext = MemoryContextSwitchTo(per_query_ctx);
+
+	/*
+	 * build tupdesc for result tuples. This must match the definition of the
+	 * pg_prepared_statements view in system_views.sql
+	 */
+	tupdesc = CreateTemplateTupleDesc(5, false);
+	TupleDescInitEntry(tupdesc, (AttrNumber) 1, "name",
+					   TEXTOID, -1, 0);
+	TupleDescInitEntry(tupdesc, (AttrNumber) 2, "statement",
+					   TEXTOID, -1, 0);
+	TupleDescInitEntry(tupdesc, (AttrNumber) 3, "prepare_time",
+					   TIMESTAMPTZOID, -1, 0);
+	TupleDescInitEntry(tupdesc, (AttrNumber) 4, "parameter_types",
+					   REGTYPEARRAYOID, -1, 0);
+	TupleDescInitEntry(tupdesc, (AttrNumber) 5, "from_sql",
+					   BOOLOID, -1, 0);
+
+	/*
+	 * We put all the tuples into a tuplestore in one scan of the hashtable.
+	 * This avoids any issue of the hashtable possibly changing between calls.
+	 */
+	tupstore = tuplestore_begin_heap(true, false, work_mem);
+
+	/* hash table might be uninitialized */
+	if (prepared_queries)
 	{
-		TupleDesc	tupdesc;
-		MemoryContext oldcontext;
+		HASH_SEQ_STATUS hash_seq;
+		PreparedStatement *prep_stmt;
 
-		/* create a function context for cross-call persistence */
-		funcctx = SRF_FIRSTCALL_INIT();
-
-		/*
-		 * switch to memory context appropriate for multiple function calls
-		 */
-		oldcontext = MemoryContextSwitchTo(funcctx->multi_call_memory_ctx);
-
-		/* allocate memory for user context */
-		if (prepared_queries)
+		hash_seq_init(&hash_seq, prepared_queries);
+		while ((prep_stmt = hash_seq_search(&hash_seq)) != NULL)
 		{
-			hash_seq = (HASH_SEQ_STATUS *) palloc(sizeof(HASH_SEQ_STATUS));
-			hash_seq_init(hash_seq, prepared_queries);
-			funcctx->user_fctx = (void *) hash_seq;
-		}
-		else
-			funcctx->user_fctx = NULL;
+			HeapTuple	tuple;
+			Datum		values[5];
+			bool		nulls[5];
 
-		/*
-		 * build tupdesc for result tuples. This must match the definition of
-		 * the pg_prepared_statements view in system_views.sql
-		 */
-		tupdesc = CreateTemplateTupleDesc(5, false);
-		TupleDescInitEntry(tupdesc, (AttrNumber) 1, "name",
-						   TEXTOID, -1, 0);
-		TupleDescInitEntry(tupdesc, (AttrNumber) 2, "statement",
-						   TEXTOID, -1, 0);
-		TupleDescInitEntry(tupdesc, (AttrNumber) 3, "prepare_time",
-						   TIMESTAMPTZOID, -1, 0);
-		TupleDescInitEntry(tupdesc, (AttrNumber) 4, "parameter_types",
-						   REGTYPEARRAYOID, -1, 0);
-		TupleDescInitEntry(tupdesc, (AttrNumber) 5, "from_sql",
-						   BOOLOID, -1, 0);
+			/* generate junk in short-term context */
+			MemoryContextSwitchTo(oldcontext);
 
-		funcctx->tuple_desc = BlessTupleDesc(tupdesc);
-		MemoryContextSwitchTo(oldcontext);
-	}
+			MemSet(nulls, 0, sizeof(nulls));
 
-	/* stuff done on every call of the function */
-	funcctx = SRF_PERCALL_SETUP();
-	hash_seq = (HASH_SEQ_STATUS *) funcctx->user_fctx;
-
-	/* if the hash table is uninitialized, we're done */
-	if (hash_seq == NULL)
-		SRF_RETURN_DONE(funcctx);
-
-	prep_stmt = hash_seq_search(hash_seq);
-	if (prep_stmt)
-	{
-		Datum		result;
-		HeapTuple	tuple;
-		Datum		values[5];
-		bool		nulls[5];
-
-		MemSet(nulls, 0, sizeof(nulls));
-
-		values[0] = DirectFunctionCall1(textin,
+			values[0] = DirectFunctionCall1(textin,
 									  CStringGetDatum(prep_stmt->stmt_name));
 
-		if (prep_stmt->query_string == NULL)
-			nulls[1] = true;
-		else
-			values[1] = DirectFunctionCall1(textin,
+			if (prep_stmt->query_string == NULL)
+				nulls[1] = true;
+			else
+				values[1] = DirectFunctionCall1(textin,
 								   CStringGetDatum(prep_stmt->query_string));
 
-		values[2] = TimestampTzGetDatum(prep_stmt->prepare_time);
-		values[3] = build_regtype_array(prep_stmt->argtype_list);
-		values[4] = BoolGetDatum(prep_stmt->from_sql);
+			values[2] = TimestampTzGetDatum(prep_stmt->prepare_time);
+			values[3] = build_regtype_array(prep_stmt->argtype_list);
+			values[4] = BoolGetDatum(prep_stmt->from_sql);
 
-		tuple = heap_form_tuple(funcctx->tuple_desc, values, nulls);
-		result = HeapTupleGetDatum(tuple);
-		SRF_RETURN_NEXT(funcctx, result);
+			tuple = heap_form_tuple(tupdesc, values, nulls);
+
+			/* switch to appropriate context while storing the tuple */
+			MemoryContextSwitchTo(per_query_ctx);
+			tuplestore_puttuple(tupstore, tuple);
+		}
 	}
 
-	SRF_RETURN_DONE(funcctx);
+	/* clean up and return the tuplestore */
+	tuplestore_donestoring(tupstore);
+
+	MemoryContextSwitchTo(oldcontext);
+
+	rsinfo->returnMode = SFRM_Materialize;
+	rsinfo->setResult = tupstore;
+	rsinfo->setDesc = tupdesc;
+
+	return (Datum) 0;
 }
 
 /*

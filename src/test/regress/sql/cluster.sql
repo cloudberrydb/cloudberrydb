@@ -3,13 +3,14 @@
 --
 
 CREATE TABLE clstr_tst_s (rf_a SERIAL PRIMARY KEY,
-	b INT);
+	b INT) DISTRIBUTED BY (rf_a);
 
 CREATE TABLE clstr_tst (a SERIAL PRIMARY KEY,
 	b INT,
 	c TEXT,
 	d TEXT,
-	CONSTRAINT clstr_tst_con FOREIGN KEY (b) REFERENCES clstr_tst_s);
+	CONSTRAINT clstr_tst_con FOREIGN KEY (b) REFERENCES clstr_tst_s)
+	DISTRIBUTED BY (a);
 
 CREATE INDEX clstr_tst_b ON clstr_tst (b);
 CREATE INDEX clstr_tst_c ON clstr_tst (c);
@@ -61,14 +62,14 @@ INSERT INTO clstr_tst (b, c, d) VALUES (6, 'seis', repeat('xyzzy', 100000));
 
 CLUSTER clstr_tst_c ON clstr_tst;
 
-SELECT a,b,c,substring(d for 30), length(d) from clstr_tst;
+SELECT a,b,c,substring(d for 30), length(d) from clstr_tst ORDER BY 1,2,3,4;
 SELECT a,b,c,substring(d for 30), length(d) from clstr_tst ORDER BY a;
 SELECT a,b,c,substring(d for 30), length(d) from clstr_tst ORDER BY b;
 SELECT a,b,c,substring(d for 30), length(d) from clstr_tst ORDER BY c;
 
 -- Verify that inheritance link still works
 INSERT INTO clstr_tst_inh VALUES (0, 100, 'in child table');
-SELECT a,b,c,substring(d for 30), length(d) from clstr_tst;
+SELECT a,b,c,substring(d for 30), length(d) from clstr_tst ORDER BY 1;
 
 -- Verify that foreign key link still works
 INSERT INTO clstr_tst (b, c) VALUES (1111, 'this should fail');
@@ -105,9 +106,9 @@ WHERE pg_class.oid=indexrelid
 
 -- Verify that clustering all tables does in fact cluster the right ones
 CREATE USER clstr_user;
-CREATE TABLE clstr_1 (a INT PRIMARY KEY);
-CREATE TABLE clstr_2 (a INT PRIMARY KEY);
-CREATE TABLE clstr_3 (a INT PRIMARY KEY);
+CREATE TABLE clstr_1 (a INT PRIMARY KEY) DISTRIBUTED BY (a);
+CREATE TABLE clstr_2 (a INT PRIMARY KEY) DISTRIBUTED BY (a);
+CREATE TABLE clstr_3 (a INT PRIMARY KEY) DISTRIBUTED BY (a);
 ALTER TABLE clstr_1 OWNER TO clstr_user;
 ALTER TABLE clstr_3 OWNER TO clstr_user;
 GRANT SELECT ON clstr_2 TO clstr_user;
@@ -125,7 +126,7 @@ CLUSTER clstr_1_pkey ON clstr_1;
 CLUSTER clstr_2_pkey ON clstr_2;
 SELECT * FROM clstr_1 UNION ALL
   SELECT * FROM clstr_2 UNION ALL
-  SELECT * FROM clstr_3;
+  SELECT * FROM clstr_3 ORDER BY 1;
 
 -- revert to the original state
 DELETE FROM clstr_1;
@@ -144,14 +145,14 @@ SET SESSION AUTHORIZATION clstr_user;
 CLUSTER;
 SELECT * FROM clstr_1 UNION ALL
   SELECT * FROM clstr_2 UNION ALL
-  SELECT * FROM clstr_3;
+  SELECT * FROM clstr_3 ORDER BY 1;
 
 -- cluster a single table using the indisclustered bit previously set
 DELETE FROM clstr_1;
 INSERT INTO clstr_1 VALUES (2);
 INSERT INTO clstr_1 VALUES (1);
 CLUSTER clstr_1;
-SELECT * FROM clstr_1;
+SELECT * FROM clstr_1 ORDER BY 1;
 
 -- clean up
 \c -

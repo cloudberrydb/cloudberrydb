@@ -1,19 +1,28 @@
-/* $PostgreSQL: pgsql/src/include/mb/pg_wchar.h,v 1.69 2006/10/04 00:30:09 momjian Exp $ */
-
+/*-------------------------------------------------------------------------
+ *
+ * pg_wchar.h
+ *	  multibyte-character support
+ *
+ * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1994, Regents of the University of California
+ *
+ * $PostgreSQL: pgsql/src/include/mb/pg_wchar.h,v 1.91 2009/06/11 14:49:11 momjian Exp $
+ *
+ *	NOTES
+ *		This is used both by the backend and by libpq, but should not be
+ *		included by libpq client programs.	In particular, a libpq client
+ *		should not assume that the encoding IDs used by the version of libpq
+ *		it's linked to match up with the IDs declared here.
+ *
+ *-------------------------------------------------------------------------
+ */
 #ifndef PG_WCHAR_H
 #define PG_WCHAR_H
 
 #include <sys/types.h>
 
-#ifdef FRONTEND
-#undef palloc
-#define palloc malloc
-#undef pfree
-#define pfree free
-#endif
-
 /*
- * The pg_wchar
+ * The pg_wchar type
  */
 typedef unsigned int pg_wchar;
 
@@ -143,13 +152,19 @@ typedef unsigned int pg_wchar;
 /*
  * PostgreSQL encoding identifiers
  *
- * WARNING: the order of this table must be same as order
- *			in the pg_enc2name[] (mb/encnames.c) array!
+ * WARNING: the order of this enum must be same as order of entries
+ *			in the pg_enc2name_tbl[] array (in mb/encnames.c), and
+ *			in the pg_wchar_table[] array (in mb/wchar.c)!
  *
  *			If you add some encoding don't forget to check
  *			PG_ENCODING_BE_LAST macro.
  *
- * The PG_SQL_ASCII is default encoding and must be = 0.
+ * PG_SQL_ASCII is default encoding and must be = 0.
+ *
+ * XXX	We must avoid renumbering any backend encoding until libpq's major
+ * version number is increased beyond 5; it turns out that the backend
+ * encoding IDs are effectively part of libpq's ABI as far as 8.2 initdb and
+ * psql are concerned.
  */
 typedef enum pg_enc
 {
@@ -158,7 +173,7 @@ typedef enum pg_enc
 	PG_EUC_CN,					/* EUC for Chinese */
 	PG_EUC_KR,					/* EUC for Korean */
 	PG_EUC_TW,					/* EUC for Taiwan */
-	PG_JOHAB,					/* EUC for Korean JOHAB */
+	PG_EUC_JIS_2004,			/* EUC-JIS-2004 */
 	PG_UTF8,					/* Unicode UTF8 */
 	PG_MULE_INTERNAL,			/* Mule internal code */
 	PG_LATIN1,					/* ISO-8859-1 Latin 1 */
@@ -187,6 +202,7 @@ typedef enum pg_enc
 	PG_WIN1254,					/* windows-1254 */
 	PG_WIN1255,					/* windows-1255 */
 	PG_WIN1257,					/* windows-1257 */
+	PG_KOI8U,					/* KOI8-U */
 	/* PG_ENCODING_BE_LAST points to the above entry */
 
 	/* followings are for client encoding only */
@@ -195,11 +211,13 @@ typedef enum pg_enc
 	PG_GBK,						/* GBK (Windows-936) */
 	PG_UHC,						/* UHC (Windows-949) */
 	PG_GB18030,					/* GB18030 */
+	PG_JOHAB,					/* EUC for Korean JOHAB */
+	PG_SHIFT_JIS_2004,			/* Shift-JIS-2004 */
 	_PG_LAST_ENCODING_			/* mark only */
 
 } pg_enc;
 
-#define PG_ENCODING_BE_LAST PG_WIN1257
+#define PG_ENCODING_BE_LAST PG_KOI8U
 
 /*
  * Please use these tests before access to pg_encconv_tbl[]
@@ -243,10 +261,16 @@ typedef struct pg_enc2name
 
 extern pg_enc2name pg_enc2name_tbl[];
 
-extern pg_encname *pg_char_to_encname_struct(const char *name);
+/*
+ * Encoding names for gettext
+ */
+typedef struct pg_enc2gettext
+{
+	pg_enc		encoding;
+	const char *name;
+} pg_enc2gettext;
 
-extern int	pg_char_to_encoding(const char *s);
-extern const char *pg_encoding_to_char(int encoding);
+extern pg_enc2gettext pg_enc2gettext_tbl[];
 
 /*
  * pg_wchar stuff
@@ -274,25 +298,77 @@ typedef struct
 extern pg_wchar_tbl pg_wchar_table[];
 
 /*
- * UTF8 to local code conversion map
+ * UTF-8 to local code conversion map
+ * Note that we limit the max length of UTF-8 to 4 bytes,
+ * which is UCS-4 00010000-001FFFFF range.
  */
 typedef struct
 {
-	unsigned int utf;			/* UTF8 */
-	unsigned int code;			/* local code */
+	uint32		utf;			/* UTF-8 */
+	uint32		code;			/* local code */
 } pg_utf_to_local;
 
 /*
- * local code to UTF8 conversion map
+ * local code to UTF-8 conversion map
  */
 typedef struct
 {
-	unsigned int code;			/* local code */
-	unsigned int utf;			/* UTF8 */
+	uint32		code;			/* local code */
+	uint32		utf;			/* UTF-8 */
 } pg_local_to_utf;
+
+/*
+ * UTF-8 to local code conversion map(combined characters)
+ */
+typedef struct
+{
+	uint32		utf1;			/* UTF-8 code 1 */
+	uint32		utf2;			/* UTF-8 code 2 */
+	uint32		code;			/* local code */
+} pg_utf_to_local_combined;
+
+/*
+ * local code to UTF-8 conversion map(combined characters)
+ */
+typedef struct
+{
+	uint32		code;			/* local code */
+	uint32		utf1;			/* UTF-8 code 1 */
+	uint32		utf2;			/* UTF-8 code 2 */
+} pg_local_to_utf_combined;
+
+/*
+ * Support macro for encoding conversion functions to validate their
+ * arguments.  (This could be made more compact if we included fmgr.h
+ * here, but we don't want to do that because this header file is also
+ * used by frontends.)
+ */
+#define CHECK_ENCODING_CONVERSION_ARGS(srcencoding,destencoding) \
+	check_encoding_conversion_args(PG_GETARG_INT32(0), \
+								   PG_GETARG_INT32(1), \
+								   PG_GETARG_INT32(4), \
+								   (srcencoding), \
+								   (destencoding))
+
+
+/*
+ * These functions are considered part of libpq's exported API and
+ * are also declared in libpq-fe.h.
+ */
+extern int	pg_char_to_encoding(const char *name);
+extern const char *pg_encoding_to_char(int encoding);
+extern int	pg_valid_server_encoding_id(int encoding);
+
+/*
+ * Remaining functions are not considered part of libpq's API, though many
+ * of them do exist inside libpq.
+ */
+extern pg_encname *pg_char_to_encname_struct(const char *name);
 
 extern int	pg_mb2wchar(const char *from, pg_wchar *to);
 extern int	pg_mb2wchar_with_len(const char *from, pg_wchar *to, int len);
+extern int pg_encoding_mb2wchar_with_len(int encoding,
+							  const char *from, pg_wchar *to, int len);
 extern int	pg_char_and_wchar_strcmp(const char *s1, const pg_wchar *s2);
 extern int	pg_wchar_strncmp(const pg_wchar *s1, const pg_wchar *s2, size_t n);
 extern int	pg_char_and_wchar_strncmp(const char *s1, const pg_wchar *s2, size_t n);
@@ -307,11 +383,18 @@ extern int	pg_mic_mblen(const unsigned char *mbstr);
 extern int	pg_mbstrlen(const char *mbstr);
 extern int	pg_mbstrlen_with_len(const char *mbstr, int len);
 extern int	pg_mbcliplen(const char *mbstr, int len, int limit);
+extern int pg_encoding_mbcliplen(int encoding, const char *mbstr,
+					  int len, int limit);
 extern int	pg_mbcharcliplen(const char *mbstr, int len, int imit);
 extern int	pg_encoding_max_length(int encoding);
 extern int	pg_database_encoding_max_length(void);
 
-extern void SetDefaultClientEncoding(void);
+#ifdef USE_WIDE_UPPER_LOWER
+extern size_t wchar2char(char *to, const wchar_t *from, size_t tolen);
+extern size_t char2wchar(wchar_t *to, size_t tolen, const char *from, size_t fromlen);
+#endif
+
+extern void SetDefaultClientEncoding(void); /* Obsolete? */
 extern int	SetClientEncoding(int encoding, bool doit);
 extern void InitializeClientEncoding(void);
 extern int	pg_get_client_encoding(void);
@@ -320,10 +403,12 @@ extern const char *pg_get_client_encoding_name(void);
 extern void SetDatabaseEncoding(int encoding);
 extern int	GetDatabaseEncoding(void);
 extern const char *GetDatabaseEncodingName(void);
+extern void pg_bind_textdomain_codeset(const char *domainname);
 
 extern int	pg_valid_client_encoding(const char *name);
 extern int	pg_valid_server_encoding(const char *name);
 
+extern unsigned char *unicode_to_utf8(pg_wchar c, unsigned char *utf8string);
 extern int	pg_utf_mblen(const unsigned char *);
 extern unsigned char *pg_do_encoding_conversion(unsigned char *src, int len,
 						  int src_encoding,
@@ -331,19 +416,31 @@ extern unsigned char *pg_do_encoding_conversion(unsigned char *src, int len,
 
 extern char *pg_client_to_server(const char *s, int len);
 extern char *pg_server_to_client(const char *s, int len);
+extern char *pg_custom_to_server(const char *s, int len, int src_encoding, void *cep); /* Obsolete? */
+extern char *pg_server_to_custom(const char *s, int len, int dest_encoding, void *cep); /* Obsolete? */
 
 extern unsigned short BIG5toCNS(unsigned short big5, unsigned char *lc);
 extern unsigned short CNStoBIG5(unsigned short cns, unsigned char lc);
 
 extern void LocalToUtf(const unsigned char *iso, unsigned char *utf,
-		   const pg_local_to_utf *map, int size, int encoding, int len);
+		   const pg_local_to_utf *map, const pg_local_to_utf_combined *cmap,
+		   int size1, int size2, int encoding, int len);
 
 extern void UtfToLocal(const unsigned char *utf, unsigned char *iso,
-		   const pg_utf_to_local *map, int size, int encoding, int len);
+		   const pg_utf_to_local *map, const pg_utf_to_local_combined *cmap,
+		   int size1, int size2, int encoding, int len);
 
 extern bool pg_verifymbstr(const char *mbstr, int len, bool noError);
 extern bool pg_verify_mbstr(int encoding, const char *mbstr, int len,
 				bool noError);
+extern int pg_verify_mbstr_len(int encoding, const char *mbstr, int len,
+					bool noError);
+
+extern void check_encoding_conversion_args(int src_encoding,
+							   int dest_encoding,
+							   int len,
+							   int expected_src_encoding,
+							   int expected_dest_encoding);
 
 extern void report_invalid_encoding(int encoding, const char *mbstr, int len);
 extern void report_untranslatable_char(int src_encoding, int dest_encoding,

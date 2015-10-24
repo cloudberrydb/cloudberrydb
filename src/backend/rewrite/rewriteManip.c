@@ -2,7 +2,8 @@
  *
  * rewriteManip.c
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 2006-2008, Greenplum inc
+ * Portions Copyright (c) 1996-2008, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -72,6 +73,14 @@ checkExprHasAggs_walker(Node *node, checkExprHasAggs_context *context)
 			return true;		/* abort the tree traversal and return true */
 		/* else fall through to examine argument */
 	}
+
+	if (IsA(node, PercentileExpr))
+	{
+		/* PercentileExpr is always levelsup == 0 */
+		if (context->sublevels_up == 0)
+			return true;
+	}
+
 	if (IsA(node, Query))
 	{
 		/* Recurse into subselects */
@@ -97,12 +106,12 @@ checkExprHasSubLink(Node *node)
 {
 	/*
 	 * If a Query is passed, examine it --- but we need not recurse into
-	 * sub-Queries.
+	 * sub-Queries or CTE list.
 	 */
 	return query_or_expression_tree_walker(node,
 										   checkExprHasSubLink_walker,
 										   NULL,
-										   QTW_IGNORE_RT_SUBQUERIES);
+										   QTW_IGNORE_RC_SUBQUERIES);
 }
 
 static bool
@@ -173,12 +182,8 @@ OffsetVarNodes_walker(Node *node, OffsetVarNodes_context *context)
 		InClauseInfo *ininfo = (InClauseInfo *) node;
 
 		if (context->sublevels_up == 0)
-		{
-			ininfo->lefthand = offset_relid_set(ininfo->lefthand,
-												context->offset);
 			ininfo->righthand = offset_relid_set(ininfo->righthand,
 												 context->offset);
-		}
 		/* fall through to examine children */
 	}
 	if (IsA(node, AppendRelInfo))
@@ -326,14 +331,9 @@ ChangeVarNodes_walker(Node *node, ChangeVarNodes_context *context)
 		InClauseInfo *ininfo = (InClauseInfo *) node;
 
 		if (context->sublevels_up == 0)
-		{
-			ininfo->lefthand = adjust_relid_set(ininfo->lefthand,
-												context->rt_index,
-												context->new_index);
 			ininfo->righthand = adjust_relid_set(ininfo->righthand,
 												 context->rt_index,
 												 context->new_index);
-		}
 		/* fall through to examine children */
 	}
 	if (IsA(node, AppendRelInfo))
@@ -450,6 +450,21 @@ typedef struct
 {
 	int			delta_sublevels_up;
 	int			min_sublevels_up;
+
+	/*
+	 * MPP-19436: when a query mixes window function with group by or aggregates,
+	 * then a transformation will turn the original structure Q into an outer
+	 * query Q' and an inner query Q''
+	 * Q ->  Q'
+	 *       |
+	 *       |->Q''
+	 * All the structures will be copied from Q to Q'' except ctelists.
+	 * This causes Q'', and its inner structures, to have dangling cte references, since
+	 * ctelists are kept in Q'. In such a case, we need to ignore min_sublevels_up and
+	 * increment by delta_sublevels_up.
+	 *
+	 */
+	bool		        ignore_min_sublevels_up;
 } IncrementVarSublevelsUp_context;
 
 static bool
@@ -469,10 +484,39 @@ IncrementVarSublevelsUp_walker(Node *node,
 	if (IsA(node, Aggref))
 	{
 		Aggref	   *agg = (Aggref *) node;
-
+		
 		if (agg->agglevelsup >= context->min_sublevels_up)
 			agg->agglevelsup += context->delta_sublevels_up;
 		/* fall through to recurse into argument */
+	}
+	if (IsA(node, WindowRef))
+	{
+		WindowRef	   *wref = (WindowRef *) node;
+		
+		if (wref->winlevelsup >= context->min_sublevels_up)
+			wref->winlevelsup += context->delta_sublevels_up;
+		/* fall through to recurse into argument */
+	}
+	if (IsA(node, RangeTblEntry))
+	{
+		RangeTblEntry *rte = (RangeTblEntry *) node;
+
+		if (rte->rtekind == RTE_CTE)
+		{
+			if (rte->ctelevelsup >= context->min_sublevels_up)
+				rte->ctelevelsup += context->delta_sublevels_up;
+
+			/*
+			* Fix for MPP-19436: in transformGroupedWindows, min_sublevels_up
+			* is ignored. For RTE refer to the original query ctelist should
+			* all be incremented.
+			*/
+			if(context->ignore_min_sublevels_up && rte->ctelevelsup == context->min_sublevels_up - 1)
+			{
+				rte->ctelevelsup += context->delta_sublevels_up;
+			}
+		}
+		return false;			/* allow range_table_walker to continue */
 	}
 	if (IsA(node, Query))
 	{
@@ -482,7 +526,7 @@ IncrementVarSublevelsUp_walker(Node *node,
 		context->min_sublevels_up++;
 		result = query_tree_walker((Query *) node,
 								   IncrementVarSublevelsUp_walker,
-								   (void *) context, 0);
+								   (void *) context, QTW_EXAMINE_RTES);
 		context->min_sublevels_up--;
 		return result;
 	}
@@ -506,7 +550,27 @@ IncrementVarSublevelsUp(Node *node, int delta_sublevels_up,
 	query_or_expression_tree_walker(node,
 									IncrementVarSublevelsUp_walker,
 									(void *) &context,
-									0);
+									QTW_EXAMINE_RTES);
+}
+
+void
+IncrementVarSublevelsUpInTransformGroupedWindows(Node *node,
+		int delta_sublevels_up, int min_sublevels_up)
+{
+	IncrementVarSublevelsUp_context context;
+
+	context.delta_sublevels_up = delta_sublevels_up;
+	context.min_sublevels_up = min_sublevels_up;
+	context.ignore_min_sublevels_up = true;
+
+	/*
+	 * Must be prepared to start with a Query or a bare expression tree; if
+	 * it's a Query, we don't want to increment sublevels_up.
+	 */
+	query_or_expression_tree_walker(node,
+									IncrementVarSublevelsUp_walker,
+									(void *) &context,
+									QTW_EXAMINE_RTES);
 }
 
 
@@ -863,10 +927,11 @@ resolve_one_var(Var *var, ResolveNew_context *context)
 		{
 			/* Otherwise replace unmatched var with a null */
 			/* need coerce_to_domain in case of NOT NULL domain constraint */
-			return coerce_to_domain((Node *) makeNullConst(var->vartype),
+			return coerce_to_domain((Node *) makeNullConst(var->vartype, -1),
 									InvalidOid, -1,
 									var->vartype,
 									COERCE_IMPLICIT_CAST,
+									-1,
 									false,
 									false);
 		}
@@ -913,7 +978,7 @@ ResolveNew_mutator(Node *node, ResolveNew_context *context)
 				 * this is a JOIN), then omit dropped columns.
 				 */
 				expandRTE(context->target_rte,
-						  this_varno, this_varlevelsup,
+						  this_varno, this_varlevelsup, -1,
 						  (var->vartype != RECORDOID),
 						  NULL, &fields);
 				/* Adjust the generated per-field Vars... */

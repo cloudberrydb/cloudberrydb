@@ -1,7 +1,7 @@
-$PostgreSQL: pgsql/src/backend/access/transam/README,v 1.5 2006/03/31 23:32:05 tgl Exp $
+$PostgreSQL: pgsql/src/backend/access/transam/README,v 1.12 2008/10/20 19:18:18 alvherre Exp $
 
 The Transaction System
-----------------------
+======================
 
 PostgreSQL's transaction system is a three-layer system.  The bottom layer
 implements low-level transactions and subtransactions, on top of which rests
@@ -145,7 +145,7 @@ finishing of transactions and subtransactions.  For example, AtStart_Memory
 takes care of initializing the memory subsystem at main transaction start.
 
 
-Subtransaction handling
+Subtransaction Handling
 -----------------------
 
 Subtransactions are implemented using a stack of TransactionState structures,
@@ -187,16 +187,29 @@ Another difference is that BeginInternalSubtransaction is allowed when no
 explicit transaction block has been established, while DefineSavepoint is not.
 
 
-Subtransaction numbering
-------------------------
+Transaction and Subtransaction Numbering
+----------------------------------------
 
-A top-level transaction is always given a TransactionId (XID) as soon as it is
-created.  This is necessary for a number of reasons, notably XMIN bookkeeping
-for VACUUM.  However, a subtransaction doesn't need its own XID unless it
-(or one of its child subxacts) writes tuples into the database.  Therefore,
-we postpone assigning XIDs to subxacts until and unless they call
-GetCurrentTransactionId.  The subsidiary actions of obtaining a lock on the
-XID and and entering it into pg_subtrans and PG_PROC are done at the same time.
+Transactions and subtransactions are assigned permanent XIDs only when/if
+they first do something that requires one --- typically, insert/update/delete
+a tuple, though there are a few other places that need an XID assigned.
+If a subtransaction requires an XID, we always first assign one to its
+parent.  This maintains the invariant that child transactions have XIDs later
+than their parents, which is assumed in a number of places.
+
+The subsidiary actions of obtaining a lock on the XID and and entering it into
+pg_subtrans and PG_PROC are done at the time it is assigned.
+
+A transaction that has no XID still needs to be identified for various
+purposes, notably holding locks.  For this purpose we assign a "virtual
+transaction ID" or VXID to each top-level transaction.  VXIDs are formed from
+two fields, the backendID and a backend-local counter; this arrangement allows
+assignment of a new VXID at transaction start without any contention for
+shared memory.  To ensure that a VXID isn't re-used too soon after backend
+exit, we store the last local counter value into shared memory at backend
+exit, and initialize it from the previous value for the same backendID slot
+at backend start.  All these counters go back to zero at shared memory
+re-initialization, but that's OK because VXIDs never appear anywhere on-disk.
 
 Internally, a backend needs a way to identify subtransactions whether or not
 they have XIDs; but this need only lasts as long as the parent top transaction
@@ -204,7 +217,115 @@ endures.  Therefore, we have SubTransactionId, which is somewhat like
 CommandId in that it's generated from a counter that we reset at the start of
 each top transaction.  The top-level transaction itself has SubTransactionId 1,
 and subtransactions have IDs 2 and up.  (Zero is reserved for
-InvalidSubTransactionId.)
+InvalidSubTransactionId.)  Note that subtransactions do not have their
+own VXIDs; they use the parent top transaction's VXID.
+
+
+Interlocking Transaction Begin, Transaction End, and Snapshots
+--------------------------------------------------------------
+
+We try hard to minimize the amount of overhead and lock contention involved
+in the frequent activities of beginning/ending a transaction and taking a
+snapshot.  Unfortunately, we must have some interlocking for this, because
+we must ensure consistency about the commit order of transactions.
+For example, suppose an UPDATE in xact A is blocked by xact B's prior
+update of the same row, and xact B is doing commit while xact C gets a
+snapshot.  Xact A can complete and commit as soon as B releases its locks.
+If xact C's GetSnapshotData sees xact B as still running, then it had
+better see xact A as still running as well, or it will be able to see two
+tuple versions - one deleted by xact B and one inserted by xact A.  Another
+reason why this would be bad is that C would see (in the row inserted by A)
+earlier changes by B, and it would be inconsistent for C not to see any
+of B's changes elsewhere in the database.
+
+Formally, the correctness requirement is "if a snapshot A considers
+transaction X as committed, and any of transaction X's snapshots considered
+transaction Y as committed, then snapshot A must consider transaction Y as
+committed".
+
+What we actually enforce is strict serialization of commits and rollbacks
+with snapshot-taking: we do not allow any transaction to exit the set of
+running transactions while a snapshot is being taken.  (This rule is
+stronger than necessary for consistency, but is relatively simple to
+enforce, and it assists with some other issues as explained below.)  The
+implementation of this is that GetSnapshotData takes the ProcArrayLock in
+shared mode (so that multiple backends can take snapshots in parallel),
+but ProcArrayEndTransaction must take the ProcArrayLock in exclusive mode
+while clearing MyProc->xid at transaction end (either commit or abort).
+
+ProcArrayEndTransaction also holds the lock while advancing the shared
+latestCompletedXid variable.  This allows GetSnapshotData to use
+latestCompletedXid + 1 as xmax for its snapshot: there can be no
+transaction >= this xid value that the snapshot needs to consider as
+completed.
+
+In short, then, the rule is that no transaction may exit the set of
+currently-running transactions between the time we fetch latestCompletedXid
+and the time we finish building our snapshot.  However, this restriction
+only applies to transactions that have an XID --- read-only transactions
+can end without acquiring ProcArrayLock, since they don't affect anyone
+else's snapshot nor latestCompletedXid.
+
+Transaction start, per se, doesn't have any interlocking with these
+considerations, since we no longer assign an XID immediately at transaction
+start.  But when we do decide to allocate an XID, GetNewTransactionId must
+store the new XID into the shared ProcArray before releasing XidGenLock.
+This ensures that all top-level XIDs <= latestCompletedXid are either
+present in the ProcArray, or not running anymore.  (This guarantee doesn't
+apply to subtransaction XIDs, because of the possibility that there's not
+room for them in the subxid array; instead we guarantee that they are
+present or the overflow flag is set.)  If a backend released XidGenLock
+before storing its XID into MyProc, then it would be possible for another
+backend to allocate and commit a later XID, causing latestCompletedXid to
+pass the first backend's XID, before that value became visible in the
+ProcArray.  That would break GetOldestXmin, as discussed below.
+
+We allow GetNewTransactionId to store the XID into MyProc->xid (or the
+subxid array) without taking ProcArrayLock.  This was once necessary to
+avoid deadlock; while that is no longer the case, it's still beneficial for
+performance.  We are thereby relying on fetch/store of an XID to be atomic,
+else other backends might see a partially-set XID.  This also means that
+readers of the ProcArray xid fields must be careful to fetch a value only
+once, rather than assume they can read it multiple times and get the same
+answer each time.  (Use volatile-qualified pointers when doing this, to
+ensure that the C compiler does exactly what you tell it to.)
+
+Another important activity that uses the shared ProcArray is GetOldestXmin,
+which must determine a lower bound for the oldest xmin of any active MVCC
+snapshot, system-wide.  Each individual backend advertises the smallest
+xmin of its own snapshots in MyProc->xmin, or zero if it currently has no
+live snapshots (eg, if it's between transactions or hasn't yet set a
+snapshot for a new transaction).  GetOldestXmin takes the MIN() of the
+valid xmin fields.  It does this with only shared lock on ProcArrayLock,
+which means there is a potential race condition against other backends
+doing GetSnapshotData concurrently: we must be certain that a concurrent
+backend that is about to set its xmin does not compute an xmin less than
+what GetOldestXmin returns.  We ensure that by including all the active
+XIDs into the MIN() calculation, along with the valid xmins.  The rule that
+transactions can't exit without taking exclusive ProcArrayLock ensures that
+concurrent holders of shared ProcArrayLock will compute the same minimum of
+currently-active XIDs: no xact, in particular not the oldest, can exit
+while we hold shared ProcArrayLock.  So GetOldestXmin's view of the minimum
+active XID will be the same as that of any concurrent GetSnapshotData, and
+so it can't produce an overestimate.  If there is no active transaction at
+all, GetOldestXmin returns latestCompletedXid + 1, which is a lower bound
+for the xmin that might be computed by concurrent or later GetSnapshotData
+calls.  (We know that no XID less than this could be about to appear in
+the ProcArray, because of the XidGenLock interlock discussed above.)
+
+GetSnapshotData also performs an oldest-xmin calculation (which had better
+match GetOldestXmin's) and stores that into RecentGlobalXmin, which is used
+for some tuple age cutoff checks where a fresh call of GetOldestXmin seems
+too expensive.  Note that while it is certain that two concurrent
+executions of GetSnapshotData will compute the same xmin for their own
+snapshots, as argued above, it is not certain that they will arrive at the
+same estimate of RecentGlobalXmin.  This is because we allow XID-less
+transactions to clear their MyProc->xmin asynchronously (without taking
+ProcArrayLock), so one execution might see what had been the oldest xmin,
+and another not.  This is OK since RecentGlobalXmin need only be a valid
+lower bound.  As noted above, we are already assuming that fetch/store
+of the xid fields is atomic, so assuming it for xmin as well is no extra
+risk.
 
 
 pg_clog and pg_subtrans
@@ -220,11 +341,20 @@ from disk.  They also allow information to be permanent across server restarts.
 pg_clog records the commit status for each transaction that has been assigned
 an XID.  A transaction can be in progress, committed, aborted, or
 "sub-committed".  This last state means that it's a subtransaction that's no
-longer running, but its parent has not updated its state yet (either it is
-still running, or the backend crashed without updating its status).  A
-sub-committed transaction's status will be updated again to the final value as
-soon as the parent commits or aborts, or when the parent is detected to be
-aborted.
+longer running, but its parent has not updated its state yet.  It is not
+necessary to update a subtransaction's transaction status to subcommit, so we
+can just defer it until main transaction commit.  The main role of marking
+transactions as sub-committed is to provide an atomic commit protocol when
+transaction status is spread across multiple clog pages. As a result, whenever
+transaction status spreads across multiple pages we must use a two-phase commit
+protocol: the first phase is to mark the subtransactions as sub-committed, then
+we mark the top level transaction and all its subtransactions committed (in
+that order).  Thus, subtransactions that have not aborted appear as in-progress
+even when they have already finished, and the subcommit status appears as a
+very short transitory state during main transaction commit.  Subtransaction
+abort is always marked in clog as soon as it occurs.  When the transaction
+status all fit in a single CLOG page, we atomically mark them all as committed
+without bothering with the intermediate sub-commit state.
 
 Savepoints are implemented using subtransactions.  A subtransaction is a
 transaction inside a transaction; its commit or abort status is not only
@@ -254,7 +384,7 @@ for pg_clog are implemented in transam.c, while the low-level functions are in
 clog.c.  pg_subtrans is contained completely in subtrans.c.
 
 
-Write-Ahead Log coding
+Write-Ahead Log Coding
 ----------------------
 
 The WAL subsystem (also called XLOG in the code) exists to guarantee crash
@@ -409,4 +539,113 @@ two separate WAL records.  The replay code has to remember "unfinished" split
 operations, and match them up to subsequent insertions in the parent level.
 If no matching insert has been found by the time the WAL replay ends, the
 replay code has to do the insertion on its own to restore the index to
-consistency.
+consistency.  Such insertions occur after WAL is operational, so they can
+and should write WAL records for the additional generated actions.
+
+
+Asynchronous Commit
+-------------------
+
+As of PostgreSQL 8.3 it is possible to perform asynchronous commits - i.e.,
+we don't wait while the WAL record for the commit is fsync'ed.
+We perform an asynchronous commit when synchronous_commit = off.  Instead
+of performing an XLogFlush() up to the LSN of the commit, we merely note
+the LSN in shared memory.  The backend then continues with other work.
+We record the LSN only for an asynchronous commit, not an abort; there's
+never any need to flush an abort record, since the presumption after a
+crash would be that the transaction aborted anyway.
+
+We always force synchronous commit when the transaction is deleting
+relations, to ensure the commit record is down to disk before the relations
+are removed from the filesystem.  Also, certain utility commands that have
+non-roll-backable side effects (such as filesystem changes) force sync
+commit to minimize the window in which the filesystem change has been made
+but the transaction isn't guaranteed committed.
+
+Every wal_writer_delay milliseconds, the walwriter process performs an
+XLogBackgroundFlush().  This checks the location of the last completely
+filled WAL page.  If that has moved forwards, then we write all the changed
+buffers up to that point, so that under full load we write only whole
+buffers.  If there has been a break in activity and the current WAL page is
+the same as before, then we find out the LSN of the most recent
+asynchronous commit, and flush up to that point, if required (i.e.,
+if it's in the current WAL page).  This arrangement in itself would
+guarantee that an async commit record reaches disk during at worst the
+second walwriter cycle after the transaction completes.  However, we also
+allow XLogFlush to flush full buffers "flexibly" (ie, not wrapping around
+at the end of the circular WAL buffer area), so as to minimize the number
+of writes issued under high load when multiple WAL pages are filled per
+walwriter cycle.  This makes the worst-case delay three walwriter cycles.
+
+There are some other subtle points to consider with asynchronous commits.
+First, for each page of CLOG we must remember the LSN of the latest commit
+affecting the page, so that we can enforce the same flush-WAL-before-write
+rule that we do for ordinary relation pages.  Otherwise the record of the
+commit might reach disk before the WAL record does.  Again, abort records
+need not factor into this consideration.
+
+In fact, we store more than one LSN for each clog page.  This relates to
+the way we set transaction status hint bits during visibility tests.
+We must not set a transaction-committed hint bit on a relation page and
+have that record make it to disk prior to the WAL record of the commit.
+Since visibility tests are normally made while holding buffer share locks,
+we do not have the option of changing the page's LSN to guarantee WAL
+synchronization.  Instead, we defer the setting of the hint bit if we have
+not yet flushed WAL as far as the LSN associated with the transaction.
+This requires tracking the LSN of each unflushed async commit.  It is
+convenient to associate this data with clog buffers: because we will flush
+WAL before writing a clog page, we know that we do not need to remember a
+transaction's LSN longer than the clog page holding its commit status
+remains in memory.  However, the naive approach of storing an LSN for each
+clog position is unattractive: the LSNs are 32x bigger than the two-bit
+commit status fields, and so we'd need 256K of additional shared memory for
+each 8K clog buffer page.  We choose instead to store a smaller number of
+LSNs per page, where each LSN is the highest LSN associated with any
+transaction commit in a contiguous range of transaction IDs on that page.
+This saves storage at the price of some possibly-unnecessary delay in
+setting transaction hint bits.
+
+How many transactions should share the same cached LSN (N)?  If the
+system's workload consists only of small async-commit transactions, then
+it's reasonable to have N similar to the number of transactions per
+walwriter cycle, since that is the granularity with which transactions will
+become truly committed (and thus hintable) anyway.  The worst case is where
+a sync-commit xact shares a cached LSN with an async-commit xact that
+commits a bit later; even though we paid to sync the first xact to disk,
+we won't be able to hint its outputs until the second xact is sync'd, up to
+three walwriter cycles later.  This argues for keeping N (the group size)
+as small as possible.  For the moment we are setting the group size to 32,
+which makes the LSN cache space the same size as the actual clog buffer
+space (independently of BLCKSZ).
+
+It is useful that we can run both synchronous and asynchronous commit
+transactions concurrently, but the safety of this is perhaps not
+immediately obvious.  Assume we have two transactions, T1 and T2.  The Log
+Sequence Number (LSN) is the point in the WAL sequence where a transaction
+commit is recorded, so LSN1 and LSN2 are the commit records of those
+transactions.  If T2 can see changes made by T1 then when T2 commits it
+must be true that LSN2 follows LSN1.  Thus when T2 commits it is certain
+that all of the changes made by T1 are also now recorded in the WAL.  This
+is true whether T1 was asynchronous or synchronous.  As a result, it is
+safe for asynchronous commits and synchronous commits to work concurrently
+without endangering data written by synchronous commits.  Sub-transactions
+are not important here since the final write to disk only occurs at the
+commit of the top level transaction.
+
+Changes to data blocks cannot reach disk unless WAL is flushed up to the
+point of the LSN of the data blocks.  Any attempt to write unsafe data to
+disk will trigger a write which ensures the safety of all data written by
+that and prior transactions.  Data blocks and clog pages are both protected
+by LSNs.
+
+Changes to a temp table are not WAL-logged, hence could reach disk in
+advance of T1's commit, but we don't care since temp table contents don't
+survive crashes anyway.
+
+Database writes made via any of the paths we have introduced to avoid WAL
+overhead for bulk updates are also safe.  In these cases it's entirely
+possible for the data to reach disk before T1's commit, because T1 will
+fsync it down to disk without any sort of interlock, as soon as it finishes
+the bulk update.  However, all these paths are designed to write data that
+no other transaction can see until after T1 commits.  The situation is thus
+not different from ordinary WAL-logged updates.

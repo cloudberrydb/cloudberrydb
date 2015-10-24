@@ -5,7 +5,7 @@
  *	  However, we define it here so that the format is documented.
  *
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2008, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * $PostgreSQL: pgsql/src/include/catalog/pg_control.h,v 1.33 2006/10/04 00:30:07 momjian Exp $
@@ -21,8 +21,12 @@
 #include "utils/pg_crc.h"
 
 
-/* Version identifier for this pg_control format */
-#define PG_CONTROL_VERSION	822
+/*
+ * Version identifier for this pg_control format.
+ * For historical reason, we use "8220" as a prefix. GPDB version comes
+ * after these 4 digits.
+ */
+#define PG_CONTROL_VERSION	8220430
 
 /*
  * Body of CheckPoint XLOG records.  This is declared here because we keep
@@ -42,6 +46,9 @@ typedef struct CheckPoint
 	MultiXactId nextMulti;		/* next free MultiXactId */
 	MultiXactOffset nextMultiOffset;	/* next free MultiXact offset */
 	time_t		time;			/* time stamp of checkpoint */
+
+	/* IN XLOG RECORD, MORE DATA FOLLOWS AT END OF STRUCT FOR DTM CHECKPOINT */
+
 } CheckPoint;
 
 /* XLOG info values for XLOG rmgr */
@@ -49,6 +56,7 @@ typedef struct CheckPoint
 #define XLOG_CHECKPOINT_ONLINE			0x10
 #define XLOG_NEXTOID					0x30
 #define XLOG_SWITCH						0x40
+#define XLOG_BACKUP_END					0x50
 
 
 /* System status indicator */
@@ -58,7 +66,9 @@ typedef enum DBState
 	DB_SHUTDOWNED,
 	DB_SHUTDOWNING,
 	DB_IN_CRASH_RECOVERY,
-	DB_IN_ARCHIVE_RECOVERY,
+	DB_IN_STANDBY_MODE,
+	DB_IN_STANDBY_PROMOTED,
+	DB_IN_STANDBY_NEW_TLI_SET,
 	DB_IN_PRODUCTION
 } DBState;
 
@@ -109,7 +119,33 @@ typedef struct ControlFileData
 
 	CheckPoint	checkPointCopy; /* copy of last check point record */
 
+	/*
+	 * These values determine the minimum point we must recover up to
+	 * before starting up:
+	 *
+	 * minRecoveryPoint use in GPDB is very limited. Currently, it is used
+	 * to simply to store the location of end of backup in standby mode
+	 * That guards against starting standby, aborting it, and restarting with
+	 * an earlier stop location. We can't get promoted unless we've at-least
+	 * replayed upto minRecoveryPoint
+	 *
+	 * backupStartPoint is the redo pointer of the backup start checkpoint, if
+	 * we are recovering from an online backup and haven't reached the end of
+	 * backup yet. It is reset to zero when the end of backup is reached, and
+	 * we mustn't start up before that. A boolean would suffice otherwise, but
+	 * we use the redo pointer as a cross-check when we see an end-of-backup
+	 * record, to make sure the end-of-backup record corresponds the base
+	 * backup we're recovering from.
+	 *
+	 * If backupEndRequired is true, we know for sure that we're restoring
+	 * from a backup, and must see a backup-end record before we can safely
+	 * start up. If it's false, but backupStartPoint is set, a backup_label
+	 * file was found at startup but it may have been a leftover from a stray
+	 * pg_start_backup() call, not accompanied by pg_stop_backup().
+	 */
 	XLogRecPtr	minRecoveryPoint;		/* must replay xlog to here */
+	XLogRecPtr		backupStartPoint;
+	bool		backupEndRequired;
 
 	/*
 	 * This data is used to check for hardware-architecture compatibility of

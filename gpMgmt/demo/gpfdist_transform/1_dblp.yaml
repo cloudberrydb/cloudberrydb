@@ -1,0 +1,22 @@
+---
+VERSION: 1.0.0.1
+DATABASE: gptransform
+
+GPLOAD:
+  INPUT:
+  - SOURCE:
+      LOCAL_HOSTNAME: [ 127.0.0.1 ] # <---- replace as appropriate
+      PORT:             8080
+      FILE:           [ data/dblp.xml ]
+
+  - FORMAT:           text
+  - TRANSFORM:        dblp_input
+  - TRANSFORM_CONFIG: config.yaml
+
+  - DELIMITER:        '	' # tab
+  - ERROR_LIMIT:      10
+  - ERROR_TABLE:      dblp_errortable
+
+  OUTPUT:
+  - TABLE:            dblp_thesis
+  - MODE:             insert

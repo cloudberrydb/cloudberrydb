@@ -4,10 +4,10 @@
  *	  POSTGRES LIBPQ buffer structure definitions.
  *
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2010, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
- * $PostgreSQL: pgsql/src/include/libpq/libpq.h,v 1.67 2006/07/13 16:49:19 momjian Exp $
+ * $PostgreSQL: pgsql/src/include/libpq/libpq.h,v 1.75 2010/02/26 02:01:24 momjian Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -45,28 +45,35 @@ typedef struct
  * prototypes for functions in pqcomm.c
  */
 extern int StreamServerPort(int family, char *hostName,
-		 unsigned short portNumber, char *unixSocketName, int ListenSocket[],
+	unsigned short portNumber, char *unixSocketName, pgsocket ListenSocket[],
 				 int MaxListen);
-extern int	StreamConnection(int server_fd, Port *port);
-extern void StreamClose(int sock);
+extern int	StreamConnection(pgsocket server_fd, Port *port);
+extern void StreamClose(pgsocket sock);
 extern void TouchSocketFile(void);
 extern void pq_init(void);
 extern void pq_comm_reset(void);
+extern void pq_comm_close_fatal(void);                                  /* GPDB only */
 extern int	pq_getbytes(char *s, size_t len);
 extern int	pq_getstring(StringInfo s);
 extern int	pq_getmessage(StringInfo s, int maxlen);
 extern int	pq_getbyte(void);
 extern int	pq_peekbyte(void);
+extern int	pq_getbyte_if_available(unsigned char *c);
 extern int	pq_putbytes(const char *s, size_t len);
 extern int	pq_flush(void);
+extern int	pq_flush_if_writable(void);
+extern bool pq_is_send_pending(void);
 extern int	pq_putmessage(char msgtype, const char *s, size_t len);
+extern void pq_putmessage_noblock(char msgtype, const char *s, size_t len);
 extern void pq_startcopyout(void);
 extern void pq_endcopyout(bool errorAbort);
+extern bool pq_waitForDataUsingSelect(void);                /* GPDB only */
 
 /*
  * prototypes for functions in be-secure.c
  */
 extern int	secure_initialize(void);
+extern bool secure_loaded_verify_locations(void);
 extern void secure_destroy(void);
 extern int	secure_open_server(Port *port);
 extern void secure_close(Port *port);

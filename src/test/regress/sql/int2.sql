@@ -29,60 +29,60 @@ INSERT INTO INT2_TBL(f1) VALUES ('123 dt');
 INSERT INTO INT2_TBL(f1) VALUES ('');
 
 
-SELECT '' AS five, * FROM INT2_TBL;
+SELECT '' AS five, * FROM INT2_TBL order by f1;
 
-SELECT '' AS four, i.* FROM INT2_TBL i WHERE i.f1 <> int2 '0';
+SELECT '' AS four, i.* FROM INT2_TBL i WHERE i.f1 <> int2 '0' order by f1;
 
-SELECT '' AS four, i.* FROM INT2_TBL i WHERE i.f1 <> int4 '0';
+SELECT '' AS four, i.* FROM INT2_TBL i WHERE i.f1 <> int4 '0' order by f1;
 
-SELECT '' AS one, i.* FROM INT2_TBL i WHERE i.f1 = int2 '0';
+SELECT '' AS one, i.* FROM INT2_TBL i WHERE i.f1 = int2 '0' order by f1;
 
-SELECT '' AS one, i.* FROM INT2_TBL i WHERE i.f1 = int4 '0';
+SELECT '' AS one, i.* FROM INT2_TBL i WHERE i.f1 = int4 '0' order by f1;
 
-SELECT '' AS two, i.* FROM INT2_TBL i WHERE i.f1 < int2 '0';
+SELECT '' AS two, i.* FROM INT2_TBL i WHERE i.f1 < int2 '0' order by f1;
 
-SELECT '' AS two, i.* FROM INT2_TBL i WHERE i.f1 < int4 '0';
+SELECT '' AS two, i.* FROM INT2_TBL i WHERE i.f1 < int4 '0' order by f1;
 
-SELECT '' AS three, i.* FROM INT2_TBL i WHERE i.f1 <= int2 '0';
+SELECT '' AS three, i.* FROM INT2_TBL i WHERE i.f1 <= int2 '0' order by f1;
 
-SELECT '' AS three, i.* FROM INT2_TBL i WHERE i.f1 <= int4 '0';
+SELECT '' AS three, i.* FROM INT2_TBL i WHERE i.f1 <= int4 '0' order by f1;
 
-SELECT '' AS two, i.* FROM INT2_TBL i WHERE i.f1 > int2 '0';
+SELECT '' AS two, i.* FROM INT2_TBL i WHERE i.f1 > int2 '0' order by f1;
 
-SELECT '' AS two, i.* FROM INT2_TBL i WHERE i.f1 > int4 '0';
+SELECT '' AS two, i.* FROM INT2_TBL i WHERE i.f1 > int4 '0' order by f1;
 
-SELECT '' AS three, i.* FROM INT2_TBL i WHERE i.f1 >= int2 '0';
+SELECT '' AS three, i.* FROM INT2_TBL i WHERE i.f1 >= int2 '0' order by f1;
 
-SELECT '' AS three, i.* FROM INT2_TBL i WHERE i.f1 >= int4 '0';
+SELECT '' AS three, i.* FROM INT2_TBL i WHERE i.f1 >= int4 '0' order by f1;
 
 -- positive odds 
-SELECT '' AS one, i.* FROM INT2_TBL i WHERE (i.f1 % int2 '2') = int2 '1';
+SELECT '' AS one, i.* FROM INT2_TBL i WHERE (i.f1 % int2 '2') = int2 '1' order by f1;
 
 -- any evens 
-SELECT '' AS three, i.* FROM INT2_TBL i WHERE (i.f1 % int4 '2') = int2 '0';
+SELECT '' AS three, i.* FROM INT2_TBL i WHERE (i.f1 % int4 '2') = int2 '0' order by f1;
 
-SELECT '' AS five, i.f1, i.f1 * int2 '2' AS x FROM INT2_TBL i;
+SELECT '' AS five, i.f1, i.f1 * int2 '2' AS x FROM INT2_TBL i order by f1;
 
 SELECT '' AS five, i.f1, i.f1 * int2 '2' AS x FROM INT2_TBL i
-WHERE abs(f1) < 16384;
+WHERE abs(f1) < 16384 order by f1;
 
-SELECT '' AS five, i.f1, i.f1 * int4 '2' AS x FROM INT2_TBL i;
+SELECT '' AS five, i.f1, i.f1 * int4 '2' AS x FROM INT2_TBL i order by f1;
 
-SELECT '' AS five, i.f1, i.f1 + int2 '2' AS x FROM INT2_TBL i;
+SELECT '' AS five, i.f1, i.f1 + int2 '2' AS x FROM INT2_TBL i order by f1;
 
 SELECT '' AS five, i.f1, i.f1 + int2 '2' AS x FROM INT2_TBL i
-WHERE f1 < 32766;
+WHERE f1 < 32766 order by f1;
 
-SELECT '' AS five, i.f1, i.f1 + int4 '2' AS x FROM INT2_TBL i;
+SELECT '' AS five, i.f1, i.f1 + int4 '2' AS x FROM INT2_TBL i order by f1;
 
-SELECT '' AS five, i.f1, i.f1 - int2 '2' AS x FROM INT2_TBL i;
+SELECT '' AS five, i.f1, i.f1 - int2 '2' AS x FROM INT2_TBL i order by f1;
 
 SELECT '' AS five, i.f1, i.f1 - int2 '2' AS x FROM INT2_TBL i
-WHERE f1 > -32767;
+WHERE f1 > -32767 order by f1;
 
-SELECT '' AS five, i.f1, i.f1 - int4 '2' AS x FROM INT2_TBL i;
+SELECT '' AS five, i.f1, i.f1 - int4 '2' AS x FROM INT2_TBL i order by f1;
 
-SELECT '' AS five, i.f1, i.f1 / int2 '2' AS x FROM INT2_TBL i;
+SELECT '' AS five, i.f1, i.f1 / int2 '2' AS x FROM INT2_TBL i order by f1;
 
-SELECT '' AS five, i.f1, i.f1 / int4 '2' AS x FROM INT2_TBL i;
+SELECT '' AS five, i.f1, i.f1 / int4 '2' AS x FROM INT2_TBL i order by f1;
 

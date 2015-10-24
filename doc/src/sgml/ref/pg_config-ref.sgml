@@ -1,4 +1,4 @@
-<!-- $PostgreSQL: pgsql/doc/src/sgml/ref/pg_config-ref.sgml,v 1.25 2006/10/23 18:10:32 petere Exp $ -->
+<!-- $PostgreSQL: pgsql/doc/src/sgml/ref/pg_config-ref.sgml,v 1.28 2008/02/18 14:51:48 petere Exp $ -->
 
 <refentry id="app-pgconfig">
  <refmeta>
@@ -57,9 +57,16 @@
      <term><option>--docdir</option></>
      <listitem>
       <para>
-       Print the location of documentation files.  (This will be an empty
-       string if <literal>--without-docdir</> was specified when
-       <productname>PostgreSQL</> was built.)
+       Print the location of documentation files.
+      </para>
+     </listitem>
+    </varlistentry>
+
+    <varlistentry>
+     <term><option>--htmldir</option></>
+     <listitem>
+      <para>
+       Print the location of HTML documentation files.
       </para>
      </listitem>
     </varlistentry>
@@ -106,7 +113,7 @@
       <para>
        Print the location of dynamically loadable modules, or where
        the server would search for them.  (Other
-       architecture-dependent data files may also be installed in this
+       architecture-dependent data files might also be installed in this
        directory.)
       </para>
      </listitem>
@@ -284,6 +291,7 @@
    <option>--cflags</option>, <option>--cflags_sl</option>,
    <option>--ldflags</option>, <option>--ldflags_sl</option>,
    and <option>--libs</option> are new in <productname>PostgreSQL</> 8.1.
+   The option <option>--htmldir</option> is new in <productname>PostgreSQL</> 8.4.
   </para>
 
   <para>
@@ -310,12 +318,4 @@ eval ./configure `pg_config --configure`
   </para>
  </refsect1>
 
- <refsect1>
-  <title>History</title>
-
-  <para>
-   The <command>pg_config</command> utility first appeared in
-   <productname>PostgreSQL</> 7.1.
-  </para>
- </refsect1>
 </refentry>

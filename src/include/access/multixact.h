@@ -3,10 +3,10 @@
  *
  * PostgreSQL multi-transaction-log manager
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
- * $PostgreSQL: pgsql/src/include/access/multixact.h,v 1.11 2006/11/17 18:00:15 tgl Exp $
+ * $PostgreSQL: pgsql/src/include/access/multixact.h,v 1.14 2009/01/01 17:23:56 momjian Exp $
  */
 #ifndef MULTIXACT_H
 #define MULTIXACT_H
@@ -67,7 +67,7 @@ extern void MultiXactSetNextMXact(MultiXactId nextMulti,
 extern void MultiXactAdvanceNextMXact(MultiXactId minMulti,
 						  MultiXactOffset minMultiOffset);
 
-extern void multixact_redo(XLogRecPtr lsn, XLogRecord *record);
-extern void multixact_desc(StringInfo buf, uint8 xl_info, char *rec);
+extern void multixact_redo(XLogRecPtr beginLoc __attribute__((unused)) , XLogRecPtr lsn __attribute__((unused)), XLogRecord *record);
+extern void multixact_desc(StringInfo buf, XLogRecPtr beginLoc, XLogRecord *record);
 
 #endif   /* MULTIXACT_H */

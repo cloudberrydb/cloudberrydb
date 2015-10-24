@@ -1,0 +1,24 @@
+#!/usr/bin/env python
+
+from gppylib.mainUtils import simple_main
+from gppylib.operations.reload import GpReload
+from gppylib.gpparseopts import OptParser, OptChecker
+from gppylib.mainUtils import addStandardLoggingAndHelpOptions
+
+def create_parser():
+    parser = OptParser(option_class=OptChecker,
+                       version='%prog version $Revision$',
+                       description='Reload the data into tables')
+
+    addStandardLoggingAndHelpOptions(parser, includeNonInteractiveOption=True)
+    parser.add_option('-d', '--database', dest='database', metavar='database name',
+                      help='The name of the database on which to reload the data')
+    parser.add_option('-p', '--port', dest='port', metavar='port',
+                      help='The port of the database to connect to')
+    parser.add_option('-t', '--table-file', dest='table_file', metavar='table filename',
+                      help='A file containing a list of tables and the corresponding column names to be sorted on')
+
+    return parser
+
+if __name__ == '__main__':
+    simple_main(create_parser, GpReload)

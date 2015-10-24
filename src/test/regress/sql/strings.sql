@@ -3,6 +3,23 @@
 -- Test various data entry syntaxes.
 --
 
+-- create required tables
+CREATE TABLE CHAR_STRINGS_TBL(f1 char(4));
+INSERT INTO CHAR_STRINGS_TBL (f1) VALUES ('a'),
+('ab'),
+('abcd'),
+('abcd    ');
+
+CREATE TABLE VARCHAR_STRINGS_TBL(f1 varchar(4));
+INSERT INTO VARCHAR_STRINGS_TBL (f1) VALUES ('a'),
+('ab'),
+('abcd'),
+('abcd    ');
+
+CREATE TABLE TEXT_STRINGS_TBL (f1 text);
+INSERT INTO TEXT_STRINGS_TBL VALUES ('doh!'),
+('hi de ho neighbor');
+
 -- SQL92 string continuation syntax
 -- E021-03 character string literals
 SELECT 'first line'
@@ -21,25 +38,25 @@ SELECT 'first line'
 -- E021-10 implicit casting among the character data types
 --
 
-SELECT CAST(f1 AS text) AS "text(char)" FROM CHAR_TBL;
+SELECT CAST(f1 AS text) AS "text(char)" FROM CHAR_STRINGS_TBL ORDER BY 1;
 
-SELECT CAST(f1 AS text) AS "text(varchar)" FROM VARCHAR_TBL;
+SELECT CAST(f1 AS text) AS "text(varchar)" FROM VARCHAR_STRINGS_TBL ORDER BY 1;
 
 SELECT CAST(name 'namefield' AS text) AS "text(name)";
 
 -- since this is an explicit cast, it should truncate w/o error:
-SELECT CAST(f1 AS char(10)) AS "char(text)" FROM TEXT_TBL;
+SELECT CAST(f1 AS char(10)) AS "char(text)" FROM TEXT_STRINGS_TBL ORDER BY 1;
 -- note: implicit-cast case is tested in char.sql
 
-SELECT CAST(f1 AS char(20)) AS "char(text)" FROM TEXT_TBL;
+SELECT CAST(f1 AS char(20)) AS "char(text)" FROM TEXT_STRINGS_TBL ORDER BY 1;
 
-SELECT CAST(f1 AS char(10)) AS "char(varchar)" FROM VARCHAR_TBL;
+SELECT CAST(f1 AS char(10)) AS "char(varchar)" FROM VARCHAR_STRINGS_TBL ORDER BY 1;
 
 SELECT CAST(name 'namefield' AS char(10)) AS "char(name)";
 
-SELECT CAST(f1 AS varchar) AS "varchar(text)" FROM TEXT_TBL;
+SELECT CAST(f1 AS varchar) AS "varchar(text)" FROM TEXT_STRINGS_TBL ORDER BY 1;
 
-SELECT CAST(f1 AS varchar) AS "varchar(char)" FROM CHAR_TBL;
+SELECT CAST(f1 AS varchar) AS "varchar(char)" FROM CHAR_STRINGS_TBL ORDER BY 1;
 
 SELECT CAST(name 'namefield' AS varchar) AS "varchar(name)";
 
@@ -85,8 +102,59 @@ SELECT regexp_replace('1112223333', E'(\\d{3})(\\d{3})(\\d{4})', E'(\\1) \\2-\\3
 SELECT regexp_replace('AAA   BBB   CCC   ', E'\\s+', ' ', 'g');
 SELECT regexp_replace('AAA', '^|$', 'Z', 'g');
 SELECT regexp_replace('AAA aaa', 'A+', 'Z', 'gi');
--- invalid option of REGEXP_REPLACE
+-- invalid regexp option
 SELECT regexp_replace('AAA aaa', 'A+', 'Z', 'z');
+
+-- set so we can tell NULL from empty string
+\pset null '\\N'
+
+-- return all matches from regexp
+SELECT regexp_matches('foobarbequebaz', $re$(bar)(beque)$re$);
+
+-- test case insensitive
+SELECT regexp_matches('foObARbEqUEbAz', $re$(bar)(beque)$re$, 'i');
+
+-- global option - more than one match
+SELECT regexp_matches('foobarbequebazilbarfbonk', $re$(b[^b]+)(b[^b]+)$re$, 'g');
+
+-- empty capture group (matched empty string)
+SELECT regexp_matches('foobarbequebaz', $re$(bar)(.*)(beque)$re$);
+-- no match
+SELECT regexp_matches('foobarbequebaz', $re$(bar)(.+)(beque)$re$);
+-- optional capture group did not match, null entry in array
+SELECT regexp_matches('foobarbequebaz', $re$(bar)(.+)?(beque)$re$);
+
+-- no capture groups
+SELECT regexp_matches('foobarbequebaz', $re$barbeque$re$);
+
+-- give me errors
+SELECT regexp_matches('foobarbequebaz', $re$(bar)(beque)$re$, 'zipper');
+SELECT regexp_matches('foobarbequebaz', $re$(barbeque$re$);
+SELECT regexp_matches('foobarbequebaz', $re$(bar)(beque){2,1}$re$);
+
+-- split string on regexp
+SELECT foo, length(foo) FROM regexp_split_to_table('the quick brown fox jumped over the lazy dog', $re$\s+$re$) AS foo;
+SELECT regexp_split_to_array('the quick brown fox jumped over the lazy dog', $re$\s+$re$);
+
+SELECT foo, length(foo) FROM regexp_split_to_table('the quick brown fox jumped over the lazy dog', $re$\s*$re$) AS foo;
+SELECT regexp_split_to_array('the quick brown fox jumped over the lazy dog', $re$\s*$re$);
+SELECT foo, length(foo) FROM regexp_split_to_table('the quick brown fox jumped over the lazy dog', '') AS foo;
+SELECT regexp_split_to_array('the quick brown fox jumped over the lazy dog', '');
+-- case insensitive
+SELECT foo, length(foo) FROM regexp_split_to_table('thE QUick bROWn FOx jUMPed ovEr THE lazy dOG', 'e', 'i') AS foo;
+SELECT regexp_split_to_array('thE QUick bROWn FOx jUMPed ovEr THE lazy dOG', 'e', 'i');
+-- no match of pattern
+SELECT foo, length(foo) FROM regexp_split_to_table('the quick brown fox jumped over the lazy dog', 'nomatch') AS foo;
+SELECT regexp_split_to_array('the quick brown fox jumped over the lazy dog', 'nomatch');
+-- errors
+SELECT foo, length(foo) FROM regexp_split_to_table('thE QUick bROWn FOx jUMPed ovEr THE lazy dOG', 'e', 'zippy') AS foo;
+SELECT regexp_split_to_array('thE QUick bROWn FOx jUMPed ovEr THE lazy dOG', 'e', 'zippy');
+-- global option meaningless for regexp_split
+SELECT foo, length(foo) FROM regexp_split_to_table('thE QUick bROWn FOx jUMPed ovEr THE lazy dOG', 'e', 'g') AS foo;
+SELECT regexp_split_to_array('thE QUick bROWn FOx jUMPed ovEr THE lazy dOG', 'e', 'g');
+
+-- change NULL-display back
+\pset null ''
 
 -- E021-11 position expression
 SELECT POSITION('4' IN '1234567890') = '4' AS "4";
@@ -212,6 +280,40 @@ SELECT text 'text' || char(20) ' and characters' AS "Concat text to char";
 
 SELECT text 'text' || varchar ' and varchar' AS "Concat text to varchar";
 
+-- Test "unknown" from sub queries - MPP-2510
+select foo || 'bar'::text from (select 'bar' as foo) a;
+select foo || 'bar'::text from (select 'bar'::text as foo) a;
+select * from ( select 'a' as a) x join (select 'b' as b) y on a=b;
+
+-- Test "unknown" with typmod MPP-2658
+create table unknown_test (v varchar(20), n numeric(20, 2), t timestamp(2));
+insert into unknown_test select '100', '123.23', '2008-01-01 11:11:11';
+select 'foo'::varchar(10) || bar from (select 'bar' as bar) moo;
+select '123'::numeric(4,1) + bar from (select '123' as bar) baz;
+drop table unknown_test;
+
+-- Test nested "unknown"s from MPP-2689
+select 'foo'::text || foo from ( select foo from (select 4.5, foo from ( select
+1, 'foo' as foo) a ) b ) c;
+select 'foo'::text || foo from ( select foo from 
+ (select foo || bar as foo from ( select 'bar' as bar, 'foo' as foo) a ) b ) c;
+create domain u_d as text;
+prepare p1 as select $1::u_d || foo from (select 'foo' as foo) a;
+prepare p2 as select 'foo' || foo 
+from (select $1::u_d || bar as foo from (select 'bar' as bar) a ) b;
+
+select 'a' as a, 'b' as b, 'c' as c, 1 as d union select * from (select 'a' as a, 'b' as b, 'c' as c, 1 as d)d;
+select * from (select 'a' as a, 'b' as b, 'c' as c, 1 as d)d union select 'a' as a, 'b' as b, 'c' as c, 1 as d;
+
+-- Make sure we can convert unknown to other useful types (MPP-4298)
+create table t as select j as a, 'abc' as i from
+generate_series(1, 10) j;
+select * from t order by a;
+alter table t alter i type int; -- should fail
+alter table t alter i type text; -- should work
+select * from t order by a;
+drop table t;
+
 --
 -- test substr with toasted text values
 --
@@ -250,16 +352,16 @@ DROP TABLE toasttest;
 --
 CREATE TABLE toasttest(f1 bytea);
 
-insert into toasttest values(decode(repeat('1234567890',10000),'escape'));
-insert into toasttest values(decode(repeat('1234567890',10000),'escape'));
+insert into toasttest values("decode"(repeat('1234567890',10000),'escape'));
+insert into toasttest values(pg_catalog.decode(repeat('1234567890',10000),'escape'));
 
 --
 -- Ensure that some values are uncompressed, to test the faster substring
 -- operation used in that case
 --
 alter table toasttest alter column f1 set storage external;
-insert into toasttest values(decode(repeat('1234567890',10000),'escape'));
-insert into toasttest values(decode(repeat('1234567890',10000),'escape'));
+insert into toasttest values("decode"(repeat('1234567890',10000),'escape'));
+insert into toasttest values(pg_catalog.decode(repeat('1234567890',10000),'escape'));
 
 -- If the starting position is zero or less, then return from the start of the string
 -- adjusting the length to be consistent with the "negative start" per SQL92.
@@ -276,6 +378,19 @@ SELECT substr(f1, 99995) from toasttest;
 -- string length
 SELECT substr(f1, 99995, 10) from toasttest;
 
+DROP TABLE toasttest;
+
+-- test internally compressing datums
+
+-- note this tests compressing a datum to a very small size which tests a
+-- particular case in the packed varlena where very small compressed datums
+-- must be given a 4-byte header because there are no bits to indicate
+-- compression in a 1-byte header
+
+CREATE TABLE toasttest (c char(2048));
+INSERT INTO toasttest VALUES('x');
+SELECT length(c), c::text FROM toasttest;
+SELECT c FROM toasttest;
 DROP TABLE toasttest;
 
 --
@@ -382,3 +497,13 @@ select 'a\bcd' as f1, 'a\b''cd' as f2, 'a\b''''cd' as f3, 'abcd\'   as f4, 'ab\'
 set standard_conforming_strings = off;
 
 select 'a\\bcd' as f1, 'a\\b\'cd' as f2, 'a\\b\'''cd' as f3, 'abcd\\'   as f4, 'ab\\\'cd' as f5, '\\\\' as f6;
+
+--
+-- test unicode escape
+--
+select E'A\u0041' as f1, E'\u0127' as f2;
+select E'\u0000';
+select E'\udsfs';
+select E'\uD843\uE001';
+select E'\uDC01';
+select E'\uD834';

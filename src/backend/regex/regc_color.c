@@ -28,7 +28,7 @@
  * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * $PostgreSQL: pgsql/src/backend/regex/regc_color.c,v 1.5 2005/10/15 02:49:24 momjian Exp $
+ * $PostgreSQL: pgsql/src/backend/regex/regc_color.c,v 1.9 2008/02/14 17:33:37 tgl Exp $
  *
  *
  * Note that there are some incestuous relationships between this code and
@@ -222,7 +222,6 @@ static color					/* COLORLESS for error */
 newcolor(struct colormap * cm)
 {
 	struct colordesc *cd;
-	struct colordesc *new;
 	size_t		n;
 
 	if (CISERR())
@@ -245,24 +244,25 @@ newcolor(struct colormap * cm)
 	else
 	{
 		/* oops, must allocate more */
+		struct colordesc *newCd;
+
 		n = cm->ncds * 2;
 		if (cm->cd == cm->cdspace)
 		{
-			new = (struct colordesc *) MALLOC(n *
-											  sizeof(struct colordesc));
-			if (new != NULL)
-				memcpy(VS(new), VS(cm->cdspace), cm->ncds *
+			newCd = (struct colordesc *) MALLOC(n * sizeof(struct colordesc));
+			if (newCd != NULL)
+				memcpy(VS(newCd), VS(cm->cdspace), cm->ncds *
 					   sizeof(struct colordesc));
 		}
 		else
-			new = (struct colordesc *) REALLOC(cm->cd,
-											   n * sizeof(struct colordesc));
-		if (new == NULL)
+			newCd = (struct colordesc *)
+				REALLOC(cm->cd, n * sizeof(struct colordesc));
+		if (newCd == NULL)
 		{
 			CERR(REG_ESPACE);
 			return COLORLESS;
 		}
-		cm->cd = new;
+		cm->cd = newCd;
 		cm->ncds = n;
 		assert(cm->max < cm->ncds - 1);
 		cm->max++;
@@ -569,12 +569,9 @@ okcolors(struct nfa * nfa,
 			while ((a = cd->arcs) != NULL)
 			{
 				assert(a->co == co);
-				/* uncolorchain(cm, a); */
-				cd->arcs = a->colorchain;
+				uncolorchain(cm, a);
 				a->co = sco;
-				/* colorchain(cm, a); */
-				a->colorchain = scd->arcs;
-				scd->arcs = a;
+				colorchain(cm, a);
 			}
 			freecolor(cm, co);
 		}
@@ -604,7 +601,10 @@ colorchain(struct colormap * cm,
 {
 	struct colordesc *cd = &cm->cd[a->co];
 
+	if (cd->arcs != NULL)
+		cd->arcs->colorchainRev = a;
 	a->colorchain = cd->arcs;
+	a->colorchainRev = NULL;
 	cd->arcs = a;
 }
 
@@ -616,34 +616,22 @@ uncolorchain(struct colormap * cm,
 			 struct arc * a)
 {
 	struct colordesc *cd = &cm->cd[a->co];
-	struct arc *aa;
+	struct arc *aa = a->colorchainRev;
 
-	aa = cd->arcs;
-	if (aa == a)				/* easy case */
+	if (aa == NULL)
+	{
+		assert(cd->arcs == a);
 		cd->arcs = a->colorchain;
+	}
 	else
 	{
-		for (; aa != NULL && aa->colorchain != a; aa = aa->colorchain)
-			continue;
-		assert(aa != NULL);
+		assert(aa->colorchain == a);
 		aa->colorchain = a->colorchain;
 	}
+	if (a->colorchain != NULL)
+		a->colorchain->colorchainRev = aa;
 	a->colorchain = NULL;		/* paranoia */
-}
-
-/*
- * singleton - is this character in its own color?
- */
-static int						/* predicate */
-singleton(struct colormap * cm,
-		  chr c)
-{
-	color		co;				/* color of c */
-
-	co = GETCOLOR(cm, c);
-	if (cm->cd[co].nchrs == 1 && cm->cd[co].sub == NOSUB)
-		return 1;
-	return 0;
+	a->colorchainRev = NULL;
 }
 
 /*
@@ -722,13 +710,18 @@ dumpcolors(struct colormap * cm,
 			else
 				fprintf(f, "#%2ld%s(%2d): ", (long) co,
 						has, cd->nchrs);
-			/* it's hard to do this more efficiently */
-			for (c = CHR_MIN; c < CHR_MAX; c++)
+
+			/*
+			 * Unfortunately, it's hard to do this next bit more efficiently.
+			 *
+			 * Spencer's original coding has the loop iterating from CHR_MIN
+			 * to CHR_MAX, but that's utterly unusable for 32-bit chr. For
+			 * debugging purposes it seems fine to print only chr codes up to
+			 * 1000 or so.
+			 */
+			for (c = CHR_MIN; c < 1000; c++)
 				if (GETCOLOR(cm, c) == co)
 					dumpchr(c, f);
-			assert(c == CHR_MAX);
-			if (GETCOLOR(cm, c) == co)
-				dumpchr(c, f);
 			fprintf(f, "\n");
 		}
 }

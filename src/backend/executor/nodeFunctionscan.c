@@ -3,12 +3,13 @@
  * nodeFunctionscan.c
  *	  Support routines for scanning RangeFunctions (functions in rangetable).
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 2006-2008, Greenplum inc
+ * Portions Copyright (c) 1996-2008, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/executor/nodeFunctionscan.c,v 1.40 2006/06/27 02:51:39 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/executor/nodeFunctionscan.c,v 1.40.2.1 2006/12/26 19:26:56 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -22,14 +23,18 @@
  */
 #include "postgres.h"
 
+#include "cdb/cdbvars.h"
 #include "executor/nodeFunctionscan.h"
 #include "funcapi.h"
+#include "optimizer/var.h"              /* CDB: contain_var_reference() */
 #include "parser/parsetree.h"
 #include "utils/builtins.h"
-
+#include "utils/lsyscache.h"
+#include "cdb/memquota.h"
+#include "executor/spi.h"
 
 static TupleTableSlot *FunctionNext(FunctionScanState *node);
-static void tupledesc_match(TupleDesc dst_tupdesc, TupleDesc src_tupdesc);
+static void ExecFunctionScanExplainEnd(PlanState *planstate, struct StringInfoData *buf);
 
 /* ----------------------------------------------------------------
  *						Scan Support
@@ -63,31 +68,59 @@ FunctionNext(FunctionScanState *node)
 	 */
 	if (tuplestorestate == NULL)
 	{
-		ExprContext *econtext = node->ss.ps.ps_ExprContext;
-		TupleDesc	funcTupdesc;
+		tuplestorestate = ExecMakeTableFunctionResult(
+				node->funcexpr,
+				node->ss.ps.ps_ExprContext,
+				node->tupdesc,
+				PlanStateOperatorMemKB( (PlanState *) node));
+		node->tuplestorestate = tuplestorestate;
 
-		node->tuplestorestate = tuplestorestate =
-			ExecMakeTableFunctionResult(node->funcexpr,
-										econtext,
-										node->tupdesc,
-										&funcTupdesc);
+		/* CDB: Offer extra info for EXPLAIN ANALYZE. */
+		if (node->ss.ps.instrument)
+		{
+			/* Let the tuplestore share our Instrumentation object. */
+			tuplestore_set_instrument(tuplestorestate, node->ss.ps.instrument);
 
-		/*
-		 * If function provided a tupdesc, cross-check it.	We only really
-		 * need to do this for functions returning RECORD, but might as well
-		 * do it always.
-		 */
-		if (funcTupdesc)
-			tupledesc_match(node->tupdesc, funcTupdesc);
+			/* Request a callback at end of query. */
+			node->ss.ps.cdbexplainfun = ExecFunctionScanExplainEnd;
+		}
+
 	}
 
 	/*
 	 * Get the next tuple from tuplestore. Return NULL if no more tuples.
 	 */
 	slot = node->ss.ss_ScanTupleSlot;
-	(void) tuplestore_gettupleslot(tuplestorestate,
-								   ScanDirectionIsForward(direction),
-								   slot);
+	if (tuplestore_gettupleslot(tuplestorestate, 
+				ScanDirectionIsForward(direction),
+				slot))
+	{
+		/* CDB: Label each row with a synthetic ctid for subquery dedup. */
+		if (node->cdb_want_ctid)
+		{
+			HeapTuple   tuple = ExecFetchSlotHeapTuple(slot); 
+
+			/* Increment 48-bit row count */
+			node->cdb_fake_ctid.ip_posid++;
+			if (node->cdb_fake_ctid.ip_posid == 0)
+				ItemPointerSetBlockNumber(&node->cdb_fake_ctid,
+						1 + ItemPointerGetBlockNumber(&node->cdb_fake_ctid));
+
+			tuple->t_self = node->cdb_fake_ctid;
+		}
+	}
+
+	if (!TupIsNull(slot))
+	{
+		Gpmon_M_Incr_Rows_Out(GpmonPktFromFuncScanState(node));
+		CheckSendPlanStateGpmonPkt(&node->ss.ps);
+	}
+
+	else if (!node->ss.ps.delayEagerFree)
+	{
+		ExecEagerFreeFunctionScan((FunctionScanState *)(&node->ss.ps));
+	}
+	
 	return slot;
 }
 
@@ -161,6 +194,12 @@ ExecInitFunctionScan(FunctionScan *node, EState *estate, int eflags)
 		ExecInitExpr((Expr *) node->scan.plan.qual,
 					 (PlanState *) scanstate);
 
+	/* Check if targetlist or qual contains a var node referencing the ctid column */
+	scanstate->cdb_want_ctid = contain_ctid_var_reference(&node->scan);
+
+    ItemPointerSet(&scanstate->cdb_fake_ctid, 0, 0);
+    ItemPointerSet(&scanstate->cdb_mark_ctid, 0, 0);
+
 	/*
 	 * get info about function
 	 */
@@ -224,13 +263,18 @@ ExecInitFunctionScan(FunctionScan *node, EState *estate, int eflags)
 	scanstate->funcexpr = ExecInitExpr((Expr *) rte->funcexpr,
 									   (PlanState *) scanstate);
 
-	scanstate->ss.ps.ps_TupFromTlist = false;
-
 	/*
 	 * Initialize result tuple type and projection info.
 	 */
 	ExecAssignResultTypeFromTL(&scanstate->ss.ps);
 	ExecAssignScanProjectionInfo(&scanstate->ss);
+
+	initGpmonPktForFunctionScan((Plan *)node, &scanstate->ss.ps.gpmon_pkt, estate);
+	
+	if (gp_resqueue_memory_policy != RESQUEUE_MEMORY_POLICY_NONE)
+	{
+		SPI_ReserveMemory(((Plan *)node)->operatorMemKB * 1024L);
+	}
 
 	return scanstate;
 }
@@ -242,6 +286,21 @@ ExecCountSlotsFunctionScan(FunctionScan *node)
 		ExecCountSlotsNode(innerPlan(node)) +
 		FUNCTIONSCAN_NSLOTS;
 }
+
+/*
+ * ExecFunctionScanExplainEnd
+ *      Called before ExecutorEnd to finish EXPLAIN ANALYZE reporting.
+ *
+ * The cleanup that ordinarily would occur during ExecutorEnd() needs to be 
+ * done earlier in order to report statistics to EXPLAIN ANALYZE.  Note that 
+ * ExecEndFunctionScan() will be called for a second time during ExecutorEnd().
+ */
+void
+ExecFunctionScanExplainEnd(PlanState *planstate, struct StringInfoData *buf __attribute__((unused)))
+{
+	ExecEagerFreeFunctionScan((FunctionScanState *) planstate);
+}                               /* ExecFunctionScanExplainEnd */
+
 
 /* ----------------------------------------------------------------
  *		ExecEndFunctionScan
@@ -263,12 +322,9 @@ ExecEndFunctionScan(FunctionScanState *node)
 	ExecClearTuple(node->ss.ps.ps_ResultTupleSlot);
 	ExecClearTuple(node->ss.ss_ScanTupleSlot);
 
-	/*
-	 * Release tuplestore resources
-	 */
-	if (node->tuplestorestate != NULL)
-		tuplestore_end(node->tuplestorestate);
-	node->tuplestorestate = NULL;
+	ExecEagerFreeFunctionScan(node);
+
+	EndPlanStateGpmonPkt(&node->ss.ps);
 }
 
 /* ----------------------------------------------------------------
@@ -286,7 +342,9 @@ ExecFunctionMarkPos(FunctionScanState *node)
 	if (!node->tuplestorestate)
 		return;
 
-	tuplestore_markpos(node->tuplestorestate);
+    node->cdb_mark_ctid = node->cdb_fake_ctid;
+
+	tuplestore_markpos(node->tuplestorestate); 
 }
 
 /* ----------------------------------------------------------------
@@ -304,6 +362,8 @@ ExecFunctionRestrPos(FunctionScanState *node)
 	if (!node->tuplestorestate)
 		return;
 
+    node->cdb_fake_ctid = node->cdb_mark_ctid;
+
 	tuplestore_restorepos(node->tuplestorestate);
 }
 
@@ -317,6 +377,7 @@ void
 ExecFunctionReScan(FunctionScanState *node, ExprContext *exprCtxt)
 {
 	ExecClearTuple(node->ss.ps.ps_ResultTupleSlot);
+	/*node->ss.ps.ps_TupFromTlist = false;*/
 
 	/*
 	 * If we haven't materialized yet, just return.
@@ -324,65 +385,52 @@ ExecFunctionReScan(FunctionScanState *node, ExprContext *exprCtxt)
 	if (!node->tuplestorestate)
 		return;
 
-	/*
+    ItemPointerSet(&node->cdb_fake_ctid, 0, 0);
+
+    /*
 	 * Here we have a choice whether to drop the tuplestore (and recompute the
-	 * function outputs) or just rescan it.  This should depend on whether the
-	 * function expression contains parameters and/or is marked volatile.
-	 * FIXME soon.
+	 * function outputs) or just rescan it.  We must recompute if the
+	 * expression contains parameters, else we rescan.  XXX maybe we should
+	 * recompute if the function is volatile?
 	 */
 	if (node->ss.ps.chgParam != NULL)
 	{
-		tuplestore_end(node->tuplestorestate);
-		node->tuplestorestate = NULL;
+		ExecEagerFreeFunctionScan(node);
 	}
 	else
+	{
 		tuplestore_rescan(node->tuplestorestate);
+	}
 }
 
-/*
- * Check that function result tuple type (src_tupdesc) matches or can
- * be considered to match what the query expects (dst_tupdesc). If
- * they don't match, ereport.
- *
- * We really only care about number of attributes and data type.
- * Also, we can ignore type mismatch on columns that are dropped in the
- * destination type, so long as the physical storage matches.  This is
- * helpful in some cases involving out-of-date cached plans.
- */
-static void
-tupledesc_match(TupleDesc dst_tupdesc, TupleDesc src_tupdesc)
+void
+initGpmonPktForFunctionScan(Plan *planNode, gpmon_packet_t *gpmon_pkt, EState *estate)
 {
-	int			i;
+	Assert(planNode != NULL && gpmon_pkt != NULL && IsA(planNode, FunctionScan));
 
-	if (dst_tupdesc->natts != src_tupdesc->natts)
-		ereport(ERROR,
-				(errcode(ERRCODE_DATATYPE_MISMATCH),
-				 errmsg("function return row and query-specified return row do not match"),
-				 errdetail("Returned row contains %d attributes, but query expects %d.",
-						   src_tupdesc->natts, dst_tupdesc->natts)));
-
-	for (i = 0; i < dst_tupdesc->natts; i++)
 	{
-		Form_pg_attribute dattr = dst_tupdesc->attrs[i];
-		Form_pg_attribute sattr = src_tupdesc->attrs[i];
+		RangeTblEntry *rte = rt_fetch(((Scan *)planNode)->scanrelid, estate->es_range_table);
+		char *funcname = (rte->funcexpr && IsA(rte->funcexpr, FuncExpr)) ? 
+					get_func_name(((FuncExpr *)rte->funcexpr)->funcid)
+				 	: rte->eref->aliasname;
 
-		if (dattr->atttypid == sattr->atttypid)
-			continue;			/* no worries */
-		if (!dattr->attisdropped)
-			ereport(ERROR,
-					(errcode(ERRCODE_DATATYPE_MISMATCH),
-					 errmsg("function return row and query-specified return row do not match"),
-					 errdetail("Returned type %s at ordinal position %d, but query expects %s.",
-							   format_type_be(sattr->atttypid),
-							   i + 1,
-							   format_type_be(dattr->atttypid))));
+		Assert(GPMON_FUNCSCAN_TOTAL <= (int)GPMON_QEXEC_M_COUNT);
+		InitPlanNodeGpmonPkt(planNode, gpmon_pkt, estate, PMNT_FunctionScan,
+							 (int64)planNode->plan_rows,
+							 funcname);
 
-		if (dattr->attlen != sattr->attlen ||
-			dattr->attalign != sattr->attalign)
-			ereport(ERROR,
-					(errcode(ERRCODE_DATATYPE_MISMATCH),
-					 errmsg("function return row and query-specified return row do not match"),
-					 errdetail("Physical storage mismatch on dropped attribute at ordinal position %d.",
-							   i + 1)));
+		if (funcname && funcname != rte->eref->aliasname)
+			pfree(funcname);
 	}
+}
+
+void
+ExecEagerFreeFunctionScan(FunctionScanState *node)
+{
+	if (node->tuplestorestate != NULL)
+	{
+		tuplestore_end(node->tuplestorestate);
+	}
+	
+	node->tuplestorestate = NULL;
 }

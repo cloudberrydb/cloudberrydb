@@ -1,0 +1,176 @@
+=========================
+Python Coding Conventions
+========================= 
+   currently under development, your input appreciated
+ 
+--------------------------
+Indentation and formatting
+--------------------------
+  * 4 spaces of indentation
+  * do not use tabs for source code formatting
+  * tabs are okay within strings, but using \t is preferred
+
+
+-----------------
+Coding Principles
+-----------------
+
+  *  Class __init__ methods should return completed valid objects with all 
+     fields initialized to a valid state.  If more fields are later added to the 
+     object it is better for the constructor to fail due to insufficient 
+     parameters than for code to "work" until later code makes reference to a 
+     not-completely-initialized object.
+
+     This is bad:
+        o = gpObject()           # object still uninitialized
+        o.setObjectName('hello')
+        o.setObjectValue('world')
+
+    This is better:
+        o = gpObject(name='hello', value='world')
+
+  * default values for parameters should be used responsibly.
+   (this needs to be better defined)
+
+    Never set a default value for the fundamental aspects of a class.
+
+    This is bad:
+        class GpDB():
+            def __init__(self, dbid=-1, ...):
+                self.dbid = dbid  # ^^ Setting the core aspects of the class
+
+  * Where possible functions should have relatively few parameters. While it 
+    is not always possible to keep the number of parameters low it leads to 
+	clearer code.
+
+  * If a function has more 5 or more parameters it is better to call that
+    function with parameters set by name for clarity.
+
+    This is unclear:
+        db = GpDB(-1, 'p', 0, 'm', 's', 'u', 'localhost', 'localhost', 5432,
+		          datadir, None)
+
+    This is better:
+        db = GpDB(content = -1, preferred_role = 'p', dbid = 0, role = 'p',
+				  mode = 's', status = 'u', hostname = 'localhost',
+				  address = 'localhost', port = 5432, datadir = '/gpdata/gp-1',
+				  replicationPort = None)
+
+  * Avoid masking functions in the builtin namespace:
+
+    This is bad:
+      def foo(name):
+          str = "test"     # masks the builtin str() function
+          x = str(name)    # this is an error due to the above
+
+    This is better:
+      def foo(name):
+          test_string = "test"
+          ...
+
+  * Generic code should be placed in a generic location.
+    If you have a generic class that turns an xml file into a generic python 
+    xml object, don't place it in a file called gpcheckosXml.py.
+
+  * Exceptions
+    (need to develop some convention guidance)
+
+
+----------
+Commenting
+----------
+  *  Extensive commenting of code is encouraged.
+
+  *  Comments should be informative and add value
+
+     This is bad:
+         x = 5      # Set the value to five
+
+     This is better:
+         x = 5      # The index of "hostname" in the above select statement
+
+  *  When comment a function it is better to use comments that can be recognised
+     by pydoc than ones that can are not recognised.  This means using strings
+     for commenting rather than "#".
+
+     This is bad:
+     
+       def foo():
+           # Function description, not recognized by pydoc
+
+     This is good:
+
+       def foo():
+           "Function desciption"
+
+     or
+
+       def foo()
+           """
+           Longer description
+           With multiple lines
+           """
+
+
+------------------
+Naming Conventions
+------------------
+
+  * Within the gppylib module class names should begin with the prefix Gp and 
+    use camel-case rather than underscores:
+
+      class GpExampleClass():
+  
+  * Function names should begin with a lowercase letter and use camel-case 
+    rather than underscores:
+
+      def doSomethingAmazing():
+
+  * Function parameters should begin with a lowercase letter and use camel-case 
+    rather than underscores:
+
+      def doSomethingAmazing(usingSomeParameter):
+
+  * Class member variables should be private (named prefixed with __).  
+    By keeping class variables private and exposing them via accessor function 
+    it allows the classes to be more easily modified in the future.   
+
+      class GpExampleClass:
+          def __init__(self, name):
+              self.__name = name
+
+          def getExampleName(self):
+              return self.__name
+
+  * Class member functions should be descriptive of the class.
+    Since python is an interpreted dynamically typed language it can be 
+    difficult to keep track of what calls what, having easily distinguished 
+    function names makes it easier to track call graphs so that modifications 
+    can be done more easily.
+
+    This is bad, the function name is too generic which makes identifying 
+    callers more difficult.
+
+      class GpExampleClass:
+          def getData():
+              ...
+
+    This is better, the function name is more distinct. 
+
+      class GpExampleClass:
+          def getExampleData():
+              ...
+
+  * Global variables should be named with a leading "g" prefix:
+
+      gMyGlobalData = None
+
+  * Global constant values should be all-caps separated by _:
+
+      MY_GLOBAL_CONSTANT = 5
+
+
+
+
+
+

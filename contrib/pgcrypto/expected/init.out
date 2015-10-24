@@ -9,7 +9,7 @@ SELECT encode('foo', 'hex');
  666f6f
 (1 row)
 
-SELECT decode('666f6f', 'hex');
+SELECT pg_catalog.decode('666f6f', 'hex');
  decode 
 --------
  foo

@@ -16,7 +16,7 @@
  * identify the source relation).
  *
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2008, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -34,6 +34,7 @@
 
 #include "postgres.h"
 
+#include "cdb/cdbvars.h"
 #include "executor/executor.h"
 #include "executor/nodeSetOp.h"
 #include "utils/memutils.h"
@@ -92,6 +93,8 @@ ExecSetOp(SetOpState *node)
 				ExecProcNode(outerPlan);
 			if (TupIsNull(node->ps.ps_OuterTupleSlot))
 				node->subplan_done = true;
+			else
+				Gpmon_M_Incr(GpmonPktFromSetOpState(node), GPMON_QEXEC_M_ROWSIN);
 		}
 		inputTupleSlot = node->ps.ps_OuterTupleSlot;
 
@@ -125,7 +128,8 @@ ExecSetOp(SetOpState *node)
 								resultTupleSlot,
 								plannode->numCols, plannode->dupColIdx,
 								node->eqfunctions,
-								node->tempContext))
+								node->ps.ps_ExprContext->ecxt_per_tuple_memory
+								))
 				endOfGroup = false;
 			else
 				endOfGroup = true;
@@ -163,7 +167,7 @@ ExecSetOp(SetOpState *node)
 						0 : (node->numLeft - node->numRight);
 					break;
 				default:
-					elog(ERROR, "unrecognized set op: %d",
+					insist_log(false, "unrecognized set op: %d",
 						 (int) plannode->cmd);
 					break;
 			}
@@ -201,6 +205,10 @@ ExecSetOp(SetOpState *node)
 	 */
 	Assert(node->numOutput > 0);
 	node->numOutput--;
+
+	Gpmon_M_Incr_Rows_Out(GpmonPktFromSetOpState(node)); 
+	CheckSendPlanStateGpmonPkt(&node->ps);
+
 	return resultTupleSlot;
 }
 
@@ -233,16 +241,14 @@ ExecInitSetOp(SetOp *node, EState *estate, int eflags)
 	/*
 	 * Miscellaneous initialization
 	 *
-	 * SetOp nodes have no ExprContext initialization because they never call
-	 * ExecQual or ExecProject.  But they do need a per-tuple memory context
-	 * anyway for calling execTuplesMatch.
+	 * Init a expr context even though SetOp nodes never call
+	 * ExecQual or ExecProject.  
+	 *
+	 * SetOp may be the first node in a subplan, then ExecSetParamPlan
+	 * expects an expr context.  Besides, SetOp do need a per-tuple memory 
+	 * context anyway for calling execTuplesMatch.
 	 */
-	setopstate->tempContext =
-		AllocSetContextCreate(CurrentMemoryContext,
-							  "SetOp",
-							  ALLOCSET_DEFAULT_MINSIZE,
-							  ALLOCSET_DEFAULT_INITSIZE,
-							  ALLOCSET_DEFAULT_MAXSIZE);
+	 ExecAssignExprContext(estate, &setopstate->ps);
 
 #define SETOP_NSLOTS 1
 
@@ -271,6 +277,8 @@ ExecInitSetOp(SetOp *node, EState *estate, int eflags)
 							   node->numCols,
 							   node->dupColIdx);
 
+	initGpmonPktForSetOp((Plan *)node, &setopstate->ps.gpmon_pkt, estate);
+
 	return setopstate;
 }
 
@@ -292,13 +300,15 @@ ExecCountSlotsSetOp(SetOp *node)
 void
 ExecEndSetOp(SetOpState *node)
 {
+	ExecFreeExprContext(&node->ps);
+
 	/* clean up tuple table */
 	ExecClearTuple(node->ps.ps_ResultTupleSlot);
 	node->ps.ps_OuterTupleSlot = NULL;
 
-	MemoryContextDelete(node->tempContext);
-
 	ExecEndNode(outerPlanState(node));
+
+	EndPlanStateGpmonPkt(&node->ps);
 }
 
 
@@ -316,4 +326,36 @@ ExecReScanSetOp(SetOpState *node, ExprContext *exprCtxt)
 	 */
 	if (((PlanState *) node)->lefttree->chgParam == NULL)
 		ExecReScan(((PlanState *) node)->lefttree, exprCtxt);
+}
+
+void
+initGpmonPktForSetOp(Plan *planNode, gpmon_packet_t *gpmon_pkt, EState *estate)
+{
+	Assert(planNode != NULL && gpmon_pkt != NULL && IsA(planNode, SetOp));
+
+	{
+		PerfmonNodeType type = PMNT_Invalid;
+
+		switch(((SetOp *)planNode)->cmd)
+		{
+			case SETOPCMD_INTERSECT:
+				type = PMNT_SetOpIntersect;
+			break;
+			case SETOPCMD_INTERSECT_ALL:
+				type = PMNT_SetOpIntersectAll;
+			break;
+			case SETOPCMD_EXCEPT:
+				type = PMNT_SetOpExcept;
+			break;
+			case SETOPCMD_EXCEPT_ALL:
+				type = PMNT_SetOpExceptAll;
+			break;
+		}
+
+		Assert(type != PMNT_Invalid);
+		Assert(GPMON_SETOP_TOTAL <= (int)GPMON_QEXEC_M_COUNT);
+		InitPlanNodeGpmonPkt(planNode, gpmon_pkt, estate, type,
+							 (int64)planNode->plan_rows,
+							 NULL);
+	}
 }

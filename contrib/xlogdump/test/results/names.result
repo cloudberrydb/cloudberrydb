@@ -1,0 +1,2363 @@
+
+testdata/pg_xlog/000000010000000000000000:
+
+0/00000020: prv 0/00000000; xid 0; XLOG  info 00 len 40 tot_len 68
+checkpoint: redo 0/00000020; undo 0/00000020; tli 1; nextxid 3;
+  nextoid 10000; nextmulti 1; nextoffset 0; shutdown
+0/00000064: prv 0/00000020; xid 1; XLOG  info 30 len 4 tot_len 32
+nextOid: 18192
+0/00000084: prv 0/00000064; xid 0; XLOG  info 00 len 40 tot_len 68
+checkpoint: redo 0/00000084; undo 0/00000000; tli 1; nextxid 3;
+  nextoid 10285; nextmulti 1; nextoffset 0; shutdown
+0/000000C8: prv 0/00000084; xid 0; CLOG  info 00 len 4 tot_len 32
+zero clog page 0x0000
+0/000000E8: prv 0/000000C8; xid 4; XLOG  info 30 len 4 tot_len 32
+nextOid: 18477
+0/00000108: prv 0/000000E8; xid 4; HEAP  info 80 len 204 tot_len 232
+insert+INIT: ts pg_default db template1 rel pg_trigger block 0 off 1
+0/000001F0: prv 0/00000108; xid 4; BTREE info A0 len 20 tot_len 48
+insert_meta: index pg_default/template1/pg_trigger_tgconstrname_index tid 65536/0
+0/00000220: prv 0/000001F0; xid 4; BTREE info 00 len 90 tot_len 118
+insert_leaf: index pg_default/template1/pg_trigger_tgconstrname_index tid 1/1
+0/00000298: prv 0/00000220; xid 4; BTREE info A0 len 20 tot_len 48
+insert_meta: index pg_default/template1/pg_trigger_tgconstrrelid_index tid 65536/0
+0/000002C8: prv 0/00000298; xid 4; BTREE info 00 len 30 tot_len 58
+insert_leaf: index pg_default/template1/pg_trigger_tgconstrrelid_index tid 1/1
+0/00000304: prv 0/000002C8; xid 4; BTREE info A0 len 20 tot_len 48
+insert_meta: index pg_default/template1/pg_trigger_tgrelid_tgname_index tid 65536/0
+0/00000334: prv 0/00000304; xid 4; BTREE info 00 len 94 tot_len 122
+insert_leaf: index pg_default/template1/pg_trigger_tgrelid_tgname_index tid 1/1
+0/000003B0: prv 0/00000334; xid 4; BTREE info A0 len 20 tot_len 48
+insert_meta: index pg_default/template1/pg_trigger_oid_index tid 65536/0
+0/000003E0: prv 0/000003B0; xid 4; BTREE info 00 len 30 tot_len 58
+insert_leaf: index pg_default/template1/pg_trigger_oid_index tid 1/1
+0/0000041C: prv 0/000003E0; xid 4; HEAP  info 2C len 26 tot_len 15550
+bkpblock 1: ts pg_default db template1 rel pg_class block 0 hole 216 len 136
+bkpblock 2: ts 21008480 db 21008320 rel 21008160 block 21008000 hole 36320 len 320
+update: ts pg_default db template1 rel pg_class block 0 off 27 to block 1 off 45
+0/00004104: prv 0/0000041C; xid 4; BTREE info 08 len 18 tot_len 1606
+bkpblock 1: ts pg_default db template1 rel pg_class_oid_index block 1 hole 396 len 6652
+insert_leaf: index pg_default/template1/pg_class_oid_index tid 1/15
+0/0000474C: prv 0/00004104; xid 4; BTREE info 08 len 18 tot_len 7542
+bkpblock 1: ts pg_default db template1 rel pg_class_relname_nsp_index block 1 hole 392 len 716
+insert_leaf: index pg_default/template1/pg_class_relname_nsp_index tid 1/41
+0/000064D8: prv 0/0000474C; xid 4; HEAP  info 80 len 49 tot_len 77
+insert+INIT: ts pg_default db template1 rel pg_depend block 0 off 1
+0/00006528: prv 0/000064D8; xid 4; BTREE info A0 len 20 tot_len 48
+insert_meta: index pg_default/template1/pg_depend_depender_index tid 65536/0
+0/00006558: prv 0/00006528; xid 4; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_depender_index tid 1/1
+0/0000659C: prv 0/00006558; xid 4; BTREE info A0 len 20 tot_len 48
+insert_meta: index pg_default/template1/pg_depend_reference_index tid 65536/0
+0/000065CC: prv 0/0000659C; xid 4; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_reference_index tid 1/1
+0/00006610: prv 0/000065CC; xid 4; HEAP  info 00 len 49 tot_len 77
+insert: ts pg_default db template1 rel pg_depend block 0 off 2
+0/00006660: prv 0/00006610; xid 4; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_depender_index tid 1/1
+0/000066A4: prv 0/00006660; xid 4; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_reference_index tid 1/2
+0/000066E8: prv 0/000066A4; xid 4; XACT  info 00 len 12 tot_len 40
+commit: 4
+0/00006710: prv 0/000066E8; xid 5; HEAP  info 00 len 204 tot_len 232
+insert: ts pg_default db template1 rel pg_trigger block 0 off 2
+0/000067F8: prv 0/00006710; xid 5; BTREE info 00 len 90 tot_len 118
+insert_leaf: index pg_default/template1/pg_trigger_tgconstrname_index tid 1/1
+0/00006870: prv 0/000067F8; xid 5; BTREE info 00 len 30 tot_len 58
+insert_leaf: index pg_default/template1/pg_trigger_tgconstrrelid_index tid 1/1
+0/000068AC: prv 0/00006870; xid 5; BTREE info 00 len 94 tot_len 122
+insert_leaf: index pg_default/template1/pg_trigger_tgrelid_tgname_index tid 1/1
+0/00006928: prv 0/000068AC; xid 5; BTREE info 00 len 30 tot_len 58
+insert_leaf: index pg_default/template1/pg_trigger_oid_index tid 1/2
+0/00006964: prv 0/00006928; xid 5; HEAP  info 20 len 164 tot_len 192
+update: ts pg_default db template1 rel pg_class block 0 off 30 to block 1 off 46
+0/00006A24: prv 0/00006964; xid 5; BTREE info 00 len 30 tot_len 58
+insert_leaf: index pg_default/template1/pg_class_oid_index tid 1/13
+0/00006A60: prv 0/00006A24; xid 5; BTREE info 00 len 94 tot_len 122
+insert_leaf: index pg_default/template1/pg_class_relname_nsp_index tid 1/21
+0/00006ADC: prv 0/00006A60; xid 5; HEAP  info 00 len 49 tot_len 77
+insert: ts pg_default db template1 rel pg_depend block 0 off 3
+0/00006B2C: prv 0/00006ADC; xid 5; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_depender_index tid 1/3
+0/00006B70: prv 0/00006B2C; xid 5; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_reference_index tid 1/1
+0/00006BB4: prv 0/00006B70; xid 5; HEAP  info 00 len 49 tot_len 77
+insert: ts pg_default db template1 rel pg_depend block 0 off 4
+0/00006C04: prv 0/00006BB4; xid 5; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_depender_index tid 1/3
+0/00006C48: prv 0/00006C04; xid 5; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_reference_index tid 1/3
+0/00006C8C: prv 0/00006C48; xid 5; XACT  info 00 len 12 tot_len 40
+commit: 5
+0/00006CB4: prv 0/00006C8C; xid 6; HEAP  info 00 len 204 tot_len 232
+insert: ts pg_default db template1 rel pg_trigger block 0 off 3
+0/00006D9C: prv 0/00006CB4; xid 6; BTREE info 00 len 90 tot_len 118
+insert_leaf: index pg_default/template1/pg_trigger_tgconstrname_index tid 1/1
+0/00006E14: prv 0/00006D9C; xid 6; BTREE info 00 len 30 tot_len 58
+insert_leaf: index pg_default/template1/pg_trigger_tgconstrrelid_index tid 1/1
+0/00006E50: prv 0/00006E14; xid 6; BTREE info 00 len 94 tot_len 122
+insert_leaf: index pg_default/template1/pg_trigger_tgrelid_tgname_index tid 1/2
+0/00006ECC: prv 0/00006E50; xid 6; BTREE info 00 len 30 tot_len 58
+insert_leaf: index pg_default/template1/pg_trigger_oid_index tid 1/3
+0/00006F08: prv 0/00006ECC; xid 6; HEAP  info 20 len 164 tot_len 192
+update: ts pg_default db template1 rel pg_class block 0 off 31 to block 1 off 47
+0/00006FC8: prv 0/00006F08; xid 6; BTREE info 00 len 30 tot_len 58
+insert_leaf: index pg_default/template1/pg_class_oid_index tid 1/15
+0/00007004: prv 0/00006FC8; xid 6; BTREE info 00 len 94 tot_len 122
+insert_leaf: index pg_default/template1/pg_class_relname_nsp_index tid 1/18
+0/00007080: prv 0/00007004; xid 6; HEAP  info 00 len 49 tot_len 77
+insert: ts pg_default db template1 rel pg_depend block 0 off 5
+0/000070D0: prv 0/00007080; xid 6; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_depender_index tid 1/5
+0/00007114: prv 0/000070D0; xid 6; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_reference_index tid 1/1
+0/00007158: prv 0/00007114; xid 6; HEAP  info 00 len 49 tot_len 77
+insert: ts pg_default db template1 rel pg_depend block 0 off 6
+0/000071A8: prv 0/00007158; xid 6; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_depender_index tid 1/5
+0/000071EC: prv 0/000071A8; xid 6; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_reference_index tid 1/5
+0/00007230: prv 0/000071EC; xid 6; XACT  info 00 len 12 tot_len 40
+commit: 6
+0/00007258: prv 0/00007230; xid 7; HEAP  info 20 len 200 tot_len 228
+update: ts pg_default db template1 rel pg_class block 1 off 46 to block 1 off 48
+0/0000733C: prv 0/00007258; xid 7; BTREE info 00 len 30 tot_len 58
+insert_leaf: index pg_default/template1/pg_class_oid_index tid 1/13
+0/00007378: prv 0/0000733C; xid 7; BTREE info 00 len 94 tot_len 122
+insert_leaf: index pg_default/template1/pg_class_relname_nsp_index tid 1/22
+0/000073F4: prv 0/00007378; xid 7; XACT  info 00 len 12 tot_len 40
+commit: 7
+0/0000741C: prv 0/000073F4; xid 0; XLOG  info 00 len 40 tot_len 68
+checkpoint: redo 0/0000741C; undo 0/00000000; tli 1; nextxid 8;
+  nextoid 10288; nextmulti 1; nextoffset 0; shutdown
+0/00007460: prv 0/0000741C; xid 9; XLOG  info 30 len 4 tot_len 32
+nextOid: 18480
+0/00007480: prv 0/00007460; xid 9; SMGR  info 10 len 12 tot_len 40
+create rel: pg_default/template1/pg_toast_2604
+0/000074A8: prv 0/00007480; xid 9; HEAP  info 08 len 18 tot_len 7630
+bkpblock 1: ts pg_default db template1 rel pg_type block 2 hole 204 len 628
+insert: ts pg_default db template1 rel pg_type block 2 off 46
+0/0000928C: prv 0/000074A8; xid 9; BTREE info 08 len 18 tot_len 2406
+bkpblock 1: ts pg_default db template1 rel pg_type_oid_index block 1 hole 596 len 5852
+insert_leaf: index pg_default/template1/pg_type_oid_index tid 1/144
+0/00009BF4: prv 0/0000928C; xid 9; BTREE info 08 len 18 tot_len 4342
+bkpblock 1: ts pg_default db template1 rel pg_type_typname_nsp_index block 2 hole 232 len 3916
+insert_leaf: index pg_default/template1/pg_type_typname_nsp_index tid 2/26
+0/0000AD00: prv 0/00009BF4; xid 9; HEAP  info 08 len 18 tot_len 506
+bkpblock 1: ts pg_default db template1 rel pg_depend block 0 hole 48 len 7752
+insert: ts pg_default db template1 rel pg_depend block 0 off 7
+0/0000AEFC: prv 0/0000AD00; xid 9; BTREE info 08 len 18 tot_len 270
+bkpblock 1: ts pg_default db template1 rel pg_depend_depender_index block 1 hole 48 len 7988
+insert_leaf: index pg_default/template1/pg_depend_depender_index tid 1/1
+0/0000B00C: prv 0/0000AEFC; xid 9; BTREE info 08 len 18 tot_len 270
+bkpblock 1: ts pg_default db template1 rel pg_depend_reference_index block 1 hole 48 len 7988
+insert_leaf: index pg_default/template1/pg_depend_reference_index tid 1/4
+0/0000B11C: prv 0/0000B00C; xid 9; HEAP  info 00 len 49 tot_len 77
+insert: ts pg_default db template1 rel pg_depend block 0 off 8
+0/0000B16C: prv 0/0000B11C; xid 9; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_depender_index tid 1/1
+0/0000B1B0: prv 0/0000B16C; xid 9; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_reference_index tid 1/5
+0/0000B1F4: prv 0/0000B1B0; xid 9; HEAP  info 00 len 49 tot_len 77
+insert: ts pg_default db template1 rel pg_depend block 0 off 9
+0/0000B244: prv 0/0000B1F4; xid 9; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_depender_index tid 1/1
+0/0000B288: prv 0/0000B244; xid 9; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_reference_index tid 1/6
+0/0000B2CC: prv 0/0000B288; xid 9; HEAP  info 00 len 49 tot_len 77
+insert: ts pg_default db template1 rel pg_depend block 0 off 10
+0/0000B31C: prv 0/0000B2CC; xid 9; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_depender_index tid 1/1
+0/0000B360: prv 0/0000B31C; xid 9; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_reference_index tid 1/7
+0/0000B3A4: prv 0/0000B360; xid 9; HEAP  info 00 len 49 tot_len 77
+insert: ts pg_default db template1 rel pg_depend block 0 off 11
+0/0000B3F4: prv 0/0000B3A4; xid 9; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_depender_index tid 1/1
+0/0000B438: prv 0/0000B3F4; xid 9; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_reference_index tid 1/11
+0/0000B47C: prv 0/0000B438; xid 9; HEAP  info 80 len 45 tot_len 73
+insert+INIT: ts pg_global db 0 rel pg_shdepend block 0 off 1
+0/0000B4C8: prv 0/0000B47C; xid 9; BTREE info A0 len 20 tot_len 48
+insert_meta: index pg_global/0/pg_shdepend_depender_index tid 65536/0
+0/0000B4F8: prv 0/0000B4C8; xid 9; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_global/0/pg_shdepend_depender_index tid 1/1
+0/0000B53C: prv 0/0000B4F8; xid 9; BTREE info A0 len 20 tot_len 48
+insert_meta: index pg_global/0/pg_shdepend_reference_index tid 65536/0
+0/0000B56C: prv 0/0000B53C; xid 9; BTREE info 00 len 34 tot_len 62
+insert_leaf: index pg_global/0/pg_shdepend_reference_index tid 1/1
+0/0000B5AC: prv 0/0000B56C; xid 9; HEAP  info 08 len 18 tot_len 8158
+bkpblock 1: ts pg_default db template1 rel pg_class block 1 hole 216 len 100
+insert: ts pg_default db template1 rel pg_class block 1 off 49
+0/0000D5A0: prv 0/0000B5AC; xid 9; BTREE info 08 len 18 tot_len 1670
+bkpblock 1: ts pg_default db template1 rel pg_class_oid_index block 1 hole 412 len 6588
+insert_leaf: index pg_default/template1/pg_class_oid_index tid 1/98
+0/0000DC28: prv 0/0000D5A0; xid 9; BTREE info 08 len 18 tot_len 7862
+bkpblock 1: ts pg_default db template1 rel pg_class_relname_nsp_index block 1 hole 408 len 396
+insert_leaf: index pg_default/template1/pg_class_relname_nsp_index tid 1/91
+0/0000FAF4: prv 0/0000DC28; xid 9; HEAP  info 08 len 18 tot_len 3758
+bkpblock 1: ts pg_default db template1 rel pg_attribute block 10 hole 128 len 4500
+insert: ts pg_default db template1 rel pg_attribute block 10 off 27
+0/000109B8: prv 0/0000FAF4; xid 9; BTREE info 08 len 18 tot_len 6582
+bkpblock 1: ts pg_default db template1 rel pg_attribute_relid_attnam_index block 8 hole 344 len 1676
+insert_leaf: index pg_default/template1/pg_attribute_relid_attnam_index tid 8/81
+0/00012384: prv 0/000109B8; xid 9; BTREE info 08 len 18 tot_len 5322
+bkpblock 1: ts pg_default db template1 rel pg_attribute_relid_attnum_index block 2 hole 1064 len 2936
+insert_leaf: index pg_default/template1/pg_attribute_relid_attnum_index tid 2/261
+0/00013850: prv 0/00012384; xid 9; HEAP  info 00 len 49 tot_len 77
+insert: ts pg_default db template1 rel pg_depend block 0 off 12
+0/000138A0: prv 0/00013850; xid 9; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_depender_index tid 1/6
+0/000138E4: prv 0/000138A0; xid 9; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_reference_index tid 1/1
+0/00013928: prv 0/000138E4; xid 9; HEAP  info 00 len 128 tot_len 156
+insert: ts pg_default db template1 rel pg_attribute block 10 off 28
+0/000139C4: prv 0/00013928; xid 9; BTREE info 00 len 94 tot_len 122
+insert_leaf: index pg_default/template1/pg_attribute_relid_attnam_index tid 8/82
+0/00013A40: prv 0/000139C4; xid 9; BTREE info 00 len 34 tot_len 62
+insert_leaf: index pg_default/template1/pg_attribute_relid_attnum_index tid 2/262
+0/00013A80: prv 0/00013A40; xid 9; HEAP  info 00 len 49 tot_len 77
+insert: ts pg_default db template1 rel pg_depend block 0 off 13
+0/00013AD0: prv 0/00013A80; xid 9; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_depender_index tid 1/7
+0/00013B14: prv 0/00013AD0; xid 9; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_reference_index tid 1/1
+0/00013B58: prv 0/00013B14; xid 9; HEAP  info 00 len 128 tot_len 156
+insert: ts pg_default db template1 rel pg_attribute block 10 off 29
+0/00013BF4: prv 0/00013B58; xid 9; BTREE info 00 len 94 tot_len 122
+insert_leaf: index pg_default/template1/pg_attribute_relid_attnam_index tid 8/81
+0/00013C70: prv 0/00013BF4; xid 9; BTREE info 00 len 34 tot_len 62
+insert_leaf: index pg_default/template1/pg_attribute_relid_attnum_index tid 2/263
+0/00013CB0: prv 0/00013C70; xid 9; HEAP  info 00 len 49 tot_len 77
+insert: ts pg_default db template1 rel pg_depend block 0 off 14
+0/00013D00: prv 0/00013CB0; xid 9; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_depender_index tid 1/8
+0/00013D44: prv 0/00013D00; xid 9; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_reference_index tid 1/1
+0/00013D88: prv 0/00013D44; xid 9; HEAP  info 00 len 128 tot_len 156
+insert: ts pg_default db template1 rel pg_attribute block 10 off 30
+0/00013E24: prv 0/00013D88; xid 9; BTREE info 00 len 94 tot_len 122
+insert_leaf: index pg_default/template1/pg_attribute_relid_attnam_index tid 8/84
+0/00013EA0: prv 0/00013E24; xid 9; BTREE info 00 len 34 tot_len 62
+insert_leaf: index pg_default/template1/pg_attribute_relid_attnum_index tid 2/261
+0/00013EE0: prv 0/00013EA0; xid 9; HEAP  info 00 len 128 tot_len 156
+insert: ts pg_default db template1 rel pg_attribute block 10 off 31
+0/00013F7C: prv 0/00013EE0; xid 9; BTREE info 00 len 94 tot_len 122
+insert_leaf: index pg_default/template1/pg_attribute_relid_attnam_index tid 8/85
+0/00014010: prv 0/00013F7C; xid 9; BTREE info 00 len 34 tot_len 62
+insert_leaf: index pg_default/template1/pg_attribute_relid_attnum_index tid 2/261
+0/00014050: prv 0/00014010; xid 9; HEAP  info 00 len 128 tot_len 156
+insert: ts pg_default db template1 rel pg_attribute block 10 off 32
+0/000140EC: prv 0/00014050; xid 9; BTREE info 00 len 94 tot_len 122
+insert_leaf: index pg_default/template1/pg_attribute_relid_attnam_index tid 8/84
+0/00014168: prv 0/000140EC; xid 9; BTREE info 00 len 34 tot_len 62
+insert_leaf: index pg_default/template1/pg_attribute_relid_attnum_index tid 2/261
+0/000141A8: prv 0/00014168; xid 9; HEAP  info 00 len 128 tot_len 156
+insert: ts pg_default db template1 rel pg_attribute block 10 off 33
+0/00014244: prv 0/000141A8; xid 9; BTREE info 00 len 94 tot_len 122
+insert_leaf: index pg_default/template1/pg_attribute_relid_attnam_index tid 8/86
+0/000142C0: prv 0/00014244; xid 9; BTREE info 00 len 34 tot_len 62
+insert_leaf: index pg_default/template1/pg_attribute_relid_attnum_index tid 2/261
+0/00014300: prv 0/000142C0; xid 9; HEAP  info 00 len 128 tot_len 156
+insert: ts pg_default db template1 rel pg_attribute block 10 off 34
+0/0001439C: prv 0/00014300; xid 9; BTREE info 00 len 94 tot_len 122
+insert_leaf: index pg_default/template1/pg_attribute_relid_attnam_index tid 8/84
+0/00014418: prv 0/0001439C; xid 9; BTREE info 00 len 34 tot_len 62
+insert_leaf: index pg_default/template1/pg_attribute_relid_attnum_index tid 2/261
+0/00014458: prv 0/00014418; xid 9; HEAP  info 00 len 128 tot_len 156
+insert: ts pg_default db template1 rel pg_attribute block 10 off 35
+0/000144F4: prv 0/00014458; xid 9; BTREE info 00 len 94 tot_len 122
+insert_leaf: index pg_default/template1/pg_attribute_relid_attnam_index tid 8/87
+0/00014570: prv 0/000144F4; xid 9; BTREE info 00 len 34 tot_len 62
+insert_leaf: index pg_default/template1/pg_attribute_relid_attnum_index tid 2/261
+0/000145B0: prv 0/00014570; xid 9; HEAP  info 00 len 49 tot_len 77
+insert: ts pg_default db template1 rel pg_depend block 0 off 15
+0/00014600: prv 0/000145B0; xid 9; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_depender_index tid 1/6
+0/00014644: prv 0/00014600; xid 9; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_reference_index tid 1/15
+0/00014688: prv 0/00014644; xid 9; HEAP  info 00 len 45 tot_len 73
+insert: ts pg_global db 0 rel pg_shdepend block 0 off 2
+0/000146D4: prv 0/00014688; xid 9; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_global/0/pg_shdepend_depender_index tid 1/2
+0/00014718: prv 0/000146D4; xid 9; BTREE info 00 len 34 tot_len 62
+insert_leaf: index pg_global/0/pg_shdepend_reference_index tid 1/1
+0/00014758: prv 0/00014718; xid 9; SMGR  info 10 len 12 tot_len 40
+create rel: pg_default/template1/pg_toast_2604_index
+0/00014780: prv 0/00014758; xid 9; HEAP  info 80 len 156 tot_len 184
+insert+INIT: ts pg_default db template1 rel pg_class block 2 off 1
+0/00014838: prv 0/00014780; xid 9; BTREE info 00 len 30 tot_len 58
+insert_leaf: index pg_default/template1/pg_class_oid_index tid 1/99
+0/00014874: prv 0/00014838; xid 9; BTREE info 00 len 94 tot_len 122
+insert_leaf: index pg_default/template1/pg_class_relname_nsp_index tid 1/92
+0/000148F0: prv 0/00014874; xid 9; HEAP  info 00 len 128 tot_len 156
+insert: ts pg_default db template1 rel pg_attribute block 10 off 36
+0/0001498C: prv 0/000148F0; xid 9; BTREE info 00 len 94 tot_len 122
+insert_leaf: index pg_default/template1/pg_attribute_relid_attnam_index tid 8/90
+0/00014A08: prv 0/0001498C; xid 9; BTREE info 00 len 34 tot_len 62
+insert_leaf: index pg_default/template1/pg_attribute_relid_attnum_index tid 2/270
+0/00014A48: prv 0/00014A08; xid 9; HEAP  info 00 len 128 tot_len 156
+insert: ts pg_default db template1 rel pg_attribute block 10 off 37
+0/00014AE4: prv 0/00014A48; xid 9; BTREE info 00 len 94 tot_len 122
+insert_leaf: index pg_default/template1/pg_attribute_relid_attnam_index tid 8/91
+0/00014B60: prv 0/00014AE4; xid 9; BTREE info 00 len 34 tot_len 62
+insert_leaf: index pg_default/template1/pg_attribute_relid_attnum_index tid 2/271
+0/00014BA0: prv 0/00014B60; xid 9; HEAP  info 08 len 18 tot_len 6878
+bkpblock 1: ts pg_default db template1 rel pg_index block 0 hole 264 len 1380
+insert: ts pg_default db template1 rel pg_index block 0 off 61
+0/00016694: prv 0/00014BA0; xid 9; BTREE info 08 len 18 tot_len 1078
+bkpblock 1: ts pg_default db template1 rel pg_index_indrelid_index block 1 hole 264 len 7180
+insert_leaf: index pg_default/template1/pg_index_indrelid_index tid 1/61
+0/00016ACC: prv 0/00016694; xid 9; BTREE info 08 len 18 tot_len 1078
+bkpblock 1: ts pg_default db template1 rel pg_index_indexrelid_index block 1 hole 264 len 7180
+insert_leaf: index pg_default/template1/pg_index_indexrelid_index tid 1/61
+0/00016F04: prv 0/00016ACC; xid 9; HEAP  info 00 len 49 tot_len 77
+insert: ts pg_default db template1 rel pg_depend block 0 off 16
+0/00016F54: prv 0/00016F04; xid 9; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_depender_index tid 1/10
+0/00016F98: prv 0/00016F54; xid 9; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_reference_index tid 1/15
+0/00016FDC: prv 0/00016F98; xid 9; HEAP  info 00 len 49 tot_len 77
+insert: ts pg_default db template1 rel pg_depend block 0 off 17
+0/0001702C: prv 0/00016FDC; xid 9; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_depender_index tid 1/10
+0/00017070: prv 0/0001702C; xid 9; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_reference_index tid 1/16
+0/000170B4: prv 0/00017070; xid 9; HEAP  info 00 len 49 tot_len 77
+insert: ts pg_default db template1 rel pg_depend block 0 off 18
+0/00017104: prv 0/000170B4; xid 9; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_depender_index tid 1/10
+0/00017148: prv 0/00017104; xid 9; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_reference_index tid 1/18
+0/0001718C: prv 0/00017148; xid 9; HEAP  info 00 len 49 tot_len 77
+insert: ts pg_default db template1 rel pg_depend block 0 off 19
+0/000171DC: prv 0/0001718C; xid 9; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_depender_index tid 1/10
+0/00017220: prv 0/000171DC; xid 9; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_reference_index tid 1/18
+0/00017264: prv 0/00017220; xid 9; HEAP  info 20 len 164 tot_len 192
+update: ts pg_default db template1 rel pg_class block 1 off 49 to block 2 off 2
+0/00017324: prv 0/00017264; xid 9; BTREE info 00 len 30 tot_len 58
+insert_leaf: index pg_default/template1/pg_class_oid_index tid 1/98
+0/00017360: prv 0/00017324; xid 9; BTREE info 00 len 94 tot_len 122
+insert_leaf: index pg_default/template1/pg_class_relname_nsp_index tid 1/91
+0/000173DC: prv 0/00017360; xid 9; HEAP  info 20 len 164 tot_len 192
+update: ts pg_default db template1 rel pg_class block 2 off 1 to block 2 off 3
+0/0001749C: prv 0/000173DC; xid 9; BTREE info 00 len 30 tot_len 58
+insert_leaf: index pg_default/template1/pg_class_oid_index tid 1/100
+0/000174D8: prv 0/0001749C; xid 9; BTREE info 00 len 94 tot_len 122
+insert_leaf: index pg_default/template1/pg_class_relname_nsp_index tid 1/93
+0/00017554: prv 0/000174D8; xid 9; HEAP  info 28 len 164 tot_len 8268
+bkpblock 1: ts pg_default db template1 rel pg_class block 0 hole 216 len 136
+update: ts pg_default db template1 rel pg_class block 0 off 6 to block 2 off 4
+0/000195B4: prv 0/00017554; xid 9; BTREE info 00 len 30 tot_len 58
+insert_leaf: index pg_default/template1/pg_class_oid_index tid 1/26
+0/000195F0: prv 0/000195B4; xid 9; BTREE info 00 len 94 tot_len 122
+insert_leaf: index pg_default/template1/pg_class_relname_nsp_index tid 1/12
+0/0001966C: prv 0/000195F0; xid 9; HEAP  info 00 len 49 tot_len 77
+insert: ts pg_default db template1 rel pg_depend block 0 off 20
+0/000196BC: prv 0/0001966C; xid 9; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_depender_index tid 1/6
+0/00019700: prv 0/000196BC; xid 9; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_reference_index tid 1/14
+0/00019744: prv 0/00019700; xid 9; XACT  info 00 len 12 tot_len 40
+commit: 9
+0/0001976C: prv 0/00019744; xid 10; SMGR  info 10 len 12 tot_len 40
+create rel: pg_global/0/pg_toast_1260
+0/00019794: prv 0/0001976C; xid 10; HEAP  info 00 len 156 tot_len 184
+insert: ts pg_default db template1 rel pg_type block 2 off 47
+0/0001984C: prv 0/00019794; xid 10; BTREE info 00 len 30 tot_len 58
+insert_leaf: index pg_default/template1/pg_type_oid_index tid 1/145
+0/00019888: prv 0/0001984C; xid 10; BTREE info 00 len 94 tot_len 122
+insert_leaf: index pg_default/template1/pg_type_typname_nsp_index tid 2/26
+0/00019904: prv 0/00019888; xid 10; HEAP  info 00 len 49 tot_len 77
+insert: ts pg_default db template1 rel pg_depend block 0 off 21
+0/00019954: prv 0/00019904; xid 10; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_depender_index tid 1/6
+0/00019998: prv 0/00019954; xid 10; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_reference_index tid 1/7
+0/000199DC: prv 0/00019998; xid 10; HEAP  info 00 len 49 tot_len 77
+insert: ts pg_default db template1 rel pg_depend block 0 off 22
+0/00019A2C: prv 0/000199DC; xid 10; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_depender_index tid 1/6
+0/00019A70: prv 0/00019A2C; xid 10; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_reference_index tid 1/9
+0/00019AB4: prv 0/00019A70; xid 10; HEAP  info 00 len 49 tot_len 77
+insert: ts pg_default db template1 rel pg_depend block 0 off 23
+0/00019B04: prv 0/00019AB4; xid 10; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_depender_index tid 1/6
+0/00019B48: prv 0/00019B04; xid 10; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_reference_index tid 1/11
+0/00019B8C: prv 0/00019B48; xid 10; HEAP  info 00 len 49 tot_len 77
+insert: ts pg_default db template1 rel pg_depend block 0 off 24
+0/00019BDC: prv 0/00019B8C; xid 10; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_depender_index tid 1/6
+0/00019C20: prv 0/00019BDC; xid 10; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_reference_index tid 1/13
+0/00019C64: prv 0/00019C20; xid 10; HEAP  info 00 len 49 tot_len 77
+insert: ts pg_default db template1 rel pg_depend block 0 off 25
+0/00019CB4: prv 0/00019C64; xid 10; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_depender_index tid 1/6
+0/00019CF8: prv 0/00019CB4; xid 10; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_reference_index tid 1/22
+0/00019D3C: prv 0/00019CF8; xid 10; HEAP  info 00 len 45 tot_len 73
+insert: ts pg_global db 0 rel pg_shdepend block 0 off 3
+0/00019D88: prv 0/00019D3C; xid 10; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_global/0/pg_shdepend_depender_index tid 1/2
+0/00019DCC: prv 0/00019D88; xid 10; BTREE info 00 len 34 tot_len 62
+insert_leaf: index pg_global/0/pg_shdepend_reference_index tid 1/1
+0/00019E0C: prv 0/00019DCC; xid 10; HEAP  info 00 len 156 tot_len 184
+insert: ts pg_default db template1 rel pg_class block 2 off 5
+0/00019EC4: prv 0/00019E0C; xid 10; BTREE info 00 len 30 tot_len 58
+insert_leaf: index pg_default/template1/pg_class_oid_index tid 1/103
+0/00019F00: prv 0/00019EC4; xid 10; BTREE info 48 len 7866 tot_len 8110
+bkpblock 1: ts pg_default db template1 rel pg_class_relname_nsp_index block 2 hole 28 len 7996
+split_r: index pg_default/template1/pg_class_relname_nsp_index tid 4/44 otherblk 1
+0/0001BEC4: prv 0/00019F00; xid 10; BTREE info 18 len 22 tot_len 278
+bkpblock 1: ts pg_default db template1 rel pg_class_relname_nsp_index block 3 hole 32 len 7984
+insert_upper: index pg_default/template1/pg_class_relname_nsp_index tid 3/2
+0/0001BFDC: prv 0/0001BEC4; xid 10; HEAP  info 00 len 128 tot_len 156
+insert: ts pg_default db template1 rel pg_attribute block 10 off 38
+0/0001C08C: prv 0/0001BFDC; xid 10; BTREE info 00 len 94 tot_len 122
+insert_leaf: index pg_default/template1/pg_attribute_relid_attnam_index tid 8/92
+0/0001C108: prv 0/0001C08C; xid 10; BTREE info 00 len 34 tot_len 62
+insert_leaf: index pg_default/template1/pg_attribute_relid_attnum_index tid 2/272
+0/0001C148: prv 0/0001C108; xid 10; HEAP  info 00 len 49 tot_len 77
+insert: ts pg_default db template1 rel pg_depend block 0 off 26
+0/0001C198: prv 0/0001C148; xid 10; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_depender_index tid 1/20
+0/0001C1DC: prv 0/0001C198; xid 10; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_reference_index tid 1/3
+0/0001C220: prv 0/0001C1DC; xid 10; HEAP  info 00 len 128 tot_len 156
+insert: ts pg_default db template1 rel pg_attribute block 10 off 39
+0/0001C2BC: prv 0/0001C220; xid 10; BTREE info 00 len 94 tot_len 122
+insert_leaf: index pg_default/template1/pg_attribute_relid_attnam_index tid 8/93
+0/0001C338: prv 0/0001C2BC; xid 10; BTREE info 00 len 34 tot_len 62
+insert_leaf: index pg_default/template1/pg_attribute_relid_attnum_index tid 2/273
+0/0001C378: prv 0/0001C338; xid 10; HEAP  info 00 len 49 tot_len 77
+insert: ts pg_default db template1 rel pg_depend block 0 off 27
+0/0001C3C8: prv 0/0001C378; xid 10; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_depender_index tid 1/21
+0/0001C40C: prv 0/0001C3C8; xid 10; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_reference_index tid 1/2
+0/0001C450: prv 0/0001C40C; xid 10; HEAP  info 00 len 128 tot_len 156
+insert: ts pg_default db template1 rel pg_attribute block 10 off 40
+0/0001C4EC: prv 0/0001C450; xid 10; BTREE info 00 len 94 tot_len 122
+insert_leaf: index pg_default/template1/pg_attribute_relid_attnam_index tid 8/92
+0/0001C568: prv 0/0001C4EC; xid 10; BTREE info 00 len 34 tot_len 62
+insert_leaf: index pg_default/template1/pg_attribute_relid_attnum_index tid 2/274
+0/0001C5A8: prv 0/0001C568; xid 10; HEAP  info 00 len 49 tot_len 77
+insert: ts pg_default db template1 rel pg_depend block 0 off 28
+0/0001C5F8: prv 0/0001C5A8; xid 10; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_depender_index tid 1/22
+0/0001C63C: prv 0/0001C5F8; xid 10; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_reference_index tid 1/1
+0/0001C680: prv 0/0001C63C; xid 10; HEAP  info 00 len 128 tot_len 156
+insert: ts pg_default db template1 rel pg_attribute block 10 off 41
+0/0001C71C: prv 0/0001C680; xid 10; BTREE info 00 len 94 tot_len 122
+insert_leaf: index pg_default/template1/pg_attribute_relid_attnam_index tid 8/95
+0/0001C798: prv 0/0001C71C; xid 10; BTREE info 00 len 34 tot_len 62
+insert_leaf: index pg_default/template1/pg_attribute_relid_attnum_index tid 2/272
+0/0001C7D8: prv 0/0001C798; xid 10; HEAP  info 00 len 128 tot_len 156
+insert: ts pg_default db template1 rel pg_attribute block 10 off 42
+0/0001C874: prv 0/0001C7D8; xid 10; BTREE info 00 len 94 tot_len 122
+insert_leaf: index pg_default/template1/pg_attribute_relid_attnam_index tid 8/96
+0/0001C8F0: prv 0/0001C874; xid 10; BTREE info 00 len 34 tot_len 62
+insert_leaf: index pg_default/template1/pg_attribute_relid_attnum_index tid 2/272
+0/0001C930: prv 0/0001C8F0; xid 10; HEAP  info 00 len 128 tot_len 156
+insert: ts pg_default db template1 rel pg_attribute block 10 off 43
+0/0001C9CC: prv 0/0001C930; xid 10; BTREE info 00 len 94 tot_len 122
+insert_leaf: index pg_default/template1/pg_attribute_relid_attnam_index tid 8/95
+0/0001CA48: prv 0/0001C9CC; xid 10; BTREE info 00 len 34 tot_len 62
+insert_leaf: index pg_default/template1/pg_attribute_relid_attnum_index tid 2/272
+0/0001CA88: prv 0/0001CA48; xid 10; HEAP  info 00 len 128 tot_len 156
+insert: ts pg_default db template1 rel pg_attribute block 10 off 44
+0/0001CB24: prv 0/0001CA88; xid 10; BTREE info 00 len 94 tot_len 122
+insert_leaf: index pg_default/template1/pg_attribute_relid_attnam_index tid 8/97
+0/0001CBA0: prv 0/0001CB24; xid 10; BTREE info 00 len 34 tot_len 62
+insert_leaf: index pg_default/template1/pg_attribute_relid_attnum_index tid 2/272
+0/0001CBE0: prv 0/0001CBA0; xid 10; HEAP  info 00 len 128 tot_len 156
+insert: ts pg_default db template1 rel pg_attribute block 10 off 45
+0/0001CC7C: prv 0/0001CBE0; xid 10; BTREE info 00 len 94 tot_len 122
+insert_leaf: index pg_default/template1/pg_attribute_relid_attnam_index tid 8/95
+0/0001CCF8: prv 0/0001CC7C; xid 10; BTREE info 00 len 34 tot_len 62
+insert_leaf: index pg_default/template1/pg_attribute_relid_attnum_index tid 2/272
+0/0001CD38: prv 0/0001CCF8; xid 10; HEAP  info 00 len 128 tot_len 156
+insert: ts pg_default db template1 rel pg_attribute block 10 off 46
+0/0001CDD4: prv 0/0001CD38; xid 10; BTREE info 00 len 94 tot_len 122
+insert_leaf: index pg_default/template1/pg_attribute_relid_attnam_index tid 8/98
+0/0001CE50: prv 0/0001CDD4; xid 10; BTREE info 00 len 34 tot_len 62
+insert_leaf: index pg_default/template1/pg_attribute_relid_attnum_index tid 2/272
+0/0001CE90: prv 0/0001CE50; xid 10; HEAP  info 00 len 49 tot_len 77
+insert: ts pg_default db template1 rel pg_depend block 0 off 29
+0/0001CEE0: prv 0/0001CE90; xid 10; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_depender_index tid 1/20
+0/0001CF24: prv 0/0001CEE0; xid 10; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_reference_index tid 1/26
+0/0001CF68: prv 0/0001CF24; xid 10; HEAP  info 00 len 45 tot_len 73
+insert: ts pg_global db 0 rel pg_shdepend block 0 off 4
+0/0001CFB4: prv 0/0001CF68; xid 10; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_global/0/pg_shdepend_depender_index tid 1/4
+0/0001CFF8: prv 0/0001CFB4; xid 10; BTREE info 00 len 34 tot_len 62
+insert_leaf: index pg_global/0/pg_shdepend_reference_index tid 1/1
+0/0001D038: prv 0/0001CFF8; xid 10; SMGR  info 10 len 12 tot_len 40
+create rel: pg_global/0/pg_toast_1260_index
+0/0001D060: prv 0/0001D038; xid 10; HEAP  info 00 len 156 tot_len 184
+insert: ts pg_default db template1 rel pg_class block 2 off 6
+0/0001D118: prv 0/0001D060; xid 10; BTREE info 00 len 30 tot_len 58
+insert_leaf: index pg_default/template1/pg_class_oid_index tid 1/104
+0/0001D154: prv 0/0001D118; xid 10; BTREE info 00 len 94 tot_len 122
+insert_leaf: index pg_default/template1/pg_class_relname_nsp_index tid 4/45
+0/0001D1D0: prv 0/0001D154; xid 10; HEAP  info 00 len 128 tot_len 156
+insert: ts pg_default db template1 rel pg_attribute block 10 off 47
+0/0001D26C: prv 0/0001D1D0; xid 10; BTREE info 00 len 94 tot_len 122
+insert_leaf: index pg_default/template1/pg_attribute_relid_attnam_index tid 8/101
+0/0001D2E8: prv 0/0001D26C; xid 10; BTREE info 00 len 34 tot_len 62
+insert_leaf: index pg_default/template1/pg_attribute_relid_attnum_index tid 2/281
+0/0001D328: prv 0/0001D2E8; xid 10; HEAP  info 00 len 128 tot_len 156
+insert: ts pg_default db template1 rel pg_attribute block 10 off 48
+0/0001D3C4: prv 0/0001D328; xid 10; BTREE info 40 len 7866 tot_len 7894
+split_r: index pg_default/template1/pg_attribute_relid_attnam_index tid 9/11 otherblk 8
+0/0001F2B0: prv 0/0001D3C4; xid 10; BTREE info 18 len 22 tot_len 678
+bkpblock 1: ts pg_default db template1 rel pg_attribute_relid_attnam_index block 3 hole 52 len 7584
+insert_upper: index pg_default/template1/pg_attribute_relid_attnam_index tid 3/8
+0/0001F558: prv 0/0001F2B0; xid 10; BTREE info 00 len 34 tot_len 62
+insert_leaf: index pg_default/template1/pg_attribute_relid_attnum_index tid 2/282
+0/0001F598: prv 0/0001F558; xid 10; HEAP  info 00 len 104 tot_len 132
+insert: ts pg_default db template1 rel pg_index block 0 off 62
+0/0001F61C: prv 0/0001F598; xid 10; BTREE info 00 len 30 tot_len 58
+insert_leaf: index pg_default/template1/pg_index_indrelid_index tid 1/62
+0/0001F658: prv 0/0001F61C; xid 10; BTREE info 00 len 30 tot_len 58
+insert_leaf: index pg_default/template1/pg_index_indexrelid_index tid 1/62
+0/0001F694: prv 0/0001F658; xid 10; HEAP  info 00 len 49 tot_len 77
+insert: ts pg_default db template1 rel pg_depend block 0 off 30
+0/0001F6E4: prv 0/0001F694; xid 10; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_depender_index tid 1/24
+0/0001F728: prv 0/0001F6E4; xid 10; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_reference_index tid 1/26
+0/0001F76C: prv 0/0001F728; xid 10; HEAP  info 00 len 49 tot_len 77
+insert: ts pg_default db template1 rel pg_depend block 0 off 31
+0/0001F7BC: prv 0/0001F76C; xid 10; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_depender_index tid 1/24
+0/0001F800: prv 0/0001F7BC; xid 10; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_reference_index tid 1/27
+0/0001F844: prv 0/0001F800; xid 10; HEAP  info 00 len 49 tot_len 77
+insert: ts pg_default db template1 rel pg_depend block 0 off 32
+0/0001F894: prv 0/0001F844; xid 10; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_depender_index tid 1/24
+0/0001F8D8: prv 0/0001F894; xid 10; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_reference_index tid 1/31
+0/0001F91C: prv 0/0001F8D8; xid 10; HEAP  info 00 len 49 tot_len 77
+insert: ts pg_default db template1 rel pg_depend block 0 off 33
+0/0001F96C: prv 0/0001F91C; xid 10; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_depender_index tid 1/24
+0/0001F9B0: prv 0/0001F96C; xid 10; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_reference_index tid 1/30
+0/0001F9F4: prv 0/0001F9B0; xid 10; HEAP  info 20 len 164 tot_len 192
+update: ts pg_default db template1 rel pg_class block 2 off 5 to block 2 off 7
+0/0001FAB4: prv 0/0001F9F4; xid 10; BTREE info 00 len 30 tot_len 58
+insert_leaf: index pg_default/template1/pg_class_oid_index tid 1/103
+0/0001FAF0: prv 0/0001FAB4; xid 10; BTREE info 00 len 94 tot_len 122
+insert_leaf: index pg_default/template1/pg_class_relname_nsp_index tid 4/44
+0/0001FB6C: prv 0/0001FAF0; xid 10; HEAP  info 20 len 164 tot_len 192
+update: ts pg_default db template1 rel pg_class block 2 off 6 to block 2 off 8
+0/0001FC2C: prv 0/0001FB6C; xid 10; BTREE info 00 len 30 tot_len 58
+insert_leaf: index pg_default/template1/pg_class_oid_index tid 1/105
+0/0001FC68: prv 0/0001FC2C; xid 10; BTREE info 00 len 94 tot_len 122
+insert_leaf: index pg_default/template1/pg_class_relname_nsp_index tid 4/46
+0/0001FCE4: prv 0/0001FC68; xid 10; HEAP  info 20 len 200 tot_len 228
+update: ts pg_default db template1 rel pg_class block 1 off 48 to block 2 off 9
+0/0001FDC8: prv 0/0001FCE4; xid 10; BTREE info 00 len 30 tot_len 58
+insert_leaf: index pg_default/template1/pg_class_oid_index tid 1/13
+0/0001FE04: prv 0/0001FDC8; xid 10; BTREE info 00 len 94 tot_len 122
+insert_leaf: index pg_default/template1/pg_class_relname_nsp_index tid 1/23
+0/0001FE80: prv 0/0001FE04; xid 10; HEAP  info 00 len 49 tot_len 77
+insert: ts pg_default db template1 rel pg_depend block 0 off 34
+0/0001FED0: prv 0/0001FE80; xid 10; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_depender_index tid 1/20
+0/0001FF14: prv 0/0001FED0; xid 10; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_reference_index tid 1/18
+0/0001FF58: prv 0/0001FF14; xid 10; XACT  info 00 len 12 tot_len 40
+commit: 10
+0/0001FF80: prv 0/0001FF58; xid 11; SMGR  info 10 len 12 tot_len 40
+create rel: pg_default/template1/pg_toast_2606
+0/0001FFA8: prv 0/0001FF80; xid 11; HEAP  info 00 len 156 tot_len 184
+insert: ts pg_default db template1 rel pg_type block 2 off 48
+0/00020074: prv 0/0001FFA8; xid 11; BTREE info 00 len 30 tot_len 58
+insert_leaf: index pg_default/template1/pg_type_oid_index tid 1/146
+0/000200B0: prv 0/00020074; xid 11; BTREE info 00 len 94 tot_len 122
+insert_leaf: index pg_default/template1/pg_type_typname_nsp_index tid 2/28
+0/0002012C: prv 0/000200B0; xid 11; HEAP  info 00 len 49 tot_len 77
+insert: ts pg_default db template1 rel pg_depend block 0 off 35
+0/0002017C: prv 0/0002012C; xid 11; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_depender_index tid 1/11
+0/000201C0: prv 0/0002017C; xid 11; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_reference_index tid 1/10
+0/00020204: prv 0/000201C0; xid 11; HEAP  info 00 len 49 tot_len 77
+insert: ts pg_default db template1 rel pg_depend block 0 off 36
+0/00020254: prv 0/00020204; xid 11; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_depender_index tid 1/11
+0/00020298: prv 0/00020254; xid 11; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_reference_index tid 1/13
+0/000202DC: prv 0/00020298; xid 11; HEAP  info 00 len 49 tot_len 77
+insert: ts pg_default db template1 rel pg_depend block 0 off 37
+0/0002032C: prv 0/000202DC; xid 11; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_depender_index tid 1/11
+0/00020370: prv 0/0002032C; xid 11; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_reference_index tid 1/16
+0/000203B4: prv 0/00020370; xid 11; HEAP  info 00 len 49 tot_len 77
+insert: ts pg_default db template1 rel pg_depend block 0 off 38
+0/00020404: prv 0/000203B4; xid 11; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_depender_index tid 1/11
+0/00020448: prv 0/00020404; xid 11; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_reference_index tid 1/19
+0/0002048C: prv 0/00020448; xid 11; HEAP  info 00 len 49 tot_len 77
+insert: ts pg_default db template1 rel pg_depend block 0 off 39
+0/000204DC: prv 0/0002048C; xid 11; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_depender_index tid 1/11
+0/00020520: prv 0/000204DC; xid 11; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_reference_index tid 1/33
+0/00020564: prv 0/00020520; xid 11; HEAP  info 00 len 45 tot_len 73
+insert: ts pg_global db 0 rel pg_shdepend block 0 off 5
+0/000205B0: prv 0/00020564; xid 11; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_global/0/pg_shdepend_depender_index tid 1/3
+0/000205F4: prv 0/000205B0; xid 11; BTREE info 00 len 34 tot_len 62
+insert_leaf: index pg_global/0/pg_shdepend_reference_index tid 1/1
+0/00020634: prv 0/000205F4; xid 11; HEAP  info 00 len 156 tot_len 184
+insert: ts pg_default db template1 rel pg_class block 2 off 10
+0/000206EC: prv 0/00020634; xid 11; BTREE info 00 len 30 tot_len 58
+insert_leaf: index pg_default/template1/pg_class_oid_index tid 1/108
+0/00020728: prv 0/000206EC; xid 11; BTREE info 00 len 94 tot_len 122
+insert_leaf: index pg_default/template1/pg_class_relname_nsp_index tid 4/52
+0/000207A4: prv 0/00020728; xid 11; HEAP  info 00 len 128 tot_len 156
+insert: ts pg_default db template1 rel pg_attribute block 10 off 49
+0/00020840: prv 0/000207A4; xid 11; BTREE info 00 len 94 tot_len 122
+insert_leaf: index pg_default/template1/pg_attribute_relid_attnam_index tid 9/12
+0/000208BC: prv 0/00020840; xid 11; BTREE info 00 len 34 tot_len 62
+insert_leaf: index pg_default/template1/pg_attribute_relid_attnum_index tid 2/283
+0/000208FC: prv 0/000208BC; xid 11; HEAP  info 00 len 49 tot_len 77
+insert: ts pg_default db template1 rel pg_depend block 0 off 40
+0/0002094C: prv 0/000208FC; xid 11; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_depender_index tid 1/34
+0/00020990: prv 0/0002094C; xid 11; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_reference_index tid 1/5
+0/000209D4: prv 0/00020990; xid 11; HEAP  info 00 len 128 tot_len 156
+insert: ts pg_default db template1 rel pg_attribute block 10 off 50
+0/00020A70: prv 0/000209D4; xid 11; BTREE info 00 len 94 tot_len 122
+insert_leaf: index pg_default/template1/pg_attribute_relid_attnam_index tid 9/13
+0/00020AEC: prv 0/00020A70; xid 11; BTREE info 00 len 34 tot_len 62
+insert_leaf: index pg_default/template1/pg_attribute_relid_attnum_index tid 2/284
+0/00020B2C: prv 0/00020AEC; xid 11; HEAP  info 00 len 49 tot_len 77
+insert: ts pg_default db template1 rel pg_depend block 0 off 41
+0/00020B7C: prv 0/00020B2C; xid 11; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_depender_index tid 1/35
+0/00020BC0: prv 0/00020B7C; xid 11; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_reference_index tid 1/3
+0/00020C04: prv 0/00020BC0; xid 11; HEAP  info 00 len 128 tot_len 156
+insert: ts pg_default db template1 rel pg_attribute block 10 off 51
+0/00020CA0: prv 0/00020C04; xid 11; BTREE info 00 len 94 tot_len 122
+insert_leaf: index pg_default/template1/pg_attribute_relid_attnam_index tid 9/12
+0/00020D1C: prv 0/00020CA0; xid 11; BTREE info 00 len 34 tot_len 62
+insert_leaf: index pg_default/template1/pg_attribute_relid_attnum_index tid 2/285
+0/00020D5C: prv 0/00020D1C; xid 11; HEAP  info 00 len 49 tot_len 77
+insert: ts pg_default db template1 rel pg_depend block 0 off 42
+0/00020DAC: prv 0/00020D5C; xid 11; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_depender_index tid 1/36
+0/00020DF0: prv 0/00020DAC; xid 11; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_reference_index tid 1/1
+0/00020E34: prv 0/00020DF0; xid 11; HEAP  info 00 len 128 tot_len 156
+insert: ts pg_default db template1 rel pg_attribute block 10 off 52
+0/00020ED0: prv 0/00020E34; xid 11; BTREE info 00 len 94 tot_len 122
+insert_leaf: index pg_default/template1/pg_attribute_relid_attnam_index tid 9/15
+0/00020F4C: prv 0/00020ED0; xid 11; BTREE info 00 len 34 tot_len 62
+insert_leaf: index pg_default/template1/pg_attribute_relid_attnum_index tid 2/283
+0/00020F8C: prv 0/00020F4C; xid 11; HEAP  info 00 len 128 tot_len 156
+insert: ts pg_default db template1 rel pg_attribute block 10 off 53
+0/00021028: prv 0/00020F8C; xid 11; BTREE info 00 len 94 tot_len 122
+insert_leaf: index pg_default/template1/pg_attribute_relid_attnam_index tid 9/16
+0/000210A4: prv 0/00021028; xid 11; BTREE info 00 len 34 tot_len 62
+insert_leaf: index pg_default/template1/pg_attribute_relid_attnum_index tid 2/283
+0/000210E4: prv 0/000210A4; xid 11; HEAP  info 00 len 128 tot_len 156
+insert: ts pg_default db template1 rel pg_attribute block 10 off 54
+0/00021180: prv 0/000210E4; xid 11; BTREE info 00 len 94 tot_len 122
+insert_leaf: index pg_default/template1/pg_attribute_relid_attnam_index tid 9/15
+0/000211FC: prv 0/00021180; xid 11; BTREE info 00 len 34 tot_len 62
+insert_leaf: index pg_default/template1/pg_attribute_relid_attnum_index tid 2/283
+0/0002123C: prv 0/000211FC; xid 11; HEAP  info 00 len 128 tot_len 156
+insert: ts pg_default db template1 rel pg_attribute block 10 off 55
+0/000212D8: prv 0/0002123C; xid 11; BTREE info 00 len 94 tot_len 122
+insert_leaf: index pg_default/template1/pg_attribute_relid_attnam_index tid 9/17
+0/00021354: prv 0/000212D8; xid 11; BTREE info 00 len 34 tot_len 62
+insert_leaf: index pg_default/template1/pg_attribute_relid_attnum_index tid 2/283
+0/00021394: prv 0/00021354; xid 11; HEAP  info 00 len 128 tot_len 156
+insert: ts pg_default db template1 rel pg_attribute block 10 off 56
+0/00021430: prv 0/00021394; xid 11; BTREE info 00 len 94 tot_len 122
+insert_leaf: index pg_default/template1/pg_attribute_relid_attnam_index tid 9/15
+0/000214AC: prv 0/00021430; xid 11; BTREE info 00 len 34 tot_len 62
+insert_leaf: index pg_default/template1/pg_attribute_relid_attnum_index tid 2/283
+0/000214EC: prv 0/000214AC; xid 11; HEAP  info 00 len 128 tot_len 156
+insert: ts pg_default db template1 rel pg_attribute block 10 off 57
+0/00021588: prv 0/000214EC; xid 11; BTREE info 00 len 94 tot_len 122
+insert_leaf: index pg_default/template1/pg_attribute_relid_attnam_index tid 9/18
+0/00021604: prv 0/00021588; xid 11; BTREE info 00 len 34 tot_len 62
+insert_leaf: index pg_default/template1/pg_attribute_relid_attnum_index tid 2/283
+0/00021644: prv 0/00021604; xid 11; HEAP  info 00 len 49 tot_len 77
+insert: ts pg_default db template1 rel pg_depend block 0 off 43
+0/00021694: prv 0/00021644; xid 11; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_depender_index tid 1/34
+0/000216D8: prv 0/00021694; xid 11; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_reference_index tid 1/37
+0/0002171C: prv 0/000216D8; xid 11; HEAP  info 00 len 45 tot_len 73
+insert: ts pg_global db 0 rel pg_shdepend block 0 off 6
+0/00021768: prv 0/0002171C; xid 11; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_global/0/pg_shdepend_depender_index tid 1/6
+0/000217AC: prv 0/00021768; xid 11; BTREE info 00 len 34 tot_len 62
+insert_leaf: index pg_global/0/pg_shdepend_reference_index tid 1/1
+0/000217EC: prv 0/000217AC; xid 11; SMGR  info 10 len 12 tot_len 40
+create rel: pg_default/template1/pg_toast_2606_index
+0/00021814: prv 0/000217EC; xid 11; HEAP  info 00 len 156 tot_len 184
+insert: ts pg_default db template1 rel pg_class block 2 off 11
+0/000218CC: prv 0/00021814; xid 11; BTREE info 00 len 30 tot_len 58
+insert_leaf: index pg_default/template1/pg_class_oid_index tid 1/109
+0/00021908: prv 0/000218CC; xid 11; BTREE info 00 len 94 tot_len 122
+insert_leaf: index pg_default/template1/pg_class_relname_nsp_index tid 4/53
+0/00021984: prv 0/00021908; xid 11; HEAP  info 00 len 128 tot_len 156
+insert: ts pg_default db template1 rel pg_attribute block 10 off 58
+0/00021A20: prv 0/00021984; xid 11; BTREE info 00 len 94 tot_len 122
+insert_leaf: index pg_default/template1/pg_attribute_relid_attnam_index tid 9/21
+0/00021A9C: prv 0/00021A20; xid 11; BTREE info 00 len 34 tot_len 62
+insert_leaf: index pg_default/template1/pg_attribute_relid_attnum_index tid 2/292
+0/00021ADC: prv 0/00021A9C; xid 11; HEAP  info 00 len 128 tot_len 156
+insert: ts pg_default db template1 rel pg_attribute block 10 off 59
+0/00021B78: prv 0/00021ADC; xid 11; BTREE info 00 len 94 tot_len 122
+insert_leaf: index pg_default/template1/pg_attribute_relid_attnam_index tid 9/22
+0/00021BF4: prv 0/00021B78; xid 11; BTREE info 00 len 34 tot_len 62
+insert_leaf: index pg_default/template1/pg_attribute_relid_attnum_index tid 2/293
+0/00021C34: prv 0/00021BF4; xid 11; HEAP  info 00 len 104 tot_len 132
+insert: ts pg_default db template1 rel pg_index block 0 off 63
+0/00021CB8: prv 0/00021C34; xid 11; BTREE info 00 len 30 tot_len 58
+insert_leaf: index pg_default/template1/pg_index_indrelid_index tid 1/63
+0/00021CF4: prv 0/00021CB8; xid 11; BTREE info 00 len 30 tot_len 58
+insert_leaf: index pg_default/template1/pg_index_indexrelid_index tid 1/63
+0/00021D30: prv 0/00021CF4; xid 11; HEAP  info 00 len 49 tot_len 77
+insert: ts pg_default db template1 rel pg_depend block 0 off 44
+0/00021D80: prv 0/00021D30; xid 11; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_depender_index tid 1/38
+0/00021DC4: prv 0/00021D80; xid 11; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_reference_index tid 1/37
+0/00021E08: prv 0/00021DC4; xid 11; HEAP  info 00 len 49 tot_len 77
+insert: ts pg_default db template1 rel pg_depend block 0 off 45
+0/00021E58: prv 0/00021E08; xid 11; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_depender_index tid 1/38
+0/00021E9C: prv 0/00021E58; xid 11; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_reference_index tid 1/38
+0/00021EE0: prv 0/00021E9C; xid 11; HEAP  info 00 len 49 tot_len 77
+insert: ts pg_default db template1 rel pg_depend block 0 off 46
+0/00021F30: prv 0/00021EE0; xid 11; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_depender_index tid 1/38
+0/00021F74: prv 0/00021F30; xid 11; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_reference_index tid 1/44
+0/00021FB8: prv 0/00021F74; xid 11; HEAP  info 00 len 49 tot_len 77
+insert: ts pg_default db template1 rel pg_depend block 0 off 47
+0/0002201C: prv 0/00021FB8; xid 11; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_depender_index tid 1/38
+0/00022060: prv 0/0002201C; xid 11; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_reference_index tid 1/42
+0/000220A4: prv 0/00022060; xid 11; HEAP  info 20 len 164 tot_len 192
+update: ts pg_default db template1 rel pg_class block 2 off 10 to block 2 off 12
+0/00022164: prv 0/000220A4; xid 11; BTREE info 00 len 30 tot_len 58
+insert_leaf: index pg_default/template1/pg_class_oid_index tid 1/108
+0/000221A0: prv 0/00022164; xid 11; BTREE info 00 len 94 tot_len 122
+insert_leaf: index pg_default/template1/pg_class_relname_nsp_index tid 4/52
+0/0002221C: prv 0/000221A0; xid 11; HEAP  info 20 len 164 tot_len 192
+update: ts pg_default db template1 rel pg_class block 2 off 11 to block 2 off 13
+0/000222DC: prv 0/0002221C; xid 11; BTREE info 00 len 30 tot_len 58
+insert_leaf: index pg_default/template1/pg_class_oid_index tid 1/110
+0/00022318: prv 0/000222DC; xid 11; BTREE info 00 len 94 tot_len 122
+insert_leaf: index pg_default/template1/pg_class_relname_nsp_index tid 4/54
+0/00022394: prv 0/00022318; xid 11; HEAP  info 20 len 164 tot_len 192
+update: ts pg_default db template1 rel pg_class block 0 off 7 to block 2 off 14
+0/00022454: prv 0/00022394; xid 11; BTREE info 00 len 30 tot_len 58
+insert_leaf: index pg_default/template1/pg_class_oid_index tid 1/30
+0/00022490: prv 0/00022454; xid 11; BTREE info 00 len 94 tot_len 122
+insert_leaf: index pg_default/template1/pg_class_relname_nsp_index tid 1/37
+0/0002250C: prv 0/00022490; xid 11; HEAP  info 00 len 49 tot_len 77
+insert: ts pg_default db template1 rel pg_depend block 0 off 48
+0/0002255C: prv 0/0002250C; xid 11; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_depender_index tid 1/34
+0/000225A0: prv 0/0002255C; xid 11; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_reference_index tid 1/30
+0/000225E4: prv 0/000225A0; xid 11; XACT  info 00 len 12 tot_len 40
+commit: 11
+0/0002260C: prv 0/000225E4; xid 12; SMGR  info 10 len 12 tot_len 40
+create rel: pg_global/0/pg_toast_1262
+0/00022634: prv 0/0002260C; xid 12; HEAP  info 00 len 156 tot_len 184
+insert: ts pg_default db template1 rel pg_type block 2 off 49
+0/000226EC: prv 0/00022634; xid 12; BTREE info 00 len 30 tot_len 58
+insert_leaf: index pg_default/template1/pg_type_oid_index tid 1/147
+0/00022728: prv 0/000226EC; xid 12; BTREE info 00 len 94 tot_len 122
+insert_leaf: index pg_default/template1/pg_type_typname_nsp_index tid 2/27
+0/000227A4: prv 0/00022728; xid 12; HEAP  info 00 len 49 tot_len 77
+insert: ts pg_default db template1 rel pg_depend block 0 off 49
+0/000227F4: prv 0/000227A4; xid 12; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_depender_index tid 1/16
+0/00022838: prv 0/000227F4; xid 12; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_reference_index tid 1/13
+0/0002287C: prv 0/00022838; xid 12; HEAP  info 00 len 49 tot_len 77
+insert: ts pg_default db template1 rel pg_depend block 0 off 50
+0/000228CC: prv 0/0002287C; xid 12; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_depender_index tid 1/16
+0/00022910: prv 0/000228CC; xid 12; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_reference_index tid 1/17
+0/00022954: prv 0/00022910; xid 12; HEAP  info 00 len 49 tot_len 77
+insert: ts pg_default db template1 rel pg_depend block 0 off 51
+0/000229A4: prv 0/00022954; xid 12; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_depender_index tid 1/16
+0/000229E8: prv 0/000229A4; xid 12; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_reference_index tid 1/21
+0/00022A2C: prv 0/000229E8; xid 12; HEAP  info 00 len 49 tot_len 77
+insert: ts pg_default db template1 rel pg_depend block 0 off 52
+0/00022A7C: prv 0/00022A2C; xid 12; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_depender_index tid 1/16
+0/00022AC0: prv 0/00022A7C; xid 12; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_reference_index tid 1/25
+0/00022B04: prv 0/00022AC0; xid 12; HEAP  info 00 len 49 tot_len 77
+insert: ts pg_default db template1 rel pg_depend block 0 off 53
+0/00022B54: prv 0/00022B04; xid 12; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_depender_index tid 1/16
+0/00022B98: prv 0/00022B54; xid 12; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_reference_index tid 1/44
+0/00022BDC: prv 0/00022B98; xid 12; HEAP  info 00 len 45 tot_len 73
+insert: ts pg_global db 0 rel pg_shdepend block 0 off 7
+0/00022C28: prv 0/00022BDC; xid 12; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_global/0/pg_shdepend_depender_index tid 1/4
+0/00022C6C: prv 0/00022C28; xid 12; BTREE info 00 len 34 tot_len 62
+insert_leaf: index pg_global/0/pg_shdepend_reference_index tid 1/1
+0/00022CAC: prv 0/00022C6C; xid 12; HEAP  info 00 len 156 tot_len 184
+insert: ts pg_default db template1 rel pg_class block 2 off 15
+0/00022D64: prv 0/00022CAC; xid 12; BTREE info 00 len 30 tot_len 58
+insert_leaf: index pg_default/template1/pg_class_oid_index tid 1/113
+0/00022DA0: prv 0/00022D64; xid 12; BTREE info 00 len 94 tot_len 122
+insert_leaf: index pg_default/template1/pg_class_relname_nsp_index tid 4/48
+0/00022E1C: prv 0/00022DA0; xid 12; HEAP  info 00 len 128 tot_len 156
+insert: ts pg_default db template1 rel pg_attribute block 10 off 60
+0/00022EB8: prv 0/00022E1C; xid 12; BTREE info 00 len 94 tot_len 122
+insert_leaf: index pg_default/template1/pg_attribute_relid_attnam_index tid 9/23
+0/00022F34: prv 0/00022EB8; xid 12; BTREE info 00 len 34 tot_len 62
+insert_leaf: index pg_default/template1/pg_attribute_relid_attnum_index tid 2/294
+0/00022F74: prv 0/00022F34; xid 12; HEAP  info 00 len 49 tot_len 77
+insert: ts pg_default db template1 rel pg_depend block 0 off 54
+0/00022FC4: prv 0/00022F74; xid 12; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_depender_index tid 1/48
+0/00023008: prv 0/00022FC4; xid 12; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_reference_index tid 1/7
+0/0002304C: prv 0/00023008; xid 12; HEAP  info 80 len 128 tot_len 156
+insert+INIT: ts pg_default db template1 rel pg_attribute block 11 off 1
+0/000230E8: prv 0/0002304C; xid 12; BTREE info 00 len 94 tot_len 122
+insert_leaf: index pg_default/template1/pg_attribute_relid_attnam_index tid 9/24
+0/00023164: prv 0/000230E8; xid 12; BTREE info 00 len 34 tot_len 62
+insert_leaf: index pg_default/template1/pg_attribute_relid_attnum_index tid 2/295
+0/000231A4: prv 0/00023164; xid 12; HEAP  info 00 len 49 tot_len 77
+insert: ts pg_default db template1 rel pg_depend block 0 off 55
+0/000231F4: prv 0/000231A4; xid 12; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_depender_index tid 1/49
+0/00023238: prv 0/000231F4; xid 12; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_reference_index tid 1/4
+0/0002327C: prv 0/00023238; xid 12; HEAP  info 00 len 128 tot_len 156
+insert: ts pg_default db template1 rel pg_attribute block 11 off 2
+0/00023318: prv 0/0002327C; xid 12; BTREE info 00 len 94 tot_len 122
+insert_leaf: index pg_default/template1/pg_attribute_relid_attnam_index tid 9/23
+0/00023394: prv 0/00023318; xid 12; BTREE info 00 len 34 tot_len 62
+insert_leaf: index pg_default/template1/pg_attribute_relid_attnum_index tid 2/296
+0/000233D4: prv 0/00023394; xid 12; HEAP  info 00 len 49 tot_len 77
+insert: ts pg_default db template1 rel pg_depend block 0 off 56
+0/00023424: prv 0/000233D4; xid 12; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_depender_index tid 1/50
+0/00023468: prv 0/00023424; xid 12; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_reference_index tid 1/1
+0/000234AC: prv 0/00023468; xid 12; HEAP  info 00 len 128 tot_len 156
+insert: ts pg_default db template1 rel pg_attribute block 11 off 3
+0/00023548: prv 0/000234AC; xid 12; BTREE info 00 len 94 tot_len 122
+insert_leaf: index pg_default/template1/pg_attribute_relid_attnam_index tid 9/26
+0/000235C4: prv 0/00023548; xid 12; BTREE info 00 len 34 tot_len 62
+insert_leaf: index pg_default/template1/pg_attribute_relid_attnum_index tid 2/294
+0/00023604: prv 0/000235C4; xid 12; HEAP  info 00 len 128 tot_len 156
+insert: ts pg_default db template1 rel pg_attribute block 11 off 4
+0/000236A0: prv 0/00023604; xid 12; BTREE info 00 len 94 tot_len 122
+insert_leaf: index pg_default/template1/pg_attribute_relid_attnam_index tid 9/27
+0/0002371C: prv 0/000236A0; xid 12; BTREE info 00 len 34 tot_len 62
+insert_leaf: index pg_default/template1/pg_attribute_relid_attnum_index tid 2/294
+0/0002375C: prv 0/0002371C; xid 12; HEAP  info 00 len 128 tot_len 156
+insert: ts pg_default db template1 rel pg_attribute block 11 off 5
+0/000237F8: prv 0/0002375C; xid 12; BTREE info 00 len 94 tot_len 122
+insert_leaf: index pg_default/template1/pg_attribute_relid_attnam_index tid 9/26
+0/00023874: prv 0/000237F8; xid 12; BTREE info 00 len 34 tot_len 62
+insert_leaf: index pg_default/template1/pg_attribute_relid_attnum_index tid 2/294
+0/000238B4: prv 0/00023874; xid 12; HEAP  info 00 len 128 tot_len 156
+insert: ts pg_default db template1 rel pg_attribute block 11 off 6
+0/00023950: prv 0/000238B4; xid 12; BTREE info 00 len 94 tot_len 122
+insert_leaf: index pg_default/template1/pg_attribute_relid_attnam_index tid 9/28
+0/000239CC: prv 0/00023950; xid 12; BTREE info 00 len 34 tot_len 62
+insert_leaf: index pg_default/template1/pg_attribute_relid_attnum_index tid 2/294
+0/00023A0C: prv 0/000239CC; xid 12; HEAP  info 00 len 128 tot_len 156
+insert: ts pg_default db template1 rel pg_attribute block 11 off 7
+0/00023AA8: prv 0/00023A0C; xid 12; BTREE info 00 len 94 tot_len 122
+insert_leaf: index pg_default/template1/pg_attribute_relid_attnam_index tid 9/26
+0/00023B24: prv 0/00023AA8; xid 12; BTREE info 00 len 34 tot_len 62
+insert_leaf: index pg_default/template1/pg_attribute_relid_attnum_index tid 2/294
+0/00023B64: prv 0/00023B24; xid 12; HEAP  info 00 len 128 tot_len 156
+insert: ts pg_default db template1 rel pg_attribute block 11 off 8
+0/00023C00: prv 0/00023B64; xid 12; BTREE info 00 len 94 tot_len 122
+insert_leaf: index pg_default/template1/pg_attribute_relid_attnam_index tid 9/29
+0/00023C7C: prv 0/00023C00; xid 12; BTREE info 00 len 34 tot_len 62
+insert_leaf: index pg_default/template1/pg_attribute_relid_attnum_index tid 2/294
+0/00023CBC: prv 0/00023C7C; xid 12; HEAP  info 00 len 49 tot_len 77
+insert: ts pg_default db template1 rel pg_depend block 0 off 57
+0/00023D0C: prv 0/00023CBC; xid 12; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_depender_index tid 1/48
+0/00023D50: prv 0/00023D0C; xid 12; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_reference_index tid 1/48
+0/00023D94: prv 0/00023D50; xid 12; HEAP  info 00 len 45 tot_len 73
+insert: ts pg_global db 0 rel pg_shdepend block 0 off 8
+0/00023DE0: prv 0/00023D94; xid 12; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_global/0/pg_shdepend_depender_index tid 1/8
+0/00023E24: prv 0/00023DE0; xid 12; BTREE info 00 len 34 tot_len 62
+insert_leaf: index pg_global/0/pg_shdepend_reference_index tid 1/1
+0/00023E64: prv 0/00023E24; xid 12; SMGR  info 10 len 12 tot_len 40
+create rel: pg_global/0/pg_toast_1262_index
+0/00023E8C: prv 0/00023E64; xid 12; HEAP  info 00 len 156 tot_len 184
+insert: ts pg_default db template1 rel pg_class block 2 off 16
+0/00023F44: prv 0/00023E8C; xid 12; BTREE info 00 len 30 tot_len 58
+insert_leaf: index pg_default/template1/pg_class_oid_index tid 1/114
+0/00023F80: prv 0/00023F44; xid 12; BTREE info 00 len 94 tot_len 122
+insert_leaf: index pg_default/template1/pg_class_relname_nsp_index tid 4/49
+0/00024010: prv 0/00023F80; xid 12; HEAP  info 00 len 128 tot_len 156
+insert: ts pg_default db template1 rel pg_attribute block 11 off 9
+0/000240AC: prv 0/00024010; xid 12; BTREE info 00 len 94 tot_len 122
+insert_leaf: index pg_default/template1/pg_attribute_relid_attnam_index tid 9/32
+0/00024128: prv 0/000240AC; xid 12; BTREE info 00 len 34 tot_len 62
+insert_leaf: index pg_default/template1/pg_attribute_relid_attnum_index tid 2/303
+0/00024168: prv 0/00024128; xid 12; HEAP  info 00 len 128 tot_len 156
+insert: ts pg_default db template1 rel pg_attribute block 11 off 10
+0/00024204: prv 0/00024168; xid 12; BTREE info 00 len 94 tot_len 122
+insert_leaf: index pg_default/template1/pg_attribute_relid_attnam_index tid 9/33
+0/00024280: prv 0/00024204; xid 12; BTREE info 00 len 34 tot_len 62
+insert_leaf: index pg_default/template1/pg_attribute_relid_attnum_index tid 2/304
+0/000242C0: prv 0/00024280; xid 12; HEAP  info 00 len 104 tot_len 132
+insert: ts pg_default db template1 rel pg_index block 0 off 64
+0/00024344: prv 0/000242C0; xid 12; BTREE info 00 len 30 tot_len 58
+insert_leaf: index pg_default/template1/pg_index_indrelid_index tid 1/64
+0/00024380: prv 0/00024344; xid 12; BTREE info 00 len 30 tot_len 58
+insert_leaf: index pg_default/template1/pg_index_indexrelid_index tid 1/64
+0/000243BC: prv 0/00024380; xid 12; HEAP  info 00 len 49 tot_len 77
+insert: ts pg_default db template1 rel pg_depend block 0 off 58
+0/0002440C: prv 0/000243BC; xid 12; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_depender_index tid 1/52
+0/00024450: prv 0/0002440C; xid 12; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_reference_index tid 1/48
+0/00024494: prv 0/00024450; xid 12; HEAP  info 00 len 49 tot_len 77
+insert: ts pg_default db template1 rel pg_depend block 0 off 59
+0/000244E4: prv 0/00024494; xid 12; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_depender_index tid 1/52
+0/00024528: prv 0/000244E4; xid 12; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_reference_index tid 1/49
+0/0002456C: prv 0/00024528; xid 12; HEAP  info 00 len 49 tot_len 77
+insert: ts pg_default db template1 rel pg_depend block 0 off 60
+0/000245BC: prv 0/0002456C; xid 12; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_depender_index tid 1/52
+0/00024600: prv 0/000245BC; xid 12; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_reference_index tid 1/57
+0/00024644: prv 0/00024600; xid 12; HEAP  info 00 len 49 tot_len 77
+insert: ts pg_default db template1 rel pg_depend block 0 off 61
+0/00024694: prv 0/00024644; xid 12; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_depender_index tid 1/52
+0/000246D8: prv 0/00024694; xid 12; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_reference_index tid 1/54
+0/0002471C: prv 0/000246D8; xid 12; HEAP  info 20 len 164 tot_len 192
+update: ts pg_default db template1 rel pg_class block 2 off 15 to block 2 off 17
+0/000247DC: prv 0/0002471C; xid 12; BTREE info 00 len 30 tot_len 58
+insert_leaf: index pg_default/template1/pg_class_oid_index tid 1/113
+0/00024818: prv 0/000247DC; xid 12; BTREE info 00 len 94 tot_len 122
+insert_leaf: index pg_default/template1/pg_class_relname_nsp_index tid 4/48
+0/00024894: prv 0/00024818; xid 12; HEAP  info 20 len 164 tot_len 192
+update: ts pg_default db template1 rel pg_class block 2 off 16 to block 2 off 18
+0/00024954: prv 0/00024894; xid 12; BTREE info 00 len 30 tot_len 58
+insert_leaf: index pg_default/template1/pg_class_oid_index tid 1/115
+0/00024990: prv 0/00024954; xid 12; BTREE info 00 len 94 tot_len 122
+insert_leaf: index pg_default/template1/pg_class_relname_nsp_index tid 4/50
+0/00024A0C: prv 0/00024990; xid 12; HEAP  info 20 len 164 tot_len 192
+update: ts pg_default db template1 rel pg_class block 1 off 45 to block 2 off 19
+0/00024ACC: prv 0/00024A0C; xid 12; BTREE info 00 len 30 tot_len 58
+insert_leaf: index pg_default/template1/pg_class_oid_index tid 1/19
+0/00024B08: prv 0/00024ACC; xid 12; BTREE info 00 len 94 tot_len 122
+insert_leaf: index pg_default/template1/pg_class_relname_nsp_index tid 1/47
+0/00024B84: prv 0/00024B08; xid 12; HEAP  info 00 len 49 tot_len 77
+insert: ts pg_default db template1 rel pg_depend block 0 off 62
+0/00024BD4: prv 0/00024B84; xid 12; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_depender_index tid 1/48
+0/00024C18: prv 0/00024BD4; xid 12; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_reference_index tid 1/35
+0/00024C5C: prv 0/00024C18; xid 12; XACT  info 00 len 12 tot_len 40
+commit: 12
+0/00024C84: prv 0/00024C5C; xid 13; SMGR  info 10 len 12 tot_len 40
+create rel: pg_default/template1/pg_toast_2609
+0/00024CAC: prv 0/00024C84; xid 13; HEAP  info 80 len 156 tot_len 184
+insert+INIT: ts pg_default db template1 rel pg_type block 3 off 1
+0/00024D64: prv 0/00024CAC; xid 13; BTREE info 00 len 30 tot_len 58
+insert_leaf: index pg_default/template1/pg_type_oid_index tid 1/148
+0/00024DA0: prv 0/00024D64; xid 13; BTREE info 00 len 94 tot_len 122
+insert_leaf: index pg_default/template1/pg_type_typname_nsp_index tid 2/30
+0/00024E1C: prv 0/00024DA0; xid 13; HEAP  info 00 len 49 tot_len 77
+insert: ts pg_default db template1 rel pg_depend block 0 off 63
+0/00024E6C: prv 0/00024E1C; xid 13; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_depender_index tid 1/21
+0/00024EB0: prv 0/00024E6C; xid 13; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_reference_index tid 1/16
+0/00024EF4: prv 0/00024EB0; xid 13; HEAP  info 00 len 49 tot_len 77
+insert: ts pg_default db template1 rel pg_depend block 0 off 64
+0/00024F44: prv 0/00024EF4; xid 13; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_depender_index tid 1/21
+0/00024F88: prv 0/00024F44; xid 13; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_reference_index tid 1/21
+0/00024FCC: prv 0/00024F88; xid 13; HEAP  info 00 len 49 tot_len 77
+insert: ts pg_default db template1 rel pg_depend block 0 off 65
+0/0002501C: prv 0/00024FCC; xid 13; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_depender_index tid 1/21
+0/00025060: prv 0/0002501C; xid 13; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_reference_index tid 1/26
+0/000250A4: prv 0/00025060; xid 13; HEAP  info 00 len 49 tot_len 77
+insert: ts pg_default db template1 rel pg_depend block 0 off 66
+0/000250F4: prv 0/000250A4; xid 13; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_depender_index tid 1/21
+0/00025138: prv 0/000250F4; xid 13; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_reference_index tid 1/31
+0/0002517C: prv 0/00025138; xid 13; HEAP  info 00 len 49 tot_len 77
+insert: ts pg_default db template1 rel pg_depend block 0 off 67
+0/000251CC: prv 0/0002517C; xid 13; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_depender_index tid 1/21
+0/00025210: prv 0/000251CC; xid 13; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_reference_index tid 1/55
+0/00025254: prv 0/00025210; xid 13; HEAP  info 00 len 45 tot_len 73
+insert: ts pg_global db 0 rel pg_shdepend block 0 off 9
+0/000252A0: prv 0/00025254; xid 13; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_global/0/pg_shdepend_depender_index tid 1/5
+0/000252E4: prv 0/000252A0; xid 13; BTREE info 00 len 34 tot_len 62
+insert_leaf: index pg_global/0/pg_shdepend_reference_index tid 1/1
+0/00025324: prv 0/000252E4; xid 13; HEAP  info 00 len 156 tot_len 184
+insert: ts pg_default db template1 rel pg_class block 2 off 20
+0/000253DC: prv 0/00025324; xid 13; BTREE info 00 len 30 tot_len 58
+insert_leaf: index pg_default/template1/pg_class_oid_index tid 1/118
+0/00025418: prv 0/000253DC; xid 13; BTREE info 00 len 94 tot_len 122
+insert_leaf: index pg_default/template1/pg_class_relname_nsp_index tid 4/60
+0/00025494: prv 0/00025418; xid 13; HEAP  info 00 len 128 tot_len 156
+insert: ts pg_default db template1 rel pg_attribute block 11 off 11
+0/00025530: prv 0/00025494; xid 13; BTREE info 00 len 94 tot_len 122
+insert_leaf: index pg_default/template1/pg_attribute_relid_attnam_index tid 9/34
+0/000255AC: prv 0/00025530; xid 13; BTREE info 00 len 34 tot_len 62
+insert_leaf: index pg_default/template1/pg_attribute_relid_attnum_index tid 2/305
+0/000255EC: prv 0/000255AC; xid 13; HEAP  info 00 len 49 tot_len 77
+insert: ts pg_default db template1 rel pg_depend block 0 off 68
+0/0002563C: prv 0/000255EC; xid 13; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_depender_index tid 1/62
+0/00025680: prv 0/0002563C; xid 13; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_reference_index tid 1/9
+0/000256C4: prv 0/00025680; xid 13; HEAP  info 00 len 128 tot_len 156
+insert: ts pg_default db template1 rel pg_attribute block 11 off 12
+0/00025760: prv 0/000256C4; xid 13; BTREE info 00 len 94 tot_len 122
+insert_leaf: index pg_default/template1/pg_attribute_relid_attnam_index tid 9/35
+0/000257DC: prv 0/00025760; xid 13; BTREE info 00 len 34 tot_len 62
+insert_leaf: index pg_default/template1/pg_attribute_relid_attnum_index tid 2/306
+0/0002581C: prv 0/000257DC; xid 13; HEAP  info 00 len 49 tot_len 77
+insert: ts pg_default db template1 rel pg_depend block 0 off 69
+0/0002586C: prv 0/0002581C; xid 13; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_depender_index tid 1/63
+0/000258B0: prv 0/0002586C; xid 13; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_reference_index tid 1/5
+0/000258F4: prv 0/000258B0; xid 13; HEAP  info 00 len 128 tot_len 156
+insert: ts pg_default db template1 rel pg_attribute block 11 off 13
+0/00025990: prv 0/000258F4; xid 13; BTREE info 00 len 94 tot_len 122
+insert_leaf: index pg_default/template1/pg_attribute_relid_attnam_index tid 9/34
+0/00025A0C: prv 0/00025990; xid 13; BTREE info 00 len 34 tot_len 62
+insert_leaf: index pg_default/template1/pg_attribute_relid_attnum_index tid 2/307
+0/00025A4C: prv 0/00025A0C; xid 13; HEAP  info 00 len 49 tot_len 77
+insert: ts pg_default db template1 rel pg_depend block 0 off 70
+0/00025A9C: prv 0/00025A4C; xid 13; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_depender_index tid 1/64
+0/00025AE0: prv 0/00025A9C; xid 13; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_reference_index tid 1/1
+0/00025B24: prv 0/00025AE0; xid 13; HEAP  info 00 len 128 tot_len 156
+insert: ts pg_default db template1 rel pg_attribute block 11 off 14
+0/00025BC0: prv 0/00025B24; xid 13; BTREE info 00 len 94 tot_len 122
+insert_leaf: index pg_default/template1/pg_attribute_relid_attnam_index tid 9/37
+0/00025C3C: prv 0/00025BC0; xid 13; BTREE info 00 len 34 tot_len 62
+insert_leaf: index pg_default/template1/pg_attribute_relid_attnum_index tid 2/305
+0/00025C7C: prv 0/00025C3C; xid 13; HEAP  info 00 len 128 tot_len 156
+insert: ts pg_default db template1 rel pg_attribute block 11 off 15
+0/00025D18: prv 0/00025C7C; xid 13; BTREE info 00 len 94 tot_len 122
+insert_leaf: index pg_default/template1/pg_attribute_relid_attnam_index tid 9/38
+0/00025D94: prv 0/00025D18; xid 13; BTREE info 00 len 34 tot_len 62
+insert_leaf: index pg_default/template1/pg_attribute_relid_attnum_index tid 2/305
+0/00025DD4: prv 0/00025D94; xid 13; HEAP  info 00 len 128 tot_len 156
+insert: ts pg_default db template1 rel pg_attribute block 11 off 16
+0/00025E70: prv 0/00025DD4; xid 13; BTREE info 00 len 94 tot_len 122
+insert_leaf: index pg_default/template1/pg_attribute_relid_attnam_index tid 9/37
+0/00025EEC: prv 0/00025E70; xid 13; BTREE info 00 len 34 tot_len 62
+insert_leaf: index pg_default/template1/pg_attribute_relid_attnum_index tid 2/305
+0/00025F2C: prv 0/00025EEC; xid 13; HEAP  info 00 len 128 tot_len 156
+insert: ts pg_default db template1 rel pg_attribute block 11 off 17
+0/00025FC8: prv 0/00025F2C; xid 13; BTREE info 00 len 94 tot_len 122
+insert_leaf: index pg_default/template1/pg_attribute_relid_attnam_index tid 9/39
+0/00026058: prv 0/00025FC8; xid 13; BTREE info 00 len 34 tot_len 62
+insert_leaf: index pg_default/template1/pg_attribute_relid_attnum_index tid 2/305
+0/00026098: prv 0/00026058; xid 13; HEAP  info 00 len 128 tot_len 156
+insert: ts pg_default db template1 rel pg_attribute block 11 off 18
+0/00026134: prv 0/00026098; xid 13; BTREE info 00 len 94 tot_len 122
+insert_leaf: index pg_default/template1/pg_attribute_relid_attnam_index tid 9/37
+0/000261B0: prv 0/00026134; xid 13; BTREE info 00 len 34 tot_len 62
+insert_leaf: index pg_default/template1/pg_attribute_relid_attnum_index tid 2/305
+0/000261F0: prv 0/000261B0; xid 13; HEAP  info 00 len 128 tot_len 156
+insert: ts pg_default db template1 rel pg_attribute block 11 off 19
+0/0002628C: prv 0/000261F0; xid 13; BTREE info 00 len 94 tot_len 122
+insert_leaf: index pg_default/template1/pg_attribute_relid_attnam_index tid 9/40
+0/00026308: prv 0/0002628C; xid 13; BTREE info 00 len 34 tot_len 62
+insert_leaf: index pg_default/template1/pg_attribute_relid_attnum_index tid 2/305
+0/00026348: prv 0/00026308; xid 13; HEAP  info 00 len 49 tot_len 77
+insert: ts pg_default db template1 rel pg_depend block 0 off 71
+0/00026398: prv 0/00026348; xid 13; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_depender_index tid 1/62
+0/000263DC: prv 0/00026398; xid 13; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_reference_index tid 1/59
+0/00026420: prv 0/000263DC; xid 13; HEAP  info 00 len 45 tot_len 73
+insert: ts pg_global db 0 rel pg_shdepend block 0 off 10
+0/0002646C: prv 0/00026420; xid 13; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_global/0/pg_shdepend_depender_index tid 1/10
+0/000264B0: prv 0/0002646C; xid 13; BTREE info 00 len 34 tot_len 62
+insert_leaf: index pg_global/0/pg_shdepend_reference_index tid 1/1
+0/000264F0: prv 0/000264B0; xid 13; SMGR  info 10 len 12 tot_len 40
+create rel: pg_default/template1/pg_toast_2609_index
+0/00026518: prv 0/000264F0; xid 13; HEAP  info 00 len 156 tot_len 184
+insert: ts pg_default db template1 rel pg_class block 2 off 21
+0/000265D0: prv 0/00026518; xid 13; BTREE info 00 len 30 tot_len 58
+insert_leaf: index pg_default/template1/pg_class_oid_index tid 1/119
+0/0002660C: prv 0/000265D0; xid 13; BTREE info 00 len 94 tot_len 122
+insert_leaf: index pg_default/template1/pg_class_relname_nsp_index tid 4/61
+0/00026688: prv 0/0002660C; xid 13; HEAP  info 00 len 128 tot_len 156
+insert: ts pg_default db template1 rel pg_attribute block 11 off 20
+0/00026724: prv 0/00026688; xid 13; BTREE info 00 len 94 tot_len 122
+insert_leaf: index pg_default/template1/pg_attribute_relid_attnam_index tid 9/43
+0/000267A0: prv 0/00026724; xid 13; BTREE info 00 len 34 tot_len 62
+insert_leaf: index pg_default/template1/pg_attribute_relid_attnum_index tid 2/314
+0/000267E0: prv 0/000267A0; xid 13; HEAP  info 00 len 128 tot_len 156
+insert: ts pg_default db template1 rel pg_attribute block 11 off 21
+0/0002687C: prv 0/000267E0; xid 13; BTREE info 00 len 94 tot_len 122
+insert_leaf: index pg_default/template1/pg_attribute_relid_attnam_index tid 9/44
+0/000268F8: prv 0/0002687C; xid 13; BTREE info 00 len 34 tot_len 62
+insert_leaf: index pg_default/template1/pg_attribute_relid_attnum_index tid 2/315
+0/00026938: prv 0/000268F8; xid 13; HEAP  info 00 len 104 tot_len 132
+insert: ts pg_default db template1 rel pg_index block 0 off 65
+0/000269BC: prv 0/00026938; xid 13; BTREE info 00 len 30 tot_len 58
+insert_leaf: index pg_default/template1/pg_index_indrelid_index tid 1/65
+0/000269F8: prv 0/000269BC; xid 13; BTREE info 00 len 30 tot_len 58
+insert_leaf: index pg_default/template1/pg_index_indexrelid_index tid 1/65
+0/00026A34: prv 0/000269F8; xid 13; HEAP  info 00 len 49 tot_len 77
+insert: ts pg_default db template1 rel pg_depend block 0 off 72
+0/00026A84: prv 0/00026A34; xid 13; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_depender_index tid 1/66
+0/00026AC8: prv 0/00026A84; xid 13; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_reference_index tid 1/59
+0/00026B0C: prv 0/00026AC8; xid 13; HEAP  info 00 len 49 tot_len 77
+insert: ts pg_default db template1 rel pg_depend block 0 off 73
+0/00026B5C: prv 0/00026B0C; xid 13; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_depender_index tid 1/66
+0/00026BA0: prv 0/00026B5C; xid 13; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_reference_index tid 1/60
+0/00026BE4: prv 0/00026BA0; xid 13; HEAP  info 00 len 49 tot_len 77
+insert: ts pg_default db template1 rel pg_depend block 0 off 74
+0/00026C34: prv 0/00026BE4; xid 13; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_depender_index tid 1/66
+0/00026C78: prv 0/00026C34; xid 13; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_reference_index tid 1/70
+0/00026CBC: prv 0/00026C78; xid 13; HEAP  info 00 len 49 tot_len 77
+insert: ts pg_default db template1 rel pg_depend block 0 off 75
+0/00026D0C: prv 0/00026CBC; xid 13; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_depender_index tid 1/66
+0/00026D50: prv 0/00026D0C; xid 13; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_reference_index tid 1/66
+0/00026D94: prv 0/00026D50; xid 13; HEAP  info 20 len 164 tot_len 192
+update: ts pg_default db template1 rel pg_class block 2 off 20 to block 2 off 22
+0/00026E54: prv 0/00026D94; xid 13; BTREE info 00 len 30 tot_len 58
+insert_leaf: index pg_default/template1/pg_class_oid_index tid 1/118
+0/00026E90: prv 0/00026E54; xid 13; BTREE info 00 len 94 tot_len 122
+insert_leaf: index pg_default/template1/pg_class_relname_nsp_index tid 4/60
+0/00026F0C: prv 0/00026E90; xid 13; HEAP  info 20 len 164 tot_len 192
+update: ts pg_default db template1 rel pg_class block 2 off 21 to block 2 off 23
+0/00026FCC: prv 0/00026F0C; xid 13; BTREE info 00 len 30 tot_len 58
+insert_leaf: index pg_default/template1/pg_class_oid_index tid 1/120
+0/00027008: prv 0/00026FCC; xid 13; BTREE info 00 len 94 tot_len 122
+insert_leaf: index pg_default/template1/pg_class_relname_nsp_index tid 4/62
+0/00027084: prv 0/00027008; xid 13; HEAP  info 20 len 164 tot_len 192
+update: ts pg_default db template1 rel pg_class block 0 off 22 to block 2 off 24
+0/00027144: prv 0/00027084; xid 13; BTREE info 00 len 30 tot_len 58
+insert_leaf: index pg_default/template1/pg_class_oid_index tid 1/35
+0/00027180: prv 0/00027144; xid 13; BTREE info 00 len 94 tot_len 122
+insert_leaf: index pg_default/template1/pg_class_relname_nsp_index tid 4/4
+0/000271FC: prv 0/00027180; xid 13; HEAP  info 00 len 49 tot_len 77
+insert: ts pg_default db template1 rel pg_depend block 0 off 76
+0/0002724C: prv 0/000271FC; xid 13; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_depender_index tid 1/62
+0/00027290: prv 0/0002724C; xid 13; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_reference_index tid 1/46
+0/000272D4: prv 0/00027290; xid 13; XACT  info 00 len 12 tot_len 40
+commit: 13
+0/000272FC: prv 0/000272D4; xid 14; SMGR  info 10 len 12 tot_len 40
+create rel: pg_default/template1/pg_toast_1255
+0/00027324: prv 0/000272FC; xid 14; HEAP  info 00 len 156 tot_len 184
+insert: ts pg_default db template1 rel pg_type block 3 off 2
+0/000273DC: prv 0/00027324; xid 14; BTREE info 00 len 30 tot_len 58
+insert_leaf: index pg_default/template1/pg_type_oid_index tid 1/149
+0/00027418: prv 0/000273DC; xid 14; BTREE info 00 len 94 tot_len 122
+insert_leaf: index pg_default/template1/pg_type_typname_nsp_index tid 2/26
+0/00027494: prv 0/00027418; xid 14; HEAP  info 00 len 49 tot_len 77
+insert: ts pg_default db template1 rel pg_depend block 0 off 77
+0/000274E4: prv 0/00027494; xid 14; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_depender_index tid 1/26
+0/00027528: prv 0/000274E4; xid 14; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_reference_index tid 1/19
+0/0002756C: prv 0/00027528; xid 14; HEAP  info 00 len 49 tot_len 77
+insert: ts pg_default db template1 rel pg_depend block 0 off 78
+0/000275BC: prv 0/0002756C; xid 14; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_depender_index tid 1/26
+0/00027600: prv 0/000275BC; xid 14; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_reference_index tid 1/25
+0/00027644: prv 0/00027600; xid 14; HEAP  info 00 len 49 tot_len 77
+insert: ts pg_default db template1 rel pg_depend block 0 off 79
+0/00027694: prv 0/00027644; xid 14; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_depender_index tid 1/26
+0/000276D8: prv 0/00027694; xid 14; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_reference_index tid 1/31
+0/0002771C: prv 0/000276D8; xid 14; HEAP  info 00 len 49 tot_len 77
+insert: ts pg_default db template1 rel pg_depend block 0 off 80
+0/0002776C: prv 0/0002771C; xid 14; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_depender_index tid 1/26
+0/000277B0: prv 0/0002776C; xid 14; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_reference_index tid 1/37
+0/000277F4: prv 0/000277B0; xid 14; HEAP  info 00 len 49 tot_len 77
+insert: ts pg_default db template1 rel pg_depend block 0 off 81
+0/00027844: prv 0/000277F4; xid 14; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_depender_index tid 1/26
+0/00027888: prv 0/00027844; xid 14; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_reference_index tid 1/66
+0/000278CC: prv 0/00027888; xid 14; HEAP  info 00 len 45 tot_len 73
+insert: ts pg_global db 0 rel pg_shdepend block 0 off 11
+0/00027918: prv 0/000278CC; xid 14; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_global/0/pg_shdepend_depender_index tid 1/6
+0/0002795C: prv 0/00027918; xid 14; BTREE info 00 len 34 tot_len 62
+insert_leaf: index pg_global/0/pg_shdepend_reference_index tid 1/1
+0/0002799C: prv 0/0002795C; xid 14; HEAP  info 00 len 156 tot_len 184
+insert: ts pg_default db template1 rel pg_class block 2 off 25
+0/00027A54: prv 0/0002799C; xid 14; BTREE info 00 len 30 tot_len 58
+insert_leaf: index pg_default/template1/pg_class_oid_index tid 1/123
+0/00027A90: prv 0/00027A54; xid 14; BTREE info 00 len 94 tot_len 122
+insert_leaf: index pg_default/template1/pg_class_relname_nsp_index tid 4/45
+0/00027B0C: prv 0/00027A90; xid 14; HEAP  info 00 len 128 tot_len 156
+insert: ts pg_default db template1 rel pg_attribute block 11 off 22
+0/00027BA8: prv 0/00027B0C; xid 14; BTREE info 00 len 94 tot_len 122
+insert_leaf: index pg_default/template1/pg_attribute_relid_attnam_index tid 9/45
+0/00027C24: prv 0/00027BA8; xid 14; BTREE info 00 len 34 tot_len 62
+insert_leaf: index pg_default/template1/pg_attribute_relid_attnum_index tid 2/316
+0/00027C64: prv 0/00027C24; xid 14; HEAP  info 00 len 49 tot_len 77
+insert: ts pg_default db template1 rel pg_depend block 0 off 82
+0/00027CB4: prv 0/00027C64; xid 14; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_depender_index tid 1/76
+0/00027CF8: prv 0/00027CB4; xid 14; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_reference_index tid 1/11
+0/00027D3C: prv 0/00027CF8; xid 14; HEAP  info 00 len 128 tot_len 156
+insert: ts pg_default db template1 rel pg_attribute block 11 off 23
+0/00027DD8: prv 0/00027D3C; xid 14; BTREE info 00 len 94 tot_len 122
+insert_leaf: index pg_default/template1/pg_attribute_relid_attnam_index tid 9/46
+0/00027E54: prv 0/00027DD8; xid 14; BTREE info 00 len 34 tot_len 62
+insert_leaf: index pg_default/template1/pg_attribute_relid_attnum_index tid 2/317
+0/00027E94: prv 0/00027E54; xid 14; HEAP  info 00 len 49 tot_len 77
+insert: ts pg_default db template1 rel pg_depend block 0 off 83
+0/00027EE4: prv 0/00027E94; xid 14; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_depender_index tid 1/77
+0/00027F28: prv 0/00027EE4; xid 14; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_reference_index tid 1/6
+0/00027F6C: prv 0/00027F28; xid 14; HEAP  info 00 len 128 tot_len 156
+insert: ts pg_default db template1 rel pg_attribute block 11 off 24
+0/0002801C: prv 0/00027F6C; xid 14; BTREE info 00 len 94 tot_len 122
+insert_leaf: index pg_default/template1/pg_attribute_relid_attnam_index tid 9/45
+0/00028098: prv 0/0002801C; xid 14; BTREE info 00 len 34 tot_len 62
+insert_leaf: index pg_default/template1/pg_attribute_relid_attnum_index tid 2/318
+0/000280D8: prv 0/00028098; xid 14; HEAP  info 00 len 49 tot_len 77
+insert: ts pg_default db template1 rel pg_depend block 0 off 84
+0/00028128: prv 0/000280D8; xid 14; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_depender_index tid 1/78
+0/0002816C: prv 0/00028128; xid 14; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_reference_index tid 1/1
+0/000281B0: prv 0/0002816C; xid 14; HEAP  info 00 len 128 tot_len 156
+insert: ts pg_default db template1 rel pg_attribute block 11 off 25
+0/0002824C: prv 0/000281B0; xid 14; BTREE info 00 len 94 tot_len 122
+insert_leaf: index pg_default/template1/pg_attribute_relid_attnam_index tid 9/48
+0/000282C8: prv 0/0002824C; xid 14; BTREE info 00 len 34 tot_len 62
+insert_leaf: index pg_default/template1/pg_attribute_relid_attnum_index tid 2/316
+0/00028308: prv 0/000282C8; xid 14; HEAP  info 00 len 128 tot_len 156
+insert: ts pg_default db template1 rel pg_attribute block 11 off 26
+0/000283A4: prv 0/00028308; xid 14; BTREE info 00 len 94 tot_len 122
+insert_leaf: index pg_default/template1/pg_attribute_relid_attnam_index tid 9/49
+0/00028420: prv 0/000283A4; xid 14; BTREE info 00 len 34 tot_len 62
+insert_leaf: index pg_default/template1/pg_attribute_relid_attnum_index tid 2/316
+0/00028460: prv 0/00028420; xid 14; HEAP  info 00 len 128 tot_len 156
+insert: ts pg_default db template1 rel pg_attribute block 11 off 27
+0/000284FC: prv 0/00028460; xid 14; BTREE info 00 len 94 tot_len 122
+insert_leaf: index pg_default/template1/pg_attribute_relid_attnam_index tid 9/48
+0/00028578: prv 0/000284FC; xid 14; BTREE info 00 len 34 tot_len 62
+insert_leaf: index pg_default/template1/pg_attribute_relid_attnum_index tid 2/316
+0/000285B8: prv 0/00028578; xid 14; HEAP  info 00 len 128 tot_len 156
+insert: ts pg_default db template1 rel pg_attribute block 11 off 28
+0/00028654: prv 0/000285B8; xid 14; BTREE info 00 len 94 tot_len 122
+insert_leaf: index pg_default/template1/pg_attribute_relid_attnam_index tid 9/50
+0/000286D0: prv 0/00028654; xid 14; BTREE info 00 len 34 tot_len 62
+insert_leaf: index pg_default/template1/pg_attribute_relid_attnum_index tid 2/316
+0/00028710: prv 0/000286D0; xid 14; HEAP  info 00 len 128 tot_len 156
+insert: ts pg_default db template1 rel pg_attribute block 11 off 29
+0/000287AC: prv 0/00028710; xid 14; BTREE info 00 len 94 tot_len 122
+insert_leaf: index pg_default/template1/pg_attribute_relid_attnam_index tid 9/48
+0/00028828: prv 0/000287AC; xid 14; BTREE info 00 len 34 tot_len 62
+insert_leaf: index pg_default/template1/pg_attribute_relid_attnum_index tid 2/316
+0/00028868: prv 0/00028828; xid 14; HEAP  info 00 len 128 tot_len 156
+insert: ts pg_default db template1 rel pg_attribute block 11 off 30
+0/00028904: prv 0/00028868; xid 14; BTREE info 00 len 94 tot_len 122
+insert_leaf: index pg_default/template1/pg_attribute_relid_attnam_index tid 9/51
+0/00028980: prv 0/00028904; xid 14; BTREE info 00 len 34 tot_len 62
+insert_leaf: index pg_default/template1/pg_attribute_relid_attnum_index tid 2/316
+0/000289C0: prv 0/00028980; xid 14; HEAP  info 00 len 49 tot_len 77
+insert: ts pg_default db template1 rel pg_depend block 0 off 85
+0/00028A10: prv 0/000289C0; xid 14; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_depender_index tid 1/76
+0/00028A54: prv 0/00028A10; xid 14; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_reference_index tid 1/70
+0/00028A98: prv 0/00028A54; xid 14; HEAP  info 00 len 45 tot_len 73
+insert: ts pg_global db 0 rel pg_shdepend block 0 off 12
+0/00028AE4: prv 0/00028A98; xid 14; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_global/0/pg_shdepend_depender_index tid 1/12
+0/00028B28: prv 0/00028AE4; xid 14; BTREE info 00 len 34 tot_len 62
+insert_leaf: index pg_global/0/pg_shdepend_reference_index tid 1/1
+0/00028B68: prv 0/00028B28; xid 14; SMGR  info 10 len 12 tot_len 40
+create rel: pg_default/template1/pg_toast_1255_index
+0/00028B90: prv 0/00028B68; xid 14; HEAP  info 00 len 156 tot_len 184
+insert: ts pg_default db template1 rel pg_class block 2 off 26
+0/00028C48: prv 0/00028B90; xid 14; BTREE info 00 len 30 tot_len 58
+insert_leaf: index pg_default/template1/pg_class_oid_index tid 1/124
+0/00028C84: prv 0/00028C48; xid 14; BTREE info 00 len 94 tot_len 122
+insert_leaf: index pg_default/template1/pg_class_relname_nsp_index tid 4/46
+0/00028D00: prv 0/00028C84; xid 14; HEAP  info 00 len 128 tot_len 156
+insert: ts pg_default db template1 rel pg_attribute block 11 off 31
+0/00028D9C: prv 0/00028D00; xid 14; BTREE info 00 len 94 tot_len 122
+insert_leaf: index pg_default/template1/pg_attribute_relid_attnam_index tid 9/54
+0/00028E18: prv 0/00028D9C; xid 14; BTREE info 00 len 34 tot_len 62
+insert_leaf: index pg_default/template1/pg_attribute_relid_attnum_index tid 2/325
+0/00028E58: prv 0/00028E18; xid 14; HEAP  info 00 len 128 tot_len 156
+insert: ts pg_default db template1 rel pg_attribute block 11 off 32
+0/00028EF4: prv 0/00028E58; xid 14; BTREE info 00 len 94 tot_len 122
+insert_leaf: index pg_default/template1/pg_attribute_relid_attnam_index tid 9/55
+0/00028F70: prv 0/00028EF4; xid 14; BTREE info 00 len 34 tot_len 62
+insert_leaf: index pg_default/template1/pg_attribute_relid_attnum_index tid 2/326
+0/00028FB0: prv 0/00028F70; xid 14; HEAP  info 00 len 104 tot_len 132
+insert: ts pg_default db template1 rel pg_index block 0 off 66
+0/00029034: prv 0/00028FB0; xid 14; BTREE info 00 len 30 tot_len 58
+insert_leaf: index pg_default/template1/pg_index_indrelid_index tid 1/66
+0/00029070: prv 0/00029034; xid 14; BTREE info 00 len 30 tot_len 58
+insert_leaf: index pg_default/template1/pg_index_indexrelid_index tid 1/66
+0/000290AC: prv 0/00029070; xid 14; HEAP  info 00 len 49 tot_len 77
+insert: ts pg_default db template1 rel pg_depend block 0 off 86
+0/000290FC: prv 0/000290AC; xid 14; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_depender_index tid 1/80
+0/00029140: prv 0/000290FC; xid 14; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_reference_index tid 1/70
+0/00029184: prv 0/00029140; xid 14; HEAP  info 00 len 49 tot_len 77
+insert: ts pg_default db template1 rel pg_depend block 0 off 87
+0/000291D4: prv 0/00029184; xid 14; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_depender_index tid 1/80
+0/00029218: prv 0/000291D4; xid 14; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_reference_index tid 1/71
+0/0002925C: prv 0/00029218; xid 14; HEAP  info 00 len 49 tot_len 77
+insert: ts pg_default db template1 rel pg_depend block 0 off 88
+0/000292AC: prv 0/0002925C; xid 14; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_depender_index tid 1/80
+0/000292F0: prv 0/000292AC; xid 14; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_reference_index tid 1/83
+0/00029334: prv 0/000292F0; xid 14; HEAP  info 00 len 49 tot_len 77
+insert: ts pg_default db template1 rel pg_depend block 0 off 89
+0/00029384: prv 0/00029334; xid 14; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_depender_index tid 1/80
+0/000293C8: prv 0/00029384; xid 14; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_reference_index tid 1/78
+0/0002940C: prv 0/000293C8; xid 14; HEAP  info 20 len 164 tot_len 192
+update: ts pg_default db template1 rel pg_class block 2 off 25 to block 2 off 27
+0/000294CC: prv 0/0002940C; xid 14; BTREE info 00 len 30 tot_len 58
+insert_leaf: index pg_default/template1/pg_class_oid_index tid 1/123
+0/00029508: prv 0/000294CC; xid 14; BTREE info 00 len 94 tot_len 122
+insert_leaf: index pg_default/template1/pg_class_relname_nsp_index tid 4/45
+0/00029584: prv 0/00029508; xid 14; HEAP  info 20 len 164 tot_len 192
+update: ts pg_default db template1 rel pg_class block 2 off 26 to block 2 off 28
+0/00029644: prv 0/00029584; xid 14; BTREE info 00 len 30 tot_len 58
+insert_leaf: index pg_default/template1/pg_class_oid_index tid 1/125
+0/00029680: prv 0/00029644; xid 14; BTREE info 00 len 94 tot_len 122
+insert_leaf: index pg_default/template1/pg_class_relname_nsp_index tid 4/47
+0/000296FC: prv 0/00029680; xid 14; HEAP  info 20 len 164 tot_len 192
+update: ts pg_default db template1 rel pg_class block 0 off 3 to block 2 off 29
+0/000297BC: prv 0/000296FC; xid 14; BTREE info 00 len 30 tot_len 58
+insert_leaf: index pg_default/template1/pg_class_oid_index tid 1/11
+0/000297F8: prv 0/000297BC; xid 14; BTREE info 00 len 94 tot_len 122
+insert_leaf: index pg_default/template1/pg_class_relname_nsp_index tid 4/29
+0/00029874: prv 0/000297F8; xid 14; HEAP  info 00 len 49 tot_len 77
+insert: ts pg_default db template1 rel pg_depend block 0 off 90
+0/000298C4: prv 0/00029874; xid 14; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_depender_index tid 1/76
+0/00029908: prv 0/000298C4; xid 14; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_reference_index tid 1/46
+0/0002994C: prv 0/00029908; xid 14; XACT  info 00 len 12 tot_len 40
+commit: 14
+0/00029974: prv 0/0002994C; xid 15; SMGR  info 10 len 12 tot_len 40
+create rel: pg_default/template1/pg_toast_2618
+0/0002999C: prv 0/00029974; xid 15; HEAP  info 00 len 156 tot_len 184
+insert: ts pg_default db template1 rel pg_type block 3 off 3
+0/00029A54: prv 0/0002999C; xid 15; BTREE info 00 len 30 tot_len 58
+insert_leaf: index pg_default/template1/pg_type_oid_index tid 1/150
+0/00029A90: prv 0/00029A54; xid 15; BTREE info 00 len 94 tot_len 122
+insert_leaf: index pg_default/template1/pg_type_typname_nsp_index tid 2/32
+0/00029B0C: prv 0/00029A90; xid 15; HEAP  info 00 len 49 tot_len 77
+insert: ts pg_default db template1 rel pg_depend block 0 off 91
+0/00029B5C: prv 0/00029B0C; xid 15; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_depender_index tid 1/31
+0/00029BA0: prv 0/00029B5C; xid 15; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_reference_index tid 1/22
+0/00029BE4: prv 0/00029BA0; xid 15; HEAP  info 00 len 49 tot_len 77
+insert: ts pg_default db template1 rel pg_depend block 0 off 92
+0/00029C34: prv 0/00029BE4; xid 15; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_depender_index tid 1/31
+0/00029C78: prv 0/00029C34; xid 15; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_reference_index tid 1/29
+0/00029CBC: prv 0/00029C78; xid 15; HEAP  info 00 len 49 tot_len 77
+insert: ts pg_default db template1 rel pg_depend block 0 off 93
+0/00029D0C: prv 0/00029CBC; xid 15; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_depender_index tid 1/31
+0/00029D50: prv 0/00029D0C; xid 15; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_reference_index tid 1/36
+0/00029D94: prv 0/00029D50; xid 15; HEAP  info 00 len 49 tot_len 77
+insert: ts pg_default db template1 rel pg_depend block 0 off 94
+0/00029DE4: prv 0/00029D94; xid 15; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_depender_index tid 1/31
+0/00029E28: prv 0/00029DE4; xid 15; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_reference_index tid 1/43
+0/00029E6C: prv 0/00029E28; xid 15; HEAP  info 00 len 49 tot_len 77
+insert: ts pg_default db template1 rel pg_depend block 0 off 95
+0/00029EBC: prv 0/00029E6C; xid 15; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_depender_index tid 1/31
+0/00029F00: prv 0/00029EBC; xid 15; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_reference_index tid 1/77
+0/00029F44: prv 0/00029F00; xid 15; HEAP  info 00 len 45 tot_len 73
+insert: ts pg_global db 0 rel pg_shdepend block 0 off 13
+0/00029F90: prv 0/00029F44; xid 15; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_global/0/pg_shdepend_depender_index tid 1/7
+0/00029FD4: prv 0/00029F90; xid 15; BTREE info 00 len 34 tot_len 62
+insert_leaf: index pg_global/0/pg_shdepend_reference_index tid 1/1
+0/0002A028: prv 0/00029FD4; xid 15; HEAP  info 00 len 156 tot_len 184
+insert: ts pg_default db template1 rel pg_class block 2 off 30
+0/0002A0E0: prv 0/0002A028; xid 15; BTREE info 00 len 30 tot_len 58
+insert_leaf: index pg_default/template1/pg_class_oid_index tid 1/128
+0/0002A11C: prv 0/0002A0E0; xid 15; BTREE info 00 len 94 tot_len 122
+insert_leaf: index pg_default/template1/pg_class_relname_nsp_index tid 4/70
+0/0002A198: prv 0/0002A11C; xid 15; HEAP  info 00 len 128 tot_len 156
+insert: ts pg_default db template1 rel pg_attribute block 11 off 33
+0/0002A234: prv 0/0002A198; xid 15; BTREE info 00 len 94 tot_len 122
+insert_leaf: index pg_default/template1/pg_attribute_relid_attnam_index tid 9/56
+0/0002A2B0: prv 0/0002A234; xid 15; BTREE info 00 len 34 tot_len 62
+insert_leaf: index pg_default/template1/pg_attribute_relid_attnum_index tid 2/327
+0/0002A2F0: prv 0/0002A2B0; xid 15; HEAP  info 00 len 49 tot_len 77
+insert: ts pg_default db template1 rel pg_depend block 0 off 96
+0/0002A340: prv 0/0002A2F0; xid 15; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_depender_index tid 1/90
+0/0002A384: prv 0/0002A340; xid 15; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_reference_index tid 1/13
+0/0002A3C8: prv 0/0002A384; xid 15; HEAP  info 00 len 128 tot_len 156
+insert: ts pg_default db template1 rel pg_attribute block 11 off 34
+0/0002A464: prv 0/0002A3C8; xid 15; BTREE info 00 len 94 tot_len 122
+insert_leaf: index pg_default/template1/pg_attribute_relid_attnam_index tid 9/57
+0/0002A4E0: prv 0/0002A464; xid 15; BTREE info 00 len 34 tot_len 62
+insert_leaf: index pg_default/template1/pg_attribute_relid_attnum_index tid 2/328
+0/0002A520: prv 0/0002A4E0; xid 15; HEAP  info 00 len 49 tot_len 77
+insert: ts pg_default db template1 rel pg_depend block 0 off 97
+0/0002A570: prv 0/0002A520; xid 15; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_depender_index tid 1/91
+0/0002A5B4: prv 0/0002A570; xid 15; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_reference_index tid 1/7
+0/0002A5F8: prv 0/0002A5B4; xid 15; HEAP  info 00 len 128 tot_len 156
+insert: ts pg_default db template1 rel pg_attribute block 11 off 35
+0/0002A694: prv 0/0002A5F8; xid 15; BTREE info 00 len 94 tot_len 122
+insert_leaf: index pg_default/template1/pg_attribute_relid_attnam_index tid 9/56
+0/0002A710: prv 0/0002A694; xid 15; BTREE info 00 len 34 tot_len 62
+insert_leaf: index pg_default/template1/pg_attribute_relid_attnum_index tid 2/329
+0/0002A750: prv 0/0002A710; xid 15; HEAP  info 00 len 49 tot_len 77
+insert: ts pg_default db template1 rel pg_depend block 0 off 98
+0/0002A7A0: prv 0/0002A750; xid 15; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_depender_index tid 1/92
+0/0002A7E4: prv 0/0002A7A0; xid 15; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_reference_index tid 1/1
+0/0002A828: prv 0/0002A7E4; xid 15; HEAP  info 00 len 128 tot_len 156
+insert: ts pg_default db template1 rel pg_attribute block 11 off 36
+0/0002A8C4: prv 0/0002A828; xid 15; BTREE info 00 len 94 tot_len 122
+insert_leaf: index pg_default/template1/pg_attribute_relid_attnam_index tid 9/59
+0/0002A940: prv 0/0002A8C4; xid 15; BTREE info 00 len 34 tot_len 62
+insert_leaf: index pg_default/template1/pg_attribute_relid_attnum_index tid 2/327
+0/0002A980: prv 0/0002A940; xid 15; HEAP  info 00 len 128 tot_len 156
+insert: ts pg_default db template1 rel pg_attribute block 11 off 37
+0/0002AA1C: prv 0/0002A980; xid 15; BTREE info 00 len 94 tot_len 122
+insert_leaf: index pg_default/template1/pg_attribute_relid_attnam_index tid 9/60
+0/0002AA98: prv 0/0002AA1C; xid 15; BTREE info 00 len 34 tot_len 62
+insert_leaf: index pg_default/template1/pg_attribute_relid_attnum_index tid 2/327
+0/0002AAD8: prv 0/0002AA98; xid 15; HEAP  info 00 len 128 tot_len 156
+insert: ts pg_default db template1 rel pg_attribute block 11 off 38
+0/0002AB74: prv 0/0002AAD8; xid 15; BTREE info 00 len 94 tot_len 122
+insert_leaf: index pg_default/template1/pg_attribute_relid_attnam_index tid 9/59
+0/0002ABF0: prv 0/0002AB74; xid 15; BTREE info 00 len 34 tot_len 62
+insert_leaf: index pg_default/template1/pg_attribute_relid_attnum_index tid 2/327
+0/0002AC30: prv 0/0002ABF0; xid 15; HEAP  info 00 len 128 tot_len 156
+insert: ts pg_default db template1 rel pg_attribute block 11 off 39
+0/0002ACCC: prv 0/0002AC30; xid 15; BTREE info 00 len 94 tot_len 122
+insert_leaf: index pg_default/template1/pg_attribute_relid_attnam_index tid 9/61
+0/0002AD48: prv 0/0002ACCC; xid 15; BTREE info 00 len 34 tot_len 62
+insert_leaf: index pg_default/template1/pg_attribute_relid_attnum_index tid 2/327
+0/0002AD88: prv 0/0002AD48; xid 15; HEAP  info 00 len 128 tot_len 156
+insert: ts pg_default db template1 rel pg_attribute block 11 off 40
+0/0002AE24: prv 0/0002AD88; xid 15; BTREE info 00 len 94 tot_len 122
+insert_leaf: index pg_default/template1/pg_attribute_relid_attnam_index tid 9/59
+0/0002AEA0: prv 0/0002AE24; xid 15; BTREE info 00 len 34 tot_len 62
+insert_leaf: index pg_default/template1/pg_attribute_relid_attnum_index tid 2/327
+0/0002AEE0: prv 0/0002AEA0; xid 15; HEAP  info 00 len 128 tot_len 156
+insert: ts pg_default db template1 rel pg_attribute block 11 off 41
+0/0002AF7C: prv 0/0002AEE0; xid 15; BTREE info 00 len 94 tot_len 122
+insert_leaf: index pg_default/template1/pg_attribute_relid_attnam_index tid 9/62
+0/0002AFF8: prv 0/0002AF7C; xid 15; BTREE info 00 len 34 tot_len 62
+insert_leaf: index pg_default/template1/pg_attribute_relid_attnum_index tid 2/327
+0/0002B038: prv 0/0002AFF8; xid 15; HEAP  info 00 len 49 tot_len 77
+insert: ts pg_default db template1 rel pg_depend block 0 off 99
+0/0002B088: prv 0/0002B038; xid 15; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_depender_index tid 1/90
+0/0002B0CC: prv 0/0002B088; xid 15; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_reference_index tid 1/81
+0/0002B110: prv 0/0002B0CC; xid 15; HEAP  info 00 len 45 tot_len 73
+insert: ts pg_global db 0 rel pg_shdepend block 0 off 14
+0/0002B15C: prv 0/0002B110; xid 15; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_global/0/pg_shdepend_depender_index tid 1/14
+0/0002B1A0: prv 0/0002B15C; xid 15; BTREE info 00 len 34 tot_len 62
+insert_leaf: index pg_global/0/pg_shdepend_reference_index tid 1/1
+0/0002B1E0: prv 0/0002B1A0; xid 15; SMGR  info 10 len 12 tot_len 40
+create rel: pg_default/template1/pg_toast_2618_index
+0/0002B208: prv 0/0002B1E0; xid 15; HEAP  info 00 len 156 tot_len 184
+insert: ts pg_default db template1 rel pg_class block 2 off 31
+0/0002B2C0: prv 0/0002B208; xid 15; BTREE info 00 len 30 tot_len 58
+insert_leaf: index pg_default/template1/pg_class_oid_index tid 1/129
+0/0002B2FC: prv 0/0002B2C0; xid 15; BTREE info 00 len 94 tot_len 122
+insert_leaf: index pg_default/template1/pg_class_relname_nsp_index tid 4/71
+0/0002B378: prv 0/0002B2FC; xid 15; HEAP  info 00 len 128 tot_len 156
+insert: ts pg_default db template1 rel pg_attribute block 11 off 42
+0/0002B414: prv 0/0002B378; xid 15; BTREE info 00 len 94 tot_len 122
+insert_leaf: index pg_default/template1/pg_attribute_relid_attnam_index tid 9/65
+0/0002B490: prv 0/0002B414; xid 15; BTREE info 00 len 34 tot_len 62
+insert_leaf: index pg_default/template1/pg_attribute_relid_attnum_index tid 2/336
+0/0002B4D0: prv 0/0002B490; xid 15; HEAP  info 00 len 128 tot_len 156
+insert: ts pg_default db template1 rel pg_attribute block 11 off 43
+0/0002B56C: prv 0/0002B4D0; xid 15; BTREE info 00 len 94 tot_len 122
+insert_leaf: index pg_default/template1/pg_attribute_relid_attnam_index tid 9/66
+0/0002B5E8: prv 0/0002B56C; xid 15; BTREE info 00 len 34 tot_len 62
+insert_leaf: index pg_default/template1/pg_attribute_relid_attnum_index tid 2/337
+0/0002B628: prv 0/0002B5E8; xid 15; HEAP  info 00 len 104 tot_len 132
+insert: ts pg_default db template1 rel pg_index block 0 off 67
+0/0002B6AC: prv 0/0002B628; xid 15; BTREE info 00 len 30 tot_len 58
+insert_leaf: index pg_default/template1/pg_index_indrelid_index tid 1/67
+0/0002B6E8: prv 0/0002B6AC; xid 15; BTREE info 00 len 30 tot_len 58
+insert_leaf: index pg_default/template1/pg_index_indexrelid_index tid 1/67
+0/0002B724: prv 0/0002B6E8; xid 15; HEAP  info 00 len 49 tot_len 77
+insert: ts pg_default db template1 rel pg_depend block 0 off 100
+0/0002B774: prv 0/0002B724; xid 15; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_depender_index tid 1/94
+0/0002B7B8: prv 0/0002B774; xid 15; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_reference_index tid 1/81
+0/0002B7FC: prv 0/0002B7B8; xid 15; HEAP  info 00 len 49 tot_len 77
+insert: ts pg_default db template1 rel pg_depend block 0 off 101
+0/0002B84C: prv 0/0002B7FC; xid 15; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_depender_index tid 1/94
+0/0002B890: prv 0/0002B84C; xid 15; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_reference_index tid 1/82
+0/0002B8D4: prv 0/0002B890; xid 15; HEAP  info 00 len 49 tot_len 77
+insert: ts pg_default db template1 rel pg_depend block 0 off 102
+0/0002B924: prv 0/0002B8D4; xid 15; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_depender_index tid 1/94
+0/0002B968: prv 0/0002B924; xid 15; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_reference_index tid 1/96
+0/0002B9AC: prv 0/0002B968; xid 15; HEAP  info 00 len 49 tot_len 77
+insert: ts pg_default db template1 rel pg_depend block 0 off 103
+0/0002B9FC: prv 0/0002B9AC; xid 15; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_depender_index tid 1/94
+0/0002BA40: prv 0/0002B9FC; xid 15; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_reference_index tid 1/90
+0/0002BA84: prv 0/0002BA40; xid 15; HEAP  info 20 len 164 tot_len 192
+update: ts pg_default db template1 rel pg_class block 2 off 30 to block 2 off 32
+0/0002BB44: prv 0/0002BA84; xid 15; BTREE info 00 len 30 tot_len 58
+insert_leaf: index pg_default/template1/pg_class_oid_index tid 1/128
+0/0002BB80: prv 0/0002BB44; xid 15; BTREE info 00 len 94 tot_len 122
+insert_leaf: index pg_default/template1/pg_class_relname_nsp_index tid 4/70
+0/0002BBFC: prv 0/0002BB80; xid 15; HEAP  info 20 len 164 tot_len 192
+update: ts pg_default db template1 rel pg_class block 2 off 31 to block 2 off 33
+0/0002BCBC: prv 0/0002BBFC; xid 15; BTREE info 00 len 30 tot_len 58
+insert_leaf: index pg_default/template1/pg_class_oid_index tid 1/130
+0/0002BCF8: prv 0/0002BCBC; xid 15; BTREE info 00 len 94 tot_len 122
+insert_leaf: index pg_default/template1/pg_class_relname_nsp_index tid 4/72
+0/0002BD74: prv 0/0002BCF8; xid 15; HEAP  info 20 len 164 tot_len 192
+update: ts pg_default db template1 rel pg_class block 0 off 19 to block 2 off 34
+0/0002BE34: prv 0/0002BD74; xid 15; BTREE info 00 len 30 tot_len 58
+insert_leaf: index pg_default/template1/pg_class_oid_index tid 1/46
+0/0002BE70: prv 0/0002BE34; xid 15; BTREE info 00 len 94 tot_len 122
+insert_leaf: index pg_default/template1/pg_class_relname_nsp_index tid 4/33
+0/0002BEEC: prv 0/0002BE70; xid 15; HEAP  info 00 len 49 tot_len 77
+insert: ts pg_default db template1 rel pg_depend block 0 off 104
+0/0002BF3C: prv 0/0002BEEC; xid 15; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_depender_index tid 1/90
+0/0002BF80: prv 0/0002BF3C; xid 15; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_reference_index tid 1/62
+0/0002BFC4: prv 0/0002BF80; xid 15; XACT  info 00 len 12 tot_len 40
+commit: 15
+0/0002C010: prv 0/0002BFC4; xid 16; SMGR  info 10 len 12 tot_len 40
+create rel: pg_global/0/pg_toast_2396
+0/0002C038: prv 0/0002C010; xid 16; HEAP  info 00 len 156 tot_len 184
+insert: ts pg_default db template1 rel pg_type block 3 off 4
+0/0002C0F0: prv 0/0002C038; xid 16; BTREE info 00 len 30 tot_len 58
+insert_leaf: index pg_default/template1/pg_type_oid_index tid 1/151
+0/0002C12C: prv 0/0002C0F0; xid 16; BTREE info 00 len 94 tot_len 122
+insert_leaf: index pg_default/template1/pg_type_typname_nsp_index tid 2/29
+0/0002C1A8: prv 0/0002C12C; xid 16; HEAP  info 00 len 49 tot_len 77
+insert: ts pg_default db template1 rel pg_depend block 0 off 105
+0/0002C1F8: prv 0/0002C1A8; xid 16; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_depender_index tid 1/36
+0/0002C23C: prv 0/0002C1F8; xid 16; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_reference_index tid 1/25
+0/0002C280: prv 0/0002C23C; xid 16; HEAP  info 00 len 49 tot_len 77
+insert: ts pg_default db template1 rel pg_depend block 0 off 106
+0/0002C2D0: prv 0/0002C280; xid 16; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_depender_index tid 1/36
+0/0002C314: prv 0/0002C2D0; xid 16; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_reference_index tid 1/33
+0/0002C358: prv 0/0002C314; xid 16; HEAP  info 00 len 49 tot_len 77
+insert: ts pg_default db template1 rel pg_depend block 0 off 107
+0/0002C3A8: prv 0/0002C358; xid 16; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_depender_index tid 1/36
+0/0002C3EC: prv 0/0002C3A8; xid 16; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_reference_index tid 1/41
+0/0002C430: prv 0/0002C3EC; xid 16; HEAP  info 00 len 49 tot_len 77
+insert: ts pg_default db template1 rel pg_depend block 0 off 108
+0/0002C480: prv 0/0002C430; xid 16; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_depender_index tid 1/36
+0/0002C4C4: prv 0/0002C480; xid 16; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_reference_index tid 1/49
+0/0002C508: prv 0/0002C4C4; xid 16; HEAP  info 00 len 49 tot_len 77
+insert: ts pg_default db template1 rel pg_depend block 0 off 109
+0/0002C558: prv 0/0002C508; xid 16; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_depender_index tid 1/36
+0/0002C59C: prv 0/0002C558; xid 16; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_reference_index tid 1/88
+0/0002C5E0: prv 0/0002C59C; xid 16; HEAP  info 00 len 45 tot_len 73
+insert: ts pg_global db 0 rel pg_shdepend block 0 off 15
+0/0002C62C: prv 0/0002C5E0; xid 16; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_global/0/pg_shdepend_depender_index tid 1/8
+0/0002C670: prv 0/0002C62C; xid 16; BTREE info 00 len 34 tot_len 62
+insert_leaf: index pg_global/0/pg_shdepend_reference_index tid 1/1
+0/0002C6B0: prv 0/0002C670; xid 16; HEAP  info 00 len 156 tot_len 184
+insert: ts pg_default db template1 rel pg_class block 2 off 35
+0/0002C768: prv 0/0002C6B0; xid 16; BTREE info 00 len 30 tot_len 58
+insert_leaf: index pg_default/template1/pg_class_oid_index tid 1/133
+0/0002C7A4: prv 0/0002C768; xid 16; BTREE info 00 len 94 tot_len 122
+insert_leaf: index pg_default/template1/pg_class_relname_nsp_index tid 4/59
+0/0002C820: prv 0/0002C7A4; xid 16; HEAP  info 00 len 128 tot_len 156
+insert: ts pg_default db template1 rel pg_attribute block 11 off 44
+0/0002C8BC: prv 0/0002C820; xid 16; BTREE info 00 len 94 tot_len 122
+insert_leaf: index pg_default/template1/pg_attribute_relid_attnam_index tid 9/67
+0/0002C938: prv 0/0002C8BC; xid 16; BTREE info 00 len 34 tot_len 62
+insert_leaf: index pg_default/template1/pg_attribute_relid_attnum_index tid 2/338
+0/0002C978: prv 0/0002C938; xid 16; HEAP  info 00 len 49 tot_len 77
+insert: ts pg_default db template1 rel pg_depend block 0 off 110
+0/0002C9C8: prv 0/0002C978; xid 16; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_depender_index tid 1/104
+0/0002CA0C: prv 0/0002C9C8; xid 16; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_reference_index tid 1/15
+0/0002CA50: prv 0/0002CA0C; xid 16; HEAP  info 00 len 128 tot_len 156
+insert: ts pg_default db template1 rel pg_attribute block 11 off 45
+0/0002CAEC: prv 0/0002CA50; xid 16; BTREE info 00 len 94 tot_len 122
+insert_leaf: index pg_default/template1/pg_attribute_relid_attnam_index tid 9/68
+0/0002CB68: prv 0/0002CAEC; xid 16; BTREE info 00 len 34 tot_len 62
+insert_leaf: index pg_default/template1/pg_attribute_relid_attnum_index tid 2/339
+0/0002CBA8: prv 0/0002CB68; xid 16; HEAP  info 00 len 49 tot_len 77
+insert: ts pg_default db template1 rel pg_depend block 0 off 111
+0/0002CBF8: prv 0/0002CBA8; xid 16; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_depender_index tid 1/105
+0/0002CC3C: prv 0/0002CBF8; xid 16; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_reference_index tid 1/8
+0/0002CC80: prv 0/0002CC3C; xid 16; HEAP  info 00 len 128 tot_len 156
+insert: ts pg_default db template1 rel pg_attribute block 11 off 46
+0/0002CD1C: prv 0/0002CC80; xid 16; BTREE info 00 len 94 tot_len 122
+insert_leaf: index pg_default/template1/pg_attribute_relid_attnam_index tid 9/67
+0/0002CD98: prv 0/0002CD1C; xid 16; BTREE info 00 len 34 tot_len 62
+insert_leaf: index pg_default/template1/pg_attribute_relid_attnum_index tid 2/340
+0/0002CDD8: prv 0/0002CD98; xid 16; HEAP  info 00 len 49 tot_len 77
+insert: ts pg_default db template1 rel pg_depend block 0 off 112
+0/0002CE28: prv 0/0002CDD8; xid 16; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_depender_index tid 1/106
+0/0002CE6C: prv 0/0002CE28; xid 16; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_reference_index tid 1/1
+0/0002CEB0: prv 0/0002CE6C; xid 16; HEAP  info 00 len 128 tot_len 156
+insert: ts pg_default db template1 rel pg_attribute block 11 off 47
+0/0002CF4C: prv 0/0002CEB0; xid 16; BTREE info 00 len 94 tot_len 122
+insert_leaf: index pg_default/template1/pg_attribute_relid_attnam_index tid 9/70
+0/0002CFC8: prv 0/0002CF4C; xid 16; BTREE info 00 len 34 tot_len 62
+insert_leaf: index pg_default/template1/pg_attribute_relid_attnum_index tid 2/338
+0/0002D008: prv 0/0002CFC8; xid 16; HEAP  info 00 len 128 tot_len 156
+insert: ts pg_default db template1 rel pg_attribute block 11 off 48
+0/0002D0A4: prv 0/0002D008; xid 16; BTREE info 00 len 94 tot_len 122
+insert_leaf: index pg_default/template1/pg_attribute_relid_attnam_index tid 9/71
+0/0002D120: prv 0/0002D0A4; xid 16; BTREE info 00 len 34 tot_len 62
+insert_leaf: index pg_default/template1/pg_attribute_relid_attnum_index tid 2/338
+0/0002D160: prv 0/0002D120; xid 16; HEAP  info 00 len 128 tot_len 156
+insert: ts pg_default db template1 rel pg_attribute block 11 off 49
+0/0002D1FC: prv 0/0002D160; xid 16; BTREE info 00 len 94 tot_len 122
+insert_leaf: index pg_default/template1/pg_attribute_relid_attnam_index tid 9/70
+0/0002D278: prv 0/0002D1FC; xid 16; BTREE info 00 len 34 tot_len 62
+insert_leaf: index pg_default/template1/pg_attribute_relid_attnum_index tid 2/338
+0/0002D2B8: prv 0/0002D278; xid 16; HEAP  info 00 len 128 tot_len 156
+insert: ts pg_default db template1 rel pg_attribute block 11 off 50
+0/0002D354: prv 0/0002D2B8; xid 16; BTREE info 00 len 94 tot_len 122
+insert_leaf: index pg_default/template1/pg_attribute_relid_attnam_index tid 9/72
+0/0002D3D0: prv 0/0002D354; xid 16; BTREE info 00 len 34 tot_len 62
+insert_leaf: index pg_default/template1/pg_attribute_relid_attnum_index tid 2/338
+0/0002D410: prv 0/0002D3D0; xid 16; HEAP  info 00 len 128 tot_len 156
+insert: ts pg_default db template1 rel pg_attribute block 11 off 51
+0/0002D4AC: prv 0/0002D410; xid 16; BTREE info 00 len 94 tot_len 122
+insert_leaf: index pg_default/template1/pg_attribute_relid_attnam_index tid 9/70
+0/0002D528: prv 0/0002D4AC; xid 16; BTREE info 00 len 34 tot_len 62
+insert_leaf: index pg_default/template1/pg_attribute_relid_attnum_index tid 2/338
+0/0002D568: prv 0/0002D528; xid 16; HEAP  info 00 len 128 tot_len 156
+insert: ts pg_default db template1 rel pg_attribute block 11 off 52
+0/0002D604: prv 0/0002D568; xid 16; BTREE info 00 len 94 tot_len 122
+insert_leaf: index pg_default/template1/pg_attribute_relid_attnam_index tid 9/73
+0/0002D680: prv 0/0002D604; xid 16; BTREE info 00 len 34 tot_len 62
+insert_leaf: index pg_default/template1/pg_attribute_relid_attnum_index tid 2/338
+0/0002D6C0: prv 0/0002D680; xid 16; HEAP  info 00 len 49 tot_len 77
+insert: ts pg_default db template1 rel pg_depend block 0 off 113
+0/0002D710: prv 0/0002D6C0; xid 16; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_depender_index tid 1/104
+0/0002D754: prv 0/0002D710; xid 16; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_reference_index tid 1/92
+0/0002D798: prv 0/0002D754; xid 16; HEAP  info 00 len 45 tot_len 73
+insert: ts pg_global db 0 rel pg_shdepend block 0 off 16
+0/0002D7E4: prv 0/0002D798; xid 16; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_global/0/pg_shdepend_depender_index tid 1/16
+0/0002D828: prv 0/0002D7E4; xid 16; BTREE info 00 len 34 tot_len 62
+insert_leaf: index pg_global/0/pg_shdepend_reference_index tid 1/1
+0/0002D868: prv 0/0002D828; xid 16; SMGR  info 10 len 12 tot_len 40
+create rel: pg_global/0/pg_toast_2396_index
+0/0002D890: prv 0/0002D868; xid 16; HEAP  info 00 len 156 tot_len 184
+insert: ts pg_default db template1 rel pg_class block 2 off 36
+0/0002D948: prv 0/0002D890; xid 16; BTREE info 00 len 30 tot_len 58
+insert_leaf: index pg_default/template1/pg_class_oid_index tid 1/134
+0/0002D984: prv 0/0002D948; xid 16; BTREE info 00 len 94 tot_len 122
+insert_leaf: index pg_default/template1/pg_class_relname_nsp_index tid 4/60
+0/0002DA00: prv 0/0002D984; xid 16; HEAP  info 00 len 128 tot_len 156
+insert: ts pg_default db template1 rel pg_attribute block 11 off 53
+0/0002DA9C: prv 0/0002DA00; xid 16; BTREE info 00 len 94 tot_len 122
+insert_leaf: index pg_default/template1/pg_attribute_relid_attnam_index tid 9/76
+0/0002DB18: prv 0/0002DA9C; xid 16; BTREE info 00 len 34 tot_len 62
+insert_leaf: index pg_default/template1/pg_attribute_relid_attnum_index tid 2/347
+0/0002DB58: prv 0/0002DB18; xid 16; HEAP  info 00 len 128 tot_len 156
+insert: ts pg_default db template1 rel pg_attribute block 11 off 54
+0/0002DBF4: prv 0/0002DB58; xid 16; BTREE info 00 len 94 tot_len 122
+insert_leaf: index pg_default/template1/pg_attribute_relid_attnam_index tid 9/77
+0/0002DC70: prv 0/0002DBF4; xid 16; BTREE info 00 len 34 tot_len 62
+insert_leaf: index pg_default/template1/pg_attribute_relid_attnum_index tid 2/348
+0/0002DCB0: prv 0/0002DC70; xid 16; HEAP  info 00 len 104 tot_len 132
+insert: ts pg_default db template1 rel pg_index block 0 off 68
+0/0002DD34: prv 0/0002DCB0; xid 16; BTREE info 00 len 30 tot_len 58
+insert_leaf: index pg_default/template1/pg_index_indrelid_index tid 1/68
+0/0002DD70: prv 0/0002DD34; xid 16; BTREE info 00 len 30 tot_len 58
+insert_leaf: index pg_default/template1/pg_index_indexrelid_index tid 1/68
+0/0002DDAC: prv 0/0002DD70; xid 16; HEAP  info 00 len 49 tot_len 77
+insert: ts pg_default db template1 rel pg_depend block 0 off 114
+0/0002DDFC: prv 0/0002DDAC; xid 16; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_depender_index tid 1/108
+0/0002DE40: prv 0/0002DDFC; xid 16; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_reference_index tid 1/92
+0/0002DE84: prv 0/0002DE40; xid 16; HEAP  info 00 len 49 tot_len 77
+insert: ts pg_default db template1 rel pg_depend block 0 off 115
+0/0002DED4: prv 0/0002DE84; xid 16; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_depender_index tid 1/108
+0/0002DF18: prv 0/0002DED4; xid 16; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_reference_index tid 1/93
+0/0002DF5C: prv 0/0002DF18; xid 16; HEAP  info 00 len 49 tot_len 77
+insert: ts pg_default db template1 rel pg_depend block 0 off 116
+0/0002DFAC: prv 0/0002DF5C; xid 16; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_depender_index tid 1/108
+0/0002E010: prv 0/0002DFAC; xid 16; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_reference_index tid 1/109
+0/0002E054: prv 0/0002E010; xid 16; HEAP  info 00 len 49 tot_len 77
+insert: ts pg_default db template1 rel pg_depend block 0 off 117
+0/0002E0A4: prv 0/0002E054; xid 16; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_depender_index tid 1/108
+0/0002E0E8: prv 0/0002E0A4; xid 16; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_reference_index tid 1/102
+0/0002E12C: prv 0/0002E0E8; xid 16; HEAP  info 20 len 164 tot_len 192
+update: ts pg_default db template1 rel pg_class block 2 off 35 to block 2 off 37
+0/0002E1EC: prv 0/0002E12C; xid 16; BTREE info 00 len 30 tot_len 58
+insert_leaf: index pg_default/template1/pg_class_oid_index tid 1/133
+0/0002E228: prv 0/0002E1EC; xid 16; BTREE info 00 len 94 tot_len 122
+insert_leaf: index pg_default/template1/pg_class_relname_nsp_index tid 4/59
+0/0002E2A4: prv 0/0002E228; xid 16; HEAP  info 20 len 164 tot_len 192
+update: ts pg_default db template1 rel pg_class block 2 off 36 to block 2 off 38
+0/0002E364: prv 0/0002E2A4; xid 16; BTREE info 00 len 30 tot_len 58
+insert_leaf: index pg_default/template1/pg_class_oid_index tid 1/135
+0/0002E3A0: prv 0/0002E364; xid 16; BTREE info 00 len 94 tot_len 122
+insert_leaf: index pg_default/template1/pg_class_relname_nsp_index tid 4/61
+0/0002E41C: prv 0/0002E3A0; xid 16; HEAP  info 20 len 164 tot_len 192
+update: ts pg_default db template1 rel pg_class block 0 off 33 to block 2 off 39
+0/0002E4DC: prv 0/0002E41C; xid 16; BTREE info 00 len 30 tot_len 58
+insert_leaf: index pg_default/template1/pg_class_oid_index tid 1/23
+0/0002E518: prv 0/0002E4DC; xid 16; BTREE info 00 len 94 tot_len 122
+insert_leaf: index pg_default/template1/pg_class_relname_nsp_index tid 4/40
+0/0002E594: prv 0/0002E518; xid 16; HEAP  info 00 len 49 tot_len 77
+insert: ts pg_default db template1 rel pg_depend block 0 off 118
+0/0002E5E4: prv 0/0002E594; xid 16; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_depender_index tid 1/104
+0/0002E628: prv 0/0002E5E4; xid 16; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_reference_index tid 1/66
+0/0002E66C: prv 0/0002E628; xid 16; XACT  info 00 len 12 tot_len 40
+commit: 16
+0/0002E694: prv 0/0002E66C; xid 17; SMGR  info 10 len 12 tot_len 40
+create rel: pg_default/template1/pg_toast_2619
+0/0002E6BC: prv 0/0002E694; xid 17; HEAP  info 00 len 156 tot_len 184
+insert: ts pg_default db template1 rel pg_type block 3 off 5
+0/0002E774: prv 0/0002E6BC; xid 17; BTREE info 00 len 30 tot_len 58
+insert_leaf: index pg_default/template1/pg_type_oid_index tid 1/152
+0/0002E7B0: prv 0/0002E774; xid 17; BTREE info 00 len 94 tot_len 122
+insert_leaf: index pg_default/template1/pg_type_typname_nsp_index tid 2/34
+0/0002E82C: prv 0/0002E7B0; xid 17; HEAP  info 00 len 49 tot_len 77
+insert: ts pg_default db template1 rel pg_depend block 0 off 119
+0/0002E87C: prv 0/0002E82C; xid 17; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_depender_index tid 1/41
+0/0002E8C0: prv 0/0002E87C; xid 17; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_reference_index tid 1/28
+0/0002E904: prv 0/0002E8C0; xid 17; HEAP  info 00 len 49 tot_len 77
+insert: ts pg_default db template1 rel pg_depend block 0 off 120
+0/0002E954: prv 0/0002E904; xid 17; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_depender_index tid 1/41
+0/0002E998: prv 0/0002E954; xid 17; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_reference_index tid 1/37
+0/0002E9DC: prv 0/0002E998; xid 17; HEAP  info 00 len 49 tot_len 77
+insert: ts pg_default db template1 rel pg_depend block 0 off 121
+0/0002EA2C: prv 0/0002E9DC; xid 17; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_depender_index tid 1/41
+0/0002EA70: prv 0/0002EA2C; xid 17; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_reference_index tid 1/46
+0/0002EAB4: prv 0/0002EA70; xid 17; HEAP  info 00 len 49 tot_len 77
+insert: ts pg_default db template1 rel pg_depend block 0 off 122
+0/0002EB04: prv 0/0002EAB4; xid 17; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_depender_index tid 1/41
+0/0002EB48: prv 0/0002EB04; xid 17; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_reference_index tid 1/55
+0/0002EB8C: prv 0/0002EB48; xid 17; HEAP  info 00 len 49 tot_len 77
+insert: ts pg_default db template1 rel pg_depend block 0 off 123
+0/0002EBDC: prv 0/0002EB8C; xid 17; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_depender_index tid 1/41
+0/0002EC20: prv 0/0002EBDC; xid 17; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_reference_index tid 1/99
+0/0002EC64: prv 0/0002EC20; xid 17; HEAP  info 00 len 45 tot_len 73
+insert: ts pg_global db 0 rel pg_shdepend block 0 off 17
+0/0002ECB0: prv 0/0002EC64; xid 17; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_global/0/pg_shdepend_depender_index tid 1/9
+0/0002ECF4: prv 0/0002ECB0; xid 17; BTREE info 00 len 34 tot_len 62
+insert_leaf: index pg_global/0/pg_shdepend_reference_index tid 1/1
+0/0002ED34: prv 0/0002ECF4; xid 17; HEAP  info 00 len 156 tot_len 184
+insert: ts pg_default db template1 rel pg_class block 2 off 40
+0/0002EDEC: prv 0/0002ED34; xid 17; BTREE info 00 len 30 tot_len 58
+insert_leaf: index pg_default/template1/pg_class_oid_index tid 1/138
+0/0002EE28: prv 0/0002EDEC; xid 17; BTREE info 00 len 94 tot_len 122
+insert_leaf: index pg_default/template1/pg_class_relname_nsp_index tid 4/80
+0/0002EEA4: prv 0/0002EE28; xid 17; HEAP  info 00 len 128 tot_len 156
+insert: ts pg_default db template1 rel pg_attribute block 11 off 55
+0/0002EF40: prv 0/0002EEA4; xid 17; BTREE info 00 len 94 tot_len 122
+insert_leaf: index pg_default/template1/pg_attribute_relid_attnam_index tid 9/78
+0/0002EFBC: prv 0/0002EF40; xid 17; BTREE info 00 len 34 tot_len 62
+insert_leaf: index pg_default/template1/pg_attribute_relid_attnum_index tid 2/349
+0/0002EFFC: prv 0/0002EFBC; xid 17; HEAP  info 00 len 49 tot_len 77
+insert: ts pg_default db template1 rel pg_depend block 0 off 124
+0/0002F04C: prv 0/0002EFFC; xid 17; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_depender_index tid 1/118
+0/0002F090: prv 0/0002F04C; xid 17; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_reference_index tid 1/17
+0/0002F0D4: prv 0/0002F090; xid 17; HEAP  info 00 len 128 tot_len 156
+insert: ts pg_default db template1 rel pg_attribute block 11 off 56
+0/0002F170: prv 0/0002F0D4; xid 17; BTREE info 00 len 94 tot_len 122
+insert_leaf: index pg_default/template1/pg_attribute_relid_attnam_index tid 9/79
+0/0002F1EC: prv 0/0002F170; xid 17; BTREE info 00 len 34 tot_len 62
+insert_leaf: index pg_default/template1/pg_attribute_relid_attnum_index tid 2/350
+0/0002F22C: prv 0/0002F1EC; xid 17; HEAP  info 00 len 49 tot_len 77
+insert: ts pg_default db template1 rel pg_depend block 0 off 125
+0/0002F27C: prv 0/0002F22C; xid 17; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_depender_index tid 1/119
+0/0002F2C0: prv 0/0002F27C; xid 17; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_reference_index tid 1/9
+0/0002F304: prv 0/0002F2C0; xid 17; HEAP  info 00 len 128 tot_len 156
+insert: ts pg_default db template1 rel pg_attribute block 11 off 57
+0/0002F3A0: prv 0/0002F304; xid 17; BTREE info 00 len 94 tot_len 122
+insert_leaf: index pg_default/template1/pg_attribute_relid_attnam_index tid 9/78
+0/0002F41C: prv 0/0002F3A0; xid 17; BTREE info 00 len 34 tot_len 62
+insert_leaf: index pg_default/template1/pg_attribute_relid_attnum_index tid 2/351
+0/0002F45C: prv 0/0002F41C; xid 17; HEAP  info 00 len 49 tot_len 77
+insert: ts pg_default db template1 rel pg_depend block 0 off 126
+0/0002F4AC: prv 0/0002F45C; xid 17; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_depender_index tid 1/120
+0/0002F4F0: prv 0/0002F4AC; xid 17; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_reference_index tid 1/1
+0/0002F534: prv 0/0002F4F0; xid 17; HEAP  info 00 len 128 tot_len 156
+insert: ts pg_default db template1 rel pg_attribute block 11 off 58
+0/0002F5D0: prv 0/0002F534; xid 17; BTREE info 00 len 94 tot_len 122
+insert_leaf: index pg_default/template1/pg_attribute_relid_attnam_index tid 9/81
+0/0002F64C: prv 0/0002F5D0; xid 17; BTREE info 00 len 34 tot_len 62
+insert_leaf: index pg_default/template1/pg_attribute_relid_attnum_index tid 2/349
+0/0002F68C: prv 0/0002F64C; xid 17; HEAP  info 00 len 128 tot_len 156
+insert: ts pg_default db template1 rel pg_attribute block 11 off 59
+0/0002F728: prv 0/0002F68C; xid 17; BTREE info 00 len 94 tot_len 122
+insert_leaf: index pg_default/template1/pg_attribute_relid_attnam_index tid 9/82
+0/0002F7A4: prv 0/0002F728; xid 17; BTREE info 00 len 34 tot_len 62
+insert_leaf: index pg_default/template1/pg_attribute_relid_attnum_index tid 2/349
+0/0002F7E4: prv 0/0002F7A4; xid 17; HEAP  info 00 len 128 tot_len 156
+insert: ts pg_default db template1 rel pg_attribute block 11 off 60
+0/0002F880: prv 0/0002F7E4; xid 17; BTREE info 00 len 94 tot_len 122
+insert_leaf: index pg_default/template1/pg_attribute_relid_attnam_index tid 9/81
+0/0002F8FC: prv 0/0002F880; xid 17; BTREE info 00 len 34 tot_len 62
+insert_leaf: index pg_default/template1/pg_attribute_relid_attnum_index tid 2/349
+0/0002F93C: prv 0/0002F8FC; xid 17; HEAP  info 80 len 128 tot_len 156
+insert+INIT: ts pg_default db template1 rel pg_attribute block 12 off 1
+0/0002F9D8: prv 0/0002F93C; xid 17; BTREE info 00 len 94 tot_len 122
+insert_leaf: index pg_default/template1/pg_attribute_relid_attnam_index tid 9/83
+0/0002FA54: prv 0/0002F9D8; xid 17; BTREE info 00 len 34 tot_len 62
+insert_leaf: index pg_default/template1/pg_attribute_relid_attnum_index tid 2/349
+0/0002FA94: prv 0/0002FA54; xid 17; HEAP  info 00 len 128 tot_len 156
+insert: ts pg_default db template1 rel pg_attribute block 12 off 2
+0/0002FB30: prv 0/0002FA94; xid 17; BTREE info 00 len 94 tot_len 122
+insert_leaf: index pg_default/template1/pg_attribute_relid_attnam_index tid 9/81
+0/0002FBAC: prv 0/0002FB30; xid 17; BTREE info 00 len 34 tot_len 62
+insert_leaf: index pg_default/template1/pg_attribute_relid_attnum_index tid 2/349
+0/0002FBEC: prv 0/0002FBAC; xid 17; HEAP  info 00 len 128 tot_len 156
+insert: ts pg_default db template1 rel pg_attribute block 12 off 3
+0/0002FC88: prv 0/0002FBEC; xid 17; BTREE info 00 len 94 tot_len 122
+insert_leaf: index pg_default/template1/pg_attribute_relid_attnam_index tid 9/84
+0/0002FD04: prv 0/0002FC88; xid 17; BTREE info 00 len 34 tot_len 62
+insert_leaf: index pg_default/template1/pg_attribute_relid_attnum_index tid 2/349
+0/0002FD44: prv 0/0002FD04; xid 17; HEAP  info 00 len 49 tot_len 77
+insert: ts pg_default db template1 rel pg_depend block 0 off 127
+0/0002FD94: prv 0/0002FD44; xid 17; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_depender_index tid 1/118
+0/0002FDD8: prv 0/0002FD94; xid 17; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_reference_index tid 1/103
+0/0002FE1C: prv 0/0002FDD8; xid 17; HEAP  info 00 len 45 tot_len 73
+insert: ts pg_global db 0 rel pg_shdepend block 0 off 18
+0/0002FE68: prv 0/0002FE1C; xid 17; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_global/0/pg_shdepend_depender_index tid 1/18
+0/0002FEAC: prv 0/0002FE68; xid 17; BTREE info 00 len 34 tot_len 62
+insert_leaf: index pg_global/0/pg_shdepend_reference_index tid 1/1
+0/0002FEEC: prv 0/0002FEAC; xid 17; SMGR  info 10 len 12 tot_len 40
+create rel: pg_default/template1/pg_toast_2619_index
+0/0002FF14: prv 0/0002FEEC; xid 17; HEAP  info 00 len 156 tot_len 184
+insert: ts pg_default db template1 rel pg_class block 2 off 41
+0/0002FFCC: prv 0/0002FF14; xid 17; BTREE info 00 len 30 tot_len 58
+insert_leaf: index pg_default/template1/pg_class_oid_index tid 1/139
+0/0003001C: prv 0/0002FFCC; xid 17; BTREE info 00 len 94 tot_len 122
+insert_leaf: index pg_default/template1/pg_class_relname_nsp_index tid 4/81
+0/00030098: prv 0/0003001C; xid 17; HEAP  info 00 len 128 tot_len 156
+insert: ts pg_default db template1 rel pg_attribute block 12 off 4
+0/00030134: prv 0/00030098; xid 17; BTREE info 00 len 94 tot_len 122
+insert_leaf: index pg_default/template1/pg_attribute_relid_attnam_index tid 9/87
+0/000301B0: prv 0/00030134; xid 17; BTREE info 00 len 34 tot_len 62
+insert_leaf: index pg_default/template1/pg_attribute_relid_attnum_index tid 2/358
+0/000301F0: prv 0/000301B0; xid 17; HEAP  info 00 len 128 tot_len 156
+insert: ts pg_default db template1 rel pg_attribute block 12 off 5
+0/0003028C: prv 0/000301F0; xid 17; BTREE info 00 len 94 tot_len 122
+insert_leaf: index pg_default/template1/pg_attribute_relid_attnam_index tid 9/88
+0/00030308: prv 0/0003028C; xid 17; BTREE info 00 len 34 tot_len 62
+insert_leaf: index pg_default/template1/pg_attribute_relid_attnum_index tid 2/359
+0/00030348: prv 0/00030308; xid 17; HEAP  info 00 len 104 tot_len 132
+insert: ts pg_default db template1 rel pg_index block 0 off 69
+0/000303CC: prv 0/00030348; xid 17; BTREE info 00 len 30 tot_len 58
+insert_leaf: index pg_default/template1/pg_index_indrelid_index tid 1/69
+0/00030408: prv 0/000303CC; xid 17; BTREE info 00 len 30 tot_len 58
+insert_leaf: index pg_default/template1/pg_index_indexrelid_index tid 1/69
+0/00030444: prv 0/00030408; xid 17; HEAP  info 00 len 49 tot_len 77
+insert: ts pg_default db template1 rel pg_depend block 0 off 128
+0/00030494: prv 0/00030444; xid 17; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_depender_index tid 1/122
+0/000304D8: prv 0/00030494; xid 17; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_reference_index tid 1/103
+0/0003051C: prv 0/000304D8; xid 17; HEAP  info 00 len 49 tot_len 77
+insert: ts pg_default db template1 rel pg_depend block 0 off 129
+0/0003056C: prv 0/0003051C; xid 17; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_depender_index tid 1/122
+0/000305B0: prv 0/0003056C; xid 17; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_reference_index tid 1/104
+0/000305F4: prv 0/000305B0; xid 17; HEAP  info 00 len 49 tot_len 77
+insert: ts pg_default db template1 rel pg_depend block 0 off 130
+0/00030644: prv 0/000305F4; xid 17; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_depender_index tid 1/122
+0/00030688: prv 0/00030644; xid 17; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_reference_index tid 1/122
+0/000306CC: prv 0/00030688; xid 17; HEAP  info 00 len 49 tot_len 77
+insert: ts pg_default db template1 rel pg_depend block 0 off 131
+0/0003071C: prv 0/000306CC; xid 17; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_depender_index tid 1/122
+0/00030760: prv 0/0003071C; xid 17; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_reference_index tid 1/114
+0/000307A4: prv 0/00030760; xid 17; HEAP  info 20 len 164 tot_len 192
+update: ts pg_default db template1 rel pg_class block 2 off 40 to block 2 off 42
+0/00030864: prv 0/000307A4; xid 17; BTREE info 00 len 30 tot_len 58
+insert_leaf: index pg_default/template1/pg_class_oid_index tid 1/138
+0/000308A0: prv 0/00030864; xid 17; BTREE info 00 len 94 tot_len 122
+insert_leaf: index pg_default/template1/pg_class_relname_nsp_index tid 4/80
+0/0003091C: prv 0/000308A0; xid 17; HEAP  info 20 len 164 tot_len 192
+update: ts pg_default db template1 rel pg_class block 2 off 41 to block 2 off 43
+0/000309DC: prv 0/0003091C; xid 17; BTREE info 00 len 30 tot_len 58
+insert_leaf: index pg_default/template1/pg_class_oid_index tid 1/140
+0/00030A18: prv 0/000309DC; xid 17; BTREE info 00 len 94 tot_len 122
+insert_leaf: index pg_default/template1/pg_class_relname_nsp_index tid 4/82
+0/00030A94: prv 0/00030A18; xid 17; HEAP  info 20 len 164 tot_len 192
+update: ts pg_default db template1 rel pg_class block 0 off 18 to block 2 off 44
+0/00030B54: prv 0/00030A94; xid 17; BTREE info 00 len 30 tot_len 58
+insert_leaf: index pg_default/template1/pg_class_oid_index tid 1/49
+0/00030B90: prv 0/00030B54; xid 17; BTREE info 00 len 94 tot_len 122
+insert_leaf: index pg_default/template1/pg_class_relname_nsp_index tid 4/43
+0/00030C0C: prv 0/00030B90; xid 17; HEAP  info 00 len 49 tot_len 77
+insert: ts pg_default db template1 rel pg_depend block 0 off 132
+0/00030C5C: prv 0/00030C0C; xid 17; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_depender_index tid 1/118
+0/00030CA0: prv 0/00030C5C; xid 17; BTREE info 00 len 38 tot_len 66
+insert_leaf: index pg_default/template1/pg_depend_reference_index tid 1/78
+0/00030CE4: prv 0/00030CA0; xid 17; XACT  info 00 len 12 tot_len 40
+commit: 17
+0/00030D0C: prv 0/00030CE4; xid 0; XLOG  info 00 len 40 tot_len 68
+checkpoint: redo 0/00030D0C; undo 0/00000000; tli 1; nextxid 18;
+  nextoid 10315; nextmulti 1; nextoffset 0; shutdown
+0/00030D50: prv 0/00030D0C; xid 19; HEAP  info 18 len 18 tot_len 8006
+bkpblock 1: ts pg_default db template1 rel pg_depend block 0 hole 548 len 252
+delete: ts pg_default db template1 rel pg_depend block 0 off 1
+0/00032CAC: prv 0/00030D50; xid 19; HEAP  info 10 len 18 tot_len 46
+delete: ts pg_default db template1 rel pg_depend block 0 off 2
+0/00032CDC: prv 0/00032CAC; xid 19; HEAP  info 10 len 18 tot_len 46
+delete: ts pg_default db template1 rel pg_depend block 0 off 3
+0/00032D0C: prv 0/00032CDC; xid 19; HEAP  info 10 len 18 tot_len 46
+delete: ts pg_default db template1 rel pg_depend block 0 off 4
+0/00032D3C: prv 0/00032D0C; xid 19; HEAP  info 10 len 18 tot_len 46
+delete: ts pg_default db template1 rel pg_depend block 0 off 5
+0/00032D6C: prv 0/00032D3C; xid 19; HEAP  info 10 len 18 tot_len 46
+delete: ts pg_default db template1 rel pg_depend block 0 off 6
+0/00032D9C: prv 0/00032D6C; xid 19; HEAP  info 10 len 18 tot_len 46
+delete: ts pg_default db template1 rel pg_depend block 0 off 7
+0/00032DCC: prv 0/00032D9C; xid 19; HEAP  info 10 len 18 tot_len 46
+delete: ts pg_default db template1 rel pg_depend block 0 off 8
+0/00032DFC: prv 0/00032DCC; xid 19; HEAP  info 10 len 18 tot_len 46
+delete: ts pg_default db template1 rel pg_depend block 0 off 9
+0/00032E2C: prv 0/00032DFC; xid 19; HEAP  info 10 len 18 tot_len 46
+delete: ts pg_default db template1 rel pg_depend block 0 off 10
+0/00032E5C: prv 0/00032E2C; xid 19; HEAP  info 10 len 18 tot_len 46
+delete: ts pg_default db template1 rel pg_depend block 0 off 11
+0/00032E8C: prv 0/00032E5C; xid 19; HEAP  info 10 len 18 tot_len 46
+delete: ts pg_default db template1 rel pg_depend block 0 off 12
+0/00032EBC: prv 0/00032E8C; xid 19; HEAP  info 10 len 18 tot_len 46
+delete: ts pg_default db template1 rel pg_depend block 0 off 13
+0/00032EEC: prv 0/00032EBC; xid 19; HEAP  info 10 len 18 tot_len 46
+delete: ts pg_default db template1 rel pg_depend block 0 off 14
+0/00032F1C: prv 0/00032EEC; xid 19; HEAP  info 10 len 18 tot_len 46
+delete: ts pg_default db template1 rel pg_depend block 0 off 15
+0/00032F4C: prv 0/00032F1C; xid 19; HEAP  info 10 len 18 tot_len 46
+delete: ts pg_default db template1 rel pg_depend block 0 off 16
+0/00032F7C: prv 0/00032F4C; xid 19; HEAP  info 10 len 18 tot_len 46
+delete: ts pg_default db template1 rel pg_depend block 0 off 17
+0/00032FAC: prv 0/00032F7C; xid 19; HEAP  info 10 len 18 tot_len 46
+delete: ts pg_default db template1 rel pg_depend block 0 off 18
+0/00032FDC: prv 0/00032FAC; xid 19; HEAP  info 10 len 18 tot_len 46
+delete: ts pg_default db template1 rel pg_depend block 0 off 19
+0/0003300C: prv 0/00032FDC; xid 19; HEAP  info 10 len 18 tot_len 46
+delete: ts pg_default db template1 rel pg_depend block 0 off 20
+0/0003303C: prv 0/0003300C; xid 19; HEAP  info 10 len 18 tot_len 46
+delete: ts pg_default db template1 rel pg_depend block 0 off 21
+0/0003306C: prv 0/0003303C; xid 19; HEAP  info 10 len 18 tot_len 46
+delete: ts pg_default db template1 rel pg_depend block 0 off 22
+0/0003309C: prv 0/0003306C; xid 19; HEAP  info 10 len 18 tot_len 46
+delete: ts pg_default db template1 rel pg_depend block 0 off 23
+0/000330CC: prv 0/0003309C; xid 19; HEAP  info 10 len 18 tot_len 46
+delete: ts pg_default db template1 rel pg_depend block 0 off 24
+0/000330FC: prv 0/000330CC; xid 19; HEAP  info 10 len 18 tot_len 46
+delete: ts pg_default db template1 rel pg_depend block 0 off 25
+0/0003312C: prv 0/000330FC; xid 19; HEAP  info 10 len 18 tot_len 46
+delete: ts pg_default db template1 rel pg_depend block 0 off 26
+0/0003315C: prv 0/0003312C; xid 19; HEAP  info 10 len 18 tot_len 46
+delete: ts pg_default db template1 rel pg_depend block 0 off 27
+0/0003318C: prv 0/0003315C; xid 19; HEAP  info 10 len 18 tot_len 46
+delete: ts pg_default db template1 rel pg_depend block 0 off 28
+0/000331BC: prv 0/0003318C; xid 19; HEAP  info 10 len 18 tot_len 46
+delete: ts pg_default db template1 rel pg_depend block 0 off 29
+0/000331EC: prv 0/000331BC; xid 19; HEAP  info 10 len 18 tot_len 46
+delete: ts pg_default db template1 rel pg_depend block 0 off 30
+0/0003321C: prv 0/000331EC; xid 19; HEAP  info 10 len 18 tot_len 46
+delete: ts pg_default db template1 rel pg_depend block 0 off 31
+0/0003324C: prv 0/0003321C; xid 19; HEAP  info 10 len 18 tot_len 46
+delete: ts pg_default db template1 rel pg_depend block 0 off 32
+0/0003327C: prv 0/0003324C; xid 19; HEAP  info 10 len 18 tot_len 46
+delete: ts pg_default db template1 rel pg_depend block 0 off 33
+0/000332AC: prv 0/0003327C; xid 19; HEAP  info 10 len 18 tot_len 46
+delete: ts pg_default db template1 rel pg_depend block 0 off 34
+0/000332DC: prv 0/000332AC; xid 19; HEAP  info 10 len 18 tot_len 46
+delete: ts pg_default db template1 rel pg_depend block 0 off 35
+0/0003330C: prv 0/000332DC; xid 19; HEAP  info 10 len 18 tot_len 46
+delete: ts pg_default db template1 rel pg_depend block 0 off 36
+0/0003333C: prv 0/0003330C; xid 19; HEAP  info 10 len 18 tot_len 46
+delete: ts pg_default db template1 rel pg_depend block 0 off 37
+0/0003336C: prv 0/0003333C; xid 19; HEAP  info 10 len 18 tot_len 46
+delete: ts pg_default db template1 rel pg_depend block 0 off 38
+0/0003339C: prv 0/0003336C; xid 19; HEAP  info 10 len 18 tot_len 46
+delete: ts pg_default db template1 rel pg_depend block 0 off 39
+0/000333CC: prv 0/0003339C; xid 19; HEAP  info 10 len 18 tot_len 46
+delete: ts pg_default db template1 rel pg_depend block 0 off 40
+0/000333FC: prv 0/000333CC; xid 19; HEAP  info 10 len 18 tot_len 46
+delete: ts pg_default db template1 rel pg_depend block 0 off 41
+0/0003342C: prv 0/000333FC; xid 19; HEAP  info 10 len 18 tot_len 46
+delete: ts pg_default db template1 rel pg_depend block 0 off 42
+0/0003345C: prv 0/0003342C; xid 19; HEAP  info 10 len 18 tot_len 46
+delete: ts pg_default db template1 rel pg_depend block 0 off 43
+0/0003348C: prv 0/0003345C; xid 19; HEAP  info 10 len 18 tot_len 46
+delete: ts pg_default db template1 rel pg_depend block 0 off 44
+0/000334BC: prv 0/0003348C; xid 19; HEAP  info 10 len 18 tot_len 46
+delete: ts pg_default db template1 rel pg_depend block 0 off 45
+0/000334EC: prv 0/000334BC; xid 19; HEAP  info 10 len 18 tot_len 46
+delete: ts pg_default db template1 rel pg_depend block 0 off 46
+0/0003351C: prv 0/000334EC; xid 19; HEAP  info 10 len 18 tot_len 46
+delete: ts pg_default db template1 rel pg_depend block 0 off 47
+0/0003354C: prv 0/0003351C; xid 19; HEAP  info 10 len 18 tot_len 46
+delete: ts pg_default db template1 rel pg_depend block 0 off 48
+0/0003357C: prv 0/0003354C; xid 19; HEAP  info 10 len 18 tot_len 46
+delete: ts pg_default db template1 rel pg_depend block 0 off 49
+0/000335AC: prv 0/0003357C; xid 19; HEAP  info 10 len 18 tot_len 46
+delete: ts pg_default db template1 rel pg_depend block 0 off 50
+0/000335DC: prv 0/000335AC; xid 19; HEAP  info 10 len 18 tot_len 46
+delete: ts pg_default db template1 rel pg_depend block 0 off 51
+0/0003360C: prv 0/000335DC; xid 19; HEAP  info 10 len 18 tot_len 46
+delete: ts pg_default db template1 rel pg_depend block 0 off 52
+0/0003363C: prv 0/0003360C; xid 19; HEAP  info 10 len 18 tot_len 46
+delete: ts pg_default db template1 rel pg_depend block 0 off 53
+0/0003366C: prv 0/0003363C; xid 19; HEAP  info 10 len 18 tot_len 46
+delete: ts pg_default db template1 rel pg_depend block 0 off 54
+0/0003369C: prv 0/0003366C; xid 19; HEAP  info 10 len 18 tot_len 46
+delete: ts pg_default db template1 rel pg_depend block 0 off 55
+0/000336CC: prv 0/0003369C; xid 19; HEAP  info 10 len 18 tot_len 46
+delete: ts pg_default db template1 rel pg_depend block 0 off 56
+0/000336FC: prv 0/000336CC; xid 19; HEAP  info 10 len 18 tot_len 46
+delete: ts pg_default db template1 rel pg_depend block 0 off 57
+0/0003372C: prv 0/000336FC; xid 19; HEAP  info 10 len 18 tot_len 46
+delete: ts pg_default db template1 rel pg_depend block 0 off 58
+0/0003375C: prv 0/0003372C; xid 19; HEAP  info 10 len 18 tot_len 46
+delete: ts pg_default db template1 rel pg_depend block 0 off 59
+0/0003378C: prv 0/0003375C; xid 19; HEAP  info 10 len 18 tot_len 46
+delete: ts pg_default db template1 rel pg_depend block 0 off 60
+0/000337BC: prv 0/0003378C; xid 19; HEAP  info 10 len 18 tot_len 46
+delete: ts pg_default db template1 rel pg_depend block 0 off 61
+0/000337EC: prv 0/000337BC; xid 19; HEAP  info 10 len 18 tot_len 46
+delete: ts pg_default db template1 rel pg_depend block 0 off 62
+0/0003381C: prv 0/000337EC; xid 19; HEAP  info 10 len 18 tot_len 46
+delete: ts pg_default db template1 rel pg_depend block 0 off 63
+0/0003384C: prv 0/0003381C; xid 19; HEAP  info 10 len 18 tot_len 46
+delete: ts pg_default db template1 rel pg_depend block 0 off 64
+0/0003387C: prv 0/0003384C; xid 19; HEAP  info 10 len 18 tot_len 46
+delete: ts pg_default db template1 rel pg_depend block 0 off 65
+0/000338AC: prv 0/0003387C; xid 19; HEAP  info 10 len 18 tot_len 46
+delete: ts pg_default db template1 rel pg_depend block 0 off 66
+0/000338DC: prv 0/000338AC; xid 19; HEAP  info 10 len 18 tot_len 46
+delete: ts pg_default db template1 rel pg_depend block 0 off 67
+0/0003390C: prv 0/000338DC; xid 19; HEAP  info 10 len 18 tot_len 46
+delete: ts pg_default db template1 rel pg_depend block 0 off 68
+0/0003393C: prv 0/0003390C; xid 19; HEAP  info 10 len 18 tot_len 46
+delete: ts pg_default db template1 rel pg_depend block 0 off 69
+0/0003396C: prv 0/0003393C; xid 19; HEAP  info 10 len 18 tot_len 46
+delete: ts pg_default db template1 rel pg_depend block 0 off 70
+0/0003399C: prv 0/0003396C; xid 19; HEAP  info 10 len 18 tot_len 46
+delete: ts pg_default db template1 rel pg_depend block 0 off 71
+0/000339CC: prv 0/0003399C; xid 19; HEAP  info 10 len 18 tot_len 46
+delete: ts pg_default db template1 rel pg_depend block 0 off 72
+0/000339FC: prv 0/000339CC; xid 19; HEAP  info 10 len 18 tot_len 46
+delete: ts pg_default db template1 rel pg_depend block 0 off 73
+0/00033A2C: prv 0/000339FC; xid 19; HEAP  info 10 len 18 tot_len 46
+delete: ts pg_default db template1 rel pg_depend block 0 off 74
+0/00033A5C: prv 0/00033A2C; xid 19; HEAP  info 10 len 18 tot_len 46
+delete: ts pg_default db template1 rel pg_depend block 0 off 75
+0/00033A8C: prv 0/00033A5C; xid 19; HEAP  info 10 len 18 tot_len 46
+delete: ts pg_default db template1 rel pg_depend block 0 off 76
+0/00033ABC: prv 0/00033A8C; xid 19; HEAP  info 10 len 18 tot_len 46
+delete: ts pg_default db template1 rel pg_depend block 0 off 77
+0/00033AEC: prv 0/00033ABC; xid 19; HEAP  info 10 len 18 tot_len 46
+delete: ts pg_default db template1 rel pg_depend block 0 off 78
+0/00033B1C: prv 0/00033AEC; xid 19; HEAP  info 10 len 18 tot_len 46
+delete: ts pg_default db template1 rel pg_depend block 0 off 79
+0/00033B4C: prv 0/00033B1C; xid 19; HEAP  info 10 len 18 tot_len 46
+delete: ts pg_default db template1 rel pg_depend block 0 off 80
+0/00033B7C: prv 0/00033B4C; xid 19; HEAP  info 10 len 18 tot_len 46
+delete: ts pg_default db template1 rel pg_depend block 0 off 81
+0/00033BAC: prv 0/00033B7C; xid 19; HEAP  info 10 len 18 tot_len 46
+delete: ts pg_default db template1 rel pg_depend block 0 off 82
+0/00033BDC: prv 0/00033BAC; xid 19; HEAP  info 10 len 18 tot_len 46
+delete: ts pg_default db template1 rel pg_depend block 0 off 83
+0/00033C0C: prv 0/00033BDC; xid 19; HEAP  info 10 len 18 tot_len 46
+delete: ts pg_default db template1 rel pg_depend block 0 off 84
+0/00033C3C: prv 0/00033C0C; xid 19; HEAP  info 10 len 18 tot_len 46
+delete: ts pg_default db template1 rel pg_depend block 0 off 85
+0/00033C6C: prv 0/00033C3C; xid 19; HEAP  info 10 len 18 tot_len 46
+delete: ts pg_default db template1 rel pg_depend block 0 off 86
+0/00033C9C: prv 0/00033C6C; xid 19; HEAP  info 10 len 18 tot_len 46
+delete: ts pg_default db template1 rel pg_depend block 0 off 87
+0/00033CCC: prv 0/00033C9C; xid 19; HEAP  info 10 len 18 tot_len 46
+delete: ts pg_default db template1 rel pg_depend block 0 off 88
+0/00033CFC: prv 0/00033CCC; xid 19; HEAP  info 10 len 18 tot_len 46
+delete: ts pg_default db template1 rel pg_depend block 0 off 89
+0/00033D2C: prv 0/00033CFC; xid 19; HEAP  info 10 len 18 tot_len 46
+delete: ts pg_default db template1 rel pg_depend block 0 off 90
+0/00033D5C: prv 0/00033D2C; xid 19; HEAP  info 10 len 18 tot_len 46
+delete: ts pg_default db template1 rel pg_depend block 0 off 91
+0/00033D8C: prv 0/00033D5C; xid 19; HEAP  info 10 len 18 tot_len 46
+delete: ts pg_default db template1 rel pg_depend block 0 off 92
+0/00033DBC: prv 0/00033D8C; xid 19; HEAP  info 10 len 18 tot_len 46
+delete: ts pg_default db template1 rel pg_depend block 0 off 93
+0/00033DEC: prv 0/00033DBC; xid 19; HEAP  info 10 len 18 tot_len 46
+delete: ts pg_default db template1 rel pg_depend block 0 off 94
+0/00033E1C: prv 0/00033DEC; xid 19; HEAP  info 10 len 18 tot_len 46
+delete: ts pg_default db template1 rel pg_depend block 0 off 95
+0/00033E4C: prv 0/00033E1C; xid 19; HEAP  info 10 len 18 tot_len 46
+delete: ts pg_default db template1 rel pg_depend block 0 off 96
+0/00033E7C: prv 0/00033E4C; xid 19; HEAP  info 10 len 18 tot_len 46
+delete: ts pg_default db template1 rel pg_depend block 0 off 97
+0/00033EAC: prv 0/00033E7C; xid 19; HEAP  info 10 len 18 tot_len 46
+delete: ts pg_default db template1 rel pg_depend block 0 off 98
+0/00033EDC: prv 0/00033EAC; xid 19; HEAP  info 10 len 18 tot_len 46
+delete: ts pg_default db template1 rel pg_depend block 0 off 99
+0/00033F0C: prv 0/00033EDC; xid 19; HEAP  info 10 len 18 tot_len 46
+delete: ts pg_default db template1 rel pg_depend block 0 off 100
+0/00033F3C: prv 0/00033F0C; xid 19; HEAP  info 10 len 18 tot_len 46
+delete: ts pg_default db template1 rel pg_depend block 0 off 101
+0/00033F6C: prv 0/00033F3C; xid 19; HEAP  info 10 len 18 tot_len 46
+delete: ts pg_default db template1 rel pg_depend block 0 off 102
+0/00033F9C: prv 0/00033F6C; xid 19; HEAP  info 10 len 18 tot_len 46
+delete: ts pg_default db template1 rel pg_depend block 0 off 103
+0/00033FCC: prv 0/00033F9C; xid 19; HEAP  info 10 len 18 tot_len 46
+delete: ts pg_default db template1 rel pg_depend block 0 off 104
+0/00034010: prv 0/00033FCC; xid 19; HEAP  info 10 len 18 tot_len 46
+delete: ts pg_default db template1 rel pg_depend block 0 off 105
+0/00034040: prv 0/00034010; xid 19; HEAP  info 10 len 18 tot_len 46
+delete: ts pg_default db template1 rel pg_depend block 0 off 106
+0/00034070: prv 0/00034040; xid 19; HEAP  info 10 len 18 tot_len 46
+delete: ts pg_default db template1 rel pg_depend block 0 off 107
+0/000340A0: prv 0/00034070; xid 19; HEAP  info 10 len 18 tot_len 46
+delete: ts pg_default db template1 rel pg_depend block 0 off 108
+0/000340D0: prv 0/000340A0; xid 19; HEAP  info 10 len 18 tot_len 46
+delete: ts pg_default db template1 rel pg_depend block 0 off 109
+0/00034100: prv 0/000340D0; xid 19; HEAP  info 10 len 18 tot_len 46
+delete: ts pg_default db template1 rel pg_depend block 0 off 110
+0/00034130: prv 0/00034100; xid 19; HEAP  info 10 len 18 tot_len 46
+delete: ts pg_default db template1 rel pg_depend block 0 off 111
+0/00034160: prv 0/00034130; xid 19; HEAP  info 10 len 18 tot_len 46
+delete: ts pg_default db template1 rel pg_depend block 0 off 112
+0/00034190: prv 0/00034160; xid 19; HEAP  info 10 len 18 tot_len 46
+delete: ts pg_default db template1 rel pg_depend block 0 off 113
+0/000341C0: prv 0/00034190; xid 19; HEAP  info 10 len 18 tot_len 46
+delete: ts pg_default db template1 rel pg_depend block 0 off 114
+0/000341F0: prv 0/000341C0; xid 19; HEAP  info 10 len 18 tot_len 46
+delete: ts pg_default db template1 rel pg_depend block 0 off 115
+0/00034220: prv 0/000341F0; xid 19; HEAP  info 10 len 18 tot_len 46
+delete: ts pg_default db template1 rel pg_depend block 0 off 116
+0/00034250: prv 0/00034220; xid 19; HEAP  info 10 len 18 tot_len 46
+delete: ts pg_default db template1 rel pg_depend block 0 off 117
+0/00034280: prv 0/00034250; xid 19; HEAP  info 10 len 18 tot_len 46
+delete: ts pg_default db template1 rel pg_depend block 0 off 118
+0/000342B0: prv 0/00034280; xid 19; HEAP  info 10 len 18 tot_len 46
+delete: ts pg_default db template1 rel pg_depend block 0 off 119
+0/000342E0: prv 0/000342B0; xid 19; HEAP  info 10 len 18 tot_len 46
+delete: ts pg_default db template1 rel pg_depend block 0 off 120
+0/00034310: prv 0/000342E0; xid 19; HEAP  info 10 len 18 tot_len 46
+delete: ts pg_default db template1 rel pg_depend block 0 off 121
+0/00034340: prv 0/00034310; xid 19; HEAP  info 10 len 18 tot_len 46
+delete: ts pg_default db template1 rel pg_depend block 0 off 122
+0/00034370: prv 0/00034340; xid 19; HEAP  info 10 len 18 tot_len 46
+delete: ts pg_default db template1 rel pg_depend block 0 off 123
+0/000343A0: prv 0/00034370; xid 19; HEAP  info 10 len 18 tot_len 46
+delete: ts pg_default db template1 rel pg_depend block 0 off 124
+0/000343D0: prv 0/000343A0; xid 19; HEAP  info 10 len 18 tot_len 46
+delete: ts pg_default db template1 rel pg_depend block 0 off 125
+0/00034400: prv 0/000343D0; xid 19; HEAP  info 10 len 18 tot_len 46
+delete: ts pg_default db template1 rel pg_depend block 0 off 126
+0/00034430: prv 0/00034400; xid 19; HEAP  info 10 len 18 tot_len 46
+delete: ts pg_default db template1 rel pg_depend block 0 off 127
+0/00034460: prv 0/00034430; xid 19; HEAP  info 10 len 18 tot_len 46
+delete: ts pg_default db template1 rel pg_depend block 0 off 128
+0/00034490: prv 0/00034460; xid 19; HEAP  info 10 len 18 tot_len 46
+delete: ts pg_default db template1 rel pg_depend block 0 off 129
+0/000344C0: prv 0/00034490; xid 19; HEAP  info 10 len 18 tot_len 46
+delete: ts pg_default db template1 rel pg_depend block 0 off 130
+0/000344F0: prv 0/000344C0; xid 19; HEAP  info 10 len 18 tot_len 46
+delete: ts pg_default db template1 rel pg_depend block 0 off 131
+0/00034520: prv 0/000344F0; xid 19; HEAP  info 10 len 18 tot_len 46
+delete: ts pg_default db template1 rel pg_depend block 0 off 132
+0/00034550: prv 0/00034520; xid 19; XACT  info 00 len 12 tot_len 40
+commit: 19
+0/00034578: prv 0/00034550; xid 21; BTREE info 78 len 16 tot_len 100
+bkpblock 1: ts pg_default db template1 rel pg_depend_depender_index block 1 hole 20 len 8156
+delete: index pg_default/template1/pg_depend_depender_index block 1
+0/000345DC: prv 0/00034578; xid 21; BTREE info 78 len 16 tot_len 100
+bkpblock 1: ts pg_default db template1 rel pg_depend_reference_index block 1 hole 20 len 8156
+delete: index pg_default/template1/pg_depend_reference_index block 1
+0/00034640: prv 0/000345DC; xid 21; HEAP  info 40 len 280 tot_len 308
+clean: ts pg_default db template1 rel pg_depend block 0
+0/00034774: prv 0/00034640; xid 21; HEAP  info 78 len 18 tot_len 8158
+bkpblock 1: ts pg_default db template1 rel pg_class block 1 hole 216 len 100
+inplace: ts pg_default db template1 rel pg_class block 1 off 13
+0/00036768: prv 0/00034774; xid 21; HEAP  info 70 len 142 tot_len 170
+inplace: ts pg_default db template1 rel pg_class block 1 off 14
+0/00036814: prv 0/00036768; xid 21; SMGR  info 20 len 16 tot_len 44
+truncate rel: pg_default/template1/pg_depend at block 0
+0/00036840: prv 0/00036814; xid 21; XACT  info 00 len 12 tot_len 40
+commit: 21
+0/00036868: prv 0/00036840; xid 23; HEAP  info 18 len 18 tot_len 1094
+bkpblock 1: ts pg_global db 0 rel pg_shdepend block 0 hole 92 len 7164
+delete: ts pg_global db 0 rel pg_shdepend block 0 off 1
+0/00036CB0: prv 0/00036868; xid 23; HEAP  info 10 len 18 tot_len 46
+delete: ts pg_global db 0 rel pg_shdepend block 0 off 2
+0/00036CE0: prv 0/00036CB0; xid 23; HEAP  info 10 len 18 tot_len 46
+delete: ts pg_global db 0 rel pg_shdepend block 0 off 3
+0/00036D10: prv 0/00036CE0; xid 23; HEAP  info 10 len 18 tot_len 46
+delete: ts pg_global db 0 rel pg_shdepend block 0 off 4
+0/00036D40: prv 0/00036D10; xid 23; HEAP  info 10 len 18 tot_len 46
+delete: ts pg_global db 0 rel pg_shdepend block 0 off 5
+0/00036D70: prv 0/00036D40; xid 23; HEAP  info 10 len 18 tot_len 46
+delete: ts pg_global db 0 rel pg_shdepend block 0 off 6
+0/00036DA0: prv 0/00036D70; xid 23; HEAP  info 10 len 18 tot_len 46
+delete: ts pg_global db 0 rel pg_shdepend block 0 off 7
+0/00036DD0: prv 0/00036DA0; xid 23; HEAP  info 10 len 18 tot_len 46
+delete: ts pg_global db 0 rel pg_shdepend block 0 off 8
+0/00036E00: prv 0/00036DD0; xid 23; HEAP  info 10 len 18 tot_len 46
+delete: ts pg_global db 0 rel pg_shdepend block 0 off 9
+0/00036E30: prv 0/00036E00; xid 23; HEAP  info 10 len 18 tot_len 46
+delete: ts pg_global db 0 rel pg_shdepend block 0 off 10
+0/00036E60: prv 0/00036E30; xid 23; HEAP  info 10 len 18 tot_len 46
+delete: ts pg_global db 0 rel pg_shdepend block 0 off 11
+0/00036E90: prv 0/00036E60; xid 23; HEAP  info 10 len 18 tot_len 46
+delete: ts pg_global db 0 rel pg_shd

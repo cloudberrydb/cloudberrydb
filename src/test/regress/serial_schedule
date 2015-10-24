@@ -45,7 +45,7 @@ test: create_function_2
 test: copy
 test: copyselect
 test: constraints
-test: triggers
+ignore: triggers
 test: create_misc
 test: create_aggregate
 test: create_operator
@@ -60,14 +60,14 @@ test: select
 test: select_into
 test: select_distinct
 test: select_distinct_on
-test: select_implicit
+#test: select_implicit
 test: select_having
 test: subselect
 test: union
 test: case
 test: join
 test: aggregates
-test: transactions
+ignore: transactions
 ignore: random
 test: random
 test: portals
@@ -77,7 +77,7 @@ test: hash_index
 test: update
 test: delete
 test: namespace
-test: prepared_xacts
+ignore: prepared_xacts
 test: privileges
 test: misc
 test: select_views
@@ -87,8 +87,9 @@ test: foreign_key
 test: cluster
 test: dependency
 test: guc
+test: combocid
 test: limit
-test: plpgsql
+ignore: plpgsql
 test: copy2
 test: temp
 test: domain
@@ -103,4 +104,4 @@ test: polymorphism
 test: rowtypes
 test: returning
 test: stats
-test: tablespace
+ignore: tablespace

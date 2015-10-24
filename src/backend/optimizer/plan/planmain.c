@@ -9,12 +9,13 @@
  * shorn of features like subselects, inheritance, aggregates, grouping,
  * and so on.  (Those are the things planner.c deals with.)
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 2005-2008, Greenplum inc
+ * Portions Copyright (c) 1996-2008, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/optimizer/plan/planmain.c,v 1.97 2006/10/04 00:29:54 momjian Exp $
+ *	  $PostgreSQL: pgsql/src/backend/optimizer/plan/planmain.c,v 1.96 2006/09/19 22:49:52 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -27,6 +28,9 @@
 #include "optimizer/tlist.h"
 #include "utils/selfuncs.h"
 
+#include "cdb/cdbpath.h"        /* cdbpath_rows() */
+
+static Bitmapset *distcols_in_groupclause(List *gc, Bitmapset *bms);
 
 /*
  * query_planner
@@ -87,6 +91,7 @@ query_planner(PlannerInfo *root, List *tlist, double tuple_fraction,
 	Path	   *sortedpath;
 	Index		rti;
 	double		total_pages;
+	ListCell   *lc;
 
 	/* Make tuple_fraction accessible to lower-level routines */
 	root->tuple_fraction = tuple_fraction;
@@ -102,6 +107,7 @@ query_planner(PlannerInfo *root, List *tlist, double tuple_fraction,
 		*cheapest_path = (Path *)
 			create_result_path((List *) parse->jointree->quals);
 		*sorted_path = NULL;
+
 		return;
 	}
 
@@ -122,6 +128,21 @@ query_planner(PlannerInfo *root, List *tlist, double tuple_fraction,
 	root->right_join_clauses = NIL;
 	root->full_join_clauses = NIL;
 	root->oj_info_list = NIL;
+	root->initial_rels = NIL;
+
+	/*
+	 * Make a flattened version of the rangetable for faster access (this is
+	 * OK because the rangetable won't change any more).
+	 */
+	root->simple_rte_array = (RangeTblEntry **)
+	palloc0(root->simple_rel_array_size * sizeof(RangeTblEntry *));
+	rti = 1;
+	foreach(lc, parse->rtable)
+	{
+		RangeTblEntry *rte = (RangeTblEntry *) lfirst(lc);
+
+		root->simple_rte_array[rti++] = rte;
+	}
 
 	/*
 	 * Construct RelOptInfo nodes for all base relations in query, and
@@ -179,10 +200,23 @@ query_planner(PlannerInfo *root, List *tlist, double tuple_fraction,
 	joinlist = deconstruct_jointree(root);
 
 	/*
+	 * Vars mentioned in InClauseInfo items also have to be added to baserel
+	 * targetlists.  Nearly always, they'd have got there from the original
+	 * WHERE qual, but in corner cases maybe not.
+	 */
+	add_IN_vars_to_tlists(root);
+
+	/*
 	 * Use the completed lists of equijoined keys to deduce any implied but
 	 * unstated equalities (for example, A=B and B=C imply A=C).
 	 */
 	generate_implied_equalities(root);
+
+	/**
+	 * Use the list of equijoined keys to transfer quals between relations.  For example,
+	 *   A=B AND f(A) implies A=B AND f(A) and f(B), under some restrictions on f.
+	 */
+	generate_implied_quals(root);
 
 	/*
 	 * We should now have all the pathkey equivalence sets built, so it's now
@@ -201,6 +235,18 @@ query_planner(PlannerInfo *root, List *tlist, double tuple_fraction,
 
 	if (!final_rel || !final_rel->cheapest_total_path)
 		elog(ERROR, "failed to construct the join relation");
+	Insist(final_rel->cheapest_startup_path);
+
+	/*
+	 * CDB: Subquery duplicate suppression should be all finished by now.
+	 *
+	 * CDB TODO: If query has DISTINCT, GROUP BY with just MIN/MAX aggs, or
+	 * LIMIT 1, consider paths in which subquery duplicate suppression has
+	 * not been completed.  (Would have to change set_cheapest_dedup() to not
+	 * discard them.)
+	 */
+	Insist(final_rel->cheapest_startup_path->subq_complete &&
+		   final_rel->cheapest_total_path->subq_complete);
 
 	/*
 	 * If there's grouping going on, estimate the number of result groups. We
@@ -219,11 +265,14 @@ query_planner(PlannerInfo *root, List *tlist, double tuple_fraction,
 	{
 		List	   *groupExprs;
 
-		groupExprs = get_sortgrouplist_exprs(parse->groupClause,
-											 parse->targetList);
-		*num_groups = estimate_num_groups(root,
-										  groupExprs,
-										  final_rel->rows);
+		groupExprs = get_grouplist_exprs(parse->groupClause,
+										 parse->targetList);
+		if (groupExprs == NULL)
+			*num_groups = 1;
+		else
+			*num_groups = estimate_num_groups(root,
+											  groupExprs,
+											  final_rel->rows);
 
 		/*
 		 * In GROUP BY mode, an absolute LIMIT is relative to the number of
@@ -332,7 +381,7 @@ query_planner(PlannerInfo *root, List *tlist, double tuple_fraction,
 			/* Figure cost for sorting */
 			cost_sort(&sort_path, root, root->query_pathkeys,
 					  cheapestpath->total_cost,
-					  final_rel->rows, final_rel->width);
+					  cdbpath_rows(root, cheapestpath), final_rel->width);
 		}
 
 		if (compare_fractional_path_costs(sortedpath, &sort_path,
@@ -345,4 +394,130 @@ query_planner(PlannerInfo *root, List *tlist, double tuple_fraction,
 
 	*cheapest_path = cheapestpath;
 	*sorted_path = sortedpath;
+}
+
+
+/*
+ * distcols_in_groupclause -
+ *     Return all distinct tleSortGroupRef values in a GROUP BY clause.
+ *
+ * If this is a GROUPING_SET, this function is called recursively to
+ * find the tleSortGroupRef values for underlying grouping columns.
+ */
+static Bitmapset *
+distcols_in_groupclause(List *gc, Bitmapset *bms)
+{
+	ListCell *l;
+
+	foreach(l, gc)
+	{
+		Node *node = lfirst(l);
+
+		if (node == NULL)
+			continue;
+
+		Assert(IsA(node, GroupClause) ||
+			   IsA(node, List) ||
+			   IsA(node, GroupingClause));
+
+		if (IsA(node, GroupClause))
+		{
+			bms = bms_add_member(bms, ((GroupClause *)node)->tleSortGroupRef);
+		}
+
+		else if (IsA(node, List))
+		{
+			bms = distcols_in_groupclause((List *)node, bms);
+		}
+
+		else if (IsA(node, GroupingClause))
+		{
+			List *groupsets = ((GroupingClause *)node)->groupsets;
+			bms = distcols_in_groupclause(groupsets, bms);
+		}
+	}
+
+	return bms;
+}
+
+/*
+ * num_distcols_in_grouplist -
+ *      Return number of distinct columns/expressions that appeared in
+ *      a list of GroupClauses or GroupingClauses.
+ */
+int
+num_distcols_in_grouplist(List *gc)
+{
+	Bitmapset *bms = NULL;
+	int num_cols;
+
+	bms = distcols_in_groupclause(gc, bms);
+
+	num_cols = bms_num_members(bms);
+	bms_free(bms);
+
+	return num_cols;
+}
+
+/**
+ * Planner configuration related
+ */
+
+/**
+ * Default configuration information
+ */
+PlannerConfig *DefaultPlannerConfig(void)
+{
+	PlannerConfig *c1 = (PlannerConfig *) palloc(sizeof(PlannerConfig));
+	c1->cdbpath_segments = planner_segment_count();
+	c1->enable_seqscan = enable_seqscan;
+	c1->enable_indexscan = enable_indexscan;
+	c1->enable_bitmapscan = enable_bitmapscan;
+	c1->enable_tidscan = enable_tidscan;
+	c1->enable_sort = enable_sort;
+	c1->enable_hashagg = enable_hashagg;
+	c1->enable_groupagg = enable_groupagg;
+	c1->enable_nestloop = enable_nestloop;
+	c1->enable_mergejoin = enable_mergejoin;
+	c1->enable_hashjoin = enable_hashjoin;
+	c1->gp_enable_hashjoin_size_heuristic = gp_enable_hashjoin_size_heuristic;
+	c1->gp_enable_fallback_plan = gp_enable_fallback_plan;
+	c1->gp_enable_predicate_propagation = gp_enable_predicate_propagation;
+	c1->mpp_trying_fallback_plan = false;
+	c1->constraint_exclusion = constraint_exclusion;
+
+	c1->gp_enable_multiphase_agg = gp_enable_multiphase_agg;
+	c1->gp_enable_preunique = gp_enable_preunique;
+	c1->gp_eager_preunique = gp_eager_preunique;
+	c1->gp_enable_sequential_window_plans = gp_enable_sequential_window_plans;
+	c1->gp_hashagg_streambottom = gp_hashagg_streambottom;
+	c1->gp_enable_agg_distinct = gp_enable_agg_distinct;
+	c1->gp_enable_dqa_pruning = gp_enable_dqa_pruning;
+	c1->gp_eager_dqa_pruning = gp_eager_dqa_pruning;
+	c1->gp_eager_one_phase_agg = gp_eager_one_phase_agg;
+	c1->gp_eager_two_phase_agg = gp_eager_two_phase_agg;
+	c1->gp_enable_groupext_distinct_pruning = gp_enable_groupext_distinct_pruning;
+	c1->gp_enable_groupext_distinct_gather = gp_enable_groupext_distinct_gather;
+	c1->gp_enable_sort_limit = gp_enable_sort_limit;
+	c1->gp_enable_sort_distinct = gp_enable_sort_distinct;
+	c1->gp_enable_mk_sort = gp_enable_mk_sort;
+	c1->gp_enable_motion_mk_sort = gp_enable_motion_mk_sort;
+
+	c1->gp_enable_direct_dispatch = gp_enable_direct_dispatch;
+	c1->gp_dynamic_partition_pruning = gp_dynamic_partition_pruning;
+
+	c1->gp_cte_sharing = gp_cte_sharing;
+
+	return c1;
+}
+
+/**
+ * Copy configuration information
+ */
+PlannerConfig *CopyPlannerConfig(const PlannerConfig *c1)
+{
+	Assert(c1);
+	PlannerConfig *c2 = (PlannerConfig *) palloc(sizeof(PlannerConfig));
+	memcpy(c2, c1, sizeof(PlannerConfig));
+	return c2;
 }

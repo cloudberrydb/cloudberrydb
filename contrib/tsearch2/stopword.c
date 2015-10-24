@@ -45,11 +45,15 @@ readstoplist(text *in, StopList * s)
 					 errmsg("could not open file \"%s\": %m",
 							filename)));
 
-		while (fgets(buf, STOPBUFLEN, hin))
+		while (fgets(buf, sizeof(buf), hin))
 		{
-			buf[strlen(buf) - 1] = '\0';
+			pbuf = buf;
+			while( *pbuf && !isspace((unsigned char) *pbuf ) )
+				pbuf++;
+			*pbuf = '\0';
+
 			pg_verifymbstr(buf, strlen(buf), false);
-			if (*buf == '\0')
+			if (*buf == '\0' || *buf=='\n' || *buf=='\r')
 				continue;
 
 			if (s->len >= reallen)

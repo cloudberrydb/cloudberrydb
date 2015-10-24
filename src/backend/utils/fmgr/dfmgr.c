@@ -3,12 +3,12 @@
  * dfmgr.c
  *	  Dynamic function manager code.
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/utils/fmgr/dfmgr.c,v 1.92 2006/10/06 17:13:59 petere Exp $
+ *	  $PostgreSQL: pgsql/src/backend/utils/fmgr/dfmgr.c,v 1.99.2.1 2009/09/03 22:11:13 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -21,6 +21,7 @@
 #else
 #include "port/dynloader/win32.h"
 #endif
+#include "lib/stringinfo.h"
 #include "miscadmin.h"
 #include "utils/dynamic_loader.h"
 #include "utils/hsearch.h"
@@ -71,12 +72,15 @@ static DynamicFileList *file_tail = NULL;
 char	   *Dynamic_library_path;
 
 static void *internal_load_library(const char *libname);
+static void incompatible_module_error(const char *libname,
+						  const Pg_magic_struct *module_magic_data);
 static void internal_unload_library(const char *libname);
 static bool file_exists(const char *name);
 static char *expand_dynamic_library_name(const char *name);
 static void check_restricted_library_name(const char *name);
 static char *substitute_libpath_macro(const char *name);
 static char *find_in_dynamic_libpath(const char *basename);
+static const char *get_magic_product(const Pg_magic_struct *module_magic_data);
 
 /* Magic structure that module needs to match to be accepted */
 static const Pg_magic_struct magic_data = PG_MODULE_MAGIC_DATA;
@@ -114,7 +118,7 @@ load_external_function(char *filename, char *funcname,
 		*filehandle = lib_handle;
 
 	/* Look up the function within the library */
-	retval = pg_dlsym(lib_handle, funcname);
+	retval = (PGFunction) pg_dlsym(lib_handle, funcname);
 
 	if (retval == NULL && signalNotFound)
 		ereport(ERROR,
@@ -162,7 +166,7 @@ load_file(const char *filename, bool restricted)
 PGFunction
 lookup_external_function(void *filehandle, char *funcname)
 {
-	return pg_dlsym(filehandle, funcname);
+	return (PGFunction) pg_dlsym(filehandle, funcname);
 }
 
 
@@ -199,7 +203,8 @@ internal_load_library(const char *libname)
 			ereport(ERROR,
 					(errcode_for_file_access(),
 					 errmsg("could not access file \"%s\": %m",
-							libname)));
+							libname),
+					 errOmitLocation(true)));
 
 		for (file_scanner = file_list;
 			 file_scanner != NULL &&
@@ -243,6 +248,14 @@ internal_load_library(const char *libname)
 		/* Check the magic function to determine compatibility */
 		magic_func = (PGModuleMagicFunction)
 			pg_dlsym(file_scanner->handle, PG_MAGIC_FUNCTION_NAME_STRING);
+
+		if (magic_func == NULL)
+		{
+			/* Check if this is a C++ library */
+			magic_func =(PGModuleMagicFunction)
+				pg_dlsym(file_scanner->handle, PG_MAGIC_FUNCTION_NAME_CPP_STRING);
+		}
+
 		if (magic_func)
 		{
 			const Pg_magic_struct *magic_data_ptr = (*magic_func) ();
@@ -257,23 +270,8 @@ internal_load_library(const char *libname)
 				pg_dlclose(file_scanner->handle);
 				free((char *) file_scanner);
 
-				/*
-				 * Report suitable error.  It's probably not worth writing a
-				 * separate error message for each field; only the most common
-				 * case of wrong major version gets its own message.
-				 */
-				if (module_magic_data.version != magic_data.version)
-					ereport(ERROR,
-					 (errmsg("incompatible library \"%s\": version mismatch",
-							 libname),
-					  errdetail("Server is version %d.%d, library is version %d.%d.",
-								magic_data.version / 100,
-								magic_data.version % 100,
-								module_magic_data.version / 100,
-								module_magic_data.version % 100)));
-				ereport(ERROR,
-				 (errmsg("incompatible library \"%s\": magic block mismatch",
-						 libname)));
+				/* issue suitable complaint */
+				incompatible_module_error(libname, &module_magic_data);
 			}
 		}
 		else
@@ -307,13 +305,177 @@ internal_load_library(const char *libname)
 }
 
 /*
+ * Identify what product a particular magic data was compiled for.
+ */
+static const char*
+get_magic_product(const Pg_magic_struct *module_magic_data)
+{
+	/*
+	 * Assume that any magic_data context that does not contain a product code
+	 * must be Postgres, probably.
+	 */
+	if (module_magic_data->len <= offsetof(Pg_magic_struct, product))
+		return "PostgreSQL";
+	
+	switch (module_magic_data->product)
+	{
+		case PgMagicProductNone:
+		case PgMagicProductPostgres:
+			return "PostgreSQL";
+
+		case PgMagicProductGreenplum:
+			return "Greenplum";
+
+		/* Handle Unrecognized product codes */
+		default:
+		{
+			size_t len = sizeof("Product()") + 10 + 1;
+			char *prodname = palloc(len);
+			snprintf(prodname, len, "Product(%d)", module_magic_data->product);
+			return prodname;
+		}
+	}
+}
+
+
+/*
+ * Report a suitable error for an incompatible magic block.
+ */
+static void
+incompatible_module_error(const char *libname,
+						  const Pg_magic_struct *module_magic_data)
+{
+	StringInfoData details;
+	const char *magic_product     = get_magic_product(&magic_data);
+	const char *mod_magic_product = get_magic_product(module_magic_data);
+
+	/*
+	 * The default header version for module_magic_data is assumed to be 0
+	 * as it may not be recent enough to have the headerversion field
+	 */
+	int lib_internal_version = 0;
+
+	/* module_magic_data is recent enough to provide its own header version */
+	if (module_magic_data->len > offsetof(Pg_magic_struct, headerversion))
+	{
+		lib_internal_version = module_magic_data->headerversion;
+	}
+
+	/*
+	 * If the version doesn't match, just report that, because the rest of the
+	 * block might not even have the fields we expect.
+	 */
+	if (magic_data.version != module_magic_data->version ||
+		magic_data.product != module_magic_data->product ||
+		magic_data.headerversion != lib_internal_version)
+	{
+		ereport(ERROR,
+				(errmsg("incompatible library \"%s\": version mismatch",
+						libname),
+			  errdetail("Server version is %s %d.%d (header version: %d), library is %s %d.%d (header version: %d).",
+						magic_product,
+						magic_data.version / 100,
+						magic_data.version % 100,
+						magic_data.headerversion,
+						mod_magic_product,
+						module_magic_data->version / 100,
+						module_magic_data->version % 100,
+						lib_internal_version)
+				)
+		);
+	}
+
+	/*
+	 * Otherwise, spell out which fields don't agree.
+	 *
+	 * XXX this code has to be adjusted any time the set of fields in a magic
+	 * block change!
+	 */
+	initStringInfo(&details);
+
+	if (module_magic_data->funcmaxargs != magic_data.funcmaxargs)
+	{
+		if (details.len)
+		{
+			appendStringInfoChar(&details, '\n');
+		}
+		appendStringInfo(&details,
+						 _("Server has FUNC_MAX_ARGS = %d, library has %d."),
+						 magic_data.funcmaxargs,
+						 module_magic_data->funcmaxargs);
+	}
+	if (module_magic_data->indexmaxkeys != magic_data.indexmaxkeys)
+	{
+		if (details.len)
+		{
+			appendStringInfoChar(&details, '\n');
+		}
+		appendStringInfo(&details,
+						 _("Server has INDEX_MAX_KEYS = %d, library has %d."),
+						 magic_data.indexmaxkeys,
+						 module_magic_data->indexmaxkeys);
+	}
+	if (module_magic_data->namedatalen != magic_data.namedatalen)
+	{
+		if (details.len)
+		{
+			appendStringInfoChar(&details, '\n');
+		}
+		appendStringInfo(&details,
+						 _("Server has NAMEDATALEN = %d, library has %d."),
+						 magic_data.namedatalen,
+						 module_magic_data->namedatalen);
+	}
+	if (module_magic_data->float4byval != magic_data.float4byval)
+	{
+		if (details.len)
+		{
+			appendStringInfoChar(&details, '\n');
+		}
+		appendStringInfo(&details,
+					   _("Server has FLOAT4PASSBYVAL = %s, library has %s."),
+						 magic_data.float4byval ? "true" : "false",
+						 module_magic_data->float4byval ? "true" : "false");
+	}
+	if (module_magic_data->float8byval != magic_data.float8byval)
+	{
+		if (details.len)
+		{
+			appendStringInfoChar(&details, '\n');
+		}
+		appendStringInfo(&details,
+					   _("Server has FLOAT8PASSBYVAL = %s, library has %s."),
+						 magic_data.float8byval ? "true" : "false",
+						 module_magic_data->float8byval ? "true" : "false");
+	}
+
+	if (details.len == 0)
+	{
+		appendStringInfo(&details,
+			  _("Magic block has unexpected length or padding difference."));
+	}
+
+	ereport(ERROR,
+			(errmsg("incompatible library \"%s\": magic block mismatch",
+					libname),
+			 errdetail("%s", details.data)));
+}
+
+/*
  * Unload the specified dynamic-link library file, if it is loaded.
  *
  * Note: libname is expected to be an exact name for the library file.
+ *
+ * XXX for the moment, this is disabled, resulting in LOAD of an already-loaded
+ * library always being a no-op.  We might re-enable it someday if we can
+ * convince ourselves we have safe protocols for un-hooking from hook function
+ * pointers, releasing custom GUC variables, and perhaps other things that
+ * are definitely unsafe currently.
  */
 static void
 internal_unload_library(const char *libname)
 {
+#ifdef NOT_USED
 	DynamicFileList *file_scanner,
 			   *prv,
 			   *nxt;
@@ -361,6 +523,7 @@ internal_unload_library(const char *libname)
 		else
 			prv = file_scanner;
 	}
+#endif /* NOT_USED */
 }
 
 static bool
@@ -539,8 +702,7 @@ find_in_dynamic_libpath(const char *basename)
 			len = piece - p;
 
 		piece = palloc(len + 1);
-		strncpy(piece, p, len);
-		piece[len] = '\0';
+		strlcpy(piece, p, len + 1);
 
 		mangled = substitute_libpath_macro(piece);
 		pfree(piece);

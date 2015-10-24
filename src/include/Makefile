@@ -13,13 +13,15 @@ top_builddir = ../..
 include $(top_builddir)/src/Makefile.global
 
 
-all: pg_config.h pg_config_os.h
+all: pg_config.h pg_config_os.h check_oids
 
 
 # Subdirectories containing headers for server-side dev
-SUBDIRS = access bootstrap catalog commands executor lib libpq mb \
-	nodes optimizer parser regex rewrite storage tcop utils \
-	port port/win32 port/win32/arpa port/win32/netinet port/win32/sys
+SUBDIRS = access bootstrap catalog commands executor gpmon lib libpq mb \
+	nodes optimizer parser postmaster regex replication rewrite storage \
+	tcop utils port port/win32 port/win32_msvc port/win32_msvc/sys \
+	port/win32/arpa port/win32/netinet port/win32/sys \
+	portability
 
 # Install all headers
 install: all installdirs
@@ -37,6 +39,7 @@ install: all installdirs
 # These headers are needed for server-side development
 	$(INSTALL_DATA) pg_config.h    '$(DESTDIR)$(includedir_server)'
 	$(INSTALL_DATA) pg_config_os.h '$(DESTDIR)$(includedir_server)'
+	$(INSTALL_DATA) utils/fmgroids.h '$(DESTDIR)$(includedir_server)/utils'
 # We don't use INSTALL_DATA for performance reasons --- there are a lot of files
 	cp $(srcdir)/*.h '$(DESTDIR)$(includedir_server)'/ || exit; \
 	chmod $(INSTALL_DATA_MODE) '$(DESTDIR)$(includedir_server)'/*.h  || exit; \
@@ -44,10 +47,17 @@ install: all installdirs
 	  cp $(srcdir)/$$dir/*.h '$(DESTDIR)$(includedir_server)'/$$dir/ || exit; \
 	  chmod $(INSTALL_DATA_MODE) '$(DESTDIR)$(includedir_server)'/$$dir/*.h  || exit; \
 	done
+# These headers are needed for PGXS
+	$(INSTALL_DATA) $(srcdir)/cdb/cdbpublic.h   $(DESTDIR)$(includedir_internal_cdb)
+	$(INSTALL_DATA) $(srcdir)/cdb/cdbcat.h   $(DESTDIR)$(includedir_internal_cdb)
+	$(INSTALL_DATA) $(srcdir)/cdb/cdbpathlocus.h   $(DESTDIR)$(includedir_internal_cdb)
+	$(INSTALL_DATA) $(srcdir)/cdb/cdbdef.h   $(DESTDIR)$(includedir_internal_cdb)
+	$(INSTALL_DATA) $(srcdir)/cdb/cdbdistributedsnapshot.h   $(DESTDIR)$(includedir_internal_cdb)
 
 installdirs:
-	$(mkinstalldirs) '$(DESTDIR)$(includedir)/libpq' '$(DESTDIR)$(includedir_internal)/libpq'
-	$(mkinstalldirs) $(addprefix '$(DESTDIR)$(includedir_server)'/, $(SUBDIRS))
+	$(MKDIR_P) '$(DESTDIR)$(includedir)/libpq' '$(DESTDIR)$(includedir_internal)/libpq' \
+	    '$(DESTDIR)$(includedir_internal_cdb)'
+	$(MKDIR_P) $(addprefix '$(DESTDIR)$(includedir_server)'/, $(SUBDIRS))
 
 
 uninstall:
@@ -56,9 +66,11 @@ uninstall:
 # heuristic...
 	rm -rf $(addprefix '$(DESTDIR)$(includedir_server)'/, $(SUBDIRS) *.h)
 
+check_oids:
+	(cd $(abs_top_srcdir)/src/include/catalog/ && ./duplicate_oids) 
 
 clean:
-	rm -f utils/fmgroids.h parser/parse.h
+	rm -f utils/fmgroids.h parser/parse.h parser/gram.h utils/probes.h
 
 distclean maintainer-clean: clean
 	rm -f pg_config.h dynloader.h pg_config_os.h stamp-h

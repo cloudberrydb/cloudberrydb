@@ -1,0 +1,13 @@
+#!/usr/bin/env perl
+
+use File::Basename;
+use Cwd 'abs_path';
+$dirname = dirname(abs_path($0));
+
+$foo = `cat ${dirname}/VERSION | tr '-' ' '`;
+chop $foo;
+$foo = quotemeta $foo;
+$files = join(" ", @ARGV);
+$rev = '\\$Revision.*\\$';
+$bar = "perl -pi -e \'s/$rev/$foo/\' $files";
+system($bar);

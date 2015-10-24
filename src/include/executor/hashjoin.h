@@ -4,7 +4,8 @@
  *	  internal structures for hash joins
  *
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 2007-2008, Greenplum inc
+ * Portions Copyright (c) 1996-2008, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * $PostgreSQL: pgsql/src/include/executor/hashjoin.h,v 1.41 2006/07/13 18:01:02 momjian Exp $
@@ -15,7 +16,12 @@
 #define HASHJOIN_H
 
 #include "fmgr.h"
-#include "storage/buffile.h"
+#include "executor/execWorkfile.h"
+#include "cdb/cdbpublic.h"                 /* CdbExplain_Agg */
+#include "utils/workfile_mgr.h"
+
+struct StringInfoData;                  /* #include "lib/stringinfo.h" */
+
 
 /* ----------------------------------------------------------------
  *				hash-join hash table structures
@@ -70,14 +76,80 @@ typedef struct HashJoinTupleData
 
 #define HJTUPLE_OVERHEAD  MAXALIGN(sizeof(HashJoinTupleData))
 #define HJTUPLE_MINTUPLE(hjtup)  \
-	((MinimalTuple) ((char *) (hjtup) + HJTUPLE_OVERHEAD))
+	((MemTuple) ((char *) (hjtup) + HJTUPLE_OVERHEAD))
 
 
+/* Statistics collection workareas for EXPLAIN ANALYZE */
+typedef struct HashJoinBatchStats
+{
+    uint64      outerfilesize;
+    uint64      innerfilesize;
+    uint64      irdbytes;           /* inner bytes read from workfile */
+    uint64      ordbytes;           /* outer bytes read from workfile */
+    uint64      iwrbytes;           /* inner bytes written (to later batches) */
+    uint64      owrbytes;           /* outer bytes written (to later batches) */
+    uint64      hashspace_final;    /* work_mem for tuples kept in hash table */
+    uint64      spillspace_in;      /* work_mem from lower batches to this one */
+    uint64      spillspace_out;     /* work_mem from this batch to higher ones */
+    uint64      spillrows_out;      /* rows spilled from this batch to higher */
+} HashJoinBatchStats;
+
+typedef struct HashJoinTableStats
+{
+    struct StringInfoData  *joinexplainbuf; /* Join operator's report buf */
+    HashJoinBatchStats     *batchstats;     /* -> array[0..nbatchstats-1] */
+    int                     nbatchstats;    /* num of batchstats slots */
+    int                     endedbatch;     /* index of last batch ended */
+
+    /* These statistics are cumulative over all nontrivial batches... */
+    int                     nonemptybatches;    /* num of nontrivial batches */
+    Size                    workmem_max;        /* work_mem high water mark */
+    CdbExplain_Agg          chainlength;        /* hash chain length stats */
+} HashJoinTableStats;
+
+
+/*
+ * HashJoinBatchSide
+ *
+ * State of the outer or inner side of one batch.
+ */
+typedef struct HashJoinBatchSide
+{
+	/*
+	 * A file is opened only when we first write a tuple into it
+	 * (otherwise its pointer remains NULL).  Note that the zero'th
+	 * batch never has files, since we will process rather than dump
+	 * out any tuples of batch zero.
+	 */
+	ExecWorkFile *workfile;
+	int total_tuples;
+} HashJoinBatchSide;
+
+
+/*
+ * HashJoinBatchData
+ *
+ * State of one batch.
+ */
+typedef struct HashJoinBatchData
+{
+    Size                innerspace;     /* work_mem bytes for inner tuples */
+    unsigned            innertuples;    /* inner number of tuples */
+
+    HashJoinBatchSide   innerside;
+    HashJoinBatchSide   outerside;
+} HashJoinBatchData;
+
+
+/*
+ * HashJoinTableData
+ */
 typedef struct HashJoinTableData
 {
 	int			nbuckets;		/* # buckets in the in-memory hash table */
 	/* buckets[i] is head of list of tuples in i'th in-memory bucket */
 	struct HashJoinTupleData **buckets;
+	uint64     				  *bloom; /* bloom[i] is bloomfilter for buckets[i] */
 	/* buckets array is per-batch storage, as are all the tuples */
 
 	int			nbatch;			/* number of batches */
@@ -90,15 +162,12 @@ typedef struct HashJoinTableData
 
 	double		totalTuples;	/* # tuples obtained from inner plan */
 
-	/*
-	 * These arrays are allocated for the life of the hash join, but only if
-	 * nbatch > 1.	A file is opened only when we first write a tuple into it
-	 * (otherwise its pointer remains NULL).  Note that the zero'th array
-	 * elements never get used, since we will process rather than dump out any
-	 * tuples of batch zero.
-	 */
-	BufFile   **innerBatchFile; /* buffered virtual temp file per batch */
-	BufFile   **outerBatchFile; /* buffered virtual temp file per batch */
+	HashJoinBatchData **batches;    /* array [0..nbatch-1] of ptr to HJBD */
+
+	/* Representation of all spill file names, for spill file reuse */
+	workfile_set * work_set;
+
+	ExecWorkFile * state_file;
 
 	/*
 	 * Info about the datatype-specific hash functions for the datatypes being
@@ -108,11 +177,19 @@ typedef struct HashJoinTableData
 	 */
 	FmgrInfo   *hashfunctions;	/* lookup data for hash functions */
 
-	Size		spaceUsed;		/* memory space currently used by tuples */
+	bool	   *hashStrict;		/* is each hash join operator strict? */
+
 	Size		spaceAllowed;	/* upper limit for space used */
 
 	MemoryContext hashCxt;		/* context for whole-hash-join storage */
 	MemoryContext batchCxt;		/* context for this-batch-only storage */
+	MemoryContext bfCxt;		/* CDB */ /* context for temp buf file */
+
+    HashJoinTableStats *stats;  /* statistics workarea for EXPLAIN ANALYZE */
+    bool		eagerlyReleased; /* Has this hash-table been eagerly released? */
+
+    HashJoinState * hjstate; /* reference to the enclosing HashJoinState */
+
 } HashJoinTableData;
 
 #endif   /* HASHJOIN_H */

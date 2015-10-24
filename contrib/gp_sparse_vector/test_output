@@ -1,0 +1,296 @@
+-- \set FETCH_COUNT 100
+\timing
+Timing is on.
+drop table if exists test;
+DROP TABLE
+Time: 1.163 ms
+create table test (a int, b svec) DISTRIBUTED BY (a);
+CREATE TABLE
+Time: 67.692 ms
+insert into test (select 1,gp_extract_feature_histogram('{"one","two","three","four","five","six"}','{"twe","four","five","six","one","three","two","one"}'));
+INSERT 0 1
+Time: 72.360 ms
+insert into test (select 2,gp_extract_feature_histogram('{"one","two","three","four","five","six"}','{"the","brown","cat","ran","across","three","dogs"}'));
+INSERT 0 1
+Time: 4.543 ms
+insert into test (select 3,gp_extract_feature_histogram('{"one","two","three","four","five","six"}','{"two","four","five","six","one","three","two","one"}'));
+INSERT 0 1
+Time: 3.701 ms
+-- Test the equals operator (should be only 3 rows)
+select a,b::float8[] cross_product_equals from (select a,b from test) foo where b = foo.b order by a;
+ a | cross_product_equals 
+---+----------------------
+ 1 | {2,1,1,1,1,1}
+ 2 | {0,0,1,0,0,0}
+ 3 | {2,2,1,1,1,1}
+(3 rows)
+
+Time: 4.044 ms
+drop table if exists test2;
+DROP TABLE
+Time: 0.217 ms
+create table test2 as select * from test DISTRIBUTED BY (a);
+SELECT 3
+Time: 64.780 ms
+-- Test the plus operator (should be 9 rows)
+select (t1.b+t2.b)::float8[] cross_product_sum from test t1, test2 t2 order by t1.a;
+ cross_product_sum 
+-------------------
+ {4,3,2,2,2,2}
+ {4,2,2,2,2,2}
+ {2,1,2,1,1,1}
+ {0,0,2,0,0,0}
+ {2,1,2,1,1,1}
+ {2,2,2,1,1,1}
+ {4,4,2,2,2,2}
+ {4,3,2,2,2,2}
+ {2,2,2,1,1,1}
+(9 rows)
+
+Time: 7.121 ms
+-- Test ORDER BY
+select (t1.b+t2.b)::float8[] cross_product_sum, l2norm(t1.b+t2.b) l2norm, (t1.b+t2.b) sparse_vector from test t1, test2 t2 order by 3;
+ cross_product_sum |      l2norm      |    sparse_vector    
+-------------------+------------------+---------------------
+ {0,0,2,0,0,0}     |                2 | {2,1,3}:{0,2,0}
+ {2,1,2,1,1,1}     | 3.46410161513775 | {1,1,1,3}:{2,1,2,1}
+ {2,1,2,1,1,1}     | 3.46410161513775 | {1,1,1,3}:{2,1,2,1}
+ {2,2,2,1,1,1}     | 3.87298334620742 | {3,3}:{2,1}
+ {2,2,2,1,1,1}     | 3.87298334620742 | {3,3}:{2,1}
+ {4,2,2,2,2,2}     |                6 | {1,5}:{4,2}
+ {4,3,2,2,2,2}     | 6.40312423743285 | {1,1,4}:{4,3,2}
+ {4,3,2,2,2,2}     | 6.40312423743285 | {1,1,4}:{4,3,2}
+ {4,4,2,2,2,2}     | 6.92820323027551 | {2,4}:{4,2}
+(9 rows)
+
+Time: 5.359 ms
+ select (sum(t1.b))::float8[] as features_sum from test t1;
+ features_sum  
+---------------
+ {4,3,3,2,2,2}
+(1 row)
+
+Time: 2.844 ms
+-- Test the div operator
+ select (t1.b/(select sum(b) from test))::float8[] as weights from test t1 order by a;
+                        weights                        
+-------------------------------------------------------
+ {0.5,0.333333333333333,0.333333333333333,0.5,0.5,0.5}
+ {0,0,0.333333333333333,0,0,0}
+ {0.5,0.666666666666667,0.333333333333333,0.5,0.5,0.5}
+(3 rows)
+
+Time: 4.229 ms
+-- Test the * operator
+ select t1.b %*% (t1.b/(select sum(b) from test)) as raw_score from test t1 order by a;
+     raw_score     
+-------------------
+  3.16666666666667
+ 0.333333333333333
+  4.16666666666667
+(3 rows)
+
+Time: 4.098 ms
+-- Test the * and l2norm operators
+ select (t1.b %*% (t1.b/(select sum(b) from test))) / (l2norm(t1.b) * l2norm((select sum(b) from test))) as norm_score from test t1 order by a;
+    norm_score     
+-------------------
+  0.15563317594128
+ 0.049147318718299
+ 0.177345110574739
+(3 rows)
+
+Time: 6.295 ms
+-- Test the ^ and l1norm operators
+select ('{1,2}:{20.,10.}'::svec)^('{1}:{3.}'::svec);
+     ?column?      
+-------------------
+ {1,2}:{8000,1000}
+(1 row)
+
+Time: 1.060 ms
+ select (t1.b %*% (t1.b/(select sum(b) from test))) / (l1norm(t1.b) * l1norm((select sum(b) from test))) as norm_score from test t1 order by a;
+     norm_score     
+--------------------
+ 0.0282738095238095
+ 0.0208333333333333
+ 0.0325520833333333
+(3 rows)
+
+Time: 6.715 ms
+-- Test the multi-concatenation and show sizes compared with a normal array
+drop table if exists corpus_proj;
+DROP TABLE
+Time: 0.258 ms
+drop table if exists corpus_proj_array;
+DROP TABLE
+Time: 0.225 ms
+create table corpus_proj as (select 10000 *|| ('{45,2,35,4,15,1}:{0,1,0,1,0,2}'::svec) result ) distributed randomly;
+SELECT 1
+Time: 91.366 ms
+create table corpus_proj_array as (select result::float8[] from corpus_proj) distributed randomly;
+SELECT 1
+Time: 318.754 ms
+-- Calculate on-disk size of sparse vector
+select pg_size_pretty(pg_total_relation_size('corpus_proj'));
+ pg_size_pretty 
+----------------
+ 192 kB
+(1 row)
+
+Time: 5.393 ms
+-- Calculate on-disk size of normal array
+select pg_size_pretty(pg_total_relation_size('corpus_proj_array'));
+ pg_size_pretty 
+----------------
+ 288 kB
+(1 row)
+
+Time: 3.488 ms
+\timing
+Timing is off.
+-- Calculate L1 norm from sparse vector
+select l1norm(result) from corpus_proj;
+ l1norm 
+--------
+  80000
+(1 row)
+
+-- Calculate L1 norm from float8[]
+select l1norm(result) from corpus_proj_array;
+ l1norm 
+--------
+  80000
+(1 row)
+
+-- Calculate L2 norm from sparse vector
+select l2norm(result) from corpus_proj;
+      l2norm      
+------------------
+ 316.227766016838
+(1 row)
+
+-- Calculate L2 norm from float8[]
+select l2norm(result) from corpus_proj_array;
+      l2norm      
+------------------
+ 316.227766016838
+(1 row)
+
+drop table corpus_proj;
+DROP TABLE
+drop table corpus_proj_array;
+DROP TABLE
+drop table test;
+DROP TABLE
+drop table test2;
+DROP TABLE
+-- Test operators between svec and float8[]
+select ('{1,2,3,4}:{3,4,5,6}'::svec)           %*% ('{1,2,3,4}:{3,4,5,6}'::svec)::float8[];
+ ?column? 
+----------
+      260
+(1 row)
+
+select ('{1,2,3,4}:{3,4,5,6}'::svec)::float8[] %*% ('{1,2,3,4}:{3,4,5,6}'::svec);
+ ?column? 
+----------
+      260
+(1 row)
+
+select ('{1,2,3,4}:{3,4,5,6}'::svec)            /  ('{1,2,3,4}:{3,4,5,6}'::svec)::float8[];
+ ?column? 
+----------
+ {10}:{1}
+(1 row)
+
+select ('{1,2,3,4}:{3,4,5,6}'::svec)::float8[]  /  ('{1,2,3,4}:{3,4,5,6}'::svec);
+ ?column? 
+----------
+ {10}:{1}
+(1 row)
+
+select ('{1,2,3,4}:{3,4,5,6}'::svec)            *  ('{1,2,3,4}:{3,4,5,6}'::svec)::float8[];
+        ?column?        
+------------------------
+ {1,2,3,4}:{9,16,25,36}
+(1 row)
+
+select ('{1,2,3,4}:{3,4,5,6}'::svec)::float8[]  *  ('{1,2,3,4}:{3,4,5,6}'::svec);
+        ?column?        
+------------------------
+ {1,2,3,4}:{9,16,25,36}
+(1 row)
+
+select ('{1,2,3,4}:{3,4,5,6}'::svec)            +  ('{1,2,3,4}:{3,4,5,6}'::svec)::float8[];
+       ?column?        
+-----------------------
+ {1,2,3,4}:{6,8,10,12}
+(1 row)
+
+select ('{1,2,3,4}:{3,4,5,6}'::svec)::float8[]  +  ('{1,2,3,4}:{3,4,5,6}'::svec);
+       ?column?        
+-----------------------
+ {1,2,3,4}:{6,8,10,12}
+(1 row)
+
+select ('{1,2,3,4}:{3,4,5,6}'::svec)            -  ('{1,2,3,4}:{3,4,5,6}'::svec)::float8[];
+ ?column? 
+----------
+ {10}:{0}
+(1 row)
+
+select ('{1,2,3,4}:{3,4,5,6}'::svec)::float8[]  -  ('{1,2,3,4}:{3,4,5,6}'::svec);
+ ?column? 
+----------
+ {10}:{0}
+(1 row)
+
+-- Test the pivot operator in the presence of NULL values
+drop table if exists pivot_test;
+DROP TABLE
+create table pivot_test(a float8) distributed randomly;
+CREATE TABLE
+insert into pivot_test values (0),(1),(NULL),(2),(3);
+INSERT 0 5
+select array_agg(a) from pivot_test;
+      array_agg      
+---------------------
+ {1,1,2,1}:{1,2,0,3}
+(1 row)
+
+select l1norm(array_agg(a)) from pivot_test;
+ l1norm 
+--------
+      6
+(1 row)
+
+drop table if exists pivot_test;
+DROP TABLE
+-- Answer should be 5
+select vec_median(array_agg(a)) from (select generate_series(1,9) a) foo;
+ vec_median 
+------------
+          5
+(1 row)
+
+-- Answer should be a 10-wide vector
+select array_agg(a) from (select trunc(random()*10) a,generate_series(1,100000) order by a) foo;
+                                   array_agg                                   
+-------------------------------------------------------------------------------
+ {9946,10172,10063,9850,9874,10139,9964,9923,10131,9938}:{0,1,2,3,4,5,6,7,8,9}
+(1 row)
+
+-- Average is 4.50034, median is 5
+select vec_median('{9960,9926,10053,9993,10080,10050,9938,9941,10030,10029}:{1,9,8,7,6,5,4,3,2,0}'::svec);
+ vec_median 
+------------
+          5
+(1 row)
+
+select vec_median('{9960,9926,10053,9993,10080,10050,9938,9941,10030,10029}:{1,9,8,7,6,5,4,3,2,0}'::svec::float8[]);
+ vec_median 
+------------
+          5
+(1 row)
+

@@ -4,7 +4,7 @@
 #    Makefile for utils/sort
 #
 # IDENTIFICATION
-#    $PostgreSQL: pgsql/src/backend/utils/sort/Makefile,v 1.13 2003/11/29 19:52:04 pgsql Exp $
+#    $PostgreSQL: pgsql/src/backend/utils/sort/Makefile,v 1.15 2008/02/19 10:30:09 petere Exp $
 #
 #-------------------------------------------------------------------------
 
@@ -12,19 +12,6 @@ subdir = src/backend/utils/sort
 top_builddir = ../../../..
 include $(top_builddir)/src/Makefile.global
 
-OBJS = logtape.o tuplesort.o tuplestore.o
+OBJS = logtape.o tuplesort.o tuplestore.o tuplestorenew.o tuplesort_mk.o tuplesort_mkheap.o tuplesort_mkqsort.o
 
-all: SUBSYS.o
-
-SUBSYS.o: $(OBJS)
-	$(LD) $(LDREL) $(LDOUT) SUBSYS.o $(OBJS)
-
-depend dep:
-	$(CC) -MM $(CFLAGS) *.c >depend
-
-clean: 
-	rm -f SUBSYS.o $(OBJS)
-
-ifeq (depend,$(wildcard depend))
-include depend
-endif
+include $(top_srcdir)/src/backend/common.mk

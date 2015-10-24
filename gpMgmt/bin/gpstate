@@ -1,0 +1,16 @@
+#!/usr/bin/env python
+#
+# Displays system status information
+#
+
+
+#
+# THIS IMPORT MUST COME FIRST
+#
+# import mainUtils FIRST to get python version check
+from gppylib.mainUtils import *
+from gppylib.programs.clsSystemState import *
+
+#-------------------------------------------------------------------------
+if __name__ == '__main__':
+    simple_main( GpSystemStateProgram.createParser, GpSystemStateProgram.createProgram)

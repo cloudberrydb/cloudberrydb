@@ -1,4 +1,4 @@
-/* $PostgreSQL: pgsql/src/interfaces/ecpg/pgtypeslib/dt.h,v 1.34 2006/03/11 04:38:39 momjian Exp $ */
+/* $PostgreSQL: pgsql/src/interfaces/ecpg/pgtypeslib/dt.h,v 1.44 2009/06/11 14:49:13 momjian Exp $ */
 
 #ifndef DT_H
 #define DT_H
@@ -24,6 +24,22 @@ typedef double fsec_t;
 #define USE_ISO_DATES					1
 #define USE_SQL_DATES					2
 #define USE_GERMAN_DATES				3
+
+#define INTSTYLE_POSTGRES			  0
+#define INTSTYLE_POSTGRES_VERBOSE	  1
+#define INTSTYLE_SQL_STANDARD		  2
+#define INTSTYLE_ISO_8601			  3
+
+#define INTERVAL_FULL_RANGE (0x7FFF)
+#define INTERVAL_MASK(b) (1 << (b))
+#define MAX_INTERVAL_PRECISION 6
+
+#define DTERR_BAD_FORMAT		(-1)
+#define DTERR_FIELD_OVERFLOW	(-2)
+#define DTERR_MD_FIELD_OVERFLOW (-3)	/* triggers hint about DateStyle */
+#define DTERR_INTERVAL_OVERFLOW (-4)
+#define DTERR_TZDISP_OVERFLOW	(-5)
+
 
 #define DAGO			"ago"
 #define EPOCH			"epoch"
@@ -77,6 +93,9 @@ typedef double fsec_t;
  * Furthermore, the values for YEAR, MONTH, DAY, HOUR, MINUTE, SECOND
  * must be in the range 0..14 so that the associated bitmasks can fit
  * into the left half of an INTERVAL's typmod value.
+ *
+ * Copy&pasted these values from src/include/utils/datetime.h
+ * 2008-11-20, changing a number of their values.
  */
 
 #define RESERV	0
@@ -92,19 +111,22 @@ typedef double fsec_t;
 #define HOUR	10
 #define MINUTE	11
 #define SECOND	12
-#define DOY		13
-#define DOW		14
-#define UNITS	15
-#define ADBC	16
+#define MILLISECOND 13
+#define MICROSECOND 14
+#define DOY		15
+#define DOW		16
+#define UNITS	17
+#define ADBC	18
 /* these are only for relative dates */
-#define AGO		17
-#define ABS_BEFORE		18
-#define ABS_AFTER		19
+#define AGO		19
+#define ABS_BEFORE		20
+#define ABS_AFTER		21
 /* generic fields to help with parsing */
-#define ISODATE 20
-#define ISOTIME 21
+#define ISODATE 22
+#define ISOTIME 23
 /* reserved for unrecognized string values */
 #define UNKNOWN_FIELD	31
+
 
 /*
  * Token field definitions for time parsing and decoding.
@@ -157,23 +179,30 @@ typedef double fsec_t;
 #define DTK_DOY			33
 #define DTK_TZ_HOUR		34
 #define DTK_TZ_MINUTE	35
+#define DTK_ISOYEAR		36
+#define DTK_ISODOW		37
 
 
 /*
  * Bit mask definitions for time parsing.
  */
-
+/* Copy&pasted these values from src/include/utils/datetime.h */
 #define DTK_M(t)		(0x01 << (t))
-
+#define DTK_ALL_SECS_M	   (DTK_M(SECOND) | DTK_M(MILLISECOND) | DTK_M(MICROSECOND))
 #define DTK_DATE_M		(DTK_M(YEAR) | DTK_M(MONTH) | DTK_M(DAY))
 #define DTK_TIME_M		(DTK_M(HOUR) | DTK_M(MINUTE) | DTK_M(SECOND))
 
-#define MAXDATELEN		51		/* maximum possible length of an input date
-								 * string (not counting tr. null) */
-#define MAXDATEFIELDS	25		/* maximum possible number of fields in a date
-								 * string */
-#define TOKMAXLEN		10		/* only this many chars are stored in
-								 * datetktbl */
+/*
+ * Working buffer size for input and output of interval, timestamp, etc.
+ * Inputs that need more working space will be rejected early.  Longer outputs
+ * will overrun buffers, so this must suffice for all possible output.  As of
+ * this writing, PGTYPESinterval_to_asc() needs the most space at ~90 bytes.
+ */
+#define MAXDATELEN		128
+/* maximum possible number of fields in a date string */
+#define MAXDATEFIELDS	25
+/* only this many chars are stored in datetktbl */
+#define TOKMAXLEN		10
 
 /* keep this struct small; it gets used a lot */
 typedef struct
@@ -308,31 +337,22 @@ do { \
 #define TIMESTAMP_IS_NOEND(j)	((j) == DT_NOEND)
 #define TIMESTAMP_NOT_FINITE(j) (TIMESTAMP_IS_NOBEGIN(j) || TIMESTAMP_IS_NOEND(j))
 
-int DecodeTimeOnly(char **field, int *ftype,
-			   int nf, int *dtype,
-			   struct tm * tm, fsec_t *fsec, int *tzp);
-
-int DecodeInterval(char **field, int *ftype,
-			   int nf, int *dtype,
-			   struct tm * tm, fsec_t *fsec);
-
-int			EncodeTimeOnly(struct tm * tm, fsec_t fsec, int *tzp, int style, char *str);
-int			EncodeDateTime(struct tm * tm, fsec_t fsec, int *tzp, char **tzn, int style, char *str, bool);
-int			EncodeInterval(struct tm * tm, fsec_t fsec, int style, char *str);
-
+int			DecodeInterval(char **, int *, int, int *, struct tm *, fsec_t *);
+int			DecodeTime(char *, int *, struct tm *, fsec_t *);
+int			EncodeDateTime(struct tm *, fsec_t, int *, char **, int, char *, bool);
+int			EncodeInterval(struct tm *, fsec_t, int, char *);
 int			tm2timestamp(struct tm *, fsec_t, int *, timestamp *);
-
 int			DecodeUnits(int field, char *lowtoken, int *val);
-
 bool		CheckDateTokenTables(void);
-
 int			EncodeDateOnly(struct tm *, int, char *, bool);
-void		GetEpochTime(struct tm *);
-int			ParseDateTime(char *, char *, char **, int *, int, int *, char **);
-int			DecodeDateTime(char **, int *, int, int *, struct tm *, fsec_t *, int *, bool);
+int			GetEpochTime(struct tm *);
+int			ParseDateTime(char *, char *, char **, int *, int *, char **);
+int			DecodeDateTime(char **, int *, int, int *, struct tm *, fsec_t *, bool);
 void		j2date(int, int *, int *, int *);
 void		GetCurrentDateTime(struct tm *);
 int			date2j(int, int, int);
+void		TrimTrailingZeros(char *);
+void		dt2time(double, int *, int *, int *, fsec_t *);
 
 extern char *pgtypes_date_weekdays_short[];
 extern char *pgtypes_date_months[];

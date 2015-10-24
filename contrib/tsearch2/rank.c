@@ -37,7 +37,7 @@ Datum		rank_cd_def(PG_FUNCTION_ARGS);
 PG_FUNCTION_INFO_V1(get_covers);
 Datum		get_covers(PG_FUNCTION_ARGS);
 
-static float weights[] = {0.1, 0.2, 0.4, 1.0};
+static float weights[] = {0.1f, 0.2f, 0.4f, 1.0f};
 
 #define wpos(wep)	( w[ WEP_GETWEIGHT(wep) ] )
 
@@ -59,7 +59,7 @@ static float4
 word_distance(int4 w)
 {
 	if (w > 100)
-		return 1e-30;
+		return (float4)1e-30;
 
 	return 1.0 / (1.005 + 0.05 * exp(((float4) w) / 1.5 - 2));
 }
@@ -331,7 +331,7 @@ calc_rank(float *w, tsvector * t, QUERYTYPE * q, int4 method)
 		calc_rank_and(w, t, q) : calc_rank_or(w, t, q);
 
 	if (res < 0)
-		res = 1e-20;
+		res = (float)1e-20;
 
 	if ((method & RANK_NORM_LOGLENGTH) && t->size > 0)
 		res /= log((double) (cnt_length(t) + 1)) / log(2.0);
@@ -508,7 +508,7 @@ Cover(DocRepresentation * doc, int len, QUERYTYPE * query, Extention * ext)
 	ptr = doc + lastpos;
 
 	/* find lower bound of cover from founded upper bound, move down */
-	while (ptr >= doc)
+	while (ptr >= doc + ext->pos)
 	{
 		for (i = 0; i < ptr->nitem; i++)
 			ptr->item[i]->istrue = 1;
@@ -728,11 +728,27 @@ calc_rank_cd(float4 *arrdata, tsvector * txt, QUERYTYPE * query, int method)
 Datum
 rank_cd(PG_FUNCTION_ARGS)
 {
-	ArrayType  *win = (ArrayType *) PG_DETOAST_DATUM(PG_GETARG_DATUM(0));
+	ArrayType  *win;
 	tsvector   *txt = (tsvector *) PG_DETOAST_DATUM(PG_GETARG_DATUM(1));
 	QUERYTYPE  *query = (QUERYTYPE *) PG_DETOAST_DATUM_COPY(PG_GETARG_DATUM(2));
 	int			method = DEF_NORM_METHOD;
 	float4		res;
+
+	/*
+	 * Pre-8.2, rank_cd took just a plain int as its first argument.
+	 * It was a mistake to keep the same C function name while changing the
+	 * signature, but it's too late to fix that.  Instead, do a runtime test
+	 * to make sure the expected datatype has been passed.  This is needed
+	 * to prevent core dumps if tsearch2 function definitions from an old
+	 * database are loaded into an 8.2 server.
+	 */
+	if (get_fn_expr_argtype(fcinfo->flinfo, 0) != FLOAT4ARRAYOID)
+		ereport(ERROR,
+				(errcode(ERRCODE_INVALID_FUNCTION_DEFINITION),
+				 errmsg("rank_cd() now takes real[] as its first argument, not integer")));
+
+	/* now safe to dereference the first arg */
+	win = (ArrayType *) PG_DETOAST_DATUM(PG_GETARG_DATUM(0));
 
 	if (ARR_NDIM(win) != 1)
 		ereport(ERROR,
@@ -823,7 +839,7 @@ get_covers(PG_FUNCTION_ARGS)
 	if (!doc)
 	{
 		out = palloc(VARHDRSZ);
-		VARATT_SIZEP(out) = VARHDRSZ;
+		SET_VARSIZE(out, VARHDRSZ);
 		PG_FREE_IF_COPY(txt, 0);
 		PG_FREE_IF_COPY(query, 1);
 		PG_RETURN_POINTER(out);
@@ -894,7 +910,7 @@ get_covers(PG_FUNCTION_ARGS)
 		dwptr++;
 	}
 
-	VARATT_SIZEP(out) = cptr - ((char *) out);
+	SET_VARSIZE(out, cptr - ((char *) out));
 
 	pfree(dw);
 	for (i = 0; i < rlen; i++)

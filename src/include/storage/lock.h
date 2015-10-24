@@ -4,7 +4,7 @@
  *	  POSTGRES low-level lock mechanism
  *
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2008, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * $PostgreSQL: pgsql/src/include/storage/lock.h,v 1.102 2006/11/23 05:14:04 momjian Exp $
@@ -18,6 +18,7 @@
 #include "storage/itemptr.h"
 #include "storage/lwlock.h"
 #include "storage/shmem.h"
+#include "utils/resowner.h"
 
 
 /* struct PGPROC is declared in proc.h, but must forward-reference it */
@@ -97,6 +98,7 @@ typedef uint16 LOCKMETHODID;
 /* These identify the known lock methods */
 #define DEFAULT_LOCKMETHOD	1
 #define USER_LOCKMETHOD		2
+#define RESOURCE_LOCKMETHOD	3
 
 /*
  * These are the valid values of type LOCKMODE for all the standard lock
@@ -119,6 +121,20 @@ typedef uint16 LOCKMETHODID;
 #define AccessExclusiveLock		8		/* ALTER TABLE, DROP TABLE, VACUUM
 										 * FULL, and unqualified LOCK TABLE */
 
+/*
+ * Map from lock methods to lock table data structures.
+ */
+extern const	LockMethodData resource_lockmethod;
+extern const	LockMethod LockMethods[];
+
+
+/*
+ *  The lock hash tables. (needed by resource queuing).
+ */
+extern HTAB	*LockMethodLockHash;
+extern HTAB	*LockMethodProcLockHash;
+extern HTAB	*LockMethodLocalHash;
+
 
 /*
  * LOCKTAG is the key information needed to look up a LOCK item in the
@@ -139,6 +155,10 @@ typedef enum LockTagType
 	/* ID info for a tuple is PAGE info + OffsetNumber */
 	LOCKTAG_TRANSACTION,		/* transaction (for waiting for xact done) */
 	/* ID info for a transaction is its TransactionId */
+	LOCKTAG_RELATION_RESYNCHRONIZE,			/* whole relation for resynchronize */
+	/* ID info for a relation is DB OID + REL OID; DB OID = 0 if shared */
+	LOCKTAG_RELATION_APPENDONLY_SEGMENT_FILE,	/* Segment file within an Append-Only relation */
+	/* ID info for a relation is DB OID + REL OID + (LOGICAL) SEGMENT FILE # */
 	LOCKTAG_OBJECT,				/* non-relation database object */
 	/* ID info for an object is DB OID + CLASS OID + OBJECT OID + SUBID */
 
@@ -147,6 +167,7 @@ typedef enum LockTagType
 	 * pg_description, but notice that we are constraining SUBID to 16 bits.
 	 * Also, we use DB OID = 0 for shared objects such as tablespaces.
 	 */
+	LOCKTAG_RESOURCE_QUEUE,		/* ID info for resource queue is QUEUE ID */
 	LOCKTAG_USERLOCK,			/* reserved for old contrib/userlock code */
 	LOCKTAG_ADVISORY			/* advisory user locks */
 } LockTagType;
@@ -212,6 +233,22 @@ typedef struct LOCKTAG
 	 (locktag).locktag_field3 = 0, \
 	 (locktag).locktag_field4 = 0, \
 	 (locktag).locktag_type = LOCKTAG_TRANSACTION, \
+	 (locktag).locktag_lockmethodid = DEFAULT_LOCKMETHOD)
+
+#define SET_LOCKTAG_RELATION_RESYNCHRONIZE(locktag,dboid,reloid) \
+	((locktag).locktag_field1 = (dboid), \
+	 (locktag).locktag_field2 = (reloid), \
+	 (locktag).locktag_field3 = 0, \
+	 (locktag).locktag_field4 = 0, \
+	 (locktag).locktag_type = LOCKTAG_RELATION_RESYNCHRONIZE, \
+	 (locktag).locktag_lockmethodid = DEFAULT_LOCKMETHOD)
+
+#define SET_LOCKTAG_RELATION_APPENDONLY_SEGMENT_FILE(locktag,dboid,reloid,segno) \
+	((locktag).locktag_field1 = (dboid), \
+	 (locktag).locktag_field2 = (reloid), \
+	 (locktag).locktag_field3 = (segno), \
+	 (locktag).locktag_field4 = 0, \
+	 (locktag).locktag_type = LOCKTAG_RELATION_APPENDONLY_SEGMENT_FILE, \
 	 (locktag).locktag_lockmethodid = DEFAULT_LOCKMETHOD)
 
 #define SET_LOCKTAG_OBJECT(locktag,dboid,classoid,objoid,objsubid) \
@@ -319,6 +356,10 @@ typedef struct PROCLOCK
 	LOCKMASK	releaseMask;	/* bitmask for lock types to be released */
 	SHM_QUEUE	lockLink;		/* list link in LOCK's list of proclocks */
 	SHM_QUEUE	procLink;		/* list link in PGPROC's list of proclocks */
+	int			nLocks;			/* total number of times lock is held by 
+								   this process, used by resource scheduler */
+	SHM_QUEUE	portalLinks;	/* list of ResPortalIncrements for this 
+								   proclock, used by resource scheduler */
 } PROCLOCK;
 
 #define PROCLOCK_LOCKMETHOD(proclock) \
@@ -348,7 +389,7 @@ typedef struct LOCALLOCKOWNER
 	 * Must use a forward struct reference to avoid circularity.
 	 */
 	struct ResourceOwnerData *owner;
-	int			nLocks;			/* # of times held by this owner */
+	int64		nLocks;			/* # of times held by this owner */
 } LOCALLOCKOWNER;
 
 typedef struct LOCALLOCK
@@ -360,7 +401,8 @@ typedef struct LOCALLOCK
 	LOCK	   *lock;			/* associated LOCK object in shared mem */
 	PROCLOCK   *proclock;		/* associated PROCLOCK object in shmem */
 	uint32		hashcode;		/* copy of LOCKTAG's hash value */
-	int			nLocks;			/* total number of times lock is held */
+	bool		preparable;		/* MPP: During prepare we populate this to avoid MPP-1094 */
+	int64		nLocks;			/* total number of times lock is held */
 	int			numLockOwners;	/* # of relevant ResourceOwners */
 	int			maxLockOwners;	/* allocated size of array */
 	LOCALLOCKOWNER *lockOwners; /* dynamically resizable array */
@@ -368,6 +410,9 @@ typedef struct LOCALLOCK
 
 #define LOCALLOCK_LOCKMETHOD(llock) ((llock).tag.lock.locktag_lockmethodid)
 
+/* Waiter global locallock. (needed by resource queuing). */
+extern LOCALLOCK *awaitedLock;
+extern ResourceOwner awaitedOwner;
 
 /*
  * This struct holds information passed from lmgr internals to the lock
@@ -413,6 +458,26 @@ typedef enum
 extern void InitLocks(void);
 extern LockMethod GetLocksMethodTable(const LOCK *lock);
 extern uint32 LockTagHashCode(const LOCKTAG *locktag);
+/*
+ * Compute the hash code associated with a PROCLOCKTAG, given the hashcode
+ * for its underlying LOCK.
+ *
+ * We use this just to avoid redundant calls of LockTagHashCode().
+ */
+static inline uint32
+ProcLockHashCode(const PROCLOCKTAG *proclocktag, uint32 hashcode)
+{
+	uint32		lockhash = hashcode;
+	Datum		procptr;
+
+	/*
+	 * This must match proclock_hash()!
+	 */
+	procptr = PointerGetDatum(proclocktag->myProc);
+	lockhash ^= ((uint32) procptr) << LOG2_NUM_LOCK_PARTITIONS;
+
+	return lockhash;
+}
 extern LockAcquireResult LockAcquire(const LOCKTAG *locktag,
 			LOCKMODE lockmode,
 			bool sessionLock,
@@ -431,6 +496,7 @@ extern int LockCheckConflicts(LockMethod lockMethodTable,
 extern void GrantLock(LOCK *lock, PROCLOCK *proclock, LOCKMODE lockmode);
 extern void GrantAwaitedLock(void);
 extern void RemoveFromWaitQueue(PGPROC *proc, uint32 hashcode);
+extern void RemoveLocalLock(LOCALLOCK *locallock);
 extern Size LockShmemSize(void);
 extern LockData *GetLockStatusData(void);
 extern const char *GetLockmodeName(LOCKMETHODID lockmethodid, LOCKMODE mode);
@@ -449,6 +515,30 @@ extern void RememberSimpleDeadLock(PGPROC *proc1,
 					   LOCK *lock,
 					   PGPROC *proc2);
 extern void InitDeadLockChecking(void);
+
+
+
+typedef struct LockStatStd {
+char            lf_locktype[100];            /* 1 */ 
+Oid             lf_database;                 /* 2 */ 
+Oid             lf_relation;                 /* 3 */ 
+uint32          lf_page;                     /* 4 */ 
+uint16          lf_tuple;                    /* 5 */ 
+TransactionId   lf_transactionid;            /* 6 */ 
+Oid             lf_classid;                  /* 7 */ 
+Oid             lf_objid;                    /* 8 */ 
+uint16          lf_objsubid;                 /* 9 */ 
+TransactionId   lf_transaction;              /* 10 */ 
+uint32          lf_pid;                      /* 11 */ 
+char            lf_mode[100];                /* 12 */ 
+bool            lf_granted;                  /* 13 */ 
+uint32          lf_mppSessionId;             /* 14 */ 
+bool            lf_mppIsWriter;              /* 15 */ 
+
+} LockStatStd;
+
+extern int  LockStatStuff(LockStatStd *lf, int ii, 	LockData   *lockData);
+
 
 #ifdef LOCK_DEBUG
 extern void DumpLocks(PGPROC *proc);

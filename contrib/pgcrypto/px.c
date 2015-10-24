@@ -26,12 +26,14 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- * $PostgreSQL: pgsql/contrib/pgcrypto/px.c,v 1.15 2005/10/15 02:49:06 momjian Exp $
+ * $PostgreSQL: pgsql/contrib/pgcrypto/px.c,v 1.18 2009/06/11 14:48:52 momjian Exp $
  */
 
 #include "postgres.h"
 
 #include "px.h"
+
+#include "postmaster/postmaster.h"
 
 struct error_desc
 {
@@ -58,6 +60,7 @@ static const struct error_desc px_err_list[] = {
 	{PXE_BAD_SALT_ROUNDS, "Incorrect number of rounds"},
 	{PXE_MCRYPT_INTERNAL, "mcrypt internal error"},
 	{PXE_NO_RANDOM, "No strong random source"},
+	{PXE_DECRYPT_FAILED, "Decryption failed"},
 	{PXE_PGP_CORRUPT_DATA, "Wrong key or corrupt data"},
 	{PXE_PGP_CORRUPT_ARMOR, "Corrupt ascii-armor"},
 	{PXE_PGP_UNSUPPORTED_COMPR, "Unsupported compression algorithm"},
@@ -86,9 +89,6 @@ static const struct error_desc px_err_list[] = {
 	{PXE_PGP_UNSUPPORTED_PUBALGO, "Unsupported public key algorithm"},
 	{PXE_PGP_MULTIPLE_SUBKEYS, "Several subkeys not supported"},
 
-	/* fake this as PXE_PGP_CORRUPT_DATA */
-	{PXE_MBUF_SHORT_READ, "Corrupt data"},
-
 	{0, NULL},
 };
 
@@ -105,7 +105,7 @@ px_strerror(int err)
 
 
 const char *
-px_resolve_alias(const PX_Alias * list, const char *name)
+px_resolve_alias(const PX_Alias *list, const char *name)
 {
 	while (list->name)
 	{
@@ -145,19 +145,19 @@ px_debug(const char *fmt,...)
  */
 
 static unsigned
-combo_encrypt_len(PX_Combo * cx, unsigned dlen)
+combo_encrypt_len(PX_Combo *cx, unsigned dlen)
 {
 	return dlen + 512;
 }
 
 static unsigned
-combo_decrypt_len(PX_Combo * cx, unsigned dlen)
+combo_decrypt_len(PX_Combo *cx, unsigned dlen)
 {
 	return dlen;
 }
 
 static int
-combo_init(PX_Combo * cx, const uint8 *key, unsigned klen,
+combo_init(PX_Combo *cx, const uint8 *key, unsigned klen,
 		   const uint8 *iv, unsigned ivlen)
 {
 	int			err;
@@ -198,7 +198,7 @@ combo_init(PX_Combo * cx, const uint8 *key, unsigned klen,
 }
 
 static int
-combo_encrypt(PX_Combo * cx, const uint8 *data, unsigned dlen,
+combo_encrypt(PX_Combo *cx, const uint8 *data, unsigned dlen,
 			  uint8 *res, unsigned *rlen)
 {
 	int			err = 0;
@@ -269,7 +269,7 @@ out:
 }
 
 static int
-combo_decrypt(PX_Combo * cx, const uint8 *data, unsigned dlen,
+combo_decrypt(PX_Combo *cx, const uint8 *data, unsigned dlen,
 			  uint8 *res, unsigned *rlen)
 {
 	unsigned	bs,
@@ -278,6 +278,18 @@ combo_decrypt(PX_Combo * cx, const uint8 *data, unsigned dlen,
 	unsigned	pad_ok;
 
 	PX_Cipher  *c = cx->cipher;
+
+	/* decide whether zero-length input is allowed */
+	if (dlen == 0)
+	{
+		/* with padding, empty ciphertext is not allowed */
+		if (cx->padding)
+			return PXE_DECRYPT_FAILED;
+
+		/* without padding, report empty result */
+		*rlen = 0;
+		return 0;
+	}
 
 	bs = px_cipher_block_size(c);
 	if (bs > 1 && (dlen % bs) != 0)
@@ -314,7 +326,7 @@ block_error:
 }
 
 static void
-combo_free(PX_Combo * cx)
+combo_free(PX_Combo *cx)
 {
 	if (cx->cipher)
 		px_cipher_free(cx->cipher);
@@ -367,7 +379,7 @@ parse_cipher_name(char *full, char **cipher, char **pad)
 /* provider */
 
 int
-px_find_combo(const char *name, PX_Combo ** res)
+px_find_combo(const char *name, PX_Combo **res)
 {
 	int			err;
 	char	   *buf,

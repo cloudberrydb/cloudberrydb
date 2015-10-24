@@ -3,7 +3,7 @@
  *
  * PostgreSQL transaction log manager
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2008, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * $PostgreSQL: pgsql/src/include/access/xlog.h,v 1.75 2006/11/05 22:42:10 tgl Exp $
@@ -13,10 +13,33 @@
 
 #include "access/rmgr.h"
 #include "access/xlogdefs.h"
+#include "catalog/gp_segment_config.h"
+#include "catalog/pg_control.h"
 #include "lib/stringinfo.h"
 #include "storage/buf.h"
 #include "utils/pg_crc.h"
+#include "utils/relcache.h"
+#include "utils/segadmin.h"
+#include "cdb/cdbpublic.h"
 
+/*
+ * REDO Tracking DEFINEs.
+ */
+#define REDO_PRINT_READ_BUFFER_NOT_FOUND(reln,blkno,buffer,lsn) \
+{ \
+	if (Debug_persistent_recovery_print && !BufferIsValid(buffer)) \
+	{ \
+		xlog_print_redo_read_buffer_not_found(reln, blkno, lsn, PG_FUNCNAME_MACRO); \
+	} \
+}
+
+#define REDO_PRINT_LSN_APPLICATION(reln,blkno,page,lsn) \
+{ \
+	if (Debug_persistent_recovery_print) \
+	{ \
+		xlog_print_redo_lsn_application(reln, blkno, (void*)page, lsn, PG_FUNCNAME_MACRO); \
+	} \
+}
 
 /*
  * The overall layout of an XLOG record is:
@@ -89,6 +112,12 @@ typedef struct XLogRecord
 #define SYNC_METHOD_FSYNC_WRITETHROUGH	3
 extern int	sync_method;
 
+#ifdef O_DIRECT
+#define PG_O_DIRECT                             O_DIRECT
+#else
+#define PG_O_DIRECT                             0
+#endif
+
 /*
  * The rmgr data to be written by XLogInsert() is defined by a chain of
  * one or more XLogRecData structs.  (Multiple structs would be used when
@@ -130,6 +159,7 @@ typedef struct XLogRecData
 
 extern TimeLineID ThisTimeLineID;		/* current TLI */
 extern bool InRecovery;
+
 extern XLogRecPtr MyLastRecPtr;
 extern bool MyXactMadeXLogEntry;
 extern bool MyXactMadeTempRelUpdate;
@@ -142,29 +172,152 @@ extern char *XLogArchiveCommand;
 extern int	XLogArchiveTimeout;
 extern char *XLOG_sync_method;
 extern const char XLOG_sync_method_default[];
+extern bool gp_keep_all_xlog;
+extern int keep_wal_segments;
 
 #define XLogArchivingActive()	(XLogArchiveCommand[0] != '\0')
+
+/* 
+ * Whether we need to always generate transaction log (XLOG), or if we can
+ * bypass it and get better performance.
+ *
+ * For GPDB, we do not support XLogArchivingActive(), so we don't use it as a condition.
+ */
+extern bool XLog_CanBypassWal(void);
+
+/*
+ * For FileRep code that doesn't have the Bypass WAL logic yet.
+ */
+extern bool XLog_UnconvertedCanBypassWal(void);
+
+extern char *writeBufAligned;
+
+extern bool am_startup;
 
 #ifdef WAL_DEBUG
 extern bool XLOG_DEBUG;
 #endif
 
 extern XLogRecPtr XLogInsert(RmgrId rmid, uint8 info, XLogRecData *rdata);
+extern XLogRecPtr XLogInsert_OverrideXid(RmgrId rmid, uint8 info, XLogRecData *rdata, TransactionId overrideXid);
+extern XLogRecPtr XLogLastInsertBeginLoc(void);
+extern XLogRecPtr XLogLastInsertEndLoc(void);
+extern XLogRecPtr XLogLastChangeTrackedLoc(void);
+extern uint32 XLogLastInsertTotalLen(void);
+extern uint32 XLogLastInsertDataLen(void);
 extern void XLogFlush(XLogRecPtr RecPtr);
+extern void XLogFileRepFlushCache(
+	XLogRecPtr	*lastChangeTrackingEndLoc);
 
-extern void xlog_redo(XLogRecPtr lsn, XLogRecord *record);
-extern void xlog_desc(StringInfo buf, uint8 xl_info, char *rec);
+extern void XLogGetLastRemoved(uint32 *log, uint32 *seg);
+
+extern void xlog_redo(XLogRecPtr beginLoc __attribute__((unused)), XLogRecPtr lsn __attribute__((unused)), XLogRecord *record);
+extern void xlog_desc(StringInfo buf, XLogRecPtr beginLoc, XLogRecord *record);
+
+extern void issue_xlog_fsync(int fd, uint32 log, uint32 seg);
+
+extern bool RecoveryInProgress(void);
+extern XLogRecPtr GetInsertRecPtr(void);
+extern XLogRecPtr GetFlushRecPtr(void);
 
 extern void UpdateControlFile(void);
+extern uint64 GetSystemIdentifier(void);
 extern Size XLOGShmemSize(void);
 extern void XLOGShmemInit(void);
+extern void XLogStartupInit(void);
 extern void BootStrapXLOG(void);
 extern void StartupXLOG(void);
+extern bool XLogStartupMultipleRecoveryPassesNeeded(void);
+extern bool XLogStartupIntegrityCheckNeeded(void);
+extern bool XLogStartup_DoNextPTCatVerificationIteration(void);
+extern void StartupXLOG_Pass2(void);
+extern void StartupXLOG_Pass3(void);
+extern void StartupXLOG_Pass4(void);
 extern void ShutdownXLOG(int code, Datum arg);
 extern void InitXLOGAccess(void);
 extern void CreateCheckPoint(bool shutdown, bool force);
 extern void XLogPutNextOid(Oid nextOid);
 extern XLogRecPtr GetRedoRecPtr(void);
 extern void GetNextXidAndEpoch(TransactionId *xid, uint32 *epoch);
+
+extern void XLogFileClose(void);
+extern void XLogGetBuffer(int startidx, int npages, char **from, Size *nbytes);
+extern void XLogGetRecoveryStart(char *callerStr, char *reasonStr, XLogRecPtr *redoCheckPointLoc, CheckPoint *redoCheckPoint);
+extern void XLog_OutRec(StringInfo buf, XLogRecord *record);
+extern void XLogPrintLogNames(void);
+extern char *XLogLocationToString(XLogRecPtr *loc);
+extern char *XLogLocationToString2(XLogRecPtr *loc);
+extern char *XLogLocationToString3(XLogRecPtr *loc);
+extern char *XLogLocationToString4(XLogRecPtr *loc);
+extern char *XLogLocationToString5(XLogRecPtr *loc);
+extern char *XLogLocationToString_Long(XLogRecPtr *loc);
+extern char *XLogLocationToString2_Long(XLogRecPtr *loc);
+extern char *XLogLocationToString3_Long(XLogRecPtr *loc);
+extern char *XLogLocationToString4_Long(XLogRecPtr *loc);
+extern char *XLogLocationToString5_Long(XLogRecPtr *loc);
+
+extern void HandleStartupProcInterrupts(void);
+extern void StartupProcessMain(int passNum);
+
+extern int XLogReconcileEofPrimary(void);
+
+extern int XLogReconcileEofMirror(
+					   XLogRecPtr	primaryEof,
+					   XLogRecPtr	*mirrorEof);
+
+extern int XLogRecoverMirrorControlFile(void);
+extern int XLogAddRecordsToChangeTracking(
+	XLogRecPtr	*lastChangeTrackingEndLoc);
+extern void XLogInChangeTrackingTransition(void);
+
+extern void XLogInitMirroredAlignedBuffer(int32 bufferLen);
+
+extern void xlog_print_redo_read_buffer_not_found(
+		Relation		reln,
+		BlockNumber 	blkno,
+		XLogRecPtr 		lsn,
+		const char		*funcName);
+extern void xlog_print_redo_lsn_application(
+		Relation		reln,
+		BlockNumber 	blkno,
+		void			*page,
+		XLogRecPtr		lsn,
+		const char		*funcName);
+
+extern XLogRecord *XLogReadRecord(XLogRecPtr *RecPtr, bool fetching_ckpt, int emode);
+
+extern void XLogCloseReadRecord(void);
+
+extern XLogRecord *ReadCheckpointRecord(XLogRecPtr RecPtr, int whichChkpt);
+
+extern void XLogReadRecoveryCommandFile(int emode);
+
+extern List *XLogReadTimeLineHistory(TimeLineID targetTLI);
+
+extern int XLogRecoverMirror(void);
+
+extern XLogRecPtr GetStandbyFlushRecPtr(TimeLineID *targetTLI);
+extern XLogRecPtr GetXLogReplayRecPtr(TimeLineID *targetTLI);
+extern TimeLineID GetRecoveryTargetTLI(void);
+extern int XLogFileInitExt(
+	uint32 log, uint32 seg,
+	bool *use_existent, bool use_lock);
+
+extern bool CheckPromoteSignal(bool do_unlink);
+extern void WakeupRecovery(void);
+extern void SetStandbyDbid(int16 dbid);
+extern int16 GetStandbyDbid(void);
+extern bool IsStandbyMode(void);
+
+/*
+ * Starting/stopping a base backup
+ */
+extern XLogRecPtr do_pg_start_backup(const char *backupidstr, bool fast, char **labelfile);
+extern XLogRecPtr do_pg_stop_backup(char *labelfile);
+extern void do_pg_abort_backup(void);
+
+/* File path names (all relative to $PGDATA) */
+#define BACKUP_LABEL_FILE		"backup_label"
+#define BACKUP_LABEL_OLD		"backup_label.old"
 
 #endif   /* XLOG_H */

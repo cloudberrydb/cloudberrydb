@@ -62,9 +62,7 @@ init_cfg(Oid id, TSCfgInfo * cfg)
 		ts_error(ERROR, "SPI_execp return %d", stat);
 	if (SPI_processed > 0)
 	{
-		prsname = (text *) DatumGetPointer(
-										   SPI_getbinval(SPI_tuptable->vals[0], SPI_tuptable->tupdesc, 1, &isnull)
-			);
+		prsname = DatumGetTextP(SPI_getbinval(SPI_tuptable->vals[0], SPI_tuptable->tupdesc, 1, &isnull));
 		oldcontext = MemoryContextSwitchTo(TopMemoryContext);
 		prsname = ptextdup(prsname);
 		MemoryContextSwitchTo(oldcontext);
@@ -92,7 +90,7 @@ init_cfg(Oid id, TSCfgInfo * cfg)
 	for (i = 0; i < SPI_processed; i++)
 	{
 		int			lexid = DatumGetInt32(SPI_getbinval(SPI_tuptable->vals[i], SPI_tuptable->tupdesc, 1, &isnull));
-		ArrayType  *toasted_a = (ArrayType *) PointerGetDatum(SPI_getbinval(SPI_tuptable->vals[i], SPI_tuptable->tupdesc, 2, &isnull));
+		ArrayType  *toasted_a = (ArrayType *) DatumGetPointer(SPI_getbinval(SPI_tuptable->vals[i], SPI_tuptable->tupdesc, 2, &isnull));
 		ArrayType  *a;
 
 		if (!cfg->map)
@@ -109,7 +107,7 @@ init_cfg(Oid id, TSCfgInfo * cfg)
 		if (isnull)
 			continue;
 
-		a = (ArrayType *) PointerGetDatum(PG_DETOAST_DATUM(DatumGetPointer(toasted_a)));
+		a = (ArrayType *) PG_DETOAST_DATUM(PointerGetDatum(toasted_a));
 
 		if (ARR_NDIM(a) != 1)
 			ts_error(ERROR, "Wrong dimension");
@@ -224,8 +222,8 @@ findcfg(Oid id)
 		CList.reallen = reallen;
 		CList.list = tmp;
 	}
+	init_cfg(id, &(CList.list[CList.len]) );
 	CList.last_cfg = &(CList.list[CList.len]);
-	init_cfg(id, CList.last_cfg);
 	CList.len++;
 	qsort(CList.list, CList.len, sizeof(TSCfgInfo), comparecfg);
 	return findcfg(id); /* qsort changed order!! */ ;
@@ -555,7 +553,7 @@ genhl(HLPRSTEXT * prs)
 		wrd++;
 	}
 
-	VARATT_SIZEP(out) = ptr - ((char *) out);
+	SET_VARSIZE(out, ptr - ((char *) out));
 	return out;
 }
 

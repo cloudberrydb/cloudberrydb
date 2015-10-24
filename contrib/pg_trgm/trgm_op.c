@@ -5,7 +5,7 @@
 
 PG_MODULE_MAGIC;
 
-float4		trgm_limit = 0.3;
+float4		trgm_limit = 0.3f;
 
 PG_FUNCTION_INFO_V1(set_limit);
 Datum		set_limit(PG_FUNCTION_ARGS);
@@ -70,9 +70,9 @@ generate_trgm(char *str, int slen)
 	int			wl,
 				len;
 
-	trg = (TRGM *) palloc(TRGMHRDSIZE + sizeof(trgm) * (slen / 2 + 1) * 3);
+	trg = (TRGM *) palloc(TRGMHDRSIZE + sizeof(trgm) * (slen / 2 + 1) * 3);
 	trg->flag = ARRKEY;
-	trg->len = TRGMHRDSIZE;
+	SET_VARSIZE(trg, TRGMHDRSIZE);
 
 	if (slen + LPADDING + RPADDING < 3 || slen == 0)
 		return trg;
@@ -178,11 +178,24 @@ generate_trgm(char *str, int slen)
 		len = unique_array(GETARR(trg), len);
 	}
 
-	trg->len = CALCGTSIZE(ARRKEY, len);
+	SET_VARSIZE(trg, CALCGTSIZE(ARRKEY, len));
 
 	return trg;
 }
 
+uint32
+trgm2int(trgm *ptr)
+{
+	uint32		val = 0;
+
+	val |= *(((unsigned char *) ptr));
+	val <<= 8;
+	val |= *(((unsigned char *) ptr) + 1);
+	val <<= 8;
+	val |= *(((unsigned char *) ptr) + 2);
+
+	return val;
+}
 
 PG_FUNCTION_INFO_V1(show_trgm);
 Datum		show_trgm(PG_FUNCTION_ARGS);
@@ -194,19 +207,18 @@ show_trgm(PG_FUNCTION_ARGS)
 	Datum	   *d;
 	ArrayType  *a;
 	trgm	   *ptr;
+	int			i;
 
 	trg = generate_trgm(VARDATA(in), VARSIZE(in) - VARHDRSZ);
 	d = (Datum *) palloc(sizeof(Datum) * (1 + ARRNELEM(trg)));
 
-	ptr = GETARR(trg);
-	while (ptr - GETARR(trg) < ARRNELEM(trg))
+	for (i = 0, ptr = GETARR(trg); i < ARRNELEM(trg); i++, ptr++)
 	{
 		text	   *item = (text *) palloc(VARHDRSZ + 3);
 
-		VARATT_SIZEP(item) = VARHDRSZ + 3;
+		SET_VARSIZE(item, VARHDRSZ + 3);
 		CPTRGM(VARDATA(item), ptr);
-		d[ptr - GETARR(trg)] = PointerGetDatum(item);
-		ptr++;
+		d[i] = PointerGetDatum(item);
 	}
 
 	a = construct_array(
@@ -218,12 +230,8 @@ show_trgm(PG_FUNCTION_ARGS)
 						'i'
 		);
 
-	ptr = GETARR(trg);
-	while (ptr - GETARR(trg) < ARRNELEM(trg))
-	{
-		pfree(DatumGetPointer(d[ptr - GETARR(trg)]));
-		ptr++;
-	}
+	for (i = 0; i < ARRNELEM(trg); i++)
+		pfree(DatumGetPointer(d[i]));
 
 	pfree(d);
 	pfree(trg);

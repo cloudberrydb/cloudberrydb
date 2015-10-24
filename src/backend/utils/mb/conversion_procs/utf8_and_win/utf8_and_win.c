@@ -2,11 +2,11 @@
  *
  *	  WIN <--> UTF8
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/utils/mb/conversion_procs/utf8_and_win/utf8_and_win.c,v 1.8 2006/11/27 15:50:55 petere Exp $
+ *	  $PostgreSQL: pgsql/src/backend/utils/mb/conversion_procs/utf8_and_win/utf8_and_win.c,v 1.14 2009/01/29 19:23:42 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -110,21 +110,20 @@ win_to_utf8(PG_FUNCTION_ARGS)
 	int			len = PG_GETARG_INT32(4);
 	int			i;
 
-	Assert(PG_GETARG_INT32(1) == PG_UTF8);
-	Assert(len >= 0);
+	CHECK_ENCODING_CONVERSION_ARGS(-1, PG_UTF8);
 
 	for (i = 0; i < sizeof(maps) / sizeof(pg_conv_map); i++)
 	{
 		if (encoding == maps[i].encoding)
 		{
-			LocalToUtf(src, dest, maps[i].map1, maps[i].size1, encoding, len);
+			LocalToUtf(src, dest, maps[i].map1, NULL, maps[i].size1, 0, encoding, len);
 			PG_RETURN_VOID();
 		}
 	}
 
 	ereport(ERROR,
 			(errcode(ERRCODE_INTERNAL_ERROR),
-			 errmsg("unexpected encoding ID %d for WIN character sets", encoding)));
+	  errmsg("unexpected encoding ID %d for WIN character sets", encoding)));
 
 	PG_RETURN_VOID();
 }
@@ -138,21 +137,20 @@ utf8_to_win(PG_FUNCTION_ARGS)
 	int			len = PG_GETARG_INT32(4);
 	int			i;
 
-	Assert(PG_GETARG_INT32(0) == PG_UTF8);
-	Assert(len >= 0);
+	CHECK_ENCODING_CONVERSION_ARGS(PG_UTF8, -1);
 
 	for (i = 0; i < sizeof(maps) / sizeof(pg_conv_map); i++)
 	{
 		if (encoding == maps[i].encoding)
 		{
-			UtfToLocal(src, dest, maps[i].map2, maps[i].size2, encoding, len);
+			UtfToLocal(src, dest, maps[i].map2, NULL, maps[i].size2, 0, encoding, len);
 			PG_RETURN_VOID();
 		}
 	}
 
 	ereport(ERROR,
 			(errcode(ERRCODE_INTERNAL_ERROR),
-			 errmsg("unexpected encoding ID %d for WIN character sets", encoding)));
+	  errmsg("unexpected encoding ID %d for WIN character sets", encoding)));
 
 	PG_RETURN_VOID();
 }

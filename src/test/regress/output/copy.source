@@ -46,7 +46,7 @@ insert into copytest values(E'esc\\ape',E'a\\r\\\r\\\n\\nb',4);
 copy copytest to '@abs_builddir@/results/copytest.csv' csv;
 create temp table copytest2 (like copytest);
 copy copytest2 from '@abs_builddir@/results/copytest.csv' csv;
-select * from copytest except select * from copytest2;
+select * from copytest except select * from copytest2 order by 1,2,3;
  style | test | filler 
 -------+------+--------
 (0 rows)
@@ -55,7 +55,7 @@ truncate copytest2;
 --- same test but with an escape char different from quote char
 copy copytest to '@abs_builddir@/results/copytest.csv' csv quote '''' escape E'\\';
 copy copytest2 from '@abs_builddir@/results/copytest.csv' csv quote '''' escape E'\\';
-select * from copytest except select * from copytest2;
+select * from copytest except select * from copytest2 order by 1,2,3;
  style | test | filler 
 -------+------+--------
 (0 rows)
@@ -64,9 +64,20 @@ select * from copytest except select * from copytest2;
 create temp table copytest3 (
 	c1 int, 
 	"col with , comma" text, 
-	"col with "" quote"  int);
+	"col with "" quote"  int) distributed by (c1);
 copy copytest3 from stdin csv header;
 copy copytest3 to stdout csv header;
 c1,"col with , comma","col with "" quote"
 1,a,1
 2,b,2
+-- test copy force quote
+create temp table copytest4 (id int, id1 int);
+insert into copytest4 values (1,2);
+insert into copytest4 values (1,3);
+insert into copytest4 values (1,4);
+copy (select * from copytest4) to stdout csv delimiter ',' force quote id, id1, id2;
+ERROR:  column "id2" does not exist
+copy (select * from copytest4) to stdout csv delimiter ',' force quote id, id1;
+1,2
+1,3
+1,4

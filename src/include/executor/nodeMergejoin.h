@@ -4,7 +4,7 @@
  *
  *
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2008, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * $PostgreSQL: pgsql/src/include/executor/nodeMergejoin.h,v 1.24 2006/03/05 15:58:56 momjian Exp $
@@ -21,5 +21,16 @@ extern MergeJoinState *ExecInitMergeJoin(MergeJoin *node, EState *estate, int ef
 extern TupleTableSlot *ExecMergeJoin(MergeJoinState *node);
 extern void ExecEndMergeJoin(MergeJoinState *node);
 extern void ExecReScanMergeJoin(MergeJoinState *node, ExprContext *exprCtxt);
+extern void ExecEagerFreeMergeJoin(MergeJoinState *node);
 
+enum {
+	GPMON_MERGEJOIN_INNERTUPLE = GPMON_QEXEC_M_NODE_START,
+	GPMON_MERGEJOIN_OUTERTUPLE,
+	GPMON_MERGEJOIN_TOTAL,
+};
+
+static inline gpmon_packet_t *GpmonPktFromMergeJoinState(MergeJoinState *node)
+{
+	return &node->js.ps.gpmon_pkt;
+}
 #endif   /* NODEMERGEJOIN_H */

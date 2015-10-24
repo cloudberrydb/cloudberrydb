@@ -50,11 +50,12 @@
  * the non-cost fields of the passed XXXPath to be filled in.
  *
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 2005-2008, Greenplum inc
+ * Portions Copyright (c) 1996-2008, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/optimizer/path/costsize.c,v 1.169 2006/11/11 01:14:19 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/optimizer/path/costsize.c,v 1.169.2.2 2007/01/08 16:09:31 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -63,7 +64,7 @@
 
 #include <math.h>
 
-#include "executor/nodeHash.h"
+#include "executor/hashjoin.h"
 #include "miscadmin.h"
 #include "optimizer/clauses.h"
 #include "optimizer/cost.h"
@@ -73,6 +74,7 @@
 #include "utils/selfuncs.h"
 #include "utils/tuplesort.h"
 
+#include "cdb/cdbpath.h"        /* cdbpath_rows() */
 
 #define LOG2(x)  (log(x) / 0.693147180559945)
 
@@ -80,10 +82,7 @@
  * Some Paths return less than the nominal number of rows of their parent
  * relations; join nodes need to do this to get the correct input count:
  */
-#define PATH_ROWS(path) \
-	(IsA(path, UniquePath) ? \
-	 ((UniquePath *) (path))->rows : \
-	 (path)->parent->rows)
+#define PATH_ROWS(root, path) (cdbpath_rows((root), (path)))
 
 
 double		seq_page_cost = DEFAULT_SEQ_PAGE_COST;
@@ -94,48 +93,34 @@ double		cpu_operator_cost = DEFAULT_CPU_OPERATOR_COST;
 
 int			effective_cache_size = DEFAULT_EFFECTIVE_CACHE_SIZE;
 
-Cost		disable_cost = 100000000.0;
+Cost		disable_cost = 1.0e9;
 
-bool		enable_seqscan = true;
-bool		enable_indexscan = true;
-bool		enable_bitmapscan = true;
-bool		enable_tidscan = true;
-bool		enable_sort = true;
-bool		enable_hashagg = true;
-bool		enable_nestloop = true;
-bool		enable_mergejoin = true;
-bool		enable_hashjoin = true;
+/* CDB: The enable_xxx globals have been moved to allpaths.c */
 
+typedef struct
+	{
+		PlannerInfo *root;
+		QualCost	total;
+	} cost_qual_eval_context;
 
-static bool cost_qual_eval_walker(Node *node, QualCost *total);
+static bool cost_qual_eval_walker(Node *node, cost_qual_eval_context *context);
 static Selectivity approx_selectivity(PlannerInfo *root, List *quals,
 				   JoinType jointype);
 static Selectivity join_in_selectivity(JoinPath *path, PlannerInfo *root);
-static void set_rel_width(PlannerInfo *root, RelOptInfo *rel);
 static double relation_byte_size(double tuples, int width);
 static double page_size(double tuples, int width);
+static Selectivity adjust_selectivity_for_nulltest(Selectivity selec,
+												Selectivity pselec,
+												List *pushed_quals,
+												JoinType jointype,
+												RelOptInfo *left,
+												RelOptInfo *right);
 
+static void hash_table_size(double ntuples, int tupwidth, double memory_bytes,
+						int *numbuckets,
+						int *numbatches);
 
-/*
- * clamp_row_est
- *		Force a row-count estimate to a sane value.
- */
-double
-clamp_row_est(double nrows)
-{
-	/*
-	 * Force estimate to be at least one row, to make explain output look
-	 * better and to avoid possible divide-by-zero when interpolating costs.
-	 * Make it an integer, too.
-	 */
-	if (nrows <= 1.0)
-		nrows = 1.0;
-	else
-		nrows = rint(nrows);
-
-	return nrows;
-}
-
+/* CDB: The clamp_row_est() function definition has been moved to cost.h */
 
 /*
  * cost_seqscan
@@ -153,9 +138,6 @@ cost_seqscan(Path *path, PlannerInfo *root,
 	Assert(baserel->relid > 0);
 	Assert(baserel->rtekind == RTE_RELATION);
 
-	if (!enable_seqscan)
-		startup_cost += disable_cost;
-
 	/*
 	 * disk costs
 	 */
@@ -168,6 +150,99 @@ cost_seqscan(Path *path, PlannerInfo *root,
 
 	path->startup_cost = startup_cost;
 	path->total_cost = startup_cost + run_cost;
+}
+
+/*
+ * cost_appendonlyscan
+ *	  Determines and returns the cost of scanning a relation sequentially.
+ */
+void
+cost_appendonlyscan(AppendOnlyPath *path, PlannerInfo *root,
+					RelOptInfo *baserel)
+{
+	Cost		startup_cost = 0;
+	Cost		run_cost = 0;
+	Cost		cpu_per_tuple;
+	
+	/* Should only be applied to base relations */
+	Assert(baserel->relid > 0);
+	Assert(baserel->rtekind == RTE_RELATION);
+	
+	/*
+	 * disk costs
+	 */
+	run_cost += seq_page_cost * baserel->pages;
+	
+	/* CPU costs */
+	startup_cost += baserel->baserestrictcost.startup;
+	cpu_per_tuple = cpu_tuple_cost + baserel->baserestrictcost.per_tuple;
+	run_cost += cpu_per_tuple * baserel->tuples;
+	
+	path->path.startup_cost = startup_cost;
+	path->path.total_cost = startup_cost + run_cost;
+}
+
+/*
+ * cost_aocsscan
+ *	  Determines and returns the cost of scanning a relation sequentially.
+ */
+void
+cost_aocsscan(AOCSPath *path, PlannerInfo *root,
+					RelOptInfo *baserel)
+{
+	Cost		startup_cost = 0;
+	Cost		run_cost = 0;
+	Cost		cpu_per_tuple;
+	
+	/* Should only be applied to base relations */
+	Assert(baserel->relid > 0);
+	Assert(baserel->rtekind == RTE_RELATION);
+	
+	/*
+	 * disk costs
+	 */
+	run_cost += seq_page_cost * baserel->pages;
+	
+	/* CPU costs */
+	startup_cost += baserel->baserestrictcost.startup;
+	cpu_per_tuple = cpu_tuple_cost + baserel->baserestrictcost.per_tuple;
+	run_cost += cpu_per_tuple * baserel->tuples;
+	
+	path->path.startup_cost = startup_cost;
+	path->path.total_cost = startup_cost + run_cost;
+}
+
+/*
+ * cost_externalscan
+ *	  Determines and returns the cost of scanning an external relation.
+ *
+ *	  Right now this is not very meaningful at all but we'll probably
+ *	  want to make some good estimates in the future.
+ */
+void
+cost_externalscan(ExternalPath *path, PlannerInfo *root,
+				  RelOptInfo *baserel)
+{
+	Cost		startup_cost = 0;
+	Cost		run_cost = 0;
+	Cost		cpu_per_tuple;
+	
+	/* Should only be applied to external relations */
+	Assert(baserel->relid > 0);
+	Assert(baserel->rtekind == RTE_RELATION);
+	
+	/*
+	 * disk costs
+	 */
+	run_cost += seq_page_cost * baserel->pages;
+	
+	/* CPU costs */
+	startup_cost += baserel->baserestrictcost.startup;
+	cpu_per_tuple = cpu_tuple_cost + baserel->baserestrictcost.per_tuple;
+	run_cost += cpu_per_tuple * baserel->tuples;
+	
+	path->path.startup_cost = startup_cost;
+	path->path.total_cost = startup_cost + run_cost;
 }
 
 /*
@@ -219,15 +294,13 @@ cost_index(IndexPath *path, PlannerInfo *root,
 	Assert(baserel->relid > 0);
 	Assert(baserel->rtekind == RTE_RELATION);
 
-	if (!enable_indexscan)
-		startup_cost += disable_cost;
-
 	/*
 	 * Call index-access-method-specific code to estimate the processing cost
 	 * for scanning the index, as well as the selectivity of the index (ie,
 	 * the fraction of main-table tuples we will have to retrieve) and its
 	 * correlation to the main-table tuple order.
 	 */
+    index->num_leading_eq = 0;
 	OidFunctionCall8(index->amcostestimate,
 					 PointerGetDatum(root),
 					 PointerGetDatum(index),
@@ -237,6 +310,26 @@ cost_index(IndexPath *path, PlannerInfo *root,
 					 PointerGetDatum(&indexTotalCost),
 					 PointerGetDatum(&indexSelectivity),
 					 PointerGetDatum(&indexCorrelation));
+					
+    /*
+     * CDB: Note whether all of the key columns are matched by equality
+     * predicates.
+     *
+     * The index->num_leading_eq field is kludgily used as an implicit result
+     * parameter from the amcostestimate proc, to avoid changing its externally
+     * exposed interface. Transfer to IndexPath, then zap to discourage misuse.
+     */
+    path->num_leading_eq = index->num_leading_eq;
+    index->num_leading_eq = 0;
+
+	/*
+	 * clamp index correlation to 99% or less, so that we always account for at least a little bit
+	 * of random_page_cost in our calculation.  Otherwise, perfectly correlated indexes look too fast.
+	 */
+	if (indexCorrelation >= 0.99)
+		indexCorrelation = 0.99;
+	else if (indexCorrelation <= -0.99)
+		indexCorrelation = -0.99;
 
 	/*
 	 * Save amcostestimate's results for possible use in bitmap scan planning.
@@ -276,13 +369,12 @@ cost_index(IndexPath *path, PlannerInfo *root,
 	if (outer_rel != NULL && outer_rel->rows > 1)
 	{
 		/*
-		 * For repeated indexscans, scale up the number of tuples fetched in
+		 * For repeated indexscans, the appropriate estimate for the
+		 * uncorrelated case is to scale up the number of tuples fetched in
 		 * the Mackert and Lohman formula by the number of scans, so that we
-		 * estimate the number of pages fetched by all the scans. Then
+		 * estimate the number of pages fetched by all the scans; then
 		 * pro-rate the costs for one scan.  In this case we assume all the
-		 * fetches are random accesses.  XXX it'd be good to include
-		 * correlation in this model, but it's not clear how to do that
-		 * without double-counting cache effects.
+		 * fetches are random accesses.
 		 */
 		double		num_scans = outer_rel->rows;
 
@@ -291,7 +383,27 @@ cost_index(IndexPath *path, PlannerInfo *root,
 											(double) index->pages,
 											root);
 
-		run_cost += (pages_fetched * random_page_cost) / num_scans;
+		max_IO_cost = (pages_fetched * random_page_cost) / num_scans;
+
+		/*
+		 * In the perfectly correlated case, the number of pages touched
+		 * by each scan is selectivity * table_size, and we can use the
+		 * Mackert and Lohman formula at the page level to estimate how
+		 * much work is saved by caching across scans.  We still assume
+		 * all the fetches are random, though, which is an overestimate
+		 * that's hard to correct for without double-counting the cache
+		 * effects.  (But in most cases where such a plan is actually
+		 * interesting, only one page would get fetched per scan anyway,
+		 * so it shouldn't matter much.)
+		 */
+		pages_fetched = ceil(indexSelectivity * (double) baserel->pages);
+
+		pages_fetched = index_pages_fetched(pages_fetched * num_scans,
+											baserel->pages,
+											(double) index->pages,
+											root);
+
+		min_IO_cost = (pages_fetched * random_page_cost) / num_scans;
 	}
 	else
 	{
@@ -312,15 +424,15 @@ cost_index(IndexPath *path, PlannerInfo *root,
 		min_IO_cost = random_page_cost;
 		if (pages_fetched > 1)
 			min_IO_cost += (pages_fetched - 1) * seq_page_cost;
-
-		/*
-		 * Now interpolate based on estimated index order correlation to get
-		 * total disk I/O cost for main table accesses.
-		 */
-		csquared = indexCorrelation * indexCorrelation;
-
-		run_cost += max_IO_cost + csquared * (min_IO_cost - max_IO_cost);
 	}
+
+	/*
+	 * Now interpolate based on estimated index order correlation to get
+	 * total disk I/O cost for main table accesses.
+	 */
+	csquared = indexCorrelation * indexCorrelation;
+
+	run_cost += max_IO_cost + csquared * (min_IO_cost - max_IO_cost);
 
 	/*
 	 * Estimate CPU costs per tuple.
@@ -339,7 +451,7 @@ cost_index(IndexPath *path, PlannerInfo *root,
 	{
 		QualCost	index_qual_cost;
 
-		cost_qual_eval(&index_qual_cost, indexQuals);
+		cost_qual_eval(&index_qual_cost, indexQuals, root);
 		/* any startup cost still has to be paid ... */
 		cpu_per_tuple -= index_qual_cost.per_tuple;
 	}
@@ -523,8 +635,207 @@ cost_bitmap_heap_scan(Path *path, PlannerInfo *root, RelOptInfo *baserel,
 	Assert(baserel->relid > 0);
 	Assert(baserel->rtekind == RTE_RELATION);
 
-	if (!enable_bitmapscan)
-		startup_cost += disable_cost;
+	/*
+	 * Fetch total cost of obtaining the bitmap, as well as its total
+	 * selectivity.
+	 */
+	cost_bitmap_tree_node(bitmapqual, &indexTotalCost, &indexSelectivity);
+
+	startup_cost += indexTotalCost;
+
+	/*
+	 * Estimate number of main-table pages fetched.
+	 */
+	tuples_fetched = clamp_row_est(indexSelectivity * baserel->tuples);
+
+	T = (baserel->pages > 1) ? (double) baserel->pages : 1.0;
+
+	if (outer_rel != NULL && outer_rel->rows > 1)
+	{
+		/*
+		 * For repeated bitmap scans, scale up the number of tuples fetched in
+		 * the Mackert and Lohman formula by the number of scans, so that we
+		 * estimate the number of pages fetched by all the scans. Then
+		 * pro-rate for one scan.
+		 */
+		double		num_scans = outer_rel->rows;
+
+		pages_fetched = index_pages_fetched(tuples_fetched * num_scans,
+											baserel->pages,
+											get_indexpath_pages(bitmapqual),
+											root);
+		pages_fetched /= num_scans;
+	}
+	else
+	{
+		/*
+		 * For a single scan, the number of heap pages that need to be fetched
+		 * is the same as the Mackert and Lohman formula for the case T <= b
+		 * (ie, no re-reads needed).
+		 */
+		pages_fetched = (2.0 * T * tuples_fetched) / (2.0 * T + tuples_fetched);
+	}
+	if (pages_fetched >= T)
+		pages_fetched = T;
+	else
+		pages_fetched = ceil(pages_fetched);
+
+	/*
+	 * For small numbers of pages we should charge random_page_cost apiece,
+	 * while if nearly all the table's pages are being read, it's more
+	 * appropriate to charge seq_page_cost apiece.	The effect is nonlinear,
+	 * too. For lack of a better idea, interpolate like this to determine the
+	 * cost per page.
+	 */
+	if (pages_fetched >= 2.0)
+		cost_per_page = random_page_cost -
+			(random_page_cost - seq_page_cost) * sqrt(pages_fetched / T);
+	else
+		cost_per_page = random_page_cost;
+
+	run_cost += pages_fetched * cost_per_page;
+
+	/*
+	 * Estimate CPU costs per tuple.
+	 *
+	 * Often the indexquals don't need to be rechecked at each tuple ... but
+	 * not always, especially not if there are enough tuples involved that the
+	 * bitmaps become lossy.  For the moment, just assume they will be
+	 * rechecked always.
+	 */
+	startup_cost += baserel->baserestrictcost.startup;
+	cpu_per_tuple = cpu_tuple_cost + baserel->baserestrictcost.per_tuple;
+
+	run_cost += cpu_per_tuple * tuples_fetched;
+
+	path->startup_cost = startup_cost;
+	path->total_cost = startup_cost + run_cost;
+}
+
+/*
+ * cost_bitmap_appendonly_scan
+ *
+ * NOTE: This is a copy of cost_bitmap_heap_scan.
+ */
+void
+cost_bitmap_appendonly_scan(Path *path, PlannerInfo *root, RelOptInfo *baserel,
+					  Path *bitmapqual, RelOptInfo *outer_rel)
+{
+	Cost		startup_cost = 0;
+	Cost		run_cost = 0;
+	Cost		indexTotalCost;
+	Selectivity indexSelectivity;
+	Cost		cpu_per_tuple;
+	Cost		cost_per_page;
+	double		tuples_fetched;
+	double		pages_fetched;
+	double		T;
+
+	/* Should only be applied to base relations */
+	Assert(IsA(baserel, RelOptInfo));
+	Assert(baserel->relid > 0);
+	Assert(baserel->rtekind == RTE_RELATION);
+
+	/*
+	 * Fetch total cost of obtaining the bitmap, as well as its total
+	 * selectivity.
+	 */
+	cost_bitmap_tree_node(bitmapqual, &indexTotalCost, &indexSelectivity);
+
+	startup_cost += indexTotalCost;
+
+	/*
+	 * Estimate number of main-table pages fetched.
+	 */
+	tuples_fetched = clamp_row_est(indexSelectivity * baserel->tuples);
+
+	T = (baserel->pages > 1) ? (double) baserel->pages : 1.0;
+
+	if (outer_rel != NULL && outer_rel->rows > 1)
+	{
+		/*
+		 * For repeated bitmap scans, scale up the number of tuples fetched in
+		 * the Mackert and Lohman formula by the number of scans, so that we
+		 * estimate the number of pages fetched by all the scans. Then
+		 * pro-rate for one scan.
+		 */
+		double		num_scans = outer_rel->rows;
+
+		pages_fetched = index_pages_fetched(tuples_fetched * num_scans,
+											baserel->pages,
+											get_indexpath_pages(bitmapqual),
+											root);
+		pages_fetched /= num_scans;
+	}
+	else
+	{
+		/*
+		 * For a single scan, the number of heap pages that need to be fetched
+		 * is the same as the Mackert and Lohman formula for the case T <= b
+		 * (ie, no re-reads needed).
+		 */
+		pages_fetched = (2.0 * T * tuples_fetched) / (2.0 * T + tuples_fetched);
+	}
+	if (pages_fetched >= T)
+		pages_fetched = T;
+	else
+		pages_fetched = ceil(pages_fetched);
+
+	/*
+	 * For small numbers of pages we should charge random_page_cost apiece,
+	 * while if nearly all the table's pages are being read, it's more
+	 * appropriate to charge seq_page_cost apiece.	The effect is nonlinear,
+	 * too. For lack of a better idea, interpolate like this to determine the
+	 * cost per page.
+	 */
+	if (pages_fetched >= 2.0)
+		cost_per_page = random_page_cost -
+			(random_page_cost - seq_page_cost) * sqrt(pages_fetched / T);
+	else
+		cost_per_page = random_page_cost;
+
+	run_cost += pages_fetched * cost_per_page;
+
+	/*
+	 * Estimate CPU costs per tuple.
+	 *
+	 * Often the indexquals don't need to be rechecked at each tuple ... but
+	 * not always, especially not if there are enough tuples involved that the
+	 * bitmaps become lossy.  For the moment, just assume they will be
+	 * rechecked always.
+	 */
+	startup_cost += baserel->baserestrictcost.startup;
+	cpu_per_tuple = cpu_tuple_cost + baserel->baserestrictcost.per_tuple;
+
+	run_cost += cpu_per_tuple * tuples_fetched;
+
+	path->startup_cost = startup_cost;
+	path->total_cost = startup_cost + run_cost;
+}
+
+/*
+ * cost_bitmap_aocs_scan
+ *
+ * NOTE: This is a copy of cost_bitmap_heap_scan.
+ */
+void
+cost_bitmap_aocs_scan(Path *path, PlannerInfo *root, RelOptInfo *baserel,
+					  Path *bitmapqual, RelOptInfo *outer_rel)
+{
+	Cost		startup_cost = 0;
+	Cost		run_cost = 0;
+	Cost		indexTotalCost;
+	Selectivity indexSelectivity;
+	Cost		cpu_per_tuple;
+	Cost		cost_per_page;
+	double		tuples_fetched;
+	double		pages_fetched;
+	double		T;
+
+	/* Should only be applied to base relations */
+	Assert(IsA(baserel, RelOptInfo));
+	Assert(baserel->relid > 0);
+	Assert(baserel->rtekind == RTE_RELATION);
 
 	/*
 	 * Fetch total cost of obtaining the bitmap, as well as its total
@@ -614,6 +925,13 @@ cost_bitmap_tree_node(Path *path, Cost *cost, Selectivity *selec)
 	{
 		*cost = ((IndexPath *) path)->indextotalcost;
 		*selec = ((IndexPath *) path)->indexselectivity;
+		/*
+		 * Charge a small amount per retrieved tuple to reflect the costs of
+		 * manipulating the bitmap.  This is mostly to make sure that a bitmap
+		 * scan doesn't look to be the same cost as an indexscan to retrieve
+		 * a single tuple.
+		 */
+		*cost += 0.1 * cpu_operator_cost * ((IndexPath *) path)->rows;
 	}
 	else if (IsA(path, BitmapAndPath))
 	{
@@ -741,9 +1059,6 @@ cost_tidscan(Path *path, PlannerInfo *root,
 	Assert(baserel->relid > 0);
 	Assert(baserel->rtekind == RTE_RELATION);
 
-	if (!enable_tidscan)
-		startup_cost += disable_cost;
-
 	/* Count how many tuples we expect to retrieve */
 	ntuples = 0;
 	foreach(l, tidquals)
@@ -838,6 +1153,42 @@ cost_functionscan(Path *path, PlannerInfo *root, RelOptInfo *baserel)
 }
 
 /*
+ * cost_tablefunction
+ *	  Determines and returns the cost of scanning a table function RTE.
+ */
+void
+cost_tablefunction(Path *path, PlannerInfo *root, RelOptInfo *baserel)
+{
+	Cost		startup_cost;
+	Cost		run_cost;
+	Cost		cpu_per_tuple;
+
+	/* Should only be applied to base relations that are functions */
+	Assert(baserel->relid > 0);
+	Assert(baserel->rtekind == RTE_TABLEFUNCTION);
+
+	/* Initialize cost of the subquery input */
+	path->startup_cost = baserel->subplan->startup_cost;
+	path->total_cost   = baserel->subplan->total_cost;
+
+	/*
+	 * For now, estimate function's cost at one operator eval per function
+	 * call.  Someday we should revive the function cost estimate columns in
+	 * pg_proc...  (see cost_functionscan above)
+	 */
+	cpu_per_tuple = cpu_operator_cost;
+
+	/* Calculate additional cost of the table function node */
+	cpu_per_tuple += cpu_tuple_cost + baserel->baserestrictcost.per_tuple;
+	startup_cost   = baserel->baserestrictcost.startup;
+	run_cost	   = cpu_per_tuple * baserel->tuples;
+
+	/* Add in the additional cost */
+	path->startup_cost += startup_cost;
+	path->total_cost   += startup_cost + run_cost;
+}
+
+/*
  * cost_valuesscan
  *	  Determines and returns the cost of scanning a VALUES RTE.
  */
@@ -865,6 +1216,25 @@ cost_valuesscan(Path *path, PlannerInfo *root, RelOptInfo *baserel)
 
 	path->startup_cost = startup_cost;
 	path->total_cost = startup_cost + run_cost;
+}
+
+/*
+ * cost_ctescan
+ *	  Determines and returns the cost of scanning a CTE RTE.
+ */
+void
+cost_ctescan(Path *path, PlannerInfo *root, RelOptInfo *baserel)
+{
+	/* Should only be applied to base relations that are CTEs */
+	Assert(baserel->relid > 0);
+	Assert(baserel->rtekind == RTE_CTE);
+
+	/*
+	 * For now, there should be no extra cost of scanning a CTE RTE,
+	 * besides the cost of evaluating the subplan.
+	 */
+	path->startup_cost = baserel->subplan->startup_cost;
+	path->total_cost = baserel->subplan->total_cost;
 }
 
 /*
@@ -910,10 +1280,7 @@ cost_sort(Path *path, PlannerInfo *root,
 	Cost		startup_cost = input_cost;
 	Cost		run_cost = 0;
 	double		nbytes = relation_byte_size(tuples, width);
-	long		work_mem_bytes = work_mem * 1024L;
-
-	if (!enable_sort)
-		startup_cost += disable_cost;
+	long		work_mem_bytes = (long) global_work_mem(root);
 
 	/*
 	 * We want to be sure the cost of a sort is never estimated as zero, even
@@ -969,16 +1336,15 @@ cost_sort(Path *path, PlannerInfo *root,
  * to write it to disk, so the cost is much higher in that case.
  */
 void
-cost_material(Path *path,
+cost_material(Path *path, PlannerInfo *root,
 			  Cost input_cost, double tuples, int width)
 {
 	Cost		startup_cost = input_cost;
 	Cost		run_cost = 0;
 	double		nbytes = relation_byte_size(tuples, width);
-	long		work_mem_bytes = work_mem * 1024L;
 
 	/* disk costs */
-	if (nbytes > work_mem_bytes)
+	if (nbytes > global_work_mem(root))
 	{
 		double		npages = ceil(nbytes / BLCKSZ);
 
@@ -1019,7 +1385,9 @@ cost_agg(Path *path, PlannerInfo *root,
 		 AggStrategy aggstrategy, int numAggs,
 		 int numGroupCols, double numGroups,
 		 Cost input_startup_cost, Cost input_total_cost,
-		 double input_tuples)
+		 double input_tuples, double input_width,
+		 double hash_batches, double hashentry_width,
+		 bool hash_streaming)
 {
 	Cost		startup_cost;
 	Cost		total_cost;
@@ -1063,13 +1431,59 @@ cost_agg(Path *path, PlannerInfo *root,
 	}
 	else
 	{
+		double spilled_bytes = 0.0;
+		double spilled_groups = 0.0;
+
 		/* must be AGG_HASHED */
 		startup_cost = input_total_cost;
 		startup_cost += cpu_operator_cost * input_tuples * numGroupCols;
 		startup_cost += cpu_operator_cost * input_tuples * numAggs;
-		total_cost = startup_cost;
-		total_cost += cpu_operator_cost * numGroups * numAggs;
-		total_cost += cpu_tuple_cost * numGroups;
+
+		/* account for some disk I/O if we expect to spill */
+		if (hash_batches > 0)
+		{
+			/*
+			 * Estimate the number of spilled groups. We know that it is between
+			 * numGroups and input_tuples. However, we do not have a good measure
+			 * to know the exact number. Currently, we choose 0.5 of 
+			 * (input_tuples - numGroups) as additional groups to be spilled.
+			 */
+			spilled_groups = numGroups + (input_tuples - numGroups) * 0.5;
+
+			if (!hash_streaming)
+			{
+				double spilled_bytes_for_batch =
+					(spilled_groups * hashentry_width) / hash_batches;
+				double partitions = spilled_bytes_for_batch / (global_work_mem(root));
+				double tree_depth = 1;
+				if (partitions != 0)
+					tree_depth += ceil(log(partitions) / log(gp_hashagg_default_nbatches));
+
+				spilled_bytes = tree_depth * spilled_groups * hashentry_width;
+
+				/* startup gets charged the write-cost */
+				startup_cost += seq_page_cost * (spilled_bytes / BLCKSZ);
+			}
+		}
+
+		if (!hash_streaming)
+		{
+			total_cost = startup_cost;
+			total_cost += cpu_operator_cost * numGroups * numAggs;
+			total_cost += cpu_tuple_cost * numGroups;
+		}
+		else
+		{
+			total_cost = startup_cost;
+			total_cost += cpu_operator_cost * spilled_groups * numAggs;
+			total_cost += cpu_tuple_cost * spilled_groups;
+		}
+
+		if (hash_batches > 2)
+		{
+			/* total gets charged the read-cost */
+			total_cost += seq_page_cost * (spilled_bytes / BLCKSZ);
+		}
 	}
 
 	path->startup_cost = startup_cost;
@@ -1107,6 +1521,68 @@ cost_group(Path *path, PlannerInfo *root,
 }
 
 /*
+ * cost_window
+ *		Determines and returns the cost of performing a Window plan node,
+ *		including the cost of its input.
+ *
+ * Note: caller must ensure that input costs are for appropriately-sorted
+ * input.
+ */
+void
+cost_window(Path *path, PlannerInfo *root,
+		   int numOrderCols,
+		   Cost input_startup_cost, Cost input_total_cost,
+		   double input_tuples)
+{
+	Cost		startup_cost;
+	Cost		total_cost;
+
+	startup_cost = input_startup_cost;
+	total_cost = input_total_cost;
+
+	/*
+	 * Charge one cpu_operator_cost per comparison per input tuple. We assume
+	 * all columns get compared at most of the tuples.  
+	 *
+	 * XXX Should we also charge for function calls in the targetlist?
+	 */
+	total_cost += cpu_operator_cost * input_tuples * numOrderCols;
+
+	path->startup_cost = startup_cost;
+	path->total_cost = total_cost;
+}
+
+/* 
+ * cost_shareinputscan
+ * 		compute the cost of shareinputscan.  Shareinput scan scans from 
+ * 		a material or sort.  It may read disk, but should be costed
+ *   	less than material node.
+ */
+void 
+cost_shareinputscan(Path *path, PlannerInfo *root, Cost sharecost, double tuples, int width)
+{
+	double nbytes = relation_byte_size(tuples, width);
+	double npages = ceil(nbytes/BLCKSZ);
+
+	path->startup_cost = sharecost;
+	path->total_cost = sharecost;
+	
+	/* I/O cost */
+	if (nbytes > global_work_mem(root))
+	{
+		path->total_cost += seq_page_cost * npages;
+	}
+	else
+	{
+		/* Charge a small amount of I/O cost */
+		path->total_cost += seq_page_cost * npages * 0.2;
+	}
+	
+	/* charge a small CPU cost.  */
+	path->total_cost += cpu_tuple_cost * tuples * 0.1;
+}
+
+/*
  * If a nestloop's inner path is an indexscan, be sure to use its estimated
  * output row count, which may be lower than the restriction-clause-only row
  * count of its parent.  (We don't include this case in the PATH_ROWS macro
@@ -1114,26 +1590,22 @@ cost_group(Path *path, PlannerInfo *root,
  * be prepared to recurse through Append nodes in case of an appendrel.
  */
 static double
-nestloop_inner_path_rows(Path *path)
+nestloop_inner_path_rows(PlannerInfo *root, Path *path)
 {
 	double		result;
 
-	if (IsA(path, IndexPath))
-		result = ((IndexPath *) path)->rows;
-	else if (IsA(path, BitmapHeapPath))
-		result = ((BitmapHeapPath *) path)->rows;
-	else if (IsA(path, AppendPath))
+    if (IsA(path, AppendPath))
 	{
 		ListCell   *l;
 
 		result = 0;
 		foreach(l, ((AppendPath *) path)->subpaths)
 		{
-			result += nestloop_inner_path_rows((Path *) lfirst(l));
+			result += nestloop_inner_path_rows(root, (Path *) lfirst(l));
 		}
 	}
 	else
-		result = PATH_ROWS(path);
+		result = PATH_ROWS(root, path);
 
 	return result;
 }
@@ -1154,13 +1626,10 @@ cost_nestloop(NestPath *path, PlannerInfo *root)
 	Cost		run_cost = 0;
 	Cost		cpu_per_tuple;
 	QualCost	restrict_qual_cost;
-	double		outer_path_rows = PATH_ROWS(outer_path);
-	double		inner_path_rows = nestloop_inner_path_rows(inner_path);
+	double		outer_path_rows = PATH_ROWS(root, outer_path);
+	double		inner_path_rows = nestloop_inner_path_rows(root, inner_path);
 	double		ntuples;
 	Selectivity joininfactor;
-
-	if (!enable_nestloop)
-		startup_cost += disable_cost;
 
 	/*
 	 * If we're doing JOIN_IN then we will stop scanning inner tuples for an
@@ -1205,7 +1674,7 @@ cost_nestloop(NestPath *path, PlannerInfo *root)
 	ntuples = outer_path_rows * inner_path_rows * joininfactor;
 
 	/* CPU costs */
-	cost_qual_eval(&restrict_qual_cost, path->joinrestrictinfo);
+	cost_qual_eval(&restrict_qual_cost, path->joinrestrictinfo, root);
 	startup_cost += restrict_qual_cost.startup;
 	cpu_per_tuple = cpu_tuple_cost + restrict_qual_cost.per_tuple;
 	run_cost += cpu_per_tuple * ntuples;
@@ -1241,8 +1710,8 @@ cost_mergejoin(MergePath *path, PlannerInfo *root)
 	QualCost	merge_qual_cost;
 	QualCost	qp_qual_cost;
 	RestrictInfo *firstclause;
-	double		outer_path_rows = PATH_ROWS(outer_path);
-	double		inner_path_rows = PATH_ROWS(inner_path);
+	double		outer_path_rows = PATH_ROWS(root, outer_path);
+	double		inner_path_rows = PATH_ROWS(root, inner_path);
 	double		outer_rows,
 				inner_rows;
 	double		mergejointuples,
@@ -1252,9 +1721,6 @@ cost_mergejoin(MergePath *path, PlannerInfo *root)
 				innerscansel;
 	Selectivity joininfactor;
 	Path		sort_path;		/* dummy for result of cost_sort */
-
-	if (!enable_mergejoin)
-		startup_cost += disable_cost;
 
 	/*
 	 * Compute cost and selectivity of the mergequals and qpquals (other
@@ -1266,8 +1732,8 @@ cost_mergejoin(MergePath *path, PlannerInfo *root)
 	 */
 	merge_selec = approx_selectivity(root, mergeclauses,
 									 path->jpath.jointype);
-	cost_qual_eval(&merge_qual_cost, mergeclauses);
-	cost_qual_eval(&qp_qual_cost, path->jpath.joinrestrictinfo);
+	cost_qual_eval(&merge_qual_cost, mergeclauses, root);
+	cost_qual_eval(&qp_qual_cost, path->jpath.joinrestrictinfo, root);
 	qp_qual_cost.startup -= merge_qual_cost.startup;
 	qp_qual_cost.per_tuple -= merge_qual_cost.per_tuple;
 
@@ -1343,7 +1809,9 @@ cost_mergejoin(MergePath *path, PlannerInfo *root)
 			outerscansel = firstclause->right_mergescansel;
 			innerscansel = firstclause->left_mergescansel;
 		}
-		if (path->jpath.jointype == JOIN_LEFT)
+		if (path->jpath.jointype == JOIN_LEFT || 
+			path->jpath.jointype == JOIN_LASJ ||
+			path->jpath.jointype == JOIN_LASJ_NOTIN)
 			outerscansel = 1.0;
 		else if (path->jpath.jointype == JOIN_RIGHT)
 			innerscansel = 1.0;
@@ -1460,17 +1928,12 @@ cost_hashjoin(HashPath *path, PlannerInfo *root)
 	List	   *hashclauses = path->path_hashclauses;
 	Cost		startup_cost = 0;
 	Cost		run_cost = 0;
-	Cost		cpu_per_tuple;
 	Selectivity hash_selec;
 	QualCost	hash_qual_cost;
 	QualCost	qp_qual_cost;
 	double		hashjointuples;
-	double		outer_path_rows = PATH_ROWS(outer_path);
-	double		inner_path_rows = PATH_ROWS(inner_path);
-	double		outerbytes = relation_byte_size(outer_path_rows,
-												outer_path->parent->width);
-	double		innerbytes = relation_byte_size(inner_path_rows,
-												inner_path->parent->width);
+	double		outer_path_rows = PATH_ROWS(root, outer_path);
+	double		inner_path_rows = PATH_ROWS(root, inner_path);
 	int			num_hashclauses = list_length(hashclauses);
 	int			numbuckets;
 	int			numbatches;
@@ -1478,9 +1941,6 @@ cost_hashjoin(HashPath *path, PlannerInfo *root)
 	Selectivity innerbucketsize;
 	Selectivity joininfactor;
 	ListCell   *hcl;
-
-	if (!enable_hashjoin)
-		startup_cost += disable_cost;
 
 	/*
 	 * Compute cost and selectivity of the hashquals and qpquals (other
@@ -1492,8 +1952,8 @@ cost_hashjoin(HashPath *path, PlannerInfo *root)
 	 */
 	hash_selec = approx_selectivity(root, hashclauses,
 									path->jpath.jointype);
-	cost_qual_eval(&hash_qual_cost, hashclauses);
-	cost_qual_eval(&qp_qual_cost, path->jpath.joinrestrictinfo);
+	cost_qual_eval(&hash_qual_cost, hashclauses, root);
+	cost_qual_eval(&qp_qual_cost, path->jpath.joinrestrictinfo, root);
 	qp_qual_cost.startup -= hash_qual_cost.startup;
 	qp_qual_cost.per_tuple -= hash_qual_cost.per_tuple;
 
@@ -1507,18 +1967,22 @@ cost_hashjoin(HashPath *path, PlannerInfo *root)
 
 	/*
 	 * Cost of computing hash function: must do it once per input tuple. We
-	 * charge one cpu_operator_cost for each column's hash function.
+	 * charge one cpu_operator_cost for each column's hash function.  Also,
+	 * tack on one cpu_tuple_cost per inner row, to model the costs of
+	 * inserting the row into the hashtable.
 	 *
 	 * XXX when a hashclause is more complex than a single operator, we really
 	 * should charge the extra eval costs of the left or right side, as
 	 * appropriate, here.  This seems more work than it's worth at the moment.
 	 */
-	startup_cost += cpu_operator_cost * num_hashclauses * inner_path_rows;
+	startup_cost += (cpu_operator_cost * num_hashclauses + cpu_tuple_cost)
+		* inner_path_rows;
 	run_cost += cpu_operator_cost * num_hashclauses * outer_path_rows;
 
 	/* Get hash table size that executor would use for inner relation */
-	ExecChooseHashTableSize(inner_path_rows,
+	hash_table_size(inner_path_rows,
 							inner_path->parent->width,
+							global_work_mem(root),
 							&numbuckets,
 							&numbatches);
 	virtualbuckets = (double) numbuckets *(double) numbatches;
@@ -1541,9 +2005,23 @@ cost_hashjoin(HashPath *path, PlannerInfo *root)
 		foreach(hcl, hashclauses)
 		{
 			RestrictInfo *restrictinfo = (RestrictInfo *) lfirst(hcl);
+			Expr *clause = restrictinfo->clause;
 			Selectivity thisbucketsize;
 
 			Assert(IsA(restrictinfo, RestrictInfo));
+
+			/**
+			 * If this is a IS NOT FALSE boolean test, we can peek underneath.
+			 */
+			if (IsA(clause, BooleanTest))
+			{
+				BooleanTest *bt = (BooleanTest *) clause;
+
+				if (bt->booltesttype == IS_NOT_FALSE)
+				{
+					clause = bt->arg;
+				}
+			}
 
 			/*
 			 * First we have to figure out which side of the hashjoin clause
@@ -1563,7 +2041,7 @@ cost_hashjoin(HashPath *path, PlannerInfo *root)
 					/* not cached yet */
 					thisbucketsize =
 						estimate_hash_bucketsize(root,
-										   get_rightop(restrictinfo->clause),
+										   get_rightop(clause),
 												 virtualbuckets);
 					restrictinfo->right_bucketsize = thisbucketsize;
 				}
@@ -1579,7 +2057,7 @@ cost_hashjoin(HashPath *path, PlannerInfo *root)
 					/* not cached yet */
 					thisbucketsize =
 						estimate_hash_bucketsize(root,
-											get_leftop(restrictinfo->clause),
+											get_leftop(clause),
 												 virtualbuckets);
 					restrictinfo->left_bucketsize = thisbucketsize;
 				}
@@ -1593,8 +2071,8 @@ cost_hashjoin(HashPath *path, PlannerInfo *root)
 	/*
 	 * If inner relation is too big then we will need to "batch" the join,
 	 * which implies writing and reading most of the tuples to disk an extra
-	 * time.  Charge one cost unit per page of I/O (correct since it should be
-	 * nice and sequential...).  Writing the inner rel counts as startup cost,
+	 * time.  Charge seq_page_cost per page, since the I/O should be nice and
+	 * sequential.  Writing the inner rel counts as startup cost,
 	 * all the rest as run cost.
 	 */
 	if (numbatches > 1)
@@ -1604,8 +2082,8 @@ cost_hashjoin(HashPath *path, PlannerInfo *root)
 		double		innerpages = page_size(inner_path_rows,
 										   inner_path->parent->width);
 
-		startup_cost += innerpages;
-		run_cost += innerpages + 2 * outerpages;
+		startup_cost += seq_page_cost * innerpages;
+		run_cost += seq_page_cost * (innerpages + 2 * outerpages);
 	}
 
 	/* CPU costs */
@@ -1623,40 +2101,39 @@ cost_hashjoin(HashPath *path, PlannerInfo *root)
 	 * The number of tuple comparisons needed is the number of outer tuples
 	 * times the typical number of tuples in a hash bucket, which is the inner
 	 * relation size times its bucketsize fraction.  At each one, we need to
-	 * evaluate the hashjoin quals.  (Note: charging the full qual eval cost
-	 * at each tuple is pessimistic, since we don't evaluate the quals unless
-	 * the hash values match exactly.)
+	 * evaluate the hashjoin quals.  But actually, charging the full qual eval
+	 * cost at each tuple is pessimistic, since we don't evaluate the quals
+	 * unless the hash values match exactly.  For lack of a better idea, halve
+	 * the cost estimate to allow for that.
+     *
+     * CDB: Assume there are no rows that pass the hash value comparison but
+     * fail the full qual eval.  Thus the full comparison is charged for just 
+     * 'hashjointuples', i.e. those rows that pass the hashjoin quals.
 	 */
 	startup_cost += hash_qual_cost.startup;
-	run_cost += hash_qual_cost.per_tuple *
+	/*	run_cost += hash_qual_cost.per_tuple *
 		outer_path_rows * clamp_row_est(inner_path_rows * innerbucketsize) *
-		joininfactor;
+		joininfactor * 0.5;*/
+	run_cost += hash_qual_cost.per_tuple * hashjointuples;
+
+	if (gp_cost_hashjoin_chainwalk)
+	{
+		/* CDB: Add a small charge for walking the hash chains. */
+		run_cost += 0.05 * cpu_operator_cost * 
+			outer_path_rows * inner_path_rows * innerbucketsize * joininfactor;
+	}
 
 	/*
 	 * For each tuple that gets through the hashjoin proper, we charge
 	 * cpu_tuple_cost plus the cost of evaluating additional restriction
 	 * clauses that are to be applied at the join.	(This is pessimistic since
 	 * not all of the quals may get evaluated at each tuple.)
+     *
+     * CDB: Charge the cpu_tuple_cost only for tuples that pass all the quals.
 	 */
 	startup_cost += qp_qual_cost.startup;
-	cpu_per_tuple = cpu_tuple_cost + qp_qual_cost.per_tuple;
-	run_cost += cpu_per_tuple * hashjointuples * joininfactor;
-
-	/*
-	 * Bias against putting larger relation on inside.	We don't want an
-	 * absolute prohibition, though, since larger relation might have better
-	 * bucketsize --- and we can't trust the size estimates unreservedly,
-	 * anyway.	Instead, inflate the run cost by the square root of the size
-	 * ratio.  (Why square root?  No real good reason, but it seems
-	 * reasonable...)
-	 *
-	 * Note: before 7.4 we implemented this by inflating startup cost; but if
-	 * there's a disable_cost component in the input paths' startup cost, that
-	 * unfairly penalizes the hash.  Probably it'd be better to keep track of
-	 * disable penalty separately from cost.
-	 */
-	if (innerbytes > outerbytes && outerbytes > 0)
-		run_cost *= sqrt(innerbytes / outerbytes);
+    run_cost += qp_qual_cost.per_tuple * hashjointuples;
+    run_cost += cpu_tuple_cost * path->jpath.path.parent->rows;
 
 	path->jpath.path.startup_cost = startup_cost;
 	path->jpath.path.total_cost = startup_cost + run_cost;
@@ -1672,12 +2149,14 @@ cost_hashjoin(HashPath *path, PlannerInfo *root)
  *		and a per-evaluation component.
  */
 void
-cost_qual_eval(QualCost *cost, List *quals)
+cost_qual_eval(QualCost *cost, List *quals, PlannerInfo *root)
 {
+	cost_qual_eval_context context;
 	ListCell   *l;
 
-	cost->startup = 0;
-	cost->per_tuple = 0;
+	context.root = root;
+	context.total.startup = 0;
+	context.total.per_tuple = 0;
 
 	/* We don't charge any cost for the implicit ANDing at top level ... */
 
@@ -1685,48 +2164,62 @@ cost_qual_eval(QualCost *cost, List *quals)
 	{
 		Node	   *qual = (Node *) lfirst(l);
 
-		/*
-		 * RestrictInfo nodes contain an eval_cost field reserved for this
-		 * routine's use, so that it's not necessary to evaluate the qual
-		 * clause's cost more than once.  If the clause's cost hasn't been
-		 * computed yet, the field's startup value will contain -1.
-		 *
-		 * If the RestrictInfo is marked pseudoconstant, it will be tested
-		 * only once, so treat its cost as all startup cost.
-		 */
-		if (qual && IsA(qual, RestrictInfo))
-		{
-			RestrictInfo *rinfo = (RestrictInfo *) qual;
-
-			if (rinfo->eval_cost.startup < 0)
-			{
-				rinfo->eval_cost.startup = 0;
-				rinfo->eval_cost.per_tuple = 0;
-				cost_qual_eval_walker((Node *) rinfo->clause,
-									  &rinfo->eval_cost);
-				if (rinfo->pseudoconstant)
-				{
-					/* count one execution during startup */
-					rinfo->eval_cost.startup += rinfo->eval_cost.per_tuple;
-					rinfo->eval_cost.per_tuple = 0;
-				}
-			}
-			cost->startup += rinfo->eval_cost.startup;
-			cost->per_tuple += rinfo->eval_cost.per_tuple;
-		}
-		else
-		{
-			/* If it's a bare expression, must always do it the hard way */
-			cost_qual_eval_walker(qual, cost);
-		}
+		cost_qual_eval_walker(qual, &context);
 	}
+
+	*cost = context.total;
 }
 
 static bool
-cost_qual_eval_walker(Node *node, QualCost *total)
+cost_qual_eval_walker(Node *node,  cost_qual_eval_context *context)
 {
 	if (node == NULL)
 		return false;
+
+	/*
+	 * RestrictInfo nodes contain an eval_cost field reserved for this
+	 * routine's use, so that it's not necessary to evaluate the qual clause's
+	 * cost more than once.  If the clause's cost hasn't been computed yet,
+	 * the field's startup value will contain -1.
+	 */
+	if (IsA(node, RestrictInfo))
+	{
+		RestrictInfo *rinfo = (RestrictInfo *) node;
+
+		if (rinfo->eval_cost.startup < 0)
+		{
+			cost_qual_eval_context locContext;
+
+			locContext.root = context->root;
+			locContext.total.startup = 0;
+			locContext.total.per_tuple = 0;
+
+			/*
+			 * For an OR clause, recurse into the marked-up tree so that we
+			 * set the eval_cost for contained RestrictInfos too.
+			 */
+			if (rinfo->orclause)
+				cost_qual_eval_walker((Node *) rinfo->orclause, &locContext);
+			else
+				cost_qual_eval_walker((Node *) rinfo->clause, &locContext);
+
+			/*
+			 * If the RestrictInfo is marked pseudoconstant, it will be tested
+			 * only once, so treat its cost as all startup cost.
+			 */
+			if (rinfo->pseudoconstant)
+			{
+				/* count one execution during startup */
+				locContext.total.startup += locContext.total.per_tuple;
+				locContext.total.per_tuple = 0;
+			}
+			rinfo->eval_cost = locContext.total;
+		}
+		context->total.startup += rinfo->eval_cost.startup;
+		context->total.per_tuple += rinfo->eval_cost.per_tuple;
+		/* do NOT recurse into children */
+		return false;
+	}
 
 	/*
 	 * Our basic strategy is to charge one cpu_operator_cost for each operator
@@ -1741,7 +2234,7 @@ cost_qual_eval_walker(Node *node, QualCost *total)
 		IsA(node, OpExpr) ||
 		IsA(node, DistinctExpr) ||
 		IsA(node, NullIfExpr))
-		total->per_tuple += cpu_operator_cost;
+		context->total.per_tuple += cpu_operator_cost;
 	else if (IsA(node, ScalarArrayOpExpr))
 	{
 		/*
@@ -1751,7 +2244,7 @@ cost_qual_eval_walker(Node *node, QualCost *total)
 		ScalarArrayOpExpr *saop = (ScalarArrayOpExpr *) node;
 		Node	   *arraynode = (Node *) lsecond(saop->args);
 
-		total->per_tuple +=
+		context->total.per_tuple +=
 			cpu_operator_cost * estimate_array_length(arraynode) * 0.5;
 	}
 	else if (IsA(node, RowCompareExpr))
@@ -1759,7 +2252,12 @@ cost_qual_eval_walker(Node *node, QualCost *total)
 		/* Conservatively assume we will check all the columns */
 		RowCompareExpr *rcexpr = (RowCompareExpr *) node;
 
-		total->per_tuple += cpu_operator_cost * list_length(rcexpr->opnos);
+		context->total.per_tuple += cpu_operator_cost * list_length(rcexpr->opnos);
+	}
+	else if (IsA(node, CurrentOfExpr)) 
+	{
+		/* This is noticeably more expensive than a typical operator */
+		context->total.per_tuple += 100 * cpu_operator_cost;
 	}
 	else if (IsA(node, SubLink))
 	{
@@ -1768,6 +2266,12 @@ cost_qual_eval_walker(Node *node, QualCost *total)
 	}
 	else if (IsA(node, SubPlan))
 	{
+		if (!context->root)
+		{
+			/* Cannot cost subplans without root. */
+			return 0;
+		}
+
 		/*
 		 * A subplan node in an expression typically indicates that the
 		 * subplan will be executed on each evaluation, so charge accordingly.
@@ -1778,7 +2282,7 @@ cost_qual_eval_walker(Node *node, QualCost *total)
 		 * subplan by hashing.
 		 */
 		SubPlan    *subplan = (SubPlan *) node;
-		Plan	   *plan = subplan->plan;
+		Plan	   *plan = planner_subplan_get_plan(context->root, subplan);
 
 		if (subplan->useHashTable)
 		{
@@ -1788,7 +2292,7 @@ cost_qual_eval_walker(Node *node, QualCost *total)
 			 * cpu_operator_cost per tuple for the work of loading the
 			 * hashtable, too.
 			 */
-			total->startup += plan->total_cost +
+			context->total.startup += plan->total_cost +
 				cpu_operator_cost * plan->plan_rows;
 
 			/*
@@ -1814,20 +2318,20 @@ cost_qual_eval_walker(Node *node, QualCost *total)
 			if (subplan->subLinkType == EXISTS_SUBLINK)
 			{
 				/* we only need to fetch 1 tuple */
-				total->per_tuple += plan_run_cost / plan->plan_rows;
+				context->total.per_tuple += plan_run_cost / plan->plan_rows;
 			}
 			else if (subplan->subLinkType == ALL_SUBLINK ||
 					 subplan->subLinkType == ANY_SUBLINK)
 			{
 				/* assume we need 50% of the tuples */
-				total->per_tuple += 0.50 * plan_run_cost;
+				context->total.per_tuple += 0.50 * plan_run_cost;
 				/* also charge a cpu_operator_cost per row examined */
-				total->per_tuple += 0.50 * plan->plan_rows * cpu_operator_cost;
+				context->total.per_tuple += 0.50 * plan->plan_rows * cpu_operator_cost;
 			}
 			else
 			{
 				/* assume we need all tuples */
-				total->per_tuple += plan_run_cost;
+				context->total.per_tuple += plan_run_cost;
 			}
 
 			/*
@@ -1840,14 +2344,14 @@ cost_qual_eval_walker(Node *node, QualCost *total)
 			if (subplan->parParam == NIL &&
 				(IsA(plan, Sort) ||
 				 IsA(plan, Material)))
-				total->startup += plan->startup_cost;
+				context->total.startup += plan->startup_cost;
 			else
-				total->per_tuple += plan->startup_cost;
+				context->total.per_tuple += plan->startup_cost;
 		}
 	}
 
 	return expression_tree_walker(node, cost_qual_eval_walker,
-								  (void *) total);
+								  (void *) context);
 }
 
 
@@ -1879,7 +2383,8 @@ approx_selectivity(PlannerInfo *root, List *quals, JoinType jointype)
 		Node	   *qual = (Node *) lfirst(l);
 
 		/* Note that clause_selectivity will be able to cache its result */
-		total *= clause_selectivity(root, qual, 0, jointype);
+		total *= clause_selectivity(root, qual, 0, jointype,
+									false /* use_damping */);
 	}
 	return total;
 }
@@ -1910,14 +2415,109 @@ set_baserel_size_estimates(PlannerInfo *root, RelOptInfo *rel)
 		clauselist_selectivity(root,
 							   rel->baserestrictinfo,
 							   0,
-							   JOIN_INNER);
+							   JOIN_INNER,
+							   gp_selectivity_damping_for_scans);
 
 	rel->rows = clamp_row_est(nrows);
 
-	cost_qual_eval(&rel->baserestrictcost, rel->baserestrictinfo);
+	cost_qual_eval(&rel->baserestrictcost, rel->baserestrictinfo, root);
 
 	set_rel_width(root, rel);
 }
+
+
+
+/*
+ * adjust_selectivity_for_nulltest
+ *		adjust selectivity of a nulltest on the inner side of an
+ *		outer join
+ *
+ * This is a patch to make the workaround for (NOT) IN subqueries
+ *
+ *    ... FROM T1 LEFT OUTER JOIN T2 ON ... WHERE T2.X IS (NOT) NULL
+ *
+ * work. This is not a comprehensive fix but addresses only
+ * this very special case.
+ *
+ */
+static Selectivity
+adjust_selectivity_for_nulltest(Selectivity selec,
+								Selectivity pselec,
+								List *pushed_quals,
+								JoinType jointype,
+								RelOptInfo *left,
+								RelOptInfo *right)
+{
+	Assert(IS_OUTER_JOIN(jointype));
+
+	/*
+	 * consider only singletons; the case of multiple
+	 * nulltests on the inner side of an outer join is not very
+	 * useful in practice;
+	 */
+	if (JOIN_FULL != jointype &&
+		1 == list_length(pushed_quals))
+	{
+		Node *clause = (Node *) lfirst(list_head(pushed_quals));
+
+		if (IsA(clause, RestrictInfo))
+		{
+			clause = (Node *)((RestrictInfo*)clause) -> clause;
+
+			if (IsA(clause, NullTest))
+			{
+				int			nulltesttype;
+				Node	   *node;
+				Node	   *basenode;
+
+				/* extract information */
+				nulltesttype = ((NullTest *) clause)->nulltesttype;
+				node = (Node *) ((NullTest *) clause)->arg;
+	
+				/* CONSIDER: is this really necessary? */
+				if (IsA(node, RelabelType))
+					basenode = (Node *) ((RelabelType *) node)->arg;
+				else
+					basenode = node;
+
+				if (IsA(basenode, Var))
+				{
+#ifdef USE_ASSERT_CHECKING
+					Var *var = (Var *) basenode;
+#endif /* USE_ASSERT_CHECKING */
+					double	nullfrac = 1 - selec;
+	
+					/* 
+					 * a pushed qual must be applied on the inner side only; type implies 
+					 * where to find the var in the inputs
+					 */
+					Assert(!(JOIN_RIGHT == jointype) || bms_is_member(var->varno, left->relids));
+					Assert(!(JOIN_LEFT == jointype) || bms_is_member(var->varno, right->relids));
+
+					/* adjust selectivity according to test */
+					switch (((NullTest *) clause)->nulltesttype)
+					{
+						case IS_NULL:
+							pselec = nullfrac + ((1 - nullfrac ) * pselec);
+							break;
+
+						case IS_NOT_NULL:
+							pselec = (1 - nullfrac) + (nullfrac * pselec);
+							break;
+
+						default:
+							/* unknown null test*/
+							Assert(false);
+					}
+				}
+			}
+		}
+	}
+
+	Assert(pselec >= 0.0 && pselec <= 1.0);
+	return pselec;
+}
+
 
 /*
  * set_joinrel_size_estimates
@@ -1938,8 +2538,7 @@ set_baserel_size_estimates(PlannerInfo *root, RelOptInfo *rel)
  *
  * It's important that the results for symmetric JoinTypes be symmetric,
  * eg, (rel1, rel2, JOIN_LEFT) should produce the same result as (rel2,
- * rel1, JOIN_RIGHT).  Also, JOIN_IN should produce the same result as
- * JOIN_UNIQUE_INNER, likewise JOIN_REVERSE_IN == JOIN_UNIQUE_OUTER.
+ * rel1, JOIN_RIGHT).
  *
  * We set only the rows field here.  The width field was already set by
  * build_joinrel_tlist, and baserestrictcost is not used for join rels.
@@ -1954,7 +2553,7 @@ set_joinrel_size_estimates(PlannerInfo *root, RelOptInfo *rel,
 	Selectivity jselec;
 	Selectivity pselec;
 	double		nrows;
-	UniquePath *upath;
+	double		adjnrows;
 
 	/*
 	 * Compute joinclause selectivity.	Note that we are only considering
@@ -1988,11 +2587,25 @@ set_joinrel_size_estimates(PlannerInfo *root, RelOptInfo *rel,
 		jselec = clauselist_selectivity(root,
 										joinquals,
 										0,
-										jointype);
+										jointype,
+										gp_selectivity_damping_for_joins);
 		pselec = clauselist_selectivity(root,
 										pushedquals,
 										0,
-										jointype);
+										jointype,
+										gp_selectivity_damping_for_joins);
+										
+		/* 
+		 * special case where a pushed qual probes the inner
+		 * side of an outer join to be NULL
+		 */
+		if (gp_adjust_selectivity_for_outerjoins)
+			pselec = adjust_selectivity_for_nulltest(jselec,
+													 pselec,
+													 pushedquals, 
+													 jointype, 
+													 outer_rel, 
+													 inner_rel);
 
 		/* Avoid leaking a lot of ListCells */
 		list_free(joinquals);
@@ -2003,7 +2616,8 @@ set_joinrel_size_estimates(PlannerInfo *root, RelOptInfo *rel,
 		jselec = clauselist_selectivity(root,
 										restrictlist,
 										0,
-										jointype);
+										jointype,
+										gp_selectivity_damping_for_joins);
 		pselec = 0.0;			/* not used, keep compiler quiet */
 	}
 
@@ -2015,10 +2629,6 @@ set_joinrel_size_estimates(PlannerInfo *root, RelOptInfo *rel,
 	 * be at least as large as the non-nullable input.  However, any
 	 * pushed-down quals are applied after the outer join, so their
 	 * selectivity applies fully.
-	 *
-	 * For JOIN_IN and variants, the Cartesian product is figured with respect
-	 * to a unique-ified input, and then we can clamp to the size of the other
-	 * input.
 	 */
 	switch (jointype)
 	{
@@ -2045,21 +2655,10 @@ set_joinrel_size_estimates(PlannerInfo *root, RelOptInfo *rel,
 				nrows = inner_rel->rows;
 			nrows *= pselec;
 			break;
-		case JOIN_IN:
-		case JOIN_UNIQUE_INNER:
-			upath = create_unique_path(root, inner_rel,
-									   inner_rel->cheapest_total_path);
-			nrows = outer_rel->rows * upath->rows * jselec;
-			if (nrows > outer_rel->rows)
-				nrows = outer_rel->rows;
-			break;
-		case JOIN_REVERSE_IN:
-		case JOIN_UNIQUE_OUTER:
-			upath = create_unique_path(root, outer_rel,
-									   outer_rel->cheapest_total_path);
-			nrows = upath->rows * inner_rel->rows * jselec;
-			if (nrows > inner_rel->rows)
-				nrows = inner_rel->rows;
+		case JOIN_LASJ:
+		case JOIN_LASJ_NOTIN:
+			nrows = outer_rel->rows * jselec;
+			Assert (0.0 == pselec);
 			break;
 		default:
 			elog(ERROR, "unrecognized join type: %d", (int) jointype);
@@ -2067,7 +2666,21 @@ set_joinrel_size_estimates(PlannerInfo *root, RelOptInfo *rel,
 			break;
 	}
 
-	rel->rows = clamp_row_est(nrows);
+    /*
+     * CDB: Force estimated number of join output rows to be at least 2.
+     * Otherwise a later nested join could take this join as its outer input,
+     * thinking that there will be only one pass over its inner table,
+     * which could be very slow if the actual number of rows is > 1.
+     * Someday we should improve the join selectivity estimates.
+     */
+    adjnrows = Max(10, outer_rel->rows);
+    adjnrows = Max(adjnrows, inner_rel->rows);
+    adjnrows = LOG2(adjnrows);
+    if (nrows < adjnrows)
+        nrows = adjnrows;
+
+    rel->rows = nrows;
+
 }
 
 /*
@@ -2081,7 +2694,6 @@ static Selectivity
 join_in_selectivity(JoinPath *path, PlannerInfo *root)
 {
 	RelOptInfo *innerrel;
-	UniquePath *innerunique;
 	Selectivity selec;
 	double		nrows;
 
@@ -2099,10 +2711,7 @@ join_in_selectivity(JoinPath *path, PlannerInfo *root)
 	if (IsA(path->innerjoinpath, UniquePath))
 		return 1.0;
 	innerrel = path->innerjoinpath->parent;
-	innerunique = create_unique_path(root,
-									 innerrel,
-									 innerrel->cheapest_total_path);
-	if (innerunique->rows >= innerrel->rows)
+    if (innerrel->onerow)
 		return 1.0;
 
 	/*
@@ -2114,7 +2723,8 @@ join_in_selectivity(JoinPath *path, PlannerInfo *root)
 	selec = clauselist_selectivity(root,
 								   path->joinrestrictinfo,
 								   0,
-								   JOIN_INNER);
+								   JOIN_INNER,
+								   gp_selectivity_damping_for_joins);
 	nrows = path->outerjoinpath->parent->rows * innerrel->rows * selec;
 
 	nrows = clamp_row_est(nrows);
@@ -2138,23 +2748,46 @@ join_in_selectivity(JoinPath *path, PlannerInfo *root)
 void
 set_function_size_estimates(PlannerInfo *root, RelOptInfo *rel)
 {
-	RangeTblEntry *rte;
-
-	/* Should only be applied to base relations that are functions */
-	Assert(rel->relid > 0);
-	rte = rt_fetch(rel->relid, root->parse->rtable);
-	Assert(rte->rtekind == RTE_FUNCTION);
-
 	/*
 	 * Estimate number of rows the function itself will return.
 	 *
 	 * XXX no idea how to do this yet; but we can at least check whether
 	 * function returns set or not...
 	 */
-	if (expression_returns_set(rte->funcexpr))
-		rel->tuples = 1000;
-	else
+    if (rel->onerow)
+        rel->tuples = 1;
+    else
+	    rel->tuples = 1000;
+
+	/* Now estimate number of output rows, etc */
+	set_baserel_size_estimates(root, rel);
+}
+
+/*
+ * set_table_function_size_estimates
+ *		Set the size estimates for a base relation that is a table function call.
+ *
+ * The rel's targetlist and restrictinfo list must have been constructed
+ * already.
+ *
+ * We set the same fields as set_baserel_size_estimates.
+ */
+void
+set_table_function_size_estimates(PlannerInfo *root, RelOptInfo *rel)
+{
+	/*
+	 * Estimate number of rows the function itself will return.
+	 *
+	 * If the function can return more than a single row then simply do
+	 * a best guess that it returns the same number of rows as the subscan.
+	 *
+	 * This will obviously be way wrong in many cases, to improve we would
+	 * need a stats callback function for table functions.
+	 */
+	if (rel->onerow)
 		rel->tuples = 1;
+	else
+		rel->tuples = rel->subplan->plan_rows;
 
 	/* Now estimate number of output rows, etc */
 	set_baserel_size_estimates(root, rel);
@@ -2191,6 +2824,33 @@ set_values_size_estimates(PlannerInfo *root, RelOptInfo *rel)
 	set_baserel_size_estimates(root, rel);
 }
 
+/*
+ * set_cte_size_estimates
+ *		Set the size estimates for a base relation that is a CTE reference.
+ *
+ * The rel's targetlist and restrictinfo list must have been constructed
+ * already, and we need the completed plan for the CTE (if a regular CTE)
+ * or the non-recursive term (if a self-reference).
+ *
+ * We set the same fields as set_baserel_size_estimates.
+ */
+void
+set_cte_size_estimates(PlannerInfo *root, RelOptInfo *rel, Plan *cteplan)
+{
+	Assert(rel->relid > 0);
+
+#ifdef USE_ASSERT_CHECKING
+	/* Should only be applied to base relations that are CTE references */
+	RangeTblEntry *rte = planner_rt_fetch(rel->relid, root);
+	Assert(rte->rtekind == RTE_CTE);
+#endif
+
+	/* Set the number of tuples to the CTE plan's output estimate */
+	rel->tuples = cteplan->plan_rows;
+
+	/* Now estimate number of output rows, etc */
+	set_baserel_size_estimates(root, rel);
+}
 
 /*
  * set_rel_width
@@ -2205,7 +2865,7 @@ set_values_size_estimates(PlannerInfo *root, RelOptInfo *rel)
  * The per-attribute width estimates are cached for possible re-use while
  * building join relations.
  */
-static void
+void
 set_rel_width(PlannerInfo *root, RelOptInfo *rel)
 {
 	int32		tuple_width = 0;
@@ -2224,6 +2884,15 @@ set_rel_width(PlannerInfo *root, RelOptInfo *rel)
 			tuple_width += 32;	/* arbitrary */
 			continue;
 		}
+
+        /* Virtual column? */
+        if (var->varattno <= FirstLowInvalidHeapAttributeNumber)
+        {
+            CdbRelColumnInfo   *rci = cdb_find_pseudo_column(root, var);
+
+            tuple_width += rci->attr_width;
+            continue;
+        }
 
 		ndx = var->varattno - rel->min_attr;
 
@@ -2281,4 +2950,253 @@ static double
 page_size(double tuples, int width)
 {
 	return ceil(relation_byte_size(tuples, width) / BLCKSZ);
+}
+
+/**
+ * Determine the number of segments the planner should use.  The result of this
+ * calculation is ordinarily saved in root->cdbpath_segments.  Functions that 
+ * need it in contexts in which root is not defined may call this function to
+ * derive it.
+ */
+int planner_segment_count(void)
+{
+	if ( Gp_role != GP_ROLE_DISPATCH )
+		return 1;
+	else if ( gp_segments_for_planner > 0 )
+		return gp_segments_for_planner;
+	else
+		return getgpsegmentCount();
+}
+
+/**
+ * Determines the total amount of memory available. This method is to be used
+ * during planning only. When planning in dispatch mode, it calculates total
+ * memory as sum work_mem on segments. In utility mode, it returns work_mem.
+ * Output:
+ * 	total memory in bytes.
+ */
+double global_work_mem(PlannerInfo *root)
+{
+	int segment_count;
+	if (root)
+	{
+		Assert(root->config->cdbpath_segments > 0);
+		segment_count = root->config->cdbpath_segments;
+	}
+	else
+		segment_count = planner_segment_count();
+
+	return (double) planner_work_mem * 1024L * segment_count;	
+}
+
+/* CDB -- The incremental cost functions below are for use outside the
+ *        the usual optimizer (in the aggregation planner, etc.)  They
+ *        are modeled on corresponding cost function, but address the
+ *        specific needs of the planner.
+ */
+
+/* incremental_hashjoin_cost
+ *
+ * Globals: seq_page_cost, cpu_operator_cost.
+ */
+Cost incremental_hashjoin_cost(double rows, int inner_width, int outer_width, List *hashclauses, PlannerInfo *root)
+{
+	Cost startup_cost;
+	Cost run_cost;
+	QualCost hash_qual_cost;
+	int numbuckets;
+	int numbatches;
+	double virtualbuckets;
+	Selectivity innerbucketsize;
+	int num_hashclauses = list_length(hashclauses);
+
+	/* Each inner row joins to a single outer row and vice versa, 
+	 * no selectivity issues. */
+	 startup_cost = 0;
+	 run_cost = 0;
+	
+	/* Cost of computing hash function: must do it once per input tuple. We
+	 * charge one cpu_operator_cost for each column's hash function.  Also,
+	 * tack on one cpu_tuple_cost per inner row, to model the costs of
+	 * inserting the row into the hashtable. */
+	startup_cost += (cpu_operator_cost * num_hashclauses + cpu_tuple_cost) * rows;
+	run_cost += cpu_operator_cost * num_hashclauses * rows;
+
+	/* Get hash table size that executor would use for inner relation */
+	hash_table_size(rows, inner_width, global_work_mem(root), &numbuckets, &numbatches);
+	virtualbuckets = (double) numbuckets *(double) numbatches;
+
+	/*
+	 * Determine bucketsize fraction for inner relation.  Both inner and
+	 * outer relations are unique in the join key.
+	 */
+	innerbucketsize = 1.0 / virtualbuckets;
+
+	/*
+	 * If inner relation is too big then we will need to "batch" the join,
+	 * which implies writing and reading most of the tuples to disk an extra
+	 * time.  Charge seq_page_cost per page, since the I/O should be nice and
+	 * sequential.  Writing the inner rel counts as startup cost,
+	 * all the rest as run cost.
+	 */
+	if (numbatches > 1)
+	{
+		double		outerpages = page_size(rows, outer_width);
+		double		innerpages = page_size(rows, inner_width);
+
+		startup_cost += seq_page_cost * innerpages;
+		run_cost += seq_page_cost * (innerpages + 2 * outerpages);
+	}
+
+	/*
+	 * The number of tuple comparisons needed is the number of outer tuples
+	 * times half the typical number of tuples in a hash bucket, which is 
+	 * the inner relation size times its bucketsize fraction.  At each one, 
+	 * we need to evaluate the hashjoin quals.  But actually, charging the 
+	 * full qual eval cost at each tuple is pessimistic, since we don't 
+	 * evaluate the quals  unless the hash values match exactly.  For lack 
+	 * of a better idea, halve the cost estimate to allow for that.
+     *
+     * CDB: Assume there are no rows that pass the hash value comparison but
+     * fail the full qual eval.  Thus the full comparison is charged for just 
+     * 'hashjointuples', i.e. those rows that pass the hashjoin quals.
+	 */
+	cost_qual_eval(&hash_qual_cost, hashclauses, root);
+	startup_cost += hash_qual_cost.startup;
+	run_cost += hash_qual_cost.per_tuple * rows * 0.5;
+
+	if (gp_cost_hashjoin_chainwalk)
+	{
+		/* CDB: Add a small charge for walking the hash chains. */
+		run_cost += 0.05 * cpu_operator_cost * 2 * rows * innerbucketsize;
+	}
+
+	return startup_cost + run_cost;
+}
+
+
+
+/* incremental_mergejoin_cost
+ *
+ * Globals: cpu_tuple_cost
+ */
+Cost incremental_mergejoin_cost(double rows, List *mergeclauses, PlannerInfo *root)
+{
+	QualCost merge_qual_cost;
+	Cost startup_cost = 0;
+	Cost per_tuple_cost = 0;
+	Cost run_cost = 0;
+
+	cost_qual_eval(&merge_qual_cost, mergeclauses, root);
+
+	startup_cost += merge_qual_cost.startup;
+	per_tuple_cost = merge_qual_cost.per_tuple;
+	
+	/* CPU costs */
+
+	/*
+	 * The number of tuple comparisons needed is number of outer
+	 * rows plus number of inner rows.
+	 */
+	startup_cost += merge_qual_cost.startup;
+	run_cost += merge_qual_cost.per_tuple * 2 * rows;
+	run_cost += (cpu_tuple_cost + per_tuple_cost) * rows;
+	
+	return startup_cost + run_cost;
+}
+
+/**
+ * This method determines the number of batches and buckets
+ * required to build a hash table over a set of tuples. 
+ * NOTE: this is a clone of ExecChooseHashTableSize() in nodeHash.c. Please
+ * keep the two functions in sync.
+ * 
+ * Input:
+ * 	ntuples - number of tuples
+ * 	tupwidth - width of tuple
+ * 	memory_bytes	- total memory available, in bytes
+ * Output:
+ * 	numbuckets - number of buckets in hash table
+ * 	numbatches - number of batches needed
+ */
+static void hash_table_size(double ntuples, int tupwidth, double memory_bytes,
+						int *numbuckets,
+						int *numbatches)
+{
+	int			tupsize;
+	double		inner_rel_bytes;
+	int			nbatch;
+	int			nbuckets;
+
+	/* Force a plausible relation size if no info */
+	if (ntuples <= 0.0)
+		ntuples = 1000.0;
+
+	/*
+	 * Estimate tupsize based on footprint of tuple in hashtable... note this
+	 * does not allow for any palloc overhead.	The manipulations of spaceUsed
+	 * don't count palloc overhead either.
+	 */
+	tupsize = HJTUPLE_OVERHEAD + MAXALIGN(sizeof(MemTupleData)) +
+			MAXALIGN(tupwidth);
+	inner_rel_bytes = ntuples * tupsize;
+
+	/*
+	 * Set nbuckets to achieve an average bucket load of gp_hashjoin_tuples_per_bucket when
+	 * memory is filled.  Set nbatch to the smallest power of 2 that appears
+	 * sufficient.
+	 */
+	if (inner_rel_bytes > memory_bytes)
+	{
+		/* We'll need multiple batches */
+		long		lbuckets;
+		double		dbatch;
+		int			minbatch;
+
+		lbuckets = (memory_bytes / tupsize) / gp_hashjoin_tuples_per_bucket;
+		lbuckets = Min(lbuckets, INT_MAX / 32);
+		nbuckets = (int) lbuckets;
+
+		dbatch = ceil(inner_rel_bytes / memory_bytes);
+		dbatch = Min(dbatch, INT_MAX / 32);
+		minbatch = (int) dbatch;
+		nbatch = 2;
+		while (nbatch < minbatch)
+			nbatch <<= 1;
+	}
+	else
+	{
+		/* We expect the hashtable to fit in memory, we want to use
+		 * more buckets if we have memory to spare */
+		double		dbuckets_lower;
+		double		dbuckets_upper;
+		double		dbuckets;
+
+		/* divide our tuple row-count estimate by our the number of
+		 * tuples we'd like in a bucket: this produces a small bucket
+		 * count independent of our work_mem setting */
+		dbuckets_lower = (double)ntuples / (double)gp_hashjoin_tuples_per_bucket;
+
+		/* if we have work_mem to spare, we'd like to use it -- so
+		 * divide up our memory evenly (see the spill case above) */
+		dbuckets_upper = (double)memory_bytes / ((double)tupsize * gp_hashjoin_tuples_per_bucket);
+
+		/* we'll use our "lower" work_mem independent guess as a lower
+		 * limit; but if we've got memory to spare we'll take the mean
+		 * of the lower-limit and the upper-limit */
+		if (dbuckets_upper > dbuckets_lower)
+			dbuckets = (dbuckets_lower + dbuckets_upper)/2.0;
+		else
+			dbuckets = dbuckets_lower;
+
+		dbuckets = ceil(dbuckets);
+		dbuckets = Min(dbuckets, INT_MAX);
+
+		nbuckets = (int)dbuckets;
+
+		nbatch = 1;
+	}
+
+	*numbuckets = nbuckets;
+	*numbatches = nbatch;
 }

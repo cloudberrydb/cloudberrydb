@@ -1,7 +1,13 @@
+/*
+ * $PostgreSQL: pgsql/contrib/spi/autoinc.c,v 1.17 2009/06/11 14:48:52 momjian Exp $
+ */
+#include "postgres.h"
 
-#include "executor/spi.h"		/* this is what you need to work with SPI */
-#include "commands/trigger.h"	/* -"- and triggers */
-#include "commands/sequence.h"	/* for nextval() */
+#include "catalog/pg_type.h"
+#include "commands/sequence.h"
+#include "commands/trigger.h"
+#include "executor/spi.h"
+#include "utils/builtins.h"
 
 PG_MODULE_MAGIC;
 
@@ -31,7 +37,7 @@ autoinc(PG_FUNCTION_ARGS)
 		elog(ERROR, "not fired by trigger manager");
 	if (TRIGGER_FIRED_FOR_STATEMENT(trigdata->tg_event))
 		/* internal error */
-		elog(ERROR, "can't process STATEMENT events");
+		elog(ERROR, "cannot process STATEMENT events");
 	if (TRIGGER_FIRED_AFTER(trigdata->tg_event))
 		/* internal error */
 		elog(ERROR, "must be fired before event");
@@ -42,7 +48,7 @@ autoinc(PG_FUNCTION_ARGS)
 		rettuple = trigdata->tg_newtuple;
 	else
 		/* internal error */
-		elog(ERROR, "can't process DELETE events");
+		elog(ERROR, "cannot process DELETE events");
 
 	rel = trigdata->tg_relation;
 	relname = SPI_getrelname(rel);
@@ -88,8 +94,7 @@ autoinc(PG_FUNCTION_ARGS)
 
 		i++;
 		chattrs[chnattrs] = attnum;
-		seqname = DirectFunctionCall1(textin,
-									  CStringGetDatum(args[i]));
+		seqname = CStringGetTextDatum(args[i]);
 		newvals[chnattrs] = DirectFunctionCall1(nextval, seqname);
 		/* nextval now returns int64; coerce down to int32 */
 		newvals[chnattrs] = Int32GetDatum((int32) DatumGetInt64(newvals[chnattrs]));

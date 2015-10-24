@@ -4,11 +4,11 @@
  *	  insert routines for the postgres inverted index access method.
  *
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2008, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
- *			$PostgreSQL: pgsql/src/backend/access/gin/gininsert.c,v 1.5 2006/10/04 00:29:47 momjian Exp $
+ *			$PostgreSQL: pgsql/src/backend/access/gin/gininsert.c,v 1.5.2.1 2007/06/05 12:48:21 teodor Exp $
  *-------------------------------------------------------------------------
  */
 
@@ -18,6 +18,7 @@
 #include "catalog/index.h"
 #include "miscadmin.h"
 #include "utils/memutils.h"
+#include "cdb/cdbfilerepprimary.h"
 
 typedef struct
 {
@@ -36,8 +37,12 @@ static BlockNumber
 createPostingTree(Relation index, ItemPointerData *items, uint32 nitems)
 {
 	BlockNumber blkno;
-	Buffer		buffer = GinNewBuffer(index);
+	Buffer		buffer;
 	Page		page;
+
+	MIRROREDLOCK_BUFMGR_MUST_ALREADY_BE_HELD;
+
+	buffer = GinNewBuffer(index);
 
 	START_CRIT_SECTION();
 
@@ -47,6 +52,8 @@ createPostingTree(Relation index, ItemPointerData *items, uint32 nitems)
 
 	memcpy(GinDataPageGetData(page), items, sizeof(ItemPointerData) * nitems);
 	GinPageGetOpaque(page)->maxoff = nitems;
+
+	MarkBufferDirty(buffer);
 
 	if (!index->rd_istemp)
 	{
@@ -76,7 +83,6 @@ createPostingTree(Relation index, ItemPointerData *items, uint32 nitems)
 
 	}
 
-	MarkBufferDirty(buffer);
 	UnlockReleaseBuffer(buffer);
 
 	END_CRIT_SECTION();
@@ -92,7 +98,7 @@ createPostingTree(Relation index, ItemPointerData *items, uint32 nitems)
  * GinFormTuple().
  */
 static IndexTuple
-addItemPointersToTuple(Relation index, GinState *ginstate, GinBtreeStack *stack,
+addItemPointersToTuple(Relation index, GinState *ginstate, GinBtreeStack *stack __attribute__((unused)),
 		  IndexTuple old, ItemPointerData *items, uint32 nitem, bool isBuild)
 {
 	bool		isnull;
@@ -222,8 +228,8 @@ ginHeapTupleBulkInsert(GinBuildState *buildstate, Datum value, ItemPointer heapp
 }
 
 static void
-ginBuildCallback(Relation index, HeapTuple htup, Datum *values,
-				 bool *isnull, bool tupleIsAlive, void *state)
+ginBuildCallback(Relation index, ItemPointer tupleId, Datum *values,
+				 bool *isnull, bool tupleIsAlive __attribute__((unused)), void *state)
 {
 
 	GinBuildState *buildstate = (GinBuildState *) state;
@@ -234,7 +240,7 @@ ginBuildCallback(Relation index, HeapTuple htup, Datum *values,
 
 	oldCtx = MemoryContextSwitchTo(buildstate->tmpCtx);
 
-	buildstate->indtuples += ginHeapTupleBulkInsert(buildstate, *values, &htup->t_self);
+	buildstate->indtuples += ginHeapTupleBulkInsert(buildstate, *values, tupleId);
 
 	/*
 	 * we use only half maintenance_work_mem, because there is some leaks
@@ -281,6 +287,8 @@ ginbuild(PG_FUNCTION_ARGS)
 	buffer = GinNewBuffer(index);
 	START_CRIT_SECTION();
 	GinInitBuffer(buffer, GIN_LEAF);
+	MarkBufferDirty(buffer);
+
 	if (!index->rd_istemp)
 	{
 		XLogRecPtr	recptr;
@@ -301,7 +309,6 @@ ginbuild(PG_FUNCTION_ARGS)
 
 	}
 
-	MarkBufferDirty(buffer);
 	UnlockReleaseBuffer(buffer);
 	END_CRIT_SECTION();
 
@@ -328,8 +335,8 @@ ginbuild(PG_FUNCTION_ARGS)
 	ginInitBA(&buildstate.accum);
 
 	/* do the heap scan */
-	reltuples = IndexBuildHeapScan(heap, index, indexInfo,
-								   ginBuildCallback, (void *) &buildstate);
+	reltuples = IndexBuildScan(heap, index, indexInfo,
+							   ginBuildCallback, (void *) &buildstate);
 
 	oldCtx = MemoryContextSwitchTo(buildstate.tmpCtx);
 	while ((list = ginGetEntry(&buildstate.accum, &entry, &nlist)) != NULL)

@@ -2,10 +2,23 @@
 -- TIMESTAMPTZ
 --
 
-CREATE TABLE TIMESTAMPTZ_TBL ( d1 timestamp(2) with time zone);
+CREATE TABLE TIMESTAMPTZ_TBL (d1 timestamp(2) with time zone);
+
+-- Test shorthand input values
+-- We can't just "select" the results since they aren't constants; test for
+-- equality instead.  We can do that by running the test inside a transaction
+-- block, within which the value of 'now' shouldn't change.  We also check
+-- that 'now' *does* change over a reasonable interval such as 100 msec.
+-- NOTE: it is possible for this part of the test to fail if the transaction
+-- block is entered exactly at local midnight; then 'now' and 'today' have
+-- the same values and the counts will come out different.
 
 INSERT INTO TIMESTAMPTZ_TBL VALUES ('now');
-INSERT INTO TIMESTAMPTZ_TBL VALUES ('current');
+SELECT pg_sleep(0.1);
+
+BEGIN;
+
+INSERT INTO TIMESTAMPTZ_TBL VALUES ('now');
 INSERT INTO TIMESTAMPTZ_TBL VALUES ('today');
 INSERT INTO TIMESTAMPTZ_TBL VALUES ('yesterday');
 INSERT INTO TIMESTAMPTZ_TBL VALUES ('tomorrow');
@@ -15,16 +28,21 @@ INSERT INTO TIMESTAMPTZ_TBL VALUES ('tomorrow zulu');
 SELECT count(*) AS One FROM TIMESTAMPTZ_TBL WHERE d1 = timestamp with time zone 'today';
 SELECT count(*) AS One FROM TIMESTAMPTZ_TBL WHERE d1 = timestamp with time zone 'tomorrow';
 SELECT count(*) AS One FROM TIMESTAMPTZ_TBL WHERE d1 = timestamp with time zone 'yesterday';
-SELECT count(*) AS None FROM TIMESTAMPTZ_TBL WHERE d1 = timestamp with time zone 'now';
+SELECT count(*) AS One FROM TIMESTAMPTZ_TBL WHERE d1 = timestamp(2) with time zone 'now';
+
+COMMIT;
 
 DELETE FROM TIMESTAMPTZ_TBL;
 
 -- verify uniform transaction time within transaction block
 BEGIN;
 INSERT INTO TIMESTAMPTZ_TBL VALUES ('now');
+SELECT pg_sleep(0.1);
 INSERT INTO TIMESTAMPTZ_TBL VALUES ('now');
+SELECT pg_sleep(0.1);
 SELECT count(*) AS two FROM TIMESTAMPTZ_TBL WHERE d1 = timestamp(2) with time zone 'now';
-END;
+COMMIT;
+
 DELETE FROM TIMESTAMPTZ_TBL;
 
 -- Special values
@@ -33,11 +51,10 @@ INSERT INTO TIMESTAMPTZ_TBL VALUES ('infinity');
 INSERT INTO TIMESTAMPTZ_TBL VALUES ('epoch');
 -- Obsolete special values
 INSERT INTO TIMESTAMPTZ_TBL VALUES ('invalid');
+INSERT INTO TIMESTAMPTZ_TBL VALUES ('current');
 
 -- Postgres v6.0 standard output format
 INSERT INTO TIMESTAMPTZ_TBL VALUES ('Mon Feb 10 17:32:01 1997 PST');
-INSERT INTO TIMESTAMPTZ_TBL VALUES ('Invalid Abstime');
-INSERT INTO TIMESTAMPTZ_TBL VALUES ('Undefined Abstime');
 
 -- Variations on Postgres v6.1 standard output format
 INSERT INTO TIMESTAMPTZ_TBL VALUES ('Mon Feb 10 17:32:01.000001 1997 PST');
@@ -126,6 +143,14 @@ INSERT INTO TIMESTAMPTZ_TBL VALUES ('Jan 01 17:32:01 2001');
 -- Currently unsupported syntax and ranges
 INSERT INTO TIMESTAMPTZ_TBL VALUES ('Feb 16 17:32:01 -0097');
 INSERT INTO TIMESTAMPTZ_TBL VALUES ('Feb 16 17:32:01 5097 BC');
+
+-- Alternate field order that we've historically supported (sort of)
+-- with regular and POSIXy timezone specs
+SELECT 'Wed Jul 11 10:51:14 America/New_York 2001'::timestamptz;
+SELECT 'Wed Jul 11 10:51:14 GMT-4 2001'::timestamptz;
+SELECT 'Wed Jul 11 10:51:14 GMT+4 2001'::timestamptz;
+SELECT 'Wed Jul 11 10:51:14 PST-03:00 2001'::timestamptz;
+SELECT 'Wed Jul 11 10:51:14 PST+03:00 2001'::timestamptz;
 
 SELECT '' AS "64", d1 FROM TIMESTAMPTZ_TBL; 
 
@@ -235,5 +260,19 @@ SELECT '' AS to_timestamp_15, to_timestamp('200401', 'IYYYIW');
 
 SELECT '' AS to_timestamp_16, to_timestamp('200401', 'YYYYWW');
 
+
+-- MPP-18998
+create table dttm_com
+(id int primary key,
+t1 timestamp not null,
+t2 timestamp not null,
+d1 date not null,
+d2 date not null )
+distributed by (id);
+insert into dttm_com values
+     (1, now(), current_timestamp, now(), current_date),
+     (2, current_timestamp, localtimestamp::date, current_date::date, date_in(date_out(current_date))),
+     (3, now(), current_timestamp, now(), current_date);
+select id from dttm_com where d1 <> current_date;
 
 SET DateStyle TO DEFAULT;

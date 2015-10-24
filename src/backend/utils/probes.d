@@ -21,4 +21,20 @@ probe lwlock__condacquire__fail(int, int);
 probe lock__startwait(int, int);
 probe lock__endwait(int, int);
 
+probe memctxt__alloc(int, int, int, int, int);
+probe memctxt__free(int, int, int, int, int);
+probe memctxt__realloc(int, int, int, int, int);
+
+probe execprocnode__enter(int, int, int, int, int);
+probe execprocnode__exit(int, int, int, int, int);
+
+probe tuplesort__begin(int, int, int);
+probe tuplesort__end(int, int);
+probe tuplesort__perform__sort();
+probe tuplesort__mergeonerun(int);
+probe tuplesort__dumptuples(int, int, int);
+probe tuplesort__switch__external(int);
+
+probe backoff__localcheck(int);
+probe backoff__globalcheck();
 };

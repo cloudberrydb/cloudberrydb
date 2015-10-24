@@ -3,7 +3,7 @@
  * parse_coerce.c
  *		handle type coercions/conversions for parser
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2008, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -14,11 +14,13 @@
  */
 #include "postgres.h"
 
+#include "catalog/catquery.h"
 #include "catalog/pg_cast.h"
 #include "catalog/pg_proc.h"
 #include "catalog/pg_type.h"
 #include "nodes/makefuncs.h"
 #include "optimizer/clauses.h"
+#include "parser/parsetree.h"               /* get_tle_by_resno */
 #include "parser/parse_coerce.h"
 #include "parser/parse_expr.h"
 #include "parser/parse_func.h"
@@ -29,6 +31,7 @@
 #include "utils/lsyscache.h"
 #include "utils/syscache.h"
 #include "utils/typcache.h"
+#include "nodes/print.h"
 
 
 static Node *coerce_type_typmod(Node *node,
@@ -43,7 +46,10 @@ static Node *coerce_record_to_complex(ParseState *pstate, Node *node,
 						 Oid targetTypeId,
 						 CoercionContext ccontext,
 						 CoercionForm cformat);
-
+static Var *coerce_unknown_var(ParseState *pstate, Var *var,
+							   Oid targetTypeId, int32 targetTypeMod,
+							   CoercionContext ccontext, CoercionForm cformat,
+							   int levelsup);
 
 /*
  * coerce_to_target_type()
@@ -69,7 +75,8 @@ Node *
 coerce_to_target_type(ParseState *pstate, Node *expr, Oid exprtype,
 					  Oid targettype, int32 targettypmod,
 					  CoercionContext ccontext,
-					  CoercionForm cformat)
+					  CoercionForm cformat,
+					  int location)
 {
 	Node	   *result;
 
@@ -78,7 +85,7 @@ coerce_to_target_type(ParseState *pstate, Node *expr, Oid exprtype,
 
 	result = coerce_type(pstate, expr, exprtype,
 						 targettype, targettypmod,
-						 ccontext, cformat);
+						 ccontext, cformat, location);
 
 	/*
 	 * If the target is a fixed-length type, it may need a length coercion as
@@ -89,7 +96,8 @@ coerce_to_target_type(ParseState *pstate, Node *expr, Oid exprtype,
 								targettype, targettypmod,
 								cformat,
 								(cformat != COERCE_IMPLICIT_CAST),
-								(result != expr && !IsA(result, Const)));
+								(result != expr && !IsA(result, Const)
+								 && !IsA(result, Var)));
 
 	return result;
 }
@@ -117,7 +125,7 @@ coerce_to_target_type(ParseState *pstate, Node *expr, Oid exprtype,
 Node *
 coerce_type(ParseState *pstate, Node *node,
 			Oid inputTypeId, Oid targetTypeId, int32 targetTypeMod,
-			CoercionContext ccontext, CoercionForm cformat)
+			CoercionContext ccontext, CoercionForm cformat, int location)
 {
 	Node	   *result;
 	Oid			funcId;
@@ -145,6 +153,30 @@ coerce_type(ParseState *pstate, Node *node,
 		 *
 		 * NB: we do NOT want a RelabelType here.
 		 */
+
+		/*
+		 * BUG BUG 
+		 * JIRA MPP-3786
+		 *
+		 * Special handling for ANYARRAY type.  
+		 */
+		if(targetTypeId == ANYARRAYOID && IsA(node, Const))
+		{
+			Const	   *con = (Const *) node;
+			Const	   *newcon = makeNode(Const);
+			Oid elemoid = get_element_type(inputTypeId);
+
+			if(elemoid == InvalidOid)
+				ereport(ERROR,
+					(errcode(ERRCODE_DATATYPE_MISMATCH), 
+					 errmsg("Cannot convert non-Array type to ANYARRAY")));
+
+			memcpy(newcon, con, sizeof(Const));
+			newcon->consttype = ANYARRAYOID;
+
+			return (Node *) newcon;
+		}
+
 		return node;
 	}
 	if (inputTypeId == UNKNOWNOID && IsA(node, Const))
@@ -213,9 +245,9 @@ coerce_type(ParseState *pstate, Node *node,
 			result = coerce_to_domain(result,
 									  baseTypeId, baseTypeMod,
 									  targetTypeId,
-									  cformat, false, false);
+									  cformat, location, false, false);
 
-		ReleaseSysCache(targetType);
+		ReleaseType(targetType);
 
 		return result;
 	}
@@ -267,6 +299,64 @@ coerce_type(ParseState *pstate, Node *node,
 
 		return (Node *) param;
 	}
+	if (pstate != NULL && inputTypeId == UNKNOWNOID && IsA(node, Var))
+	{
+        /*
+         * CDB:  Var of type UNKNOWN probably comes from an untyped Const
+         * or Param in the targetlist of a range subquery.  For a successful
+         * conversion we must coerce the underlying Const or Param to a
+         * proper type and remake the Var.
+         */
+		int32	baseTypeMod = -1;
+		Oid		baseTypeId = getBaseTypeAndTypmod(targetTypeId, &baseTypeMod);
+        Var    *fixvar = coerce_unknown_var(pstate, (Var *)node,
+                                            baseTypeId, baseTypeMod,
+                                            ccontext, cformat,
+                                            0);
+        node = (Node *)fixvar;
+        inputTypeId = fixvar->vartype;
+        if (targetTypeId == inputTypeId)
+            return node;
+		else
+		{
+			/* 
+			 * That didn't work, so, try and cast the unknown value to
+			 * what ever the user wants. If it can't be done, they'll
+			 * get an IO error later.
+			 */
+
+			Oid outfunc = InvalidOid;
+			bool outtypisvarlena = false;
+			Oid infunc = InvalidOid;
+			Oid intypioparam = InvalidOid;
+			FuncExpr *fe;
+			List *args = NIL;
+
+			getTypeOutputInfo(UNKNOWNOID, &outfunc, &outtypisvarlena);
+			getTypeInputInfo(targetTypeId, &infunc, &intypioparam);
+
+			Insist(OidIsValid(outfunc));
+			Insist(OidIsValid(infunc));
+
+			/* do unknownout(Var) */
+			fe = makeFuncExpr(outfunc, CSTRINGOID, list_make1(node), cformat);
+
+			/* 
+			 * Now pass the above as an argument to the input function of the
+			 * type we're casting to
+			 */
+			args = list_make3(fe,
+							  makeConst(OIDOID, -1, sizeof(Oid),
+										ObjectIdGetDatum(intypioparam),
+										false, true),
+							  makeConst(INT4OID, -1, sizeof(int32),
+										Int32GetDatum(-1),
+										false, true));
+			fe = makeFuncExpr(infunc, targetTypeId, args, cformat);
+			return (Node *)fe;
+
+		}
+	}
 	if (find_coercion_pathway(targetTypeId, inputTypeId, ccontext,
 							  &funcId))
 	{
@@ -298,7 +388,7 @@ coerce_type(ParseState *pstate, Node *node,
 			if (targetTypeId != baseTypeId)
 				result = coerce_to_domain(result, baseTypeId, baseTypeMod,
 										  targetTypeId,
-										  cformat, true,
+										  cformat, location, true,
 										  exprIsLengthCoercion(result,
 															   NULL));
 		}
@@ -314,7 +404,7 @@ coerce_type(ParseState *pstate, Node *node,
 			 * then we won't need a RelabelType node.
 			 */
 			result = coerce_to_domain(node, InvalidOid, -1, targetTypeId,
-									  cformat, false, false);
+									  cformat, location, false, false);
 			if (result == node)
 			{
 				/*
@@ -366,6 +456,270 @@ coerce_type(ParseState *pstate, Node *node,
 
 
 /*
+ * coerce_unknown_var
+ *
+ * A Var of type UNKNOWN probably refers, directly or indirectly, to a
+ * Const or Param node of type UNKNOWN in the targetlist of a subquery.
+ * Coercing the Var to a proper type (such as TEXT) implies that the
+ * same must be done to the underlying Const or Param.
+ *
+ * Returns a new Var node; or if the type is still UNKNOWN, returns the
+ * given Var unchanged.
+ *
+ * When 'targettypeid' is UNKNOWNOID, this function returns a new Var if an
+ * already properly typed underlying expr is found; but returns the unchanged
+ * Var with no coercion if the Const or Param type is still UNKNOWN.  In this
+ * case the targetTypeMod, ccontext, and cformat parameters are not used.
+ *
+ * 'levelsup' is an extra offset to interpret the Var's varlevelsup correctly.
+ * See also markTargetListOrigin() in parse_target.c.
+ */
+static Var *
+coerce_unknown_var(ParseState *pstate, Var *var,
+                   Oid targetTypeId, int32 targetTypeMod,
+			       CoercionContext ccontext, CoercionForm cformat,
+                   int levelsup)
+{
+	RangeTblEntry  *rte;
+    int             netlevelsup = var->varlevelsup + levelsup;
+
+    Assert(IsA(var, Var));
+
+	/* 
+	 * If the parser isn't set up, we can't do anything here so just return the
+	 * Var as is. This can happen if we call back into the parser from the
+	 * planner (calls to addRangeTableEntryForJoin()).
+	 */
+	if (!PointerIsValid(pstate))
+		return var;
+
+    rte = GetRTEByRangeTablePosn(pstate, var->varno, netlevelsup);
+
+    switch (rte->rtekind)
+    {
+        /* Descend thru Join RTEs to a leaf RTE. */
+        case RTE_JOIN:
+        {
+            ListCell   *cell;
+            Var        *joinvar;
+
+            Assert(var->varattno > 0 &&
+                   var->varattno <= list_length(rte->joinaliasvars));
+
+            /* Get referenced join result Var */
+            cell = list_nth_cell(rte->joinaliasvars, var->varattno - 1);
+            joinvar = (Var *)lfirst(cell);
+
+            /* If still untyped, try to replace it with a properly typed Var */
+            if (joinvar->vartype == UNKNOWNOID &&
+                targetTypeId != UNKNOWNOID)
+            {
+                joinvar = coerce_unknown_var(pstate, joinvar,
+                                             targetTypeId, targetTypeMod,
+                                             ccontext, cformat,
+                                             netlevelsup);
+
+                /* Substitute new Var into join result list. */
+                lfirst(cell) = joinvar;
+            }
+
+            /* Make a new Var for the caller */
+            if (joinvar->vartype != UNKNOWNOID)
+            {
+                var = (Var *)copyObject(var);
+                var->vartype = joinvar->vartype;
+                var->vartypmod = joinvar->vartypmod;
+            }
+            break;
+        }
+
+        /* Impose requested type on Const or Param in subquery's targetlist. */
+        case RTE_SUBQUERY:
+		{
+			TargetEntry    *ste;
+            Node           *targetexpr;
+            Oid             exprtype;
+
+            /* Get referenced subquery result expr */
+            ste = get_tle_by_resno(rte->subquery->targetList, var->varattno);
+			Assert(ste && !ste->resjunk && ste->expr);
+            targetexpr = (Node *)ste->expr;
+
+            /* If still untyped, try to coerce it to the requested type. */
+            exprtype = exprType(targetexpr);
+            if (exprtype == UNKNOWNOID &&
+                targetTypeId != UNKNOWNOID)
+            {
+				ParseState	   *subpstate = make_parsestate(pstate);
+				subpstate->p_rtable = rte->subquery->rtable;
+
+				targetexpr = coerce_type(subpstate, targetexpr, exprtype,
+										 targetTypeId, targetTypeMod,
+										 ccontext, cformat, -1);
+
+				free_parsestate(subpstate);
+				/* Substitute coerced expr into subquery's targetlist. */
+				ste->expr = (Expr *)targetexpr;
+				exprtype = exprType(targetexpr);
+            }
+
+            /* Make a new Var for the caller */
+            if (exprtype != UNKNOWNOID)
+            {
+                var = (Var *)copyObject(var);
+                var->vartype = exprtype;
+                var->vartypmod = exprTypmod(targetexpr);
+            }
+            break;
+		}
+
+        /* Return unchanged Var if leaf RTE is not a subquery. */
+        default:
+            break;
+    }
+
+    return var;
+}                               /* coerce_unknown_var */
+
+
+/*
+ * fixup_unknown_vars_in_exprlist / fixup_unknown_vars_in_targetlist
+ *
+ * A Var of type UNKNOWN could have been created as a reference to an
+ * untyped expression in the targetlist of a range subquery.  Afterwards
+ * coerce_type() could have changed the underlying Const or Param node
+ * from UNKNOWN to some proper type.  Here we try to update Var nodes
+ * in the given list to reflect recent knowledge of source column types.
+ */
+void
+fixup_unknown_vars_in_exprlist(ParseState *pstate, List *exprlist)
+{
+    ListCell   *cell;
+
+    foreach(cell, exprlist)
+    {
+        if (IsA(lfirst(cell), Var) &&
+            ((Var *)lfirst(cell))->vartype == UNKNOWNOID)
+        {
+            lfirst(cell) = coerce_unknown_var(pstate, (Var *)lfirst(cell),
+                                              UNKNOWNOID, -1,
+                                              COERCION_IMPLICIT, COERCE_DONTCARE,
+                                              0);
+        }
+    }
+}                               /* fixup_unknown_vars_in_exprlist */
+
+void
+fixup_unknown_vars_in_targetlist(ParseState *pstate, List *targetlist)
+{
+    ListCell   *cell;
+
+    foreach(cell, targetlist)
+    {
+        TargetEntry    *tle = (TargetEntry *)lfirst(cell);
+
+        Assert(IsA(tle, TargetEntry));
+
+        if (IsA(tle->expr, Var) &&
+            ((Var *)tle->expr)->vartype == UNKNOWNOID)
+        {
+            tle->expr = (Expr *)coerce_unknown_var(pstate, (Var *)tle->expr,
+                                                   UNKNOWNOID, -1,
+                                                   COERCION_IMPLICIT, COERCE_DONTCARE,
+                                                   0);
+        }
+    }
+}                               /* fixup_unknown_vars_in_targetlist */
+
+/*
+ * Fix up the unknown Vars in the subquery specified by rtr. The new
+ * types and typemods are given.
+ */
+static void
+fixup_unknown_vars_in_RangeTblRef(ParseState *pstate, RangeTblRef *rtr,
+								  List *colTypes, List *colTypmods)
+{
+	ListCell *tle_lc, *type_lc, *typemod_lc;
+	int rti;
+	RangeTblEntry *rte;
+	Query *query;
+	List *old_rtable = pstate->p_rtable;
+	
+	rti = rtr->rtindex;
+	rte = rt_fetch(rti, pstate->p_rtable);
+	query = rte->subquery;
+	pstate->p_rtable = query->rtable;
+	
+	tle_lc = list_head(query->targetList);
+		
+	forboth (type_lc, colTypes, typemod_lc, colTypmods)
+	{
+		TargetEntry *tle = (TargetEntry *)lfirst(tle_lc);
+		Oid colType = lfirst_oid(type_lc);
+		int32 colTypmod = lfirst_int(typemod_lc);
+			
+		Assert(IsA(tle, TargetEntry) && tle->expr != NULL);
+		if (IsA(tle->expr, Var) &&
+			((Var *)tle->expr)->vartype == UNKNOWNOID)
+		{
+			tle->expr = (Expr *)coerce_unknown_var(pstate, (Var *)tle->expr,
+												   colType, colTypmod,
+												   COERCION_IMPLICIT, COERCE_DONTCARE,
+												   0);
+		}
+
+		tle_lc = lnext(tle_lc);
+	}
+
+	pstate->p_rtable = old_rtable;
+}
+
+/*
+ * Fix up the unknown Vars in all subqueries in a SetOperationStmt.
+ */
+void
+fixup_unknown_vars_in_setop(ParseState *pstate, SetOperationStmt *stmt)
+{
+	if (stmt->rarg != NULL)
+	{
+		if (IsA(stmt->rarg, SetOperationStmt))
+		{
+			SetOperationStmt *new_stmt = (SetOperationStmt *)stmt->rarg;
+			new_stmt->colTypes = copyObject(stmt->colTypes);
+			new_stmt->colTypmods = copyObject(stmt->colTypmods);
+		
+			fixup_unknown_vars_in_setop(pstate, new_stmt);
+		}
+		else if (IsA(stmt->rarg, RangeTblRef))
+		{
+			fixup_unknown_vars_in_RangeTblRef(pstate, (RangeTblRef *) (stmt->rarg),
+											  stmt->colTypes, stmt->colTypmods);
+		}
+		else
+			Assert(0);
+	}
+
+	if (stmt->larg != NULL)
+	{
+		if (IsA(stmt->larg, SetOperationStmt))
+		{
+			SetOperationStmt *new_stmt = (SetOperationStmt *)stmt->larg;
+			new_stmt->colTypes = copyObject(stmt->colTypes);
+			new_stmt->colTypmods = copyObject(stmt->colTypmods);
+			
+			fixup_unknown_vars_in_setop(pstate, new_stmt);
+		}
+		else if (IsA(stmt->larg, RangeTblRef))
+		{
+			fixup_unknown_vars_in_RangeTblRef(pstate, (RangeTblRef *) (stmt->larg),
+											  stmt->colTypes, stmt->colTypmods);
+		}
+		else
+			Assert(0);
+	}
+}
+
+/*
  * can_coerce_type()
  *		Can input_typeids be coerced to target_typeids?
  *
@@ -389,6 +743,21 @@ can_coerce_type(int nargs, Oid *input_typeids, Oid *target_typeids,
 		/* no problem if same type */
 		if (inputTypeId == targetTypeId)
 			continue;
+
+		/* 
+		 * ANYTABLE is a special case that can occur when a function is 
+		 * called with a TableValue expression.  A table value expression
+		 * can only match a parameter to a function defined as a "anytable".
+		 *
+		 * Only allow ANYTABLE to match another ANYTABLE, anything else would
+		 * be a mismatch of Table domain and Value domain expressions.  
+		 *
+		 * Validation of ANYTABLE coercion is processed at a higher level
+		 * that has more context related to the tupleDesc for the tables
+		 * involved.
+		 */
+		if (targetTypeId == ANYTABLEOID || inputTypeId == ANYTABLEOID)
+			return false;
 
 		/* accept if target is ANY */
 		if (targetTypeId == ANYOID)
@@ -474,7 +843,7 @@ can_coerce_type(int nargs, Oid *input_typeids, Oid *target_typeids,
  */
 Node *
 coerce_to_domain(Node *arg, Oid baseTypeId, int32 baseTypeMod, Oid typeId,
-				 CoercionForm cformat, bool hideInputCoercion,
+				 CoercionForm cformat, int location, bool hideInputCoercion,
 				 bool lengthCoercionDone)
 {
 	CoerceToDomain *result;
@@ -623,10 +992,16 @@ build_coercion_expression(Node *node, Oid funcId,
 	int			nargs;
 	List	   *args;
 	Const	   *cons;
+	cqContext  *pcqCtx;
 
-	tp = SearchSysCache(PROCOID,
-						ObjectIdGetDatum(funcId),
-						0, 0, 0);
+	pcqCtx = caql_beginscan(
+			NULL,
+			cql("SELECT * FROM pg_proc "
+				" WHERE oid = :1 ",
+				ObjectIdGetDatum(funcId)));
+
+	tp = caql_getnext(pcqCtx);
+
 	if (!HeapTupleIsValid(tp))
 		elog(ERROR, "cache lookup failed for function %u", funcId);
 	procstruct = (Form_pg_proc) GETSTRUCT(tp);
@@ -645,7 +1020,7 @@ build_coercion_expression(Node *node, Oid funcId,
 	Assert(nargs < 2 || procstruct->proargtypes.values[1] == INT4OID);
 	Assert(nargs < 3 || procstruct->proargtypes.values[2] == BOOLOID);
 
-	ReleaseSysCache(tp);
+	caql_endscan(pcqCtx);
 
 	args = list_make1(node);
 
@@ -653,6 +1028,7 @@ build_coercion_expression(Node *node, Oid funcId,
 	{
 		/* Pass target typmod as an int4 constant */
 		cons = makeConst(INT4OID,
+				         -1,
 						 sizeof(int32),
 						 Int32GetDatum(targetTypMod),
 						 false,
@@ -665,6 +1041,7 @@ build_coercion_expression(Node *node, Oid funcId,
 	{
 		/* Pass it a boolean isExplicit parameter, too */
 		cons = makeConst(BOOLOID,
+						 -1,
 						 sizeof(bool),
 						 BoolGetDatum(isExplicit),
 						 false,
@@ -714,7 +1091,7 @@ coerce_record_to_complex(ParseState *pstate, Node *node,
 		RangeTblEntry *rte;
 
 		rte = GetRTEByRangeTablePosn(pstate, rtindex, sublevels_up);
-		expandRTE(rte, rtindex, sublevels_up, false,
+		expandRTE(rte, rtindex, sublevels_up, -1, false,
 				  NULL, &args);
 	}
 	else
@@ -740,7 +1117,7 @@ coerce_record_to_complex(ParseState *pstate, Node *node,
 			 * can't use atttypid here, but it doesn't really matter what type
 			 * the Const claims to be.
 			 */
-			newargs = lappend(newargs, makeNullConst(INT4OID));
+			newargs = lappend(newargs, makeNullConst(INT4OID, -1));
 			continue;
 		}
 
@@ -759,7 +1136,8 @@ coerce_record_to_complex(ParseState *pstate, Node *node,
 									 tupdesc->attrs[i]->atttypid,
 									 tupdesc->attrs[i]->atttypmod,
 									 ccontext,
-									 COERCE_IMPLICIT_CAST);
+									 COERCE_IMPLICIT_CAST,
+									 -1);
 		if (expr == NULL)
 			ereport(ERROR,
 					(errcode(ERRCODE_CANNOT_COERCE),
@@ -812,7 +1190,8 @@ coerce_to_boolean(ParseState *pstate, Node *node,
 		node = coerce_to_target_type(pstate, node, inputTypeId,
 									 BOOLOID, -1,
 									 COERCION_ASSIGNMENT,
-									 COERCE_IMPLICIT_CAST);
+									 COERCE_IMPLICIT_CAST,
+									 -1);
 		if (node == NULL)
 			ereport(ERROR,
 					(errcode(ERRCODE_DATATYPE_MISMATCH),
@@ -852,7 +1231,8 @@ coerce_to_integer(ParseState *pstate, Node *node,
 		node = coerce_to_target_type(pstate, node, inputTypeId,
 									 INT4OID, -1,
 									 COERCION_ASSIGNMENT,
-									 COERCE_IMPLICIT_CAST);
+									 COERCE_IMPLICIT_CAST,
+									 -1);
 		if (node == NULL)
 			ereport(ERROR,
 					(errcode(ERRCODE_DATATYPE_MISMATCH),
@@ -892,7 +1272,8 @@ coerce_to_bigint(ParseState *pstate, Node *node,
 		node = coerce_to_target_type(pstate, node, inputTypeId,
 									 INT8OID, -1,
 									 COERCION_ASSIGNMENT,
-									 COERCE_IMPLICIT_CAST);
+									 COERCE_IMPLICIT_CAST,
+									 -1);
 		if (node == NULL)
 			ereport(ERROR,
 					(errcode(ERRCODE_DATATYPE_MISMATCH),
@@ -920,7 +1301,8 @@ coerce_to_bigint(ParseState *pstate, Node *node,
  * typeids is a nonempty list of type OIDs.  Note that earlier items
  * in the list will be preferred if there is doubt.
  * 'context' is a phrase to use in the error message if we fail to select
- * a usable type.
+ * a usable type.  Pass NULL to have the routine return InvalidOid
+ * rather than throwing an error on failure.
  */
 Oid
 select_common_type(List *typeids, const char *context)
@@ -951,6 +1333,8 @@ select_common_type(List *typeids, const char *context)
 				/*
 				 * both types in different categories? then not much hope...
 				 */
+				if (context == NULL)
+					return InvalidOid;
 				ereport(ERROR,
 						(errcode(ERRCODE_DATATYPE_MISMATCH),
 
@@ -1012,7 +1396,7 @@ coerce_to_common_type(ParseState *pstate, Node *node,
 		return node;			/* no work */
 	if (can_coerce_type(1, &inputTypeId, &targetTypeId, COERCION_IMPLICIT))
 		node = coerce_type(pstate, node, inputTypeId, targetTypeId, -1,
-						   COERCION_IMPLICIT, COERCE_IMPLICIT_CAST);
+						   COERCION_IMPLICIT, COERCE_IMPLICIT_CAST, -1);
 	else
 		ereport(ERROR,
 				(errcode(ERRCODE_CANNOT_COERCE),
@@ -1618,6 +2002,7 @@ IsBinaryCoercible(Oid srctype, Oid targettype)
 	HeapTuple	tuple;
 	Form_pg_cast castForm;
 	bool		result;
+	cqContext  *pcqCtx;
 
 	/* Fast path if same type */
 	if (srctype == targettype)
@@ -1633,22 +2018,28 @@ IsBinaryCoercible(Oid srctype, Oid targettype)
 
 	/* Also accept any array type as coercible to ANYARRAY */
 	if (targettype == ANYARRAYOID)
-		if (get_element_type(srctype) != InvalidOid)
+		if (OidIsValid(get_element_type(srctype)))
 			return true;
 
 	/* Else look in pg_cast */
-	tuple = SearchSysCache(CASTSOURCETARGET,
-						   ObjectIdGetDatum(srctype),
-						   ObjectIdGetDatum(targettype),
-						   0, 0);
+	pcqCtx = caql_beginscan(
+			NULL,
+			cql("SELECT * FROM pg_cast "
+				" WHERE castsource = :1 "
+				" AND casttarget = :2 ",
+				ObjectIdGetDatum(srctype),
+				ObjectIdGetDatum(targettype)));
+
+	tuple = caql_getnext(pcqCtx);
+
 	if (!HeapTupleIsValid(tuple))
 		return false;			/* no cast */
 	castForm = (Form_pg_cast) GETSTRUCT(tuple);
 
-	result = (castForm->castfunc == InvalidOid &&
+	result = (!OidIsValid(castForm->castfunc) &&
 			  castForm->castcontext == COERCION_CODE_IMPLICIT);
 
-	ReleaseSysCache(tuple);
+	caql_endscan(pcqCtx);
 
 	return result;
 }
@@ -1676,6 +2067,7 @@ find_coercion_pathway(Oid targetTypeId, Oid sourceTypeId,
 {
 	bool		result = false;
 	HeapTuple	tuple;
+	cqContext  *pcqCtx;
 
 	*funcid = InvalidOid;
 
@@ -1689,11 +2081,18 @@ find_coercion_pathway(Oid targetTypeId, Oid sourceTypeId,
 	if (sourceTypeId == targetTypeId)
 		return true;
 
+	/* SELECT castcontext from pg_cast */
+
 	/* Look in pg_cast */
-	tuple = SearchSysCache(CASTSOURCETARGET,
-						   ObjectIdGetDatum(sourceTypeId),
-						   ObjectIdGetDatum(targetTypeId),
-						   0, 0);
+	pcqCtx = caql_beginscan(
+			NULL,
+			cql("SELECT * FROM pg_cast "
+				" WHERE castsource = :1 "
+				" AND casttarget = :2 ",
+				ObjectIdGetDatum(sourceTypeId),
+				ObjectIdGetDatum(targetTypeId)));
+
+	tuple = caql_getnext(pcqCtx);
 
 	if (HeapTupleIsValid(tuple))
 	{
@@ -1726,7 +2125,6 @@ find_coercion_pathway(Oid targetTypeId, Oid sourceTypeId,
 			result = true;
 		}
 
-		ReleaseSysCache(tuple);
 	}
 	else
 	{
@@ -1773,6 +2171,7 @@ find_coercion_pathway(Oid targetTypeId, Oid sourceTypeId,
 		}
 	}
 
+	caql_endscan(pcqCtx);
 	return result;
 }
 
@@ -1797,35 +2196,29 @@ find_typmod_coercion_function(Oid typeId)
 	bool		isArray = false;
 	Type		targetType;
 	Form_pg_type typeForm;
-	HeapTuple	tuple;
 
 	targetType = typeidType(typeId);
 	typeForm = (Form_pg_type) GETSTRUCT(targetType);
 
 	/* Check for a varlena array type (and not a domain) */
-	if (typeForm->typelem != InvalidOid &&
+	if (OidIsValid(typeForm->typelem) &&
 		typeForm->typlen == -1 &&
-		typeForm->typtype != 'd')
+		typeForm->typtype != TYPTYPE_DOMAIN)
 	{
 		/* Yes, switch our attention to the element type */
 		typeId = typeForm->typelem;
 		isArray = true;
 	}
-	ReleaseSysCache(targetType);
+	ReleaseType(targetType);
 
 	/* Look in pg_cast */
-	tuple = SearchSysCache(CASTSOURCETARGET,
-						   ObjectIdGetDatum(typeId),
-						   ObjectIdGetDatum(typeId),
-						   0, 0);
-
-	if (HeapTupleIsValid(tuple))
-	{
-		Form_pg_cast castForm = (Form_pg_cast) GETSTRUCT(tuple);
-
-		funcid = castForm->castfunc;
-		ReleaseSysCache(tuple);
-	}
+	funcid = caql_getoid(
+			NULL,
+			cql("SELECT castfunc FROM pg_cast "
+				" WHERE castsource = :1 "
+				" AND casttarget = :2 ",
+				ObjectIdGetDatum(typeId),
+				ObjectIdGetDatum(typeId)));
 
 	/*
 	 * Now, if we did find a coercion function for an array element type,

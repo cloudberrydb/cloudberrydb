@@ -13,9 +13,9 @@
  * This code will also work on platforms where struct addrinfo is defined
  * in the system headers but no getaddrinfo() can be located.
  *
- * Copyright (c) 2003-2006, PostgreSQL Global Development Group
+ * Copyright (c) 2003-2009, PostgreSQL Global Development Group
  *
- * $PostgreSQL: pgsql/src/include/getaddrinfo.h,v 1.22 2006/10/04 00:30:06 momjian Exp $
+ * $PostgreSQL: pgsql/src/include/getaddrinfo.h,v 1.26 2009/01/01 17:23:55 momjian Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -44,7 +44,9 @@
 #ifndef WSA_NOT_ENOUGH_MEMORY
 #define WSA_NOT_ENOUGH_MEMORY	(WSAENOBUFS)
 #endif
+#ifndef __BORLANDC__
 #define WSATYPE_NOT_FOUND		(WSABASEERR+109)
+#endif
 #endif
 #define EAI_AGAIN		WSATRY_AGAIN
 #define EAI_BADFLAGS	WSAEINVAL

@@ -4,7 +4,7 @@
  *	  routines to support running postgres in 'bootstrap' mode
  *	bootstrap mode is used to create the initial template database
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
@@ -14,6 +14,7 @@
  */
 #include "postgres.h"
 
+#include <time.h>
 #include <unistd.h>
 #include <signal.h>
 #ifdef HAVE_GETOPT_H
@@ -28,12 +29,19 @@
 #include "bootstrap/bootstrap.h"
 #include "catalog/index.h"
 #include "catalog/pg_type.h"
+#include "cdb/cdbfilerepprimary.h"
+#include "cdb/cdbfilerep.h"
+#include "cdb/cdbvars.h"
 #include "libpq/pqsignal.h"
 #include "miscadmin.h"
 #include "nodes/makefuncs.h"
 #include "postmaster/bgwriter.h"
+#include "postmaster/checkpoint.h"
+#include "postmaster/primary_mirror_mode.h"
+#include "replication/walreceiver.h"
 #include "storage/freespace.h"
 #include "storage/ipc.h"
+#include "storage/pmsignal.h"
 #include "storage/proc.h"
 #include "tcop/tcopprot.h"
 #include "utils/builtins.h"
@@ -41,15 +49,19 @@
 #include "utils/fmgroids.h"
 #include "utils/memutils.h"
 #include "utils/ps_status.h"
+#include "utils/resscheduler.h"
 
 extern int	optind;
 extern char *optarg;
 
+extern void FileRepResetPeer_Main(void);
 
 #define ALLOC(t, c)		((t *) calloc((unsigned)(c), sizeof(t)))
 
+static void CheckerModeMain(void);
+static void BootstrapModeMain(void);
 static void bootstrap_signals(void);
-static void ShutdownDummyProcess(int code, Datum arg);
+static void ShutdownAuxiliaryProcess(int code, Datum arg);
 static hashnode *AddStr(char *str, int strlength, int mderef);
 static Form_pg_attribute AllocateAttribute(void);
 static int	CompHash(char *str, int len);
@@ -63,6 +75,7 @@ static void cleanup(void);
  */
 
 Relation	boot_reldesc;		/* current relation descriptor */
+AuxProcType MyAuxProcType = NotAnAuxProcess;
 
 /*
  * In the lexical analyzer, we need to get the reference number quickly from
@@ -108,49 +121,54 @@ struct typinfo
 	Oid			outproc;
 };
 
+/* MUST STAY SORTED */
 static const struct typinfo TypInfo[] = {
+	{"_aclitem", 1034, ACLITEMOID, -1, false, 'i', 'x',
+	F_ARRAY_IN, F_ARRAY_OUT},
+	{"_char", 1002, CHAROID, -1, false, 'i', 'x',
+	F_ARRAY_IN, F_ARRAY_OUT},
+	{"_int4", INT4ARRAYOID, INT4OID, -1, false, 'i', 'x',
+	F_ARRAY_IN, F_ARRAY_OUT},
+	{"_oid", 1028, OIDOID, -1, false, 'i', 'x',
+	F_ARRAY_IN, F_ARRAY_OUT},
+	{"_text", 1009, TEXTOID, -1, false, 'i', 'x',
+	F_ARRAY_IN, F_ARRAY_OUT},
 	{"bool", BOOLOID, 0, 1, true, 'c', 'p',
 	F_BOOLIN, F_BOOLOUT},
+	{"bigint", INT8OID, 0, 8, true, 'd', 'p',
+	F_INT8IN, F_INT8OUT},
 	{"bytea", BYTEAOID, 0, -1, false, 'i', 'x',
 	F_BYTEAIN, F_BYTEAOUT},
 	{"char", CHAROID, 0, 1, true, 'c', 'p',
 	F_CHARIN, F_CHAROUT},
-	{"name", NAMEOID, CHAROID, NAMEDATALEN, false, 'i', 'p',
-	F_NAMEIN, F_NAMEOUT},
+	{"cid", CIDOID, 0, 4, true, 'i', 'p',
+	F_CIDIN, F_CIDOUT},
+	{"float4", FLOAT4OID, 0, 4, FLOAT4PASSBYVAL, 'i', 'p',
+	F_FLOAT4IN, F_FLOAT4OUT},
 	{"int2", INT2OID, 0, 2, true, 's', 'p',
 	F_INT2IN, F_INT2OUT},
+	{"int2vector", INT2VECTOROID, INT2OID, -1, false, 'i', 'p',
+	F_INT2VECTORIN, F_INT2VECTOROUT},
 	{"int4", INT4OID, 0, 4, true, 'i', 'p',
 	F_INT4IN, F_INT4OUT},
-	{"regproc", REGPROCOID, 0, 4, true, 'i', 'p',
-	F_REGPROCIN, F_REGPROCOUT},
+	{"name", NAMEOID, CHAROID, NAMEDATALEN, false, 'i', 'p',
+	F_NAMEIN, F_NAMEOUT},
+	{"oid", OIDOID, 0, 4, true, 'i', 'p',
+	F_OIDIN, F_OIDOUT},
+	{"oidvector", OIDVECTOROID, OIDOID, -1, false, 'i', 'p',
+	F_OIDVECTORIN, F_OIDVECTOROUT},
 	{"regclass", REGCLASSOID, 0, 4, true, 'i', 'p',
 	F_REGCLASSIN, F_REGCLASSOUT},
+	{"regproc", REGPROCOID, 0, 4, true, 'i', 'p',
+	F_REGPROCIN, F_REGPROCOUT},
 	{"regtype", REGTYPEOID, 0, 4, true, 'i', 'p',
 	F_REGTYPEIN, F_REGTYPEOUT},
 	{"text", TEXTOID, 0, -1, false, 'i', 'x',
 	F_TEXTIN, F_TEXTOUT},
-	{"oid", OIDOID, 0, 4, true, 'i', 'p',
-	F_OIDIN, F_OIDOUT},
 	{"tid", TIDOID, 0, 6, false, 's', 'p',
 	F_TIDIN, F_TIDOUT},
 	{"xid", XIDOID, 0, 4, true, 'i', 'p',
-	F_XIDIN, F_XIDOUT},
-	{"cid", CIDOID, 0, 4, true, 'i', 'p',
-	F_CIDIN, F_CIDOUT},
-	{"int2vector", INT2VECTOROID, INT2OID, -1, false, 'i', 'p',
-	F_INT2VECTORIN, F_INT2VECTOROUT},
-	{"oidvector", OIDVECTOROID, OIDOID, -1, false, 'i', 'p',
-	F_OIDVECTORIN, F_OIDVECTOROUT},
-	{"_int4", INT4ARRAYOID, INT4OID, -1, false, 'i', 'x',
-	F_ARRAY_IN, F_ARRAY_OUT},
-	{"_text", 1009, TEXTOID, -1, false, 'i', 'x',
-	F_ARRAY_IN, F_ARRAY_OUT},
-	{"_oid", 1028, OIDOID, -1, false, 'i', 'x',
-	F_ARRAY_IN, F_ARRAY_OUT},
-	{"_char", 1002, CHAROID, -1, false, 'i', 'x',
-	F_ARRAY_IN, F_ARRAY_OUT},
-	{"_aclitem", 1034, ACLITEMOID, -1, false, 'i', 'x',
-	F_ARRAY_IN, F_ARRAY_OUT}
+	F_XIDIN, F_XIDOUT}
 };
 
 static const int n_types = sizeof(TypInfo) / sizeof(struct typinfo);
@@ -165,7 +183,7 @@ static struct typmap **Typ = NULL;
 static struct typmap *Ap = NULL;
 
 static int	Warnings = 0;
-static char Blanks[MAXATTR];
+static bool Nulls[MAXATTR];
 
 Form_pg_attribute attrtypes[MAXATTR];	/* points to attribute info */
 static Datum values[MAXATTR];	/* corresponding attribute values */
@@ -189,32 +207,31 @@ typedef struct _IndexList
 
 static IndexList *ILHead = NULL;
 
-
 /*
- *	 The main entry point for running the backend in bootstrap mode
+ *	 AuxiliaryProcessMain
  *
- *	 The bootstrap mode is used to initialize the template database.
- *	 The bootstrap backend doesn't speak SQL, but instead expects
- *	 commands in a special bootstrap language.
+ *	 The main entry point for auxiliary processes, such as the bgwriter,
+ *	 walwriter, bootstrapper and the shared memory checker code.
  *
- *	 For historical reasons, BootstrapMain is also used as the control
- *	 routine for non-backend subprocesses launched by the postmaster,
- *	 such as startup and shutdown.
+ *	 This code is here just because of historical reasons.
  */
-int
-BootstrapMain(int argc, char *argv[])
+void
+AuxiliaryProcessMain(int argc, char *argv[])
 {
 	char	   *progname = argv[0];
-	int			i;
-	char	   *dbname;
 	int			flag;
-	int			xlogop = BS_XLOG_NOP;
 	char	   *userDoption = NULL;
+	char		stack_base;
 
 	/*
 	 * initialize globals
 	 */
 	MyProcPid = getpid();
+
+	MyStartTime = time(NULL);
+
+	/* Set up reference point for stack depth checking */
+	stack_base_ptr = &stack_base;
 
 	/*
 	 * Fire up essential subsystems: error and memory management
@@ -237,7 +254,6 @@ BootstrapMain(int argc, char *argv[])
 	 */
 
 	/* Set defaults, to be overriden by explicit options below */
-	dbname = NULL;
 	if (!IsUnderPostmaster)
 		InitializeGUCOptions();
 
@@ -247,6 +263,8 @@ BootstrapMain(int argc, char *argv[])
 		argv++;
 		argc--;
 	}
+
+	MyAuxProcType = CheckerProcess;
 
 	while ((flag = getopt(argc, argv, "B:c:d:D:Fr:x:y:-:")) != -1)
 	{
@@ -275,13 +293,10 @@ BootstrapMain(int argc, char *argv[])
 				SetConfigOption("fsync", "false", PGC_POSTMASTER, PGC_S_ARGV);
 				break;
 			case 'r':
-				StrNCpy(OutputFileName, optarg, MAXPGPATH);
+				strlcpy(OutputFileName, optarg, MAXPGPATH);
 				break;
 			case 'x':
-				xlogop = atoi(optarg);
-				break;
-			case 'y':
-				dbname = strdup(optarg);
+				MyAuxProcType = atoi(optarg);
 				break;
 			case 'c':
 			case '-':
@@ -318,12 +333,7 @@ BootstrapMain(int argc, char *argv[])
 		}
 	}
 
-	if (!dbname && argc - optind == 1)
-	{
-		dbname = argv[optind];
-		optind++;
-	}
-	if (!dbname || argc != optind)
+	if (argc != optind)
 	{
 		write_stderr("%s: invalid command-line arguments\n", progname);
 		proc_exit(1);
@@ -336,13 +346,34 @@ BootstrapMain(int argc, char *argv[])
 	{
 		const char *statmsg;
 
-		switch (xlogop)
+		switch (MyAuxProcType)
 		{
-			case BS_XLOG_STARTUP:
+			case StartupProcess:
 				statmsg = "startup process";
 				break;
-			case BS_XLOG_BGWRITER:
+			case StartupPass2Process:
+				statmsg = "startup pass 2 process";
+				break;
+			case StartupPass3Process:
+				statmsg = "startup pass 3 process";
+				break;
+			case StartupPass4Process:
+				statmsg = "startup pass 4 process";
+				break;
+			case BgWriterProcess:
 				statmsg = "writer process";
+				break;
+			case CheckpointProcess:
+				statmsg = "checkpoint process";
+				break;
+			case WalReceiverProcess:
+				statmsg = "wal receiver process";
+				break;
+			case FilerepProcess:
+				statmsg = "filerep process";
+				break;
+			case FilerepResetPeerProcess:
+				statmsg = "filerep reset peer process";
 				break;
 			default:
 				statmsg = "??? process";
@@ -380,25 +411,31 @@ BootstrapMain(int argc, char *argv[])
 	BaseInit();
 
 	/*
-	 * When we are a dummy process, we aren't going to do the full
+	 * When we are an auxiliary process, we aren't going to do the full
 	 * InitPostgres pushups, but there are a couple of things that need to get
-	 * lit up even in a dummy process.
+	 * lit up even in an auxiliary process.
 	 */
-	if (IsUnderPostmaster)
+	/*
+	 * FileRep Main process does not use LWLock and so PGPROC is not required 
+	 * to be initialized.
+	 * It is temporary fix to handle that here as an exception.
+	 */
+	if (IsUnderPostmaster && (MyAuxProcType != FilerepProcess &&
+							  MyAuxProcType != FilerepResetPeerProcess))
 	{
 		/*
 		 * Create a PGPROC so we can use LWLocks.  In the EXEC_BACKEND case,
 		 * this was already done by SubPostmasterMain().
 		 */
 #ifndef EXEC_BACKEND
-		InitDummyProcess();
+		InitAuxiliaryProcess();
 #endif
 
 		/* finish setting up bufmgr.c */
 		InitBufferPoolBackend();
 
 		/* register a shutdown callback for LWLock cleanup */
-		on_shmem_exit(ShutdownDummyProcess, 0);
+		on_shmem_exit(ShutdownAuxiliaryProcess, 0);
 	}
 
 	/*
@@ -406,36 +443,79 @@ BootstrapMain(int argc, char *argv[])
 	 */
 	SetProcessingMode(NormalProcessing);
 
-	switch (xlogop)
+	switch (MyAuxProcType)
 	{
-		case BS_XLOG_NOP:
+		case CheckerProcess:
 			bootstrap_signals();
-			break;
+			CheckerModeMain();
+			proc_exit(1);		/* should never return */
 
-		case BS_XLOG_BOOTSTRAP:
+		case BootstrapProcess:
 			bootstrap_signals();
 			BootStrapXLOG();
 			StartupXLOG();
-			break;
+			BootstrapModeMain();
+			proc_exit(1);		/* should never return */
 
-		case BS_XLOG_STARTUP:
-			bootstrap_signals();
-			StartupXLOG();
-			LoadFreeSpaceMap();
-			BuildFlatFiles(false);
-			proc_exit(0);		/* startup done */
+		case StartupProcess:
+			/* don't set signals, startup process has its own agenda */
+			StartupProcessMain(1);
+			proc_exit(1);		/* should never return */
 
-		case BS_XLOG_BGWRITER:
+		case StartupPass2Process:
+			/* don't set signals, startup process has its own agenda */
+			StartupProcessMain(2);
+			proc_exit(1);		/* should never return */
+
+		case StartupPass3Process:
+			/* don't set signals, startup process has its own agenda */
+			StartupProcessMain(3);
+			proc_exit(1);		/* should never return */
+
+		case StartupPass4Process:
+			/* don't set signals, startup process has its own agenda */
+			StartupProcessMain(4);
+			proc_exit(1);		/* should never return */
+
+		case BgWriterProcess:
 			/* don't set signals, bgwriter has its own agenda */
 			InitXLOGAccess();
 			BackgroundWriterMain();
 			proc_exit(1);		/* should never return */
 
+		case CheckpointProcess:
+			/* don't set signals, checkpoint is similar to bgwriter and has its own agenda */
+			InitXLOGAccess();
+			CheckpointMain();
+			proc_exit(1);		/* should never return */
+
+		case WalReceiverProcess:
+			/* don't set signals, walreceiver has its own agenda */
+			WalReceiverMain();
+			proc_exit(1);		/* should never return */
+
+		case FilerepProcess:
+			FileRep_Main();
+			proc_exit(1); /* should never return */
+
+		case FilerepResetPeerProcess:
+			FileRepResetPeer_Main();
+			proc_exit(1); /* should never return */
+
 		default:
-			elog(PANIC, "unrecognized XLOG op: %d", xlogop);
+			elog(PANIC, "unrecognized process type: %d", MyAuxProcType);
 			proc_exit(1);
 	}
+}
 
+/*
+ * In shared memory checker mode, all we really want to do is create shared
+ * memory and semaphores (just to prove we can do it with the current GUC
+ * settings).
+ */
+static void
+CheckerModeMain(void)
+{
 	/*
 	 * We must be getting invoked for bootstrap mode
 	 */
@@ -447,21 +527,37 @@ BootstrapMain(int argc, char *argv[])
 	 * Do backend-like initialization for bootstrap mode
 	 */
 	InitProcess();
-	(void) InitPostgres(dbname, NULL);
+	InitPostgres(NULL, InvalidOid, NULL, NULL);
+	proc_exit(0);
+}
+
+/*
+ *	 The main entry point for running the backend in bootstrap mode
+ *
+ *	 The bootstrap mode is used to initialize the template database.
+ *	 The bootstrap backend doesn't speak SQL, but instead expects
+ *	 commands in a special bootstrap language.
+ */
+static void
+BootstrapModeMain(void)
+{
+	int			i;
+
+	Assert(!IsUnderPostmaster);
+
+	SetProcessingMode(BootstrapProcessing);
 
 	/*
-	 * In NOP mode, all we really want to do is create shared memory and
-	 * semaphores (just to prove we can do it with the current GUC settings).
-	 * So, quit now.
+	 * Do backend-like initialization for bootstrap mode
 	 */
-	if (xlogop == BS_XLOG_NOP)
-		proc_exit(0);
+	InitProcess();
+	InitPostgres(NULL, InvalidOid, NULL, NULL);
 
 	/* Initialize stuff for bootstrap-file processing */
 	for (i = 0; i < MAXATTR; i++)
 	{
 		attrtypes[i] = NULL;
-		Blanks[i] = ' ';
+		Nulls[i] = false;
 	}
 	for (i = 0; i < STRTABLESIZE; ++i)
 		strtable[i] = NULL;
@@ -481,9 +577,7 @@ BootstrapMain(int argc, char *argv[])
 	/* Clean up and exit */
 	StartTransactionCommand();
 	cleanup();
-
-	/* not reached, here to make compiler happy */
-	return 0;
+	proc_exit(0);
 }
 
 
@@ -546,14 +640,14 @@ bootstrap_signals(void)
 }
 
 /*
- * Begin shutdown of a dummy process.  This is approximately the equivalent
- * of ShutdownPostgres() in postinit.c.  We can't run transactions in a
- * dummy process, so most of the work of AbortTransaction() is not needed,
+ * Begin shutdown of an auxiliary process.	This is approximately the equivalent
+ * of ShutdownPostgres() in postinit.c.  We can't run transactions in an
+ * auxiliary process, so most of the work of AbortTransaction() is not needed,
  * but we do need to make sure we've released any LWLocks we are holding.
  * (This is only critical during an error exit.)
  */
 static void
-ShutdownDummyProcess(int code, Datum arg)
+ShutdownAuxiliaryProcess(int code, Datum arg)
 {
 	LWLockReleaseAll();
 }
@@ -622,9 +716,9 @@ boot_openrel(char *relname)
 		closerel(NULL);
 
 	elog(DEBUG4, "open relation %s, attrsize %d",
-		 relname, (int) ATTRIBUTE_TUPLE_SIZE);
+		 relname, (int) ATTRIBUTE_FIXED_PART_SIZE);
 
-	boot_reldesc = heap_openrv(makeRangeVar(NULL, relname), NoLock);
+	boot_reldesc = heap_openrv(makeRangeVar(NULL, relname, -1), NoLock);
 	numattr = boot_reldesc->rd_rel->relnatts;
 	for (i = 0; i < numattr; i++)
 	{
@@ -632,7 +726,7 @@ boot_openrel(char *relname)
 			attrtypes[i] = AllocateAttribute();
 		memmove((char *) attrtypes[i],
 				(char *) boot_reldesc->rd_att->attrs[i],
-				ATTRIBUTE_TUPLE_SIZE);
+				ATTRIBUTE_FIXED_PART_SIZE);
 
 		{
 			Form_pg_attribute at = attrtypes[i];
@@ -698,7 +792,7 @@ DefineAttr(char *name, char *type, int attnum)
 
 	if (attrtypes[attnum] == NULL)
 		attrtypes[attnum] = AllocateAttribute();
-	MemSet(attrtypes[attnum], 0, ATTRIBUTE_TUPLE_SIZE);
+	MemSet(attrtypes[attnum], 0, ATTRIBUTE_FIXED_PART_SIZE);
 
 	namestrcpy(&attrtypes[attnum]->attname, name);
 	elog(DEBUG4, "column %s %s", NameStr(attrtypes[attnum]->attname), type);
@@ -786,7 +880,7 @@ InsertOneTuple(Oid objectid)
 	tupDesc = CreateTupleDesc(numattr,
 							  RelationGetForm(boot_reldesc)->relhasoids,
 							  attrtypes);
-	tuple = heap_formtuple(tupDesc, values, Blanks);
+	tuple = heap_form_tuple(tupDesc, values, Nulls);
 	if (objectid != (Oid) 0)
 		HeapTupleSetOid(tuple, objectid);
 	pfree(tupDesc);				/* just free's tupDesc, not the attrtypes */
@@ -796,10 +890,10 @@ InsertOneTuple(Oid objectid)
 	elog(DEBUG4, "row inserted");
 
 	/*
-	 * Reset blanks for next tuple
+	 * Reset null markers for next tuple
 	 */
 	for (i = 0; i < numattr; i++)
-		Blanks[i] = ' ';
+		Nulls[i] = false;
 }
 
 /* ----------------
@@ -854,7 +948,7 @@ InsertOneNull(int i)
 	elog(DEBUG4, "inserting column %d NULL", i);
 	Assert(i >= 0 || i < MAXATTR);
 	values[i] = PointerGetDatum(NULL);
-	Blanks[i] = 'n';
+	Nulls[i] = true;
 }
 
 /* ----------------
@@ -912,11 +1006,27 @@ gettype(char *type)
 	}
 	else
 	{
-		for (i = 0; i < n_types; i++)
+		/* binary search */
+		int low, high;
+
+		low = 0;
+		high = n_types - 1;
+
+		while (low <= high)
 		{
-			if (strncmp(type, TypInfo[i].name, NAMEDATALEN) == 0)
-				return i;
+			int middle = low + (high - low)/2;
+			int res;
+
+			res = strncmp(TypInfo[middle].name, type, NAMEDATALEN);
+			elog(DEBUG1, "testing %s against %s", type, TypInfo[middle].name);
+			if (res == 0)
+				return middle;
+			else if (res < 0)
+				low = middle + 1;
+			else
+				high = middle - 1;
 		}
+
 		elog(DEBUG4, "external type: %s", type);
 		rel = heap_open(TypeRelationId, NoLock);
 		scan = heap_beginscan(rel, SnapshotNow, 0, NULL);
@@ -1026,16 +1136,19 @@ boot_get_type_io_data(Oid typid,
 
 /* ----------------
  *		AllocateAttribute
+ *
+ * Note: bootstrap never sets any per-column ACLs, so we only need
+ * ATTRIBUTE_FIXED_PART_SIZE space per attribute.
  * ----------------
  */
 static Form_pg_attribute
 AllocateAttribute(void)
 {
-	Form_pg_attribute attribute = (Form_pg_attribute) malloc(ATTRIBUTE_TUPLE_SIZE);
+	Form_pg_attribute attribute = (Form_pg_attribute) malloc(ATTRIBUTE_FIXED_PART_SIZE);
 
 	if (!PointerIsValid(attribute))
 		elog(FATAL, "out of memory");
-	MemSet(attribute, 0, ATTRIBUTE_TUPLE_SIZE);
+	MemSet(attribute, 0, ATTRIBUTE_FIXED_PART_SIZE);
 
 	return attribute;
 }
@@ -1124,6 +1237,12 @@ static int
 CompHash(char *str, int len)
 {
 	int			result;
+	
+	Assert(len >=0 && "string length is negative");
+	if (len == 0) 
+	{
+		return 0;
+	}
 
 	result = (NUM * str[0] + NUMSQR * str[len - 1] + NUMCUBE * str[(len - 1) / 2]);
 
@@ -1195,11 +1314,18 @@ AddStr(char *str, int strlength, int mderef)
 		len = NAMEDATALEN;
 
 	strtable[strtable_end] = malloc((unsigned) len);
+	if (strtable[strtable_end] == NULL)
+		ereport(ERROR, (errcode(ERRCODE_OUT_OF_MEMORY),
+						errmsg("Bootstrap failed: out of memory in AddStr")));
+
 	strcpy(strtable[strtable_end], str);
 
 	/* Now put a node in the hash table */
-
 	newnode = (hashnode *) malloc(sizeof(hashnode) * 1);
+	if (newnode == NULL)
+		ereport(ERROR, (errcode(ERRCODE_OUT_OF_MEMORY),
+						errmsg("Bootstrap failed: out of memory in AddStr")));
+
 	newnode->strnum = strtable_end;
 	newnode->next = NULL;
 
@@ -1295,6 +1421,7 @@ build_indices(void)
 		heap = heap_open(ILHead->il_heap, NoLock);
 		ind = index_open(ILHead->il_ind, NoLock);
 
+		elog(DEBUG4, "building index %s on %s", NameStr(ind->rd_rel->relname), NameStr(heap->rd_rel->relname));
 		index_build(heap, ind, ILHead->il_info, false);
 
 		index_close(ind, NoLock);

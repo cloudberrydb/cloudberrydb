@@ -3,7 +3,7 @@
  * slru.h
  *		Simple LRU buffering for transaction status logfiles
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2008, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * $PostgreSQL: pgsql/src/include/access/slru.h,v 1.19 2006/10/04 00:30:07 momjian Exp $
@@ -15,6 +15,12 @@
 
 #include "storage/lwlock.h"
 
+#define CLOG_DIR				"pg_clog"
+#define DISTRIBUTEDLOG_DIR		"pg_distributedlog"
+#define DISTRIBUTEDXIDMAP_DIR	"pg_distributedxidmap" 
+#define MULTIXACT_MEMBERS_DIR	"pg_multixact/members"
+#define MULTIXACT_OFFSETS_DIR	"pg_multixact/offsets"
+#define SUBTRANS_DIR			"pg_subtrans" 
 
 /*
  * Page status codes.  Note that these do not include the "dirty" bit.
@@ -112,10 +118,13 @@ extern void SimpleLruInit(SlruCtl ctl, const char *name, int nslots,
 extern int	SimpleLruZeroPage(SlruCtl ctl, int pageno);
 extern int	SimpleLruReadPage(SlruCtl ctl, int pageno, TransactionId xid);
 extern int SimpleLruReadPage_ReadOnly(SlruCtl ctl, int pageno,
-						   TransactionId xid);
+				      TransactionId xid, bool *valid);
 extern void SimpleLruWritePage(SlruCtl ctl, int slotno, SlruFlush fdata);
 extern void SimpleLruFlush(SlruCtl ctl, bool checkpoint);
 extern void SimpleLruTruncate(SlruCtl ctl, int cutoffPage);
+extern void SimpleLruTruncateWithLock(SlruCtl ctl, int cutoffPage);
 extern bool SlruScanDirectory(SlruCtl ctl, int cutoffPage, bool doDeletions);
+extern bool SimpleLruPageExists(SlruCtl ctl, int pageno);
+extern int SlruRecoverMirror(void);
 
 #endif   /* SLRU_H */

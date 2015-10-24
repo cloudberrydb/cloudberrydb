@@ -8,19 +8,31 @@
  * None of this code is used during normal system operation.
  *
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 2006-2008, Greenplum inc
+ * Portions Copyright (c) 1996-2008, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * $PostgreSQL: pgsql/src/backend/access/transam/xlogutils.c,v 1.48 2006/10/04 00:29:49 momjian Exp $
  *
  *-------------------------------------------------------------------------
  */
+#include <fcntl.h>
+#include <sys/stat.h>
+#include <unistd.h>
+	 
 #include "postgres.h"
 
 #include "access/xlogutils.h"
 #include "storage/bufpage.h"
 #include "storage/smgr.h"
 #include "utils/hsearch.h"
+
+#include "cdb/cdbmirroredfilesysobj.h"
+#include "cdb/cdbfilerepprimary.h"
+#include "cdb/cdbpersistentrecovery.h"
+#include "cdb/cdbpersistenttablespace.h"
+#include "utils/guc.h"
+#include "postmaster/postmaster.h"
 
 
 /*
@@ -62,11 +74,30 @@ log_invalid_page(RelFileNode node, BlockNumber blkno, bool present)
 	 * something about the XLOG record that generated the reference).
 	 */
 	if (present)
+	{
 		elog(DEBUG1, "page %u of relation %u/%u/%u is uninitialized",
 			 blkno, node.spcNode, node.dbNode, node.relNode);
+		if (Debug_persistent_recovery_print)
+			elog(PersistentRecovery_DebugPrintLevel(), 
+				 "log_invalid_page: page %u of relation %u/%u/%u is uninitialized",
+				 blkno,
+				 node.spcNode,
+				 node.dbNode,
+				 node.relNode);
+	}
 	else
+	{
 		elog(DEBUG1, "page %u of relation %u/%u/%u does not exist",
 			 blkno, node.spcNode, node.dbNode, node.relNode);
+		if (Debug_persistent_recovery_print)
+			elog(PersistentRecovery_DebugPrintLevel(), 
+				 "log_invalid_page: page %u of relation %u/%u/%u does not exist",
+				 blkno,
+				 node.spcNode,
+				 node.dbNode,
+				 node.relNode);
+	}
+
 
 	if (invalid_page_tab == NULL)
 	{
@@ -121,6 +152,13 @@ forget_invalid_pages(RelFileNode node, BlockNumber minblkno)
 			elog(DEBUG2, "page %u of relation %u/%u/%u has been dropped",
 				 hentry->key.blkno, hentry->key.node.spcNode,
 				 hentry->key.node.dbNode, hentry->key.node.relNode);
+			if (Debug_persistent_recovery_print)
+				elog(PersistentRecovery_DebugPrintLevel(), 
+					 "forget_invalid_pages: page %u of relation %u/%u/%u has been dropped",
+					 hentry->key.blkno,
+					 hentry->key.node.spcNode,
+					 hentry->key.node.dbNode, 
+					 hentry->key.node.relNode);
 
 			if (hash_search(invalid_page_tab,
 							(void *) &hentry->key,
@@ -132,7 +170,7 @@ forget_invalid_pages(RelFileNode node, BlockNumber minblkno)
 
 /* Forget any invalid pages in a whole database */
 static void
-forget_invalid_pages_db(Oid dbid)
+forget_invalid_pages_db(Oid tblspc, Oid dbid)
 {
 	HASH_SEQ_STATUS status;
 	xl_invalid_page *hentry;
@@ -144,11 +182,19 @@ forget_invalid_pages_db(Oid dbid)
 
 	while ((hentry = (xl_invalid_page *) hash_seq_search(&status)) != NULL)
 	{
-		if (hentry->key.node.dbNode == dbid)
+		if ((!OidIsValid(tblspc) || hentry->key.node.spcNode == tblspc) &&
+			hentry->key.node.dbNode == dbid)
 		{
 			elog(DEBUG2, "page %u of relation %u/%u/%u has been dropped",
 				 hentry->key.blkno, hentry->key.node.spcNode,
 				 hentry->key.node.dbNode, hentry->key.node.relNode);
+			if (Debug_persistent_recovery_print)
+				elog(PersistentRecovery_DebugPrintLevel(), 
+					 "forget_invalid_pages_db: %u of relation %u/%u/%u has been dropped",
+					 hentry->key.blkno,
+					 hentry->key.node.spcNode,
+					 hentry->key.node.dbNode, 
+					 hentry->key.node.relNode);
 
 			if (hash_search(invalid_page_tab,
 							(void *) &hentry->key,
@@ -220,6 +266,8 @@ XLogReadBuffer(Relation reln, BlockNumber blkno, bool init)
 {
 	BlockNumber lastblock = RelationGetNumberOfBlocks(reln);
 	Buffer		buffer;
+
+	MIRROREDLOCK_BUFMGR_MUST_ALREADY_BE_HELD;
 
 	Assert(blkno != P_NEW);
 
@@ -303,8 +351,12 @@ _xl_init_rel_cache(void)
 	_xlcnt = _XLOG_RELCACHESIZE;
 	_xlast = 0;
 	_xlrelarr = (XLogRelDesc *) malloc(sizeof(XLogRelDesc) * _xlcnt);
+	if (_xlrelarr == NULL)
+		elog(ERROR,"could not allocate memory for light-weight relation cache");
 	memset(_xlrelarr, 0, sizeof(XLogRelDesc) * _xlcnt);
 	_xlpgcarr = (Form_pg_class) malloc(sizeof(FormData_pg_class) * _xlcnt);
+	if (_xlpgcarr == NULL)
+		elog(ERROR,"could not allocate memory for light-weight relation cache");
 	memset(_xlpgcarr, 0, sizeof(FormData_pg_class) * _xlcnt);
 
 	_xlrelarr[0].moreRecently = &(_xlrelarr[0]);
@@ -416,6 +468,92 @@ XLogOpenRelation(RelFileNode rnode)
 	}
 	else
 	{
+		/*
+		 * We need to fault in the database directory on the standby.
+		 */
+		if (rnode.spcNode != GLOBALTABLESPACE_OID && IsStandbyMode())
+		{
+			char *primaryFilespaceLocation = NULL;
+
+			char *dbPath;
+			
+			if (IsBuiltinTablespace(rnode.spcNode))
+			{
+				/*
+				 * No filespace to fetch.
+				 */
+			}
+			else
+			{		
+				char *mirrorFilespaceLocation = NULL;
+			
+				/*
+				 * Investigate whether the containing directories exist to give more detail.
+				 */
+				PersistentTablespace_GetPrimaryAndMirrorFilespaces(
+													rnode.spcNode,
+													&primaryFilespaceLocation,
+													&mirrorFilespaceLocation);
+				if (primaryFilespaceLocation == NULL ||
+					strlen(primaryFilespaceLocation) == 0)
+				{
+					elog(ERROR, "Empty primary filespace directory location");
+				}
+			
+				if (mirrorFilespaceLocation != NULL)
+				{
+					pfree(mirrorFilespaceLocation);
+					mirrorFilespaceLocation = NULL;
+				}
+			}
+			
+			dbPath = (char*)palloc(MAXPGPATH + 1);
+			
+			FormDatabasePath(
+						dbPath,
+						primaryFilespaceLocation,
+						rnode.spcNode,
+						rnode.dbNode);
+
+			if (primaryFilespaceLocation != NULL)
+			{
+				pfree(primaryFilespaceLocation);
+				primaryFilespaceLocation = NULL;
+			}
+			
+			if (mkdir(dbPath, 0700) == 0)
+			{
+				if (Debug_persistent_recovery_print)
+				{
+					elog(PersistentRecovery_DebugPrintLevel(), 
+						 "XLogOpenRelation: Re-created database directory \"%s\"",
+						 dbPath);
+				}
+			}
+			else
+			{
+				/*
+				 * Allowed to already exist.
+				 */
+				if (errno != EEXIST)
+				{
+					elog(ERROR, "could not create database directory \"%s\": %m",
+						 dbPath);
+				}
+				else
+				{
+					if (Debug_persistent_recovery_print)
+					{
+						elog(PersistentRecovery_DebugPrintLevel(), 
+							 "XLogOpenRelation: Database directory \"%s\" already exists",
+							 dbPath);
+					}
+				}
+			}
+
+			pfree(dbPath);
+		}
+		
 		res = _xl_new_reldesc();
 
 		sprintf(RelationGetRelationName(&(res->reldata)), "%u", rnode.relNode);
@@ -444,22 +582,51 @@ XLogOpenRelation(RelFileNode rnode)
 		res->reldata.rd_smgr = NULL;
 		RelationOpenSmgr(&(res->reldata));
 
-		/*
-		 * Create the target file if it doesn't already exist.  This lets us
-		 * cope if the replay sequence contains writes to a relation that is
-		 * later deleted.  (The original coding of this routine would instead
-		 * return NULL, causing the writes to be suppressed. But that seems
-		 * like it risks losing valuable data if the filesystem loses an inode
-		 * during a crash.	Better to write the data until we are actually
-		 * told to delete the file.)
-		 */
-		smgrcreate(res->reldata.rd_smgr, res->reldata.rd_istemp, true);
+		// NOTE: We no longer re-create files automatically because
+		// new FileRep persistent objects will ensure files exist.
+
+		// UNDONE: Can't remove this block of code yet until boot time calls to this routine are analyzed...
+		{
+			MirrorDataLossTrackingState mirrorDataLossTrackingState;
+			int64 mirrorDataLossTrackingSessionNum;
+			
+			int primaryError;
+			bool mirrorDataLossOccurred;
+			
+			/*
+			 * Create the target file if it doesn't already exist.  This lets us
+			 * cope if the replay sequence contains writes to a relation that is
+			 * later deleted.  (The original coding of this routine would instead
+			 * return NULL, causing the writes to be suppressed. But that seems
+			 * like it risks losing valuable data if the filesystem loses an inode
+			 * during a crash.	Better to write the data until we are actually
+			 * told to delete the file.)
+			 */
+			// UNDONE: What about the persistent rel files table???
+			// UNDONE: This condition should not occur anymore.
+			// UNDONE: segmentFileNum and AO?
+			mirrorDataLossTrackingState = 
+						FileRepPrimary_GetMirrorDataLossTrackingSessionNum(
+														&mirrorDataLossTrackingSessionNum);
+			smgrcreate(
+				res->reldata.rd_smgr, 
+				res->reldata.rd_isLocalBuf, 
+				/* relationName */ NULL,		// Ok to be NULL -- we don't know the name here.
+				mirrorDataLossTrackingState,
+				mirrorDataLossTrackingSessionNum,
+				/* ignoreAlreadyExists */ true,
+				&primaryError,
+				&mirrorDataLossOccurred);
+			
+		}
 	}
 
 	res->moreRecently = &(_xlrelarr[0]);
 	res->lessRecently = _xlrelarr[0].lessRecently;
 	_xlrelarr[0].lessRecently = res;
 	res->lessRecently->moreRecently = res;
+
+	Assert(&(res->reldata) != NULL);	// Assert what it says in the interface -- we don't return NULL anymore.
 
 	return &(res->reldata);
 }
@@ -500,7 +667,7 @@ XLogDropRelation(RelFileNode rnode)
  * As above, but for DROP DATABASE instead of dropping a single rel
  */
 void
-XLogDropDatabase(Oid dbid)
+XLogDropDatabase(Oid tblspc, Oid dbid)
 {
 	HASH_SEQ_STATUS status;
 	XLogRelCacheEntry *hentry;
@@ -511,11 +678,14 @@ XLogDropDatabase(Oid dbid)
 	{
 		XLogRelDesc *rdesc = hentry->rdesc;
 
-		if (hentry->rnode.dbNode == dbid)
-			RelationCloseSmgr(&(rdesc->reldata));
+		if (!OidIsValid(tblspc) || hentry->rnode.spcNode == tblspc)
+		{
+			if (hentry->rnode.dbNode == dbid)
+				RelationCloseSmgr(&(rdesc->reldata));
+		}
 	}
 
-	forget_invalid_pages_db(dbid);
+	forget_invalid_pages_db(tblspc, dbid);
 }
 
 /*

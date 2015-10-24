@@ -1,7 +1,7 @@
 /*
  * This is a port of the Double Metaphone algorithm for use in PostgreSQL.
  *
- * $PostgreSQL: pgsql/contrib/fuzzystrmatch/dmetaphone.c,v 1.10 2006/09/22 21:39:56 tgl Exp $
+ * contrib/fuzzystrmatch/dmetaphone.c
  *
  * Double Metaphone computes 2 "sounds like" strings - a primary and an
  * alternate. In most cases they are the same, but for foreign names
@@ -101,7 +101,7 @@ The remaining code is authored by Andrew Dunstan <amdunstan@ncshp.org> and
 
 #include "postgres.h"
 
-#include "fmgr.h"
+#include "utils/builtins.h"
 
 /* turn off assertions for embedded function */
 #define NDEBUG
@@ -118,14 +118,12 @@ extern Datum dmetaphone(PG_FUNCTION_ARGS);
 extern Datum dmetaphone_alt(PG_FUNCTION_ARGS);
 
 /* prototype for the main function we got from the perl module */
-static void
-			DoubleMetaphone(char *, char **);
+static void DoubleMetaphone(char *, char **);
 
 #ifndef DMETAPHONE_MAIN
 
 /*
  * The PostgreSQL visible dmetaphone function.
- *
  */
 
 PG_FUNCTION_INFO_V1(dmetaphone);
@@ -133,48 +131,28 @@ PG_FUNCTION_INFO_V1(dmetaphone);
 Datum
 dmetaphone(PG_FUNCTION_ARGS)
 {
-	text	   *arg,
-			   *result;
-	int			alen,
-				rsize;
+	text	   *arg;
 	char	   *aptr,
 			   *codes[2],
-			   *code,
-			   *rptr;
+			   *code;
 
 #ifdef DMETAPHONE_NOSTRICT
 	if (PG_ARGISNULL(0))
-		PG_RETURNNULL();
+		PG_RETURN_NULL();
 #endif
 	arg = PG_GETARG_TEXT_P(0);
-	alen = VARSIZE(arg) - VARHDRSZ;
+	aptr = text_to_cstring(arg);
 
-	/*
-	 * Postgres' string values might not have trailing nuls. The VARSIZE will
-	 * not include the nul in any case so we copy things out and add a
-	 * trailing nul. When we copy back we ignore the nul (and we don't make
-	 * space for it).
-	 */
-
-	aptr = palloc(alen + 1);
-	memcpy(aptr, VARDATA(arg), alen);
-	aptr[alen] = 0;
 	DoubleMetaphone(aptr, codes);
 	code = codes[0];
 	if (!code)
 		code = "";
-	rsize = VARHDRSZ + strlen(code);
-	result = (text *) palloc(rsize);
-	memset(result, 0, rsize);
-	rptr = VARDATA(result);
-	memcpy(rptr, code, strlen(code));
-	VARATT_SIZEP(result) = rsize;
-	PG_RETURN_TEXT_P(result);
+
+	PG_RETURN_TEXT_P(cstring_to_text(code));
 }
 
 /*
  * The PostgreSQL visible dmetaphone_alt function.
- *
  */
 
 PG_FUNCTION_INFO_V1(dmetaphone_alt);
@@ -182,35 +160,24 @@ PG_FUNCTION_INFO_V1(dmetaphone_alt);
 Datum
 dmetaphone_alt(PG_FUNCTION_ARGS)
 {
-	text	   *arg,
-			   *result;
-	int			alen,
-				rsize;
+	text	   *arg;
 	char	   *aptr,
 			   *codes[2],
-			   *code,
-			   *rptr;
+			   *code;
 
 #ifdef DMETAPHONE_NOSTRICT
 	if (PG_ARGISNULL(0))
-		PG_RETURNNULL();
+		PG_RETURN_NULL();
 #endif
 	arg = PG_GETARG_TEXT_P(0);
-	alen = VARSIZE(arg) - VARHDRSZ;
-	aptr = palloc(alen + 1);
-	memcpy(aptr, VARDATA(arg), alen);
-	aptr[alen] = 0;
+	aptr = text_to_cstring(arg);
+
 	DoubleMetaphone(aptr, codes);
 	code = codes[1];
 	if (!code)
 		code = "";
-	rsize = VARHDRSZ + strlen(code);
-	result = (text *) palloc(rsize);
-	memset(result, 0, rsize);
-	rptr = VARDATA(result);
-	memcpy(rptr, code, strlen(code));
-	VARATT_SIZEP(result) = rsize;
-	PG_RETURN_TEXT_P(result);
+
+	PG_RETURN_TEXT_P(cstring_to_text(code));
 }
 
 
@@ -257,7 +224,7 @@ typedef struct
 	int			free_string_on_destroy;
 }
 
-			metastring;
+metastring;
 
 /*
  * remaining perl module funcs unchanged except for declaring them static
@@ -291,7 +258,7 @@ NewMetaString(char *init_str)
 
 
 static void
-DestroyMetaString(metastring * s)
+DestroyMetaString(metastring *s)
 {
 	if (s == NULL)
 		return;
@@ -304,7 +271,7 @@ DestroyMetaString(metastring * s)
 
 
 static void
-IncreaseBuffer(metastring * s, int chars_needed)
+IncreaseBuffer(metastring *s, int chars_needed)
 {
 	META_REALLOC(s->str, (s->bufsize + chars_needed + 10), char);
 	assert(s->str != NULL);
@@ -313,7 +280,7 @@ IncreaseBuffer(metastring * s, int chars_needed)
 
 
 static void
-MakeUpper(metastring * s)
+MakeUpper(metastring *s)
 {
 	char	   *i;
 
@@ -323,7 +290,7 @@ MakeUpper(metastring * s)
 
 
 static int
-IsVowel(metastring * s, int pos)
+IsVowel(metastring *s, int pos)
 {
 	char		c;
 
@@ -340,7 +307,7 @@ IsVowel(metastring * s, int pos)
 
 
 static int
-SlavoGermanic(metastring * s)
+SlavoGermanic(metastring *s)
 {
 	if ((char *) strstr(s->str, "W"))
 		return 1;
@@ -356,7 +323,7 @@ SlavoGermanic(metastring * s)
 
 
 static char
-GetAt(metastring * s, int pos)
+GetAt(metastring *s, int pos)
 {
 	if ((pos < 0) || (pos >= s->length))
 		return '\0';
@@ -366,7 +333,7 @@ GetAt(metastring * s, int pos)
 
 
 static void
-SetAt(metastring * s, int pos, char c)
+SetAt(metastring *s, int pos, char c)
 {
 	if ((pos < 0) || (pos >= s->length))
 		return;
@@ -379,7 +346,7 @@ SetAt(metastring * s, int pos, char c)
    Caveats: the START value is 0 based
 */
 static int
-StringAt(metastring * s, int start, int length,...)
+StringAt(metastring *s, int start, int length,...)
 {
 	char	   *test;
 	char	   *pos;
@@ -395,7 +362,10 @@ StringAt(metastring * s, int start, int length,...)
 	{
 		test = va_arg(ap, char *);
 		if (*test && (strncmp(pos, test, length) == 0))
+		{
+			va_end(ap);
 			return 1;
+		}
 	}
 	while (strcmp(test, ""));
 
@@ -406,7 +376,7 @@ StringAt(metastring * s, int start, int length,...)
 
 
 static void
-MetaphAdd(metastring * s, char *new_str)
+MetaphAdd(metastring *s, char *new_str)
 {
 	int			add_length;
 
@@ -494,7 +464,7 @@ DoubleMetaphone(char *str, char **codes)
 					current += 1;
 				break;
 
-			case 'Ç':
+			case '\xc7':		/* C with cedilla */
 				MetaphAdd(primary, "S");
 				MetaphAdd(secondary, "S");
 				current += 1;
@@ -1070,7 +1040,7 @@ DoubleMetaphone(char *str, char **codes)
 				MetaphAdd(secondary, "N");
 				break;
 
-			case 'Ñ':
+			case '\xd1':		/* N with tilde */
 				current += 1;
 				MetaphAdd(primary, "N");
 				MetaphAdd(secondary, "N");

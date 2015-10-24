@@ -4,7 +4,7 @@
 #    Makefile for utils/fmgr
 #
 # IDENTIFICATION
-#    $PostgreSQL: pgsql/src/backend/utils/fmgr/Makefile,v 1.17 2004/05/21 20:56:49 tgl Exp $
+#    $PostgreSQL: pgsql/src/backend/utils/fmgr/Makefile,v 1.18 2008/02/19 10:30:08 petere Exp $
 #
 #-------------------------------------------------------------------------
 
@@ -12,15 +12,8 @@ subdir = src/backend/utils/fmgr
 top_builddir = ../../../..
 include $(top_builddir)/src/Makefile.global
 
-OBJS = dfmgr.o fmgr.o funcapi.o
+OBJS = dfmgr.o fmgr.o funcapi.o deprecated.o
 
 override CPPFLAGS += -DDLSUFFIX=\"$(DLSUFFIX)\"
 
-
-all: SUBSYS.o
-
-SUBSYS.o: $(OBJS)
-	$(LD) $(LDREL) $(LDOUT) SUBSYS.o $(OBJS)
-
-clean: 
-	rm -f SUBSYS.o $(OBJS)
+include $(top_srcdir)/src/backend/common.mk

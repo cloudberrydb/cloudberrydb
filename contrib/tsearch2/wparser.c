@@ -127,8 +127,8 @@ findprs(Oid id)
 		PList.reallen = reallen;
 		PList.list = tmp;
 	}
+	init_prs(id, &(PList.list[PList.len]) );
 	PList.last_prs = &(PList.list[PList.len]);
-	init_prs(id, PList.last_prs);
 	PList.len++;
 	qsort(PList.list, PList.len, sizeof(WParserInfo), compareprs);
 	return findprs(id); /* qsort changed order!! */ ;
@@ -535,7 +535,7 @@ Datum
 headline(PG_FUNCTION_ARGS)
 {
 	text	   *in = PG_GETARG_TEXT_P(1);
-	QUERYTYPE  *query = (QUERYTYPE *) DatumGetPointer(PG_DETOAST_DATUM(PG_GETARG_DATUM(2)));
+	QUERYTYPE  *query = (QUERYTYPE *) PG_DETOAST_DATUM(PG_GETARG_DATUM(2));
 	text	   *opt = (PG_NARGS() > 3 && PG_GETARG_POINTER(3)) ? PG_GETARG_TEXT_P(3) : NULL;
 	HLPRSTEXT	prs;
 	text	   *out;

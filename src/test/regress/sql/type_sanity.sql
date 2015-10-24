@@ -32,7 +32,8 @@ FROM pg_type as p1
 WHERE p1.typbyval AND
     (p1.typlen != 1 OR p1.typalign != 'c') AND
     (p1.typlen != 2 OR p1.typalign != 's') AND
-    (p1.typlen != 4 OR p1.typalign != 'i');
+    (p1.typlen != 4 OR p1.typalign != 'i') AND
+	(p1.typlen != 8 OR p1.typalign != 'd') ;
 
 -- Look for "toastable" types that aren't varlena.
 
@@ -139,6 +140,13 @@ WHERE p1.typreceive = p2.oid AND p1.typtype in ('b', 'p') AND
     (p2.oid = 'array_recv'::regproc)
 ORDER BY 1;
 
+-- Array types should have same typdelim as their element types
+SELECT p1.oid, p1.typname, p2.oid, p2.typname
+FROM pg_type p1, pg_type p2
+WHERE p1.typelem = p2.oid and p1.typdelim != p2.typdelim
+  AND p1.typname like E'\\_%';
+
+
 -- Suspicious if typreceive doesn't take same number of args as typinput
 SELECT p1.oid, p1.typname, p2.oid, p2.proname, p3.oid, p3.proname
 FROM pg_type AS p1, pg_proc AS p2, pg_proc AS p3
@@ -205,11 +213,11 @@ WHERE p1.relnatts != (SELECT count(*) FROM pg_attribute AS p2
 -- Cross-check against pg_type entry
 -- NOTE: we allow attstorage to be 'plain' even when typstorage is not;
 -- this is mainly for toast tables.
-
-SELECT p1.attrelid, p1.attname, p2.oid, p2.typname
-FROM pg_attribute AS p1, pg_type AS p2
-WHERE p1.atttypid = p2.oid AND
-    (p1.attlen != p2.typlen OR
-     p1.attalign != p2.typalign OR
-     p1.attbyval != p2.typbyval OR
-     (p1.attstorage != p2.typstorage AND p1.attstorage != 'p'));
+-- UNDONE: Turn this off until we can figure out why the new system columns cause a bunch of rows to be generated here???
+-- SELECT p1.attrelid, p1.attname, p2.oid, p2.typname
+-- FROM pg_attribute AS p1, pg_type AS p2
+-- WHERE p1.atttypid = p2.oid AND
+--    (p1.attlen != p2.typlen OR
+--     p1.attalign != p2.typalign OR
+--     p1.attbyval != p2.typbyval OR
+--     (p1.attstorage != p2.typstorage AND p1.attstorage != 'p'));

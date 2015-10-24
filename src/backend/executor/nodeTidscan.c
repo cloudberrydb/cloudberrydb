@@ -3,12 +3,12 @@
  * nodeTidscan.c
  *	  Routines to support direct tid scans of relations
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2008, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/executor/nodeTidscan.c,v 1.51 2006/10/04 00:29:53 momjian Exp $
+ *	  $PostgreSQL: pgsql/src/backend/executor/nodeTidscan.c,v 1.51.2.1 2006/12/26 19:26:56 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -26,10 +26,12 @@
 
 #include "access/heapam.h"
 #include "catalog/pg_type.h"
+#include "cdb/cdbvars.h"
 #include "executor/execdebug.h"
 #include "executor/nodeTidscan.h"
 #include "optimizer/clauses.h"
 #include "utils/array.h"
+#include "parser/parsetree.h"
 
 
 #define IsCTIDVar(node)  \
@@ -61,8 +63,8 @@ TidListCreate(TidScanState *tidstate)
 
 	/*
 	 * We initialize the array with enough slots for the case that all quals
-	 * are simple OpExprs.	If there's any ScalarArrayOpExprs, we may have to
-	 * enlarge the array.
+	 * are simple OpExprs, or just one CurrentOfExpr. If there's any ScalarArrayOpExprs, 
+	 * we may have to enlarge the array.
 	 */
 	numAllocTids = list_length(evalList);
 	tidList = (ItemPointerData *)
@@ -148,6 +150,16 @@ TidListCreate(TidScanState *tidstate)
 			pfree(ipdatums);
 			pfree(ipnulls);
 		}
+		else if (expr && IsA(expr, CurrentOfExpr))
+		{
+			/* 
+			 * CURRENT OF must be the only expr. This allows us to avoid
+			 * a repalloc of the tidList. 
+			 */
+			Insist(list_length(evalList) == 1);	
+			CurrentOfExpr *cexpr = (CurrentOfExpr *) expr;
+			tidList[numTids++] = cexpr->ctid;
+		} 
 		else
 			elog(ERROR, "could not identify CTID expression");
 	}
@@ -253,11 +265,15 @@ TidNext(TidScanState *node)
 		 * runtime-key case this is not certain, is it?
 		 */
 
-		ExecStoreTuple(estate->es_evTuple[scanrelid - 1],
-					   slot, InvalidBuffer, false);
+		ExecStoreGenericTuple(estate->es_evTuple[scanrelid - 1], slot, false);
 
 		/* Flag for the next call that no more tuples */
 		estate->es_evTupleNull[scanrelid - 1] = true;
+          	if (!TupIsNull(slot))
+                {
+          		Gpmon_M_Incr_Rows_Out(GpmonPktFromTidScanState(node));
+                        CheckSendPlanStateGpmonPkt(&node->ss.ps);
+                }
 		return slot;
 	}
 
@@ -309,7 +325,7 @@ TidNext(TidScanState *node)
 			 * pointers onto disk pages and were not created with palloc() and
 			 * so should not be pfree()'d.
 			 */
-			ExecStoreTuple(tuple,		/* tuple to store */
+			ExecStoreHeapTuple(tuple,		/* tuple to store */
 						   slot,	/* slot to store in */
 						   buffer,		/* buffer associated with tuple  */
 						   false);		/* don't pfree */
@@ -376,6 +392,8 @@ ExecTidReScan(TidScanState *node, ExprContext *exprCtxt)
 	estate = node->ss.ps.state;
 	scanrelid = ((TidScan *) node->ss.ps.plan)->scan.scanrelid;
 
+	/*node->ss.ps.ps_TupFromTlist = false;*/
+
 	/* If we are being passed an outer tuple, save it for runtime key calc */
 	if (exprCtxt != NULL)
 		node->ss.ps.ps_ExprContext->ecxt_outertuple =
@@ -421,6 +439,8 @@ ExecEndTidScan(TidScanState *node)
 	 * close the heap relation.
 	 */
 	ExecCloseScanRelation(node->ss.ss_currentRelation);
+
+	EndPlanStateGpmonPkt(&node->ss.ps);
 }
 
 /* ----------------------------------------------------------------
@@ -482,6 +502,8 @@ ExecInitTidScan(TidScan *node, EState *estate, int eflags)
 	 */
 	ExecAssignExprContext(estate, &tidstate->ss.ps);
 
+	/*tidstate->ss.ps.ps_TupFromTlist = false;*/
+
 	/*
 	 * initialize child expressions
 	 */
@@ -517,7 +539,6 @@ ExecInitTidScan(TidScan *node, EState *estate, int eflags)
 	currentRelation = ExecOpenScanRelation(estate, node->scan.scanrelid);
 
 	tidstate->ss.ss_currentRelation = currentRelation;
-	tidstate->ss.ss_currentScanDesc = NULL;		/* no heap scan here */
 
 	/*
 	 * get the scan type from the relation descriptor.
@@ -530,6 +551,8 @@ ExecInitTidScan(TidScan *node, EState *estate, int eflags)
 	ExecAssignResultTypeFromTL(&tidstate->ss.ps);
 	ExecAssignScanProjectionInfo(&tidstate->ss);
 
+	initGpmonPktForTidScan((Plan *)node, &tidstate->ss.ps.gpmon_pkt, estate);
+
 	/*
 	 * all done.
 	 */
@@ -541,4 +564,21 @@ ExecCountSlotsTidScan(TidScan *node)
 {
 	return ExecCountSlotsNode(outerPlan((Plan *) node)) +
 		ExecCountSlotsNode(innerPlan((Plan *) node)) + TIDSCAN_NSLOTS;
+}
+
+void
+initGpmonPktForTidScan(Plan *planNode, gpmon_packet_t *gpmon_pkt, EState *estate)
+{
+	Assert(planNode != NULL && gpmon_pkt != NULL && IsA(planNode, TidScan));
+	
+	{
+		RangeTblEntry *rte = rt_fetch(((TidScan *)planNode)->scan.scanrelid,
+									  estate->es_range_table);
+		char schema_rel_name[SCAN_REL_NAME_BUF_SIZE] = {0};
+		
+		Assert(GPMON_TIDSCAN_TOTAL <= (int)GPMON_QEXEC_M_COUNT);
+		InitPlanNodeGpmonPkt(planNode, gpmon_pkt, estate, PMNT_TidScan,
+							 (int64)planNode->plan_rows, 
+							 GetScanRelNameGpmon(rte->relid, schema_rel_name));
+	}
 }

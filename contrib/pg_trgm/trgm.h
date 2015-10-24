@@ -1,3 +1,6 @@
+/*
+ * $PostgreSQL: pgsql/contrib/pg_trgm/trgm.h,v 1.11 2009/06/11 14:48:51 momjian Exp $
+ */
 #ifndef __TRGM_H__
 #define __TRGM_H__
 
@@ -28,15 +31,23 @@ typedef char trgm[3];
 	*(((char*)(a))+2) = *(((char*)(b))+2);	\
 } while(0);
 
+uint32		trgm2int(trgm *ptr);
+
+#ifdef KEEPONLYALNUM
+#define ISPRINTABLECHAR(a)	( isascii( *(unsigned char*)(a) ) && (isalnum( *(unsigned char*)(a) ) || *(unsigned char*)(a)==' ') )
+#else
+#define ISPRINTABLECHAR(a)	( isascii( *(unsigned char*)(a) ) && isprint( *(unsigned char*)(a) ) )
+#endif
+#define ISPRINTABLETRGM(t)	( ISPRINTABLECHAR( ((char*)t) ) && ISPRINTABLECHAR( ((char*)t)+1 ) && ISPRINTABLECHAR( ((char*)t)+2 ) )
 
 typedef struct
 {
-	int4		len;
+	int32		vl_len_;		/* varlena header (do not touch directly!) */
 	uint8		flag;
 	char		data[1];
 }	TRGM;
 
-#define TRGMHRDSIZE		  (sizeof(int4)+sizeof(uint8))
+#define TRGMHDRSIZE		  (VARHDRSZ + sizeof(uint8))
 
 /* gist */
 #define BITBYTE 8
@@ -48,10 +59,8 @@ typedef struct
 typedef char BITVEC[SIGLEN];
 typedef char *BITVECP;
 
-#define LOOPBYTE(a) \
-				for(i=0;i<SIGLEN;i++) {\
-								a;\
-				}
+#define LOOPBYTE \
+			for(i=0;i<SIGLEN;i++)
 
 #define GETBYTE(x,i) ( *( (BITVECP)(x) + (int)( (i) / BITBYTE ) ) )
 #define GETBITBYTE(x,i) ( ((char)(x)) >> i & 0x01 )
@@ -70,12 +79,13 @@ typedef char *BITVECP;
 #define ISSIGNKEY(x)	( ((TRGM*)x)->flag & SIGNKEY )
 #define ISALLTRUE(x)	( ((TRGM*)x)->flag & ALLISTRUE )
 
-#define CALCGTSIZE(flag, len) ( TRGMHRDSIZE + ( ( (flag) & ARRKEY ) ? ((len)*sizeof(trgm)) : (((flag) & ALLISTRUE) ? 0 : SIGLEN) ) )
-#define GETSIGN(x)		( (BITVECP)( (char*)x+TRGMHRDSIZE ) )
-#define GETARR(x)		( (trgm*)( (char*)x+TRGMHRDSIZE ) )
-#define ARRNELEM(x) ( ( ((TRGM*)x)->len - TRGMHRDSIZE )/sizeof(trgm) )
+#define CALCGTSIZE(flag, len) ( TRGMHDRSIZE + ( ( (flag) & ARRKEY ) ? ((len)*sizeof(trgm)) : (((flag) & ALLISTRUE) ? 0 : SIGLEN) ) )
+#define GETSIGN(x)		( (BITVECP)( (char*)x+TRGMHDRSIZE ) )
+#define GETARR(x)		( (trgm*)( (char*)x+TRGMHDRSIZE ) )
+#define ARRNELEM(x) ( ( VARSIZE(x) - TRGMHDRSIZE )/sizeof(trgm) )
 
 extern float4 trgm_limit;
+
 TRGM	   *generate_trgm(char *str, int slen);
 float4		cnt_sml(TRGM * trg1, TRGM * trg2);
 

@@ -12,7 +12,7 @@
  * across tables.
  *
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2008, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * $PostgreSQL: pgsql/src/include/catalog/pg_shdescription.h,v 1.3 2006/10/04 00:30:08 momjian Exp $
@@ -29,12 +29,24 @@
 #ifndef PG_SHDESCRIPTION_H
 #define PG_SHDESCRIPTION_H
 
-/* ----------------
- *		postgres.h contains the system type definitions and the
- *		CATALOG(), BKI_BOOTSTRAP and DATA() sugar words so this file
- *		can be read by both genbki.sh and the C compiler.
- * ----------------
- */
+#include "catalog/genbki.h"
+
+/* TIDYCAT_BEGINFAKEDEF
+
+   CREATE TABLE pg_shdescription
+   with (camelcase=SharedDescription, shared=true, oid=false, relid=2396, toast_oid=2846, toast_index=2847, content=MASTER_ONLY)
+   (
+   objoid       oid, 
+   classoid     oid, 
+   description  text
+   );
+
+   create unique index on pg_shdescription(objoid, classoid) with (indexid=2397, CamelCase=SharedDescriptionObj);
+
+   alter table pg_shdescription add fk classoid on pg_class(oid);
+
+   TIDYCAT_ENDFAKEDEF
+*/
 
 /* ----------------
  *		pg_shdescription definition.	cpp turns this into

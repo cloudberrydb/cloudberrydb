@@ -3,7 +3,7 @@
  * nodeBitmapAnd.c
  *	  routines to handle BitmapAnd nodes.
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2008, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -28,9 +28,11 @@
 
 #include "postgres.h"
 
+#include "cdb/cdbvars.h"
 #include "executor/execdebug.h"
 #include "executor/instrument.h"
 #include "executor/nodeBitmapAnd.h"
+#include "nodes/tidbitmap.h"
 
 
 /* ----------------------------------------------------------------
@@ -42,7 +44,7 @@
 BitmapAndState *
 ExecInitBitmapAnd(BitmapAnd *node, EState *estate, int eflags)
 {
-	BitmapAndState *bitmapandstate = makeNode(BitmapAndState);
+	BitmapAndState *bitmapandstate;
 	PlanState **bitmapplanstates;
 	int			nplans;
 	int			i;
@@ -57,6 +59,7 @@ ExecInitBitmapAnd(BitmapAnd *node, EState *estate, int eflags)
 	 */
 	nplans = list_length(node->bitmapplans);
 
+	bitmapandstate = makeNode(BitmapAndState);
 	bitmapplanstates = (PlanState **) palloc0(nplans * sizeof(PlanState *));
 
 	/*
@@ -88,6 +91,8 @@ ExecInitBitmapAnd(BitmapAnd *node, EState *estate, int eflags)
 		i++;
 	}
 
+	initGpmonPktForBitmapAnd((Plan *) node, &bitmapandstate->ps.gpmon_pkt, estate);
+
 	return bitmapandstate;
 }
 
@@ -112,7 +117,8 @@ MultiExecBitmapAnd(BitmapAndState *node)
 	PlanState **bitmapplans;
 	int			nplans;
 	int			i;
-	TIDBitmap  *result = NULL;
+	bool		empty = false;
+	HashBitmap *hbm = NULL;
 
 	/* must provide our own instrumentation support */
 	if (node->ps.instrument)
@@ -130,20 +136,9 @@ MultiExecBitmapAnd(BitmapAndState *node)
 	for (i = 0; i < nplans; i++)
 	{
 		PlanState  *subnode = bitmapplans[i];
-		TIDBitmap  *subresult;
+		Node		*subresult = NULL;
 
-		subresult = (TIDBitmap *) MultiExecProcNode(subnode);
-
-		if (!subresult || !IsA(subresult, TIDBitmap))
-			elog(ERROR, "unrecognized result from subplan");
-
-		if (result == NULL)
-			result = subresult; /* first subplan */
-		else
-		{
-			tbm_intersect(result, subresult);
-			tbm_free(subresult);
-		}
+		subresult = MultiExecProcNode(subnode);
 
 		/*
 		 * If at any stage we have a completely empty bitmap, we can fall out
@@ -152,18 +147,113 @@ MultiExecBitmapAnd(BitmapAndState *node)
 		 * the subplans by selectivity should make this case more likely to
 		 * occur.)
 		 */
-		if (tbm_is_empty(result))
+		if (subresult == NULL)
+		{
+			empty = true;
 			break;
-	}
+		}
 
-	if (result == NULL)
-		elog(ERROR, "BitmapAnd doesn't support zero inputs");
+		if (!(IsA(subresult, HashBitmap) ||
+			  IsA(subresult, StreamBitmap)))
+			elog(ERROR, "unrecognized result from subplan");
+
+		/*
+		 * If this is a hash bitmap, intersect it now with other hash bitmaps.
+		 * If we encounter some streamed bitmaps we'll add this hash bitmap
+		 * as a stream to it.
+		 */
+		if (IsA(subresult, HashBitmap))
+		{
+			/* first subplan that generates a hash bitmap */
+			if (hbm == NULL)
+				hbm = (HashBitmap *) subresult;
+			else
+			{
+				tbm_intersect(hbm, (HashBitmap *)subresult);
+
+				/* For optimizer BitmapIndexScan would free all bitmaps */
+				if (PLANGEN_PLANNER == node->ps.state->es_plannedstmt->planGen)
+				{
+					tbm_free((HashBitmap *)subresult);
+
+					/* Since we release the space for subresult, we want to
+					 * reset the bitmaps in subnode tree to NULL.
+					 */
+					tbm_reset_bitmaps(subnode);
+				}
+			}
+
+			/* If tbm is empty, short circuit, per logic outlined above */
+			if (tbm_is_empty(hbm))
+			{
+				empty = true;
+				break;
+			}
+		}
+		else
+		{
+			/*
+			 * result is a streamed bitmap, add it as a node to the existing
+			 * stream -- or initialize one otherwise.
+			 */
+			if (node->bitmap)
+			{
+				if (node->bitmap != subresult)
+   				{
+	   				StreamBitmap *s = (StreamBitmap *)subresult;
+		   			stream_add_node((StreamBitmap *)node->bitmap,
+									s->streamNode, BMS_AND);
+
+					/*
+					 * Don't free subresult here, as we are still using the StreamNode inside it.
+					 * For Planner, this would introduce memory leak. For optimizer, however,
+					 * BitmapIndexScan would free the bitmap at the end of the scan of the part
+					 */
+			   	}
+			}
+   			else
+	   			node->bitmap = subresult;
+		}
+	}
 
 	/* must provide our own instrumentation support */
 	if (node->ps.instrument)
-		InstrStopNode(node->ps.instrument, 0 /* XXX */ );
+        InstrStopNode(node->ps.instrument, empty ? 0 : 1);
 
-	return (Node *) result;
+	if (empty)
+	{
+		/* Free node->bitmap */
+		if (node->bitmap)
+		{
+			if (PLANGEN_PLANNER == node->ps.state->es_plannedstmt->planGen)
+			{
+				tbm_bitmap_free(node->bitmap);
+
+				/* Since we release the space for subresult, we want to
+				 * reset the bitmaps in subnode tree to NULL.
+				 */
+				tbm_reset_bitmaps(&(node->ps));
+			}
+			else
+			{
+				node->bitmap = NULL;
+			}
+		}
+
+		return (Node*) NULL;
+	}
+
+	/* check to see if we have any hash bitmaps */
+	if (hbm != NULL)
+	{
+		if(node->bitmap && IsA(node->bitmap, StreamBitmap))
+			stream_add_node((StreamBitmap *)node->bitmap,
+						tbm_create_stream_node(hbm), BMS_AND);
+		else
+			node->bitmap = (Node *)hbm;
+	}
+
+	return (Node *) node->bitmap;
 }
 
 /* ----------------------------------------------------------------
@@ -195,11 +285,23 @@ ExecEndBitmapAnd(BitmapAndState *node)
 		if (bitmapplans[i])
 			ExecEndNode(bitmapplans[i]);
 	}
+
+	EndPlanStateGpmonPkt(&node->ps);
 }
 
 void
 ExecReScanBitmapAnd(BitmapAndState *node, ExprContext *exprCtxt)
 {
+	/*
+	 * For optimizer a rescan call on BitmapIndexScan could free up the bitmap. So,
+	 * we voluntarily set our bitmap to NULL to ensure that we don't have an out
+	 * of scope pointer
+	 */
+	if (PLANGEN_OPTIMIZER == node->ps.state->es_plannedstmt->planGen)
+	{
+		node->bitmap = NULL;
+	}
+
 	int			i;
 
 	for (i = 0; i < node->nplans; i++)
@@ -218,5 +320,69 @@ ExecReScanBitmapAnd(BitmapAndState *node, ExprContext *exprCtxt)
 		 * any outer tuple that might be used in index quals.
 		 */
 		ExecReScan(subnode, exprCtxt);
+	}
+}
+
+/*
+ * tbm_reset_bitmaps -- reset the bitmap fields for the given plan
+ * state and all its subplan states to NULL.
+ */
+void
+tbm_reset_bitmaps(PlanState *pstate)
+{
+	if (pstate == NULL)
+		return;
+
+	/*
+	 * Optimizer generated plans have better memory management where
+	 * the bitmap index scan takes responsibility to free the bitmaps
+	 */
+	Assert(PLANGEN_PLANNER == pstate->state->es_plannedstmt->planGen);
+
+	Assert (IsA(pstate, BitmapIndexScanState) ||
+			IsA(pstate, BitmapAndState) ||
+			IsA(pstate, BitmapOrState));
+
+	if (IsA(pstate, BitmapIndexScanState))
+	{
+		((BitmapIndexScanState *)pstate)->bitmap = NULL;
+	}
+	
+
+	else if (IsA(pstate, BitmapAndState))
+	{
+		PlanState **bitmapplans;
+		int i;
+
+		bitmapplans = ((BitmapAndState *)pstate)->bitmapplans;
+		for (i=0; i<((BitmapAndState *)pstate)->nplans; i++)
+		{
+			tbm_reset_bitmaps(bitmapplans[i]);
+		}
+		((BitmapAndState *)pstate)->bitmap = NULL;
+	}
+	
+
+	else {
+		PlanState **bitmapplans;
+		int i;
+
+		bitmapplans = ((BitmapOrState *)pstate)->bitmapplans;
+		for (i=0; i<((BitmapOrState *)pstate)->nplans; i++)
+		{
+			tbm_reset_bitmaps(bitmapplans[i]);
+		}
+		((BitmapOrState *)pstate)->bitmap = NULL;		
+	}
+}
+
+void
+initGpmonPktForBitmapAnd(Plan *planNode, gpmon_packet_t *gpmon_pkt, EState *estate)
+{
+	Assert(planNode != NULL && gpmon_pkt != NULL && IsA(planNode, BitmapAnd));
+
+	{
+		InitPlanNodeGpmonPkt(planNode, gpmon_pkt, estate, PMNT_BitmapAnd, (int64)0,
+							  NULL);
 	}
 }

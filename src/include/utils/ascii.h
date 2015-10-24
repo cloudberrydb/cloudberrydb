@@ -1,9 +1,9 @@
 /*-----------------------------------------------------------------------
  * ascii.h
  *
- *	 Portions Copyright (c) 1999-2006, PostgreSQL Global Development Group
+ *	 Portions Copyright (c) 1999-2009, PostgreSQL Global Development Group
  *
- * $PostgreSQL: pgsql/src/include/utils/ascii.h,v 1.14 2006/03/05 15:59:06 momjian Exp $
+ * $PostgreSQL: pgsql/src/include/utils/ascii.h,v 1.17 2009/01/01 17:24:02 momjian Exp $
  *
  *-----------------------------------------------------------------------
  */

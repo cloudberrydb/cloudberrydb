@@ -1,0 +1,202 @@
+
+
+=-=-=-=-=-=-=-=-=-=-=- PYTHON =-=-=-=-=-=-=-=-=-=-=-=
+
+For Developers
+==============
+
+If you'd like to run the python scripts directly from this 
+directory you will need to modify your PYTHONPATH variable to add the "ext" 
+directory.  so something like:
+
+	export PYTHONPATH=~/dev/cdb2/gpMgmt/bin/ext
+
+should do the trick.
+
+
+Python Version
+--------------
+
+* The current utilities bundle python 2.5.1.  We are planning on moving 
+  forward to 2.6.1 in the near future.
+
+
+Where Things Go
+---------------
+
+* If you are adding a GP module, please add it to the gppylib dir.
+* If you are adding a 3rd party module, please add it to the ext dir.
+
+List of Management Scripts Written in Perl
+------------------------------------------
+bin/gpugpart.pl         -  Upgrades postgres style partition to Greenplum partitioning
+run_operator_tests.pl   -  ???
+
+List of Management Scripts Written in Bash
+------------------------------------------
+bin/gpcheckos.bash      -  Like gpcheckos, but in bash
+bin/gpcrondump          -  Dumps a database 
+bin/gpdbrestore         -  Restores a database dumped from gpcrondump
+bin/gpinitsystem        -  Creates a new Greenplum Database
+bin/gpload              -  Sets env variables and calls gpload.py
+bin/gpprintdbsizes      -  Removed in 4.0
+bin/gprebuildsystem     -  Deprecated in 3.4
+
+
+List of Management Scripts Written in Python (no libraries)
+-----------------------------------------------------------
+bin/gpdetective         -  Removed in 4.3.5.1.
+bin/gpload.py           -  Loads data into a Greenplum Database
+bin/gpmigrator          -  Upgrades from previous versions
+bin/gpsys1              -  Print system information on a host  (???)
+
+
+List of Management Scripts Written in Python (gpmlib - old libraries)
+---------------------------------------------------------------------
+bin/gpaddmirrors        -  Adds mirrors to an array (needs rewrite)
+bin/gprecoverseg        -  Recovers a failed segment (needs rewrite)
+bin/gpchecknet          -  Checks network performance
+bin/gpcheckperf         -  Checks the hardware for Greenplum Database
+bin/gpscp               -  Copies files to many hosts
+bin/gpssh               -  Remote shell to many hosts
+bin/gpssh-exkeys        -  Exchange ssh keys between many hosts
+
+
+List of Management Scripts Written in Python (gppylib - current libraries)
+--------------------------------------------------------------------------
+bin/gpactivatestandby   -  Activates the Standby Master
+bin/gpaddconfig         -  Edits postgresql.conf file for all segments
+bin/gpcheckos           -  Check operating system settings
+bin/gpdeletesystem      -  Deletes a Greenplum Database
+bin/gpexpand            -  Adds additional segments to a Greenplum Database
+bin/gpfilespace         -  Adds a filespace to a Greenplum Database (partial use of libraries)
+bin/gpinitstandby       -  Initializes standby master
+bin/gplogfilter         -  Filters log files
+bin/gpstart             -  Start a Greenplum Database
+bin/gpstop              -  Stop a Greenplum Database
+
+bin/gpfaultinjector     -  Cause a host or segment to fail
+
+sbin/gpaddconfig.py     -  Helper script for gpaddconfig
+sbin/gpfaultinjector.py -  Helper script for gpfaultinjector
+sbin/gpsegcopy          -  Helper script for gpexpand
+sbin/gpsegstart.py      -  Helper script for gpstart
+sbin/gpsegstop.py       -  Helper script for gpstop
+sbin/gpsegtoprimaryormirror.py  - Helper script for failover
+sbin/gpstandbystart.sh  -  Removed in 4.0
+sbin/gpage.py           -  Removed in 4.0 due to query prioritization
+sbin/gpsuspend.py       -  Unused Helper script for ???  (unused)
+
+
+Overview of gppylib
+-------------------
+
+dattimeutils.py  -  Several utility functions for dealing with date/time data
+
+gparray.py
+   |
+   +-  GpDB      - Configuration information for a single dbid
+   |
+   +-  GpSegment - Configuration information for a single content id
+   |     \-  Contains multiple GpDB objects
+   |
+   +-  GpArray   - Configuartion information for a Greenplum Database
+         \-  Contains mulptile GpSegment objects
+
+gpcheckos.py     - Old dead code?  Not called by gpcheckos.
+stringUtil.py    - weird gpcheckos foo ???
+commands/gpcheckosUnix.py - commands for gpcheckos
+gpcheckosCmd.py  - Should move to commands/gp.py
+gpcheckosDa.py   - ???
+gpcheckosXml.py  - Should be modified to be less gpcheckos specific
+  |
+  +- GpXml       - mostly generic XML file wrapper
+
+gphostcache.py   
+  |
+  +- GpHost      - Information about a single Host
+  |    \- Contains all the GpDB objects on the host
+  |
+  +- GpHostCache - Helps resolve interface->hostname lookups
+       \- Contains all the GpHosts referenced in a Greenplum Database
+
+gplog.py         - Utility functions to assist in Greenplum standard logging
+
+gpparseopts.py   - Wrapper around optparse library to aid in locating help files
+
+gpsubprocess.py  - Wrapper around python subprocess (?) 
+   \- Used by commands/base.py   
+    - Should move to the commands submodule? 
+
+logfilter.py     - Contains numerous odd utility functions mostly not specific to logfilter
+
+pgconf.py        - Contains helper functions for reading postgresql.conf files
+  |
+  +- gucdict      - dictionary of guc->value pairs
+  |    \- Contains setting objects
+  |
+  +- setting      - the setting of a single guc and some type coercion funcs
+  |
+  +- ConfigurationError - subclass of EnvironmentError, raised by type coercion functions
+
+segcopy.py        - code for copying a segment from one location to another
+    \- should be subclass of command ???
+
+userinput.py      - wrapper functions around raw_input
+
+commands/base.py  - Core of commands submodule  (could use some work)
+  |
+  +- WorkerPool    - Multithreading to execute multiple Command objects
+  |     \- Spawns multiple Worker objects
+  |
+  +- Worker        - A single thread used to execute Command objects
+  |
+  +- CommandResult - Packages results of a Command object
+  |
+  +- ExecutionError - subclass of Exception
+  |
+  +- ExecutionContext - Abstract class
+  |    |
+  |    +- LocalExecutionContext - execute a command locally
+  |    |
+  |    +- RemoteExecutionContext - execute a command remotely
+  |
+  +- Command       - abstract class for executing (shell level) commands
+  |
+  +- SQLCommand    - abstract class for executing SQL commands
+
+commands/clsInjectFault - binary for filerep fault injection
+        \- doesn't belong as a part of commands submodule
+
+commands/gp.py     - Implements lots of subclasses of Command for various tasks
+commands/pg.py     - Like gp.py, not clear what the separation is, if any.
+commands/unix.py   - Platform information + more subclasses of Command
+commands/san.py    - SAN related commands
+commands/test_pg   - some tests for commands/pg.py
+  
+db/catalog.py      - Wrappers for executing certain queries
+   \- also contains some goofy wrappers for catalog tables
+    - GpConfigurationTable no longer actually looks at gp_configuration... (bad design?)
+db/dbconn.py       - Connections to the database
+  |
+  +- ConnectionError - subclass of a StandardError (unused?)
+  |
+  +- Pgpass        - wrapper for handling a .pgpass file
+  |
+  +- DbURL         - descriptor of how to connect to a database
+  |
+  +- functions for returning a pygresql.connection object
+  |
+  +- Should have a wrapper class around a pygresql connection object!
+
+util/san_utils.py    - SAN related utility functions that are not Commands
+util/gp_utils.py     - Greenplum related utility functions that are not Commands
+util/ssh_session.py  - SSH and SCP related utility functions brought in from gpmlib.py/gplib.py
+                       that are used by gpssh, gpscp and gpssh-exkeys
+
+
+
+
+
+
+

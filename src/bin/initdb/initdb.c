@@ -38,11 +38,11 @@
  *
  * This code is released under the terms of the PostgreSQL License.
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  * Portions taken from FreeBSD.
  *
- * $PostgreSQL: pgsql/src/bin/initdb/initdb.c,v 1.125 2006/10/04 18:58:08 tgl Exp $
+ * $PostgreSQL: pgsql/src/bin/initdb/initdb.c,v 1.125.2.1 2008/02/29 15:31:37 mha Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -63,7 +63,14 @@
 #include "mb/pg_wchar.h"
 #include "getaddrinfo.h"
 #include "getopt_long.h"
+#include "postgres.h"
 #include "miscadmin.h"
+
+#include "catalog/pg_tablespace.h"
+#include "catalog/pg_database.h"
+#include "catalog/pg_class.h"
+#include "storage/relfilenode.h"
+#include "access/persistentfilesysobjname.h"
 
 #ifndef HAVE_INT_OPTRESET
 int			optreset;
@@ -71,7 +78,7 @@ int			optreset;
 
 
 /* version string we expect back from postgres */
-#define PG_VERSIONSTR "postgres (PostgreSQL) " PG_VERSION "\n"
+#define PG_VERSIONSTR "postgres (Greenplum Database) " PG_VERSION "\n"
 
 /*
  * these values are passed in by makefile defines
@@ -94,7 +101,20 @@ static char *pwfilename = NULL;
 static char *authmethod = "";
 static bool debug = false;
 static bool noclean = false;
+static char *backend_output = DEVNULL;
+
+/**
+ * Build the minimal set of files needed for a mirror db.  Note that this could be removed
+ *  eventually if we do a smarter copy of files from primary (with postresql.conf updates)
+ */
+static bool forMirrorOnly = false;
 static bool show_setting = false;
+static char *xlog_dir = "";
+
+/**
+ * Should we create persistent table entries needed for file replication?
+ */
+static bool gIsFileRepMirrored = false;
 
 
 /* internal vars */
@@ -108,19 +128,22 @@ static char *ident_file;
 static char *conf_file;
 static char *conversion_file;
 static char *info_schema_file;
+static char *cdb_init_d_dir;
 static char *features_file;
 static char *system_views_file;
 static bool made_new_pgdata = false;
 static bool found_existing_pgdata = false;
+static bool made_new_xlogdir = false;
+static bool found_existing_xlogdir = false;
 static char infoversion[100];
 static bool caught_signal = false;
 static bool output_failed = false;
 static int	output_errno = 0;
 
 /* defaults */
-static int	n_connections = 10;
-static int	n_buffers = 50;
-static int	n_fsm_pages = 20000;
+static int	n_connections = 0;
+static int	n_buffers = 0;
+static int	n_fsm_pages = 0;
 
 /*
  * Warning messages for authentication methods
@@ -140,7 +163,8 @@ static char *authwarning = NULL;
  * (no quoting to worry about).
  */
 static const char *boot_options = "-F";
-static const char *backend_options = "--single -F -O -c search_path=pg_catalog -c exit_on_error=true";
+static char backend_options[200];
+static const char *backend_options_format = "--single -F -O -c gp_session_role=utility -c search_path=pg_catalog -c exit_on_error=true -c gp_initdb_mirrored=%s";
 
 
 /* path to 'initdb' binary directory */
@@ -149,6 +173,9 @@ static char backend_exec[MAXPGPATH];
 
 static void *pg_malloc(size_t size);
 static char *xstrdup(const char *s);
+static char **add_assignment(char **lines, const char *varname, const char *fmt, ...)
+                /* This extension allows gcc to check the format string */
+                __attribute__((format(printf, 3, 4)));
 static char **replace_token(char **lines,
 			  const char *token, const char *replacement);
 
@@ -163,7 +190,7 @@ static void exit_nicely(void);
 static char *get_id(void);
 static char *get_encoding_id(char *encoding_name);
 static char *get_short_version(void);
-static int	check_data_dir(void);
+static int  check_data_dir(char *dir);
 static bool mkdatadir(const char *subdir);
 static void set_input(char **dest, char *filename);
 static void check_input(char *path);
@@ -181,6 +208,7 @@ static void setup_conversion(void);
 static void setup_privileges(void);
 static void set_info_version(void);
 static void setup_schema(void);
+static void setup_cdb_schema(void);
 static void vacuum_db(void);
 static void make_template0(void);
 static void make_postgres(void);
@@ -189,6 +217,7 @@ static void check_ok(void);
 static char *escape_quotes(const char *src);
 static int	locale_date_order(const char *locale);
 static bool chklocale(const char *locale);
+static bool chklocaleencoding(const char *locale, int user_enc);
 static void setlocales(void);
 static void usage(const char *progname);
 
@@ -233,6 +262,24 @@ do { \
 		output_failed = true, output_errno = errno; \
 } while (0)
 
+#define PG_CMD_PRINTF3(fmt, arg1, arg2, arg3) \
+		do { \
+			if (fprintf(cmdfd, fmt, arg1, arg2, arg3) < 0 || fflush(cmdfd) < 0) \
+				output_failed = true, output_errno = errno; \
+		} while (0)
+		
+#define PG_CMD_PRINTF4(fmt, arg1, arg2, arg3, arg4) \
+	do { \
+		if (fprintf(cmdfd, fmt, arg1, arg2, arg3, arg4) < 0 || fflush(cmdfd) < 0) \
+			output_failed = true, output_errno = errno; \
+	} while (0)
+	
+#define PG_CMD_PRINTF5(fmt, arg1, arg2, arg3, arg4, arg5) \
+			do { \
+				if (fprintf(cmdfd, fmt, arg1, arg2, arg3, arg4, arg5) < 0 || fflush(cmdfd) < 0) \
+					output_failed = true, output_errno = errno; \
+			} while (0)
+			
 #ifndef WIN32
 #define QUOTE_PATH	""
 #define DIR_SEP "/"
@@ -261,6 +308,20 @@ pg_malloc(size_t size)
 	return result;
 }
 
+static void *
+pg_realloc(void *ptr, size_t size)
+{
+	void	   *result;
+
+	result = realloc(ptr, size);
+	if (!result)
+	{
+		fprintf(stderr, _("%s: out of memory\n"), progname);
+		exit(1);
+	}
+	return result;
+}
+
 static char *
 xstrdup(const char *s)
 {
@@ -274,6 +335,92 @@ xstrdup(const char *s)
 	}
 	return result;
 }
+
+/*
+ * add_assignment
+ *
+ * Returns a copy of the array of lines, with an additional line inserted:
+ * an assignment (maybe commented out) to the specified configuration variable.
+ *
+ * If there is already an assignment to the variable, that setting remains in
+ * effect, taking precedence over the caller's requested setting, which is
+ * inserted as a comment.  Else the caller's requested assignment is inserted.
+ */
+static char **
+add_assignment(char **lines, const char *varname, const char *fmt, ...)
+{
+	va_list		args;
+	int			isrc;
+    int         iinsert = -1;
+    int         j;
+    int         varnamelen = strlen(varname);
+	char	  **result;
+    char        buf[200];
+    char       *bufp = buf;
+    char       *bufe = buf + sizeof(buf) - 3;
+    bool        superseded = false;
+
+    /* Look for an assignment to the given variable, maybe commented out. */
+    for (isrc = 0; lines[isrc] != NULL; isrc++)
+    {
+        char   *cp = lines[isrc];
+        bool    comment = false;
+
+        while (isspace((unsigned char)*cp))
+            cp++;
+
+        if (*cp == '#')
+        {
+            cp++;
+            comment = true;
+            while (isspace((unsigned char)*cp))
+                cp++;
+        }
+
+        if (0 != strncmp(cp, varname, varnamelen))
+            continue;
+        cp += varnamelen;
+        while (isspace((unsigned char)*cp))
+            cp++;
+        if (*cp != '=')
+            continue;
+
+        /* Found assignment (or commented-out assignment) to given varname. */
+        if (!comment)
+            superseded = true;
+        if (iinsert < 0)
+            iinsert = isrc;
+    }
+
+    /* Build assignment. */
+    va_start(args, fmt);
+    if (superseded)
+        bufp += snprintf(bufp, bufe-bufp, "#");
+    bufp += snprintf(bufp, bufe-bufp, "%s = ", varname);
+    bufp += vsnprintf(bufp, bufe-bufp, fmt, args);
+	va_end(args);
+
+    /* Tab to align comments */
+    j = (int)(bufp - buf);
+    do
+    {
+        *bufp++ = '\t';
+        j += 8;
+    } while (j < 40);
+
+    /* Append comment. */
+    bufp += snprintf(bufp, bufe-bufp, "# inserted by initdb\n");
+
+    /* Make a copy of the ptr array, opening up a hole after the chosen line. */
+    result = (char **)pg_malloc((isrc + 2) * sizeof(char *));
+    memcpy(result, lines, iinsert * sizeof(lines[0]));
+    memcpy(result+iinsert+1, lines+iinsert, (isrc - iinsert + 1) * sizeof(lines[0]));
+
+    /* Insert assignment. */
+    result[iinsert] = xstrdup(buf);
+
+    return result;
+}                               /* add_assignment */
 
 /*
  * make a copy of the array of lines, with token replaced by replacement
@@ -610,6 +757,24 @@ exit_nicely(void)
 				fprintf(stderr, _("%s: failed to remove contents of data directory\n"),
 						progname);
 		}
+
+		if (made_new_xlogdir)
+		{
+			fprintf(stderr, _("%s: removing transaction log directory \"%s\"\n"),
+					progname, xlog_dir);
+			if (!rmtree(xlog_dir, true))
+				fprintf(stderr, _("%s: failed to remove transaction log directory\n"),
+						progname);
+		}
+		else if (found_existing_xlogdir)
+		{
+			fprintf(stderr,
+					_("%s: removing contents of transaction log directory \"%s\"\n"),
+					progname, xlog_dir);
+			if (!rmtree(xlog_dir, false))
+				fprintf(stderr, _("%s: failed to remove contents of transaction log directory\n"),
+						progname);
+		}
 		/* otherwise died during startup, do nothing! */
 	}
 	else
@@ -618,6 +783,11 @@ exit_nicely(void)
 			fprintf(stderr,
 			  _("%s: data directory \"%s\" not removed at user's request\n"),
 					progname, pg_data);
+
+		if (made_new_xlogdir || found_existing_xlogdir)
+			fprintf(stderr,
+			  _("%s: transaction log directory \"%s\" not removed at user's request\n"),
+					progname, xlog_dir);
 	}
 
 	exit(1);
@@ -635,8 +805,6 @@ get_id(void)
 
 	struct passwd *pw;
 
-	pw = getpwuid(geteuid());
-
 	if (geteuid() == 0)			/* 0 is root's uid */
 	{
 		fprintf(stderr,
@@ -645,6 +813,15 @@ get_id(void)
 				  "(unprivileged) user that will\n"
 				  "own the server process.\n"),
 				progname);
+		exit(1);
+	}
+
+	pw = getpwuid(geteuid());
+	if (!pw)
+	{
+		fprintf(stderr,
+			  _("%s: could not obtain information about current user: %s\n"),
+				progname, strerror(errno));
 		exit(1);
 	}
 #else							/* the windows code */
@@ -658,7 +835,12 @@ get_id(void)
 	DWORD		pwname_size = sizeof(pass_win32.pw_name) - 1;
 
 	pw->pw_uid = 1;
-	GetUserName(pw->pw_name, &pwname_size);
+	if (!GetUserName(pw->pw_name, &pwname_size))
+	{
+		fprintf(stderr, _("%s: could not get current user name: %s\n"),
+				progname, strerror(errno));
+		exit(1);
+	}
 #endif
 
 	return xstrdup(pw->pw_name);
@@ -828,38 +1010,6 @@ get_encoding_from_locale(const char *ctype)
 	return sys;
 }
 
-static void
-check_encodings_match(int pg_enc, const char *ctype)
-{
-	char	   *sys;
-	int			i;
-
-	sys = get_encoding_from_locale(ctype);
-
-	for (i = 0; encoding_match_list[i].system_enc_name; i++)
-	{
-		if (pg_enc == encoding_match_list[i].pg_enc_code
-		  && pg_strcasecmp(sys, encoding_match_list[i].system_enc_name) == 0)
-		{
-			free(sys);
-			return;
-		}
-	}
-
-	fprintf(stderr,
-			_("%s: warning: encoding mismatch\n"), progname);
-	fprintf(stderr,
-	  _("The encoding you selected (%s) and the encoding that the selected\n"
-		"locale uses (%s) are not known to match.  This may lead to\n"
-	"misbehavior in various character string processing functions.  To fix\n"
-		"this situation, rerun %s and either do not specify an encoding\n"
-		"explicitly, or choose a matching combination.\n"),
-			pg_encoding_to_char(pg_enc), sys, progname);
-
-	free(sys);
-	return;
-}
-
 static int
 find_matching_encoding(const char *ctype)
 {
@@ -881,6 +1031,8 @@ find_matching_encoding(const char *ctype)
 	return -1;
 }
 #endif   /* HAVE_LANGINFO_H && CODESET */
+
+
 
 /*
  * get short version of VERSION
@@ -919,13 +1071,13 @@ get_short_version(void)
 }
 
 /*
- * make sure the data directory either doesn't exist or is empty
+ * make sure the directory either doesn't exist or is empty
  *
  * Returns 0 if nonexistent, 1 if exists and empty, 2 if not empty,
  * or -1 if trouble accessing directory
  */
 static int
-check_data_dir(void)
+check_data_dir(char *dir)
 {
 	DIR		   *chkdir;
 	struct dirent *file;
@@ -933,7 +1085,7 @@ check_data_dir(void)
 
 	errno = 0;
 
-	chkdir = opendir(pg_data);
+	chkdir = opendir(dir);
 
 	if (!chkdir)
 		return (errno == ENOENT) ? 0 : -1;
@@ -1015,13 +1167,34 @@ check_input(char *path)
 {
 	struct stat statbuf;
 
-	if (stat(path, &statbuf) != 0 || !S_ISREG(statbuf.st_mode))
+	if (stat(path, &statbuf) != 0)
+	{
+		if (errno == ENOENT)
+		{
+			fprintf(stderr,
+					_("%s: file \"%s\" does not exist\n"), progname, path);
+			fprintf(stderr,
+					_("This might mean you have a corrupted installation or identified\n"
+					  "the wrong directory with the invocation option -L.\n"));
+		}
+		else
+	{
+			fprintf(stderr,
+					_("%s: could not access file \"%s\": %s\n"), progname, path,
+					  strerror(errno));
+			fprintf(stderr,
+					_("This might mean you have a corrupted installation or identified\n"
+					  "the wrong directory with the invocation option -L.\n"));
+		}
+		exit(1);
+	}
+	if (!S_ISREG(statbuf.st_mode))
 	{
 		fprintf(stderr,
-				_("%s: file \"%s\" does not exist\n"
-			   "This means you have a corrupted installation or identified\n"
-				  "the wrong directory with the invocation option -L.\n"),
-				progname, path);
+				_("%s: file \"%s\" is not a regular file\n"), progname, path);
+		fprintf(stderr,
+				_("This might mean you have a corrupted installation or identified\n"
+				  "the wrong directory with the invocation option -L.\n"));
 		exit(1);
 	}
 }
@@ -1111,7 +1284,7 @@ test_config_settings(void)
 #define FSM_FOR_BUFS(nbuffers)	((nbuffers) > 1000 ? 50 * (nbuffers) : 20000)
 
 	static const int trial_conns[] = {
-		100, 50, 40, 30, 20, 10
+		200, 100, 50, 40, 30, 20, 10
 	};
 	static const int trial_bufs[] = {
 		4096, 3584, 3072, 2560, 2048, 1536,
@@ -1133,62 +1306,88 @@ test_config_settings(void)
 	printf(_("selecting default max_connections ... "));
 	fflush(stdout);
 
+    status = 0;
 	for (i = 0; i < connslen; i++)
 	{
 		test_conns = trial_conns[i];
+        if (n_connections > 0)
+            test_conns = n_connections;
+
 		test_buffs = MIN_BUFS_FOR_CONNS(test_conns);
+        if (n_buffers > 0)
+            test_buffs = n_buffers;
+
 		test_max_fsm = FSM_FOR_BUFS(test_buffs);
+        if (n_fsm_pages > 0)
+            test_max_fsm = n_fsm_pages;
 
 		snprintf(cmd, sizeof(cmd),
 				 "%s\"%s\" --boot -x0 %s "
 				 "-c max_connections=%d "
 				 "-c shared_buffers=%d "
 				 "-c max_fsm_pages=%d "
-				 "template1 < \"%s\" > \"%s\" 2>&1%s",
+				 "< \"%s\" > \"%s\" 2>&1%s",
 				 SYSTEMQUOTE, backend_exec, boot_options,
 				 test_conns, test_buffs, test_max_fsm,
-				 DEVNULL, DEVNULL, SYSTEMQUOTE);
+				 DEVNULL, backend_output, SYSTEMQUOTE);
 		status = system(cmd);
 		if (status == 0)
 		{
+            n_connections = test_conns;
 			ok_buffers = test_buffs;
 			break;
 		}
+        if (n_connections > 0 || i == connslen-1)
+        {
+            fprintf(stderr, _("%s: error %d from: %s\n"),
+                    progname, status, cmd);
+            exit_nicely();
+        }
 	}
-	if (i >= connslen)
-		i = connslen - 1;
-	n_connections = trial_conns[i];
-
 	printf("%d\n", n_connections);
 
 	printf(_("selecting default shared_buffers/max_fsm_pages ... "));
 	fflush(stdout);
 
-	for (i = 0; i < bufslen; i++)
+	for (i = 0; i < bufslen && n_buffers <= 0; i++)
 	{
-		test_buffs = trial_bufs[i];
+		/* Use same amount of memory, independent of BLCKSZ */
+		test_buffs = (trial_bufs[i] * 8192) / BLCKSZ;
 		if (test_buffs <= ok_buffers)
 		{
-			test_buffs = ok_buffers;
+			n_buffers = ok_buffers;
 			break;
 		}
+
 		test_max_fsm = FSM_FOR_BUFS(test_buffs);
+        if (n_fsm_pages > 0)
+            test_max_fsm = n_fsm_pages;
 
 		snprintf(cmd, sizeof(cmd),
 				 "%s\"%s\" --boot -x0 %s "
 				 "-c max_connections=%d "
 				 "-c shared_buffers=%d "
 				 "-c max_fsm_pages=%d "
-				 "template1 < \"%s\" > \"%s\" 2>&1%s",
+				 "< \"%s\" > \"%s\" 2>&1%s",
 				 SYSTEMQUOTE, backend_exec, boot_options,
 				 n_connections, test_buffs, test_max_fsm,
-				 DEVNULL, DEVNULL, SYSTEMQUOTE);
+				 DEVNULL, backend_output, SYSTEMQUOTE);
 		status = system(cmd);
 		if (status == 0)
-			break;
+        {
+	        n_buffers = test_buffs;
+            break;
+        }
 	}
-	n_buffers = test_buffs;
-	n_fsm_pages = FSM_FOR_BUFS(n_buffers);
+    if (i == bufslen)
+    {
+        fprintf(stderr, _("%s: error %d from: %s\n"),
+                progname, status, cmd);
+        exit_nicely();
+    }
+
+    if (n_fsm_pages <= 0)
+        n_fsm_pages = FSM_FOR_BUFS(n_buffers);
 
 	if ((n_buffers * (BLCKSZ/1024)) % 1024 == 0)
 		printf("%dMB/%d\n", (n_buffers * (BLCKSZ/1024)) / 1024, n_fsm_pages);
@@ -1213,55 +1412,49 @@ setup_config(void)
 
 	conflines = readfile(conf_file);
 
-	snprintf(repltok, sizeof(repltok), "max_connections = %d", n_connections);
-	conflines = replace_token(conflines, "#max_connections = 100", repltok);
+    conflines = add_assignment(conflines, "max_connections", "%d", n_connections);
 
 	if ((n_buffers * (BLCKSZ/1024)) % 1024 == 0)
-		snprintf(repltok, sizeof(repltok), "shared_buffers = %dMB",
-				 (n_buffers * (BLCKSZ/1024)) / 1024);
+        conflines = add_assignment(conflines, "shared_buffers", "%dMB",
+                                   (n_buffers * (BLCKSZ/1024)) / 1024);
 	else
-		snprintf(repltok, sizeof(repltok), "shared_buffers = %dkB",
-				 n_buffers * (BLCKSZ/1024));
-	conflines = replace_token(conflines, "#shared_buffers = 32MB", repltok);
+        conflines = add_assignment(conflines, "shared_buffers", "%dkB",
+                                   n_buffers * (BLCKSZ/1024));
 
-	snprintf(repltok, sizeof(repltok), "max_fsm_pages = %d", n_fsm_pages);
-	conflines = replace_token(conflines, "#max_fsm_pages = 1638400", repltok);
+	conflines = add_assignment(conflines, "max_fsm_pages", "%d", n_fsm_pages);
 
-#if DEF_PGPORT != 5432
-	snprintf(repltok, sizeof(repltok), "#port = %d", DEF_PGPORT);
-	conflines = replace_token(conflines, "#port = 5432", repltok);
-#endif
+    /* Upd comment to document the default port configured by --with-pgport */
+    if (DEF_PGPORT != 5432)
+    {
+        snprintf(repltok, sizeof(repltok), "#port = %d", DEF_PGPORT);
+        conflines = replace_token(conflines, "#port = 5432", repltok);
+    }
 
-	snprintf(repltok, sizeof(repltok), "lc_messages = '%s'",
-			 escape_quotes(lc_messages));
-	conflines = replace_token(conflines, "#lc_messages = 'C'", repltok);
+	conflines = add_assignment(conflines, "lc_messages", "'%s'",
+                               escape_quotes(lc_messages));
 
-	snprintf(repltok, sizeof(repltok), "lc_monetary = '%s'",
-			 escape_quotes(lc_monetary));
-	conflines = replace_token(conflines, "#lc_monetary = 'C'", repltok);
+	conflines = add_assignment(conflines, "lc_monetary", "'%s'",
+                               escape_quotes(lc_monetary));
 
-	snprintf(repltok, sizeof(repltok), "lc_numeric = '%s'",
-			 escape_quotes(lc_numeric));
-	conflines = replace_token(conflines, "#lc_numeric = 'C'", repltok);
+	conflines = add_assignment(conflines, "lc_numeric", "'%s'",
+                               escape_quotes(lc_numeric));
 
-	snprintf(repltok, sizeof(repltok), "lc_time = '%s'",
-			 escape_quotes(lc_time));
-	conflines = replace_token(conflines, "#lc_time = 'C'", repltok);
+	conflines = add_assignment(conflines, "lc_time", "'%s'",
+                               escape_quotes(lc_time));
 
 	switch (locale_date_order(lc_time))
 	{
 		case DATEORDER_YMD:
-			strcpy(repltok, "datestyle = 'iso, ymd'");
+	        conflines = add_assignment(conflines, "datestyle", "'iso, ymd'");
 			break;
 		case DATEORDER_DMY:
-			strcpy(repltok, "datestyle = 'iso, dmy'");
+	        conflines = add_assignment(conflines, "datestyle", "'iso, dmy'");
 			break;
 		case DATEORDER_MDY:
 		default:
-			strcpy(repltok, "datestyle = 'iso, mdy'");
+	        conflines = add_assignment(conflines, "datestyle", "'iso, mdy'");
 			break;
 	}
-	conflines = replace_token(conflines, "#datestyle = 'iso, mdy'", repltok);
 
 	snprintf(path, sizeof(path), "%s/postgresql.conf", pg_data);
 
@@ -1317,6 +1510,11 @@ setup_config(void)
 			conflines = replace_token(conflines,
 									  "host    all         all         ::1",
 									  "#host    all         all         ::1");
+		if (err != 0 ||
+			getaddrinfo("fe80::1", NULL, &hints, &gai_result) != 0)
+			conflines = replace_token(conflines,
+									  "host    all         all         fe80::1",
+									  "#host    all         all         fe80::1");
 	}
 #else							/* !HAVE_IPV6 */
 	/* If we didn't compile IPV6 support at all, always comment it out */
@@ -1333,6 +1531,11 @@ setup_config(void)
 	conflines = replace_token(conflines,
 							  "@authcomment@",
 					   strcmp(authmethod, "trust") ? "" : AUTHTRUST_WARNING);
+
+	/* Replace username for replication */
+	conflines = replace_token(conflines,
+							  "@default_username@",
+							  username);
 
 	snprintf(path, sizeof(path), "%s/pg_hba.conf", pg_data);
 
@@ -1413,7 +1616,7 @@ bootstrap_template1(char *short_version)
 	unsetenv("PGCLIENTENCODING");
 
 	snprintf(cmd, sizeof(cmd),
-			 "\"%s\" --boot -x1 %s %s template1",
+			 "\"%s\" --boot -x1 %s -c gp_before_persistence_work=on %s",
 			 backend_exec, boot_options, talkargs);
 
 	PG_CMD_OPEN;
@@ -1438,8 +1641,8 @@ static void
 setup_auth(void)
 {
 	PG_CMD_DECL;
-	char	  **line;
-	static char *pg_authid_setup[] = {
+	const char **line;
+	static const char *pg_authid_setup[] = {
 		/*
 		 * Create triggers to ensure manual updates to shared catalogs will be
 		 * reflected into their "flat file" copies.
@@ -1452,6 +1655,9 @@ setup_auth(void)
 		"  FOR EACH STATEMENT EXECUTE PROCEDURE flatfile_update_trigger();\n",
 		"CREATE TRIGGER pg_sync_pg_auth_members "
 		"  AFTER INSERT OR UPDATE OR DELETE ON pg_auth_members "
+		"  FOR EACH STATEMENT EXECUTE PROCEDURE flatfile_update_trigger();\n",
+		"CREATE TRIGGER pg_sync_pg_auth_time_constraint "
+		"  AFTER INSERT OR UPDATE OR DELETE ON pg_auth_time_constraint "
 		"  FOR EACH STATEMENT EXECUTE PROCEDURE flatfile_update_trigger();\n",
 
 		/*
@@ -1468,7 +1674,7 @@ setup_auth(void)
 	snprintf(cmd, sizeof(cmd),
 			 "\"%s\" %s template1 >%s",
 			 backend_exec, backend_options,
-			 DEVNULL);
+			 backend_output);
 
 	PG_CMD_OPEN;
 
@@ -1548,7 +1754,7 @@ get_set_pwd(void)
 	snprintf(cmd, sizeof(cmd),
 			 "\"%s\" %s template1 >%s",
 			 backend_exec, backend_options,
-			 DEVNULL);
+			 backend_output);
 
 	PG_CMD_OPEN;
 
@@ -1580,8 +1786,8 @@ static void
 setup_depend(void)
 {
 	PG_CMD_DECL;
-	char	  **line;
-	static char *pg_depend_setup[] = {
+	const char **line;
+	static const char *pg_depend_setup[] = {
 		/*
 		 * Make PIN entries in pg_depend for all objects made so far in the
 		 * tables that the dependency code handles.  This is overkill (the
@@ -1590,7 +1796,8 @@ setup_depend(void)
 		 * dependencies seems hard.
 		 *
 		 * Note that we deliberately do not pin the system views, which
-		 * haven't been created yet.
+		 * haven't been created yet.  Also, no conversions, databases, or
+		 * tablespaces are pinned.
 		 *
 		 * First delete any already-made entries; PINs override all else, and
 		 * must be the only entries for their objects.
@@ -1628,7 +1835,7 @@ setup_depend(void)
 		 */
 		"INSERT INTO pg_depend SELECT 0,0,0, tableoid,oid,0, 'p' "
 		" FROM pg_namespace "
-		"    WHERE nspname LIKE 'pg%';\n",
+		"    WHERE nspname ~ '^(pg_|gp_)';\n",
 
 		"INSERT INTO pg_shdepend SELECT 0, 0, 0, tableoid, oid, 'p' "
 		" FROM pg_authid;\n",
@@ -1641,7 +1848,7 @@ setup_depend(void)
 	snprintf(cmd, sizeof(cmd),
 			 "\"%s\" %s template1 >%s",
 			 backend_exec, backend_options,
-			 DEVNULL);
+			 backend_output);
 
 	PG_CMD_OPEN;
 
@@ -1674,7 +1881,7 @@ setup_sysviews(void)
 	snprintf(cmd, sizeof(cmd),
 			 "\"%s\" %s -j template1 >%s",
 			 backend_exec, backend_options,
-			 DEVNULL);
+			 backend_output);
 
 	PG_CMD_OPEN;
 
@@ -1705,7 +1912,7 @@ setup_description(void)
 	snprintf(cmd, sizeof(cmd),
 			 "\"%s\" %s template1 >%s",
 			 backend_exec, backend_options,
-			 DEVNULL);
+			 backend_output);
 
 	PG_CMD_OPEN;
 
@@ -1757,7 +1964,7 @@ setup_conversion(void)
 	snprintf(cmd, sizeof(cmd),
 			 "\"%s\" %s template1 >%s",
 			 backend_exec, backend_options,
-			 DEVNULL);
+			 backend_output);
 
 	PG_CMD_OPEN;
 
@@ -1808,7 +2015,7 @@ setup_privileges(void)
 	snprintf(cmd, sizeof(cmd),
 			 "\"%s\" %s template1 >%s",
 			 backend_exec, backend_options,
-			 DEVNULL);
+			 backend_output);
 
 	PG_CMD_OPEN;
 
@@ -1871,7 +2078,7 @@ setup_schema(void)
 	snprintf(cmd, sizeof(cmd),
 			 "\"%s\" %s -j template1 >%s",
 			 backend_exec, backend_options,
-			 DEVNULL);
+			 backend_output);
 
 	PG_CMD_OPEN;
 
@@ -1888,7 +2095,7 @@ setup_schema(void)
 	snprintf(cmd, sizeof(cmd),
 			 "\"%s\" %s template1 >%s",
 			 backend_exec, backend_options,
-			 DEVNULL);
+			 backend_output);
 
 	PG_CMD_OPEN;
 
@@ -1908,6 +2115,158 @@ setup_schema(void)
 	check_ok();
 }
 
+static int
+cmpstringp(const void *p1, const void *p2)
+{
+	return strcmp(* (char * const *) p1, * (char * const *) p2);
+}
+
+/*
+ * Load GPDB additions to the schema.
+ *
+ * These are contained in directory "cdb_init.d". We load all .sql files
+ * from that directory, in alphabetical order. This modular design allows
+ * extensions to put their install scripts under cdb_init.d, and have them
+ * automatically installed directly in the template databases of every new
+ * cluster.
+ */
+static void
+setup_cdb_schema(void)
+{
+	DIR		   *dir;
+	struct dirent *file;
+	int			nscripts;
+	char	  **scriptnames = NULL;
+	int			i;
+
+	fputs(_("creating Greenplum Database schema ... "), stdout);
+	fflush(stdout);
+
+	dir = opendir(cdb_init_d_dir);
+
+	if (!dir)
+	{
+		printf(_("could not open cdb_init.d directory: %s\n"),
+			   strerror(errno));
+		fflush(stdout);
+		exit_nicely();
+	}
+
+	/* Collect all files with .sql suffix in array. */
+	nscripts = 0;
+	while ((file = readdir(dir)) != NULL)
+	{
+		int			namelen = strlen(file->d_name);
+
+		if (namelen > 4 &&
+			strcmp(".sql", file->d_name + namelen - 4) == 0)
+		{
+			scriptnames = pg_realloc(scriptnames,
+									 sizeof(char *) * (nscripts + 1));
+			scriptnames[nscripts++] = xstrdup(file->d_name);
+		}
+	}
+
+#ifdef WIN32
+	/*
+	 * This fix is in mingw cvs (runtime/mingwex/dirent.c rev 1.4), but not in
+	 * released version
+	 */
+	if (GetLastError() == ERROR_NO_MORE_FILES)
+		errno = 0;
+#endif
+
+	closedir(dir);
+
+	if (errno != 0)
+	{
+		/* some kind of I/O error? */
+		printf(_("error while reading cdb_init.d directory: %s\n"),
+			   strerror(errno));
+		fflush(stdout);
+		exit_nicely();
+	}
+
+	/*
+	 * Sort the array. This allows simple dependencies between scripts, by
+	 * naming them like "01_before.sql" and "02_after.sql"
+	 */
+	if (nscripts > 0)
+		qsort(scriptnames, nscripts, sizeof(char *), cmpstringp);
+
+	/*
+	 * Now execute each script.
+	 */
+	for (i = 0; i < nscripts; i++)
+	{
+		PG_CMD_DECL;
+		char	  **line;
+		char	  **lines;
+		char	   *path;
+
+		path = pg_malloc(strlen(share_path) + strlen("cdb_init.d") + strlen(scriptnames[i]) + 3);
+		sprintf(path, "%s/cdb_init.d/%s", share_path, scriptnames[i]);
+
+		lines = readfile(path);
+
+		/*
+		 * We use -j here to avoid backslashing stuff in
+		 * information_schema.sql
+		 */
+		snprintf(cmd, sizeof(cmd),
+				 "\"%s\" %s -j template1 >%s",
+				 backend_exec, backend_options,
+				 backend_output);
+
+		PG_CMD_OPEN;
+
+		for (line = lines; *line != NULL; line++)
+		{
+			PG_CMD_PUTS(*line);
+			free(*line);
+		}
+
+		free(lines);
+
+		PG_CMD_CLOSE;
+
+		snprintf(cmd, sizeof(cmd),
+				 "\"%s\" %s template1 >%s",
+				 backend_exec, backend_options,
+				 backend_output);
+
+		check_ok();
+	}
+}
+
+/*
+ * Load persistent tables from pg_class, etc.
+ */
+static void
+setup_gp_persistent_tables(void)
+{
+	PG_CMD_DECL;
+
+	fprintf(stdout, _("loading file-system persistent tables for template1 (mirrored = %s) ... \n"), 
+		    (gIsFileRepMirrored  ? "true" : "false"));
+	fflush(stdout);
+
+	snprintf(cmd, sizeof(cmd),
+			 "\"%s\" %s -c gp_before_persistence_work=on template1 >%s",
+			 backend_exec, backend_options,
+			 backend_output);
+
+	PG_CMD_OPEN;
+	
+	PG_CMD_PRINTF1("SELECT gp_persistent_build_db(%s);\n",
+				   (gIsFileRepMirrored  ? "true" : "false"));
+
+	PG_CMD_CLOSE;
+
+	check_ok();
+}
+
+
 /*
  * clean everything up in template1
  */
@@ -1922,7 +2281,7 @@ vacuum_db(void)
 	snprintf(cmd, sizeof(cmd),
 			 "\"%s\" %s template1 >%s",
 			 backend_exec, backend_options,
-			 DEVNULL);
+			 backend_output);
 
 	PG_CMD_OPEN;
 
@@ -1940,8 +2299,8 @@ static void
 make_template0(void)
 {
 	PG_CMD_DECL;
-	char	  **line;
-	static char *template0_setup[] = {
+	const char **line;
+	static const char *template0_setup[] = {
 		"CREATE DATABASE template0;\n",
 		"UPDATE pg_database SET "
 		"	datistemplate = 't', "
@@ -1976,7 +2335,7 @@ make_template0(void)
 	snprintf(cmd, sizeof(cmd),
 			 "\"%s\" %s template1 >%s",
 			 backend_exec, backend_options,
-			 DEVNULL);
+			 backend_output);
 
 	PG_CMD_OPEN;
 
@@ -1995,9 +2354,19 @@ static void
 make_postgres(void)
 {
 	PG_CMD_DECL;
-	char	  **line;
-	static char *postgres_setup[] = {
+	const char **line;
+	static const char *postgres_setup[] = {
 		"CREATE DATABASE postgres;\n",
+		/*
+		 * Make 'postgres' a template database
+		 */
+		"UPDATE pg_database SET "
+		"	datistemplate = 't' "
+		"    WHERE datname = 'postgres';\n",
+		/*
+		 * Clean out dead rows in pg_database
+		 */
+		"VACUUM FULL pg_database;\n",
 		NULL
 	};
 
@@ -2007,7 +2376,7 @@ make_postgres(void)
 	snprintf(cmd, sizeof(cmd),
 			 "\"%s\" %s template1 >%s",
 			 backend_exec, backend_options,
-			 DEVNULL);
+			 backend_output);
 
 	PG_CMD_OPEN;
 
@@ -2162,6 +2531,8 @@ locale_date_order(const char *locale)
 
 /*
  * check if given string is a valid locale specifier
+ *
+ * this should match the backend check_locale() function
  */
 static bool
 chklocale(const char *locale)
@@ -2243,6 +2614,106 @@ setlocales(void)
 
 }
 
+/*
+ * check if the chosen encoding matches the encoding required by the locale
+ * this should match the backend check_locale_encoding() function
+ *
+ */
+bool chklocaleencoding(const char *locale, int user_enc)
+{
+	int			locale_enc;
+
+	locale_enc = pg_get_encoding_from_locale(locale);
+
+	/* We allow selection of SQL_ASCII */
+	if (!(locale_enc == user_enc ||
+		  locale_enc == PG_SQL_ASCII ||
+		  user_enc == PG_SQL_ASCII
+#ifdef WIN32
+
+	/*
+	 * On win32, if the encoding chosen is UTF8, all locales are OK (assuming
+	 * the actual locale name passed the checks above). This is because UTF8
+	 * is a pseudo-codepage, that we convert to UTF16 before doing any
+	 * operations on, and UTF16 supports all locales.
+	 */
+		  || user_enc == PG_UTF8
+#endif
+		  ))
+	{
+		return false;
+	}
+	return true;
+}
+
+/*
+ * Try to parse value as an integer.  The accepted formats are the
+ * usual decimal, octal, or hexadecimal formats.
+ */
+static long
+parse_long(const char *value, bool blckszUnit, const char* optname)
+{
+    long    val;
+    char   *endptr;
+    double  m;
+
+    errno = 0;
+    val = strtol(value, &endptr, 0);
+
+    if (errno ||
+        endptr == value)
+        goto err;
+
+    if (blckszUnit && endptr[0])
+    {
+        switch (endptr[0])
+        {
+            case 'k':
+            case 'K':
+                m = 1024;
+                break;
+
+            case 'm':
+            case 'M':
+                m = 1024*1024;
+                break;
+
+            case 'g':
+            case 'G':
+                m = 1024*1024*1024;
+                break;
+
+            default:
+                goto err;
+        }
+
+        if (endptr[1] != 'b' &&
+            endptr[1] != 'B')
+            goto err;
+
+        endptr += 2;
+        val = (long)(m * val / BLCKSZ);
+	}
+
+    /* error if extra trailing chars */
+    if (endptr[0])
+        goto err;
+
+    return val;
+
+err:
+    if (blckszUnit)
+        fprintf(stderr, _("%s: '%s=%s' invalid; requires an integer value, "
+                          "optionally followed by kB/MB/GB suffix\n"),
+                progname, optname, value);
+    else
+        fprintf(stderr, _("%s: '%s=%s' invalid; requires an integer value\n"),
+                progname, optname, value);
+    exit_nicely();
+    return 0;                   /* not reached */
+}                               /* parse_long */
+
+
 #ifdef WIN32
 typedef		BOOL(WINAPI * __CreateRestrictedToken) (HANDLE, DWORD, DWORD, PSID_AND_ATTRIBUTES, DWORD, PLUID_AND_ATTRIBUTES, DWORD, PSID_AND_ATTRIBUTES, PHANDLE);
 
@@ -2279,7 +2750,7 @@ CreateRestrictedProcess(char *cmd, PROCESS_INFORMATION * processInfo)
 
 	if (_CreateRestrictedToken == NULL)
 	{
-		fprintf(stderr, "WARNING: Unable to create restricted tokens on this platform\n");
+		fprintf(stderr, "WARNING: cannot create restricted tokens on this platform\n");
 		if (Advapi32Handle != NULL)
 			FreeLibrary(Advapi32Handle);
 		return 0;
@@ -2324,7 +2795,28 @@ CreateRestrictedProcess(char *cmd, PROCESS_INFORMATION * processInfo)
 		return 0;
 	}
 
-	return CreateProcessAsUser(restrictedToken, NULL, cmd, NULL, NULL, TRUE, 0, NULL, NULL, &si, processInfo);
+	if (!CreateProcessAsUser(restrictedToken,
+						NULL,
+						cmd,
+						NULL,
+						NULL,
+						TRUE,
+						CREATE_SUSPENDED,
+						NULL,
+						NULL,
+						&si,
+						processInfo))
+
+	{
+		fprintf(stderr, "CreateProcessAsUser failed: %lu\n", GetLastError());
+		return 0;
+	}
+
+#ifndef __CYGWIN__
+	AddUserToDacl(processInfo->hProcess);
+#endif
+
+	return ResumeThread(processInfo->hThread);
 }
 #endif
 
@@ -2346,18 +2838,27 @@ usage(const char *progname)
 			 "                            initialize database cluster with given locale\n"
 			 "                            in the respective category (default taken from\n"
 			 "                            environment)\n"));
+	printf(_("  --is_filerep_mirrored=yes|no whether or not this db directory will be mirrored by file replication\n"));
 	printf(_("  --no-locale               equivalent to --locale=C\n"));
+	printf(_("  -X, --xlogdir=XLOGDIR     location for the transaction log directory\n"));
 	printf(_("  -A, --auth=METHOD         default authentication method for local connections\n"));
 	printf(_("  -U, --username=NAME       database superuser name\n"));
 	printf(_("  -W, --pwprompt            prompt for a password for the new superuser\n"));
 	printf(_("  --pwfile=FILE             read password for the new superuser from file\n"));
 	printf(_("  -?, --help                show this help, then exit\n"));
 	printf(_("  -V, --version             output version information, then exit\n"));
+	printf(_("  --gp-version             output Greenplum version information, then exit\n"));
+	printf(_("\nShared memory allocation:\n"));
+	printf(_("  --max_connections=MAX-CONNECT  maximum number of allowed connections\n"));
+	printf(_("  --shared_buffers=NBUFFERS number of shared buffers; or, amount of memory for\n"
+			 "                            shared buffers if kB/MB/GB suffix is appended\n"));
+	printf(_("  --max_fsm_pages=MAX-FSM   number of disk pages for which free space is tracked\n"));
 	printf(_("\nLess commonly used options:\n"));
 	printf(_("  -d, --debug               generate lots of debugging output\n"));
 	printf(_("  -s, --show                show internal settings\n"));
 	printf(_("  -L DIRECTORY              where to find the input files\n"));
 	printf(_("  -n, --noclean             do not clean up after errors\n"));
+	printf(_("  -m, --formirror           only create data needed to start the backend in mirror mode\n"));
 	printf(_("\nIf the data directory is not specified, the environment variable PGDATA\n"
 			 "is used.\n"));
 	printf(_("\nReport bugs to <pgsql-bugs@postgresql.org>.\n"));
@@ -2385,18 +2886,24 @@ main(int argc, char *argv[])
 		{"pwprompt", no_argument, NULL, 'W'},
 		{"pwfile", required_argument, NULL, 9},
 		{"username", required_argument, NULL, 'U'},
+        {"max_connections", required_argument, NULL, 1001},     /*CDB*/
+        {"max_fsm_pages", required_argument, NULL, 1002},       /*CDB*/
+        {"shared_buffers", required_argument, NULL, 1003},      /*CDB*/
+        {"is_filerep_mirrored", required_argument, NULL, 1004},      /*CDB*/
+        {"backend_output", optional_argument, NULL, 1005},      /*CDB*/
 		{"help", no_argument, NULL, '?'},
 		{"version", no_argument, NULL, 'V'},
 		{"debug", no_argument, NULL, 'd'},
 		{"show", no_argument, NULL, 's'},
 		{"noclean", no_argument, NULL, 'n'},
+		{"xlogdir", required_argument, NULL, 'X'},
 		{NULL, 0, NULL, 0}
 	};
 
 	int			c,
 				i,
 				ret;
-	int			option_index;
+	int			option_index = -1;
 	char	   *short_version;
 	char	   *effective_user;
 	char	   *pgdenv;			/* PGDATA value gotten from and sent to
@@ -2404,21 +2911,31 @@ main(int argc, char *argv[])
 	char		bin_dir[MAXPGPATH];
 	char	   *pg_data_native;
 
+	int			user_enc;
+
 #ifdef WIN32
 	char	   *restrict_env;
 #endif
 	static const char *subdirs[] = {
 		"global",
+		"pg_log",
 		"pg_xlog",
 		"pg_xlog/archive_status",
 		"pg_clog",
+		"pg_changetracking",
 		"pg_subtrans",
 		"pg_twophase",
 		"pg_multixact/members",
 		"pg_multixact/offsets",
+		"pg_distributedxidmap",		// Old directory.
+		"pg_distributedlog",		// New directory.
+		"pg_utilitymodedtmredo",
 		"base",
 		"base/1",
-		"pg_tblspc"
+		"pg_tblspc",
+		"pg_stat_tmp"
+		/* NOTE if you add to this list then please update other places (like management scripts) with this similar
+		 *   (search for pg_multixact, for example) */
 	};
 
 	progname = get_progname(argv[0]);
@@ -2433,15 +2950,39 @@ main(int argc, char *argv[])
 		}
 		if (strcmp(argv[1], "--version") == 0 || strcmp(argv[1], "-V") == 0)
 		{
-			puts("initdb (PostgreSQL) " PG_VERSION);
+			puts("initdb (Greenplum Database) " PG_VERSION);
+			exit(0);
+		}
+		if (strcmp(argv[1], "--gp-version") == 0)
+		{
+			puts("initdb (Greenplum Database) " GP_VERSION);
 			exit(0);
 		}
 	}
 
 	/* process command-line options */
 
-	while ((c = getopt_long(argc, argv, "dD:E:L:nU:WA:s", long_options, &option_index)) != -1)
+	while ((c = getopt_long(argc, argv, "dD:E:L:mnU:WA:sX:", long_options, &option_index)) != -1)
 	{
+        const char *optname;
+        char        shortopt[2];
+
+        /* CDB: Get option name for error reporting.  On Solaris, getopt_long
+         * may leave garbage in option_index after parsing a short option, so
+         * check carefully.
+         */
+        if (isalpha(c))
+        {
+            shortopt[0] = (char)c;
+            shortopt[1] = '\0';
+            optname = shortopt;
+        }
+        else if (option_index >= 0 &&
+                 option_index < sizeof(long_options)/sizeof(long_options[0]) - 1)
+            optname = long_options[option_index].name;
+        else
+            optname = "?!?";
+
 		switch (c)
 		{
 			case 'A':
@@ -2462,6 +3003,9 @@ main(int argc, char *argv[])
 			case 'd':
 				debug = true;
 				printf(_("Running in debug mode.\n"));
+				break;
+			case 'm':
+				forMirrorOnly = true;
 				break;
 			case 'n':
 				noclean = true;
@@ -2500,6 +3044,34 @@ main(int argc, char *argv[])
 			case 's':
 				show_setting = true;
 				break;
+			case 'X':
+				xlog_dir = xstrdup(optarg);
+				break;
+			case 1001:
+                n_connections = parse_long(optarg, false, optname);
+				break;
+			case 1002:
+                n_fsm_pages = parse_long(optarg, false, optname);
+				break;
+			case 1003:
+                n_buffers = parse_long(optarg, true, optname);
+				break;
+            case 1004:
+                if ( strcmp("yes", optarg) == 0  )
+                    gIsFileRepMirrored = true;
+                else if ( strcmp("no", optarg) == 0  )
+                    gIsFileRepMirrored = false;
+                else
+                {
+                    fprintf(stderr, "Invalid value for is_filerep_mirrored\n");
+                    fprintf(stderr, _("Try \"%s --help\" for more information.\n"),
+						progname);
+    				exit(1);
+                }
+                break;
+			case 1005:
+				backend_output = xstrdup(optarg);
+				break;
 			default:
 				/* getopt_long already emitted a complaint */
 				fprintf(stderr, _("Try \"%s --help\" for more information.\n"),
@@ -2522,11 +3094,12 @@ main(int argc, char *argv[])
 				progname, argv[optind + 1]);
 		fprintf(stderr, _("Try \"%s --help\" for more information.\n"),
 				progname);
+		exit(1);
 	}
 
 	if (pwprompt && pwfilename)
 	{
-		fprintf(stderr, _("%s: password prompt and password file may not be specified together\n"), progname);
+		fprintf(stderr, _("%s: password prompt and password file cannot be specified together\n"), progname);
 		exit(1);
 	}
 
@@ -2652,14 +3225,14 @@ main(int argc, char *argv[])
 		char		full_path[MAXPGPATH];
 
 		if (find_my_exec(argv[0], full_path) < 0)
-			StrNCpy(full_path, progname, MAXPGPATH);
+			strlcpy(full_path, progname, sizeof(full_path));
 
 		if (ret == -1)
 			fprintf(stderr,
 					_("The program \"postgres\" is needed by %s "
-					  "but was not found in the\n"
-					  "same directory as \"%s\".\n"
-					  "Check your installation.\n"),
+					  "but was either not found in the "
+					  "same directory as \"%s\" or failed unexpectedly.\n"
+					  "Check your installation; \"postgres -V\" may have more information.\n"),
 					progname, full_path);
 		else
 			fprintf(stderr,
@@ -2713,6 +3286,8 @@ main(int argc, char *argv[])
 	set_input(&features_file, "sql_features.txt");
 	set_input(&system_views_file, "system_views.sql");
 
+	set_input(&cdb_init_d_dir, "cdb_init.d");
+
 	set_info_version();
 
 	if (show_setting || debug)
@@ -2733,7 +3308,6 @@ main(int argc, char *argv[])
 		if (show_setting)
 			exit(0);
 	}
-
 	check_input(bki_file);
 	check_input(desc_file);
 	check_input(shdesc_file);
@@ -2776,7 +3350,7 @@ main(int argc, char *argv[])
 	}
 
 #if defined(HAVE_LANGINFO_H) && defined(CODESET)
-	if (strcmp(lc_ctype, "C") != 0 && strcmp(lc_ctype, "POSIX") != 0)
+	if (pg_strcasecmp(lc_ctype, "C") != 0 && pg_strcasecmp(lc_ctype, "POSIX") != 0)
 	{
 		if (strlen(encoding) == 0)
 		{
@@ -2798,7 +3372,29 @@ main(int argc, char *argv[])
 			}
 		}
 		else
-			check_encodings_match(atoi(encodingid), lc_ctype);
+		{
+			user_enc = atoi(encodingid);
+			if (!chklocaleencoding(lc_ctype, user_enc))
+			{
+				fprintf(stderr, _("Encoding mismatch.\n"
+										"The encoding you selected (%s) and the encoding that the\n"
+										"selected locale uses (%s) do not match.  This would lead to\n"
+										"misbehavior in various character string processing functions.\n"),
+								pg_encoding_to_char(user_enc),
+								lc_ctype);
+				exit(1);
+			}
+			if(!chklocaleencoding(lc_collate, user_enc))
+			{
+				fprintf(stderr, _("Encoding mismatch.\n"
+										"The encoding you selected (%s) and the encoding that the\n"
+										"selected locale uses (%s) do not match.  This would lead to\n"
+										"misbehavior in various character string processing functions.\n"),
+								pg_encoding_to_char(user_enc),
+								lc_collate);
+				exit(1);
+			}
+		}
 	}
 #endif   /* HAVE_LANGINFO_H && CODESET */
 
@@ -2829,7 +3425,7 @@ main(int argc, char *argv[])
 	pqsignal(SIGPIPE, SIG_IGN);
 #endif
 
-	switch (check_data_dir())
+	switch (check_data_dir(pg_data))
 	{
 		case 0:
 			/* PGDATA not there, must create it */
@@ -2866,11 +3462,13 @@ main(int argc, char *argv[])
 		case 2:
 			/* Present and not empty */
 			fprintf(stderr,
-					_("%s: directory \"%s\" exists but is not empty\n"
-					  "If you want to create a new database system, either remove or empty\n"
+					_("%s: directory \"%s\" exists but is not empty\n"),
+					progname, pg_data);
+			fprintf(stderr,
+					_("If you want to create a new database system, either remove or empty\n"
 					  "the directory \"%s\" or run %s\n"
 					  "with an argument other than \"%s\".\n"),
-					progname, pg_data, pg_data, progname, pg_data);
+					pg_data, progname, pg_data);
 			exit(1);			/* no further message needed */
 
 		default:
@@ -2878,6 +3476,88 @@ main(int argc, char *argv[])
 			fprintf(stderr, _("%s: could not access directory \"%s\": %s\n"),
 					progname, pg_data, strerror(errno));
 			exit_nicely();
+	}
+
+	/* Create transaction log symlink, if required */
+	if (strcmp(xlog_dir, "") != 0)
+	{
+		char	*linkloc;
+
+		linkloc = (char *) malloc(strlen(pg_data) + 8 + 2);
+		sprintf(linkloc, "%s/pg_xlog", pg_data);
+
+		/* check if the specified xlog directory is empty */
+		switch (check_data_dir(xlog_dir))
+		{
+			case 0:
+				/* xlog directory not there, must create it */
+				printf(_("creating directory %s ... "),
+					   xlog_dir);
+				fflush(stdout);
+
+				if (mkdir_p(xlog_dir, 0700) != 0)
+				{
+					fprintf(stderr, _("%s: could not create directory \"%s\": %s\n"),
+							progname, xlog_dir, strerror(errno));
+					exit_nicely();
+				}
+				else
+				{
+					check_ok();
+				}
+
+				made_new_xlogdir = true;
+				break;
+			case 1:
+				/* Present but empty, fix permissions and use it */
+				printf(_("fixing permissions on existing directory %s ... "),
+					   xlog_dir);
+				fflush(stdout);
+
+				if (chmod(xlog_dir, 0700) != 0)
+				{
+					fprintf(stderr, _("%s: could not change permissions of directory \"%s\": %s\n"),
+							progname, xlog_dir, strerror(errno));
+					exit_nicely();
+				}
+				else
+					check_ok();
+
+				found_existing_xlogdir = true;
+				break;
+			case 2:
+				/* Present and not empty */
+				fprintf(stderr,
+						_("%s: directory \"%s\" exists but is not empty\n"),
+						progname, xlog_dir);
+				fprintf(stderr,
+						_("If you want to store the transaction log there, either\n"
+						  "remove or empty the directory \"%s\".\n"),
+						xlog_dir);
+				exit_nicely();
+
+			default:
+				/* Trouble accessing directory */
+				fprintf(stderr, _("%s: could not access directory \"%s\": %s\n"),
+						progname, xlog_dir, strerror(errno));
+				exit_nicely();
+		}
+
+		/* form name of the place where the symlink must go */
+		linkloc = (char *) pg_malloc(strlen(pg_data) + 8 + 1);
+		sprintf(linkloc, "%s/pg_xlog", pg_data);
+
+#ifdef HAVE_SYMLINK
+		if (symlink(xlog_dir, linkloc) != 0)
+		{
+			fprintf(stderr, _("%s: could not create symbolic link \"%s\": %s\n"),
+						progname, linkloc, strerror(errno));
+			exit_nicely();
+		}
+#else
+		fprintf(stderr, _("%s: symlinks are not supported on this platform"));
+		exit_nicely();
+#endif
 	}
 
 	/* Create required subdirectories */
@@ -2902,43 +3582,58 @@ main(int argc, char *argv[])
 	/* Now create all the text config files */
 	setup_config();
 
-	/* Bootstrap template1 */
-	bootstrap_template1(short_version);
+	if ( ! forMirrorOnly)
+	{
+		sprintf(backend_options, backend_options_format,
+			    ((gIsFileRepMirrored  ? "true" : "false")));
 
-	/*
-	 * Make the per-database PG_VERSION for template1 only after init'ing it
-	 */
-	set_short_version(short_version, "base/1");
+		/* Bootstrap template1 */
+		bootstrap_template1(short_version);
 
-	/* Create the stuff we don't need to use bootstrap mode for */
+		/*
+		 * Make the per-database PG_VERSION for template1 only after init'ing it
+		 */
+		set_short_version(short_version, "base/1");
 
-	setup_auth();
-	if (pwprompt || pwfilename)
-		get_set_pwd();
+		/* Create the stuff we don't need to use bootstrap mode for */
 
-	setup_depend();
+		/*
+		 * Must be the first thing we do on template1 to make sure we capture all
+		 * relation creates.
+		 */
+		setup_gp_persistent_tables();
 
-	setup_sysviews();
+		setup_auth();
+		if (pwprompt || pwfilename)
+			get_set_pwd();
 
-	setup_description();
+		setup_depend();
 
-	setup_conversion();
+		setup_sysviews();
 
-	setup_privileges();
+		setup_description();
 
-	setup_schema();
+		setup_conversion();
 
-	vacuum_db();
+		setup_privileges();
 
-	make_template0();
+		setup_schema();
 
-	make_postgres();
+		/* sets up the Greenplum Database admin schema */
+		setup_cdb_schema();
+
+		vacuum_db();
+
+		make_template0();
+
+		make_postgres();
+	}
 
 	if (authwarning != NULL)
 		fprintf(stderr, "%s", authwarning);
 
 	/* Get directory specification used to start this executable */
-	strcpy(bin_dir, argv[0]);
+	strlcpy(bin_dir, argv[0], sizeof(bin_dir));
 	get_parent_directory(bin_dir);
 
 	printf(_("\nSuccess. You can now start the database server using:\n\n"

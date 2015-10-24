@@ -3,7 +3,7 @@
  * globals.c
  *	  global variable declarations
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2008, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -18,6 +18,7 @@
  */
 #include "postgres.h"
 
+#include "pgtime.h"
 #include "libpq/pqcomm.h"
 #include "miscadmin.h"
 #include "storage/backendid.h"
@@ -27,14 +28,21 @@ ProtocolVersion FrontendProtocol = PG_PROTOCOL_LATEST;
 
 volatile bool InterruptPending = false;
 volatile bool QueryCancelPending = false;
+volatile bool QueryCancelCleanup = false;
+volatile bool QueryFinishPending = false;
 volatile bool ProcDiePending = false;
+volatile bool ClientConnectionLost = false;
 volatile bool ImmediateInterruptOK = false;
-volatile uint32 InterruptHoldoffCount = 0;
-volatile uint32 CritSectionCount = 0;
+
+// Make these signed integers (instead of uint32) to detect garbage negative values.
+volatile int32 InterruptHoldoffCount = 0;
+volatile int32 CritSectionCount = 0;
 
 int			MyProcPid;
+pg_time_t	MyStartTime;
 struct Port *MyProcPort;
 long		MyCancelKey;
+int			MyPMChildSlot = -1;
 
 /*
  * DataDir is the absolute path to the top level of the PGDATA directory tree.
@@ -87,17 +95,30 @@ bool		ExitOnAnyError = false;
 
 int			DateStyle = USE_ISO_DATES;
 int			DateOrder = DATEORDER_MDY;
+int			IntervalStyle = INTSTYLE_POSTGRES;
 bool		HasCTZSet = false;
 int			CTimeZone = 0;
 
 bool		enableFsync = true;
-bool		allowSystemTableMods = false;
-int			work_mem = 1024;
-int			maintenance_work_mem = 16384;
+bool		allowSystemTableModsDDL = false;
+bool		allowSystemTableModsDML = false;
+int			planner_work_mem = 32768;
+int			work_mem = 32768;
+int			max_work_mem = 1024000;
+int			statement_mem = 256000;
+int			max_statement_mem = 2048000;
+/*
+ * gp_vmem_limit_per_query set to 0 means we
+ * do not enforce per-query memory limit
+ */
+int			gp_vmem_limit_per_query = 0;
+int			maintenance_work_mem = 65536;
 
 /* Primary determinants of sizes of shared-memory structures: */
-int			NBuffers = 1000;
-int			MaxBackends = 100;
+int			NBuffers = 4096;
+int			MaxBackends = 200;
+
+int			gp_workfile_max_entries = 8192; /* Number of unique entries we can hold in the workfile directory */
 
 int			VacuumCostPageHit = 1;		/* GUC parameters for vacuum */
 int			VacuumCostPageMiss = 10;
@@ -109,3 +130,23 @@ int			VacuumCostBalance = 0;		/* working state for vacuum */
 bool		VacuumCostActive = false;
 
 int			GinFuzzySearchLimit = 0;
+
+/* gpperfmon port number */
+int 	gpperfmon_port = 8888;
+
+/* for pljava */
+char*	pljava_vmoptions = NULL;
+char*	pljava_classpath = NULL;
+int		pljava_statement_cache_size 	= 512;
+bool	pljava_release_lingering_savepoints = false;
+bool	pljava_debug = false;
+
+
+/* Memory protection GUCs*/
+#ifdef __darwin__
+int gp_vmem_protect_limit = 0; 
+#else
+int gp_vmem_protect_limit = 8192;
+#endif
+int gp_vmem_protect_gang_cache_limit = 500;
+

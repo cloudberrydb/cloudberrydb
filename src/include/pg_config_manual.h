@@ -6,7 +6,7 @@
  * for developers.	If you edit any of these, be sure to do a *full*
  * rebuild (and an initdb if noted).
  *
- * $PostgreSQL: pgsql/src/include/pg_config_manual.h,v 1.23 2006/09/18 22:40:40 tgl Exp $
+ * $PostgreSQL: pgsql/src/include/pg_config_manual.h,v 1.27 2007/06/08 18:23:53 tgl Exp $
  *------------------------------------------------------------------------
  */
 
@@ -23,7 +23,11 @@
  *
  * Changing BLCKSZ requires an initdb.
  */
-#define BLCKSZ	8192
+#define BLCKSZ	32768
+
+#if BLCKSZ < 1024
+#error BLCKSZ must be >= 1024
+#endif
 
 /*
  * RELSEG_SIZE is the maximum number of blocks allowed in one disk
@@ -51,7 +55,7 @@
  *
  * Changing XLOG_BLCKSZ requires an initdb.
  */
-#define XLOG_BLCKSZ		8192
+#define XLOG_BLCKSZ		32768
 
 /*
  * XLOG_SEG_SIZE is the size of a single WAL file.	This must be a power of 2
@@ -60,7 +64,16 @@
  *
  * Changing XLOG_SEG_SIZE requires an initdb.
  */
-#define XLOG_SEG_SIZE	(16*1024*1024)
+#define XLOG_SEG_SIZE	(64*1024*1024)
+
+/*
+ * Maximum length for identifiers (e.g. table names, column names,
+ * function names).  Names actually are limited to one less byte than this,
+ * because the length must include a trailing zero byte.
+ *
+ * Changing this requires an initdb.
+ */
+#define NAMEDATALEN 64
 
 /*
  * Maximum number of arguments to a function.
@@ -151,10 +164,10 @@
  * is aligned on a larger-than-MAXALIGN boundary.  Ideally this should be
  * a platform-dependent value, but for now we just hard-wire it.
  */
-#define ALIGNOF_BUFFER	32
+#define ALIGNOF_BUFFER	64
 
 /*
- * Disable UNIX sockets for those operating system.
+ * Disable UNIX sockets for certain operating systems.
  */
 #if defined(WIN32)
 #undef HAVE_UNIX_SOCKETS
@@ -198,9 +211,8 @@
 
 /*
  * Define this to cause pfree()'d memory to be cleared immediately, to
- * facilitate catching bugs that refer to already-freed values.  XXX
- * Right now, this gets defined automatically if --enable-cassert.	In
- * the long term it probably doesn't need to be on by default.
+ * facilitate catching bugs that refer to already-freed values.
+ * Right now, this gets defined automatically if --enable-cassert.
  */
 #ifdef USE_ASSERT_CHECKING
 #define CLOBBER_FREED_MEMORY
@@ -209,12 +221,18 @@
 /*
  * Define this to check memory allocation errors (scribbling on more
  * bytes than were allocated).	Right now, this gets defined
- * automatically if --enable-cassert.  In the long term it probably
- * doesn't need to be on by default.
+ * automatically if --enable-cassert.
  */
 #ifdef USE_ASSERT_CHECKING
 #define MEMORY_CONTEXT_CHECKING
 #endif
+
+/*
+ * Define this to cause palloc()'d memory to be filled with random data, to
+ * facilitate catching code that depends on the contents of uninitialized
+ * memory.  Caution: this is horrendously expensive.
+ */
+/* #define RANDOMIZE_ALLOCATED_MEMORY */
 
 /*
  * Define this to force all parse and plan trees to be passed through
@@ -235,10 +253,20 @@
 /* #define WAL_DEBUG */
 
 /*
+ * Enable injecting faults.
+ */
+#define FAULT_INJECTOR 1
+
+/*
  * Enable tracing of resource consumption during sort operations;
  * see also the trace_sort GUC var.  For 8.1 this is enabled by default.
  */
 #define TRACE_SORT 1
+
+/*
+ * Enable tracing of syncscan operations (see also the trace_syncscan GUC var).
+ */
+/* #define TRACE_SYNCSCAN */
 
 /*
  * Other debug #defines (documentation, anyone?)
@@ -246,3 +274,49 @@
 /* #define HEAPDEBUGALL */
 /* #define ACLDEBUG */
 /* #define RTDEBUG */
+
+/* #define WATCH_VISIBILITY_IN_ACTION */
+
+/*
+ * This define lets the system header files know we are interested in features up to Posix 6
+ *
+ * Solaris is strange... If you want >= 600, you MUST use a C99 compiler, if < 600, you MUST
+ * use a C89 compiler.  So, set it to 600 if we are C99, and set it to 500 if we aren't.
+ */
+#if !defined(_XOPEN_SOURCE) || _XOPEN_SOURCE<600
+#undef _XOPEN_SOURCE
+#if !defined(__sun__) || (defined(__STDC_VERSION__) && __STDC_VERSION__ >= 199901L)
+#define _XOPEN_SOURCE 600
+#else
+#define _XOPEN_SOURCE 500
+#endif
+#endif
+
+/* Define to activate features from IEEE Stds 1003.1-2001 */
+#if !defined(_POSIX_C_SOURCE) || _POSIX_C_SOURCE<200112L
+#undef _POSIX_C_SOURCE
+/* Define to activate features from IEEE Stds 1003.1-2001 */
+#define _POSIX_C_SOURCE 200112L
+#endif
+
+/*
+ * Solaris likes this to be defined if we define _XOPEN_SOURCE, otherwise
+ * they turn off anything they think is an extension to XOPEN
+ */
+#ifndef __EXTENSIONS__
+#define __EXTENSIONS__ 1
+#endif
+
+/*
+ * OSX (darwin) wants this if XOPEN_SOURCE is defined
+ */
+#ifndef _DARWIN_C_SOURCE
+#define _DARWIN_C_SOURCE 1
+#endif 
+
+/*
+ * AIX wants this if XOPEN_SOURCE is defined
+ */
+#ifdef _AIX
+#define _ALL_SOURCE
+#endif

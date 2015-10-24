@@ -5,12 +5,12 @@
  *
  *		integer:				pg_atoi, pg_itoa, pg_ltoa
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/utils/adt/numutils.c,v 1.74 2006/03/11 01:19:22 neilc Exp $
+ *	  $PostgreSQL: pgsql/src/backend/utils/adt/numutils.c,v 1.77 2009/01/01 17:23:49 momjian Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -50,8 +50,7 @@ pg_atoi(char *s, int size, int c)
 	if (*s == 0)
 		ereport(ERROR,
 				(errcode(ERRCODE_INVALID_TEXT_REPRESENTATION),
-				 errmsg("invalid input syntax for integer: \"%s\"",
-						s)));
+				 errmsg("invalid input syntax for integer: \"%s\"",s)));
 
 	errno = 0;
 	l = strtol(s, &badp, 10);
@@ -60,8 +59,7 @@ pg_atoi(char *s, int size, int c)
 	if (s == badp)
 		ereport(ERROR,
 				(errcode(ERRCODE_INVALID_TEXT_REPRESENTATION),
-				 errmsg("invalid input syntax for integer: \"%s\"",
-						s)));
+				 errmsg("invalid input syntax for integer: \"%s\"",s)));
 
 	switch (size)
 	{
@@ -102,8 +100,7 @@ pg_atoi(char *s, int size, int c)
 	if (*badp && *badp != c)
 		ereport(ERROR,
 				(errcode(ERRCODE_INVALID_TEXT_REPRESENTATION),
-				 errmsg("invalid input syntax for integer: \"%s\"",
-						s)));
+				 errmsg("invalid input syntax for integer: \"%s\"",s)));
 
 	return (int32) l;
 }
@@ -118,7 +115,34 @@ pg_atoi(char *s, int size, int c)
 void
 pg_itoa(int16 i, char *a)
 {
-	sprintf(a, "%hd", (short) i);
+	/* 
+	 * The standard postgres way is to sprintf, but that uses a lot of cpu.
+	 * Do a fast conversion to string instead.
+	 */
+	char tmp[33];
+	char *tp = tmp;
+	char *sp;
+	int ii = 0;
+	unsigned long v;
+	long value = i;
+	bool sign = (value < 0);;
+	if (sign)
+		v = -value;
+	else
+		v = (unsigned long)value;
+	while (v || tp == tmp)
+	{
+		ii = v % 10;
+		v = v / 10;
+		*tp++ = ii+'0';
+	}
+	sp = a;
+	if (sign)
+		*sp++ = '-';
+	while (tp > tmp)
+		*sp++ = *--tp;
+	*sp = 0;
+	
 }
 
 /*
@@ -131,5 +155,31 @@ pg_itoa(int16 i, char *a)
 void
 pg_ltoa(int32 l, char *a)
 {
-	sprintf(a, "%d", l);
+	/*
+	 * The standard postgres way is to sprintf, but that uses a lot of cpu.
+	 * Do a fast conversion to string instead.
+	 */
+	char tmp[33];
+	char *tp = tmp;
+	char *sp;
+	int ii = 0;
+	unsigned long v;
+	long value = l;
+	bool sign = (value < 0);;
+	if (sign)
+		v = -value;
+	else
+		v = (unsigned long)value;
+	while (v || tp == tmp)
+	{
+		ii = v % 10;
+		v = v / 10;
+		*tp++ = ii+'0';
+	}
+	sp = a;
+	if (sign)
+		*sp++ = '-';
+	while (tp > tmp)
+		*sp++ = *--tp;
+	*sp = 0;
 }

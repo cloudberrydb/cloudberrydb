@@ -4,7 +4,7 @@
  *	  POSTGRES generalized index access method definitions.
  *
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2008, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * $PostgreSQL: pgsql/src/include/access/genam.h,v 1.65 2006/07/31 20:09:05 tgl Exp $
@@ -18,6 +18,7 @@
 #include "access/sdir.h"
 #include "nodes/primnodes.h"
 #include "storage/lock.h"
+#include "utils/relcache.h"
 
 /*
  * Struct for statistics returned by ambuild
@@ -40,6 +41,9 @@ typedef struct IndexVacuumInfo
 	bool		vacuum_full;	/* VACUUM FULL (we have exclusive lock) */
 	int			message_level;	/* ereport level for progress messages */
 	double		num_heap_tuples;	/* tuples remaining in heap */
+	List        *extra_oids;    /* For bitmap indexes: store three relfilenode oids
+								 * for reindexing a bitmap index.
+								 */
 } IndexVacuumInfo;
 
 /*
@@ -77,6 +81,8 @@ typedef struct SysScanDescData
 	Relation	irel;			/* NULL if doing heap scan */
 	HeapScanDesc scan;			/* only valid in heap-scan case */
 	IndexScanDesc iscan;		/* only valid in index-scan case */
+
+	HiddenScanDesc hscan;		/* scan for "hidden" tuple if any */
 } SysScanDescData;
 
 typedef SysScanDescData *SysScanDesc;
@@ -98,9 +104,11 @@ extern IndexScanDesc index_beginscan(Relation heapRelation,
 				Relation indexRelation,
 				Snapshot snapshot,
 				int nkeys, ScanKey key);
-extern IndexScanDesc index_beginscan_multi(Relation indexRelation,
-					  Snapshot snapshot,
-					  int nkeys, ScanKey key);
+extern IndexScanDesc index_beginscan_generic(Relation heapRelation,
+				Relation indexRelation,
+				Snapshot snapshot,
+				int nkeys, ScanKey key, bool isMultiscan);
+
 extern void index_rescan(IndexScanDesc scan, ScanKey key);
 extern void index_endscan(IndexScanDesc scan);
 extern void index_markpos(IndexScanDesc scan);
@@ -108,9 +116,8 @@ extern void index_restrpos(IndexScanDesc scan);
 extern HeapTuple index_getnext(IndexScanDesc scan, ScanDirection direction);
 extern bool index_getnext_indexitem(IndexScanDesc scan,
 						ScanDirection direction);
-extern bool index_getmulti(IndexScanDesc scan,
-			   ItemPointer tids, int32 max_tids,
-			   int32 *returned_tids);
+
+extern Node *index_getmulti(IndexScanDesc scan, Node *bitmap);
 
 extern IndexBulkDeleteResult *index_bulk_delete(IndexVacuumInfo *info,
 				  IndexBulkDeleteResult *stats,
@@ -139,6 +146,14 @@ extern SysScanDesc systable_beginscan(Relation heapRelation,
 				   Snapshot snapshot,
 				   int nkeys, ScanKey key);
 extern HeapTuple systable_getnext(SysScanDesc sysscan);
+extern HeapTuple systable_getprev(SysScanDesc sysscan);
 extern void systable_endscan(SysScanDesc sysscan);
+extern SysScanDesc systable_beginscan_ordered(Relation heapRelation,
+						   Relation indexRelation,
+						   Snapshot snapshot,
+						   int nkeys, ScanKey key);
+extern HeapTuple systable_getnext_ordered(SysScanDesc sysscan,
+						 ScanDirection direction);
+extern void systable_endscan_ordered(SysScanDesc sysscan);
 
 #endif   /* GENAM_H */

@@ -3,19 +3,21 @@
  * arrayutils.c
  *	  This file contains some support routines required for array functions.
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2008, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/utils/adt/arrayutils.c,v 1.21 2006/03/05 15:58:41 momjian Exp $
+ *	  $PostgreSQL: pgsql/src/backend/utils/adt/arrayutils.c,v 1.26 2008/01/01 19:45:52 momjian Exp $
  *
  *-------------------------------------------------------------------------
  */
 
 #include "postgres.h"
 
+#include "catalog/pg_type.h"
 #include "utils/array.h"
+#include "utils/builtins.h"
 #include "utils/memutils.h"
 
 
@@ -187,4 +189,47 @@ mda_next_tuple(int n, int *curr, const int *span)
 		return 0;
 
 	return -1;
+}
+
+/*
+ * ArrayGetIntegerTypmods: verify that argument is a 1-D cstring array,
+ * and get the contents converted to integers.	Returns a palloc'd array
+ * and places the length at *n.
+ */
+int32 *
+ArrayGetIntegerTypmods(ArrayType *arr, int *n)
+{
+	int32	   *result;
+	Datum	   *elem_values;
+	int			i;
+
+	if (ARR_ELEMTYPE(arr) != CSTRINGOID)
+		ereport(ERROR,
+				(errcode(ERRCODE_ARRAY_ELEMENT_ERROR),
+				 errmsg("typmod array must be type cstring[]")));
+
+	if (ARR_NDIM(arr) != 1)
+		ereport(ERROR,
+				(errcode(ERRCODE_ARRAY_SUBSCRIPT_ERROR),
+				 errmsg("typmod array must be one-dimensional")));
+
+	if (ARR_HASNULL(arr))
+		ereport(ERROR,
+				(errcode(ERRCODE_NULL_VALUE_NOT_ALLOWED),
+				 errmsg("typmod array must not contain nulls")));
+
+	/* hardwired knowledge about cstring's representation details here */
+	deconstruct_array(arr, CSTRINGOID,
+					  -2, false, 'c',
+					  &elem_values, NULL, n);
+
+	result = (int32 *) palloc(*n * sizeof(int32));
+
+	for (i = 0; i < *n; i++)
+		result[i] = pg_atoi(DatumGetCString(elem_values[i]),
+							sizeof(int32), '\0');
+
+	pfree(elem_values);
+
+	return result;
 }

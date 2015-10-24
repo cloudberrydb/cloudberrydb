@@ -1,7 +1,7 @@
 CREATE TABLE delete_test (
     id SERIAL PRIMARY KEY,
     a INT
-);
+) DISTRIBUTED BY (id);
 
 INSERT INTO delete_test (a) VALUES (10);
 INSERT INTO delete_test (a) VALUES (50);

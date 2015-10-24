@@ -1,0 +1,1016 @@
+--
+-- Here's a version of Nitasha's transaction test (which turned up lots and lots of
+-- interesting issues). 
+--
+-- Create some tables with some data
+drop table if exists tabcd;
+NOTICE:  table "tabcd" does not exist, skipping
+drop table if exists tabcd_orig;
+NOTICE:  table "tabcd_orig" does not exist, skipping
+drop table if exists t1234;
+NOTICE:  table "t1234" does not exist, skipping
+drop table if exists t1234_orig;
+NOTICE:  table "t1234_orig" does not exist, skipping
+drop table if exists t3456;
+NOTICE:  table "t3456" does not exist, skipping
+create table tabcd (c1 text) distributed randomly;
+insert into tabcd values ('a'), ('b'), ('c'), ('d');
+create table t1234 (c1 integer) distributed randomly;
+insert into t1234 values (1),(2),(3),(4);
+create table tabcd_orig as select * from tabcd distributed randomly;
+create table t1234_orig as select * from t1234 distributed randomly;
+-- Intermix selects, and truncates with calls to a plpgsql function,
+-- functions like this are an interesting challenge, since they get
+-- dispatched with a single command-id.
+--
+-- This function does a series of updates.
+--create language plpgsql;
+CREATE OR REPLACE FUNCTION transaction_test_cursor_nit() RETURNS void AS '
+DECLARE
+	ref_abcd refcursor;
+	ref_1234_1 refcursor;
+	ref_1234_2 refcursor;
+	abcd_var varchar;
+	t_1234_var_1 int;
+	t1234_var_2 int;
+	i int;
+	j int;
+	arr_1234 int [4];
+	arr_abcd varchar [4];
+BEGIN
+	arr_1234[1]:=1;
+	arr_1234[2]:=2;
+	arr_1234[3]:=3;
+	arr_1234[4]:=4;
+
+	open ref_1234_1 FOR SELECT c1 FROM t1234 order by 1;
+
+	BEGIN
+		j:=1;
+		open ref_abcd FOR SELECT c1 FROM tabcd order by 1;
+		fetch ref_abcd into abcd_var;
+		while abcd_var is not null loop
+		      arr_abcd[j]:=abcd_var;
+		      BEGIN
+				open ref_1234_2 FOR SELECT c1 FROM t1234 order by 1;
+				fetch ref_1234_2 into t1234_var_2;
+				i:=1;
+				while t1234_var_2 is not null loop
+				      update tabcd set c1=c1||t1234_var_2 where c1=arr_abcd[j];
+		      		      arr_abcd[j]:=arr_abcd[j]||t1234_var_2;
+				      arr_1234[i]:=arr_1234[i]+10;
+		  		      i:=i+1;
+				      fetch ref_1234_2 into t1234_var_2;
+				end loop;
+				close ref_1234_2;
+			END;
+			fetch ref_abcd into abcd_var;
+			j:=j+1;
+		end loop;
+		close ref_abcd;
+
+	        close ref_1234_1;
+		open ref_1234_1 FOR SELECT c1 FROM t1234 order by 1;
+		fetch ref_1234_1 into t_1234_var_1;
+
+		while t_1234_var_1 is not null loop
+--		      raise notice ''in while set index % % arg where %'', t_1234_var_1,  arr_1234[t_1234_var_1], t_1234_var_1;
+		      update t1234 set c1 = arr_1234[t_1234_var_1] where c1 = t_1234_var_1;
+		      fetch ref_1234_1 into t_1234_var_1;
+	      end loop;
+
+      END;
+      close ref_1234_1;
+END;
+' LANGUAGE plpgsql MODIFIES SQL DATA;
+-- encourage reader-gangs to win races:
+SET gp_enable_slow_writer_testmode=on;
+-- Now here's the main piece of the test.
+TRUNCATE tabcd;
+TRUNCATE t1234;
+INSERT INTO tabcd SELECT * from tabcd_orig;
+INSERT INTO t1234 SELECT * from t1234_orig;
+SELECT transaction_test_cursor_nit();
+ transaction_test_cursor_nit 
+-----------------------------
+ 
+(1 row)
+
+SELECT * from tabcd order by 1;
+  c1   
+-------
+ a1234
+ b1234
+ c1234
+ d1234
+(4 rows)
+
+SELECT * from t1234 order by 1;
+ c1 
+----
+ 41
+ 42
+ 43
+ 44
+(4 rows)
+
+BEGIN;
+TRUNCATE tabcd;
+TRUNCATE t1234;
+INSERT INTO tabcd SELECT * from tabcd_orig;
+INSERT INTO t1234 SELECT * from t1234_orig;
+SELECT * from t1234 order by 1;
+ c1 
+----
+  1
+  2
+  3
+  4
+(4 rows)
+
+SELECT transaction_test_cursor_nit();
+ transaction_test_cursor_nit 
+-----------------------------
+ 
+(1 row)
+
+SELECT * from tabcd order by 1;
+  c1   
+-------
+ a1234
+ b1234
+ c1234
+ d1234
+(4 rows)
+
+SELECT * from t1234 order by 1;
+ c1 
+----
+ 41
+ 42
+ 43
+ 44
+(4 rows)
+
+COMMIT;
+BEGIN;
+set transaction isolation level serializable;
+TRUNCATE tabcd;
+TRUNCATE t1234;
+INSERT INTO tabcd SELECT * from tabcd_orig;
+INSERT INTO t1234 SELECT * from t1234_orig;
+SELECT * from t1234 order by 1;
+ c1 
+----
+  1
+  2
+  3
+  4
+(4 rows)
+
+SELECT transaction_test_cursor_nit();
+ transaction_test_cursor_nit 
+-----------------------------
+ 
+(1 row)
+
+SELECT * from tabcd order by 1;
+  c1   
+-------
+ a1234
+ b1234
+ c1234
+ d1234
+(4 rows)
+
+SELECT * from t1234 order by 1;
+ c1 
+----
+ 41
+ 42
+ 43
+ 44
+(4 rows)
+
+COMMIT;
+SELECT * from tabcd order by 1;
+  c1   
+-------
+ a1234
+ b1234
+ c1234
+ d1234
+(4 rows)
+
+SELECT * from t1234 order by 1;
+ c1 
+----
+ 41
+ 42
+ 43
+ 44
+(4 rows)
+
+-- refresh the data 
+TRUNCATE t1234;
+INSERT INTO t1234 SELECT * from t1234_orig;
+create table t3456 as select c1 from t1234_orig distributed by (c1);
+-- Create some reader gangs.
+select a.c1 from t1234 a, t3456 b where a.c1 = b.c1 order by b.c1;
+ c1 
+----
+  1
+  2
+  3
+  4
+(4 rows)
+
+BEGIN;
+TRUNCATE t1234;
+select a.c1 from t1234 a, t3456 b where a.c1 = b.c1 order by b.c1; -- should return 0 rows.
+ c1 
+----
+(0 rows)
+
+INSERT INTO t1234 SELECT * from t1234_orig;
+TRUNCATE t3456;
+select a.c1 from t1234 a, t3456 b where a.c1 = b.c1 order by b.c1; -- should return 0 rows.
+ c1 
+----
+(0 rows)
+
+ABORT;
+select a.c1 from t1234 a, t3456 b where a.c1 = b.c1 order by b.c1;
+ c1 
+----
+  1
+  2
+  3
+  4
+(4 rows)
+
+create language plpgsql;
+NOTICE:  language "plpgsql" already exists, skipping
+drop table if exists dtm_plpg_foo;
+NOTICE:  table "dtm_plpg_foo" does not exist, skipping
+drop table if exists dtm_plpg_bar;
+NOTICE:  table "dtm_plpg_bar" does not exist, skipping
+drop table if exists dtm_plpg_baz;
+NOTICE:  table "dtm_plpg_baz" does not exist, skipping
+CREATE OR REPLACE FUNCTION foo_func() RETURNS void AS '
+BEGIN
+update dtm_plpg_foo set a = a + 3;
+insert into dtm_plpg_baz select dtm_plpg_bar.b from dtm_plpg_bar where dtm_plpg_bar.b >= (select max(a) from dtm_plpg_foo);
+update dtm_plpg_foo set a = a + 3;
+insert into dtm_plpg_baz select dtm_plpg_bar.b from dtm_plpg_bar where dtm_plpg_bar.b >= (select max(a) from dtm_plpg_foo);
+END;
+' LANGUAGE plpgsql MODIFIES SQL DATA;
+create table dtm_plpg_foo (a int) distributed randomly;
+create table dtm_plpg_bar (b int) distributed randomly;
+create table dtm_plpg_baz (c int) distributed randomly;
+insert into dtm_plpg_foo values (1), (2), (3), (4), (5), (6);
+insert into dtm_plpg_bar values (5), (6), (7), (8), (9), (10);
+insert into dtm_plpg_baz select dtm_plpg_bar.b from dtm_plpg_bar where dtm_plpg_bar.b >= (select max(a) from dtm_plpg_foo);
+select * from dtm_plpg_baz order by 1;
+ c  
+----
+  6
+  7
+  8
+  9
+ 10
+(5 rows)
+
+truncate dtm_plpg_baz;
+begin;
+update dtm_plpg_foo set a = a + 3;
+insert into dtm_plpg_baz select dtm_plpg_bar.b from dtm_plpg_bar where dtm_plpg_bar.b >= (select max(a) from dtm_plpg_foo);
+select * from dtm_plpg_baz order by 1;
+ c  
+----
+  9
+ 10
+(2 rows)
+
+abort;
+truncate dtm_plpg_baz;
+begin;
+set transaction isolation level serializable;
+update dtm_plpg_foo set a = a + 3;
+insert into dtm_plpg_baz select dtm_plpg_bar.b from dtm_plpg_bar where dtm_plpg_bar.b >= (select max(a) from dtm_plpg_foo);
+select * from dtm_plpg_baz order by 1;
+ c  
+----
+  9
+ 10
+(2 rows)
+
+update dtm_plpg_foo set a = a + 3;
+insert into dtm_plpg_baz select dtm_plpg_bar.b from dtm_plpg_bar where dtm_plpg_bar.b >= (select max(a) from dtm_plpg_foo);
+select * from dtm_plpg_baz order by 1;
+ c  
+----
+  9
+ 10
+(2 rows)
+
+abort;
+truncate dtm_plpg_baz;
+begin;
+select * from dtm_plpg_foo order by 1;
+ a 
+---
+ 1
+ 2
+ 3
+ 4
+ 5
+ 6
+(6 rows)
+
+select * from dtm_plpg_bar order by 1;
+ b  
+----
+  5
+  6
+  7
+  8
+  9
+ 10
+(6 rows)
+
+select foo_func();
+ foo_func 
+----------
+ 
+(1 row)
+
+select * from dtm_plpg_foo order by 1;
+ a  
+----
+  7
+  8
+  9
+ 10
+ 11
+ 12
+(6 rows)
+
+select * from dtm_plpg_baz order by 1;
+ c  
+----
+  9
+ 10
+(2 rows)
+
+abort;
+truncate dtm_plpg_baz;
+begin;
+set transaction isolation level serializable;
+select * from dtm_plpg_foo order by 1;
+ a 
+---
+ 1
+ 2
+ 3
+ 4
+ 5
+ 6
+(6 rows)
+
+select * from dtm_plpg_bar order by 1;
+ b  
+----
+  5
+  6
+  7
+  8
+  9
+ 10
+(6 rows)
+
+select foo_func();
+ foo_func 
+----------
+ 
+(1 row)
+
+select * from dtm_plpg_foo order by 1;
+ a  
+----
+  7
+  8
+  9
+ 10
+ 11
+ 12
+(6 rows)
+
+select * from dtm_plpg_baz order by 1;
+ c  
+----
+  9
+ 10
+(2 rows)
+
+abort;
+DROP TABLE dtm_plpg_foo;
+-- try to guarantee race-condition failures on the tests below.
+SET GP_ENABLE_SLOW_CURSOR_TESTMODE=on;
+BEGIN;
+SET TRANSACTION ISOLATION LEVEL SERIALIZABLE;
+CREATE TABLE dtm_plpg_foo (a int, b int);
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Greenplum Database data distribution key for this table.
+HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
+INSERT INTO dtm_plpg_foo VALUES (0, 1);
+DECLARE c1 NO SCROLL CURSOR FOR SELECT b FROM dtm_plpg_foo;
+UPDATE dtm_plpg_foo SET b = 2;
+FETCH ALL FROM c1;
+ b 
+---
+ 1
+(1 row)
+
+COMMIT;
+DROP TABLE dtm_plpg_foo;
+BEGIN;
+SET TRANSACTION ISOLATION LEVEL SERIALIZABLE;
+CREATE TABLE dtm_plpg_foo (a int, b int);
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Greenplum Database data distribution key for this table.
+HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
+INSERT INTO dtm_plpg_foo VALUES (0, 1);
+UPDATE dtm_plpg_foo SET b = 2;
+DECLARE c1 NO SCROLL CURSOR FOR SELECT b FROM dtm_plpg_foo;
+UPDATE dtm_plpg_foo SET b = 3;
+FETCH ALL FROM c1;
+ b 
+---
+ 2
+(1 row)
+
+COMMIT;
+DROP TABLE dtm_plpg_foo;
+BEGIN;
+SET TRANSACTION ISOLATION LEVEL SERIALIZABLE;
+CREATE TABLE dtm_plpg_foo (a int, b int);
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Greenplum Database data distribution key for this table.
+HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
+INSERT INTO dtm_plpg_foo VALUES (0, 1);
+UPDATE dtm_plpg_foo SET b = 2;
+DECLARE c1 NO SCROLL CURSOR FOR SELECT b FROM dtm_plpg_foo;
+DELETE FROM dtm_plpg_foo;
+INSERT INTO dtm_plpg_foo VALUES (0, 3);
+UPDATE dtm_plpg_foo SET b = 4;
+INSERT INTO dtm_plpg_foo VALUES (0, 5);
+FETCH ALL FROM c1;
+ b 
+---
+ 2
+(1 row)
+
+COMMIT;
+-- Add some additional testing for combocid-issues
+DROP TABLE dtm_plpg_foo;
+BEGIN;
+CREATE TABLE dtm_plpg_foo (C_CUSTKEY INTEGER, C_NAME VARCHAR(25), C_ADDRESS VARCHAR(40))
+partition by range (c_custkey) (partition p1 start(0) end(100000) every(1000));
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'c_custkey' as the Greenplum Database data distribution key for this table.
+HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_1" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_2" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_3" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_4" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_5" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_6" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_7" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_8" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_9" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_10" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_11" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_12" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_13" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_14" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_15" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_16" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_17" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_18" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_19" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_20" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_21" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_22" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_23" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_24" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_25" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_26" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_27" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_28" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_29" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_30" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_31" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_32" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_33" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_34" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_35" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_36" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_37" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_38" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_39" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_40" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_41" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_42" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_43" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_44" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_45" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_46" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_47" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_48" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_49" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_50" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_51" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_52" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_53" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_54" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_55" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_56" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_57" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_58" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_59" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_60" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_61" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_62" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_63" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_64" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_65" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_66" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_67" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_68" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_69" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_70" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_71" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_72" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_73" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_74" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_75" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_76" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_77" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_78" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_79" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_80" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_81" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_82" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_83" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_84" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_85" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_86" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_87" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_88" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_89" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_90" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_91" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_92" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_93" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_94" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_95" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_96" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_97" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_98" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_99" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_100" for table "dtm_plpg_foo"
+INSERT INTO dtm_plpg_foo SELECT * FROM dtm_plpg_foo LIMIT 10000;
+COMMIT;
+BEGIN;
+DROP TABLE dtm_plpg_foo;
+CREATE TABLE dtm_plpg_foo (C_CUSTKEY INTEGER, C_NAME VARCHAR(25), C_ADDRESS VARCHAR(40))
+partition by range (c_custkey) (partition p1 start(0) end(100000) every(1000));
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'c_custkey' as the Greenplum Database data distribution key for this table.
+HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_1" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_2" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_3" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_4" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_5" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_6" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_7" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_8" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_9" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_10" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_11" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_12" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_13" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_14" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_15" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_16" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_17" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_18" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_19" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_20" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_21" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_22" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_23" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_24" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_25" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_26" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_27" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_28" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_29" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_30" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_31" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_32" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_33" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_34" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_35" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_36" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_37" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_38" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_39" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_40" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_41" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_42" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_43" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_44" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_45" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_46" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_47" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_48" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_49" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_50" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_51" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_52" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_53" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_54" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_55" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_56" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_57" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_58" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_59" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_60" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_61" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_62" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_63" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_64" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_65" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_66" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_67" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_68" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_69" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_70" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_71" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_72" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_73" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_74" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_75" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_76" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_77" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_78" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_79" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_80" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_81" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_82" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_83" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_84" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_85" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_86" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_87" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_88" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_89" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_90" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_91" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_92" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_93" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_94" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_95" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_96" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_97" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_98" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_99" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_100" for table "dtm_plpg_foo"
+SELECT count(*) from dtm_plpg_foo;
+ count 
+-------
+     0
+(1 row)
+
+INSERT INTO dtm_plpg_foo SELECT * FROM dtm_plpg_foo LIMIT 10000;
+COMMIT;
+BEGIN;
+DROP TABLE dtm_plpg_foo;
+CREATE TABLE dtm_plpg_foo (C_CUSTKEY INTEGER, C_NAME VARCHAR(25), C_ADDRESS VARCHAR(40))
+partition by range (c_custkey) (partition p1 start(0) end(100000) every(1000));
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'c_custkey' as the Greenplum Database data distribution key for this table.
+HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_1" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_2" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_3" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_4" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_5" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_6" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_7" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_8" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_9" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_10" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_11" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_12" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_13" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_14" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_15" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_16" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_17" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_18" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_19" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_20" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_21" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_22" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_23" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_24" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_25" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_26" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_27" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_28" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_29" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_30" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_31" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_32" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_33" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_34" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_35" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_36" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_37" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_38" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_39" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_40" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_41" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_42" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_43" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_44" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_45" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_46" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_47" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_48" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_49" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_50" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_51" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_52" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_53" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_54" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_55" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_56" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_57" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_58" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_59" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_60" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_61" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_62" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_63" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_64" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_65" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_66" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_67" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_68" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_69" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_70" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_71" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_72" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_73" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_74" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_75" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_76" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_77" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_78" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_79" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_80" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_81" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_82" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_83" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_84" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_85" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_86" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_87" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_88" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_89" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_90" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_91" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_92" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_93" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_94" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_95" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_96" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_97" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_98" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_99" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_100" for table "dtm_plpg_foo"
+DECLARE c0 CURSOR FOR SELECT * FROM dtm_plpg_foo;
+INSERT INTO dtm_plpg_foo SELECT * FROM dtm_plpg_foo LIMIT 10000;
+FETCH c0;
+ c_custkey | c_name | c_address 
+-----------+--------+-----------
+(0 rows)
+
+CLOSE c0;
+COMMIT;
+BEGIN;
+DROP TABLE dtm_plpg_foo;
+CREATE TABLE dtm_plpg_foo (C_CUSTKEY INTEGER, C_NAME VARCHAR(25), C_ADDRESS VARCHAR(40))
+partition by range (c_custkey) (partition p1 start(0) end(100000) every(1000));
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'c_custkey' as the Greenplum Database data distribution key for this table.
+HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_1" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_2" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_3" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_4" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_5" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_6" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_7" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_8" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_9" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_10" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_11" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_12" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_13" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_14" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_15" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_16" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_17" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_18" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_19" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_20" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_21" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_22" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_23" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_24" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_25" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_26" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_27" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_28" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_29" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_30" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_31" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_32" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_33" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_34" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_35" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_36" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_37" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_38" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_39" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_40" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_41" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_42" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_43" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_44" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_45" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_46" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_47" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_48" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_49" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_50" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_51" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_52" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_53" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_54" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_55" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_56" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_57" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_58" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_59" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_60" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_61" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_62" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_63" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_64" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_65" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_66" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_67" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_68" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_69" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_70" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_71" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_72" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_73" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_74" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_75" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_76" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_77" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_78" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_79" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_80" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_81" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_82" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_83" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_84" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_85" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_86" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_87" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_88" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_89" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_90" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_91" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_92" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_93" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_94" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_95" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_96" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_97" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_98" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_99" for table "dtm_plpg_foo"
+NOTICE:  CREATE TABLE will create partition "dtm_plpg_foo_1_prt_p1_100" for table "dtm_plpg_foo"
+DECLARE c0 CURSOR WITH HOLD FOR SELECT * FROM dtm_plpg_foo;
+INSERT INTO dtm_plpg_foo SELECT * FROM dtm_plpg_foo LIMIT 10000;
+FETCH c0;
+ c_custkey | c_name | c_address 
+-----------+--------+-----------
+(0 rows)
+
+CLOSE c0;
+COMMIT;
+--
+-- Sequence server test for an extended query
+--
+CREATE OR REPLACE function parse_arr (p_array text)
+	returns int[] IMMUTABLE
+	AS $dbvis$
+	declare
+		v_return int[][];
+		v_text text;
+		v_first int; 
+	BEGIN
+		if p_array is null 
+		then 
+			return null;
+		end if;  
+
+		v_first := 1;
+		for v_text in
+			select unnest(string_to_array(p_array, ';'))
+		loop 
+			v_return := v_return || ARRAY[(string_to_array(regexp_replace(v_text, '[)( ]', '', 'g'), ',')::int[])];
+		end loop;
+   
+		RETURN v_return;
+	END; 
+$dbvis$ LANGUAGE plpgsql;
+CREATE TABLE test_parse_arr (a bigserial, b int[]);
+NOTICE:  CREATE TABLE will create implicit sequence "test_parse_arr_a_seq" for serial column "test_parse_arr.a"
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Greenplum Database data distribution key for this table.
+HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
+INSERT INTO test_parse_arr (b)
+	SELECT parse_arr(x) FROM 
+				(    
+				  SELECT '(1, 2, 3)' AS x 
+				  UNION ALL
+				  SELECT NULL 
+				) AS q;
+SELECT * FROM test_parse_arr ORDER BY a;
+ a |     b     
+---+-----------
+ 1 | {{1,2,3}}
+ 2 | 
+(2 rows)
+
+--
+-- Test if sequence server information outlives a plpgsql exception and corresponding subtransaction rollback (MPP-25193)
+--
+CREATE OR REPLACE FUNCTION date_converter(input_date character varying) RETURNS date
+    AS $$
+declare
+ v_date date;
+BEGIN
+	return input_date::date;
+exception
+	when others then
+		return '1900-01-01';
+END;
+$$
+LANGUAGE plpgsql SECURITY DEFINER;
+drop table if exists source_table;
+NOTICE:  table "source_table" does not exist, skipping
+CREATE TABLE source_table
+(
+id int,
+created text
+);
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'id' as the Greenplum Database data distribution key for this table.
+HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
+insert into source_table select generate_series(1,10), '2015-01-06'::date;
+insert into source_table values (11, '0000-00-00');
+insert into source_table select generate_series(12,21), '2015-01-06'::date;
+CREATE SEQUENCE test_seq START 1;
+drop table if exists dest_table;
+NOTICE:  table "dest_table" does not exist, skipping
+CREATE TABLE dest_table
+(
+id int,
+created timestamp with time zone
+);
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'id' as the Greenplum Database data distribution key for this table.
+HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
+insert into dest_table select nextval('test_seq'::regclass), date_converter(created) from source_table;
+select count(1) from dest_table;
+ count 
+-------
+    21
+(1 row)
+
+drop table dest_table;
+drop sequence test_seq;
+drop table source_table;
+drop FUNCTION date_converter(input_date character varying);

@@ -1,6 +1,6 @@
 # PGXS: PostgreSQL extensions makefile
 
-# $PostgreSQL: pgsql/src/makefiles/pgxs.mk,v 1.9 2006/07/21 00:24:04 tgl Exp $ 
+# $PostgreSQL: pgsql/src/makefiles/pgxs.mk,v 1.15 2008/10/03 08:00:16 petere Exp $ 
 
 # This file contains generic rules to build many kinds of simple
 # extension modules.  You only need to set a few variables and include
@@ -11,7 +11,8 @@
 #   [variable assignments, see below]
 #   [custom rules, rarely necessary]
 #
-#   PGXS := $(shell pg_config --pgxs)
+#   PG_CONFIG = pg_config
+#   PGXS := $(shell $(PG_CONFIG) --pgxs)
 #   include $(PGXS)
 #
 # The following variables can be set:
@@ -38,6 +39,9 @@
 #   PG_CPPFLAGS -- will be added to CPPFLAGS
 #   PG_LIBS -- will be added to PROGRAM link line
 #   SHLIB_LINK -- will be added to MODULE_big link line
+#   PG_CONFIG -- path to pg_config program for the PostgreSQL installation
+#     to build against (typically just "pg_config" to use the first one in
+#     your PATH)
 #
 # Better look at some of the existing uses for examples...
 
@@ -75,10 +79,6 @@ all: $(PROGRAM) $(DATA_built) $(SCRIPTS_built) $(addsuffix $(DLSUFFIX), $(MODULE
 ifdef MODULE_big
 # shared library parameters
 NAME = $(MODULE_big)
-SO_MAJOR_VERSION= 0
-SO_MINOR_VERSION= 0
-
-SHLIB_LINK += $(BE_DLLLIBS)
 
 include $(top_srcdir)/src/Makefile.shlib
 
@@ -110,9 +110,6 @@ endif # DOCS
 ifdef PROGRAM
 	$(INSTALL_PROGRAM) $(PROGRAM)$(X) '$(DESTDIR)$(bindir)'
 endif # PROGRAM
-ifdef MODULE_big
-	$(INSTALL_SHLIB) $(shlib) '$(DESTDIR)$(pkglibdir)/$(MODULE_big)$(DLSUFFIX)'
-endif # MODULE_big
 ifdef SCRIPTS
 	@for file in $(addprefix $(srcdir)/, $(SCRIPTS)); do \
 	  echo "$(INSTALL_SCRIPT) $$file '$(DESTDIR)$(bindir)'"; \
@@ -126,22 +123,29 @@ ifdef SCRIPTS_built
 	done
 endif # SCRIPTS_built
 
+ifdef MODULE_big
+install: install-lib
+endif # MODULE_big
 
 installdirs:
 ifneq (,$(DATA)$(DATA_built))
-	$(mkinstalldirs) '$(DESTDIR)$(datadir)/contrib'
+	$(MKDIR_P) '$(DESTDIR)$(datadir)/contrib'
 endif
-ifneq (,$(MODULES)$(MODULE_big))
-	$(mkinstalldirs) '$(DESTDIR)$(pkglibdir)'
+ifneq (,$(MODULES))
+	$(MKDIR_P) '$(DESTDIR)$(pkglibdir)'
 endif
 ifdef DOCS
 ifdef docdir
-	$(mkinstalldirs) '$(DESTDIR)$(docdir)/contrib'
+	$(MKDIR_P) '$(DESTDIR)$(docdir)/contrib'
 endif # docdir
 endif # DOCS
 ifneq (,$(PROGRAM)$(SCRIPTS)$(SCRIPTS_built))
-	$(mkinstalldirs) '$(DESTDIR)$(bindir)'
+	$(MKDIR_P) '$(DESTDIR)$(bindir)'
 endif
+
+ifdef MODULE_big
+installdirs: installdirs-lib
+endif # MODULE_big
 
 
 uninstall:
@@ -157,15 +161,16 @@ endif
 ifdef PROGRAM
 	rm -f '$(DESTDIR)$(bindir)/$(PROGRAM)$(X)'
 endif
-ifdef MODULE_big
-	rm -f '$(DESTDIR)$(pkglibdir)/$(MODULE_big)$(DLSUFFIX)'
-endif
 ifdef SCRIPTS
 	rm -f $(addprefix '$(DESTDIR)$(bindir)'/, $(SCRIPTS))
 endif
 ifdef SCRIPTS_built
 	rm -f $(addprefix '$(DESTDIR)$(bindir)'/, $(SCRIPTS_built))
 endif
+
+ifdef MODULE_big
+uninstall: uninstall-lib
+endif # MODULE_big
 
 
 clean:
@@ -213,16 +218,16 @@ endif
 # where to find psql for running the tests
 PSQLDIR = $(bindir)
 
-# When doing a VPATH build, must copy over the test .sql and .out
-# files so that the driver script can find them.  We have to use an
-# absolute path for the targets, because otherwise make will try to
-# locate the missing files using VPATH, and will find them in
-# $(srcdir), but the point here is that we want to copy them from
-# $(srcdir) to the build directory.
+# When doing a VPATH build, must copy over the data files so that the
+# driver script can find them.  We have to use an absolute path for
+# the targets, because otherwise make will try to locate the missing
+# files using VPATH, and will find them in $(srcdir), but the point
+# here is that we want to copy them from $(srcdir) to the build
+# directory.
 
 ifdef VPATH
 abs_builddir := $(shell pwd)
-test_files_src := $(wildcard $(srcdir)/sql/*.sql) $(wildcard $(srcdir)/expected/*.out) $(wildcard $(srcdir)/data/*.data)
+test_files_src := $(wildcard $(srcdir)/data/*.data)
 test_files_build := $(patsubst $(srcdir)/%, $(abs_builddir)/%, $(test_files_src))
 
 all: $(test_files_build)

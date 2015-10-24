@@ -3,18 +3,18 @@
  * pl_handler.c		- Handler for the PL/pgSQL
  *			  procedural language
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2008, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/pl/plpgsql/src/pl_handler.c,v 1.33 2006/10/19 18:32:48 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/pl/plpgsql/src/pl_handler.c,v 1.33.2.2 2007/01/30 22:05:20 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
 
 #include "plpgsql.h"
-#include "pl.tab.h"
+#include "pl_gram.h"
 
 #include "access/heapam.h"
 #include "catalog/pg_proc.h"
@@ -46,6 +46,7 @@ _PG_init(void)
 
 	plpgsql_HashTableInit();
 	RegisterXactCallback(plpgsql_xact_cb, NULL);
+	RegisterSubXactCallback(plpgsql_subxact_cb, NULL);
 
 	/* Set up a rendezvous point with optional instrumentation plugin */
 	plugin_ptr = (PLpgSQL_plugin **) find_rendezvous_variable("PLpgSQL_plugin");
@@ -78,15 +79,30 @@ plpgsql_call_handler(PG_FUNCTION_ARGS)
 	/* Find or compile the function */
 	func = plpgsql_compile(fcinfo, false);
 
-	/*
-	 * Determine if called as function or trigger and call appropriate
-	 * subhandler
-	 */
-	if (CALLED_AS_TRIGGER(fcinfo))
-		retval = PointerGetDatum(plpgsql_exec_trigger(func,
+	/* Mark the function as busy, so it can't be deleted from under us */
+	func->use_count++;
+
+	PG_TRY();
+	{
+		/*
+		 * Determine if called as function or trigger and call appropriate
+		 * subhandler
+		 */
+		if (CALLED_AS_TRIGGER(fcinfo))
+			retval = PointerGetDatum(plpgsql_exec_trigger(func,
 										   (TriggerData *) fcinfo->context));
-	else
-		retval = plpgsql_exec_function(func, fcinfo);
+		else
+			retval = plpgsql_exec_function(func, fcinfo);
+	}
+	PG_CATCH();
+	{
+		/* Decrement use-count and propagate error */
+		func->use_count--;
+		PG_RE_THROW();
+	}
+	PG_END_TRY();
+
+	func->use_count--;
 
 	/*
 	 * Disconnect from SPI manager
@@ -120,6 +136,9 @@ plpgsql_validator(PG_FUNCTION_ARGS)
 	bool		istrigger = false;
 	int			i;
 
+	if (!CheckFunctionValidatorAccess(fcinfo->flinfo->fn_oid, funcoid))
+		PG_RETURN_VOID();
+
 	/* Get the new function's pg_proc entry */
 	tuple = SearchSysCache(PROCOID,
 						   ObjectIdGetDatum(funcoid),
@@ -131,8 +150,8 @@ plpgsql_validator(PG_FUNCTION_ARGS)
 	functyptype = get_typtype(proc->prorettype);
 
 	/* Disallow pseudotype result */
-	/* except for TRIGGER, RECORD, VOID, ANYARRAY, or ANYELEMENT */
-	if (functyptype == 'p')
+	/* except for TRIGGER, RECORD, VOID, or polymorphic */
+	if (functyptype == TYPTYPE_PSEUDO)
 	{
 		/* we assume OPAQUE with no arguments means a trigger */
 		if (proc->prorettype == TRIGGEROID ||
@@ -144,23 +163,23 @@ plpgsql_validator(PG_FUNCTION_ARGS)
 				 proc->prorettype != ANYELEMENTOID)
 			ereport(ERROR,
 					(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
-					 errmsg("plpgsql functions cannot return type %s",
+					 errmsg("PL/pgSQL functions cannot return type %s",
 							format_type_be(proc->prorettype))));
 	}
 
 	/* Disallow pseudotypes in arguments (either IN or OUT) */
-	/* except for ANYARRAY or ANYELEMENT */
+	/* except for polymorphic */
 	numargs = get_func_arg_info(tuple,
 								&argtypes, &argnames, &argmodes);
 	for (i = 0; i < numargs; i++)
 	{
-		if (get_typtype(argtypes[i]) == 'p')
+		if (get_typtype(argtypes[i]) == TYPTYPE_PSEUDO)
 		{
 			if (argtypes[i] != ANYARRAYOID &&
 				argtypes[i] != ANYELEMENTOID)
 				ereport(ERROR,
 						(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
-						 errmsg("plpgsql functions cannot take type %s",
+						 errmsg("PL/pgSQL functions cannot accept type %s",
 								format_type_be(argtypes[i]))));
 		}
 	}

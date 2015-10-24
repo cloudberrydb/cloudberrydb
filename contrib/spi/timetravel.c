@@ -1,18 +1,22 @@
 /*
+ * $PostgreSQL: pgsql/contrib/spi/timetravel.c,v 1.31 2009/06/11 14:48:52 momjian Exp $
+ *
+ *
  * timetravel.c --	function to get time travel feature
  *		using general triggers.
+ *
+ * Modified by Bï¿½JTHE Zoltï¿½n, Hungary, mailto:urdesobt@axelero.hu
  */
+#include "postgres.h"
 
-/* Modified by BÖJTHE Zoltán, Hungary, mailto:urdesobt@axelero.hu */
+#include <ctype.h>
 
-#include "executor/spi.h"		/* this is what you need to work with SPI */
-#include "commands/trigger.h"	/* -"- and triggers */
-#include "miscadmin.h"			/* for GetPgUserName() */
+#include "catalog/pg_type.h"
+#include "commands/trigger.h"
+#include "executor/spi.h"
+#include "miscadmin.h"
+#include "utils/builtins.h"
 #include "utils/nabstime.h"
-
-#include <ctype.h>				/* tolower () */
-
-#define ABSTIMEOID	702			/* it should be in pg_type.h */
 
 PG_MODULE_MAGIC;
 
@@ -24,8 +28,8 @@ Datum		get_timetravel(PG_FUNCTION_ARGS);
 typedef struct
 {
 	char	   *ident;
-	void	   *splan;
-}	EPlan;
+	SPIPlanPtr	splan;
+} EPlan;
 
 static EPlan *Plans = NULL;		/* for UPDATE/DELETE */
 static int	nPlans = 0;
@@ -34,12 +38,12 @@ typedef struct _TTOffList
 {
 	struct _TTOffList *next;
 	char		name[1];
-}	TTOffList;
+} TTOffList;
 
 static TTOffList TTOff = {NULL, {0}};
 
 static int	findTTStatus(char *name);
-static EPlan *find_plan(char *ident, EPlan ** eplan, int *nplans);
+static EPlan *find_plan(char *ident, EPlan **eplan, int *nplans);
 
 /*
  * timetravel () --
@@ -115,7 +119,7 @@ timetravel(PG_FUNCTION_ARGS)
 
 	/* Should be called for ROW trigger */
 	if (TRIGGER_FIRED_FOR_STATEMENT(trigdata->tg_event))
-		elog(ERROR, "timetravel: can't process STATEMENT events");
+		elog(ERROR, "timetravel: cannot process STATEMENT events");
 
 	/* Should be called BEFORE */
 	if (TRIGGER_FIRED_AFTER(trigdata->tg_event))
@@ -172,7 +176,7 @@ timetravel(PG_FUNCTION_ARGS)
 	}
 
 	/* create fields containing name */
-	newuser = DirectFunctionCall1(textin, CStringGetDatum(GetUserNameFromId(GetUserId())));
+	newuser = CStringGetTextDatum(GetUserNameFromId(GetUserId()));
 
 	nulltext = (Datum) NULL;
 
@@ -261,7 +265,7 @@ timetravel(PG_FUNCTION_ARGS)
 			elog(ERROR, "timetravel (%s): %s must be NOT NULL", relname, args[a_time_off]);
 
 		if (oldtimeon != newtimeon || oldtimeoff != newtimeoff)
-			elog(ERROR, "timetravel (%s): you can't change %s and/or %s columns (use set_timetravel)",
+			elog(ERROR, "timetravel (%s): you cannot change %s and/or %s columns (use set_timetravel)",
 				 relname, args[a_time_on], args[a_time_off]);
 	}
 	if (oldtimeoff != NOEND_ABSTIME)
@@ -308,7 +312,7 @@ timetravel(PG_FUNCTION_ARGS)
 	/* if there is no plan ... */
 	if (plan->splan == NULL)
 	{
-		void	   *pplan;
+		SPIPlanPtr	pplan;
 		Oid		   *ctypes;
 		char		sql[8192];
 		char		separ = ' ';
@@ -513,7 +517,7 @@ currabstime()
 */
 
 static EPlan *
-find_plan(char *ident, EPlan ** eplan, int *nplans)
+find_plan(char *ident, EPlan **eplan, int *nplans)
 {
 	EPlan	   *newp;
 	int			i;

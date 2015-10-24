@@ -3,13 +3,13 @@
  * kill.c
  *	  kill()
  *
- * Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Copyright (c) 1996-2010, PostgreSQL Global Development Group
  *
  *	This is a replacement version of kill for Win32 which sends
  *	signals that the backend can recognize.
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/port/kill.c,v 1.7 2006/03/05 15:59:10 momjian Exp $
+ *	  $PostgreSQL: pgsql/src/port/kill.c,v 1.14 2010/01/31 17:18:28 mha Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -38,24 +38,25 @@ pgkill(int pid, int sig)
 		errno = EINVAL;
 		return -1;
 	}
-	wsprintf(pipename, "\\\\.\\pipe\\pgsignal_%i", pid);
-	if (!CallNamedPipe(pipename, &sigData, 1, &sigRet, 1, &bytes, 1000))
+	snprintf(pipename, sizeof(pipename), "\\\\.\\pipe\\pgsignal_%u", pid);
+
+	if (CallNamedPipe(pipename, &sigData, 1, &sigRet, 1, &bytes, 1000))
 	{
-		if (GetLastError() == ERROR_FILE_NOT_FOUND)
+		if (bytes != 1 || sigRet != sig)
+		{
 			errno = ESRCH;
-		else if (GetLastError() == ERROR_ACCESS_DENIED)
-			errno = EPERM;
-		else
-			errno = EINVAL;
-		return -1;
-	}
-	if (bytes != 1 || sigRet != sig)
-	{
-		errno = ESRCH;
-		return -1;
+			return -1;
+		}
+		return 0;
 	}
 
-	return 0;
+	if (GetLastError() == ERROR_FILE_NOT_FOUND)
+		errno = ESRCH;
+	else if (GetLastError() == ERROR_ACCESS_DENIED)
+		errno = EPERM;
+	else
+		errno = EINVAL;
+	return -1;
 }
 
 #endif

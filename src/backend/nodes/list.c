@@ -4,7 +4,7 @@
  *	  implementation for PostgreSQL generic linked list package
  *
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -382,7 +382,7 @@ list_truncate(List *list, int new_size)
  * Locate the n'th cell (counting from 0) of the list.  It is an assertion
  * failure if there is no such cell.
  */
-static ListCell *
+ListCell *
 list_nth_cell(List *list, int n)
 {
 	ListCell   *match;
@@ -400,6 +400,21 @@ list_nth_cell(List *list, int n)
 		;
 
 	return match;
+}
+
+/**
+ * Replace the n-th data pointer in the list with newvalue.
+ * Returns oldvalue. Assumes that n is a valid offset.
+ */
+void *
+list_nth_replace(List *list, int n, void *new_data)
+{
+	ListCell *lc = NULL;
+	lc = list_nth_cell(list, n);
+	Assert(lc);
+	void *old_data = lc->data.ptr_value;
+	lc->data.ptr_value = new_data;
+	return old_data;
 }
 
 /*
@@ -435,6 +450,77 @@ list_nth_oid(List *list, int n)
 	return lfirst_oid(list_nth_cell(list, n));
 }
 
+/* 
+ * find if datum's position in list (0 based).  If not in list return -1.
+ * find predicate is equal(), int==, oid==, ptr== respecitively.
+ */
+int list_find(List *list, void *datum)
+{
+	ListCell *cell;
+	int i = 0;
+
+	check_list_invariants(list);
+
+	foreach(cell, list)
+	{
+		if(equal(lfirst(cell), datum))
+			return i; 
+		++i;
+	}
+	return -1;
+}
+
+int list_find_int(List *list, int datum)
+{
+	ListCell *cell;
+	int i = 0;
+
+	Assert(IsIntegerList(list));
+	check_list_invariants(list);
+
+	foreach(cell, list)
+	{
+		if(lfirst_int(cell) == datum)
+			return i; 
+		++i;
+	}
+	return -1;
+}
+
+int list_find_oid(List *list, Oid datum)
+{
+	ListCell *cell;
+	int i = 0;
+
+	Assert(IsOidList(list));
+	check_list_invariants(list);
+
+	foreach(cell, list)
+	{
+		if(lfirst_oid(cell) == datum)
+			return i; 
+		++i;
+	}
+	return -1;
+}
+
+int list_find_ptr(List *list, void *datum)
+{
+	ListCell *cell;
+	int i = 0;
+
+	Assert(IsPointerList(list));
+	check_list_invariants(list);
+
+	foreach(cell, list)
+	{
+		if(lfirst(cell) == datum)
+			return i; 
+		++i;
+	}
+	return -1;
+}
+
 /*
  * Return true iff 'datum' is a member of the list. Equality is
  * determined via equal(), so callers should ensure that they pass a
@@ -456,7 +542,6 @@ list_member(List *list, void *datum)
 
 	return false;
 }
-
 /*
  * Return true iff 'datum' is a member of the list. Equality is
  * determined by using simple pointer comparison.
@@ -777,6 +862,42 @@ list_union_oid(List *list1, List *list2)
 	{
 		if (!list_member_oid(result, lfirst_oid(cell)))
 			result = lappend_oid(result, lfirst_oid(cell));
+	}
+
+	check_list_invariants(result);
+	return result;
+}
+
+/*
+ * Return a list that contains all the cells that are in both list1 and
+ * list2.  The returned list is freshly allocated via palloc(), but the
+ * cells themselves point to the same objects as the cells of the
+ * input lists.
+ *
+ * Duplicate entries in list1 will not be suppressed, so it's only a true
+ * "intersection" if list1 is known unique beforehand.
+ *
+ * This variant works on lists of pointers, and determines list
+ * membership via equal().	Note that the list1 member will be pointed
+ * to in the result.
+ */
+List *
+list_intersection(List *list1, List *list2)
+{
+	List	   *result;
+	ListCell   *cell;
+
+	if (list1 == NIL || list2 == NIL)
+		return NIL;
+
+	Assert(IsPointerList(list1));
+	Assert(IsPointerList(list2));
+
+	result = NIL;
+	foreach(cell, list1)
+	{
+		if (list_member(list2, lfirst(cell)))
+			result = lappend(result, lfirst(cell));
 	}
 
 	check_list_invariants(result);

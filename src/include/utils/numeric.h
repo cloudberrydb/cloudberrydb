@@ -5,9 +5,9 @@
  *
  * Original coding 1998, Jan Wieck.  Heavily revised 2003, Tom Lane.
  *
- * Copyright (c) 1998-2006, PostgreSQL Global Development Group
+ * Copyright (c) 1998-2008, PostgreSQL Global Development Group
  *
- * $PostgreSQL: pgsql/src/include/utils/numeric.h,v 1.22 2006/07/11 13:54:24 momjian Exp $
+ * $PostgreSQL: pgsql/src/include/utils/numeric.h,v 1.23 2007/01/05 22:19:59 momjian Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -62,7 +62,7 @@
  */
 typedef struct NumericData
 {
-	int32		varlen;			/* Variable size (std varlena header) */
+	int32		vl_len_;		/* varlena header (do not touch directly!) */
 	int16		n_weight;		/* Weight of 1st digit	*/
 	uint16		n_sign_dscale;	/* Sign + display scale */
 	char		n_data[1];		/* Digits (really array of NumericDigit) */
@@ -70,7 +70,7 @@ typedef struct NumericData
 
 typedef NumericData *Numeric;
 
-#define NUMERIC_HDRSZ	(sizeof(int32) + sizeof(int16) + sizeof(uint16))
+#define NUMERIC_HDRSZ	(VARHDRSZ + sizeof(uint16) + sizeof(int16))
 
 
 /*
@@ -83,5 +83,10 @@ typedef NumericData *Numeric;
 #define PG_GETARG_NUMERIC(n)	  DatumGetNumeric(PG_GETARG_DATUM(n))
 #define PG_GETARG_NUMERIC_COPY(n) DatumGetNumericCopy(PG_GETARG_DATUM(n))
 #define PG_RETURN_NUMERIC(x)	  return NumericGetDatum(x)
+extern double numeric_to_double_no_overflow(Numeric num);
+extern int cmp_numerics(Numeric num1, Numeric num2);
+extern float8 numeric_li_fraction(Numeric x, Numeric x0, Numeric x1, 
+								  bool *eq_bounds, bool *eq_abscissas);
+extern Numeric numeric_li_value(float8 f, Numeric y0, Numeric y1);
 
 #endif   /* _PG_NUMERIC_H_ */

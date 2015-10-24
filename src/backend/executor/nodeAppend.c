@@ -3,7 +3,7 @@
  * nodeAppend.c
  *	  routines to handle append nodes.
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2008, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -57,6 +57,7 @@
 
 #include "postgres.h"
 
+#include "cdb/cdbvars.h"
 #include "executor/execdebug.h"
 #include "executor/nodeAppend.h"
 
@@ -122,6 +123,35 @@ exec_append_initialize_next(AppendState *appendstate)
 	}
 }
 
+static bool append_need_prj(Append *node)
+{
+	ListCell *lc;
+	int attno=1;
+
+	if(!node->isZapped)
+		return false;
+
+	if(node->plan.qual)
+		return true;
+
+	foreach(lc, node->plan.targetlist)
+	{
+		Var *var;
+		TargetEntry *te = (TargetEntry *) lfirst(lc);
+		if(!IsA(te->expr, Var))
+			return true;
+		
+		var = (Var *) te->expr;
+
+		if(var->varattno != attno)
+			return true;
+
+		++attno;
+	}
+			
+	return false;
+}
+		
 /* ----------------------------------------------------------------
  *		ExecInitAppend
  *
@@ -148,6 +178,8 @@ ExecInitAppend(Append *node, EState *estate, int eflags)
 
 	/* check for unsupported flags */
 	Assert(!(eflags & EXEC_FLAG_MARK));
+
+	appendstate->eflags = eflags;
 
 	/*
 	 * Set up empty vector of subplan states
@@ -201,17 +233,21 @@ ExecInitAppend(Append *node, EState *estate, int eflags)
 	ExecInitResultTupleSlot(estate, &appendstate->ps);
 
 	/*
-	 * call ExecInitNode on each of the plans to be executed and save the
-	 * results into the array "appendplans".  Note we *must* set
-	 * estate->es_result_relation_info correctly while we initialize each
-	 * sub-plan; ExecContextForcesOids depends on that!
+	 * Initialize the subplan nodes.
 	 */
 	for (i = appendstate->as_firstplan; i <= appendstate->as_lastplan; i++)
 	{
+		initNode = (Plan *) list_nth(node->appendplans, i);
+
+		/*
+		 * call ExecInitNode on each of the plans to be executed and save the
+		 * results into the array "appendplans".  Note we *must* set
+		 * estate->es_result_relation_info correctly while we initialize each
+		 * sub-plan; ExecContextForcesOids depends on that!
+		 */
 		appendstate->as_whichplan = i;
 		exec_append_initialize_next(appendstate);
-
-		initNode = (Plan *) list_nth(node->appendplans, i);
+		
 		appendplanstates[i] = ExecInitNode(initNode, estate, eflags);
 	}
 
@@ -222,7 +258,23 @@ ExecInitAppend(Append *node, EState *estate, int eflags)
 	 * look the same.)
 	 */
 	ExecAssignResultTypeFromTL(&appendstate->ps);
-	appendstate->ps.ps_ProjInfo = NULL;
+
+	/* 
+	 * determine if need project 
+	 */
+	if(!node->isTarget && append_need_prj(node))
+	{
+		ExecAssignExprContext(estate, &appendstate->ps);
+		appendstate->ps.targetlist = (List *)
+			ExecInitExpr((Expr *) node->plan.targetlist, (PlanState *) appendstate);
+		appendstate->ps.qual = (List *)
+			ExecInitExpr((Expr *) node->plan.qual, (PlanState *) appendstate);
+		ExecAssignProjectionInfo(&appendstate->ps, NULL);
+	}
+	else
+	{
+		appendstate->ps.ps_ProjInfo = NULL;
+	}
 
 	/*
 	 * return the result from the first subplan's initialization
@@ -230,6 +282,8 @@ ExecInitAppend(Append *node, EState *estate, int eflags)
 	appendstate->as_whichplan = appendstate->as_firstplan;
 	exec_append_initialize_next(appendstate);
 
+	initGpmonPktForAppend((Plan *)node, &appendstate->ps.gpmon_pkt, estate);
+	
 	return appendstate;
 }
 
@@ -263,6 +317,8 @@ ExecAppend(AppendState *node)
 		 */
 		subnode = node->appendplans[node->as_whichplan];
 
+		Assert(subnode != NULL);
+
 		/*
 		 * get a tuple from the subplan
 		 */
@@ -270,6 +326,25 @@ ExecAppend(AppendState *node)
 
 		if (!TupIsNull(result))
 		{
+
+			if(node->ps.ps_ProjInfo != NULL)
+			{
+				ExprContext *econtext = node->ps.ps_ExprContext;
+				ExprDoneCond isDone;
+
+				ResetExprContext(econtext);
+
+				node->ps.ps_OuterTupleSlot = result;
+
+				/*
+				 * XXX gross hack. use outer tuple as scan tuple for projection
+				 */
+				econtext->ecxt_outertuple = result;
+				econtext->ecxt_scantuple = result;
+
+				result = ExecProject(node->ps.ps_ProjInfo, &isDone);
+			}
+
 			/*
 			 * If the subplan gave us something then return it as-is. We do
 			 * NOT make use of the result slot that was set up in
@@ -277,8 +352,11 @@ ExecAppend(AppendState *node)
 			 * because it may have the wrong tuple descriptor in
 			 * inherited-UPDATE cases.
 			 */
+			Gpmon_M_Incr_Rows_Out(GpmonPktFromAppendState(node));
+			CheckSendPlanStateGpmonPkt(&node->ps);
 			return result;
 		}
+
 
 		/*
 		 * Go on to the "next" subplan in the appropriate direction. If no
@@ -289,6 +367,10 @@ ExecAppend(AppendState *node)
 			node->as_whichplan++;
 		else
 			node->as_whichplan--;
+
+		Gpmon_M_Incr(GpmonPktFromAppendState(node), GPMON_APPEND_CURRTABLE); 
+		CheckSendPlanStateGpmonPkt(&node->ps);
+
 		if (!exec_append_initialize_next(node))
 			return ExecClearTuple(node->ps.ps_ResultTupleSlot);
 
@@ -320,11 +402,13 @@ ExecEndAppend(AppendState *node)
 	/*
 	 * shut down each of the subscans (that we've initialized)
 	 */
-	for (i = 0; i < nplans; i++)
+	for (i = nplans-1; i >= 0; --i) 
 	{
 		if (appendplans[i])
 			ExecEndNode(appendplans[i]);
 	}
+
+	EndPlanStateGpmonPkt(&node->ps);
 }
 
 void
@@ -359,4 +443,26 @@ ExecReScanAppend(AppendState *node, ExprContext *exprCtxt)
 	}
 	node->as_whichplan = node->as_firstplan;
 	exec_append_initialize_next(node);
+}
+
+void
+initGpmonPktForAppend(Plan *planNode, gpmon_packet_t *gpmon_pkt, EState *estate)
+{
+	int last_plan;
+	Assert(planNode != NULL && gpmon_pkt != NULL && IsA(planNode, Append));
+
+	last_plan = list_length(((Append*)planNode)->appendplans) - 1;
+
+	if (((Append*)planNode)->isTarget && estate->es_evTuple != NULL)
+	{
+		last_plan = estate->es_result_relation_info - estate->es_result_relations;
+		Assert(last_plan >= 0 && last_plan < list_length(((Append*)planNode)->appendplans));
+	}
+
+	{
+		Assert(GPMON_APPEND_TOTAL <= (int)GPMON_QEXEC_M_COUNT);
+		InitPlanNodeGpmonPkt(planNode, gpmon_pkt, estate, PMNT_Append,
+							  (int64)planNode->plan_rows,
+							  NULL);
+	}
 }

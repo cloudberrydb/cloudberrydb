@@ -1,9 +1,7 @@
 /*
  * conversion functions between pg_wchar and multibyte streams.
  * Tatsuo Ishii
- * $PostgreSQL: pgsql/src/backend/utils/mb/wchar.c,v 1.58 2006/10/04 00:30:02 momjian Exp $
- *
- * WIN1250 client encoding updated by Pavel Behal
+ * $PostgreSQL: pgsql/src/backend/utils/mb/wchar.c,v 1.74 2010/01/04 20:38:31 adunstan Exp $
  *
  */
 /* can be used in either frontend or backend */
@@ -40,8 +38,7 @@
  * SQL/ASCII
  */
 static int
-			pg_ascii2wchar_with_len
-			(const unsigned char *from, pg_wchar *to, int len)
+pg_ascii2wchar_with_len(const unsigned char *from, pg_wchar *to, int len)
 {
 	int			cnt = 0;
 
@@ -75,8 +72,8 @@ pg_ascii_dsplen(const unsigned char *s)
 /*
  * EUC
  */
-static int	pg_euc2wchar_with_len
-			(const unsigned char *from, pg_wchar *to, int len)
+static int
+pg_euc2wchar_with_len(const unsigned char *from, pg_wchar *to, int len)
 {
 	int			cnt = 0;
 
@@ -150,8 +147,8 @@ pg_euc_dsplen(const unsigned char *s)
 /*
  * EUC_JP
  */
-static int	pg_eucjp2wchar_with_len
-			(const unsigned char *from, pg_wchar *to, int len)
+static int
+pg_eucjp2wchar_with_len(const unsigned char *from, pg_wchar *to, int len)
 {
 	return pg_euc2wchar_with_len(from, to, len);
 }
@@ -181,8 +178,8 @@ pg_eucjp_dsplen(const unsigned char *s)
 /*
  * EUC_KR
  */
-static int	pg_euckr2wchar_with_len
-			(const unsigned char *from, pg_wchar *to, int len)
+static int
+pg_euckr2wchar_with_len(const unsigned char *from, pg_wchar *to, int len)
 {
 	return pg_euc2wchar_with_len(from, to, len);
 }
@@ -203,8 +200,8 @@ pg_euckr_dsplen(const unsigned char *s)
  * EUC_CN
  *
  */
-static int	pg_euccn2wchar_with_len
-			(const unsigned char *from, pg_wchar *to, int len)
+static int
+pg_euccn2wchar_with_len(const unsigned char *from, pg_wchar *to, int len)
 {
 	int			cnt = 0;
 
@@ -270,8 +267,8 @@ pg_euccn_dsplen(const unsigned char *s)
  * EUC_TW
  *
  */
-static int	pg_euctw2wchar_with_len
-			(const unsigned char *from, pg_wchar *to, int len)
+static int
+pg_euctw2wchar_with_len(const unsigned char *from, pg_wchar *to, int len)
 {
 	int			cnt = 0;
 
@@ -280,7 +277,7 @@ static int	pg_euctw2wchar_with_len
 		if (*from == SS2 && len >= 4)	/* code set 2 */
 		{
 			from++;
-			*to = (SS2 << 24) | (*from++ << 16);
+			*to = (((uint32) SS2) << 24) | (*from++ << 16);
 			*to |= *from++ << 8;
 			*to |= *from++;
 			len -= 4;
@@ -346,12 +343,6 @@ pg_euctw_dsplen(const unsigned char *s)
  * JOHAB
  */
 static int
-pg_johab2wchar_with_len(const unsigned char *from, pg_wchar *to, int len)
-{
-	return pg_euc2wchar_with_len(from, to, len);
-}
-
-static int
 pg_johab_mblen(const unsigned char *s)
 {
 	return pg_euc_mblen(s);
@@ -364,46 +355,60 @@ pg_johab_dsplen(const unsigned char *s)
 }
 
 /*
- * convert UTF8 string to pg_wchar (UCS-2)
- * caller should allocate enough space for "to"
+ * convert UTF8 string to pg_wchar (UCS-4)
+ * caller must allocate enough space for "to", including a trailing zero!
  * len: length of from.
  * "from" not necessarily null terminated.
  */
 static int
 pg_utf2wchar_with_len(const unsigned char *from, pg_wchar *to, int len)
 {
-	unsigned char c1,
-				c2,
-				c3;
 	int			cnt = 0;
+	uint32		c1,
+				c2,
+				c3,
+				c4;
 
 	while (len > 0 && *from)
 	{
-		if (!IS_HIGHBIT_SET(*from))
+		if ((*from & 0x80) == 0)
 		{
 			*to = *from++;
 			len--;
 		}
-		else if ((*from & 0xe0) == 0xc0 && len >= 2)
+		else if ((*from & 0xe0) == 0xc0)
 		{
+			if (len < 2)
+				break;			/* drop trailing incomplete char */
 			c1 = *from++ & 0x1f;
 			c2 = *from++ & 0x3f;
-			*to = c1 << 6;
-			*to |= c2;
+			*to = (c1 << 6) | c2;
 			len -= 2;
 		}
-		else if ((*from & 0xe0) == 0xe0 && len >= 3)
+		else if ((*from & 0xf0) == 0xe0)
 		{
+			if (len < 3)
+				break;			/* drop trailing incomplete char */
 			c1 = *from++ & 0x0f;
 			c2 = *from++ & 0x3f;
 			c3 = *from++ & 0x3f;
-			*to = c1 << 12;
-			*to |= c2 << 6;
-			*to |= c3;
+			*to = (c1 << 12) | (c2 << 6) | c3;
 			len -= 3;
+		}
+		else if ((*from & 0xf8) == 0xf0)
+		{
+			if (len < 4)
+				break;			/* drop trailing incomplete char */
+			c1 = *from++ & 0x07;
+			c2 = *from++ & 0x3f;
+			c3 = *from++ & 0x3f;
+			c4 = *from++ & 0x3f;
+			*to = (c1 << 18) | (c2 << 12) | (c3 << 6) | c4;
+			len -= 4;
 		}
 		else
 		{
+			/* treat a bogus char as length 1; not ours to raise error */
 			*to = *from++;
 			len--;
 		}
@@ -414,13 +419,56 @@ pg_utf2wchar_with_len(const unsigned char *from, pg_wchar *to, int len)
 	return cnt;
 }
 
+
 /*
- * returns the byte length of a UTF8 character pointed to by s
+ * Map a Unicode code point to UTF-8.  utf8string must have 4 bytes of
+ * space allocated.
+ */
+unsigned char *
+unicode_to_utf8(pg_wchar c, unsigned char *utf8string)
+{
+	if (c <= 0x7F)
+	{
+		utf8string[0] = c;
+	}
+	else if (c <= 0x7FF)
+	{
+		utf8string[0] = 0xC0 | ((c >> 6) & 0x1F);
+		utf8string[1] = 0x80 | (c & 0x3F);
+	}
+	else if (c <= 0xFFFF)
+	{
+		utf8string[0] = 0xE0 | ((c >> 12) & 0x0F);
+		utf8string[1] = 0x80 | ((c >> 6) & 0x3F);
+		utf8string[2] = 0x80 | (c & 0x3F);
+	}
+	else
+	{
+		utf8string[0] = 0xF0 | ((c >> 18) & 0x07);
+		utf8string[1] = 0x80 | ((c >> 12) & 0x3F);
+		utf8string[2] = 0x80 | ((c >> 6) & 0x3F);
+		utf8string[3] = 0x80 | (c & 0x3F);
+	}
+
+	return utf8string;
+}
+
+
+/*
+ * Return the byte length of a UTF8 character pointed to by s
+ *
+ * Note: in the current implementation we do not support UTF8 sequences
+ * of more than 4 bytes; hence do NOT return a value larger than 4.
+ * We return "1" for any leading byte that is either flat-out illegal or
+ * indicates a length larger than we support.
+ *
+ * pg_utf2wchar_with_len(), utf2ucs(), pg_utf8_islegal(), and perhaps
+ * other places would need to be fixed to change this.
  */
 int
 pg_utf_mblen(const unsigned char *s)
 {
-	int			len = 1;
+	int			len;
 
 	if ((*s & 0x80) == 0)
 		len = 1;
@@ -430,10 +478,14 @@ pg_utf_mblen(const unsigned char *s)
 		len = 3;
 	else if ((*s & 0xf8) == 0xf0)
 		len = 4;
+#ifdef NOT_USED
 	else if ((*s & 0xfc) == 0xf8)
 		len = 5;
 	else if ((*s & 0xfe) == 0xfc)
 		len = 6;
+#endif
+	else
+		len = 1;
 	return len;
 }
 
@@ -596,7 +648,7 @@ utf2ucs(const unsigned char *c)
 		return (pg_wchar) (((c[0] & 0x0f) << 12) |
 						   ((c[1] & 0x3f) << 6) |
 						   (c[2] & 0x3f));
-	else if ((*c & 0xf0) == 0xf0)
+	else if ((*c & 0xf8) == 0xf0)
 		return (pg_wchar) (((c[0] & 0x07) << 18) |
 						   ((c[1] & 0x3f) << 12) |
 						   ((c[2] & 0x3f) << 6) |
@@ -1283,48 +1335,52 @@ pg_utf8_islegal(const unsigned char *source, int length)
 /*
  *-------------------------------------------------------------------
  * encoding info table
+ * XXX must be sorted by the same order as enum pg_enc (in mb/pg_wchar.h)
  *-------------------------------------------------------------------
  */
 pg_wchar_tbl pg_wchar_table[] = {
-	{pg_ascii2wchar_with_len, pg_ascii_mblen, pg_ascii_dsplen, pg_ascii_verifier, 1},	/* 0; PG_SQL_ASCII	*/
-	{pg_eucjp2wchar_with_len, pg_eucjp_mblen, pg_eucjp_dsplen, pg_eucjp_verifier, 3},	/* 1; PG_EUC_JP */
-	{pg_euccn2wchar_with_len, pg_euccn_mblen, pg_euccn_dsplen, pg_euccn_verifier, 3},	/* 2; PG_EUC_CN */
-	{pg_euckr2wchar_with_len, pg_euckr_mblen, pg_euckr_dsplen, pg_euckr_verifier, 3},	/* 3; PG_EUC_KR */
-	{pg_euctw2wchar_with_len, pg_euctw_mblen, pg_euctw_dsplen, pg_euctw_verifier, 3},	/* 4; PG_EUC_TW */
-	{pg_johab2wchar_with_len, pg_johab_mblen, pg_johab_dsplen, pg_johab_verifier, 3},	/* 5; PG_JOHAB */
-	{pg_utf2wchar_with_len, pg_utf_mblen, pg_utf_dsplen, pg_utf8_verifier, 4},	/* 6; PG_UTF8 */
-	{pg_mule2wchar_with_len, pg_mule_mblen, pg_mule_dsplen, pg_mule_verifier, 3},		/* 7; PG_MULE_INTERNAL */
-	{pg_latin12wchar_with_len, pg_latin1_mblen, pg_latin1_dsplen, pg_latin1_verifier, 1},		/* 8; PG_LATIN1 */
-	{pg_latin12wchar_with_len, pg_latin1_mblen, pg_latin1_dsplen, pg_latin1_verifier, 1},		/* 9; PG_LATIN2 */
-	{pg_latin12wchar_with_len, pg_latin1_mblen, pg_latin1_dsplen, pg_latin1_verifier, 1},		/* 10; PG_LATIN3 */
-	{pg_latin12wchar_with_len, pg_latin1_mblen, pg_latin1_dsplen, pg_latin1_verifier, 1},		/* 11; PG_LATIN4 */
-	{pg_latin12wchar_with_len, pg_latin1_mblen, pg_latin1_dsplen, pg_latin1_verifier, 1},		/* 12; PG_LATIN5 */
-	{pg_latin12wchar_with_len, pg_latin1_mblen, pg_latin1_dsplen, pg_latin1_verifier, 1},		/* 13; PG_LATIN6 */
-	{pg_latin12wchar_with_len, pg_latin1_mblen, pg_latin1_dsplen, pg_latin1_verifier, 1},		/* 14; PG_LATIN7 */
-	{pg_latin12wchar_with_len, pg_latin1_mblen, pg_latin1_dsplen, pg_latin1_verifier, 1},		/* 15; PG_LATIN8 */
-	{pg_latin12wchar_with_len, pg_latin1_mblen, pg_latin1_dsplen, pg_latin1_verifier, 1},		/* 16; PG_LATIN9 */
-	{pg_latin12wchar_with_len, pg_latin1_mblen, pg_latin1_dsplen, pg_latin1_verifier, 1},		/* 17; PG_LATIN10 */
-	{pg_latin12wchar_with_len, pg_latin1_mblen, pg_latin1_dsplen, pg_latin1_verifier, 1},		/* 18; PG_WIN1256 */
-	{pg_latin12wchar_with_len, pg_latin1_mblen, pg_latin1_dsplen, pg_latin1_verifier, 1},		/* 19; PG_WIN1258 */
-	{pg_latin12wchar_with_len, pg_latin1_mblen, pg_latin1_dsplen, pg_latin1_verifier, 1},		/* 20; PG_WIN874 */
-	{pg_latin12wchar_with_len, pg_latin1_mblen, pg_latin1_dsplen, pg_latin1_verifier, 1},		/* 21; PG_KOI8 */
-	{pg_latin12wchar_with_len, pg_latin1_mblen, pg_latin1_dsplen, pg_latin1_verifier, 1},		/* 22; PG_WIN1251 */
-	{pg_latin12wchar_with_len, pg_latin1_mblen, pg_latin1_dsplen, pg_latin1_verifier, 1},		/* 22; PG_WIN1252 */
-	{pg_latin12wchar_with_len, pg_latin1_mblen, pg_latin1_dsplen, pg_latin1_verifier, 1},		/* 23; PG_WIN866 */
-	{pg_latin12wchar_with_len, pg_latin1_mblen, pg_latin1_dsplen, pg_latin1_verifier, 1},		/* 24; ISO-8859-5 */
-	{pg_latin12wchar_with_len, pg_latin1_mblen, pg_latin1_dsplen, pg_latin1_verifier, 1},		/* 25; ISO-8859-6 */
-	{pg_latin12wchar_with_len, pg_latin1_mblen, pg_latin1_dsplen, pg_latin1_verifier, 1},		/* 26; ISO-8859-7 */
-	{pg_latin12wchar_with_len, pg_latin1_mblen, pg_latin1_dsplen, pg_latin1_verifier, 1},		/* 27; ISO-8859-8 */
-	{pg_latin12wchar_with_len, pg_latin1_mblen, pg_latin1_dsplen, pg_latin1_verifier, 1},		/* 28; PG_WIN1250 */
-	{pg_latin12wchar_with_len, pg_latin1_mblen, pg_latin1_dsplen, pg_latin1_verifier, 1},		/* 29; PG_WIN1253 */
-	{pg_latin12wchar_with_len, pg_latin1_mblen, pg_latin1_dsplen, pg_latin1_verifier, 1},		/* 30; PG_WIN1254 */
-	{pg_latin12wchar_with_len, pg_latin1_mblen, pg_latin1_dsplen, pg_latin1_verifier, 1},		/* 31; PG_WIN1255 */
-	{pg_latin12wchar_with_len, pg_latin1_mblen, pg_latin1_dsplen, pg_latin1_verifier, 1},		/* 32; PG_WIN1257 */
-	{0, pg_sjis_mblen, pg_sjis_dsplen, pg_sjis_verifier, 2},	/* 33; PG_SJIS */
-	{0, pg_big5_mblen, pg_big5_dsplen, pg_big5_verifier, 2},	/* 34; PG_BIG5 */
-	{0, pg_gbk_mblen, pg_gbk_dsplen, pg_gbk_verifier, 2},		/* 35; PG_GBK */
-	{0, pg_uhc_mblen, pg_uhc_dsplen, pg_uhc_verifier, 2},		/* 36; PG_UHC */
-	{0, pg_gb18030_mblen, pg_gb18030_dsplen, pg_gb18030_verifier, 2}	/* 37; PG_GB18030 */
+	{pg_ascii2wchar_with_len, pg_ascii_mblen, pg_ascii_dsplen, pg_ascii_verifier, 1},	/* PG_SQL_ASCII */
+	{pg_eucjp2wchar_with_len, pg_eucjp_mblen, pg_eucjp_dsplen, pg_eucjp_verifier, 3},	/* PG_EUC_JP */
+	{pg_euccn2wchar_with_len, pg_euccn_mblen, pg_euccn_dsplen, pg_euccn_verifier, 2},	/* PG_EUC_CN */
+	{pg_euckr2wchar_with_len, pg_euckr_mblen, pg_euckr_dsplen, pg_euckr_verifier, 3},	/* PG_EUC_KR */
+	{pg_euctw2wchar_with_len, pg_euctw_mblen, pg_euctw_dsplen, pg_euctw_verifier, 4},	/* PG_EUC_TW */
+	{pg_eucjp2wchar_with_len, pg_eucjp_mblen, pg_eucjp_dsplen, pg_eucjp_verifier, 3},	/* PG_EUC_JIS_2004 */
+	{pg_utf2wchar_with_len, pg_utf_mblen, pg_utf_dsplen, pg_utf8_verifier, 4},	/* PG_UTF8 */
+	{pg_mule2wchar_with_len, pg_mule_mblen, pg_mule_dsplen, pg_mule_verifier, 4},		/* PG_MULE_INTERNAL */
+	{pg_latin12wchar_with_len, pg_latin1_mblen, pg_latin1_dsplen, pg_latin1_verifier, 1},		/* PG_LATIN1 */
+	{pg_latin12wchar_with_len, pg_latin1_mblen, pg_latin1_dsplen, pg_latin1_verifier, 1},		/* PG_LATIN2 */
+	{pg_latin12wchar_with_len, pg_latin1_mblen, pg_latin1_dsplen, pg_latin1_verifier, 1},		/* PG_LATIN3 */
+	{pg_latin12wchar_with_len, pg_latin1_mblen, pg_latin1_dsplen, pg_latin1_verifier, 1},		/* PG_LATIN4 */
+	{pg_latin12wchar_with_len, pg_latin1_mblen, pg_latin1_dsplen, pg_latin1_verifier, 1},		/* PG_LATIN5 */
+	{pg_latin12wchar_with_len, pg_latin1_mblen, pg_latin1_dsplen, pg_latin1_verifier, 1},		/* PG_LATIN6 */
+	{pg_latin12wchar_with_len, pg_latin1_mblen, pg_latin1_dsplen, pg_latin1_verifier, 1},		/* PG_LATIN7 */
+	{pg_latin12wchar_with_len, pg_latin1_mblen, pg_latin1_dsplen, pg_latin1_verifier, 1},		/* PG_LATIN8 */
+	{pg_latin12wchar_with_len, pg_latin1_mblen, pg_latin1_dsplen, pg_latin1_verifier, 1},		/* PG_LATIN9 */
+	{pg_latin12wchar_with_len, pg_latin1_mblen, pg_latin1_dsplen, pg_latin1_verifier, 1},		/* PG_LATIN10 */
+	{pg_latin12wchar_with_len, pg_latin1_mblen, pg_latin1_dsplen, pg_latin1_verifier, 1},		/* PG_WIN1256 */
+	{pg_latin12wchar_with_len, pg_latin1_mblen, pg_latin1_dsplen, pg_latin1_verifier, 1},		/* PG_WIN1258 */
+	{pg_latin12wchar_with_len, pg_latin1_mblen, pg_latin1_dsplen, pg_latin1_verifier, 1},		/* PG_WIN866 */
+	{pg_latin12wchar_with_len, pg_latin1_mblen, pg_latin1_dsplen, pg_latin1_verifier, 1},		/* PG_WIN874 */
+	{pg_latin12wchar_with_len, pg_latin1_mblen, pg_latin1_dsplen, pg_latin1_verifier, 1},		/* PG_KOI8R */
+	{pg_latin12wchar_with_len, pg_latin1_mblen, pg_latin1_dsplen, pg_latin1_verifier, 1},		/* PG_WIN1251 */
+	{pg_latin12wchar_with_len, pg_latin1_mblen, pg_latin1_dsplen, pg_latin1_verifier, 1},		/* PG_WIN1252 */
+	{pg_latin12wchar_with_len, pg_latin1_mblen, pg_latin1_dsplen, pg_latin1_verifier, 1},		/* ISO-8859-5 */
+	{pg_latin12wchar_with_len, pg_latin1_mblen, pg_latin1_dsplen, pg_latin1_verifier, 1},		/* ISO-8859-6 */
+	{pg_latin12wchar_with_len, pg_latin1_mblen, pg_latin1_dsplen, pg_latin1_verifier, 1},		/* ISO-8859-7 */
+	{pg_latin12wchar_with_len, pg_latin1_mblen, pg_latin1_dsplen, pg_latin1_verifier, 1},		/* ISO-8859-8 */
+	{pg_latin12wchar_with_len, pg_latin1_mblen, pg_latin1_dsplen, pg_latin1_verifier, 1},		/* PG_WIN1250 */
+	{pg_latin12wchar_with_len, pg_latin1_mblen, pg_latin1_dsplen, pg_latin1_verifier, 1},		/* PG_WIN1253 */
+	{pg_latin12wchar_with_len, pg_latin1_mblen, pg_latin1_dsplen, pg_latin1_verifier, 1},		/* PG_WIN1254 */
+	{pg_latin12wchar_with_len, pg_latin1_mblen, pg_latin1_dsplen, pg_latin1_verifier, 1},		/* PG_WIN1255 */
+	{pg_latin12wchar_with_len, pg_latin1_mblen, pg_latin1_dsplen, pg_latin1_verifier, 1},		/* PG_WIN1257 */
+	{pg_latin12wchar_with_len, pg_latin1_mblen, pg_latin1_dsplen, pg_latin1_verifier, 1},		/* PG_KOI8U */
+	{0, pg_sjis_mblen, pg_sjis_dsplen, pg_sjis_verifier, 2},	/* PG_SJIS */
+	{0, pg_big5_mblen, pg_big5_dsplen, pg_big5_verifier, 2},	/* PG_BIG5 */
+	{0, pg_gbk_mblen, pg_gbk_dsplen, pg_gbk_verifier, 2},		/* PG_GBK */
+	{0, pg_uhc_mblen, pg_uhc_dsplen, pg_uhc_verifier, 2},		/* PG_UHC */
+	{0, pg_gb18030_mblen, pg_gb18030_dsplen, pg_gb18030_verifier, 4},	/* PG_GB18030 */
+	{0, pg_johab_mblen, pg_johab_dsplen, pg_johab_verifier, 3}, /* PG_JOHAB */
+	{0, pg_sjis_mblen, pg_sjis_dsplen, pg_sjis_verifier, 2}		/* PG_SHIFT_JIS_2004 */
 };
 
 /* returns the byte length of a word for mule internal code */
@@ -1407,7 +1463,18 @@ pg_database_encoding_max_length(void)
 bool
 pg_verifymbstr(const char *mbstr, int len, bool noError)
 {
-	return pg_verify_mbstr(GetDatabaseEncoding(), mbstr, len, noError);
+	return
+		pg_verify_mbstr_len(GetDatabaseEncoding(), mbstr, len, noError) >= 0;
+}
+
+/*
+ * Verify mbstr to make sure that it is validly encoded in the specified
+ * encoding.
+ */
+bool
+pg_verify_mbstr(int encoding, const char *mbstr, int len, bool noError)
+{
+	return pg_verify_mbstr_len(encoding, mbstr, len, noError) >= 0;
 }
 
 /*
@@ -1417,13 +1484,15 @@ pg_verifymbstr(const char *mbstr, int len, bool noError)
  * mbstr is not necessarily zero terminated; length of mbstr is
  * specified by len.
  *
- * If OK, return TRUE.	If a problem is found, return FALSE when noError is
+ * If OK, return length of string in the encoding.
+ * If a problem is found, return -1 when noError is
  * true; when noError is false, ereport() a descriptive message.
  */
-bool
-pg_verify_mbstr(int encoding, const char *mbstr, int len, bool noError)
+int
+pg_verify_mbstr_len(int encoding, const char *mbstr, int len, bool noError)
 {
 	mbverifier	mbverify;
+	int			mb_len;
 
 	Assert(PG_VALID_ENCODING(encoding));
 
@@ -1435,14 +1504,16 @@ pg_verify_mbstr(int encoding, const char *mbstr, int len, bool noError)
 		const char *nullpos = memchr(mbstr, 0, len);
 
 		if (nullpos == NULL)
-			return true;
+			return len;
 		if (noError)
-			return false;
+			return -1;
 		report_invalid_encoding(encoding, nullpos, 1);
 	}
 
 	/* fetch function pointer just once */
 	mbverify = pg_wchar_table[encoding].mbverify;
+
+	mb_len = 0;
 
 	while (len > 0)
 	{
@@ -1453,12 +1524,13 @@ pg_verify_mbstr(int encoding, const char *mbstr, int len, bool noError)
 		{
 			if (*mbstr != '\0')
 			{
+				mb_len++;
 				mbstr++;
 				len--;
 				continue;
 			}
 			if (noError)
-				return false;
+				return -1;
 			report_invalid_encoding(encoding, mbstr, len);
 		}
 
@@ -1467,14 +1539,48 @@ pg_verify_mbstr(int encoding, const char *mbstr, int len, bool noError)
 		if (l < 0)
 		{
 			if (noError)
-				return false;
+				return -1;
 			report_invalid_encoding(encoding, mbstr, len);
 		}
 
 		mbstr += l;
 		len -= l;
+		mb_len++;
 	}
-	return true;
+	return mb_len;
+}
+
+/*
+ * check_encoding_conversion_args: check arguments of a conversion function
+ *
+ * "expected" arguments can be either an encoding ID or -1 to indicate that
+ * the caller will check whether it accepts the ID.
+ *
+ * Note: the errors here are not really user-facing, so elog instead of
+ * ereport seems sufficient.  Also, we trust that the "expected" encoding
+ * arguments are valid encoding IDs, but we don't trust the actuals.
+ */
+void
+check_encoding_conversion_args(int src_encoding,
+							   int dest_encoding,
+							   int len,
+							   int expected_src_encoding,
+							   int expected_dest_encoding)
+{
+	if (!PG_VALID_ENCODING(src_encoding))
+		elog(ERROR, "invalid source encoding ID: %d", src_encoding);
+	if (src_encoding != expected_src_encoding && expected_src_encoding >= 0)
+		elog(ERROR, "expected source encoding \"%s\", but got \"%s\"",
+			 pg_enc2name_tbl[expected_src_encoding].name,
+			 pg_enc2name_tbl[src_encoding].name);
+	if (!PG_VALID_ENCODING(dest_encoding))
+		elog(ERROR, "invalid destination encoding ID: %d", dest_encoding);
+	if (dest_encoding != expected_dest_encoding && expected_dest_encoding >= 0)
+		elog(ERROR, "expected destination encoding \"%s\", but got \"%s\"",
+			 pg_enc2name_tbl[expected_dest_encoding].name,
+			 pg_enc2name_tbl[dest_encoding].name);
+	if (len < 0)
+		elog(ERROR, "encoding conversion length must not be negative");
 }
 
 /*

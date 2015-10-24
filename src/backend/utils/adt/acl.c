@@ -3,12 +3,12 @@
  * acl.c
  *	  Basic access control list data structures manipulation routines.
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2008, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/utils/adt/acl.c,v 1.136 2006/10/06 17:13:59 petere Exp $
+ *	  $PostgreSQL: pgsql/src/backend/utils/adt/acl.c,v 1.139 2008/01/01 19:45:52 momjian Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -16,12 +16,15 @@
 
 #include <ctype.h>
 
+#include "catalog/catquery.h"
 #include "catalog/namespace.h"
 #include "catalog/pg_authid.h"
 #include "catalog/pg_auth_members.h"
 #include "catalog/pg_type.h"
+#include "cdb/cdbvars.h"
 #include "commands/dbcommands.h"
 #include "commands/tablespace.h"
+#include "foreign/foreign.h"
 #include "miscadmin.h"
 #include "utils/acl.h"
 #include "utils/builtins.h"
@@ -30,6 +33,11 @@
 #include "utils/memutils.h"
 #include "utils/syscache.h"
 
+typedef struct
+{
+	const char *name;
+	AclMode		value;
+} priv_map;
 
 /*
  * We frequently need to test whether a given role is a member of some other
@@ -76,17 +84,23 @@ static Acl *recursive_revoke(Acl *acl, Oid grantee, AclMode revoke_privs,
 static int	oidComparator(const void *arg1, const void *arg2);
 
 static AclMode convert_priv_string(text *priv_type_text);
+static AclMode convert_any_priv_string(text *priv_type_text,
+						const priv_map *privileges);
 
-static Oid	convert_table_name(text *tablename);
+static Oid	try_convert_table_name(text *tablename);
 static AclMode convert_table_priv_string(text *priv_type_text);
 static Oid	convert_database_name(text *databasename);
 static AclMode convert_database_priv_string(text *priv_type_text);
+static Oid	convert_foreign_data_wrapper_name(text *fdwname);
+static AclMode convert_foreign_data_wrapper_priv_string(text *priv_type_text);
 static Oid	convert_function_name(text *functionname);
 static AclMode convert_function_priv_string(text *priv_type_text);
 static Oid	convert_language_name(text *languagename);
 static AclMode convert_language_priv_string(text *priv_type_text);
 static Oid	convert_schema_name(text *schemaname);
 static AclMode convert_schema_priv_string(text *priv_type_text);
+static Oid	convert_server_name(text *servername);
+static AclMode convert_server_priv_string(text *priv_type_text);
 static Oid	convert_tablespace_name(text *tablespacename);
 static AclMode convert_tablespace_priv_string(text *priv_type_text);
 static AclMode convert_role_priv_string(text *priv_type_text);
@@ -265,6 +279,9 @@ aclparse(const char *s, AclItem *aip)
 			case ACL_DELETE_CHR:
 				read = ACL_DELETE;
 				break;
+			case ACL_TRUNCATE_CHR:
+				read = ACL_TRUNCATE;
+				break;
 			case ACL_REFERENCES_CHR:
 				read = ACL_REFERENCES;
 				break;
@@ -353,7 +370,7 @@ allocacl(int n)
 		elog(ERROR, "invalid size: %d", n);
 	size = ACL_N_SIZE(n);
 	new_acl = (Acl *) palloc0(size);
-	new_acl->size = size;
+	SET_VARSIZE(new_acl, size);
 	new_acl->ndim = 1;
 	new_acl->dataoffset = 0;	/* we never put in any nulls */
 	new_acl->elemtype = ACLITEMOID;
@@ -421,9 +438,11 @@ aclitemout(PG_FUNCTION_ARGS)
 {
 	AclItem    *aip = PG_GETARG_ACLITEM_P(0);
 	char	   *p;
+	char	   *prole;
 	char	   *out;
-	HeapTuple	htup;
 	unsigned	i;
+	int			fetchCount;
+	bool		bIsNull;
 
 	out = palloc(strlen("=/") +
 				 2 * N_ACL_RIGHTS +
@@ -435,13 +454,19 @@ aclitemout(PG_FUNCTION_ARGS)
 
 	if (aip->ai_grantee != ACL_ID_PUBLIC)
 	{
-		htup = SearchSysCache(AUTHOID,
-							  ObjectIdGetDatum(aip->ai_grantee),
-							  0, 0, 0);
-		if (HeapTupleIsValid(htup))
+		prole = caql_getcstring_plus(
+				NULL,
+				&fetchCount,
+				&bIsNull,
+				cql("SELECT rolname FROM pg_authid "
+					" WHERE oid = :1 ",
+					ObjectIdGetDatum(aip->ai_grantee)));
+
+		if (fetchCount)
 		{
-			putid(p, NameStr(((Form_pg_authid) GETSTRUCT(htup))->rolname));
-			ReleaseSysCache(htup);
+			Assert(!bIsNull);
+			putid(p, prole);
+			pfree(prole);
 		}
 		else
 		{
@@ -465,13 +490,19 @@ aclitemout(PG_FUNCTION_ARGS)
 	*p++ = '/';
 	*p = '\0';
 
-	htup = SearchSysCache(AUTHOID,
-						  ObjectIdGetDatum(aip->ai_grantor),
-						  0, 0, 0);
-	if (HeapTupleIsValid(htup))
+	prole = caql_getcstring_plus(
+			NULL,
+			&fetchCount,
+			&bIsNull,
+			cql("SELECT rolname FROM pg_authid "
+				" WHERE oid = :1 ",
+				ObjectIdGetDatum(aip->ai_grantor)));
+
+	if (fetchCount)
 	{
-		putid(p, NameStr(((Form_pg_authid) GETSTRUCT(htup))->rolname));
-		ReleaseSysCache(htup);
+		Assert(!bIsNull);
+		putid(p, prole);
+		pfree(prole);
 	}
 	else
 	{
@@ -574,6 +605,18 @@ acldefault(GrantObjectType objtype, Oid ownerId)
 			world_default = ACL_NO_RIGHTS;
 			owner_default = ACL_ALL_RIGHTS_TABLESPACE;
 			break;
+		case ACL_OBJECT_FDW:
+			world_default = ACL_NO_RIGHTS;
+			owner_default = ACL_ALL_RIGHTS_FDW;
+			break;
+		case ACL_OBJECT_FOREIGN_SERVER:
+			world_default = ACL_NO_RIGHTS;
+			owner_default = ACL_ALL_RIGHTS_FOREIGN_SERVER;
+			break;
+		case ACL_OBJECT_EXTPROTOCOL:
+			world_default = ACL_NO_RIGHTS;
+			owner_default = ACL_ALL_RIGHTS_EXTPROTOCOL;
+			break;
 		default:
 			elog(ERROR, "unrecognized objtype: %d", (int) objtype);
 			world_default = ACL_NO_RIGHTS;		/* keep compiler quiet */
@@ -618,6 +661,8 @@ acldefault(GrantObjectType objtype, Oid ownerId)
  *	modechg: ACL_MODECHG_ADD, ACL_MODECHG_DEL, or ACL_MODECHG_EQL
  *	ownerId: Oid of object owner
  *	behavior: RESTRICT or CASCADE behavior for recursive removal
+ *	objName: the name of the object to be granted or revoked, used for warning
+ *	printing
  *
  * ownerid and behavior are only relevant when the update operation specifies
  * deletion of grant options.
@@ -628,7 +673,7 @@ acldefault(GrantObjectType objtype, Oid ownerId)
  */
 Acl *
 aclupdate(const Acl *old_acl, const AclItem *mod_aip,
-		  int modechg, Oid ownerId, DropBehavior behavior)
+		  int modechg, Oid ownerId, DropBehavior behavior, char *objName)
 {
 	Acl		   *new_acl = NULL;
 	AclItem    *old_aip,
@@ -672,6 +717,30 @@ aclupdate(const Acl *old_acl, const AclItem *mod_aip,
 
 	if (dst == num)
 	{
+		/* if no acl item found to be deleted, raise a warning */
+		if (modechg == ACL_MODECHG_DEL && Gp_role == GP_ROLE_DISPATCH && objName != NULL)
+		{
+			HeapTuple tuple;
+			cqContext *pcqCtx;
+			NameData rolname;
+
+			if (mod_aip->ai_grantee != InvalidOid)
+			{
+				pcqCtx = caql_beginscan(NULL,
+									cql("SELECT * FROM pg_authid "
+										" WHERE oid = :1", ObjectIdGetDatum(mod_aip->ai_grantee)));
+				tuple = caql_getnext(pcqCtx);
+				/* to keep coverity quiet */
+				if (!HeapTupleIsValid(tuple))
+					elog(ERROR, "no entry found for the grantee");
+				rolname = ((Form_pg_authid)GETSTRUCT(tuple))->rolname;
+				caql_endscan(pcqCtx);
+			}
+
+			ereport(NOTICE,
+				(errcode(ERRCODE_WARNING_PRIVILEGE_NOT_REVOKED),
+				errmsg("no privileges could be revoked from role %s on object %s", mod_aip->ai_grantee ? NameStr(rolname) : "PUBLIC", objName)));
+		}
 		/* need to append a new item */
 		new_acl = allocacl(num + 1);
 		new_aip = ACL_DAT(new_acl);
@@ -716,8 +785,9 @@ aclupdate(const Acl *old_acl, const AclItem *mod_aip,
 		memmove(new_aip + dst,
 				new_aip + dst + 1,
 				(num - dst - 1) * sizeof(AclItem));
+		/* Adjust array size to be 'num - 1' items */
 		ARR_DIMS(new_acl)[0] = num - 1;
-		ARR_SIZE(new_acl) -= sizeof(AclItem);
+		SET_VARSIZE(new_acl, ACL_N_SIZE(num - 1));
 	}
 
 	/*
@@ -830,7 +900,7 @@ aclnewowner(const Acl *old_acl, Oid oldOwnerId, Oid newOwnerId)
 		}
 		/* Adjust array size to be 'dst' items */
 		ARR_DIMS(new_acl)[0] = dst;
-		ARR_SIZE(new_acl) = ACL_N_SIZE(dst);
+		SET_VARSIZE(new_acl, ACL_N_SIZE(dst));
 	}
 
 	return new_acl;
@@ -888,7 +958,7 @@ cc_restart:
 
 			/* We'll actually zap ordinary privs too, but no matter */
 			new_acl = aclupdate(acl, &aip[i], ACL_MODECHG_DEL,
-								ownerId, DROP_CASCADE);
+								ownerId, DROP_CASCADE, NULL);
 
 			pfree(acl);
 			acl = new_acl;
@@ -979,7 +1049,7 @@ restart:
 									   revoke_privs);
 
 			new_acl = aclupdate(acl, &mod_acl, ACL_MODECHG_DEL,
-								ownerId, behavior);
+								ownerId, behavior, NULL);
 
 			pfree(acl);
 			acl = new_acl;
@@ -1325,6 +1395,8 @@ convert_priv_string(text *priv_type_text)
 		return ACL_UPDATE;
 	if (pg_strcasecmp(priv_type, "DELETE") == 0)
 		return ACL_DELETE;
+	if (pg_strcasecmp(priv_type, "TRUNCATE") == 0)
+		return ACL_TRUNCATE;
 	if (pg_strcasecmp(priv_type, "REFERENCES") == 0)
 		return ACL_REFERENCES;
 	if (pg_strcasecmp(priv_type, "TRIGGER") == 0)
@@ -1350,6 +1422,62 @@ convert_priv_string(text *priv_type_text)
 	return ACL_NO_RIGHTS;		/* keep compiler quiet */
 }
 
+/*
+ * convert_any_priv_string: recognize privilege strings for has_foo_privilege
+ *
+ * We accept a comma-separated list of case-insensitive privilege names,
+ * producing a bitmask of the OR'd privilege bits.  We are liberal about
+ * whitespace between items, not so much about whitespace within items.
+ * The allowed privilege names are given as an array of priv_map structs,
+ * terminated by one with a NULL name pointer.
+ */
+static AclMode
+convert_any_priv_string(text *priv_type_text,
+						const priv_map *privileges)
+{
+	AclMode		result = 0;
+	char	   *priv_type = text_to_cstring(priv_type_text);
+	char	   *chunk;
+	char	   *next_chunk;
+
+	/* We rely on priv_type being a private, modifiable string */
+	for (chunk = priv_type; chunk; chunk = next_chunk)
+	{
+		int			chunk_len;
+		const priv_map *this_priv;
+
+		/* Split string at commas */
+		next_chunk = strchr(chunk, ',');
+		if (next_chunk)
+			*next_chunk++ = '\0';
+
+		/* Drop leading/trailing whitespace in this chunk */
+		while (*chunk && isspace((unsigned char) *chunk))
+			chunk++;
+		chunk_len = strlen(chunk);
+		while (chunk_len > 0 && isspace((unsigned char) chunk[chunk_len - 1]))
+			chunk_len--;
+		chunk[chunk_len] = '\0';
+
+		/* Match to the privileges list */
+		for (this_priv = privileges; this_priv->name; this_priv++)
+		{
+			if (pg_strcasecmp(this_priv->name, chunk) == 0)
+			{
+				result |= this_priv->value;
+				break;
+			}
+		}
+		if (!this_priv->name)
+			ereport(ERROR,
+					(errcode(ERRCODE_INVALID_PARAMETER_VALUE),
+					 errmsg("unrecognized privilege type: \"%s\"", chunk)));
+	}
+
+	pfree(priv_type);
+	return result;
+}
+
 
 /*
  * has_table_privilege variants
@@ -1358,8 +1486,11 @@ convert_priv_string(text *priv_type_text)
  *		user name, user OID, or implicit user = current_user.
  *
  *		The result is a boolean value: true if user has the indicated
- *		privilege, false if not.
+ *		privilege, false if not.  The variants that take a relation OID
+ *		return NULL if the OID doesn't exist (rather than failing, as
+ *		they did before Postgres 8.4).
  */
+
 
 /*
  * has_table_privilege_name_name
@@ -1378,7 +1509,15 @@ has_table_privilege_name_name(PG_FUNCTION_ARGS)
 	AclResult	aclresult;
 
 	roleid = get_roleid_checked(NameStr(*rolename));
-	tableoid = convert_table_name(tablename);
+	tableoid = try_convert_table_name(tablename);
+	
+	/*
+	 * While we scan pg_class with an MVCC snapshot,
+	 * someone else might drop the table. It's better to return NULL for
+	 * already-dropped tables than throw an error and abort the whole query.
+	 */
+	if (!OidIsValid(tableoid))
+		PG_RETURN_NULL();
 	mode = convert_table_priv_string(priv_type_text);
 
 	aclresult = pg_class_aclcheck(tableoid, roleid, mode);
@@ -1403,7 +1542,16 @@ has_table_privilege_name(PG_FUNCTION_ARGS)
 	AclResult	aclresult;
 
 	roleid = GetUserId();
-	tableoid = convert_table_name(tablename);
+	tableoid = try_convert_table_name(tablename);
+
+	/*
+	 * While we scan pg_class with an MVCC snapshot,
+	 * someone else might drop the table. It's better to return NULL for
+	 * already-dropped tables than throw an error and abort the whole query
+	 */
+	if (!OidIsValid(tableoid))
+		PG_RETURN_NULL();
+
 	mode = convert_table_priv_string(priv_type_text);
 
 	aclresult = pg_class_aclcheck(tableoid, roleid, mode);
@@ -1429,6 +1577,13 @@ has_table_privilege_name_id(PG_FUNCTION_ARGS)
 	roleid = get_roleid_checked(NameStr(*username));
 	mode = convert_table_priv_string(priv_type_text);
 
+	if (0 == caql_getcount(
+				NULL,
+				cql("SELECT COUNT(*) FROM pg_class "
+					" WHERE oid = :1 ",
+					ObjectIdGetDatum(tableoid))))
+		PG_RETURN_NULL();
+
 	aclresult = pg_class_aclcheck(tableoid, roleid, mode);
 
 	PG_RETURN_BOOL(aclresult == ACLCHECK_OK);
@@ -1452,6 +1607,13 @@ has_table_privilege_id(PG_FUNCTION_ARGS)
 	roleid = GetUserId();
 	mode = convert_table_priv_string(priv_type_text);
 
+	if (0 == caql_getcount(
+				NULL,
+				cql("SELECT COUNT(*) FROM pg_class "
+					" WHERE oid = :1 ",
+					ObjectIdGetDatum(tableoid))))
+		PG_RETURN_NULL();
+
 	aclresult = pg_class_aclcheck(tableoid, roleid, mode);
 
 	PG_RETURN_BOOL(aclresult == ACLCHECK_OK);
@@ -1472,7 +1634,16 @@ has_table_privilege_id_name(PG_FUNCTION_ARGS)
 	AclMode		mode;
 	AclResult	aclresult;
 
-	tableoid = convert_table_name(tablename);
+	tableoid = try_convert_table_name(tablename);
+	
+	/*
+	 * While we scan pg_class with an MVCC snapshot,
+	 * someone else might drop the table. It's better to return NULL for
+	 * already-dropped tables than throw an error and abort the whole query.
+	 */
+	if (!OidIsValid(tableoid))
+		PG_RETURN_NULL();
+
 	mode = convert_table_priv_string(priv_type_text);
 
 	aclresult = pg_class_aclcheck(tableoid, roleid, mode);
@@ -1496,6 +1667,13 @@ has_table_privilege_id_id(PG_FUNCTION_ARGS)
 
 	mode = convert_table_priv_string(priv_type_text);
 
+	if (0 == caql_getcount(
+				NULL,
+				cql("SELECT COUNT(*) FROM pg_class "
+					" WHERE oid = :1 ",
+					ObjectIdGetDatum(tableoid))))
+		PG_RETURN_NULL();
+
 	aclresult = pg_class_aclcheck(tableoid, roleid, mode);
 
 	PG_RETURN_BOOL(aclresult == ACLCHECK_OK);
@@ -1506,16 +1684,17 @@ has_table_privilege_id_id(PG_FUNCTION_ARGS)
  */
 
 /*
- * Given a table name expressed as a string, look it up and return Oid
+ * Given a table name expressed as a string, try look it up and return Oid if found.
+ * If not found return InvalidOid (because we are passing failOK=true to RangeVarGetRelId) 
  */
 static Oid
-convert_table_name(text *tablename)
+try_convert_table_name(text *tablename)
 {
 	RangeVar   *relrv;
 
 	relrv = makeRangeVarFromNameList(textToQualifiedNameList(tablename));
 
-	return RangeVarGetRelid(relrv, false);
+	return RangeVarGetRelid(relrv, true);
 }
 
 /*
@@ -1553,6 +1732,11 @@ convert_table_priv_string(text *priv_type_text)
 	if (pg_strcasecmp(priv_type, "DELETE WITH GRANT OPTION") == 0)
 		return ACL_GRANT_OPTION_FOR(ACL_DELETE);
 
+	if (pg_strcasecmp(priv_type, "TRUNCATE") == 0)
+		return ACL_TRUNCATE;
+	if (pg_strcasecmp(priv_type, "TRUNCATE WITH GRANT OPTION") == 0)
+		return ACL_GRANT_OPTION_FOR(ACL_TRUNCATE);
+
 	if (pg_strcasecmp(priv_type, "REFERENCES") == 0)
 		return ACL_REFERENCES;
 	if (pg_strcasecmp(priv_type, "REFERENCES WITH GRANT OPTION") == 0)
@@ -1582,7 +1766,7 @@ convert_table_priv_string(text *priv_type_text)
  *		user name, user OID, or implicit user = current_user.
  *
  *		The result is a boolean value: true if user has the indicated
- *		privilege, false if not.
+ *		privilege, false if not, or NULL if object doesn't exist.
  */
 
 /*
@@ -1653,6 +1837,13 @@ has_database_privilege_name_id(PG_FUNCTION_ARGS)
 	roleid = get_roleid_checked(NameStr(*username));
 	mode = convert_database_priv_string(priv_type_text);
 
+	if (0 == caql_getcount(
+				NULL,
+				cql("SELECT COUNT(*) FROM pg_database "
+					" WHERE oid = :1 ",
+					ObjectIdGetDatum(databaseoid))))
+		PG_RETURN_NULL();
+
 	aclresult = pg_database_aclcheck(databaseoid, roleid, mode);
 
 	PG_RETURN_BOOL(aclresult == ACLCHECK_OK);
@@ -1675,6 +1866,13 @@ has_database_privilege_id(PG_FUNCTION_ARGS)
 
 	roleid = GetUserId();
 	mode = convert_database_priv_string(priv_type_text);
+
+	if (0 == caql_getcount(
+				NULL,
+				cql("SELECT COUNT(*) FROM pg_database "
+					" WHERE oid = :1 ",
+					ObjectIdGetDatum(databaseoid))))
+		PG_RETURN_NULL();
 
 	aclresult = pg_database_aclcheck(databaseoid, roleid, mode);
 
@@ -1719,6 +1917,13 @@ has_database_privilege_id_id(PG_FUNCTION_ARGS)
 	AclResult	aclresult;
 
 	mode = convert_database_priv_string(priv_type_text);
+
+	if (0 == caql_getcount(
+				NULL,
+				cql("SELECT COUNT(*) FROM pg_database "
+					" WHERE oid = :1 ",
+					ObjectIdGetDatum(databaseoid))))
+		PG_RETURN_NULL();
 
 	aclresult = pg_database_aclcheck(databaseoid, roleid, mode);
 
@@ -1791,6 +1996,186 @@ convert_database_priv_string(text *priv_type_text)
 	return ACL_NO_RIGHTS;		/* keep compiler quiet */
 }
 
+/*
+ * has_foreign_data_wrapper_privilege variants
+ *		These are all named "has_foreign_data_wrapper_privilege" at the SQL level.
+ *		They take various combinations of foreign-data wrapper name,
+ *		fdw OID, user name, user OID, or implicit user = current_user.
+ *
+ *		The result is a boolean value: true if user has the indicated
+ *		privilege, false if not, or NULL if object doesn't exist.
+ */
+
+/*
+ * has_foreign_data_wrapper_privilege_name_name
+ *		Check user privileges on a foreign-data wrapper given
+ *		name username, text fdwname, and text priv name.
+ */
+Datum
+has_foreign_data_wrapper_privilege_name_name(PG_FUNCTION_ARGS)
+{
+	Name		username = PG_GETARG_NAME(0);
+	text	   *fdwname = PG_GETARG_TEXT_P(1);
+	text	   *priv_type_text = PG_GETARG_TEXT_P(2);
+	Oid			roleid;
+	Oid			fdwid;
+	AclMode		mode;
+	AclResult	aclresult;
+
+	roleid = get_roleid_checked(NameStr(*username));
+	fdwid = convert_foreign_data_wrapper_name(fdwname);
+	mode = convert_foreign_data_wrapper_priv_string(priv_type_text);
+
+	aclresult = pg_foreign_data_wrapper_aclcheck(fdwid, roleid, mode);
+
+	PG_RETURN_BOOL(aclresult == ACLCHECK_OK);
+}
+
+/*
+ * has_foreign_data_wrapper_privilege_name
+ *		Check user privileges on a foreign-data wrapper given
+ *		text fdwname and text priv name.
+ *		current_user is assumed
+ */
+Datum
+has_foreign_data_wrapper_privilege_name(PG_FUNCTION_ARGS)
+{
+	text	   *fdwname = PG_GETARG_TEXT_P(0);
+	text	   *priv_type_text = PG_GETARG_TEXT_P(1);
+	Oid			roleid;
+	Oid			fdwid;
+	AclMode		mode;
+	AclResult	aclresult;
+
+	roleid = GetUserId();
+	fdwid = convert_foreign_data_wrapper_name(fdwname);
+	mode = convert_foreign_data_wrapper_priv_string(priv_type_text);
+
+	aclresult = pg_foreign_data_wrapper_aclcheck(fdwid, roleid, mode);
+
+	PG_RETURN_BOOL(aclresult == ACLCHECK_OK);
+}
+
+/*
+ * has_foreign_data_wrapper_privilege_name_id
+ *		Check user privileges on a foreign-data wrapper given
+ *		name usename, foreign-data wrapper oid, and text priv name.
+ */
+Datum
+has_foreign_data_wrapper_privilege_name_id(PG_FUNCTION_ARGS)
+{
+	Name		username = PG_GETARG_NAME(0);
+	Oid			fdwid = PG_GETARG_OID(1);
+	text	   *priv_type_text = PG_GETARG_TEXT_P(2);
+	Oid			roleid;
+	AclMode		mode;
+	AclResult	aclresult;
+
+	roleid = get_roleid_checked(NameStr(*username));
+	mode = convert_foreign_data_wrapper_priv_string(priv_type_text);
+
+	aclresult = pg_foreign_data_wrapper_aclcheck(fdwid, roleid, mode);
+
+	PG_RETURN_BOOL(aclresult == ACLCHECK_OK);
+}
+
+/*
+ * has_foreign_data_wrapper_privilege_id
+ *		Check user privileges on a foreign-data wrapper given
+ *		foreign-data wrapper oid, and text priv name.
+ *		current_user is assumed
+ */
+Datum
+has_foreign_data_wrapper_privilege_id(PG_FUNCTION_ARGS)
+{
+	Oid			fdwid = PG_GETARG_OID(0);
+	text	   *priv_type_text = PG_GETARG_TEXT_P(1);
+	Oid			roleid;
+	AclMode		mode;
+	AclResult	aclresult;
+
+	roleid = GetUserId();
+	mode = convert_foreign_data_wrapper_priv_string(priv_type_text);
+
+	aclresult = pg_foreign_data_wrapper_aclcheck(fdwid, roleid, mode);
+
+	PG_RETURN_BOOL(aclresult == ACLCHECK_OK);
+}
+
+/*
+ * has_foreign_data_wrapper_privilege_id_name
+ *		Check user privileges on a foreign-data wrapper given
+ *		roleid, text fdwname, and text priv name.
+ */
+Datum
+has_foreign_data_wrapper_privilege_id_name(PG_FUNCTION_ARGS)
+{
+	Oid			roleid = PG_GETARG_OID(0);
+	text	   *fdwname = PG_GETARG_TEXT_P(1);
+	text	   *priv_type_text = PG_GETARG_TEXT_P(2);
+	Oid			fdwid;
+	AclMode		mode;
+	AclResult	aclresult;
+
+	fdwid = convert_foreign_data_wrapper_name(fdwname);
+	mode = convert_foreign_data_wrapper_priv_string(priv_type_text);
+
+	aclresult = pg_foreign_data_wrapper_aclcheck(fdwid, roleid, mode);
+
+	PG_RETURN_BOOL(aclresult == ACLCHECK_OK);
+}
+
+/*
+ * has_foreign_data_wrapper_privilege_id_id
+ *		Check user privileges on a foreign-data wrapper given
+ *		roleid, fdw oid, and text priv name.
+ */
+Datum
+has_foreign_data_wrapper_privilege_id_id(PG_FUNCTION_ARGS)
+{
+	Oid			roleid = PG_GETARG_OID(0);
+	Oid			fdwid = PG_GETARG_OID(1);
+	text	   *priv_type_text = PG_GETARG_TEXT_P(2);
+	AclMode		mode;
+	AclResult	aclresult;
+
+	mode = convert_foreign_data_wrapper_priv_string(priv_type_text);
+
+	aclresult = pg_foreign_data_wrapper_aclcheck(fdwid, roleid, mode);
+
+	PG_RETURN_BOOL(aclresult == ACLCHECK_OK);
+}
+
+/*
+ *		Support routines for has_foreign_data_wrapper_privilege family.
+ */
+
+/*
+ * Given a FDW name expressed as a string, look it up and return Oid
+ */
+static Oid
+convert_foreign_data_wrapper_name(text *fdwname)
+{
+	char	   *fdwstr = text_to_cstring(fdwname);
+
+	return GetForeignDataWrapperOidByName(fdwstr, false);
+}
+
+/*
+ * convert_foreign_data_wrapper_priv_string
+ *		Convert text string to AclMode value.
+ */
+static AclMode
+convert_foreign_data_wrapper_priv_string(text *priv_type_text)
+{
+	static const priv_map foreign_data_wrapper_priv_map[] = {
+		{"USAGE", ACL_USAGE},
+		{"USAGE WITH GRANT OPTION", ACL_GRANT_OPTION_FOR(ACL_USAGE)},
+		{NULL, 0}
+	};
+
+	return convert_any_priv_string(priv_type_text, foreign_data_wrapper_priv_map);
+}
 
 /*
  * has_function_privilege variants
@@ -1870,6 +2255,13 @@ has_function_privilege_name_id(PG_FUNCTION_ARGS)
 	roleid = get_roleid_checked(NameStr(*username));
 	mode = convert_function_priv_string(priv_type_text);
 
+	if (0 == caql_getcount(
+				NULL,
+				cql("SELECT COUNT(*) FROM pg_proc "
+					" WHERE oid = :1 ",
+					ObjectIdGetDatum(functionoid))))
+		PG_RETURN_NULL();
+
 	aclresult = pg_proc_aclcheck(functionoid, roleid, mode);
 
 	PG_RETURN_BOOL(aclresult == ACLCHECK_OK);
@@ -1892,6 +2284,13 @@ has_function_privilege_id(PG_FUNCTION_ARGS)
 
 	roleid = GetUserId();
 	mode = convert_function_priv_string(priv_type_text);
+
+	if (0 == caql_getcount(
+				NULL,
+				cql("SELECT COUNT(*) FROM pg_proc "
+					" WHERE oid = :1 ",
+					ObjectIdGetDatum(functionoid))))
+		PG_RETURN_NULL();
 
 	aclresult = pg_proc_aclcheck(functionoid, roleid, mode);
 
@@ -1936,6 +2335,13 @@ has_function_privilege_id_id(PG_FUNCTION_ARGS)
 	AclResult	aclresult;
 
 	mode = convert_function_priv_string(priv_type_text);
+
+	if (0 == caql_getcount(
+				NULL,
+				cql("SELECT COUNT(*) FROM pg_proc "
+					" WHERE oid = :1 ",
+					ObjectIdGetDatum(functionoid))))
+		PG_RETURN_NULL();
 
 	aclresult = pg_proc_aclcheck(functionoid, roleid, mode);
 
@@ -2003,7 +2409,7 @@ convert_function_priv_string(text *priv_type_text)
  *		user name, user OID, or implicit user = current_user.
  *
  *		The result is a boolean value: true if user has the indicated
- *		privilege, false if not.
+ *		privilege, false if not, or NULL if object doesn't exist.
  */
 
 /*
@@ -2074,6 +2480,13 @@ has_language_privilege_name_id(PG_FUNCTION_ARGS)
 	roleid = get_roleid_checked(NameStr(*username));
 	mode = convert_language_priv_string(priv_type_text);
 
+	if (0 == caql_getcount(
+				NULL,
+				cql("SELECT COUNT(*) FROM pg_language "
+					" WHERE oid = :1 ",
+					ObjectIdGetDatum(languageoid))))
+		PG_RETURN_NULL();
+
 	aclresult = pg_language_aclcheck(languageoid, roleid, mode);
 
 	PG_RETURN_BOOL(aclresult == ACLCHECK_OK);
@@ -2096,6 +2509,13 @@ has_language_privilege_id(PG_FUNCTION_ARGS)
 
 	roleid = GetUserId();
 	mode = convert_language_priv_string(priv_type_text);
+
+	if (0 == caql_getcount(
+				NULL,
+				cql("SELECT COUNT(*) FROM pg_language "
+					" WHERE oid = :1 ",
+					ObjectIdGetDatum(languageoid))))
+		PG_RETURN_NULL();
 
 	aclresult = pg_language_aclcheck(languageoid, roleid, mode);
 
@@ -2141,6 +2561,13 @@ has_language_privilege_id_id(PG_FUNCTION_ARGS)
 
 	mode = convert_language_priv_string(priv_type_text);
 
+	if (0 == caql_getcount(
+				NULL,
+				cql("SELECT COUNT(*) FROM pg_language "
+					" WHERE oid = :1 ",
+					ObjectIdGetDatum(languageoid))))
+		PG_RETURN_NULL();
+
 	aclresult = pg_language_aclcheck(languageoid, roleid, mode);
 
 	PG_RETURN_BOOL(aclresult == ACLCHECK_OK);
@@ -2162,9 +2589,12 @@ convert_language_name(text *languagename)
 	langname = DatumGetCString(DirectFunctionCall1(textout,
 											 PointerGetDatum(languagename)));
 
-	oid = GetSysCacheOid(LANGNAME,
-						 CStringGetDatum(langname),
-						 0, 0, 0);
+	oid = caql_getoid(
+			NULL,
+			cql("SELECT oid FROM pg_language "
+				" WHERE lanname = :1 ",
+				CStringGetDatum(langname)));
+
 	if (!OidIsValid(oid))
 		ereport(ERROR,
 				(errcode(ERRCODE_UNDEFINED_OBJECT),
@@ -2207,7 +2637,7 @@ convert_language_priv_string(text *priv_type_text)
  *		user name, user OID, or implicit user = current_user.
  *
  *		The result is a boolean value: true if user has the indicated
- *		privilege, false if not.
+ *		privilege, false if not, or NULL if object doesn't exist.
  */
 
 /*
@@ -2278,6 +2708,13 @@ has_schema_privilege_name_id(PG_FUNCTION_ARGS)
 	roleid = get_roleid_checked(NameStr(*username));
 	mode = convert_schema_priv_string(priv_type_text);
 
+	if (0 == caql_getcount(
+				NULL,
+				cql("SELECT COUNT(*) FROM pg_namespace "
+					" WHERE oid = :1 ",
+					ObjectIdGetDatum(schemaoid))))
+		PG_RETURN_NULL();
+
 	aclresult = pg_namespace_aclcheck(schemaoid, roleid, mode);
 
 	PG_RETURN_BOOL(aclresult == ACLCHECK_OK);
@@ -2300,6 +2737,13 @@ has_schema_privilege_id(PG_FUNCTION_ARGS)
 
 	roleid = GetUserId();
 	mode = convert_schema_priv_string(priv_type_text);
+
+	if (0 == caql_getcount(
+				NULL,
+				cql("SELECT COUNT(*) FROM pg_namespace "
+					" WHERE oid = :1 ",
+					ObjectIdGetDatum(schemaoid))))
+		PG_RETURN_NULL();
 
 	aclresult = pg_namespace_aclcheck(schemaoid, roleid, mode);
 
@@ -2345,6 +2789,13 @@ has_schema_privilege_id_id(PG_FUNCTION_ARGS)
 
 	mode = convert_schema_priv_string(priv_type_text);
 
+	if (0 == caql_getcount(
+				NULL,
+				cql("SELECT COUNT(*) FROM pg_namespace "
+					" WHERE oid = :1 ",
+					ObjectIdGetDatum(schemaoid))))
+		PG_RETURN_NULL();
+
 	aclresult = pg_namespace_aclcheck(schemaoid, roleid, mode);
 
 	PG_RETURN_BOOL(aclresult == ACLCHECK_OK);
@@ -2366,9 +2817,12 @@ convert_schema_name(text *schemaname)
 	nspname = DatumGetCString(DirectFunctionCall1(textout,
 											   PointerGetDatum(schemaname)));
 
-	oid = GetSysCacheOid(NAMESPACENAME,
-						 CStringGetDatum(nspname),
-						 0, 0, 0);
+	oid = caql_getoid(
+			NULL,
+			cql("SELECT oid FROM pg_namespace "
+				" WHERE nspname = :1 ",
+				CStringGetDatum(nspname)));
+
 	if (!OidIsValid(oid))
 		ereport(ERROR,
 				(errcode(ERRCODE_UNDEFINED_SCHEMA),
@@ -2407,6 +2861,188 @@ convert_schema_priv_string(text *priv_type_text)
 			 errmsg("unrecognized privilege type: \"%s\"", priv_type)));
 	return ACL_NO_RIGHTS;		/* keep compiler quiet */
 }
+
+/*
+ * has_server_privilege variants
+ *		These are all named "has_server_privilege" at the SQL level.
+ *		They take various combinations of foreign server name,
+ *		server OID, user name, user OID, or implicit user = current_user.
+ *
+ *		The result is a boolean value: true if user has the indicated
+ *		privilege, false if not.
+ */
+
+/*
+ * has_server_privilege_name_name
+ *		Check user privileges on a foreign server given
+ *		name username, text servername, and text priv name.
+ */
+Datum
+has_server_privilege_name_name(PG_FUNCTION_ARGS)
+{
+	Name		username = PG_GETARG_NAME(0);
+	text	   *servername = PG_GETARG_TEXT_P(1);
+	text	   *priv_type_text = PG_GETARG_TEXT_P(2);
+	Oid			roleid;
+	Oid			serverid;
+	AclMode		mode;
+	AclResult	aclresult;
+
+	roleid = get_roleid_checked(NameStr(*username));
+	serverid = convert_server_name(servername);
+	mode = convert_server_priv_string(priv_type_text);
+
+	aclresult = pg_foreign_server_aclcheck(serverid, roleid, mode);
+
+	PG_RETURN_BOOL(aclresult == ACLCHECK_OK);
+}
+
+/*
+ * has_server_privilege_name
+ *		Check user privileges on a foreign server given
+ *		text servername and text priv name.
+ *		current_user is assumed
+ */
+Datum
+has_server_privilege_name(PG_FUNCTION_ARGS)
+{
+	text	   *servername = PG_GETARG_TEXT_P(0);
+	text	   *priv_type_text = PG_GETARG_TEXT_P(1);
+	Oid			roleid;
+	Oid			serverid;
+	AclMode		mode;
+	AclResult	aclresult;
+
+	roleid = GetUserId();
+	serverid = convert_server_name(servername);
+	mode = convert_server_priv_string(priv_type_text);
+
+	aclresult = pg_foreign_server_aclcheck(serverid, roleid, mode);
+
+	PG_RETURN_BOOL(aclresult == ACLCHECK_OK);
+}
+
+/*
+ * has_server_privilege_name_id
+ *		Check user privileges on a foreign server given
+ *		name usename, foreign server oid, and text priv name.
+ */
+Datum
+has_server_privilege_name_id(PG_FUNCTION_ARGS)
+{
+	Name		username = PG_GETARG_NAME(0);
+	Oid			serverid = PG_GETARG_OID(1);
+	text	   *priv_type_text = PG_GETARG_TEXT_P(2);
+	Oid			roleid;
+	AclMode		mode;
+	AclResult	aclresult;
+
+	roleid = get_roleid_checked(NameStr(*username));
+	mode = convert_server_priv_string(priv_type_text);
+
+	aclresult = pg_foreign_server_aclcheck(serverid, roleid, mode);
+
+	PG_RETURN_BOOL(aclresult == ACLCHECK_OK);
+}
+
+/*
+ * has_server_privilege_id
+ *		Check user privileges on a foreign server given
+ *		server oid, and text priv name.
+ *		current_user is assumed
+ */
+Datum
+has_server_privilege_id(PG_FUNCTION_ARGS)
+{
+	Oid			serverid = PG_GETARG_OID(0);
+	text	   *priv_type_text = PG_GETARG_TEXT_P(1);
+	Oid			roleid;
+	AclMode		mode;
+	AclResult	aclresult;
+
+	roleid = GetUserId();
+	mode = convert_server_priv_string(priv_type_text);
+
+	aclresult = pg_foreign_server_aclcheck(serverid, roleid, mode);
+
+	PG_RETURN_BOOL(aclresult == ACLCHECK_OK);
+}
+
+/*
+ * has_server_privilege_id_name
+ *		Check user privileges on a foreign server given
+ *		roleid, text servername, and text priv name.
+ */
+Datum
+has_server_privilege_id_name(PG_FUNCTION_ARGS)
+{
+	Oid			roleid = PG_GETARG_OID(0);
+	text	   *servername = PG_GETARG_TEXT_P(1);
+	text	   *priv_type_text = PG_GETARG_TEXT_P(2);
+	Oid			serverid;
+	AclMode		mode;
+	AclResult	aclresult;
+
+	serverid = convert_server_name(servername);
+	mode = convert_server_priv_string(priv_type_text);
+
+	aclresult = pg_foreign_server_aclcheck(serverid, roleid, mode);
+
+	PG_RETURN_BOOL(aclresult == ACLCHECK_OK);
+}
+
+/*
+ * has_server_privilege_id_id
+ *		Check user privileges on a foreign server given
+ *		roleid, server oid, and text priv name.
+ */
+Datum
+has_server_privilege_id_id(PG_FUNCTION_ARGS)
+{
+	Oid			roleid = PG_GETARG_OID(0);
+	Oid			serverid = PG_GETARG_OID(1);
+	text	   *priv_type_text = PG_GETARG_TEXT_P(2);
+	AclMode		mode;
+	AclResult	aclresult;
+
+	mode = convert_server_priv_string(priv_type_text);
+
+	aclresult = pg_foreign_server_aclcheck(serverid, roleid, mode);
+
+	PG_RETURN_BOOL(aclresult == ACLCHECK_OK);
+}
+
+/*
+ *		Support routines for has_server_privilege family.
+ */
+
+/*
+ * Given a server name expressed as a string, look it up and return Oid
+ */
+static Oid
+convert_server_name(text *servername)
+{
+	char	   *serverstr = text_to_cstring(servername);
+
+	return GetForeignServerOidByName(serverstr, false);
+}
+
+/*
+ * convert_server_priv_string
+ *		Convert text string to AclMode value.
+ */
+static AclMode
+convert_server_priv_string(text *priv_type_text)
+{
+	static const priv_map server_priv_map[] = {
+		{"USAGE", ACL_USAGE},
+		{"USAGE WITH GRANT OPTION", ACL_GRANT_OPTION_FOR(ACL_USAGE)},
+		{NULL, 0}
+	};
+
+	return convert_any_priv_string(priv_type_text, server_priv_map);
+}
+
 
 /*
  * has_tablespace_privilege variants
@@ -2809,6 +3445,11 @@ pg_role_aclcheck(Oid role_oid, Oid roleid, AclMode mode)
 {
 	if (mode & ACL_GRANT_OPTION_FOR(ACL_CREATE))
 	{
+		/*
+		 * XXX For roleid == role_oid, is_admin_of_role() also examines the
+		 * session and call stack.  That suits two-argument pg_has_role(), but
+		 * it gives the three-argument version a lamentable whimsy.
+		 */
 		if (is_admin_of_role(roleid, role_oid))
 			return ACLCHECK_OK;
 	}
@@ -2863,15 +3504,21 @@ has_rolinherit(Oid roleid)
 {
 	bool		result = false;
 	HeapTuple	utup;
+	cqContext  *pcqCtx;
 
-	utup = SearchSysCache(AUTHOID,
-						  ObjectIdGetDatum(roleid),
-						  0, 0, 0);
+	pcqCtx = caql_beginscan(
+			NULL,
+			cql("SELECT * FROM pg_authid "
+				" WHERE oid = :1 ",
+				ObjectIdGetDatum(roleid)));
+
+	utup = caql_getnext(pcqCtx);
+
 	if (HeapTupleIsValid(utup))
-	{
 		result = ((Form_pg_authid) GETSTRUCT(utup))->rolinherit;
-		ReleaseSysCache(utup);
-	}
+
+	caql_endscan(pcqCtx);
+
 	return result;
 }
 
@@ -2926,9 +3573,14 @@ roles_has_privs_of(Oid roleid)
 			continue;
 
 		/* Find roles that memberid is directly a member of */
-		memlist = SearchSysCacheList(AUTHMEMMEMROLE, 1,
-									 ObjectIdGetDatum(memberid),
-									 0, 0, 0);
+		memlist = caql_begin_CacheList(
+				NULL,
+				cql("SELECT * FROM pg_auth_members "
+					" WHERE member = :1 "
+					" ORDER BY member, "
+					" roleid ",
+					ObjectIdGetDatum(memberid)));
+
 		for (i = 0; i < memlist->n_members; i++)
 		{
 			HeapTuple	tup = &memlist->members[i]->tuple;
@@ -2941,7 +3593,7 @@ roles_has_privs_of(Oid roleid)
 			 */
 			roles_list = list_append_unique_oid(roles_list, otherid);
 		}
-		ReleaseSysCacheList(memlist);
+		caql_end_CacheList(memlist);
 	}
 
 	/*
@@ -3006,9 +3658,14 @@ roles_is_member_of(Oid roleid)
 		int			i;
 
 		/* Find roles that memberid is directly a member of */
-		memlist = SearchSysCacheList(AUTHMEMMEMROLE, 1,
-									 ObjectIdGetDatum(memberid),
-									 0, 0, 0);
+		memlist = caql_begin_CacheList(
+				NULL,
+				cql("SELECT * FROM pg_auth_members "
+					" WHERE member = :1 "
+					" ORDER BY member, "
+					" roleid ",
+					ObjectIdGetDatum(memberid)));
+
 		for (i = 0; i < memlist->n_members; i++)
 		{
 			HeapTuple	tup = &memlist->members[i]->tuple;
@@ -3021,7 +3678,7 @@ roles_is_member_of(Oid roleid)
 			 */
 			roles_list = list_append_unique_oid(roles_list, otherid);
 		}
-		ReleaseSysCacheList(memlist);
+		caql_end_CacheList(memlist);
 	}
 
 	/*
@@ -3130,11 +3787,9 @@ is_member_of_role_nosuper(Oid member, Oid role)
 
 
 /*
- * Is member an admin of role (directly or indirectly)?  That is, is it
- * a member WITH ADMIN OPTION?
- *
- * We could cache the result as for is_member_of_role, but currently this
- * is not used in any performance-critical paths, so we don't.
+ * Is member an admin of role?  That is, is member the role itself (subject to
+ * restrictions below), a member (directly or indirectly) WITH ADMIN OPTION,
+ * or a superuser?
  */
 bool
 is_admin_of_role(Oid member, Oid role)
@@ -3143,13 +3798,40 @@ is_admin_of_role(Oid member, Oid role)
 	List	   *roles_list;
 	ListCell   *l;
 
-	/* Fast path for simple case */
-	if (member == role)
-		return true;
-
-	/* Superusers have every privilege, so are part of every role */
 	if (superuser_arg(member))
 		return true;
+
+	if (member == role)
+		/*
+		 * A role can admin itself when it matches the session user and we're
+		 * outside any security-restricted operation, SECURITY DEFINER or
+		 * similar context.  SQL-standard roles cannot self-admin.  However,
+		 * SQL-standard users are distinct from roles, and they are not
+		 * grantable like roles: PostgreSQL's role-user duality extends the
+		 * standard.  Checking for a session user match has the effect of
+		 * letting a role self-admin only when it's conspicuously behaving
+		 * like a user.  Note that allowing self-admin under a mere SET ROLE
+		 * would make WITH ADMIN OPTION largely irrelevant; any member could
+		 * SET ROLE to issue the otherwise-forbidden command.
+		 *
+		 * Withholding self-admin in a security-restricted operation prevents
+		 * object owners from harnessing the session user identity during
+		 * administrative maintenance.  Suppose Alice owns a database, has
+		 * issued "GRANT alice TO bob", and runs a daily ANALYZE.  Bob creates
+		 * an alice-owned SECURITY DEFINER function that issues "REVOKE alice
+		 * FROM carol".  If he creates an expression index calling that
+		 * function, Alice will attempt the REVOKE during each ANALYZE.
+		 * Checking InSecurityRestrictedOperation() thwarts that attack.
+		 *
+		 * Withholding self-admin in SECURITY DEFINER functions makes their
+		 * behavior independent of the calling user.  There's no security or
+		 * SQL-standard-conformance need for that restriction, though.
+		 *
+		 * A role cannot have actual WITH ADMIN OPTION on itself, because that
+		 * would imply a membership loop.  Therefore, we're done either way.
+		 */
+		return member == GetSessionUserId() &&
+			!InLocalUserIdChange() && !InSecurityRestrictedOperation();
 
 	/*
 	 * Find all the roles that member is a member of, including multi-level
@@ -3165,9 +3847,14 @@ is_admin_of_role(Oid member, Oid role)
 		int			i;
 
 		/* Find roles that memberid is directly a member of */
-		memlist = SearchSysCacheList(AUTHMEMMEMROLE, 1,
-									 ObjectIdGetDatum(memberid),
-									 0, 0, 0);
+		memlist = caql_begin_CacheList(
+				NULL,
+				cql("SELECT * FROM pg_auth_members "
+					" WHERE member = :1 "
+					" ORDER BY member, "
+					" roleid ",
+					ObjectIdGetDatum(memberid)));
+
 		for (i = 0; i < memlist->n_members; i++)
 		{
 			HeapTuple	tup = &memlist->members[i]->tuple;
@@ -3183,7 +3870,7 @@ is_admin_of_role(Oid member, Oid role)
 
 			roles_list = list_append_unique_oid(roles_list, otherid);
 		}
-		ReleaseSysCacheList(memlist);
+		caql_end_CacheList(memlist);
 		if (result)
 			break;
 	}

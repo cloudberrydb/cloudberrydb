@@ -3,10 +3,10 @@
  * port.h
  *	  Header for src/port/ compatibility functions.
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2010, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
- * $PostgreSQL: pgsql/src/include/port.h,v 1.106 2006/11/28 01:12:33 adunstan Exp $
+ * $PostgreSQL: pgsql/src/include/port.h,v 1.134 2010/05/15 14:44:13 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -17,9 +17,20 @@
 #include <netdb.h>
 #include <pwd.h>
 
+/* socket has a different definition on WIN32 */
+#ifndef WIN32
+typedef int pgsocket;
+
+#define PGINVALID_SOCKET (-1)
+#else
+typedef SOCKET pgsocket;
+
+#define PGINVALID_SOCKET INVALID_SOCKET
+#endif
+
 /* non-blocking */
-extern bool pg_set_noblock(int sock);
-extern bool pg_set_block(int sock);
+extern bool pg_set_noblock(pgsocket sock);
+extern bool pg_set_block(pgsocket sock);
 
 /* Portable path handling for Unix/Win32 (in path.c) */
 
@@ -42,9 +53,15 @@ extern void get_lib_path(const char *my_exec_path, char *ret_path);
 extern void get_pkglib_path(const char *my_exec_path, char *ret_path);
 extern void get_locale_path(const char *my_exec_path, char *ret_path);
 extern void get_doc_path(const char *my_exec_path, char *ret_path);
+extern void get_html_path(const char *my_exec_path, char *ret_path);
 extern void get_man_path(const char *my_exec_path, char *ret_path);
 extern bool get_home_path(char *ret_path);
 extern void get_parent_directory(char *path);
+extern char *gp_mkdtemp(char *template_path);
+
+/* port/dirmod.c */
+extern char **pgfnames(const char *path);
+extern void pgfnames_cleanup(char **filenames);
 
 /*
  *	is_absolute_path
@@ -73,6 +90,12 @@ extern void set_pglocale_pgservice(const char *argv0, const char *app);
 extern int	find_my_exec(const char *argv0, char *retpath);
 extern int find_other_exec(const char *argv0, const char *target,
 				const char *versionstr, char *retpath);
+
+/* Windows security token manipulation (in exec.c) */
+#ifdef WIN32
+extern BOOL AddUserToTokenDacl(HANDLE hToken);
+#endif
+
 
 #if defined(WIN32) || defined(__CYGWIN__)
 #define EXE ".exe"
@@ -104,7 +127,7 @@ extern int find_other_exec(const char *argv0, const char *target,
  *	 - exactly two quote characters
  *	 - no special characters between the two quote characters, where special
  *	   is one of: &<>()@^|
- *	 - there are one or more whitespace characters between the the two quote
+ *	 - there are one or more whitespace characters between the two quote
  *	   characters
  *	 - the string between the two quote characters is the name of an
  *	   executable file.
@@ -164,7 +187,7 @@ extern int
 pg_sprintf(char *str, const char *fmt,...)
 /* This extension allows gcc to check the format string */
 __attribute__((format(printf, 2, 3)));
-extern int	pg_vfprintf(FILE * stream, const char *fmt, va_list args);
+extern int	pg_vfprintf(FILE *stream, const char *fmt, va_list args);
 extern int
 pg_fprintf(FILE *stream, const char *fmt,...)
 /* This extension allows gcc to check the format string */
@@ -237,8 +260,7 @@ extern int	pclose_check(FILE *stream);
 
 #if defined(WIN32) || defined(__CYGWIN__)
 /*
- *	Win32 doesn't have reliable rename/unlink during concurrent access,
- *	and we need special code to do symlinks.
+ *	Win32 doesn't have reliable rename/unlink during concurrent access.
  */
 extern int	pgrename(const char *from, const char *to);
 extern int	pgunlink(const char *path);
@@ -250,10 +272,14 @@ extern int	pgunlink(const char *path);
 
 #define rename(from, to)		pgrename(from, to)
 #define unlink(path)			pgunlink(path)
+#endif   /* defined(WIN32) || defined(__CYGWIN__) */
 
 /*
+ *	Win32 also doesn't have symlinks, but we can emulate them with
+ *	junction points on newer Win32 versions.
+ *
  *	Cygwin has its own symlinks which work on Win95/98/ME where
- *	junction points don't, so use it instead.  We have no way of
+ *	junction points don't, so use those instead.  We have no way of
  *	knowing what type of system Cygwin binaries will be run on.
  *		Note: Some CYGWIN includes might #define WIN32.
  */
@@ -262,17 +288,35 @@ extern int	pgsymlink(const char *oldpath, const char *newpath);
 
 #define symlink(oldpath, newpath)	pgsymlink(oldpath, newpath)
 #endif
-#endif   /* defined(WIN32) || defined(__CYGWIN__) */
 
 extern void copydir(char *fromdir, char *todir, bool recurse);
 
-extern bool rmtree(char *path, bool rmtopdir);
+extern bool rmtree(const char *path, bool rmtopdir);
+
+/*
+ * stat() is not guaranteed to set the st_size field on win32, so we
+ * redefine it to our own implementation that is.
+ *
+ * We must pull in sys/stat.h here so the system header definition
+ * goes in first, and we redefine that, and not the other way around.
+ *
+ * Some frontends don't need the size from stat, so if UNSAFE_STAT_OK
+ * is defined we don't bother with this.
+ */
+#if defined(WIN32) && !defined(__CYGWIN__) && !defined(UNSAFE_STAT_OK)
+#include <sys/stat.h>
+extern int	pgwin32_safestat(const char *path, struct stat * buf);
+
+#define stat(a,b) pgwin32_safestat(a,b)
+#endif
 
 #if defined(WIN32) && !defined(__CYGWIN__)
 
-/* open() and fopen() replacements to allow deletion of open files and
+/*
+ * open() and fopen() replacements to allow deletion of open files and
  * passing of other special options.
  */
+#define		O_DIRECT	0x80000000
 extern int	pgwin32_open(const char *, int,...);
 extern FILE *pgwin32_fopen(const char *, const char *);
 
@@ -284,12 +328,11 @@ extern FILE *pgwin32_fopen(const char *, const char *);
 #define popen(a,b) _popen(a,b)
 #define pclose(a) _pclose(a)
 
-/* Missing rand functions */
-extern long lrand48(void);
-extern void srand48(long seed);
-
+/* New versions of MingW have gettimeofday, old mingw and msvc don't */
+#ifndef HAVE_GETTIMEOFDAY
 /* Last parameter not used */
 extern int	gettimeofday(struct timeval * tp, struct timezone * tzp);
+#endif
 #else							/* !WIN32 */
 
 /*
@@ -307,9 +350,20 @@ extern int	gettimeofday(struct timeval * tp, struct timezone * tzp);
 extern char *crypt(const char *key, const char *setting);
 #endif
 
-#if defined(bsdi) || defined(netbsd)
+/* WIN32 handled in port/win32.h */
+#ifndef WIN32
+#define pgoff_t off_t
+#if defined(__bsdi__) || defined(__NetBSD__)
 extern int	fseeko(FILE *stream, off_t offset, int whence);
 extern off_t ftello(FILE *stream);
+#endif
+#endif
+
+#ifndef HAVE_ERAND48
+/* we assume all of these are present or missing together */
+extern double erand48(unsigned short xseed[3]);
+extern long lrand48(void);
+extern void srand48(long seed);
 #endif
 
 #ifndef HAVE_FSEEKO
@@ -319,6 +373,10 @@ extern off_t ftello(FILE *stream);
 
 #ifndef HAVE_GETOPT
 extern int	getopt(int nargc, char *const * nargv, const char *ostr);
+#endif
+
+#if !defined(HAVE_GETPEEREID) || defined(_AIX)
+extern int getpeereid(int sock, uid_t *uid, gid_t *gid);
 #endif
 
 #ifndef HAVE_ISINF
@@ -339,11 +397,15 @@ extern int	inet_aton(const char *cp, struct in_addr * addr);
 extern char *strdup(const char *str);
 #endif
 
+#if !HAVE_DECL_STRLCAT
+extern size_t strlcat(char *dst, const char *src, size_t siz);
+#endif
+
 #if !HAVE_DECL_STRLCPY
 extern size_t strlcpy(char *dst, const char *src, size_t siz);
 #endif
 
-#ifndef HAVE_RANDOM
+#if !defined(HAVE_RANDOM) && !defined(__BORLANDC__)
 extern long random(void);
 #endif
 
@@ -359,6 +421,11 @@ extern void srandom(unsigned int seed);
 extern char *pqStrerror(int errnum, char *strerrbuf, size_t buflen);
 
 #if !defined(WIN32) || defined(__CYGWIN__)
+// Obsolete -- use pqGetpwuid() instead.
+extern struct passwd * get_gp_passwdptr(void);
+#endif
+
+#if !defined(WIN32) || defined(__CYGWIN__)
 extern int pqGetpwuid(uid_t uid, struct passwd * resultbuf, char *buffer,
 		   size_t buflen, struct passwd ** result);
 #endif
@@ -370,7 +437,7 @@ extern int pqGethostbyname(const char *name,
 				int *herrno);
 
 extern void pg_qsort(void *base, size_t nel, size_t elsize,
-					 int (*cmp) (const void *, const void *));
+		 int (*cmp) (const void *, const void *));
 
 #define qsort(a,b,c,d) pg_qsort(a,b,c,d)
 
@@ -378,5 +445,21 @@ typedef int (*qsort_arg_comparator) (const void *a, const void *b, void *arg);
 
 extern void qsort_arg(void *base, size_t nel, size_t elsize,
 		  qsort_arg_comparator cmp, void *arg);
+
+/* port/chklocale.c */
+extern int	pg_get_encoding_from_locale(const char *ctype);
+
+/* port/inet_net_ntop.c */
+extern char *inet_net_ntop(int af, const void *src, int bits,
+			  char *dst, size_t size);
+
+/* port/pgcheckdir.c */
+extern int	pg_check_dir(const char *dir);
+
+/* port/pgmkdirp.c */
+extern int	pg_mkdir_p(char *path, int omode);
+
+/* port/quotes.c */
+extern char *escape_single_quotes_ascii(const char *src);
 
 #endif   /* PG_PORT_H */

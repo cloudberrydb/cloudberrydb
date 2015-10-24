@@ -15,9 +15,9 @@
  *	needed anymore.  Improve it someday.
  *
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2008, PostgreSQL Global Development Group
  *
- * $PostgreSQL: pgsql/src/backend/utils/adt/ri_triggers.c,v 1.89 2006/10/04 00:29:59 momjian Exp $
+ * $PostgreSQL: pgsql/src/backend/utils/adt/ri_triggers.c,v 1.89.2.3 2009/12/09 21:58:29 tgl Exp $
  *
  * ----------
  */
@@ -227,7 +227,7 @@ RI_FKey_check(PG_FUNCTION_ARGS)
 	 * can be entitled to change its xmin/xmax.
 	 */
 	Assert(new_row_buf != InvalidBuffer);
-	if (!HeapTupleSatisfiesItself(new_row->t_data, new_row_buf))
+	if (!HeapTupleSatisfiesItself( /* relation = ??? */ NULL, new_row->t_data, new_row_buf))
 		return PointerGetDatum(NULL);
 
 	/*
@@ -2717,7 +2717,7 @@ RI_Initial_Check(FkConstraint *fkconstraint, Relation rel, Relation pkrel)
 									  NULL, NULL,
 									  CopySnapshot(GetLatestSnapshot()),
 									  InvalidSnapshot,
-									  true, 1);
+									  true, false, 1);
 
 	/* Check result */
 	if (spi_result != SPI_OK_SELECT)
@@ -3008,7 +3008,8 @@ ri_PlanCheck(const char *querystr, int nargs, Oid *argtypes,
 {
 	void	   *qplan;
 	Relation	query_rel;
-	Oid			save_uid;
+	Oid			save_userid;
+	int			save_sec_context;
 
 	/*
 	 * The query is always run against the FK table except when this is an
@@ -3022,8 +3023,9 @@ ri_PlanCheck(const char *querystr, int nargs, Oid *argtypes,
 		query_rel = fk_rel;
 
 	/* Switch to proper UID to perform check as */
-	save_uid = GetUserId();
-	SetUserId(RelationGetForm(query_rel)->relowner);
+	GetUserIdAndSecContext(&save_userid, &save_sec_context);
+	SetUserIdAndSecContext(RelationGetForm(query_rel)->relowner,
+						   save_sec_context | SECURITY_LOCAL_USERID_CHANGE);
 
 	/* Create the plan */
 	qplan = SPI_prepare(querystr, nargs, argtypes);
@@ -3031,8 +3033,8 @@ ri_PlanCheck(const char *querystr, int nargs, Oid *argtypes,
 	if (qplan == NULL)
 		elog(ERROR, "SPI_prepare returned %d for %s", SPI_result, querystr);
 
-	/* Restore UID */
-	SetUserId(save_uid);
+	/* Restore UID and security context */
+	SetUserIdAndSecContext(save_userid, save_sec_context);
 
 	/* Save the plan if requested */
 	if (cache_plan)
@@ -3061,7 +3063,8 @@ ri_PerformCheck(RI_QueryKey *qkey, void *qplan,
 	Snapshot	crosscheck_snapshot;
 	int			limit;
 	int			spi_result;
-	Oid			save_uid;
+	Oid			save_userid;
+	int			save_sec_context;
 	Datum		vals[RI_MAX_NUMKEYS * 2];
 	char		nulls[RI_MAX_NUMKEYS * 2];
 
@@ -3139,17 +3142,18 @@ ri_PerformCheck(RI_QueryKey *qkey, void *qplan,
 	limit = (expect_OK == SPI_OK_SELECT) ? 1 : 0;
 
 	/* Switch to proper UID to perform check as */
-	save_uid = GetUserId();
-	SetUserId(RelationGetForm(query_rel)->relowner);
+	GetUserIdAndSecContext(&save_userid, &save_sec_context);
+	SetUserIdAndSecContext(RelationGetForm(query_rel)->relowner,
+						   save_sec_context | SECURITY_LOCAL_USERID_CHANGE);
 
 	/* Finally we can run the query. */
 	spi_result = SPI_execute_snapshot(qplan,
 									  vals, nulls,
 									  test_snapshot, crosscheck_snapshot,
-									  false, limit);
+									  false, false, limit);
 
-	/* Restore UID */
-	SetUserId(save_uid);
+	/* Restore UID and security context */
+	SetUserIdAndSecContext(save_userid, save_sec_context);
 
 	/* Check result */
 	if (spi_result < 0)

@@ -1,0 +1,242 @@
+#!/bin/env python
+# Copyright Pivotal 2014
+
+
+import glob
+import os
+import re
+import string
+import shutil
+import stat
+import sys
+from optparse import OptionParser
+from subprocess import Popen, PIPE
+
+
+def _getPlatformInfo():
+    if which('lsb_release') is None:
+        for file in glob.glob('/etc/*release'):
+            shutil.copy(file, '.')
+    else:
+        Popen('/usr/bin/lsb_release -a > ./lsb_release.out', shell=True)
+
+    if os.path.exists('/etc/gpdb-appliance-version'):
+        shutil.copy('/etc/gpdb-appliance-version', '.')
+
+    Popen('uname -r > uname.out', shell=True)
+
+
+def _getFileInfo(coreFile):
+    cmd = Popen('/usr/bin/file ' + coreFile, shell=True, stdout=PIPE)
+    return cmd.communicate()[0]
+
+
+def _isCore(fileCmdOutput):
+    if fileCmdOutput.find('LSB core file') is -1:
+        return False
+    return True
+
+
+def _findBinary(fileCmdOutput):
+    start = string.find(fileCmdOutput, "'") + 1
+    end = string.find(fileCmdOutput, "'", start)
+    cmd = fileCmdOutput[start:end].split()[0].translate(None, string.punctuation)
+    if os.path.isabs(cmd):
+        return cmd
+    return which(cmd)
+
+
+def _getLibraryListWithLDD(binary):
+    # We manually seed this with a few libraries that are missed
+    # This may not be needed for all proces, but will round out the
+    # postgres binary debugging
+    # TODO: Look a ways to distinguise a 32 vs. 64 bit executable
+    libraries = ['/lib64/libgcc_s.so.1', '/lib64/libnss_files.so.2', '/lib/libgcc_s.so.1', '/lib/libnss_files.so.2']
+    ldd_output = Popen('ldd `which postgres`', shell=True, stdout=PIPE)
+    for line in ldd_output.stdout:
+        match = re.search(r'(\S+) \(0x', line)
+        if match and match.group(1):
+            libraries.append(match.group(1).strip())
+    return libraries
+
+
+def _getLibraryListWithGDB(coreFile, binary):
+    gdb = which('gdb')
+    if gdb is None:
+        return False
+
+    libraries = []
+    # fix for issues with PYTHONPATH and PYTHONHOME
+    environ = os.environ.copy()
+    for key in ('PYTHONHOME', 'PYTHONPATH', 'LD_LIBRARY_PATH'):
+        if key in environ:
+            del environ[key]
+    cmd = Popen(gdb + ' --eval-command="quit" ' + binary + ' -c ' + coreFile, shell=True, stdout=PIPE, stderr=PIPE)
+    result = cmd.communicate()[0]
+
+    for line in result.splitlines():
+        if line.find('Reading symbols') is 0:
+            end = line.find('...')
+            libraries.append(line[21:end])
+
+    return libraries
+
+
+def _copyFilePath(src, dst):
+    srcDir = os.path.dirname(src)
+    if srcDir.find('/') is 0:
+        srcDir = srcDir[1:]
+    dstDir = os.path.join(dst, srcDir)
+    if not os.path.exists(dstDir):
+        os.makedirs(dstDir)
+    shutil.copy(src, dstDir)
+
+
+def _generateGDBScript(b, c):
+    with open('runGDB.sh', 'w') as f1:
+        print >>f1, '#!/bin/bash'
+        print >>f1, 'unset PYTHONHOME'
+        print >>f1, 'unset PYTHONPATH'
+        print >>f1, 'curDIR=`pwd`'
+        print >>f1, '/usr/bin/gdb --eval-command="set sysroot $curDIR" --eval-command="core %s" %s' % (c, b)
+    os.chmod('runGDB.sh', 0755)
+
+
+# This is taken from Python 3.3:
+def which(cmd, mode=os.F_OK | os.X_OK, path=None):
+    """Given a command, mode, and a PATH string, return the path which
+    conforms to the given mode on the PATH, or None if there is no such
+    file.
+
+    `mode` defaults to os.F_OK | os.X_OK. `path` defaults to the result
+    of os.environ.get("PATH"), or can be overridden with a custom search
+    path.
+
+    """
+    # Check that a given file can be accessed with the correct mode.
+    # Additionally check that `file` is not a directory, as on Windows
+    # directories pass the os.access check.
+    def _access_check(fn, mode):
+        return (os.path.exists(fn) and os.access(fn, mode)
+                and not os.path.isdir(fn))
+
+    # If we're given a path with a directory part, look it up directly rather
+    # than referring to PATH directories. This includes checking relative to the
+    # current directory, e.g. ./script
+    if os.path.dirname(cmd):
+        if _access_check(cmd, mode):
+            return cmd
+        return None
+
+    if path is None:
+        path = os.environ.get("PATH", os.defpath)
+        if not path:
+            return None
+        path = path.split(os.pathsep)
+
+    if sys.platform == "win32":
+        # The current directory takes precedence on Windows.
+        if not os.curdir in path:
+            path.insert(0, os.curdir)
+
+        # PATHEXT is necessary to check on Windows.
+        pathext = os.environ.get("PATHEXT", "").split(os.pathsep)
+        # See if the given file matches any of the expected path extensions.
+        # This will allow us to short circuit when given "python.exe".
+        # If it does match, only test that one, otherwise we have to try
+        # others.
+        if any(cmd.lower().endswith(ext.lower()) for ext in pathext):
+            files = [cmd]
+        else:
+            files = [cmd + ext for ext in pathext]
+    else:
+            # On other platforms you don't have things like PATHEXT to tell you
+            # what file suffixes are executable, so just pass on cmd as-is.
+        files = [cmd]
+
+    seen = set()
+    for dir in path:
+        normdir = os.path.normcase(dir)
+        if not normdir in seen:
+            seen.add(normdir)
+            for thefile in files:
+                name = os.path.join(dir, thefile)
+                if _access_check(name, mode):
+                    return name
+    return None
+
+
+def packCoreFile(coreFile, binary):
+    packDir = './packcore-' + os.path.basename(coreFile)
+    oldDir = os.getcwd()
+    try:
+        os.mkdir(packDir)
+        os.chdir(packDir)
+        shutil.copy(coreFile, '.')
+        _getPlatformInfo()
+        shutil.copy(binary, '.')
+
+        libraries = _getLibraryListWithGDB(coreFile, binary)
+
+        if libraries is False:
+            libraries = _getLibraryListWithLDD(binary)
+
+        for lib in libraries:
+            try:
+                _copyFilePath(lib, '.')
+            except IOError:
+                continue
+
+        _generateGDBScript(os.path.basename(binary), os.path.basename(coreFile))
+        os.chdir(oldDir)
+        cmd = Popen('tar zcf packcore-' + os.path.basename(coreFile) + '.tgz ' + packDir, shell=True)
+        cmd.wait()
+    finally:
+        os.chdir(oldDir)
+        Popen('rm -rf ' + packDir, shell=True)
+
+
+def parseArgs():
+    u = '''%prog [options] core_file
+This will create an archive with the core file and all required
+libraries for analysis.  The preference is to use GDB so that we can
+resolve dependancies for extensions.'''
+
+    parser = OptionParser(version='%prog: 0.4beta', usage=u)
+    parser.add_option('-b', '--binary', action='store', type='string', dest='binary', metavar='PROGRAMME', help='The full path to the binary that created the core file.  Used when packcore cannot determine the source binary')
+    (option, args) = parser.parse_args()
+    if len(args) != 1:
+        parser.error('Please specify a core file')
+        sys.exit(1)
+    return (option, args)
+
+
+def main():
+    # Check python vesion
+    if sys.hexversion < 0x020600f0:
+        sys.stderr.write('packcore requires a minimum python version of 2.6.  Current version is:\n' + sys.version)
+        sys.exit(1)
+
+    (options, args) = parseArgs()
+
+    coreFile = os.path.abspath(args[0])
+    fileCmd = _getFileInfo(coreFile)
+    if not _isCore(fileCmd):
+        sys.stderr.write(args[0] + ' is not a valid core file\n')
+        sys.exit(1)
+
+    if options.binary:
+        binary = which(options.binary)
+    else:
+        binary = _findBinary(fileCmd)
+
+    if not binary:
+        sys.stderr.write("Unable to find full path to binary for core file\n")
+        sys.exit(1)
+
+    packCoreFile(coreFile, binary)
+    sys.exit(0)
+
+
+if __name__ == "__main__":
+    main()

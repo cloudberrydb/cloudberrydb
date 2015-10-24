@@ -4,7 +4,8 @@
  *	   routines for accessing the system catalogs
  *
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 2005-2008, Greenplum inc.
+ * Portions Copyright (c) 1996-2008, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -18,8 +19,15 @@
 #include <math.h>
 
 #include "access/genam.h"
+#include "catalog/catquery.h"
 #include "access/heapam.h"
+#include "access/aocssegfiles.h"
+#include "catalog/gp_policy.h"
 #include "catalog/pg_inherits.h"
+#include "catalog/pg_exttable.h"
+#include "catalog/indexing.h"
+#include "catalog/pg_type.h"
+#include "commands/tablecmds.h"
 #include "nodes/makefuncs.h"
 #include "optimizer/clauses.h"
 #include "optimizer/plancat.h"
@@ -33,18 +41,44 @@
 #include "utils/lsyscache.h"
 #include "utils/relcache.h"
 #include "utils/syscache.h"
+#include "utils/array.h"
+#include "utils/fmgroids.h"
+#include "utils/builtins.h"
+#include "utils/uri.h"
 #include "catalog/catalog.h"
+#include "cdb/cdbvars.h"
 #include "miscadmin.h"
+#include "cdb/cdbdisp.h"
+#include "cdb/cdbrelsize.h"
+#include "mb/pg_wchar.h"
+#include "commands/vacuum.h"
 
 
 /* GUC parameter */
-bool		constraint_exclusion = false;
 
+static List *get_relation_constraints(PlannerInfo *root,
+									  Oid relationObjectId, RelOptInfo *rel,
+									  bool include_notnull);
 
-static void estimate_rel_size(Relation rel, int32 *attr_widths,
-				  BlockNumber *pages, double *tuples);
-static List *get_relation_constraints(Oid relationObjectId, RelOptInfo *rel);
+static void
+estimate_tuple_width(Relation   rel,
+                     int32     *attr_widths,
+                     int32     *bytes_per_tuple,
+                     double    *tuples_per_page);
 
+static void
+cdb_estimate_rel_size(RelOptInfo   *relOptInfo,
+                      Relation      baserel,
+                      Relation      rel,
+                      int32        *attr_widths,
+				      BlockNumber  *pages,
+                      double       *tuples,
+                      bool         *default_stats_used);
+
+static void
+cdb_default_stats_warning_for_index(Oid reloid, Oid indexoid);
+
+extern BlockNumber RelationGuessNumberOfBlocks(double totalbytes);
 
 /*
  * get_relation_info -
@@ -76,6 +110,7 @@ get_relation_info(PlannerInfo *root, Oid relationObjectId, bool inhparent,
 	Relation	relation;
 	bool		hasindex;
 	List	   *indexinfos = NIL;
+	bool		needs_longlock;
 
 	/*
 	 * We need not lock the relation since it was already locked, either by
@@ -83,6 +118,7 @@ get_relation_info(PlannerInfo *root, Oid relationObjectId, bool inhparent,
 	 * rangetable.
 	 */
 	relation = heap_open(relationObjectId, NoLock);
+	needs_longlock = rel_needs_long_lock(relationObjectId);
 
 	rel->min_attr = FirstLowInvalidHeapAttributeNumber + 1;
 	rel->max_attr = RelationGetNumberOfAttributes(relation);
@@ -93,15 +129,30 @@ get_relation_info(PlannerInfo *root, Oid relationObjectId, bool inhparent,
 	rel->attr_widths = (int32 *)
 		palloc0((rel->max_attr - rel->min_attr + 1) * sizeof(int32));
 
-	/*
-	 * Estimate relation size --- unless it's an inheritance parent, in which
-	 * case the size will be computed later in set_append_rel_pathlist, and we
-	 * must leave it zero for now to avoid bollixing the total_table_pages
-	 * calculation.
-	 */
-	if (!inhparent)
-		estimate_rel_size(relation, rel->attr_widths - rel->min_attr,
-						  &rel->pages, &rel->tuples);
+    /*
+     * CDB: Get partitioning key info for distributed relation.
+     */
+    rel->cdbpolicy = RelationGetPartitioningKey(relation);
+
+    /*
+     * Estimate relation size --- unless it's an inheritance parent, in which
+     * case the size will be computed later in set_append_rel_pathlist, and we
+     * must leave it zero for now to avoid bollixing the total_table_pages
+     * calculation.
+     */
+     if (!inhparent)
+     {
+    	cdb_estimate_rel_size
+    		(
+    		rel,
+    		relation,
+    		relation,
+    		rel->attr_widths - rel->min_attr,
+    		&rel->pages,
+    		&rel->tuples,
+    		&rel->cdb_default_stats_used
+    		);
+     }
 
 	/*
 	 * Make list of indexes.  Ignore indexes on system catalogs if told to.
@@ -118,6 +169,10 @@ get_relation_info(PlannerInfo *root, Oid relationObjectId, bool inhparent,
 		List	   *indexoidlist;
 		ListCell   *l;
 		LOCKMODE	lmode;
+
+        /* Warn if indexed table needs ANALYZE. */
+        if (rel->cdb_default_stats_used)
+            cdb_default_stats_warning_for_table(relation->rd_id);
 
 		indexoidlist = RelationGetIndexList(relation);
 
@@ -223,20 +278,23 @@ get_relation_info(PlannerInfo *root, Oid relationObjectId, bool inhparent,
 			 * a table, except we can be sure that the index is not larger
 			 * than the table.
 			 */
-			if (info->indpred == NIL)
-			{
-				info->pages = RelationGetNumberOfBlocks(indexRelation);
-				info->tuples = rel->tuples;
-			}
-			else
-			{
-				estimate_rel_size(indexRelation, NULL,
-								  &info->pages, &info->tuples);
-				if (info->tuples > rel->tuples)
-					info->tuples = rel->tuples;
-			}
+			cdb_estimate_rel_size(rel,
+                                  relation,
+                                  indexRelation,
+                                  NULL,
+                                  &info->pages,
+                                  &info->tuples,
+                                  &info->cdb_default_stats_used);
 
-			index_close(indexRelation, NoLock);
+			if (!info->indpred ||
+				info->tuples > rel->tuples)
+				info->tuples = rel->tuples;
+
+            if (info->cdb_default_stats_used &&
+                !rel->cdb_default_stats_used)
+                cdb_default_stats_warning_for_index(relation->rd_id, indexoid);
+
+			index_close(indexRelation, needs_longlock ? NoLock : lmode);
 
 			indexinfos = lcons(info, indexinfos);
 		}
@@ -250,13 +308,187 @@ get_relation_info(PlannerInfo *root, Oid relationObjectId, bool inhparent,
 }
 
 /*
+ * Update RelOptInfo to include the external specifications (file URI list
+ * and data format) from the pg_exttable catalog.
+ */
+void
+get_external_relation_info(Oid relationObjectId, RelOptInfo *rel)
+{
+
+	Relation	pg_class_rel;
+	ExtTableEntry* extentry;
+
+	/*
+     * Get partitioning key info for distributed relation.
+     */
+	pg_class_rel = heap_open(relationObjectId, NoLock);
+	rel->cdbpolicy = RelationGetPartitioningKey(pg_class_rel);
+	heap_close(pg_class_rel, NoLock);
+
+	/*
+	 * Get the pg_exttable fields for this table
+	 */
+	extentry = GetExtTableEntry(relationObjectId);
+	
+	rel->locationlist = extentry->locations;	
+	rel->execcommand = extentry->command;
+	rel->fmttype = extentry->fmtcode;
+	rel->fmtopts = extentry->fmtopts;
+	rel->rejectlimit = extentry->rejectlimit;
+	rel->rejectlimittype = extentry->rejectlimittype;
+	rel->fmterrtbl = extentry->fmterrtbl;
+	rel->ext_encoding = extentry->encoding;
+	rel->writable = extentry->iswritable;
+
+	/* any external tables are non-rescannable. */
+	rel->isrescannable = false;
+
+}
+
+/*
+ * cdb_estimate_rel_size - estimate # pages and # tuples in a table or index
+ *
+ * If attr_widths isn't NULL, it points to the zero-index entry of the
+ * relation's attr_width[] cache; we fill this in if we have need to compute
+ * the attribute widths for estimation purposes.
+ */
+void
+cdb_estimate_rel_size(RelOptInfo   *relOptInfo,
+                      Relation      baserel,
+                      Relation      rel,
+                      int32        *attr_widths,
+				      BlockNumber  *pages,
+                      double       *tuples,
+                      bool         *default_stats_used)
+{
+	BlockNumber relpages;
+	double		reltuples;
+	double		density;
+    int32       tuple_width;
+    BlockNumber curpages = 0;
+	int64	size = 0;
+
+    *default_stats_used = false;
+
+    /* Rel not distributed?  RelationGetNumberOfBlocks can get actual #pages. */
+    if (!relOptInfo->cdbpolicy ||
+        relOptInfo->cdbpolicy->ptype != POLICYTYPE_PARTITIONED)
+    {
+        estimate_rel_size(rel, attr_widths, pages, tuples);
+        return;
+    }
+
+
+	/* coerce values in pg_class to more desirable types */
+	relpages = (BlockNumber) rel->rd_rel->relpages;
+	reltuples = (double) rel->rd_rel->reltuples;
+
+	/*
+	 * Asking the QE for the size of the relation is a bit expensive.
+	 * Do we want to do it all the time?  Or only for tables that have never had analyze run?
+	 */
+
+	if (relpages > 0)
+	{
+
+		/*
+		 * Let's trust the values we had from analyze, even though they might be out of date.
+		 *
+		 * NOTE: external tables are created with estimated larger than zero values. therefore
+		 * we will get here too even though we can never analyze them.
+		 */
+
+		curpages = relpages;
+	}
+	else
+	{
+
+		/*
+		 * Let's ask the QEs for the size of the relation.
+		 * In the future, it would be better to send the command to only one QE.
+		 *
+		 * NOTE: External tables should always have >0 values in pg_class
+		 * (created this way). Therefore we should never get here. However, as
+		 * a security measure (if values in pg_class were somehow changed) we
+		 * plug in our 1K pages 1M tuples estimate here as well, and skip
+		 * cdbRelSize as we can't calculate ext table size.
+		 */
+		if(!RelationIsExternal(rel))
+		{
+		    size = cdbRelSize(rel);
+		}
+		else
+		{
+			/*
+			 * Estimate a default of 1000 pages - see comment above.
+			 * NOTE: if you change this look at AddNewRelationTuple in heap.c).
+			 */
+			size = 1000 * BLCKSZ;
+		}
+
+
+		if (size < 0)
+		{
+			curpages = 100;
+			*default_stats_used = true;
+		}
+		else
+		{
+			curpages = size / BLCKSZ;  /* average blocks per primary segment DB */
+		}
+
+		if (curpages == 0 && size > 0)
+			curpages = 1;
+	}
+
+	/* report estimated # pages */
+	*pages = curpages;
+	/* quick exit if rel is clearly empty */
+	if (curpages == 0)
+	{
+		*tuples = 0;
+		return;
+	}
+
+	/*
+	 * If it's an index, discount the metapage.  This is a kluge
+	 * because it assumes more than it ought to about index contents;
+	 * it's reasonably OK for btrees but a bit suspect otherwise.
+	 */
+	if (rel->rd_rel->relkind == RELKIND_INDEX &&
+		relpages > 0)
+	{
+		curpages--;
+		relpages--;
+	}
+	/* estimate number of tuples from previous tuple density (as of last analyze) */
+	if (relpages > 0)
+		density = reltuples / (double) relpages;
+	else
+	{
+        /*
+         * When we have no data because the relation was truncated,
+         * estimate tuples per page from attribute datatypes.
+         * (CDB: The code that was here has been moved into the
+         * estimate_tuple_width function below.)
+         */
+        estimate_tuple_width(rel, attr_widths, &tuple_width, &density);
+	}
+	*tuples = ceil(density * curpages);
+
+	elog(DEBUG2,"cdb_estimate_rel_size  estimated %g tuples and %d pages",*tuples,(int)*pages);
+
+}                               /* cdb_estimate_rel_size */
+
+
+/*
  * estimate_rel_size - estimate # pages and # tuples in a table or index
  *
  * If attr_widths isn't NULL, it points to the zero-index entry of the
  * relation's attr_width[] cache; we fill this in if we have need to compute
  * the attribute widths for estimation purposes.
  */
-static void
+void
 estimate_rel_size(Relation rel, int32 *attr_widths,
 				  BlockNumber *pages, double *tuples)
 {
@@ -264,14 +496,61 @@ estimate_rel_size(Relation rel, int32 *attr_widths,
 	BlockNumber relpages;
 	double		reltuples;
 	double		density;
+    int32       tuple_width;
 
 	switch (rel->rd_rel->relkind)
 	{
 		case RELKIND_RELATION:
 		case RELKIND_INDEX:
 		case RELKIND_TOASTVALUE:
-			/* it has storage, ok to call the smgr */
-			curpages = RelationGetNumberOfBlocks(rel);
+		case RELKIND_AOSEGMENTS:
+		case RELKIND_AOBLOCKDIR:
+		case RELKIND_AOVISIMAP:
+
+			/* skip external tables */
+			if(RelationIsExternal(rel))
+				break;
+			
+			if(RelationIsAoRows(rel))
+			{
+				/* MPP-7629 */
+				FileSegTotals	*fstotal = GetSegFilesTotals(rel, SnapshotNow);
+				
+				Assert(fstotal);
+				curpages = RelationGuessNumberOfBlocks((double)fstotal->totalbytes);
+				pfree(fstotal);
+			}
+			else if (RelationIsAoCols(rel))
+			{
+				/* TODO: largely copied from gp_statistics_estimate_reltuples_relpages_ao_cs
+				 * but there really should be a CO equivalent to GetSegFilesTotals, this is
+				 * a little ugly */
+				
+				int					nsegs, i , j;
+				double				totalBytes = 0;
+				AppendOnlyEntry*	aoEntry = GetAppendOnlyEntry(RelationGetRelid(rel), SnapshotNow);
+				AOCSFileSegInfo**	aocsInfo = GetAllAOCSFileSegInfo(rel, aoEntry, SnapshotNow, &nsegs);
+				
+			    if (aocsInfo)
+			    {
+			    	for(i = 0; i < nsegs; i++)
+			    	{
+			    		for(j = 0; j < RelationGetNumberOfAttributes(rel); j++)
+			    		{
+			    			AOCSVPInfoEntry *e = getAOCSVPEntry(aocsInfo[i], j);
+			    			Assert(e);
+			    			totalBytes += e->eof_uncompressed;
+			    		}
+			    	}
+			    }
+			    curpages = RelationGuessNumberOfBlocks(totalBytes);
+			    pfree(aoEntry);
+			}
+			else
+			{
+				/* it has storage, ok to call the smgr */
+				curpages = RelationGetNumberOfBlocks(rel);
+			}
 
 			/*
 			 * HACK: if the relation has never yet been vacuumed, use a
@@ -323,49 +602,15 @@ estimate_rel_size(Relation rel, int32 *attr_widths,
 				density = reltuples / (double) relpages;
 			else
 			{
-				/*
-				 * When we have no data because the relation was truncated,
-				 * estimate tuple width from attribute datatypes.  We assume
-				 * here that the pages are completely full, which is OK for
-				 * tables (since they've presumably not been VACUUMed yet) but
-				 * is probably an overestimate for indexes.  Fortunately
-				 * get_relation_info() can clamp the overestimate to the
-				 * parent table's size.
-				 *
-				 * Note: this code intentionally disregards alignment
-				 * considerations, because (a) that would be gilding the lily
-				 * considering how crude the estimate is, and (b) it creates
-				 * platform dependencies in the default plans which are kind
-				 * of a headache for regression testing.
-				 */
-				int32		tuple_width = 0;
-				int			i;
-
-				for (i = 1; i <= RelationGetNumberOfAttributes(rel); i++)
-				{
-					Form_pg_attribute att = rel->rd_att->attrs[i - 1];
-					int32		item_width;
-
-					if (att->attisdropped)
-						continue;
-					/* This should match set_rel_width() in costsize.c */
-					item_width = get_attavgwidth(RelationGetRelid(rel), i);
-					if (item_width <= 0)
-					{
-						item_width = get_typavgwidth(att->atttypid,
-													 att->atttypmod);
-						Assert(item_width > 0);
-					}
-					if (attr_widths != NULL)
-						attr_widths[i] = item_width;
-					tuple_width += item_width;
-				}
-				tuple_width += sizeof(HeapTupleHeaderData);
-				tuple_width += sizeof(ItemPointerData);
-				/* note: integer division is intentional here */
-				density = (BLCKSZ - sizeof(PageHeaderData)) / tuple_width;
+	            /*
+	             * When we have no data because the relation was truncated,
+	             * estimate tuples per page from attribute datatypes.
+                 * (CDB: The code that was here has been moved into the
+                 * estimate_tuple_width function below.)
+                 */
+                estimate_tuple_width(rel, attr_widths, &tuple_width, &density);
 			}
-			*tuples = rint(density * (double) curpages);
+			*tuples = ceil(density * curpages);
 			break;
 		case RELKIND_SEQUENCE:
 			/* Sequences always have a known size */
@@ -382,6 +627,65 @@ estimate_rel_size(Relation rel, int32 *attr_widths,
 
 
 /*
+ * estimate_tuple_width
+ *
+ * CDB: Pulled this code out of estimate_rel_size below to make a
+ * separate function.
+ */
+void
+estimate_tuple_width(Relation   rel,
+                     int32     *attr_widths,
+                     int32     *bytes_per_tuple,
+                     double    *tuples_per_page)
+{
+	/*
+	 * Estimate tuple width from attribute datatypes.  We assume
+	 * here that the pages are completely full, which is OK for
+	 * tables (since they've presumably not been VACUUMed yet) but
+	 * is probably an overestimate for indexes.  Fortunately
+	 * get_relation_info() can clamp the overestimate to the
+	 * parent table's size.
+	 *
+	 * Note: this code intentionally disregards alignment
+	 * considerations, because (a) that would be gilding the lily
+	 * considering how crude the estimate is, and (b) it creates
+	 * platform dependencies in the default plans which are kind
+	 * of a headache for regression testing.
+	 */
+    double      density;
+    int32		tuple_width = 0;
+	int			i;
+
+	for (i = 1; i <= RelationGetNumberOfAttributes(rel); i++)
+	{
+		Form_pg_attribute att = rel->rd_att->attrs[i - 1];
+		int32		item_width;
+
+		if (att->attisdropped)
+			continue;
+		/* This should match set_rel_width() in costsize.c */
+		item_width = get_attavgwidth(RelationGetRelid(rel), i);
+		if (item_width <= 0)
+		{
+			item_width = get_typavgwidth(att->atttypid,
+										 att->atttypmod);
+			Assert(item_width > 0);
+		}
+		if (attr_widths != NULL)
+			attr_widths[i] = item_width;
+		tuple_width += item_width;
+	}
+	tuple_width += sizeof(HeapTupleHeaderData);
+	tuple_width += sizeof(ItemPointerData);
+    /* note: integer division is intentional here */
+	density = (BLCKSZ - sizeof(PageHeaderData)) / tuple_width;
+
+    *bytes_per_tuple = tuple_width;
+    *tuples_per_page = Max(1.0, density);
+}                               /* estimate_tuple_width */
+
+
+/*
  * get_relation_constraints
  *
  * Retrieve the CHECK constraint expressions of the given relation.
@@ -391,12 +695,17 @@ estimate_rel_size(Relation rel, int32 *attr_widths,
  * indicated by rel->relid.  This allows the expressions to be easily
  * compared to expressions taken from WHERE.
  *
+ * If include_notnull is true, "col IS NOT NULL" expressions are generated
+ * and added to the result for each column that's marked attnotnull.
+ *
  * Note: at present this is invoked at most once per relation per planner
  * run, and in many cases it won't be invoked at all, so there seems no
  * point in caching the data in RelOptInfo.
  */
 static List *
-get_relation_constraints(Oid relationObjectId, RelOptInfo *rel)
+get_relation_constraints(PlannerInfo *root,
+						 Oid relationObjectId, RelOptInfo *rel,
+						 bool include_notnull)
 {
 	List	   *result = NIL;
 	Index		varno = rel->relid;
@@ -430,7 +739,7 @@ get_relation_constraints(Oid relationObjectId, RelOptInfo *rel)
 			 * stuff involving subqueries, however, since we don't allow any
 			 * in check constraints.)
 			 */
-			cexpr = eval_const_expressions(cexpr);
+			cexpr = eval_const_expressions(root, cexpr);
 
 			cexpr = (Node *) canonicalize_qual((Expr *) cexpr);
 
@@ -451,6 +760,30 @@ get_relation_constraints(Oid relationObjectId, RelOptInfo *rel)
 			result = list_concat(result,
 								 make_ands_implicit((Expr *) cexpr));
 		}
+
+		/* Add NOT NULL constraints in expression form, if requested */
+		if (include_notnull && constr->has_not_null)
+		{
+			int		natts = relation->rd_att->natts;
+
+			for (i = 1; i <= natts; i++)
+			{
+				Form_pg_attribute att = relation->rd_att->attrs[i - 1];
+
+				if (att->attnotnull && !att->attisdropped)
+				{
+					NullTest *ntest = makeNode(NullTest);
+
+					ntest->arg = (Expr *) makeVar(varno,
+												  i,
+												  att->atttypid,
+												  att->atttypmod,
+												  0);
+					ntest->nulltesttype = IS_NOT_NULL;
+					result = lappend(result, ntest);
+				}
+			}
+		}
 	}
 
 	heap_close(relation, NoLock);
@@ -467,7 +800,7 @@ get_relation_constraints(Oid relationObjectId, RelOptInfo *rel)
  * relation's CHECK constraints.
  */
 bool
-relation_excluded_by_constraints(RelOptInfo *rel, RangeTblEntry *rte)
+relation_excluded_by_constraints(PlannerInfo *root, RelOptInfo *rel, RangeTblEntry *rte)
 {
 	List	   *safe_restrictions;
 	List	   *constraint_pred;
@@ -475,7 +808,7 @@ relation_excluded_by_constraints(RelOptInfo *rel, RangeTblEntry *rte)
 	ListCell   *lc;
 
 	/* Skip the test if constraint exclusion is disabled */
-	if (!constraint_exclusion)
+	if (!root->config->constraint_exclusion)
 		return false;
 
 	/*
@@ -502,8 +835,11 @@ relation_excluded_by_constraints(RelOptInfo *rel, RangeTblEntry *rte)
 	if (rte->rtekind != RTE_RELATION || rte->inh)
 		return false;
 
-	/* OK to fetch the constraint expressions */
-	constraint_pred = get_relation_constraints(rte->relid, rel);
+	/*
+	 * OK to fetch the constraint expressions.  Include "col IS NOT NULL"
+	 * expressions for attnotnull columns, in case we can refute those.
+	 */
+	constraint_pred = get_relation_constraints(root, rte->relid, rel, true);
 
 	/*
 	 * We do not currently enforce that CHECK constraints contain only
@@ -608,6 +944,12 @@ build_physical_tlist(PlannerInfo *root, RelOptInfo *rel)
 
 		case RTE_SUBQUERY:
 			subquery = rte->subquery;
+			if ( subquery->querySource == QSRC_PLANNER )
+			{
+				/* MPP: punt since parse tree correspondence in doubt */
+				tlist = NIL;
+				break;
+			}
 			foreach(l, subquery->targetList)
 			{
 				TargetEntry *tle = (TargetEntry *) lfirst(l);
@@ -630,8 +972,10 @@ build_physical_tlist(PlannerInfo *root, RelOptInfo *rel)
 			}
 			break;
 
+		case RTE_CTE:
 		case RTE_FUNCTION:
-			expandRTE(rte, varno, 0, true /* include dropped */ ,
+		case RTE_TABLEFUNCTION:
+			expandRTE(rte, varno, 0, -1, true /* include dropped */ ,
 					  NULL, &colvars);
 			foreach(l, colvars)
 			{
@@ -656,7 +1000,7 @@ build_physical_tlist(PlannerInfo *root, RelOptInfo *rel)
 			break;
 
 		case RTE_VALUES:
-			expandRTE(rte, varno, 0, false /* dropped not applicable */ ,
+			expandRTE(rte, varno, 0, -1, false /* dropped not applicable */ ,
 					  NULL, &colvars);
 			foreach(l, colvars)
 			{
@@ -752,6 +1096,16 @@ join_selectivity(PlannerInfo *root,
 	return (Selectivity) result;
 }
 
+static int
+oid_cmp(const void *left, const void *right)
+{
+	if (*(Oid *)left < *(Oid *)right)
+		return -1;
+	if (*(Oid *)left > *(Oid *)right)
+		return 1;
+	return 0;
+}
+
 /*
  * find_inheritance_children
  *
@@ -767,62 +1121,56 @@ List *
 find_inheritance_children(Oid inhparent)
 {
 	List	   *list = NIL;
-	Relation	relation;
-	HeapScanDesc scan;
 	HeapTuple	inheritsTuple;
 	Oid			inhrelid;
-	ScanKeyData key[1];
+	cqContext  *pcqCtx;
+	ListCell   *item;
+	int         i;
+	Oid        *ordered_list;
 
 	/*
 	 * Can skip the scan if pg_class shows the relation has never had a
 	 * subclass.
 	 */
-	if (!has_subclass(inhparent))
+	if (!has_subclass_fast(inhparent))
 		return NIL;
 
-	ScanKeyInit(&key[0],
-				Anum_pg_inherits_inhparent,
-				BTEqualStrategyNumber, F_OIDEQ,
-				ObjectIdGetDatum(inhparent));
-	relation = heap_open(InheritsRelationId, AccessShareLock);
-	scan = heap_beginscan(relation, SnapshotNow, 1, key);
-	while ((inheritsTuple = heap_getnext(scan, ForwardScanDirection)) != NULL)
+	pcqCtx = caql_beginscan(
+			NULL,
+			cql("SELECT * FROM pg_inherits "
+				" WHERE inhparent = :1 ",
+				ObjectIdGetDatum(inhparent)));
+
+	while (HeapTupleIsValid(inheritsTuple = caql_getnext(pcqCtx)))
 	{
 		inhrelid = ((Form_pg_inherits) GETSTRUCT(inheritsTuple))->inhrelid;
 		list = lappend_oid(list, inhrelid);
 	}
-	heap_endscan(scan);
-	heap_close(relation, AccessShareLock);
+	caql_endscan(pcqCtx);
+
+	/*
+	 * The order in which child OIDs are scanned on master may not be
+	 * the same on segments.  When a partitioned table needs to be
+	 * rewritten during ALTER TABLE, master generates new OIDs for
+	 * every child in this list.  Segments scan pg_inherits and
+	 * correlate the list of OIDs dispatched by master with each
+	 * child.  To guarantee that the child <--> new OID pairs are
+	 * identical on master and segments, we need the following sort.
+	 */
+	ordered_list = (Oid *) palloc(sizeof(Oid) * list_length(list));
+	i = 0;
+	foreach(item, list)
+	{
+		ordered_list[i++] = lfirst_oid(item);
+	}
+	qsort(ordered_list, list_length(list), sizeof(Oid), oid_cmp);
+	i = 0;
+	foreach(item, list)
+	{
+		lfirst_oid(item) = ordered_list[i++];
+	}
+	pfree(ordered_list);
 	return list;
-}
-
-/*
- * has_subclass
- *
- * In the current implementation, has_subclass returns whether a
- * particular class *might* have a subclass. It will not return the
- * correct result if a class had a subclass which was later dropped.
- * This is because relhassubclass in pg_class is not updated when a
- * subclass is dropped, primarily because of concurrency concerns.
- *
- * Currently has_subclass is only used as an efficiency hack to skip
- * unnecessary inheritance searches, so this is OK.
- */
-bool
-has_subclass(Oid relationId)
-{
-	HeapTuple	tuple;
-	bool		result;
-
-	tuple = SearchSysCache(RELOID,
-						   ObjectIdGetDatum(relationId),
-						   0, 0, 0);
-	if (!HeapTupleIsValid(tuple))
-		elog(ERROR, "cache lookup failed for relation %u", relationId);
-
-	result = ((Form_pg_class) GETSTRUCT(tuple))->relhassubclass;
-	ReleaseSysCache(tuple);
-	return result;
 }
 
 /*
@@ -856,3 +1204,94 @@ has_unique_index(RelOptInfo *rel, AttrNumber attno)
 	}
 	return false;
 }
+
+
+/*
+ * cdb_default_stats_warning_needed
+ */
+static bool
+cdb_default_stats_warning_needed(Oid reloid)
+{
+    Relation    relation;
+    bool        warn = true;
+
+    /* Find relcache entry. */
+    relation = relation_open(reloid, NoLock);
+
+    /* Keep quiet if temporary or system table. */
+    if (relation->rd_istemp ||
+        IsSystemClass(relation->rd_rel))
+        warn = false;
+
+    /* Warn at most once during lifetime of relcache entry. */
+    else if (relation->rd_cdbDefaultStatsWarningIssued)
+        warn = false;
+
+    /* Caller will issue warning.  Set flag so warning won't be repeated. */
+    else
+        relation->rd_cdbDefaultStatsWarningIssued = true;
+
+    /* Close rel.  Don't disturb the lock. */
+    relation_close(relation, NoLock);
+
+    return warn;
+}                               /* cdb_default_stats_warning_needed */
+
+
+/*
+ * cdb_default_stats_warning_for_index
+ */
+void
+cdb_default_stats_warning_for_index(Oid reloid, Oid indexoid)
+{
+    char           *relname;
+    char           *indexname;
+
+    /* Warn at most once during lifetime of relcache entry.  Skip if temp. */
+    if (!cdb_default_stats_warning_needed(indexoid))
+        return;
+
+    /* Get name from catalog, not from relcache, in case it has been renamed. */
+    relname = get_rel_name(reloid);
+    indexname = get_rel_name(indexoid);
+
+    ereport(NOTICE,
+            (errmsg("Query planner will use default statistics for index \"%s\" "
+                    "on table \"%s\"",
+                    indexname ? indexname : "??",
+                    relname ? relname : "??"),
+             errhint("To cache a sample of the table's actual statistics for "
+                     "optimization, use the ANALYZE or VACUUM ANALYZE command.")
+             ));
+
+    if (relname)
+        pfree(relname);
+    if (indexname)
+        pfree(indexname);
+}                               /* cdb_default_stats_warning_for_index */
+
+/*
+ * cdb_default_stats_warning_for_table
+ */
+void
+cdb_default_stats_warning_for_table(Oid reloid)
+{
+    char   *relname;
+
+    /* Warn at most once during lifetime of relcache entry.  Skip if temp. */
+    if (!cdb_default_stats_warning_needed(reloid))
+        return;
+
+    /* Get name from catalog, not from relcache, in case name has changed. */
+    relname = get_rel_name(reloid);
+
+    ereport(NOTICE,
+            (errmsg("Query planner will use default statistics for table \"%s\"",
+                    relname ? relname : "??"),
+             errhint("To cache a sample of the table's actual statistics for "
+                     "optimization, use the ANALYZE or VACUUM ANALYZE command.")
+             ));
+
+    if (relname)
+        pfree(relname);
+}                               /* cdb_default_stats_warning_for_table */

@@ -3,7 +3,7 @@
  * hio.c
  *	  POSTGRES heap access method input/output code.
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -18,6 +18,7 @@
 #include "access/heapam.h"
 #include "access/hio.h"
 #include "storage/freespace.h"
+#include "cdb/cdbfilerepprimary.h"
 
 
 /*
@@ -28,7 +29,7 @@
  * Note - caller must hold BUFFER_LOCK_EXCLUSIVE on the buffer.
  */
 void
-RelationPutHeapTuple(Relation relation,
+RelationPutHeapTuple(Relation relation __attribute__((unused)),
 					 Buffer buffer,
 					 HeapTuple tuple)
 {
@@ -113,17 +114,19 @@ RelationGetBufferForTuple(Relation relation, Size len,
 				otherBlock;
 	bool		needLock;
 
+	MIRROREDLOCK_BUFMGR_MUST_ALREADY_BE_HELD;
+
 	len = MAXALIGN(len);		/* be conservative */
 
 	/*
 	 * If we're gonna fail for oversize tuple, do it right away
 	 */
-	if (len > MaxTupleSize)
+	if (len > MaxHeapTupleSize)
 		ereport(ERROR,
 				(errcode(ERRCODE_PROGRAM_LIMIT_EXCEEDED),
 				 errmsg("row is too big: size %lu, maximum size %lu",
 						(unsigned long) len,
-						(unsigned long) MaxTupleSize)));
+						(unsigned long) MaxHeapTupleSize)));
 
 	/* Compute desired extra freespace due to fillfactor option */
 	saveFreeSpace = RelationGetTargetPageFreeSpace(relation,
@@ -147,7 +150,7 @@ RelationGetBufferForTuple(Relation relation, Size len,
 	 * When use_fsm is false, we either put the tuple onto the existing target
 	 * page or extend the relation.
 	 */
-	if (len + saveFreeSpace <= MaxTupleSize)
+	if (len + saveFreeSpace <= MaxHeapTupleSize)
 		targetBlock = relation->rd_targblock;
 	else
 	{

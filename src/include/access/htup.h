@@ -4,7 +4,8 @@
  *	  POSTGRES heap tuple definitions.
  *
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 2006-2009, Greenplum inc
+ * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * $PostgreSQL: pgsql/src/include/access/htup.h,v 1.87 2006/11/05 22:42:10 tgl Exp $
@@ -14,8 +15,11 @@
 #ifndef HTUP_H
 #define HTUP_H
 
+#include "access/tupdesc.h"
+#include "access/tupmacs.h"
 #include "storage/itemptr.h"
 #include "storage/relfilenode.h"
+#include "access/sysattr.h"
 
 /*
  * MaxTupleAttributeNumber limits the number of (user) columns in a tuple.
@@ -45,7 +49,7 @@
 
 /*
  * Heap tuple header.  To avoid wasting space, the fields should be
- * layed out in such a way to avoid structure padding.
+ * laid out in such a way as to avoid structure padding.
  *
  * Datums of composite types (row types) share the same general structure
  * as on-disk tuples, so that the same routines can be used to build and
@@ -65,17 +69,18 @@
  *			object ID (if HEAP_HASOID is set in t_infomask)
  *			user data fields
  *
- * We store five "virtual" fields Xmin, Cmin, Xmax, Cmax, and Xvac in four
- * physical fields.  Xmin, Cmin and Xmax are always really stored, but
- * Cmax and Xvac share a field.  This works because we know that there are
- * only a limited number of states that a tuple can be in, and that Cmax
- * is only interesting for the lifetime of the deleting transaction.
- * This assumes that VACUUM FULL never tries to move a tuple whose Cmax
- * is still interesting (ie, delete-in-progress).
- *
- * Note that in 7.3 and 7.4 a similar idea was applied to Xmax and Cmin.
- * However, with the advent of subtransactions, a tuple may need both Xmax
- * and Cmin simultaneously, so this is no longer possible.
+ * We store five "virtual" fields Xmin, Cmin, Xmax, Cmax, and Xvac in three
+ * physical fields.  Xmin and Xmax are always really stored, but Cmin, Cmax
+ * and Xvac share a field.	This works because we know that Cmin and Cmax
+ * are only interesting for the lifetime of the inserting and deleting
+ * transaction respectively.  If a tuple is inserted and deleted in the same
+ * transaction, we store a "combo" command id that can be mapped to the real
+ * cmin and cmax, but only by use of local state within the originating
+ * backend.  See combocid.c for more details.  Meanwhile, Xvac is only set
+ * by VACUUM FULL, which does not have any command sub-structure and so does
+ * not need either Cmin or Cmax.  (This requires that VACUUM FULL never try
+ * to move a tuple whose Cmin or Cmax is still interesting, ie, an insert-
+ * in-progress or delete-in-progress tuple.)
  *
  * A word about t_ctid: whenever a new tuple is stored on disk, its t_ctid
  * is initialized with its own TID (location).	If the tuple is ever updated,
@@ -103,19 +108,18 @@
 typedef struct HeapTupleFields
 {
 	TransactionId t_xmin;		/* inserting xact ID */
-	CommandId	t_cmin;			/* inserting command ID */
 	TransactionId t_xmax;		/* deleting or locking xact ID */
 
 	union
 	{
-		CommandId	t_cmax;		/* deleting or locking command ID */
+		CommandId	t_cid;		/* inserting or deleting command ID, or both */
 		TransactionId t_xvac;	/* VACUUM FULL xact ID */
-	}			t_field4;
+	}			t_field3;
 } HeapTupleFields;
 
 typedef struct DatumTupleFields
 {
-	int32		datum_len;		/* required to be a varlena type */
+	int32		datum_len_;		/* varlena header (do not touch directly!) */
 
 	int32		datum_typmod;	/* -1, or identifier of a record type */
 
@@ -139,13 +143,13 @@ typedef struct HeapTupleHeaderData
 
 	/* Fields below here must match MinimalTupleData! */
 
-	int16		t_natts;		/* number of attributes */
+	uint16		t_infomask2;	/* number of attributes + various flags */
 
 	uint16		t_infomask;		/* various flag bits, see below */
 
 	uint8		t_hoff;			/* sizeof header incl. bitmap, padding */
 
-	/* ^ - 27 bytes - ^ */
+	/* ^ - 23 bytes - ^ */
 
 	bits8		t_bits[1];		/* bitmap of NULLs -- VARIABLE LENGTH */
 
@@ -163,7 +167,7 @@ typedef HeapTupleHeaderData *HeapTupleHeader;
 #define HEAP_HASCOMPRESSED		0x0008	/* has compressed stored attribute(s) */
 #define HEAP_HASEXTENDED		0x000C	/* the two above combined */
 #define HEAP_HASOID				0x0010	/* has an object-id field */
-/* 0x0020 is presently unused */
+#define HEAP_COMBOCID			0x0020	/* t_cid is a combo cid */
 #define HEAP_XMAX_EXCL_LOCK		0x0040	/* xmax is exclusive locker */
 #define HEAP_XMAX_SHARED_LOCK	0x0080	/* xmax is shared locker */
 /* if either LOCK bit is set, xmax hasn't deleted the tuple, only locked it */
@@ -180,8 +184,22 @@ typedef HeapTupleHeaderData *HeapTupleHeader;
 										 * FULL */
 #define HEAP_MOVED (HEAP_MOVED_OFF | HEAP_MOVED_IN)
 
-#define HEAP_XACT_MASK			0xFFC0	/* visibility-related bits */
+#define HEAP_XACT_MASK			0xFFE0	/* visibility-related bits */
 
+/*
+ * information stored in t_infomask2:
+ */
+#define HEAP_NATTS_MASK			0x7FF	/* 11 bits for number of attributes */
+
+#define HEAP_XMIN_DISTRIBUTED_SNAPSHOT_IGNORE		0x0800	
+										/* t_xmin is either an old committed 
+										 * distributed transaction or local.
+										 * They can be ignored for distributed
+										 * snapshots.
+										 */
+#define HEAP_XMAX_DISTRIBUTED_SNAPSHOT_IGNORE		0x1000
+										/* t_xmax same as above. */
+/* bits 0xE000 are currently unused */
 
 /*
  * HeapTupleHeader accessor macros
@@ -210,39 +228,40 @@ typedef HeapTupleHeaderData *HeapTupleHeader;
 	TransactionIdStore((xid), &(tup)->t_choice.t_heap.t_xmax) \
 )
 
-#define HeapTupleHeaderGetCmin(tup) \
-( \
-	(tup)->t_choice.t_heap.t_cmin \
-)
-
-#define HeapTupleHeaderSetCmin(tup, cid) \
-( \
-	(tup)->t_choice.t_heap.t_cmin = (cid) \
-)
-
 /*
- * Note: GetCmax will produce wrong answers after SetXvac has been executed
- * by a transaction other than the inserting one.  We could check
- * HEAP_XMAX_INVALID and return FirstCommandId if it's clear, but since that
- * bit will be set again if the deleting transaction aborts, there'd be no
- * real gain in safety from the extra test.  So, just rely on the caller not
- * to trust the value unless it's meaningful.
+ * HeapTupleHeaderGetRawCommandId will give you what's in the header whether
+ * it is useful or not.  Most code should use HeapTupleHeaderGetCmin or
+ * HeapTupleHeaderGetCmax instead, but note that those Assert that you can
+ * get a legitimate result, ie you are in the originating transaction!
  */
-#define HeapTupleHeaderGetCmax(tup) \
+#define HeapTupleHeaderGetRawCommandId(tup) \
 ( \
-	(tup)->t_choice.t_heap.t_field4.t_cmax \
+	(tup)->t_choice.t_heap.t_field3.t_cid \
 )
 
-#define HeapTupleHeaderSetCmax(tup, cid) \
+/* SetCmin is reasonably simple since we never need a combo CID */
+#define HeapTupleHeaderSetCmin(tup, cid) \
 do { \
 	Assert(!((tup)->t_infomask & HEAP_MOVED)); \
-	(tup)->t_choice.t_heap.t_field4.t_cmax = (cid); \
+	(tup)->t_choice.t_heap.t_field3.t_cid = (cid); \
+	(tup)->t_infomask &= ~HEAP_COMBOCID; \
+} while (0)
+
+/* SetCmax must be used after HeapTupleHeaderAdjustCmax; see combocid.c */
+#define HeapTupleHeaderSetCmax(tup, cid, iscombo) \
+do { \
+	Assert(!((tup)->t_infomask & HEAP_MOVED)); \
+	(tup)->t_choice.t_heap.t_field3.t_cid = (cid); \
+	if (iscombo) \
+		(tup)->t_infomask |= HEAP_COMBOCID; \
+	else \
+		(tup)->t_infomask &= ~HEAP_COMBOCID; \
 } while (0)
 
 #define HeapTupleHeaderGetXvac(tup) \
 ( \
 	((tup)->t_infomask & HEAP_MOVED) ? \
-		(tup)->t_choice.t_heap.t_field4.t_xvac \
+		(tup)->t_choice.t_heap.t_field3.t_xvac \
 	: \
 		InvalidTransactionId \
 )
@@ -250,18 +269,14 @@ do { \
 #define HeapTupleHeaderSetXvac(tup, xid) \
 do { \
 	Assert((tup)->t_infomask & HEAP_MOVED); \
-	TransactionIdStore((xid), &(tup)->t_choice.t_heap.t_field4.t_xvac); \
+	TransactionIdStore((xid), &(tup)->t_choice.t_heap.t_field3.t_xvac); \
 } while (0)
 
 #define HeapTupleHeaderGetDatumLength(tup) \
-( \
-	(tup)->t_choice.t_datum.datum_len \
-)
+	VARSIZE(tup)
 
 #define HeapTupleHeaderSetDatumLength(tup, len) \
-( \
-	(tup)->t_choice.t_datum.datum_len = (len) \
-)
+	SET_VARSIZE(tup, len)
 
 #define HeapTupleHeaderGetTypeId(tup) \
 ( \
@@ -297,6 +312,13 @@ do { \
 	*((Oid *) ((char *)(tup) + (tup)->t_hoff - sizeof(Oid))) = (oid); \
 } while (0)
 
+#define HeapTupleHeaderGetNatts(tup) \
+	((tup)->t_infomask2 & HEAP_NATTS_MASK)
+
+#define HeapTupleHeaderSetNatts(tup, natts) \
+( \
+	(tup)->t_infomask2 = ((tup)->t_infomask2 & ~HEAP_NATTS_MASK) | (natts) \
+)
 
 /*
  * BITMAPLEN(NATTS) -
@@ -320,6 +342,21 @@ do { \
 	(BLCKSZ - MAXALIGN(sizeof(PageHeaderData) + MaxSpecialSpace))
 
 /*
+ * MaxHeapTupleSize is the maximum allowed size of a heap tuple, including
+ * header and MAXALIGN alignment padding.  Basically it's BLCKSZ minus the
+ * other stuff that has to be on a disk page.  Since heap pages use no
+ * "special space", there's no deduction for that.
+ *
+ * NOTE: we allow for the ItemId that must point to the tuple, ensuring that
+ * an otherwise-empty page can indeed hold a tuple of this size.  Because
+ * ItemIds and tuples have different alignment requirements, don't assume that
+ * you can, say, fit 2 tuples of size MaxHeapTupleSize/2 on the same page.
+ */
+//#define MaxHeapTupleSize  (BLCKSZ - MAXALIGN(SizeOfPageHeaderData + sizeof(ItemIdData)))
+// Play it safe until I test better... Make MaxHeapTupleSize restricted to MaxTupleSize
+#define MaxHeapTupleSize MaxTupleSize
+
+/*
  * MaxHeapTuplesPerPage is an upper bound on the number of tuples that can
  * fit on one heap page.  (Note that indexes could have more, because they
  * use a smaller tuple header.)  We arrive at the divisor because each tuple
@@ -333,79 +370,10 @@ do { \
  * MaxAttrSize is a somewhat arbitrary upper limit on the declared size of
  * data fields of char(n) and similar types.  It need not have anything
  * directly to do with the *actual* upper limit of varlena values, which
- * is currently 1Gb (see struct varattrib in postgres.h).  I've set it
+ * is currently 1Gb (see TOAST structures in postgres.h).  I've set it
  * at 10Mb which seems like a reasonable number --- tgl 8/6/00.
  */
 #define MaxAttrSize		(10 * 1024 * 1024)
-
-
-/*
- * Attribute numbers for the system-defined attributes
- */
-#define SelfItemPointerAttributeNumber			(-1)
-#define ObjectIdAttributeNumber					(-2)
-#define MinTransactionIdAttributeNumber			(-3)
-#define MinCommandIdAttributeNumber				(-4)
-#define MaxTransactionIdAttributeNumber			(-5)
-#define MaxCommandIdAttributeNumber				(-6)
-#define TableOidAttributeNumber					(-7)
-#define FirstLowInvalidHeapAttributeNumber		(-8)
-
-
-/*
- * MinimalTuple is an alternate representation that is used for transient
- * tuples inside the executor, in places where transaction status information
- * is not required, the tuple rowtype is known, and shaving off a few bytes
- * is worthwhile because we need to store many tuples.	The representation
- * is chosen so that tuple access routines can work with either full or
- * minimal tuples via a HeapTupleData pointer structure.  The access routines
- * see no difference, except that they must not access the transaction status
- * or t_ctid fields because those aren't there.
- *
- * For the most part, MinimalTuples should be accessed via TupleTableSlot
- * routines.  These routines will prevent access to the "system columns"
- * and thereby prevent accidental use of the nonexistent fields.
- *
- * MinimalTupleData contains a length word, some padding, and fields matching
- * HeapTupleHeaderData beginning with t_natts.	The padding is chosen so that
- * offsetof(t_natts) is the same modulo MAXIMUM_ALIGNOF in both structs.
- * This makes data alignment rules equivalent in both cases.
- *
- * When a minimal tuple is accessed via a HeapTupleData pointer, t_data is
- * set to point MINIMAL_TUPLE_OFFSET bytes before the actual start of the
- * minimal tuple --- that is, where a full tuple matching the minimal tuple's
- * data would start.  This trick is what makes the structs seem equivalent.
- *
- * Note that t_hoff is computed the same as in a full tuple, hence it includes
- * the MINIMAL_TUPLE_OFFSET distance.  t_len does not include that, however.
- */
-#define MINIMAL_TUPLE_OFFSET \
-	((offsetof(HeapTupleHeaderData, t_natts) - sizeof(uint32)) / MAXIMUM_ALIGNOF * MAXIMUM_ALIGNOF)
-#define MINIMAL_TUPLE_PADDING \
-	((offsetof(HeapTupleHeaderData, t_natts) - sizeof(uint32)) % MAXIMUM_ALIGNOF)
-
-typedef struct MinimalTupleData
-{
-	uint32		t_len;			/* actual length of minimal tuple */
-
-	char		mt_padding[MINIMAL_TUPLE_PADDING];
-
-	/* Fields below here must match HeapTupleHeaderData! */
-
-	int16		t_natts;		/* number of attributes */
-
-	uint16		t_infomask;		/* various flag bits, see below */
-
-	uint8		t_hoff;			/* sizeof header incl. bitmap, padding */
-
-	/* ^ - 27 bytes - ^ */
-
-	bits8		t_bits[1];		/* bitmap of NULLs -- VARIABLE LENGTH */
-
-	/* MORE DATA FOLLOWS AT END OF STRUCT */
-} MinimalTupleData;
-
-typedef MinimalTupleData *MinimalTuple;
 
 
 /*
@@ -439,18 +407,36 @@ typedef MinimalTupleData *MinimalTuple;
  * t_self and t_tableOid should be valid if the HeapTupleData points to
  * a disk buffer, or if it represents a copy of a tuple on disk.  They
  * should be explicitly set invalid in manufactured tuples.
+ *
+ * CDB: t_tableOid deleted.  Instead, use tts_tableOid in TupleTableSlot.
  */
 typedef struct HeapTupleData
 {
 	uint32		t_len;			/* length of *t_data */
 	ItemPointerData t_self;		/* SelfItemPointer */
-	Oid			t_tableOid;		/* table the tuple came from */
 	HeapTupleHeader t_data;		/* -> tuple header and data */
 } HeapTupleData;
 
 typedef HeapTupleData *HeapTuple;
 
 #define HEAPTUPLESIZE	MAXALIGN(sizeof(HeapTupleData))
+
+/* XXX Hack Hack Hack 
+ * heaptuple, or memtuple, cannot be more than 2G, so, if
+ * the first bit is ever set, it is really a memtuple
+ */
+static inline bool is_heaptuple_memtuple(HeapTuple htup)
+{
+	return ((htup->t_len & 0x80000000) != 0);
+}
+static inline bool is_heaptuple_splitter(HeapTuple htup)
+{
+	return ((char *) htup->t_data) != ((char *) htup + HEAPTUPLESIZE);
+}
+static inline uint32 heaptuple_get_size(HeapTuple htup)
+{
+	return htup->t_len + HEAPTUPLESIZE;
+}
 
 /*
  * GETSTRUCT - given a HeapTuple pointer, return address of the user data
@@ -529,10 +515,19 @@ typedef HeapTupleData *HeapTuple;
 typedef struct xl_heaptid
 {
 	RelFileNode node;
+	ItemPointerData persistentTid;
+	int64 persistentSerialNum;
 	ItemPointerData tid;		/* changed tuple id */
 } xl_heaptid;
 
 #define SizeOfHeapTid		(offsetof(xl_heaptid, tid) + SizeOfIptrData)
+
+typedef struct xl_heapnode
+{
+	RelFileNode node;
+	ItemPointerData persistentTid;
+	int64 persistentSerialNum;
+} xl_heapnode;
 
 /* This is what we need to know about delete */
 typedef struct xl_heap_delete
@@ -552,7 +547,7 @@ typedef struct xl_heap_delete
  */
 typedef struct xl_heap_header
 {
-	int16		t_natts;
+	uint16		t_infomask2;
 	uint16		t_infomask;
 	uint8		t_hoff;
 } xl_heap_header;
@@ -582,7 +577,7 @@ typedef struct xl_heap_update
 /* This is what we need to know about vacuum page cleanup */
 typedef struct xl_heap_clean
 {
-	RelFileNode node;
+	xl_heapnode heapnode;
 	BlockNumber block;
 	/* UNUSED OFFSET NUMBERS FOLLOW AT THE END */
 } xl_heap_clean;
@@ -593,7 +588,7 @@ typedef struct xl_heap_clean
 /* NB: this is used for indexes as well as heaps */
 typedef struct xl_heap_newpage
 {
-	RelFileNode node;
+	xl_heapnode heapnode;
 	BlockNumber blkno;			/* location of new page */
 	/* entire page contents follow at end of record */
 } xl_heap_newpage;
@@ -623,7 +618,7 @@ typedef struct xl_heap_inplace
 /* This is what we need to know about tuple freezing during vacuum */
 typedef struct xl_heap_freeze
 {
-	RelFileNode node;
+	xl_heapnode heapnode;
 	BlockNumber block;
 	TransactionId cutoff_xid;
 	/* TUPLE OFFSET NUMBERS FOLLOW AT THE END */
@@ -631,4 +626,11 @@ typedef struct xl_heap_freeze
 
 #define SizeOfHeapFreeze (offsetof(xl_heap_freeze, cutoff_xid) + sizeof(TransactionId))
 
+/* HeapTupleHeader functions implemented in utils/time/combocid.c */
+extern CommandId HeapTupleHeaderGetCmin(HeapTupleHeader tup);
+extern CommandId HeapTupleHeaderGetCmax(HeapTupleHeader tup);
+extern void HeapTupleHeaderAdjustCmax(HeapTupleHeader tup,
+						  CommandId *cmax,
+						  bool *iscombo);
+						  
 #endif   /* HTUP_H */

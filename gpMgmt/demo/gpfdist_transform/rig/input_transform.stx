@@ -1,0 +1,50 @@
+<?xml version="1.0"?>
+<stx:transform version="1.0"
+   xmlns:stx="http://stx.sourceforge.net/2002/ns"
+   xmlns:w="http://www.witsml.org/schemas/131"
+   pass-through="none">
+
+  <stx:variable name="well_uid"/>
+  <stx:variable name="well_name"/>
+  <stx:variable name="rig_uid"/>
+  <stx:variable name="rig_name"/>
+  <stx:variable name="rig_owner"/>
+  <stx:variable name="rig_contact"/>
+  <stx:variable name="rig_email"/>
+
+  <stx:template match="/w:rigs/w:rig">
+    <stx:assign name="well_uid" select="@uidWell"/>
+    <stx:assign name="rig_uid"  select="@uid"/>
+
+    <stx:process-children/>
+
+    <stx:value-of select="$well_uid"/>    <stx:text>|</stx:text>
+    <stx:value-of select="$well_name"/>   <stx:text>|</stx:text>
+    <stx:value-of select="$rig_uid"/>     <stx:text>|</stx:text>
+    <stx:value-of select="$rig_name"/>    <stx:text>|</stx:text>
+    <stx:value-of select="$rig_owner"/>   <stx:text>|</stx:text>
+    <stx:value-of select="$rig_contact"/> <stx:text>|</stx:text>
+    <stx:value-of select="$rig_email"/>
+  </stx:template>
+
+  <stx:template match="/w:rigs/w:rig/w:nameWell">
+    <stx:assign name="well_name" select="."/>
+  </stx:template>
+
+  <stx:template match="/w:rigs/w:rig/w:name">
+    <stx:assign name="rig_name" select="."/>
+  </stx:template>
+
+  <stx:template match="/w:rigs/w:rig/w:owner">
+    <stx:assign name="rig_owner" select="."/>
+  </stx:template>
+
+  <stx:template match="/w:rigs/w:rig/w:nameContact">
+    <stx:assign name="rig_contact" select="."/>
+  </stx:template>
+
+  <stx:template match="/w:rigs/w:rig/w:emailAddress">
+    <stx:assign name="rig_email" select="."/>
+  </stx:template>
+
+</stx:transform>

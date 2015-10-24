@@ -1,0 +1,92 @@
+-- start_ignore
+--
+-- Greenplum DB backup test
+--
+
+
+-- Check database version and gp_dump, pg_dump
+select version();
+\! gp_dump --version
+\! pg_dump --version
+
+-- simple dump
+\! rm -fr @abs_builddir@/results/gpdump_datatype_dump
+\! mkdir @abs_builddir@/results/gpdump_datatype_dump
+\! gp_dump regressbkuptest1 --gp-d=@abs_builddir@/results/gpdump_datatype_dump
+
+
+ -- -a, -s (data only and schema only)
+\! rm -fr @abs_builddir@/results/gpdump_datatype_datadump
+\! rm -fr @abs_builddir@/results/gpdump_datatype_schemadump
+\! mkdir @abs_builddir@/results/gpdump_datatype_datadump
+\! mkdir @abs_builddir@/results/gpdump_datatype_schemadump
+\! gp_dump -a regressbkuptest1 --gp-d=@abs_builddir@/results/gpdump_datatype_datadump
+\! gp_dump -s regressbkuptest1 --gp-d=@abs_builddir@/results/gpdump_datatype_schemadump
+
+-- dump only schema s6
+\! rm -fr @abs_builddir@/results/gpdump_datatype_dump_s6
+\! mkdir @abs_builddir@/results/gpdump_datatype_dump_s6
+\! gp_dump -c regressbkuptest1
+\! gp_dump -n s6 regressbkuptest1 --gp-d=@abs_builddir@/results/gpdump_datatype_dump_s6
+
+-- dump only t1
+\! rm -fr @abs_builddir@/results/gpdump_datatype_dump_t1
+\! mkdir @abs_builddir@/results/gpdump_datatype_dump_t1
+\! gp_dump -c regressbkuptest1
+\! gp_dump -t t1 regressbkuptest1 --gp-d=@abs_builddir@/results/gpdump_datatype_dump_t1
+
+
+-- dump with oid 
+\! rm -fr @abs_builddir@/results/gpdump_datatype_dump_oid
+\! mkdir @abs_builddir@/results/gpdump_datatype_dump_oid
+\! gp_dump -o regressbkuptest1 --gp-d=@abs_builddir@/results/gpdump_datatype_dump_oid
+
+-- dump without ownder
+\! rm -fr @abs_builddir@/results/gpdump_datatype_dump_noowner
+\! mkdir @abs_builddir@/results/gpdump_datatype_dump_noowner
+\! gp_dump -O regressbkuptest1 --gp-d=@abs_builddir@/results/gpdump_datatype_dump_noowner
+
+-- zip dump
+\! rm -fr @abs_builddir@/results/gpdump_datatype_dump_zip
+\! mkdir @abs_builddir@/results/gpdump_datatype_dump_zip
+\! gp_dump regressbkuptest1 --gp-c --gp-d=@abs_builddir@/results/gpdump_datatype_dump_zip
+
+-- segment dump
+\! rm -fr @abs_builddir@/results/gpdump_datatype_dump_seg
+\! mkdir @abs_builddir@/results/gpdump_datatype_dump_seg
+\! gp_dump --gp-s=i[1] regressbkuptest1 --gp-d=@abs_builddir@/results/gpdump_datatype_dump_seg
+
+\echo Finished gp_dump, now test pg_dump
+\! rm -fr @abs_builddir@/results/pgdump_datatype
+\! mkdir @abs_builddir@/results/pgdump_datatype
+
+\! pg_dump -Fc -f @abs_builddir@/results/pgdump_datatype/regressbkuptest1_fc regressbkuptest1
+\! pg_dump -Fp -f @abs_builddir@/results/pgdump_datatype/regressbkuptest1_fp regressbkuptest1
+\! pg_dump -Ft -f @abs_builddir@/results/pgdump_datatype/regressbkuptest1_ft regressbkuptest1
+
+\! pg_dump -Fc -Z5 -f @abs_builddir@/results/pgdump_datatype/regressbkuptest1_fc_Z regressbkuptest1
+\! pg_dump -Fc -a -f @abs_builddir@/results/pgdump_datatype/regressbkuptest1_fc_data regressbkuptest1
+\! pg_dump -Fc -s -f @abs_builddir@/results/pgdump_datatype/regressbkuptest1_fc_schema regressbkuptest1
+\! pg_dump -Fc -b -f @abs_builddir@/results/pgdump_datatype/regressbkuptest1_fc_blobs regressbkuptest1
+\! pg_dump -Fc -C -f @abs_builddir@/results/pgdump_datatype/regressbkuptest1_fc_create regressbkuptest1
+-- NOT YET SUPPORTED
+-- \! pg_dump -Fc -D -f @abs_builddir@/results/pgdump_datatype/regressbkuptest1_fc_ins regressbkuptest1
+\! pg_dump -Fc -E Unicode -f @abs_builddir@/results/pgdump_datatype/regressbkuptest1_fc_enc regressbkuptest1
+\! pg_dump -Fc -n s6 -f @abs_builddir@/results/pgdump_datatype/regressbkuptest1_fc_s6 regressbkuptest1
+\! pg_dump -Fc -N s6 -f @abs_builddir@/results/pgdump_datatype/regressbkuptest1_fc_nos6 regressbkuptest1
+\! pg_dump -Fc -t t1 -f @abs_builddir@/results/pgdump_datatype/regressbkuptest1_fc_t1 regressbkuptest1
+\! pg_dump -Fc -T t1 -f @abs_builddir@/results/pgdump_datatype/regressbkuptest1_fc_not1 regressbkuptest1
+\! pg_dump -Fc -o -f @abs_builddir@/results/pgdump_datatype/regressbkuptest1_fc_oid regressbkuptest1
+\! pg_dump -Fc -O -f @abs_builddir@/results/pgdump_datatype/regressbkuptest1_fc_noowner regressbkuptest1
+\! pg_dump -Fc -x -f @abs_builddir@/results/pgdump_datatype/regressbkuptest1_fc_nopriv regressbkuptest1
+\! pg_dump -Fc --disable-dollar-quoting -f @abs_builddir@/results/pgdump_datatype/regressbkuptest1_fc_sqlquote regressbkuptest1
+\! pg_dump -Fc --gp-syntax -f @abs_builddir@/results/pgdump_datatype/regressbkuptest1_fc_gpsyntax regressbkuptest1
+
+-- end_ignore
+
+-- test pg_dumpall.  Use diff to check
+
+\! pg_dumpall -g -r | sed s/`whoami`/__USER_LOGIN__/g 
+\! pg_dumpall -D | sed s/`whoami`/__USER_LOGIN__/g 
+\! pg_dumpall --gp-syntax | sed s/`whoami`/__USER_LOGIN__/g 
+

@@ -20,25 +20,25 @@ PostgreSQL documentation
 
  <refsynopsisdiv>
 <synopsis>
-CREATE ROLE <replaceable class="PARAMETER">name</replaceable> [ [ WITH ] <replaceable class="PARAMETER">option</replaceable> [ ... ] ]
-
-where <replaceable class="PARAMETER">option</replaceable> can be:
-    
+CREATE ROLE name [[WITH] option [ ... ]]
+where option can be:
       SUPERUSER | NOSUPERUSER
     | CREATEDB | NOCREATEDB
     | CREATEROLE | NOCREATEROLE
-    | CREATEUSER | NOCREATEUSER
+    | CREATEEXTTABLE | NOCREATEEXTTABLE 
+      [ ( attribute='value'[, ...] ) ]
+           where attributes and values are:
+           type='readable'|'writable'
+           protocol='gpfdist'|'http'|'gphdfs'
     | INHERIT | NOINHERIT
     | LOGIN | NOLOGIN
-    | CONNECTION LIMIT <replaceable class="PARAMETER">connlimit</replaceable>
-    | [ ENCRYPTED | UNENCRYPTED ] PASSWORD '<replaceable class="PARAMETER">password</replaceable>'
-    | VALID UNTIL '<replaceable class="PARAMETER">timestamp</replaceable>' 
-    | IN ROLE <replaceable class="PARAMETER">rolename</replaceable> [, ...]
-    | IN GROUP <replaceable class="PARAMETER">rolename</replaceable> [, ...]
-    | ROLE <replaceable class="PARAMETER">rolename</replaceable> [, ...]
-    | ADMIN <replaceable class="PARAMETER">rolename</replaceable> [, ...]
-    | USER <replaceable class="PARAMETER">rolename</replaceable> [, ...]
-    | SYSID <replaceable class="PARAMETER">uid</replaceable> 
+    | CONNECTION LIMIT connlimit
+    | [ ENCRYPTED | UNENCRYPTED ] PASSWORD 'password'
+    | VALID UNTIL 'timestamp' 
+    | IN ROLE rolename [, ...]
+    | ROLE rolename [, ...]
+    | ADMIN rolename [, ...]
+    | RESOURCE QUEUE queue_name
 </synopsis>
  </refsynopsisdiv>
 
@@ -296,6 +296,17 @@ where <replaceable class="PARAMETER">option</replaceable> can be:
        <para>
         The <literal>SYSID</literal> clause is ignored, but is accepted
         for backwards compatibility.
+       </para>
+      </listitem>
+     </varlistentry>
+
+     <varlistentry>
+      <term><literal>RESOURCE QUEUE</> <replaceable class="parameter">queuename</replaceable></term>
+      <listitem>
+       <para>
+        The <literal>RESOURCE QUEUE</literal> that this role is in.
+		See <xref linkend="sql-createresourcequeue" 
+        endterm="sql-createresourcequeue-title"> for more information.
        </para>
       </listitem>
      </varlistentry>

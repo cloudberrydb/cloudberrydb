@@ -1,10 +1,10 @@
-/* Processed by ecpg (4.2.1) */
+/* Processed by ecpg (regression mode) */
 /* These include files are added by the preprocessor */
-#include <ecpgtype.h>
 #include <ecpglib.h>
 #include <ecpgerrno.h>
 #include <sqlca.h>
 /* End of automatic include section */
+#define ECPGdebug(X,Y) ECPGdebug((X)+100,(Y))
 
 #line 1 "num_test2.pgc"
 #include <stdio.h>
@@ -119,9 +119,16 @@ main(void)
 			free(text);
 		}
 
-		r = PGTYPESnumeric_to_double(num, &d);
-		if (r) check_errno();
-		printf("num[%d,10]: %g (r: %d)\n", i, r?0.0:d, r);
+		if (i != 6)
+		{
+			/* underflow does not work reliable on several archs, so not testing it here */
+			/* this is a libc problem since we only call strtod() */
+
+			r = PGTYPESnumeric_to_double(num, &d);
+			if (r) check_errno();
+			printf("num[%d,10]: %g (r: %d)\n", i, r?0.0:d, r);
+		}
+
 		/* do not test double to numeric because
 		 * - extra digits are different on different architectures
 		 * - PGTYPESnumeric_from_double internally calls PGTYPESnumeric_from_asc anyway

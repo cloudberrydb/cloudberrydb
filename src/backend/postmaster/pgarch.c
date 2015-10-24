@@ -14,7 +14,7 @@
  *
  *	Initial author: Simon Riggs		simon@2ndquadrant.com
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2008, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -44,7 +44,7 @@
 #include "storage/pmsignal.h"
 #include "utils/guc.h"
 #include "utils/ps_status.h"
-
+#include "postmaster/primary_mirror_mode.h"
 
 /* ----------
  * Timer definitions.
@@ -222,6 +222,8 @@ PgArchiverMain(int argc, char *argv[])
 	IsUnderPostmaster = true;	/* we are a postmaster subprocess now */
 
 	MyProcPid = getpid();		/* reset MyProcPid */
+	
+	MyStartTime = time(NULL);	/* record Start Time for logging */
 
 	/*
 	 * If possible, make this process a group leader, so that the postmaster
@@ -270,13 +272,15 @@ pgarch_exit(SIGNAL_ARGS)
 	 * seem cleaner to finish up any pending archive copies, but there's a
 	 * nontrivial risk that init will kill us partway through.
 	 */
-	exit(0);
+	/* SIGQUIT means curl up and die ... */
+	exit(1);
 }
 
-/* SIGHUP: set flag to re-read config file at next convenient time */
+/* SIGHUP signal handler for archiver process */
 static void
 ArchSigHupHandler(SIGNAL_ARGS)
 {
+	/* set flag to re-read config file at next convenient time */
 	got_SIGHUP = true;
 }
 
@@ -284,6 +288,7 @@ ArchSigHupHandler(SIGNAL_ARGS)
 static void
 pgarch_waken(SIGNAL_ARGS)
 {
+	/* set flag that there is work to be done */
 	wakened = true;
 }
 
@@ -410,8 +415,13 @@ pgarch_archiveXlog(char *xlog)
 	char	   *endp;
 	const char *sp;
 	int			rc;
+	char		*xlogDir = makeRelativeToTxnFilespace(XLOGDIR);
 
-	snprintf(pathname, MAXPGPATH, XLOGDIR "/%s", xlog);
+	if (snprintf(pathname, MAXPGPATH, "%s/%s", xlogDir, xlog) > MAXPGPATH)
+	{
+		ereport(ERROR, (errmsg("cannot generate path %s/%s", xlogDir, xlog)));
+	}
+	pfree(xlogDir);
 
 	/*
 	 * construct the command to be executed
@@ -429,14 +439,14 @@ pgarch_archiveXlog(char *xlog)
 				case 'p':
 					/* %p: relative path of source file */
 					sp++;
-					StrNCpy(dp, pathname, endp - dp);
+					strlcpy(dp, pathname, endp - dp);
 					make_native_path(dp);
 					dp += strlen(dp);
 					break;
 				case 'f':
 					/* %f: filename of source file */
 					sp++;
-					StrNCpy(dp, xlog, endp - dp);
+					strlcpy(dp, xlog, endp - dp);
 					dp += strlen(dp);
 					break;
 				case '%':
@@ -473,8 +483,8 @@ pgarch_archiveXlog(char *xlog)
 		 * should have interrupted us too.  If we overreact it's no big deal,
 		 * the postmaster will just start the archiver again.
 		 *
-		 * Per the Single Unix Spec, shells report exit status > 128 when
-		 * a called command died on a signal.
+		 * Per the Single Unix Spec, shells report exit status > 128 when a
+		 * called command died on a signal.
 		 */
 		bool	signaled = WIFSIGNALED(rc) || WEXITSTATUS(rc) > 128;
 
@@ -525,8 +535,15 @@ pgarch_readyXlog(char *xlog)
 	DIR		   *rldir;
 	struct dirent *rlde;
 	bool		found = false;
+	char		*xlogDir = NULL;
 
-	snprintf(XLogArchiveStatusDir, MAXPGPATH, XLOGDIR "/archive_status");
+	xlogDir = makeRelativeToTxnFilespace(XLOGDIR);
+	if (snprintf(XLogArchiveStatusDir, MAXPGPATH, "%s/archive_status", xlogDir) > MAXPGPATH)
+	{
+		ereport(ERROR, (errmsg("cannot generate path %s/archive_status", xlogDir)));
+	}
+	pfree(xlogDir);
+
 	rldir = AllocateDir(XLogArchiveStatusDir);
 	if (rldir == NULL)
 		ereport(ERROR,

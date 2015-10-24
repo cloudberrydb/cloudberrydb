@@ -3,52 +3,14 @@
  * float.c
  *	  Functions for the built-in floating-point types.
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/utils/adt/float.c,v 1.130 2006/10/05 01:40:45 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/utils/adt/float.c,v 1.162 2009/06/11 14:49:03 momjian Exp $
  *
  *-------------------------------------------------------------------------
- */
-/*----------
- * OLD COMMENTS
- *		Basic float4 ops:
- *		 float4in, float4out, float4recv, float4send
- *		 float4abs, float4um, float4up
- *		Basic float8 ops:
- *		 float8in, float8out, float8recv, float8send
- *		 float8abs, float8um, float8up
- *		Arithmetic operators:
- *		 float4pl, float4mi, float4mul, float4div
- *		 float8pl, float8mi, float8mul, float8div
- *		Comparison operators:
- *		 float4eq, float4ne, float4lt, float4le, float4gt, float4ge, float4cmp
- *		 float8eq, float8ne, float8lt, float8le, float8gt, float8ge, float8cmp
- *		Conversion routines:
- *		 ftod, dtof, i4tod, dtoi4, i2tod, dtoi2, itof, ftoi, i2tof, ftoi2
- *
- *		Random float8 ops:
- *		 dround, dtrunc, dsqrt, dcbrt, dpow, dexp, dlog1
- *		Arithmetic operators:
- *		 float48pl, float48mi, float48mul, float48div
- *		 float84pl, float84mi, float84mul, float84div
- *		Comparison operators:
- *		 float48eq, float48ne, float48lt, float48le, float48gt, float48ge
- *		 float84eq, float84ne, float84lt, float84le, float84gt, float84ge
- *
- *		(You can do the arithmetic and comparison stuff using conversion
- *		 routines, but then you pay the overhead of invoking a separate
- *		 conversion function...)
- *
- * XXX GLUESOME STUFF. FIX IT! -AY '94
- *
- *		Added some additional conversion routines and cleaned up
- *		 a bit of the existing code. Need to change the error checking
- *		 for calls to pow(), exp() since on some machines (my Linux box
- *		 included) these routines do not set errno. - tgl 97/05/10
- *----------
  */
 #include "postgres.h"
 
@@ -56,10 +18,6 @@
 #include <float.h>
 #include <math.h>
 #include <limits.h>
-/* for finite() on Solaris */
-#ifdef HAVE_IEEEFP_H
-#include <ieeefp.h>
-#endif
 
 #include "catalog/pg_type.h"
 #include "libpq/pqformat.h"
@@ -70,12 +28,6 @@
 #ifndef M_PI
 /* from my RH5.2 gcc math.h file - thomas 2000-04-03 */
 #define M_PI 3.14159265358979323846
-#endif
-
-/* Recent HPUXen have isfinite() macro in place of more standard finite() */
-#if !defined(HAVE_FINITE) && defined(isfinite)
-#define finite(x) isfinite(x)
-#define HAVE_FINITE 1
 #endif
 
 /* Visual C++ etc lacks NAN, and won't accept 0.0/0.0.  NAN definition from
@@ -91,28 +43,47 @@ static const uint32 nan[2] = {0xffffffff, 0x7fffffff};
 #define MAXFLOATWIDTH	64
 #define MAXDOUBLEWIDTH	128
 
+/*
+ * check to see if a float4/8 val has underflowed or overflowed
+ */
+#define CHECKFLOATVAL(val, inf_is_valid, zero_is_valid)			\
+do {															\
+	if (isinf(val) && !(inf_is_valid))							\
+		ereport(ERROR,											\
+				(errcode(ERRCODE_NUMERIC_VALUE_OUT_OF_RANGE),	\
+		  errmsg("value out of range: overflow")));				\
+																\
+	if ((val) == 0.0 && !(zero_is_valid))						\
+		ereport(ERROR,											\
+				(errcode(ERRCODE_NUMERIC_VALUE_OUT_OF_RANGE),	\
+		 errmsg("value out of range: underflow")));				\
+} while(0)
+
 /* ========== USER I/O ROUTINES ========== */
-
-
-#define FLOAT4_MAX		 FLT_MAX
-#define FLOAT4_MIN		 FLT_MIN
-#define FLOAT8_MAX		 DBL_MAX
-#define FLOAT8_MIN		 DBL_MIN
 
 
 /* Configurable GUC parameter */
 int			extra_float_digits = 0;		/* Added to DBL_DIG or FLT_DIG */
 
 
-static void CheckFloat4Val(double val);
-static void CheckFloat8Val(double val);
 static int	float4_cmp_internal(float4 a, float4 b);
 static int	float8_cmp_internal(float8 a, float8 b);
 
 #ifndef HAVE_CBRT
+/*
+ * Some machines (in particular, some versions of AIX) have an extern
+ * declaration for cbrt() in <math.h> but fail to provide the actual
+ * function, which causes configure to not set HAVE_CBRT.  Furthermore,
+ * their compilers spit up at the mismatch between extern declaration
+ * and static definition.  We work around that here by the expedient
+ * of a #define to make the actual name of the static function different.
+ */
+#define cbrt my_cbrt
 static double cbrt(double x);
 #endif   /* HAVE_CBRT */
 
+static ArrayType *float8_amalg_demalg(ArrayType *aTransArray, ArrayType *bTransArray,
+									  FunctionCallInfo fcinfo, bool is_amalg);
 
 /*
  * Routines to provide reasonably platform-independent handling of
@@ -196,51 +167,12 @@ is_infinite(double val)
 
 	if (inf == 0)
 		return 0;
-
-	if (val > 0)
+	else if (val > 0)
 		return 1;
-
-	return -1;
+	else
+		return -1;
 }
 
-
-/*
- * check to see if a float4 val is outside of the FLOAT4_MIN,
- * FLOAT4_MAX bounds.
- *
- * raise an ereport() error if it is
- */
-static void
-CheckFloat4Val(double val)
-{
-	if (fabs(val) > FLOAT4_MAX)
-		ereport(ERROR,
-				(errcode(ERRCODE_NUMERIC_VALUE_OUT_OF_RANGE),
-				 errmsg("type \"real\" value out of range: overflow")));
-	if (val != 0.0 && fabs(val) < FLOAT4_MIN)
-		ereport(ERROR,
-				(errcode(ERRCODE_NUMERIC_VALUE_OUT_OF_RANGE),
-				 errmsg("type \"real\" value out of range: underflow")));
-}
-
-/*
- * check to see if a float8 val is outside of the FLOAT8_MIN,
- * FLOAT8_MAX bounds.
- *
- * raise an ereport() error if it is
- */
-static void
-CheckFloat8Val(double val)
-{
-	if (fabs(val) > FLOAT8_MAX)
-		ereport(ERROR,
-				(errcode(ERRCODE_NUMERIC_VALUE_OUT_OF_RANGE),
-		  errmsg("type \"double precision\" value out of range: overflow")));
-	if (val != 0.0 && fabs(val) < FLOAT8_MIN)
-		ereport(ERROR,
-				(errcode(ERRCODE_NUMERIC_VALUE_OUT_OF_RANGE),
-		 errmsg("type \"double precision\" value out of range: underflow")));
-}
 
 /*
  *		float4in		- converts "num" to float
@@ -329,10 +261,11 @@ float4in(PG_FUNCTION_ARGS)
 #endif   /* HAVE_BUGGY_SOLARIS_STRTOD */
 
 #ifdef HAVE_BUGGY_IRIX_STRTOD
+
 	/*
-	 * In some IRIX versions, strtod() recognizes only "inf", so if the
-	 * input is "infinity" we have to skip over "inity".  Also, it may
-	 * return positive infinity for "-inf".
+	 * In some IRIX versions, strtod() recognizes only "inf", so if the input
+	 * is "infinity" we have to skip over "inity".	Also, it may return
+	 * positive infinity for "-inf".
 	 */
 	if (isinf(val))
 	{
@@ -352,7 +285,7 @@ float4in(PG_FUNCTION_ARGS)
 			endptr = num + 4;
 		}
 	}
-#endif /* HAVE_BUGGY_IRIX_STRTOD */
+#endif   /* HAVE_BUGGY_IRIX_STRTOD */
 
 	/* skip trailing whitespace */
 	while (*endptr != '\0' && isspace((unsigned char) *endptr))
@@ -369,8 +302,7 @@ float4in(PG_FUNCTION_ARGS)
 	 * if we get here, we have a legal double, still need to check to see if
 	 * it's a legal float4
 	 */
-	if (!isinf(val))
-		CheckFloat4Val(val);
+	CHECKFLOATVAL((float4) val, isinf(val), val == 0);
 
 	PG_RETURN_FLOAT4((float4) val);
 }
@@ -445,10 +377,11 @@ float4send(PG_FUNCTION_ARGS)
 Datum
 float8in(PG_FUNCTION_ARGS)
 {
-	char	   *num = PG_GETARG_CSTRING(0);
-	char	   *orig_num;
-	double		val;
-	char	   *endptr;
+	char			*num = PG_GETARG_CSTRING(0);
+	char			*orig_num;
+	long double		val;
+	char			*endptr;
+	bool 			literal_inf = true;
 
 	/*
 	 * endptr points to the first character _after_ the sequence we recognized
@@ -472,7 +405,7 @@ float8in(PG_FUNCTION_ARGS)
 		num++;
 
 	errno = 0;
-	val = strtod(num, &endptr);
+	val = strtold(num, &endptr);
 
 	/* did we not see anything that looks like a double? */
 	if (endptr == num || errno != 0)
@@ -487,7 +420,7 @@ float8in(PG_FUNCTION_ARGS)
 			val = get_float8_nan();
 			endptr = num + 3;
 		}
-		else if (pg_strncasecmp(num, "Infinity", 8) == 0)
+		else if (pg_strncasecmp(num, "Infinity", 8) == 0 || pg_strncasecmp(num, "+Infinity", 9) == 0)
 		{
 			val = get_float8_infinity();
 			endptr = num + 8;
@@ -522,14 +455,15 @@ float8in(PG_FUNCTION_ARGS)
 #endif   /* HAVE_BUGGY_SOLARIS_STRTOD */
 
 #ifdef HAVE_BUGGY_IRIX_STRTOD
+
 	/*
-	 * In some IRIX versions, strtod() recognizes only "inf", so if the
-	 * input is "infinity" we have to skip over "inity".  Also, it may
-	 * return positive infinity for "-inf".
+	 * In some IRIX versions, strtod() recognizes only "inf", so if the input
+	 * is "infinity" we have to skip over "inity".	Also, it may return
+	 * positive infinity for "-inf".
 	 */
 	if (isinf(val))
 	{
-		if (pg_strncasecmp(num, "Infinity", 8) == 0)
+		if (pg_strncasecmp(num, "Infinity", 8) == 0 || pg_strncasecmp(num, "+Infinity", 9) == 0)
 		{
 			val = get_float8_infinity();
 			endptr = num + 8;
@@ -545,7 +479,7 @@ float8in(PG_FUNCTION_ARGS)
 			endptr = num + 4;
 		}
 	}
-#endif /* HAVE_BUGGY_IRIX_STRTOD */
+#endif   /* HAVE_BUGGY_IRIX_STRTOD */
 
 	/* skip trailing whitespace */
 	while (*endptr != '\0' && isspace((unsigned char) *endptr))
@@ -558,10 +492,32 @@ float8in(PG_FUNCTION_ARGS)
 			 errmsg("invalid input syntax for type double precision: \"%s\"",
 					orig_num)));
 
-	if (!isinf(val))
-		CheckFloat8Val(val);
+	/*
+	 * strtod does not support values from 1e-323 to 1e-308 for double datatype in rhel6
+	 * due to changes in glibc. In order to overcome this issue we use strtold to parse
+	 * the string and store it in long double so that we get higher precision. We check if
+	 * this value is within allowed range for double using the below two checks:- 
+	 *
+	 * 1) Overflow - When we try to store a value > 1e308 in a double datatype, it gets represented 
+	 * internally as "inf". Hence in order to check for overflow, we use the isinf() method in order
+	 * to check if (double) val has overflowed. But "inf" is a legitimate value for float8, hence if the
+	 * user entered "inf"/"Infinity" we allow it. Otherwise we treat it as overflow.
+	 *
+	 * 2) Underflow - When we try to store a value < 1e-323, it gets converted to a 0.0. But "0.0" is a 
+	 * legitimate value allowed by float8 datatype. Hence we examine if the val is > 0 or < 0 with higher 
+	 * precision (as long double). Again, 0.0 is allowed for float8. If the user entered 0.0, val will be 0.0
+	 * in both higher precision and when rounded down and we allow it. Otherwise in higher precision, 
+	 * val will be > 0 or < 0 and when rounded down to double it will be 0 which is treated as underflow.
+	 */
 
-	PG_RETURN_FLOAT8(val);
+	if ( pg_strncasecmp(num, "Infinity", 8) != 0  && pg_strncasecmp(num, "-Infinity", 9) != 0 &&\
+		 pg_strncasecmp(num, "Inf", 3) != 0 && pg_strncasecmp(num, "-Inf", 4) != 0 &&\
+		 pg_strncasecmp(num, "+Infinity", 9) != 0 && pg_strncasecmp(num, "+Inf", 4) != 0 )
+		literal_inf = false;
+
+	CHECKFLOATVAL((double) val, literal_inf, !(val > 0 || val < 0));
+
+	PG_RETURN_FLOAT8((double) val);
 }
 
 /*
@@ -652,8 +608,10 @@ Datum
 float4um(PG_FUNCTION_ARGS)
 {
 	float4		arg1 = PG_GETARG_FLOAT4(0);
+	float4		result;
 
-	PG_RETURN_FLOAT4((float4) -arg1);
+	result = -arg1;
+	PG_RETURN_FLOAT4(result);
 }
 
 Datum
@@ -705,12 +663,8 @@ Datum
 float8abs(PG_FUNCTION_ARGS)
 {
 	float8		arg1 = PG_GETARG_FLOAT8(0);
-	float8		result;
 
-	result = fabs(arg1);
-
-	CheckFloat8Val(result);
-	PG_RETURN_FLOAT8(result);
+	PG_RETURN_FLOAT8(fabs(arg1));
 }
 
 
@@ -723,9 +677,7 @@ float8um(PG_FUNCTION_ARGS)
 	float8		arg1 = PG_GETARG_FLOAT8(0);
 	float8		result;
 
-	result = ((arg1 != 0) ? -(arg1) : arg1);
-
-	CheckFloat8Val(result);
+	result = -arg1;
 	PG_RETURN_FLOAT8(result);
 }
 
@@ -783,11 +735,19 @@ float4pl(PG_FUNCTION_ARGS)
 {
 	float4		arg1 = PG_GETARG_FLOAT4(0);
 	float4		arg2 = PG_GETARG_FLOAT4(1);
-	double		result;
+	float4		result;
 
 	result = arg1 + arg2;
-	CheckFloat4Val(result);
-	PG_RETURN_FLOAT4((float4) result);
+
+	/*
+	 * There isn't any way to check for underflow of addition/subtraction
+	 * because numbers near the underflow value have already been rounded to
+	 * the point where we can't detect that the two values were originally
+	 * different, e.g. on x86, '1e-45'::float4 == '2e-45'::float4 ==
+	 * 1.4013e-45.
+	 */
+	CHECKFLOATVAL(result, isinf(arg1) || isinf(arg2), true);
+	PG_RETURN_FLOAT4(result);
 }
 
 Datum
@@ -795,11 +755,11 @@ float4mi(PG_FUNCTION_ARGS)
 {
 	float4		arg1 = PG_GETARG_FLOAT4(0);
 	float4		arg2 = PG_GETARG_FLOAT4(1);
-	double		result;
+	float4		result;
 
 	result = arg1 - arg2;
-	CheckFloat4Val(result);
-	PG_RETURN_FLOAT4((float4) result);
+	CHECKFLOATVAL(result, isinf(arg1) || isinf(arg2), true);
+	PG_RETURN_FLOAT4(result);
 }
 
 Datum
@@ -807,11 +767,12 @@ float4mul(PG_FUNCTION_ARGS)
 {
 	float4		arg1 = PG_GETARG_FLOAT4(0);
 	float4		arg2 = PG_GETARG_FLOAT4(1);
-	double		result;
+	float4		result;
 
 	result = arg1 * arg2;
-	CheckFloat4Val(result);
-	PG_RETURN_FLOAT4((float4) result);
+	CHECKFLOATVAL(result, isinf(arg1) || isinf(arg2),
+				  arg1 == 0 || arg2 == 0);
+	PG_RETURN_FLOAT4(result);
 }
 
 Datum
@@ -819,18 +780,17 @@ float4div(PG_FUNCTION_ARGS)
 {
 	float4		arg1 = PG_GETARG_FLOAT4(0);
 	float4		arg2 = PG_GETARG_FLOAT4(1);
-	double		result;
+	float4		result;
 
 	if (arg2 == 0.0)
 		ereport(ERROR,
 				(errcode(ERRCODE_DIVISION_BY_ZERO),
 				 errmsg("division by zero")));
 
-	/* Do division in float8, then check for overflow */
-	result = (float8) arg1 / (float8) arg2;
+	result = arg1 / arg2;
 
-	CheckFloat4Val(result);
-	PG_RETURN_FLOAT4((float4) result);
+	CHECKFLOATVAL(result, isinf(arg1) || isinf(arg2), arg1 == 0);
+	PG_RETURN_FLOAT4(result);
 }
 
 /*
@@ -848,7 +808,7 @@ float8pl(PG_FUNCTION_ARGS)
 
 	result = arg1 + arg2;
 
-	CheckFloat8Val(result);
+	CHECKFLOATVAL(result, isinf(arg1) || isinf(arg2), true);
 	PG_RETURN_FLOAT8(result);
 }
 
@@ -861,7 +821,7 @@ float8mi(PG_FUNCTION_ARGS)
 
 	result = arg1 - arg2;
 
-	CheckFloat8Val(result);
+	CHECKFLOATVAL(result, isinf(arg1) || isinf(arg2), true);
 	PG_RETURN_FLOAT8(result);
 }
 
@@ -874,7 +834,8 @@ float8mul(PG_FUNCTION_ARGS)
 
 	result = arg1 * arg2;
 
-	CheckFloat8Val(result);
+	CHECKFLOATVAL(result, isinf(arg1) || isinf(arg2),
+				  arg1 == 0 || arg2 == 0);
 	PG_RETURN_FLOAT8(result);
 }
 
@@ -892,7 +853,7 @@ float8div(PG_FUNCTION_ARGS)
 
 	result = arg1 / arg2;
 
-	CheckFloat8Val(result);
+	CHECKFLOATVAL(result, isinf(arg1) || isinf(arg2), arg1 == 0);
 	PG_RETURN_FLOAT8(result);
 }
 
@@ -1142,7 +1103,7 @@ dtof(PG_FUNCTION_ARGS)
 {
 	float8		num = PG_GETARG_FLOAT8(0);
 
-	CheckFloat4Val(num);
+	CHECKFLOATVAL((float4) num, isinf(num), num == 0);
 
 	PG_RETURN_FLOAT4((float4) num);
 }
@@ -1157,7 +1118,8 @@ dtoi4(PG_FUNCTION_ARGS)
 	float8		num = PG_GETARG_FLOAT8(0);
 	int32		result;
 
-	if ((num < INT_MIN) || (num > INT_MAX))
+	/* 'Inf' is handled by INT_MAX */
+	if (num < INT_MIN || num > INT_MAX || isnan(num))
 		ereport(ERROR,
 				(errcode(ERRCODE_NUMERIC_VALUE_OUT_OF_RANGE),
 				 errmsg("integer out of range")));
@@ -1174,15 +1136,13 @@ Datum
 dtoi2(PG_FUNCTION_ARGS)
 {
 	float8		num = PG_GETARG_FLOAT8(0);
-	int16		result;
 
-	if ((num < SHRT_MIN) || (num > SHRT_MAX))
+	if (num < SHRT_MIN || num > SHRT_MAX || isnan(num))
 		ereport(ERROR,
 				(errcode(ERRCODE_NUMERIC_VALUE_OUT_OF_RANGE),
 				 errmsg("smallint out of range")));
 
-	result = (int16) rint(num);
-	PG_RETURN_INT16(result);
+	PG_RETURN_INT16((int16) rint(num));
 }
 
 
@@ -1193,10 +1153,8 @@ Datum
 i4tod(PG_FUNCTION_ARGS)
 {
 	int32		num = PG_GETARG_INT32(0);
-	float8		result;
 
-	result = num;
-	PG_RETURN_FLOAT8(result);
+	PG_RETURN_FLOAT8((float8) num);
 }
 
 
@@ -1207,10 +1165,8 @@ Datum
 i2tod(PG_FUNCTION_ARGS)
 {
 	int16		num = PG_GETARG_INT16(0);
-	float8		result;
 
-	result = num;
-	PG_RETURN_FLOAT8(result);
+	PG_RETURN_FLOAT8((float8) num);
 }
 
 
@@ -1221,15 +1177,13 @@ Datum
 ftoi4(PG_FUNCTION_ARGS)
 {
 	float4		num = PG_GETARG_FLOAT4(0);
-	int32		result;
 
-	if ((num < INT_MIN) || (num > INT_MAX))
+	if (num < INT_MIN || num > INT_MAX || isnan(num))
 		ereport(ERROR,
 				(errcode(ERRCODE_NUMERIC_VALUE_OUT_OF_RANGE),
 				 errmsg("integer out of range")));
 
-	result = (int32) rint(num);
-	PG_RETURN_INT32(result);
+	PG_RETURN_INT32((int32) rint(num));
 }
 
 
@@ -1240,29 +1194,25 @@ Datum
 ftoi2(PG_FUNCTION_ARGS)
 {
 	float4		num = PG_GETARG_FLOAT4(0);
-	int16		result;
 
-	if ((num < SHRT_MIN) || (num > SHRT_MAX))
+	if (num < SHRT_MIN || num > SHRT_MAX || isnan(num))
 		ereport(ERROR,
 				(errcode(ERRCODE_NUMERIC_VALUE_OUT_OF_RANGE),
 				 errmsg("smallint out of range")));
 
-	result = (int16) rint(num);
-	PG_RETURN_INT16(result);
+	PG_RETURN_INT16((int16) rint(num));
 }
 
 
 /*
- *		i4tof			- converts an int4 number to a float8 number
+ *		i4tof			- converts an int4 number to a float4 number
  */
 Datum
 i4tof(PG_FUNCTION_ARGS)
 {
 	int32		num = PG_GETARG_INT32(0);
-	float4		result;
 
-	result = num;
-	PG_RETURN_FLOAT4(result);
+	PG_RETURN_FLOAT4((float4) num);
 }
 
 
@@ -1273,10 +1223,8 @@ Datum
 i2tof(PG_FUNCTION_ARGS)
 {
 	int16		num = PG_GETARG_INT16(0);
-	float4		result;
 
-	result = num;
-	PG_RETURN_FLOAT4(result);
+	PG_RETURN_FLOAT4((float4) num);
 }
 
 
@@ -1298,7 +1246,7 @@ float8_text(PG_FUNCTION_ARGS)
 
 	result = (text *) palloc(len);
 
-	VARATT_SIZEP(result) = len;
+	SET_VARSIZE(result, len);
 	memcpy(VARDATA(result), str, (len - VARHDRSZ));
 
 	pfree(str);
@@ -1349,7 +1297,7 @@ float4_text(PG_FUNCTION_ARGS)
 
 	result = (text *) palloc(len);
 
-	VARATT_SIZEP(result) = len;
+	SET_VARSIZE(result, len);
 	memcpy(VARDATA(result), str, (len - VARHDRSZ));
 
 	pfree(str);
@@ -1381,7 +1329,6 @@ text_float4(PG_FUNCTION_ARGS)
 	PG_RETURN_DATUM(result);
 }
 
-
 /*
  *		=======================
  *		RANDOM FLOAT8 OPERATORS
@@ -1395,11 +1342,8 @@ Datum
 dround(PG_FUNCTION_ARGS)
 {
 	float8		arg1 = PG_GETARG_FLOAT8(0);
-	float8		result;
 
-	result = rint(arg1);
-
-	PG_RETURN_FLOAT8(result);
+	PG_RETURN_FLOAT8(rint(arg1));
 }
 
 /*
@@ -1485,7 +1429,7 @@ dsqrt(PG_FUNCTION_ARGS)
 
 	result = sqrt(arg1);
 
-	CheckFloat8Val(result);
+	CHECKFLOATVAL(result, isinf(arg1), arg1 == 0);
 	PG_RETURN_FLOAT8(result);
 }
 
@@ -1500,6 +1444,7 @@ dcbrt(PG_FUNCTION_ARGS)
 	float8		result;
 
 	result = cbrt(arg1);
+	CHECKFLOATVAL(result, isinf(arg1), arg1 == 0);
 	PG_RETURN_FLOAT8(result);
 }
 
@@ -1516,30 +1461,43 @@ dpow(PG_FUNCTION_ARGS)
 
 	/*
 	 * The SQL spec requires that we emit a particular SQLSTATE error code for
-	 * certain error conditions.
+	 * certain error conditions.  Specifically, we don't return a
+	 * divide-by-zero error code for 0 ^ -1.
 	 */
-	if ((arg1 == 0 && arg2 < 0) ||
-		(arg1 < 0 && floor(arg2) != arg2))
+	if (arg1 == 0 && arg2 < 0)
 		ereport(ERROR,
 				(errcode(ERRCODE_INVALID_ARGUMENT_FOR_POWER_FUNCTION),
-				 errmsg("invalid argument for power function")));
+				 errmsg("zero raised to a negative power is undefined")));
+	if (arg1 < 0 && floor(arg2) != arg2)
+		ereport(ERROR,
+				(errcode(ERRCODE_INVALID_ARGUMENT_FOR_POWER_FUNCTION),
+				 errmsg("a negative number raised to a non-integer power yields a complex result")));
 
 	/*
-	 * We must check both for errno getting set and for a NaN result, in order
-	 * to deal with the vagaries of different platforms...
+	 * pow() sets errno only on some platforms, depending on whether it
+	 * follows _IEEE_, _POSIX_, _XOPEN_, or _SVID_, so we try to avoid using
+	 * errno.  However, some platform/CPU combinations return errno == EDOM
+	 * and result == Nan for negative arg1 and very large arg2 (they must be
+	 * using something different from our floor() test to decide it's
+	 * invalid).  Other platforms (HPPA) return errno == ERANGE and a large
+	 * (HUGE_VAL) but finite result to signal overflow.
 	 */
 	errno = 0;
 	result = pow(arg1, arg2);
-	if (errno != 0
-#ifdef HAVE_FINITE
-		|| !finite(result)
-#endif
-		)
-		ereport(ERROR,
-				(errcode(ERRCODE_NUMERIC_VALUE_OUT_OF_RANGE),
-				 errmsg("result is out of range")));
+	if (errno == EDOM && isnan(result))
+	{
+		if ((fabs(arg1) > 1 && arg2 >= 0) || (fabs(arg1) < 1 && arg2 < 0))
+			/* The sign of Inf is not significant in this case. */
+			result = get_float8_infinity();
+		else if (fabs(arg1) != 1)
+			result = 0;
+		else
+			result = 1;
+	}
+	else if (errno == ERANGE && result != 0 && !isinf(result))
+		result = get_float8_infinity();
 
-	CheckFloat8Val(result);
+	CHECKFLOATVAL(result, isinf(arg1) || isinf(arg2), arg1 == 0);
 	PG_RETURN_FLOAT8(result);
 }
 
@@ -1553,23 +1511,12 @@ dexp(PG_FUNCTION_ARGS)
 	float8		arg1 = PG_GETARG_FLOAT8(0);
 	float8		result;
 
-	/*
-	 * We must check both for errno getting set and for a NaN result, in order
-	 * to deal with the vagaries of different platforms. Also, a zero result
-	 * implies unreported underflow.
-	 */
 	errno = 0;
 	result = exp(arg1);
-	if (errno != 0 || result == 0.0
-#ifdef HAVE_FINITE
-		|| !finite(result)
-#endif
-		)
-		ereport(ERROR,
-				(errcode(ERRCODE_NUMERIC_VALUE_OUT_OF_RANGE),
-				 errmsg("result is out of range")));
+	if (errno == ERANGE && result != 0 && !isinf(result))
+		result = get_float8_infinity();
 
-	CheckFloat8Val(result);
+	CHECKFLOATVAL(result, isinf(arg1), false);
 	PG_RETURN_FLOAT8(result);
 }
 
@@ -1598,7 +1545,7 @@ dlog1(PG_FUNCTION_ARGS)
 
 	result = log(arg1);
 
-	CheckFloat8Val(result);
+	CHECKFLOATVAL(result, isinf(arg1), arg1 == 1);
 	PG_RETURN_FLOAT8(result);
 }
 
@@ -1628,7 +1575,7 @@ dlog10(PG_FUNCTION_ARGS)
 
 	result = log10(arg1);
 
-	CheckFloat8Val(result);
+	CHECKFLOATVAL(result, isinf(arg1), arg1 == 1);
 	PG_RETURN_FLOAT8(result);
 }
 
@@ -1642,18 +1589,18 @@ dacos(PG_FUNCTION_ARGS)
 	float8		arg1 = PG_GETARG_FLOAT8(0);
 	float8		result;
 
+	/*
+	 * We use errno here because the trigonometric functions are cyclic and
+	 * hard to check for underflow.
+	 */
 	errno = 0;
 	result = acos(arg1);
-	if (errno != 0
-#ifdef HAVE_FINITE
-		|| !finite(result)
-#endif
-		)
+	if (errno != 0)
 		ereport(ERROR,
 				(errcode(ERRCODE_NUMERIC_VALUE_OUT_OF_RANGE),
 				 errmsg("input is out of range")));
 
-	CheckFloat8Val(result);
+	CHECKFLOATVAL(result, isinf(arg1), true);
 	PG_RETURN_FLOAT8(result);
 }
 
@@ -1669,16 +1616,12 @@ dasin(PG_FUNCTION_ARGS)
 
 	errno = 0;
 	result = asin(arg1);
-	if (errno != 0
-#ifdef HAVE_FINITE
-		|| !finite(result)
-#endif
-		)
+	if (errno != 0)
 		ereport(ERROR,
 				(errcode(ERRCODE_NUMERIC_VALUE_OUT_OF_RANGE),
 				 errmsg("input is out of range")));
 
-	CheckFloat8Val(result);
+	CHECKFLOATVAL(result, isinf(arg1), true);
 	PG_RETURN_FLOAT8(result);
 }
 
@@ -1694,16 +1637,12 @@ datan(PG_FUNCTION_ARGS)
 
 	errno = 0;
 	result = atan(arg1);
-	if (errno != 0
-#ifdef HAVE_FINITE
-		|| !finite(result)
-#endif
-		)
+	if (errno != 0)
 		ereport(ERROR,
 				(errcode(ERRCODE_NUMERIC_VALUE_OUT_OF_RANGE),
 				 errmsg("input is out of range")));
 
-	CheckFloat8Val(result);
+	CHECKFLOATVAL(result, isinf(arg1), true);
 	PG_RETURN_FLOAT8(result);
 }
 
@@ -1720,16 +1659,12 @@ datan2(PG_FUNCTION_ARGS)
 
 	errno = 0;
 	result = atan2(arg1, arg2);
-	if (errno != 0
-#ifdef HAVE_FINITE
-		|| !finite(result)
-#endif
-		)
+	if (errno != 0)
 		ereport(ERROR,
 				(errcode(ERRCODE_NUMERIC_VALUE_OUT_OF_RANGE),
 				 errmsg("input is out of range")));
 
-	CheckFloat8Val(result);
+	CHECKFLOATVAL(result, isinf(arg1) || isinf(arg2), true);
 	PG_RETURN_FLOAT8(result);
 }
 
@@ -1745,19 +1680,23 @@ dcos(PG_FUNCTION_ARGS)
 
 	errno = 0;
 	result = cos(arg1);
-	if (errno != 0
-#ifdef HAVE_FINITE
-		|| !finite(result)
-#endif
-		)
+	if (errno != 0)
 		ereport(ERROR,
 				(errcode(ERRCODE_NUMERIC_VALUE_OUT_OF_RANGE),
 				 errmsg("input is out of range")));
 
-	CheckFloat8Val(result);
+	CHECKFLOATVAL(result, isinf(arg1), true);
 	PG_RETURN_FLOAT8(result);
 }
 
+/*
+ * cosh
+ */
+Datum
+dcosh(PG_FUNCTION_ARGS)
+{
+	PG_RETURN_FLOAT8(cosh(PG_GETARG_FLOAT8(0)));
+}
 
 /*
  *		dcot			- returns the cotangent of arg1 (radians)
@@ -1770,17 +1709,13 @@ dcot(PG_FUNCTION_ARGS)
 
 	errno = 0;
 	result = tan(arg1);
-	if (errno != 0 || result == 0.0
-#ifdef HAVE_FINITE
-		|| !finite(result)
-#endif
-		)
+	if (errno != 0)
 		ereport(ERROR,
 				(errcode(ERRCODE_NUMERIC_VALUE_OUT_OF_RANGE),
 				 errmsg("input is out of range")));
 
 	result = 1.0 / result;
-	CheckFloat8Val(result);
+	CHECKFLOATVAL(result, true /* cotan(pi/2) == inf */ , true);
 	PG_RETURN_FLOAT8(result);
 }
 
@@ -1796,19 +1731,20 @@ dsin(PG_FUNCTION_ARGS)
 
 	errno = 0;
 	result = sin(arg1);
-	if (errno != 0
-#ifdef HAVE_FINITE
-		|| !finite(result)
-#endif
-		)
+	if (errno != 0)
 		ereport(ERROR,
 				(errcode(ERRCODE_NUMERIC_VALUE_OUT_OF_RANGE),
 				 errmsg("input is out of range")));
 
-	CheckFloat8Val(result);
+	CHECKFLOATVAL(result, isinf(arg1), true);
 	PG_RETURN_FLOAT8(result);
 }
 
+Datum
+dsinh(PG_FUNCTION_ARGS)
+{
+	PG_RETURN_FLOAT8(sinh(PG_GETARG_FLOAT8(0)));
+}
 
 /*
  *		dtan			- returns the tangent of arg1 (radians)
@@ -1821,19 +1757,20 @@ dtan(PG_FUNCTION_ARGS)
 
 	errno = 0;
 	result = tan(arg1);
-	if (errno != 0
-#ifdef HAVE_FINITE
-		|| !finite(result)
-#endif
-		)
+	if (errno != 0)
 		ereport(ERROR,
 				(errcode(ERRCODE_NUMERIC_VALUE_OUT_OF_RANGE),
 				 errmsg("input is out of range")));
 
-	CheckFloat8Val(result);
+	CHECKFLOATVAL(result, true /* tan(pi/2) == Inf */ , true);
 	PG_RETURN_FLOAT8(result);
 }
 
+Datum
+dtanh(PG_FUNCTION_ARGS)
+{
+	PG_RETURN_FLOAT8(tanh(PG_GETARG_FLOAT8(0)));
+}
 
 /*
  *		degrees		- returns degrees converted from radians
@@ -1846,7 +1783,7 @@ degrees(PG_FUNCTION_ARGS)
 
 	result = arg1 * (180.0 / M_PI);
 
-	CheckFloat8Val(result);
+	CHECKFLOATVAL(result, isinf(arg1), arg1 == 0);
 	PG_RETURN_FLOAT8(result);
 }
 
@@ -1872,7 +1809,7 @@ radians(PG_FUNCTION_ARGS)
 
 	result = arg1 * (M_PI / 180.0);
 
-	CheckFloat8Val(result);
+	CHECKFLOATVAL(result, isinf(arg1), arg1 == 0);
 	PG_RETURN_FLOAT8(result);
 }
 
@@ -1899,11 +1836,15 @@ Datum
 setseed(PG_FUNCTION_ARGS)
 {
 	float8		seed = PG_GETARG_FLOAT8(0);
-	int			iseed = (int) (seed * MAX_RANDOM_VALUE);
+	int			iseed;
 
+	if (seed < -1 || seed > 1)
+		elog(ERROR, "setseed parameter %f out of range [-1,1]", seed);
+
+	iseed = (int) (seed * MAX_RANDOM_VALUE);
 	srandom((unsigned int) iseed);
 
-	PG_RETURN_INT32(iseed);
+	PG_RETURN_VOID();
 }
 
 
@@ -1963,14 +1904,16 @@ float8_accum(PG_FUNCTION_ARGS)
 
 	N += 1.0;
 	sumX += newval;
+	CHECKFLOATVAL(sumX, isinf(transvalues[1]) || isinf(newval), true);
 	sumX2 += newval * newval;
+	CHECKFLOATVAL(sumX2, isinf(transvalues[2]) || isinf(newval), true);
 
 	/*
 	 * If we're invoked by nodeAgg, we can cheat and modify our first
 	 * parameter in-place to reduce palloc overhead. Otherwise we construct a
 	 * new array with the updated transition data and return it.
 	 */
-	if (fcinfo->context && IsA(fcinfo->context, AggState))
+	if (fcinfo->context && IS_AGG_EXECUTION_NODE(fcinfo->context))
 	{
 		transvalues[0] = N;
 		transvalues[1] = sumX;
@@ -1989,41 +1932,92 @@ float8_accum(PG_FUNCTION_ARGS)
 
 		result = construct_array(transdatums, 3,
 								 FLOAT8OID,
-							 sizeof(float8), false /* float8 byval */ , 'd');
+								 sizeof(float8), FLOAT8PASSBYVAL, 'd');
 
 		PG_RETURN_ARRAYTYPE_P(result);
 	}
 }
 
+
+Datum
+float8_decum(PG_FUNCTION_ARGS)
+{
+	ArrayType  *transarray = PG_GETARG_ARRAYTYPE_P(0);
+	float8		newval = PG_GETARG_FLOAT8(1);
+	float8	   *transvalues;
+	float8		N,
+				miX,
+				miX2;
+
+	transvalues = check_float8_array(transarray, "float8_decum", 3);
+	N = transvalues[0];
+	miX = transvalues[1];
+	miX2 = transvalues[2];
+
+	N -= 1.0;
+	miX -= newval;
+	miX2 -= newval * newval;
+
+	/*
+	 * If we're invoked by nodeAgg, we can cheat and modify our first
+	 * parameter in-place to reduce palloc overhead. Otherwise we construct a
+	 * new array with the updated transition data and return it.
+	 */
+	if (fcinfo->context && IS_AGG_EXECUTION_NODE(fcinfo->context))
+	{
+		transvalues[0] = N;
+		transvalues[1] = miX;
+		transvalues[2] = miX2;
+
+		PG_RETURN_ARRAYTYPE_P(transarray);
+	}
+	else
+	{
+		Datum		transdatums[3];
+		ArrayType  *result;
+
+		transdatums[0] = Float8GetDatumFast(N);
+		transdatums[1] = Float8GetDatumFast(miX);
+		transdatums[2] = Float8GetDatumFast(miX2);
+
+		result = construct_array(transdatums, 3,
+								 FLOAT8OID,
+							 sizeof(float8), true /* float8 byval */ , 'd');
+
+		PG_RETURN_ARRAYTYPE_P(result);
+	}
+}
+
+
 Datum
 float4_accum(PG_FUNCTION_ARGS)
 {
 	ArrayType  *transarray = PG_GETARG_ARRAYTYPE_P(0);
-	float4		newval4 = PG_GETARG_FLOAT4(1);
+
+	/* do computations as float8 */
+	float8		newval = PG_GETARG_FLOAT4(1);
 	float8	   *transvalues;
 	float8		N,
 				sumX,
-				sumX2,
-				newval;
+				sumX2;
 
 	transvalues = check_float8_array(transarray, "float4_accum", 3);
 	N = transvalues[0];
 	sumX = transvalues[1];
 	sumX2 = transvalues[2];
 
-	/* Do arithmetic in float8 for best accuracy */
-	newval = newval4;
-
 	N += 1.0;
 	sumX += newval;
+	CHECKFLOATVAL(sumX, isinf(transvalues[1]) || isinf(newval), true);
 	sumX2 += newval * newval;
+	CHECKFLOATVAL(sumX2, isinf(transvalues[2]) || isinf(newval), true);
 
 	/*
 	 * If we're invoked by nodeAgg, we can cheat and modify our first
 	 * parameter in-place to reduce palloc overhead. Otherwise we construct a
 	 * new array with the updated transition data and return it.
 	 */
-	if (fcinfo->context && IsA(fcinfo->context, AggState))
+	if (fcinfo->context && IS_AGG_EXECUTION_NODE(fcinfo->context))
 	{
 		transvalues[0] = N;
 		transvalues[1] = sumX;
@@ -2042,30 +2036,64 @@ float4_accum(PG_FUNCTION_ARGS)
 
 		result = construct_array(transdatums, 3,
 								 FLOAT8OID,
-							 sizeof(float8), false /* float8 byval */ , 'd');
+								 sizeof(float8), FLOAT8PASSBYVAL, 'd');
 
 		PG_RETURN_ARRAYTYPE_P(result);
 	}
 }
 
+
 Datum
-float8_avg(PG_FUNCTION_ARGS)
+float4_decum(PG_FUNCTION_ARGS)
 {
 	ArrayType  *transarray = PG_GETARG_ARRAYTYPE_P(0);
+	float4		newval4 = PG_GETARG_FLOAT4(1);
 	float8	   *transvalues;
 	float8		N,
-				sumX;
+				miX,
+				miX2,
+				newval;
 
-	transvalues = check_float8_array(transarray, "float8_avg", 3);
+	transvalues = check_float8_array(transarray, "float4_decum", 3);
 	N = transvalues[0];
-	sumX = transvalues[1];
-	/* ignore sumX2 */
+	miX = transvalues[1];
+	miX2 = transvalues[2];
 
-	/* SQL92 defines AVG of no values to be NULL */
-	if (N == 0.0)
-		PG_RETURN_NULL();
+	/* Do arithmetic in float8 for best accuracy */
+	newval = newval4;
 
-	PG_RETURN_FLOAT8(sumX / N);
+	N -= 1.0;
+	miX -= newval;
+	miX2 -= newval * newval;
+
+	/*
+	 * If we're invoked by nodeAgg, we can cheat and modify our first
+	 * parameter in-place to reduce palloc overhead. Otherwise we construct a
+	 * new array with the updated transition data and return it.
+	 */
+	if (fcinfo->context && IS_AGG_EXECUTION_NODE(fcinfo->context))
+	{
+		transvalues[0] = N;
+		transvalues[1] = miX;
+		transvalues[2] = miX2;
+
+		PG_RETURN_ARRAYTYPE_P(transarray);
+	}
+	else
+	{
+		Datum		transdatums[3];
+		ArrayType  *result;
+
+		transdatums[0] = Float8GetDatumFast(N);
+		transdatums[1] = Float8GetDatumFast(miX);
+		transdatums[2] = Float8GetDatumFast(miX2);
+
+		result = construct_array(transdatums, 3,
+								 FLOAT8OID,
+							 sizeof(float8), true /* float8 byval */ , 'd');
+
+		PG_RETURN_ARRAYTYPE_P(result);
+	}
 }
 
 Datum
@@ -2088,6 +2116,7 @@ float8_var_pop(PG_FUNCTION_ARGS)
 		PG_RETURN_NULL();
 
 	numerator = N * sumX2 - sumX * sumX;
+	CHECKFLOATVAL(numerator, isinf(sumX2) || isinf(sumX), true);
 
 	/* Watch out for roundoff error producing a negative numerator */
 	if (numerator <= 0.0)
@@ -2116,6 +2145,7 @@ float8_var_samp(PG_FUNCTION_ARGS)
 		PG_RETURN_NULL();
 
 	numerator = N * sumX2 - sumX * sumX;
+	CHECKFLOATVAL(numerator, isinf(sumX2) || isinf(sumX), true);
 
 	/* Watch out for roundoff error producing a negative numerator */
 	if (numerator <= 0.0)
@@ -2144,6 +2174,7 @@ float8_stddev_pop(PG_FUNCTION_ARGS)
 		PG_RETURN_NULL();
 
 	numerator = N * sumX2 - sumX * sumX;
+	CHECKFLOATVAL(numerator, isinf(sumX2) || isinf(sumX), true);
 
 	/* Watch out for roundoff error producing a negative numerator */
 	if (numerator <= 0.0)
@@ -2172,6 +2203,7 @@ float8_stddev_samp(PG_FUNCTION_ARGS)
 		PG_RETURN_NULL();
 
 	numerator = N * sumX2 - sumX * sumX;
+	CHECKFLOATVAL(numerator, isinf(sumX2) || isinf(sumX), true);
 
 	/* Watch out for roundoff error producing a negative numerator */
 	if (numerator <= 0.0)
@@ -2220,17 +2252,23 @@ float8_regr_accum(PG_FUNCTION_ARGS)
 
 	N += 1.0;
 	sumX += newvalX;
+	CHECKFLOATVAL(sumX, isinf(transvalues[1]) || isinf(newvalX), true);
 	sumX2 += newvalX * newvalX;
+	CHECKFLOATVAL(sumX2, isinf(transvalues[2]) || isinf(newvalX), true);
 	sumY += newvalY;
+	CHECKFLOATVAL(sumY, isinf(transvalues[3]) || isinf(newvalY), true);
 	sumY2 += newvalY * newvalY;
+	CHECKFLOATVAL(sumY2, isinf(transvalues[4]) || isinf(newvalY), true);
 	sumXY += newvalX * newvalY;
+	CHECKFLOATVAL(sumXY, isinf(transvalues[5]) || isinf(newvalX) ||
+				  isinf(newvalY), true);
 
 	/*
 	 * If we're invoked by nodeAgg, we can cheat and modify our first
 	 * parameter in-place to reduce palloc overhead. Otherwise we construct a
 	 * new array with the updated transition data and return it.
 	 */
-	if (fcinfo->context && IsA(fcinfo->context, AggState))
+	if (fcinfo->context && IS_AGG_EXECUTION_NODE(fcinfo->context))
 	{
 		transvalues[0] = N;
 		transvalues[1] = sumX;
@@ -2255,8 +2293,7 @@ float8_regr_accum(PG_FUNCTION_ARGS)
 
 		result = construct_array(transdatums, 6,
 								 FLOAT8OID,
-								 sizeof(float8),
-								 false /* float8 byval */ , 'd');
+								 sizeof(float8), true /* float8 byval */, 'd');
 
 		PG_RETURN_ARRAYTYPE_P(result);
 	}
@@ -2282,6 +2319,7 @@ float8_regr_sxx(PG_FUNCTION_ARGS)
 		PG_RETURN_NULL();
 
 	numerator = N * sumX2 - sumX * sumX;
+	CHECKFLOATVAL(numerator, isinf(sumX2) || isinf(sumX), true);
 
 	/* Watch out for roundoff error producing a negative numerator */
 	if (numerator <= 0.0)
@@ -2310,6 +2348,7 @@ float8_regr_syy(PG_FUNCTION_ARGS)
 		PG_RETURN_NULL();
 
 	numerator = N * sumY2 - sumY * sumY;
+	CHECKFLOATVAL(numerator, isinf(sumY2) || isinf(sumY), true);
 
 	/* Watch out for roundoff error producing a negative numerator */
 	if (numerator <= 0.0)
@@ -2340,6 +2379,8 @@ float8_regr_sxy(PG_FUNCTION_ARGS)
 		PG_RETURN_NULL();
 
 	numerator = N * sumXY - sumX * sumY;
+	CHECKFLOATVAL(numerator, isinf(sumXY) || isinf(sumX) ||
+				  isinf(sumY), true);
 
 	/* A negative result is valid here */
 
@@ -2406,6 +2447,8 @@ float8_covar_pop(PG_FUNCTION_ARGS)
 		PG_RETURN_NULL();
 
 	numerator = N * sumXY - sumX * sumY;
+	CHECKFLOATVAL(numerator, isinf(sumXY) || isinf(sumX) ||
+				  isinf(sumY), true);
 
 	PG_RETURN_FLOAT8(numerator / (N * N));
 }
@@ -2432,6 +2475,8 @@ float8_covar_samp(PG_FUNCTION_ARGS)
 		PG_RETURN_NULL();
 
 	numerator = N * sumXY - sumX * sumY;
+	CHECKFLOATVAL(numerator, isinf(sumXY) || isinf(sumX) ||
+				  isinf(sumY), true);
 
 	PG_RETURN_FLOAT8(numerator / (N * (N - 1.0)));
 }
@@ -2464,13 +2509,16 @@ float8_corr(PG_FUNCTION_ARGS)
 		PG_RETURN_NULL();
 
 	numeratorX = N * sumX2 - sumX * sumX;
+	CHECKFLOATVAL(numeratorX, isinf(sumX2) || isinf(sumX), true);
 	numeratorY = N * sumY2 - sumY * sumY;
+	CHECKFLOATVAL(numeratorY, isinf(sumY2) || isinf(sumY), true);
 	numeratorXY = N * sumXY - sumX * sumY;
+	CHECKFLOATVAL(numeratorXY, isinf(sumXY) || isinf(sumX) ||
+				  isinf(sumY), true);
 	if (numeratorX <= 0 || numeratorY <= 0)
 		PG_RETURN_NULL();
 
-	PG_RETURN_FLOAT8(sqrt((numeratorXY * numeratorXY) /
-						  (numeratorX * numeratorY)));
+	PG_RETURN_FLOAT8(numeratorXY / sqrt(numeratorX * numeratorY));
 }
 
 Datum
@@ -2501,8 +2549,12 @@ float8_regr_r2(PG_FUNCTION_ARGS)
 		PG_RETURN_NULL();
 
 	numeratorX = N * sumX2 - sumX * sumX;
+	CHECKFLOATVAL(numeratorX, isinf(sumX2) || isinf(sumX), true);
 	numeratorY = N * sumY2 - sumY * sumY;
+	CHECKFLOATVAL(numeratorY, isinf(sumY2) || isinf(sumY), true);
 	numeratorXY = N * sumXY - sumX * sumY;
+	CHECKFLOATVAL(numeratorXY, isinf(sumXY) || isinf(sumX) ||
+				  isinf(sumY), true);
 	if (numeratorX <= 0)
 		PG_RETURN_NULL();
 	/* per spec, horizontal line produces 1.0 */
@@ -2538,7 +2590,10 @@ float8_regr_slope(PG_FUNCTION_ARGS)
 		PG_RETURN_NULL();
 
 	numeratorX = N * sumX2 - sumX * sumX;
+	CHECKFLOATVAL(numeratorX, isinf(sumX2) || isinf(sumX), true);
 	numeratorXY = N * sumXY - sumX * sumY;
+	CHECKFLOATVAL(numeratorXY, isinf(sumXY) || isinf(sumX) ||
+				  isinf(sumY), true);
 	if (numeratorX <= 0)
 		PG_RETURN_NULL();
 
@@ -2570,7 +2625,10 @@ float8_regr_intercept(PG_FUNCTION_ARGS)
 		PG_RETURN_NULL();
 
 	numeratorX = N * sumX2 - sumX * sumX;
+	CHECKFLOATVAL(numeratorX, isinf(sumX2) || isinf(sumX), true);
 	numeratorXXY = sumY * sumX2 - sumX * sumXY;
+	CHECKFLOATVAL(numeratorXXY, isinf(sumY) || isinf(sumX2) ||
+				  isinf(sumX) || isinf(sumXY), true);
 	if (numeratorX <= 0)
 		PG_RETURN_NULL();
 
@@ -2598,7 +2656,7 @@ float48pl(PG_FUNCTION_ARGS)
 	float8		result;
 
 	result = arg1 + arg2;
-	CheckFloat8Val(result);
+	CHECKFLOATVAL(result, isinf(arg1) || isinf(arg2), true);
 	PG_RETURN_FLOAT8(result);
 }
 
@@ -2610,7 +2668,7 @@ float48mi(PG_FUNCTION_ARGS)
 	float8		result;
 
 	result = arg1 - arg2;
-	CheckFloat8Val(result);
+	CHECKFLOATVAL(result, isinf(arg1) || isinf(arg2), true);
 	PG_RETURN_FLOAT8(result);
 }
 
@@ -2622,7 +2680,8 @@ float48mul(PG_FUNCTION_ARGS)
 	float8		result;
 
 	result = arg1 * arg2;
-	CheckFloat8Val(result);
+	CHECKFLOATVAL(result, isinf(arg1) || isinf(arg2),
+				  arg1 == 0 || arg2 == 0);
 	PG_RETURN_FLOAT8(result);
 }
 
@@ -2639,7 +2698,7 @@ float48div(PG_FUNCTION_ARGS)
 				 errmsg("division by zero")));
 
 	result = arg1 / arg2;
-	CheckFloat8Val(result);
+	CHECKFLOATVAL(result, isinf(arg1) || isinf(arg2), arg1 == 0);
 	PG_RETURN_FLOAT8(result);
 }
 
@@ -2658,7 +2717,7 @@ float84pl(PG_FUNCTION_ARGS)
 
 	result = arg1 + arg2;
 
-	CheckFloat8Val(result);
+	CHECKFLOATVAL(result, isinf(arg1) || isinf(arg2), true);
 	PG_RETURN_FLOAT8(result);
 }
 
@@ -2671,7 +2730,7 @@ float84mi(PG_FUNCTION_ARGS)
 
 	result = arg1 - arg2;
 
-	CheckFloat8Val(result);
+	CHECKFLOATVAL(result, isinf(arg1) || isinf(arg2), true);
 	PG_RETURN_FLOAT8(result);
 }
 
@@ -2684,7 +2743,8 @@ float84mul(PG_FUNCTION_ARGS)
 
 	result = arg1 * arg2;
 
-	CheckFloat8Val(result);
+	CHECKFLOATVAL(result, isinf(arg1) || isinf(arg2),
+				  arg1 == 0 || arg2 == 0);
 	PG_RETURN_FLOAT8(result);
 }
 
@@ -2702,7 +2762,7 @@ float84div(PG_FUNCTION_ARGS)
 
 	result = arg1 / arg2;
 
-	CheckFloat8Val(result);
+	CHECKFLOATVAL(result, isinf(arg1) || isinf(arg2), arg1 == 0);
 	PG_RETURN_FLOAT8(result);
 }
 
@@ -2826,6 +2886,88 @@ float84ge(PG_FUNCTION_ARGS)
 	PG_RETURN_BOOL(float8_cmp_internal(arg1, arg2) >= 0);
 }
 
+/*
+ * Implements the float8 version of the width_bucket() function
+ * defined by SQL2003. See also width_bucket_numeric().
+ *
+ * 'bound1' and 'bound2' are the lower and upper bounds of the
+ * histogram's range, respectively. 'count' is the number of buckets
+ * in the histogram. width_bucket() returns an integer indicating the
+ * bucket number that 'operand' belongs to in an equiwidth histogram
+ * with the specified characteristics. An operand smaller than the
+ * lower bound is assigned to bucket 0. An operand greater than the
+ * upper bound is assigned to an additional bucket (with number
+ * count+1). We don't allow "NaN" for any of the float8 inputs, and we
+ * don't allow either of the histogram bounds to be +/- infinity.
+ */
+Datum
+width_bucket_float8(PG_FUNCTION_ARGS)
+{
+	float8		operand = PG_GETARG_FLOAT8(0);
+	float8		bound1 = PG_GETARG_FLOAT8(1);
+	float8		bound2 = PG_GETARG_FLOAT8(2);
+	int32		count = PG_GETARG_INT32(3);
+	int32		result;
+
+	if (count <= 0.0)
+		ereport(ERROR,
+				(errcode(ERRCODE_INVALID_ARGUMENT_FOR_WIDTH_BUCKET_FUNCTION),
+				 errmsg("count must be greater than zero")));
+
+	if (isnan(operand) || isnan(bound1) || isnan(bound2))
+		ereport(ERROR,
+				(errcode(ERRCODE_INVALID_ARGUMENT_FOR_WIDTH_BUCKET_FUNCTION),
+			  errmsg("operand, lower bound and upper bound cannot be NaN")));
+
+	/* Note that we allow "operand" to be infinite */
+	if (isinf(bound1) || isinf(bound2))
+		ereport(ERROR,
+				(errcode(ERRCODE_INVALID_ARGUMENT_FOR_WIDTH_BUCKET_FUNCTION),
+				 errmsg("lower and upper bounds must be finite")));
+
+	if (bound1 < bound2)
+	{
+		if (operand < bound1)
+			result = 0;
+		else if (operand >= bound2)
+		{
+			result = count + 1;
+			/* check for overflow */
+			if (result < count)
+				ereport(ERROR,
+						(errcode(ERRCODE_NUMERIC_VALUE_OUT_OF_RANGE),
+						 errmsg("integer out of range")));
+		}
+		else
+			result = ((float8) count * (operand - bound1) / (bound2 - bound1)) + 1;
+	}
+	else if (bound1 > bound2)
+	{
+		if (operand > bound1)
+			result = 0;
+		else if (operand <= bound2)
+		{
+			result = count + 1;
+			/* check for overflow */
+			if (result < count)
+				ereport(ERROR,
+						(errcode(ERRCODE_NUMERIC_VALUE_OUT_OF_RANGE),
+						 errmsg("integer out of range")));
+		}
+		else
+			result = ((float8) count * (bound1 - operand) / (bound1 - bound2)) + 1;
+	}
+	else
+	{
+		ereport(ERROR,
+				(errcode(ERRCODE_INVALID_ARGUMENT_FOR_WIDTH_BUCKET_FUNCTION),
+				 errmsg("lower bound cannot equal upper bound")));
+		result = 0;				/* keep the compiler quiet */
+	}
+
+	PG_RETURN_INT32(result);
+}
+
 /* ========== PRIVATE ROUTINES ========== */
 
 #ifndef HAVE_CBRT
@@ -2850,3 +2992,166 @@ cbrt(double x)
 }
 
 #endif   /* !HAVE_CBRT */
+
+
+Datum
+float8_amalg(PG_FUNCTION_ARGS)
+{
+	ArrayType  *aTransArray = PG_GETARG_ARRAYTYPE_P(0);
+	ArrayType  *bTransArray = PG_GETARG_ARRAYTYPE_P(1);
+
+	PG_RETURN_ARRAYTYPE_P(float8_amalg_demalg(aTransArray, bTransArray,
+											  fcinfo, true));
+}
+
+Datum
+float8_demalg(PG_FUNCTION_ARGS)
+{
+	ArrayType  *aTransArray = PG_GETARG_ARRAYTYPE_P(0);
+	ArrayType  *bTransArray = PG_GETARG_ARRAYTYPE_P(1);
+
+	PG_RETURN_ARRAYTYPE_P(float8_amalg_demalg(aTransArray, bTransArray,
+											  fcinfo, false));	
+}
+
+static ArrayType *
+float8_amalg_demalg(ArrayType *aTransArray, ArrayType *bTransArray,
+					FunctionCallInfo fcinfo, bool is_amalg)
+{
+	float8	   *transvalues;
+	float8		aN, bN,
+				aSumX, bSumX,
+				aSumX2, bSumX2;
+
+	if (is_amalg)
+		transvalues = check_float8_array(bTransArray, "float8_amalg", 3);
+	else
+		transvalues = check_float8_array(bTransArray, "float8_demalg", 3);
+	bN = transvalues[0];
+	bSumX = transvalues[1];
+	bSumX2 = transvalues[2];
+
+	if (is_amalg)
+		transvalues = check_float8_array(aTransArray, "float8_amalg", 3);
+	else
+		transvalues = check_float8_array(aTransArray, "float8_demalg", 3);
+	aN = transvalues[0];
+	aSumX = transvalues[1];
+	aSumX2 = transvalues[2];
+
+	if (is_amalg)
+	{
+		aN += bN;
+		aSumX += bSumX;
+		aSumX2 += bSumX2;
+	}
+	else
+	{
+		aN -= bN;
+		aSumX -= bSumX;
+		aSumX2 -= bSumX2;
+	}
+
+	/*
+	 * If we're invoked by nodeAgg, we can cheat and modify our first
+	 * parameter in-place to reduce palloc overhead. Otherwise we construct a
+	 * new array with the updated transition data and return it.
+	 */
+	if (fcinfo->context && IS_AGG_EXECUTION_NODE(fcinfo->context))
+	{
+		transvalues[0] = aN;
+		transvalues[1] = aSumX;
+		transvalues[2] = aSumX2;
+
+		return aTransArray;
+	}
+	else
+	{
+		Datum		transdatums[3];
+		ArrayType  *result;
+
+		transdatums[0] = Float8GetDatumFast(aN);
+		transdatums[1] = Float8GetDatumFast(aSumX);
+		transdatums[2] = Float8GetDatumFast(aSumX2);
+
+		result = construct_array(transdatums, 3,
+								 FLOAT8OID,
+							 sizeof(float8), true /* float8 byval */ , 'd');
+
+		return result;
+	}
+}
+
+/* amalgamate values for linear regression functions */
+Datum
+float8_regr_amalg(PG_FUNCTION_ARGS)
+{
+	ArrayType  *aTransArray = PG_GETARG_ARRAYTYPE_P(0);
+	ArrayType  *bTransArray = PG_GETARG_ARRAYTYPE_P(1);
+	float8	   *transvalues;
+	float8		aN, bN,
+				aSumX, bSumX,
+				aSumY, bSumY,
+				aSumX2, bSumX2,
+				aSumY2, bSumY2,
+				aSumXY, bSumXY;
+
+	transvalues = check_float8_array(bTransArray, "float8_regr_amalg", 6);
+	bN = transvalues[0];
+	bSumX = transvalues[1];
+	bSumX2 = transvalues[2];
+	bSumY = transvalues[3];
+	bSumY2 = transvalues[4];
+	bSumXY = transvalues[5];
+
+	transvalues = check_float8_array(aTransArray, "float8_regr_amalg", 6);
+	aN = transvalues[0];
+	aSumX = transvalues[1];
+	aSumX2 = transvalues[2];
+	aSumY = transvalues[3];
+	aSumY2 = transvalues[4];
+	aSumXY = transvalues[5];
+
+	aN += bN;
+	aSumX += bSumX;
+	aSumX2 += bSumX2;
+	aSumY += bSumY;
+	aSumY2 += bSumY2;
+	aSumXY += bSumXY;
+
+	/*
+	 * If we're invoked by nodeAgg, we can cheat and modify our first
+	 * parameter in-place to reduce palloc overhead. Otherwise we construct a
+	 * new array with the updated transition data and return it.
+	 */
+	if (fcinfo->context && IS_AGG_EXECUTION_NODE(fcinfo->context))
+	{
+		transvalues[0] = aN;
+		transvalues[1] = aSumX;
+		transvalues[2] = aSumX2;
+		transvalues[3] = aSumY;
+		transvalues[4] = aSumY2;
+		transvalues[5] = aSumXY;
+
+		PG_RETURN_ARRAYTYPE_P(aTransArray);
+	}
+	else
+	{
+		Datum		transdatums[6];
+		ArrayType  *result;
+
+		transdatums[0] = Float8GetDatumFast(aN);
+		transdatums[1] = Float8GetDatumFast(aSumX);
+		transdatums[2] = Float8GetDatumFast(aSumX2);
+		transdatums[3] = Float8GetDatumFast(aSumY);
+		transdatums[4] = Float8GetDatumFast(aSumY2);
+		transdatums[5] = Float8GetDatumFast(aSumXY);
+
+		result = construct_array(transdatums, 6,
+								 FLOAT8OID,
+							 sizeof(float8), true /* float8 byval */ , 'd');
+
+		PG_RETURN_ARRAYTYPE_P(result);
+	}
+}
+

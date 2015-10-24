@@ -1,0 +1,23 @@
+---
+VERSION: 1.0.0.1
+DATABASE: gptransform
+
+GPLOAD:
+  INPUT:
+  - SOURCE:
+      LOCAL_HOSTNAME: [ 127.0.0.1 ] # <---- replace as appropriate
+      PORT:             8080
+      FILE:           [ data/RET990EZ_2006.xml ]
+
+  - FORMAT:           text
+  - TRANSFORM:        mef_input
+  - TRANSFORM_CONFIG: config.yaml
+  - MAX_LINE_LENGTH:  1048576
+
+  - DELIMITER:        '|'
+  - ERROR_LIMIT:      10
+  - ERROR_TABLE:      mef_errortable
+
+  OUTPUT:
+  - TABLE:            mef_xml
+  - MODE:             insert

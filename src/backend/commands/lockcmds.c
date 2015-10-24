@@ -3,7 +3,7 @@
  * lockcmds.c
  *	  Lock command support code
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2008, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -20,6 +20,8 @@
 #include "miscadmin.h"
 #include "utils/acl.h"
 #include "utils/lsyscache.h"
+#include "cdb/cdbvars.h"
+#include "cdb/cdbdisp.h"
 
 
 /*
@@ -53,7 +55,7 @@ LockTableCommand(LockStmt *lockstmt)
 										  ACL_SELECT);
 		else
 			aclresult = pg_class_aclcheck(reloid, GetUserId(),
-										  ACL_UPDATE | ACL_DELETE);
+										  ACL_UPDATE | ACL_DELETE | ACL_TRUNCATE);
 
 		if (aclresult != ACLCHECK_OK)
 			aclcheck_error(aclresult, ACL_KIND_CLASS,
@@ -72,5 +74,10 @@ LockTableCommand(LockStmt *lockstmt)
 							relation->relname)));
 
 		relation_close(rel, NoLock);	/* close rel, keep lock */
+	}
+
+	if (Gp_role == GP_ROLE_DISPATCH)
+	{
+		CdbDispatchUtilityStatement((Node *) lockstmt, "LockTableCommand");
 	}
 }

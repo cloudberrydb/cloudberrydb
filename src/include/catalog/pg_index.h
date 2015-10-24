@@ -5,7 +5,7 @@
  *	  along with the relation's initial contents.
  *
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2008, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * $PostgreSQL: pgsql/src/include/catalog/pg_index.h,v 1.41 2006/10/04 00:30:07 momjian Exp $
@@ -19,12 +19,35 @@
 #ifndef PG_INDEX_H
 #define PG_INDEX_H
 
-/* ----------------
- *		postgres.h contains the system type definitions and the
- *		CATALOG(), BKI_BOOTSTRAP and DATA() sugar words so this file
- *		can be read by both genbki.sh and the C compiler.
- * ----------------
- */
+#include "catalog/genbki.h"
+
+/* TIDYCAT_BEGINFAKEDEF
+
+   CREATE TABLE pg_index
+   with (oid=false, relid=2610)
+   (
+   indexrelid      oid        ,
+   indrelid        oid        ,
+   indnatts        smallint   ,
+   indisunique     boolean    ,
+   indisprimary    boolean    ,
+   indisclustered  boolean    ,
+   indisvalid      boolean    ,
+   indkey          int2vector ,
+   indclass        oidvector  ,
+   indexprs        text       ,
+   indpred         text       
+   );
+
+   create index on pg_index(indrelid) with (indexid=2678, CamelCase=IndexIndrelid);
+   create unique index on pg_index(indexrelid) with (indexid=2679, CamelCase=IndexRelid, syscacheid=INDEXRELID, syscache_nbuckets=1024);
+
+   alter table pg_index add fk indexrelid on pg_class(oid);
+   alter table pg_index add fk indrelid on pg_class(oid);
+   alter table pg_index add vector_fk indclass on pg_opclass(oid);
+
+   TIDYCAT_ENDFAKEDEF
+*/
 
 /* ----------------
  *		pg_index definition.  cpp turns this into

@@ -21,7 +21,7 @@
  * we don't need to mark CLOG pages with LSN information; we have enough
  * synchronization already.
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2008, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * $PostgreSQL: pgsql/src/backend/access/transam/clog.c,v 1.41 2006/11/05 22:42:07 tgl Exp $
@@ -34,6 +34,7 @@
 #include "access/slru.h"
 #include "access/transam.h"
 #include "postmaster/bgwriter.h"
+#include "cdb/cdbpersistentstore.h"
 
 /*
  * Defines for CLOG page sizes.  A page is the same BLCKSZ as is used
@@ -71,6 +72,23 @@ static bool CLOGPagePrecedes(int page1, int page2);
 static void WriteZeroPageXlogRec(int pageno);
 static void WriteTruncateXlogRec(int pageno);
 
+char *XidStatus_Name(XidStatus status)
+{
+	switch (status)
+	{
+	case TRANSACTION_STATUS_IN_PROGRESS:
+		return "In-Progress";
+	case TRANSACTION_STATUS_COMMITTED:
+		return "Committed";
+	case TRANSACTION_STATUS_ABORTED:
+		return "Aborted";
+	case TRANSACTION_STATUS_SUB_COMMITTED:
+		return "Sub-Transaction Committed";
+
+	default:
+		return "Unknown";
+	}
+}
 
 /*
  * Record the final state of a transaction in the commit log.
@@ -81,21 +99,40 @@ static void WriteTruncateXlogRec(int pageno);
 void
 TransactionIdSetStatus(TransactionId xid, XidStatus status)
 {
+	MIRRORED_LOCK_DECLARE;
+
 	int			pageno = TransactionIdToPage(xid);
 	int			byteno = TransactionIdToByte(xid);
 	int			bshift = TransactionIdToBIndex(xid) * CLOG_BITS_PER_XACT;
 	int			slotno;
 	char	   *byteptr;
 	char		byteval;
+	int			debugStatus;
 
 	Assert(status == TRANSACTION_STATUS_COMMITTED ||
 		   status == TRANSACTION_STATUS_ABORTED ||
 		   status == TRANSACTION_STATUS_SUB_COMMITTED);
 
+	MIRRORED_LOCK;
+
 	LWLockAcquire(CLogControlLock, LW_EXCLUSIVE);
 
 	slotno = SimpleLruReadPage(ClogCtl, pageno, xid);
 	byteptr = ClogCtl->shared->page_buffer[slotno] + byteno;
+
+	debugStatus = ((*byteptr >> bshift) & CLOG_XACT_BITMASK);
+	if (debugStatus != 0 &&
+		debugStatus != TRANSACTION_STATUS_SUB_COMMITTED &&
+		debugStatus != status)
+	{
+		elog(FATAL,"TransactionIdSetStatus invalid for transaction %u current status '%s' (0x%x) and new status '%s' (0x%x)",
+			 xid, 
+			 XidStatus_Name(debugStatus),
+			 debugStatus,
+			 XidStatus_Name(status),
+			 status);
+	}
+
 
 	/* Current state should be 0, subcommitted or target state */
 	Assert(((*byteptr >> bshift) & CLOG_XACT_BITMASK) == 0 ||
@@ -111,6 +148,8 @@ TransactionIdSetStatus(TransactionId xid, XidStatus status)
 	ClogCtl->shared->page_dirty[slotno] = true;
 
 	LWLockRelease(CLogControlLock);
+
+	MIRRORED_UNLOCK;
 }
 
 /*
@@ -122,6 +161,8 @@ TransactionIdSetStatus(TransactionId xid, XidStatus status)
 XidStatus
 TransactionIdGetStatus(TransactionId xid)
 {
+	MIRRORED_LOCK_DECLARE;
+
 	int			pageno = TransactionIdToPage(xid);
 	int			byteno = TransactionIdToByte(xid);
 	int			bshift = TransactionIdToBIndex(xid) * CLOG_BITS_PER_XACT;
@@ -129,18 +170,191 @@ TransactionIdGetStatus(TransactionId xid)
 	char	   *byteptr;
 	XidStatus	status;
 
+	MIRRORED_LOCK;		// Since reading can cause eviction of another page (which requires writing).
+
 	/* lock is acquired by SimpleLruReadPage_ReadOnly */
 
-	slotno = SimpleLruReadPage_ReadOnly(ClogCtl, pageno, xid);
+	slotno = SimpleLruReadPage_ReadOnly(ClogCtl, pageno, xid, NULL);
 	byteptr = ClogCtl->shared->page_buffer[slotno] + byteno;
 
 	status = (*byteptr >> bshift) & CLOG_XACT_BITMASK;
 
 	LWLockRelease(CLogControlLock);
 
+	MIRRORED_UNLOCK;
+
 	return status;
 }
 
+
+/* 
+ * Interrogate the state of a transaction in the commit log, but 
+ * allow situations were the status can not be retrieved.
+ * 
+ * The parameter valid is a pointer to a boolean. The value it points too 
+ * will be "true" if the fuction's return value is a valid XidStatus, and
+ * false if the function's return value is not a valid XidStatus.  
+ *
+ * return the XidStatus of the transaction (only 
+ */
+XidStatus
+InRecoveryTransactionIdGetStatus(TransactionId xid, bool *valid)
+{
+  MIRRORED_LOCK_DECLARE;
+
+  int                     pageno = TransactionIdToPage(xid);
+  int                     byteno = TransactionIdToByte(xid);
+  int                     bshift = TransactionIdToBIndex(xid) * CLOG_BITS_PER_XACT;
+  int                     slotno;
+  char       *byteptr;
+  XidStatus       status;
+
+  MIRRORED_LOCK;          // Since reading can cause eviction of another page (which requires writing).                                        
+
+  /* lock is acquired by SimpleLruReadPage_ReadOnly */
+
+  slotno = SimpleLruReadPage_ReadOnly(ClogCtl, pageno, xid, valid);
+
+  if (valid != NULL && *valid == false)
+    {
+    /* The returned slotno is invalid. */ 
+    MIRRORED_UNLOCK
+    return TRANSACTION_STATUS_IN_PROGRESS;
+    }
+
+  byteptr = ClogCtl->shared->page_buffer[slotno] + byteno;
+
+  status = (*byteptr >> bshift) & CLOG_XACT_BITMASK;
+
+  LWLockRelease(CLogControlLock);
+
+  MIRRORED_UNLOCK;
+
+  return status;
+}
+
+
+/*
+ * Find the next lowest transaction with a logged or recorded status.
+ * I.e. One that does not have a status of default (0) -- i.e: in-progress.
+ */
+bool
+CLOGScanForPrevStatus(
+	TransactionId 			*indexXid,
+	XidStatus				*status)
+{
+	MIRRORED_LOCK_DECLARE;
+
+	TransactionId highXid;
+	int pageno;
+	TransactionId lowXid;
+	int slotno;
+	int byteno;
+	int bshift;
+	TransactionId xid;
+	char *byteptr;
+
+	*status = TRANSACTION_STATUS_IN_PROGRESS;	// Set it to something.
+
+	if ((*indexXid) == InvalidTransactionId)
+		return false;
+	highXid = (*indexXid) - 1;
+	if (highXid < FirstNormalTransactionId)
+		return false;
+
+	MIRRORED_LOCK;
+
+	while (true)
+	{
+		pageno = TransactionIdToPage(highXid);
+
+		/*
+		 * Compute the xid floor for the page.
+		 */
+		lowXid = pageno * (TransactionId) CLOG_XACTS_PER_PAGE;
+		if (lowXid == InvalidTransactionId)
+			lowXid = FirstNormalTransactionId;
+
+		LWLockAcquire(CLogControlLock, LW_EXCLUSIVE);
+
+		/*
+		 * Peek to see if page exists.
+		 */
+		if (!SimpleLruPageExists(ClogCtl, pageno))
+		{
+			LWLockRelease(CLogControlLock);
+
+			MIRRORED_UNLOCK;
+
+			*indexXid = InvalidTransactionId;
+			*status = TRANSACTION_STATUS_IN_PROGRESS;	// Set it to something.
+			return false;
+		}
+			
+		slotno = SimpleLruReadPage(ClogCtl, pageno, highXid);
+
+		for (xid = highXid; xid >= lowXid; xid--)
+		{
+			byteno = TransactionIdToByte(xid);
+			bshift = TransactionIdToBIndex(xid) * CLOG_BITS_PER_XACT;
+			byteptr = ClogCtl->shared->page_buffer[slotno] + byteno;
+			*status = (*byteptr >> bshift) & CLOG_XACT_BITMASK;
+
+			if (*status != TRANSACTION_STATUS_IN_PROGRESS)
+			{
+				LWLockRelease(CLogControlLock);
+
+				MIRRORED_UNLOCK;
+
+				*indexXid = xid;
+				return true;
+			}
+		}
+
+		LWLockRelease(CLogControlLock);
+
+		if (lowXid == FirstNormalTransactionId)
+		{
+			MIRRORED_UNLOCK;
+
+			*indexXid = InvalidTransactionId;
+			*status = TRANSACTION_STATUS_IN_PROGRESS;	// Set it to something.
+			return false;
+		}
+		
+		highXid = lowXid - 1;	// Go to last xid of previous page.
+	}
+
+	MIRRORED_UNLOCK;
+
+	return false;	// We'll never reach this.
+}
+
+/*
+ * Determine the "age" of a transaction id.
+ */
+bool
+CLOGTransactionIsOld(TransactionId xid)
+{
+	TransactionId nextXid;
+	int pagesBack;
+
+	if (ShmemVariableCache == NULL)
+		return false;	// In case we are called very early in the life of the backend process, etc.
+
+	nextXid = ShmemVariableCache->nextXid;
+
+	if (nextXid < xid)
+		return false;	// Not sure what is going on.
+
+	pagesBack = (nextXid - xid) / CLOG_XACTS_PER_PAGE;
+
+	/*
+	 * Declare the transaction old if it is in the bottom older half of the hot CLOG cache window, or
+	 * before the window.
+	 */
+	return (pagesBack > NUM_CLOG_BUFFERS/2);
+}
 
 /*
  * Initialization of shared memory for CLOG
@@ -156,7 +370,7 @@ CLOGShmemInit(void)
 {
 	ClogCtl->PagePrecedes = CLOGPagePrecedes;
 	SimpleLruInit(ClogCtl, "CLOG Ctl", NUM_CLOG_BUFFERS,
-				  CLogControlLock, "pg_clog");
+				  CLogControlLock, CLOG_DIR);
 }
 
 /*
@@ -168,7 +382,11 @@ CLOGShmemInit(void)
 void
 BootStrapCLOG(void)
 {
+	MIRRORED_LOCK_DECLARE;
+
 	int			slotno;
+
+	MIRRORED_LOCK;
 
 	LWLockAcquire(CLogControlLock, LW_EXCLUSIVE);
 
@@ -180,6 +398,8 @@ BootStrapCLOG(void)
 	Assert(!ClogCtl->shared->page_dirty[slotno]);
 
 	LWLockRelease(CLogControlLock);
+
+	MIRRORED_UNLOCK;
 }
 
 /*
@@ -194,12 +414,18 @@ BootStrapCLOG(void)
 static int
 ZeroCLOGPage(int pageno, bool writeXlog)
 {
+	MIRRORED_LOCK_DECLARE;
+
 	int			slotno;
+
+	MIRRORED_LOCK;
 
 	slotno = SimpleLruZeroPage(ClogCtl, pageno);
 
 	if (writeXlog)
 		WriteZeroPageXlogRec(pageno);
+
+	MIRRORED_UNLOCK;
 
 	return slotno;
 }
@@ -211,8 +437,12 @@ ZeroCLOGPage(int pageno, bool writeXlog)
 void
 StartupCLOG(void)
 {
+	MIRRORED_LOCK_DECLARE;
+
 	TransactionId xid = ShmemVariableCache->nextXid;
 	int			pageno = TransactionIdToPage(xid);
+
+	MIRRORED_LOCK;
 
 	LWLockAcquire(CLogControlLock, LW_EXCLUSIVE);
 
@@ -252,6 +482,8 @@ StartupCLOG(void)
 	}
 
 	LWLockRelease(CLogControlLock);
+
+	MIRRORED_UNLOCK;
 }
 
 /*
@@ -260,8 +492,14 @@ StartupCLOG(void)
 void
 ShutdownCLOG(void)
 {
+	MIRRORED_LOCK_DECLARE;
+
+	MIRRORED_LOCK;
+
 	/* Flush dirty CLOG pages to disk */
 	SimpleLruFlush(ClogCtl, false);
+
+	MIRRORED_UNLOCK;
 }
 
 /*
@@ -270,8 +508,14 @@ ShutdownCLOG(void)
 void
 CheckPointCLOG(void)
 {
+	MIRRORED_LOCK_DECLARE;
+
+	MIRRORED_LOCK;
+
 	/* Flush dirty CLOG pages to disk */
 	SimpleLruFlush(ClogCtl, true);
+
+	MIRRORED_UNLOCK;
 }
 
 
@@ -286,6 +530,8 @@ CheckPointCLOG(void)
 void
 ExtendCLOG(TransactionId newestXact)
 {
+	MIRRORED_LOCK_DECLARE;
+
 	int			pageno;
 
 	/*
@@ -298,12 +544,16 @@ ExtendCLOG(TransactionId newestXact)
 
 	pageno = TransactionIdToPage(newestXact);
 
+	MIRRORED_LOCK;
+
 	LWLockAcquire(CLogControlLock, LW_EXCLUSIVE);
 
 	/* Zero the page and make an XLOG entry about it */
 	ZeroCLOGPage(pageno, true);
 
 	LWLockRelease(CLogControlLock);
+
+	MIRRORED_UNLOCK;
 }
 
 
@@ -325,6 +575,8 @@ ExtendCLOG(TransactionId newestXact)
 void
 TruncateCLOG(TransactionId oldestXact)
 {
+	MIRRORED_LOCK_DECLARE;
+
 	int			cutoffPage;
 
 	/*
@@ -333,15 +585,22 @@ TruncateCLOG(TransactionId oldestXact)
 	 */
 	cutoffPage = TransactionIdToPage(oldestXact);
 
+	MIRRORED_LOCK;
+
 	/* Check to see if there's any files that could be removed */
 	if (!SlruScanDirectory(ClogCtl, cutoffPage, false))
+	{
+		MIRRORED_UNLOCK;
 		return;					/* nothing to remove */
+	}
 
 	/* Write XLOG record and flush XLOG to disk */
 	WriteTruncateXlogRec(cutoffPage);
 
 	/* Now we can remove the old CLOG segment(s) */
 	SimpleLruTruncate(ClogCtl, cutoffPage);
+
+	MIRRORED_UNLOCK;
 }
 
 
@@ -415,9 +674,13 @@ WriteTruncateXlogRec(int pageno)
  * CLOG resource manager's routines
  */
 void
-clog_redo(XLogRecPtr lsn, XLogRecord *record)
+clog_redo(XLogRecPtr beginLoc, XLogRecPtr lsn, XLogRecord *record)
 {
+	MIRRORED_LOCK_DECLARE;
+
 	uint8		info = record->xl_info & ~XLR_INFO_MASK;
+
+	MIRRORED_LOCK;
 
 	if (info == CLOG_ZEROPAGE)
 	{
@@ -450,12 +713,15 @@ clog_redo(XLogRecPtr lsn, XLogRecord *record)
 	}
 	else
 		elog(PANIC, "clog_redo: unknown op code %u", info);
+
+	MIRRORED_UNLOCK;
 }
 
 void
-clog_desc(StringInfo buf, uint8 xl_info, char *rec)
+clog_desc(StringInfo buf, XLogRecPtr beginLoc, XLogRecord *record)
 {
-	uint8		info = xl_info & ~XLR_INFO_MASK;
+	uint8		info = record->xl_info & ~XLR_INFO_MASK;
+	char		*rec = XLogRecGetData(record);
 
 	if (info == CLOG_ZEROPAGE)
 	{

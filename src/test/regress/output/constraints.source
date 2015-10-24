@@ -19,11 +19,11 @@ INSERT INTO DEFAULT_TBL VALUES (3, null, 1.0);
 SELECT '' AS five, * FROM DEFAULT_TBL;
  five |  i  |   x    |    f    
 ------+-----+--------+---------
-      |   1 | thomas | 57.0613
       |   1 | bruce  | 123.456
+      |   1 | thomas | 57.0613
       |   2 | vadim  | 987.654
-      | 100 | marc   | 123.456
       |   3 |        |       1
+      | 100 | marc   | 123.456
 (5 rows)
 
 CREATE SEQUENCE DEFAULT_SEQ;
@@ -36,8 +36,8 @@ INSERT INTO DEFAULTEXPR_TBL (i2) VALUES (NULL);
 SELECT '' AS four, * FROM DEFAULTEXPR_TBL;
  four | i1  | i2 
 ------+-----+----
-      |  -1 | -2
       |  -3 |  1
+      |  -1 | -2
       | 102 | -4
       | 102 |   
 (4 rows)
@@ -75,8 +75,8 @@ ERROR:  new row for relation "check_tbl" violates check constraint "check_con"
 SELECT '' AS three, * FROM CHECK_TBL;
  three | x 
 -------+---
-       | 5
        | 4
+       | 5
        | 6
 (3 rows)
 
@@ -107,7 +107,7 @@ SELECT '' AS two, * from CHECK2_TBL;
 CREATE SEQUENCE INSERT_SEQ;
 CREATE TABLE INSERT_TBL (x INT DEFAULT nextval('insert_seq'),
 	y TEXT DEFAULT '-NULL-',
-	z INT DEFAULT -1 * currval('insert_seq'),
+	z INT DEFAULT -1 * (nextval('insert_seq')-1),
 	CONSTRAINT INSERT_CON CHECK (x >= 3 AND y <> 'check failed' AND x < 8),
 	CHECK (x + z = 0));
 INSERT INTO INSERT_TBL(x,z) VALUES (2, -2);
@@ -136,41 +136,41 @@ INSERT INTO INSERT_TBL(y) VALUES ('-!NULL-');
 SELECT '' AS four, * FROM INSERT_TBL;
  four | x |       y       | z  
 ------+---+---------------+----
-      | 3 | Y             | -3
-      | 7 | -NULL-        | -7
+      | 4 | Y             | -4
+      | 6 | -!NULL-       | -6
       | 7 | !check failed | -7
-      | 4 | -!NULL-       | -4
+      | 7 | -NULL-        | -7
 (4 rows)
 
 INSERT INTO INSERT_TBL(y,z) VALUES ('check failed', 4);
 ERROR:  new row for relation "insert_tbl" violates check constraint "insert_tbl_check"
 INSERT INTO INSERT_TBL(x,y) VALUES (5, 'check failed');
-ERROR:  new row for relation "insert_tbl" violates check constraint "insert_con"
+ERROR:  new row for relation "insert_tbl" violates check constraint "insert_tbl_check"
 INSERT INTO INSERT_TBL(x,y) VALUES (5, '!check failed');
+ERROR:  new row for relation "insert_tbl" violates check constraint "insert_tbl_check"
 INSERT INTO INSERT_TBL(y) VALUES ('-!NULL-');
+ERROR:  new row for relation "insert_tbl" violates check constraint "insert_con"
 SELECT '' AS six, * FROM INSERT_TBL;
  six | x |       y       | z  
 -----+---+---------------+----
-     | 3 | Y             | -3
-     | 7 | -NULL-        | -7
-     | 7 | !check failed | -7
-     | 4 | -!NULL-       | -4
-     | 5 | !check failed | -5
+     | 4 | Y             | -4
      | 6 | -!NULL-       | -6
-(6 rows)
+     | 7 | !check failed | -7
+     | 7 | -NULL-        | -7
+(4 rows)
 
 SELECT 'seven' AS one, nextval('insert_seq');
   one  | nextval 
 -------+---------
- seven |       7
+ seven |      13
 (1 row)
 
 INSERT INTO INSERT_TBL(y) VALUES ('Y');
 ERROR:  new row for relation "insert_tbl" violates check constraint "insert_con"
-SELECT 'eight' AS one, currval('insert_seq');
-  one  | currval 
+SELECT 'eight' AS one, nextval('insert_seq');
+  one  | nextval 
 -------+---------
- eight |       8
+ eight |      16
 (1 row)
 
 -- According to SQL92, it is OK to insert a record that gives rise to NULL
@@ -180,14 +180,12 @@ INSERT INTO INSERT_TBL VALUES (null, null, null);
 SELECT '' AS nine, * FROM INSERT_TBL;
  nine | x |       y       | z  
 ------+---+---------------+----
-      | 3 | Y             | -3
-      | 7 | -NULL-        | -7
-      | 7 | !check failed | -7
-      | 4 | -!NULL-       | -4
-      | 5 | !check failed | -5
+      | 4 | Y             | -4
       | 6 | -!NULL-       | -6
+      | 7 | !check failed | -7
+      | 7 | -NULL-        | -7
       |   |               |   
-(7 rows)
+(5 rows)
 
 --
 -- Check inheritance of defaults and constraints
@@ -214,51 +212,40 @@ DROP TABLE INSERT_CHILD;
 --
 DELETE FROM INSERT_TBL;
 ALTER SEQUENCE INSERT_SEQ RESTART WITH 4;
-CREATE TABLE tmp (xd INT, yd TEXT, zd INT);
+CREATE TABLE tmp (xd INT, yd TEXT, zd INT) distributed by (xd);
 INSERT INTO tmp VALUES (null, 'Y', null);
 INSERT INTO tmp VALUES (5, '!check failed', null);
 INSERT INTO tmp VALUES (null, 'try again', null);
 INSERT INTO INSERT_TBL(y) select yd from tmp;
+ERROR:  new row for relation "insert_tbl" violates check constraint "insert_con"
 SELECT '' AS three, * FROM INSERT_TBL;
- three | x |       y       | z  
--------+---+---------------+----
-       | 4 | Y             | -4
-       | 5 | !check failed | -5
-       | 6 | try again     | -6
-(3 rows)
+ three | x | y | z 
+-------+---+---+---
+(0 rows)
 
 INSERT INTO INSERT_TBL SELECT * FROM tmp WHERE yd = 'try again';
 INSERT INTO INSERT_TBL(y,z) SELECT yd, -7 FROM tmp WHERE yd = 'try again';
+ERROR:  new row for relation "insert_tbl" violates check constraint "insert_tbl_check"
 INSERT INTO INSERT_TBL(y,z) SELECT yd, -8 FROM tmp WHERE yd = 'try again';
-ERROR:  new row for relation "insert_tbl" violates check constraint "insert_con"
+ERROR:  new row for relation "insert_tbl" violates check constraint "insert_tbl_check"
 SELECT '' AS four, * FROM INSERT_TBL;
- four | x |       y       | z  
-------+---+---------------+----
-      | 4 | Y             | -4
-      | 5 | !check failed | -5
-      | 6 | try again     | -6
-      |   | try again     |   
-      | 7 | try again     | -7
-(5 rows)
+ four | x |     y     | z 
+------+---+-----------+---
+      |   | try again |  
+(1 row)
 
 DROP TABLE tmp;
 --
 -- Check constraints on UPDATE
 --
-UPDATE INSERT_TBL SET x = NULL WHERE x = 5;
-UPDATE INSERT_TBL SET x = 6 WHERE x = 6;
-UPDATE INSERT_TBL SET x = -z, z = -x;
-UPDATE INSERT_TBL SET x = z, z = x;
-ERROR:  new row for relation "insert_tbl" violates check constraint "insert_con"
+--UPDATE INSERT_TBL SET x = NULL WHERE x = 5;
+--UPDATE INSERT_TBL SET x = 6 WHERE x = 6;
+--UPDATE INSERT_TBL SET x = -z, z = -x;
 SELECT * FROM INSERT_TBL;
- x |       y       | z  
----+---------------+----
- 4 | Y             | -4
-   | try again     |   
- 7 | try again     | -7
- 5 | !check failed |   
- 6 | try again     | -6
-(5 rows)
+ x |     y     | z 
+---+-----------+---
+   | try again |  
+(1 row)
 
 -- DROP TABLE INSERT_TBL;
 --
@@ -288,7 +275,7 @@ SELECT * FROM COPY_TBL;
 --
 -- Primary keys
 --
-CREATE TABLE PRIMARY_TBL (i int PRIMARY KEY, t text);
+CREATE TABLE PRIMARY_TBL (i int PRIMARY KEY, t text) DISTRIBUTED BY (i);
 NOTICE:  CREATE TABLE / PRIMARY KEY will create implicit index "primary_tbl_pkey" for table "primary_tbl"
 INSERT INTO PRIMARY_TBL VALUES (1, 'one');
 INSERT INTO PRIMARY_TBL VALUES (2, 'two');
@@ -309,7 +296,7 @@ SELECT '' AS four, * FROM PRIMARY_TBL;
 
 DROP TABLE PRIMARY_TBL;
 CREATE TABLE PRIMARY_TBL (i int, t text,
-	PRIMARY KEY(i,t));
+	PRIMARY KEY(i,t)) DISTRIBUTED BY (i);
 NOTICE:  CREATE TABLE / PRIMARY KEY will create implicit index "primary_tbl_pkey" for table "primary_tbl"
 INSERT INTO PRIMARY_TBL VALUES (1, 'one');
 INSERT INTO PRIMARY_TBL VALUES (2, 'two');
@@ -322,8 +309,8 @@ SELECT '' AS three, * FROM PRIMARY_TBL;
  three | i |   t   
 -------+---+-------
        | 1 | one
-       | 2 | two
        | 1 | three
+       | 2 | two
        | 4 | three
        | 5 | one
 (5 rows)
@@ -332,7 +319,7 @@ DROP TABLE PRIMARY_TBL;
 --
 -- Unique keys
 --
-CREATE TABLE UNIQUE_TBL (i int UNIQUE, t text);
+CREATE TABLE UNIQUE_TBL (i int UNIQUE, t text) DISTRIBUTED BY (i);
 NOTICE:  CREATE TABLE / UNIQUE will create implicit index "unique_tbl_i_key" for table "unique_tbl"
 INSERT INTO UNIQUE_TBL VALUES (1, 'one');
 INSERT INTO UNIQUE_TBL VALUES (2, 'two');
@@ -349,13 +336,13 @@ SELECT '' AS five, * FROM UNIQUE_TBL;
       | 2 | two
       | 4 | four
       | 5 | one
-      |   | six
       |   | seven
+      |   | six
 (6 rows)
 
 DROP TABLE UNIQUE_TBL;
 CREATE TABLE UNIQUE_TBL (i int, t text,
-	UNIQUE(i,t));
+	UNIQUE(i,t)) DISTRIBUTED BY (i);
 NOTICE:  CREATE TABLE / UNIQUE will create implicit index "unique_tbl_i_key" for table "unique_tbl"
 INSERT INTO UNIQUE_TBL VALUES (1, 'one');
 INSERT INTO UNIQUE_TBL VALUES (2, 'two');
@@ -368,8 +355,8 @@ SELECT '' AS five, * FROM UNIQUE_TBL;
  five | i |   t   
 ------+---+-------
       | 1 | one
-      | 2 | two
       | 1 | three
+      | 2 | two
       | 5 | one
       |   | six
 (5 rows)

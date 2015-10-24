@@ -3,7 +3,7 @@
  * execJunk.c
  *	  Junk attribute support stuff....
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2008, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -53,25 +53,18 @@
  *
  * Initialize the Junk filter.
  *
- * The source targetlist is passed in.	The output tuple descriptor is
- * built from the non-junk tlist entries, plus the passed specification
- * of whether to include room for an OID or not.
+ * The source targetlist is passed in.	The clean output tuple descriptor is
+ * also passed in.
  * An optional resultSlot can be passed as well.
  */
 JunkFilter *
-ExecInitJunkFilter(List *targetList, bool hasoid, TupleTableSlot *slot)
+ExecInitJunkFilter(List *targetList, TupleDesc cleanTupType, TupleTableSlot *slot)
 {
 	JunkFilter *junkfilter;
-	TupleDesc	cleanTupType;
 	int			cleanLength;
 	AttrNumber *cleanMap;
 	ListCell   *t;
 	AttrNumber	cleanResno;
-
-	/*
-	 * Compute the tuple descriptor for the cleaned tuple.
-	 */
-	cleanTupType = ExecCleanTypeFromTL(targetList, hasoid);
 
 	/*
 	 * Use the given slot, or make a new slot if we weren't given one.
@@ -260,8 +253,8 @@ ExecFilterJunk(JunkFilter *junkfilter, TupleTableSlot *slot)
 	 * Extract all the values of the old tuple.
 	 */
 	slot_getallattrs(slot);
-	old_values = slot->tts_values;
-	old_isnull = slot->tts_isnull;
+	old_values = slot_get_values(slot); 
+	old_isnull = slot_get_isnull(slot);
 
 	/*
 	 * get info from the junk filter
@@ -275,8 +268,8 @@ ExecFilterJunk(JunkFilter *junkfilter, TupleTableSlot *slot)
 	 * Prepare to build a virtual result tuple.
 	 */
 	ExecClearTuple(resultSlot);
-	values = resultSlot->tts_values;
-	isnull = resultSlot->tts_isnull;
+	values = slot_get_values(resultSlot); 
+	isnull = slot_get_isnull(resultSlot); 
 
 	/*
 	 * Transpose data into proper fields of the new tuple.
@@ -312,5 +305,5 @@ ExecFilterJunk(JunkFilter *junkfilter, TupleTableSlot *slot)
 HeapTuple
 ExecRemoveJunk(JunkFilter *junkfilter, TupleTableSlot *slot)
 {
-	return ExecCopySlotTuple(ExecFilterJunk(junkfilter, slot));
+	return ExecCopySlotHeapTuple(ExecFilterJunk(junkfilter, slot));
 }

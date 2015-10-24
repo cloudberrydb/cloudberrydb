@@ -1,11 +1,15 @@
-/* $PostgreSQL: pgsql/src/interfaces/ecpg/preproc/extern.h,v 1.63 2006/03/11 04:38:40 momjian Exp $ */
+/* $PostgreSQL: pgsql/src/interfaces/ecpg/preproc/extern.h,v 1.73.2.1 2009/09/08 04:25:14 tgl Exp $ */
 
 #ifndef _ECPG_PREPROC_EXTERN_H
 #define _ECPG_PREPROC_EXTERN_H
 
 #include "type.h"
+#include "parser/keywords.h"
 
 #include <errno.h>
+#ifndef CHAR_BIT
+#include <limits.h>
+#endif
 
 /* defines */
 
@@ -19,9 +23,12 @@ extern int	braces_open,
 			auto_create_c,
 			system_includes,
 			force_indicator,
+			questionmarks,
 			ret_value,
 			struct_level,
-			ecpg_informix_var;
+			ecpg_informix_var,
+			regression_mode,
+			auto_prepare;
 extern char *descriptor_index;
 extern char *descriptor_name;
 extern char *connection;
@@ -32,10 +39,10 @@ extern char *yytext,
 #ifdef YYDEBUG
 extern int	yydebug;
 #endif
-extern int	yylineno,
-			yyleng;
+extern int	yylineno;
 extern FILE *yyin,
 		   *yyout;
+extern char *output_filename;
 
 extern struct _include_path *include_paths;
 extern struct cursor *cur;
@@ -56,17 +63,20 @@ extern const char *get_dtype(enum ECPGdtype);
 extern void lex_init(void);
 extern char *make_str(const char *);
 extern void output_line_number(void);
-extern void output_statement(char *, int, char *);
+extern void output_statement(char *, int, enum ECPG_statement_type);
+extern void output_prepare_statement(char *, char *);
+extern void output_deallocate_prepare_statement(char *);
 extern void output_simple_statement(char *);
 extern char *hashline_number(void);
-extern int	yyparse(void);
-extern int	yylex(void);
-extern void yyerror(char *);
+extern int	base_yyparse(void);
+extern int	base_yylex(void);
+extern void base_yyerror(const char *);
 extern void *mm_alloc(size_t), *mm_realloc(void *, size_t);
 extern char *mm_strdup(const char *);
-extern void mmerror(int, enum errortype, char *,...);
-extern ScanKeyword *ScanECPGKeywordLookup(char *);
-extern ScanKeyword *ScanCKeywordLookup(char *);
+extern void
+mmerror(int, enum errortype, const char *,...)
+/* This extension allows gcc to check the format string */
+__attribute__((format(printf, 3, 4)));
 extern void output_get_descr_header(char *);
 extern void output_get_descr(char *, char *);
 extern void output_set_descr_header(char *);
@@ -88,7 +98,13 @@ extern void check_indicator(struct ECPGtype *);
 extern void remove_typedefs(int);
 extern void remove_variables(int);
 extern struct variable *new_variable(const char *, struct ECPGtype *, int);
-extern ScanKeyword *ScanKeywordLookup(char *text);
+extern const ScanKeyword *ScanCKeywordLookup(const char *);
+extern const ScanKeyword *ScanECPGKeywordLookup(const char *text);
+extern const ScanKeyword *DoLookup(const char *, const ScanKeyword *, const ScanKeyword *);
+extern void scanner_init(const char *);
+extern void parser_init(void);
+extern void scanner_finish(void);
+extern int	filtered_base_yylex(void);
 
 /* return codes */
 

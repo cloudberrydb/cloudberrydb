@@ -1,0 +1,49 @@
+<?xml version="1.0"?>
+<stx:transform version="1.0"
+   xmlns:stx="http://stx.sourceforge.net/2002/ns"
+   pass-through="none">
+
+  <stx:variable name="author"/>
+  <stx:variable name="title"/>
+  <stx:variable name="year"/>
+  <stx:variable name="school"/>
+
+  <stx:template match="/dblp/mastersthesis">
+    <stx:value-of select="@key"/>        <stx:text>	</stx:text>
+    <stx:process-children/>
+    <stx:text>masters</stx:text>         <stx:text>	</stx:text>
+    <stx:value-of select="$author"/>     <stx:text>	</stx:text>
+    <stx:value-of select="$title"/>      <stx:text>	</stx:text>
+    <stx:value-of select="$year"/>       <stx:text>	</stx:text>
+    <stx:value-of select="$school"/>     <stx:text>
+</stx:text>
+  </stx:template>
+
+  <stx:template match="/dblp/phdthesis">
+    <stx:value-of select="@key"/>        <stx:text>	</stx:text>
+    <stx:process-children/>
+    <stx:text>phd</stx:text>             <stx:text>	</stx:text>
+    <stx:value-of select="$author"/>     <stx:text>	</stx:text>
+    <stx:value-of select="$title"/>      <stx:text>	</stx:text>
+    <stx:value-of select="$year"/>       <stx:text>	</stx:text>
+    <stx:value-of select="$school"/>     <stx:text>
+</stx:text>
+  </stx:template>
+
+  <stx:template match="author">
+    <stx:assign name="author" select="."/>
+  </stx:template>
+
+  <stx:template match="title">
+    <stx:assign name="title" select="."/>
+  </stx:template>
+
+  <stx:template match="year">
+    <stx:assign name="year" select="."/>
+  </stx:template>
+
+  <stx:template match="school">
+    <stx:assign name="school" select="."/>
+  </stx:template>
+
+</stx:transform>

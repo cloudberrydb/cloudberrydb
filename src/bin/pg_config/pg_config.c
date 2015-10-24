@@ -15,14 +15,14 @@
  *
  * This code is released under the terms of the PostgreSQL License.
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
  *
- * $PostgreSQL: pgsql/src/bin/pg_config/pg_config.c,v 1.22 2006/10/04 00:30:04 momjian Exp $
+ * $PostgreSQL: pgsql/src/bin/pg_config/pg_config.c,v 1.31 2009/02/25 13:35:18 petere Exp $
  *
  *-------------------------------------------------------------------------
  */
 
-#include "postgres.h"
+#include "postgres_fe.h"
 
 #include "port.h"
 
@@ -93,6 +93,18 @@ show_docdir(bool all)
 	if (all)
 		printf("DOCDIR = ");
 	get_doc_path(mypath, path);
+	cleanup_path(path);
+	printf("%s\n", path);
+}
+
+static void
+show_htmldir(bool all)
+{
+	char		path[MAXPGPATH];
+
+	if (all)
+		printf("HTMLDIR = ");
+	get_html_path(mypath, path);
 	cleanup_path(path);
 	printf("%s\n", path);
 }
@@ -213,7 +225,7 @@ show_pgxs(bool all)
 	if (all)
 		printf("PGXS = ");
 	get_pkglib_path(mypath, path);
-	strncat(path, "/pgxs/src/makefiles/pgxs.mk", MAXPGPATH - 1 - strlen(path));
+	strlcat(path, "/pgxs/src/makefiles/pgxs.mk", sizeof(path));
 	cleanup_path(path);
 	printf("%s\n", path);
 }
@@ -221,6 +233,15 @@ show_pgxs(bool all)
 static void
 show_configure(bool all)
 {
+    /*
+     * we don't show our configure line -- it refers to many paths that are from the build machines, and doesn't make
+	 * _that_ much sense for the customers  to view as they take the builds that we produce
+	 */
+    if ( all )
+        return;
+    fprintf( stderr, _("CONFIGURE value not available\n"));
+    exit(1);
+
 #ifdef VAL_CONFIGURE
 	if (all)
 		printf("CONFIGURE = ");
@@ -254,9 +275,16 @@ static void
 show_cppflags(bool all)
 {
 #ifdef VAL_CPPFLAGS
+    char includePath[MAXPGPATH];
+    get_include_path(mypath, includePath);
+    cleanup_path(includePath);
+
 	if (all)
 		printf("CPPFLAGS = ");
-	printf("%s\n", VAL_CPPFLAGS);
+
+    if (strlen(VAL_CPPFLAGS) > 0)
+	    printf("%s -I%s\n", VAL_CPPFLAGS, includePath);
+    else printf("-I%s\n", includePath);
 #else
 	if (!all)
 	{
@@ -270,9 +298,13 @@ static void
 show_cflags(bool all)
 {
 #ifdef VAL_CFLAGS
+    char includePath[MAXPGPATH];
+	get_include_path(mypath, includePath);
+	cleanup_path(includePath);
+
 	if (all)
 		printf("CFLAGS = ");
-	printf("%s\n", VAL_CFLAGS);
+	printf("%s -I%s\n", VAL_CFLAGS, includePath);
 #else
 	if (!all)
 	{
@@ -302,9 +334,16 @@ static void
 show_ldflags(bool all)
 {
 #ifdef VAL_LDFLAGS
+	char libraryPath[MAXPGPATH];
+	get_lib_path(mypath, libraryPath);
+	cleanup_path(libraryPath);
+
 	if (all)
 		printf("LDFLAGS = ");
-	printf("%s\n", VAL_LDFLAGS);
+
+    if (strlen(VAL_LDFLAGS) > 0)
+	    printf("%s -L%s\n", VAL_LDFLAGS, libraryPath);
+    else printf("-L%s\n", libraryPath);
 #else
 	if (!all)
 	{
@@ -334,9 +373,13 @@ static void
 show_libs(bool all)
 {
 #ifdef VAL_LIBS
+    char libraryPath[MAXPGPATH];
+	get_lib_path(mypath, libraryPath);
+	cleanup_path(libraryPath);
+
 	if (all)
 		printf("LIBS = ");
-	printf("%s\n", VAL_LIBS);
+	printf("%s -L%s\n", VAL_LIBS, libraryPath);
 #else
 	if (!all)
 	{
@@ -369,6 +412,7 @@ typedef struct
 static const InfoItem info_items[] = {
 	{"--bindir", show_bindir},
 	{"--docdir", show_docdir},
+	{"--htmldir", show_htmldir},
 	{"--includedir", show_includedir},
 	{"--pkgincludedir", show_pkgincludedir},
 	{"--includedir-server", show_includedir_server},
@@ -379,7 +423,7 @@ static const InfoItem info_items[] = {
 	{"--sharedir", show_sharedir},
 	{"--sysconfdir", show_sysconfdir},
 	{"--pgxs", show_pgxs},
-	{"--configure", show_configure},
+    {"--configure", show_configure},
 	{"--cc", show_cc},
 	{"--cppflags", show_cppflags},
 	{"--cflags", show_cflags},
@@ -394,13 +438,14 @@ static const InfoItem info_items[] = {
 
 static void
 help(void)
-{
+{ 
 	printf(_("\n%s provides information about the installed version of PostgreSQL.\n\n"), progname);
 	printf(_("Usage:\n"));
-	printf(_("  %s [ OPTION ... ]\n\n"), progname);
+	printf(_("  %s [OPTION]...\n\n"), progname);
 	printf(_("Options:\n"));
 	printf(_("  --bindir              show location of user executables\n"));
 	printf(_("  --docdir              show location of documentation files\n"));
+	printf(_("  --htmldir             show location of HTML documentation files\n"));
 	printf(_("  --includedir          show location of C header files of the client\n"
 			 "                        interfaces\n"));
 	printf(_("  --pkgincludedir       show location of other C header files\n"));
@@ -451,7 +496,7 @@ main(int argc, char **argv)
 	int			j;
 	int			ret;
 
-	set_pglocale_pgservice(argv[0], "pg_config");
+	set_pglocale_pgservice(argv[0], PG_TEXTDOMAIN("pg_config"));
 
 	progname = get_progname(argv[0]);
 
@@ -469,7 +514,7 @@ main(int argc, char **argv)
 
 	if (ret)
 	{
-		fprintf(stderr, _("%s: could not find own executable\n"), progname);
+		fprintf(stderr, _("%s: could not find own program executable\n"), progname);
 		exit(1);
 	}
 

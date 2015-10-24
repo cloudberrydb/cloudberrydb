@@ -3,9 +3,11 @@
  * version.c
  *	 Returns the PostgreSQL version string
  *
+ * Copyright (c) 1998-2009, PostgreSQL Global Development Group
+ *
  * IDENTIFICATION
  *
- * $PostgreSQL: pgsql/src/backend/utils/adt/version.c,v 1.13 2003/11/29 19:52:00 pgsql Exp $
+ * $PostgreSQL: pgsql/src/backend/utils/adt/version.c,v 1.18 2009/01/01 17:23:50 momjian Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -16,13 +18,15 @@
 
 
 Datum
-pgsql_version(PG_FUNCTION_ARGS)
+pgsql_version(PG_FUNCTION_ARGS __attribute__((unused)) )
 {
-	int			n = strlen(PG_VERSION_STR);
-	text	   *ret = (text *) palloc(n + VARHDRSZ);
+	char version[512];
 
-	VARATT_SIZEP(ret) = n + VARHDRSZ;
-	memcpy(VARDATA(ret), PG_VERSION_STR, n);
+	strcpy(version, PG_VERSION_STR " compiled on " __DATE__ " " __TIME__);
+	
+#ifdef USE_ASSERT_CHECKING
+	strcat(version, " (with assert checking)");
+#endif 
 
-	PG_RETURN_TEXT_P(ret);
+	PG_RETURN_TEXT_P(cstring_to_text(version));
 }

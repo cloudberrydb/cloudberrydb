@@ -4,7 +4,7 @@
  *	Routines for type coercion.
  *
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * $PostgreSQL: pgsql/src/include/parser/parse_coerce.h,v 1.66 2006/10/04 00:30:09 momjian Exp $
@@ -42,15 +42,17 @@ extern Node *coerce_to_target_type(ParseState *pstate,
 					  Node *expr, Oid exprtype,
 					  Oid targettype, int32 targettypmod,
 					  CoercionContext ccontext,
-					  CoercionForm cformat);
+					  CoercionForm cformat,
+					  int location);
 extern bool can_coerce_type(int nargs, Oid *input_typeids, Oid *target_typeids,
 				CoercionContext ccontext);
 extern Node *coerce_type(ParseState *pstate, Node *node,
 			Oid inputTypeId, Oid targetTypeId, int32 targetTypeMod,
-			CoercionContext ccontext, CoercionForm cformat);
+			CoercionContext ccontext, CoercionForm cformat, int location);
 extern Node *coerce_to_domain(Node *arg, Oid baseTypeId, int32 baseTypeMod,
 				 Oid typeId,
-				 CoercionForm cformat, bool hideInputCoercion,
+				 CoercionForm cformat, int location,
+				 bool hideInputCoercion,
 				 bool lengthCoercionDone);
 
 extern Node *coerce_to_boolean(ParseState *pstate, Node *node,
@@ -64,6 +66,11 @@ extern Oid	select_common_type(List *typeids, const char *context);
 extern Node *coerce_to_common_type(ParseState *pstate, Node *node,
 					  Oid targetTypeId,
 					  const char *context);
+
+extern void fixup_unknown_vars_in_exprlist(ParseState *pstate, List *exprlist);
+extern void fixup_unknown_vars_in_targetlist(ParseState *pstate, 
+											 List *targetlist);
+extern void fixup_unknown_vars_in_setop(ParseState *pstate, SetOperationStmt *stmt);
 
 extern bool check_generic_type_consistency(Oid *actual_arg_types,
 							   Oid *declared_arg_types,

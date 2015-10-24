@@ -3,12 +3,13 @@
  * nodeLimit.c
  *	  Routines to handle limiting of query results where appropriate
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 2005-2008, Greenplum inc
+ * Portions Copyright (c) 1996-2008, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/executor/nodeLimit.c,v 1.27 2006/07/26 19:31:50 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/executor/nodeLimit.c,v 1.27.2.1 2006/12/03 21:40:13 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -21,6 +22,7 @@
 
 #include "postgres.h"
 
+#include "cdb/cdbvars.h"
 #include "executor/executor.h"
 #include "executor/nodeLimit.h"
 
@@ -73,6 +75,14 @@ ExecLimit(LimitState *node)
 			if (node->count <= 0 && !node->noCount)
 			{
 				node->lstate = LIMIT_EMPTY;
+
+				/*
+				 * CDB: We'll read no more from outer subtree. To keep our
+				 * sibling QEs from being starved, tell source QEs not to clog
+				 * up the pipeline with our never-to-be-consumed data.
+				 */
+				ExecSquelchNode(outerPlan);
+
 				return NULL;
 			}
 
@@ -108,6 +118,7 @@ ExecLimit(LimitState *node)
 			 * The subplan is known to return no tuples (or not more than
 			 * OFFSET tuples, in general).	So we return no tuples.
 			 */
+			ExecSquelchNode(outerPlan); /* CDB */
 			return NULL;
 
 		case LIMIT_INWINDOW:
@@ -123,6 +134,7 @@ ExecLimit(LimitState *node)
 					node->position >= node->offset + node->count)
 				{
 					node->lstate = LIMIT_WINDOWEND;
+					ExecSquelchNode(outerPlan); /* CDB */
 					return NULL;
 				}
 
@@ -147,6 +159,7 @@ ExecLimit(LimitState *node)
 				if (node->position <= node->offset + 1)
 				{
 					node->lstate = LIMIT_WINDOWSTART;
+					ExecSquelchNode(outerPlan); /* CDB */
 					return NULL;
 				}
 
@@ -154,8 +167,7 @@ ExecLimit(LimitState *node)
 				 * Get previous tuple from subplan; there should be one!
 				 */
 				slot = ExecProcNode(outerPlan);
-				if (TupIsNull(slot))
-					elog(ERROR, "LIMIT subplan failed to run backwards");
+				insist_log(!TupIsNull(slot), "LIMIT subplan failed to run backwards");
 				node->subSlot = slot;
 				node->position--;
 			}
@@ -170,8 +182,7 @@ ExecLimit(LimitState *node)
 			 * should be one!  Note previous tuple must be in window.
 			 */
 			slot = ExecProcNode(outerPlan);
-			if (TupIsNull(slot))
-				elog(ERROR, "LIMIT subplan failed to run backwards");
+			insist_log(!TupIsNull(slot), "LIMIT subplan failed to run backwards");
 			node->subSlot = slot;
 			node->lstate = LIMIT_INWINDOW;
 			/* position does not change 'cause we didn't advance it before */
@@ -204,7 +215,7 @@ ExecLimit(LimitState *node)
 			break;
 
 		default:
-			elog(ERROR, "impossible LIMIT state: %d",
+			insist_log(false, "impossible LIMIT state: %d",
 				 (int) node->lstate);
 			slot = NULL;		/* keep compiler quiet */
 			break;
@@ -213,6 +224,11 @@ ExecLimit(LimitState *node)
 	/* Return the current tuple */
 	Assert(!TupIsNull(slot));
 
+        if (!TupIsNull(slot))
+        {
+            Gpmon_M_Incr_Rows_Out(GpmonPktFromLimitState(node));
+            CheckSendPlanStateGpmonPkt(&node->ps); 
+        }
 	return slot;
 }
 
@@ -225,20 +241,24 @@ static void
 recompute_limits(LimitState *node)
 {
 	ExprContext *econtext = node->ps.ps_ExprContext;
+	Datum		val;
 	bool		isNull;
 
 	if (node->limitOffset)
 	{
-		node->offset =
-			DatumGetInt64(ExecEvalExprSwitchContext(node->limitOffset,
-													econtext,
-													&isNull,
-													NULL));
+		val = ExecEvalExprSwitchContext(node->limitOffset,
+										econtext,
+										&isNull,
+										NULL);
 		/* Interpret NULL offset as no offset */
 		if (isNull)
 			node->offset = 0;
-		else if (node->offset < 0)
-			node->offset = 0;
+		else
+		{
+			node->offset = DatumGetInt64(val);
+			if (node->offset < 0)
+				node->offset = 0;
+		}
 	}
 	else
 	{
@@ -248,17 +268,23 @@ recompute_limits(LimitState *node)
 
 	if (node->limitCount)
 	{
-		node->noCount = false;
-		node->count =
-			DatumGetInt64(ExecEvalExprSwitchContext(node->limitCount,
-													econtext,
-													&isNull,
-													NULL));
+		val = ExecEvalExprSwitchContext(node->limitCount,
+										econtext,
+										&isNull,
+										NULL);
 		/* Interpret NULL count as no count (LIMIT ALL) */
 		if (isNull)
-			node->noCount = true;
-		else if (node->count < 0)
+		{
 			node->count = 0;
+			node->noCount = true;
+		}
+		else
+		{
+			node->count = DatumGetInt64(val);
+			if (node->count < 0)
+				node->count = 0;
+			node->noCount = false;
+		}
 	}
 	else
 	{
@@ -333,6 +359,8 @@ ExecInitLimit(Limit *node, EState *estate, int eflags)
 	ExecAssignResultTypeFromTL(&limitstate->ps);
 	limitstate->ps.ps_ProjInfo = NULL;
 
+	initGpmonPktForLimit((Plan *)node, &limitstate->ps.gpmon_pkt, estate);
+	
 	return limitstate;
 }
 
@@ -356,6 +384,8 @@ ExecEndLimit(LimitState *node)
 {
 	ExecFreeExprContext(&node->ps);
 	ExecEndNode(outerPlanState(node));
+
+	EndPlanStateGpmonPkt(&node->ps);
 }
 
 
@@ -371,4 +401,15 @@ ExecReScanLimit(LimitState *node, ExprContext *exprCtxt)
 	 */
 	if (((PlanState *) node)->lefttree->chgParam == NULL)
 		ExecReScan(((PlanState *) node)->lefttree, exprCtxt);
+}
+
+void
+initGpmonPktForLimit(Plan *planNode, gpmon_packet_t *gpmon_pkt, EState *estate)
+{
+	Assert(planNode != NULL && gpmon_pkt != NULL && IsA(planNode, Limit));
+
+	{
+		Assert(GPMON_LIMIT_TOTAL <= (int)GPMON_QEXEC_M_COUNT);
+		InitPlanNodeGpmonPkt(planNode, gpmon_pkt, estate, PMNT_Limit, (int64)0, NULL);
+	}
 }

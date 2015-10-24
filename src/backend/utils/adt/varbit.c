@@ -5,11 +5,11 @@
  *
  * Code originally contributed by Adriaan Joubert.
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2008, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/utils/adt/varbit.c,v 1.50 2006/07/14 14:52:24 momjian Exp $
+ *	  $PostgreSQL: pgsql/src/backend/utils/adt/varbit.c,v 1.50.2.1 2007/08/21 02:40:12 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -86,12 +86,22 @@ bit_in(PG_FUNCTION_ARGS)
 		sp = input_string;
 	}
 
+	/*
+	 * Determine bitlength from input string.  MaxAllocSize ensures a regular
+	 * input is small enough, but we must check hex input.
+	 */
 	slen = strlen(sp);
-	/* Determine bitlength from input string */
 	if (bit_not_hex)
 		bitlen = slen;
 	else
+	{
+		if (slen > VARBITMAXLEN / 4)
+			ereport(ERROR,
+					(errcode(ERRCODE_PROGRAM_LIMIT_EXCEEDED),
+				 errmsg("bit string length exceeds the maximum allowed (%d)",
+						VARBITMAXLEN)));
 		bitlen = slen * 4;
+	}
 
 	/*
 	 * Sometimes atttypmod is not supplied. If it is supplied we need to make
@@ -108,7 +118,7 @@ bit_in(PG_FUNCTION_ARGS)
 	len = VARBITTOTALLEN(atttypmod);
 	/* set to 0 so that *r is always initialised and string is zero-padded */
 	result = (VarBit *) palloc0(len);
-	VARATT_SIZEP(result) = len;
+	SET_VARSIZE(result, len);
 	VARBITLEN(result) = atttypmod;
 
 	r = VARBITS(result);
@@ -247,7 +257,7 @@ bit_recv(PG_FUNCTION_ARGS)
 
 	len = VARBITTOTALLEN(bitlen);
 	result = (VarBit *) palloc(len);
-	VARATT_SIZEP(result) = len;
+	SET_VARSIZE(result, len);
 	VARBITLEN(result) = bitlen;
 
 	pq_copymsgbytes(buf, (char *) VARBITS(result), VARBITBYTES(result));
@@ -304,7 +314,7 @@ bit(PG_FUNCTION_ARGS)
 	rlen = VARBITTOTALLEN(len);
 	/* set to 0 so that string is zero-padded */
 	result = (VarBit *) palloc0(rlen);
-	VARATT_SIZEP(result) = rlen;
+	SET_VARSIZE(result, rlen);
 	VARBITLEN(result) = len;
 
 	memcpy(VARBITS(result), VARBITS(arg),
@@ -367,12 +377,22 @@ varbit_in(PG_FUNCTION_ARGS)
 		sp = input_string;
 	}
 
+	/*
+	 * Determine bitlength from input string.  MaxAllocSize ensures a regular
+	 * input is small enough, but we must check hex input.
+	 */
 	slen = strlen(sp);
-	/* Determine bitlength from input string */
 	if (bit_not_hex)
 		bitlen = slen;
 	else
+	{
+		if (slen > VARBITMAXLEN / 4)
+			ereport(ERROR,
+					(errcode(ERRCODE_PROGRAM_LIMIT_EXCEEDED),
+				 errmsg("bit string length exceeds the maximum allowed (%d)",
+						VARBITMAXLEN)));
 		bitlen = slen * 4;
+	}
 
 	/*
 	 * Sometimes atttypmod is not supplied. If it is supplied we need to make
@@ -389,7 +409,7 @@ varbit_in(PG_FUNCTION_ARGS)
 	len = VARBITTOTALLEN(bitlen);
 	/* set to 0 so that *r is always initialised and string is zero-padded */
 	result = (VarBit *) palloc0(len);
-	VARATT_SIZEP(result) = len;
+	SET_VARSIZE(result, len);
 	VARBITLEN(result) = Min(bitlen, atttypmod);
 
 	r = VARBITS(result);
@@ -451,6 +471,9 @@ varbit_in(PG_FUNCTION_ARGS)
 
 /* varbit_out -
  *	  Prints the string as bits to preserve length accurately
+ *
+ * XXX varbit_recv() and hex input to varbit_in() can load a value that this
+ * cannot emit.  Consider using hex output for such values.
  */
 Datum
 varbit_out(PG_FUNCTION_ARGS)
@@ -468,8 +491,9 @@ varbit_out(PG_FUNCTION_ARGS)
 	result = (char *) palloc(len + 1);
 	sp = VARBITS(s);
 	r = result;
-	for (i = 0; i < len - BITS_PER_BYTE; i += BITS_PER_BYTE, sp++)
+	for (i = 0; i <= len - BITS_PER_BYTE; i += BITS_PER_BYTE, sp++)
 	{
+		/* print full bytes */
 		x = *sp;
 		for (k = 0; k < BITS_PER_BYTE; k++)
 		{
@@ -477,11 +501,15 @@ varbit_out(PG_FUNCTION_ARGS)
 			x <<= 1;
 		}
 	}
-	x = *sp;
-	for (k = i; k < len; k++)
+	if (i < len)
 	{
-		*r++ = IS_HIGHBIT_SET(x) ? '1' : '0';
-		x <<= 1;
+		/* print the last partial byte */
+		x = *sp;
+		for (k = i; k < len; k++)
+		{
+			*r++ = IS_HIGHBIT_SET(x) ? '1' : '0';
+			x <<= 1;
+		}
 	}
 	*r = '\0';
 
@@ -526,7 +554,7 @@ varbit_recv(PG_FUNCTION_ARGS)
 
 	len = VARBITTOTALLEN(bitlen);
 	result = (VarBit *) palloc(len);
-	VARATT_SIZEP(result) = len;
+	SET_VARSIZE(result, len);
 	VARBITLEN(result) = bitlen;
 
 	pq_copymsgbytes(buf, (char *) VARBITS(result), VARBITBYTES(result));
@@ -587,7 +615,7 @@ varbit(PG_FUNCTION_ARGS)
 
 	rlen = VARBITTOTALLEN(len);
 	result = (VarBit *) palloc(rlen);
-	VARATT_SIZEP(result) = rlen;
+	SET_VARSIZE(result, rlen);
 	VARBITLEN(result) = len;
 
 	memcpy(VARBITS(result), VARBITS(arg), VARBITBYTES(result));
@@ -796,10 +824,15 @@ bitcat(PG_FUNCTION_ARGS)
 	bitlen1 = VARBITLEN(arg1);
 	bitlen2 = VARBITLEN(arg2);
 
+	if (bitlen1 > VARBITMAXLEN - bitlen2)
+		ereport(ERROR,
+				(errcode(ERRCODE_PROGRAM_LIMIT_EXCEEDED),
+				 errmsg("bit string length exceeds the maximum allowed (%d)",
+						VARBITMAXLEN)));
 	bytelen = VARBITTOTALLEN(bitlen1 + bitlen2);
 
 	result = (VarBit *) palloc(bytelen);
-	VARATT_SIZEP(result) = bytelen;
+	SET_VARSIZE(result, bytelen);
 	VARBITLEN(result) = bitlen1 + bitlen2;
 
 	/* Copy the first bitstring in */
@@ -866,7 +899,7 @@ bitsubstr(PG_FUNCTION_ARGS)
 		/* Need to return a zero-length bitstring */
 		len = VARBITTOTALLEN(0);
 		result = (VarBit *) palloc(len);
-		VARATT_SIZEP(result) = len;
+		SET_VARSIZE(result, len);
 		VARBITLEN(result) = 0;
 	}
 	else
@@ -878,7 +911,7 @@ bitsubstr(PG_FUNCTION_ARGS)
 		rbitlen = e1 - s1;
 		len = VARBITTOTALLEN(rbitlen);
 		result = (VarBit *) palloc(len);
-		VARATT_SIZEP(result) = len;
+		SET_VARSIZE(result, len);
 		VARBITLEN(result) = rbitlen;
 		len -= VARHDRSZ + VARBITHDRSZ;
 		/* Are we copying from a byte boundary? */
@@ -959,7 +992,7 @@ bitand(PG_FUNCTION_ARGS)
 
 	len = VARSIZE(arg1);
 	result = (VarBit *) palloc(len);
-	VARATT_SIZEP(result) = len;
+	SET_VARSIZE(result, len);
 	VARBITLEN(result) = bitlen1;
 
 	p1 = VARBITS(arg1);
@@ -999,7 +1032,7 @@ bitor(PG_FUNCTION_ARGS)
 				 errmsg("cannot OR bit strings of different sizes")));
 	len = VARSIZE(arg1);
 	result = (VarBit *) palloc(len);
-	VARATT_SIZEP(result) = len;
+	SET_VARSIZE(result, len);
 	VARBITLEN(result) = bitlen1;
 
 	p1 = VARBITS(arg1);
@@ -1046,7 +1079,7 @@ bitxor(PG_FUNCTION_ARGS)
 
 	len = VARSIZE(arg1);
 	result = (VarBit *) palloc(len);
-	VARATT_SIZEP(result) = len;
+	SET_VARSIZE(result, len);
 	VARBITLEN(result) = bitlen1;
 
 	p1 = VARBITS(arg1);
@@ -1079,7 +1112,7 @@ bitnot(PG_FUNCTION_ARGS)
 	bits8		mask;
 
 	result = (VarBit *) palloc(VARSIZE(arg));
-	VARATT_SIZEP(result) = VARSIZE(arg);
+	SET_VARSIZE(result, VARSIZE(arg));
 	VARBITLEN(result) = VARBITLEN(arg);
 
 	p = VARBITS(arg);
@@ -1120,7 +1153,7 @@ bitshiftleft(PG_FUNCTION_ARGS)
 											Int32GetDatum(-shft)));
 
 	result = (VarBit *) palloc(VARSIZE(arg));
-	VARATT_SIZEP(result) = VARSIZE(arg);
+	SET_VARSIZE(result, VARSIZE(arg));
 	VARBITLEN(result) = VARBITLEN(arg);
 	r = VARBITS(result);
 
@@ -1179,7 +1212,7 @@ bitshiftright(PG_FUNCTION_ARGS)
 											Int32GetDatum(-shft)));
 
 	result = (VarBit *) palloc(VARSIZE(arg));
-	VARATT_SIZEP(result) = VARSIZE(arg);
+	SET_VARSIZE(result, VARSIZE(arg));
 	VARBITLEN(result) = VARBITLEN(arg);
 	r = VARBITS(result);
 
@@ -1239,7 +1272,7 @@ bitfromint4(PG_FUNCTION_ARGS)
 
 	rlen = VARBITTOTALLEN(typmod);
 	result = (VarBit *) palloc(rlen);
-	VARATT_SIZEP(result) = rlen;
+	SET_VARSIZE(result, rlen);
 	VARBITLEN(result) = typmod;
 
 	r = VARBITS(result);
@@ -1314,7 +1347,7 @@ bitfromint8(PG_FUNCTION_ARGS)
 
 	rlen = VARBITTOTALLEN(typmod);
 	result = (VarBit *) palloc(rlen);
-	VARATT_SIZEP(result) = rlen;
+	SET_VARSIZE(result, rlen);
 	VARBITLEN(result) = typmod;
 
 	r = VARBITS(result);
@@ -1451,10 +1484,6 @@ bitposition(PG_FUNCTION_ARGS)
 				{
 					mask2 = end_mask << (BITS_PER_BYTE - is);
 					is_match = mask2 == 0;
-#if 0
-					elog(DEBUG4, "S. %d %d em=%2x sm=%2x r=%d",
-						 i, is, end_mask, mask2, is_match);
-#endif
 					break;
 				}
 				cmp = *s << (BITS_PER_BYTE - is);

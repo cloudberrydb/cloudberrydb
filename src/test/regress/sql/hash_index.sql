@@ -1,3 +1,5 @@
+set gp_hash_index = true;
+
 --
 -- HASH_INDEX
 -- grep 843938989 hash.data
@@ -152,3 +154,10 @@ SELECT h.seqno AS f20000
 -- SELECT count(*) AS i988 FROM hash_ovfl_heap
 --  WHERE x = 1000;
 
+
+-- test that we can disable hash index
+set gp_hash_index = false;
+create table hash_test(i int);
+create index hash_test_idx on hash_test using hash (i);
+drop table hash_test;
+reset all;

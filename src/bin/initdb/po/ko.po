@@ -3,96 +3,88 @@
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: PostgreSQL 8.0\n"
-"POT-Creation-Date: 2004-12-15 07:06+0000\n"
-"PO-Revision-Date: 2004-12-16 11:23+0900\n"
+"Project-Id-Version: PostgreSQL 8.2\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2007-02-07 00:36+0900\n"
+"PO-Revision-Date: 2006-12-07 23:39+0900\n"
 "Last-Translator: Ioseph Kim <ioseph@uri.sarang.net>\n"
 "Language-Team: KOREAN <pgsql-kr@postgresql.or.kr>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=euc-kr\n"
 "Content-Transfer-Encoding: 8bit\n"
-"X-Poedit-Language: Korean\n"
-"X-Poedit-Country: KOREA, REPUBLIC OF\n"
 
-#: initdb.c:250
-#: initdb.c:264
+#: initdb.c:258 initdb.c:272
 #, c-format
 msgid "%s: out of memory\n"
-msgstr "%s: ¸Þ¸ð¸® ºÎÁ·\n"
+msgstr "%s: ï¿½Þ¸ï¿½ ï¿½ï¿½w\n"
 
-#: initdb.c:374
-#: initdb.c:1403
+#: initdb.c:381 initdb.c:1526
 #, c-format
 msgid "%s: could not open file \"%s\" for reading: %s\n"
-msgstr "%s: \"%s\" ÆÄÀÏ ÀÐ±â ¸ðµå·Î ¿­±â ½ÇÆÐ: %s\n"
+msgstr "%s: \"%s\" ï¿½ï¿½ï¿½ï¿½ ï¿½Ð±ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½: %s\n"
 
-#: initdb.c:435
-#: initdb.c:1035
-#: initdb.c:1062
+#: initdb.c:443 initdb.c:1052 initdb.c:1081
 #, c-format
 msgid "%s: could not open file \"%s\" for writing: %s\n"
-msgstr "%s: \"%s\" ÆÄÀÏÀ» ¾²±â ¸ðµå·Î ¿­±â ½ÇÆÐ: %s\n"
+msgstr "%s: \"%s\" ï¿½ï¿½ï¿½ï¿½; ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½: %s\n"
 
-#: initdb.c:443
-#: initdb.c:451
-#: initdb.c:1042
-#: initdb.c:1068
+#: initdb.c:451 initdb.c:459 initdb.c:1059 initdb.c:1087
 #, c-format
 msgid "%s: could not write file \"%s\": %s\n"
-msgstr "%s: \"%s\" ÆÄÀÏ ¾²±â ½ÇÆÐ: %s\n"
+msgstr "%s: \"%s\" ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½: %s\n"
 
-#: initdb.c:470
+#: initdb.c:478
 #, c-format
 msgid "%s: could not execute command \"%s\": %s\n"
-msgstr "%s: \"%s\" ¸í·ÉÀ» ½ÇÇàÇÒ ¼ö ¾øÀ½: %s\n"
+msgstr "%s: \"%s\" ï¿½ï¿½ï¿½; ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ ï¿½ï¿½=: %s\n"
 
-#: initdb.c:593
+#: initdb.c:598
 #, c-format
 msgid "%s: removing data directory \"%s\"\n"
-msgstr "%s: \"%s\" µ¥ÀÌÅÍ µð·ºÅä¸®¸¦ Áö¿ì°í ÀÖ½À´Ï´Ù.\n"
+msgstr "%s: \"%s\" ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ä¸®ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½Ö½4Ï´ï¿½.\n"
 
-#: initdb.c:596
+#: initdb.c:601
 #, c-format
 msgid "%s: failed to remove data directory\n"
-msgstr "%s: µ¥ÀÌÅÍ µð·ºÅä¸®¸¦ Áö¿ì´Âµ¥ ½ÇÆÐÇß½À´Ï´Ù\n"
+msgstr "%s: ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ä¸®ï¿½ï¿½ ï¿½ï¿½ï¿½Âµï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ß½4Ï´ï¿½\n"
 
-#: initdb.c:602
+#: initdb.c:607
 #, c-format
 msgid "%s: removing contents of data directory \"%s\"\n"
-msgstr "%s: \"%s\" µ¥ÀÌÅÍ µð·ºÅä¸® ¾ÈÀÇ ³»¿ëÀ» Áö¿ì°í ÀÖ½À´Ï´Ù.\n"
+msgstr "%s: \"%s\" ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ä¸® ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½; ï¿½ï¿½ï¿½ï¿½ ï¿½Ö½4Ï´ï¿½.\n"
 
-#: initdb.c:605
+#: initdb.c:610
 #, c-format
 msgid "%s: failed to remove contents of data directory\n"
-msgstr "%s: µ¥ÀÌÅÍ µð·ºÅä¸® ³»¿ëÀ» Áö¿ì´Âµ¥ ½ÇÆÐÇß½À´Ï´Ù\n"
+msgstr "%s: ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ä¸® ï¿½ï¿½ï¿½ï¿½; ï¿½ï¿½ï¿½Âµï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ß½4Ï´ï¿½\n"
 
-#: initdb.c:614
+#: initdb.c:619
 #, c-format
 msgid "%s: data directory \"%s\" not removed at user's request\n"
-msgstr "%s: \"%s\" µ¥ÀÌÅÍ µð·ºÅä¸®°¡ »ç¿ëÀÚÀÇ ¿äÃ»À¸·Î »èÁ¦µÇÁö ¾Ê¾Ò½À´Ï´Ù.\n"
+msgstr "%s: \"%s\" ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ä¸®ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½Ã»8ï¿½ï¿½ ï¿½ï¿½fï¿½ï¿½ï¿½ï¿½ ï¿½Ê¾Ò½4Ï´ï¿½.\n"
 
-#: initdb.c:640
+#: initdb.c:643
 #, c-format
 msgid ""
 "%s: cannot be run as root\n"
 "Please log in (using, e.g., \"su\") as the (unprivileged) user that will\n"
 "own the server process.\n"
 msgstr ""
-"%s: root·Î ÀÌ ÇÁ·Î±×·¥À» ½ÇÇàÇÏÁö ¸¶½Ê½Ã¿À\n"
-"½Ã½ºÅÛ°ü¸®ÀÚ ±ÇÇÑÀÌ ¾ø´Â, ¼­¹öÇÁ·Î¼¼½ºÀÇ ¼ÒÀ¯ÁÖ°¡ µÉ ÀÏ¹Ý »ç¿ëÀÚ·Î\n"
-"·Î±×ÀÎ ÇØ¼­(\"su\", \"runas\" °°Àº ¸í·É ÀÌ¿ë) ½ÇÇàÇÏ½Ê½Ã¿À.\n"
+"%s: rootï¿½ï¿½ ï¿½ï¿½ ï¿½wÎ±×·ï¿½; ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½Ê½Ã¿ï¿½\n"
+"ï¿½Ã½ï¿½ï¿½Û°ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½, ï¿½ï¿½ï¿½ï¿½ï¿½wÎ¼ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½/ï¿½Ö°ï¿½ ï¿½ï¿½ ï¿½Ï¹ï¿½ ï¿½ï¿½ï¿½ï¿½Ú·ï¿½\n"
+"ï¿½Î±ï¿½ï¿½ï¿½ ï¿½Ø¼ï¿½(\"su\", \"runas\" ï¿½ï¿½: ï¿½ï¿½ï¿½ ï¿½Ì¿ï¿½) ï¿½ï¿½ï¿½ï¿½ï¿½Ï½Ê½Ã¿ï¿½.\n"
 
-#: initdb.c:689
+#: initdb.c:690
 #, c-format
 msgid "%s: \"%s\" is not a valid server encoding name\n"
-msgstr "%s: \"%s\" ÀÎÄÚµùÀº ¼­¹ö ÀÎÄÚµù ÀÌ¸§À» »ç¿ëÇÒ ¼ö ¾ø½À´Ï´Ù.\n"
+msgstr "%s: \"%s\" ï¿½ï¿½ï¿½Úµï¿½: ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½Úµï¿½ ï¿½Ì¸ï¿½; ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ ï¿½ï¿½4Ï´ï¿½.\n"
 
-#: initdb.c:844
+#: initdb.c:850
 #, c-format
 msgid "%s: warning: encoding mismatch\n"
-msgstr "%s: °æ°í: ÀÎÄÚµùÀÌ ¼­·Î ¸ÂÁö ¾Ê½À´Ï´Ù\n"
+msgstr "%s: ï¿½ï¿½ï¿½: ï¿½ï¿½ï¿½Úµï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½Ê½4Ï´ï¿½\n"
 
-#: initdb.c:846
+#: initdb.c:852
 #, c-format
 msgid ""
 "The encoding you selected (%s) and the encoding that the selected\n"
@@ -101,177 +93,191 @@ msgid ""
 "this situation, rerun %s and either do not specify an encoding\n"
 "explicitly, or choose a matching combination.\n"
 msgstr ""
-"»ç¿ëÀÚ°¡ ÁöÁ¤ÇÑ ÀÎÄÚµù (%s)°ú ÇöÀç ½Ã½ºÅÛ ·ÎÄÉÀÏ¿¡¼­ »ç¿ëÇÏ´Â ÀÎÄÚµù(%s)ÀÌ\n"
-"¼­·Î ´Ù¸¨´Ï´Ù. ÀÌ·¸°Ô µÇ¸é ¸î¸î ¹®ÀÚ¿­À» Ã³¸®ÇÏ´Â ÇÔ¼öµéÀÌ ¿Àµ¿ÀÛÀ»\n"
-"ÀÏÀ¸Å³ ¼öµµ ÀÖ½À´Ï´Ù. ÀÌ ¹®Á¦¸¦ ÇØ°áÇÏ·Á¸é,\n"
-"%s ÇÁ·Î±×·¥À» ´Ù½Ã ½ÇÇàÇÏ¸é¼­ »ç¿ëÀÚ°¡ °­Á¦·Î ÀÎÄÚµùÀ» ÁöÁ¤ÇÏÁö ¾Ê°Å³ª\n"
-"½Ã½ºÅÛ ·ÎÄÉÀÏ°ú ¸Â´Â ÀÎÄÚµùÀ» ÁöÁ¤ÇÏ½Ê½Ã¿À.\n"
+"ï¿½ï¿½ï¿½ï¿½Ú°ï¿½ ï¿½ï¿½dï¿½ï¿½ ï¿½ï¿½ï¿½Úµï¿½ (%s)ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½Ã½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½Ï¿ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½Ï´ï¿½ ï¿½ï¿½ï¿½Úµï¿½(%s)ï¿½ï¿½\n"
+"ï¿½ï¿½ï¿½ï¿½ ï¿½Ù¸ï¿½ï¿½Ï´ï¿½. ï¿½Ì·ï¿½ï¿½ï¿½ ï¿½Ç¸ï¿½ ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½Ú¿ï¿½; Ã³ï¿½ï¿½ï¿½Ï´ï¿½ ï¿½Ô¼ï¿½ï¿½ï¿½ï¿½ ï¿½5ï¿½ï¿½ï¿½;\n"
+"ï¿½ï¿½8Å³ ï¿½ï¿½ ï¿½Ö½4Ï´ï¿½. ï¿½ï¿½ ï¿½ï¿½fï¿½ï¿½ ï¿½Ø°ï¿½ï¿½Ï·xï¿½,\n"
+"%s ï¿½wÎ±×·ï¿½; ï¿½Ù½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½Ï¸é¼­ ï¿½ï¿½ï¿½ï¿½Ú°ï¿½ ï¿½ï¿½fï¿½ï¿½ ï¿½ï¿½ï¿½Úµï¿½; ï¿½ï¿½dï¿½ï¿½ï¿½ï¿½ ï¿½Ê°Å³ï¿½\n"
+"ï¿½Ã½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½Ï°ï¿½ ï¿½Â´ï¿½ ï¿½ï¿½ï¿½Úµï¿½; ï¿½ï¿½dï¿½Ï½Ê½Ã¿ï¿½.\n"
 
-#: initdb.c:976
+#: initdb.c:993
 #, c-format
 msgid "%s: could not create directory \"%s\": %s\n"
-msgstr "%s: \"%s\" µð·ºÅä¸® ¸¸µé ¼ö ¾øÀ½: %s\n"
+msgstr "%s: \"%s\" ï¿½ï¿½ï¿½ä¸® ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ ï¿½ï¿½=: %s\n"
 
-#: initdb.c:1004
+#: initdb.c:1021
 #, c-format
 msgid ""
 "%s: file \"%s\" does not exist\n"
 "This means you have a corrupted installation or identified\n"
 "the wrong directory with the invocation option -L.\n"
 msgstr ""
-"%s: \"%s\" ÆÄÀÏÀÌ ¾ø½À´Ï´Ù.\n"
-"ÀÌ ¿À·ù´Â Á¤»óÀûÀ¸·Î ¼³Ä¡µÇÁö ¾Ê¾Ò°Å³ª,\n"
-"-L ¿É¼ÇÀ¸·Î ÁöÁ¤ÇÑ °æ·Î°¡ Àß¸øµÇ¾úÀ» °æ¿ìÀÔ´Ï´Ù. È®ÀÎÇØº¸¼¼¿ä.\n"
+"%s: \"%s\" ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½4Ï´ï¿½.\n"
+"ï¿½ï¿½ ï¿½7ï¿½ï¿½ dï¿½ï¿½ï¿½ï¿½8ï¿½ï¿½ ï¿½ï¿½Ä¡ï¿½ï¿½ï¿½ï¿½ ï¿½Ê¾Ò°Å³ï¿½,\n"
+"-L ï¿½É¼ï¿½8ï¿½ï¿½ ï¿½ï¿½dï¿½ï¿½ ï¿½ï¿½Î°ï¿½ ï¿½ß¸ï¿½Ç¾ï¿½; ï¿½ï¿½ï¿½ï¿½Ô´Ï´ï¿½. È®ï¿½ï¿½ï¿½Øºï¿½ï¿½ï¿½ï¿½ï¿½.\n"
 
-#: initdb.c:1086
+#: initdb.c:1133
+#, c-format
 msgid "selecting default max_connections ... "
-msgstr "max_connections ÃÊ±â°ªÀ» ¼±ÅÃÇÏ´Â Áß ..."
+msgstr "max_connections ï¿½Ê±â°ª; ï¿½ï¿½ï¿½ï¿½ï¿½Ï´ï¿½ ï¿½ï¿½ ..."
 
-#: initdb.c:1122
-msgid "selecting default shared_buffers ... "
-msgstr "shared_buffers ÃÊ±â°ªÀ» ¼±ÅÃÇÏ´Â Áß ..."
+#: initdb.c:1164
+#, c-format
+msgid "selecting default shared_buffers/max_fsm_pages ... "
+msgstr "shared_buffers/max_fsm_pages ï¿½Ê±â°ª; ï¿½ï¿½ï¿½ï¿½ï¿½Ï´ï¿½ ï¿½ï¿½ ..."
 
-#: initdb.c:1155
+#: initdb.c:1209
 msgid "creating configuration files ... "
-msgstr "È¯°æ¼³Á¤ ÆÄÀÏÀ» ¸¸µå´Â Áß ..."
+msgstr "È¯ï¿½æ¼³d ï¿½ï¿½ï¿½ï¿½; ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ ..."
 
-#: initdb.c:1251
+#: initdb.c:1371
 #, c-format
 msgid "creating template1 database in %s/base/1 ... "
-msgstr "%s/base/1 ¾È¿¡ template1 µ¥ÀÌÅÍº£ÀÌ½º¸¦ ¸¸µå´Â Áß ..."
+msgstr "%s/base/1 ï¿½È¿ï¿½ template1 ï¿½ï¿½ï¿½ï¿½ï¿½Íºï¿½ï¿½Ì½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ ..."
 
-#: initdb.c:1267
+#: initdb.c:1387
 #, c-format
 msgid ""
 "%s: input file \"%s\" does not belong to PostgreSQL %s\n"
 "Check your installation or specify the correct path using the option -L.\n"
 msgstr ""
-"%s: \"%s\" ÀÔ·Â ÆÄÀÏÀº PostgreSQL %s ¿ëÀÌ ¾Æ´Õ´Ï´Ù.\n"
-"¼³Ä¡»óÅÂ¸¦ È®ÀÎÇØ º¸°í, -L ¿É¼ÇÀ¸·Î ¹Ù¸¥ °æ·Î¸¦ ÁöÁ¤ÇÏ½Ê½Ã¿À.\n"
+"%s: \"%s\" ï¿½Ô·ï¿½ ï¿½ï¿½ï¿½ï¿½: PostgreSQL %s ï¿½ï¿½ï¿½ï¿½ ï¿½Æ´Õ´Ï´ï¿½.\n"
+"ï¿½ï¿½Ä¡ï¿½ï¿½ï¿½Â¸ï¿½ È®ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½, -L ï¿½É¼ï¿½8ï¿½ï¿½ ï¿½Ù¸ï¿½ ï¿½ï¿½Î¸ï¿½ ï¿½ï¿½dï¿½Ï½Ê½Ã¿ï¿½.\n"
 
-#: initdb.c:1342
-msgid "initializing pg_shadow ... "
-msgstr "pg_shadow ÃÊ±âÈ­ Áß ..."
+#: initdb.c:1465
+msgid "initializing pg_authid ... "
+msgstr "pg_authid ï¿½Ê±ï¿½È­ ï¿½ï¿½ ..."
 
-#: initdb.c:1378
+#: initdb.c:1501
 msgid "Enter new superuser password: "
-msgstr "»õ ½´ÆÛÀ¯Àú ºñ¹Ð¹øÈ£¸¦ ÀÔ·ÂÇÏ½Ê½Ã¿À:"
+msgstr "ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½/ï¿½ï¿½ ï¿½ï¿½Ð¹ï¿½È£ï¿½ï¿½ ï¿½Ô·ï¿½ï¿½Ï½Ê½Ã¿ï¿½:"
 
-#: initdb.c:1379
+#: initdb.c:1502
 msgid "Enter it again: "
-msgstr "ºñ¹Ð¹øÈ£ È®ÀÎ:"
+msgstr "ï¿½ï¿½Ð¹ï¿½È£ È®ï¿½ï¿½:"
 
-#: initdb.c:1382
+#: initdb.c:1505
+#, c-format
 msgid "Passwords didn't match.\n"
-msgstr "ºñ¹Ð¹øÈ£°¡ ¼­·Î Æ²¸³´Ï´Ù.\n"
+msgstr "ï¿½ï¿½Ð¹ï¿½È£ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ Æ²ï¿½ï¿½ï¿½Ï´ï¿½.\n"
 
-#: initdb.c:1409
+#: initdb.c:1532
 #, c-format
 msgid "%s: could not read password from file \"%s\": %s\n"
-msgstr "%s: file \"%s\" ÆÄÀÏ¿¡¼­ ºñ¹Ð¹øÈ£¸¦ ÀÐÀ» ¼ö ¾ø½À´Ï´Ù: %s\n"
+msgstr "%s: file \"%s\" ï¿½ï¿½ï¿½Ï¿ï¿½ï¿½ï¿½ ï¿½ï¿½Ð¹ï¿½È£ï¿½ï¿½ ï¿½ï¿½; ï¿½ï¿½ ï¿½ï¿½4Ï´ï¿½: %s\n"
 
-#: initdb.c:1422
+#: initdb.c:1545
+#, c-format
 msgid "setting password ... "
-msgstr "ºñ¹Ð¹øÈ£ ¼³Á¤ Áß ..."
+msgstr "ï¿½ï¿½Ð¹ï¿½È£ ï¿½ï¿½d ï¿½ï¿½ ..."
 
-#: initdb.c:1443
+#: initdb.c:1569
 #, c-format
 msgid "%s: The password file was not generated. Please report this problem.\n"
-msgstr "%s: ºñ¹Ð¹øÈ£ ÆÄÀÏÀ» »ý¼ºÇÏÁö ¸øÇß½À´Ï´Ù. ÀÌ ¹®Á¦¸¦ °³¹ßÁø¿¡°Ô ¾Ë·ÁÁÖ½Ê½Ã¿À.\n"
+msgstr ""
+"%s: ï¿½ï¿½Ð¹ï¿½È£ ï¿½ï¿½ï¿½ï¿½; ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ß½4Ï´ï¿½. ï¿½ï¿½ ï¿½ï¿½fï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½Ë·ï¿½ï¿½Ö½Ê½Ã¿ï¿½.\n"
 
-#: initdb.c:1471
-msgid "enabling unlimited row size for system tables ... "
-msgstr "½Ã½ºÅÛ Å×ÀÌºíµéÀ» À§ÇÑ Á¦ÇÑ ¾ø´Â ·Î¿ì Å©±â¸¦ È°¼ºÈ­ ÇÏ°í ÀÖÀ½ ..."
+#: initdb.c:1638
+msgid "initializing dependencies ... "
+msgstr "ï¿½ï¿½xï¿½ï¿½ dï¿½ï¿½ ï¿½Ê±ï¿½È­ ï¿½ï¿½ ..."
 
-#: initdb.c:1544
-msgid "initializing pg_depend ... "
-msgstr "pg_depend ÃÊ±âÈ­ Áß ..."
-
-#: initdb.c:1572
+#: initdb.c:1666
 msgid "creating system views ... "
-msgstr "½Ã½ºÅÛ ºäµéÀ» ¸¸µå´Â Áß ... "
+msgstr "ï¿½Ã½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½; ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ ... "
 
-#: initdb.c:1608
-msgid "loading pg_description ... "
-msgstr "pg_description ÀÚ·á ÀÔ·Â Áß ..."
+#: initdb.c:1702
+msgid "loading system objects' descriptions ... "
+msgstr "ï¿½Ã½ï¿½ï¿½ï¿½ ï¿½ï¿½Ã¼ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½Ú·ï¿½ ï¿½Ô·ï¿½ ï¿½ï¿½ ..."
 
-#: initdb.c:1647
+#: initdb.c:1754
 msgid "creating conversions ... "
-msgstr "ÀÎÄÚµù º¯È¯±ÔÄ¢(conversion)µéÀ» ¸¸µå´Â Áß ..."
+msgstr "ï¿½ï¿½ï¿½Úµï¿½ ï¿½ï¿½È¯ï¿½ï¿½Ä¢(conversion)ï¿½ï¿½; ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ ..."
 
-#: initdb.c:1701
+#: initdb.c:1805
 msgid "setting privileges on built-in objects ... "
-msgstr "³»Àå°´Ã¼µéÀÇ Á¢±Ù ±ÇÇÑÀ» ¼³Á¤ Áß ... "
+msgstr "ï¿½ï¿½ï¿½å°´Ã¼ï¿½ï¿½ï¿½ï¿½ bï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½; ï¿½ï¿½d ï¿½ï¿½ ... "
 
-#: initdb.c:1759
+#: initdb.c:1863
 msgid "creating information schema ... "
-msgstr "information schema ¸¸µå´Â Áß ..."
+msgstr "information schema ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ ..."
 
-#: initdb.c:1816
+#: initdb.c:1919
 msgid "vacuuming database template1 ... "
-msgstr "template1 µ¥ÀÌÅÍº£ÀÌ½º vacuum ÀÛ¾÷ Áß ..."
+msgstr "template1 ï¿½ï¿½ï¿½ï¿½ï¿½Íºï¿½ï¿½Ì½ï¿½ vacuum ï¿½Û¾ï¿½ ï¿½ï¿½ ..."
 
-#: initdb.c:1870
+#: initdb.c:1973
 msgid "copying template1 to template0 ... "
-msgstr "template1 µ¥ÀÌÅÍº£ÀÌ½º¸¦ template0 µ¥ÀÌÅÍº£ÀÌ½º·Î º¹»ç Áß ..."
+msgstr "template1 ï¿½ï¿½ï¿½ï¿½ï¿½Íºï¿½ï¿½Ì½ï¿½ï¿½ï¿½ template0 ï¿½ï¿½ï¿½ï¿½ï¿½Íºï¿½ï¿½Ì½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ ..."
 
-#: initdb.c:1927
+#: initdb.c:2004
+msgid "copying template1 to postgres ... "
+msgstr "template1 ï¿½ï¿½ï¿½ï¿½ï¿½Íºï¿½ï¿½Ì½ï¿½ï¿½ï¿½ postgres ï¿½ï¿½ï¿½ï¿½ï¿½Íºï¿½ï¿½Ì½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ ..."
+
+#: initdb.c:2061
+#, c-format
 msgid "caught signal\n"
-msgstr "½Ã½ºÅÛÀÇ °£¼· ½ÅÈ£(signal) ¹Þ¾ÒÀ½\n"
+msgstr "ï¿½Ã½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½È£(signal) ï¿½Þ¾ï¿½=\n"
 
-#: initdb.c:1933
+#: initdb.c:2067
 #, c-format
 msgid "could not write to child process: %s\n"
-msgstr "ÇÏÀ§ ÇÁ·Î¼¼½º¿¡ ¾µ ¼ö ¾øÀ½: %s\n"
+msgstr "ï¿½ï¿½' ï¿½wÎ¼ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ ï¿½ï¿½ ï¿½ï¿½=: %s\n"
 
-#: initdb.c:1941
+#: initdb.c:2075
+#, c-format
 msgid "ok\n"
-msgstr "¿Ï·á\n"
+msgstr "ï¿½Ï·ï¿½\n"
 
-#: initdb.c:1989
+#: initdb.c:2186
 #, c-format
 msgid "%s: invalid locale name \"%s\"\n"
-msgstr "%s: Áú¸øµÈ ·ÎÄÉÀÏ ÀÌ¸§ \"%s\"\n"
+msgstr "%s: ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½Ì¸ï¿½ \"%s\"\n"
 
-#: initdb.c:2056
+#: initdb.c:2337
 #, c-format
 msgid ""
 "%s initializes a PostgreSQL database cluster.\n"
 "\n"
 msgstr ""
-"%s PostgreSQL µ¥ÀÌÅÍº£ÀÌ½º Å¬·¯½ºÅÍ¸¦ ÃÊ±âÈ­ ÇÏ´Â ÇÁ·Î±×·¥.\n"
+"%s PostgreSQL ï¿½ï¿½ï¿½ï¿½ï¿½Íºï¿½ï¿½Ì½ï¿½ Å¬ï¿½ï¿½ï¿½ï¿½ï¿½Í¸ï¿½ ï¿½Ê±ï¿½È­ ï¿½Ï´ï¿½ ï¿½wÎ±×·ï¿½.\n"
 "\n"
 
-#: initdb.c:2057
+#: initdb.c:2338
+#, c-format
 msgid "Usage:\n"
-msgstr "»ç¿ë¹ý:\n"
+msgstr "ï¿½ï¿½ï¿½ï¿½:\n"
 
-#: initdb.c:2058
+#: initdb.c:2339
 #, c-format
 msgid "  %s [OPTION]... [DATADIR]\n"
-msgstr "  %s [¿É¼Ç]... [DATADIR]\n"
+msgstr "  %s [ï¿½É¼ï¿½]... [DATADIR]\n"
 
-#: initdb.c:2059
+#: initdb.c:2340
+#, c-format
 msgid ""
 "\n"
 "Options:\n"
 msgstr ""
 "\n"
-"¿É¼Çµé:\n"
+"ï¿½É¼Çµï¿½:\n"
 
-#: initdb.c:2060
+#: initdb.c:2341
+#, c-format
 msgid " [-D, --pgdata=]DATADIR     location for this database cluster\n"
-msgstr " [-D, --pgdata=]DATADIR     »õ µ¥ÀÌÅÍº£ÀÌ½º Å¬·¯½ºÅÍ¸¦ ¸¸µé µð·ºÅä¸®\n"
+msgstr " [-D, --pgdata=]DATADIR     ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½Íºï¿½ï¿½Ì½ï¿½ Å¬ï¿½ï¿½ï¿½ï¿½ï¿½Í¸ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ä¸®\n"
 
-#: initdb.c:2061
+#: initdb.c:2342
+#, c-format
 msgid "  -E, --encoding=ENCODING   set default encoding for new databases\n"
-msgstr "  -E, --encoding=ENCODING   »õ µ¥ÀÌÅÍº£ÀÌ½ºÀÇ ±âº» ÀÎÄÚµù\n"
+msgstr "  -E, --encoding=ENCODING   ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½Íºï¿½ï¿½Ì½ï¿½ï¿½ï¿½ ï¿½âº» ï¿½ï¿½ï¿½Úµï¿½\n"
 
-#: initdb.c:2062
-msgid "  --locale=LOCALE           initialize database cluster with given locale\n"
-msgstr "  --locale=LOCALE           µ¥ÀÌÅÍº£ÀÌ½º Å¬·¯½ºÅÍ ÃÊ±âÈ­¿ë ·ÎÄÉÀÏ\n"
+#: initdb.c:2343
+#, c-format
+msgid ""
+"  --locale=LOCALE           initialize database cluster with given locale\n"
+msgstr "  --locale=LOCALE           ï¿½ï¿½ï¿½ï¿½ï¿½Íºï¿½ï¿½Ì½ï¿½ Å¬ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½Ê±ï¿½È­ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½\n"
 
-#: initdb.c:2063
+#: initdb.c:2344
+#, c-format
 msgid ""
 "  --lc-collate, --lc-ctype, --lc-messages=LOCALE\n"
 "  --lc-monetary, --lc-numeric, --lc-time=LOCALE\n"
@@ -281,104 +287,125 @@ msgid ""
 msgstr ""
 "  --lc-collate, --lc-ctype, --lc-messages=LOCALE\n"
 "  --lc-monetary, --lc-numeric, --lc-time=LOCALE\n"
-"                            °³º°ÀûÀ¸·Î »ç¿ëµÉ ·ÎÄÉÀÏ\n"
-"                            (ÃÊ±â°ªÀº ÇöÀç ½Ã½ºÅÛ ·ÎÄÉÀÏÀ» »ç¿ëÇÔ)\n"
+"                            ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½8ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½\n"
+"                            (ï¿½Ê±â°ª: ï¿½ï¿½ï¿½ï¿½ ï¿½Ã½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½; ï¿½ï¿½ï¿½ï¿½ï¿½)\n"
 
-#: initdb.c:2068
+#: initdb.c:2349
+#, c-format
 msgid "  --no-locale               equivalent to --locale=C\n"
-msgstr "  --no-locale               --locale=C ¿É¼Ç°ú °°À½\n"
+msgstr "  --no-locale               --locale=C ï¿½É¼Ç°ï¿½ ï¿½ï¿½=\n"
 
-#: initdb.c:2069
-msgid "  -A, --auth=METHOD         default authentication method for local connections\n"
-msgstr "  -A, --auth=METHOD         ·ÎÄÃ ¿¬°áÀÇ ±âº» ÀÎÁõ ¹æ¹ý\n"
+#: initdb.c:2350
+#, c-format
+msgid ""
+"  -A, --auth=METHOD         default authentication method for local "
+"connections\n"
+msgstr "  -A, --auth=METHOD         ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½âº» ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½\n"
 
-#: initdb.c:2070
+#: initdb.c:2351
+#, c-format
 msgid "  -U, --username=NAME       database superuser name\n"
-msgstr "  -U, --username=NAME       µ¥ÀÌÅÍº£ÀÌ½º ½´ÆÛÀ¯Àú ÀÌ¸§\n"
+msgstr "  -U, --username=NAME       ï¿½ï¿½ï¿½ï¿½ï¿½Íºï¿½ï¿½Ì½ï¿½ ï¿½ï¿½ï¿½ï¿½/ï¿½ï¿½ ï¿½Ì¸ï¿½\n"
 
-#: initdb.c:2071
-msgid "  -W, --pwprompt            prompt for a password for the new superuser\n"
-msgstr "  -W, --pwprompt            »õ ½´ÆÛÀ¯Àú ºñ¹Ð¹øÈ£¸¦ ÀÔ·Â ¹ÞÀ½\n"
+#: initdb.c:2352
+#, c-format
+msgid ""
+"  -W, --pwprompt            prompt for a password for the new superuser\n"
+msgstr "  -W, --pwprompt            ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½/ï¿½ï¿½ ï¿½ï¿½Ð¹ï¿½È£ï¿½ï¿½ ï¿½Ô·ï¿½ ï¿½ï¿½=\n"
 
-#: initdb.c:2072
-msgid "  --pwfile=FILE             read password for the new superuser from file\n"
-msgstr "  --pwfile=FILE             »õ ½´ÆÛÀ¯ÀúÀÇ ºñ¹Ð¹øÈ£¸¦ ÁöÁ¤ÇÑ FILE¿¡¼­ °¡Á®¿È\n"
+#: initdb.c:2353
+#, c-format
+msgid ""
+"  --pwfile=FILE             read password for the new superuser from file\n"
+msgstr ""
+"  --pwfile=FILE             ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½/ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½Ð¹ï¿½È£ï¿½ï¿½ ï¿½ï¿½dï¿½ï¿½ FILEï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½nï¿½ï¿½\n"
 
-#: initdb.c:2073
+#: initdb.c:2354
+#, c-format
 msgid "  -?, --help                show this help, then exit\n"
-msgstr "  -?, --help                ÀÌ µµ¿ò¸»À» º¸¿©ÁÖ°í ¸¶Ä§\n"
+msgstr "  -?, --help                ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½; ï¿½ï¿½ï¿½ï¿½ï¿½Ö°ï¿½ ï¿½ï¿½Ä§\n"
 
-#: initdb.c:2074
+#: initdb.c:2355
+#, c-format
 msgid "  -V, --version             output version information, then exit\n"
-msgstr "  -V, --version             ¹öÀü Á¤º¸¸¦ º¸¿©ÁÖ°í ¸¶Ä§\n"
+msgstr "  -V, --version             ï¿½ï¿½ï¿½ï¿½ dï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½Ö°ï¿½ ï¿½ï¿½Ä§\n"
 
-#: initdb.c:2075
+#: initdb.c:2356
+#, c-format
 msgid ""
 "\n"
 "Less commonly used options:\n"
 msgstr ""
 "\n"
-"´ú ÀÏ¹ÝÀûÀ¸·Î »ç¿ëµÇ´Â ¿É¼Çµé:\n"
+"ï¿½ï¿½ ï¿½Ï¹ï¿½ï¿½ï¿½8ï¿½ï¿½ ï¿½ï¿½ï¿½Ç´ï¿½ ï¿½É¼Çµï¿½:\n"
 
-#: initdb.c:2076
+#: initdb.c:2357
+#, c-format
 msgid "  -d, --debug               generate lots of debugging output\n"
-msgstr "  -d, --debug               µð¹ö±ë¿¡ ÇÊ¿äÇÑ Á¤º¸µéµµ ÇÔ²² Ãâ·ÂÇÔ\n"
+msgstr "  -d, --debug               ï¿½ï¿½ï¿½ë¿¡ ï¿½Ê¿ï¿½ï¿½ï¿½ dï¿½ï¿½ï¿½éµµ ï¿½Ô²ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½\n"
 
-#: initdb.c:2077
+#: initdb.c:2358
+#, c-format
 msgid "  -s, --show                show internal settings\n"
-msgstr "  -s, --show                ³»ºÎ ¼³Á¤°ªµéÀ» º¸¿©ÁÜ\n"
+msgstr "  -s, --show                ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½dï¿½ï¿½ï¿½ï¿½; ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½\n"
 
-#: initdb.c:2078
+#: initdb.c:2359
+#, c-format
 msgid "  -L DIRECTORY              where to find the input files\n"
-msgstr "  -L DIRECTORY              ÀÔ·ÂÆÄÀÏµéÀÌ ÀÖ´Â µð·ºÅä¸®\n"
+msgstr "  -L DIRECTORY              ï¿½Ô·ï¿½ï¿½ï¿½ï¿½Ïµï¿½ï¿½ï¿½ ï¿½Ö´ï¿½ ï¿½ï¿½ï¿½ä¸®\n"
 
-#: initdb.c:2079
+#: initdb.c:2360
+#, c-format
 msgid "  -n, --noclean             do not clean up after errors\n"
-msgstr "  -n, --noclean             ¿À·ù°¡ ¹ß»ýµÇ¾úÀ» °æ¿ì ±×´ë·Î µÒ\n"
+msgstr "  -n, --noclean             ï¿½7ï¿½ ï¿½ß»ï¿½Ç¾ï¿½; ï¿½ï¿½ï¿½ ï¿½×´ï¿½ï¿½ ï¿½ï¿½\n"
 
-#: initdb.c:2080
+#: initdb.c:2361
+#, c-format
 msgid ""
 "\n"
 "If the data directory is not specified, the environment variable PGDATA\n"
 "is used.\n"
 msgstr ""
 "\n"
-"µ¥ÀÌÅÍ µð·ºÅä¸®¸¦ ÁöÁ¤ÇÏÁö ¾ÊÀ¸¸é, PGDATA È¯°æ º¯¼ö°ªÀ» »ç¿ëÇÕ´Ï´Ù.\n"
+"ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ä¸®ï¿½ï¿½ ï¿½ï¿½dï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½8ï¿½ï¿½, PGDATA È¯ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½; ï¿½ï¿½ï¿½ï¿½Õ´Ï´ï¿½.\n"
 
-#: initdb.c:2082
+#: initdb.c:2363
+#, c-format
 msgid ""
 "\n"
 "Report bugs to <pgsql-bugs@postgresql.org>.\n"
 msgstr ""
 "\n"
-"¿À·ùº¸°í: <pgsql-bugs@postgresql.org>.\n"
+"ï¿½7ï¿½ï¿½: <pgsql-bugs@postgresql.org>.\n"
 
-#: initdb.c:2175
+#: initdb.c:2464
+#, c-format
 msgid "Running in debug mode.\n"
-msgstr "µð¹ö±× ¸ðµå·Î ½ÇÇà Áß.\n"
+msgstr "ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½.\n"
 
-#: initdb.c:2179
+#: initdb.c:2468
+#, c-format
 msgid "Running in noclean mode.  Mistakes will not be cleaned up.\n"
-msgstr "ÁöÀúºÐ ¸ðµå·Î ½ÇÇà Áß.  ¿À·ù°¡ ¹ß»ýµÇ¾îµµ µÞÁ¤¸®¸¦ ¾ÈÇÕ´Ï´Ù.\n"
+msgstr "ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½.  ï¿½7ï¿½ ï¿½ß»ï¿½Ç¾îµµ ï¿½ï¿½dï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½Õ´Ï´ï¿½.\n"
 
-#: initdb.c:2216
-#: initdb.c:2233
-#: initdb.c:2453
+#: initdb.c:2505 initdb.c:2523 initdb.c:2790
 #, c-format
 msgid "Try \"%s --help\" for more information.\n"
-msgstr "º¸´Ù ÀÚ¼¼ÇÑ Á¤º¸¸¦ º¸·Á¸é \"%s --help\" ¿É¼ÇÀ» »ç¿ëÇÏ½Ê½Ã¿À.\n"
+msgstr "ï¿½ï¿½ï¿½ï¿½ ï¿½Ú¼ï¿½ï¿½ï¿½ dï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½xï¿½ \"%s --help\" ï¿½É¼ï¿½; ï¿½ï¿½ï¿½ï¿½Ï½Ê½Ã¿ï¿½.\n"
 
-#: initdb.c:2231
+#: initdb.c:2521
 #, c-format
 msgid "%s: too many command-line arguments (first is \"%s\")\n"
-msgstr "%s: ³Ê¹« ¸¹Àº ¸í·ÉÇà ÀÎÀÚ¸¦ ÁöÁ¤Çß½À´Ï´Ù. (Ã³À½ \"%s\")\n"
+msgstr "%s: ï¿½Ê¹ï¿½ ï¿½ï¿½: ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½Ú¸ï¿½ ï¿½ï¿½dï¿½ß½4Ï´ï¿½. (Ã³= \"%s\")\n"
 
-#: initdb.c:2239
+#: initdb.c:2529
 #, c-format
 msgid "%s: password prompt and password file may not be specified together\n"
-msgstr "%s: ºñ¹Ð¹øÈ£¸¦ ÀÔ·Â¹Þ´Â ¿É¼Ç°ú ºñ¹Ð¹øÈ£¸¦ ÆÄÀÏ¿¡¼­ °¡Á®¿À´Â ¿É¼ÇÀº µ¿½Ã¿¡ »ç¿ëµÉ ¼ö ¾ø½À´Ï´Ù\n"
+msgstr ""
+"%s: ï¿½ï¿½Ð¹ï¿½È£ï¿½ï¿½ ï¿½Ô·Â¹Þ´ï¿½ ï¿½É¼Ç°ï¿½ ï¿½ï¿½Ð¹ï¿½È£ï¿½ï¿½ ï¿½ï¿½ï¿½Ï¿ï¿½ï¿½ï¿½ ï¿½ï¿½nï¿½4ï¿½ ï¿½É¼ï¿½: ï¿½ï¿½ï¿½Ã¿ï¿½ ï¿½ï¿½"
+"ï¿½ï¿½ï¿½ ï¿½ï¿½ ï¿½ï¿½4Ï´ï¿½\n"
 
-#: initdb.c:2245
+#: initdb.c:2535
 msgid ""
 "\n"
 "WARNING: enabling \"trust\" authentication for local connections\n"
@@ -386,21 +413,24 @@ msgid ""
 "next time you run initdb.\n"
 msgstr ""
 "\n"
-"°æ°í: ·ÎÄÃ ¿¬°áÀÇ ÀÎÁõ ¹æ¹ýÀ» \"trust\" ¹æ½ÄÀ» ÁöÁ¤Çß½À´Ï´Ù.\n"
-"ÀÌ °ªÀ» ¹Ù²Ù·Á¸é, pg_hba.conf ÆÄÀÏÀ» ¼öÁ¤ÇÏµçÁö,\n"
-"´ÙÀ½¹ø initdb ¸í·ÉÀ» »ç¿ëÇÒ ¶§, -A ¿É¼ÇÀ» »ç¿ëÇØ¼­ ÀÎÁõ¹æ½ÄÀ» ÁöÁ¤ÇÒ ¼ö ÀÖ½À´Ï´Ù.\n"
+"ï¿½ï¿½ï¿½: ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½; \"trust\" ï¿½ï¿½ï¿½; ï¿½ï¿½dï¿½ß½4Ï´ï¿½.\n"
+"ï¿½ï¿½ ï¿½ï¿½; ï¿½Ù²Ù·xï¿½, pg_hba.conf ï¿½ï¿½ï¿½ï¿½; ï¿½ï¿½dï¿½Ïµï¿½ï¿½ï¿½,\n"
+"ï¿½ï¿½=ï¿½ï¿½ initdb ï¿½ï¿½ï¿½; ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½, -A ï¿½É¼ï¿½; ï¿½ï¿½ï¿½ï¿½Ø¼ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½; ï¿½ï¿½dï¿½ï¿½ ï¿½ï¿½ ï¿½Ö½ï¿½"
+"ï¿½Ï´ï¿½.\n"
 
-#: initdb.c:2269
+#: initdb.c:2558
 #, c-format
 msgid "%s: unrecognized authentication method \"%s\"\n"
-msgstr "%s: ¾Ë ¼ö ¾ø´Â ÀÎÁõ ¹æ¹ý \"%s\"\n"
+msgstr "%s: ï¿½ï¿½ ï¿½ï¿½ ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ \"%s\"\n"
 
-#: initdb.c:2279
+#: initdb.c:2568
 #, c-format
-msgid "%s: must specify a password for the superuser to enable %s authentication\n"
-msgstr "%s: %s ÀÎÁõ¹æ½ÄÀ» »ç¿ëÇÏ·Á¸é, ¹Ýµå½Ã ½´ÆÛÀ¯ÀúÀÇ ºñ¹Ð¹øÈ£¸¦ ÁöÁ¤ÇØ¾ßÇÕ´Ï´Ù.\n"
+msgid ""
+"%s: must specify a password for the superuser to enable %s authentication\n"
+msgstr ""
+"%s: %s ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½; ï¿½ï¿½ï¿½ï¿½Ï·xï¿½, ï¿½Ýµï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½/ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½Ð¹ï¿½È£ï¿½ï¿½ ï¿½ï¿½dï¿½Ø¾ï¿½ï¿½Õ´Ï´ï¿½.\n"
 
-#: initdb.c:2294
+#: initdb.c:2583
 #, c-format
 msgid ""
 "%s: no data directory specified\n"
@@ -408,59 +438,60 @@ msgid ""
 "will reside.  Do this with either the invocation option -D or the\n"
 "environment variable PGDATA.\n"
 msgstr ""
-"%s: µ¥ÀÌÅÍ µð·ºÅä¸®¸¦ ÁöÁ¤ÇÏÁö ¾Ê¾Ò½À´Ï´Ù\n"
-"ÀÌ ÀÛ¾÷À» ÁøÇàÇÏ·Á¸é, ¹Ýµå½Ã ÀÌ µ¥ÀÌÅÍ µð·ºÅä¸®¸¦ ÁöÁ¤ÇØ ÁÖ¾î¾ßÇÕ´Ï´Ù.\n"
-"ÁöÁ¤ÇÏ´Â ¹æ¹ýÀº -D ¿É¼ÇÀÇ °ªÀÌ³ª, PGDATA È¯°æ º¯¼ö°ªÀ¸·Î ÁöÁ¤ÇØ ÁÖ¸é µË´Ï´Ù.\n"
+"%s: ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ä¸®ï¿½ï¿½ ï¿½ï¿½dï¿½ï¿½ï¿½ï¿½ ï¿½Ê¾Ò½4Ï´ï¿½\n"
+"ï¿½ï¿½ ï¿½Û¾ï¿½; ï¿½ï¿½ï¿½ï¿½ï¿½Ï·xï¿½, ï¿½Ýµï¿½ï¿½ ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ä¸®ï¿½ï¿½ ï¿½ï¿½dï¿½ï¿½ ï¿½Ö¾ï¿½ï¿½ï¿½Õ´Ï´ï¿½.\n"
+"ï¿½ï¿½dï¿½Ï´ï¿½ ï¿½ï¿½ï¿½: -D ï¿½É¼ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½Ì³ï¿½, PGDATA È¯ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½8ï¿½ï¿½ ï¿½ï¿½dï¿½ï¿½ ï¿½Ö¸ï¿½ ï¿½Ë´ï¿½"
+"ï¿½ï¿½.\n"
 
-#: initdb.c:2326
+#: initdb.c:2659
 #, c-format
 msgid ""
 "The program \"postgres\" is needed by %s but was not found in the\n"
 "same directory as \"%s\".\n"
 "Check your installation.\n"
 msgstr ""
-"%s ÇÁ·Î±×·¥Àº \"postgres\" ÇÁ·Î±×·¥À» ÇÊ¿ä·Î ÇÕ´Ï´Ù. ±×·±µ¥, ÀÌ ÆÄÀÏÀÌ\n"
-"\"%s\" ÆÄÀÏÀÌ ÀÖ´Â µð·ºÅä¸®¾È¿¡ ¾ø½À´Ï´Ù.\n"
-"¼³Ä¡ »óÅÂ¸¦ È®ÀÎÇØ ÁÖ½Ê½Ã¿À.\n"
+"%s ï¿½wÎ±×·ï¿½: \"postgres\" ï¿½wÎ±×·ï¿½; ï¿½Ê¿ï¿½ï¿½ ï¿½Õ´Ï´ï¿½. ï¿½×·ï¿½ï¿½ï¿½, ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½\n"
+"\"%s\" ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½Ö´ï¿½ ï¿½ï¿½ï¿½ä¸®ï¿½È¿ï¿½ ï¿½ï¿½4Ï´ï¿½.\n"
+"ï¿½ï¿½Ä¡ ï¿½ï¿½ï¿½Â¸ï¿½ È®ï¿½ï¿½ï¿½ï¿½ ï¿½Ö½Ê½Ã¿ï¿½.\n"
 
-#: initdb.c:2333
+#: initdb.c:2666
 #, c-format
 msgid ""
 "The program \"postgres\" was found by \"%s\"\n"
 "but was not the same version as %s.\n"
 "Check your installation.\n"
 msgstr ""
-"\"%s\" ÇÁ·Î±×·¥Àº \"postgres\" ÇÁ·Î±×·¥À» Ã£¾ÒÁö¸¸ ÀÌ ÆÄÀÏÀº\n"
-"%s ÇÁ·Î±×·¥ÀÇ ¹öÀü°ú Æ²¸³´Ï´Ù.\n"
-"¼³Ä¡ »óÅÂ¸¦ È®ÀÎÇØ ÁÖ½Ê½Ã¿À.\n"
+"\"%s\" ï¿½wÎ±×·ï¿½: \"postgres\" ï¿½wÎ±×·ï¿½; Ã£ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½:\n"
+"%s ï¿½wÎ±×·ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ Æ²ï¿½ï¿½ï¿½Ï´ï¿½.\n"
+"ï¿½ï¿½Ä¡ ï¿½ï¿½ï¿½Â¸ï¿½ È®ï¿½ï¿½ï¿½ï¿½ ï¿½Ö½Ê½Ã¿ï¿½.\n"
 
-#: initdb.c:2352
+#: initdb.c:2685
 #, c-format
 msgid "%s: input file location must be an absolute path\n"
-msgstr "%s: ÀÔ·Â ÆÄÀÏ À§Ä¡´Â ¹Ýµå½Ã Àý´ë°æ·Î¿©¾ßÇÕ´Ï´Ù.\n"
+msgstr "%s: ï¿½Ô·ï¿½ ï¿½ï¿½ï¿½ï¿½ 'Ä¡ï¿½ï¿½ ï¿½Ýµï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½Î¿ï¿½ï¿½ï¿½ï¿½Õ´Ï´ï¿½.\n"
 
-#: initdb.c:2360
+#: initdb.c:2693
 #, c-format
 msgid "%s: could not determine valid short version string\n"
-msgstr "%s: ¾Ë¸ÂÀº °£·« ¹öÀü ¹®ÀÚ¿­(short version string)À» Á¶»çÇÒ ¼ö ¾øÀ½\n"
+msgstr "%s: ï¿½Ë¸ï¿½: ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½Ú¿ï¿½(short version string); vï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ ï¿½ï¿½=\n"
 
-#: initdb.c:2413
+#: initdb.c:2750
 #, c-format
 msgid ""
 "The files belonging to this database system will be owned by user \"%s\".\n"
 "This user must also own the server process.\n"
 "\n"
 msgstr ""
-"ÀÌ µ¥ÀÌÅÍº£ÀÌ½º ½Ã½ºÅÛ¿¡¼­ ¸¸µé¾îÁö´Â ÆÄÀÏµéÀº ±× ¼ÒÀ¯ÁÖ°¡ \"%s\" id·Î\n"
-"ÁöÁ¤µÉ °ÍÀÔ´Ï´Ù. ¶ÇÇÑ ÀÌ »ç¿ëÀÚ´Â ¼­¹ö ÇÁ·Î¼¼½ºÀÇ ¼ÒÀ¯ÁÖ°¡ µË´Ï´Ù.\n"
+"ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½Íºï¿½ï¿½Ì½ï¿½ ï¿½Ã½ï¿½ï¿½Û¿ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½Ïµï¿½: ï¿½ï¿½ ï¿½ï¿½/ï¿½Ö°ï¿½ \"%s\" idï¿½ï¿½\n"
+"ï¿½ï¿½dï¿½ï¿½ ï¿½ï¿½ï¿½Ô´Ï´ï¿½. ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½Ú´ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½wÎ¼ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½/ï¿½Ö°ï¿½ ï¿½Ë´Ï´ï¿½.\n"
 "\n"
 
-#: initdb.c:2423
+#: initdb.c:2760
 #, c-format
 msgid "The database cluster will be initialized with locale %s.\n"
-msgstr "µ¥ÀÌÅÍº£ÀÌ½º Å¬·¯½ºÅÍ´Â %s ·ÎÄÉÀÏ·Î ÃÊ±âÈ­ µÉ °ÍÀÔ´Ï´Ù.\n"
+msgstr "ï¿½ï¿½ï¿½ï¿½ï¿½Íºï¿½ï¿½Ì½ï¿½ Å¬ï¿½ï¿½ï¿½ï¿½ï¿½Í´ï¿½ %s ï¿½ï¿½ï¿½ï¿½ï¿½Ï·ï¿½ ï¿½Ê±ï¿½È­ ï¿½ï¿½ ï¿½ï¿½ï¿½Ô´Ï´ï¿½.\n"
 
-#: initdb.c:2426
+#: initdb.c:2763
 #, c-format
 msgid ""
 "The database cluster will be initialized with locales\n"
@@ -471,7 +502,7 @@ msgid ""
 "  NUMERIC:  %s\n"
 "  TIME:     %s\n"
 msgstr ""
-"µ¥ÀÌÅÍº£ÀÌ½º Å¬·¯½ºÅÍ´Â ´ÙÀ½ ·ÎÄÉÀÏ·Î ÃÊ±âÈ­ µÉ °ÍÀÔ´Ï´Ù.\n"
+"ï¿½ï¿½ï¿½ï¿½ï¿½Íºï¿½ï¿½Ì½ï¿½ Å¬ï¿½ï¿½ï¿½ï¿½ï¿½Í´ï¿½ ï¿½ï¿½= ï¿½ï¿½ï¿½ï¿½ï¿½Ï·ï¿½ ï¿½Ê±ï¿½È­ ï¿½ï¿½ ï¿½ï¿½ï¿½Ô´Ï´ï¿½.\n"
 "  COLLATE:  %s\n"
 "  CTYPE:    %s\n"
 "  MESSAGES: %s\n"
@@ -479,37 +510,37 @@ msgstr ""
 "  NUMERIC:  %s\n"
 "  TIME:     %s\n"
 
-#: initdb.c:2451
+#: initdb.c:2788
 #, c-format
 msgid "%s: could not find suitable encoding for locale \"%s\"\n"
-msgstr "%s: \"%s\" ·ÎÄÉÀÏ¿¡¼­ »ç¿ëÇÒ Àû´çÇÑ ÀÎÄÚµùÀ» Ã£Áö ¸øÇß½À´Ï´Ù.\n"
+msgstr "%s: \"%s\" ï¿½ï¿½ï¿½ï¿½ï¿½Ï¿ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½Úµï¿½; Ã£ï¿½ï¿½ ï¿½ï¿½ï¿½ß½4Ï´ï¿½.\n"
 
-#: initdb.c:2452
+#: initdb.c:2789
 #, c-format
 msgid "Rerun %s with the -E option.\n"
-msgstr "-E ¿É¼ÇÀ¸·Î %s ÁöÁ¤ÇØ ÁÖ½Ê½Ã¿À.\n"
+msgstr "-E ï¿½É¼ï¿½8ï¿½ï¿½ %s ï¿½ï¿½dï¿½ï¿½ ï¿½Ö½Ê½Ã¿ï¿½.\n"
 
-#: initdb.c:2459
+#: initdb.c:2796
 #, c-format
 msgid "The default database encoding has accordingly been set to %s.\n"
-msgstr "±âº» µ¥ÀÌÅÍº£ÀÌ½ºÀÇ %s ÀÎÄÚµùÀº ¼³Á¤µÇ¾ú½À´Ï´Ù.\n"
+msgstr "ï¿½âº» ï¿½ï¿½ï¿½ï¿½ï¿½Íºï¿½ï¿½Ì½ï¿½ï¿½ï¿½ %s ï¿½ï¿½ï¿½Úµï¿½: ï¿½ï¿½dï¿½Ç¾ï¿½4Ï´ï¿½.\n"
 
-#: initdb.c:2500
+#: initdb.c:2836
 #, c-format
 msgid "creating directory %s ... "
-msgstr "%s µð·ºÅä¸® ¸¸µå´Â Áß ..."
+msgstr "%s ï¿½ï¿½ï¿½ä¸® ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ ..."
 
-#: initdb.c:2514
+#: initdb.c:2850
 #, c-format
 msgid "fixing permissions on existing directory %s ... "
-msgstr "ÀÌ¹Ì ÀÖ´Â %s µð·ºÅä¸®ÀÇ Á¢±Ù ±ÇÇÑÀ» °íÄ¡´Â Áß ..."
+msgstr "ï¿½Ì¹ï¿½ ï¿½Ö´ï¿½ %s ï¿½ï¿½ï¿½ä¸®ï¿½ï¿½ bï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½; ï¿½ï¿½Ä¡ï¿½ï¿½ ï¿½ï¿½ ..."
 
-#: initdb.c:2520
+#: initdb.c:2856
 #, c-format
 msgid "%s: could not change permissions of directory \"%s\": %s\n"
-msgstr "%s: \"%s\" µð·ºÅä¸®ÀÇ Á¢±Ù ±ÇÇÑÀ» ¹Ù²Ü ¼ö ¾ø½À´Ï´Ù: %s\n"
+msgstr "%s: \"%s\" ï¿½ï¿½ï¿½ä¸®ï¿½ï¿½ bï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½; ï¿½Ù²ï¿½ ï¿½ï¿½ ï¿½ï¿½4Ï´ï¿½: %s\n"
 
-#: initdb.c:2533
+#: initdb.c:2869
 #, c-format
 msgid ""
 "%s: directory \"%s\" exists but is not empty\n"
@@ -517,76 +548,106 @@ msgid ""
 "the directory \"%s\" or run %s\n"
 "with an argument other than \"%s\".\n"
 msgstr ""
-"%s: \"%s\" µð·ºÅä¸®°¡ ÀÌ¹Ì ÀÖÁö¸¸, ºñ¾îÀÖÁö ¾Ê½À´Ï´Ù.\n"
-"ÀÌ µð·ºÅä¸®¿¡ »õ µ¥ÀÌÅÍº£ÀÌ½º Å¬·¯½ºÅÍ¸¦ ¸¸µå·Á¸é,\n"
-"\"%s\" µð·ºÅä¸®¸¦ Áö¿ì°Å³ª ºñ¿ì°í Àç½ÇÇà ÇÏµçÁö,\n"
-"%s ÇÁ·Î±×·¥¿¡¼­ ´Ù¸¥ µð·ºÅä¸®¸¦ ÁöÁ¤ÇØ¼­ »ç¿ëÇÏ¼¼¿ä, \"%s\" ´ë½Å¿¡.\n"
+"%s: \"%s\" ï¿½ï¿½ï¿½ä¸®ï¿½ï¿½ ï¿½Ì¹ï¿½ ï¿½ï¿½ï¿½ï¿½, ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½Ê½4Ï´ï¿½.\n"
+"ï¿½ï¿½ ï¿½ï¿½ï¿½ä¸®ï¿½ï¿½ ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½Íºï¿½ï¿½Ì½ï¿½ Å¬ï¿½ï¿½ï¿½ï¿½ï¿½Í¸ï¿½ ï¿½ï¿½ï¿½ï¿½xï¿½,\n"
+"\"%s\" ï¿½ï¿½ï¿½ä¸®ï¿½ï¿½ ï¿½ï¿½ï¿½Å³ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½Ïµï¿½ï¿½ï¿½,\n"
+"%s ï¿½wÎ±×·ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½Ù¸ï¿½ ï¿½ï¿½ï¿½ä¸®ï¿½ï¿½ ï¿½ï¿½dï¿½Ø¼ï¿½ ï¿½ï¿½ï¿½ï¿½Ï¼ï¿½ï¿½ï¿½, \"%s\" ï¿½ï¿½Å¿ï¿½.\n"
 
-#: initdb.c:2542
+#: initdb.c:2878
 #, c-format
 msgid "%s: could not access directory \"%s\": %s\n"
-msgstr "%s: \"%s\" µð·ºÅä¸®¿¡ Á¢±Ù ÇÒ ¼ö ¾øÀ½: %s\n"
+msgstr "%s: \"%s\" ï¿½ï¿½ï¿½ä¸®ï¿½ï¿½ bï¿½ï¿½ ï¿½ï¿½ ï¿½ï¿½ ï¿½ï¿½=: %s\n"
 
-#: initdb.c:2551
+#: initdb.c:2884
 #, c-format
-msgid "creating directory %s/%s ... "
-msgstr "%s/%s µð·ºÅä¸® ¸¸µå´Â Áß ... "
+msgid "creating subdirectories ... "
+msgstr "ï¿½ï¿½' ï¿½ï¿½ï¿½ä¸® ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ ..."
 
-#: initdb.c:2619
+#: initdb.c:2944
 #, c-format
 msgid ""
 "\n"
 "Success. You can now start the database server using:\n"
 "\n"
-"    %s%s%s%spostmaster -D %s%s%s\n"
+"    %s%s%spostgres%s -D %s%s%s\n"
 "or\n"
-"    %s%s%s%spg_ctl -D %s%s%s -l logfile start\n"
+"    %s%s%spg_ctl%s -D %s%s%s -l logfile start\n"
 "\n"
 msgstr ""
 "\n"
-"ÀÛ¾÷¿Ï·á. ÀÌÁ¦ ´ÙÀ½ ¸í·ÉÀ» ÀÌ¿ëÇØ¼­ ¼­¹ö¸¦ °¡µ¿ ÇÒ ¼ö ÀÖ½À´Ï´Ù:\n"
+"ï¿½Û¾ï¿½Ï·ï¿½. ï¿½ï¿½f ï¿½ï¿½= ï¿½ï¿½ï¿½; ï¿½Ì¿ï¿½ï¿½Ø¼ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ ï¿½ï¿½ ï¿½Ö½4Ï´ï¿½:\n"
 "\n"
-"    %s%s%s%spostmaster -D %s%s%s\n"
-"or\n"
-"    %s%s%s%spg_ctl -D %s%s%s -l logfile start\n"
+"    %s%s%spostgres%s -D %s%s%s\n"
+"ï¿½Ç´ï¿½\n"
+"    %s%s%spg_ctl%s -D %s%s%s -l logfile start\n"
 "\n"
 
-#: ../../port/dirmod.c:75
-#: ../../port/dirmod.c:88
-#: ../../port/dirmod.c:101
+#: ../../port/dirmod.c:75 ../../port/dirmod.c:88 ../../port/dirmod.c:101
+#, c-format
 msgid "out of memory\n"
-msgstr "¸Þ¸ð¸® ºÎÁ·\n"
+msgstr "ï¿½Þ¸ï¿½ ï¿½ï¿½w\n"
 
-#: ../../port/exec.c:193
-#: ../../port/exec.c:307
-#: ../../port/exec.c:350
+#: ../../port/dirmod.c:265
+#, c-format
+msgid "could not set junction for \"%s\": %s\n"
+msgstr "\"%s\" ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½; ï¿½ï¿½dï¿½ï¿½ ï¿½ï¿½ ï¿½ï¿½=: %s\n"
+
+#: ../../port/dirmod.c:309
+#, c-format
+msgid "could not open directory \"%s\": %s\n"
+msgstr "\"%s\" ï¿½ï¿½ï¿½ä¸®; ï¿½ï¿½ ï¿½ï¿½ ï¿½ï¿½=: %s\n"
+
+#: ../../port/dirmod.c:346
+#, c-format
+msgid "could not read directory \"%s\": %s\n"
+msgstr "\"%s\" ï¿½ï¿½ï¿½ä¸®ï¿½ï¿½ ï¿½ï¿½; ï¿½ï¿½ ï¿½ï¿½=: %s\n"
+
+#: ../../port/dirmod.c:444
+#, c-format
+msgid "could not remove file or directory \"%s\": %s\n"
+msgstr "\"%s\" ï¿½ï¿½ï¿½ï¿½ ï¿½Ç´ï¿½ ï¿½ï¿½ï¿½ä¸®ï¿½ï¿½ ï¿½ï¿½ï¿½ ï¿½ï¿½ ï¿½ï¿½=: %s\n"
+
+#: ../../port/exec.c:191 ../../port/exec.c:305 ../../port/exec.c:348
 #, c-format
 msgid "could not identify current directory: %s"
-msgstr "ÇöÀç µð·ºÅä¸®¸¦ ¾Ë ¼ö ¾øÀ½: %s"
+msgstr "ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ä¸®ï¿½ï¿½ ï¿½ï¿½ ï¿½ï¿½ ï¿½ï¿½=: %s"
 
-#: ../../port/exec.c:323
-#: ../../port/exec.c:359
+#: ../../port/exec.c:210
+#, c-format
+msgid "invalid binary \"%s\""
+msgstr "\"%s\" ï¿½ï¿½ï¿½ï¿½: ï¿½ß¸ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ô´Ï´ï¿½"
+
+#: ../../port/exec.c:259
+#, c-format
+msgid "could not read binary \"%s\""
+msgstr "\"%s\" ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½; ï¿½ï¿½; ï¿½ï¿½ ï¿½ï¿½="
+
+#: ../../port/exec.c:266
+#, c-format
+msgid "could not find a \"%s\" to execute"
+msgstr "\"%s\" ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½; Ã£; ï¿½ï¿½ ï¿½ï¿½="
+
+#: ../../port/exec.c:321 ../../port/exec.c:357
 #, c-format
 msgid "could not change directory to \"%s\""
-msgstr "\"%s\" µð·ºÅä¸®·Î ÀÌµ¿ ÇÒ ¼ö ¾øÀ½"
+msgstr "\"%s\" ï¿½ï¿½ï¿½ä¸®ï¿½ï¿½ ï¿½Ìµï¿½ ï¿½ï¿½ ï¿½ï¿½ ï¿½ï¿½="
 
-#: ../../port/exec.c:338
+#: ../../port/exec.c:336
 #, c-format
 msgid "could not read symbolic link \"%s\""
-msgstr "\"%s\" ½É¹ú¸¯ ¸µÅ©¸¦ ÀÐÀ» ¼ö ¾øÀ½"
+msgstr "\"%s\" ï¿½É¹ï¿½ ï¿½ï¿½Å©ï¿½ï¿½ ï¿½ï¿½; ï¿½ï¿½ ï¿½ï¿½="
 
-#: ../../port/exec.c:569
+#: ../../port/exec.c:582
 #, c-format
 msgid "child process exited with exit code %d"
-msgstr "ÇÏÀ§ ÇÁ·Î¼¼½º°¡ Á¾·áµÇ¾úÀ½, Á¾·á ÄÚµå %d"
+msgstr "ï¿½ï¿½' ï¿½wÎ¼ï¿½ï¿½ï¿½ï¿½ï¿½ ~ï¿½ï¿½Ç¾ï¿½=, ~ï¿½ï¿½ ï¿½Úµï¿½ %d"
 
-#: ../../port/exec.c:572
+#: ../../port/exec.c:585
 #, c-format
 msgid "child process was terminated by signal %d"
-msgstr "ÇÏÀ§ ÇÁ·Î¼¼½º°¡ Á¾·áµÇ¾úÀ½, ½Ã±×³Î %d"
+msgstr "ï¿½ï¿½' ï¿½wÎ¼ï¿½ï¿½ï¿½ï¿½ï¿½ ~ï¿½ï¿½Ç¾ï¿½=, ï¿½Ã±×³ï¿½ %d"
 
-#: ../../port/exec.c:575
+#: ../../port/exec.c:588
 #, c-format
 msgid "child process exited with unrecognized status %d"
-msgstr "ÇÏÀ§ ÇÁ·Î¼¼½º°¡ Á¾·áµÇ¾úÀ½, ¾Ë¼ö ¾ø´Â »óÅÂ %d"
-
+msgstr "ï¿½ï¿½' ï¿½wÎ¼ï¿½ï¿½ï¿½ï¿½ï¿½ ~ï¿½ï¿½Ç¾ï¿½=, ï¿½Ë¼ï¿½ ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ %d"

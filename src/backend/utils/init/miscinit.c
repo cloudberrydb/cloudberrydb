@@ -3,12 +3,12 @@
  * miscinit.c
  *	  miscellaneous initialization support stuff
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/utils/init/miscinit.c,v 1.159 2006/10/04 00:30:02 momjian Exp $
+ *	  $PostgreSQL: pgsql/src/backend/utils/init/miscinit.c,v 1.159.2.2 2009/12/09 21:58:29 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -29,9 +29,13 @@
 #include <utime.h>
 #endif
 
+#include "catalog/catquery.h"
 #include "catalog/pg_authid.h"
+#include "cdb/cdbvars.h"
+#include "mb/pg_wchar.h"
 #include "miscadmin.h"
 #include "postmaster/autovacuum.h"
+#include "replication/walsender.h"
 #include "storage/fd.h"
 #include "storage/ipc.h"
 #include "storage/pg_shmem.h"
@@ -39,6 +43,7 @@
 #include "storage/procarray.h"
 #include "utils/builtins.h"
 #include "utils/guc.h"
+#include "utils/resscheduler.h"
 #include "utils/syscache.h"
 
 
@@ -136,6 +141,9 @@ SetDatabasePath(const char *path)
 	if (path)
 	{
 		DatabasePath = strdup(path);
+		if(!DatabasePath)
+			ereport(ERROR, (errcode(ERRCODE_OUT_OF_MEMORY),
+					errmsg("Set database path failed: out of memory")));
 		AssertState(DatabasePath);
 	}
 }
@@ -264,13 +272,17 @@ make_absolute_path(const char *path)
  * OuterUserId is the current user ID in effect at the "outer level" (outside
  * any transaction or function).  This is initially the same as SessionUserId,
  * but can be changed by SET ROLE to any role that SessionUserId is a
- * member of.  We store this mainly so that AtAbort_UserId knows what to
- * reset CurrentUserId to.
+ * member of.  (XXX rename to something like CurrentRoleId?)
  *
  * CurrentUserId is the current effective user ID; this is the one to use
  * for all normal permissions-checking purposes.  At outer level this will
  * be the same as OuterUserId, but it changes during calls to SECURITY
  * DEFINER functions, as well as locally in some specialized commands.
+ *
+ * SecurityRestrictionContext holds flags indicating reason(s) for changing
+ * CurrentUserId.  In some cases we need to lock down operations that are
+ * not directly controlled by privilege settings, and this provides a
+ * convenient way to do it.
  * ----------------------------------------------------------------
  */
 static Oid	AuthenticatedUserId = InvalidOid;
@@ -282,26 +294,22 @@ static Oid	CurrentUserId = InvalidOid;
 static bool AuthenticatedUserIsSuperuser = false;
 static bool SessionUserIsSuperuser = false;
 
+static int	SecurityRestrictionContext = 0;
+
 /* We also remember if a SET ROLE is currently active */
 static bool SetRoleIsActive = false;
 
 
 /*
- * GetUserId/SetUserId - get/set the current effective user ID.
+ * GetUserId - get the current effective user ID.
+ *
+ * Note: there's no SetUserId() anymore; use SetUserIdAndSecContext().
  */
 Oid
 GetUserId(void)
 {
 	AssertState(OidIsValid(CurrentUserId));
 	return CurrentUserId;
-}
-
-
-void
-SetUserId(Oid userid)
-{
-	AssertArg(OidIsValid(userid));
-	CurrentUserId = userid;
 }
 
 
@@ -319,6 +327,7 @@ GetOuterUserId(void)
 static void
 SetOuterUserId(Oid userid)
 {
+	AssertState(SecurityRestrictionContext == 0);
 	AssertArg(OidIsValid(userid));
 	OuterUserId = userid;
 
@@ -337,10 +346,11 @@ GetSessionUserId(void)
 	return SessionUserId;
 }
 
-
-static void
+/* extern so DispatchAgent can use this (postgres.c) */
+extern void
 SetSessionUserId(Oid userid, bool is_superuser)
 {
+	AssertState(SecurityRestrictionContext == 0);
 	AssertArg(OidIsValid(userid));
 	SessionUserId = userid;
 	SessionUserIsSuperuser = is_superuser;
@@ -349,6 +359,117 @@ SetSessionUserId(Oid userid, bool is_superuser)
 	/* We force the effective user IDs to match, too */
 	OuterUserId = userid;
 	CurrentUserId = userid;
+}
+
+bool
+IsAuthenticatedUserSuperUser()
+{
+	AssertState(OidIsValid(AuthenticatedUserId));
+	return AuthenticatedUserIsSuperuser;
+}
+
+/*
+ * GetAuthenticatedUserId
+ */
+Oid
+GetAuthenticatedUserId(void)
+{
+	AssertState(OidIsValid(AuthenticatedUserId));
+	return AuthenticatedUserId;
+}
+
+/*
+ * GetUserIdAndSecContext/SetUserIdAndSecContext - get/set the current user ID
+ * and the SecurityRestrictionContext flags.
+ *
+ * Currently there are two valid bits in SecurityRestrictionContext:
+ *
+ * SECURITY_LOCAL_USERID_CHANGE indicates that we are inside an operation
+ * that is temporarily changing CurrentUserId via these functions.  This is
+ * needed to indicate that the actual value of CurrentUserId is not in sync
+ * with guc.c's internal state, so SET ROLE has to be disallowed.
+ *
+ * SECURITY_RESTRICTED_OPERATION indicates that we are inside an operation
+ * that does not wish to trust called user-defined functions at all.  This
+ * bit prevents not only SET ROLE, but various other changes of session state
+ * that normally is unprotected but might possibly be used to subvert the
+ * calling session later.  An example is replacing an existing prepared
+ * statement with new code, which will then be executed with the outer
+ * session's permissions when the prepared statement is next used.  Since
+ * these restrictions are fairly draconian, we apply them only in contexts
+ * where the called functions are really supposed to be side-effect-free
+ * anyway, such as VACUUM/ANALYZE/REINDEX.
+ *
+ * Unlike GetUserId, GetUserIdAndSecContext does *not* Assert that the current
+ * value of CurrentUserId is valid; nor does SetUserIdAndSecContext require
+ * the new value to be valid.  In fact, these routines had better not
+ * ever throw any kind of error.  This is because they are used by
+ * StartTransaction and AbortTransaction to save/restore the settings,
+ * and during the first transaction within a backend, the value to be saved
+ * and perhaps restored is indeed invalid.	We have to be able to get
+ * through AbortTransaction without asserting in case InitPostgres fails.
+ */
+void
+GetUserIdAndSecContext(Oid *userid, int *sec_context)
+{
+	*userid = CurrentUserId;
+	*sec_context = SecurityRestrictionContext;
+}
+
+void
+SetUserIdAndSecContext(Oid userid, int sec_context)
+{
+	CurrentUserId = userid;
+	SecurityRestrictionContext = sec_context;
+}
+
+
+/*
+ * InLocalUserIdChange - are we inside a local change of CurrentUserId?
+ */
+bool
+InLocalUserIdChange(void)
+{
+	return (SecurityRestrictionContext & SECURITY_LOCAL_USERID_CHANGE) != 0;
+}
+
+/*
+ * InSecurityRestrictedOperation - are we inside a security-restricted command?
+ */
+bool
+InSecurityRestrictedOperation(void)
+{
+	return (SecurityRestrictionContext & SECURITY_RESTRICTED_OPERATION) != 0;
+}
+
+
+/*
+ * These are obsolete versions of Get/SetUserIdAndSecContext that are
+ * only provided for bug-compatibility with some rather dubious code in
+ * pljava.  We allow the userid to be set, but only when not inside a
+ * security restriction context.
+ */
+void
+GetUserIdAndContext(Oid *userid, bool *sec_def_context)
+{
+	*userid = CurrentUserId;
+	*sec_def_context = InLocalUserIdChange();
+}
+
+void
+SetUserIdAndContext(Oid userid, bool sec_def_context)
+{
+	/* We throw the same error SET ROLE would. */
+	if (InSecurityRestrictedOperation())
+		ereport(ERROR,
+				(errcode(ERRCODE_INSUFFICIENT_PRIVILEGE),
+				 errmsg("cannot set parameter \"%s\" within security-restricted operation",
+						"role")));
+	CurrentUserId = userid;
+	if (sec_def_context)
+		SecurityRestrictionContext |= SECURITY_LOCAL_USERID_CHANGE;
+	else
+		SecurityRestrictionContext &= ~SECURITY_LOCAL_USERID_CHANGE;
 }
 
 
@@ -360,10 +481,8 @@ InitializeSessionUserId(const char *rolename)
 {
 	HeapTuple	roleTup;
 	Form_pg_authid rform;
-	Datum		datum;
-	bool		isnull;
 	Oid			roleid;
-
+	cqContext  *pcqCtx;
 	/*
 	 * Don't do scans if we're bootstrapping, none of the system catalogs
 	 * exist yet, and they should be owned by postgres anyway.
@@ -373,13 +492,18 @@ InitializeSessionUserId(const char *rolename)
 	/* call only once */
 	AssertState(!OidIsValid(AuthenticatedUserId));
 
-	roleTup = SearchSysCache(AUTHNAME,
-							 PointerGetDatum(rolename),
-							 0, 0, 0);
+	pcqCtx = caql_beginscan(
+			NULL,
+			cql("SELECT * FROM pg_authid "
+				" WHERE rolname = :1 ",
+				CStringGetDatum((char *) rolename)));
+
+	roleTup = caql_getnext(pcqCtx);
+
 	if (!HeapTupleIsValid(roleTup))
 		ereport(FATAL,
 				(errcode(ERRCODE_INVALID_AUTHORIZATION_SPECIFICATION),
-				 errmsg("role \"%s\" does not exist", rolename)));
+				 errmsg("role \"%s\" does not exist", rolename), errSendAlert(false)));
 
 	rform = (Form_pg_authid) GETSTRUCT(roleTup);
 	roleid = HeapTupleGetOid(roleTup);
@@ -421,14 +545,28 @@ InitializeSessionUserId(const char *rolename)
 		 * ideally one should succeed and one fail.  Getting that to work
 		 * exactly seems more trouble than it is worth, however; instead we
 		 * just document that the connection limit is approximate.
+		 *
+		 * We do not want to do this for QEs since a single QD might initialise
+		 * many connections to each segment to execute a non-trivial plan and
+		 * the user connection limit does not map, semantically, to that idea.
 		 */
-		if (rform->rolconnlimit >= 0 &&
+		if (Gp_role == GP_ROLE_DISPATCH && rform->rolconnlimit >= 0 &&
 			!AuthenticatedUserIsSuperuser &&
 			CountUserBackends(roleid) > rform->rolconnlimit)
 			ereport(FATAL,
 					(errcode(ERRCODE_TOO_MANY_CONNECTIONS),
 					 errmsg("too many connections for role \"%s\"",
 							rolename)));
+	}
+
+	/*
+	 * If resource scheduling is enabled, then set cached value for the
+	 * queue. Do this even in standalone backend mode, just in case someone
+	 * gives the superuser a resource queue.
+	 */
+	if ((Gp_role == GP_ROLE_DISPATCH || Gp_role == GP_ROLE_EXECUTE) && ResourceScheduler)
+	{
+		SetResQueueId();
 	}
 
 	/* Record username and superuser status as GUC settings too */
@@ -438,20 +576,7 @@ InitializeSessionUserId(const char *rolename)
 					AuthenticatedUserIsSuperuser ? "on" : "off",
 					PGC_INTERNAL, PGC_S_OVERRIDE);
 
-	/*
-	 * Set up user-specific configuration variables.  This is a good place to
-	 * do it so we don't have to read pg_authid twice during session startup.
-	 */
-	datum = SysCacheGetAttr(AUTHNAME, roleTup,
-							Anum_pg_authid_rolconfig, &isnull);
-	if (!isnull)
-	{
-		ArrayType  *a = DatumGetArrayTypeP(datum);
-
-		ProcessGUCArray(a, PGC_S_USER);
-	}
-
-	ReleaseSysCache(roleTup);
+	caql_endscan(pcqCtx);
 }
 
 
@@ -462,7 +587,7 @@ void
 InitializeSessionUserIdStandalone(void)
 {
 	/* This function should only be called in a single-user backend. */
-	AssertState(!IsUnderPostmaster || IsAutoVacuumProcess());
+	AssertState(!IsUnderPostmaster || IsAutoVacuumProcess() || am_startup);
 
 	/* call only once */
 	AssertState(!OidIsValid(AuthenticatedUserId));
@@ -471,21 +596,6 @@ InitializeSessionUserIdStandalone(void)
 	AuthenticatedUserIsSuperuser = true;
 
 	SetSessionUserId(BOOTSTRAP_SUPERUSERID, true);
-}
-
-
-/*
- * Reset effective userid during AbortTransaction
- *
- * This is essentially SetUserId(GetOuterUserId()), but without the Asserts.
- * The reason is that if a backend's InitPostgres transaction fails (eg,
- * because an invalid user name was given), we have to be able to get through
- * AbortTransaction without asserting.
- */
-void
-AtAbort_UserId(void)
-{
-	CurrentUserId = OuterUserId;
 }
 
 
@@ -515,6 +625,12 @@ SetSessionAuthorization(Oid userid, bool is_superuser)
 				 errmsg("permission denied to set session authorization")));
 
 	SetSessionUserId(userid, is_superuser);
+
+	/* If resource scheduling enabled, set the cached queue for the new role.*/
+	if ((Gp_role == GP_ROLE_EXECUTE || Gp_role == GP_ROLE_DISPATCH) && ResourceScheduler)
+	{
+		SetResQueueId();
+	}
 
 	SetConfigOption("is_superuser",
 					is_superuser ? "on" : "off",
@@ -573,6 +689,12 @@ SetCurrentRoleId(Oid roleid, bool is_superuser)
 
 	SetOuterUserId(roleid);
 
+	/* If resource scheduling enabled, set the cached queue for the new role.*/
+	if ((Gp_role == GP_ROLE_DISPATCH || Gp_role == GP_ROLE_EXECUTE) && ResourceScheduler)
+	{
+		SetResQueueId();
+	}
+
 	SetConfigOption("is_superuser",
 					is_superuser ? "on" : "off",
 					PGC_INTERNAL, PGC_S_OVERRIDE);
@@ -585,20 +707,22 @@ SetCurrentRoleId(Oid roleid, bool is_superuser)
 char *
 GetUserNameFromId(Oid roleid)
 {
-	HeapTuple	tuple;
 	char	   *result;
+	int			fetchCount;
+	
+	result = caql_getcstring_plus(
+			NULL,
+			&fetchCount,
+			NULL,
+			cql("SELECT rolname FROM pg_authid "
+				" WHERE oid = :1 ",
+				ObjectIdGetDatum(roleid)));
 
-	tuple = SearchSysCache(AUTHOID,
-						   ObjectIdGetDatum(roleid),
-						   0, 0, 0);
-	if (!HeapTupleIsValid(tuple))
+	if (!fetchCount)
 		ereport(ERROR,
 				(errcode(ERRCODE_UNDEFINED_OBJECT),
 				 errmsg("invalid role OID: %u", roleid)));
 
-	result = pstrdup(NameStr(((Form_pg_authid) GETSTRUCT(tuple))->rolname));
-
-	ReleaseSysCache(tuple);
 	return result;
 }
 
@@ -767,21 +891,65 @@ CreateLockFile(const char *filename, bool amPostmaster,
 				(errno != ESRCH && errno != EPERM))
 			{
 				/* lockfile belongs to a live process */
-				ereport(FATAL,
-						(errcode(ERRCODE_LOCK_FILE_EXISTS),
-						 errmsg("lock file \"%s\" already exists",
-								filename),
-						 isDDLock ?
-						 (encoded_pid < 0 ?
-						  errhint("Is another postgres (PID %d) running in data directory \"%s\"?",
-								  (int) other_pid, refName) :
-						  errhint("Is another postmaster (PID %d) running in data directory \"%s\"?",
-								  (int) other_pid, refName)) :
-						 (encoded_pid < 0 ?
-						  errhint("Is another postgres (PID %d) using socket file \"%s\"?",
-								  (int) other_pid, refName) :
-						  errhint("Is another postmaster (PID %d) using socket file \"%s\"?",
-								  (int) other_pid, refName))));
+				/* Check /proc/<pid>/cmdline to see if it is a postmaster process 
+				 * We check if it is a postmaster process by checking for 
+				 * the string "bin/postgres -D <data_directory>". If it is present
+				 * in the /proc file, then it is probably a postmaster. Otherwise
+				 * we just ignore this and proceed to next step.
+				 * */
+#if defined(__linux__)
+				char pid_proc_file[255];
+				char proc_buffer[MAXPGPATH + 100];
+				char target_cmdline[MAXPGPATH + 100];
+				bool can_read_proc_file = false;
+
+				memset(pid_proc_file, 0, sizeof(pid_proc_file));
+				memset(proc_buffer, 0, sizeof(proc_buffer));
+				memset(target_cmdline, 0, sizeof(target_cmdline));
+
+				snprintf(pid_proc_file, sizeof(pid_proc_file), "/proc/%d/cmdline", (int)other_pid); 
+				snprintf(target_cmdline, sizeof(target_cmdline), "bin/postgres -D %s", refName);
+
+				int fp = open(pid_proc_file, O_RDONLY, 0600);
+
+				if (fp > 0)
+				{
+					if ((len = read(fp, proc_buffer, sizeof(proc_buffer) - 1)) < 0)
+					{
+						ereport(WARNING,
+						(errcode_for_file_access(),
+						errmsg("could not read proc file \"%s\": %m",
+						pid_proc_file)));
+					}
+					else
+					{
+						proc_buffer[len] = '\0';
+						can_read_proc_file = true;
+					}
+					close(fp);
+				}
+
+				if ( !can_read_proc_file || (strstr(proc_buffer, target_cmdline) != NULL))
+				{
+#endif
+					ereport(FATAL,
+							(errcode(ERRCODE_LOCK_FILE_EXISTS),
+						 	errmsg("lock file \"%s\" already exists",
+									filename),
+						 	isDDLock ?
+						 	(encoded_pid < 0 ?
+						  	errhint("Is another postgres (PID %d) running in data directory \"%s\"?",
+								  	(int) other_pid, refName) :
+						  	errhint("Is another postmaster (PID %d) running in data directory \"%s\"?",
+								  	(int) other_pid, refName)) :
+						 	(encoded_pid < 0 ?
+						  	errhint("Is another postgres (PID %d) using socket file \"%s\"?",
+								  	(int) other_pid, refName) :
+						  	errhint("Is another postmaster (PID %d) using socket file \"%s\"?",
+								  	(int) other_pid, refName))));
+#if defined(__linux__)
+				}
+#endif
 			}
 		}
 
@@ -869,7 +1037,13 @@ CreateLockFile(const char *filename, bool amPostmaster,
 	/*
 	 * Arrange for automatic removal of lockfile at proc_exit.
 	 */
-	on_proc_exit(UnlinkLockFile, PointerGetDatum(strdup(filename)));
+	 {
+		 char *tmpptr = strdup(filename);
+		 if(!tmpptr)
+			 ereport(ERROR, (errcode(ERRCODE_OUT_OF_MEMORY),
+			 		errmsg("Create lock file failed: out of memory")));
+		 on_proc_exit(UnlinkLockFile, CStringGetDatum(tmpptr)); 
+	 }
 }
 
 /*
@@ -1079,7 +1253,7 @@ ValidatePgVersion(const char *path)
 						path),
 				 errdetail("File \"%s\" does not contain valid data.",
 						   full_path),
-				 errhint("You may need to initdb.")));
+				 errhint("You may need to run gprecoversegment.sh")));
 
 	FreeFile(file);
 
@@ -1104,6 +1278,9 @@ ValidatePgVersion(const char *path)
 char	   *shared_preload_libraries_string = NULL;
 char	   *local_preload_libraries_string = NULL;
 
+/* Flag telling that we are loading shared_preload_libraries */
+bool		process_shared_preload_libraries_in_progress = false;
+
 /*
  * load the shared libraries listed in 'libraries'
  *
@@ -1115,6 +1292,7 @@ load_libraries(const char *libraries, const char *gucname, bool restricted)
 {
 	char	   *rawstring;
 	List	   *elemlist;
+	int			elevel;
 	ListCell   *l;
 
 	if (libraries == NULL || libraries[0] == '\0')
@@ -1136,6 +1314,18 @@ load_libraries(const char *libraries, const char *gucname, bool restricted)
 		return;
 	}
 
+	/*
+	 * Choose notice level: avoid repeat messages when re-loading a library
+	 * that was preloaded into the postmaster.	(Only possible in EXEC_BACKEND
+	 * configurations)
+	 */
+#ifdef EXEC_BACKEND
+	if (IsUnderPostmaster && process_shared_preload_libraries_in_progress)
+		elevel = DEBUG2;
+	else
+#endif
+		elevel = LOG;
+
 	foreach(l, elemlist)
 	{
 		char	   *tok = (char *) lfirst(l);
@@ -1155,7 +1345,7 @@ load_libraries(const char *libraries, const char *gucname, bool restricted)
 			filename = expanded;
 		}
 		load_file(filename, restricted);
-		ereport(LOG,
+		ereport(elevel,
 				(errmsg("loaded library \"%s\"", filename)));
 		pfree(filename);
 	}
@@ -1170,9 +1360,11 @@ load_libraries(const char *libraries, const char *gucname, bool restricted)
 void
 process_shared_preload_libraries(void)
 {
+	process_shared_preload_libraries_in_progress = true;
 	load_libraries(shared_preload_libraries_string,
 				   "shared_preload_libraries",
 				   false);
+	process_shared_preload_libraries_in_progress = false;
 }
 
 /*
@@ -1184,4 +1376,19 @@ process_local_preload_libraries(void)
 	load_libraries(local_preload_libraries_string,
 				   "local_preload_libraries",
 				   true);
+}
+
+void
+pg_bindtextdomain(const char *domain)
+{
+#ifdef ENABLE_NLS
+	if (my_exec_path[0] != '\0')
+	{
+		char		locale_path[MAXPGPATH];
+
+		get_locale_path(my_exec_path, locale_path);
+		bindtextdomain(domain, locale_path);
+		pg_bind_textdomain_codeset(domain);
+	}
+#endif
 }

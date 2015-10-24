@@ -15,9 +15,11 @@
 
 extern void database_file_update_needed(void);
 extern void auth_file_update_needed(void);
+extern void auth_time_file_update_needed(void);
 
 extern char *database_getflatfilename(void);
 extern char *auth_getflatfilename(void);
+extern char *auth_time_getflatfilename(void);
 
 extern void BuildFlatFiles(bool database_only);
 
@@ -31,5 +33,9 @@ extern Datum flatfile_update_trigger(PG_FUNCTION_ARGS);
 
 extern void flatfile_twophase_postcommit(TransactionId xid, uint16 info,
 							 void *recdata, uint32 len);
+
+extern int FlatFilesRecoverMirror(void);
+
+extern int FlatFilesTemporaryResynchronizeMirror(void);
 
 #endif   /* FLATFILES_H */

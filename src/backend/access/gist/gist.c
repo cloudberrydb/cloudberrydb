@@ -4,7 +4,7 @@
  *	  interface routines for the postgres GiST index access method.
  *
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2008, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
@@ -19,6 +19,7 @@
 #include "catalog/index.h"
 #include "miscadmin.h"
 #include "utils/memutils.h"
+#include "cdb/cdbfilerepprimary.h"
 
 const XLogRecPtr XLogRecPtrForTemp = {1, 1};
 
@@ -34,7 +35,7 @@ typedef struct
 
 /* non-export function prototypes */
 static void gistbuildCallback(Relation index,
-				  HeapTuple htup,
+				  ItemPointer tupleId,
 				  Datum *values,
 				  bool *isnull,
 				  bool tupleIsAlive,
@@ -84,6 +85,8 @@ createTempGistContext(void)
 Datum
 gistbuild(PG_FUNCTION_ARGS)
 {
+	MIRROREDLOCK_BUFMGR_DECLARE;
+
 	Relation	heap = (Relation) PG_GETARG_POINTER(0);
 	Relation	index = (Relation) PG_GETARG_POINTER(1);
 	IndexInfo  *indexInfo = (IndexInfo *) PG_GETARG_POINTER(2);
@@ -104,6 +107,9 @@ gistbuild(PG_FUNCTION_ARGS)
 	/* no locking is needed */
 	initGISTstate(&buildstate.giststate, index);
 
+	// -------- MirroredLock ----------
+	MIRROREDLOCK_BUFMGR_LOCK;
+
 	/* initialize the root page */
 	buffer = gistNewBuffer(index);
 	Assert(BufferGetBlockNumber(buffer) == GIST_ROOT_BLKNO);
@@ -118,14 +124,11 @@ gistbuild(PG_FUNCTION_ARGS)
 	if (!index->rd_istemp)
 	{
 		XLogRecPtr	recptr;
-		XLogRecData rdata;
+		XLogRecData *rdata;
+		
+		rdata = formCreateRData(index);
 
-		rdata.data = (char *) &(index->rd_node);
-		rdata.len = sizeof(RelFileNode);
-		rdata.buffer = InvalidBuffer;
-		rdata.next = NULL;
-
-		recptr = XLogInsert(RM_GIST_ID, XLOG_GIST_CREATE_INDEX, &rdata);
+		recptr = XLogInsert(RM_GIST_ID, XLOG_GIST_CREATE_INDEX, rdata);
 		PageSetLSN(page, recptr);
 		PageSetTLI(page, ThisTimeLineID);
 	}
@@ -133,6 +136,9 @@ gistbuild(PG_FUNCTION_ARGS)
 		PageSetLSN(page, XLogRecPtrForTemp);
 
 	UnlockReleaseBuffer(buffer);
+
+	MIRROREDLOCK_BUFMGR_UNLOCK;
+	// -------- MirroredLock ----------
 
 	END_CRIT_SECTION();
 
@@ -147,8 +153,8 @@ gistbuild(PG_FUNCTION_ARGS)
 	buildstate.tmpCtx = createTempGistContext();
 
 	/* do the heap scan */
-	reltuples = IndexBuildHeapScan(heap, index, indexInfo,
-								   gistbuildCallback, (void *) &buildstate);
+	reltuples = IndexBuildScan(heap, index, indexInfo,
+							   gistbuildCallback, (void *) &buildstate);
 
 	/* okay, all heap tuples are indexed */
 	MemoryContextDelete(buildstate.tmpCtx);
@@ -171,10 +177,10 @@ gistbuild(PG_FUNCTION_ARGS)
  */
 static void
 gistbuildCallback(Relation index,
-				  HeapTuple htup,
+				  ItemPointer tupleId,
 				  Datum *values,
 				  bool *isnull,
-				  bool tupleIsAlive,
+				  bool tupleIsAlive __attribute__((unused)),
 				  void *state)
 {
 	GISTBuildState *buildstate = (GISTBuildState *) state;
@@ -186,7 +192,7 @@ gistbuildCallback(Relation index,
 	/* form an index tuple and point it at the heap tuple */
 	itup = gistFormTuple(&buildstate->giststate, index,
 						 values, isnull, true /* size is currently bogus */ );
-	itup->t_tid = htup->t_self;
+	itup->t_tid = *tupleId;
 
 	/*
 	 * Since we already have the index relation locked, we call gistdoinsert
@@ -258,6 +264,8 @@ gistinsert(PG_FUNCTION_ARGS)
 static void
 gistdoinsert(Relation r, IndexTuple itup, Size freespace, GISTSTATE *giststate)
 {
+	MIRROREDLOCK_BUFMGR_DECLARE;
+
 	GISTInsertState state;
 
 	memset(&state, 0, sizeof(GISTInsertState));
@@ -274,8 +282,15 @@ gistdoinsert(Relation r, IndexTuple itup, Size freespace, GISTSTATE *giststate)
 	state.stack = (GISTInsertStack *) palloc0(sizeof(GISTInsertStack));
 	state.stack->blkno = GIST_ROOT_BLKNO;
 
+	// -------- MirroredLock ----------
+	MIRROREDLOCK_BUFMGR_LOCK;
+
 	gistfindleaf(&state, giststate);
 	gistmakedeal(&state, giststate);
+	
+	MIRROREDLOCK_BUFMGR_UNLOCK;
+	// -------- MirroredLock ----------
+	
 }
 
 static bool
@@ -283,6 +298,8 @@ gistplacetopage(GISTInsertState *state, GISTSTATE *giststate)
 {
 	bool		is_splitted = false;
 	bool		is_leaf = (GistPageIsLeaf(state->stack->page)) ? true : false;
+
+	MIRROREDLOCK_BUFMGR_MUST_ALREADY_BE_HELD;
 
 	/*
 	 * if (!is_leaf) remove old key: This node's key has been modified, either
@@ -406,7 +423,7 @@ gistplacetopage(GISTInsertState *state, GISTSTATE *giststate)
 			XLogRecPtr	recptr;
 			XLogRecData *rdata;
 
-			rdata = formSplitRdata(state->r->rd_node, state->stack->blkno,
+			rdata = formSplitRdata(state->r, state->stack->blkno,
 								   is_leaf, &(state->key), dist);
 
 			recptr = XLogInsert(RM_GIST_ID, XLOG_GIST_PAGE_SPLIT, rdata);
@@ -479,7 +496,7 @@ gistplacetopage(GISTInsertState *state, GISTSTATE *giststate)
 				noffs = 1;
 			}
 
-			rdata = formUpdateRdata(state->r->rd_node, state->stack->buffer,
+			rdata = formUpdateRdata(state->r, state->stack->buffer,
 									offs, noffs,
 									state->itup, state->ituplen,
 									&(state->key));
@@ -533,6 +550,8 @@ gistfindleaf(GISTInsertState *state, GISTSTATE *giststate)
 	ItemId		iid;
 	IndexTuple	idxtuple;
 	GISTPageOpaque opaque;
+
+	MIRROREDLOCK_BUFMGR_MUST_ALREADY_BE_HELD;
 
 	/*
 	 * walk down, We don't lock page for a long time, but so we should be
@@ -664,6 +683,8 @@ gistFindPath(Relation r, BlockNumber child)
 			   *ptr;
 	BlockNumber blkno;
 
+	MIRROREDLOCK_BUFMGR_MUST_ALREADY_BE_HELD;
+
 	top = tail = (GISTInsertStack *) palloc0(sizeof(GISTInsertStack));
 	top->blkno = GIST_ROOT_BLKNO;
 
@@ -764,6 +785,8 @@ gistFindCorrectParent(Relation r, GISTInsertStack *child)
 {
 	GISTInsertStack *parent = child->parent;
 
+	MIRROREDLOCK_BUFMGR_MUST_ALREADY_BE_HELD;
+
 	LockBuffer(parent->buffer, GIST_EXCLUSIVE);
 	gistcheckpage(r, parent->buffer);
 	parent->page = (Page) BufferGetPage(parent->buffer);
@@ -852,6 +875,8 @@ gistmakedeal(GISTInsertState *state, GISTSTATE *giststate)
 	ItemId		iid;
 	IndexTuple	oldtup,
 				newtup;
+
+	MIRROREDLOCK_BUFMGR_MUST_ALREADY_BE_HELD;
 
 	/* walk up */
 	while (true)
@@ -1016,7 +1041,7 @@ gistnewroot(Relation r, Buffer buffer, IndexTuple *itup, int len, ItemPointer ke
 		XLogRecPtr	recptr;
 		XLogRecData *rdata;
 
-		rdata = formUpdateRdata(r->rd_node, buffer,
+		rdata = formUpdateRdata(r, buffer,
 								NULL, 0,
 								itup, len, key);
 
@@ -1068,7 +1093,7 @@ initGISTstate(GISTSTATE *giststate, Relation index)
 }
 
 void
-freeGISTstate(GISTSTATE *giststate)
+freeGISTstate(GISTSTATE *giststate __attribute__((unused)))
 {
 	/* no work */
 }

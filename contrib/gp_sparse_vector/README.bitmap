@@ -1,0 +1,259 @@
+Revision: 02/03/10
+
+I’m spending most of my part time on working out the actual mechanics (with examples) of the matrix/vector implementation.
+
+What will help is to get some input on likely use-cases that can drive the work – though I’ve got a good number of examples from scientific and econometric modeling, I could always benefit from something concrete and immediate.
+
+Following is more on mechanics.    
+
+Another finding on indexes, RLE compression and matrices:
+input matrices come in various flavors, many of them in non-sorted “not ready for sparse compression” formats 
+in many circumstances there is no a-priori choice of whether there are zeros or NVP 
+Because of (1), in the input processing and sorting, it is necessary to create an uncompressed index that is identical to the single RLE index I’ve described previously, sans the special values.
+
+I’ve described the input processing here in a program I wrote to process matrices from the Matrix Mart at NIST:
+                /* The Matrix Market format does not specify the order in which the
+                 * successive elements are stored.  We need to compress the matrix into
+                 * one of CRS or CCS format (row or column compression), so we need to
+                 * sort the matrix into one of those forms.
+                 *
+                 * Here we'll use quicksort to sort the matrix elements into row
+                 * contiguous storage.
+                 *
+                 * If we desire row contiguous storage, we'll also need the column order
+                 * within the row preserved.  We'll do this by computing the index into
+                 * the matrix using a "columns progressive" ordering, which is computed
+                 * as NJ * I + J. Then we'll sort based on that index.  The index value
+                 * will range from 0 to NJ*NI-1. For any index value, you can compute I
+                 * and J using:
+                 *      I = index/NJ
+                 *      J = index - NJ * I
+                 *
+                 * If we sort the matrix by this index, we'll have things in row/column
+                 * order, suitable for CRS compression.
+                 *
+                 * Note that if we want CCS, we can construct the index using:
+                 *      index = NI * J + I
+                 */
+
+In the Yale/MKL formats, we deconstruct the single index into a set of two values for each run and that is stored as the compression index.
+
+I’m thinking now that for the RLE index we can do something along these lines:
+Treat all values symmetrically, that is: all runs of the various types we’re discussing (inf,-inf,0,NVP,value) are described by the same kind of word 
+Each RLE word is composed of a leading set of descriptor bits, followed by a payload describing how many of the value are found.
+
+So if we pick the descriptor bits = 3, we can represent 8 “things”, of which 5 things must be “what kind of value is this?”, leaving 3 things.  A good use of the 3 things can be word length, one of 8, 16 or 32.
+
+So if we go down this path, we’re left with 5, 13 and 29 bits to represent a run and can dynamically choose which one to use based on the data content.  That’s 32, 8192 and 536,870,912 values in each run, which is perfect for capturing various kinds of sparsity.
+
+If we expand to one more descriptor bit, then we can represent 8 more things, which could be used to recognize additional types of values to compress out.  That would leave us with 16, 4096 and 268,435,456 values in each run, which also works pretty well and leaves us room for the future in case we find there are more values than {inf,-inf,0,NVP,value}.
+
+Some additional results to share (see table below) – I did a computation of the various storage and compute requirements for the MKL/Yale index and the RLE index.  I used 5 matrix examples from NIST’s “Matrix Market”, read them in and translated them from Matrix Market format to MKL/RLE which required sorting them into CRS.  From this, I calculated the relevant stats on each in terms of storage and number of words in each of the RLE and MKL indices.
+
+Bottom line is that the results corroborated my earlier calculations.  The RLE index is a lot smaller than MKL always, and is more computationally efficient for linear scans through the compressed matrix.  This means we should use only RLE for most use-cases and calculate MKL only when we need to use the algorithms in the matrix solver libraries.  We can optionally store the MKL index if we calculate it – we can provide a marker to indicate the presence/absence of it in the type. 
+
+I’ve also thought through the compatibility with all the sparse solver libs – seems like we have easy compatibility with a CRS-based approach, so I think that should be the baseline.  We can provide another marker to indicate what is being stored – CRS, CCS, CDS, etc.
+
+I believe I have enough information to produce a draft design of the matrix type that we can review and get some other feedback about.  Here is a sketch of how I think it should work:
+Two separate types, one for vectors and one for matrices – but they share the same format and support routines.  The separate types allows definition of vector and matrix specific operators. 
+The format stores the following metadata about the datum: 
+    nD, (n(i),i=1,nD): dimension and rank – for a vector, this is {1,N}; for a matrix it’s {2,Nrows,Ncolumns} 
+    nZ: number of values (non-special values) 
+    valType: type of value, one of {bit, byte, int4, int8, real4, complex4, real8, complex8} 
+    storType: type of storage, one of {CRS, CCS, CDS, ... Up to maybe 32 total with some reserved} 
+    specValList: a list of special values to be used in the compression, up to 8, e.g. {inf,-inf,NVP,0} 
+    hasMKL: if true, the MKL index is stored 
+The format stores the following data: 
+    values: a dense array of values, size is (nZ*sizeof(valType)) 
+    rleIndex: an RLE index containing location of all values (including specials) 
+    sizeofRleIndex: the size of the RLE index for allocation purposes 
+    if (hasMKL) mklIndex: the MKL/Yale index, size is ((nZ+NI)*sizeof(int))
+
+01234567890123456789012345678901234567890123456789012345678901234567890123456789
+
+In order to efficiently compress the storage of multiple data types, we are
+using a bitmap that describes the positions of four special 64-bit floating
+point values: zero, negative infinity, positive infinity, and "no value present"
+or NVP.  Of these, the first three are all standard floating point values that
+can be the natural result of performing calculations. NVP is a special case
+often used in statistics and other analytical processing but is not
+representable as a standard floating point number.
+
+Here we're using two patterns for sparse storage and computation: 
+1) recognition of compressible types and subsequent bitmap compression
+2) optimized computational usage of previously compressed values
+
+(1) recognizes that we're going to have many situations where special values
+arise as a natural consequence of computation.  In these cases, we will
+automatically locate and compress special values into a special bitmap storage
+format.
+
+(2) leverages the pre-existing compressed special value storage for optimized
+computation.  For example, if we have a vector of values V and a large fraction
+of the values in V are zero, then computing "W = 1/V" will produce a
+correspondingly large number of positive infinity values in W.  With our
+compressed bitmap storage of zeros, we can loop over the compressed zero
+elements and change their storage type from "zero" to "infinity", thereby
+saving the computation, memory and re-compression overheads.
+
+It's important to have a bitmap format that is both storage efficient and
+optimal for computation.  There are many existing formats for sparse vector and
+matrix storage, most of them developed for scientific computation.  The Intel
+Math Kernel Library (MKL) specifies the most common sparse matrix storage
+format, derived from the Yale Sparse Matrix format:
+
+ "The Intel MKL direct sparse solvers use a row-major upper triangular storage
+format: the matrix is compressed row-by-row and for symmetric matrices only non-
+zero elements in the upper triangular half of the matrix are stored."
+
+  The Intel MKL sparse matrix storage format for direct sparse solvers is
+specified by three arrays: values, columns, and rowIndex. The following table
+describes the arrays in terms of the values, row, and column positions of the
+non-zero elements in a sparse matrix. 
+	values 	 - A real or complex array that contains the non-zero elements
+		   of a sparse matrix. The non-zero elements are mapped into the
+		   values array using the row-major upper triangular storage
+		   mapping described above. 
+	columns  - Element I of the integer array columns is the number of the
+		   column that contains the I-th element in the values array. 
+	rowIndex - Element j of the integer array rowIndex gives the index of
+		   the element in the values array that is first non-zero
+		   element in a row j. 
+
+  The length of the values and columns arrays is equal to the number of non-zero
+elements in the matrix."
+
+- Intel Math Kernel Library Reference Manual, March 2009, Document Number:
+  630813-031US
+
+The MKL format stores the non-zero values compactly in a sequential array of
+either complex or double precision entries and maintains two index arrays that
+identify the location of the nonzero values in a two dimensional matrix.  The
+advantages of the MKL format are it's efficiency for computation and the fact
+it's in widespread usage in numerical libraries.
+
+The uncompressed size of a real matrix with NI rows and NJ columns would be:
+	Raw size = (8 bytes) * ( NI*NJ )
+
+The storage required by the MKL format for a real matrix with N nonzero values
+and NI number of rows is:
+	Comp Size = (8 bytes) * ( 2N  + NI )
+
+For a complex matrix it's:
+	Comp Size = (8 bytes) * ( 3N  + NI )
+
+Another way of representing the storage is to assess the "overhead" associated
+with the representation of the zero entries, which is the same for real and
+complex:
+	Overhead = (8 bytes) * ( N + NI )
+
+Now we can calculate the "savings" associated with using the MLK compressed
+format for a real matrix:
+	Savings = (Raw Size) - (Comp Size)
+		  (8 bytes) ( NI*NJ - 2N - NI )
+
+If we have a dense matrix, then N will be NI*NJ and the savings is equal to the
+negative overhead, which means we'll have a worst case savings of:
+	Dense (worst case) savings = -(8 bytes)(NI*NJ + NI)
+	                           = -(8 bytes)*NI*(NJ+1)
+
+For a dense matrix, this is a 100%+ storage penalty.
+
+There is one important shortcoming of the MKL format: it can only represent one
+type of special value - zero.  This is a consequence of the implicit nature of
+the approach, the location of the zero values is not stored, it is implied by
+the lack of a non-zero value in that matrix position.  There is no place to
+provide an attribute of the special value so there can be only one type of
+special value.
+
+We need an alternative format that can represent different types of special
+values. It will need to refer to the special values explicitly in an efficient
+manner. We can take advantage of the nature of most all sparse storage
+circumstances: the special values occur in relatively large runs compared to
+the non-zero values.  We can use a "run length encoding" or RLE approach to
+compose a compressed special value array, in addition to storing a regular 
+packed array of the non-special values.  The index location of the non-special
+values can be inferred from the RLE array of special values during computation.
+
+Let's represent the array of special values using a 16-bit word to represent
+each run of special values, and an 8 bit word for each run of non-special
+values. Each of the two word types uses the first bit (the sign bit) to
+represent the run as consisting of special values (positive) or non-special
+values (negative). Each special value word uses the next 2 bits to describe what
+kind of special values are in the run, one of zero, inf, -inf and NVP.
+
+A complete array will be represented as a collection of these two types of
+words, terminated by a special "end of array" word consisting of 16 bits of 
+zeros (0x0000). For example:
+	<special values><non special values><special values><0x0000>
+
+This can be seen in bytes form:
+	<2 bytes><1 byte><2 bytes><2 bytes>
+
+And if the special values are zeros (type 0), with runs of 8192 in each of the
+two runs with a run of 128 non-special values, the bits in this array would be:
+	<0001111111111111><11111111><0001111111111111><0000000000000000>
+
+Note that if there are typically a large number of zeros followed by only one
+non-zero value, then this representation will waste a lot of space in the
+non-special value words.  We could shorten the representation of non-special
+values to say 5 bits, which would allow for runs of 16 to be represented by
+each word and we would save three bits per run.  However, the alignment of the
+index computations would be less than 1 byte, which would likely reduce the
+computational efficiency.
+
+If a given run has more than the maximum representable by the word, words are
+concatenated as needed to represent the run.
+
+For matrices we can use the compressed row format, or the compressed column
+format - for purpose of the efficiency discussion let's assumed compressed rows.
+
+The storage efficiency of this approach is more complicated to compute, as the
+storage will depend on the dispersion of values.  We can compute best case and
+worst case scenarios however.
+
+A reasonable "best case" scenario will have one non-special value per row. In
+this case the storage required by the RLE format for a real matrix with N nonzero values, NI rows and NJ columns is:
+	Comp Size = (9 bytes) * N + (2 bytes) *(NJ*(NI/8192) +1)
+		  = (9 bytes) *NI + (2 bytes) *(NJ*(NI/8192) +1)
+			for the common case of NI < 8192:
+		  = (9 bytes) *NI + (2 bytes) *(NJ +1)
+
+In this case, the storage is O(NI+NJ).  For instance, if we have a matrix of
+size 2,000 by 2,000, the storage is (8 bytes) * 4,000 = 32KB.
+
+For a worst case scenario, we can assume alternating non-special and special
+values, in which case the storage is:
+	Comp Size = (9 bytes) * N + (2 bytes) * (NJ*(NI/2) +1)
+		  = (9 bytes) *NJ*(NI/2) + (2 bytes) * (NJ*(NI/2) +1)
+		  = (11 bytes) *NJ*(NI/2) + (2 bytes)
+
+What's interesting is that this worst case size is actually smaller (by almost
+half) than storing the full dense matrix.  This is due to the more efficient
+representation of the special values in 2 byte format. The overhead is nearly
+equivalent to storing the special values in addition to the non-special values.
+
+If we have a dense matrix, there is almost zero overhead because the special
+value array is blank and we only store the non-special data values.
+
+If we compare the MKL approach savings to the RLE approach in the best case
+scenario, we have an RLE savings of:
+	RLE
+	Savings = (Raw Size) - (Comp Size)
+		= (8 bytes) *NI*NJ - (9 bytes)*NI - (2 bytes)*(NJ +1)
+			for NI ~ NJ:
+		~ (8 bytes) *NI*NJ - (11 bytes)*NI
+		~ (8 bytes) *NI*(NJ-1)
+
+	MKL
+	Savings = (8 bytes) ( NI*NJ - 3NI )
+	        = (8 bytes) *NI*(NJ-3)
+
+The savings in the best case is nearly the same.  In the worst case scenario of
+a dense matrix, the savings of the RLE approach is nearly 0, which is the best
+result possible.  For MKL however, the savings in the worst case is more than
+a 100% storage penalty.
+
+Most cases are somewhere between best case and worst case.  We can conclude
+that the storage of the RLE scheme is going to be more efficient than MKL in
+all cases.

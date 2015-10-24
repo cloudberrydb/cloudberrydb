@@ -1,0 +1,30 @@
+-- start_matchignore
+# match ignore the gpmon WARNING message
+m/^WARNING:  gpmon:.*Connection refused.*/
+s/^WARNING:  gpmon:.*Connection refused.*//
+
+# MPP-20400
+m/^WARNING:  gpmon:.*No buffer space available socket.*/
+s/^WARNING:  gpmon:.*No buffer space available socket.*//
+
+m/^ Optimizer status:.*/
+s/^ Optimizer status:.*//
+
+-- end_matchignore
+
+-- start_matchsubs
+#entry db matches
+m/\s+\(entry db(.*)+\spid=\d+\)/
+s/\s+\(entry db(.*)+\spid=\d+\)//
+
+#remove unecessary diffs due to SOMEFILE:SOMEFUNC
+m/\(SOMEFILE:SOMEFUNC\)/
+s/\(SOMEFILE:SOMEFUNC\)//
+
+m/\(COptTasks\.cpp:\d+\)/
+s/\(COptTasks\.cpp:\d+\)//
+
+m/\(cdbdisp\.c:\d+\)/
+s/\(cdbdisp\.c:\d+\)//
+
+-- end_matchsubs

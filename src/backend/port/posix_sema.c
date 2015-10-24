@@ -7,7 +7,7 @@
  * sem_init).  We can cope with the kind made with sem_open, however.
  *
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2008, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
@@ -283,6 +283,28 @@ PGSemaphoreLock(PGSemaphore sema, bool interruptOK)
 
 	if (errStatus < 0)
 		elog(FATAL, "sem_wait failed: %m");
+}
+
+/*
+ * PGSemaphoreLockInterruptable
+ *
+ * Lock a semaphore (decrement count), blocking if count would be < 0.
+ * Return true if the lock obtained or false if an interrupt occurred.
+ */
+bool
+PGSemaphoreLockInterruptable(PGSemaphore sema)
+{
+	int			errStatus;
+
+	errStatus = sem_wait(PG_SEM_REF(sema));
+	if (errStatus < 0)
+	{
+		if (errno == EINTR)
+			return false;
+		elog(FATAL, "sem_wait failed: %m");
+	}
+
+	return true;
 }
 
 /*

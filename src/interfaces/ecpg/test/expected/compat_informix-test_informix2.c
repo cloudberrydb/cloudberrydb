@@ -1,12 +1,12 @@
-/* Processed by ecpg (4.2.1) */
+/* Processed by ecpg (regression mode) */
 /* These include files are added by the preprocessor */
-#include <ecpgtype.h>
 #include <ecpglib.h>
 #include <ecpgerrno.h>
 #include <sqlca.h>
 /* Needed for informix compatibility */
 #include <ecpg_informix.h>
 /* End of automatic include section */
+#define ECPGdebug(X,Y) ECPGdebug((X)+100,(Y))
 
 #line 1 "test_informix2.pgc"
 #include <stdio.h>
@@ -18,13 +18,13 @@
 #ifndef POSTGRES_SQLCA_H
 #define POSTGRES_SQLCA_H
 
-#ifndef DLLIMPORT
+#ifndef PGDLLIMPORT
 #if  defined(WIN32) || defined(__CYGWIN__)
-#define DLLIMPORT __declspec (dllimport)
+#define PGDLLIMPORT __declspec (dllimport)
 #else
-#define DLLIMPORT
+#define PGDLLIMPORT
 #endif   /* __CYGWIN__ */
-#endif   /* DLLIMPORT */
+#endif   /* PGDLLIMPORT */
 
 #define SQLERRMC_LEN	150
 
@@ -145,19 +145,19 @@ int main(void)
 		 
 	
 #line 49 "test_informix2.pgc"
- int  c    ;
+ int c ;
  
 #line 50 "test_informix2.pgc"
- timestamp  d    ;
+ timestamp d ;
  
 #line 51 "test_informix2.pgc"
- timestamp  e    ;
+ timestamp e ;
  
 #line 52 "test_informix2.pgc"
- timestamp  maxd    ;
+ timestamp maxd ;
  
 #line 53 "test_informix2.pgc"
- char  dbname [ 30 ]    ;
+ char dbname [ 30 ] ;
 /* exec sql end declare section */
 #line 54 "test_informix2.pgc"
 
@@ -171,7 +171,7 @@ int main(void)
 	ECPGdebug(1, stderr);
 
 	strcpy(dbname, "regress1");
-	{ ECPGconnect(__LINE__, 1, dbname , NULL,NULL , NULL, 0); 
+	{ ECPGconnect(__LINE__, 1, dbname , NULL, NULL , NULL, 0); 
 #line 63 "test_informix2.pgc"
 
 if (sqlca.sqlcode < 0) sqlprint();}
@@ -179,14 +179,14 @@ if (sqlca.sqlcode < 0) sqlprint();}
 
 	sql_check("main", "connect", 0);
 
-	{ ECPGdo(__LINE__, 1, 1, NULL, "set DateStyle to 'DMY'", ECPGt_EOIT, ECPGt_EORT);
+	{ ECPGdo(__LINE__, 1, 1, NULL, 0, ECPGst_normal, "set DateStyle to 'DMY'", ECPGt_EOIT, ECPGt_EORT);
 #line 66 "test_informix2.pgc"
 
 if (sqlca.sqlcode < 0) sqlprint();}
 #line 66 "test_informix2.pgc"
 
 
-	{ ECPGdo(__LINE__, 1, 1, NULL, "create  table history ( customerid integer   , timestamp timestamp without time zone   , action_taken char  ( 5 )    , narrative varchar ( 100 )    )    ", ECPGt_EOIT, ECPGt_EORT);
+	{ ECPGdo(__LINE__, 1, 1, NULL, 0, ECPGst_normal, "create table history ( customerid integer , timestamp timestamp without time zone , action_taken char ( 5 ) , narrative varchar ( 100 ) )", ECPGt_EOIT, ECPGt_EORT);
 #line 68 "test_informix2.pgc"
 
 if (sqlca.sqlcode < 0) sqlprint();}
@@ -194,7 +194,7 @@ if (sqlca.sqlcode < 0) sqlprint();}
 
 	sql_check("main", "create", 0);
 	
-	{ ECPGdo(__LINE__, 1, 1, NULL, "insert into history ( customerid  , timestamp  , action_taken  , narrative  ) values ( 1 , '2003-05-07 13:28:34 CEST' , 'test' , 'test' ) ", ECPGt_EOIT, ECPGt_EORT);
+	{ ECPGdo(__LINE__, 1, 1, NULL, 0, ECPGst_normal, "insert into history ( customerid , timestamp , action_taken , narrative ) values ( 1 , '2003-05-07 13:28:34 CEST' , 'test' , 'test' )", ECPGt_EOIT, ECPGt_EORT);
 #line 73 "test_informix2.pgc"
 
 if (sqlca.sqlcode < 0) sqlprint();}
@@ -202,7 +202,7 @@ if (sqlca.sqlcode < 0) sqlprint();}
 
 	sql_check("main", "insert", 0);
 
-	{ ECPGdo(__LINE__, 1, 1, NULL, "select  max ( timestamp )  from history   ", ECPGt_EOIT, 
+	{ ECPGdo(__LINE__, 1, 1, NULL, 0, ECPGst_normal, "select max ( timestamp ) from history", ECPGt_EOIT, 
 	ECPGt_timestamp,&(maxd),(long)1,(long)1,sizeof(timestamp), 
 	ECPGt_NO_INDICATOR, NULL , 0L, 0L, 0L, ECPGt_EORT);
 #line 78 "test_informix2.pgc"
@@ -212,7 +212,7 @@ if (sqlca.sqlcode < 0) sqlprint();}
 
 	sql_check("main", "select max", 100);
 
-	{ ECPGdo(__LINE__, 1, 1, NULL, "select  customerid , timestamp  from history where timestamp =  ?    limit 1 ", 
+	{ ECPGdo(__LINE__, 1, 1, NULL, 0, ECPGst_normal, "select customerid , timestamp from history where timestamp = $1  limit 1", 
 	ECPGt_timestamp,&(maxd),(long)1,(long)1,sizeof(timestamp), 
 	ECPGt_NO_INDICATOR, NULL , 0L, 0L, 0L, ECPGt_EOIT, 
 	ECPGt_int,&(c),(long)1,(long)1,sizeof(int), 
@@ -230,10 +230,10 @@ if (sqlca.sqlcode < 0) sqlprint();}
 
 	intvl = PGTYPESinterval_from_asc("1 day 2 hours 24 minutes 65 seconds", NULL);
 	PGTYPEStimestamp_add_interval(&d, intvl, &e);
-
+	free(intvl);
 	c++;
 
-	{ ECPGdo(__LINE__, 1, 1, NULL, "insert into history ( customerid  , timestamp  , action_taken  , narrative  ) values (  ? ,  ? , 'test' , 'test' ) ", 
+	{ ECPGdo(__LINE__, 1, 1, NULL, 0, ECPGst_normal, "insert into history ( customerid , timestamp , action_taken , narrative ) values ( $1  , $2  , 'test' , 'test' )", 
 	ECPGt_int,&(c),(long)1,(long)1,sizeof(int), 
 	ECPGt_NO_INDICATOR, NULL , 0L, 0L, 0L, 
 	ECPGt_timestamp,&(e),(long)1,(long)1,sizeof(timestamp), 
@@ -252,7 +252,7 @@ if (sqlca.sqlcode < 0) sqlprint();}
 #line 100 "test_informix2.pgc"
 
 
-	{ ECPGdo(__LINE__, 1, 1, NULL, "drop table history ", ECPGt_EOIT, ECPGt_EORT);
+	{ ECPGdo(__LINE__, 1, 1, NULL, 0, ECPGst_normal, "drop table history", ECPGt_EOIT, ECPGt_EORT);
 #line 102 "test_informix2.pgc"
 
 if (sqlca.sqlcode < 0) sqlprint();}

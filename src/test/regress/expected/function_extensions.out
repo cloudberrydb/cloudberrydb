@@ -1,0 +1,161 @@
+-- -----------------------------------------------------------------
+-- Test extensions to functions (MPP-16060)
+-- 	1. data access indicators
+-- -----------------------------------------------------------------
+-- test prodataaccess
+create function func1(int, int) returns int as
+$$
+  select $1 + $2;
+$$ language sql immutable contains sql;
+-- check prodataaccess column in pg_proc
+select proname, prodataaccess from pg_proc where proname = 'func1';
+ proname | prodataaccess 
+---------+---------------
+ func1   | c
+(1 row)
+
+-- check prodataaccess in pg_attribute
+select relname, attname, attlen from pg_class c, pg_attribute
+where attname = 'prodataaccess' and attrelid = c.oid and c.relname = 'pg_proc';
+ relname |    attname    | attlen 
+---------+---------------+--------
+ pg_proc | prodataaccess |      1
+(1 row)
+
+create function func2(a anyelement, b anyelement, flag bool)
+returns anyelement as
+$$
+  select $1 + $2;
+$$ language sql reads sql data;
+-- check prodataaccess column in pg_proc
+select proname, prodataaccess from pg_proc where proname = 'func2';
+ proname | prodataaccess 
+---------+---------------
+ func2   | r
+(1 row)
+
+create function func3() returns oid as
+$$
+  select oid from pg_class where relname = 'pg_type';
+$$ language sql modifies sql data volatile;
+-- check prodataaccess column in pg_proc
+select proname, prodataaccess from pg_proc where proname = 'func3';
+ proname | prodataaccess 
+---------+---------------
+ func3   | m
+(1 row)
+
+-- check default value of prodataaccess
+drop function func1(int, int);
+create function func1(int, int) returns varchar as $$
+declare
+	v_name varchar(20) DEFAULT 'zzzzz';
+begin
+	select relname from pg_class into v_name where oid=$1;
+	return v_name;
+end;
+$$ language plpgsql;
+select proname, proargnames, prodataaccess from pg_proc where proname = 'func1';
+ proname | proargnames | prodataaccess 
+---------+-------------+---------------
+ func1   |             | n
+(1 row)
+
+create function func4(int, int) returns int as
+$$
+  select $1 + $2;
+$$ language sql;
+-- check prodataaccess column
+select proname, proargnames, prodataaccess from pg_proc where proname = 'func4';
+ proname | proargnames | prodataaccess 
+---------+-------------+---------------
+ func4   |             | c
+(1 row)
+
+-- change prodataaccess option
+create or replace function func4(int, int) returns int as
+$$
+  select $1 + $2;
+$$ language sql modifies sql data;
+select proname, proargnames, prodataaccess from pg_proc where proname = 'func4';
+ proname | proargnames | prodataaccess 
+---------+-------------+---------------
+ func4   |             | m
+(1 row)
+
+-- upper case language name
+create or replace function func5(int) returns int as
+$$
+  select $1;
+$$ language "SQL";
+-- check prodataaccess column
+select proname, proargnames, prodataaccess from pg_proc where proname = 'func5';
+ proname | proargnames | prodataaccess 
+---------+-------------+---------------
+ func5   |             | c
+(1 row)
+
+-- alter function with data access
+alter function func5(int) reads sql data;
+-- check prodataaccess column
+select proname, proargnames, prodataaccess from pg_proc where proname = 'func5';
+ proname | proargnames | prodataaccess 
+---------+-------------+---------------
+ func5   |             | r
+(1 row)
+
+-- alter function with data access
+alter function func5(int) modifies sql data;
+-- check prodataaccess column
+select proname, proargnames, prodataaccess from pg_proc where proname = 'func5';
+ proname | proargnames | prodataaccess 
+---------+-------------+---------------
+ func5   |             | m
+(1 row)
+
+-- alter function with data access
+alter function func5(int) no sql;
+ERROR:  conflicting options
+HINT:  A SQL function cannot specify NO SQL.
+-- alter function with data access
+alter function func5(int) volatile contains sql;
+alter function func5(int) immutable reads sql data;
+ERROR:  conflicting options
+HINT:  IMMUTABLE conflicts with READS SQL DATA.
+alter function func5(int) immutable modifies sql data;
+ERROR:  conflicting options
+HINT:  IMMUTABLE conflicts with MODIFIES SQL DATA.
+-- data_access indicators for plpgsql
+drop function func1(int, int);
+create or replace function func1(int, int) returns varchar as $$
+declare
+	v_name varchar(20) DEFAULT 'zzzzz';
+begin
+	select relname from pg_class into v_name where oid=$1;
+	return v_name;
+end;
+$$ language plpgsql reads sql data;
+select proname, proargnames, prodataaccess from pg_proc where proname = 'func1';
+ proname | proargnames | prodataaccess 
+---------+-------------+---------------
+ func1   |             | r
+(1 row)
+
+-- check conflicts
+drop function func1(int, int);
+create function func1(int, int) returns int as
+$$
+  select $1 + $2;
+$$ language sql immutable no sql;
+ERROR:  conflicting options
+HINT:  A SQL function cannot specify NO SQL.
+create function func1(int, int) returns int as
+$$
+  select $1 + $2;
+$$ language sql immutable reads sql data;
+ERROR:  conflicting options
+HINT:  IMMUTABLE conflicts with READS SQL DATA.
+drop function func2(anyelement, anyelement, bool);
+drop function func3();
+drop function func4(int, int);
+drop function func5(int);

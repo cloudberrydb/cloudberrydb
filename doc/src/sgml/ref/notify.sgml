@@ -1,11 +1,12 @@
 <!--
-$PostgreSQL: pgsql/doc/src/sgml/ref/notify.sgml,v 1.28 2006/09/16 00:30:19 momjian Exp $
+$PostgreSQL: pgsql/doc/src/sgml/ref/notify.sgml,v 1.31 2008/11/14 10:22:47 petere Exp $
 PostgreSQL documentation
 -->
 
 <refentry id="SQL-NOTIFY">
  <refmeta>
   <refentrytitle id="sql-notify-title">NOTIFY</refentrytitle>
+  <manvolnum>7</manvolnum>
   <refmiscinfo>SQL - Language Statements</refmiscinfo>
  </refmeta>
 
@@ -64,7 +65,7 @@ NOTIFY <replaceable class="PARAMETER">name</replaceable>
    to a particular table, a useful programming technique is to put the
    <command>NOTIFY</command> in a rule that is triggered by table updates.
    In this way, notification happens automatically when the table is changed,
-   and the application programmer can't accidentally forget to do it.
+   and the application programmer cannot accidentally forget to do it.
   </para>
 
   <para>
@@ -90,7 +91,7 @@ NOTIFY <replaceable class="PARAMETER">name</replaceable>
   <para>
    <command>NOTIFY</command> behaves like Unix signals in one important
    respect: if the same notification name is signaled multiple times in quick
-   succession, recipients may get only one notification event for several executions
+   succession, recipients might get only one notification event for several executions
    of <command>NOTIFY</command>.  So it is a bad idea to depend on the number
    of notifications received.  Instead, use <command>NOTIFY</command> to wake up
    applications that need to pay attention to something, and use a database

@@ -4,7 +4,7 @@
  *	  This file contains routines to support indexes defined on system
  *	  catalogs.
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2008, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -90,7 +90,7 @@ CatalogIndexInsert(CatalogIndexState indstate, HeapTuple heapTuple)
 
 	/* Need a slot to hold the tuple being examined */
 	slot = MakeSingleTupleTableSlot(RelationGetDescr(heapRelation));
-	ExecStoreTuple(heapTuple, slot, InvalidBuffer, false);
+	ExecStoreGenericTuple(heapTuple, slot, false);
 
 	/*
 	 * for each index, form and insert the index tuple

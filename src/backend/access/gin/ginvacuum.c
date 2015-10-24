@@ -4,11 +4,11 @@
  *	  delete & vacuum routines for the postgres GIN
  *
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2008, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
- *			$PostgreSQL: pgsql/src/backend/access/gin/ginvacuum.c,v 1.9 2006/11/30 16:22:32 teodor Exp $
+ *			$PostgreSQL: pgsql/src/backend/access/gin/ginvacuum.c,v 1.9.2.2 2007/06/05 12:48:21 teodor Exp $
  *-------------------------------------------------------------------------
  */
 
@@ -20,6 +20,8 @@
 #include "storage/freespace.h"
 #include "storage/freespace.h"
 #include "commands/vacuum.h"
+#include "storage/lwlock.h"
+#include "cdb/cdbfilerepprimary.h"
 
 typedef struct
 {
@@ -152,21 +154,26 @@ xlogVacuumPage(Relation index, Buffer buffer)
 static bool
 ginVacuumPostingTreeLeaves(GinVacuumState *gvs, BlockNumber blkno, bool isRoot, Buffer *rootBuffer)
 {
-	Buffer		buffer = ReadBuffer(gvs->index, blkno);
-	Page		page = BufferGetPage(buffer);
+	Buffer		buffer;
+	Page		page;
 	bool		hasVoidPage = FALSE;
+
+	MIRROREDLOCK_BUFMGR_MUST_ALREADY_BE_HELD;
+
+	buffer = ReadBuffer(gvs->index, blkno);
+	page = BufferGetPage(buffer);
 
 	/*
 	 * We should be sure that we don't concurrent with inserts, insert process
 	 * never release root page until end (but it can unlock it and lock
-	 * again). If we lock root with with LockBufferForCleanup, new scan
-	 * process can't begin, but previous may run. ginmarkpos/start* keeps
-	 * buffer pinned, so we will wait for it. We lock only one posting tree in
-	 * whole index, so, it's concurrent enough.. Side effect: after this is
-	 * full complete, tree is unused by any other process
+	 * again). New scan can't start but previously started 
+	 * ones work concurrently.
 	 */
 
-	LockBufferForCleanup(buffer);
+	if ( isRoot ) 
+		LockBufferForCleanup(buffer);
+	else
+		LockBuffer(buffer, GIN_EXCLUSIVE); 
 
 	Assert(GinPageIsData(page));
 
@@ -190,9 +197,9 @@ ginVacuumPostingTreeLeaves(GinVacuumState *gvs, BlockNumber blkno, bool isRoot, 
 			pfree(cleaned);
 			GinPageGetOpaque(page)->maxoff = newMaxOff;
 
+			MarkBufferDirty(buffer);
 			xlogVacuumPage(gvs->index, buffer);
 
-			MarkBufferDirty(buffer);
 			END_CRIT_SECTION();
 
 			/* if root is a leaf page, we don't desire further processing */
@@ -238,24 +245,30 @@ static void
 ginDeletePage(GinVacuumState *gvs, BlockNumber deleteBlkno, BlockNumber leftBlkno,
 			  BlockNumber parentBlkno, OffsetNumber myoff, bool isParentRoot)
 {
-	Buffer		dBuffer = ReadBuffer(gvs->index, deleteBlkno);
-	Buffer		lBuffer = (leftBlkno == InvalidBlockNumber) ? InvalidBuffer : ReadBuffer(gvs->index, leftBlkno);
-	Buffer		pBuffer = ReadBuffer(gvs->index, parentBlkno);
+	Buffer		dBuffer;
+	Buffer		lBuffer;
+	Buffer		pBuffer;
 	Page		page,
 				parentPage;
+
+	MIRROREDLOCK_BUFMGR_MUST_ALREADY_BE_HELD;
+
+	dBuffer = ReadBuffer(gvs->index, deleteBlkno);
+	lBuffer = (leftBlkno == InvalidBlockNumber) ? InvalidBuffer : ReadBuffer(gvs->index, leftBlkno);
+	pBuffer = ReadBuffer(gvs->index, parentBlkno);
 
 	LockBuffer(dBuffer, GIN_EXCLUSIVE);
 	if (!isParentRoot)			/* parent is already locked by
 								 * LockBufferForCleanup() */
 		LockBuffer(pBuffer, GIN_EXCLUSIVE);
+	if (leftBlkno != InvalidBlockNumber)
+		LockBuffer(lBuffer, GIN_EXCLUSIVE);
 
 	START_CRIT_SECTION();
 
 	if (leftBlkno != InvalidBlockNumber)
 	{
 		BlockNumber rightlink;
-
-		LockBuffer(lBuffer, GIN_EXCLUSIVE);
 
 		page = BufferGetPage(dBuffer);
 		rightlink = GinPageGetOpaque(page)->rightlink;
@@ -274,7 +287,16 @@ ginDeletePage(GinVacuumState *gvs, BlockNumber deleteBlkno, BlockNumber leftBlkn
 	PageDeletePostingItem(parentPage, myoff);
 
 	page = BufferGetPage(dBuffer);
+	/*
+	 * we shouldn't change rightlink field to save 
+	 * workability of running search scan
+	 */
 	GinPageGetOpaque(page)->flags = GIN_DELETED;
+
+	MarkBufferDirty(pBuffer);
+	if (leftBlkno != InvalidBlockNumber)
+		MarkBufferDirty(lBuffer);
+	MarkBufferDirty(dBuffer);
 
 	if (!gvs->index->rd_istemp)
 	{
@@ -333,18 +355,13 @@ ginDeletePage(GinVacuumState *gvs, BlockNumber deleteBlkno, BlockNumber leftBlkn
 		}
 	}
 
-	MarkBufferDirty(pBuffer);
 	if (!isParentRoot)
 		LockBuffer(pBuffer, GIN_UNLOCK);
 	ReleaseBuffer(pBuffer);
 
 	if (leftBlkno != InvalidBlockNumber)
-	{
-		MarkBufferDirty(lBuffer);
 		UnlockReleaseBuffer(lBuffer);
-	}
 
-	MarkBufferDirty(dBuffer);
 	UnlockReleaseBuffer(dBuffer);
 
 	END_CRIT_SECTION();
@@ -368,6 +385,8 @@ typedef struct DataPageDeleteStack
 static bool
 ginScanToDelete(GinVacuumState *gvs, BlockNumber blkno, bool isRoot, DataPageDeleteStack *parent, OffsetNumber myoff)
 {
+	MIRROREDLOCK_BUFMGR_DECLARE;
+
 	DataPageDeleteStack *me;
 	Buffer		buffer;
 	Page		page;
@@ -389,7 +408,10 @@ ginScanToDelete(GinVacuumState *gvs, BlockNumber blkno, bool isRoot, DataPageDel
 		else
 			me = parent->child;
 	}
-
+	
+	// -------- MirroredLock ----------
+	MIRROREDLOCK_BUFMGR_LOCK;
+	
 	buffer = ReadBuffer(gvs->index, blkno);
 	page = BufferGetPage(buffer);
 
@@ -422,7 +444,10 @@ ginScanToDelete(GinVacuumState *gvs, BlockNumber blkno, bool isRoot, DataPageDel
 			}
 		}
 	}
-
+	
+	MIRROREDLOCK_BUFMGR_UNLOCK;
+	// -------- MirroredLock ----------
+	
 	ReleaseBuffer(buffer);
 
 	if (!meDelete)
@@ -553,6 +578,8 @@ ginVacuumEntryPage(GinVacuumState *gvs, Buffer buffer, BlockNumber *roots, uint3
 Datum
 ginbulkdelete(PG_FUNCTION_ARGS)
 {
+	MIRROREDLOCK_BUFMGR_DECLARE;
+
 	IndexVacuumInfo *info = (IndexVacuumInfo *) PG_GETARG_POINTER(0);
 	IndexBulkDeleteResult *stats = (IndexBulkDeleteResult *) PG_GETARG_POINTER(1);
 	IndexBulkDeleteCallback callback = (IndexBulkDeleteCallback) PG_GETARG_POINTER(2);
@@ -575,7 +602,10 @@ ginbulkdelete(PG_FUNCTION_ARGS)
 	gvs.callback = callback;
 	gvs.callback_state = callback_state;
 	initGinState(&gvs.ginstate, index);
-
+	
+	// -------- MirroredLock ----------
+	MIRROREDLOCK_BUFMGR_LOCK;
+	
 	buffer = ReadBuffer(index, blkno);
 
 	/* find leaf page */
@@ -629,8 +659,8 @@ ginbulkdelete(PG_FUNCTION_ARGS)
 		{
 			START_CRIT_SECTION();
 			PageRestoreTempPage(resPage, page);
-			xlogVacuumPage(gvs.index, buffer);
 			MarkBufferDirty(buffer);
+			xlogVacuumPage(gvs.index, buffer);
 			UnlockReleaseBuffer(buffer);
 			END_CRIT_SECTION();
 		}
@@ -653,13 +683,18 @@ ginbulkdelete(PG_FUNCTION_ARGS)
 		buffer = ReadBuffer(index, blkno);
 		LockBuffer(buffer, GIN_EXCLUSIVE);
 	}
-
+	
+	MIRROREDLOCK_BUFMGR_UNLOCK;
+	// -------- MirroredLock ----------
+	
 	PG_RETURN_POINTER(gvs.result);
 }
 
 Datum
 ginvacuumcleanup(PG_FUNCTION_ARGS)
 {
+	MIRROREDLOCK_BUFMGR_DECLARE;
+
 	IndexVacuumInfo *info = (IndexVacuumInfo *) PG_GETARG_POINTER(0);
 	IndexBulkDeleteResult *stats = (IndexBulkDeleteResult *) PG_GETARG_POINTER(1);
 	Relation	index = info->index;
@@ -712,7 +747,10 @@ ginvacuumcleanup(PG_FUNCTION_ARGS)
 		Page		page;
 
 		vacuum_delay_point();
-
+		
+		// -------- MirroredLock ----------
+		MIRROREDLOCK_BUFMGR_LOCK;
+		
 		buffer = ReadBuffer(index, blkno);
 		LockBuffer(buffer, GIN_SHARE);
 		page = (Page) BufferGetPage(buffer);
@@ -727,6 +765,10 @@ ginvacuumcleanup(PG_FUNCTION_ARGS)
 			lastFilledBlock = blkno;
 
 		UnlockReleaseBuffer(buffer);
+		
+		MIRROREDLOCK_BUFMGR_UNLOCK;
+		// -------- MirroredLock ----------
+		
 	}
 	lastBlock = npages - 1;
 
@@ -743,7 +785,10 @@ ginvacuumcleanup(PG_FUNCTION_ARGS)
 			}
 
 		if (lastBlock > lastFilledBlock)
-			RelationTruncate(index, lastFilledBlock + 1);
+			RelationTruncate(
+					index, 
+					lastFilledBlock + 1,
+					/* markPersistentAsPhysicallyTruncated */ true);
 
 		stats->pages_removed = lastBlock - lastFilledBlock;
 	}

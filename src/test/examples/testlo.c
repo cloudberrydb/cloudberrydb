@@ -3,12 +3,12 @@
  * testlo.c
  *	  test using large objects with libpq
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/test/examples/testlo.c,v 1.27 2006/03/05 15:59:11 momjian Exp $
+ *	  $PostgreSQL: pgsql/src/test/examples/testlo.c,v 1.31 2009/01/01 17:24:04 momjian Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -46,7 +46,7 @@ importFile(PGconn *conn, char *filename)
 	fd = open(filename, O_RDONLY, 0666);
 	if (fd < 0)
 	{							/* error */
-		fprintf(stderr, "can't open unix file\"%s\"\n", filename);
+		fprintf(stderr, "cannot open unix file\"%s\"\n", filename);
 	}
 
 	/*
@@ -54,7 +54,7 @@ importFile(PGconn *conn, char *filename)
 	 */
 	lobjId = lo_creat(conn, INV_READ | INV_WRITE);
 	if (lobjId == 0)
-		fprintf(stderr, "can't create large object");
+		fprintf(stderr, "cannot create large object");
 
 	lobj_fd = lo_open(conn, lobjId, INV_WRITE);
 
@@ -84,7 +84,7 @@ pickout(PGconn *conn, Oid lobjId, int start, int len)
 
 	lobj_fd = lo_open(conn, lobjId, INV_READ);
 	if (lobj_fd < 0)
-		fprintf(stderr, "can't open large object %u", lobjId);
+		fprintf(stderr, "cannot open large object %u", lobjId);
 
 	lo_lseek(conn, lobj_fd, start, SEEK_SET);
 	buf = malloc(len + 1);
@@ -115,7 +115,7 @@ overwrite(PGconn *conn, Oid lobjId, int start, int len)
 
 	lobj_fd = lo_open(conn, lobjId, INV_WRITE);
 	if (lobj_fd < 0)
-		fprintf(stderr, "can't open large object %u", lobjId);
+		fprintf(stderr, "cannot open large object %u", lobjId);
 
 	lo_lseek(conn, lobj_fd, start, SEEK_SET);
 	buf = malloc(len + 1);
@@ -160,7 +160,7 @@ exportFile(PGconn *conn, Oid lobjId, char *filename)
 	 */
 	lobj_fd = lo_open(conn, lobjId, INV_READ);
 	if (lobj_fd < 0)
-		fprintf(stderr, "can't open large object %u", lobjId);
+		fprintf(stderr, "cannot open large object %u", lobjId);
 
 	/*
 	 * open the file to be written to
@@ -168,7 +168,7 @@ exportFile(PGconn *conn, Oid lobjId, char *filename)
 	fd = open(filename, O_CREAT | O_WRONLY | O_TRUNC, 0666);
 	if (fd < 0)
 	{							/* error */
-		fprintf(stderr, "can't open unix file\"%s\"",
+		fprintf(stderr, "cannot open unix file\"%s\"",
 				filename);
 	}
 

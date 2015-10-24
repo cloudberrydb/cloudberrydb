@@ -3,12 +3,12 @@
 # Makefile--
 #    Makefile for the Wisconsin Benchmark
 #
-# Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+# Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
 # Portions Copyright (c) 1994-5, Regents of the University of California
 #
 #
 # IDENTIFICATION
-#    $PostgreSQL: pgsql/src/test/bench/Makefile,v 1.13 2006/03/05 15:59:11 momjian Exp $
+#    $PostgreSQL: pgsql/src/test/bench/Makefile,v 1.17 2009/01/01 17:24:04 momjian Exp $
 #
 #-------------------------------------------------------------------------
 
@@ -31,9 +31,9 @@ create.sql: create.source
 bench.sql: 
 	x=1; \
 	for i in `ls query[0-9][0-9]`; do \
-	  echo "select $$x as x" >> bench.sql; \
-	  cat $$i >> bench.sql; \
-	  x=`expr $$x + 1`; \
+	  echo "select $$x as x" >> bench.sql && \
+	  cat $$i >> bench.sql && \
+	  x=`expr $$x + 1` || exit; \
 	done
 
 runtest: $(OUTFILES)

@@ -4,17 +4,19 @@
  *	  page utilities routines for the postgres inverted index access method.
  *
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2008, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
- *			$PostgreSQL: pgsql/src/backend/access/gin/ginbtree.c,v 1.6 2006/11/12 06:55:53 neilc Exp $
+ *			$PostgreSQL: pgsql/src/backend/access/gin/ginbtree.c,v 1.6.2.1 2007/06/05 12:48:21 teodor Exp $
  *-------------------------------------------------------------------------
  */
 
 #include "postgres.h"
 #include "access/gin.h"
 #include "miscadmin.h"
+#include "storage/lwlock.h"
+#include "cdb/cdbfilerepprimary.h"
 
 /*
  * Locks buffer by needed method for search.
@@ -24,6 +26,8 @@ ginTraverseLock(Buffer buffer, bool searchMode)
 {
 	Page		page;
 	int			access = GIN_SHARE;
+
+	MIRROREDLOCK_BUFMGR_MUST_ALREADY_BE_HELD;
 
 	LockBuffer(buffer, GIN_SHARE);
 	page = BufferGetPage(buffer);
@@ -55,6 +59,8 @@ ginPrepareFindLeafPage(GinBtree btree, BlockNumber blkno)
 {
 	GinBtreeStack *stack = (GinBtreeStack *) palloc(sizeof(GinBtreeStack));
 
+	MIRROREDLOCK_BUFMGR_MUST_ALREADY_BE_HELD;
+
 	stack->blkno = blkno;
 	stack->buffer = ReadBuffer(btree->index, stack->blkno);
 	stack->parent = NULL;
@@ -73,6 +79,8 @@ ginFindLeafPage(GinBtree btree, GinBtreeStack *stack)
 {
 	bool		isfirst = TRUE;
 	BlockNumber rootBlkno;
+
+	MIRROREDLOCK_BUFMGR_MUST_ALREADY_BE_HELD;
 
 	if (!stack)
 		stack = ginPrepareFindLeafPage(btree, GIN_ROOT_BLKNO);
@@ -173,7 +181,6 @@ void
 findParents(GinBtree btree, GinBtreeStack *stack,
 			BlockNumber rootBlkno)
 {
-
 	Page		page;
 	Buffer		buffer;
 	BlockNumber blkno,
@@ -181,6 +188,8 @@ findParents(GinBtree btree, GinBtreeStack *stack,
 	OffsetNumber offset;
 	GinBtreeStack *root = stack->parent;
 	GinBtreeStack *ptr;
+
+	MIRROREDLOCK_BUFMGR_MUST_ALREADY_BE_HELD;
 
 	if (!root)
 	{
@@ -274,6 +283,8 @@ ginInsertValue(GinBtree btree, GinBtreeStack *stack)
 				rpage,
 				lpage;
 
+	MIRROREDLOCK_BUFMGR_MUST_ALREADY_BE_HELD;
+
 	/* remember root BlockNumber */
 	while (parent)
 	{
@@ -294,6 +305,8 @@ ginInsertValue(GinBtree btree, GinBtreeStack *stack)
 			START_CRIT_SECTION();
 			btree->placeToPage(btree, stack->buffer, stack->off, &rdata);
 
+			MarkBufferDirty(stack->buffer);
+
 			if (!btree->index->rd_istemp)
 			{
 				XLogRecPtr	recptr;
@@ -303,7 +316,6 @@ ginInsertValue(GinBtree btree, GinBtreeStack *stack)
 				PageSetTLI(page, ThisTimeLineID);
 			}
 
-			MarkBufferDirty(stack->buffer);
 			UnlockReleaseBuffer(stack->buffer);
 			END_CRIT_SECTION();
 
@@ -351,6 +363,11 @@ ginInsertValue(GinBtree btree, GinBtreeStack *stack)
 				GinInitBuffer(stack->buffer, GinPageGetOpaque(newlpage)->flags & ~GIN_LEAF);
 				PageRestoreTempPage(newlpage, lpage);
 				btree->fillRoot(btree, stack->buffer, lbuffer, rbuffer);
+
+				MarkBufferDirty(rbuffer);
+				MarkBufferDirty(lbuffer);
+				MarkBufferDirty(stack->buffer);
+
 				if (!btree->index->rd_istemp)
 				{
 					XLogRecPtr	recptr;
@@ -364,11 +381,8 @@ ginInsertValue(GinBtree btree, GinBtreeStack *stack)
 					PageSetTLI(rpage, ThisTimeLineID);
 				}
 
-				MarkBufferDirty(rbuffer);
 				UnlockReleaseBuffer(rbuffer);
-				MarkBufferDirty(lbuffer);
 				UnlockReleaseBuffer(lbuffer);
-				MarkBufferDirty(stack->buffer);
 				UnlockReleaseBuffer(stack->buffer);
 
 				END_CRIT_SECTION();
@@ -389,6 +403,10 @@ ginInsertValue(GinBtree btree, GinBtreeStack *stack)
 
 				START_CRIT_SECTION();
 				PageRestoreTempPage(newlpage, lpage);
+
+				MarkBufferDirty(rbuffer);
+				MarkBufferDirty(stack->buffer);
+
 				if (!btree->index->rd_istemp)
 				{
 					XLogRecPtr	recptr;
@@ -399,9 +417,7 @@ ginInsertValue(GinBtree btree, GinBtreeStack *stack)
 					PageSetLSN(rpage, recptr);
 					PageSetTLI(rpage, ThisTimeLineID);
 				}
-				MarkBufferDirty(rbuffer);
 				UnlockReleaseBuffer(rbuffer);
-				MarkBufferDirty(stack->buffer);
 				END_CRIT_SECTION();
 			}
 		}

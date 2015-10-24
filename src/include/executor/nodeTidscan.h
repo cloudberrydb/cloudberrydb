@@ -4,7 +4,7 @@
  *
  *
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2008, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * $PostgreSQL: pgsql/src/include/executor/nodeTidscan.h,v 1.17 2006/03/05 15:58:56 momjian Exp $
@@ -24,4 +24,12 @@ extern void ExecTidMarkPos(TidScanState *node);
 extern void ExecTidRestrPos(TidScanState *node);
 extern void ExecTidReScan(TidScanState *node, ExprContext *exprCtxt);
 
+enum {
+	GPMON_TIDSCAN_TOTAL = GPMON_QEXEC_M_NODE_START, 
+};
+
+static inline gpmon_packet_t * GpmonPktFromTidScanState(TidScanState *node)
+{
+	return &node->ss.ps.gpmon_pkt;
+}
 #endif   /* NODETIDSCAN_H */

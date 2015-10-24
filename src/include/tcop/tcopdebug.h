@@ -4,10 +4,10 @@
  *	  #defines governing debugging behaviour in the traffic cop
  *
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
- * $PostgreSQL: pgsql/src/include/tcop/tcopdebug.h,v 1.15 2006/03/05 15:59:00 momjian Exp $
+ * $PostgreSQL: pgsql/src/include/tcop/tcopdebug.h,v 1.18 2009/01/01 17:24:01 momjian Exp $
  *
  *-------------------------------------------------------------------------
  */

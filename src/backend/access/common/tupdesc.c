@@ -3,12 +3,12 @@
  * tupdesc.c
  *	  POSTGRES tuple descriptor support code
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/access/common/tupdesc.c,v 1.118 2006/07/14 14:52:16 momjian Exp $
+ *	  $PostgreSQL: pgsql/src/backend/access/common/tupdesc.c,v 1.126 2009/06/11 14:48:53 momjian Exp $
  *
  * NOTES
  *	  some of the executor utility code such as "ExecTypeFromTL" should be
@@ -19,6 +19,7 @@
 
 #include "postgres.h"
 
+#include "catalog/catquery.h"
 #include "catalog/pg_type.h"
 #include "parser/parse_type.h"
 #include "utils/builtins.h"
@@ -53,10 +54,14 @@ CreateTemplateTupleDesc(int natts, bool hasoid)
 	 * struct pointer alignment requirement, and hence we don't need to insert
 	 * alignment padding between the struct and the array of attribute row
 	 * pointers.
+	 *
+	 * Note: Only the fixed part of pg_attribute rows is included in tuple
+	 * descriptors, so we only need ATTRIBUTE_FIXED_PART_SIZE space per attr.
+	 * That might need alignment padding, however.
 	 */
 	attroffset = sizeof(struct tupleDesc) + natts * sizeof(Form_pg_attribute);
 	attroffset = MAXALIGN(attroffset);
-	stg = palloc(attroffset + natts * MAXALIGN(ATTRIBUTE_TUPLE_SIZE));
+	stg = palloc(attroffset + natts * MAXALIGN(ATTRIBUTE_FIXED_PART_SIZE));
 	desc = (TupleDesc) stg;
 
 	if (natts > 0)
@@ -70,7 +75,7 @@ CreateTemplateTupleDesc(int natts, bool hasoid)
 		for (i = 0; i < natts; i++)
 		{
 			attrs[i] = (Form_pg_attribute) stg;
-			stg += MAXALIGN(ATTRIBUTE_TUPLE_SIZE);
+			stg += MAXALIGN(ATTRIBUTE_FIXED_PART_SIZE);
 		}
 	}
 	else
@@ -83,6 +88,7 @@ CreateTemplateTupleDesc(int natts, bool hasoid)
 	desc->constr = NULL;
 	desc->tdtypeid = RECORDOID;
 	desc->tdtypmod = -1;
+	desc->tdqdtypmod = -1;
 	desc->tdhasoid = hasoid;
 	desc->tdrefcount = -1;		/* assume not reference-counted */
 
@@ -116,6 +122,7 @@ CreateTupleDesc(int natts, bool hasoid, Form_pg_attribute *attrs)
 	desc->constr = NULL;
 	desc->tdtypeid = RECORDOID;
 	desc->tdtypmod = -1;
+	desc->tdqdtypmod = -1;
 	desc->tdhasoid = hasoid;
 	desc->tdrefcount = -1;		/* assume not reference-counted */
 
@@ -139,13 +146,14 @@ CreateTupleDescCopy(TupleDesc tupdesc)
 
 	for (i = 0; i < desc->natts; i++)
 	{
-		memcpy(desc->attrs[i], tupdesc->attrs[i], ATTRIBUTE_TUPLE_SIZE);
+		memcpy(desc->attrs[i], tupdesc->attrs[i], ATTRIBUTE_FIXED_PART_SIZE);
 		desc->attrs[i]->attnotnull = false;
 		desc->attrs[i]->atthasdef = false;
 	}
 
 	desc->tdtypeid = tupdesc->tdtypeid;
 	desc->tdtypmod = tupdesc->tdtypmod;
+	desc->tdqdtypmod = tupdesc->tdqdtypmod;
 
 	return desc;
 }
@@ -166,7 +174,7 @@ CreateTupleDescCopyConstr(TupleDesc tupdesc)
 
 	for (i = 0; i < desc->natts; i++)
 	{
-		memcpy(desc->attrs[i], tupdesc->attrs[i], ATTRIBUTE_TUPLE_SIZE);
+		memcpy(desc->attrs[i], tupdesc->attrs[i], ATTRIBUTE_FIXED_PART_SIZE);
 	}
 
 	if (constr)
@@ -204,6 +212,7 @@ CreateTupleDescCopyConstr(TupleDesc tupdesc)
 
 	desc->tdtypeid = tupdesc->tdtypeid;
 	desc->tdtypmod = tupdesc->tdtypmod;
+	desc->tdqdtypmod = tupdesc->tdqdtypmod;
 
 	return desc;
 }
@@ -298,7 +307,7 @@ DecrTupleDescRefCount(TupleDesc tupdesc)
  * We don't compare tdrefcount, either.
  */
 bool
-equalTupleDescs(TupleDesc tupdesc1, TupleDesc tupdesc2)
+equalTupleDescs(TupleDesc tupdesc1, TupleDesc tupdesc2, bool strict)
 {
 	int			i,
 				j,
@@ -306,7 +315,7 @@ equalTupleDescs(TupleDesc tupdesc1, TupleDesc tupdesc2)
 
 	if (tupdesc1->natts != tupdesc2->natts)
 		return false;
-	if (tupdesc1->tdtypeid != tupdesc2->tdtypeid)
+	if (strict && tupdesc1->tdtypeid != tupdesc2->tdtypeid)
 		return false;
 	if (tupdesc1->tdhasoid != tupdesc2->tdhasoid)
 		return false;
@@ -346,17 +355,24 @@ equalTupleDescs(TupleDesc tupdesc1, TupleDesc tupdesc2)
 			return false;
 		if (attr1->attalign != attr2->attalign)
 			return false;
-		if (attr1->attnotnull != attr2->attnotnull)
-			return false;
-		if (attr1->atthasdef != attr2->atthasdef)
-			return false;
-		if (attr1->attisdropped != attr2->attisdropped)
-			return false;
-		if (attr1->attislocal != attr2->attislocal)
-			return false;
-		if (attr1->attinhcount != attr2->attinhcount)
-			return false;
+
+        if (strict)
+        {
+            if (attr1->attnotnull != attr2->attnotnull)
+                return false;
+            if (attr1->atthasdef != attr2->atthasdef)
+                return false;
+            if (attr1->attisdropped != attr2->attisdropped)
+                return false;
+            if (attr1->attislocal != attr2->attislocal)
+                return false;
+            if (attr1->attinhcount != attr2->attinhcount)
+                return false;
+        }
 	}
+
+    if (!strict) 
+        return true;
 
 	if (tupdesc1->constr != NULL)
 	{
@@ -422,6 +438,12 @@ equalTupleDescs(TupleDesc tupdesc1, TupleDesc tupdesc2)
  * TupleDescInitEntry
  *		This function initializes a single attribute structure in
  *		a previously allocated tuple descriptor.
+ *
+ * If attributeName is NULL, the attname field is set to an empty string
+ * (this is for cases where we don't know or need a name for the field).
+ * Also, some callers use this function to change the datatype-related fields
+ * in an existing tupdesc; they pass attributeName = NameStr(att->attname)
+ * to indicate that the attname field shouldn't be modified.
  */
 void
 TupleDescInitEntry(TupleDesc desc,
@@ -434,6 +456,7 @@ TupleDescInitEntry(TupleDesc desc,
 	HeapTuple	tuple;
 	Form_pg_type typeForm;
 	Form_pg_attribute att;
+	cqContext	*pcqCtx;
 
 	/*
 	 * sanity checks
@@ -452,12 +475,12 @@ TupleDescInitEntry(TupleDesc desc,
 	/*
 	 * Note: attributeName can be NULL, because the planner doesn't always
 	 * fill in valid resname values in targetlists, particularly for resjunk
-	 * attributes.
+	 * attributes. Also, do nothing if caller wants to re-use the old attname.
 	 */
-	if (attributeName != NULL)
-		namestrcpy(&(att->attname), attributeName);
-	else
+	if (attributeName == NULL)
 		MemSet(NameStr(att->attname), 0, NAMEDATALEN);
+	else if (attributeName != NameStr(att->attname))
+		namestrcpy(&(att->attname), attributeName);
 
 	att->attstattarget = -1;
 	att->attcacheoff = -1;
@@ -472,9 +495,14 @@ TupleDescInitEntry(TupleDesc desc,
 	att->attislocal = true;
 	att->attinhcount = 0;
 
-	tuple = SearchSysCache(TYPEOID,
-						   ObjectIdGetDatum(oidtypeid),
-						   0, 0, 0);
+	pcqCtx = caql_beginscan(
+			NULL,
+			cql("SELECT * FROM pg_type "
+				" WHERE oid = :1 ",
+				ObjectIdGetDatum(oidtypeid)));
+
+	tuple = caql_getnext(pcqCtx);
+
 	if (!HeapTupleIsValid(tuple))
 		elog(ERROR, "cache lookup failed for type %u", oidtypeid);
 	typeForm = (Form_pg_type) GETSTRUCT(tuple);
@@ -485,7 +513,7 @@ TupleDescInitEntry(TupleDesc desc,
 	att->attalign = typeForm->typalign;
 	att->attstorage = typeForm->typstorage;
 
-	ReleaseSysCache(tuple);
+	caql_endscan(pcqCtx);
 }
 
 
@@ -505,12 +533,10 @@ BuildDescForRelation(List *schema)
 	AttrNumber	attnum;
 	ListCell   *l;
 	TupleDesc	desc;
-	AttrDefault *attrdef = NULL;
 	TupleConstr *constr = (TupleConstr *) palloc0(sizeof(TupleConstr));
 	char	   *attname;
 	int32		atttypmod;
 	int			attdim;
-	int			ndef = 0;
 
 	/*
 	 * allocate a new tuple descriptor
@@ -533,60 +559,32 @@ BuildDescForRelation(List *schema)
 		attnum++;
 
 		attname = entry->colname;
-		atttypmod = entry->typename->typmod;
-		attdim = list_length(entry->typename->arrayBounds);
+		atttypmod = entry->typname->typmod;
+		attdim = list_length(entry->typname->arrayBounds);
 
-		if (entry->typename->setof)
+		if (entry->typname->setof)
 			ereport(ERROR,
 					(errcode(ERRCODE_INVALID_TABLE_DEFINITION),
 					 errmsg("column \"%s\" cannot be declared SETOF",
 							attname)));
 
 		TupleDescInitEntry(desc, attnum, attname,
-						   typenameTypeId(NULL, entry->typename),
+						   typenameTypeId(NULL, entry->typname),
 						   atttypmod, attdim);
 
 		/* Fill in additional stuff not handled by TupleDescInitEntry */
 		if (entry->is_not_null)
 			constr->has_not_null = true;
 		desc->attrs[attnum - 1]->attnotnull = entry->is_not_null;
-
-		/*
-		 * Note we copy only pre-cooked default expressions. Digestion of raw
-		 * ones is someone else's problem.
-		 */
-		if (entry->cooked_default != NULL)
-		{
-			if (attrdef == NULL)
-				attrdef = (AttrDefault *) palloc(natts * sizeof(AttrDefault));
-			attrdef[ndef].adnum = attnum;
-			attrdef[ndef].adbin = pstrdup(entry->cooked_default);
-			ndef++;
-			desc->attrs[attnum - 1]->atthasdef = true;
-		}
-
 		desc->attrs[attnum - 1]->attislocal = entry->is_local;
 		desc->attrs[attnum - 1]->attinhcount = entry->inhcount;
 	}
 
-	if (constr->has_not_null || ndef > 0)
+	if (constr->has_not_null)
 	{
 		desc->constr = constr;
-
-		if (ndef > 0)			/* DEFAULTs */
-		{
-			if (ndef < natts)
-				constr->defval = (AttrDefault *)
-					repalloc(attrdef, ndef * sizeof(AttrDefault));
-			else
-				constr->defval = attrdef;
-			constr->num_defval = ndef;
-		}
-		else
-		{
-			constr->defval = NULL;
-			constr->num_defval = 0;
-		}
+		constr->defval = NULL;
+		constr->num_defval = 0;
 		constr->check = NULL;
 		constr->num_check = 0;
 	}

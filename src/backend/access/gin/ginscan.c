@@ -4,7 +4,7 @@
  *	  routines to manage scans inverted index relations
  *
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
@@ -15,8 +15,11 @@
 #include "postgres.h"
 #include "access/genam.h"
 #include "access/gin.h"
+#include "access/relscan.h"
 #include "pgstat.h"
+#include "storage/bufmgr.h"
 #include "utils/memutils.h"
+#include "utils/rel.h"
 
 
 Datum
@@ -178,7 +181,7 @@ newScanKey(IndexScanDesc scan)
 				(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
 				 errmsg("GIN index does not support search with void query")));
 
-	pgstat_count_index_scan(&scan->xs_pgstat_info);
+	pgstat_count_index_scan(scan->indexRelation);
 }
 
 Datum

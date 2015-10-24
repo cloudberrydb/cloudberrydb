@@ -159,12 +159,14 @@ gettoken_query(QPRS_STATE * state, int4 *val, int4 *lenval, char **strval, int2 
 					(state->buf)++;		/* can safely ++, t_iseq guarantee
 										 * that pg_mblen()==1 */
 					*val = (int4) '!';
+					state->state = WAITOPERAND;
 					return OPR;
 				}
 				else if (t_iseq(state->buf, '('))
 				{
 					state->count++;
 					(state->buf)++;
+					state->state = WAITOPERAND;
 					return OPEN;
 				}
 				else if (t_iseq(state->buf, ':'))
@@ -545,8 +547,8 @@ rexectsq(PG_FUNCTION_ARGS)
 Datum
 exectsq(PG_FUNCTION_ARGS)
 {
-	tsvector   *val = (tsvector *) DatumGetPointer(PG_DETOAST_DATUM(PG_GETARG_DATUM(0)));
-	QUERYTYPE  *query = (QUERYTYPE *) DatumGetPointer(PG_DETOAST_DATUM(PG_GETARG_DATUM(1)));
+	tsvector   *val = (tsvector *) PG_DETOAST_DATUM(PG_GETARG_DATUM(0));
+	QUERYTYPE  *query = (QUERYTYPE *) PG_DETOAST_DATUM(PG_GETARG_DATUM(1));
 	CHKVAL		chkval;
 	bool		result;
 
@@ -656,7 +658,7 @@ static QUERYTYPE *
 				(errmsg("tsearch query doesn't contain lexeme(s): \"%s\"",
 						state.buffer)));
 		query = (QUERYTYPE *) palloc(HDRSIZEQT);
-		query->len = HDRSIZEQT;
+		SET_VARSIZE(query, HDRSIZEQT);
 		query->size = 0;
 		return query;
 	}
@@ -664,7 +666,7 @@ static QUERYTYPE *
 	/* make finish struct */
 	commonlen = COMPUTESIZE(state.num, state.sumlen);
 	query = (QUERYTYPE *) palloc(commonlen);
-	query->len = commonlen;
+	SET_VARSIZE(query, commonlen);
 	query->size = state.num;
 	ptr = GETQUERY(query);
 
@@ -761,6 +763,11 @@ infix(INFIX * in, bool first)
 			if (t_iseq(op, '\''))
 			{
 				*(in->cur) = '\'';
+				in->cur++;
+			}
+			else if (t_iseq(op, '\\'))
+			{
+				*(in->cur) = '\\';
 				in->cur++;
 			}
 			COPYCHAR(in->cur, op);
@@ -867,7 +874,7 @@ infix(INFIX * in, bool first)
 Datum
 tsquery_out(PG_FUNCTION_ARGS)
 {
-	QUERYTYPE  *query = (QUERYTYPE *) DatumGetPointer(PG_DETOAST_DATUM(PG_GETARG_DATUM(0)));
+	QUERYTYPE  *query = (QUERYTYPE *) PG_DETOAST_DATUM(PG_GETARG_DATUM(0));
 	INFIX		nrm;
 
 	if (query->size == 0)
@@ -895,7 +902,7 @@ tsquery_out(PG_FUNCTION_ARGS)
 Datum
 tsquerytree(PG_FUNCTION_ARGS)
 {
-	QUERYTYPE  *query = (QUERYTYPE *) DatumGetPointer(PG_DETOAST_DATUM(PG_GETARG_DATUM(0)));
+	QUERYTYPE  *query = (QUERYTYPE *) PG_DETOAST_DATUM(PG_GETARG_DATUM(0));
 	INFIX		nrm;
 	text	   *res;
 	ITEM	   *q;
@@ -905,7 +912,7 @@ tsquerytree(PG_FUNCTION_ARGS)
 	if (query->size == 0)
 	{
 		res = (text *) palloc(VARHDRSZ);
-		VARATT_SIZEP(res) = VARHDRSZ;
+		SET_VARSIZE(res, VARHDRSZ);
 		PG_RETURN_POINTER(res);
 	}
 
@@ -914,7 +921,7 @@ tsquerytree(PG_FUNCTION_ARGS)
 	if (!q)
 	{
 		res = (text *) palloc(1 + VARHDRSZ);
-		VARATT_SIZEP(res) = 1 + VARHDRSZ;
+		SET_VARSIZE(res, 1 + VARHDRSZ);
 		*((char *) VARDATA(res)) = 'T';
 	}
 	else
@@ -927,8 +934,8 @@ tsquerytree(PG_FUNCTION_ARGS)
 		infix(&nrm, true);
 
 		res = (text *) palloc(nrm.cur - nrm.buf + VARHDRSZ);
-		VARATT_SIZEP(res) = nrm.cur - nrm.buf + VARHDRSZ;
-		strncpy(VARDATA(res), nrm.buf, nrm.cur - nrm.buf);
+		SET_VARSIZE(res, nrm.cur - nrm.buf + VARHDRSZ);
+		memcpy(VARDATA(res), nrm.buf, nrm.cur - nrm.buf);
 		pfree(q);
 	}
 
@@ -959,7 +966,7 @@ to_tsquery(PG_FUNCTION_ARGS)
 	res = clean_fakeval_v2(GETQUERY(query), &len);
 	if (!res)
 	{
-		query->len = HDRSIZEQT;
+		SET_VARSIZE(query, HDRSIZEQT);
 		query->size = 0;
 		PG_RETURN_POINTER(query);
 	}
@@ -1014,7 +1021,7 @@ plainto_tsquery(PG_FUNCTION_ARGS)
 	res = clean_fakeval_v2(GETQUERY(query), &len);
 	if (!res)
 	{
-		query->len = HDRSIZEQT;
+		SET_VARSIZE(query, HDRSIZEQT);
 		query->size = 0;
 		PG_RETURN_POINTER(query);
 	}

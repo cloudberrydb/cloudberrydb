@@ -1,0 +1,208 @@
+drop language plpgsql cascade;
+drop function add_em(integer,integer);
+ERROR:  function add_em(integer, integer) does not exist
+drop function add_em(integer,integer,integer);
+ERROR:  function add_em(integer, integer, integer) does not exist
+drop function add_num(x integer, y integer, OUT sum integer, OUT product integer);
+ERROR:  function add_num(integer, integer) does not exist
+drop type sum_prod cascade;
+ERROR:  type "sum_prod" does not exist
+drop table bank_ac;
+ERROR:  table "bank_ac" does not exist
+drop table emp_fun cascade;
+ERROR:  table "emp_fun" does not exist
+drop table tab_sour cascade;
+ERROR:  table "tab_sour" does not exist
+drop table fun_tree;
+ERROR:  table "fun_tree" does not exist
+drop table logtable;
+ERROR:  table "logtable" does not exist
+drop table db;
+ERROR:  table "db" does not exist
+drop language plpgsql cascade;
+ERROR:  language "plpgsql" does not exist
+drop table stress_source;
+ERROR:  table "stress_source" does not exist
+drop table stress_table;
+ERROR:  table "stress_table" does not exist
+drop aggregate agg_point_add1(point);
+ERROR:  aggregate agg_point_add1(point) does not exist
+drop table agg_point_tbl;
+ERROR:  table "agg_point_tbl" does not exist
+drop aggregate agg_point_add2(point);
+ERROR:  aggregate agg_point_add2(point) does not exist
+drop table agg_numeric_tbl;
+ERROR:  table "agg_numeric_tbl" does not exist
+drop table if exists test;
+create table test (a integer, b integer);
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Greenplum Database data distribution key for this table.
+HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
+insert into test select a, a%25 from generate_series(1,100) a;
+select greatest(a,b) from test;
+ greatest 
+----------
+        1
+        2
+       13
+       14
+       15
+       16
+       17
+       28
+       29
+       30
+       31
+       33
+       34
+       35
+       36
+       37
+       48
+       49
+       50
+       51
+       52
+       63
+       68
+       69
+       70
+       71
+       72
+       83
+       84
+       85
+       86
+        3
+        4
+        5
+        6
+        7
+       18
+       19
+       20
+       21
+       22
+       38
+       39
+       40
+       41
+       42
+       53
+       54
+       55
+       56
+       57
+       73
+       74
+       75
+       76
+       77
+       87
+       88
+       89
+       90
+       91
+       96
+       97
+        8
+        9
+       10
+       11
+       12
+       23
+       24
+       25
+       26
+       27
+       32
+       43
+       44
+       45
+       46
+       47
+       58
+       59
+       60
+       61
+       62
+       64
+       65
+       66
+       67
+       78
+       79
+       80
+       81
+       82
+       92
+       93
+       94
+       95
+       98
+       99
+      100
+(100 rows)
+
+select name, increment(emp_fun) as new_sal from emp_fun where emp_fun.name='bill';
+ERROR:  relation "emp_fun" does not exist
+LINE 1: select name, increment(emp_fun) as new_sal from emp_fun wher...
+                                                        ^
+create or replace function set_tab(int) returns SETOF tab_sour as $$ select * from tab_sour where tabid=$1; $$ language sql READS SQL DATA;
+ERROR:  type "tab_sour" does not exist
+select * from set_tab(1) as new_tab;
+ERROR:  function set_tab(integer) does not exist
+LINE 1: select * from set_tab(1) as new_tab;
+                      ^
+HINT:  No function matches the given name and argument types. You may need to add explicit type casts.
+SELECT round(4, 0);
+ round 
+-------
+     4
+(1 row)
+
+CREATE or REPLACE FUNCTION sales_tax(subtotal real, OUT tax real) AS $$
+                                                BEGIN
+                                                    tax := subtotal * 0.06;
+                                                END;
+                                                $$ LANGUAGE plpgsql NO SQL;
+ERROR:  language "plpgsql" does not exist
+HINT:  Use CREATE LANGUAGE to load the language into the database.
+select sales_tax(30);
+ERROR:  function sales_tax(integer) does not exist
+LINE 1: select sales_tax(30);
+               ^
+HINT:  No function matches the given name and argument types. You may need to add explicit type casts.
+-- --------------------------------------------------------------------------------------
+-- COPYRIGHT: Copyright (c) 2010, Greenplum.  All rights reserved.
+-- WARNINGS (if applicable):
+-- ALGORITHM (optional):
+--
+-- AUTHOR: Ngoc Lam-Miller
+-- PURPOSE: bug: MPP-7879 - query94 causes SIGSEGV
+--      - It might be the well known pl/pgsql catching OIDs issue 
+--		This is a fix for this possible cause.
+--	- I added this test to compare with query94
+-- LAST MODIFIED:
+--      - 2010/01/29: initial version
+-- --------------------------------------------------------------------------------------
+-- start_ignore
+drop function bad_ddl();
+ERROR:  function bad_ddl() does not exist
+-- end_ignore
+create function bad_ddl() returns void as $body$
+        begin
+                 execute 'create table junk_table(a int)';
+                 execute 'drop table junk_table';
+         end;
+$body$ language plpgsql volatile MODIFIES SQL DATA;
+ERROR:  language "plpgsql" does not exist
+HINT:  Use CREATE LANGUAGE to load the language into the database.
+select bad_ddl();
+ERROR:  function bad_ddl() does not exist
+LINE 1: select bad_ddl();
+               ^
+HINT:  No function matches the given name and argument types. You may need to add explicit type casts.
+-- start_ignore
+drop function bad_ddl();
+ERROR:  function bad_ddl() does not exist
+-- end_ignore

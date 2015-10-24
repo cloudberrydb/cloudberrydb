@@ -1,0 +1,855 @@
+-- Test suite for appendonly default storage parameters.
+--
+-- Scope: database, role and session level defaults.
+drop database if exists dsp1;
+NOTICE:  database "dsp1" does not exist, skipping
+create database dsp1;
+alter database dsp1 set gp_default_storage_options =
+	"appendonly=true,orientation=column";
+drop database if exists dsp2;
+NOTICE:  database "dsp2" does not exist, skipping
+create database dsp2;
+alter database dsp2 set gp_default_storage_options =
+	"appendonly=true,checksum=true";
+-- Testing pg_authid.rolconfig is currently deferred in
+-- installcheck-good because it becomes contrived.  These tests will
+-- be covered in detail in Divya's test plan for default storage
+-- options.
+--
+-- drop role if exists dsprole1;
+-- create role dsprole1 with login;
+-- drop role if exists dsprole2;
+-- create role dsprole2 with login;
+-- -- Allow all users to login from local host.
+-- \! cp $(psql -d postgres -t -c "show data_directory")/pg_hba.conf /tmp/
+-- \! echo "local    all    all    trust" >> /tmp/pg_hba.conf
+-- \! cp /tmp/pg_hba.conf $(psql -d postgres -t -c "show data_directory")/pg_hba.conf
+-- \! gpstop -qau
+-- alter role dsprole1 set gp_default_storage_options to
+-- 	"appendonly=true,blocksize=8192";
+-- alter role dsprole2 set gp_default_storage_options to
+-- 	"appendonly=true,compresslevel=2";
+--
+-- \c dsp1 dsprole2
+--
+-- Leaving roles around affects others, e.g. auth_constraints.sql.
+-- Therefore drop them in the end.
+\c dsp1
+show gp_default_storage_options;
+                             gp_default_storage_options                             
+------------------------------------------------------------------------------------
+ appendonly=true,blocksize=32768,compresstype=none,checksum=true,orientation=column
+(1 row)
+
+create table t1 (a int, b int) distributed by (a);
+\d+ t1
+                                  Append-Only Columnar Table "public.t1"
+ Column |  Type   | Modifiers | Storage | Compression Type | Compression Level | Block Size | Description 
+--------+---------+-----------+---------+------------------+-------------------+------------+-------------
+ a      | integer |           | plain   | none             | 0                 | 32768      | 
+ b      | integer |           | plain   | none             | 0                 | 32768      | 
+Checksum: t
+Has OIDs: no
+Options: appendonly=true, orientation=column
+Distributed by: (a)
+
+insert into t1 select i, i from generate_series(1,5)i;
+update t1 set b = 50 where a < 50;
+set gp_default_storage_options=
+	"appendonly=true,orientation=column,blocksize=8192";
+show gp_default_storage_options;
+                            gp_default_storage_options                             
+-----------------------------------------------------------------------------------
+ appendonly=true,blocksize=8192,compresstype=none,checksum=true,orientation=column
+(1 row)
+
+create table t2 (a int, b varchar, c text) distributed by (a);
+\d+ t2
+                                       Append-Only Columnar Table "public.t2"
+ Column |       Type        | Modifiers | Storage  | Compression Type | Compression Level | Block Size | Description 
+--------+-------------------+-----------+----------+------------------+-------------------+------------+-------------
+ a      | integer           |           | plain    | none             | 0                 | 8192       | 
+ b      | character varying |           | extended | none             | 0                 | 8192       | 
+ c      | text              |           | extended | none             | 0                 | 8192       | 
+Checksum: t
+Has OIDs: no
+Options: appendonly=true, blocksize=8192, orientation=column
+Distributed by: (a)
+
+create table t3 (a int, b float) with (appendonly=false)
+	distributed by (a);
+\d+ t3
+                       Table "public.t3"
+ Column |       Type       | Modifiers | Storage | Description 
+--------+------------------+-----------+---------+-------------
+ a      | integer          |           | plain   | 
+ b      | double precision |           | plain   | 
+Has OIDs: no
+Options: appendonly=false
+Distributed by: (a)
+
+create table t4 (a int, b float, c text) with
+	(appendonly=true,orientation=row) distributed by (a);
+-- Set defaults to heap, verify basic operations.
+set gp_default_storage_options="appendonly=false";
+show gp_default_storage_options;
+                            gp_default_storage_options                            
+----------------------------------------------------------------------------------
+ appendonly=false,blocksize=32768,compresstype=none,checksum=true,orientation=row
+(1 row)
+
+create table h1 (a int, b int) distributed by (a);
+create index ih1 on h1(a);
+insert into h1 select i, i*2 from generate_series(1,50)i;
+set enable_seqscan=off;
+show enable_seqscan;
+ enable_seqscan 
+----------------
+ off
+(1 row)
+
+select * from h1 where a > 5 and a < 10 order by a,b;
+ a | b  
+---+----
+ 6 | 12
+ 7 | 14
+ 8 | 16
+ 9 | 18
+(4 rows)
+
+select relname,relstorage,relkind,reloptions from pg_class
+	where relkind='r' and relnamespace=2200 order by relname;
+ relname | relstorage | relkind |                     reloptions                      
+---------+------------+---------+-----------------------------------------------------
+ h1      | h          | r       | 
+ t1      | c          | r       | {appendonly=true,orientation=column}
+ t2      | c          | r       | {appendonly=true,blocksize=8192,orientation=column}
+ t3      | h          | r       | {appendonly=false}
+ t4      | a          | r       | {appendonly=true,orientation=row,blocksize=8192}
+(5 rows)
+
+select relid::regclass, blocksize, compresstype,
+	compresslevel, columnstore from pg_appendonly order by 1;
+ relid | blocksize | compresstype | compresslevel | columnstore 
+-------+-----------+--------------+---------------+-------------
+ t1    |     32768 |              |             0 | t
+ t2    |      8192 |              |             0 | t
+ t4    |      8192 |              |             0 | f
+(3 rows)
+
+\c dsp2
+set gp_default_storage_options=
+	"appendonly=true,compresslevel=2,checksum=true";
+show gp_default_storage_options;
+                                   gp_default_storage_options                                    
+-------------------------------------------------------------------------------------------------
+ appendonly=true,blocksize=32768,compresstype=zlib,compresslevel=2,checksum=true,orientation=row
+(1 row)
+
+create table t1 (a int, b int) distributed by (a);
+\d+ t1
+            Append-Only Table "public.t1"
+ Column |  Type   | Modifiers | Storage | Description 
+--------+---------+-----------+---------+-------------
+ a      | integer |           | plain   | 
+ b      | integer |           | plain   | 
+Compression Type: zlib
+Compression Level: 2
+Block Size: 32768
+Checksum: t
+Has OIDs: no
+Options: appendonly=true, compresslevel=2
+Distributed by: (a)
+
+-- should fail because current default orientation is row
+create table t2 (
+	a int encoding(blocksize=65536),
+	b float encoding(compresstype=zlib),
+	c int encoding(compresstype=rle_type, compresslevel=2),
+	d text
+) distributed by (a);
+ERROR:  ENCODING clause only supported with column oriented tables
+-- should succeed
+create table t2 (
+	a int encoding(blocksize=65536),
+	b float encoding(compresstype=zlib),
+	c int encoding(compresstype=rle_type, compresslevel=2),
+	d text
+) with (orientation=column) distributed by (a);
+\d+ t2
+                                       Append-Only Columnar Table "public.t2"
+ Column |       Type       | Modifiers | Storage  | Compression Type | Compression Level | Block Size | Description 
+--------+------------------+-----------+----------+------------------+-------------------+------------+-------------
+ a      | integer          |           | plain    | zlib             | 2                 | 65536      | 
+ b      | double precision |           | plain    | zlib             | 2                 | 32768      | 
+ c      | integer          |           | plain    | rle_type         | 2                 | 32768      | 
+ d      | text             |           | extended | zlib             | 2                 | 32768      | 
+Checksum: t
+Has OIDs: no
+Options: orientation=column, appendonly=true, compresslevel=2
+Distributed by: (a)
+
+insert into t2 select i, 71/i, 2*i, 'abc'||2*i from generate_series(1,5)i;
+select * from t2 order by 1;
+ a | b  | c  |   d   
+---+----+----+-------
+ 1 | 71 |  2 | abc2
+ 2 | 35 |  4 | abc4
+ 3 | 23 |  6 | abc6
+ 4 | 17 |  8 | abc8
+ 5 | 14 | 10 | abc10
+(5 rows)
+
+select attrelid::regclass, attnum, attoptions
+	from pg_attribute_encoding order by 1,2;
+ attrelid | attnum |                       attoptions                        
+----------+--------+---------------------------------------------------------
+ t2       |      1 | {blocksize=65536,compresstype=zlib,compresslevel=2}
+ t2       |      2 | {compresstype=zlib,compresslevel=2,blocksize=32768}
+ t2       |      3 | {compresstype=rle_type,compresslevel=2,blocksize=32768}
+ t2       |      4 | {compresstype=zlib,blocksize=32768,compresslevel=2}
+(4 rows)
+
+-- SET operation in a session has higher precedence.  Also test if
+-- compresstype is correctly inferred based on compress level.
+set gp_default_storage_options=
+	"appendonly=true,compresslevel=4,checksum=false";
+show gp_default_storage_options;
+                                    gp_default_storage_options                                    
+--------------------------------------------------------------------------------------------------
+ appendonly=true,blocksize=32768,compresstype=zlib,compresslevel=4,checksum=false,orientation=row
+(1 row)
+
+create table t3 (a int, b int, c text) distributed by (a);
+insert into t3 select i, i, 'abc' from generate_series(1,5)i;
+select * from t3 order by 1;
+ a | b |  c  
+---+---+-----
+ 1 | 1 | abc
+ 2 | 2 | abc
+ 3 | 3 | abc
+ 4 | 4 | abc
+ 5 | 5 | abc
+(5 rows)
+
+select relname,relstorage,relkind,reloptions from pg_class
+	where relname in ('t1', 't2', 't3') order by 1;
+ relname | relstorage | relkind |                      reloptions                      
+---------+------------+---------+------------------------------------------------------
+ t1      | a          | r       | {appendonly=true,compresslevel=2}
+ t2      | c          | r       | {orientation=column,appendonly=true,compresslevel=2}
+ t3      | a          | r       | {appendonly=true,compresslevel=4,checksum=false}
+(3 rows)
+
+select relid::regclass, blocksize, compresstype,
+	compresslevel, columnstore from pg_appendonly order by 1;
+ relid | blocksize | compresstype | compresslevel | columnstore 
+-------+-----------+--------------+---------------+-------------
+ t1    |     32768 | zlib         |             2 | f
+ t2    |     32768 | zlib         |             2 | t
+ t3    |     32768 | zlib         |             4 | f
+(3 rows)
+
+-- attribute encoding tests for column oriented tables
+set gp_default_storage_options=
+	"appendonly=true,orientation=column,compresslevel=1";
+show gp_default_storage_options;
+                                     gp_default_storage_options                                     
+----------------------------------------------------------------------------------------------------
+ appendonly=true,blocksize=32768,compresstype=zlib,compresslevel=1,checksum=true,orientation=column
+(1 row)
+
+create table co1 (a int, b int) distributed by (a);
+create table co2 (a int, b int) with (blocksize=8192)
+	distributed by (a);
+create table co3 (
+	a int encoding(blocksize=65536),
+	b float encoding(compresstype=zlib,compresslevel=6),
+	c char encoding(compresstype=rle_type))
+	distributed by(a);
+create table co4 (a int, b int, c varchar,
+	default column encoding (compresslevel=5))
+	distributed by (a);
+create table co5 (a int, b int, c varchar encoding(compresslevel=0),
+	default column encoding (compresslevel=5))
+	distributed by (a);
+create table co6(a char, b bytea, c float, d int,
+	default column encoding (compresstype=RLE_TYPE))
+	with (checksum=true) distributed by (a);
+create table co7(
+	a int encoding(blocksize=8192,compresstype=none),
+	b varchar encoding(compresstype=zlib,compresslevel=6),
+	c char encoding(compresstype=rle_type))
+	with (checksum=false) distributed by (a);
+select relid::regclass,compresslevel,compresstype,blocksize,checksum,columnstore
+	from pg_appendonly order by 1;
+ relid | compresslevel | compresstype | blocksize | checksum | columnstore 
+-------+---------------+--------------+-----------+----------+-------------
+ t1    |             2 | zlib         |     32768 | t        | f
+ t2    |             2 | zlib         |     32768 | t        | t
+ t3    |             4 | zlib         |     32768 | f        | f
+ co1   |             1 | zlib         |     32768 | t        | t
+ co2   |             1 | zlib         |      8192 | t        | t
+ co3   |             1 | zlib         |     32768 | t        | t
+ co4   |             1 | zlib         |     32768 | t        | t
+ co5   |             1 | zlib         |     32768 | t        | t
+ co6   |             1 | zlib         |     32768 | t        | t
+ co7   |             1 | zlib         |     32768 | f        | t
+(10 rows)
+
+select attrelid::regclass,attnum,attoptions
+	from pg_attribute_encoding order by 1,2;
+ attrelid | attnum |                       attoptions                        
+----------+--------+---------------------------------------------------------
+ t2       |      1 | {blocksize=65536,compresstype=zlib,compresslevel=2}
+ t2       |      2 | {compresstype=zlib,compresslevel=2,blocksize=32768}
+ t2       |      3 | {compresstype=rle_type,compresslevel=2,blocksize=32768}
+ t2       |      4 | {compresstype=zlib,blocksize=32768,compresslevel=2}
+ co1      |      1 | {compresstype=zlib,blocksize=32768,compresslevel=1}
+ co1      |      2 | {compresstype=zlib,blocksize=32768,compresslevel=1}
+ co2      |      1 | {blocksize=8192,compresstype=zlib,compresslevel=1}
+ co2      |      2 | {blocksize=8192,compresstype=zlib,compresslevel=1}
+ co3      |      1 | {blocksize=65536,compresstype=zlib,compresslevel=1}
+ co3      |      2 | {compresstype=zlib,compresslevel=6,blocksize=32768}
+ co3      |      3 | {compresstype=rle_type,compresslevel=1,blocksize=32768}
+ co4      |      1 | {compresslevel=5,compresstype=zlib,blocksize=32768}
+ co4      |      2 | {compresslevel=5,compresstype=zlib,blocksize=32768}
+ co4      |      3 | {compresslevel=5,compresstype=zlib,blocksize=32768}
+ co5      |      1 | {compresslevel=5,compresstype=zlib,blocksize=32768}
+ co5      |      2 | {compresslevel=5,compresstype=zlib,blocksize=32768}
+ co5      |      3 | {compresslevel=0,compresstype=none,blocksize=32768}
+ co6      |      1 | {compresstype=rle_type,compresslevel=1,blocksize=32768}
+ co6      |      2 | {compresstype=rle_type,compresslevel=1,blocksize=32768}
+ co6      |      3 | {compresstype=rle_type,compresslevel=1,blocksize=32768}
+ co6      |      4 | {compresstype=rle_type,compresslevel=1,blocksize=32768}
+ co7      |      1 | {blocksize=8192,compresstype=none,compresslevel=0}
+ co7      |      2 | {compresstype=zlib,compresslevel=6,blocksize=32768}
+ co7      |      3 | {compresstype=rle_type,compresslevel=1,blocksize=32768}
+(24 rows)
+
+create database dsp3;
+\c dsp3
+set gp_default_storage_options=
+	"appendonly=true,orientation=column,compresslevel=0";
+show gp_default_storage_options;
+                             gp_default_storage_options                             
+------------------------------------------------------------------------------------
+ appendonly=true,blocksize=32768,compresstype=none,checksum=true,orientation=column
+(1 row)
+
+create table co1(
+	a int encoding (compresstype=rle_type),
+	b float encoding (compresslevel=5),
+	c char encoding (compresslevel=0,blocksize=65536),
+	d float) distributed by (a);
+set gp_default_storage_options=
+	"appendonly=true,orientation=column,compresslevel=3";
+show gp_default_storage_options;
+                                     gp_default_storage_options                                     
+----------------------------------------------------------------------------------------------------
+ appendonly=true,blocksize=32768,compresstype=zlib,compresslevel=3,checksum=true,orientation=column
+(1 row)
+
+create table co2(
+	a int encoding (compresstype=rle_type),
+	b float encoding (compresslevel=5),
+	c char encoding (compresslevel=0,blocksize=65536),
+	d float,
+	default column encoding (compresstype=none))
+	distributed by (a);
+-- attribute encoding should be set correctly.
+set gp_default_storage_options='appendonly=false, orientation=column';
+show gp_default_storage_options;
+                             gp_default_storage_options                              
+-------------------------------------------------------------------------------------
+ appendonly=false,blocksize=32768,compresstype=none,checksum=true,orientation=column
+(1 row)
+
+create table co3 (a int, b float) with (appendonly=true) distributed by (a);
+create table co4 (a int encoding (blocksize=8192), b int) distributed by (a);
+ERROR:  ENCODING clause only supported with column oriented tables
+set gp_default_storage_options='appendonly=true';
+create table co5 (a int encoding (blocksize=8192), b float)
+	with (orientation=column, checksum=false) distributed by (a);
+select relid::regclass,compresslevel,compresstype,blocksize,checksum,columnstore
+	from pg_appendonly order by 1;
+ relid | compresslevel | compresstype | blocksize | checksum | columnstore 
+-------+---------------+--------------+-----------+----------+-------------
+ co1   |             0 |              |     32768 | t        | t
+ co2   |             3 | zlib         |     32768 | t        | t
+ co3   |             0 |              |     32768 | t        | t
+ co5   |             0 |              |     32768 | f        | t
+(4 rows)
+
+select attrelid::regclass,attnum,attoptions
+	from pg_attribute_encoding order by 1,2;
+ attrelid | attnum |                       attoptions                        
+----------+--------+---------------------------------------------------------
+ co1      |      1 | {compresstype=rle_type,compresslevel=1,blocksize=32768}
+ co1      |      2 | {compresslevel=5,compresstype=zlib,blocksize=32768}
+ co1      |      3 | {compresslevel=0,blocksize=65536,compresstype=none}
+ co1      |      4 | {compresstype=none,blocksize=32768,compresslevel=0}
+ co2      |      1 | {compresstype=rle_type,compresslevel=3,blocksize=32768}
+ co2      |      2 | {compresslevel=5,compresstype=zlib,blocksize=32768}
+ co2      |      3 | {compresslevel=0,blocksize=65536,compresstype=none}
+ co2      |      4 | {compresstype=none,compresslevel=0,blocksize=32768}
+ co3      |      1 | {compresstype=none,blocksize=32768,compresslevel=0}
+ co3      |      2 | {compresstype=none,blocksize=32768,compresslevel=0}
+ co5      |      1 | {blocksize=8192,compresstype=none,compresslevel=0}
+ co5      |      2 | {compresstype=none,blocksize=32768,compresslevel=0}
+(12 rows)
+
+-- misc tests
+alter database dsp1 set gp_default_storage_options="appendonly=false";
+\c dsp1
+show gp_default_storage_options;
+                            gp_default_storage_options                            
+----------------------------------------------------------------------------------
+ appendonly=false,blocksize=32768,compresstype=none,checksum=true,orientation=row
+(1 row)
+
+\c dsp3
+alter database dsp1 set gp_default_storage_options=
+	"appendonly=true, compresstype=zlib";
+\c dsp1
+show gp_default_storage_options;
+                                   gp_default_storage_options                                    
+-------------------------------------------------------------------------------------------------
+ appendonly=true,blocksize=32768,compresstype=zlib,compresslevel=1,checksum=true,orientation=row
+(1 row)
+
+-- options without "appendonly"
+set gp_default_storage_options='compresstype=rle_type, orientation = column';
+show gp_default_storage_options;
+                                       gp_default_storage_options                                        
+---------------------------------------------------------------------------------------------------------
+ appendonly=false,blocksize=32768,compresstype=rle_type,compresslevel=1,checksum=true,orientation=column
+(1 row)
+
+set gp_default_storage_options='compresslevel=0,orientation=column';
+show gp_default_storage_options;
+                             gp_default_storage_options                              
+-------------------------------------------------------------------------------------
+ appendonly=false,blocksize=32768,compresstype=none,checksum=true,orientation=column
+(1 row)
+
+set gp_default_storage_options=
+	'appendonly=false, checksum=false, orientation=column';
+show gp_default_storage_options;
+                              gp_default_storage_options                              
+--------------------------------------------------------------------------------------
+ appendonly=false,blocksize=32768,compresstype=none,checksum=false,orientation=column
+(1 row)
+
+\c dsp3
+set gp_default_storage_options=
+	"appendonly=true,orientation=column,compresslevel=5";
+show gp_default_storage_options;
+                                     gp_default_storage_options                                     
+----------------------------------------------------------------------------------------------------
+ appendonly=true,blocksize=32768,compresstype=zlib,compresslevel=5,checksum=true,orientation=column
+(1 row)
+
+-- negative tests - should fail due to invalid combinations of
+-- compresslevel and compresstype.
+create table co6(
+	a int encoding (compresstype=rle_type),
+	b float encoding (blocksize=8192))
+	distributed by (a);
+ERROR:  compresslevel=5 is out of range for rle_type (should be in the range 1 to 4)
+create table co7(a int, b float,
+	default column encoding (compresstype=RLE_TYPE, compresslevel=7))
+	distributed by (a);
+ERROR:  compresslevel=7 is out of range for rle_type (should be in the range 1 to 4)
+-- negative tests - session level set
+set gp_default_storage_options="compresstype=zlib,compresslevel=11";
+ERROR:  compresslevel=11 is out of range (should be between 0 and 9)
+set gp_default_storage_options="compresslevel=5,compresstype=RLE_TYPE";
+ERROR:  compresslevel=5 is out of range for rle_type (should be in the range 1 to 4)
+set gp_default_storage_options="compresslevel=1,compresstype=rle";
+ERROR:  unknown compresstype "rle"
+set gp_default_storage_options="checksum=1234";
+ERROR:  invalid bool value "1234" for storage option "checksum" (reloptions.c:124)
+set gp_default_storage_options="blocksize=true";
+ERROR:  invalid integer value "true" for storage option "blocksize" (reloptions.c:90)
+set gp_default_storage_options="compresstype = rle_type";
+ERROR:  rle_type cannot be used with Append Only relations row orientation
+set gp_default_storage_options='blocksize=8192,checksumblah=true';
+ERROR:  invalid storage option "checksumblah" (reloptions.c:149)
+set gp_default_storage_options='orientation=columnblah';
+ERROR:  invalid value "columnblah" for storage option "orientation" (reloptions.c:138)
+show gp_default_storage_options;
+                                     gp_default_storage_options                                     
+----------------------------------------------------------------------------------------------------
+ appendonly=true,blocksize=32768,compresstype=zlib,compresslevel=5,checksum=true,orientation=column
+(1 row)
+
+-- negative tests - database level
+alter database dsp1 set gp_default_storage_options="compresslevel=-12";
+ERROR:  invalid value for option "compresslevel" (reloptions.c:485)
+alter database dsp1 set
+	gp_default_storage_options="appendonly=false,checksum=invalid";
+ERROR:  invalid bool value "invalid" for storage option "checksum" (reloptions.c:124)
+alter database dsp1 set	gp_default_storage_options=
+	"compresstype=zlib,compresslevel=0";
+ERROR:  compresstype can't be used with compresslevel 0
+-- set_config() tests
+select pg_catalog.set_config('gp_default_storage_options',
+    'appendonly=true, orientation=column', false);
+                                     set_config                                     
+------------------------------------------------------------------------------------
+ appendonly=true,blocksize=32768,compresstype=none,checksum=true,orientation=column
+(1 row)
+
+show gp_default_storage_options;
+                             gp_default_storage_options                             
+------------------------------------------------------------------------------------
+ appendonly=true,blocksize=32768,compresstype=none,checksum=true,orientation=column
+(1 row)
+
+create table co8 (a int, b float) distributed by (a);
+\d+ co8
+                                      Append-Only Columnar Table "public.co8"
+ Column |       Type       | Modifiers | Storage | Compression Type | Compression Level | Block Size | Description 
+--------+------------------+-----------+---------+------------------+-------------------+------------+-------------
+ a      | integer          |           | plain   | none             | 0                 | 32768      | 
+ b      | double precision |           | plain   | none             | 0                 | 32768      | 
+Checksum: t
+Has OIDs: no
+Options: appendonly=true, orientation=column
+Distributed by: (a)
+
+-- ensure that set_config() has propagated to segments by insert and
+-- select into a column oriented table.
+insert into co8 select i, i/2 from generate_series(1,10)i;
+select count(b) from co8;
+ count 
+-------
+    10
+(1 row)
+
+begin;
+select pg_catalog.set_config('gp_default_storage_options',
+    'compresslevel=2', true);
+                                            set_config                                            
+--------------------------------------------------------------------------------------------------
+ appendonly=false,blocksize=32768,compresstype=zlib,compresslevel=2,checksum=true,orientation=row
+(1 row)
+
+show gp_default_storage_options;
+                                    gp_default_storage_options                                    
+--------------------------------------------------------------------------------------------------
+ appendonly=false,blocksize=32768,compresstype=zlib,compresslevel=2,checksum=true,orientation=row
+(1 row)
+
+create table ao1 (a int, b int) with (appendonly=true) distributed by (a);
+\d+ ao1;
+            Append-Only Table "public.ao1"
+ Column |  Type   | Modifiers | Storage | Description 
+--------+---------+-----------+---------+-------------
+ a      | integer |           | plain   | 
+ b      | integer |           | plain   | 
+Compression Type: zlib
+Compression Level: 2
+Block Size: 32768
+Checksum: t
+Has OIDs: no
+Options: appendonly=true, compresslevel=2
+Distributed by: (a)
+
+insert into ao1 select i, i from generate_series(1,100)i;
+select count(*) from ao1;
+ count 
+-------
+   100
+(1 row)
+
+end;
+-- GUC should be reset after end of transaction.
+show gp_default_storage_options;
+                             gp_default_storage_options                             
+------------------------------------------------------------------------------------
+ appendonly=true,blocksize=32768,compresstype=none,checksum=true,orientation=column
+(1 row)
+
+-- verify reset happendon on segments by create, insert, select.
+create table co9 (x int, y float) distributed by (x);
+\d+ co9
+                                      Append-Only Columnar Table "public.co9"
+ Column |       Type       | Modifiers | Storage | Compression Type | Compression Level | Block Size | Description 
+--------+------------------+-----------+---------+------------------+-------------------+------------+-------------
+ x      | integer          |           | plain   | none             | 0                 | 32768      | 
+ y      | double precision |           | plain   | none             | 0                 | 32768      | 
+Checksum: t
+Has OIDs: no
+Options: appendonly=true, orientation=column
+Distributed by: (x)
+
+-- ensure that set_config() has propagated to segments by insert and
+-- select into a column oriented table.
+insert into co9 select i, i/2 from generate_series(1,10)i;
+select count(y) from co9;
+ count 
+-------
+    10
+(1 row)
+
+set gp_default_storage_options='compresstype=none';
+show gp_default_storage_options;
+                            gp_default_storage_options                            
+----------------------------------------------------------------------------------
+ appendonly=false,blocksize=32768,compresstype=none,checksum=true,orientation=row
+(1 row)
+
+-- compresstype should be correctly inferred.
+create table ao2 (a int, b int) with
+    (appendonly=true, compresslevel=4) distributed by (a);
+\d ao2
+Append-Only Table "public.ao2"
+ Column |  Type   | Modifiers 
+--------+---------+-----------
+ a      | integer | 
+ b      | integer | 
+Compression Type: zlib
+Compression Level: 4
+Block Size: 32768
+Checksum: t
+Distributed by: (a)
+
+-- MPP-25073 verify if compresstype=none is represented as NULL.
+set gp_default_storage_options='';
+create table ao4 (a int, b int) with (appendonly=true)
+    distributed by (a);
+\d ao4
+Append-Only Table "public.ao4"
+ Column |  Type   | Modifiers 
+--------+---------+-----------
+ a      | integer | 
+ b      | integer | 
+Compression Type: None
+Compression Level: 0
+Block Size: 32768
+Checksum: t
+Distributed by: (a)
+
+select reloptions from pg_class where relname = 'ao4';
+    reloptions     
+-------------------
+ {appendonly=true}
+(1 row)
+
+select compresstype from pg_appendonly where relid = 'ao4'::regclass;
+ compresstype 
+--------------
+ 
+(1 row)
+
+set gp_default_storage_options='appendonly=true,compresstype=NONE';
+create table co10 (a int, b int, c int) with (orientation=column)
+    distributed by (a);
+select attnum,attoptions from pg_attribute_encoding
+    where attrelid = 'co10'::regclass order by attnum;
+ attnum |                     attoptions                      
+--------+-----------------------------------------------------
+      1 | {compresstype=none,blocksize=32768,compresslevel=0}
+      2 | {compresstype=none,blocksize=32768,compresslevel=0}
+      3 | {compresstype=none,blocksize=32768,compresslevel=0}
+(3 rows)
+
+select compresstype from pg_appendonly where relid = 'co10'::regclass;
+ compresstype 
+--------------
+ 
+(1 row)
+
+-- compression disabled by default, enable in WITH clause
+set gp_default_storage_options = 'appendonly=true';
+show gp_default_storage_options;
+                           gp_default_storage_options                            
+---------------------------------------------------------------------------------
+ appendonly=true,blocksize=32768,compresstype=none,checksum=true,orientation=row
+(1 row)
+
+-- compresstype only
+create table ao5 (a int, b int) with (compresstype=zlib)
+    distributed by (a);
+\d ao5
+Append-Only Table "public.ao5"
+ Column |  Type   | Modifiers 
+--------+---------+-----------
+ a      | integer | 
+ b      | integer | 
+Compression Type: zlib
+Compression Level: 1
+Block Size: 32768
+Checksum: t
+Distributed by: (a)
+
+insert into ao5 select i, i from generate_series(1,10)i;
+-- compresslevel only
+create table ao6 with (compresslevel=4) as select * from ao5
+    distributed by (a);
+\d ao6
+Append-Only Table "public.ao6"
+ Column |  Type   | Modifiers 
+--------+---------+-----------
+ a      | integer | 
+ b      | integer | 
+Compression Type: zlib
+Compression Level: 4
+Block Size: 32768
+Checksum: t
+Distributed by: (a)
+
+-- both compresstype and compresslevel
+create table ao7 with (compresstype=zlib, compresslevel=3) as
+    select * from ao6 distributed by (a);
+\d ao7
+Append-Only Table "public.ao7"
+ Column |  Type   | Modifiers 
+--------+---------+-----------
+ a      | integer | 
+ b      | integer | 
+Compression Type: zlib
+Compression Level: 3
+Block Size: 32768
+Checksum: t
+Distributed by: (a)
+
+-- compression enabled by default, disable in WITH clause
+set gp_default_storage_options = 'appendonly=true, compresstype=zlib';
+show gp_default_storage_options;
+                                   gp_default_storage_options                                    
+-------------------------------------------------------------------------------------------------
+ appendonly=true,blocksize=32768,compresstype=zlib,compresslevel=1,checksum=true,orientation=row
+(1 row)
+
+-- compresstype only
+create table ao8 with (compresstype=none) as select * from ao7
+    distributed by (a);
+\d ao8
+Append-Only Table "public.ao8"
+ Column |  Type   | Modifiers 
+--------+---------+-----------
+ a      | integer | 
+ b      | integer | 
+Compression Type: none
+Compression Level: 1
+Block Size: 32768
+Checksum: t
+Distributed by: (a)
+
+-- compresslevel only
+create table ao9 with (compresslevel=0) as select * from ao8
+    distributed by (a);
+ERROR:  compresstype can't be used with compresslevel 0
+\d ao9
+select * from ao9 limit 4 order by 1;
+ERROR:  syntax error at or near "order"
+LINE 1: select * from ao9 limit 4 order by 1;
+                                  ^
+create table ao10 with (compresslevel=0, compresstype=none)
+    as select * from ao9 distributed by (a);
+ERROR:  relation "ao9" does not exist
+LINE 2:     as select * from ao9 distributed by (a);
+                             ^
+\d ao10
+-- MPP-14504: we need to allow compresstype=none with compresslevel>0
+create table ao11 (a int, b int) with (compresstype=none, compresslevel=2)
+    distributed by (a);
+\d ao11
+Append-Only Table "public.ao11"
+ Column |  Type   | Modifiers 
+--------+---------+-----------
+ a      | integer | 
+ b      | integer | 
+Compression Type: none
+Compression Level: 2
+Block Size: 32768
+Checksum: t
+Distributed by: (a)
+
+set gp_default_storage_options='compresstype=none,compresslevel=2';
+show gp_default_storage_options;
+                                    gp_default_storage_options                                    
+--------------------------------------------------------------------------------------------------
+ appendonly=false,blocksize=32768,compresstype=none,compresslevel=2,checksum=true,orientation=row
+(1 row)
+
+create table ao12 (a int, b int) with (appendonly=true) distributed by (a);
+\d ao12
+Append-Only Table "public.ao12"
+ Column |  Type   | Modifiers 
+--------+---------+-----------
+ a      | integer | 
+ b      | integer | 
+Compression Type: None
+Compression Level: 2
+Block Size: 32768
+Checksum: t
+Distributed by: (a)
+
+--bitmap index
+set gp_default_storage_options='appendonly=true';
+create table bitmap_table(a int, b int, c varchar);
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Greenplum Database data distribution key for this table.
+HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
+create index bitmap_i on bitmap_table using bitmap(b);
+-- external tables: ensure that default storage options are ignored
+-- during external table creation.
+set gp_default_storage_options='appendonly=true';
+create external table ext_t1 (a int, b int)
+    location ('file:///tmp/test.txt') format 'text';
+\d+ ext_t1
+            External table "public.ext_t1"
+ Column |  Type   | Modifiers | Storage | Description 
+--------+---------+-----------+---------+-------------
+ a      | integer |           | plain   | 
+ b      | integer |           | plain   | 
+Type: readable
+Encoding: UTF8
+Format type: text
+Format options: delimiter '	' null '\N' escape '\'
+External location: file:///tmp/test.txt
+
+create external table ext_t2 (a int, b int)
+    location ('file:///tmp/test.txt') format 'text'
+    log errors into err_t2 segment reject limit 100;
+NOTICE:  Error table "err_t2" does not exist. Auto generating an error table with the same name
+\d+ ext_t2
+            External table "public.ext_t2"
+ Column |  Type   | Modifiers | Storage | Description 
+--------+---------+-----------+---------+-------------
+ a      | integer |           | plain   | 
+ b      | integer |           | plain   | 
+Type: readable
+Encoding: UTF8
+Format type: text
+Format options: delimiter '	' null '\N' escape '\'
+External location: file:///tmp/test.txt
+Segment reject limit: 100 rows
+Error table: err_t2
+
+\d+ err_t2
+                          Table "public.err_t2"
+  Column  |           Type           | Modifiers | Storage  | Description 
+----------+--------------------------+-----------+----------+-------------
+ cmdtime  | timestamp with time zone |           | plain    | 
+ relname  | text                     |           | extended | 
+ filename | text                     |           | extended | 
+ linenum  | integer                  |           | plain    | 
+ bytenum  | integer                  |           | plain    | 
+ errmsg   | text                     |           | extended | 
+ rawdata  | text                     |           | extended | 
+ rawbytes | bytea                    |           | extended | 
+Has OIDs: no
+Distributed randomly
+
+drop external table ext_t1;
+drop external table ext_t2;
+drop table err_t2;
+-- cleanup
+\c postgres
+drop database dsp1;
+drop database dsp2;
+drop database dsp3;

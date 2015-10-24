@@ -3,12 +3,12 @@
  * int.c
  *	  Functions for the built-in integer types (except int8).
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/utils/adt/int.c,v 1.75 2006/10/04 00:29:59 momjian Exp $
+ *	  $PostgreSQL: pgsql/src/backend/utils/adt/int.c,v 1.84.2.1 2009/09/03 18:48:21 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -41,8 +41,6 @@
 
 
 #define SAMESIGN(a,b)	(((a) < 0) == ((b) < 0))
-
-#define Int2VectorSize(n)	(offsetof(int2vector, values) + (n) * sizeof(int2))
 
 typedef struct
 {
@@ -124,7 +122,7 @@ buildint2vector(const int2 *int2s, int n)
 	 * Attach standard array header.  For historical reasons, we set the index
 	 * lower bound to 0 not 1.
 	 */
-	result->size = Int2VectorSize(n);
+	SET_VARSIZE(result, Int2VectorSize(n));
 	result->ndim = 1;
 	result->dataoffset = 0;		/* never any nulls */
 	result->elemtype = INT2OID;
@@ -148,10 +146,11 @@ int2vectorin(PG_FUNCTION_ARGS)
 
 	for (n = 0; *intString && n < FUNC_MAX_ARGS; n++)
 	{
-		if (sscanf(intString, "%hd", &result->values[n]) != 1)
-			break;
 		while (*intString && isspace((unsigned char) *intString))
 			intString++;
+		if (*intString == '\0')
+			break;		
+		result->values[n] = pg_atoi(intString, sizeof(int16), ' ');
 		while (*intString && !isspace((unsigned char) *intString))
 			intString++;
 	}
@@ -162,7 +161,7 @@ int2vectorin(PG_FUNCTION_ARGS)
 				(errcode(ERRCODE_INVALID_PARAMETER_VALUE),
 				 errmsg("int2vector has too many elements")));
 
-	result->size = Int2VectorSize(n);
+	SET_VARSIZE(result, Int2VectorSize(n));
 	result->ndim = 1;
 	result->dataoffset = 0;		/* never any nulls */
 	result->elemtype = INT2OID;
@@ -350,7 +349,7 @@ int2_text(PG_FUNCTION_ARGS)
 	text	   *result = (text *) palloc(7 + VARHDRSZ); /* sign,5 digits, '\0' */
 
 	pg_itoa(arg1, VARDATA(result));
-	VARATT_SIZEP(result) = strlen(VARDATA(result)) + VARHDRSZ;
+	SET_VARSIZE(result, strlen(VARDATA(result)) + VARHDRSZ);
 	PG_RETURN_TEXT_P(result);
 }
 
@@ -381,7 +380,7 @@ int4_text(PG_FUNCTION_ARGS)
 	text	   *result = (text *) palloc(12 + VARHDRSZ);		/* sign,10 digits,'\0' */
 
 	pg_ltoa(arg1, VARDATA(result));
-	VARATT_SIZEP(result) = strlen(VARDATA(result)) + VARHDRSZ;
+	SET_VARSIZE(result, strlen(VARDATA(result)) + VARHDRSZ);
 	PG_RETURN_TEXT_P(result);
 }
 
@@ -799,9 +798,10 @@ int4div(PG_FUNCTION_ARGS)
 	/*
 	 * Overflow check.	The only possible overflow case is for arg1 = INT_MIN,
 	 * arg2 = -1, where the correct result is -INT_MIN, which can't be
-	 * represented on a two's-complement machine.
+	 * represented on a two's-complement machine.  Most machines produce
+	 * INT_MIN but it seems some produce zero.
 	 */
-	if (arg2 == -1 && arg1 < 0 && result < 0)
+	if (arg2 == -1 && arg1 < 0 && result <= 0)
 		ereport(ERROR,
 				(errcode(ERRCODE_NUMERIC_VALUE_OUT_OF_RANGE),
 				 errmsg("integer out of range")));
@@ -927,9 +927,10 @@ int2div(PG_FUNCTION_ARGS)
 	/*
 	 * Overflow check.	The only possible overflow case is for arg1 =
 	 * SHRT_MIN, arg2 = -1, where the correct result is -SHRT_MIN, which can't
-	 * be represented on a two's-complement machine.
+	 * be represented on a two's-complement machine.  Most machines produce
+	 * SHRT_MIN but it seems some produce zero.
 	 */
-	if (arg2 == -1 && arg1 < 0 && result < 0)
+	if (arg2 == -1 && arg1 < 0 && result <= 0)
 		ereport(ERROR,
 				(errcode(ERRCODE_NUMERIC_VALUE_OUT_OF_RANGE),
 				 errmsg("smallint out of range")));
@@ -1012,9 +1013,14 @@ int24div(PG_FUNCTION_ARGS)
 	int32		arg2 = PG_GETARG_INT32(1);
 
 	if (arg2 == 0)
+	{
 		ereport(ERROR,
 				(errcode(ERRCODE_DIVISION_BY_ZERO),
 				 errmsg("division by zero")));
+		/* ensure compiler realizes we mustn't reach the division (gcc bug) */
+		PG_RETURN_NULL();
+	}
+
 	/* No overflow is possible */
 	PG_RETURN_INT32((int32) arg1 / arg2);
 }
@@ -1105,9 +1111,10 @@ int42div(PG_FUNCTION_ARGS)
 	/*
 	 * Overflow check.	The only possible overflow case is for arg1 = INT_MIN,
 	 * arg2 = -1, where the correct result is -INT_MIN, which can't be
-	 * represented on a two's-complement machine.
+	 * represented on a two's-complement machine.  Most machines produce
+	 * INT_MIN but it seems some produce zero.
 	 */
-	if (arg2 == -1 && arg1 < 0 && result < 0)
+	if (arg2 == -1 && arg1 < 0 && result <= 0)
 		ereport(ERROR,
 				(errcode(ERRCODE_NUMERIC_VALUE_OUT_OF_RANGE),
 				 errmsg("integer out of range")));
@@ -1124,6 +1131,11 @@ int4mod(PG_FUNCTION_ARGS)
 		ereport(ERROR,
 				(errcode(ERRCODE_DIVISION_BY_ZERO),
 				 errmsg("division by zero")));
+
+	/* SELECT ((-2147483648)::int4) % (-1); causes a floating point exception */
+	if (arg1 == INT_MIN && arg2 == -1)
+		PG_RETURN_INT32(0);
+
 	/* No overflow is possible */
 
 	PG_RETURN_INT32(arg1 % arg2);
@@ -1392,7 +1404,7 @@ generate_series_step_int4(PG_FUNCTION_ARGS)
 		if (step == 0)
 			ereport(ERROR,
 					(errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-					 errmsg("step size may not equal zero")));
+					 errmsg("step size cannot equal zero")));
 
 		/* create a function context for cross-call persistence */
 		funcctx = SRF_FIRSTCALL_INIT();

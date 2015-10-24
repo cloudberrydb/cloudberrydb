@@ -3,7 +3,8 @@
  * fd.c
  *	  Virtual file descriptor code.
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 2007-2009, Greenplum inc
+ * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
@@ -48,8 +49,18 @@
 
 #include "miscadmin.h"
 #include "access/xact.h"
+#include "cdb/cdbfilerep.h"
 #include "storage/fd.h"
 #include "storage/ipc.h"
+#include "utils/workfile_mgr.h"
+
+/* Debug_filerep_print guc temporaly added for troubleshooting */
+#include "utils/guc.h"
+#include "utils/faultinjector.h"
+
+// Provide some indirection here in case we have problems with lseek and
+// 64 bits on some platforms
+#define pg_lseek64(a,b,c) (int64)lseek(a,b,c)
 
 
 /*
@@ -113,21 +124,21 @@ static int	max_safe_fds = 32;	/* default if not changed */
 
 #define FileIsNotOpen(file) (VfdCache[file].fd == VFD_CLOSED)
 
-#define FileUnknownPos (-1L)
+#define FileUnknownPos INT64CONST(-1)
 
 /* these are the assigned bits in fdstate below: */
 #define FD_TEMPORARY		(1 << 0)	/* T = delete when closed */
-#define FD_XACT_TEMPORARY	(1 << 1)	/* T = delete at eoXact */
+#define FD_CLOSE_AT_EOXACT	(1 << 1)	/* T = close at eoXact */
 
 typedef struct vfd
 {
-	signed short fd;			/* current FD, or VFD_CLOSED if none */
+	int fd;			/* current FD, or VFD_CLOSED if none */
 	unsigned short fdstate;		/* bitflags for VFD's state */
 	SubTransactionId create_subid;		/* for TEMPORARY fds, creating subxact */
 	File		nextFree;		/* link to next free VFD, if in freelist */
 	File		lruMoreRecently;	/* doubly linked recency-of-use list */
 	File		lruLessRecently;
-	long		seekPos;		/* current logical file position */
+	int64		seekPos;		/* current logical file position */
 	char	   *fileName;		/* name of file, or NULL for unused VFD */
 	/* NB: fileName is malloc'd, and must be free'd when closing the VFD */
 	int			fileFlags;		/* open(2) flags for (re)opening the file */
@@ -224,10 +235,10 @@ static File AllocateVfd(void);
 static void FreeVfd(File file);
 
 static int	FileAccess(File file);
-static char *make_database_relative(const char *filename);
 static void AtProcExit_Files(int code, Datum arg);
 static void CleanupTempFiles(bool isProcExit);
 static void RemovePgTempFilesInDir(const char *tmpdirname);
+static bool HasTempFilePrefix(char * fileName);
 
 
 /*
@@ -299,6 +310,20 @@ pg_fdatasync(int fd)
 }
 
 /*
+ * Retrying close in case it gets interrupted. If that happens, it will cause
+ * unlink to fail later.
+ */
+int
+gp_retry_close(int fd) {
+	int err = 0;
+	do
+	{
+		err = close(fd);
+	} while (err == -1 && errno == EINTR);
+	return err;
+}
+
+/*
  * InitFileAccess --- initialize this module during backend startup
  *
  * This is called during either normal or standalone backend start.
@@ -359,7 +384,9 @@ count_usable_fds(int max_to_probe, int *usable_fds, int *already_open)
 		{
 			/* Expect EMFILE or ENFILE, else it's fishy */
 			if (errno != EMFILE && errno != ENFILE)
-				elog(WARNING, "dup(0) failed after %d successes: %m", used);
+			{
+				insist_log(false, "dup(0) failed after %d successes: %m", used);
+			}
 			break;
 		}
 
@@ -426,7 +453,7 @@ set_max_safe_fds(void)
 	if (max_safe_fds < FD_MINFREE)
 		ereport(FATAL,
 				(errcode(ERRCODE_INSUFFICIENT_RESOURCES),
-				 errmsg("insufficient file descriptors available to start server process"),
+				 errmsg("insufficient file handles available to start server process"),
 				 errdetail("System allows %d, we need at least %d.",
 						   max_safe_fds + NUM_RESERVED_FDS,
 						   FD_MINFREE + NUM_RESERVED_FDS)));
@@ -468,7 +495,7 @@ tryAgain:
 
 		ereport(LOG,
 				(errcode(ERRCODE_INSUFFICIENT_RESOURCES),
-				 errmsg("out of file descriptors: %m; release and retry")));
+				 errmsg("out of file handles: %m; release and retry")));
 		errno = 0;
 		if (ReleaseLruFile())
 			goto tryAgain;
@@ -534,12 +561,12 @@ LruDelete(File file)
 	Delete(file);
 
 	/* save the seek position */
-	vfdP->seekPos = (long) lseek(vfdP->fd, 0L, SEEK_CUR);
-	Assert(vfdP->seekPos != -1L);
+	vfdP->seekPos = pg_lseek64(vfdP->fd, INT64CONST(0), SEEK_CUR);
+	Assert(vfdP->seekPos != INT64CONST(-1));
 
 	/* close the file */
 	if (close(vfdP->fd))
-		elog(ERROR, "failed to close \"%s\": %m",
+		elog(ERROR, "could not close file \"%s\": %m",
 			 vfdP->fileName);
 
 	--nfile;
@@ -607,12 +634,12 @@ LruInsert(File file)
 		}
 
 		/* seek to the right position */
-		if (vfdP->seekPos != 0L)
+		if (vfdP->seekPos != INT64CONST(0))
 		{
-			long		returnValue;
+			int64		returnValue;
 
-			returnValue = (long) lseek(vfdP->fd, vfdP->seekPos, SEEK_SET);
-			Assert(returnValue != -1L);
+			returnValue = pg_lseek64(vfdP->fd, vfdP->seekPos, SEEK_SET);
+			Assert(returnValue != INT64CONST(-1));
 		}
 	}
 
@@ -720,23 +747,6 @@ FreeVfd(File file)
 	VfdCache[0].nextFree = file;
 }
 
-/*
- * make_database_relative()
- *		Prepend DatabasePath to the given file name.
- *
- * Result is a palloc'd string.
- */
-static char *
-make_database_relative(const char *filename)
-{
-	char	   *buf;
-
-	Assert(!is_absolute_path(filename));
-	buf = (char *) palloc(strlen(DatabasePath) + strlen(filename) + 2);
-	sprintf(buf, "%s/%s", DatabasePath, filename);
-	return buf;
-}
-
 /* returns 0 on success, -1 on re-open failure (with errno set) */
 static int
 FileAccess(File file)
@@ -800,7 +810,6 @@ PathNameOpenFile(FileName fileName, int fileFlags, int fileMode)
 
 	DO_DB(elog(LOG, "PathNameOpenFile: %s %x %o",
 			   fileName, fileFlags, fileMode));
-
 	/*
 	 * We need a malloc'd copy of the file name; fail cleanly if no room.
 	 */
@@ -837,7 +846,7 @@ PathNameOpenFile(FileName fileName, int fileFlags, int fileMode)
 	/* Saved flags are adjusted to be OK for re-opening file */
 	vfdP->fileFlags = fileFlags & ~(O_CREAT | O_TRUNC | O_EXCL);
 	vfdP->fileMode = fileMode;
-	vfdP->seekPos = 0;
+	vfdP->seekPos = INT64CONST(0);
 	vfdP->fdstate = 0x0;
 
 	return file;
@@ -845,9 +854,11 @@ PathNameOpenFile(FileName fileName, int fileFlags, int fileMode)
 
 /*
  * open a file in the database directory ($PGDATA/base/DIROID/)
- *
+ * if we are using the system default filespace. Otherwise open
+ * the file in the filespace configured for temporary files.
  * The passed name MUST be a relative path.  Effectively, this
- * prepends DatabasePath to it and then acts like PathNameOpenFile.
+ * prepends DatabasePath or path of the filespace to it and then 
+ * acts like PathNameOpenFile.
  */
 File
 FileNameOpenFile(FileName fileName, int fileFlags, int fileMode)
@@ -855,49 +866,127 @@ FileNameOpenFile(FileName fileName, int fileFlags, int fileMode)
 	File		fd;
 	char	   *fname;
 
-	fname = make_database_relative(fileName);
+	Assert(!is_absolute_path(fileName));
+	fname = (char*)palloc(PATH_MAX);
+	if (snprintf(fname, PATH_MAX, "%s/%s", getCurrentTempFilePath, fileName) > PATH_MAX)
+	{
+		ereport(ERROR, (errmsg("cannot generate path %s/%s", getCurrentTempFilePath,
+                        fileName)));
+	}
 	fd = PathNameOpenFile(fname, fileFlags, fileMode);
 	pfree(fname);
 	return fd;
 }
 
 /*
- * Open a temporary file that will disappear when we close it.
+ * Open a temporary file that will (optionally) disappear when we close it.
  *
- * This routine takes care of generating an appropriate tempfile name.
- * There's no need to pass in fileFlags or fileMode either, since only
- * one setting makes any sense for a temp file.
+ * If 'makenameunique' is true, this function generates a file name which
+ * should be unique to this particular OpenTemporaryFile() request and
+ * distinct from any others in concurrent use on the same host.  As a
+ * convenience for monitoring and debugging, the given 'fileName' string
+ * and 'extentseqnum' are embedded in the file name.
  *
- * interXact: if true, don't close the file at end-of-transaction. In
- * most cases, you don't want temporary files to outlive the transaction
- * that created them, so this should be false -- but if you need
- * "somewhat" temporary storage, this might be useful. In either case,
- * the file is removed when the File is explicitly closed.
+ * If 'makenameunique' is false, then 'fileName' and 'extentseqnum' identify a
+ * new or existing temporary file which other processes also could open and
+ * share.
+ *
+ * If 'create' is true, a new file is created.  If successful, a valid vfd
+ * index (>0) is returned; otherwise an error is thrown.
+ *
+ * If 'create' is false, an existing file is opened.  If successful, a valid
+ * vfd index (>0) is returned.  If the file does not exist or cannot be
+ * opened, an invalid vfd index (<= 0) is returned.
+ *
+ * If 'delOnClose' is true, then the file is removed when you call
+ * FileClose(); or when the process exits; or (provided 'closeAtEOXact' is
+ * true) when the transaction ends.
+ *
+ * If 'closeAtEOXact' is true, the vfd is closed automatically at end of
+ * transaction unless you have called FileClose() to close it before then.
+ * If 'closeAtEOXact' is false, the vfd state is not changed at end of
+ * transaction.
+ *
+ * In most cases, you don't want temporary files to outlive the transaction
+ * that created them, so you should specify 'true' for both 'delOnClose' and
+ * 'closeAtEOXact'.
  */
 File
-OpenTemporaryFile(bool interXact)
+OpenTemporaryFile(const char   *fileName,
+                  int           extentseqnum,
+                  bool          makenameunique,
+                  bool          create,
+                  bool          delOnClose,
+                  bool          closeAtEOXact)
 {
-	char		tempfilepath[MAXPGPATH];
-	File		file;
+
+	char	tempfilepath[MAXPGPATH];
+
+	Assert(fileName);
+    AssertImply(makenameunique, create && delOnClose);
+
+
+    char tempfileprefix[MAXPGPATH];
+
+    int len = GetTempFilePrefix(tempfileprefix, MAXPGPATH, fileName);
+    insist_log(len <= MAXPGPATH - 1, "could not generate temporary file name");
+
+    if (makenameunique)
+	{
+		/*
+		 * Generate a tempfile name that should be unique within the current
+		 * database instance.
+		 */
+		snprintf(tempfilepath, sizeof(tempfilepath),
+				 "%s_%d_%04d.%ld",
+				 tempfileprefix,
+				 MyProcPid,
+                 extentseqnum,
+                 tempFileCounter++);
+	}
+	else
+	{
+        snprintf(tempfilepath, sizeof(tempfilepath),
+				 "%s.%04d",
+				 tempfileprefix,
+				 extentseqnum);
+	}
+
+    return OpenNamedFile(tempfilepath, create, delOnClose, closeAtEOXact);
+}    /* OpenTemporaryFile */
+
+/*
+ * Open an arbitrary file that will (optionally) disappear when we close it.
+ * This is similar to OpenTemporaryFile, except the exact name specified in
+ * fileName is used.
+ */
+File
+OpenNamedFile(const char   *fileName,
+                  bool          create,
+                  bool          delOnClose,
+                  bool          closeAtEOXact)
+{
+	char	tempfilepath[MAXPGPATH];
+	strncpy(tempfilepath, fileName, sizeof(tempfilepath));
 
 	/*
-	 * Generate a tempfile name that should be unique within the current
-	 * database instance.
-	 */
-	snprintf(tempfilepath, sizeof(tempfilepath),
-			 "%s/%s%d.%ld", PG_TEMP_FILES_DIR, PG_TEMP_FILE_PREFIX,
-			 MyProcPid, tempFileCounter++);
-
-	/*
-	 * Open the file.  Note: we don't use O_EXCL, in case there is an orphaned
+	 * File flags when open the file.  Note: we don't use O_EXCL, in case there is an orphaned
 	 * temp file that can be reused.
 	 */
-	file = FileNameOpenFile(tempfilepath,
-							O_RDWR | O_CREAT | O_TRUNC | PG_BINARY,
-							0600);
+	int fileFlags = O_RDWR | PG_BINARY;
+	if (create)
+	{
+		fileFlags |= O_TRUNC | O_CREAT;
+	}
+
+	File file = FileNameOpenFile(tempfilepath, fileFlags, 0600);
+
 	if (file <= 0)
 	{
 		char	   *dirpath;
+
+		if (!create)
+			return file;
 
 		/*
 		 * We might need to create the pg_tempfiles subdirectory, if no one
@@ -907,30 +996,31 @@ OpenTemporaryFile(bool interXact)
 		 * just did the same thing.  If it doesn't work then we'll bomb out on
 		 * the second create attempt, instead.
 		 */
-		dirpath = make_database_relative(PG_TEMP_FILES_DIR);
+		dirpath = (char*)palloc(PATH_MAX);
+		snprintf(dirpath, PATH_MAX, "%s/%s", getCurrentTempFilePath, PG_TEMP_FILES_DIR);
 		mkdir(dirpath, S_IRWXU);
 		pfree(dirpath);
 
-		file = FileNameOpenFile(tempfilepath,
-								O_RDWR | O_CREAT | O_TRUNC | PG_BINARY,
-								0600);
+		file = FileNameOpenFile(tempfilepath, fileFlags, 0600);
 		if (file <= 0)
 			elog(ERROR, "could not create temporary file \"%s\": %m",
-				 tempfilepath);
+			     tempfilepath);
 	}
 
 	/* Mark it for deletion at close */
-	VfdCache[file].fdstate |= FD_TEMPORARY;
+	if(delOnClose)
+		VfdCache[file].fdstate |= FD_TEMPORARY;
 
-	/* Mark it for deletion at EOXact */
-	if (!interXact)
+	/* Mark it to be closed at end of transaction. */
+	if (closeAtEOXact)
 	{
-		VfdCache[file].fdstate |= FD_XACT_TEMPORARY;
+		VfdCache[file].fdstate |= FD_CLOSE_AT_EOXACT;
 		VfdCache[file].create_subid = GetCurrentSubTransactionId();
 	}
 
 	return file;
-}
+}                             /* OpenNamedFile */
+
 
 /*
  * close a file when done with it
@@ -953,8 +1043,8 @@ FileClose(File file)
 		Delete(file);
 
 		/* close the file */
-		if (close(vfdP->fd))
-			elog(ERROR, "failed to close \"%s\": %m",
+		if (gp_retry_close(vfdP->fd))
+			elog(ERROR, "could not close file \"%s\": %m",
 				 vfdP->fileName);
 
 		--nfile;
@@ -969,7 +1059,7 @@ FileClose(File file)
 		/* reset flag so that die() interrupt won't cause problems */
 		vfdP->fdstate &= ~FD_TEMPORARY;
 		if (unlink(vfdP->fileName))
-			elog(LOG, "failed to unlink \"%s\": %m",
+			elog(DEBUG1, "failed to unlink \"%s\": %m",
 				 vfdP->fileName);
 	}
 
@@ -988,7 +1078,7 @@ FileUnlink(File file)
 	Assert(FileIsValid(file));
 
 	DO_DB(elog(LOG, "FileUnlink: %d (%s)",
-			   file, VfdCache[file].fileName));
+	     file, VfdCache[file].fileName));
 
 	/* force FileClose to delete it */
 	VfdCache[file].fdstate |= FD_TEMPORARY;
@@ -996,17 +1086,29 @@ FileUnlink(File file)
 	FileClose(file);
 }
 
+
 int
 FileRead(File file, char *buffer, int amount)
+{
+	return FileReadIntr(file, buffer, amount, true);
+}
+
+int
+FileReadIntr(File file, char *buffer, int amount, bool fRetryIntr)
 {
 	int			returnCode;
 
 	Assert(FileIsValid(file));
 
-	DO_DB(elog(LOG, "FileRead: %d (%s) %ld %d %p",
+	DO_DB(elog(LOG, "FileRead: %d (%s) " INT64_FORMAT " %d %p",
 			   file, VfdCache[file].fileName,
 			   VfdCache[file].seekPos, amount, buffer));
 
+	if (Debug_filerep_print)
+		(elog(LOG, "FileRead: %d (%s) " INT64_FORMAT " %d %p",
+			  file, VfdCache[file].fileName,
+			  VfdCache[file].seekPos, amount, buffer));
+	
 	returnCode = FileAccess(file);
 	if (returnCode < 0)
 		return returnCode;
@@ -1040,7 +1142,7 @@ retry:
 		}
 #endif
 		/* OK to retry if interrupted */
-		if (errno == EINTR)
+		if (errno == EINTR && fRetryIntr)
 			goto retry;
 
 		/* Trouble, so assume we don't know the file position anymore */
@@ -1054,17 +1156,78 @@ int
 FileWrite(File file, char *buffer, int amount)
 {
 	int			returnCode;
+	FileRepGpmonRecord_s gpmonRecord;
+	FileRepGpmonStatType_e whichStat =0;
+
+	if (fileRepRole == FileRepPrimaryRole)
+	{
+			whichStat = FileRepGpmonStatType_PrimaryWriteSyscall;
+			FileRepGpmonStat_OpenRecord(whichStat, &gpmonRecord);
+			gpmonRecord.size = amount;
+
+	} else if (fileRepRole == FileRepMirrorRole)
+	{
+			whichStat = FileRepGpmonStatType_MirrorWriteSyscall;
+			FileRepGpmonStat_OpenRecord(whichStat, &gpmonRecord);
+			gpmonRecord.size = amount;
+
+	}
 
 	Assert(FileIsValid(file));
 
-	DO_DB(elog(LOG, "FileWrite: %d (%s) %ld %d %p",
+	DO_DB(elog(LOG, "FileWrite: %d (%s) " INT64_FORMAT " %d %p",
 			   file, VfdCache[file].fileName,
 			   VfdCache[file].seekPos, amount, buffer));
-
+	
+	/* Added temporary for troubleshooting */
+	if (Debug_filerep_print)
+		elog(LOG, "FileWrite: %d (%s) " INT64_FORMAT " %d %p",
+		 file, VfdCache[file].fileName,
+		 VfdCache[file].seekPos, amount, buffer);
+	else
+		FileRep_InsertLogEntry(
+							   "FileWrite",
+							   FileRep_GetFlatFileIdentifier(VfdCache[file].fileName, ""),
+							   FileRepRelationTypeFlatFile,
+							   FileRepOperationWrite,
+							   FILEREP_UNDEFINED,
+							   FILEREP_UNDEFINED,
+							   FileRepAckStateNotInitialized,
+							   VfdCache[file].seekPos,
+							   amount);		
+	
 	returnCode = FileAccess(file);
 	if (returnCode < 0)
 		return returnCode;
-
+	
+#ifdef FAULT_INJECTOR	
+	if (! strcmp(VfdCache[file].fileName, "global/pg_control"))
+	{
+		if (FaultInjector_InjectFaultIfSet(
+										   PgControl, 
+										   DDLNotSpecified,
+										   "" /* databaseName */,
+										   "" /* tableName */) == FaultInjectorTypeDataCorruption)
+		{
+			MemSet(buffer, 0, amount);
+		}
+	}
+	
+	if (strstr(VfdCache[file].fileName, "pg_xlog/"))
+	{
+		if (FaultInjector_InjectFaultIfSet(
+										   PgXlog, 
+										   DDLNotSpecified,
+										   "" /* databaseName */,
+										   "" /* tableName */) == FaultInjectorTypeDataCorruption)
+		{
+			MemSet(buffer, 0, amount);
+		}
+	}
+	
+	
+#endif	
+	
 retry:
 	errno = 0;
 	returnCode = write(VfdCache[file].fd, buffer, amount);
@@ -1102,6 +1265,15 @@ retry:
 		VfdCache[file].seekPos = FileUnknownPos;
 	}
 
+	if (returnCode >=0 )
+	{
+			//only include stat if successful
+			if ((fileRepRole == FileRepPrimaryRole) || 
+				(fileRepRole == FileRepMirrorRole))
+			{
+					FileRepGpmonStat_CloseRecord(whichStat, &gpmonRecord);
+			}
+	}
 	return returnCode;
 }
 
@@ -1109,7 +1281,18 @@ int
 FileSync(File file)
 {
 	int			returnCode;
+	FileRepGpmonRecord_s gpmonRecord;
+	FileRepGpmonStatType_e whichStat;
 
+	if (fileRepRole == FileRepPrimaryRole)
+	{
+			whichStat = FileRepGpmonStatType_PrimaryFsyncSyscall;
+			FileRepGpmonStat_OpenRecord(whichStat, &gpmonRecord);
+	} else 
+	{
+			whichStat = FileRepGpmonStatType_MirrorFsyncSyscall;
+			FileRepGpmonStat_OpenRecord(whichStat, &gpmonRecord);
+	}
 	Assert(FileIsValid(file));
 
 	DO_DB(elog(LOG, "FileSync: %d (%s)",
@@ -1119,17 +1302,58 @@ FileSync(File file)
 	if (returnCode < 0)
 		return returnCode;
 
-	return pg_fsync(VfdCache[file].fd);
+#ifdef FAULT_INJECTOR
+	FaultInjector_InjectFaultIfSet(
+								   FileRepFlush,
+								   DDLNotSpecified,
+								   "",	//databaseName
+								   ""); // tableName
+#endif								
+	
+	returnCode =  pg_fsync(VfdCache[file].fd);
+	
+	if (returnCode >= 0)
+	{
+			//only include stats if successful
+			if ((fileRepRole == FileRepPrimaryRole) || 
+				(fileRepRole == FileRepMirrorRole))
+			{
+					FileRepGpmonStat_CloseRecord(whichStat, &gpmonRecord);
+			}
+	}
+	return returnCode;
 }
 
-long
-FileSeek(File file, long offset, int whence)
+/*
+ * Get the size of a physical file by using fstat()
+ *
+ * Returns size in bytes if successful, < 0 otherwise
+ */
+int64
+FileDiskSize(File file)
+{
+	int returnCode = 0;
+
+	returnCode = FileAccess(file);
+	if (returnCode < 0)
+		return returnCode;
+
+	struct stat buf;
+	returnCode = fstat(VfdCache[file].fd, &buf);
+	if (returnCode < 0)
+		return returnCode;
+
+	return (int64) buf.st_size;
+}
+
+int64
+FileSeek(File file, int64 offset, int whence)
 {
 	int			returnCode;
 
 	Assert(FileIsValid(file));
 
-	DO_DB(elog(LOG, "FileSeek: %d (%s) %ld %ld %d",
+	DO_DB(elog(LOG, "FileSeek: %d (%s) " INT64_FORMAT " " INT64_FORMAT " %d",
 			   file, VfdCache[file].fileName,
 			   VfdCache[file].seekPos, offset, whence));
 
@@ -1138,8 +1362,7 @@ FileSeek(File file, long offset, int whence)
 		switch (whence)
 		{
 			case SEEK_SET:
-				if (offset < 0)
-					elog(ERROR, "invalid seek offset: %ld", offset);
+				Assert(offset >= INT64CONST(0));
 				VfdCache[file].seekPos = offset;
 				break;
 			case SEEK_CUR:
@@ -1149,11 +1372,11 @@ FileSeek(File file, long offset, int whence)
 				returnCode = FileAccess(file);
 				if (returnCode < 0)
 					return returnCode;
-				VfdCache[file].seekPos = lseek(VfdCache[file].fd,
+				VfdCache[file].seekPos = pg_lseek64(VfdCache[file].fd,
 											   offset, whence);
 				break;
 			default:
-				elog(ERROR, "invalid whence: %d", whence);
+				Assert(!"invalid whence");
 				break;
 		}
 	}
@@ -1162,34 +1385,51 @@ FileSeek(File file, long offset, int whence)
 		switch (whence)
 		{
 			case SEEK_SET:
-				if (offset < 0)
-					elog(ERROR, "invalid seek offset: %ld", offset);
+				Assert(offset >= INT64CONST(0));
 				if (VfdCache[file].seekPos != offset)
-					VfdCache[file].seekPos = lseek(VfdCache[file].fd,
+					VfdCache[file].seekPos = pg_lseek64(VfdCache[file].fd,
 												   offset, whence);
 				break;
 			case SEEK_CUR:
 				if (offset != 0 || VfdCache[file].seekPos == FileUnknownPos)
-					VfdCache[file].seekPos = lseek(VfdCache[file].fd,
+					VfdCache[file].seekPos = pg_lseek64(VfdCache[file].fd,
 												   offset, whence);
 				break;
 			case SEEK_END:
-				VfdCache[file].seekPos = lseek(VfdCache[file].fd,
+				VfdCache[file].seekPos = pg_lseek64(VfdCache[file].fd,
 											   offset, whence);
 				break;
 			default:
-				elog(ERROR, "invalid whence: %d", whence);
+				Assert(!"invalid whence");
 				break;
 		}
 	}
 	return VfdCache[file].seekPos;
 }
 
+int64
+FileNonVirtualCurSeek(File file)
+{
+	int			returnCode;
+
+	Assert(FileIsValid(file));
+
+	DO_DB(elog(LOG, "FileNonVirtualCurSeek: %d (%s) virtual position" INT64_FORMAT,
+			   file, VfdCache[file].fileName,
+			   VfdCache[file].seekPos));
+
+	returnCode = FileAccess(file);
+	if (returnCode < 0)
+		return returnCode;
+
+	return pg_lseek64(VfdCache[file].fd, 0, SEEK_CUR);
+}
+
 /*
  * XXX not actually used but here for completeness
  */
 #ifdef NOT_USED
-long
+int64
 FileTell(File file)
 {
 	Assert(FileIsValid(file));
@@ -1200,7 +1440,7 @@ FileTell(File file)
 #endif
 
 int
-FileTruncate(File file, long offset)
+FileTruncate(File file, int64 offset)
 {
 	int			returnCode;
 
@@ -1213,7 +1453,18 @@ FileTruncate(File file, long offset)
 	if (returnCode < 0)
 		return returnCode;
 
-	returnCode = ftruncate(VfdCache[file].fd, (size_t) offset);
+	/*
+	 * Call ftruncate with a int64 value.
+	 *
+	 * WARNING:DO NOT typecast this down to a 32-bit long or
+	 * append-only vacuum full adjustment of the eof will erroneously remove
+	 * table data.
+	 */
+	returnCode = ftruncate(VfdCache[file].fd, offset);
+	
+	/* Assume we don't know the file position anymore */
+	VfdCache[file].seekPos = FileUnknownPos;
+		
 	return returnCode;
 }
 
@@ -1251,7 +1502,7 @@ AllocateFile(const char *name, const char *mode)
 	 */
 	if (numAllocatedDescs >= MAX_ALLOCATED_DESCS ||
 		numAllocatedDescs >= max_safe_fds - 1)
-		elog(ERROR, "too many private files demanded");
+		elog(ERROR, "could not allocate file: out of file handles");
 
 TryAgain:
 	if ((file = fopen(name, mode)) != NULL)
@@ -1271,7 +1522,7 @@ TryAgain:
 
 		ereport(LOG,
 				(errcode(ERRCODE_INSUFFICIENT_RESOURCES),
-				 errmsg("out of file descriptors: %m; release and retry")));
+				 errmsg("out of file handles: %m; release and retry")));
 		errno = 0;
 		if (ReleaseLruFile())
 			goto TryAgain;
@@ -1289,7 +1540,7 @@ TryAgain:
 static int
 FreeDesc(AllocateDesc *desc)
 {
-	int			result;
+	int			result = 0;
 
 	/* Close the underlying object */
 	switch (desc->kind)
@@ -1301,8 +1552,7 @@ FreeDesc(AllocateDesc *desc)
 			result = closedir(desc->desc.dir);
 			break;
 		default:
-			elog(ERROR, "AllocateDesc kind not recognized");
-			result = 0;			/* keep compiler quiet */
+			Assert(false);
 			break;
 	}
 
@@ -1336,7 +1586,8 @@ FreeFile(FILE *file)
 	}
 
 	/* Only get here if someone passes us a file not in allocatedDescs */
-	elog(WARNING, "file passed to FreeFile was not obtained from AllocateFile");
+	elog(LOG, "file to be closed was not opened through the virtual file descriptor system");
+	Assert(false);
 
 	return fclose(file);
 }
@@ -1366,7 +1617,7 @@ AllocateDir(const char *dirname)
 	 */
 	if (numAllocatedDescs >= MAX_ALLOCATED_DESCS ||
 		numAllocatedDescs >= max_safe_fds - 1)
-		elog(ERROR, "too many private dirs demanded");
+		elog(ERROR, "could not allocate directory: out of file handles");
 
 TryAgain:
 	if ((dir = opendir(dirname)) != NULL)
@@ -1386,7 +1637,7 @@ TryAgain:
 
 		ereport(LOG,
 				(errcode(ERRCODE_INSUFFICIENT_RESOURCES),
-				 errmsg("out of file descriptors: %m; release and retry")));
+				 errmsg("out of file handles: %m; release and retry")));
 		errno = 0;
 		if (ReleaseLruFile())
 			goto TryAgain;
@@ -1473,7 +1724,8 @@ FreeDir(DIR *dir)
 	}
 
 	/* Only get here if someone passes us a dir not in allocatedDescs */
-	elog(WARNING, "dir passed to FreeDir was not obtained from AllocateDir");
+	elog(LOG, "directory to be closed was not opened through the virtual file descriptor system");
+	Assert(false);
 
 	return closedir(dir);
 }
@@ -1522,7 +1774,7 @@ AtEOSubXact_Files(bool isCommit, SubTransactionId mySubid,
 		{
 			unsigned short fdstate = VfdCache[i].fdstate;
 
-			if ((fdstate & FD_XACT_TEMPORARY) &&
+			if ((fdstate & FD_CLOSE_AT_EOXACT) &&
 				VfdCache[i].create_subid == mySubid)
 			{
 				if (isCommit)
@@ -1595,18 +1847,23 @@ CleanupTempFiles(bool isProcExit)
 		{
 			unsigned short fdstate = VfdCache[i].fdstate;
 
-			if ((fdstate & FD_TEMPORARY) && VfdCache[i].fileName != NULL)
+			/*
+			 * If we're in the process of exiting a backend process, close
+			 * all temporary files. Otherwise, only close temporary files
+			 * local to the current transaction.
+			 */
+			if((fdstate & FD_CLOSE_AT_EOXACT)
+			  	||
+			   (isProcExit && (fdstate & FD_TEMPORARY))
+			  )
 			{
-				/*
-				 * If we're in the process of exiting a backend process, close
-				 * all temporary files. Otherwise, only close temporary files
-				 * local to the current transaction.
-				 */
-				if (isProcExit || (fdstate & FD_XACT_TEMPORARY))
-					FileClose(i);
+				AssertImply( (fdstate & FD_TEMPORARY), VfdCache[i].fileName != NULL);
+				FileClose(i);
 			}
 		}
 	}
+
+	workfile_mgr_cleanup();
 
 	while (numAllocatedDescs > 0)
 		FreeDesc(&allocatedDescs[0]);
@@ -1619,11 +1876,8 @@ CleanupTempFiles(bool isProcExit)
  * This should be called during postmaster startup.  It will forcibly
  * remove any leftover files created by OpenTemporaryFile.
  *
- * NOTE: we could, but don't, call this during a post-backend-crash restart
- * cycle.  The argument for not doing it is that someone might want to examine
- * the temp files for debugging purposes.  This does however mean that
- * OpenTemporaryFile had better allow for collision with an existing temp
- * file name.
+ * We also call this during the post-backend-crash restart cycle
+ * (postmaster reset).
  */
 void
 RemovePgTempFiles(void)
@@ -1631,6 +1885,9 @@ RemovePgTempFiles(void)
 	char		temp_path[MAXPGPATH];
 	DIR		   *db_dir;
 	struct dirent *db_de;
+
+	ereport(LOG,
+			(errmsg("removing all temporary files")));
 
 	/*
 	 * Cycle through pgsql_tmp directories for all databases and remove old
@@ -1688,15 +1945,84 @@ RemovePgTempFilesInDir(const char *tmpdirname)
 		snprintf(rm_path, sizeof(rm_path), "%s/%s",
 				 tmpdirname, temp_de->d_name);
 
-		if (strncmp(temp_de->d_name,
-					PG_TEMP_FILE_PREFIX,
-					strlen(PG_TEMP_FILE_PREFIX)) == 0)
-			unlink(rm_path);	/* note we ignore any error */
+		if (HasTempFilePrefix(temp_de->d_name))
+		{
+			/*
+			 * It can be a file or a directory, so try to delete both ways
+			 * We ignore errors.
+			 */
+			unlink(rm_path);
+			rmtree(rm_path,true);
+		}
 		else
+		{
 			elog(LOG,
 				 "unexpected file found in temporary-files directory: \"%s\"",
 				 rm_path);
+		}
 	}
 
 	FreeDir(temp_dir);
+}
+
+/*
+ * Generate the prefix for a new temp file name. This will be checked
+ * before cleaning up, to make sure we only delete what we created.
+ * Caller is responsible for allocating the input buffer large enough
+ * for the fileName and prefix.
+ * Returns needlen > buflen if buffer is not large enough to store prefix.
+ */
+size_t
+GetTempFilePrefix(char * buf, size_t buflen, const char * fileName)
+{
+	Assert(buf);
+	/*
+	 * If the file name was generated using the workfile
+	 * manager, it already contains the temp directory prefix.
+	 * Leave the filename alone in this case.
+	 */
+	if (strstr(fileName, WORKFILE_SET_PREFIX))
+	{
+		memcpy(buf, fileName, buflen);
+		return strlen(fileName);
+	}
+
+	size_t needlen = strlen(PG_TEMP_FILES_DIR)
+			+ strlen(PG_TEMP_FILE_PREFIX)
+			+ strlen(fileName)
+			+ 2; /* enough for a slash and a _ */
+
+	if (buflen < needlen)
+	{
+		return needlen;
+	}
+	
+	snprintf(buf, buflen, "%s/%s_%s",
+			PG_TEMP_FILES_DIR,
+			PG_TEMP_FILE_PREFIX,
+			fileName);
+
+	return needlen;
+}
+
+/*
+ * Check if a temporary file or directory matches the expected prefix. This
+ * is done before deleting it, as a sanity check.
+ */
+static bool HasTempFilePrefix(char * fileName)
+{
+
+	bool matching_file = (strncmp(fileName,
+						PG_TEMP_FILE_PREFIX,
+						strlen(PG_TEMP_FILE_PREFIX)) == 0);
+	if (matching_file)
+	{
+		return true;
+	}
+
+	bool matching_dir = (strncmp(fileName,
+						WORKFILE_SET_PREFIX,
+						strlen(WORKFILE_SET_PREFIX)) == 0);
+
+	return matching_dir;
 }

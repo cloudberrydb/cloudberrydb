@@ -1,11 +1,12 @@
 <!--
-$PostgreSQL: pgsql/doc/src/sgml/ref/create_group.sgml,v 1.17 2006/09/16 00:30:17 momjian Exp $
+$PostgreSQL: pgsql/doc/src/sgml/ref/create_group.sgml,v 1.19 2008/11/14 10:22:46 petere Exp $
 PostgreSQL documentation
 -->
 
 <refentry id="SQL-CREATEGROUP">
  <refmeta>
   <refentrytitle id="sql-creategroup-title">CREATE GROUP</refentrytitle>
+  <manvolnum>7</manvolnum>
   <refmiscinfo>SQL - Language Statements</refmiscinfo>
  </refmeta>
 
@@ -46,8 +47,7 @@ where <replaceable class="PARAMETER">option</replaceable> can be:
 
   <para>
    <command>CREATE GROUP</command> is now an alias for
-   <xref linkend="sql-createrole" endterm="sql-createrole-title">,
-   which see for more information.
+   <xref linkend="sql-createrole" endterm="sql-createrole-title">.
   </para>
  </refsect1> 
  

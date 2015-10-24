@@ -3,7 +3,7 @@
  * nodeUnique.c
  *	  Routines to handle unique'ing of queries where appropriate
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2008, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -15,7 +15,7 @@
 /*
  * INTERFACE ROUTINES
  *		ExecUnique		- generate a unique'd temporary relation
- *		ExecInitUnique	- initialize node and subnodes..
+ *		ExecInitUnique	- initialize node and subnodes
  *		ExecEndUnique	- shutdown node and subnodes
  *
  * NOTES
@@ -25,6 +25,7 @@
 
 #include "postgres.h"
 
+#include "cdb/cdbvars.h"
 #include "executor/executor.h"
 #include "executor/nodeUnique.h"
 #include "utils/memutils.h"
@@ -32,9 +33,6 @@
 
 /* ----------------------------------------------------------------
  *		ExecUnique
- *
- *		This is a very simple node which filters out duplicate
- *		tuples from a stream of sorted tuples from a subplan.
  * ----------------------------------------------------------------
  */
 TupleTableSlot *				/* return: a tuple or NULL */
@@ -54,11 +52,7 @@ ExecUnique(UniqueState *node)
 	/*
 	 * now loop, returning only non-duplicate tuples. We assume that the
 	 * tuples arrive in sorted order so we can detect duplicates easily.
-	 *
-	 * We return the first tuple from each group of duplicates (or the last
-	 * tuple of each group, when moving backwards).  At either end of the
-	 * subplan, clear the result slot so that we correctly return the
-	 * first/last tuple when reversing direction.
+	 * The first tuple of each group is returned.
 	 */
 	for (;;)
 	{
@@ -68,13 +62,15 @@ ExecUnique(UniqueState *node)
 		slot = ExecProcNode(outerPlan);
 		if (TupIsNull(slot))
 		{
-			/* end of subplan; reset in case we change direction */
+			/* end of subplan, so we're done */
 			ExecClearTuple(resultTupleSlot);
 			return NULL;
 		}
 
+		Gpmon_M_Incr(GpmonPktFromUniqueState(node), GPMON_QEXEC_M_ROWSIN); 
+
 		/*
-		 * Always return the first/last tuple from the subplan.
+		 * Always return the first tuple from the subplan.
 		 */
 		if (TupIsNull(resultTupleSlot))
 			break;
@@ -97,6 +93,12 @@ ExecUnique(UniqueState *node)
 	 * won't guarantee that this source tuple is still accessible after
 	 * fetching the next source tuple.
 	 */
+   	if (!TupIsNull(slot))
+    	{
+  		Gpmon_M_Incr_Rows_Out(GpmonPktFromUniqueState(node)); 
+   		CheckSendPlanStateGpmonPkt(&node->ps);
+    	}
+
 	return ExecCopySlot(resultTupleSlot, slot);
 }
 
@@ -113,7 +115,7 @@ ExecInitUnique(Unique *node, EState *estate, int eflags)
 	UniqueState *uniquestate;
 
 	/* check for unsupported flags */
-	Assert(!(eflags & EXEC_FLAG_MARK));
+	Assert(!(eflags & (EXEC_FLAG_BACKWARD | EXEC_FLAG_MARK)));
 
 	/*
 	 * create state structure
@@ -163,6 +165,8 @@ ExecInitUnique(Unique *node, EState *estate, int eflags)
 							   node->numCols,
 							   node->uniqColIdx);
 
+	initGpmonPktForUnique((Plan *)node, &uniquestate->ps.gpmon_pkt, estate);
+	
 	return uniquestate;
 }
 
@@ -190,6 +194,8 @@ ExecEndUnique(UniqueState *node)
 	MemoryContextDelete(node->tempContext);
 
 	ExecEndNode(outerPlanState(node));
+
+	EndPlanStateGpmonPkt(&node->ps);
 }
 
 
@@ -205,4 +211,17 @@ ExecReScanUnique(UniqueState *node, ExprContext *exprCtxt)
 	 */
 	if (((PlanState *) node)->lefttree->chgParam == NULL)
 		ExecReScan(((PlanState *) node)->lefttree, exprCtxt);
+}
+
+void
+initGpmonPktForUnique(Plan *planNode, gpmon_packet_t *gpmon_pkt, EState *estate)
+{
+	Assert(planNode != NULL && gpmon_pkt != NULL && IsA(planNode, Unique));
+
+	{
+		Assert(GPMON_UNIQUE_TOTAL <= (int)GPMON_QEXEC_M_COUNT);
+		InitPlanNodeGpmonPkt(planNode, gpmon_pkt, estate, PMNT_Unique,
+							 (int64)planNode->plan_rows,
+							 NULL);
+	}
 }

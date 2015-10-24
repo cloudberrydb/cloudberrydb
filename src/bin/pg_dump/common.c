@@ -6,7 +6,7 @@
  * Since pg4_dump is long-dead code, there is no longer any useful distinction
  * between this file and pg_dump.c.
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2008, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -15,14 +15,15 @@
  *
  *-------------------------------------------------------------------------
  */
-
 #include "postgres_fe.h"
-#include "pg_backup_archiver.h"
 
+#include <ctype.h>
+#include <time.h>
+#include "dumputils.h"
 #include "postgres.h"
 #include "catalog/pg_class.h"
 
-#include <ctype.h>
+#include "pg_backup_archiver.h"
 
 
 /*
@@ -45,13 +46,16 @@ static int	numCatalogIds = 0;
  */
 static TableInfo *tblinfo;
 static TypeInfo *typinfo;
+static TypeStorageOptions *typestorageoptions;
 static FuncInfo *funinfo;
 static OprInfo *oprinfo;
 static int	numTables;
 static int	numTypes;
+static int  numTypeStorageOptions;
 static int	numFuncs;
 static int	numOperators;
 
+bool is_gpdump = false; /* determines whether to print extra logging messages in getSchemaData */
 
 static void flagInhTables(TableInfo *tbinfo, int numTables,
 			  InhInfo *inhinfo, int numInherits);
@@ -62,7 +66,9 @@ static void findParentsByOid(TableInfo *self,
 				 InhInfo *inhinfo, int numInherits);
 static int	strInArray(const char *pattern, char **arr, int arr_size);
 
+void status_log_msg(const char *loglevel, const char *prog, const char *fmt,...);
 
+void		reset(void);
 /*
  * getSchemaData
  *	  Collect information about all potentially dumpable objects
@@ -78,6 +84,9 @@ getSchemaData(int *numTablesPtr)
 	CastInfo   *castinfo;
 	OpclassInfo *opcinfo;
 	ConvInfo   *convinfo;
+	FdwInfo    *fdwinfo;
+	ExtProtInfo *ptcinfo;
+	ForeignServerInfo *srvinfo;
 	int			numNamespaces;
 	int			numAggregates;
 	int			numInherits;
@@ -86,80 +95,115 @@ getSchemaData(int *numTablesPtr)
 	int			numCasts;
 	int			numOpclasses;
 	int			numConversions;
+	int			numForeignDataWrappers;
+	int			numForeignServers;
+	int			numExtProtocols;
+	const char *LOGGER_INFO = "INFO";
 
-	if (g_verbose)
-		write_msg(NULL, "reading schemas\n");
+	//write_msg(NULL, "reading schemas\n");
+	if(is_gpdump || g_verbose)
+		status_log_msg(LOGGER_INFO, progname, "reading schemas\n");
 	nsinfo = getNamespaces(&numNamespaces);
 
-	if (g_verbose)
-		write_msg(NULL, "reading user-defined functions\n");
+	if(is_gpdump || g_verbose)
+		status_log_msg(LOGGER_INFO, progname, "reading user-defined functions\n");
 	funinfo = getFuncs(&numFuncs);
 
 	/* this must be after getFuncs */
-	if (g_verbose)
-		write_msg(NULL, "reading user-defined types\n");
+	if(is_gpdump || g_verbose)
+		status_log_msg(LOGGER_INFO, progname, "reading user-defined types\n");
 	typinfo = getTypes(&numTypes);
 
+	/* this must be after getFuncs */
+	if(is_gpdump || g_verbose)
+		status_log_msg(LOGGER_INFO, progname, "reading type storage options\n");
+	typestorageoptions = getTypeStorageOptions(&numTypeStorageOptions);
+
 	/* this must be after getFuncs, too */
-	if (g_verbose)
-		write_msg(NULL, "reading procedural languages\n");
+	if(is_gpdump || g_verbose)
+		status_log_msg(LOGGER_INFO, progname, "reading procedural languages\n");
 	proclanginfo = getProcLangs(&numProcLangs);
 
-	if (g_verbose)
-		write_msg(NULL, "reading user-defined aggregate functions\n");
+	if(is_gpdump || g_verbose)
+		status_log_msg(LOGGER_INFO, progname, "reading user-defined aggregate functions\n");
 	agginfo = getAggregates(&numAggregates);
-
-	if (g_verbose)
-		write_msg(NULL, "reading user-defined operators\n");
+	
+	if(is_gpdump || g_verbose)
+		status_log_msg(LOGGER_INFO, progname, "reading user-defined operators\n");
 	oprinfo = getOperators(&numOperators);
 
-	if (g_verbose)
-		write_msg(NULL, "reading user-defined operator classes\n");
+	if (testExtProtocolSupport())
+	{
+		if(is_gpdump || g_verbose)
+			status_log_msg(LOGGER_INFO, progname, "reading user-defined external protocols\n");
+		ptcinfo = getExtProtocols(&numExtProtocols);
+	}
+
+	if(is_gpdump || g_verbose)
+		status_log_msg(LOGGER_INFO, progname, "reading user-defined operator classes\n");
 	opcinfo = getOpclasses(&numOpclasses);
 
-	if (g_verbose)
-		write_msg(NULL, "reading user-defined conversions\n");
+	if (testSqlMedSupport())
+	{
+		if(is_gpdump || g_verbose)
+			status_log_msg(LOGGER_INFO, progname, "reading user-defined foreign-data wrappers\n");
+		fdwinfo = getForeignDataWrappers(&numForeignDataWrappers);
+
+		if(is_gpdump || g_verbose)
+			status_log_msg(LOGGER_INFO, progname, "reading user-defined foreign servers\n");
+		srvinfo = getForeignServers(&numForeignServers);
+	}
+	else
+	{
+		fdwinfo = NULL;
+		srvinfo = NULL;
+		numForeignDataWrappers = 0;
+		numForeignServers = 0;
+	}
+
+	if(is_gpdump || g_verbose)
+		status_log_msg(LOGGER_INFO, progname, "reading user-defined conversions\n");
 	convinfo = getConversions(&numConversions);
 
-	if (g_verbose)
-		write_msg(NULL, "reading user-defined tables\n");
+	if(is_gpdump || g_verbose)
+		status_log_msg(LOGGER_INFO, progname, "reading user-defined tables\n");
 	tblinfo = getTables(&numTables);
 
-	if (g_verbose)
-		write_msg(NULL, "reading table inheritance information\n");
+	if(is_gpdump || g_verbose)
+		status_log_msg(LOGGER_INFO, progname, "reading table inheritance information\n");
 	inhinfo = getInherits(&numInherits);
 
-	if (g_verbose)
-		write_msg(NULL, "reading rewrite rules\n");
+	if(is_gpdump || g_verbose)
+		status_log_msg(LOGGER_INFO, progname, "reading rewrite rules\n");
 	ruleinfo = getRules(&numRules);
 
-	if (g_verbose)
-		write_msg(NULL, "reading type casts\n");
+	if(is_gpdump || g_verbose)
+		status_log_msg(LOGGER_INFO, progname, "reading type casts\n");
 	castinfo = getCasts(&numCasts);
 
 	/* Link tables to parents, mark parents of target tables interesting */
-	if (g_verbose)
-		write_msg(NULL, "finding inheritance relationships\n");
+	if(is_gpdump || g_verbose)
+		status_log_msg(LOGGER_INFO, progname, "finding inheritance relationships\n");
 	flagInhTables(tblinfo, numTables, inhinfo, numInherits);
 
-	if (g_verbose)
-		write_msg(NULL, "reading column info for interesting tables\n");
+	if(is_gpdump || g_verbose)
+		status_log_msg(LOGGER_INFO, progname, "reading column info for interesting tables\n");
 	getTableAttrs(tblinfo, numTables);
 
-	if (g_verbose)
-		write_msg(NULL, "flagging inherited columns in subtables\n");
+	if(is_gpdump || g_verbose)
+		status_log_msg(LOGGER_INFO, progname, "flagging inherited columns in subtables\n");
 	flagInhAttrs(tblinfo, numTables, inhinfo, numInherits);
 
-	if (g_verbose)
-		write_msg(NULL, "reading indexes\n");
+	if(is_gpdump || g_verbose)
+		status_log_msg(LOGGER_INFO, progname, "reading indexes\n");
 	getIndexes(tblinfo, numTables);
 
-	if (g_verbose)
-		write_msg(NULL, "reading constraints\n");
+	if(is_gpdump || g_verbose)
+		status_log_msg(LOGGER_INFO, progname, "reading constraints\n");
 	getConstraints(tblinfo, numTables);
 
-	if (g_verbose)
-		write_msg(NULL, "reading triggers\n");
+	if(is_gpdump || g_verbose)
+		status_log_msg(LOGGER_INFO, progname, "reading triggers\n");
 	getTriggers(tblinfo, numTables);
 
 	*numTablesPtr = numTables;
@@ -187,9 +231,11 @@ flagInhTables(TableInfo *tblinfo, int numTables,
 
 	for (i = 0; i < numTables; i++)
 	{
-		/* Sequences and views never have parents */
+		/* Sequences, views and external tables never have parents */
 		if (tblinfo[i].relkind == RELKIND_SEQUENCE ||
-			tblinfo[i].relkind == RELKIND_VIEW)
+			tblinfo[i].relkind == RELKIND_VIEW ||
+			tblinfo[i].relstorage == RELSTORAGE_EXTERNAL ||
+			tblinfo[i].relstorage == RELSTORAGE_FOREIGN)
 			continue;
 
 		/* Don't bother computing anything for non-target tables, either */
@@ -228,9 +274,11 @@ flagInhAttrs(TableInfo *tblinfo, int numTables,
 		TableInfo **parents;
 		TableInfo  *parent;
 
-		/* Sequences and views never have parents */
+		/* Sequences, views and external tables never have parents */
 		if (tbinfo->relkind == RELKIND_SEQUENCE ||
-			tbinfo->relkind == RELKIND_VIEW)
+			tbinfo->relkind == RELKIND_VIEW ||
+			tbinfo->relstorage == RELSTORAGE_EXTERNAL ||
+			tbinfo->relstorage == RELSTORAGE_FOREIGN)
 			continue;
 
 		/* Don't bother computing anything for non-target tables, either */
@@ -282,19 +330,55 @@ flagInhAttrs(TableInfo *tblinfo, int numTables,
 
 				if (inhAttrInd != -1)
 				{
+					AttrDefInfo *inhDef = parent->attrdefs[inhAttrInd];
+
 					foundAttr = true;
 					foundNotNull |= parent->notnull[inhAttrInd];
-					if (attrDef != NULL)		/* If we have a default, check
-												 * parent */
+					if (inhDef != NULL)
 					{
-						AttrDefInfo *inhDef;
+						defaultsFound = true;
 
-						inhDef = parent->attrdefs[inhAttrInd];
-						if (inhDef != NULL)
+						/*
+						 * If any parent has a default and the child doesn't,
+						 * we have to emit an explicit DEFAULT NULL clause for
+						 * the child, else the parent's default will win.
+						 */
+						if (attrDef == NULL)
 						{
-							defaultsFound = true;
-							defaultsMatch &= (strcmp(attrDef->adef_expr,
-													 inhDef->adef_expr) == 0);
+							attrDef = (AttrDefInfo *) malloc(sizeof(AttrDefInfo));
+							attrDef->dobj.objType = DO_ATTRDEF;
+							attrDef->dobj.catId.tableoid = 0;
+							attrDef->dobj.catId.oid = 0;
+							AssignDumpId(&attrDef->dobj);
+							attrDef->adtable = tbinfo;
+							attrDef->adnum = j + 1;
+							attrDef->adef_expr = strdup("NULL");
+
+							attrDef->dobj.name = strdup(tbinfo->dobj.name);
+							attrDef->dobj.namespace = tbinfo->dobj.namespace;
+
+							attrDef->dobj.dump = tbinfo->dobj.dump;
+
+							attrDef->separate = false;
+							addObjectDependency(&tbinfo->dobj,
+												attrDef->dobj.dumpId);
+
+							tbinfo->attrdefs[j] = attrDef;
+						}
+						if (strcmp(attrDef->adef_expr, inhDef->adef_expr) != 0)
+						{
+							defaultsMatch = false;
+
+							/*
+							 * Whenever there is a non-matching parent
+							 * default, add a dependency to force the parent
+							 * default to be dumped first, in case the
+							 * defaults end up being dumped as separate
+							 * commands.  Otherwise the parent default will
+							 * override the child's when it is applied.
+							 */
+							addObjectDependency(&attrDef->dobj,
+												inhDef->dobj.dumpId);
 						}
 					}
 				}
@@ -373,6 +457,72 @@ flagInhAttrs(TableInfo *tblinfo, int numTables,
 			}
 		}
 	}
+}
+
+/*
+ * MPP-1890
+ *
+ * If the user explicitly DROP'ed a CHECK constraint on a child but it
+ * still exists on the parent when they dump and restore that constraint
+ * will exist on the child since it will again inherit it from the
+ * parent. Therefore we look here for constraints that exist on the
+ * parent but not on the child and mark them to be dropped from the
+ * child after the child table is defined.
+ *
+ * Loop through each parent and for each parent constraint see if it
+ * exists on the child as well. If it doesn't it means that the child
+ * dropped it. Mark it.
+ */
+void
+DetectChildConstraintDropped(TableInfo *tbinfo, PQExpBuffer q)
+{
+	TableInfo  *parent;
+	TableInfo **parents = tbinfo->parents;
+	int			j,
+				k,
+				l;
+	int			numParents = tbinfo->numParents;
+
+	for (k = 0; k < numParents; k++)
+	{
+		parent = parents[k];
+
+		/* for each CHECK constraint of this parent */
+		for (l = 0; l < parent->ncheck; l++)
+		{
+			ConstraintInfo *pconstr = &(parent->checkexprs[l]);
+			ConstraintInfo *cconstr;
+			bool		constr_on_child = false;
+
+			/* for each child CHECK constraint */
+			for (j = 0; j < tbinfo->ncheck; j++)
+			{
+				cconstr = &(tbinfo->checkexprs[j]);
+
+				if (strcmp(pconstr->dobj.name, cconstr->dobj.name) == 0)
+				{
+					/* parent constr exists on child. hence wasn't dropped */
+					constr_on_child = true;
+					break;
+				}
+
+			}
+
+			/* this parent constr is not on child, issue a DROP for it */
+			if (!constr_on_child)
+			{
+				appendPQExpBuffer(q, "ALTER TABLE %s.",
+								  fmtId(tbinfo->dobj.namespace->dobj.name));
+				appendPQExpBuffer(q, "%s ",
+								  fmtId(tbinfo->dobj.name));
+				appendPQExpBuffer(q, "DROP CONSTRAINT %s;\n",
+								  fmtId(pconstr->dobj.name));
+
+				constr_on_child = false;
+			}
+		}
+	}
+
 }
 
 /*
@@ -803,6 +953,32 @@ strInArray(const char *pattern, char **arr, int arr_size)
 }
 
 
+/* cdb addition */
+void
+reset(void)
+{
+	free(dumpIdMap);
+	dumpIdMap = NULL;
+	allocedDumpIds = 0;
+	lastDumpId = 0;
+
+/*
+ * Variables for mapping CatalogId to DumpableObject
+ */
+	catalogIdMapValid = false;
+	free(catalogIdMap);
+	catalogIdMap = NULL;
+	numCatalogIds = 0;
+
+	numTables = 0;
+	numTypes = 0;
+	numFuncs = 0;
+	numOperators = 0;
+}
+
+/* end cdb_addition */
+
+
 /*
  * Support for simple list operations
  */
@@ -869,6 +1045,49 @@ simple_string_list_member(SimpleStringList *list, const char *val)
 
 
 /*
+ * openFileAndAppendToList: Read parameters from file
+ * and append values to given list.
+ * (Used to read multiple include/exclude tables.)
+ *
+ * reason - list name, to be logged.
+ *
+ * File format: one value per line.
+ */
+bool
+open_file_and_append_to_list(const char *fileName, SimpleStringList *list, const char *reason)
+{
+
+	char buf[1024];
+
+	write_msg(NULL, "Opening file %s for %s\n", fileName, reason);
+
+	FILE* file = fopen(fileName, "r");
+
+	if (file == NULL)
+		return false;
+
+	int lineNum = 0;
+	while (fgets(buf, sizeof(buf), file) != NULL)
+	{
+		int size = strlen(buf);
+		if (buf[size-1] == '\n')
+			buf[size-1] = '\0'; /* remove new line */
+
+		write_msg(NULL, "Line #%d, value: %s\n", ++lineNum, buf);
+		simple_string_list_append(list, buf);
+	}
+	write_msg(NULL, "Got %d lines from file %s\n", lineNum, fileName);
+	if (fclose(file) != 0)
+		return false;
+
+	write_msg(NULL, "Finished reading file %s successfully\n", fileName);
+
+	return true;
+
+}
+
+
+/*
  * Safer versions of some standard C library functions. If an
  * out-of-memory condition occurs, these functions will bail out
  * safely; therefore, their return value is guaranteed to be non-NULL.
@@ -921,4 +1140,22 @@ pg_realloc(void *ptr, size_t size)
 	if (!tmp)
 		exit_horribly(NULL, NULL, "out of memory\n");
 	return tmp;
+}
+
+void
+status_log_msg(const char *loglevel, const char *prog, const char *fmt,...)
+{
+    va_list     ap;  
+    char        szTimeNow[18];
+    struct tm   pNow;
+    time_t      tNow = time(NULL);
+    char       *format = "%Y%m%d:%H:%M:%S";
+
+    localtime_r(&tNow, &pNow);
+    strftime(szTimeNow, 18, format, &pNow);
+
+    va_start(ap, fmt);
+    fprintf(stderr, "%s|%s-[%s]:-", szTimeNow, prog, loglevel);
+    vfprintf(stderr, gettext(fmt), ap); 
+    va_end(ap);
 }

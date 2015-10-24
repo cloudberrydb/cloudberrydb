@@ -1,10 +1,10 @@
-/* Processed by ecpg (4.2.1) */
+/* Processed by ecpg (regression mode) */
 /* These include files are added by the preprocessor */
-#include <ecpgtype.h>
 #include <ecpglib.h>
 #include <ecpgerrno.h>
 #include <sqlca.h>
 /* End of automatic include section */
+#define ECPGdebug(X,Y) ECPGdebug((X)+100,(Y))
 
 #line 1 "copystdout.pgc"
 #include <stdio.h>
@@ -14,13 +14,13 @@
 #ifndef POSTGRES_SQLCA_H
 #define POSTGRES_SQLCA_H
 
-#ifndef DLLIMPORT
+#ifndef PGDLLIMPORT
 #if  defined(WIN32) || defined(__CYGWIN__)
-#define DLLIMPORT __declspec (dllimport)
+#define PGDLLIMPORT __declspec (dllimport)
 #else
-#define DLLIMPORT
+#define PGDLLIMPORT
 #endif   /* __CYGWIN__ */
-#endif   /* DLLIMPORT */
+#endif   /* PGDLLIMPORT */
 
 #define SQLERRMC_LEN	150
 
@@ -98,62 +98,52 @@ struct sqlca_t *ECPGget_sqlca(void);
 int
 main ()
 {
-/*
-  EXEC SQL BEGIN DECLARE SECTION;
-  char *fname = "/tmp/foo";
-  EXEC SQL END DECLARE SECTION;
-*/
-
   ECPGdebug (1, stderr);
 
-  { ECPGconnect(__LINE__, 0, "regress1" , NULL,NULL , NULL, 0); 
+  { ECPGconnect(__LINE__, 0, "regress1" , NULL, NULL , NULL, 0); 
+#line 13 "copystdout.pgc"
+
+if (sqlca.sqlcode < 0) sqlprint();}
+#line 13 "copystdout.pgc"
+
+  { ECPGdo(__LINE__, 0, 1, NULL, 0, ECPGst_normal, "create table foo ( a int , b varchar )", ECPGt_EOIT, ECPGt_EORT);
+#line 14 "copystdout.pgc"
+
+if (sqlca.sqlcode < 0) sqlprint();}
+#line 14 "copystdout.pgc"
+
+  { ECPGdo(__LINE__, 0, 1, NULL, 0, ECPGst_normal, "insert into foo values ( 5 , 'abc' )", ECPGt_EOIT, ECPGt_EORT);
+#line 15 "copystdout.pgc"
+
+if (sqlca.sqlcode < 0) sqlprint();}
+#line 15 "copystdout.pgc"
+
+  { ECPGdo(__LINE__, 0, 1, NULL, 0, ECPGst_normal, "insert into foo values ( 6 , 'def' )", ECPGt_EOIT, ECPGt_EORT);
+#line 16 "copystdout.pgc"
+
+if (sqlca.sqlcode < 0) sqlprint();}
+#line 16 "copystdout.pgc"
+
+  { ECPGdo(__LINE__, 0, 1, NULL, 0, ECPGst_normal, "insert into foo values ( 7 , 'ghi' )", ECPGt_EOIT, ECPGt_EORT);
+#line 17 "copystdout.pgc"
+
+if (sqlca.sqlcode < 0) sqlprint();}
+#line 17 "copystdout.pgc"
+
+
+  { ECPGdo(__LINE__, 0, 1, NULL, 0, ECPGst_normal, "copy foo to stdout with delimiter ','", ECPGt_EOIT, ECPGt_EORT);
 #line 19 "copystdout.pgc"
 
 if (sqlca.sqlcode < 0) sqlprint();}
 #line 19 "copystdout.pgc"
-
-  { ECPGdo(__LINE__, 0, 1, NULL, "create  table foo ( a int   , b varchar    )    ", ECPGt_EOIT, ECPGt_EORT);
-#line 20 "copystdout.pgc"
-
-if (sqlca.sqlcode < 0) sqlprint();}
-#line 20 "copystdout.pgc"
-
-  { ECPGdo(__LINE__, 0, 1, NULL, "insert into foo values ( 5 , 'abc' ) ", ECPGt_EOIT, ECPGt_EORT);
-#line 21 "copystdout.pgc"
-
-if (sqlca.sqlcode < 0) sqlprint();}
-#line 21 "copystdout.pgc"
-
-  { ECPGdo(__LINE__, 0, 1, NULL, "insert into foo values ( 6 , 'def' ) ", ECPGt_EOIT, ECPGt_EORT);
-#line 22 "copystdout.pgc"
-
-if (sqlca.sqlcode < 0) sqlprint();}
-#line 22 "copystdout.pgc"
-
-  { ECPGdo(__LINE__, 0, 1, NULL, "insert into foo values ( 7 , 'ghi' ) ", ECPGt_EOIT, ECPGt_EORT);
-#line 23 "copystdout.pgc"
-
-if (sqlca.sqlcode < 0) sqlprint();}
-#line 23 "copystdout.pgc"
-
-
-  /* produces expected file "/tmp/foo" */
-  /* EXEC SQL COPY foo TO:fname WITH DELIMITER ','; */
-  /* printf ("copy to /tmp/foo : sqlca.sqlcode = %ld", sqlca.sqlcode); */
-
-  { ECPGdo(__LINE__, 0, 1, NULL, "copy  foo  to stdout  with  delimiter  ','", ECPGt_EOIT, ECPGt_EORT);
-#line 29 "copystdout.pgc"
-
-if (sqlca.sqlcode < 0) sqlprint();}
-#line 29 "copystdout.pgc"
 
   printf ("copy to STDOUT : sqlca.sqlcode = %ld\n", sqlca.sqlcode);
 
   { ECPGdisconnect(__LINE__, "CURRENT");
-#line 32 "copystdout.pgc"
+#line 22 "copystdout.pgc"
 
 if (sqlca.sqlcode < 0) sqlprint();}
-#line 32 "copystdout.pgc"
+#line 22 "copystdout.pgc"
 
 
   return 0;

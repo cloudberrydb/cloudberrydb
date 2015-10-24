@@ -3,12 +3,13 @@
  * tid.c
  *	  Functions for the built-in type tuple id
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 2006-2009, Greenplum inc
+ * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/utils/adt/tid.c,v 1.56 2006/10/04 00:29:59 momjian Exp $
+ *	  $PostgreSQL: pgsql/src/backend/utils/adt/tid.c,v 1.63 2009/01/01 17:23:50 momjian Exp $
  *
  * NOTES
  *	  input routine largely stolen from boxin().
@@ -21,15 +22,17 @@
 #include <limits.h>
 
 #include "access/heapam.h"
+#include "access/sysattr.h"
 #include "catalog/namespace.h"
 #include "catalog/pg_type.h"
 #include "libpq/pqformat.h"
+#include "miscadmin.h"
 #include "parser/parsetree.h"
+#include "utils/acl.h"
 #include "utils/builtins.h"
+#include "utils/rel.h"
+#include "utils/tqual.h"
 
-
-#define DatumGetItemPointer(X)	 ((ItemPointer) DatumGetPointer(X))
-#define ItemPointerGetDatum(X)	 PointerGetDatum(X)
 #define PG_GETARG_ITEMPOINTER(n) DatumGetItemPointer(PG_GETARG_DATUM(n))
 #define PG_RETURN_ITEMPOINTER(x) return ItemPointerGetDatum(x)
 
@@ -153,6 +156,26 @@ tidsend(PG_FUNCTION_ARGS)
 	pq_sendint(&buf, offsetNumber, sizeof(offsetNumber));
 	PG_RETURN_BYTEA_P(pq_endtypsend(&buf));
 }
+
+
+/* ----------------------------------------------------------------
+ *	Conversion operators.
+ * ----------------------------------------------------------------
+ */
+
+Datum
+tidtoi8(PG_FUNCTION_ARGS)       /*CDB*/
+{
+    ItemPointer itemPtr = PG_GETARG_ITEMPOINTER(0);
+    BlockNumber blockNumber;
+    OffsetNumber offsetNumber;
+
+    blockNumber = BlockIdGetBlockNumber(&(itemPtr->ip_blkid));
+    offsetNumber = itemPtr->ip_posid;
+
+	PG_RETURN_INT64(((int64)blockNumber << 16) + offsetNumber);
+}
+
 
 /*****************************************************************************
  *	 PUBLIC ROUTINES														 *
@@ -319,6 +342,15 @@ currtid_for_view(Relation viewrel, ItemPointer tid)
 	return (Datum) 0;
 }
 
+
+/*
+ * This function originates from PostgreSQL,
+ * is currently not supported by GPDB - MPP-7886.
+ * The problem is that calling function
+ * heapam.c::heap_get_latest_tid below fails to return
+ * the current number of blocks for the examined relation
+ */
+
 Datum
 currtid_byreloid(PG_FUNCTION_ARGS)
 {
@@ -326,6 +358,14 @@ currtid_byreloid(PG_FUNCTION_ARGS)
 	ItemPointer tid = PG_GETARG_ITEMPOINTER(1);
 	ItemPointer result;
 	Relation	rel;
+	AclResult	aclresult;
+
+	/*
+	 * Immediately inform client that the function is not supported
+	 */
+
+	elog(ERROR, "Function currtid is not supported by GPDB");
+
 
 	result = (ItemPointer) palloc(sizeof(ItemPointerData));
 	if (!reloid)
@@ -335,6 +375,13 @@ currtid_byreloid(PG_FUNCTION_ARGS)
 	}
 
 	rel = heap_open(reloid, AccessShareLock);
+
+	aclresult = pg_class_aclcheck(RelationGetRelid(rel), GetUserId(),
+								  ACL_SELECT);
+	if (aclresult != ACLCHECK_OK)
+		aclcheck_error(aclresult, ACL_KIND_CLASS,
+					   RelationGetRelationName(rel));
+
 	if (rel->rd_rel->relkind == RELKIND_VIEW)
 		return currtid_for_view(rel, tid);
 
@@ -346,6 +393,15 @@ currtid_byreloid(PG_FUNCTION_ARGS)
 	PG_RETURN_ITEMPOINTER(result);
 }
 
+
+/*
+ * This function originates from PostgreSQL,
+ * is currently not supported by GPDB - MPP-7886.
+ * The problem is that calling function
+ * heapam.c::heap_get_latest_tid below fails to return
+ * the current number of blocks for the examined relation
+ */
+
 Datum
 currtid_byrelname(PG_FUNCTION_ARGS)
 {
@@ -354,9 +410,23 @@ currtid_byrelname(PG_FUNCTION_ARGS)
 	ItemPointer result;
 	RangeVar   *relrv;
 	Relation	rel;
+	AclResult	aclresult;
+
+	/*
+	 * Immediately inform client that the function is not supported
+	 */
+
+	elog(ERROR, "Function currtid2 is not supported by GPDB");
 
 	relrv = makeRangeVarFromNameList(textToQualifiedNameList(relname));
 	rel = heap_openrv(relrv, AccessShareLock);
+
+	aclresult = pg_class_aclcheck(RelationGetRelid(rel), GetUserId(),
+								  ACL_SELECT);
+	if (aclresult != ACLCHECK_OK)
+		aclcheck_error(aclresult, ACL_KIND_CLASS,
+					   RelationGetRelationName(rel));
+
 	if (rel->rd_rel->relkind == RELKIND_VIEW)
 		return currtid_for_view(rel, tid);
 

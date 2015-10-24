@@ -4,10 +4,11 @@
  *	  support for the POSTGRES executor module
  *
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 2005-2009, Greenplum inc
+ * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
- * $PostgreSQL: pgsql/src/include/executor/executor.h,v 1.130 2006/10/04 00:30:08 momjian Exp $
+ * $PostgreSQL: pgsql/src/include/executor/executor.h,v 1.130.2.2 2007/02/02 00:07:28 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -15,7 +16,13 @@
 #define EXECUTOR_H
 
 #include "executor/execdesc.h"
+#include "nodes/parsenodes.h"
+#include "nodes/execnodes.h"
+#include "utils/tuplestore.h"
 
+#include "cdb/cdbdef.h"                 /* CdbVisitOpt */
+
+struct ChunkTransportState;             /* #include "cdb/cdbinterconnect.h" */
 
 /*
  * The "eflags" argument to ExecutorStart and the various ExecInitNode
@@ -32,11 +39,8 @@
  * of startup should occur (such as creating a SELECT INTO target table).
  * However, error checks (such as permission checks) should be performed.
  *
- * REWIND indicates that the plan node should try to efficiently support
- * rescans without parameter changes.  (Nodes must support ExecReScan calls
- * in any case, but if this flag was not given, they are at liberty to do it
- * through complete recalculation.	Note that a parameter change forces a
- * full recalculation in any case.)
+ * REWIND indicates that the plan node should expect to be rescanned. This
+ * implies delaying freeing up resources when EagerFree is called.
  *
  * BACKWARD indicates that the plan node must respect the es_direction flag.
  * When this is not passed, the plan node will only be run forwards.
@@ -45,7 +49,7 @@
  * When this is not passed, no Mark/Restore will occur.
  */
 #define EXEC_FLAG_EXPLAIN_ONLY	0x0001	/* EXPLAIN, no ANALYZE */
-#define EXEC_FLAG_REWIND		0x0002	/* need efficient rescan */
+#define EXEC_FLAG_REWIND		0x0002	/* expect rescan */
 #define EXEC_FLAG_BACKWARD		0x0004	/* need backward scan */
 #define EXEC_FLAG_MARK			0x0008	/* need mark/restore */
 
@@ -58,6 +62,17 @@
 #define ExecEvalExpr(expr, econtext, isNull, isDone) \
 	((*(expr)->evalfunc) (expr, econtext, isNull, isDone))
 
+#define RelinfoGetStorage(relinfo) relinfo->ri_RelationDesc->rd_rel->relstorage
+
+/*
+ * Indicate whether an executor node is running in the slice
+ * that a QE process is processing.
+ *
+ * This is currently called inside ExecInitXXX for each executor
+ * node.
+ *
+ * If this is called in QD or utility mode, this will return true.
+ */
 
 /*
  * prototypes from functions in execAmi.c
@@ -68,6 +83,8 @@ extern void ExecRestrPos(PlanState *node);
 extern bool ExecSupportsMarkRestore(NodeTag plantype);
 extern bool ExecSupportsBackwardScan(Plan *node);
 extern bool ExecMayReturnRawTuples(PlanState *node);
+extern void ExecEagerFree(PlanState *node);
+extern void ExecEagerFreeChildNodes(PlanState *node, bool subplanDone);
 
 /*
  * prototypes from functions in execGrouping.c
@@ -105,7 +122,7 @@ extern TupleHashEntry LookupTupleHashEntry(TupleHashTable hashtable,
 /*
  * prototypes from functions in execJunk.c
  */
-extern JunkFilter *ExecInitJunkFilter(List *targetList, bool hasoid,
+extern JunkFilter *ExecInitJunkFilter(List *targetList, TupleDesc cleanTupType,
 				   TupleTableSlot *slot);
 extern JunkFilter *ExecInitJunkFilterConversion(List *targetList,
 							 TupleDesc cleanTupType,
@@ -120,28 +137,126 @@ extern HeapTuple ExecRemoveJunk(JunkFilter *junkfilter, TupleTableSlot *slot);
 /*
  * prototypes from functions in execMain.c
  */
+
+/* AttrMap	
+ *
+ * A mapping of attribute numbers from one relation to another.
+ * Both relations must have the same number of live (non-dropped)
+ * attributes in the same order, but both may have holes (dropped
+ * attributes) mixed in.  This structure maps live attributes in
+ * the "base" relation to live attributes in the "other" relation.
+ *
+ * AttrMap is used for partitioned table processing because the
+ * part relations that hold the data may have different "hole
+ * patterns" than the partitioned relation as a whole.  But some
+ * cataloged information refers only to the whole and, thus,
+ * must be remapped to be used.
+ *
+ * live_count	number of live attributes in the "base" relation
+ *				(and in the "other" relation)
+ * attr_max		maximum attribute number in map; live attribute
+ *				numbers in "other" range from 1 to attr_max.
+ *				This is less than or equal to the number of 
+ *              attributes in "other" which may have any number
+ *				of trailing holes.
+ * attr_count	number of attributes (live or holes) in "base".
+ *				One less than the number elements in attr_map,
+ *				since attr_map[0]is always 0.
+ * attr_map[i]	attr number in "other" corresponding to attr 
+ *				number i in "base", or 0 if the attribute is
+ *				a hole.  (Note, however, attr_map[0] == 0.  
+ *				It is wasted to allow us to use attr numbers
+ *				as indexes.  Zero in attr_map stands for "no 
+ *				live attribute".)
+ *
+ * To discard an AttrMap, just pfree it.
+ */
+typedef struct AttrMap 
+{
+	int live_count;
+	int attr_max;
+	int attr_count;
+	AttrNumber attr_map[1];
+} AttrMap;
+
+/*
+ * ScanMethod
+ *   Methods that are relevant to support scans on various table types.
+ */
+typedef struct ScanMethod
+{
+	/* Function that scans the table. */
+	TupleTableSlot *(*accessMethod)(ScanState *scanState);
+
+	/* Functions that initiate or terminate a scan. */
+	void (*beginScanMethod)(ScanState *scanState);
+	void (*endScanMethod)(ScanState *scanState);
+
+	/* Function that does rescan. */
+	void (*reScanMethod)(ScanState *scanState);
+
+	/* Function that does MarkPos in a scan. */
+	void (*markPosMethod)(ScanState *scanState);
+
+	/* Function that does RestroPos in a scan. */
+	void (*restrPosMethod)(ScanState *scanState);
+} ScanMethod;
+
 extern void ExecutorStart(QueryDesc *queryDesc, int eflags);
 extern TupleTableSlot *ExecutorRun(QueryDesc *queryDesc,
 			ScanDirection direction, long count);
 extern void ExecutorEnd(QueryDesc *queryDesc);
 extern void ExecutorRewind(QueryDesc *queryDesc);
-extern void ExecCheckRTPerms(List *rangeTable);
 extern void ExecEndPlan(PlanState *planstate, EState *estate);
 extern bool ExecContextForcesOids(PlanState *planstate, bool *hasoids);
 extern void ExecConstraints(ResultRelInfo *resultRelInfo,
 				TupleTableSlot *slot, EState *estate);
 extern TupleTableSlot *EvalPlanQual(EState *estate, Index rti,
 			 ItemPointer tid, TransactionId priorXmax, CommandId curCid);
+extern HeapTuple GetUpdatedTuple_Int(Relation relation,
+									 ItemPointer tid, 
+									 TransactionId priorXmax, 
+									 CommandId curCid);
 extern DestReceiver *CreateIntoRelDestReceiver(void);
+
+extern AttrMap *makeAttrMap(int base_count, AttrNumber *base_map);
+extern AttrMap *invertedAttrMap(AttrMap *base_map, int inv_count);
+extern AttrMap *compositeAttrMap(AttrMap *input_map, AttrMap *output_map);
+extern AttrNumber attrMap(AttrMap *map, AttrNumber anum);
+extern List *attrMapIntList(AttrMap *map, List *attrs);
+extern Node *attrMapExpr(AttrMap *map, Node *expr);
+extern bool map_part_attrs(Relation base, Relation part, AttrMap **map_ptr, bool throwerror);
+extern void map_part_attrs_from_targetdesc(TupleDesc target, TupleDesc part, AttrMap **map_ptr);
+extern PartitionState *createPartitionState(PartitionNode *partsAndRules, int resultPartSize);
+extern TupleTableSlot *reconstructMatchingTupleSlot(TupleTableSlot *slot,
+													ResultRelInfo *resultRelInfo);
+extern List *InitializePartsMetadata(Oid rootOid);
 
 /*
  * prototypes from functions in execProcnode.c
  */
 extern PlanState *ExecInitNode(Plan *node, EState *estate, int eflags);
+extern void ExecSliceDependencyNode(PlanState *node);
 extern TupleTableSlot *ExecProcNode(PlanState *node);
 extern Node *MultiExecProcNode(PlanState *node);
 extern int	ExecCountSlotsNode(Plan *node);
 extern void ExecEndNode(PlanState *node);
+
+void ExecSquelchNode(PlanState *node);
+void ExecUpdateTransportState(PlanState *node, struct ChunkTransportState *state);
+
+typedef enum
+{
+	GP_IGNORE,
+	GP_ROOT_SLICE,
+	GP_NON_ROOT_ON_QE
+} GpExecIdentity;
+
+/* PlanState tree walking functions in execProcnode.c */
+CdbVisitOpt
+planstate_walk_node(PlanState      *planstate,
+			        CdbVisitOpt   (*walker)(PlanState *planstate, void *context),
+			        void           *context);
 
 /*
  * prototypes from functions in execQual.c
@@ -151,15 +266,14 @@ extern Datum GetAttributeByNum(HeapTupleHeader tuple, AttrNumber attrno,
 extern Datum GetAttributeByName(HeapTupleHeader tuple, const char *attname,
 				   bool *isNull);
 extern void init_fcache(Oid foid, FuncExprState *fcache,
-			MemoryContext fcacheCxt);
-extern Datum ExecMakeFunctionResult(FuncExprState *fcache,
-					   ExprContext *econtext,
-					   bool *isNull,
-					   ExprDoneCond *isDone);
+						MemoryContext fcacheCxt, bool needDescForSets);
+extern ExprDoneCond ExecEvalFuncArgs(FunctionCallInfo fcinfo,
+									 List *argList, 
+									 ExprContext *econtext);
 extern Tuplestorestate *ExecMakeTableFunctionResult(ExprState *funcexpr,
 							ExprContext *econtext,
 							TupleDesc expectedDesc,
-							TupleDesc *returnDesc);
+							uint64 memKB); 
 extern Datum ExecEvalExprSwitchContext(ExprState *expression, ExprContext *econtext,
 						  bool *isNull, ExprDoneCond *isDone);
 extern ExprState *ExecInitExpr(Expr *node, PlanState *parent);
@@ -170,6 +284,9 @@ extern int	ExecTargetListLength(List *targetlist);
 extern int	ExecCleanTargetListLength(List *targetlist);
 extern TupleTableSlot *ExecProject(ProjectionInfo *projInfo,
 			ExprDoneCond *isDone);
+extern Datum ExecEvalFunctionArgToConst(FuncExpr *fexpr, int argno, bool *isnull);
+extern void GetNeededColumnsForScan(Node *expr, bool *mask, int n);
+extern bool isJoinExprNull(List *joinExpr, ExprContext *econtext);
 
 /*
  * prototypes from functions in execScan.c
@@ -178,6 +295,72 @@ typedef TupleTableSlot *(*ExecScanAccessMtd) (ScanState *node);
 
 extern TupleTableSlot *ExecScan(ScanState *node, ExecScanAccessMtd accessMtd);
 extern void ExecAssignScanProjectionInfo(ScanState *node);
+extern void InitScanStateRelationDetails(ScanState *scanState, Plan *plan, EState *estate);
+extern void InitScanStateInternal(ScanState *scanState, Plan *plan,
+	EState *estate, int eflags, bool initCurrentRelation);
+extern void FreeScanRelationInternal(ScanState *scanState, bool closeCurrentRelation);
+extern Relation OpenScanRelationByOid(Oid relid);
+extern void CloseScanRelation(Relation rel);
+extern int getTableType(Relation rel);
+extern TupleTableSlot *ExecTableScanRelation(ScanState *scanState);
+extern void BeginTableScanRelation(ScanState *scanState);
+extern void EndTableScanRelation(ScanState *scanState);
+extern void ReScanRelation(ScanState *scanState);
+extern void MarkPosScanRelation(ScanState *scanState);
+extern void RestrPosScanRelation(ScanState *scanState);
+extern void MarkRestrNotAllowed(ScanState *scanState);
+
+/*
+ * prototypes from functions in execHeapScan.c
+ */
+extern TupleTableSlot *HeapScanNext(ScanState *scanState);
+extern void BeginScanHeapRelation(ScanState *scanState);
+extern void EndScanHeapRelation(ScanState *scanState);
+extern void ReScanHeapRelation(ScanState *scanState);
+extern void MarkPosHeapRelation(ScanState *scanState);
+extern void RestrPosHeapRelation(ScanState *scanState);
+
+/*
+ * prototypes from functions in execAppendOnlyScan.c
+ */
+extern TupleTableSlot *AppendOnlyScanNext(ScanState *scanState);
+extern void BeginScanAppendOnlyRelation(ScanState *scanState);
+extern void EndScanAppendOnlyRelation(ScanState *scanState);
+extern void ReScanAppendOnlyRelation(ScanState *scanState);
+
+/*
+ * prototypes from functions in execAOCSScan.c
+ */
+extern TupleTableSlot *AOCSScanNext(ScanState *scanState);
+extern void BeginScanAOCSRelation(ScanState *scanState);
+extern void EndScanAOCSRelation(ScanState *scanState);
+extern void ReScanAOCSRelation(ScanState *scanState);
+
+/*
+ * prototypes from functions in execBitmapHeapScan.c
+ */
+extern TupleTableSlot *BitmapHeapScanNext(ScanState *scanState);
+extern void BitmapHeapScanBegin(ScanState *scanState);
+extern void BitmapHeapScanEnd(ScanState *scanState);
+extern void BitmapHeapScanReScan(ScanState *scanState);
+
+/*
+ * prototypes from functions in execBitmapAOScan.c
+ */
+extern TupleTableSlot *BitmapAOScanNext(ScanState *scanState);
+extern void BitmapAOScanBegin(ScanState *scanState);
+extern void BitmapAOScanEnd(ScanState *scanState);
+extern void BitmapAOScanReScan(ScanState *scanState);
+
+/*
+ * prototypes from functions in execBitmapTableScan.c
+ */
+extern void initGpmonPktForBitmapTableScan(Plan *planNode, gpmon_packet_t *gpmon_pkt, EState *estate);
+extern TupleTableSlot *BitmapTableScanNext(BitmapTableScanState *scanState);
+extern void BitmapTableScanBegin(BitmapTableScanState *scanState, Plan *plan, EState *estate, int eflags);
+extern void BitmapTableScanEnd(BitmapTableScanState *scanState);
+extern void BitmapTableScanReScan(BitmapTableScanState *node, ExprContext *exprCtxt);
+extern bool BitmapTableScanRecheckTuple(BitmapTableScanState *scanState, TupleTableSlot *slot);
 
 /*
  * prototypes from functions in execTuples.c
@@ -223,14 +406,15 @@ extern void end_tup_output(TupOutputState *tstate);
  * prototypes from functions in execUtils.c
  */
 extern EState *CreateExecutorState(void);
+extern EState *CreateSubExecutorState(EState *parent_estate);
 extern void FreeExecutorState(EState *estate);
 extern ExprContext *CreateExprContext(EState *estate);
 extern ExprContext *CreateStandaloneExprContext(void);
 extern void FreeExprContext(ExprContext *econtext);
 extern void ReScanExprContext(ExprContext *econtext);
-
-#define ResetExprContext(econtext) \
-	MemoryContextReset((econtext)->ecxt_per_tuple_memory)
+extern void ResetExprContext(ExprContext *econtext);
+extern List *GetPartitionTargetlist(TupleDesc partDescr, List *targetlist);
+extern void UpdateGenericExprState(List *teTargetlist, List *geTargetlist);
 
 extern ExprContext *MakePerTupleExprContext(EState *estate);
 
@@ -256,8 +440,10 @@ extern void ExecAssignResultTypeFromTL(PlanState *planstate);
 extern TupleDesc ExecGetResultType(PlanState *planstate);
 extern ProjectionInfo *ExecBuildProjectionInfo(List *targetList,
 						ExprContext *econtext,
-						TupleTableSlot *slot);
-extern void ExecAssignProjectionInfo(PlanState *planstate);
+						TupleTableSlot *slot,
+						TupleDesc inputDesc);
+extern void ExecAssignProjectionInfo(PlanState *planstate,
+									 TupleDesc inputDesc);
 extern void ExecFreeExprContext(PlanState *planstate);
 extern TupleDesc ExecGetScanType(ScanState *scanstate);
 extern void ExecAssignScanType(ScanState *scanstate, TupleDesc tupDesc);
@@ -266,7 +452,9 @@ extern void ExecAssignScanTypeFromOuterPlan(ScanState *scanstate);
 extern bool ExecRelationIsTargetRelation(EState *estate, Index scanrelid);
 
 extern Relation ExecOpenScanRelation(EState *estate, Index scanrelid);
+extern Relation ExecOpenScanExternalRelation(EState *estate, Index scanrelid);
 extern void ExecCloseScanRelation(Relation scanrel);
+extern void ExecCloseScanAppendOnlyRelation(Relation scanrel);
 
 extern void ExecOpenIndices(ResultRelInfo *resultRelInfo);
 extern void ExecCloseIndices(ResultRelInfo *resultRelInfo);
@@ -279,5 +467,35 @@ extern void RegisterExprContextCallback(ExprContext *econtext,
 extern void UnregisterExprContextCallback(ExprContext *econtext,
 							  ExprContextCallbackFunction function,
 							  Datum arg);
+
+/* Share input utilities defined in execUtils.c */
+extern ShareNodeEntry * ExecGetShareNodeEntry(EState *estate, int shareid, bool fCreate);
+
+/* ResultRelInfo and Append Only segment assignment */
+void ResultRelInfoSetSegno(ResultRelInfo *resultRelInfo, List *mapping);
+
+/* Additions for MPP Slice table utilities defined in execUtils.c */
+extern GpExecIdentity getGpExecIdentity(QueryDesc *queryDesc,
+										  ScanDirection direction,
+										  EState	   *estate);
+extern void mppExecutorFinishup(QueryDesc *queryDesc);
+extern void mppExecutorCleanup(QueryDesc *queryDesc);
+
+
+/* prototypes defined in nodeAgg.c for rollup-aware Agg/Group nodes. */
+extern int64 tuple_grouping(TupleTableSlot *outerslot, int numGroupCols,
+							int input_grouping, bool input_has_grouping,
+							int grpingIdx);
+extern uint64 get_grouping_groupid(TupleTableSlot *slot,
+								   int grping_idx);
+
+/* prototypes defined in nodeBitmapAnd.c */
+extern void tbm_reset_bitmaps(PlanState *pstate);
+
+extern ResultRelInfo *slot_get_partition(TupleTableSlot *slot, EState *estate);
+extern ResultRelInfo *values_get_partition(Datum *values, bool *nulls,
+										   TupleDesc desc, EState *estate);
+
+extern void SendAOTupCounts(EState *estate);
 
 #endif   /* EXECUTOR_H  */

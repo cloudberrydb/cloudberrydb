@@ -1,0 +1,458 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+# Line too long - pylint: disable=C0301
+# Invalid name  - pylint: disable=C0103
+#
+# Copyright (c) EMC 2011
+# Copyright (c) Greenplum Inc 2010
+# All Rights Reserved. 
+#
+"""
+Activates a standby master instance when the primary master instance has 
+failed.  Will promote the standby, update the system catalog
+tables to make the standby master instance as the new master.
+"""
+
+import os
+import sys
+import signal
+import glob
+import time
+import shutil
+from datetime import datetime, timedelta
+
+# import GPDB modules
+try:
+    from pygresql import pg as pygresql
+    from gppylib.commands import unix, gp, pg
+    from gppylib.db import dbconn
+    from gppylib.gpparseopts import OptParser, OptChecker, OptionGroup, SUPPRESS_HELP
+    from gppylib.gplog import get_default_logger, setup_tool_logging, enable_verbose_logging, get_logger_if_verbose
+    from gppylib import gparray
+    from gppylib.userinput import ask_yesno
+    from gppylib.gp_dbid import GpDbidFile, writeGpDbidFile
+    from gppylib.operations.filespace import GP_TRANSACTION_FILES_FILESPACE, GP_TEMPORARY_FILES_FILESPACE
+except ImportError, e_:
+    sys.exit('ERROR: Cannot import modules.  Please check that you '
+             'have sourced greenplum_path.sh.  Detail: ' + str(e_))
+
+EXECNAME = os.path.split(__file__)[-1]
+
+# Threshold values
+LOG_TIME_THRESHOLD_MINS = 120
+
+GP_RECOVERY_CONF_FILE = "recovery.conf"
+
+_description = sys.modules[__name__].__doc__
+_usage = "\n"
+
+
+class GpActivateStandbyException(Exception):
+    "Generic exception for all things activatestandby"
+    pass
+
+
+#-------------------------------------------------------------------------
+def parseargs():
+    """Parses and validates command line args."""
+    
+    parser = OptParser(option_class=OptChecker,
+                       description=' '.join(_description.split()),
+                       version='%prog version $Revision$')
+    parser.setHelp([])
+    parser.remove_option('-h')
+    
+    # General options section
+    optgrp = OptionGroup(parser, 'General options')
+    optgrp.add_option('-h', '-?', '--help', dest='help', action='store_true',
+                      help='display this help message and exit')
+    optgrp.add_option('-v', dest='version', action='store_true',
+                      help='display version information and exit')
+    parser.add_option_group(optgrp)
+
+    # Logging options section
+    optgrp = OptionGroup(parser, 'Logging options')
+    optgrp.add_option('-q', '--quiet', action='store_true',
+                      help='quiet mode, do not log progress to screen')
+    optgrp.add_option('-l', '--logfile', type='string', default=None,
+                      help='alternative logfile directory')
+    optgrp.add_option('-a', help='don\'t ask to confirm standby master activation',
+                      dest='confirm', default=True, action='store_false')
+    parser.add_option_group(optgrp)
+
+    # Standby activation options section
+    optgrp = OptionGroup(parser, 'Standby activation options')
+    optgrp.add_option('-d', '--master-data-directory', dest='master_data_dir',
+                      type='string', help='standby master data directory')
+    optgrp.add_option('-f', '--force', action='store_true',
+                      help='force activation if standby process not running')
+    optgrp.add_option('--ignore', dest='ignore', type='string', help=SUPPRESS_HELP)
+    parser.add_option_group(optgrp)
+    
+    parser.set_defaults(quiet=False, force=False)
+
+    # Parse the command line arguments
+    (options, args) = parser.parse_args()
+
+    if options.help:
+        parser.print_help()
+        parser.exit(0, None)
+
+    if options.version:
+        parser.print_version()
+        parser.exit(0, None)
+
+    # check that there isn't a conflict between -d option and MASTER_DATA_DIRECTORY env
+    env_master_data_dir = os.getenv('MASTER_DATA_DIRECTORY', None)
+    if not env_master_data_dir:
+        logger.fatal('MASTER_DATA_DIRECTORY environment variable not set.')
+        parser.exit(2, None)
+
+    env_master_data_dir = os.path.normpath(env_master_data_dir)
+    if not options.master_data_dir:
+        options.master_data_dir = env_master_data_dir
+    else:
+        # We have to normalize this path for a later comparison
+        normpath = os.path.abspath(options.master_data_dir)
+        options.master_data_dir = normpath
+
+    # Check if they don't conflict
+    if env_master_data_dir != options.master_data_dir:
+        logger.fatal('Current setting of MASTER_DATA_DIRECTORY not same as -d parameter.')
+        parser.exit(2, None)
+        
+    # check if PGPORT environment variable is set.
+    env_pgport = os.getenv('PGPORT', None)
+    if not env_pgport:
+        logger.fatal('PGPORT environment variable not set.')
+        parser.exit(2, None)
+
+    if options.logfile and not os.path.exists(options.logfile):
+        logger.fatal('Log directory %s does not exist.' % options.logfile)
+        parser.exit(2, None)
+
+    # The default logging for gpactivatestandby is verbose
+    if not options.quiet:
+        enable_verbose_logging()
+
+    # There shouldn't be any args
+    if len(args) > 0:
+        logger.error('Unknown arguments:')
+        for arg in args:
+            logger.error('  %s' % arg)
+        parser.exit(2, None)
+        
+    return options, args
+
+
+#-------------------------------------------------------------------------
+def print_results(array, hostname, options):
+    """Prints out the summary of the operation."""
+    
+    logger.info('-----------------------------------------------------')
+    logger.info('The activation of the standby master has completed successfully.')
+    logger.info('%s is now the new primary master.' % hostname)
+    logger.info('You will need to update your user access mechanism to reflect')
+    logger.info('the change of master hostname.')
+    logger.info('Do not re-start the failed master while the fail-over master is')
+    logger.info('operational, this could result in database corruption!')
+    logger.info('MASTER_DATA_DIRECTORY is now %s if' % options.master_data_dir)
+    logger.info('this has changed as a result of the standby master activation, remember')
+    logger.info('to change this in any startup scripts etc, that may be configured')
+    logger.info('to set this value.')
+    logger.info('MASTER_PORT is now %d, if this has changed, you' % array.master.getSegmentPort())
+    logger.info('may need to make additional configuration changes to allow access')
+    logger.info('to the Greenplum instance.')
+    logger.info('Refer to the Administrator Guide for instructions on how to re-activate')
+    logger.info('the master to its previous state once it becomes available.')
+    logger.info('Query planner statistics must be updated on all databases')
+    logger.info('following standby master activation.')
+    logger.info('When convenient, run ANALYZE against all user databases.')
+    logger.info('-----------------------------------------------------')
+
+
+#-------------------------------------------------------------------------
+def print_summary(options):
+    # Too many statements - pylint: disable=R0915
+
+    """Print summary of the action and asks user if they want to
+    continue with the activation."""
+
+    warnings_generated = False
+    require_force = False
+    
+    # check the standby master
+    standby_running = check_standby_running(options)
+    if not standby_running:
+        require_force = True
+        
+    logger.info('-----------------------------------------------------')
+    logger.info('Standby data directory    = %s' % options.master_data_dir)
+    logger.info('Standby port              = %s' % str(os.getenv('PGPORT')))
+    if options.logfile:
+        logger.info('Log directory             = %s' % options.logfile)
+    logger.info('Standby running           = %s' % ('yes' if standby_running else 'no'))
+    logger.info('Force standby activation  = %s' % ('yes' if options.force else 'no'))
+    logger.info('-----------------------------------------------------')
+
+    check_original_master_status(options)
+
+    # Check if we require a force
+    if require_force and not options.force:
+        logger.warning('If you wish to continue you must use the -f option to force')
+        logger.warning('the activation process.')
+        warnings_generated = True
+        raise GpActivateStandbyException('Force activation required')
+    if options.confirm:
+        yn = ask_yesno(None, 'Do you want to continue with standby master activation?', 'N')
+        if not yn:
+            raise GpActivateStandbyException('User canceled') 
+
+    return warnings_generated
+
+#-------------------------------------------------------------------------
+def check_original_master_status(options):
+    original_master_hostname = ""
+    original_master_port = 0
+
+    recocver_conf_file_location = os.path.join(options.master_data_dir, GP_RECOVERY_CONF_FILE) 
+    if not os.path.exists(recocver_conf_file_location):
+        logger.warn('Please make sure the command gpactivatestandby is executed on current Standby host')
+        raise GpActivateStandbyException('Critical required file on standby \"%s\" is not present.' % recocver_conf_file_location)
+
+    with open(recocver_conf_file_location) as read_file:
+        for line in read_file:
+            tokens = line.split()
+            if tokens[0] == "primary_conninfo":
+                for smaller_tokens in tokens:
+                    smallest_token = smaller_tokens.split('=')
+                    if smallest_token[0] == "host":
+                        original_master_hostname = smallest_token[1]
+                    elif smallest_token[0] == "port":
+                        original_master_port = int(smallest_token[1])
+
+    cmd = pg.ReadPostmasterTempFile.remote('Read postmaster file', original_master_port, original_master_hostname)
+    (file_exists, _, _) = cmd.getResults()
+    if file_exists:
+        logger.warn('Appears that there is an active postgres process on %s port=%d' % (original_master_hostname, original_master_port))
+        logger.warn('Need to stop current master before activating the standby.')
+        logger.warn('Rare possibility is just /tmp/.s.PGSQL.%d and /tmp/.s.PGSQL.%d.* files exist on %s.' % (original_master_port, original_master_port, original_master_hostname))
+        logger.warn('Need to delete these files')
+        logger.warn('Then call this utility again.')
+        raise GpActivateStandbyException('Active postgres process on master')
+ 
+#-------------------------------------------------------------------------
+def get_config():
+    """Retrieves configuration information from the catalog."""
+    
+    logger.info('Reading current configuration...')
+    dburl = dbconn.DbURL()
+    array = gparray.GpArray.initFromCatalog(dburl, utility=True)
+    
+    return array
+
+#-------------------------------------------------------------------------
+def update_flat_file(datadir, flat_file, old_dbid, new_dbid):
+    """
+        If the transaction/temporary filespaces have
+        ever been moved, we need to update the flat file.
+        The filespace directories are copied by the 
+        copy_master_filespaces method.
+    """
+
+    flat_file_location = os.path.join(datadir, flat_file)
+    if not os.path.exists(flat_file_location):
+        return
+
+    logger.debug('flat file location for filespace files = %s' % flat_file_location)
+    # The flat file looks like this:
+    # <BOF>
+    # {filespace_oid}
+    # {dbid} {path to filespace}
+    # {dbid} {path to filespace}
+    # <EOF>
+    with open(flat_file_location) as read_file:
+        lines_to_write = ''
+        for line in read_file:
+            tokens = line.split()
+            if len(tokens) != 2:
+                lines_to_write += line
+            elif tokens[0] == str(old_dbid):
+                lines_to_write += str(new_dbid) + ' ' + tokens[1] + '\n'
+
+    temp_flat_file = os.path.join(flat_file_location + '.tmp')
+    
+    try:
+        with open(temp_flat_file, 'w') as write_file:
+            write_file.write(lines_to_write)
+     
+        #Rewrite the master flat file to include the standby information 
+        shutil.move(temp_flat_file, flat_file_location)
+    except Exception, e:
+        raise Exception('Failed to update flat file')
+
+
+#-------------------------------------------------------------------------
+def update_gpdbid_file(options, new_dbid):
+    """Updates to gp_dbid file in the data directory to reflect the standby masters dbid."""
+
+    datadir = options.master_data_dir
+
+    # MPP-13245, use single mechanism to manage gp_dbid file instead of ad-hoc replace
+    writeGpDbidFile(datadir, new_dbid, get_logger_if_verbose())
+
+#-------------------------------------------------------------------------
+def check_standby_running(options):
+    """Checks if the standby postmaster process is running."""
+    
+    return gp.getPostmasterPID('localhost', options.master_data_dir) > 0
+
+
+#-------------------------------------------------------------------------
+def check_or_start_standby(options):
+    """
+    Check if standby postmaster is running.  We need the process
+    to activate it, but there could be some cases where user wants
+    to activate it anyway, with potentional data loss.  In such case,
+    we'll end up restarting the master after promoting it.
+    """
+
+    pid = gp.get_postmaster_pid_locally(options.master_data_dir) 
+
+
+    if pid > 0:
+        # we are good.  proceed with normal operation
+        logger.info('found standby postmaster process')
+        return True
+
+    if not options.force:
+        logger.error('Standby postmaster is not running.')
+        logger.error('Use -f option to bring the system anyway')
+        raise GpActivateStandbyException('postmaster is not running')
+    else:
+        # XXX: We don't have enough knowledge to bring up the standby
+        # but there could be a situation where user needs to activate
+        # it anyway.  We'll restart with the full options after
+        # promoting the standby.  This is nothing but a bailout and
+        # this could lose some of the latest changes from the primary.
+        promote_file = os.path.join(options.master_data_dir, "promote")
+        with open(promote_file, 'w') as f:
+            f.write('')
+
+        start_master()
+
+        return False
+
+#-------------------------------------------------------------------------
+def start_master():
+    """Starts the master."""
+
+    logger.info('Starting standby master database in utility mode...')
+    gp.GpStart.local('Start GPDB', masterOnly=True)
+
+#-------------------------------------------------------------------------
+def stop_master():
+    """Stops the master."""
+    
+    logger.info('Stopping standby master...')
+    gp.GpStop.local('Stop GPDB', masterOnly=True, fast=True)
+ 
+#-------------------------------------------------------------------------
+def promote_standby():
+    """Promote standby"""
+
+    logger.info('Promoting standby...')
+    cmd = gp.Command('pg_ctl promote',
+                     'pg_ctl promote -D $MASTER_DATA_DIRECTORY')
+    cmd.run(validateAfter=True)
+
+    logger.debug('Waiting for connection...')
+    for i in xrange(50):
+        try:
+            dburl = dbconn.DbURL()
+            with dbconn.connect(dburl, utility=True, logConn=False) as conn:
+                pass
+            logger.info('Standby master is promoted')
+            return True
+        except pygresql.InternalError, e:
+            pass
+        time.sleep(1)
+
+    return False
+
+
+#-------------------------------------------------------------------------
+# Main
+#-------------------------------------------------------------------------
+
+# setup logging
+logger = get_default_logger()
+setup_tool_logging(EXECNAME, unix.getLocalHostname(), unix.getUserName())
+
+# parse args and options
+(options_, args_) = parseargs()
+
+# if we got a new log dir, we can now set it up.
+if options_.logfile:
+    setup_tool_logging(EXECNAME, unix.getLocalHostname(), unix.getUserName(), logdir=options_.logfile)
+
+try:
+    warnings_generated_ = print_summary(options_)
+
+
+    # disable keyboard interrupt to prevent users from canceling
+    # out of the process at a very bad time.  If there is a partial
+    # update to the gp_configuration catalog and the user cancels
+    # you get stuck where you can't go forward and you can't go
+    # backwards.
+    signal.signal(signal.SIGINT, signal.SIG_IGN)
+
+    dbidfile = GpDbidFile(options_.master_data_dir, do_read=True)
+    old_dbid = dbidfile.dbid
+    requires_restart = not check_or_start_standby(options_)
+
+    # We update flat files before promote because postmaster reads
+    # the new value on the promote procedure.  Unfortunately at this
+    # point we don't know what is the new dbid as it is only in catalog,
+    # but for now we assume it's 1.
+    logger.info('Updating transaction files filespace flat files...')
+    update_flat_file(options_.master_data_dir, GP_TRANSACTION_FILES_FILESPACE,
+                     old_dbid, 1)
+
+    logger.info('Updating temporary files filespace flat files...')
+    update_flat_file(options_.master_data_dir, GP_TEMPORARY_FILES_FILESPACE,
+                     old_dbid, 1)
+
+    # promote standby, only if the standby is running in recovery
+    if not requires_restart:
+        res = promote_standby()
+        if not res:
+            raise GpActivateStandbyException('Either the set port is incorrect or '
+                                             'the postmaster could not come up.')
+
+    # now we can access the catalog.  promote action has already updated
+    # catalog, so array.master is the old (promoted) standby at this point.
+    array_ = get_config()
+    update_gpdbid_file(options_, 1)
+
+    # If we forced to start utility master, this is the time to restart
+    # cluster so that the new master becomes dispatch mode.
+    if requires_restart:
+        cmd = gp.GpStop.local('GPDB restart', restart=True)
+
+    # At this point, cancel isn't all that bad so re-enable 
+    # keyboard interrupt.
+    signal.signal(signal.SIGINT, signal.default_int_handler)
+    
+    print_results(array_, unix.getLocalHostname(), options_)
+    
+    if warnings_generated_:
+        sys.exit(1)
+    else:
+        sys.exit(0)
+    
+except Exception, e_:
+    logger.fatal('Error activating standby master: %s' % str(e_))
+    sys.exit(2)
+
+sys.exit(0)

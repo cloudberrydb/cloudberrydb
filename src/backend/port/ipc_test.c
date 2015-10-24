@@ -16,12 +16,12 @@
  *	   the parallel regression tests for a more complete test.
  *
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/port/ipc_test.c,v 1.21 2006/07/14 05:28:28 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/port/ipc_test.c,v 1.26 2009/01/01 17:23:46 momjian Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -58,7 +58,7 @@ char	   *DataDir = ".";
 
 static struct ONEXIT
 {
-	void		(*function) (int code, Datum arg);
+	pg_on_exit_callback function;
 	Datum		arg;
 }	on_proc_exit_list[MAX_ON_EXITS], on_shmem_exit_list[MAX_ON_EXITS];
 
@@ -85,7 +85,7 @@ shmem_exit(int code)
 }
 
 void
-			on_shmem_exit(void (*function) (int code, Datum arg), Datum arg)
+on_shmem_exit(pg_on_exit_callback function, Datum arg)
 {
 	if (on_shmem_exit_index >= MAX_ON_EXITS)
 		elog(FATAL, "out of on_shmem_exit slots");
@@ -114,9 +114,9 @@ ProcessInterrupts(void)
 }
 
 int
-ExceptionalCondition(char *conditionName,
-					 char *errorType,
-					 char *fileName,
+ExceptionalCondition(const char *conditionName,
+					 const char *errorType,
+					 const char *fileName,
 					 int lineNumber)
 {
 	fprintf(stderr, "TRAP: %s(\"%s\", File: \"%s\", Line: %d)\n",
@@ -180,6 +180,13 @@ errmsg_internal(const char *fmt,...)
 
 int
 errdetail(const char *fmt,...)
+{
+	fprintf(stderr, "DETAIL: %s\n", fmt);
+	return 0;					/* return value does not matter */
+}
+
+int
+errdetail_log(const char *fmt,...)
 {
 	fprintf(stderr, "DETAIL: %s\n", fmt);
 	return 0;					/* return value does not matter */

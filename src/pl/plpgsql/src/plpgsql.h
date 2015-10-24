@@ -8,7 +8,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/pl/plpgsql/src/plpgsql.h,v 1.81 2006/10/04 00:30:14 momjian Exp $
+ *	  $PostgreSQL: pgsql/src/pl/plpgsql/src/plpgsql.h,v 1.81.2.3 2008/10/09 16:35:19 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -174,17 +174,21 @@ typedef struct PLpgSQL_expr
 	int			exprno;
 	char	   *query;
 	void	   *plan;
+	bool			cachable;			/* true if plan can be cached */
 	Oid		   *plan_argtypes;
 	/* fields for "simple expression" fast-path execution: */
 	Expr	   *expr_simple_expr;		/* NULL means not a simple expr */
 	Oid			expr_simple_type;
+	TransactionId	transaction_id;	/* used for clearing cached plan */
 
 	/*
-	 * if expr is simple AND in use in current xact, expr_simple_state is
-	 * valid.  Test validity by seeing if expr_simple_xid matches current XID.
+	 * if expr is simple AND prepared in current eval_estate,
+	 * expr_simple_state is valid.  Test validity by seeing if expr_simple_id
+	 * matches eval_estate_simple_id.
 	 */
 	ExprState  *expr_simple_state;
-	TransactionId expr_simple_xid;
+	long int	expr_simple_id;
+
 	/* params to pass to expr */
 	int			nparams;
 	int			params[1];		/* VARIABLE SIZE ARRAY ... must be last */
@@ -524,6 +528,10 @@ typedef struct PLpgSQL_func_hashkey
 {								/* Hash lookup key for functions */
 	Oid			funcOid;
 
+	bool		isTrigger;		/* true if called as a trigger */
+
+	/* be careful that pad bytes in this struct get zeroed! */
+
 	/*
 	 * For a trigger function, the OID of the relation triggered on is part of
 	 * the hashkey --- we want to compile the trigger separately for each
@@ -578,6 +586,8 @@ typedef struct PLpgSQL_function
 	int			ndatums;
 	PLpgSQL_datum **datums;
 	PLpgSQL_stmt_block *action;
+
+	unsigned long use_count;
 } PLpgSQL_function;
 
 
@@ -610,9 +620,11 @@ typedef struct
 
 	/* temporary state for results from evaluation of query or expr */
 	SPITupleTable *eval_tuptable;
-	uint32		eval_processed;
+	uint64		eval_processed;
 	Oid			eval_lastoid;
-	ExprContext *eval_econtext;
+	ExprContext *eval_econtext;	/* for executing simple expressions */
+	EState	   *eval_estate;	/* EState containing eval_econtext */
+	long int	eval_estate_simple_id;		/* ID for eval_estate */
 
 	/* status information for error context reporting */
 	PLpgSQL_function *err_func; /* current func */
@@ -738,6 +750,8 @@ extern Datum plpgsql_exec_function(PLpgSQL_function *func,
 extern HeapTuple plpgsql_exec_trigger(PLpgSQL_function *func,
 					 TriggerData *trigdata);
 extern void plpgsql_xact_cb(XactEvent event, void *arg);
+extern void plpgsql_subxact_cb(SubXactEvent event, SubTransactionId mySubid,
+							   SubTransactionId parentSubid, void *arg);
 
 /* ----------
  * Functions for the dynamic string handling in pl_funcs.c

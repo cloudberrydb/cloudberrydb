@@ -1,4 +1,7 @@
-/* Both POSIX and CRC32 checksums */
+/*
+ * $PostgreSQL: pgsql/contrib/hstore/crc32.c,v 1.4 2009/06/11 14:48:51 momjian Exp $
+ *
+ * Both POSIX and CRC32 checksums */
 
 #include <sys/types.h>
 #include <stdio.h>
@@ -90,7 +93,7 @@ static const unsigned int crc32tab[256] = {
 unsigned int
 crc32_sz(char *buf, int size)
 {
-	unsigned int crc = ~0;
+	unsigned int crc = ~((unsigned int) 0);
 	char	   *p;
 	int			len,
 				nr;

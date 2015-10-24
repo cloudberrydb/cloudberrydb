@@ -1,5 +1,5 @@
 <!--
-$PostgreSQL: pgsql/doc/src/sgml/ref/createuser.sgml,v 1.45 2006/09/16 00:30:18 momjian Exp $
+$PostgreSQL: pgsql/doc/src/sgml/ref/createuser.sgml,v 1.52 2009/02/26 16:02:37 petere Exp $
 PostgreSQL documentation
 -->
 
@@ -242,16 +242,6 @@ PostgreSQL documentation
        </para>
       </listitem>
      </varlistentry>
-
-     <varlistentry>
-      <term><option>-q</></term>
-      <term><option>--quiet</></term>
-      <listitem>
-       <para>
-        Do not display a response.
-       </para>
-      </listitem>
-     </varlistentry>
     </variablelist>
   </para>
 
@@ -301,12 +291,38 @@ PostgreSQL documentation
      </varlistentry>
 
      <varlistentry>
+      <term><option>-w</></term>
+      <term><option>--no-password</></term>
+      <listitem>
+       <para>
+        Never issue a password prompt.  If the server requires
+        password authentication and a password is not available by
+        other means such as a <filename>.pgpass</filename> file, the
+        connection attempt will fail.  This option can be useful in
+        batch jobs and scripts where no user is present to enter a
+        password.
+       </para>
+      </listitem>
+     </varlistentry>
+
+     <varlistentry>
       <term><option>-W</></term>
       <term><option>--password</></term>
       <listitem>
        <para>
-        Force password prompt (to connect to the server, not for the
+        Force <application>createuser</application> to prompt for a
+        password (for connecting to the server, not for the
         password of the new user).
+       </para>
+
+       <para>
+        This option is never essential, since
+        <application>createuser</application> will automatically prompt
+        for a password if the server demands password authentication.
+        However, <application>createuser</application> will waste a
+        connection attempt finding out that the server wants a password.
+        In some cases it is worth typing <option>-W</> to avoid the extra
+        connection attempt.
        </para>
       </listitem>
      </varlistentry>
@@ -331,6 +347,13 @@ PostgreSQL documentation
     </listitem>
    </varlistentry>
   </variablelist>
+
+  <para>
+   This utility, like most other <productname>PostgreSQL</> utilities,
+   also uses the environment variables supported by <application>libpq</>
+   (see <xref linkend="libpq-envars">).
+  </para>
+
  </refsect1>
 
 
@@ -361,7 +384,6 @@ PostgreSQL documentation
 <computeroutput>Shall the new role be a superuser? (y/n) </computeroutput><userinput>n</userinput>
 <computeroutput>Shall the new role be allowed to create databases? (y/n) </computeroutput><userinput>n</userinput>
 <computeroutput>Shall the new role be allowed to create more new roles? (y/n) </computeroutput><userinput>n</userinput>
-<computeroutput>CREATE USER</computeroutput>
 </screen>
    </para>
 
@@ -372,7 +394,6 @@ PostgreSQL documentation
 <screen>
 <prompt>$ </prompt><userinput>createuser -h eden -p 5000 -S -D -R -e joe</userinput>
 <computeroutput>CREATE ROLE joe NOSUPERUSER NOCREATEDB NOCREATEROLE INHERIT LOGIN;</computeroutput>
-<computeroutput>CREATE ROLE</computeroutput>
 </screen>
    </para>
 
@@ -383,13 +404,14 @@ PostgreSQL documentation
 <prompt>$ </prompt><userinput>createuser -P -s -e joe</userinput>
 <computeroutput>Enter password for new role: </computeroutput><userinput>xyzzy</userinput>
 <computeroutput>Enter it again: </computeroutput><userinput>xyzzy</userinput>
-<computeroutput>CREATE ROLE joe PASSWORD 'xyzzy' SUPERUSER CREATEDB CREATEROLE INHERIT LOGIN;</computeroutput>
-<computeroutput>CREATE ROLE</computeroutput>
+<computeroutput>CREATE ROLE joe PASSWORD 'md5b5f5ba1a423792b526f799ae4eb3d59e' SUPERUSER CREATEDB CREATEROLE INHERIT LOGIN;</computeroutput>
 </screen>
     In the above example, the new password isn't actually echoed when typed,
-    but we show what was typed for clarity.  However the password
-    <emphasis>will</> appear in the echoed command, as illustrated &mdash;
-    so you don't want to use <literal>-e</> when assigning a password, if
+    but we show what was typed for clarity.  As you see, the password is
+    encrypted before it is sent to the client.  If the option <option>--unencrypted</option>
+    is used, the password <emphasis>will</> appear in the echoed command
+    (and possibly also in the server log and elsewhere),
+    so you don't want to use <option>-e</> in that case, if
     anyone else can see your screen.
    </para>
  </refsect1>
@@ -401,7 +423,6 @@ PostgreSQL documentation
   <simplelist type="inline">
    <member><xref linkend="app-dropuser"></member>
    <member><xref linkend="sql-createrole" endterm="sql-createrole-title"></member>
-   <member>Environment Variables (<xref linkend="libpq-envars">)</member>
   </simplelist>
  </refsect1>
 

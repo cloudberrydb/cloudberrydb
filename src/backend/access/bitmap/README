@@ -1,0 +1,138 @@
+$PostgreSQL$
+
+This directory contains an implementation of an on-disk bitmap index.
+
+An on-disk bitmap index consists of bitmap vectors, one for each
+distinct key value. Each vector is a (compressed) map of locations in the
+underlying heap where the key value occurs.
+
+The advantage of on-disk bitmap indexes is that they can locate large numbers
+of matches at low cost. When compressed, they are also very small. For
+low-cardinality data (less than 50,000 distinct values), on-disk bitmap
+indexes are much less expensive to construct than b-trees.
+
+Hybrid Run-Length (HRL) equality encoding bitmap index
+------------------------------------------------------
+
+HRL is the bitmap encoding mechanism used in this implemention. In HRL,
+each vector is represented in two sections: the header section and the
+content section. The header section contains bits, each of which
+corresponds to a word in the content section. If a bit in the header
+section is 1, then the corresponding word in the content section is a
+compressed word; if the bit is 0, then the corresponding word is not a
+compressed word.
+
+For a compressed word in the content section, the first bit in this word 
+indicates whether 1s or 0s are compressed. The rest of the bits represent the 
+value of "<the number of bits>/<word size>".
+
+Consider this example. Assume that there is an uncompressed bitmap vector:
+
+   00000000 00000000 01000000 11111111 11111111 11111111
+
+If the size of a word is set to 8, then an HRL compressed form for
+this bitmap vector is as follows:
+
+   header section:   101
+   content section:  00000010 01000000 10000011
+
+Consider the first word in the content section "00000010". The header
+section tells us that this is a compressed word. As the word represents
+the number two, this word tells us that it compresses 16 bits 
+(i.e., 2 * 8 = 16). As the first bit is zero, it is compressing zeroed bits.
+
+The second word is uncompressed.
+
+The third word is compressed and it's first bit is set to one. As such
+it compresses ones. As 0011 evaluates to three, this compressed word
+represents 24 bits of ones (3 * 8 = 24).
+
+The insertion algorithm
+-----------------------
+
+The distinct values are stored as an array of "LOV items" on "LOV pages"
+(LOV stands for List of Values). LOV items also store some vector meta data.
+To deal with high-cardinality cases, we also create an internal heap and a 
+btree index on this heap to speed up searches on distinct values. This 
+internal heap stores the distinct values and their LOV items in LOV pages, 
+which can be retrieved through the block numbers and the offset numbers. In 
+other words, the heap has "<number of attributes to be indexed> + 2" 
+attributes (one for the block number, the other for the offset number). The 
+btree index is built on this heap with the key as attributes to be indexed.
+
+The LOV item for NULL keys is the first LOV item of the first LOV page.
+
+We do not store TIDs in this bitmap index implementation. The reason is
+that TIDs take too much space. Instead, we convert them to a 64 bit number
+as follows:
+
+
+	((uint64)ItemPointerGetBlockNumber(TID) * MaxNumHeapTuples)
+	+ ((uint64)ItemPointerGetOffsetNumber(TID));
+
+where MaxNumHeapTuples represents the maximum number of tuples that
+can be stored on a heap page. This TID location is used as the index position
+of this bit in its bitmap vector.
+
+Each insertion will affect only one bitmap vector. When inserting a
+new tuple into a bitmap index, we search through the internal heap to
+obtain the block number and the offset number of the LOV page that
+contains the given value. From there, we obtain an exclusive lock on
+that LOV page, and try to insert this new bit into the right bitmap
+vector. The index position for this bit is calculated through the
+formula for the tid location above. There are the following three
+cases:
+
+(1) This bit will only affect the last two words. In this case, we
+    simply update the LOV item, which stores this information.
+(2) This bit will require writing words to the last bitmap page, and
+    the last bitmap page has enough space to store these words. In
+    this case, we obtain an exclusive lock on the last bitmap page,
+    and write those words to the page.
+(3) This bit will require writing words to the last bitmap page, and
+    the last bitmap page does not have enough space for these new words.
+    In this case, we create a new bitmap page, and insert these new
+    words to this new bitmap page. We also update the previous
+    bitmap page and the LOV item.
+
+There is a fourth case -- the TID location might be in the middle of a 
+vector. We deal with that specifically in the next section.
+
+When building a bitmap index, we also maintain an in-memory buffer to
+store a bunch of tid locations for each distinct value before writing
+them to bitmap vectors in batches. There are two advantages of this
+approach:
+
+(1) The bitmap pages for a bitmap vector are likely to be allocated
+    sequentially.
+(2) This can avoid visiting different bitmap pages for each insert
+    in a sequence of inserts, which can produce a lot of IOs when
+    the cardinality of attributes is high.
+
+Handling tuples that are inserted in the middle of the heap
+-----------------------------------------------------------
+
+When a new tuple is inserted into the middle of the heap, a bit needs
+to be updated in the middle of a bitmap vector. This is called an
+in-place bit update.  Since the bitmap vector is compressed, this
+update may require us to convert one compressed word to 2-3 new
+words. Replacing the old compressed word with these new words may
+cause the current bitmap page to overflow. In this case, we create a
+new bitmap page to store overflow words, and insert this page
+right after the current bitmap page.
+
+One limitation about this approach is that this may cause a lot of
+fragmentation in a bitmap vector when many tuples are inserted in the
+middle of the heap.
+
+TODO: Currently, we need to search a bitmap vector from the beginning
+to find the bit to be updated. One potential solution is to maintain a
+list of the first tid locations for all bitmap pages in a bitmap
+vector so that we can find the bitmap page that contains
+the bit to be updated without scanning from the beginning.
+
+Vacuum/Vacuum full
+------------------
+
+During VACUUM FULL, tuples that are re-organized in the heap are not
+inserted into the bitmap index. Instead, we REINDEX the bitmap index(s).

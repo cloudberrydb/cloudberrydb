@@ -3,12 +3,12 @@
  * hashovfl.c
  *	  Overflow page management code for the Postgres hash access method
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2008, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/access/hash/hashovfl.c,v 1.53 2006/11/19 21:33:22 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/access/hash/hashovfl.c,v 1.53.2.1 2007/04/19 20:24:10 tgl Exp $
  *
  * NOTES
  *	  Overflow pages look like ordinary relation pages.
@@ -18,6 +18,7 @@
 #include "postgres.h"
 
 #include "access/hash.h"
+#include "cdb/cdbfilerepprimary.h"
 
 
 static Buffer _hash_getovflpage(Relation rel, Buffer metabuf);
@@ -105,6 +106,8 @@ _hash_addovflpage(Relation rel, Buffer metabuf, Buffer buf)
 	HashPageOpaque pageopaque;
 	HashPageOpaque ovflopaque;
 
+	MIRROREDLOCK_BUFMGR_MUST_ALREADY_BE_HELD;
+
 	/* allocate and lock an empty overflow page */
 	ovflbuf = _hash_getovflpage(rel, metabuf);
 	ovflpage = BufferGetPage(ovflbuf);
@@ -178,6 +181,8 @@ _hash_getovflpage(Relation rel, Buffer metabuf)
 	uint32		last_page;
 	uint32		i,
 				j;
+
+	MIRROREDLOCK_BUFMGR_MUST_ALREADY_BE_HELD;
 
 	/* Get exclusive lock on the meta page */
 	_hash_chgbufaccess(rel, metabuf, HASH_NOLOCK, HASH_WRITE);
@@ -272,19 +277,12 @@ _hash_getovflpage(Relation rel, Buffer metabuf)
 	blkno = bitno_to_blkno(metap, bit);
 
 	/*
-	 * We have to fetch the page with P_NEW to ensure smgr's idea of the
+	 * Fetch the page with _hash_getnewbuf to ensure smgr's idea of the
 	 * relation length stays in sync with ours.  XXX It's annoying to do this
 	 * with metapage write lock held; would be better to use a lock that
-	 * doesn't block incoming searches.  Best way to fix it would be to stop
-	 * maintaining hashm_spares[hashm_ovflpoint] and rely entirely on the
-	 * smgr relation length to track where new overflow pages come from;
-	 * then we could release the metapage before we do the smgrextend.
-	 * FIXME later (not in beta...)
+	 * doesn't block incoming searches.
 	 */
-	newbuf = _hash_getbuf(rel, P_NEW, HASH_WRITE);
-	if (BufferGetBlockNumber(newbuf) != blkno)
-		elog(ERROR, "unexpected hash relation size: %u, should be %u",
-			 BufferGetBlockNumber(newbuf), blkno);
+	newbuf = _hash_getnewbuf(rel, blkno, HASH_WRITE);
 
 	metap->hashm_spares[splitnum]++;
 
@@ -393,6 +391,8 @@ _hash_freeovflpage(Relation rel, Buffer ovflbuf)
 	int32		bitmappage,
 				bitmapbit;
 	Bucket		bucket;
+
+	MIRROREDLOCK_BUFMGR_MUST_ALREADY_BE_HELD;
 
 	/* Get information from the doomed page */
 	_hash_checkpage(rel, ovflbuf, LH_OVERFLOW_PAGE);
@@ -504,22 +504,19 @@ _hash_initbitmap(Relation rel, HashMetaPage metap, BlockNumber blkno)
 	HashPageOpaque op;
 	uint32	   *freep;
 
+	MIRROREDLOCK_BUFMGR_MUST_ALREADY_BE_HELD;
+
 	/*
 	 * It is okay to write-lock the new bitmap page while holding metapage
 	 * write lock, because no one else could be contending for the new page.
-	 * Also, the metapage lock makes it safe to extend the index using P_NEW,
-	 * which we want to do to ensure the smgr's idea of the relation size
-	 * stays in step with ours.
+	 * Also, the metapage lock makes it safe to extend the index using
+	 * _hash_getnewbuf.
 	 *
 	 * There is some loss of concurrency in possibly doing I/O for the new
 	 * page while holding the metapage lock, but this path is taken so seldom
 	 * that it's not worth worrying about.
 	 */
-	buf = _hash_getbuf(rel, P_NEW, HASH_WRITE);
-	if (BufferGetBlockNumber(buf) != blkno)
-		elog(ERROR, "unexpected hash relation size: %u, should be %u",
-			 BufferGetBlockNumber(buf), blkno);
-
+	buf = _hash_getnewbuf(rel, blkno, HASH_WRITE);
 	pg = BufferGetPage(buf);
 
 	/* initialize the page */
@@ -575,7 +572,7 @@ _hash_initbitmap(Relation rel, HashMetaPage metap, BlockNumber blkno)
  */
 void
 _hash_squeezebucket(Relation rel,
-					Bucket bucket,
+					Bucket bucket __attribute__((unused)),
 					BlockNumber bucket_blkno)
 {
 	Buffer		wbuf;
@@ -590,6 +587,8 @@ _hash_squeezebucket(Relation rel,
 	OffsetNumber roffnum;
 	IndexTuple	itup;
 	Size		itemsz;
+
+	MIRROREDLOCK_BUFMGR_MUST_ALREADY_BE_HELD;
 
 	/*
 	 * start squeezing into the base bucket page.

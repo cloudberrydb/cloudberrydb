@@ -1,11 +1,12 @@
 <!--
-$PostgreSQL: pgsql/doc/src/sgml/ref/drop_owned.sgml,v 1.4 2006/09/18 21:19:29 neilc Exp $
+$PostgreSQL: pgsql/doc/src/sgml/ref/drop_owned.sgml,v 1.6 2008/11/14 10:22:46 petere Exp $
 PostgreSQL documentation
 -->
 
 <refentry id="SQL-DROP-OWNED">
  <refmeta>
   <refentrytitle id="SQL-DROP-OWNED-TITLE">DROP OWNED</refentrytitle>
+  <manvolnum>7</manvolnum>
   <refmiscinfo>SQL - Language Statements</refmiscinfo>
  </refmeta>
 
@@ -81,7 +82,7 @@ DROP OWNED BY <replaceable class="PARAMETER">name</replaceable> [, ...] [ CASCAD
   </para>
 
   <para>
-   Using the <literal>CASCADE</literal> option may make the command
+   Using the <literal>CASCADE</literal> option might make the command
    recurse to objects owned by other users.
   </para>
 

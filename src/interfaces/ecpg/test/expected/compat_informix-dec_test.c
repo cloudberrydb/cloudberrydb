@@ -1,12 +1,12 @@
-/* Processed by ecpg (4.2.1) */
+/* Processed by ecpg (regression mode) */
 /* These include files are added by the preprocessor */
-#include <ecpgtype.h>
 #include <ecpglib.h>
 #include <ecpgerrno.h>
 #include <sqlca.h>
 /* Needed for informix compatibility */
 #include <ecpg_informix.h>
 /* End of automatic include section */
+#define ECPGdebug(X,Y) ECPGdebug((X)+100,(Y))
 
 #line 1 "dec_test.pgc"
 #include <stdio.h>
@@ -128,9 +128,14 @@ main(void)
 			printf("dec[%d,9]: %s (r: %d - cmp: %d)\n", i, buf, r, q);
 		}
 
-		r = dectodbl(dec, &dbl);
-		if (r) check_errno();
-		printf("dec[%d,10]: %g (r: %d)\n", i, r?0.0:dbl, r);
+		if (i != 6)
+		{
+			/* underflow does not work reliable on several archs, so not testing it here */
+			/* this is a libc problem since we only call strtod() */
+			r = dectodbl(dec, &dbl);
+			if (r) check_errno();
+			printf("dec[%d,10]: %g (r: %d)\n", i, r?0.0:dbl, r);
+		}
 
 		PGTYPESdecimal_free(din);
 		printf("\n");
@@ -251,5 +256,4 @@ check_errno(void)
 			printf("(libc: (%s)) ", strerror(errno));
 			break;
 	}
-
 }

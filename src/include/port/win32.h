@@ -1,7 +1,19 @@
-/* $PostgreSQL: pgsql/src/include/port/win32.h,v 1.63 2006/10/19 20:03:08 tgl Exp $ */
+/* $PostgreSQL: pgsql/src/include/port/win32.h,v 1.88 2009/06/11 14:49:12 momjian Exp $ */
 
 #if defined(_MSC_VER) || defined(__BORLANDC__)
 #define WIN32_ONLY_COMPILER
+#endif
+
+#ifndef _WIN32_WINNT
+#define _WIN32_WINNT 0x0501
+#endif
+
+/*
+ * Always build with SSPI support. Keep it as a #define in case
+ * we want a switch to disable it sometime in the future.
+ */
+#ifndef __BORLANDC__
+#undef ENABLE_SSPI
 #endif
 
 /* undefine and redefine after #include */
@@ -9,15 +21,17 @@
 
 #undef ERROR
 #define _WINSOCKAPI_
-#include <windows.h>
 #include <winsock2.h>
+#include <windows.h>
 #include <ws2tcpip.h>
 #undef small
 #include <process.h>
 #include <signal.h>
 #include <errno.h>
 #include <direct.h>
+#ifndef __BORLANDC__
 #include <sys/utime.h>			/* for non-unicode version */
+#endif
 #undef near
 
 /* Must be here to avoid conflicting with prototype in windows.h */
@@ -42,13 +56,13 @@
 #endif
 
 #ifdef BUILDING_DLL
-#define DLLIMPORT __declspec (dllexport)
+#define PGDLLIMPORT __declspec (dllexport)
 #else							/* not BUILDING_DLL */
-#define DLLIMPORT __declspec (dllimport)
+#define PGDLLIMPORT __declspec (dllimport)
 #endif
 #else							/* not CYGWIN, not MSVC, not MingW */
 
-#define DLLIMPORT
+#define PGDLLIMPORT
 #endif
 
 
@@ -66,7 +80,9 @@
 #define IPC_STAT 4096
 
 #define EACCESS 2048
+#ifndef EIDRM
 #define EIDRM 4096
+#endif
 
 #define SETALL 8192
 #define GETNCNT 16384
@@ -74,55 +90,58 @@
 #define SETVAL 131072
 #define GETPID 262144
 
-/*
- *	Shared memory
- */
-struct shmid_ds
-{
-	int			dummy;
-	int			shm_nattch;
-};
-
-int			shmdt(const void *shmaddr);
-void	   *shmat(int memId, void *shmaddr, int flag);
-int			shmctl(int shmid, int flag, struct shmid_ds * dummy);
-int			shmget(int memKey, int size, int flag);
-
-
-/*
- *	Semaphores
- */
-union semun
-{
-	int			val;
-	struct semid_ds *buf;
-	unsigned short *array;
-};
-
-struct sembuf
-{
-	int			sem_flg;
-	int			sem_op;
-	int			sem_num;
-};
-
-int			semctl(int semId, int semNum, int flag, union semun);
-int			semget(int semKey, int semNum, int flags);
-int			semop(int semId, struct sembuf * sops, int flag);
-
 
 /*
  *	Signal stuff
- *	WIN32 doesn't have wait(), so the return value for children
- *	is simply the return value specified by the child, without
- *	any additional information on whether the child terminated
- *	on its own or via a signal.  These macros are also used
- *	to interpret the return value of system().
+ *
+ *	For WIN32, there is no wait() call so there are no wait() macros
+ *	to interpret the return value of system().	Instead, system()
+ *	return values < 0x100 are used for exit() termination, and higher
+ *	values are used to indicated non-exit() termination, which is
+ *	similar to a unix-style signal exit (think SIGSEGV ==
+ *	STATUS_ACCESS_VIOLATION).  Return values are broken up into groups:
+ *
+ *	http://msdn2.microsoft.com/en-gb/library/aa489609.aspx
+ *
+ *		NT_SUCCESS			0 - 0x3FFFFFFF
+ *		NT_INFORMATION		0x40000000 - 0x7FFFFFFF
+ *		NT_WARNING			0x80000000 - 0xBFFFFFFF
+ *		NT_ERROR			0xC0000000 - 0xFFFFFFFF
+ *
+ *	Effectively, we don't care on the severity of the return value from
+ *	system(), we just need to know if it was because of exit() or generated
+ *	by the system, and it seems values >= 0x100 are system-generated.
+ *	See this URL for a list of WIN32 STATUS_* values:
+ *
+ *		Wine (URL used in our error messages) -
+ *			http://source.winehq.org/source/include/ntstatus.h
+ *		Descriptions - http://www.comp.nus.edu.sg/~wuyongzh/my_doc/ntstatus.txt
+ *		MS SDK - http://www.nologs.com/ntstatus.html
+ *
+ *	It seems the exception lists are in both ntstatus.h and winnt.h, but
+ *	ntstatus.h has a more comprehensive list, and it only contains
+ *	exception values, rather than winnt, which contains lots of other
+ *	things:
+ *
+ *		http://www.microsoft.com/msj/0197/exception/exception.aspx
+ *
+ *		The ExceptionCode parameter is the number that the operating system
+ *		assigned to the exception. You can see a list of various exception codes
+ *		in WINNT.H by searching for #defines that start with "STATUS_". For
+ *		example, the code for the all-too-familiar STATUS_ACCESS_VIOLATION is
+ *		0xC0000005. A more complete set of exception codes can be found in
+ *		NTSTATUS.H from the Windows NT DDK.
+ *
+ *	Some day we might want to print descriptions for the most common
+ *	exceptions, rather than printing an include file name.	We could use
+ *	RtlNtStatusToDosError() and pass to FormatMessage(), which can print
+ *	the text of error values, but MinGW does not support
+ *	RtlNtStatusToDosError().
  */
+#define WIFEXITED(w)	(((w) & 0XFFFFFF00) == 0)
+#define WIFSIGNALED(w)	(!WIFEXITED(w))
 #define WEXITSTATUS(w)	(w)
-#define WIFEXITED(w)	(true)
-#define WIFSIGNALED(w)	(false)
-#define WTERMSIG(w)		(0)
+#define WTERMSIG(w)		(w)
 
 #define sigmask(sig) ( 1 << ((sig)-1) )
 
@@ -149,24 +168,47 @@ int			semop(int semId, struct sembuf * sops, int flag);
 #define SIGTTIN				21
 #define SIGTTOU				22	/* Same as SIGABRT -- no problem, I hope */
 #define SIGWINCH			28
+#ifndef __BORLANDC__
 #define SIGUSR1				30
 #define SIGUSR2				31
+#endif
 
+/*
+ * New versions of mingw have gettimeofday() and also declare
+ * struct timezone to support it.
+ */
+#ifndef HAVE_GETTIMEOFDAY
 struct timezone
 {
 	int			tz_minuteswest; /* Minutes west of GMT.  */
 	int			tz_dsttime;		/* Nonzero if DST is ever in effect.  */
 };
+#endif
 
 /* for setitimer in backend/port/win32/timer.c */
 #define ITIMER_REAL 0
+#define ITIMER_VIRTUAL 1
+#define ITIMER_PROF 2
 struct itimerval
 {
 	struct timeval it_interval;
 	struct timeval it_value;
 };
+
 int			setitimer(int which, const struct itimerval * value, struct itimerval * ovalue);
 
+/*
+ * WIN32 does not provide 64-bit off_t, but does provide the functions operating
+ * with 64-bit offsets.
+ */
+#define pgoff_t __int64
+#ifdef WIN32_ONLY_COMPILER
+#define fseeko(stream, offset, origin) _fseeki64(stream, offset, origin)
+#define ftello(stream) _ftelli64(stream)
+#else
+#define fseeko(stream, offset, origin) fseeko64(stream, offset, origin)
+#define ftello(stream) ftello64(stream)
+#endif
 
 /*
  * Supplement to <sys/types.h>.
@@ -202,22 +244,32 @@ typedef int pid_t;
 #undef EAGAIN
 #undef EINTR
 #define EINTR WSAEINTR
+#undef EAGAIN
 #define EAGAIN WSAEWOULDBLOCK
+#undef EMSGSIZE
 #define EMSGSIZE WSAEMSGSIZE
+#undef EAFNOSUPPORT
 #define EAFNOSUPPORT WSAEAFNOSUPPORT
+#undef EWOULDBLOCK
 #define EWOULDBLOCK WSAEWOULDBLOCK
+#undef ECONNRESET
 #define ECONNRESET WSAECONNRESET
+#undef EINPROGRESS
 #define EINPROGRESS WSAEINPROGRESS
+#undef ENOBUFS
 #define ENOBUFS WSAENOBUFS
+#undef EPROTONOSUPPORT
 #define EPROTONOSUPPORT WSAEPROTONOSUPPORT
+#undef ECONNREFUSED
 #define ECONNREFUSED WSAECONNREFUSED
 #define EBADFD WSAENOTSOCK
+#undef EOPNOTSUPP
 #define EOPNOTSUPP WSAEOPNOTSUPP
 
 
 /* In backend/port/win32/signal.c */
-extern DLLIMPORT volatile int pg_signal_queue;
-extern DLLIMPORT int pg_signal_mask;
+extern PGDLLIMPORT volatile int pg_signal_queue;
+extern PGDLLIMPORT int pg_signal_mask;
 extern HANDLE pgwin32_signal_event;
 extern HANDLE pgwin32_initial_signal_pipe;
 
@@ -246,7 +298,7 @@ int			pgwin32_recv(SOCKET s, char *buf, int len, int flags);
 int			pgwin32_send(SOCKET s, char *buf, int len, int flags);
 
 const char *pgwin32_socket_strerror(int err);
-int			pgwin32_waitforsinglesocket(SOCKET s, int what);
+int			pgwin32_waitforsinglesocket(SOCKET s, int what, int timeout);
 
 /* in backend/port/win32/security.c */
 extern int	pgwin32_is_admin(void);
@@ -255,39 +307,6 @@ extern int	pgwin32_is_service(void);
 
 /* in port/win32error.c */
 extern void _dosmaperr(unsigned long);
-
-
-/* Things that exist in MingW headers, but need to be added to MSVC */
-#ifdef WIN32_ONLY_COMPILER
-typedef long ssize_t;
-typedef unsigned short mode_t;
-
-/*
- *	Certain "standard edition" versions of MSVC throw a warning
- *	that later generates an error for "inline" statements, but
- *	__inline seems to work.  e.g.  Microsoft Visual C++ .NET
- *	Version 7.1.3088
- */
-#define inline __inline
-#define __inline__ __inline
-
-#define _S_IRWXU	(_S_IREAD | _S_IWRITE | _S_IEXEC)
-#define _S_IXUSR	_S_IEXEC
-#define _S_IWUSR	_S_IWRITE
-#define _S_IRUSR	_S_IREAD
-#define S_IRUSR		_S_IRUSR
-#define S_IWUSR		_S_IWUSR
-#define S_IXUSR		_S_IXUSR
-#define S_ISDIR(m) (((m) & S_IFMT) == S_IFDIR)
-#define S_ISREG(m) (((m) & S_IFMT) == S_IFREG)
-
-#define F_OK 0
-#define W_OK 2
-#define R_OK 4
-
-#define isinf(x) ((_fpclass(x) == _FPCLASS_PINF) || (_fpclass(x) == _FPCLASS_NINF))
-#define isnan(x) _isnan(x)
-#define finite(x) _finite(x)
 
 #ifndef			BIG_ENDIAN
 #define			BIG_ENDIAN		4321
@@ -303,7 +322,73 @@ typedef unsigned short mode_t;
 #define BYTE_ORDER LITTLE_ENDIAN
 #endif
 
+/* in port/win32env.c */
+extern int pgwin32_putenv(const char *);
+extern void pgwin32_unsetenv(const char *);
+
+#define putenv(x) pgwin32_putenv(x)
+#define unsetenv(x) pgwin32_unsetenv(x)
+
+/* Things that exist in MingW headers, but need to be added to MSVC & BCC */
+#ifdef WIN32_ONLY_COMPILER
+#ifndef _WIN64
+typedef long ssize_t;
+#else
+typedef __int64 ssize_t;
+#endif
+
+#ifndef __BORLANDC__
+typedef unsigned short mode_t;
+#endif
+
+/*
+ *	Certain "standard edition" versions of MSVC throw a warning
+ *	that later generates an error for "inline" statements, but
+ *	__inline seems to work.  e.g.  Microsoft Visual C++ .NET
+ *	Version 7.1.3088
+ */
+#define inline __inline
+#define __inline__ __inline
+
+#ifndef __BORLANDC__
+#define _S_IRWXU	(_S_IREAD | _S_IWRITE | _S_IEXEC)
+#define _S_IXUSR	_S_IEXEC
+#define _S_IWUSR	_S_IWRITE
+#define _S_IRUSR	_S_IREAD
+#define S_IRUSR		_S_IRUSR
+#define S_IWUSR		_S_IWUSR
+#define S_IXUSR		_S_IXUSR
+#define S_ISDIR(m) (((m) & S_IFMT) == S_IFDIR)
+#define S_ISREG(m) (((m) & S_IFMT) == S_IFREG)
+#endif
+
+#define F_OK 0
+#define W_OK 2
+#define R_OK 4
+
+#define isinf(x) ((_fpclass(x) == _FPCLASS_PINF) || (_fpclass(x) == _FPCLASS_NINF))
+#define isnan(x) _isnan(x)
+#define finite(x) _finite(x)
+
 /* Pulled from Makefile.port in mingw */
 #define DLSUFFIX ".dll"
+
+#ifdef __BORLANDC__
+
+/* for port/dirent.c */
+#ifndef INVALID_FILE_ATTRIBUTES
+#define INVALID_FILE_ATTRIBUTES ((DWORD) -1)
+#endif
+
+/* for port/open.c */
+#ifndef O_RANDOM
+#define O_RANDOM		0x0010	/* File access is primarily random */
+#define O_SEQUENTIAL	0x0020	/* File access is primarily sequential */
+#define O_TEMPORARY	0x0040	/* Temporary file bit */
+#define O_SHORT_LIVED	0x1000	/* Temporary storage file, try not to flush */
+#define _O_SHORT_LIVED	O_SHORT_LIVED
+#endif /* ifndef O_RANDOM */
+
+#endif /* __BORLANDC__ */
 
 #endif

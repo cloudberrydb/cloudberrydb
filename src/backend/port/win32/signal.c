@@ -3,10 +3,10 @@
  * signal.c
  *	  Microsoft Windows Win32 Signal Emulation Functions
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/port/win32/signal.c,v 1.17 2006/07/16 20:17:04 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/port/win32/signal.c,v 1.22 2009/01/01 17:23:46 momjian Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -178,7 +178,7 @@ pgwin32_create_signal_listener(pid_t pid)
 	char		pipename[128];
 	HANDLE		pipe;
 
-	wsprintf(pipename, "\\\\.\\pipe\\pgsignal_%d", (int) pid);
+	snprintf(pipename, sizeof(pipename), "\\\\.\\pipe\\pgsignal_%u", (int) pid);
 
 	pipe = CreateNamedPipe(pipename, PIPE_ACCESS_DUPLEX,
 					   PIPE_TYPE_MESSAGE | PIPE_READMODE_MESSAGE | PIPE_WAIT,
@@ -251,7 +251,7 @@ pg_signal_thread(LPVOID param)
 	char		pipename[128];
 	HANDLE		pipe = pgwin32_initial_signal_pipe;
 
-	wsprintf(pipename, "\\\\.\\pipe\\pgsignal_%d", GetCurrentProcessId());
+	snprintf(pipename, sizeof(pipename), "\\\\.\\pipe\\pgsignal_%lu", GetCurrentProcessId());
 
 	for (;;)
 	{

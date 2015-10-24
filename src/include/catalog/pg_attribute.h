@@ -5,7 +5,8 @@
  *	  along with the relation's initial contents.
  *
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 2006-2010, Greenplum inc
+ * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * $PostgreSQL: pgsql/src/include/catalog/pg_attribute.h,v 1.126 2006/11/05 22:42:10 tgl Exp $
@@ -24,12 +25,40 @@
 #ifndef PG_ATTRIBUTE_H
 #define PG_ATTRIBUTE_H
 
-/* ----------------
- *		postgres.h contains the system type definitions and the
- *		CATALOG(), BKI_BOOTSTRAP and DATA() sugar words so this file
- *		can be read by both genbki.sh and the C compiler.
- * ----------------
- */
+#include "catalog/genbki.h"
+
+/* TIDYCAT_BEGINFAKEDEF
+
+   CREATE TABLE pg_attribute
+   with (camelcase=Attribute, relid=1249)
+   (
+   attrelid       oid, 
+   attname        name, 
+   atttypid       oid, 
+   attstattarget  integer, 
+   attlen         smallint, 
+   attnum         smallint, 
+   attndims       integer, 
+   attcacheoff    integer, 
+   atttypmod      integer, 
+   attbyval       boolean, 
+   attstorage     "char", 
+   attalign       "char", 
+   attnotnull     boolean, 
+   atthasdef      boolean, 
+   attisdropped   boolean, 
+   attislocal     boolean, 
+   attinhcount    integer
+   );
+
+   create unique index on pg_attribute(attrelid, attname) with (indexid=2658, CamelCase=AttributeRelidName, syscacheid=ATTNAME, syscache_nbuckets=2048);
+   create unique index on pg_attribute(attrelid, attnum) with (indexid=2659, CamelCase=AttributeRelidNum, syscacheid=ATTNUM, syscache_nbuckets=2048);
+
+   alter table pg_attribute add fk attrelid on pg_class(oid);
+   alter table pg_attribute add fk atttypid on pg_type(oid);
+
+   TIDYCAT_ENDFAKEDEF
+*/
 
 /* ----------------
  *		pg_attribute definition.  cpp turns this into
@@ -149,13 +178,26 @@ CATALOG(pg_attribute,1249) BKI_BOOTSTRAP BKI_WITHOUT_OIDS
 
 	/* Number of times inherited from direct parent relation(s) */
 	int4		attinhcount;
+
+	/*
+	 * VARIABLE LENGTH FIELDS start here.  These fields may be NULL, too.
+	 *
+	 * NOTE: the following fields are not present in tuple descriptors!
+	 */
+
+	/* Column-level access permissions */
 } FormData_pg_attribute;
 
 /*
- * someone should figure out how to do this properly. (The problem is
- * the size of the C struct is not the same as the size of the tuple
- * because of alignment padding at the end of the struct.)
+ * ATTRIBUTE_FIXED_PART_SIZE is the size of the fixed-layout,
+ * guaranteed-not-null part of a pg_attribute row.	This is in fact as much
+ * of the row as gets copied into tuple descriptors, so don't expect you
+ * can access fields beyond attinhcount except in a real tuple!
  */
+#define ATTRIBUTE_FIXED_PART_SIZE \
+	(offsetof(FormData_pg_attribute,attinhcount) + sizeof(int4))
+
+/* Old version of the define */
 #define ATTRIBUTE_TUPLE_SIZE \
 	(offsetof(FormData_pg_attribute,attinhcount) + sizeof(int4))
 
@@ -276,6 +318,7 @@ DATA(insert ( 1247 cmin				29 0  4  -4 0 -1 -1 t p i t f f t 0));
 DATA(insert ( 1247 xmax				28 0  4  -5 0 -1 -1 t p i t f f t 0));
 DATA(insert ( 1247 cmax				29 0  4  -6 0 -1 -1 t p i t f f t 0));
 DATA(insert ( 1247 tableoid			26 0  4  -7 0 -1 -1 t p i t f f t 0));
+DATA(insert ( 1247 gp_segment_id   23 0  4  -8 0 -1 -1 t p i t f f t 0));
 
 /* ----------------
  *		pg_proc
@@ -290,16 +333,18 @@ DATA(insert ( 1247 tableoid			26 0  4  -7 0 -1 -1 t p i t f f t 0));
 { 1255, {"prosecdef"},			16, -1, 1,	6, 0, -1, -1, true, 'p', 'c', true, false, false, true, 0 }, \
 { 1255, {"proisstrict"},		16, -1, 1,	7, 0, -1, -1, true, 'p', 'c', true, false, false, true, 0 }, \
 { 1255, {"proretset"},			16, -1, 1,	8, 0, -1, -1, true, 'p', 'c', true, false, false, true, 0 }, \
-{ 1255, {"provolatile"},		18, -1, 1,	9, 0, -1, -1, true, 'p', 'c', true, false, false, true, 0 }, \
+{ 1255, {"provolatile"},		18, -1, 1, 9, 0, -1, -1, true, 'p', 'c', true, false, false, true, 0 }, \
 { 1255, {"pronargs"},			21, -1, 2, 10, 0, -1, -1, true, 'p', 's', true, false, false, true, 0 }, \
 { 1255, {"prorettype"},			26, -1, 4, 11, 0, -1, -1, true, 'p', 'i', true, false, false, true, 0 }, \
-{ 1255, {"proargtypes"},		30, -1, -1, 12, 1, -1, -1, false, 'p', 'i', true, false, false, true, 0 }, \
-{ 1255, {"proallargtypes"},   1028, -1, -1, 13, 1, -1, -1, false, 'x', 'i', false, false, false, true, 0 }, \
-{ 1255, {"proargmodes"},	  1002, -1, -1, 14, 1, -1, -1, false, 'x', 'i', false, false, false, true, 0 }, \
-{ 1255, {"proargnames"},	  1009, -1, -1, 15, 1, -1, -1, false, 'x', 'i', false, false, false, true, 0 }, \
-{ 1255, {"prosrc"},				25, -1, -1, 16, 0, -1, -1, false, 'x', 'i', false, false, false, true, 0 }, \
-{ 1255, {"probin"},				17, -1, -1, 17, 0, -1, -1, false, 'x', 'i', false, false, false, true, 0 }, \
-{ 1255, {"proacl"},			  1034, -1, -1, 18, 1, -1, -1, false, 'x', 'i', false, false, false, true, 0 }
+{ 1255, {"proiswin"},			16, -1, 1, 12, 0, -1, -1, true, 'p', 'c', true, false, false, true, 0 }, \
+{ 1255, {"proargtypes"},		30, -1, -1, 13, 1, -1, -1, false, 'p', 'i', true, false, false, true, 0 }, \
+{ 1255, {"proallargtypes"},   1028, -1, -1, 14, 1, -1, -1, false, 'x', 'i', false, false, false, true, 0 }, \
+{ 1255, {"proargmodes"},	  1002, -1, -1, 15, 1, -1, -1, false, 'x', 'i', false, false, false, true, 0 }, \
+{ 1255, {"proargnames"},	  1009, -1, -1, 16, 1, -1, -1, false, 'x', 'i', false, false, false, true, 0 }, \
+{ 1255, {"prosrc"},				25, -1, -1, 17, 0, -1, -1, false, 'x', 'i', false, false, false, true, 0 }, \
+{ 1255, {"probin"},				17, -1, -1, 18, 0, -1, -1, false, 'x', 'i', false, false, false, true, 0 }, \
+{ 1255, {"proacl"},			  1034, -1, -1, 19, 1, -1, -1, false, 'x', 'i', false, false, false, true, 0 }, \
+{ 1255, {"prodataaccess"},		18, -1, 1, 20, 0, -1, -1, true, 'p', 'c', true, false, false, true, 0 }
 
 DATA(insert ( 1255 proname			19 -1 NAMEDATALEN	1 0 -1 -1 f p i t f f t 0));
 DATA(insert ( 1255 pronamespace		26 -1 4   2 0 -1 -1 t p i t f f t 0));
@@ -312,13 +357,15 @@ DATA(insert ( 1255 proretset		16 -1 1   8 0 -1 -1 t p c t f f t 0));
 DATA(insert ( 1255 provolatile		18 -1 1   9 0 -1 -1 t p c t f f t 0));
 DATA(insert ( 1255 pronargs			21 -1 2  10 0 -1 -1 t p s t f f t 0));
 DATA(insert ( 1255 prorettype		26 -1 4  11 0 -1 -1 t p i t f f t 0));
-DATA(insert ( 1255 proargtypes		30 -1 -1 12 1 -1 -1 f p i t f f t 0));
-DATA(insert ( 1255 proallargtypes 1028 -1 -1 13 1 -1 -1 f x i f f f t 0));
-DATA(insert ( 1255 proargmodes	  1002 -1 -1 14 1 -1 -1 f x i f f f t 0));
-DATA(insert ( 1255 proargnames	  1009 -1 -1 15 1 -1 -1 f x i f f f t 0));
-DATA(insert ( 1255 prosrc			25 -1 -1 16 0 -1 -1 f x i f f f t 0));
-DATA(insert ( 1255 probin			17 -1 -1 17 0 -1 -1 f x i f f f t 0));
-DATA(insert ( 1255 proacl		  1034 -1 -1 18 1 -1 -1 f x i f f f t 0));
+DATA(insert ( 1255 proiswin			16 -1 1  12 0 -1 -1 t p c t f f t 0));
+DATA(insert ( 1255 proargtypes		30 -1 -1 13 1 -1 -1 f p i t f f t 0));
+DATA(insert ( 1255 proallargtypes 1028 -1 -1 14 1 -1 -1 f x i f f f t 0));
+DATA(insert ( 1255 proargmodes	  1002 -1 -1 15 1 -1 -1 f x i f f f t 0));
+DATA(insert ( 1255 proargnames	  1009 -1 -1 16 1 -1 -1 f x i f f f t 0));
+DATA(insert ( 1255 prosrc			25 -1 -1 17 0 -1 -1 f x i f f f t 0));
+DATA(insert ( 1255 probin			17 -1 -1 18 0 -1 -1 f x i f f f t 0));
+DATA(insert ( 1255 proacl		  1034 -1 -1 19 1 -1 -1 f x i f f f t 0));
+DATA(insert ( 1255 prodataaccess	18 -1 1 20 0 -1 -1 t p c t f f t 0));
 DATA(insert ( 1255 ctid				27 0  6  -1 0 -1 -1 f p s t f f t 0));
 DATA(insert ( 1255 oid				26 0  4  -2 0 -1 -1 t p i t f f t 0));
 DATA(insert ( 1255 xmin				28 0  4  -3 0 -1 -1 t p i t f f t 0));
@@ -326,6 +373,7 @@ DATA(insert ( 1255 cmin				29 0  4  -4 0 -1 -1 t p i t f f t 0));
 DATA(insert ( 1255 xmax				28 0  4  -5 0 -1 -1 t p i t f f t 0));
 DATA(insert ( 1255 cmax				29 0  4  -6 0 -1 -1 t p i t f f t 0));
 DATA(insert ( 1255 tableoid			26 0  4  -7 0 -1 -1 t p i t f f t 0));
+DATA(insert ( 1255 gp_segment_id   23 0  4  -8 0 -1 -1 t p i t f f t 0));
 
 /* ----------------
  *		pg_attribute
@@ -374,6 +422,7 @@ DATA(insert ( 1249 cmin				29 0  4  -4 0 -1 -1 t p i t f f t 0));
 DATA(insert ( 1249 xmax				28 0  4  -5 0 -1 -1 t p i t f f t 0));
 DATA(insert ( 1249 cmax				29 0  4  -6 0 -1 -1 t p i t f f t 0));
 DATA(insert ( 1249 tableoid			26 0  4  -7 0 -1 -1 t p i t f f t 0));
+DATA(insert ( 1249 gp_segment_id   23 0  4  -8 0 -1 -1 t p i t f f t 0));
 
 /* ----------------
  *		pg_class
@@ -388,25 +437,28 @@ DATA(insert ( 1249 tableoid			26 0  4  -7 0 -1 -1 t p i t f f t 0));
 { 1259, {"relfilenode"},   26, -1,	4,	6, 0, -1, -1, true, 'p', 'i', true, false, false, true, 0 }, \
 { 1259, {"reltablespace"}, 26, -1,	4,	7, 0, -1, -1, true, 'p', 'i', true, false, false, true, 0 }, \
 { 1259, {"relpages"},	   23, -1,	4,	8, 0, -1, -1, true, 'p', 'i', true, false, false, true, 0 }, \
-{ 1259, {"reltuples"},	   700, -1, 4,	9, 0, -1, -1, false, 'p', 'i', true, false, false, true, 0 }, \
+{ 1259, {"reltuples"},	   700, -1, 4,	9, 0, -1, -1, true, 'p', 'i', true, false, false, true, 0 }, \
 { 1259, {"reltoastrelid"}, 26, -1,	4, 10, 0, -1, -1, true, 'p', 'i', true, false, false, true, 0 }, \
 { 1259, {"reltoastidxid"}, 26, -1,	4, 11, 0, -1, -1, true, 'p', 'i', true, false, false, true, 0 }, \
-{ 1259, {"relhasindex"},   16, -1,	1, 12, 0, -1, -1, true, 'p', 'c', true, false, false, true, 0 }, \
-{ 1259, {"relisshared"},   16, -1,	1, 13, 0, -1, -1, true, 'p', 'c', true, false, false, true, 0 }, \
-{ 1259, {"relkind"},	   18, -1,	1, 14, 0, -1, -1, true, 'p', 'c', true, false, false, true, 0 }, \
-{ 1259, {"relnatts"},	   21, -1,	2, 15, 0, -1, -1, true, 'p', 's', true, false, false, true, 0 }, \
-{ 1259, {"relchecks"},	   21, -1,	2, 16, 0, -1, -1, true, 'p', 's', true, false, false, true, 0 }, \
-{ 1259, {"reltriggers"},   21, -1,	2, 17, 0, -1, -1, true, 'p', 's', true, false, false, true, 0 }, \
-{ 1259, {"relukeys"},	   21, -1,	2, 18, 0, -1, -1, true, 'p', 's', true, false, false, true, 0 }, \
-{ 1259, {"relfkeys"},	   21, -1,	2, 19, 0, -1, -1, true, 'p', 's', true, false, false, true, 0 }, \
-{ 1259, {"relrefs"},	   21, -1,	2, 20, 0, -1, -1, true, 'p', 's', true, false, false, true, 0 }, \
-{ 1259, {"relhasoids"},    16, -1,	1, 21, 0, -1, -1, true, 'p', 'c', true, false, false, true, 0 }, \
-{ 1259, {"relhaspkey"},    16, -1,	1, 22, 0, -1, -1, true, 'p', 'c', true, false, false, true, 0 }, \
-{ 1259, {"relhasrules"},   16, -1,	1, 23, 0, -1, -1, true, 'p', 'c', true, false, false, true, 0 }, \
-{ 1259, {"relhassubclass"},16, -1,	1, 24, 0, -1, -1, true, 'p', 'c', true, false, false, true, 0 }, \
-{ 1259, {"relfrozenxid"},  28, -1,	4, 25, 0, -1, -1, true, 'p', 'i', true, false, false, true, 0 }, \
-{ 1259, {"relacl"},		 1034, -1, -1, 26, 1, -1, -1, false, 'x', 'i', false, false, false, true, 0 }, \
-{ 1259, {"reloptions"},  1009, -1, -1, 27, 1, -1, -1, false, 'x', 'i', false, false, false, true, 0 }
+{ 1259, {"relaosegrelid"}, 26, -1,	4, 12, 0, -1, -1, true, 'p', 'i', true, false, false, true, 0 }, \
+{ 1259, {"relaosegidxid"}, 26, -1,	4, 13, 0, -1, -1, true, 'p', 'i', true, false, false, true, 0 }, \
+{ 1259, {"relhasindex"},   16, -1,	1, 14, 0, -1, -1, true, 'p', 'c', true, false, false, true, 0 }, \
+{ 1259, {"relisshared"},   16, -1,	1, 15, 0, -1, -1, true, 'p', 'c', true, false, false, true, 0 }, \
+{ 1259, {"relkind"},	   18, -1,	1, 16, 0, -1, -1, true, 'p', 'c', true, false, false, true, 0 }, \
+{ 1259, {"relstorage"},	   18, -1,	1, 17, 0, -1, -1, true, 'p', 'c', true, false, false, true, 0 }, \
+{ 1259, {"relnatts"},	   21, -1,	2, 18, 0, -1, -1, true, 'p', 's', true, false, false, true, 0 }, \
+{ 1259, {"relchecks"},	   21, -1,	2, 19, 0, -1, -1, true, 'p', 's', true, false, false, true, 0 }, \
+{ 1259, {"reltriggers"},   21, -1,	2, 20, 0, -1, -1, true, 'p', 's', true, false, false, true, 0 }, \
+{ 1259, {"relukeys"},	   21, -1,	2, 21, 0, -1, -1, true, 'p', 's', true, false, false, true, 0 }, \
+{ 1259, {"relfkeys"},	   21, -1,	2, 22, 0, -1, -1, true, 'p', 's', true, false, false, true, 0 }, \
+{ 1259, {"relrefs"},	   21, -1,	2, 23, 0, -1, -1, true, 'p', 's', true, false, false, true, 0 }, \
+{ 1259, {"relhasoids"},    16, -1,	1, 24, 0, -1, -1, true, 'p', 'c', true, false, false, true, 0 }, \
+{ 1259, {"relhaspkey"},    16, -1,	1, 25, 0, -1, -1, true, 'p', 'c', true, false, false, true, 0 }, \
+{ 1259, {"relhasrules"},   16, -1,	1, 26, 0, -1, -1, true, 'p', 'c', true, false, false, true, 0 }, \
+{ 1259, {"relhassubclass"},16, -1,	1, 27, 0, -1, -1, true, 'p', 'c', true, false, false, true, 0 }, \
+{ 1259, {"relfrozenxid"},  28, -1,	4, 28, 0, -1, -1, true, 'p', 'i', true, false, false, true, 0 }, \
+{ 1259, {"relacl"},		 1034, -1, -1, 29, 1, -1, -1, false, 'x', 'i', false, false, false, true, 0 }, \
+{ 1259, {"reloptions"},  1009, -1, -1, 30, 1, -1, -1, false, 'x', 'i', false, false, false, true, 0 }
 
 DATA(insert ( 1259 relname			19 -1 NAMEDATALEN	1 0 -1 -1 f p i t f f t 0));
 DATA(insert ( 1259 relnamespace		26 -1 4   2 0 -1 -1 t p i t f f t 0));
@@ -416,25 +468,28 @@ DATA(insert ( 1259 relam			26 -1 4   5 0 -1 -1 t p i t f f t 0));
 DATA(insert ( 1259 relfilenode		26 -1 4   6 0 -1 -1 t p i t f f t 0));
 DATA(insert ( 1259 reltablespace	26 -1 4   7 0 -1 -1 t p i t f f t 0));
 DATA(insert ( 1259 relpages			23 -1 4   8 0 -1 -1 t p i t f f t 0));
-DATA(insert ( 1259 reltuples	   700 -1 4   9 0 -1 -1 f p i t f f t 0));
+DATA(insert ( 1259 reltuples	   700 -1 4   9 0 -1 -1 t p i t f f t 0));
 DATA(insert ( 1259 reltoastrelid	26 -1 4  10 0 -1 -1 t p i t f f t 0));
 DATA(insert ( 1259 reltoastidxid	26 -1 4  11 0 -1 -1 t p i t f f t 0));
-DATA(insert ( 1259 relhasindex		16 -1 1  12 0 -1 -1 t p c t f f t 0));
-DATA(insert ( 1259 relisshared		16 -1 1  13 0 -1 -1 t p c t f f t 0));
-DATA(insert ( 1259 relkind			18 -1 1  14 0 -1 -1 t p c t f f t 0));
-DATA(insert ( 1259 relnatts			21 -1 2  15 0 -1 -1 t p s t f f t 0));
-DATA(insert ( 1259 relchecks		21 -1 2  16 0 -1 -1 t p s t f f t 0));
-DATA(insert ( 1259 reltriggers		21 -1 2  17 0 -1 -1 t p s t f f t 0));
-DATA(insert ( 1259 relukeys			21 -1 2  18 0 -1 -1 t p s t f f t 0));
-DATA(insert ( 1259 relfkeys			21 -1 2  19 0 -1 -1 t p s t f f t 0));
-DATA(insert ( 1259 relrefs			21 -1 2  20 0 -1 -1 t p s t f f t 0));
-DATA(insert ( 1259 relhasoids		16 -1 1  21 0 -1 -1 t p c t f f t 0));
-DATA(insert ( 1259 relhaspkey		16 -1 1  22 0 -1 -1 t p c t f f t 0));
-DATA(insert ( 1259 relhasrules		16 -1 1  23 0 -1 -1 t p c t f f t 0));
-DATA(insert ( 1259 relhassubclass	16 -1 1  24 0 -1 -1 t p c t f f t 0));
-DATA(insert ( 1259 relfrozenxid		28 -1 4  25 0 -1 -1 t p i t f f t 0));
-DATA(insert ( 1259 relacl		  1034 -1 -1 26 1 -1 -1 f x i f f f t 0));
-DATA(insert ( 1259 reloptions	  1009 -1 -1 27 1 -1 -1 f x i f f f t 0));
+DATA(insert ( 1259 relaosegrelid	26 -1 4  12 0 -1 -1 t p i t f f t 0));
+DATA(insert ( 1259 relaosegidxid	26 -1 4  13 0 -1 -1 t p i t f f t 0));
+DATA(insert ( 1259 relhasindex		16 -1 1  14 0 -1 -1 t p c t f f t 0));
+DATA(insert ( 1259 relisshared		16 -1 1  15 0 -1 -1 t p c t f f t 0));
+DATA(insert ( 1259 relkind			18 -1 1  16 0 -1 -1 t p c t f f t 0));
+DATA(insert ( 1259 relstorage		18 -1 1  17 0 -1 -1 t p c t f f t 0));
+DATA(insert ( 1259 relnatts			21 -1 2  18 0 -1 -1 t p s t f f t 0));
+DATA(insert ( 1259 relchecks		21 -1 2  19 0 -1 -1 t p s t f f t 0));
+DATA(insert ( 1259 reltriggers		21 -1 2  20 0 -1 -1 t p s t f f t 0));
+DATA(insert ( 1259 relukeys			21 -1 2  21 0 -1 -1 t p s t f f t 0));
+DATA(insert ( 1259 relfkeys			21 -1 2  22 0 -1 -1 t p s t f f t 0));
+DATA(insert ( 1259 relrefs			21 -1 2  23 0 -1 -1 t p s t f f t 0));
+DATA(insert ( 1259 relhasoids		16 -1 1  24 0 -1 -1 t p c t f f t 0));
+DATA(insert ( 1259 relhaspkey		16 -1 1  25 0 -1 -1 t p c t f f t 0));
+DATA(insert ( 1259 relhasrules		16 -1 1  26 0 -1 -1 t p c t f f t 0));
+DATA(insert ( 1259 relhassubclass	16 -1 1  27 0 -1 -1 t p c t f f t 0));
+DATA(insert ( 1259 relfrozenxid		28 -1 4  28 0 -1 -1 t p i t f f t 0));
+DATA(insert ( 1259 relacl		  1034 -1 -1 29 1 -1 -1 f x i f f f t 0));
+DATA(insert ( 1259 reloptions	  1009 -1 -1 30 1 -1 -1 f x i f f f t 0));
 DATA(insert ( 1259 ctid				27 0  6  -1 0 -1 -1 f p s t f f t 0));
 DATA(insert ( 1259 oid				26 0  4  -2 0 -1 -1 t p i t f f t 0));
 DATA(insert ( 1259 xmin				28 0  4  -3 0 -1 -1 t p i t f f t 0));
@@ -442,6 +497,7 @@ DATA(insert ( 1259 cmin				29 0  4  -4 0 -1 -1 t p i t f f t 0));
 DATA(insert ( 1259 xmax				28 0  4  -5 0 -1 -1 t p i t f f t 0));
 DATA(insert ( 1259 cmax				29 0  4  -6 0 -1 -1 t p i t f f t 0));
 DATA(insert ( 1259 tableoid			26 0  4  -7 0 -1 -1 t p i t f f t 0));
+DATA(insert ( 1259 gp_segment_id   23 0  4  -8 0 -1 -1 t p i t f f t 0));
 
 /* ----------------
  *		pg_index
@@ -463,5 +519,16 @@ DATA(insert ( 1259 tableoid			26 0  4  -7 0 -1 -1 t p i t f f t 0));
 { 0, {"indclass"},			30, -1, -1, 9, 1, -1, -1, false, 'p', 'i', true, false, false, true, 0 }, \
 { 0, {"indexprs"},			25, -1, -1, 10, 0, -1, -1, false, 'x', 'i', false, false, false, true, 0 }, \
 { 0, {"indpred"},			25, -1, -1, 11, 0, -1, -1, false, 'x', 'i', false, false, false, true, 0 }
+
+
+/* -----------------------------------------------
+ *      abstract types with no backing relations
+ * -----------------------------------------------
+ */
+
+/* nb_classification */
+DATA(insert ( 3250 classes  1009 -1 -1 1 1 -1 -1 f x i f f f t 0 ));
+DATA(insert ( 3250 accum    1022 -1 -1 2 1 -1 -1 f x d f f f t 0 ));
+DATA(insert ( 3250 apriori  1016 -1 -1 3 1 -1 -1 f x d f f f t 0 ));
 
 #endif   /* PG_ATTRIBUTE_H */

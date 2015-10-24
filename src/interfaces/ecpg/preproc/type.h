@@ -1,3 +1,6 @@
+/*
+ * $PostgreSQL: pgsql/src/interfaces/ecpg/preproc/type.h,v 1.51 2009/06/11 14:49:13 momjian Exp $
+ */
 #ifndef _ECPG_PREPROC_TYPE_H
 #define _ECPG_PREPROC_TYPE_H
 
@@ -25,11 +28,12 @@ struct ECPGtype
 		struct ECPGstruct_member *members;		/* A pointer to a list of
 												 * members. */
 	}			u;
+	int			lineno;
 };
 
 /* Everything is malloced. */
 void		ECPGmake_struct_member(char *, struct ECPGtype *, struct ECPGstruct_member **);
-struct ECPGtype *ECPGmake_simple_type(enum ECPGttype, char *);
+struct ECPGtype *ECPGmake_simple_type(enum ECPGttype, char *, int);
 struct ECPGtype *ECPGmake_varchar_type(enum ECPGttype, long);
 struct ECPGtype *ECPGmake_array_type(struct ECPGtype *, char *);
 struct ECPGtype *ECPGmake_struct_type(struct ECPGstruct_member *, enum ECPGttype, char *);
@@ -60,7 +64,7 @@ struct ECPGtemp_type
 	const char *name;
 };
 
-extern const char *ECPGtype_name(enum ECPGttype type);
+extern const char *ecpg_type_name(enum ECPGttype type);
 
 /* some stuff for whenever statements */
 enum WHEN_TYPE
@@ -92,6 +96,13 @@ struct su_symbol
 {
 	char	   *su;
 	char	   *symbol;
+};
+
+struct prep
+{
+	char	   *name;
+	char	   *stmt;
+	char	   *type;
 };
 
 struct this_type
@@ -178,11 +189,5 @@ struct fetch_desc
 	char	   *str;
 	char	   *name;
 };
-
-typedef struct ScanKeyword
-{
-	char	   *name;
-	int			value;
-} ScanKeyword;
 
 #endif   /* _ECPG_PREPROC_TYPE_H */

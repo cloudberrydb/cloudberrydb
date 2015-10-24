@@ -3,12 +3,12 @@
  * scankey.c
  *	  scan key support code
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/access/common/scankey.c,v 1.28 2006/03/05 15:58:20 momjian Exp $
+ *	  $PostgreSQL: pgsql/src/backend/access/common/scankey.c,v 1.32 2009/01/01 17:23:34 momjian Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -20,7 +20,8 @@
 /*
  * ScanKeyEntryInitialize
  *		Initializes a scan key entry given all the field values.
- *		The target procedure is specified by OID.
+ *		The target procedure is specified by OID (but can be invalid
+ *		if SK_SEARCHNULL is set).
  *
  * Note: CurrentMemoryContext at call should be as long-lived as the ScanKey
  * itself, because that's what will be used for any subsidiary info attached
@@ -40,7 +41,13 @@ ScanKeyEntryInitialize(ScanKey entry,
 	entry->sk_strategy = strategy;
 	entry->sk_subtype = subtype;
 	entry->sk_argument = argument;
-	fmgr_info(procedure, &entry->sk_func);
+	if (RegProcedureIsValid(procedure))
+		fmgr_info(procedure, &entry->sk_func);
+	else
+	{
+		Assert(flags & SK_SEARCHNULL);
+		MemSet(&entry->sk_func, 0, sizeof(entry->sk_func));
+	}
 }
 
 /*

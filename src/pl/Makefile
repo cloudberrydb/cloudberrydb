@@ -12,7 +12,7 @@ subdir = src/pl
 top_builddir = ../..
 include $(top_builddir)/src/Makefile.global
 
-DIRS := plpgsql
+DIRS = plpgsql
 
 ifeq ($(with_perl), yes)
 DIRS += plperl
@@ -26,7 +26,7 @@ ifeq ($(with_tcl), yes)
 DIRS += tcl
 endif
 
-all install installdirs uninstall depend distprep:
+all install installdirs uninstall distprep:
 	@for dir in $(DIRS); do $(MAKE) -C $$dir $@ || exit 1; done
 
 clean distclean maintainer-clean:

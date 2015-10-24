@@ -1,9 +1,9 @@
 /*
  * psql - the PostgreSQL interactive terminal
  *
- * Copyright (c) 2000-2006, PostgreSQL Global Development Group
+ * Copyright (c) 2000-2010, PostgreSQL Global Development Group
  *
- * $PostgreSQL: pgsql/src/bin/psql/large_obj.c,v 1.46 2006/08/29 15:19:51 tgl Exp $
+ * $PostgreSQL: pgsql/src/bin/psql/large_obj.c,v 1.56 2010/02/26 02:01:19 momjian Exp $
  */
 #include "postgres_fe.h"
 #include "large_obj.h"
@@ -11,6 +11,39 @@
 
 #include "settings.h"
 #include "common.h"
+
+static void
+print_lo_result(const char *fmt,...)
+__attribute__((format(printf, 1, 2)));
+
+static void
+print_lo_result(const char *fmt,...)
+{
+	va_list		ap;
+
+	if (!pset.quiet)
+	{
+		if (pset.popt.topt.format == PRINT_HTML)
+			fputs("<p>", pset.queryFout);
+
+		va_start(ap, fmt);
+		vfprintf(pset.queryFout, fmt, ap);
+		va_end(ap);
+
+		if (pset.popt.topt.format == PRINT_HTML)
+			fputs("</p>\n", pset.queryFout);
+		else
+			fputs("\n", pset.queryFout);
+	}
+
+	if (pset.logfile)
+	{
+		va_start(ap, fmt);
+		vfprintf(pset.logfile, fmt, ap);
+		va_end(ap);
+		fputs("\n", pset.logfile);
+	}
+}
 
 
 /*
@@ -129,7 +162,7 @@ do_lo_export(const char *loid_arg, const char *filename_arg)
 	if (!finish_lo_xact("\\lo_export", own_transaction))
 		return false;
 
-	fprintf(pset.queryFout, "lo_export\n");
+	print_lo_result("lo_export");
 
 	return true;
 }
@@ -189,7 +222,8 @@ do_lo_import(const char *filename_arg, const char *comment_arg)
 	if (!finish_lo_xact("\\lo_import", own_transaction))
 		return false;
 
-	fprintf(pset.queryFout, "lo_import %u\n", loid);
+	print_lo_result("lo_import %u", loid);
+
 	sprintf(oidbuf, "%u", loid);
 	SetVariable(pset.vars, "LASTOID", oidbuf);
 
@@ -225,7 +259,7 @@ do_lo_unlink(const char *loid_arg)
 	if (!finish_lo_xact("\\lo_unlink", own_transaction))
 		return false;
 
-	fprintf(pset.queryFout, "lo_unlink %u\n", loid);
+	print_lo_result("lo_unlink %u", loid);
 
 	return true;
 }
@@ -244,12 +278,28 @@ do_lo_list(void)
 	char		buf[1024];
 	printQueryOpt myopt = pset.popt;
 
-	snprintf(buf, sizeof(buf),
-			 "SELECT loid as \"ID\",\n"
+	if (pset.sversion >= 90000)
+	{
+		snprintf(buf, sizeof(buf),
+				 "SELECT oid as \"%s\",\n"
+				 "  pg_catalog.pg_get_userbyid(lomowner) as \"%s\",\n"
+			"  pg_catalog.obj_description(oid, 'pg_largeobject') as \"%s\"\n"
+				 "  FROM pg_catalog.pg_largeobject_metadata "
+				 "  ORDER BY oid",
+				 gettext_noop("ID"),
+				 gettext_noop("Owner"),
+				 gettext_noop("Description"));
+	}
+	else
+	{
+		snprintf(buf, sizeof(buf),
+				 "SELECT loid as \"%s\",\n"
 		   "  pg_catalog.obj_description(loid, 'pg_largeobject') as \"%s\"\n"
 			 "FROM (SELECT DISTINCT loid FROM pg_catalog.pg_largeobject) x\n"
-			 "ORDER BY 1",
-			 _("Description"));
+				 "ORDER BY 1",
+				 gettext_noop("ID"),
+				 gettext_noop("Description"));
+	}
 
 	res = PSQLexec(buf, false);
 	if (!res)
@@ -258,6 +308,7 @@ do_lo_list(void)
 	myopt.topt.tuples_only = false;
 	myopt.nullPrint = NULL;
 	myopt.title = _("Large objects");
+	myopt.translate_header = true;
 
 	printQuery(res, &myopt, pset.queryFout, pset.logfile);
 

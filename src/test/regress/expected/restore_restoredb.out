@@ -1,0 +1,464 @@
+-- start_ignore
+-- find version info
+select version();
+                                                                                                                    version                                                                                                                    
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ PostgreSQL 8.2.4 (Greenplum Database cvs Head build dev build ) on i386-apple-darwin8.9.1, compiled by GCC i686-apple-darwin8-gcc-4.0.1 (GCC) 4.0.1 (Apple Computer, Inc. build 5367) compiled on Jun  5 2007 12:29:58 (with assert checking)
+(1 row)
+
+\! gp_restore --version
+gp_restore (Greenplum Database) 8.2.4
+\! pg_restore --version
+pg_restore (Greenplum Database) 8.2.4
+drop database if exists regressrestoretest1;
+NOTICE:  database "regressrestoretest1" does not exist, skipping
+create database regressrestoretest1;
+\! gp_restore --gp-d=/Users/ftian/work/crashburn/cdb2/cdb-pg/src/test/regress/results/gpdump_datatype_dump --gp-k=`find /Users/ftian/work/crashburn/cdb2/cdb-pg/src/test/regress/results/gpdump_datatype_dump/gp* -exec basename '{}' \; | head -1 | cut -f 1 -d '.' | cut -f 5 -d '_'` -d regressrestoretest1
+20070607:14:51:18|gp_restore-[INFO]:-Analyzed command line options.
+20070607:14:51:18|gp_restore-[INFO]:-Connecting to master segment on host localhost port 13000 database regressrestoretest1.
+20070607:14:51:18|gp_restore-[INFO]:-Reading Greenplum Database configuration info from master segment database.
+20070607:14:51:18|gp_restore-[INFO]:-Preparing to restore the following segments:
+20070607:14:51:18|gp_restore-[INFO]:-Master (dbid 1)
+20070607:14:51:18|gp_restore-[INFO]:-Primary segment 0 (dbid 2)
+20070607:14:51:18|gp_restore-[INFO]:-Primary segment 1 (dbid 3)
+20070607:14:51:18|gp_restore-[INFO]:-Starting to restore the master database.
+20070607:14:51:18|gp_restore-[INFO]:-Creating thread to restore master database: host localhost port 13000 database regressrestoretest1
+20070607:14:51:18|gp_restore-[INFO]:-Listening for messages from dbid 1 server (source) for dbid 1 restore
+20070607:14:51:18|gp_restore-[INFO]:-Successfully launched Greenplum Database restore on dbid 1 to restore dbid 1
+20070607:14:51:22|gp_restore-[INFO]:-restore started for source dbid 1, target dbid 1 on host localhost
+20070607:14:51:22|gp_restore-[INFO]:-restore succeeded for source dbid 1, target dbid 1 on host localhost
+20070607:14:51:22|gp_restore-[INFO]:-Successfully restored master database: host localhost port 13000 database regressrestoretest1
+20070607:14:51:22|gp_restore-[INFO]:-Creating thread to restore dbid 2 (localhost:13002) from backup file on dbid 2 (localhost:13002)
+20070607:14:51:22|gp_restore-[INFO]:-Creating thread to restore dbid 3 (localhost:13003) from backup file on dbid 3 (localhost:13003)
+20070607:14:51:22|gp_restore-[INFO]:-Waiting for all remote gp_restore_agent programs to finish.
+20070607:14:51:22|gp_restore-[INFO]:-Listening for messages from dbid 2 server (source) for dbid 2 restore
+20070607:14:51:22|gp_restore-[INFO]:-Listening for messages from dbid 3 server (source) for dbid 3 restore
+20070607:14:51:22|gp_restore-[INFO]:-Successfully launched Greenplum Database restore on dbid 3 to restore dbid 3
+20070607:14:51:22|gp_restore-[INFO]:-Successfully launched Greenplum Database restore on dbid 2 to restore dbid 2
+20070607:14:51:26|gp_restore-[INFO]:-20070607:14:51:26|gp_restore-[INFO]:-restore started for source dbid 2, target dbid 2 on host localhost
+restore started for source dbid 3, target dbid 3 on host localhost
+20070607:14:51:26|gp_restore-[INFO]:-20070607:14:51:26|gp_restore-[INFO]:-restore succeeded for source dbid 2, target dbid 2 on host localhost
+restore succeeded for source dbid 3, target dbid 3 on host localhost
+20070607:14:51:26|gp_restore-[INFO]:-All remote gp_restore_agent programs are finished.
+20070607:14:51:26|gp_restore-[INFO]:-Report results also written to /Users/ftian/demo/main_data/testdb-1/gp_restore_20070607145023.rpt.
+
+Greenplum Database Restore Report
+Timestamp Key: 20070607145023
+gp_restore Command Line: --gp-d=/Users/ftian/work/crashburn/cdb2/cdb-pg/src/test/regress/results/gpdump_datatype_dump --gp-k=20070607145023 -d regressrestoretest1
+Pass through Command Line Options: None
+Compression Program: None
+
+Individual Results
+	Restore of regressrestoretest1 on dbid 1 (localhost:13000) from file on dbid 1 (localhost:13000) /Users/ftian/work/crashburn/cdb2/cdb-pg/src/test/regress/results/gpdump_datatype_dump/gp_dump_1_1_20070607145023: Succeeded 
+	Restore of regressrestoretest1 on dbid 2 (localhost:13002) from file on dbid 2 (localhost:13002) /Users/ftian/work/crashburn/cdb2/cdb-pg/src/test/regress/results/gpdump_datatype_dump/gp_dump_0_2_20070607145023: Succeeded 
+	Restore of regressrestoretest1 on dbid 3 (localhost:13003) from file on dbid 3 (localhost:13003) /Users/ftian/work/crashburn/cdb2/cdb-pg/src/test/regress/results/gpdump_datatype_dump/gp_dump_0_3_20070607145023: Succeeded 
+
+gp_restore  utility finished successfully.
+drop database if exists regressrestoretest2;
+NOTICE:  database "regressrestoretest2" does not exist, skipping
+create database regressrestoretest2;
+\! gp_restore -s --gp-d=/Users/ftian/work/crashburn/cdb2/cdb-pg/src/test/regress/results/gpdump_datatype_schemadump --gp-k=`find /Users/ftian/work/crashburn/cdb2/cdb-pg/src/test/regress/results/gpdump_datatype_schemadump/gp* -exec basename '{}' \; | head -1 | cut -f 1 -d '.' | cut -f 5 -d '_'` -d regressrestoretest2
+20070607:14:51:28|gp_restore-[INFO]:-Analyzed command line options.
+20070607:14:51:28|gp_restore-[INFO]:-Connecting to master segment on host localhost port 13000 database regressrestoretest2.
+20070607:14:51:28|gp_restore-[INFO]:-Reading Greenplum Database configuration info from master segment database.
+20070607:14:51:28|gp_restore-[INFO]:-Preparing to restore the following segments:
+20070607:14:51:28|gp_restore-[INFO]:-Master (dbid 1)
+20070607:14:51:28|gp_restore-[INFO]:-Primary segment 0 (dbid 2)
+20070607:14:51:28|gp_restore-[INFO]:-Primary segment 1 (dbid 3)
+20070607:14:51:28|gp_restore-[INFO]:-Starting to restore the master database.
+20070607:14:51:28|gp_restore-[INFO]:-Creating thread to restore master database: host localhost port 13000 database regressrestoretest2
+20070607:14:51:28|gp_restore-[INFO]:-Listening for messages from dbid 1 server (source) for dbid 1 restore
+20070607:14:51:28|gp_restore-[INFO]:-Successfully launched Greenplum Database restore on dbid 1 to restore dbid 1
+20070607:14:51:32|gp_restore-[INFO]:-restore started for source dbid 1, target dbid 1 on host localhost
+20070607:14:51:32|gp_restore-[INFO]:-restore succeeded for source dbid 1, target dbid 1 on host localhost
+20070607:14:51:32|gp_restore-[INFO]:-Successfully restored master database: host localhost port 13000 database regressrestoretest2
+\! gp_restore -a --gp-d=/Users/ftian/work/crashburn/cdb2/cdb-pg/src/test/regress/results/gpdump_datatype_datadump --gp-k=`find /Users/ftian/work/crashburn/cdb2/cdb-pg/src/test/regress/results/gpdump_datatype_datadump/gp* -exec basename '{}' \; | head -1 | cut -f 1 -d '.' | cut -f 5 -d '_'` -d regressrestoretest2
+20070607:14:51:55|gp_restore-[INFO]:-Analyzed command line options.
+20070607:14:51:55|gp_restore-[INFO]:-Connecting to master segment on host localhost port 13000 database regressrestoretest2.
+20070607:14:51:55|gp_restore-[INFO]:-Reading Greenplum Database configuration info from master segment database.
+20070607:14:51:55|gp_restore-[INFO]:-Preparing to restore the following segments:
+20070607:14:51:55|gp_restore-[INFO]:-Primary segment 0 (dbid 2)
+20070607:14:51:55|gp_restore-[INFO]:-Primary segment 1 (dbid 3)
+20070607:14:51:55|gp_restore-[INFO]:-Creating thread to restore dbid 2 (localhost:13002) from backup file on dbid 2 (localhost:13002)
+20070607:14:51:55|gp_restore-[INFO]:-Creating thread to restore dbid 3 (localhost:13003) from backup file on dbid 3 (localhost:13003)
+20070607:14:51:55|gp_restore-[INFO]:-Waiting for all remote gp_restore_agent programs to finish.
+20070607:14:51:55|gp_restore-[INFO]:-Listening for messages from dbid 2 server (source) for dbid 2 restore
+20070607:14:51:55|gp_restore-[INFO]:-Listening for messages from dbid 3 server (source) for dbid 3 restore
+20070607:14:51:55|gp_restore-[INFO]:-Successfully launched Greenplum Database restore on dbid 2 to restore dbid 2
+20070607:14:51:55|gp_restore-[INFO]:-Successfully launched Greenplum Database restore on dbid 3 to restore dbid 3
+20070607:14:51:59|gp_restore-[INFO]:-restore started for source dbid 2, target dbid 2 on host localhost
+20070607:14:51:59|gp_restore-[INFO]:-restore succeeded for source dbid 2, target dbid 2 on host localhost
+20070607:14:51:59|gp_restore-[INFO]:-restore started for source dbid 3, target dbid 3 on host localhost
+20070607:14:51:59|gp_restore-[INFO]:-restore succeeded for source dbid 3, target dbid 3 on host localhost
+20070607:14:51:59|gp_restore-[INFO]:-All remote gp_restore_agent programs are finished.
+20070607:14:51:59|gp_restore-[INFO]:-Report results also written to /Users/ftian/demo/main_data/testdb-1/gp_restore_20070607145027.rpt.
+
+Greenplum Database Restore Report
+Timestamp Key: 20070607145027
+gp_restore Command Line: -a --gp-d=/Users/ftian/work/crashburn/cdb2/cdb-pg/src/test/regress/results/gpdump_datatype_datadump --gp-k=20070607145027 -d regressrestoretest2
+Pass through Command Line Options: -a
+Compression Program: None
+
+Individual Results
+	Restore of regressrestoretest2 on dbid 2 (localhost:13002) from file on dbid 2 (localhost:13002) /Users/ftian/work/crashburn/cdb2/cdb-pg/src/test/regress/results/gpdump_datatype_datadump/gp_dump_0_2_20070607145027: Succeeded 
+	Restore of regressrestoretest2 on dbid 3 (localhost:13003) from file on dbid 3 (localhost:13003) /Users/ftian/work/crashburn/cdb2/cdb-pg/src/test/regress/results/gpdump_datatype_datadump/gp_dump_0_3_20070607145027: Succeeded 
+
+gp_restore  utility finished successfully.
+drop database if exists regressrestoretest3;
+NOTICE:  database "regressrestoretest3" does not exist, skipping
+create database regressrestoretest3;
+\! gp_restore --gp-d=/Users/ftian/work/crashburn/cdb2/cdb-pg/src/test/regress/results/gpdump_datatype_dump_s6 --gp-k=`find /Users/ftian/work/crashburn/cdb2/cdb-pg/src/test/regress/results/gpdump_datatype_dump_s6/gp* -exec basename '{}' \; | head -1 | cut -f 1 -d '.' | cut -f 5 -d '_'` -d regressrestoretest3
+20070607:14:52:00|gp_restore-[INFO]:-Analyzed command line options.
+20070607:14:52:00|gp_restore-[INFO]:-Connecting to master segment on host localhost port 13000 database regressrestoretest3.
+20070607:14:52:00|gp_restore-[INFO]:-Reading Greenplum Database configuration info from master segment database.
+20070607:14:52:00|gp_restore-[INFO]:-Preparing to restore the following segments:
+20070607:14:52:00|gp_restore-[INFO]:-Master (dbid 1)
+20070607:14:52:00|gp_restore-[INFO]:-Primary segment 0 (dbid 2)
+20070607:14:52:00|gp_restore-[INFO]:-Primary segment 1 (dbid 3)
+20070607:14:52:00|gp_restore-[INFO]:-Starting to restore the master database.
+20070607:14:52:00|gp_restore-[INFO]:-Creating thread to restore master database: host localhost port 13000 database regressrestoretest3
+20070607:14:52:01|gp_restore-[INFO]:-Listening for messages from dbid 1 server (source) for dbid 1 restore
+20070607:14:52:01|gp_restore-[INFO]:-Successfully launched Greenplum Database restore on dbid 1 to restore dbid 1
+20070607:14:52:05|gp_restore-[INFO]:-restore started for source dbid 1, target dbid 1 on host localhost
+20070607:14:52:05|gp_restore-[INFO]:-restore succeeded for source dbid 1, target dbid 1 on host localhost
+20070607:14:52:05|gp_restore-[INFO]:-Successfully restored master database: host localhost port 13000 database regressrestoretest3
+20070607:14:52:05|gp_restore-[INFO]:-Creating thread to restore dbid 2 (localhost:13002) from backup file on dbid 2 (localhost:13002)
+20070607:14:52:05|gp_restore-[INFO]:-Creating thread to restore dbid 3 (localhost:13003) from backup file on dbid 3 (localhost:13003)
+20070607:14:52:05|gp_restore-[INFO]:-Waiting for all remote gp_restore_agent programs to finish.
+20070607:14:52:05|gp_restore-[INFO]:-Listening for messages from dbid 2 server (source) for dbid 2 restore
+20070607:14:52:05|gp_restore-[INFO]:-Listening for messages from dbid 3 server (source) for dbid 3 restore
+20070607:14:52:05|gp_restore-[INFO]:-Successfully launched Greenplum Database restore on dbid 3 to restore dbid 3
+20070607:14:52:05|gp_restore-[INFO]:-Successfully launched Greenplum Database restore on dbid 2 to restore dbid 2
+20070607:14:52:09|gp_restore-[INFO]:-20070607:14:52:09|gp_restore-[INFO]:-restore started for source dbid 3, target dbid 3 on host localhost
+restore started for source dbid 2, target dbid 2 on host localhost
+20070607:14:52:09|gp_restore-[INFO]:-20070607:14:52:09|gp_restore-[INFO]:-restore succeeded for source dbid 3, target dbid 3 on host localhost
+restore succeeded for source dbid 2, target dbid 2 on host localhost
+20070607:14:52:09|gp_restore-[INFO]:-All remote gp_restore_agent programs are finished.
+20070607:14:52:09|gp_restore-[INFO]:-Report results also written to /Users/ftian/demo/main_data/testdb-1/gp_restore_20070607145039.rpt.
+
+Greenplum Database Restore Report
+Timestamp Key: 20070607145039
+gp_restore Command Line: --gp-d=/Users/ftian/work/crashburn/cdb2/cdb-pg/src/test/regress/results/gpdump_datatype_dump_s6 --gp-k=20070607145039 -d regressrestoretest3
+Pass through Command Line Options: None
+Compression Program: None
+
+Individual Results
+	Restore of regressrestoretest3 on dbid 1 (localhost:13000) from file on dbid 1 (localhost:13000) /Users/ftian/work/crashburn/cdb2/cdb-pg/src/test/regress/results/gpdump_datatype_dump_s6/gp_dump_1_1_20070607145039: Succeeded 
+	Restore of regressrestoretest3 on dbid 2 (localhost:13002) from file on dbid 2 (localhost:13002) /Users/ftian/work/crashburn/cdb2/cdb-pg/src/test/regress/results/gpdump_datatype_dump_s6/gp_dump_0_2_20070607145039: Succeeded 
+	Restore of regressrestoretest3 on dbid 3 (localhost:13003) from file on dbid 3 (localhost:13003) /Users/ftian/work/crashburn/cdb2/cdb-pg/src/test/regress/results/gpdump_datatype_dump_s6/gp_dump_0_3_20070607145039: Succeeded 
+
+gp_restore  utility finished successfully.
+drop database if exists regressrestoretest4;
+NOTICE:  database "regressrestoretest4" does not exist, skipping
+create database regressrestoretest4;
+\! gp_restore --gp-d=/Users/ftian/work/crashburn/cdb2/cdb-pg/src/test/regress/results/gpdump_datatype_dump_t1 --gp-k=`find /Users/ftian/work/crashburn/cdb2/cdb-pg/src/test/regress/results/gpdump_datatype_dump_t1/gp* -exec basename '{}' \; | head -1 | cut -f 1 -d '.' | cut -f 5 -d '_'` -d regressrestoretest4
+20070607:14:52:10|gp_restore-[INFO]:-Analyzed command line options.
+20070607:14:52:10|gp_restore-[INFO]:-Connecting to master segment on host localhost port 13000 database regressrestoretest4.
+20070607:14:52:10|gp_restore-[INFO]:-Reading Greenplum Database configuration info from master segment database.
+20070607:14:52:10|gp_restore-[INFO]:-Preparing to restore the following segments:
+20070607:14:52:10|gp_restore-[INFO]:-Master (dbid 1)
+20070607:14:52:10|gp_restore-[INFO]:-Primary segment 0 (dbid 2)
+20070607:14:52:10|gp_restore-[INFO]:-Primary segment 1 (dbid 3)
+20070607:14:52:10|gp_restore-[INFO]:-Starting to restore the master database.
+20070607:14:52:10|gp_restore-[INFO]:-Creating thread to restore master database: host localhost port 13000 database regressrestoretest4
+20070607:14:52:10|gp_restore-[INFO]:-Listening for messages from dbid 1 server (source) for dbid 1 restore
+20070607:14:52:10|gp_restore-[INFO]:-Successfully launched Greenplum Database restore on dbid 1 to restore dbid 1
+20070607:14:52:14|gp_restore-[INFO]:-restore started for source dbid 1, target dbid 1 on host localhost
+20070607:14:52:14|gp_restore-[INFO]:-restore succeeded for source dbid 1, target dbid 1 on host localhost
+20070607:14:52:14|gp_restore-[INFO]:-Successfully restored master database: host localhost port 13000 database regressrestoretest4
+20070607:14:52:14|gp_restore-[INFO]:-Creating thread to restore dbid 2 (localhost:13002) from backup file on dbid 2 (localhost:13002)
+20070607:14:52:14|gp_restore-[INFO]:-Creating thread to restore dbid 3 (localhost:13003) from backup file on dbid 3 (localhost:13003)
+20070607:14:52:14|gp_restore-[INFO]:-Waiting for all remote gp_restore_agent programs to finish.
+20070607:14:52:14|gp_restore-[INFO]:-Listening for messages from dbid 2 server (source) for dbid 2 restore
+20070607:14:52:14|gp_restore-[INFO]:-Listening for messages from dbid 3 server (source) for dbid 3 restore
+20070607:14:52:14|gp_restore-[INFO]:-Successfully launched Greenplum Database restore on dbid 3 to restore dbid 3
+20070607:14:52:14|gp_restore-[INFO]:-Successfully launched Greenplum Database restore on dbid 2 to restore dbid 2
+20070607:14:52:18|gp_restore-[INFO]:-restore started for source dbid 3, target dbid 3 on host localhost
+20070607:14:52:18|gp_restore-[INFO]:-restore succeeded for source dbid 3, target dbid 3 on host localhost
+20070607:14:52:18|gp_restore-[INFO]:-restore started for source dbid 2, target dbid 2 on host localhost
+20070607:14:52:18|gp_restore-[INFO]:-restore succeeded for source dbid 2, target dbid 2 on host localhost
+20070607:14:52:18|gp_restore-[INFO]:-All remote gp_restore_agent programs are finished.
+20070607:14:52:18|gp_restore-[INFO]:-Report results also written to /Users/ftian/demo/main_data/testdb-1/gp_restore_20070607145048.rpt.
+
+Greenplum Database Restore Report
+Timestamp Key: 20070607145048
+gp_restore Command Line: --gp-d=/Users/ftian/work/crashburn/cdb2/cdb-pg/src/test/regress/results/gpdump_datatype_dump_t1 --gp-k=20070607145048 -d regressrestoretest4
+Pass through Command Line Options: None
+Compression Program: None
+
+Individual Results
+	Restore of regressrestoretest4 on dbid 1 (localhost:13000) from file on dbid 1 (localhost:13000) /Users/ftian/work/crashburn/cdb2/cdb-pg/src/test/regress/results/gpdump_datatype_dump_t1/gp_dump_1_1_20070607145048: Succeeded 
+	Restore of regressrestoretest4 on dbid 2 (localhost:13002) from file on dbid 2 (localhost:13002) /Users/ftian/work/crashburn/cdb2/cdb-pg/src/test/regress/results/gpdump_datatype_dump_t1/gp_dump_0_2_20070607145048: Succeeded 
+	Restore of regressrestoretest4 on dbid 3 (localhost:13003) from file on dbid 3 (localhost:13003) /Users/ftian/work/crashburn/cdb2/cdb-pg/src/test/regress/results/gpdump_datatype_dump_t1/gp_dump_0_3_20070607145048: Succeeded 
+
+gp_restore  utility finished successfully.
+drop database if exists regressrestoretest5;
+NOTICE:  database "regressrestoretest5" does not exist, skipping
+create database regressrestoretest5;
+\! gp_restore --gp-d=/Users/ftian/work/crashburn/cdb2/cdb-pg/src/test/regress/results/gpdump_datatype_dump_oid --gp-k=`find /Users/ftian/work/crashburn/cdb2/cdb-pg/src/test/regress/results/gpdump_datatype_dump_oid/gp* -exec basename '{}' \; | head -1 | cut -f 1 -d '.' | cut -f 5 -d '_'` -d regressrestoretest5
+20070607:14:52:21|gp_restore-[INFO]:-Analyzed command line options.
+20070607:14:52:21|gp_restore-[INFO]:-Connecting to master segment on host localhost port 13000 database regressrestoretest5.
+20070607:14:52:21|gp_restore-[INFO]:-Reading Greenplum Database configuration info from master segment database.
+20070607:14:52:21|gp_restore-[INFO]:-Preparing to restore the following segments:
+20070607:14:52:21|gp_restore-[INFO]:-Master (dbid 1)
+20070607:14:52:21|gp_restore-[INFO]:-Primary segment 0 (dbid 2)
+20070607:14:52:21|gp_restore-[INFO]:-Primary segment 1 (dbid 3)
+20070607:14:52:21|gp_restore-[INFO]:-Starting to restore the master database.
+20070607:14:52:21|gp_restore-[INFO]:-Creating thread to restore master database: host localhost port 13000 database regressrestoretest5
+20070607:14:52:21|gp_restore-[INFO]:-Listening for messages from dbid 1 server (source) for dbid 1 restore
+20070607:14:52:21|gp_restore-[INFO]:-Successfully launched Greenplum Database restore on dbid 1 to restore dbid 1
+20070607:14:52:25|gp_restore-[INFO]:-restore started for source dbid 1, target dbid 1 on host localhost
+20070607:14:52:25|gp_restore-[INFO]:-restore succeeded for source dbid 1, target dbid 1 on host localhost
+20070607:14:52:25|gp_restore-[INFO]:-Successfully restored master database: host localhost port 13000 database regressrestoretest5
+20070607:14:52:25|gp_restore-[INFO]:-Creating thread to restore dbid 2 (localhost:13002) from backup file on dbid 2 (localhost:13002)
+20070607:14:52:25|gp_restore-[INFO]:-Creating thread to restore dbid 3 (localhost:13003) from backup file on dbid 3 (localhost:13003)
+20070607:14:52:25|gp_restore-[INFO]:-Waiting for all remote gp_restore_agent programs to finish.
+20070607:14:52:25|gp_restore-[INFO]:-Listening for messages from dbid 2 server (source) for dbid 2 restore
+20070607:14:52:25|gp_restore-[INFO]:-Successfully launched Greenplum Database restore on dbid 2 to restore dbid 2
+20070607:14:52:25|gp_restore-[INFO]:-Listening for messages from dbid 3 server (source) for dbid 3 restore
+20070607:14:52:25|gp_restore-[INFO]:-Successfully launched Greenplum Database restore on dbid 3 to restore dbid 3
+20070607:14:52:29|gp_restore-[INFO]:-restore started for source dbid 2, target dbid 2 on host localhost
+20070607:14:52:29|gp_restore-[INFO]:-restore succeeded for source dbid 2, target dbid 2 on host localhost
+20070607:14:52:29|gp_restore-[INFO]:-restore started for source dbid 3, target dbid 3 on host localhost
+20070607:14:52:29|gp_restore-[INFO]:-restore succeeded for source dbid 3, target dbid 3 on host localhost
+20070607:14:52:29|gp_restore-[INFO]:-All remote gp_restore_agent programs are finished.
+20070607:14:52:29|gp_restore-[INFO]:-Report results also written to /Users/ftian/demo/main_data/testdb-1/gp_restore_20070607145052.rpt.
+
+Greenplum Database Restore Report
+Timestamp Key: 20070607145052
+gp_restore Command Line: --gp-d=/Users/ftian/work/crashburn/cdb2/cdb-pg/src/test/regress/results/gpdump_datatype_dump_oid --gp-k=20070607145052 -d regressrestoretest5
+Pass through Command Line Options: None
+Compression Program: None
+
+Individual Results
+	Restore of regressrestoretest5 on dbid 1 (localhost:13000) from file on dbid 1 (localhost:13000) /Users/ftian/work/crashburn/cdb2/cdb-pg/src/test/regress/results/gpdump_datatype_dump_oid/gp_dump_1_1_20070607145052: Succeeded 
+	Restore of regressrestoretest5 on dbid 2 (localhost:13002) from file on dbid 2 (localhost:13002) /Users/ftian/work/crashburn/cdb2/cdb-pg/src/test/regress/results/gpdump_datatype_dump_oid/gp_dump_0_2_20070607145052: Succeeded 
+	Restore of regressrestoretest5 on dbid 3 (localhost:13003) from file on dbid 3 (localhost:13003) /Users/ftian/work/crashburn/cdb2/cdb-pg/src/test/regress/results/gpdump_datatype_dump_oid/gp_dump_0_3_20070607145052: Succeeded 
+
+gp_restore  utility finished successfully.
+drop database if exists regressrestoretest6;
+NOTICE:  database "regressrestoretest6" does not exist, skipping
+create database regressrestoretest6;
+\! gp_restore --gp-d=/Users/ftian/work/crashburn/cdb2/cdb-pg/src/test/regress/results/gpdump_datatype_dump_noowner --gp-k=`find /Users/ftian/work/crashburn/cdb2/cdb-pg/src/test/regress/results/gpdump_datatype_dump_noowner/gp* -exec basename '{}' \; | head -1 | cut -f 1 -d '.' | cut -f 5 -d '_'` -d regressrestoretest6
+20070607:14:52:31|gp_restore-[INFO]:-Analyzed command line options.
+20070607:14:52:31|gp_restore-[INFO]:-Connecting to master segment on host localhost port 13000 database regressrestoretest6.
+20070607:14:52:31|gp_restore-[INFO]:-Reading Greenplum Database configuration info from master segment database.
+20070607:14:52:31|gp_restore-[INFO]:-Preparing to restore the following segments:
+20070607:14:52:31|gp_restore-[INFO]:-Master (dbid 1)
+20070607:14:52:31|gp_restore-[INFO]:-Primary segment 0 (dbid 2)
+20070607:14:52:31|gp_restore-[INFO]:-Primary segment 1 (dbid 3)
+20070607:14:52:31|gp_restore-[INFO]:-Starting to restore the master database.
+20070607:14:52:31|gp_restore-[INFO]:-Creating thread to restore master database: host localhost port 13000 database regressrestoretest6
+20070607:14:52:31|gp_restore-[INFO]:-Listening for messages from dbid 1 server (source) for dbid 1 restore
+20070607:14:52:31|gp_restore-[INFO]:-Successfully launched Greenplum Database restore on dbid 1 to restore dbid 1
+20070607:14:52:35|gp_restore-[INFO]:-restore started for source dbid 1, target dbid 1 on host localhost
+20070607:14:52:35|gp_restore-[INFO]:-restore succeeded for source dbid 1, target dbid 1 on host localhost
+20070607:14:52:35|gp_restore-[INFO]:-Successfully restored master database: host localhost port 13000 database regressrestoretest6
+20070607:14:52:35|gp_restore-[INFO]:-Creating thread to restore dbid 2 (localhost:13002) from backup file on dbid 2 (localhost:13002)
+20070607:14:52:35|gp_restore-[INFO]:-Creating thread to restore dbid 3 (localhost:13003) from backup file on dbid 3 (localhost:13003)
+20070607:14:52:35|gp_restore-[INFO]:-Waiting for all remote gp_restore_agent programs to finish.
+20070607:14:52:35|gp_restore-[INFO]:-Listening for messages from dbid 2 server (source) for dbid 2 restore
+20070607:14:52:35|gp_restore-[INFO]:-Successfully launched Greenplum Database restore on dbid 2 to restore dbid 2
+20070607:14:52:35|gp_restore-[INFO]:-Listening for messages from dbid 3 server (source) for dbid 3 restore
+20070607:14:52:35|gp_restore-[INFO]:-Successfully launched Greenplum Database restore on dbid 3 to restore dbid 3
+20070607:14:52:39|gp_restore-[INFO]:-restore started for source dbid 2, target dbid 2 on host localhost
+20070607:14:52:39|gp_restore-[INFO]:-restore succeeded for source dbid 2, target dbid 2 on host localhost
+20070607:14:52:39|gp_restore-[INFO]:-restore started for source dbid 3, target dbid 3 on host localhost
+20070607:14:52:39|gp_restore-[INFO]:-restore succeeded for source dbid 3, target dbid 3 on host localhost
+20070607:14:52:39|gp_restore-[INFO]:-All remote gp_restore_agent programs are finished.
+20070607:14:52:39|gp_restore-[INFO]:-Report results also written to /Users/ftian/demo/main_data/testdb-1/gp_restore_20070607145056.rpt.
+
+Greenplum Database Restore Report
+Timestamp Key: 20070607145056
+gp_restore Command Line: --gp-d=/Users/ftian/work/crashburn/cdb2/cdb-pg/src/test/regress/results/gpdump_datatype_dump_noowner --gp-k=20070607145056 -d regressrestoretest6
+Pass through Command Line Options: None
+Compression Program: None
+
+Individual Results
+	Restore of regressrestoretest6 on dbid 1 (localhost:13000) from file on dbid 1 (localhost:13000) /Users/ftian/work/crashburn/cdb2/cdb-pg/src/test/regress/results/gpdump_datatype_dump_noowner/gp_dump_1_1_20070607145056: Succeeded 
+	Restore of regressrestoretest6 on dbid 2 (localhost:13002) from file on dbid 2 (localhost:13002) /Users/ftian/work/crashburn/cdb2/cdb-pg/src/test/regress/results/gpdump_datatype_dump_noowner/gp_dump_0_2_20070607145056: Succeeded 
+	Restore of regressrestoretest6 on dbid 3 (localhost:13003) from file on dbid 3 (localhost:13003) /Users/ftian/work/crashburn/cdb2/cdb-pg/src/test/regress/results/gpdump_datatype_dump_noowner/gp_dump_0_3_20070607145056: Succeeded 
+
+gp_restore  utility finished successfully.
+drop database if exists regressrestoretest7;
+NOTICE:  database "regressrestoretest7" does not exist, skipping
+create database regressrestoretest7;
+\! gp_restore --gp-c --gp-d=/Users/ftian/work/crashburn/cdb2/cdb-pg/src/test/regress/results/gpdump_datatype_dump_zip --gp-k=`find /Users/ftian/work/crashburn/cdb2/cdb-pg/src/test/regress/results/gpdump_datatype_dump_zip/gp* -exec basename '{}' \; | head -1 | cut -f 1 -d '.' | cut -f 5 -d '_'` -d regressrestoretest7
+20070607:14:52:41|gp_restore-[INFO]:-Analyzed command line options.
+20070607:14:52:41|gp_restore-[INFO]:-Connecting to master segment on host localhost port 13000 database regressrestoretest7.
+20070607:14:52:41|gp_restore-[INFO]:-Reading Greenplum Database configuration info from master segment database.
+20070607:14:52:41|gp_restore-[INFO]:-Preparing to restore the following segments:
+20070607:14:52:41|gp_restore-[INFO]:-Master (dbid 1)
+20070607:14:52:41|gp_restore-[INFO]:-Primary segment 0 (dbid 2)
+20070607:14:52:41|gp_restore-[INFO]:-Primary segment 1 (dbid 3)
+20070607:14:52:41|gp_restore-[INFO]:-Starting to restore the master database.
+20070607:14:52:41|gp_restore-[INFO]:-Creating thread to restore master database: host localhost port 13000 database regressrestoretest7
+20070607:14:52:41|gp_restore-[INFO]:-Listening for messages from dbid 1 server (source) for dbid 1 restore
+20070607:14:52:41|gp_restore-[INFO]:-Successfully launched Greenplum Database restore on dbid 1 to restore dbid 1
+20070607:14:52:45|gp_restore-[INFO]:-restore started for source dbid 1, target dbid 1 on host localhost
+20070607:14:52:45|gp_restore-[INFO]:-restore succeeded for source dbid 1, target dbid 1 on host localhost
+20070607:14:52:45|gp_restore-[INFO]:-Successfully restored master database: host localhost port 13000 database regressrestoretest7
+20070607:14:52:45|gp_restore-[INFO]:-Creating thread to restore dbid 2 (localhost:13002) from backup file on dbid 2 (localhost:13002)
+20070607:14:52:45|gp_restore-[INFO]:-Creating thread to restore dbid 3 (localhost:13003) from backup file on dbid 3 (localhost:13003)
+20070607:14:52:45|gp_restore-[INFO]:-Waiting for all remote gp_restore_agent programs to finish.
+20070607:14:52:46|gp_restore-[INFO]:-Listening for messages from dbid 2 server (source) for dbid 2 restore
+20070607:14:52:46|gp_restore-[INFO]:-Successfully launched Greenplum Database restore on dbid 2 to restore dbid 2
+20070607:14:52:46|gp_restore-[INFO]:-Listening for messages from dbid 3 server (source) for dbid 3 restore
+20070607:14:52:46|gp_restore-[INFO]:-Successfully launched Greenplum Database restore on dbid 3 to restore dbid 3
+20070607:14:52:50|gp_restore-[INFO]:-restore started for source dbid 2, target dbid 2 on host localhost
+20070607:14:52:50|gp_restore-[INFO]:-restore succeeded for source dbid 2, target dbid 2 on host localhost
+20070607:14:52:50|gp_restore-[INFO]:-restore started for source dbid 3, target dbid 3 on host localhost
+20070607:14:52:50|gp_restore-[INFO]:-restore succeeded for source dbid 3, target dbid 3 on host localhost
+20070607:14:52:50|gp_restore-[INFO]:-All remote gp_restore_agent programs are finished.
+20070607:14:52:50|gp_restore-[INFO]:-Report results also written to /Users/ftian/demo/main_data/testdb-1/gp_restore_20070607145100.rpt.
+
+Greenplum Database Restore Report
+Timestamp Key: 20070607145100
+gp_restore Command Line: --gp-c --gp-d=/Users/ftian/work/crashburn/cdb2/cdb-pg/src/test/regress/results/gpdump_datatype_dump_zip --gp-k=20070607145100 -d regressrestoretest7
+Pass through Command Line Options: None
+Compression Program: gunzip
+
+Individual Results
+	Restore of regressrestoretest7 on dbid 1 (localhost:13000) from file on dbid 1 (localhost:13000) /Users/ftian/work/crashburn/cdb2/cdb-pg/src/test/regress/results/gpdump_datatype_dump_zip/gp_dump_1_1_20070607145100.gz: Succeeded 
+	Restore of regressrestoretest7 on dbid 2 (localhost:13002) from file on dbid 2 (localhost:13002) /Users/ftian/work/crashburn/cdb2/cdb-pg/src/test/regress/results/gpdump_datatype_dump_zip/gp_dump_0_2_20070607145100.gz: Succeeded 
+	Restore of regressrestoretest7 on dbid 3 (localhost:13003) from file on dbid 3 (localhost:13003) /Users/ftian/work/crashburn/cdb2/cdb-pg/src/test/regress/results/gpdump_datatype_dump_zip/gp_dump_0_3_20070607145100.gz: Succeeded 
+
+gp_restore  utility finished successfully.
+drop database if exists regressrestoretest8;
+NOTICE:  database "regressrestoretest8" does not exist, skipping
+create database regressrestoretest8;
+\! gp_restore --gp-d=/Users/ftian/work/crashburn/cdb2/cdb-pg/src/test/regress/results/gpdump_datatype_dump_seg --gp-k=`find /Users/ftian/work/crashburn/cdb2/cdb-pg/src/test/regress/results/gpdump_datatype_dump_seg/gp* -exec basename '{}' \; | head -1 | cut -f 1 -d '.' | cut -f 5 -d '_'` -d regressrestoretest8
+20070607:14:52:55|gp_restore-[INFO]:-Analyzed command line options.
+20070607:14:52:55|gp_restore-[INFO]:-Connecting to master segment on host localhost port 13000 database regressrestoretest8.
+20070607:14:52:55|gp_restore-[INFO]:-Reading Greenplum Database configuration info from master segment database.
+20070607:14:52:55|gp_restore-[INFO]:-Preparing to restore the following segments:
+20070607:14:52:55|gp_restore-[INFO]:-Master (dbid 1)
+20070607:14:52:55|gp_restore-[INFO]:-Primary segment 0 (dbid 2)
+20070607:14:52:55|gp_restore-[INFO]:-Primary segment 1 (dbid 3)
+20070607:14:52:55|gp_restore-[INFO]:-Starting to restore the master database.
+20070607:14:52:55|gp_restore-[INFO]:-Creating thread to restore master database: host localhost port 13000 database regressrestoretest8
+20070607:14:52:56|gp_restore-[INFO]:-Listening for messages from dbid 1 server (source) for dbid 1 restore
+20070607:14:52:56|gp_restore-[INFO]:-Successfully launched Greenplum Database restore on dbid 1 to restore dbid 1
+20070607:14:53:00|gp_restore-[INFO]:-restore started for source dbid 1, target dbid 1 on host localhost
+20070607:14:53:00|gp_restore-[INFO]:-restore succeeded for source dbid 1, target dbid 1 on host localhost
+20070607:14:53:00|gp_restore-[INFO]:-Successfully restored master database: host localhost port 13000 database regressrestoretest8
+20070607:14:53:00|gp_restore-[INFO]:-Creating thread to restore dbid 2 (localhost:13002) from backup file on dbid 2 (localhost:13002)
+20070607:14:53:00|gp_restore-[INFO]:-Creating thread to restore dbid 3 (localhost:13003) from backup file on dbid 3 (localhost:13003)
+20070607:14:53:00|gp_restore-[INFO]:-Waiting for all remote gp_restore_agent programs to finish.
+20070607:14:53:00|gp_restore-[INFO]:-Listening for messages from dbid 2 server (source) for dbid 2 restore
+20070607:14:53:00|gp_restore-[INFO]:-Listening for messages from dbid 3 server (source) for dbid 3 restore
+WARNING:  problem in alloc set ExprContext: detected write past chunk end in block 0x2848a00, chunk 0x2849de8
+20070607:14:53:00|gp_restore-[ERROR]:-could not start Greenplum Database restore: ERROR:  No Backup FileName could be found to restore dbid 3 from directory /Users/ftian/work/crashburn/cdb2/cdb-pg/src/test/regress/results/gpdump_datatype_dump_seg with backup key 20070607145104
+WARNING:  problem in alloc set ExprContext: detected write past chunk end in block 0x2848a00, chunk 0x2849de8
+20070607:14:53:00|gp_restore-[ERROR]:-could not start Greenplum Database restore: ERROR:  No Backup FileName could be found to restore dbid 2 from directory /Users/ftian/work/crashburn/cdb2/cdb-pg/src/test/regress/results/gpdump_datatype_dump_seg with backup key 20070607145104
+20070607:14:53:00|gp_restore-[INFO]:-All remote gp_restore_agent programs are finished.
+20070607:14:53:00|gp_restore-[INFO]:-Report results also written to /Users/ftian/demo/main_data/testdb-1/gp_restore_20070607145104.rpt.
+
+Greenplum Database Restore Report
+Timestamp Key: 20070607145104
+gp_restore Command Line: --gp-d=/Users/ftian/work/crashburn/cdb2/cdb-pg/src/test/regress/results/gpdump_datatype_dump_seg --gp-k=20070607145104 -d regressrestoretest8
+Pass through Command Line Options: None
+Compression Program: None
+
+Individual Results
+	Restore of regressrestoretest8 on dbid 1 (localhost:13000) from file on dbid 1 (localhost:13000) /Users/ftian/work/crashburn/cdb2/cdb-pg/src/test/regress/results/gpdump_datatype_dump_seg/gp_dump_1_1_20070607145104: Succeeded 
+	Restore of regressrestoretest8 on dbid 2 (localhost:13002) from file on dbid 2 (localhost:13002) : Failed with error: 
+{ could not start Greenplum Database restore: ERROR:  No Backup FileName could be found to restore dbid 2 from directory /Users/ftian/work/crashburn/cdb2/cdb-pg/src/test/regress/results/gpdump_datatype_dump_seg with backup key 20070607145104
+}
+	Restore of regressrestoretest8 on dbid 3 (localhost:13003) from file on dbid 3 (localhost:13003) : Failed with error: 
+{ could not start Greenplum Database restore: ERROR:  No Backup FileName could be found to restore dbid 3 from directory /Users/ftian/work/crashburn/cdb2/cdb-pg/src/test/regress/results/gpdump_datatype_dump_seg with backup key 20070607145104
+}
+
+gp_restore  utility finished unsuccessfully with  2  failures.
+\echo Now test pg_restore
+Now test pg_restore
+drop database if exists regressrestoretest9;
+NOTICE:  database "regressrestoretest9" does not exist, skipping
+create database regressrestoretest9;
+\! pg_restore -d regressrestoretest9 /Users/ftian/work/crashburn/cdb2/cdb-pg/src/test/regress/results/pgdump_datatype/bkuptest1_fc
+pg_restore: [archiver] could not open input file: No such file or directory
+drop database if exists regressrestoretest10;
+NOTICE:  database "regressrestoretest10" does not exist, skipping
+create database regressrestoretest10;
+\c regressrestoretest10
+\i /Users/ftian/work/crashburn/cdb2/cdb-pg/src/test/regress/results/pgdump_datatype/bkuptest1_fp
+/Users/ftian/work/crashburn/cdb2/cdb-pg/src/test/regress/results/pgdump_datatype/bkuptest1_fp: No such file or directory
+\c regression
+drop database if exists regressrestoretest11;
+NOTICE:  database "regressrestoretest11" does not exist, skipping
+create database regressrestoretest11;
+\! pg_restore -d regressrestoretest11 /Users/ftian/work/crashburn/cdb2/cdb-pg/src/test/regress/results/pgdump_datatype/bkuptest1_ft
+pg_restore: [archiver] could not open input file: No such file or directory
+drop database if exists regressrestoretest12;
+NOTICE:  database "regressrestoretest12" does not exist, skipping
+create database regressrestoretest12;
+\! pg_restore -d regressrestoretest12 /Users/ftian/work/crashburn/cdb2/cdb-pg/src/test/regress/results/pgdump_datatype/bkuptest1_fc_Z
+pg_restore: [archiver] could not open input file: No such file or directory
+drop database if exists regressrestoretest13;
+NOTICE:  database "regressrestoretest13" does not exist, skipping
+create database regressrestoretest13;
+\! pg_restore -d regressrestoretest13 /Users/ftian/work/crashburn/cdb2/cdb-pg/src/test/regress/results/pgdump_datatype/bkuptest1_fc_schema
+pg_restore: [archiver] could not open input file: No such file or directory
+\! pg_restore -d regressrestoretest13 /Users/ftian/work/crashburn/cdb2/cdb-pg/src/test/regress/results/pgdump_datatype/bkuptest1_fc_data
+pg_restore: [archiver] could not open input file: No such file or directory
+drop database if exists regressrestoretest14;
+NOTICE:  database "regressrestoretest14" does not exist, skipping
+create database regressrestoretest14;
+\! pg_restore -d regressrestoretest14 /Users/ftian/work/crashburn/cdb2/cdb-pg/src/test/regress/results/pgdump_datatype/bkuptest1_fc_blobs
+pg_restore: [archiver] could not open input file: No such file or directory
+drop database if exists regressrestoretest15;
+NOTICE:  database "regressrestoretest15" does not exist, skipping
+create database regressrestoretest15;
+\! pg_restore -d regressrestoretest15 /Users/ftian/work/crashburn/cdb2/cdb-pg/src/test/regress/results/pgdump_datatype/bkuptest1_fc_create
+pg_restore: [archiver] could not open input file: No such file or directory
+drop database if exists regressrestoretest16;
+NOTICE:  database "regressrestoretest16" does not exist, skipping
+create database regressrestoretest16;
+\! pg_restore -d regressrestoretest16 /Users/ftian/work/crashburn/cdb2/cdb-pg/src/test/regress/results/pgdump_datatype/bkuptest1_fc_enc
+pg_restore: [archiver] could not open input file: No such file or directory
+drop database if exists regressrestoretest17;
+NOTICE:  database "regressrestoretest17" does not exist, skipping
+create database regressrestoretest17;
+\! pg_restore -d regressrestoretest17 /Users/ftian/work/crashburn/cdb2/cdb-pg/src/test/regress/results/pgdump_datatype/bkuptest1_fc_s6
+pg_restore: [archiver] could not open input file: No such file or directory
+drop database if exists regressrestoretest18;
+NOTICE:  database "regressrestoretest18" does not exist, skipping
+create database regressrestoretest18;
+\! pg_restore -d regressrestoretest18 /Users/ftian/work/crashburn/cdb2/cdb-pg/src/test/regress/results/pgdump_datatype/bkuptest1_fc_nos6
+pg_restore: [archiver] could not open input file: No such file or directory
+drop database if exists regressrestoretest19;
+NOTICE:  database "regressrestoretest19" does not exist, skipping
+create database regressrestoretest19;
+\! pg_restore -d regressrestoretest19 /Users/ftian/work/crashburn/cdb2/cdb-pg/src/test/regress/results/pgdump_datatype/bkuptest1_fc_t1
+pg_restore: [archiver] could not open input file: No such file or directory
+drop database if exists regressrestoretest20;
+NOTICE:  database "regressrestoretest20" does not exist, skipping
+create database regressrestoretest20;
+\! pg_restore -d regressrestoretest20 /Users/ftian/work/crashburn/cdb2/cdb-pg/src/test/regress/results/pgdump_datatype/bkuptest1_fc_not1
+pg_restore: [archiver] could not open input file: No such file or directory
+drop database if exists regressrestoretest21;
+NOTICE:  database "regressrestoretest21" does not exist, skipping
+create database regressrestoretest21;
+\! pg_restore -d regressrestoretest21 /Users/ftian/work/crashburn/cdb2/cdb-pg/src/test/regress/results/pgdump_datatype/bkuptest1_fc_oid
+pg_restore: [archiver] could not open input file: No such file or directory
+drop database if exists regressrestoretest22;
+NOTICE:  database "regressrestoretest22" does not exist, skipping
+create database regressrestoretest22;
+\! pg_restore -d regressrestoretest22 /Users/ftian/work/crashburn/cdb2/cdb-pg/src/test/regress/results/pgdump_datatype/bkuptest1_fc_noowner
+pg_restore: [archiver] could not open input file: No such file or directory
+drop database if exists regressrestoretest23;
+NOTICE:  database "regressrestoretest23" does not exist, skipping
+create database regressrestoretest23;
+\! pg_restore -d regressrestoretest23 /Users/ftian/work/crashburn/cdb2/cdb-pg/src/test/regress/results/pgdump_datatype/bkuptest1_fc_nopriv
+pg_restore: [archiver] could not open input file: No such file or directory
+drop database if exists regressrestoretest24;
+NOTICE:  database "regressrestoretest24" does not exist, skipping
+create database regressrestoretest24;
+\! pg_restore -d regressrestoretest24 /Users/ftian/work/crashburn/cdb2/cdb-pg/src/test/regress/results/pgdump_datatype/bkuptest1_fc_sqlquote
+pg_restore: [archiver] could not open input file: No such file or directory
+drop database if exists regressrestoretest25;
+NOTICE:  database "regressrestoretest25" does not exist, skipping
+create database regressrestoretest25;
+\! pg_restore -d regressrestoretest25 /Users/ftian/work/crashburn/cdb2/cdb-pg/src/test/regress/results/pgdump_datatype/bkuptest1_fc_gpsyntax
+pg_restore: [archiver] could not open input file: No such file or directory
+-- end_ignore

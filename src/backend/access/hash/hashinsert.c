@@ -3,7 +3,7 @@
  * hashinsert.c
  *	  Item insertion in hash tables for Postgres.
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2008, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -15,7 +15,10 @@
 
 #include "postgres.h"
 
+#include "miscadmin.h"
+
 #include "access/hash.h"
+#include "cdb/cdbfilerepprimary.h"
 
 
 static OffsetNumber _hash_pgaddtup(Relation rel, Buffer buf,
@@ -31,6 +34,8 @@ static OffsetNumber _hash_pgaddtup(Relation rel, Buffer buf,
 void
 _hash_doinsert(Relation rel, IndexTuple itup)
 {
+	MIRROREDLOCK_BUFMGR_DECLARE;
+
 	Buffer		buf;
 	Buffer		metabuf;
 	HashMetaPage metap;
@@ -63,6 +68,10 @@ _hash_doinsert(Relation rel, IndexTuple itup)
 	 * Acquire shared split lock so we can compute the target bucket safely
 	 * (see README).
 	 */
+
+	 // -------- MirroredLock ----------
+	 MIRROREDLOCK_BUFMGR_LOCK;
+
 	_hash_getlock(rel, 0, HASH_SHARE);
 
 	/* Read the metapage */
@@ -173,6 +182,9 @@ _hash_doinsert(Relation rel, IndexTuple itup)
 
 	/* Write out the metapage and drop lock, but keep pin */
 	_hash_chgbufaccess(rel, metabuf, HASH_WRITE, HASH_NOLOCK);
+
+	MIRROREDLOCK_BUFMGR_UNLOCK;
+	// -------- MirroredLock ----------
 
 	/* Attempt to split if a split is needed */
 	if (do_expand)

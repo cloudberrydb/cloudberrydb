@@ -3,12 +3,12 @@
  * pl_comp.c		- Compiler part of the PL/pgSQL
  *			  procedural language
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/pl/plpgsql/src/pl_comp.c,v 1.108 2006/10/04 00:30:13 momjian Exp $
+ *	  $PostgreSQL: pgsql/src/pl/plpgsql/src/pl_comp.c,v 1.108.2.3 2008/10/09 16:35:19 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -17,7 +17,7 @@
 
 #include <ctype.h>
 
-#include "pl.tab.h"
+#include "pl_gram.h"
 
 #include "access/heapam.h"
 #include "catalog/namespace.h"
@@ -93,6 +93,7 @@ static const ExceptionLabelMap exception_label_map[] = {
  */
 static PLpgSQL_function *do_compile(FunctionCallInfo fcinfo,
 		   HeapTuple procTup,
+		   PLpgSQL_function *function,
 		   PLpgSQL_func_hashkey *hashkey,
 		   bool forValidator);
 static PLpgSQL_row *build_row_from_class(Oid classOid);
@@ -130,6 +131,7 @@ plpgsql_compile(FunctionCallInfo fcinfo, bool forValidator)
 	Form_pg_proc procStruct;
 	PLpgSQL_function *function;
 	PLpgSQL_func_hashkey hashkey;
+	bool		function_valid = false;
 	bool		hashkey_valid = false;
 
 	/*
@@ -148,6 +150,7 @@ plpgsql_compile(FunctionCallInfo fcinfo, bool forValidator)
 	 */
 	function = (PLpgSQL_function *) fcinfo->flinfo->fn_extra;
 
+recheck:
 	if (!function)
 	{
 		/* Compute hashkey using function signature and actual arg types */
@@ -161,19 +164,43 @@ plpgsql_compile(FunctionCallInfo fcinfo, bool forValidator)
 	if (function)
 	{
 		/* We have a compiled function, but is it still valid? */
-		if (!(function->fn_xmin == HeapTupleHeaderGetXmin(procTup->t_data) &&
-			  function->fn_cmin == HeapTupleHeaderGetCmin(procTup->t_data)))
+		if (function->fn_xmin == HeapTupleHeaderGetXmin(procTup->t_data) &&
+			function->fn_cmin == HeapTupleHeaderGetCmin(procTup->t_data))
+			function_valid = true;
+		else
 		{
-			/* Nope, drop the function and associated storage */
+			/*
+			 * Nope, so remove it from hashtable and try to drop associated
+			 * storage (if not done already).
+			 */
 			delete_function(function);
-			function = NULL;
+			/*
+			 * If the function isn't in active use then we can overwrite the
+			 * func struct with new data, allowing any other existing fn_extra
+			 * pointers to make use of the new definition on their next use.
+			 * If it is in use then just leave it alone and make a new one.
+			 * (The active invocations will run to completion using the
+			 * previous definition, and then the cache entry will just be
+			 * leaked; doesn't seem worth adding code to clean it up, given
+			 * what a corner case this is.)
+			 *
+			 * If we found the function struct via fn_extra then it's possible
+			 * a replacement has already been made, so go back and recheck
+			 * the hashtable.
+			 */
+			if (function->use_count != 0)
+			{
+				function = NULL;
+				if (!hashkey_valid)
+					goto recheck;
+			}
 		}
 	}
 
 	/*
 	 * If the function wasn't found or was out-of-date, we have to compile it
 	 */
-	if (!function)
+	if (!function_valid)
 	{
 		/*
 		 * Calculate hashkey if we didn't already; we'll need it to store the
@@ -186,7 +213,8 @@ plpgsql_compile(FunctionCallInfo fcinfo, bool forValidator)
 		/*
 		 * Do the hard part.
 		 */
-		function = do_compile(fcinfo, procTup, &hashkey, forValidator);
+		function = do_compile(fcinfo, procTup, function,
+							  &hashkey, forValidator);
 	}
 
 	ReleaseSysCache(procTup);
@@ -205,6 +233,9 @@ plpgsql_compile(FunctionCallInfo fcinfo, bool forValidator)
 /*
  * This is the slow part of plpgsql_compile().
  *
+ * The passed-in "function" pointer is either NULL or an already-allocated
+ * function struct to overwrite.
+ *
  * While compiling a function, the CurrentMemoryContext is the
  * per-function memory context of the function we are compiling. That
  * means a palloc() will allocate storage with the same lifetime as
@@ -217,16 +248,19 @@ plpgsql_compile(FunctionCallInfo fcinfo, bool forValidator)
  * switch into a short-term context before calling into the
  * backend. An appropriate context for performing short-term
  * allocations is the compile_tmp_cxt.
+ *
+ * NB: this code is not re-entrant.  We assume that nothing we do here could
+ * result in the invocation of another plpgsql function.
  */
 static PLpgSQL_function *
 do_compile(FunctionCallInfo fcinfo,
 		   HeapTuple procTup,
+		   PLpgSQL_function *function,
 		   PLpgSQL_func_hashkey *hashkey,
 		   bool forValidator)
 {
 	Form_pg_proc procStruct = (Form_pg_proc) GETSTRUCT(procTup);
 	int			functype = CALLED_AS_TRIGGER(fcinfo) ? T_TRIGGER : T_FUNCTION;
-	PLpgSQL_function *function;
 	Datum		prosrcdatum;
 	bool		isnull;
 	char	   *proc_source;
@@ -292,9 +326,24 @@ do_compile(FunctionCallInfo fcinfo,
 	plpgsql_check_syntax = forValidator;
 
 	/*
-	 * Create the new function node. We allocate the function and all of its
-	 * compile-time storage (e.g. parse tree) in its own memory context. This
-	 * allows us to reclaim the function's storage cleanly.
+	 * Create the new function struct, if not done already.  The function
+	 * structs are never thrown away, so keep them in TopMemoryContext.
+	 */
+	if (function == NULL)
+	{
+		function = (PLpgSQL_function *)
+			MemoryContextAllocZero(TopMemoryContext, sizeof(PLpgSQL_function));
+	}
+	else
+	{
+		/* re-using a previously existing struct, so clear it out */
+		memset(function, 0, sizeof(PLpgSQL_function));
+	}
+	plpgsql_curr_compile = function;
+
+	/*
+	 * All the rest of the compile-time storage (e.g. parse tree) is kept in
+	 * its own memory context, so it can be reclaimed easily.
 	 */
 	func_cxt = AllocSetContextCreate(TopMemoryContext,
 									 "PL/PgSQL function context",
@@ -302,8 +351,6 @@ do_compile(FunctionCallInfo fcinfo,
 									 ALLOCSET_DEFAULT_INITSIZE,
 									 ALLOCSET_DEFAULT_MAXSIZE);
 	compile_tmp_cxt = MemoryContextSwitchTo(func_cxt);
-	function = palloc0(sizeof(*function));
-	plpgsql_curr_compile = function;
 
 	function->fn_name = pstrdup(NameStr(procStruct->proname));
 	function->fn_oid = fcinfo->flinfo->fn_oid;
@@ -386,10 +433,33 @@ do_compile(FunctionCallInfo fcinfo,
 				}
 
 				/* Remember arguments in appropriate arrays */
-				if (argmode == PROARGMODE_IN || argmode == PROARGMODE_INOUT)
-					in_arg_varnos[num_in_args++] = argvariable->dno;
-				if (argmode == PROARGMODE_OUT || argmode == PROARGMODE_INOUT)
-					out_arg_variables[num_out_args++] = argvariable;
+				switch (argmode)
+				{
+					/* input modes */
+					case PROARGMODE_IN:
+					case PROARGMODE_VARIADIC:
+						in_arg_varnos[num_in_args++] = argvariable->dno;
+						break;
+
+					/* output modes */
+					case PROARGMODE_OUT:
+					case PROARGMODE_TABLE:
+						out_arg_variables[num_out_args++] = argvariable;
+						break;
+
+					/* both */
+					case PROARGMODE_INOUT:
+						in_arg_varnos[num_in_args++] = argvariable->dno;
+						out_arg_variables[num_out_args++] = argvariable;
+						break;
+
+					default:
+						ereport(ERROR, 
+								(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
+								 errmsg("plpgsql functions do not support argmode '%c'",
+										argmode)));
+						break;								 
+				}
 
 				/* Add to namespace under the $n name */
 				plpgsql_ns_additem(argitemtype, argvariable->dno, buf);
@@ -618,11 +688,6 @@ do_compile(FunctionCallInfo fcinfo,
 								 plpgsql_build_datatype(BOOLOID, -1),
 								 true);
 	function->found_varno = var->dno;
-
-	/*
-	 * Forget about the above created variables
-	 */
-	plpgsql_add_initdatums(NULL);
 
 	/*
 	 * Now parse the function's text
@@ -1846,11 +1911,17 @@ plpgsql_adddatum(PLpgSQL_datum *new)
 
 
 /* ----------
- * plpgsql_add_initdatums		Put all datum entries created
- *					since the last call into the
- *					finishing code block so the
- *					block knows which variables to
- *					reinitialize when entered.
+ * plpgsql_add_initdatums		Make an array of the datum numbers of
+ *					all the simple VAR datums created since the last call
+ *					to this function.
+ *
+ * If varnos is NULL, we just forget any datum entries created since the
+ * last call.
+ *
+ * This is used around a DECLARE section to create a list of the VARs
+ * that have to be initialized at block entry.  Note that VARs can also
+ * be created elsewhere than DECLARE, eg by a FOR-loop, but it is then
+ * the responsibility of special-purpose code to initialize them.
  * ----------
  */
 int
@@ -1917,12 +1988,15 @@ compute_function_hashkey(FunctionCallInfo fcinfo,
 	/* get function OID */
 	hashkey->funcOid = fcinfo->flinfo->fn_oid;
 
+	/* get call context */
+	hashkey->isTrigger = CALLED_AS_TRIGGER(fcinfo);
+
 	/*
 	 * if trigger, get relation OID.  In validation mode we do not know what
 	 * relation is intended to be used, so we leave trigrelOid zero; the hash
 	 * entry built in this case will never really be used.
 	 */
-	if (CALLED_AS_TRIGGER(fcinfo) && !forValidator)
+	if (hashkey->isTrigger && !forValidator)
 	{
 		TriggerData *trigdata = (TriggerData *) fcinfo->context;
 
@@ -1990,19 +2064,32 @@ plpgsql_resolve_polymorphic_argtypes(int numargs,
 	}
 }
 
+/*
+ * delete_function - clean up as much as possible of a stale function cache
+ *
+ * We can't release the PLpgSQL_function struct itself, because of the
+ * possibility that there are fn_extra pointers to it.  We can release
+ * the subsidiary storage, but only if there are no active evaluations
+ * in progress.  Otherwise we'll just leak that storage.  Since the
+ * case would only occur if a pg_proc update is detected during a nested
+ * recursive call on the function, a leak seems acceptable.
+ *
+ * Note that this can be called more than once if there are multiple fn_extra
+ * pointers to the same function cache.  Hence be careful not to do things
+ * twice.
+ */
 static void
 delete_function(PLpgSQL_function *func)
 {
-	/* remove function from hash table */
+	/* remove function from hash table (might be done already) */
 	plpgsql_HashTableDelete(func);
 
-	/* release the function's storage */
-	MemoryContextDelete(func->fn_cxt);
-
-	/*
-	 * Caller should be sure not to use passed-in pointer, as it now points to
-	 * pfree'd storage
-	 */
+	/* release the function's storage if safe and not done already */
+	if (func->use_count == 0 && func->fn_cxt)
+	{
+		MemoryContextDelete(func->fn_cxt);
+		func->fn_cxt = NULL;
+	}
 }
 
 /* exported so we can call it from plpgsql_init() */
@@ -2063,10 +2150,17 @@ plpgsql_HashTableDelete(PLpgSQL_function *function)
 {
 	plpgsql_HashEnt *hentry;
 
+	/* do nothing if not in table */
+	if (function->fn_hashkey == NULL)
+		return;
+
 	hentry = (plpgsql_HashEnt *) hash_search(plpgsql_HashTable,
 											 (void *) function->fn_hashkey,
 											 HASH_REMOVE,
 											 NULL);
 	if (hentry == NULL)
 		elog(WARNING, "trying to delete function that does not exist");
+
+	/* remove back link, which no longer points to allocated storage */
+	function->fn_hashkey = NULL;
 }

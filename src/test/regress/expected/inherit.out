@@ -1,11 +1,14 @@
 --
 -- Test inheritance features
 --
-CREATE TABLE a (aa TEXT);
+CREATE TABLE a (dummy serial, aa TEXT);
+NOTICE:  CREATE TABLE will create implicit sequence "a_dummy_seq" for serial column "a.dummy"
 CREATE TABLE b (bb TEXT) INHERITS (a);
 CREATE TABLE c (cc TEXT) INHERITS (a);
 CREATE TABLE d (dd TEXT) INHERITS (b,c,a);
+NOTICE:  merging multiple inherited definitions of column "dummy"
 NOTICE:  merging multiple inherited definitions of column "aa"
+NOTICE:  merging multiple inherited definitions of column "dummy"
 NOTICE:  merging multiple inherited definitions of column "aa"
 INSERT INTO a(aa) VALUES('aaa');
 INSERT INTO a(aa) VALUES('aaaa');
@@ -31,122 +34,122 @@ INSERT INTO d(aa) VALUES('ddddd');
 INSERT INTO d(aa) VALUES('dddddd');
 INSERT INTO d(aa) VALUES('ddddddd');
 INSERT INTO d(aa) VALUES('dddddddd');
-SELECT relname, a.* FROM a, pg_class where a.tableoid = pg_class.oid;
- relname |    aa    
----------+----------
- a       | aaa
- a       | aaaa
- a       | aaaaa
- a       | aaaaaa
- a       | aaaaaaa
- a       | aaaaaaaa
- b       | bbb
- b       | bbbb
- b       | bbbbb
- b       | bbbbbb
- b       | bbbbbbb
- b       | bbbbbbbb
- c       | ccc
- c       | cccc
- c       | ccccc
- c       | cccccc
- c       | ccccccc
- c       | cccccccc
- d       | ddd
- d       | dddd
- d       | ddddd
- d       | dddddd
- d       | ddddddd
- d       | dddddddd
+SELECT relname, a.* FROM a, pg_class where a.tableoid = pg_class.oid ORDER BY 1,2;
+ relname | dummy |    aa    
+---------+-------+----------
+ a       |     1 | aaa
+ a       |     2 | aaaa
+ a       |     3 | aaaaa
+ a       |     4 | aaaaaa
+ a       |     5 | aaaaaaa
+ a       |     6 | aaaaaaaa
+ b       |     7 | bbb
+ b       |     8 | bbbb
+ b       |     9 | bbbbb
+ b       |    10 | bbbbbb
+ b       |    11 | bbbbbbb
+ b       |    12 | bbbbbbbb
+ c       |    13 | ccc
+ c       |    14 | cccc
+ c       |    15 | ccccc
+ c       |    16 | cccccc
+ c       |    17 | ccccccc
+ c       |    18 | cccccccc
+ d       |    19 | ddd
+ d       |    20 | dddd
+ d       |    21 | ddddd
+ d       |    22 | dddddd
+ d       |    23 | ddddddd
+ d       |    24 | dddddddd
 (24 rows)
 
-SELECT relname, b.* FROM b, pg_class where b.tableoid = pg_class.oid;
- relname |    aa    | bb 
----------+----------+----
- b       | bbb      | 
- b       | bbbb     | 
- b       | bbbbb    | 
- b       | bbbbbb   | 
- b       | bbbbbbb  | 
- b       | bbbbbbbb | 
- d       | ddd      | 
- d       | dddd     | 
- d       | ddddd    | 
- d       | dddddd   | 
- d       | ddddddd  | 
- d       | dddddddd | 
+SELECT relname, b.* FROM b, pg_class where b.tableoid = pg_class.oid ORDER BY 1,2;
+ relname | dummy |    aa    | bb 
+---------+-------+----------+----
+ b       |     7 | bbb      | 
+ b       |     8 | bbbb     | 
+ b       |     9 | bbbbb    | 
+ b       |    10 | bbbbbb   | 
+ b       |    11 | bbbbbbb  | 
+ b       |    12 | bbbbbbbb | 
+ d       |    19 | ddd      | 
+ d       |    20 | dddd     | 
+ d       |    21 | ddddd    | 
+ d       |    22 | dddddd   | 
+ d       |    23 | ddddddd  | 
+ d       |    24 | dddddddd | 
 (12 rows)
 
-SELECT relname, c.* FROM c, pg_class where c.tableoid = pg_class.oid;
- relname |    aa    | cc 
----------+----------+----
- c       | ccc      | 
- c       | cccc     | 
- c       | ccccc    | 
- c       | cccccc   | 
- c       | ccccccc  | 
- c       | cccccccc | 
- d       | ddd      | 
- d       | dddd     | 
- d       | ddddd    | 
- d       | dddddd   | 
- d       | ddddddd  | 
- d       | dddddddd | 
+SELECT relname, c.* FROM c, pg_class where c.tableoid = pg_class.oid ORDER BY 1,2;
+ relname | dummy |    aa    | cc 
+---------+-------+----------+----
+ c       |    13 | ccc      | 
+ c       |    14 | cccc     | 
+ c       |    15 | ccccc    | 
+ c       |    16 | cccccc   | 
+ c       |    17 | ccccccc  | 
+ c       |    18 | cccccccc | 
+ d       |    19 | ddd      | 
+ d       |    20 | dddd     | 
+ d       |    21 | ddddd    | 
+ d       |    22 | dddddd   | 
+ d       |    23 | ddddddd  | 
+ d       |    24 | dddddddd | 
 (12 rows)
 
-SELECT relname, d.* FROM d, pg_class where d.tableoid = pg_class.oid;
- relname |    aa    | bb | cc | dd 
----------+----------+----+----+----
- d       | ddd      |    |    | 
- d       | dddd     |    |    | 
- d       | ddddd    |    |    | 
- d       | dddddd   |    |    | 
- d       | ddddddd  |    |    | 
- d       | dddddddd |    |    | 
+SELECT relname, d.* FROM d, pg_class where d.tableoid = pg_class.oid ORDER BY 1,2;
+ relname | dummy |    aa    | bb | cc | dd 
+---------+-------+----------+----+----+----
+ d       |    19 | ddd      |    |    | 
+ d       |    20 | dddd     |    |    | 
+ d       |    21 | ddddd    |    |    | 
+ d       |    22 | dddddd   |    |    | 
+ d       |    23 | ddddddd  |    |    | 
+ d       |    24 | dddddddd |    |    | 
 (6 rows)
 
-SELECT relname, a.* FROM ONLY a, pg_class where a.tableoid = pg_class.oid;
- relname |    aa    
----------+----------
- a       | aaa
- a       | aaaa
- a       | aaaaa
- a       | aaaaaa
- a       | aaaaaaa
- a       | aaaaaaaa
+SELECT relname, a.* FROM ONLY a, pg_class where a.tableoid = pg_class.oid ORDER BY 1,2;
+ relname | dummy |    aa    
+---------+-------+----------
+ a       |     1 | aaa
+ a       |     2 | aaaa
+ a       |     3 | aaaaa
+ a       |     4 | aaaaaa
+ a       |     5 | aaaaaaa
+ a       |     6 | aaaaaaaa
 (6 rows)
 
-SELECT relname, b.* FROM ONLY b, pg_class where b.tableoid = pg_class.oid;
- relname |    aa    | bb 
----------+----------+----
- b       | bbb      | 
- b       | bbbb     | 
- b       | bbbbb    | 
- b       | bbbbbb   | 
- b       | bbbbbbb  | 
- b       | bbbbbbbb | 
+SELECT relname, b.* FROM ONLY b, pg_class where b.tableoid = pg_class.oid ORDER BY 1,2;
+ relname | dummy |    aa    | bb 
+---------+-------+----------+----
+ b       |     7 | bbb      | 
+ b       |     8 | bbbb     | 
+ b       |     9 | bbbbb    | 
+ b       |    10 | bbbbbb   | 
+ b       |    11 | bbbbbbb  | 
+ b       |    12 | bbbbbbbb | 
 (6 rows)
 
-SELECT relname, c.* FROM ONLY c, pg_class where c.tableoid = pg_class.oid;
- relname |    aa    | cc 
----------+----------+----
- c       | ccc      | 
- c       | cccc     | 
- c       | ccccc    | 
- c       | cccccc   | 
- c       | ccccccc  | 
- c       | cccccccc | 
+SELECT relname, c.* FROM ONLY c, pg_class where c.tableoid = pg_class.oid ORDER BY 1,2;
+ relname | dummy |    aa    | cc 
+---------+-------+----------+----
+ c       |    13 | ccc      | 
+ c       |    14 | cccc     | 
+ c       |    15 | ccccc    | 
+ c       |    16 | cccccc   | 
+ c       |    17 | ccccccc  | 
+ c       |    18 | cccccccc | 
 (6 rows)
 
-SELECT relname, d.* FROM ONLY d, pg_class where d.tableoid = pg_class.oid;
- relname |    aa    | bb | cc | dd 
----------+----------+----+----+----
- d       | ddd      |    |    | 
- d       | dddd     |    |    | 
- d       | ddddd    |    |    | 
- d       | dddddd   |    |    | 
- d       | ddddddd  |    |    | 
- d       | dddddddd |    |    | 
+SELECT relname, d.* FROM ONLY d, pg_class where d.tableoid = pg_class.oid ORDER BY 1,2;
+ relname | dummy |    aa    | bb | cc | dd 
+---------+-------+----------+----+----+----
+ d       |    19 | ddd      |    |    | 
+ d       |    20 | dddd     |    |    | 
+ d       |    21 | ddddd    |    |    | 
+ d       |    22 | dddddd   |    |    | 
+ d       |    23 | ddddddd  |    |    | 
+ d       |    24 | dddddddd |    |    | 
 (6 rows)
 
 UPDATE a SET aa='zzzz' WHERE aa='aaaa';
@@ -154,391 +157,391 @@ UPDATE ONLY a SET aa='zzzzz' WHERE aa='aaaaa';
 UPDATE b SET aa='zzz' WHERE aa='aaa';
 UPDATE ONLY b SET aa='zzz' WHERE aa='aaa';
 UPDATE a SET aa='zzzzzz' WHERE aa LIKE 'aaa%';
-SELECT relname, a.* FROM a, pg_class where a.tableoid = pg_class.oid;
- relname |    aa    
----------+----------
- a       | zzzz
- a       | zzzzz
- a       | zzzzzz
- a       | zzzzzz
- a       | zzzzzz
- a       | zzzzzz
- b       | bbb
- b       | bbbb
- b       | bbbbb
- b       | bbbbbb
- b       | bbbbbbb
- b       | bbbbbbbb
- c       | ccc
- c       | cccc
- c       | ccccc
- c       | cccccc
- c       | ccccccc
- c       | cccccccc
- d       | ddd
- d       | dddd
- d       | ddddd
- d       | dddddd
- d       | ddddddd
- d       | dddddddd
+SELECT relname, a.* FROM a, pg_class where a.tableoid = pg_class.oid ORDER BY 1,2;
+ relname | dummy |    aa    
+---------+-------+----------
+ a       |     1 | zzzzzz
+ a       |     2 | zzzz
+ a       |     3 | zzzzz
+ a       |     4 | zzzzzz
+ a       |     5 | zzzzzz
+ a       |     6 | zzzzzz
+ b       |     7 | bbb
+ b       |     8 | bbbb
+ b       |     9 | bbbbb
+ b       |    10 | bbbbbb
+ b       |    11 | bbbbbbb
+ b       |    12 | bbbbbbbb
+ c       |    13 | ccc
+ c       |    14 | cccc
+ c       |    15 | ccccc
+ c       |    16 | cccccc
+ c       |    17 | ccccccc
+ c       |    18 | cccccccc
+ d       |    19 | ddd
+ d       |    20 | dddd
+ d       |    21 | ddddd
+ d       |    22 | dddddd
+ d       |    23 | ddddddd
+ d       |    24 | dddddddd
 (24 rows)
 
-SELECT relname, b.* FROM b, pg_class where b.tableoid = pg_class.oid;
- relname |    aa    | bb 
----------+----------+----
- b       | bbb      | 
- b       | bbbb     | 
- b       | bbbbb    | 
- b       | bbbbbb   | 
- b       | bbbbbbb  | 
- b       | bbbbbbbb | 
- d       | ddd      | 
- d       | dddd     | 
- d       | ddddd    | 
- d       | dddddd   | 
- d       | ddddddd  | 
- d       | dddddddd | 
+SELECT relname, b.* FROM b, pg_class where b.tableoid = pg_class.oid ORDER BY 1,2;
+ relname | dummy |    aa    | bb 
+---------+-------+----------+----
+ b       |     7 | bbb      | 
+ b       |     8 | bbbb     | 
+ b       |     9 | bbbbb    | 
+ b       |    10 | bbbbbb   | 
+ b       |    11 | bbbbbbb  | 
+ b       |    12 | bbbbbbbb | 
+ d       |    19 | ddd      | 
+ d       |    20 | dddd     | 
+ d       |    21 | ddddd    | 
+ d       |    22 | dddddd   | 
+ d       |    23 | ddddddd  | 
+ d       |    24 | dddddddd | 
 (12 rows)
 
-SELECT relname, c.* FROM c, pg_class where c.tableoid = pg_class.oid;
- relname |    aa    | cc 
----------+----------+----
- c       | ccc      | 
- c       | cccc     | 
- c       | ccccc    | 
- c       | cccccc   | 
- c       | ccccccc  | 
- c       | cccccccc | 
- d       | ddd      | 
- d       | dddd     | 
- d       | ddddd    | 
- d       | dddddd   | 
- d       | ddddddd  | 
- d       | dddddddd | 
+SELECT relname, c.* FROM c, pg_class where c.tableoid = pg_class.oid ORDER BY 1,2;
+ relname | dummy |    aa    | cc 
+---------+-------+----------+----
+ c       |    13 | ccc      | 
+ c       |    14 | cccc     | 
+ c       |    15 | ccccc    | 
+ c       |    16 | cccccc   | 
+ c       |    17 | ccccccc  | 
+ c       |    18 | cccccccc | 
+ d       |    19 | ddd      | 
+ d       |    20 | dddd     | 
+ d       |    21 | ddddd    | 
+ d       |    22 | dddddd   | 
+ d       |    23 | ddddddd  | 
+ d       |    24 | dddddddd | 
 (12 rows)
 
-SELECT relname, d.* FROM d, pg_class where d.tableoid = pg_class.oid;
- relname |    aa    | bb | cc | dd 
----------+----------+----+----+----
- d       | ddd      |    |    | 
- d       | dddd     |    |    | 
- d       | ddddd    |    |    | 
- d       | dddddd   |    |    | 
- d       | ddddddd  |    |    | 
- d       | dddddddd |    |    | 
+SELECT relname, d.* FROM d, pg_class where d.tableoid = pg_class.oid ORDER BY 1,2;
+ relname | dummy |    aa    | bb | cc | dd 
+---------+-------+----------+----+----+----
+ d       |    19 | ddd      |    |    | 
+ d       |    20 | dddd     |    |    | 
+ d       |    21 | ddddd    |    |    | 
+ d       |    22 | dddddd   |    |    | 
+ d       |    23 | ddddddd  |    |    | 
+ d       |    24 | dddddddd |    |    | 
 (6 rows)
 
-SELECT relname, a.* FROM ONLY a, pg_class where a.tableoid = pg_class.oid;
- relname |   aa   
----------+--------
- a       | zzzz
- a       | zzzzz
- a       | zzzzzz
- a       | zzzzzz
- a       | zzzzzz
- a       | zzzzzz
+SELECT relname, a.* FROM ONLY a, pg_class where a.tableoid = pg_class.oid ORDER BY 1,2;
+ relname | dummy |   aa   
+---------+-------+--------
+ a       |     1 | zzzzzz
+ a       |     2 | zzzz
+ a       |     3 | zzzzz
+ a       |     4 | zzzzzz
+ a       |     5 | zzzzzz
+ a       |     6 | zzzzzz
 (6 rows)
 
-SELECT relname, b.* FROM ONLY b, pg_class where b.tableoid = pg_class.oid;
- relname |    aa    | bb 
----------+----------+----
- b       | bbb      | 
- b       | bbbb     | 
- b       | bbbbb    | 
- b       | bbbbbb   | 
- b       | bbbbbbb  | 
- b       | bbbbbbbb | 
+SELECT relname, b.* FROM ONLY b, pg_class where b.tableoid = pg_class.oid ORDER BY 1,2;
+ relname | dummy |    aa    | bb 
+---------+-------+----------+----
+ b       |     7 | bbb      | 
+ b       |     8 | bbbb     | 
+ b       |     9 | bbbbb    | 
+ b       |    10 | bbbbbb   | 
+ b       |    11 | bbbbbbb  | 
+ b       |    12 | bbbbbbbb | 
 (6 rows)
 
-SELECT relname, c.* FROM ONLY c, pg_class where c.tableoid = pg_class.oid;
- relname |    aa    | cc 
----------+----------+----
- c       | ccc      | 
- c       | cccc     | 
- c       | ccccc    | 
- c       | cccccc   | 
- c       | ccccccc  | 
- c       | cccccccc | 
+SELECT relname, c.* FROM ONLY c, pg_class where c.tableoid = pg_class.oid ORDER BY 1,2;
+ relname | dummy |    aa    | cc 
+---------+-------+----------+----
+ c       |    13 | ccc      | 
+ c       |    14 | cccc     | 
+ c       |    15 | ccccc    | 
+ c       |    16 | cccccc   | 
+ c       |    17 | ccccccc  | 
+ c       |    18 | cccccccc | 
 (6 rows)
 
-SELECT relname, d.* FROM ONLY d, pg_class where d.tableoid = pg_class.oid;
- relname |    aa    | bb | cc | dd 
----------+----------+----+----+----
- d       | ddd      |    |    | 
- d       | dddd     |    |    | 
- d       | ddddd    |    |    | 
- d       | dddddd   |    |    | 
- d       | ddddddd  |    |    | 
- d       | dddddddd |    |    | 
+SELECT relname, d.* FROM ONLY d, pg_class where d.tableoid = pg_class.oid ORDER BY 1,2;
+ relname | dummy |    aa    | bb | cc | dd 
+---------+-------+----------+----+----+----
+ d       |    19 | ddd      |    |    | 
+ d       |    20 | dddd     |    |    | 
+ d       |    21 | ddddd    |    |    | 
+ d       |    22 | dddddd   |    |    | 
+ d       |    23 | ddddddd  |    |    | 
+ d       |    24 | dddddddd |    |    | 
 (6 rows)
 
 UPDATE b SET aa='new';
-SELECT relname, a.* FROM a, pg_class where a.tableoid = pg_class.oid;
- relname |    aa    
----------+----------
- a       | zzzz
- a       | zzzzz
- a       | zzzzzz
- a       | zzzzzz
- a       | zzzzzz
- a       | zzzzzz
- b       | new
- b       | new
- b       | new
- b       | new
- b       | new
- b       | new
- c       | ccc
- c       | cccc
- c       | ccccc
- c       | cccccc
- c       | ccccccc
- c       | cccccccc
- d       | new
- d       | new
- d       | new
- d       | new
- d       | new
- d       | new
+SELECT relname, a.* FROM a, pg_class where a.tableoid = pg_class.oid ORDER BY 1,2;
+ relname | dummy |    aa    
+---------+-------+----------
+ a       |     1 | zzzzzz
+ a       |     2 | zzzz
+ a       |     3 | zzzzz
+ a       |     4 | zzzzzz
+ a       |     5 | zzzzzz
+ a       |     6 | zzzzzz
+ b       |     7 | new
+ b       |     8 | new
+ b       |     9 | new
+ b       |    10 | new
+ b       |    11 | new
+ b       |    12 | new
+ c       |    13 | ccc
+ c       |    14 | cccc
+ c       |    15 | ccccc
+ c       |    16 | cccccc
+ c       |    17 | ccccccc
+ c       |    18 | cccccccc
+ d       |    19 | new
+ d       |    20 | new
+ d       |    21 | new
+ d       |    22 | new
+ d       |    23 | new
+ d       |    24 | new
 (24 rows)
 
-SELECT relname, b.* FROM b, pg_class where b.tableoid = pg_class.oid;
- relname | aa  | bb 
----------+-----+----
- b       | new | 
- b       | new | 
- b       | new | 
- b       | new | 
- b       | new | 
- b       | new | 
- d       | new | 
- d       | new | 
- d       | new | 
- d       | new | 
- d       | new | 
- d       | new | 
+SELECT relname, b.* FROM b, pg_class where b.tableoid = pg_class.oid ORDER BY 1,2;
+ relname | dummy | aa  | bb 
+---------+-------+-----+----
+ b       |     7 | new | 
+ b       |     8 | new | 
+ b       |     9 | new | 
+ b       |    10 | new | 
+ b       |    11 | new | 
+ b       |    12 | new | 
+ d       |    19 | new | 
+ d       |    20 | new | 
+ d       |    21 | new | 
+ d       |    22 | new | 
+ d       |    23 | new | 
+ d       |    24 | new | 
 (12 rows)
 
-SELECT relname, c.* FROM c, pg_class where c.tableoid = pg_class.oid;
- relname |    aa    | cc 
----------+----------+----
- c       | ccc      | 
- c       | cccc     | 
- c       | ccccc    | 
- c       | cccccc   | 
- c       | ccccccc  | 
- c       | cccccccc | 
- d       | new      | 
- d       | new      | 
- d       | new      | 
- d       | new      | 
- d       | new      | 
- d       | new      | 
+SELECT relname, c.* FROM c, pg_class where c.tableoid = pg_class.oid ORDER BY 1,2;
+ relname | dummy |    aa    | cc 
+---------+-------+----------+----
+ c       |    13 | ccc      | 
+ c       |    14 | cccc     | 
+ c       |    15 | ccccc    | 
+ c       |    16 | cccccc   | 
+ c       |    17 | ccccccc  | 
+ c       |    18 | cccccccc | 
+ d       |    19 | new      | 
+ d       |    20 | new      | 
+ d       |    21 | new      | 
+ d       |    22 | new      | 
+ d       |    23 | new      | 
+ d       |    24 | new      | 
 (12 rows)
 
-SELECT relname, d.* FROM d, pg_class where d.tableoid = pg_class.oid;
- relname | aa  | bb | cc | dd 
----------+-----+----+----+----
- d       | new |    |    | 
- d       | new |    |    | 
- d       | new |    |    | 
- d       | new |    |    | 
- d       | new |    |    | 
- d       | new |    |    | 
+SELECT relname, d.* FROM d, pg_class where d.tableoid = pg_class.oid ORDER BY 1,2;
+ relname | dummy | aa  | bb | cc | dd 
+---------+-------+-----+----+----+----
+ d       |    19 | new |    |    | 
+ d       |    20 | new |    |    | 
+ d       |    21 | new |    |    | 
+ d       |    22 | new |    |    | 
+ d       |    23 | new |    |    | 
+ d       |    24 | new |    |    | 
 (6 rows)
 
-SELECT relname, a.* FROM ONLY a, pg_class where a.tableoid = pg_class.oid;
- relname |   aa   
----------+--------
- a       | zzzz
- a       | zzzzz
- a       | zzzzzz
- a       | zzzzzz
- a       | zzzzzz
- a       | zzzzzz
+SELECT relname, a.* FROM ONLY a, pg_class where a.tableoid = pg_class.oid ORDER BY 1,2;
+ relname | dummy |   aa   
+---------+-------+--------
+ a       |     1 | zzzzzz
+ a       |     2 | zzzz
+ a       |     3 | zzzzz
+ a       |     4 | zzzzzz
+ a       |     5 | zzzzzz
+ a       |     6 | zzzzzz
 (6 rows)
 
-SELECT relname, b.* FROM ONLY b, pg_class where b.tableoid = pg_class.oid;
- relname | aa  | bb 
----------+-----+----
- b       | new | 
- b       | new | 
- b       | new | 
- b       | new | 
- b       | new | 
- b       | new | 
+SELECT relname, b.* FROM ONLY b, pg_class where b.tableoid = pg_class.oid ORDER BY 1,2;
+ relname | dummy | aa  | bb 
+---------+-------+-----+----
+ b       |     7 | new | 
+ b       |     8 | new | 
+ b       |     9 | new | 
+ b       |    10 | new | 
+ b       |    11 | new | 
+ b       |    12 | new | 
 (6 rows)
 
-SELECT relname, c.* FROM ONLY c, pg_class where c.tableoid = pg_class.oid;
- relname |    aa    | cc 
----------+----------+----
- c       | ccc      | 
- c       | cccc     | 
- c       | ccccc    | 
- c       | cccccc   | 
- c       | ccccccc  | 
- c       | cccccccc | 
+SELECT relname, c.* FROM ONLY c, pg_class where c.tableoid = pg_class.oid ORDER BY 1,2;
+ relname | dummy |    aa    | cc 
+---------+-------+----------+----
+ c       |    13 | ccc      | 
+ c       |    14 | cccc     | 
+ c       |    15 | ccccc    | 
+ c       |    16 | cccccc   | 
+ c       |    17 | ccccccc  | 
+ c       |    18 | cccccccc | 
 (6 rows)
 
-SELECT relname, d.* FROM ONLY d, pg_class where d.tableoid = pg_class.oid;
- relname | aa  | bb | cc | dd 
----------+-----+----+----+----
- d       | new |    |    | 
- d       | new |    |    | 
- d       | new |    |    | 
- d       | new |    |    | 
- d       | new |    |    | 
- d       | new |    |    | 
+SELECT relname, d.* FROM ONLY d, pg_class where d.tableoid = pg_class.oid ORDER BY 1,2;
+ relname | dummy | aa  | bb | cc | dd 
+---------+-------+-----+----+----+----
+ d       |    19 | new |    |    | 
+ d       |    20 | new |    |    | 
+ d       |    21 | new |    |    | 
+ d       |    22 | new |    |    | 
+ d       |    23 | new |    |    | 
+ d       |    24 | new |    |    | 
 (6 rows)
 
 UPDATE a SET aa='new';
 DELETE FROM ONLY c WHERE aa='new';
-SELECT relname, a.* FROM a, pg_class where a.tableoid = pg_class.oid;
- relname | aa  
----------+-----
- a       | new
- a       | new
- a       | new
- a       | new
- a       | new
- a       | new
- b       | new
- b       | new
- b       | new
- b       | new
- b       | new
- b       | new
- d       | new
- d       | new
- d       | new
- d       | new
- d       | new
- d       | new
+SELECT relname, a.* FROM a, pg_class where a.tableoid = pg_class.oid ORDER BY 1,2;
+ relname | dummy | aa  
+---------+-------+-----
+ a       |     1 | new
+ a       |     2 | new
+ a       |     3 | new
+ a       |     4 | new
+ a       |     5 | new
+ a       |     6 | new
+ b       |     7 | new
+ b       |     8 | new
+ b       |     9 | new
+ b       |    10 | new
+ b       |    11 | new
+ b       |    12 | new
+ d       |    19 | new
+ d       |    20 | new
+ d       |    21 | new
+ d       |    22 | new
+ d       |    23 | new
+ d       |    24 | new
 (18 rows)
 
-SELECT relname, b.* FROM b, pg_class where b.tableoid = pg_class.oid;
- relname | aa  | bb 
----------+-----+----
- b       | new | 
- b       | new | 
- b       | new | 
- b       | new | 
- b       | new | 
- b       | new | 
- d       | new | 
- d       | new | 
- d       | new | 
- d       | new | 
- d       | new | 
- d       | new | 
+SELECT relname, b.* FROM b, pg_class where b.tableoid = pg_class.oid ORDER BY 1,2;
+ relname | dummy | aa  | bb 
+---------+-------+-----+----
+ b       |     7 | new | 
+ b       |     8 | new | 
+ b       |     9 | new | 
+ b       |    10 | new | 
+ b       |    11 | new | 
+ b       |    12 | new | 
+ d       |    19 | new | 
+ d       |    20 | new | 
+ d       |    21 | new | 
+ d       |    22 | new | 
+ d       |    23 | new | 
+ d       |    24 | new | 
 (12 rows)
 
-SELECT relname, c.* FROM c, pg_class where c.tableoid = pg_class.oid;
- relname | aa  | cc 
----------+-----+----
- d       | new | 
- d       | new | 
- d       | new | 
- d       | new | 
- d       | new | 
- d       | new | 
+SELECT relname, c.* FROM c, pg_class where c.tableoid = pg_class.oid ORDER BY 1,2;
+ relname | dummy | aa  | cc 
+---------+-------+-----+----
+ d       |    19 | new | 
+ d       |    20 | new | 
+ d       |    21 | new | 
+ d       |    22 | new | 
+ d       |    23 | new | 
+ d       |    24 | new | 
 (6 rows)
 
-SELECT relname, d.* FROM d, pg_class where d.tableoid = pg_class.oid;
- relname | aa  | bb | cc | dd 
----------+-----+----+----+----
- d       | new |    |    | 
- d       | new |    |    | 
- d       | new |    |    | 
- d       | new |    |    | 
- d       | new |    |    | 
- d       | new |    |    | 
+SELECT relname, d.* FROM d, pg_class where d.tableoid = pg_class.oid ORDER BY 1,2;
+ relname | dummy | aa  | bb | cc | dd 
+---------+-------+-----+----+----+----
+ d       |    19 | new |    |    | 
+ d       |    20 | new |    |    | 
+ d       |    21 | new |    |    | 
+ d       |    22 | new |    |    | 
+ d       |    23 | new |    |    | 
+ d       |    24 | new |    |    | 
 (6 rows)
 
-SELECT relname, a.* FROM ONLY a, pg_class where a.tableoid = pg_class.oid;
- relname | aa  
----------+-----
- a       | new
- a       | new
- a       | new
- a       | new
- a       | new
- a       | new
+SELECT relname, a.* FROM ONLY a, pg_class where a.tableoid = pg_class.oid ORDER BY 1,2;
+ relname | dummy | aa  
+---------+-------+-----
+ a       |     1 | new
+ a       |     2 | new
+ a       |     3 | new
+ a       |     4 | new
+ a       |     5 | new
+ a       |     6 | new
 (6 rows)
 
-SELECT relname, b.* FROM ONLY b, pg_class where b.tableoid = pg_class.oid;
- relname | aa  | bb 
----------+-----+----
- b       | new | 
- b       | new | 
- b       | new | 
- b       | new | 
- b       | new | 
- b       | new | 
+SELECT relname, b.* FROM ONLY b, pg_class where b.tableoid = pg_class.oid ORDER BY 1,2;
+ relname | dummy | aa  | bb 
+---------+-------+-----+----
+ b       |     7 | new | 
+ b       |     8 | new | 
+ b       |     9 | new | 
+ b       |    10 | new | 
+ b       |    11 | new | 
+ b       |    12 | new | 
 (6 rows)
 
-SELECT relname, c.* FROM ONLY c, pg_class where c.tableoid = pg_class.oid;
- relname | aa | cc 
----------+----+----
+SELECT relname, c.* FROM ONLY c, pg_class where c.tableoid = pg_class.oid ORDER BY 1,2;
+ relname | dummy | aa | cc 
+---------+-------+----+----
 (0 rows)
 
-SELECT relname, d.* FROM ONLY d, pg_class where d.tableoid = pg_class.oid;
- relname | aa  | bb | cc | dd 
----------+-----+----+----+----
- d       | new |    |    | 
- d       | new |    |    | 
- d       | new |    |    | 
- d       | new |    |    | 
- d       | new |    |    | 
- d       | new |    |    | 
+SELECT relname, d.* FROM ONLY d, pg_class where d.tableoid = pg_class.oid ORDER BY 1,2;
+ relname | dummy | aa  | bb | cc | dd 
+---------+-------+-----+----+----+----
+ d       |    19 | new |    |    | 
+ d       |    20 | new |    |    | 
+ d       |    21 | new |    |    | 
+ d       |    22 | new |    |    | 
+ d       |    23 | new |    |    | 
+ d       |    24 | new |    |    | 
 (6 rows)
 
 DELETE FROM a;
-SELECT relname, a.* FROM a, pg_class where a.tableoid = pg_class.oid;
- relname | aa 
----------+----
+SELECT relname, a.* FROM a, pg_class where a.tableoid = pg_class.oid ORDER BY 1,2;
+ relname | dummy | aa 
+---------+-------+----
 (0 rows)
 
-SELECT relname, b.* FROM b, pg_class where b.tableoid = pg_class.oid;
- relname | aa | bb 
----------+----+----
+SELECT relname, b.* FROM b, pg_class where b.tableoid = pg_class.oid ORDER BY 1,2;
+ relname | dummy | aa | bb 
+---------+-------+----+----
 (0 rows)
 
-SELECT relname, c.* FROM c, pg_class where c.tableoid = pg_class.oid;
- relname | aa | cc 
----------+----+----
+SELECT relname, c.* FROM c, pg_class where c.tableoid = pg_class.oid ORDER BY 1,2;
+ relname | dummy | aa | cc 
+---------+-------+----+----
 (0 rows)
 
-SELECT relname, d.* FROM d, pg_class where d.tableoid = pg_class.oid;
- relname | aa | bb | cc | dd 
----------+----+----+----+----
+SELECT relname, d.* FROM d, pg_class where d.tableoid = pg_class.oid ORDER BY 1,2;
+ relname | dummy | aa | bb | cc | dd 
+---------+-------+----+----+----+----
 (0 rows)
 
-SELECT relname, a.* FROM ONLY a, pg_class where a.tableoid = pg_class.oid;
- relname | aa 
----------+----
+SELECT relname, a.* FROM ONLY a, pg_class where a.tableoid = pg_class.oid ORDER BY 1,2;
+ relname | dummy | aa 
+---------+-------+----
 (0 rows)
 
-SELECT relname, b.* FROM ONLY b, pg_class where b.tableoid = pg_class.oid;
- relname | aa | bb 
----------+----+----
+SELECT relname, b.* FROM ONLY b, pg_class where b.tableoid = pg_class.oid ORDER BY 1,2;
+ relname | dummy | aa | bb 
+---------+-------+----+----
 (0 rows)
 
-SELECT relname, c.* FROM ONLY c, pg_class where c.tableoid = pg_class.oid;
- relname | aa | cc 
----------+----+----
+SELECT relname, c.* FROM ONLY c, pg_class where c.tableoid = pg_class.oid ORDER BY 1,2;
+ relname | dummy | aa | cc 
+---------+-------+----+----
 (0 rows)
 
-SELECT relname, d.* FROM ONLY d, pg_class where d.tableoid = pg_class.oid;
- relname | aa | bb | cc | dd 
----------+----+----+----+----
+SELECT relname, d.* FROM ONLY d, pg_class where d.tableoid = pg_class.oid ORDER BY 1,2;
+ relname | dummy | aa | bb | cc | dd 
+---------+-------+----+----+----+----
 (0 rows)
 
 -- Confirm PRIMARY KEY adds NOT NULL constraint to child table
 CREATE TEMP TABLE z (b TEXT, PRIMARY KEY(aa, b)) inherits (a);
 NOTICE:  CREATE TABLE / PRIMARY KEY will create implicit index "z_pkey" for table "z"
 INSERT INTO z VALUES (NULL, 'text'); -- should fail
-ERROR:  null value in column "aa" violates not-null constraint
+ERROR:  null value in column "dummy" violates not-null constraint
 -- Check UPDATE with inherited target and an inherited source table
 create temp table foo(f1 int, f2 int);
 create temp table foo2(f3 int) inherits (foo);
@@ -557,18 +560,20 @@ insert into bar2 values(2,2,2);
 insert into bar2 values(3,3,3);
 insert into bar2 values(4,4,4);
 update bar set f2 = f2 + 100 where f1 in (select f1 from foo);
+ ERROR:  Cannot parallelize that UPDATE yet
+ DETAIL:  Result depends on values of CTID system column.  Support for CTID system column may change in the future.
 SELECT relname, bar.* FROM bar, pg_class where bar.tableoid = pg_class.oid
 order by 1,2;
  relname | f1 | f2  
----------+----+-----
- bar     |  1 | 101
- bar     |  2 | 102
- bar     |  3 | 103
- bar     |  4 |   4
- bar2    |  1 | 101
- bar2    |  2 | 102
- bar2    |  3 | 103
- bar2    |  4 |   4
+---------+----+----
+ bar     |  1 | 1
+ bar     |  2 | 2
+ bar     |  3 | 3
+ bar     |  4 | 4
+ bar2    |  1 | 1
+ bar2    |  2 | 2
+ bar2    |  3 | 3
+ bar2    |  4 | 4
 (8 rows)
 
 /* Test inheritance of structure (LIKE) */
@@ -581,11 +586,11 @@ CREATE TABLE inhx (xx text DEFAULT 'text');
  */
 CREATE TABLE inhe (ee text, LIKE inhx) inherits (b);
 INSERT INTO inhe VALUES ('ee-col1', 'ee-col2', DEFAULT, 'ee-col4');
+ERROR:  invalid input syntax for integer: "ee-col1"
 SELECT * FROM inhe; /* Columns aa, bb, xx value NULL, ee */
-   aa    |   bb    | ee |   xx    
----------+---------+----+---------
- ee-col1 | ee-col2 |    | ee-col4
-(1 row)
+ dummy | aa | bb | ee | xx 
+-------+----+----+----+----
+(0 rows)
 
 SELECT * FROM inhx; /* Empty set since LIKE inherits structure only */
  xx 
@@ -593,16 +598,14 @@ SELECT * FROM inhx; /* Empty set since LIKE inherits structure only */
 (0 rows)
 
 SELECT * FROM b; /* Has ee entry */
-   aa    |   bb    
----------+---------
- ee-col1 | ee-col2
-(1 row)
+ dummy | aa | bb 
+-------+----+----
+(0 rows)
 
 SELECT * FROM a; /* Has ee entry */
-   aa    
----------
- ee-col1
-(1 row)
+ dummy | aa 
+-------+----
+(0 rows)
 
 CREATE TABLE inhf (LIKE inhx, LIKE inhx); /* Throw error */
 ERROR:  column "xx" duplicated
@@ -633,14 +636,36 @@ SELECT * FROM inhg; /* Two records with three columns in order x=x, xx=text, y=y
 (2 rows)
 
 DROP TABLE inhg;
+CREATE TABLE inhg (x text, LIKE inhx INCLUDING INDEXES, y text); /* copies indexes */
+NOTICE:  CREATE TABLE / PRIMARY KEY will create implicit index "inhg_pkey" for table "inhg"
+INSERT INTO inhg VALUES (5, 10);
+INSERT INTO inhg VALUES (20, 10); -- should fail
+ERROR:  duplicate key value violates unique constraint "inhg_pkey"
+DROP TABLE inhg;
+/* Multiple primary keys creation should fail */
+CREATE TABLE inhg (x text, LIKE inhx INCLUDING INDEXES, PRIMARY KEY(x)); /* fails */
+ERROR:  multiple primary keys for table "inhg" are not allowed
+CREATE TABLE inhz (xx text DEFAULT 'text', yy int UNIQUE);
+NOTICE:  CREATE TABLE / UNIQUE will create implicit index "inhz_yy_key" for table "inhz"
+CREATE UNIQUE INDEX inhz_xx_idx on inhz (xx) WHERE xx <> 'test';
+/* Ok to create multiple unique indexes */
+CREATE TABLE inhg (x text UNIQUE, LIKE inhz INCLUDING INDEXES);
+NOTICE:  CREATE TABLE / UNIQUE will create implicit index "inhg_x_key" for table "inhg"
+NOTICE:  CREATE TABLE / UNIQUE will create implicit index "inhg_yy_key" for table "inhg"
+INSERT INTO inhg (xx, yy, x) VALUES ('test', 5, 10);
+INSERT INTO inhg (xx, yy, x) VALUES ('test', 10, 15);
+INSERT INTO inhg (xx, yy, x) VALUES ('foo', 10, 15); -- should fail
+ERROR:  duplicate key value violates unique constraint "inhg_x_key"
+DROP TABLE inhg;
+DROP TABLE inhz;
 -- Test changing the type of inherited columns
 insert into d values('test','one','two','three');
+ERROR:  invalid input syntax for integer: "test"
 alter table a alter column aa type integer using bit_length(aa);
-select * from d;
- aa | bb  | cc  |  dd   
-----+-----+-----+-------
- 32 | one | two | three
-(1 row)
+select * from d ORDER BY 1,2,3;
+ dummy | aa | bb | cc | dd 
+-------+----+----+----+----
+(0 rows)
 
 -- Tests for casting between the rowtypes of parent and child
 -- tables. See the pgsql-hackers thread beginning Dec. 4/04

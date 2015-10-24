@@ -1,5 +1,11 @@
-#include "hstore.h"
+/*
+ * $PostgreSQL: pgsql/contrib/hstore/hstore_io.c,v 1.11 2009/06/11 14:48:51 momjian Exp $
+ */
+#include "postgres.h"
+
 #include <ctype.h>
+
+#include "hstore.h"
 
 PG_MODULE_MAGIC;
 
@@ -14,7 +20,7 @@ typedef struct
 	Pairs	   *pairs;
 	int			pcur;
 	int			plen;
-}	HSParser;
+} HSParser;
 
 #define RESIZEPRSBUF \
 do { \
@@ -35,7 +41,7 @@ do { \
 #define GV_WAITESCESCIN 4
 
 static bool
-get_val(HSParser * state, bool ignoreeq, bool *escaped)
+get_val(HSParser *state, bool ignoreeq, bool *escaped)
 {
 	int			st = GV_WAITVAL;
 
@@ -143,7 +149,7 @@ get_val(HSParser * state, bool ignoreeq, bool *escaped)
 			st = GV_INESCVAL;
 		}
 		else
-			elog(ERROR, "Unknown state %d at postion line %d in file '%s'", st, __LINE__, __FILE__);
+			elog(ERROR, "Unknown state %d at position line %d in file '%s'", st, __LINE__, __FILE__);
 
 		state->ptr++;
 	}
@@ -159,7 +165,7 @@ get_val(HSParser * state, bool ignoreeq, bool *escaped)
 
 
 static void
-parse_hstore(HSParser * state)
+parse_hstore(HSParser *state)
 {
 	int			st = WKEY;
 	bool		escaped = false;
@@ -182,7 +188,7 @@ parse_hstore(HSParser * state)
 				state->pairs = (Pairs *) repalloc(state->pairs, sizeof(Pairs) * state->plen);
 			}
 			state->pairs[state->pcur].key = state->word;
-			state->pairs[state->pcur].keylen = state->cur - state->word;
+			state->pairs[state->pcur].keylen = hstoreCheckKeyLen(state->cur - state->word);
 			state->pairs[state->pcur].val = NULL;
 			state->word = NULL;
 			st = WEQ;
@@ -195,11 +201,11 @@ parse_hstore(HSParser * state)
 			}
 			else if (*(state->ptr) == '\0')
 			{
-				elog(ERROR, "Unexpectd end of string");
+				elog(ERROR, "Unexpected end of string");
 			}
 			else if (!isspace((unsigned char) *(state->ptr)))
 			{
-				elog(ERROR, "Syntax error near '%c' at postion %d", *(state->ptr), (int4) (state->ptr - state->begin));
+				elog(ERROR, "Syntax error near '%c' at position %d", *(state->ptr), (int4) (state->ptr - state->begin));
 			}
 		}
 		else if (st == WGT)
@@ -210,11 +216,11 @@ parse_hstore(HSParser * state)
 			}
 			else if (*(state->ptr) == '\0')
 			{
-				elog(ERROR, "Unexpectd end of string");
+				elog(ERROR, "Unexpected end of string");
 			}
 			else
 			{
-				elog(ERROR, "Syntax error near '%c' at postion %d", *(state->ptr), (int4) (state->ptr - state->begin));
+				elog(ERROR, "Syntax error near '%c' at position %d", *(state->ptr), (int4) (state->ptr - state->begin));
 			}
 		}
 		else if (st == WVAL)
@@ -222,7 +228,7 @@ parse_hstore(HSParser * state)
 			if (!get_val(state, true, &escaped))
 				elog(ERROR, "Unexpected end of string");
 			state->pairs[state->pcur].val = state->word;
-			state->pairs[state->pcur].vallen = state->cur - state->word;
+			state->pairs[state->pcur].vallen = hstoreCheckValLen(state->cur - state->word);
 			state->pairs[state->pcur].isnull = false;
 			state->pairs[state->pcur].needfree = true;
 			if (state->cur - state->word == 4 && !escaped)
@@ -247,7 +253,7 @@ parse_hstore(HSParser * state)
 			}
 			else if (!isspace((unsigned char) *(state->ptr)))
 			{
-				elog(ERROR, "Syntax error near '%c' at postion %d", *(state->ptr), (int4) (state->ptr - state->begin));
+				elog(ERROR, "Syntax error near '%c' at position %d", *(state->ptr), (int4) (state->ptr - state->begin));
 			}
 		}
 		else
@@ -262,16 +268,14 @@ comparePairs(const void *a, const void *b)
 {
 	if (((Pairs *) a)->keylen == ((Pairs *) b)->keylen)
 	{
-		int			res = strncmp(
-								  ((Pairs *) a)->key,
+		int			res = strncmp(((Pairs *) a)->key,
 								  ((Pairs *) b)->key,
-								  ((Pairs *) a)->keylen
-		);
+								  ((Pairs *) a)->keylen);
 
 		if (res)
 			return res;
 
-		/* guarantee that neddfree willl be later */
+		/* guarantee that needfree will be later */
 		if (((Pairs *) b)->needfree == ((Pairs *) a)->needfree)
 			return 0;
 		else if (((Pairs *) a)->needfree)
@@ -283,7 +287,7 @@ comparePairs(const void *a, const void *b)
 }
 
 int
-uniquePairs(Pairs * a, int4 l, int4 *buflen)
+uniquePairs(Pairs *a, int4 l, int4 *buflen)
 {
 	Pairs	   *ptr,
 			   *res;
@@ -324,7 +328,7 @@ uniquePairs(Pairs * a, int4 l, int4 *buflen)
 }
 
 static void
-freeHSParse(HSParser * state)
+freeHSParse(HSParser *state)
 {
 	int			i;
 
@@ -340,6 +344,27 @@ freeHSParse(HSParser * state)
 		}
 	pfree(state->pairs);
 }
+
+size_t
+hstoreCheckKeyLen(size_t len)
+{
+	if (len > HSTORE_MAX_KEY_LEN)
+		ereport(ERROR,
+				(errcode(ERRCODE_STRING_DATA_RIGHT_TRUNCATION),
+				 errmsg("string too long for hstore key")));
+	return len;
+}
+
+size_t
+hstoreCheckValLen(size_t len)
+{
+	if (len > HSTORE_MAX_VALUE_LEN)
+		ereport(ERROR,
+				(errcode(ERRCODE_STRING_DATA_RIGHT_TRUNCATION),
+				 errmsg("string too long for hstore value")));
+	return len;
+}
+
 
 PG_FUNCTION_INFO_V1(hstore_in);
 Datum		hstore_in(PG_FUNCTION_ARGS);
@@ -363,7 +388,7 @@ hstore_in(PG_FUNCTION_ARGS)
 		freeHSParse(&state);
 		len = CALCDATASIZE(0, 0);
 		out = palloc(len);
-		out->len = len;
+		SET_VARSIZE(out, len);
 		out->size = 0;
 		PG_RETURN_POINTER(out);
 	}
@@ -372,7 +397,7 @@ hstore_in(PG_FUNCTION_ARGS)
 
 	len = CALCDATASIZE(state.pcur, buflen);
 	out = palloc(len);
-	out->len = len;
+	SET_VARSIZE(out, len);
 	out->size = state.pcur;
 
 	entries = ARRPTR(out);
@@ -421,7 +446,8 @@ hstore_out(PG_FUNCTION_ARGS)
 {
 	HStore	   *in = PG_GETARG_HS(0);
 	int			buflen,
-				i;
+				i,
+				nnulls = 0;
 	char	   *out,
 			   *ptr;
 	char	   *base = STRPTR(in);
@@ -435,8 +461,15 @@ hstore_out(PG_FUNCTION_ARGS)
 		PG_RETURN_CSTRING(out);
 	}
 
-	buflen = (4 /* " */ + 2 /* => */ + 2 /* , */ ) * in->size +
-		2 /* esc */ * (in->len - CALCDATASIZE(in->size, 0));
+	for (i = 0; i < in->size; i++)
+		if (entries[i].valisnull)
+			nnulls++;
+
+	buflen = (4 /* " */ + 2 /* => */ ) * (in->size - nnulls) +
+		(2 /* " */ + 2 /* => */ + 4 /* NULL */ ) * nnulls +
+		2 /* ,	*/ * (in->size - 1) +
+		2 /* esc */ * (VARSIZE(in) - CALCDATASIZE(in->size, 0)) +
+		1 /* \0 */ ;
 
 	out = ptr = palloc(buflen);
 	for (i = 0; i < in->size; i++)

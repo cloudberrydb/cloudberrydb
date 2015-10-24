@@ -5,9 +5,10 @@
  *
  * See src/backend/utils/misc/README for design notes.
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 2006-2008, Greenplum inc
+ * Portions Copyright (c) 1996-2008, PostgreSQL Global Development Group
  *
- *	  $PostgreSQL: pgsql/src/include/utils/guc_tables.h,v 1.29 2006/10/03 21:11:55 momjian Exp $
+ *	  $PostgreSQL: pgsql/src/include/utils/guc_tables.h,v 1.29.2.2 2009/12/09 21:58:30 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -37,6 +38,9 @@ union config_var_value
 
 /*
  * Groupings to help organize all the run-time options for display
+ *
+ * Note: When you modify this, you need to modify config_group_names[]
+ *       as well, which is located in guc.c.
  */
 enum config_group
 {
@@ -45,37 +49,74 @@ enum config_group
 	CONN_AUTH,
 	CONN_AUTH_SETTINGS,
 	CONN_AUTH_SECURITY,
+
+	EXTERNAL_TABLES,                    /*CDB*/
+	APPENDONLY_TABLES,                  /*CDB*/
 	RESOURCES,
 	RESOURCES_MEM,
 	RESOURCES_FSM,
+
 	RESOURCES_KERNEL,
+	RESOURCES_MGM,
 	WAL,
 	WAL_SETTINGS,
 	WAL_CHECKPOINTS,
+	WAL_REPLICATION,
+
 	QUERY_TUNING,
 	QUERY_TUNING_METHOD,
 	QUERY_TUNING_COST,
-	QUERY_TUNING_GEQO,
 	QUERY_TUNING_OTHER,
+
 	LOGGING,
 	LOGGING_WHERE,
 	LOGGING_WHEN,
 	LOGGING_WHAT,
 	STATS,
+
+    STATS_ANALYZE,                      /*CDB*/
 	STATS_MONITORING,
 	STATS_COLLECTOR,
 	AUTOVACUUM,
 	CLIENT_CONN,
+
 	CLIENT_CONN_STATEMENT,
 	CLIENT_CONN_LOCALE,
 	CLIENT_CONN_OTHER,
 	LOCK_MANAGEMENT,
 	COMPAT_OPTIONS,
+
 	COMPAT_OPTIONS_PREVIOUS,
 	COMPAT_OPTIONS_CLIENT,
+    COMPAT_OPTIONS_IGNORED,             /*CDB*/
+    GP_ARRAY_CONFIGURATION,            /*CDB*/
+    GP_ARRAY_TUNING,                   /*CDB*/
+
+    GP_WORKER_IDENTITY,                /*CDB*/
+	GP_ERROR_HANDLING,				   /*CDB*/
 	PRESET_OPTIONS,
 	CUSTOM_OPTIONS,
-	DEVELOPER_OPTIONS
+	DEVELOPER_OPTIONS,
+
+	/*
+	 * GPDB: deprecated GUCs. In this group, the GUCs are still functioning,
+	 * but we don't recommend customers to use them. They may be defunct in
+	 * the future release.
+	 */
+	DEPRECATED_OPTIONS,
+
+	/*
+	 * GPDB: defunct GUCs. In this group, the GUCs are defunct. The GUCs are still
+	 * there, but attempting to change their values will not have any effects.
+	 */
+	DEFUNCT_OPTIONS,
+
+
+
+
+
+
+	___CONFIG_GROUP_COUNT /* sentinel to indicate end of enumeration */
 };
 
 /*
@@ -139,6 +180,12 @@ struct config_generic
 #define GUC_UNIT_S				0x2000	/* value is in seconds */
 #define GUC_UNIT_MIN			0x4000	/* value is in minutes */
 #define GUC_UNIT_TIME			0x7000	/* mask for MS, S, MIN */
+
+#define GUC_NOT_WHILE_SEC_REST	0x8000	/* can't set if security restricted */
+
+#define GUC_GPDB_ADDOPT        0x10000  /* Send by cdbgang */
+
+#define GUC_DISALLOW_USER_SET  0x20000 /* Do not allow this GUC to be set by the user */
 
 /* bit values in status field */
 #define GUC_HAVE_TENTATIVE	0x0001		/* tentative value is defined */
@@ -213,7 +260,9 @@ extern const char *const GucSource_Names[];
 
 /* get the current set of variables */
 extern struct config_generic **get_guc_variables(void);
+extern int get_num_guc_variables(void);
 
 extern void build_guc_variables(void);
 
+extern bool parse_int(const char *value, int *result, int flags, const char **hintmsg);
 #endif   /* GUC_TABLES_H */

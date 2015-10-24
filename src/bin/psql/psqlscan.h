@@ -1,9 +1,9 @@
 /*
  * psql - the PostgreSQL interactive terminal
  *
- * Copyright (c) 2000-2006, PostgreSQL Global Development Group
+ * Copyright (c) 2000-2010, PostgreSQL Global Development Group
  *
- * $PostgreSQL: pgsql/src/bin/psql/psqlscan.h,v 1.6 2006/03/05 15:58:52 momjian Exp $
+ * src/bin/psql/psqlscan.h
  */
 #ifndef PSQLSCAN_H
 #define PSQLSCAN_H
@@ -60,7 +60,5 @@ extern char *psql_scan_slash_option(PsqlScanState state,
 					   bool semicolon);
 
 extern void psql_scan_slash_command_end(PsqlScanState state);
-
-extern void psql_scan_slash_pushback(PsqlScanState state, const char *str);
 
 #endif   /* PSQLSCAN_H */

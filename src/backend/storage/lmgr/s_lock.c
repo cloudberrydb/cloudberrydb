@@ -4,12 +4,12 @@
  *	   Hardware-dependent implementation of spinlocks.
  *
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/storage/lmgr/s_lock.c,v 1.47 2006/10/04 00:29:58 momjian Exp $
+ *	  $PostgreSQL: pgsql/src/backend/storage/lmgr/s_lock.c,v 1.50 2009/01/01 17:23:48 momjian Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -20,6 +20,7 @@
 
 #include "storage/s_lock.h"
 
+slock_t		dummy_spinlock;
 
 static int	spins_per_delay = DEFAULT_SPINS_PER_DELAY;
 
@@ -169,12 +170,12 @@ set_spins_per_delay(int shared_spins_per_delay)
 }
 
 /*
- * Update shared estimate of spins_per_delay during backend exit.
+ * Recompute shared estimate of spins_per_delay during backend exit.
  *
  * NB: this has to be pretty fast as it is called while holding a spinlock
  */
 int
-update_spins_per_delay(int shared_spins_per_delay)
+recompute_spins_per_delay(int shared_spins_per_delay)
 {
 	/*
 	 * We use an exponential moving average with a relatively slow adaption

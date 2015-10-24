@@ -34,10 +34,10 @@
  * database contents or layout, such as altering tuple headers.
  *
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
- * $PostgreSQL: pgsql/src/include/catalog/catversion.h,v 1.360 2006/11/24 21:18:42 tgl Exp $
+ * $PostgreSQL: pgsql/src/include/catalog/catversion.h,v 1.531 2009/06/11 14:49:09 momjian Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -52,7 +52,7 @@
  * catalog changes on the same day...)
  */
 
-/*							yyyymmddN */
-#define CATALOG_VERSION_NO	200611241
+/*                              yyyymmddN */
+#define CATALOG_VERSION_NO      201310150
 
 #endif

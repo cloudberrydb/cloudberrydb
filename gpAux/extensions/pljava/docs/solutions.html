@@ -1,0 +1,82 @@
+<html>
+
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=us-ascii">
+<meta http-equiv="Content-Language" content="en-us">
+<title>Some problems and their solution</title>
+<style>
+p {margin-top:0;
+  margin-bottom:6.0pt;}
+
+h1  {margin-top:12.0pt;
+  margin-bottom:3.0pt;}
+
+h2  {margin-top:12.0pt;
+  margin-bottom:3.0pt;}
+
+h3  {margin-top:12.0pt;
+  margin-bottom:3.0pt;}
+
+</style>
+</head>
+
+<body>
+
+<h1>Some problems and their solution.</h1>
+<p><font size="2">Java&#8482; is a registered trademark of Sun Microsystems, Inc. in the United States and other countries.</font></p>
+<p>When writing the PL/Java, mapping the JVM into the same process-space as the
+PostgreSQL backend code, some concerns have been raised regarding multiple
+threads, exception handling, and memory management. Here is a brief text
+explaining how these issues where resolved.</p>
+<h2>Multi threading.</h2>
+<h3>Problem</h3>
+<p>Java is inherently multi threaded. The PostgreSQL backend is not. There&#8217;s
+nothing stopping a developer from utilizing multiple Threads class in the Java
+code. Finalizers that call out to the backend might have been spawned from a
+background Garbage Collection thread. Several third party Java-packages that are
+likely to be used make use of multiple threads. How can this model coexist with
+the PostgreSQL backend in the same process without creating havoc?</p>
+<h3>Solution</h3>
+<p>The solution is simple. PL/Java defines a special object called the 
+<code>Backend.THREADLOCK</code>. When PL/Java is initialized, the backend will immediately 
+grab this objects monitor (i.e. it will synchronize on this object). When the 
+backend calls a Java function, the monitor is released and then 
+immediately regained when the call returns. All calls from Java out to backend 
+code are synchronized on the same lock. This ensures that only one thread at a 
+time can call the backend from Java, and only at a time when the backend is 
+awaiting the 
+return of a Java function call.</p>
+<h2>Exception handling</h2>
+<h3>Problem</h3>
+<p>Java makes frequent use of try/catch/finally blocks. PostgreSQL sometimes use
+an exception mechanism that calls longjmp to transfer control to a known state.
+Such a jump would normally effectively bypass the JVM. Prior to PostgreSQL version 8.0,
+the error was propagated before the actual jump and then discarded, thus there
+was no way to catch and handle the error.</p>
+<h3>Solution</h3>
+<p>The backend now allows errors to be caught using the macros <code>
+PG_TRY/PG_CATCH/PG_END_TRY</code> and in the catch block, the error can be
+examined using the <code>ErrorData</code> structure.
+PL/Java implements a <code>java.sql.SQLException</code>
+subclass called <code>
+org.postgresql.pljava.ServerException</code>. The ErrorData can be retrieved and
+examined from that exception. A catch handler is allowed to issue a rollback to 
+a savepoint. After a successful rollback, execution can continue.</p>
+<h2>Java Garbage Collector versus palloc() and stack allocation.</h2>
+<h3>Problem</h3>
+<p>Primitive types will be passed by value always. This includes the String type
+(this is a must since Java uses double byte characters). Complex types are
+however often wrapped in Java objects and passed by reference. I.e, a Java
+object will contain a pointer to a palloc&#8217;ed or stack allocated memory and use native JNI calls to
+extract and manipulate data. Such data will become &#8220;stale&#8221; once a call has
+ended. Further attempts to access such data will at best give very unpredictable
+results but more likely cause a memory fault and a crash.</p>
+<h3>Solution</h3>
+<p>The PL/Java contains code that ensures that stale pointers are cleared when
+the MemoryContext or stack where they where allocated goes out of scope. The
+Java wrapper objects might live on but any attempt to use them will result in a
+&#8220;stale native handle&#8221; exception.</p>
+
+</body>
+
+</html>

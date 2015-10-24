@@ -3,7 +3,7 @@
  * copydir.c
  *	  copies a directory
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *	While "xcopy /e /i /q" works fine for copying directories, on Windows XP
@@ -11,7 +11,7 @@
  *	as a service.
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/port/copydir.c,v 1.18 2006/07/18 22:36:46 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/port/copydir.c,v 1.23 2009/01/01 17:24:04 momjian Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -26,7 +26,7 @@
 
 /*
  *	On Windows, call non-macro versions of palloc; we can't reference
- *	CurrentMemoryContext in this file because of DLLIMPORT conflict.
+ *	CurrentMemoryContext in this file because of PGDLLIMPORT conflict.
  */
 #if defined(WIN32) || defined(__CYGWIN__)
 #undef palloc
@@ -80,13 +80,13 @@ copydir(char *fromdir, char *todir, bool recurse)
 					(errcode_for_file_access(),
 					 errmsg("could not stat file \"%s\": %m", fromfile)));
 
-		if (fst.st_mode & S_IFDIR)
+		if (S_ISDIR(fst.st_mode))
 		{
 			/* recurse to handle subdirectories */
 			if (recurse)
 				copydir(fromfile, tofile, true);
 		}
-		else if (fst.st_mode & S_IFREG)
+		else if (S_ISREG(fst.st_mode))
 			copy_file(fromfile, tofile);
 	}
 

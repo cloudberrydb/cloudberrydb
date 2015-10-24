@@ -19,7 +19,7 @@
  * for example).
  *
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2008, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * $PostgreSQL: pgsql/src/include/catalog/pg_description.h,v 1.24 2006/03/05 15:58:54 momjian Exp $
@@ -36,12 +36,25 @@
 #ifndef PG_DESCRIPTION_H
 #define PG_DESCRIPTION_H
 
-/* ----------------
- *		postgres.h contains the system type definitions and the
- *		CATALOG(), BKI_BOOTSTRAP and DATA() sugar words so this file
- *		can be read by both genbki.sh and the C compiler.
- * ----------------
- */
+#include "catalog/genbki.h"
+
+/* TIDYCAT_BEGINFAKEDEF
+
+   CREATE TABLE pg_description
+   with (oid=false, relid=2609, toast_oid=2834, toast_index=2835, content=MASTER_ONLY)
+   (
+   objoid       oid, 
+   classoid     oid, 
+   objsubid     integer, 
+   description  text
+   );
+
+   create unique index on pg_description(objoid, classoid, objsubid) with (indexid=2675, CamelCase=DescriptionObj);
+
+   alter table pg_description add fk classoid on pg_class(oid);
+
+   TIDYCAT_ENDFAKEDEF
+*/
 
 /* ----------------
  *		pg_description definition.	cpp turns this into

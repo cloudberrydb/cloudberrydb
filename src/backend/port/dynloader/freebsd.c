@@ -1,7 +1,7 @@
 /* $PostgreSQL: pgsql/src/backend/port/dynloader/freebsd.c,v 1.25 2006/03/11 04:38:31 momjian Exp $ */
 
 /*
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2008, PostgreSQL Global Development Group
  * Portions Copyright (c) 1990 The Regents of the University of California.
  * All rights reserved.
  *

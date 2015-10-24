@@ -7,9 +7,9 @@
  * or call FUNCAPI-callable functions or macros.
  *
  *
- * Copyright (c) 2002-2006, PostgreSQL Global Development Group
+ * Copyright (c) 2002-2009, PostgreSQL Global Development Group
  *
- * $PostgreSQL: pgsql/src/include/funcapi.h,v 1.24 2006/10/04 00:30:06 momjian Exp $
+ * $PostgreSQL: pgsql/src/include/funcapi.h,v 1.29 2009/06/11 14:49:08 momjian Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -18,7 +18,7 @@
 
 #include "fmgr.h"
 #include "access/tupdesc.h"
-#include "executor/executor.h"
+#include "executor/execdesc.h"
 #include "executor/tuptable.h"
 
 
@@ -113,7 +113,7 @@ typedef struct FuncCallContext
 	 *
 	 * tuple_desc is for use when returning tuples (i.e. composite data types)
 	 * and is only needed if you are going to build the tuples with
-	 * heap_formtuple() rather than with BuildTupleFromCStrings().	Note that
+	 * heap_form_tuple() rather than with BuildTupleFromCStrings(). Note that
 	 * the TupleDesc pointer stored here should usually have been run through
 	 * BlessTupleDesc() first.
 	 */
@@ -164,6 +164,8 @@ extern TypeFuncClass get_expr_result_type(Node *expr,
 extern TypeFuncClass get_func_result_type(Oid functionId,
 					 Oid *resultTypeId,
 					 TupleDesc *resultTupleDesc);
+extern void  assign_func_result_transient_type(Oid functionId);
+
 
 extern bool resolve_polymorphic_argtypes(int numargs, Oid *argtypes,
 							 char *argmodes,
@@ -187,7 +189,7 @@ extern TupleDesc build_function_result_tupdesc_t(HeapTuple procTuple);
  * External declarations:
  * TupleDesc BlessTupleDesc(TupleDesc tupdesc) - "Bless" a completed tuple
  *		descriptor so that it can be used to return properly labeled tuples.
- *		You need to call this if you are going to use heap_formtuple directly.
+ *		You need to call this if you are going to use heap_form_tuple directly.
  *		TupleDescGetAttInMetadata does it for you, however, so no need to call
  *		it if you call TupleDescGetAttInMetadata.
  * AttInMetadata *TupleDescGetAttInMetadata(TupleDesc tupdesc) - Build an

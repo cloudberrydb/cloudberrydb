@@ -2096,48 +2096,48 @@ Mo Aug 14 10:39:59 CEST 2006
 	- Fixed a nasty buffer underrun that only occured when using Informix
 	  no_indicator NULL setting on timestamps and intervals.
 
-Fr 18. Aug 17:32:54 CEST 2006
+Fr Aug 18 17:32:54 CEST 2006
 
 	- Changed lexer to no longer use the default rule.
 	- Synced parser and keyword list.
 	- Fixed parsing of CONNECT statement so it accepts a C string again.
 	- Fixed a buffer overrun that was masked on Linux systems.
 
-Sa 19. Aug 14:11:32 CEST 2006
+Sa Aug 19 14:11:32 CEST 2006
 
 	- More SoC stuff.
 
-Tu 22. Aug 13:54:08 CEST 2006
+Tu Aug 22 13:54:08 CEST 2006
 
 	- Descriptor values were quoted twice.
 
-We 23. Aug 09:32:14 CEST 2006
+We Aug 23 09:32:14 CEST 2006
 
 	- Replaced double-quote-fix with a hopefully better version.
 	- Use initializer string length as size for character strings.
 	- Added ecpg_config.h file that is created via configure.
 
-Th 24. Aug 11:53:29 CEST 2006
+Th Aug 24 11:53:29 CEST 2006
 
 	- Fixed of by one variable size.
 	- Synced parser.
 
-Su 27. Aug 17:54:36 CEST 2006
+Su Aug 27 17:54:36 CEST 2006
 
 	- Enabled single-quoted connection targets.
 	- Fixed a memory leak/segfault in unsuccessful connection.
 
-Tu 29. Aug 14:21:31 CEST 2006
+Tu Aug 29 14:21:31 CEST 2006
 
 	- Fixed parser and library to allow empty database names.
 	- Streamlined connection name parsing.
 
-Su 3. Sep 14:21:29 CEST 2006
+Su Sep 3 14:21:29 CEST 2006
 
 	- Synced parser.
 	- Added another regression test and fixed tcp test.
 
-Tu 5. Sep 11:49:08 CEST 2006
+Tu Sep 5 11:49:08 CEST 2006
 
 	- Synced parser.
 	- Fixed ecpglib trying to read one character after end-of-string.
@@ -2145,13 +2145,273 @@ Tu 5. Sep 11:49:08 CEST 2006
 	- Added some interval checks to regression suite.
 	- Started to cleanup complex tests.
 
-Th 14. Sep 09:47:03 CEST 2006
+Th Sep 14 09:47:03 CEST 2006
 
 	- Completely removed complex tests.
 	- Added missing constuctor/destructor for interval and date.
 
-We 8. Nov 10:53:42 CET 2006
+We Nov 8 10:53:42 CET 2006
 
 	- Applied patch by Peter Harris to free auto_mem struct in ECPGconnect.
 	- Set ecpg library version to 5.2.
 	- Set ecpg version to 4.2.1.
+
+Th Jan 25 17:17:01 CET 2007
+
+	- Removed compiler warning due to unneeded unsigned declaration.
+	- Removed regression test that triggers those libc precision bugs on some archs.
+
+Fr Feb 2 09:53:48 CET 2007
+
+	- Cleaned up va_list handling. Hopefully this now works on all archs.
+	- Applied Magnus Hagander's patch to take away some compiler warnings.
+
+Su Feb 11 16:09:31 CET 2007
+
+	- Fixed multibyte handling as reported by <harada.toshi@oss.ntt.co.jp>.
+
+Th Mar 15 08:27:53 CET 2007
+
+	- Made some chars const as proposed by Stefan Huehner <stefan@huehner.org>.
+	- Synced parser and keyword lists.
+	- Copied two token parsing from backend parser to ecpg parser.
+	- Also added a test case for this.
+
+Thu, 29 Mar 2007 11:18:39 +0200
+
+	- Added patch by Magnus Hagander <magnus@hagander.net> to use native
+	  win32 threads.
+	- Fixed regression tests to run threading tests.
+
+Fri, 27 Apr 08:55:25 CEST 2007
+
+	- Inlined two functions to get rid of va_list problems on some
+	  architectures.
+
+Thu, 10 May 09:42:42 CEST 2007
+
+	- Synced parser and keyword list.
+	- Renamed update test so it hopefully runs on Vista.
+	
+Sun, 20 May 2007 22:01:11 +0200
+
+	- Do not try to find local timezone in DecodeDateTime() because the
+	  result is not used anyway. This also fixes Vista's build problems.
+
+Sun, 27 May 2007 13:14:39 +0200
+
+	- Changed variable test to not run into infinite loops on backend
+	  errors.
+
+Mon, 11 Jun 2007 13:59:57 +0200
+
+	- Fixed memory leak in descriptor code.
+	- Made ecpg delete output file in case of an error.
+
+Tue, 12 Jun 2007 09:46:03 +0200
+
+	- Synced parser and keyword list.
+
+Wed, 25 Jul 2007 15:34:54 +0200
+
+	- Synced parser.
+
+Tue, 14 Aug 2007 11:46:51 +0200
+
+	- Finished major rewrite to use new protocol version.
+	- Really prepare statements.
+	- Added more regression tests.
+	- Added auto-prepare mode.
+	- Use '$n' for positional variables, '?' is still possible via ecpg
+	  option.
+	- Cleaned up the sources a little bit.
+
+Wed, 22 Aug 2007 08:41:33 +0200
+
+	- More cleaning up and removed some duplicates.
+
+Wed, 29 Aug 2007 15:41:58 +0200
+
+	- Fixed bug in Informix define handling.
+
+Tue, 04 Sep 2007 11:13:55 +0200
+
+	- Synced parser and keyword list.
+
+Mi 26. Sep 12:45:51 CEST 2007
+
+	- Applied patch by ITAGAKI Takahiro <itagaki.takahiro@oss.ntt.co.jp>
+	  to get prepare thread-safe.
+
+Sun, 30 Sep 2007 13:37:31 +0200
+
+	- Applied another patch by ITAGAKI Takahiro <itagaki.takahiro@oss.ntt.co.jp>
+	  to get memory allocation thread-safe. He also did some cleaning up.
+
+Tue, 02 Oct 2007 11:32:25 +0200
+
+	- ITAGAKI Takahiro <itagaki.takahiro@oss.ntt.co.jp> added thread-safe
+	  descriptor handling
+	
+Wed, 03 Oct 2007 10:48:39 +0200
+
+	- Hopefully fixed some stuff that causes Windows builds to fail.
+	- Cleaned up ecpglib and renamed functions that do not need to be
+	  exported.
+	- Created export list for ecpglib.
+	- Also created export list for pgytpeslib and compatlib.
+	
+Wed, 10 Oct 2007 08:31:44 +0200
+	
+	- Synced parser and keyword list.
+
+Tue, 06 Nov 2007 09:29:22 +0100
+
+	- Fixed two parser bugs.
+
+Fri, 21 Dec 2007 15:30:39 +0100
+
+	- Fixed a few minor glitches pointed out by splint.
+
+Fri, 28 Dec 2007 12:15:38 +0100
+
+	- Applied patch send by ITAGAKI Takahiro
+	  <itagaki.takahiro@oss.ntt.co.jp> to fix bug in connect statement if
+	  user name is a variable. 
+	- Also fixed test case that didn't detect this.
+
+Fri, 11 Jan 2008 16:16:24 +0100
+
+	- Fixed lexer to correctly parse C quotes.
+
+Sun, 13 Jan 2008 12:52:15 +0100
+
+	- Changed prototype for ECPGdo because some compilers don't like
+	  int/enum aliasing in there.
+
+Mon, 14 Jan 2008 10:42:23 +0100
+
+	- Set valid return values even in case of an error to prevent
+	  segfaults.
+
+Tue, 15 Jan 2008 11:26:14 +0100
+
+	- Re-enabled variables in fetch/move command.
+	- Set pgtypes library version to 3.0.
+	- Set compat library version to 3.0.
+	- Set ecpg library version to 6.0.
+	- Set ecpg version to 4.4.
+
+Wed, 06 Feb 2008 09:04:48 +0100
+
+	- Fixed segfault in ecpg when using an array element.
+	- Free all memory in auto-prepare mode.
+
+Thu, 14 Feb 2008 13:11:34 +0100
+
+	- Added SQLSTATE macro closing bug #3961.
+	- EXECUTE can return NOT FOUND so it should be checked here too.
+	- Changed regression test accordingly.
+
+Fri, 15 Feb 2008 12:01:13 +0100
+
+	- Changed the way symbols are defined in C in INFORMIX mode.
+
+Sun, 17 Feb 2008 18:45:39 +0100
+
+	- Removed duplicate include of ecpgtype.h.
+	- Changed INFORMIX mode symbol definition yet again because the old
+	  way didn't work on NetBSD.
+
+Sun, 02 Mar 2008 11:50:48 +0100
+
+	- Fixed bug that caused arrays of varchar to be output with incomplete
+	  name.
+
+Thu, 20 Mar 2008 16:54:27 +0100
+
+	- Changed statement escaping to not escape continuation line markers.
+	- Added ECPGget_PGconn() function to ecpglib, courtesy of Mike Aubury.
+
+Tue, 25 Mar 2008 13:42:26 +0100
+
+	- Should list ECPGget_PGconn in exports.txt.
+
+Wed, 26 Mar 2008 17:02:08 +0100
+
+	- Moved from PQsetdbLogin to PQconnectDB.
+	- Correctly parse connect options.
+
+Thu, 10 Apr 2008 12:42:25 +0200
+
+	- Fixed bug in PGTYPEStimestamp_sub that used pointers instead of the
+	  values to substract.
+
+Mon, 12 May 2008 18:19:08 +0200
+
+	- Check for non-existant connection in prepare statement handling.
+	- Do not close files that weren't opened.
+
+Tue, 20 May 2008 17:31:01 +0200
+
+	- Synced parser.
+	- Made ecpg parser use backend provided keyword list. One less file to
+	  sync manually.
+	- Changed whenever test so exit value is 0.
+
+Wed, 04 Jun 2008 14:22:30 +0200
+
+	- Added lost symbol SQL to list of allowed variable names.
+
+Tue, 24 Jun 2008 13:30:51 +0200
+
+	- Synced parser.
+
+Tue, 19 Aug 2008 12:32:24 +0200
+
+	- Fixed incorrect argument handling in SET command if argument is a variable.
+
+Wed, 20 Aug 2008 15:49:23 +0200
+
+	- Synced parser.
+
+Tue, 07 Oct 2008 14:35:26 +0200
+
+	- Synced parser.
+
+Fri, 10 Oct 2008 14:03:05 +0200
+
+	- Fixed "create role" parsing to accept optional "with" argument.
+
+Tue, 14 Oct 2008 11:25:51 +0200
+
+	- Fixed parameter parsing.
+
+Sat, 25 Oct 2008 16:34:28 +0200
+
+	- Free allocated memory even if the next alloc failed with ENOMEM.
+
+Wed, 26 Nov 2008 14:09:08 +0100
+
+	- When creating a varchar struct name braces must be discarded.
+	- Applied patch by Ron Mayer <rm_pg@cheapcomplexdevices.com> to merge
+	  the new interval style into ecpg.
+
+Mon, 15 Dec 2008 16:31:31 +0100
+
+	- Do not try to change a const variable in ecpg_log.
+
+Wed, 17 Dec 2008 17:49:11 +0100
+
+	- Applied patch by ITAGAKI Takahiro <itagaki.takahiro@oss.ntt.co.jp> to
+	  fix segfault on non-glibc systems.
+
+Mon, 02 Feb 2009 16:34:53 +0100
+
+	- Fixed bug in handling of "%s" pattern in PGTYPEStimestamp_defmt_asc().
+	- Fixed auto allocation for binary data types.
+	- Set pgtypes library version to 3.1.
+	- Set compat library version to 3.1.
+	- Set ecpg library version to 6.2.
+	- Set ecpg version to 4.5.
+

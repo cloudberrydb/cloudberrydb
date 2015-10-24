@@ -32,7 +32,7 @@
  * is no wider than Oid and both are unsigned types.
  *
  *
- * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * $PostgreSQL: pgsql/src/include/nodes/pg_list.h,v 1.55 2006/08/27 19:11:46 tgl Exp $
@@ -137,6 +137,11 @@ extern int	list_length(List *l);
 #define lfourth_int(l)			lfirst_int(lnext(lnext(lnext(list_head(l)))))
 #define lfourth_oid(l)			lfirst_oid(lnext(lnext(lnext(list_head(l)))))
 
+#define lfifth(l)				lfirst(lnext(lnext(lnext(lnext(list_head(l))))))
+#define lfifth_int(l)			lfirst_int(lnext(lnext(lnext(lnext(list_head(l))))))
+#define lfifth_oid(l)			lfirst_oid(lnext(lnext(lnext(lnext(list_head(l))))))
+#define lcfifth(l)				lnext(lnext(lnext(lnext(list_head(l)))))
+
 #define llast(l)				lfirst(list_tail(l))
 #define llast_int(l)			lfirst_int(list_tail(l))
 #define llast_oid(l)			lfirst_oid(list_tail(l))
@@ -180,6 +185,12 @@ extern int	list_length(List *l);
 #define for_each_cell(cell, initcell)	\
 	for ((cell) = (initcell); (cell) != NULL; (cell) = lnext(cell))
 
+#define foreach_with_count(cell, list, counter) \
+	for ((cell) = list_head(list), (counter)=0; \
+	     (cell) != NULL; \
+	     (cell) = lnext(cell), ++(counter))
+
+
 /*
  * forboth -
  *	  a convenience macro for advancing through two linked lists
@@ -208,9 +219,15 @@ extern List *lcons_oid(Oid datum, List *list);
 extern List *list_concat(List *list1, List *list2);
 extern List *list_truncate(List *list, int new_size);
 
+extern ListCell *list_nth_cell(List *list, int n);
 extern void *list_nth(List *list, int n);
 extern int	list_nth_int(List *list, int n);
 extern Oid	list_nth_oid(List *list, int n);
+
+extern int list_find(List *list, void *datum);
+extern int list_find_ptr(List *list, void *datum);
+extern int list_find_int(List *list, int datum);
+extern int list_find_oid(List *list, Oid datum);
 
 extern bool list_member(List *list, void *datum);
 extern bool list_member_ptr(List *list, void *datum);
@@ -228,6 +245,10 @@ extern List *list_union(List *list1, List *list2);
 extern List *list_union_ptr(List *list1, List *list2);
 extern List *list_union_int(List *list1, List *list2);
 extern List *list_union_oid(List *list1, List *list2);
+
+extern List *list_intersection(List *list1, List *list2);
+
+/* currently, there's no need for list_intersection_int etc */
 
 extern List *list_difference(List *list1, List *list2);
 extern List *list_difference_ptr(List *list1, List *list2);
@@ -249,6 +270,8 @@ extern void list_free_deep(List *list);
 
 extern List *list_copy(List *list);
 extern List *list_copy_tail(List *list, int nskip);
+
+extern void *list_nth_replace(List *list, int n, void *new_data);
 
 /*
  * To ease migration to the new list API, a set of compatibility
@@ -318,5 +341,20 @@ extern List *list_copy_tail(List *list, int nskip);
 
 extern int	length(List *list);
 #endif   /* ENABLE_LIST_COMPAT */
+
+/**
+ * If listPtrPtr is non-NULL, and *listPtrPtr is non-NULL then free the list and set *listPtrPtr to NULL
+ *
+ * @param listPtr a ptr to a list object.  May be NULL, and may also point to NULL
+ */
+static inline
+void freeListAndNull(List **listPtrPtr)
+{
+	if ( listPtrPtr && *listPtrPtr)
+	{
+		list_free(*listPtrPtr);
+		*listPtrPtr = NULL;
+	}
+}
 
 #endif   /* PG_LIST_H */

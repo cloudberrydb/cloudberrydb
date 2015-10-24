@@ -4,7 +4,7 @@
 #    Makefile for utils/mb/conversion_procs
 #
 # IDENTIFICATION
-#    $PostgreSQL: pgsql/src/backend/utils/mb/conversion_procs/Makefile,v 1.17 2006/02/27 16:09:49 petere Exp $
+#    $PostgreSQL: pgsql/src/backend/utils/mb/conversion_procs/Makefile,v 1.21 2009/02/10 19:29:39 petere Exp $
 #
 #-------------------------------------------------------------------------
 
@@ -23,7 +23,8 @@ DIRS = \
 	utf8_and_ascii utf8_and_big5 utf8_and_cyrillic utf8_and_euc_cn \
 	utf8_and_euc_jp utf8_and_euc_kr utf8_and_euc_tw utf8_and_gb18030 \
 	utf8_and_gbk utf8_and_iso8859 utf8_and_iso8859_1 utf8_and_johab \
-	utf8_and_sjis utf8_and_win utf8_and_uhc
+	utf8_and_sjis utf8_and_win utf8_and_uhc \
+	utf8_and_euc_jis_2004 utf8_and_shift_jis_2004 euc_jis_2004_and_shift_jis_2004
 
 # conversion_name source_encoding destination_encoding function object
 CONVERSIONS = \
@@ -83,6 +84,8 @@ CONVERSIONS = \
 		utf8_to_big5 UTF8 BIG5 utf8_to_big5 utf8_and_big5 \
 		utf8_to_koi8_r	UTF8 KOI8R utf8_to_koi8r utf8_and_cyrillic \
 		koi8_r_to_utf8	KOI8R UTF8 koi8r_to_utf8 utf8_and_cyrillic \
+		utf8_to_koi8_u	UTF8 KOI8U utf8_to_koi8u utf8_and_cyrillic \
+		koi8_u_to_utf8	KOI8U UTF8 koi8u_to_utf8 utf8_and_cyrillic \
 		utf8_to_windows_866 UTF8 WIN866 utf8_to_win utf8_and_win \
 		windows_866_to_utf8 WIN866 UTF8 win_to_utf8 utf8_and_win \
 		utf8_to_windows_874 UTF8 WIN874 utf8_to_win utf8_and_win \
@@ -150,15 +153,21 @@ CONVERSIONS = \
 		sjis_to_utf8 SJIS UTF8 sjis_to_utf8 utf8_and_sjis \
 		utf8_to_sjis UTF8 SJIS utf8_to_sjis utf8_and_sjis \
 		uhc_to_utf8 UHC UTF8 uhc_to_utf8 utf8_and_uhc \
-		utf8_to_uhc UTF8 UHC utf8_to_uhc utf8_and_uhc
-
+		utf8_to_uhc UTF8 UHC utf8_to_uhc utf8_and_uhc \
+		euc_jis_2004_to_utf8 EUC_JIS_2004 UTF8 euc_jis_2004_to_utf8 utf8_and_euc_jis_2004 \
+		utf8_to_euc_jis_2004 UTF8 EUC_JIS_2004 utf8_to_euc_jis_2004 utf8_and_euc_jis_2004 \
+		shift_jis_2004_to_utf8 SHIFT_JIS_2004 UTF8 shift_jis_2004_to_utf8 utf8_and_shift_jis_2004 \
+		utf8_to_shift_jis_2004 UTF8 SHIFT_JIS_2004 utf8_to_shift_jis_2004 utf8_and_shift_jis_2004 \
+		euc_jis_2004_to_shift_jis_2004 EUC_JIS_2004 SHIFT_JIS_2004 euc_jis_2004_to_shift_jis_2004 euc_jis_2004_and_shift_jis_2004 \
+		shift_jis_2004_to_euc_jis_2004 SHIFT_JIS_2004 EUC_JIS_2004 shift_jis_2004_to_euc_jis_2004 euc_jis_2004_and_shift_jis_2004
 
 all: $(SQLSCRIPT)
 	@for dir in $(DIRS); do $(MAKE) -C $$dir $@ || exit; done
 
 $(SQLSCRIPT): Makefile
 ifeq ($(enable_shared), yes)
-	@set $(CONVERSIONS) ; \
+	@set -e; \
+	set $(CONVERSIONS) ; \
 	while [ "$$#" -gt 0 ] ; \
 	do \
 		name=$$1;shift; \
@@ -168,15 +177,18 @@ ifeq ($(enable_shared), yes)
 		obj=$$1; shift; \
 		echo "-- $$se --> $$de"; \
 		echo "CREATE OR REPLACE FUNCTION $$func (INTEGER, INTEGER, CSTRING, INTERNAL, INTEGER) RETURNS VOID AS '$$"libdir"/$$obj', '$$func' LANGUAGE C STRICT;"; \
+	        echo "COMMENT ON FUNCTION $$func(INTEGER, INTEGER, CSTRING, INTERNAL, INTEGER) IS 'internal conversion function for $$se to $$de';"; \
 		echo "DROP CONVERSION pg_catalog.$$name;"; \
 		echo "CREATE DEFAULT CONVERSION pg_catalog.$$name FOR '$$se' TO '$$de' FROM $$func;"; \
+	        echo "COMMENT ON CONVERSION pg_catalog.$$name IS 'conversion for $$se to $$de';"; \
 	done > $@
 else
 	echo "-- No conversion support, for lack of shared library support" > $@
 endif
 
 $(REGRESSION_SCRIPT): Makefile
-	@cp regress_prolog $@; \
+	@set -e; \
+	cp regress_prolog $@; \
 	set $(CONVERSIONS) ; \
 	while [ "$$#" -gt 0 ] ; \
 	do \
@@ -196,7 +208,7 @@ install: $(SQLSCRIPT) installdirs
 	@for dir in $(DIRS); do $(MAKE) -C $$dir $@ || exit; done
 
 installdirs:
-	$(mkinstalldirs) '$(DESTDIR)$(datadir)' '$(DESTDIR)$(pkglibdir)'
+	$(MKDIR_P) '$(DESTDIR)$(datadir)' '$(DESTDIR)$(pkglibdir)'
 
 uninstall:
 	rm -f '$(DESTDIR)$(datadir)/$(SQLSCRIPT)'
@@ -204,5 +216,5 @@ uninstall:
 
 clean distclean maintainer-clean:
 	rm -f $(SQLSCRIPT)
-	@for dir in $(DIRS); do $(MAKE) -C $$dir $@; done
+	@for dir in $(DIRS); do $(MAKE) -C $$dir $@ || exit; done
 

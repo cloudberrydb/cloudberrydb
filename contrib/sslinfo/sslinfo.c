@@ -4,7 +4,7 @@
  * Written by Victor B. Wagner <vitus@cryptocom.ru>, Cryptocom LTD
  * This file is distributed under BSD-style license.
  *
- * $PostgreSQL: pgsql/contrib/sslinfo/sslinfo.c,v 1.5 2006/10/04 00:29:46 momjian Exp $
+ * $PostgreSQL: pgsql/contrib/sslinfo/sslinfo.c,v 1.6.2.1 2008/11/10 14:57:46 tgl Exp $
  */
 
 #include "postgres.h"
@@ -136,11 +136,12 @@ ASN1_STRING_to_text(ASN1_STRING *str)
 	outlen = strlen(dp);
 	result = palloc(VARHDRSZ + outlen);
 	memcpy(VARDATA(result), dp, outlen);
+	SET_VARSIZE(result, VARHDRSZ + outlen);
+
 	if (dp != sp)
 		pfree(dp);
-
 	BIO_free(membuf);
-	VARATT_SIZEP(result) = outlen + VARHDRSZ;
+
 	PG_RETURN_TEXT_P(result);
 }
 
@@ -311,18 +312,15 @@ X509_NAME_to_text(X509_NAME *name)
 											size - 1,
 											PG_UTF8,
 											GetDatabaseEncoding());
-	BIO_free(membuf);
 	outlen = strlen(dp);
 	result = palloc(VARHDRSZ + outlen);
 	memcpy(VARDATA(result), dp, outlen);
+	SET_VARSIZE(result, VARHDRSZ + outlen);
 
-	/*
-	 * pg_do_encoding_conversion has annoying habit of returning source
-	 * pointer
-	 */
 	if (dp != sp)
 		pfree(dp);
-	VARATT_SIZEP(result) = outlen + VARHDRSZ;
+	BIO_free(membuf);
+
 	PG_RETURN_TEXT_P(result);
 }
 

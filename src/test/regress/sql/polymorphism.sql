@@ -2,8 +2,21 @@
 -- testing of polymorphic SQL functions.  It ought to be extended.
 
 
+-- In GPDB, rows can be returned from segments in any order. Normally, we
+-- mask differences in result set order in regression tests with gpdiff.pl,
+-- but the aggregates in this test file result in arrays that have elements
+-- in random order. To fix, we force them in order with this function.
+create or replace function array_sort(x anyarray) returns anyarray as $$
+  select array_agg(x) from (select unnest($1) AS x order by x) as _;
+$$ language sql;
+
+-- GPDB: the line right after Legend has been intentionally changed to not look
+-- like a psql result set header, like it does in upstream. atmsort.pl got
+-- confused by it and treated the whole comment as a result set, and re-ordered
+-- it.
+
 -- Legend:
------------
+-- ---------
 -- A = type is ANY
 -- P = type is polymorphic
 -- N = type is non-polymorphic
@@ -353,24 +366,40 @@ insert into t values(3,array[3],'b');
 select f3, myaggp01a(*) from t group by f3;
 select f3, myaggp03a(*) from t group by f3;
 select f3, myaggp03b(*) from t group by f3;
-select f3, myaggp05a(f1) from t group by f3;
+select f3, array_sort(myaggp05a(f1)) as myaggp05a from t group by f3;
 select f3, myaggp06a(f1) from t group by f3;
 select f3, myaggp08a(f1) from t group by f3;
 select f3, myaggp09a(f1) from t group by f3;
 select f3, myaggp09b(f1) from t group by f3;
-select f3, myaggp10a(f1) from t group by f3;
-select f3, myaggp10b(f1) from t group by f3;
-select f3, myaggp20a(f1) from t group by f3;
-select f3, myaggp20b(f1) from t group by f3;
+select f3, array_sort(myaggp10a(f1)) as myaggp10a from t group by f3;
+select f3, array_sort(myaggp10b(f1)) as myaggp10b from t group by f3;
+select f3, array_sort(myaggp20a(f1)) as myaggp20a from t group by f3;
+select f3, array_sort(myaggp20b(f1)) as myaggp20b from t group by f3;
 select f3, myaggn01a(*) from t group by f3;
 select f3, myaggn01b(*) from t group by f3;
 select f3, myaggn03a(*) from t group by f3;
-select f3, myaggn05a(f1) from t group by f3;
-select f3, myaggn05b(f1) from t group by f3;
+select f3, array_sort(myaggn05a(f1)) as myaggn05a from t group by f3;
+select f3, array_sort(myaggn05b(f1)) as myaggn05b from t group by f3;
 select f3, myaggn06a(f1) from t group by f3;
 select f3, myaggn06b(f1) from t group by f3;
 select f3, myaggn08a(f1) from t group by f3;
 select f3, myaggn08b(f1) from t group by f3;
 select f3, myaggn09a(f1) from t group by f3;
-select f3, myaggn10a(f1) from t group by f3;
+select f3, array_sort(myaggn10a(f1)) as myaggn10a from t group by f3;
 select mysum2(f1, f1 + 1) from t;
+
+-- test inlining of polymorphic SQL functions
+create function bleat(int) returns int as $$
+begin
+  raise notice 'bleat %', $1;
+  return $1;
+end$$ language plpgsql;
+
+create function sql_if(bool, anyelement, anyelement) returns anyelement as $$
+select case when $1 then $2 else $3 end $$ language sql;
+
+-- Note this would fail with integer overflow, never mind wrong bleat() output,
+-- if the CASE expression were not successfully inlined
+select f1, sql_if(f1 > 0, bleat(f1), bleat(f1 + 1)) from int4_tbl;
+
+select q2, sql_if(q2 > 0, q2, q2 + 1) from int8_tbl;
