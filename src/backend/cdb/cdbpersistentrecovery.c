@@ -39,6 +39,7 @@
 #include "cdb/cdbmirroredfilesysobj.h"
 #include "cdb/cdbresynchronizechangetracking.h"
 #include "access/twophase.h"
+#include "access/clog.h"
 
 static bool
 PersistentRecovery_RedoRelationExists(
@@ -1570,6 +1571,54 @@ PersistentRecovery_CrashAbort(void)
 					 xactEntry->xid,
 					 XactInfoKind_Name(xactEntry->infoKind));
 
+			continue;
+		}
+
+		/* If checkpoint happened after Recording COMMIT, xactHashTable won't know the Status of the xact, 
+		 * since no REDO records corresponding to the same would be looked into.
+		 * But its incorrect without consulting CLOG to consider ABORTing the xact based on having CREATE_PENDING entry in PT
+		 * Hence should check CLOG to verify if it was COMMITTED.
+		 * If we don't perform this step, the recovery later would try to mark COMMITED Xact Aborted, 
+		 * seeing Create-Pending entry associated with the Xact.
+		 */
+		bool validStatus = false;
+
+		XidStatus status = InRecoveryTransactionIdGetStatus(xactEntry->xid, &validStatus);
+		if ((validStatus == true) && (status != 0) && (status == TRANSACTION_STATUS_COMMITTED))
+		{
+			xactEntry->infoKind = XACT_INFOKIND_COMMIT;
+
+			if (Debug_persistent_recovery_print)
+				elog(PersistentRecovery_DebugPrintLevel(), 
+						"PersistentRecovery_CrashAbort: Found transaction as COMMITTED in clog, transaction %u (state '%s')",
+						xactEntry->xid,
+						XactInfoKind_Name(xactEntry->infoKind));
+
+			fsObjEntry = 
+				(FsObjEntry) DoublyLinkedHead_First(
+						offsetof(FsObjEntryData, xactLinks),
+						&xactEntry->fsObjEntryList);
+
+			while (fsObjEntry != NULL)
+			{
+				if (fsObjEntry->state == PersistentFileSysState_BulkLoadCreatePending ||
+						fsObjEntry->state == PersistentFileSysState_CreatePending)
+				{
+					if (Debug_persistent_recovery_print)
+						elog(PersistentRecovery_DebugPrintLevel(), 
+								"PersistentRecovery_CrashAbort: Set state of %s to 'Created'", 
+								FsObjEntryToString(fsObjEntry));
+
+					fsObjEntry->updateNeeded = true;
+					fsObjEntry->state = PersistentFileSysState_Created;
+				}
+
+				fsObjEntry = 
+					(FsObjEntry) DoublyLinkedHead_Next(
+							offsetof(FsObjEntryData, xactLinks),
+							&xactEntry->fsObjEntryList,
+							fsObjEntry);
+			}
 			continue;
 		}
 
