@@ -4233,9 +4233,9 @@ fi
 # but has its own.  Also check other compiler-specific flags here.
 
 if test "$GCC" = yes -a "$ICC" = no; then
-  CFLAGS="$CFLAGS -Wall -Wmissing-prototypes -Wpointer-arith "
+  CFLAGS="$CFLAGS -Wall -Wmissing-prototypes -Wpointer-arith"
   # These work in some but not all gcc versions
-    { $as_echo "$as_me:${as_lineno-$LINENO}: checking if $CC supports -Wendif-labels" >&5
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking if $CC supports -Wendif-labels" >&5
 $as_echo_n "checking if $CC supports -Wendif-labels... " >&6; }
 pgac_save_CFLAGS=$CFLAGS
 CFLAGS="$pgac_save_CFLAGS -Wendif-labels"
@@ -4260,7 +4260,7 @@ $as_echo "no" >&6; }
 fi
 rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
 
-    #PGAC_PROG_CC_CFLAGS_OPT([-Wmissing-format-attribute])
+  #PGAC_PROG_CC_CFLAGS_OPT([-Wmissing-format-attribute])
   # This was included in -Wall/-Wformat in older GCC versions
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking if $CC supports -Wformat-security" >&5
 $as_echo_n "checking if $CC supports -Wformat-security... " >&6; }
@@ -4391,6 +4391,64 @@ else
 $as_echo "no" >&6; }
 fi
 rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
+
+
+  # Silence compiler warnings that you get with modern versions of GCC.
+  # All of these warnings have been fixed in later versions of PostgreSQL,
+  # but GPDB is based on 8.2, so you get these. TODO: Remove when we catch up
+  # with later PostgreSQL releases.
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking if $CC supports -Wno-unused-but-set-variable" >&5
+$as_echo_n "checking if $CC supports -Wno-unused-but-set-variable... " >&6; }
+pgac_save_CFLAGS=$CFLAGS
+CFLAGS="$pgac_save_CFLAGS -Wno-unused-but-set-variable"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+int
+main ()
+{
+
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_compile "$LINENO"; then :
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+$as_echo "yes" >&6; }
+else
+  CFLAGS="$pgac_save_CFLAGS"
+                    { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
+
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking if $CC supports -Wno-address" >&5
+$as_echo_n "checking if $CC supports -Wno-address... " >&6; }
+pgac_save_CFLAGS=$CFLAGS
+CFLAGS="$pgac_save_CFLAGS -Wno-address"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+int
+main ()
+{
+
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_compile "$LINENO"; then :
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+$as_echo "yes" >&6; }
+else
+  CFLAGS="$pgac_save_CFLAGS"
+                    { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
+
+
+  #-Wno-error=enum-compare -Wno-error=address -Wno-error=maybe-uninitialized
 
 elif test "$ICC" = yes; then
   # Intel's compiler has a bug/misoptimization in checking for
