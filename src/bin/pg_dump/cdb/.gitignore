@@ -1,5 +1,6 @@
 cdb_bsa_dump_agent
 cdb_bsa_query_agent
+cdb_bsa_delete_agent
 cdb_bsa_restore_agent
 cdb_dump
 cdb_dump_agent
