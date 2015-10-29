@@ -42,6 +42,11 @@ to the segments, and collects the results.
   * setuptools
   * epydoc
 
+   Ensure the ed text-editor is installed for gpinitsystem. For RHEL/Centos:
+   ```
+   sudo yum install ed
+   ```
+
 ## Code layout
 
 The directory layout of the repository follows the same general layout
