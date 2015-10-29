@@ -262,7 +262,8 @@ recordIsValid(XLogRecord *record, XLogRecPtr *recptr)
 	char	   *blk;
 
 	/* First the rmgr data */
-	crc = crc32c(crc32cInit(), XLogRecGetData(record), len);
+	INIT_CRC32C(crc);
+	COMP_CRC32C(crc, XLogRecGetData(record), len);
 
 	/* Add in the backup blocks, if any */
 	blk = (char *) XLogRecGetData(record) + len;
@@ -283,7 +284,7 @@ recordIsValid(XLogRecord *record, XLogRecPtr *recptr)
 			return false;
 		}
 		blen = sizeof(BkpBlock) + BLCKSZ - bkpb.hole_length;
-		crc = crc32c(crc, blk, blen);
+		COMP_CRC32C(crc, blk, blen);
 		blk += blen;
 	}
 
@@ -298,11 +299,10 @@ recordIsValid(XLogRecord *record, XLogRecPtr *recptr)
 	}
 
 	/* Finally include the record header */
-	crc = crc32c(crc, (char *) record + sizeof(pg_crc32),
-			   SizeOfXLogRecord - sizeof(pg_crc32));
-	crc32cFinish(crc);
+	COMP_CRC32C(crc, (char *) record + sizeof(pg_crc32), SizeOfXLogRecord - sizeof(pg_crc32));
+	FIN_CRC32C(crc);
 
-	if (!EQ_CRC32(record->xl_crc, crc))
+	if (!EQ_CRC32C(record->xl_crc, crc))
 	{
 		ereport(WARNING,
 				(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
