@@ -114,14 +114,11 @@ test: select_views portals_p2 cluster dependency guc
 # The sixth group of parallel test
 # ----------
 # "plpgsql" cannot run concurrently with "rules"
-test: limit temp domain rangefuncs prepare without_oid conversion truncate alter_table sequence polymorphism rowtypes
+test: limit copy2 temp domain rangefuncs prepare without_oid conversion truncate alter_table sequence polymorphism rowtypes
 
 # 'plpgsql' test is disabled in GPDB, because it produces a lot of errors on
 # because of cross-segment accesses in functions.
 #test: plpgsql
-
-# 'copy2' is temporarily disabled in GPDB
-#test: copy2
 
 # INSERT RETURNING is not supported by GPDB
 #test: returning
