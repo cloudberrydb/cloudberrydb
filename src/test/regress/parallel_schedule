@@ -88,9 +88,7 @@ test: namespace
 #test: transactions
 
 test: privileges
-
-# misc test is temporarily disabled in GPDB.
-#test: misc
+test: misc
 
 # ----------
 # The fifth group of parallel test
