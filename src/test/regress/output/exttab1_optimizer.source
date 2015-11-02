@@ -44,24 +44,6 @@ FORMAT 'text' (delimiter '|');
 -- drop tables
 DROP EXTERNAL TABLE EXT_NATION;
 DROP EXTERNAL TABLE EXT_REGION;
--- --------------------------------------
--- 'gphdfs' protocol - (only CREATE, don't SELECT - won't work without Hadoop)
--- --------------------------------------
-CREATE EXTERNAL TABLE EXT_HDFS_READ  ( N_NATIONKEY  INTEGER ,
-                            N_NAME       CHAR(25) ,
-                            N_REGIONKEY  INTEGER ,
-                            N_COMMENT    VARCHAR(152))
-location ('gphdfs://@hostname@@:123/Data/nation.tbl' )
-FORMAT 'text' (delimiter '|');
-CREATE WRITABLE EXTERNAL TABLE EXT_HDFS_WRITE  ( N_NATIONKEY  INTEGER ,
-                            N_NAME       CHAR(25) ,
-                            N_REGIONKEY  INTEGER ,
-                            N_COMMENT    VARCHAR(152))
-location ('gphdfs://@hostname@@/data/nation.tbl' )
-FORMAT 'text';
--- drop tables
-DROP EXTERNAL TABLE EXT_HDFS_READ;
-DROP EXTERNAL TABLE EXT_HDFS_WRITE;
 -- start_ignore
 -- --------------------------------------
 -- check platform
@@ -862,24 +844,6 @@ ALTER ROLE exttab1_u2 NOCREATEEXTTABLE(protocol='gpfdist', type='writable');
 SET SESSION AUTHORIZATION exttab1_u2;
 create writable external table auth_ext_test4(a int) location ('gpfdist://host:8000/file') format 'text'; -- fail
 ERROR:  permission denied: no privilege to create a writable gpfdist(s) external table
-RESET SESSION AUTHORIZATION;
-SET SESSION AUTHORIZATION exttab1_u4;
-create external table auth_ext_test5(a int) location ('gphdfs://host:8000/file') format 'text';
-ERROR:  permission denied for external protocol gphdfs
-create writable external table auth_ext_test6(a int) location ('gphdfs://host:8000/file') format 'text'; -- fail
-ERROR:  permission denied for external protocol gphdfs
-RESET SESSION AUTHORIZATION;
-SET SESSION AUTHORIZATION exttab1_u5;
-create writable external table auth_ext_test7(a int) location ('gphdfs://host:8000/file') format 'text';
-ERROR:  permission denied for external protocol gphdfs
-create external table auth_ext_test8(a int) location ('gphdfs://host:8000/file') format 'text';           -- fail
-ERROR:  permission denied for external protocol gphdfs
-RESET SESSION AUTHORIZATION;
-SET SESSION AUTHORIZATION exttab1_u6;
-create writable external table auth_ext_test9(a int) location ('gphdfs://host:8000/file') format 'text';  -- fail
-ERROR:  permission denied for external protocol gphdfs
-create external table auth_ext_test9(a int) location ('gphdfs://host:8000/file') format 'text';           -- fail
-ERROR:  permission denied for external protocol gphdfs
 RESET SESSION AUTHORIZATION;
 drop external table auth_ext_test1;
 drop external table auth_ext_test2;
