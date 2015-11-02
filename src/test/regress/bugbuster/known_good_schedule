@@ -52,7 +52,6 @@ test: cursor
 test: aggfunc
 test: visibility
 test: tidscan
-test: functional
 test: memory_quota
 test: TestPSQL
 test: table_statistics
