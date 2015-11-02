@@ -770,19 +770,22 @@ select "decode"('MTIzAAE=', 'base64');
 select "decode"(md5('password'),'hex');
 
 --
-create table sales
+create table decode_sales
 (ytd_sales decimal,
  currency char(1)
 ) distributed by (currency);
 
-insert into sales values(2000000, 'e');
-insert into sales values(10500000.25, 'd');
-insert into sales values(789100.50, 'y');
-insert into sales values(300685, 'p');
+insert into decode_sales values(2000000, 'e');
+insert into decode_sales values(10500000.25, 'd');
+insert into decode_sales values(789100.50, 'y');
+insert into decode_sales values(300685, 'p');
 
 select *
-from sales
+from decode_sales
 order by ytd_sales desc;
 
-select currency, decode(currency, 'd', 'USD', 'e', 'EUR', 'y', 'JPY', 'USD') from sales order by ytd_sales desc;
-select currency, decode(currency, 'd', 'USD', 'e', 'EUR', 'y', 'JPY', 'p', 'GBP', 'USD') from sales order by ytd_sales desc;
+select currency, decode(currency, 'd', 'USD', 'e', 'EUR', 'y', 'JPY', 'USD') from decode_sales order by ytd_sales desc;
+select currency, decode(currency, 'd', 'USD', 'e', 'EUR', 'y', 'JPY', 'p', 'GBP', 'USD') from decode_sales order by ytd_sales desc;
+
+-- clean up
+drop table decode_sales;
