@@ -659,14 +659,7 @@ insert into oldstyle_test values(0,'12');
 insert into oldstyle_test values(1000,'12');
 insert into oldstyle_test values(0, repeat('x', 50000));
 select i, length(t), octet_length(t), oldstyle_length(i,t) from oldstyle_test;
-  i   | length | octet_length | oldstyle_length 
-------+--------+--------------+-----------------
-      |        |              |                
-    0 |      2 |            2 |               2
- 1000 |      2 |            2 |            1002
-    0 |  50000 |        50000 |           50000
-(4 rows)
-
+ERROR:  Old style C function (API version 0) are no longer supported by Greenplum
 drop table oldstyle_test;
 --
 -- functional joins
