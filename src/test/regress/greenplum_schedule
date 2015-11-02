@@ -1,6 +1,7 @@
 # Greenplum-specific tests
 
 ignore: leastsquares
+test: bitmapscan
 
 test: dispatch
 

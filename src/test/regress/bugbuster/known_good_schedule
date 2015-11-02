@@ -1,7 +1,6 @@
 ##
 ## TODO: list test sequence and test dependencies.
 ##
-test: bitmapscan
 test: executor
 test: functions
 test: golden_query
