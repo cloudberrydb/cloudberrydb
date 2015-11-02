@@ -17,6 +17,10 @@
 -- # remove line number - redhat
 -- m/ERROR\:\s+external table .* command ended with .*NOT FOUND.*/i
 -- s/\s+line \d+\://
+-- # remove line number - Debian
+-- m/ERROR\:\s+external table .* command ended with .*sh: 1: .*NOT FOUND.*/i
+-- s/ sh: 1: / sh: /
+--
 -- # remove cannot open - solaris
 -- m/ERROR\:\s+external table .* command ended with .*cat\: cannot open.*/i
 -- s/cat\: cannot open (.*)$/cat\: $1\: NO SUCH FILE/
