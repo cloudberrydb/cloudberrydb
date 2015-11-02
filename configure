@@ -817,7 +817,6 @@ enable_dtrace
 with_CC
 enable_depend
 enable_cassert
-enable_forceplan
 enable_debugbreak
 enable_debugntuplestore
 enable_testutils
@@ -1486,7 +1485,6 @@ build with coverage testing instrumentation
   --enable-dtrace         build with DTrace support
   --enable-depend         turn on automatic dependency tracking
   --enable-cassert        enable assertion checks (for debugging)
-  --enable-forceplan        enable forcing of plans via EXPLAIN FORCE (for debugging)
   --enable-debugbreak        enable debug_break and debug_break_n (for debugging)
   --enable-ntuplestore      enable debug_ntuplestore (for debugging)
   --enable-testutils        enable testing utilities
@@ -4870,36 +4868,6 @@ $as_echo "#define USE_ASSERT_CHECKING 1" >>confdefs.h
 
 else
   enable_cassert=no
-
-fi
-
-
-
-#
-# Enable forced plans
-#
-
-pgac_args="$pgac_args enable_forceplan"
-
-# Check whether --enable-forceplan was given.
-if test "${enable_forceplan+set}" = set; then :
-  enableval=$enable_forceplan;
-  case $enableval in
-    yes)
-
-$as_echo "#define USE_FORCE_PLAN 1" >>confdefs.h
-
-      ;;
-    no)
-      :
-      ;;
-    *)
-      as_fn_error $? "no argument expected for --enable-forceplan option" "$LINENO" 5
-      ;;
-  esac
-
-else
-  enable_forceplan=no
 
 fi
 

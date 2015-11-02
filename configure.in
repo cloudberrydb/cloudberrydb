@@ -487,13 +487,6 @@ PGAC_ARG_BOOL(enable, cassert, no, [  --enable-cassert        enable assertion c
                          [Define to 1 to build with assertion checks. (--enable-cassert)])])
 
 #
-# Enable forced plans
-#
-PGAC_ARG_BOOL(enable, forceplan, no, [  --enable-forceplan        enable forcing of plans via EXPLAIN FORCE (for debugging)],
-              [AC_DEFINE([USE_FORCE_PLAN], 1,
-                         [Define to 1 to build with plan forcing capabilities. (--enable-forceplan)])])
-
-#
 # Enable debug_break
 #
 PGAC_ARG_BOOL(enable, debugbreak, no, [  --enable-debugbreak        enable debug_break and debug_break_n (for debugging)],
