@@ -1755,6 +1755,7 @@ static void CopyToCreateDispatchCommand(CopyState cstate,
 {
 	ListCell   *cur;
 	bool		is_first_col = true;
+	int			i;
 
 	/* append schema and tablename */
 	appendStringInfo(cdbcopy_cmd, "COPY %s.%s",
@@ -1803,6 +1804,23 @@ static void CopyToCreateDispatchCommand(CopyState cstate,
 		appendStringInfo(cdbcopy_cmd, " CSV");
 		appendStringInfo(cdbcopy_cmd, " QUOTE AS E'%s'", escape_quotes(cstate->quote));
 		appendStringInfo(cdbcopy_cmd, " ESCAPE AS E'%s'", escape_quotes(cstate->escape));
+
+		/* Create list of FORCE QUOTE columns */
+		is_first_col = true;
+		for (i = 0; i < num_phys_attrs; i++)
+		{
+			if (cstate->force_quote_flags[i])
+			{
+				if (is_first_col)
+					appendStringInfoString(cdbcopy_cmd, "FORCE QUOTE ");
+				else
+					appendStringInfoString(cdbcopy_cmd, ", ");
+				is_first_col = false;
+
+				appendStringInfoString(cdbcopy_cmd,
+									   quote_identifier(NameStr(attr[i]->attname)));
+			}
+		}
 
 		/* do NOT include HEADER. Header row is created by dispatcher COPY */
 	}
