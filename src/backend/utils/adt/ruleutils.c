@@ -4391,10 +4391,11 @@ get_rule_expr(Node *node, deparse_context *context,
 					else
 						Assert(false);
 					get_rule_expr((Node *) p->args, context, true);
-					appendStringInfoString(buf, ") WITHIN GROUP ");
+					appendStringInfoString(buf, ") WITHIN GROUP (");
 					get_sortlist_expr(p->sortClause,
 									  p->sortTargets,
 									  false, context, "ORDER BY ");
+					appendStringInfoString(buf, ") ");
 				}
 			}
 			break;
