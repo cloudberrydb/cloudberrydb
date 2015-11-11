@@ -1683,7 +1683,7 @@ typedef struct BitmapHeapScanState
 	struct HeapScanDescData *ss_currentScanDesc;
 	List	   *bitmapqualorig;
 	Node	   *tbm;
-	struct TBMIterateResult *tbmres;
+	TBMIterateResult *tbmres;
 } BitmapHeapScanState;
 
 /* ----------------
