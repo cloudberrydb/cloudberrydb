@@ -11,7 +11,7 @@ test: gpdiffcheck gptokencheck olap_setup
 test: partition
 test: vacuum_gp
 
-test: gp_hashagg gp_dqa
+test: gp_hashagg gp_dqa external_table
 
 test: column_compression rangefuncs_cdb
 
