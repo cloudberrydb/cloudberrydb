@@ -37,11 +37,11 @@ CREATE EXTERNAL TABLE EXT_NATION  ( N_NATIONKEY  INTEGER ,
                             N_NAME       CHAR(25) ,
                             N_REGIONKEY  INTEGER ,
                             N_COMMENT    VARCHAR(152))
-location ('file://@hostname@@abs_srcdir@/data/nation.tbl' )
+location ('file://@hostname@@abs_srcdir@/data/exttab1/nation.tbl' )
 FORMAT 'text' (delimiter '|');
 
 CREATE EXTERNAL TABLE EXT_REGION  (LIKE REG_REGION)
-location ('file://@hostname@@abs_srcdir@/data/region.tbl' )
+location ('file://@hostname@@abs_srcdir@/data/exttab1/region.tbl' )
 FORMAT 'text' (delimiter '|');
 
 -- drop tables
@@ -102,10 +102,10 @@ CREATE EXTERNAL TABLE EXT_NATION  ( N_NATIONKEY  INTEGER ,
                             N_NAME       CHAR(25) ,
                             N_REGIONKEY  INTEGER ,
                             N_COMMENT    VARCHAR(152))
-location ('gpfdist://@hostname@:7070/nation.tbl' )
+location ('gpfdist://@hostname@:7070/exttab1/nation.tbl' )
 FORMAT 'text' (delimiter '|');
 CREATE EXTERNAL TABLE EXT_REGION  (LIKE REG_REGION)
-location ('gpfdist://@hostname@:7070/region.tbl' )
+location ('gpfdist://@hostname@:7070/exttab1/region.tbl' )
 FORMAT 'text' (delimiter '|');
 
 SELECT * FROM EXT_NATION;
@@ -231,7 +231,7 @@ admin_country			varchar(100),
 rec_path			varchar(512),
 raw_record			text
 )
-location ('gpfdist://@hostname@:7070/whois.csv' )
+location ('gpfdist://@hostname@:7070/exttab1/whois.csv' )
 format 'csv' ( quote as '"' header);
 -- "
 
@@ -239,20 +239,20 @@ select count(*) from ext_whois;
 
 -- test FILL EMPTY FIELDS
 create external table ext_fill1(a int, b int, c int)
-location('gpfdist://@hostname@:7070/missing_fields1.data' )
+location('gpfdist://@hostname@:7070/exttab1/missing_fields1.data' )
 format 'text' ( delimiter '|' fill missing fields);
 
 create external table ext_fill2(a int, b int, c int)
-location('gpfdist://@hostname@:7070/missing_fields2.data' )
+location('gpfdist://@hostname@:7070/exttab1/missing_fields2.data' )
 format 'text' ( delimiter '|' fill missing fields);
 
 -- also test force not null in addition to fill empty fields
 create external table ext_fill3_fnn(a text, b text, c text)
-location('gpfdist://@hostname@:7070/missing_fields1.data' )
+location('gpfdist://@hostname@:7070/exttab1/missing_fields1.data' )
 format 'csv' ( delimiter '|' fill missing fields force not null c);
 
 create external table ext_fill4_fnn(a text, b text, c text)
-location('gpfdist://@hostname@:7070/missing_fields1.data' )
+location('gpfdist://@hostname@:7070/exttab1/missing_fields1.data' )
 format 'csv' ( delimiter '|' fill missing fields force not null b,c);
 
 select * from ext_fill1 order by a,b,c; -- should pad missing attrs with nulls
@@ -268,15 +268,15 @@ drop external table ext_fill4_fnn;
 
 -- test NEWLINE
 create external table ext_newline1(N_NATIONKEY INT, N_NAME text, N_REGIONKEY INT, N_COMMENT text)
-location('gpfdist://@hostname@:7070/nation.tbl' )
+location('gpfdist://@hostname@:7070/exttab1/nation.tbl' )
 format 'text' ( delimiter '|' newline 'lf');
 
 create external table ext_newline2(like ext_newline1)
-location('gpfdist://@hostname@:7070/nation.tbl' )
+location('gpfdist://@hostname@:7070/exttab1/nation.tbl' )
 format 'text' ( delimiter '|' newline 'cr');
 
 create external table ext_willfail(a int)
-location('gpfdist://@hostname@:7070/nation.tbl' )
+location('gpfdist://@hostname@:7070/exttab1/nation.tbl' )
 format 'text' ( delimiter '|' newline 'blah'); -- should fail with invalid newline.
 
 select * from ext_newline1; -- should pass. using the correct linefeed. file has 'lf'.
@@ -287,7 +287,7 @@ drop external table ext_newline2;
 
 -- MPP-6698
 create external table ext_mpp6698(a text)
-location('gpfdist://@hostname@:7070/mpp6698.data' )
+location('gpfdist://@hostname@:7070/exttab1/mpp6698.data' )
 format 'csv' (quote '''');
 
 select * from ext_mpp6698 order by a; -- should ignore the quotes
@@ -309,7 +309,7 @@ create external table ext_mpp12839
   is_new_user boolean,
   dummy character varying(1)
 )
-location('gpfdist://@hostname@:7070/mpp12839*.data' )
+location('gpfdist://@hostname@:7070/exttab1/mpp12839*.data' )
 format 'text' (delimiter E'\177' null '' newline 'crlf')
 segment reject limit 100 rows;
 
@@ -337,7 +337,7 @@ create external table bad_whois (
 source_lineno			int,
 domain_name			varchar(350)
 )
-location ('gpfdist://@hostname@:7070/whois.csv' )
+location ('gpfdist://@hostname@:7070/exttab1/whois.csv' )
 format 'csv' ( header quote as 'ggg');
 select count(*) from bad_whois;
 drop external table bad_whois;
@@ -553,7 +553,7 @@ CREATE EXTERNAL TABLE exttabletest.EXT_NATION  ( N_NATIONKEY  INTEGER ,
                             N_NAME       CHAR(25) ,
                             N_REGIONKEY  INTEGER ,
                             N_COMMENT    VARCHAR(152))
-location ('file://@hostname@@abs_srcdir@/data/nation.tbl' )
+location ('file://@hostname@@abs_srcdir@/data/exttab1/nation.tbl' )
 FORMAT 'text' (delimiter '|');
 -- Don't just return the row, as we'll get skew from OID differences between
 -- runs.
@@ -567,7 +567,7 @@ SET gp_foreign_data_access = false;
 -- the CTID attribute for external tables. 
 
 CREATE EXTERNAL TABLE ext_mpp17980 ( id int , id1 int , id2 int)
-LOCATION ('file://@hostname@@abs_srcdir@/data/mpp17980.data')
+LOCATION ('file://@hostname@@abs_srcdir@/data/exttab1/mpp17980.data')
 FORMAT 'CSV' ( DELIMITER ',' NULL ' ');
 
 CREATE TABLE mpp17980 (id int, date date, amt decimal(10,2))

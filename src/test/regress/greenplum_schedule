@@ -11,11 +11,11 @@ test: gpdiffcheck gptokencheck olap_setup
 test: partition
 test: vacuum_gp
 
-test: gp_hashagg gp_dqa exttab1
+test: gp_hashagg gp_dqa
 
 test: column_compression rangefuncs_cdb
 
-test: custom_format gpcopy appendonly filter gpctas gpdist matrix gpdtm_plpgsql
+test: gpcopy appendonly filter gpctas gpdist matrix gpdtm_plpgsql
 
 # FIXME: Temporarily disabled, because it trips an assertion. It's probably
 # harmless, but need to investigate and fix. Also, the number of errors put
