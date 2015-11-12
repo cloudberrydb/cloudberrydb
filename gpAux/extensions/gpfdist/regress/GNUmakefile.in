@@ -1,4 +1,3 @@
-# prevent included makefiles from stealing default target
 gpdb_top=@gpdb_top@/..
 prefix := @prefix@
 
