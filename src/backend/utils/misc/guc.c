@@ -795,6 +795,7 @@ bool		optimizer_dml_triggers;
 bool		optimizer_dml_constraints;
 bool 		optimizer_enable_master_only_queries;
 bool 		optimizer_multilevel_partitioning;
+bool		optimizer_enable_derive_stats_all_groups;
 bool		optimizer_explain_show_status;
 
 /* Security */
@@ -4104,6 +4105,16 @@ static struct config_bool ConfigureNamesBool[] =
                 },
                 &optimizer_multilevel_partitioning,
                 true, NULL, NULL
+        },
+
+        {
+                {"optimizer_enable_derive_stats_all_groups", PGC_USERSET, DEVELOPER_OPTIONS,
+                        gettext_noop("Enable stats derivation for all groups after exploration."),
+                        NULL,
+                        GUC_NO_SHOW_ALL | GUC_NOT_IN_SAMPLE
+                },
+                &optimizer_enable_derive_stats_all_groups,
+                false, NULL, NULL
         },
 
         {
