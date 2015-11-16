@@ -7,7 +7,7 @@
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/executor/spi.c,v 1.165.2.4 2007/08/15 19:15:55 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/executor/spi.c,v 1.166 2006/12/08 00:40:27 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */

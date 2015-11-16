@@ -11,7 +11,7 @@
  * Written by Peter Eisentraut <peter_e@gmx.net>.
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/utils/misc/guc.c,v 1.360.2.6 2010/01/24 21:49:48 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/utils/misc/guc.c,v 1.362 2006/12/13 05:54:48 tgl Exp $
  *
  *--------------------------------------------------------------------
  */
@@ -28,6 +28,7 @@
 
 
 #include "access/gin.h"
+#include "access/transam.h"
 #include "access/twophase.h"
 #include "access/xact.h"
 #include "catalog/namespace.h"
@@ -649,7 +650,7 @@ static struct config_bool ConfigureNamesBool[] =
 	{
 		/* currently undocumented, so don't show in SHOW ALL */
 		{"exit_on_error", PGC_USERSET, UNGROUPED,
-			gettext_noop("no description available"),
+			gettext_noop("No description available."),
 			NULL,
 			GUC_NO_SHOW_ALL | GUC_NOT_IN_SAMPLE
 		},
@@ -734,7 +735,7 @@ static struct config_bool ConfigureNamesBool[] =
 #ifdef BTREE_BUILD_STATS
 	{
 		{"log_btree_build_stats", PGC_SUSET, DEVELOPER_OPTIONS,
-			gettext_noop("no description available"),
+			gettext_noop("No description available."),
 			NULL,
 			GUC_NOT_IN_SAMPLE
 		},
@@ -811,7 +812,7 @@ static struct config_bool ConfigureNamesBool[] =
 #ifdef LOCK_DEBUG
 	{
 		{"trace_locks", PGC_SUSET, DEVELOPER_OPTIONS,
-			gettext_noop("no description available"),
+			gettext_noop("No description available."),
 			NULL,
 			GUC_NOT_IN_SAMPLE
 		},
@@ -820,7 +821,7 @@ static struct config_bool ConfigureNamesBool[] =
 	},
 	{
 		{"trace_userlocks", PGC_SUSET, DEVELOPER_OPTIONS,
-			gettext_noop("no description available"),
+			gettext_noop("No description available."),
 			NULL,
 			GUC_NOT_IN_SAMPLE
 		},
@@ -829,7 +830,7 @@ static struct config_bool ConfigureNamesBool[] =
 	},
 	{
 		{"trace_lwlocks", PGC_SUSET, DEVELOPER_OPTIONS,
-			gettext_noop("no description available"),
+			gettext_noop("No description available."),
 			NULL,
 			GUC_NOT_IN_SAMPLE
 		},
@@ -838,7 +839,7 @@ static struct config_bool ConfigureNamesBool[] =
 	},
 	{
 		{"debug_deadlocks", PGC_SUSET, DEVELOPER_OPTIONS,
-			gettext_noop("no description available"),
+			gettext_noop("No description available."),
 			NULL,
 			GUC_NOT_IN_SAMPLE
 		},
@@ -1033,7 +1034,7 @@ static struct config_bool ConfigureNamesBool[] =
 
 	{
 		{"standard_conforming_strings", PGC_USERSET, COMPAT_OPTIONS_PREVIOUS,
-			gettext_noop("'...' strings treat backslashes literally."),
+			gettext_noop("Causes '...' strings to treat backslashes literally."),
 			NULL,
 			GUC_REPORT
 		},
@@ -1091,8 +1092,8 @@ static struct config_int ConfigureNamesInt[] =
 	},
 	{
 		{"from_collapse_limit", PGC_USERSET, QUERY_TUNING_OTHER,
-			gettext_noop("Sets the FROM-list size beyond which subqueries are not "
-						 "collapsed."),
+			gettext_noop("Sets the FROM-list size beyond which subqueries "
+						 "are not collapsed."),
 			gettext_noop("The planner will merge subqueries into upper "
 				"queries if the resulting FROM list would have no more than "
 						 "this many items.")
@@ -1102,11 +1103,11 @@ static struct config_int ConfigureNamesInt[] =
 	},
 	{
 		{"join_collapse_limit", PGC_USERSET, QUERY_TUNING_OTHER,
-			gettext_noop("Sets the FROM-list size beyond which JOIN constructs are not "
-						 "flattened."),
+			gettext_noop("Sets the FROM-list size beyond which JOIN "
+						 "constructs are not flattened."),
 			gettext_noop("The planner will flatten explicit JOIN "
-			"constructs into lists of FROM items whenever a list of no more "
-						 "than this many items would result.")
+						 "constructs into lists of FROM items whenever a "
+						 "list of no more than this many items would result.")
 		},
 		&join_collapse_limit,
 		20, 1, INT_MAX, NULL, NULL
@@ -1151,7 +1152,7 @@ static struct config_int ConfigureNamesInt[] =
 
 	{
 		{"deadlock_timeout", PGC_SIGHUP, LOCK_MANAGEMENT,
-			gettext_noop("The time in milliseconds to wait on lock before checking for deadlock."),
+			gettext_noop("Sets the time to wait on a lock before checking for deadlock."),
 			NULL,
 			GUC_UNIT_MS
 		},
@@ -1373,7 +1374,7 @@ static struct config_int ConfigureNamesInt[] =
 
 	{
 		{"statement_timeout", PGC_USERSET, CLIENT_CONN_STATEMENT,
-			gettext_noop("Sets the maximum allowed duration (in milliseconds) of any statement."),
+			gettext_noop("Sets the maximum allowed duration of any statement."),
 			gettext_noop("A value of 0 turns off the timeout."),
 			GUC_UNIT_MS | GUC_GPDB_ADDOPT
 		},
@@ -1420,7 +1421,7 @@ static struct config_int ConfigureNamesInt[] =
 
 	{
 		{"authentication_timeout", PGC_SIGHUP, CONN_AUTH_SECURITY,
-			gettext_noop("Sets the maximum time in seconds to complete client authentication."),
+			gettext_noop("Sets the maximum allowed time to complete client authentication."),
 			NULL,
 			GUC_UNIT_S
 		},
@@ -1431,8 +1432,8 @@ static struct config_int ConfigureNamesInt[] =
 	{
 		/* Not for general use */
 		{"pre_auth_delay", PGC_SIGHUP, DEVELOPER_OPTIONS,
-			gettext_noop("no description available"),
-			NULL,
+			gettext_noop("Waits N seconds on connection startup before authentication."),
+			gettext_noop("This allows attaching a debugger to the process."),
 			GUC_NOT_IN_SAMPLE | GUC_NO_SHOW_ALL | GUC_UNIT_S
 		},
 		&PreAuthDelay,
@@ -1451,7 +1452,7 @@ static struct config_int ConfigureNamesInt[] =
 
 	{
 		{"checkpoint_timeout", PGC_SIGHUP, WAL_CHECKPOINTS,
-			gettext_noop("Sets the maximum time in seconds between automatic WAL checkpoints."),
+			gettext_noop("Sets the maximum time between automatic WAL checkpoints."),
 			NULL,
 			GUC_UNIT_S | GUC_NOT_IN_SAMPLE | GUC_NO_SHOW_ALL | GUC_DISALLOW_USER_SET
 		},
@@ -1461,8 +1462,8 @@ static struct config_int ConfigureNamesInt[] =
 
 	{
 		{"checkpoint_warning", PGC_SIGHUP, WAL_CHECKPOINTS,
-			gettext_noop("Logs if filling of checkpoint segments happens more "
-						 "frequently than this (in seconds)."),
+			gettext_noop("Enables warnings if checkpoint segments are filled more "
+						 "frequently than this."),
 			gettext_noop("Write a message to the server log if checkpoints "
 			"caused by the filling of checkpoint segment files happens more "
 						 "frequently than this number of seconds. Zero turns off the warning."),
@@ -1517,7 +1518,7 @@ static struct config_int ConfigureNamesInt[] =
 
 	{
 		{"log_min_duration_statement", PGC_SUSET, LOGGING_WHEN,
-			gettext_noop("Sets the minimum execution time in milliseconds above which statements will "
+			gettext_noop("Sets the minimum execution time above which statements will "
 						 "be logged."),
 			gettext_noop("Zero prints all queries. The default is -1 (turning this feature off)."),
 			GUC_UNIT_MS | GUC_GPDB_ADDOPT
@@ -1528,7 +1529,7 @@ static struct config_int ConfigureNamesInt[] =
 
 	{
 		{"bgwriter_delay", PGC_SIGHUP, RESOURCES,
-			gettext_noop("Background writer sleep time between rounds in milliseconds"),
+			gettext_noop("Background writer sleep time between rounds."),
 			NULL,
 			GUC_UNIT_MS | GUC_NOT_IN_SAMPLE | GUC_NO_SHOW_ALL
 		},
@@ -1538,7 +1539,7 @@ static struct config_int ConfigureNamesInt[] =
 
 	{
 		{"bgwriter_lru_maxpages", PGC_SIGHUP, RESOURCES,
-			gettext_noop("Background writer maximum number of LRU pages to flush per round"),
+			gettext_noop("Background writer maximum number of LRU pages to flush per round."),
 			NULL,
 			GUC_NOT_IN_SAMPLE | GUC_NO_SHOW_ALL
 		},
@@ -1548,7 +1549,7 @@ static struct config_int ConfigureNamesInt[] =
 
 	{
 		{"bgwriter_all_maxpages", PGC_SIGHUP, RESOURCES,
-			gettext_noop("Background writer maximum number of all pages to flush per round"),
+			gettext_noop("Background writer maximum number of all pages to flush per round."),
 			NULL,
 			GUC_NOT_IN_SAMPLE | GUC_NO_SHOW_ALL
 		},
@@ -1558,7 +1559,7 @@ static struct config_int ConfigureNamesInt[] =
 
 	{
 		{"log_rotation_age", PGC_SIGHUP, LOGGING_WHERE,
-			gettext_noop("Automatic log file rotation will occur after N minutes"),
+			gettext_noop("Automatic log file rotation will occur after N minutes."),
 			NULL,
 			GUC_UNIT_MIN
 		},
@@ -1568,7 +1569,7 @@ static struct config_int ConfigureNamesInt[] =
 
 	{
 		{"log_rotation_size", PGC_SIGHUP, LOGGING_WHERE,
-			gettext_noop("Automatic log file rotation will occur after N kilobytes"),
+			gettext_noop("Automatic log file rotation will occur after N kilobytes."),
 			NULL,
 			GUC_UNIT_KB
 		},
@@ -1598,7 +1599,7 @@ static struct config_int ConfigureNamesInt[] =
 
 	{
 		{"max_identifier_length", PGC_INTERNAL, PRESET_OPTIONS,
-			gettext_noop("Shows the maximum identifier length"),
+			gettext_noop("Shows the maximum identifier length."),
 			NULL,
 			GUC_NOT_IN_SAMPLE | GUC_DISALLOW_IN_FILE
 		},
@@ -1608,7 +1609,7 @@ static struct config_int ConfigureNamesInt[] =
 
 	{
 		{"block_size", PGC_INTERNAL, PRESET_OPTIONS,
-			gettext_noop("Shows size of a disk block"),
+			gettext_noop("Shows the size of a disk block."),
 			NULL,
 			GUC_NOT_IN_SAMPLE | GUC_DISALLOW_IN_FILE
 		},
@@ -1618,7 +1619,7 @@ static struct config_int ConfigureNamesInt[] =
 
 	{
 		{"autovacuum_naptime", PGC_SIGHUP, DEFUNCT_OPTIONS,
-			gettext_noop("Time to sleep between autovacuum runs, in seconds."),
+			gettext_noop("Time to sleep between autovacuum runs."),
 			NULL,
 			GUC_UNIT_S | GUC_NOT_IN_SAMPLE | GUC_NO_SHOW_ALL
 		},
@@ -1656,7 +1657,7 @@ static struct config_int ConfigureNamesInt[] =
 
 	{
 		{"tcp_keepalives_idle", PGC_USERSET, CLIENT_CONN_OTHER,
-			gettext_noop("Seconds between issuing TCP keepalives."),
+			gettext_noop("Time between issuing TCP keepalives."),
 			gettext_noop("A value of 0 uses the system default."),
 			GUC_UNIT_S
 		},
@@ -1666,7 +1667,7 @@ static struct config_int ConfigureNamesInt[] =
 
 	{
 		{"tcp_keepalives_interval", PGC_USERSET, CLIENT_CONN_OTHER,
-			gettext_noop("Seconds between TCP keepalive retransmits."),
+			gettext_noop("Time between TCP keepalive retransmits."),
 			gettext_noop("A value of 0 uses the system default."),
 			GUC_UNIT_S
 		},
@@ -1698,7 +1699,7 @@ static struct config_int ConfigureNamesInt[] =
 
 	{
 		{"effective_cache_size", PGC_USERSET, QUERY_TUNING_COST,
-			gettext_noop("Sets the planner's assumption about size of the disk cache."),
+			gettext_noop("Sets the planner's assumption about the size of the disk cache."),
 			gettext_noop("That is, the portion of the kernel's disk cache that "
 						 "will be used for PostgreSQL data files. This is measured in disk "
 						 "pages, which are normally 8 kB each."),
@@ -1827,7 +1828,7 @@ static struct config_real ConfigureNamesReal[] =
 	},
 	{
 		{"bgwriter_lru_percent", PGC_SIGHUP, RESOURCES,
-			gettext_noop("Background writer percentage of LRU buffers to flush per round"),
+			gettext_noop("Background writer percentage of LRU buffers to flush per round."),
 			NULL,
 			GUC_NOT_IN_SAMPLE | GUC_NO_SHOW_ALL
 		},
@@ -1837,7 +1838,7 @@ static struct config_real ConfigureNamesReal[] =
 
 	{
 		{"bgwriter_all_percent", PGC_SIGHUP, RESOURCES,
-			gettext_noop("Background writer percentage of all buffers to flush per round"),
+			gettext_noop("Background writer percentage of all buffers to flush per round."),
 			NULL,
 			GUC_NOT_IN_SAMPLE | GUC_NO_SHOW_ALL
 		},
@@ -1895,8 +1896,8 @@ static struct config_string ConfigureNamesString[] =
 
 	{
 		{"archive_command", PGC_SIGHUP, WAL_SETTINGS,
-			gettext_noop("WAL archiving command."),
-			gettext_noop("The shell command that will be called to archive a WAL file."),
+			gettext_noop("Sets the shell command that will be called to archive a WAL file."),
+			NULL,
 			GUC_NOT_IN_SAMPLE | GUC_NO_SHOW_ALL
 		},
 		&XLogArchiveCommand,
@@ -1988,8 +1989,8 @@ static struct config_string ConfigureNamesString[] =
 
 	{
 		{"log_line_prefix", PGC_SIGHUP, DEFUNCT_OPTIONS,
-			gettext_noop("Defunct: Controls information prefixed to each log line"),
-			gettext_noop("if blank no prefix is used"),
+			gettext_noop("Controls information prefixed to each log line."),
+			gettext_noop("If blank, no prefix is used."),
 			GUC_NO_SHOW_ALL
 		},
 		&Log_line_prefix,
@@ -2283,7 +2284,7 @@ static struct config_string ConfigureNamesString[] =
 	{
 		{"timezone_abbreviations", PGC_USERSET, CLIENT_CONN_LOCALE,
 			gettext_noop("Selects a file of time zone abbreviations."),
-			NULL
+			NULL,
 		},
 		&timezone_abbreviations_string,
 		"UNKNOWN", assign_timezone_abbreviations, NULL
@@ -2331,7 +2332,7 @@ static struct config_string ConfigureNamesString[] =
 
 	{
 		{"wal_sync_method", PGC_SIGHUP, WAL_SETTINGS,
-			gettext_noop("Selects the method used for forcing WAL updates out to disk."),
+			gettext_noop("Selects the method used for forcing WAL updates to disk."),
 			NULL,
 			GUC_NOT_IN_SAMPLE | GUC_NO_SHOW_ALL | GUC_DISALLOW_USER_SET
 		},

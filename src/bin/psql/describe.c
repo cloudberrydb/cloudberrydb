@@ -45,7 +45,7 @@ static bool isGPDB4200OrLater(void);
 
 /* GPDB 3.2 used PG version 8.2.10, and we've moved the minor number up since then for each release,  4.1 = 8.2.15 */
 /* Allow for a couple of future releases.  If the version isn't in this range, we are talking to PostgreSQL, not GPDB */
-#define mightBeGPDB() (pset.sversion >= 80210 && pset.sversion < 80222)
+#define mightBeGPDB() (pset.sversion >= 80210 && pset.sversion < 80400)
 
 static bool isGPDB(void)
 {
@@ -2457,7 +2457,7 @@ describeOneTableDetails(const char *schemaname,
 		PQclear(result);
 
 		/* print child tables */
-		if (pset.sversion >= 80300)
+		if (pset.sversion >= 80300 && false) /* FIXME: this needs to be enabled after we have fully merged with 8.3, so that this works */
 			printfPQExpBuffer(&buf, "SELECT c.oid::pg_catalog.regclass FROM pg_catalog.pg_class c, pg_catalog.pg_inherits i WHERE c.oid=i.inhrelid AND i.inhparent = '%s' ORDER BY c.oid::pg_catalog.regclass::pg_catalog.text;", oid);
 		else
 			printfPQExpBuffer(&buf, "SELECT c.oid::pg_catalog.regclass FROM pg_catalog.pg_class c, pg_catalog.pg_inherits i WHERE c.oid=i.inhrelid AND i.inhparent = '%s' ORDER BY c.relname;", oid);

@@ -4,7 +4,7 @@
  * Copyright (c) 2006-2010, Greenplum inc.
  * Copyright (c) 1996-2010, PostgreSQL Global Development Group
  *
- * $PostgreSQL: pgsql/src/backend/catalog/system_views.sql,v 1.32 2006/11/24 21:18:42 tgl Exp $
+ * $PostgreSQL: pgsql/src/backend/catalog/system_views.sql,v 1.33 2006/12/06 18:06:47 neilc Exp $
  */
 
 CREATE VIEW pg_roles AS 

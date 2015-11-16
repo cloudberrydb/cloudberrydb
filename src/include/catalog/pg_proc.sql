@@ -37,7 +37,7 @@
 
  CREATE FUNCTION lo_truncate(int4, int4) RETURNS int4 LANGUAGE internal VOLATILE STRICT AS 'lo_truncate' WITH (OID=828, DESCRIPTION="truncate large object");
 
- CREATE FUNCTION int8dec(int8) RETURNS int8 LANGUAGE internal IMMUTABLE STRICT AS 'int8dec' WITH (OID=2857);
+ CREATE FUNCTION int8dec(int8) RETURNS int8 LANGUAGE internal IMMUTABLE STRICT AS 'int8dec' WITH (OID=3546);
 
 
  CREATE FUNCTION interval_interval_div("interval", "interval") RETURNS float8 LANGUAGE internal IMMUTABLE STRICT AS 'interval_interval_div' WITH (OID=2918, DESCRIPTION="divide");

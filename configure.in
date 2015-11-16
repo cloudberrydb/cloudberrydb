@@ -1,5 +1,5 @@
 dnl Process this file with autoconf to produce a configure script.
-dnl $PostgreSQL: pgsql/configure.in,v 1.546.2.11 2009/01/30 02:59:28 scrappy Exp $
+dnl $PostgreSQL: pgsql/configure.in,v 1.492 2006/12/14 21:49:54 tgl Exp $
 dnl
 dnl Developers, please strive to achieve this order:
 dnl
@@ -17,7 +17,7 @@ dnl Read the Autoconf manual for details.
 dnl
 m4_pattern_forbid(^PGAC_)dnl to catch undefined macros
 
-AC_INIT([Greenplum Database], [8.2.15], [support@greenplum.com])
+AC_INIT([Greenplum Database], [8.3devel], [support@greenplum.com])
 
 AC_PREREQ(2.63)
 dnl m4_if(m4_defn([m4_PACKAGE_VERSION]), [2.63], [], [m4_fatal([Autoconf version 2.63 is required.
@@ -1556,7 +1556,7 @@ if test "$with_ldap" = yes ; then
       # on some platforms ldap_r fails to link without PTHREAD_LIBS
       AC_CHECK_LIB(ldap_r, ldap_simple_bind, [],
 		   [AC_MSG_ERROR([library 'ldap_r' is required for LDAP])],
-		   [$PTHREAD_CFLAGS $PTHREAD_LIBS $EXTRA_LDAP_LIBS])
+		   [$PTHREAD_LIBS $EXTRA_LDAP_LIBS])
       LDAP_LIBS_FE="-lldap_r $EXTRA_LDAP_LIBS"
     else
       LDAP_LIBS_FE="-lldap $EXTRA_LDAP_LIBS"

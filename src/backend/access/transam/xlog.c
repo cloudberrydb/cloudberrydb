@@ -7,7 +7,7 @@
  * Portions Copyright (c) 1996-2008, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
- * $PostgreSQL: pgsql/src/backend/access/transam/xlog.c,v 1.258.2.3 2008/04/17 00:00:00 tgl Exp $
+ * $PostgreSQL: pgsql/src/backend/access/transam/xlog.c,v 1.259 2006/12/08 19:50:53 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -2058,56 +2058,6 @@ XLogWrite(XLogwrtRqst WriteRqst, bool flexible, bool xlog_switch)
 					openLogId, openLogSeg,
 					&use_existent, true);
 			openLogOff = 0;
-
-			/* update pg_control, unless someone else already did */
-			LWLockAcquire(ControlFileLock, LW_EXCLUSIVE);
-			if (ControlFile->logId < openLogId ||
-				(ControlFile->logId == openLogId &&
-				 ControlFile->logSeg < openLogSeg + 1))
-			{
-				ControlFile->logId = openLogId;
-				ControlFile->logSeg = openLogSeg + 1;
-				ControlFile->time = time(NULL);
-				UpdateControlFile();
-
-				/*
-				 * Signal bgwriter to start a checkpoint if it's been too long
-				 * since the last one.	(We look at local copy of RedoRecPtr
-				 * which might be a little out of date, but should be close
-				 * enough for this purpose.)
-				 *
-				 * A straight computation of segment number could overflow 32
-				 * bits.  Rather than assuming we have working 64-bit
-				 * arithmetic, we compare the highest-order bits separately,
-				 * and force a checkpoint immediately when they change.
-				 */
-				if (IsUnderPostmaster)
-				{
-					uint32		old_segno,
-								new_segno;
-					uint32		old_highbits,
-								new_highbits;
-
-					old_segno = (RedoRecPtr.xlogid % XLogSegSize) * XLogSegsPerFile +
-						(RedoRecPtr.xrecoff / XLogSegSize);
-					old_highbits = RedoRecPtr.xlogid / XLogSegSize;
-					new_segno = (openLogId % XLogSegSize) * XLogSegsPerFile +
-						openLogSeg;
-					new_highbits = openLogId / XLogSegSize;
-					if (new_highbits != old_highbits ||
-						new_segno >= old_segno + (uint32) CheckPointSegments)
-					{
-#ifdef WAL_DEBUG
-						if (XLOG_DEBUG)
-							elog(LOG, "time for a checkpoint, signaling bgwriter");
-#endif
-						if (Debug_print_qd_mirroring)
-							elog(LOG, "time for a checkpoint, signaling bgwriter");
-						RequestCheckpoint(false, true);
-					}
-				}
-			}
-			LWLockRelease(ControlFileLock);
 		}
 
 		/* Make sure we have the current logfile open */
@@ -2210,7 +2160,9 @@ XLogWrite(XLogwrtRqst WriteRqst, bool flexible, bool xlog_switch)
 			 *
 			 * This is also the right place to notify the Archiver that the
 			 * segment is ready to copy to archival storage, and to update the
-			 * timer for archive_timeout.
+			 * timer for archive_timeout, and to signal for a checkpoint if
+			 * too many logfile segments have been used since the last
+			 * checkpoint.
 			 */
 			if (finishing_seg || (xlog_switch && last_iteration))
 			{
@@ -2230,6 +2182,43 @@ XLogWrite(XLogwrtRqst WriteRqst, bool flexible, bool xlog_switch)
 					XLogArchiveNotifySeg(openLogId, openLogSeg);
 
 				Write->lastSegSwitchTime = time(NULL);
+
+				/*
+				 * Signal bgwriter to start a checkpoint if it's been too long
+				 * since the last one.	(We look at local copy of RedoRecPtr
+				 * which might be a little out of date, but should be close
+				 * enough for this purpose.)
+				 *
+				 * A straight computation of segment number could overflow 32
+				 * bits.  Rather than assuming we have working 64-bit
+				 * arithmetic, we compare the highest-order bits separately,
+				 * and force a checkpoint immediately when they change.
+				 */
+				if (IsUnderPostmaster)
+				{
+					uint32		old_segno,
+								new_segno;
+					uint32		old_highbits,
+								new_highbits;
+
+					old_segno = (RedoRecPtr.xlogid % XLogSegSize) * XLogSegsPerFile +
+						(RedoRecPtr.xrecoff / XLogSegSize);
+					old_highbits = RedoRecPtr.xlogid / XLogSegSize;
+					new_segno = (openLogId % XLogSegSize) * XLogSegsPerFile +
+						openLogSeg;
+					new_highbits = openLogId / XLogSegSize;
+					if (new_highbits != old_highbits ||
+						new_segno >= old_segno + (uint32) (CheckPointSegments-1))
+					{
+#ifdef WAL_DEBUG
+						if (XLOG_DEBUG)
+							elog(LOG, "time for a checkpoint, signaling bgwriter");
+#endif
+						if (Debug_print_qd_mirroring)
+							elog(LOG, "time for a checkpoint, signaling bgwriter");
+						RequestCheckpoint(false, true);
+					}
+				}
 			}
 		}
 
@@ -5595,8 +5584,6 @@ BootStrapXLOG(void)
 	ControlFile->system_identifier = sysidentifier;
 	ControlFile->state = DB_SHUTDOWNED;
 	ControlFile->time = checkPoint.time;
-	ControlFile->logId = 0;
-	ControlFile->logSeg = 1;
 	ControlFile->checkPoint = checkPoint.redo;
 	ControlFile->checkPointCopy = checkPoint;
 	/* some additional ControlFile fields are set in WriteControlFile() */
@@ -6356,8 +6343,7 @@ StartupXLOG(void)
 	 */
 	ReadControlFile();
 
-	if (ControlFile->logSeg == 0 ||
-		ControlFile->state < DB_SHUTDOWNED ||
+	if (ControlFile->state < DB_SHUTDOWNED ||
 		ControlFile->state > DB_IN_PRODUCTION ||
 		!XRecOffIsValid(ControlFile->checkPoint.xrecoff))
 		ereport(FATAL,
@@ -6369,7 +6355,7 @@ StartupXLOG(void)
 						str_time(ControlFile->time))));
 	else if (ControlFile->state == DB_SHUTDOWNING)
 		ereport(LOG,
-				(errmsg("database system shutdown was interrupted at %s",
+				(errmsg("database system shutdown was interrupted; last known up at %s",
 						str_time(ControlFile->time))));
 	else if (ControlFile->state == DB_IN_CRASH_RECOVERY)
 		ereport(LOG,
@@ -6401,7 +6387,7 @@ StartupXLOG(void)
 				 errSendAlert(true)));
 	else if (ControlFile->state == DB_IN_PRODUCTION)
 		ereport(LOG,
-				(errmsg("database system was interrupted at %s",
+				(errmsg("database system was interrupted; last known up at %s",
 						str_time(ControlFile->time))));
 
 	/* This is just to allow attaching to startup process with a debugger */
@@ -7035,8 +7021,6 @@ StartupXLOG(void)
 			openLogId,
 			openLogSeg);
 	openLogOff = 0;
-	ControlFile->logId = openLogId;
-	ControlFile->logSeg = openLogSeg + 1;
 	Insert = &XLogCtl->Insert;
 	Insert->PrevRecord = LastRec;
 	XLogCtl->xlblocks[0].xlogid = openLogId;
@@ -7306,8 +7290,7 @@ StartupXLOG_Pass2(void)
 	 */
 	ReadControlFile();
 
-	if (ControlFile->logSeg == 0 ||
-		ControlFile->state < DB_SHUTDOWNED ||
+	if (ControlFile->state < DB_SHUTDOWNED ||
 		ControlFile->state > DB_IN_PRODUCTION ||
 		!XRecOffIsValid(ControlFile->checkPoint.xrecoff))
 		ereport(FATAL,
@@ -7421,8 +7404,7 @@ StartupXLOG_Pass3(void)
 	 */
 	ReadControlFile();
 
-	if (ControlFile->logSeg == 0 ||
-		ControlFile->state < DB_SHUTDOWNED ||
+	if (ControlFile->state < DB_SHUTDOWNED ||
 		ControlFile->state > DB_IN_PRODUCTION ||
 		!XRecOffIsValid(ControlFile->checkPoint.xrecoff))
 		ereport(FATAL,
@@ -7883,8 +7865,7 @@ XLogGetRecoveryStart(char *callerStr, char *reasonStr, XLogRecPtr *redoCheckPoin
 	 */
 	ReadControlFile();
 
-	if (ControlFile->logSeg == 0 ||
-		ControlFile->state < DB_SHUTDOWNED ||
+	if (ControlFile->state < DB_SHUTDOWNED ||
 		ControlFile->state > DB_IN_PRODUCTION ||
 		!XRecOffIsValid(ControlFile->checkPoint.xrecoff))
 		ereport(FATAL,
