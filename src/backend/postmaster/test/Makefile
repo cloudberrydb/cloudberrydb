@@ -25,6 +25,7 @@ backoff_REAL_OBJS=\
 		$(top_srcdir)/src/backend/utils/mb/mbutils.o \
 		$(top_srcdir)/src/backend/utils/mb/wchar.o \
 		$(top_srcdir)/src/backend/utils/misc/guc.o \
+		$(top_srcdir)/src/backend/utils/misc/guc_gp.o \
 		$(top_srcdir)/src/backend/utils/init/globals.o \
 		$(top_srcdir)/src/port/pgsleep.o \
 		$(top_srcdir)/src/port/path.o \
@@ -55,6 +56,7 @@ syslogger_REAL_OBJS=\
 		$(top_srcdir)/src/backend/utils/mb/mbutils.o \
 		$(top_srcdir)/src/backend/utils/mb/wchar.o \
 		$(top_srcdir)/src/backend/utils/misc/guc.o \
+		$(top_srcdir)/src/backend/utils/misc/guc_gp.o \
 		$(top_srcdir)/src/backend/utils/init/globals.o \
 		$(top_srcdir)/src/port/pgsleep.o \
 		$(top_srcdir)/src/port/path.o \

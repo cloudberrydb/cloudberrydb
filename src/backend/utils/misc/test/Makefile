@@ -36,10 +36,12 @@ common_REAL_OBJS=\
     $(top_srcdir)/src/timezone/localtime.o \
     $(top_srcdir)/src/timezone/pgtz.o
 
-guc_REAL_OBJS=$(common_REAL_OBJS)
+guc_REAL_OBJS=$(common_REAL_OBJS) \
+    $(top_srcdir)/src/backend/utils/misc/guc_gp.o
 
 ps_status_REAL_OBJS=$(common_REAL_OBJS) \
-    $(top_srcdir)/src/backend/utils/misc/guc.o
+    $(top_srcdir)/src/backend/utils/misc/guc.o \
+    $(top_srcdir)/src/backend/utils/misc/guc_gp.o
 
 bitstream_REAL_OBJS=\
         $(top_srcdir)/src/backend/lib/stringinfo.o \
@@ -58,6 +60,7 @@ bitstream_REAL_OBJS=\
         $(top_srcdir)/src/backend/utils/mb/mbutils.o \
         $(top_srcdir)/src/backend/utils/mb/wchar.o \
         $(top_srcdir)/src/backend/utils/misc/guc.o \
+        $(top_srcdir)/src/backend/utils/misc/guc_gp.o \
         $(top_srcdir)/src/backend/utils/init/globals.o \
         $(top_srcdir)/src/port/pgsleep.o \
         $(top_srcdir)/src/port/path.o \
@@ -87,6 +90,7 @@ bitmap_compression_REAL_OBJS=\
 	$(top_srcdir)/src/backend/utils/hash/hashfn.o \
 	$(top_srcdir)/src/backend/utils/misc/bitstream.o \
 	$(top_srcdir)/src/backend/utils/misc/guc.o \
+	$(top_srcdir)/src/backend/utils/misc/guc_gp.o \
 	$(top_srcdir)/src/backend/utils/init/globals.o \
 	$(top_srcdir)/src/port/path.o \
 	$(top_srcdir)/src/port/pgstrcasecmp.o \
