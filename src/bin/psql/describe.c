@@ -589,7 +589,7 @@ describeTypes(const char *pattern, bool verbose, bool showSystem)
 						  gettext_noop("Internal name"),
 						  gettext_noop("Size"));
 	}
-	if (verbose && pset.sversion >= 80300)
+	if (verbose && pset.sversion >= 80300 && false ) /* FIXME when we add enum types */
 		appendPQExpBuffer(&buf,
 						  "  pg_catalog.array_to_string(\n"
 						  "      ARRAY(\n"
@@ -625,7 +625,8 @@ describeTypes(const char *pattern, bool verbose, bool showSystem)
 	 * do not include array types (before 8.3 we have to use the assumption
 	 * that their names start with underscore)
 	 */
-	if (pset.sversion >= 80300)
+
+	if (pset.sversion >= 80300 && false) /* FIXME when we pull in array types */
 		appendPQExpBuffer(&buf, "  AND NOT EXISTS(SELECT 1 FROM pg_catalog.pg_type el WHERE el.oid = t.typelem AND el.typarray = t.oid)\n");
 	else
 		appendPQExpBuffer(&buf, "  AND t.typname !~ '^_'\n");
@@ -2225,7 +2226,13 @@ describeOneTableDetails(const char *schemaname,
 		/* print rules */
 		if (tableinfo.hasrules)
 		{
-			if (pset.sversion >= 80300)
+			/*
+			* FIXME: temporarily disabled, because GPDB hasn't been merged
+			* up to 8.3 completely yet, so the column is not there yet.
+			* Re-enable once we reach that commit where ev_enabled is
+			* added.
+			*/
+			if (pset.sversion >= 80300 && false)
 			{
 				printfPQExpBuffer(&buf,
 								  "SELECT r.rulename, trim(trailing ';' from pg_catalog.pg_get_ruledef(r.oid, true)), "
