@@ -2330,7 +2330,13 @@ describeOneTableDetails(const char *schemaname,
 							  oid);
 			if (pset.sversion >= 90000)
 				appendPQExpBuffer(&buf, "NOT t.tgisinternal");
-			else if (pset.sversion >= 80300)
+			/*
+			* FIXME: temporarily disabled, because GPDB hasn't been merged
+			* up to 8.3 completely yet, so the column is not there yet.
+			* Re-enable once we reach that commit where tgconstraint is
+			* added.
+			*/
+			else if (pset.sversion >= 80300 && false)
 				appendPQExpBuffer(&buf, "t.tgconstraint = 0");
 			else
 				appendPQExpBuffer(&buf,
