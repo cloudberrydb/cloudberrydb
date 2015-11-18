@@ -93,8 +93,6 @@ getSchemaData(int *numTablesPtr)
 	int			numCasts;
 	int			numOpclasses;
 	int			numConversions;
-	int			numForeignDataWrappers;
-	int			numForeignServers;
 	int			numExtProtocols;
 	const char *LOGGER_INFO = "INFO";
 
