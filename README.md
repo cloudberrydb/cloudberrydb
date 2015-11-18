@@ -48,17 +48,17 @@ Go into gpos and create a build folder
 
 * debug build
 ```
-	% cmake -D CMAKE_BUILD_TYPE=DEBUG ../gpos
+	% cmake -D CMAKE_BUILD_TYPE=DEBUG ../
 ```
   or 
 * release build with debug info
 ```
-	% cmake -D CMAKE_BUILD_TYPE=RelWithDebInfo ../gpos
+	% cmake -D CMAKE_BUILD_TYPE=RelWithDebInfo ../
 ```
   or
 * release build
 ```
-	% cmake -D CMAKE_BUILD_TYPE=RELEASE ../gpos
+	% cmake -D CMAKE_BUILD_TYPE=RELEASE ../
 ```
 
 ## Advanced: How to generate make files using toolchain to generate 32 or 64 bit version makefiles 
@@ -75,11 +75,11 @@ Debug version with verbose install path:
 
 * 32-bit x86
 ```
-	% cmake -D VERBOSE_INSTALL_PATH=1 -D CMAKE_BUILD_TYPE=DEBUG -D CMAKE_TOOLCHAIN_FILE=../gpos/i386.toolchain.cmake ../gpos
+	% cmake -D VERBOSE_INSTALL_PATH=1 -D CMAKE_BUILD_TYPE=DEBUG -D CMAKE_TOOLCHAIN_FILE=../i386.toolchain.cmake ../
 ```
 * 64-bit x86
 ```
-	% cmake -D VERBOSE_INSTALL_PATH=1 -D CMAKE_BUILD_TYPE=DEBUG -D CMAKE_TOOLCHAIN_FILE=../gpos/x86_64.toolchain.cmake ../gpos
+	% cmake -D VERBOSE_INSTALL_PATH=1 -D CMAKE_BUILD_TYPE=DEBUG -D CMAKE_TOOLCHAIN_FILE=../x86_64.toolchain.cmake ../
 ```
 
 ## How to build
@@ -116,9 +116,9 @@ or
 ## How to install
 
 By default, GPOS will be installed under /usr/local. You can change this by
-setting CMAKE_INSTALL_PREFIX when running cmake like so:
+setting CMAKE_INSTALL_PREFIX when running cmake, for example:
 ```
-	% cmake -D CMAKE_INSTALL_PREFIX=/home/zaphod/gpos ../gpos
+	% cmake -D CMAKE_INSTALL_PREFIX=/home/user/gpos ../
 ```
 If VERBOSE_INSTALL_PATH was not set during cmake then 
 the header files are located in /usr/local/include/gpos
