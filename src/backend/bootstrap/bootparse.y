@@ -233,25 +233,17 @@ Boot_CreateStmt:
 						Oid id;
 						Oid typid = InvalidOid;
 
-						/* boot strap new table types for 3.3 */
+						/*
+						 * Some relations need to have a fixed relation type
+						 * OID, because it is referenced in code.
+						 *
+						 * 90MERGE_FIXME: In PostgreSQL 9.0, there's a
+						 * new BKI directive, BKI_ROWTYPE_OID(<oid>), for
+						 * doing the same. Replace this hack with that once
+						 * we merge with 9.0.
+						 */
 						switch ($6)
 						{
-							case AppendOnlyAlterColumnRelationId:
-								typid = PG_APPENDONLY_ALTER_COLUMN_OID;
-								break;
-							case FileSpaceRelationId:
-								typid = PG_FILESPACE_OID;
-								break;
-							case StatLastOpRelationId: 
-								/* MPP-6929: metadata tracking */
-								typid = PG_STAT_LAST_OPERATION_OID;
-								break;
-							case StatLastShOpRelationId: 
-								/* MPP-6929: metadata tracking */
-								typid = PG_STAT_LAST_SHOPERATION_OID;
-								break;
-
-							/* new tables in 4.0 for persistent file ops */
 							case GpPersistentRelationNodeRelationId:
 								typid = GP_PERSISTENT_RELATION_NODE_OID;
 								break;
