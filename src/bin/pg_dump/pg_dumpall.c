@@ -460,12 +460,12 @@ main(int argc, char *argv[])
 		/* Dump role constraints */
 		dumpRoleConstraints(conn);
 
-		/* Dump filespaces and tablespaces */
+		/* Dump filespaces */
 		if (filespaces)
-		{
 			dumpFilespaces(conn);
-			dumpTablespaces(conn);
-		}
+
+		/* Dump tablespaces */
+		dumpTablespaces(conn);
 
 		/* Dump CREATE DATABASE commands */
 		if (!globals_only)
