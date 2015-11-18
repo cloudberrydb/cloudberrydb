@@ -22,6 +22,7 @@
 #include "settings.h"
 #include "variables.h"
 
+#define CATALOG_83_SUPPORTED false
 
 static bool describeOneTableDetails(const char *schemaname,
 						const char *relationname,
@@ -589,7 +590,8 @@ describeTypes(const char *pattern, bool verbose, bool showSystem)
 						  gettext_noop("Internal name"),
 						  gettext_noop("Size"));
 	}
-	if (verbose && pset.sversion >= 80300 && false ) /* FIXME when we add enum types */
+	/* FIXME when we add enum types */
+	if (verbose && pset.sversion >= 80300 && CATALOG_83_SUPPORTED )
 		appendPQExpBuffer(&buf,
 						  "  pg_catalog.array_to_string(\n"
 						  "      ARRAY(\n"
@@ -625,8 +627,8 @@ describeTypes(const char *pattern, bool verbose, bool showSystem)
 	 * do not include array types (before 8.3 we have to use the assumption
 	 * that their names start with underscore)
 	 */
-
-	if (pset.sversion >= 80300 && false) /* FIXME when we pull in array types */
+	/* FIXME when we pull in array types */
+	if (pset.sversion >= 80300 && CATALOG_83_SUPPORTED)
 		appendPQExpBuffer(&buf, "  AND NOT EXISTS(SELECT 1 FROM pg_catalog.pg_type el WHERE el.oid = t.typelem AND el.typarray = t.oid)\n");
 	else
 		appendPQExpBuffer(&buf, "  AND t.typname !~ '^_'\n");
@@ -2232,7 +2234,7 @@ describeOneTableDetails(const char *schemaname,
 			* Re-enable once we reach that commit where ev_enabled is
 			* added.
 			*/
-			if (pset.sversion >= 80300 && false)
+			if (pset.sversion >= 80300 && CATALOG_83_SUPPORTED)
 			{
 				printfPQExpBuffer(&buf,
 								  "SELECT r.rulename, trim(trailing ';' from pg_catalog.pg_get_ruledef(r.oid, true)), "
@@ -2343,7 +2345,7 @@ describeOneTableDetails(const char *schemaname,
 			* Re-enable once we reach that commit where tgconstraint is
 			* added.
 			*/
-			else if (pset.sversion >= 80300 && false)
+			else if (pset.sversion >= 80300 && CATALOG_83_SUPPORTED)
 				appendPQExpBuffer(&buf, "t.tgconstraint = 0");
 			else
 				appendPQExpBuffer(&buf,
@@ -2470,7 +2472,8 @@ describeOneTableDetails(const char *schemaname,
 		PQclear(result);
 
 		/* print child tables */
-		if (pset.sversion >= 80300 && false) /* FIXME: this needs to be enabled after we have fully merged with 8.3, so that this works */
+		/* FIXME: this needs to be enabled after we have fully merged with 8.3, so that this works */
+		if (pset.sversion >= 80300 && CATALOG_83_SUPPORTED)
 			printfPQExpBuffer(&buf, "SELECT c.oid::pg_catalog.regclass FROM pg_catalog.pg_class c, pg_catalog.pg_inherits i WHERE c.oid=i.inhrelid AND i.inhparent = '%s' ORDER BY c.oid::pg_catalog.regclass::pg_catalog.text;", oid);
 		else
 			printfPQExpBuffer(&buf, "SELECT c.oid::pg_catalog.regclass FROM pg_catalog.pg_class c, pg_catalog.pg_inherits i WHERE c.oid=i.inhrelid AND i.inhparent = '%s' ORDER BY c.relname;", oid);
