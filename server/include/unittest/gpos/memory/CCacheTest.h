@@ -55,12 +55,18 @@ namespace gpos
 			static void* PvLookupTask(void *);
 
 			// inserts one SSimpleObject with key and value set to ulKey
-			static void InsertOneElement(CCache *pCache, ULONG ulKey);
+			static ULLONG InsertOneElement(CCache *pCache, ULONG ulKey);
 
 			// inserts as many SSimpleObjects as needed (starting with the key ulKeyStart and
 			// sequentially generating the successive keys) to consume cache quota.
-			static ULONG ULFillCacheWithoutEviction(CCache *pCache, ULONG ulKeyStart, ULLONG& ullOneElemSize, ULLONG ullCacheCapacity);
+			static ULONG ULFillCacheWithoutEviction(CCache *pCache, ULONG ulKeyStart);
 
+			// checks if after eviction we have more entries from newer generation than the older generation
+			static void CheckGenerationSanityAfterEviction(CCache* pCache, ULLONG ullOneElemSize, ULONG ulOldGenBeginKey,
+					ULONG ulOldGenEndKey, ULONG ulNewGenEndKey);
+
+			// tests if cache eviction works for a single cache size
+			static void TestEvictionForOneCacheSize(ULLONG ullCacheQuota);
 
 			// A simple object (no deep structures)
 			struct SSimpleObject

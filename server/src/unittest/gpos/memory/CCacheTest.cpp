@@ -324,16 +324,19 @@ CCacheTest::EresUnittest_Basic()
 //		CCacheTest::InsertOneElement
 //
 //	@doc:
-//		Inserts one SSimpleObject with both key and value set to ulKey
+//		Inserts one SSimpleObject with both key and value set to ulKey.
+//		Returns the size of a single instance of SSimpleObject
 //
 //---------------------------------------------------------------------------
-void
+ULLONG
 CCacheTest::InsertOneElement(CCache *pCache, ULONG ulKey)
 {
 	{
 		CSimpleObjectCacheAccessor ca(pCache);
-		SSimpleObject *pso = New(ca.Pmp()) SSimpleObject(ulKey, ulKey);
+		IMemoryPool *pmp = ca.Pmp();
+		SSimpleObject *pso = New(pmp) SSimpleObject(ulKey, ulKey);
 		ca.PtInsert(&(pso->m_ulKey), pso);
+		return pmp->UllTotalAllocatedSize();
 	}
 }
 
@@ -346,20 +349,26 @@ CCacheTest::InsertOneElement(CCache *pCache, ULONG ulKey)
 //		sequentially generating the successive keys) to consume cache quota.
 //		Returns the key of the last inserted element
 //---------------------------------------------------------------------------
-
 ULONG
-CCacheTest::ULFillCacheWithoutEviction(CCache *pCache, ULONG ulKeyStart, ULLONG& ullOneElemSize, ULLONG ullCacheCapacity)
+CCacheTest::ULFillCacheWithoutEviction(CCache *pCache, ULONG ulKeyStart)
 {
+#ifdef GPOS_DEBUG
 	// initial size of the cache
 	ULLONG ullInitialCacheSize = pCache->UllTotalAllocatedSize();
-	InsertOneElement(pCache, ulKeyStart);
+	ULLONG ullOldEvictionCounter = pCache->UllEvictionCounter();
+#endif
+
+	ULLONG ullOneElemSize = InsertOneElement(pCache, ulKeyStart);
+
+#ifdef GPOS_DEBUG
 	ULLONG ullOneElemCacheSize = pCache->UllTotalAllocatedSize();
+	ULLONG ullNewEvictionCounter = pCache->UllEvictionCounter();
+#endif
 
-	GPOS_ASSERT(ullOneElemCacheSize > ullInitialCacheSize && "Cache size didn't change upon insertion");
+	GPOS_ASSERT((ullOneElemCacheSize > ullInitialCacheSize || ullOldEvictionCounter < ullNewEvictionCounter)
+			&& "Cache size didn't change upon insertion");
 
-	// measure the size of a single element
-	ullOneElemSize = ullOneElemCacheSize - ullInitialCacheSize;
-	ullCacheCapacity = pCache->UllCacheQuota() / ullOneElemSize;
+	ULLONG ullCacheCapacity = pCache->UllCacheQuota() / ullOneElemSize;
 
 	// We already have an element in the cache and the eviction happens after we violate.
 	// So, we should not trigger eviction inserting cacheCapacity + 1
@@ -387,47 +396,87 @@ CCacheTest::ULFillCacheWithoutEviction(CCache *pCache, ULONG ulKeyStart, ULLONG&
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CCacheTest::EresUnittest_Eviction
+//		CCacheTest::CheckGenerationSanityAfterEviction
 //
 //	@doc:
-//		Test if cache eviction works
-//
+//		Checks if after eviction we have more entries from newer generation than the older generation
 //---------------------------------------------------------------------------
-GPOS_RESULT
-CCacheTest::EresUnittest_Eviction()
+void
+CCacheTest::CheckGenerationSanityAfterEviction(CCache* pCache, ULLONG
+#ifdef GPOS_DEBUG
+		ullOneElemSize
+#endif
+		, ULONG ulOldGenBeginKey,
+		ULONG ulOldGenEndKey, ULONG ulNewGenEndKey)
 {
-	ULLONG ullCacheQuota = 10000;
+	ULONG uloldGenEntryCount = 0;
+	ULONG ulNewGenEntryCount = 0;
+
+	for (ULONG ulKey = ulOldGenBeginKey; ulKey <= ulNewGenEndKey; ulKey++)
+	{
+		CSimpleObjectCacheAccessor ca(pCache);
+		ca.Lookup(&ulKey);
+		SSimpleObject* pso = ca.PtVal();
+		if (NULL != pso)
+		{
+			if (ulKey <= ulOldGenEndKey)
+			{
+				uloldGenEntryCount++;
+			}
+			else
+			{
+				ulNewGenEntryCount++;
+			}
+		}
+	}
+
+#ifdef GPOS_DEBUG
+	ULLONG ullCacheCapacity = pCache->UllCacheQuota() / ullOneElemSize;
+#endif
+
+	// total in-cache entries must be at least as many as the minimum number of in-cache entries after an eviction
+	GPOS_ASSERT(uloldGenEntryCount + ulNewGenEntryCount >= (ULONG)((double)ullCacheCapacity * (1 - pCache->FGetEvictionFactor())));
+	// there should be at least as many new gen entries as the old gen entries as they get to live longer
+	GPOS_ASSERT(ulNewGenEntryCount >= uloldGenEntryCount);
+}
+
+//---------------------------------------------------------------------------
+//	@function:
+//		CCacheTest::TestEvictionForOneCacheSize
+//
+//	@doc:
+//		Tests if cache eviction works for a single cache size
+//---------------------------------------------------------------------------
+void
+CCacheTest::TestEvictionForOneCacheSize(ULLONG ullCacheQuota)
+{
 	CAutoP<CCache> apCache;
-	apCache = CCacheFactory::PCacheCreate
-				(
-				false, /* not an unique cache */
-				ullCacheQuota,
-				SSimpleObject::UlMyHash,
-				SSimpleObject::FMyEqual
-				);
+	apCache = CCacheFactory::PCacheCreate(false, /* not an unique cache */
+			ullCacheQuota, SSimpleObject::UlMyHash, SSimpleObject::FMyEqual);
 
-	CCache *pCache = apCache.Pt();
-
-	ULLONG ullOneElemSize = 0;
-	ULLONG ullCacheCapacity = 0;
-
-	ULONG ulLastKeyFirstGen = ULFillCacheWithoutEviction(pCache, 0, ullOneElemSize, ullCacheCapacity);
+	CCache* pCache = apCache.Pt();
+	ULONG ulLastKeyFirstGen = ULFillCacheWithoutEviction(pCache, 0);
 
 #ifdef GPOS_DEBUG
 	ULLONG ullSizeBeforeEviction = pCache->UllTotalAllocatedSize();
 #endif
 
-	InsertOneElement(pCache, ulLastKeyFirstGen + 1);
+	ULLONG ullOneElemSize = InsertOneElement(pCache, ulLastKeyFirstGen + 1);
+
+#ifdef GPOS_DEBUG
 	ULLONG ullPostEvictionSize = pCache->UllTotalAllocatedSize();
-	std::cout << "Final size: " << ullPostEvictionSize << std::endl;
+#endif
+
 	// Make sure cache is now smaller, due to eviction
 	GPOS_ASSERT(ullPostEvictionSize < ullSizeBeforeEviction);
-
 	// Now insert another batch of elements to fill the cache
-	ULONG ulLastKeySecondGen = ULFillCacheWithoutEviction(pCache, ulLastKeyFirstGen + 2, ullOneElemSize, ullCacheCapacity);
+	ULONG ulLastKeySecondGen = ULFillCacheWithoutEviction(pCache, ulLastKeyFirstGen + 2);
+	// Another batch of insert to the cache's filling should evict all the second generation keys
+	ULONG ulLastKeyThirdGen = ULFillCacheWithoutEviction(pCache, ulLastKeySecondGen + 1);
 
-	// Another batch of insert to the cache's filling should evict all the first generation keys
-	ULONG ulLastKeyThirdGen = ULFillCacheWithoutEviction(pCache, ulLastKeySecondGen + 1, ullOneElemSize, ullCacheCapacity);
+	CSimpleObjectCacheAccessor caBeforeEviction(pCache);
+	// this is now pinned as the accessor is not going out of scope; pinned entry is used later for checking non-eviction
+	caBeforeEviction.Lookup(&ulLastKeyThirdGen);
 
 	// Now verify everything from the first generation insertion is evicted
 	for (ULONG ulKey = 0; ulKey <= ulLastKeyFirstGen; ulKey++)
@@ -438,46 +487,33 @@ CCacheTest::EresUnittest_Eviction()
 #ifdef GPOS_DEBUG
 		SSimpleObject* pso =
 #endif
-				ca.PtVal();
+		ca.PtVal();
 		GPOS_ASSERT(NULL == pso);
 	}
 
-	// now ensure that enough of the second and third generation insertion are in the cache
-	ULONG ulSecondGenEntryCount = 0;
-	ULONG ulThirdGenEntryCount = 0;
-	for (ULONG ulKey = ulLastKeyFirstGen + 1; ulKey <= ulLastKeyThirdGen; ulKey++)
-	{
-		CSimpleObjectCacheAccessor ca(pCache);
-		ca.Lookup(&ulKey);
-		SSimpleObject* pso = ca.PtVal();
-		if (NULL != pso)
-		{
-			if (ulKey <= ulLastKeySecondGen)
-			{
-				ulSecondGenEntryCount++;
-			}
-			else
-			{
-				ulThirdGenEntryCount++;
-			}
-		}
-	}
 
-	GPOS_ASSERT(ulSecondGenEntryCount + ulThirdGenEntryCount >= (ULONG)((double)ullCacheCapacity * pCache->FGetEvictionFactor()));
-	GPOS_ASSERT(ulThirdGenEntryCount >= ulSecondGenEntryCount);
+	// now ensure that newer gen items are outliving older gen during cache eviction
+	CheckGenerationSanityAfterEviction(pCache, ullOneElemSize, ulLastKeyFirstGen + 2,
+			ulLastKeySecondGen, ulLastKeyThirdGen);
+
+	ULLONG ullNewQuota = static_cast<ULLONG>(static_cast<double>(ullCacheQuota) * 0.5);
+	// drastically reduce the size of the cache
+	pCache->SetCacheQuota(ullNewQuota);
+	GPOS_ASSERT(pCache->UllCacheQuota() == ullNewQuota);
+	// now ensure that newer gen items are outliving older gen during cache eviction
+	CheckGenerationSanityAfterEviction(pCache, ullOneElemSize, ulLastKeyFirstGen + 2,
+			ulLastKeySecondGen, ulLastKeyThirdGen);
 
 	// now check pinning would retain the entry, no matter how many eviction is triggered
-	CSimpleObjectCacheAccessor caBeforeEviction(pCache);
-	// this is now pinned as the accessor is not going out of scope
-	caBeforeEviction.Lookup(&ulLastKeyThirdGen);
 
-	// Another batch of insert to the cache's filling should evict all the first generation keys
-	ULONG ulLastKeyFourthGen = ULFillCacheWithoutEviction(pCache, ulLastKeyThirdGen + 1, ullOneElemSize, ullCacheCapacity);
-	// Another batch of insert to the cache's filling should evict all the first generation keys
-	ULONG ulLastKeyFifthGen = ULFillCacheWithoutEviction(pCache, ulLastKeyFourthGen + 1, ullOneElemSize, ullCacheCapacity);
-	// Another batch of insert to the cache's filling should evict all the first generation keys
-	ULFillCacheWithoutEviction(pCache, ulLastKeyFifthGen + 1, ullOneElemSize, ullCacheCapacity);
+	// Another batch of insert to the cache's filling should evict all the third generation keys
+	ULONG ulLastKeyFourthGen = ULFillCacheWithoutEviction(pCache, ulLastKeyThirdGen + 1);
 
+	// Another batch of insert to the cache's filling should evict all the forth generation keys
+	ULONG ulLastKeyFifthGen = ULFillCacheWithoutEviction(pCache, ulLastKeyFourthGen + 1);
+
+	// Another batch of insert to the cache's filling should evict all the fifth generation keys
+	ULFillCacheWithoutEviction(pCache, ulLastKeyFifthGen + 1);
 	for (ULONG ulKey = ulLastKeySecondGen + 1; ulKey <= ulLastKeyFourthGen; ulKey++)
 	{
 		CSimpleObjectCacheAccessor ca(pCache);
@@ -485,11 +521,27 @@ CCacheTest::EresUnittest_Eviction()
 #ifdef GPOS_DEBUG
 		SSimpleObject* pso =
 #endif
-				ca.PtVal();
+		ca.PtVal();
+
 		// everything is evicted from third and fourth gen, except the pinned entry
 		GPOS_ASSERT_IMP(ulKey != ulLastKeyThirdGen, NULL == pso);
 		GPOS_ASSERT_IMP(ulKey == ulLastKeyThirdGen, NULL != pso);
 	}
+}
+
+//---------------------------------------------------------------------------
+//	@function:
+//		CCacheTest::EresUnittest_Eviction
+//
+//	@doc:
+//		Test if cache eviction works
+//
+//---------------------------------------------------------------------------
+GPOS_RESULT
+CCacheTest::EresUnittest_Eviction()
+{
+	TestEvictionForOneCacheSize(10240);
+	TestEvictionForOneCacheSize(20480);
 
 	return GPOS_OK;
 }

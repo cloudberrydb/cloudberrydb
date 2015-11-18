@@ -102,6 +102,7 @@ CCache::CCache
 	m_ullCacheQuota(ullCacheQuota),
 	m_ulGClockInitCounter(ulGClockInitCounter),
 	m_fEvictionFactor((float)0.1),
+	m_ullEvictionCounter(0),
 	m_ulEvictionLock(0),
 	m_fClockHandAdvanced(false),
 	m_pfuncHash(pfuncHash),
@@ -298,9 +299,11 @@ CCache::ReleaseEntry
 //
 //---------------------------------------------------------------------------
 ULLONG
-CCache::EvictEntriesOnePass(ULLONG ullTotalFreed, ULLONG ullToFree) {
+CCache::EvictEntriesOnePass(ULLONG ullTotalFreed, ULLONG ullToFree)
+{
 	while ((ullTotalFreed < ullToFree)
-			&& (m_fClockHandAdvanced || m_chtitClockHand->FAdvance())) {
+		&& (m_fClockHandAdvanced || m_chtitClockHand->FAdvance()))
+	{
 		m_fClockHandAdvanced = false;
 		CCacheEntry *pt = NULL;
 		BOOL fDeleted = false;
@@ -308,14 +311,17 @@ CCache::EvictEntriesOnePass(ULLONG ullTotalFreed, ULLONG ullToFree) {
 		{
 			CCacheHashtableIterAccessor shtitacc(*m_chtitClockHand);
 
-			if (NULL != (pt = shtitacc.Pt())) {
+			if (NULL != (pt = shtitacc.Pt()))
+			{
 				// can only remove when the clock hand points to a entry with 0 gclock counter
-				if (0 == pt->ULGetGClockCounter()) {
+				if (0 == pt->ULGetGClockCounter())
+				{
 					// can only remove if no one else is using this entry.
 					// for our self reference we are using CCacheHashtableIterAccessor
 					// to directly access the entry. Therefore, we are not causing a
 					// bump to ref counter
-					if (0 == pt->UlRefCount()) {
+					if (0 == pt->UlRefCount())
+					{
 						// remove advances iterator automatically
 						shtitacc.Remove(pt);
 						fDeleted = true;
@@ -328,14 +334,17 @@ CCache::EvictEntriesOnePass(ULLONG ullTotalFreed, ULLONG ullToFree) {
 								-ullFreed);
 						ullTotalFreed += ullFreed;
 					}
-				} else {
+				}
+				else
+				{
 					pt->DecrementGClockCounter();
 				}
 			}
 		}
 
 		// now free the memory of the evicted entry
-		if (fDeleted) {
+		if (fDeleted)
+		{
 			GPOS_ASSERT(NULL != pt);
 			// release entry's memory
 			CMemoryPoolManager::Pmpm()->Destroy(pt->Pmp());
@@ -363,7 +372,10 @@ CCache::EvictEntries()
 	{
 		if (m_ullCacheSize > m_ullCacheQuota)
 		{
-			double dToFree = static_cast<double>(m_ullCacheSize) * m_fEvictionFactor;
+			double dToFree = static_cast<double>(static_cast<double>(m_ullCacheSize) -
+					static_cast<double>(m_ullCacheQuota) * (1.0 - m_fEvictionFactor));
+			GPOS_ASSERT(0 < dToFree);
+
 			ULLONG ullToFree = static_cast<ULLONG>(dToFree);
 			ULLONG ullTotalFreed = 0;
 
@@ -384,6 +396,11 @@ CCache::EvictEntries()
 
 				// exhausted the iterator, so rewind it
 				m_chtitClockHand->RewindIterator();
+			}
+
+			if (0 < ullTotalFreed)
+			{
+				++m_ullEvictionCounter;
 			}
 		}
 
@@ -459,6 +476,39 @@ CCache::UllCacheQuota()
 	return m_ullCacheQuota;
 }
 
+
+//---------------------------------------------------------------------------
+//	@function:
+//		CCache::SetCacheQuota
+//
+//	@doc:
+//		Sets the cache quota
+//
+//---------------------------------------------------------------------------
+void
+CCache::SetCacheQuota(ULLONG ullNewQuota)
+{
+	m_ullCacheQuota = ullNewQuota;
+
+	if (0 != m_ullCacheQuota && m_ullCacheSize > m_ullCacheQuota)
+	{
+		EvictEntries();
+	}
+}
+
+//---------------------------------------------------------------------------
+//	@function:
+//		CCache::UllEvictionCounter
+//
+//	@doc:
+//		Return number of times this cache underwent eviction
+//
+//---------------------------------------------------------------------------
+ULLONG
+CCache::UllEvictionCounter()
+{
+	return m_ullEvictionCounter;
+}
 
 //---------------------------------------------------------------------------
 //	@function:

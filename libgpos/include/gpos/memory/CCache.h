@@ -216,6 +216,9 @@ namespace gpos
 			// what percent of the cache size to evict
 			float m_fEvictionFactor;
 
+			// number of times cache entries were evicted
+			ULLONG m_ullEvictionCounter;
+
 			// atomic lock for eviction; only one thread can execute eviction process at a time
 			volatile ULONG m_ulEvictionLock;
 
@@ -296,6 +299,12 @@ namespace gpos
 
 			// return memory quota of the cache
 			ULLONG UllCacheQuota();
+
+			// return number of times this cache underwent eviction
+			ULLONG UllEvictionCounter();
+
+			// sets the cache quota
+			void SetCacheQuota(ULLONG ullNewQuota);
 
 			// return eviction factor (what percentage of cache size to evict)
 			float FGetEvictionFactor();
