@@ -1,0 +1,26 @@
+<ivy-module version="2.0">
+    <info organisation="emc"
+          module="libgpos" />
+
+    <configurations>
+      <conf name="osx105_x86_32"  description="osx105_x86_32"  visibility="public"/>
+      <conf name="osx105_x86_64"  description="osx105_x86_64"  visibility="public"/>
+      <conf name="osx106_x86_32"  description="osx106_x86_32"  visibility="public"/>
+      <conf name="osx106_x86_64"  description="osx106_x86_64"  visibility="public"/>
+      <conf name="rhel5_x86_32"   description="rhel5_x86_32"   visibility="public"/>
+      <conf name="rhel5_x86_64"   description="rhel5_x86_64"   visibility="public"/>
+      <conf name="sol10_sparc_32" description="sol10_sparc_32" visibility="public"/>
+      <conf name="sol10_sparc_64" description="sol10_sparc_64" visibility="public"/>
+      <conf name="sol10_x86_32"   description="sol10_x86_32"   visibility="public"/>
+      <conf name="sol10_x86_64"   description="sol10_x86_64"   visibility="public"/>
+      <conf name="suse10_x86_64"  description="suse10_x86_64"  visibility="public"/>
+      <conf name="coverity_rhel5_x86_64"   visibility="public"/>
+    </configurations>
+
+    <dependencies>
+      <dependency org="pa-risc_linux" name="pmccabe" rev="2.5" conf="osx105_x86_32->osx105_x86_32;osx105_x86_64->osx105_x86_64;osx106_x86_32->osx106_x86_32;osx106_x86_64->osx106_x86_64;rhel5_x86_32->rhel5_x86_32;rhel5_x86_64->rhel5_x86_64;sol10_sparc_32->sol10_sparc_32;sol10_sparc_64->sol10_sparc_64;sol10_x86_32->sol10_x86_32;sol10_x86_64->sol10_x86_64;suse10_x86_64->suse10_x86_64" />
+      <dependency org="Python"          name="suds"            rev="0.4"            conf="coverity_rhel5_x86_64->noarch" />
+      <dependency org="perl"            name="perl"            rev="5.18"           conf="coverity_rhel5_x86_64->rhel5_x86_64" />
+    </dependencies>
+
+</ivy-module>
