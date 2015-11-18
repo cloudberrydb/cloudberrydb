@@ -102,13 +102,13 @@ else
         if [ $? = 0 ]; then
             echo ${FLAGS_make_targets} | grep debug > /dev/null 2>&1
             if [ $? = 0 ]; then
-            mkdir -p ${PULSE_BASE_DIR}/gpos/server/${ARCH_OUTPUT}.debug
-            cp /opt/releng/build/${PULSE_PROJECT}/`basename ${PULSE_BASE_DIR}`/gpos/server/${ARCH_OUTPUT}.debug/test_log.txt \
-                                     ${PULSE_BASE_DIR}/gpos/server/${ARCH_OUTPUT}.debug/
+            mkdir -p ${PULSE_BASE_DIR}/server/${ARCH_OUTPUT}.debug
+            cp /opt/releng/build/${PULSE_PROJECT}/`basename ${PULSE_BASE_DIR}`/server/${ARCH_OUTPUT}.debug/test_log.txt \
+                                     ${PULSE_BASE_DIR}/server/${ARCH_OUTPUT}.debug/
             else
-            mkdir -p ${PULSE_BASE_DIR}/gpos/server/${ARCH_OUTPUT}.opt
-            cp /opt/releng/build/${PULSE_PROJECT}/`basename ${PULSE_BASE_DIR}`/gpos/server/${ARCH_OUTPUT}.opt/test_log.txt \
-                                     ${PULSE_BASE_DIR}/gpos/server/${ARCH_OUTPUT}.opt/
+            mkdir -p ${PULSE_BASE_DIR}/server/${ARCH_OUTPUT}.opt
+            cp /opt/releng/build/${PULSE_PROJECT}/`basename ${PULSE_BASE_DIR}`/server/${ARCH_OUTPUT}.opt/test_log.txt \
+                                     ${PULSE_BASE_DIR}/server/${ARCH_OUTPUT}.opt/
             fi
         fi
 fi
