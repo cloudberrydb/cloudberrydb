@@ -203,6 +203,7 @@ my %array_type_exception_h =
 	 pg_authid => 1,
 	 pg_auth_members => 1,
 	 pg_database => 1,
+	 gp_global_sequence => 1,
 	 smgr => 1,
 	 unknown => 1,
 	 nb_classification => 1
@@ -1486,6 +1487,7 @@ sub make_type
 	# treat bootstrap tables (and nb_classification) special
 	if (($h1{tuple}->{typname} =~ 
 		m/^pg\_(type|attribute|proc|class|authid|auth_members|database)$/) ||
+		($h1{tuple}->{typname} eq "gp_global_sequence") ||
 		($h1{tuple}->{typname} eq "nb_classification"))
 	{
 		my %boottabdef = (
