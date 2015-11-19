@@ -118,9 +118,9 @@ SELECT xml 'abc' IS NOT DOCUMENT;
 SELECT '<>' IS NOT DOCUMENT;
 
 
-SELECT xmlagg(data) FROM (select * from xmltest order by id) as xmltest;
+SELECT xmlagg(data order by id) FROM xmltest;
 SELECT xmlagg(data) FROM xmltest WHERE id > 10;
-SELECT xmlelement(name employees, xmlagg(xmlelement(name name, name))) FROM (select * from emp order by name) as emp;
+SELECT xmlelement(name employees, xmlagg(xmlelement(name name, name) order by name)) FROM emp;
 
 
 -- Check mapping SQL identifier to XML name

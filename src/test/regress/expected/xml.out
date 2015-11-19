@@ -380,7 +380,7 @@ LINE 1: SELECT '<>' IS NOT DOCUMENT;
 DETAIL:  Entity: line 1: parser error : StartTag: invalid element name
 <>
  ^
-SELECT xmlagg(data) FROM (select * from xmltest order by id ) as xmltest;
+SELECT xmlagg(data order by id) FROM xmltest;
                 xmlagg                
 --------------------------------------
  <value>one</value><value>two</value>
@@ -392,10 +392,10 @@ SELECT xmlagg(data) FROM xmltest WHERE id > 10;
  
 (1 row)
 
-SELECT xmlelement(name employees, xmlagg(xmlelement(name name, name))) FROM (select * from emp order by name) as emp;
+SELECT xmlelement(name employees, xmlagg(xmlelement(name name, name) order by name)) FROM emp;
                                                            xmlelement                                                           
 --------------------------------------------------------------------------------------------------------------------------------
- <employees><name>bill</name><name>cim</name><name>jeff</name><name>sam</name><name>sharon</name><name>linda</name></employees>
+ <employees><name>bill</name><name>cim</name><name>jeff</name><name>linda</name><name>sam</name><name>sharon</name></employees>
 (1 row)
 
 -- Check mapping SQL identifier to XML name
