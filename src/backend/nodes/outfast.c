@@ -1399,6 +1399,9 @@ _outNode(StringInfo str, void *obj)
 			case T_BooleanTest:
 				_outBooleanTest(str, obj);
 				break;
+			case T_XmlExpr:
+				_outXmlExpr(str, obj);
+				break;
 			case T_CoerceToDomain:
 				_outCoerceToDomain(str, obj);
 				break;
@@ -1822,6 +1825,13 @@ _outNode(StringInfo str, void *obj)
 			case T_DefElem:
 				_outDefElem(str, obj);
 				break;
+			case T_LockingClause:
+				_outLockingClause(str, obj);
+				break;
+			case T_XmlSerialize:
+				_outXmlSerialize(str, obj);
+				break;
+
 			case T_CreateSchemaStmt:
 				_outCreateSchemaStmt(str, obj);
 				break;
@@ -1845,10 +1855,6 @@ _outNode(StringInfo str, void *obj)
 				break;
 			case T_VariableResetStmt:
 				_outVariableResetStmt(str, obj);
-				break;
-
-			case T_LockingClause:
-				_outLockingClause(str, obj);
 				break;
 
 			case T_DMLActionExpr:

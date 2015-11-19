@@ -5846,7 +5846,7 @@ within_agg_construct_inner(PlannerInfo *root,
 	pc_tle = get_tle_by_resno(inner_plan->targetlist, wag_context->pc_pos);
 	tc_expr = (Expr *) makeAggrefByOid(AGGFNOID_SUM_BIGINT,
 									   list_make1(pc_tle->expr));
-	tc_expr = (Expr *) coerce_to_bigint(NULL, (Node *) tc_expr, "sum_to_bigint");
+	tc_expr = (Expr *) coerce_to_specific_type(NULL, (Node *) tc_expr, INT8OID, "sum_to_bigint");
 	wag_context->tc_pos = list_length(tlist) + 1;
 	tlist = lappend(tlist, makeTargetEntry((Expr *) tc_expr,
 										   wag_context->tc_pos,

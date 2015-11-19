@@ -2838,6 +2838,9 @@ readNodeBinary(void)
 			case T_BooleanTest:
 				return_value = _readBooleanTest();
 				break;
+			case T_XmlExpr:
+				return_value = _readXmlExpr();
+				break;
 			case T_CoerceToDomain:
 				return_value = _readCoerceToDomain();
 				break;

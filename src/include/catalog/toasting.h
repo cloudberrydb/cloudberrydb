@@ -73,9 +73,9 @@ DECLARE_TOAST(pg_shdescription, 2846, 2847);
    on Thu Sep  1 16:43:17 2011
  */
 /* relation id: 5036 - gp_segment_configuration 20101122 */
-DECLARE_TOAST(gp_segment_configuration, 2900, 2901);
-#define GpSegmentConfigToastTable	2900
-#define GpSegmentConfigToastIndex	2901
+DECLARE_TOAST(gp_segment_configuration, 6092, 6093);
+#define GpSegmentConfigToastTable	6092
+#define GpSegmentConfigToastIndex	6093
 /* relation id: 5033 - pg_filespace_entry 20101122 */
 DECLARE_TOAST(pg_filespace_entry, 2902, 2903);
 #define PgFileSpaceEntryToastTable	2902

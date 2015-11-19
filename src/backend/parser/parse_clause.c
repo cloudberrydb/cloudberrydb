@@ -1920,7 +1920,7 @@ transformLimitClause(ParseState *pstate, Node *clause,
 
 	qual = transformExpr(pstate, clause);
 
-	qual = coerce_to_bigint(pstate, qual, constructName);
+	qual = coerce_to_specific_type(pstate, qual, INT8OID, constructName);
 
 	/*
 	 * LIMIT can't refer to any vars or aggregates of the current query; we

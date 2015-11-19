@@ -970,6 +970,8 @@ contain_nonstrict_functions_walker(Node *node, void *context)
 		return true;
 	if (IsA(node, BooleanTest))
 		return true;
+	if (IsA(node, XmlExpr))
+		return true;
 	return expression_tree_walker(node, contain_nonstrict_functions_walker,
 								  context);
 }
@@ -3859,6 +3861,17 @@ expression_tree_mutator(Node *node,
 
 				FLATCOPY(newnode, minmaxexpr, MinMaxExpr);
 				MUTATE(newnode->args, minmaxexpr->args, List *);
+				return (Node *) newnode;
+			}
+			break;
+		case T_XmlExpr:
+			{
+				XmlExpr *xexpr = (XmlExpr *) node;
+				XmlExpr *newnode;
+
+				FLATCOPY(newnode, xexpr, XmlExpr);
+				MUTATE(newnode->named_args, xexpr->named_args, List *);
+				MUTATE(newnode->args, xexpr->args, List *);
 				return (Node *) newnode;
 			}
 			break;

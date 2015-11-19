@@ -81,7 +81,7 @@ WHERE p1.oid != p2.oid AND
 SELECT p1.oid, p1.proname, p2.oid, p2.proname
 FROM pg_proc AS p1, pg_proc AS p2
 WHERE p1.oid < p2.oid AND
-    p1.prosrc = p2.prosrc AND
+    p1.prosrc = p2.prosrc AND p1.prosrc NOT IN ('xmlparse', 'xmlpi') AND
 	p1.prosrc NOT IN ('gp_deprecated') AND
     p1.prolang = 12 AND p2.prolang = 12 AND
     (p1.proisagg = false OR p2.proisagg = false) AND
@@ -284,7 +284,10 @@ WHERE c.castfunc = p.oid AND
 -- As of 8.2, this finds the cast from cidr to inet, because that is a
 -- trivial binary coercion while the other way goes through inet_to_cidr().
 
-SELECT castsource::regtype, casttarget::regtype, castfunc::regproc, castcontext
+-- As of 8.3, this finds casts from xml to text, varchar, and bpchar,
+-- because the other direction has to go through xmlparse().
+
+SELECT *
 FROM pg_cast c
 WHERE c.castfunc = 0 AND
     NOT EXISTS (SELECT 1 FROM pg_cast k
@@ -691,18 +694,17 @@ WHERE p1.amopclaid = 0 OR p1.amopstrategy <= 0 OR p1.amopopr = 0;
 SELECT p1.amopclaid, p1.amopopr, p2.oid, p2.amname
 FROM pg_amop AS p1, pg_am AS p2, pg_opclass AS p3
 WHERE p1.amopclaid = p3.oid AND p3.opcamid = p2.oid AND
-    p1.amopstrategy > p2.amstrategies;
+    p1.amopstrategy > p2.amstrategies AND p2.amstrategies <> 0;
 
 -- Detect missing pg_amop entries: should have as many strategy operators
 -- as AM expects for each opclass for the AM.  When nondefault subtypes are
 -- present, enforce condition separately for each subtype.
--- We have to exclude GiST and GIN, unfortunately, since they haven't got
--- any fixed requirements about strategy operators.
+-- We can't check this for AMs with variable strategy sets.
 
 SELECT p1.oid, p1.amname, p2.oid, p2.opcname, p3.amopsubtype
 FROM pg_am AS p1, pg_opclass AS p2, pg_amop AS p3
 WHERE p2.opcamid = p1.oid AND p3.amopclaid = p2.oid AND
-    p1.amname != 'gist' AND p1.amname != 'gin' AND
+    p1.amstrategies <> 0 AND
     p1.amstrategies != (SELECT count(*) FROM pg_amop AS p4
                         WHERE p4.amopclaid = p2.oid AND
                               p4.amopsubtype = p3.amopsubtype);

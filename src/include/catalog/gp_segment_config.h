@@ -28,7 +28,7 @@
 /* TIDYCAT_BEGINDEF
 
    CREATE TABLE gp_segment_configuration
-   with (camelcase=GpSegmentConfig, shared=true, oid=false, relid=5036, toast_oid=2900, toast_index=2901, content=MASTER_ONLY)
+   with (camelcase=GpSegmentConfig, shared=true, oid=false, relid=5036, toast_oid=6092, toast_index=6093, content=MASTER_ONLY)
    (
    dbid              smallint   , -- up to 32767 segment databases
    content           smallint   , -- up to 32767 contents -- only 16384 usable with mirroring (see dbid)

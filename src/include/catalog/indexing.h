@@ -327,11 +327,11 @@ DECLARE_UNIQUE_INDEX(pg_namespace_nspname_index, 2684, on pg_namespace using btr
 DECLARE_UNIQUE_INDEX(pg_namespace_oid_index, 2685, on pg_namespace using btree(oid oid_ops));
 #define NamespaceOidIndexId	2685
 /* relation id: 5033 - pg_filespace_entry 20101122 */
-DECLARE_INDEX(pg_filespace_entry_fs_index, 2893, on pg_filespace_entry using btree(fsefsoid oid_ops));
-#define FileSpaceEntryFsefsoidIndexId	2893
+DECLARE_INDEX(pg_filespace_entry_fs_index, 6090, on pg_filespace_entry using btree(fsefsoid oid_ops));
+#define FileSpaceEntryFsefsoidIndexId	6090
 /* relation id: 5033 - pg_filespace_entry 20101122 */
-DECLARE_UNIQUE_INDEX(pg_filespace_entry_fsdb_index, 2894, on pg_filespace_entry using btree(fsefsoid oid_ops, fsedbid int2_ops));
-#define FileSpaceEntryFsefsoidFsedbidIndexId	2894
+DECLARE_UNIQUE_INDEX(pg_filespace_entry_fsdb_index, 6091, on pg_filespace_entry using btree(fsefsoid oid_ops, fsedbid int2_ops));
+#define FileSpaceEntryFsefsoidFsedbidIndexId	6091
 /* relation id: 5036 - gp_segment_configuration 20101122 */
 DECLARE_UNIQUE_INDEX(gp_segment_config_content_preferred_role_index, 6106, on gp_segment_configuration using btree(content int2_ops, preferred_role char_ops));
 #define GpSegmentConfigContentPreferred_roleIndexId	6106

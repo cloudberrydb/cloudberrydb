@@ -8,7 +8,7 @@
  * Portions Copyright (c) 1996-2010, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
- * $PostgreSQL: pgsql/src/include/catalog/pg_proc.h,v 1.430 2006/12/06 18:06:47 neilc Exp $
+ * $PostgreSQL: pgsql/src/include/catalog/pg_proc.h,v 1.431 2006/12/21 16:05:15 petere Exp $
  *
  * NOTES
  *	  The script catalog/genbki.sh reads this file and generates .bki
@@ -4057,6 +4057,18 @@ DATA(insert OID = 2891 (  pg_advisory_unlock_shared		PGNSP PGUID 12 f f t f v 2 
 DESCR("release shared advisory lock");
 DATA(insert OID = 2892 (  pg_advisory_unlock_all		PGNSP PGUID 12 f f t f v 0 2278 "" _null_ _null_ _null_ pg_advisory_unlock_all - _null_ ));
 DESCR("release all advisory locks");
+
+/* XML support */
+DATA(insert OID = 2893 (  xml_in		   PGNSP PGUID 12 f f t f i 1 142 "2275" _null_ _null_ _null_ xml_in - _null_ ));
+DESCR("I/O");
+DATA(insert OID = 2894 (  xml_out		   PGNSP PGUID 12 f f t f i 1 2275 "142" _null_ _null_ _null_ xml_out - _null_ ));
+DESCR("I/O");
+DATA(insert OID = 2896 (  xml                PGNSP PGUID 12 f f t f i 1 142 "25" _null_ _null_ _null_ texttoxml - _null_ ));
+DESCR("perform a non-validating parse of a character string to produce an XML value");
+DATA(insert OID = 2895 (  xmlcomment	   PGNSP PGUID 12 f f t f i 1 142 "25" _null_ _null_ _null_ xmlcomment - _null_ ));
+DESCR("generate an XML comment");
+DATA(insert OID = 2901 (  xmlvalidate 	   PGNSP PGUID 12 f f t f i 2 16 "142 25" _null_ _null_ _null_ xmlvalidate - _null_ ));
+DESCR("validate an XML value");
 
 /*
  * Include more definitions from pg_proc_gp.h, for GPDB-added functions. They

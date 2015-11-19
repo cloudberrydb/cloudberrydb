@@ -9,7 +9,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/nodes/outfuncs.c,v 1.286 2006/12/10 22:13:26 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/nodes/outfuncs.c,v 1.287 2006/12/21 16:05:13 petere Exp $
  *
  * NOTES
  *	  Every node type that can appear in stored rules' parsetrees *must*
@@ -1521,6 +1521,21 @@ _outBooleanTest(StringInfo str, BooleanTest *node)
 
 	WRITE_NODE_FIELD(arg);
 	WRITE_ENUM_FIELD(booltesttype, BoolTestType);
+}
+
+static void
+_outXmlExpr(StringInfo str, XmlExpr *node)
+{
+	WRITE_NODE_TYPE("XMLEXPR");
+
+	WRITE_ENUM_FIELD(op, XmlExprOp);
+	WRITE_STRING_FIELD(name);
+	WRITE_NODE_FIELD(named_args);
+	WRITE_NODE_FIELD(arg_names);
+	WRITE_NODE_FIELD(args);
+	WRITE_ENUM_FIELD(xmloption, XmlOptionType);
+	WRITE_OID_FIELD(type);
+	WRITE_INT_FIELD(typmod);
 }
 
 static void
@@ -3112,6 +3127,16 @@ _outLockingClause(StringInfo str, LockingClause *node)
 }
 
 static void
+_outXmlSerialize(StringInfo str, XmlSerialize *node)
+{
+	WRITE_NODE_TYPE("XMLSERIALIZE");
+
+	WRITE_ENUM_FIELD(xmloption, XmlOptionType);
+	WRITE_NODE_FIELD(expr);
+	WRITE_NODE_FIELD(typeName);
+}
+
+static void
 _outDMLActionExpr(StringInfo str, DMLActionExpr *node)
 {
 	WRITE_NODE_TYPE("DMLACTIONEXPR");
@@ -4316,6 +4341,9 @@ _outNode(StringInfo str, void *obj)
 			case T_BooleanTest:
 				_outBooleanTest(str, obj);
 				break;
+			case T_XmlExpr:
+				_outXmlExpr(str, obj);
+				break;
 			case T_CoerceToDomain:
 				_outCoerceToDomain(str, obj);
 				break;
@@ -4756,6 +4784,13 @@ _outNode(StringInfo str, void *obj)
 			case T_DefElem:
 				_outDefElem(str, obj);
 				break;
+			case T_LockingClause:
+				_outLockingClause(str, obj);
+				break;
+			case T_XmlSerialize:
+				_outXmlSerialize(str, obj);
+				break;
+
 			case T_CreateSchemaStmt:
 				_outCreateSchemaStmt(str, obj);
 				break;
@@ -4779,10 +4814,6 @@ _outNode(StringInfo str, void *obj)
 				break;
 			case T_VariableResetStmt:
 				_outVariableResetStmt(str, obj);
-				break;
-
-			case T_LockingClause:
-				_outLockingClause(str, obj);
 				break;
 
 			case T_DMLActionExpr:

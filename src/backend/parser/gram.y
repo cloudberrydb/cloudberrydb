@@ -12,7 +12,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/parser/gram.y,v 2.568 2006/11/05 22:42:09 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/parser/gram.y,v 2.569 2006/12/21 16:05:14 petere Exp $
  *
  * HISTORY
  *	  AUTHOR			DATE			MAJOR EVENT
@@ -65,6 +65,7 @@
 #include "utils/datetime.h"
 #include "utils/guc.h"
 #include "utils/numeric.h"
+#include "utils/xml.h"
 #include "cdb/cdbvars.h" /* CDB *//* gp_enable_partitioned_tables */
 
 
@@ -112,6 +113,7 @@ static Node *makeTypeCast(Node *arg, TypeName *typname, int location);
 static Node *makeStringConst(char *str, TypeName *typname, int location);
 static Node *makeIntConst(int val, int location);
 static Node *makeFloatConst(char *str, int location);
+static Node *makeNullAConst(int location);
 static Node *makeAConst(Value *v, int location);
 static A_Const *makeBoolAConst(bool state, int location);
 static FuncCall *makeOverlaps(List *largs, List *rargs, int location);
@@ -126,6 +128,8 @@ static void insertSelectOptions(SelectStmt *stmt,
 static Node *makeSetOp(SetOperation op, bool all, Node *larg, Node *rarg);
 static Node *doNegate(Node *n, int location);
 static void doNegateFloat(Value *v);
+static Node *makeXmlExpr(XmlExprOp op, char *name, List *named_args,
+						 List *args, int location);
 static List *mergeTableFuncParameters(List *func_args, List *columns);
 static TypeName *TableFuncTypeName(List *columns);
 static void setWindowExclude(WindowFrame *wframe, WindowExclusion exclude);
@@ -459,6 +463,14 @@ static Node *makeIsNotDistinctFromNode(Node *expr, int position);
 %type <list>	opt_storage_encoding OptTabPartitionColumnEncList
 				TabPartitionColumnEncList
 
+%type <target>	xml_attribute_el
+%type <list>	xml_attribute_list xml_attributes
+%type <node>	xml_root_version opt_xml_root_standalone
+%type <node>	xmlexists_argument
+%type <ival>	document_or_content
+%type <boolean> xml_whitespace_option
+
+
 /*
  * If you make any token changes, update the keyword table in
  * parser/keywords.c and add new keywords to the appropriate one of
@@ -484,7 +496,7 @@ static Node *makeIsNotDistinctFromNode(Node *expr, int position);
 
 	DATA_P DATABASE DAY_P DEALLOCATE DEC DECIMAL_P DECLARE DECODE DEFAULT DEFAULTS
 	DEFERRABLE DEFERRED DEFINER DELETE_P DELIMITER DELIMITERS DENY
-	DESC DISABLE_P DISTINCT DISTRIBUTED DO DOMAIN_P DOUBLE_P DROP DXL
+	DESC DISABLE_P DISTINCT DISTRIBUTED DO DOCUMENT_P DOMAIN_P DOUBLE_P DROP DXL
 
 	EACH ELSE ENABLE_P ENCODING ENCRYPTED END_P ENUM_P ERRORS ESCAPE EVERY EXCEPT 
 	EXCHANGE EXCLUDE EXCLUDING EXCLUSIVE EXECUTE EXISTS EXPLAIN EXTERNAL EXTRACT
@@ -521,14 +533,14 @@ static Node *makeIsNotDistinctFromNode(Node *expr, int position);
 	OBJECT_P OF OFF OFFSET OIDS OLD ON ONLY OPERATOR OPTION OPTIONS OR
 	ORDER ORDERED OTHERS OUT_P OUTER_P OVER OVERCOMMIT OVERLAPS OVERLAY OWNED OWNER
 
-	PARTIAL PARTITION PARTITIONS PASSWORD PERCENT PERCENTILE_CONT PERCENTILE_DISC
+	PARTIAL PARTITION PARTITIONS PASSING PASSWORD PERCENT PERCENTILE_CONT PERCENTILE_DISC
 	PLACING POSITION PRECEDING PRECISION PRESERVE PREPARE PREPARED PRIMARY
 	PRIOR PRIVILEGES PROCEDURAL PROCEDURE PROTOCOL
 
 	QUEUE QUOTE
 
 	RANDOMLY RANGE READ READABLE READS REAL REASSIGN RECHECK RECURSIVE 
-    REFERENCES REINDEX REJECT_P RELATIVE_P 
+	REF REFERENCES REINDEX REJECT_P RELATIVE_P
 	RELEASE RENAME REPEATABLE REPLACE RESET RESOURCE RESTART RESTRICT 
 	RETURNING RETURNS REVOKE RIGHT
 	ROLE ROLLBACK ROLLUP ROOTPARTITION ROW ROWS RULE
@@ -536,8 +548,8 @@ static Node *makeIsNotDistinctFromNode(Node *expr, int position);
 	SAVEPOINT SCATTER SCHEMA SCROLL SEARCH SECOND_P 
     SECURITY SEGMENT SELECT SEQUENCE
 	SERIALIZABLE SERVER SESSION SESSION_USER SET SETOF SETS SHARE
-	SHOW SIMILAR SIMPLE SMALLINT SOME SPLIT SQL STABLE START STATEMENT
-	STATISTICS STDIN STDOUT STORAGE STRICT_P 
+	SHOW SIMILAR SIMPLE SMALLINT SOME SPLIT SQL STABLE STANDALONE_P START STATEMENT
+	STATISTICS STDIN STDOUT STORAGE STRICT_P STRIP_P
 	SUBPARTITION SUBPARTITIONS
 	SUBSTRING SUPERUSER_P SYMMETRIC
 	SYSID SYSTEM_P
@@ -552,9 +564,13 @@ static Node *makeIsNotDistinctFromNode(Node *expr, int position);
 	VACUUM VALID VALIDATION VALIDATOR VALUE_P VALUES VARCHAR VARYING
 	VERBOSE VERSION_P VIEW VOLATILE
 
-	WEB WHEN WHERE WINDOW WITH WITHIN WITHOUT WORK WRAPPER WRITABLE WRITE
+	WEB
+	WHEN WHERE WHITESPACE_P WINDOW WITH WITHIN WITHOUT WORK WRAPPER WRITABLE WRITE
 
-	YEAR_P
+	XML_P XMLATTRIBUTES XMLCONCAT XMLELEMENT XMLEXISTS XMLFOREST XMLPARSE
+	XMLPI XMLROOT XMLSERIALIZE
+
+	YEAR_P YES_P
 
 	ZONE
 
@@ -770,7 +786,6 @@ static Node *makeIsNotDistinctFromNode(Node *expr, int position);
 			%nonassoc PERCENT
 			%nonassoc PREPARE
 			%nonassoc PREPARED
-			%nonassoc PRESERVE
 			%nonassoc PRIOR
 			%nonassoc PRIVILEGES
 			%nonassoc PROCEDURAL
@@ -941,6 +956,7 @@ static Node *makeIsNotDistinctFromNode(Node *expr, int position);
  * left-associativity among the JOIN rules themselves.
  */
 %left		JOIN CROSS LEFT FULL RIGHT INNER_P NATURAL
+%right		PRESERVE STRIP
 %%
 
 /*
@@ -1776,6 +1792,13 @@ set_rest:  var_name TO var_list_or_default
 					VariableSetStmt *n = makeNode(VariableSetStmt);
 					n->name = "session_authorization";
 					n->args = NIL;
+					$$ = n;
+				}
+			| XML_P OPTION document_or_content
+				{
+					VariableSetStmt *n = makeNode(VariableSetStmt);
+					n->name = "xmloption";
+					n->args = list_make1(makeStringConst($3 == XMLOPTION_DOCUMENT ? "DOCUMENT" : "CONTENT", NULL, @3));
 					$$ = n;
 				}
 		;
@@ -10359,6 +10382,18 @@ a_expr:		c_expr									{ $$ = $1; }
 							 errmsg("UNIQUE predicate is not yet implemented"),
 							 scanner_errposition(@1)));
 				}
+			| a_expr IS DOCUMENT_P					%prec IS
+				{
+					$$ = makeXmlExpr(IS_DOCUMENT, NULL, NIL,
+									 list_make1($1), @2);
+				}
+			| a_expr IS NOT DOCUMENT_P				%prec IS
+				{
+					$$ = (Node *) makeA_Expr(AEXPR_NOT, NIL, NULL,
+											 makeXmlExpr(IS_DOCUMENT, NULL, NIL,
+														 list_make1($1), @2),
+											 @2);
+				}
 		;
 
 /*
@@ -10418,6 +10453,18 @@ b_expr:		c_expr
 			| b_expr IS NOT OF '(' type_list ')'	%prec IS
 				{
 					$$ = (Node *) makeSimpleA_Expr(AEXPR_OF, "<>", $1, (Node *) $6, @2);
+				}
+			| b_expr IS DOCUMENT_P					%prec IS
+				{
+					$$ = makeXmlExpr(IS_DOCUMENT, NULL, NIL,
+									 list_make1($1), @2);
+				}
+			| b_expr IS NOT DOCUMENT_P				%prec IS
+				{
+					$$ = (Node *) makeA_Expr(AEXPR_NOT, NIL, NULL,
+											 makeXmlExpr(IS_DOCUMENT, NULL, NIL,
+														 list_make1($1), @2),
+											 @2);
 				}
 		;
 
@@ -11195,6 +11242,170 @@ func_expr:	simple_func FILTER '(' WHERE a_expr ')'
 					n->location = @1;
 					n->over = NULL;
 					$$ = (Node *)n;
+				}
+			| XMLCONCAT '(' expr_list ')'
+				{
+					$$ = makeXmlExpr(IS_XMLCONCAT, NULL, NIL, $3, @1);
+				}
+			| XMLELEMENT '(' NAME_P ColLabel ')'
+				{
+					$$ = makeXmlExpr(IS_XMLELEMENT, $4, NIL, NIL, @1);
+				}
+			| XMLELEMENT '(' NAME_P ColLabel ',' xml_attributes ')'
+				{
+					$$ = makeXmlExpr(IS_XMLELEMENT, $4, $6, NIL, @1);
+				}
+			| XMLELEMENT '(' NAME_P ColLabel ',' expr_list ')'
+				{
+					$$ = makeXmlExpr(IS_XMLELEMENT, $4, NIL, $6, @1);
+				}
+			| XMLELEMENT '(' NAME_P ColLabel ',' xml_attributes ',' expr_list ')'
+				{
+					$$ = makeXmlExpr(IS_XMLELEMENT, $4, $6, $8, @1);
+				}
+			| XMLEXISTS '(' c_expr xmlexists_argument ')'
+				{
+					/* xmlexists(A PASSING [BY REF] B [BY REF]) is
+					 * converted to xmlexists(A, B)*/
+					FuncCall *n = makeNode(FuncCall);
+					n->funcname = SystemFuncName("xmlexists");
+					n->args = list_make2($3, $4);
+					n->agg_order = NIL;
+					n->agg_star = FALSE;
+					n->agg_distinct = FALSE;
+					/* n->func_variadic = FALSE; */
+					n->over = NULL;
+					n->location = @1;
+					$$ = (Node *)n;
+				}
+			/*
+			 * GPDB: In versions 4.3 of GPDB, we had the xmlexists(text, xml)
+			 * function, but not this syntactic sugar, and XMLEXISTS was not
+			 * a keyword. So there might be applications out there calling
+			 * it like "SELECT xmlexists(foo, bar)", which will fail in
+			 * PostgreSQL because XMLEXISTS is a keyword. Support that
+			 * old syntax, for backwards-compatibiltiy.
+			 */
+			| XMLEXISTS '(' a_expr ',' a_expr ')'
+				{
+					FuncCall *n = makeNode(FuncCall);
+					n->funcname = SystemFuncName("xmlexists");
+					n->args = list_make2($3, $5);
+					n->agg_order = NIL;
+					n->agg_star = FALSE;
+					n->agg_distinct = FALSE;
+					/* n->func_variadic = FALSE; */
+					n->over = NULL;
+					n->location = @1;
+					$$ = (Node *)n;
+				}
+			| XMLFOREST '(' xml_attribute_list ')'
+				{
+					$$ = makeXmlExpr(IS_XMLFOREST, NULL, $3, NIL, @1);
+				}
+			| XMLPARSE '(' document_or_content a_expr xml_whitespace_option ')'
+				{
+					XmlExpr *x = (XmlExpr *)
+						makeXmlExpr(IS_XMLPARSE, NULL, NIL,
+									list_make2($4, makeBoolAConst($5, -1)),
+									@1);
+					x->xmloption = $3;
+					$$ = (Node *)x;
+				}
+			| XMLPI '(' NAME_P ColLabel ')'
+				{
+					$$ = makeXmlExpr(IS_XMLPI, $4, NULL, NIL, @1);
+				}
+			| XMLPI '(' NAME_P ColLabel ',' a_expr ')'
+				{
+					$$ = makeXmlExpr(IS_XMLPI, $4, NULL, list_make1($6), @1);
+				}
+			| XMLROOT '(' a_expr ',' xml_root_version opt_xml_root_standalone ')'
+				{
+					$$ = makeXmlExpr(IS_XMLROOT, NULL, NIL,
+									 list_make3($3, $5, $6), @1);
+				}
+			| XMLSERIALIZE '(' document_or_content a_expr AS SimpleTypename ')'
+				{
+					XmlSerialize *n = makeNode(XmlSerialize);
+					n->xmloption = $3;
+					n->expr = $4;
+					n->typeName = $6;
+					n->location = @1;
+					$$ = (Node *)n;
+				}
+		;
+
+/*
+ * SQL/XML support
+ */
+xml_root_version: VERSION_P a_expr
+				{ $$ = $2; }
+			| VERSION_P NO VALUE_P
+				{ $$ = makeNullAConst(-1); }
+		;
+
+opt_xml_root_standalone: ',' STANDALONE_P YES_P
+				{ $$ = makeIntConst(XML_STANDALONE_YES, -1); }
+			| ',' STANDALONE_P NO
+				{ $$ = makeIntConst(XML_STANDALONE_NO, -1); }
+			| ',' STANDALONE_P NO VALUE_P
+				{ $$ = makeIntConst(XML_STANDALONE_NO_VALUE, -1); }
+			| /*EMPTY*/
+				{ $$ = makeIntConst(XML_STANDALONE_OMITTED, -1); }
+		;
+
+xml_attributes: XMLATTRIBUTES '(' xml_attribute_list ')'	{ $$ = $3; }
+		;
+
+xml_attribute_list:	xml_attribute_el					{ $$ = list_make1($1); }
+			| xml_attribute_list ',' xml_attribute_el	{ $$ = lappend($1, $3); }
+		;
+
+xml_attribute_el: a_expr AS ColLabel
+				{
+					$$ = makeNode(ResTarget);
+					$$->name = $3;
+					$$->indirection = NIL;
+					$$->val = (Node *) $1;
+					$$->location = @1;
+				}
+			| a_expr
+				{
+					$$ = makeNode(ResTarget);
+					$$->name = NULL;
+					$$->indirection = NIL;
+					$$->val = (Node *) $1;
+					$$->location = @1;
+				}
+		;
+
+document_or_content: DOCUMENT_P						{ $$ = XMLOPTION_DOCUMENT; }
+			| CONTENT_P								{ $$ = XMLOPTION_CONTENT; }
+		;
+
+xml_whitespace_option: PRESERVE WHITESPACE_P		{ $$ = TRUE; }
+			| STRIP_P WHITESPACE_P					{ $$ = FALSE; }
+			| /*EMPTY*/								{ $$ = FALSE; }
+		;
+
+/* We allow several variants for SQL and other compatibility. */
+xmlexists_argument:
+			PASSING c_expr
+				{
+					$$ = $2;
+				}
+			| PASSING c_expr BY REF
+				{
+					$$ = $2;
+				}
+			| PASSING BY REF c_expr
+				{
+					$$ = $4;
+				}
+			| PASSING BY REF c_expr BY REF
+				{
+					$$ = $4;
 				}
 		;
 
@@ -12016,6 +12227,7 @@ unreserved_keyword:
 			| DELIMITERS
 			| DENY
 			| DISABLE_P
+			| DOCUMENT_P
 			| DOMAIN_P
 			| DOUBLE_P
 			| DROP
@@ -12128,6 +12340,7 @@ unreserved_keyword:
 			| OWNER
 			| PARTIAL
 			| PARTITIONS
+			| PASSING
 			| PASSWORD
 			| PERCENT
 			| PREPARE
@@ -12147,6 +12360,7 @@ unreserved_keyword:
 			| REASSIGN
 			| RECHECK
 			| RECURSIVE
+			| REF
 			| REINDEX
 			| REJECT_P /* gp */
 			| RELATIVE_P
@@ -12182,6 +12396,7 @@ unreserved_keyword:
 			| SPLIT
 			| SQL
 			| STABLE
+			| STANDALONE_P
 			| START
 			| STATEMENT
 			| STATISTICS
@@ -12227,7 +12442,9 @@ unreserved_keyword:
 			| WRAPPER
 			| WRITABLE
 			| WRITE
+			| XML_P
 			| YEAR_P
+			| YES_P
 			| ZONE
 		;
 
@@ -12288,6 +12505,7 @@ PartitionIdentKeyword: ABORT_P
 			| CONNECTION
 			| CONSTRAINTS
 			| CONTAINS
+			| CONTENT_P
 			| CONVERSION_P
 			| COPY
 			| COST
@@ -12381,6 +12599,7 @@ PartitionIdentKeyword: ABORT_P
 			| MODIFIES
 			| MODIFY
 			| MOVE
+			| NAME_P
 			| NAMES
 			| NEWLINE
 			| NEXT
@@ -12458,6 +12677,7 @@ PartitionIdentKeyword: ABORT_P
 			| STDOUT
 			| STORAGE
 			| STRICT_P
+			| STRIP_P
 			| SUBPARTITION
 			| SUBPARTITIONS
 			| SUPERUSER_P
@@ -12482,8 +12702,11 @@ PartitionIdentKeyword: ABORT_P
 			| VACUUM
 			| VALID
 			| VALIDATOR
+			| VERSION_P
 			| VIEW
+			| VALUE_P
 			| VOLATILE
+			| WHITESPACE_P
 			| WORK
 			| WRITE
 			| ZONE
@@ -12593,6 +12816,15 @@ col_name_keyword:
 			| TRIM
 			| VALUES
 			| VARCHAR
+			| XMLATTRIBUTES
+			| XMLCONCAT
+			| XMLELEMENT
+			| XMLEXISTS
+			| XMLFOREST
+			| XMLPARSE
+			| XMLPI
+			| XMLROOT
+			| XMLSERIALIZE
 		;
 
 /* Function identifier --- keywords that can be function names.
@@ -12903,6 +13135,17 @@ makeFloatConst(char *str, int location)
 	n->val.val.str = str;
 	n->location = location;
 	n->typname = SystemTypeName("float8");
+
+	return (Node *)n;
+}
+
+static Node *
+makeNullAConst(int location)
+{
+	A_Const *n = makeNode(A_Const);
+
+	n->val.type = T_Null;
+	n->location = location;
 
 	return (Node *)n;
 }
@@ -13229,6 +13472,28 @@ doNegateFloat(Value *v)
 		strcpy(newval+1, oldval);
 		v->val.str = newval;
 	}
+}
+
+static Node *
+makeXmlExpr(XmlExprOp op, char *name, List *named_args, List *args,
+			int location)
+{
+	XmlExpr    *x = makeNode(XmlExpr);
+
+	x->op = op;
+	x->name = name;
+	/*
+	 * named_args is a list of ResTarget; it'll be split apart into separate
+	 * expression and name lists in transformXmlExpr().
+	 */
+	x->named_args = named_args;
+	x->arg_names = NIL;
+	x->args = args;
+	/* xmloption, if relevant, must be filled in by caller */
+	/* type and typmod will be filled in during parse analysis */
+	x->type = InvalidOid;			/* marks the node as not analyzed */
+	x->location = location;
+	return (Node *) x;
 }
 
 /*

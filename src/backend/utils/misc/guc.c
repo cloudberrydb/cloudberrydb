@@ -63,6 +63,7 @@
 #include "utils/pg_locale.h"
 #include "utils/ps_status.h"
 #include "utils/tzparser.h"
+#include "utils/xml.h"
 #include "cdb/cdbdisp.h"
 #include "cdb/cdbvars.h"
 
@@ -149,6 +150,8 @@ static bool assign_transaction_read_only(bool newval, bool doit, GucSource sourc
 static const char *assign_canonical_path(const char *newval, bool doit, GucSource source);
 static const char *assign_backslash_quote(const char *newval, bool doit, GucSource source);
 static const char *assign_timezone_abbreviations(const char *newval, bool doit, GucSource source);
+static const char *assign_xmlbinary(const char *newval, bool doit, GucSource source);
+static const char *assign_xmloption(const char *newval, bool doit, GucSource source);
 
 static bool assign_tcp_keepalives_idle(int newval, bool doit, GucSource source);
 static bool assign_tcp_keepalives_interval(int newval, bool doit, GucSource source);
@@ -250,6 +253,8 @@ static char *log_timezone_string;
 static char *timezone_abbreviations_string;
 static char *XactIsoLevel_string;
 static char *custom_variable_classes;
+static char *xmlbinary_string;
+static char *xmloption_string;
 static int	max_function_args;
 static int	max_index_keys;
 static int	max_identifier_length;
@@ -2388,6 +2393,25 @@ static struct config_string ConfigureNamesString[] =
 		},
 		&IdentFileName,
 		NULL, NULL, NULL
+	},
+
+	{
+		{"xmlbinary", PGC_USERSET, CLIENT_CONN_STATEMENT,
+			gettext_noop("Sets how binary values are to be encoded in XML."),
+			gettext_noop("Valid values are BASE64 and HEX.")
+		},
+		&xmlbinary_string,
+		"base64", assign_xmlbinary, NULL
+	},
+
+	{
+		{"xmloption", PGC_USERSET, CLIENT_CONN_STATEMENT,
+			gettext_noop("Sets whether XML data in implicit parsing and serialization "
+						 "operations is to be considered as documents or content fragments."),
+			gettext_noop("Valid values are DOCUMENT and CONTENT.")
+		},
+		&xmloption_string,
+		"content", assign_xmloption, NULL
 	},
 
 	{
@@ -7295,6 +7319,42 @@ pg_timezone_abbrev_initialize(void)
 		SetConfigOption("timezone_abbreviations", "Default",
 						PGC_POSTMASTER, PGC_S_ARGV);
 	}
+}
+
+static const char *
+assign_xmlbinary(const char *newval, bool doit, GucSource source)
+{
+	XmlBinaryType xb;
+
+	if (pg_strcasecmp(newval, "base64") == 0)
+		xb = XMLBINARY_BASE64;
+	else if (pg_strcasecmp(newval, "hex") == 0)
+		xb = XMLBINARY_HEX;
+	else
+		return NULL;			/* reject */
+
+	if (doit)
+		xmlbinary = xb;
+
+	return newval;
+}
+
+static const char *
+assign_xmloption(const char *newval, bool doit, GucSource source)
+{
+	XmlOptionType xo;
+
+	if (pg_strcasecmp(newval, "document") == 0)
+		xo = XMLOPTION_DOCUMENT;
+	else if (pg_strcasecmp(newval, "content") == 0)
+		xo = XMLOPTION_CONTENT;
+	else
+		return NULL;			/* reject */
+
+	if (doit)
+		xmloption = xo;
+
+	return newval;
 }
 
 static bool

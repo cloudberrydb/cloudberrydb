@@ -8,7 +8,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/parser/parse_expr.c,v 1.199 2006/12/10 22:13:26 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/parser/parse_expr.c,v 1.200 2006/12/21 16:05:14 petere Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -38,6 +38,7 @@
 #include "rewrite/rewriteManip.h"
 #include "utils/builtins.h"
 #include "utils/lsyscache.h"
+#include "utils/xml.h"
 
 
 bool		Transform_null_equals = false;
@@ -60,6 +61,8 @@ static Node *transformRowExpr(ParseState *pstate, RowExpr *r);
 static Node *transformTableValueExpr(ParseState *pstate, TableValueExpr *t);
 static Node *transformCoalesceExpr(ParseState *pstate, CoalesceExpr *c);
 static Node *transformMinMaxExpr(ParseState *pstate, MinMaxExpr *m);
+static Node *transformXmlExpr(ParseState *pstate, XmlExpr *x);
+static Node *transformXmlSerialize(ParseState *pstate, XmlSerialize *xs);
 static Node *transformBooleanTest(ParseState *pstate, BooleanTest *b);
 static Node *transformColumnRef(ParseState *pstate, ColumnRef *cref);
 static Node *transformWholeRowRef(ParseState *pstate, char *schemaname,
@@ -243,6 +246,14 @@ transformExpr(ParseState *pstate, Node *expr)
 
 		case T_MinMaxExpr:
 			result = transformMinMaxExpr(pstate, (MinMaxExpr *) expr);
+			break;
+
+		case T_XmlExpr:
+			result = transformXmlExpr(pstate, (XmlExpr *) expr);
+			break;
+
+		case T_XmlSerialize:
+			result = transformXmlSerialize(pstate, (XmlSerialize *) expr);
 			break;
 
 		case T_NullTest:
@@ -1862,6 +1873,189 @@ transformBooleanTest(ParseState *pstate, BooleanTest *b)
 	return (Node *) b;
 }
 
+static Node *
+transformXmlExpr(ParseState *pstate, XmlExpr *x)
+{
+	XmlExpr    *newx;
+	ListCell   *lc;
+	int			i;
+
+	/* If we already transformed this node, do nothing */
+	if (OidIsValid(x->type))
+		return (Node *) x;
+
+	newx = makeNode(XmlExpr);
+	newx->op = x->op;
+	if (x->name)
+		newx->name = map_sql_identifier_to_xml_name(x->name, false, false);
+	else
+		newx->name = NULL;
+	newx->xmloption = x->xmloption;
+	newx->type = XMLOID;		/* this just marks the node as transformed */
+	newx->typmod = -1;
+	newx->location = x->location;
+
+	/*
+	 * gram.y built the named args as a list of ResTarget.  Transform each,
+	 * and break the names out as a separate list.
+	 */
+	newx->named_args = NIL;
+	newx->arg_names = NIL;
+
+	foreach(lc, x->named_args)
+	{
+		ResTarget  *r = (ResTarget *) lfirst(lc);
+		Node	   *expr;
+		char	   *argname;
+
+		Assert(IsA(r, ResTarget));
+
+		expr = transformExpr(pstate, r->val);
+
+		if (r->name)
+			argname = map_sql_identifier_to_xml_name(r->name, false, false);
+		else if (IsA(r->val, ColumnRef))
+			argname = map_sql_identifier_to_xml_name(FigureColname(r->val),
+													 true, false);
+		else
+		{
+			ereport(ERROR,
+					(errcode(ERRCODE_SYNTAX_ERROR),
+					 x->op == IS_XMLELEMENT
+			? errmsg("unnamed XML attribute value must be a column reference")
+			: errmsg("unnamed XML element value must be a column reference"),
+					 parser_errposition(pstate, r->location)));
+			argname = NULL;		/* keep compiler quiet */
+		}
+
+		/* reject duplicate argnames in XMLELEMENT only */
+		if (x->op == IS_XMLELEMENT)
+		{
+			ListCell   *lc2;
+
+			foreach(lc2, newx->arg_names)
+			{
+				if (strcmp(argname, strVal(lfirst(lc2))) == 0)
+					ereport(ERROR,
+							(errcode(ERRCODE_SYNTAX_ERROR),
+					errmsg("XML attribute name \"%s\" appears more than once",
+						   argname),
+							 parser_errposition(pstate, r->location)));
+			}
+		}
+
+		newx->named_args = lappend(newx->named_args, expr);
+		newx->arg_names = lappend(newx->arg_names, makeString(argname));
+	}
+
+	/* The other arguments are of varying types depending on the function */
+	newx->args = NIL;
+	i = 0;
+	foreach(lc, x->args)
+	{
+		Node	   *e = (Node *) lfirst(lc);
+		Node	   *newe;
+
+		newe = transformExpr(pstate, e);
+		switch (x->op)
+		{
+			case IS_XMLCONCAT:
+				newe = coerce_to_specific_type(pstate, newe, XMLOID,
+											   "XMLCONCAT");
+				break;
+			case IS_XMLELEMENT:
+				/* no coercion necessary */
+				break;
+			case IS_XMLFOREST:
+				newe = coerce_to_specific_type(pstate, newe, XMLOID,
+											   "XMLFOREST");
+				break;
+			case IS_XMLPARSE:
+				if (i == 0)
+					newe = coerce_to_specific_type(pstate, newe, TEXTOID,
+												   "XMLPARSE");
+				else
+					newe = coerce_to_boolean(pstate, newe, "XMLPARSE");
+				break;
+			case IS_XMLPI:
+				newe = coerce_to_specific_type(pstate, newe, TEXTOID,
+											   "XMLPI");
+				break;
+			case IS_XMLROOT:
+				if (i == 0)
+					newe = coerce_to_specific_type(pstate, newe, XMLOID,
+												   "XMLROOT");
+				else if (i == 1)
+					newe = coerce_to_specific_type(pstate, newe, TEXTOID,
+												   "XMLROOT");
+				else
+					newe = coerce_to_specific_type(pstate, newe, INT4OID,
+												   "XMLROOT");
+				break;
+			case IS_XMLSERIALIZE:
+				/* not handled here */
+				Assert(false);
+				break;
+			case IS_DOCUMENT:
+				newe = coerce_to_specific_type(pstate, newe, XMLOID,
+											   "IS DOCUMENT");
+				break;
+		}
+		newx->args = lappend(newx->args, newe);
+		i++;
+	}
+
+	return (Node *) newx;
+}
+
+static Node *
+transformXmlSerialize(ParseState *pstate, XmlSerialize *xs)
+{
+	Node	   *result;
+	XmlExpr    *xexpr;
+	Oid			targetType;
+	int32		targetTypmod;
+
+	xexpr = makeNode(XmlExpr);
+	xexpr->op = IS_XMLSERIALIZE;
+	xexpr->args = list_make1(coerce_to_specific_type(pstate,
+											 transformExpr(pstate, xs->expr),
+													 XMLOID,
+													 "XMLSERIALIZE"));
+
+	targetType = typenameTypeId(pstate, xs->typeName);
+	/*
+	 * 83MERGE_FIXME: use -1, until we merge the 8.3 patch to support typmods
+	 * for user-defined types.
+	 */
+	targetTypmod = -1;
+
+	xexpr->xmloption = xs->xmloption;
+	xexpr->location = xs->location;
+	/* We actually only need these to be able to parse back the expression. */
+	xexpr->type = targetType;
+	xexpr->typmod = targetTypmod;
+
+	/*
+	 * The actual target type is determined this way.  SQL allows char and
+	 * varchar as target types.  We allow anything that can be cast implicitly
+	 * from text.  This way, user-defined text-like data types automatically
+	 * fit in.
+	 */
+	result = coerce_to_target_type(pstate, (Node *) xexpr,
+								   TEXTOID, targetType, targetTypmod,
+								   COERCION_IMPLICIT,
+								   COERCE_IMPLICIT_CAST,
+								   -1);
+	if (result == NULL)
+		ereport(ERROR,
+				(errcode(ERRCODE_CANNOT_COERCE),
+				 errmsg("cannot cast XMLSERIALIZE result to %s",
+						format_type_be(targetType)),
+				 parser_errposition(pstate, xexpr->location)));
+	return result;
+}
+
 /*
  * Construct a whole-row reference to represent the notation "relation.*".
  *
@@ -2451,6 +2645,14 @@ exprType(Node *expr)
 			break;
 		case T_BooleanTest:
 			type = BOOLOID;
+			break;
+		case T_XmlExpr:
+			if (((XmlExpr *) expr)->op == IS_DOCUMENT)
+				type = BOOLOID;
+			else if (((XmlExpr *) expr)->op == IS_XMLSERIALIZE)
+				type = TEXTOID;
+			else
+				type = XMLOID;
 			break;
 		case T_CoerceToDomain:
 			type = ((CoerceToDomain *) expr)->resulttype;

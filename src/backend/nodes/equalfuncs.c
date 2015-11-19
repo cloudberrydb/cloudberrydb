@@ -23,7 +23,7 @@
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/nodes/equalfuncs.c,v 1.288 2006/12/10 22:13:26 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/nodes/equalfuncs.c,v 1.289 2006/12/21 16:05:13 petere Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -574,6 +574,22 @@ _equalBooleanTest(BooleanTest *a, BooleanTest *b)
 {
 	COMPARE_NODE_FIELD(arg);
 	COMPARE_SCALAR_FIELD(booltesttype);
+
+	return true;
+}
+
+static bool
+_equalXmlExpr(XmlExpr *a, XmlExpr *b)
+{
+	COMPARE_SCALAR_FIELD(op);
+	COMPARE_STRING_FIELD(name);
+	COMPARE_NODE_FIELD(named_args);
+	COMPARE_NODE_FIELD(arg_names);
+	COMPARE_NODE_FIELD(args);
+	COMPARE_SCALAR_FIELD(xmloption);
+	COMPARE_SCALAR_FIELD(type);
+	COMPARE_SCALAR_FIELD(typmod);
+	COMPARE_LOCATION_FIELD(location);
 
 	return true;
 }
@@ -2257,6 +2273,17 @@ _equalAlterTypeStmt(AlterTypeStmt *a, AlterTypeStmt *b)
 	return true;
 }
 
+static bool
+_equalXmlSerialize(XmlSerialize *a, XmlSerialize *b)
+{
+	COMPARE_SCALAR_FIELD(xmloption);
+	COMPARE_NODE_FIELD(expr);
+	COMPARE_NODE_FIELD(typeName);
+	COMPARE_LOCATION_FIELD(location);
+
+	return true;
+}
+
 /*
  * Stuff from pg_list.h
  */
@@ -2470,6 +2497,9 @@ equal(void *a, void *b)
 			break;
 		case T_BooleanTest:
 			retval = _equalBooleanTest(a, b);
+			break;
+		case T_XmlExpr:
+			retval = _equalXmlExpr(a, b);
 			break;
 		case T_CoerceToDomain:
 			retval = _equalCoerceToDomain(a, b);
@@ -2908,6 +2938,9 @@ equal(void *a, void *b)
 			break;
 		case T_FuncWithArgs:
 			retval = _equalFuncWithArgs(a, b);
+			break;
+		case T_XmlSerialize:
+			retval = _equalXmlSerialize(a, b);
 			break;
 		case T_TableValueExpr:
 			retval = _equalTableValueExpr(a, b);

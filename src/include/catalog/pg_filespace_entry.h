@@ -46,8 +46,8 @@
    fselocation  text -- location of filespace directory
    );
 
-   create index on pg_filespace_entry(fsefsoid) with (indexid=2893, indexname=pg_filespace_entry_fs_index);
-   create unique index on pg_filespace_entry(fsefsoid, fsedbid) with (indexid=2894, indexname=pg_filespace_entry_fsdb_index);
+   create index on pg_filespace_entry(fsefsoid) with (indexid=6090, indexname=pg_filespace_entry_fs_index);
+   create unique index on pg_filespace_entry(fsefsoid, fsedbid) with (indexid=6091, indexname=pg_filespace_entry_fsdb_index);
 
    alter table pg_filespace_entry add fk fsefsoid on pg_filespace(oid);
 

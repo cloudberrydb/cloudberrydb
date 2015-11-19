@@ -1558,16 +1558,6 @@
 
  CREATE FUNCTION gp_persistent_repair_delete(int4, tid) RETURNS int4 LANGUAGE internal VOLATILE AS 'gp_persistent_repair_delete' WITH (OID=7181, DESCRIPTION="Remove an entry specified by TID from a persistent table for the current database instance");
 
--- xml functions
- CREATE FUNCTION xml_in(cstring) RETURNS xml LANGUAGE internal IMMUTABLE STRICT AS 'xml_in' WITH (OID=2973, DESCRIPTION="I/O");
-
- CREATE FUNCTION xml_out(xml) RETURNS cstring LANGUAGE internal IMMUTABLE STRICT AS 'xml_out' WITH (OID=2974, DESCRIPTION="I/O");
-
- CREATE FUNCTION xmlcomment(text) RETURNS xml LANGUAGE internal IMMUTABLE STRICT AS 'xmlcomment' WITH (OID=2975, DESCRIPTION="generate XML comment");
-
- CREATE FUNCTION xml(text) RETURNS xml LANGUAGE internal IMMUTABLE STRICT AS 'texttoxml' WITH (OID=2976, DESCRIPTION="perform a non-validating parse of a character string to produce an XML value");
-
- CREATE FUNCTION xmlvalidate(xml, text) RETURNS bool LANGUAGE internal IMMUTABLE STRICT AS 'xmlvalidate' WITH (OID=2977, DESCRIPTION="validate an XML value");
 
  CREATE FUNCTION xml_recv(internal) RETURNS xml LANGUAGE internal IMMUTABLE STRICT AS 'xml_recv' WITH (OID=2978, DESCRIPTION="I/O");
 
