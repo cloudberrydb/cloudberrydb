@@ -123,6 +123,9 @@ To run a specific individual test, use the `gpos_test` executable directly.
 ./server/gpos_test -U CAutoTaskProxyTest
 ```
 
+Note that some tests use assertions that are only enabled for DEBUG builds, so
+DEBUG-mode tests tend to be more rigorous.
+
 ### Advanced: Extended Tests
 
 Debug builds of GPOS include a couple of "extended" tests for features like
