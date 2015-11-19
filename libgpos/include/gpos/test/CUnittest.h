@@ -195,13 +195,16 @@ namespace gpos
 			static 
 			GPOS_RESULT EresExecute(const CUnittest *, const ULONG cSize);
 			
-			// driver routine
+			// driver routine; returns the number of failed tests
+			// (0 if all specified tests succeeded)
 			static
-			void Driver(CBitVector *pbv);
+			ULONG Driver(CBitVector *pbv);
 			
-			// driver routine parsing input arguments
+			// driver routine parsing input arguments; returns the
+			// number of failed tests (0 if all specified tests
+			// succeeded)
 			static
-			void Driver(CMainArgs *pma);
+			ULONG Driver(CMainArgs *pma);
 
 			// initialize unittest array
 			static
