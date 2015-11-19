@@ -1,10 +1,10 @@
-# Copyright (c) 2015, Pivotal Software, Inc.
+# Copyright (c) 2015, Pivotal Software, Inc. All Rights Reserved.
 
 cmake_minimum_required(VERSION 3.0 FATAL_ERROR)
 project(gpos LANGUAGES CXX C)
 
 set(GPOS_VERSION_MAJOR 1)
-set(GPOS_VERSION_MINOR 126)
+set(GPOS_VERSION_MINOR 127)
 set(GPOS_VERSION_STRING ${GPOS_VERSION_MAJOR}.${GPOS_VERSION_MINOR})
 
 # Whenever an ABI-breaking change is made to GPOS, this should be incremented.
@@ -13,7 +13,7 @@ set(GPOS_VERSION_STRING ${GPOS_VERSION_MAJOR}.${GPOS_VERSION_MINOR})
 # that might cause ABI changes, including adding or removing class members,
 # and things that might change vtables for classes with virtual methods. If in
 # doubt, do the safe thing and increment this number.
-set(GPOS_ABI_VERSION 2)
+set(GPOS_ABI_VERSION 3)
 
 # Check build type
 if(NOT CMAKE_BUILD_TYPE)
@@ -254,90 +254,13 @@ if (${CMAKE_SYSTEM_NAME} MATCHES "SunOS")
   endif()
 endif()
 
-# All-in-one test binary.
-include_directories(server/include)
-
-# CExceptionTest has a function that intentionally calls itself with infinite
-# recursion to test exception handling when exhausting the stack. Some C++
-# compilers (notably Clang) detect this and generate a warning. We suppress
-# such warnings ONLY for CExceptionTest, which we compile as a static library
-# separate from the rest of the tests.
-add_library(gpos_test_error_CExceptionTest
-            server/src/unittest/gpos/error/CExceptionTest.cpp)
-check_cxx_compiler_flag("-Wno-infinite-recursion"
-                        COMPILER_HAS_WNO_INFINITE_RECURSION)
-if (COMPILER_HAS_WNO_INFINITE_RECURSION)
-  set_target_properties(gpos_test_error_CExceptionTest
-                        PROPERTIES COMPILE_FLAGS "-Wno-infinite-recursion")
-endif()
-
-# CCacheTest sets some variables that are only read in DEBUG builds, causing
-# warnings about unused variables for RELEASE builds. We suppress such warnings
-# ONLY for CCacheTest, which we compile as a static library separate from the
-# rest of the tests.
-add_library(gpos_test_memory_CCacheTest
-            server/src/unittest/gpos/memory/CCacheTest.cpp)
-check_cxx_compiler_flag("-Wno-unused-variable"
-                        COMPILER_HAS_WNO_UNUSED_VARIABLE)
-if (COMPILER_HAS_WNO_UNUSED_VARIABLE)
-  set_target_properties(gpos_test_memory_CCacheTest
-                        PROPERTIES COMPILE_FLAGS "-Wno-unused-variable")
-endif()
-
-add_executable(gpos_test
-               server/src/startup/main.cpp
-               server/src/unittest/gpos/common/CAutoPTest.cpp
-               server/src/unittest/gpos/common/CAutoRefTest.cpp
-               server/src/unittest/gpos/common/CAutoRgTest.cpp
-               server/src/unittest/gpos/common/CBitSetIterTest.cpp
-               server/src/unittest/gpos/common/CBitSetTest.cpp
-               server/src/unittest/gpos/common/CBitVectorTest.cpp
-               server/src/unittest/gpos/common/CDoubleTest.cpp
-               server/src/unittest/gpos/common/CDynamicPtrArrayTest.cpp
-               server/src/unittest/gpos/common/CEnumSetTest.cpp
-               server/src/unittest/gpos/common/CHashMapIterTest.cpp
-               server/src/unittest/gpos/common/CHashMapTest.cpp
-               server/src/unittest/gpos/common/CHashSetTest.cpp
-               server/src/unittest/gpos/common/CListTest.cpp
-               server/src/unittest/gpos/common/CRefCountTest.cpp
-               server/src/unittest/gpos/common/CStackTest.cpp
-               server/src/unittest/gpos/common/CSyncHashtableTest.cpp
-               server/src/unittest/gpos/common/CSyncListTest.cpp
-               server/src/unittest/gpos/error/CErrorHandlerTest.cpp
-               server/src/unittest/gpos/error/CFSimulatorTest.cpp
-               server/src/unittest/gpos/error/CLoggerTest.cpp
-               server/src/unittest/gpos/error/CMessageRepositoryTest.cpp
-               server/src/unittest/gpos/error/CMessageTableTest.cpp
-               server/src/unittest/gpos/error/CMessageTest.cpp
-               server/src/unittest/gpos/error/CMiniDumperTest.cpp
-               server/src/unittest/gpos/io/CFileTest.cpp
-               server/src/unittest/gpos/io/COstreamBasicTest.cpp
-               server/src/unittest/gpos/io/COstreamFileTest.cpp
-               server/src/unittest/gpos/io/COstreamStringTest.cpp
-               server/src/unittest/gpos/memory/CMemoryPoolBasicTest.cpp
-               server/src/unittest/gpos/memory/IMemoryPoolTest.cpp
-               server/src/unittest/gpos/net/CSocketTest.cpp
-               server/src/unittest/gpos/string/CStringTest.cpp
-               server/src/unittest/gpos/string/CWStringTest.cpp
-               server/src/unittest/gpos/sync/CAutoMutexTest.cpp
-               server/src/unittest/gpos/sync/CAutoSpinlockTest.cpp
-               server/src/unittest/gpos/sync/CEventTest.cpp
-               server/src/unittest/gpos/sync/CMutexTest.cpp
-               server/src/unittest/gpos/sync/CSpinlockTest.cpp
-               server/src/unittest/gpos/task/CAutoTaskProxyTest.cpp
-               server/src/unittest/gpos/task/CTaskLocalStorageTest.cpp
-               server/src/unittest/gpos/task/CWorkerPoolManagerTest.cpp)
-target_link_libraries(gpos_test
-                      gpos
-                      gpos_test_error_CExceptionTest
-                      gpos_test_memory_CCacheTest)
-
-enable_testing()
-add_test(gpos_test gpos_test -u)
-
 set_target_properties(gpos PROPERTIES
                       SOVERSION ${GPOS_ABI_VERSION}
                       VERSION ${GPOS_VERSION_STRING})
+
+# Tests reside in the 'server' subdirectory.
+enable_testing()
+add_subdirectory(server)
 
 # Installation.
 option(VERBOSE_INSTALL_PATH "Install in a subdirectory path that includes GPOS version, CPU architecture, and bit width" OFF)

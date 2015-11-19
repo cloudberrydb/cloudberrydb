@@ -156,6 +156,9 @@ static gpos::CUnittest rgut[] =
 #endif // GPOS_DEBUG
 };
 
+// static variable counting the number of failed tests; PvExec overwrites with
+// the actual count of failed tests
+static ULONG tests_failed = 0;
 
 //---------------------------------------------------------------------------
 //	@function:
@@ -172,7 +175,7 @@ PvExec
 	)
 {
 	CMainArgs *pma = (CMainArgs*) pv;
-	CUnittest::Driver(pma);
+	tests_failed = CUnittest::Driver(pma);
 
 	return NULL;
 }
@@ -215,7 +218,14 @@ INT main
 	params.error_buffer_size = -1;
 	params.abort_requested = NULL;
 
-	return gpos_exec(&params);
+	if (gpos_exec(&params) || (tests_failed != 0))
+	{
+		return 1;
+	}
+	else
+	{
+		return 0;
+	}
 }
 
 

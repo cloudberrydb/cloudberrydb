@@ -439,7 +439,7 @@ CUnittest::SetTraceFlag
 //		Execute requested unittests
 //
 //---------------------------------------------------------------------------
-void
+ULONG
 CUnittest::Driver
 	(
 	CBitVector *pbv
@@ -479,6 +479,8 @@ CUnittest::Driver
 
 	GPOS_TRACE_FORMAT("Tests succeeded: %d", ulOk);
 	GPOS_TRACE_FORMAT("Tests failed:    %d", pbv->CElements() - ulOk);
+
+	return pbv->CElements() - ulOk;
 }
 
 
@@ -490,7 +492,7 @@ CUnittest::Driver
 //		Execute unittests by parsing input arguments
 //
 //---------------------------------------------------------------------------
-void
+ULONG
 CUnittest::Driver
 	(
 	CMainArgs *pma
@@ -525,7 +527,7 @@ CUnittest::Driver
 		}
 	}
 
-	Driver(&bv);
+	return Driver(&bv);
 }
 
 
