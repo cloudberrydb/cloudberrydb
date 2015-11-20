@@ -80,6 +80,8 @@
 #include "unittest/gpos/task/CTaskLocalStorageTest.h"
 #include "unittest/gpos/task/CWorkerPoolManagerTest.h"
 
+#include "unittest/gpos/test/CUnittestTest.h"
+
 
 using namespace gpos;
 
@@ -143,6 +145,12 @@ static gpos::CUnittest rgut[] =
 	GPOS_UNITTEST_STD(CAutoTaskProxyTest),
 	GPOS_UNITTEST_STD(CWorkerPoolManagerTest),
 	GPOS_UNITTEST_STD(CTaskLocalStorageTest),
+
+	// test
+	GPOS_UNITTEST_STD_SUBTEST(CUnittestTest, 0),
+	GPOS_UNITTEST_STD_SUBTEST(CUnittestTest, 1),
+	GPOS_UNITTEST_STD_SUBTEST(CUnittestTest, 2),
+
 
 #ifdef GPOS_FPSIMULATOR
 	// simulation
