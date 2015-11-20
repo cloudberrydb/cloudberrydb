@@ -73,7 +73,8 @@ add_executable(gpos_test
                src/unittest/gpos/sync/CSpinlockTest.cpp
                src/unittest/gpos/task/CAutoTaskProxyTest.cpp
                src/unittest/gpos/task/CTaskLocalStorageTest.cpp
-               src/unittest/gpos/task/CWorkerPoolManagerTest.cpp)
+               src/unittest/gpos/task/CWorkerPoolManagerTest.cpp
+               src/unittest/gpos/test/CUnittestTest.cpp)
 target_link_libraries(gpos_test
                       gpos
                       gpos_test_error_CExceptionTest
@@ -150,6 +151,11 @@ add_gpos_test(CSpinlockTest)
 add_gpos_test(CAutoTaskProxyTest)
 add_gpos_test(CWorkerPoolManagerTest)
 add_gpos_test(CTaskLocalStorageTest)
+
+# test
+add_gpos_test(CUnittestTest_1)
+add_gpos_test(CUnittestTest_2)
+add_gpos_test(CUnittestTest_3)
 
 if (${CMAKE_BUILD_TYPE} MATCHES "Debug")
   # fault-simulation

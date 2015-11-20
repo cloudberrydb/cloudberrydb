@@ -15,6 +15,7 @@
 //
 //---------------------------------------------------------------------------
 
+#include <stddef.h>
 
 #include "gpos/base.h"
 #include "gpos/common/CAutoTimer.h"
@@ -57,6 +58,8 @@ CUnittest::CUnittest
 	m_szTitle(szTitle),
 	m_ett(ett),
 	m_pfunc(pfunc),
+	m_pfuncSubtest(NULL),
+	m_ulSubtest(0),
 	m_fExcep(false),
 	m_ulMajor(CException::ExmaInvalid),
 	m_ulMinor(CException::ExmiInvalid)
@@ -83,11 +86,38 @@ CUnittest::CUnittest
 	m_szTitle(szTitle),
 	m_ett(ett),
 	m_pfunc(pfunc),
+	m_pfuncSubtest(NULL),
+	m_ulSubtest(0),
 	m_fExcep(true),
 	m_ulMajor(ulMajor),
 	m_ulMinor(ulMinor)
 {}
 
+//---------------------------------------------------------------------------
+//	@function:
+//		CUnittest::CUnittest
+//
+//	@doc:
+//		Constructor for subtest identified by ULONG id
+//
+//---------------------------------------------------------------------------
+CUnittest::CUnittest
+	(
+	const CHAR *szTitle,
+	ETestType ett,
+	GPOS_RESULT (*pfuncSubtest)(ULONG),
+	ULONG ulSubtest
+	)
+	:
+	m_szTitle(szTitle),
+	m_ett(ett),
+	m_pfunc(NULL),
+	m_pfuncSubtest(pfuncSubtest),
+	m_ulSubtest(ulSubtest),
+	m_fExcep(false),
+	m_ulMajor(CException::ExmaInvalid),
+	m_ulMinor(CException::ExmiInvalid)
+{}
 
 
 //---------------------------------------------------------------------------
@@ -106,6 +136,8 @@ CUnittest::CUnittest
 	m_szTitle(ut.m_szTitle),
 	m_ett(ut.m_ett),
 	m_pfunc(ut.m_pfunc),
+	m_pfuncSubtest(ut.m_pfuncSubtest),
+	m_ulSubtest(ut.m_ulSubtest),
 	m_fExcep(ut.m_fExcep),
 	m_ulMajor(ut.m_ulMajor),
 	m_ulMinor(ut.m_ulMinor)
@@ -249,7 +281,7 @@ CUnittest::EresExecTest
 		CWorker::PwrkrSelf()->ResetTimeSlice();
 #endif // GPOS_DEBUG
 
-		eres = ut.m_pfunc();
+		eres = ut.m_pfunc != NULL ? ut.m_pfunc() : ut.m_pfuncSubtest(ut.m_ulSubtest);
 
 		// check if this was expected to throw
 		if (ut.FThrows())
