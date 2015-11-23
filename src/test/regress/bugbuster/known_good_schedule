@@ -16,27 +16,24 @@ test: world
 test: jetpack
 test: spi
 test: security
-test: load_tpch sirv_functions
+test: load_tpch sirv_functions view partition
 test: hashagg
 test: tpch_query
 test: gpsort
 test: bkup_gp
 test: mpp-11333
-test: view
 test: DMLstmnt
 test: optquery
 test: with_clause
 test: codecoverage
 test: gist_indexes
 ignore: failover
-test: partition
 test: launch_oid_inconsistency
-test: metadata_track
 test: gp_persistent_table
 #mpp23872: Disabling gpcheckmirrorseg as it is erroring out bugbuster on some platforms.
 ignore: gpcheckmirrorseg
 test: AOCO_Compression2 schema_topology table_statistics
-test: bkup_pg gpmgmt1 cursor
+test: bkup_pg gpmgmt1 cursor metadata_track
 test: aggfunc
 test: memory_quota
 test: TestPSQL
