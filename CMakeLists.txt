@@ -267,12 +267,23 @@ option(VERBOSE_INSTALL_PATH "Install in a subdirectory path that includes GPOS v
 if (VERBOSE_INSTALL_PATH)
   set(installpath "libgpos/${GPOS_VERSION_STRING}/${CMAKE_SYSTEM_NAME}-${CMAKE_SYSTEM_PROCESSOR}/${CMAKE_BUILD_TYPE}")
   string(TOLOWER ${installpath} installpath)
+  get_filename_component(full_install_name_dir "${installpath}/lib" ABSOLUTE)
   install(TARGETS gpos DESTINATION "${installpath}/lib")
   install(DIRECTORY libgpos/include/gpos DESTINATION "${installpath}/include")
 else()
+  get_filename_component(full_install_name_dir "${CMAKE_INSTALL_PREFIX}/lib" ABSOLUTE)
   install(TARGETS gpos DESTINATION lib)
   install(DIRECTORY libgpos/include/gpos DESTINATION include)
 endif()
+
+# Mac OS X handles searching for dynamic libraries differently from other
+# unices. It does not merely search for the leaf filename of a .dylib in a list
+# of paths known to the linker, but instead looks up libraries based on either
+# their full absolute path, or a relative path. We set the INSTALL_NAME_DIR
+# property here to force the former behavior so that anything linking against
+# gpos will look for the shared library in its absolute install path.
+set_target_properties(gpos PROPERTIES
+                      INSTALL_NAME_DIR "${full_install_name_dir}")
 
 # Uninstallation.
 configure_file(
