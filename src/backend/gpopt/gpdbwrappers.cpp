@@ -196,7 +196,7 @@
 #include "gpos/error/CException.h"
 #include "gpos/error/CAutoExceptionStack.h"
 
-#include "exception.h"
+#include "naucrates/exception.h"
 
 #include "gpopt/gpdbwrappers.h"
 

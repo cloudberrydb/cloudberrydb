@@ -28,13 +28,13 @@
 #define ALLOW_CharGetDatum
 
 #include "postgres.h"
-#include "md/CMDIdCast.h"
-#include "md/CMDIdScCmp.h"
+#include "naucrates/md/CMDIdCast.h"
+#include "naucrates/md/CMDIdScCmp.h"
 
-#include "dxl/gpdb_types.h"
+#include "naucrates/dxl/gpdb_types.h"
 
-#include "md/CMDCastGPDB.h"
-#include "md/CMDScCmpGPDB.h"
+#include "naucrates/md/CMDCastGPDB.h"
+#include "naucrates/md/CMDScCmpGPDB.h"
 
 #include "gpopt/translate/CTranslatorUtils.h"
 #include "gpopt/translate/CTranslatorRelcacheToDXL.h"
@@ -79,28 +79,27 @@
 #include "gpos/base.h"
 #include "gpos/error/CException.h"
 
-#include "exception.h"
-#include "dxl/CDXLUtils.h"
+#include "naucrates/exception.h"
 
-#include "dxl/xml/dxltokens.h"
+#include "naucrates/dxl/CDXLUtils.h"
+#include "naucrates/dxl/xml/dxltokens.h"
 
-#include "md/CMDTypeBoolGPDB.h"
-#include "md/CMDTypeGenericGPDB.h"
-#include "md/CMDTypeInt2GPDB.h"
-#include "md/CMDTypeInt4GPDB.h"
-#include "md/CMDTypeInt8GPDB.h"
-#include "md/CMDTypeOidGPDB.h"
-#include "md/CMDIndexGPDB.h"
-#include "md/CMDPartConstraintGPDB.h"
-#include "md/CMDIdRelStats.h"
-#include "md/CDXLRelStats.h"
-#include "md/CMDIdColStats.h"
-#include "md/CDXLColStats.h"
+#include "naucrates/md/CMDTypeBoolGPDB.h"
+#include "naucrates/md/CMDTypeGenericGPDB.h"
+#include "naucrates/md/CMDTypeInt2GPDB.h"
+#include "naucrates/md/CMDTypeInt4GPDB.h"
+#include "naucrates/md/CMDTypeInt8GPDB.h"
+#include "naucrates/md/CMDTypeOidGPDB.h"
+#include "naucrates/md/CMDIndexGPDB.h"
+#include "naucrates/md/CMDPartConstraintGPDB.h"
+#include "naucrates/md/CMDIdRelStats.h"
+#include "naucrates/md/CDXLRelStats.h"
+#include "naucrates/md/CMDIdColStats.h"
+#include "naucrates/md/CDXLColStats.h"
 
 #include "gpopt/base/CUtils.h"
 
 #include "gpopt/gpdbwrappers.h"
-
 
 using namespace gpdxl;
 using namespace gpopt;
