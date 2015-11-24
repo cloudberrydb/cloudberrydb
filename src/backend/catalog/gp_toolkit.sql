@@ -2208,6 +2208,26 @@ LANGUAGE SQL;
 REVOKE ALL ON FUNCTION gp_toolkit.gp_workfile_cache_clear() FROM public;
 
 --------------------------------------------------------------------------------
+-- @function:
+--        gp_toolkit.gp_dump_query_oids(text)
+--
+-- @in:
+--        text - SQL text
+-- @out:
+--        text - serialized json string of oids
+--
+-- @doc:
+--        Dump query oids for a given SQL text
+--
+--------------------------------------------------------------------------------
+
+CREATE FUNCTION gp_toolkit.gp_dump_query_oids(text)
+RETURNS text
+AS '$libdir/gpoptutils', 'gp_dump_query_oids' LANGUAGE C STRICT;
+
+GRANT EXECUTE ON FUNCTION gp_toolkit.gp_dump_query_oids(text) TO public;
+
+--------------------------------------------------------------------------------
 
 -- Finalize install
 COMMIT;
