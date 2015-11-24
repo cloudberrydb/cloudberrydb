@@ -9,7 +9,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/commands/indexcmds.c,v 1.149.2.2 2007/09/10 22:02:05 alvherre Exp $
+ *	  $PostgreSQL: pgsql/src/backend/commands/indexcmds.c,v 1.150 2006/12/23 00:43:09 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -1105,61 +1105,86 @@ GetIndexOpClass(List *opclass, Oid attrType,
 Oid
 GetDefaultOpClass(Oid type_id, Oid am_id)
 {
+	Oid			result = InvalidOid;
 	int			nexact = 0;
 	int			ncompatible = 0;
-	Oid			exactOid = InvalidOid;
-	Oid			compatibleOid = InvalidOid;
-	cqContext  *pcqCtx;
+	int			ncompatiblepreferred = 0;
+	Relation	rel;
+	ScanKeyData skey[1];
+	SysScanDesc scan;
 	HeapTuple	tup;
+	CATEGORY	tcategory;
 
 	/* If it's a domain, look at the base type instead */
 	type_id = getBaseType(type_id);
+
+	tcategory = TypeCategory(type_id);
 
 	/*
 	 * We scan through all the opclasses available for the access method,
 	 * looking for one that is marked default and matches the target type
 	 * (either exactly or binary-compatibly, but prefer an exact match).
 	 *
-	 * We could find more than one binary-compatible match, in which case we
-	 * require the user to specify which one he wants.	If we find more than
-	 * one exact match, then someone put bogus entries in pg_opclass.
+	 * We could find more than one binary-compatible match.  If just one is
+	 * for a preferred type, use that one; otherwise we fail, forcing the user
+	 * to specify which one he wants.  (The preferred-type special case is a
+	 * kluge for varchar: it's binary-compatible to both text and bpchar, so
+	 * we need a tiebreaker.)  If we find more than one exact match, then
+	 * someone put bogus entries in pg_opclass.
 	 */
-	pcqCtx = caql_beginscan(
-			NULL,
-			cql("SELECT * FROM pg_opclass "
-				" WHERE opcamid = :1 ",
-				ObjectIdGetDatum(am_id)));
+	rel = heap_open(OperatorClassRelationId, AccessShareLock);
 
-	while (HeapTupleIsValid(tup = caql_getnext(pcqCtx)))
+	ScanKeyInit(&skey[0],
+				Anum_pg_opclass_opcmethod,
+				BTEqualStrategyNumber, F_OIDEQ,
+				ObjectIdGetDatum(am_id));
+
+	scan = systable_beginscan(rel, OpclassAmNameNspIndexId, true,
+							  SnapshotNow, 1, skey);
+
+	while (HeapTupleIsValid(tup = systable_getnext(scan)))
 	{
 		Form_pg_opclass opclass = (Form_pg_opclass) GETSTRUCT(tup);
 
-		if (opclass->opcdefault)
+		/* ignore altogether if not a default opclass */
+		if (!opclass->opcdefault)
+			continue;
+		if (opclass->opcintype == type_id)
 		{
-			if (opclass->opcintype == type_id)
+			nexact++;
+			result = HeapTupleGetOid(tup);
+		}
+		else if (nexact == 0 &&
+				 IsBinaryCoercible(type_id, opclass->opcintype))
+		{
+			if (IsPreferredType(tcategory, opclass->opcintype))
 			{
-				nexact++;
-				exactOid = HeapTupleGetOid(tup);
+				ncompatiblepreferred++;
+				result = HeapTupleGetOid(tup);
 			}
-			else if (IsBinaryCoercible(type_id, opclass->opcintype))
+			else if (ncompatiblepreferred == 0)
 			{
 				ncompatible++;
-				compatibleOid = HeapTupleGetOid(tup);
+				result = HeapTupleGetOid(tup);
 			}
 		}
 	}
 
-	caql_endscan(pcqCtx);
+	systable_endscan(scan);
 
-	if (nexact == 1)
-		return exactOid;
-	if (nexact != 0)
+	heap_close(rel, AccessShareLock);
+
+	/* raise error if pg_opclass contains inconsistent data */
+	if (nexact > 1)
 		ereport(ERROR,
 				(errcode(ERRCODE_DUPLICATE_OBJECT),
 		errmsg("there are multiple default operator classes for data type %s",
 			   format_type_be(type_id))));
-	if (ncompatible == 1)
-		return compatibleOid;
+
+	if (nexact == 1 ||
+		ncompatiblepreferred == 1 ||
+		(ncompatiblepreferred == 0 && ncompatible == 1))
+		return result;
 
 	return InvalidOid;
 }

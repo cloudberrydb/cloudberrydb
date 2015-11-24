@@ -1857,6 +1857,8 @@ _readMergeJoin(void)
 	readJoinInfo((Join *)local_node);
 
 	READ_NODE_FIELD(mergeclauses);
+	READ_NODE_FIELD(mergefamilies);
+	READ_NODE_FIELD(mergestrategies);
 	READ_BOOL_FIELD(unique_outer);
 
 	READ_DONE();

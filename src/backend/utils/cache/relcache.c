@@ -9,7 +9,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/utils/cache/relcache.c,v 1.250.2.1 2008/02/27 17:44:33 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/utils/cache/relcache.c,v 1.251 2006/12/23 00:43:11 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -86,7 +86,7 @@
  */
 #define RELCACHE_INIT_FILENAME	"pg_internal.init"
 
-#define RELCACHE_INIT_FILEMAGIC		0x673264	/* version ID value */
+#define RELCACHE_INIT_FILEMAGIC		0x773264	/* version ID value */
 
 /*
  *		hardcoded tuple descriptors.  see include/catalog/pg_attribute.h
@@ -197,6 +197,8 @@ typedef struct opclasscacheent
 	bool		valid;			/* set TRUE after successful fill-in */
 	StrategyNumber numStrats;	/* max # of strategies (from pg_am) */
 	StrategyNumber numSupport;	/* max # of support procs (from pg_am) */
+	Oid			opcfamily;		/* OID of opclass's family */
+	Oid			opcintype;		/* OID of opclass's declared input type */
 	Oid		   *operatorOids;	/* strategy operators' OIDs */
 	RegProcedure *supportProcs; /* support procs */
 } OpClassCacheEnt;
@@ -1393,11 +1395,9 @@ RelationInitIndexAccessInfo(Relation relation)
 	Form_pg_am	aform;
 	Datum		indclassDatum;
 	bool		isnull;
+	oidvector  *indclass;
 	MemoryContext indexcxt;
 	MemoryContext oldcontext;
-	Oid		   *operator;
-	RegProcedure *support;
-	FmgrInfo   *supportinfo;
 	int			natts;
 	uint16		amstrategies;
 	uint16		amsupport;
@@ -1418,18 +1418,6 @@ RelationInitIndexAccessInfo(Relation relation)
 	relation->rd_index = (Form_pg_index) GETSTRUCT(relation->rd_indextuple);
 	MemoryContextSwitchTo(oldcontext);
 	ReleaseSysCache(tuple);
-
-	/*
-	 * indclass cannot be referenced directly through the C struct, because it
-	 * is after the variable-width indkey field.  Therefore we extract the
-	 * datum the hard way and provide a direct link in the relcache.
-	 */
-	indclassDatum = fastgetattr(relation->rd_indextuple,
-								Anum_pg_index_indclass,
-								GetPgIndexDescriptor(),
-								&isnull);
-	Assert(!isnull);
-	relation->rd_indclass = (oidvector *) DatumGetPointer(indclassDatum);
 
 	/*
 	 * Make a copy of the pg_am entry for the index's access method
@@ -1473,38 +1461,53 @@ RelationInitIndexAccessInfo(Relation relation)
 	relation->rd_aminfo = (RelationAmInfo *)
 		MemoryContextAllocZero(indexcxt, sizeof(RelationAmInfo));
 
+	relation->rd_opfamily = (Oid *)
+		MemoryContextAllocZero(indexcxt, natts * sizeof(Oid));
+	relation->rd_opcintype = (Oid *)
+		MemoryContextAllocZero(indexcxt, natts * sizeof(Oid));
+
 	if (amstrategies > 0)
-		operator = (Oid *)
+		relation->rd_operator = (Oid *)
 			MemoryContextAllocZero(indexcxt,
 								   natts * amstrategies * sizeof(Oid));
 	else
-		operator = NULL;
+		relation->rd_operator = NULL;
 
 	if (amsupport > 0)
 	{
 		int			nsupport = natts * amsupport;
 
-		support = (RegProcedure *)
+		relation->rd_support = (RegProcedure *)
 			MemoryContextAllocZero(indexcxt, nsupport * sizeof(RegProcedure));
-		supportinfo = (FmgrInfo *)
+		relation->rd_supportinfo = (FmgrInfo *)
 			MemoryContextAllocZero(indexcxt, nsupport * sizeof(FmgrInfo));
 	}
 	else
 	{
-		support = NULL;
-		supportinfo = NULL;
+		relation->rd_support = NULL;
+		relation->rd_supportinfo = NULL;
 	}
 
-	relation->rd_operator = operator;
-	relation->rd_support = support;
-	relation->rd_supportinfo = supportinfo;
+	/*
+	 * indclass cannot be referenced directly through the C struct, because it
+	 * comes after the variable-width indkey field.  Must extract the
+	 * datum the hard way...
+	 */
+	indclassDatum = fastgetattr(relation->rd_indextuple,
+								Anum_pg_index_indclass,
+								GetPgIndexDescriptor(),
+								&isnull);
+	Assert(!isnull);
+	indclass = (oidvector *) DatumGetPointer(indclassDatum);
 
 	/*
-	 * Fill the operator and support procedure OID arrays.	(aminfo and
+	 * Fill the operator and support procedure OID arrays, as well as the
+	 * info about opfamilies and opclass input types.  (aminfo and
 	 * supportinfo are left as zeroes, and are filled on-the-fly when used)
 	 */
-	IndexSupportInitialize(relation->rd_indclass,
-						   operator, support,
+	IndexSupportInitialize(indclass,
+						   relation->rd_operator, relation->rd_support,
+						   relation->rd_opfamily, relation->rd_opcintype,
 						   amstrategies, amsupport, natts);
 
 	/*
@@ -1520,8 +1523,8 @@ RelationInitIndexAccessInfo(Relation relation)
  *		Initializes an index's cached opclass information,
  *		given the index's pg_index.indclass entry.
  *
- * Data is returned into *indexOperator and *indexSupport, which are arrays
- * allocated by the caller.
+ * Data is returned into *indexOperator, *indexSupport, *opFamily, and
+ * *opcInType, which are arrays allocated by the caller.
  *
  * The caller also passes maxStrategyNumber, maxSupportNumber, and
  * maxAttributeNumber, since these indicate the size of the arrays
@@ -1533,6 +1536,8 @@ void
 IndexSupportInitialize(oidvector *indclass,
 					   Oid *indexOperator,
 					   RegProcedure *indexSupport,
+					   Oid *opFamily,
+					   Oid *opcInType,
 					   StrategyNumber maxStrategyNumber,
 					   StrategyNumber maxSupportNumber,
 					   AttrNumber maxAttributeNumber)
@@ -1552,6 +1557,8 @@ IndexSupportInitialize(oidvector *indclass,
 									 maxSupportNumber);
 
 		/* copy cached data into relcache entry */
+		opFamily[attIndex] = opcentry->opcfamily;
+		opcInType[attIndex] = opcentry->opcintype;
 		if (maxStrategyNumber > 0)
 			memcpy(&indexOperator[attIndex * maxStrategyNumber],
 				   opcentry->operatorOids,
@@ -1591,8 +1598,8 @@ LookupOpclassInfo(Oid operatorClassOid,
 	OpClassCacheEnt *opcentry;
 	bool		found;
 	Relation	rel;
-	cqContext	cqc;
-	cqContext  *pcqCtx;
+	SysScanDesc scan;
+	ScanKeyData skey[3];
 	HeapTuple	htup;
 	bool		indexOK;
 
@@ -1653,25 +1660,56 @@ LookupOpclassInfo(Oid operatorClassOid,
 		 operatorClassOid != INT2_BTREE_OPS_OID);
 
 	/*
+	 * We have to fetch the pg_opclass row to determine its opfamily and
+	 * opcintype, which are needed to look up the operators and functions.
+	 * It'd be convenient to use the syscache here, but that probably doesn't
+	 * work while bootstrapping.
+	 */
+	ScanKeyInit(&skey[0],
+				ObjectIdAttributeNumber,
+				BTEqualStrategyNumber, F_OIDEQ,
+				ObjectIdGetDatum(operatorClassOid));
+	rel = heap_open(OperatorClassRelationId, AccessShareLock);
+	scan = systable_beginscan(rel, OpclassOidIndexId, indexOK,
+							  SnapshotNow, 1, skey);
+
+	if (HeapTupleIsValid(htup = systable_getnext(scan)))
+	{
+		Form_pg_opclass opclassform = (Form_pg_opclass) GETSTRUCT(htup);
+
+		opcentry->opcfamily = opclassform->opcfamily;
+		opcentry->opcintype = opclassform->opcintype;
+	}
+	else
+		elog(ERROR, "could not find tuple for opclass %u", operatorClassOid);
+
+	systable_endscan(scan);
+	heap_close(rel, AccessShareLock);
+
+
+	/*
 	 * Scan pg_amop to obtain operators for the opclass.  We only fetch the
-	 * default ones (those with subtype zero).
+	 * default ones (those with lefttype = righttype = opcintype).
 	 */
 	if (numStrats > 0)
 	{
+		ScanKeyInit(&skey[0],
+					Anum_pg_amop_amopfamily,
+					BTEqualStrategyNumber, F_OIDEQ,
+					ObjectIdGetDatum(opcentry->opcfamily));
+		ScanKeyInit(&skey[1],
+					Anum_pg_amop_amoplefttype,
+					BTEqualStrategyNumber, F_OIDEQ,
+					ObjectIdGetDatum(opcentry->opcintype));
+		ScanKeyInit(&skey[2],
+					Anum_pg_amop_amoprighttype,
+					BTEqualStrategyNumber, F_OIDEQ,
+					ObjectIdGetDatum(opcentry->opcintype));
 		rel = heap_open(AccessMethodOperatorRelationId, AccessShareLock);
+		scan = systable_beginscan(rel, AccessMethodStrategyIndexId, indexOK,
+								  SnapshotNow, 3, skey);
 
-		pcqCtx = caql_beginscan(
-				caql_syscache(
-						caql_indexOK(caql_addrel(cqclr(&cqc), rel), 
-									 indexOK),
-						false),
-				cql("SELECT * FROM pg_amop "
-					" WHERE amopclaid = :1 "
-					" AND amopsubtype = :2 ",
-					ObjectIdGetDatum(operatorClassOid),
-					ObjectIdGetDatum(InvalidOid)));
-
-		while (HeapTupleIsValid(htup = caql_getnext(pcqCtx)))
+		while (HeapTupleIsValid(htup = systable_getnext(scan)))
 		{
 			Form_pg_amop amopform = (Form_pg_amop) GETSTRUCT(htup);
 
@@ -1683,7 +1721,7 @@ LookupOpclassInfo(Oid operatorClassOid,
 				amopform->amopopr;
 		}
 
-		caql_endscan(pcqCtx);
+		systable_endscan(scan);
 		heap_close(rel, AccessShareLock);
 	}
 
@@ -1693,20 +1731,23 @@ LookupOpclassInfo(Oid operatorClassOid,
 	 */
 	if (numSupport > 0)
 	{
+		ScanKeyInit(&skey[0],
+					Anum_pg_amproc_amprocfamily,
+					BTEqualStrategyNumber, F_OIDEQ,
+					ObjectIdGetDatum(opcentry->opcfamily));
+		ScanKeyInit(&skey[1],
+					Anum_pg_amproc_amproclefttype,
+					BTEqualStrategyNumber, F_OIDEQ,
+					ObjectIdGetDatum(opcentry->opcintype));
+		ScanKeyInit(&skey[2],
+					Anum_pg_amproc_amprocrighttype,
+					BTEqualStrategyNumber, F_OIDEQ,
+					ObjectIdGetDatum(opcentry->opcintype));
 		rel = heap_open(AccessMethodProcedureRelationId, AccessShareLock);
+		scan = systable_beginscan(rel, AccessMethodProcedureIndexId, indexOK,
+								  SnapshotNow, 3, skey);
 
-		pcqCtx = caql_beginscan(
-				caql_syscache(
-						caql_indexOK(caql_addrel(cqclr(&cqc), rel), 
-									 indexOK),
-						false),
-				cql("SELECT * FROM pg_amproc "
-					" WHERE amopclaid = :1 "
-					" AND amprocsubtype = :2 ",
-					ObjectIdGetDatum(operatorClassOid),
-					ObjectIdGetDatum(InvalidOid)));
-
-		while (HeapTupleIsValid(htup = caql_getnext(pcqCtx)))
+		while (HeapTupleIsValid(htup = systable_getnext(scan)))
 		{
 			Form_pg_amproc amprocform = (Form_pg_amproc) GETSTRUCT(htup);
 
@@ -1719,7 +1760,7 @@ LookupOpclassInfo(Oid operatorClassOid,
 				amprocform->amproc;
 		}
 
-		caql_endscan(pcqCtx);
+		systable_endscan(scan);
 		heap_close(rel, AccessShareLock);
 	}
 
@@ -3954,8 +3995,6 @@ load_relcache_init_file(bool shared)
 		Relation	rel;
 		Form_pg_class relform;
 		bool		has_not_null;
-		Datum		indclassDatum;
-		bool		isnull;
 
 		/* first read the relation descriptor length */
 		if ((nread = fread(&len, 1, sizeof(len), fp)) != sizeof(len))
@@ -4044,6 +4083,8 @@ load_relcache_init_file(bool shared)
 		{
 			Form_pg_am	am;
 			MemoryContext indexcxt;
+			Oid		   *opfamily;
+			Oid		   *opcintype;
 			Oid		   *operator;
 			RegProcedure *support;
 			int			nsupport;
@@ -4064,14 +4105,6 @@ load_relcache_init_file(bool shared)
 			rel->rd_indextuple->t_data = (HeapTupleHeader) ((char *) rel->rd_indextuple + HEAPTUPLESIZE);
 			rel->rd_index = (Form_pg_index) GETSTRUCT(rel->rd_indextuple);
 
-			/* fix up indclass pointer too */
-			indclassDatum = fastgetattr(rel->rd_indextuple,
-										Anum_pg_index_indclass,
-										GetPgIndexDescriptor(),
-										&isnull);
-			Assert(!isnull);
-			rel->rd_indclass = (oidvector *) DatumGetPointer(indclassDatum);
-
 			/* next, read the access method tuple form */
 			if ((nread = fread(&len, 1, sizeof(len), fp)) != sizeof(len))
 				goto read_failed;
@@ -4091,6 +4124,26 @@ load_relcache_init_file(bool shared)
 											 ALLOCSET_SMALL_INITSIZE,
 											 ALLOCSET_SMALL_MAXSIZE);
 			rel->rd_indexcxt = indexcxt;
+
+			/* next, read the vector of opfamily OIDs */
+			if ((nread = fread(&len, 1, sizeof(len), fp)) != sizeof(len))
+				goto read_failed;
+
+			opfamily = (Oid *) MemoryContextAlloc(indexcxt, len);
+			if ((nread = fread(opfamily, 1, len, fp)) != len)
+				goto read_failed;
+
+			rel->rd_opfamily = opfamily;
+
+			/* next, read the vector of opcintype OIDs */
+			if ((nread = fread(&len, 1, sizeof(len), fp)) != sizeof(len))
+				goto read_failed;
+
+			opcintype = (Oid *) MemoryContextAlloc(indexcxt, len);
+			if ((nread = fread(opcintype, 1, len, fp)) != len)
+				goto read_failed;
+
+			rel->rd_opcintype = opcintype;
 
 			/* next, read the vector of operator OIDs */
 			if ((nread = fread(&len, 1, sizeof(len), fp)) != sizeof(len))
@@ -4126,10 +4179,11 @@ load_relcache_init_file(bool shared)
 
 			Assert(rel->rd_index == NULL);
 			Assert(rel->rd_indextuple == NULL);
-			Assert(rel->rd_indclass == NULL);
 			Assert(rel->rd_am == NULL);
 			Assert(rel->rd_indexcxt == NULL);
 			Assert(rel->rd_aminfo == NULL);
+			Assert(rel->rd_opfamily == NULL);
+			Assert(rel->rd_opcintype == NULL);
 			Assert(rel->rd_operator == NULL);
 			Assert(rel->rd_support == NULL);
 			Assert(rel->rd_supportinfo == NULL);
@@ -4336,6 +4390,16 @@ write_relcache_init_file(bool shared)
 
 			/* next, write the access method tuple form */
 			write_item(am, sizeof(FormData_pg_am), fp);
+
+			/* next, write the vector of opfamily OIDs */
+			write_item(rel->rd_opfamily,
+					   relform->relnatts * sizeof(Oid),
+					   fp);
+
+			/* next, write the vector of opcintype OIDs */
+			write_item(rel->rd_opcintype,
+					   relform->relnatts * sizeof(Oid),
+					   fp);
 
 			/* next, write the vector of operator OIDs */
 			write_item(rel->rd_operator,

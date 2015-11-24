@@ -9,7 +9,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/commands/tablecmds.c,v 1.206.2.8 2009/12/09 21:58:28 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/commands/tablecmds.c,v 1.207 2006/12/23 00:43:09 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -4811,14 +4811,22 @@ ATPrepCmd(List **wqueue, Relation rel, AlterTableCmd *cmd,
 
 								for (parcol = 0; parcol < nkeys; parcol++)
 								{
-									Oid opclass =
-										prule1->pNode->part->parclass[parcol];
-									Oid funcid = get_opclass_proc(opclass, 0,
-																 BTORDER_PROC);
-									Const *v = lfirst(lcv);
-									Const *c = lfirst(lcc);
-									Datum d;
+									Oid			opclass;
+									Oid			opfam;
+									Oid			funcid;
+									Const	   *v;
+									Const	   *c;
+									Datum		d;
+									Oid			intype;
 
+									opclass =  prule1->pNode->part->parclass[parcol];
+									intype = get_opclass_input_type(opclass);
+									opfam = get_opclass_family(opclass);
+									funcid = get_opfamily_proc(opfam, intype, intype,
+															   BTORDER_PROC);
+
+									v = lfirst(lcv);
+									c = lfirst(lcc);
 									if (v->constisnull && c->constisnull)
 										continue;
 									else if (v->constisnull || c->constisnull)
@@ -4880,16 +4888,23 @@ ATPrepCmd(List **wqueue, Relation rel, AlterTableCmd *cmd,
 					else
 					{
 						/* at must be in range */
-						Const	*start	  = NULL;
-						Const	*end	  = NULL;
-						Const	*atval	  = NULL;
-						Oid		 opclass  = prule1->pNode->part->parclass[0];
-						Oid		 funcid	  = get_opclass_proc(opclass, 0,
-															 BTORDER_PROC);
-						Node	*n;
-						Datum	 res;
-						int32	 ret;
-						bool	 in_range = true;
+						Const	   *start	  = NULL;
+						Const	   *end	  = NULL;
+						Const	   *atval;
+						Oid			opclass;
+						Oid			opfam;
+						Oid			funcid;
+						Oid			intype;
+						Node	   *n;
+						Datum		res;
+						int32		ret;
+						bool		in_range = true;
+
+						opclass =  prule1->pNode->part->parclass[0];
+						intype = get_opclass_input_type(opclass);
+						opfam = get_opclass_family(opclass);
+						funcid = get_opfamily_proc(opfam, intype, intype,
+												   BTORDER_PROC);
 
 						n = (Node *)linitial((List *)at);
 
@@ -8586,7 +8601,8 @@ ATAddForeignKeyConstraint(AlteredTableInfo *tab, Relation rel,
 		 * generate a warning if not, since otherwise costly seqscans will be
 		 * incurred to check FK validity.
 		 */
-		if (Gp_role != GP_ROLE_EXECUTE && !op_in_opclass(oprid(o), opclasses[i]))
+		if (Gp_role != GP_ROLE_EXECUTE &&
+			!op_in_opfamily(oprid(o), get_opclass_family(opclasses[i])))
 			ereport(WARNING,
 					(errmsg("foreign key constraint \"%s\" "
 							"will require costly sequential scans",
@@ -16706,13 +16722,19 @@ ATPExecPartSplit(Relation *rel,
 
 								for (parcol = 0; parcol < nkeys; parcol++)
 								{
-									Oid opclass =
-										prule->pNode->part->parclass[parcol];
-									Oid funcid = get_opclass_proc(opclass, 0,
-																  BTORDER_PROC);
+									Oid			opclass;
+									Oid			opfam;
+									Oid			intype;
+									Oid			funcid;
 									Const *v = lfirst(lcv);
 									Const *c = lfirst(lcc);
 									Datum d;
+
+									opclass =  prule->pNode->part->parclass[parcol];
+									intype = get_opclass_input_type(opclass);
+									opfam = get_opclass_family(opclass);
+									funcid = get_opfamily_proc(opfam, intype, intype,
+															   BTORDER_PROC);
 
 									if (v->constisnull && c->constisnull)
 										continue;

@@ -160,6 +160,7 @@ print <<"END_MESSAGE";
 #include "catalog/pg_listener.h"
 #include "catalog/pg_namespace.h"
 #include "catalog/pg_opclass.h"
+#include "catalog/pg_opfamily.h"
 #include "catalog/pg_operator.h"
 #include "catalog/pg_partition.h"
 #include "catalog/pg_partition_rule.h"

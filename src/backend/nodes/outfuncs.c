@@ -9,7 +9,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/nodes/outfuncs.c,v 1.287 2006/12/21 16:05:13 petere Exp $
+ *	  $PostgreSQL: pgsql/src/backend/nodes/outfuncs.c,v 1.288 2006/12/23 00:43:10 tgl Exp $
  *
  * NOTES
  *	  Every node type that can appear in stored rules' parsetrees *must*
@@ -728,6 +728,8 @@ _outMergeJoin(StringInfo str, MergeJoin *node)
 	_outJoinPlanInfo(str, (Join *) node);
 
 	WRITE_NODE_FIELD(mergeclauses);
+	WRITE_NODE_FIELD(mergefamilies);
+	WRITE_NODE_FIELD(mergestrategies);
 	WRITE_BOOL_FIELD(unique_outer);
 }
 
@@ -1469,7 +1471,7 @@ _outRowCompareExpr(StringInfo str, RowCompareExpr *node)
 
 	WRITE_ENUM_FIELD(rctype, RowCompareType);
 	WRITE_NODE_FIELD(opnos);
-	WRITE_NODE_FIELD(opclasses);
+	WRITE_NODE_FIELD(opfamilies);
 	WRITE_NODE_FIELD(largs);
 	WRITE_NODE_FIELD(rargs);
 }
@@ -1885,6 +1887,8 @@ _outMergePath(StringInfo str, MergePath *node)
 	_outJoinPathInfo(str, (JoinPath *) node);
 
 	WRITE_NODE_FIELD(path_mergeclauses);
+	WRITE_NODE_FIELD(path_mergefamilies);
+	WRITE_NODE_FIELD(path_mergestrategies);
 	WRITE_NODE_FIELD(outersortkeys);
 	WRITE_NODE_FIELD(innersortkeys);
 }
@@ -2016,9 +2020,9 @@ _outIndexOptInfo(StringInfo str, IndexOptInfo *node)
 	WRITE_FLOAT_FIELD(tuples, "%.0f");
 	WRITE_INT_FIELD(ncolumns);
 
-	appendStringInfoLiteral(str, " :classlist");
+	appendStringInfoLiteral(str, " :opfamily");
 	for (i = 0; i < node->ncolumns; i++)
-		appendStringInfo(str, " %u", node->classlist[i]);
+		appendStringInfo(str, " %u", node->opfamily[i]);
 
 	appendStringInfoLiteral(str, " :indexkeys");
 	for (i = 0; i < node->ncolumns; i++)
@@ -2098,6 +2102,7 @@ _outRestrictInfo(StringInfo str, RestrictInfo *node)
 	WRITE_OID_FIELD(mergejoinoperator);
 	WRITE_OID_FIELD(left_sortop);
 	WRITE_OID_FIELD(right_sortop);
+	WRITE_OID_FIELD(mergeopfamily);
 	WRITE_NODE_FIELD(left_pathkey);
 	WRITE_NODE_FIELD(right_pathkey);
 	WRITE_OID_FIELD(hashjoinoperator);

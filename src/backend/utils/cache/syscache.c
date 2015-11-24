@@ -9,7 +9,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/utils/cache/syscache.c,v 1.108 2006/10/06 18:23:35 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/utils/cache/syscache.c,v 1.109 2006/12/23 00:43:11 tgl Exp $
  *
  * NOTES
  *	  These routines allow the parser/planner/executor to perform
@@ -34,11 +34,11 @@
 #include "catalog/pg_cast.h"
 #include "catalog/pg_conversion.h"
 #include "catalog/pg_database.h"
-#include "catalog/pg_inherits.h"
 #include "catalog/pg_language.h"
 #include "catalog/pg_namespace.h"
 #include "catalog/pg_opclass.h"
 #include "catalog/pg_operator.h"
+#include "catalog/pg_opfamily.h"
 #include "catalog/pg_proc.h"
 #include "catalog/pg_rewrite.h"
 #include "catalog/pg_statistic.h"
@@ -137,7 +137,7 @@ static const struct cachedesc cacheinfo[] = {
 		2,
 		{
 			Anum_pg_amop_amopopr,
-			Anum_pg_amop_amopclaid,
+			Anum_pg_amop_amopfamily,
 			0,
 			0
 		},
@@ -145,23 +145,23 @@ static const struct cachedesc cacheinfo[] = {
 	},
 	{AccessMethodOperatorRelationId,	/* AMOPSTRATEGY */
 		AccessMethodStrategyIndexId,
-		3,
+		4,
 		{
-			Anum_pg_amop_amopclaid,
-			Anum_pg_amop_amopsubtype,
-			Anum_pg_amop_amopstrategy,
-			0
+			Anum_pg_amop_amopfamily,
+			Anum_pg_amop_amoplefttype,
+			Anum_pg_amop_amoprighttype,
+			Anum_pg_amop_amopstrategy
 		},
 		64
 	},
 	{AccessMethodProcedureRelationId,	/* AMPROCNUM */
 		AccessMethodProcedureIndexId,
-		3,
+		4,
 		{
-			Anum_pg_amproc_amopclaid,
-			Anum_pg_amproc_amprocsubtype,
-			Anum_pg_amproc_amprocnum,
-			0
+			Anum_pg_amproc_amprocfamily,
+			Anum_pg_amproc_amproclefttype,
+			Anum_pg_amproc_amprocrighttype,
+			Anum_pg_amproc_amprocnum
 		},
 		64
 	},
@@ -246,7 +246,7 @@ static const struct cachedesc cacheinfo[] = {
 		OpclassAmNameNspIndexId,
 		3,
 		{
-			Anum_pg_opclass_opcamid,
+			Anum_pg_opclass_opcmethod,
 			Anum_pg_opclass_opcname,
 			Anum_pg_opclass_opcnamespace,
 			0
@@ -319,18 +319,7 @@ static const struct cachedesc cacheinfo[] = {
 		},
 		1024
 	},
-	{InheritsRelationId,				/* INHRELID */
-		InheritsRelidSeqnoIndexId,
-		2,
-		{
-			Anum_pg_inherits_inhrelid,
-			Anum_pg_inherits_inhseqno,
-			0,
-			0
-		},
-		256
-	},
-	{LanguageRelationId,				/* LANGNAME */
+	{LanguageRelationId,		/* LANGNAME */
 		LanguageNameIndexId,
 		1,
 		{
@@ -396,7 +385,29 @@ static const struct cachedesc cacheinfo[] = {
 		},
 		1024
 	},
-	{ProcedureRelationId,				/* PROCNAMEARGSNSP */
+	{OperatorFamilyRelationId,	/* OPFAMILYAMNAMENSP */
+		OpfamilyAmNameNspIndexId,
+		3,
+		{
+			Anum_pg_opfamily_opfmethod,
+			Anum_pg_opfamily_opfname,
+			Anum_pg_opfamily_opfnamespace,
+			0
+		},
+		64
+	},
+	{OperatorFamilyRelationId,	/* OPFAMILYOID */
+		OpfamilyOidIndexId,
+		1,
+		{
+			ObjectIdAttributeNumber,
+			0,
+			0,
+			0
+		},
+		64
+	},
+	{ProcedureRelationId,		/* PROCNAMEARGSNSP */
 		ProcedureNameArgsNspIndexId,
 		3,
 		{

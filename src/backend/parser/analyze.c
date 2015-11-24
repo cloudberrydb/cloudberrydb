@@ -4839,15 +4839,16 @@ sort_range_elems(List *opclasses, List *elems)
 
 	foreach(lc, opclasses)
 	{
-		Oid opclass = lfirst_oid(lc);
-		Oid opoid = get_opclass_member(opclass, InvalidOid,
-									   BTLessStrategyNumber);
+		Oid			opclass = lfirst_oid(lc);
+		Oid			intype = get_opclass_input_type(opclass);
+		Oid			opfam = get_opclass_family(opclass);
+		Oid			opoid;
 
 		/* < first */
+		opoid = get_opfamily_member(opfam, intype, intype, BTLessStrategyNumber);
 		sortfuncs[0][i] = get_opcode(opoid);
 
-		opoid = get_opclass_member(opclass, InvalidOid,
-									   BTEqualStrategyNumber);
+		opoid = get_opfamily_member(opfam, intype, intype, BTEqualStrategyNumber);
 
 		sortfuncs[1][i] = get_opcode(opoid);
 		i++;

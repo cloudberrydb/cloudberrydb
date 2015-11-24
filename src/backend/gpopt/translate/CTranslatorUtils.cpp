@@ -1167,6 +1167,10 @@ CTranslatorUtils::OidCmpOperator
 //	@doc:
 //		Extract comparison operator from an OpExpr, ScalarArrayOpExpr or RowCompareExpr
 //
+//	FIXME: This function comment is completely bogus.
+//	FIXME: This actually returns the operator family, not operator
+//	class!
+//
 //---------------------------------------------------------------------------
 OID
 CTranslatorUtils::OidIndexQualOpclass
@@ -1179,10 +1183,10 @@ CTranslatorUtils::OidIndexQualOpclass
 	GPOS_ASSERT(NULL != relIndex);
 	GPOS_ASSERT(iAttno <= relIndex->rd_index->indnatts);
 	
-	OID oidOpclass = relIndex->rd_indclass->values[iAttno - 1];
+	OID oidOpfamily = relIndex->rd_opfamily[iAttno - 1];
 	gpdb::CloseRelation(relIndex);
 	
-	return oidOpclass;
+	return oidOpfamily;
 }
 
 //---------------------------------------------------------------------------

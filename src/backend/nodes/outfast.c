@@ -648,7 +648,7 @@ _outIndexOptInfo(StringInfo str, IndexOptInfo *node)
 	WRITE_FLOAT_FIELD(tuples, "%.0f");
 	WRITE_INT_FIELD(ncolumns);
 
-	WRITE_INT_ARRAY(classlist, ncolumns, int);
+	WRITE_INT_ARRAY(opfamily, ncolumns, int);
 	WRITE_INT_ARRAY(indexkeys, ncolumns, int);
 	WRITE_INT_ARRAY(ordering, ncolumns, int);
 

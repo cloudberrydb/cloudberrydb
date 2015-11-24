@@ -11,7 +11,7 @@
  * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
- * $PostgreSQL: pgsql/src/include/nodes/primnodes.h,v 1.119 2006/12/21 16:05:16 petere Exp $
+ * $PostgreSQL: pgsql/src/include/nodes/primnodes.h,v 1.120 2006/12/23 00:43:13 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -883,7 +883,7 @@ typedef struct RowExpr
  *
  * We support row comparison for any operator that can be determined to
  * act like =, <>, <, <=, >, or >= (we determine this by looking for the
- * operator in btree opclasses).  Note that the same operator name might
+ * operator in btree opfamilies).  Note that the same operator name might
  * map to a different operator for each pair of row elements, since the
  * element datatypes can vary.
  *
@@ -908,7 +908,7 @@ typedef struct RowCompareExpr
 	Expr		xpr;
 	RowCompareType rctype;		/* LT LE GE or GT, never EQ or NE */
 	List	   *opnos;			/* OID list of pairwise comparison ops */
-	List	   *opclasses;		/* OID list of containing operator classes */
+	List	   *opfamilies;		/* OID list of containing operator families */
 	List	   *largs;			/* the left-hand input arguments */
 	List	   *rargs;			/* the right-hand input arguments */
 } RowCompareExpr;

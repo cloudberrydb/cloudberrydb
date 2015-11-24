@@ -57,11 +57,11 @@ DATA(insert OID = 3109 ( float8_avg_decum  PGNSP PGUID 12 f f t f i 2 17 f "17 7
 DESCR("aggregate inverse transition function");
 
 /* btgpxlogloccmp(gpxlogloc, gpxlogloc) => int4 */ 
-DATA(insert OID = 2905 ( btgpxlogloccmp  PGNSP PGUID 12 f f t f i 2 23 f "3310 3310" _null_ _null_ _null_ btgpxlogloccmp - _null_ n ));
+DATA(insert OID = 7081 ( btgpxlogloccmp  PGNSP PGUID 12 f f t f i 2 23 f "3310 3310" _null_ _null_ _null_ btgpxlogloccmp - _null_ n ));
 DESCR("btree less-equal-greater");
 
 /* hash_numeric("numeric") => int4 */ 
-DATA(insert OID = 6432 ( hash_numeric  PGNSP PGUID 12 f f t f i 1 23 f "1700" _null_ _null_ _null_ hash_numeric - _null_ n ));
+DATA(insert OID = 432 ( hash_numeric  PGNSP PGUID 12 f f t f i 1 23 f "1700" _null_ _null_ _null_ hash_numeric - _null_ n ));
 DESCR("hash");
 
 

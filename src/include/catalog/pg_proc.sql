@@ -10,9 +10,9 @@
  CREATE FUNCTION float8_decum(_float8, float8) RETURNS _float8 LANGUAGE internal IMMUTABLE STRICT AS 'float8_decum' WITH (OID=6025, DESCRIPTION="aggregate inverse transition function");
  CREATE FUNCTION float8_avg_accum(bytea, float8) RETURNS bytea LANGUAGE internal IMMUTABLE STRICT AS 'float8_avg_accum' WITH (OID=3108, DESCRIPTION="aggregate transition function");
  CREATE FUNCTION float8_avg_decum(bytea, float8) RETURNS bytea LANGUAGE internal IMMUTABLE STRICT AS 'float8_avg_decum' WITH (OID=3109, DESCRIPTION="aggregate inverse transition function");
- CREATE FUNCTION btgpxlogloccmp(gpxlogloc, gpxlogloc) RETURNS int4 LANGUAGE internal IMMUTABLE STRICT AS 'btgpxlogloccmp' WITH (OID=2905, DESCRIPTION="btree less-equal-greater");
+ CREATE FUNCTION btgpxlogloccmp(gpxlogloc, gpxlogloc) RETURNS int4 LANGUAGE internal IMMUTABLE STRICT AS 'btgpxlogloccmp' WITH (OID=7081, DESCRIPTION="btree less-equal-greater");
 
- CREATE FUNCTION hash_numeric("numeric") RETURNS int4 LANGUAGE internal IMMUTABLE STRICT AS 'hash_numeric' WITH (OID=6432, DESCRIPTION="hash");
+ CREATE FUNCTION hash_numeric("numeric") RETURNS int4 LANGUAGE internal IMMUTABLE STRICT AS 'hash_numeric' WITH (OID=432, DESCRIPTION="hash");
 
 -- MPP -- array_add -- special for prospective customer 
  CREATE FUNCTION array_add(_int4, _int4) RETURNS _int4 LANGUAGE internal IMMUTABLE STRICT AS 'array_int4_add' WITH (OID=6012, DESCRIPTION="itemwise add two integer arrays");
