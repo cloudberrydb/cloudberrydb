@@ -448,6 +448,7 @@ extern bool optimizer_enable_master_only_queries;
 extern bool optimizer_multilevel_partitioning;
 extern bool optimizer_enable_derive_stats_all_groups;
 extern bool optimizer_explain_show_status;
+extern bool optimizer_prefer_scalar_dqa_multistage_agg;
 
 /**
  * Enable logging of DPE match in optimizer.

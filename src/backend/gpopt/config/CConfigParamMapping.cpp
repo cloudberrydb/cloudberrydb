@@ -347,7 +347,15 @@ CConfigParamMapping::SConfigMappingElem CConfigParamMapping::m_elem[] =
 		&optimizer_prune_computed_columns,
 		true,  // m_fNegate
 		GPOS_WSZ_LIT("Prune unused computed columns when pre-processing query")
+		},
+
+		{
+		EopttracePreferScalarDQAMultiStageAgg,
+		&optimizer_prefer_scalar_dqa_multistage_agg,
+		false, // m_fNegate
+		GPOS_WSZ_LIT("Prefer multistage aggregates for scalar distinct qualified aggregate in the optimizer.")
 		}
+
 };
 
 //---------------------------------------------------------------------------
