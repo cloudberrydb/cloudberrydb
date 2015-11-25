@@ -29,43 +29,6 @@
 using namespace gpos;
 
 //---------------------------------------------------------------------------
-// Overloading global new operators
-//---------------------------------------------------------------------------
-
-// throwing global singleton new operator
-void* operator new
-	(
-	gpos::SIZE_T cSize
-	)
-	throw(gpos::BAD_ALLOC);
-
-
-// throwing global array new operator
-void* operator new []
-	(
-	gpos::SIZE_T cSize
-	)
-	throw(gpos::BAD_ALLOC);
-
-
-// non-throwing global singleton new operator
-void *operator new
-	(
-	gpos::SIZE_T  cSize,
-	const gpos::NO_THROW &
-	)
-	throw();
-
-
-// non-throwing global array new operator
-void* operator new []
-	(
-	gpos::SIZE_T cSize,
-	const gpos::NO_THROW &
-	)
-	throw();
-
-//---------------------------------------------------------------------------
 // Overloading placement variants of new/delete operators
 //---------------------------------------------------------------------------
 
