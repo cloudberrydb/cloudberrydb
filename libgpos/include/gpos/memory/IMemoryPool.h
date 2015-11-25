@@ -145,11 +145,6 @@ namespace gpos
 	}
 #endif // GPOS_DEBUG
 
-} // gpos
-
-// placement new definition
-#define New(pmp) new(pmp, __FILE__, __LINE__)
-
 // new implementation
 void* NewImpl
 	(
@@ -183,6 +178,11 @@ void DeleteImplNoThrow
 	void *pv,
 	gpos::IMemoryPool::EAllocationType eat
 	);
+
+} // gpos
+
+// placement new definition
+#define New(pmp) new(pmp, __FILE__, __LINE__)
 
 
 #endif // !GPOS_IMemoryPool_H

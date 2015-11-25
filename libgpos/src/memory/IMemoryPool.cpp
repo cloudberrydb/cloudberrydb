@@ -22,8 +22,7 @@
 #include "gpos/memory/CMemoryPoolManager.h"
 
 
-using namespace gpos;
-
+namespace gpos {
 
 //---------------------------------------------------------------------------
 //	@function:
@@ -141,6 +140,7 @@ DeleteImplNoThrow
 	{}
 }
 
+}  // namespace gpos
 
 // EOF
 
