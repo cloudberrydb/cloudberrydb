@@ -29,7 +29,10 @@
 using namespace gpos;
 
 //---------------------------------------------------------------------------
-// Overloading placement variants of new/delete operators
+// Overloading placement variants of new operators. Used to allocate
+// arbitrary objects from an IMemoryPool. This does not affect the ordinary
+// built-in 'new', and is used only when placement-new is invoked with the
+// specific type signature defined below.
 //---------------------------------------------------------------------------
 
 // placement new operator
@@ -51,15 +54,13 @@ void *operator new []
 	);
 
 //---------------------------------------------------------------------------
-// 	Provide two variants for delete:
-//		1. Placement delete: triggered when constructors throw
-//		2. Explicit delete: to be used for delete calls
-//
-//	Internally both map to the same delete function;
+// Corresponding placement variants of delete operators. Note that, for delete
+// statements in general, the compiler can not determine which overloaded
+// version of new was used to allocate memory originally, and the global
+// non-placement version is used. These placement versions of 'delete' are used
+// only when a constructor throws an exception, and the version of 'new' is
+// known to be one of the two declared above.
 //---------------------------------------------------------------------------
-
-// throwing explicit singleton delete operator
-void operator delete (void *pv) throw();
 
 // placement delete
 void operator delete
@@ -70,9 +71,6 @@ void operator delete
 	gpos::ULONG cLine
 	);
 
-// throwing explicit array delete operator
-void operator delete [] (void *pv) throw();
-
 // placement array delete
 void operator delete []
 	(
@@ -81,6 +79,16 @@ void operator delete []
 	const gpos::CHAR *szFilename,
 	gpos::ULONG cLine
 	);
+
+//---------------------------------------------------------------------------
+// These are evil and need to be fixed.
+//---------------------------------------------------------------------------
+
+// throwing explicit singleton delete operator
+void operator delete (void *pv) throw();
+
+// throwing explicit array delete operator
+void operator delete [] (void *pv) throw();
 
 // non-throwing singleton delete operator
 void operator delete

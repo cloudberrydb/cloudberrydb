@@ -63,6 +63,45 @@ operator new []
 	return NewImpl(pmp, cSize, szFilename, ulLine, IMemoryPool::EatArray);
 }
 
+//---------------------------------------------------------------------------
+//	@function:
+//		delete
+//
+//	@doc:
+//		Placement delete; only used if constructor throws
+//
+//---------------------------------------------------------------------------
+void
+operator delete
+	(
+	void *pv,
+	IMemoryPool *, // pmp,
+	const CHAR *, // szFilename,
+	ULONG // ulLine
+	)
+{
+	DeleteImpl(pv, IMemoryPool::EatSingleton);
+}
+
+//---------------------------------------------------------------------------
+//	@function:
+//		delete []
+//
+//	@doc:
+//		Placement delete []; only used if constructor throws
+//
+//---------------------------------------------------------------------------
+void
+operator delete []
+	(
+	void *pv,
+	IMemoryPool *, // pmp,
+	const CHAR *, // szFilename,
+	ULONG // ulLine
+	)
+{
+	DeleteImpl(pv, IMemoryPool::EatArray);
+}
 
 //---------------------------------------------------------------------------
 //	@function:
@@ -85,27 +124,6 @@ operator delete
 
 //---------------------------------------------------------------------------
 //	@function:
-//		delete
-//
-//	@doc:
-//		Placement delete; only used if constructor throws
-//
-//---------------------------------------------------------------------------
-void
-operator delete
-	(
-	void *pv,
-	IMemoryPool *, // pmp,
-	const CHAR *, // szFilename,
-	ULONG // ulLine
-	)
-{
-	DeleteImpl(pv, IMemoryPool::EatSingleton);
-}
-
-
-//---------------------------------------------------------------------------
-//	@function:
 //		delete []
 //
 //	@doc:
@@ -118,27 +136,6 @@ operator delete []
 	void *pv
 	)
 	throw()
-{
-	DeleteImpl(pv, IMemoryPool::EatArray);
-}
-
-
-//---------------------------------------------------------------------------
-//	@function:
-//		delete []
-//
-//	@doc:
-//		Placement delete []; only used if constructor throws
-//
-//---------------------------------------------------------------------------
-void
-operator delete []
-	(
-	void *pv,
-	IMemoryPool *, // pmp,
-	const CHAR *, // szFilename,
-	ULONG // ulLine
-	)
 {
 	DeleteImpl(pv, IMemoryPool::EatArray);
 }
