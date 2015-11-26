@@ -86,7 +86,7 @@ namespace gpos
 						new(rgTArray + uIdx) T();
 					} catch (...) {
 						// If any element's constructor throws, deconstruct
-						// previous objects and reclaim memory.
+						// previous objects and reclaim memory before rethrowing.
 						for (SIZE_T uDestroyIdx = uIdx - 1; uDestroyIdx < uIdx; --uDestroyIdx) {
 							rgTArray[uDestroyIdx].~T();
 						}
