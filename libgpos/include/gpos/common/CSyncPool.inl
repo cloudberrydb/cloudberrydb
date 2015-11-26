@@ -214,7 +214,7 @@ namespace gpos
 		if (ULONG_MAX == ulOffset)
 		{
 			// object does not belong to the array, delete it
-			delete pt;
+			GPOS_DELETE(pt);
 			return;
 		}
 

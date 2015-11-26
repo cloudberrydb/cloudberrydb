@@ -125,7 +125,7 @@ CAutoTaskProxy::Destroy
 	m_list.Remove(ptsk);
 
 	// delete task object
-	delete ptsk;
+	GPOS_DELETE(ptsk);
 }
 
 

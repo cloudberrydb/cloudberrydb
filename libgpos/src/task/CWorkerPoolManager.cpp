@@ -177,7 +177,7 @@ CWorkerPoolManager::Shutdown()
 
 	// destroy worker pool
 	CWorkerPoolManager::m_pwpm = NULL;
-	delete pwpm;
+	GPOS_DELETE(pwpm);
 
 	// release allocated memory pool
     CMemoryPoolManager::Pmpm()->Destroy(pmp);

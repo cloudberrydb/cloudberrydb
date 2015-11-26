@@ -52,19 +52,18 @@ namespace gpos
 			// no copy ctor
 			CCacheFactory(const CCacheFactory&);
 
-			// private dtor
-			~CCacheFactory()
-			{
-				GPOS_ASSERT(NULL == m_pcf &&
-							"Cache factory has not been shut down");
-			}
-
-
 		public:
 
 			// type definition of key hashing and equality functions
 			typedef ULONG (*HashFuncPtr)(const VOID_PTR &);
 			typedef BOOL (*EqualFuncPtr)(const VOID_PTR&, const VOID_PTR&);
+
+			// dtor
+			~CCacheFactory()
+			{
+				GPOS_ASSERT(NULL == m_pcf &&
+							"Cache factory has not been shut down");
+			}
 
 			// initialize global memory pool
 			static

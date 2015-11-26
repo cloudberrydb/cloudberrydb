@@ -77,7 +77,7 @@ CBitSet::CBitSetLink::CBitSetLink
 //---------------------------------------------------------------------------
 CBitSet::CBitSetLink::~CBitSetLink()
 {
-	delete m_pbv;
+	GPOS_DELETE(m_pbv);
 }
 
 
@@ -177,7 +177,7 @@ CBitSet::Clear()
 		pbsl = m_bsllist.PtNext(pbsl);
 		
 		m_bsllist.Remove(pbslRemove);
-		delete pbslRemove;
+		GPOS_DELETE(pbslRemove);
 	}
 	
 	RecomputeSize();
@@ -360,7 +360,7 @@ CBitSet::FExchangeClear
 		if (pbsl->Pbv()->FEmpty())
 		{
 			m_bsllist.Remove(pbsl);
-			delete pbsl;
+			GPOS_DELETE(pbsl);
 		}
 		
 		if (fBit)
@@ -492,7 +492,7 @@ CBitSet::Intersection
 			pbsl = m_bsllist.PtNext(pbsl);
 			
 			m_bsllist.Remove(pbslRemove);
-			delete pbslRemove;
+			GPOS_DELETE(pbslRemove);
 		}
 	}
 	

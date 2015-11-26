@@ -211,8 +211,8 @@ CSlabCache::Teardown()
 		}
 
 		// release slab lists
-		delete m_pslablistAllocated;
-		delete m_pslablistActive;
+		GPOS_DELETE(m_pslablistAllocated);
+		GPOS_DELETE(m_pslablistActive);
 
 		m_fTornDown = true;
 	}

@@ -94,6 +94,10 @@ namespace gpos
 			virtual
 			ULLONG UllTotalAllocatedSize() const = 0;
 
+			// forwards to CMemoryPool implementation
+			static
+			ULONG UlSizeOfAlloc(const void *pv);
+
 #ifdef GPOS_DEBUG
 
 			// check if the memory pool keeps track of live objects
@@ -179,10 +183,71 @@ void DeleteImplNoThrow
 	gpos::IMemoryPool::EAllocationType eat
 	);
 
+namespace delete_detail {
+
+// All-static helper class. Base version deletes unqualified pointers / arrays.
+template <typename T>
+class CDeleter {
+	public:
+		static void Delete(T* object) {
+			if (NULL == object) {
+				return;
+			}
+			object->~T();
+			DeleteImpl(object, IMemoryPool::EatSingleton);
+		}
+
+		static void DeleteArray(T* object_array) {
+			if (NULL == object_array) {
+				return;
+			}
+
+			const SIZE_T cElements = IMemoryPool::UlSizeOfAlloc(object_array) / sizeof(T);
+			for (SIZE_T uIdx = 0; uIdx < cElements; ++uIdx) {
+				object_array[uIdx].~T();
+			}
+
+			DeleteImpl(object_array, IMemoryPool::EatArray);
+		}
+};
+
+// Specialization for const-qualified types.
+template <typename T>
+class CDeleter<const T> {
+	public:
+		static void Delete(const T* object) {
+			CDeleter<T>::Delete(const_cast<T*>(object));
+		}
+
+		static void DeleteArray(const T* object_array) {
+			CDeleter<T>::DeleteArray(const_cast<T*>(object_array));
+		}
+};
+
+// Specialization for volatile-qualified types.
+template <typename T>
+class CDeleter<volatile T> {
+	public:
+		static void Delete(volatile T* object) {
+			CDeleter<T>::Delete(const_cast<T*>(object));
+		}
+
+		static void DeleteArray(volatile T* object_array) {
+			CDeleter<T>::DeleteArray(const_cast<T*>(object_array));
+		}
+};
+
+}  // namespace delete_detail
+
 } // gpos
 
 // placement new definition
 #define New(pmp) new(pmp, __FILE__, __LINE__)
+
+template <typename T>
+void GPOS_DELETE(T* object) {
+	::gpos::delete_detail::CDeleter<T>::Delete(object);
+}
 
 
 #endif // !GPOS_IMemoryPool_H

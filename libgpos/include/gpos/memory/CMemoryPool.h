@@ -110,10 +110,6 @@ namespace gpos
 				BOOL fThreadSafe
 				);
 
-			// dtor
-			virtual
-			~CMemoryPool();
-
 			// underlying pool accessor
 			IMemoryPool *PmpUnderlying() const
 			{
@@ -125,6 +121,10 @@ namespace gpos
 			const ULONG_PTR m_ulpInvalid;
 
 		public:
+
+			// dtor
+			virtual
+			~CMemoryPool() = 0;
 
 			// prepare the memory pool to be deleted
 			virtual
@@ -183,6 +183,11 @@ namespace gpos
 				GPOS_ASSERT(!"not supported");
 				return 0;
 			}
+
+			// determine the size (in bytes) of an allocation that
+			// was made from a CMemoryPool
+			static
+			ULONG UlSizeOfAlloc(const void *pv);
 
 #ifdef GPOS_DEBUG
 

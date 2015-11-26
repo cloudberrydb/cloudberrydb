@@ -92,7 +92,7 @@ CStackTest::EresUnittest_Basic()
 	
 	GPOS_ASSERT(idx == 9 && "Stack is not empty!");
 		
-	delete pstk;
+	GPOS_DELETE(pstk);
 	
 	return GPOS_OK;
 }
@@ -151,7 +151,7 @@ CStackTest::EresUnittest_PushPop()
 		GPOS_ASSERT(ul == rgul[0]);
 	}
 	
-	delete pstk;
+	GPOS_DELETE(pstk);
 	
 	return GPOS_OK;
 }

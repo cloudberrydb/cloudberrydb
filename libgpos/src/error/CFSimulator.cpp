@@ -85,7 +85,7 @@ CFSimulator::AddTracker
 	// clean up as necessary
 	if (fOvertaken)
 	{
-		delete pstrackNew;
+		GPOS_DELETE(pstrackNew);
 	}
 }
 
@@ -174,7 +174,7 @@ void
 CFSimulator::Shutdown()
 {
 	IMemoryPool *pmp = m_pmp;
-	delete CFSimulator::m_pfsim;
+	GPOS_DELETE(CFSimulator::m_pfsim);
 	CFSimulator::m_pfsim = NULL;
 	
 	CMemoryPoolManager::Pmpm()->Destroy(pmp);

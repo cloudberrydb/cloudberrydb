@@ -267,7 +267,7 @@ CMessageRepository::AddMessageTable
 		}
 	}
 
-	delete pmtNew;
+	GPOS_DELETE(pmtNew);
 }
 
 

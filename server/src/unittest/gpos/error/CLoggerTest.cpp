@@ -331,7 +331,7 @@ CLoggerTest::Unittest_TestLoggerFile
 		// restore output log
 		ITask::PtskSelf()->Ptskctxt()->SetLogOut(plog);
 
-		delete ploggerFile;
+		GPOS_DELETE(ploggerFile);
 
 		PvUnittest_DeleteFiles(str.Sz(), ulFiles);
 
@@ -342,7 +342,7 @@ CLoggerTest::Unittest_TestLoggerFile
 	// restore output log
 	ITask::PtskSelf()->Ptskctxt()->SetLogOut(plog);
 
-	delete ploggerFile;
+	GPOS_DELETE(ploggerFile);
 
 	PvUnittest_DeleteFiles(str.Sz(), ulFiles);
 }

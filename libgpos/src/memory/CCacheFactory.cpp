@@ -132,7 +132,7 @@ CCacheFactory::Shutdown()
 
 	// destroy cache factory
 	CCacheFactory::m_pcf = NULL;
-	delete pcf;
+	GPOS_DELETE(pcf);
 
 	// release allocated memory pool
 	CMemoryPoolManager::Pmpm()->Destroy(pmp);

@@ -80,30 +80,4 @@ void operator delete []
 	gpos::ULONG cLine
 	);
 
-//---------------------------------------------------------------------------
-// These are evil and need to be fixed.
-//---------------------------------------------------------------------------
-
-// throwing explicit singleton delete operator
-void operator delete (void *pv) throw();
-
-// throwing explicit array delete operator
-void operator delete [] (void *pv) throw();
-
-// non-throwing singleton delete operator
-void operator delete
-	(
-	void* pv,
-	const gpos::NO_THROW&
-	)
-	throw();
-
-// non-throwing array delete operator
-void operator delete[]
-	(
-	void* pv,
-	const gpos::NO_THROW&
-	)
-	throw();
-
 #endif // !GPOS_Allocators_H

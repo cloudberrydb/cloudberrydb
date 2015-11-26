@@ -62,7 +62,7 @@ GPOS_RESULT
 CMemoryPoolTest::EresUnittest_DeleteNULL()
 {
 	char *sz = NULL;
-	delete sz;
+	GPOS_DELETE(sz);
 
 	return GPOS_OK;
 }

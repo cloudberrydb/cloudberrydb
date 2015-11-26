@@ -125,7 +125,7 @@ namespace gpos
 	template<class T>
 	inline void CleanupDelete(T *pt)
 	{
-		delete pt;
+		GPOS_DELETE(pt);
 	}
 
 	// delete of array

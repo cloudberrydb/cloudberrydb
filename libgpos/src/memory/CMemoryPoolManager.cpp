@@ -341,7 +341,7 @@ CMemoryPoolManager::DeleteUnregistered
 	}
 #endif // GPOS_DEBUG
 
-	delete pmp;
+	GPOS_DELETE(pmp);
 }
 
 
@@ -369,7 +369,7 @@ CMemoryPoolManager::Destroy
 
 	pmp->TearDown();
 
-	delete pmp;
+	GPOS_DELETE(pmp);
 }
 
 
@@ -498,7 +498,7 @@ CMemoryPoolManager::DestroyMemoryPoolAtShutdown
 #endif // GPOS_DEBUG
 
 	pmp->TearDown();
-	delete pmp;
+	GPOS_DELETE(pmp);
 }
 
 
@@ -548,7 +548,7 @@ CMemoryPoolManager::Shutdown()
 	IMemoryPool *pmpInternal = m_pmpInternal;
 	IMemoryPool *pmpBase = m_pmpBase;
 
-	delete CMemoryPoolManager::m_pmpm;
+	GPOS_DELETE(CMemoryPoolManager::m_pmpm);
 	CMemoryPoolManager::m_pmpm = NULL;
 
 #ifdef GPOS_DEBUG

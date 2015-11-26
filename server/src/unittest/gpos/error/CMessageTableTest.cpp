@@ -79,7 +79,7 @@ CMessageTableTest::EresUnittest_Basic()
 		}
 	}
 		
-	delete pmt;
+	GPOS_DELETE(pmt);
 	
 	return GPOS_OK;
 }

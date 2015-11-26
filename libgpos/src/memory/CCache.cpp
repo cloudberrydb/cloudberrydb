@@ -146,7 +146,7 @@ void CCache::DestroyCacheEntry
 	GPOS_ASSERT(NULL != pce);
 
 	CMemoryPoolManager::Pmpm()->Destroy(pce->Pmp());
-	delete pce;
+	GPOS_DELETE(pce);
 }
 
 
@@ -161,7 +161,7 @@ void CCache::DestroyCacheEntry
 void CCache::Cleanup()
 {
 	m_sht.DestroyEntries(DestroyCacheEntry);
-	delete m_chtitClockHand;
+	GPOS_DELETE(m_chtitClockHand);
 	m_chtitClockHand = NULL;
 }
 
@@ -286,7 +286,7 @@ CCache::ReleaseEntry
 	{
 		// release entry's memory
 		CMemoryPoolManager::Pmpm()->Destroy(pce->Pmp());
-		delete pce;
+		GPOS_DELETE(pce);
 	}
 }
 
@@ -348,7 +348,7 @@ CCache::EvictEntriesOnePass(ULLONG ullTotalFreed, ULLONG ullToFree)
 			GPOS_ASSERT(NULL != pt);
 			// release entry's memory
 			CMemoryPoolManager::Pmpm()->Destroy(pt->Pmp());
-			delete pt;
+			GPOS_DELETE(pt);
 		}
 	}
 	return ullTotalFreed;

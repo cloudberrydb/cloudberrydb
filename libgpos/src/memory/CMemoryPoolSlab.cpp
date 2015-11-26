@@ -248,7 +248,7 @@ CMemoryPoolSlab::TearDown()
 		for (ULONG ulIdx = 0; ulIdx < GPOS_ARRAY_SIZE(m_rgrgpsc[ulGroup]); ulIdx++)
 		{
 			m_rgrgpsc[ulGroup][ulIdx]->Teardown();
-			delete m_rgrgpsc[ulGroup][ulIdx];
+			GPOS_DELETE(m_rgrgpsc[ulGroup][ulIdx]);
 		}
 	}
 
@@ -271,7 +271,7 @@ CMemoryPoolSlab::TearDown()
 	}
 
 	// release hash table
-	delete m_pshtAllocXL;
+	GPOS_DELETE(m_pshtAllocXL);
 
 	CMemoryPool::TearDown();
 }

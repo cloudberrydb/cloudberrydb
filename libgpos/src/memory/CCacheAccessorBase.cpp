@@ -128,7 +128,7 @@ CCacheAccessorBase::PvInsert
 	}
 	else
 	{
-		delete pce;
+		GPOS_DELETE(pce);
 	}
 
 	// accessor holds the returned entry in all cases

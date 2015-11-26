@@ -24,6 +24,11 @@
 
 namespace gpos {
 
+ULONG
+IMemoryPool::UlSizeOfAlloc(const void *pv) {
+	return CMemoryPool::UlSizeOfAlloc(pv);
+}
+
 //---------------------------------------------------------------------------
 //	@function:
 //		NewImpl

@@ -349,9 +349,9 @@ CDynamicPtrArrayTest::EresUnittest_PdrgpulSubsequenceIndexes()
 	GPOS_ASSERT(1 == *(*pdrgpulIndexes)[2]);
 	GPOS_ASSERT(1 == *(*pdrgpulIndexes)[3]);
 
-	delete pul1;
-	delete pul2;
-	delete pul3;
+	GPOS_DELETE(pul1);
+	GPOS_DELETE(pul2);
+	GPOS_DELETE(pul3);
 	pdrgpulIndexes->Release();
 	pdrgULONGTarget->Release();
 	pdrgULONGLookup->Release();

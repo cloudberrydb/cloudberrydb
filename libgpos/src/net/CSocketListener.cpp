@@ -59,10 +59,10 @@ CSocketListener::~CSocketListener()
 	while (!m_listSockets.FEmpty())
 	{
 		CSocket *psocket = m_listSockets.RemoveHead();
-		delete psocket;
+		GPOS_DELETE(psocket);
 	}
 
-	delete m_psocketListen;
+	GPOS_DELETE(m_psocketListen);
 }
 
 
@@ -114,7 +114,7 @@ CSocketListener::Release
 		m_listSockets.Remove(psocket);
 	}
 
-	delete psocket;
+	GPOS_DELETE(psocket);
 }
 
 

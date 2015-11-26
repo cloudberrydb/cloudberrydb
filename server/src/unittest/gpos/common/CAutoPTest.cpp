@@ -95,7 +95,7 @@ CAutoPTest::EresUnittest_Basics()
 	asz2 = NULL;
 
 	// unhooking of object
-	delete asz3.PtReset();
+	GPOS_DELETE(asz3.PtReset());
 
 	CElem *pelem = New(pmp) CElem;
 	pelem->m_ul = 3;
@@ -133,7 +133,7 @@ CAutoPTest::EresUnittest_Allocation()
 
 	// allocating auto object on heap must assert
 	CAutoP<ULONG> *papt = New(pmp) CAutoP<ULONG>;
-	delete papt;
+	GPOS_DELETE(papt);
 
 	return GPOS_FAILED;
 }

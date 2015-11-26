@@ -123,7 +123,7 @@ namespace gpos
 						GPOS_RAISE(CException::ExmaSystem, CException::ExmiInvalidDeletion);
 					}
 
-					delete this;
+					GPOS_DELETE(this);
 				}	
 			}
 

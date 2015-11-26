@@ -111,9 +111,9 @@ CWStringTest::EresUnittest_Append()
 	GPOS_ASSERT(ss3.FEquals(&cstr2));
 
 	// cleanup
-	delete pstr1;
-	delete pstr2;
-	delete pstr3;
+	GPOS_DELETE(pstr1);
+	GPOS_DELETE(pstr2);
+	GPOS_DELETE(pstr3);
 
 	return GPOS_OK;
 }
@@ -181,7 +181,7 @@ CWStringTest::EresUnittest_AppendFormat()
 	GPOS_CATCH_END;
 
 	// cleanup
-	delete pstr1;
+	GPOS_DELETE(pstr1);
 
 	return eres;
 }
@@ -223,7 +223,7 @@ CWStringTest::EresUnittest_AppendFormatLarge()
 	GPOS_ASSERT(pstr1->UlLength() == ulExpected);
 
 	// cleanup
-	delete pstr1;
+	GPOS_DELETE(pstr1);
 
 	// append small string
 	CWStringDynamic *pstr2 = New(pmp) CWStringDynamic(pmp, GPOS_WSZ_LIT("Hello"));
@@ -231,7 +231,7 @@ CWStringTest::EresUnittest_AppendFormatLarge()
 	GPOS_TRACE(pstr2->Wsz());
 
 	// cleanup
-	delete pstr2;
+	GPOS_DELETE(pstr2);
 
 	// append large string
 	CWStringDynamic *pstr3 = New(pmp) CWStringDynamic(pmp, GPOS_WSZ_LIT("Hello "));
@@ -259,7 +259,7 @@ CWStringTest::EresUnittest_AppendFormatLarge()
 	GPOS_TRACE(GPOS_WSZ_LIT("\n"));
 
 	// cleanup
-	delete pstr3;
+	GPOS_DELETE(pstr3);
 
 	WCHAR wsz[25];
 	CWStringStatic *pstr4 = New(pmp) CWStringStatic(wsz, GPOS_ARRAY_SIZE(wsz), GPOS_WSZ_LIT("Hello"));
@@ -274,7 +274,7 @@ CWStringTest::EresUnittest_AppendFormatLarge()
 	GPOS_ASSERT(pstr4->Wsz()[pstr4->UlLength() - 1] == L'1');
 
 	// cleanup
-	delete pstr4;
+	GPOS_DELETE(pstr4);
 
 	return GPOS_OK;
 }
@@ -316,9 +316,9 @@ CWStringTest::EresUnittest_Initialize()
 	GPOS_ASSERT(pcstr1->FEquals(&cstr1));
 	
 	// cleanup
-	delete pstr1;
-	delete pstr2;
-	delete pcstr1;
+	GPOS_DELETE(pstr1);
+	GPOS_DELETE(pstr2);
+	GPOS_DELETE(pcstr1);
 	
 #endif // #ifdef GPOS_DEBUG
 	return GPOS_OK;
@@ -368,11 +368,11 @@ CWStringTest::EresUnittest_Equals()
 	GPOS_ASSERT(cstr1->FEquals(str1));
 	
 	// cleanup
-	delete str1;
-	delete str2;
-	delete str3;	
-	delete cstr1;
-	delete cstr2;
+	GPOS_DELETE(str1);
+	GPOS_DELETE(str2);
+	GPOS_DELETE(str3);
+	GPOS_DELETE(cstr1);
+	GPOS_DELETE(cstr2);
 
 #endif // #ifdef GPOS_DEBUG
 	
@@ -403,10 +403,10 @@ CWStringTest::EresUnittest_Copy()
 	GPOS_ASSERT(pstr1->Wsz() != pcstr1->Wsz());
 	
 	// cleanup
-	delete pstr1;
+	GPOS_DELETE(pstr1);
 	
 	GPOS_ASSERT(NULL != pcstr1->Wsz());
-	delete pcstr1;
+	GPOS_DELETE(pcstr1);
 	
 	return GPOS_OK;	
 }
