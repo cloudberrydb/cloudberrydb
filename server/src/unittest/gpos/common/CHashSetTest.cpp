@@ -68,7 +68,7 @@ CHashSetTest::EresUnittest_Basic()
 
 	typedef CHashSet< ULONG_PTR, UlHashPtr<ULONG_PTR>, FEqual<ULONG_PTR>, CleanupNULL<ULONG_PTR> > HSUl;
 
-	HSUl *phs = New(pmp) HSUl(pmp, 128);
+	HSUl *phs = GPOS_NEW(pmp) HSUl(pmp, 128);
 	for (ULONG ul = 0; ul < ulCnt; ul++)
 	{
 #ifdef GPOS_DEBUG
@@ -109,10 +109,10 @@ CHashSetTest::EresUnittest_Ownership()
 
 	typedef CHashSet< ULONG_PTR, UlHashPtr<ULONG_PTR>, FEqual<ULONG_PTR>, CleanupDelete<ULONG_PTR> > HSUl;
 
-	HSUl *phs = New(pmp) HSUl(pmp, 32);
+	HSUl *phs = GPOS_NEW(pmp) HSUl(pmp, 32);
 	for (ULONG ul = 0; ul < ulCnt; ul++)
 	{
-		ULONG_PTR *pulp = New(pmp) ULONG_PTR(ul);
+		ULONG_PTR *pulp = GPOS_NEW(pmp) ULONG_PTR(ul);
 
 #ifdef GPOS_DEBUG
 		BOOL fSuccess =

@@ -208,10 +208,10 @@ namespace gpos
 		DrgHashChain **ppdrgchain = PpdrgChain(pk);
 		if (NULL == *ppdrgchain)
 		{
-			*ppdrgchain = New(m_pmp) DrgHashChain(m_pmp);
+			*ppdrgchain = GPOS_NEW(m_pmp) DrgHashChain(m_pmp);
 		}
 		
-		CHashMapElem *phme = New(m_pmp) CHashMapElem(pk, pt, true /*fOwn*/);
+		CHashMapElem *phme = GPOS_NEW(m_pmp) CHashMapElem(pk, pt, true /*fOwn*/);
 		(*ppdrgchain)->Append(phme);
 		
 		m_ulEntries++;

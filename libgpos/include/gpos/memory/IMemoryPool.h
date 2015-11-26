@@ -299,7 +299,7 @@ inline void operator delete
 // Placement new-style macro to do 'new' with a memory pool. Anything allocated
 // with this *must* be deleted by GPOS_DELETE, *not* the ordinary delete
 // operator.
-#define New(pmp) new(pmp, __FILE__, __LINE__)
+#define GPOS_NEW(pmp) new(pmp, __FILE__, __LINE__)
 
 // Replacement for array-new. Conceptually equivalent to
 // 'new(pmp) datatype[count]'. Any arrays allocated with this *must* be deleted

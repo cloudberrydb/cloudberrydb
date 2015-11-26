@@ -17,7 +17,6 @@
 
 #include "gpos/base.h"
 #include "gpos/_api.h"
-#include "gpos/memory/Allocators.h"
 #include "gpos/common/CAutoP.h"
 #include "gpos/error/CFSimulator.h"
 #include "gpos/error/CMessageRepository.h"
@@ -181,13 +180,13 @@ int gpos_exec
 				{
 					GPOS_ASSERT(0 < params->error_buffer_size);
 
-					apwstr = New(pmp) CWStringStatic
+					apwstr = GPOS_NEW(pmp) CWStringStatic
 						(
 						(WCHAR *) params->error_buffer,
 						params->error_buffer_size / GPOS_SIZEOF(WCHAR)
 						);
-					aposs = New(pmp) COstreamString(apwstr.Pt());
-					aplogger = New(pmp) CLoggerStream(*aposs.Pt());
+					aposs = GPOS_NEW(pmp) COstreamString(apwstr.Pt());
+					aplogger = GPOS_NEW(pmp) CLoggerStream(*aposs.Pt());
 
 					CTaskContext *ptskctxt = ptsk->Ptskctxt();
 					ptskctxt->SetLogOut(aplogger.Pt());

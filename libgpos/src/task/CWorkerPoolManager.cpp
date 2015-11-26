@@ -114,7 +114,7 @@ CWorkerPoolManager::EresInit
 	{
 		// create worker pool
 		CWorkerPoolManager::m_pwpm =
-			New(pmp) CWorkerPoolManager(pmp);
+			GPOS_NEW(pmp) CWorkerPoolManager(pmp);
 
 		// set min and max number of workers
 		CWorkerPoolManager::m_pwpm->SetWorkersLim(ulWorkersMin, ulWorkersMax);

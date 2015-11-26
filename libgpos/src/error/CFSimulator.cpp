@@ -62,7 +62,7 @@ CFSimulator::AddTracker
 	CAutoTraceFlag atf(EtraceSimulateOOM, false);
 
 	// allocate new tracker before getting the spinlock
-	CStackTracker *pstrackNew = New(m_pmp) CStackTracker(m_pmp, m_cResolution, skey);
+	CStackTracker *pstrackNew = GPOS_NEW(m_pmp) CStackTracker(m_pmp, m_cResolution, skey);
 	
 	// assume somebody overtook
 	BOOL fOvertaken = true;
@@ -152,7 +152,7 @@ CFSimulator::EresInit()
 	CAutoMemoryPool amp;
 	IMemoryPool *pmp = amp.Pmp();
 	
-	CFSimulator::m_pfsim = New(pmp) CFSimulator(pmp, GPOS_FSIM_RESOLUTION);
+	CFSimulator::m_pfsim = GPOS_NEW(pmp) CFSimulator(pmp, GPOS_FSIM_RESOLUTION);
 
 	// detach safety
 	(void) amp.PmpDetach();
@@ -201,7 +201,7 @@ CFSimulator::CStackTracker::CStackTracker
 	m_pbv(NULL)
 {
 	// allocate bit vector
-	m_pbv = New(pmp) CBitVector(pmp, cResolution);
+	m_pbv = GPOS_NEW(pmp) CBitVector(pmp, cResolution);
 }
 
 

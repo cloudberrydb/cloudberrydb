@@ -78,7 +78,7 @@ CSocket *
 CSocketListener::PsocketNext()
 {
 	CAutoFileDescriptor afd(ISocketFdNext());
-	CSocket *psocket = New(m_pmp) CSocket(afd.IFileDescr(), this);
+	CSocket *psocket = GPOS_NEW(m_pmp) CSocket(afd.IFileDescr(), this);
 
 	// scope for spinlock locking
 	{

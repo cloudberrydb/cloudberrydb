@@ -65,7 +65,7 @@ CEnumSetTest::EresUnittest_Basics()
 	typedef CEnumSet<eTest, eTestSentinel> CETestSet;
 	typedef CEnumSetIter<eTest, eTestSentinel> CETestIter;
 
-	CETestSet *pes = New(pmp) CETestSet(pmp);
+	CETestSet *pes = GPOS_NEW(pmp) CETestSet(pmp);
 	
 	(void) pes->FExchangeSet(eTestOne);
 	(void) pes->FExchangeSet(eTestTwo);

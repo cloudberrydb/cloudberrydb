@@ -118,7 +118,7 @@ CCacheAccessorBase::PvInsert
 			    "Accessor already holds an entry");
 
 	CCache::CCacheEntry *pce =
-			New(m_pcache->m_pmp) CCache::CCacheEntry(m_pmp, pvKey, pvVal, m_pcache->m_ulGClockInitCounter);
+			GPOS_NEW(m_pcache->m_pmp) CCache::CCacheEntry(m_pmp, pvKey, pvVal, m_pcache->m_ulGClockInitCounter);
 	CCache::CCacheEntry *pceReturn = m_pcache->PceInsert(pce);
 
 	// check if insertion completed successfully

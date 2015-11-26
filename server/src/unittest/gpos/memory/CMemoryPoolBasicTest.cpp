@@ -353,7 +353,7 @@ CMemoryPoolBasicTest::EresThrowingCtor
 	};
 
 	// try instantiating the class
-	New(pmp) CMyTestClass();
+	GPOS_NEW(pmp) CMyTestClass();
 
 	// doesn't reach this line
 	return GPOS_FAILED;

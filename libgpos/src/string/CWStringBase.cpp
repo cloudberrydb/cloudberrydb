@@ -37,7 +37,7 @@ CWStringConst *CWStringBase::PStrCopy
 	IMemoryPool *pmp
 	) const
 {
-	return New(pmp) CWStringConst(pmp, Wsz());
+	return GPOS_NEW(pmp) CWStringConst(pmp, Wsz());
 }
 
 //---------------------------------------------------------------------------

@@ -70,7 +70,7 @@ CHashMapTest::EresUnittest_Basic()
 	typedef CHashMap<ULONG_PTR, CHAR, UlHashPtr<ULONG_PTR>, gpos::FEqual<ULONG_PTR>,
 		CleanupNULL<ULONG_PTR>, CleanupNULL<CHAR> > HMUlChar;
 
-	HMUlChar *phm = New(pmp) HMUlChar(pmp, 128);
+	HMUlChar *phm = GPOS_NEW(pmp) HMUlChar(pmp, 128);
 	for (ULONG i = 0; i < ulCnt; ++i)
 	{
 #ifdef GPOS_DEBUG
@@ -117,11 +117,11 @@ CHashMapTest::EresUnittest_Basic()
 	// test replacing values and triggering their release
 	typedef CHashMap<ULONG, ULONG, UlHash<ULONG>, gpos::FEqual<ULONG>,
 			CleanupDelete<ULONG>, CleanupDelete<ULONG> > HMUlUl;
-	HMUlUl *phm2 = New(pmp) HMUlUl(pmp, 128);
+	HMUlUl *phm2 = GPOS_NEW(pmp) HMUlUl(pmp, 128);
 
-	ULONG *pulKey = New(pmp) ULONG(1);
-	ULONG *pulVal1 = New(pmp) ULONG(2);
-	ULONG *pulVal2 = New(pmp) ULONG(3);
+	ULONG *pulKey = GPOS_NEW(pmp) ULONG(1);
+	ULONG *pulVal1 = GPOS_NEW(pmp) ULONG(2);
+	ULONG *pulVal2 = GPOS_NEW(pmp) ULONG(3);
 
 #ifdef GPOS_DEBUG
 	fSuccess =
@@ -169,10 +169,10 @@ CHashMapTest::EresUnittest_Ownership()
 	typedef CHashMap<ULONG_PTR, CHAR, UlHashPtr<ULONG_PTR>, gpos::FEqual<ULONG_PTR>,
 		CleanupDelete<ULONG_PTR>, CleanupDeleteRg<CHAR> > HMUlChar;
 	
-	HMUlChar *phm = New(pmp) HMUlChar(pmp, 32);
+	HMUlChar *phm = GPOS_NEW(pmp) HMUlChar(pmp, 32);
 	for (ULONG i = 0; i < ulCnt; ++i)
 	{
-		ULONG_PTR *pulp = New(pmp) ULONG_PTR(i);
+		ULONG_PTR *pulp = GPOS_NEW(pmp) ULONG_PTR(i);
 		CHAR *sz = GPOS_NEW_ARRAY(pmp, CHAR, 3);
 	
 #ifdef GPOS_DEBUG

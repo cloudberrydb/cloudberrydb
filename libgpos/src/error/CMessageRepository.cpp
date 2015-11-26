@@ -125,7 +125,7 @@ CMessageRepository::EresInit()
 	CAutoMemoryPool amp;
 	IMemoryPool *pmp = amp.Pmp();
 
-	CMessageRepository *pmr = New(pmp) CMessageRepository(pmp);
+	CMessageRepository *pmr = GPOS_NEW(pmp) CMessageRepository(pmp);
 	pmr->InitDirectory(pmp);
 	pmr->LoadStandardMessages();
 	
@@ -254,7 +254,7 @@ CMessageRepository::AddMessageTable
 	)
 {
 	CMessageTable *pmtNew = 
-		New(m_pmp) CMessageTable(m_pmp, GPOS_MSGTAB_SIZE, eloc);
+		GPOS_NEW(m_pmp) CMessageTable(m_pmp, GPOS_MSGTAB_SIZE, eloc);
 	
 	{
 		TMTAccessor tmta(m_tmt, eloc);

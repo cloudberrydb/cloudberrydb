@@ -71,7 +71,7 @@ CMemoryPoolSlab::CMemoryPoolSlab
 
 	// hash table of XL allocations
 	CAutoP<AllocXLHashTable> a_pshtChunksXL;
-	a_pshtChunksXL = New(PmpUnderlying()) AllocXLHashTable();
+	a_pshtChunksXL = GPOS_NEW(PmpUnderlying()) AllocXLHashTable();
 	a_pshtChunksXL.Pt()->Init
 		(
 		PmpUnderlying(),
@@ -130,7 +130,7 @@ CMemoryPoolSlab::InitCaches()
 
 		for (ULONG ulIdx = 0; ulIdx < GPOS_ARRAY_SIZE(a_rgsc[ulGroup]); ulIdx++)
 		{
-			a_rgsc[ulGroup][ulIdx] = New(PmpUnderlying()) CSlabCache
+			a_rgsc[ulGroup][ulIdx] = GPOS_NEW(PmpUnderlying()) CSlabCache
 				(
 				PmpUnderlying(),
 				ulChunkSize,

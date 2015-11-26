@@ -279,7 +279,7 @@ CLoggerTest::Unittest_TestLoggerFile
 	GPOS_TRY
 	{
 		// initialize file logger
-		ploggerFile = New(pmp) CLoggerFile(str.Sz(), ulFiles, ulRotateThreshold);
+		ploggerFile = GPOS_NEW(pmp) CLoggerFile(str.Sz(), ulFiles, ulRotateThreshold);
 
 		// set output log to syslog
 		ITask::PtskSelf()->Ptskctxt()->SetLogOut(ploggerFile);

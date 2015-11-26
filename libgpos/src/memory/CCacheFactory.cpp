@@ -88,7 +88,7 @@ CCacheFactory::EresInit()
 	GPOS_TRY
 	{
 		// create cache factory instance
-		CCacheFactory::m_pcf = New(pmp) CCacheFactory(pmp);
+		CCacheFactory::m_pcf = GPOS_NEW(pmp) CCacheFactory(pmp);
 	}
 	GPOS_CATCH_EX(ex)
 	{
@@ -160,7 +160,7 @@ CCacheFactory::PCacheCreate
 			    "Cache factory has not been initialized");
 
 	IMemoryPool *pmp = Pcf()->Pmp();
-	CCache *pcache = New(pmp) CCache
+	CCache *pcache = GPOS_NEW(pmp) CCache
 				(
 				pmp,
 				fUnique,

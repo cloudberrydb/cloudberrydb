@@ -186,7 +186,7 @@ namespace gpos
 		}
 
 		// no object is currently available, create a new one
-		T *pt = New(m_pmp) T();
+		T *pt = GPOS_NEW(m_pmp) T();
 		*(ULONG*) (((BYTE *) pt) + m_ulIdOffset) = ULONG_MAX;
 
 		return pt;

@@ -22,7 +22,6 @@
 
 #include "gpos/assert.h"
 #include "gpos/types.h"
-#include "gpos/memory/Allocators.h"
 #include "gpos/error/CException.h"
 #include "gpos/error/CErrorHandler.h"
 #include "gpos/error/IErrorContext.h"

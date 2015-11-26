@@ -126,7 +126,7 @@ CCache::CCache
 		m_pfuncEqual
 		);
 
-	m_chtitClockHand = New(pmp) CCacheHashtableIter(m_sht);
+	m_chtitClockHand = GPOS_NEW(pmp) CCacheHashtableIter(m_sht);
 }
 
 
