@@ -64,38 +64,6 @@ NewImpl
 	return dynamic_cast<CMemoryPool*>(pmp)->PvFinalizeAlloc(pv, (ULONG) cSize, eat);
 }
 
-
-//---------------------------------------------------------------------------
-//	@function:
-//		NewImplNoThrow
-//
-//	@doc:
-//		Implementation of New that returns NULL if an exception is thrown
-//
-//---------------------------------------------------------------------------
-void*
-NewImplNoThrow
-	(
-	IMemoryPool *pmp,
-	SIZE_T cSize,
-	const CHAR *szFilename,
-	ULONG ulLine,
-	IMemoryPool::EAllocationType eat
-	)
-{
-	try
-	{
-		void *pv = NewImpl(pmp, cSize, szFilename, ulLine, eat);
-		return pv;
-	}
-	catch(...)
-	{
-		return NULL;
-	}
-}
-
-
-
 //---------------------------------------------------------------------------
 //	@function:
 //		DeleteImpl
@@ -119,30 +87,6 @@ DeleteImpl
 
 	// release allocation
 	CMemoryPool::FreeAlloc(pv, eat);
-}
-
-
-//---------------------------------------------------------------------------
-//	@function:
-//		DeleteImplNoThrow
-//
-//	@doc:
-//		implementation of Delete that does not throw
-//
-//---------------------------------------------------------------------------
-void
-DeleteImplNoThrow
-	(
-	void *pv,
-	IMemoryPool::EAllocationType eat
-	)
-{
-	try
-	{
-		DeleteImpl(pv, eat);
-	}
-	catch(...)
-	{}
 }
 
 }  // namespace gpos

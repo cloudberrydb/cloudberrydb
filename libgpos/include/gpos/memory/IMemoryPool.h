@@ -159,16 +159,6 @@ void* NewImpl
 	gpos::IMemoryPool::EAllocationType eat
 	);
 
-// new implementation, no exception throwing
-void* NewImplNoThrow
-	(
-	gpos::IMemoryPool *pmp,
-	gpos::SIZE_T cSize,
-	const gpos::CHAR *szFilename,
-	gpos::ULONG ulLine,
-	gpos::IMemoryPool::EAllocationType eat
-	);
-
 	template <typename T>
 	T* NewArrayImpl
 		(
@@ -187,13 +177,6 @@ void* NewImplNoThrow
 
 // delete implementation
 void DeleteImpl
-	(
-	void *pv,
-	gpos::IMemoryPool::EAllocationType eat
-	);
-
-// delete implementation, no exception throwing
-void DeleteImplNoThrow
 	(
 	void *pv,
 	gpos::IMemoryPool::EAllocationType eat
