@@ -31,37 +31,35 @@ IMemoryPool::UlSizeOfAlloc(const void *pv) {
 
 //---------------------------------------------------------------------------
 //	@function:
-//		NewImpl
+//		IMemoryPool::NewImpl
 //
 //	@doc:
 //		Implementation of New that can be used by "operator new" functions
 ////
 //---------------------------------------------------------------------------
 void*
-NewImpl
+IMemoryPool::NewImpl
 	(
-	IMemoryPool *pmp,
 	SIZE_T cSize,
 	const CHAR *szFilename,
 	ULONG ulLine,
 	IMemoryPool::EAllocationType eat
 	)
 {
-	GPOS_ASSERT(NULL != pmp);
 	GPOS_ASSERT(ULONG_MAX >= cSize);
 	GPOS_ASSERT_IMP
 		(
-		(NULL != CMemoryPoolManager::Pmpm()) && (pmp == CMemoryPoolManager::Pmpm()->PmpGlobal()),
+		(NULL != CMemoryPoolManager::Pmpm()) && (this == CMemoryPoolManager::Pmpm()->PmpGlobal()),
 		CMemoryPoolManager::Pmpm()->FAllowGlobalNew() &&
 		"Use of new operator without target memory pool is prohibited, use New(...) instead"
 		);
 
 	ULONG ulAlloc = CMemoryPool::UlAllocSize((ULONG) cSize);
-	void *pv = pmp->PvAllocate(ulAlloc, szFilename, ulLine);
+	void *pv = PvAllocate(ulAlloc, szFilename, ulLine);
 
 	GPOS_OOM_CHECK(pv);
 
-	return dynamic_cast<CMemoryPool*>(pmp)->PvFinalizeAlloc(pv, (ULONG) cSize, eat);
+	return dynamic_cast<CMemoryPool*>(this)->PvFinalizeAlloc(pv, (ULONG) cSize, eat);
 }
 
 //---------------------------------------------------------------------------
@@ -73,10 +71,10 @@ NewImpl
 //
 //---------------------------------------------------------------------------
 void
-DeleteImpl
+IMemoryPool::DeleteImpl
 	(
 	void *pv,
-	IMemoryPool::EAllocationType eat
+	EAllocationType eat
 	)
 {
 	// deletion of NULL pointers is legal

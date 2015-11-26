@@ -58,6 +58,43 @@ namespace gpos
 			~IMemoryPool()
 			{}
 
+			// implementation of placement new with memory pool
+			void *NewImpl
+				(
+				SIZE_T cSize,
+				const CHAR *szFilename,
+				ULONG ulLine,
+				EAllocationType eat
+				);
+
+			// implementation of array-new with memory pool
+			template <typename T>
+			T* NewArrayImpl
+				(
+				SIZE_T cElements,
+				const CHAR *szFilename,
+				ULONG ulLine
+				)
+			{
+				T *rgTArray = static_cast<T*>(NewImpl(
+					sizeof(T) * cElements,
+					szFilename,
+					ulLine,
+					EatArray));
+				for (SIZE_T uIdx = 0; uIdx < cElements; ++uIdx) {
+					new(rgTArray + uIdx) T();
+				}
+				return rgTArray;
+			}
+
+			// delete implementation
+			static
+			void DeleteImpl
+				(
+				void *pv,
+				EAllocationType eat
+				);
+
 			// allocate memory; return NULL if the memory could not be allocated
 			virtual
 			void *PvAllocate
@@ -149,39 +186,6 @@ namespace gpos
 	}
 #endif // GPOS_DEBUG
 
-	// new implementation
-	void* NewImpl
-		(
-		gpos::IMemoryPool *pmp,
-		gpos::SIZE_T cSize,
-		const gpos::CHAR *szFilename,
-		gpos::ULONG ulLine,
-		gpos::IMemoryPool::EAllocationType eat
-		);
-
-	template <typename T>
-	T* NewArrayImpl
-		(
-		IMemoryPool *pmp,
-		SIZE_T cElements,
-		const CHAR *szFilename,
-		ULONG ulLine
-		)
-	{
-		T *rgTArray = static_cast<T*>(NewImpl(pmp, sizeof(T) * cElements, szFilename, ulLine, IMemoryPool::EatArray));
-		for (SIZE_T uIdx = 0; uIdx < cElements; ++uIdx) {
-			new(rgTArray + uIdx) T();
-		}
-		return rgTArray;
-	}
-
-	// delete implementation
-	void DeleteImpl
-		(
-		void *pv,
-		gpos::IMemoryPool::EAllocationType eat
-		);
-
 namespace delete_detail {
 
 // All-static helper class. Base version deletes unqualified pointers / arrays.
@@ -193,7 +197,7 @@ class CDeleter {
 				return;
 			}
 			object->~T();
-			DeleteImpl(object, IMemoryPool::EatSingleton);
+			IMemoryPool::DeleteImpl(object, IMemoryPool::EatSingleton);
 		}
 
 		static void DeleteArray(T* object_array) {
@@ -206,7 +210,7 @@ class CDeleter {
 				object_array[uIdx].~T();
 			}
 
-			DeleteImpl(object_array, IMemoryPool::EatArray);
+			IMemoryPool::DeleteImpl(object_array, IMemoryPool::EatArray);
 		}
 };
 
@@ -254,7 +258,7 @@ inline void *operator new
 	gpos::ULONG cLine
 	)
 {
-	return gpos::NewImpl(pmp, cSize, szFilename, cLine, gpos::IMemoryPool::EatSingleton);
+	return pmp->NewImpl(cSize, szFilename, cLine, gpos::IMemoryPool::EatSingleton);
 }
 
 //---------------------------------------------------------------------------
@@ -273,14 +277,14 @@ inline void operator delete
 	gpos::ULONG
 	)
 {
-	gpos::DeleteImpl(pv, gpos::IMemoryPool::EatSingleton);
+	gpos::IMemoryPool::DeleteImpl(pv, gpos::IMemoryPool::EatSingleton);
 }
 
 // placement new definition
 #define New(pmp) new(pmp, __FILE__, __LINE__)
 
 #define GPOS_NEW_ARRAY(pmp, datatype, count) \
-	NewArrayImpl<datatype>(pmp, count, __FILE__, __LINE__)
+	pmp->NewArrayImpl<datatype>(count, __FILE__, __LINE__)
 
 template <typename T>
 void GPOS_DELETE(T* object) {
