@@ -274,7 +274,7 @@ inline void *operator new
 	return pmp->NewImpl(cSize, szFilename, cLine, gpos::IMemoryPool::EatSingleton);
 }
 
-// Corresponding placement variants of delete operator. Note that, for delete
+// Corresponding placement variant of delete operator. Note that, for delete
 // statements in general, the compiler can not determine which overloaded
 // version of new was used to allocate memory originally, and the global
 // non-placement version is used. These placement versions of 'delete' are used
