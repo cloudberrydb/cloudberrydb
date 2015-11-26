@@ -277,7 +277,7 @@ inline void *operator new
 // Corresponding placement variant of delete operator. Note that, for delete
 // statements in general, the compiler can not determine which overloaded
 // version of new was used to allocate memory originally, and the global
-// non-placement version is used. These placement versions of 'delete' are used
+// non-placement version is used. This placement version of 'delete' is used
 // *only* when a constructor throws an exception, and the version of 'new' is
 // known to be the one declared above.
 inline void operator delete
