@@ -18,9 +18,6 @@
 #include "gpos/_api.h"
 #include "gpos/types.h"
 
-// inline memory allocators to be used for all unittests
-#include "gpos/memory/Allocators.inl"
-
 #include "gpos/common/CMainArgs.h"
 #include "gpos/test/CFSimulatorTestExt.h"
 #include "gpos/test/CTimeSliceTest.h"

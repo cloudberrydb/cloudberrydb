@@ -149,15 +149,15 @@ namespace gpos
 	}
 #endif // GPOS_DEBUG
 
-// new implementation
-void* NewImpl
-	(
-	gpos::IMemoryPool *pmp,
-	gpos::SIZE_T cSize,
-	const gpos::CHAR *szFilename,
-	gpos::ULONG ulLine,
-	gpos::IMemoryPool::EAllocationType eat
-	);
+	// new implementation
+	void* NewImpl
+		(
+		gpos::IMemoryPool *pmp,
+		gpos::SIZE_T cSize,
+		const gpos::CHAR *szFilename,
+		gpos::ULONG ulLine,
+		gpos::IMemoryPool::EAllocationType eat
+		);
 
 	template <typename T>
 	T* NewArrayImpl
@@ -175,12 +175,12 @@ void* NewImpl
 		return rgTArray;
 	}
 
-// delete implementation
-void DeleteImpl
-	(
-	void *pv,
-	gpos::IMemoryPool::EAllocationType eat
-	);
+	// delete implementation
+	void DeleteImpl
+		(
+		void *pv,
+		gpos::IMemoryPool::EAllocationType eat
+		);
 
 namespace delete_detail {
 
@@ -239,6 +239,42 @@ class CDeleter<volatile T> {
 }  // namespace delete_detail
 
 } // gpos
+
+//---------------------------------------------------------------------------
+// Overloading placement variant of singleton new operator. Used to allocate
+// arbitrary objects from an IMemoryPool. This does not affect the ordinary
+// built-in 'new', and is used only when placement-new is invoked with the
+// specific type signature defined below.
+//---------------------------------------------------------------------------
+inline void *operator new
+	(
+	gpos::SIZE_T cSize,
+	gpos::IMemoryPool *pmp,
+	const gpos::CHAR *szFilename,
+	gpos::ULONG cLine
+	)
+{
+	return gpos::NewImpl(pmp, cSize, szFilename, cLine, gpos::IMemoryPool::EatSingleton);
+}
+
+//---------------------------------------------------------------------------
+// Corresponding placement variants of delete operator. Note that, for delete
+// statements in general, the compiler can not determine which overloaded
+// version of new was used to allocate memory originally, and the global
+// non-placement version is used. These placement versions of 'delete' are used
+// only when a constructor throws an exception, and the version of 'new' is
+// known to be the one declared above.
+//---------------------------------------------------------------------------
+inline void operator delete
+	(
+	void *pv,
+	gpos::IMemoryPool*,
+	const gpos::CHAR*,
+	gpos::ULONG
+	)
+{
+	gpos::DeleteImpl(pv, gpos::IMemoryPool::EatSingleton);
+}
 
 // placement new definition
 #define New(pmp) new(pmp, __FILE__, __LINE__)

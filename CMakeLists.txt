@@ -189,7 +189,6 @@ add_library(gpos SHARED
             libgpos/src/io/COstreamFile.cpp
             libgpos/src/io/COstreamString.cpp
             libgpos/src/io/ioutils.cpp
-            libgpos/src/memory/Allocators.cpp
             libgpos/src/memory/CAutoMemoryPool.cpp
             libgpos/src/memory/CCache.cpp
             libgpos/src/memory/CCacheAccessorBase.cpp
