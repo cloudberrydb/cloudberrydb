@@ -4,7 +4,7 @@ cmake_minimum_required(VERSION 3.0 FATAL_ERROR)
 project(gpos LANGUAGES CXX C)
 
 set(GPOS_VERSION_MAJOR 1)
-set(GPOS_VERSION_MINOR 129)
+set(GPOS_VERSION_MINOR 130)
 set(GPOS_VERSION_STRING ${GPOS_VERSION_MAJOR}.${GPOS_VERSION_MINOR})
 
 # Whenever an ABI-breaking change is made to GPOS, this should be incremented.
@@ -13,7 +13,7 @@ set(GPOS_VERSION_STRING ${GPOS_VERSION_MAJOR}.${GPOS_VERSION_MINOR})
 # that might cause ABI changes, including adding or removing class members,
 # and things that might change vtables for classes with virtual methods. If in
 # doubt, do the safe thing and increment this number.
-set(GPOS_ABI_VERSION 5)
+set(GPOS_ABI_VERSION 6)
 
 # Check build type
 if(NOT CMAKE_BUILD_TYPE)
