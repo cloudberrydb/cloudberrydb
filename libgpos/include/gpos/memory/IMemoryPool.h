@@ -259,12 +259,10 @@ class CDeleter<volatile T> {
 
 } // gpos
 
-//---------------------------------------------------------------------------
 // Overloading placement variant of singleton new operator. Used to allocate
 // arbitrary objects from an IMemoryPool. This does not affect the ordinary
 // built-in 'new', and is used only when placement-new is invoked with the
 // specific type signature defined below.
-//---------------------------------------------------------------------------
 inline void *operator new
 	(
 	gpos::SIZE_T cSize,
@@ -276,14 +274,12 @@ inline void *operator new
 	return pmp->NewImpl(cSize, szFilename, cLine, gpos::IMemoryPool::EatSingleton);
 }
 
-//---------------------------------------------------------------------------
 // Corresponding placement variants of delete operator. Note that, for delete
 // statements in general, the compiler can not determine which overloaded
 // version of new was used to allocate memory originally, and the global
 // non-placement version is used. These placement versions of 'delete' are used
 // *only* when a constructor throws an exception, and the version of 'new' is
 // known to be the one declared above.
-//---------------------------------------------------------------------------
 inline void operator delete
 	(
 	void *pv,
