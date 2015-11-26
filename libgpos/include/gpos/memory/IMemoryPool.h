@@ -169,7 +169,23 @@ void* NewImplNoThrow
 	gpos::IMemoryPool::EAllocationType eat
 	);
 
-// delte implementation
+	template <typename T>
+	T* NewArrayImpl
+		(
+		IMemoryPool *pmp,
+		SIZE_T cElements,
+		const CHAR *szFilename,
+		ULONG ulLine
+		)
+	{
+		T *rgTArray = static_cast<T*>(NewImpl(pmp, sizeof(T) * cElements, szFilename, ulLine, IMemoryPool::EatArray));
+		for (SIZE_T uIdx = 0; uIdx < cElements; ++uIdx) {
+			new(rgTArray + uIdx) T();
+		}
+		return rgTArray;
+	}
+
+// delete implementation
 void DeleteImpl
 	(
 	void *pv,
@@ -244,9 +260,17 @@ class CDeleter<volatile T> {
 // placement new definition
 #define New(pmp) new(pmp, __FILE__, __LINE__)
 
+#define GPOS_NEW_ARRAY(pmp, datatype, count) \
+	NewArrayImpl<datatype>(pmp, count, __FILE__, __LINE__)
+
 template <typename T>
 void GPOS_DELETE(T* object) {
 	::gpos::delete_detail::CDeleter<T>::Delete(object);
+}
+
+template <typename T>
+void GPOS_DELETE_ARRAY(T* object_array) {
+	::gpos::delete_detail::CDeleter<T>::DeleteArray(object_array);
 }
 
 

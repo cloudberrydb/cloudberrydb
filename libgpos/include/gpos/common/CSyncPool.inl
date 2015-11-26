@@ -83,9 +83,9 @@ namespace gpos
 			}
 #endif // GPOS_DEBUG
 
-			delete[] m_rgtObjs;
-			delete[] m_rgulBitMapReserved;
-			delete[] m_rgulBitMapRecycled;
+			GPOS_DELETE_ARRAY(m_rgtObjs);
+			GPOS_DELETE_ARRAY(m_rgulBitMapReserved);
+			GPOS_DELETE_ARRAY(m_rgulBitMapRecycled);
 		}
 	}
 
@@ -107,9 +107,9 @@ namespace gpos
 	{
 		GPOS_ASSERT(ALIGNED_32(ulIdOffset));
 
-		m_rgtObjs = New(m_pmp) T[m_ulObjs];
-		m_rgulBitMapReserved = New(m_pmp) ULONG[m_ulBitMapSize];
-		m_rgulBitMapRecycled = New(m_pmp) ULONG[m_ulBitMapSize];
+		m_rgtObjs = GPOS_NEW_ARRAY(m_pmp, T, m_ulObjs);
+		m_rgulBitMapReserved = GPOS_NEW_ARRAY(m_pmp, ULONG, m_ulBitMapSize);
+		m_rgulBitMapRecycled = GPOS_NEW_ARRAY(m_pmp, ULONG, m_ulBitMapSize);
 
 		m_ulIdOffset = ulIdOffset;
 

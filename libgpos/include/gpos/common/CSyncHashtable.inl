@@ -60,7 +60,7 @@ namespace gpos
 		m_pfuncHash = pfuncHash;
 		m_pfuncEqual = pfuncEqual;
 					
-		m_rgbucket = New(pmp) SBucket[m_cSize];
+		m_rgbucket = GPOS_NEW_ARRAY(pmp, SBucket, m_cSize);
 
 		// NOTE: 03/25/2008; since it's the only allocation in the
 		//		constructor the protection is not needed strictly speaking;
@@ -109,7 +109,7 @@ namespace gpos
 	void 
 	CSyncHashtable<T, K, S>::Cleanup()
 	{
-		delete[] m_rgbucket;
+		GPOS_DELETE_ARRAY(m_rgbucket);
 		m_rgbucket = NULL;
 		
 		m_cSize = 0;

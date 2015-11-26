@@ -256,7 +256,7 @@ CMemoryPoolBasicTest::EresNewDelete
 						);
 
 	// use overloaded New operator
-	WCHAR *wsz = New(pmp) WCHAR[GPOS_ARRAY_SIZE(rgwszText)];
+	WCHAR *wsz = GPOS_NEW_ARRAY(pmp, WCHAR, GPOS_ARRAY_SIZE(rgwszText));
 	(void) clib::WszWMemCpy(wsz, rgwszText, GPOS_ARRAY_SIZE(rgwszText));
 
 #ifdef GPOS_DEBUG
@@ -281,7 +281,7 @@ CMemoryPoolBasicTest::EresNewDelete
 
 #endif // GPOS_DEBUG
 
-	delete[] wsz;
+	GPOS_DELETE_ARRAY(wsz);
 
 	return GPOS_OK;
 }
@@ -314,7 +314,7 @@ CMemoryPoolBasicTest::EresOOM
 	IMemoryPool *pmp = amp.Pmp();
 
 	// OOM
-	New(pmp) BYTE[128 * 1024 * 1024];
+	GPOS_NEW_ARRAY(pmp, BYTE, 128 * 1024 * 1024);
 
 	return GPOS_FAILED;
 }
@@ -394,12 +394,12 @@ CMemoryPoolBasicTest::EresLeak
 		for (ULONG i = 0; i < 10; i++)
 		{
 			// use overloaded New operator
-			ULONG *rgul = New(pmp) ULONG[10];
+			ULONG *rgul = GPOS_NEW_ARRAY(pmp, ULONG, 10);
 			rgul[2] = 1;
 
 			if (i < 8)
 			{
-				delete[] rgul;
+				GPOS_DELETE_ARRAY(rgul);
 			}
 		}
 	}
@@ -441,7 +441,7 @@ CMemoryPoolBasicTest::EresLeakByException
 		for (ULONG i = 0; i < 10; i++)
 		{
 			// use overloaded New operator
-			ULONG *rgul = New(pmp) ULONG[3];
+			ULONG *rgul = GPOS_NEW_ARRAY(pmp, ULONG, 3);
 			rgul[2] = 1;
 		}
 
@@ -571,12 +571,12 @@ CMemoryPoolBasicTest::Allocate
 	ULONG ulCount
 	)
 {
-	BYTE **rgpb = New(pmp) BYTE*[ulCount];
+	BYTE **rgpb = GPOS_NEW_ARRAY(pmp, BYTE*, ulCount);
 
 	for (ULONG i = 0; i < ulCount; i++)
 	{
 		const ULONG ulSize = UlSize(i);
-		rgpb[i] = New(pmp) BYTE[ulSize];
+		rgpb[i] = GPOS_NEW_ARRAY(pmp, BYTE, ulSize);
 #ifdef GPOS_DEBUG
 		(void) clib::PvMemSet(rgpb[i], 1, ulSize);
 #endif // GPOS_DEBUG
@@ -601,7 +601,7 @@ CMemoryPoolBasicTest::Allocate
 		}
 #endif // GPOS_DEBUG
 
-		delete[] rgpb[i];
+		GPOS_DELETE_ARRAY(rgpb[i]);
 
 		if (0 == i % GPOS_MEM_TEST_CFA)
 		{
@@ -611,7 +611,7 @@ CMemoryPoolBasicTest::Allocate
 
 	GPOS_CHECK_ABORT;
 
-	delete[] rgpb;
+	GPOS_DELETE_ARRAY(rgpb);
 }
 
 
@@ -736,7 +736,7 @@ CMemoryPoolBasicTest::AllocateRandom
 		ULONG ulExp = (1 << (ulRand % ulMaxPower));
 		ULONG ulFactor = ulRand % ulMask + 1;
 		ULONG ulSize = ulFactor * ulExp * ulExp;
-		rgpb[i] = New(pmp) BYTE[ulSize];
+		rgpb[i] = GPOS_NEW_ARRAY(pmp, BYTE, ulSize);
 
 		if (0 == i % GPOS_MEM_TEST_CFA)
 		{
@@ -749,7 +749,7 @@ CMemoryPoolBasicTest::AllocateRandom
 	for (ULONG i = 0; i < GPOS_ARRAY_SIZE(rgpb); i++)
 	{
 		GPOS_ASSERT(NULL != rgpb[i]);
-		delete[] rgpb[i];
+		GPOS_DELETE_ARRAY(rgpb[i]);
 
 		if (0 == i % GPOS_MEM_TEST_CFA)
 		{

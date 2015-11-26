@@ -239,7 +239,7 @@ CWStringTest::EresUnittest_AppendFormatLarge()
 	ULONG ulStartLength = pstr3->UlLength();
 #endif // GPOS_DEBUG
 	const ULONG ulAppendLength = 50000;
-	CHAR *sz = New(pmp) CHAR[ulAppendLength + 1];
+	CHAR *sz = GPOS_NEW_ARRAY(pmp, CHAR, ulAppendLength + 1);
 	for (ULONG ul = 0; ul < ulAppendLength; ul++)
 	{
 		sz[ul] = 'W';
@@ -249,7 +249,7 @@ CWStringTest::EresUnittest_AppendFormatLarge()
 	// append a large string
 	pstr3->AppendCharArray(sz);
 	GPOS_ASSERT(ulAppendLength + ulStartLength == pstr3->UlLength());
-	delete [] sz;
+	GPOS_DELETE_ARRAY(sz);
 
 	// do another append of a small string
 	pstr3->AppendCharArray(" World");

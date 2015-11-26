@@ -173,7 +173,7 @@ CHashMapTest::EresUnittest_Ownership()
 	for (ULONG i = 0; i < ulCnt; ++i)
 	{
 		ULONG_PTR *pulp = New(pmp) ULONG_PTR(i);
-		CHAR *sz = New(pmp) CHAR[3];
+		CHAR *sz = GPOS_NEW_ARRAY(pmp, CHAR, 3);
 	
 #ifdef GPOS_DEBUG
 		BOOL fSuccess =

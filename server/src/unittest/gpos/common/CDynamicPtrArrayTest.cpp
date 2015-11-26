@@ -181,7 +181,7 @@ CDynamicPtrArrayTest::EresUnittest_Ownership()
 	// add elements incl trigger resize of array
 	for (ULONG i = 0; i < 3; i++)
 	{
-		CHAR *sz = New(pmp) CHAR[5];
+		CHAR *sz = GPOS_NEW_ARRAY(pmp, CHAR, 5);
 		pdrgCHAR->Append(sz);
 		GPOS_ASSERT(i + 1 == pdrgCHAR->UlLength());
 		GPOS_ASSERT(sz == (*pdrgCHAR)[i]);

@@ -80,7 +80,7 @@ CWStringConst::CWStringConst
 	else
 	{
 		// make a copy of the string
-		WCHAR *wszTempBuf = New(pmp) WCHAR[m_ulLength + 1];
+		WCHAR *wszTempBuf = GPOS_NEW_ARRAY(pmp, WCHAR, m_ulLength + 1);
 		clib::WszWcsNCpy(wszTempBuf, wszBuf, m_ulLength + 1);
 		m_wszBuf = wszTempBuf;
 	}
@@ -124,7 +124,7 @@ CWStringConst::~CWStringConst()
 {
 	if (m_fOwnsMemory && m_wszBuf != &m_wcEmpty)
 	{
-		delete[] m_wszBuf;
+		GPOS_DELETE_ARRAY(m_wszBuf);
 	}
 }
 

@@ -302,7 +302,7 @@ CLoggerTest::Unittest_TestLoggerFile
 			{
 				CAutoTaskProxy atp(pmp, pwpm);
 				CAutoRg<CTask *> argPtsk;
-				argPtsk = New(pmp) CTask*[ulWorkers];
+				argPtsk = GPOS_NEW_ARRAY(pmp, CTask*, ulWorkers);
 
 				for (ULONG i = 0; i < ulWorkers; i++)
 				{

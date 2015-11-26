@@ -170,10 +170,10 @@ CRefCountTest::EresUnittest_Check()
 	CAutoMemoryPool amp;
 	IMemoryPool *pmp = amp.Pmp();
 
-	BYTE *rgb = New(pmp) BYTE[128];
+	BYTE *rgb = GPOS_NEW_ARRAY(pmp, BYTE, 128);
 	CRefCount *pref = (CRefCount*)rgb;
 
-	delete [] rgb;
+	GPOS_DELETE_ARRAY(rgb);
 
 
 	// must throw

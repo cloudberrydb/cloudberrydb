@@ -251,7 +251,7 @@ CWorkerPoolManagerTest::Unittest_TestSingleTaskPerformance
 	CWorkerPoolManager *pwpm = CWorkerPoolManager::Pwpm();
 	CAutoTaskProxy atp(pmp, pwpm);
 	CAutoRg<CTask *> argPtsk;
-	argPtsk = New(pmp) CTask*[ulWorkers];
+	argPtsk = GPOS_NEW_ARRAY(pmp, CTask*, ulWorkers);
 
 	ULONG ulIterCntPerWorkers = ulIterCnt / ulWorkers;
 
@@ -298,7 +298,7 @@ CWorkerPoolManagerTest::Unittest_TestMultiTaskPerformance
 	for (ULONG i = 0; i < ulIterCntPerWorkers; i++)
 	{
 		CAutoRg<CTask *> argPtsk;
-		argPtsk = New(pmp) CTask*[ulWorkers];
+		argPtsk = GPOS_NEW_ARRAY(pmp, CTask*, ulWorkers);
 		ULLONG ulRes;
 
 		for (ULONG i = 0; i < ulWorkers; i++)
@@ -361,7 +361,7 @@ CWorkerPoolManagerTest::Unittest_Stress
 	{
 		CAutoTaskProxy atp(pmp, pwpm);
 		CAutoRg<CTask *> argPtsk;
-		argPtsk = New(pmp) CTask*[culTskCnt];
+		argPtsk = GPOS_NEW_ARRAY(pmp, CTask*, culTskCnt);
 		ULLONG ulSum = 0;
 
 		CWallClock clock;

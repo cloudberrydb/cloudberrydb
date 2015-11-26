@@ -132,7 +132,7 @@ namespace gpos
 	template<class T>
 	inline void CleanupDeleteRg(T *pt)
 	{
-		delete [] pt;
+		GPOS_DELETE_ARRAY(pt);
 	}
 
 	// release ref-count'd object

@@ -112,7 +112,7 @@ namespace gpos
 	template <class T>
 	CAutoRg<T>::~CAutoRg()
 	{
-		delete [] m_rgt;
+		GPOS_DELETE_ARRAY(m_rgt);
 	}
 }
 

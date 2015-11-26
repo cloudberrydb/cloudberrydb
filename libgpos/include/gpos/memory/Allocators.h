@@ -29,13 +29,12 @@
 using namespace gpos;
 
 //---------------------------------------------------------------------------
-// Overloading placement variants of new operators. Used to allocate
+// Overloading placement variant of singleton new operator. Used to allocate
 // arbitrary objects from an IMemoryPool. This does not affect the ordinary
 // built-in 'new', and is used only when placement-new is invoked with the
 // specific type signature defined below.
 //---------------------------------------------------------------------------
 
-// placement new operator
 void *operator new
 	(
 	gpos::SIZE_T cSize,
@@ -44,35 +43,16 @@ void *operator new
 	gpos::ULONG cLine
 	);
 
-// placement array new operator
-void *operator new []
-	(
-	gpos::SIZE_T cSize,
-	gpos::IMemoryPool *pmp,
-	const gpos::CHAR *szFilename,
-	gpos::ULONG cLine
-	);
-
 //---------------------------------------------------------------------------
-// Corresponding placement variants of delete operators. Note that, for delete
+// Corresponding placement variants of delete operator. Note that, for delete
 // statements in general, the compiler can not determine which overloaded
 // version of new was used to allocate memory originally, and the global
 // non-placement version is used. These placement versions of 'delete' are used
 // only when a constructor throws an exception, and the version of 'new' is
-// known to be one of the two declared above.
+// known to be the one declared above.
 //---------------------------------------------------------------------------
 
-// placement delete
 void operator delete
-	(
-	void *pv,
-	gpos::IMemoryPool *pmp,
-	const gpos::CHAR *szFilename,
-	gpos::ULONG cLine
-	);
-
-// placement array delete
-void operator delete []
 	(
 	void *pv,
 	gpos::IMemoryPool *pmp,
