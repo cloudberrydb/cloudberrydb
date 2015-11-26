@@ -17,13 +17,9 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <sys/file.h>
-#include <glob.h>
-#include <dirent.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 
-
-#include "access/appendonlywriter.h" 
 #include "catalog/catalog.h"
 #include "miscadmin.h"
 #include "postmaster/bgwriter.h"
@@ -34,7 +30,6 @@
 #include "cdb/cdbmirroredbufferpool.h"
 #include "cdb/cdbpersistenttablespace.h"
 #include "cdb/cdbfilerepprimary.h"
-#include "utils/guc.h"
 #include "catalog/pg_tablespace.h"
 
 
