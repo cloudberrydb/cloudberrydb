@@ -82,7 +82,17 @@ namespace gpos
 					ulLine,
 					EatArray));
 				for (SIZE_T uIdx = 0; uIdx < cElements; ++uIdx) {
-					new(rgTArray + uIdx) T();
+					try {
+						new(rgTArray + uIdx) T();
+					} catch (...) {
+						// If any element's constructor throws, deconstruct
+						// previous objects and reclaim memory.
+						for (SIZE_T uDestroyIdx = uIdx - 1; uDestroyIdx < uIdx; --uDestroyIdx) {
+							rgTArray[uDestroyIdx].~T();
+						}
+						DeleteImpl(rgTArray, EatArray);
+						throw;
+					}
 				}
 				return rgTArray;
 			}
@@ -186,6 +196,7 @@ namespace gpos
 	}
 #endif // GPOS_DEBUG
 
+// Nested detail namespace for templated helper classes.
 namespace delete_detail {
 
 // All-static helper class. Base version deletes unqualified pointers / arrays.
@@ -196,6 +207,8 @@ class CDeleter {
 			if (NULL == object) {
 				return;
 			}
+
+			// Invoke destructor, then free memory.
 			object->~T();
 			IMemoryPool::DeleteImpl(object, IMemoryPool::EatSingleton);
 		}
@@ -205,11 +218,13 @@ class CDeleter {
 				return;
 			}
 
+			// Invoke destructor on each array element.
 			const SIZE_T cElements = IMemoryPool::UlSizeOfAlloc(object_array) / sizeof(T);
 			for (SIZE_T uIdx = 0; uIdx < cElements; ++uIdx) {
 				object_array[uIdx].~T();
 			}
 
+			// Free memory.
 			IMemoryPool::DeleteImpl(object_array, IMemoryPool::EatArray);
 		}
 };
@@ -266,7 +281,7 @@ inline void *operator new
 // statements in general, the compiler can not determine which overloaded
 // version of new was used to allocate memory originally, and the global
 // non-placement version is used. These placement versions of 'delete' are used
-// only when a constructor throws an exception, and the version of 'new' is
+// *only* when a constructor throws an exception, and the version of 'new' is
 // known to be the one declared above.
 //---------------------------------------------------------------------------
 inline void operator delete
@@ -277,20 +292,33 @@ inline void operator delete
 	gpos::ULONG
 	)
 {
+	// Reclaim memory after constructor throws exception.
 	gpos::IMemoryPool::DeleteImpl(pv, gpos::IMemoryPool::EatSingleton);
 }
 
-// placement new definition
+// Placement new-style macro to do 'new' with a memory pool. Anything allocated
+// with this *must* be deleted by GPOS_DELETE, *not* the ordinary delete
+// operator.
 #define New(pmp) new(pmp, __FILE__, __LINE__)
 
+// Replacement for array-new. Conceptually equivalent to
+// 'new(pmp) datatype[count]'. Any arrays allocated with this *must* be deleted
+// by GPOS_DELETE_ARRAY, *not* the ordinary delete[] operator.
+//
+// NOTE: Unlike singleton new, we do not overload the built-in new operator for
+// arrays, because when we do so the C++ compiler adds its own book-keeping
+// information to the allocation in a non-portable way such that we can not
+// recover GPOS' own book-keeping information reliably.
 #define GPOS_NEW_ARRAY(pmp, datatype, count) \
 	pmp->NewArrayImpl<datatype>(count, __FILE__, __LINE__)
 
+// Delete a singleton object allocated by GPOS_NEW().
 template <typename T>
 void GPOS_DELETE(T* object) {
 	::gpos::delete_detail::CDeleter<T>::Delete(object);
 }
 
+// Delete an array allocated by GPOS_NEW_ARRAY().
 template <typename T>
 void GPOS_DELETE_ARRAY(T* object_array) {
 	::gpos::delete_detail::CDeleter<T>::DeleteArray(object_array);
