@@ -598,8 +598,6 @@ XLogOpenRelation(RelFileNode rnode)
 		{
 			MirrorDataLossTrackingState mirrorDataLossTrackingState;
 			int64 mirrorDataLossTrackingSessionNum;
-			
-			int primaryError;
 			bool mirrorDataLossOccurred;
 			
 			// UNDONE: What about the persistent rel files table???
@@ -615,7 +613,6 @@ XLogOpenRelation(RelFileNode rnode)
 				mirrorDataLossTrackingState,
 				mirrorDataLossTrackingSessionNum,
 				/* ignoreAlreadyExists */ true,
-				&primaryError,
 				&mirrorDataLossOccurred);
 			
 		}

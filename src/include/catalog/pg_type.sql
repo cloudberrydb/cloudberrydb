@@ -404,9 +404,9 @@
    OUTPUT = cash_out,
    RECEIVE = cash_recv,
    SEND = cash_send,
-   INTERNALLENGTH = 4,
+   INTERNALLENGTH = 8,
    STORAGE = plain,
-   ALIGNMENT = int4
+   ALIGNMENT = double
  ) WITH (OID=790, ARRAYOID=791, DESCRIPTION="monetary amounts, $d,ddd.cc");
 -- #define CASHOID 790
 

@@ -151,7 +151,7 @@
 
  CREATE FUNCTION pg_stat_get_wal_senders(OUT pid int4, OUT state text, OUT sent_location text, OUT write_location text, OUT flush_location text, OUT replay_location text, OUT sync_priority int4, OUT sync_state text) RETURNS SETOF pg_catalog.record LANGUAGE internal STABLE AS 'pg_stat_get_wal_senders' WITH (OID=3099, DESCRIPTION="statistics: information about currently active replication");
 
- CREATE FUNCTION pg_terminate_backend(int4) RETURNS bool LANGUAGE internal VOLATILE STRICT AS 'pg_terminate_backend' WITH (OID=2878, DESCRIPTION="terminate a server process");
+ CREATE FUNCTION pg_terminate_backend(int4) RETURNS bool LANGUAGE internal VOLATILE STRICT AS 'pg_terminate_backend' WITH (OID=6118, DESCRIPTION="terminate a server process");
 
  CREATE FUNCTION pg_resqueue_status() RETURNS SETOF record LANGUAGE internal VOLATILE STRICT AS 'pg_resqueue_status' WITH (OID=6030, DESCRIPTION="Return resource queue information");
 

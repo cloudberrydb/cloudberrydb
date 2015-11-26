@@ -433,6 +433,8 @@ Relation DirectOpen_Open(
 	direct->relationData.rd_node.dbNode = database;
 	direct->relationData.rd_node.relNode = relfilenode;
 
+	direct->relationData.rd_targblock = InvalidBlockNumber;
+
 	for (i = 0; i < direct->relationData.rd_rel->relnatts; i++)
 	{
 		Assert(direct->descData.attrs[i] != NULL);

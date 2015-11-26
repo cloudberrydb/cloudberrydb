@@ -9,7 +9,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/commands/tablecmds.c,v 1.208 2006/12/30 21:21:53 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/commands/tablecmds.c,v 1.209 2007/01/03 18:11:01 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -11681,7 +11681,7 @@ copy_buffer_pool_data(
 		 * rel, because there's no need for smgr to schedule an fsync for this
 		 * write; we'll do it ourselves below.
 		 */
-		smgrwrite(dst, blkno, buf, true);
+		smgrextend(dst, blkno, buf, true);
 		
 		LWLockRelease(MirroredLock);
 		// -------- MirroredLock ----------
