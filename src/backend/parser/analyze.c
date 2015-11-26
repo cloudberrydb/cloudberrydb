@@ -276,6 +276,7 @@ static int partition_range_every(ParseState *pstate,
 								 List *coltypes,
 								 char *at_depth,
 								 partValidationState *vstate);
+static Datum partition_arg_get_val(Node *node, bool *isnull);
 static Datum eval_basic_opexpr(ParseState *pstate, List *oprname,
 							   Node *leftarg, Node *rightarg,
 							   bool *typbyval, int16 *typlen,
@@ -5009,18 +5010,20 @@ preprocess_range_spec(partValidationState *vstate)
 					{
 						TypeName *typ = lfirst(lccol);
 						Node *newnode;
+						Oid			typid = typenameTypeId(vstate->pstate, typ);
+						int32		typmod = typenameTypeMod(vstate->pstate,
+													 typ, typid);
 
 						newnode = coerce_partition_value(lfirst(lcstart),
-														 typ->typid,
-														 typ->typmod,
+														 typid, typmod,
 														 PARTTYP_RANGE);
 
 						lfirst(lcstart) = newnode;
 
 						/* be sure we coerce the end value */
 						newnode = coerce_partition_value(lfirst(lcend),
-														 typ->typid,
-														 typ->typmod,
+														 typid,
+														 typmod,
 														 PARTTYP_RANGE);
 						lfirst(lcend) = newnode;
 						lcend = lnext(lcend);
@@ -5091,7 +5094,9 @@ preprocess_range_spec(partValidationState *vstate)
 					Const *myend;
 					Const *clauseend;
 					Const *clauseevery;
-					Oid typid = type->typid;
+					Oid			typid = typenameTypeId(vstate->pstate, type);
+					int32		typmod = typenameTypeMod(vstate->pstate,
+													 type, typid);
 					int16 len = get_typlen(typid);
 					bool typbyval = get_typbyval(typid);
 
@@ -5107,8 +5112,7 @@ preprocess_range_spec(partValidationState *vstate)
 											&typbyval, &len, &typid,
 										   	-1);
 
-					/* XXX: typmod ? */
-					myend = makeConst(type->typid, type->typmod, len,
+					myend = makeConst(typid, typmod, len,
 									  datumCopy(res, typbyval, len),
 									  false, typbyval);
 
@@ -5276,10 +5280,11 @@ preprocess_range_spec(partValidationState *vstate)
 					Node *mystart = lfirst(lcstart);
 					TypeName *typ = lfirst(lccol);
 					Node *newnode;
-
+					Oid			typid = typenameTypeId(vstate->pstate, typ);
+					int32		typmod = typenameTypeMod(vstate->pstate,
+													 typ, typid);
 					newnode = coerce_partition_value(mystart,
-													 typ->typid,
-													 typ->typmod,
+													 typid, typmod,
 													 PARTTYP_RANGE);
 
 					lfirst(lcstart) = newnode;
@@ -5298,10 +5303,12 @@ preprocess_range_spec(partValidationState *vstate)
 					Node *myend = lfirst(lcend);
 					TypeName *typ = lfirst(lccol);
 					Node *newnode;
+					Oid			typid = typenameTypeId(vstate->pstate, typ);
+					int32		typmod = typenameTypeMod(vstate->pstate,
+														 typ, typid);
 
 					newnode = coerce_partition_value(myend,
-													 typ->typid,
-													 typ->typmod,
+													 typid, typmod,
 													 PARTTYP_RANGE);
 
 					lfirst(lcend) = newnode;
@@ -5974,32 +5981,14 @@ Node *
 coerce_partition_value(Node *node, Oid typid, int32 typmod,
 					   PartitionByType partype)
 {
-	Node *out;
+	Node	   *out;
 
-	/* If it's a NULL, just directly coerce the value */
-	if (IsA(node, Const))
-	{
-		Const *c = (Const *)node;
-
-		if (c->constisnull)
-		{
-			c->consttype = typid;
-			return node;
-		}
-	}
-
-	/*
-	 * We want to cast things directly to the table type. We do
-	 * not want to have to store a node which coerces this, it's
-	 * unnecessarily expensive to do it every time.
-	 */
+	/* Create a coercion expression to the target type */
 	out = coerce_to_target_type(NULL, node, exprType(node),
 								typid, typmod,
 								COERCION_EXPLICIT,
 								COERCE_IMPLICIT_CAST,
 								-1);
-
-
 	/* MPP-3626: better error message */
 	if (!out)
 	{
@@ -6057,38 +6046,13 @@ coerce_partition_value(Node *node, Oid typid, int32 typmod,
 						format_type_be(typid))));
 	}
 
-
-	/* explicit coerce */
-	if (IsA(out, FuncExpr) || IsA(out, OpExpr) || IsA(out, CoerceToDomain))
-	{
-		bool isnull;
-		Datum d = partition_arg_get_val(out, &isnull);
-		Const *c;
-		Type typ = typeidType(typid);
-
-		pfree(out);
-
-		c = makeConst(typid, -1, typeLen(typ), d, isnull,
-					  typeByVal(typ));
-		ReleaseType(typ);
-		out = (Node *)c;
-
-		/*
-		 * coerce again for typmod: if we can't coerce the type mod,
-		 * we'll error out
-		 */
-		out = coerce_to_target_type(NULL, out, exprType(out),
-									typid, typmod,
-									COERCION_EXPLICIT,
-									COERCE_IMPLICIT_CAST,
-									-1);
-
-		/* be careful, we might just add the coercion function back in! */
-		if (IsA(out, FuncExpr) || IsA(out, OpExpr))
-			out = (Node *)c;
-	}
-	else
-		Assert(IsA(out, Const));
+	/*
+	 * And then evaluate it. evaluate_expr calls possible cast function,
+	 * and returns a Const. (the check for that below is just for paranoia)
+	 */
+	out = (Node *) evaluate_expr((Expr *) out, typid);
+	if (!IsA(out, Const))
+		elog(ERROR, "partition parameter is not constant");
 
 	return out;
 }
@@ -6192,8 +6156,11 @@ validate_list_partition(partValidationState *vstate)
 				Node *node = transformExpr(vstate->pstate,
 										   (Node *)lfirst(lc_val));
 				TypeName *type = lfirst(llc2);
+				Oid			typid = typenameTypeId(vstate->pstate, type);
+				int32		typmod = typenameTypeMod(vstate->pstate,
+													 type, typid);
 
-				node = coerce_partition_value(node, type->typid, type->typmod,
+				node = coerce_partition_value(node, typid, typmod,
 											  PARTTYP_LIST);
 
 				tvals = lappend(tvals, node);
@@ -6747,118 +6714,17 @@ flatten_partition_val(Node *node, Oid target_type)
  * Get the actual value from the expression. There are only a limited range
  * of cases we must cover because the parser guarantees constant input.
  */
-Datum
+static Datum
 partition_arg_get_val(Node *node, bool *isnull)
 {
-	switch (nodeTag(node))
-	{
-		case T_FuncExpr:
-			{
-				/* must have been cast to the operator. */
-				FuncExpr *fe = (FuncExpr *)node;
-				Datum d = PointerGetDatum(NULL);
+	Const	   *c;
 
-				switch (list_length(fe->args))
-				{
-					case 1:
-						{
-							Datum d1 =
-								partition_arg_get_val(linitial(fe->args), isnull);
+	c = (Const *) evaluate_expr((Expr *) node, exprType(node));
+	if (!IsA(c, Const))
+		elog(ERROR, "partition parameter is not constant");
 
-							if (!*isnull)
-								d = OidFunctionCall1(fe->funcid, d1);
-						}
-						break;
-					case 2:
-						{
-							bool null1, null2;
-							Datum d1 = partition_arg_get_val(linitial(fe->args), &null1);
-							Datum d2 = partition_arg_get_val(lsecond(fe->args), &null2);
-
-							*isnull = null1 || null2;
-							if (!*isnull)
-								d = OidFunctionCall2(fe->funcid, d1, d2);
-						}
-						break;
-					case 3:
-						{
-							bool null1, null2, null3;
-
-							Datum d1 = partition_arg_get_val(linitial(fe->args), &null1);
-							Datum d2 = partition_arg_get_val(lsecond(fe->args), &null2);
-							Datum d3 = partition_arg_get_val(lthird(fe->args), &null3);
-
-							*isnull = null1 || null2 || null3;
-							if (!*isnull)
-								d = OidFunctionCall3(fe->funcid, d1, d2, d3);
-						}
-						break;
-					default:
-						elog(ERROR, "unexpected number of coercion function "
-							 "arguments: %d", list_length(fe->args));
-						break;
-				}
-				return d;
-			}
-			break;
-		case T_OpExpr:
-			{
-				OpExpr *op = (OpExpr *)node;
-				Datum d = 0;
-
-				if (!OidIsValid(op->opfuncid))
-					op->opfuncid = get_opcode(op->opno);
-
-				switch (list_length(op->args))
-				{
-					case 1:
-						{
-							Datum d1 = partition_arg_get_val(linitial(op->args), isnull);
-							if (!*isnull)
-								d = OidFunctionCall1(op->opfuncid, d1);
-						}
-						break;
-					case 2:
-						{
-							bool null1, null2;
-							Datum d1 = partition_arg_get_val(linitial(op->args), &null1);
-							Datum d2 = partition_arg_get_val(lsecond(op->args), &null2);
-							*isnull = null1 || null2;
-							if (!*isnull)
-								d = OidFunctionCall2(op->opfuncid, d1, d2);
-						}
-						break;
-					default:
-						elog(ERROR, "unexpected number of arguments for operator function: %d", list_length(op->args));
-				}
-				return d;
-			}
-			*isnull = false;
-			break;
-		case T_RelabelType:
-			{
-				RelabelType *n = (RelabelType *)node;
-
-				return partition_arg_get_val((Node *)n->arg, isnull);
-			}
-			break;
-		case T_Const:
-			*isnull = ((Const *)node)->constisnull;
-			return ((Const *)node)->constvalue;
-			break;
-		case T_CoerceToDomain:
-			{
-				CoerceToDomain *c = (CoerceToDomain *)node;
-				return partition_arg_get_val((Node *)c->arg, isnull);
-			}
-			break;
-		default:
-			elog(ERROR, "unknown partitioning argument type: %d",
-				 nodeTag(node));
-			break;
-
-	}
-	return 0; /* quieten GCC */
+	*isnull = c->constisnull;
+	return c->constvalue;
 }
 
 /*
@@ -7208,14 +7074,9 @@ partition_range_every(ParseState *pstate, PartitionBy *pBy, List *coltypes,
 				Oid restypid;
 				Type typ;
 				char *outputstr;
-				Oid coltypid = type->typid;
-
-				if (!OidIsValid(coltypid))
-				{
-					Type t = typenameType(pstate, type);
-					coltypid = type->typid = typeTypeId(t);
-					ReleaseType(t);
-				}
+				Oid			coltypid = typenameTypeId(vstate->pstate, type);
+				int32		coltypmod = typenameTypeMod(vstate->pstate,
+														type, coltypid);
 
 				oprmul = lappend(NIL, makeString("*"));
 				oprplus = lappend(NIL, makeString("+"));
@@ -7224,14 +7085,14 @@ partition_range_every(ParseState *pstate, PartitionBy *pBy, List *coltypes,
 
 				n1t = transformExpr(pstate, n1);
 				n1t = coerce_type(NULL, n1t, exprType(n1t), coltypid,
-								  type->typmod,
+								  coltypmod,
 								  COERCION_EXPLICIT, COERCE_IMPLICIT_CAST,
 								  -1);
 				n1t = (Node *)flatten_partition_val(n1t, coltypid);
 
 				n2t = transformExpr(pstate, n2);
 				n2t = coerce_type(NULL, n2t, exprType(n2t), coltypid,
-								  type->typmod,
+								  coltypmod,
 								  COERCION_EXPLICIT, COERCE_IMPLICIT_CAST,
 								  -1);
 				n2t = (Node *)flatten_partition_val(n2t, coltypid);

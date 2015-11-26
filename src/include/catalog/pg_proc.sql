@@ -17,11 +17,11 @@
 -- MPP -- array_add -- special for prospective customer 
  CREATE FUNCTION array_add(_int4, _int4) RETURNS _int4 LANGUAGE internal IMMUTABLE STRICT AS 'array_int4_add' WITH (OID=6012, DESCRIPTION="itemwise add two integer arrays");
 
- CREATE FUNCTION array_agg_transfn(internal, anyelement) RETURNS internal LANGUAGE internal IMMUTABLE AS 'array_agg_transfn' WITH (OID=2908, DESCRIPTION="array_agg transition function");
+ CREATE FUNCTION array_agg_transfn(internal, anyelement) RETURNS internal LANGUAGE internal IMMUTABLE AS 'array_agg_transfn' WITH (OID=6096, DESCRIPTION="array_agg transition function");
 
- CREATE FUNCTION array_agg_finalfn(internal) RETURNS anyarray LANGUAGE internal IMMUTABLE AS 'array_agg_finalfn' WITH (OID=2909, DESCRIPTION="array_agg final function");
+ CREATE FUNCTION array_agg_finalfn(internal) RETURNS anyarray LANGUAGE internal IMMUTABLE AS 'array_agg_finalfn' WITH (OID=6097, DESCRIPTION="array_agg final function");
 
- CREATE FUNCTION array_agg(anyelement) RETURNS anyarray LANGUAGE internal IMMUTABLE AS 'aggregate_dummy' WITH (OID=2910, DESCRIPTION="concatenate aggregate input into an array", proisagg="t");
+ CREATE FUNCTION array_agg(anyelement) RETURNS anyarray LANGUAGE internal IMMUTABLE AS 'aggregate_dummy' WITH (OID=6098, DESCRIPTION="concatenate aggregate input into an array", proisagg="t");
 
  CREATE FUNCTION string_agg_transfn(internal, text) RETURNS internal LANGUAGE internal IMMUTABLE AS 'string_agg_transfn' WITH (OID=3534, DESCRIPTION="string_agg(text) transition function");
 
@@ -40,9 +40,9 @@
  CREATE FUNCTION int8dec(int8) RETURNS int8 LANGUAGE internal IMMUTABLE STRICT AS 'int8dec' WITH (OID=3546);
 
 
- CREATE FUNCTION interval_interval_div("interval", "interval") RETURNS float8 LANGUAGE internal IMMUTABLE STRICT AS 'interval_interval_div' WITH (OID=2918, DESCRIPTION="divide");
+ CREATE FUNCTION interval_interval_div("interval", "interval") RETURNS float8 LANGUAGE internal IMMUTABLE STRICT AS 'interval_interval_div' WITH (OID=6115, DESCRIPTION="divide");
 
- CREATE FUNCTION interval_interval_mod("interval", "interval") RETURNS "interval" LANGUAGE internal IMMUTABLE STRICT AS 'interval_interval_mod' WITH (OID=2919, DESCRIPTION="modulus");
+ CREATE FUNCTION interval_interval_mod("interval", "interval") RETURNS "interval" LANGUAGE internal IMMUTABLE STRICT AS 'interval_interval_mod' WITH (OID=6116, DESCRIPTION="modulus");
 
  CREATE FUNCTION regexp_matches(text, text) RETURNS SETOF _text LANGUAGE internal IMMUTABLE STRICT AS 'regexp_matches_no_flags' WITH (OID=5018, DESCRIPTION="return all match groups for regexp");
 
@@ -126,12 +126,12 @@
  CREATE FUNCTION int8_avg_decum(bytea, int8) RETURNS bytea LANGUAGE internal IMMUTABLE STRICT AS 'int8_avg_decum' WITH (OID=3101, DESCRIPTION="AVG(int8) transition function");
 
 
- CREATE FUNCTION pg_partition_oid_transfn(internal, oid, record) RETURNS internal LANGUAGE internal IMMUTABLE AS 'pg_partition_oid_transfn' WITH (OID=2911, DESCRIPTION="pg_partition_oid transition function");
+ CREATE FUNCTION pg_partition_oid_transfn(internal, oid, record) RETURNS internal LANGUAGE internal IMMUTABLE AS 'pg_partition_oid_transfn' WITH (OID=6099, DESCRIPTION="pg_partition_oid transition function");
 
- CREATE FUNCTION pg_partition_oid_finalfn(internal) RETURNS _oid LANGUAGE internal IMMUTABLE AS 'pg_partition_oid_finalfn' WITH (OID=2912, DESCRIPTION="pg_partition_oid final function");
+ CREATE FUNCTION pg_partition_oid_finalfn(internal) RETURNS _oid LANGUAGE internal IMMUTABLE AS 'pg_partition_oid_finalfn' WITH (OID=6100, DESCRIPTION="pg_partition_oid final function");
 
- CREATE FUNCTION pg_partition_oid(oid, record) RETURNS _oid LANGUAGE internal IMMUTABLE AS 'aggregate_dummy' WITH (OID=2913, proisagg="t");
-
+ CREATE FUNCTION pg_partition_oid(oid, record) RETURNS _oid LANGUAGE internal IMMUTABLE AS 'aggregate_dummy' WITH (OID=6112, proisagg="t");
+-- #define PG_PARTITION_OID_OID 6112
 
  CREATE FUNCTION pg_stat_get_backend_waiting_reason(int4) RETURNS text LANGUAGE internal STABLE STRICT AS 'pg_stat_get_backend_waiting_reason' WITH (OID=2972, DESCRIPTION="Statistics: Reason backend is waiting for");
 
@@ -765,9 +765,9 @@
 
 ---
 
- CREATE FUNCTION generate_series("timestamp", "timestamp", "interval") RETURNS SETOF "timestamp" LANGUAGE internal VOLATILE STRICT AS 'generate_series_timestamp' WITH (OID=2916, DESCRIPTION="non-persistent series generator");
+ CREATE FUNCTION generate_series("timestamp", "timestamp", "interval") RETURNS SETOF "timestamp" LANGUAGE internal VOLATILE STRICT AS 'generate_series_timestamp' WITH (OID=6113, DESCRIPTION="non-persistent series generator");
 
- CREATE FUNCTION generate_series("timestamptz", "timestamptz", "interval") RETURNS SETOF "timestamptz" LANGUAGE internal VOLATILE STRICT AS 'generate_series_timestamptz' WITH (OID=2917, DESCRIPTION="non-persistent series generator");
+ CREATE FUNCTION generate_series("timestamptz", "timestamptz", "interval") RETURNS SETOF "timestamptz" LANGUAGE internal VOLATILE STRICT AS 'generate_series_timestamptz' WITH (OID=6114, DESCRIPTION="non-persistent series generator");
 
 
 -- Greenplum Analytic functions
@@ -1559,11 +1559,7 @@
  CREATE FUNCTION gp_persistent_repair_delete(int4, tid) RETURNS int4 LANGUAGE internal VOLATILE AS 'gp_persistent_repair_delete' WITH (OID=7181, DESCRIPTION="Remove an entry specified by TID from a persistent table for the current database instance");
 
 
- CREATE FUNCTION xml_recv(internal) RETURNS xml LANGUAGE internal IMMUTABLE STRICT AS 'xml_recv' WITH (OID=2978, DESCRIPTION="I/O");
-
- CREATE FUNCTION xml_send(xml) RETURNS bytea LANGUAGE internal IMMUTABLE STRICT AS 'xml_send' WITH (OID=2979, DESCRIPTION="I/O");
-
- CREATE FUNCTION xmlconcat2(xml, xml) RETURNS xml LANGUAGE internal IMMUTABLE STRICT AS 'xmlconcat2' WITH (OID=2980, DESCRIPTION="aggregate transition function");
+CREATE FUNCTION xmlconcat2(xml, xml) RETURNS xml LANGUAGE internal IMMUTABLE STRICT AS 'xmlconcat2' WITH (OID=2980, DESCRIPTION="aggregate transition function");
 
  CREATE FUNCTION xmlagg(xml) RETURNS xml LANGUAGE internal IMMUTABLE AS 'aggregate_dummy' WITH (OID=2981, DESCRIPTION="concatenate XML values", proisagg="t");
 

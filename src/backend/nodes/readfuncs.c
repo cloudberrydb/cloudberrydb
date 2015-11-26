@@ -9,7 +9,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/nodes/readfuncs.c,v 1.198 2006/12/23 00:43:10 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/nodes/readfuncs.c,v 1.199 2006/12/24 00:29:18 tgl Exp $
  *
  * NOTES
  *	  Path and Plan nodes do not need to have any readfuncs support, because we
@@ -1896,6 +1896,27 @@ _readMinMaxExpr(void)
 	READ_DONE();
 }
 
+/*
+ * _readXmlExpr
+ */
+static XmlExpr *
+_readXmlExpr(void)
+{
+	READ_LOCALS(XmlExpr);
+
+	READ_ENUM_FIELD(op, XmlExprOp);
+	READ_STRING_FIELD(name);
+	READ_NODE_FIELD(named_args);
+	READ_NODE_FIELD(arg_names);
+	READ_NODE_FIELD(args);
+	READ_ENUM_FIELD(xmloption, XmlOptionType);
+	READ_OID_FIELD(type);
+	READ_INT_FIELD(typmod);
+	/*READ_LOCATION_FIELD(location);*/
+
+	READ_DONE();
+}
+
 #ifndef COMPILING_BINARY_FUNCS
 /*
  * _readNullIfExpr
@@ -1950,26 +1971,6 @@ _readBooleanTest(void)
 
 	READ_NODE_FIELD(arg);
 	READ_ENUM_FIELD(booltesttype, BoolTestType);
-
-	READ_DONE();
-}
-
-/*
- * _readXmlExpr
- */
-static XmlExpr *
-_readXmlExpr(void)
-{
-	READ_LOCALS(XmlExpr);
-
-	READ_ENUM_FIELD(op, XmlExprOp);
-	READ_STRING_FIELD(name);
-	READ_NODE_FIELD(named_args);
-	READ_NODE_FIELD(arg_names);
-	READ_NODE_FIELD(args);
-	READ_ENUM_FIELD(xmloption, XmlOptionType);
-	READ_OID_FIELD(type);
-	READ_INT_FIELD(typmod);
 
 	READ_DONE();
 }
@@ -2134,7 +2135,8 @@ _readTypeName(void)
 	READ_BOOL_FIELD(timezone);
 	READ_BOOL_FIELD(setof);
 	READ_BOOL_FIELD(pct_type);
-	READ_INT_FIELD(typmod);
+	READ_NODE_FIELD(typmods);
+	READ_INT_FIELD(typemod);
 	READ_NODE_FIELD(arrayBounds);
 	READ_INT_FIELD(location);
 

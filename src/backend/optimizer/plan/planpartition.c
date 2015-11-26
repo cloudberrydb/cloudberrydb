@@ -10,6 +10,8 @@
 
 #include "postgres.h"
 #include "catalog/catquery.h"
+#include "catalog/pg_proc.h"
+#include "catalog/pg_type.h"
 #include "optimizer/planpartition.h"
 #include "optimizer/walkers.h"
 #include "optimizer/clauses.h"
@@ -693,8 +695,8 @@ static TargetEntry *ConstructAggTLE(PartitionJoinMutatorContext *ctx)
 
 	Aggref *aggref = makeNode(Aggref);
 
-	aggref->aggfnoid = 2913; /* TODO look up function Oid by name */
-	aggref->aggtype = 1028;
+	aggref->aggfnoid = PG_PARTITION_OID_OID;
+	aggref->aggtype = OIDARRAYOID;
 	aggref->args = aggRefArgs;
 	aggref->agglevelsup = 0;
 	aggref->aggstar = false;

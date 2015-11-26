@@ -11,7 +11,7 @@
  * Written by Peter Eisentraut <peter_e@gmx.net>.
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/utils/misc/guc.c,v 1.362 2006/12/13 05:54:48 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/utils/misc/guc.c,v 1.364 2006/12/30 21:21:54 tgl Exp $
  *
  *--------------------------------------------------------------------
  */
@@ -45,6 +45,7 @@
 #include "parser/gramparse.h"
 #include "parser/parse_expr.h"
 #include "parser/parse_relation.h"
+#include "parser/parse_type.h"
 #include "parser/scansup.h"
 #include "pgstat.h"
 #include "postmaster/autovacuum.h"
@@ -5117,14 +5118,17 @@ flatten_set_variable_args(const char *name, List *args)
 					 * to interval and back to normalize the value and account
 					 * for any typmod.
 					 */
+					int32		typmod;
 					Datum		interval;
 					char	   *intervalout;
+
+					typmod = typenameTypeMod(NULL, arg->typname, INTERVALOID);
 
 					interval =
 						DirectFunctionCall3(interval_in,
 											CStringGetDatum(val),
 											ObjectIdGetDatum(InvalidOid),
-									   Int32GetDatum(arg->typname->typmod));
+											Int32GetDatum(typmod));
 
 					intervalout =
 						DatumGetCString(DirectFunctionCall1(interval_out,

@@ -9,7 +9,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/utils/cache/relcache.c,v 1.251 2006/12/23 00:43:11 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/utils/cache/relcache.c,v 1.252 2006/12/31 20:32:04 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -3146,6 +3146,8 @@ RelationCacheInitializePhase3(void)
 							AttributeRelationId);
 		load_critical_index(IndexRelidIndexId,
 							IndexRelationId);
+		load_critical_index(OpclassOidIndexId,
+							OperatorClassRelationId);
 		load_critical_index(AccessMethodStrategyIndexId,
 							AccessMethodOperatorRelationId);
 		load_critical_index(OpclassOidIndexId,
@@ -3157,7 +3159,7 @@ RelationCacheInitializePhase3(void)
 		load_critical_index(TriggerRelidNameIndexId,
 							TriggerRelationId);
 
-#define NUM_CRITICAL_LOCAL_INDEXES	8	/* fix if you change list above */
+#define NUM_CRITICAL_LOCAL_INDEXES	9	/* fix if you change list above */
 
 		criticalRelcachesBuilt = true;
 	}

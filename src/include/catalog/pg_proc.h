@@ -8,7 +8,7 @@
  * Portions Copyright (c) 1996-2010, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
- * $PostgreSQL: pgsql/src/include/catalog/pg_proc.h,v 1.431 2006/12/21 16:05:15 petere Exp $
+ * $PostgreSQL: pgsql/src/include/catalog/pg_proc.h,v 1.434 2006/12/30 21:21:55 tgl Exp $
  *
  * NOTES
  *	  The script catalog/genbki.sh reads this file and generates .bki
@@ -1410,10 +1410,18 @@ DATA(insert OID = 1044 (  bpcharin		   PGNSP PGUID 12 f f t f i 3 1042 "2275 26 
 DESCR("I/O");
 DATA(insert OID = 1045 (  bpcharout		   PGNSP PGUID 12 f f t f i 1 2275 "1042" _null_ _null_ _null_	bpcharout - _null_ ));
 DESCR("I/O");
+DATA(insert OID = 2913 (  bpchartypmodin   PGNSP PGUID 12 f f t f i 1 23 "1263" _null_ _null_ _null_	bpchartypmodin - _null_ ));
+DESCR("I/O typmod");
+DATA(insert OID = 2914 (  bpchartypmodout  PGNSP PGUID 12 f f t f i 1 2275 "23" _null_ _null_ _null_	bpchartypmodout - _null_ ));
+DESCR("I/O typmod");
 DATA(insert OID = 1046 (  varcharin		   PGNSP PGUID 12 f f t f i 3 1043 "2275 26 23" _null_ _null_ _null_ varcharin - _null_ ));
 DESCR("I/O");
 DATA(insert OID = 1047 (  varcharout	   PGNSP PGUID 12 f f t f i 1 2275 "1043" _null_ _null_ _null_	varcharout - _null_ ));
 DESCR("I/O");
+DATA(insert OID = 2915 (  varchartypmodin  PGNSP PGUID 12 f f t f i 1 23 "1263" _null_ _null_ _null_	varchartypmodin - _null_ ));
+DESCR("I/O typmod");
+DATA(insert OID = 2916 (  varchartypmodout PGNSP PGUID 12 f f t f i 1 2275 "23" _null_ _null_ _null_	varchartypmodout - _null_ ));
+DESCR("I/O typmod");
 DATA(insert OID = 1048 (  bpchareq		   PGNSP PGUID 12 f f t f i 2 16 "1042 1042" _null_ _null_ _null_ bpchareq - _null_ ));
 DESCR("equal");
 DATA(insert OID = 1049 (  bpcharlt		   PGNSP PGUID 12 f f t f i 2 16 "1042 1042" _null_ _null_ _null_ bpcharlt - _null_ ));
@@ -1483,6 +1491,10 @@ DATA(insert OID = 1143 (  time_in		   PGNSP PGUID 12 f f t f s 3 1083 "2275 26 2
 DESCR("I/O");
 DATA(insert OID = 1144 (  time_out		   PGNSP PGUID 12 f f t f i 1 2275 "1083" _null_ _null_ _null_	time_out - _null_ ));
 DESCR("I/O");
+DATA(insert OID = 2909 (  timetypmodin   	PGNSP PGUID 12 f f t f i 1 23 "1263" _null_ _null_ _null_	timetypmodin - _null_ ));
+DESCR("I/O typmod");
+DATA(insert OID = 2910 (  timetypmodout  	PGNSP PGUID 12 f f t f i 1 2275 "23" _null_ _null_ _null_	timetypmodout - _null_ ));
+DESCR("I/O typmod");
 DATA(insert OID = 1145 (  time_eq		   PGNSP PGUID 12 f f t f i 2 16 "1083 1083" _null_ _null_ _null_ time_eq - _null_ ));
 DESCR("equal");
 
@@ -1499,6 +1511,10 @@ DATA(insert OID = 1150 (  timestamptz_in   PGNSP PGUID 12 f f t f s 3 1184 "2275
 DESCR("I/O");
 DATA(insert OID = 1151 (  timestamptz_out  PGNSP PGUID 12 f f t f s 1 2275 "1184" _null_ _null_ _null_	timestamptz_out - _null_ ));
 DESCR("I/O");
+DATA(insert OID = 2907 (  timestamptztypmodin   	PGNSP PGUID 12 f f t f i 1 23 "1263" _null_ _null_ _null_	timestamptztypmodin - _null_ ));
+DESCR("I/O typmod");
+DATA(insert OID = 2908 (  timestamptztypmodout  	PGNSP PGUID 12 f f t f i 1 2275 "23" _null_ _null_ _null_	timestamptztypmodout - _null_ ));
+DESCR("I/O typmod");
 DATA(insert OID = 1152 (  timestamptz_eq   PGNSP PGUID 12 f f t f i 2 16 "1184 1184" _null_ _null_ _null_ timestamp_eq - _null_ ));
 DESCR("equal");
 DATA(insert OID = 1153 (  timestamptz_ne   PGNSP PGUID 12 f f t f i 2 16 "1184 1184" _null_ _null_ _null_ timestamp_ne - _null_ ));
@@ -1520,6 +1536,10 @@ DATA(insert OID = 1160 (  interval_in	   PGNSP PGUID 12 f f t f s 3 1186 "2275 2
 DESCR("I/O");
 DATA(insert OID = 1161 (  interval_out	   PGNSP PGUID 12 f f t f i 1 2275 "1186" _null_ _null_ _null_	interval_out - _null_ ));
 DESCR("I/O");
+DATA(insert OID = 2903 (  intervaltypmodin   	PGNSP PGUID 12 f f t f i 1 23 "1263" _null_ _null_ _null_	intervaltypmodin - _null_ ));
+DESCR("I/O typmod");
+DATA(insert OID = 2904 (  intervaltypmodout  	PGNSP PGUID 12 f f t f i 1 2275 "23" _null_ _null_ _null_	intervaltypmodout - _null_ ));
+DESCR("I/O typmod");
 DATA(insert OID = 1162 (  interval_eq	   PGNSP PGUID 12 f f t f i 2 16 "1186 1186" _null_ _null_ _null_ interval_eq - _null_ ));
 DESCR("equal");
 DATA(insert OID = 1163 (  interval_ne	   PGNSP PGUID 12 f f t f i 2 16 "1186 1186" _null_ _null_ _null_ interval_ne - _null_ ));
@@ -1633,7 +1653,7 @@ DESCR("absolute value");
 DATA(insert OID = 1253 (  int2abs		   PGNSP PGUID 12 f f t f i 1 21 "21" _null_ _null_ _null_	int2abs - _null_ ));
 DESCR("absolute value");
 
-DATA(insert OID = 1263 (  interval		   PGNSP PGUID 12 f f t f s 1 1186 "25" _null_ _null_ _null_	text_interval - _null_ ));
+DATA(insert OID = 6117 (  interval		   PGNSP PGUID 12 f f t f s 1 1186 "25" _null_ _null_ _null_	text_interval - _null_ ));
 DESCR("convert text to interval");
 
 DATA(insert OID = 1271 (  overlaps		   PGNSP PGUID 12 f f f f i 4 16 "1266 1266 1266 1266" _null_ _null_ _null_ overlaps_timetz - _null_ ));
@@ -1743,6 +1763,10 @@ DATA(insert OID = 1312 (  timestamp_in		 PGNSP PGUID 12 f f t f s 3 1114 "2275 2
 DESCR("I/O");
 DATA(insert OID = 1313 (  timestamp_out		 PGNSP PGUID 12 f f t f s 1 2275 "1114" _null_ _null_ _null_ timestamp_out - _null_ ));
 DESCR("I/O");
+DATA(insert OID = 2905 (  timestamptypmodin   	PGNSP PGUID 12 f f t f i 1 23 "1263" _null_ _null_ _null_	timestamptypmodin - _null_ ));
+DESCR("I/O typmod");
+DATA(insert OID = 2906 (  timestamptypmodout  	PGNSP PGUID 12 f f t f i 1 2275 "23" _null_ _null_ _null_	timestamptypmodout - _null_ ));
+DESCR("I/O typmod");
 DATA(insert OID = 1314 (  timestamptz_cmp	 PGNSP PGUID 12 f f t f i 2 23 "1184 1184" _null_ _null_ _null_ timestamp_cmp - _null_ ));
 DESCR("less-equal-greater");
 DATA(insert OID = 1315 (  interval_cmp		 PGNSP PGUID 12 f f t f i 2 23 "1186 1186" _null_ _null_ _null_ interval_cmp - _null_ ));
@@ -1796,6 +1820,10 @@ DATA(insert OID = 1350 (  timetz_in		   PGNSP PGUID 12 f f t f s 3 1266 "2275 26
 DESCR("I/O");
 DATA(insert OID = 1351 (  timetz_out	   PGNSP PGUID 12 f f t f i 1 2275 "1266" _null_ _null_ _null_	timetz_out - _null_ ));
 DESCR("I/O");
+DATA(insert OID = 2911 (  timetztypmodin   	PGNSP PGUID 12 f f t f i 1 23 "1263" _null_ _null_ _null_	timetztypmodin - _null_ ));
+DESCR("I/O typmod");
+DATA(insert OID = 2912 (  timetztypmodout  	PGNSP PGUID 12 f f t f i 1 2275 "23" _null_ _null_ _null_	timetztypmodout - _null_ ));
+DESCR("I/O typmod");
 DATA(insert OID = 1352 (  timetz_eq		   PGNSP PGUID 12 f f t f i 2 16 "1266 1266" _null_ _null_ _null_ timetz_eq - _null_ ));
 DESCR("equal");
 DATA(insert OID = 1353 (  timetz_ne		   PGNSP PGUID 12 f f t f i 2 16 "1266 1266" _null_ _null_ _null_ timetz_ne - _null_ ));
@@ -2128,6 +2156,10 @@ DATA(insert OID = 1564 (  bit_in			PGNSP PGUID 12 f f t f i 3 1560 "2275 26 23" 
 DESCR("I/O");
 DATA(insert OID = 1565 (  bit_out			PGNSP PGUID 12 f f t f i 1 2275 "1560" _null_ _null_ _null_ bit_out - _null_ ));
 DESCR("I/O");
+DATA(insert OID = 2919 (  bittypmodin   	PGNSP PGUID 12 f f t f i 1 23 "1263" _null_ _null_ _null_	bittypmodin - _null_ ));
+DESCR("I/O typmod");
+DATA(insert OID = 2920 (  bittypmodout  	PGNSP PGUID 12 f f t f i 1 2275 "23" _null_ _null_ _null_	bittypmodout - _null_ ));
+DESCR("I/O typmod");
 
 DATA(insert OID = 1569 (  like				PGNSP PGUID 12 f f t f i 2 16 "25 25" _null_ _null_ _null_	textlike - _null_ ));
 DESCR("matches LIKE expression");
@@ -2156,6 +2188,10 @@ DATA(insert OID = 1579 (  varbit_in			PGNSP PGUID 12 f f t f i 3 1562 "2275 26 2
 DESCR("I/O");
 DATA(insert OID = 1580 (  varbit_out		PGNSP PGUID 12 f f t f i 1 2275 "1562" _null_ _null_ _null_ varbit_out - _null_ ));
 DESCR("I/O");
+DATA(insert OID = 2902 (  varbittypmodin   	PGNSP PGUID 12 f f t f i 1 23 "1263" _null_ _null_ _null_	varbittypmodin - _null_ ));
+DESCR("I/O typmod");
+DATA(insert OID = 2921 (  varbittypmodout  	PGNSP PGUID 12 f f t f i 1 2275 "23" _null_ _null_ _null_	varbittypmodout - _null_ ));
+DESCR("I/O typmod");
 
 DATA(insert OID = 1581 (  biteq				PGNSP PGUID 12 f f t f i 2 16 "1560 1560" _null_ _null_ _null_	biteq - _null_ ));
 DESCR("equal");
@@ -2576,6 +2612,10 @@ DATA(insert OID = 1701 ( numeric_in				PGNSP PGUID 12 f f t f i 3 1700 "2275 26 
 DESCR("I/O");
 DATA(insert OID = 1702 ( numeric_out			PGNSP PGUID 12 f f t f i 1 2275 "1700" _null_ _null_ _null_ numeric_out - _null_ ));
 DESCR("I/O");
+DATA(insert OID = 2917 (  numerictypmodin   	PGNSP PGUID 12 f f t f i 1 23 "1263" _null_ _null_ _null_	numerictypmodin - _null_ ));
+DESCR("I/O typmod");
+DATA(insert OID = 2918 (  numerictypmodout  	PGNSP PGUID 12 f f t f i 1 2275 "23" _null_ _null_ _null_	numerictypmodout - _null_ ));
+DESCR("I/O typmod");
 DATA(insert OID = 1703 ( numeric				PGNSP PGUID 12 f f t f i 2 1700 "1700 23" _null_ _null_ _null_	numeric - _null_ ));
 DESCR("adjust numeric to typmod precision/scale");
 DATA(insert OID = 1704 ( numeric_abs			PGNSP PGUID 12 f f t f i 1 1700 "1700" _null_ _null_ _null_ numeric_abs - _null_ ));
@@ -4069,6 +4109,11 @@ DATA(insert OID = 2895 (  xmlcomment	   PGNSP PGUID 12 f f t f i 1 142 "25" _nul
 DESCR("generate an XML comment");
 DATA(insert OID = 2901 (  xmlvalidate 	   PGNSP PGUID 12 f f t f i 2 16 "142 25" _null_ _null_ _null_ xmlvalidate - _null_ ));
 DESCR("validate an XML value");
+DATA(insert OID = 2898 (  xml_recv		   PGNSP PGUID 12 f f t f s 1 142 "2281" _null_ _null_ _null_	xml_recv - _null_ ));
+DESCR("I/O");
+DATA(insert OID = 2899 (  xml_send		   PGNSP PGUID 12 f f t f s 1 17 "142" _null_ _null_ _null_	xml_send - _null_ ));
+DESCR("I/O");
+
 
 /*
  * Include more definitions from pg_proc_gp.h, for GPDB-added functions. They

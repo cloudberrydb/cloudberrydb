@@ -9,7 +9,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/nodes/outfuncs.c,v 1.288 2006/12/23 00:43:10 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/nodes/outfuncs.c,v 1.290 2006/12/30 21:21:53 tgl Exp $
  *
  * NOTES
  *	  Every node type that can appear in stored rules' parsetrees *must*
@@ -1496,6 +1496,22 @@ _outMinMaxExpr(StringInfo str, MinMaxExpr *node)
 }
 
 static void
+_outXmlExpr(StringInfo str, XmlExpr *node)
+{
+	WRITE_NODE_TYPE("XMLEXPR");
+
+	WRITE_ENUM_FIELD(op, XmlExprOp);
+	WRITE_STRING_FIELD(name);
+	WRITE_NODE_FIELD(named_args);
+	WRITE_NODE_FIELD(arg_names);
+	WRITE_NODE_FIELD(args);
+	WRITE_ENUM_FIELD(xmloption, XmlOptionType);
+	WRITE_OID_FIELD(type);
+	WRITE_INT_FIELD(typmod);
+	/*WRITE_LOCATION_FIELD(location);*/
+}
+
+static void
 _outNullIfExpr(StringInfo str, NullIfExpr *node)
 {
 	WRITE_NODE_TYPE("NULLIFEXPR");
@@ -1523,21 +1539,6 @@ _outBooleanTest(StringInfo str, BooleanTest *node)
 
 	WRITE_NODE_FIELD(arg);
 	WRITE_ENUM_FIELD(booltesttype, BoolTestType);
-}
-
-static void
-_outXmlExpr(StringInfo str, XmlExpr *node)
-{
-	WRITE_NODE_TYPE("XMLEXPR");
-
-	WRITE_ENUM_FIELD(op, XmlExprOp);
-	WRITE_STRING_FIELD(name);
-	WRITE_NODE_FIELD(named_args);
-	WRITE_NODE_FIELD(arg_names);
-	WRITE_NODE_FIELD(args);
-	WRITE_ENUM_FIELD(xmloption, XmlOptionType);
-	WRITE_OID_FIELD(type);
-	WRITE_INT_FIELD(typmod);
 }
 
 static void
@@ -3223,7 +3224,8 @@ _outTypeName(StringInfo str, TypeName *node)
 	WRITE_BOOL_FIELD(timezone);
 	WRITE_BOOL_FIELD(setof);
 	WRITE_BOOL_FIELD(pct_type);
-	WRITE_INT_FIELD(typmod);
+	WRITE_NODE_FIELD(typmods);
+	WRITE_INT_FIELD(typemod);
 	WRITE_NODE_FIELD(arrayBounds);
 	WRITE_INT_FIELD(location);
 }
@@ -4337,6 +4339,9 @@ _outNode(StringInfo str, void *obj)
 			case T_MinMaxExpr:
 				_outMinMaxExpr(str, obj);
 				break;
+			case T_XmlExpr:
+				_outXmlExpr(str, obj);
+				break;
 			case T_NullIfExpr:
 				_outNullIfExpr(str, obj);
 				break;
@@ -4345,9 +4350,6 @@ _outNode(StringInfo str, void *obj)
 				break;
 			case T_BooleanTest:
 				_outBooleanTest(str, obj);
-				break;
-			case T_XmlExpr:
-				_outXmlExpr(str, obj);
 				break;
 			case T_CoerceToDomain:
 				_outCoerceToDomain(str, obj);

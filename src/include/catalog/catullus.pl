@@ -1504,6 +1504,8 @@ sub make_type
 			typoutput      => "record_out",
 			typreceive     => "record_recv",
 			typsend        => "record_send",
+			typmodin       => '-',
+			typmodout      => '-',
 			typanalyze     => undef,
 			typalign       => "d",
 			typstorage     => "x",
@@ -1548,6 +1550,9 @@ sub make_type
 	# byvalue is false, unless passedbyvalue is set
 	$h1{tuple}->{typbyval} = "f";
 
+	$h1{tuple}->{typmodin} = '-';
+	$h1{tuple}->{typmodout} = '-';
+
 	for my $def (@deflist)
 	{
 		if ($def =~ m/passedbyvalue/i)
@@ -1577,6 +1582,12 @@ sub make_type
 			# XXX XXX: fixup dummy_cast_functions
 			$vv =~ s/dummy\_cast\_functions\.//;
 
+			$h1{tuple}->{$rproc} = $vv;
+		}
+
+		if ($kk =~ m/^(typmodin|typmodout)$/i)
+		{
+			my $rproc = lc($kk); # regproc name
 			$h1{tuple}->{$rproc} = $vv;
 		}
 
@@ -1669,12 +1680,10 @@ sub print_arr_type
 		"-1 f b t " .
 		"{typdelim} 0\t" . 
 		"{oid} array_in array_out array_recv array_send " .
-		"- {typalign} x f 0 -1 0 _null_ _null_ ));";
+		"{typmodin} {typmodout} - {typalign} x f 0 -1 0 _null_ _null_ ));";
 
 	my $t2def = {oid => $tdef->{with}->{oid}};
 	$t2def->{arrayoid} = $tdef->{with}->{arrayoid};
-
-#	print Data::Dumper->Dump([$tdef]);
 
 	while (my ($kk, $vv) = each(%{$tdef->{tuple}}))
 	{
@@ -1692,7 +1701,7 @@ sub print_arr_type
 				unless ($vv eq "d");
 		}
 	}
-	
+
 	my $fmt = doformat($bigstr, $t2def);
 
 	return $fmt;
@@ -1703,11 +1712,12 @@ sub print_type
 {
 	my $tdef = shift;
 
-	my $bigstr = 
+	my $bigstr =
 		"DATA(insert OID = {oid} (\t{typname}\t   {typnamespace} {typowner} " .
 		"{typlen} {typbyval} {typtype} {typisdefined} " .
 		"{typdelim} {typrelid}\t" .
 		"{typelem} {typinput} {typoutput} {typreceive} {typsend} " .
+		"{typmodin} {typmodout} " .
 		"{typanalyze} {typalign} {typstorage} {typnotnull} {typbasetype} " .
 		"{typtypmod} {typndims} {typdefaultbin} {typdefault} ));";
 
@@ -1940,6 +1950,8 @@ sub dotypes
 			typoutput      => undef,
 			typreceive     => undef,
 			typsend        => undef,
+			typmodin       => undef,
+			typmodout      => undef,
 			typanalyze     => undef,
 #			typalign       => 0,
 #			typstorage     => 0,

@@ -843,7 +843,8 @@ _outTypeName(StringInfo str, TypeName *node)
 	WRITE_BOOL_FIELD(timezone);
 	WRITE_BOOL_FIELD(setof);
 	WRITE_BOOL_FIELD(pct_type);
-	WRITE_INT_FIELD(typmod);
+	WRITE_NODE_FIELD(typmods);
+	WRITE_INT_FIELD(typemod);
 	WRITE_NODE_FIELD(arrayBounds);
 	WRITE_INT_FIELD(location);
 }

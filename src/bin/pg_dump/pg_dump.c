@@ -26,7 +26,7 @@
  *	http://archives.postgresql.org/pgsql-bugs/2010-02/msg00187.php
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/bin/pg_dump/pg_dump.c,v 1.454 2006/12/23 00:43:12 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/bin/pg_dump/pg_dump.c,v 1.455 2006/12/30 21:21:54 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -4641,11 +4641,15 @@ dumpBaseType(Archive *fout, TypeInfo *tinfo)
 	char	   *typoutput;
 	char	   *typreceive;
 	char	   *typsend;
+	char	   *typmodin;
+	char	   *typmodout;
 	char	   *typanalyze;
 	Oid			typinputoid;
 	Oid			typoutputoid;
 	Oid			typreceiveoid;
 	Oid			typsendoid;
+	Oid			typmodinoid;
+	Oid			typmodoutoid;
 	Oid			typanalyzeoid;
 	char	   *typdelim;
 	char	   *typbyval;
@@ -4657,19 +4661,142 @@ dumpBaseType(Archive *fout, TypeInfo *tinfo)
 	/* Set proper schema search path so regproc references list correctly */
 	selectSourceSchema(tinfo->dobj.namespace->dobj.name);
 
-	appendPQExpBuffer(query, "SELECT typlen, "
-					  "typinput, typoutput, typreceive, typsend, "
-					  "typanalyze, "
-					  "typinput::pg_catalog.oid as typinputoid, "
-					  "typoutput::pg_catalog.oid as typoutputoid, "
-					  "typreceive::pg_catalog.oid as typreceiveoid, "
-					  "typsend::pg_catalog.oid as typsendoid, "
-					  "typanalyze::pg_catalog.oid as typanalyzeoid, "
-					  "typdelim, typbyval, typalign, typstorage, "
-					  "pg_catalog.pg_get_expr(typdefaultbin, 'pg_catalog.pg_type'::pg_catalog.regclass) as typdefaultbin, typdefault "
-						"FROM pg_catalog.pg_type "
-						"WHERE oid = '%u'::pg_catalog.oid",
-					  tinfo->dobj.catId.oid);
+	/* Fetch type-specific details */
+	if (fout->remoteVersion >= 80300)
+	{
+		appendPQExpBuffer(query, "SELECT typlen, "
+						  "typinput, typoutput, typreceive, typsend, "
+						  "typmodin, typmodout, typanalyze, "
+						  "typinput::pg_catalog.oid as typinputoid, "
+						  "typoutput::pg_catalog.oid as typoutputoid, "
+						  "typreceive::pg_catalog.oid as typreceiveoid, "
+						  "typsend::pg_catalog.oid as typsendoid, "
+						  "typmodin::pg_catalog.oid as typmodinoid, "
+						  "typmodout::pg_catalog.oid as typmodoutoid, "
+						  "typanalyze::pg_catalog.oid as typanalyzeoid, "
+						  "typdelim, typbyval, typalign, typstorage, "
+						  "pg_catalog.pg_get_expr(typdefaultbin, 'pg_catalog.pg_type'::pg_catalog.regclass) as typdefaultbin, typdefault "
+						  "FROM pg_catalog.pg_type "
+						  "WHERE oid = '%u'::pg_catalog.oid",
+						  tinfo->dobj.catId.oid);
+	}
+	else if (fout->remoteVersion >= 80000)
+	{
+		appendPQExpBuffer(query, "SELECT typlen, "
+						  "typinput, typoutput, typreceive, typsend, "
+						  "'-' as typmodin, '-' as typmodout, "
+						  "typanalyze, "
+						  "typinput::pg_catalog.oid as typinputoid, "
+						  "typoutput::pg_catalog.oid as typoutputoid, "
+						  "typreceive::pg_catalog.oid as typreceiveoid, "
+						  "typsend::pg_catalog.oid as typsendoid, "
+						  "0 as typmodinoid, 0 as typmodoutoid, "
+						  "typanalyze::pg_catalog.oid as typanalyzeoid, "
+						  "typdelim, typbyval, typalign, typstorage, "
+						  "pg_catalog.pg_get_expr(typdefaultbin, 'pg_catalog.pg_type'::pg_catalog.regclass) as typdefaultbin, typdefault "
+						  "FROM pg_catalog.pg_type "
+						  "WHERE oid = '%u'::pg_catalog.oid",
+						  tinfo->dobj.catId.oid);
+	}
+	else if (fout->remoteVersion >= 70400)
+	{
+		appendPQExpBuffer(query, "SELECT typlen, "
+						  "typinput, typoutput, typreceive, typsend, "
+						  "'-' as typmodin, '-' as typmodout, "
+						  "'-' as typanalyze, "
+						  "typinput::pg_catalog.oid as typinputoid, "
+						  "typoutput::pg_catalog.oid as typoutputoid, "
+						  "typreceive::pg_catalog.oid as typreceiveoid, "
+						  "typsend::pg_catalog.oid as typsendoid, "
+						  "0 as typmodinoid, 0 as typmodoutoid, "
+						  "0 as typanalyzeoid, "
+						  "typdelim, typbyval, typalign, typstorage, "
+						  "pg_catalog.pg_get_expr(typdefaultbin, 'pg_catalog.pg_type'::pg_catalog.regclass) as typdefaultbin, typdefault "
+						  "FROM pg_catalog.pg_type "
+						  "WHERE oid = '%u'::pg_catalog.oid",
+						  tinfo->dobj.catId.oid);
+	}
+	else if (fout->remoteVersion >= 70300)
+	{
+		appendPQExpBuffer(query, "SELECT typlen, "
+						  "typinput, typoutput, "
+						  "'-' as typreceive, '-' as typsend, "
+						  "'-' as typmodin, '-' as typmodout, "
+						  "'-' as typanalyze, "
+						  "typinput::pg_catalog.oid as typinputoid, "
+						  "typoutput::pg_catalog.oid as typoutputoid, "
+						  "0 as typreceiveoid, 0 as typsendoid, "
+						  "0 as typmodinoid, 0 as typmodoutoid, "
+						  "0 as typanalyzeoid, "
+						  "typdelim, typbyval, typalign, typstorage, "
+						  "pg_catalog.pg_get_expr(typdefaultbin, 'pg_catalog.pg_type'::pg_catalog.regclass) as typdefaultbin, typdefault "
+						  "FROM pg_catalog.pg_type "
+						  "WHERE oid = '%u'::pg_catalog.oid",
+						  tinfo->dobj.catId.oid);
+	}
+	else if (fout->remoteVersion >= 70200)
+	{
+		/*
+		 * Note: although pre-7.3 catalogs contain typreceive and typsend,
+		 * ignore them because they are not right.
+		 */
+		appendPQExpBuffer(query, "SELECT typlen, "
+						  "typinput, typoutput, "
+						  "'-' as typreceive, '-' as typsend, "
+						  "'-' as typmodin, '-' as typmodout, "
+						  "'-' as typanalyze, "
+						  "typinput::oid as typinputoid, "
+						  "typoutput::oid as typoutputoid, "
+						  "0 as typreceiveoid, 0 as typsendoid, "
+						  "0 as typmodinoid, 0 as typmodoutoid, "
+						  "0 as typanalyzeoid, "
+						  "typdelim, typbyval, typalign, typstorage, "
+						  "NULL as typdefaultbin, typdefault "
+						  "FROM pg_type "
+						  "WHERE oid = '%u'::oid",
+						  tinfo->dobj.catId.oid);
+	}
+	else if (fout->remoteVersion >= 70100)
+	{
+		/*
+		 * Ignore pre-7.2 typdefault; the field exists but has an unusable
+		 * representation.
+		 */
+		appendPQExpBuffer(query, "SELECT typlen, "
+						  "typinput, typoutput, "
+						  "'-' as typreceive, '-' as typsend, "
+						  "'-' as typmodin, '-' as typmodout, "
+						  "'-' as typanalyze, "
+						  "typinput::oid as typinputoid, "
+						  "typoutput::oid as typoutputoid, "
+						  "0 as typreceiveoid, 0 as typsendoid, "
+						  "0 as typmodinoid, 0 as typmodoutoid, "
+						  "0 as typanalyzeoid, "
+						  "typdelim, typbyval, typalign, typstorage, "
+						  "NULL as typdefaultbin, NULL as typdefault "
+						  "FROM pg_type "
+						  "WHERE oid = '%u'::oid",
+						  tinfo->dobj.catId.oid);
+	}
+	else
+	{
+		appendPQExpBuffer(query, "SELECT typlen, "
+						  "typinput, typoutput, "
+						  "'-' as typreceive, '-' as typsend, "
+						  "'-' as typmodin, '-' as typmodout, "
+						  "'-' as typanalyze, "
+						  "typinput::oid as typinputoid, "
+						  "typoutput::oid as typoutputoid, "
+						  "0 as typreceiveoid, 0 as typsendoid, "
+						  "0 as typmodinoid, 0 as typmodoutoid, "
+						  "0 as typanalyzeoid, "
+						  "typdelim, typbyval, typalign, "
+						  "'p'::char as typstorage, "
+						  "NULL as typdefaultbin, NULL as typdefault "
+						  "FROM pg_type "
+						  "WHERE oid = '%u'::oid",
+						  tinfo->dobj.catId.oid);
+	}
 
 	res = PQexec(g_conn, query->data);
 	check_sql_result(res, g_conn, query->data, PGRES_TUPLES_OK);
@@ -4688,11 +4815,15 @@ dumpBaseType(Archive *fout, TypeInfo *tinfo)
 	typoutput = PQgetvalue(res, 0, PQfnumber(res, "typoutput"));
 	typreceive = PQgetvalue(res, 0, PQfnumber(res, "typreceive"));
 	typsend = PQgetvalue(res, 0, PQfnumber(res, "typsend"));
+	typmodin = PQgetvalue(res, 0, PQfnumber(res, "typmodin"));
+	typmodout = PQgetvalue(res, 0, PQfnumber(res, "typmodout"));
 	typanalyze = PQgetvalue(res, 0, PQfnumber(res, "typanalyze"));
 	typinputoid = atooid(PQgetvalue(res, 0, PQfnumber(res, "typinputoid")));
 	typoutputoid = atooid(PQgetvalue(res, 0, PQfnumber(res, "typoutputoid")));
 	typreceiveoid = atooid(PQgetvalue(res, 0, PQfnumber(res, "typreceiveoid")));
 	typsendoid = atooid(PQgetvalue(res, 0, PQfnumber(res, "typsendoid")));
+	typmodinoid = atooid(PQgetvalue(res, 0, PQfnumber(res, "typmodinoid")));
+	typmodoutoid = atooid(PQgetvalue(res, 0, PQfnumber(res, "typmodoutoid")));
 	typanalyzeoid = atooid(PQgetvalue(res, 0, PQfnumber(res, "typanalyzeoid")));
 	typdelim = PQgetvalue(res, 0, PQfnumber(res, "typdelim"));
 	typbyval = PQgetvalue(res, 0, PQfnumber(res, "typbyval"));
@@ -4725,15 +4856,30 @@ dumpBaseType(Archive *fout, TypeInfo *tinfo)
 					  fmtId(tinfo->dobj.name),
 					  (strcmp(typlen, "-1") == 0) ? "variable" : typlen);
 
-	/* regproc result is correctly quoted as of 7.3 */
-	appendPQExpBuffer(q, ",\n    INPUT = %s", typinput);
-	appendPQExpBuffer(q, ",\n    OUTPUT = %s", typoutput);
-	if (OidIsValid(typreceiveoid))
-		appendPQExpBuffer(q, ",\n    RECEIVE = %s", typreceive);
-	if (OidIsValid(typsendoid))
-		appendPQExpBuffer(q, ",\n    SEND = %s", typsend);
-	if (OidIsValid(typanalyzeoid))
-		appendPQExpBuffer(q, ",\n    ANALYZE = %s", typanalyze);
+	if (fout->remoteVersion >= 70300)
+	{
+		/* regproc result is correctly quoted as of 7.3 */
+		appendPQExpBuffer(q, ",\n    INPUT = %s", typinput);
+		appendPQExpBuffer(q, ",\n    OUTPUT = %s", typoutput);
+		if (OidIsValid(typreceiveoid))
+			appendPQExpBuffer(q, ",\n    RECEIVE = %s", typreceive);
+		if (OidIsValid(typsendoid))
+			appendPQExpBuffer(q, ",\n    SEND = %s", typsend);
+		if (OidIsValid(typmodinoid))
+			appendPQExpBuffer(q, ",\n    TYPMOD_IN = %s", typmodin);
+		if (OidIsValid(typmodoutoid))
+			appendPQExpBuffer(q, ",\n    TYPMOD_OUT = %s", typmodout);
+		if (OidIsValid(typanalyzeoid))
+			appendPQExpBuffer(q, ",\n    ANALYZE = %s", typanalyze);
+	}
+	else
+	{
+		/* regproc delivers an unquoted name before 7.3 */
+		/* cannot combine these because fmtId uses static result area */
+		appendPQExpBuffer(q, ",\n    INPUT = %s", fmtId(typinput));
+		appendPQExpBuffer(q, ",\n    OUTPUT = %s", fmtId(typoutput));
+		/* receive/send/typmodin/typmodout/analyze need not be printed */
+	}
 
 	if (typdefault != NULL)
 	{

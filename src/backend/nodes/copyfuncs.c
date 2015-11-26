@@ -16,7 +16,7 @@
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/nodes/copyfuncs.c,v 1.356 2006/12/23 00:43:09 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/nodes/copyfuncs.c,v 1.358 2006/12/30 21:21:53 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -1688,6 +1688,27 @@ _copyMinMaxExpr(MinMaxExpr *from)
 }
 
 /*
+ * _copyXmlExpr
+ */
+static XmlExpr *
+_copyXmlExpr(XmlExpr *from)
+{
+	XmlExpr *newnode = makeNode(XmlExpr);
+
+	COPY_SCALAR_FIELD(op);
+	COPY_STRING_FIELD(name);
+	COPY_NODE_FIELD(named_args);
+	COPY_NODE_FIELD(arg_names);
+	COPY_NODE_FIELD(args);
+	COPY_SCALAR_FIELD(xmloption);
+	COPY_SCALAR_FIELD(type);
+	COPY_SCALAR_FIELD(typmod);
+	COPY_LOCATION_FIELD(location);
+
+	return newnode;
+}
+
+/*
  * _copyNullIfExpr (same as OpExpr)
  */
 static NullIfExpr *
@@ -1728,27 +1749,6 @@ _copyBooleanTest(BooleanTest *from)
 
 	COPY_NODE_FIELD(arg);
 	COPY_SCALAR_FIELD(booltesttype);
-
-	return newnode;
-}
-
-/*
- * _copyXmlExpr
- */
-static XmlExpr *
-_copyXmlExpr(XmlExpr *from)
-{
-	XmlExpr    *newnode = makeNode(XmlExpr);
-
-	COPY_SCALAR_FIELD(op);
-	COPY_STRING_FIELD(name);
-	COPY_NODE_FIELD(named_args);
-	COPY_NODE_FIELD(arg_names);
-	COPY_NODE_FIELD(args);
-	COPY_SCALAR_FIELD(xmloption);
-	COPY_SCALAR_FIELD(type);
-	COPY_SCALAR_FIELD(typmod);
-	COPY_LOCATION_FIELD(location);
 
 	return newnode;
 }
@@ -2403,7 +2403,8 @@ _copyTypeName(TypeName *from)
 	COPY_SCALAR_FIELD(timezone);
 	COPY_SCALAR_FIELD(setof);
 	COPY_SCALAR_FIELD(pct_type);
-	COPY_SCALAR_FIELD(typmod);
+	COPY_NODE_FIELD(typmods);
+	COPY_SCALAR_FIELD(typemod);
 	COPY_NODE_FIELD(arrayBounds);
 	COPY_SCALAR_FIELD(location);
 
@@ -4474,6 +4475,9 @@ copyObject(void *from)
 		case T_MinMaxExpr:
 			retval = _copyMinMaxExpr(from);
 			break;
+		case T_XmlExpr:
+			retval = _copyXmlExpr(from);
+			break;
 		case T_NullIfExpr:
 			retval = _copyNullIfExpr(from);
 			break;
@@ -4482,9 +4486,6 @@ copyObject(void *from)
 			break;
 		case T_BooleanTest:
 			retval = _copyBooleanTest(from);
-			break;
-		case T_XmlExpr:
-			retval = _copyXmlExpr(from);
 			break;
 		case T_CoerceToDomain:
 			retval = _copyCoerceToDomain(from);
