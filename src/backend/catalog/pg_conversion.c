@@ -8,7 +8,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/catalog/pg_conversion.c,v 1.33 2006/08/31 17:31:33 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/catalog/pg_conversion.c,v 1.34 2007/01/05 22:19:25 momjian Exp $
  *
  *-------------------------------------------------------------------------
  */

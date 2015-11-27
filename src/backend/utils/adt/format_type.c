@@ -8,7 +8,7 @@
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/utils/adt/format_type.c,v 1.45 2006/12/30 21:21:54 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/utils/adt/format_type.c,v 1.46 2007/01/05 22:19:40 momjian Exp $
  *
  *-------------------------------------------------------------------------
  */

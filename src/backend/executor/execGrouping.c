@@ -8,7 +8,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/executor/execGrouping.c,v 1.21 2006/07/14 14:52:18 momjian Exp $
+ *	  $PostgreSQL: pgsql/src/backend/executor/execGrouping.c,v 1.22 2007/01/05 22:19:27 momjian Exp $
  *
  *-------------------------------------------------------------------------
  */

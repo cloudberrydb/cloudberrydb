@@ -17,7 +17,7 @@
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/optimizer/prep/preptlist.c,v 1.84 2006/10/04 00:29:55 momjian Exp $
+ *	  $PostgreSQL: pgsql/src/backend/optimizer/prep/preptlist.c,v 1.85 2007/01/05 22:19:32 momjian Exp $
  *
  *-------------------------------------------------------------------------
  */

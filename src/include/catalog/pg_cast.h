@@ -11,7 +11,7 @@
  * Portions Copyright (c) 2006-2010, Greenplum inc
  * Copyright (c) 2002-2008, PostgreSQL Global Development Group
  *
- * $PostgreSQL: pgsql/src/include/catalog/pg_cast.h,v 1.27 2006/12/21 16:05:15 petere Exp $
+ * $PostgreSQL: pgsql/src/include/catalog/pg_cast.h,v 1.28 2007/01/05 22:19:52 momjian Exp $
  *
  * NOTES
  *	  the genbki.sh script reads this file and generates .bki

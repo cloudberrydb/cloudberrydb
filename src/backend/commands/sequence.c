@@ -9,7 +9,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/commands/sequence.c,v 1.141 2006/10/06 17:13:58 petere Exp $
+ *	  $PostgreSQL: pgsql/src/backend/commands/sequence.c,v 1.142 2007/01/05 22:19:26 momjian Exp $
  *
  *-------------------------------------------------------------------------
  */

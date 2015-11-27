@@ -27,7 +27,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/executor/execMain.c,v 1.282 2006/12/26 21:37:19 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/executor/execMain.c,v 1.283 2007/01/05 22:19:27 momjian Exp $
  *
  *-------------------------------------------------------------------------
  */

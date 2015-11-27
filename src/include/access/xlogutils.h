@@ -6,7 +6,7 @@
  * Portions Copyright (c) 1996-2008, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
- * $PostgreSQL: pgsql/src/include/access/xlogutils.h,v 1.21 2006/04/14 20:27:24 tgl Exp $
+ * $PostgreSQL: pgsql/src/include/access/xlogutils.h,v 1.22 2007/01/05 22:19:51 momjian Exp $
  */
 #ifndef XLOG_UTILS_H
 #define XLOG_UTILS_H

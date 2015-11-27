@@ -9,7 +9,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/parser/parse_type.c,v 1.86 2006/12/30 21:21:54 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/parser/parse_type.c,v 1.87 2007/01/05 22:19:34 momjian Exp $
  *
  *-------------------------------------------------------------------------
  */

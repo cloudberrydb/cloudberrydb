@@ -7,7 +7,7 @@
  * Portions Copyright (c) 1996-2008, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
- * $PostgreSQL: pgsql/src/include/commands/vacuum.h,v 1.68 2006/11/05 22:42:10 tgl Exp $
+ * $PostgreSQL: pgsql/src/include/commands/vacuum.h,v 1.69 2007/01/05 22:19:54 momjian Exp $
  *
  *-------------------------------------------------------------------------
  */

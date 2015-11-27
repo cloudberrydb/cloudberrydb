@@ -8,7 +8,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/parser/parse_agg.c,v 1.74 2006/12/10 22:13:26 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/parser/parse_agg.c,v 1.75 2007/01/05 22:19:33 momjian Exp $
  *
  *-------------------------------------------------------------------------
  */

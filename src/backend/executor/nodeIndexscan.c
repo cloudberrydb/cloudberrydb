@@ -8,7 +8,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/executor/nodeIndexscan.c,v 1.119 2006/12/26 19:26:45 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/executor/nodeIndexscan.c,v 1.120 2007/01/05 22:19:28 momjian Exp $
  *
  *-------------------------------------------------------------------------
  */

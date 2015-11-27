@@ -9,7 +9,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/storage/lmgr/lmgr.c,v 1.89 2006/10/04 00:29:57 momjian Exp $
+ *	  $PostgreSQL: pgsql/src/backend/storage/lmgr/lmgr.c,v 1.90 2007/01/05 22:19:38 momjian Exp $
  *
  *-------------------------------------------------------------------------
  */

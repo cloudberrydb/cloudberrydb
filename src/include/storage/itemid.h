@@ -7,7 +7,7 @@
  * Portions Copyright (c) 1996-2008, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
- * $PostgreSQL: pgsql/src/include/storage/itemid.h,v 1.26 2006/03/05 15:58:59 momjian Exp $
+ * $PostgreSQL: pgsql/src/include/storage/itemid.h,v 1.27 2007/01/05 22:19:58 momjian Exp $
  *
  *-------------------------------------------------------------------------
  */

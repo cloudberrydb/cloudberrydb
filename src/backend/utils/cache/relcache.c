@@ -9,7 +9,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/utils/cache/relcache.c,v 1.252 2006/12/31 20:32:04 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/utils/cache/relcache.c,v 1.253 2007/01/05 22:19:43 momjian Exp $
  *
  *-------------------------------------------------------------------------
  */

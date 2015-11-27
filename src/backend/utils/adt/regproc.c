@@ -13,7 +13,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/utils/adt/regproc.c,v 1.99 2006/07/14 14:52:24 momjian Exp $
+ *	  $PostgreSQL: pgsql/src/backend/utils/adt/regproc.c,v 1.100 2007/01/05 22:19:41 momjian Exp $
  *
  *-------------------------------------------------------------------------
  */

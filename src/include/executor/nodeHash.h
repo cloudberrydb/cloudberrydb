@@ -8,7 +8,7 @@
  * Portions Copyright (c) 1996-2008, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
- * $PostgreSQL: pgsql/src/include/executor/nodeHash.h,v 1.41 2006/06/27 21:31:20 tgl Exp $
+ * $PostgreSQL: pgsql/src/include/executor/nodeHash.h,v 1.42 2007/01/05 22:19:54 momjian Exp $
  *
  *-------------------------------------------------------------------------
  */

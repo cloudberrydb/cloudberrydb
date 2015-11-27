@@ -7,7 +7,7 @@
  * Portions Copyright (c) 1996-2008, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
- * $PostgreSQL: pgsql/src/include/commands/sequence.h,v 1.37 2006/07/11 13:54:24 momjian Exp $
+ * $PostgreSQL: pgsql/src/include/commands/sequence.h,v 1.38 2007/01/05 22:19:54 momjian Exp $
  *
  *-------------------------------------------------------------------------
  */

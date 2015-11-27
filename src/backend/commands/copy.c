@@ -9,7 +9,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/commands/copy.c,v 1.273 2006/10/06 17:13:58 petere Exp $
+ *	  $PostgreSQL: pgsql/src/backend/commands/copy.c,v 1.274 2007/01/05 22:19:25 momjian Exp $
  *
  *-------------------------------------------------------------------------
  */

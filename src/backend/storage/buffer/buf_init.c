@@ -8,7 +8,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/storage/buffer/buf_init.c,v 1.78 2006/03/05 15:58:36 momjian Exp $
+ *	  $PostgreSQL: pgsql/src/backend/storage/buffer/buf_init.c,v 1.79 2007/01/05 22:19:37 momjian Exp $
  *
  *-------------------------------------------------------------------------
  */

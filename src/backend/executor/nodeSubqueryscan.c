@@ -13,7 +13,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/executor/nodeSubqueryscan.c,v 1.34 2006/12/26 21:37:19 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/executor/nodeSubqueryscan.c,v 1.35 2007/01/05 22:19:28 momjian Exp $
  *
  *-------------------------------------------------------------------------
  */

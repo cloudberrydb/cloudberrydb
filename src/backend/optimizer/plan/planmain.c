@@ -15,7 +15,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/optimizer/plan/planmain.c,v 1.96 2006/09/19 22:49:52 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/optimizer/plan/planmain.c,v 1.98 2007/01/05 22:19:32 momjian Exp $
  *
  *-------------------------------------------------------------------------
  */

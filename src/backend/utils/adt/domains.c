@@ -25,7 +25,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/utils/adt/domains.c,v 1.4 2006/10/04 00:29:58 momjian Exp $
+ *	  $PostgreSQL: pgsql/src/backend/utils/adt/domains.c,v 1.5 2007/01/05 22:19:40 momjian Exp $
  *
  *-------------------------------------------------------------------------
  */

@@ -8,7 +8,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/utils/adt/float.c,v 1.141 2007/01/05 03:19:26 momjian Exp $
+ *	  $PostgreSQL: pgsql/src/backend/utils/adt/float.c,v 1.142 2007/01/05 22:19:40 momjian Exp $
  *
  *-------------------------------------------------------------------------
  */

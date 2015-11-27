@@ -8,7 +8,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/utils/adt/rowtypes.c,v 1.17 2006/07/14 14:52:24 momjian Exp $
+ *	  $PostgreSQL: pgsql/src/backend/utils/adt/rowtypes.c,v 1.18 2007/01/05 22:19:42 momjian Exp $
  *
  *-------------------------------------------------------------------------
  */

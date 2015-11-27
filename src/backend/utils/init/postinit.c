@@ -8,7 +8,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/utils/init/postinit.c,v 1.172 2006/11/05 22:42:09 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/utils/init/postinit.c,v 1.173 2007/01/05 22:19:44 momjian Exp $
  *
  *
  *-------------------------------------------------------------------------

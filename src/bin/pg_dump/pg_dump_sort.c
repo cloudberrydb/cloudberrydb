@@ -9,7 +9,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/bin/pg_dump/pg_dump_sort.c,v 1.15 2006/07/14 14:52:26 momjian Exp $
+ *	  $PostgreSQL: pgsql/src/bin/pg_dump/pg_dump_sort.c,v 1.16 2007/01/05 22:19:48 momjian Exp $
  *
  *-------------------------------------------------------------------------
  */

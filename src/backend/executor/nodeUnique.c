@@ -8,7 +8,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/executor/nodeUnique.c,v 1.53 2006/07/14 14:52:19 momjian Exp $
+ *	  $PostgreSQL: pgsql/src/backend/executor/nodeUnique.c,v 1.54 2007/01/05 22:19:28 momjian Exp $
  *
  *-------------------------------------------------------------------------
  */

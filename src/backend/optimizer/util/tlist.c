@@ -9,7 +9,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/optimizer/util/tlist.c,v 1.73 2006/08/10 02:36:29 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/optimizer/util/tlist.c,v 1.74 2007/01/05 22:19:33 momjian Exp $
  *
  *-------------------------------------------------------------------------
  */

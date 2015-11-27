@@ -10,7 +10,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/optimizer/path/indxpath.c,v 1.213 2006/12/23 00:43:10 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/optimizer/path/indxpath.c,v 1.214 2007/01/05 22:19:31 momjian Exp $
  *
  *-------------------------------------------------------------------------
  */

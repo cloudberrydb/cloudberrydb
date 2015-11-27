@@ -50,7 +50,7 @@
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/utils/time/tqual.c,v 1.100 2006/11/17 18:00:15 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/utils/time/tqual.c,v 1.101 2007/01/05 22:19:47 momjian Exp $
  *
  *-------------------------------------------------------------------------
  */

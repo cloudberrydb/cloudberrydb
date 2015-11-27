@@ -9,7 +9,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/executor/execUtils.c,v 1.141 2006/12/26 21:37:19 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/executor/execUtils.c,v 1.142 2007/01/05 22:19:27 momjian Exp $
  *
  *-------------------------------------------------------------------------
  */

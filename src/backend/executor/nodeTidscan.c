@@ -8,7 +8,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/executor/nodeTidscan.c,v 1.52 2006/12/26 19:26:46 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/executor/nodeTidscan.c,v 1.53 2007/01/05 22:19:28 momjian Exp $
  *
  *-------------------------------------------------------------------------
  */

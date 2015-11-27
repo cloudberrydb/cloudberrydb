@@ -8,7 +8,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/utils/adt/pgstatfuncs.c,v 1.36 2007/01/02 20:59:31 momjian Exp $
+ *	  $PostgreSQL: pgsql/src/backend/utils/adt/pgstatfuncs.c,v 1.37 2007/01/05 22:19:41 momjian Exp $
  *
  *-------------------------------------------------------------------------
  */

@@ -23,7 +23,7 @@
  * Copyright (c) 2003-2008, PostgreSQL Global Development Group
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/nodes/tidbitmap.c,v 1.10 2006/07/13 17:47:01 momjian Exp $
+ *	  $PostgreSQL: pgsql/src/backend/nodes/tidbitmap.c,v 1.11 2007/01/05 22:19:30 momjian Exp $
  *
  *-------------------------------------------------------------------------
  */

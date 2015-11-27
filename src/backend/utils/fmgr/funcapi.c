@@ -7,7 +7,7 @@
  * Copyright (c) 2002-2008, PostgreSQL Global Development Group
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/utils/fmgr/funcapi.c,v 1.31 2006/07/11 16:35:33 momjian Exp $
+ *	  $PostgreSQL: pgsql/src/backend/utils/fmgr/funcapi.c,v 1.32 2007/01/05 22:19:43 momjian Exp $
  *
  *-------------------------------------------------------------------------
  */

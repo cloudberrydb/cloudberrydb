@@ -9,7 +9,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/commands/tablecmds.c,v 1.209 2007/01/03 18:11:01 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/commands/tablecmds.c,v 1.210 2007/01/05 22:19:26 momjian Exp $
  *
  *-------------------------------------------------------------------------
  */

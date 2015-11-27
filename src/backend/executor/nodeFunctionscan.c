@@ -9,7 +9,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/executor/nodeFunctionscan.c,v 1.41 2006/12/26 19:26:45 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/executor/nodeFunctionscan.c,v 1.42 2007/01/05 22:19:28 momjian Exp $
  *
  *-------------------------------------------------------------------------
  */

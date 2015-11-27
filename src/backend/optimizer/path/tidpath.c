@@ -25,7 +25,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/optimizer/path/tidpath.c,v 1.28 2006/10/04 00:29:54 momjian Exp $
+ *	  $PostgreSQL: pgsql/src/backend/optimizer/path/tidpath.c,v 1.29 2007/01/05 22:19:31 momjian Exp $
  *
  *-------------------------------------------------------------------------
  */

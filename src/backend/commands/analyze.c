@@ -17,7 +17,7 @@
  * heavy lifting of setting up transactions and getting locks.
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/commands/analyze.c,v 1.101 2006/11/05 22:42:08 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/commands/analyze.c,v 1.102 2007/01/05 22:19:25 momjian Exp $
  *
  *-------------------------------------------------------------------------
  */

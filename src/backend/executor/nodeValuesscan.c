@@ -10,7 +10,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/executor/nodeValuesscan.c,v 1.4 2006/12/26 19:26:46 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/executor/nodeValuesscan.c,v 1.5 2007/01/05 22:19:28 momjian Exp $
  *
  *-------------------------------------------------------------------------
  */

@@ -9,7 +9,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/catalog/indexing.c,v 1.113 2006/07/03 22:45:38 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/catalog/indexing.c,v 1.114 2007/01/05 22:19:24 momjian Exp $
  *
  *-------------------------------------------------------------------------
  */

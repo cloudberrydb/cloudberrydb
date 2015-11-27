@@ -9,7 +9,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/lib/dllist.c,v 1.33 2006/03/05 15:58:27 momjian Exp $
+ *	  $PostgreSQL: pgsql/src/backend/lib/dllist.c,v 1.34 2007/01/05 22:19:29 momjian Exp $
  *
  *-------------------------------------------------------------------------
  */

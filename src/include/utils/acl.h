@@ -7,7 +7,7 @@
  * Portions Copyright (c) 1996-2008, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
- * $PostgreSQL: pgsql/src/include/utils/acl.h,v 1.98 2006/10/04 00:30:10 momjian Exp $
+ * $PostgreSQL: pgsql/src/include/utils/acl.h,v 1.99 2007/01/05 22:19:58 momjian Exp $
  *
  * NOTES
  *	  An ACL array is simply an array of AclItems, representing the union

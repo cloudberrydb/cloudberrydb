@@ -15,7 +15,7 @@
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/storage/lmgr/lwlock.c,v 1.47 2006/10/15 22:04:07 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/storage/lmgr/lwlock.c,v 1.48 2007/01/05 22:19:38 momjian Exp $
  *
  *-------------------------------------------------------------------------
  */

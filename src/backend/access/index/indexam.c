@@ -8,7 +8,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/access/index/indexam.c,v 1.96 2006/12/23 00:43:08 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/access/index/indexam.c,v 1.97 2007/01/05 22:19:23 momjian Exp $
  *
  * INTERFACE ROUTINES
  *		index_open		- open an index relation by relation OID

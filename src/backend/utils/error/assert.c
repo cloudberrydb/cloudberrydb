@@ -9,7 +9,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/utils/error/assert.c,v 1.31 2005/10/15 02:49:32 momjian Exp $
+ *	  $PostgreSQL: pgsql/src/backend/utils/error/assert.c,v 1.33 2007/01/05 22:19:43 momjian Exp $
  *
  * NOTE
  *	  This should eventually work with elog()

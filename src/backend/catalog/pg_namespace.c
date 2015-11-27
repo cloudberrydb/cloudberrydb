@@ -8,7 +8,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/catalog/pg_namespace.c,v 1.16 2006/03/05 15:58:23 momjian Exp $
+ *	  $PostgreSQL: pgsql/src/backend/catalog/pg_namespace.c,v 1.17 2007/01/05 22:19:25 momjian Exp $
  *
  *-------------------------------------------------------------------------
  */

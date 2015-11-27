@@ -8,7 +8,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/utils/adt/not_in.c,v 1.45 2006/03/23 00:19:30 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/utils/adt/not_in.c,v 1.46 2007/01/05 22:19:41 momjian Exp $
  *
  *-------------------------------------------------------------------------
  */

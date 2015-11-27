@@ -9,7 +9,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/pl/plpgsql/src/scan.l,v 1.54 2006/08/14 21:14:42 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/pl/plpgsql/src/scan.l,v 1.55 2007/01/05 22:20:02 momjian Exp $
  *
  *-------------------------------------------------------------------------
  */

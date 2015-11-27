@@ -8,7 +8,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/optimizer/util/joininfo.c,v 1.45 2006/12/12 21:31:02 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/optimizer/util/joininfo.c,v 1.46 2007/01/05 22:19:32 momjian Exp $
  *
  *-------------------------------------------------------------------------
  */

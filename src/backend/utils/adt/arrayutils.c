@@ -8,7 +8,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/utils/adt/arrayutils.c,v 1.22 2006/12/30 21:21:54 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/utils/adt/arrayutils.c,v 1.23 2007/01/05 22:19:40 momjian Exp $
  *
  *-------------------------------------------------------------------------
  */

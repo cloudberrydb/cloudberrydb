@@ -5,7 +5,7 @@
  *
  * Portions Copyright (c) 1996-2008, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
- * $PostgreSQL: pgsql/src/include/catalog/pg_trigger.h,v 1.25 2006/03/11 04:38:38 momjian Exp $
+ * $PostgreSQL: pgsql/src/include/catalog/pg_trigger.h,v 1.26 2007/01/05 22:19:53 momjian Exp $
  *
  * NOTES
  *	  the genbki.sh script reads this file and generates .bki

@@ -8,7 +8,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/storage/page/bufpage.c,v 1.69 2006/03/05 15:58:39 momjian Exp $
+ *	  $PostgreSQL: pgsql/src/backend/storage/page/bufpage.c,v 1.70 2007/01/05 22:19:38 momjian Exp $
  *
  *-------------------------------------------------------------------------
  */

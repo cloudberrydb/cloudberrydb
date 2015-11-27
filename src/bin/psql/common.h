@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2000-2010, PostgreSQL Global Development Group
  *
- * $PostgreSQL: pgsql/src/bin/psql/common.h,v 1.53 2006/12/18 14:17:41 adunstan Exp $
+ * $PostgreSQL: pgsql/src/bin/psql/common.h,v 1.54 2007/01/05 22:19:49 momjian Exp $
  */
 #ifndef COMMON_H
 #define COMMON_H

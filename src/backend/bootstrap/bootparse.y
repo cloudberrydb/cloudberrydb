@@ -10,7 +10,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/bootstrap/bootparse.y,v 1.84 2006/08/25 04:06:46 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/bootstrap/bootparse.y,v 1.85 2007/01/05 22:19:24 momjian Exp $
  *
  *-------------------------------------------------------------------------
  */

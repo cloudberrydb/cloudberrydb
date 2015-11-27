@@ -8,7 +8,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/catalog/pg_proc.c,v 1.141 2006/10/19 18:32:46 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/catalog/pg_proc.c,v 1.142 2007/01/05 22:19:25 momjian Exp $
  *
  *-------------------------------------------------------------------------
  */

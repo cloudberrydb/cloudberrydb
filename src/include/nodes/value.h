@@ -6,7 +6,7 @@
  *
  * Copyright (c) 2003-2009, PostgreSQL Global Development Group
  *
- * $PostgreSQL: pgsql/src/include/nodes/value.h,v 1.5 2006/03/05 15:58:57 momjian Exp $
+ * $PostgreSQL: pgsql/src/include/nodes/value.h,v 1.6 2007/01/05 22:19:56 momjian Exp $
  *
  *-------------------------------------------------------------------------
  */
