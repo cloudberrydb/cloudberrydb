@@ -177,6 +177,17 @@ PostgreSQL documentation
      </varlistentry>
 
      <varlistentry>
+      <term><option>-X <replaceable class="parameter">directory</replaceable></option></term>
+      <term><option>--xlogdir=<replaceable class="parameter">directory</replaceable></option></term>
+      <listitem>
+       <para>
+        This option specifies the directory where the transaction log
+        should be stored.
+       </para>
+      </listitem>
+     </varlistentry>
+
+     <varlistentry>
       <term><option>-U <replaceable class="parameter">username</replaceable></option></term>
       <term><option>--username=<replaceable class="parameter">username</replaceable></option></term>
       <listitem>

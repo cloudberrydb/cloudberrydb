@@ -28,8 +28,8 @@
 
 List	   *parsetree;			/* result of parsing is left here */
 
-static bool have_lookahead;		/* is lookahead info valid? */
-static int	lookahead_token;	/* one-token lookahead */
+static bool have_lookahead;			/* is lookahead info valid? */
+static int	lookahead_token;		/* one-token lookahead */
 static YYSTYPE lookahead_yylval;	/* yylval for lookahead token */
 static YYLTYPE lookahead_yylloc;	/* yylloc for lookahead token */
 
