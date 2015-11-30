@@ -197,7 +197,8 @@ namespace gpos
 #endif // GPOS_DEBUG
 
 // Nested detail namespace for templated helper classes.
-namespace delete_detail {
+namespace delete_detail
+{
 
 // All-static helper class. Base version deletes unqualified pointers / arrays.
 template <typename T>

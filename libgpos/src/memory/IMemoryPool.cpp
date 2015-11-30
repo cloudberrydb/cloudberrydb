@@ -22,7 +22,8 @@
 #include "gpos/memory/CMemoryPoolManager.h"
 
 
-namespace gpos {
+namespace gpos
+{
 
 ULONG
 IMemoryPool::UlSizeOfAlloc(const void *pv) {
