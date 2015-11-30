@@ -12,7 +12,7 @@
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/optimizer/path/pathkeys.c,v 1.80 2007/01/05 22:19:31 momjian Exp $
+ *	  $PostgreSQL: pgsql/src/backend/optimizer/path/pathkeys.c,v 1.81 2007/01/09 02:14:12 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -37,7 +37,8 @@
 #include "cdb/cdbdef.h"         /* CdbSwap() */
 #include "cdb/cdbpullup.h"      /* cdbpullup_expr(), cdbpullup_make_var() */
 
-static PathKeyItem *makePathKeyItem(Node *key, Oid sortop, bool checkType);
+static PathKeyItem *makePathKeyItem(Node *key, Oid sortop, bool nulls_first,
+									bool checkType);
 static void generate_outer_join_implications(PlannerInfo *root,
 								 List *equi_key_set,
 								 Relids *relids);
@@ -76,7 +77,7 @@ static List *make_canonical_pathkey(PlannerInfo *root, PathKeyItem *item);
  * our release cycle. kh 4/07]
  */
 static PathKeyItem *
-makePathKeyItem(Node *key, Oid sortop, bool checkType)
+makePathKeyItem(Node *key, Oid sortop, bool nulls_first, bool checkType)
 {
 	PathKeyItem *item = makeNode(PathKeyItem);
 
@@ -105,6 +106,7 @@ makePathKeyItem(Node *key, Oid sortop, bool checkType)
 
 	item->key = key;
 	item->sortop = sortop;
+	item->nulls_first = nulls_first;
 	return item;
 }
 
@@ -142,9 +144,11 @@ add_equijoined_keys_to_list(List **ptrToList, RestrictInfo *restrictinfo)
 	Expr	   *clause = restrictinfo->clause;
 	PathKeyItem *item1 = makePathKeyItem(get_leftop(clause),
 										 restrictinfo->left_sortop,
+										 false,	/* XXX nulls_first? */
 										 false);
 	PathKeyItem *item2 = makePathKeyItem(get_rightop(clause),
 										 restrictinfo->right_sortop,
+										 false,	/* XXX nulls_first? */
 										 false);
     List       *set1 = NULL;
     List       *set2 = NULL;
@@ -1299,7 +1303,7 @@ get_cheapest_fractional_path_for_pathkeys(List *paths,
  *	  Build a pathkeys list that describes the ordering induced by an index
  *	  scan using the given index.  (Note that an unordered index doesn't
  *	  induce any ordering; such an index will have no sortop OIDS in
- *	  its "ordering" field, and we will return NIL.)
+ *	  its sortops arrays, and we will return NIL.)
  *
  * If 'scandir' is BackwardScanDirection, attempt to build pathkeys
  * representing a backwards scan of the index.	Return NIL if can't do it.
@@ -1320,30 +1324,37 @@ build_index_pathkeys(PlannerInfo *root,
 					 bool canonical)
 {
 	List	   *retval = NIL;
-	int		   *indexkeys = index->indexkeys;
-	Oid		   *ordering = index->ordering;
 	ListCell   *indexprs_item = list_head(index->indexprs);
+	int			i;
 
-	while (*ordering != InvalidOid)
+	for (i = 0; i < index->ncolumns; i++)
 	{
-		PathKeyItem *item;
 		Oid			sortop;
+		bool		nulls_first;
+		int			ikey;
 		Node	   *indexkey;
+		PathKeyItem *item;
 		List	   *cpathkey;
 
-		sortop = *ordering;
 		if (ScanDirectionIsBackward(scandir))
 		{
-			sortop = get_commutator(sortop);
-			if (sortop == InvalidOid)
-				break;			/* oops, no reverse sort operator? */
+			sortop = index->revsortop[i];
+			nulls_first = !index->nulls_first[i];
+		}
+		else
+		{
+			sortop = index->fwdsortop[i];
+			nulls_first = index->nulls_first[i];
 		}
 
-		if (*indexkeys != 0)
+		if (!OidIsValid(sortop))
+			break;				/* no more orderable columns */
+
+		ikey = index->indexkeys[i];
+		if (ikey != 0)
 		{
 			/* simple index column */
-			indexkey = (Node *) find_indexkey_var(root, index->rel,
-												  *indexkeys);
+			indexkey = (Node *) find_indexkey_var(root, index->rel, ikey);
 		}
 		else
 		{
@@ -1355,7 +1366,7 @@ build_index_pathkeys(PlannerInfo *root,
 		}
 
 		/* OK, make a sublist for this sort key */
-		item = makePathKeyItem(indexkey, sortop, true);
+		item = makePathKeyItem(indexkey, sortop, nulls_first, true);
 		cpathkey = make_canonical_pathkey(root, item);
 
 		/* Eliminate redundant ordering info if requested */
@@ -1363,9 +1374,6 @@ build_index_pathkeys(PlannerInfo *root,
 		retval = list_append_unique_ptr(retval, cpathkey);
 		else
 			retval = lappend(retval, cpathkey);
-
-		indexkeys++;
-		ordering++;
 	}
 
 	return retval;
@@ -1511,6 +1519,7 @@ convert_subquery_pathkeys(PlannerInfo *root, RelOptInfo *rel,
 				/* Found a representation for this sub_key */
 				outer_item = makePathKeyItem(outer_expr,
 											 sub_item->sortop,
+											 sub_item->nulls_first,
 											 true);
 				/* score = # of mergejoin peers */
 				score = count_canonical_peers(root, outer_item);
@@ -1645,7 +1654,9 @@ cdb_make_pathkey_for_expr_non_canonical(PlannerInfo    *root,
 		/* XXX for the moment, continue to force use of particular sortops */
 		if (get_op_mergejoin_info(eqopoid, &leftsortop, &rightsortop, &opfamily))
 		{
-			item = makePathKeyItem((Node *)expr, leftsortop, true);
+			item = makePathKeyItem((Node *) expr, leftsortop,
+								   false /* XXX nulls_first? */,
+								   true);
 		}
     }
     else
@@ -1655,7 +1666,9 @@ cdb_make_pathkey_for_expr_non_canonical(PlannerInfo    *root,
     	 * E.g., cdbpath_dedup_fixup_unique() repartitions on CTID without
     	 * bothering to insert a coercion to INT8.
     	 */
-    	item = makePathKeyItem((Node *)expr, InvalidOid, false);
+		item = makePathKeyItem((Node *)expr, InvalidOid,
+							   false /* XXX nulls_first? */,
+							   false);
     }
     Assert(item);
     return item;
@@ -1771,7 +1784,9 @@ cdb_pull_up_pathkey(PlannerInfo    *root,
     Insist(newexpr);
 
     /* Make new PathKeyItem, keeping same sortop. */
-    item = makePathKeyItem((Node *)newexpr, item->sortop, true);
+	item = makePathKeyItem((Node *)newexpr, item->sortop,
+						   false /* XXX nulls_first? */,
+						   true);
 
     /* Find or create the equivalence class for the transformed expr. */
     return make_canonical_pathkey(root, item);
@@ -1811,7 +1826,8 @@ make_pathkeys_for_sortclauses(List *sortclauses,
 		PathKeyItem *pathkey;
 
 		sortkey = get_sortgroupclause_expr(sortcl, tlist);
-		pathkey = makePathKeyItem(sortkey, sortcl->sortop, true);
+		pathkey = makePathKeyItem(sortkey, sortcl->sortop, sortcl->nulls_first,
+								  true);
 
 		/*
 		 * The pathkey becomes a one-element sublist, for now;
@@ -1858,7 +1874,7 @@ make_pathkeys_for_groupclause(List *groupclause,
 		{
 			GroupClause *gc = (GroupClause*) node;
 			sortkey = get_sortgroupclause_expr(gc, tlist);
-			pathkey = makePathKeyItem(sortkey, gc->sortop, true);
+			pathkey = makePathKeyItem(sortkey, gc->sortop, InvalidOid, true);
 
 			/*
 			 * Similar to SortClauses, the pathkey becomes a one-elment sublist.
@@ -1920,7 +1936,9 @@ cache_mergeclause_pathkeys(PlannerInfo *root, RestrictInfo *restrictinfo)
 	{
 		oldcontext = MemoryContextSwitchTo(GetMemoryChunkContext(restrictinfo));
 		key = get_leftop(restrictinfo->clause);
-		item = makePathKeyItem(key, restrictinfo->left_sortop, false);
+		item = makePathKeyItem(key, restrictinfo->left_sortop,
+							   false, /* XXX nulls_first? */
+							   false);
 		restrictinfo->left_pathkey = make_canonical_pathkey(root, item);
 		MemoryContextSwitchTo(oldcontext);
 	}
@@ -1928,7 +1946,9 @@ cache_mergeclause_pathkeys(PlannerInfo *root, RestrictInfo *restrictinfo)
 	{
 		oldcontext = MemoryContextSwitchTo(GetMemoryChunkContext(restrictinfo));
 		key = get_rightop(restrictinfo->clause);
-		item = makePathKeyItem(key, restrictinfo->right_sortop, false);
+		item = makePathKeyItem(key, restrictinfo->right_sortop,
+							   false, /* XXX nulls_first? */
+							   false);
 		restrictinfo->right_pathkey = make_canonical_pathkey(root, item);
 		MemoryContextSwitchTo(oldcontext);
 	}
@@ -2285,7 +2305,7 @@ construct_equivalencekey_list(List *equi_key_list,
 				Assert(resno_map[tle->resno - 1] > 0);
 				new_tle = list_nth(new_tlist, resno_map[tle->resno - 1] - 1);
 				Assert(new_tle != NULL);
-				new_item = makePathKeyItem((Node *)new_tle->expr, item->sortop, true);
+				new_item = makePathKeyItem((Node *)new_tle->expr, item->sortop, InvalidOid, true);
 				new_keys = lappend(new_keys, new_item);
 			}
 		}

@@ -72,9 +72,9 @@ typedef struct CdbTupleHeapInfo
  *		1) the number and array of indexes into the tuples columns
  *			that are the basis for the ordering
  *			(numSortCols, sortColIdx)
- *		2) the kind and FmgrInfo of the compare function
+ *		2) the FmgrInfo and flags of the compare function
  *			for each column being ordered
- *			(sortFnKinds, sortFunctions)
+ *			(sortFunctions, cmpFlags)
  *		3) the tuple desc
  *			(tupDesc)
  * Used by sorted receiver (Merge Receive).  It is passed as the
@@ -83,7 +83,7 @@ typedef struct CdbTupleHeapInfo
 typedef struct CdbMergeComparatorContext
 {
 	FmgrInfo           *sortFunctions;
-	SortFunctionKind   *sortFnKinds;
+	int                *cmpFlags;
 	int			        numSortCols;
 	AttrNumber         *sortColIdx;
 	TupleDesc	   tupDesc;
@@ -94,7 +94,8 @@ static CdbMergeComparatorContext *
 CdbMergeComparator_CreateContext(TupleDesc      tupDesc,
                                  int            numSortCols,
                                  AttrNumber    *sortColIdx,
-                                 Oid           *sortOperators);
+                                 Oid           *sortOperators,
+								 bool *nullsFirstFlags);
 
 static void
 CdbMergeComparator_DestroyContext(CdbMergeComparatorContext *ctx);
@@ -632,14 +633,12 @@ static void create_motion_mk_heap(MotionState *node)
 
     create_mksort_context(
             &ctxt->mkctxt,
-            motion->numSortCols, 
+            motion->numSortCols, motion->sortColIdx,
+            motion->sortOperators, motion->nullsFirst,
+			NULL,
             tupsort_fetch_datum_motion,
             tupsort_free_datum_motion,
-            ExecGetResultType(&node->ps), false, 0, /* dummy does not matter */
-            motion->sortOperators,
-            motion->sortColIdx,
-            NULL
-            );
+            ExecGetResultType(&node->ps), false, 0 /* dummy does not matter */);
 
     ctxt->readers = palloc0(sizeof(MKHeapReader) * nreader);
 
@@ -1123,7 +1122,8 @@ ExecInitMotion(Motion * node, EState *estate, int eflags)
             mcContext = CdbMergeComparator_CreateContext(tupDesc,
                     node->numSortCols,
                     node->sortColIdx,
-                    node->sortOperators);
+														 node->sortOperators,
+				node->nullsFirst);
 
             /* Create the priority queue structure. */
             motionstate->tupleheap = CdbHeap_Create(CdbMergeComparator,
@@ -1320,7 +1320,7 @@ CdbMergeComparator(void *lhs, void *rhs, void *context)
     HeapTuple           ltup = linfo->tuple;
     HeapTuple           rtup = rinfo->tuple;
     FmgrInfo           *sortFunctions;
-    SortFunctionKind   *sortFnKinds;
+	int				   *cmpFlags;
     int                 numSortCols;
     AttrNumber         *sortColIdx;
     TupleDesc           tupDesc;
@@ -1329,7 +1329,7 @@ CdbMergeComparator(void *lhs, void *rhs, void *context)
     Assert(ltup && rtup);
 
     sortFunctions   = ctx->sortFunctions;
-    sortFnKinds     = ctx->sortFnKinds;
+    cmpFlags        = ctx->cmpFlags;
     numSortCols     = ctx->numSortCols;
     sortColIdx      = ctx->sortColIdx;
     tupDesc         = ctx->tupDesc;
@@ -1354,7 +1354,7 @@ CdbMergeComparator(void *lhs, void *rhs, void *context)
 		datum2 = heap_getattr(rtup, attno, tupDesc, &isnull2);
 
         compare = ApplySortFunction(&sortFunctions[nkey],
-                                    sortFnKinds[nkey],
+                                    cmpFlags[nkey],
                                     datum1, isnull1,
                                     datum2, isnull2);
         if (compare != 0)
@@ -1371,7 +1371,8 @@ CdbMergeComparatorContext *
 CdbMergeComparator_CreateContext(TupleDesc      tupDesc,
                                  int            numSortCols,
                                  AttrNumber    *sortColIdx,
-                                 Oid           *sortOperators)
+                                 Oid           *sortOperators,
+								 bool *nullsFirstFlags)
 {
     CdbMergeComparatorContext  *ctx;
     int     i;
@@ -1392,7 +1393,7 @@ CdbMergeComparator_CreateContext(TupleDesc      tupDesc,
 
     /* Allocate the sort function arrays. */
     ctx->sortFunctions = (FmgrInfo *)palloc0(numSortCols * sizeof(FmgrInfo));
-    ctx->sortFnKinds = (SortFunctionKind *)palloc0(numSortCols * sizeof(SortFunctionKind));
+    ctx->cmpFlags = (int *) palloc0(numSortCols * sizeof(int));
 
     /* Load the sort functions. */
     for (i = 0; i < numSortCols; i++)
@@ -1403,8 +1404,9 @@ CdbMergeComparator_CreateContext(TupleDesc      tupDesc,
 
         /* select a function that implements the sort operator */
         SelectSortFunction(sortOperators[i],
+						   nullsFirstFlags[i],
                            &sortFunction,
-                           &ctx->sortFnKinds[i]);
+                           &ctx->cmpFlags[i]);
 
         fmgr_info(sortFunction, &ctx->sortFunctions[i]);
     }
@@ -1418,8 +1420,8 @@ CdbMergeComparator_DestroyContext(CdbMergeComparatorContext *ctx)
 {
     if (!ctx)
         return;
-    if (ctx->sortFnKinds)
-        pfree(ctx->sortFnKinds);
+    if (ctx->cmpFlags)
+        pfree(ctx->cmpFlags);
     if (ctx->sortFunctions)
         pfree(ctx->sortFunctions);
 }                               /* CdbMergeComparator_DestroyContext */

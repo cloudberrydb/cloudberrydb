@@ -9,7 +9,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/optimizer/path/allpaths.c,v 1.154.2.1 2007/01/28 18:50:48 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/optimizer/path/allpaths.c,v 1.156 2007/01/09 02:14:12 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -1574,7 +1574,7 @@ qual_is_pushdown_safe(Query *subquery, Index rti, Node *qual,
 
 		/* If subquery uses DISTINCT or DISTINCT ON, check point 5 */
 		if (subquery->distinctClause != NIL &&
-			!targetIsInSortGroupList(tle, subquery->distinctClause))
+			!targetIsInSortGroupList(tle, InvalidOid, subquery->distinctClause))
 		{
 			/* non-DISTINCT column, so fail */
 			safe = false;
@@ -1613,7 +1613,7 @@ qual_is_pushdown_safe(Query *subquery, Index rti, Node *qual,
 			foreach(lc, subquery->windowClause)
 			{
 				WindowSpec *ws = (WindowSpec *) lfirst(lc);
-				if (!targetIsInSortGroupList(tle, ws->partition))
+				if (!targetIsInSortGroupList(tle, InvalidOid, ws->partition))
 				{
 					/* qual's columns are not included in Partition-By clause, so fail */
 					safe = false;

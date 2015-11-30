@@ -36,7 +36,8 @@ CreateAOAuxiliaryTable(
 		Oid *aoauxiliaryComptypeOid,
 		TupleDesc tupledesc,
 		IndexInfo  *indexInfo,
-		Oid	*classObjectId)
+		Oid	*classObjectId,
+		int16 *coloptions)
 {
 	char aoauxiliary_relname[NAMEDATALEN];
 	char aoauxiliary_idxname[NAMEDATALEN];
@@ -135,7 +136,7 @@ CreateAOAuxiliaryTable(
 									 indexInfo,
 									 BTREE_AM_OID,
 									 rel->rd_rel->reltablespace,
-									 classObjectId, (Datum) 0,
+									 classObjectId, coloptions, (Datum) 0,
 									 true, false, (Oid *) NULL, true, false,
 									 false, NULL);
 

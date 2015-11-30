@@ -178,6 +178,39 @@ select row_number() over (order by count(*)), vn, count(*)
 from sale 
 group by vn; -- mvd 3->1
 
+-- Test NULLS FIRST/LAST in window clauses
+create table tbl_with_nulls_seq (t text, a int, b int);
+insert into tbl_with_nulls_seq values
+  ( 'a', 1, 10),
+  ( 'b', 1, 10),
+  ( 'c', 1, 10),
+  ( 'd', 2, 10),
+  ( 'e', 2, 20),
+  ( 'f', 2, 20),
+  ( 'g', NULL, 20),
+  ( 'h', NULL, 20),
+  ( 'i', NULL, 30);
+
+select t, a, b,
+  first_value(t) over (order by a nulls first, t),
+  first_value(t) over (order by a nulls last, t),
+  first_value(t) over (partition by b order by a nulls first, t),
+  first_value(t) over (partition by b order by a nulls last, t)
+from tbl_with_nulls_seq order by t;
+
+-- Same with explicitly named window
+select t, a, b,
+  first_value(t) over (w1),
+  first_value(t) over (w2),
+  first_value(t) over (w3),
+  first_value(t) over (w4)
+from tbl_with_nulls_seq
+window w1 as (order by a nulls first, t),
+       w2 as (order by a nulls last, t),
+       w3 as (partition by b order by a nulls first, t),
+       w4 as (partition by b order by a nulls last, t)
+order by t;
+
 
 ---- X -- Miscellaneous (e.g. old bugs, etc.) ----
 

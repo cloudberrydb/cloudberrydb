@@ -637,11 +637,11 @@ void tuplesort_begin_pos_mk(Tuplesortstate_mk *st, TuplesortPos_mk **pos)
 void
 create_mksort_context(
         MKContext *mkctxt,
-        int nkeys, 
-        MKFetchDatumForPrepare fetchForPrep, MKFreeTuple freeTupleFn, TupleDesc tupdesc, bool tbyv, int tlen,
-        Oid *sortOperators, 
-        AttrNumber *attNums,
-        ScanKey sk)
+        int nkeys, AttrNumber *attNums,
+        Oid *sortOperators, bool *nullsFirstFlags,
+		ScanKey sk,
+        MKFetchDatumForPrepare fetchForPrep, MKFreeTuple freeTupleFn,
+		TupleDesc tupdesc, bool tbyv, int tlen)
 {
     int i;
 
@@ -665,7 +665,8 @@ create_mksort_context(
 
     for(i=0; i<nkeys; ++i)
     {
-        RegProcedure sortFunction;
+        Oid			sortFunction;
+		bool		reverse;
         MKLvContext *sinfo = mkctxt->lvctxt+i; 
         
         if (sortOperators)
@@ -673,22 +674,30 @@ create_mksort_context(
             Assert(sortOperators[i] != 0);
 
             /* Select a sort function */
-            SelectSortFunction(sortOperators[i], &sortFunction, &sinfo->sortfnkind);
-            fmgr_info(sortFunction, &sinfo->fmgrinfo);
+			if (!get_op_compare_function(sortOperators[i],
+										 &sortFunction, &reverse))
+				elog(ERROR, "operator %u is not a valid ordering operator",
+					 sortOperators[i]);
 
-            /* Hacking in null first/null last.  Untill parser implements null first/last,
-             * we will keep the old postgres behaviour.
-             */
-            if(sinfo->sortfnkind == SORTFUNC_REVLT || sinfo->sortfnkind == SORTFUNC_REVCMP)
-                sinfo->nullfirst = true;
-            else
-                sinfo->nullfirst = false;
+			/*
+			 * We needn't fill in sk_strategy or sk_subtype since these scankeys
+			 * will never be passed to an index.
+			 */
+			ScanKeyInit(&sinfo->scanKey,
+						attNums ? attNums[i] : i + 1,
+						InvalidStrategy,
+						sortFunction,
+						(Datum) 0);
+
+			/* However, we use btree's conventions for encoding directionality */
+			if (reverse)
+				sinfo->scanKey.sk_flags |= SK_BT_DESC;
+			if (nullsFirstFlags[i])
+				sinfo->scanKey.sk_flags |= SK_BT_NULLS_FIRST;
         }
         else
         {
-            sinfo->sortfnkind = SORTFUNC_CMP;
-            sinfo->nullfirst = false;
-            sinfo->fmgrinfo = sk[i].sk_func; /* structural copy */
+			sinfo->scanKey = sk[i]; /* structural copy */
         }
             
         AssertImply(attNums, attNums[i] != 0);
@@ -702,13 +711,13 @@ create_mksort_context(
             sinfo->typByVal = tupdesc->attrs[sinfo->attno-1]->attbyval;
             sinfo->typLen = tupdesc->attrs[sinfo->attno-1]->attlen;
 
-            if (sinfo->fmgrinfo.fn_addr == btint4cmp)
+            if (sinfo->scanKey.sk_func.fn_addr == btint4cmp)
                 sinfo->lvtype = MKLV_TYPE_INT32;
             if (!lc_collate_is_c())
             {
-                if(sinfo->fmgrinfo.fn_addr == bpcharcmp)
+                if (sinfo->scanKey.sk_func.fn_addr == bpcharcmp)
                     sinfo->lvtype = MKLV_TYPE_CHAR;
-                else if (sinfo->fmgrinfo.fn_addr == bttextcmp)
+                else if (sinfo->scanKey.sk_func.fn_addr == bttextcmp)
                     sinfo->lvtype = MKLV_TYPE_TEXT;
             }
         }
@@ -723,10 +732,10 @@ create_mksort_context(
 
 Tuplesortstate_mk *
 tuplesort_begin_heap_mk(ScanState *ss,
-		TupleDesc tupDesc,
-        int nkeys,
-        Oid *sortOperators, AttrNumber *attNums,
-        int workMem, bool randomAccess)
+						TupleDesc tupDesc,
+						int nkeys, AttrNumber *attNums,
+						Oid *sortOperators, bool *nullsFirstFlags,
+						int workMem, bool randomAccess)
 {
 
     Tuplesortstate_mk *state = tuplesort_begin_common(ss, workMem, randomAccess, true);
@@ -750,12 +759,12 @@ tuplesort_begin_heap_mk(ScanState *ss,
 
     create_mksort_context(
             &state->mkctxt,
-            nkeys, 
+            nkeys, attNums,
+            sortOperators, nullsFirstFlags,
+			NULL,
             tupsort_fetch_datum_mtup,
             freetup_heap,
-            tupDesc, 0, 0, 
-            sortOperators, attNums,
-            NULL);
+            tupDesc, 0, 0);
 
     MemoryContextSwitchTo(oldcontext);
 
@@ -764,11 +773,11 @@ tuplesort_begin_heap_mk(ScanState *ss,
 
 Tuplesortstate_mk *
 tuplesort_begin_heap_file_readerwriter_mk(ScanState *ss,
-        const char *rwfile_prefix, bool isWriter,
-        TupleDesc tupDesc,
-        int nkeys,
-        Oid *sortOperators, AttrNumber *attNums,
-        int workMem, bool randomAccess)
+										  const char *rwfile_prefix, bool isWriter,
+										  TupleDesc tupDesc,
+										  int nkeys, AttrNumber *attNums,
+										  Oid *sortOperators, bool *nullsFirstFlags,
+										  int workMem, bool randomAccess)
 {
     Tuplesortstate_mk *state;
     char statedump[MAXPGPATH];
@@ -793,7 +802,9 @@ tuplesort_begin_heap_file_readerwriter_mk(ScanState *ss,
          * Writer is a ordinary tuplesort, except the underlying buf file are named by
          * rwfile_prefix.
          */
-        state = tuplesort_begin_heap_mk(ss, tupDesc, nkeys, sortOperators, attNums, workMem, randomAccess);
+        state = tuplesort_begin_heap_mk(ss, tupDesc, nkeys, attNums,
+										sortOperators, nullsFirstFlags,
+										workMem, randomAccess);
 
         state->tapeset_file_prefix = MemoryContextStrdup(state->sortcontext, full_prefix);
 
@@ -876,11 +887,12 @@ tuplesort_begin_index_mk(Relation indexRel,
 
     create_mksort_context(
             &state->mkctxt,
-            state->nKeys, 
+            state->nKeys, NULL,
+			NULL, NULL,
+			state->cmpScanKey,
             tupsort_fetch_datum_itup,
             freetup_index,
-            tupdesc, 0, 0,
-            NULL, NULL, state->cmpScanKey);
+            tupdesc, 0, 0);
    
     state->mkctxt.enforceUnique = enforceUnique;
     MemoryContextSwitchTo(oldcontext);
@@ -890,9 +902,9 @@ tuplesort_begin_index_mk(Relation indexRel,
 
 Tuplesortstate_mk *
 tuplesort_begin_datum_mk(ScanState * ss,
-		Oid datumType,
-        Oid sortOperator,
-        int workMem, bool randomAccess)
+						 Oid datumType,
+						 Oid sortOperator, bool nullsFirstFlag,
+						 int workMem, bool randomAccess)
 {
     Tuplesortstate_mk *state = tuplesort_begin_common(ss, workMem, randomAccess, true);
     MemoryContext oldcontext;
@@ -921,11 +933,12 @@ tuplesort_begin_datum_mk(ScanState * ss,
     state->cmpScanKey = NULL; 
     create_mksort_context(
             &state->mkctxt, 
-            1, 
+            1, NULL,
+			&sortOperator, &nullsFirstFlag,
+			NULL,
             NULL, /* tupsort_prepare_datum, */
             typbyval ? freetup_noop : freetup_datum,
-            NULL, typbyval, typlen, 
-            &sortOperator, NULL, NULL); 
+            NULL, typbyval, typlen);
 
     MemoryContextSwitchTo(oldcontext);
 
@@ -2607,74 +2620,42 @@ myFunctionCall2(FmgrInfo *flinfo, Datum arg1, Datum arg2)
 /*
  * Apply a sort function (by now converted to fmgr lookup form)
  * and return a 3-way comparison result.  This takes care of handling
- * NULLs and sort ordering direction properly.
+ * reverse-sort and NULLs-ordering properly.  We assume that DESC and
+ * NULLS_FIRST options are encoded in sk_flags the same way btree does it.
  */
 static inline int32
-inlineApplySortFunction(FmgrInfo *sortFunction, SortFunctionKind kind,
-        Datum datum1, bool isNull1,
-        Datum datum2, bool isNull2)
+inlineApplySortFunction(FmgrInfo *sortFunction, int sk_flags,
+						Datum datum1, bool isNull1,
+						Datum datum2, bool isNull2)
 {
-    switch (kind)
-    {
-        case SORTFUNC_LT:
-            if (isNull1)
-            {
-                if (isNull2)
-                    return 0;
-                return 1;		/* NULL sorts after non-NULL */
-            }
-            if (isNull2)
-                return -1;
-            if (DatumGetBool(myFunctionCall2(sortFunction, datum1, datum2)))
-                return -1;		/* a < b */
-            if (DatumGetBool(myFunctionCall2(sortFunction, datum2, datum1)))
-                return 1;		/* a > b */
-            return 0;
+	int32		compare;
 
-        case SORTFUNC_REVLT:
-            /* We reverse the ordering of NULLs, but not the operator */
-            if (isNull1)
-            {
-                if (isNull2)
-                    return 0;
-                return -1;		/* NULL sorts before non-NULL */
-            }
-            if (isNull2)
-                return 1;
-            if (DatumGetBool(myFunctionCall2(sortFunction, datum1, datum2)))
-                return -1;		/* a < b */
-            if (DatumGetBool(myFunctionCall2(sortFunction, datum2, datum1)))
-                return 1;		/* a > b */
-            return 0;
+	if (isNull1)
+	{
+		if (isNull2)
+			compare = 0;		/* NULL "=" NULL */
+		else if (sk_flags & SK_BT_NULLS_FIRST)
+			compare = -1;		/* NULL "<" NOT_NULL */
+		else
+			compare = 1;		/* NULL ">" NOT_NULL */
+	}
+	else if (isNull2)
+	{
+		if (sk_flags & SK_BT_NULLS_FIRST)
+			compare = 1;		/* NOT_NULL ">" NULL */
+		else
+			compare = -1;		/* NOT_NULL "<" NULL */
+	}
+	else
+	{
+		compare = DatumGetInt32(myFunctionCall2(sortFunction,
+												datum1, datum2));
 
-        case SORTFUNC_CMP:
-            if (isNull1)
-            {
-                if (isNull2)
-                    return 0;
-                return 1;		/* NULL sorts after non-NULL */
-            }
-            if (isNull2)
-                return -1;
-            return DatumGetInt32(myFunctionCall2(sortFunction,
-                        datum1, datum2));
+		if (sk_flags & SK_BT_DESC)
+			compare = -compare;
+	}
 
-        case SORTFUNC_REVCMP:
-            if (isNull1)
-            {
-                if (isNull2)
-                    return 0;
-                return -1;		/* NULL sorts before non-NULL */
-            }
-            if (isNull2)
-                return 1;
-            return -DatumGetInt32(myFunctionCall2(sortFunction,
-                        datum1, datum2));
-
-        default:
-            elog(ERROR, "unrecognized SortFunctionKind: %d", (int) kind);
-            return 0;			/* can't get here, but keep compiler quiet */
-    }
+	return compare;
 }
 
 static void
@@ -2987,7 +2968,7 @@ int tupsort_compare_datum(MKEntry *v1, MKEntry *v2, MKLvContext *lvctxt, MKConte
     switch(lvctxt->lvtype)
     {
         case MKLV_TYPE_NONE:
-            return inlineApplySortFunction(&lvctxt->fmgrinfo, lvctxt->sortfnkind, 
+            return inlineApplySortFunction(&lvctxt->scanKey.sk_func, lvctxt->scanKey.sk_flags, 
                     v1->d, false,
                     v2->d, false
                     ); 
@@ -2996,7 +2977,7 @@ int tupsort_compare_datum(MKEntry *v1, MKEntry *v2, MKLvContext *lvctxt, MKConte
                 int32 i1 = DatumGetInt32(v1->d);
                 int32 i2 = DatumGetInt32(v2->d);
                 int result = (i1 < i2) ? -1 : ((i1 == i2) ? 0 : 1);
-                return (lvctxt->sortfnkind == SORTFUNC_CMP) ? result : -result;
+                return ((lvctxt->scanKey.sk_flags & SK_BT_DESC) != 0) ? -result : result;
             }
         default:
             return tupsort_compare_char(v1, v2, lvctxt, context);
@@ -3069,7 +3050,6 @@ static int tupsort_compare_char(MKEntry *v1, MKEntry *v2, MKLvContext *lvctxt, M
     Assert(!mke_is_null(v2));
 
     Assert(!lc_collate_is_c());
-    Assert(lvctxt->sortfnkind == SORTFUNC_CMP || lvctxt->sortfnkind == SORTFUNC_REVCMP);
     Assert(mkContext->fetchForPrep);
 
     Assert(p1->ref > 0 && p2->ref > 0);
@@ -3102,7 +3082,7 @@ static int tupsort_compare_char(MKEntry *v1, MKEntry *v2, MKLvContext *lvctxt, M
 				Assert(!p1IsNull);  /* should not have been prepared if null */
 				Assert(!p2IsNull);
 
-				result = inlineApplySortFunction(&lvctxt->fmgrinfo, lvctxt->sortfnkind,
+				result = inlineApplySortFunction(&lvctxt->scanKey.sk_func, lvctxt->scanKey.sk_flags,
 				                    p1Original, false, p2Original, false );
 			}
 			else
@@ -3134,7 +3114,7 @@ static int tupsort_compare_char(MKEntry *v1, MKEntry *v2, MKLvContext *lvctxt, M
         }
     }
 
-    return (lvctxt->sortfnkind == SORTFUNC_CMP) ? result : -result;
+    return ((lvctxt->scanKey.sk_flags & SK_BT_DESC) != 0) ? -result : result;
 }
 
 static int32 estimateMaxPrepareSizeForEntry(MKEntry *a, struct MKContext *mkContext)
@@ -3200,10 +3180,10 @@ void tupsort_prepare(MKEntry *a, MKContext *mkctxt, int lv)
 
     a->d = (mkctxt->fetchForPrep)(a, mkctxt, lvctxt, &isnull);
 
-    if(!isnull)
+    if (!isnull)
         mke_set_not_null(a);
     else
-        mke_set_null(a, lvctxt->nullfirst);
+        mke_set_null(a, (lvctxt->scanKey.sk_flags & SK_BT_NULLS_FIRST) != 0);
 
     if (lvctxt->lvtype == MKLV_TYPE_CHAR)
         tupsort_prepare_char(a, true);

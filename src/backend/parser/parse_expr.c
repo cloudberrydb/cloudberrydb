@@ -2438,7 +2438,8 @@ transformPercentileExpr(ParseState *pstate, PercentileExpr *p)
 			 */
 			sortlist = addTargetToSortList(pstate, tle,
 										   sortlist, tlist,
-										   sortby->sortby_kind,
+										   sortby->sortby_dir,
+										   sortby->sortby_nulls,
 										   sortby->useOp,
 										   true);
 

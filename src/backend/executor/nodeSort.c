@@ -9,7 +9,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/executor/nodeSort.c,v 1.59 2007/01/05 22:19:28 momjian Exp $
+ *	  $PostgreSQL: pgsql/src/backend/executor/nodeSort.c,v 1.60 2007/01/09 02:14:11 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -143,8 +143,8 @@ ExecSort(SortState *node)
 					rwfile_prefix, true,
 					tupDesc,
 					plannode->numCols,
-					plannode->sortOperators,
 					plannode->sortColIdx,
+					plannode->sortOperators, plannode->nullsFirst,
 					PlanStateOperatorMemKB((PlanState *) node),
 					true
 					); 
@@ -153,8 +153,8 @@ ExecSort(SortState *node)
 					rwfile_prefix, true,
 					tupDesc,
 					plannode->numCols,
-					plannode->sortOperators,
 					plannode->sortColIdx,
+					plannode->sortOperators, plannode->nullsFirst,
 					PlanStateOperatorMemKB((PlanState *) node),
 					true
 					); 
@@ -165,15 +165,15 @@ ExecSort(SortState *node)
 				tuplesortstate_mk = tuplesort_begin_heap_mk(& node->ss,
 						tupDesc,
 						plannode->numCols,
-						plannode->sortOperators,
 						plannode->sortColIdx,
+						plannode->sortOperators, plannode->nullsFirst,
 						PlanStateOperatorMemKB((PlanState *) node),
 						node->randomAccess);
 			else
 				tuplesortstate = tuplesort_begin_heap(tupDesc,
 						plannode->numCols,
-						plannode->sortOperators,
 						plannode->sortColIdx,
+						plannode->sortOperators, plannode->nullsFirst,
 						PlanStateOperatorMemKB((PlanState *) node),
 						node->randomAccess);
 		}

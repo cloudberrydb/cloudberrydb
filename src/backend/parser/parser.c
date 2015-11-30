@@ -128,7 +128,6 @@ filtered_base_yylex(void)
 	switch (cur_token)
 	{
 		case NULLS_P:
-
 			/*
 			 * NULLS FIRST and NULLS LAST must be reduced to one token
 			 */
@@ -155,9 +154,8 @@ filtered_base_yylex(void)
 					break;
 			}
 			break;
-			
-		case WITH:
 
+		case WITH:
 			/*
 			 * WITH TIME, CASCADED, LOCAL, or CHECK must be reduced to one token
 			 *

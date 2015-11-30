@@ -199,7 +199,7 @@ namespace gpdxl
 			CDXLNode *PdxlnHashExprLFromList(List *, List *, const CDXLNode *);
 
 			// translate the sorting column list for a sort or motion node into a DXL node
-			CDXLNode *PdxlnSortingColListFromPlan(AttrNumber *patnoSortColIds, OID *poidSortOpIds, ULONG ulNumCols, const CDXLNode *pdxlnPrL);
+			CDXLNode *PdxlnSortingColListFromPlan(AttrNumber *patnoSortColIds, OID *poidSortOpIds, bool *nullsfirst, ULONG ulNumCols, const CDXLNode *pdxlnPrL);
 
 			// translate target and qual lists into DXL project list and filter,
 			// respectively

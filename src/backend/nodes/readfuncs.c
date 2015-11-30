@@ -9,7 +9,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/nodes/readfuncs.c,v 1.200 2007/01/05 22:19:30 momjian Exp $
+ *	  $PostgreSQL: pgsql/src/backend/nodes/readfuncs.c,v 1.201 2007/01/09 02:14:12 tgl Exp $
  *
  * NOTES
  *	  Path and Plan nodes do not need to have any readfuncs support, because we
@@ -522,6 +522,7 @@ _readSortClause(void)
 
 	READ_UINT_FIELD(tleSortGroupRef);
 	READ_OID_FIELD(sortop);
+	READ_BOOL_FIELD(nulls_first);
 
 	READ_DONE();
 }
@@ -536,6 +537,7 @@ _readGroupClause(void)
 
 	READ_UINT_FIELD(tleSortGroupRef);
 	READ_OID_FIELD(sortop);
+	READ_BOOL_FIELD(nulls_first);
 
 	READ_DONE();
 }
@@ -949,6 +951,8 @@ _readIndexElem(void)
 	READ_STRING_FIELD(name);
 	READ_NODE_FIELD(expr);
 	READ_NODE_FIELD(opclass);
+	READ_ENUM_FIELD(ordering, SortByDir);
+	READ_ENUM_FIELD(nulls_ordering, SortByNulls);
 
 	READ_DONE();
 }

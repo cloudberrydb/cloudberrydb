@@ -29,7 +29,8 @@ AlterTableCreateAoVisimapTableWithOid(Oid relOid, Oid newOid, Oid newIndexOid,
 	Relation	rel;
 	IndexInfo  *indexInfo;
 	TupleDesc	tupdesc;
-	Oid	classObjectId[2];
+	Oid			classObjectId[2];
+	int16		coloptions[2];
 
 	elogif(Debug_appendonly_print_visimap, LOG,
 		   "Create visimap for relation %d, visimap relid %d, visimap idxid %d",
@@ -90,11 +91,14 @@ AlterTableCreateAoVisimapTableWithOid(Oid relOid, Oid newOid, Oid newIndexOid,
 	classObjectId[0] = INT4_BTREE_OPS_OID;
 	classObjectId[1] = INT8_BTREE_OPS_OID;
 
+	coloptions[0] = 0;
+	coloptions[1] = 0;
+
 	(void) CreateAOAuxiliaryTable(rel,
 								  "pg_aovisimap",
 								  RELKIND_AOVISIMAP,
 								  newOid, newIndexOid, comptypeOid,
-								  tupdesc, indexInfo, classObjectId);
+								  tupdesc, indexInfo, classObjectId, coloptions);
 
 	heap_close(rel, NoLock);
 }

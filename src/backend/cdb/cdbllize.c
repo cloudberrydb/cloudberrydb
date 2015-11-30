@@ -939,6 +939,7 @@ pull_up_Flow(Plan *plan, Plan *subplan, bool withSort)
 	        new_flow->numSortCols = sort->numCols;
 	        ARRAYCOPY(new_flow->sortColIdx, sort->sortColIdx, sort->numCols);
 	        ARRAYCOPY(new_flow->sortOperators, sort->sortOperators, sort->numCols);
+	        ARRAYCOPY(new_flow->nullsFirst, sort->nullsFirst, sort->numCols);
         }
         else if (model_flow->numSortCols == 0)
             new_flow->numSortCols = 0;
@@ -955,9 +956,14 @@ pull_up_Flow(Plan *plan, Plan *subplan, bool withSort)
                                                      model_flow->sortColIdx,
                                                      &new_flow->sortColIdx);
 		    if (new_flow->numSortCols > 0)
+			{
                 ARRAYCOPY(new_flow->sortOperators,
                           model_flow->sortOperators,
                           new_flow->numSortCols);
+                ARRAYCOPY(new_flow->nullsFirst,
+                          model_flow->nullsFirst,
+                          new_flow->numSortCols);
+			}
 	    }
 	    else
 	    {
@@ -968,6 +974,9 @@ pull_up_Flow(Plan *plan, Plan *subplan, bool withSort)
                       new_flow->numSortCols);
             ARRAYCOPY(new_flow->sortOperators,
                       model_flow->sortOperators,
+                      new_flow->numSortCols);
+            ARRAYCOPY(new_flow->nullsFirst,
+                      model_flow->nullsFirst,
                       new_flow->numSortCols);
 	    }
 	}   /* withSort */
@@ -1230,6 +1239,7 @@ adjustPlanFlow(Plan        *plan,
             flow->numSortCols = 0;
             flow->sortColIdx = NULL;
             flow->sortOperators = NULL;
+			flow->nullsFirst = NULL;
         }
 
 		return true;  /* success */
@@ -1306,6 +1316,7 @@ adjustPlanFlow(Plan        *plan,
         flow->numSortCols = 0;
         flow->sortColIdx = NULL;
         flow->sortOperators = NULL;
+		flow->nullsFirst = NULL;
     }
 	
 	/* Since we added Motion, dispatch must be parallel. */

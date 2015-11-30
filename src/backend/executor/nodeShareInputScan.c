@@ -115,9 +115,12 @@ init_tuplestore_state(ShareInputScanState *node)
 		if(gp_enable_mk_sort)
 		{
 			node->ts_state->sortstore_mk = tuplesort_begin_heap_file_readerwriter_mk(
-				& node->ss,
+				&node->ss,
 				rwfile_prefix, false,
-				NULL, 0, NULL, NULL, PlanStateOperatorMemKB((PlanState *) node), true);
+				NULL,
+				0, NULL,
+				NULL, NULL,
+				PlanStateOperatorMemKB((PlanState *) node), true);
 
 			tuplesort_begin_pos_mk(node->ts_state->sortstore_mk, (TuplesortPos_mk **)(&node->ts_pos));
 			tuplesort_rescan_pos_mk(node->ts_state->sortstore_mk, (TuplesortPos_mk *)node->ts_pos);
@@ -126,7 +129,10 @@ init_tuplestore_state(ShareInputScanState *node)
 		{
 			node->ts_state->sortstore = tuplesort_begin_heap_file_readerwriter(
 				rwfile_prefix, false,
-				NULL, 0, NULL, NULL, PlanStateOperatorMemKB((PlanState *) node), true);
+				NULL,
+				0, NULL,
+				NULL, NULL,
+				PlanStateOperatorMemKB((PlanState *) node), true);
 
 			tuplesort_begin_pos(node->ts_state->sortstore, (TuplesortPos **)(&node->ts_pos));
 			tuplesort_rescan_pos(node->ts_state->sortstore, (TuplesortPos *)node->ts_pos);

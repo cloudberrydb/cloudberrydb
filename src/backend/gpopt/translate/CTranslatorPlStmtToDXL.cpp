@@ -760,7 +760,7 @@ CTranslatorPlStmtToDXL::PdxlnMotionFromPlan
 		);
 
 	// construct sorting column info
-	CDXLNode *pdxlnSortColList = PdxlnSortingColListFromPlan(pmotion->sortColIdx, pmotion->sortOperators, pmotion->numSortCols, pdxlnPrL);
+	CDXLNode *pdxlnSortColList = PdxlnSortingColListFromPlan(pmotion->sortColIdx, pmotion->sortOperators, pmotion->nullsFirst, pmotion->numSortCols, pdxlnPrL);
 
 	// add children in the right order
 	pdxln->AddChild(pdxlnPrL);			// proj list
@@ -971,6 +971,7 @@ CTranslatorPlStmtToDXL::PdxlnWindowFromPlan
 										(
 										pwindowkey->sortColIdx,
 										pwindowkey->sortOperators,
+										pwindowkey->nullsFirst,
 										pwindowkey->numSortCols,
 										pdxlnPrLChild
 										);
@@ -1127,7 +1128,7 @@ CTranslatorPlStmtToDXL::PdxlnSortFromPlan
 	// translate sorting column list
 	GPOS_ASSERT(0 < psort->numCols && NULL!= psort->sortColIdx);
 
-	CDXLNode *pdxlnSortColList = PdxlnSortingColListFromPlan(psort->sortColIdx, psort->sortOperators, psort->numCols, pdxlnPrLChild);
+	CDXLNode *pdxlnSortColList = PdxlnSortingColListFromPlan(psort->sortColIdx, psort->sortOperators, psort->nullsFirst, psort->numCols, pdxlnPrLChild);
 
 	// translate limit information
 
@@ -2350,6 +2351,7 @@ CTranslatorPlStmtToDXL::PdxlnSortingColListFromPlan
 	(
 	AttrNumber *pattnoSortColIds,
 	OID *poidSortOpIds,
+	bool *nullsFirst,
 	ULONG ulNumCols,
 	const CDXLNode *pdxlnPrL
 	)
@@ -2385,15 +2387,13 @@ CTranslatorPlStmtToDXL::PdxlnSortingColListFromPlan
 		const CWStringConst *pstrSortOpName = pmdscop->Mdname().Pstr();;
 		GPOS_ASSERT(NULL != pstrSortOpName);
 
-		// TODO: Jan 19, 2011; read nullsFirst from the plan node;
-		// currently GPDB does not support this
 		CDXLScalarSortCol *pdxlopSortCol = New(m_pmp) CDXLScalarSortCol
 													(
 													m_pmp,
 													ulSortColId,
 													pmdidSortOp,
 													New(m_pmp) CWStringConst(pstrSortOpName->Wsz()),
-													false	// nullsFirst
+													nullsFirst[ul]
 													);
 
 		CDXLNode *pdxlnSortCol = New(m_pmp) CDXLNode(m_pmp, pdxlopSortCol);

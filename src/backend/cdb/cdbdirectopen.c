@@ -358,6 +358,9 @@ Relation DirectOpen_Open(
 			direct->relationData.rd_support = support;
 			direct->relationData.rd_supportinfo = supportinfo;
 
+			direct->relationData.rd_indoption = (int16 *)
+				MemoryContextAllocZero(TopMemoryContext, natts * sizeof(int16));
+
 			/*
 			 * Create oidvector in rd_indclass with values from indClassArray.
 			 */

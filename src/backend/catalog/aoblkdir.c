@@ -29,6 +29,7 @@ AlterTableCreateAoBlkdirTableWithOid(Oid relOid, Oid newOid, Oid newIndexOid,
 	TupleDesc	tupdesc;
 	IndexInfo  *indexInfo;
 	Oid			classObjectId[3];
+	int16		coloptions[3];
 
 	/*
 	 * Grab an exclusive lock on the target table, which we will NOT release
@@ -94,11 +95,15 @@ AlterTableCreateAoBlkdirTableWithOid(Oid relOid, Oid newOid, Oid newIndexOid,
 	classObjectId[1] = INT4_BTREE_OPS_OID;
 	classObjectId[2] = INT8_BTREE_OPS_OID;
 
+	coloptions[0] = 0;
+	coloptions[1] = 0;
+	coloptions[2] = 0;
+
 	(void) CreateAOAuxiliaryTable(rel,
 			"pg_aoblkdir",
 			RELKIND_AOBLOCKDIR,
 			newOid, newIndexOid, comptypeOid,
-			tupdesc, indexInfo, classObjectId);
+			tupdesc, indexInfo, classObjectId, coloptions);
 
 	heap_close(rel, NoLock);
 }

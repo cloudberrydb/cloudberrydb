@@ -2410,8 +2410,9 @@ CTranslatorDXLToPlStmt::PplanMotionFromDXLMotion
 		pmotion->numSortCols = ulNumSortCols;
 		pmotion->sortColIdx = (AttrNumber *) gpdb::GPDBAlloc(ulNumSortCols * sizeof(AttrNumber));
 		pmotion->sortOperators = (Oid *) gpdb::GPDBAlloc(ulNumSortCols * sizeof(Oid));
+		pmotion->nullsFirst = (bool *) gpdb::GPDBAlloc(ulNumSortCols * sizeof(bool));
 
-		TranslateSortCols(pdxlnSortColList, pdxltrctxOut, pmotion->sortColIdx, pmotion->sortOperators);
+		TranslateSortCols(pdxlnSortColList, pdxltrctxOut, pmotion->sortColIdx, pmotion->sortOperators, pmotion->nullsFirst);
 	}
 	else
 	{
@@ -2420,6 +2421,7 @@ CTranslatorDXLToPlStmt::PplanMotionFromDXLMotion
 		pmotion->numSortCols = 0;
 		pmotion->sortColIdx = NULL;
 		pmotion->sortOperators = NULL;
+		pmotion->nullsFirst = NULL;
 	}
 
 	if (pdxlopMotion->Edxlop() == EdxlopPhysicalMotionRedistribute ||
@@ -2883,7 +2885,8 @@ CTranslatorDXLToPlStmt::PwindowFromDXLWindow
 		pwindowkey->numSortCols = ulNumCols;
 		pwindowkey->sortColIdx = (AttrNumber *) gpdb::GPDBAlloc(ulNumCols * sizeof(AttrNumber));
 		pwindowkey->sortOperators = (Oid *) gpdb::GPDBAlloc(ulNumCols * sizeof(Oid));
-		TranslateSortCols(pdxlnSortColList, &dxltrctxChild, pwindowkey->sortColIdx, pwindowkey->sortOperators);
+		pwindowkey->nullsFirst = (bool *) gpdb::GPDBAlloc(ulNumCols * sizeof(bool));
+		TranslateSortCols(pdxlnSortColList, &dxltrctxChild, pwindowkey->sortColIdx, pwindowkey->sortOperators, pwindowkey->nullsFirst);
 
 		// translate the window frame specified in the window key
 		pwindowkey->frame = NULL;
@@ -3042,8 +3045,6 @@ CTranslatorDXLToPlStmt::PsortFromDXLSort
 	psort->noduplicates = pdxlopSort->FDiscardDuplicates();
 
 	// translate sorting columns
-	// TODO: Jan 19, 2011; GPDB only supports nullsLast right now, so nullsFirst is unused
-	psort->nullsFirst = NULL;
 
 	const CDXLNode *pdxlnSortColList = (*pdxlnSort)[EdxlsortIndexSortColList];
 
@@ -3051,8 +3052,9 @@ CTranslatorDXLToPlStmt::PsortFromDXLSort
 	psort->numCols = ulNumCols;
 	psort->sortColIdx = (AttrNumber *) gpdb::GPDBAlloc(ulNumCols * sizeof(AttrNumber));
 	psort->sortOperators = (Oid *) gpdb::GPDBAlloc(ulNumCols * sizeof(Oid));
+	psort->nullsFirst = (bool *) gpdb::GPDBAlloc(ulNumCols * sizeof(bool));
 
-	TranslateSortCols(pdxlnSortColList, &dxltrctxChild, psort->sortColIdx, psort->sortOperators);
+	TranslateSortCols(pdxlnSortColList, &dxltrctxChild, psort->sortColIdx, psort->sortOperators, psort->nullsFirst);
 
 	// translate limit information
 	if (0 < pdxlnLimitCount->UlArity())
@@ -5468,7 +5470,8 @@ CTranslatorDXLToPlStmt::TranslateSortCols
 	const CDXLNode *pdxlnSortColList,
 	const CDXLTranslateContext *pdxltrctxChild,
 	AttrNumber *pattnoSortColIds,
-	Oid *poidSortOpIds
+	Oid *poidSortOpIds,
+	bool *pboolNullsFirst
 	)
 {
 	const ULONG ulArity = pdxlnSortColList->UlArity();
@@ -5486,6 +5489,7 @@ CTranslatorDXLToPlStmt::TranslateSortCols
 
 		pattnoSortColIds[ul] = pteSortCol->resno;
 		poidSortOpIds[ul] = CMDIdGPDB::PmdidConvert(pdxlopSortCol->PmdidSortOp())->OidObjectId();
+		pboolNullsFirst[ul] = pdxlopSortCol->FSortNullsFirst();
 	}
 }
 

@@ -84,6 +84,8 @@ cdbpathtoplan_create_flow(PlannerInfo  *root,
             flow->numSortCols = sort->numCols;
             flow->sortColIdx = sort->sortColIdx;
             flow->sortOperators = sort->sortOperators;
+			flow->nullsFirst = sort->nullsFirst;
+			Assert(flow->nullsFirst);
         }
     }
 
@@ -135,6 +137,7 @@ cdbpathtoplan_create_motion_plan(PlannerInfo   *root,
                                                   sort->numCols,
                                                   sort->sortColIdx,
                                                   sort->sortOperators,
+												  sort->nullsFirst,
                                                   false /* useExecutorVarFormat */
                                                   );
             }

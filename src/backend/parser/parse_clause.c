@@ -9,7 +9,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/parser/parse_clause.c,v 1.161 2007/01/05 22:19:33 momjian Exp $
+ *	  $PostgreSQL: pgsql/src/backend/parser/parse_clause.c,v 1.162 2007/01/09 02:14:14 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -46,8 +46,8 @@
 #include "parser/parse_type.h"
 #include "rewrite/rewriteManip.h"
 #include "utils/guc.h"
-#include "utils/syscache.h"
 #include "utils/lsyscache.h"
+#include "utils/syscache.h"
 
 #include "cdb/cdbvars.h"
 #include "cdb/cdbpartition.h"
@@ -2276,13 +2276,15 @@ findTargetlistEntrySQL99(ParseState *pstate, Node *node, List **tlist)
 }
 
 static GroupClause *
-make_group_clause(TargetEntry *tle, List *targetlist, Oid sortop)
+make_group_clause(TargetEntry *tle, List *targetlist,
+				  Oid sortop, bool nulls_first)
 {
 	GroupClause *result;
 
 	result = makeNode(GroupClause);
 	result->tleSortGroupRef = assignSortGroupRef(tle, targetlist);
 	result->sortop = sortop;
+	result->nulls_first = nulls_first;
 	return result;
 }
 
@@ -2354,7 +2356,7 @@ make_grouping_clause(ParseState *pstate, GroupingClause *grpcl, List* targetList
 			sort_op = ordering_oper_opid(exprType((Node *) tle->expr));
 			result->groupsets =
 				lappend(result->groupsets,
-						make_group_clause(tle, targetList, sort_op));
+						make_group_clause(tle, targetList, sort_op, false));
 		}
 	}
 
@@ -2517,8 +2519,9 @@ create_group_clause(List *tlist_group, List *targetlist,
 
 					tlist = list_delete_cell(tlist, tl, prev);
 
-					/* Use the sort clause's sorting operator */
-					gc = make_group_clause(tle, targetlist, sc->sortop);
+					/* Use the sort clause's sorting information */
+					gc = make_group_clause(tle, targetlist,
+										   sc->sortop, sc->nulls_first);
 					result = lappend(result, gc);
 					found = true;
 					break;
@@ -2673,12 +2676,18 @@ transformGroupClause(ParseState *pstate, List *grouplist,
                 tle = findTargetlistEntrySQL92(pstate, node, targetlist, 
                                                GROUP_CLAUSE);
 
-			/* avoid making duplicate expression entries */
-			if (targetIsInSortGroupList(tle, result))
+			/*
+			 * Avoid making duplicate grouplist entries.  Note that we don't
+			 * enforce a particular sortop here.  Along with the copying of sort
+			 * information above, this means that if you write something like
+			 * "GROUP BY foo ORDER BY foo USING <<<", the GROUP BY operation
+			 * silently takes on the equality semantics implied by the ORDER BY.
+			 */
+			if (targetIsInSortGroupList(tle, InvalidOid, result))
 				continue;
 
 			sort_op = ordering_oper_opid(exprType((Node *) tle->expr));
-			gc = make_group_clause(tle, *targetlist, sort_op);
+			gc = make_group_clause(tle, *targetlist, sort_op, false);
 			result = lappend(result, gc);
 		}
 	}
@@ -2767,7 +2776,8 @@ transformSortClause(ParseState *pstate,
 
 		sortlist = addTargetToSortList(pstate, tle,
 									   sortlist, *targetlist,
-									   sortby->sortby_kind,
+									   sortby->sortby_dir,
+									   sortby->sortby_nulls,
 									   sortby->useOp,
 									   resolveUnknown);
 	}
@@ -2809,8 +2819,10 @@ transformDistinctToGroupBy(ParseState *pstate, List **targetlist,
 			if (!tle->resjunk)
 			{
 				group_clause_list = addTargetToSortList(pstate, tle,
-											   	   group_clause_list, *targetlist,
-											   	   SORTBY_ASC, NIL, true);
+														group_clause_list, *targetlist,
+														SORTBY_DEFAULT,
+														SORTBY_NULLS_DEFAULT,
+														NIL, true);
 			}
 		}
 
@@ -2949,7 +2961,9 @@ transformDistinctClause(ParseState *pstate, List *distinctlist,
 			{
 				*sortClause = addTargetToSortList(pstate, tle,
 												  *sortClause, *targetlist,
-												  SORTBY_ASC, NIL, true);
+												  SORTBY_DEFAULT,
+												  SORTBY_NULLS_DEFAULT,
+												  NIL, true);
 
 				/*
 				 * Probably, the tle should always have been added at the end
@@ -3042,90 +3056,17 @@ addAllTargetsToSortList(ParseState *pstate, List *sortlist,
 		if (!tle->resjunk)
 			sortlist = addTargetToSortList(pstate, tle,
 										   sortlist, targetlist,
-										   SORTBY_ASC, NIL,
-										   resolveUnknown);
+										   SORTBY_DEFAULT,
+										   SORTBY_NULLS_DEFAULT,
+										   NIL, resolveUnknown);
 	}
 	return sortlist;
 }
 
 /*
- * We use this function to determine whether data can be sorted using a given
- * operator over a given data type. There are two uses for the function:
- *
- * Firstly, to determine if the operator specified in an ORDER BY ... USING <op> 
- * has a btree sorting operator (either < or >)? We determine that the operator
- * has these properties by looking up pg_amop for the operator AM properties.
- * If the operator is not a member of a btree operator class and if it does not 
- * have < > AM strategies, it cannot be used to sort. In this case we return false.
- * If we find a candidate, we return true.
- *
- * Secondly, to determine if we support merge join using the given operator.
- * If mergejoin is set to true, then we're looking for an equality btree
- * strategy.
- * 
- */
-bool
-sort_op_can_sort(Oid opid, bool mergejoin)
-{
-	CatCList *catlist;
-	int i;
-	bool result = false;
-
-	catlist = caql_begin_CacheList(
-								   NULL,
-								   cql("SELECT * FROM pg_amop "
-									   " WHERE amopopr = :1 "
-									   " ORDER BY amopopr, "
-									   " amopclaid ",
-									   ObjectIdGetDatum(opid)));
-
-	/* not associated with an AM, so can't be a match */
-	if (catlist->n_members == 0)
-	{
-		caql_end_CacheList(catlist);
-		return false;
-	}
-
-	for (i = 0; i < catlist->n_members; i++)
-	{
-		HeapTuple tuple = &catlist->members[i]->tuple;
-		Form_pg_amop amop = (Form_pg_amop)GETSTRUCT(tuple);
-		
-		/* must be btree */
-		if (amop->amopmethod != BTREE_AM_OID)
-			continue;
-
-		/* predicate operator must be default within this opfamily */
-		if (amop->amoplefttype != amop->amoprighttype)
-			continue;
-
-		if (mergejoin)
-		{
-			if (amop->amopstrategy == BTEqualStrategyNumber)
-			{
-				result = true;
-				break;
-			}
-		}
-		else
-		{
-			if (amop->amopstrategy == BTLessStrategyNumber ||
-				amop->amopstrategy == BTGreaterStrategyNumber)
-			{
-				result = true;
-				break;
-			}
-		}
-	}
-	caql_end_CacheList(catlist);
-	return result;
-}
-
-/*
  * addTargetToSortList
  *		If the given targetlist entry isn't already in the ORDER BY list,
- *		add it to the end of the list, using the sortop with given name
- *		or the default sort operator if opname == NIL.
+ *		add it to the end of the list, using the given sort ordering info.
  *
  * If resolveUnknown is TRUE, convert TLEs of type UNKNOWN to TEXT.  If not,
  * do nothing (which implies the search for a sort operator will fail).
@@ -3138,79 +3079,90 @@ sort_op_can_sort(Oid opid, bool mergejoin)
 List *
 addTargetToSortList(ParseState *pstate, TargetEntry *tle,
 					List *sortlist, List *targetlist,
-					int sortby_kind, List *sortby_opname,
-					bool resolveUnknown)
+					SortByDir sortby_dir, SortByNulls sortby_nulls,
+					List *sortby_opname, bool resolveUnknown)
 {
+	Oid			restype = exprType((Node *) tle->expr);
+	Oid			sortop;
+	Oid			cmpfunc;
+	bool		reverse;
+
+	/* if tlist item is an UNKNOWN literal, change it to TEXT */
+	if (restype == UNKNOWNOID && resolveUnknown)
+	{
+		tle->expr = (Expr *) coerce_type(pstate, (Node *) tle->expr,
+										 restype, TEXTOID, -1,
+										 COERCION_IMPLICIT,
+										 COERCE_IMPLICIT_CAST,
+										 -1);
+		restype = TEXTOID;
+	}
+
+	/* determine the sortop */
+	switch (sortby_dir)
+	{
+		case SORTBY_DEFAULT:
+		case SORTBY_ASC:
+			sortop = ordering_oper_opid(restype);
+			reverse = false;
+			break;
+		case SORTBY_DESC:
+			sortop = reverse_ordering_oper_opid(restype);
+			reverse = true;
+			break;
+		case SORTBY_USING:
+			Assert(sortby_opname != NIL);
+			sortop = compatible_oper_opid(sortby_opname,
+										  restype,
+										  restype,
+										  false);
+			/*
+			 * Verify it's a valid ordering operator, and determine
+			 * whether to consider it like ASC or DESC.
+			 */
+			if (!get_op_compare_function(sortop, &cmpfunc, &reverse))
+				ereport(ERROR,
+						(errcode(ERRCODE_WRONG_OBJECT_TYPE),
+						 errmsg("operator %s is not a valid ordering operator",
+								strVal(llast(sortby_opname))),
+						 errhint("Ordering operators must be \"<\" or \">\" members of btree operator families.")));
+			break;
+		default:
+			elog(ERROR, "unrecognized sortby_dir: %d", sortby_dir);
+			sortop = InvalidOid; /* keep compiler quiet */
+			reverse = false;
+			break;
+	}
+
 	/* avoid making duplicate sortlist entries */
-	if (!targetIsInSortGroupList(tle, sortlist))
+	if (!targetIsInSortGroupList(tle, sortop, sortlist))
 	{
 		SortClause *sortcl = makeNode(SortClause);
-		Oid			restype = exprType((Node *) tle->expr);
-
-		/* if tlist item is an UNKNOWN literal, change it to TEXT */
-		if (restype == UNKNOWNOID && resolveUnknown)
-		{
-			Oid		tobe_type = InvalidOid;
-			int32	tobe_typmod;
-
-			/*
-			 * The setop type-deduction is only for non-junk columns.
-			 * If the column is junk, fall back to the old way.
-			 */
-			if (pstate->p_setopTypes && !tle->resjunk)
-			{
-				/* UNION, etc. case. */
-				int		idx = tle->resno - 1;
-
-				Assert(pstate->p_setopTypmods);
-				tobe_type = list_nth_oid(pstate->p_setopTypes, idx);
-				tobe_typmod = list_nth_int(pstate->p_setopTypmods, idx);
-			}
-
-			if (!OidIsValid(tobe_type))
-			{
-				tobe_type = TEXTOID;
-				tobe_typmod = -1;
-			}
-			tle->expr = (Expr *) coerce_type(pstate, (Node *) tle->expr,
-											 restype, tobe_type, tobe_typmod,
-											 COERCION_IMPLICIT,
-											 COERCE_IMPLICIT_CAST,
-											 -1);
-			restype = tobe_type;
-		}
 
 		sortcl->tleSortGroupRef = assignSortGroupRef(tle, targetlist);
 
-		switch (sortby_kind)
-		{
-			case SORTBY_ASC:
-				sortcl->sortop = ordering_oper_opid(restype);
-				break;
-			case SORTBY_DESC:
-				sortcl->sortop = reverse_ordering_oper_opid(restype);
-				break;
-			case SORTBY_USING:
-				Assert(sortby_opname != NIL);
-				sortcl->sortop = compatible_oper_opid(sortby_opname,
-													  restype,
-													  restype,
-													  false);
-				if (!sort_op_can_sort(sortcl->sortop, false))
-					ereport(ERROR,
-							(errcode(ERRCODE_WRONG_OBJECT_TYPE),
-					   		 errmsg("operator %s is not a valid ordering operator",
-							  		strVal(llast(sortby_opname))),
-						 			errhint("Ordering operators must be \"<\" or \">\" members of btree operator families.")));
+		sortcl->sortop = sortop;
 
+		switch (sortby_nulls)
+		{
+			case SORTBY_NULLS_DEFAULT:
+				/* NULLS FIRST is default for DESC; other way for ASC */
+				sortcl->nulls_first = reverse;
+				break;
+			case SORTBY_NULLS_FIRST:
+				sortcl->nulls_first = true;
+				break;
+			case SORTBY_NULLS_LAST:
+				sortcl->nulls_first = false;
 				break;
 			default:
-				elog(ERROR, "unrecognized sortby_kind: %d", sortby_kind);
+				elog(ERROR, "unrecognized sortby_nulls: %d", sortby_nulls);
 				break;
 		}
 
 		sortlist = lappend(sortlist, sortcl);
 	}
+
 	return sortlist;
 }
 
@@ -3246,6 +3198,16 @@ assignSortGroupRef(TargetEntry *tle, List *tlist)
 /*
  * targetIsInSortGroupList
  *		Is the given target item already in the sortlist or grouplist?
+ *		If sortop is not InvalidOid, also test for a match to the sortop.
+ *
+ * It is not an oversight that this function ignores the nulls_first flag.
+ * We check sortop when determining if an ORDER BY item is redundant with
+ * earlier ORDER BY items, because it's conceivable that "ORDER BY
+ * foo USING <, foo USING <<<" is not redundant, if <<< distinguishes
+ * values that < considers equal.  We need not check nulls_first
+ * however, because a lower-order column with the same sortop but
+ * opposite nulls direction is redundant.  Also, we can consider
+ * ORDER BY foo ASC, foo DESC redundant, so check for a commutator match.
  *
  * Works for SortClause, GroupClause and GroupingClause lists.  Note
  * that the main reason we need this routine (and not just a quick
@@ -3255,7 +3217,7 @@ assignSortGroupRef(TargetEntry *tle, List *tlist)
  * Any GroupingClauses in the list will be skipped during comparison.
  */
 bool
-targetIsInSortGroupList(TargetEntry *tle, List *sortgroupList)
+targetIsInSortGroupList(TargetEntry *tle, Oid sortop, List *sortgroupList)
 {
 	Index		ref = tle->ressortgroupref;
 	ListCell   *l;
@@ -3274,8 +3236,12 @@ targetIsInSortGroupList(TargetEntry *tle, List *sortgroupList)
 
 		if (IsA(node, GroupClause) || IsA(node, SortClause))
 		{
-			GroupClause *gc = (GroupClause*) node;
-			if (gc->tleSortGroupRef == ref)
+			GroupClause *scl = (GroupClause *) node;
+
+			if (scl->tleSortGroupRef == ref &&
+				(sortop == InvalidOid ||
+				 sortop == scl->sortop ||
+				 sortop == get_commutator(scl->sortop)))
 				return true;
 		}
 	}
@@ -3432,7 +3398,7 @@ transformRowExprToList(ParseState *pstate, RowExpr *rowexpr,
 				findTargetlistEntrySQL92(pstate, node, &targetList, GROUP_CLAUSE);
 			sort_op = ordering_oper_opid(exprType((Node *)arg_tle->expr));
 			grping_set = lappend(grping_set,
-								 make_group_clause(arg_tle, targetList, sort_op));
+								 make_group_clause(arg_tle, targetList, sort_op, false));
 		}
 	}
 	groupsets = lappend (groupsets, grping_set);
@@ -3479,13 +3445,14 @@ transformRowExprToGroupClauses(ParseState *pstate, RowExpr *rowexpr,
 			TargetEntry *arg_tle =
 				findTargetlistEntrySQL92(pstate, node, &targetList, GROUP_CLAUSE);
 
+			sort_op = ordering_oper_opid(exprType((Node *)arg_tle->expr));
+
 			/* avoid making duplicate expression entries */
-			if (targetIsInSortGroupList(arg_tle, groupsets))
+			if (targetIsInSortGroupList(arg_tle, sort_op, groupsets))
 				continue;
 
-			sort_op = ordering_oper_opid(exprType((Node *)arg_tle->expr));
 			groupsets = lappend(groupsets,
-								make_group_clause(arg_tle, targetList, sort_op));
+								make_group_clause(arg_tle, targetList, sort_op, false));
 		}
 	}
 

@@ -2,15 +2,18 @@
 
 create temp table t_union1 (a int, b int);
 select distinct a, null as c from t_union1 union select a, b from t_union1;
+select distinct a, null::integer as c from t_union1 union select a, b from t_union1;
 drop table t_union1;
 
 select null union select distinct null;
 
 select 1 union select distinct null;
+select 1 union select distinct null::integer;
 
 select 1 a, NULL b, NULL c UNION SELECT 2, 3, NULL UNION SELECT 3, NULL, 4;
 
 select ARRAY[1, 2, 3] union select distinct null;
+select ARRAY[1, 2, 3] union select distinct null::integer[];
 
 select 1 intersect (select 1, 2 union all select 3, 4);
 select 1 a, row_number() over (partition by 'a') union all (select 1 a , 2 b);
@@ -23,13 +26,13 @@ select 'b'::information_schema.sql_identifier)a;
 (select * from (
      (select '1' as a union select null)
      union
-     (select 1 union select distinct null)
+     (select 1 union select distinct null::integer)
    )s) 
   union
   (select * from (
      (select '1' union select null)
      union
-     (select 1 union select distinct null)
+     (select 1 union select distinct null::integer)
   )s2);
 
 -- Yet, we keep behaviors on text-like columns
@@ -51,9 +54,10 @@ SELECT * FROM (SELECT a, max(b) over() from union_quals1 UNION SELECT * from uni
 
 -- MPP-22266: different combinations of set operations and distinct
 select * from ((select 1, 'A' from (select distinct 'B') as foo) union (select 1, 'C')) as bar;
-select 1 union (select distinct null union select '10');
-select 1 union (select 2 from (select distinct null union select 1) as x);
-select 1 union (select distinct '10' from (select 1, 3.0 union select distinct 2, null) as foo);
+select 1 union (select distinct null::integer union select '10');
+select 1 union (select 2 from (select distinct null::integer union select 1) as x);
+select 1 union (select distinct 10 from (select 1, 3.0 union select distinct 2, null::integer) as foo);
+select 1 union (select distinct '10' from (select 1, 3.0 union select distinct 2, null::integer) as foo);
 select distinct a from (select 'A' union select 'B') as foo(a);
 select distinct a from (select distinct 'A' union select 'B') as foo(a);
 select distinct a from (select distinct 'A' union select distinct 'B') as foo(a);

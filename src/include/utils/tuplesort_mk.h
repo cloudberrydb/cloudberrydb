@@ -226,11 +226,7 @@ typedef struct MKLvContext
     /* type of datums in this level, converted to our MKLvType enumeration */
     MKLvType lvtype;
 
-    SortFunctionKind sortfnkind;
-    FmgrInfo fmgrinfo;
-
-    /* should null sort first (low) in this level */
-    bool nullfirst;
+	ScanKeyData	scanKey;
 
     int16 attno;
 
@@ -311,11 +307,10 @@ extern int tupsort_compare_datum(MKEntry *v1, MKEntry *v2, MKLvContext *ctxt, MK
 
 extern void create_mksort_context(
         MKContext *mkctxt,
-        int nkeys, 
-        MKFetchDatumForPrepare fetchForPrep, MKFreeTuple freeTup, TupleDesc tupdesc, bool tbyv, int tlen,
-        Oid *sortOperators, 
-        AttrNumber *attNums,
-        ScanKey sk);
+        int nkeys, AttrNumber *attNums,
+        Oid *sortOperators, bool *nullsFirstFlags,
+		ScanKey sk,
+        MKFetchDatumForPrepare fetchForPrep, MKFreeTuple freeTup, TupleDesc tupdesc, bool tbyv, int tlen);
 
 /* MK quicksort stuff */
 extern void mk_qsort_impl(MKEntry *a, int left, int right, int lv, bool lvdown, MKContext *ctxt, bool seenNull);

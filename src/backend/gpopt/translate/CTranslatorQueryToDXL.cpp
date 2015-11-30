@@ -1796,7 +1796,7 @@ CTranslatorQueryToDXL::PdrgpdxlnSortCol
 												ulColId,
 												pmdidScOp,
 												New(m_pmp) CWStringConst(pstr->Wsz()),
-												false
+												psortcl->nulls_first
 												);
 
 		// create the DXL node holding the sorting col

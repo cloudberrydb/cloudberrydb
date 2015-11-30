@@ -30,6 +30,7 @@ AlterTableCreateAoSegTableWithOid(Oid relOid, Oid newOid, Oid newIndexOid,
 	const char *prefix;
 	IndexInfo  *indexInfo;
 	Oid			classObjectId[1];
+	int16		coloptions[1];
 
 	/*
 	 * Grab an exclusive lock on the target table, which we will NOT release
@@ -155,9 +156,11 @@ AlterTableCreateAoSegTableWithOid(Oid relOid, Oid newOid, Oid newIndexOid,
 
 	classObjectId[0] = INT4_BTREE_OPS_OID;
 
+	coloptions[0] = 0;
+
 	(void) CreateAOAuxiliaryTable(rel, prefix, RELKIND_AOSEGMENTS,
 								  newOid, newIndexOid, comptypeOid,
-								  tupdesc, indexInfo, classObjectId);
+								  tupdesc, indexInfo, classObjectId, coloptions);
 
 	heap_close(rel, NoLock);
 }

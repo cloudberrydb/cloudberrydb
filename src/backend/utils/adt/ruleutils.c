@@ -2,7 +2,7 @@
  * ruleutils.c	- Functions to convert stored expressions/querytrees
  *				back to source text
  *
- *	  $PostgreSQL: pgsql/src/backend/utils/adt/ruleutils.c,v 1.237 2006/12/23 00:43:11 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/utils/adt/ruleutils.c,v 1.241 2007/01/09 02:14:14 tgl Exp $
  **********************************************************************/
 
 #include "postgres.h"
@@ -645,26 +645,20 @@ pg_get_indexdef_worker(Oid indexrelid, int colno, bool showTblSpc,
 	int			keyno;
 	Oid			keycoltype;
 	Datum		indclassDatum;
+	Datum		indoptionDatum;
 	bool		isnull;
 	oidvector  *indclass;
+	int2vector *indoption;
 	StringInfoData buf;
 	char	   *str;
 	char	   *sep;
-	cqContext  *idxcqCtx;
-	cqContext  *irlcqCtx;
-	cqContext  *amcqCtx;
 
 	/*
 	 * Fetch the pg_index tuple by the Oid of the index
 	 */
-	idxcqCtx = caql_beginscan(
-			NULL,
-			cql("SELECT * FROM pg_index "
-				" WHERE indexrelid = :1 ",
-				ObjectIdGetDatum(indexrelid)));
-
-	ht_idx = caql_getnext(idxcqCtx);
-
+	ht_idx = SearchSysCache(INDEXRELID,
+							ObjectIdGetDatum(indexrelid),
+							0, 0, 0);
 	if (!HeapTupleIsValid(ht_idx))
 	{
 		/* Was: elog(ERROR, "cache lookup failed for index %u", indexrelid); */
@@ -676,23 +670,22 @@ pg_get_indexdef_worker(Oid indexrelid, int colno, bool showTblSpc,
 	indrelid = idxrec->indrelid;
 	Assert(indexrelid == idxrec->indexrelid);
 
-	/* Must get indclass the hard way */
-	indclassDatum = caql_getattr(idxcqCtx,
-								 Anum_pg_index_indclass, &isnull);
+	/* Must get indclass and indoption the hard way */
+	indclassDatum = SysCacheGetAttr(INDEXRELID, ht_idx,
+									Anum_pg_index_indclass, &isnull);
 	Assert(!isnull);
 	indclass = (oidvector *) DatumGetPointer(indclassDatum);
+	indoptionDatum = SysCacheGetAttr(INDEXRELID, ht_idx,
+									 Anum_pg_index_indoption, &isnull);
+	Assert(!isnull);
+	indoption = (int2vector *) DatumGetPointer(indoptionDatum);
 
 	/*
 	 * Fetch the pg_class tuple of the index relation
 	 */
-	irlcqCtx = caql_beginscan(
-			NULL,
-			cql("SELECT * FROM pg_class "
-				" WHERE oid = :1 ",
-				ObjectIdGetDatum(indexrelid)));
-	
-	ht_idxrel = caql_getnext(irlcqCtx);
-
+	ht_idxrel = SearchSysCache(RELOID,
+							   ObjectIdGetDatum(indexrelid),
+							   0, 0, 0);
 	if (!HeapTupleIsValid(ht_idxrel))
 		elog(ERROR, "cache lookup failed for relation %u", indexrelid);
 	idxrelrec = (Form_pg_class) GETSTRUCT(ht_idxrel);
@@ -700,14 +693,9 @@ pg_get_indexdef_worker(Oid indexrelid, int colno, bool showTblSpc,
 	/*
 	 * Fetch the pg_am tuple of the index' access method
 	 */
-	amcqCtx = caql_beginscan(
-			NULL,
-			cql("SELECT * FROM pg_am "
-				" WHERE oid = :1 ",
-				ObjectIdGetDatum(idxrelrec->relam)));
-
-	ht_am = caql_getnext(amcqCtx);
-
+	ht_am = SearchSysCache(AMOID,
+						   ObjectIdGetDatum(idxrelrec->relam),
+						   0, 0, 0);
 	if (!HeapTupleIsValid(ht_am))
 		elog(ERROR, "cache lookup failed for access method %u",
 			 idxrelrec->relam);
@@ -724,8 +712,8 @@ pg_get_indexdef_worker(Oid indexrelid, int colno, bool showTblSpc,
 		bool		isnull;
 		char	   *exprsString;
 
-		exprsDatum = caql_getattr(idxcqCtx,
-								  Anum_pg_index_indexprs, &isnull);
+		exprsDatum = SysCacheGetAttr(INDEXRELID, ht_idx,
+									 Anum_pg_index_indexprs, &isnull);
 		Assert(!isnull);
 		exprsString = TextDatumGetCString(exprsDatum);
 		indexprs = (List *) stringToNode(exprsString);
@@ -758,6 +746,7 @@ pg_get_indexdef_worker(Oid indexrelid, int colno, bool showTblSpc,
 	for (keyno = 0; keyno < idxrec->indnatts; keyno++)
 	{
 		AttrNumber	attnum = idxrec->indkey.values[keyno];
+		int16		opt = indoption->values[keyno];
 
 		if (!colno)
 			appendStringInfoString(&buf, sep);
@@ -797,12 +786,28 @@ pg_get_indexdef_worker(Oid indexrelid, int colno, bool showTblSpc,
 			keycoltype = exprType(indexkey);
 		}
 
-		/*
-		 * Add the operator class name
-		 */
+		/* Add the operator class name */
 		if (!colno)
 			get_opclass_name(indclass->values[keyno], keycoltype,
 							 &buf);
+
+		/* Add options if relevant */
+		if (amrec->amorderstrategy > 0)
+		{
+			/* if it supports sort ordering, report DESC and NULLS opts */
+			if (opt & INDOPTION_DESC)
+			{
+				appendStringInfo(&buf, " DESC");
+				/* NULLS FIRST is the default in this case */
+				if (!(opt & INDOPTION_NULLS_FIRST))
+					appendStringInfo(&buf, " NULLS LAST");
+			}
+			else
+			{
+				if (opt & INDOPTION_NULLS_FIRST)
+					appendStringInfo(&buf, " NULLS FIRST");
+			}
+		}
 	}
 
 	if (!colno)
@@ -843,8 +848,8 @@ pg_get_indexdef_worker(Oid indexrelid, int colno, bool showTblSpc,
 			char	   *predString;
 
 			/* Convert text string to node tree */
-			predDatum = caql_getattr(idxcqCtx,
-									 Anum_pg_index_indpred, &isnull);
+			predDatum = SysCacheGetAttr(INDEXRELID, ht_idx,
+										Anum_pg_index_indpred, &isnull);
 			Assert(!isnull);
 			predString = TextDatumGetCString(predDatum);
 			node = (Node *) stringToNode(predString);
@@ -858,10 +863,9 @@ pg_get_indexdef_worker(Oid indexrelid, int colno, bool showTblSpc,
 	}
 
 	/* Clean up */
-
-	caql_endscan(idxcqCtx);
-	caql_endscan(irlcqCtx);
-	caql_endscan(amcqCtx);
+	ReleaseSysCache(ht_idx);
+	ReleaseSysCache(ht_idxrel);
+	ReleaseSysCache(ht_am);
 
 	return buf.data;
 }
@@ -4884,14 +4888,30 @@ get_sortlist_expr(List *l, List *targetList, bool force_colno,
 		typentry = lookup_type_cache(sortcoltype,
 									 TYPECACHE_LT_OPR | TYPECACHE_GT_OPR);
 		if (srt->sortop == typentry->lt_opr)
-			 /* ASC is default, so emit nothing */ ;
+		{
+			/* ASC is default, so emit nothing for it */
+			if (srt->nulls_first)
+				appendStringInfo(buf, " NULLS FIRST");
+		}
 		else if (srt->sortop == typentry->gt_opr)
+		{
 			appendStringInfo(buf, " DESC");
+			/* DESC defaults to NULLS FIRST */
+			if (!srt->nulls_first)
+				appendStringInfo(buf, " NULLS LAST");
+		}
 		else
+		{
 			appendStringInfo(buf, " USING %s",
 							 generate_operator_name(srt->sortop,
 													sortcoltype,
 													sortcoltype));
+			/* be specific to eliminate ambiguity */
+			if (srt->nulls_first)
+				appendStringInfo(buf, " NULLS FIRST");
+			else
+				appendStringInfo(buf, " NULLS LAST");
+		}
 		sep = ", ";
 	}
 }

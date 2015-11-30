@@ -1,6 +1,8 @@
 -- Additional GPDB-added tests for UNION
 create temp table t_union1 (a int, b int);
 select distinct a, null as c from t_union1 union select a, b from t_union1;
+ERROR:  UNION/INTERSECT/EXCEPT could not convert type text to integer
+select distinct a, null::integer as c from t_union1 union select a, b from t_union1;
  a | c 
 ---+---
 (0 rows)
@@ -13,6 +15,8 @@ select null union select distinct null;
 (1 row)
 
 select 1 union select distinct null;
+ERROR:  UNION/INTERSECT/EXCEPT could not convert type text to integer
+select 1 union select distinct null::integer;
  ?column? 
 ----------
          
@@ -28,6 +32,8 @@ select 1 a, NULL b, NULL c UNION SELECT 2, 3, NULL UNION SELECT 3, NULL, 4;
 (3 rows)
 
 select ARRAY[1, 2, 3] union select distinct null;
+ERROR:  UNION/INTERSECT/EXCEPT could not convert type text to integer[]
+select ARRAY[1, 2, 3] union select distinct null::integer[];
   array  
 ---------
  
@@ -56,13 +62,13 @@ select 'b'::information_schema.sql_identifier)a;
 (select * from (
      (select '1' as a union select null)
      union
-     (select 1 union select distinct null)
+     (select 1 union select distinct null::integer)
    )s) 
   union
   (select * from (
      (select '1' union select null)
      union
-     (select 1 union select distinct null)
+     (select 1 union select distinct null::integer)
   )s2);
  a 
 ---
@@ -134,7 +140,7 @@ select * from ((select 1, 'A' from (select distinct 'B') as foo) union (select 1
         1 | C
 (2 rows)
 
-select 1 union (select distinct null union select '10');
+select 1 union (select distinct null::integer union select '10');
  ?column? 
 ----------
         1
@@ -142,20 +148,22 @@ select 1 union (select distinct null union select '10');
          
 (3 rows)
 
-select 1 union (select 2 from (select distinct null union select 1) as x);
+select 1 union (select 2 from (select distinct null::integer union select 1) as x);
  ?column? 
 ----------
         1
         2
 (2 rows)
 
-select 1 union (select distinct '10' from (select 1, 3.0 union select distinct 2, null) as foo);
+select 1 union (select distinct 10 from (select 1, 3.0 union select distinct 2, null::integer) as foo);
  ?column? 
 ----------
         1
        10
 (2 rows)
 
+select 1 union (select distinct '10' from (select 1, 3.0 union select distinct 2, null::integer) as foo);
+ERROR:  UNION/INTERSECT/EXCEPT could not convert type text to integer
 select distinct a from (select 'A' union select 'B') as foo(a);
  a 
 ---

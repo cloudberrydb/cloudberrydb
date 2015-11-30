@@ -12,7 +12,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/parser/gram.y,v 2.572 2007/01/05 22:19:33 momjian Exp $
+ *	  $PostgreSQL: pgsql/src/backend/parser/gram.y,v 2.573 2007/01/09 02:14:14 tgl Exp $
  *
  * HISTORY
  *	  AUTHOR			DATE			MAJOR EVENT
@@ -214,7 +214,7 @@ static Node *makeIsNotDistinctFromNode(Node *expr, int position);
 				simple_select values_clause
 
 %type <node>	alter_column_default opclass_item alter_using
-%type <ival>	add_drop
+%type <ival>	add_drop opt_asc_desc opt_nulls_order
 
 %type <node>	alter_table_cmd alter_rel_cmd alter_table_partition_id_spec
 				alter_table_partition_cmd
@@ -518,7 +518,7 @@ static Node *makeIsNotDistinctFromNode(Node *expr, int position);
 
 	KEEP KEY
 
-	LANCOMPILER LANGUAGE LARGE_P  LAST_P LEADING LEAST LEFT LEVEL
+	LANCOMPILER LANGUAGE LARGE_P LAST_P LEADING LEAST LEFT LEVEL
 	LIKE LIMIT LIST LISTEN LOAD LOCAL LOCALTIME LOCALTIMESTAMP LOCATION
 	LOCK_P LOG_P LOGIN_P
 
@@ -6342,26 +6342,32 @@ index_params:	index_elem							{ $$ = list_make1($1); }
  * expressions in parens.  For backwards-compatibility reasons, we allow
  * an expression that's just a function call to be written without parens.
  */
-index_elem:	ColId opt_class
+index_elem:	ColId opt_class opt_asc_desc opt_nulls_order
 				{
 					$$ = makeNode(IndexElem);
 					$$->name = $1;
 					$$->expr = NULL;
 					$$->opclass = $2;
+					$$->ordering = $3;
+					$$->nulls_ordering = $4;
 				}
-			| func_expr opt_class
+			| func_expr opt_class opt_asc_desc opt_nulls_order
 				{
 					$$ = makeNode(IndexElem);
 					$$->name = NULL;
 					$$->expr = $1;
 					$$->opclass = $2;
+					$$->ordering = $3;
+					$$->nulls_ordering = $4;
 				}
-			| '(' a_expr ')' opt_class
+			| '(' a_expr ')' opt_class opt_asc_desc opt_nulls_order
 				{
 					$$ = makeNode(IndexElem);
 					$$->name = NULL;
 					$$->expr = $2;
 					$$->opclass = $4;
+					$$->ordering = $5;
+					$$->nulls_ordering = $6;
 				}
 		;
 
@@ -6369,6 +6375,17 @@ opt_class:	any_name								{ $$ = $1; }
 			| USING any_name						{ $$ = $2; }
 			| /*EMPTY*/								{ $$ = NIL; }
 		;
+
+opt_asc_desc: ASC							{ $$ = SORTBY_ASC; }
+			| DESC							{ $$ = SORTBY_DESC; }
+			| /*EMPTY*/						{ $$ = SORTBY_DEFAULT; }
+		;
+
+opt_nulls_order: NULLS_FIRST				{ $$ = SORTBY_NULLS_FIRST; }
+			| NULLS_LAST					{ $$ = SORTBY_NULLS_LAST; }
+			| /*EMPTY*/						{ $$ = SORTBY_NULLS_DEFAULT; }
+		;
+
 
 /*****************************************************************************
  *
@@ -8694,36 +8711,39 @@ sortby_list:
 			| sortby_list ',' sortby				{ $$ = lappend($1, $3); }
 		;
 
-sortby:		a_expr USING qual_all_Op
+sortby:		a_expr USING qual_all_Op opt_nulls_order
 				{
 					$$ = makeNode(SortBy);
 					$$->node = $1;
-					$$->sortby_kind = SORTBY_USING;
+					$$->sortby_dir = SORTBY_USING;
+					$$->sortby_nulls = $4;
 					$$->useOp = $3;
 				}
-			| a_expr ASC
+			| a_expr ASC opt_nulls_order
 				{
 					$$ = makeNode(SortBy);
 					$$->node = $1;
-					$$->sortby_kind = SORTBY_ASC;
+					$$->sortby_dir = SORTBY_ASC;
+					$$->sortby_nulls = $3;
 					$$->useOp = NIL;
 				}
-			| a_expr DESC
+			| a_expr DESC opt_nulls_order
 				{
 					$$ = makeNode(SortBy);
 					$$->node = $1;
-					$$->sortby_kind = SORTBY_DESC;
+					$$->sortby_dir = SORTBY_DESC;
+					$$->sortby_nulls = $3;
 					$$->useOp = NIL;
 				}
-			| a_expr
+			| a_expr opt_nulls_order
 				{
 					$$ = makeNode(SortBy);
 					$$->node = $1;
-					$$->sortby_kind = SORTBY_ASC;	/* default */
+					$$->sortby_dir = SORTBY_DEFAULT;
+					$$->sortby_nulls = $2;
 					$$->useOp = NIL;
 				}
 		;
-
 
 select_limit:
 			LIMIT select_limit_value OFFSET select_offset_value
@@ -11061,7 +11081,8 @@ func_expr:	simple_func FILTER '(' WHERE a_expr ')'
 					n->perckind = PERC_MEDIAN;
 					sortby = makeNode(SortBy);
 					sortby->node = $3;
-					sortby->sortby_kind = SORTBY_ASC;
+					sortby->sortby_dir = SORTBY_DEFAULT;
+					sortby->sortby_nulls = SORTBY_NULLS_DEFAULT;
 					sortby->useOp = NIL;
 					n->sortClause = list_make1(sortby);
 					n->location = @1;
@@ -12478,6 +12499,7 @@ PartitionIdentKeyword: ABORT_P
 			| NOTHING
 			| NOTIFY
 			| NOWAIT
+			| NULLS_P
 			| OBJECT_P
 			| OF
 			| OIDS

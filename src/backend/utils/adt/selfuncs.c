@@ -16,7 +16,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/utils/adt/selfuncs.c,v 1.218 2007/01/05 22:19:42 momjian Exp $
+ *	  $PostgreSQL: pgsql/src/backend/utils/adt/selfuncs.c,v 1.219 2007/01/09 02:14:14 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -5311,7 +5311,7 @@ btcostestimate(PG_FUNCTION_ARGS)
 
 		if (get_attstatsslot(tuple, InvalidOid, 0,
 							 STATISTIC_KIND_CORRELATION,
-							 index->ordering[0],
+							 index->fwdsortop[0],
 							 NULL, NULL, &numbers, &nnumbers))
 		{
 			double		varCorrelation;

@@ -74,7 +74,7 @@
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/executor/nodeAgg.c,v 1.146.2.2 2007/08/08 18:07:03 neilc Exp $
+ *	  $PostgreSQL: pgsql/src/backend/executor/nodeAgg.c,v 1.148 2007/01/09 02:14:11 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -242,19 +242,27 @@ initialize_aggregates(AggState *aggstate,
 				 * otherwise sort the full tuple.  (See comments for
 				 * process_ordered_aggregate_single.)
 				 */
-				peraggstate->sortstate =
-					(peraggstate->numInputs == 1) ?
-					tuplesort_begin_datum_mk(& aggstate->ss,
-											 peraggstate->evaldesc->attrs[0]->atttypid,
-											 peraggstate->sortOperators[0],
-											 PlanStateOperatorMemKB((PlanState *) aggstate), false) :
-					tuplesort_begin_heap_mk(& aggstate->ss,
-											peraggstate->evaldesc,
-											peraggstate->numSortCols,
-											peraggstate->sortOperators,
-											peraggstate->sortColIdx,
-											PlanStateOperatorMemKB((PlanState *) aggstate), false);
-				
+				if (peraggstate->numInputs == 1)
+				{
+					peraggstate->sortstate =
+						tuplesort_begin_datum_mk(&aggstate->ss,
+												 peraggstate->evaldesc->attrs[0]->atttypid,
+												 peraggstate->sortOperators[0], false,
+												 PlanStateOperatorMemKB((PlanState *) aggstate), false);
+				}
+				else
+				{
+					bool	   *nullsFirstFlags = palloc0(peraggstate->numSortCols * sizeof(bool));
+
+					peraggstate->sortstate =
+						tuplesort_begin_heap_mk(&aggstate->ss,
+												peraggstate->evaldesc,
+												peraggstate->numSortCols, peraggstate->sortColIdx,
+												peraggstate->sortOperators, nullsFirstFlags,
+												PlanStateOperatorMemKB((PlanState *) aggstate), false);
+					pfree(nullsFirstFlags);
+				}
+
 				/* 
 				 * CDB: If EXPLAIN ANALYZE, let all of our tuplesort operations
 				 * share our Instrumentation object and message buffer.
@@ -274,17 +282,24 @@ initialize_aggregates(AggState *aggstate,
 				 * otherwise sort the full tuple.  (See comments for
 				 * process_ordered_aggregate_single.)
 				 */
-				peraggstate->sortstate =
-					(peraggstate->numInputs == 1) ?
-					tuplesort_begin_datum(peraggstate->evaldesc->attrs[0]->atttypid,
-										  peraggstate->sortOperators[0],
-										  PlanStateOperatorMemKB((PlanState *) aggstate), false) :
-					tuplesort_begin_heap(peraggstate->evaldesc,
-										 peraggstate->numSortCols,
-										 peraggstate->sortOperators,
-										 peraggstate->sortColIdx,
-										 PlanStateOperatorMemKB((PlanState *) aggstate), false);
-				
+				if (peraggstate->numInputs == 1)
+				{
+					peraggstate->sortstate =
+						tuplesort_begin_datum(peraggstate->evaldesc->attrs[0]->atttypid,
+											  peraggstate->sortOperators[0], false,
+											  PlanStateOperatorMemKB((PlanState *) aggstate), false);
+				}
+				else
+				{
+					bool	   *nullsFirstFlags = palloc0(peraggstate->numSortCols * sizeof(bool));
+
+					peraggstate->sortstate =
+						tuplesort_begin_heap(peraggstate->evaldesc,
+											 peraggstate->numSortCols, peraggstate->sortColIdx,
+											 peraggstate->sortOperators, nullsFirstFlags,
+											 PlanStateOperatorMemKB((PlanState *) aggstate), false);
+				}
+
 				/* 
 				 * CDB: If EXPLAIN ANALYZE, let all of our tuplesort operations
 				 * share our Instrumentation object and message buffer.

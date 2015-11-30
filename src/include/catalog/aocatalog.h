@@ -15,7 +15,7 @@
 #include "catalog/heap.h"
 #include "catalog/index.h"
 
-bool CreateAOAuxiliaryTable(
+extern bool CreateAOAuxiliaryTable(
 		Relation rel,
 		const char *auxiliaryNamePrefix,
 		char relkind,
@@ -24,6 +24,7 @@ bool CreateAOAuxiliaryTable(
 		Oid *aoauxiliaryComptypeOid,
 		TupleDesc tupledesc,
 		IndexInfo  *indexInfo,
-		Oid	*classObjectId);
+		Oid	*classObjectId,
+		int16 *coloptions);
 
 #endif   /* AOCATALOG_H */

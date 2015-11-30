@@ -1212,6 +1212,10 @@ static int compare_order(List *a, List* b)
 			return -1;
 		else if ( sca->sortop > scb->sortop )
 			return 1;
+		else if ( sca->nulls_first && !scb->nulls_first )
+			return -1;
+		else if ( !sca->nulls_first && scb->nulls_first )
+			return 1;
 	}
 	na = list_length(a);
 	nb = list_length(b);
@@ -1509,20 +1513,24 @@ make_lower_targetlist(Query *parse,
 }
 
 
-static void set_window_keys(WindowContext *context, int wind_index)
+static void
+set_window_keys(WindowContext *context, int wind_index)
 {
 	WindowInfo *winfo;
-	int i, j;
-	int skoffset, nextsk;
-	ListCell *lc;
-	int nattrs;
-	AttrNumber* sortattrs = NULL;
-	Oid* sortops = NULL;
+	int			i,
+				j;
+	int			skoffset,
+				nextsk;
+	ListCell   *lc;
+	int			nattrs;
+	AttrNumber *sortattrs = NULL;
+	Oid		   *sortops = NULL;
+	bool	   *nullsFirstFlags = NULL;
 	
 	/* results  */
-	int partkey_len = 0;
+	int			partkey_len = 0;
 	AttrNumber *partkey_attrs = NULL;
-	List *window_keys = NIL;
+	List	   *window_keys = NIL;
 	
 	Assert( 0 <= wind_index && wind_index < context->nwindowinfos );
 	
@@ -1534,16 +1542,18 @@ static void set_window_keys(WindowContext *context, int wind_index)
 	{
 		sortattrs = (AttrNumber *)palloc(nattrs*sizeof(AttrNumber));
 		sortops = (Oid *)palloc(nattrs*sizeof(Oid));
+		nullsFirstFlags = (bool *) palloc(nattrs * sizeof(bool));
 		i = 0;
 		foreach ( lc, winfo->sortclause )
 		{
 			SortClause *sc = (SortClause *)lfirst(lc);
 			sortattrs[i] = context->sortref_resno[sc->tleSortGroupRef];
 			sortops[i] = sc->sortop;
+			nullsFirstFlags[i] = sc->nulls_first;
 			i++;
 		}
 	}
-	
+
 	/* Make a separate copy of just the partition key. */
 	if ( winfo->partkey_len > 0 )
 	{
@@ -1588,11 +1598,13 @@ static void set_window_keys(WindowContext *context, int wind_index)
 		{
 			wkey->sortColIdx = (AttrNumber*)palloc(wkey->numSortCols * sizeof(AttrNumber));
 			wkey->sortOperators = (Oid*)palloc(wkey->numSortCols * sizeof(Oid));
-			
+			wkey->nullsFirst = (bool *) palloc(wkey->numSortCols * sizeof(bool));
+
 			for ( j = 0; j < wkey->numSortCols; j++ )
 			{
 				wkey->sortColIdx[j] = sortattrs[nextsk];
 				wkey->sortOperators[j] = sortops[nextsk]; /* TODO SET THIS CORRECTLY!!! */
+				wkey->nullsFirst[j] = nullsFirstFlags[nextsk];
 				nextsk++;
 			}
 		}
@@ -1605,9 +1617,11 @@ static void set_window_keys(WindowContext *context, int wind_index)
 			wkey->numSortCols = 1;
 			wkey->sortColIdx = (AttrNumber *)palloc(sizeof(AttrNumber));
 			wkey->sortOperators = (Oid*)palloc(sizeof(Oid));
+			wkey->nullsFirst = (bool *) palloc(sizeof(bool));
 			sc = (SortClause *)linitial(sinfo->order);
 			wkey->sortColIdx[0] = context->sortref_resno[sc->tleSortGroupRef];
 			wkey->sortOperators[0] = sc->sortop;
+			wkey->nullsFirst[0] = sc->nulls_first;
 		}
 		
 		wkey->frame = copyObject(sinfo->frame);
@@ -3834,6 +3848,10 @@ static Node * translate_upper_vars_sequential_mutator(Node *node, xuv_context *c
 			sz = key->numSortCols * sizeof(Oid);
 			newkey->sortOperators = (Oid*)palloc(sz);
 			memcpy(newkey->sortOperators, key->sortOperators, sz);
+
+			sz = key->numSortCols * sizeof(bool);
+			newkey->nullsFirst = (bool *) palloc(sz);
+			memcpy(newkey->nullsFirst, key->nullsFirst, sz);
 		}
 		
 		newkey->frame = (WindowFrame*)expression_tree_mutator(

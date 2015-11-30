@@ -18,9 +18,10 @@ extern Plan *apply_motion(struct PlannerInfo *root, Plan *plan, Query *query);
 
 extern Motion *make_union_motion(Plan *lefttree,
 		                                int destSegIndex, bool useExecutorVarFormat);
-extern Motion *make_sorted_union_motion(Plan *lefttree,
-                                        int destSegIndex,
-				int numSortCols, AttrNumber *sortColIdx, Oid *sortOperators, bool useExecutorVarFormat);
+extern Motion *make_sorted_union_motion(Plan *lefttree, int destSegIndex,
+						 int numSortCols, AttrNumber *sortColIdx,
+						 Oid *sortOperators, bool *nullsFirst,
+						 bool useExecutorVarFormat);
 extern Motion *make_hashed_motion(Plan *lefttree,
 				    List *hashExpr, bool useExecutorVarFormat);
 

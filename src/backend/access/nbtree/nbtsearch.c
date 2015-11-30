@@ -8,7 +8,7 @@
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/access/nbtree/nbtsearch.c,v 1.110 2007/01/05 22:19:23 momjian Exp $
+ *	  $PostgreSQL: pgsql/src/backend/access/nbtree/nbtsearch.c,v 1.111 2007/01/09 02:14:10 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -386,12 +386,17 @@ _bt_compare(Relation rel,
 		{
 			if (isNull)
 				result = 0;		/* NULL "=" NULL */
+			else if (scankey->sk_flags & SK_BT_NULLS_FIRST)
+				result = -1;	/* NULL "<" NOT_NULL */
 			else
 				result = 1;		/* NULL ">" NOT_NULL */
 		}
 		else if (isNull)		/* key is NOT_NULL and item is NULL */
 		{
-			result = -1;		/* NOT_NULL "<" NULL */
+			if (scankey->sk_flags & SK_BT_NULLS_FIRST)
+				result = 1;		/* NOT_NULL ">" NULL */
+			else
+				result = -1;	/* NOT_NULL "<" NULL */
 		}
 		else
 		{
@@ -400,16 +405,15 @@ _bt_compare(Relation rel,
 			 * the sk_argument as right arg (they might be of different
 			 * types).	Since it is convenient for callers to think of
 			 * _bt_compare as comparing the scankey to the index item, we have
-			 * to flip the sign of the comparison result.
-			 *
-			 * Note: curious-looking coding is to avoid overflow if comparison
-			 * function returns INT_MIN.  There is no risk of overflow for
-			 * positive results.
+			 * to flip the sign of the comparison result.  (Unless it's a DESC
+			 * column, in which case we *don't* flip the sign.)
 			 */
 			result = DatumGetInt32(FunctionCall2(&scankey->sk_func,
 												 datum,
 												 scankey->sk_argument));
-			result = (result < 0) ? 1 : -result;
+
+			if (!(scankey->sk_flags & SK_BT_DESC))
+				result = -result;
 		}
 
 		/* if the keys are unequal, return the difference */

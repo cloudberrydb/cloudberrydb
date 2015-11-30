@@ -11,7 +11,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/optimizer/plan/createplan.c,v 1.219 2007/01/05 22:19:31 momjian Exp $
+ *	  $PostgreSQL: pgsql/src/backend/optimizer/plan/createplan.c,v 1.220 2007/01/09 02:14:12 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -158,7 +158,7 @@ static ValuesScan *make_valuesscan(List *qptlist, List *qpqual,
 static BitmapAnd *make_bitmap_and(List *bitmapplans);
 static BitmapOr *make_bitmap_or(List *bitmapplans);
 static Sort *make_sort(PlannerInfo *root, Plan *lefttree, int numCols,
-		  AttrNumber *sortColIdx, Oid *sortOperators);
+		  AttrNumber *sortColIdx, Oid *sortOperators, bool *nullsFirst);
 
 static List *flatten_grouping_list(List *groupcls);
 
@@ -932,7 +932,9 @@ create_unique_plan(PlannerInfo *root, UniquePath *best_path)
 			Assert(tle != NULL);
 			sortList = addTargetToSortList(NULL, tle,
 										   sortList, subplan->targetlist,
-										   SORTBY_ASC, NIL, false);
+										   SORTBY_DEFAULT,
+										   SORTBY_NULLS_DEFAULT,
+										   NIL, false);
 		}
 		plan = (Plan *) make_sort_from_sortclauses(root, sortList, subplan);
 		plan = (Plan *) make_unique(plan, sortList);
@@ -3917,11 +3919,12 @@ make_mergejoin(List *tlist,
 /*
  * make_sort --- basic routine to build a Sort plan node
  *
- * Caller must have built the sortColIdx and sortOperators arrays already.
+ * Caller must have built the sortColIdx, sortOperators, and nullsFirst
+ * arrays already.
  */
 static Sort *
 make_sort(PlannerInfo *root, Plan *lefttree, int numCols,
-		  AttrNumber *sortColIdx, Oid *sortOperators)
+		  AttrNumber *sortColIdx, Oid *sortOperators, bool *nullsFirst)
 {
 	Sort	   *node = makeNode(Sort);
 	Plan	   *plan = &node->plan;
@@ -3937,6 +3940,8 @@ make_sort(PlannerInfo *root, Plan *lefttree, int numCols,
 	node->numCols = numCols;
 	node->sortColIdx = sortColIdx;
 	node->sortOperators = sortOperators;
+	node->nullsFirst = nullsFirst;
+
 	node->limitOffset = NULL; /* CDB */
 	node->limitCount  = NULL; /* CDB */
 	node->noduplicates = false; /* CDB */
@@ -3987,14 +3992,23 @@ add_sort_cost(PlannerInfo *root, Plan *input, int numCols, AttrNumber *sortColId
  * max possible number of columns.	Return value is the new column count.
  */
 static int
-add_sort_column(AttrNumber colIdx, Oid sortOp,
-				int numCols, AttrNumber *sortColIdx, Oid *sortOperators)
+add_sort_column(AttrNumber colIdx, Oid sortOp, bool nulls_first,
+				int numCols, AttrNumber *sortColIdx,
+				Oid *sortOperators, bool *nullsFirst)
 {
 	int			i;
 
 	for (i = 0; i < numCols; i++)
 	{
-		if (sortColIdx[i] == colIdx)
+		/*
+		 * Note: we check sortOp because it's conceivable that "ORDER BY
+		 * foo USING <, foo USING <<<" is not redundant, if <<< distinguishes
+		 * values that < considers equal.  We need not check nulls_first
+		 * however because a lower-order column with the same sortop but
+		 * opposite nulls direction is redundant.
+		 */
+		if (sortColIdx[i] == colIdx &&
+			sortOperators[numCols] == sortOp)
 		{
 			/* Already sorting by this col, so extra sort key is useless */
 			return numCols;
@@ -4004,6 +4018,7 @@ add_sort_column(AttrNumber colIdx, Oid sortOp,
 	/* Add the column */
 	sortColIdx[numCols] = colIdx;
 	sortOperators[numCols] = sortOp;
+	nullsFirst[numCols] = nulls_first;
 	return numCols + 1;
 }
 
@@ -4042,6 +4057,7 @@ make_sort_from_pathkeys(PlannerInfo *root, Plan *lefttree, List *pathkeys,
 	int			numsortkeys;
 	AttrNumber *sortColIdx;
 	Oid		   *sortOperators;
+	bool	   *nullsFirst;
 
 	/*
 	 * We will need at most list_length(pathkeys) sort columns; possibly less
@@ -4049,6 +4065,7 @@ make_sort_from_pathkeys(PlannerInfo *root, Plan *lefttree, List *pathkeys,
 	numsortkeys = list_length(pathkeys);
 	sortColIdx = (AttrNumber *) palloc(numsortkeys * sizeof(AttrNumber));
 	sortOperators = (Oid *) palloc(numsortkeys * sizeof(Oid));
+	nullsFirst = (bool *) palloc(numsortkeys * sizeof(bool));
 
 	numsortkeys = 0;
 
@@ -4131,6 +4148,7 @@ make_sort_from_pathkeys(PlannerInfo *root, Plan *lefttree, List *pathkeys,
         /* Add column to sort arrays. */
         sortColIdx[numsortkeys] = resno;
         sortOperators[numsortkeys] = pathkey->sortop;
+		nullsFirst[numsortkeys] = pathkey->nulls_first;
         numsortkeys++;
 	}
 
@@ -4138,7 +4156,7 @@ make_sort_from_pathkeys(PlannerInfo *root, Plan *lefttree, List *pathkeys,
         return NULL;
 
 	return make_sort(root, lefttree, numsortkeys,
-					 sortColIdx, sortOperators);
+					 sortColIdx, sortOperators, nullsFirst);
 }
 
 /*
@@ -4156,6 +4174,7 @@ make_sort_from_sortclauses(PlannerInfo *root, List *sortcls, Plan *lefttree)
 	int			numsortkeys;
 	AttrNumber *sortColIdx;
 	Oid		   *sortOperators;
+	bool	   *nullsFirst;
 
 	/*
 	 * We will need at most list_length(sortcls) sort columns; possibly less
@@ -4163,6 +4182,7 @@ make_sort_from_sortclauses(PlannerInfo *root, List *sortcls, Plan *lefttree)
 	numsortkeys = list_length(sortcls);
 	sortColIdx = (AttrNumber *) palloc(numsortkeys * sizeof(AttrNumber));
 	sortOperators = (Oid *) palloc(numsortkeys * sizeof(Oid));
+	nullsFirst = (bool *) palloc(numsortkeys * sizeof(bool));
 
 	numsortkeys = 0;
 
@@ -4177,13 +4197,15 @@ make_sort_from_sortclauses(PlannerInfo *root, List *sortcls, Plan *lefttree)
 		 * redundantly.
 		 */
 		numsortkeys = add_sort_column(tle->resno, sortcl->sortop,
-									  numsortkeys, sortColIdx, sortOperators);
+									  sortcl->nulls_first,
+									  numsortkeys,
+									  sortColIdx, sortOperators, nullsFirst);
 	}
 
 	Assert(numsortkeys > 0);
 
 	return make_sort(root, lefttree, numsortkeys,
-					 sortColIdx, sortOperators);
+					 sortColIdx, sortOperators, nullsFirst);
 }
 
 /*
@@ -4198,8 +4220,8 @@ make_sort_from_sortclauses(PlannerInfo *root, List *sortcls, Plan *lefttree)
  * This might look like it could be merged with make_sort_from_sortclauses,
  * but presently we *must* use the grpColIdx[] array to locate sort columns,
  * because the child plan's tlist is not marked with ressortgroupref info
- * appropriate to the grouping node.  So, only the sortop is used from the
- * GroupClause entries.
+ * appropriate to the grouping node.  So, only the sort direction info
+ * is used from the GroupClause entries.
  */
 Sort *
 make_sort_from_groupcols(PlannerInfo *root,
@@ -4214,6 +4236,7 @@ make_sort_from_groupcols(PlannerInfo *root,
 	int			numsortkeys;
 	AttrNumber *sortColIdx;
 	Oid		   *sortOperators;
+	bool	   *nullsFirst;
 	List       *flat_groupcls;
 
 	/*
@@ -4226,6 +4249,7 @@ make_sort_from_groupcols(PlannerInfo *root,
 
 	sortColIdx = (AttrNumber *) palloc(numsortkeys * sizeof(AttrNumber));
 	sortOperators = (Oid *) palloc(numsortkeys * sizeof(Oid));
+	nullsFirst = (bool *) palloc(numsortkeys * sizeof(bool));
 
 	numsortkeys = 0;
 
@@ -4244,7 +4268,9 @@ make_sort_from_groupcols(PlannerInfo *root,
 		 * redundantly.
 		 */
 		numsortkeys = add_sort_column(tle->resno, grpcl->sortop,
-									  numsortkeys, sortColIdx, sortOperators);
+									  grpcl->nulls_first,
+									  numsortkeys,
+									  sortColIdx, sortOperators, nullsFirst);
 	}
 
 	if (appendGrouping)
@@ -4258,15 +4284,15 @@ make_sort_from_groupcols(PlannerInfo *root,
 
 		sort_op = ordering_oper_opid(exprType((Node *)tle->expr));
 
-		numsortkeys = add_sort_column(tle->resno, sort_op,
-									  numsortkeys, sortColIdx, sortOperators);
+		numsortkeys = add_sort_column(tle->resno, sort_op, false,
+									  numsortkeys, sortColIdx, sortOperators, nullsFirst);
 	}
 
 
 	Assert(numsortkeys > 0);
 
 	return make_sort(root, lefttree, numsortkeys,
-					 sortColIdx, sortOperators);
+					 sortColIdx, sortOperators, nullsFirst);
 }
 
 
@@ -4296,6 +4322,7 @@ make_sort_from_reordered_groupcols(PlannerInfo *root,
 	int			numgrpkeys, numsortkeys;
 	AttrNumber *sortColIdx;
 	Oid		   *sortOperators;
+	bool	   *nullsFirst;
 	List       *flat_groupcls;
 
 	/*
@@ -4311,11 +4338,13 @@ make_sort_from_reordered_groupcols(PlannerInfo *root,
 
 		sortColIdx = (AttrNumber *) palloc((numgrpkeys + 2) * sizeof(AttrNumber));
 		sortOperators = (Oid *) palloc((numgrpkeys + 2) * sizeof(Oid));
+		nullsFirst = (bool *) palloc((numgrpkeys + 2) * sizeof(bool));
 	}
 	else
 	{
 		sortColIdx = (AttrNumber *) palloc(numgrpkeys * sizeof(AttrNumber));
 		sortOperators = (Oid *) palloc(numgrpkeys * sizeof(Oid));
+		nullsFirst = (bool *) palloc(numgrpkeys * sizeof(bool));
 	}	
 
 	numsortkeys = 0;
@@ -4349,28 +4378,31 @@ make_sort_from_reordered_groupcols(PlannerInfo *root,
 		 * parser should have removed 'em, but no point in sorting
 		 * redundantly.
 		 */
-		numsortkeys = add_sort_column(tle->resno, grpcl->sortop,
-									  numsortkeys, sortColIdx, sortOperators);
+		numsortkeys = add_sort_column(tle->resno, grpcl->sortop, false,
+									  numsortkeys,
+									  sortColIdx, sortOperators, nullsFirst);
 	}
 
 	if (grouping != NULL)
 	{
 		Oid sort_op = ordering_oper_opid(exprType((Node *)grouping->expr));
 
-		numsortkeys = add_sort_column(grouping->resno, sort_op,
-									  numsortkeys, sortColIdx, sortOperators);
+		numsortkeys = add_sort_column(grouping->resno, sort_op, false,
+									  numsortkeys,
+									  sortColIdx, sortOperators, nullsFirst);
 
 		sort_op = ordering_oper_opid(exprType((Node *)groupid->expr));
 
-		numsortkeys = add_sort_column(groupid->resno, sort_op,
-									  numsortkeys, sortColIdx, sortOperators);
+		numsortkeys = add_sort_column(groupid->resno, sort_op, false,
+									  numsortkeys,
+									  sortColIdx, sortOperators, nullsFirst);
 	}
 
 
 	Assert(numsortkeys > 0);
 
 	return make_sort(root, lefttree, numsortkeys,
-					 sortColIdx, sortOperators);
+					 sortColIdx, sortOperators, nullsFirst);
 }
 
 /*
@@ -4765,7 +4797,6 @@ make_unique(Plan *lefttree, List *distinctList)
  * distinctList is a list of SortClauses, identifying the targetlist items
  * that should be considered by the SetOp filter.
  */
-
 SetOp *
 make_setop(SetOpCmd cmd, Plan *lefttree,
 		   List *distinctList, AttrNumber flagColIdx)

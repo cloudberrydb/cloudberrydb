@@ -2020,6 +2020,7 @@ _readSort(void)
 	READ_INT_ARRAY(sortColIdx, numCols, AttrNumber);
 
 	READ_OID_ARRAY(sortOperators, numCols);
+	READ_INT_ARRAY(nullsFirst, numCols, bool);
 
     /* CDB */
 	READ_NODE_FIELD(limitOffset);
@@ -2119,6 +2120,7 @@ _readFlow(void)
 	READ_INT_FIELD(numSortCols);
 	READ_INT_ARRAY(sortColIdx, numSortCols, AttrNumber);
 	READ_OID_ARRAY(sortOperators, numSortCols);
+	READ_INT_ARRAY(nullsFirst, numSortCols, bool);
 
 	READ_NODE_FIELD(hashExpr);
 	READ_NODE_FIELD(flow_before_req_move);
@@ -2150,6 +2152,7 @@ _readMotion(void)
 	READ_INT_FIELD(numSortCols);
 	READ_INT_ARRAY(sortColIdx, numSortCols, AttrNumber);
 	READ_OID_ARRAY(sortOperators, numSortCols);
+	READ_INT_ARRAY(nullsFirst, numSortCols, bool);
 
 	READ_INT_FIELD(segidColIdx);
 

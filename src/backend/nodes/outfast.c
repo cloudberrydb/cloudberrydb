@@ -437,8 +437,8 @@ _outSort(StringInfo str, Sort *node)
 	WRITE_INT_FIELD(numCols);
 
 	WRITE_INT_ARRAY(sortColIdx, numCols, AttrNumber);
-
 	WRITE_OID_ARRAY(sortOperators, numCols);
+	WRITE_INT_ARRAY(nullsFirst, numCols, bool);
 
     /* CDB */
 	WRITE_NODE_FIELD(limitOffset);
@@ -501,6 +501,7 @@ _outMotion(StringInfo str, Motion *node)
 	WRITE_INT_FIELD(numSortCols);
 	WRITE_INT_ARRAY(sortColIdx, numSortCols, AttrNumber);
 	WRITE_OID_ARRAY(sortOperators, numSortCols);
+	WRITE_INT_ARRAY(nullsFirst, numSortCols, bool);
 
 	WRITE_INT_FIELD(segidColIdx);
 
@@ -623,7 +624,7 @@ _outFlow(StringInfo str, Flow *node)
 
 	WRITE_INT_ARRAY(sortColIdx, numSortCols, AttrNumber);
 	WRITE_OID_ARRAY(sortOperators, numSortCols);
-
+	WRITE_INT_ARRAY(nullsFirst, numSortCols, bool);
 
 	WRITE_NODE_FIELD(hashExpr);
 
@@ -650,8 +651,8 @@ _outIndexOptInfo(StringInfo str, IndexOptInfo *node)
 
 	WRITE_INT_ARRAY(opfamily, ncolumns, int);
 	WRITE_INT_ARRAY(indexkeys, ncolumns, int);
-	WRITE_INT_ARRAY(ordering, ncolumns, int);
-
+	WRITE_OID_ARRAY(fwdsortop, ncolumns);
+	WRITE_OID_ARRAY(revsortop, ncolumns);
 
     WRITE_OID_FIELD(relam);
 	WRITE_OID_FIELD(amcostestimate);
@@ -1149,7 +1150,6 @@ _outNode(StringInfo str, void *obj)
 	{
 		int16 tg = 0;
 		appendBinaryStringInfo(str, (const char *)&tg, sizeof(int16));
-		return;
 	}
 	else if (IsA(obj, List) ||IsA(obj, IntList) || IsA(obj, OidList))
 		_outList(str, obj);
@@ -1163,7 +1163,6 @@ _outNode(StringInfo str, void *obj)
 	}
 	else
 	{
-
 		switch (nodeTag(obj))
 		{
 			case T_PlannedStmt:
@@ -1936,7 +1935,6 @@ _outNode(StringInfo str, void *obj)
 						 (int) nodeTag(obj));
 				break;
 		}
-
 	}
 }
 

@@ -2903,9 +2903,9 @@ SELECT * FROM project( TABLE( SELECT * FROM pg_am ), 0);
 ERROR:  invalid column position 0 (regress.c:2175)
 LINE 1: SELECT * FROM project( TABLE( SELECT * FROM pg_am ), 0);
                       ^
-SELECT * FROM project( TABLE( SELECT * FROM pg_am ), 25);
-ERROR:  invalid column position 25 (regress.c:2175)
-LINE 1: SELECT * FROM project( TABLE( SELECT * FROM pg_am ), 25);
+SELECT * FROM project( TABLE( SELECT * FROM pg_am ), 100);
+ERROR:  invalid column position 100 (regress.c:2175)
+LINE 1: SELECT * FROM project( TABLE( SELECT * FROM pg_am ), 100);
                       ^
 SELECT * FROM project( TABLE( SELECT * FROM pg_am ), (ARRAY[2,3])[1]);
 ERROR:  unable to resolve function argument (execQual.c:5348)

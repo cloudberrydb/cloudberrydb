@@ -720,7 +720,8 @@ namespace gpdxl
 				const CDXLNode *pdxlnSortColList,
 				const CDXLTranslateContext *pdxltrctxChild,
 				AttrNumber *pattnoSortColIds,
-				Oid *poidSortOpIds
+				Oid *poidSortOpIds,
+				bool *pboolNullsFirst
 				);
 
 			List *PlQualFromScalarCondNode

@@ -548,6 +548,7 @@ plan_tree_mutator(Node *node,
 				PLANMUTATE(newsort, sort);
 				COPYARRAY(newsort, sort, numCols, sortColIdx);
 				COPYARRAY(newsort, sort, numCols, sortOperators);
+				COPYARRAY(newsort, sort, numCols, nullsFirst);
 				return (Node *) newsort;
 			}
 			break;
@@ -666,6 +667,7 @@ plan_tree_mutator(Node *node,
 
 				COPYARRAY(newmotion, motion, numSortCols, sortColIdx);
 				COPYARRAY(newmotion, motion, numSortCols, sortOperators);
+				COPYARRAY(newmotion, motion, numSortCols, nullsFirst);
 				return (Node *) newmotion;
 			}
 			break;
@@ -680,6 +682,7 @@ plan_tree_mutator(Node *node,
 				MUTATE(newflow->hashExpr, flow->hashExpr, List *);
 				COPYARRAY(newflow, flow, numSortCols, sortColIdx);
 				COPYARRAY(newflow, flow, numSortCols, sortOperators);
+				COPYARRAY(newflow, flow, numSortCols, nullsFirst);
 				return (Node *) newflow;
 			}
 			break;

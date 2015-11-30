@@ -292,6 +292,10 @@ Flow *copyFlow(Flow *model_flow, bool withExprs, bool withSort)
 			new_flow->sortOperators,
 			model_flow->sortOperators,
 			model_flow->numSortCols * sizeof(Oid) );
+		ARRAYCOPY(
+			new_flow->nullsFirst,
+			model_flow->nullsFirst,
+			model_flow->numSortCols * sizeof(bool) );
 	}
 
 	return new_flow;
@@ -304,7 +308,8 @@ Flow *copyFlow(Flow *model_flow, bool withExprs, bool withSort)
  *      from an input gang to the QD. This motion should only be applied to
  *      a non-replicated, non-root subplan.
  */
-Motion* make_motion_gather_to_QD(Plan *subplan, bool keep_ordering)
+Motion *
+make_motion_gather_to_QD(Plan *subplan, bool keep_ordering)
 {
 	return make_motion_gather(subplan, -1, keep_ordering);
 }
@@ -315,7 +320,8 @@ Motion* make_motion_gather_to_QD(Plan *subplan, bool keep_ordering)
  *      a single QE. This motion should only be applied to a partitioned
  *      subplan.
  */
-Motion* make_motion_gather_to_QE(Plan *subplan, bool keep_ordering)
+Motion *
+make_motion_gather_to_QE(Plan *subplan, bool keep_ordering)
 {
 	return make_motion_gather(subplan, gp_singleton_segindex, keep_ordering);
 }	
@@ -326,7 +332,8 @@ Motion* make_motion_gather_to_QE(Plan *subplan, bool keep_ordering)
  *      a single process. This motion should only be applied to a partitioned
  *      subplan.
  */
-Motion* make_motion_gather(Plan *subplan, int segindex, bool keep_ordering)
+Motion *
+make_motion_gather(Plan *subplan, int segindex, bool keep_ordering)
 {
 	Motion *motion;
 
@@ -344,6 +351,7 @@ Motion* make_motion_gather(Plan *subplan, int segindex, bool keep_ordering)
 			flow->numSortCols, /* Motion and Flow can share arrays. */
 			flow->sortColIdx,
 			flow->sortOperators,
+			flow->nullsFirst,
 			false /* useExecutorVarFormat */);
 	}
 	else
@@ -363,7 +371,8 @@ Motion* make_motion_gather(Plan *subplan, int segindex, bool keep_ordering)
  *      tuples non-distinct on the non-junk attributes.  This motion
  *      should only be applied to a non-replicated, non-root subplan.
  */
-Motion* make_motion_hash_all_targets(PlannerInfo *root, Plan *subplan)
+Motion *
+make_motion_hash_all_targets(PlannerInfo *root, Plan *subplan)
 {
 	List *hashexprs = makeHashExprsFromNonjunkTargets(subplan->targetlist);	
 	return make_motion_hash(root, subplan, hashexprs);
@@ -375,7 +384,8 @@ Motion* make_motion_hash_all_targets(PlannerInfo *root, Plan *subplan)
  *      tuples non-distinct on the values of the hash expressions.  This
  *      motion should only be applied to a non-replicated, non-root subplan.
  */
-Motion* make_motion_hash(PlannerInfo *root __attribute__((unused)) , Plan *subplan, List *hashexprs)
+Motion *
+make_motion_hash(PlannerInfo *root __attribute__((unused)) , Plan *subplan, List *hashexprs)
 {
 	Motion *motion;
 	

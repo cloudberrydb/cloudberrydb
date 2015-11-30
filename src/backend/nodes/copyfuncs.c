@@ -16,7 +16,7 @@
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/nodes/copyfuncs.c,v 1.359 2007/01/05 22:19:29 momjian Exp $
+ *	  $PostgreSQL: pgsql/src/backend/nodes/copyfuncs.c,v 1.360 2007/01/09 02:14:11 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -833,6 +833,7 @@ _copySort(Sort *from)
 	COPY_SCALAR_FIELD(numCols);
 	COPY_POINTER_FIELD(sortColIdx, from->numCols * sizeof(AttrNumber));
 	COPY_POINTER_FIELD(sortOperators, from->numCols * sizeof(Oid));
+	COPY_POINTER_FIELD(nullsFirst, from->numCols * sizeof(bool));
 
     /* CDB */
 	COPY_NODE_FIELD(limitOffset);
@@ -1041,6 +1042,7 @@ _copyMotion(Motion *from)
 	COPY_SCALAR_FIELD(numSortCols);
 	COPY_POINTER_FIELD(sortColIdx, from->numSortCols * sizeof(AttrNumber));
 	COPY_POINTER_FIELD(sortOperators, from->numSortCols * sizeof(Oid));
+	COPY_POINTER_FIELD(nullsFirst, from->numSortCols * sizeof(bool));
 	
 	COPY_SCALAR_FIELD(segidColIdx);
 	
@@ -1897,6 +1899,7 @@ _copyFlow(Flow *from)
 	COPY_SCALAR_FIELD(numSortCols);
 	COPY_POINTER_FIELD(sortColIdx, from->numSortCols*sizeof(AttrNumber));
 	COPY_POINTER_FIELD(sortOperators, from->numSortCols*sizeof(Oid));
+	COPY_POINTER_FIELD(nullsFirst, from->numSortCols*sizeof(bool));
 	COPY_NODE_FIELD(hashExpr);
 	COPY_NODE_FIELD(flow_before_req_move);
 
@@ -1940,6 +1943,7 @@ _copyPathKeyItem(PathKeyItem *from)
 
 	COPY_NODE_FIELD(key);
 	COPY_SCALAR_FIELD(sortop);
+	COPY_SCALAR_FIELD(nulls_first);
 	COPY_BITMAPSET_FIELD(cdb_key_relids);   /*CDB*/
 	COPY_SCALAR_FIELD(cdb_num_relids);      /*CDB*/
 
@@ -2111,6 +2115,7 @@ _copySortClause(SortClause *from)
 
 	COPY_SCALAR_FIELD(tleSortGroupRef);
 	COPY_SCALAR_FIELD(sortop);
+	COPY_SCALAR_FIELD(nulls_first);
 
 	return newnode;
 }
@@ -2122,6 +2127,7 @@ _copyGroupClause(GroupClause *from)
 
 	COPY_SCALAR_FIELD(tleSortGroupRef);
 	COPY_SCALAR_FIELD(sortop);
+	COPY_SCALAR_FIELD(nulls_first);
 
 	return newnode;
 }
@@ -2416,7 +2422,8 @@ _copySortBy(SortBy *from)
 {
 	SortBy	   *newnode = makeNode(SortBy);
 
-	COPY_SCALAR_FIELD(sortby_kind);
+	COPY_SCALAR_FIELD(sortby_dir);
+	COPY_SCALAR_FIELD(sortby_nulls);
 	COPY_NODE_FIELD(useOp);
 	COPY_NODE_FIELD(node);
 
@@ -2465,6 +2472,8 @@ _copyIndexElem(IndexElem *from)
 	COPY_STRING_FIELD(name);
 	COPY_NODE_FIELD(expr);
 	COPY_NODE_FIELD(opclass);
+	COPY_SCALAR_FIELD(ordering);
+	COPY_SCALAR_FIELD(nulls_ordering);
 
 	return newnode;
 }

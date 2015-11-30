@@ -723,6 +723,7 @@ CTranslatorDXLToQuery::TranslateGroupByColumns
 
 			const CMDIdGPDB *pmdidSortOp = CMDIdGPDB::PmdidConvert(pmdtype->PmdidCmp(IMDType::EcmptL));
 			pgrpcl->sortop = pmdidSortOp->OidObjectId();
+			pgrpcl->nulls_first = false;
 
 			GPOS_ASSERT(NULL != pte);
 
@@ -898,6 +899,8 @@ CTranslatorDXLToQuery::TranslateLimit
 			// create the sort clause
 			SortClause *psortcl = MakeNode(SortClause);
 			psortcl->sortop = CMDIdGPDB::PmdidConvert(pdxlopSortCol->PmdidSortOp())->OidObjectId();
+			psortcl->nulls_first = pdxlopSortCol->FSortNullsFirst();
+
 			plSortCl = gpdb::PlAppendElement(plSortCl, psortcl);
 
 			// If ressortgroupref is not set then this column

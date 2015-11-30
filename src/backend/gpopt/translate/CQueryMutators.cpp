@@ -1572,6 +1572,7 @@ CQueryMutators::PqueryEliminateDistinctClause
 		GroupClause *pgrpcl = MakeNode(GroupClause);
 		pgrpcl->tleSortGroupRef = psortcl->tleSortGroupRef;
 		pgrpcl->sortop = psortcl->sortop;
+		pgrpcl->nulls_first = psortcl->nulls_first;
 		pqueryNew->groupClause = gpdb::PlAppendElement(pqueryNew->groupClause, pgrpcl);
 	}
 	pqueryNew->distinctClause = NIL;
