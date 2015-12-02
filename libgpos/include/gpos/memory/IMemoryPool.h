@@ -1,5 +1,5 @@
 //---------------------------------------------------------------------------
-//	Greenplum Database 
+//	Greenplum Database
 //	Copyright (C) 2008-2010 Greenplum Inc.
 //	Copyright (C) 2011 EMC Corp.
 //
@@ -11,7 +11,7 @@
 //		from this interface class as drop-in replacements. The interface
 //		defines New() operator that is used for dynamic memory allocation.
 //
-//	@owner: 
+//	@owner:
 //
 //	@test:
 //
@@ -219,9 +219,10 @@ class CDeleter {
 				return;
 			}
 
-			// Invoke destructor on each array element.
+			// Invoke destructor on each array element in reverse
+			// order from construction.
 			const SIZE_T cElements = IMemoryPool::UlSizeOfAlloc(object_array) / sizeof(T);
-			for (SIZE_T uIdx = 0; uIdx < cElements; ++uIdx) {
+			for (SIZE_T uIdx = cElements - 1; uIdx < cElements; --uIdx) {
 				object_array[uIdx].~T();
 			}
 
