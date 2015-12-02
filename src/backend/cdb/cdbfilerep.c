@@ -2787,7 +2787,21 @@ FileRep_CalculateParity(unsigned char *buf, int len)
 
 	/* Get 64-bits at a time, xor into temp */
 	for (n = 0; n < words; n++)
-		temp ^= ((unsigned long long*)buf)[n];
+	{
+		unsigned long long w;
+
+		/*
+		 * Use memcpy because 'buf' might not be aligned. (Even on x86, which
+		 * does not usually require alignment for memory accesses, the
+		 * compiler might decide to optimize this with MMX instructions -
+		 * which do require 16-bit alignment. We've seen this happen with gcc
+		 * -O3 with some compiler versions. OTOH, as long as the target
+		 * architecture doesn't require alignment, this will be optimized
+		 * away and not cost anything.)
+		 */
+		memcpy(&w, &buf[n * 8], 8);
+		temp ^= w;
+	}
 
 	/* Combine each of the 8 bytes from temp into parity, so we get the same answer as byte-by-byte loop */
 	/*
