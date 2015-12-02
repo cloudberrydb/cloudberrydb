@@ -9,11 +9,12 @@ DROP TABLE IF EXISTS foo;
 CREATE TABLE foo(type INTEGER, prod VARCHAR, quantity NUMERIC);
 
 ---
---- Insert some value
+--- Insert some values
 ---
-INSERT INTO foo VALUES(1, 'Table', 100);
-INSERT INTO foo VALUES(2, 'Chair', 250);
-INSERT INTO foo VALUES(3, 'Bed', 300);
+INSERT INTO foo VALUES
+  (1, 'Table', 100),
+  (2, 'Chair', 250),
+  (3, 'Bed', 300);
 
 ---
 --- Select query with grouping sets
