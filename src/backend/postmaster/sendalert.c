@@ -51,7 +51,7 @@
 
 extern int	PostPortNumber;
 
-#ifdef USE_CURL
+#if defined(HAVE_DECL_CURLOPT_MAIL_FROM) && HAVE_DECL_CURLOPT_MAIL_FROM
 #include <curl/curl.h>
 #endif
 
@@ -84,7 +84,7 @@ oid				objid_gpdbAlertSqlStmt[] = { 1, 3, 6, 1, 4, 1, 31327, 1, 5 };
 oid				objid_gpdbAlertSystemName[] = { 1, 3, 6, 1, 4, 1, 31327, 1, 6 };
 #endif
 
-#ifdef USE_CURL
+#if defined(HAVE_DECL_CURLOPT_MAIL_FROM) && HAVE_DECL_CURLOPT_MAIL_FROM
 /* state information for messagebody_cb function */
 typedef struct
 {
@@ -531,7 +531,7 @@ static int send_snmp_inform_or_trap(const GpErrorData * errorData, const char * 
 }
 #endif
 
-#ifdef USE_CURL
+#if defined(HAVE_DECL_CURLOPT_MAIL_FROM) && HAVE_DECL_CURLOPT_MAIL_FROM
 static void
 send_alert_via_email(const GpErrorData *errorData,
 					 const char *subject, const char *email_priority)
@@ -888,7 +888,7 @@ int send_alert(const GpErrorData * errorData)
 		elog(DEBUG4,"Not sending via SNMP");
 #endif
 
-#ifdef USE_CURL
+#if defined(HAVE_DECL_CURLOPT_MAIL_FROM) && HAVE_DECL_CURLOPT_MAIL_FROM
 	if (send_via_email)
 		send_alert_via_email(errorData, subject, email_priority);
 	else
@@ -1022,7 +1022,7 @@ get_str_from_chunk(CSVChunkStr *chunkstr, const PipeProtoChunk *saved_chunks)
 	return out;
 }
 
-#ifdef USE_CURL
+#if defined(HAVE_DECL_CURLOPT_MAIL_FROM) && HAVE_DECL_CURLOPT_MAIL_FROM
 /*
  * Support functions for building an alert email.
  */
@@ -1303,4 +1303,4 @@ SplitMailString(char *rawstring, char delimiter,
 
 	return true;
 }
-#endif /* USE_CURL */
+#endif /* HAVE_DECL_CURLOPT_MAIL_FROM */
