@@ -6,6 +6,6 @@ inputs:
 run:
   path: /bin/bash
   args:
-  - -x
   - gpos_src/concourse/package_tarball.bash
+  - build_and_test_centos5_debug
   - bin_gpos_centos5_debug.tar.gz

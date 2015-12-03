@@ -1,11 +1,13 @@
 #!/bin/bash
 
-set -u -e
+set -u -e -x
 
 main() {
+  local build_task_name
   local output_name
-  output_name="$1"
-  cd build_and_test_centos5_debug
+  build_task_name="$1"
+  output_name="$2"
+  cd "$1"
   pushd install
   tar czf "../../${output_name}" .
 }
