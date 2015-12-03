@@ -7,7 +7,7 @@ main() {
   local output_name
   build_task_name="$1"
   output_name="$2"
-  cd "$1"
+  cd "$build_task_name"
   pushd install
   tar czf "../../${output_name}" .
 }
