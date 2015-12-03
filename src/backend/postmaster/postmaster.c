@@ -1308,8 +1308,6 @@ PostmasterMain(int argc, char *argv[])
 	 */
 	process_shared_preload_libraries();
 
-	gpopt_init();
-	
 	/*
 	 * Remove old temporary files.	At this point there can be no other
 	 * Postgres processes running in this directory, so this should be safe.
