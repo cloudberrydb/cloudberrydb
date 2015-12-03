@@ -1,0 +1,11 @@
+platform: linux
+image: docker:///yolo/orcadev#centos5
+inputs:
+- name: gpos_src
+- name: build_and_test_centos5_debug
+run:
+  path: /bin/bash
+  args:
+  - -x
+  - gpos_src/concourse/package_tarball.bash
+  - bin_gpos_centos5_debug.tar.gz
