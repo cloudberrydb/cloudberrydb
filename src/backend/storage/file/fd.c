@@ -8,7 +8,7 @@
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/storage/file/fd.c,v 1.132 2007/01/05 22:19:37 momjian Exp $
+ *	  $PostgreSQL: pgsql/src/backend/storage/file/fd.c,v 1.134 2007/01/09 22:03:51 momjian Exp $
  *
  * NOTES:
  *
@@ -52,6 +52,7 @@
 #include "cdb/cdbfilerep.h"
 #include "storage/fd.h"
 #include "storage/ipc.h"
+#include "utils/guc.h"
 #include "utils/workfile_mgr.h"
 
 /* Debug_filerep_print guc temporaly added for troubleshooting */
@@ -1030,7 +1031,8 @@ OpenNamedFile(const char   *fileName,
 void
 FileClose(File file)
 {
-	Vfd		   *vfdP;
+	Vfd			*vfdP;
+	struct stat	filestats;
 
 	Assert(FileIsValid(file));
 
@@ -1060,6 +1062,18 @@ FileClose(File file)
 	{
 		/* reset flag so that die() interrupt won't cause problems */
 		vfdP->fdstate &= ~FD_TEMPORARY;
+		if (log_temp_files >= 0)
+		{
+			if (stat(vfdP->fileName, &filestats) == 0)
+			{
+				if (filestats.st_size >= log_temp_files)
+					ereport(LOG,
+						(errmsg("temp file: path \"%s\" size %lu",
+						 vfdP->fileName, (unsigned long)filestats.st_size)));
+			}
+			else
+				elog(LOG, "Could not stat \"%s\": %m", vfdP->fileName);
+		}
 		if (unlink(vfdP->fileName))
 			elog(DEBUG1, "failed to unlink \"%s\": %m",
 				 vfdP->fileName);

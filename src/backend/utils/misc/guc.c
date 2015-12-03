@@ -11,7 +11,7 @@
  * Written by Peter Eisentraut <peter_e@gmx.net>.
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/utils/misc/guc.c,v 1.365 2007/01/05 22:19:46 momjian Exp $
+ *	  $PostgreSQL: pgsql/src/backend/utils/misc/guc.c,v 1.367 2007/01/09 22:16:46 momjian Exp $
  *
  *--------------------------------------------------------------------
  */
@@ -204,6 +204,7 @@ int			log_min_error_statement = ERROR;
 int			log_min_messages = WARNING;
 int			client_min_messages = NOTICE;
 int			log_min_duration_statement = -1;
+int			log_temp_files = -1;
 
 int			num_temp_buffers = 1000;
 
@@ -1724,6 +1725,16 @@ static struct config_int ConfigureNamesInt[] =
 		},
 		&server_version_num,
 		PG_VERSION_NUM, PG_VERSION_NUM, PG_VERSION_NUM, NULL, NULL
+	},
+				
+	{
+		{"log_temp_files", PGC_USERSET, LOGGING_WHAT,
+			gettext_noop("Log the use of temporary files larger than this number of kilobytes."),
+			gettext_noop("Zero logs all files. The default is -1 (turning this feature off)."),
+			GUC_UNIT_KB
+		},
+		&log_temp_files,
+		-1, -1, INT_MAX, NULL, NULL
 	},
 
 	{
