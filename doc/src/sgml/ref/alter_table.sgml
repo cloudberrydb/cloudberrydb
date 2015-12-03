@@ -922,5 +922,3 @@ ALTER TABLE myschema.distributors SET SCHEMA yourschema;
   </para>
  </refsect1>
 </refentry>
-
-

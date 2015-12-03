@@ -30,18 +30,14 @@ ALTER FILESPACE name OWNER TO newowner
 
  <refsect1>
   <title>Description</title>
-
-  
  </refsect1>
 
  <refsect1>
   <title>Parameters</title>
-
  </refsect1>
 
  <refsect1>
   <title>Notes</title>
-
  </refsect1>
 
  <refsect1>
@@ -54,7 +50,6 @@ ALTER FILESPACE name OWNER TO newowner
 
  <refsect1>
   <title>See Also</title>
-
  </refsect1>
 
 </refentry>

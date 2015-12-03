@@ -40,40 +40,25 @@ where action is one of:
 
  <refsect1 id="SQL-ALTEREXTERNALTABLE-description">
   <title>Description</title>
-  
-  <para>
-    
-  </para>
-  
 
-</refsect1>
+  <para>
+  </para>
+
+ </refsect1>
 
  <refsect1>
   <title>Parameters</title>
-   
-   </refsect1>
+ </refsect1>
 
  <refsect1 id="SQL-ALTEREXTERNALTABLE-notes">
   <title>Notes</title>
-
-   
-	 
-</refsect1>
-
-
-
-
+ </refsect1>
 
  <refsect1 id="SQL-ALTEREXTERNALTABLE-examples">
   <title>Examples</title>
-
-  
-  
-</refsect1>
+ </refsect1>
 
  <refsect1>
   <title>See Also</title>
-
-  
  </refsect1>
 </refentry>
