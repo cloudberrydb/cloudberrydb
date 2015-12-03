@@ -7,9 +7,10 @@ main() {
         build_type=$1
         mkdir build
         cd build
-        cmake -D CMAKE_BUILD_TYPE=${build_type} ../gpos_src
+        cmake -D CMAKE_BUILD_TYPE=${build_type} -D CMAKE_INSTALL_PREFIX=../install ../gpos_src
         make -j$(nproc_wrapper)
         ctest -j$(nproc_wrapper)
+        make install
 }
 
 nproc_wrapper() {
