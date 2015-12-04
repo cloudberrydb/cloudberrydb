@@ -2108,7 +2108,7 @@ _tocEntryRequired(TocEntry *te, RestoreOptions *ropt, bool include_acls)
 	if (ropt->selTypes)
 	{
 		if (strcmp(te->desc, "TABLE") == 0 ||
-			strcmp(te->desc, "EXTNRNAL TABLE") == 0 ||
+			strcmp(te->desc, "EXTERNAL TABLE") == 0 ||
 			strcmp(te->desc, "FOREIGN TABLE") == 0 ||
 			strcmp(te->desc, "TABLE DATA") == 0)
 		{
