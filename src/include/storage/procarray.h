@@ -31,11 +31,11 @@ extern TransactionId GetOldestXmin(bool allDbs);
 extern PGPROC *BackendPidGetProc(int pid);
 extern int	BackendXidGetPid(TransactionId xid);
 extern bool IsBackendPid(int pid);
-extern bool DatabaseCancelAutovacuumActivity(Oid databaseId, bool ignoreMyself);
 
 extern int	CountActiveBackends(void);
 extern int	CountDBBackends(Oid databaseid);
 extern int	CountUserBackends(Oid roleid);
+extern bool CheckOtherDBBackends(Oid databaseId);
 extern bool HasSerializableBackends(bool allDbs);
 extern bool HasDropTransaction(bool allDbs);
 
