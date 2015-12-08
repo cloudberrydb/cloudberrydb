@@ -1,5 +1,5 @@
 <!--
-$PostgreSQL: pgsql/doc/src/sgml/ref/pg_ctl-ref.sgml,v 1.36 2007/01/05 16:17:54 adunstan Exp $
+$PostgreSQL: pgsql/doc/src/sgml/ref/pg_ctl-ref.sgml,v 1.37 2007/01/11 02:30:01 momjian Exp $
 PostgreSQL documentation
 -->
 
@@ -430,7 +430,9 @@ PostgreSQL documentation
   <para>
    Waiting for complete start is not a well-defined operation and may
    fail if access control is set up so that a local client cannot
-   connect without manual interaction (e.g., password authentication).
+   connect without manual interaction (e.g., password authentication).  For
+   additional connection variables, see <xref linkend="libpq-envars">,
+   and for passwords, also see <xref linkend="libpq-pgpass">.
   </para>
  </refsect1>
 
