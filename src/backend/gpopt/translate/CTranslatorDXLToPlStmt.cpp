@@ -23,6 +23,7 @@
 #include "cdb/cdbutil.h"
 #include "cdb/cdbvars.h"
 #include "cdb/partitionselection.h"
+#include "utils/lsyscache.h"
 #include "utils/uri.h"
 #include "gpos/base.h"
 
@@ -2759,10 +2760,12 @@ CTranslatorDXLToPlStmt::PaggFromDXLAgg
 	if (pagg->numCols > 0)
 	{
 		pagg->grpColIdx = (AttrNumber *) gpdb::GPDBAlloc(pagg->numCols * sizeof(AttrNumber));
+		pagg->grpOperators = (Oid *) gpdb::GPDBAlloc(pagg->numCols * sizeof(Oid));
 	}
 	else
 	{
 		pagg->grpColIdx = NULL;
+		pagg->grpOperators = NULL;
 	}
 
 	const ULONG ulLen = pdrpulGroupingCols->UlLength();
@@ -2775,6 +2778,11 @@ CTranslatorDXLToPlStmt::PaggFromDXLAgg
 			GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiDXL2PlStmtAttributeNotFound, ulGroupingColId);
 		}
 		pagg->grpColIdx[ul] = pteGroupingCol->resno;
+
+		// Also find the equality operators to use for each grouping col.
+		Oid typeId = gpdb::OidExprType((Node *) pteGroupingCol->expr);
+		pagg->grpOperators[ul] = gpdb::OidEqualityOp(typeId);
+		Assert(pagg->grpOperators[ul] != 0);
 	}
 
 	SetParamIds(pplan);
@@ -2852,10 +2860,12 @@ CTranslatorDXLToPlStmt::PwindowFromDXLWindow
 	const DrgPul *pdrpulPartCols = pdxlopWindow->PrgpulPartCols();
 	pwindow->numPartCols = pdrpulPartCols->UlLength();
 	pwindow->partColIdx = NULL;
+	pwindow->partOperators = NULL;
 
 	if (pwindow->numPartCols > 0)
 	{
 		pwindow->partColIdx = (AttrNumber *) gpdb::GPDBAlloc(pwindow->numPartCols * sizeof(AttrNumber));
+		pwindow->partOperators = (Oid *) gpdb::GPDBAlloc(pwindow->numPartCols * sizeof(Oid));
 	}
 
 	const ULONG ulPartCols = pdrpulPartCols->UlLength();
@@ -2868,6 +2878,11 @@ CTranslatorDXLToPlStmt::PwindowFromDXLWindow
 			GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiDXL2PlStmtAttributeNotFound, ulPartColId);
 		}
 		pwindow->partColIdx[ul] = ptePartCol->resno;
+
+		// Also find the equality operators to use for each partitioning key col.
+		Oid typeId = gpdb::OidExprType((Node *) ptePartCol->expr);
+		pwindow->partOperators[ul] = gpdb::OidEqualityOp(typeId);
+		Assert(pwindow->partOperators[ul] != 0);
 	}
 
 	// translate window keys

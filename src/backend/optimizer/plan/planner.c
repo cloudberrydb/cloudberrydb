@@ -9,7 +9,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/optimizer/plan/planner.c,v 1.210 2007/01/05 22:19:32 momjian Exp $
+ *	  $PostgreSQL: pgsql/src/backend/optimizer/plan/planner.c,v 1.211 2007/01/10 18:06:03 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -45,6 +45,7 @@
 #include "parser/parse_oper.h"
 #include "parser/parse_relation.h"
 #include "parser/parsetree.h"
+#include "utils/lsyscache.h"
 #include "utils/selfuncs.h"
 #include "utils/syscache.h"
 #include "nodes/bitmapset.h"
@@ -86,9 +87,11 @@ static Plan *grouping_planner(PlannerInfo *root, double tuple_fraction);
 static double preprocess_limit(PlannerInfo *root,
 				 double tuple_fraction,
 				 int64 *offset_est, int64 *count_est);
-static bool hash_safe_grouping(PlannerInfo *root);
+#ifdef NOT_USED
+static Oid *extract_grouping_ops(List *groupClause, int *numGroupOps);
+#endif
 static List *make_subplanTargetList(PlannerInfo *root, List *tlist,
-					   AttrNumber **groupColIdx, bool *need_tlist_eval);
+					   AttrNumber **groupColIdx, Oid **groupOperators, bool *need_tlist_eval);
 static List *register_ordered_aggs(List *tlist, Node *havingqual, List *sub_tlist);
 
 // GP optimizer entry point
@@ -110,7 +113,7 @@ static Node *register_ordered_aggs_mutator(Node *node,
 static void register_AggOrder(AggOrder *aggorder, 
 							  register_ordered_aggs_context *context);
 static void locate_grouping_columns(PlannerInfo *root,
-						List *tlist,
+						List *stlist,
 						List *sub_tlist,
 						AttrNumber *groupColIdx);
 static List *postprocess_setop_tlist(List *new_tlist, List *orig_tlist);
@@ -1411,6 +1414,7 @@ grouping_planner(PlannerInfo *root, double tuple_fraction)
 		List	   *sub_tlist;
 		List	   *group_pathkeys;
 		AttrNumber *groupColIdx = NULL;
+		Oid		   *groupOperators = NULL;
 		bool		need_tlist_eval = true;
 		QualCost	tlist_cost;
 		Path	   *cheapest_path;
@@ -1473,7 +1477,8 @@ grouping_planner(PlannerInfo *root, double tuple_fraction)
 		 * tlist if grouping or aggregation is needed.
 		 */
 		sub_tlist = make_subplanTargetList(root, tlist,
-										   &groupColIdx, &need_tlist_eval);
+										   &groupColIdx, &groupOperators,
+										   &need_tlist_eval);
 		
 		/* Augment the subplan target list to include targets for ordered
 		 * aggregates.  As a side effect, this may scribble updated sort
@@ -1524,14 +1529,16 @@ grouping_planner(PlannerInfo *root, double tuple_fraction)
 		sort_pathkeys = root->sort_pathkeys;
 
 		/*
-		 * If grouping, decide whether we want to use hashed grouping.
+		 * If grouping, extract the grouping operators and decide whether we
+		 * want to use hashed grouping.
 		 */
 		if (parse->groupClause)
 		{
 			use_hashed_grouping =
 				choose_hashed_grouping(root, tuple_fraction,
 									   cheapest_path, sorted_path,
-									   dNumGroups, &agg_counts);
+									   groupOperators, numGroupCols, dNumGroups,
+									   &agg_counts);
 
 			/* Also convert # groups to long int --- but 'ware overflow! */
 			numGroups = (long) Min(dNumGroups, (double) LONG_MAX);
@@ -1573,6 +1580,7 @@ grouping_planner(PlannerInfo *root, double tuple_fraction)
 			group_context.grouping = 0;
 			group_context.numGroupCols = 0;
 			group_context.groupColIdx = NULL;
+			group_context.groupOperators = NULL;
 			group_context.numDistinctCols = 0;
 			group_context.distinctColIdx = NULL;
 			group_context.p_dNumGroups = &dNumGroups;
@@ -1738,6 +1746,7 @@ grouping_planner(PlannerInfo *root, double tuple_fraction)
 												AGG_HASHED, false,
 												numGroupCols,
 												groupColIdx,
+												groupOperators,
 												numGroups,
 												0, /* num_nullcols */
 												0, /* input_grouping */
@@ -1807,6 +1816,7 @@ grouping_planner(PlannerInfo *root, double tuple_fraction)
 												aggstrategy, false,
 												numGroupCols,
 												groupColIdx,
+												groupOperators,
 												numGroups,
 												0, /* num_nullcols */
 												0, /* input_grouping */
@@ -1862,6 +1872,7 @@ grouping_planner(PlannerInfo *root, double tuple_fraction)
 													  (List *) parse->havingQual,
 													  &numGroupCols,
 													  &groupColIdx,
+													  &groupOperators,
 													  &agg_counts,
 													  canonical_grpsets,
 													  &dNumGroups,
@@ -2474,20 +2485,90 @@ preprocess_limit(PlannerInfo *root, double tuple_fraction,
 }
 
 /*
+ * extract_grouping_ops - make an array of the equality operator OIDs
+ *		for the GROUP BY clause
+ *
+ * In PostgreSQL, the returned array's size is always list_length(groupClause), but
+ * in GPDB's GROUPING SETS implementation, that's not true. The size of the
+ * returned array is returned in *numGroupCols.
+ */
+#ifdef NOT_USED
+static Oid *
+extract_grouping_ops(List *groupClause, int *numGroupOps)
+{
+	int			maxCols;
+	int			colno = 0;
+	Oid		   *groupOperators;
+	ListCell   *glitem;
+
+	maxCols = list_length(groupClause);
+	groupOperators = (Oid *) palloc(maxCols * sizeof(Oid));
+
+	foreach(glitem, groupClause)
+	{
+		Node *node = lfirst(glitem);
+
+		if (node == NULL)
+			continue;
+
+		if (IsA(node, GroupClause) || IsA(node, SortClause))
+		{
+			GroupClause *groupcl = (GroupClause *) lfirst(glitem);
+
+			if (colno == maxCols)
+			{
+				maxCols *= 2;
+				groupOperators = (Oid *) repalloc(groupOperators,
+												  maxCols * sizeof(Oid));
+			}
+
+			groupOperators[colno] = get_equality_op_for_ordering_op(groupcl->sortop);
+			if (!OidIsValid(groupOperators[colno]))		/* shouldn't happen */
+				elog(ERROR, "could not find equality operator for ordering operator %u",
+					 groupcl->sortop);
+			colno++;
+		}
+		else if (IsA(node, GroupingClause))
+		{
+			List	   *groupsets = ((GroupingClause *) node)->groupsets;
+			Oid		   *subops;
+			int			nsubops;
+
+			subops = extract_grouping_ops(groupsets, &nsubops);
+			while (colno + nsubops > maxCols)
+			{
+				maxCols *= 2;
+				groupOperators = (Oid *) repalloc(groupOperators,
+												  maxCols * sizeof(Oid));
+			}
+			memcpy(&groupOperators[colno], subops, nsubops * sizeof(Oid));
+			colno += nsubops;
+		}
+	}
+
+	*numGroupOps = colno;
+
+	return groupOperators;
+}
+#endif
+
+/*
  * choose_hashed_grouping - should we use hashed grouping?
  */
 bool
 choose_hashed_grouping(PlannerInfo *root, double tuple_fraction,
 					   Path *cheapest_path, Path *sorted_path,
-					   double dNumGroups, AggClauseCounts *agg_counts)
+					   Oid *groupOperators, int numGroupOps, double dNumGroups,
+					   AggClauseCounts *agg_counts)
 {
-	int			numGroupCols = num_distcols_in_grouplist(root->parse->groupClause);
+	int			numGroupCols;
 	double		cheapest_path_rows;
 	int			cheapest_path_width;
 	Size		hashentrysize;
 	List	   *current_pathkeys;
 	Path		hashed_p;
 	Path		sorted_p;
+	int			i;
 
 	HashAggTableSizes   hash_info;
 	bool		has_dqa = false;
@@ -2495,7 +2576,9 @@ choose_hashed_grouping(PlannerInfo *root, double tuple_fraction,
 
 	/*
 	 * Check can't-do-it conditions, including whether the grouping operators
-	 * are hashjoinable.
+	 * are hashjoinable.  (We assume hashing is OK if they are marked
+	 * oprcanhash.  If there isn't actually a supporting hash function,
+	 * the executor will complain at runtime.)
 	 *
 	 * Executor doesn't support hashed aggregation with DISTINCT aggregates.
 	 * (Doing so would imply storing *all* the input values in the hash table,
@@ -2509,8 +2592,11 @@ choose_hashed_grouping(PlannerInfo *root, double tuple_fraction,
 	if (!root->config->enable_hashagg)
 		goto hash_not_ok;
 	has_dqa = agg_counts->numDistinctAggs != 0;
-	if (!hash_safe_grouping(root))
-		goto hash_not_ok;
+	for (i = 0; i < numGroupOps; i++)
+	{
+		if (!op_hashjoinable(groupOperators[i]))
+			goto hash_not_ok;
+	}
 
 	/*
 	 * CDB: The preliminary function is used to merge transient values
@@ -2584,6 +2670,7 @@ choose_hashed_grouping(PlannerInfo *root, double tuple_fraction,
 	 * These path variables are dummies that just hold cost fields; we don't
 	 * make actual Paths for these steps.
 	 */
+	numGroupCols = num_distcols_in_grouplist(root->parse->groupClause);
 	cost_agg(&hashed_p, root, AGG_HASHED, agg_counts->numAggs,
 			 numGroupCols, dNumGroups,
 			 cheapest_path->startup_cost, cheapest_path->total_cost,
@@ -2650,37 +2737,6 @@ hash_not_ok:
 	return false;
 }
 
-/*
- * hash_safe_grouping - are grouping operators hashable?
- *
- * We assume hashed aggregation will work if the datatype's equality operator
- * is marked hashjoinable.
- */
-static bool
-hash_safe_grouping(PlannerInfo *root)
-{
-	List *grouptles;
-	ListCell   *glc;
-
-	grouptles = get_sortgroupclauses_tles(root->parse->groupClause,
-										 root->parse->targetList);
-	foreach(glc, grouptles)
-	{
-		TargetEntry *tle = (TargetEntry *)lfirst(glc);
-		Operator  optup;
-		bool		oprcanhash;
-
-		optup = equality_oper(exprType((Node *)tle->expr), true);
-		if (!optup)
-			return false;
-		oprcanhash = ((Form_pg_operator) GETSTRUCT(optup))->oprcanhash;
-		ReleaseOperator(optup);
-		if (!oprcanhash)
-			return false;
-	}
-	return true;
-}
-
 /*---------------
  * make_subplanTargetList
  *	  Generate appropriate target list when grouping is required.
@@ -2716,6 +2772,8 @@ hash_safe_grouping(PlannerInfo *root)
  * 'tlist' is the query's target list.
  * 'groupColIdx' receives an array of column numbers for the GROUP BY
  *			expressions (if there are any) in the subplan's target list.
+ * 'groupOperators' receives an array of equality operators corresponding
+ *			the GROUP BY expressions.
  * 'need_tlist_eval' is set true if we really need to evaluate the
  *			result tlist.
  *
@@ -2726,6 +2784,7 @@ static List *
 make_subplanTargetList(PlannerInfo *root,
 					   List *tlist,
 					   AttrNumber **groupColIdx,
+					   Oid **groupOperators,
 					   bool *need_tlist_eval)
 {
 	Query	   *parse = root->parse;
@@ -2779,22 +2838,29 @@ make_subplanTargetList(PlannerInfo *root,
 	{
 		int			keyno = 0;
 		AttrNumber *grpColIdx;
+		Oid		   *grpOperators;
 		List       *grouptles;
-		ListCell   *l;
+		List	   *groupops;
+		ListCell   *lc_tle;
+		ListCell   *lc_op;
 
 		grpColIdx = (AttrNumber *) palloc(sizeof(AttrNumber) * numCols);
+		grpOperators = (Oid *) palloc(sizeof(Oid) * numCols);
 		*groupColIdx = grpColIdx;
+		*groupOperators = grpOperators;
 
-		grouptles = get_sortgroupclauses_tles(parse->groupClause, tlist);
-
-		foreach (l, grouptles)
+		get_sortgroupclauses_tles(parse->groupClause, tlist,
+								  &grouptles, &groupops);
+		Assert(numCols == list_length(grouptles) &&
+			   numCols == list_length(groupops));
+		forboth (lc_tle, grouptles, lc_op, groupops)
 		{
 			Node *groupexpr;
 			TargetEntry	   *tle;
 			TargetEntry *sub_tle = NULL;
 			ListCell   *sl = NULL;
 
-			tle = (TargetEntry *)lfirst(l);
+			tle = (TargetEntry *)lfirst(lc_tle);
 			groupexpr = (Node*) tle->expr;
 
 			/* Find or make a matching sub_tlist entry */
@@ -2817,8 +2883,15 @@ make_subplanTargetList(PlannerInfo *root,
 
 			/* Set its group reference and save its resno */
 			sub_tle->ressortgroupref = tle->ressortgroupref;
-			grpColIdx[keyno++] = sub_tle->resno;
+			grpColIdx[keyno] = sub_tle->resno;
+
+			grpOperators[keyno] = get_equality_op_for_ordering_op(lfirst_oid(lc_op));
+			if (!OidIsValid(grpOperators[keyno]))		/* shouldn't happen */
+				elog(ERROR, "could not find equality operator for ordering operator %u",
+					 lfirst_oid(lc_op));
+			keyno++;
 		}
+		Assert(keyno == numCols);
 	}
 
 	return sub_tlist;
@@ -3017,8 +3090,9 @@ locate_grouping_columns(PlannerInfo *root,
 						AttrNumber *groupColIdx)
 {
 	int			keyno = 0;
-	List *grouptles;
-	ListCell *ge;
+	List	   *grouptles;
+	List	   *groupops;
+	ListCell   *ge;
 
 	/*
 	 * No work unless grouping.
@@ -3030,7 +3104,8 @@ locate_grouping_columns(PlannerInfo *root,
 	}
 	Assert(groupColIdx != NULL);
 
-	grouptles = get_sortgroupclauses_tles(root->parse->groupClause, tlist);
+	get_sortgroupclauses_tles(root->parse->groupClause, tlist,
+							  &grouptles, &groupops);
 
 	foreach (ge, grouptles)
 	{

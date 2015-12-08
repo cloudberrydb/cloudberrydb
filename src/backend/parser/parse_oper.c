@@ -379,6 +379,22 @@ ordering_oper_opid(Oid argtype)
 	return result;
 }
 
+
+/*
+ * ordering_oper_opid - convenience routine for oprid(equality_oper())
+ */
+Oid
+equality_oper_opid(Oid argtype)
+{
+	Operator	optup;
+	Oid			result;
+
+	optup = equality_oper(argtype, false);
+	result = oprid(optup);
+	ReleaseOperator(optup);
+	return result;
+}
+
 /*
  * reverse_ordering_oper_opid - convenience routine for oprid(reverse_ordering_oper())
  */

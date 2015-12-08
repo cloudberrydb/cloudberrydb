@@ -1010,9 +1010,11 @@ static Node *
 convert_IN_to_join(PlannerInfo *root, List** rtrlist_inout, SubLink *sublink)
 {
 	Query	   *subselect = (Query *) sublink->subselect;
+	List	   *in_operators;
 	int			rtindex;
 	InClauseInfo *ininfo;
     bool        correlated;
+	Node	   *result;
 
     Assert(IsA(subselect, Query));
 
@@ -1104,32 +1106,56 @@ convert_IN_to_join(PlannerInfo *root, List** rtrlist_inout, SubLink *sublink)
 	 * semantics are like, and must check for ourselves.)
      */
     ininfo->try_join_unique = false;
-    if (!correlated &&
+	in_operators = NIL;
+	if (!correlated &&
         sublink->testexpr)
     {
+		ininfo->try_join_unique = true;
         if (IsA(sublink->testexpr, OpExpr))
 	    {
+			Oid			opno = ((OpExpr *) sublink->testexpr)->opno;
 		    List	   *opfamilies;
 		    List	   *opstrats;
 
-		    get_op_btree_interpretation(((OpExpr *) sublink->testexpr)->opno,
-									    &opfamilies, &opstrats);
-		    if (list_member_int(opstrats, ROWCOMPARE_EQ))
-			    ininfo->try_join_unique = true;
+		    get_op_btree_interpretation(opno, &opfamilies, &opstrats);
+		    if (!list_member_int(opstrats, ROWCOMPARE_EQ))
+			    ininfo->try_join_unique = false;
+			in_operators = list_make1_oid(opno);
 	    }
-	    else if (and_clause(sublink->testexpr))
-		    ininfo->try_join_unique = true;
+		else if (and_clause(sublink->testexpr))
+		{
+			ListCell   *lc;
+
+			/* OK, but we need to extract the per-column operator OIDs */
+			in_operators = NIL;
+			foreach(lc, ((BoolExpr *) sublink->testexpr)->args)
+			{
+				OpExpr *op = (OpExpr *) lfirst(lc);
+
+				if (!IsA(op, OpExpr))           /* probably shouldn't happen */
+					ininfo->try_join_unique = false;
+				in_operators = lappend_oid(in_operators, op->opno);
+			}
+        }
+		else
+			ininfo->try_join_unique = false;
     }
+
+	ininfo->in_operators = in_operators;
 
 	/*
 	 * Build the result qual expression.  As a side effect,
 	 * ininfo->sub_targetlist is filled with a list of Vars representing the
 	 * subselect outputs.
 	 */
-	return convert_testexpr(root,
-							sublink->testexpr,
-							rtindex,
-							&ininfo->sub_targetlist);
+	result = convert_testexpr(root, sublink->testexpr,
+							  rtindex,
+							  &ininfo->sub_targetlist);
+
+	/* Add the completed node to the query's list */
+	root->in_info_list = lappend(root->in_info_list, ininfo);
+
+	return result;
 }                               /* convert_IN_to_join */
 
 

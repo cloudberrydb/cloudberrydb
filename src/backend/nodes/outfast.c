@@ -125,34 +125,44 @@
 
 	/* Read an integer array */
 #define WRITE_INT_ARRAY(fldname, count, Type) \
-	if ( node->count > 0 ) \
+	if ( count > 0 ) \
 	{ \
 		int i; \
-		for(i=0; i<node->count; i++) \
+		for(i = 0; i < count; i++) \
 		{ \
 			appendBinaryStringInfo(str, (const char *)&node->fldname[i], sizeof(Type)); \
 		} \
 	}
 
-/* Write an Trasnaction ID array  */
-#define WRITE_XID_ARRAY(fldname, count) \
-	if ( node->count > 0 ) \
+/* Write a boolean array  */
+#define WRITE_BOOL_ARRAY(fldname, count) \
+	if ( count > 0 ) \
 	{ \
 		int i; \
-		for(i=0; i<node->count; i++) \
+		for(i = 0; i < count; i++) \
+		{ \
+			char b = node->fldname[i] ? 1 : 0;								\
+			appendBinaryStringInfo(str, (const char *)&b, 1); \
+		} \
+	}
+
+/* Write an Trasnaction ID array  */
+#define WRITE_XID_ARRAY(fldname, count) \
+	if ( count > 0 ) \
+	{ \
+		int i; \
+		for(i = 0; i < count; i++) \
 		{ \
 			appendBinaryStringInfo(str, (const char *)&node->fldname[i], sizeof(TransactionId)); \
 		} \
 	}
 
-
-
 /* Write an Oid array  */
 #define WRITE_OID_ARRAY(fldname, count) \
-	if ( node->count > 0 ) \
+	if ( count > 0 ) \
 	{ \
 		int i; \
-		for(i=0; i<node->count; i++) \
+		for(i = 0; i < count; i++) \
 		{ \
 			appendBinaryStringInfo(str, (const char *)&node->fldname[i], sizeof(Oid)); \
 		} \
@@ -353,7 +363,7 @@ outLogicalIndexInfo(StringInfo str, LogicalIndexInfo *node)
 {
 	WRITE_OID_FIELD(logicalIndexOid);
 	WRITE_INT_FIELD(nColumns);
-	WRITE_INT_ARRAY(indexKeys, nColumns, AttrNumber);
+	WRITE_INT_ARRAY(indexKeys, node->nColumns, AttrNumber);
 	WRITE_NODE_FIELD(indPred);
 	WRITE_NODE_FIELD(indExprs);
 	WRITE_BOOL_FIELD(indIsUnique);
@@ -374,6 +384,26 @@ _outSubqueryScan(StringInfo str, SubqueryScan *node)
 }
 
 static void
+_outMergeJoin(StringInfo str, MergeJoin *node)
+{
+	int			numCols;
+
+	WRITE_NODE_TYPE("MERGEJOIN");
+
+	_outJoinPlanInfo(str, (Join *) node);
+
+	WRITE_NODE_FIELD(mergeclauses);
+
+	numCols = list_length(node->mergeclauses);
+
+	WRITE_OID_ARRAY(mergeFamilies, numCols);
+	WRITE_INT_ARRAY(mergeStrategies, numCols, int);
+	WRITE_BOOL_ARRAY(mergeNullsFirst, numCols);
+
+	WRITE_BOOL_FIELD(unique_outer);
+}
+
+static void
 _outAgg(StringInfo str, Agg *node)
 {
 
@@ -384,7 +414,8 @@ _outAgg(StringInfo str, Agg *node)
 	WRITE_ENUM_FIELD(aggstrategy, AggStrategy);
 	WRITE_INT_FIELD(numCols);
 
-	WRITE_INT_ARRAY(grpColIdx, numCols, AttrNumber);
+	WRITE_INT_ARRAY(grpColIdx, node->numCols, AttrNumber);
+	WRITE_OID_ARRAY(grpOperators, node->numCols);
 
 	if (print_variable_fields)
 	{
@@ -406,8 +437,8 @@ _outWindowKey(StringInfo str, WindowKey *node)
 	WRITE_NODE_TYPE("WINDOWKEY");
 	WRITE_INT_FIELD(numSortCols);
 
-	WRITE_INT_ARRAY(sortColIdx, numSortCols, AttrNumber);
-	WRITE_OID_ARRAY(sortOperators, numSortCols);
+	WRITE_INT_ARRAY(sortColIdx, node->numSortCols, AttrNumber);
+	WRITE_OID_ARRAY(sortOperators, node->numSortCols);
 	WRITE_NODE_FIELD(frame);
 }
 
@@ -420,8 +451,8 @@ _outWindow(StringInfo str, Window *node)
 	_outPlanInfo(str, (Plan *) node);
 
 	WRITE_INT_FIELD(numPartCols);
-
-	WRITE_INT_ARRAY(partColIdx, numPartCols, AttrNumber);
+	WRITE_INT_ARRAY(partColIdx, node->numPartCols, AttrNumber);
+	WRITE_OID_ARRAY(partOperators, node->numPartCols);
 
 	WRITE_NODE_FIELD(windowKeys);
 }
@@ -435,10 +466,9 @@ _outSort(StringInfo str, Sort *node)
 	_outPlanInfo(str, (Plan *) node);
 
 	WRITE_INT_FIELD(numCols);
-
-	WRITE_INT_ARRAY(sortColIdx, numCols, AttrNumber);
-	WRITE_OID_ARRAY(sortOperators, numCols);
-	WRITE_INT_ARRAY(nullsFirst, numCols, bool);
+	WRITE_INT_ARRAY(sortColIdx, node->numCols, AttrNumber);
+	WRITE_OID_ARRAY(sortOperators, node->numCols);
+	WRITE_BOOL_ARRAY(nullsFirst, node->numCols);
 
     /* CDB */
 	WRITE_NODE_FIELD(limitOffset);
@@ -461,9 +491,8 @@ _outUnique(StringInfo str, Unique *node)
 	_outPlanInfo(str, (Plan *) node);
 
 	WRITE_INT_FIELD(numCols);
-
-	WRITE_INT_ARRAY(uniqColIdx, numCols, AttrNumber);
-
+	WRITE_INT_ARRAY(uniqColIdx, node->numCols, AttrNumber);
+	WRITE_OID_ARRAY(uniqOperators, node->numCols);
 }
 
 static void
@@ -476,8 +505,8 @@ _outSetOp(StringInfo str, SetOp *node)
 
 	WRITE_ENUM_FIELD(cmd, SetOpCmd);
 	WRITE_INT_FIELD(numCols);
-
-	WRITE_INT_ARRAY(dupColIdx, numCols, AttrNumber);
+	WRITE_INT_ARRAY(dupColIdx, node->numCols, AttrNumber);
+	WRITE_OID_ARRAY(dupOperators, node->numCols);
 
 	WRITE_INT_FIELD(flagColIdx);
 }
@@ -496,12 +525,12 @@ _outMotion(StringInfo str, Motion *node)
 	WRITE_NODE_FIELD(hashDataTypes);
 
 	WRITE_INT_FIELD(numOutputSegs);
-	WRITE_INT_ARRAY(outputSegIdx, numOutputSegs, int);
+	WRITE_INT_ARRAY(outputSegIdx, node->numOutputSegs, int);
 
 	WRITE_INT_FIELD(numSortCols);
-	WRITE_INT_ARRAY(sortColIdx, numSortCols, AttrNumber);
-	WRITE_OID_ARRAY(sortOperators, numSortCols);
-	WRITE_INT_ARRAY(nullsFirst, numSortCols, bool);
+	WRITE_INT_ARRAY(sortColIdx, node->numSortCols, AttrNumber);
+	WRITE_OID_ARRAY(sortOperators, node->numSortCols);
+	WRITE_BOOL_ARRAY(nullsFirst, node->numSortCols);
 
 	WRITE_INT_FIELD(segidColIdx);
 
@@ -622,9 +651,9 @@ _outFlow(StringInfo str, Flow *node)
 	/* This array format as in Group and Sort nodes. */
 	WRITE_INT_FIELD(numSortCols);
 
-	WRITE_INT_ARRAY(sortColIdx, numSortCols, AttrNumber);
-	WRITE_OID_ARRAY(sortOperators, numSortCols);
-	WRITE_INT_ARRAY(nullsFirst, numSortCols, bool);
+	WRITE_INT_ARRAY(sortColIdx, node->numSortCols, AttrNumber);
+	WRITE_OID_ARRAY(sortOperators, node->numSortCols);
+	WRITE_BOOL_ARRAY(nullsFirst, node->numSortCols);
 
 	WRITE_NODE_FIELD(hashExpr);
 
@@ -649,10 +678,10 @@ _outIndexOptInfo(StringInfo str, IndexOptInfo *node)
 	WRITE_FLOAT_FIELD(tuples, "%.0f");
 	WRITE_INT_FIELD(ncolumns);
 
-	WRITE_INT_ARRAY(opfamily, ncolumns, int);
-	WRITE_INT_ARRAY(indexkeys, ncolumns, int);
-	WRITE_OID_ARRAY(fwdsortop, ncolumns);
-	WRITE_OID_ARRAY(revsortop, ncolumns);
+	WRITE_OID_ARRAY(opfamily, node->ncolumns);
+	WRITE_INT_ARRAY(indexkeys, node->ncolumns, int);
+	WRITE_OID_ARRAY(fwdsortop, node->ncolumns);
+	WRITE_OID_ARRAY(revsortop, node->ncolumns);
 
     WRITE_OID_FIELD(relam);
 	WRITE_OID_FIELD(amcostestimate);
@@ -756,8 +785,8 @@ _outPartition(StringInfo str, Partition *node)
 	WRITE_INT_FIELD(parlevel);
 	WRITE_BOOL_FIELD(paristemplate);
 	WRITE_BINARY_FIELD(parnatts, sizeof(int2));
-	WRITE_INT_ARRAY(paratts, parnatts, int2);
-	WRITE_OID_ARRAY(parclass, parnatts);
+	WRITE_INT_ARRAY(paratts, node->parnatts, int2);
+	WRITE_OID_ARRAY(parclass, node->parnatts);
 }
 
 static void

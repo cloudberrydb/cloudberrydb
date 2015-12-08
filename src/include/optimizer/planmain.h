@@ -8,7 +8,7 @@
  * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
- * $PostgreSQL: pgsql/src/include/optimizer/planmain.h,v 1.94 2006/07/26 00:34:48 momjian Exp $
+ * $PostgreSQL: pgsql/src/include/optimizer/planmain.h,v 1.97 2007/01/10 18:06:04 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -57,6 +57,7 @@ typedef struct GroupContext
 	 */
 	int numGroupCols;
 	AttrNumber *groupColIdx;
+	Oid		   *groupOperators;
 	int numDistinctCols;
 	AttrNumber *distinctColIdx;
 
@@ -85,7 +86,7 @@ extern Plan *optimize_minmax_aggregates(PlannerInfo *root, List *tlist,
 extern Plan *make_distinctaggs_for_rollup(PlannerInfo *root, bool is_agg,
 										  List *tlist, bool twostage, List *sub_tlist,
 										  List *qual, AggStrategy aggstrategy,
-										  int numGroupCols, AttrNumber *grpColIdx,
+										  int numGroupCols, AttrNumber *grpColIdx, Oid *grpOperators,
 										  double numGroups, int *rollup_gs_times,
 										  int numAggs, int transSpace,
 										  double *p_dNumGroups,
@@ -114,7 +115,7 @@ extern Plan *plan_grouping_extension(PlannerInfo *root,
 									 List **p_tlist, List *sub_tlist,
 									 bool is_agg, bool twostage,
 									 List *qual,
-									 int *p_numGroupCols, AttrNumber **p_grpColIdx,
+									 int *p_numGroupCols, AttrNumber **p_grpColIdx, Oid **p_grpOperators,
 									 AggClauseCounts *agg_counts,
 									 CanonicalGroupingSets *canonical_grpsets,
 									 double *p_dNumGroups,
@@ -145,11 +146,11 @@ extern Sort *make_sort_from_reordered_groupcols(PlannerInfo *root,
 												int req_ngrpkeys,
 												Plan *lefttree);
 extern List *reconstruct_group_clause(List *orig_groupClause, List *tlist,
-									  AttrNumber *grpColIdx, int numcols);
+						 AttrNumber *grpColIdx, int numcols);
 
 extern Agg *make_agg(PlannerInfo *root, List *tlist, List *qual,
 					 AggStrategy aggstrategy, bool streaming,
-					 int numGroupCols, AttrNumber *grpColIdx,
+					 int numGroupCols, AttrNumber *grpColIdx, Oid *grpOperators,
 					 long numGroups, int numNullCols,
 					 uint64 inputGrouping, uint64 grouping,
 					 int rollupGSTimes,
@@ -167,12 +168,15 @@ extern NestLoop *make_nestloop(List *tlist,
 							   JoinType jointype);
 extern MergeJoin *make_mergejoin(List *tlist,
 			   List *joinclauses, List *otherclauses,
-			   List *mergeclauses, List *mergefamilies, List *mergestrategies,
+			   List *mergeclauses,
+			   Oid *mergefamilies,
+			   int *mergestrategies,
+			   bool *mergenullsfirst,
 			   Plan *lefttree, Plan *righttree,
 			   JoinType jointype);
 extern Window *make_window(PlannerInfo *root, List *tlist,
-		   int numPartCols, AttrNumber *partColIdx, List *windowKeys,
-		   Plan *lefttree);
+			int numPartCols, AttrNumber *partColIdx, Oid *partOperators,
+			List *windowKeys, Plan *lefttree);
 extern Material *make_material(Plan *lefttree);
 extern Plan *materialize_finished_plan(PlannerInfo *root, Plan *subplan);
 extern Unique *make_unique(Plan *lefttree, List *distinctList);

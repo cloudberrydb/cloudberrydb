@@ -9,7 +9,7 @@
  * Portions Copyright (c) 1996-2008, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
- * $PostgreSQL: pgsql/src/include/nodes/plannodes.h,v 1.88 2007/01/09 02:14:15 tgl Exp $
+ * $PostgreSQL: pgsql/src/include/nodes/plannodes.h,v 1.89 2007/01/10 18:06:04 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -762,14 +762,23 @@ typedef struct NestLoop
 
 /* ----------------
  *		merge join node
+ *
+ * The expected ordering of each mergeable column is described by a btree
+ * opfamily OID, a direction (BTLessStrategyNumber or BTGreaterStrategyNumber)
+ * and a nulls-first flag.  Note that the two sides of each mergeclause may
+ * be of different datatypes, but they are ordered the same way according to
+ * the common opfamily.  The operator in each mergeclause must be an equality
+ * operator of the indicated opfamily.
  * ----------------
  */
 typedef struct MergeJoin
 {
 	Join		join;
 	List	   *mergeclauses;		/* mergeclauses as expression trees */
-	List	   *mergefamilies;		/* OID list of btree opfamilies */
-	List	   *mergestrategies;	/* integer list of btree strategies */
+	/* these are arrays, but have the same length as the mergeclauses list: */
+	Oid		   *mergeFamilies;		/* per-clause OIDs of btree opfamilies */
+	int		   *mergeStrategies;	/* per-clause ordering (ASC or DESC) */
+	bool	   *mergeNullsFirst;	/* per-clause nulls ordering */
 	bool		unique_outer; /*CDB-OLAP true => outer is unique in merge key */
 } MergeJoin;
 
@@ -898,6 +907,7 @@ typedef struct Agg
 	AggStrategy aggstrategy;
 	int			numCols;		/* number of grouping columns */
 	AttrNumber *grpColIdx;		/* their indexes in the target list */
+	Oid		   *grpOperators;	/* equality operators to compare with */
 	long		numGroups;		/* estimated number of groups in input */
 	int			transSpace;		/* est storage per group for byRef transition values */
 
@@ -999,11 +1009,12 @@ typedef struct Agg
  */
 typedef struct Window
 {
-	Plan			plan;
-	int				numPartCols;	/* number of partitioning columns */
-	AttrNumber	   *partColIdx;		/* their indexes in the target list
-									   of the window's outer plan.  */
-	List	       *windowKeys;		/* list of WindowKey nodes */
+	Plan		plan;
+	int			numPartCols;	/* number of partitioning columns */
+	AttrNumber *partColIdx;		/* their indexes in the target list
+								 * of the window's outer plan.  */
+	Oid		   *partOperators;
+	List       *windowKeys;		/* list of WindowKey nodes */
 } Window;
 
 
@@ -1015,7 +1026,8 @@ typedef struct Unique
 {
 	Plan		plan;
 	int			numCols;		/* number of columns to check for uniqueness */
-	AttrNumber *uniqColIdx;		/* indexes into the target list */
+	AttrNumber *uniqColIdx;		/* their indexes in the target list */
+	Oid		   *uniqOperators;	/* equality operators to compare with */
 } Unique;
 
 /* ----------------
@@ -1047,8 +1059,9 @@ typedef struct SetOp
 	SetOpCmd	cmd;			/* what to do */
 	int			numCols;		/* number of columns to check for
 								 * duplicate-ness */
-	AttrNumber *dupColIdx;		/* indexes into the target list */
-	AttrNumber	flagColIdx;
+	AttrNumber *dupColIdx;		/* their indexes in the target list */
+	Oid		   *dupOperators;	/* equality operators to compare with */
+	AttrNumber	flagColIdx;		/* where is the flag column, if any */
 } SetOp;
 
 /* ----------------

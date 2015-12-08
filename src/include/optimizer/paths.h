@@ -95,8 +95,10 @@ extern void add_paths_to_joinrel(PlannerInfo *root, RelOptInfo *joinrel,
 					 RelOptInfo *innerrel,
 					 JoinType jointype,
 					 List *restrictlist);
-extern void build_mergejoin_strat_lists(List *mergeclauses,
-							List **mergefamilies, List **mergestrategies);
+extern void build_mergejoin_strat_arrays(List *mergeclauses,
+							 Oid **mergefamilies,
+							 int **mergestrategies,
+							 bool **mergenullsfirst);
 
 /*
  * joinrels.c

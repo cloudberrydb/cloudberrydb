@@ -215,56 +215,76 @@ get_sortgroupclause_tle(SortClause *sortClause,
  * will be put in the front of those that appear in a GroupingClauses.
  * The targets within the same clause will be appended in the order
  * of their appearance.
+ *
+ * The unique targetlist entries are returned in *tles, and the sort
+ * operators associated with each tle are returned in *grpOperators.
  */
-List *
-get_sortgroupclauses_tles(List *clauses, List *targetList)
+static void
+get_sortgroupclauses_tles_recurse(List *clauses, List *targetList,
+								  List **tles, List **sortops)
 {
-	List *result = NIL;
-	ListCell *l;
+	ListCell *lc;
+	ListCell *lc_sortop;
+	List *sub_grouping_tles = NIL;
+	List *sub_grouping_sortops = NIL;
 
-	List *sub_grouping_result = NIL;
-
-	foreach(l, clauses)
+	foreach(lc, clauses)
 	{
-		Node *node = lfirst(l);
+		Node *node = lfirst(lc);
 
 		if (node == NULL)
 			continue;
 
 		if (IsA(node, GroupClause) || IsA(node, SortClause))
 		{
-			TargetEntry *tle =
-				get_sortgroupclause_tle((SortClause*)node, targetList);
+			SortClause *sgc = (SortClause *) node;
+			TargetEntry *tle = get_sortgroupclause_tle(sgc,
+													   targetList);
 
-			if (!list_member(result, tle))
-				result = lappend(result, tle);
+			if (!list_member(*tles, tle))
+			{
+				*tles = lappend(*tles, tle);
+				*sortops = lappend_oid(*sortops, sgc->sortop);
+			}
 		}
-
 		else if (IsA(node, List))
 		{
-			result = list_concat_unique(result,
-										get_sortgroupclauses_tles((List *)node,
-																  targetList));
+			get_sortgroupclauses_tles_recurse((List *) node, targetList,
+											  tles, sortops);
 		}
-
-		else
+		else if (IsA(node, GroupingClause))
 		{
-			List *sub_list;
-			Assert (IsA(node, GroupingClause));
-
-			sub_list =
-				get_sortgroupclauses_tles(((GroupingClause*)node)->groupsets,
-										  targetList);
-
-			sub_grouping_result =
-				list_concat_unique(sub_grouping_result, sub_list);
+			/* GroupingClauses are collected into separate list */
+			get_sortgroupclauses_tles_recurse(((GroupingClause *) node)->groupsets,
+											  targetList,
+											  &sub_grouping_tles,
+											  &sub_grouping_sortops);
 		}
+		else
+			elog(ERROR, "unrecognized node type in list of sort/group clauses: %d",
+				 (int) nodeTag(node));
 	}
 
 	/* Put GroupClauses before GroupingClauses. */
-	result = list_concat_unique(result, sub_grouping_result);
+	forboth(lc, sub_grouping_tles, lc_sortop, sub_grouping_sortops)
+	{
+		if (!list_member(*tles, lfirst(lc)))
+		{
+			*tles = lappend(*tles, lfirst(lc));
+			*sortops = lappend_oid(*sortops, lfirst_oid(lc_sortop));
+		}
+	}
+}
 
-	return result;
+void
+get_sortgroupclauses_tles(List *clauses, List *targetList,
+						  List **tles, List **sortops)
+{
+	*tles = NIL;
+	*sortops = NIL;
+
+	get_sortgroupclauses_tles_recurse(clauses, targetList,
+									  tles, sortops);
 }
 
 /*
@@ -308,15 +328,18 @@ get_sortgrouplist_exprs(List *sortClauses, List *targetList)
 /*
  * get_grouplist_colidx
  *		Given a list of GroupClauses, build an array of the referenced
- *		targetlist resno.  If numCols is not NULL, it is filled by the
- *		length of returned array.  Results are allocated by palloc.
+ *		targetlist resnos and their sort operators.  If numCols is not NULL,
+ *		it is filled by the length of returned array.  Results are allocated
+ *		by palloc.
  */
-AttrNumber *
-get_grouplist_colidx(List *groupClauses, List *targetList, int *numCols)
+void
+get_grouplist_colidx(List *groupClauses, List *targetList, int *numCols,
+					 AttrNumber **colIdx, Oid **grpOperators)
 {
-	AttrNumber	   *result;
 	List		   *tles;
-	ListCell	   *l;
+	List		   *sortops;
+	ListCell	   *lc_tle;
+	ListCell	   *lc_sortop;
 	int				i, len;
 
 	len = num_distcols_in_grouplist(groupClauses);
@@ -324,18 +347,32 @@ get_grouplist_colidx(List *groupClauses, List *targetList, int *numCols)
 		*numCols = len;
 
 	if (len == 0)
-		return NULL;
-
-	result = (AttrNumber *) palloc(sizeof(AttrNumber) * len);
-	tles = get_sortgroupclauses_tles(groupClauses, targetList);
-	foreach_with_count (l, tles, i)
 	{
-		TargetEntry	   *tle = lfirst(l);
-
-		result[i] = tle->resno;
+		*colIdx = NULL;
+		*grpOperators = NULL;
+		return;
 	}
 
-	return result;
+	get_sortgroupclauses_tles(groupClauses, targetList, &tles, &sortops);
+
+	*colIdx = (AttrNumber *) palloc(sizeof(AttrNumber) * len);
+	*grpOperators = (Oid *) palloc(sizeof(Oid) * len);
+
+	i = 0;
+	forboth(lc_tle, tles, lc_sortop, sortops)
+	{
+		TargetEntry	*tle = lfirst(lc_tle);
+		Oid			sortop = lfirst_oid(lc_sortop);
+
+		Assert (i < len);
+
+		(*colIdx)[i] = tle->resno;
+		(*grpOperators)[i] = get_equality_op_for_ordering_op(sortop);
+		if (!OidIsValid((*grpOperators)[i]))		/* shouldn't happen */
+			elog(ERROR, "could not find equality operator for ordering operator %u",
+				 (*grpOperators)[i]);
+		i++;
+	}
 }
 
 /*

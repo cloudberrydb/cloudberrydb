@@ -252,7 +252,10 @@ namespace gpdb {
 	
 	// get scalar comparison between given types
 	Oid OidScCmp(Oid oidLeft, Oid oidRight, uint ulCmpt);
-	
+
+	// get equality operator for given type
+	Oid OidEqualityOp(Oid oidType);
+
 	// function name
 	char *SzFuncName(Oid funcid);
 

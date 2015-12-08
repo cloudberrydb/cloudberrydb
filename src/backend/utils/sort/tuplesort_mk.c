@@ -674,8 +674,8 @@ create_mksort_context(
             Assert(sortOperators[i] != 0);
 
             /* Select a sort function */
-			if (!get_op_compare_function(sortOperators[i],
-										 &sortFunction, &reverse))
+			if (!get_compare_function_for_ordering_op(sortOperators[i],
+													  &sortFunction, &reverse))
 				elog(ERROR, "operator %u is not a valid ordering operator",
 					 sortOperators[i]);
 

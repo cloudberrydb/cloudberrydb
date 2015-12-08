@@ -843,6 +843,7 @@ static void ConstructInitPlan(PartitionJoinMutatorContext *ctx)
 					AGG_PLAIN, false /* streaming */,
 					0 /* numGroupCols */,
 					NULL /* grpColIdx */,
+					NULL /* grpOperators */,
 					0 /* numGroups */,
 					0 /* int num_nullcols */,
 					0 /* input_grouping */,

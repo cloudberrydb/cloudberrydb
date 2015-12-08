@@ -48,6 +48,7 @@ extern bool choose_hashed_grouping(PlannerInfo *root,
 								   double tuple_fraction,
 								   Path *cheapest_path, 
 								   Path *sorted_path,
+								   Oid *groupOperators, int numGroupOps,
 								   double dNumGroups, 
 								   AggClauseCounts *agg_counts);
 

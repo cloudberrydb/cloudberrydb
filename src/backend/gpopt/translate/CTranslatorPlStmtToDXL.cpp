@@ -1059,6 +1059,7 @@ CTranslatorPlStmtToDXL::PdxlnUniqueFromPlan
 	pagg->aggstrategy = AGG_SORTED;
 
 	pagg->grpColIdx = punique->uniqColIdx;
+	pagg->grpOperators = punique->uniqOperators;
 	pagg->numCols = punique->numCols;
 
 	return PdxlnAggFromPlan((Plan *)pagg);

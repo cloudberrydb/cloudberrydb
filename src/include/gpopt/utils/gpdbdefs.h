@@ -36,6 +36,7 @@ extern "C" {
 #include "parser/parse_expr.h"
 #include "parser/parse_relation.h"
 #include "parser/parse_clause.h"
+#include "parser/parse_oper.h"
 
 #include "catalog/namespace.h"
 #include "catalog/pg_exttable.h"

@@ -35,11 +35,13 @@ extern Node *get_sortgroupclause_expr(SortClause *sortClause,
 						 List *targetList);
 extern List *get_sortgrouplist_exprs(List *sortClauses,
 						List *targetList);
-extern AttrNumber *get_grouplist_colidx(List *sortClauses,
-						List *targetList, int *numCols);
+extern void get_grouplist_colidx(List *sortClauses,
+								 List *targetList, int *numCols,
+								 AttrNumber **colIdx, Oid **sortops);
 
 extern List *get_grouplist_exprs(List *groupClause, List *targetList);
-extern List *get_sortgroupclauses_tles(List *clauses, List *targetList);
+extern void get_sortgroupclauses_tles(List *clauses, List *targetList,
+									  List **tles, List **sortops);
 
 extern bool tlist_same_datatypes(List *tlist, List *colTypes, bool junkOK);
 

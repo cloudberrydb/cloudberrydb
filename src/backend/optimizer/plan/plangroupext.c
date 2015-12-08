@@ -30,6 +30,7 @@
 #include "cdb/cdbpathlocus.h"
 #include "cdb/cdbgroup.h" 					/* generate_three_tlists */
 #include "cdb/cdbllize.h"                   /* pull_up_Flow */
+#include "catalog/pg_operator.h"
 #include "catalog/pg_type.h"                /* INT4OID */
 #include "utils/lsyscache.h"                /* get_typavgwidth */
 
@@ -49,6 +50,7 @@ typedef struct CanonicalRollup
 
 	/* The column index for this rollup */
 	AttrNumber *colIdx;
+	Oid		   *operators;
 
 	/* This rollup may be part of a GROUPING SETS or a CUBE. This value
 	 * is used to record the relative position of columns in the original
@@ -98,6 +100,7 @@ typedef struct GroupExtContext
 	AggStrategy aggstrategy;
 	int numGroupCols;
 	AttrNumber *grpColIdx;
+	Oid		   *grpOperators;
 	int numDistinctCols;
 	AttrNumber *distinctColIdx;
 	AggClauseCounts *agg_counts;
@@ -126,7 +129,7 @@ typedef struct GroupExtContext
 } GroupExtContext;
 
 static void destroyGroupExtContext(GroupExtContext *context);
-static List *convert_gs_to_rollups(AttrNumber *grpColIdx,
+static List *convert_gs_to_rollups(AttrNumber *grpColIdx, Oid *grpOperators,
 								   int numGroupCols,
 								   CanonicalGroupingSets *canonical_grpsets,
 								   List *canonical_rollups,
@@ -155,6 +158,7 @@ static Plan *add_first_agg(PlannerInfo *root,
 						   int rollup_gs_times,
 						   int numGroupCols,
 						   AttrNumber *groupColIdx,
+						   Oid *groupOperators,
 						   List *current_tlist,
 						   List *current_qual,
 						   Plan *current_lefttree);
@@ -162,8 +166,8 @@ static List *generate_list_subplans(PlannerInfo *root,
 									int num_subplans,
 									GroupExtContext *context);
 static List *add_grouping_groupid(List *tlist);
-static void append_colIdx(AttrNumber *colIdx, int numcols, int colno,
-						  int *grping_pos, Bitmapset *bms, AttrNumber *grpColIdx,
+static void append_colIdx(AttrNumber *colIdx, Oid *operators, int numcols, int colno,
+						  int *grping_pos, Bitmapset *bms, AttrNumber *grpColIdx, Oid *grpOperators,
 						  Index *sortrefs_to_resnos, int max_sortgroupref);
 static Plan *plan_list_rollup_plans(PlannerInfo *root,
 									GroupExtContext *context,
@@ -319,7 +323,7 @@ plan_grouping_extension(PlannerInfo *root,
 						List **p_tlist, List *sub_tlist,
 						bool is_agg, bool twostage,
 						List *qual,
-						int *p_numGroupCols, AttrNumber **p_grpColIdx,
+						int *p_numGroupCols, AttrNumber **p_grpColIdx, Oid **p_grpOperators,
 						AggClauseCounts *agg_counts,
 						CanonicalGroupingSets *canonical_grpsets,
 						double *p_dNumGroups,
@@ -341,6 +345,9 @@ plan_grouping_extension(PlannerInfo *root,
 	context.grpColIdx = palloc0(context.numGroupCols * sizeof(AttrNumber));
 	memcpy(context.grpColIdx, *p_grpColIdx,
 		   context.numGroupCols * sizeof(AttrNumber));
+	context.grpOperators = palloc0(context.numGroupCols * sizeof(Oid));
+	memcpy(context.grpOperators, *p_grpOperators,
+		   context.numGroupCols * sizeof(Oid));
 	context.numDistinctCols = 0;
 	context.distinctColIdx = NULL;
 	context.agg_counts = agg_counts;
@@ -362,7 +369,7 @@ plan_grouping_extension(PlannerInfo *root,
 	 * Convert a list of grouping sets into multiple rollups.
 	 */
 	context.canonical_rollups =
-		convert_gs_to_rollups(context.grpColIdx, context.numGroupCols,
+		convert_gs_to_rollups(context.grpColIdx, context.grpOperators, context.numGroupCols,
 							  canonical_grpsets, context.canonical_rollups,
 							  context.sub_tlist, context.tlist);
 
@@ -379,6 +386,9 @@ plan_grouping_extension(PlannerInfo *root,
 		*p_grpColIdx =
 			(AttrNumber *)repalloc(*p_grpColIdx,
 								   (*p_numGroupCols + 2) * sizeof(AttrNumber));
+		*p_grpOperators =
+			(Oid *) repalloc(*p_grpOperators,
+							 (*p_numGroupCols + 2) * sizeof(Oid));
 	}
 	else
 	{
@@ -386,6 +396,8 @@ plan_grouping_extension(PlannerInfo *root,
 		
 		*p_grpColIdx = 
 			(AttrNumber *)palloc0((*p_numGroupCols + 2) * sizeof(AttrNumber));
+		*p_grpOperators =
+			(Oid *) palloc0((*p_numGroupCols + 2) * sizeof(Oid));
 	}
 	
 	(*p_numGroupCols) += 2;
@@ -393,6 +405,11 @@ plan_grouping_extension(PlannerInfo *root,
 	*p_tlist = context.tlist;
 	(*p_grpColIdx)[(*p_numGroupCols)-2] = list_length(*p_tlist) - 1;
 	(*p_grpColIdx)[(*p_numGroupCols)-1] = list_length(*p_tlist);
+
+	/* GROUPING column is an int8 */
+	(*p_grpOperators)[(*p_numGroupCols) - 2] = Int8EqualOperator;
+	/* GROUP_ID column is an int4 */
+	(*p_grpOperators)[(*p_numGroupCols) - 1] = Int4EqualOperator;
 
 	*p_current_pathkeys = context.current_pathkeys;
 
@@ -466,6 +483,7 @@ make_list_aggs_for_rollup(PlannerInfo *root,
 	Plan *current_lefttree = lefttree;
 	Plan *agg_node = NULL;
 	AttrNumber *prelimGroupColIdx;
+	Oid		   *prelimGroupOperators;
 
 	List *tlist1 = NIL;
 	List *tlist2 = NIL;
@@ -475,7 +493,9 @@ make_list_aggs_for_rollup(PlannerInfo *root,
 	int last_group_no = 0;
 
 	AttrNumber *orig_grpColIdx;
+	Oid		   *orig_grpOperators;
 	AttrNumber *groupColIdx = NULL;
+	Oid		   *groupOperators = NULL;
 	List *current_tlist;
 	List *current_qual;
 	double current_numGroups;
@@ -493,7 +513,13 @@ make_list_aggs_for_rollup(PlannerInfo *root,
 						  context->sub_tlist, (Node *)context->qual,
 						  context->numGroupCols,
 						  context->grpColIdx,
+						  context->grpOperators,
 						  &tlist1, &tlist2, &tlist3, &qual3);
+
+	orig_grpColIdx = context->grpColIdx;
+	orig_grpOperators = context->grpOperators;
+	context->grpColIdx = context->current_rollup->colIdx;
+	context->grpOperators = context->current_rollup->operators;
 
 	/* Even though we use context->grpColIdx to generate
 	 * these tlists, but the order of grouping columns are defined in
@@ -502,6 +528,9 @@ make_list_aggs_for_rollup(PlannerInfo *root,
 	 */
 	prelimGroupColIdx =
 		(AttrNumber*)palloc(context->numGroupCols * sizeof(AttrNumber));
+	prelimGroupOperators =
+		(Oid *) palloc(context->numGroupCols * sizeof(Oid));
+
 	for (group_no = 0; group_no < context->numGroupCols; group_no++ )
 	{
 		int resno = context->current_rollup->colIdx[group_no];
@@ -509,14 +538,16 @@ make_list_aggs_for_rollup(PlannerInfo *root,
 
 		for (pos=0; pos<context->numGroupCols; pos++)
 		{
-			if (context->grpColIdx[pos] == resno)
+			if (orig_grpColIdx[pos] == resno)
 				break;
 		}
-		prelimGroupColIdx[group_no] = pos+1;
-	}
 
-	orig_grpColIdx = context->grpColIdx;
-	context->grpColIdx = context->current_rollup->colIdx;
+		if (pos == context->numGroupCols)
+			elog(ERROR, "could not find rollup column %u in original group by clause", group_no);
+
+		prelimGroupColIdx[group_no] = pos + 1;
+		prelimGroupOperators[group_no] = orig_grpOperators[pos];
+	}
 
 	/*
 	 * We always append Grouping and group_id to all three tlists.
@@ -534,17 +565,30 @@ make_list_aggs_for_rollup(PlannerInfo *root,
 	context->grpColIdx =
 		(AttrNumber *)repalloc(context->grpColIdx,
 							   context->numGroupCols * sizeof(AttrNumber));
+	context->grpOperators =
+		(Oid *)repalloc(context->grpOperators,
+							   context->numGroupCols * sizeof(Oid));
 	tle = list_nth(context->sub_tlist, list_length(context->sub_tlist) - 2);
 	Assert(IsA(tle, TargetEntry));
 	context->grpColIdx[context->numGroupCols - 2] = tle->resno;
 	tle = list_nth(context->sub_tlist, list_length(context->sub_tlist) - 1);
 	Assert(IsA(tle, TargetEntry));
 	context->grpColIdx[context->numGroupCols - 1] = tle->resno;
+	/* GROUPING column is an int8 */
+	context->grpOperators[context->numGroupCols - 2] = Int8EqualOperator;
+	/* GROUP_ID column is an int4 */
+	context->grpOperators[context->numGroupCols - 1] = Int4EqualOperator;
 
 	prelimGroupColIdx = (AttrNumber *)
 		repalloc(prelimGroupColIdx, context->numGroupCols * sizeof(AttrNumber));
+	prelimGroupOperators = (Oid *)
+		repalloc(prelimGroupOperators, context->numGroupCols * sizeof(Oid));
 	prelimGroupColIdx[context->numGroupCols - 1] = list_length(tlist2);
 	prelimGroupColIdx[context->numGroupCols - 2] = list_length(tlist2) - 1;
+	/* GROUPING column is an int8 */
+	prelimGroupOperators[context->numGroupCols - 2] = Int8EqualOperator;
+	/* GROUP_ID column is an int4 */
+	prelimGroupOperators[context->numGroupCols - 1] = Int4EqualOperator;
 
 	/*
 	 * Find the index position for the last rollup level.
@@ -573,6 +617,7 @@ make_list_aggs_for_rollup(PlannerInfo *root,
 		{
 			AggStrategy aggstrategy;
 			groupColIdx = context->grpColIdx;
+			groupOperators = context->grpOperators;
 
 			/* Add sort node if needed, and set AggStrategy */
 			if (root->parse->groupClause)
@@ -646,6 +691,7 @@ make_list_aggs_for_rollup(PlannerInfo *root,
 									  context->current_rollup->grpset_counts[group_no] : 0),
 									 context->numGroupCols - 2, /* ignore GROUPING, GROUP_ID */
 									 groupColIdx,
+									 groupOperators,
 									 current_tlist,
 									 current_qual,
 									 current_lefttree);
@@ -665,12 +711,15 @@ make_list_aggs_for_rollup(PlannerInfo *root,
 	 * Agg node.
 	 */
 	groupColIdx = prelimGroupColIdx;
+	groupOperators = prelimGroupOperators;
 
 	/* Construct the rest Agg nodes. */
 	for (; group_no <= last_group_no; group_no++)
 	{
 		AttrNumber *new_grpColIdx;
+		Oid		   *new_grpOperators;
 		AttrNumber last_grpCol, last_grpidCol;
+		Oid			last_grpOperator, last_grpidOperator;
 
 		if (group_no > 0)
 			grouping += ( ((uint64)1) << context->current_rollup->grping_pos[
@@ -701,19 +750,30 @@ make_list_aggs_for_rollup(PlannerInfo *root,
 		 * GROUPING, GROUP_ID are switched to its rightful position.
 		 */
 		new_grpColIdx = palloc0(context->numGroupCols * sizeof(AttrNumber));
+		new_grpOperators = palloc0(context->numGroupCols * sizeof(Oid));
 		memcpy(new_grpColIdx, groupColIdx, context->numGroupCols * sizeof(AttrNumber));
+		memcpy(new_grpOperators, groupOperators, context->numGroupCols * sizeof(Oid));
+
 		last_grpCol = new_grpColIdx[context->numGroupCols - 2];
+		last_grpOperator = new_grpOperators[context->numGroupCols - 2];
 		last_grpidCol = new_grpColIdx[context->numGroupCols - 1];
+		last_grpidOperator = new_grpOperators[context->numGroupCols - 1];
 		new_grpColIdx[context->numGroupCols - 2] =
 			new_grpColIdx[context->numGroupCols - group_no - 2];
+		new_grpOperators[context->numGroupCols - 2] =
+			new_grpOperators[context->numGroupCols - group_no - 2];
 		new_grpColIdx[context->numGroupCols - 1] =
 			new_grpColIdx[context->numGroupCols - group_no - 1];
+		new_grpOperators[context->numGroupCols - 1] =
+			new_grpOperators[context->numGroupCols - group_no - 1];
 		new_grpColIdx[context->numGroupCols - group_no - 2] = last_grpCol;
+		new_grpOperators[context->numGroupCols - group_no - 2] = last_grpOperator;
 		new_grpColIdx[context->numGroupCols - group_no - 1] = last_grpidCol;
+		new_grpOperators[context->numGroupCols - group_no - 1] = last_grpidOperator;
 		
 		agg_node = add_second_stage_agg(root, context->is_agg, context->tlist, current_tlist,
 										current_qual, context->aggstrategy,
-										context->numGroupCols, new_grpColIdx,
+										context->numGroupCols, new_grpColIdx, new_grpOperators,
 										group_no, input_grouping, grouping,
 										(need_repeat_node ?
 										 context->current_rollup->grpset_counts[group_no] : 0),
@@ -795,7 +855,7 @@ make_list_aggs_for_rollup(PlannerInfo *root,
 		dummy_path.total_cost = agg_node->total_cost;
 		dummy_path.pathkeys = NIL;
 		if (choose_hashed_grouping(root, context->tuple_fraction, &dummy_path,
-								   NULL, *context->p_dNumGroups,
+								   NULL, NULL, 0, *context->p_dNumGroups,
 								   context->agg_counts))
 			context->aggstrategy = AGG_HASHED;
 
@@ -840,7 +900,8 @@ make_list_aggs_for_rollup(PlannerInfo *root,
 		/* Add a Agg/Group node */
 		agg_node = add_second_stage_agg(root, context->is_agg, context->tlist, tlist3,
 										qual3, context->aggstrategy,
-										context->numGroupCols, prelimGroupColIdx,
+										context->numGroupCols,
+										prelimGroupColIdx, prelimGroupOperators,
 										0,  /* num_nullcols */
 										0, /* input_grouping */
 										0, /* grouping */
@@ -870,6 +931,7 @@ make_list_aggs_for_rollup(PlannerInfo *root,
 	}
 
 	pfree(orig_grpColIdx);
+	pfree(orig_grpOperators);
 
 	return agg_node;
 }
@@ -1128,6 +1190,7 @@ generate_dqa_plan(PlannerInfo *root,
 	group_context.grouping = grouping;
 	group_context.numGroupCols = context->numGroupCols - rollup_level;
 	group_context.groupColIdx = context->grpColIdx;
+	group_context.groupOperators = context->grpOperators;
 	group_context.numDistinctCols = context->numDistinctCols;
 	group_context.distinctColIdx = context->distinctColIdx;
 	group_context.p_dNumGroups = context->p_dNumGroups;
@@ -1177,6 +1240,7 @@ generate_dqa_plan(PlannerInfo *root,
 								  context->current_rollup->grpset_counts[rollup_level] : 0),
 								 context->numGroupCols,
 								 context->grpColIdx,
+								 context->grpOperators,
 								 new_tlist,
 								 context->qual,
 								 subplan);
@@ -1282,10 +1346,13 @@ plan_append_aggs_with_gather(PlannerInfo *root,
 	int num_subplans = 0;
 	int subplan_no;
 	AttrNumber *orig_grpColIdx;
+	Oid		   *orig_grpOperators;
 	double      motion_cost_per_row;
 
 	orig_grpColIdx = context->grpColIdx;
+	orig_grpOperators = context->grpOperators;
 	context->grpColIdx = context->current_rollup->colIdx;
+	context->grpOperators = context->current_rollup->operators;
 	
 	/* Add an explicit sort if we couldn't make the path
 	 * come out the way the Agg/Group node needs it.
@@ -1409,6 +1476,7 @@ plan_append_aggs_with_gather(PlannerInfo *root,
 									  context->current_rollup->grpset_counts[group_no] : 0),
 									 context->numGroupCols,
 									 context->grpColIdx,
+									 context->grpOperators,
 									 copyObject(context->tlist),
 									 context->qual,
 									 subplan);
@@ -1464,6 +1532,7 @@ plan_append_aggs_with_rewrite(PlannerInfo *root,
 	double new_numGroups = 0;
 
 	context->grpColIdx = context->current_rollup->colIdx;
+	context->grpOperators = context->current_rollup->operators;
 
 	/*
 	 * Generate subplans for Agg nodes in each requested rollup level.
@@ -1614,6 +1683,7 @@ plan_append_aggs_with_rewrite(PlannerInfo *root,
  *    grouping: the grouping value for the Agg node.
  *    rollup_gs_times: the times that each aggregate result is outputed.
  *    groupColIdx: the grouping column.
+ *    groupOperators: the sort operators corresponding groupColIdx.
  *    current_tlist: the targetlist for the Agg node to be generated.
  *    current_qual: the qual for the Agg node.
  *    current_lefttree: the subplan for the Agg node.
@@ -1632,6 +1702,7 @@ add_first_agg(PlannerInfo *root,
 			  int rollup_gs_times,
 			  int numGroupCols,
 			  AttrNumber *groupColIdx,
+			  Oid *groupOperators,
 			  List *current_tlist,
 			  List *current_qual,
 			  Plan *current_lefttree)
@@ -1662,7 +1733,7 @@ add_first_agg(PlannerInfo *root,
 	 * The parameter numGroupCols should have excluded the GROUPING column.
 	 */
 	agg_node = (Plan *)make_agg(root, current_tlist, current_qual, context->aggstrategy, false,
-			numGroupCols, groupColIdx,
+			numGroupCols, groupColIdx, groupOperators,
 			lNumGroups, num_nullcols, input_grouping, grouping,
 			rollup_gs_times,
 			context->agg_counts->numAggs, context->agg_counts->transitionSpace,
@@ -1789,7 +1860,7 @@ add_grouping_groupid(List *tlist)
  * The input list of canonical grouping sets is sorted.
  */
 static List *
-convert_gs_to_rollups(AttrNumber *grpColIdx,
+convert_gs_to_rollups(AttrNumber *grpColIdx, Oid *grpOperators,
 					  int numGroupCols,
 					  CanonicalGroupingSets *canonical_grpsets,
 					  List *canonical_rollups,
@@ -1869,7 +1940,7 @@ convert_gs_to_rollups(AttrNumber *grpColIdx,
 	/*
 	 * XXX We use a simple greedy algorithm to make up the list
 	 * of rollups. We scan over all grouping sets several times
-	 * util there are no more grouping sets left. In each round,
+	 * until there are no more grouping sets left. In each round,
 	 * we pick up the maximum length of grouping sets for a
 	 * single rollup. The grouping sets have been picked in the
 	 * previous rounds are ignored in this round.
@@ -1888,6 +1959,7 @@ convert_gs_to_rollups(AttrNumber *grpColIdx,
 			palloc0(size_rollup);
 		rollup->numcols = canonical_grpsets->num_distcols;
 		rollup->colIdx = (AttrNumber *)palloc0(rollup->numcols * sizeof(AttrNumber));
+		rollup->operators = (Oid *)palloc0(rollup->numcols * sizeof(Oid));
 		rollup->grping_pos = (int *)palloc0(rollup->numcols * sizeof(int));
 		rollup->ngrpsets = 0;
 
@@ -1929,9 +2001,9 @@ convert_gs_to_rollups(AttrNumber *grpColIdx,
 
 			if (prev_grpsetno == -1)
 			{
-				append_colIdx(rollup->colIdx, rollup->numcols, colno,
+				append_colIdx(rollup->colIdx, rollup->operators, rollup->numcols, colno,
 							  rollup->grping_pos, canonical_grpsets->grpsets[grpsetno],
-							  grpColIdx, sortrefs_to_resnos, max_sortgroupref);
+							  grpColIdx, grpOperators, sortrefs_to_resnos, max_sortgroupref);
 				prev_grpsetno = grpsetno;
 				colno += bms_num_members(canonical_grpsets->grpsets[grpsetno]);
 			}
@@ -1941,8 +2013,8 @@ convert_gs_to_rollups(AttrNumber *grpColIdx,
 				Bitmapset *bms_diff =
 					bms_difference(canonical_grpsets->grpsets[grpsetno],
 								   canonical_grpsets->grpsets[prev_grpsetno]);
-				append_colIdx(rollup->colIdx, rollup->numcols, colno,
-							  rollup->grping_pos, bms_diff, grpColIdx,
+				append_colIdx(rollup->colIdx, rollup->operators, rollup->numcols, colno,
+							  rollup->grping_pos, bms_diff, grpColIdx, grpOperators,
 							  sortrefs_to_resnos, max_sortgroupref);
 				colno += bms_num_members(bms_diff);
 				prev_grpsetno = grpsetno;
@@ -1982,6 +2054,7 @@ convert_gs_to_rollups(AttrNumber *grpColIdx,
 				if (bms_is_member(grpcol_no, used_poses))
 					continue;
 				rollup->colIdx[colno] = grpColIdx[grpcol_no];
+				rollup->operators[colno] = grpOperators[grpcol_no];
 				rollup->grping_pos[colno] = rollup->numcols - 1 - grpcol_no;
 				colno++;
 
@@ -2005,8 +2078,8 @@ convert_gs_to_rollups(AttrNumber *grpColIdx,
  *   a given array, starting from colno.
  */
 static void
-append_colIdx(AttrNumber *colIdx, int numcols, int colno,
-			  int *grping_pos, Bitmapset *bms, AttrNumber *grpColIdx,
+append_colIdx(AttrNumber *colIdx, Oid *operators, int numcols, int colno,
+			  int *grping_pos, Bitmapset *bms, AttrNumber *grpColIdx, Oid *grpOperators,
 			  Index *sortrefs_to_resnos, int max_sortgroupref)
 {
 	int x;
@@ -2030,6 +2103,7 @@ append_colIdx(AttrNumber *colIdx, int numcols, int colno,
 		Assert(pos < numcols);
 
 		colIdx[colno] = sortrefs_to_resnos[x - 1];
+		operators[colno] = grpOperators[pos];
 		grping_pos[colno] = numcols - 1 - pos;
 		colno++;
 		x = bms_first_from(bms, x + 1);
@@ -2048,6 +2122,7 @@ plan_list_rollup_plans(PlannerInfo *root,
 	List *subplans = NIL;
 	List *orig_tlist = context->tlist;
 	AttrNumber *orig_grpColIdx = context->grpColIdx;
+	Oid *orig_grpOperators = context->grpOperators;
 	int orig_numGroupCols = context->numGroupCols;
 	double orig_numGroups = *context->p_dNumGroups;
 	double new_numGroups = 0;
@@ -2137,8 +2212,12 @@ plan_list_rollup_plans(PlannerInfo *root,
 		context->numGroupCols = orig_numGroupCols;
 		context->grpColIdx =
 			(AttrNumber *)palloc0(context->numGroupCols * sizeof(AttrNumber));
+		context->grpOperators =
+			(Oid *) palloc0(context->numGroupCols * sizeof(Oid));
 		memcpy(context->grpColIdx, orig_grpColIdx,
 			   context->numGroupCols * sizeof(AttrNumber));
+		memcpy(context->grpOperators, orig_grpOperators,
+			   context->numGroupCols * sizeof(Oid));
 		*context->p_dNumGroups = orig_numGroups;
 		root->parse = copyObject(orig_query);
 
@@ -2635,7 +2714,14 @@ char *canonicalRollupToString(CanonicalRollup *cr)
 		appendStringInfo(&str, "%d ", cr->colIdx[i]);
 	}
 	appendStringInfo(&str, "] ");
-	
+
+	appendStringInfo(&str, "operators=[");
+	for (i=0;i<cr->numcols;i++)
+	{
+		appendStringInfo(&str, "%u ", cr->operators[i]);
+	}
+	appendStringInfo(&str, "] ");
+
 	appendStringInfo(&str, "grping_pos=[");
 	for (i=0;i<cr->numcols;i++)
 	{

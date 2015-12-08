@@ -12,6 +12,7 @@
 extern "C" {
 #endif
 
+#include "catalog/pg_operator.h"
 #include "catalog/pg_proc.h"    /* CDB_PROC_TIDTOI8 */
 #include "catalog/pg_type.h"    /* INT8OID */
 #include "miscadmin.h"          /* work_mem */
@@ -23,6 +24,7 @@ extern "C" {
 #include "optimizer/planmain.h"
 
 #include "parser/parse_expr.h"	/* exprType() */
+#include "parser/parse_oper.h"
 
 #include "cdb/cdbdef.h"         /* CdbSwap() */
 #include "cdb/cdbllize.h"       /* makeFlow() */
@@ -1020,8 +1022,10 @@ static CdbVisitOpt
 cdbpath_dedup_fixup_unique(UniquePath *uniquePath, CdbpathDedupFixupContext *ctx)
 {
     Relids      downstream_relids = ctx->distinct_on_rowid_relids;
-    List       *ctid_exprs = NIL;
+    List       *ctid_exprs;
+	List	   *ctid_operators;
     List       *other_vars = NIL;
+    List       *other_operators = NIL;
     List       *partkey = NIL;
     List       *eq = NIL;
     ListCell   *cell;
@@ -1071,7 +1075,9 @@ cdbpath_dedup_fixup_unique(UniquePath *uniquePath, CdbpathDedupFixupContext *ctx
      * because those are usually more distinctive than the segment ids.
      * Also build repartitioning key if needed, using only the ctid columns.
      */
-    foreach(cell, ctx->rowid_vars)
+	ctid_exprs = NIL;
+	ctid_operators = NIL;
+	foreach(cell, ctx->rowid_vars)
     {
         Var        *var = (Var *)lfirst(cell);
 
@@ -1092,12 +1098,18 @@ cdbpath_dedup_fixup_unique(UniquePath *uniquePath, CdbpathDedupFixupContext *ctx
              * cast it to 64-bit integer for hashed duplicate removal.
              */
             if (uniquePath->umethod == UNIQUE_PATH_HASH)
+			{
                 ctid_exprs = lappend(ctid_exprs,
                                      makeFuncExpr(CDB_PROC_TIDTOI8, INT8OID,
                                                   list_make1(var),
                                                   COERCE_EXPLICIT_CAST));
+				ctid_operators = lappend_oid(ctid_operators, Int8EqualOperator);
+			}
             else
+			{
                 ctid_exprs = lappend(ctid_exprs, var);
+				ctid_operators = lappend_oid(ctid_operators, TIDEqualOperator);
+			}
 
             /* Add to repartitioning key.  Can use tid type without coercion. */
             if (uniquePath->must_repartition)
@@ -1113,11 +1125,23 @@ cdbpath_dedup_fixup_unique(UniquePath *uniquePath, CdbpathDedupFixupContext *ctx
 
         /* other uniqueifiers such as gp_segment_id */
         else
-            other_vars = lappend(other_vars, var);
+		{
+			Operator	optup;
+			Oid			eqop;
+
+			other_vars = lappend(other_vars, var);
+
+			optup = equality_oper(exprType((Node *) var), false);
+			eqop = oprid(optup);
+			ReleaseOperator(optup);
+
+			other_operators = lappend_oid(other_operators, eqop);
+		}
     }
 
     Assert(ctid_exprs);
     uniquePath->distinct_on_exprs = list_concat(ctid_exprs, other_vars);
+	uniquePath->distinct_on_eq_operators = list_concat(ctid_operators, other_operators);
 
     /* To repartition, add a MotionPath below this UniquePath. */
     if (uniquePath->must_repartition)

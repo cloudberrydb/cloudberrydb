@@ -164,6 +164,7 @@
 #define ALLOW_get_relation_part_constraints
 #define ALLOW_get_operator_type
 #define ALLOW_get_comparison_operator
+#define ALLOW_equality_oper_opid
 #define ALLOW_find_nodes
 #define ALLOW_char_to_parttype
 #define ALLOW_makeNullConst
@@ -1232,6 +1233,20 @@ gpdb::OidScCmp
 	GP_WRAP_START;
 	{
 		return get_comparison_operator(oidLeft, oidRight, (CmpType) ulCmpt);
+	}
+	GP_WRAP_END;
+	return InvalidOid;
+}
+
+Oid
+gpdb::OidEqualityOp
+	(
+	Oid oidType
+	)
+{
+	GP_WRAP_START;
+	{
+		return equality_oper_opid(oidType);
 	}
 	GP_WRAP_END;
 	return InvalidOid;

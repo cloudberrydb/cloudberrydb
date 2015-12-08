@@ -8,7 +8,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/executor/nodeUnique.c,v 1.54 2007/01/05 22:19:28 momjian Exp $
+ *	  $PostgreSQL: pgsql/src/backend/executor/nodeUnique.c,v 1.55 2007/01/10 18:06:02 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -161,9 +161,8 @@ ExecInitUnique(Unique *node, EState *estate, int eflags)
 	 * Precompute fmgr lookup data for inner loop
 	 */
 	uniquestate->eqfunctions =
-		execTuplesMatchPrepare(ExecGetResultType(&uniquestate->ps),
-							   node->numCols,
-							   node->uniqColIdx);
+		execTuplesMatchPrepare(node->numCols,
+							   node->uniqOperators);
 
 	initGpmonPktForUnique((Plan *)node, &uniquestate->ps.gpmon_pkt, estate);
 	

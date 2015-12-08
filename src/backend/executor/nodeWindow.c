@@ -533,10 +533,10 @@ static bool getCurrentValue(NTupleStoreAccessor * reader,
 				WindowStatePerLevel level_state,
 				FrameBufferEntry *entry_buf);
 static bool cmp_deformed_tuple(Datum *a, bool *a_nulls, Datum *b, bool *b_nulls,
-				   bool *asc_cols, int ncols,
+				   int ncols,
 				   FmgrInfo *ltfuncs, FmgrInfo *eqfuncs,
 				   MemoryContext evalContext, bool is_equal);
-static FmgrInfo *get_ltfuncs(TupleDesc tupdesc, int numCols, AttrNumber *matchColIdx);
+static FmgrInfo *get_ltfuncs(int numCols, Oid *ltOperators);
 static void advanceKeyLevelState(WindowState * wstate, int min_level);
 static void init_frames(WindowState * wstate);
 static void deform_window_tuple(TupleTableSlot * slot, int nattrs, AttrNumber *attnums,
@@ -1736,7 +1736,6 @@ hasTuplesInFrame(WindowStatePerLevel level_state,
 			is_less = cmp_deformed_tuple(entry->keys, entry->nulls,
 										 &trail_edge_value,
 										 &trail_edge_value_isnull,
-										 level_state->col_sort_asc,
 										 level_state->numSortCols,
 										 level_state->ltfunctions,
 										 level_state->eqfunctions,
@@ -2864,6 +2863,8 @@ initWindowStatePerLevel(WindowState * wstate, Window * node)
 		WindowKey  *key = (WindowKey *) lfirst(lc);
 		WindowFrame *frame;
 		WindowStatePerLevel lvl = &wstate->level_state[level_no++];
+		Oid		   *eqOperators;
+		int			i;
 
 		lvl->has_delay_bound = false;
 		lvl->has_only_trans_funcs = false;
@@ -2899,13 +2900,16 @@ initWindowStatePerLevel(WindowState * wstate, Window * node)
 			prev_key = key;
 
 		/* Find comparison functions */
-		lvl->eqfunctions = execTuplesMatchPrepare(desc,
-												  lvl->numSortCols,
-												  lvl->sortColIdx);
-
-		lvl->ltfunctions = get_ltfuncs(desc,
-									   lvl->numSortCols,
-									   lvl->sortColIdx);
+		eqOperators = (Oid *) palloc(lvl->numSortCols * sizeof(Oid));
+		for (i = 0; i < lvl->numSortCols; i++)
+		{
+			eqOperators[i] = get_equality_op_for_ordering_op(lvl->sortOperators[i]);
+		}
+		lvl->eqfunctions = execTuplesMatchPrepare(lvl->numSortCols,
+												  eqOperators);
+		lvl->ltfunctions = get_ltfuncs(lvl->numSortCols,
+									   lvl->sortOperators);
+		pfree(eqOperators);
 
 		/* Set the frame for this level */
 		lvl->is_rows = false;
@@ -3423,11 +3427,11 @@ invokeTrivialFuncs(WindowState * wstate, bool *found)
  * equal.
  *
  * If is_equal is false, this function return true if Datum a is ordered
- * before Datum b. The ASC/DESC ordering is defined by 'asc_cols'.
+ * before Datum b. For DESC ordering, 'ltFuncs' are actually > operators.
  */
 static bool
 cmp_deformed_tuple(Datum *a, bool *a_nulls, Datum *b, bool *b_nulls,
-				   bool *asc_cols, int ncols, FmgrInfo *ltfuncs,
+				   int ncols, FmgrInfo *ltfuncs,
 				 FmgrInfo *eqfuncs, MemoryContext evalContext, bool is_equal)
 {
 	MemoryContext oldContext;
@@ -3499,23 +3503,6 @@ cmp_deformed_tuple(Datum *a, bool *a_nulls, Datum *b, bool *b_nulls,
 
 		else if (isNull1)
 			continue;			/* both are null, treat as equal */
-
-		/*
-		 * As we're not doing equality tests, be aware of user specified
-		 * ordering. If the user specified DESC, swap the order of arguments
-		 * for this test.
-		 */
-		if (!is_equal)
-		{
-			if (!asc_cols[i])
-			{
-				Datum		tmp;
-
-				tmp = attr1;
-				attr1 = attr2;
-				attr2 = tmp;
-			}
-		}
 
 		/* Apply the type-specific function */
 		res = DatumGetBool(FunctionCall2(&funcs[i], attr1, attr2));
@@ -3713,7 +3700,6 @@ forwardEdgeForRange(WindowStatePerLevel level_state,
 		is_less = cmp_deformed_tuple(entry->keys, entry->nulls,
 									 &new_edge_value,
 									 &new_edge_value_isnull,
-									 level_state->col_sort_asc,
 									 level_state->numSortCols,
 									 level_state->ltfunctions,
 									 level_state->eqfunctions,
@@ -3726,7 +3712,6 @@ forwardEdgeForRange(WindowStatePerLevel level_state,
 				cmp_deformed_tuple(entry->keys, entry->nulls,
 								   &new_edge_value,
 								   &new_edge_value_isnull,
-								   level_state->col_sort_asc,
 								   level_state->numSortCols,
 								   level_state->ltfunctions,
 								   level_state->eqfunctions,
@@ -4108,7 +4093,6 @@ checkLastRowForEdge(WindowStatePerLevel level_state,
 
 	is_less = cmp_deformed_tuple(entry->keys, entry->nulls,
 								 &new_edge_value, &new_edge_value_isnull,
-								 level_state->col_sort_asc,
 								 level_state->numSortCols,
 								 level_state->ltfunctions,
 								 level_state->eqfunctions,
@@ -4121,7 +4105,6 @@ checkLastRowForEdge(WindowStatePerLevel level_state,
 		is_equal =
 			cmp_deformed_tuple(entry->keys, entry->nulls,
 							   &new_edge_value, &new_edge_value_isnull,
-							   level_state->col_sort_asc,
 							   level_state->numSortCols,
 							   level_state->ltfunctions,
 							   level_state->eqfunctions,
@@ -4217,7 +4200,6 @@ advanceEdgeForRange(WindowStatePerLevel level_state,
 			is_less = cmp_deformed_tuple(entry->keys, entry->nulls,
 										 &new_edge_value,
 										 &new_edge_value_isnull,
-										 level_state->col_sort_asc,
 										 level_state->numSortCols,
 										 level_state->ltfunctions,
 										 level_state->eqfunctions,
@@ -4228,7 +4210,6 @@ advanceEdgeForRange(WindowStatePerLevel level_state,
 				cmp_deformed_tuple(entry->keys, entry->nulls,
 								   &new_edge_value,
 								   &new_edge_value_isnull,
-								   level_state->col_sort_asc,
 								   level_state->numSortCols,
 								   level_state->ltfunctions,
 								   level_state->eqfunctions,
@@ -5853,22 +5834,17 @@ init_frames(WindowState * wstate)
 }
 
 static FmgrInfo *
-get_ltfuncs(TupleDesc tupdesc, int numCols, AttrNumber *matchColIdx)
+get_ltfuncs(int numCols, Oid *ltOperators)
 {
 	FmgrInfo   *ltfunctions = (FmgrInfo *)palloc(numCols * sizeof(FmgrInfo));
 	int			i;
 
 	for (i = 0; i < numCols; i++)
 	{
-		AttrNumber	att = matchColIdx[i];
-		Oid			typid = tupdesc->attrs[att - 1]->atttypid;
 		Oid			lt_function;
-		Operator	optup;
 
-		optup = ordering_oper(typid, false);
-		lt_function = oprfuncid(optup);
+		lt_function = get_opcode(ltOperators[i]);
 		fmgr_info(lt_function, &ltfunctions[i]);
-		ReleaseSysCache(optup);
 	}
 
 	return ltfunctions;
@@ -6187,9 +6163,8 @@ ExecInitWindow(Window * node, EState *estate, int eflags)
 	if (node->numPartCols > 0)
 	{
 		wstate->eqfunctions =
-			execTuplesMatchPrepare(desc,
-								   node->numPartCols,
-								   node->partColIdx);
+			execTuplesMatchPrepare(node->numPartCols,
+								   node->partOperators);
 	}
 	else
 		wstate->eqfunctions = NULL;

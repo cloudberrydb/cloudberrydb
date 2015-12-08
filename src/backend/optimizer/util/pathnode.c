@@ -9,7 +9,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/optimizer/util/pathnode.c,v 1.135 2007/01/05 22:19:32 momjian Exp $
+ *	  $PostgreSQL: pgsql/src/backend/optimizer/util/pathnode.c,v 1.136 2007/01/10 18:06:04 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -32,6 +32,7 @@
 #include "utils/lsyscache.h"
 #include "utils/memutils.h"
 #include "utils/selfuncs.h"
+#include "utils/lsyscache.h"
 #include "utils/syscache.h"
 
 #include "cdb/cdbpath.h"        /* cdb_create_motion_path() etc */
@@ -41,14 +42,16 @@ static bool     cdb_is_path_deduped(Path *path);
 static bool     cdb_subpath_tried_postjoin_dedup(Path *path, Relids subqrelids);
 static UniquePath  *create_limit1_path(PlannerInfo *root, Path *subpath);
 static UniquePath *create_unique_exprlist_path(PlannerInfo *root,
-							Path*subpath, List *distinct_on_exprs);
+							Path *subpath, List *distinct_on_exprs,
+							List *distinct_on_operators);
 static UniquePath *create_unique_rowid_path(PlannerInfo *root,
 						 Path *subpath, Relids dedup_relids);
 static UniquePath  *make_limit1_path(Path *subpath);
 static UniquePath  *make_unique_path(Path *subpath);
 static List *translate_sub_tlist(List *tlist, int relid);
-static bool query_is_distinct_for(Query *query, List *colnos);
-static bool hash_safe_tlist(List *tlist);
+static bool query_is_distinct_for(Query *query, List *colnos, List *opids);
+static Oid	distinct_col_search(int colno, List *colnos, List *opids);
+static bool hash_safe_operators(List *opids);
 
 static CdbVisitOpt pathnode_walk_list(List *pathlist,
 				   CdbVisitOpt (*walker)(Path *path, void *context),
@@ -517,8 +520,9 @@ cdb_set_cheapest_dedup(PlannerInfo *root, RelOptInfo *rel)
     	Assert(dedup->join_unique_ininfo->sub_targetlist);
     	/* Top off the subpath with DISTINCT ON the result columns. */
        	upath = create_unique_exprlist_path(root,
-    			dedup->cheapest_total_path,
-    			dedup->join_unique_ininfo->sub_targetlist);
+											dedup->cheapest_total_path,
+											dedup->join_unique_ininfo->sub_targetlist,
+											dedup->join_unique_ininfo->in_operators);
 
         /* Add to rel's main pathlist. */
         add_path(root, rel, (Path *)upath);
@@ -1656,6 +1660,7 @@ static UniquePath *
 create_unique_path(PlannerInfo *root,
                    Path        *subpath,
                    List        *distinct_on_exprs,
+				   List		   *distinct_on_operators,
                    Relids       distinct_on_rowid_relids)
 {
 	UniquePath *pathnode;
@@ -1671,8 +1676,9 @@ create_unique_path(PlannerInfo *root,
     /* Allocate and partially initialize a UniquePath node. */
     pathnode = make_unique_path(subpath);
 
-    /* Share caller's expr list and relids. */
+    /* Share caller's expr list and operators, and relids. */
     pathnode->distinct_on_exprs = distinct_on_exprs;
+	pathnode->distinct_on_eq_operators = distinct_on_operators;
     pathnode->distinct_on_rowid_relids = distinct_on_rowid_relids;
 
 	/*
@@ -1723,7 +1729,7 @@ create_unique_path(PlannerInfo *root,
 	pathnode->path.startup_cost = sort_path.startup_cost;
 	pathnode->path.total_cost = sort_path.total_cost;
 
-    if (distinct_on_exprs && hash_safe_tlist(distinct_on_exprs))
+    if (distinct_on_exprs && hash_safe_operators(distinct_on_operators))
         hashable = true;
     if (distinct_on_rowid_relids)
         hashable = true;
@@ -1806,14 +1812,15 @@ create_unique_path(PlannerInfo *root,
  * the real work for create_plan().
  */
 static UniquePath *
-create_unique_exprlist_path(PlannerInfo    *root,
-                            Path           *subpath,
-                            List           *distinct_on_exprs)
+create_unique_exprlist_path(PlannerInfo *root, Path *subpath,
+                            List *distinct_on_exprs,
+							List *distinct_on_operators)
 {
 	UniquePath *uniquepath;
     RelOptInfo *rel = subpath->parent;
 
     Assert(distinct_on_exprs);
+    Assert(distinct_on_operators);
 
 	/*
 	 * If the input is a subquery whose output must be unique already, then we
@@ -1833,12 +1840,13 @@ create_unique_exprlist_path(PlannerInfo    *root,
 		sub_tlist_colnos = translate_sub_tlist(distinct_on_exprs, rel->relid);
 
 		if (sub_tlist_colnos &&
-			query_is_distinct_for(rte->subquery, sub_tlist_colnos))
+			query_is_distinct_for(rte->subquery, sub_tlist_colnos, distinct_on_operators))
 		{
             uniquepath = make_unique_path(subpath);
 			uniquepath->umethod = UNIQUE_PATH_NOOP;
 			uniquepath->rows = cdbpath_rows(root, subpath);
             uniquepath->distinct_on_exprs = distinct_on_exprs;  /* share list */
+			uniquepath->distinct_on_eq_operators = distinct_on_operators;
 			return uniquepath;
 		}
 	}
@@ -1855,7 +1863,9 @@ create_unique_exprlist_path(PlannerInfo    *root,
     }
 
     /* Create the UniquePath node.  (Might return NULL if enable_sort = off.) */
-    uniquepath = create_unique_path(root, subpath, distinct_on_exprs, NULL);
+    uniquepath = create_unique_path(root, subpath,
+									distinct_on_exprs, distinct_on_operators,
+									NULL);
 
 	return uniquepath;
 }                               /* create_unique_exprlist_path */
@@ -1893,7 +1903,7 @@ create_unique_rowid_path(PlannerInfo *root,
     Assert(!bms_is_empty(distinct_relids));
 
     /* Create the UniquePath node.  (Might return NULL if enable_sort = off.) */
-    uniquepath = create_unique_path(root, subpath, NIL, distinct_relids);
+    uniquepath = create_unique_path(root, subpath, NIL, NIL, distinct_relids);
     if (!uniquepath)
         return NULL;
 
@@ -2009,6 +2019,7 @@ make_unique_path(Path *subpath)
     /* Initialize added UniquePath fields. */
     pathnode->subpath = subpath;
     pathnode->distinct_on_exprs = NIL;
+    pathnode->distinct_on_eq_operators = NIL;
     pathnode->distinct_on_rowid_relids = NULL;
     pathnode->must_repartition = false;
 
@@ -2055,16 +2066,25 @@ translate_sub_tlist(List *tlist, int relid)
  *
  * colnos is an integer list of output column numbers (resno's).  We are
  * interested in whether rows consisting of just these columns are certain
- * to be distinct.
+ * to be distinct.  "Distinctness" is defined according to whether the
+ * corresponding upper-level equality operators listed in opids would think
+ * the values are distinct.  (Note: the opids entries could be cross-type
+ * operators, and thus not exactly the equality operators that the subquery
+ * would use itself.  We assume that the subquery is compatible if these
+ * operators appear in the same btree opfamily as the ones the subquery uses.)
  */
 static bool
-query_is_distinct_for(Query *query, List *colnos)
+query_is_distinct_for(Query *query, List *colnos, List *opids)
 {
 	ListCell   *l;
+	Oid			opid;
+
+	Assert(list_length(colnos) == list_length(opids));
 
 	/*
 	 * DISTINCT (including DISTINCT ON) guarantees uniqueness if all the
-	 * columns in the DISTINCT clause appear in colnos.
+	 * columns in the DISTINCT clause appear in colnos and operator
+	 * semantics match.
 	 */
 	if (query->distinctClause)
 	{
@@ -2074,7 +2094,9 @@ query_is_distinct_for(Query *query, List *colnos)
 			TargetEntry *tle = get_sortgroupclause_tle(scl,
 													   query->targetList);
 
-			if (!list_member_int(colnos, tle->resno))
+			opid = distinct_col_search(tle->resno, colnos, opids);
+			if (!OidIsValid(opid) ||
+				!ops_in_same_btree_opfamily(opid, scl->sortop))
 				break;			/* exit early if no match */
 		}
 		if (l == NULL)			/* had matches for all? */
@@ -2083,18 +2105,24 @@ query_is_distinct_for(Query *query, List *colnos)
 
 	/*
 	 * Similarly, GROUP BY guarantees uniqueness if all the grouped columns
-	 * appear in colnos.
+	 * appear in colnos and operator semantics match.
 	 */
 	if (query->groupClause)
 	{
-		List *grouptles =
-			get_sortgroupclauses_tles(query->groupClause, query->targetList);
-		
-		foreach(l, grouptles)
-		{
-			TargetEntry *tle = (TargetEntry *)lfirst(l);
+		List *grouptles;
+		List *groupops;
+		ListCell *l_groupop;
 
-			if (!list_member_int(colnos, tle->resno))
+		get_sortgroupclauses_tles(query->groupClause, query->targetList,
+								  &grouptles, &groupops);
+
+		forboth(l, grouptles, l_groupop, groupops)
+		{
+			TargetEntry *tle = (TargetEntry *) lfirst(l);
+
+			opid = distinct_col_search(tle->resno, colnos, opids);
+			if (!OidIsValid(opid) ||
+				!ops_in_same_btree_opfamily(opid, lfirst_oid(l_groupop)))
 				break;			/* exit early if no match */
 		}
 		if (l == NULL)			/* had matches for all? */
@@ -2104,7 +2132,7 @@ query_is_distinct_for(Query *query, List *colnos)
 	{
 		/*
 		 * If we have no GROUP BY, but do have aggregates or HAVING, then the
-		 * result is at most one row so it's surely unique.
+		 * result is at most one row so it's surely unique, for any operators.
 		 */
 		if (query->hasAggs || query->havingQual)
 			return true;
@@ -2112,7 +2140,13 @@ query_is_distinct_for(Query *query, List *colnos)
 
 	/*
 	 * UNION, INTERSECT, EXCEPT guarantee uniqueness of the whole output row,
-	 * except with ALL
+	 * except with ALL.
+	 *
+	 * XXX this code knows that prepunion.c will adopt the default ordering
+	 * operator for each column datatype as the sortop.  It'd probably be
+	 * better if these operators were chosen at parse time and stored into
+	 * the parsetree, instead of leaving bits of the planner to decide
+	 * semantics.
 	 */
 	if (query->setOperations)
 	{
@@ -2128,8 +2162,13 @@ query_is_distinct_for(Query *query, List *colnos)
 			{
 				TargetEntry *tle = (TargetEntry *) lfirst(l);
 
-				if (!tle->resjunk &&
-					!list_member_int(colnos, tle->resno))
+				if (tle->resjunk)
+					continue;	/* ignore resjunk columns */
+
+				opid = distinct_col_search(tle->resno, colnos, opids);
+				if (!OidIsValid(opid) ||
+					!ops_in_same_btree_opfamily(opid,
+												ordering_oper_opid(exprType((Node *) tle->expr))))
 					break;		/* exit early if no match */
 			}
 			if (l == NULL)		/* had matches for all? */
@@ -2146,31 +2185,46 @@ query_is_distinct_for(Query *query, List *colnos)
 }
 
 /*
- * hash_safe_tlist - can datatypes of given tlist be hashed?
+ * distinct_col_search - subroutine for query_is_distinct_for
  *
- * We assume hashed aggregation will work if the datatype's equality operator
- * is marked hashjoinable.
+ * If colno is in colnos, return the corresponding element of opids,
+ * else return InvalidOid.  (We expect colnos does not contain duplicates,
+ * so the result is well-defined.)
+ */
+static Oid
+distinct_col_search(int colno, List *colnos, List *opids)
+{
+	ListCell   *lc1,
+			   *lc2;
+
+	forboth(lc1, colnos, lc2, opids)
+	{
+		if (colno == lfirst_int(lc1))
+			return lfirst_oid(lc2);
+	}
+	return InvalidOid;
+}
+
+/*
+ * hash_safe_operators - can all the specified IN operators be hashed?
  *
- * XXX this probably should be somewhere else.	See also hash_safe_grouping
- * in plan/planner.c.
+ * We assume hashed aggregation will work if each IN operator is marked
+ * hashjoinable.  If the IN operators are cross-type, this could conceivably
+ * fail: the aggregation will need a hashable equality operator for the RHS
+ * datatype --- but it's pretty hard to conceive of a hash opclass that has
+ * cross-type hashing without support for hashing the individual types, so
+ * we don't expend cycles here to support the case.  We could check
+ * get_compatible_hash_operator() instead of just op_hashjoinable(), but the
+ * former is a significantly more expensive test.
  */
 static bool
-hash_safe_tlist(List *tlist)
+hash_safe_operators(List *opids)
 {
-	ListCell   *tl;
+	ListCell   *lc;
 
-	foreach(tl, tlist)
+	foreach(lc, opids)
 	{
-		Node	   *expr = (Node *) lfirst(tl);
-		Operator	optup;
-		bool		oprcanhash;
-
-		optup = equality_oper(exprType(expr), true);
-		if (!optup)
-			return false;
-		oprcanhash = ((Form_pg_operator) GETSTRUCT(optup))->oprcanhash;
-		ReleaseOperator(optup);
-		if (!oprcanhash)
+		if (!op_hashjoinable(lfirst_oid(lc)))
 			return false;
 	}
 	return true;
@@ -2516,6 +2570,7 @@ create_nestloop_path(PlannerInfo *root,
  *		ordering for each merge clause
  * 'mergestrategies' are the btree operator strategies identifying the merge
  *		ordering for each merge clause
+ * 'mergenullsfirst' are the nulls first/last flags for each merge clause
  * 'outersortkeys' are the sort varkeys for the outer relation
  *      or NIL to use existing ordering
  * 'innersortkeys' are the sort varkeys for the inner relation
@@ -2531,8 +2586,9 @@ create_mergejoin_path(PlannerInfo *root,
 					  List *pathkeys,
 					  List *mergeclauses,
                       List *allmergeclauses,    /*CDB*/
-					  List *mergefamilies,
-					  List *mergestrategies,
+					  Oid *mergefamilies,
+					  int *mergestrategies,
+					  bool *mergenullsfirst,
 					  List *outersortkeys,
 					  List *innersortkeys)
 {
@@ -2662,8 +2718,9 @@ create_mergejoin_path(PlannerInfo *root,
 	pathnode->jpath.path.rescannable = outer_path->rescannable && inner_path->rescannable;
 
 	pathnode->path_mergeclauses = mergeclauses;
-	pathnode->path_mergefamilies = mergefamilies;
-	pathnode->path_mergestrategies = mergestrategies;
+	pathnode->path_mergeFamilies = mergefamilies;
+	pathnode->path_mergeStrategies = mergestrategies;
+	pathnode->path_mergeNullsFirst = mergenullsfirst;
 	pathnode->outersortkeys = outersortkeys;
 	pathnode->innersortkeys = innersortkeys;
 

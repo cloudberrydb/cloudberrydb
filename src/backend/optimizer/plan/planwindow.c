@@ -93,6 +93,7 @@ typedef struct WindowInfo
 	bool	needauxcount;
 	
 	AttrNumber *partkey_attrs;
+	Oid		   *partkey_operators;
 	List	   *key_list;
 	
 	/* coplan assembly */
@@ -1530,6 +1531,7 @@ set_window_keys(WindowContext *context, int wind_index)
 	/* results  */
 	int			partkey_len = 0;
 	AttrNumber *partkey_attrs = NULL;
+	Oid		   *partkey_operators = NULL;
 	List	   *window_keys = NIL;
 	
 	Assert( 0 <= wind_index && wind_index < context->nwindowinfos );
@@ -1559,8 +1561,15 @@ set_window_keys(WindowContext *context, int wind_index)
 	{
 		partkey_len = winfo->partkey_len;
 		partkey_attrs = (AttrNumber *)palloc(partkey_len*sizeof(AttrNumber));
+		partkey_operators = (Oid *) palloc(partkey_len * sizeof(Oid));
 		for ( i = 0; i < partkey_len; i++ )
+		{
 			partkey_attrs[i] = sortattrs[i];
+			partkey_operators[i] = get_equality_op_for_ordering_op(sortops[i]);
+			if (!OidIsValid(partkey_operators[i]))		/* shouldn't happen */
+				elog(ERROR, "could not find equality operator for ordering operator %u",
+					 sortops[i]);
+		}
 	}
 	
 	/* Careful.  Within sort key, parition key may overlap order keys. */
@@ -1630,6 +1639,7 @@ set_window_keys(WindowContext *context, int wind_index)
 	}
 	
 	winfo->partkey_attrs = partkey_attrs;
+	winfo->partkey_operators = partkey_operators;
 	winfo->key_list = window_keys;
 }
 
@@ -2012,7 +2022,7 @@ static Plan *plan_trivial_window_query(PlannerInfo *root, WindowContext *context
 	
 	/* Add the single Window node. */
 	result_plan = (Plan*) make_window(root, context->upper_tlist, 
-									  winfo->partkey_len, winfo->partkey_attrs,
+									  winfo->partkey_len, winfo->partkey_attrs, winfo->partkey_operators,
 									  winfo->key_list, /* XXX copy? */
 									  result_plan);
 	
@@ -2325,7 +2335,7 @@ static Plan *plan_sequential_stage(PlannerInfo *root,
 		AttrNumber *grpcolidx = NULL;
 		List *share_partners = NIL;
 		List *tlist = NIL;
-			
+
 		/* elog(NOTICE, "Fn plan_sequential_stage(): Preparing for Agg."); */
 
 		/* Since we'll be encountering some Agg targets.  Prepare for that 
@@ -2413,6 +2423,7 @@ static Plan *plan_sequential_stage(PlannerInfo *root,
 					strategy, false,
 					winfo->partkey_len, 
 					grpcolidx,
+					winfo->partkey_operators,
 				    num_groups,
 				    0, /* num_nullcols */
 				    0, /* input_grouping */
@@ -2422,7 +2433,7 @@ static Plan *plan_sequential_stage(PlannerInfo *root,
 					0, /* transSpace */
 					agg_plan /* now just the shared input */
 					);
-		
+
 		agg_plan->flow = pull_up_Flow(agg_plan, agg_plan->lefttree, true);
 		
 		/* Later we'll package this Agg plan as the second sub-query RTE
@@ -2464,22 +2475,29 @@ static Plan *plan_sequential_stage(PlannerInfo *root,
 		/* Initialize a Window node for this WindowInfo. 
 		 */
 		{
-			size_t sz = winfo->partkey_len * sizeof(AttrNumber);
 			AttrNumber *partkey = NULL;
+			Oid		   *partkey_operators = NULL;
 			
 			/* elog(NOTICE, "Fn plan_sequential_stage(): Adding Window node."); */
 
 			if ( winfo->partkey_len > 0 )
 			{
-				partkey = (AttrNumber*)palloc(sz);
+				size_t sz;
+
+				sz = winfo->partkey_len * sizeof(AttrNumber);
+				partkey = (AttrNumber *) palloc(sz);
 				memcpy(partkey, winfo->partkey_attrs, sz);
+
+				sz = winfo->partkey_len * sizeof(Oid);
+				partkey_operators = (Oid *) palloc(sz);
+				memcpy(partkey_operators, winfo->partkey_operators, sz);
 			}
-			
+
 			window_plan = (Plan *)make_window(
 							root,
 							copyObject(window_plan->targetlist),
 							winfo->partkey_len,
-							partkey,
+							partkey, partkey_operators,
 							(List*) translate_upper_vars_sequential((Node*)winfo->key_list, context), /* XXX mutate windowKeys to translate any Var nodes in frame vals. */
 							window_plan);
 							
@@ -2632,8 +2650,9 @@ static Plan *plan_sequential_stage(PlannerInfo *root,
 	if ( hasagg )
 	{
 		Plan *join_plan = NULL;
-		List	   *mergefamilies;
-		List	   *mergestrategies;
+		Oid		   *mergefamilies;
+		int		   *mergestrategies;
+		bool	   *mergenullsfirst;
 		
 		agg_plan = add_join_to_wrapper(root, agg_plan, agg_subquery, join_tlist,
 									   winfo->partkey_len,
@@ -2674,8 +2693,8 @@ static Plan *plan_sequential_stage(PlannerInfo *root,
 				mergeclauses = lappend(mergeclauses, mc);
 			}
 
-			build_mergejoin_strat_lists(mergeclauses, &mergefamilies,
-										&mergestrategies);
+			build_mergejoin_strat_arrays(mergeclauses, &mergefamilies,
+										 &mergestrategies, &mergenullsfirst);
 
 			mergeclauses = get_actual_clauses(mergeclauses);
 			join_plan = (Plan *) make_mergejoin(join_tlist,
@@ -2683,6 +2702,7 @@ static Plan *plan_sequential_stage(PlannerInfo *root,
 												mergeclauses,
 												mergefamilies,
 												mergestrategies,
+												mergenullsfirst,
 												agg_plan, window_plan,
 												JOIN_INNER);
 			((MergeJoin*)join_plan)->unique_outer = true;
@@ -2768,9 +2788,9 @@ static Plan *plan_parallel_window_query(PlannerInfo *root, WindowContext *contex
 		context->keyed_lower_tlist = lower_tlist;
 		
 		subplan = (Plan*) make_window(root, lower_tlist, 
-										  0, NULL, /* No paritioning */
-										  NIL, /* No ordering */
-										  subplan);
+									  0, NULL, NULL, /* No partitioning */
+									  NIL, /* No ordering */
+									  subplan);
 		if (!subplan->flow)
 			subplan->flow = pull_up_Flow(subplan, 
 											 subplan->lefttree, 
@@ -3249,9 +3269,9 @@ static RangeTblEntry *rte_for_coplan(
 		case COPLAN_WINDOW:
 			new_plan = (Plan*) 
 				make_window(root, coplan->targetlist, 
-						winfo->partkey_len, winfo->partkey_attrs,
-						winfo->key_list, /* XXX copy? */
-						new_plan);
+							winfo->partkey_len, winfo->partkey_attrs, winfo->partkey_operators,
+							winfo->key_list, /* XXX copy? */
+							new_plan);
 		break;
 	case COPLAN_AGG:
 		if ( coplan->partkey_len > 0 )
@@ -3261,11 +3281,17 @@ static RangeTblEntry *rte_for_coplan(
 			/* TODO Fix this cheesy estimate. */
 			double d = new_plan->plan_rows / 100.0;
 			long num_groups = (d < 0)? 0: ( d > LONG_MAX )? LONG_MAX: (long)d;
-			
+			int			i;
+			Oid		   *eqOperators;
+
+			eqOperators = (Oid *) palloc(winfo->partkey_len * sizeof(Oid));
+			for (i = 0; i < winfo->partkey_len; i++)
+				eqOperators[i] = get_equality_op_for_ordering_op(winfo->partkey_operators[i]);
+
 			new_plan = (Plan*)
 				make_agg(root, coplan->targetlist, NULL,
 						 AGG_SORTED, false,
-						 winfo->partkey_len, winfo->partkey_attrs,
+						 winfo->partkey_len, winfo->partkey_attrs, eqOperators,
 						 num_groups,
 						 0, /* num_nullcols */
 						 0, /* input_grouping */
@@ -3280,7 +3306,7 @@ static RangeTblEntry *rte_for_coplan(
 			new_plan = (Plan*)
 				make_agg(root, coplan->targetlist, NULL,
 						 AGG_PLAIN, false,
-						 0, NULL,
+						 0, NULL, NULL,
 						 1, /* number of groups */
 						 0, /* num_nullcols */
 						 0, /* input_grouping */

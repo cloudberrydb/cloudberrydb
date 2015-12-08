@@ -585,6 +585,7 @@ plan_tree_mutator(Node *node,
 				PLANMUTATE(newwindow, window);
 				
 				COPYARRAY(newwindow, window, numPartCols, partColIdx);
+				COPYARRAY(newwindow, window, numPartCols, partOperators);
 				MUTATE(newwindow->windowKeys, window->windowKeys, List *);
 				
 				return (Node *) newwindow;

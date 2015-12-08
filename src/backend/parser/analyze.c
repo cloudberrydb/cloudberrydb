@@ -9146,11 +9146,14 @@ transformGroupedWindows(Query *qry)
 static void
 init_grouped_window_context(grouped_window_ctx *ctx, Query *qry)
 {
-	List *grp_tles = NIL;
+	List *grp_tles;
+	List *grp_sortops;
 	ListCell *lc = NULL;
 	Index maxsgr = 0;
 
-	grp_tles = get_sortgroupclauses_tles(qry->groupClause, qry->targetList);
+	get_sortgroupclauses_tles(qry->groupClause, qry->targetList,
+							  &grp_tles, &grp_sortops);
+	list_free(grp_sortops);
 	maxsgr = maxSortGroupRef(grp_tles, true);
 
 	ctx->subtlist = NIL;

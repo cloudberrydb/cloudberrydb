@@ -9,7 +9,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/nodes/outfuncs.c,v 1.292 2007/01/09 02:14:12 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/nodes/outfuncs.c,v 1.293 2007/01/10 18:06:03 tgl Exp $
  *
  * NOTES
  *	  Every node type that can appear in stored rules' parsetrees *must*
@@ -720,18 +720,36 @@ _outNestLoop(StringInfo str, NestLoop *node)
 	WRITE_BOOL_FIELD(singleton_outer); /*CDB-OLAP*/
 }
 
+#ifndef COMPILING_BINARY_FUNCS
 static void
 _outMergeJoin(StringInfo str, MergeJoin *node)
 {
+	int			numCols;
+	int			i;
+
 	WRITE_NODE_TYPE("MERGEJOIN");
 
 	_outJoinPlanInfo(str, (Join *) node);
 
 	WRITE_NODE_FIELD(mergeclauses);
-	WRITE_NODE_FIELD(mergefamilies);
-	WRITE_NODE_FIELD(mergestrategies);
+
+	numCols = list_length(node->mergeclauses);
+
+	appendStringInfo(str, " :mergeFamilies");
+	for (i = 0; i < numCols; i++)
+		appendStringInfo(str, " %u", node->mergeFamilies[i]);
+
+	appendStringInfo(str, " :mergeStrategies");
+	for (i = 0; i < numCols; i++)
+		appendStringInfo(str, " %d", node->mergeStrategies[i]);
+
+	appendStringInfo(str, " :mergeNullsFirst");
+	for (i = 0; i < numCols; i++)
+		appendStringInfo(str, " %d", (int) node->mergeNullsFirst[i]);
+
 	WRITE_BOOL_FIELD(unique_outer);
 }
+#endif /* COMPILING_BINARY_FUNCS */
 
 static void
 _outHashJoin(StringInfo str, HashJoin *node)
@@ -760,6 +778,10 @@ _outAgg(StringInfo str, Agg *node)
 	appendStringInfoLiteral(str, " :grpColIdx");
 	for (i = 0; i < node->numCols; i++)
 		appendStringInfo(str, " %d", node->grpColIdx[i]);
+
+	appendStringInfo(str, " :grpOperators");
+	for (i = 0; i < node->numCols; i++)
+		appendStringInfo(str, " %u", node->grpOperators[i]);
 
 	if (print_variable_fields)
 	{
@@ -812,6 +834,10 @@ _outWindow(StringInfo str, Window *node)
 	appendStringInfoLiteral(str, " :partColIdx");
 	for (i = 0; i < node->numPartCols; i++)
 		appendStringInfo(str, " %d", node->partColIdx[i]);
+
+	appendStringInfoLiteral(str, " :partOperators");
+	for (i = 0; i < node->numPartCols; i++)
+		appendStringInfo(str, " %u", node->partOperators[i]);
 
 	WRITE_NODE_FIELD(windowKeys);
 }
@@ -905,6 +931,10 @@ _outUnique(StringInfo str, Unique *node)
 	appendStringInfoLiteral(str, " :uniqColIdx");
 	for (i = 0; i < node->numCols; i++)
 		appendStringInfo(str, " %d", node->uniqColIdx[i]);
+
+	appendStringInfo(str, " :uniqOperators");
+	for (i = 0; i < node->numCols; i++)
+		appendStringInfo(str, " %u", node->uniqOperators[i]);
 }
 #endif /* COMPILING_BINARY_FUNCS */
 
@@ -924,6 +954,10 @@ _outSetOp(StringInfo str, SetOp *node)
 	appendStringInfoLiteral(str, " :dupColIdx");
 	for (i = 0; i < node->numCols; i++)
 		appendStringInfo(str, " %d", node->dupColIdx[i]);
+
+	appendStringInfo(str, " :dupOperators");
+	for (i = 0; i < node->numCols; i++)
+		appendStringInfo(str, " %d", node->dupOperators[i]);
 
 	WRITE_INT_FIELD(flagColIdx);
 }
@@ -1887,13 +1921,29 @@ _outNestPath(StringInfo str, NestPath *node)
 static void
 _outMergePath(StringInfo str, MergePath *node)
 {
+	int			numCols;
+	int			i;
+
 	WRITE_NODE_TYPE("MERGEPATH");
 
 	_outJoinPathInfo(str, (JoinPath *) node);
 
 	WRITE_NODE_FIELD(path_mergeclauses);
-	WRITE_NODE_FIELD(path_mergefamilies);
-	WRITE_NODE_FIELD(path_mergestrategies);
+
+	numCols = list_length(node->path_mergeclauses);
+
+	appendStringInfo(str, " :path_mergeFamilies");
+	for (i = 0; i < numCols; i++)
+		appendStringInfo(str, " %u", node->path_mergeFamilies[i]);
+
+	appendStringInfo(str, " :path_mergeStrategies");
+	for (i = 0; i < numCols; i++)
+		appendStringInfo(str, " %d", node->path_mergeStrategies[i]);
+
+	appendStringInfo(str, " :path_mergeNullsFirst");
+	for (i = 0; i < numCols; i++)
+		appendStringInfo(str, " %d", (int) node->path_mergeNullsFirst[i]);
+
 	WRITE_NODE_FIELD(outersortkeys);
 	WRITE_NODE_FIELD(innersortkeys);
 }
@@ -2156,6 +2206,7 @@ _outInClauseInfo(StringInfo str, InClauseInfo *node)
 	WRITE_BITMAPSET_FIELD(righthand);
     WRITE_BOOL_FIELD(try_join_unique);                  /*CDB*/
 	WRITE_NODE_FIELD(sub_targetlist);
+	WRITE_NODE_FIELD(in_operators);
 }
 
 static void

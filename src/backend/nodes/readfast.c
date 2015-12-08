@@ -135,25 +135,36 @@
 
 /* Read an integer array  */
 #define READ_INT_ARRAY(fldname, count, Type) \
-	if ( local_node->count > 0 ) \
+	if ( count > 0 ) \
 	{ \
 		int i; \
-		local_node->fldname = (Type *)palloc(local_node->count * sizeof(Type)); \
-		for(i=0; i<local_node->count; i++) \
+		local_node->fldname = (Type *)palloc(count * sizeof(Type)); \
+		for(i = 0; i < count; i++) \
 		{ \
 			memcpy(&local_node->fldname[i], read_str_ptr, sizeof(Type)); read_str_ptr+=sizeof(Type); \
 		} \
 	}
 
-
+/* Read a bool array  */
+#define READ_BOOL_ARRAY(fldname, count) \
+	if ( count > 0 ) \
+	{ \
+		int i; \
+		local_node->fldname = (bool *) palloc(count * sizeof(bool)); \
+		for(i = 0; i < count; i++) \
+		{ \
+			local_node->fldname[i] = *read_str_ptr ? true : false; \
+			read_str_ptr++; \
+		} \
+	}
 
 /* Read an Trasnaction ID array  */
 #define READ_XID_ARRAY(fldname, count) \
-	if ( local_node->count > 0 ) \
+	if ( count > 0 ) \
 	{ \
 		int i; \
-		local_node->fldname = (TransactionId *)palloc(local_node->count * sizeof(TransactionId)); \
-		for(i=0; i<local_node->count; i++) \
+		local_node->fldname = (TransactionId *)palloc(count * sizeof(TransactionId)); \
+		for(i = 0; i < count; i++) \
 		{ \
 			memcpy(&local_node->fldname[i], read_str_ptr, sizeof(TransactionId)); read_str_ptr+=sizeof(TransactionId); \
 		} \
@@ -163,11 +174,11 @@
 
 /* Read an Oid array  */
 #define READ_OID_ARRAY(fldname, count) \
-	if ( local_node->count > 0 ) \
+	if ( count > 0 ) \
 	{ \
 		int i; \
-		local_node->fldname = (Oid *)palloc(local_node->count * sizeof(Oid)); \
-		for(i=0; i<local_node->count; i++) \
+		local_node->fldname = (Oid *)palloc(count * sizeof(Oid)); \
+		for(i = 0; i < count; i++) \
 		{ \
 			memcpy(&local_node->fldname[i], read_str_ptr, sizeof(Oid)); read_str_ptr+=sizeof(Oid); \
 		} \
@@ -1240,8 +1251,8 @@ _readPartition(void)
 	READ_INT_FIELD(parlevel);
 	READ_BOOL_FIELD(paristemplate);
 	READ_BINARY_FIELD(parnatts, sizeof(int2));
-	READ_INT_ARRAY(paratts, parnatts, int2);
-	READ_OID_ARRAY(parclass, parnatts);
+	READ_INT_ARRAY(paratts, local_node->parnatts, int2);
+	READ_OID_ARRAY(parclass, local_node->parnatts);
 
 	READ_DONE();
 }
@@ -1672,7 +1683,7 @@ readLogicalIndexInfo(LogicalIndexInfo *local_node)
 {
 	READ_OID_FIELD(logicalIndexOid);
 	READ_INT_FIELD(nColumns);
-	READ_INT_ARRAY(indexKeys, nColumns, AttrNumber);
+	READ_INT_ARRAY(indexKeys, local_node->nColumns, AttrNumber);
 	READ_NODE_FIELD(indPred);
 	READ_NODE_FIELD(indExprs);
 	READ_BOOL_FIELD(indIsUnique);
@@ -1865,13 +1876,16 @@ _readNestLoop(void)
 static MergeJoin *
 _readMergeJoin(void)
 {
+	int		numCols;
 	READ_LOCALS(MergeJoin);
 
 	readJoinInfo((Join *)local_node);
 
 	READ_NODE_FIELD(mergeclauses);
-	READ_NODE_FIELD(mergefamilies);
-	READ_NODE_FIELD(mergestrategies);
+	numCols = list_length(local_node->mergeclauses);
+	READ_OID_ARRAY(mergeFamilies, numCols);
+	READ_INT_ARRAY(mergeStrategies, numCols, int);
+	READ_BOOL_ARRAY(mergeNullsFirst, numCols);
 	READ_BOOL_FIELD(unique_outer);
 
 	READ_DONE();
@@ -1905,7 +1919,8 @@ _readAgg(void)
 
 	READ_ENUM_FIELD(aggstrategy, AggStrategy);
 	READ_INT_FIELD(numCols);
-	READ_INT_ARRAY(grpColIdx, numCols, AttrNumber);
+	READ_INT_ARRAY(grpColIdx, local_node->numCols, AttrNumber);
+	READ_OID_ARRAY(grpOperators, local_node->numCols);
 	READ_LONG_FIELD(numGroups);
 	READ_INT_FIELD(transSpace);
 	READ_INT_FIELD(numNullCols);
@@ -1928,8 +1943,8 @@ _readWindowKey(void)
 	READ_LOCALS(WindowKey);
 
 	READ_INT_FIELD(numSortCols);
-	READ_INT_ARRAY(sortColIdx, numSortCols, AttrNumber);
-	READ_OID_ARRAY(sortOperators, numSortCols);
+	READ_INT_ARRAY(sortColIdx, local_node->numSortCols, AttrNumber);
+	READ_OID_ARRAY(sortOperators, local_node->numSortCols);
 	READ_NODE_FIELD(frame);
 
 	READ_DONE();
@@ -1946,7 +1961,8 @@ _readWindow(void)
 	readPlanInfo((Plan *)local_node);
 
 	READ_INT_FIELD(numPartCols);
-	READ_INT_ARRAY(partColIdx, numPartCols, AttrNumber);
+	READ_INT_ARRAY(partColIdx, local_node->numPartCols, AttrNumber);
+	READ_OID_ARRAY(partOperators, local_node->numPartCols);
 	READ_NODE_FIELD(windowKeys);
 
 	READ_DONE();
@@ -2016,11 +2032,9 @@ _readSort(void)
 	readPlanInfo((Plan *)local_node);
 
 	READ_INT_FIELD(numCols);
-
-	READ_INT_ARRAY(sortColIdx, numCols, AttrNumber);
-
-	READ_OID_ARRAY(sortOperators, numCols);
-	READ_INT_ARRAY(nullsFirst, numCols, bool);
+	READ_INT_ARRAY(sortColIdx, local_node->numCols, AttrNumber);
+	READ_OID_ARRAY(sortOperators, local_node->numCols);
+	READ_BOOL_ARRAY(nullsFirst, local_node->numCols);
 
     /* CDB */
 	READ_NODE_FIELD(limitOffset);
@@ -2047,8 +2061,8 @@ _readUnique(void)
 	readPlanInfo((Plan *)local_node);
 
 	READ_INT_FIELD(numCols);
-
-	READ_INT_ARRAY(uniqColIdx, numCols, AttrNumber);
+	READ_INT_ARRAY(uniqColIdx, local_node->numCols, AttrNumber);
+	READ_OID_ARRAY(uniqOperators, local_node->numCols);
 
 	READ_DONE();
 }
@@ -2065,8 +2079,8 @@ _readSetOp(void)
 
 	READ_ENUM_FIELD(cmd, SetOpCmd);
 	READ_INT_FIELD(numCols);
-
-	READ_INT_ARRAY(dupColIdx, numCols, AttrNumber);
+	READ_INT_ARRAY(dupColIdx, local_node->numCols, AttrNumber);
+	READ_OID_ARRAY(dupOperators, local_node->numCols);
 
 	READ_INT_FIELD(flagColIdx);
 
@@ -2118,9 +2132,9 @@ _readFlow(void)
 	READ_INT_FIELD(segindex);
 
 	READ_INT_FIELD(numSortCols);
-	READ_INT_ARRAY(sortColIdx, numSortCols, AttrNumber);
-	READ_OID_ARRAY(sortOperators, numSortCols);
-	READ_INT_ARRAY(nullsFirst, numSortCols, bool);
+	READ_INT_ARRAY(sortColIdx, local_node->numSortCols, AttrNumber);
+	READ_OID_ARRAY(sortOperators, local_node->numSortCols);
+	READ_BOOL_ARRAY(nullsFirst, local_node->numSortCols);
 
 	READ_NODE_FIELD(hashExpr);
 	READ_NODE_FIELD(flow_before_req_move);
@@ -2147,12 +2161,12 @@ _readMotion(void)
 	READ_NODE_FIELD(hashDataTypes);
 
 	READ_INT_FIELD(numOutputSegs);
-	READ_INT_ARRAY(outputSegIdx, numOutputSegs, int);
+	READ_INT_ARRAY(outputSegIdx, local_node->numOutputSegs, int);
 
 	READ_INT_FIELD(numSortCols);
-	READ_INT_ARRAY(sortColIdx, numSortCols, AttrNumber);
-	READ_OID_ARRAY(sortOperators, numSortCols);
-	READ_INT_ARRAY(nullsFirst, numSortCols, bool);
+	READ_INT_ARRAY(sortColIdx, local_node->numSortCols, AttrNumber);
+	READ_OID_ARRAY(sortOperators, local_node->numSortCols);
+	READ_BOOL_ARRAY(nullsFirst, local_node->numSortCols);
 
 	READ_INT_FIELD(segidColIdx);
 
