@@ -55,7 +55,7 @@ static void set_rel_pathlist(PlannerInfo *root, RelOptInfo *rel, Index rti);
 static void set_plain_rel_pathlist(PlannerInfo *root, RelOptInfo *rel,
 					   RangeTblEntry *rte);
 static void set_append_rel_pathlist(PlannerInfo *root, RelOptInfo *rel,
-						Index rti);
+						Index rti, RangeTblEntry *rte);
 static bool has_multiple_baserels(PlannerInfo *root);
 static void set_subquery_pathlist(PlannerInfo *root, RelOptInfo *rel,
 					  Index rti, RangeTblEntry *rte);
@@ -211,7 +211,7 @@ set_rel_pathlist(PlannerInfo *root, RelOptInfo *rel, Index rti)
 	if (rte->inh)
 	{
 		/* It's an "append relation", process accordingly */
-		set_append_rel_pathlist(root, rel, rti);
+		set_append_rel_pathlist(root, rel, rti, rte);
 	}
 	else if (rel->rtekind == RTE_SUBQUERY)
 	{
@@ -351,7 +351,7 @@ set_plain_rel_pathlist(PlannerInfo *root, RelOptInfo *rel, RangeTblEntry *rte)
 			return;
 	}
 
-	/* Consider sequential scan. */
+	/* Consider sequential scan */
     if (root->config->enable_seqscan)
         pathlist = lappend(pathlist, seqpath);
 
@@ -419,9 +419,9 @@ set_plain_rel_pathlist(PlannerInfo *root, RelOptInfo *rel, RangeTblEntry *rte)
  */
 static void
 set_append_rel_pathlist(PlannerInfo *root, RelOptInfo *rel,
-						Index rti)
+						Index rti, RangeTblEntry *rte)
 {
-	Index       parentRTindex = rti;
+	int			parentRTindex = rti;
 	List	   *subpaths = NIL;
 	ListCell   *l;
 
@@ -456,7 +456,7 @@ set_append_rel_pathlist(PlannerInfo *root, RelOptInfo *rel,
 	foreach(l, root->append_rel_list)
 	{
 		AppendRelInfo *appinfo = (AppendRelInfo *) lfirst(l);
-		Index       childRTindex;
+		int			childRTindex;
 		RelOptInfo *childrel;
 		Path	   *childpath;
 		ListCell   *parentvars;
@@ -519,7 +519,6 @@ set_append_rel_pathlist(PlannerInfo *root, RelOptInfo *rel,
 								   ((AppendPath *) childpath)->subpaths);
 		else
 			subpaths = lappend(subpaths, childpath);
-
 
 		/*
 		 * Propagate size information from the child back to the parent. For
@@ -1175,7 +1174,7 @@ make_one_rel_by_joins(PlannerInfo *root, int levels_needed, List *initial_rels, 
 
 	rel = (RelOptInfo *) linitial(joinitems[levels_needed]);
 
-    return rel;
+	return rel;
 }
 
 /*****************************************************************************

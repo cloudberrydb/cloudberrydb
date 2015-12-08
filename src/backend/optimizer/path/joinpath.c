@@ -34,15 +34,12 @@ static void match_unsorted_outer(PlannerInfo *root, RelOptInfo *joinrel,
 					 RelOptInfo *outerrel, RelOptInfo *innerrel,
 					 List *restrictlist, List *mergeclause_list,
 					 JoinType jointype);
-static void
-hash_inner_and_outer(PlannerInfo *root,
-                     RelOptInfo *joinrel,
-                     Path *outerpath,
-                     Path *innerpath,
-                     List *restrictlist,
-                     List *mergeclause_list,    /*CDB*/
-                     List *hashclause_list,     /*CDB*/
-                     JoinType jointype);
+static void hash_inner_and_outer(PlannerInfo *root, RelOptInfo *joinrel,
+					 Path *outerpath, Path *innerpath,
+					 List *restrictlist,
+					 List *mergeclause_list,    /*CDB*/
+					 List *hashclause_list,     /*CDB*/
+					 JoinType jointype);
 static Path *best_appendrel_indexscan(PlannerInfo *root, RelOptInfo *rel,
 						 RelOptInfo *outer_rel, JoinType jointype);
 static List *select_mergejoin_clauses(RelOptInfo *joinrel,
@@ -898,7 +895,7 @@ static Path *
 best_appendrel_indexscan(PlannerInfo *root, RelOptInfo *rel,
 						 RelOptInfo *outer_rel, JoinType jointype)
 {
-	Index       parentRTindex = rel->relid;
+	int			parentRTindex = rel->relid;
 	List	   *append_paths = NIL;
 	bool		found_indexscan = false;
 	ListCell   *l;
@@ -906,7 +903,7 @@ best_appendrel_indexscan(PlannerInfo *root, RelOptInfo *rel,
 	foreach(l, root->append_rel_list)
 	{
 		AppendRelInfo *appinfo = (AppendRelInfo *) lfirst(l);
-		Index       childRTindex;
+		int			childRTindex;
 		RelOptInfo *childrel;
 		Path	   *index_cheapest_startup;
 		Path	   *index_cheapest_total;

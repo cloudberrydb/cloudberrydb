@@ -1526,7 +1526,7 @@ grouping_planner(PlannerInfo *root, double tuple_fraction)
 		/*
 		 * If grouping, decide whether we want to use hashed grouping.
 		 */
-	    if (parse->groupClause)
+		if (parse->groupClause)
 		{
 			use_hashed_grouping =
 				choose_hashed_grouping(root, tuple_fraction,
@@ -1543,16 +1543,10 @@ grouping_planner(PlannerInfo *root, double tuple_fraction)
 		 * Otherwise, trust query_planner's decision about which to use.
 		 */
 		if (use_hashed_grouping || !sorted_path)
-		{
-            best_path = cheapest_path;
-             /* elog(DEBUG1, "Path chosen: unordered"); CDB*/
-		}
+			best_path = cheapest_path;
 		else
-		{
-            best_path = sorted_path;
-            /* elog(DEBUG1, "Path chosen: ordered"); CDB*/
-		}
-		
+			best_path = sorted_path;
+
 		/* CDB:  For now, we either
 		 * - construct a general parallel plan,
 		 * - let the sequential planner handle the situation, or
@@ -1665,7 +1659,7 @@ grouping_planner(PlannerInfo *root, double tuple_fraction)
 			}
 
 		}
-		
+
 		if (result_plan == NULL)
 		{
 			/*
@@ -1769,126 +1763,122 @@ grouping_planner(PlannerInfo *root, double tuple_fraction)
 				current_pathkeys = NIL;
 				CdbPathLocus_MakeNull(&current_locus);
 			}
-			else if (parse->hasAggs || parse->groupClause)
+			else if (!grpext && (parse->hasAggs || parse->groupClause))
 			{
-				if (!grpext)
+				/* Plain aggregate plan --- sort if needed */
+				AggStrategy aggstrategy;
+
+				if (parse->groupClause)
 				{
-					/* Plain aggregate plan --- sort if needed */
-					AggStrategy aggstrategy;
-
-					if (parse->groupClause)
+					if (!pathkeys_contained_in(group_pathkeys,
+											   current_pathkeys))
 					{
-						if (!pathkeys_contained_in(group_pathkeys,
-												   current_pathkeys))
-						{
-							result_plan = (Plan *)
-								make_sort_from_groupcols(root,
-														 parse->groupClause,
-														 groupColIdx,
-														 false,
-														 result_plan);
-							current_pathkeys = group_pathkeys;
+						result_plan = (Plan *)
+							make_sort_from_groupcols(root,
+													 parse->groupClause,
+													 groupColIdx,
+													 false,
+													 result_plan);
+						current_pathkeys = group_pathkeys;
 
-							/* Decorate the Sort node with a Flow node. */
-							mark_sort_locus(result_plan);
-						}
-						aggstrategy = AGG_SORTED;
-
-						/*
-						 * The AGG node will not change the sort ordering of its
-						 * groups, so current_pathkeys describes the result too.
-						 */
+						/* Decorate the Sort node with a Flow node. */
+						mark_sort_locus(result_plan);
 					}
-					else
-					{
-						aggstrategy = AGG_PLAIN;
-						/* Result will be only one row anyway; no sort order */
-						current_pathkeys = NIL;
-					}
+					aggstrategy = AGG_SORTED;
 
 					/*
-					 * We make a single Agg node if this is not a grouping extension.
+					 * The AGG node will not change the sort ordering of its
+					 * groups, so current_pathkeys describes the result too.
 					 */
-					result_plan = (Plan *) make_agg(root,
-													tlist,
-													(List *) parse->havingQual,
-													aggstrategy, false,
-													numGroupCols,
-													groupColIdx,
-													numGroups,
-													0, /* num_nullcols */
-													0, /* input_grouping */
-													0, /* grouping */
-													0, /* rollup_gs_times */
-													agg_counts.numAggs,
-													agg_counts.transitionSpace,
-													result_plan);
-
-					if (canonical_grpsets != NULL &&
-						canonical_grpsets->grpset_counts != NULL &&
-						canonical_grpsets->grpset_counts[0] > 1)
-					{
-						result_plan->flow = pull_up_Flow(result_plan,
-														 result_plan->lefttree,
-														 (current_pathkeys != NIL));
-						result_plan = add_repeat_node(result_plan,
-													  canonical_grpsets->grpset_counts[0],
-													  0);
-					}
-
-					CdbPathLocus_MakeNull(&current_locus);
 				}
-
-				/* Plan the grouping extension */
 				else
 				{
-					ListCell *lc;
-					bool querynode_changed = false;
+					aggstrategy = AGG_PLAIN;
+					/* Result will be only one row anyway; no sort order */
+					current_pathkeys = NIL;
+				}
 
-					/*
-					 * Make a copy of tlist. Really need to?
+				/*
+				 * We make a single Agg node if this is not a grouping extension.
+				 */
+				result_plan = (Plan *) make_agg(root,
+												tlist,
+												(List *) parse->havingQual,
+												aggstrategy, false,
+												numGroupCols,
+												groupColIdx,
+												numGroups,
+												0, /* num_nullcols */
+												0, /* input_grouping */
+												0, /* grouping */
+												0, /* rollup_gs_times */
+												agg_counts.numAggs,
+												agg_counts.transitionSpace,
+												result_plan);
+
+				if (canonical_grpsets != NULL &&
+					canonical_grpsets->grpset_counts != NULL &&
+					canonical_grpsets->grpset_counts[0] > 1)
+				{
+					result_plan->flow = pull_up_Flow(result_plan,
+													 result_plan->lefttree,
+													 (current_pathkeys != NIL));
+					result_plan = add_repeat_node(result_plan,
+												  canonical_grpsets->grpset_counts[0],
+												  0);
+				}
+
+				CdbPathLocus_MakeNull(&current_locus);
+			}
+			else if (grpext && (parse->hasAggs || parse->groupClause))
+			{
+				/* Plan the grouping extension */
+				ListCell *lc;
+				bool querynode_changed = false;
+
+				/*
+				 * Make a copy of tlist. Really need to?
+				 */
+				List *new_tlist = copyObject(tlist);
+
+				/* Make EXPLAIN output look nice */
+				foreach(lc, result_plan->targetlist)
+				{
+					TargetEntry *tle = (TargetEntry*)lfirst(lc);
+
+					if ( IsA(tle->expr, Var) && tle->resname == NULL )
+					{
+						TargetEntry *vartle = tlist_member((Node*)tle->expr, tlist);
+
+						if ( vartle != NULL && vartle->resname != NULL )
+							tle->resname = pstrdup(vartle->resname);
+					}
+				}
+
+				result_plan = plan_grouping_extension(root, best_path, tuple_fraction,
+													  use_hashed_grouping,
+													  &new_tlist, result_plan->targetlist,
+													  true, false,
+													  (List *) parse->havingQual,
+													  &numGroupCols,
+													  &groupColIdx,
+													  &agg_counts,
+													  canonical_grpsets,
+													  &dNumGroups,
+													  &querynode_changed,
+													  &current_pathkeys,
+													  result_plan);
+				if (querynode_changed)
+				{
+					/* We want to re-write sort_pathkeys here since the 2-stage
+					 * aggregation subplan or grouping extension subplan may change
+					 * the previous root->parse Query node, which makes the current
+					 * sort_pathkeys invalid.
 					 */
-					List *new_tlist = copyObject(tlist);
-
-					/* Make EXPLAIN output look nice */
-					foreach(lc, result_plan->targetlist)
-					{
-						TargetEntry *tle = (TargetEntry*)lfirst(lc);
-
-						if ( IsA(tle->expr, Var) && tle->resname == NULL )
-						{
-							TargetEntry *vartle = tlist_member((Node*)tle->expr, tlist);
-
-							if ( vartle != NULL && vartle->resname != NULL )
-								tle->resname = pstrdup(vartle->resname);
-						}
-					}
-
-					result_plan = plan_grouping_extension(root, best_path, tuple_fraction,
-														  use_hashed_grouping,
-														  &new_tlist, result_plan->targetlist,
-														  true, false,
-														  (List *) parse->havingQual,
-														  &numGroupCols,
-														  &groupColIdx,
-														  &agg_counts,
-														  canonical_grpsets,
-														  &dNumGroups,
-														  &querynode_changed,
-														  &current_pathkeys,
-														  result_plan);
-					if (querynode_changed)
-					{
-						/* We want to re-write sort_pathkeys here since the 2-stage
-						 * aggregation subplan or grouping extension subplan may change
-						 * the previous root->parse Query node, which makes the current
-						 * sort_pathkeys invalid.
-						 */
-						sort_pathkeys = make_pathkeys_for_sortclauses(parse->sortClause,
-																	  result_plan->targetlist);
-						sort_pathkeys = canonicalize_pathkeys(root, sort_pathkeys);
-						CdbPathLocus_MakeNull(&current_locus);
-					}
+					sort_pathkeys = make_pathkeys_for_sortclauses(parse->sortClause,
+																  result_plan->targetlist);
+					sort_pathkeys = canonicalize_pathkeys(root, sort_pathkeys);
+					CdbPathLocus_MakeNull(&current_locus);
 				}
 			}
 			else if (root->hasHavingQual)
@@ -2117,7 +2107,7 @@ grouping_planner(PlannerInfo *root, double tuple_fraction)
 	if (parse->returningList)
 	{
 		List	   *rlist;
-		
+
 		Assert(parse->resultRelation);
 		rlist = set_returning_clause_references(root->glob,
 												parse->returningList,
@@ -2133,7 +2123,7 @@ grouping_planner(PlannerInfo *root, double tuple_fraction)
 		root->resultRelations = list_make1_int(parse->resultRelation);
 	else
 		root->resultRelations = NIL;
-		
+
 	/*
 	 * Return the actual output ordering in query_pathkeys for possible use by
 	 * an outer query level.
@@ -2146,8 +2136,6 @@ grouping_planner(PlannerInfo *root, double tuple_fraction)
 
 	return result_plan;
 }
-
-
 
 /*
  * Entry is through is_dummy_plan().
@@ -2162,7 +2150,6 @@ grouping_planner(PlannerInfo *root, double tuple_fraction)
  * BTW The plan_tree_walker framework is overkill here, but it's good to 
  *     do things the standard way.
  */
-
 static bool
 is_dummy_plan_walker(Node *node, bool *context)
 {
@@ -2495,15 +2482,14 @@ choose_hashed_grouping(PlannerInfo *root, double tuple_fraction,
 					   double dNumGroups, AggClauseCounts *agg_counts)
 {
 	int			numGroupCols = num_distcols_in_grouplist(root->parse->groupClause);
-	double		cheapest_path_rows = 1; /* default */
-	int			cheapest_path_width = 100; /* default */
+	double		cheapest_path_rows;
+	int			cheapest_path_width;
 	Size		hashentrysize;
 	List	   *current_pathkeys;
 	Path		hashed_p;
 	Path		sorted_p;
 
 	HashAggTableSizes   hash_info;
-	bool		hash_ok = true;
 	bool		has_dqa = false;
 	bool		hash_cheaper = false;
 
@@ -2519,140 +2505,149 @@ choose_hashed_grouping(PlannerInfo *root, double tuple_fraction,
 	 * with DISTINCT-qualified aggregates in some cases, so in case we
 	 * don't choose hashed grouping here, we make note in agg_counts to 
 	 * indicate whether DQAs are the only reason.
-	 *
-	 * CDB: The parallel groupping planner cannot use hashed aggregation
-	 * for ordered aggregates.
-	 *
+	 */
+	if (!root->config->enable_hashagg)
+		goto hash_not_ok;
+	has_dqa = agg_counts->numDistinctAggs != 0;
+	if (!hash_safe_grouping(root))
+		goto hash_not_ok;
+
+	/*
 	 * CDB: The preliminary function is used to merge transient values
 	 * during hash reloading (see execHHashagg.c). So hash agg is not
 	 * allowed if one of the aggregates doesn't have its preliminary function.
 	 */
-	hash_ok = root->config->enable_hashagg && hash_safe_grouping(root) &&
-		!agg_counts->missing_prelimfunc && agg_counts->aggOrder == NIL;
+	if (agg_counts->missing_prelimfunc)
+		goto hash_not_ok;
 
-	has_dqa = agg_counts->numDistinctAggs != 0;
+	/*
+	 * CDB: The parallel grouping planner cannot use hashed aggregation
+	 * for ordered aggregates.
+	 */
+	if (agg_counts->aggOrder != NIL)
+		goto hash_not_ok;
 
-	if ( hash_ok )
+	/*
+	 * Don't do it if it doesn't look like the hashtable will fit into
+	 * work_mem.
+	 *
+	 * Beware here of the possibility that cheapest_path->parent is NULL. This
+	 * could happen if user does something silly like SELECT 'foo' GROUP BY 1;
+	 */
+	if (cheapest_path->parent)
 	{
-		/*
-		 * Don't do it if it doesn't look like the hashtable will fit into
-		 * work_mem.
-		 *
-		 * Beware here of the possibility that cheapest_path->parent is NULL. This
-		 * could happen if user does something silly like SELECT 'foo' GROUP BY 1;
-		 */
-		if (cheapest_path->parent)
-		{
-			cheapest_path_rows = cdbpath_rows(root, cheapest_path);
-			cheapest_path_width = cheapest_path->parent->width;
-		}
-		else
-		{
-			cheapest_path_rows = 1; /* assume non-set result */
-			cheapest_path_width = 100;		/* arbitrary */
-		}
-
-		/* Estimate per-hash-entry space at tuple width... */
-		/* (Should improve this estimate since not all
-		 *  attributes are saved in a hash table entry's
-		 *  grouping key tuple.)
-		 */
-		hashentrysize = MAXALIGN(cheapest_path_width) + MAXALIGN(sizeof(MemTupleData));
-		/* plus space for pass-by-ref transition values... */
-		hashentrysize += agg_counts->transitionSpace;
-		/* plus the per-hash-entry overhead */
-		hashentrysize += hash_agg_entry_size(agg_counts->numAggs);
-
-		hash_ok = calcHashAggTableSizes(global_work_mem(root),
-								   dNumGroups,
-								   agg_counts->numAggs,
-								   /* The following estimate is very rough but good enough for planning. */
-								   sizeof(HeapTupleData) + sizeof(HeapTupleHeaderData) + cheapest_path_width,
-								   agg_counts->transitionSpace,
-								   false,
-								   &hash_info);
+		cheapest_path_rows = cdbpath_rows(root, cheapest_path);
+		cheapest_path_width = cheapest_path->parent->width;
 	}
-	
-	if ( hash_ok)
+	else
 	{
-		/*
-		 * See if the estimated cost is no more than doing it the other way. While
-		 * avoiding the need for sorted input is usually a win, the fact that the
-		 * output won't be sorted may be a loss; so we need to do an actual cost
-		 * comparison.
-		 *
-		 * We need to consider cheapest_path + hashagg [+ final sort] versus
-		 * either cheapest_path [+ sort] + group or agg [+ final sort] or
-		 * presorted_path + group or agg [+ final sort] where brackets indicate a
-		 * step that may not be needed. We assume query_planner() will have
-		 * returned a presorted path only if it's a winner compared to
-		 * cheapest_path for this purpose.
-		 *
-		 * These path variables are dummies that just hold cost fields; we don't
-		 * make actual Paths for these steps.
-		 */
-		cost_agg(&hashed_p, root, AGG_HASHED, agg_counts->numAggs,
+		cheapest_path_rows = 1; /* assume non-set result */
+		cheapest_path_width = 100;		/* arbitrary */
+	}
+
+	/* Estimate per-hash-entry space at tuple width... */
+	/* (Should improve this estimate since not all
+	 *  attributes are saved in a hash table entry's
+	 *  grouping key tuple.)
+	 */
+	hashentrysize = MAXALIGN(cheapest_path_width) + MAXALIGN(sizeof(MemTupleData));
+	/* plus space for pass-by-ref transition values... */
+	hashentrysize += agg_counts->transitionSpace;
+	/* plus the per-hash-entry overhead */
+	hashentrysize += hash_agg_entry_size(agg_counts->numAggs);
+
+	if (!calcHashAggTableSizes(global_work_mem(root),
+							   dNumGroups,
+							   agg_counts->numAggs,
+							   /* The following estimate is very rough but good enough for planning. */
+							   sizeof(HeapTupleData) + sizeof(HeapTupleHeaderData) + cheapest_path_width,
+							   agg_counts->transitionSpace,
+							   false,
+							   &hash_info))
+	{
+		goto hash_not_ok;
+	}
+
+	/*
+	 * See if the estimated cost is no more than doing it the other way. While
+	 * avoiding the need for sorted input is usually a win, the fact that the
+	 * output won't be sorted may be a loss; so we need to do an actual cost
+	 * comparison.
+	 *
+	 * We need to consider cheapest_path + hashagg [+ final sort] versus
+	 * either cheapest_path [+ sort] + group or agg [+ final sort] or
+	 * presorted_path + group or agg [+ final sort] where brackets indicate a
+	 * step that may not be needed. We assume query_planner() will have
+	 * returned a presorted path only if it's a winner compared to
+	 * cheapest_path for this purpose.
+	 *
+	 * These path variables are dummies that just hold cost fields; we don't
+	 * make actual Paths for these steps.
+	 */
+	cost_agg(&hashed_p, root, AGG_HASHED, agg_counts->numAggs,
+			 numGroupCols, dNumGroups,
+			 cheapest_path->startup_cost, cheapest_path->total_cost,
+			 cheapest_path_rows, hash_info.workmem_per_entry,
+			 hash_info.nbatches, hash_info.hashentry_width, false);
+	/* Result of hashed agg is always unsorted */
+	if (root->sort_pathkeys)
+		cost_sort(&hashed_p, root, root->sort_pathkeys, hashed_p.total_cost,
+				  dNumGroups, cheapest_path_width);
+
+	if (sorted_path)
+	{
+		sorted_p.startup_cost = sorted_path->startup_cost;
+		sorted_p.total_cost = sorted_path->total_cost;
+		current_pathkeys = sorted_path->pathkeys;
+	}
+	else
+	{
+		sorted_p.startup_cost = cheapest_path->startup_cost;
+		sorted_p.total_cost = cheapest_path->total_cost;
+		current_pathkeys = cheapest_path->pathkeys;
+	}
+	if (!pathkeys_contained_in(root->group_pathkeys, current_pathkeys))
+	{
+		cost_sort(&sorted_p, root, root->group_pathkeys, sorted_p.total_cost,
+				  cheapest_path_rows, cheapest_path_width);
+		current_pathkeys = root->group_pathkeys;
+	}
+
+	if (root->parse->hasAggs)
+		cost_agg(&sorted_p, root, AGG_SORTED, agg_counts->numAggs,
 				 numGroupCols, dNumGroups,
-				 cheapest_path->startup_cost, cheapest_path->total_cost,
-				 cheapest_path_rows, hash_info.workmem_per_entry,
-				 hash_info.nbatches, hash_info.hashentry_width, false);
-		/* Result of hashed agg is always unsorted */
-		if (root->sort_pathkeys)
-			cost_sort(&hashed_p, root, root->sort_pathkeys, hashed_p.total_cost,
-					  dNumGroups, cheapest_path_width);
+				 sorted_p.startup_cost, sorted_p.total_cost,
+				 cheapest_path_rows, 0.0, 0.0, 0.0, false);
+	else
+		cost_group(&sorted_p, root, numGroupCols, dNumGroups,
+				   sorted_p.startup_cost, sorted_p.total_cost,
+				   cheapest_path_rows);
+	/* The Agg or Group node will preserve ordering */
+	if (root->sort_pathkeys &&
+		!pathkeys_contained_in(root->sort_pathkeys, current_pathkeys))
+		cost_sort(&sorted_p, root, root->sort_pathkeys, sorted_p.total_cost,
+				  dNumGroups, cheapest_path_width);
 
-		if (sorted_path)
-		{
-			sorted_p.startup_cost = sorted_path->startup_cost;
-			sorted_p.total_cost = sorted_path->total_cost;
-			current_pathkeys = sorted_path->pathkeys;
-		}
-		else
-		{
-			sorted_p.startup_cost = cheapest_path->startup_cost;
-			sorted_p.total_cost = cheapest_path->total_cost;
-			current_pathkeys = cheapest_path->pathkeys;
-		}
-		if (!pathkeys_contained_in(root->group_pathkeys, current_pathkeys))
-		{
-			cost_sort(&sorted_p, root, root->group_pathkeys, sorted_p.total_cost,
-					  cheapest_path_rows, cheapest_path_width);
-			current_pathkeys = root->group_pathkeys;
-		}
+	/*
+	 * Now make the decision using the top-level tuple fraction.  First we
+	 * have to convert an absolute count (LIMIT) into fractional form.
+	 */
+	if (tuple_fraction >= 1.0)
+		tuple_fraction /= dNumGroups;
 
-		if (root->parse->hasAggs)
-			cost_agg(&sorted_p, root, AGG_SORTED, agg_counts->numAggs,
-					 numGroupCols, dNumGroups,
-					 sorted_p.startup_cost, sorted_p.total_cost,
-					 cheapest_path_rows, 0.0, 0.0, 0.0, false);
-		else
-			cost_group(&sorted_p, root, numGroupCols, dNumGroups,
-					   sorted_p.startup_cost, sorted_p.total_cost,
-					   cheapest_path_rows);
-		/* The Agg or Group node will preserve ordering */
-		if (root->sort_pathkeys &&
-			!pathkeys_contained_in(root->sort_pathkeys, current_pathkeys))
-			cost_sort(&sorted_p, root, root->sort_pathkeys, sorted_p.total_cost,
-					  dNumGroups, cheapest_path_width);
+	if (!root->config->enable_groupagg)
+		hash_cheaper = true;
+	else
+		hash_cheaper = 0 > compare_fractional_path_costs(&hashed_p, 
+														 &sorted_p, 
+														 tuple_fraction);
 
-		/*
-		 * Now make the decision using the top-level tuple fraction.  First we
-		 * have to convert an absolute count (LIMIT) into fractional form.
-		 */
-		if (tuple_fraction >= 1.0)
-			tuple_fraction /= dNumGroups;
+	agg_counts->canHashAgg = true; /* costing is wrong if there are DQAs */
+	return !has_dqa && hash_cheaper;
 
-		if (!root->config->enable_groupagg)
-			hash_cheaper = true;
-		else
-			hash_cheaper = 0 > compare_fractional_path_costs(&hashed_p, 
-															 &sorted_p, 
-															 tuple_fraction);
-	}
-	
-	agg_counts->canHashAgg = hash_ok; /* costing is wrong if there are DQAs */
-	
-	return hash_ok && !has_dqa && hash_cheaper;
+hash_not_ok:
+	agg_counts->canHashAgg = false;
+	return false;
 }
 
 /*
@@ -3587,9 +3582,3 @@ pushdown_preliminary_limit(Plan *plan, Node *limitCount, int64 count_est, Node *
 
 	return result_plan;
 }
-
-
-
-
-
-

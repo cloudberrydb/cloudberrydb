@@ -107,7 +107,6 @@ query_planner(PlannerInfo *root, List *tlist, double tuple_fraction,
 		*cheapest_path = (Path *)
 			create_result_path((List *) parse->jointree->quals);
 		*sorted_path = NULL;
-
 		return;
 	}
 
