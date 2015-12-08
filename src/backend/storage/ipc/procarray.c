@@ -23,13 +23,14 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/storage/ipc/procarray.c,v 1.20 2007/01/05 22:19:38 momjian Exp $
+ *	  $PostgreSQL: pgsql/src/backend/storage/ipc/procarray.c,v 1.21 2007/01/16 13:28:56 alvherre Exp $
  *
  *-------------------------------------------------------------------------
  */
 #include "postgres.h"
 
 #include <signal.h>
+
 #include "access/distributedlog.h"
 #include "access/subtrans.h"
 #include "access/transam.h"
@@ -1391,9 +1392,9 @@ void UpdateSerializableCommandId(void)
 }
 
 /*
- * DatabaseHasActiveBackends -- are there any backends running in the given DB
- * If there are other backends in the DB, we will wait a maximum of 5 seconds
- * for them to exit.
+ * DatabaseCancelAutovacuumActivity -- are there any backends running in the
+ * given DB, apart from autovacuum?  If an autovacuum process is running on the
+ * database, kill it and restart the counting.
  *
  * If 'ignoreMyself' is TRUE, ignore this particular backend while checking
  * for backends in the target database.
@@ -1406,43 +1407,44 @@ void UpdateSerializableCommandId(void)
  * backend startup.
  */
 bool
-DatabaseHasActiveBackends(Oid databaseId, bool ignoreMyself)
+DatabaseCancelAutovacuumActivity(Oid databaseId, bool ignoreMyself)
 {
-	bool		result = false;
 	ProcArrayStruct *arrayP = procArray;
 	int			index;
-	int tries;
+	int			num;
 
-	for (tries = 0; tries < 50; tries++)
+restart:
+	num = 0;
+
+	CHECK_FOR_INTERRUPTS();
+
+	LWLockAcquire(ProcArrayLock, LW_SHARED);
+
+	for (index = 0; index < arrayP->numProcs; index++)
 	{
-		CHECK_FOR_INTERRUPTS();
-		result = false;
-		LWLockAcquire(ProcArrayLock, LW_SHARED);
+		PGPROC	   *proc = arrayP->procs[index];
 
-		for (index = 0; index < arrayP->numProcs; index++)
+		if (proc->databaseId == databaseId)
 		{
-			volatile PGPROC *proc = arrayP->procs[index];
+			if (ignoreMyself && proc == MyProc)
+				continue;
 
-			if (proc->databaseId == databaseId)
+			num++;
+
+			if (proc->isAutovacuum)
 			{
-				if (ignoreMyself && proc == MyProc)
-					continue;
-
-				result = true;
-				break;
+				/* an autovacuum -- kill it and restart */
+				LWLockRelease(ProcArrayLock);
+				kill(proc->pid, SIGINT);
+				pg_usleep(100 * 1000);		/* 100ms */
+				goto restart;
 			}
 		}
-		LWLockRelease(ProcArrayLock);
-
-		/* no confilicting backend, so done */
-		if (!result)
-		{
-			return false;
-		}
-		/* otherwise, sleep 100 ms, then try again */
-		pg_usleep(100 * 1000L );
 	}
-	return result;
+
+	LWLockRelease(ProcArrayLock);
+
+	return (num != 0);
 }
 
 /*

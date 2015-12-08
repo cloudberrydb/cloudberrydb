@@ -8,7 +8,7 @@
  * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
- * $PostgreSQL: pgsql/src/include/storage/proc.h,v 1.92 2007/01/05 22:19:58 momjian Exp $
+ * $PostgreSQL: pgsql/src/include/storage/proc.h,v 1.93 2007/01/16 13:28:57 alvherre Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -99,6 +99,7 @@ struct PGPROC
 	bool		postmasterResetRequired; /* Whether postmaster reset is required when this child exits */
 
 	bool		inVacuum;		/* true if current xact is a LAZY VACUUM */
+	bool		isAutovacuum;	/* true if it's autovacuum */
 
 	/* Info about LWLock the process is currently waiting for, if any. */
 	bool		lwWaiting;		/* true if waiting for an LW lock */

@@ -55,6 +55,7 @@ extern void AutoVacuumUpdateDelay(void);
 
 #ifdef EXEC_BACKEND
 extern void AutoVacMain(int argc, char *argv[]); // OLD interface
+extern void AutovacuumIAm(void);
 extern void AutoVacLauncherMain(int argc, char *argv[]);
 extern void AutoVacWorkerMain(int argc, char *argv[]);
 extern void AutovacuumWorkerIAm(void);

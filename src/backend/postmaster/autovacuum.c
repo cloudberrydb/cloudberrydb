@@ -10,7 +10,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/postmaster/autovacuum.c,v 1.30 2007/01/05 22:19:36 momjian Exp $
+ *	  $PostgreSQL: pgsql/src/backend/postmaster/autovacuum.c,v 1.31 2007/01/16 13:28:56 alvherre Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -319,6 +319,15 @@ autovac_forkexec(void)
 	Assert(ac < lengthof(av));
 
 	return postmaster_forkexec(ac, av);
+}
+
+/*
+ * We need this set from the outside, before InitProcess is called
+ */
+void
+AutovacuumIAm(void)
+{
+	am_autovacuum = true;
 }
 #endif   /* EXEC_BACKEND */
 

@@ -829,11 +829,11 @@ createdb_int(CreatedbStmt *stmt, CdbDispatcherState *ds)
 	 * (exception is to allow CREATE DB while connected to template1).
 	 * Otherwise we might copy inconsistent data.
 	 */
-	if (DatabaseHasActiveBackends(src_dboid, true))
+	if (DatabaseCancelAutovacuumActivity(src_dboid, true))
 		ereport(ERROR,
 				(errcode(ERRCODE_OBJECT_IN_USE),
-			errmsg("source database \"%s\" is being accessed by other users",
-				   dbtemplate)));
+				 errmsg("source database \"%s\" is being accessed by other users",
+						dbtemplate)));
 
 	/* If encoding is defaulted, use source's encoding */
 	if (encoding < 0)
@@ -1405,7 +1405,7 @@ dropdb(const char *dbname, bool missing_ok)
 	 * Check for active backends in the target database.  (Because we hold the
 	 * database lock, no new ones can start after this.)
 	 */
-	if (DatabaseHasActiveBackends(db_id, false))
+	if (DatabaseCancelAutovacuumActivity(db_id, false))
 		ereport(ERROR,
 				(errcode(ERRCODE_OBJECT_IN_USE),
 				 errmsg("database \"%s\" is being accessed by other users",
@@ -1664,7 +1664,7 @@ RenameDatabase(const char *oldname, const char *newname)
 	 * Make sure the database does not have active sessions.  This is the same
 	 * concern as above, but applied to other sessions.
 	 */
-	if (DatabaseHasActiveBackends(db_id, false))
+	if (DatabaseCancelAutovacuumActivity(db_id, false))
 		ereport(ERROR,
 				(errcode(ERRCODE_OBJECT_IN_USE),
 				 errmsg("database \"%s\" is being accessed by other users",
