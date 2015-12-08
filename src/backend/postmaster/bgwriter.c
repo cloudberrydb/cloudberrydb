@@ -33,7 +33,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/postmaster/bgwriter.c,v 1.33.2.2 2007/09/11 17:15:40 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/postmaster/bgwriter.c,v 1.36 2007/01/17 16:25:01 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */

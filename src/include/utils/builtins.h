@@ -8,7 +8,7 @@
  * Portions Copyright (c) 1996-2008, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
- * $PostgreSQL: pgsql/src/include/utils/builtins.h,v 1.285 2007/01/05 22:19:58 momjian Exp $
+ * $PostgreSQL: pgsql/src/include/utils/builtins.h,v 1.286 2007/01/16 21:41:14 neilc Exp $
  *
  *-------------------------------------------------------------------------
  */

@@ -14,7 +14,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/commands/dbcommands.c,v 1.187.2.4 2010/03/25 14:45:21 alvherre Exp $
+ *	  $PostgreSQL: pgsql/src/backend/commands/dbcommands.c,v 1.190 2007/01/17 16:25:01 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -1474,6 +1474,12 @@ dropdb(const char *dbname, bool missing_ok)
 	 * Also, clean out any entries in the shared free space map.
 	 */
 	FreeSpaceMapForgetDatabase(InvalidOid, db_id);
+
+	/*
+	 * Tell bgwriter to forget any pending fsync requests for files in the
+	 * database; else it'll fail at next checkpoint.
+	 */
+	ForgetDatabaseFsyncRequests(InvalidOid, db_id);
 
 	/*
 	 * Force a checkpoint to make sure the bgwriter to push all pages to disk.
