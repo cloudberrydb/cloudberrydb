@@ -488,7 +488,6 @@ datatypes to supply us with a comparison procedure via pg_amproc.
 This procedure must take two nonnull values A and B and return an int32 < 0,
 0, or > 0 if A < B, A = B, or A > B, respectively.  The procedure must
 not return INT_MIN for "A < B", since the value may be negated before
-<<<<<<< HEAD
 being tested for sign.  A null result is disallowed, too.  See nbtcompare.c
 for examples.
 
