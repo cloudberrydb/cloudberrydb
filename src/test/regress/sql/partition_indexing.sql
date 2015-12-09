@@ -67,20 +67,6 @@ partition bb (subpartition cc, subpartition dd)
 insert into mpp3033a select * from mpp3033;
 insert into mpp3033b select * from mpp3033;
 
-\echo -- start_ignore
-DROP INDEX if exists mpp3033a_unique1;
-DROP INDEX if exists mpp3033a_unique2;
-DROP INDEX if exists mpp3033a_hundred;
-DROP INDEX if exists mpp3033a_stringu1;
-
-DROP INDEX if exists mpp3033b_unique1;
-DROP INDEX if exists mpp3033b_unique2;
-DROP INDEX if exists mpp3033b_hundred;
-DROP INDEX if exists mpp3033b_stringu1;
-\echo -- end_ignore
-
-
-
 CREATE INDEX mpp3033a_unique1 ON mpp3033a USING btree(unique1 int4_ops);
 CREATE INDEX mpp3033a_unique2 ON mpp3033a USING btree(unique2 int4_ops);
 CREATE INDEX mpp3033a_hundred ON mpp3033a USING btree(hundred int4_ops);
@@ -228,28 +214,8 @@ select count(*) from mpp3033b;
 
 
 -- Test partition with CREATE INDEX
-DROP TABLE if exists mpp3033;
 DROP TABLE if exists mpp3033a;
 DROP TABLE if exists mpp3033b;
-CREATE TABLE mpp3033 (
-        unique1         int4,
-        unique2         int4,
-        two                     int4,
-        four            int4,
-        ten                     int4,
-        twenty          int4,
-        hundred         int4,
-        thousand        int4,
-        twothousand     int4,
-        fivethous       int4,
-        tenthous        int4,
-        odd                     int4,
-        even            int4,
-        stringu1        name,
-        stringu2        name,
-        string4         name
-);
-\copy mpp3033 from 'data/onek.data';
 
 CREATE TABLE mpp3033a (
         unique1         int4,
@@ -441,41 +407,10 @@ reindex index mpp3033b_stringu1;
 select count(*) from mpp3033a;
 select count(*) from mpp3033b;
 
-
 -- partition_range_index.sql
-
-\echo -- start_ignore
-drop schema partition_range cascade;
-create schema partition_range;
-\echo -- end_ignore
-
 -- Test partition with CREATE INDEX
-\echo -- start_ignore
-
-DROP TABLE if exists mpp3033;
 DROP TABLE if exists mpp3033a;
 DROP TABLE if exists mpp3033b;
-
-\echo -- end_ignore
-CREATE TABLE mpp3033 (
-        unique1         int4,
-        unique2         int4,
-        two                     int4,
-        four            int4,
-        ten                     int4,
-        twenty          int4,
-        hundred         int4,
-        thousand        int4,
-        twothousand     int4,
-        fivethous       int4,
-        tenthous        int4,
-        odd                     int4,
-        even            int4,
-        stringu1        name,
-        stringu2        name,
-        string4         name
-);
-\copy mpp3033 from 'data/onek.data';
 
 CREATE TABLE mpp3033a (
         unique1         int4,
