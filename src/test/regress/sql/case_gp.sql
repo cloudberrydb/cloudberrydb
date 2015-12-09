@@ -202,8 +202,6 @@ select gender, CASE gender
 from case_genders
 order by gid;
 
-drop table case_genders;
-
 select CASE 'M'
     WHEN IS NOT DISTINCT FROM 'M' THEN 'Male'
     WHEN IS NOT DISTINCT FROM 'F' THEN 'Female'
@@ -216,16 +214,6 @@ select CASE null
     WHEN IS NOT DISTINCT FROM 'F' THEN 'Female'
     WHEN IS NOT DISTINCT FROM '' THEN 'Not Specified'
     ELSE 'Other' END;
-
-create table case_genders (gid integer, gender char(1)) distributed by (gid);
-
-insert into case_genders(gid, gender) values
-  (1, 'F'),
-  (2, 'M'),
-  (3, 'Z'),
-  (4, ''),
-  (5, null),
-  (6, 'G');
 
 select gender, CASE gender
     WHEN IS NOT DISTINCT FROM 'M' THEN 'Male'

@@ -761,26 +761,11 @@ order by locid, country_code;
 select * from decode_view order by region, country_code;
 
 --
-begin;
-create table office2
-(
-   locid integer,
-   bus_name text,
-   country_code char(2)
-);
-
-insert into office2(locid, bus_name, country_code) values
-  (1000, 'Test Solutions', 'CN'),
-  (1011, 'Taing Consulting', 'US'),
-  (2000, 'Parts Plus', 'IT'),
-  (1055, 'Computers Unlimited', 'IL'),
-  (2005, 'Kangaroos Inc.', 'AU');
-commit;
 
 select locid,
        bus_name,
        country_code
-from office2
+from locations
 where  decode(country_code, 'US', 'Americas', 'CA', 'Americas', 'MX', 'Americas',
                 'CN', 'APJ', 'JP', 'APJ', 'RU', 'APJ', 'UK', 'EMEA', 'FR', 'EMEA',
                'IL', 'EMEA', 'IT', 'EMEA', 'IE', 'EMEA') = 'EMEA'
