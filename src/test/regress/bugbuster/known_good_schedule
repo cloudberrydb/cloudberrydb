@@ -12,6 +12,7 @@ test: wrkloadadmin
 test: xpath
 ignore: jdbc
 test: world
+test: with_clause
 test: jetpack
 test: spi
 test: security
@@ -23,7 +24,6 @@ test: bkup_gp
 test: mpp-11333
 test: DMLstmnt
 test: optquery
-test: with_clause
 test: codecoverage
 test: gist_indexes
 ignore: failover
