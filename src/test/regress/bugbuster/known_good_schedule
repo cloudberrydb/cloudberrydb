@@ -3,7 +3,6 @@
 ##
 test: executor
 test: functions
-test: golden_query
 test: heapscan1
 test: indexscan
 test: spilltodisk
