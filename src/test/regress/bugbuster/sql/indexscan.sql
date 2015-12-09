@@ -9,31 +9,31 @@
 --         too, so that we would be analyzing exactly the same statement as 
 --         we are executing.
 -- end_ignore
-drop table if exists test;
-create table test (a integer, b integer);
-insert into test select a, a%25 from generate_series(1,100) a;
+drop table if exists test_idxscan;
+create table test_idxscan (a integer, b integer);
+insert into test_idxscan select a, a%25 from generate_series(1,100) a;
 
-create index test_b on test (b);
+create index test_idxscan_b on test_idxscan (b);
 
 set enable_seqscan=off;
 set enable_bitmapscan=off;
 set enable_indexscan=on;
 
 \echo -- start_ignore
-select a, b from test where b=10 order by b desc;
+select a, b from test_idxscan where b=10 order by b desc;
 \echo -- end_ignore
 
 \echo -- order 2
-select a, b from test where b=10 order by b desc;
-drop table if exists test;
-create table test (a integer, b integer);
+select a, b from test_idxscan where b=10 order by b desc;
+drop table if exists test_idxscan;
+create table test_idxscan (a integer, b integer);
 
-insert into test select a%10, a%25 from generate_series(1,100) a;
+insert into test_idxscan select a%10, a%25 from generate_series(1,100) a;
 
-create index t_ab on test (a,b);
+create index t_ab on test_idxscan (a,b);
 
 set enable_bitmapscan=off;
 set enable_seqscan=off;
 set enable_indexscan=on;
 
-select * from test where (a,b) < (0,10);
+select * from test_idxscan where (a,b) < (0,10);

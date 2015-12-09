@@ -150,14 +150,14 @@ drop table mpp_r6756 cascade; --ignore
 drop table mpp_s6756 cascade; --ignore
 
 --start_ignore
-drop table if exists t1;
+drop table if exists copytest;
 --end_ignore
 
 set gp_autostats_mode='none';
 
-create table t1 (i int, t text);
+create table copytest (i int, t text);
 
-COPY t1 (i, t) FROM stdin;
+COPY copytest (i, t) FROM stdin;
 0	- DW60\n- Version:\nPostgreSQL 8.2.4 (Greenplum Database Release-3_1_0_0-alpha1-branch build dev) on i386-pc-solaris2.10, compiled by GCC gcc.exe (GCC) 4.1.1 compiled on Oct  1 2007 01:01:01
 0	- DW80\n- prodgp=# SELECT version();\n                                                                      version                                                                       \n----------------------------------------------------------------------------------------------------------------------------------------------------\n PostgreSQL 8.2.6 (Greenplum Database 3.1.1.5 build 2) on i386-pc-solaris2.10, compiled by GCC gcc.exe (GCC) 4.1.1 compiled on Jul 30 2008 16:58:44\n(1 row)
 0	- DW80\n- Version\n\nprodgp=# SELECT version();\n                                                                      version                                                                       \n----------------------------------------------------------------------------------------------------------------------------------------------------\n PostgreSQL 8.2.6 (Greenplum Database 3.1.1.5 build 2) on i386-pc-solaris2.10, compiled by GCC gcc.exe (GCC) 4.1.1 compiled on Jul 30 2008 16:58:44\n
@@ -176,5 +176,5 @@ COPY t1 (i, t) FROM stdin;
 \.
 
 
-select * from t1 order by t;
+select * from copytest order by t;
 

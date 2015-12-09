@@ -1,10 +1,11 @@
 drop table emp_fun cascade;
 drop table tab_sour cascade;
 
-drop table if exists test;
-create table test (a integer, b integer);
-insert into test select a, a%25 from generate_series(1,100) a;
-select greatest(a,b) from test;
+drop table if exists test_greatest;
+create table test_greatest (a integer, b integer);
+insert into test_greatest select a, a%25 from generate_series(1,100) a;
+select greatest(a,b) from test_greatest;
+
 select name, increment(emp_fun) as new_sal from emp_fun where emp_fun.name='bill';
 create or replace function set_tab(int) returns SETOF tab_sour as $$ select * from tab_sour where tabid=$1; $$ language sql READS SQL DATA;
 select * from set_tab(1) as new_tab;

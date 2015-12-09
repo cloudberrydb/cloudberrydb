@@ -181,14 +181,14 @@ group by rollup (a,b);
 drop table mpp_r6756 cascade; --ignore
 drop table mpp_s6756 cascade; --ignore
 --start_ignore
-drop table if exists t1;
+drop table if exists copytest;
 --end_ignore
 set gp_autostats_mode='none';
-create table t1 (i int, t text);
+create table copytest (i int, t text);
 NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'i' as the Greenplum Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
-COPY t1 (i, t) FROM stdin;
-select * from t1 order by t;
+COPY copytest (i, t) FROM stdin;
+select * from copytest order by t;
  i |                                                                                     t                                                                                      
 ---+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
  0 | - DW60                                                                                                                                                                     

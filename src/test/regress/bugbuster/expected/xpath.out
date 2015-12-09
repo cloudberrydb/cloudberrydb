@@ -370,22 +370,22 @@ bad
 ^
 \echo --start_ignore
 --start_ignore
-drop table if exists test;
-NOTICE:  table "test" does not exist, skipping
+drop table if exists test_xpath;
+NOTICE:  table "test_xpath" does not exist, skipping
 \echo --end_ignore
 --end_ignore
-CREATE TABLE test (y int, x xml);
+CREATE TABLE test_xpath (y int, x xml);
 NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'y' as the Greenplum Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
-INSERT INTO test VALUES (1, '<foo>abc</foo>');
-INSERT INTO test VALUES (2, '<bar/>');
-SELECT xmlagg(x order by y) FROM test;
+INSERT INTO test_xpath VALUES (1, '<foo>abc</foo>');
+INSERT INTO test_xpath VALUES (2, '<bar/>');
+SELECT xmlagg(x order by y) FROM test_xpath;
         xmlagg        
 ----------------------
  <foo>abc</foo><bar/>
 (1 row)
 
-SELECT xmlagg(x ORDER BY y DESC) FROM test;
+SELECT xmlagg(x ORDER BY y DESC) FROM test_xpath;
         xmlagg        
 ----------------------
  <bar/><foo>abc</foo>
