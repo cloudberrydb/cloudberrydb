@@ -436,8 +436,8 @@ convert_sourcefiles_in(char *source, char *dest, char *suffix)
 	}
 
 	/*
-	 * in a VPATH build, use the provided source directory; otherwise, use the
-	 * current directory.
+	 * in a VPATH build, use the provided source directory; otherwise, use
+	 * the current directory.
 	 */
 	if (srcdir)
 		strlcpy(abs_srcdir, srcdir, MAXPGPATH);
