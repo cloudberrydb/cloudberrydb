@@ -1,31 +1,3 @@
-drop table if exists testswapna;
-create table testswapna (a integer);
-insert into testswapna  select a from generate_series(1,10) a;
-
-select * from testswapna  where a>2;
-
-drop table testswapna;
-
-
-create table testswapna (a integer);
-insert into testswapna  select a from generate_series(1,10) a;
-alter table testswapna  add  COLUMN b integer;
-insert into testswapna select b from generate_series(11,20) b;
-
-select a,b from testswapna;
-
-drop table testswapna;
-
-
-create table testswapna (a integer);
-insert into testswapna  select a from generate_series(1,10) a;
-ALTER table testswapna ALTER COLUMN a SET NOT NULL;
-
-
-select * from testswapna;
-
-drop table testswapna;
-
 create table testswapna (id  integer,rank integer,gender character(1),count integer) DISTRIBUTED BY rank,gender) ;
 insert into testswapna  values(1,101,'F',10);
 
