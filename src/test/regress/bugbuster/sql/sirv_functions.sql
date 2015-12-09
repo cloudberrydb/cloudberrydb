@@ -1159,13 +1159,10 @@ select * from sirv_test13_result2;
 
 --start_ignore
 
-drop language if exists plpythonu cascade;
-
 drop table if exists sirv_test14_result1;
 
 --end_ignore
 
-CREATE LANGUAGE plpythonu;
 
 CREATE or replace FUNCTION sirv_test14_fun1 ()
   RETURNS text

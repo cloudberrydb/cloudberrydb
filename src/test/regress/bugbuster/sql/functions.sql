@@ -1,22 +1,6 @@
-drop function add_em(integer,integer);
-drop function add_em(integer,integer,integer);
-drop function add_num(x integer, y integer, OUT sum integer, OUT product integer);
-drop type sum_prod cascade;
-
-drop table bank_ac;
 drop table emp_fun cascade;
 drop table tab_sour cascade;
-drop table fun_tree;
-drop table logtable;
-drop table db;
 
-drop table stress_source;
-drop table stress_table;
-
-drop aggregate agg_point_add1(point);
-drop table agg_point_tbl;
-drop aggregate agg_point_add2(point);
-drop table agg_numeric_tbl;
 drop table if exists test;
 create table test (a integer, b integer);
 insert into test select a, a%25 from generate_series(1,100) a;

@@ -3,14 +3,6 @@
 drop database if exists tpch_heap;
 create database tpch_heap;
 \c tpch_heap
-drop table if exists customer;
-drop table if exists lineitem;
-drop table if exists nation;
-drop table if exists orders;
-drop table if exists part;
-drop table if exists partsupp;
-drop table if exists region;
-drop table if exists supplier;
 
 CREATE TABLE customer (
     c_custkey integer NOT NULL,
@@ -128,14 +120,6 @@ WITH (appendonly=false) DISTRIBUTED BY (s_suppkey);
 drop database if exists tpch_ao;
 create database tpch_ao;
 \c tpch_ao
-drop table if exists customer;
-drop table if exists lineitem;
-drop table if exists nation;
-drop table if exists orders;
-drop table if exists part;
-drop table if exists partsupp;
-drop table if exists region;
-drop table if exists supplier;
 
 CREATE TABLE customer (
     c_custkey integer NOT NULL,
@@ -247,14 +231,6 @@ WITH (appendonly=true) DISTRIBUTED BY (s_suppkey);
 drop database if exists tpch_co;
 create database tpch_co;
 \c tpch_co
-drop table if exists customer;
-drop table if exists lineitem;
-drop table if exists nation;
-drop table if exists orders;
-drop table if exists part;
-drop table if exists partsupp;
-drop table if exists region;
-drop table if exists supplier;
 
 CREATE TABLE customer (
     c_custkey integer NOT NULL ENCODING (compresstype=none,blocksize=32768,compresslevel=0),

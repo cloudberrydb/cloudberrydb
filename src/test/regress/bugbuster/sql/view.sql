@@ -1,5 +1,3 @@
-\c regression
-
 --start_ignore
 drop table if exists T3;
 drop table if exists T11;

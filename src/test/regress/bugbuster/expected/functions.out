@@ -1,35 +1,7 @@
-drop function add_em(integer,integer);
-ERROR:  function add_em(integer, integer) does not exist
-drop function add_em(integer,integer,integer);
-ERROR:  function add_em(integer, integer, integer) does not exist
-drop function add_num(x integer, y integer, OUT sum integer, OUT product integer);
-ERROR:  function add_num(integer, integer) does not exist
-drop type sum_prod cascade;
-ERROR:  type "sum_prod" does not exist
-drop table bank_ac;
-ERROR:  table "bank_ac" does not exist
 drop table emp_fun cascade;
 ERROR:  table "emp_fun" does not exist
 drop table tab_sour cascade;
 ERROR:  table "tab_sour" does not exist
-drop table fun_tree;
-ERROR:  table "fun_tree" does not exist
-drop table logtable;
-ERROR:  table "logtable" does not exist
-drop table db;
-ERROR:  table "db" does not exist
-drop table stress_source;
-ERROR:  table "stress_source" does not exist
-drop table stress_table;
-ERROR:  table "stress_table" does not exist
-drop aggregate agg_point_add1(point);
-ERROR:  aggregate agg_point_add1(point) does not exist
-drop table agg_point_tbl;
-ERROR:  table "agg_point_tbl" does not exist
-drop aggregate agg_point_add2(point);
-ERROR:  aggregate agg_point_add2(point) does not exist
-drop table agg_numeric_tbl;
-ERROR:  table "agg_numeric_tbl" does not exist
 drop table if exists test;
 create table test (a integer, b integer);
 NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Greenplum Database data distribution key for this table.
