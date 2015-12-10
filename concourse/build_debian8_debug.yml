@@ -1,0 +1,9 @@
+platform: linux
+image: docker:///yolo/orcadev#jessie
+inputs:
+- name: gpos_src
+run:
+  path: /bin/bash
+  args:
+  - gpos_src/concourse/build_and_test.bash
+  - Debug
