@@ -86,8 +86,8 @@ CTask::~CTask()
 	// suspend cancellation
 	CAutoSuspendAbort asa;
 
-	delete m_ptskctxt;
-	delete m_perrctxt;
+	GPOS_DELETE(m_ptskctxt);
+	GPOS_DELETE(m_perrctxt);
 
 	CMemoryPoolManager::Pmpm()->Destroy(m_pmp);
 }

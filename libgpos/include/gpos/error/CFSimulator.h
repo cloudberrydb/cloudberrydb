@@ -185,14 +185,14 @@ namespace gpos
 
 			// insert new tracker 
 			void AddTracker(CStackTracker::SStackKey skey);
-			
-			// dtor
-			~CFSimulator() {}
 
 		public:
 		
 			// ctor
 			CFSimulator(IMemoryPool *pmp, ULONG cResolution);
+
+			// dtor
+			~CFSimulator() {}
 
 			// determine if stack is new
 			BOOL FNewStack(ULONG ulMajor, ULONG ulMinor);

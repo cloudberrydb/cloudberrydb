@@ -135,7 +135,7 @@ CFSimulatorTest::EresUnittest_OOM()
 	GPOS_TRY
 	{
 		// attempt allocation
-		New(pmp) CHAR[1234];
+		GPOS_NEW_ARRAY(pmp, CHAR, 1234);
 	}
 	GPOS_CATCH_EX(ex)
 	{

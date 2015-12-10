@@ -171,13 +171,6 @@ namespace gpos
 				IMemoryPool *pmp
 				);
 
-			// private dtor
-			~CWorkerPoolManager()
-			{
-				GPOS_ASSERT(NULL == m_pwpm &&
-						   "Worker pool has not been shut down");
-			}
-
 			// static singleton - global instance of worker pool manager
 			static CWorkerPoolManager *m_pwpm;
 
@@ -189,6 +182,13 @@ namespace gpos
 			{
 				CWorkerId widSelf;
 				return Pwrkr(widSelf);
+			}
+
+			// dtor
+			~CWorkerPoolManager()
+			{
+				GPOS_ASSERT(NULL == m_pwpm &&
+						   "Worker pool has not been shut down");
 			}
 
 			// initialize worker pool manager

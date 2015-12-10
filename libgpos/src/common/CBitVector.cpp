@@ -71,7 +71,7 @@ CBitVector::CBitVector
 	GPOS_ASSERT(m_cUnits * BITS_PER_UNIT >= m_cBits && "Bit vector sized incorrectly");
 	
 	// allocate and clear
-	m_rgull = New(pmp) ULLONG[m_cUnits];
+	m_rgull = GPOS_NEW_ARRAY(pmp, ULLONG, m_cUnits);
 	
 	CAutoRg<ULLONG> argull;
 	argull = m_rgull;
@@ -93,7 +93,7 @@ CBitVector::CBitVector
 //---------------------------------------------------------------------------
 CBitVector::~CBitVector()
 {
-	delete[] m_rgull;
+	GPOS_DELETE_ARRAY(m_rgull);
 }
 
 
@@ -117,7 +117,7 @@ CBitVector::CBitVector
 {
 	
 	// deep copy
-	m_rgull = New(pmp) ULLONG[m_cUnits];
+	m_rgull = GPOS_NEW_ARRAY(pmp, ULLONG, m_cUnits);
 	
 	// Using auto range for cleanliness only;
 	// NOTE: 03/25/2008; strictly speaking not necessary since there is

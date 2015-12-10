@@ -115,7 +115,7 @@ CSocketListenerUDS::StartListener()
 		);
 	CheckNetError(iRes);
 
-	m_psocketListen = New(m_pmp) CSocket(afd.IFileDescr());
+	m_psocketListen = GPOS_NEW(m_pmp) CSocket(afd.IFileDescr());
 	afd.Detach();
 }
 

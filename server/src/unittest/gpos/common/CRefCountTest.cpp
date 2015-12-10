@@ -69,7 +69,7 @@ CRefCountTest::EresUnittest_CountUpAndDown()
 	IMemoryPool *pmp = amp.Pmp();
 
 	// blank ref count object
-	CRefCount *pref = New(pmp) CRefCount;
+	CRefCount *pref = GPOS_NEW(pmp) CRefCount;
 
 	// add counts
 	for (ULONG i = 0; i < 10; i++)
@@ -106,7 +106,7 @@ CRefCountTest::EresUnittest_DeletableObjects()
 
 	CAutoTraceFlag atfOOM(EtraceSimulateOOM, false);
 
-	CDeletableTest *pdt = New(pmp) CDeletableTest;
+	CDeletableTest *pdt = GPOS_NEW(pmp) CDeletableTest;
 
 	GPOS_TRY
 	{
@@ -170,10 +170,10 @@ CRefCountTest::EresUnittest_Check()
 	CAutoMemoryPool amp;
 	IMemoryPool *pmp = amp.Pmp();
 
-	BYTE *rgb = New(pmp) BYTE[128];
+	BYTE *rgb = GPOS_NEW_ARRAY(pmp, BYTE, 128);
 	CRefCount *pref = (CRefCount*)rgb;
 
-	delete [] rgb;
+	GPOS_DELETE_ARRAY(rgb);
 
 
 	// must throw

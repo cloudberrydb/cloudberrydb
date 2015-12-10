@@ -125,7 +125,7 @@ CAutoTaskProxy::Destroy
 	m_list.Remove(ptsk);
 
 	// delete task object
-	delete ptsk;
+	GPOS_DELETE(ptsk);
 }
 
 
@@ -159,17 +159,17 @@ CAutoTaskProxy::PtskCreate
 	if (NULL == ptskParent)
 	{
 		// create new task context
-		aptc = New(pmp) CTaskContext(pmp);
+		aptc = GPOS_NEW(pmp) CTaskContext(pmp);
 	}
 	else
 	{
 		// clone parent task's context
-		aptc = New(pmp) CTaskContext(pmp, *ptskParent->Ptskctxt());
+		aptc = GPOS_NEW(pmp) CTaskContext(pmp, *ptskParent->Ptskctxt());
 	}
 
 	// auto pointer to hold error context
 	CAutoP<CErrorContext> apec;
-	apec = New(pmp) CErrorContext();
+	apec = GPOS_NEW(pmp) CErrorContext();
 	CTask *ptsk = CTask::PtskSelf();
 	if (NULL != ptsk)
 	{
@@ -179,7 +179,7 @@ CAutoTaskProxy::PtskCreate
 	// auto pointer to hold new task
 	// task is created inside ATP's memory pool
 	CAutoP<CTask> apt;
-	apt = New(m_pmp) CTask(pmp, aptc.Pt(), apec.Pt(), &m_event, pfCancel);
+	apt = GPOS_NEW(m_pmp) CTask(pmp, aptc.Pt(), apec.Pt(), &m_event, pfCancel);
 
 	// reset auto pointers - task now handles task and error context
 	(void) aptc.PtReset();

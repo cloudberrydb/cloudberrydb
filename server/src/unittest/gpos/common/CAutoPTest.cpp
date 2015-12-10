@@ -69,12 +69,12 @@ CAutoPTest::EresUnittest_Basics()
 
 	// assignment
 	CAutoP<CHAR> asz;
-	CHAR *sz = New(pmp) CHAR;
+	CHAR *sz = GPOS_NEW(pmp) CHAR;
 	asz = sz;
 
 	CAutoP<CHAR> asz2;
 	CAutoP<CHAR> asz3;
-	CHAR *sz2 = New(pmp) CHAR;
+	CHAR *sz2 = GPOS_NEW(pmp) CHAR;
 
 	*sz2 = '\0';
 	asz2 = sz2;
@@ -95,9 +95,9 @@ CAutoPTest::EresUnittest_Basics()
 	asz2 = NULL;
 
 	// unhooking of object
-	delete asz3.PtReset();
+	GPOS_DELETE(asz3.PtReset());
 
-	CElem *pelem = New(pmp) CElem;
+	CElem *pelem = GPOS_NEW(pmp) CElem;
 	pelem->m_ul = 3;
 
 	CAutoP<CElem> aelem;
@@ -107,7 +107,7 @@ CAutoPTest::EresUnittest_Basics()
 	GPOS_ASSERT(pelem->m_ul == aelem->m_ul);
 
 	// c'tor
-	CAutoP<CHAR> asz4(New(pmp) CHAR);
+	CAutoP<CHAR> asz4(GPOS_NEW(pmp) CHAR);
 	*(asz4.Pt()) = 'a';
 
 	return GPOS_OK;
@@ -132,8 +132,8 @@ CAutoPTest::EresUnittest_Allocation()
 	IMemoryPool *pmp = amp.Pmp();
 
 	// allocating auto object on heap must assert
-	CAutoP<ULONG> *papt = New(pmp) CAutoP<ULONG>;
-	delete papt;
+	CAutoP<ULONG> *papt = GPOS_NEW(pmp) CAutoP<ULONG>;
+	GPOS_DELETE(papt);
 
 	return GPOS_FAILED;
 }

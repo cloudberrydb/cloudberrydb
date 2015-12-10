@@ -93,7 +93,7 @@ CMessageTest::EresUnittest_Basic
 							  CException::ExmiAssert));
 		
 	// target buffer for format test
-	WCHAR *wsz = New(pmp) WCHAR[ulSize];
+	WCHAR *wsz = GPOS_NEW_ARRAY(pmp, WCHAR, ulSize);
 	CWStringStatic wss(wsz, ulSize);
 
 	VA_LIST vl;
@@ -106,7 +106,7 @@ CMessageTest::EresUnittest_Basic
 	
 	GPOS_TRACE(wsz);
 	
-	delete[] wsz;
+	GPOS_DELETE_ARRAY(wsz);
 	
 	return GPOS_OK;
 }

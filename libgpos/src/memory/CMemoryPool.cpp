@@ -135,6 +135,18 @@ CMemoryPool::FreeAlloc
 }
 
 
+ULONG
+CMemoryPool::UlSizeOfAlloc
+	(
+	const void *pv
+	)
+{
+	GPOS_ASSERT(NULL != pv);
+
+	const SAllocHeader *pah = static_cast<const SAllocHeader*>(pv) - 1;
+	return pah->m_ulAlloc;
+}
+
 #ifdef GPOS_DEBUG
 
 //---------------------------------------------------------------------------

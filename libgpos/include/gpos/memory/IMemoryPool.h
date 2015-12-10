@@ -1,5 +1,5 @@
 //---------------------------------------------------------------------------
-//	Greenplum Database 
+//	Greenplum Database
 //	Copyright (C) 2008-2010 Greenplum Inc.
 //	Copyright (C) 2011 EMC Corp.
 //
@@ -11,7 +11,7 @@
 //		from this interface class as drop-in replacements. The interface
 //		defines New() operator that is used for dynamic memory allocation.
 //
-//	@owner: 
+//	@owner:
 //
 //	@test:
 //
@@ -58,6 +58,53 @@ namespace gpos
 			~IMemoryPool()
 			{}
 
+			// implementation of placement new with memory pool
+			void *NewImpl
+				(
+				SIZE_T cSize,
+				const CHAR *szFilename,
+				ULONG ulLine,
+				EAllocationType eat
+				);
+
+			// implementation of array-new with memory pool
+			template <typename T>
+			T* NewArrayImpl
+				(
+				SIZE_T cElements,
+				const CHAR *szFilename,
+				ULONG ulLine
+				)
+			{
+				T *rgTArray = static_cast<T*>(NewImpl(
+					sizeof(T) * cElements,
+					szFilename,
+					ulLine,
+					EatArray));
+				for (SIZE_T uIdx = 0; uIdx < cElements; ++uIdx) {
+					try {
+						new(rgTArray + uIdx) T();
+					} catch (...) {
+						// If any element's constructor throws, deconstruct
+						// previous objects and reclaim memory before rethrowing.
+						for (SIZE_T uDestroyIdx = uIdx - 1; uDestroyIdx < uIdx; --uDestroyIdx) {
+							rgTArray[uDestroyIdx].~T();
+						}
+						DeleteImpl(rgTArray, EatArray);
+						throw;
+					}
+				}
+				return rgTArray;
+			}
+
+			// delete implementation
+			static
+			void DeleteImpl
+				(
+				void *pv,
+				EAllocationType eat
+				);
+
 			// allocate memory; return NULL if the memory could not be allocated
 			virtual
 			void *PvAllocate
@@ -93,6 +140,10 @@ namespace gpos
 			// return total allocated size
 			virtual
 			ULLONG UllTotalAllocatedSize() const = 0;
+
+			// forwards to CMemoryPool implementation
+			static
+			ULONG UlSizeOfAlloc(const void *pv);
 
 #ifdef GPOS_DEBUG
 
@@ -145,44 +196,131 @@ namespace gpos
 	}
 #endif // GPOS_DEBUG
 
+// Nested detail namespace for templated helper classes.
+namespace delete_detail
+{
+
+// All-static helper class. Base version deletes unqualified pointers / arrays.
+template <typename T>
+class CDeleter {
+	public:
+		static void Delete(T* object) {
+			if (NULL == object) {
+				return;
+			}
+
+			// Invoke destructor, then free memory.
+			object->~T();
+			IMemoryPool::DeleteImpl(object, IMemoryPool::EatSingleton);
+		}
+
+		static void DeleteArray(T* object_array) {
+			if (NULL == object_array) {
+				return;
+			}
+
+			// Invoke destructor on each array element in reverse
+			// order from construction.
+			const SIZE_T cElements = IMemoryPool::UlSizeOfAlloc(object_array) / sizeof(T);
+			for (SIZE_T uIdx = cElements - 1; uIdx < cElements; --uIdx) {
+				object_array[uIdx].~T();
+			}
+
+			// Free memory.
+			IMemoryPool::DeleteImpl(object_array, IMemoryPool::EatArray);
+		}
+};
+
+// Specialization for const-qualified types.
+template <typename T>
+class CDeleter<const T> {
+	public:
+		static void Delete(const T* object) {
+			CDeleter<T>::Delete(const_cast<T*>(object));
+		}
+
+		static void DeleteArray(const T* object_array) {
+			CDeleter<T>::DeleteArray(const_cast<T*>(object_array));
+		}
+};
+
+// Specialization for volatile-qualified types.
+template <typename T>
+class CDeleter<volatile T> {
+	public:
+		static void Delete(volatile T* object) {
+			CDeleter<T>::Delete(const_cast<T*>(object));
+		}
+
+		static void DeleteArray(volatile T* object_array) {
+			CDeleter<T>::DeleteArray(const_cast<T*>(object_array));
+		}
+};
+
+}  // namespace delete_detail
+
 } // gpos
 
-// placement new definition
-#define New(pmp) new(pmp, __FILE__, __LINE__)
-
-// new implementation
-void* NewImpl
+// Overloading placement variant of singleton new operator. Used to allocate
+// arbitrary objects from an IMemoryPool. This does not affect the ordinary
+// built-in 'new', and is used only when placement-new is invoked with the
+// specific type signature defined below.
+inline void *operator new
 	(
-	gpos::IMemoryPool *pmp,
 	gpos::SIZE_T cSize,
-	const gpos::CHAR *szFilename,
-	gpos::ULONG ulLine,
-	gpos::IMemoryPool::EAllocationType eat
-	);
-
-// new implementation, no exception throwing
-void* NewImplNoThrow
-	(
 	gpos::IMemoryPool *pmp,
-	gpos::SIZE_T cSize,
 	const gpos::CHAR *szFilename,
-	gpos::ULONG ulLine,
-	gpos::IMemoryPool::EAllocationType eat
-	);
+	gpos::ULONG cLine
+	)
+{
+	return pmp->NewImpl(cSize, szFilename, cLine, gpos::IMemoryPool::EatSingleton);
+}
 
-// delte implementation
-void DeleteImpl
+// Corresponding placement variant of delete operator. Note that, for delete
+// statements in general, the compiler can not determine which overloaded
+// version of new was used to allocate memory originally, and the global
+// non-placement version is used. This placement version of 'delete' is used
+// *only* when a constructor throws an exception, and the version of 'new' is
+// known to be the one declared above.
+inline void operator delete
 	(
 	void *pv,
-	gpos::IMemoryPool::EAllocationType eat
-	);
+	gpos::IMemoryPool*,
+	const gpos::CHAR*,
+	gpos::ULONG
+	)
+{
+	// Reclaim memory after constructor throws exception.
+	gpos::IMemoryPool::DeleteImpl(pv, gpos::IMemoryPool::EatSingleton);
+}
 
-// delete implementation, no exception throwing
-void DeleteImplNoThrow
-	(
-	void *pv,
-	gpos::IMemoryPool::EAllocationType eat
-	);
+// Placement new-style macro to do 'new' with a memory pool. Anything allocated
+// with this *must* be deleted by GPOS_DELETE, *not* the ordinary delete
+// operator.
+#define GPOS_NEW(pmp) new(pmp, __FILE__, __LINE__)
+
+// Replacement for array-new. Conceptually equivalent to
+// 'new(pmp) datatype[count]'. Any arrays allocated with this *must* be deleted
+// by GPOS_DELETE_ARRAY, *not* the ordinary delete[] operator.
+//
+// NOTE: Unlike singleton new, we do not overload the built-in new operator for
+// arrays, because when we do so the C++ compiler adds its own book-keeping
+// information to the allocation in a non-portable way such that we can not
+// recover GPOS' own book-keeping information reliably.
+#define GPOS_NEW_ARRAY(pmp, datatype, count) \
+	pmp->NewArrayImpl<datatype>(count, __FILE__, __LINE__)
+
+// Delete a singleton object allocated by GPOS_NEW().
+template <typename T>
+void GPOS_DELETE(T* object) {
+	::gpos::delete_detail::CDeleter<T>::Delete(object);
+}
+
+// Delete an array allocated by GPOS_NEW_ARRAY().
+template <typename T>
+void GPOS_DELETE_ARRAY(T* object_array) {
+	::gpos::delete_detail::CDeleter<T>::DeleteArray(object_array);
+}
 
 
 #endif // !GPOS_IMemoryPool_H

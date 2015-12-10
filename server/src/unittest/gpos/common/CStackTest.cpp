@@ -70,7 +70,7 @@ CStackTest::EresUnittest_Basic()
 
 	CHAR rgsz[][9] = {"abc", "def", "ghi", "qwe", "wer", "wert", "dfg", "xcv", "zxc"};
 	CStack<CHAR> *pstk =
-		New(pmp) CStack<CHAR> (pmp, 4);
+		GPOS_NEW(pmp) CStack<CHAR> (pmp, 4);
 
 	// add elements incl trigger resize of array
 	for (ULONG i = 0; i < 9; i++)
@@ -92,7 +92,7 @@ CStackTest::EresUnittest_Basic()
 	
 	GPOS_ASSERT(idx == 9 && "Stack is not empty!");
 		
-	delete pstk;
+	GPOS_DELETE(pstk);
 	
 	return GPOS_OK;
 }
@@ -114,7 +114,7 @@ CStackTest::EresUnittest_PushPop()
 	IMemoryPool *pmp = amp.Pmp();
 
 	ULONG rgul[4] = {1,2,3,4};
-	CStack<ULONG> *pstk = New(pmp) CStack<ULONG> (pmp, 4);
+	CStack<ULONG> *pstk = GPOS_NEW(pmp) CStack<ULONG> (pmp, 4);
 	
 	// scope for auto trace
 	{
@@ -151,7 +151,7 @@ CStackTest::EresUnittest_PushPop()
 		GPOS_ASSERT(ul == rgul[0]);
 	}
 	
-	delete pstk;
+	GPOS_DELETE(pstk);
 	
 	return GPOS_OK;
 }
@@ -177,7 +177,7 @@ CStackTest::EresUnittest_Pop()
 	ULONG rgsz[] = {1, 2, 3, 4};
 
 	CStack<ULONG> *pstk =
-		New(pmp) CStack<ULONG> (pmp, 4);
+		GPOS_NEW(pmp) CStack<ULONG> (pmp, 4);
 
 	CAutoP<CStack<ULONG> > cAP;
 	cAP = pstk;

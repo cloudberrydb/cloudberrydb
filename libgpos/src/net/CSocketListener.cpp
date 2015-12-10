@@ -59,10 +59,10 @@ CSocketListener::~CSocketListener()
 	while (!m_listSockets.FEmpty())
 	{
 		CSocket *psocket = m_listSockets.RemoveHead();
-		delete psocket;
+		GPOS_DELETE(psocket);
 	}
 
-	delete m_psocketListen;
+	GPOS_DELETE(m_psocketListen);
 }
 
 
@@ -78,7 +78,7 @@ CSocket *
 CSocketListener::PsocketNext()
 {
 	CAutoFileDescriptor afd(ISocketFdNext());
-	CSocket *psocket = New(m_pmp) CSocket(afd.IFileDescr(), this);
+	CSocket *psocket = GPOS_NEW(m_pmp) CSocket(afd.IFileDescr(), this);
 
 	// scope for spinlock locking
 	{
@@ -114,7 +114,7 @@ CSocketListener::Release
 		m_listSockets.Remove(psocket);
 	}
 
-	delete psocket;
+	GPOS_DELETE(psocket);
 }
 
 

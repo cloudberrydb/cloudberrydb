@@ -61,7 +61,7 @@ CMessageTableTest::EresUnittest_Basic()
 	CAutoMemoryPool amp;
 	IMemoryPool *pmp = amp.Pmp();
 
-	CMessageTable *pmt = New(pmp) 
+	CMessageTable *pmt = GPOS_NEW(pmp)
 		CMessageTable(pmp, GPOS_MSGTAB_SIZE, ElocEnUS_Utf8);
 	
 	// insert all system messages
@@ -79,7 +79,7 @@ CMessageTableTest::EresUnittest_Basic()
 		}
 	}
 		
-	delete pmt;
+	GPOS_DELETE(pmt);
 	
 	return GPOS_OK;
 }

@@ -127,7 +127,7 @@ namespace gpos
 	{
 		GPOS_ASSERT(ulSize > 0);
 		
-		m_ppdrgchain = New(m_pmp) DrgHashChain*[m_ulSize];
+		m_ppdrgchain = GPOS_NEW_ARRAY(m_pmp, DrgHashChain*, m_ulSize);
 		(void) clib::PvMemSet(m_ppdrgchain, 0, m_ulSize * sizeof(DrgHashChain*));
 	}
 
@@ -150,7 +150,7 @@ namespace gpos
 		// release all hash chains
 		Clear();
 		
-		delete[] m_ppdrgchain;
+		GPOS_DELETE_ARRAY(m_ppdrgchain);
 	}
 
 
@@ -208,10 +208,10 @@ namespace gpos
 		DrgHashChain **ppdrgchain = PpdrgChain(pk);
 		if (NULL == *ppdrgchain)
 		{
-			*ppdrgchain = New(m_pmp) DrgHashChain(m_pmp);
+			*ppdrgchain = GPOS_NEW(m_pmp) DrgHashChain(m_pmp);
 		}
 		
-		CHashMapElem *phme = New(m_pmp) CHashMapElem(pk, pt, true /*fOwn*/);
+		CHashMapElem *phme = GPOS_NEW(m_pmp) CHashMapElem(pk, pt, true /*fOwn*/);
 		(*ppdrgchain)->Append(phme);
 		
 		m_ulEntries++;

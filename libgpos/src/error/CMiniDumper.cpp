@@ -77,7 +77,7 @@ CMiniDumper::~CMiniDumper()
 			);
 	}
 
-	delete[] m_wszBuffer;
+	GPOS_DELETE_ARRAY(m_wszBuffer);
 }
 
 
@@ -96,7 +96,7 @@ CMiniDumper::Init()
 	GPOS_ASSERT(!m_fFinal);
 	GPOS_ASSERT(NULL == m_wszBuffer);
 
-	m_wszBuffer = New(m_pmp) WCHAR[m_ulpCapacity];
+	m_wszBuffer = GPOS_NEW_ARRAY(m_pmp, WCHAR, m_ulpCapacity);
 
 	CTask *ptsk = CTask::PtskSelf();
 

@@ -101,7 +101,7 @@ CWStringDynamic::Reset()
 {
 	if (NULL != m_wszBuf && &m_wcEmpty != m_wszBuf)
 	{
-		delete[] m_wszBuf;
+		GPOS_DELETE_ARRAY(m_wszBuf);
 	}
 
 	m_wszBuf = const_cast<WCHAR *>(&m_wcEmpty);
@@ -186,7 +186,7 @@ CWStringDynamic::AppendCharArray
 	{
 		IncreaseCapacity(ulNewLength);
 	}
-	WCHAR *wszBuf = New(m_pmp) WCHAR[ulLength + 1];
+	WCHAR *wszBuf = GPOS_NEW_ARRAY(m_pmp, WCHAR, ulLength + 1);
 
 	// convert input string to wide character buffer
 #ifdef GPOS_DEBUG
@@ -197,7 +197,7 @@ CWStringDynamic::AppendCharArray
 
 	// append input string to current end of buffer
 	(void) clib::WszWMemCpy(m_wszBuf + m_ulLength, wszBuf, ulLength + 1);
-	delete [] wszBuf;
+	GPOS_DELETE_ARRAY(wszBuf);
 
 	m_wszBuf[ulNewLength] = WCHAR_EOS;
 	m_ulLength = ulNewLength;
@@ -252,7 +252,7 @@ CWStringDynamic::AppendFormat
 		// try with a bigger buffer this time
 		ulSize *= 2;
 		CAutoRg<WCHAR> a_wszBuf;
-		a_wszBuf = New(m_pmp) WCHAR[ulSize + 1];
+		a_wszBuf = GPOS_NEW_ARRAY(m_pmp, WCHAR, ulSize + 1);
 
 		// get arguments
 		VA_START(vaArgs, wszFormat);
@@ -373,7 +373,7 @@ CWStringDynamic::IncreaseCapacity
 	GPOS_ASSERT(ulCapacity >= (m_ulCapacity << 1));
 
 	CAutoRg<WCHAR> a_wszNewBuf;
-	a_wszNewBuf = New(m_pmp) WCHAR[ulCapacity];
+	a_wszNewBuf = GPOS_NEW_ARRAY(m_pmp, WCHAR, ulCapacity);
 	if (0 < m_ulLength)
 	{
 		// current string is not empty: copy it to the resulting string
@@ -383,7 +383,7 @@ CWStringDynamic::IncreaseCapacity
 	// release old buffer
 	if (m_wszBuf != &m_wcEmpty)
 	{
-		delete[] m_wszBuf;
+		GPOS_DELETE_ARRAY(m_wszBuf);
 	}
 	m_wszBuf = a_wszNewBuf.RgtReset();
 	m_ulCapacity = ulCapacity;

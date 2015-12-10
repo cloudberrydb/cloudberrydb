@@ -35,7 +35,7 @@ namespace gpos
 		)
 		: m_ulSize(0)
 	{
-		m_dpa = New(pmp) CDynamicPtrArray<T, CleanupNULL>(pmp, ulMinSize, 10);
+		m_dpa = GPOS_NEW(pmp) CDynamicPtrArray<T, CleanupNULL>(pmp, ulMinSize, 10);
 	}
 	
 	//---------------------------------------------------------------------------

@@ -105,16 +105,10 @@ OBJDIR_DEFAULT = .obj.$(UNAME_ALL)$(ARCH_FLAGS).$(BLD_TYPE)
 
 # shared lib support -- version and compat version to be provided by the including Makefile
 ifeq (Darwin, $(UNAME))
-	LDLIBFLAGS = -dynamiclib -flat_namespace -undefined dynamic_lookup -Wl,-unexported_symbols_list -Wl,unexported_symbols_list.txt -current_version $(LIB_VERSION).$(BLD_VERSION) -compatibility_version $(LIB_COMPAT_VERSION) $(LDLIBS) $(LDFLAGS)
+	LDLIBFLAGS = -dynamiclib -flat_namespace -undefined dynamic_lookup -current_version $(LIB_VERSION).$(BLD_VERSION) -compatibility_version $(LIB_COMPAT_VERSION) $(LDLIBS) $(LDFLAGS)
 	LDSFX = dylib
 else
-
-ifeq (Linux, $(UNAME))
-	LDLIBFLAGS = -shared  -Wl,--version-script=library.ver
-else
 	LDLIBFLAGS = -shared
-endif
-	
 	LDSFX = so
 endif
 

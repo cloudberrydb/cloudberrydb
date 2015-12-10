@@ -212,7 +212,7 @@ CBitVectorTest::EresUnittest_Random()
 
 	// set up control vector
 	ULONG cTotal = 10000;
-	CHAR *rg = New(pmp) CHAR[cTotal];
+	CHAR *rg = GPOS_NEW_ARRAY(pmp, CHAR, cTotal);
 	
 	CRandom rand;
 	
@@ -247,7 +247,7 @@ CBitVectorTest::EresUnittest_Random()
 	}
 
 	GPOS_ASSERT(0 == cElements);
-	delete [] rg;
+	GPOS_DELETE_ARRAY(rg);
 
 	return GPOS_OK;
 }

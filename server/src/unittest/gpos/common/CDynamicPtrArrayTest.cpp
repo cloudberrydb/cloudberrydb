@@ -70,7 +70,7 @@ CDynamicPtrArrayTest::EresUnittest_Basic()
 	const CHAR *szMissingElem = "missing";
 	
 	CDynamicPtrArray<CHAR, CleanupNULL<CHAR> > *pdrg =
-		New(pmp) CDynamicPtrArray<CHAR, CleanupNULL<CHAR> > (pmp, 2);
+		GPOS_NEW(pmp) CDynamicPtrArray<CHAR, CleanupNULL<CHAR> > (pmp, 2);
 
 	// add elements incl trigger resize of array
 	for (ULONG i = 0; i < 9; i++)
@@ -108,7 +108,7 @@ CDynamicPtrArrayTest::EresUnittest_Basic()
 	// test with ULONG array
 
 	typedef CDynamicPtrArray<ULONG, CleanupNULL<ULONG> > DrgULONG;
-	DrgULONG *pdrgULONG = New(pmp) DrgULONG(pmp, 1);
+	DrgULONG *pdrgULONG = GPOS_NEW(pmp) DrgULONG(pmp, 1);
 	ULONG c = 256;
 
 	// safe length test
@@ -160,12 +160,12 @@ CDynamicPtrArrayTest::EresUnittest_Ownership()
 	// test with ULONGs
 
 	typedef CDynamicPtrArray<ULONG, CleanupDelete<ULONG> > DrgULONG;
-	DrgULONG *pdrgULONG = New(pmp) DrgULONG(pmp, 1);
+	DrgULONG *pdrgULONG = GPOS_NEW(pmp) DrgULONG(pmp, 1);
 
 	// add elements incl trigger resize of array
 	for (ULONG k = 0; k < 256; k++)
 	{
-		ULONG *pul = New(pmp) ULONG;
+		ULONG *pul = GPOS_NEW(pmp) ULONG;
 		pdrgULONG->Append(pul);
 		GPOS_ASSERT(k + 1 == pdrgULONG->UlLength());
 		GPOS_ASSERT(pul == (*pdrgULONG)[k]);
@@ -176,12 +176,12 @@ CDynamicPtrArrayTest::EresUnittest_Ownership()
 	// test with CHAR array
 
 	typedef CDynamicPtrArray<CHAR, CleanupDeleteRg<CHAR> > DrgCHAR;
-	DrgCHAR *pdrgCHAR = New(pmp) DrgCHAR(pmp, 2);
+	DrgCHAR *pdrgCHAR = GPOS_NEW(pmp) DrgCHAR(pmp, 2);
 
 	// add elements incl trigger resize of array
 	for (ULONG i = 0; i < 3; i++)
 	{
-		CHAR *sz = New(pmp) CHAR[5];
+		CHAR *sz = GPOS_NEW_ARRAY(pmp, CHAR, 5);
 		pdrgCHAR->Append(sz);
 		GPOS_ASSERT(i + 1 == pdrgCHAR->UlLength());
 		GPOS_ASSERT(sz == (*pdrgCHAR)[i]);
@@ -216,13 +216,13 @@ CDynamicPtrArrayTest::EresUnittest_ArrayAppend()
 	ULONG cVal = 0;
 
 	// array with 1 element
-	DrgULONG *pdrgULONG1 = New(pmp) DrgULONG(pmp, 1);
+	DrgULONG *pdrgULONG1 = GPOS_NEW(pmp) DrgULONG(pmp, 1);
 	pdrgULONG1->Append(&cVal);
 	GPOS_ASSERT(1 == pdrgULONG1->UlLength());
 
 	// array with x elements
 	ULONG cX = 1000;
-	DrgULONG *pdrgULONG2 = New(pmp) DrgULONG(pmp, 1);
+	DrgULONG *pdrgULONG2 = GPOS_NEW(pmp) DrgULONG(pmp, 1);
 	for(ULONG i = 0; i < cX; i++)
 	{
 		pdrgULONG2->Append(&cX);
@@ -265,13 +265,13 @@ CDynamicPtrArrayTest::EresUnittest_ArrayAppendExactFit()
 	ULONG cVal = 0;
 
 	// array with 1 element
-	DrgULONG *pdrgULONG1 = New(pmp) DrgULONG(pmp, 10);
+	DrgULONG *pdrgULONG1 = GPOS_NEW(pmp) DrgULONG(pmp, 10);
 	pdrgULONG1->Append(&cVal);
 	GPOS_ASSERT(1 == pdrgULONG1->UlLength());
 
 	// array with x elements
 	ULONG cX = 9;
-	DrgULONG *pdrgULONG2 = New(pmp) DrgULONG(pmp, 15);
+	DrgULONG *pdrgULONG2 = GPOS_NEW(pmp) DrgULONG(pmp, 15);
 	for(ULONG i = 0; i < cX; i++)
 	{
 		pdrgULONG2->Append(&cX);
@@ -286,7 +286,7 @@ CDynamicPtrArrayTest::EresUnittest_ArrayAppendExactFit()
 		GPOS_ASSERT((*pdrgULONG1)[j + 1] == (*pdrgULONG2)[j]);
 	}
 
-	DrgULONG *pdrgULONG3 = New(pmp) DrgULONG(pmp, 15);
+	DrgULONG *pdrgULONG3 = GPOS_NEW(pmp) DrgULONG(pmp, 15);
 	pdrgULONG1->AppendArray(pdrgULONG3);
 	GPOS_ASSERT(cX + 1 == pdrgULONG1->UlLength());
 
@@ -315,14 +315,14 @@ CDynamicPtrArrayTest::EresUnittest_PdrgpulSubsequenceIndexes()
 	IMemoryPool *pmp = amp.Pmp();
 
 	// the array containing elements to look up
-	DrgULONG *pdrgULONGLookup = New(pmp) DrgULONG(pmp);
+	DrgULONG *pdrgULONGLookup = GPOS_NEW(pmp) DrgULONG(pmp);
 
 	// the array containing the target elements that will give the positions
-	DrgULONG *pdrgULONGTarget = New(pmp) DrgULONG(pmp);
+	DrgULONG *pdrgULONGTarget = GPOS_NEW(pmp) DrgULONG(pmp);
 
-	ULONG *pul1 = New(pmp) ULONG(10);
-	ULONG *pul2 = New(pmp) ULONG(20);
-	ULONG *pul3 = New(pmp) ULONG(30);
+	ULONG *pul1 = GPOS_NEW(pmp) ULONG(10);
+	ULONG *pul2 = GPOS_NEW(pmp) ULONG(20);
+	ULONG *pul3 = GPOS_NEW(pmp) ULONG(30);
 
 	pdrgULONGLookup->Append(pul1);
 	pdrgULONGLookup->Append(pul2);
@@ -349,9 +349,9 @@ CDynamicPtrArrayTest::EresUnittest_PdrgpulSubsequenceIndexes()
 	GPOS_ASSERT(1 == *(*pdrgpulIndexes)[2]);
 	GPOS_ASSERT(1 == *(*pdrgpulIndexes)[3]);
 
-	delete pul1;
-	delete pul2;
-	delete pul3;
+	GPOS_DELETE(pul1);
+	GPOS_DELETE(pul2);
+	GPOS_DELETE(pul3);
 	pdrgpulIndexes->Release();
 	pdrgULONGTarget->Release();
 	pdrgULONGLookup->Release();

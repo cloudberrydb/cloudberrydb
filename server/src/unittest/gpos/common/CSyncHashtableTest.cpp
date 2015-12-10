@@ -97,7 +97,7 @@ CSyncHashtableTest::EresUnittest_Basics()
 	CAutoMemoryPool amp;
 	IMemoryPool *pmp = amp.Pmp();
 
-	SElem *rgelem = New(pmp) SElem[GPOS_SHT_ELEMENTS];
+	SElem *rgelem = GPOS_NEW_ARRAY(pmp, SElem, GPOS_SHT_ELEMENTS);
 	CSyncHashtable<SElem, ULONG, CSpinlockDummy> sht;
 	sht.Init
 		(
@@ -116,7 +116,7 @@ CSyncHashtableTest::EresUnittest_Basics()
 		sht.Insert(&rgelem[i]);
 	}
 
-	delete [] rgelem;
+	GPOS_DELETE_ARRAY(rgelem);
 
 	return GPOS_OK;
 }
@@ -137,7 +137,7 @@ CSyncHashtableTest::EresUnittest_Accessor()
 	CAutoMemoryPool amp;
 	IMemoryPool *pmp = amp.Pmp();
 
-	SElem *rgelem = New(pmp) SElem[GPOS_SHT_ELEMENTS];
+	SElem *rgelem = GPOS_NEW_ARRAY(pmp, SElem, GPOS_SHT_ELEMENTS);
 
 	CSyncHashtable<SElem, ULONG, CSpinlockDummy> rgsht[2];
 
@@ -217,7 +217,7 @@ CSyncHashtableTest::EresUnittest_Accessor()
 		GPOS_ASSERT(pelem == shtacc0.PtLookup());
 	}
 
-	delete [] rgelem;
+	GPOS_DELETE_ARRAY(rgelem);
 
 	return GPOS_OK;
 }
@@ -238,7 +238,7 @@ CSyncHashtableTest::EresUnittest_ComplexEquality()
 	CAutoMemoryPool amp;
 	IMemoryPool *pmp = amp.Pmp();
 
-	SElem *rgelem = New(pmp) SElem[GPOS_SHT_ELEMENTS];
+	SElem *rgelem = GPOS_NEW_ARRAY(pmp, SElem, GPOS_SHT_ELEMENTS);
 
 	CSyncHashtable<SElem, SElem, CSpinlockDummy> sht;
 	sht.Init
@@ -275,7 +275,7 @@ CSyncHashtableTest::EresUnittest_ComplexEquality()
 
 	}
 
-	delete [] rgelem;
+	GPOS_DELETE_ARRAY(rgelem);
 
 	return GPOS_OK;
 }
@@ -297,7 +297,7 @@ CSyncHashtableTest::EresUnittest_SameKeyIteration()
 	IMemoryPool *pmp = amp.Pmp();
 
 	const ULONG ulSize = GPOS_SHT_ELEMENTS * GPOS_SHT_ELEMENT_DUPLICATES;
-	SElem *rgelem = New(pmp) SElem[ulSize];
+	SElem *rgelem = GPOS_NEW_ARRAY(pmp, SElem, ulSize);
 
 	SElemHashtable sht;
 
@@ -339,7 +339,7 @@ CSyncHashtableTest::EresUnittest_SameKeyIteration()
 
 	}
 
-	delete [] rgelem;
+	GPOS_DELETE_ARRAY(rgelem);
 
 	return GPOS_OK;
 }
@@ -360,7 +360,7 @@ CSyncHashtableTest::EresUnittest_NonConcurrentIteration()
 	CAutoMemoryPool amp;
 	IMemoryPool *pmp = amp.Pmp();
 
-	SElem *rgelem = New(pmp) SElem[GPOS_SHT_ELEMENTS];
+	SElem *rgelem = GPOS_NEW_ARRAY(pmp, SElem, GPOS_SHT_ELEMENTS);
 
 	SElemHashtable sht;
 
@@ -421,7 +421,7 @@ CSyncHashtableTest::EresUnittest_NonConcurrentIteration()
 
 	GPOS_ASSERT(ulCount == GPOS_SHT_ELEMENTS);
 
-	delete [] rgelem;
+	GPOS_DELETE_ARRAY(rgelem);
 
 	return GPOS_OK;
 }
@@ -442,7 +442,7 @@ CSyncHashtableTest::EresUnittest_ConcurrentIteration()
 	CAutoMemoryPool amp;
 	IMemoryPool *pmp = amp.Pmp();
 
-	SElem *rgelem = New(pmp) SElem[GPOS_SHT_ELEMENTS];
+	SElem *rgelem = GPOS_NEW_ARRAY(pmp, SElem, GPOS_SHT_ELEMENTS);
 
 	SElemHashtable sht;
 
@@ -483,7 +483,7 @@ CSyncHashtableTest::EresUnittest_ConcurrentIteration()
 	// test concurrent iteration again
 	PvUnittest_IteratorsRun(pmp, sht, rgelem, ulRemoved);
 
-	delete [] rgelem;
+	GPOS_DELETE_ARRAY(rgelem);
 
 	return GPOS_OK;
 }
@@ -641,7 +641,7 @@ CSyncHashtableTest::EresUnittest_Concurrency()
 		SElem::FEqualKeys
 		);
 
-	SElem *rgelem = New(pmp) SElem[GPOS_SHT_ELEMENTS];
+	SElem *rgelem = GPOS_NEW_ARRAY(pmp, SElem, GPOS_SHT_ELEMENTS);
 
 	// insert an initial set of elements in hash table
 	for (ULONG i = 0; i < GPOS_SHT_ELEMENTS; i ++)
@@ -702,7 +702,7 @@ CSyncHashtableTest::EresUnittest_Concurrency()
 
 	}
 
-	delete [] rgelem;
+	GPOS_DELETE_ARRAY(rgelem);
 
 	return GPOS_OK;
 }

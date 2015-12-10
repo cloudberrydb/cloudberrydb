@@ -70,8 +70,8 @@ CSlabCache::CSlabCache
 	CAutoP<SlabList> a_pslablistActive;
 	CAutoP<SlabList> a_pslablistAllocated;
 
-	a_pslablistActive = New(m_pmp) SlabList();
-	a_pslablistAllocated = New(m_pmp) SlabList();
+	a_pslablistActive = GPOS_NEW(m_pmp) SlabList();
+	a_pslablistAllocated = GPOS_NEW(m_pmp) SlabList();
 
 	a_pslablistActive.Pt()->Init(GPOS_OFFSET(CSlab, m_linkActive));
 	a_pslablistAllocated.Pt()->Init(GPOS_OFFSET(CSlab, m_linkAllocated));
@@ -211,8 +211,8 @@ CSlabCache::Teardown()
 		}
 
 		// release slab lists
-		delete m_pslablistAllocated;
-		delete m_pslablistActive;
+		GPOS_DELETE(m_pslablistAllocated);
+		GPOS_DELETE(m_pslablistActive);
 
 		m_fTornDown = true;
 	}

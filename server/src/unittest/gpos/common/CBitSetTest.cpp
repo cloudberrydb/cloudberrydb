@@ -65,7 +65,7 @@ CBitSetTest::EresUnittest_Basics()
 	IMemoryPool *pmp = amp.Pmp();
 
 	ULONG cSizeBits = 32;
-	CBitSet *pbs = New(pmp) CBitSet(pmp, cSizeBits);
+	CBitSet *pbs = GPOS_NEW(pmp) CBitSet(pmp, cSizeBits);
 
 	ULONG cInserts = 10;
 	for (ULONG i = 0; i < cInserts; i += 2)
@@ -82,7 +82,7 @@ CBitSetTest::EresUnittest_Basics()
 	}
 	GPOS_ASSERT(cInserts == pbs->CElements());
 
-	CBitSet *pbsCopy = New(pmp) CBitSet(pmp, *pbs);
+	CBitSet *pbsCopy = GPOS_NEW(pmp) CBitSet(pmp, *pbs);
 	GPOS_ASSERT(pbsCopy->FEqual(pbs));
 
 	// delete old bitset to make sure we're not accidentally
@@ -122,8 +122,8 @@ CBitSetTest::EresUnittest_Removal()
 	IMemoryPool *pmp = amp.Pmp();
 
 	ULONG cSizeBits = 32;
-	CBitSet *pbs = New(pmp) CBitSet(pmp, cSizeBits);
-	CBitSet *pbsEmpty = New(pmp) CBitSet(pmp, cSizeBits);
+	CBitSet *pbs = GPOS_NEW(pmp) CBitSet(pmp, cSizeBits);
+	CBitSet *pbsEmpty = GPOS_NEW(pmp) CBitSet(pmp, cSizeBits);
 
 	GPOS_ASSERT(pbs->FEqual(pbsEmpty));
 	GPOS_ASSERT(pbsEmpty->FEqual(pbs));
@@ -172,18 +172,18 @@ CBitSetTest::EresUnittest_SetOps()
 	ULONG cSizeBits = 32;
 	ULONG cInserts = 10;
 
-	CBitSet *pbs1 = New(pmp) CBitSet(pmp, cSizeBits);
+	CBitSet *pbs1 = GPOS_NEW(pmp) CBitSet(pmp, cSizeBits);
 	for (ULONG i = 0; i < cInserts; i += 2)
 	{
 		pbs1->FExchangeSet(i * cSizeBits);
 	}
 
-	CBitSet *pbs2 = New(pmp) CBitSet(pmp, cSizeBits);
+	CBitSet *pbs2 = GPOS_NEW(pmp) CBitSet(pmp, cSizeBits);
 	for (ULONG i = 1; i < cInserts; i += 2)
 	{
 		pbs2->FExchangeSet(i * cSizeBits);
 	}
-	CBitSet *pbs = New(pmp) CBitSet(pmp, cSizeBits);
+	CBitSet *pbs = GPOS_NEW(pmp) CBitSet(pmp, cSizeBits);
 
 	pbs->Union(pbs1);
 	GPOS_ASSERT(pbs->FEqual(pbs1));
@@ -233,13 +233,13 @@ CBitSetTest::EresUnittest_Performance()
 	IMemoryPool *pmp = amp.Pmp();
 	
 	ULONG cSizeBits = 512;
-	CBitSet *pbsBase = New(pmp) CBitSet(pmp, cSizeBits);
+	CBitSet *pbsBase = GPOS_NEW(pmp) CBitSet(pmp, cSizeBits);
 	for (ULONG i = 0; i < cSizeBits; i++)
 		{
 			(void) pbsBase->FExchangeSet(i);
 		}
 
-	CBitSet *pbsTest = New(pmp) CBitSet(pmp, cSizeBits);
+	CBitSet *pbsTest = GPOS_NEW(pmp) CBitSet(pmp, cSizeBits);
 	for (ULONG j = 0; j < 100000; j++)
 	{
 		ULONG cRandomBits = 16;

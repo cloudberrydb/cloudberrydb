@@ -113,7 +113,7 @@ CSocketConnectorUDS::Connect()
 		GPOS_CHECK_ABORT;
 	}
 
-	m_psocket = New(m_pmp) CSocket(afd.IFileDescr());
+	m_psocket = GPOS_NEW(m_pmp) CSocket(afd.IFileDescr());
 	afd.Detach();
 }
 

@@ -236,7 +236,7 @@ CSpinlockTest::EresUnittest_Allocation()
 		CAutoSpinlock alock(slock);
 		alock.Lock();
 
-		New(pmp) BYTE[10];
+		GPOS_NEW_ARRAY(pmp, BYTE, 10);
 	}
 
 	return GPOS_FAILED;

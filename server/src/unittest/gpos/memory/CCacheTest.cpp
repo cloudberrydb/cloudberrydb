@@ -211,7 +211,7 @@ CCacheTest::CDeepObject::AddEntry
 	ULONG ulVal
 	)
 {
-	m_list.Prepend(New(pmp) SDeepObjectEntry (ulKey, ulVal));
+	m_list.Prepend(GPOS_NEW(pmp) SDeepObjectEntry (ulKey, ulVal));
 }
 
 
@@ -241,7 +241,7 @@ CCacheTest::EresUnittest_Basic()
 	{
 		CSimpleObjectCacheAccessor ca(pcache);
 
-		SSimpleObject *pso = New(ca.Pmp()) SSimpleObject(1, 2);
+		SSimpleObject *pso = GPOS_NEW(ca.Pmp()) SSimpleObject(1, 2);
 
 #ifdef GPOS_DEBUG
 		SSimpleObject *psoReturned =
@@ -256,7 +256,7 @@ CCacheTest::EresUnittest_Basic()
 		if (pcache->FUnique())
 		{
 			CSimpleObjectCacheAccessor ca(pcache);
-			SSimpleObject *psoDuplicate = New(ca.Pmp()) SSimpleObject(1, 5);
+			SSimpleObject *psoDuplicate = GPOS_NEW(ca.Pmp()) SSimpleObject(1, 5);
 
 #ifdef GPOS_DEBUG
 			SSimpleObject *psoReturned =
@@ -334,7 +334,7 @@ CCacheTest::InsertOneElement(CCache *pCache, ULONG ulKey)
 	{
 		CSimpleObjectCacheAccessor ca(pCache);
 		IMemoryPool *pmp = ca.Pmp();
-		SSimpleObject *pso = New(pmp) SSimpleObject(ulKey, ulKey);
+		SSimpleObject *pso = GPOS_NEW(pmp) SSimpleObject(ulKey, ulKey);
 		ca.PtInsert(&(pso->m_ulKey), pso);
 		return pmp->UllTotalAllocatedSize();
 	}
@@ -572,7 +572,7 @@ CCacheTest::EresInsertDuplicates
 		for (ULONG j = 0; j < ulDuplicates; j++)
 		{
 			CSimpleObjectCacheAccessor ca(pcache);
-			SSimpleObject *pso = New(ca.Pmp()) SSimpleObject(i, j);
+			SSimpleObject *pso = GPOS_NEW(ca.Pmp()) SSimpleObject(i, j);
 
 #ifdef GPOS_DEBUG
 			SSimpleObject *psoReturned =
@@ -660,7 +660,7 @@ CCacheTest::EresUnittest_DeepObject()
 	CAutoMemoryPool amp(CAutoMemoryPool::ElcNone);
 
 	// construct a key
-	CDeepObject *pdoDummy = New(amp.Pmp()) CDeepObject();
+	CDeepObject *pdoDummy = GPOS_NEW(amp.Pmp()) CDeepObject();
 	pdoDummy->AddEntry(amp.Pmp(), 1, 1);
 	pdoDummy->AddEntry(amp.Pmp(), 2, 2);
 
@@ -679,7 +679,7 @@ CCacheTest::EresUnittest_DeepObject()
 	{
 		CDeepObjectCacheAccessor ca(pcache);
 		IMemoryPool *pmp = ca.Pmp();
-		CDeepObject *pdo = New(pmp) CDeepObject();
+		CDeepObject *pdo = GPOS_NEW(pmp) CDeepObject();
 		pdo->AddEntry(pmp, 1, 1);
 		pdo->AddEntry(pmp, 2, 2);
 
@@ -696,7 +696,7 @@ CCacheTest::EresUnittest_DeepObject()
 		{
 			CDeepObjectCacheAccessor ca(pcache);
 			IMemoryPool *pmp = ca.Pmp();
-			CDeepObject *pdoDuplicate = New(pmp) CDeepObject();
+			CDeepObject *pdoDuplicate = GPOS_NEW(pmp) CDeepObject();
 			pdoDuplicate->AddEntry(pmp, 1, 5);
 			pdoDuplicate->AddEntry(pmp, 2, 5);
 

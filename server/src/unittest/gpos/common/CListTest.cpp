@@ -68,7 +68,7 @@ CListTest::EresUnittest_Basics()
 	listBwd.Init(GPOS_OFFSET(SElem, m_linkBwd));
 
 	ULONG cSize = 10;
-	SElem *rgelem = New(pmp) SElem[cSize];
+	SElem *rgelem = GPOS_NEW_ARRAY(pmp, SElem, cSize);
 
 	GPOS_ASSERT(0 == listFwd.UlSize());
 	GPOS_ASSERT(0 == listBwd.UlSize());
@@ -116,7 +116,7 @@ CListTest::EresUnittest_Basics()
 	GPOS_ASSERT(NULL == listFwd.PtLast());
 	GPOS_ASSERT(0 == listFwd.UlSize());
 
-	delete[] rgelem;
+	GPOS_DELETE_ARRAY(rgelem);
 	return GPOS_OK;
 }
 
@@ -145,7 +145,7 @@ CListTest::EresUnittest_Navigate()
 	listBwd.Init(GPOS_OFFSET(SElem, m_linkBwd));
 
 	ULONG cSize = 10;
-	SElem *rgelem = New(pmp) SElem[cSize];
+	SElem *rgelem = GPOS_NEW_ARRAY(pmp, SElem, cSize);
 
 	// insert all elements in reverse order,
 	// i.e. list is in same order as array
@@ -179,7 +179,7 @@ CListTest::EresUnittest_Navigate()
 	}
 	GPOS_ASSERT(NULL == pelem);
 
-	delete[] rgelem;
+	GPOS_DELETE_ARRAY(rgelem);
 	return GPOS_OK;
 }
 
@@ -204,7 +204,7 @@ CListTest::EresUnittest_Cursor()
 	list.Init(GPOS_OFFSET(SElem, m_linkFwd));
 
 	ULONG cSize = 5;
-	SElem *rgelem = New(pmp) SElem[cSize];
+	SElem *rgelem = GPOS_NEW_ARRAY(pmp, SElem, cSize);
 
 	list.Append(&rgelem[0]);
 
@@ -220,7 +220,7 @@ CListTest::EresUnittest_Cursor()
 	GPOS_ASSERT(&rgelem[1] == list.PtFirst());
 	GPOS_ASSERT(&rgelem[2] == list.PtLast());
 
-	delete [] rgelem;
+	GPOS_DELETE_ARRAY(rgelem);
 	return GPOS_OK;
 }
 

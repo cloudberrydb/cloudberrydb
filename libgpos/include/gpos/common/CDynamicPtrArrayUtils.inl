@@ -45,7 +45,7 @@ namespace gpos
 
 		ULONG ulSubsequence = pdrgSubsequence->UlLength();
 		ULONG ulSequence = pdrg->UlLength();
-		DrgPul *pdrgpulIndexes = New(pmp) DrgPul(pmp);
+		DrgPul *pdrgpulIndexes = GPOS_NEW(pmp) DrgPul(pmp);
 
 		for (ULONG ul1 = 0; ul1 < ulSubsequence; ul1++)
 		{
@@ -55,7 +55,7 @@ namespace gpos
 			{
 				if (pT == (*pdrg)[ul2])
 				{
-					pdrgpulIndexes->Append(New(pmp) ULONG(ul2));
+					pdrgpulIndexes->Append(GPOS_NEW(pmp) ULONG(ul2));
 					fFound = true;
 					break;
 				}

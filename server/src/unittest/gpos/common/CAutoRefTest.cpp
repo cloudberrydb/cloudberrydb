@@ -63,7 +63,7 @@ CAutoRefTest::EresUnittest_Basics()
 
 	// assignment
 	CAutoRef<CElem> aelem;
-	CElem *pelem = New(pmp) CElem(0);
+	CElem *pelem = GPOS_NEW(pmp) CElem(0);
 	aelem = pelem;
 
 	GPOS_ASSERT(aelem->m_ul == pelem->m_ul);
@@ -79,7 +79,7 @@ CAutoRefTest::EresUnittest_Basics()
 	aelem2 = aelem.PtReset();
 
 	// c'tor
-	CAutoRef<CElem> aelem3(New(pmp) CElem(10));
+	CAutoRef<CElem> aelem3(GPOS_NEW(pmp) CElem(10));
 	GPOS_ASSERT(aelem3->m_ul == ULONG(10));
 
 	return GPOS_OK;

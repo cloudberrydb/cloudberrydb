@@ -41,7 +41,7 @@ CTaskContext::CTaskContext
 	m_plogErr(&CLoggerStream::m_plogStdErr),
 	m_eloc(ElocEnUS_Utf8)
 {
-	m_pbs = New(pmp) CBitSet(pmp, EtraceSentinel);
+	m_pbs = GPOS_NEW(pmp) CBitSet(pmp, EtraceSentinel);
 }
 
 
@@ -67,7 +67,7 @@ CTaskContext::CTaskContext
 	// allocate bitset and union separately to guard against leaks under OOM
 	CAutoRef<CBitSet> a_pbs;
 	
-	a_pbs = New(pmp) CBitSet(pmp);
+	a_pbs = GPOS_NEW(pmp) CBitSet(pmp);
 	a_pbs->Union(tskctxt.m_pbs);
 	
 	m_pbs = a_pbs.PtReset();

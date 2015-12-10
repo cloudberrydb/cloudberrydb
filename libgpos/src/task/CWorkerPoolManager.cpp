@@ -114,7 +114,7 @@ CWorkerPoolManager::EresInit
 	{
 		// create worker pool
 		CWorkerPoolManager::m_pwpm =
-			New(pmp) CWorkerPoolManager(pmp);
+			GPOS_NEW(pmp) CWorkerPoolManager(pmp);
 
 		// set min and max number of workers
 		CWorkerPoolManager::m_pwpm->SetWorkersLim(ulWorkersMin, ulWorkersMax);
@@ -177,7 +177,7 @@ CWorkerPoolManager::Shutdown()
 
 	// destroy worker pool
 	CWorkerPoolManager::m_pwpm = NULL;
-	delete pwpm;
+	GPOS_DELETE(pwpm);
 
 	// release allocated memory pool
     CMemoryPoolManager::Pmpm()->Destroy(pmp);

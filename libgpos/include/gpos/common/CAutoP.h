@@ -117,7 +117,7 @@ namespace gpos
 	template <class T>
 	CAutoP<T>::~CAutoP()
 	{
-		delete m_pt;
+		GPOS_DELETE(m_pt);
 	}
 }
 

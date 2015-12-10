@@ -64,7 +64,7 @@ namespace gpos
 	{
 		Clear();
 		
-		delete [] m_ppt;
+		GPOS_DELETE_ARRAY(m_ppt);
 
 	}
 	
@@ -108,7 +108,7 @@ namespace gpos
 		GPOS_ASSERT(ulNewSize > m_ulAllocated && "Invalid call to Resize, cannot shrink array");
 		
 		// get new target array
-		T **ppt = New(m_pmp) T*[ulNewSize];
+		T **ppt = GPOS_NEW_ARRAY(m_pmp, T*, ulNewSize);
 		
 		if (m_ulSize > 0)
 		{
@@ -116,7 +116,7 @@ namespace gpos
 			
 			clib::PvMemCpy(ppt, m_ppt, sizeof(T*) * m_ulSize);
 
-			delete [] m_ppt;
+			GPOS_DELETE_ARRAY(m_ppt);
 		}
 		
 		m_ppt = ppt;

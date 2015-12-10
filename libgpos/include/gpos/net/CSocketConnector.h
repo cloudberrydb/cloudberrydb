@@ -65,7 +65,7 @@ namespace gpos
 			virtual
 			~CSocketConnector()
 			{
-				delete m_psocket;
+				GPOS_DELETE(m_psocket);
 			}
 
 			// connect to remote host

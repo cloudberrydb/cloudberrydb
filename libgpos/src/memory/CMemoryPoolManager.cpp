@@ -126,7 +126,7 @@ CMemoryPoolManager::EresInit()
 	// instantiate manager
 	GPOS_TRY
 	{
-		CMemoryPoolManager::m_pmpm = New(pmpInternal) CMemoryPoolManager
+		CMemoryPoolManager::m_pmpm = GPOS_NEW(pmpInternal) CMemoryPoolManager
 				(
 				pmpInternal,
 				pmpBase
@@ -204,7 +204,7 @@ CMemoryPoolManager::PmpNew
 	switch (eat)
 	{
 		case CMemoryPoolManager::EatMalloc:
-			return New(m_pmpInternal) CMemoryPoolTracker
+			return GPOS_NEW(m_pmpInternal) CMemoryPoolTracker
 						(
 						pmpUnderlying,
 						ullCapacity,
@@ -213,7 +213,7 @@ CMemoryPoolManager::PmpNew
 						);
 
 		case CMemoryPoolManager::EatSlab:
-			return New(m_pmpInternal) CMemoryPoolSlab
+			return GPOS_NEW(m_pmpInternal) CMemoryPoolSlab
 						(
 						pmpUnderlying,
 						ullCapacity,
@@ -222,7 +222,7 @@ CMemoryPoolManager::PmpNew
 						);
 
 		case CMemoryPoolManager::EatStack:
-			return New(m_pmpInternal) CMemoryPoolStack
+			return GPOS_NEW(m_pmpInternal) CMemoryPoolStack
 						(
 						pmpUnderlying,
 						ullCapacity,
@@ -262,7 +262,7 @@ CMemoryPoolManager::PmpCreatePoolStack
 	if (NULL != ITask::PtskSelf() && !fMallocType  && GPOS_FTRACE(EtraceTestMemoryPools))
 	{
 		// put fault injector on top of base pool
-		IMemoryPool *pmpFPSimLow = New(m_pmpInternal) CMemoryPoolInjectFault
+		IMemoryPool *pmpFPSimLow = GPOS_NEW(m_pmpInternal) CMemoryPoolInjectFault
 				(
 				pmpBase,
 				false /*fOwnsUnderlying*/
@@ -295,7 +295,7 @@ CMemoryPoolManager::PmpCreatePoolStack
 	}
 
 	// put fault injector on top of requested pool
-	IMemoryPool *pmpFPSim = New(m_pmpInternal) CMemoryPoolInjectFault
+	IMemoryPool *pmpFPSim = GPOS_NEW(m_pmpInternal) CMemoryPoolInjectFault
 				(
 				pmpRequested,
 				!fMallocType
@@ -341,7 +341,7 @@ CMemoryPoolManager::DeleteUnregistered
 	}
 #endif // GPOS_DEBUG
 
-	delete pmp;
+	GPOS_DELETE(pmp);
 }
 
 
@@ -369,7 +369,7 @@ CMemoryPoolManager::Destroy
 
 	pmp->TearDown();
 
-	delete pmp;
+	GPOS_DELETE(pmp);
 }
 
 
@@ -498,7 +498,7 @@ CMemoryPoolManager::DestroyMemoryPoolAtShutdown
 #endif // GPOS_DEBUG
 
 	pmp->TearDown();
-	delete pmp;
+	GPOS_DELETE(pmp);
 }
 
 
@@ -548,7 +548,7 @@ CMemoryPoolManager::Shutdown()
 	IMemoryPool *pmpInternal = m_pmpInternal;
 	IMemoryPool *pmpBase = m_pmpBase;
 
-	delete CMemoryPoolManager::m_pmpm;
+	GPOS_DELETE(CMemoryPoolManager::m_pmpm);
 	CMemoryPoolManager::m_pmpm = NULL;
 
 #ifdef GPOS_DEBUG

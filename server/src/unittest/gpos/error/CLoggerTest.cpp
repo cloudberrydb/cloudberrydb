@@ -279,7 +279,7 @@ CLoggerTest::Unittest_TestLoggerFile
 	GPOS_TRY
 	{
 		// initialize file logger
-		ploggerFile = New(pmp) CLoggerFile(str.Sz(), ulFiles, ulRotateThreshold);
+		ploggerFile = GPOS_NEW(pmp) CLoggerFile(str.Sz(), ulFiles, ulRotateThreshold);
 
 		// set output log to syslog
 		ITask::PtskSelf()->Ptskctxt()->SetLogOut(ploggerFile);
@@ -302,7 +302,7 @@ CLoggerTest::Unittest_TestLoggerFile
 			{
 				CAutoTaskProxy atp(pmp, pwpm);
 				CAutoRg<CTask *> argPtsk;
-				argPtsk = New(pmp) CTask*[ulWorkers];
+				argPtsk = GPOS_NEW_ARRAY(pmp, CTask*, ulWorkers);
 
 				for (ULONG i = 0; i < ulWorkers; i++)
 				{
@@ -331,7 +331,7 @@ CLoggerTest::Unittest_TestLoggerFile
 		// restore output log
 		ITask::PtskSelf()->Ptskctxt()->SetLogOut(plog);
 
-		delete ploggerFile;
+		GPOS_DELETE(ploggerFile);
 
 		PvUnittest_DeleteFiles(str.Sz(), ulFiles);
 
@@ -342,7 +342,7 @@ CLoggerTest::Unittest_TestLoggerFile
 	// restore output log
 	ITask::PtskSelf()->Ptskctxt()->SetLogOut(plog);
 
-	delete ploggerFile;
+	GPOS_DELETE(ploggerFile);
 
 	PvUnittest_DeleteFiles(str.Sz(), ulFiles);
 }

@@ -73,7 +73,7 @@ CHashMapIterTest::EresUnittest_Basic()
 
 
 	// using N - 2 slots guarantees collisions
-	Map *pm = New(pmp) Map(pmp, ulCnt - 2);
+	Map *pm = GPOS_NEW(pmp) Map(pmp, ulCnt - 2);
 
 #ifdef GPOS_DEBUG
 
