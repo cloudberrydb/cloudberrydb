@@ -1,0 +1,18 @@
+drop table if exists opperfscale;
+create table opperfscale(nseg int, nscale int, nscaleperseg int); 
+
+insert into opperfscale
+ 	select case when lc < 7000000 then 1 else seg end as nseg, 
+	       case when lc < 7000000 then 1 else lc / 6000000 end as nscale,
+	       case when lc < 7000000 or lc / 6000000 < seg 
+	       		then 2 
+			else lc / 6000000 / seg + 1 end as nscaleperseg
+	from
+	(
+ 		select max(content)+1 as seg from gp_configuration where isprimary = 't'
+	) S,
+	(
+	 select count(*) as lc from lineitem 
+	) L;
+
+analyze opperfscale;

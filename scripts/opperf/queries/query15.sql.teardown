@@ -1,0 +1,2 @@
+set enable_mergejoin=off;
+set enable_hashjoin = on;

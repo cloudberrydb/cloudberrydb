@@ -1,0 +1,316 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<dxl:DXLMessage xmlns:dxl="http://greenplum.com/dxl/2010/12/">
+  <dxl:Plan>
+    <dxl:Aggregate AggregationStrategy="Plain">
+      <dxl:Properties>
+        <dxl:Cost StartupCost="2380.97" TotalCost="2380.98" Rows="1.00" Width="0"/>
+      </dxl:Properties>
+      <dxl:GroupingColumns/>
+      <dxl:ProjList>
+        <dxl:ProjElem ColId="44" Alias="count">
+          <dxl:AggFunc AggOid="2803" AggDistinct="false" AggStage="Final">
+            <dxl:Ident ColId="43" ColName="unnamed_attr_1" TypeId="20" TypeName="Unknown"/>
+          </dxl:AggFunc>
+        </dxl:ProjElem>
+      </dxl:ProjList>
+      <dxl:Filter/>
+      <dxl:GatherMotion InputSegments="0,1" OutputSegments="-1">
+        <dxl:Properties>
+          <dxl:Cost StartupCost="2378.75" TotalCost="2378.79" Rows="1.00" Width="0"/>
+        </dxl:Properties>
+        <dxl:ProjList>
+          <dxl:ProjElem ColId="43" Alias="unnamed_attr_1">
+            <dxl:Ident ColId="43" ColName="?column?" TypeId="20" TypeName="Unknown"/>
+          </dxl:ProjElem>
+        </dxl:ProjList>
+        <dxl:Filter/>
+        <dxl:SortingColumnList/>
+        <dxl:Aggregate AggregationStrategy="Plain">
+          <dxl:Properties>
+            <dxl:Cost StartupCost="2378.75" TotalCost="2378.76" Rows="1.00" Width="0"/>
+          </dxl:Properties>
+          <dxl:GroupingColumns/>
+          <dxl:ProjList>
+            <dxl:ProjElem ColId="43" Alias="?column?">
+              <dxl:AggFunc AggOid="2803" AggDistinct="false" AggStage="Partial"/>
+            </dxl:ProjElem>
+          </dxl:ProjList>
+          <dxl:Filter/>
+          <dxl:HashJoin JoinType="Inner">
+            <dxl:Properties>
+              <dxl:Cost StartupCost="1189.63" TotalCost="2378.74" Rows="5.90" Width="0"/>
+            </dxl:Properties>
+            <dxl:ProjList/>
+            <dxl:Filter/>
+            <dxl:JoinFilter/>
+            <dxl:HashCondList>
+              <dxl:Comparison ComparisonOperator="=" OpNo="96" OpFuncId="65">
+                <dxl:Ident ColId="2" ColName="l_partkey" TypeId="23" TypeName="Unknown"/>
+                <dxl:Ident ColId="23" ColName="l_partkey" TypeId="23" TypeName="Unknown"/>
+              </dxl:Comparison>
+              <dxl:Comparison ComparisonOperator="=" OpNo="1054" OpFuncId="1048">
+                <dxl:Ident ColId="9" ColName="l_returnflag" TypeId="1042" TypeName="Unknown"/>
+                <dxl:Ident ColId="30" ColName="l_returnflag" TypeId="1042" TypeName="Unknown"/>
+              </dxl:Comparison>
+            </dxl:HashCondList>
+            <dxl:RedistributeMotion InputSegments="0,1" OutputSegments="0,1">
+              <dxl:Properties>
+                <dxl:Cost StartupCost="0.00" TotalCost="1188.74" Rows="59.70" Width="6"/>
+              </dxl:Properties>
+              <dxl:ProjList>
+                <dxl:ProjElem ColId="2" Alias="l_partkey">
+                  <dxl:Ident ColId="2" ColName="l_partkey" TypeId="23" TypeName="Unknown"/>
+                </dxl:ProjElem>
+                <dxl:ProjElem ColId="9" Alias="l_returnflag">
+                  <dxl:Ident ColId="9" ColName="l_returnflag" TypeId="1042" TypeName="Unknown"/>
+                </dxl:ProjElem>
+              </dxl:ProjList>
+              <dxl:Filter/>
+              <dxl:SortingColumnList/>
+              <dxl:HashExprList>
+                <dxl:HashExpr TypeId="1042" TypeName="Unknown">
+                  <dxl:Ident ColId="9" ColName="l_returnflag" TypeId="1042" TypeName="Unknown"/>
+                </dxl:HashExpr>
+                <dxl:HashExpr TypeId="23" TypeName="Unknown">
+                  <dxl:Ident ColId="2" ColName="l_partkey" TypeId="23" TypeName="Unknown"/>
+                </dxl:HashExpr>
+              </dxl:HashExprList>
+              <dxl:TableScan>
+                <dxl:Properties>
+                  <dxl:Cost StartupCost="0.00" TotalCost="1187.55" Rows="59.70" Width="6"/>
+                </dxl:Properties>
+                <dxl:ProjList>
+                  <dxl:ProjElem ColId="2" Alias="l_partkey">
+                    <dxl:Ident ColId="2" ColName="l_partkey" TypeId="23" TypeName="Unknown"/>
+                  </dxl:ProjElem>
+                  <dxl:ProjElem ColId="9" Alias="l_returnflag">
+                    <dxl:Ident ColId="9" ColName="l_returnflag" TypeId="1042" TypeName="Unknown"/>
+                  </dxl:ProjElem>
+                </dxl:ProjList>
+                <dxl:Filter>
+                  <dxl:Comparison ComparisonOperator="=" OpNo="96" OpFuncId="65">
+                    <dxl:OpExpr OpName="%" OpNo="530" OpFuncId="156">
+                      <dxl:Ident ColId="1" ColName="l_orderkey" TypeId="23" TypeName="Unknown"/>
+                      <dxl:InitPlan>
+                        <dxl:Aggregate AggregationStrategy="Plain">
+                          <dxl:Properties>
+                            <dxl:Cost StartupCost="1.07" TotalCost="1.08" Rows="1.00" Width="4"/>
+                          </dxl:Properties>
+                          <dxl:GroupingColumns/>
+                          <dxl:ProjList>
+                            <dxl:ProjElem ColId="21" Alias="max">
+                              <dxl:AggFunc AggOid="2116" AggDistinct="false" AggStage="Final">
+                                <dxl:Ident ColId="20" ColName="unnamed_attr_1" TypeId="23" TypeName="Unknown"/>
+                              </dxl:AggFunc>
+                            </dxl:ProjElem>
+                          </dxl:ProjList>
+                          <dxl:Filter/>
+                          <dxl:GatherMotion InputSegments="0,1" OutputSegments="-1">
+                            <dxl:Properties>
+                              <dxl:Cost StartupCost="1.01" TotalCost="1.06" Rows="1.00" Width="4"/>
+                            </dxl:Properties>
+                            <dxl:ProjList>
+                              <dxl:ProjElem ColId="20" Alias="unnamed_attr_1">
+                                <dxl:Ident ColId="20" ColName="?column?" TypeId="23" TypeName="Unknown"/>
+                              </dxl:ProjElem>
+                            </dxl:ProjList>
+                            <dxl:Filter/>
+                            <dxl:SortingColumnList/>
+                            <dxl:Aggregate AggregationStrategy="Plain">
+                              <dxl:Properties>
+                                <dxl:Cost StartupCost="1.01" TotalCost="1.03" Rows="1.00" Width="4"/>
+                              </dxl:Properties>
+                              <dxl:GroupingColumns/>
+                              <dxl:ProjList>
+                                <dxl:ProjElem ColId="20" Alias="?column?">
+                                  <dxl:AggFunc AggOid="2116" AggDistinct="false" AggStage="Partial">
+                                    <dxl:OpExpr OpName="*" OpNo="514" OpFuncId="141">
+                                      <dxl:Ident ColId="19" ColName="nscaleperseg" TypeId="23" TypeName="Unknown"/>
+                                      <dxl:ConstValue TypeId="23" ConstNull="false" ConstByValue="true" Value="BAAAAA=="/>
+                                    </dxl:OpExpr>
+                                  </dxl:AggFunc>
+                                </dxl:ProjElem>
+                              </dxl:ProjList>
+                              <dxl:Filter/>
+                              <dxl:TableScan>
+                                <dxl:Properties>
+                                  <dxl:Cost StartupCost="0.00" TotalCost="1.01" Rows="1.00" Width="4"/>
+                                </dxl:Properties>
+                                <dxl:ProjList>
+                                  <dxl:ProjElem ColId="19" Alias="nscaleperseg">
+                                    <dxl:Ident ColId="19" ColName="nscaleperseg" TypeId="23" TypeName="Unknown"/>
+                                  </dxl:ProjElem>
+                                </dxl:ProjList>
+                                <dxl:Filter/>
+                                <dxl:TableDescriptor TableName="opperfscale">
+                                  <dxl:Columns>
+                                    <dxl:Column ColId="17" Attno="1" ColName="nseg"/>
+                                    <dxl:Column ColId="18" Attno="2" ColName="nscale"/>
+                                    <dxl:Column ColId="19" Attno="3" ColName="nscaleperseg"/>
+                                  </dxl:Columns>
+                                </dxl:TableDescriptor>
+                              </dxl:TableScan>
+                            </dxl:Aggregate>
+                          </dxl:GatherMotion>
+                        </dxl:Aggregate>
+                      </dxl:InitPlan>
+                    </dxl:OpExpr>
+                    <dxl:ConstValue TypeId="23" ConstNull="false" ConstByValue="true" Value="AAAAAA=="/>
+                  </dxl:Comparison>
+                </dxl:Filter>
+                <dxl:TableDescriptor TableName="lineitem">
+                  <dxl:Columns>
+                    <dxl:Column ColId="1" Attno="1" ColName="l_orderkey"/>
+                    <dxl:Column ColId="2" Attno="2" ColName="l_partkey"/>
+                    <dxl:Column ColId="3" Attno="3" ColName="l_suppkey"/>
+                    <dxl:Column ColId="4" Attno="4" ColName="l_linenumber"/>
+                    <dxl:Column ColId="5" Attno="5" ColName="l_quantity"/>
+                    <dxl:Column ColId="6" Attno="6" ColName="l_extendedprice"/>
+                    <dxl:Column ColId="7" Attno="7" ColName="l_discount"/>
+                    <dxl:Column ColId="8" Attno="8" ColName="l_tax"/>
+                    <dxl:Column ColId="9" Attno="9" ColName="l_returnflag"/>
+                    <dxl:Column ColId="10" Attno="10" ColName="l_linestatus"/>
+                    <dxl:Column ColId="11" Attno="11" ColName="l_shipdate"/>
+                    <dxl:Column ColId="12" Attno="12" ColName="l_commitdate"/>
+                    <dxl:Column ColId="13" Attno="13" ColName="l_receiptdate"/>
+                    <dxl:Column ColId="14" Attno="14" ColName="l_shipinstruct"/>
+                    <dxl:Column ColId="15" Attno="15" ColName="l_shipmode"/>
+                    <dxl:Column ColId="16" Attno="16" ColName="l_comment"/>
+                  </dxl:Columns>
+                </dxl:TableDescriptor>
+              </dxl:TableScan>
+            </dxl:RedistributeMotion>
+            <dxl:RedistributeMotion InputSegments="0,1" OutputSegments="0,1">
+              <dxl:Properties>
+                <dxl:Cost StartupCost="0.00" TotalCost="1188.74" Rows="59.70" Width="6"/>
+              </dxl:Properties>
+              <dxl:ProjList>
+                <dxl:ProjElem ColId="23" Alias="l_partkey">
+                  <dxl:Ident ColId="23" ColName="l_partkey" TypeId="23" TypeName="Unknown"/>
+                </dxl:ProjElem>
+                <dxl:ProjElem ColId="30" Alias="l_returnflag">
+                  <dxl:Ident ColId="30" ColName="l_returnflag" TypeId="1042" TypeName="Unknown"/>
+                </dxl:ProjElem>
+              </dxl:ProjList>
+              <dxl:Filter/>
+              <dxl:SortingColumnList/>
+              <dxl:HashExprList>
+                <dxl:HashExpr TypeId="1042" TypeName="Unknown">
+                  <dxl:Ident ColId="30" ColName="l_returnflag" TypeId="1042" TypeName="Unknown"/>
+                </dxl:HashExpr>
+                <dxl:HashExpr TypeId="23" TypeName="Unknown">
+                  <dxl:Ident ColId="23" ColName="l_partkey" TypeId="23" TypeName="Unknown"/>
+                </dxl:HashExpr>
+              </dxl:HashExprList>
+              <dxl:TableScan>
+                <dxl:Properties>
+                  <dxl:Cost StartupCost="0.00" TotalCost="1187.55" Rows="59.70" Width="6"/>
+                </dxl:Properties>
+                <dxl:ProjList>
+                  <dxl:ProjElem ColId="23" Alias="l_partkey">
+                    <dxl:Ident ColId="23" ColName="l_partkey" TypeId="23" TypeName="Unknown"/>
+                  </dxl:ProjElem>
+                  <dxl:ProjElem ColId="30" Alias="l_returnflag">
+                    <dxl:Ident ColId="30" ColName="l_returnflag" TypeId="1042" TypeName="Unknown"/>
+                  </dxl:ProjElem>
+                </dxl:ProjList>
+                <dxl:Filter>
+                  <dxl:Comparison ComparisonOperator="=" OpNo="96" OpFuncId="65">
+                    <dxl:OpExpr OpName="%" OpNo="530" OpFuncId="156">
+                      <dxl:Ident ColId="22" ColName="l_orderkey" TypeId="23" TypeName="Unknown"/>
+                      <dxl:InitPlan>
+                        <dxl:Aggregate AggregationStrategy="Plain">
+                          <dxl:Properties>
+                            <dxl:Cost StartupCost="1.07" TotalCost="1.08" Rows="1.00" Width="4"/>
+                          </dxl:Properties>
+                          <dxl:GroupingColumns/>
+                          <dxl:ProjList>
+                            <dxl:ProjElem ColId="42" Alias="max">
+                              <dxl:AggFunc AggOid="2116" AggDistinct="false" AggStage="Final">
+                                <dxl:Ident ColId="41" ColName="unnamed_attr_1" TypeId="23" TypeName="Unknown"/>
+                              </dxl:AggFunc>
+                            </dxl:ProjElem>
+                          </dxl:ProjList>
+                          <dxl:Filter/>
+                          <dxl:GatherMotion InputSegments="0,1" OutputSegments="-1">
+                            <dxl:Properties>
+                              <dxl:Cost StartupCost="1.01" TotalCost="1.06" Rows="1.00" Width="4"/>
+                            </dxl:Properties>
+                            <dxl:ProjList>
+                              <dxl:ProjElem ColId="41" Alias="unnamed_attr_1">
+                                <dxl:Ident ColId="41" ColName="?column?" TypeId="23" TypeName="Unknown"/>
+                              </dxl:ProjElem>
+                            </dxl:ProjList>
+                            <dxl:Filter/>
+                            <dxl:SortingColumnList/>
+                            <dxl:Aggregate AggregationStrategy="Plain">
+                              <dxl:Properties>
+                                <dxl:Cost StartupCost="1.01" TotalCost="1.03" Rows="1.00" Width="4"/>
+                              </dxl:Properties>
+                              <dxl:GroupingColumns/>
+                              <dxl:ProjList>
+                                <dxl:ProjElem ColId="41" Alias="?column?">
+                                  <dxl:AggFunc AggOid="2116" AggDistinct="false" AggStage="Partial">
+                                    <dxl:OpExpr OpName="*" OpNo="514" OpFuncId="141">
+                                      <dxl:Ident ColId="40" ColName="nscaleperseg" TypeId="23" TypeName="Unknown"/>
+                                      <dxl:ConstValue TypeId="23" ConstNull="false" ConstByValue="true" Value="BAAAAA=="/>
+                                    </dxl:OpExpr>
+                                  </dxl:AggFunc>
+                                </dxl:ProjElem>
+                              </dxl:ProjList>
+                              <dxl:Filter/>
+                              <dxl:TableScan>
+                                <dxl:Properties>
+                                  <dxl:Cost StartupCost="0.00" TotalCost="1.01" Rows="1.00" Width="4"/>
+                                </dxl:Properties>
+                                <dxl:ProjList>
+                                  <dxl:ProjElem ColId="40" Alias="nscaleperseg">
+                                    <dxl:Ident ColId="40" ColName="nscaleperseg" TypeId="23" TypeName="Unknown"/>
+                                  </dxl:ProjElem>
+                                </dxl:ProjList>
+                                <dxl:Filter/>
+                                <dxl:TableDescriptor TableName="opperfscale">
+                                  <dxl:Columns>
+                                    <dxl:Column ColId="38" Attno="1" ColName="nseg"/>
+                                    <dxl:Column ColId="39" Attno="2" ColName="nscale"/>
+                                    <dxl:Column ColId="40" Attno="3" ColName="nscaleperseg"/>
+                                  </dxl:Columns>
+                                </dxl:TableDescriptor>
+                              </dxl:TableScan>
+                            </dxl:Aggregate>
+                          </dxl:GatherMotion>
+                        </dxl:Aggregate>
+                      </dxl:InitPlan>
+                    </dxl:OpExpr>
+                    <dxl:ConstValue TypeId="23" ConstNull="false" ConstByValue="true" Value="AAAAAA=="/>
+                  </dxl:Comparison>
+                </dxl:Filter>
+                <dxl:TableDescriptor TableName="lineitem">
+                  <dxl:Columns>
+                    <dxl:Column ColId="22" Attno="1" ColName="l_orderkey"/>
+                    <dxl:Column ColId="23" Attno="2" ColName="l_partkey"/>
+                    <dxl:Column ColId="24" Attno="3" ColName="l_suppkey"/>
+                    <dxl:Column ColId="25" Attno="4" ColName="l_linenumber"/>
+                    <dxl:Column ColId="26" Attno="5" ColName="l_quantity"/>
+                    <dxl:Column ColId="27" Attno="6" ColName="l_extendedprice"/>
+                    <dxl:Column ColId="28" Attno="7" ColName="l_discount"/>
+                    <dxl:Column ColId="29" Attno="8" ColName="l_tax"/>
+                    <dxl:Column ColId="30" Attno="9" ColName="l_returnflag"/>
+                    <dxl:Column ColId="31" Attno="10" ColName="l_linestatus"/>
+                    <dxl:Column ColId="32" Attno="11" ColName="l_shipdate"/>
+                    <dxl:Column ColId="33" Attno="12" ColName="l_commitdate"/>
+                    <dxl:Column ColId="34" Attno="13" ColName="l_receiptdate"/>
+                    <dxl:Column ColId="35" Attno="14" ColName="l_shipinstruct"/>
+                    <dxl:Column ColId="36" Attno="15" ColName="l_shipmode"/>
+                    <dxl:Column ColId="37" Attno="16" ColName="l_comment"/>
+                  </dxl:Columns>
+                </dxl:TableDescriptor>
+              </dxl:TableScan>
+            </dxl:RedistributeMotion>
+          </dxl:HashJoin>
+        </dxl:Aggregate>
+      </dxl:GatherMotion>
+    </dxl:Aggregate>
+  </dxl:Plan>
+</dxl:DXLMessage>
+ 

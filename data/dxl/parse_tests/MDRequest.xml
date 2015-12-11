@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<dxl:DXLMessage xmlns:dxl="http://greenplum.com/dxl/2010/12/">
+  <dxl:MDRequest>
+    <dxl:Mdid Value="0.1234.1.2"/>
+    <dxl:Mdid Value="1.1234.1.2.1"/>
+    <dxl:Mdid Value="2.1234.1.2"/>
+    <dxl:TypeRequest SystemId="0.GPDB" TypeInfo="1"/>
+  </dxl:MDRequest>
+</dxl:DXLMessage>
