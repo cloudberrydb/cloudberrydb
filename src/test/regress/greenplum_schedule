@@ -29,7 +29,7 @@ test: rangefuncs_cdb gp_dqa external_table subselect_gp indexjoin distributed_tr
 # long-running tests. Unfortunately, 'partition' also assumes that there
 # are no other partitioned tables present in the database, so it cannot run
 # in parallel with tests that use partitions.
-test: partition appendonly
+test: partition appendonly alter_distpol_dropped
 # 'partition_locking' gets confused if other backends run concurrently and
 # hold locks.
 test: partition_locking
