@@ -140,6 +140,7 @@ sync_tools: /opt/releng/apache-ant
 	    echo ""; \
 	    exit 1; \
 	fi
+	echo $(ARCH_BIT_ALL)
 	@for b in $(ARCH_BIT_ALL); do \
 		echo $(BLD_TOP); \
 		BLD_ARCH=$$( GPOS_BIT=$$b $(BLD_TOP)/make/platform_defines.sh ); \
