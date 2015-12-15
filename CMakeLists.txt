@@ -147,6 +147,10 @@ endif()
 
 include_directories(libgpos/include)
 
+# Generate version-number header.
+configure_file(version.h.in
+               ${PROJECT_BINARY_DIR}/libgpos/include/gpos/version.h)
+
 # Compile .cpp source files under libgpos/src into monolithic gpos library.
 add_library(gpos SHARED
             libgpos/src/_api.cpp
@@ -269,10 +273,14 @@ if (VERBOSE_INSTALL_PATH)
   get_filename_component(full_install_name_dir "${installpath}/lib" ABSOLUTE)
   install(TARGETS gpos DESTINATION "${installpath}/lib")
   install(DIRECTORY libgpos/include/gpos DESTINATION "${installpath}/include")
+  install(FILES "${PROJECT_BINARY_DIR}/libgpos/include/gpos/version.h"
+          DESTINATION "${installpath}/include/gpos")
 else()
   get_filename_component(full_install_name_dir "${CMAKE_INSTALL_PREFIX}/lib" ABSOLUTE)
   install(TARGETS gpos DESTINATION lib)
   install(DIRECTORY libgpos/include/gpos DESTINATION include)
+  install(FILES "${PROJECT_BINARY_DIR}/libgpos/include/gpos/version.h"
+          DESTINATION include/gpos)
 endif()
 
 # Mac OS X handles searching for dynamic libraries differently from other
