@@ -1,0 +1,11 @@
+platform: linux
+image: docker:///yolo/orcadev#jessie
+inputs:
+- name: xerces_patch
+- name: build_debian8
+run:
+  path: /bin/bash
+  args:
+  - xerces_patch/concourse/package_tarball.bash
+  - build_debian8
+  - bin_xerces_debian8.tar.gz

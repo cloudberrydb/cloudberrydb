@@ -1,0 +1,13 @@
+platform: linux
+image: docker:///yolo/orcadev#jessie
+inputs:
+- name: bin_gpos_debian8_debug
+- name: bin_xerces_debian8
+- name: orca_src
+run:
+  path: /bin/bash
+  args:
+  - orca_src/concourse/build_and_test.bash
+  - Debug
+  - bin_gpos_debian8_debug
+  - bin_xerces_debian8

@@ -1,0 +1,11 @@
+platform: linux
+image: docker:///yolo/orcadev#jessie
+inputs:
+- name: orca_src
+- name: build_and_test_debian8_debug
+run:
+  path: /bin/bash
+  args:
+  - orca_src/concourse/package_tarball.bash
+  - build_and_test_debian8_debug
+  - bin_orca_debian8_debug.tar.gz
