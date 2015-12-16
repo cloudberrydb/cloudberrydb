@@ -946,4 +946,11 @@ public class GPDBWritable implements Writable {
 		return type == XML || type == XML_ARR;
 	}
 
+	/**
+	 * check whether the value of a column is null
+	 */
+	public boolean isNull(int index) {
+		return colValue[index] == null;
+	}
+
 }

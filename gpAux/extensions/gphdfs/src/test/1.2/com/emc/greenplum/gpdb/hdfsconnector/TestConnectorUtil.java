@@ -32,7 +32,13 @@ import org.junit.Test;
 
 import com.emc.greenplum.gpdb.hadoop.formathandler.AvroFileReader;
 import com.emc.greenplum.gpdb.hadoop.formathandler.GpdbParquetFileReader;
+import com.emc.greenplum.gpdb.hadoop.formathandler.GpdbParquetFileWriter;
 import com.emc.greenplum.gpdb.hadoop.io.GPDBWritable;
+import com.emc.greenplum.gpdb.hadoop.io.GPDBWritable.TypeMismatchException;
+import org.apache.parquet.example.data.Group;
+import org.apache.parquet.example.data.simple.SimpleGroupFactory;
+import org.apache.parquet.schema.MessageType;
+import org.apache.parquet.schema.MessageTypeParser;
 
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -111,6 +117,35 @@ public class TestConnectorUtil  {
 
 		assertEquals(fileNum, 3);
     }
+
+	/*
+	 * test parquet insert null
+	 */
+	@Test
+	public void test_parquet_null(){
+		MessageType schema = MessageTypeParser.parseMessageType(
+			"message test { "
+			+ "required int32 i32; "
+			+ "required boolean boo; "
+			+ "} ");
+
+		GpdbParquetFileWriter gWriter = new GpdbParquetFileWriter();
+		SimpleGroupFactory groupFactory = new SimpleGroupFactory(schema);
+		Group pqGroup = groupFactory.newGroup();
+		GPDBWritable gWritable = new GPDBWritable(new int[]{GPDBWritable.INTEGER, GPDBWritable.BOOLEAN});
+		try {
+			gWritable.setInt(0, null);
+			gWritable.setBoolean(1, true);
+			gWriter.fillRecord(pqGroup, gWritable, schema);
+
+			assertEquals(pqGroup.getFieldRepetitionCount(0), 0);
+			assertEquals(pqGroup.getBoolean(1, 0), true);
+		} catch (TypeMismatchException e) {
+			fail(e.getMessage());
+		} catch (IOException e) {
+			fail(e.getMessage());
+		}
+	}
 
     /*
      * test unicode support
