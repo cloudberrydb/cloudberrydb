@@ -48,7 +48,7 @@ def install():
 
 def main():
     parser = optparse.OptionParser()
-    parser.add_option("--build-type", dest="build_type", default="RELEASE")
+    parser.add_option("--build_type", dest="build_type", default="RELEASE")
     parser.add_option("--compiler", dest="compiler")
     parser.add_option("--cxxflags", dest="cxxflags")
     (options, args) = parser.parse_args()
