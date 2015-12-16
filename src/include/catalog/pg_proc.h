@@ -8,7 +8,7 @@
  * Portions Copyright (c) 1996-2010, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
- * $PostgreSQL: pgsql/src/include/catalog/pg_proc.h,v 1.437 2007/01/16 21:41:13 neilc Exp $
+ * $PostgreSQL: pgsql/src/include/catalog/pg_proc.h,v 1.438 2007/01/20 09:27:19 petere Exp $
  *
  * NOTES
  *	  The script catalog/genbki.sh reads this file and generates .bki

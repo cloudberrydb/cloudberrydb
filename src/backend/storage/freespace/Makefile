@@ -4,7 +4,7 @@
 #    Makefile for storage/freespace
 #
 # IDENTIFICATION
-#    $PostgreSQL: pgsql/src/backend/storage/freespace/Makefile,v 1.2 2003/11/29 19:51:56 pgsql Exp $
+#    $PostgreSQL: pgsql/src/backend/storage/freespace/Makefile,v 1.3 2007/01/20 17:16:12 petere Exp $
 #
 #-------------------------------------------------------------------------
 

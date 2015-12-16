@@ -4,7 +4,7 @@
 #    Makefile for utils/misc
 #
 # IDENTIFICATION
-#    $PostgreSQL: pgsql/src/backend/utils/misc/Makefile,v 1.26 2006/07/25 03:51:21 tgl Exp $
+#    $PostgreSQL: pgsql/src/backend/utils/misc/Makefile,v 1.27 2007/01/20 17:16:14 petere Exp $
 #
 #-------------------------------------------------------------------------
 
