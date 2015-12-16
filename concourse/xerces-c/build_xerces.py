@@ -44,7 +44,7 @@ def get_xerces_source():
 
 def configure(cxx_compiler, cxxflags):
     os.mkdir("build")
-    environment = {}
+    environment = os.environ.copy()
     if cxx_compiler:
         environment["CXX"] = cxx_compiler
     if cxxflags:
