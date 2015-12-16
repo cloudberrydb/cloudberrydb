@@ -7,4 +7,4 @@ run:
   args:
   - xerces_patch/concourse/xerces-c/build_xerces.py
   - --compiler=clang++
-  - --cxxflags="-stdlib=libc++"
+  - --cxxflags=-stdlib=libc++
