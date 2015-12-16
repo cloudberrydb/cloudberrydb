@@ -33,18 +33,18 @@ def cmake_configure(src_dir, build_type, cxx_compiler = None, cxxflags = None):
         cmake_args.append("-D")
         cmake_args.append("CMAKE_CXX_FLAGS=" + cxxflags)
     cmake_args.append("../" + src_dir)
-    subprocess.check_call(cmake_args, cwd="build")
+    return subprocess.call(cmake_args, cwd="build")
 
 def make():
-    subprocess.check_call(["make", "-j" + str(num_cpus())], cwd="build")
+    return subprocess.call(["make", "-j" + str(num_cpus())], cwd="build")
 
 def run_tests():
-    subprocess.check_call(["ctest",
-                           "--output-on-failure",
-                           "-j" + str(num_cpus())], cwd="build")
+    return subprocess.call(["ctest",
+                            "--output-on-failure",
+                            "-j" + str(num_cpus())], cwd="build")
 
 def install():
-    subprocess.check_call(["make", "install"], cwd="build")
+    return subprocess.call(["make", "install"], cwd="build")
 
 def main():
     parser = optparse.OptionParser()
@@ -55,13 +55,21 @@ def main():
     if len(args) > 0:
         print "Unknown arguments"
         return 1
-    cmake_configure("gpos_src",
-                    options.build_type,
-                    options.compiler,
-                    options.cxxflags)
-    make()
-    run_tests()
-    install()
+    status = cmake_configure("gpos_src",
+                             options.build_type,
+                             options.compiler,
+                             options.cxxflags)
+    if status:
+        return status
+    status = make()
+    if status:
+        return status
+    status = run_tests()
+    if status:
+        return status
+    status = install()
+    if status:
+        return status
     return 0
 
 if __name__ == "__main__":
