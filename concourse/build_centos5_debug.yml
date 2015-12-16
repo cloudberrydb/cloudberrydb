@@ -3,7 +3,7 @@ image: docker:///yolo/orcadev#centos5
 inputs:
 - name: gpos_src
 run:
-  path: /bin/bash
+  path: /usr/bin/python2
   args:
-  - gpos_src/concourse/build_and_test.bash
-  - Debug
+  - gpos_src/concourse/build_and_test.py
+  - --build_type=DEBUG

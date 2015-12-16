@@ -7,3 +7,4 @@ run:
   args:
   - gpos_src/concourse/build_and_test.py
   - --build_type=DEBUG
+  - --compiler=clang++
