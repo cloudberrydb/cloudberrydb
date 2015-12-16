@@ -5,9 +5,9 @@ inputs:
 - name: bin_xerces_centos5
 - name: orca_src
 run:
-  path: /bin/bash
+  path: /usr/bin/python2
   args:
-  - orca_src/concourse/build_and_test.bash
-  - Release
+  - orca_src/concourse/build_and_test.py
+  - --build_type=RELEASE
   - bin_gpos_centos5_release
   - bin_xerces_centos5
