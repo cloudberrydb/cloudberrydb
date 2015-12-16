@@ -3,6 +3,6 @@ image: docker:///yolo/orcadev#centos5
 inputs:
 - name: xerces_patch
 run:
-  path: /bin/bash
+  path: /usr/bin/python2
   args:
-  - xerces_patch/concourse/xerces-c/build_xerces.bash
+  - xerces_patch/concourse/xerces-c/build_xerces.py

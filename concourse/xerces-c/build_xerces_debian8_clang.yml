@@ -6,3 +6,4 @@ run:
   path: /usr/bin/python2
   args:
   - xerces_patch/concourse/xerces-c/build_xerces.py
+  - --compiler=clang++
