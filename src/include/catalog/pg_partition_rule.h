@@ -34,7 +34,7 @@
    partemplatespace   oid
    );
 
-   create unique index on pg_partition_rule(oid) with (indexid=5014);
+   create unique index on pg_partition_rule(oid) with (indexid=5014, syscacheid=PARTRULEOID, syscache_nbuckets=256);
    create index on pg_partition_rule(parchildrelid) with (indexid=5016);
    create index on pg_partition_rule(parchildrelid, parparentrule, parruleord) with (indexid=5015);
    create index on pg_partition_rule(paroid, parparentrule, parruleord) with (indexid=5026,indexname=pg_partition_rule_paroid_parentrule_ruleord_index);

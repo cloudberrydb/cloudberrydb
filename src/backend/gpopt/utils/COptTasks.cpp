@@ -927,10 +927,22 @@ COptTasks::PvOptimizeTask
 	AUTO_MEM_POOL(amp);
 	IMemoryPool *pmp = amp.Pmp();
 
-	// initialize metadata cache
+	// Does the metadatacache need to be reset?
+	//
+	// On the first call, before the cache has been initialized, we
+	// don't care about the return value of FMDCacheNeedsReset(). But
+	// we need to call it anyway, to give it a chance to initialize
+	// the invalidation mechanism.
+	bool reset_mdcache = gpdb::FMDCacheNeedsReset();
+
+	// initialize metadata cache, or purge if needed
 	if (!CMDCache::FInitialized())
 	{
 		CMDCache::Init();
+	}
+	else if (reset_mdcache)
+	{
+		CMDCache::Reset();
 	}
 
 	// load search strategy

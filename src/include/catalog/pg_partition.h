@@ -26,7 +26,7 @@
    parclass       oidvector
    );
 
-   create unique index on pg_partition(oid) with (indexid=5012);
+   create unique index on pg_partition(oid) with (indexid=5012, syscacheid=PARTOID, syscache_nbuckets=1024);
    create index on pg_partition(parrelid) with (indexid=5013);
    create index on pg_partition(parrelid, parlevel, paristemplate) with (indexid=5017,indexname=pg_partition_parrelid_parlevel_istemplate_index);
 
