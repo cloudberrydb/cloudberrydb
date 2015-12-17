@@ -1109,6 +1109,7 @@ endif
 	cp -rp $(GPMGMT)/sbin/* $(INSTLOC)/sbin/.
 	cp -p extensions/gpfdist/gpfdist$(EXE_EXT) $(INSTLOC)/bin/
 	cp $(GPPGDIR)/src/test/regress/*.pl $(INSTLOC)/bin
+	cp $(GPPGDIR)/src/test/regress/*.pm $(INSTLOC)/bin
 	if [ ! -d ${INSTLOC}/docs ] ; then mkdir ${INSTLOC}/docs ; fi
 	if [ -d $(GPMGMT)/doc ]; then cp -rp $(GPMGMT)/doc $(INSTLOC)/docs/cli_help; fi
 	if [ -d $(GPMGMT)/demo/gpmapreduce ]; then \
