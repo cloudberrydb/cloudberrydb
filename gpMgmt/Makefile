@@ -95,6 +95,7 @@ install: generate_greenplum_path_file
 	cp -rp sbin/* $(prefix)/sbin/.
 	#cp -p extensions/gpfdist/gpfdist$(EXE_EXT) $(prefix)/bin/
 	cp $(top_builddir)/src/test/regress/*.pl $(prefix)/bin
+	cp $(top_builddir)/src/test/regress/*.pm $(prefix)/bin
 	if [ ! -d ${prefix}/docs ] ; then mkdir ${prefix}/docs ; fi
 	if [ -d doc ]; then cp -rp doc $(prefix)/docs/cli_help; fi
 	if [ -d demo/gpmapreduce ]; then \
