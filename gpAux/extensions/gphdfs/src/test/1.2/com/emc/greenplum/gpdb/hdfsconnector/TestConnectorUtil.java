@@ -37,6 +37,7 @@ import com.emc.greenplum.gpdb.hadoop.io.GPDBWritable;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
+import java.util.List;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
@@ -66,6 +67,9 @@ public class TestConnectorUtil  {
 		//alertlog.avro : file contains unicode text
 		Path alertlog = new Path(tmpDir + "/alertlog.avro");
 		cluster.getFileSystem().copyFromLocalFile(new Path((new File("")).getAbsolutePath() + "/src/test/case_file/alertlog.avro"), alertlog);
+		//short.avro : file contains only one short column
+        Path shortAvro = new Path(tmpDir + "/short.avro");
+        cluster.getFileSystem().copyFromLocalFile(new Path((new File("")).getAbsolutePath() + "/src/test/case_file/short.avro"), shortAvro);
     }
 
     /*
@@ -105,7 +109,7 @@ public class TestConnectorUtil  {
 			System.out.println(fsIterator.next().getPath());
 		}
 
-		assertEquals(fileNum, 2);
+		assertEquals(fileNum, 3);
     }
 
     /*
@@ -138,6 +142,42 @@ public class TestConnectorUtil  {
 			}
 
 			assertEquals(line, 1943);
+		} catch (IOException e) {
+			fail(e.getMessage());
+		} catch (URISyntaxException e) {
+			fail(e.getMessage());
+		}
+	}
+
+	/*
+	 * test avro short support
+	 */
+	@Test
+	public void test_avro_short() {
+		int hadoopPort = cluster.getNameNodePort();
+
+		Configuration conf = new Configuration();
+		conf.addResource("hdfs-site.xml");
+
+		try {
+			URI uri = new URI("gphdfs://localhost:" + hadoopPort + "/tmp/short.avro");
+			ConnectorUtil.setHadoopFSURI(conf, uri, "gphdfs");
+
+			ByteArrayOutputStream bout = new ByteArrayOutputStream();
+			List<ColumnSchema> columns = new ArrayList<ColumnSchema>();
+			columns.add(new ColumnSchema("c1", GPDBWritable.SMALLINT, 1, 1, ','));
+			AvroFileReader aReader = new AvroFileReader(conf, 0, 1, uri.getPath(), columns, null, false, false, bout);
+
+			aReader.readAvroFormat();
+
+			byte[] barray = bout.toByteArray();
+			DataInputStream din = new DataInputStream(new ByteArrayInputStream(barray));
+			GPDBWritable writable = new GPDBWritable();
+			writable.readFields(din);
+			short c1 = writable.getShort(0);
+			assertEquals(c1, 123);
+
+			assertEquals(din.available(), 0);
 		} catch (IOException e) {
 			fail(e.getMessage());
 		} catch (URISyntaxException e) {

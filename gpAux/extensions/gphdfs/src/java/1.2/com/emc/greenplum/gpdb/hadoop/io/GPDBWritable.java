@@ -890,6 +890,10 @@ public class GPDBWritable implements Writable {
 		return type == FLOAT8 || type == FLOAT8_ARR;
 	}
 
+	private static boolean isSmallIntOrSmallIntArray(int type) {
+		return type == SMALLINT || type == INT2_ARR;
+	}
+
 	public static boolean isIntOrIntArray(int type) {
 		return type == INTEGER || type == INT4_ARR;
 	}
@@ -912,6 +916,10 @@ public class GPDBWritable implements Writable {
 
 	public static boolean isIntOrBigInt(int type) {
 		return isIntOrIntArray(type) || isBigintOrBigintArray(type);
+	}
+
+	public static boolean isSmallIntOrIntOrBigInt(int type) {
+		return isIntOrIntArray(type) || isBigintOrBigintArray(type) || isSmallIntOrSmallIntArray(type);
 	}
 
 	public static boolean isArrayType(int colType2, int ndims) {

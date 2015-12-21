@@ -282,7 +282,7 @@ public class AvroFileWriter {
 				record.put(i, (Integer)colValue[i]);
 				break;
 			case GPDBWritable.SMALLINT:
-				record.put(i, (Integer)colValue[i]);
+				record.put(i, ((Short)colValue[i]).intValue());
 				break;
 			default:
 				break;
