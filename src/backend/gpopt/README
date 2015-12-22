@@ -5,7 +5,7 @@ Copyright (c) 2015, Pivotal Software, Inc.
 ---------------------------------------------------------------------------------------------------
 
 
-Metadata Type (neucrates/md/IMDId.h) 	|	Includes		|	Source
+Metadata Type (naucrates/md/IMDId.h) 	|	Includes		|	Source
 ------------------------------------------------------------------------------------------------------------------------------	
 	EmdidGPDB			|	Index			|  relcache	
 					|	Type			|  typcache & CatCache & Catalog(pg_type)	
