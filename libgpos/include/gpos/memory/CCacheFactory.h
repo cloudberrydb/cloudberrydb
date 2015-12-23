@@ -19,12 +19,16 @@
 
 #include "gpos/base.h"
 
+#include "gpos/memory/CAutoMemoryPool.h"
+#include "gpos/memory/CCache.h"
+
+// default initial value of the gclock counter during insertion of an entry
+#define CCACHE_GCLOCK_INIT_COUNTER 3
+
+using namespace gpos;
+
 namespace gpos
 {
-
-	//prototypes
-	class CCache;
-
 	//---------------------------------------------------------------------------
 	//	@class:
 	//		CCacheFactory
@@ -41,7 +45,7 @@ namespace gpos
 		private:
 
 			// global instance
-			static CCacheFactory* m_pcf;
+			static CCacheFactory *m_pcf;
 
 			// memory pool allocated to caches
 			IMemoryPool *m_pmp;
@@ -52,13 +56,11 @@ namespace gpos
 			// no copy ctor
 			CCacheFactory(const CCacheFactory&);
 
+
+
 		public:
 
-			// type definition of key hashing and equality functions
-			typedef ULONG (*HashFuncPtr)(const VOID_PTR &);
-			typedef BOOL (*EqualFuncPtr)(const VOID_PTR&, const VOID_PTR&);
-
-			// dtor
+			// private dtor
 			~CCacheFactory()
 			{
 				GPOS_ASSERT(NULL == m_pcf &&
@@ -80,20 +82,37 @@ namespace gpos
 			}
 
 			// create a cache instance
+			template <class T, class K>
 			static
-			CCache *PCacheCreate
+			CCache<T, K> *PCacheCreate
 				(
 				BOOL fUnique,
 				ULLONG ullCacheQuota,
-				HashFuncPtr pfuncHash,
-				EqualFuncPtr pfuncEqual
-				);
+				typename CCache<T, K>::HashFuncPtr pfuncHash,
+				typename CCache<T, K>::EqualFuncPtr pfuncEqual
+				)
+			{
+				GPOS_ASSERT(NULL != Pcf() &&
+						    "Cache factory has not been initialized");
+
+				IMemoryPool *pmp = Pcf()->Pmp();
+				CCache<T, K> *pcache = GPOS_NEW(pmp) CCache<T, K>
+							(
+							pmp,
+							fUnique,
+							ullCacheQuota,
+							CCACHE_GCLOCK_INIT_COUNTER,
+							pfuncHash,
+							pfuncEqual
+							);
+
+				return pcache;
+
+			}
 
 			IMemoryPool *Pmp() const;
 
 	}; // CCacheFactory
-
-
 } // namespace gpos
 
 

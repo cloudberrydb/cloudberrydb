@@ -38,36 +38,6 @@ namespace gpos
 	{
 
 		private:
-
-			// helper functions
-
-			// insert elements with duplicate keys
-			static GPOS_RESULT EresInsertDuplicates(CCache *);
-
-			// remove
-			static GPOS_RESULT EresRemoveDuplicates(CCache *);
-
-			// insert/delete/lookup tasks
-			static void* PvInsertTask(void *);
-
-			static void* PvDeleteTask(void *);
-
-			static void* PvLookupTask(void *);
-
-			// inserts one SSimpleObject with key and value set to ulKey
-			static ULLONG InsertOneElement(CCache *pCache, ULONG ulKey);
-
-			// inserts as many SSimpleObjects as needed (starting with the key ulKeyStart and
-			// sequentially generating the successive keys) to consume cache quota.
-			static ULONG ULFillCacheWithoutEviction(CCache *pCache, ULONG ulKeyStart);
-
-			// checks if after eviction we have more entries from newer generation than the older generation
-			static void CheckGenerationSanityAfterEviction(CCache* pCache, ULLONG ullOneElemSize, ULONG ulOldGenBeginKey,
-					ULONG ulOldGenEndKey, ULONG ulNewGenEndKey);
-
-			// tests if cache eviction works for a single cache size
-			static void TestEvictionForOneCacheSize(ULLONG ullCacheQuota);
-
 			// A simple object (no deep structures)
 			struct SSimpleObject
 			{
@@ -89,18 +59,17 @@ namespace gpos
 
 				static ULONG UlMyHash
 					(
-					const VOID_PTR & pvKey
+					ULONG* const & pvKey
 					)
 				{
-					ULONG *pul = static_cast<ULONG *> (pvKey);
-					return *pul;
+					return *pvKey;
 				}
 
 				//key equality function
 				static BOOL FMyEqual
 					(
-					const VOID_PTR &pvKey,
-					const VOID_PTR &pvKeySecond
+					ULONG* const & pvKey,
+					ULONG* const & pvKeySecond
 					);
 
 				// equality for object-based comparison
@@ -113,6 +82,35 @@ namespace gpos
 					return obj.m_ulKey == m_ulKey;
 				}
 			}; // struct SSimpleObject
+
+			// helper functions
+
+			// insert elements with duplicate keys
+			static GPOS_RESULT EresInsertDuplicates(CCache<SSimpleObject*, ULONG*> *);
+
+			// remove
+			static GPOS_RESULT EresRemoveDuplicates(CCache<SSimpleObject*, ULONG*> *);
+
+			// insert/delete/lookup tasks
+			static void* PvInsertTask(void *);
+
+			static void* PvDeleteTask(void *);
+
+			static void* PvLookupTask(void *);
+
+			// inserts one SSimpleObject with key and value set to ulKey
+			static ULLONG InsertOneElement(CCache<SSimpleObject*, ULONG*> *pCache, ULONG ulKey);
+
+			// inserts as many SSimpleObjects as needed (starting with the key ulKeyStart and
+			// sequentially generating the successive keys) to consume cache quota.
+			static ULONG ULFillCacheWithoutEviction(CCache<SSimpleObject*, ULONG*> *pCache, ULONG ulKeyStart);
+
+			// checks if after eviction we have more entries from newer generation than the older generation
+			static void CheckGenerationSanityAfterEviction(CCache<SSimpleObject*, ULONG*>* pCache, ULLONG ullOneElemSize, ULONG ulOldGenBeginKey,
+					ULONG ulOldGenEndKey, ULONG ulNewGenEndKey);
+
+			// tests if cache eviction works for a single cache size
+			static void TestEvictionForOneCacheSize(ULLONG ullCacheQuota);
 
 
 			// An object with a deep structure
@@ -160,13 +158,13 @@ namespace gpos
 					}
 
 					// hashing  function
-					static ULONG UlMyHash(const VOID_PTR &pvKey);
+					static ULONG UlMyHash(CDeepObject::CDeepObjectList * const &plist);
 
 					// key equality function
 					static BOOL FMyEqual
 						(
-						const VOID_PTR &pvKey,
-						const VOID_PTR &pvKeySecond
+						CDeepObject::CDeepObjectList * const & pvKey,
+						CDeepObject::CDeepObjectList * const & pvKeySecond
 						);
 
 					// key accessor
@@ -187,11 +185,11 @@ namespace gpos
 
 
 			// accessors type definitions
-			typedef CCacheAccessor<SSimpleObject, ULONG>
+			typedef CCacheAccessor<SSimpleObject*, ULONG*>
 				CSimpleObjectCacheAccessor;
 			typedef CCacheAccessor
-						<CDeepObject,
-						CDeepObject::CDeepObjectList> CDeepObjectCacheAccessor;
+						<CDeepObject*,
+						CDeepObject::CDeepObjectList*> CDeepObjectCacheAccessor;
 
 			// cache task function pointer
 			typedef void * (*TaskFuncPtr)(void *);
