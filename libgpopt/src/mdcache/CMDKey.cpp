@@ -73,8 +73,8 @@ CMDKey::FEquals
 BOOL
 CMDKey::FEqualMDKey
 	(
-	const VOID_PTR &pvLeft,
-	const VOID_PTR &pvRight
+	CMDKey* const &pvLeft,
+	CMDKey* const &pvRight
 	)
 {
 	if (NULL == pvLeft && NULL == pvRight)
@@ -89,10 +89,7 @@ CMDKey::FEqualMDKey
 	
 	GPOS_ASSERT(NULL != pvLeft && NULL != pvRight);
 	
-	CMDKey *pmdkeyLeft = static_cast<CMDKey *> (pvLeft);
-	CMDKey *pmdkeyRight = static_cast<CMDKey *> (pvRight);
-	
-	return pmdkeyLeft->Pmdid()->FEquals(pmdkeyRight->Pmdid());
+	return pvLeft->Pmdid()->FEquals(pvRight->Pmdid());
 }
 
 //---------------------------------------------------------------------------
@@ -120,11 +117,10 @@ CMDKey::UlHash() const
 ULONG 
 CMDKey::UlHashMDKey
 	(
-	const VOID_PTR & pv
+	CMDKey* const & pv
 	)
 {
-	CMDKey *pmdkey = static_cast<CMDKey *> (pv);
-	return pmdkey->Pmdid()->UlHash();
+	return pv->Pmdid()->UlHash();
 }
 
 // EOF

@@ -271,7 +271,7 @@ CMDAccessor::SMDProviderElem::UlHash
 CMDAccessor::CMDAccessor
 	(
 	IMemoryPool *pmp,
-	CCache *pcache
+	MDCache *pcache
 	)
 	:
 	m_pmp(pmp),
@@ -298,7 +298,7 @@ CMDAccessor::CMDAccessor
 CMDAccessor::CMDAccessor
 	(
 	IMemoryPool *pmp,
-	CCache *pcache,
+	MDCache *pcache,
 	CSystemId sysid,
 	IMDProvider *pmdp
 	)
@@ -330,7 +330,7 @@ CMDAccessor::CMDAccessor
 CMDAccessor::CMDAccessor
 	(
 	IMemoryPool *pmp,
-	CCache *pcache,
+	MDCache *pcache,
 	const DrgPsysid *pdrgpsysid,
 	const DrgPmdp *pdrgpmdp
 	)

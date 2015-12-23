@@ -70,10 +70,10 @@ namespace gpopt
 			
 			
 			// equality function for using MD keys in a cache
-			static BOOL FEqualMDKey(const VOID_PTR &pvLeft, const VOID_PTR &pvRight);
+			static BOOL FEqualMDKey(CMDKey* const &pvLeft, CMDKey* const &pvRight);
 			
 			// hash function for using MD keys in a cache
-			static ULONG UlHashMDKey(const VOID_PTR & pv);
+			static ULONG UlHashMDKey(CMDKey* const & pv);
 			
 	};
 }

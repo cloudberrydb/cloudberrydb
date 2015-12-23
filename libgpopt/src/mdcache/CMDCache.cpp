@@ -26,7 +26,7 @@ using namespace gpopt;
 
 
 // global instance of metadata cache
-CCache *CMDCache::m_pcache = NULL;
+CMDAccessor::MDCache *CMDCache::m_pcache = NULL;
 
 // maximum size of the cache
 ULLONG CMDCache::m_ullCacheQuota = UNLIMITED_CACHE_QUOTA;
@@ -44,7 +44,7 @@ CMDCache::Init()
 {
 	GPOS_ASSERT(NULL == m_pcache && "Metadata cache was already created");
 
-	m_pcache = CCacheFactory::PCacheCreate
+	m_pcache = CCacheFactory::PCacheCreate<IMDCacheObject*, CMDKey*>
 					(
 					true /*fUnique*/,
 					m_ullCacheQuota,

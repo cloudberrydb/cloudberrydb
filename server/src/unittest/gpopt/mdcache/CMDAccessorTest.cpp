@@ -1057,7 +1057,7 @@ CMDAccessorTest::PvInitMDAAndLookup
 {
 	GPOS_ASSERT(NULL != pv);
 	
-	CCache *pcache = (CCache *) pv;
+	CMDAccessor::MDCache *pcache = (CMDAccessor::MDCache *) pv;
 
 	CAutoMemoryPool amp;
 	IMemoryPool *pmp = amp.Pmp();

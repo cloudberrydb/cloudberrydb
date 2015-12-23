@@ -239,8 +239,8 @@ CMDProviderCommTest::PvUnittest_ClientBasic
 		
 	// we need to use an auto pointer for the cache here to ensure
 	// deleting memory of cached objects when we throw
-	CAutoP<CCache> apcache;
-	apcache = CCacheFactory::PCacheCreate
+	CAutoP<CMDAccessor::MDCache> apcache;
+	apcache = CCacheFactory::PCacheCreate<gpopt::IMDCacheObject*, gpopt::CMDKey*>
 				(
 				true, // fUnique
 				0 /* unlimited cache quota */,
@@ -248,7 +248,7 @@ CMDProviderCommTest::PvUnittest_ClientBasic
 				CMDKey::FEqualMDKey
 				);
 
-	CCache *pcache = apcache.Pt();
+	CMDAccessor::MDCache *pcache = apcache.Pt();
 
 	{
 		pmdp->AddRef();

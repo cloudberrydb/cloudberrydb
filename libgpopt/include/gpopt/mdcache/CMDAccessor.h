@@ -86,12 +86,18 @@ namespace gpopt
 	//---------------------------------------------------------------------------
 	class CMDAccessor
 	{
+		public:
+			// ccache template for mdcache
+			typedef CCache<IMDCacheObject*, CMDKey*> MDCache;
+
+		private:
 		// element in the hashtable of cache accessors maintained by the MD accessor
 		struct SMDAccessorElem;
 		struct SMDProviderElem;
 		
+
 		// cache accessor for objects in a MD cache
-		typedef CCacheAccessor<IMDCacheObject, CMDKey> CacheAccessorMD;
+		typedef CCacheAccessor<IMDCacheObject*, CMDKey*> CacheAccessorMD;
 		
 		// hashtable for cache accessors indexed by the md id of the accessed object 
 		typedef CSyncHashtable<SMDAccessorElem, MdidPtr, CSpinlockMDAcc> MDHT;
@@ -199,7 +205,7 @@ namespace gpopt
 			IMemoryPool *m_pmp;
 			
 			// metadata cache
-			CCache *m_pcache;
+			MDCache *m_pcache;
 						
 			// generic metadata provider
 			CMDProviderGeneric *m_pmdpGeneric;
@@ -254,15 +260,15 @@ namespace gpopt
 
 		public:
 			// ctors
-			CMDAccessor(IMemoryPool *pmp, CCache *pcache);
-			CMDAccessor(IMemoryPool *pmp, CCache *pcache, CSystemId sysid, IMDProvider *pmdp);
-			CMDAccessor(IMemoryPool *pmp, CCache *pcache, const DrgPsysid *pdrgpsysid, const DrgPmdp *pdrgpmdp);
+			CMDAccessor(IMemoryPool *pmp, MDCache *pcache);
+			CMDAccessor(IMemoryPool *pmp, MDCache *pcache, CSystemId sysid, IMDProvider *pmdp);
+			CMDAccessor(IMemoryPool *pmp, MDCache *pcache, const DrgPsysid *pdrgpsysid, const DrgPmdp *pdrgpmdp);
 			
 			//dtor
 			~CMDAccessor();
 			
 			// return MD cache
-			CCache *Pcache() const
+			MDCache *Pcache() const
 			{
 				return m_pcache;
 			}

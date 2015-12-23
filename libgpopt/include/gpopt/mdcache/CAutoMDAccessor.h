@@ -24,12 +24,15 @@
 #include "gpos/base.h"
 #include "naucrates/md/CMDProviderMemory.h"
 #include "gpopt/mdcache/CMDAccessor.h"
+#include "gpopt/mdcache/CMDCache.h"
 
+namespace gpmd
+{
+	class IMDCacheObject;
+}
 namespace gpopt
 {
 	using namespace gpos;
-
-
 	//---------------------------------------------------------------------------
 	//	@class:
 	//		CAutoMDAccessor
@@ -49,7 +52,7 @@ namespace gpopt
 			BOOL m_fOwnCache;
 
 			// metadata cache
-			CCache *m_pcache;
+			CMDAccessor::MDCache *m_pcache;
 
 			// metadata accessor
 			CMDAccessor *m_pmda;
@@ -77,7 +80,7 @@ namespace gpopt
 				GPOS_ASSERT(NULL != pmdp);
 
 				m_pcache =
-					CCacheFactory::PCacheCreate(true /*fUnique*/, 0 /* unlimited cache quota */,
+					CCacheFactory::PCacheCreate<gpmd::IMDCacheObject*, gpopt::CMDKey*>(true /*fUnique*/, 0 /* unlimited cache quota */,
 							gpopt::CMDKey::UlHashMDKey, gpopt::CMDKey::FEqualMDKey);
 				m_pmda = GPOS_NEW(pmp) CMDAccessor(pmp, m_pcache, sysid, pmdp);
 			}
@@ -88,7 +91,7 @@ namespace gpopt
 				IMemoryPool *pmp,
 				IMDProvider *pmdp,
 				CSystemId sysid,
-				CCache *pcache
+				CMDAccessor::MDCache *pcache
 				)
 				:
 				m_pimdp(pmdp),
@@ -116,7 +119,7 @@ namespace gpopt
 			}
 
 			// accessor of cache
-			CCache *Pcache() const
+			CMDAccessor::MDCache *Pcache() const
 			{
 				return m_pcache;
 			}

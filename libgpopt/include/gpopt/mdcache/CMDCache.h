@@ -23,7 +23,7 @@
 #include "gpos/base.h"
 #include "gpos/memory/CCache.h"
 #include "gpos/memory/CCacheFactory.h"
-
+#include "gpopt/mdcache/CMDAccessor.h"
 #include "gpopt/mdcache/CMDKey.h"
 
 namespace gpopt
@@ -47,7 +47,7 @@ namespace gpopt
 		private:
 
 			// pointer to the underlying cache
-			static CCache *m_pcache;
+			static CMDAccessor::MDCache *m_pcache;
 
 			// the maximum size of the cache
 			static ULLONG m_ullCacheQuota;
@@ -98,7 +98,7 @@ namespace gpopt
 
 			// global accessor
 			static
-			CCache *Pcache()
+			CMDAccessor::MDCache *Pcache()
 			{
 				return m_pcache;
 			}
