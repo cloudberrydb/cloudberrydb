@@ -44,6 +44,9 @@
 // no. of hashtable buckets
 #define CACHE_HT_NUM_OF_BUCKETS 1000
 
+// eligible to delete
+#define EXPECTED_REF_COUNT_FOR_DELETE 1
+
 using namespace gpos;
 
 namespace gpos
@@ -193,8 +196,9 @@ namespace gpos
 			{
 				GPOS_ASSERT(NULL != pce);
 
-				GPOS_ASSERT(0 < pce->UlRefCount() &&
-						    "Releasing entry with non-zero ref-count");
+				// CacheEntry's destructor is the only place where ref count go from 1(EXPECTED_REF_COUNT_FOR_DELETE) to 0
+				GPOS_ASSERT(EXPECTED_REF_COUNT_FOR_DELETE < pce->UlRefCount() &&
+						    "Releasing entry for which CCacheEntry has the ownership");
 
 				BOOL fDeleted = false;
 
@@ -202,7 +206,8 @@ namespace gpos
 				{
 					CCacheHashtableAccessor shtacc(m_sht, pce->PKey());
 					pce->DecRefCount();
-					if (0 == pce->UlRefCount() && pce->FMarkedForDeletion())
+
+					if (EXPECTED_REF_COUNT_FOR_DELETE == pce->UlRefCount() && pce->FMarkedForDeletion())
 					{
 						// remove entry from hash table
 						shtacc.Remove(pce);
@@ -212,9 +217,8 @@ namespace gpos
 
 				if (fDeleted)
 				{
-					// release entry's memory
-					CMemoryPoolManager::Pmpm()->Destroy(pce->Pmp());
-					GPOS_DELETE(pce);
+					// delete cache entry
+					DestroyCacheEntry(pce);
 				}
 			}
 
@@ -293,9 +297,21 @@ namespace gpos
 			// cleans up when cache is destroyed
 			void Cleanup()
 			{
-				m_sht.DestroyEntries(DestroyCacheEntry);
+				m_sht.DestroyEntries(DestroyCacheEntryWithRefCountTest);
 				GPOS_DELETE(m_chtitClockHand);
 				m_chtitClockHand = NULL;
+			}
+
+			static
+			void DestroyCacheEntryWithRefCountTest(CCacheHashTableEntry *pce)
+			{
+				GPOS_ASSERT(NULL != pce);
+
+				// This assert is valid only when ccache get deleted. At that point nobody should hold a pointer to an object in CCache.
+				// If ref count is not 1, then we possibly have a leak.
+				GPOS_ASSERT(EXPECTED_REF_COUNT_FOR_DELETE == pce->UlRefCount() && "Expected CCacheEntry's refcount to be 1 before it get deleted");
+
+				DestroyCacheEntry(pce);
 			}
 
 			// destroy a cache entry
@@ -304,8 +320,10 @@ namespace gpos
 			{
 				GPOS_ASSERT(NULL != pce);
 
-				CMemoryPoolManager::Pmpm()->Destroy(pce->Pmp());
+				// destroy the object before deleting memory pool. This cover the case where object & cacheentry use same memory pool
+				IMemoryPool* pmp = pce->Pmp();
 				GPOS_DELETE(pce);
+				CMemoryPoolManager::Pmpm()->Destroy(pmp);
 			}
 
 			// evict entries by making one pass through the hash table buckets
@@ -330,7 +348,7 @@ namespace gpos
 								// for our self reference we are using CCacheHashtableIterAccessor
 								// to directly access the entry. Therefore, we are not causing a
 								// bump to ref counter
-								if (0 == pt->UlRefCount())
+								if (EXPECTED_REF_COUNT_FOR_DELETE == pt->UlRefCount())
 								{
 									// remove advances iterator automatically
 									shtitacc.Remove(pt);
@@ -356,9 +374,7 @@ namespace gpos
 					if (fDeleted)
 					{
 						GPOS_ASSERT(NULL != pt);
-						// release entry's memory
-						CMemoryPoolManager::Pmpm()->Destroy(pt->Pmp());
-						GPOS_DELETE(pt);
+						DestroyCacheEntry(pt);
 					}
 				}
 				return ullTotalFreed;

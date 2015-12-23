@@ -39,7 +39,7 @@ namespace gpos
 
 		private:
 			// A simple object (no deep structures)
-			struct SSimpleObject
+			struct SSimpleObject : public CRefCount
 			{
 				ULONG m_ulKey;
 
@@ -114,7 +114,7 @@ namespace gpos
 
 
 			// An object with a deep structure
-			class CDeepObject
+			class CDeepObject : public CRefCount
 			{
 
 				private:
@@ -199,6 +199,7 @@ namespace gpos
 			// unittests
 			static GPOS_RESULT EresUnittest();
 			static GPOS_RESULT EresUnittest_Basic();
+			static GPOS_RESULT EresUnittest_Refcount();
 			static GPOS_RESULT EresUnittest_Eviction();
 			static GPOS_RESULT EresUnittest_DeepObject();
 			static GPOS_RESULT EresUnittest_Iteration();

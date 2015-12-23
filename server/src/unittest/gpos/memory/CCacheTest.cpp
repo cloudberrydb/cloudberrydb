@@ -53,6 +53,7 @@ CCacheTest::EresUnittest()
 	CUnittest rgut[] =
 		{
 		GPOS_UNITTEST_FUNC(CCacheTest::EresUnittest_Basic),
+		GPOS_UNITTEST_FUNC(CCacheTest::EresUnittest_Refcount),
 		GPOS_UNITTEST_FUNC(CCacheTest::EresUnittest_Eviction),
 		GPOS_UNITTEST_FUNC(CCacheTest::EresUnittest_Iteration),
 		GPOS_UNITTEST_FUNC(CCacheTest::EresUnittest_DeepObject),
@@ -242,6 +243,9 @@ CCacheTest::EresUnittest_Basic()
 #endif // GPOS_DEBUG
 			ca.PtInsert(&(pso->m_ulKey), pso);
 
+		//release the ownership from pso, but ccacheentry still has the ownership
+		pso->Release();
+
 		GPOS_ASSERT(psoReturned == pso &&
 				    "Incorrect cache entry was inserted");
 		GPOS_ASSERT(1 == pcache->UlpEntries());
@@ -315,6 +319,71 @@ CCacheTest::EresUnittest_Basic()
 
 //---------------------------------------------------------------------------
 //	@function:
+//		CCacheTest::EresUnittest_Refcount
+//
+//	@doc:
+//		Basic Ref count test:
+//			Insert Ref Count object, dec ref count of the object, and get the object from cache
+//
+//---------------------------------------------------------------------------
+GPOS_RESULT
+CCacheTest::EresUnittest_Refcount()
+{
+	CAutoP<CCache<SSimpleObject*, ULONG*> > apcache;
+	apcache = CCacheFactory::PCacheCreate<SSimpleObject*, ULONG*>
+				(
+				fUnique,
+				UNLIMITED_CACHE_QUOTA,
+				SSimpleObject::UlMyHash,
+				SSimpleObject::FMyEqual
+				);
+
+	CCache<SSimpleObject*, ULONG* > *pcache = apcache.Pt();
+	SSimpleObject *pso = NULL;
+	//Scope of the accessor when we insert
+	{
+		CSimpleObjectCacheAccessor ca(pcache);
+		IMemoryPool* pmp = ca.Pmp();
+
+		pso = GPOS_NEW(pmp) SSimpleObject(1, 2);
+		GPOS_ASSERT(1 == pso->UlpRefCount());
+
+	#ifdef GPOS_DEBUG
+		SSimpleObject *psoReturned =
+	#endif // GPOS_DEBUG
+			ca.PtInsert(&(pso->m_ulKey), pso);
+
+		// 1 by CRefCount, 2 by CCacheEntry constructor and 3 by CCache Accessor
+		GPOS_ASSERT(3 == pso->UlpRefCount() && "Expected refcount to be 3");
+		GPOS_ASSERT(psoReturned == pso &&
+					"Incorrect cache entry was inserted");
+
+	}
+
+	GPOS_ASSERT(2 == pso->UlpRefCount() &&  "Expected refcount to be 2 because CCacheAccessor goes out of scope");
+
+	{
+		//Create new access for lookup
+		CSimpleObjectCacheAccessor ca(pcache);
+
+		GPOS_ASSERT(2 == pso->UlpRefCount() && "Expected pso and CCacheEntry to have ownership");
+
+		//Ideally Lookup should return valid object. Until CCache evict and no one has reference to it, this object can't be deleted
+		ca.Lookup(&(pso->m_ulKey));
+
+		// 1 by CRefCount, 2 by CCacheEntry constructor and 3 by CCache Accessor
+		GPOS_ASSERT(3 == pso->UlpRefCount() && "Expected pso, CCacheEntry and CCacheAccessor to have ownership");
+		// Ideally it shouldn't delete itself because CCache is still holding this object
+		pso->Release();
+		GPOS_ASSERT(2 == pso->UlpRefCount() && "Expected CCacheEntry and CCacheAccessor to have ownership");
+	}
+	GPOS_ASSERT(1 == pso->UlpRefCount() && "Expected refcount to be 1. Only CCacheEntry have the ownership");
+
+	return GPOS_OK;
+}
+
+//---------------------------------------------------------------------------
+//	@function:
 //		CCacheTest::InsertOneElement
 //
 //	@doc:
@@ -325,13 +394,21 @@ CCacheTest::EresUnittest_Basic()
 ULLONG
 CCacheTest::InsertOneElement(CCache<SSimpleObject*, ULONG*> *pCache, ULONG ulKey)
 {
+	ULLONG ulTotalAllocatedSize = 0;
+	SSimpleObject *pso = NULL;
 	{
 		CSimpleObjectCacheAccessor ca(pCache);
 		IMemoryPool *pmp = ca.Pmp();
-		SSimpleObject *pso = GPOS_NEW(pmp) SSimpleObject(ulKey, ulKey);
+		pso = GPOS_NEW(pmp) SSimpleObject(ulKey, ulKey);
 		ca.PtInsert(&(pso->m_ulKey), pso);
-		return pmp->UllTotalAllocatedSize();
+		GPOS_ASSERT(3 == pso->UlpRefCount() && "Expected pso, cacheentry and cacheaccessor to have ownership");
+		//Remove the ownership of pso. Still CCacheEntry has the ownership
+		pso->Release();
+		GPOS_ASSERT(2 == pso->UlpRefCount() && "Expected pso and cacheentry to have ownership");
+		ulTotalAllocatedSize = pmp->UllTotalAllocatedSize();
 	}
+	GPOS_ASSERT(1 == pso->UlpRefCount() && "Expected only cacheentry to have ownership");
+	return ulTotalAllocatedSize;
 }
 
 //---------------------------------------------------------------------------
@@ -575,6 +652,7 @@ CCacheTest::EresInsertDuplicates
 
 			GPOS_ASSERT(NULL != psoReturned);
 
+			pso->Release();
 		}
 		GPOS_CHECK_ABORT;
 	}
@@ -681,6 +759,7 @@ CCacheTest::EresUnittest_DeepObject()
 		CDeepObject *pdoReturned =
 #endif // GPOS_DEBUG
 			ca.PtInsert(pdo->PKey(), pdo);
+		pdo->Release();
 
 		GPOS_ASSERT(NULL != pdoReturned &&
 				    "Incorrect cache entry was inserted");
