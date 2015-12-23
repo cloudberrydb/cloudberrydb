@@ -622,6 +622,7 @@ CMDAccessor::Pimdobj
 			{
 				// add to MD cache
 				CAutoP<CMDKey> a_pmdkeyCache;
+				// ref count of the new object is set to one and optimizer becomes its owner
 				a_pmdkeyCache = GPOS_NEW(pmp) CMDKey(pmdobjNew->Pmdid());
 
 				// object gets pinned independent of whether insertion succeeded or
@@ -636,11 +637,13 @@ CMDAccessor::Pimdobj
 
 				// safely inserted
 				(void) a_pmdkeyCache.PtReset();
-				pmdobjNew->AddRef();
 			}
 		}
 		else
 		{
+			// Object found in CCache but not in local hash table.
+			// Take ownership before inserting in local hash table
+			// hash table will call corresponding release in destructor
 			pmdobjNew->AddRef();
 		}
 

@@ -94,8 +94,7 @@ CMDAccessorTest::EresUnittest()
 		GPOS_UNITTEST_FUNC(CMDAccessorTest::EresUnittest_Cast),
 		GPOS_UNITTEST_FUNC(CMDAccessorTest::EresUnittest_ScCmp),
 		GPOS_UNITTEST_FUNC(CMDAccessorTest::EresUnittest_ConcurrentAccessSingleMDA),
-		GPOS_UNITTEST_FUNC(CMDAccessorTest::EresUnittest_ConcurrentAccessMultipleMDA),
-		GPOS_UNITTEST_FUNC(CMDAccessorTest::EresUnittest_PrematureMDIdRelease),
+		GPOS_UNITTEST_FUNC(CMDAccessorTest::EresUnittest_ConcurrentAccessMultipleMDA)
 		};
 
 	return CUnittest::EresExecute(rgut, GPOS_ARRAY_SIZE(rgut));
@@ -1122,55 +1121,6 @@ CMDAccessorTest::PvInitMDAAndLookup
 	}
 	
 	return NULL;
-}
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CMDAccessorTest::EresUnittest_PrematureMDIdRelease
-//
-//	@doc:
-//		Test premature release of MDId
-//
-//---------------------------------------------------------------------------
-GPOS_RESULT
-CMDAccessorTest::EresUnittest_PrematureMDIdRelease()
-{
-	CAutoMemoryPool amp;
-	IMemoryPool *pmp = amp.Pmp();
-
-	// setup a file-based provider
-	// Setup an MD cache with a file-based provider
-	CMDProviderMemory *pmdp = CTestUtils::m_pmdpf;
-	pmdp->AddRef();
-	CMDAccessor mda(pmp, CMDCache::Pcache(), CTestUtils::m_sysidDefault, pmdp);
-
-	CMDIdGPDB *pmdid = GPOS_NEW(pmp) CMDIdGPDB(GPDB_INT4, 1, 0);
-	const IMDType *pimdtype = mda.Pmdtype(pmdid);
-	pmdid->Release();
-
-	IMDId *pmdidInt4 = pimdtype->Pmdid();
-
-	// AddRef and Release are paired -- this is OK
-	pmdidInt4->AddRef();
-	pmdidInt4->Release();
-
-	GPOS_TRY
-	{
-		// wrong Release of mdid during MDA life span -- this must throw
-		pmdidInt4->Release();
-	}
-	GPOS_CATCH_EX(ex)
-	{
-		if (!GPOS_MATCH_EX(ex, CException::ExmaSystem, CException::ExmiInvalidDeletion))
-		{
-			GPOS_RETHROW(ex);
-		}
-
-		GPOS_RESET_EX;
-	}
-	GPOS_CATCH_END;
-
-	return GPOS_OK;
 }
 
 // EOF
