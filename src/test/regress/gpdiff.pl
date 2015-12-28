@@ -40,6 +40,7 @@ on the standard options.  The following options are specific to gpdiff:
     -help                 brief help message
     -man                  full documentation
     -version              print gpdiff version and underlying diff version
+    -verbose              print verbose info
     -gpd_ignore_headers   ignore header lines in query output
     -gpd_ignore_plans     ignore explain plan content in input files
     -gpd_init <file>      load initialization file
@@ -59,6 +60,10 @@ on the standard options.  The following options are specific to gpdiff:
 =item B<-version>
 
     Prints the gpdiff version and underlying diff version
+
+=item B<-verbose>
+
+    Prints verbose information.
 
 =item B<-gpd_ignore_headers>
 
@@ -334,6 +339,7 @@ if (1)
     my $man         = 0;
     my $help        = 0;
     my $verzion     = 0;
+    my $verbose     = 0;
     my $pmsg        = "";
     my @arg2;              # arg list for diff
     my %init_dup;
@@ -418,6 +424,11 @@ if (1)
                 $verzion = 1;
                 next;
             }
+            if ($arg =~ m/^\-(\-)*(V|verbose)$/)
+            {
+                $verbose = 1;
+                next;
+            }
             if ($arg =~ m/^\-(\-)*(man|help|\?)$/i)
             {
                 if ($arg =~ m/man/i)
@@ -496,6 +507,11 @@ if (1)
 
     push(@ARGV, @arg2);
 
+    if ($verbose)
+    {
+        $glob_atmsort_args{VERBOSE} = 1;
+    }
+
     # ENGINF-180: tell atmsort to ignore header formatting (globally)
     if ($glob_ignore_headers)
     {
@@ -518,7 +534,6 @@ if (1)
         }
         @{$glob_atmsort_args{INIT_FILES}} = @{$glob_init_file};
     }
-
 
     exit(filefunc($f1, $f2));
 }

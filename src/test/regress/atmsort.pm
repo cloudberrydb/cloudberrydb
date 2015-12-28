@@ -123,6 +123,37 @@ sub atmsort_init
 
     init_match_subs();
     init_matchignores();
+
+    _process_init_files();
+}
+
+sub _process_init_files
+{
+    # allow multiple init files
+    if (@glob_init)
+    {
+        my $devnullfh;
+        my $init_file_fh;
+
+        open $devnullfh, "> /dev/null" or die "can't open /dev/null: $!";
+
+        for my $init_file (@glob_init)
+        {
+            die "no such file: $init_file"
+            unless (-e $init_file);
+
+            # Perform initialization from this init_file by passing it
+            # to bigloop. Open the file, and pass that as the input file
+            # handle, and redirect output to /dev/null.
+            open $init_file_fh, "< $init_file" or die "could not open $init_file: $!";
+
+            atmsort_bigloop($init_file_fh, $devnullfh);
+
+            close $init_file_fh;
+        }
+
+        close $devnullfh;
+    }
 }
 
 my $glob_match_then_sub_fnlist;
@@ -214,7 +245,7 @@ sub _build_match_subs
             push @{$glob_match_then_sub_fnlist},
             [$fn1, $bigdef, $cmt, $defi->[0], $defi->[1]];
 
-            if ($glob_verbose)
+            if ($glob_verbose && defined $atmsort_outfh)
             {
                 print $atmsort_outfh "GP_IGNORE: Defined $cmt\t$defi->[0]\t$defi->[1]\n"
             }
@@ -307,7 +338,6 @@ sub match_then_subs
         else
         {
             my $subs = &$fn1($ini);
-
             unless ($subs eq $ini)
             {
                 print $atmsort_outfh "GP_IGNORE: was: $ini";
@@ -374,8 +404,8 @@ sub _build_match_ignores
             # store the function pointer and the text of the function
             # definition
             push @{$glob_match_then_ignore_fnlist},
-            [$fn1, $bigdef, $cmt, $defi, "(ignore)"];
-            if ($glob_verbose)
+                    [$fn1, $bigdef, $cmt, $defi, "(ignore)"];
+            if ($glob_verbose && defined $atmsort_outfh)
             {
                 print $atmsort_outfh "GP_IGNORE: Defined $cmt\t$defi\n"
             }
@@ -1618,31 +1648,6 @@ sub run_fhs
     my $infh = shift;
     my $outfh = shift;
 
-    # allow multiple init files
-    if (@glob_init)
-    {
-        my $devnullfh;
-        my $init_file_fh;
-
-        open $devnullfh, "> /dev/null" or die "can't open /dev/null: $!";
-
-        for my $init_file (@glob_init)
-        {
-            die "no such file: $init_file"
-            unless (-e $init_file);
-
-            # Perform initialization from this init_file by passing it
-            # to bigloop. Open the file, and pass that as the input file
-            # handle, and redirect output to /dev/null.
-            open $init_file_fh, "< $init_file" or die "could not open $init_file: $!";
-
-            atmsort_bigloop($init_file_fh, $devnullfh);
-
-            close $init_file_fh;
-        }
-
-        close $devnullfh;
-    }
 
     # loop over input file.
     atmsort_bigloop($infh, $outfh);
