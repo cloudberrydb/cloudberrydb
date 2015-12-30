@@ -49,8 +49,6 @@ static bool workfile_mgr_is_reusable(PlanState *ps);
 static bool workfile_mgr_is_cacheable_plan(PlanState *ps);
 static workfile_set_hashkey_t workfile_mgr_hash_key(workfile_set_plan *plan);
 static workfile_set_plan *workfile_mgr_serialize_plan(PlanState *ps);
-static void workfile_mgr_free_plan(workfile_set_plan *splan);
-static void workfile_mgr_save_plan(workfile_set *work_set, workfile_set_plan *sf_plan);
 static bool workfile_set_equivalent(const void *virtual_resource, const void *physical_resource);
 static bool workfile_mgr_compare_plan(workfile_set *work_set, workfile_set_plan *sf_plan);
 static void workfile_mgr_populate_set(const void *resource, const void *param);
@@ -857,43 +855,6 @@ workfile_mgr_serialize_plan(PlanState *ps)
 	splan->serialized_plan_len = plan_len;
 
 	return splan;
-}
-
-/*
- * Free up a workfile manager plan structure.
- */
-static void
-workfile_mgr_free_plan(workfile_set_plan *sf_plan)
-{
-	Assert(sf_plan != NULL);
-	pfree(sf_plan->serialized_plan);
-	pfree(sf_plan);
-}
-
-/*
- * Save the serialized plan to a file in the workfile set.
- * It will be used to do full plan matching before reusing.
- */
-static void
-workfile_mgr_save_plan(workfile_set *work_set, workfile_set_plan *sf_plan)
-{
-	Assert(work_set);
-	Assert(sf_plan);
-
-	ExecWorkFile *plan_file = workfile_mgr_create_fileno(work_set, WORKFILE_NUM_ALL_PLAN);
-	insist_log(plan_file != NULL, "Could not create temporary work file: %m");
-
-	elog(gp_workfile_caching_loglevel, "Saving query plan to file %s", ExecWorkFile_GetFileName(plan_file));
-
-
-	bool res = ExecWorkFile_Write(plan_file, sf_plan->serialized_plan,
-			sf_plan->serialized_plan_len);
-	if(!res)
-	{
-		workfile_mgr_report_error();
-	}
-
-	workfile_mgr_close_file(work_set, plan_file);
 }
 
 /*
