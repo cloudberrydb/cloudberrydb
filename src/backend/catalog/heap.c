@@ -1673,7 +1673,6 @@ heap_create_with_catalog(const char *relname,
 	 * the OID of the newly created relation.
 	 */
 	heap_close(new_rel_desc, NoLock);	/* do not unlock till end of xact */
-
 	heap_close(pg_class_desc, RowExclusiveLock);
 
 	return relid;
@@ -1960,7 +1959,7 @@ RemoveAttrDefault(Oid relid, AttrNumber attnum,
 		object.objectSubId = 0;
 
 		performDeletion(&object, behavior);
-		
+
 		found = true;
 		adoid = object.objectId;
 	}
@@ -3056,7 +3055,7 @@ heap_truncate(List *relids)
 	foreach(cell, relids)
 	{
 		Oid			rid = lfirst_oid(cell);
-		Relation	rel, trel;
+		Relation	rel;
 		Oid			toastrelid;
 		Oid			aosegrelid;
 		Oid         aoblkdirrelid;
@@ -3070,6 +3069,8 @@ heap_truncate(List *relids)
 		toastrelid = rel->rd_rel->reltoastrelid;
 		if (OidIsValid(toastrelid))
 		{
+			Relation trel;
+
 			trel = heap_open(toastrelid, AccessExclusiveLock);
 			relations = lappend(relations, trel);
 		}

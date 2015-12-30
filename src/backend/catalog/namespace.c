@@ -2399,10 +2399,10 @@ recomputeNamespacePath(void)
 static void
 InitTempTableNamespace(void)
 {
-	char				 namespaceName[NAMEDATALEN];
-	int					 fetchCount;
-	char				*rolname;
-	CreateSchemaStmt   	*stmt;
+	char		namespaceName[NAMEDATALEN];
+	int			fetchCount;
+	char	   *rolname;
+	CreateSchemaStmt *stmt;
 
 	Assert(!OidIsValid(myTempNamespace));
 
@@ -3024,6 +3024,3 @@ pg_objname_to_oid(PG_FUNCTION_ARGS)
 
     PG_RETURN_OID(relid);
 }
-
-    
-    
