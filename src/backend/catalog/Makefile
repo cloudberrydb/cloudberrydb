@@ -123,7 +123,7 @@ uninstall-data:
 
 # postgres_bki_srcs is in the distribution tarball, so it is not cleaned here.
 clean:
-	rm -f SUBSYS.o $(OBJS) $(BKIFILES) gp_toolkit_test.sql gp_toolkit.sql
+	rm -f SUBSYS.o $(OBJS) $(BKIFILES)
 
 maintainer-clean: clean
 	rm -f postgres_bki_srcs
