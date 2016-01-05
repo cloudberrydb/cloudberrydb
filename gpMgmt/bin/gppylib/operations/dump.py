@@ -1053,16 +1053,24 @@ class PostDumpSegment(Operation):
             logger.error('Could not locate status file: %s' % self.status_file)
             raise NoStatusFile()
         # Ensure that status file indicates successful dump
+        completed = False
+        error_found = False
         with open(self.status_file, 'r') as f:
             for line in f:
                 if line.find("Finished successfully") != -1:
-                    break
+                    completed = True
+                elif line.find("ERROR:") != -1 or line.find("[ERROR]") != -1:
+                    error_found = True
+        if error_found:
+            if completed:
+                logger.warn("Status report file indicates dump completed with errors: %s" % self.status_file)
             else:
-                logger.error("Status report file indicates errors: %s" % self.status_file)
+                logger.error("Status report file indicates dump incomplete with errors: %s" % self.status_file)
+            with open(self.status_file, 'r') as f:
                 for line in f:
                     logger.info(line)
-                logger.error("Status file contents dumped to log file")
-                raise StatusFileError()
+            logger.error("Status file contents dumped to log file")
+            raise StatusFileError()
         # Ensure that dump file exists
         if not os.path.exists(self.dump_file):
             logger.error("Could not locate dump file: %s" % self.dump_file)

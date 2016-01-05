@@ -439,8 +439,8 @@ def validate_tablenames(table_list):
 
 class RestoreDatabase(Operation):
     def __init__(self, restore_timestamp, no_analyze, drop_db, restore_global, master_datadir, backup_dir,
-                 master_port, dump_dir, dump_prefix, no_plan, restore_tables, batch_default, no_ao_stats,
-                 redirected_restore_db, report_status_dir, restore_stats, metadata_only, ddboost,
+                 master_port, dump_dir, dump_prefix, no_plan, restore_tables, batch_default,
+                 no_ao_stats, redirected_restore_db, report_status_dir, restore_stats, metadata_only, ddboost,
                  netbackup_service_host, netbackup_block_size, change_schema):
         self.restore_timestamp = restore_timestamp
         self.no_analyze = no_analyze
@@ -523,7 +523,9 @@ class RestoreDatabase(Operation):
                                                                 self.change_schema)
             logger.info("Running metadata restore")
             logger.info("Invoking commandline: %s" % restore_line)
-            Command('Invoking gp_restore', restore_line).run(validateAfter=True)
+            cmd = Command('Invoking gp_restore', restore_line)
+            cmd.run(validateAfter=False)
+            self._process_result(cmd)
             logger.info("Expanding parent partitions if any in table filter")
             self.restore_tables = expand_partition_tables(restore_db, self.restore_tables)
 
@@ -541,7 +543,9 @@ class RestoreDatabase(Operation):
                                                         self.no_ao_stats, full_restore_with_filter,
                                                         self.change_schema)
                 logger.info('gp_restore commandline: %s: ' % restore_line)
-                Command('Invoking gp_restore', restore_line).run(validateAfter=True)
+                cmd = Command('Invoking gp_restore', restore_line)
+                cmd.run(validateAfter=False)
+                self._process_result(cmd)
 
             if full_restore_with_filter:
                 restore_line = self._build_post_data_schema_only_restore_line(restore_timestamp,
@@ -551,7 +555,9 @@ class RestoreDatabase(Operation):
                                                                               full_restore_with_filter)
                 logger.info("Running post data restore")
                 logger.info('gp_restore commandline: %s: ' % restore_line)
-                Command('Invoking gp_restore', restore_line).run(validateAfter=True)
+                cmd = Command('Invoking gp_restore', restore_line)
+                cmd.run(validateAfter=False)
+                self._process_result(cmd)
 
             if table_filter_file:
                 self.remove_filter_file(table_filter_file)
@@ -563,6 +569,15 @@ class RestoreDatabase(Operation):
                 self._analyze_restore_tables(restore_db, self.restore_tables, self.change_schema)
         if self.restore_stats:
             self._restore_stats(restore_timestamp, self.master_datadir, self.backup_dir, self.master_port, restore_db, self.restore_tables)
+
+    def _process_result(self, cmd):
+        res = cmd.get_results()
+        if res.rc == 0:
+            logger.info("gpdbrestore finished successfully")
+        elif res.rc == 2:
+            logger.warn("gpdbrestore finished but ERRORS were found, please check the restore report file for details")
+        else:
+            raise Exception('gpdbrestore finished unsuccessfully')
 
     def _analyze(self, restore_db, master_port):
         conn = None
