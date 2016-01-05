@@ -7,7 +7,7 @@ from gppylib.mainUtils import addMasterDirectoryOptionForSingleClusterProgram, a
 import fnmatch
 import os
 import sys
-from optparse import OptionGroup
+from optparse import OptionGroup, OptionValueError
 
 try:
     import gpmfr
@@ -30,7 +30,7 @@ try:
                                            global_file_dumped, is_begin_incremental_run, is_incremental_restore, restore_cdatabase_file_with_nbu, \
                                            restore_config_files_with_nbu, restore_global_file_with_nbu, restore_statistics_file_with_nbu, \
                                            restore_increments_file_with_nbu, restore_partition_list_file_with_nbu, restore_report_file_with_nbu, \
-                                           restore_state_files_with_nbu, truncate_restore_tables, validate_tablenames
+                                           restore_state_files_with_nbu, statistics_file_dumped, truncate_restore_tables, validate_tablenames
     from gppylib.operations.utils import DEFAULT_NUM_WORKERS
     from gppylib.operations.unix import CheckFile, CheckRemoteFile, ListFilesByPattern, ListRemoteFilesByPattern
 except ImportError, e:
