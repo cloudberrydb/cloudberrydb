@@ -19,7 +19,7 @@ from gppylib.operations.backup_utils import check_backup_type, check_dir_writabl
                                             execute_sql, expand_partition_tables, generate_ao_state_filename, generate_cdatabase_filename, \
                                             generate_co_state_filename, generate_createdb_filename, generate_createdb_prefix, generate_dbdump_prefix, \
                                             generate_dirtytable_filename, generate_global_filename, generate_global_prefix, generate_increments_filename, \
-                                            generate_master_config_filename, generate_master_dbdump_prefix, generate_stats_prefix, generate_metadata_filename, \
+                                            generate_master_config_filename, generate_master_dbdump_prefix, generate_stats_filename, generate_stats_prefix, generate_metadata_filename, \
                                             generate_partition_list_filename, generate_pgstatlastoperation_filename, generate_plan_filename, generate_report_filename, \
                                             generate_segment_config_filename, get_all_segment_addresses, get_backup_directory, get_full_timestamp_for_incremental, \
                                             get_full_timestamp_for_incremental_with_nbu, get_lines_from_file, restore_file_with_nbu, run_pool_command, scp_file_to_hosts, \
@@ -314,7 +314,7 @@ def restore_statistics_file_with_nbu(master_datadir, backup_dir, dump_dir, dump_
         raise Exception('Restore timestamp is None.')
     if netbackup_service_host is None:
         raise Exception('Netbackup service hostname is None.')
-    restore_file_with_nbu(netbackup_service_host, netbackup_block_size, generate_statistics_filename(master_datadir, backup_dir, dump_dir, dump_prefix, restore_timestamp[0:8], restore_timestamp))
+    restore_file_with_nbu(netbackup_service_host, netbackup_block_size, generate_stats_filename(master_datadir, backup_dir, dump_dir, dump_prefix, restore_timestamp[0:8], restore_timestamp))
 
 def restore_partition_list_file_with_nbu(master_datadir, backup_dir, dump_dir, dump_prefix, restore_timestamp, netbackup_service_host, netbackup_block_size):
     if (master_datadir is None) and (backup_dir is None):
@@ -366,7 +366,7 @@ def statistics_file_dumped(master_datadir, backup_dir, dump_dir, dump_prefix, re
         raise Exception('Restore timestamp is None.')
     if netbackup_service_host is None:
         raise Exception('Netbackup service hostname is None.')
-    statistics_filename = generate_statistics_filename(master_datadir, backup_dir, dump_dir, dump_prefix, restore_timestamp[0:8], restore_timestamp)
+    statistics_filename = generate_stats_filename(master_datadir, backup_dir, dump_dir, dump_prefix, restore_timestamp[0:8], restore_timestamp)
     return check_file_dumped_with_nbu(netbackup_service_host, statistics_filename)
 
 def _build_gpdbrestore_cmd_line(ts, table_file, backup_dir, redirected_restore_db, report_status_dir, dump_prefix, ddboost=False, netbackup_service_host=None,

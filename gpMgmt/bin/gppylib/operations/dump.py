@@ -626,7 +626,7 @@ def backup_statistics_file_with_nbu(master_datadir, backup_dir, dump_dir, dump_p
         timestamp_key = TIMESTAMP_KEY
 
     backup_file_with_nbu(netbackup_service_host, netbackup_policy, netbackup_schedule, netbackup_block_size, netbackup_keyword,
-                         generate_statistics_filename(master_datadir, backup_dir, dump_dir, dump_prefix, DUMP_DATE, timestamp_key))
+                         generate_stats_filename(master_datadir, backup_dir, dump_dir, dump_prefix, DUMP_DATE, timestamp_key))
 
 def backup_config_files_with_nbu(master_datadir, backup_dir, dump_dir, dump_prefix, master_port, netbackup_service_host, netbackup_policy,
                                  netbackup_schedule, netbackup_block_size, netbackup_keyword, timestamp_key=None):
