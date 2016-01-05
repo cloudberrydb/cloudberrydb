@@ -18,6 +18,8 @@
 
 #include "gpos/memory/CAutoMemoryPool.h"
 
+#include "gpopt/exception.h"
+
 #include "gpopt/base/CPartitionPropagationSpec.h"
 #include "gpopt/base/CPartIndexMap.h"
 #include "gpopt/operators/CPhysicalPartitionSelector.h"
@@ -177,7 +179,12 @@ CPartitionPropagationSpec::AppendEnforcers
 				}
 			}
 			
-			GPOS_ASSERT(NULL != pdrgpdrgpcrKeys);
+                        // if we cannot find partition keys mapping the partition predicates, fall back to planner
+                        if (NULL == pdrgpdrgpcrKeys)
+                        {
+                            GPOS_RAISE(gpopt::ExmaGPOPT, gpopt::ExmiUnsatisfiedRequiredProperties);
+                        }
+
 			pdrgpdrgpcrKeys->AddRef();
 
 			// split predicates and put them in the appropriate hashmaps
