@@ -501,6 +501,8 @@ extern char  *gp_default_storage_options;
  */
 extern int log_count_recovered_files_batch;
 
+extern int writable_external_table_bufsize;
+
 /* Storage option names */
 #define SOPT_FILLFACTOR    "fillfactor"
 #define SOPT_APPENDONLY    "appendonly"
