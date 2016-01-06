@@ -449,13 +449,13 @@ CHK_PARAMS () {
 		fi
 		# Get IP address of the master host
 
-		MASTER_IP_ADDRESS_ALL=(`$IFCONFIG $IFCONFIG_TXT |$GREP "inet "|$GREP -v "127.0.0"|$AWK '{print $2}'|$CUT -d: -f2`)
+		MASTER_IP_ADDRESS_ALL=(`$IPV4_ADDR_LIST_CMD | $GREP inet | $GREP -v 127.0.0 | $AWK '{print $2}' | $CUT -d'/' -f1`)
 		ERROR_CHK $? "obtain IP address of Master host" 2
-		MASTER_IPV6_LOCAL_ADDRESS_ALL=(`$IPV6_ADDR_LIST_CMD |$GREP inet6|$AWK '{print $2}' |$CUT -d'/' -f1`)
+		MASTER_IPV6_LOCAL_ADDRESS_ALL=(`$IPV6_ADDR_LIST_CMD | $GREP inet6 | $AWK '{print $2}' | $CUT -d'/' -f1`)
 		MASTER_IP_ADDRESS=(`$ECHO ${MASTER_IP_ADDRESS_ALL[@]} ${MASTER_IPV6_LOCAL_ADDRESS_ALL[@]}|$TR ' ' '\n'|$SORT -u|$TR '\n' ' '`)
 		LOG_MSG "[INFO]:-Master IP address array = ${MASTER_IP_ADDRESS[@]}"
 		if [ x"" != x"$STANDBY_HOSTNAME" ];then
-			STANDBY_IP_ADDRESS_ALL=(`$TRUSTED_SHELL $STANDBY_HOSTNAME "$IFCONFIG $IFCONFIG_TXT |$GREP \"inet \"|$GREP -v \"127.0.0\"|$AWK '{print \\$2}'|$CUT -d: -f2" 2>>$LOG_FILE`) 
+			STANDBY_IP_ADDRESS_ALL=(`$TRUSTED_SHELL $STANDBY_HOSTNAME "$IPV4_ADDR_LIST_CMD |$GREP inet|$GREP -v \"127.0.0\"|$AWK '{print \\$2}'|$CUT -d'/' -f1" 2>>$LOG_FILE`) 
             STANDBY_IPV6_ADDRESS_ALL=(`$TRUSTED_SHELL $STANDBY_HOSTNAME "$IPV6_ADDR_LIST_CMD |$GREP inet6|$AWK '{print \\$2}' |$CUT -d'/' -f1" 2>>$LOG_FILE`)
 			STANDBY_IP_ADDRESS=(`$ECHO ${STANDBY_IP_ADDRESS_ALL[@]} ${STANDBY_IPV6_ADDRESS_ALL[@]}|$TR ' ' '\n'|$SORT -u|$TR '\n' ' '`)
 			ERROR_CHK $? "obtain IP address of standby Master host" 2
