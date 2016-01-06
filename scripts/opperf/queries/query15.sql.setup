@@ -1,2 +1,0 @@
-set enable_mergejoin=on;
-set enable_hashjoin = off;
