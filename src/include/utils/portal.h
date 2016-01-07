@@ -196,8 +196,6 @@ typedef struct PortalData
 	bool		is_simply_updatable;
 } PortalData;
 
-extern const char *PortalGetStatusString(PortalData *p);
-
 /*
  * PortalIsValid
  *		True iff portal is valid.

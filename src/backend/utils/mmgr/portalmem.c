@@ -1024,26 +1024,3 @@ pg_cursor(PG_FUNCTION_ARGS)
 
 	return (Datum) 0;
 }
-
-const char *
-PortalGetStatusString(Portal p)
-{
-	switch (p->portal_status)
-	{
-		case PORTAL_NEW:
-			return "PORTAL_NEW";
-		case PORTAL_READY:
-			return "PORTAL_READY";
-		case PORTAL_QUEUE:
-			return "PORTAL_QUEUE";
-		case PORTAL_ACTIVE:
-			return "PORTAL_ACTIVE";
-		case PORTAL_DONE:
-			return "PORTAL_DONE";
-		case PORTAL_FAILED:
-			return "PORTAL_FAILED";
-		case PORTAL_STATUSMAX:
-		default:
-			return "Unknown portal status";
-	}
-}

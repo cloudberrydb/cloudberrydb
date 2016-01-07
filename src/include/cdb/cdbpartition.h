@@ -99,9 +99,6 @@ extern List *
 cdb_exchange_part_constraints(Relation table, Relation part, Relation cand, 
 							  bool validate, bool is_split, AlterPartitionCmd *pc);
 
-extern void
-add_reg_part_dependency(Oid tableconid, Oid partconid);
-
 extern PartitionByType
 char_to_parttype(char c);
 
