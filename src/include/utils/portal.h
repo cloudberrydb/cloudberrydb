@@ -154,7 +154,7 @@ typedef struct PortalData
 	int			cursorOptions;	/* DECLARE CURSOR option bits */
 
 	/* Status data */
-	PortalStatus portal_status;		/* see above */
+	PortalStatus status;		/* see above */
 	bool	releaseResLock;	/* true => resscheduler lock must be released */
 
 	/* If not NULL, Executor is active; call ExecutorEnd eventually: */
@@ -196,9 +196,7 @@ typedef struct PortalData
 	bool		is_simply_updatable;
 } PortalData;
 
-extern PortalStatus PortalGetStatus(PortalData *p);
 extern const char *PortalGetStatusString(PortalData *p);
-extern void PortalSetStatus(PortalData *p, PortalStatus s);
 
 /*
  * PortalIsValid

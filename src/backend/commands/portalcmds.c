@@ -317,7 +317,7 @@ PortalCleanup(Portal portal)
 		}
 
 		/* Sorry, can't dismiss this error. */
-		PortalSetStatus(portal, PORTAL_FAILED);
+		portal->status = PORTAL_FAILED;
 
 		PG_RE_THROW();
 	}
@@ -436,12 +436,12 @@ PersistHoldablePortal(Portal portal)
 	/*
 	 * Check for improper portal use, and mark portal active.
 	 */
-	if (PortalGetStatus(portal) != PORTAL_READY)
+	if (portal->status != PORTAL_READY)
 		ereport(ERROR,
 				(errcode(ERRCODE_OBJECT_NOT_IN_PREREQUISITE_STATE),
 				 errmsg("portal \"%s\" cannot be run", portal->name)));
 
-	PortalSetStatus(portal, PORTAL_ACTIVE);
+	portal->status = PORTAL_ACTIVE;
 
 	/*
 	 * Set up global portal context pointers.
@@ -540,7 +540,7 @@ PersistHoldablePortal(Portal portal)
 	PG_CATCH();
 	{
 		/* Uncaught error while executing portal: mark it dead */
-		PortalSetStatus(portal, PORTAL_FAILED);
+		portal->status = PORTAL_FAILED;
 
 		/* Restore global vars and propagate error */
 		ActivePortal = saveActivePortal;
@@ -556,7 +556,7 @@ PersistHoldablePortal(Portal portal)
 	MemoryContextSwitchTo(oldcxt);
 
 	/* Mark portal not active */
-	PortalSetStatus(portal, PORTAL_READY);
+	portal->status = PORTAL_READY;
 
 	ActivePortal = saveActivePortal;
 	ActiveSnapshot = saveActiveSnapshot;

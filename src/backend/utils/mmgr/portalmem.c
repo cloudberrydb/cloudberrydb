@@ -233,7 +233,7 @@ CreatePortal(const char *name, bool allowDup, bool dupSilent)
 										   "Portal");
 
 	/* initialize portal fields that don't start off zero */
-	PortalSetStatus(portal, PORTAL_NEW);
+	portal->status = PORTAL_NEW;
 	portal->cleanup = PortalCleanup;
 	portal->createSubid = GetCurrentSubTransactionId();
 	portal->strategy = PORTAL_MULTI_QUERY;
@@ -366,7 +366,7 @@ PortalDrop(Portal portal, bool isTopCommit)
 	AssertArg(PortalIsValid(portal));
 
 	/* Not sure if this case can validly happen or not... */
-	if (PortalGetStatus(portal) == PORTAL_ACTIVE)
+	if (portal->status == PORTAL_ACTIVE)
 		elog(ERROR, "cannot drop active or queued portal");
 
 	TeardownSequenceServer();
@@ -413,9 +413,9 @@ PortalDrop(Portal portal, bool isTopCommit)
 	 * eventually ends.
 	 */
 	if (portal->resowner &&
-		(!isTopCommit || PortalGetStatus(portal) == PORTAL_FAILED))
+		(!isTopCommit || portal->status == PORTAL_FAILED))
 	{
-		bool		isCommit = (PortalGetStatus(portal) != PORTAL_FAILED);
+		bool		isCommit = (portal->status != PORTAL_FAILED);
 
 		ResourceOwnerRelease(portal->resowner,
 							 RESOURCE_RELEASE_BEFORE_LOCKS,
@@ -505,7 +505,7 @@ CommitHoldablePortals(void)
 		/* Is it a holdable portal created in the current xact? */
 		if ((portal->cursorOptions & CURSOR_OPT_HOLD) &&
 			portal->createSubid != InvalidSubTransactionId &&
-			PortalGetStatus(portal) == PORTAL_READY)
+			portal->status == PORTAL_READY)
 		{
 			/*
 			 * We are exiting the transaction that created a holdable cursor.
@@ -565,7 +565,7 @@ PrepareHoldablePortals(void)
 		/* Is it a holdable portal created in the current xact? */
 		if ((portal->cursorOptions & CURSOR_OPT_HOLD) &&
 			portal->createSubid != InvalidSubTransactionId &&
-			PortalGetStatus(portal) == PORTAL_READY)
+			portal->status == PORTAL_READY)
 		{
 			/*
 			 * We are exiting the transaction that created a holdable cursor.
@@ -605,7 +605,7 @@ AtCommit_Portals(void)
 		 * Note however that any resource owner attached to such a portal is
 		 * still going to go away, so don't leave a dangling pointer.
 		 */
-		if (PortalGetStatus(portal) == PORTAL_ACTIVE)
+		if (portal->status == PORTAL_ACTIVE)
 		{
 			portal->resowner = NULL;
 			continue;
@@ -649,8 +649,8 @@ AtAbort_Portals(void)
 	{
 		Portal		portal = hentry->portal;
 
-		if (PortalGetStatus(portal) == PORTAL_ACTIVE)
-			PortalSetStatus(portal, PORTAL_FAILED);
+		if (portal->status == PORTAL_ACTIVE)
+			portal->status = PORTAL_FAILED;
 
 		/*
 		 * Do nothing else to cursors held over from a previous transaction.
@@ -701,7 +701,7 @@ AtCleanup_Portals(void)
 		/* Do nothing to cursors held over from a previous transaction */
 		if (portal->createSubid == InvalidSubTransactionId)
 		{
-			Assert(PortalGetStatus(portal) != PORTAL_ACTIVE);
+			Assert(portal->status != PORTAL_ACTIVE);
 			Assert(portal->resowner == NULL);
 			continue;
 		}
@@ -774,8 +774,8 @@ AtSubAbort_Portals(SubTransactionId mySubid,
 		 *
 		 * This is only needed to dodge the sanity check in PortalDrop.
 		 */
-		if (PortalGetStatus(portal) == PORTAL_ACTIVE)
-			PortalSetStatus(portal, PORTAL_FAILED);
+		if (portal->status == PORTAL_ACTIVE)
+			portal->status = PORTAL_FAILED;
 
 		/*
 		 * If the portal is READY then allow it to survive into the parent
@@ -1023,17 +1023,6 @@ pg_cursor(PG_FUNCTION_ARGS)
 	rsinfo->setDesc = tupdesc;
 
 	return (Datum) 0;
-}
-
-void PortalSetStatus(Portal p, PortalStatus s)
-{
-	p->portal_status = s;
-}
-
-PortalStatus
-PortalGetStatus(Portal p)
-{
-	return p->portal_status;
 }
 
 const char *
