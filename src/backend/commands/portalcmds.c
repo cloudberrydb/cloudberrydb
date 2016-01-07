@@ -49,14 +49,14 @@ static void PortalCleanupHelper(Portal portal, volatile int *cleanupstate);
 void
 PerformCursorOpen(PlannedStmt *stmt, ParamListInfo params,
 				  const char *queryString, bool isTopLevel)
-{	
+{
 	DeclareCursorStmt *cstmt = (DeclareCursorStmt *) stmt->utilityStmt;
-	Portal			portal;
-	MemoryContext	oldContext;
-	
+	Portal		portal;
+	MemoryContext oldContext;
+
 	if (cstmt == NULL || !IsA(cstmt, DeclareCursorStmt))
 		elog(ERROR, "PerformCursorOpen called for non-cursor query");
-	
+
 	/*
 	 * Disallow empty-string cursor name (conflicts with protocol-level
 	 * unnamed portal).
@@ -103,11 +103,11 @@ PerformCursorOpen(PlannedStmt *stmt, ParamListInfo params,
 
 	stmt = copyObject(stmt);
 	stmt->utilityStmt = NULL;	/* make it look like plain SELECT */
-	
+
 	stmt->qdContext = PortalGetHeapMemory(portal); /* Temporary! See comment in PlannedStmt. */
-	
+
 	queryString = pstrdup(queryString);
-	
+
 	PortalDefineQuery(portal,
 					  NULL,
 					  queryString,
@@ -115,7 +115,7 @@ PerformCursorOpen(PlannedStmt *stmt, ParamListInfo params,
 					  "SELECT", /* cursor's query is always a SELECT */
 					  list_make1(stmt),
 					  PortalGetHeapMemory(portal));
-	
+
 	portal->is_extended_query = true; /* cursors run in extended query mode */
 
 	/* 
@@ -159,7 +159,7 @@ PerformCursorOpen(PlannedStmt *stmt, ParamListInfo params,
 			portal->cursorOptions |= CURSOR_OPT_NO_SCROLL;
 	}
 	*/
-	
+
 	/*
 	 * Start execution, inserting parameters if any.
 	 */
@@ -339,7 +339,7 @@ PortalCleanupHelper(Portal portal, volatile int *cleanupstate)
 {
 	QueryDesc      *queryDesc = PortalGetQueryDesc(portal);
 
-    /*
+	/*
 	 * Shut down executor, if still running.  We skip this during error abort,
 	 * since other mechanisms will take care of releasing executor resources,
 	 * and we can't be sure that ExecutorEnd itself wouldn't fail.
@@ -359,7 +359,7 @@ PortalCleanupHelper(Portal portal, volatile int *cleanupstate)
 			ExecutorEnd(queryDesc);
 		}
 	}
-    
+
 	/*
 	 * Terminate unneeded QE processes.
 	 */
@@ -478,7 +478,7 @@ PersistHoldablePortal(Portal portal)
 		 * tell the tuplestore receiver to detoast all data passed through it.
 		 */
 		queryDesc->dest = CreateDestReceiver(DestTuplestore, portal);
-			SetTuplestoreDestReceiverDeToast(queryDesc->dest, true);
+		SetTuplestoreDestReceiverDeToast(queryDesc->dest, true);
 
 		/* Fetch the result set into the tuplestore */
 		ExecutorRun(queryDesc, ForwardScanDirection, 0L);

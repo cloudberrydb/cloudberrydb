@@ -1306,6 +1306,7 @@ ProcessUtility(Node *parsetree,
 		case T_DropdbStmt:
 			{
 				DropdbStmt *stmt = (DropdbStmt *) parsetree;
+
 				dropdb(stmt->dbname, stmt->missing_ok);
 			}
 			break;

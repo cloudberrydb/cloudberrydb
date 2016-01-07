@@ -49,10 +49,7 @@
 #include "executor/execdesc.h"
 #include "utils/resowner.h"
 #include "utils/timestamp.h"
-
-
-
-struct Tuplestorestate;                 /* #include "utils/tuplestore.h" */
+#include "utils/tuplestore.h"
 
 /*
  * We have several execution strategies for Portals, depending on what
@@ -173,7 +170,7 @@ typedef struct PortalData
 	 * PORTAL_UTIL_SELECT query.  (A cursor held past the end of its
 	 * transaction no longer has any active executor state.)
 	 */
-	struct Tuplestorestate *holdStore; /* store for holdable cursors */
+	Tuplestorestate *holdStore; /* store for holdable cursors */
 	MemoryContext holdContext;	/* memory containing holdStore */
 
 	/*
@@ -193,8 +190,8 @@ typedef struct PortalData
 	/* Presentation data, primarily used by the pg_cursors system view */
 	TimestampTz creation_time;	/* time at which this portal was defined */
 	bool		visible;		/* include this portal in pg_cursors? */
-	
-	/* MPP: is this portal a CURSOR, or protocol level portal? */	
+
+	/* MPP: is this portal a CURSOR, or protocol level portal? */
 	bool		is_extended_query; /* simple or extended query protocol? */
 	bool		is_simply_updatable;
 } PortalData;

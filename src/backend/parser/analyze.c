@@ -8451,11 +8451,11 @@ static Query *
 transformIndexStmt(ParseState *pstate, IndexStmt *stmt,
 				   List **extras_before, List **extras_after)
 {
-	Query				*qry;
-	RangeTblEntry		*rte = NULL;
-	ListCell			*l;
-	Oid					 idxOid;
-	Oid					 nspOid;
+	Query	   *qry;
+	RangeTblEntry *rte = NULL;
+	ListCell   *l;
+	Oid			idxOid;
+	Oid			nspOid;
 
 	qry = makeNode(Query);
 	qry->commandType = CMD_UTILITY;
