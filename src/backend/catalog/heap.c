@@ -535,22 +535,23 @@ CheckAttributeType(const char *attname, Oid atttypid)
 	 *
 	 * Refuse any attempt to create a pseudo-type column.
 	 */
-	if (Gp_role != GP_ROLE_EXECUTE)
+	/* GPDB: The QD should've checked these already. In QE, just accept it. */
+	if (Gp_role == GP_ROLE_EXECUTE)
+		return;
+
+	if (atttypid == UNKNOWNOID)
+		ereport(WARNING,
+				(errcode(ERRCODE_INVALID_TABLE_DEFINITION),
+				 errmsg("column \"%s\" has type \"unknown\"", attname),
+				 errdetail("Proceeding with relation creation anyway.")));
+	else if (att_typtype == 'p')
 	{
-		if (atttypid == UNKNOWNOID)
-			ereport(WARNING,
+		/* Special hack for pg_statistic: allow ANYARRAY during initdb */
+		if (atttypid != ANYARRAYOID || IsUnderPostmaster)
+			ereport(ERROR,
 					(errcode(ERRCODE_INVALID_TABLE_DEFINITION),
-					 errmsg("column \"%s\" has type \"unknown\"", attname),
-					 errdetail("Proceeding with relation creation anyway.")));
-		else if (att_typtype == 'p')
-		{
-			/* Special hack for pg_statistic: allow ANYARRAY during initdb */
-			if (atttypid != ANYARRAYOID || IsUnderPostmaster)
-				ereport(ERROR,
-						(errcode(ERRCODE_INVALID_TABLE_DEFINITION),
-						 errmsg("column \"%s\" has pseudo-type %s",
-								attname, format_type_be(atttypid))));
-		}
+					 errmsg("column \"%s\" has pseudo-type %s",
+							attname, format_type_be(atttypid))));
 	}
 }
 
@@ -1326,7 +1327,7 @@ heap_create_with_catalog(const char *relname,
 						 int oidinhcount,
 						 OnCommitAction oncommit,
                          const struct GpPolicy *policy,
-                         Datum reloptions,
+						 Datum reloptions,
 						 bool allow_system_table_mods,
 						 bool valid_opts,
 						 Oid *comptypeOid,
@@ -2479,25 +2480,25 @@ StoreRelCheck(Relation rel, char *ccname, char *ccbin, Oid conOid)
 	 * Create the Check Constraint
 	 */
 	conOid = CreateConstraintEntry(ccname,		/* Constraint Name */
-								   conOid,		/* Constraint Oid */
-								   RelationGetNamespace(rel),	/* namespace */
-								   CONSTRAINT_CHECK,		/* Constraint Type */
-								   false,	/* Is Deferrable */
-								   false,	/* Is Deferred */
-								   RelationGetRelid(rel),		/* relation */
-								   attNos,		/* attrs in the constraint */
-								   keycount,		/* # attrs in the constraint */
-								   InvalidOid,	/* not a domain constraint */
-								   InvalidOid,	/* Foreign key fields */
-								   NULL,
-								   0,
-								   ' ',
-								   ' ',
-								   ' ',
-								   InvalidOid,	/* no associated index */
-								   expr, /* Tree form check constraint */
-								   ccbin,	/* Binary form check constraint */
-								   ccsrc);		/* Source form check constraint */
+						  conOid,		/* Constraint Oid */
+						  RelationGetNamespace(rel),	/* namespace */
+						  CONSTRAINT_CHECK,		/* Constraint Type */
+						  false,	/* Is Deferrable */
+						  false,	/* Is Deferred */
+						  RelationGetRelid(rel),		/* relation */
+						  attNos,		/* attrs in the constraint */
+						  keycount,		/* # attrs in the constraint */
+						  InvalidOid,	/* not a domain constraint */
+						  InvalidOid,	/* Foreign key fields */
+						  NULL,
+						  0,
+						  ' ',
+						  ' ',
+						  ' ',
+						  InvalidOid,	/* no associated index */
+						  expr, /* Tree form check constraint */
+						  ccbin,	/* Binary form check constraint */
+						  ccsrc);		/* Source form check constraint */
 
 	pfree(ccsrc);
 	return conOid;
@@ -2646,9 +2647,8 @@ AddRelationConstraints(Relation rel,
 									 ccname))
 				ereport(ERROR,
 						(errcode(ERRCODE_DUPLICATE_OBJECT),
-						 errmsg("constraint \"%s\" for relation \"%s\" already exists",
-								ccname, RelationGetRelationName(rel))));
-
+				errmsg("constraint \"%s\" for relation \"%s\" already exists",
+					   ccname, RelationGetRelationName(rel))));
 			/* Check against other new constraints */
 			/* Needed because we don't do CommandCounterIncrement in loop */
 			foreach(cell2, checknames)
@@ -2881,6 +2881,7 @@ cookDefault(ParseState *pstate,
 		ereport(ERROR,
 				(errcode(ERRCODE_SYNTAX_ERROR),
 			 errmsg("cannot use window function in default expression")));
+
 	/*
 	 * Coerce the expression to the correct type and typmod, if given. This
 	 * should match the parser's processing of non-defaulted expressions ---
