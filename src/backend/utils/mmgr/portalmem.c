@@ -210,8 +210,7 @@ CreatePortal(const char *name, bool allowDup, bool dupSilent)
 			ereport(ERROR,
 					(errcode(ERRCODE_DUPLICATE_CURSOR),
 					 errmsg("cursor \"%s\" already exists", name)));
-		if (!dupSilent)
-			if (Gp_role != GP_ROLE_EXECUTE)
+		if (!dupSilent && Gp_role != GP_ROLE_EXECUTE)
 			ereport(WARNING,
 					(errcode(ERRCODE_DUPLICATE_CURSOR),
 					 errmsg("closing existing cursor \"%s\"",
@@ -234,7 +233,7 @@ CreatePortal(const char *name, bool allowDup, bool dupSilent)
 										   "Portal");
 
 	/* initialize portal fields that don't start off zero */
-	PortalSetStatus(portal, PORTAL_NEW); 
+	PortalSetStatus(portal, PORTAL_NEW);
 	portal->cleanup = PortalCleanup;
 	portal->createSubid = GetCurrentSubTransactionId();
 	portal->strategy = PORTAL_MULTI_QUERY;
@@ -250,7 +249,7 @@ CreatePortal(const char *name, bool allowDup, bool dupSilent)
 		portal->portalId = ResCreatePortalId(name);
 		portal->queueId = GetResQueueId();
 	}
-	portal->is_extended_query = false; /* default value */	
+	portal->is_extended_query = false; /* default value */
 
 	/* put portal in table (sets portal->name) */
 	PortalHashTableInsert(portal, name);
@@ -313,10 +312,10 @@ PortalDefineQuery(Portal portal,
 {
 	AssertArg(PortalIsValid(portal));
 	AssertState(portal->queryContext == NULL);	/* else defined already */
-	
+
 	AssertArg(sourceText != NULL);
 	AssertArg(commandTag != NULL || stmts == NIL);
-	
+
 	portal->prepStmtName = prepStmtName;
 	portal->sourceText = sourceText;
 	portal->sourceTag = sourceTag;
@@ -352,7 +351,7 @@ PortalCreateHoldStore(Portal portal)
 	oldcxt = MemoryContextSwitchTo(portal->holdContext);
 
 	/* XXX: Should maintenance_work_mem be used for the portal size? */
-	portal->holdStore = tuplestore_begin_heap(true, true, work_mem); 
+	portal->holdStore = tuplestore_begin_heap(true, true, work_mem);
 
 	MemoryContextSwitchTo(oldcxt);
 }
@@ -367,7 +366,7 @@ PortalDrop(Portal portal, bool isTopCommit)
 	AssertArg(PortalIsValid(portal));
 
 	/* Not sure if this case can validly happen or not... */
-	if (PortalGetStatus(portal) == PORTAL_ACTIVE) 
+	if (PortalGetStatus(portal) == PORTAL_ACTIVE)
 		elog(ERROR, "cannot drop active or queued portal");
 
 	TeardownSequenceServer();
@@ -380,11 +379,11 @@ PortalDrop(Portal portal, bool isTopCommit)
 	 */
 	PortalHashTableDelete(portal);
 
-    if (portal->releaseResLock)
-    {
-        portal->releaseResLock = false;
-        ResUnLockPortal(portal);
-    }
+	if (portal->releaseResLock)
+	{
+		portal->releaseResLock = false;
+		ResUnLockPortal(portal);
+	}
 
 	/* let portalcmds.c clean up the state it knows about */
 	if (portal->cleanup)
@@ -441,11 +440,11 @@ PortalDrop(Portal portal, bool isTopCommit)
 		MemoryContext oldcontext;
 
 		oldcontext = MemoryContextSwitchTo(portal->holdContext);
-		tuplestore_end(portal->holdStore); 
+		tuplestore_end(portal->holdStore);
 		MemoryContextSwitchTo(oldcontext);
 		portal->holdStore = NULL;
 	}
-	
+
 	/* delete tuplestore storage, if any */
 	if (portal->holdContext)
 		MemoryContextDelete(portal->holdContext);
@@ -758,9 +757,6 @@ AtSubAbort_Portals(SubTransactionId mySubid,
 	HASH_SEQ_STATUS status;
 	PortalHashEnt *hentry;
 
-    UnusedArg(parentSubid);
-    UnusedArg(parentXactOwner);
-
 	hash_seq_init(&status, PortalHashTable);
 
 	while ((hentry = (PortalHashEnt *) hash_seq_search(&status)) != NULL)
@@ -800,7 +796,7 @@ AtSubAbort_Portals(SubTransactionId mySubid,
 		}
 		else
 #endif
-
+		{
 			/* let portalcmds.c clean up the state it knows about */
 			if (portal->cleanup)
 			{
@@ -808,20 +804,21 @@ AtSubAbort_Portals(SubTransactionId mySubid,
 				portal->cleanup = NULL;
 			}
 
-		/*
-		 * Any resources belonging to the portal will be released in the
-		 * upcoming transaction-wide cleanup; they will be gone before we
-		 * run PortalDrop.
-		 */
-		portal->resowner = NULL;
+			/*
+			 * Any resources belonging to the portal will be released in the
+			 * upcoming transaction-wide cleanup; they will be gone before we
+			 * run PortalDrop.
+			 */
+			portal->resowner = NULL;
 
-		/*
-		 * Although we can't delete the portal data structure proper, we
-		 * can release any memory in subsidiary contexts, such as executor
-		 * state.  The cleanup hook was the last thing that might have
-		 * needed data there.
-		 */
-		MemoryContextDeleteChildren(PortalGetHeapMemory(portal));
+			/*
+			 * Although we can't delete the portal data structure proper, we
+			 * can release any memory in subsidiary contexts, such as executor
+			 * state.  The cleanup hook was the last thing that might have
+			 * needed data there.
+			 */
+			MemoryContextDeleteChildren(PortalGetHeapMemory(portal));
+		}
 	}
 }
 
