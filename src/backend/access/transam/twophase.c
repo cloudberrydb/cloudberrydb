@@ -443,7 +443,7 @@ MarkAsPreparing(TransactionId xid,
 		ereport(ERROR,
 				(errcode(ERRCODE_INVALID_PARAMETER_VALUE),
 				 errmsg("transaction identifier \"%s\" is too long (%d > %d max)",
-						gid, strlen(gid), GIDSIZE)));
+						gid, (int) strlen(gid), GIDSIZE)));
 
 	LWLockAcquire(TwoPhaseStateLock, LW_EXCLUSIVE);
 
