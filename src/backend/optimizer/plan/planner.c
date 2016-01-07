@@ -121,7 +121,7 @@ static int gs_compare(const void *a, const void*b);
 static void sort_canonical_gs_list(List *gs, int *p_nsets, Bitmapset ***p_sets);
 
 static Plan *pushdown_preliminary_limit(Plan *plan, Node *limitCount, int64 count_est, Node *limitOffset, int64 offset_est);
-bool is_dummy_plan(Plan *plan);
+static bool is_dummy_plan(Plan *plan);
 
 
 #ifdef USE_ORCA
@@ -712,23 +712,13 @@ subquery_planner(PlannerGlobal *glob,
 	{
 		RangeTblEntry *rte = (RangeTblEntry *) lfirst(l);
 
-		switch (rte->rtekind)
-		{
-			case RTE_TABLEFUNCTION:  
-			case RTE_FUNCTION:
-				rte->funcexpr = preprocess_expression(root, rte->funcexpr,
-													  EXPRKIND_RTFUNC);
-				break;
-
-			case RTE_VALUES:
-				rte->values_lists = (List *)
-					preprocess_expression(root, (Node *) rte->values_lists,
-										  EXPRKIND_VALUES);
-				break;
-
-			default:
-				break;
-		}
+		if (rte->rtekind == RTE_FUNCTION || rte->rtekind == RTE_TABLEFUNCTION)
+			rte->funcexpr = preprocess_expression(root, rte->funcexpr,
+												  EXPRKIND_RTFUNC);
+		else if (rte->rtekind == RTE_VALUES)
+			rte->values_lists = (List *)
+				preprocess_expression(root, (Node *) rte->values_lists,
+									  EXPRKIND_VALUES);
 	}
 
 	/*
@@ -970,8 +960,6 @@ preprocess_expression(PlannerInfo *root, Node *expr, int kind)
 static void
 preprocess_qual_conditions(PlannerInfo *root, Node *jtnode)
 {
-	ListCell   *l;
-
 	if (jtnode == NULL)
 		return;
 	if (IsA(jtnode, RangeTblRef))
@@ -981,6 +969,7 @@ preprocess_qual_conditions(PlannerInfo *root, Node *jtnode)
 	else if (IsA(jtnode, FromExpr))
 	{
 		FromExpr   *f = (FromExpr *) jtnode;
+		ListCell   *l;
 
 		foreach(l, f->fromlist)
 			preprocess_qual_conditions(root, lfirst(l));
@@ -990,6 +979,7 @@ preprocess_qual_conditions(PlannerInfo *root, Node *jtnode)
 	else if (IsA(jtnode, JoinExpr))
 	{
 		JoinExpr   *j = (JoinExpr *) jtnode;
+		ListCell   *l;
 
 		preprocess_qual_conditions(root, j->larg);
 		preprocess_qual_conditions(root, j->rarg);
@@ -2272,7 +2262,7 @@ is_dummy_plan_walker(Node *node, bool *context)
 }
 
 
-bool
+static bool
 is_dummy_plan(Plan *plan)
 {
     bool is_dummy = false;
@@ -2489,12 +2479,11 @@ preprocess_limit(PlannerInfo *root, double tuple_fraction,
 static Oid *
 extract_grouping_ops(List *groupClause, int *numGroupOps)
 {
-	int			maxCols;
+	int			maxCols = list_length(groupClause);
 	int			colno = 0;
 	Oid		   *groupOperators;
 	ListCell   *glitem;
 
-	maxCols = list_length(groupClause);
 	groupOperators = (Oid *) palloc(maxCols * sizeof(Oid));
 
 	foreach(glitem, groupClause)
