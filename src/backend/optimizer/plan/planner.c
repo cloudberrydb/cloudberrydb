@@ -64,14 +64,15 @@ planner_hook_type planner_hook = NULL;
 ParamListInfo PlannerBoundParamList = NULL;		/* current boundParams */
 
 /* Expression kind codes for preprocess_expression */
-#define EXPRKIND_QUAL			0
-#define EXPRKIND_TARGET			1
-#define EXPRKIND_RTFUNC			2
-#define EXPRKIND_VALUES			3
-#define EXPRKIND_LIMIT			4
-#define EXPRKIND_ININFO			5
-#define EXPRKIND_APPINFO		6
-#define EXPRKIND_WINDOW_BOUND	7
+#define EXPRKIND_QUAL		0
+#define EXPRKIND_TARGET		1
+#define EXPRKIND_RTFUNC		2
+#define EXPRKIND_VALUES		3
+#define EXPRKIND_LIMIT		4
+#define EXPRKIND_ININFO		5
+#define EXPRKIND_APPINFO	6
+#define EXPRKIND_WINDOW_BOUND 7
+
 
 static Node *preprocess_expression(PlannerInfo *root, Node *expr, int kind);
 static void preprocess_qual_conditions(PlannerInfo *root, Node *jtnode);
@@ -237,7 +238,7 @@ optimize_query(Query *parse, ParamListInfo boundParams)
  *
  *****************************************************************************/
 
-PlannedStmt * 
+PlannedStmt *
 planner(Query *parse, int cursorOptions,
 		ParamListInfo boundParams)
 {
@@ -324,7 +325,7 @@ standard_planner(Query *parse, int cursorOptions, ParamListInfo boundParams)
 		isCursor = true;
 		cursorOptions |= ((DeclareCursorStmt *) parse->utilityStmt)->options;
 	}
-	
+
 	/*
 	 * The planner can be called recursively (an example is when
 	 * eval_const_expressions tries to pre-evaluate an SQL function).
@@ -335,7 +336,7 @@ standard_planner(Query *parse, int cursorOptions, ParamListInfo boundParams)
 	 * PlannerInfo.
 	 */
 	glob = makeNode(PlannerGlobal);
-	
+
 	glob->boundParams = boundParams;
 	glob->paramlist = NIL;
 	glob->subplans = NIL;
@@ -383,7 +384,7 @@ standard_planner(Query *parse, int cursorOptions, ParamListInfo boundParams)
 		/* Default assumption is we need all the tuples */
 		tuple_fraction = 0.0;
 	}
-	
+
 	parse = normalize_query(parse);
 
 	PlannerConfig *config = DefaultPlannerConfig();
@@ -556,13 +557,13 @@ subquery_planner(PlannerGlobal *glob,
 	root->parent_root = parent_root;
 	root->planner_cxt = CurrentMemoryContext;
 	root->init_plans = NIL;
-	
+
 	root->list_cteplaninfo = NIL;
 	if (parse->cteList != NIL)
 	{
 		root->list_cteplaninfo = init_list_cteplaninfo(list_length(parse->cteList));
 	}
-	
+
 	root->in_info_list = NIL;
 	root->append_rel_list = NIL;
 
@@ -578,7 +579,6 @@ subquery_planner(PlannerGlobal *glob,
     /* Ensure that jointree has been normalized. See normalize_query_jointree_mutator() */
     AssertImply(parse->jointree->fromlist, list_length(parse->jointree->fromlist) == 1);
 
-    
     /* CDB: Stash current query level's relids before pulling up subqueries. */
     root->currlevel_relids = get_relids_in_jointree((Node *)parse->jointree);
 
@@ -590,7 +590,6 @@ subquery_planner(PlannerGlobal *glob,
 	 */
 	if (parse->hasSubLinks)
         cdbsubselect_flatten_sublinks(root, (Node *)parse);
-
 
 	/*
 	 * Check to see if any subqueries in the rangetable can be merged into
@@ -838,7 +837,6 @@ subquery_planner(PlannerGlobal *glob,
 	 */
 	if (list_length(glob->subplans) != num_old_subplans || 
 		root->query_level > 1)
-		
 	{
 		Assert(root->parse == parse); /* GPDP isn't always careful about this. */
 		SS_finalize_plan(root, root->parse->rtable, plan, true);
@@ -847,7 +845,7 @@ subquery_planner(PlannerGlobal *glob,
 	/* Return internal info if caller wants it */
 	if (subroot)
 		*subroot = root;
-	
+
 	return plan;
 }
 
@@ -1066,7 +1064,7 @@ inheritance_planner(PlannerInfo *root)
 		 */
 		if (is_dummy_plan(subplan))
 			continue;
-		
+
 		/* MPP needs target loci to match. */
 		if ( Gp_role == GP_ROLE_DISPATCH )
 		{
@@ -2017,7 +2015,7 @@ grouping_planner(PlannerInfo *root, double tuple_fraction)
 		}
 	}
 
-    /*
+	/*
 	 * If we were not able to make the plan come out in the right order, add
 	 * an explicit sort step.  Note that, if we going to add a Unique node,
 	 * the sort_pathkeys will have the distinct keys as a prefix.
@@ -2106,7 +2104,7 @@ grouping_planner(PlannerInfo *root, double tuple_fraction)
 		rlist = set_returning_clause_references(root->glob,
 												parse->returningList,
 												result_plan,
-												parse->resultRelation); 
+												parse->resultRelation);
 		root->returningLists = list_make1(rlist);
 	}
 	else
@@ -2152,11 +2150,11 @@ is_dummy_plan_walker(Node *node, bool *context)
 	 */
 	if ( node == NULL || !is_plan_node(node) )
 		return false;
-	
+
 	switch (nodeTag(node))
 	{
 		case T_Result:
-			/* 
+			/*
 			 * This tests the base case of a dummy plan which is a Result
 			 * node with a constant FALSE filter quals.  (This is the case
 			 * constructed as an empty Append path by set_plain_rel_pathlist
