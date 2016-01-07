@@ -14,13 +14,11 @@
  *-------------------------------------------------------------------------
  */
 
-#include <dlfcn.h>
 #include "postgres.h"
 
 #include <limits.h>
 
 #include "catalog/pg_operator.h"
-#include "catalog/pg_type.h"
 #include "executor/executor.h"
 #include "executor/execHHashagg.h"
 #include "executor/nodeAgg.h"
@@ -43,12 +41,10 @@
 #endif
 #include "parser/parse_expr.h"
 #include "parser/parse_oper.h"
-#include "parser/parse_relation.h"
 #include "parser/parsetree.h"
 #include "utils/lsyscache.h"
 #include "utils/selfuncs.h"
 #include "utils/syscache.h"
-#include "nodes/bitmapset.h"
 
 #include "cdb/cdbllize.h"
 #include "cdb/cdbmutate.h" 	/* apply_shareinput */
@@ -58,9 +54,6 @@
 #include "cdb/cdbgroup.h" /* grouping_planner extensions */
 #include "cdb/cdbsetop.h" /* motion utilities */
 #include "cdb/cdbsubselect.h"   /* cdbsubselect_flatten_sublinks() */
-
-#include "utils/debugbreak.h"
-#include "catalog/gp_policy.h"
 
 /* GUC parameter */
 double cursor_tuple_fraction = DEFAULT_CURSOR_TUPLE_FRACTION;

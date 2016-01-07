@@ -21,20 +21,13 @@
 #include "access/heapam.h"
 #include "access/xact.h"
 #include "catalog/pg_type.h"
-#include "commands/variable.h"			/* show_session_authorization */
-#include "commands/dbcommands.h" 		/* get_database_name */
 #include "commands/portalcmds.h"
+#include "funcapi.h"
 #include "miscadmin.h"
-#include "nodes/execnodes.h"            /* EState */
 #include "utils/builtins.h"
 #include "utils/memutils.h"
-#include "utils/portal.h"
 #include "utils/resscheduler.h"
-#include "utils/tuplestore.h"           /* tuplestore_begin_heap, etc */
 
-#include "cdb/cdbdisp.h"                /* CdbShutdownPortals, CdbCheckDispatchResult */
-#include "cdb/cdbvars.h"
-#include "cdb/cdbgang.h"
 #include "cdb/ml_ipc.h"
 
 /*

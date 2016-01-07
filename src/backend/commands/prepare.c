@@ -22,24 +22,14 @@
 #include "catalog/pg_type.h"
 #include "commands/explain.h"
 #include "commands/prepare.h"
-#include "executor/executor.h"
 #include "funcapi.h"
 #include "miscadmin.h"
-#include "nodes/nodeFuncs.h"
-#include "parser/analyze.h"
-#include "parser/parse_coerce.h"
-#include "parser/parse_expr.h"
-#include "parser/parse_type.h"
 #include "rewrite/rewriteHandler.h"
 #include "tcop/pquery.h"
 #include "tcop/tcopprot.h"
 #include "tcop/utility.h"
 #include "utils/builtins.h"
 #include "utils/memutils.h"
-
-#include "commands/tablespace.h"
-#include "catalog/catalog.h"
-#include "catalog/pg_type.h"
 
 extern char *savedSeqServerHost;
 extern int savedSeqServerPort;

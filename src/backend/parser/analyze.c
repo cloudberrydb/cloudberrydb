@@ -71,9 +71,7 @@
 #include "utils/lsyscache.h"
 #include "utils/syscache.h"
 
-#include "cdb/cdbappendonlyam.h"
 #include "cdb/cdbvars.h"
-#include "cdb/cdbcat.h"
 #include "cdb/cdbhash.h"
 #include "cdb/cdbsreh.h"
 

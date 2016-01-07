@@ -32,10 +32,8 @@
 
 #include "access/genam.h"
 #include "access/heapam.h"
-#include "access/sysattr.h"
 #include "access/transam.h"
 #include "access/reloptions.h"
-#include "access/sysattr.h"
 #include "access/xact.h"
 #include "catalog/catalog.h"
 #include "catalog/catquery.h"
@@ -58,7 +56,6 @@
 #include "catalog/pg_statistic.h"
 #include "catalog/pg_tablespace.h"
 #include "catalog/pg_type.h"
-#include "catalog/gp_fastsequence.h"
 #include "cdb/cdbpartition.h"
 #include "cdb/cdbsreh.h"
 #include "commands/tablecmds.h"

@@ -63,11 +63,8 @@
 #include "utils/syscache.h"
 #include "lib/stringinfo.h"
 
-#include "cdb/cdbcat.h"
 #include "cdb/cdbdisp.h"
-#include "cdb/cdbsrlz.h"
 #include "cdb/cdbpartition.h"
-#include "cdb/cdbtm.h"
 #include "cdb/cdbvars.h"
 
 /*

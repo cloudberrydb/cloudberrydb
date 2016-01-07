@@ -34,7 +34,6 @@
 #include "utils/resscheduler.h"
 
 #include "cdb/cdbgang.h"
-#include "cdb/cdbtm.h"
 #include "cdb/cdbvars.h"
 #include "postmaster/backoff.h"
 
