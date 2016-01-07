@@ -29,13 +29,6 @@ typedef enum
 	PART_STATUS_LEAF	/* a leaf part of a partitioned table */
 } PartStatus;
 
-typedef enum
-{
-	PART_TABLE,
-	PART_PART,
-	PART_CAND
-} PartExchangeRole;
-
 /* cache of function lookups for range partition selection */
 typedef struct PartitionRangeState
 {
@@ -60,14 +53,6 @@ typedef struct PartitionHashState
 	FmgrInfo *hashfuncs;
 	bool *hashinit;
 } PartitionHashState;
-
-/* part rule update */
-typedef struct part_rule_cxt
-{
-	Oid old_oid;
-	Oid new_oid;
-} part_rule_cxt;
-
 
 typedef struct LogicalIndexes
 {

@@ -68,6 +68,13 @@ typedef struct
 	Node *entry;
 } ConNodeEntry;
 
+
+typedef enum
+{
+	PART_TABLE,
+	PART_PART,
+	PART_CAND
+} PartExchangeRole;
 static void
 record_constraints(Relation pgcon, MemoryContext context,
 				   HTAB *hash_tbl, Relation rel,

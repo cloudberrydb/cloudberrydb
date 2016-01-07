@@ -15594,6 +15594,13 @@ ATPExecPartSetTemplate(AlteredTableInfo *tab,
 } /* end ATPExecPartSetTemplate */
 
 
+/* part rule update */
+typedef struct part_rule_cxt
+{
+	Oid			old_oid;
+	Oid			new_oid;
+} part_rule_cxt;
+
 static bool
 partrule_walker(Node *node, void *context)
 {
