@@ -75,10 +75,6 @@ typedef struct LogicalIndexes
 	LogicalIndexInfo	**logicalIndexInfo;
 } LogicalIndexes;
 
-#define parkindIsHash(c)   ((c) == 'h')
-#define parkindIsRange(c)  ((c) == 'r')
-#define parkindIsList(c)   ((c) == 'l')
-
 extern bool rel_is_default_partition(Oid relid);
 
 extern bool rel_is_partitioned(Oid relid);
