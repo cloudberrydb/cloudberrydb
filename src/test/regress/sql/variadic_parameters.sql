@@ -1,5 +1,9 @@
 -- -----------------------------------------------------------------
--- Test function variadic paramters 
+-- Test function variadic parameters
+--
+-- Most of these tests were backported from PostgreSQL 8.4's polymorphism and
+-- plpgsql tests. We should remove the redundant ones after we've merged with
+-- 8.4.
 -- -----------------------------------------------------------------
 
 -- test variadic polymorphic functions
