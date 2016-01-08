@@ -962,7 +962,7 @@ def impl(context, src_tname, src_dbname, dest_tname, dest_dbname, options):
     match_table_select(context, src_tname, src_dbname, dest_tname, dest_dbname, options)
 
 @then('verify that table "{src_tname}" in database "{src_dbname}" of source system has same data with table "{dest_tname}" in database "{dest_dbname}" of destination system with order by "{orderby}"')
-def impl(context, src_tname, src_dbname, dest_table, dest_dbname, orderby):
+def impl(context, src_tname, src_dbname, dest_tname, dest_dbname, orderby):
     match_table_select(context, src_tname, src_dbname, dest_tname, dest_dbname, orderby)
 
 @then('verify that partitioned tables "{table_list}" in "{dbname}" have {num_parts} partitions')
