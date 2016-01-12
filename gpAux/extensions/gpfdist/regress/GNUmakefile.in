@@ -1,4 +1,4 @@
-gpdb_top=@gpdb_top@/..
+gpdb_top=@gpdb_top@
 prefix := @prefix@
 
 default: installcheck

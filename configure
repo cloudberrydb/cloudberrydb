@@ -696,6 +696,7 @@ LDFLAGS_EX
 ELF_SYS
 EGREP
 GREP
+with_apr_config
 with_libcurl
 with_rt
 with_zlib
@@ -744,6 +745,7 @@ LCOV
 GCOV
 enable_profiling
 enable_debug
+enable_gpfdist
 enable_rpath
 enable_shared
 default_port
@@ -810,6 +812,7 @@ enable_shared
 enable_rpath
 enable_spinlocks
 enable_atomics
+enable_gpfdist
 enable_debug
 enable_profiling
 enable_coverage
@@ -845,6 +848,7 @@ with_system_tzdata
 with_zlib
 with_rt
 with_libcurl
+with_apr_config
 with_gnu_ld
 enable_largefile
 '
@@ -1479,6 +1483,7 @@ disable 64-bit integer date/time support
   --disable-rpath         do not embed shared library search path in executables
   --disable-spinlocks     do not use spinlocks
   --disable-atomics       do not use atomic operations
+  --disable-gpfdist       do not use gpfdist
   --enable-debug          build with debugging symbols (-g)
   --enable-profiling      build with profiling enabled
 build with coverage testing instrumentation
@@ -1525,6 +1530,7 @@ Optional Packages:
   --without-zlib          do not use Zlib
   --without-rt            do not use Realtime Library
   --without-libcurl       do not use libcurl
+  --with-apr-config=PATH  path to apr-1-config
   --with-gnu-ld           assume the C compiler uses GNU ld [default=no]
 
 Some influential environment variables:
@@ -3211,6 +3217,35 @@ else
   enable_atomics=yes
 
 fi
+
+
+
+#
+# gpfdist
+#
+
+pgac_args="$pgac_args enable_gpfdist"
+
+# Check whether --enable-gpfdist was given.
+if test "${enable_gpfdist+set}" = set; then :
+  enableval=$enable_gpfdist;
+  case $enableval in
+    yes)
+      :
+      ;;
+    no)
+      :
+      ;;
+    *)
+      as_fn_error $? "no argument expected for --enable-gpfdist option" "$LINENO" 5
+      ;;
+  esac
+
+else
+  enable_gpfdist=yes
+
+fi
+
 
 
 
@@ -6172,6 +6207,19 @@ else
 
 fi
 
+
+
+
+#
+# libapr. Used for gpfdist.
+#
+
+# Check whether --with-apr-config was given.
+if test "${with_apr_config+set}" = set; then :
+  withval=$with_apr_config;
+else
+  with_apr_config=yes
+fi
 
 
 

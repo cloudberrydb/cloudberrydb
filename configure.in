@@ -221,6 +221,13 @@ PGAC_ARG_BOOL(enable, atomics, yes,
               [  --disable-atomics       do not use atomic operations])
 
 #
+# gpfdist
+#
+PGAC_ARG_BOOL(enable, gpfdist, yes,
+             [  --disable-gpfdist       do not use gpfdist])
+AC_SUBST(enable_gpfdist)
+
+#
 # --enable-debug adds -g to compiler flags
 #
 PGAC_ARG_BOOL(enable, debug, no,
@@ -892,6 +899,14 @@ AC_SUBST(with_rt)
 PGAC_ARG_BOOL(with, libcurl, yes,
               [  --without-libcurl       do not use libcurl])
 AC_SUBST(with_libcurl)
+
+#
+# libapr. Used for gpfdist.
+#
+AC_ARG_WITH(apr-config,
+            [AS_HELP_STRING([--with-apr-config=PATH],[path to apr-1-config])],
+            , [with_apr_config=yes])
+AC_SUBST(with_apr_config)
 
 #
 # Elf

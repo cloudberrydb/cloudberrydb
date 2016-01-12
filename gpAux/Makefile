@@ -67,15 +67,7 @@ sol10_sparc_32_CXX_LIB_DIR=/usr/sfw/lib
 BLD_CXX_LIB_DIR=$($(BLD_ARCH)_CXX_LIB_DIR)
 
 # help Windows builds find the cross-compiler and a pre-built curl
-ifeq "$(findstring win,$(BLD_ARCH))" "win"
-tmpPATH:=/usr/local/mingw32/bin:/usr/local/mingw32/mingw32/bin:/opt/curl-7.16.1-crosscompile/bin:$(PATH)
-export PATH:=$(tmpPATH)
-export WINDOWS=true
-export ANT_OPTS="-DminGW=true"
-export SCRIPT_EXT=bat
-export EXE_EXT=.exe
-export PY_EXT=.py
-endif
+include Makefile.windows
 
 #---------------------------------------------------------------------
 # Directory paths and file names
@@ -357,7 +349,6 @@ define BUILD_STEPS
 	cd $(BUILDDIR) && $(MAKE) $(parallelexec_opts) install
 	#@$(MAKE) greenplum_path INSTLOC=$(INSTLOC)
 	#@$(MAKE) groupSession INSTLOC=$(INSTLOC)
-	@$(MAKE) mkgpfdist INSTCFLAGS=$(INSTCFLAGS)
 	@$(MAKE) mkdbgen INSTLOC=$(INSTLOC)
 	#@$(MAKE) mgmtcopy INSTLOC=$(INSTLOC)
 	@$(MAKE) mkpgbouncer INSTLOC=$(INSTLOC) BUILDDIR=$(BUILDDIR)
@@ -1336,7 +1327,6 @@ clean :
 	@if [ -d Release -a -f Release/GNUmakefile ]; then cd Release; $(MAKE) clean; fi
 	@if [ -d $(GPPGDIR) -a -f $(GPPGDIR)/GNUmakefile ]; then cd $(GPPGDIR); $(MAKE) clean; fi
 	@if [ -d $(GPMGMT)/bin ]; then cd $(GPMGMT)/bin; $(MAKE) clean; fi
-	@if [ -d extensions/gpfdist ]; then cd extensions/gpfdist; $(MAKE) clean; fi
 	@if [ -d $(GPPERFMON) ]; then cd $(GPPERFMON); $(MAKE) clean; fi
 	@if [ -d client/odbc/src/Makefile ]; then cd client/odbc/src; $(MAKE) clean; fi
 
@@ -1346,7 +1336,6 @@ distclean :
 	@if [ -d Release -a -f Release/GNUmakefile ]; then cd Release; $(MAKE) distclean; fi
 	@if [ -d $(GPPGDIR) -a -f $(GPPGDIR)/GNUmakefile ]; then cd $(GPPGDIR); $(MAKE) distclean; fi
 	@if [ -d $(GPMGMT)/bin ]; then cd $(GPMGMT)/bin; $(MAKE) distclean; fi
-	@if [ -d extensions/gpfdist ]; then cd extensions/gpfdist; $(MAKE) clean; fi
 	@if [ -d $(GPPERFMON) ]; then cd $(GPPERFMON); $(MAKE) clean; fi
 	@if [ -d client/odbc/src/Makefile ]; then cd client/odbc/src; $(MAKE) clean; fi
 	@rm -f VERSION
