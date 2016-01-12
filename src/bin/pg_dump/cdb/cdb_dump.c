@@ -35,8 +35,6 @@
 int			optreset;
 #endif
 
-#define DUMP_PREFIX (dump_prefix==NULL?"":dump_prefix)
-
 /*
  * static helper functions.  See each function body for a description.
  */
@@ -87,7 +85,6 @@ static char *selectSchemaName = NULL;	/* name of a single schema to dump */
 static char *tableFileName = NULL;	/* file name with tables to dump (--table-file)	*/
 static char *schemaFileName = NULL;	/* file name with tables to dump (--schema-file)	*/
 static char *excludeTableFileName = NULL; /* file name with tables to exclude (--exclude-table-file) */
-static char *dump_prefix = NULL;
 
 /* NetBackup related variables */
 static char *netbackup_service_host = NULL;
@@ -132,6 +129,7 @@ static pthread_mutex_t MyMutex2 = PTHREAD_MUTEX_INITIALIZER;
 static bool g_b_SendCancelMessage = false;
 static const char *pszAgent = "gp_dump_agent";
 
+PQExpBuffer dump_prefix_buf = NULL;
 
 #ifdef USE_DDBOOST
 #include "ddp_api.h"
@@ -143,6 +141,7 @@ main(int argc, char **argv)
 {
 	int			rc = 0;			/* return code */
 	int			remote_version;
+	dump_prefix_buf = createPQExpBuffer();
 
 	InputOptions inputOpts;		/* command line parameters */
 	SegmentDatabaseArray segDBAr;		/* array of the segdbs from the master
@@ -239,6 +238,8 @@ cleanup:
 
 	if (master_db_conn != NULL)
 		PQfinish(master_db_conn);
+
+	destroyPQExpBuffer(dump_prefix_buf);
 
 	exit(rc);
 }
@@ -1209,13 +1210,13 @@ fillInputOptions(int argc, char **argv, InputOptions * pInputOpts)
 				}
 				break;
         
-            case 11:
-                no_expand_children = true;
-                break;
-            case 12:
-                dump_prefix = pg_strdup(optarg);
-                pInputOpts->pszPassThroughParms = addPassThroughLongParm("prefix", DUMP_PREFIX, pInputOpts->pszPassThroughParms);
-                break; 
+			case 11:
+				no_expand_children = true;
+				break;
+			case 12:
+				appendPQExpBuffer(dump_prefix_buf, "%s", optarg);
+				pInputOpts->pszPassThroughParms = addPassThroughLongParm("prefix", dump_prefix_buf->data, pInputOpts->pszPassThroughParms);
+				break;
 			case 13:
 				incremental_filter = pg_strdup(optarg);
 				pInputOpts->pszPassThroughParms = addPassThroughLongParm("incremental-filter", incremental_filter, pInputOpts->pszPassThroughParms);
@@ -1693,7 +1694,7 @@ reportBackupResults(InputOptions inputopts, ThreadParmArray *pParmAr)
 	else
 		pszFormat = "%s%sgp_dump_%s.rpt";
 
-	pszReportPathName = MakeString(pszFormat, pszReportDirectory, DUMP_PREFIX, pParmAr->pData[0].pOptionsData->pszKey);
+	pszReportPathName = MakeString(pszFormat, pszReportDirectory, dump_prefix_buf == NULL ? "" : dump_prefix_buf->data, pParmAr->pData[0].pOptionsData->pszKey);
 
 	fRptFile = fopen(pszReportPathName, "w");
 	if (fRptFile == NULL)
@@ -1945,13 +1946,19 @@ spinOffThreads(PGconn *pConn,
 	// Create a file on the master to signal to gpcrondump that it can release its pg_class lock
 	// Only do this if no-lock is passed, otherwise it can cause problems if gp_dump is called directly and does its own locks
 	if (pParm->pTargetSegDBData->role == ROLE_MASTER && no_lock)
-	{	
+	{
 		char *dumpkey = pParmAr->pData[0].pOptionsData->pszKey;
-		char *filedir = pg_strdup(pInputOpts->pszReportDirectory);
-		if (filedir == NULL)
+		char *filedir = NULL;
+		if (pInputOpts->pszReportDirectory == NULL)
 		{
-			filedir = pg_strdup(getenv("MASTER_DATA_DIRECTORY"));
+			if (getenv("MASTER_DATA_DIRECTORY") != NULL)
+				filedir = pg_strdup(getenv("MASTER_DATA_DIRECTORY"));
+			else
+				filedir = pg_strdup("./");
 		}
+		else
+			filedir = pg_strdup(pInputOpts->pszReportDirectory);
+
 		char *signalFileName = MakeString("%s/gp_lockfile_%s", filedir, &dumpkey[8]);
 		mpp_msg(logInfo, progname, "Signal filename is %s.\n", signalFileName);
 		bool success = false;
@@ -2282,8 +2289,9 @@ threadProc(void *arg)
 							BFT_BACKUP_STATUS, progname, pqBuffer);
 		if(status != 0)
 		{
-			pParm->pszErrorMsg = pqBuffer->data;
+			pParm->pszErrorMsg = MakeString("%s", pqBuffer->data);
 		}
+		destroyPQExpBuffer(pqBuffer);
 	}
 
 	/*

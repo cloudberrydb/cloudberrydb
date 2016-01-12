@@ -69,8 +69,8 @@ static const char *logError = "ERROR";
 static const char *logFatal = "FATAL";
 const char *progname;
 static char * addPassThroughLongParm(const char *Parm, const char *pszValue, char *pszPassThroughParmString);
-static char *dump_prefix = NULL;
-static char *status_file_dir = NULL;
+PQExpBuffer dir_buf = NULL;
+PQExpBuffer dump_prefix_buf = NULL;
 
 /* NetBackup related variable */
 static char *netbackup_service_host = NULL;
@@ -91,6 +91,9 @@ main(int argc, char **argv)
 	bool		found_master;
 	SegmentDatabase *sourceSegDB = NULL;
 	SegmentDatabase *targetSegDB = NULL;
+
+	dir_buf = createPQExpBuffer();
+	dump_prefix_buf = createPQExpBuffer();
 
 	progname = get_progname(argv[0]);
 
@@ -239,10 +242,12 @@ main(int argc, char **argv)
 	failCount = reportRestoreResults(inputOpts.pszReportDirectory, &masterParm, &parmAr);
 
 cleanup:
+	FreeRestorePairArray(&restorePairAr);
 	FreeInputOptions(&inputOpts);
+
 	if (opts != NULL)
 		free(opts);
-	FreeRestorePairArray(&restorePairAr);
+
 	freeThreadParmArray(&parmAr);
 
 	if (masterParm.pszErrorMsg)
@@ -253,6 +258,9 @@ cleanup:
 
 	if (pConn != NULL)
 		PQfinish(pConn);
+
+	destroyPQExpBuffer(dir_buf);
+	destroyPQExpBuffer(dump_prefix_buf);
 
 	return failCount;
 }
@@ -734,25 +742,29 @@ fillInputOptions(int argc, char **argv, InputOptions * pInputOpts)
 				bAoStats = false;
 				break;
 			case 13:
-				dump_prefix = Safe_strdup(optarg);
-				pInputOpts->pszPassThroughParms = addPassThroughLongParm("prefix", DUMP_PREFIX, pInputOpts->pszPassThroughParms);
+				appendPQExpBuffer(dump_prefix_buf, "%s", optarg);
+				pInputOpts->pszPassThroughParms = addPassThroughLongParm("prefix", dump_prefix_buf->data, pInputOpts->pszPassThroughParms);
 				break;
 			case 14:
-				status_file_dir = Safe_strdup(optarg);
-				pInputOpts->pszPassThroughParms = addPassThroughLongParm("status", status_file_dir, pInputOpts->pszPassThroughParms);
+				appendPQExpBuffer(dir_buf, "%s", optarg);
+				pInputOpts->pszPassThroughParms = addPassThroughLongParm("status", dir_buf->data, pInputOpts->pszPassThroughParms);
 				break;
 			case 15:
 				netbackup_service_host = Safe_strdup(optarg);
 				pInputOpts->pszPassThroughParms = addPassThroughLongParm("netbackup-service-host", netbackup_service_host, pInputOpts->pszPassThroughParms);
+				if (netbackup_service_host != NULL)
+					free(netbackup_service_host);
 				break;
 			case 16:
 				netbackup_block_size = Safe_strdup(optarg);
 				pInputOpts->pszPassThroughParms = addPassThroughLongParm("netbackup-block-size", netbackup_block_size, pInputOpts->pszPassThroughParms);
+				if (netbackup_block_size != NULL)
+					free(netbackup_block_size);
 				break;
 			case 17:
 				change_schema = Safe_strdup(optarg);
 				pInputOpts->pszPassThroughParms = addPassThroughLongParm("change-schema", change_schema, pInputOpts->pszPassThroughParms);
-				if (change_schema!= NULL)
+				if (change_schema != NULL)
 					free(change_schema);
 				break;
 			default:
@@ -1138,6 +1150,11 @@ threadProc(void *arg)
 										 pszKey, sSegDB->dbid, tSegDB->dbid);
 			mpp_err_msg(logError, progname, pParm->pszErrorMsg);
 			PQfinish(pConn);
+			free(pszNotifyRelName);
+			free(pszNotifyRelNameStart);
+			free(pszNotifyRelNameSucceed);
+			free(pszNotifyRelNameFail);
+			free(pollInput);
 			return NULL;
 		}
 
@@ -1148,6 +1165,11 @@ threadProc(void *arg)
 			pParm->pszErrorMsg = MakeString("connection went down for backup key %s, source dbid %d, target dbid %d\n",
 										 pszKey, sSegDB->dbid, tSegDB->dbid);
 			mpp_err_msg(logFatal, progname, pParm->pszErrorMsg);
+			free(pszNotifyRelName);
+			free(pszNotifyRelNameStart);
+			free(pszNotifyRelNameSucceed);
+			free(pszNotifyRelNameFail);
+			free(pollInput);
 			PQfinish(pConn);
 			return NULL;
 		}
@@ -1180,8 +1202,9 @@ threadProc(void *arg)
 					pParm->bSuccess = false;
 					pqBuffer = createPQExpBuffer();
 					/* Make call to get error message from file on server */
-					ReadBackendBackupFileError(pConn, status_file_dir, pszKey, BFT_RESTORE_STATUS, progname, pqBuffer);
-					pParm->pszErrorMsg = pqBuffer->data;
+					ReadBackendBackupFileError(pConn, dir_buf->data, pszKey, BFT_RESTORE_STATUS, progname, pqBuffer);
+					pParm->pszErrorMsg = MakeString("%s", pqBuffer->data);
+					destroyPQExpBuffer(pqBuffer);
 
 					mpp_err_msg(logError, progname, "restore failed for source dbid %d, target dbid %d on host %s\n",
 								sSegDB->dbid, tSegDB->dbid, StringNotNull(sSegDB->pszHost, "localhost"));
@@ -1217,11 +1240,12 @@ threadProc(void *arg)
 	if(pParm->bSuccess || pParm->pszErrorMsg == NULL)
 	{
 		pqBuffer = createPQExpBuffer();
-		int status = ReadBackendBackupFileError(pConn, status_file_dir, pszKey, BFT_RESTORE_STATUS, progname, pqBuffer);
+		int status = ReadBackendBackupFileError(pConn, dir_buf == NULL ? "" : dir_buf->data, pszKey, BFT_RESTORE_STATUS, progname, pqBuffer);
 		if (status != 0)
 		{
-			pParm->pszErrorMsg = pqBuffer->data;
+			pParm->pszErrorMsg = MakeString("%s", pqBuffer->data);
 		}
+		destroyPQExpBuffer(pqBuffer);
 	}
 
 	if (pszNotifyRelName != NULL)
@@ -1627,7 +1651,7 @@ reportRestoreResults(const char *pszReportDirectory, const ThreadParm * pMasterP
 			 * report directory not set by user - default to
 			 * $MASTER_DATA_DIRECTORY
 			 */
-			pszReportDirectory = Safe_strdup(getenv("MASTER_DATA_DIRECTORY"));
+			pszReportDirectory = getenv("MASTER_DATA_DIRECTORY");
 		}
 		else
 		{
@@ -1642,7 +1666,13 @@ reportRestoreResults(const char *pszReportDirectory, const ThreadParm * pMasterP
 	else
 		pszFormat = "%s%sgp_restore_%s.rpt";
 
-	pszReportPathName = MakeString(pszFormat, pszReportDirectory, DUMP_PREFIX, pOptions->pszKey);
+	pszReportPathName = MakeString(pszFormat, pszReportDirectory, dump_prefix_buf == NULL ? "" : dump_prefix_buf->data, pOptions->pszKey);
+
+	if (pszReportPathName == NULL)
+	{
+		mpp_err_msg(logError, progname, "Cannot allocate memory for report file path\n");
+		exit(-1);
+	}
 
 	fRptFile = fopen(pszReportPathName, "w");
 	if (fRptFile == NULL)
@@ -1795,7 +1825,7 @@ reportMasterError(InputOptions inputopts, const ThreadParm * pMasterParm, const 
 			 * report directory not set by user - default to
 			 * $MASTER_DATA_DIRECTORY
 			 */
-			pszReportDirectory = Safe_strdup(getenv("MASTER_DATA_DIRECTORY"));
+			pszReportDirectory = getenv("MASTER_DATA_DIRECTORY");
 		}
 		else
 		{
@@ -1811,6 +1841,12 @@ reportMasterError(InputOptions inputopts, const ThreadParm * pMasterParm, const 
 		pszFormat = "%sgp_restore_%s.rpt";
 
 	pszReportPathName = MakeString(pszFormat, pszReportDirectory, pOptions->pszKey);
+
+	if (pszReportPathName == NULL)
+	{
+		mpp_err_msg(logError, progname, "Cannot allocate memory for report file path\n");
+		exit(-1);
+	}
 
 	fRptFile = fopen(pszReportPathName, "w");
 	if (fRptFile == NULL)

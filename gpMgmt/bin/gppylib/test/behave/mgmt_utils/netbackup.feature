@@ -283,7 +283,7 @@ Feature: NetBackup Integration with GPDB
         And the database "nbubkdb" does not exist
         And database "nbubkdb" exists
         When the user runs gp_restore with the the stored timestamp and subdir in "nbubkdb" using netbackup
-        Then gp_restore should return a return code of 0
+        Then gp_restore should return a return code of 2
         And verify that the data of "68" tables in "nbubkdb" is validated after restore
 
     @nbuall
@@ -300,7 +300,7 @@ Feature: NetBackup Integration with GPDB
         And the database "nbubkdb" does not exist
         And database "nbubkdb" exists
         When the user runs "gp_restore -i --gp-k 20131228111527 --gp-d db_dumps --gp-i --gp-r db_dumps --gp-l=p -d nbubkdb --gp-c" using netbackup
-        Then gp_restore should return a return code of 0
+        Then gp_restore should return a return code of 2
         And verify that the data of "68" tables in "nbubkdb" is validated after restore
 
     @nbusmoke
@@ -3172,7 +3172,7 @@ Feature: NetBackup Integration with GPDB
         And there are no backup files
         And the database "testdb" does not exist
         And database "testdb" exists
-		And there are "2" "heap" tables "public.heap_table" with data in "testdb"
+        And there are "2" "heap" tables "public.heap_table" with data in "testdb"
         And there is a "ao" partition table "ao_part_table" with compression "None" in "testdb" with data
         And there is a "ao" partition table "ao_part_table1" with compression "None" in "testdb" with data
         Then data for partition table "ao_part_table" with partition level "1" is distributed across all segments on "testdb"
@@ -3209,7 +3209,7 @@ Feature: NetBackup Integration with GPDB
         And there are no backup files
         And database "schematestdb" is created if not exists on host "None" with port "0" with user "None"
         And there is schema "pepper" exists in "schematestdb"
-		And there are "2" "heap" tables "public.heap_table" with data in "schematestdb"
+        And there are "2" "heap" tables "public.heap_table" with data in "schematestdb"
         And there is a "ao" partition table "ao_part_table" with compression "None" in "schematestdb" with data
         And there is a "ao" partition table "ao_part_table1" with compression "None" in "schematestdb" with data
         And there is a "ao" partition table "pepper.ao_part_table1" with compression "None" in "schematestdb" with data
@@ -3252,7 +3252,7 @@ Feature: NetBackup Integration with GPDB
         And there are no backup files
         And the database "testdb" does not exist
         And database "testdb" exists
-		And there are "2" "heap" tables "public.heap_table" with data in "testdb"
+        And there are "2" "heap" tables "public.heap_table" with data in "testdb"
         And there is a "ao" partition table "ao_part_table" with compression "None" in "testdb" with data
         And there is a "ao" partition table "ao_part_table1" with compression "None" in "testdb" with data
         Then data for partition table "ao_part_table" with partition level "1" is distributed across all segments on "testdb"

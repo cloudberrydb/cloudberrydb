@@ -343,7 +343,7 @@ Feature: Validate command line arguments
         And the database "bkdb" does not exist
         And database "bkdb" exists
         And the user runs gp_restore with the the stored timestamp and subdir in "bkdb"
-        And gp_restore should return a return code of 0
+        And gp_restore should return a return code of 2
         And verify that partitioned tables "ao_part_table, co_part_table, heap_part_table" in "bkdb" have 6 partitions
         And verify that partitioned tables "ao_part_table_comp, co_part_table_comp" in "bkdb" have 6 partitions
         And verify that partitioned tables "part_external" in "bkdb" have 5 partitions in partition level "0"
@@ -431,7 +431,7 @@ Feature: Validate command line arguments
         And the database "bkdb" does not exist
         And database "bkdb" exists
         And the user runs gp_restore with the stored timestamp and subdir in "bkdb" and backup_dir "/tmp"
-        And gp_restore should return a return code of 0
+        And gp_restore should return a return code of 2
         And verify that partitioned tables "ao_part_table, co_part_table, heap_part_table" in "bkdb" have 6 partitions
         And verify that partitioned tables "ao_part_table_comp, co_part_table_comp" in "bkdb" have 6 partitions
         And verify that partitioned tables "part_external" in "bkdb" have 5 partitions in partition level "0"

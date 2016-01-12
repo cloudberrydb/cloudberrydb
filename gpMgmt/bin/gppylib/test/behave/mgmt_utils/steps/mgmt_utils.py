@@ -80,7 +80,7 @@ def impl(context, dbname):
 @then('database "{dbname}" is created if not exists on host "{HOST}" with port "{PORT}" with user "{USER}"')
 def impl(context, dbname, HOST, PORT, USER):
     host = os.environ.get(HOST)
-    port = int(os.environ.get(PORT))
+    port = 0 if os.environ.get(PORT) == None else int(os.environ.get(PORT))
     user = os.environ.get(USER)
     create_database_if_not_exists(context, dbname, host, port, user)
 
