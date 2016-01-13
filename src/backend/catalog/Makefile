@@ -23,7 +23,7 @@ OBJS = catalog.o dependency.o heap.o index.o indexing.o namespace.o aclchk.o \
        aoseg.o aoblkdir.o gp_fastsequence.o \
        pg_attribute_encoding.o pg_compression.o aovisimap.o \
        gp_global_sequence.o gp_persistent.o pg_appendonly.o \
-       aocatalog.o hiddencat.o $(QUICKLZ_COMPRESSION)
+       aocatalog.o $(QUICKLZ_COMPRESSION)
 
 
 SUBDIRS = caql core
