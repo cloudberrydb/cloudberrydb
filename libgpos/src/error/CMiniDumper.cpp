@@ -75,9 +75,9 @@ CMiniDumper::~CMiniDumper()
 			this
 #endif // GPOS_DEBUG
 			);
-	}
 
-	GPOS_DELETE_ARRAY(m_wszBuffer);
+		GPOS_DELETE_ARRAY(m_wszBuffer);
+	}
 }
 
 
