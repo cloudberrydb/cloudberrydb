@@ -93,6 +93,10 @@ namespace gpopt
 			static
 			void DumpSamples(IMemoryPool *pmp, CEnumeratorConfig *pec, ULONG ulSessionId, ULONG ulCmdId);
 
+			// print query or plan tree
+			static
+			void PrintQueryOrPlan(IMemoryPool *pmp, CExpression *pexpr, CQueryContext *pqc = NULL);
+
 		public:
 			
 			// main optimizer function 

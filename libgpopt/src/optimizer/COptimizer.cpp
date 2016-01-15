@@ -137,6 +137,40 @@ COptimizer::DumpSamples
 	GPOS_DELETE(pstr);
 }
 
+//---------------------------------------------------------------------------
+//	@function:
+//		COptimizer::DumpQueryOrPlan
+//
+//	@doc:
+//		Print query tree or plan tree
+//
+//---------------------------------------------------------------------------
+void
+COptimizer::PrintQueryOrPlan
+	(
+	IMemoryPool *pmp,
+	CExpression *pexpr,
+	CQueryContext *pqc
+	)
+{
+	GPOS_ASSERT(NULL != pexpr);
+
+	if (NULL != pqc)
+	{
+		if (GPOS_FTRACE(EopttracePrintQuery))
+		{
+			PrintQuery(pmp, pexpr, pqc);
+		}
+	}
+	else
+	{
+		if (GPOS_FTRACE(EopttracePrintPlan))
+		{
+			PrintPlan(pmp, pexpr);
+		}
+	}
+}
+
 
 //---------------------------------------------------------------------------
 //	@function:
@@ -170,10 +204,13 @@ COptimizer::PdxlnOptimize
 	GPOS_ASSERT(NULL != pdrgpdxlnQueryOutput);
 	GPOS_ASSERT(NULL != poconf);
 
-	CMiniDumperDXL mdmp(pmp);
-	mdmp.Init();
-
 	BOOL fMinidump = GPOS_FTRACE(EopttraceMinidump);
+
+	CMiniDumperDXL mdmp(pmp);
+	if (fMinidump)
+	{
+		mdmp.Init();
+	}
 
 	CDXLNode *pdxlnPlan = NULL;
 	CErrorHandlerStandard errhdl;
@@ -212,13 +249,10 @@ COptimizer::PdxlnOptimize
 			CQueryContext *pqc = CQueryContext::PqcGenerate(pmp, pexprTranslated, pdrgpul, pdrgpmdname, true /*fDeriveStats*/);
 			GPOS_CHECK_ABORT;
 
+			PrintQueryOrPlan(pmp, pexprTranslated, pqc);
+
 			CWStringDynamic strTrace(pmp);
 			COstreamString oss(&strTrace);
-
-			if (GPOS_FTRACE(EopttracePrintQuery))
-			{
-				PrintQuery(pmp, pexprTranslated, pqc);
-			}
 
 			// if the number of inlinable CTEs is greater than the cutoff, then
 			// disable inlining for this query
@@ -233,10 +267,7 @@ COptimizer::PdxlnOptimize
 			CExpression *pexprPlan = PexprOptimize(pmp, pqc, pdrgpss);
 			GPOS_CHECK_ABORT;
 
-			if (GPOS_FTRACE(EopttracePrintPlan))
-			{
-				PrintPlan(pmp, pexprPlan);
-			}
+			PrintQueryOrPlan(pmp, pexprPlan);
 
 			// translate plan into DXL
 			pdxlnPlan = Pdxln(pmp, pmda, pexprPlan, pqc->PdrgPcr(), pdrgpmdname, ulHosts);
