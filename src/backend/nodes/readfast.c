@@ -1118,7 +1118,6 @@ _readCreateStmt(void)
 	READ_BOOL_FIELD(is_split_part);
 	READ_OID_FIELD(ownerid);
 	READ_BOOL_FIELD(buildAoBlkdir);
-	READ_BOOL_FIELD(is_error_table);
 	READ_NODE_FIELD(attr_encodings);
 
 	local_node->policy = NULL;

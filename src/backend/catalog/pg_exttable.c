@@ -99,7 +99,7 @@ InsertExtTableEntry(Oid 	tbloid,
 		values[Anum_pg_exttable_rejectlimit -1] = Int32GetDatum(rejectlimit);
 		values[Anum_pg_exttable_rejectlimittype - 1] = CharGetDatum(rejectlimittype);
 
-		/* if error table specified store its OID, otherwise put a NULL */
+		/* if error log specified store its OID, otherwise put a NULL */
 		if(fmtErrTblOid != InvalidOid)
 			values[Anum_pg_exttable_fmterrtbl - 1] = ObjectIdGetDatum(fmtErrTblOid);
 		else

@@ -814,8 +814,7 @@ External location: file:///tmp/test.txt
 
 create external table ext_t2 (a int, b int)
     location ('file:///tmp/test.txt') format 'text'
-    log errors into err_t2 segment reject limit 100;
-NOTICE:  Error table "err_t2" does not exist. Auto generating an error table with the same name
+    log errors segment reject limit 100;
 \d+ ext_t2
             External table "public.ext_t2"
  Column |  Type   | Modifiers | Storage | Description 
@@ -828,26 +827,10 @@ Format type: text
 Format options: delimiter '	' null '\N' escape '\'
 External location: file:///tmp/test.txt
 Segment reject limit: 100 rows
-Error table: err_t2
-
-\d+ err_t2
-                          Table "public.err_t2"
-  Column  |           Type           | Modifiers | Storage  | Description 
-----------+--------------------------+-----------+----------+-------------
- cmdtime  | timestamp with time zone |           | plain    | 
- relname  | text                     |           | extended | 
- filename | text                     |           | extended | 
- linenum  | integer                  |           | plain    | 
- bytenum  | integer                  |           | plain    | 
- errmsg   | text                     |           | extended | 
- rawdata  | text                     |           | extended | 
- rawbytes | bytea                    |           | extended | 
-Has OIDs: no
-Distributed randomly
+Error Log in File
 
 drop external table ext_t1;
 drop external table ext_t2;
-drop table err_t2;
 -- cleanup
 \c postgres
 drop database dsp1;

@@ -197,9 +197,6 @@ static bool check_parameter_resolution_walker(Node *node,
 static void setQryDistributionPolicy(SelectStmt *stmt, Query *qry);
 static List *getLikeDistributionPolicy(InhRelation *e);
 
-static void transformSingleRowErrorHandling(ParseState *pstate, CreateStmtContext *cxt,
-											SingleRowErrorDesc *sreh);
-
 static Query *transformGroupedWindows(Query *qry);
 static void init_grouped_window_context(grouped_window_ctx *ctx, Query *qry);
 static Var *var_for_gw_expr(grouped_window_ctx *ctx, Node *expr, bool force);
@@ -604,22 +601,6 @@ transformStmt(ParseState *pstate, Node *parseTree,
 		case T_CopyStmt:
 			{
 				CopyStmt   *n = (CopyStmt *) parseTree;
-
-				/*
-				 * Check if we need to create an error table. If so, add it to the
-				 * before list.
-				 */
-				if(n->sreh && ((SingleRowErrorDesc *)n->sreh)->errtable)
-				{
-					CreateStmtContext cxt;
-					cxt.blist = NIL;
-					cxt.alist = NIL;
-
-
-					transformSingleRowErrorHandling(pstate, &cxt,
-													(SingleRowErrorDesc *)n->sreh);
-					*extras_before = list_concat(*extras_before, cxt.blist);
-				}
 
 				result = makeNode(Query);
 				result->commandType = CMD_UTILITY;
@@ -2174,7 +2155,7 @@ transformCreateExternalStmt(ParseState *pstate, CreateExternalStmt *stmt,
 			{
 				SingleRowErrorDesc *srehDesc = (SingleRowErrorDesc *)stmt->sreh;
 
-				if(srehDesc && (srehDesc->errtable || srehDesc->into_file))
+				if(srehDesc && srehDesc->into_file)
 					ereport(ERROR,
 							(errcode(ERRCODE_INVALID_TABLE_DEFINITION),
 							 errmsg("External web table with ON MASTER clause "
@@ -2182,14 +2163,6 @@ transformCreateExternalStmt(ParseState *pstate, CreateExternalStmt *stmt,
 			}
 		}
 	}
-
-	/*
-	 * Check if we need to create an error table. If so, add it to the
-	 * before list.
-	 */
-	if(stmt->sreh && ((SingleRowErrorDesc *)stmt->sreh)->errtable)
-		transformSingleRowErrorHandling(pstate, &cxt,
-										(SingleRowErrorDesc *) stmt->sreh);
 
 	/*
 	 * Handle DISTRIBUTED BY clause, if any.
@@ -7133,141 +7106,4 @@ getLikeDistributionPolicy(InhRelation* e)
 	}
 
 	return likeDistributedBy;
-}
-
-/*
- * transformSingleRowErrorHandling
- *
- * If Single row error handling was specified with an error table, we first
- * check if a table with the same name already exists. If yes, we verify that
- * it has the correct pre-defined error table metadata format (and throw an
- * error is it doesn't). If such a table doesn't exist, we add a CREATE TABLE
- * statement to the before list of the CREATE EXTERNAL TABLE so that it will
- * be created before the external table.
- */
-static void
-transformSingleRowErrorHandling(ParseState *pstate, CreateStmtContext *cxt,
-								SingleRowErrorDesc *sreh)
-{
-
-	/* check if error relation exists already */
-	Oid errreloid;
-
-	if (sreh->into_file)
-	{
-		/* LOG ERRORS without table name.  Log into file. */
-		return;
-	}
-
-	errreloid = RangeVarGetRelid(sreh->errtable, true);
-
-	/*
-	 * auto-generate a new error table or verify an existing one
-	 */
-	if (OidIsValid(errreloid))
-	{
-		/*
-		 * this table already exists in the database. Verify that specified
-		 * table is a valid error table
-		 */
-
-		Relation rel;
-
-		rel = heap_openrv(sreh->errtable, AccessShareLock);
-		ValidateErrorTableMetaData(rel);
-		relation_close(rel, AccessShareLock);
-
-		sreh->reusing_existing_errtable = true;
-	}
-	else
-	{
-		/*
-		 * no such table. auto create it by adding a CREATE TABLE <errortable>
-		 * to the before list
-		 */
-
-		CreateStmt *createStmt;
-		List	   *attrList;
-		int			i = 0;
-
-		ereport(NOTICE,
-				(errmsg("Error table \"%s\" does not exist. Auto generating an "
-						"error table with the same name", sreh->errtable->relname)));
-		createStmt = makeNode(CreateStmt);
-
-		/*
-		 * create a list of ColumnDef nodes based on the names and types of the
-		 * per-defined error table columns
-		 */
-		attrList = NIL;
-
-
-		for (i = 1; i <= NUM_ERRORTABLE_ATTR; i++)
-		{
-			ColumnDef  *coldef = makeNode(ColumnDef);
-
-			coldef->inhcount = 0;
-			coldef->is_local = true;
-			coldef->is_not_null = false;
-			coldef->raw_default = NULL;
-			coldef->cooked_default = NULL;
-			coldef->constraints = NIL;
-
-			switch (i)
-			{
-				case errtable_cmdtime:
-					coldef->typname = makeTypeNameFromOid(TIMESTAMPTZOID, -1);
-					coldef->colname = "cmdtime";
-					break;
-				case errtable_relname:
-					coldef->typname = makeTypeNameFromOid(TEXTOID, -1);
-					coldef->colname = "relname";
-					break;
-				case errtable_filename:
-					coldef->typname = makeTypeNameFromOid(TEXTOID, -1);
-					coldef->colname = "filename";
-					break;
-				case errtable_linenum:
-					coldef->typname = makeTypeNameFromOid(INT4OID, -1);
-					coldef->colname = "linenum";
-					break;
-				case errtable_bytenum:
-					coldef->typname = makeTypeNameFromOid(INT4OID, -1);
-					coldef->colname = "bytenum";
-					break;
-				case errtable_errmsg:
-					coldef->typname = makeTypeNameFromOid(TEXTOID, -1);
-					coldef->colname = "errmsg";
-					break;
-				case errtable_rawdata:
-					coldef->typname = makeTypeNameFromOid(TEXTOID, -1);
-					coldef->colname = "rawdata";
-					break;
-				case errtable_rawbytes:
-					coldef->typname = makeTypeNameFromOid(BYTEAOID, -1);
-					coldef->colname = "rawbytes";
-					break;
-			}
-			attrList = lappend(attrList, coldef);
-		}
-
-		createStmt->relation = sreh->errtable;
-		createStmt->tableElts = attrList;
-		createStmt->inhRelations = NIL;
-		createStmt->constraints = NIL;
-		createStmt->options = NIL;
-		createStmt->oncommit = ONCOMMIT_NOOP;
-		createStmt->tablespacename = NULL;
-		createStmt->relKind = RELKIND_RELATION;
-		createStmt->relStorage = RELSTORAGE_HEAP;
-		createStmt->distributedBy = list_make1(NULL); /* DISTRIBUTED RANDOMLY */
-		createStmt->is_error_table = true;
-
-
-		cxt->blist = lappend(cxt->blist, createStmt);
-
-		sreh->reusing_existing_errtable = false;
-
-	}
-
 }

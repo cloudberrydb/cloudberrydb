@@ -1367,11 +1367,8 @@ typedef struct GrantRoleStmt
 typedef struct SingleRowErrorDesc
 {
 	NodeTag		type;
-	RangeVar	*errtable;			/* error table for data format errors */
 	int			rejectlimit;		/* per segment error reject limit */
-	bool		is_keep;			/* true if KEEP indicated (COPY only) */
 	bool		is_limit_in_rows;	/* true for ROWS false for PERCENT */
-	bool		reusing_existing_errtable;  /* var used later in trasform... */
 	bool		into_file;			/* log into file not table */
 } SingleRowErrorDesc;
 
@@ -1443,7 +1440,6 @@ typedef struct CreateStmt
 	bool		is_split_part;	/* CDB: is create spliting a part? */
 	Oid			ownerid;		/* OID of the role to own this. if InvalidOid, GetUserId() */
 	bool		buildAoBlkdir; /* whether to build the block directory for an AO table */
-	bool		is_error_table; /* true if the table being created is an error table */
 	List	   *attr_encodings; /* attribute storage directives */
 } CreateStmt;
 

@@ -1078,11 +1078,8 @@ _equalClusterStmt(ClusterStmt *a, ClusterStmt *b)
 static bool
 _equalSingleRowErrorDesc(SingleRowErrorDesc *a, SingleRowErrorDesc *b)
 {
-	COMPARE_NODE_FIELD(errtable);
 	COMPARE_SCALAR_FIELD(rejectlimit);
-	COMPARE_SCALAR_FIELD(is_keep);
 	COMPARE_SCALAR_FIELD(is_limit_in_rows);
-	COMPARE_SCALAR_FIELD(reusing_existing_errtable);
 	COMPARE_SCALAR_FIELD(into_file);
 
 	return true;

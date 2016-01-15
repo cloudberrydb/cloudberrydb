@@ -609,7 +609,7 @@ CREATE EXTERNAL TABLE ext_20081031095512_23244_11671 (
     'gpfdist://97.253.36.12:9010/R_LAA_DATA_2008-10-27.dat'
 ) FORMAT 'text' (delimiter ',' null '' )
 ENCODING 'UTF8'
-LOG ERRORS INTO err_20081031095512_23244_11671 SEGMENT REJECT LIMIT 100 ROWS;
+LOG ERRORS SEGMENT REJECT LIMIT 100 ROWS;
 
 
 CREATE WRITABLE EXTERNAL TABLE wet_ext_20081031095512_23244_11671 (
@@ -1191,7 +1191,7 @@ CREATE EXTERNAL TABLE ext_20081031095512_23244_11671 (
     'gpfdist://97.253.36.12:9010/R_LAA_DATA_2008-10-27.dat'
 ) FORMAT 'text' (delimiter ',' null '' )
 ENCODING 'UTF8'
-LOG ERRORS INTO err_20081031095512_23244_11671 SEGMENT REJECT LIMIT 100 ROWS;
+LOG ERRORS SEGMENT REJECT LIMIT 100 ROWS;
 
 
 CREATE WRITABLE EXTERNAL TABLE wet_ext_20081031095512_23244_11671 (
@@ -2779,9 +2779,9 @@ COPY test_table2(   text_col,    bigint_col,    char_vary_col,    numeric_col,  
  TO 'data/test2_file_copy' WITH OIDS  DELIMITER AS ','  NULL AS 'null string' ESCAPE AS 'OFF' ;
 
 
-COPY test_table2 (   text_col,    bigint_col,    char_vary_col,    numeric_col,    int_col,    float_col,    int_array_col,    before_rename_col,    change_datatype_col,    a_ts_without ,    b_ts_with ,    date_column,    col_set_default) FROM 'data/test1_file_copy' WITH DELIMITER AS ',' NULL AS 'null string' ESCAPE AS E'\n' CSV HEADER QUOTE AS '"' FORCE NOT NULL date_column LOG ERRORS INTO err_table1 SEGMENT REJECT LIMIT 10 ROWS  ;
+COPY test_table2 (   text_col,    bigint_col,    char_vary_col,    numeric_col,    int_col,    float_col,    int_array_col,    before_rename_col,    change_datatype_col,    a_ts_without ,    b_ts_with ,    date_column,    col_set_default) FROM 'data/test1_file_copy' WITH DELIMITER AS ',' NULL AS 'null string' ESCAPE AS E'\n' CSV HEADER QUOTE AS '"' FORCE NOT NULL date_column LOG ERRORS SEGMENT REJECT LIMIT 10 ROWS  ;
 
-COPY test_table2 (   text_col,    bigint_col,    char_vary_col,    numeric_col,    int_col,    float_col,    int_array_col,    before_rename_col,    change_datatype_col,    a_ts_without ,    b_ts_with ,    date_column,    col_set_default) FROM 'data/test2_file_copy' WITH OIDS DELIMITER AS ',' NULL AS 'null string' ESCAPE AS 'OFF' LOG ERRORS INTO err_table1 KEEP SEGMENT REJECT LIMIT 10 PERCENT  ;
+COPY test_table2 (   text_col,    bigint_col,    char_vary_col,    numeric_col,    int_col,    float_col,    int_array_col,    before_rename_col,    change_datatype_col,    a_ts_without ,    b_ts_with ,    date_column,    col_set_default) FROM 'data/test2_file_copy' WITH OIDS DELIMITER AS ',' NULL AS 'null string' ESCAPE AS 'OFF' LOG ERRORS SEGMENT REJECT LIMIT 10 PERCENT  ;
 
 
 \c db_test_bed

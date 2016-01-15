@@ -3062,11 +3062,8 @@ static void
 _outSingleRowErrorDesc(StringInfo str, SingleRowErrorDesc *node)
 {
 	WRITE_NODE_TYPE("SINGLEROWERRORDESC");
-	WRITE_NODE_FIELD(errtable);
 	WRITE_INT_FIELD(rejectlimit);
-	WRITE_BOOL_FIELD(is_keep);
 	WRITE_BOOL_FIELD(is_limit_in_rows);
-	WRITE_BOOL_FIELD(reusing_existing_errtable);
 	WRITE_BOOL_FIELD(into_file);
 }
 

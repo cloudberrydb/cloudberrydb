@@ -306,7 +306,7 @@ static Node *makeIsNotDistinctFromNode(Node *expr, int position);
 
 %type <node>    table_value_select_clause
 
-%type <range>	OptTempTableName OptErrorTableName
+%type <range>	OptTempTableName
 %type <into>	into_clause create_as_target
 
 %type <defelt>	createfunc_opt_item common_func_opt_item
@@ -314,7 +314,7 @@ static Node *makeIsNotDistinctFromNode(Node *expr, int position);
 %type <fun_param_mode> arg_class
 %type <typnam>	func_return func_type
 
-%type <boolean>  TriggerForType OptTemp OptWeb OptWritable OptSrehLimitType OptSrehKeep
+%type <boolean>  TriggerForType OptTemp OptWeb OptWritable OptSrehLimitType OptLogErrorTable
 %type <oncommit> OnCommitOption
 
 %type <node>	for_locking_item
@@ -518,7 +518,7 @@ static Node *makeIsNotDistinctFromNode(Node *expr, int position);
 
 	JOIN
 
-	KEEP KEY
+	KEY
 
 	LANCOMPILER LANGUAGE LARGE_P LAST_P LEADING LEAST LEFT LEVEL
 	LIKE LIMIT LIST LISTEN LOAD LOCAL LOCALTIME LOCALTIMESTAMP LOCATION
@@ -727,7 +727,6 @@ static Node *makeIsNotDistinctFromNode(Node *expr, int position);
 			%nonassoc INSTEAD
 			%nonassoc INVOKER
 			%nonassoc ISOLATION
-			%nonassoc KEEP
 			%nonassoc KEY
 			%nonassoc LANCOMPILER
 			%nonassoc LANGUAGE
@@ -3303,7 +3302,6 @@ CreateStmt:	CREATE OptTemp TABLE qualified_name '(' OptTableElementList ')'
 					n->relKind = RELKIND_RELATION;
 					n->policy = 0;
 					n->postCreate = NULL;
-					n->is_error_table = false;
 
 					$$ = (Node *)n;
 				}
@@ -3332,7 +3330,6 @@ CreateStmt:	CREATE OptTemp TABLE qualified_name '(' OptTableElementList ')'
 					n->relKind = RELKIND_RELATION;
 					n->policy = 0;
                     n->postCreate = NULL;
-					n->is_error_table = false;
 
 					$$ = (Node *)n;
 				}
@@ -4762,13 +4759,12 @@ ExtcolumnDef:	ColId Typename
  * Single row error handling SQL
  */
 OptSingleRowErrorHandling:
-		OptErrorTableName OptSrehKeep SEGMENT REJECT_P LIMIT Iconst OptSrehLimitType
+		OptLogErrorTable SEGMENT REJECT_P LIMIT Iconst OptSrehLimitType
 		{
 			SingleRowErrorDesc *n = makeNode(SingleRowErrorDesc);
-			n->errtable = $1;
-			n->is_keep = $2;
-			n->rejectlimit = $6;
-			n->is_limit_in_rows = $7; /* true for ROWS false for PERCENT */
+			n->into_file = $1;
+			n->rejectlimit = $5;
+			n->is_limit_in_rows = $6; /* true for ROWS false for PERCENT */
 
 			/* PERCENT value check */
 			if(!n->is_limit_in_rows && (n->rejectlimit < 1 || n->rejectlimit > 100))
@@ -4782,39 +4778,20 @@ OptSingleRowErrorHandling:
 					   (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
 						errmsg("invalid (ROWS) reject limit. Should be 2 or larger")));
 
-			/* translate "no relation" to "into_file" flag */
-			if (n->errtable && n->errtable->relname == NULL)
-			{
-				n->errtable = NULL;
-				n->into_file = true;
-			}
 			$$ = (Node *)n;
 		}
 		| /*EMPTY*/		{ $$ = NULL; }
 		;
 	
-OptErrorTableName:
-		LOG_P ERRORS INTO qualified_name 	{ $$ = $4; }
-		| LOG_P ERRORS
-			{
-				$$ = makeNode(RangeVar);
-				$$->catalogname = NULL;
-				$$->schemaname = NULL;
-				$$->relname = NULL;
-				$$->location = @1;
-			}
-		| /*EMPTY*/							{ $$ = NULL; }
+OptLogErrorTable:
+		LOG_P ERRORS                        { $$ = TRUE; }
+		| /*EMPTY*/							{ $$ = FALSE; }
 		;
 	
 OptSrehLimitType:		
 		ROWS					{ $$ = TRUE; }
 		| PERCENT				{ $$ = FALSE; }
 		| /* default is ROWS */	{ $$ = TRUE; }
-		;
-
-OptSrehKeep:
-		KEEP				{ $$ = TRUE; }
-		| /*EMPTY*/			{ $$ = FALSE; }
 		;
 
 /*
@@ -12385,7 +12362,6 @@ unreserved_keyword:
 			| INSTEAD
 			| INVOKER
 			| ISOLATION
-			| KEEP /* gp */
 			| KEY
 			| LANCOMPILER
 			| LANGUAGE
@@ -13141,7 +13117,6 @@ makeAddPartitionCreateStmt(Node *n, Node *subSpec)
     ct->relKind = RELKIND_RELATION;
     ct->policy = 0;
     ct->postCreate = NULL;
-	ct->is_error_table = false;
 
     return (Node *)ct;
 }

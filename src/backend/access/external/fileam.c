@@ -369,7 +369,7 @@ external_endscan(FileScanDesc scan)
 	/*
 	 * if SREH was active:
 	 * 1) QEs: send a libpq message to QD with num of rows rejected in this segment
-	 * 2) Free SREH resources (includes closing the error table if used).
+	 * 2) Free SREH resources 
 	 */
 	if (scan->fs_pstate != NULL && scan->fs_pstate->errMode != ALL_OR_NOTHING)
 	{
@@ -1331,70 +1331,26 @@ InitParseState(CopyState pstate, Relation relation,
 	}
 	else
 	{
-		RangeVar   *errtbl_rv = NULL;
-		bool		log_to_file = false;
-		bool		curTxnCreatedErrtbl = false; /* errtbl created in current txn? */
-
 		/* select the SREH mode */
 		if (fmterrtbl == InvalidOid)
 		{
-			/* no error table */
+			/* no error log */
 			pstate->errMode = SREH_IGNORE;
 		}
 		else if (fmterrtbl == RelationGetRelid(relation))
 		{
 			/* errors into file */
 			pstate->errMode = SREH_LOG;
-			log_to_file = true;
-		}
-		else
-		{
-			/* with error table */
-
-			Relation rel;
-
-			pstate->errMode = SREH_LOG;
-
-			/*
-			 * we want to be sure that this error table is alive (wasn't dropped).
-			 * we must do this check until we have proper dependency recorded.
-			 */
-			LockRelationOid(fmterrtbl, AccessShareLock);
-			rel = RelationIdGetRelation(fmterrtbl);
-
-			if (rel == NULL)
-				ereport(ERROR, (errcode(ERRCODE_UNDEFINED_TABLE),
-								errmsg("The specified error table for this "
-									   "external table doesn't appear to "
-									   "exist in the database. It may have "
-									   "been dropped."),
-								errhint("Refresh your external table definition.")));
-
-			RelationDecrementReferenceCount(rel); /* must do this after RelationIdGetRelation() */
-
-
-			errtbl_rv = makeRangeVar(get_namespace_name(get_rel_namespace(fmterrtbl)),
-									 get_rel_name(fmterrtbl), -1);
-
-			if (rel->rd_createSubid != InvalidSubTransactionId)
-				curTxnCreatedErrtbl = true;
 		}
 
 		/* Single row error handling */
-		pstate->cdbsreh = makeCdbSreh(true, /* don't DROP errtable at end of execution */
-									  !curTxnCreatedErrtbl, /* really only relevant to COPY though */
-									  rejectlimit,
+		pstate->cdbsreh = makeCdbSreh(rejectlimit,
 									  islimitinrows,
-									  errtbl_rv,
 									  pstate->filename,
 									  (char *)pstate->cur_relname,
-									  log_to_file);
+									  true);
 
 		pstate->cdbsreh->relid = RelationGetRelid(relation);
-
-		/* if necessary warn the user of the risk of table getting dropped */
-		if (Gp_role == GP_ROLE_DISPATCH && curTxnCreatedErrtbl)
-			emitSameTxnWarning();
 
  		pstate->num_consec_csv_err = 0;
 	}

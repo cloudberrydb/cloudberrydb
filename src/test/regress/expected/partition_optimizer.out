@@ -2670,11 +2670,8 @@ from pg_partitions where tablename = 'ao_p';
 
 -- end_ignore
 -- try SREH
-copy ao_p from stdin log errors into ao_p_err segment reject limit 100;
-NOTICE:  Error table "ao_p_err" does not exist. Auto generating an error table with the same name
-WARNING:  The error table was created in the same transaction as this operation. It will get dropped if transaction rolls back even if bad rows are present
-HINT:  To avoid this create the error table ahead of time using: CREATE TABLE <name> (cmdtime timestamp with time zone, relname text, filename text, linenum integer, bytenum integer, errmsg text, rawdata text, rawbytes bytea)
-NOTICE:  Found 2 data formatting errors (2 or more input rows). Errors logged into error table "ao_p_err"
+copy ao_p from stdin log errors segment reject limit 100;
+NOTICE:  Found 2 data formatting errors (2 or more input rows). Rejected related input data.
 -- start_ignore
 select partitiontablename, ao_ptotal(partitiontablename)
 from pg_partitions where tablename = 'ao_p';

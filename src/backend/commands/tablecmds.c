@@ -733,8 +733,7 @@ DefineRelation_int(CreateStmt *stmt,
              stmt->relation->schemaname ? stmt->relation->schemaname : "",
              shouldDispatch);
 
-	bool valid_opts = (relstorage == RELSTORAGE_EXTERNAL) ||
-			stmt->is_error_table;
+	bool valid_opts = (relstorage == RELSTORAGE_EXTERNAL);
 
 	relationId = heap_create_with_catalog(relname,
 										  namespaceId,
@@ -853,8 +852,7 @@ DefineRelation_int(CreateStmt *stmt,
 * In here we first dispatch a normal DefineRelation() (with relstorage
 * external) in order to create the external relation entries in pg_class
 * pg_type etc. Then once this is done we dispatch ourselves (DefineExternalRelation)
-* in order to create the pg_exttable entry accross the gp array and we
-* also record a dependency with the error table, if one exists.
+* in order to create the pg_exttable entry accross the gp array.
 *
 * Why don't we just do all of this in one dispatch run? because that
 * involves duplicating the DefineRelation() code or severly modifying it
@@ -883,7 +881,6 @@ DefineExternalRelation(CreateExternalStmt *createExtStmt)
 	int						  rejectlimit = -1;
 	int						  encoding = -1;
 	bool					  issreh = false; /* is single row error handling requested? */
-	bool					  logToFile = false; /* log errors into file, not relation */
 	bool					  iswritable = createExtStmt->iswritable;
 	bool					  isweb = createExtStmt->isweb;
 	bool					  shouldDispatch = (Gp_role == GP_ROLE_DISPATCH &&
@@ -1104,26 +1101,6 @@ DefineExternalRelation(CreateExternalStmt *createExtStmt)
 		rejectlimit = singlerowerrorDesc->rejectlimit;
 		rejectlimittype = (singlerowerrorDesc->is_limit_in_rows ? 'r' : 'p');
 		VerifyRejectLimit(rejectlimittype, rejectlimit);
-
-		/* KEEP only allowed for COPY */
-		if (singlerowerrorDesc->is_keep)
-			ereport(ERROR,
-					(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
-					 errmsg("KEEP is not supported in the external table definition. "
-							"Error table will be dropped when its external table is "
-							"dropped.")));
-
-		if (singlerowerrorDesc->errtable)
-		{
-			fmtErrTblOid = RangeVarGetRelid(singlerowerrorDesc->errtable, true);
-		}
-		else if (singlerowerrorDesc->into_file)
-		{
-			logToFile = true;
-			fmtErrTblOid = InvalidOid;
-		}
-		else
-			fmtErrTblOid = InvalidOid; /* no err tbl was requested */
 	}
 
 	/*
@@ -1186,7 +1163,7 @@ DefineExternalRelation(CreateExternalStmt *createExtStmt)
 		reloid = DefineRelation(createStmt, RELKIND_RELATION, RELSTORAGE_EXTERNAL);
 
 	/*
-	 * Now we take care of pg_exttable and dependency with error table (if any).
+	 * Now we take care of pg_exttable.
 	 */
     PG_TRY();
     {
@@ -1205,7 +1182,7 @@ DefineExternalRelation(CreateExternalStmt *createExtStmt)
 		/*
 		 * In the case of error log file, set fmtErrorTblOid to the external table itself.
 		 */
-		if (logToFile)
+		if (issreh)
 			fmtErrTblOid = reloid;
 
 		/*
@@ -1234,27 +1211,6 @@ DefineExternalRelation(CreateExternalStmt *createExtStmt)
 		 * correct information.
 		 */
 		CacheInvalidateRelcacheByRelid(reloid);
-
-		/*
-		 * record a dependency between the external table and its error table (if one exists)
-		 */
-		if (singlerowerrorDesc && singlerowerrorDesc->errtable)
-		{
-			ObjectAddress	myself,
-			referenced;
-			Oid		fmtErrTblOid = RangeVarGetRelid(((SingleRowErrorDesc *)createExtStmt->sreh)->errtable, true);
-
-			Assert(!createExtStmt->iswritable);
-			Assert(fmtErrTblOid != InvalidOid);
-
-			myself.classId = RelationRelationId;
-			myself.objectId = reloid;
-			myself.objectSubId = 0;
-			referenced.classId = RelationRelationId;
-			referenced.objectId = fmtErrTblOid;
-			referenced.objectSubId = 0;
-			recordDependencyOn(&myself, &referenced, DEPENDENCY_NORMAL);
-		}
 
 		if (shouldDispatch)
 		{
@@ -3521,34 +3477,6 @@ ATVerifyObject(AlterTableStmt *stmt, Relation rel)
 			}
 		}
 	}
-
-	/*
-	 * We disallow all ALTER commands with an error table.  Note, RENAME,
-	 * SET SCHEMA and SET DISTRIBUTED RANDOMLY are allowed.
-	 */
-	if (IsErrorTable(rel))
-	{
-		ListCell *lcmd;
-
-		foreach(lcmd, stmt->cmds)
-		{
-			AlterTableCmd *cmd = (AlterTableCmd *) lfirst(lcmd);
-
-			switch(cmd->subtype)
-			{
-				case AT_SetDistributedBy:
-					/* We check the type of operation later in prep. */
-					break;
-				default:
-					ereport(ERROR,
-							(errcode(ERRCODE_WRONG_OBJECT_TYPE),
-							 errmsg("\"%s\" is an error table",
-									RelationGetRelationName(rel)),
-							 errdetail("ALTER TABLE is not allowed on error tables")));
-					break;
-			}
-		}
-	}
 }
 
 /*
@@ -4184,25 +4112,6 @@ ATPrepCmd(List **wqueue, Relation rel, AlterTableCmd *cmd,
 				}
 			}
 
-			/*
-			 * We can check this on only QD, since QE gets different
-			 * tree structure than the one from the normal SQL parsing.
-			 */
-			if (Gp_role == GP_ROLE_DISPATCH && IsErrorTable(rel) && !recursing)
-			{
-				List	   *dist_cnames = lsecond((List *) cmd->def);
-
-				/*
-				 * Error table cannot change the policy to non-random.
-				 */
-				if (dist_cnames &&
-					!(list_length(dist_cnames) == 1 && linitial(dist_cnames) == NIL))
-					ereport(ERROR,
-							(errcode(ERRCODE_WRONG_OBJECT_TYPE),
-							 errmsg("\"%s\" is an error table",
-									RelationGetRelationName(rel)),
-							 errdetail("Only random distribution is allowed on error tables")));
-			}
 			ATSimplePermissions(rel, false);
 			ATSimpleRecursion(wqueue, rel, cmd, recurse);
 			pass = AT_PASS_MISC;

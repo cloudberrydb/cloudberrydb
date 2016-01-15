@@ -1342,7 +1342,7 @@ select partitiontablename, ao_ptotal(partitiontablename)
 from pg_partitions where tablename = 'ao_p';
 -- end_ignore
 -- try SREH
-copy ao_p from stdin log errors into ao_p_err segment reject limit 100;
+copy ao_p from stdin log errors segment reject limit 100;
 6
 7
 10000

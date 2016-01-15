@@ -2950,11 +2950,8 @@ _copySingleRowErrorDesc(SingleRowErrorDesc *from)
 {
 	SingleRowErrorDesc *newnode = makeNode(SingleRowErrorDesc);
 
-	COPY_NODE_FIELD(errtable);
 	COPY_SCALAR_FIELD(rejectlimit);
-	COPY_SCALAR_FIELD(is_keep);
 	COPY_SCALAR_FIELD(is_limit_in_rows);
-	COPY_SCALAR_FIELD(reusing_existing_errtable);
 	COPY_SCALAR_FIELD(into_file);
 
 	return newnode;

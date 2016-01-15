@@ -328,12 +328,10 @@ create external table ext_t1 (a int, b int)
 \d+ ext_t1
 create external table ext_t2 (a int, b int)
     location ('file:///tmp/test.txt') format 'text'
-    log errors into err_t2 segment reject limit 100;
+    log errors segment reject limit 100;
 \d+ ext_t2
-\d+ err_t2
 drop external table ext_t1;
 drop external table ext_t2;
-drop table err_t2;
 
 -- cleanup
 \c postgres

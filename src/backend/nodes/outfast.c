@@ -749,7 +749,6 @@ _outCreateStmt(StringInfo str, CreateStmt *node)
 	WRITE_BOOL_FIELD(is_split_part);
 	WRITE_OID_FIELD(ownerid);
 	WRITE_BOOL_FIELD(buildAoBlkdir);
-	WRITE_BOOL_FIELD(is_error_table);
 	WRITE_NODE_FIELD(attr_encodings);
 }
 

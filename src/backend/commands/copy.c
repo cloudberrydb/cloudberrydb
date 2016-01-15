@@ -205,10 +205,6 @@ else \
 	}\
 	else\
 	{\
-		/* truncate trailing eol chars if we need to store this row in errtbl */ \
-		if (cstate->cdbsreh->errtbl) \
-			truncateEol(&cstate->line_buf, cstate->eol_type); \
-\
 		if (Gp_role == GP_ROLE_EXECUTE)\
 		{\
 			/* if line has embedded rownum, update the cursor to the pos right after */ \
@@ -1066,39 +1062,20 @@ DoCopyInternal(const CopyStmt *stmt, const char *queryString, CopyState cstate)
 					(errcode(ERRCODE_GP_FEATURE_NOT_SUPPORTED),
 					 errmsg("COPY single row error handling only available using COPY FROM")));
 
-		if (sreh->errtable)
+		if (sreh->into_file)
 		{
 			cstate->errMode = SREH_LOG;
-		}
-		else if (sreh->into_file)
-		{
-			cstate->errMode = SREH_LOG;
-			if (sreh->is_keep)
-				ereport(ERROR,
-						(errcode(ERRCODE_GP_FEATURE_NOT_SUPPORTED),
-						 errmsg("KEEP may only be specified with an error table")));
 			log_to_file = true;
 		}
 		else
 		{
 			cstate->errMode = SREH_IGNORE;
-			if (sreh->is_keep)
-				ereport(ERROR,
-						(errcode(ERRCODE_GP_FEATURE_NOT_SUPPORTED),
-						errmsg("KEEP may only be specified with a LOG INTO errortable clause")));
 		}
-		cstate->cdbsreh = makeCdbSreh(sreh->is_keep,
-									  sreh->reusing_existing_errtable,
-									  sreh->rejectlimit,
+		cstate->cdbsreh = makeCdbSreh(sreh->rejectlimit,
 									  sreh->is_limit_in_rows,
-									  sreh->errtable,
 									  stmt->filename,
 									  stmt->relation->relname,
 									  log_to_file);
-
-		/* if necessary warn the user of the risk of table getting dropped */
-		if(sreh->errtable && Gp_role == GP_ROLE_DISPATCH && !sreh->reusing_existing_errtable)
-			emitSameTxnWarning();
 	}
 	else
 	{
@@ -2495,11 +2472,11 @@ static void CopyFromCreateDispatchCommand(CopyState cstate,
 
 	/*
 	 * NOTE: we used to always pass STDIN here to the QEs. But since we want
-	 * the QEs to know the original file name for recording it in an error table
+	 * the QEs to know the original file name for recording it in an error log file
 	 * (if they use one) we actually pass the filename here, and in the QE COPY
 	 * we get it, save it, and then always revert back to actually using STDIN.
 	 * (if we originally use STDIN we just pass it along and record that in the
-	 * error table).
+	 * error log file).
 	 */
 	if(cstate->filename)
 		appendStringInfo(cdbcopy_cmd, " FROM %s WITH", quote_literal_internal(cstate->filename));
@@ -2556,19 +2533,7 @@ static void CopyFromCreateDispatchCommand(CopyState cstate,
 	{
 		if (cstate->errMode == SREH_LOG)
 		{
-			if (cstate->cdbsreh->errtbl)
-			{
-				Relation	errtbl = cstate->cdbsreh->errtbl;
-				char	   *namespace, *relname;
-
-				namespace = get_namespace_name(RelationGetNamespace(errtbl));
-				relname = RelationGetRelationName(errtbl);
-				appendStringInfo(cdbcopy_cmd, " LOG ERRORS INTO %s.%s",
-								 quote_identifier(namespace),
-								 quote_identifier(relname));
-			}
-			else
-				appendStringInfoString(cdbcopy_cmd, " LOG ERRORS");
+			appendStringInfoString(cdbcopy_cmd, " LOG ERRORS");
 		}
 
 		appendStringInfo(cdbcopy_cmd, " SEGMENT REJECT LIMIT %d %s",
@@ -3582,7 +3547,7 @@ CopyFromDispatch(CopyState cstate)
 		int total_rejected_from_qd = cstate->cdbsreh->rejectcount;
 		
 		/* if used errtable, QD bad rows were sent to QEs and counted there. ignore QD count */
-		if (cstate->cdbsreh->errtbl)
+		if (cstate->cdbsreh)
 			total_rejected_from_qd = 0;
 		
 		total_rejected = total_rejected_from_qd + total_rejeted_from_qes;
@@ -3590,10 +3555,6 @@ CopyFromDispatch(CopyState cstate)
 
 		/* emit a NOTICE with number of rejected rows */
 		ReportSrehResults(cstate->cdbsreh, total_rejected);
-
-		/* See if we want to DROP error table when destroying cdbsreh */
-		if(cstate->cdbsreh->errtbl)
-			SetErrorTableVerdict(cstate->cdbsreh, total_rejected);
 	}
 
 
@@ -6130,7 +6091,7 @@ else \
  * row. Therefore the QD sends this information along with the data.
  * other metadata that the QD sends includes whether the data was
  * converted to server encoding (should always be the case, unless
- * encoding error happened and we're in error table mode).
+ * encoding error happened and we're in error log mode).
  *
  * in:
  *    line_buf: <original_num>^<buf_converted>^<data for this row>
@@ -6809,7 +6770,7 @@ void preProcessDataLine(CopyState cstate)
 		/* check if QD sent us a badly encoded row, still in client_encoding, 
 		 * in order to catch the encoding error ourselves. if line_buf_converted
 		 * is false after CopyExtractRowMetaData then we must transcode and catch
-		 * the error. Verify that we are indeed in SREH error table mode. that's
+		 * the error. Verify that we are indeed in SREH error log mode. that's
 		 * the only valid path for receiving an unconverted data row.
 		 */
 		if (!cstate->line_buf_converted)
