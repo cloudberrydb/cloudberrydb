@@ -48,6 +48,7 @@
 #include "storage/fd.h"
 #include "storage/smgr.h"
 #include "tcop/tcopprot.h"
+#include "tcop/utility.h"
 #include "utils/acl.h"
 #include "utils/builtins.h"
 #include "utils/lsyscache.h"
@@ -66,7 +67,7 @@
 #include "commands/vacuum.h"
 #include "utils/lsyscache.h"
 #include "nodes/makefuncs.h"
-#include "postmaster/autovacuum.h"
+#include "postmaster/autostats.h"
 
 /* DestReceiver for COPY (SELECT) TO */
 typedef struct

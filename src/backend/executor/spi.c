@@ -39,7 +39,7 @@
 #include "commands/dbcommands.h"	/* get_database_name() */
 #include "postmaster/postmaster.h"		/* PostPortNumber */
 #include "postmaster/backoff.h"
-#include "postmaster/autovacuum.h" /* auto_stats() */
+#include "postmaster/autostats.h" /* auto_stats() */
 #include "nodes/print.h"
 #include "catalog/namespace.h"
 #include "catalog/pg_namespace.h"

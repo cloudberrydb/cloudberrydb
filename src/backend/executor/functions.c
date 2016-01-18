@@ -38,7 +38,7 @@
 #include "optimizer/clauses.h"
 #include "executor/spi.h"
 #include "cdb/memquota.h"
-#include "postmaster/autovacuum.h"
+#include "postmaster/autostats.h"
 
 /*
  * We have an execution_state record for each query in a function.	Each

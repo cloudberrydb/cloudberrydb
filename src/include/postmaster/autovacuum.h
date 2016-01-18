@@ -65,25 +65,5 @@ extern void AutovacuumLauncherIAm(void);
 /* shared memory stuff */
 extern Size AutoVacuumShmemSize(void);
 extern void AutoVacuumShmemInit(void);
-/* Auto-stats related stuff */
-
-/**
- * AutoStatsCmdType - an enumeration of type of statements known to auto-stats module. 
- * If adding a new statement type, ensure that SENTINEL is the last entry and autostats_cmdtype_to_string
- * knows of the new type. 
- */
-typedef enum AutoStatsCmdType
-{
-	AUTOSTATS_CMDTYPE_CTAS,
-	AUTOSTATS_CMDTYPE_UPDATE,
-	AUTOSTATS_CMDTYPE_INSERT,
-	AUTOSTATS_CMDTYPE_DELETE,
-	AUTOSTATS_CMDTYPE_COPY,
-	AUTOSTATS_CMDTYPE_SENTINEL	/* this should always be the last entry. add new statement types before this entry */
-} AutoStatsCmdType;
-
-extern const char *autostats_cmdtype_to_string(AutoStatsCmdType cmdType);
-extern void autostats_get_cmdtype(PlannedStmt * stmt, AutoStatsCmdType * pcmdType, Oid * prelationOid);
-extern void auto_stats(AutoStatsCmdType cmdType, Oid relationOid, uint64 ntuples, bool inFunction);
 
 #endif   /* AUTOVACUUM_H */

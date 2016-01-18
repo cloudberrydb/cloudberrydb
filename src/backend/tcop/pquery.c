@@ -34,7 +34,7 @@
 #include "nodes/makefuncs.h"
 #include "utils/acl.h"
 #include "catalog/catalog.h"
-#include "postmaster/autovacuum.h"
+#include "postmaster/autostats.h"
 #include "postmaster/backoff.h"
 #include "cdb/ml_ipc.h"
 #include "cdb/memquota.h"
