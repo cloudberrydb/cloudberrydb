@@ -38,7 +38,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/postmaster/postmaster.c,v 1.508 2007/01/16 13:28:56 alvherre Exp $
+ *	  $PostgreSQL: pgsql/src/backend/postmaster/postmaster.c,v 1.512 2007/01/23 03:28:49 momjian Exp $
  *
  * NOTES
  *
@@ -5574,17 +5574,14 @@ signal_to_name(int signal)
 static void
 LogChildExit(int lev, const char *procname, int pid, int exitstatus)
 {
-    char pidLabel[100];
-    sprintf(pidLabel, " (PID %d)", pid);
-
 	if (WIFEXITED(exitstatus))
 		ereport(lev,
 
 		/*------
 		  translator: %s is a noun phrase describing a child process, such as
 		  "server process" */
-				(errmsg("%s%s exited with exit code %d",
-						procname, pidLabel, WEXITSTATUS(exitstatus))));
+				(errmsg("%s (PID %d) exited with exit code %d",
+						procname, pid, WEXITSTATUS(exitstatus))));
 	else if (WIFSIGNALED(exitstatus))
 #if defined(WIN32)
 		ereport(lev,
@@ -5592,8 +5589,8 @@ LogChildExit(int lev, const char *procname, int pid, int exitstatus)
 		/*------
 		  translator: %s is a noun phrase describing a child process, such as
 		  "server process" */
-				(errmsg("%s%s was terminated by exception 0x%X",
-						procname, pidLabel, WTERMSIG(exitstatus)),
+				(errmsg("%s (PID %d) was terminated by exception 0x%X",
+						procname, pid, WTERMSIG(exitstatus)),
 				 errhint("See C include file \"ntstatus.h\" for a description of the hexadecimal value.")));
 #elif defined(HAVE_DECL_SYS_SIGLIST) && HAVE_DECL_SYS_SIGLIST
 	ereport(lev,
@@ -5601,10 +5598,8 @@ LogChildExit(int lev, const char *procname, int pid, int exitstatus)
 	/*------
 	  translator: %s is a noun phrase describing a child process, such as
 	  "server process" */
-	// strsignal() is preferred over the deprecated use of sys_siglist, on platforms that support it.
-	// Solaris and Linux do support it, but I think MAC OSX doesn't?
-			(errmsg("%s%s was terminated by signal %d: %s",
-					procname, pidLabel, WTERMSIG(exitstatus),
+			(errmsg("%s (PID %d) was terminated by signal %d: %s",
+					procname, pid, WTERMSIG(exitstatus),
 					WTERMSIG(exitstatus) < NSIG ?
 					sys_siglist[WTERMSIG(exitstatus)] : "(unknown)")));
 #else
@@ -5619,8 +5614,8 @@ LogChildExit(int lev, const char *procname, int pid, int exitstatus)
 		/*------
 		  translator: %s is a noun phrase describing a child process, such as
 		  "server process" */
-			    (errmsg("%s%s was terminated by signal %d: %s",
-						procname, pidLabel, WTERMSIG(exitstatus), signalName)));
+			    (errmsg("%s (PID %d) was terminated by signal %d: %s",
+						procname, pid, WTERMSIG(exitstatus), signalName)));
 	}
 #endif
 	else
@@ -5629,8 +5624,8 @@ LogChildExit(int lev, const char *procname, int pid, int exitstatus)
 		/*------
 		  translator: %s is a noun phrase describing a child process, such as
 		  "server process" */
-				(errmsg("%s%s exited with unrecognized status %d",
-						procname, pidLabel, exitstatus)));
+				(errmsg("%s (PID %d) exited with unrecognized status %d",
+						procname, pid, exitstatus)));
 }
 
 /**
