@@ -6,7 +6,6 @@ test: with_clause spilltodisk
 test: tiny
 test: wrkloadadmin
 ignore: jdbc
-test: jetpack
 test: spi
 test: security
 test: load_tpch sirv_functions view xpath

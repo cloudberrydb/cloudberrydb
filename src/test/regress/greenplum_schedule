@@ -61,8 +61,12 @@ ignore: icudp_full
 ignore: gp_delete_as_trunc
 
 test: resource_queue
+# gp_toolkit performs a vacuum and checks that it truncated the relation. That
+# might not happen if other backends are holding transactions open, preventing
+# vacuum from removing dead tuples.
+test: gp_toolkit
 
-test: filespace trig auth_constraint role rle portals_updatable plpgsql_cache timeseries resource_queue_function pg_stat_last_operation gp_numeric_agg gp_toolkit plan_size partindex_test direct_dispatch partition_pruning_with_fn dsp
+test: filespace trig auth_constraint role rle portals_updatable plpgsql_cache timeseries resource_queue_function pg_stat_last_operation gp_numeric_agg plan_size partindex_test direct_dispatch partition_pruning_with_fn dsp
 
 test: aggregate_with_groupingsets gp_optimizer 
 
