@@ -122,8 +122,6 @@ extern PartitionNode *RelationBuildPartitionDescByOid(Oid relid,
 extern bool rel_needs_long_lock(Oid relid);
 extern Oid  rel_partition_get_master(Oid relid);
 
-extern void PartitionRangeItemIsValid(ParseState *pstate, PartitionRangeItem *pri);
-
 extern Oid get_settable_tablespace_oid(char *tablespacename);
 
 extern List *
