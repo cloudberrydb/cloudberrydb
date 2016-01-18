@@ -9,7 +9,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/optimizer/plan/planner.c,v 1.211 2007/01/10 18:06:03 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/optimizer/plan/planner.c,v 1.212 2007/01/20 20:45:39 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -556,6 +556,7 @@ subquery_planner(PlannerGlobal *glob,
 	root->query_level = parent_root ? parent_root->query_level + 1 : 1;
 	root->parent_root = parent_root;
 	root->planner_cxt = CurrentMemoryContext;
+	root->eq_classes = NIL;
 	root->init_plans = NIL;
 
 	root->list_cteplaninfo = NIL;
@@ -1284,6 +1285,7 @@ grouping_planner(PlannerInfo *root, double tuple_fraction)
 	List	   *tlist = parse->targetList;
 	int64		offset_est = 0;
 	int64		count_est = 0;
+	double		limit_tuples = -1.0;
 	Plan	   *result_plan;
 	List	   *current_pathkeys = NIL;
 	CdbPathLocus current_locus;
@@ -1300,10 +1302,19 @@ grouping_planner(PlannerInfo *root, double tuple_fraction)
 	
 	CdbPathLocus_MakeNull(&current_locus); 
 	
-	/* Tweak caller-supplied tuple_fraction if have LIMIT/OFFSET */
-	if (parse->limitCount || parse->limitOffset)
-		tuple_fraction = preprocess_limit(root, tuple_fraction,
-										  &offset_est, &count_est);
+    /* Tweak caller-supplied tuple_fraction if have LIMIT/OFFSET */
+    if (parse->limitCount || parse->limitOffset)
+    {
+        tuple_fraction = preprocess_limit(root, tuple_fraction,
+                                          &offset_est, &count_est);
+
+        /*
+         * If we have a known LIMIT, and don't have an unknown OFFSET, we can
+         * estimate the effects of using a bounded sort.
+         */
+        if (count_est > 0 && offset_est >= 0)
+            limit_tuples = (double) count_est + (double) offset_est;
+    }
 
 	if (parse->setOperations)
 	{
@@ -1331,9 +1342,10 @@ grouping_planner(PlannerInfo *root, double tuple_fraction)
 		 * operation's result.  We have to do this before overwriting the sort
 		 * key information...
 		 */
-		current_pathkeys = make_pathkeys_for_sortclauses(set_sortclauses,
-													result_plan->targetlist);
-		current_pathkeys = canonicalize_pathkeys(root, current_pathkeys);
+		current_pathkeys = make_pathkeys_for_sortclauses(root,
+														 set_sortclauses,
+													result_plan->targetlist,
+														 true);
 
 		/*
 		 * We should not need to call preprocess_targetlist, since we must be
@@ -1358,9 +1370,10 @@ grouping_planner(PlannerInfo *root, double tuple_fraction)
 		/*
 		 * Calculate pathkeys that represent result ordering requirements
 		 */
-		sort_pathkeys = make_pathkeys_for_sortclauses(parse->sortClause,
-													  tlist);
-		sort_pathkeys = canonicalize_pathkeys(root, sort_pathkeys);
+		sort_pathkeys = make_pathkeys_for_sortclauses(root,
+													  parse->sortClause,
+													  tlist,
+													  true);
 	}
 	else if ( parse->windowClause && parse->targetList &&
 			  contain_windowref((Node *)parse->targetList, NULL) )
@@ -1377,7 +1390,7 @@ grouping_planner(PlannerInfo *root, double tuple_fraction)
 		 */
 		root->group_pathkeys = NIL;
 		root->sort_pathkeys =
-			make_pathkeys_for_sortclauses(parse->sortClause, tlist);
+			make_pathkeys_for_sortclauses(root, parse->sortClause, tlist, true);
 
 		
 		result_plan = window_planner(root, tuple_fraction, &current_pathkeys);
@@ -1385,8 +1398,8 @@ grouping_planner(PlannerInfo *root, double tuple_fraction)
 		/* Recover sort pathkeys for use later.  These may or may not
 		 * match the current_pathkeys resulting from the window plan.  
 		 */
-		sort_pathkeys = make_pathkeys_for_sortclauses(parse->sortClause,
-													  result_plan->targetlist);
+		sort_pathkeys = make_pathkeys_for_sortclauses(root, parse->sortClause,
+													  result_plan->targetlist,true);
 		sort_pathkeys = canonicalize_pathkeys(root, sort_pathkeys);
 	}
 	else
@@ -1435,6 +1448,21 @@ grouping_planner(PlannerInfo *root, double tuple_fraction)
 					 errmsg("WITHIN GROUP aggregate cannot be used in GROUPING SETS query")));
 
 		/*
+		 * Calculate pathkeys that represent grouping/ordering requirements.
+		 * Stash them in PlannerInfo so that query_planner can canonicalize
+		 * them after EquivalenceClasses have been formed.
+		 */
+		root->group_pathkeys =
+			make_pathkeys_for_groupclause(root,
+										  parse->groupClause,
+										  tlist);
+		root->sort_pathkeys =
+			make_pathkeys_for_sortclauses(root,
+										  parse->sortClause,
+										  tlist,
+										  false);
+
+		/*
 		 * Will need actual number of aggregates for estimating costs.
 		 *
 		 * Note: we do not attempt to detect duplicate aggregates here; a
@@ -1469,16 +1497,6 @@ grouping_planner(PlannerInfo *root, double tuple_fraction)
 		sub_tlist = register_ordered_aggs(tlist, 
 										  root->parse->havingQual, 
 										  sub_tlist);
-
-		/*
-		 * Calculate pathkeys that represent grouping/ordering requirements.
-		 * Stash them in PlannerInfo so that query_planner can canonicalize
-		 * them.
-		 */
-		root->group_pathkeys =
-			make_pathkeys_for_groupclause(parse->groupClause, tlist);
-		root->sort_pathkeys =
-			make_pathkeys_for_sortclauses(parse->sortClause, tlist);
 
 		/*
 		 * Figure out whether we need a sorted result from query_planner.
@@ -1621,8 +1639,8 @@ grouping_planner(PlannerInfo *root, double tuple_fraction)
 				 * the previous root->parse Query node, which makes the current
 				 * sort_pathkeys invalid.
  				 */
- 				sort_pathkeys = make_pathkeys_for_sortclauses(parse->sortClause,
-															  result_plan->targetlist);
+ 				sort_pathkeys = make_pathkeys_for_sortclauses(root, parse->sortClause,
+															  result_plan->targetlist, true);
 				sort_pathkeys = canonicalize_pathkeys(root, sort_pathkeys);
 			}
 		}
@@ -1867,8 +1885,8 @@ grouping_planner(PlannerInfo *root, double tuple_fraction)
 					 * the previous root->parse Query node, which makes the current
 					 * sort_pathkeys invalid.
 					 */
-					sort_pathkeys = make_pathkeys_for_sortclauses(parse->sortClause,
-																  result_plan->targetlist);
+					sort_pathkeys = make_pathkeys_for_sortclauses(root, parse->sortClause,
+																  result_plan->targetlist, true);
 					sort_pathkeys = canonicalize_pathkeys(root, sort_pathkeys);
 					CdbPathLocus_MakeNull(&current_locus);
 				}
@@ -1935,9 +1953,9 @@ grouping_planner(PlannerInfo *root, double tuple_fraction)
 		
 		if ( Gp_role == GP_ROLE_DISPATCH && CdbPathLocus_IsPartitioned(current_locus) )
 		{
-			List *distinct_pathkeys = make_pathkeys_for_sortclauses(parse->distinctClause,
-																	result_plan->targetlist);
-			bool needMotion = !cdbpathlocus_collocates(current_locus, distinct_pathkeys, false /*exact_match*/);
+			List *distinct_pathkeys = make_pathkeys_for_sortclauses(root, parse->distinctClause,
+																	result_plan->targetlist, true);
+			bool needMotion = !cdbpathlocus_collocates(root, current_locus, distinct_pathkeys, false /*exact_match*/);
 			
 			/* Apply the preunique optimization, if enabled and worthwhile. */
 			if ( root->config->gp_enable_preunique && needMotion )
@@ -2024,10 +2042,11 @@ grouping_planner(PlannerInfo *root, double tuple_fraction)
 	{
 		if (!pathkeys_contained_in(sort_pathkeys, current_pathkeys))
 		{
-			result_plan = (Plan *)
-				make_sort_from_sortclauses(root,
-										   parse->sortClause,
-										   result_plan);
+			result_plan = (Plan *) make_sort_from_pathkeys(root,
+														   result_plan,
+														   sort_pathkeys, limit_tuples, false);
+			if (result_plan == NULL)
+				elog(ERROR, "could not find sort pathkeys in result target list");
 			current_pathkeys = sort_pathkeys;
 			mark_sort_locus(result_plan);
 		}

@@ -11,7 +11,7 @@
 #ifndef CDBPULLUP_H
 #define CDBPULLUP_H
 
-#include "nodes/relation.h"     /* PathKeyItem, Relids */
+#include "nodes/relation.h"     /* PathKey, Relids */
 
 struct Plan;                    /* #include "nodes/plannodes.h" */
 
@@ -102,32 +102,22 @@ cdbpullup_exprHasSubplanRef(Expr *expr);
 
 
 /*
- * cdbpullup_findPathKeyItemInTargetList
+ * cdbpullup_findPathKeyInTargetList
  *
- * Searches the equivalence class 'pathkey' for a PathKeyItem that
+ * Searches the equivalence class 'pathkey' for a PathKey that
  * uses no rels outside the 'relids' set, and either is a member of
  * 'targetlist', or uses no Vars that are not in 'targetlist'.
  *
- * If found, returns the chosen PathKeyItem and sets the output variables.
- * - If the item's Vars (if any) are in targetlist, but the item itself is not:
- *      *ptargetindex = 0
- * - Else if the targetlist is a List of TargetEntry nodes:
- *      *ptargetindex gets the matching TargetEntry's resno (which is the
- *          1-based position of the TargetEntry in the targetlist); or 0.
- * - Else if the targetlist is a plain List of Expr without TargetEntry nodes:
- *      *ptargetindex gets the 1-based position of the matching entry in the
- *          targetlist, or 0 if the expr is not in the targetlist.
+ * If found, returns the chosen PathKey and sets the output variables,
+ * otherwise returns NULL.
  *
- * Otherwise returns NULL and sets *ptargetindex = 0.
- *
- * 'pathkey' is a List of PathKeyItem.
- * 'relids' is the set of relids that may occur in the targetlist exprs.
+ * 'pathkey' is a List of PathKey.
  * 'targetlist' is a List of TargetEntry or merely a List of Expr.
  *
  * NB: We ignore the presence or absence of a RelabelType node atop either 
- * expr in determining whether a PathKeyItem expr matches a targetlist expr.  
+ * expr in determining whether a PathKey expr matches a targetlist expr.  
  *
- * (A RelabelType node might have been placed atop a PathKeyItem's expr to 
+ * (A RelabelType node might have been placed atop a PathKey's expr to 
  * match its type to the sortop's input operand type, when the types are 
  * binary compatible but not identical... such as VARCHAR and TEXT.  The 
  * RelabelType node merely documents the representational equivalence but 
@@ -135,11 +125,8 @@ cdbpullup_exprHasSubplanRef(Expr *expr);
  * atop an argument of a function or operator, but generally not atop a 
  * targetlist expr.)
  */
-PathKeyItem *
-cdbpullup_findPathKeyItemInTargetList(List         *pathkey,
-                                      Relids        relids,
-                                      List         *targetlist,
-                                      AttrNumber   *ptargetindex);  // OUT (optional)
+PathKey *
+cdbpullup_findPathKeyInTargetList(PathKey *item, List *targetlist);
 
 
 /*

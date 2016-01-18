@@ -2150,32 +2150,6 @@ gpdb::FOpHashJoinable
 }
 
 bool
-gpdb::FOpMergeJoinable
-	(
-	Oid opno,
-	Oid *leftOp,
-	Oid *rightOp
-	)
-{
-	GP_WRAP_START;
-	{
-		/* catalog tables: pg_operator, pg_amop, pg_opfamily */
-		if (op_mergejoinable(opno))
-		{
-			/*
-			 * XXX Like in check_mergejoinable, for the moment, continue to
-			 * force use of particular sortops
-			 */
-			Oid opfamily;
-			if (get_op_mergejoin_info(opno, leftOp, rightOp, &opfamily))
-				return true;
-		}
-	}
-	GP_WRAP_END;
-	return false;
-}
-
-bool
 gpdb::FOpStrict
 	(
 	Oid opno
