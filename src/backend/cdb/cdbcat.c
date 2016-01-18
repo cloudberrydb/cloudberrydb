@@ -13,6 +13,7 @@
 #include "catalog/catquery.h" 
 #include "catalog/pg_exttable.h"
 #include "catalog/pg_namespace.h"
+#include "catalog/gp_policy.h"
 #include "catalog/indexing.h"
 #include "utils/builtins.h"
 #include "utils/fmgroids.h"
@@ -22,8 +23,24 @@
 #include "cdb/cdbvars.h"		/* Gp_role */
 #include "catalog/pg_type.h"
 #include "utils/array.h"
+
 static void extract_INT2OID_array(Datum array_datum, int *lenp, int16 **vecp);
 
+/*
+ * createRandomDistribution -- Create a policy with random distribution
+ */
+GpPolicy *
+createRandomDistribution(int maxattrs)
+{
+	GpPolicy   *p = NULL;
+
+	p = (GpPolicy *) palloc(SizeOfGpPolicy(maxattrs));
+	p->ptype = POLICYTYPE_PARTITIONED;
+	p->nattrs = 0;
+	p->attrs[0] = 1;
+
+	return p;
+}
 
 /*
  * GpPolicyCopy -- Return a copy of a GpPolicy object.

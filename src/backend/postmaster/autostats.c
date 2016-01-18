@@ -328,4 +328,3 @@ auto_stats(AutoStatsCmdType cmdType, Oid relationOid, uint64 ntuples, bool inFun
 		elog(LOG, "duration: %ld.%03d ms Auto-ANALYZE", secs * 1000 + msecs, usecs % 1000);
 	}
 }
-

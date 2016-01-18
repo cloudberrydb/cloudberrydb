@@ -12308,19 +12308,3 @@ transformSingleRowErrorHandling(ParseState *pstate, CreateStmtContext *cxt,
 	}
 
 }
-
-/*
- * create a policy with random distribution
- */
-GpPolicy *
-createRandomDistribution(int maxattrs)
-{
-	GpPolicy   *p;
-
-	p = (GpPolicy *) palloc(SizeOfGpPolicy(maxattrs));
-	p->ptype = POLICYTYPE_PARTITIONED;
-	p->nattrs = 0;
-	p->attrs[0] = 1;
-
-	return p;
-}

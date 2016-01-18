@@ -116,5 +116,6 @@ void GpPolicyRemove(Oid tbloid);
 
 bool GpPolicyIsRandomly(GpPolicy *policy);
 
+extern GpPolicy *createRandomDistribution(int maxattrs);
 
 #endif /*_GP_POLICY_H_*/
