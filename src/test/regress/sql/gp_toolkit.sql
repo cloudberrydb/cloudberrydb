@@ -221,14 +221,14 @@ create index tookit_ao2_index_j on toolkit_ao2 using bitmap (j);
 
 select relname,
        sotusize > 50000 as sz_over50kb,
-       sotusize < 1000000 as sz_under1mb
+       sotusize < 5000000 as sz_under5mb
 from pg_class pg, gp_toolkit.gp_size_of_table_uncompressed sotu
 where relname = 'toolkit_ao2' and pg.relfilenode=sotu.sotuoid;
 
 -- gp_size_of_index
 select pg.relname,
        si.soisize > 50000 as sz_over50kb,
-       si.soisize < 1000000 as sz_under1mb
+       si.soisize < 5000000 as sz_under5mb
 from pg_class pg, gp_toolkit.gp_size_of_index si
 where relname = 'toolkit_ao2' and pg.relfilenode=si.soitableoid;
 
@@ -238,14 +238,14 @@ select relname,
        sotdsize < 500000 as dsz_under_500kb,
        sotdtoastsize, -- should be zero
        sotdadditionalsize > 50000 as daddsz_over_50kb,
-       sotdadditionalsize < 1000000 as daddsz_under_1mb
+       sotdadditionalsize < 5000000 as daddsz_under_5mb
 from pg_class pg, gp_toolkit.gp_size_of_table_disk st
 where relname = 'toolkit_ao2' and pg.relfilenode=st.sotdoid;
 
 -- gp_size_of_table_uncompressed
 select relname,
        sotusize > 500000 as uncomp_over_500kb,
-       sotusize < 2000000 as uncomp_below_2mb
+       sotusize < 5000000 as uncomp_below_5mb
 from pg_class pg, gp_toolkit.gp_size_of_table_uncompressed sotu
 where relname = 'toolkit_ao2' and pg.relfilenode=sotu.sotuoid;
 
@@ -258,25 +258,25 @@ where relname = 'toolkit_ao2' and pg.relfilenode=ti.tireloid;
 -- gp_size_of_all_table_indexes
 select pg.relname,
        soati.soatisize > 50000 as sz_over_50kb,
-       soati.soatisize < 1000000 as sz_under_1mb
+       soati.soatisize < 5000000 as sz_under_5mb
 from pg_class pg, gp_toolkit.gp_size_of_all_table_indexes soati
 where relname = 'toolkit_ao2' and pg.relfilenode=soati.soatioid;
 
 -- gp_size_of_table_and_indexes_disk
 select pg.relname,
        sotai.sotaidtablesize > 500000 as tablesz_over_500kb,
-       sotai.sotaididxsize < 2000000 as tablesz_below_2mb
+       sotai.sotaididxsize < 5000000 as tablesz_below_5mb
 from pg_class pg, gp_toolkit.gp_size_of_table_and_indexes_disk sotai
 where relname = 'toolkit_ao2' and pg.relfilenode=sotai.sotaidoid;
 
 -- gp_size_of_table_and_indexes_licensing
 select pg.relname,
        sotail.sotailtablesizedisk > 500000 as tables_over_500kb,
-       sotail.sotailtablesizedisk < 2000000 as tables_below_2mb,
+       sotail.sotailtablesizedisk < 5000000 as tables_below_5mb,
        sotail.sotailtablesizeuncompressed > 500000 as uncompressed_over_500kb,
-       sotail.sotailtablesizeuncompressed < 2000000 as uncompressed_below_2mb,
+       sotail.sotailtablesizeuncompressed < 5000000 as uncompressed_below_5mb,
        sotail.sotailindexessize > 50000 as indexes_over_500k,
-       sotail.sotailindexessize < 2000000 as uncompressed_below_2mb
+       sotail.sotailindexessize < 5000000 as uncompressed_below_5mb
 from pg_class pg, gp_toolkit.gp_size_of_table_and_indexes_licensing sotail
 where relname = 'toolkit_ao2' and pg.relfilenode=sotail.sotailoid;
 
@@ -296,7 +296,7 @@ from gp_toolkit.gp_size_of_database where sodddatname='regression';
 -- gp_size_of_partition_and_indexes_disk
 select pg.relname,
        sopaidpartitiontablesize > 50000 as tblsz_over50k,
-       sopaidpartitiontablesize < 1000000 as tblsz_under1mb,
+       sopaidpartitiontablesize < 5000000 as tblsz_under5mb,
        sopaidpartitionindexessize
 from pg_class pg,gp_toolkit.gp_size_of_partition_and_indexes_disk gsopai
 where pg.relfilenode=gsopai.sopaidpartitionoid and pg.relname like 'gptoolkit_user_table_ao%';
