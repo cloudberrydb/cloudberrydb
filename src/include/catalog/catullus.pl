@@ -343,6 +343,8 @@ sub get_fnoptlist
 		'returns\s+null\s+on\s+null\s+input|strict|immutable|stable|volatile|'.
 		'external\s+security\s+definer|external\s+security\s+invoker|' .
 		'security\s+definer|security\s+invoker|' .
+		'cost\s+(\d+)|' .
+		'rows\s+(\d+)|' .
 		'no\s+sql|contains\s+sql|reads\s+sql\s+data|modifies\s+sql\s+data|' .
 		'language\s+\S+|' .
 		'as\s+\\\'\S+\\\'(?:\s*,\s*\\\'\S+\\\')*';
@@ -380,6 +382,8 @@ sub make_opt
 
 	my $proname		= $fndef->{name};
 	my $prolang;
+	my $procost;
+	my $prorows;
 	my $provolatile;
 	my $proisstrict = 0;
 	my $prosecdef	= 0;
@@ -443,6 +447,20 @@ sub make_opt
 				$func_as = shift @foo;
 			}
 
+			if ($opt =~ m/^cost\s+(\d+)$/i)
+			{
+				die ("conflicting or redundant options: $opt")
+					if (defined($procost));
+				$procost = $1;
+			}
+			if ($opt =~ m/^rows\s+(\d+)$/i)
+			{
+				die ("conflicting or redundant options: $opt")
+					if (defined($prorows));
+
+				$prorows = $1;
+			}
+
 			$proisstrict = 1
 				if ($opt =~ m/^(strict|returns\s+null\s+on\s+null\s+input)$/i);
 			$proisstrict = 0
@@ -462,6 +480,8 @@ sub make_opt
 			pronamespace => "PGNSP", # pg_catalog
 			proowner	 => "PGUID", # admin
 			prolang		 => $prolang,
+			procost		 => $procost,
+			prorows		 => $prorows,
 			provariadic	 => 0,
 			proisagg	 => 0,
 			prosecdef	 => $prosecdef,
@@ -1157,6 +1177,8 @@ sub printfndef
 		$nam . "  " . $tup->{pronamespace} . " " .
 		$tup->{proowner} . " " .
 		$tup->{prolang} . " " .
+		$tup->{procost} . " " .
+		$tup->{prorows} . " " .
 		($tup->{provariadic} ? $tup->{provariadic} : "0") . " " .
 		(exists($fndef->{with}->{proisagg}) ? $fndef->{with}->{proisagg} :
 		 ($tup->{proisagg} ? "t" : "f") ) . " " .
@@ -1368,6 +1390,19 @@ sub doprocs()
 		make_opt($fndef);
 		make_rettype($fndef);
 		make_allargs($fndef);
+
+		# Fill in defaults for procost and prorows. (We have to do this
+		# after make_rettype, as we don't know if it's a set-returning function
+		# before that.
+		$fndef->{tuple}->{procost} = 1 unless defined($fndef->{tuple}->{procost});
+		if ($fndef->{tuple}->{proretset})
+		{
+		    $fndef->{tuple}->{prorows} = 1000 unless defined($fndef->{tuple}->{prorows});
+		}
+		else
+		{
+		    $fndef->{tuple}->{prorows} = 0
+		}
 	}
 
 #	print Data::Dumper->Dump(\@allfndef);

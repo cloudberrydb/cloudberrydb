@@ -533,6 +533,7 @@ sub sqltype_to_ctype
 		 bool					  => "bool", # boolean is the real sqltype
 		 boolean				  => "bool", 
 		 bytea					  => "bytea",
+		 float4					  => "float4",
 
 		 # Note: a quoted_char (or "char") is a single C char
 		 quoted_char			  => "char",

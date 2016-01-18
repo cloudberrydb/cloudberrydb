@@ -9,7 +9,7 @@
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/commands/functioncmds.c,v 1.81 2007/01/05 22:19:26 momjian Exp $
+ *	  $PostgreSQL: pgsql/src/backend/commands/functioncmds.c,v 1.82 2007/01/22 01:35:20 tgl Exp $
  *
  *
  * DESCRIPTION
@@ -358,6 +358,8 @@ compute_common_attribute(DefElem *defel,
 						 DefElem **volatility_item,
 						 DefElem **strict_item,
 						 DefElem **security_item,
+						 DefElem **cost_item,
+						 DefElem **rows_item,
 						 DefElem **data_access_item)
 {
 	if (strcmp(defel->defname, "volatility") == 0)
@@ -380,6 +382,20 @@ compute_common_attribute(DefElem *defel,
 			goto duplicate_error;
 
 		*security_item = defel;
+	}
+	else if (strcmp(defel->defname, "cost") == 0)
+	{
+		if (*cost_item)
+			goto duplicate_error;
+
+		*cost_item = defel;
+	}
+	else if (strcmp(defel->defname, "rows") == 0)
+	{
+		if (*rows_item)
+			goto duplicate_error;
+
+		*rows_item = defel;
 	}
 	else if (strcmp(defel->defname, "data_access") == 0)
 	{
@@ -487,6 +503,8 @@ compute_attributes_sql_style(List *options,
 							 char *volatility_p,
 							 bool *strict_p,
 							 bool *security_definer,
+							 float4 *procost,
+							 float4 *prorows,
 							 char *data_access)
 {
 	ListCell   *option;
@@ -495,6 +513,8 @@ compute_attributes_sql_style(List *options,
 	DefElem    *volatility_item = NULL;
 	DefElem    *strict_item = NULL;
 	DefElem    *security_item = NULL;
+	DefElem    *cost_item = NULL;
+	DefElem    *rows_item = NULL;
 	DefElem    *data_access_item = NULL;
 
 	char	   *language;
@@ -523,6 +543,8 @@ compute_attributes_sql_style(List *options,
 										  &volatility_item,
 										  &strict_item,
 										  &security_item,
+										  &cost_item,
+										  &rows_item,
 										  &data_access_item))
 		{
 			/* recognized common option */
@@ -577,7 +599,22 @@ compute_attributes_sql_style(List *options,
 		*strict_p = intVal(strict_item->arg);
 	if (security_item)
 		*security_definer = intVal(security_item->arg);
-
+	if (cost_item)
+	{
+		*procost = defGetNumeric(cost_item);
+		if (*procost <= 0)
+			ereport(ERROR,
+					(errcode(ERRCODE_INVALID_PARAMETER_VALUE),
+					 errmsg("COST must be positive")));
+	}
+	if (rows_item)
+	{
+		*prorows = defGetNumeric(rows_item);
+		if (*prorows <= 0)
+			ereport(ERROR,
+					(errcode(ERRCODE_INVALID_PARAMETER_VALUE),
+					 errmsg("ROWS must be positive")));
+	}
 	/* If prodataaccess indicator not specified, fill in default. */
 	if (data_access_item == NULL)
 		*data_access = getDefaultDataAccess(*languageOid);
@@ -849,6 +886,8 @@ CreateFunction(CreateFunctionStmt *stmt)
 	bool		isStrict,
 				security;
 	char		volatility;
+	float4		procost;
+	float4		prorows;
 	HeapTuple	languageTuple;
 	Form_pg_language languageStruct;
 	List	   *as_clause;
@@ -870,12 +909,16 @@ CreateFunction(CreateFunctionStmt *stmt)
 	isStrict = false;
 	security = false;
 	volatility = PROVOLATILE_VOLATILE;
+	procost = -1;				/* indicates not set */
+	prorows = -1;				/* indicates not set */
 	dataAccess = PRODATAACCESS_NONE;
 
 	/* override attributes from explicit list */
 	compute_attributes_sql_style(stmt->options,
-				   &as_clause, &languageOid, &languageName, &volatility,
-				   &isStrict, &security, &dataAccess);
+								 &as_clause, &languageOid, &languageName,
+								 &volatility, &isStrict, &security,
+								 &procost, &prorows,
+								 &dataAccess);
 
 	languageTuple = caql_getfirst(NULL,
 			cql("SELECT * FROM pg_language "
@@ -968,6 +1011,32 @@ CreateFunction(CreateFunctionStmt *stmt)
 													 parameterModes);
 
 	/*
+	 * Set default values for COST and ROWS depending on other parameters;
+	 * reject ROWS if it's not returnsSet.  NB: pg_dump knows these default
+	 * values, keep it in sync if you change them.
+	 */
+	if (procost < 0)
+	{
+		/* SQL and PL-language functions are assumed more expensive */
+		if (languageOid == INTERNALlanguageId ||
+			languageOid == ClanguageId)
+			procost = 1;
+		else
+			procost = 100;
+	}
+	if (prorows < 0)
+	{
+		if (returnsSet)
+			prorows = 1000;
+		else
+			prorows = 0;		/* dummy value if not returnsSet */
+	}
+	else if (!returnsSet)
+		ereport(ERROR,
+				(errcode(ERRCODE_INVALID_PARAMETER_VALUE),
+				 errmsg("ROWS is not applicable when function does not return a set")));
+
+	/*
 	 * And now that we have all the parameters, and know we're permitted to do
 	 * so, go ahead and create the function.
 	 */
@@ -990,9 +1059,11 @@ CreateFunction(CreateFunctionStmt *stmt)
 					PointerGetDatum(allParameterTypes),
 					PointerGetDatum(parameterModes),
 					PointerGetDatum(parameterNames),
+					procost,
+					prorows,
 					dataAccess,
 					stmt->funcOid);
-					
+
 	if (Gp_role == GP_ROLE_DISPATCH)
 	{
 		CdbDispatchUtilityStatement((Node *) stmt, "CreateFunction");
@@ -1393,6 +1464,8 @@ AlterFunction(AlterFunctionStmt *stmt)
 	DefElem    *volatility_item = NULL;
 	DefElem    *strict_item = NULL;
 	DefElem    *security_def_item = NULL;
+	DefElem    *cost_item = NULL;
+	DefElem    *rows_item = NULL;
 	DefElem    *data_access_item = NULL;
 	cqContext	cqc;
 	cqContext  *pcqCtx;
@@ -1442,6 +1515,8 @@ AlterFunction(AlterFunctionStmt *stmt)
 									 &volatility_item,
 									 &strict_item,
 									 &security_def_item,
+									 &cost_item,
+									 &rows_item,
 									 &data_access_item) == false)
 			elog(ERROR, "option \"%s\" not recognized", defel->defname);
 	}
@@ -1452,6 +1527,26 @@ AlterFunction(AlterFunctionStmt *stmt)
 		procForm->proisstrict = intVal(strict_item->arg);
 	if (security_def_item)
 		procForm->prosecdef = intVal(security_def_item->arg);
+	if (cost_item)
+	{
+		procForm->procost = defGetNumeric(cost_item);
+		if (procForm->procost <= 0)
+			ereport(ERROR,
+					(errcode(ERRCODE_INVALID_PARAMETER_VALUE),
+					 errmsg("COST must be positive")));
+	}
+	if (rows_item)
+	{
+		procForm->prorows = defGetNumeric(rows_item);
+		if (procForm->prorows <= 0)
+			ereport(ERROR,
+					(errcode(ERRCODE_INVALID_PARAMETER_VALUE),
+					 errmsg("ROWS must be positive")));
+		if (!procForm->proretset)
+			ereport(ERROR,
+					(errcode(ERRCODE_INVALID_PARAMETER_VALUE),
+					 errmsg("ROWS is not applicable when function does not return a set")));
+	}
 	if (data_access_item)
 	{
 		Datum		repl_val[Natts_pg_proc];
@@ -1476,7 +1571,6 @@ AlterFunction(AlterFunctionStmt *stmt)
 	validate_sql_data_access(data_access,
 							 procForm->provolatile,
 							 procForm->prolang);
-
 
 	/* Do the update */
 

@@ -12,7 +12,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/parser/gram.y,v 2.574 2007/01/14 13:11:53 petere Exp $
+ *	  $PostgreSQL: pgsql/src/backend/parser/gram.y,v 2.575 2007/01/22 01:35:21 tgl Exp $
  *
  * HISTORY
  *	  AUTHOR			DATE			MAJOR EVENT
@@ -6608,6 +6608,14 @@ common_func_opt_item:
 			| SECURITY INVOKER
 				{
 					$$ = makeDefElem("security", (Node *)makeInteger(FALSE));
+				}
+			| COST NumericOnly
+				{
+					$$ = makeDefElem("cost", (Node *)$2);
+				}
+			| ROWS NumericOnly
+				{
+					$$ = makeDefElem("rows", (Node *)$2);
 				}
 			| NO SQL
 				{
