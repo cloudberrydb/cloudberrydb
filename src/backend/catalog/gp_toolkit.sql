@@ -150,7 +150,7 @@ CREATE VIEW gp_toolkit.__gp_user_data_tables_readable
 AS
     SELECT *
     FROM gp_toolkit.__gp_user_tables aut
-    WHERE has_table_privilege(quote_ident(autnspname)||'.'||quote_ident(autrelname), 'select');
+    WHERE has_table_privilege(aut.autoid, 'select');
 
 GRANT SELECT ON TABLE gp_toolkit.__gp_user_data_tables_readable TO public;
 
