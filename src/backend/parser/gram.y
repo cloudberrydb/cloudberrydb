@@ -12,7 +12,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/parser/gram.y,v 2.575 2007/01/22 01:35:21 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/parser/gram.y,v 2.576 2007/01/23 05:07:17 tgl Exp $
  *
  * HISTORY
  *	  AUTHOR			DATE			MAJOR EVENT
@@ -184,13 +184,14 @@ static Node *makeIsNotDistinctFromNode(Node *expr, int position);
 		AlterRoleSetStmt AnalyzeStmt ClosePortalStmt ClusterStmt 
 		CommentStmt ConstraintsSetStmt CopyStmt CreateAsStmt CreateCastStmt
 		CreateDomainStmt CreateExternalStmt CreateFileSpaceStmt CreateGroupStmt
-		CreateOpClassStmt CreatePLangStmt
+		CreateOpClassStmt
+		CreateOpFamilyStmt AlterOpFamilyStmt CreatePLangStmt
 		CreateQueueStmt CreateSchemaStmt CreateSeqStmt CreateStmt 
 		CreateTableSpaceStmt
 		CreateAssertStmt CreateTrigStmt 
 		CreateUserStmt CreateRoleStmt
 		CreatedbStmt DeclareCursorStmt DefineStmt DeleteStmt
-		DropGroupStmt DropOpClassStmt DropPLangStmt DropQueueStmt DropStmt
+		DropGroupStmt DropOpClassStmt DropOpFamilyStmt DropPLangStmt DropQueueStmt DropStmt
 		DropAssertStmt DropTrigStmt DropRuleStmt DropCastStmt DropRoleStmt
 		DropUserStmt DropdbStmt
 		ExplainStmt
@@ -213,7 +214,7 @@ static Node *makeIsNotDistinctFromNode(Node *expr, int position);
 %type <node>	select_no_parens select_with_parens select_clause
 				simple_select values_clause
 
-%type <node>	alter_column_default opclass_item alter_using
+%type <node>	alter_column_default opclass_item opclass_drop alter_using
 %type <ival>	add_drop opt_asc_desc opt_nulls_order
 
 %type <node>	alter_table_cmd alter_rel_cmd alter_table_partition_id_spec
@@ -282,7 +283,7 @@ static Node *makeIsNotDistinctFromNode(Node *expr, int position);
 				OptInherit definition
 				OptWith opt_distinct opt_definition func_args func_args_list
 				func_as createfunc_opt_list alterfunc_opt_list
-				aggr_args aggr_args_list old_aggr_definition old_aggr_list
+				aggr_args old_aggr_definition old_aggr_list
 				oper_argtypes RuleActionList RuleActionMulti
 				cdb_string_list
 				opt_column_list columnList opt_name_list exttab_auth_list keyvalue_list
@@ -295,10 +296,10 @@ static Node *makeIsNotDistinctFromNode(Node *expr, int position);
 				set_clause_list set_clause multiple_set_clause
 				ctext_expr_list ctext_row def_list indirection opt_indirection
 				group_clause group_elem_list group_elem TriggerFuncArgs select_limit
-				opt_select_limit opclass_item_list
-				transaction_mode_list_or_empty
+				opt_select_limit opclass_item_list opclass_drop_list
+				opt_opfamily transaction_mode_list_or_empty
 				TableFuncElementList opt_type_modifiers
-				prep_type_clause prep_type_list
+				prep_type_clause
 				execute_param_clause using_clause returning_clause
 				table_func_column_list scatter_clause
 
@@ -500,7 +501,7 @@ static Node *makeIsNotDistinctFromNode(Node *expr, int position);
 	EACH ELSE ENABLE_P ENCODING ENCRYPTED END_P ENUM_P ERRORS ESCAPE EVERY EXCEPT 
 	EXCHANGE EXCLUDE EXCLUDING EXCLUSIVE EXECUTE EXISTS EXPLAIN EXTERNAL EXTRACT
 
-	FALSE_P FETCH FIELDS FILESPACE FILL FILTER FIRST_P FLOAT_P FOLLOWING FOR 
+	FALSE_P FAMILY FETCH FIELDS FILESPACE FILL FILTER FIRST_P FLOAT_P FOLLOWING FOR 
     FORCE FOREIGN FORMAT FORMATTER FORWARD FREEZE FROM FULL FUNCTION
 
 	GLOBAL GRANT GRANTED GREATEST GROUP_P GROUP_ID GROUPING
@@ -1015,6 +1016,8 @@ stmt :
 			| CreateFunctionStmt
 			| CreateGroupStmt
 			| CreateOpClassStmt
+			| CreateOpFamilyStmt
+			| AlterOpFamilyStmt
 			| CreatePLangStmt
 			| CreateQueueStmt
 			| CreateSchemaStmt
@@ -1033,6 +1036,7 @@ stmt :
 			| DropCastStmt
 			| DropGroupStmt
 			| DropOpClassStmt
+			| DropOpFamilyStmt
 			| DropOwnedStmt
 			| DropPLangStmt
 			| DropQueueStmt
@@ -1613,7 +1617,7 @@ AlterGroupStmt:
 				}
 		;
 
-add_drop:	ADD_P										{ $$ = +1; }
+add_drop:	ADD_P									{ $$ = +1; }
 			| DROP									{ $$ = -1; }
 		;
 
@@ -5478,13 +5482,8 @@ def_arg:	func_type						{ $$ = (Node *)$1; }
 			| NONE							{ $$ = (Node *)makeString(pstrdup("none")); }
 		;
 
-aggr_args:	'(' aggr_args_list ')'					{ $$ = $2; }
+aggr_args:	'(' type_list ')'						{ $$ = $2; }
 			| '(' '*' ')'							{ $$ = NIL; }
-		;
-
-aggr_args_list:
-			Typename								{ $$ = list_make1($1); }
-			| aggr_args_list ',' Typename			{ $$ = lappend($1, $3); }
 		;
 
 old_aggr_definition: '(' old_aggr_list ')'			{ $$ = $2; }
@@ -5510,20 +5509,24 @@ old_aggr_elem:  IDENT '=' def_arg
  *
  *		QUERIES :
  *				CREATE OPERATOR CLASS ...
+ *				CREATE OPERATOR FAMILY ...
+ *				ALTER OPERATOR FAMILY ...
  *				DROP OPERATOR CLASS ...
+ *				DROP OPERATOR FAMILY ...
  *
  *****************************************************************************/
 
 CreateOpClassStmt:
 			CREATE OPERATOR CLASS any_name opt_default FOR TYPE_P Typename
-			USING access_method AS opclass_item_list
+			USING access_method opt_opfamily AS opclass_item_list
 				{
 					CreateOpClassStmt *n = makeNode(CreateOpClassStmt);
 					n->opclassname = $4;
 					n->isDefault = $5;
 					n->datatype = $8;
 					n->amname = $10;
-					n->items = $12;
+					n->opfamilyname = $11;
+					n->items = $13;
 					$$ = (Node *) n;
 				}
 		;
@@ -5563,6 +5566,16 @@ opclass_item:
 					n->number = $2;
 					$$ = (Node *) n;
 				}
+			| FUNCTION Iconst '(' type_list ')' func_name func_args
+				{
+					CreateOpClassItem *n = makeNode(CreateOpClassItem);
+					n->itemtype = OPCLASS_ITEM_FUNCTION;
+					n->name = $6;
+					n->args = extractArgTypes($7);
+					n->number = $2;
+					n->class_args = $4;
+					$$ = (Node *) n;
+				}
 			| STORAGE Typename
 				{
 					CreateOpClassItem *n = makeNode(CreateOpClassItem);
@@ -5572,12 +5585,72 @@ opclass_item:
 				}
 		;
 
-opt_default:	DEFAULT	{ $$ = TRUE; }
-			| /*EMPTY*/	{ $$ = FALSE; }
+opt_default:	DEFAULT						{ $$ = TRUE; }
+			| /*EMPTY*/						{ $$ = FALSE; }
 		;
 
-opt_recheck:	RECHECK	{ $$ = TRUE; }
-			| /*EMPTY*/	{ $$ = FALSE; }
+opt_opfamily:	FAMILY any_name				{ $$ = $2; }
+			| /*EMPTY*/						{ $$ = NIL; }
+		;
+
+opt_recheck:	RECHECK						{ $$ = TRUE; }
+			| /*EMPTY*/						{ $$ = FALSE; }
+		;
+
+
+CreateOpFamilyStmt:
+			CREATE OPERATOR FAMILY any_name USING access_method
+				{
+					CreateOpFamilyStmt *n = makeNode(CreateOpFamilyStmt);
+					n->opfamilyname = $4;
+					n->amname = $6;
+					$$ = (Node *) n;
+				}
+		;
+
+AlterOpFamilyStmt:
+			ALTER OPERATOR FAMILY any_name USING access_method ADD_P opclass_item_list
+				{
+					AlterOpFamilyStmt *n = makeNode(AlterOpFamilyStmt);
+					n->opfamilyname = $4;
+					n->amname = $6;
+					n->isDrop = false;
+					n->items = $8;
+					$$ = (Node *) n;
+				}
+			| ALTER OPERATOR FAMILY any_name USING access_method DROP opclass_drop_list
+				{
+					AlterOpFamilyStmt *n = makeNode(AlterOpFamilyStmt);
+					n->opfamilyname = $4;
+					n->amname = $6;
+					n->isDrop = true;
+					n->items = $8;
+					$$ = (Node *) n;
+				}
+		;
+
+opclass_drop_list:
+			opclass_drop							{ $$ = list_make1($1); }
+			| opclass_drop_list ',' opclass_drop	{ $$ = lappend($1, $3); }
+		;
+
+opclass_drop:
+			OPERATOR Iconst '(' type_list ')'
+				{
+					CreateOpClassItem *n = makeNode(CreateOpClassItem);
+					n->itemtype = OPCLASS_ITEM_OPERATOR;
+					n->number = $2;
+					n->args = $4;
+					$$ = (Node *) n;
+				}
+			| FUNCTION Iconst '(' type_list ')'
+				{
+					CreateOpClassItem *n = makeNode(CreateOpClassItem);
+					n->itemtype = OPCLASS_ITEM_FUNCTION;
+					n->number = $2;
+					n->args = $4;
+					$$ = (Node *) n;
+				}
 		;
 
 
@@ -5601,6 +5674,28 @@ DropOpClassStmt:
 					$$ = (Node *) n;
 				}
 		;
+
+DropOpFamilyStmt:
+			DROP OPERATOR FAMILY any_name USING access_method opt_drop_behavior
+				{
+					RemoveOpFamilyStmt *n = makeNode(RemoveOpFamilyStmt);
+					n->opfamilyname = $4;
+					n->amname = $6;
+					n->behavior = $7;
+					n->missing_ok = false;
+					$$ = (Node *) n;
+				}
+			| DROP OPERATOR FAMILY IF_P EXISTS any_name USING access_method opt_drop_behavior
+				{
+					RemoveOpFamilyStmt *n = makeNode(RemoveOpFamilyStmt);
+					n->opfamilyname = $6;
+					n->amname = $8;
+					n->behavior = $9;
+					n->missing_ok = true;
+					$$ = (Node *) n;
+				}
+		;
+
 
 /*****************************************************************************
  *
@@ -5805,6 +5900,15 @@ CommentStmt:
 				{
 					CommentStmt *n = makeNode(CommentStmt);
 					n->objtype = OBJECT_OPCLASS;
+					n->objname = $5;
+					n->objargs = list_make1(makeString($7));
+					n->comment = $9;
+					$$ = (Node *) n;
+				}
+			| COMMENT ON OPERATOR FAMILY any_name USING access_method IS comment_text
+				{
+					CommentStmt *n = makeNode(CommentStmt);
+					n->objtype = OBJECT_OPFAMILY;
 					n->objname = $5;
 					n->objargs = list_make1(makeString($7));
 					n->comment = $9;
@@ -6804,9 +6908,9 @@ oper_argtypes:
 				}
 			| Typename ',' Typename
 					{ $$ = list_make2($1, $3); }
-			| NONE ',' Typename /* left unary */
+			| NONE ',' Typename							/* left unary */
 					{ $$ = list_make2(NULL, $3); }
-			| Typename ',' NONE /* right unary */
+			| Typename ',' NONE							/* right unary */
 					{ $$ = list_make2($1, NULL); }
 		;
 
@@ -6863,8 +6967,8 @@ DropCastStmt: DROP CAST opt_if_exists '(' Typename AS Typename ')' opt_drop_beha
 				}
 		;
 
-opt_if_exists: IF_P EXISTS						{ $$ = true; }
-		| /*EMPTY*/								{ $$ = false; }
+opt_if_exists: IF_P EXISTS						{ $$ = TRUE; }
+		| /*EMPTY*/								{ $$ = FALSE; }
 		;
 
 
@@ -7000,6 +7104,15 @@ RenameStmt: ALTER AGGREGATE func_name aggr_args RENAME TO name
 				{
 					RenameStmt *n = makeNode(RenameStmt);
 					n->renameType = OBJECT_OPCLASS;
+					n->object = $4;
+					n->subname = $6;
+					n->newname = $9;
+					$$ = (Node *)n;
+				}
+			| ALTER OPERATOR FAMILY any_name USING access_method RENAME TO name
+				{
+					RenameStmt *n = makeNode(RenameStmt);
+					n->renameType = OBJECT_OPFAMILY;
 					n->object = $4;
 					n->subname = $6;
 					n->newname = $9;
@@ -7216,6 +7329,15 @@ AlterOwnerStmt: ALTER AGGREGATE func_name aggr_args OWNER TO RoleId
 				{
 					AlterOwnerStmt *n = makeNode(AlterOwnerStmt);
 					n->objectType = OBJECT_OPCLASS;
+					n->object = $4;
+					n->addname = $6;
+					n->newowner = $9;
+					$$ = (Node *)n;
+				}
+			| ALTER OPERATOR FAMILY any_name USING access_method OWNER TO RoleId
+				{
+					AlterOwnerStmt *n = makeNode(AlterOwnerStmt);
+					n->objectType = OBJECT_OPFAMILY;
 					n->object = $4;
 					n->addname = $6;
 					n->newowner = $9;
@@ -8078,13 +8200,8 @@ PrepareStmt: PREPARE name prep_type_clause AS PreparableStmt
 				}
 		;
 
-prep_type_clause: '(' prep_type_list ')'	{ $$ = $2; }
+prep_type_clause: '(' type_list ')'			{ $$ = $2; }
 				| /* EMPTY */				{ $$ = NIL; }
-		;
-
-prep_type_list: Typename			{ $$ = list_make1($1); }
-			  | prep_type_list ',' Typename
-									{ $$ = lappend($1, $3); }
 		;
 
 PreparableStmt:
@@ -11451,14 +11568,8 @@ extract_list:
 			| /*EMPTY*/								{ $$ = NIL; }
 		;
 
-type_list:  type_list ',' Typename
-				{
-					$$ = lappend($1, $3);
-				}
-			| Typename
-				{
-					$$ = list_make1($1);
-				}
+type_list:	Typename								{ $$ = list_make1($1); }
+			| type_list ',' Typename				{ $$ = lappend($1, $3); }
 		;
 
 array_expr_list: array_expr
@@ -12198,6 +12309,7 @@ unreserved_keyword:
 			| EXECUTE
 			| EXPLAIN
 			| EXTERNAL
+			| FAMILY
 			| FIELDS
 			| FILESPACE
 			| FILL

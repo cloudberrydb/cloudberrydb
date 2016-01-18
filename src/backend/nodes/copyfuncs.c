@@ -16,7 +16,7 @@
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/nodes/copyfuncs.c,v 1.363 2007/01/22 20:00:39 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/nodes/copyfuncs.c,v 1.364 2007/01/23 05:07:17 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -3383,6 +3383,19 @@ _copyRemoveOpClassStmt(RemoveOpClassStmt *from)
 	return newnode;
 }
 
+static RemoveOpFamilyStmt *
+_copyRemoveOpFamilyStmt(RemoveOpFamilyStmt *from)
+{
+	RemoveOpFamilyStmt *newnode = makeNode(RemoveOpFamilyStmt);
+
+	COPY_NODE_FIELD(opfamilyname);
+	COPY_STRING_FIELD(amname);
+	COPY_SCALAR_FIELD(behavior);
+	COPY_SCALAR_FIELD(missing_ok);
+
+	return newnode;
+}
+
 static RenameStmt *
 _copyRenameStmt(RenameStmt *from)
 {
@@ -3566,7 +3579,32 @@ _copyCreateOpClassItem(CreateOpClassItem *from)
 	COPY_NODE_FIELD(args);
 	COPY_SCALAR_FIELD(number);
 	COPY_SCALAR_FIELD(recheck);
+	COPY_NODE_FIELD(class_args);
 	COPY_NODE_FIELD(storedtype);
+
+	return newnode;
+}
+
+static CreateOpFamilyStmt *
+_copyCreateOpFamilyStmt(CreateOpFamilyStmt *from)
+{
+	CreateOpFamilyStmt *newnode = makeNode(CreateOpFamilyStmt);
+
+	COPY_NODE_FIELD(opfamilyname);
+	COPY_STRING_FIELD(amname);
+
+	return newnode;
+}
+
+static AlterOpFamilyStmt *
+_copyAlterOpFamilyStmt(AlterOpFamilyStmt *from)
+{
+	AlterOpFamilyStmt *newnode = makeNode(AlterOpFamilyStmt);
+
+	COPY_NODE_FIELD(opfamilyname);
+	COPY_STRING_FIELD(amname);
+	COPY_SCALAR_FIELD(isDrop);
+	COPY_NODE_FIELD(items);
 
 	return newnode;
 }
@@ -4734,6 +4772,9 @@ copyObject(void *from)
 		case T_RemoveOpClassStmt:
 			retval = _copyRemoveOpClassStmt(from);
 			break;
+		case T_RemoveOpFamilyStmt:
+			retval = _copyRemoveOpFamilyStmt(from);
+			break;
 		case T_RenameStmt:
 			retval = _copyRenameStmt(from);
 			break;
@@ -4775,6 +4816,12 @@ copyObject(void *from)
 			break;
 		case T_CreateOpClassItem:
 			retval = _copyCreateOpClassItem(from);
+			break;
+		case T_CreateOpFamilyStmt:
+			retval = _copyCreateOpFamilyStmt(from);
+			break;
+		case T_AlterOpFamilyStmt:
+			retval = _copyAlterOpFamilyStmt(from);
 			break;
 		case T_CreatedbStmt:
 			retval = _copyCreatedbStmt(from);
