@@ -2652,13 +2652,6 @@ static void remove_unused_initplans_helper(Plan *plan, Bitmapset **usedParams, B
 			find_params_walker((Node *) motion->hashExpr, &context);
 			break;
 		}
-		case T_SubPlan:
-		{
-			SubPlan *subplan = (SubPlan *) subplan;
-			find_params_walker((Node *) subplan->testexpr, &context);
-			find_params_walker((Node *) subplan->args, &context);
-			break;
-		}
 		default:
 			break;
 	}
