@@ -9,7 +9,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/executor/execScan.c,v 1.38.2.2 2007/02/02 00:07:27 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/executor/execScan.c,v 1.40 2007/01/24 01:25:47 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */

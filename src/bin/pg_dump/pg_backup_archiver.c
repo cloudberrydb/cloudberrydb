@@ -15,7 +15,7 @@
  *
  *
  * IDENTIFICATION
- *		$PostgreSQL: pgsql/src/bin/pg_dump/pg_backup_archiver.c,v 1.138.2.2 2007/08/06 01:38:24 tgl Exp $
+ *		$PostgreSQL: pgsql/src/bin/pg_dump/pg_backup_archiver.c,v 1.139 2007/01/23 17:54:50 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -2509,6 +2509,7 @@ _getObjectDescription(PQExpBuffer buf, TocEntry *te, ArchiveHandle *AH)
 		strcmp(type, "FUNCTION") == 0 ||
 		strcmp(type, "OPERATOR") == 0 ||
 		strcmp(type, "OPERATOR CLASS") == 0 ||
+		strcmp(type, "OPERATOR FAMILY") == 0 ||
 		strcmp(type, "PROTOCOL") == 0)
 	{
 		/* Chop "DROP " off the front and make a modifiable copy */
@@ -2710,6 +2711,7 @@ _printTocEntry(ArchiveHandle *AH, TocEntry *te, RestoreOptions *ropt, bool isDat
 			strcmp(te->desc, "FUNCTION") == 0 ||
 			strcmp(te->desc, "OPERATOR") == 0 ||
 			strcmp(te->desc, "OPERATOR CLASS") == 0 ||
+			strcmp(te->desc, "OPERATOR FAMILY") == 0 ||
 			strcmp(te->desc, "SCHEMA") == 0 ||
 			strcmp(te->desc, "TABLE") == 0 ||
 			strcmp(te->desc, "EXTERNAL TABLE") == 0 ||

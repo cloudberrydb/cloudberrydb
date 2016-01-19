@@ -11,7 +11,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/bin/pg_dump/common.c,v 1.95 2007/01/05 22:19:48 momjian Exp $
+ *	  $PostgreSQL: pgsql/src/bin/pg_dump/common.c,v 1.96 2007/01/23 17:54:50 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -83,6 +83,7 @@ getSchemaData(int *numTablesPtr)
 	ProcLangInfo *proclanginfo;
 	CastInfo   *castinfo;
 	OpclassInfo *opcinfo;
+	OpfamilyInfo *opfinfo;
 	ConvInfo   *convinfo;
 	ExtProtInfo *ptcinfo;
 	int			numNamespaces;
@@ -92,6 +93,7 @@ getSchemaData(int *numTablesPtr)
 	int			numProcLangs;
 	int			numCasts;
 	int			numOpclasses;
+	int			numOpfamilies;
 	int			numConversions;
 	int			numExtProtocols;
 	const char *LOGGER_INFO = "INFO";
@@ -138,6 +140,10 @@ getSchemaData(int *numTablesPtr)
 	if(is_gpdump || g_verbose)
 		status_log_msg(LOGGER_INFO, progname, "reading user-defined operator classes\n");
 	opcinfo = getOpclasses(&numOpclasses);
+
+	if (is_gpdump || g_verbose)
+		status_log_msg(LOGGER_INFO, progname, "reading user-defined operator families\n");
+	opfinfo = getOpfamilies(&numOpfamilies);
 
 	if(is_gpdump || g_verbose)
 		status_log_msg(LOGGER_INFO, progname, "reading user-defined conversions\n");

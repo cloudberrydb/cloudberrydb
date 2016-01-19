@@ -2546,6 +2546,7 @@ _getObjectDescription(PQExpBuffer buf, TocEntry *te, ArchiveHandle *AH)
 		strcmp(type, "FUNCTION") == 0 ||
 		strcmp(type, "OPERATOR") == 0 ||
 		strcmp(type, "OPERATOR CLASS") == 0 ||
+		strcmp(type, "OPERATOR FAMILY") == 0 ||
 		strcmp(type, "PROTOCOL") == 0)
 	{
 		/* Chop "DROP " off the front and make a modifiable copy */
@@ -2747,6 +2748,7 @@ _printTocEntry(ArchiveHandle *AH, TocEntry *te, RestoreOptions *ropt, bool isDat
 			strcmp(te->desc, "FUNCTION") == 0 ||
 			strcmp(te->desc, "OPERATOR") == 0 ||
 			strcmp(te->desc, "OPERATOR CLASS") == 0 ||
+			strcmp(te->desc, "OPERATOR FAMILY") == 0 ||
 			strcmp(te->desc, "SCHEMA") == 0 ||
 			strcmp(te->desc, "TABLE") == 0 ||
 			strcmp(te->desc, "EXTERNAL TABLE") == 0 ||
