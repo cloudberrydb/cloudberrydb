@@ -569,7 +569,7 @@ convert_sourcefiles_in(char *source, char *dest, char *suffix)
 	pgfnames_cleanup(names);
 }
 
-/* Create the .sql and .out files from the .source files, if any */
+/* Create the .sql, .out and .yml files from the .source files, if any */
 static void
 convert_sourcefiles(void)
 {
