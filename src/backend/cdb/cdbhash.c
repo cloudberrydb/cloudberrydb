@@ -577,7 +577,7 @@ hashDatum(Datum datum, Oid type, datumHashFunction hashFn, void *clientData)
 			buf = oidvec_buf->values;
 			break;
 			
-		case CASHOID: /* cash is stored in int32 internally */
+		case CASHOID: /* cash is stored in int64 internally */
 			cash_buf = (* (Cash *)DatumGetPointer(datum));
 			len = sizeof(Cash);
 			buf = &cash_buf;
