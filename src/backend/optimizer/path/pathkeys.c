@@ -1109,7 +1109,7 @@ cdb_make_pathkey_for_expr(PlannerInfo    *root,
      * sort-merge equijoin on a pair of exprs of the same type.
      */
 	if (eqopoid == InvalidOid || !op_mergejoinable(eqopoid))
-		elog(ERROR, "could not find = operator for type %u", typeoid);
+		elog(ERROR, "could not find mergejoinable = operator for type %u", typeoid);
 
 	mergeopfamilies = get_mergejoin_opfamilies(eqopoid);
 	foreach(lc, mergeopfamilies)

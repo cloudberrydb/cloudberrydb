@@ -220,12 +220,9 @@ hashDatum(Datum datum, Oid type, datumHashFunction hashFn, void *clientData)
 	
 	VarBit		*vbitptr;
 	
-	int2vector *i2vec_buf;
 	oidvector  *oidvec_buf;
 	
 	Cash		cash_buf;
-	AclItem	   *aclitem_ptr;
-	uint32		aclitem_buf;
 	
 	/*
 	 * special case buffers
@@ -542,17 +539,6 @@ hashDatum(Datum datum, Oid type, datumHashFunction hashFn, void *clientData)
 			break;
 			
 		/*
-		 * We prepare the hash key for aclitems just like postgresql does.
-		 * (see code and comment in acl.c: hash_aclitem() ).
-		 */
-		case ACLITEMOID:
-			aclitem_ptr = DatumGetAclItemP(datum);
-			aclitem_buf = (uint32) (aclitem_ptr->ai_privs + aclitem_ptr->ai_grantee + aclitem_ptr->ai_grantor);
-			buf = &aclitem_buf;
-			len = sizeof(aclitem_buf);
-			break;
-			
-		/*
 		 * ANYARRAY is a pseudo-type. We use it to include
 		 * any of the array types (OIDs 1007-1033 in pg_type.h).
 		 * caller needs to be sure the type is ANYARRAYOID
@@ -563,12 +549,6 @@ hashDatum(Datum datum, Oid type, datumHashFunction hashFn, void *clientData)
 			arrbuf = DatumGetArrayTypeP(datum);
 			len = VARSIZE(arrbuf) - VARHDRSZ;
 			buf = VARDATA(arrbuf);
-			break;
-			
-		case INT2VECTOROID:
-			i2vec_buf = (int2vector *) DatumGetPointer(datum);
-			len = i2vec_buf->dim1 * sizeof(int2);
-			buf = (void *)i2vec_buf->values;
 			break;
 			
 		case OIDVECTOROID:	
@@ -704,6 +684,12 @@ bool isGreenplumDbHashable(Oid typid)
 	if (get_typtype(typid) == 'd')
 		typid = getBaseType(typid);
 	
+	/*
+	 * NB: Every GPDB-hashable datatype must also be mergejoinable, i.e.
+	 * must have a B-tree operator family. There is a sanity check for
+	 * that in the opr_sanity_gp regression test. If you modify the list
+	 * below, please also update the list in opr_sanity_gp!
+	 */
 	switch(typid)
 	{
 		case INT2OID:		
@@ -741,9 +727,7 @@ bool isGreenplumDbHashable(Oid typid)
 		case BITOID:
 		case VARBITOID:
 		case BOOLOID:			
-		case ACLITEMOID:
 		case ANYARRAYOID:	
-		case INT2VECTOROID:
 		case OIDVECTOROID:	
 		case CASHOID: 
 			return true;
