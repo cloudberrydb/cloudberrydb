@@ -1,24 +1,24 @@
 <pre>
 ======================================================================
-               __________        ____  ____  _________ 
-              / ____/ __ \      / __ \/ __ \/ ____/   |
-             / / __/ /_/ /_____/ / / / /_/ / /   / /| |
-            / /_/ / ____/_____/ /_/ / _, _/ /___/ ___ |
-            \____/_/          \____/_/ |_|\____/_/  |_|
+               __________  ____  ____  _________ 
+              / ____/ __ \/ __ \/ __ \/ ____/   |
+             / / __/ /_/ / / / / / /_/ / /   / /| |
+            / /_/ / ____/ /_/ / _, _/ /___/ ___ |
+            \____/_/    \____/_/ |_|\____/_/  |_|
                   The Greenplum Query Optimizer
               Copyright (c) 2015, Pivotal Software, Inc.
             Licensed under the Apache License, Version 2.0
 ======================================================================
 </pre>
 
-Welcome to GP-ORCA, the Greenplum Next Generation Query Optimizer!
+Welcome to GPORCA, the Greenplum Next Generation Query Optimizer!
 
-GP-ORCA supports various build types: debug, release with debug info, release.
-On x86 systems, GP-ORCA can also be built as a 32-bit or 64-bit library. You'll
-need CMake 3.0 or higher to build GP-ORCA. Get it from cmake.org, or your
+GPORCA supports various build types: debug, release with debug info, release.
+On x86 systems, GPORCA can also be built as a 32-bit or 64-bit library. You'll
+need CMake 3.0 or higher to build GPORCA. Get it from cmake.org, or your
 operating system's package manager.
 
-## Quick Start: Build GP-ORCA and install under /usr/local
+## Quick Start: Build GPORCA and install under /usr/local
 
 ```
 % mkdir build
@@ -32,7 +32,7 @@ Or read on for more detailed instructions below...
 
 ## Pre-Requisites
 
-GP-ORCA uses the following libraries:
+GPORCA uses the following libraries:
 1) GPOS - Greenplum's OS Abstraction Layer
 2) GP-Xerces - Greenplum's patched version of Xerces-C 3.1.X
 
@@ -40,11 +40,11 @@ GP-ORCA uses the following libraries:
 
 [GPOS is available here](https://github.com/greenplum-db/gpos) The GPOS README
 gives instructions for building and installing GPOS. Note that the build type
-(e.g. DEBUG vs. RELEASE) for GPOS and GP-ORCA should match (mixing and matching
+(e.g. DEBUG vs. RELEASE) for GPOS and GPORCA should match (mixing and matching
 can lead to errors).
 
 If GPOS was installed to the default location, the cmake build system for
-GP-ORCA should find it automatically. Otherwise, cmake can be pointed to your
+GPORCA should find it automatically. Otherwise, cmake can be pointed to your
 GPOS installation with the `GPOS_INCLUDE_DIR` and `GPOS_LIBRARY` options like
 so:
 
@@ -104,7 +104,7 @@ CFLAGS="-m32" CXXFLAGS="-m32" ../configure --prefix=/opt/gp_xerces_32
 ## Preperation for build
 
 
-Go into gp-orca and create a build folder
+Go into gporca and create a build folder
 ```
 % mkdir build
 % cd build
@@ -193,7 +193,7 @@ cmake -D CMAKE_TOOLCHAIN_FILE=../cmake/x86_64.toolchain.cmake ../
 
 ## How to test
 
-To run all GP-ORCA tests, simply use the `ctest` command from the build directory
+To run all GPORCA tests, simply use the `ctest` command from the build directory
 after `make` finishes.
 
 ```
@@ -226,7 +226,7 @@ DEBUG-mode tests tend to be more rigorous.
 
 ### Advanced: Extended Tests
 
-Debug builds of GP-ORCA include a couple of "extended" tests for features like
+Debug builds of GPORCA include a couple of "extended" tests for features like
 fault-simulation and time-slicing that work by running the entire test suite
 in combination with the feature being tested. These tests can take a long time
 to run and are not enabled by default. To turn extended tests on, add the cmake
@@ -234,17 +234,17 @@ arguments `-D ENABLE_EXTENDED_TESTS=1`.
 
 ## How to install
 
-GP-ORCA has three libraries:
+GPORCA has three libraries:
 
 1. libnaucrates --- has all DXL related classes, and statistics related classes
 2. libgpopt     --- has all the code related to the optimization engine, meta-data accessor, logical / physical operators, 
                     transformation rules, and translators (DXL to expression and vice versa). 
 3. libgpdbcost  --- cost model for GPDB. 
 
-By default, GP-ORCA will be installed under /usr/local. You can change this by
+By default, GPORCA will be installed under /usr/local. You can change this by
 setting CMAKE_INSTALL_PREFIX when running cmake, for example:
 ```
-% cmake -D CMAKE_INSTALL_PREFIX=/home/user/gp-orca ../
+% cmake -D CMAKE_INSTALL_PREFIX=/home/user/gporca ../
 ```
 
 By default, the header files are located in:
@@ -274,7 +274,7 @@ the library is located at:
 
 * remove the cmake files generated under build
 
-* Remove gp-orca header files and library, (assuming the default install prefix /usr/local)
+* Remove gporca header files and library, (assuming the default install prefix /usr/local)
 
 ```
 % rm -rf /usr/local/include/naucrates
