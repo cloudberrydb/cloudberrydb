@@ -9,7 +9,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/commands/copy.c,v 1.274 2007/01/05 22:19:25 momjian Exp $
+ *	  $PostgreSQL: pgsql/src/backend/commands/copy.c,v 1.279 2007/03/29 00:15:38 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -1561,8 +1561,8 @@ DoCopyInternal(const CopyStmt *stmt, const char *queryString, CopyState cstate)
 								cstate->filename)));
 		}
 	}
-	else		/* copy from database to file */
-		DoCopyTo(cstate);
+	else
+		DoCopyTo(cstate);		/* copy from database to file */
 
 	/*
 	 * Close the relation or query.  If reading, we can release the
@@ -2787,6 +2787,7 @@ CopyFromDispatch(CopyState cstate)
 
 	CopyInitPartitioningState(estate);
 
+
 	if (list_length(cstate->ao_segnos) > 0)
 		cdbCopy->ao_segnos = cstate->ao_segnos;
 
@@ -3719,6 +3720,9 @@ CopyFrom(CopyState cstate)
 	ExprContext *econtext;		/* used for ExecEvalExpr for default atts */
 	MemoryContext oldcontext = CurrentMemoryContext;
 	ErrorContextCallback errcontext;
+	CommandId	mycid = GetCurrentCommandId();
+	bool		use_wal = true;		/* by default, use WAL logging */
+	bool		use_fsm = true;		/* by default, use FSM for free space */
 	int		   *attr_offsets;
 	bool		no_more_data = false;
 	ListCell   *cur;
@@ -3730,6 +3734,48 @@ CopyFrom(CopyState cstate)
 	num_phys_attrs = tupDesc->natts;
 	attr_count = list_length(cstate->attnumlist);
 	num_defaults = 0;
+
+	/*----------
+	 * Check to see if we can avoid writing WAL
+	 *
+	 * If archive logging is not enabled *and* either
+	 *	- table was created in same transaction as this COPY
+	 *	- data is being written to relfilenode created in this transaction
+	 * then we can skip writing WAL.  It's safe because if the transaction
+	 * doesn't commit, we'll discard the table (or the new relfilenode file).
+	 * If it does commit, we'll have done the heap_sync at the bottom of this
+	 * routine first.
+	 *
+	 * As mentioned in comments in utils/rel.h, the in-same-transaction test
+	 * is not completely reliable, since in rare cases rd_createSubid or
+	 * rd_newRelfilenodeSubid can be cleared before the end of the transaction.
+	 * However this is OK since at worst we will fail to make the optimization.
+	 *
+	 * When skipping WAL it's entirely possible that COPY itself will write no
+	 * WAL records at all.  This is of concern because RecordTransactionCommit
+	 * might decide it doesn't need to log our eventual commit, which we
+	 * certainly need it to do.  However, we need no special action here for
+	 * that, because if we have a new table or new relfilenode then there
+	 * must have been a WAL-logged pg_class update earlier in the transaction.
+	 *
+	 * Also, if the target file is new-in-transaction, we assume that checking
+	 * FSM for free space is a waste of time, even if we must use WAL because
+	 * of archiving.  This could possibly be wrong, but it's unlikely.
+	 *
+	 * The comments for heap_insert and RelationGetBufferForTuple specify that
+	 * skipping WAL logging is only safe if we ensure that our tuples do not
+	 * go into pages containing tuples from any other transactions --- but this
+	 * must be the case if we have a new table or new relfilenode, so we need
+	 * no additional work to enforce that.
+	 *----------
+	 */
+	if (cstate->rel->rd_createSubid != InvalidSubTransactionId ||
+		cstate->rel->rd_newRelfilenodeSubid != InvalidSubTransactionId)
+	{
+		use_fsm = false;
+		if (!XLogArchivingActive())
+			use_wal = false;
+	}
 
 	/*
 	 * We need a ResultRelInfo so we can use the regular executor's
@@ -4225,7 +4271,7 @@ CopyFrom(CopyState cstate)
 					}
 					else
 					{
-						simple_heap_insert(resultRelInfo->ri_RelationDesc, tuple);
+						heap_insert(resultRelInfo->ri_RelationDesc, tuple, mycid, use_wal, use_fsm, GetCurrentTransactionId());
 
 						if (resultRelInfo->ri_NumIndices > 0)
 							ExecInsertIndexTuples(slot, &(((HeapTuple)tuple)->t_self), estate, false);
@@ -4299,6 +4345,13 @@ CopyFrom(CopyState cstate)
 	pfree(defexprs);
 
 	ExecDropSingleTupleTableSlot(slot);
+
+	/*
+	 * If we skipped writing WAL, then we need to sync the heap (but not
+	 * indexes since those use WAL anyway)
+	 */
+	if (!use_wal)
+		heap_sync(cstate->rel);
 
 	/*
 	 * Finalize appends and close relations we opened.

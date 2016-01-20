@@ -12,7 +12,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/commands/cluster.c,v 1.154.2.2 2007/09/29 18:05:28 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/commands/cluster.c,v 1.158 2007/03/29 00:15:37 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -872,6 +872,9 @@ copy_heap_data(Oid OIDNewHeap, Oid OIDOldHeap, Oid OIDOldIndex)
 	bool	   *isnull;
 	IndexScanDesc scan;
 	HeapTuple	tuple;
+	TransactionId myxid = GetCurrentTransactionId();
+	CommandId	mycid = GetCurrentCommandId();
+	bool		use_wal;
 
 	/*
 	 * Open the relations we need.
@@ -892,6 +895,17 @@ copy_heap_data(Oid OIDNewHeap, Oid OIDOldHeap, Oid OIDOldIndex)
 	natts = newTupDesc->natts;
 	values = (Datum *) palloc0(natts * sizeof(Datum));
 	isnull = (bool *) palloc0(natts * sizeof(bool));
+
+	/*
+	 * We need to log the copied data in WAL iff WAL archiving is enabled AND
+	 * it's not a temp rel.  (Since we know the target relation is new and
+	 * can't have any FSM data, we can always tell heap_insert to ignore FSM,
+	 * even when using WAL.)
+	 */
+	use_wal = XLogArchivingActive() && !NewHeap->rd_istemp;
+
+	/* use_wal off requires rd_targblock be initially invalid */
+	Assert(NewHeap->rd_targblock == InvalidBlockNumber);
 
 	/*
 	 * Scan through the OldHeap on the OldIndex and copy each tuple into the
@@ -940,7 +954,7 @@ copy_heap_data(Oid OIDNewHeap, Oid OIDOldHeap, Oid OIDOldIndex)
 		if (NewHeap->rd_rel->relhasoids)
 			HeapTupleSetOid(copiedTuple, HeapTupleGetOid(tuple));
 
-		simple_heap_insert(NewHeap, copiedTuple);
+		heap_insert(NewHeap, copiedTuple, mycid, use_wal, false, myxid);
 
 		heap_freetuple(copiedTuple);
 
@@ -951,6 +965,9 @@ copy_heap_data(Oid OIDNewHeap, Oid OIDOldHeap, Oid OIDOldIndex)
 
 	pfree(values);
 	pfree(isnull);
+
+	if (!use_wal)
+		heap_sync(NewHeap);
 
 	index_close(OldIndex, NoLock);
 	heap_close(OldHeap, NoLock);

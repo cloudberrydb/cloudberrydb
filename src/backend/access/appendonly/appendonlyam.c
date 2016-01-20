@@ -2943,7 +2943,8 @@ appendonly_insert_init(Relation rel, Snapshot appendOnlyMetaDataSnapshot, int se
 		tup = (MemTuple) toast_insert_or_update(relation, (HeapTuple) instup,
 												NULL, aoInsertDesc->mt_bind,
 												aoInsertDesc->toast_tuple_target,
-												false /* errtbl is never AO */);
+												false, /* errtbl is never AO */
+												true, true);
 	else
 		tup = instup;
 

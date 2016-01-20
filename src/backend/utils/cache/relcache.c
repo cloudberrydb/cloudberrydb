@@ -9,7 +9,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/utils/cache/relcache.c,v 1.254 2007/01/09 02:14:15 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/utils/cache/relcache.c,v 1.259 2007/03/29 00:15:38 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -1284,6 +1284,7 @@ RelationBuildDesc(Oid targetRelId, bool insertIt)
 	relation->rd_refcnt = 0;
 	relation->rd_isnailed = false;
 	relation->rd_createSubid = InvalidSubTransactionId;
+	relation->rd_newRelfilenodeSubid = InvalidSubTransactionId;
 	relation->rd_istemp = isTempNamespace(relation->rd_rel->relnamespace);
 	relation->rd_issyscat = (strncmp(relation->rd_rel->relname.data, "pg_", 3) == 0);
 
@@ -1836,6 +1837,7 @@ formrdesc(const char *relationName, Oid relationReltype,
 	 */
 	relation->rd_isnailed = true;
 	relation->rd_createSubid = InvalidSubTransactionId;
+	relation->rd_newRelfilenodeSubid = InvalidSubTransactionId;
 	relation->rd_istemp = false;
 	relation->rd_issyscat = (strncmp(relationName, "pg_", 3) == 0);	/* GP */
     relation->rd_isLocalBuf = false;    /*CDB*/
@@ -2080,7 +2082,8 @@ RelationClose(Relation relation)
 
 #ifdef RELCACHE_FORCE_RELEASE
 	if (RelationHasReferenceCountZero(relation) &&
-		relation->rd_createSubid == InvalidSubTransactionId)
+		relation->rd_createSubid == InvalidSubTransactionId &&
+		relation->rd_newRelfilenodeSubid == InvalidSubTransactionId)
 		RelationClearRelation(relation, false);
 #endif
 }
@@ -2422,12 +2425,13 @@ RelationFlushRelation(Relation relation)
 {
 	bool		rebuild;
 
-	if (relation->rd_createSubid != InvalidSubTransactionId)
+	if (relation->rd_createSubid != InvalidSubTransactionId ||
+		relation->rd_newRelfilenodeSubid != InvalidSubTransactionId)
 	{
 		/*
 		 * New relcache entries are always rebuilt, not flushed; else we'd
 		 * forget the "new" status of the relation, which is a useful
-		 * optimization to have.
+		 * optimization to have.  Ditto for the new-relfilenode status.
 		 */
 		rebuild = true;
 	}
@@ -2504,6 +2508,12 @@ RelationCacheInvalidateEntry(Oid relationId)
  *	 so we do not touch new-in-transaction relations; they cannot be targets
  *	 of cross-backend SI updates (and our own updates now go through a
  *	 separate linked list that isn't limited by the SI message buffer size).
+ *	 Likewise, we need not discard new-relfilenode-in-transaction hints,
+ *	 since any invalidation of those would be a local event.
+ *
+ *	 We don't do anything special for newRelfilenode-in-transaction relations, 
+ *	 though since we have a lock on the relation nobody else should be 
+ *	 generating cache invalidation messages for it anyhow.
  *
  *	 We do this in two phases: the first pass deletes deletable items, and
  *	 the second one rebuilds the rebuildable items.  This is essential for
@@ -2625,9 +2635,10 @@ AtEOXact_RelationCache(bool isCommit)
 	 * the debug-only Assert checks, most transactions don't create any work
 	 * for us to do here, so we keep a static flag that gets set if there is
 	 * anything to do.	(Currently, this means either a relation is created in
-	 * the current xact, or an index list is forced.)  For simplicity, the
-	 * flag remains set till end of top-level transaction, even though we
-	 * could clear it at subtransaction end in some cases.
+	 * the current xact, or one is given a new relfilenode, or an index list
+	 * is forced.)  For simplicity, the flag remains set till end of top-level
+	 * transaction, even though we could clear it at subtransaction end in
+	 * some cases.
 	 *
 	 * MPP-3333: READERS need to *always* scan, otherwise they will not be able
 	 * to maintain a coherent view of the storage layer.
@@ -2702,6 +2713,11 @@ AtEOXact_RelationCache(bool isCommit)
 				continue;
 			}
 		}
+
+		/*
+		 * Likewise, reset the hint about the relfilenode being new.
+		 */
+		relation->rd_newRelfilenodeSubid = InvalidSubTransactionId;
 
 		/*
 		 * Flush any temporary index list.
@@ -2779,6 +2795,17 @@ AtEOSubXact_RelationCache(bool isCommit, SubTransactionId mySubid,
 		}
 
 		/*
+		 * Likewise, update or drop any new-relfilenode-in-subtransaction hint.
+		 */
+		if (relation->rd_newRelfilenodeSubid == mySubid)
+		{
+			if (isCommit)
+				relation->rd_newRelfilenodeSubid = parentSubid;
+			else
+			 relation->rd_newRelfilenodeSubid = InvalidSubTransactionId;
+		}
+
+		/*
 		 * Flush any temporary index list.
 		 */
 		if (relation->rd_indexvalid == 2)
@@ -2790,6 +2817,23 @@ AtEOSubXact_RelationCache(bool isCommit, SubTransactionId mySubid,
 		}
 	}
 }
+
+/*
+ * RelationCacheMarkNewRelfilenode
+ *
+ *	Mark the rel as having been given a new relfilenode in the current
+ *	(sub) transaction.  This is a hint that can be used to optimize
+ *	later operations on the rel in the same transaction.
+ */
+void
+RelationCacheMarkNewRelfilenode(Relation rel)
+{
+	/* Mark it... */
+	rel->rd_newRelfilenodeSubid = GetCurrentSubTransactionId();
+	/* ... and now we have eoxact cleanup work to do */
+	need_eoxact_work = true;
+}
+
 
 /*
  *		RelationBuildLocalRelation
@@ -2871,6 +2915,7 @@ RelationBuildLocalRelation(const char *relname,
 
 	/* it's being created in this transaction */
 	rel->rd_createSubid = GetCurrentSubTransactionId();
+	rel->rd_newRelfilenodeSubid = InvalidSubTransactionId;
 
 	/* must flag that we have rels created in this transaction */
 	need_eoxact_work = true;
@@ -4242,6 +4287,7 @@ load_relcache_init_file(bool shared)
 		rel->rd_indexlist = NIL;
 		rel->rd_oidindex = InvalidOid;
 		rel->rd_createSubid = InvalidSubTransactionId;
+		rel->rd_newRelfilenodeSubid = InvalidSubTransactionId;
 		rel->rd_amcache = NULL;
 		MemSet(&rel->pgstat_info, 0, sizeof(rel->pgstat_info));
         rel->rd_cdbpolicy = NULL;
