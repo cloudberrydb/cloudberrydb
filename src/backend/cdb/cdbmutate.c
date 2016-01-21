@@ -2036,13 +2036,14 @@ static bool shareinput_find_sharenode(ApplyShareInputContext *ctxt, int share_id
 }
 
 /* 
- * First walk on shareinput xslice.  It does the following,
- *  	1. build the sharedNodes in context.
- *  	2. Build teh sliceMask in context.
- *  	3. If a shared is cross slice, mark the shared node xslice.
- *  	4. Build a list a share on QD
+ * First walk on shareinput xslice.  It does the following:
+ *
+ * 1. Build the sharedNodes in context.
+ * 2. Build the sliceMarks in context.
+ * 3. Build a list a share on QD
  */
-static bool shareinput_mutator_xslice_1(Node* node, ApplyShareInputContext *ctxt, bool fPop)
+static bool
+shareinput_mutator_xslice_1(Node* node, ApplyShareInputContext *ctxt, bool fPop)
 {
 	Plan *plan = (Plan *) node;
 
@@ -2065,7 +2066,7 @@ static bool shareinput_mutator_xslice_1(Node* node, ApplyShareInputContext *ctxt
 		ShareInputScan *sisc = (ShareInputScan *) plan;
 		int motId = shareinput_peekmot(ctxt);
 		Plan *shared = plan->lefttree;
-		
+
 		Assert(sisc->plan.flow);
 		if(sisc->plan.flow->flotype == FLOW_SINGLETON)
 		{
@@ -2073,13 +2074,57 @@ static bool shareinput_mutator_xslice_1(Node* node, ApplyShareInputContext *ctxt
 				ctxt->qdShares = list_append_unique_int(ctxt->qdShares, sisc->share_id);
 		}
 
+		if (shared)
+		{
+			Assert(shareinput_find_sharenode(ctxt, sisc->share_id, NULL) == false);
+			Assert(get_plan_share_id(plan) == get_plan_share_id(shared));
+			set_plan_driver_slice(shared, motId);
+
+			ctxt->sharedNodes = lappend(ctxt->sharedNodes, shared);
+			ctxt->sliceMarks = lappend_int(ctxt->sliceMarks, motId);
+		}
+	}
+
+	return true;
+}
+
+/*
+ * Second pass on shareinput xslice.  It marks the shared node xslice,
+ * if a 'shared' is cross-slice.
+ */
+static bool
+shareinput_mutator_xslice_2(Node* node, ApplyShareInputContext *ctxt, bool fPop)
+{
+	Plan	   *plan = (Plan *) node;
+
+	if (fPop)
+	{
+		if (IsA(plan, Motion))
+			shareinput_popmot(ctxt);
+		return false;
+	}
+
+	if (IsA(plan, Motion))
+	{
+		Motion	   *motion = (Motion *) plan;
+		shareinput_pushmot(ctxt, motion->motionID);
+		return true;
+	}
+
+	if (IsA(plan, ShareInputScan))
+	{
+		ShareInputScan *sisc = (ShareInputScan *) plan;
+		int			motId = shareinput_peekmot(ctxt);
+		Plan	   *shared = plan->lefttree;
+
 		if(!shared)
 		{
 			ShareNodeWithSliceMark plan_slicemark = {NULL /* plan */,0 /* slice_mark */};
 			int  shareSliceId = 0;
 			
 			shareinput_find_sharenode(ctxt, sisc->share_id, &plan_slicemark);
-			Assert(NULL != plan_slicemark.plan);
+			if (plan_slicemark.plan == NULL)
+				elog(ERROR, "could not find shared input node with id %d", sisc->share_id);
 
 			shareSliceId = get_plan_driver_slice(plan_slicemark.plan);
 
@@ -2093,26 +2138,18 @@ static bool shareinput_mutator_xslice_1(Node* node, ApplyShareInputContext *ctxt
 				sisc->driver_slice = motId;
 			}
 		}
-		else
-		{
-			Assert(shareinput_find_sharenode(ctxt, sisc->share_id, NULL) == false);
-			Assert(get_plan_share_id(plan) == get_plan_share_id(shared));
-			set_plan_driver_slice(shared, motId);
-		
-			ctxt->sharedNodes = lappend(ctxt->sharedNodes, shared);
-			ctxt->sliceMarks = lappend_int(ctxt->sliceMarks, motId); 
-		}
 	}
 				
 	return true;
 }
 
 /* 
- * Second pass
+ * Third pass:
  * 	1. Mark shareinput scan xslice,
  * 	2. Bulid a list of QD slices
  */
-static bool shareinput_mutator_xslice_2(Node *node, ApplyShareInputContext *ctxt, bool fPop)
+static bool
+shareinput_mutator_xslice_3(Node *node, ApplyShareInputContext *ctxt, bool fPop)
 {
 	Plan *plan = (Plan *) node;
 
@@ -2167,11 +2204,11 @@ static bool shareinput_mutator_xslice_2(Node *node, ApplyShareInputContext *ctxt
 }
 
 /* 
- * The third pass.  If a shareinput is running on QD, then all slices in this share 
- * must be on QD.  Move them to QD.
+ * The fourth pass.  If a shareinput is running on QD, then all slices in
+ * this share must be on QD.  Move them to QD.
  */
-
-static bool shareinput_mutator_xslice_3(Node *node, ApplyShareInputContext *ctxt, bool fPop)
+static bool
+shareinput_mutator_xslice_4(Node *node, ApplyShareInputContext *ctxt, bool fPop)
 {
 	Plan *plan = (Plan *) node;
 	int motId = shareinput_peekmot(ctxt);
@@ -2242,9 +2279,12 @@ static bool assign_plannode_id_walker(Node *node, ApplyShareInputContext *ctxt, 
 	return true;
 }
 
-Plan *apply_shareinput_xslice(Plan *plan, PlannerGlobal *glob)
+Plan *
+apply_shareinput_xslice(Plan *plan, PlannerGlobal *glob)
 {
 	ApplyShareInputContext *ctxt = &glob->share;
+	ListCell *lp;
+
 	ctxt->sharedNodes = NULL;
 	ctxt->sliceMarks = NULL;
 	ctxt->motStack = NULL;
@@ -2254,27 +2294,27 @@ Plan *apply_shareinput_xslice(Plan *plan, PlannerGlobal *glob)
 	ctxt->nextPlanId = 0;
 
 	shareinput_pushmot(ctxt, 0);
-	
-	ListCell *lp = NULL;
+
 	/* 
 	 * Walk the tree.  See comment for each pass for what each pass will do.
-	 * Note: We depends on the contxt of between the passes, so do not reset 
-	 * the context between calls.
+	 * The context is used to carry information from one pass to another,
+	 * as well as within a pass.
 	 */
 
-    /*
-     * a subplan might have a SharedScan consumer while the SharedScan producer
-     * is in the main plan,
-     * we need to store SharedScan nodes in main plan into traversal context
-     *  before traversing subplans
-     */
-	shareinput_walker(shareinput_mutator_xslice_1, (Node *) plan, ctxt);
+	/*
+	 * A subplan might have a SharedScan consumer while the SharedScan
+	 * producer is in the main plan, or vice versa. So in the first pass, we
+	 * walk through all plans and collect all producer subplans into the
+	 * context, before processing the consumers.
+	 */
 	foreach (lp, glob->subplans)
 	{
 		Plan	   *subplan = (Plan *) lfirst(lp);
 		shareinput_walker(shareinput_mutator_xslice_1, (Node *) subplan, ctxt);
 	}
+	shareinput_walker(shareinput_mutator_xslice_1, (Node *) plan, ctxt);
 
+	/* Now walk the tree again, and process all the consumers. */
 	foreach (lp, glob->subplans)
 	{
 		Plan	   *subplan = (Plan *) lfirst(lp);
@@ -2288,6 +2328,13 @@ Plan *apply_shareinput_xslice(Plan *plan, PlannerGlobal *glob)
 		shareinput_walker(shareinput_mutator_xslice_3, (Node *) subplan, ctxt);
 	}
 	shareinput_walker(shareinput_mutator_xslice_3, (Node *) plan, ctxt);
+
+	foreach (lp, glob->subplans)
+	{
+		Plan	   *subplan = (Plan *) lfirst(lp);
+		shareinput_walker(shareinput_mutator_xslice_4, (Node *) subplan, ctxt);
+	}
+	shareinput_walker(shareinput_mutator_xslice_4, (Node *) plan, ctxt);
 
 	return plan;
 }
