@@ -1,5 +1,5 @@
 <!--
-$PostgreSQL: pgsql/doc/src/sgml/ref/pg_dumpall.sgml,v 1.58.2.3 2007/03/26 17:23:45 tgl Exp $
+$PostgreSQL: pgsql/doc/src/sgml/ref/pg_dumpall.sgml,v 1.62 2007/01/25 03:30:43 momjian Exp $
 PostgreSQL documentation
 -->
 
@@ -130,6 +130,18 @@ PostgreSQL documentation
      </varlistentry>
 
      <varlistentry>
+      <term><option>-f <replaceable class="parameter">filename</replaceable></option></term>
+      <term><option>--file=<replaceable class="parameter">filename</replaceable></option></term>
+      <listitem>
+       <para>
+        Write the output to the specified file.  This is particularly useful
+        on Windows because output redirection does not work for child
+        processes.
+       </para>
+      </listitem>
+     </varlistentry>
+
+     <varlistentry>
       <term><option>-g</option></term>
       <term><option>--globals-only</option></term>
       <listitem>
@@ -194,12 +206,20 @@ PostgreSQL documentation
      </varlistentry>
 
      <varlistentry>
-      <term><option>-r</option></term>
       <term><option>--resource-queues</option></term>
       <listitem>
        <para>
         Dump <literal>resource queues</literal> and <literal>role</literal>
         to <literal>resource queue</literal> associations. 
+       </para>
+      </listitem>
+     </varlistentry>
+
+     <varlistentry>
+      <term><option>--roles-only</option></term>
+      <listitem>
+       <para>
+        Dump only roles, no databases, tablespaces or filespaces.
        </para>
       </listitem>
      </varlistentry>
@@ -223,6 +243,16 @@ PostgreSQL documentation
         This is only relevant if <option>--disable-triggers</> is used.
         (Usually, it's better to leave this out, and instead start the
         resulting script as superuser.)
+       </para>
+      </listitem>
+     </varlistentry>
+
+     <varlistentry>
+      <term><option>-t</option></term>
+      <term><option>--tablespaces-only</option></term>
+      <listitem>
+       <para>
+        Dump only tablespaces, no databases or roles.
        </para>
       </listitem>
      </varlistentry>
@@ -304,6 +334,7 @@ PostgreSQL documentation
    <variablelist>
      <varlistentry>
       <term>-h <replaceable>host</replaceable></term>
+      <term>--host=<replaceable>host</replaceable></term>
       <listitem>
        <para>
         Specifies the host name of the machine on which the database
@@ -316,7 +347,21 @@ PostgreSQL documentation
      </varlistentry>
 
      <varlistentry>
+      <term>-l <replaceable>dbname</replaceable></term>
+      <term>--database=<replaceable>dbname</replaceable></term>
+      <listitem>
+       <para>
+         Specifies the name of the database to connect to to dump global
+         objects and discover what other databases should be dumped. If
+         not specified, the <quote>postgres</quote> database will be used,
+         and if that does not exist, <quote>template1</quote> will be used.
+       </para>
+      </listitem>
+     </varlistentry>
+
+     <varlistentry>
       <term>-p <replaceable>port</replaceable></term>
+      <term>--port=<replaceable>port</replaceable></term>
       <listitem>
        <para>
         Specifies the TCP port or local Unix domain socket file
@@ -329,6 +374,7 @@ PostgreSQL documentation
 
      <varlistentry>
       <term>-U <replaceable>username</replaceable></term>
+      <term>--username=<replaceable>username</replaceable></term>
       <listitem>
        <para>
         Connect as the given user.
@@ -338,6 +384,7 @@ PostgreSQL documentation
 
      <varlistentry>
       <term>-W</term>
+	    <term>--password</term>
       <listitem>
        <para>
         Force a password prompt.  This should happen automatically if

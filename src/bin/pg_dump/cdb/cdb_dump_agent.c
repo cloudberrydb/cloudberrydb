@@ -8099,25 +8099,31 @@ makeArchive(char *filename)
 	/* open the output file */
 	switch (fileFormat)
 	{
+		case 'a':
+		case 'A':
+			plainText = 1;
+			g_fout = CreateArchive(filename, archNull, 0, archModeAppend);
+			break;
+
 		case 'c':
 		case 'C':
-			g_fout = CreateArchive(filename, archCustom, compressLevel);
+			g_fout = CreateArchive(filename, archCustom, compressLevel, archModeWrite);
 			break;
 
 		case 'f':
 		case 'F':
-			g_fout = CreateArchive(filename, archFiles, compressLevel);
+			g_fout = CreateArchive(filename, archFiles, compressLevel, archModeWrite);
 			break;
 
 		case 'p':
 		case 'P':
 			plainText = 1;
-			g_fout = CreateArchive(filename, archNull, 0);
+			g_fout = CreateArchive(filename, archNull, 0, archModeWrite);
 			break;
 
 		case 't':
 		case 'T':
-			g_fout = CreateArchive(filename, archTar, compressLevel);
+			g_fout = CreateArchive(filename, archTar, compressLevel, archModeWrite);
 			break;
 
 		default:
