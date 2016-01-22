@@ -2002,7 +2002,6 @@ explain_outNode(StringInfo str,
 			for (i = 0; i < indent; i++)
 				appendStringInfo(str, "  ");
 			appendStringInfo(str, "  %s\n", sp->plan_name);
-            Assert(!sps->cdbextratextbuf);
 
 			for (i = 0; i < indent; i++)
 				appendStringInfo(str, "  ");

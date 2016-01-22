@@ -1056,7 +1056,6 @@ typedef struct SubPlanState
 	AttrNumber *keyColIdx;		/* control data for hash tables */
 	FmgrInfo   *eqfunctions;	/* comparison functions for hash tables */
 	FmgrInfo   *hashfunctions;	/* lookup data for hash functions */
-	struct StringInfoData  *cdbextratextbuf;    /* to pass text to cdbexplain */
 } SubPlanState;
 
 /* ----------------

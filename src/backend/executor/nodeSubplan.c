@@ -665,7 +665,6 @@ ExecInitSubPlan(SubPlanState *node, EState *estate, int eflags)
 	node->keyColIdx = NULL;
 	node->eqfunctions = NULL;
 	node->hashfunctions = NULL;
-    node->cdbextratextbuf = NULL;
 
 	/*
 	 * create an EState for the subplan
@@ -1049,8 +1048,6 @@ ExecSetParamPlan(SubPlanState *node, ExprContext *econtext,
 		planstate->plan->dispatch == DISPATCH_PARALLEL)
 		shouldDispatch = true;
 
-	node->cdbextratextbuf = NULL;
-
 	/*
 	 * Reset memory high-water mark so EXPLAIN ANALYZE can report each
 	 * root slice's usage separately.
@@ -1283,16 +1280,9 @@ ExecSetParamPlan(SubPlanState *node, ExprContext *econtext,
             /* If EXPLAIN ANALYZE, collect execution stats from qExecs. */
             if (planstate->instrument)
             {
-                MemoryContext   savecxt;
-
                 /* Wait for all gangs to finish. */
 				CdbCheckDispatchResult(queryDesc->estate->dispatcherState,
 									   DISPATCH_WAIT_NONE);
-
-                /* Allocate buffer to pass extra message text to cdbexplain. */
-                savecxt = MemoryContextSwitchTo(gbl_queryDesc->estate->es_query_cxt);
-                node->cdbextratextbuf = makeStringInfo();
-                MemoryContextSwitchTo(savecxt);
 
                 /* Jam stats into subplan's Instrumentation nodes. */
                 explainRecvStats = true;
