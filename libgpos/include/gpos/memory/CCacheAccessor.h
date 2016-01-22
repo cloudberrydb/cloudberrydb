@@ -177,6 +177,13 @@ namespace gpos
 				GPOS_ASSERT(NULL == m_pce && "Accessor already holds an entry");
 
 				m_pce = m_pcache->PceLookup(pKey);
+
+				if(NULL != m_pce)
+				{
+					// increase ref count before return the object to the customer
+					// customer is responsible for decreasing the ref count after use
+					m_pce->IncRefCount();
+				}
 			}
 
 			// marks currently held object as deleted

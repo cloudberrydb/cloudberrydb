@@ -185,6 +185,8 @@ namespace gpos
 				if (NULL != pce)
 				{
 					pce->SetGClockCounter(m_ulGClockInitCounter);
+					// increase ref count, since CCacheHashtableAccessor points to the obj
+					// ref count will be decreased when CCacheHashtableAccessor will be destroyed
 					pce->IncRefCount();
 				}
 

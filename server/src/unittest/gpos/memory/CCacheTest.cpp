@@ -276,6 +276,12 @@ CCacheTest::EresUnittest_Basic()
 			ca.Lookup(&ulkey);
 			pso = ca.PtVal();
 
+			if (NULL != pso)
+			{
+				// release object since there is no customer to release it after lookup and before CCache's cleanup
+				pso->Release();
+			}
+
 			GPOS_ASSERT_IMP(!pcache->FUnique(), NULL != pso && 2 == pso->m_ulValue);
 			GPOS_ASSERT_IMP(pcache->FUnique(), NULL == pso);
 		}
@@ -291,6 +297,9 @@ CCacheTest::EresUnittest_Basic()
 
 			if (NULL != pso)
 			{
+				// release object since there is no customer to release it after lookup and before CCache's cleanup
+				pso->Release();
+
 				ca.MarkForDeletion();
 			}
 		}
@@ -371,13 +380,16 @@ CCacheTest::EresUnittest_Refcount()
 		//Ideally Lookup should return valid object. Until CCache evict and no one has reference to it, this object can't be deleted
 		ca.Lookup(&(pso->m_ulKey));
 
-		// 1 by CRefCount, 2 by CCacheEntry constructor and 3 by CCache Accessor
-		GPOS_ASSERT(3 == pso->UlpRefCount() && "Expected pso, CCacheEntry and CCacheAccessor to have ownership");
+		// 1 by CRefCount, 2 by CCacheEntry constructor, 3 by CCache Accessor, 4 by Lookup
+		GPOS_ASSERT(4 == pso->UlpRefCount() && "Expected pso, CCacheEntry CCacheAccessor, and customer to have ownership");
 		// Ideally it shouldn't delete itself because CCache is still holding this object
 		pso->Release();
-		GPOS_ASSERT(2 == pso->UlpRefCount() && "Expected CCacheEntry and CCacheAccessor to have ownership");
+		GPOS_ASSERT(3 == pso->UlpRefCount() && "Expected CCacheEntry, CCacheAccessor and customer to have ownership");
 	}
-	GPOS_ASSERT(1 == pso->UlpRefCount() && "Expected refcount to be 1. Only CCacheEntry have the ownership");
+	GPOS_ASSERT(2 == pso->UlpRefCount() && "Expected refcount to be 1. CCacheEntry and customer have the ownership");
+
+	// release object since there is no customer to release it after lookup and before CCache's cleanup
+	pso->Release();
 
 	return GPOS_OK;
 }
@@ -490,6 +502,9 @@ CCacheTest::CheckGenerationSanityAfterEviction(CCache<SSimpleObject*, ULONG*>* p
 		SSimpleObject* pso = ca.PtVal();
 		if (NULL != pso)
 		{
+			// release object since there is no customer to release it after lookup and before CCache's cleanup
+			pso->Release();
+
 			if (ulKey <= ulOldGenEndKey)
 			{
 				uloldGenEntryCount++;
@@ -549,16 +564,28 @@ CCacheTest::TestEvictionForOneCacheSize(ULLONG ullCacheQuota)
 	// this is now pinned as the accessor is not going out of scope; pinned entry is used later for checking non-eviction
 	caBeforeEviction.Lookup(&ulLastKeyThirdGen);
 
+	SSimpleObject* psoBeforeEviction = caBeforeEviction.PtVal();
+
+	if (NULL != psoBeforeEviction)
+	{
+		// release object since there is no customer to release it after lookup and before CCache's cleanup
+		psoBeforeEviction->Release();
+	}
+
 	// Now verify everything from the first generation insertion is evicted
 	for (ULONG ulKey = 0; ulKey <= ulLastKeyFirstGen; ulKey++)
 	{
 		CSimpleObjectCacheAccessor ca(pCache);
 		ca.Lookup(&ulKey);
 
-#ifdef GPOS_DEBUG
-		SSimpleObject* pso =
-#endif
-		ca.PtVal();
+		SSimpleObject* pso = ca.PtVal();
+
+		if (NULL != pso)
+		{
+			// release object since there is no customer to release it after lookup and before CCache's cleanup
+			pso->Release();
+		}
+
 		GPOS_ASSERT(NULL == pso);
 	}
 
@@ -589,10 +616,14 @@ CCacheTest::TestEvictionForOneCacheSize(ULLONG ullCacheQuota)
 	{
 		CSimpleObjectCacheAccessor ca(pCache);
 		ca.Lookup(&ulKey);
-#ifdef GPOS_DEBUG
-		SSimpleObject* pso =
-#endif
-		ca.PtVal();
+
+		SSimpleObject* pso = ca.PtVal();
+
+		if (NULL != pso)
+		{
+			// release object since there is no customer to release it after lookup and before CCache's cleanup
+			pso->Release();
+		}
 
 		// everything is evicted from third and fourth gen, except the pinned entry
 		GPOS_ASSERT_IMP(ulKey != ulLastKeyThirdGen, NULL == pso);
@@ -693,6 +724,11 @@ CCacheTest::EresRemoveDuplicates
 		SSimpleObject* pso = ca.PtVal();
 		GPOS_ASSERT(NULL != pso);
 
+		if (NULL != pso)
+		{
+			// release object since there is no customer to release it after lookup and before CCache's cleanup
+			pso->Release();
+		}
 
 		while (NULL != pso)
 		{
@@ -792,6 +828,12 @@ CCacheTest::EresUnittest_DeepObject()
 			ca.Lookup(pdoDummy->PKey());
 			pdo = ca.PtVal();
 
+			if (NULL != pdo)
+			{
+				// release object since there is no customer to release it after lookup and before CCache's cleanup
+				pdo->Release();
+			}
+
 			GPOS_ASSERT_IMP(pcache->FUnique(), NULL == pdo);
 			GPOS_ASSERT_IMP(!pcache->FUnique(), NULL != pdo);
 			GPOS_ASSERT_IMP(!pcache->FUnique(),
@@ -810,6 +852,9 @@ CCacheTest::EresUnittest_DeepObject()
 
 			if (NULL != pdo)
 			{
+				// release object since there is no customer to release it after lookup and before CCache's cleanup
+				pdo->Release();
+
 				ca.MarkForDeletion();
 			}
 		}
@@ -875,6 +920,9 @@ CCacheTest::EresUnittest_Iteration()
 		ULONG ulCount = 0;
 		SSimpleObject* pso = ca.PtVal();
 		GPOS_ASSERT(NULL != pso);
+
+		// release object since there is no customer to release it after lookup and before CCache's cleanup
+		pso->Release();
 
 		while (NULL != pso)
 		{
@@ -949,6 +997,12 @@ CCacheTest::EresUnittest_IterativeDeletion()
 		SSimpleObject *pso = ca.PtVal();
 		GPOS_ASSERT_IMP(0 < ulRemaining, NULL != pso);
 
+		if (NULL != pso)
+		{
+			// release object since there is no customer to release it after lookup and before CCache's cleanup
+			pso->Release();
+		}
+
 		while (NULL != pso)
 		{
 			GPOS_CHECK_ABORT;
@@ -1016,6 +1070,12 @@ CCacheTest::PvLookupTask
 		ca.Lookup(&ulkey);
 		SSimpleObject *pso = ca.PtVal();
 
+		if (NULL != pso)
+		{
+			// release object since there is no customer to release it after lookup and before CCache's cleanup
+			pso->Release();
+		}
+
 		while (NULL != pso)
 		{
 			GPOS_CHECK_ABORT;
@@ -1053,6 +1113,12 @@ CCacheTest::PvDeleteTask
 		ca.Lookup(&ulkey);
 
 		SSimpleObject *pso = ca.PtVal();
+
+		if (NULL != pso)
+		{
+			// release object since there is no customer to release it after lookup and before CCache's cleanup
+			pso->Release();
+		}
 
 		while (NULL != pso)
 		{
