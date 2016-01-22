@@ -6236,8 +6236,12 @@ within_agg_join_plans(PlannerInfo *root,
 			rinfo = make_mergeclause((Node *) outer_var, (Node *) inner_var);
 			join_clause = lappend(join_clause, rinfo);
 
-			/* Also fill in the mergefamilies/mergestrategis/mergenullsfirst arrays for this */
-			mergefamilies[idx] = pk->pk_opfamily;
+			/*
+			 * Also fill in the mergefamilies/mergestrategies/mergenullsfirst
+			 * arrays for this. Arbitrarily use the first operator family we
+			 * find.
+			 */
+			mergefamilies[idx] = linitial_oid(rinfo->mergeopfamilies);
 			mergestrategies[idx] = pk->pk_strategy;
 			mergenullsfirst[idx] = pk->pk_nulls_first;
 			idx++;
