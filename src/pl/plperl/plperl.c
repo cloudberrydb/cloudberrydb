@@ -96,7 +96,7 @@ typedef struct plperl_proc_desc
 {
 	char	   *proname;		/* name of the sql function */
 	TransactionId fn_xmin;
-	CommandId       fn_cmin;
+	ItemPointerData fn_tid;
 	plperl_interp_desc *interp; /* interpreter it's created in */
 	bool		fn_readonly;
 	bool		lanpltrusted;
@@ -2336,7 +2336,7 @@ validate_plperl_function(plperl_proc_ptr *proc_ptr, HeapTuple procTup)
 		 * function's pg_proc entry without changing its OID.
 		 ************************************************************/
 		uptodate = (prodesc->fn_xmin == HeapTupleHeaderGetXmin(procTup->t_data) &&
-				prodesc->fn_cmin == HeapTupleHeaderGetCmin(procTup->t_data));
+				ItemPointerEquals(&prodesc->fn_tid, &procTup->t_self));
 
 		if (uptodate)
 			return true;
@@ -2437,7 +2437,7 @@ compile_plperl_function(Oid fn_oid, bool is_trigger)
 					(errcode(ERRCODE_OUT_OF_MEMORY),
 					 errmsg("out of memory")));
 		prodesc->fn_xmin = HeapTupleHeaderGetXmin(procTup->t_data);
-		prodesc->fn_cmin = HeapTupleHeaderGetCmin(procTup->t_data);
+		prodesc->fn_tid = procTup->t_self;
 
 		/* Remember if function is STABLE/IMMUTABLE */
 		prodesc->fn_readonly =

@@ -553,7 +553,7 @@ typedef struct PLpgSQL_function
 	char	   *fn_name;
 	Oid			fn_oid;
 	TransactionId fn_xmin;
-	CommandId	fn_cmin;
+	ItemPointerData fn_tid;
 	int			fn_functype;
 	PLpgSQL_func_hashkey *fn_hashkey;	/* back-link to hashtable key */
 	MemoryContext fn_cxt;
