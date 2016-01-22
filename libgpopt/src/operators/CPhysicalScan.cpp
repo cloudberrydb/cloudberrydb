@@ -262,22 +262,15 @@ CPhysicalScan::ComputeTableStats
 {
 	GPOS_ASSERT(NULL == m_pstatsBaseTable);
 
-	CColRefSet *pcrs = GPOS_NEW(pmp) CColRefSet(pmp, m_pdrgpcrOutput);
-
-	DrgPul *pdrgpulHistColIds = GPOS_NEW(pmp) DrgPul(pmp);
-	DrgPul *pdrgpulHistPos = GPOS_NEW(pmp) DrgPul(pmp);
-	CUtils::ExtractColIdsAttno(pmp, m_ptabdesc, pcrs, pdrgpulHistColIds, pdrgpulHistPos);
-
-	// extract colids and attribute for which widths are necessary
-	DrgPul *pdrgpulWidthColIds = GPOS_NEW(pmp) DrgPul(pmp);
-	DrgPul *pdrgpulWidthPos = GPOS_NEW(pmp) DrgPul(pmp);
-	CUtils::ExtractColIdsAttno(pmp, m_ptabdesc, pcrs, pdrgpulWidthColIds, pdrgpulWidthPos);
+	CColRefSet *pcrsHist = GPOS_NEW(pmp) CColRefSet(pmp, m_pdrgpcrOutput);
+	CColRefSet *pcrsWidth = GPOS_NEW(pmp) CColRefSet(pmp);
 
 	CMDAccessor *pmda = COptCtxt::PoctxtFromTLS()->Pmda();
-	m_pstatsBaseTable = pmda->Pstats(pmp, m_ptabdesc->Pmdid(), pdrgpulHistPos, pdrgpulHistColIds, pdrgpulWidthPos, pdrgpulWidthColIds);
+	m_pstatsBaseTable = pmda->Pstats(pmp, m_ptabdesc->Pmdid(), pcrsHist, pcrsWidth);
 	GPOS_ASSERT(NULL != m_pstatsBaseTable);
 
-	pcrs->Release();
+	pcrsHist->Release();
+	pcrsWidth->Release();
 }
 
 

@@ -42,6 +42,8 @@
 #include "gpopt/operators/CPredicateUtils.h"
 #include "gpopt/operators/CScalarIdent.h"
 
+#include "gpopt/optimizer/COptimizerConfig.h"
+
 #include "naucrates/statistics/CStatistics.h"
 #include "naucrates/statistics/CStatisticsUtils.h"
 
@@ -1196,38 +1198,39 @@ CLogical::PstatsBaseTable
 	IMemoryPool *pmp,
 	CExpressionHandle &exprhdl,
 	CTableDescriptor *ptabdesc,
-	CColRefSet *pcrsStatExtra   // additional columns required for stats, not required by parent
+	CColRefSet *pcrsHistExtra   // additional columns required for stats, not required by parent
 	)
 {
-	// extract colids and attribute for which detailed stats are necessary
 	CReqdPropRelational *prprel = CReqdPropRelational::Prprel(exprhdl.Prp());
-	CColRefSet *pcrsStat = GPOS_NEW(pmp) CColRefSet(pmp);
-	pcrsStat->Include(prprel->PcrsStat());
-	if (NULL != pcrsStatExtra)
+	CColRefSet *pcrsHist = GPOS_NEW(pmp) CColRefSet(pmp);
+	pcrsHist->Include(prprel->PcrsStat());
+	if (NULL != pcrsHistExtra)
 	{
-		pcrsStat->Include(pcrsStatExtra);
+		pcrsHist->Include(pcrsHistExtra);
 	}
 
-	DrgPul *pdrgpulHistColIds = GPOS_NEW(pmp) DrgPul(pmp);
-	DrgPul *pdrgpulHistPos = GPOS_NEW(pmp) DrgPul(pmp);
-	CUtils::ExtractColIdsAttno(pmp, ptabdesc, pcrsStat, pdrgpulHistColIds, pdrgpulHistPos);
-
-	// extract colids and attribute for which widths are necessary
 	CDrvdPropRelational *pdprel = exprhdl.Pdprel();
-	CColRefSet *pcrsWidth = pdprel->PcrsOutput();
-	DrgPul *pdrgpulWidthColIds = GPOS_NEW(pmp) DrgPul(pmp);
-	DrgPul *pdrgpulWidthPos = GPOS_NEW(pmp) DrgPul(pmp);
-	CUtils::ExtractColIdsAttno(pmp, ptabdesc, pcrsWidth, pdrgpulWidthColIds, pdrgpulWidthPos);
+	CColRefSet *pcrsOutput = pdprel->PcrsOutput();
+	CColRefSet *pcrsWidth = GPOS_NEW(pmp) CColRefSet(pmp);
+	pcrsWidth->Include(pcrsOutput);
+	pcrsWidth->Exclude(pcrsHist);
 
-	CMDAccessor *pmda = COptCtxt::PoctxtFromTLS()->Pmda();
-	IStatistics *pstats = pmda->Pstats(pmp, ptabdesc->Pmdid(), pdrgpulHistPos, pdrgpulHistColIds, pdrgpulWidthPos, pdrgpulWidthColIds);
+	const COptCtxt *poctxt = COptCtxt::PoctxtFromTLS();
+	CMDAccessor *pmda = poctxt->Pmda();
+	CStatisticsConfig *pstatsconf = poctxt->Poconf()->Pstatsconf();
 
-	if (!GPOS_FTRACE(EopttraceDonotCollectMissingStatsCols) && !pstats->FEmpty())
-	{
-		CStatisticsUtils::RecordMissingStatisticsColumns(pmp, ptabdesc, pcrsStat, pstats);
-	}
+	IStatistics *pstats = pmda->Pstats
+								(
+								pmp,
+								ptabdesc->Pmdid(),
+								pcrsHist,
+								pcrsWidth,
+								pstatsconf
+								);
 
-	pcrsStat->Release();
+	// clean up
+	pcrsWidth->Release();
+	pcrsHist->Release();
 
 	return pstats;
 }

@@ -103,6 +103,10 @@ namespace gpmd
 			// mapping of column position to positions excluding dropped columns
 			HMUlUl *m_phmululNonDroppedCols;
 			
+			// mapping of attribute number in the system catalog to the positions of
+			// the non dropped column in the metadata object
+			HMIUl *m_phmiulAttno2Pos;
+
 			// the original positions of all the non-dropped columns
 			DrgPul *m_pdrgpulNonDroppedCols;
 
@@ -223,7 +227,11 @@ namespace gpmd
 			// return the absolute position of the given attribute position excluding dropped columns
 			virtual 
 			ULONG UlPosNonDropped(ULONG ulPos) const;
-			
+
+			 // return the position of a column in the metadata object given the attribute number in the system catalog
+			virtual
+			ULONG UlPosFromAttno(INT iAttno) const;
+
 			// retrieve the id of the metadata cache index at the given position
 			virtual
 			IMDId *PmdidIndex(ULONG ulPos) const;

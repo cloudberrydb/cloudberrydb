@@ -20,9 +20,12 @@
 
 #include "gpos/base.h"
 #include "gpos/common/CBitSet.h"
+#include "gpos/common/CHashMapIter.h"
+
 #include "naucrates/statistics/CStatsPred.h"
 #include "naucrates/statistics/CStatsPredPoint.h"
 #include "naucrates/statistics/CStatisticsJoin.h"
+#include "naucrates/statistics/CHistogram.h"
 #include "naucrates/md/CDXLStatsDerivedRelation.h"
 
 #include "gpopt/base/CColRef.h"
@@ -41,12 +44,30 @@ namespace gpnaucrates
 	using namespace gpopt;
 
 	// fwd declarations
-	class CHistogram;
 	class IStatistics;
+
+	// hash map from column id to a histogram
+	typedef CHashMap<ULONG, CHistogram, gpos::UlHash<ULONG>, gpos::FEqual<ULONG>,
+					CleanupDelete<ULONG>, CleanupDelete<CHistogram> > HMUlHist;
+
+	// iterator
+	typedef CHashMapIter<ULONG, CHistogram, gpos::UlHash<ULONG>, gpos::FEqual<ULONG>,
+					CleanupDelete<ULONG>, CleanupDelete<CHistogram> > HMIterUlHist;
+
+	// hash map from column ULONG to CDouble
+	typedef CHashMap<ULONG, CDouble, gpos::UlHash<ULONG>, gpos::FEqual<ULONG>,
+					CleanupDelete<ULONG>, CleanupDelete<CDouble> > HMUlDouble;
+
+	// iterator
+	typedef CHashMapIter<ULONG, CDouble, gpos::UlHash<ULONG>, gpos::FEqual<ULONG>,
+					CleanupDelete<ULONG>, CleanupDelete<CDouble> > HMIterUlDouble;
 
 	typedef CHashMap<ULONG, ULONG, gpos::UlHash<ULONG>, gpos::FEqual<ULONG>,
 					CleanupDelete<ULONG>, CleanupDelete<ULONG> > HMUlUl;
 
+	// hash maps mapping INT -> ULONG
+	typedef CHashMap<INT, ULONG, gpos::UlHash<INT>, gpos::FEqual<INT>,
+					CleanupDelete<INT>, CleanupDelete<ULONG> > HMIUl;
 
 	//---------------------------------------------------------------------------
 	//	@class:

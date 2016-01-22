@@ -73,6 +73,7 @@ CMDRelationCtasGPDB::CMDRelationCtasGPDB
 	GPOS_ASSERT(0 == pdrgpdrgpulKeys->UlLength());
 	GPOS_ASSERT(NULL != pdrgpiVarTypeMod);
 	
+	m_phmiulAttno2Pos = GPOS_NEW(m_pmp) HMIUl(m_pmp);
 	m_pdrgpulNonDroppedCols = GPOS_NEW(m_pmp) DrgPul(m_pmp);
 	
 	const ULONG ulArity = pdrgpmdcol->UlLength();
@@ -90,6 +91,12 @@ CMDRelationCtasGPDB::CMDRelationCtasGPDB
 		{
 			m_pdrgpulNonDroppedCols->Append(GPOS_NEW(m_pmp) ULONG(ul));
 		}		
+
+		(void) m_phmiulAttno2Pos->FInsert
+									(
+									GPOS_NEW(m_pmp) INT(pmdcol->IAttno()),
+									GPOS_NEW(m_pmp) ULONG(ul)
+									);
 	}
 	m_pstr = CDXLUtils::PstrSerializeMDObj(m_pmp, this, false /*fSerializeHeader*/, false /*fIndent*/);
 }
@@ -111,6 +118,7 @@ CMDRelationCtasGPDB::~CMDRelationCtasGPDB()
 	m_pdrgpmdcol->Release();
 	m_pdrgpdrgpulKeys->Release();
 	CRefCount::SafeRelease(m_pdrgpulDistrColumns);
+	CRefCount::SafeRelease(m_phmiulAttno2Pos);
 	CRefCount::SafeRelease(m_pdrgpulNonDroppedCols);
 	m_pdxlctasopt->Release();
 	m_pdrgpiVarTypeMod->Release();
@@ -203,6 +211,26 @@ CMDRelationCtasGPDB::UlSystemColumns() const
 	return m_ulSystemColumns;
 }
 
+//---------------------------------------------------------------------------
+//	@function:
+//		CMDRelationCtasGPDB::UlPosFromAttno
+//
+//	@doc:
+//		Return the position of a column in the metadata object given the
+//		attribute number in the system catalog
+//---------------------------------------------------------------------------
+ULONG
+CMDRelationCtasGPDB::UlPosFromAttno
+	(
+	INT iAttno
+	)
+	const
+{
+	ULONG *pul = m_phmiulAttno2Pos->PtLookup(&iAttno);
+	GPOS_ASSERT(NULL != pul);
+
+	return *pul;
+}
 
 //---------------------------------------------------------------------------
 //	@function:

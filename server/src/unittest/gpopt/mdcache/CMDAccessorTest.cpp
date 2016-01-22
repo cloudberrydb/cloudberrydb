@@ -48,6 +48,7 @@
 #include "naucrates/base/IDatumOid.h"
 
 #include "gpopt/eval/CConstExprEvaluatorDefault.h"
+#include "gpopt/optimizer/COptimizerConfig.h"
 
 #include "unittest/base.h"
 #include "unittest/gpopt/mdcache/CMDAccessorTest.h"
@@ -87,7 +88,6 @@ CMDAccessorTest::EresUnittest()
 			gpdxl::ExmaMD,
 			gpdxl::ExmiMDCacheEntryNotFound
 			),
-		GPOS_UNITTEST_FUNC(CMDAccessorTest::EresUnittest_Statistics),
 		GPOS_UNITTEST_FUNC(CMDAccessorTest::EresUnittest_Indexes),
 		GPOS_UNITTEST_FUNC(CMDAccessorTest::EresUnittest_CheckConstraint),
 		GPOS_UNITTEST_FUNC(CMDAccessorTest::EresUnittest_IndexPartConstraint),
@@ -389,66 +389,6 @@ CMDAccessorTest::EresUnittest_Navigate()
 	return GPOS_OK;
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CMDAccessorTest::EresUnittest_Statistics
-//
-//	@doc:
-//		Test fetching statistics from the cache
-//
-//---------------------------------------------------------------------------
-GPOS_RESULT
-CMDAccessorTest::EresUnittest_Statistics()
-{
-	CAutoMemoryPool amp;
-	IMemoryPool *pmp = amp.Pmp();
-	
-	// Setup an MD cache with a file-based provider
-	CMDProviderMemory *pmdp = CTestUtils::m_pmdpf;
-	pmdp->AddRef();
-	CMDAccessor mda(pmp, CMDCache::Pcache(), CTestUtils::m_sysidDefault, pmdp);
-	
-	// install opt context in TLS
-	CAutoOptCtxt aoc
-					(
-					pmp,
-					&mda,
-					NULL,  /* pceeval */
-					CTestUtils::Pcm(pmp)
-					);
-	
-	// lookup a function in the MD cache
-	CMDIdGPDB *pmdidRel =  GPOS_NEW(pmp) CMDIdGPDB(GPOPT_MDCACHE_TEST_OID, 1 /* major */, 1 /* minor version */);
-	
-	DrgPul *pdrgpulAttnos = GPOS_NEW(pmp) DrgPul(pmp);
-	pdrgpulAttnos->Append(GPOS_NEW(pmp) ULONG(0));
-	pdrgpulAttnos->Append(GPOS_NEW(pmp) ULONG(1));
-
-	DrgPul *pdrgpulColIds = GPOS_NEW(pmp) DrgPul(pmp);
-	pdrgpulColIds->Append(GPOS_NEW(pmp) ULONG(3));
-	pdrgpulColIds->Append(GPOS_NEW(pmp) ULONG(4));
-
-	pdrgpulAttnos->AddRef();
-	pdrgpulColIds->AddRef();
-	IStatistics *pstats = mda.Pstats(pmp, pmdidRel, pdrgpulAttnos, pdrgpulColIds, pdrgpulAttnos, pdrgpulColIds);
-	
-#ifdef GPOS_DEBUG
-	CAutoTrace at(pmp);
-	IOstream &os(at.Os());
-
-	// print stats
-	os << std::endl;
-	os << std::endl;
-
-	os << *pstats;
-	os << std::endl;
-#endif
-	
-	pmdidRel->Release();
-	pstats->Release();
-	
-	return GPOS_OK;
-}
 
 //---------------------------------------------------------------------------
 //	@function:

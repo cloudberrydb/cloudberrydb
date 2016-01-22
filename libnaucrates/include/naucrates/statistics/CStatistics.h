@@ -20,7 +20,6 @@
 
 #include "gpos/base.h"
 #include "gpos/string/CWStringDynamic.h"
-#include "gpos/common/CHashMapIter.h"
 #include "gpos/sync/CMutex.h"
 
 #include "naucrates/statistics/IStatistics.h"
@@ -45,22 +44,6 @@ namespace gpnaucrates
 	using namespace gpdxl;
 	using namespace gpmd;
 	using namespace gpopt;
-
-	// hash map from column id to a histogram
-	typedef CHashMap<ULONG, CHistogram, gpos::UlHash<ULONG>, gpos::FEqual<ULONG>,
-					CleanupDelete<ULONG>, CleanupDelete<CHistogram> > HMUlHist;
-
-	// iterator
-	typedef CHashMapIter<ULONG, CHistogram, gpos::UlHash<ULONG>, gpos::FEqual<ULONG>,
-					CleanupDelete<ULONG>, CleanupDelete<CHistogram> > HMIterUlHist;
-
-	// hash map from column id to a CDouble for width
-	typedef CHashMap<ULONG, CDouble, gpos::UlHash<ULONG>, gpos::FEqual<ULONG>,
-					CleanupDelete<ULONG>, CleanupDelete<CDouble> > HMUlDouble;
-
-	// iterator
-	typedef CHashMapIter<ULONG, CDouble, gpos::UlHash<ULONG>, gpos::FEqual<ULONG>,
-					CleanupDelete<ULONG>, CleanupDelete<CDouble> > HMIterUlDouble;
 
 	// hash maps ULONG -> array of ULONGs
 	typedef CHashMap<ULONG, DrgPul, gpos::UlHash<ULONG>, gpos::FEqual<ULONG>,

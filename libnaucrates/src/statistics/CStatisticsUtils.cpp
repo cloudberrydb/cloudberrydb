@@ -2216,60 +2216,6 @@ CStatisticsUtils::FIncreasesRisk
 
 
 //---------------------------------------------------------------------------
-//      @function:
-//              CStatisticsUtils::RecordMissingStatisticsColumns
-//
-//      @doc:
-//              Iterate over the set of columns and record columns with missing statistics
-//
-//---------------------------------------------------------------------------
-void
-CStatisticsUtils::RecordMissingStatisticsColumns
-	(
-	IMemoryPool *pmp,
-	CTableDescriptor *ptabdesc,
-	CColRefSet *pcrsStat,
-	IStatistics *pstats
-	)
-{
-	GPOS_ASSERT(NULL != pcrsStat);
-	GPOS_ASSERT(NULL != pstats);
-	GPOS_ASSERT(NULL != ptabdesc);
-	GPOS_ASSERT(!GPOS_FTRACE(EopttraceDonotCollectMissingStatsCols) && !pstats->FEmpty());
-
-	CStatisticsConfig *pstatsconf = COptCtxt::PoctxtFromTLS()->Poconf()->Pstatsconf();
-
-	// iterate over the list of columns required for cardinality estimation
-	// and check which of those are dummy histograms added by the metadata
-	// provider due to the fact that the statistics were missing
-	CColRefSetIter crsi(*pcrsStat);
-	while (crsi.FAdvance())
-	{
-		CColRef *pcr = crsi.Pcr();
-		const CHistogram *phist = CStatistics::PstatsConvert(pstats)->Phist(pcr->UlId());
-
-		GPOS_ASSERT(NULL != phist);
-		if (phist->FColStatsMissing() && !pcr->FSystemCol())
-		{
-			// maintain a map of column mdid -> column info for all
-			// columns with missing statistics
-			CColRefTable *pcrTableCol = CColRefTable::PcrConvert(pcr);
-
-			ULONG ulPos = ptabdesc->UlPosition(pcrTableCol->IAttno());
-			IMDId *pmdidRel = ptabdesc->Pmdid();
-
-			pmdidRel->AddRef();
-			CMDIdColStats *pmdidCol = GPOS_NEW(pmp) CMDIdColStats(CMDIdGPDB::PmdidConvert(pmdidRel), ulPos);
-
-			pstatsconf->AddMissingStatsColumn(pmdidCol);
-
-			pmdidCol->Release();
-		}
-	}
-}
-
-
-//---------------------------------------------------------------------------
 //     @function:
 //             CStatisticsUtils::DDefaultColumnWidth
 //

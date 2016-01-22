@@ -4044,41 +4044,6 @@ CUtils::FInnerUsesExternalColsOnly
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CUtils::ExtractColIdsAttno
-//
-//	@doc:
-//		Extract colids and attnos from a colrefset
-//
-//---------------------------------------------------------------------------
-void
-CUtils::ExtractColIdsAttno
-	(
-	IMemoryPool *pmp,
-	CTableDescriptor *ptabdesc,
-	CColRefSet *pcrs,
-	DrgPul *pdrgpulColIds,
-	DrgPul *pdrgpulPos
-	)
-{
-	CColRefSetIter crsi(*pcrs);
-
-	while (crsi.FAdvance())
-	{
-		CColRef *pcr = crsi.Pcr();
-		// colref must be one of the base table
-		CColRefTable *pcrtable = CColRefTable::PcrConvert(pcr);
-
-		ULONG *pulColId = GPOS_NEW(pmp) ULONG(pcrtable->UlId());
-		pdrgpulColIds->Append(pulColId);
-
-		ULONG ulPos = ptabdesc->UlPosition(pcrtable->IAttno());
-		pdrgpulPos->Append(GPOS_NEW(pmp) ULONG(ulPos));
-	}
-}
-
-
-//---------------------------------------------------------------------------
-//	@function:
 //		CUtils::FComparisonPossible
 //
 //	@doc:
