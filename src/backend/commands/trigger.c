@@ -7,7 +7,7 @@
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/commands/trigger.c,v 1.210.2.9 2010/01/24 21:49:48 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/commands/trigger.c,v 1.212 2007/01/25 04:17:46 momjian Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -927,8 +927,8 @@ RelationBuildTriggers(Relation relation)
 			int			i;
 
 			val = DatumGetByteaP(fastgetattr(htup,
-										 Anum_pg_trigger_tgargs,
-										 RelationGetDescr(tgrel), &isnull));
+											Anum_pg_trigger_tgargs,
+											tgrel->rd_att, &isnull));
 			if (isnull)
 				elog(ERROR, "tgargs is null in trigger for relation \"%s\"",
 					 RelationGetRelationName(relation));
