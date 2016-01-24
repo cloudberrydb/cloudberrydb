@@ -1732,16 +1732,6 @@ cdbmutate_warn_ctid_without_segid(struct PlannerInfo *root, struct RelOptInfo *r
 }                               /* cdbmutate_warn_ctid_without_segid */
 
 
-
-#include "catalog/catalog.h"
-#include "catalog/indexing.h"
-#include "catalog/dependency.h"
-#include "catalog/pg_constraint.h"
-#include "catalog/pg_depend.h"
-#include "miscadmin.h"
-#include "utils/builtins.h"
-#include "utils/fmgroids.h"
-
 /*
  * Code that mutate the tree for share input
  *
