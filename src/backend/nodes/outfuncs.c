@@ -2120,6 +2120,7 @@ _outCdbRelDedupInfo(StringInfo str, CdbRelDedupInfo *node)
 	/* WRITE_NODE_FIELD(cheapest_total_path);   */
 }
 
+#ifndef COMPILING_BINARY_FUNCS
 static void
 _outEquivalenceClass(StringInfo str, EquivalenceClass *node)
 {
@@ -2142,7 +2143,9 @@ _outEquivalenceClass(StringInfo str, EquivalenceClass *node)
 	WRITE_BOOL_FIELD(ec_below_outer_join);
 	WRITE_BOOL_FIELD(ec_broken);
 }
+#endif /* COMPILING_BINARY_FUNCS */
 
+#ifndef COMPILING_BINARY_FUNCS
 static void
 _outEquivalenceMember(StringInfo str, EquivalenceMember *node)
 {
@@ -2154,6 +2157,7 @@ _outEquivalenceMember(StringInfo str, EquivalenceMember *node)
 	WRITE_BOOL_FIELD(em_is_child);
 	WRITE_OID_FIELD(em_datatype);
 }
+#endif /* COMPILING_BINARY_FUNCS */
 
 static void
 _outPathKey(StringInfo str, PathKey *node)
