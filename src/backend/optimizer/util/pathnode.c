@@ -834,8 +834,7 @@ cdb_subpath_tried_postjoin_dedup(Path *path, Relids subqrelids)
  *    upon return, and not touched again by the caller, because we free it
  *    if we already know of a better path.  Likewise, a Path that is passed
  *    to add_path() must not be shared as a subpath of any other Path of the
- *    same join level.  Use pathnode_copy_node() to make a copy of the top
- *    Path node before calling add_path(); then it'll be ok to share the copy.
+ *    same join level.
  *
  *	  BUT: we do not pfree IndexPath objects, since they may be referenced as
  *	  children of BitmapHeapPaths as well as being paths in their own right.
