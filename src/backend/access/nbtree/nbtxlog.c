@@ -770,7 +770,7 @@ out_insert(StringInfo buf, bool isleaf, bool ismeta, XLogRecord *record)
 
 	char	   *datapos;
 	int			datalen;
-	xl_btree_metadata md;
+	xl_btree_metadata md = { InvalidBlockNumber, 0, InvalidBlockNumber, 0 };
 	BlockNumber downlink = 0;
 
 	datapos = (char *) xlrec + SizeOfBtreeInsert;
