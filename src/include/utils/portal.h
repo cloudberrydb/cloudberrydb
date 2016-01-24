@@ -100,8 +100,7 @@ typedef enum PortalStatus
 	PORTAL_QUEUE, 				/* portal is queued (cannot delete it) */
 	PORTAL_ACTIVE,				/* portal is running (can't delete it) */
 	PORTAL_DONE,				/* portal is finished (don't re-run it) */
-	PORTAL_FAILED,				/* portal got error (can't re-run it) */
-	PORTAL_STATUSMAX
+	PORTAL_FAILED				/* portal got error (can't re-run it) */
 } PortalStatus;
 
 /*
