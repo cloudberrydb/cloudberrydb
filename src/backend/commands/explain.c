@@ -53,7 +53,6 @@ extern StringInfo OptVersion();
 typedef struct ExplainState
 {
 	/* options */
-	bool		printTList;		/* print plan targetlists */
 	bool		printAnalyze;	/* print actual times */
 	/* other states */
 	PlannedStmt *pstmt;			/* top of plan */
@@ -93,8 +92,6 @@ static void explain_outNode(StringInfo str,
 				Plan *plan, PlanState *planstate,
 				Plan *outer_plan,
 				int indent, ExplainState *es);
-static void show_plan_tlist(Plan *plan,
-				StringInfo str, int indent, ExplainState *es);
 static void show_scan_qual(List *qual, const char *qlabel,
 			   int scanrelid, Plan *scan_plan, Plan *outer_plan,
 			   StringInfo str, int indent, ExplainState *es);
@@ -1451,11 +1448,8 @@ explain_outNode(StringInfo str,
 	appendStringInfoChar(str, '\n');
 
 #ifdef DEBUG_EXPLAIN
-				appendStringInfo(str, "plan->targetlist=%s\n", nodeToString(plan->targetlist));
+	appendStringInfo(str, "plan->targetlist=%s\n", nodeToString(plan->targetlist));
 #endif
-	/* target list */
-	if (es->printTList)
-		show_plan_tlist(plan, str, indent, es);
 
 	/* quals, sort keys, etc */
 	switch (nodeTag(plan))
@@ -2023,58 +2017,6 @@ explain_outNode(StringInfo str,
 
     es->currentSlice = currentSlice;    /* restore */
 }                               /* explain_outNode */
-
-/*
- * Show the targetlist of a plan node
- */
-static void
-show_plan_tlist(Plan *plan,
-				StringInfo str, int indent, ExplainState *es)
-{
-	List	   *context;
-	bool		useprefix;
-	ListCell   *lc;
-	int			i;
-
-	/* No work if empty tlist (this occurs eg in bitmap indexscans) */
-	if (plan->targetlist == NIL)
-		return;
-	/* Suppress printing the targetlist of Append and Sequence. */
-	if (IsA(plan, Append) || IsA(plan, Sequence))
-		return;
-
-	/* TODO: Likewise for RecursiveUnion */
-	//if (IsA(plan, RecursiveUnion))
-	//        return;
-
-	/* Set up deparsing context */
-	context = deparse_context_for_plan(OUTER, (Node *) plan, INNER,
-			(Node *) plan, es->rtable);
-	//es->pstmt->subplans);
-	useprefix = list_length(es->rtable) > 1;
-
-	/* Emit line prefix */
-	for (i = 0; i < indent; i++)
-		appendStringInfo(str, "  ");
-	appendStringInfo(str, "  Output: ");
-
-	/* Deparse each non-junk result column */
-	i = 0;
-	foreach(lc, plan->targetlist)
-	{
-		TargetEntry *tle = (TargetEntry *) lfirst(lc);
-
-		if (tle->resjunk)
-			continue;
-		if (i++ > 0)
-			appendStringInfo(str, ", ");
-		appendStringInfoString(str,
-							   deparse_expression((Node *) tle->expr, context,
-												  useprefix, false));
-	}
-
-	appendStringInfoChar(str, '\n');
-}
 
 /*
  * Show a qualifier expression for a scan plan node
