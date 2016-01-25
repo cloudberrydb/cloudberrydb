@@ -350,16 +350,16 @@ cdbpullup_exprHasSubplanRef(Expr *expr)
 
 
 /*
- * cdbpullup_findPathKeyInTargetList
+ * cdbpullup_findPathKeyExprInTargetList
  *
- * Searches the equivalence class 'pathkey' for a PathKey that
+ * Searches the equivalence class of a given PathKey for a member that
  * uses no rels outside the 'relids' set, and either is a member of
  * 'targetlist', or uses no Vars that are not in 'targetlist'.
  *
- * If found, returns the chosen PathKey and sets the output variables,
- * otherwise returns NULL
+ * If found, returns the chosen member's expression, otherwise returns
+ *  NULL
  *
- * 'pathkey' is a List of PathKey.
+ * 'item' is a PathKey.
  * 'targetlist' is a List of TargetEntry or merely a List of Expr.
  *
  * NB: We ignore the presence or absence of a RelabelType node atop either
@@ -373,8 +373,8 @@ cdbpullup_exprHasSubplanRef(Expr *expr)
  * atop an argument of a function or operator, but generally not atop a
  * targetlist expr.)
  */
-PathKey *
-cdbpullup_findPathKeyInTargetList(PathKey *item, List *targetlist)
+Expr *
+cdbpullup_findPathKeyExprInTargetList(PathKey *item, List *targetlist)
 {
 	ListCell *lc;
 	EquivalenceClass *eclass = item->pk_eclass;
@@ -390,18 +390,18 @@ cdbpullup_findPathKeyInTargetList(PathKey *item, List *targetlist)
 		TargetEntry *tle;
 
 		if (em->em_is_const)
-			return item;
+			return key;
 
 		/* Ignore possible RelabelType node atop the PathKey expr. */
 		if (IsA(key, RelabelType))
 			key = ((RelabelType *)key)->arg;
 
-		/* Check if targetlst is a List of TargetEntry */
+		/* Check if targetlist is a List of TargetEntry */
 		if (IsA(linitial(targetlist), TargetEntry))
 		{
 			tle = tlist_member_ignoring_RelabelType(key, targetlist);
 			if (tle)
-				return item;
+				return key;
 		}
 		/* Planner's RelOptInfo targetlists don't have TargetEntry nodes */
 		else
@@ -416,7 +416,7 @@ cdbpullup_findPathKeyInTargetList(PathKey *item, List *targetlist)
 					expr = ((RelabelType *)expr)->arg;
 
 				if (equal(expr, key))
-					return item;
+					return key;
 			}
 		}
 
@@ -424,7 +424,7 @@ cdbpullup_findPathKeyInTargetList(PathKey *item, List *targetlist)
 		if (!IsA(key, Var) &&
 			!cdbpullup_missingVarWalker((Node *) key, targetlist))
 		{
-			return item;
+			return key;
 		}
 	}
 

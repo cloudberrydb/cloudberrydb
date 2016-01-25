@@ -1170,61 +1170,58 @@ cdb_pull_up_pathkey(PlannerInfo    *root,
                     List           *newvarlist,
                     Index           newrelid)
 {
-	PathKey	   *sub_pathkey;
-	EquivalenceClass *sub_eclass;
+	Expr	   *sub_pathkeyexpr;
 	EquivalenceClass *outer_ec;
-	EquivalenceMember *sub_member;
-	Expr	   *newexpr;
-	ListCell   *lc;
+	Expr	   *newexpr = NULL;
 
     Assert(pathkey);
     Assert(!newvarlist ||
            list_length(newvarlist) == list_length(targetlist));
 
 	/* Find an expr that we can rewrite to use the projected columns. */
-	sub_pathkey = cdbpullup_findPathKeyInTargetList(pathkey, targetlist);
+	sub_pathkeyexpr = cdbpullup_findPathKeyExprInTargetList(pathkey, targetlist);
 
 	/* Replace expr's Var nodes with new ones referencing the targetlist. */
-	if (sub_pathkey)
+	if (sub_pathkeyexpr)
 	{
-		sub_eclass = (EquivalenceClass *) sub_pathkey->pk_eclass;
-
-		foreach(lc, sub_eclass->ec_members)
-		{
-			sub_member = (EquivalenceMember *) lfirst(lc);
-
-			newexpr = cdbpullup_expr((Expr *) sub_member->em_expr,
-									 targetlist,
-									 newvarlist,
-									 newrelid);
-			if (newexpr)
-				break;
-		}
+		newexpr = cdbpullup_expr(sub_pathkeyexpr,
+								 targetlist,
+								 newvarlist,
+								 newrelid);
 	}
 	/* If not found, see if the equiv class contains a constant expr. */
 	else if (CdbPathkeyEqualsConstant(pathkey))
 	{
-		sub_eclass = (EquivalenceClass *) pathkey->pk_eclass;
-		sub_member = (EquivalenceMember *) linitial(sub_eclass->ec_members);
+		ListCell *lc;
 
-		newexpr = (Expr *) copyObject(sub_member->em_expr);
+		foreach (lc, pathkey->pk_eclass->ec_members)
+		{
+			EquivalenceMember *em = lfirst(lc);
+
+			if (em->em_is_const)
+			{
+				newexpr = (Expr *) copyObject(em->em_expr);
+				break;
+			}
+		}
 	}
     /* Fail if no usable expr. */
     else
         return NULL;
 
-    Insist(newexpr);
+	if (!newexpr)
+		elog(ERROR, "could not pull up path key using projected target list");
 
 	outer_ec = get_eclass_for_sort_expr(root,
 										newexpr,
-										sub_member->em_datatype,
-										sub_eclass->ec_opfamilies);
+										exprType((Node *) newexpr),
+										pathkey->pk_eclass->ec_opfamilies);
 
     /* Find or create the equivalence class for the transformed expr. */
     return make_canonical_pathkey(root,
 								  outer_ec,
-								  sub_pathkey->pk_opfamily,
-								  sub_pathkey->pk_strategy,
+								  pathkey->pk_opfamily,
+								  pathkey->pk_strategy,
 								  false);
 }
 

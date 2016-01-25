@@ -422,7 +422,6 @@ cdbpathlocus_get_partkey_exprs(CdbPathLocus     locus,
 {
     List       *result = NIL;
     ListCell   *partkeycell;
-	ListCell   *i;
 
     Assert(cdbpathlocus_is_valid(locus));
 
@@ -431,24 +430,15 @@ cdbpathlocus_get_partkey_exprs(CdbPathLocus     locus,
 		foreach(partkeycell, locus.partkey_h)
 		{
 			PathKey    *pathkey = (PathKey *) lfirst(partkeycell);
-			PathKey    *item;
+			Expr	   *item;
 
-			item = cdbpullup_findPathKeyInTargetList(pathkey, targetlist);
+			item = cdbpullup_findPathKeyExprInTargetList(pathkey, targetlist);
 
 			/* Fail if can't evaluate partkey in the context of this targetlist. */
 			if (!item)
 				return NIL;
 
-			foreach(i, item->pk_eclass->ec_members)
-			{
-				EquivalenceMember *em = (EquivalenceMember *) lfirst(i);
-
-				if (bms_is_subset(em->em_relids, relids))
-				{
-					result = lappend(result, copyObject(em->em_expr));
-					break;
-				}
-			}
+			result = lappend(result, item);
 		}
 		return result;
     }
@@ -458,30 +448,22 @@ cdbpathlocus_get_partkey_exprs(CdbPathLocus     locus,
 		{
 			List       *pathkeylist = (List *)lfirst(partkeycell);
 			ListCell   *pathkeylistcell;
-			PathKey	   *item = NULL;
+			Expr	   *item = NULL;
 
 			foreach(pathkeylistcell, pathkeylist)
 			{
 				PathKey	   *pathkey = (PathKey *) lfirst(pathkeylistcell);
 
-				item = cdbpullup_findPathKeyInTargetList(pathkey, targetlist);
+				item = cdbpullup_findPathKeyExprInTargetList(pathkey, targetlist);
 
 				if (item)
-					break;
-			}
-			if (!item)
-				return NIL;
-
-			foreach(i, item->pk_eclass->ec_members)
-			{
-				EquivalenceMember *em = (EquivalenceMember *) lfirst(i);
-
-				if (bms_is_subset(em->em_relids, relids))
 				{
-					result = lappend(result, copyObject(em->em_expr));
+					result = lappend(result, item);
 					break;
 				}
 			}
+			if (!item)
+				return NIL;
 		}
 		return result;
 	}
