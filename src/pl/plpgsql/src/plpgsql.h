@@ -8,7 +8,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/pl/plpgsql/src/plpgsql.h,v 1.81.2.3 2008/10/09 16:35:19 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/pl/plpgsql/src/plpgsql.h,v 1.83 2007/01/28 16:15:49 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */

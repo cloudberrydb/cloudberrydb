@@ -8,7 +8,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/pl/plpgsql/src/pl_exec.c,v 1.183 2007/01/09 22:01:00 momjian Exp $
+ *	  $PostgreSQL: pgsql/src/pl/plpgsql/src/pl_exec.c,v 1.184 2007/01/28 16:15:49 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
