@@ -20,7 +20,7 @@ include $(top_builddir)/src/Makefile.global
 
 # Mac OS needs dynamic_lookup for undefined symbols when using -dynamiclib
 ifeq ($(PORTNAME), darwin)
-  override LINK.shared += -undefined dynamic_lookup
+  override SHLIB_LINK += -undefined dynamic_lookup
 endif
 
 # shared library parameters
@@ -33,8 +33,6 @@ OBJS = gppc.o
 
 all: all-lib
 include $(top_srcdir)/src/Makefile.shlib 	# Shared library stuff
-
-override pkglibdir := $(libdir)
 
 install: install-lib
 
