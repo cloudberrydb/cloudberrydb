@@ -571,8 +571,11 @@ static void updateCurFileState(fstream_t* fs,
 	{
 		fo->foff = fs->foff;
 		fo->line_number = fs->line_number;
-		strncpy(fo->fname, fs->glob.gl_pathv[fs->fidx], sizeof fo->fname);
-		fo->fname[sizeof fo->fname - 1] = 0;
+		if (fo->fname)
+			gfile_free(fo->fname);
+		fo->fname = gfile_malloc(strlen(fs->glob.gl_pathv[fs->fidx]) + 1);
+		strncpy(fo->fname, fs->glob.gl_pathv[fs->fidx], strlen(fs->glob.gl_pathv[fs->fidx]));
+		fo->fname[strlen(fs->glob.gl_pathv[fs->fidx])] = 0;
 	}
 }
 

@@ -75,7 +75,7 @@ typedef struct CdbSreh
 	int		lastsegid;		/* last QE COPY segid that QD COPY sent bad row to */
 	
 	MemoryContext badrowcontext;	/* per-badrow evaluation context */
-	char	   filename[256];		/* "uri [filename]" */
+	StringInfo	   filename;			/* "uri [filename]" */
 
 	bool	log_to_file;		/* or log into file? */
 	Oid		relid;				/* parent relation id */

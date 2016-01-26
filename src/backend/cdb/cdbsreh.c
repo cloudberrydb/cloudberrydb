@@ -99,9 +99,11 @@ makeCdbSreh(int rejectlimit, bool is_limit_in_rows,
 	h->lastsegid = 0;
 	h->consec_csv_err = 0;
 	h->log_to_file = log_to_file;
+	h->filename = makeStringInfo();
 
-	snprintf(h->filename, sizeof(h->filename),
-			 "%s", filename ? filename : "<stdin>");
+	/* If filename is null we allocate enough memory for the string <stdin> */
+	initStringInfo(h->filename);
+	appendStringInfoString(h->filename, filename ? filename : "<stdin>");
 
 	/*
 	 * Create a temporary memory context that we can reset once per row to
@@ -142,7 +144,7 @@ destroyCdbSreh(CdbSreh *cdbsreh)
  */
 void HandleSingleRowError(CdbSreh *cdbsreh)
 {
-	
+
 	/* increment total number of errors for this segment */ 
 	cdbsreh->rejectcount++;
 	
@@ -265,7 +267,7 @@ FormErrorTuple(CdbSreh *cdbsreh)
 	}
 
 	/* file name */
-	values[errtable_filename - 1] = DirectFunctionCall1(textin, CStringGetDatum(cdbsreh->filename));
+	values[errtable_filename - 1] = DirectFunctionCall1(textin, CStringGetDatum(cdbsreh->filename->data));
 	nulls[errtable_filename - 1] = false;
 
 	/* relation name */

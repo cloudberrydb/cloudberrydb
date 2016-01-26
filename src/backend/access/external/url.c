@@ -2068,7 +2068,11 @@ static size_t gp_proto1_read(char *buf, int bufsz, URL_FILE *file, CopyState pst
 
 				memcpy(fname, curl->in.ptr + curl->in.bot, len);
 				fname[len] = 0;
-				snprintf(pstate->cdbsreh->filename, sizeof pstate->cdbsreh->filename,"%s [%s]", pstate->filename, fname);
+				resetStringInfo(pstate->cdbsreh->filename);
+				appendStringInfo(pstate->cdbsreh->filename, pstate->filename);
+				appendStringInfo(pstate->cdbsreh->filename, " [");
+				appendStringInfo(pstate->cdbsreh->filename, fname);
+				appendStringInfo(pstate->cdbsreh->filename, "]");
 			}
 
 			curl->in.bot += len;
@@ -2360,6 +2364,7 @@ url_fread(void *ptr, size_t size, size_t nmemb, URL_FILE *file, CopyState pstate
 		case CFTYPE_FILE:
 		{
 			struct fstream_filename_and_offset fo;
+			fo.fname = NULL;
 			const int whole_rows = 0; /* get as much data as possible */
 
 			assert(size == 1);
@@ -2372,10 +2377,17 @@ url_fread(void *ptr, size_t size, size_t nmemb, URL_FILE *file, CopyState pstate
 				pstate->cur_lineno = fo.line_number - 1;
 
 				if (pstate->cdbsreh)
-					snprintf(pstate->cdbsreh->filename,
-							 sizeof pstate->cdbsreh->filename,
-							 "%s [%s]", pstate->filename, fo.fname);
+				{
+					resetStringInfo(pstate->cdbsreh->filename);
+					appendStringInfo(pstate->cdbsreh->filename, pstate->filename);
+					appendStringInfo(pstate->cdbsreh->filename, " [");
+					appendStringInfo(pstate->cdbsreh->filename, fo.fname);
+					appendStringInfo(pstate->cdbsreh->filename, "]");
+				}
 			}
+
+			if (fo.fname)
+				gfile_free(fo.fname);
 
 			break;
 		}

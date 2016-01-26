@@ -26,7 +26,7 @@ struct fstream_options{
 };
 
 struct fstream_filename_and_offset{
-    char 	fname[256];
+    char 	*fname;
     int64_t line_number; /* Line number of first line in buffer.  Zero means fstream doesn't know the line number. */
     int64_t foff;
 };
