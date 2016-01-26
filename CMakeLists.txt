@@ -4,7 +4,7 @@ cmake_minimum_required(VERSION 3.0 FATAL_ERROR)
 project(gpopt LANGUAGES CXX C)
 
 set(GPORCA_VERSION_MAJOR 1)
-set(GPORCA_VERSION_MINOR 618)
+set(GPORCA_VERSION_MINOR 619)
 set(GPORCA_VERSION_STRING ${GPORCA_VERSION_MAJOR}.${GPORCA_VERSION_MINOR})
 
 # Whenever an ABI-breaking change is made to GPORCA, this should be incremented.
@@ -125,7 +125,7 @@ find_package(Xerces REQUIRED)
 include_directories(${XERCES_INCLUDE_DIRS})
 
 # GPOS.
-find_package(GPOS 1.134 REQUIRED)
+find_package(GPOS 1.135 REQUIRED)
 include_directories(${GPOS_INCLUDE_DIRS})
 
 # Extra system libs needed on Solaris.

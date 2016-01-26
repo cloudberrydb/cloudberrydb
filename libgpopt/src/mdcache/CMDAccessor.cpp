@@ -639,13 +639,6 @@ CMDAccessor::Pimdobj
 				(void) a_pmdkeyCache.PtReset();
 			}
 		}
-		else
-		{
-			// Object found in CCache but not in local hash table.
-			// Take ownership before inserting in local hash table
-			// hash table will call corresponding release in destructor
-			pmdobjNew->AddRef();
-		}
 
 		{
 			// store in local hashtable
