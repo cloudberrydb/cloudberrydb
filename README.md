@@ -1,6 +1,6 @@
 <pre>
 ======================================================================
-               __________  ____  ____  _________ 
+               __________  ____  ____  _________
               / ____/ __ \/ __ \/ __ \/ ____/   |
              / / __/ /_/ / / / / / /_/ / /   / /| |
             / /_/ / ____/ /_/ / _, _/ /___/ ___ |
@@ -84,6 +84,9 @@ installed side-by-side with unpatched Xerces without incompatibilities.
 You can point cmake at your patched GP-Xerces installation using the
 `XERCES_INCLUDE_DIR` and `XERCES_LIBRARY` options like so:
 
+However, to use the current build scripts in GPDB, Xerces with the gp_xerces
+patch will need to be placed on the /usr path.
+
 ```
 cmake -D XERCES_INCLUDE_DIR=/opt/gp_xerces/include -D XERCES_LIBRARY=/opt/gp_xerces/lib/libxerces-c.so ..
 ```
@@ -150,11 +153,11 @@ cmake -D XERCES_INCLUDE_DIR=/opt/gp_xerces/include -D XERCES_LIBRARY=/opt/gp_xer
 ## Advanced: Cross-Compiling 32-bit or 64-bit libraries
 
 For the most part you should not need to explicitly compile a 32-bit or 64-bit
-version of the optimizer libraries. By default, a "native" version for your host 
-platform will be compiled. However, if you are on x86 and want to, for example, 
-build a 32-bit version of Optimizer libraries on a 64-bit machine, you can do 
-so as described below. Note that you will need a "multilib" C++ compiler that 
-supports the -m32/-m64 switches, and you may also need to install 32-bit ("i386") 
+version of the optimizer libraries. By default, a "native" version for your host
+platform will be compiled. However, if you are on x86 and want to, for example,
+build a 32-bit version of Optimizer libraries on a 64-bit machine, you can do
+so as described below. Note that you will need a "multilib" C++ compiler that
+supports the -m32/-m64 switches, and you may also need to install 32-bit ("i386")
 versions of the C and C++ standard libraries for your OS. Finally, you will need
 to build 32-bit or 64-bit versions of GPOS and GP-Xerces as appropriate.
 
@@ -237,9 +240,9 @@ arguments `-D ENABLE_EXTENDED_TESTS=1`.
 GPORCA has three libraries:
 
 1. libnaucrates --- has all DXL related classes, and statistics related classes
-2. libgpopt     --- has all the code related to the optimization engine, meta-data accessor, logical / physical operators, 
-                    transformation rules, and translators (DXL to expression and vice versa). 
-3. libgpdbcost  --- cost model for GPDB. 
+2. libgpopt     --- has all the code related to the optimization engine, meta-data accessor, logical / physical operators,
+                    transformation rules, and translators (DXL to expression and vice versa).
+3. libgpdbcost  --- cost model for GPDB.
 
 By default, GPORCA will be installed under /usr/local. You can change this by
 setting CMAKE_INSTALL_PREFIX when running cmake, for example:
@@ -270,7 +273,7 @@ the library is located at:
 % make VERBOSE=1 install
 ```
 
-## Clean up stuff 
+## Clean up stuff
 
 * remove the cmake files generated under build
 
