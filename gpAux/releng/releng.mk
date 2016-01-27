@@ -107,13 +107,6 @@ R_HOME = /opt/releng/tools/R-Project/R/$(R_VER)/$(BLD_ARCH)/lib/R
 endif
 endif
 
-GPERF_VERSION = $(shell grep 'name="gperf"' $(GREP_SED_VAR))
-ifneq "$(wildcard $(BLD_TOP)/ext/$(BLD_ARCH)/gperf-$(GPERF_VERSION)/bin/gperf)" ""
-GPERF_DIR = $(BLD_TOP)/ext/$(BLD_ARCH)/gperf-$(GPERF_VERSION)
-gperftmpPATH:=$(GPERF_DIR)/bin:$(PATH)
-export PATH=$(gperftmpPATH)
-endif
-
 display_dependent_vers:
 	@echo ""
 	@echo "======================================================================"
