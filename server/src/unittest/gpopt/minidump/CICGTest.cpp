@@ -199,7 +199,7 @@ const CHAR *rgszFileNames[] =
 		"../data/dxl/minidump/JOIN-cast2text-int4-Eq-cast2text-double.mdp",
 		"../data/dxl/minidump/JOIN-int4-Eq-int2.mdp",
 
-		// TODO:  - Feb 27, 2014; Enable when the difference in generated plans is resolved (MPP-22760)
+		// TODO:  - Feb 27, 2014; Enable when the difference in generated plans is resolved
 		//"../data/dxl/minidump/Join-Varchar-Equality.mdp",
 
 		"../data/dxl/minidump/CastOnSubquery.mdp",

@@ -1754,7 +1754,7 @@ CXformUtils::PexprAssertUpdateCardinality
 	pcrsKey->Release();
 	
 	// TODO:  - May 20, 2013; re-enable cardinality assert when the executor 
-	// supports DML in a non-root slice (MPP-20175)
+	// supports DML in a non-root slice
 	
 	GPOS_RAISE(gpopt::ExmaGPOPT, gpopt::ExmiUnsupportedNonDeterministicUpdate);
 

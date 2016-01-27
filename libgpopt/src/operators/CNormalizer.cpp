@@ -931,7 +931,7 @@ CNormalizer::PushThru
 	GPOS_ASSERT(NULL != pexprConj);
 	GPOS_ASSERT(NULL != ppexprResult);
 
-	// TODO: 01/13/2012 - ; predicate push down with set returning functions (MPP-16006)
+	// TODO: 01/13/2012 - ; predicate push down with set returning functions
 
 	if (0 == pexprLogical->UlArity())
 	{

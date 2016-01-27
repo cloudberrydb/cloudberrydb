@@ -165,7 +165,7 @@ CDXLPhysicalDML::SerializeToDXL
 	}
 	else
 	{
-		// TODO:  - Oct 22, 2014; clean this code once the direct dispatch code for DML and SELECT is unified (AGL-922)
+		// TODO:  - Oct 22, 2014; clean this code once the direct dispatch code for DML and SELECT is unified
 		pxmlser->OpenElement(CDXLTokens::PstrToken(EdxltokenNamespacePrefix), CDXLTokens::PstrToken(EdxltokenDirectDispatchInfo));
 		pxmlser->CloseElement(CDXLTokens::PstrToken(EdxltokenNamespacePrefix), CDXLTokens::PstrToken(EdxltokenDirectDispatchInfo));
 	}
