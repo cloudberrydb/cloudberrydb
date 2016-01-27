@@ -2740,14 +2740,6 @@ transformDistributedBy(ParseState *pstate, CreateStmtContext *cxt,
 		ListCell   *columns;
 		ColumnDef  *column = NULL;
 
-		/* If we have no attributes, make sure that we don't create a bogus policy! */
-		if (cxt && list_length(cxt->columns) == 0 && !cxt->inhRelations)
-		{
-			elog(NOTICE, "Table has no attributes to distribute on.");
-			pfree(policy);
-			return;
-		}
-
 		/* we will distribute on at most one column */
 		policy->nattrs = 1;
 
