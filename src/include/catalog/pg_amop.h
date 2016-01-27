@@ -29,7 +29,7 @@
  * Portions Copyright (c) 1996-2008, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
- * $PostgreSQL: pgsql/src/include/catalog/pg_amop.h,v 1.77 2007/01/05 22:19:52 momjian Exp $
+ * $PostgreSQL: pgsql/src/include/catalog/pg_amop.h,v 1.78 2007/01/28 16:16:52 neilc Exp $
  *
  * NOTES
  *	 the genbki.sh script reads this file and generates .bki
@@ -509,6 +509,16 @@ DATA(insert (	397   2277 2277 3 f 1070	403 ));
 DATA(insert (	397   2277 2277 4 f 1075	403 ));
 DATA(insert (	397   2277 2277 5 f 1073	403 ));
 
+/* 
+ * btree uuid_ops 
+ */
+ 
+DATA(insert (	2968  2950 2950 1 f	2974	403 ));
+DATA(insert (	2968  2950 2950 2 f 2976	403 ));
+DATA(insert (	2968  2950 2950 3 f 2972	403 ));
+DATA(insert (	2968  2950 2950 4 f 2977	403 ));
+DATA(insert (	2968  2950 2950 5 f 2975	403 ));
+
 /*
  *	hash index _ops
  */
@@ -572,6 +582,9 @@ DATA(insert (	2232   19 19 1 f 2334	405 ));
 DATA(insert (	2235   1033 1033 1 f  974	405 ));
 /* numeric_ops */
 DATA(insert (	1998   1700 1700 1 f 1752 405 ));
+/* uuid_ops */ 
+DATA(insert (	2969   2950 2950 1 f 2972 405 ));
+
 
 /*
  *	gist box_ops

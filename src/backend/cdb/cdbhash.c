@@ -27,6 +27,7 @@
 #include "utils/nabstime.h"
 #include "utils/varbit.h"
 #include "utils/acl.h"
+#include "utils/uuid.h"
 #include "fmgr.h"
 #include "utils/fmgroids.h"
 #include "utils/lsyscache.h"
@@ -223,7 +224,8 @@ hashDatum(Datum datum, Oid type, datumHashFunction hashFn, void *clientData)
 	oidvector  *oidvec_buf;
 	
 	Cash		cash_buf;
-	
+	pg_uuid_t  *uuid_buf;
+
 	/*
 	 * special case buffers
 	 */
@@ -562,6 +564,13 @@ hashDatum(Datum datum, Oid type, datumHashFunction hashFn, void *clientData)
 			len = sizeof(Cash);
 			buf = &cash_buf;
 			break;
+
+		/* pg_uuid_t is defined as a char array of size UUID_LEN in uuid.c */
+		case UUIDOID:
+			uuid_buf = DatumGetUUIDP(datum);
+			len = UUID_LEN;
+			buf = (char *)uuid_buf;
+			break;
 				
 		default:
 			ereport(ERROR,
@@ -730,6 +739,7 @@ bool isGreenplumDbHashable(Oid typid)
 		case ANYARRAYOID:	
 		case OIDVECTOROID:	
 		case CASHOID: 
+		case UUIDOID:
 			return true;
 		default:
 			return false;

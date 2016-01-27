@@ -133,7 +133,7 @@
  CREATE FUNCTION pg_partition_oid(oid, record) RETURNS _oid LANGUAGE internal IMMUTABLE AS 'aggregate_dummy' WITH (OID=6112, proisagg="t");
 -- #define PG_PARTITION_OID_OID 6112
 
- CREATE FUNCTION pg_stat_get_backend_waiting_reason(int4) RETURNS text LANGUAGE internal STABLE STRICT AS 'pg_stat_get_backend_waiting_reason' WITH (OID=2972, DESCRIPTION="Statistics: Reason backend is waiting for");
+ CREATE FUNCTION pg_stat_get_backend_waiting_reason(int4) RETURNS text LANGUAGE internal STABLE STRICT AS 'pg_stat_get_backend_waiting_reason' WITH (OID=2897, DESCRIPTION="Statistics: Reason backend is waiting for");
 
  CREATE FUNCTION pg_stat_get_queue_num_exec(oid) RETURNS int8 LANGUAGE internal STABLE STRICT AS 'pg_stat_get_queue_num_exec' WITH (OID=6031, DESCRIPTION="Statistics: Number of queries that executed in queue");
 
