@@ -1178,6 +1178,7 @@ pg_get_constraintdef_worker(Oid constraintId, bool fullCommand,
 	return buf.data;
 }
 
+
 /*
  * Convert an int16[] Datum into a comma-separated list of column names
  * for the indicated relation; append the list to buf.
@@ -1653,7 +1654,7 @@ print_function_arguments(StringInfo buf, HeapTuple proctup,
 	return argsprinted;
 }
 
-/*
+/* ----------
  * deparse_expression			- General utility for deparsing expressions
  *
  * calls deparse_expression_pretty with all prettyPrinting disabled
@@ -1924,7 +1925,7 @@ make_ruledef(StringInfo buf, HeapTuple ruletup, TupleDesc rulettc,
 	if (strlen(ev_qual) > 0 && strcmp(ev_qual, "<>") != 0)
 	{
 		Node	   *qual;
-			Query	   *query;
+		Query	   *query;
 		deparse_context context;
 		deparse_namespace dpns;
 

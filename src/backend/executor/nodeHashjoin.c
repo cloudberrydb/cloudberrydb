@@ -259,8 +259,7 @@ ExecHashJoin(HashJoinState *node)
 		 * again.)
 		 */
 		node->hj_OuterNotEmpty = false;
-
-	} /* if (hashtable == NULL) */
+	}
 
 	/*
 	 * run the hash join process
@@ -324,7 +323,7 @@ ExecHashJoin(HashJoinState *node)
 				node->hj_NeedNewOuter = true;
 				continue;		/* loop around for a new outer tuple */
 			}
-		}  /* if (node->hj_NeedNewOuter) */
+		}
 
 		/*
 		 * OK, scan the selected hash bucket for matches
@@ -545,9 +544,8 @@ ExecInitHashJoin(HashJoin *node, EState *estate, int eflags)
 								 ExecGetResultType(innerPlanState(hjstate)));
 			break;
 		default:
-			elog(LOG, "unrecognized join type: %d",
+			elog(ERROR, "unrecognized join type: %d",
 				 (int) node->join.jointype);
-			Assert(false);
 	}
 
 	/*
@@ -685,14 +683,13 @@ ExecEndHashJoin(HashJoinState *node)
  */
 static TupleTableSlot *
 ExecHashJoinOuterGetTuple(PlanState *outerNode,
-		HashJoinState *hjstate,
-		uint32 *hashvalue)
+						  HashJoinState *hjstate,
+						  uint32 *hashvalue)
 {
 	HashJoinTable hashtable = hjstate->hj_HashTable;
 	int			curbatch = hashtable->curbatch;
 	TupleTableSlot *slot;
 	ExprContext    *econtext;
-
 	HashState *hashState = (HashState *) innerPlanState(hjstate);
 
 	/* Read tuples from outer relation only if it's the first batch */
@@ -1102,7 +1099,7 @@ ExecHashJoinGetSavedTuple(HashJoinBatchSide *batchside,
 
 void
 ExecReScanHashJoin(HashJoinState *node, ExprContext *exprCtxt)
-{		
+{
 	/*
 	 * In a multi-batch join, we currently have to do rescans the hard way,
 	 * primarily because batch temp files may have already been released. But

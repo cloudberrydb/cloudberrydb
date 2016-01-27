@@ -1201,7 +1201,7 @@ ExecScanHashBucket(HashState *hashState, HashJoinState *hjstate,
  */
 void
 ExecHashTableReset(HashState *hashState, HashJoinTable hashtable)
-{	
+{
 	MemoryContext oldcxt;
 	int			nbuckets = 0;
 

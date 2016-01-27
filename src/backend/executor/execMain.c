@@ -2926,10 +2926,10 @@ ExecInsert(TupleTableSlot *slot,
 		   PlanGenerator planGen,
 		   bool isUpdate)
 {
-	void		*tuple = NULL;
-	ResultRelInfo *resultRelInfo = NULL;
-	Relation	resultRelationDesc = NULL;
-	Oid			newId = InvalidOid;
+	void	   *tuple;
+	ResultRelInfo *resultRelInfo;
+	Relation	resultRelationDesc;
+	Oid			newId;
 	TupleTableSlot *partslot = NULL;
 
 	AOTupleId	aoTupleId = AOTUPLEID_INIT;
@@ -3193,13 +3193,13 @@ ExecDelete(ItemPointer tupleid,
 		   bool isUpdate)
 {
 	ResultRelInfo *resultRelInfo;
-	Relation resultRelationDesc;
+	Relation	resultRelationDesc;
 	HTSU_Result result;
 	ItemPointerData update_ctid;
 	TransactionId update_xmax;
 
 	/*
-	 * Get information on the (current) result relation.
+	 * get information on the (current) result relation
 	 */
 	if (estate->es_result_partitions && planGen == PLANGEN_OPTIMIZER)
 	{
@@ -3623,7 +3623,7 @@ ExecUpdate(TupleTableSlot *slot,
 	 */
 	if (IsBootstrapProcessingMode())
 		elog(ERROR, "cannot UPDATE during bootstrap");
-	
+
 	/*
 	 * get information on the (current) result relation
 	 */
@@ -3879,7 +3879,6 @@ lreplace:;
 	ExecARUpdateTriggers(estate, resultRelInfo, tupleid, tuple);
 
 }
-
 
 /*
  * ExecRelCheck --- check that tuple meets constraints for result relation
@@ -4385,10 +4384,10 @@ EvalPlanQualStart(evalPlanQual *epq, EState *estate, evalPlanQual *priorepq)
 	epqstate->es_into_relation_descriptor = estate->es_into_relation_descriptor;
 	epqstate->es_into_relation_is_bulkload = estate->es_into_relation_is_bulkload;
 	epqstate->es_into_relation_last_heap_tid = estate->es_into_relation_last_heap_tid;
-	
+
 	epqstate->es_into_relation_bulkloadinfo = (struct MirroredBufferPoolBulkLoadInfo *) palloc0(sizeof(MirroredBufferPoolBulkLoadInfo));
 	memcpy(epqstate->es_into_relation_bulkloadinfo, estate->es_into_relation_bulkloadinfo, sizeof(MirroredBufferPoolBulkLoadInfo));
-	
+
 	epqstate->es_param_list_info = estate->es_param_list_info;
 	if (estate->es_plannedstmt->planTree->nParamExec > 0)
 		epqstate->es_param_exec_vals = (ParamExecData *)
@@ -4842,9 +4841,9 @@ OpenIntoRel(QueryDesc *queryDesc)
 
 	/* use_wal off requires rd_targblock be initially invalid */
 	Assert(intoRelationDesc->rd_targblock == InvalidBlockNumber);
-	
+
 	estate->es_into_relation_is_bulkload = bufferPoolBulkLoad;
-				
+
 	estate->es_into_relation_descriptor = intoRelationDesc;
 
 	relFileNode.spcNode = tablespaceId;
