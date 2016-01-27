@@ -261,487 +261,481 @@ ExecutorStart(QueryDesc *queryDesc, int eflags)
 	}
 
 	START_MEMORY_ACCOUNT(plannedStmt->memoryAccount);
+
+	Assert(queryDesc->plannedstmt->intoPolicy == NULL
+		   || queryDesc->plannedstmt->intoPolicy->ptype == POLICYTYPE_PARTITIONED);
+
+	/**
+	 * Perfmon related stuff.
+	 */
+	if (gp_enable_gpperfmon
+		&& Gp_role == GP_ROLE_DISPATCH
+		&& queryDesc->gpmon_pkt)
 	{
-		Assert(queryDesc->plannedstmt->intoPolicy == NULL
-			   || queryDesc->plannedstmt->intoPolicy->ptype == POLICYTYPE_PARTITIONED);
+		gpmon_qlog_query_start(queryDesc->gpmon_pkt);
+	}
 
-		/**
-		 * Perfmon related stuff.
-		 */
-		if (gp_enable_gpperfmon
-				&& Gp_role == GP_ROLE_DISPATCH
-				&& queryDesc->gpmon_pkt)
+	/**
+	 * Distribute memory to operators.
+	 */
+	if (Gp_role == GP_ROLE_DISPATCH)
+	{
+		if (gp_resqueue_memory_policy != RESQUEUE_MEMORY_POLICY_NONE &&
+			gp_log_resqueue_memory)
 		{
-			gpmon_qlog_query_start(queryDesc->gpmon_pkt);
+			elog(gp_resqueue_memory_log_level, "query requested %.0fKB of memory",
+				 (double) queryDesc->plannedstmt->query_mem / 1024.0);
 		}
 
 		/**
-		 * Distribute memory to operators.
+		 * There are some statements that do not go through the resource queue, so we cannot
+		 * put in a strong assert here. Someday, we should fix resource queues.
 		 */
-		if (Gp_role == GP_ROLE_DISPATCH)
+		if (queryDesc->plannedstmt->query_mem > 0)
 		{
-			if (gp_resqueue_memory_policy != RESQUEUE_MEMORY_POLICY_NONE &&
-				gp_log_resqueue_memory)
+			switch(gp_resqueue_memory_policy)
 			{
-				elog(gp_resqueue_memory_log_level, "query requested %.0fKB of memory",
-					 (double) queryDesc->plannedstmt->query_mem / 1024.0);
-			}
-	
-			/**
-			 * There are some statements that do not go through the resource queue, so we cannot
-			 * put in a strong assert here. Someday, we should fix resource queues.
-			 */
-			if (queryDesc->plannedstmt->query_mem > 0)
-			{
-				switch(gp_resqueue_memory_policy)
-				{
-					case RESQUEUE_MEMORY_POLICY_AUTO:
-						PolicyAutoAssignOperatorMemoryKB(queryDesc->plannedstmt,
-														 queryDesc->plannedstmt->query_mem);
-						break;
-					case RESQUEUE_MEMORY_POLICY_EAGER_FREE:
-						PolicyEagerFreeAssignOperatorMemoryKB(queryDesc->plannedstmt,
-															 queryDesc->plannedstmt->query_mem);
-						break;
-					default:
-						Assert(gp_resqueue_memory_policy == RESQUEUE_MEMORY_POLICY_NONE);
-						break;
-				}
-			}
-		}
-
-		/*
-		 * If the transaction is read-only, we need to check if any writes are
-		 * planned to non-temporary tables.  EXPLAIN is considered read-only.
-		 */
-		if ((XactReadOnly || Gp_role == GP_ROLE_DISPATCH) && !(eflags & EXEC_FLAG_EXPLAIN_ONLY))
-			ExecCheckXactReadOnly(queryDesc->plannedstmt);
-
-		/*
-		 * Build EState, switch into per-query memory context for startup.
-		 */
-		estate = CreateExecutorState();
-		queryDesc->estate = estate;
-
-		oldcontext = MemoryContextSwitchTo(estate->es_query_cxt);
-
-		/**
-		 * Attached the plannedstmt from queryDesc
-		 */
-		estate->es_plannedstmt = queryDesc->plannedstmt;
-
-		/*
-		 * Fill in parameters, if any, from queryDesc
-		 */
-		estate->es_param_list_info = queryDesc->params;
-
-		if (queryDesc->plannedstmt->nCrossLevelParams > 0)
-			estate->es_param_exec_vals = (ParamExecData *)
-				palloc0(queryDesc->plannedstmt->nCrossLevelParams * sizeof(ParamExecData));
-
-		/*
-		 * Copy other important information into the EState
-		 */
-		estate->es_snapshot = queryDesc->snapshot;
-		estate->es_crosscheck_snapshot = queryDesc->crosscheck_snapshot;
-		estate->es_instrument = queryDesc->doInstrument;
-		estate->showstatctx = queryDesc->showstatctx;
-
-		/*
-		 * Shared input info is needed when ROLE_EXECUTE or sequential plan
-		 */
-		estate->es_sharenode = (List **) palloc0(sizeof(List *));
-
-		/*
-		 * Initialize the motion layer for this query.
-		 *
-		 * NOTE: need to be in estate->es_query_cxt before the call.
-		 */
-		initMotionLayerStructs((MotionLayerState **)&estate->motionlayer_context);
-
-		/* Reset workfile disk full flag */
-		WorkfileDiskspace_SetFull(false /* isFull */);
-		/* Initialize per-query resource (diskspace) tracking */
-		WorkfileQueryspace_InitEntry(gp_session_id, gp_command_count);
-
-		if (Gp_role != GP_ROLE_DISPATCH && queryDesc->plannedstmt->transientTypeRecords != NULL)
-		{
-			ListCell   *cell;
-			foreach(cell, queryDesc->plannedstmt->transientTypeRecords)
-			{
-				TupleDescNode *tmp = lfirst(cell);
-				assign_record_type_typmod(tmp->tuple);
-			}
-		}
-		/*
-		 * Handling of the Slice table depends on context.
-		 */
-		if (Gp_role == GP_ROLE_DISPATCH && queryDesc->plannedstmt->planTree->dispatch == DISPATCH_PARALLEL)
-		{
-			/*
-			 * If this is an extended query (normally cursor or bind/exec) - before
-			 * starting the portal, we need to make sure that the shared snapshot is
-			 * already set by a writer gang, or the cursor query readers will
-			 * timeout waiting for one that may not exist (in some cases). Therefore
-			 * we insert a small hack here and dispatch a SET query that will do it
-			 * for us. (This is also done in performOpenCursor() for the simple
-			 * query protocol).
-			 *
-			 * MPP-7504/MPP-7448: We also call this down inside the dispatcher after
-			 * the pre-dispatch evaluator has run.
-			 */
-			if (queryDesc->extended_query)
-			{
-				verify_shared_snapshot_ready();
-			}
-
-			/* Set up blank slice table to be filled in during InitPlan. */
-			InitSliceTable(estate, queryDesc->plannedstmt->nMotionNodes, queryDesc->plannedstmt->nInitPlans);
-
-			/**
-			 * Copy direct dispatch decisions out of the plan and into the slice table.  Must be done after slice table is built.
-			 * Note that this needs to happen whether or not the plan contains direct dispatch decisions. This
-			 * is because the direct dispatch partially forgets some of the decisions it has taken.
-			 **/
-			if (gp_enable_direct_dispatch)
-			{
-				CopyDirectDispatchFromPlanToSliceTable(queryDesc->plannedstmt, estate );
-			}
-
-			/* Pass EXPLAIN ANALYZE flag to qExecs. */
-			estate->es_sliceTable->doInstrument = queryDesc->doInstrument;
-
-			/* set our global sliceid variable for elog. */
-			currentSliceId = LocallyExecutingSliceIndex(estate);
-
-			/* Determin OIDs for into relation, if any */
-			if (queryDesc->plannedstmt->intoClause != NULL)
-			{
-				IntoClause *intoClause = queryDesc->plannedstmt->intoClause;
-				Relation	pg_class_desc;
-				Relation	pg_type_desc;
-				Oid         reltablespace;
-
-				cdb_sync_oid_to_segments();
-
-				/* MPP-10329 - must always dispatch the tablespace */
-				if (intoClause->tableSpaceName)
-				{
-					reltablespace = get_tablespace_oid(intoClause->tableSpaceName);
-					if (!OidIsValid(reltablespace))
-						ereport(ERROR,
-								(errcode(ERRCODE_UNDEFINED_OBJECT),
-								 errmsg("tablespace \"%s\" does not exist",
-										intoClause->tableSpaceName)));
-				}
-				else
-				{
-					reltablespace = GetDefaultTablespace();
-
-					/* Need the real tablespace id for dispatch */
-					if (!OidIsValid(reltablespace))
-						reltablespace = MyDatabaseTableSpace;
-
-					intoClause->tableSpaceName = get_tablespace_name(reltablespace);
-				}
-
-
-				pg_class_desc = heap_open(RelationRelationId, RowExclusiveLock);
-				pg_type_desc = heap_open(TypeRelationId, RowExclusiveLock);
-
-				intoClause->oidInfo.relOid = GetNewRelFileNode(reltablespace, false, pg_class_desc);
-				elog(DEBUG3, "ExecutorStart assigned new intoOidInfo.relOid = %d",
-					 intoClause->oidInfo.relOid);
-
-				intoClause->oidInfo.comptypeOid = GetNewRelFileNode(reltablespace, false, pg_type_desc);
-				intoClause->oidInfo.toastOid = GetNewRelFileNode(reltablespace, false, pg_class_desc);
-				intoClause->oidInfo.toastIndexOid = GetNewRelFileNode(reltablespace, false, pg_class_desc);
-				intoClause->oidInfo.toastComptypeOid = GetNewRelFileNode(reltablespace, false, pg_type_desc);
-				intoClause->oidInfo.aosegOid = GetNewRelFileNode(reltablespace, false, pg_class_desc);
-				intoClause->oidInfo.aosegIndexOid = GetNewRelFileNode(reltablespace, false, pg_class_desc);
-				intoClause->oidInfo.aosegComptypeOid = GetNewRelFileNode(reltablespace, false, pg_type_desc);
-				intoClause->oidInfo.aoblkdirOid = GetNewRelFileNode(reltablespace, false, pg_class_desc);
-				intoClause->oidInfo.aoblkdirIndexOid = GetNewRelFileNode(reltablespace, false, pg_class_desc);
-				intoClause->oidInfo.aoblkdirComptypeOid = GetNewRelFileNode(reltablespace, false, pg_type_desc);
-				intoClause->oidInfo.aovisimapOid = GetNewRelFileNode(reltablespace, false, pg_class_desc);
-				intoClause->oidInfo.aovisimapIndexOid = GetNewRelFileNode(reltablespace, false, pg_class_desc);
-				intoClause->oidInfo.aovisimapComptypeOid = GetNewRelFileNode(reltablespace, false, pg_type_desc);
-				heap_close(pg_class_desc, RowExclusiveLock);
-				heap_close(pg_type_desc, RowExclusiveLock);
-
-			}
-		}
-		else if (Gp_role == GP_ROLE_EXECUTE)
-		{
-
-			/* qDisp should have sent us a slice table via MPPEXEC */
-			if (queryDesc->plannedstmt->sliceTable != NULL)
-			{
-				SliceTable *sliceTable;
-				Slice	   *slice;
-
-				sliceTable = (SliceTable *)queryDesc->plannedstmt->sliceTable;
-				Assert(IsA(sliceTable, SliceTable));
-				slice = (Slice *)list_nth(sliceTable->slices, sliceTable->localSlice);
-				Assert(IsA(slice, Slice));
-
-				estate->es_sliceTable = sliceTable;
-
-				estate->currentSliceIdInPlan = slice->rootIndex;
-				estate->currentExecutingSliceId = slice->rootIndex;
-
-				/* set our global sliceid variable for elog. */
-				currentSliceId = LocallyExecutingSliceIndex(estate);
-
-				/* Should we collect statistics for EXPLAIN ANALYZE? */
-				estate->es_instrument = sliceTable->doInstrument;
-				queryDesc->doInstrument = sliceTable->doInstrument;
-			}
-
-			/* InitPlan() will acquire locks by walking the entire plan
-			 * tree -- we'd like to avoid acquiring the locks until
-			 * *after* we've set up the interconnect */
-			if (queryDesc->plannedstmt->nMotionNodes > 0)
-			{
-				int i;
-
-				PG_TRY();
-				{
-					for (i=1; i <= queryDesc->plannedstmt->nMotionNodes; i++)
-					{
-						InitMotionLayerNode(estate->motionlayer_context, i);
-					}
-
-					estate->es_interconnect_is_setup = true;
-
-					Assert(!estate->interconnect_context);
-					SetupInterconnect(estate);
-					Assert(estate->interconnect_context);
-				}
-				PG_CATCH();
-				{
-					mppExecutorCleanup(queryDesc);
-					PG_RE_THROW();
-				}
-				PG_END_TRY();
-			}
-		}
-
-		/* If the interconnect has been set up; we need to catch any
-		 * errors to shut it down -- so we have to wrap InitPlan in a PG_TRY() block. */
-		PG_TRY();
-		{
-			/*
-			 * Initialize the plan state tree
-			 */
-			Assert(CurrentMemoryContext == estate->es_query_cxt);
-			InitPlan(queryDesc, eflags);
-
-			Assert(queryDesc->planstate);
-
-			if (Gp_role == GP_ROLE_DISPATCH &&
-				queryDesc->plannedstmt->planTree->dispatch == DISPATCH_PARALLEL)
-			{
-				/* Assign gang descriptions to the root slices of the slice forest. */
-				InitRootSlices(queryDesc);
-
-				if (!(eflags & EXEC_FLAG_EXPLAIN_ONLY))
-				{
-					/*
-					 * Since we intend to execute the plan, inventory the slice tree,
-					 * allocate gangs, and associate them with slices.
-					 *
-					 * For now, always use segment 'gp_singleton_segindex' for
-					 * singleton gangs.
-					 *
-					 * On return, gangs have been allocated and CDBProcess lists have
-					 * been filled in in the slice table.)
-					 */
-					AssignGangs(queryDesc, gp_singleton_segindex);
-				}
-
-			}
-
-	#ifdef USE_ASSERT_CHECKING
-			AssertSliceTableIsValid((struct SliceTable *) estate->es_sliceTable, queryDesc->plannedstmt);
-	#endif
-
-			if (Debug_print_slice_table && Gp_role == GP_ROLE_DISPATCH)
-				elog_node_display(DEBUG3, "slice table", estate->es_sliceTable, true);
-
-			/*
-			 * If we're running as a QE and there's a slice table in our queryDesc,
-			 * then we need to finish the EState setup we prepared for back in
-			 * CdbExecQuery.
-			 */
-			if (Gp_role == GP_ROLE_EXECUTE && estate->es_sliceTable != NULL)
-			{
-				MotionState *motionstate = NULL;
-
-				/*
-				 * Note that, at this point on a QE, the estate is setup (based on the
-				 * slice table transmitted from the QD via MPPEXEC) so that fields
-				 * es_sliceTable, cur_root_idx and es_cur_slice_idx are correct for
-				 * the QE.
-				 *
-				 * If responsible for a non-root slice, arrange to enter the plan at the
-				 * slice's sending Motion node rather than at the top.
-				 */
-				if (LocallyExecutingSliceIndex(estate) != RootSliceIndex(estate))
-				{
-					motionstate = getMotionState(queryDesc->planstate, LocallyExecutingSliceIndex(estate));
-					Assert(motionstate != NULL && IsA(motionstate, MotionState));
-
-					/* Patch Motion node so it looks like a top node. */
-					motionstate->ps.plan->nMotionNodes = estate->es_sliceTable->nMotions;
-					motionstate->ps.plan->nParamExec = estate->es_sliceTable->nInitPlans;
-				}
-
-				if (Debug_print_slice_table)
-					elog_node_display(DEBUG3, "slice table", estate->es_sliceTable, true);
-
-				if (gp_log_interconnect >= GPVARS_VERBOSITY_DEBUG)
-					elog(DEBUG1, "seg%d executing slice%d under root slice%d",
-						 Gp_segment,
-						 LocallyExecutingSliceIndex(estate),
-						 RootSliceIndex(estate));
-			}
-
-			/*
-			 * Are we going to dispatch this plan parallel?  Only if we're running as
-			 * a QD and the plan is a parallel plan.
-			 */
-			if (Gp_role == GP_ROLE_DISPATCH &&
-				queryDesc->plannedstmt->planTree->dispatch == DISPATCH_PARALLEL &&
-				!(eflags & EXEC_FLAG_EXPLAIN_ONLY))
-			{
-				shouldDispatch = true;
-			}
-			else
-			{
-				shouldDispatch = false;
-			}
-
-			/*
-			 * if in dispatch mode, time to serialize plan and query
-			 * trees, and fire off cdb_exec command to each of the qexecs
-			 */
-			if (shouldDispatch)
-			{
-
-				/*
-				 * MPP-2869: preprocess_initplans() may
-				 * dispatch. (interacted with MPP-2859, which caused an
-				 * initPlan to do a write which should have happened in
-				 * main body of query) We need to call
-				 * ExecutorSaysTransactionDoesWrites() before any dispatch
-				 * work for this query.
-				 */
-				needDtxTwoPhase = ExecutorSaysTransactionDoesWrites();
-				dtmPreCommand("ExecutorStart", "(none)", queryDesc->plannedstmt,
-						needDtxTwoPhase, true /* wantSnapshot */, queryDesc->extended_query );
-
-				/*
-				 * First, see whether we need to pre-execute any initPlan subplans.
-				 */
-				if (queryDesc->plannedstmt->planTree->nParamExec > 0)
-				{
-					preprocess_initplans(queryDesc);
-
-					/*
-					 * Copy the values of the preprocessed subplans to the
-					 * external parameters.
-					 */
-					queryDesc->params = addRemoteExecParamsToParamList(queryDesc->plannedstmt,
-																	   queryDesc->params,
-																	   queryDesc->estate->es_param_exec_vals);
-				}
-
-				build_tuple_node_list(&queryDesc->plannedstmt->transientTypeRecords);
-
-				/*
-				 * This call returns after launching the threads that send the
-				 * plan to the appropriate segdbs.  It does not wait for them to
-				 * finish unless an error is detected before all slices have been
-				 * dispatched.
-				 */
-				cdbdisp_dispatchPlan(queryDesc, needDtxTwoPhase, true, estate->dispatcherState);
-			}
-
-
-			/*
-			 * Get executor identity (who does the executor serve). we can assume
-			 * Forward scan direction for now just for retrieving the identity.
-			 */
-			if (!(eflags & EXEC_FLAG_EXPLAIN_ONLY))
-				exec_identity = getGpExecIdentity(queryDesc, ForwardScanDirection, estate);
-			else
-				exec_identity = GP_IGNORE;
-
-			/* non-root on QE */
-			if (exec_identity == GP_NON_ROOT_ON_QE)
-			{
-
-				MotionState *motionState = getMotionState(queryDesc->planstate, LocallyExecutingSliceIndex(estate));
-
-				Assert(motionState);
-
-				Assert(IsA(motionState->ps.plan, Motion));
-
-				/* update the connection information, if needed */
-				if (((PlanState *) motionState)->plan->nMotionNodes > 0)
-				{
-					ExecUpdateTransportState((PlanState *)motionState,
-											 estate->interconnect_context);
-				}
-			}
-			else if (exec_identity == GP_ROOT_SLICE)
-			{
-				/* Run a root slice. */
-				if (queryDesc->planstate != NULL &&
-					queryDesc->planstate->plan->nMotionNodes > 0 && !estate->es_interconnect_is_setup)
-				{
-					estate->es_interconnect_is_setup = true;
-
-					Assert(!estate->interconnect_context);
-					SetupInterconnect(estate);
-					Assert(estate->interconnect_context);
-				}
-				if (estate->es_interconnect_is_setup)
-				{
-					ExecUpdateTransportState(queryDesc->planstate,
-											 estate->interconnect_context);
-				}
-			}
-			else if (exec_identity != GP_IGNORE)
-			{
-				/* should never happen */
-				Assert(!"unsupported parallel execution strategy");
-			}
-
-			if(estate->es_interconnect_is_setup)
-				Assert(estate->interconnect_context != NULL);
-
-		}
-		PG_CATCH();
-		{
-			mppExecutorCleanup(queryDesc);
-			PG_RE_THROW();
-		}
-		PG_END_TRY();
-
-		if (DEBUG1 >= log_min_messages)
-		{
-			char		msec_str[32];
-			switch (check_log_duration(msec_str, false))
-			{
-				case 1:
-				case 2:
-					ereport(LOG, (errmsg("duration to ExecutorStart end: %s ms", msec_str)));
+				case RESQUEUE_MEMORY_POLICY_AUTO:
+					PolicyAutoAssignOperatorMemoryKB(queryDesc->plannedstmt,
+													 queryDesc->plannedstmt->query_mem);
+					break;
+				case RESQUEUE_MEMORY_POLICY_EAGER_FREE:
+					PolicyEagerFreeAssignOperatorMemoryKB(queryDesc->plannedstmt,
+														  queryDesc->plannedstmt->query_mem);
+					break;
+				default:
+					Assert(gp_resqueue_memory_policy == RESQUEUE_MEMORY_POLICY_NONE);
 					break;
 			}
 		}
 	}
+
+	/*
+	 * If the transaction is read-only, we need to check if any writes are
+	 * planned to non-temporary tables.  EXPLAIN is considered read-only.
+	 */
+	if ((XactReadOnly || Gp_role == GP_ROLE_DISPATCH) && !(eflags & EXEC_FLAG_EXPLAIN_ONLY))
+		ExecCheckXactReadOnly(queryDesc->plannedstmt);
+
+	/*
+	 * Build EState, switch into per-query memory context for startup.
+	 */
+	estate = CreateExecutorState();
+	queryDesc->estate = estate;
+
+	oldcontext = MemoryContextSwitchTo(estate->es_query_cxt);
+
+	/**
+	 * Attached the plannedstmt from queryDesc
+	 */
+	estate->es_plannedstmt = queryDesc->plannedstmt;
+
+	/*
+	 * Fill in parameters, if any, from queryDesc
+	 */
+	estate->es_param_list_info = queryDesc->params;
+
+	if (queryDesc->plannedstmt->nCrossLevelParams > 0)
+		estate->es_param_exec_vals = (ParamExecData *)
+			palloc0(queryDesc->plannedstmt->nCrossLevelParams * sizeof(ParamExecData));
+
+	/*
+	 * Copy other important information into the EState
+	 */
+	estate->es_snapshot = queryDesc->snapshot;
+	estate->es_crosscheck_snapshot = queryDesc->crosscheck_snapshot;
+	estate->es_instrument = queryDesc->doInstrument;
+	estate->showstatctx = queryDesc->showstatctx;
+
+	/*
+	 * Shared input info is needed when ROLE_EXECUTE or sequential plan
+	 */
+	estate->es_sharenode = (List **) palloc0(sizeof(List *));
+
+	/*
+	 * Initialize the motion layer for this query.
+	 *
+	 * NOTE: need to be in estate->es_query_cxt before the call.
+	 */
+	initMotionLayerStructs((MotionLayerState **)&estate->motionlayer_context);
+
+	/* Reset workfile disk full flag */
+	WorkfileDiskspace_SetFull(false /* isFull */);
+	/* Initialize per-query resource (diskspace) tracking */
+	WorkfileQueryspace_InitEntry(gp_session_id, gp_command_count);
+
+	if (Gp_role != GP_ROLE_DISPATCH && queryDesc->plannedstmt->transientTypeRecords != NULL)
+	{
+		ListCell   *cell;
+
+		foreach(cell, queryDesc->plannedstmt->transientTypeRecords)
+		{
+			TupleDescNode *tmp = lfirst(cell);
+			assign_record_type_typmod(tmp->tuple);
+		}
+	}
+	/*
+	 * Handling of the Slice table depends on context.
+	 */
+	if (Gp_role == GP_ROLE_DISPATCH && queryDesc->plannedstmt->planTree->dispatch == DISPATCH_PARALLEL)
+	{
+		/*
+		 * If this is an extended query (normally cursor or bind/exec) - before
+		 * starting the portal, we need to make sure that the shared snapshot is
+		 * already set by a writer gang, or the cursor query readers will
+		 * timeout waiting for one that may not exist (in some cases). Therefore
+		 * we insert a small hack here and dispatch a SET query that will do it
+		 * for us. (This is also done in performOpenCursor() for the simple
+		 * query protocol).
+		 *
+		 * MPP-7504/MPP-7448: We also call this down inside the dispatcher after
+		 * the pre-dispatch evaluator has run.
+		 */
+		if (queryDesc->extended_query)
+		{
+			verify_shared_snapshot_ready();
+		}
+
+		/* Set up blank slice table to be filled in during InitPlan. */
+		InitSliceTable(estate, queryDesc->plannedstmt->nMotionNodes, queryDesc->plannedstmt->nInitPlans);
+
+		/**
+		 * Copy direct dispatch decisions out of the plan and into the slice table.  Must be done after slice table is built.
+		 * Note that this needs to happen whether or not the plan contains direct dispatch decisions. This
+		 * is because the direct dispatch partially forgets some of the decisions it has taken.
+		 **/
+		if (gp_enable_direct_dispatch)
+		{
+			CopyDirectDispatchFromPlanToSliceTable(queryDesc->plannedstmt, estate );
+		}
+
+		/* Pass EXPLAIN ANALYZE flag to qExecs. */
+		estate->es_sliceTable->doInstrument = queryDesc->doInstrument;
+
+		/* set our global sliceid variable for elog. */
+		currentSliceId = LocallyExecutingSliceIndex(estate);
+
+		/* Determine OIDs for into relation, if any */
+		if (queryDesc->plannedstmt->intoClause != NULL)
+		{
+			IntoClause *intoClause = queryDesc->plannedstmt->intoClause;
+			Relation	pg_class_desc;
+			Relation	pg_type_desc;
+			Oid         reltablespace;
+
+			cdb_sync_oid_to_segments();
+
+			/* MPP-10329 - must always dispatch the tablespace */
+			if (intoClause->tableSpaceName)
+			{
+				reltablespace = get_tablespace_oid(intoClause->tableSpaceName);
+				if (!OidIsValid(reltablespace))
+					ereport(ERROR,
+							(errcode(ERRCODE_UNDEFINED_OBJECT),
+							 errmsg("tablespace \"%s\" does not exist",
+									intoClause->tableSpaceName)));
+			}
+			else
+			{
+				reltablespace = GetDefaultTablespace();
+
+				/* Need the real tablespace id for dispatch */
+				if (!OidIsValid(reltablespace))
+					reltablespace = MyDatabaseTableSpace;
+
+				intoClause->tableSpaceName = get_tablespace_name(reltablespace);
+			}
+
+			pg_class_desc = heap_open(RelationRelationId, RowExclusiveLock);
+			pg_type_desc = heap_open(TypeRelationId, RowExclusiveLock);
+
+			intoClause->oidInfo.relOid = GetNewRelFileNode(reltablespace, false, pg_class_desc);
+			elog(DEBUG3, "ExecutorStart assigned new intoOidInfo.relOid = %d",
+				 intoClause->oidInfo.relOid);
+
+			intoClause->oidInfo.comptypeOid = GetNewRelFileNode(reltablespace, false, pg_type_desc);
+			intoClause->oidInfo.toastOid = GetNewRelFileNode(reltablespace, false, pg_class_desc);
+			intoClause->oidInfo.toastIndexOid = GetNewRelFileNode(reltablespace, false, pg_class_desc);
+			intoClause->oidInfo.toastComptypeOid = GetNewRelFileNode(reltablespace, false, pg_type_desc);
+			intoClause->oidInfo.aosegOid = GetNewRelFileNode(reltablespace, false, pg_class_desc);
+			intoClause->oidInfo.aosegIndexOid = GetNewRelFileNode(reltablespace, false, pg_class_desc);
+			intoClause->oidInfo.aosegComptypeOid = GetNewRelFileNode(reltablespace, false, pg_type_desc);
+			intoClause->oidInfo.aoblkdirOid = GetNewRelFileNode(reltablespace, false, pg_class_desc);
+			intoClause->oidInfo.aoblkdirIndexOid = GetNewRelFileNode(reltablespace, false, pg_class_desc);
+			intoClause->oidInfo.aoblkdirComptypeOid = GetNewRelFileNode(reltablespace, false, pg_type_desc);
+			intoClause->oidInfo.aovisimapOid = GetNewRelFileNode(reltablespace, false, pg_class_desc);
+			intoClause->oidInfo.aovisimapIndexOid = GetNewRelFileNode(reltablespace, false, pg_class_desc);
+			intoClause->oidInfo.aovisimapComptypeOid = GetNewRelFileNode(reltablespace, false, pg_type_desc);
+			heap_close(pg_class_desc, RowExclusiveLock);
+			heap_close(pg_type_desc, RowExclusiveLock);
+		}
+	}
+	else if (Gp_role == GP_ROLE_EXECUTE)
+	{
+		/* qDisp should have sent us a slice table via MPPEXEC */
+		if (queryDesc->plannedstmt->sliceTable != NULL)
+		{
+			SliceTable *sliceTable;
+			Slice	   *slice;
+
+			sliceTable = (SliceTable *)queryDesc->plannedstmt->sliceTable;
+			Assert(IsA(sliceTable, SliceTable));
+			slice = (Slice *)list_nth(sliceTable->slices, sliceTable->localSlice);
+			Assert(IsA(slice, Slice));
+
+			estate->es_sliceTable = sliceTable;
+
+			estate->currentSliceIdInPlan = slice->rootIndex;
+			estate->currentExecutingSliceId = slice->rootIndex;
+
+			/* set our global sliceid variable for elog. */
+			currentSliceId = LocallyExecutingSliceIndex(estate);
+
+			/* Should we collect statistics for EXPLAIN ANALYZE? */
+			estate->es_instrument = sliceTable->doInstrument;
+			queryDesc->doInstrument = sliceTable->doInstrument;
+		}
+
+		/* InitPlan() will acquire locks by walking the entire plan
+		 * tree -- we'd like to avoid acquiring the locks until
+		 * *after* we've set up the interconnect */
+		if (queryDesc->plannedstmt->nMotionNodes > 0)
+		{
+			int			i;
+
+			PG_TRY();
+			{
+				for (i=1; i <= queryDesc->plannedstmt->nMotionNodes; i++)
+				{
+					InitMotionLayerNode(estate->motionlayer_context, i);
+				}
+
+				estate->es_interconnect_is_setup = true;
+
+				Assert(!estate->interconnect_context);
+				SetupInterconnect(estate);
+				Assert(estate->interconnect_context);
+			}
+			PG_CATCH();
+			{
+				mppExecutorCleanup(queryDesc);
+				PG_RE_THROW();
+			}
+			PG_END_TRY();
+		}
+	}
+
+	/* If the interconnect has been set up; we need to catch any
+	 * errors to shut it down -- so we have to wrap InitPlan in a PG_TRY() block. */
+	PG_TRY();
+	{
+		/*
+		 * Initialize the plan state tree
+		 */
+		Assert(CurrentMemoryContext == estate->es_query_cxt);
+		InitPlan(queryDesc, eflags);
+
+		Assert(queryDesc->planstate);
+
+		if (Gp_role == GP_ROLE_DISPATCH &&
+			queryDesc->plannedstmt->planTree->dispatch == DISPATCH_PARALLEL)
+		{
+			/* Assign gang descriptions to the root slices of the slice forest. */
+			InitRootSlices(queryDesc);
+
+			if (!(eflags & EXEC_FLAG_EXPLAIN_ONLY))
+			{
+				/*
+				 * Since we intend to execute the plan, inventory the slice tree,
+				 * allocate gangs, and associate them with slices.
+				 *
+				 * For now, always use segment 'gp_singleton_segindex' for
+				 * singleton gangs.
+				 *
+				 * On return, gangs have been allocated and CDBProcess lists have
+				 * been filled in in the slice table.)
+				 */
+				AssignGangs(queryDesc, gp_singleton_segindex);
+			}
+		}
+
+#ifdef USE_ASSERT_CHECKING
+		AssertSliceTableIsValid((struct SliceTable *) estate->es_sliceTable, queryDesc->plannedstmt);
+#endif
+
+		if (Debug_print_slice_table && Gp_role == GP_ROLE_DISPATCH)
+			elog_node_display(DEBUG3, "slice table", estate->es_sliceTable, true);
+
+		/*
+		 * If we're running as a QE and there's a slice table in our queryDesc,
+		 * then we need to finish the EState setup we prepared for back in
+		 * CdbExecQuery.
+		 */
+		if (Gp_role == GP_ROLE_EXECUTE && estate->es_sliceTable != NULL)
+		{
+			MotionState *motionstate = NULL;
+
+			/*
+			 * Note that, at this point on a QE, the estate is setup (based on the
+			 * slice table transmitted from the QD via MPPEXEC) so that fields
+			 * es_sliceTable, cur_root_idx and es_cur_slice_idx are correct for
+			 * the QE.
+			 *
+			 * If responsible for a non-root slice, arrange to enter the plan at the
+			 * slice's sending Motion node rather than at the top.
+			 */
+			if (LocallyExecutingSliceIndex(estate) != RootSliceIndex(estate))
+			{
+				motionstate = getMotionState(queryDesc->planstate, LocallyExecutingSliceIndex(estate));
+				Assert(motionstate != NULL && IsA(motionstate, MotionState));
+
+				/* Patch Motion node so it looks like a top node. */
+				motionstate->ps.plan->nMotionNodes = estate->es_sliceTable->nMotions;
+				motionstate->ps.plan->nParamExec = estate->es_sliceTable->nInitPlans;
+			}
+
+			if (Debug_print_slice_table)
+				elog_node_display(DEBUG3, "slice table", estate->es_sliceTable, true);
+
+			if (gp_log_interconnect >= GPVARS_VERBOSITY_DEBUG)
+				elog(DEBUG1, "seg%d executing slice%d under root slice%d",
+					 Gp_segment,
+					 LocallyExecutingSliceIndex(estate),
+					 RootSliceIndex(estate));
+		}
+
+		/*
+		 * Are we going to dispatch this plan parallel?  Only if we're running as
+		 * a QD and the plan is a parallel plan.
+		 */
+		if (Gp_role == GP_ROLE_DISPATCH &&
+			queryDesc->plannedstmt->planTree->dispatch == DISPATCH_PARALLEL &&
+			!(eflags & EXEC_FLAG_EXPLAIN_ONLY))
+		{
+			shouldDispatch = true;
+		}
+		else
+		{
+			shouldDispatch = false;
+		}
+
+		/*
+		 * if in dispatch mode, time to serialize plan and query
+		 * trees, and fire off cdb_exec command to each of the qexecs
+		 */
+		if (shouldDispatch)
+		{
+			/*
+			 * MPP-2869: preprocess_initplans() may
+			 * dispatch. (interacted with MPP-2859, which caused an
+			 * initPlan to do a write which should have happened in
+			 * main body of query) We need to call
+			 * ExecutorSaysTransactionDoesWrites() before any dispatch
+			 * work for this query.
+			 */
+			needDtxTwoPhase = ExecutorSaysTransactionDoesWrites();
+			dtmPreCommand("ExecutorStart", "(none)", queryDesc->plannedstmt,
+						  needDtxTwoPhase, true /* wantSnapshot */, queryDesc->extended_query );
+
+			/*
+			 * First, see whether we need to pre-execute any initPlan subplans.
+			 */
+			if (queryDesc->plannedstmt->planTree->nParamExec > 0)
+			{
+				preprocess_initplans(queryDesc);
+
+				/*
+				 * Copy the values of the preprocessed subplans to the
+				 * external parameters.
+				 */
+				queryDesc->params = addRemoteExecParamsToParamList(queryDesc->plannedstmt,
+																   queryDesc->params,
+																   queryDesc->estate->es_param_exec_vals);
+			}
+
+			build_tuple_node_list(&queryDesc->plannedstmt->transientTypeRecords);
+
+			/*
+			 * This call returns after launching the threads that send the
+			 * plan to the appropriate segdbs.  It does not wait for them to
+			 * finish unless an error is detected before all slices have been
+			 * dispatched.
+			 */
+			cdbdisp_dispatchPlan(queryDesc, needDtxTwoPhase, true, estate->dispatcherState);
+		}
+
+		/*
+		 * Get executor identity (who does the executor serve). we can assume
+		 * Forward scan direction for now just for retrieving the identity.
+		 */
+		if (!(eflags & EXEC_FLAG_EXPLAIN_ONLY))
+			exec_identity = getGpExecIdentity(queryDesc, ForwardScanDirection, estate);
+		else
+			exec_identity = GP_IGNORE;
+
+		/* non-root on QE */
+		if (exec_identity == GP_NON_ROOT_ON_QE)
+		{
+			MotionState *motionState = getMotionState(queryDesc->planstate, LocallyExecutingSliceIndex(estate));
+
+			Assert(motionState);
+
+			Assert(IsA(motionState->ps.plan, Motion));
+
+			/* update the connection information, if needed */
+			if (((PlanState *) motionState)->plan->nMotionNodes > 0)
+			{
+				ExecUpdateTransportState((PlanState *)motionState,
+										 estate->interconnect_context);
+			}
+		}
+		else if (exec_identity == GP_ROOT_SLICE)
+		{
+			/* Run a root slice. */
+			if (queryDesc->planstate != NULL &&
+				queryDesc->planstate->plan->nMotionNodes > 0 && !estate->es_interconnect_is_setup)
+			{
+				estate->es_interconnect_is_setup = true;
+
+				Assert(!estate->interconnect_context);
+				SetupInterconnect(estate);
+				Assert(estate->interconnect_context);
+			}
+			if (estate->es_interconnect_is_setup)
+			{
+				ExecUpdateTransportState(queryDesc->planstate,
+										 estate->interconnect_context);
+			}
+		}
+		else if (exec_identity != GP_IGNORE)
+		{
+			/* should never happen */
+			Assert(!"unsupported parallel execution strategy");
+		}
+
+		if(estate->es_interconnect_is_setup)
+			Assert(estate->interconnect_context != NULL);
+
+	}
+	PG_CATCH();
+	{
+		mppExecutorCleanup(queryDesc);
+		PG_RE_THROW();
+	}
+	PG_END_TRY();
+
+	if (DEBUG1 >= log_min_messages)
+	{
+		char		msec_str[32];
+		switch (check_log_duration(msec_str, false))
+		{
+			case 1:
+			case 2:
+				ereport(LOG, (errmsg("duration to ExecutorStart end: %s ms", msec_str)));
+				break;
+		}
+	}
+
 	END_MEMORY_ACCOUNT();
 
 	MemoryContextSwitchTo(oldcontext);
@@ -1017,7 +1011,7 @@ ExecutorEnd(QueryDesc *queryDesc)
 			dumpDynamicTableScanPidIndex(scanNo);
 		}
 	}
-	
+
 	/*
 	 * Switch into per-query memory context to run ExecEndPlan
 	 */
@@ -1286,7 +1280,7 @@ ExecCheckXactReadOnly(PlannedStmt *plannedstmt)
 
 		rti++;
 
-        if (rte->rtekind == RTE_SUBQUERY)
+		if (rte->rtekind == RTE_SUBQUERY)
 		{
 			continue;
 		}
