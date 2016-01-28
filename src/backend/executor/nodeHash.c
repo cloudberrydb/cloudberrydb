@@ -9,7 +9,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/executor/nodeHash.c,v 1.107.2.1 2007/06/01 15:58:01 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/executor/nodeHash.c,v 1.110 2007/01/30 01:33:36 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -135,7 +135,8 @@ MultiExecHash(HashState *node)
 		econtext->ecxt_innertuple = slot;
 		bool hashkeys_null = false;
 
-		if (ExecHashGetHashValue(node, hashtable, econtext, hashkeys, node->hs_keepnull, &hashvalue, &hashkeys_null))
+		if (ExecHashGetHashValue(node, hashtable, econtext, hashkeys, false,
+								 node->hs_keepnull, &hashvalue, &hashkeys_null))
 		{
 			ExecHashTableInsert(node, hashtable, slot, hashvalue);
 		}
@@ -149,7 +150,6 @@ MultiExecHash(HashState *node)
 				return NULL;
 			}
 		}
-
 	}
 
 	/* Now we have set up all the initial batches & primary overflow batches. */
@@ -358,19 +358,23 @@ ExecHashTableCreate(HashState *hashState, HashJoinState *hjstate, List *hashOper
 	 * Also remember whether the join operators are strict.
 	 */
 	nkeys = list_length(hashOperators);
-	hashtable->hashfunctions = (FmgrInfo *) palloc(nkeys * sizeof(FmgrInfo));
+	hashtable->outer_hashfunctions =
+		(FmgrInfo *) palloc(nkeys * sizeof(FmgrInfo));
+	hashtable->inner_hashfunctions =
+		(FmgrInfo *) palloc(nkeys * sizeof(FmgrInfo));
 	hashtable->hashStrict = (bool *) palloc(nkeys * sizeof(bool));
 	i = 0;
 	foreach(ho, hashOperators)
 	{
 		Oid			hashop = lfirst_oid(ho);
-		Oid			hashfn;
+		Oid			left_hashfn;
+		Oid			right_hashfn;
 
-		hashfn = get_op_hash_function(hashop);
-		if (!OidIsValid(hashfn))
+		if (!get_op_hash_functions(hashop, &left_hashfn, &right_hashfn))
 			elog(ERROR, "could not find hash function for hash operator %u",
 				 hashop);
-		fmgr_info(hashfn, &hashtable->hashfunctions[i]);
+		fmgr_info(left_hashfn, &hashtable->outer_hashfunctions[i]);
+		fmgr_info(right_hashfn, &hashtable->inner_hashfunctions[i]);
 		hashtable->hashStrict[i] = op_strict(hashop);
 		i++;
 	}
@@ -1005,11 +1009,13 @@ bool
 ExecHashGetHashValue(HashState *hashState, HashJoinTable hashtable,
 					 ExprContext *econtext,
 					 List *hashkeys,
+					 bool outer_tuple,
 					 bool keep_nulls,
 					 uint32 *hashvalue,
 					 bool *hashkeys_null)
 {
 	uint32		hashkey = 0;
+	FmgrInfo   *hashfunctions;
 	ListCell   *hk;
 	int			i = 0;
 	MemoryContext oldContext;
@@ -1029,6 +1035,11 @@ ExecHashGetHashValue(HashState *hashState, HashJoinTable hashtable,
 	ResetExprContext(econtext);
 
 	oldContext = MemoryContextSwitchTo(econtext->ecxt_per_tuple_memory);
+
+	if (outer_tuple)
+		hashfunctions = hashtable->outer_hashfunctions;
+	else
+		hashfunctions = hashtable->inner_hashfunctions;
 
 	foreach(hk, hashkeys)
 	{
@@ -1075,8 +1086,7 @@ ExecHashGetHashValue(HashState *hashState, HashJoinTable hashtable,
 			/* Compute the hash function */
 			uint32		hkey;
 
-			hkey = DatumGetUInt32(FunctionCall1(&hashtable->hashfunctions[i],
-												keyval));
+			hkey = DatumGetUInt32(FunctionCall1(&hashfunctions[i], keyval));
 			hashkey ^= hkey;
 		}
 

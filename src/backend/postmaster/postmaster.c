@@ -38,7 +38,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/postmaster/postmaster.c,v 1.515 2007/01/28 06:32:03 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/postmaster/postmaster.c,v 1.516 2007/01/29 20:17:40 momjian Exp $
  *
  * NOTES
  *
@@ -5593,15 +5593,15 @@ LogChildExit(int lev, const char *procname, int pid, int exitstatus)
 						procname, pid, WTERMSIG(exitstatus)),
 				 errhint("See C include file \"ntstatus.h\" for a description of the hexadecimal value.")));
 #elif defined(HAVE_DECL_SYS_SIGLIST) && HAVE_DECL_SYS_SIGLIST
-	ereport(lev,
+		ereport(lev,
 
-	/*------
-	  translator: %s is a noun phrase describing a child process, such as
-	  "server process" */
-			(errmsg("%s (PID %d) was terminated by signal %d: %s",
-					procname, pid, WTERMSIG(exitstatus),
-					WTERMSIG(exitstatus) < NSIG ?
-					sys_siglist[WTERMSIG(exitstatus)] : "(unknown)")));
+		/*------
+		  translator: %s is a noun phrase describing a child process, such as
+		  "server process" */
+				(errmsg("%s (PID %d) was terminated by signal %d: %s",
+						procname, pid, WTERMSIG(exitstatus),
+						WTERMSIG(exitstatus) < NSIG ?
+						sys_siglist[WTERMSIG(exitstatus)] : "(unknown)")));
 #else
 	{
 		// If we don't have strsignal or sys_siglist, do our own translation

@@ -9,7 +9,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/executor/nodeHashjoin.c,v 1.85.2.1 2007/02/02 00:07:28 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/executor/nodeHashjoin.c,v 1.88 2007/01/30 01:33:36 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -725,6 +725,7 @@ ExecHashJoinOuterGetTuple(PlanState *outerNode,
 					hjstate->hj_nonequijoin;
 			if (ExecHashGetHashValue(hashState, hashtable, econtext,
 						hjstate->hj_OuterHashKeys,
+						true,
 						keep_nulls,
 						hashvalue,
 						&hashkeys_null
@@ -739,7 +740,7 @@ ExecHashJoinOuterGetTuple(PlanState *outerNode,
 			 * That tuple couldn't match because of a NULL, so discard it
 			 * and continue with the next one.
 			 */
-		} /* for (;;) */
+		}
 
 		/*
 		 * We have just reached the end of the first pass. Try to switch to a
