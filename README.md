@@ -115,7 +115,7 @@ By default, `ctest` does not print the output of failed tests. To print the
 output of failed tests, use the `--output-on-failure` flag like so (this is
 useful for debugging failed tests):
 ```
-% ctest -j7 --output-on-failure
+ctest -j7 --output-on-failure
 ```
 
 To run a specific individual test, use the `gpos_test` executable directly.
