@@ -21,11 +21,11 @@ operating system's package manager.
 ## Quick Start: Build GPORCA and install under /usr/local
 
 ```
-% mkdir build
-% cd build
-% cmake ../
-% make
-% sudo make install
+mkdir build
+cd build
+cmake ../
+make
+sudo make install
 ```
 
 Or read on for more detailed instructions below...
@@ -114,8 +114,8 @@ CFLAGS="-m32" CXXFLAGS="-m32" ../configure --prefix=/opt/gp_xerces_32
 
 Go into gporca and create a build folder
 ```
-% mkdir build
-% cd build
+mkdir build
+cd build
 ```
 
 ### How to generate make files with default options
@@ -126,19 +126,19 @@ vice-versa may cause problems.
 * debug build
 
 ```
-% cmake -D CMAKE_BUILD_TYPE=DEBUG ../
+cmake -D CMAKE_BUILD_TYPE=DEBUG ../
 ```
 
 * release build with debug info
 
 ```
-% cmake -D CMAKE_BUILD_TYPE=RelWithDebInfo ../
+cmake -D CMAKE_BUILD_TYPE=RelWithDebInfo ../
 ```
 
 * release build
 
 ```
-% cmake -D CMAKE_BUILD_TYPE=RELEASE ../
+cmake -D CMAKE_BUILD_TYPE=RELEASE ../
 ```
 
 ## Explicitly Specifying GPOS and GP-Xerces For Build
@@ -184,19 +184,19 @@ cmake -D CMAKE_TOOLCHAIN_FILE=../cmake/x86_64.toolchain.cmake ../
 * build
 
 ```
-% make
+make
 ```
 
 * for faster build use the -j option of make. For instance, the following command runs make on 7 job slots
 
 ```
-% make -j7
+make -j7
 ```
 
 * show all commands being run as part of make
 
 ```
-% make VERBOSE=1
+make VERBOSE=1
 ```
 
 ## How to test
@@ -205,14 +205,14 @@ To run all GPORCA tests, simply use the `ctest` command from the build directory
 after `make` finishes.
 
 ```
-% ctest
+ctest
 ```
 
 Much like `make`, `ctest` has a -j option that allows running multiple tests in
 parallel to save time. Using it is recommended for faster testing.
 
 ```
-% ctest -j7
+ctest -j7
 ```
 
 By default, `ctest` does not print the output of failed tests. To print the
@@ -220,7 +220,7 @@ output of failed tests, use the `--output-on-failure` flag like so (this is
 useful for debugging failed tests):
 
 ```
-% ctest -j7 --output-on-failure
+ctest -j7 --output-on-failure
 ```
 
 To run a specific individual test, use the `gporca_test` executable directly.
@@ -252,7 +252,7 @@ GPORCA has three libraries:
 By default, GPORCA will be installed under /usr/local. You can change this by
 setting CMAKE_INSTALL_PREFIX when running cmake, for example:
 ```
-% cmake -D CMAKE_INSTALL_PREFIX=/home/user/gporca ../
+cmake -D CMAKE_INSTALL_PREFIX=/home/user/gporca ../
 ```
 
 By default, the header files are located in:
@@ -271,11 +271,11 @@ the library is located at:
 
 * build and install
 ```
-% make install
+make install
 ```
 * build and install with verbose output
 ```
-% make VERBOSE=1 install
+make VERBOSE=1 install
 ```
 
 ## Clean up stuff
@@ -285,10 +285,10 @@ the library is located at:
 * Remove gporca header files and library, (assuming the default install prefix /usr/local)
 
 ```
-% rm -rf /usr/local/include/naucrates
-% rm -rf /usr/local/include/gpdbcost
-% rm -rf /usr/local/include/gpopt
-% rm -rf /usr/local/lib/libnaucrates.so*
-% rm -rf /usr/local/lib/libgpdbcost.so*
-% rm -rf /usr/local/lib/libgpopt.so*
+rm -rf /usr/local/include/naucrates
+rm -rf /usr/local/include/gpdbcost
+rm -rf /usr/local/include/gpopt
+rm -rf /usr/local/lib/libnaucrates.so*
+rm -rf /usr/local/lib/libgpdbcost.so*
+rm -rf /usr/local/lib/libgpopt.so*
 ```
