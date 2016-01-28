@@ -25,11 +25,11 @@ operating system's package manager.
 ## Quick Start: Build GPOS and install under /usr/local
 
 ```
-% mkdir build
-% cd build
-% cmake ../
-% make
-% sudo make install
+mkdir build
+cd build
+cmake ../
+make
+sudo make install
 ```
 
 Or read on for more detailed instructions below...
@@ -40,25 +40,25 @@ Or read on for more detailed instructions below...
 
 Go into gpos and create a build folder
 ```
-% mkdir build
-% cd build
+mkdir build
+cd build
 ```
 
 ## How to generate make files with default options
 
 * debug build
 ```
-% cmake -D CMAKE_BUILD_TYPE=DEBUG ../
+cmake -D CMAKE_BUILD_TYPE=DEBUG ../
 ```
   or 
 * release build with debug info
 ```
-% cmake -D CMAKE_BUILD_TYPE=RelWithDebInfo ../
+cmake -D CMAKE_BUILD_TYPE=RelWithDebInfo ../
 ```
   or
 * release build
 ```
-% cmake -D CMAKE_BUILD_TYPE=RELEASE ../
+cmake -D CMAKE_BUILD_TYPE=RELEASE ../
 ```
 
 ## Advanced: How to generate make files using toolchain to generate 32 or 64 bit version makefiles 
@@ -75,26 +75,26 @@ Debug version with verbose install path:
 
 * 32-bit x86
 ```
-% cmake -D VERBOSE_INSTALL_PATH=1 -D CMAKE_BUILD_TYPE=DEBUG -D CMAKE_TOOLCHAIN_FILE=../i386.toolchain.cmake ../
+cmake -D VERBOSE_INSTALL_PATH=1 -D CMAKE_BUILD_TYPE=DEBUG -D CMAKE_TOOLCHAIN_FILE=../i386.toolchain.cmake ../
 ```
 * 64-bit x86
 ```
-% cmake -D VERBOSE_INSTALL_PATH=1 -D CMAKE_BUILD_TYPE=DEBUG -D CMAKE_TOOLCHAIN_FILE=../x86_64.toolchain.cmake ../
+cmake -D VERBOSE_INSTALL_PATH=1 -D CMAKE_BUILD_TYPE=DEBUG -D CMAKE_TOOLCHAIN_FILE=../x86_64.toolchain.cmake ../
 ```
 
 ## How to build
 
 * build
 ```
-% make
+make
 ```
 * for faster build use the -j option of make. For instance, the following command runs make on 7 job slots
 ```
-% make -j7
+make -j7
 ```
 * show all commands being run as part of make
 ```
-% make VERBOSE=1
+make VERBOSE=1
 ```
 
 ## How to test
@@ -102,13 +102,13 @@ Debug version with verbose install path:
 To run all GPOS tests, simply use the `ctest` command from the build directory
 after `make` finishes.
 ```
-% ctest
+ctest
 ```
 
 Much like `make`, `ctest` has a -j option that allows running multiple tests in
 parallel to save time. Using it is recommended for faster testing.
 ```
-% ctest -j7
+ctest -j7
 ```
 
 By default, `ctest` does not print the output of failed tests. To print the
@@ -139,7 +139,7 @@ arguments `-D ENABLE_EXTENDED_TESTS=1`.
 By default, GPOS will be installed under /usr/local. You can change this by
 setting CMAKE_INSTALL_PREFIX when running cmake, for example:
 ```
-% cmake -D CMAKE_INSTALL_PREFIX=/home/user/gpos ../
+cmake -D CMAKE_INSTALL_PREFIX=/home/user/gpos ../
 ```
 If VERBOSE_INSTALL_PATH was not set during cmake then 
 the header files are located in /usr/local/include/gpos
@@ -152,11 +152,11 @@ the header files and libraries are located under a subdirectory of
 
 * build and install
 ```
-% make install
+make install
 ```
 * build and install with verbose output
 ```
-% make VERBOSE=1 install
+make VERBOSE=1 install
 ```
 ## Clean up stuff 
 
@@ -164,8 +164,8 @@ the header files and libraries are located under a subdirectory of
 
 * If VERBOSE_INSTALL_PATH was not use during cmake then remove gpos header files and library, (assuming the default install prefix /usr/local)
 ```
-% rm -rf /usr/local/include/gpos
-% rm -rf /usr/local/lib/libgpos.so*
+rm -rf /usr/local/include/gpos
+rm -rf /usr/local/lib/libgpos.so*
 ```
 If VERBOSE_INSTALL_PATH was used during cmake then clean up the appropriate
 libraries and header files under /usr/local/libgpos (assuming the default
