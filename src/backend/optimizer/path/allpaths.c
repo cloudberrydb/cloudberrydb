@@ -9,7 +9,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/optimizer/path/allpaths.c,v 1.157 2007/01/20 20:45:38 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/optimizer/path/allpaths.c,v 1.158 2007/01/28 18:50:40 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -564,14 +564,6 @@ set_append_rel_pathlist(PlannerInfo *root, RelOptInfo *rel,
         rel->onerow = true;
     else if (list_length(subpaths) == 1)
         rel->onerow = ((Path *)linitial(subpaths))->parent->onerow;
-
-	/*
-	 * Set "raw tuples" count equal to "rows" for the appendrel; needed
-	 * because some places assume rel->tuples is valid for any baserel.
-     *
-     * CDB: Already set rel->tuples accurately above.
-	 */
-	/* rel->tuples = rel->rows; */
 
 	/*
 	 * Finally, build Append path and install it as the only access path for
