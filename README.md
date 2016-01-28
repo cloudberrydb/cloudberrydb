@@ -64,14 +64,19 @@ before building. Presuming that you downloaded Xerces-C 3.1.2, a recipe for
 building GP-Xerces would be something like the following:
 
 ```
-% tar -xzf xerces-c-3.1.2.tar.gz
-% cd xerces-c-3.1.2
-% patch -p1 < /path/to/orca/patches/xerces-c-gpdb.patch
-% mkdir build
-% cd build
-% ../configure --prefix=/opt/gp_xerces
-% make
-% sudo make install
+wget http://www.trieuvan.com/apache//xerces/c/3/sources/xerces-c-3.1.2.tar.gz
+tar -xzf xerces-c-3.1.2.tar.gz
+cd xerces-c-3.1.2
+patch -p1 < /path/to/orca/patches/xerces-c-gpdb.patch
+mkdir build
+cd build
+
+# Use --prefix=/opt/gp_xerces if you don't want to override the default xerces
+# However, this qp-xerces needs to be at default location /usr/local in order
+# to build GPORCA
+../configure 
+make
+sudo make install
 ```
 
 It is recommended to use the `--prefix` option to the Xerces-C configure script
