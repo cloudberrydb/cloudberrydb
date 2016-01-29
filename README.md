@@ -107,6 +107,9 @@ throughout the codebase, but a few larger additions worth noting:
 ## Build GPDB with Planner
 
 ```
+# Clean environment
+make distclean
+
 # Configure build environment to install at /usr/local/gpdb
 ./configure --prefix=/usr/local/gpdb
 
@@ -127,6 +130,9 @@ source gpdemo-env.sh
 ## Build GPDB with GPORCA
 
 ```
+# Clean environment
+make distclean
+
 # Configure build environment to install at /usr/local/gpdb
 ./configure --enable-orca --with-perl --with-python --with-libxml --prefix=/usr/local/gpdb
 
