@@ -110,7 +110,7 @@ throughout the codebase, but a few larger additions worth noting:
 # Configure build environment to install at /usr/local/gpdb
 ./configure --prefix=/usr/local/gpdb
 
-# Compilation and install
+# Compile and install
 make
 make install
 
