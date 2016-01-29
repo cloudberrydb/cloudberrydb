@@ -139,6 +139,12 @@ Only need to change the `configure` with additional option `--enable-orca`.
 ./configure --enable-orca --with-perl --with-python --with-libxml --prefix=/usr/local/gpdb
 ```
 
+Once build and started, run `psql` and check the GPOPT (e.g. GPORCA) version:
+
+```
+select gp_opt_version();
+```
+
 ## Regression tests
 
 * The default regression tests
