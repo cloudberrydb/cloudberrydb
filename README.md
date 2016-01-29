@@ -106,39 +106,22 @@ throughout the codebase, but a few larger additions worth noting:
 
 ## Basic GPDB source configuration, compilation, gpdemo cluster creation and test execution example
 
-* Configure build environment
-
 ```
-configure --prefix=<install location>
-```
+# Configure build environment to install at /usr/local/gpdb
+configure --prefix=/usr/local/gpdb
 
-* Compilation and install
-
-```
+# Compilation and install
 make
 make install
-```
 
-* Bring in greenplum environment into your running shell
+# Bring in greenplum environment into your running shell
+source /usr/local/gpdb/greenplum_path.sh
 
-```
-source <install location>/greenplum_path.sh
-```
-
-* Start demo cluster (gpdemo-env.sh is created which contain
-  __PGPORT__ and __MASTER_DATA_DIRECTORY__ values)
-
-
-```
+# Start demo cluster (gpdemo-env.sh is created which contain
+# __PGPORT__ and __MASTER_DATA_DIRECTORY__ values)
 cd gpAux/gpdemo
 make cluster
 source gpdemo-env.sh
-```
-
-* Run tests
-
-```
-make installcheck-good
 ```
 
 ## Regression tests
