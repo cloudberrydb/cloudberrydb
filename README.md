@@ -104,31 +104,6 @@ throughout the codebase, but a few larger additions worth noting:
   FTS is a process that runs in the master node, and periodically
   polls the segments to maintain the status of each segment.
 
-## Regression tests
-
-* The default regression tests
-
-```
-make installcheck-good
-```
-
-* optional extra/heavier regression tests
-
-```
-make installcheck-bugbuster
-```
-
-* The PostgreSQL __check__ target does not work. Setting up a
-  Greenplum cluster is more complicated than a single-node PostgreSQL
-  installation, and no-one's done the work to have __make check__
-  create a cluster. Create a cluster manually or use gpAux/gpdemo/
-  (example below) and run __make installcheck-good__ against
-  that. Patches are welcome!
-
-* The PostgreSQL __installcheck__ target does not work either, because
-  some tests are known to fail with Greenplum. The
-  __installcheck-good__ schedule excludes those tests.
-
 ## Basic GPDB source configuration, compilation, gpdemo cluster creation and test execution example
 
 * Configure build environment
@@ -165,6 +140,31 @@ source gpdemo-env.sh
 ```
 make installcheck-good
 ```
+
+## Regression tests
+
+* The default regression tests
+
+```
+make installcheck-good
+```
+
+* optional extra/heavier regression tests
+
+```
+make installcheck-bugbuster
+```
+
+* The PostgreSQL __check__ target does not work. Setting up a
+  Greenplum cluster is more complicated than a single-node PostgreSQL
+  installation, and no-one's done the work to have __make check__
+  create a cluster. Create a cluster manually or use gpAux/gpdemo/
+  (example below) and run __make installcheck-good__ against
+  that. Patches are welcome!
+
+* The PostgreSQL __installcheck__ target does not work either, because
+  some tests are known to fail with Greenplum. The
+  __installcheck-good__ schedule excludes those tests.
 
 ## Glossary
 
