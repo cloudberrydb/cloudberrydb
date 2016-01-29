@@ -121,17 +121,19 @@ static TransactionId FreezeLimit;
 
 
 /* non-export function prototypes */
+static void lazy_vacuum_aorel(Relation onerel, VacuumStmt *vacstmt,
+				  List *updated_stats);
 static void lazy_scan_heap(Relation onerel, LVRelStats *vacrelstats,
 			   Relation *Irel, int nindexes, List *updated_stats, List *all_extra_oids);
 static void lazy_vacuum_heap(Relation onerel, LVRelStats *vacrelstats);
 static void lazy_vacuum_index(Relation indrel,
-							  IndexBulkDeleteResult **stats,
-							  LVRelStats *vacrelstats,
-							  List *extra_oids);
+				  IndexBulkDeleteResult **stats,
+				  LVRelStats *vacrelstats,
+				  List *extra_oids);
 static void lazy_cleanup_index(Relation indrel,
-							   IndexBulkDeleteResult *stats,
-							   LVRelStats *vacrelstats,
-							   List *updated_stats);
+				   IndexBulkDeleteResult *stats,
+				   LVRelStats *vacrelstats,
+				   List *updated_stats);
 static int lazy_vacuum_page(Relation onerel, BlockNumber blkno, Buffer buffer,
 				 int tupindex, LVRelStats *vacrelstats);
 static void lazy_truncate_heap(Relation onerel, LVRelStats *vacrelstats);
@@ -163,7 +165,6 @@ lazy_vacuum_rel(Relation onerel, VacuumStmt *vacstmt, List *updated_stats)
 	Relation   *Irel;
 	int			nindexes;
 	BlockNumber possibly_freeable;
-	bool update_relstats = true;
 
 	if (vacstmt->verbose)
 		elevel = INFO;
@@ -172,9 +173,6 @@ lazy_vacuum_rel(Relation onerel, VacuumStmt *vacstmt, List *updated_stats)
 
 	if (Gp_role == GP_ROLE_DISPATCH)
 		elevel = DEBUG2; /* vacuum and analyze messages aren't interesting from the QD */
-
-	vacrelstats = (LVRelStats *) palloc0(sizeof(LVRelStats));
-
 
 #ifdef FAULT_INJECTOR
 	if (vacuumStatement_IsInAppendOnlyDropPhase(vacstmt))
@@ -204,95 +202,123 @@ lazy_vacuum_rel(Relation onerel, VacuumStmt *vacstmt, List *updated_stats)
 						  &OldestXmin, &FreezeLimit);
 
 	/*
-	 * Execute the various vaccum operations. Appendonly tables are treated
+	 * Execute the various vacuum operations. Appendonly tables are treated
 	 * differently.
 	 */
 	if (RelationIsAoRows(onerel) || RelationIsAoCols(onerel))
 	{
-		/* append-only relation has a special path */
-		if(vacuumStatement_IsInAppendOnlyPreparePhase(vacstmt))
-		{
-			elogif(Debug_appendonly_print_compaction, LOG,
-				"Vacuum prepare phase %s", RelationGetRelationName(onerel));
+		lazy_vacuum_aorel(onerel, vacstmt, updated_stats);
+		return;
+	}
 
-			vacuum_appendonly_indexes(onerel, vacstmt, updated_stats);
-			if (RelationIsAoRows(onerel))
-				AppendOnlyTruncateToEOF(onerel);
-			else
-				AOCSTruncateToEOF(onerel);
-			/*
-			 * MPP-23647.  For empty tables, we skip compaction phase
-			 * and cleanup phase.  Therefore, we update the stats
-			 * (specifically, relfrozenxid) in prepare phase if the
-			 * table is empty.  Otherwise, the stas will be updated in
-			 * the cleanup phase, when we would have computed the
-			 * correct values for stats.
-			 */
-			if (vacstmt->appendonly_relation_empty)
-			{
-				update_relstats = true;
-				/*
-				 * For an empty relation, the only stats we care about
-				 * is relfrozenxid and relhasindex.  We need to be
-				 * mindful of correctly setting relhasindex here.
-				 * relfrozenxid is already taken care of above by
-				 * calling vacuum_set_xid_limits().
-				 */
-				vacrelstats->hasindex = onerel->rd_rel->relhasindex;
-			}
-			else
-			{
-				/*
-				 * For a non-empty relation, follow the usual
-				 * compaction phases and do not update stats in
-				 * prepare phase.
-				 */
-				update_relstats = false;
-			}
-		}
-		else if (!vacummStatement_IsInAppendOnlyCleanupPhase(vacstmt))
+	vacrelstats = (LVRelStats *) palloc0(sizeof(LVRelStats));
+
+	/* heap relation */
+
+	/* Set threshold for interesting free space = average request size */
+	/* XXX should we scale it up or down?  Adjust vacuum.c too, if so */
+	vacrelstats->threshold = GetAvgFSMRequestSize(&onerel->rd_node);
+
+	/* Open all indexes of the relation */
+	vac_open_indexes(onerel, RowExclusiveLock, &nindexes, &Irel);
+	vacrelstats->hasindex = (nindexes > 0);
+
+	/* Do the vacuuming */
+	lazy_scan_heap(onerel, vacrelstats, Irel, nindexes, updated_stats, vacstmt->extra_oids);
+
+	/* Done with indexes */
+	vac_close_indexes(nindexes, Irel, NoLock);
+
+	/*
+	 * Optionally truncate the relation.
+	 *
+	 * Don't even think about it unless we have a shot at releasing a goodly
+	 * number of pages.  Otherwise, the time taken isn't worth it.
+	 */
+	possibly_freeable = vacrelstats->rel_pages - vacrelstats->nonempty_pages;
+	if (possibly_freeable >= REL_TRUNCATE_MINIMUM ||
+		possibly_freeable >= vacrelstats->rel_pages / REL_TRUNCATE_FRACTION)
+		lazy_truncate_heap(onerel, vacrelstats);
+
+	/* Update shared free space map with final free space info */
+	lazy_update_fsm(onerel, vacrelstats);
+
+	/* Update statistics in pg_class */
+	vac_update_relstats(onerel,
+						vacrelstats->rel_pages,
+						vacrelstats->rel_tuples,
+						vacrelstats->hasindex,
+						FreezeLimit,
+						updated_stats);
+
+	/* report results to the stats collector, too */
+	pgstat_report_vacuum(RelationGetRelid(onerel), onerel->rd_rel->relisshared,
+						 true /*vacrelstats->scanned_all*/,
+						 vacstmt->analyze, vacrelstats->rel_tuples);
+}
+
+/*
+ * lazy_vacuum_aorel -- perform LAZY VACUUM for one Append-only relation.
+ */
+static void
+lazy_vacuum_aorel(Relation onerel, VacuumStmt *vacstmt, List *updated_stats)
+{
+	LVRelStats *vacrelstats;
+	bool		update_relstats = true;
+
+	vacrelstats = (LVRelStats *) palloc0(sizeof(LVRelStats));
+
+	if (vacuumStatement_IsInAppendOnlyPreparePhase(vacstmt))
+	{
+		elogif(Debug_appendonly_print_compaction, LOG,
+			   "Vacuum prepare phase %s", RelationGetRelationName(onerel));
+
+		vacuum_appendonly_indexes(onerel, vacstmt, updated_stats);
+		if (RelationIsAoRows(onerel))
+			AppendOnlyTruncateToEOF(onerel);
+		else
+			AOCSTruncateToEOF(onerel);
+
+		/*
+		 * MPP-23647.  For empty tables, we skip compaction phase
+		 * and cleanup phase.  Therefore, we update the stats
+		 * (specifically, relfrozenxid) in prepare phase if the
+		 * table is empty.  Otherwise, the stats will be updated in
+		 * the cleanup phase, when we would have computed the
+		 * correct values for stats.
+		 */
+		if (vacstmt->appendonly_relation_empty)
 		{
-			vacuum_appendonly_rel(onerel, vacstmt);
-			update_relstats = false;
+			update_relstats = true;
+			/*
+			 * For an empty relation, the only stats we care about
+			 * is relfrozenxid and relhasindex.  We need to be
+			 * mindful of correctly setting relhasindex here.
+			 * relfrozenxid is already taken care of above by
+			 * calling vacuum_set_xid_limits().
+			 */
+			vacrelstats->hasindex = onerel->rd_rel->relhasindex;
 		}
 		else
 		{
-			elogif(Debug_appendonly_print_compaction, LOG,
-					"Vacuum cleanup phase %s", RelationGetRelationName(onerel));
-			vacuum_appendonly_fill_stats(onerel, ActiveSnapshot, vacrelstats, false);
-		}
+			/*
+			 * For a non-empty relation, follow the usual
+			 * compaction phases and do not update stats in
+			 * prepare phase.
+			 */
+			update_relstats = false;
+	}
+	}
+	else if (!vacummStatement_IsInAppendOnlyCleanupPhase(vacstmt))
+	{
+		vacuum_appendonly_rel(onerel, vacstmt);
+		update_relstats = false;
 	}
 	else
 	{
-		/* heap relation */
-
-		/* Set threshold for interesting free space = average request size */
-		/* XXX should we scale it up or down?  Adjust vacuum.c too, if so */
-		vacrelstats->threshold = GetAvgFSMRequestSize(&onerel->rd_node);
-
-		/* Open all indexes of the relation */
-		vac_open_indexes(onerel, RowExclusiveLock, &nindexes, &Irel);
-		vacrelstats->hasindex = (nindexes > 0);
-
-		/* Do the vacuuming */
-		lazy_scan_heap(onerel, vacrelstats, Irel, nindexes, updated_stats, vacstmt->extra_oids);
-
-		/* Done with indexes */
-		vac_close_indexes(nindexes, Irel, NoLock);
-
-		/*
-		 * Optionally truncate the relation.
-		 *
-		 * Don't even think about it unless we have a shot at releasing a goodly
-		 * number of pages.  Otherwise, the time taken isn't worth it.
-		 */
-		possibly_freeable = vacrelstats->rel_pages - vacrelstats->nonempty_pages;
-		if (possibly_freeable >= REL_TRUNCATE_MINIMUM ||
-			possibly_freeable >= vacrelstats->rel_pages / REL_TRUNCATE_FRACTION)
-			lazy_truncate_heap(onerel, vacrelstats);
-
-		/* Update shared free space map with final free space info */
-		lazy_update_fsm(onerel, vacrelstats);
+		elogif(Debug_appendonly_print_compaction, LOG,
+			   "Vacuum cleanup phase %s", RelationGetRelationName(onerel));
+		vacuum_appendonly_fill_stats(onerel, ActiveSnapshot, vacrelstats, false);
 	}
 
 	if (update_relstats)
@@ -312,7 +338,6 @@ lazy_vacuum_rel(Relation onerel, VacuumStmt *vacstmt, List *updated_stats)
 							 vacstmt->analyze, vacrelstats->rel_tuples);
 	}
 }
-
 
 /*
  *	lazy_scan_heap() -- scan an open heap relation
