@@ -318,7 +318,21 @@ lazy_vacuum_aorel(Relation onerel, VacuumStmt *vacstmt, List *updated_stats)
 	{
 		elogif(Debug_appendonly_print_compaction, LOG,
 			   "Vacuum cleanup phase %s", RelationGetRelationName(onerel));
-		vacuum_appendonly_fill_stats(onerel, ActiveSnapshot, vacrelstats, false);
+
+		vacuum_appendonly_fill_stats(onerel, ActiveSnapshot,
+									 &vacrelstats->rel_pages,
+									 &vacrelstats->rel_tuples,
+									 &vacrelstats->hasindex);
+		/* reset the remaining LVRelStats values */
+		vacrelstats->nonempty_pages = 0;
+		vacrelstats->num_dead_tuples = 0;
+		vacrelstats->max_dead_tuples = 0;
+		vacrelstats->tuples_deleted = 0;
+		vacrelstats->tot_free_pages = 0;
+		vacrelstats->fs_is_heap = false;
+		vacrelstats->num_free_pages = 0;
+		vacrelstats->max_free_pages = 0;
+		vacrelstats->pages_removed = 0;
 	}
 
 	if (update_relstats)
@@ -1040,7 +1054,8 @@ lazy_truncate_heap(Relation onerel, LVRelStats *vacrelstats)
  */
 void
 vacuum_appendonly_fill_stats(Relation aorel, Snapshot snapshot,
-		void* vacrelstats, bool isVacFull)
+							 BlockNumber *rel_pages, double *rel_tuples,
+							 bool *relhasindex)
 {
 	FileSegTotals *fstotal;
 	BlockNumber nblocks;
@@ -1087,37 +1102,9 @@ vacuum_appendonly_fill_stats(Relation aorel, Snapshot snapshot,
 			relname,
 			nblocks, num_tuples);
 
-	if(isVacFull)
-	{
-		/* FULL */
-
-		/* fill in remaining VRelStats values */
-		((VRelStats *)vacrelstats)->rel_pages = nblocks;
-		((VRelStats *)vacrelstats)->rel_tuples = num_tuples;
-		((VRelStats *)vacrelstats)->hasindex = aorel->rd_rel->relhasindex;
-		((VRelStats *)vacrelstats)->min_tlen = 0;
-		((VRelStats *)vacrelstats)->max_tlen = 0;
-		((VRelStats *)vacrelstats)->num_vtlinks = 0;
-		((VRelStats *)vacrelstats)->vtlinks = NULL;
-	}
-	else
-	{
-		/* LAZY */
-
-		/* fill in remaining LVRelStats values */
-		((LVRelStats *)vacrelstats)->rel_pages = nblocks;
-		((LVRelStats *)vacrelstats)->rel_tuples = num_tuples;
-		((LVRelStats *)vacrelstats)->hasindex = aorel->rd_rel->relhasindex;
-		((LVRelStats *)vacrelstats)->nonempty_pages = 0;
-		((LVRelStats *)vacrelstats)->num_dead_tuples = 0;
-		((LVRelStats *)vacrelstats)->max_dead_tuples = 0;
-		((LVRelStats *)vacrelstats)->tuples_deleted = 0;
-		((LVRelStats *)vacrelstats)->tot_free_pages = 0;
-		((LVRelStats *)vacrelstats)->fs_is_heap = false;
-		((LVRelStats *)vacrelstats)->num_free_pages = 0;
-		((LVRelStats *)vacrelstats)->max_free_pages = 0;
-		((LVRelStats *)vacrelstats)->pages_removed = 0;
-	}
+	*rel_pages = nblocks;
+	*rel_tuples = num_tuples;
+	*relhasindex = aorel->rd_rel->relhasindex;
 
 	ereport(elevel,
 			(errmsg("\"%s\": found %.0f rows in %u pages.",
