@@ -8,7 +8,7 @@
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/commands/schemacmds.c,v 1.41.2.2 2009/12/09 21:58:28 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/commands/schemacmds.c,v 1.43 2007/02/01 19:10:26 momjian Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -238,7 +238,7 @@ RemoveSchema(List *names, DropBehavior behavior, bool missing_ok)
 	if (list_length(names) != 1)
 		ereport(ERROR,
 				(errcode(ERRCODE_SYNTAX_ERROR),
-				 errmsg("schema name may not be qualified")));
+				 errmsg("schema name cannot be qualified")));
 	namespaceName = strVal(linitial(names));
 
 	RemoveSchema_internal(namespaceName, behavior, missing_ok, false);

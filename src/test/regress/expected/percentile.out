@@ -1003,7 +1003,7 @@ ERROR:  argument of percentile function must not contain variables
 LINE 1: select percentile_cont(count(*)) within group (order by a) f...
                                ^
 select sum(percentile_cont(0.22) within group (order by a)) from perct;
-ERROR:  aggregate function calls may not be nested
+ERROR:  aggregate function calls cannot be nested
 LINE 1: select sum(percentile_cont(0.22) within group (order by a)) ...
                ^
 -- OVER clause
@@ -1023,7 +1023,7 @@ LINE 1: select percentile_disc('a') within group (order by a) from p...
                                ^
 -- nested case
 select count(median(a)) from perct;
-ERROR:  aggregate function calls may not be nested
+ERROR:  aggregate function calls cannot be nested
 LINE 1: select count(median(a)) from perct;
                ^
 select median(count(*)) from perct;

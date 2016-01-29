@@ -9,7 +9,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/optimizer/plan/initsplan.c,v 1.128 2007/01/20 20:45:39 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/optimizer/plan/initsplan.c,v 1.129 2007/02/01 19:10:26 momjian Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -902,7 +902,7 @@ distribute_qual_to_rels(PlannerInfo *root, Node *clause,
 	{
 		if (postponed_qual_list == NULL)
 		{
-			elog(ERROR, "JOIN qualification may not refer to other relations");
+			elog(ERROR, "JOIN qualification cannot refer to other relations");
 		}
 		else
 		{
@@ -916,7 +916,7 @@ distribute_qual_to_rels(PlannerInfo *root, Node *clause,
 		}
 	}
 	if (ojscope && !bms_is_subset(relids, ojscope))
-		elog(ERROR, "JOIN qualification may not refer to other relations");
+		elog(ERROR, "JOIN qualification cannot refer to other relations");
 
 	/*
 	 * If the clause is variable-free, our normal heuristic for pushing it

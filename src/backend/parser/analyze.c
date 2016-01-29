@@ -18,7 +18,7 @@
  * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
- *	$PostgreSQL: pgsql/src/backend/parser/analyze.c,v 1.359 2007/01/12 19:34:41 momjian Exp $
+ *	$PostgreSQL: pgsql/src/backend/parser/analyze.c,v 1.360 2007/02/01 19:10:27 momjian Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -3543,7 +3543,7 @@ transformIndexStmt(ParseState *pstate, IndexStmt *stmt,
 			if (expression_returns_set(ielem->expr))
 				ereport(ERROR,
 						(errcode(ERRCODE_DATATYPE_MISMATCH),
-						 errmsg("index expression may not return a set")));
+						 errmsg("index expression cannot return a set")));
 		}
 	}
 
@@ -3635,7 +3635,7 @@ transformRuleStmt(ParseState *pstate, RuleStmt *stmt,
 	if (list_length(pstate->p_rtable) != 2)		/* naughty, naughty... */
 		ereport(ERROR,
 				(errcode(ERRCODE_INVALID_OBJECT_DEFINITION),
-				 errmsg("rule WHERE condition may not contain references to other relations")));
+				 errmsg("rule WHERE condition cannot contain references to other relations")));
 
 	/* aggregates not allowed (but subselects are okay) */
 	if (pstate->p_hasAggs)
@@ -3716,7 +3716,7 @@ transformRuleStmt(ParseState *pstate, RuleStmt *stmt,
 				stmt->whereClause != NULL)
 				ereport(ERROR,
 						(errcode(ERRCODE_INVALID_OBJECT_DEFINITION),
-						 errmsg("rules with WHERE conditions may only have SELECT, INSERT, UPDATE, or DELETE actions")));
+						 errmsg("rules with WHERE conditions can only have SELECT, INSERT, UPDATE, or DELETE actions")));
 
 			/*
 			 * If the action is INSERT...SELECT, OLD/NEW have been pushed down
@@ -3752,11 +3752,11 @@ transformRuleStmt(ParseState *pstate, RuleStmt *stmt,
 					if (has_old)
 						ereport(ERROR,
 								(errcode(ERRCODE_INVALID_OBJECT_DEFINITION),
-								 errmsg("ON SELECT rule may not use OLD")));
+								 errmsg("ON SELECT rule cannot use OLD")));
 					if (has_new)
 						ereport(ERROR,
 								(errcode(ERRCODE_INVALID_OBJECT_DEFINITION),
-								 errmsg("ON SELECT rule may not use NEW")));
+								 errmsg("ON SELECT rule cannot use NEW")));
 					break;
 				case CMD_UPDATE:
 					/* both are OK */
@@ -3765,13 +3765,13 @@ transformRuleStmt(ParseState *pstate, RuleStmt *stmt,
 					if (has_old)
 						ereport(ERROR,
 								(errcode(ERRCODE_INVALID_OBJECT_DEFINITION),
-								 errmsg("ON INSERT rule may not use OLD")));
+								 errmsg("ON INSERT rule cannot use OLD")));
 					break;
 				case CMD_DELETE:
 					if (has_new)
 						ereport(ERROR,
 								(errcode(ERRCODE_INVALID_OBJECT_DEFINITION),
-								 errmsg("ON DELETE rule may not use NEW")));
+								 errmsg("ON DELETE rule cannot use NEW")));
 					break;
 				default:
 					elog(ERROR, "unrecognized event type: %d",
@@ -5263,7 +5263,7 @@ transformSetOperationTree(ParseState *pstate, SelectStmt *stmt)
 			if (contain_vars_of_level((Node *) selectQuery, 1))
 				ereport(ERROR,
 						(errcode(ERRCODE_INVALID_COLUMN_REFERENCE),
-						 errmsg("UNION/INTERSECT/EXCEPT member statement may not refer to other relations of same query level")));
+						 errmsg("UNION/INTERSECT/EXCEPT member statement cannot refer to other relations of same query level")));
 		}
 
 		/*
@@ -5809,7 +5809,7 @@ transformReturningList(ParseState *pstate, List *returningList)
 	if (list_length(pstate->p_rtable) != length_rtable)
 		ereport(ERROR,
 				(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
-		 errmsg("RETURNING may not contain references to other relations")));
+		 errmsg("RETURNING cannot contain references to other relations")));
 
 	/* mark column origins */
 	markTargetListOrigins(pstate, rlist);

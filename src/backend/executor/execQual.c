@@ -7,7 +7,7 @@
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/executor/execQual.c,v 1.208 2007/01/20 09:27:19 petere Exp $
+ *	  $PostgreSQL: pgsql/src/backend/executor/execQual.c,v 1.210 2007/02/01 19:10:26 momjian Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -4760,7 +4760,7 @@ ExecInitExpr(Expr *node, PlanState *parent)
 					if (naggs != aggstate->numaggs)
 						ereport(ERROR,
 								(errcode(ERRCODE_GROUPING_ERROR),
-								 errmsg("aggregate function calls may not be nested")));
+								 errmsg("aggregate function calls cannot be nested")));
 				}
 				else
 				{

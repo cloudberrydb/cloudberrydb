@@ -1091,7 +1091,7 @@ compile_pltcl_function(Oid fn_oid, Oid tgreloid)
 					free(prodesc);
 					ereport(ERROR,
 							(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
-							 errmsg("trigger functions may only be called as triggers")));
+							 errmsg("trigger functions can only be called as triggers")));
 				}
 				else
 				{

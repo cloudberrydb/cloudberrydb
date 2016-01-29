@@ -14,7 +14,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/commands/vacuum.c,v 1.342.2.8 2009/12/09 21:58:29 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/commands/vacuum.c,v 1.344 2007/02/01 19:10:26 momjian Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -1781,7 +1781,7 @@ vac_truncate_clog(TransactionId frozenXID)
 	{
 		ereport(WARNING,
 				(errmsg("some databases have not been vacuumed in over 2 billion transactions"),
-				 errdetail("You may have already suffered transaction-wraparound data loss.")));
+				 errdetail("You might have already suffered transaction-wraparound data loss.")));
 		return;
 	}
 
@@ -2766,7 +2766,7 @@ scan_heap(VRelStats *vacrelstats, Relation onerel,
 					 * release write lock before commit there.)
 					 */
 					ereport(NOTICE,
-							(errmsg("relation \"%s\" TID %u/%u: InsertTransactionInProgress %u --- can't shrink relation",
+							(errmsg("relation \"%s\" TID %u/%u: InsertTransactionInProgress %u --- cannot shrink relation",
 									relname, blkno, offnum, HeapTupleHeaderGetXmin(tuple.t_data))));
 					do_shrinking = false;
 					break;
@@ -2779,7 +2779,7 @@ scan_heap(VRelStats *vacrelstats, Relation onerel,
 					 * release write lock before commit there.)
 					 */
 					ereport(NOTICE,
-							(errmsg("relation \"%s\" TID %u/%u: DeleteTransactionInProgress %u --- can't shrink relation",
+							(errmsg("relation \"%s\" TID %u/%u: DeleteTransactionInProgress %u --- cannot shrink relation",
 									relname, blkno, offnum, HeapTupleHeaderGetXmax(tuple.t_data))));
 					do_shrinking = false;
 					break;
@@ -3294,7 +3294,7 @@ repair_frag(VRelStats *vacrelstats, Relation onerel,
 				/* Quick exit if we have no vtlinks to search in */
 				if (vacrelstats->vtlinks == NULL)
 				{
-					elog(DEBUG2, "parent item in update-chain not found --- can't continue repair_frag");
+					elog(DEBUG2, "parent item in update-chain not found --- cannot continue repair_frag");
 					break;		/* out of walk-along-page loop */
 				}
 
@@ -3459,7 +3459,7 @@ repair_frag(VRelStats *vacrelstats, Relation onerel,
 					if (vtlp == NULL)
 					{
 						/* see discussion above */
-						elog(DEBUG2, "parent item in update-chain not found --- can't continue repair_frag");
+						elog(DEBUG2, "parent item in update-chain not found --- cannot continue repair_frag");
 						chain_move_failed = true;
 						break;	/* out of check-all-items loop */
 					}
@@ -3494,7 +3494,7 @@ repair_frag(VRelStats *vacrelstats, Relation onerel,
 										 HeapTupleHeaderGetXmin(tp.t_data))))
 					{
 						ReleaseBuffer(Pbuf);
-						elog(DEBUG2, "too old parent tuple found --- can't continue repair_frag");
+						elog(DEBUG2, "too old parent tuple found --- cannot continue repair_frag");
 						chain_move_failed = true;
 						break;	/* out of check-all-items loop */
 					}
