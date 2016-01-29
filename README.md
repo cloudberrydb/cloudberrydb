@@ -129,25 +129,10 @@ source gpdemo-env.sh
 
 ## Build GPDB with GPORCA
 
+Only need to change the `configure` with additional option `--enable-orca`.
 ```
-# Clean environment
-make distclean
-
 # Configure build environment to install at /usr/local/gpdb
 ./configure --enable-orca --with-perl --with-python --with-libxml --prefix=/usr/local/gpdb
-
-# Compile and install
-make
-make install
-
-# Bring in greenplum environment into your running shell
-source /usr/local/gpdb/greenplum_path.sh
-
-# Start demo cluster (gpdemo-env.sh is created which contain
-# __PGPORT__ and __MASTER_DATA_DIRECTORY__ values)
-cd gpAux/gpdemo
-make cluster
-source gpdemo-env.sh
 ```
 
 ## Regression tests
