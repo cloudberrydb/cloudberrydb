@@ -132,6 +132,10 @@ source gpdemo-env.sh
 Only need to change the `configure` with additional option `--enable-orca`.
 ```
 # Configure build environment to install at /usr/local/gpdb
+# Enable GPORCA
+# Build with perl
+# Build with python
+# Build with libxml
 ./configure --enable-orca --with-perl --with-python --with-libxml --prefix=/usr/local/gpdb
 ```
 
