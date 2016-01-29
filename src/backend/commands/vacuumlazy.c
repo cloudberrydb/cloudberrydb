@@ -44,9 +44,7 @@
  */
 #include "postgres.h"
 
-#include <sys/file.h>
 #include <math.h>
-#include <fcntl.h>
 
 #include "access/genam.h"
 #include "access/heapam.h"
@@ -66,13 +64,11 @@
 #include "utils/lsyscache.h"
 #include "utils/memutils.h"
 #include "utils/pg_rusage.h"
-#include "utils/fmgroids.h"
 #include "utils/faultinjector.h"
 #include "storage/smgr.h"
 
 #include "cdb/cdbvars.h"
 #include "cdb/cdbpersistentfilesysobj.h"
-
 
 
 /*

@@ -58,7 +58,6 @@
 #include "lib/stringinfo.h"
 #include "libpq/pqformat.h"             /* pq_beginmessage() etc. */
 #include "miscadmin.h"
-#include "optimizer/prep.h"
 #include "postmaster/autovacuum.h"
 #include "storage/freespace.h"
 #include "storage/proc.h"
@@ -80,7 +79,7 @@
 #include "nodes/makefuncs.h"     /* makeRangeVar */
 #include "gp-libpq-fe.h"
 #include "gp-libpq-int.h"
-#include "storage/lwlock.h"
+
 
 /*
  * GUC parameters
