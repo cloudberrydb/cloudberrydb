@@ -74,6 +74,8 @@ test: filespace trig auth_constraint role rle portals_updatable plpgsql_cache ti
 
 test: aggregate_with_groupingsets gp_optimizer 
 
+test: nested_case_null
+
 ignore: tpch500GB_orca
 
 # XXX: This test depends on libgpoptudfs library, which includes ORCA helper

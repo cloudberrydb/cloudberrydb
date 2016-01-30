@@ -3137,10 +3137,20 @@ ExecEvalCase(CaseExprState *caseExpr, ExprContext *econtext,
 
 	if (caseExpr->arg)
 	{
+		/*
+		 * caseValue_datum and caseValue_isNull from econtext store the results of case
+		 * expression. caseValue_isNull will be true if caseValue_datum store null value.
+		 * Both caseValue_datum and caseValue_isNull should change at same time and they shouldn't
+		 * go out of sync.
+		 * Hence pass temporary variable(caseValue_isNull) and once evaluation is done,
+		 * update the caseValue_isNull from econtext.
+		 */
+		bool caseValue_isNull = false;
 		econtext->caseValue_datum = ExecEvalExpr(caseExpr->arg,
 												 econtext,
-												 &econtext->caseValue_isNull,
+												 &caseValue_isNull,
 												 NULL);
+		econtext->caseValue_isNull = caseValue_isNull;
 	}
 
 	/*
