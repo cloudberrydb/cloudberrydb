@@ -66,11 +66,11 @@ LIBS := $(filter-out -lreadline -ledit -ltermcap -lncurses -lcurses, $(LIBS))
 
 # adding orca libraries
 ifeq ($(enable_orca),yes)
-LIBS := $(LIBS) -lgpos
+LIBS := $(LIBS) -L$(LIBGPOS)/$(OBJDIR_DEFAULT) -lgpos
 LIBS := $(LIBS) -L$(XERCES_LIBDIR) -lxerces-c-3.1
-LIBS := $(LIBS) -lnaucrates
-LIBS := $(LIBS) -lgpdbcost
-LIBS := $(LIBS) -lgpopt
+LIBS := $(LIBS) -L$(OPTIMIZER)/libnaucrates/$(OBJDIR_DEFAULT) -lnaucrates
+LIBS := $(LIBS) -L$(OPTIMIZER)/libgpdbcost/$(OBJDIR_DEFAULT) -lgpdbcost
+LIBS := $(LIBS) -L$(OPTIMIZER)/libgpopt/$(OBJDIR_DEFAULT) -lgpopt
 LIBS := $(LIBS) -L$(top_builddir)/src/backend/gpopt -ldxltranslators
 endif
 
@@ -218,9 +218,6 @@ endif
 	$(INSTALL_DATA) $(srcdir)/libpq/pg_ident.conf.sample '$(DESTDIR)$(datadir)/pg_ident.conf.sample'
 	$(INSTALL_DATA) $(srcdir)/utils/misc/postgresql.conf.sample '$(DESTDIR)$(datadir)/postgresql.conf.sample'
 	$(INSTALL_DATA) $(srcdir)/access/transam/recovery.conf.sample '$(DESTDIR)$(datadir)/recovery.conf.sample'
-ifeq ($(enable_orca),yes)
-	$(MAKE) -C gpopt $@ INSTLOC=$(DESKDIR)$(libdir)
-endif
 
 install-bin: postgres $(POSTGRES_IMP) installdirs
 	$(INSTALL_PROGRAM) postgres$(X) '$(DESTDIR)$(bindir)/postgres$(X)'
