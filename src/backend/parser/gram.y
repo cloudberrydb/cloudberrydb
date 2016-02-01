@@ -12,7 +12,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/parser/gram.y,v 2.578 2007/02/01 19:10:27 momjian Exp $
+ *	  $PostgreSQL: pgsql/src/backend/parser/gram.y,v 2.579 2007/02/03 14:06:54 petere Exp $
  *
  * HISTORY
  *	  AUTHOR			DATE			MAJOR EVENT

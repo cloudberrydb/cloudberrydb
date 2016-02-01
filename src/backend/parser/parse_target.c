@@ -8,7 +8,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/parser/parse_target.c,v 1.153 2007/01/14 13:11:54 petere Exp $
+ *	  $PostgreSQL: pgsql/src/backend/parser/parse_target.c,v 1.154 2007/02/03 14:06:54 petere Exp $
  *
  *-------------------------------------------------------------------------
  */

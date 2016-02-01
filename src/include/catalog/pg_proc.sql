@@ -1559,12 +1559,6 @@
  CREATE FUNCTION gp_persistent_repair_delete(int4, tid) RETURNS int4 LANGUAGE internal VOLATILE AS 'gp_persistent_repair_delete' WITH (OID=7181, DESCRIPTION="Remove an entry specified by TID from a persistent table for the current database instance");
 
 
-CREATE FUNCTION xmlconcat2(xml, xml) RETURNS xml LANGUAGE internal IMMUTABLE STRICT AS 'xmlconcat2' WITH (OID=2980, DESCRIPTION="aggregate transition function");
-
- CREATE FUNCTION xmlagg(xml) RETURNS xml LANGUAGE internal IMMUTABLE AS 'aggregate_dummy' WITH (OID=2981, DESCRIPTION="concatenate XML values", proisagg="t");
-
- CREATE FUNCTION text(xml) RETURNS text LANGUAGE internal IMMUTABLE STRICT AS 'xmltotext' WITH (OID=2982, DESCRIPTION="serialize an XML value to a character string");
-
  CREATE FUNCTION xpath(text, xml, _text) RETURNS _xml LANGUAGE internal IMMUTABLE STRICT AS 'xpath' WITH (OID=2983, DESCRIPTION="evaluate XPath expression, with namespaces support");
 
  CREATE FUNCTION xpath(text, xml) RETURNS _xml LANGUAGE sql IMMUTABLE STRICT AS $$select pg_catalog.xpath($1, $2, '{}'::pg_catalog.text[])$$ WITH (OID=2984, DESCRIPTION="evaluate XPath expression");
@@ -1573,7 +1567,7 @@ CREATE FUNCTION xmlconcat2(xml, xml) RETURNS xml LANGUAGE internal IMMUTABLE STR
 
  CREATE FUNCTION xpath_exists(text, xml, _text) RETURNS bool LANGUAGE internal IMMUTABLE STRICT AS 'xpath_exists' WITH (OID=2986, DESCRIPTION="test XML value against XPath expression, with namespace support");
 
- CREATE FUNCTION xpath_exists(text, xml) RETURNS bool LANGUAGE sql IMMUTABLE STRICT AS $$select pg_catalog.xpath_exists($1, $2, '{}'::pg_catalog.text[])$$ WITH (OID=2987, DESCRIPTION="test XML value against XPath expression");
+ CREATE FUNCTION xpath_exists(text, xml) RETURNS bool LANGUAGE sql IMMUTABLE STRICT AS $$select pg_catalog.xpath_exists($1, $2, '{}'::pg_catalog.text[])$$ WITH (OID=3049, DESCRIPTION="test XML value against XPath expression");
 
  CREATE FUNCTION xml_is_well_formed(text) RETURNS bool LANGUAGE internal IMMUTABLE STRICT AS 'xml_is_well_formed' WITH (OID=2988, DESCRIPTION="determine if a string is well formed XML");
 

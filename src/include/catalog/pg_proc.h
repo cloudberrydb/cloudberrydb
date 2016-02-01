@@ -8,7 +8,7 @@
  * Portions Copyright (c) 1996-2010, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
- * $PostgreSQL: pgsql/src/include/catalog/pg_proc.h,v 1.441 2007/01/28 16:16:52 neilc Exp $
+ * $PostgreSQL: pgsql/src/include/catalog/pg_proc.h,v 1.442 2007/02/03 14:06:55 petere Exp $
  *
  * NOTES
  *	  The script catalog/genbki.sh reads this file and generates .bki
@@ -4144,12 +4144,18 @@ DATA(insert OID = 2896 (  xml			   PGNSP PGUID 12 1 0 f f t f i 1 142 "25" _null
 DESCR("perform a non-validating parse of a character string to produce an XML value");
 DATA(insert OID = 2895 (  xmlcomment	   PGNSP PGUID 12 1 0 f f t f i 1 142 "25" _null_ _null_ _null_ xmlcomment - _null_ ));
 DESCR("generate an XML comment");
-DATA(insert OID = 2901 (  xmlvalidate 	   PGNSP PGUID 12 1 0 f f t f i 2 16 "142 25" _null_ _null_ _null_ xmlvalidate - _null_ ));
+DATA(insert OID = 2987 (  xmlvalidate 	   PGNSP PGUID 12 1 0 f f t f i 2 16 "142 25" _null_ _null_ _null_ xmlvalidate - _null_ ));
 DESCR("validate an XML value");
 DATA(insert OID = 2898 (  xml_recv		   PGNSP PGUID 12 1 0 f f t f s 1 142 "2281" _null_ _null_ _null_	xml_recv - _null_ ));
 DESCR("I/O");
 DATA(insert OID = 2899 (  xml_send		   PGNSP PGUID 12 1 0 f f t f s 1 17 "142" _null_ _null_ _null_	xml_send - _null_ ));
 DESCR("I/O");
+DATA(insert OID = 2900 (  xmlconcat2       PGNSP PGUID 12 1 0 f f f f i 2 142 "142 142" _null_ _null_ _null_ xmlconcat2 - _null_ ));
+DESCR("aggregate transition function");
+DATA(insert OID = 2901 (  xmlagg           PGNSP PGUID 12 1 0 t f f f i 1 142 "142" _null_ _null_ _null_ aggregate_dummy - _null_ ));
+DESCR("concatenate XML values");
+DATA(insert OID = 2922 (  text             PGNSP PGUID 12 1 0 f f t f s 1 25 "142" _null_ _null_ _null_ xmltotext - _null_ ));
+DESCR("serialize an XML value to a character string");
 
 /* uuid */ 
 DATA(insert OID = 2952 (  uuid_in		   PGNSP PGUID 12 1 0 f f t f i 1 2950 "2275" _null_ _null_ _null_ uuid_in - _null_ ));

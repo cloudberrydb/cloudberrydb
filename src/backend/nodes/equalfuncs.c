@@ -23,7 +23,7 @@
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/nodes/equalfuncs.c,v 1.297 2007/01/23 05:07:17 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/nodes/equalfuncs.c,v 1.298 2007/02/03 14:06:54 petere Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -2320,7 +2320,6 @@ _equalFkConstraint(FkConstraint *a, FkConstraint *b)
 
 	return true;
 }
-
 
 static bool
 _equalTableValueExpr(TableValueExpr *a, TableValueExpr *b)

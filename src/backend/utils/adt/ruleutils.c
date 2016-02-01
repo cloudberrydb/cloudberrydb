@@ -9,7 +9,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/utils/adt/ruleutils.c,v 1.247 2007/01/30 02:39:27 momjian Exp $
+ *	  $PostgreSQL: pgsql/src/backend/utils/adt/ruleutils.c,v 1.248 2007/02/03 14:06:54 petere Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -4684,22 +4684,22 @@ get_rule_expr(Node *node, deparse_context *context,
 							con = (Const *) lthird(xexpr->args);
 							Assert(IsA(con, Const));
 							if (con->constisnull)
-								 /* suppress STANDALONE NO VALUE */ ;
+								/* suppress STANDALONE NO VALUE */ ;
 							else
 							{
 								switch (DatumGetInt32(con->constvalue))
 								{
 									case XML_STANDALONE_YES:
 										appendStringInfoString(buf,
-														 ", STANDALONE YES");
+															   ", STANDALONE YES");
 										break;
 									case XML_STANDALONE_NO:
 										appendStringInfoString(buf,
-														  ", STANDALONE NO");
+															   ", STANDALONE NO");
 										break;
 									case XML_STANDALONE_NO_VALUE:
 										appendStringInfoString(buf,
-													", STANDALONE NO VALUE");
+															   ", STANDALONE NO VALUE");
 										break;
 									default:
 										break;
