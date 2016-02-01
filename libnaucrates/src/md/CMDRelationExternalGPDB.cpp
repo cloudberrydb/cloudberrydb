@@ -66,6 +66,7 @@ CMDRelationExternalGPDB::CMDRelationExternalGPDB
 	m_pmdidFmtErrRel(pmdidFmtErrRel),
 	m_ulSystemColumns(0),
 	m_phmululNonDroppedCols(NULL),
+	m_phmiulAttno2Pos(NULL),
 	m_pdrgpulNonDroppedCols(NULL)
 {
 	GPOS_ASSERT(pmdid->FValid());
@@ -78,6 +79,7 @@ CMDRelationExternalGPDB::CMDRelationExternalGPDB
 				"Converting hash distributed table to random only possible for hash distributed tables");
 
 	m_phmululNonDroppedCols = GPOS_NEW(m_pmp) HMUlUl(m_pmp);
+	m_phmiulAttno2Pos = GPOS_NEW(m_pmp) HMIUl(m_pmp);
 	m_pdrgpulNonDroppedCols = GPOS_NEW(m_pmp) DrgPul(m_pmp);
 	
 	ULONG ulPosNonDropped = 0;
@@ -85,6 +87,7 @@ CMDRelationExternalGPDB::CMDRelationExternalGPDB
 	for (ULONG ul = 0; ul < ulArity; ul++)
 	{
 		IMDColumn *pmdcol = (*pdrgpmdcol)[ul];
+
 		BOOL fSystemCol = pmdcol->FSystemColumn();
 		if (fSystemCol)
 		{
@@ -105,6 +108,12 @@ CMDRelationExternalGPDB::CMDRelationExternalGPDB
 			(void) m_phmululNonDroppedCols->FInsert(GPOS_NEW(m_pmp) ULONG(ul), GPOS_NEW(m_pmp) ULONG(ulPosNonDropped));
 			ulPosNonDropped++;
 		}
+
+		(void) m_phmiulAttno2Pos->FInsert
+									(
+									GPOS_NEW(m_pmp) INT(pmdcol->IAttno()),
+									GPOS_NEW(m_pmp) ULONG(ul)
+									);
 	}
 	m_pstr = CDXLUtils::PstrSerializeMDObj(m_pmp, this, false /*fSerializeHeader*/, false /*fIndent*/);
 }
@@ -131,6 +140,7 @@ CMDRelationExternalGPDB::~CMDRelationExternalGPDB()
 	CRefCount::SafeRelease(m_pmdidFmtErrRel);
 
 	CRefCount::SafeRelease(m_phmululNonDroppedCols);
+	CRefCount::SafeRelease(m_phmiulAttno2Pos);
 	CRefCount::SafeRelease(m_pdrgpulNonDroppedCols);
 }
 
@@ -274,6 +284,27 @@ CMDRelationExternalGPDB::UlPosNonDropped
 	ULONG *pul = m_phmululNonDroppedCols->PtLookup(&ulPos);
 	
 	GPOS_ASSERT(NULL != pul);
+	return *pul;
+}
+
+//---------------------------------------------------------------------------
+//	@function:
+//		CMDRelationExternalGPDB::UlPosFromAttno
+//
+//	@doc:
+//		Return the position of a column in the metadata object given the
+//		attribute number in the system catalog
+//---------------------------------------------------------------------------
+ULONG
+CMDRelationExternalGPDB::UlPosFromAttno
+	(
+	INT iAttno
+	)
+	const
+{
+	ULONG *pul = m_phmiulAttno2Pos->PtLookup(&iAttno);
+	GPOS_ASSERT(NULL != pul);
+
 	return *pul;
 }
 

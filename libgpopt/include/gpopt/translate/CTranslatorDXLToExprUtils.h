@@ -39,10 +39,6 @@ namespace gpopt
 	using namespace gpos;
 	using namespace gpmd;
 	using namespace gpdxl;
-
-	// hash maps mapping INT -> ULONG
-	typedef CHashMap<INT, ULONG, gpos::UlHash<INT>, gpos::FEqual<INT>,
-					CleanupDelete<INT>, CleanupDelete<ULONG> > HMIUl;
 	
 	//---------------------------------------------------------------------------
 	//	@class:

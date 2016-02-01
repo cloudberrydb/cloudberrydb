@@ -458,17 +458,6 @@ namespace gpnaucrates
 			static
 			BOOL FIncreasesRisk(CLogical *popLogical);
 
-			// iterate over the set of columns and record columns with missing statistics
-			static
-			void RecordMissingStatisticsColumns
-					(
-					IMemoryPool *pmp,
-			 	 	CTableDescriptor *ptabdesc,
-			 	 	CColRefSet *pcrsStat,
-			 	 	IStatistics *pstat
-			 	 	);
-
-
 			// return the default column width
 			static
 			CDouble DDefaultColumnWidth(const IMDType *pmdtype);

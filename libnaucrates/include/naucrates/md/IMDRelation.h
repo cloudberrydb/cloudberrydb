@@ -118,6 +118,10 @@ namespace gpmd
 			virtual 
 			ULONG UlPosNonDropped(ULONG ulPos) const = 0;
 			
+			 // return the position of a column in the metadata object given the attribute number in the system catalog
+			virtual
+			ULONG UlPosFromAttno(INT iAttno) const = 0;
+
 			// return the original positions of all the non-dropped columns
 			virtual
 			DrgPul *PdrgpulNonDroppedCols() const = 0;

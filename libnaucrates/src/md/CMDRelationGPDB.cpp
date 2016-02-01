@@ -73,6 +73,7 @@ CMDRelationGPDB::CMDRelationGPDB
 	m_fHasOids(fHasOids),
 	m_ulSystemColumns(0),
 	m_phmululNonDroppedCols(NULL),
+	m_phmiulAttno2Pos(NULL),
 	m_pdrgpulNonDroppedCols(NULL)
 {
 	GPOS_ASSERT(pmdid->FValid());
@@ -85,6 +86,7 @@ CMDRelationGPDB::CMDRelationGPDB
 			"Converting hash distributed table to random only possible for hash distributed tables");
 	
 	m_phmululNonDroppedCols = GPOS_NEW(m_pmp) HMUlUl(m_pmp);
+	m_phmiulAttno2Pos = GPOS_NEW(m_pmp) HMIUl(m_pmp);
 	m_pdrgpulNonDroppedCols = GPOS_NEW(m_pmp) DrgPul(m_pmp);
 	
 	const ULONG ulArity = pdrgpmdcol->UlLength();
@@ -97,7 +99,13 @@ CMDRelationGPDB::CMDRelationGPDB
 		{
 			m_ulSystemColumns++;
 		}
-		
+
+		(void) m_phmiulAttno2Pos->FInsert
+									(
+									GPOS_NEW(m_pmp) INT(pmdcol->IAttno()),
+									GPOS_NEW(m_pmp) ULONG(ul)
+									);
+
 		if (pmdcol->FDropped())
 		{
 			m_ulDroppedCols++;
@@ -137,6 +145,7 @@ CMDRelationGPDB::~CMDRelationGPDB()
 	m_pdrgpmdidCheckConstraint->Release();
 	CRefCount::SafeRelease(m_pmdpartcnstr);
 	CRefCount::SafeRelease(m_phmululNonDroppedCols);
+	CRefCount::SafeRelease(m_phmiulAttno2Pos);
 	CRefCount::SafeRelease(m_pdrgpulNonDroppedCols);
 }
 
@@ -280,6 +289,27 @@ CMDRelationGPDB::UlPosNonDropped
 	ULONG *pul = m_phmululNonDroppedCols->PtLookup(&ulPos);
 	
 	GPOS_ASSERT(NULL != pul);
+	return *pul;
+}
+
+//---------------------------------------------------------------------------
+//	@function:
+//		CMDRelationGPDB::UlPosFromAttno
+//
+//	@doc:
+//		Return the position of a column in the metadata object given the
+//      attribute number in the system catalog
+//---------------------------------------------------------------------------
+ULONG
+CMDRelationGPDB::UlPosFromAttno
+	(
+	INT iAttno
+	)
+	const
+{
+	ULONG *pul = m_phmiulAttno2Pos->PtLookup(&iAttno);
+	GPOS_ASSERT(NULL != pul);
+
 	return *pul;
 }
 

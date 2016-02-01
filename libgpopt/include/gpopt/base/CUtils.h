@@ -538,10 +538,6 @@ namespace gpopt
 			static
 			DrgPcr *PdrgpcrExcludeColumns(IMemoryPool *pmp, DrgPcr *pdrgpcrOriginal, CColRefSet *pcrsExcluded);
 
-			// given a colrefset from a table, get colids and attno
-			static
-			void ExtractColIdsAttno(IMemoryPool *pmp, CTableDescriptor *ptabdesc, CColRefSet *pcrs, DrgPul *pdrgpulColIds, DrgPul *pdrgpulPos);
-
 			//-------------------------------------------------------------------
 			// General helpers
 			//-------------------------------------------------------------------
