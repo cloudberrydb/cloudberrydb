@@ -9,7 +9,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/executor/execScan.c,v 1.40 2007/01/24 01:25:47 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/executor/execScan.c,v 1.41 2007/02/02 00:07:03 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -232,6 +232,7 @@ tlist_matches_tupdesc(PlanState *ps, List *tlist, Index varno, TupleDesc tupdesc
 		if (!var || !IsA(var, Var))
 			return false;		/* tlist item not a Var */
 
+		/* if these Asserts fail, planner messed up */
 		Assert(var->varlevelsup == 0);
 		if (var->varattno != attrno)
 			return false;		/* out of order */
@@ -251,7 +252,7 @@ tlist_matches_tupdesc(PlanState *ps, List *tlist, Index varno, TupleDesc tupdesc
 			(var->vartypmod != att_tup->atttypmod &&
 			 var->vartypmod != -1))
 			return false;		/* type mismatch */
-			
+
 		tlist_item = lnext(tlist_item);
 	}
 

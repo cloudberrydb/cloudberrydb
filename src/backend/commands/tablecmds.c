@@ -9,7 +9,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/commands/tablecmds.c,v 1.210 2007/01/05 22:19:26 momjian Exp $
+ *	  $PostgreSQL: pgsql/src/backend/commands/tablecmds.c,v 1.213 2007/02/02 00:07:02 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -3876,12 +3876,9 @@ AlterTable(AlterTableStmt *stmt)
 void
 AlterTableInternal(Oid relid, List *cmds, bool recurse)
 {
-	ATController(relation_open(relid, AccessExclusiveLock),
-				 cmds,
-				 recurse,
-				 0,
-				 NULL,
-				 NULL);
+	Relation rel = relation_open(relid, AccessExclusiveLock);
+
+	ATController(rel, cmds, recurse, 0, NULL, NULL);
 }
 
 static void
