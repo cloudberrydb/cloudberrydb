@@ -166,11 +166,11 @@ static struct
 	const char *b; /* IP address to bind (internal, not documented) */
 	int			m; /* max data line len */
 	int			S; /* use O_SYNC when opening files for write  */
-	int			z; /* listen queue size (hidden option currently for debuging) */
+	int			z; /* listen queue size (hidden option currently for debugging) */
 	const char* c; /* config file */
 	struct transform* trlist; /* transforms from config file */
 	const char* ssl; /* path to certificates in case we use gpfdist with ssl */
-	int 		sslclean; /* Defines the time to wait [sec] untill cleanup the SSL resources (internal, not documented) */
+	int 		sslclean; /* Defines the time to wait [sec] until cleanup the SSL resources (internal, not documented) */
 	int			w; /* The time used for session timeout in seconds */
 } opt = { 8080, 8080, 0, 0, 0, ".", 0, 0, -1, 5, 0, 32768, 0, 256, 0, 0, 0, 5, 0 };
 
@@ -184,7 +184,7 @@ typedef union address
 }
 address_t;
 
-/*  Global constrol block */
+/*  Global control block */
 
 static struct
 {
