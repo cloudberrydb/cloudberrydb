@@ -7,7 +7,7 @@
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/executor/execQual.c,v 1.212 2007/02/03 14:06:53 petere Exp $
+ *	  $PostgreSQL: pgsql/src/backend/executor/execQual.c,v 1.213 2007/02/06 17:35:20 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */

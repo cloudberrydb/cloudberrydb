@@ -13,7 +13,7 @@
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/commands/portalcmds.c,v 1.59 2007/02/01 19:10:26 momjian Exp $
+ *	  $PostgreSQL: pgsql/src/backend/commands/portalcmds.c,v 1.60 2007/02/06 22:49:24 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
