@@ -237,6 +237,7 @@ add_library(naucrates SHARED
             src/parser/CParseHandlerHashExpr.cpp
             src/parser/CParseHandlerHashExprList.cpp
             src/parser/CParseHandlerHashJoin.cpp
+            src/parser/CParseHandlerHint.cpp
             src/parser/CParseHandlerIndexCondList.cpp
             src/parser/CParseHandlerIndexDescr.cpp
             src/parser/CParseHandlerIndexOnlyScan.cpp

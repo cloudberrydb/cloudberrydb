@@ -134,7 +134,8 @@ CMiniDumperDXLTest::EresUnittest_Basic()
 												CEnumeratorConfig::Pec(pmp, 0 /*ullPlanId*/),
 												CStatisticsConfig::PstatsconfDefault(pmp),
 												CCTEConfig::PcteconfDefault(pmp),
-												ICostModel::PcmDefault(pmp)
+												ICostModel::PcmDefault(pmp),
+												CHint::PhintDefault(pmp)
 												);
 
 		// setup opt ctx

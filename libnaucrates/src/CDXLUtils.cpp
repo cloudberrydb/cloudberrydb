@@ -1205,6 +1205,8 @@ CDXLUtils::PstrSerializeOptimizerConfig
 	const CEnumeratorConfig *pec = poconf->Pec();
 	const CStatisticsConfig *pstatsconf = poconf->Pstatsconf();
 	const CCTEConfig *pcteconf = poconf->Pcteconf();
+	const ICostModel *pcm = poconf->Pcm();
+	const CHint *phint = poconf->Phint();
 
 	CWStringDynamic *pstr = GPOS_NEW(pmp) CWStringDynamic(pmp);
 
@@ -1232,11 +1234,14 @@ CDXLUtils::PstrSerializeOptimizerConfig
 	xmlser.AddAttribute(CDXLTokens::PstrToken(EdxltokenCTEInliningCutoff), pcteconf->UlCTEInliningCutoff());
 	xmlser.CloseElement(CDXLTokens::PstrToken(EdxltokenNamespacePrefix), CDXLTokens::PstrToken(EdxltokenCTEConfig));
 	
-	ICostModel *pcm = poconf->Pcm();
 	xmlser.OpenElement(CDXLTokens::PstrToken(EdxltokenNamespacePrefix), CDXLTokens::PstrToken(EdxltokenCostModelConfig));
 	xmlser.AddAttribute(CDXLTokens::PstrToken(EdxltokenCostModelType), pcm->Ecmt());
 	xmlser.AddAttribute(CDXLTokens::PstrToken(EdxltokenSegmentsForCosting), pcm->UlHosts());
 	xmlser.CloseElement(CDXLTokens::PstrToken(EdxltokenNamespacePrefix), CDXLTokens::PstrToken(EdxltokenCostModelConfig));
+
+	xmlser.OpenElement(CDXLTokens::PstrToken(EdxltokenNamespacePrefix), CDXLTokens::PstrToken(EdxltokenHint));
+	xmlser.AddAttribute(CDXLTokens::PstrToken(EdxltokenMinNumOfPartsToRequireSortOnInsert), phint->UlMinNumOfPartsToRequireSortOnInsert());
+	xmlser.CloseElement(CDXLTokens::PstrToken(EdxltokenNamespacePrefix), CDXLTokens::PstrToken(EdxltokenHint));
 
 	return pstr;
 }

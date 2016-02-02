@@ -368,7 +368,8 @@ CICGTest::EresUnittest_RunUnsupportedMinidumpTests()
 						CEnumeratorConfig::Pec(pmp, 0 /*ullPlanId*/),
 						CStatisticsConfig::PstatsconfDefault(pmp),
 						CCTEConfig::PcteconfDefault(pmp),
-						pcm
+						pcm,
+						CHint::PhintDefault(pmp)
 						);
 			CDXLNode *pdxlnPlan = CMinidumperUtils::PdxlnExecuteMinidump
 									(
@@ -442,7 +443,8 @@ CICGTest::EresUnittest_NegativeIndexApplyTests()
 						CEnumeratorConfig::Pec(pmp, 0 /*ullPlanId*/),
 						CStatisticsConfig::PstatsconfDefault(pmp),
 						CCTEConfig::PcteconfDefault(pmp),
-						pcm
+						pcm,
+						CHint::PhintDefault(pmp)
 						);
 			CDXLNode *pdxlnPlan = CMinidumperUtils::PdxlnExecuteMinidump
 									(

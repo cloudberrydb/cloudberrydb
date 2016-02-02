@@ -61,6 +61,7 @@ CTableDescriptor::CTableDescriptor
 	m_fConvertHashToRandom(fConvertHashToRandom),
 	m_pdrgpulPart(NULL),
 	m_pdrgpbsKeys(NULL),
+	m_ulPartitions(0),
 	m_ulExecuteAsUser(ulExecuteAsUser),
 	m_fHasPartialIndexes(FDescriptorWithPartialIndexes())
 {
@@ -322,13 +323,35 @@ CTableDescriptor::OsPrint
 ULONG
 CTableDescriptor::UlIndices()
 {
-		GPOS_ASSERT(NULL != m_pmdid);
+	GPOS_ASSERT(NULL != m_pmdid);
 
-		CMDAccessor *pmda = COptCtxt::PoctxtFromTLS()->Pmda();
-        const IMDRelation *pmdrel = pmda->Pmdrel(m_pmdid);
-        const ULONG ulIndices = pmdrel->UlIndices();
+	CMDAccessor *pmda = COptCtxt::PoctxtFromTLS()->Pmda();
+	const IMDRelation *pmdrel = pmda->Pmdrel(m_pmdid);
+	const ULONG ulIndices = pmdrel->UlIndices();
 
-        return ulIndices;
+	return ulIndices;
+}
+
+//---------------------------------------------------------------------------
+//	@function:
+//		CTableDescriptor::UlPartitions
+//
+//	@doc:
+//		 Returns number of leaf partitions
+//
+//
+//---------------------------------------------------------------------------
+ULONG
+CTableDescriptor::UlPartitions()
+	const
+{
+	GPOS_ASSERT(NULL != m_pmdid);
+
+	CMDAccessor *pmda = COptCtxt::PoctxtFromTLS()->Pmda();
+	const IMDRelation *pmdrel = pmda->Pmdrel(m_pmdid);
+	const ULONG ulPartitions = pmdrel->UlPartitions();
+
+	return ulPartitions;
 }
 
 //---------------------------------------------------------------------------

@@ -83,6 +83,7 @@ CParseHandlerFactory::Init
 			{EdxltokenStatisticsConfig, &PphStatisticsConfig},
 			{EdxltokenCTEConfig, &PphCTEConfig},
 			{EdxltokenCostModelConfig, &PphCostModelConfig},
+			{EdxltokenHint, &PphHint},
 
 			{EdxltokenRelation, &PphMetadataRelation},
 			{EdxltokenIndex, &PphMDIndex},
@@ -524,6 +525,25 @@ CParseHandlerFactory::PphCostModelConfig
 	)
 {
 	return GPOS_NEW(pmp) CParseHandlerCostModel(pmp, pphm, pphRoot);
+}
+
+//---------------------------------------------------------------------------
+//	@function:
+//		CParseHandlerFactory::PphHint
+//
+//	@doc:
+//		Creates a parse handler for parsing hint configuration
+//
+//---------------------------------------------------------------------------
+CParseHandlerBase *
+CParseHandlerFactory::PphHint
+	(
+	IMemoryPool *pmp,
+	CParseHandlerManager *pphm,
+	CParseHandlerBase *pphRoot
+	)
+{
+	return GPOS_NEW(pmp) CParseHandlerHint(pmp, pphm, pphRoot);
 }
 
 //---------------------------------------------------------------------------

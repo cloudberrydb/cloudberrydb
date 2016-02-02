@@ -62,6 +62,8 @@ namespace gpdxl
 		EdxltokenCostModelConfig,
 		EdxltokenCostModelType,
 		EdxltokenSegmentsForCosting,
+		EdxltokenHint,
+		EdxltokenMinNumOfPartsToRequireSortOnInsert,
 
 		EdxltokenPlanSamples,
 
@@ -444,6 +446,7 @@ namespace gpdxl
 		EdxltokenRelStorageExternal,
 		
 		EdxltokenPartKeys,
+		EdxltokenNumLeafPartitions,
 		
 		EdxltokenRelDistrPolicy,
 		EdxltokenRelDistrMasterOnly,

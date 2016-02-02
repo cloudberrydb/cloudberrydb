@@ -3746,7 +3746,8 @@ CTestUtils::EresSamplePlans
 								GPOS_NEW(pmp) CEnumeratorConfig(pmp, 0 /*ullPlanId*/, 1000 /*ullSamples*/),
 								CStatisticsConfig::PstatsconfDefault(pmp),
 								CCTEConfig::PcteconfDefault(pmp),
-								ICostModel::PcmDefault(pmp)
+								ICostModel::PcmDefault(pmp),
+								CHint::PhintDefault(pmp)
 								);
 		}
 		else
@@ -3884,7 +3885,8 @@ CTestUtils::EresCheckPlans
 								GPOS_NEW(pmp) CEnumeratorConfig(pmp, 0 /*ullPlanId*/, 1000 /*ullSamples*/),
 								CStatisticsConfig::PstatsconfDefault(pmp),
 								CCTEConfig::PcteconfDefault(pmp),
-								ICostModel::PcmDefault(pmp)
+								ICostModel::PcmDefault(pmp),
+								CHint::PhintDefault(pmp)
 								);
 		}
 		else

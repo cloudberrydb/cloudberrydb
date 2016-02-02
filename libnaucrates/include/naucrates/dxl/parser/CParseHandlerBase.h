@@ -48,6 +48,7 @@ namespace gpdxl
 		EdxlphEnumeratorConfig,
 		EdxlphStatisticsConfig,
 		EdxlphCTEConfig,
+		EdxlphHint,
 		EdxlphTraceFlags,
 		EdxlphPlan,
 		EdxlphQuery,

@@ -107,7 +107,8 @@ CMissingStatsTest::EresUnittest_RunTests()
 												CEnumeratorConfig::Pec(pmp, 0 /*ullPlanId*/),
 												CStatisticsConfig::PstatsconfDefault(pmp),
 												CCTEConfig::PcteconfDefault(pmp),
-												pcm
+												pcm,
+												CHint::PhintDefault(pmp)
 												);
 		SMissingStatsTestCase testCase = rgtc[ul];
 

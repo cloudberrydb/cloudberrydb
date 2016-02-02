@@ -73,6 +73,9 @@ namespace gpdxl
 			
 			// partition keys
 			DrgPul *m_pdrgpulPartColumns;
+
+			// number of partitions
+			ULONG m_ulPartitions;
 			
 			// key sets
 			DrgPdrgPul *m_pdrgpdrgpulKeys;

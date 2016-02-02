@@ -25,6 +25,7 @@
 #include "gpopt/engine/CStatisticsConfig.h"
 #include "gpopt/engine/CEnumeratorConfig.h"
 #include "gpopt/engine/CCTEConfig.h"
+#include "gpopt/engine/CHint.h"
 
 namespace gpopt
 {
@@ -58,6 +59,9 @@ namespace gpopt
 			// cost model configuration
 			ICostModel *m_pcm;
 
+			// hint configuration
+			CHint *m_phint;
+
 		public:
 
 			// ctor
@@ -66,7 +70,8 @@ namespace gpopt
 				CEnumeratorConfig *pec,
 				CStatisticsConfig *pstatsconf,
 				CCTEConfig *pcteconf,
-				ICostModel *pcm
+				ICostModel *pcm,
+				CHint *phint
 				);
 
 			// dtor
@@ -98,6 +103,12 @@ namespace gpopt
 				return m_pcm;
 			}
 			
+			// hint configuration
+			CHint *Phint() const
+			{
+				return m_phint;
+			}
+
 			// generate default optimizer configurations
 			static
 			COptimizerConfig *PoconfDefault(IMemoryPool *pmp);

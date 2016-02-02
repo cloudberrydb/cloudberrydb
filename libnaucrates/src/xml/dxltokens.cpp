@@ -85,6 +85,8 @@ CDXLTokens::Init
 			{EdxltokenCostModelConfig, GPOS_WSZ_LIT("CostModelConfig")},
 			{EdxltokenCostModelType, GPOS_WSZ_LIT("CostModelType")},
 			{EdxltokenSegmentsForCosting, GPOS_WSZ_LIT("SegmentsForCosting")},
+			{EdxltokenHint, GPOS_WSZ_LIT("Hint")},
+			{EdxltokenMinNumOfPartsToRequireSortOnInsert, GPOS_WSZ_LIT("MinNumOfPartsToRequireSortOnInsert")},
 
 			{EdxltokenPlanSamples, GPOS_WSZ_LIT("PlanSamples")},
 			
@@ -500,6 +502,7 @@ CDXLTokens::Init
 			{EdxltokenDistrColumns, GPOS_WSZ_LIT("DistributionColumns")},
 			
 			{EdxltokenPartKeys, GPOS_WSZ_LIT("PartitionColumns")},
+			{EdxltokenNumLeafPartitions, GPOS_WSZ_LIT("NumberLeafPartitions")},
 
 			{EdxltokenTypeInt4, GPOS_WSZ_LIT("Int4")},
 			{EdxltokenTypeBool, GPOS_WSZ_LIT("Bool")},

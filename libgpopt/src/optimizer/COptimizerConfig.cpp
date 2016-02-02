@@ -37,18 +37,21 @@ COptimizerConfig::COptimizerConfig
 	CEnumeratorConfig *pec,
 	CStatisticsConfig *pstatsconf,
 	CCTEConfig *pcteconf,
-	ICostModel *pcm
+	ICostModel *pcm,
+	CHint *phint
 	)
 	:
 	m_pec(pec),
 	m_pstatsconf(pstatsconf),
 	m_pcteconf(pcteconf),
-	m_pcm(pcm)
+	m_pcm(pcm),
+	m_phint(phint)
 {
 	GPOS_ASSERT(NULL != pec);
 	GPOS_ASSERT(NULL != pstatsconf);
 	GPOS_ASSERT(NULL != pcteconf);
 	GPOS_ASSERT(NULL != pcm);
+	GPOS_ASSERT(NULL != phint);
 }
 
 //---------------------------------------------------------------------------
@@ -65,6 +68,7 @@ COptimizerConfig::~COptimizerConfig()
 	m_pstatsconf->Release();
 	m_pcteconf->Release();
 	m_pcm->Release();
+	m_phint->Release();
 }
 
 //---------------------------------------------------------------------------
@@ -86,7 +90,8 @@ COptimizerConfig::PoconfDefault
 						GPOS_NEW(pmp) CEnumeratorConfig(pmp, 0 /*ullPlanId*/, 0 /*ullSamples*/),
 						CStatisticsConfig::PstatsconfDefault(pmp),
 						CCTEConfig::PcteconfDefault(pmp),
-						ICostModel::PcmDefault(pmp)
+						ICostModel::PcmDefault(pmp),
+						CHint::PhintDefault(pmp)
 						);
 }
 
@@ -112,7 +117,8 @@ COptimizerConfig::PoconfDefault
 						GPOS_NEW(pmp) CEnumeratorConfig(pmp, 0 /*ullPlanId*/, 0 /*ullSamples*/),
 						CStatisticsConfig::PstatsconfDefault(pmp),
 						CCTEConfig::PcteconfDefault(pmp),
-						pcm
+						pcm,
+						CHint::PhintDefault(pmp)
 						);
 }
 

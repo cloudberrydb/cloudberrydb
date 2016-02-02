@@ -27,6 +27,7 @@
 #include "naucrates/dxl/parser/CParseHandlerStatisticsConfig.h"
 #include "naucrates/dxl/parser/CParseHandlerCTEConfig.h"
 #include "naucrates/dxl/parser/CParseHandlerCostModel.h"
+#include "naucrates/dxl/parser/CParseHandlerHint.h"
 
 #include "naucrates/dxl/operators/CDXLOperatorFactory.h"
 #include "naucrates/traceflags/traceflags.h"
@@ -94,7 +95,17 @@ CParseHandlerOptimizerConfig::StartElement
 	const Attributes &attrs
 	)
 {	
-	if (0 == XMLString::compareString(CDXLTokens::XmlstrToken(EdxltokenCostModelConfig), xmlszLocalname))
+	if (0 == XMLString::compareString(CDXLTokens::XmlstrToken(EdxltokenHint), xmlszLocalname))
+	{
+		// install a parse handler for the hint config
+		CParseHandlerBase *pphHint = CParseHandlerFactory::Pph(m_pmp, CDXLTokens::XmlstrToken(EdxltokenHint), m_pphm, this);
+		m_pphm->ActivateParseHandler(pphHint);
+		pphHint->startElement(xmlszUri, xmlszLocalname, xmlszQname, attrs);
+		this->Append(pphHint);
+		return;
+
+	}
+	else if (0 == XMLString::compareString(CDXLTokens::XmlstrToken(EdxltokenCostModelConfig), xmlszLocalname))
 	{
 		// install a parse handler for the cost model config
 		CParseHandlerBase *pphCostModel = CParseHandlerFactory::Pph(m_pmp, CDXLTokens::XmlstrToken(EdxltokenCostModelConfig), m_pphm, this);
@@ -119,7 +130,7 @@ CParseHandlerOptimizerConfig::StartElement
 		CWStringDynamic *pstr = CDXLUtils::PstrFromXMLCh(m_pphm->Pmm(), xmlszLocalname);
 		GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiDXLUnexpectedTag, pstr->Wsz());
 	}
-	
+
 	// install a parse handler for the CTE configuration
 	CParseHandlerBase *pphCTEConfig = CParseHandlerFactory::Pph(m_pmp, CDXLTokens::XmlstrToken(EdxltokenCTEConfig), m_pphm, this);
 	m_pphm->ActivateParseHandler(pphCTEConfig);
@@ -161,7 +172,7 @@ CParseHandlerOptimizerConfig::EndElement
 	}
 	
 	GPOS_ASSERT(NULL == m_poconf);
-	GPOS_ASSERT(5 >= this->UlLength());
+	GPOS_ASSERT(6 >= this->UlLength());
 
 	CParseHandlerEnumeratorConfig *pphEnumeratorConfig = dynamic_cast<CParseHandlerEnumeratorConfig *>((*this)[0]);
 	CEnumeratorConfig *pec = pphEnumeratorConfig->Pec();
@@ -176,22 +187,36 @@ CParseHandlerOptimizerConfig::EndElement
 	pcteconfig->AddRef();
 	
 	ICostModel *pcm = NULL;
+	CHint *phint = NULL;
 	if (5 == this->UlLength())
 	{
 		CParseHandlerCostModel *pphCostModelConfig = dynamic_cast<CParseHandlerCostModel *>((*this)[3]);
 		pcm = pphCostModelConfig->Pcm();
-		
 		GPOS_ASSERT(NULL != pcm);
-		
 		pcm->AddRef();
+
+		phint = CHint::PhintDefault(m_pmp);
+	}
+	else if (6 == this->UlLength())
+	{
+		CParseHandlerCostModel *pphCostModelConfig = dynamic_cast<CParseHandlerCostModel *>((*this)[3]);
+		pcm = pphCostModelConfig->Pcm();
+		GPOS_ASSERT(NULL != pcm);
+		pcm->AddRef();
+
+		CParseHandlerHint *pphHint = dynamic_cast<CParseHandlerHint *>((*this)[4]);
+		phint = pphHint->Phint();
+		GPOS_ASSERT(NULL != phint);
+		phint->AddRef();
 	}
 	else
 	{
 		// no cost model: use default one
 		pcm = ICostModel::PcmDefault(m_pmp);
+		phint = CHint::PhintDefault(m_pmp);
 	}
 
-	m_poconf = GPOS_NEW(m_pmp) COptimizerConfig(pec, pstatsconf, pcteconfig, pcm);
+	m_poconf = GPOS_NEW(m_pmp) COptimizerConfig(pec, pstatsconf, pcteconfig, pcm, phint);
 
 	CParseHandlerTraceFlags *pphTraceFlags = dynamic_cast<CParseHandlerTraceFlags *>((*this)[this->UlLength() - 1]);
 	pphTraceFlags->Pbs()->AddRef();

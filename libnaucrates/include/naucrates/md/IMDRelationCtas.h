@@ -63,6 +63,13 @@ namespace gpmd
 				return 0;
 			}
 
+			// number of partitions
+			virtual
+			ULONG UlPartitions() const
+			{
+				return 0;
+			}
+
 			// retrieve the partition column at the given position
 			virtual
 			const IMDColumn *PmdcolPartColumn

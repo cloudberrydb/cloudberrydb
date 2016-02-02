@@ -168,7 +168,16 @@ namespace gpdxl
 				CParseHandlerManager *pphm,
 				CParseHandlerBase *pphRoot
 				);
-			
+
+			// construct hint parse handler
+			static
+			CParseHandlerBase *PphHint
+				(
+				IMemoryPool *pmp,
+				CParseHandlerManager *pphm,
+				CParseHandlerBase *pphRoot
+				);
+
 			// construct a trace flag parse handler
 			static 
 			CParseHandlerBase *PphTraceFlags
