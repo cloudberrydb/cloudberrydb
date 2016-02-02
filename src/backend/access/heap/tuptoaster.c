@@ -823,7 +823,8 @@ toast_insert_or_update(Relation rel, HeapTuple newtup, HeapTuple oldtup,
 	 * Look for attributes with attstorage 'x' to compress.  Also find large
 	 * attributes with attstorage 'x' or 'e', and store them external.
 	 */
-	while (compute_dest_tuplen(tupleDesc, pbind, has_nulls, toast_values, toast_isnull) > maxDataLen)
+	while (compute_dest_tuplen(tupleDesc, pbind, has_nulls,
+							   toast_values, toast_isnull) > maxDataLen)
 	{
 		int			biggest_attno = -1;
 		int32		biggest_size = MAXALIGN(sizeof(varattrib));
@@ -884,7 +885,8 @@ toast_insert_or_update(Relation rel, HeapTuple newtup, HeapTuple oldtup,
 	 * Second we look for attributes of attstorage 'x' or 'e' that are still
 	 * inline.
 	 */
-	while (compute_dest_tuplen(tupleDesc, pbind, has_nulls, toast_values, toast_isnull) > maxDataLen &&
+	while (compute_dest_tuplen(tupleDesc, pbind, has_nulls,
+							   toast_values, toast_isnull) > maxDataLen &&
 		   rel->rd_rel->reltoastrelid != InvalidOid)
 	{
 		int			biggest_attno = -1;
@@ -933,7 +935,8 @@ toast_insert_or_update(Relation rel, HeapTuple newtup, HeapTuple oldtup,
 	 * Round 3 - this time we take attributes with storage 'm' into
 	 * compression
 	 */
-	while (compute_dest_tuplen(tupleDesc, pbind, has_nulls, toast_values, toast_isnull) > maxDataLen)
+	while (compute_dest_tuplen(tupleDesc, pbind, has_nulls,
+							   toast_values, toast_isnull) > maxDataLen)
 	{
 		int			biggest_attno = -1;
 		int32		biggest_size = MAXALIGN(sizeof(varattrib));
@@ -991,7 +994,8 @@ toast_insert_or_update(Relation rel, HeapTuple newtup, HeapTuple oldtup,
 	/*
 	 * Finally we store attributes of type 'm' external, if possible.
 	 */
-	while (compute_dest_tuplen(tupleDesc, pbind, has_nulls, toast_values, toast_isnull) > maxDataLen &&
+	while (compute_dest_tuplen(tupleDesc, pbind, has_nulls,
+							   toast_values, toast_isnull) > maxDataLen &&
 		   rel->rd_rel->reltoastrelid != InvalidOid)
 	{
 		int			biggest_attno = -1;

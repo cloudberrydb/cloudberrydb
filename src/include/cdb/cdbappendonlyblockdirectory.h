@@ -76,7 +76,7 @@ typedef struct MinipagePerColumnGroup
  * I don't know the ideal value here. But let us put approximate
  * 8 minipages per heap page.
  */
-#define NUM_MINIPAGE_ENTRIES (((MaxTupleSize)/8 - sizeof(HeapTupleHeaderData) - 64 * 3)\
+#define NUM_MINIPAGE_ENTRIES (((MaxHeapTupleSize)/8 - sizeof(HeapTupleHeaderData) - 64 * 3)\
 							  / sizeof(MinipageEntry))
 
 /*
