@@ -2147,6 +2147,69 @@ Feature: gptransfer tests
         Then gptransfer should return a return code of 0
         And verify that table "public.sales_1_prt_asia_2_prt_2" in "gptest" has "1" rows
 
+    @partition_transfer
+    @prt_transfer_39
+    Scenario: gptransfer, --partition-transfer can not be used with --dest-database option
+        Given the database is running
+        And there is a file "input_file" with tables "gptest.public.tbl, gptest.public.tbl1"
+        When the user runs "gptransfer -f input_file --partition-transfer --dest-database gptest --source-port $GPTRANSFER_SOURCE_PORT --source-host $GPTRANSFER_SOURCE_HOST --source-user $GPTRANSFER_SOURCE_USER --dest-user $GPTRANSFER_DEST_USER --dest-port $GPTRANSFER_DEST_PORT --dest-host $GPTRANSFER_DEST_HOST --source-map-file $GPTRANSFER_MAP_FILE -a"
+        Then gptransfer should return a return code of 2
+        And gptransfer should print --partition-transfer option cannot be used with --dest-database option to stdout
+
+    @partition_transfer
+    @prt_transfer_40
+    Scenario: gptransfer, --partition-transfer ingores blank lines in input file
+        Given the database is running
+        And there is a file "input_file" with tables " "
+        When the user runs "gptransfer -f input_file --partition-transfer --source-port $GPTRANSFER_SOURCE_PORT --source-host $GPTRANSFER_SOURCE_HOST --source-user $GPTRANSFER_SOURCE_USER --dest-user $GPTRANSFER_DEST_USER --dest-port $GPTRANSFER_DEST_PORT --dest-host $GPTRANSFER_DEST_HOST --source-map-file $GPTRANSFER_MAP_FILE -a --verbose"
+        Then gptransfer should return a return code of 0
+        And gptransfer should print Skipping blank lines to stdout
+
+    @partition_transfer
+    @prt_transfer_41
+    Scenario: gptransfer, --partition-transfer pre-checks source and destination pair format
+        Given the database is running
+        And there is a file "input_file" with tables "gptest.public.tbl ,, gptest.public.tbl1"
+        When the user runs "gptransfer -f input_file --partition-transfer --source-port $GPTRANSFER_SOURCE_PORT --source-host $GPTRANSFER_SOURCE_HOST --source-user $GPTRANSFER_SOURCE_USER --dest-user $GPTRANSFER_DEST_USER --dest-port $GPTRANSFER_DEST_PORT --dest-host $GPTRANSFER_DEST_HOST --source-map-file $GPTRANSFER_MAP_FILE -a"
+        Then gptransfer should return a return code of 2
+        And gptransfer should print Wrong format found for table transfer pair to stdout
+
+    @partition_transfer
+    @prt_transfer_42
+    Scenario: gptransfer, --partition-transfer pre-checks empty source table name
+        Given the database is running
+        And there is a file "input_file" with tables ", gptest.public.tbl1"
+        When the user runs "gptransfer -f input_file --partition-transfer --source-port $GPTRANSFER_SOURCE_PORT --source-host $GPTRANSFER_SOURCE_HOST --source-user $GPTRANSFER_SOURCE_USER --dest-user $GPTRANSFER_DEST_USER --dest-port $GPTRANSFER_DEST_PORT --dest-host $GPTRANSFER_DEST_HOST --source-map-file $GPTRANSFER_MAP_FILE -a"
+        Then gptransfer should return a return code of 2
+        And gptransfer should print Can not specify empty source table name to stdout
+
+    @partition_transfer
+    @prt_transfer_43
+    Scenario: gptransfer, --partition-transfer pre-checks empty destination table name
+        Given the database is running
+        And there is a file "input_file" with tables "gptest.public.tbl,"
+        When the user runs "gptransfer -f input_file --partition-transfer --source-port $GPTRANSFER_SOURCE_PORT --source-host $GPTRANSFER_SOURCE_HOST --source-user $GPTRANSFER_SOURCE_USER --dest-user $GPTRANSFER_DEST_USER --dest-port $GPTRANSFER_DEST_PORT --dest-host $GPTRANSFER_DEST_HOST --source-map-file $GPTRANSFER_MAP_FILE -a"
+        Then gptransfer should return a return code of 2
+        And gptransfer should print Can not specify empty destination table name to stdout
+
+    @partition_transfer
+    @prt_transfer_44
+    Scenario: gptransfer, --partition-transfer pre-checks full qualified format of source table name
+        Given the database is running
+        And there is a file "input_file" with tables "gptest.public.tbl.extra_tablename, gptest.public.tbl"
+        When the user runs "gptransfer -f input_file --partition-transfer --source-port $GPTRANSFER_SOURCE_PORT --source-host $GPTRANSFER_SOURCE_HOST --source-user $GPTRANSFER_SOURCE_USER --dest-user $GPTRANSFER_DEST_USER --dest-port $GPTRANSFER_DEST_PORT --dest-host $GPTRANSFER_DEST_HOST --source-map-file $GPTRANSFER_MAP_FILE -a"
+        Then gptransfer should return a return code of 2
+        And gptransfer should print Source table name "gptest.public.tbl.extra_tablename" isn't fully qualified format to stdout
+
+    @partition_transfer
+    @prt_transfer_45
+    Scenario: gptransfer, --partition-transfer pre-checks full qualified format of destination table name
+        Given the database is running
+        And there is a file "input_file" with tables "gptest.public.tbl, gptest.public.tbl.extra_tablename"
+        When the user runs "gptransfer -f input_file --partition-transfer --source-port $GPTRANSFER_SOURCE_PORT --source-host $GPTRANSFER_SOURCE_HOST --source-user $GPTRANSFER_SOURCE_USER --dest-user $GPTRANSFER_DEST_USER --dest-port $GPTRANSFER_DEST_PORT --dest-host $GPTRANSFER_DEST_HOST --source-map-file $GPTRANSFER_MAP_FILE -a"
+        Then gptransfer should return a return code of 2
+        And gptransfer should print Destination table name "gptest.public.tbl.extra_tablename" isn't fully qualified format to stdout
+
     @gptransfer_help
     Scenario: use gptransfer --help with another gptransfer process already running.
         Given the database is running

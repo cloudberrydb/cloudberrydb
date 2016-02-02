@@ -2837,6 +2837,10 @@ class GpTransfer(object):
             raise ProgramArgumentValidationException('--partition-transfer option cannot be '
                                                      'used with -d option')
 
+        if (self._options.partition_transfer and self._options.dest_database):
+            raise ProgramArgumentValidationException('--partition-transfer option cannot be '
+                                                     'used with --dest-database option')
+
         if (self._options.partition_transfer and self._options.drop):
             raise ProgramArgumentValidationException('--partition-transfer option cannot be used '
                                                      'with --drop option')
@@ -2952,7 +2956,7 @@ class GpTransfer(object):
                 not self._options.dest_database and \
                 not self._options.partition_transfer:
             raise ProgramArgumentValidationException('Source and destination systems cannot be '
-                                   'the same unless --dest-database option is '
+                                   'the same unless --dest-database or --partition-transfer option is '
                                    'set')
 
         if self._options.full and self._options.dest_database:
@@ -3284,27 +3288,51 @@ class GpTransfer(object):
         self.src_dest_partition_table_mapping = dict()
         self._dest_databases = []
         self._src_databases = []
+        fqn_format = '<db_name>.<schema_name>.<table_name>'
+        logger.info('Reading partition table transfer pairs from input file %s', self._options.input_file)
         with open (self._options.input_file) as input_file:
             for line in input_file:
                 line = line.strip()
-                if line.startswith('#'):
+                if line.startswith('#') or line == '':
+                    logger.debug('Skipping blank lines and commented lines beginning with # (pound sign)')
                     continue
                 if ',' in line:
+                    if line.count(',') > 1:
+                        raise Exception('Wrong format found for table transfer pair "%s", use single comma '
+                                         'to separate source and destination table' % line)
                     src_table, dest_table = line.split(',')
                 else:
                     src_table = dest_table = line
 
                 # populate the mapping between source and destination table pair
                 src_table, dest_table = src_table.strip(), dest_table.strip()
-                if src_table == '' or dest_table == '':
-                    raise Exception('Can not specify empty table names')
-                if src_table == dest_table and self._options.source_host == self._options.dest_host:
-                    raise Exception('Can not transfer between same partition table %s' % src_table)
+
+                if src_table == '':
+                    raise Exception('Cannot specify empty source table name')
+
+                if dest_table == '':
+                    raise Exception('Cannot specify empty destination table name')
+
+                # gptransfer does not support special char '.' in db name, schema name or table name
+                if src_table.count(SCHEMA_DELIMITER) != 2:
+                    raise Exception('Source table name "%s" isn\'t fully qualified format: %s' %
+                                    (src_table, fqn_format))
+
+                if dest_table.count(SCHEMA_DELIMITER) != 2:
+                    raise Exception('Destination table name "%s" isn\'t fully qualified format: %s' %
+                                     (dest_table, fqn_format))
+
+                if (src_table == dest_table and self._options.source_host == self._options.dest_host and
+                   self._options.source_port == self._options.dest_port):
+                    raise Exception('Cannot transfer between same partition table %s' % src_table)
+
                 if (src_table in self.src_dest_partition_table_mapping and
                     self.src_dest_partition_table_mapping[src_table] == dest_table):
                     logger.warning('Duplicate entries found, source partition table %s, destination partition table %s ' %
                                    (src_table, dest_table))
                     continue
+
+                logger.debug('Getting source partition table "%s", destination partition table "%s"' % (src_table, dest_table))
                 self.src_dest_partition_table_mapping[src_table] = dest_table
 
                 src_db = split_fqn(src_table)[0]
