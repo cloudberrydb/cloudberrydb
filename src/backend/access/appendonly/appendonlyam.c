@@ -1016,11 +1016,11 @@ AppendOnlyExecutorReadBlock_ProcessTuple(
 			 */
 			tuple = memtuple_aligned_clone(tuple, slot->tts_mt_bind, true /* upgrade */);
 			Assert(tuple);
-			ExecStoreMemTuple(tuple, slot, true /* shouldFree */);
+			ExecStoreMinimalTuple(tuple, slot, true /* shouldFree */);
 		}
 		else
 		{
-			ExecStoreMemTuple(tuple, slot, false);
+			ExecStoreMinimalTuple(tuple, slot, false);
 		}
 
 		slot_set_ctid(slot, &(executorReadBlock->cdb_fake_ctid));

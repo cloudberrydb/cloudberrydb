@@ -8,7 +8,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/access/nbtree/nbtinsert.c,v 1.148 2007/01/27 20:53:30 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/access/nbtree/nbtinsert.c,v 1.149 2007/02/06 14:55:11 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */

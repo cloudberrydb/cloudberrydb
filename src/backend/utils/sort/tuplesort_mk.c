@@ -1579,7 +1579,7 @@ tuplesort_gettupleslot_pos_mk(Tuplesortstate_mk *state, TuplesortPos_mk *pos,
     if (fOK) 
     {
         Assert(!mke_is_empty(&e));
-        ExecStoreMemTuple(e.ptr, slot, should_free);
+        ExecStoreMinimalTuple(e.ptr, slot, should_free);
 
 #ifdef USE_ASSERT_CHECKING
 		if (should_free && state->mkheap != NULL && state->mkheap->count > 0)

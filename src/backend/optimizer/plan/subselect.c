@@ -8,7 +8,7 @@
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/optimizer/plan/subselect.c,v 1.117 2007/01/10 18:06:03 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/optimizer/plan/subselect.c,v 1.118 2007/02/06 02:59:11 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -776,12 +776,13 @@ testexpr_is_hashable(Node *testexpr)
 	 * The testexpr must be a single OpExpr, or an AND-clause containing
 	 * only OpExprs.
 	 *
-	 * The combining operators must be hashable and strict. The need for
-	 * hashability is obvious, since we want to use hashing. Without
-	 * strictness, behavior in the presence of nulls is too unpredictable.	We
-	 * actually must assume even more than plain strictness: they can't yield
-	 * NULL for non-null inputs, either (see nodeSubplan.c).  However, hash
-	 * indexes and hash joins assume that too.
+	 * The combining operators must be hashable and strict.
+	 * The need for hashability is obvious, since we want to use hashing.
+	 * Without strictness, behavior in the presence of nulls is too
+	 * unpredictable.  We actually must assume even more than plain
+	 * strictness: they can't yield NULL for non-null inputs, either
+	 * (see nodeSubplan.c).  However, hash indexes and hash joins assume
+	 * that too.
 	 */
 	if (testexpr && IsA(testexpr, OpExpr))
 	{
@@ -820,8 +821,7 @@ hash_ok_operator(OpExpr *expr)
 	if (!HeapTupleIsValid(tup))
 		elog(ERROR, "cache lookup failed for operator %u", opid);
 	optup = (Form_pg_operator) GETSTRUCT(tup);
-	if (!optup->oprcanhash || optup->oprcom != opid ||
-		!func_strict(optup->oprcode))
+	if (!optup->oprcanhash || !func_strict(optup->oprcode))
 	{
 		ReleaseSysCache(tup);
 		return false;

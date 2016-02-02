@@ -6356,7 +6356,7 @@ ATRewriteTable(AlteredTableInfo *tab, Oid OIDNewHeap)
 				}
 
 				/* Now check any constraints on the possibly-changed tuple */
-				ExecStoreMemTuple(mtuple, newslot, false);
+				ExecStoreMinimalTuple(mtuple, newslot, false);
 				econtext->ecxt_scantuple = newslot;
 
 				foreach(l, notnull_attrs)

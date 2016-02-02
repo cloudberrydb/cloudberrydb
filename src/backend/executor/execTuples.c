@@ -420,7 +420,7 @@ ExecStoreHeapTuple(HeapTuple tuple,
 	if(is_heaptuple_memtuple(tuple))
 	{
 		Assert(buffer == InvalidBuffer);
-		return ExecStoreMemTuple((MemTuple) tuple, slot, shouldFree);
+		return ExecStoreMinimalTuple((MemTuple) tuple, slot, shouldFree);
 	}
 
 	/*
@@ -471,7 +471,9 @@ ExecStoreHeapTuple(HeapTuple tuple,
  * --------------------------------
  */
 TupleTableSlot *
-ExecStoreMemTuple(MemTuple mtup, TupleTableSlot *slot, bool shouldFree)
+ExecStoreMinimalTuple(MemTuple mtup,
+					  TupleTableSlot *slot,
+					  bool shouldFree)
 {
 	/*
 	 * sanity checks

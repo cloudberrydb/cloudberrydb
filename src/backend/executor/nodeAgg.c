@@ -1278,7 +1278,7 @@ agg_retrieve_direct(AggState *aggstate)
 				 * from the slot.
 				 */
 
-				ExecStoreMemTuple(aggstate->grp_firstTuple,
+				ExecStoreMinimalTuple(aggstate->grp_firstTuple,
 							   firstSlot,
 							   true);
 				aggstate->grp_firstTuple = NULL;        /* don't keep two pointers */
@@ -1627,7 +1627,7 @@ agg_retrieve_hash_table(AggState *aggstate)
 		 * Store the copied first input tuple in the tuple table slot reserved
 		 * for it, so that it can be used in ExecProject.
 		 */
-		ExecStoreMemTuple((MemTuple)entry->tuple_and_aggs, firstSlot, false);
+		ExecStoreMinimalTuple((MemTuple)entry->tuple_and_aggs, firstSlot, false);
 		pergroup = (AggStatePerGroup)((char *)entry->tuple_and_aggs + 
 					      MAXALIGN(memtuple_get_size((MemTuple)entry->tuple_and_aggs,
 									 aggstate->hashslot->tts_mt_bind)));

@@ -351,7 +351,7 @@ ExecHashJoin(HashJoinState *node)
 			/*
 			 * we've got a match, but still need to test non-hashed quals
 			 */
-			inntuple = ExecStoreMemTuple(HJTUPLE_MINTUPLE(curtuple),
+			inntuple = ExecStoreMinimalTuple(HJTUPLE_MINTUPLE(curtuple),
 										 node->hj_HashTupleSlot,
 										 false);	/* don't pfree */
 			econtext->ecxt_innertuple = inntuple;
@@ -1094,7 +1094,7 @@ ExecHashJoinGetSavedTuple(HashJoinBatchSide *batchside,
 		ereport(ERROR,
 				(errcode_for_file_access(),
 				 errmsg("could not read from temporary file")));
-	return ExecStoreMemTuple(tuple, tupleSlot, true);
+	return ExecStoreMinimalTuple(tuple, tupleSlot, true);
 }
 
 

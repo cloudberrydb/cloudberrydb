@@ -1551,7 +1551,7 @@ tuplesort_gettupleslot_pos(Tuplesortstate *state, TuplesortPos *pos,
 
 	if (stup.tuple)
 	{
-		ExecStoreMemTuple(stup.tuple, slot, should_free);
+		ExecStoreMinimalTuple(stup.tuple, slot, should_free);
 		if (state->gpmon_pkt)
 			Gpmon_M_Incr_Rows_Out(state->gpmon_pkt);
 		return true;
