@@ -525,6 +525,7 @@ CTranslatorRelcacheToDXL::Pmdrel
 	DrgPmdid *pdrgpmdidIndexes = NULL;
 	DrgPmdid *pdrgpmdidTriggers = NULL;
 	DrgPul *pdrgpulPartKeys = NULL;
+	ULONG ulLeafPartitions = 0;
 	BOOL fConvertHashToRandom = false;
 	DrgPdrgPul *pdrgpdrgpulKeys = NULL;
 	DrgPmdid *pdrgpmdidCheckConstraints = NULL;
@@ -579,6 +580,13 @@ CTranslatorRelcacheToDXL::Pmdrel
 				erelstorage = IMDRelation::ErelstorageAppendOnlyParquet;
 			}
 		}
+
+		// get number of leaf partitions
+		if (gpdb::FRelPartIsRoot(oid))
+		{
+			ulLeafPartitions = gpdb::UlLeafPartitions(oid);
+		}
+
 		// get key sets
 		BOOL fAddDefaultKeys = FHasSystemColumns(rel->rd_rel->relkind);
 		pdrgpdrgpulKeys = PdrgpdrgpulKeys(pmp, oid, fAddDefaultKeys, fPartitioned, pulAttnoMapping);
@@ -649,6 +657,7 @@ CTranslatorRelcacheToDXL::Pmdrel
 							pdrgpmdcol,
 							pdrpulDistrCols,
 							pdrgpulPartKeys,
+							ulLeafPartitions,
 							fConvertHashToRandom,
 							pdrgpdrgpulKeys,
 							pdrgpmdidIndexes,

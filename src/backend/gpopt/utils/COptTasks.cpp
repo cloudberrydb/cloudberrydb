@@ -755,7 +755,8 @@ COptTasks::PoconfCreate
 						GPOS_NEW(pmp) CEnumeratorConfig(pmp, ullPlanId, ullSamples, dCostThreshold),
 						GPOS_NEW(pmp) CStatisticsConfig(pmp, dDampingFactorFilter, dDampingFactorJoin, dDampingFactorGroupBy),
 						GPOS_NEW(pmp) CCTEConfig(ulCTEInliningCutoff),
-						pcm
+						pcm,
+						GPOS_NEW(pmp) CHint::PhintDefault(pmp)
 						);
 }
 
