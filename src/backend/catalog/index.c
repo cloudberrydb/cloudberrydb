@@ -1248,7 +1248,6 @@ static void
 index_update_stats(Relation rel, bool hasindex, bool isprimary,
 				   Oid reltoastidxid, double reltuples)
 {
-	BlockNumber relpages = RelationGetNumberOfBlocks(rel);
 	Oid			relid = RelationGetRelid(rel);
 	Relation	pg_class;
 	HeapTuple	tuple;
@@ -1365,6 +1364,9 @@ index_update_stats(Relation rel, bool hasindex, bool isprimary,
 			rd_rel->reltuples = (float4) reltuples;
 			dirty = true;
 		}
+
+		BlockNumber relpages = RelationGetNumberOfBlocks(rel);
+
 		if (rd_rel->relpages != (int32) relpages)
 		{
 			rd_rel->relpages = (int32) relpages;
