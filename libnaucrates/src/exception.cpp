@@ -149,9 +149,9 @@ gpdxl::EresExceptionInit
 
 			CMessage(CException(gpdxl::ExmaDXL, gpdxl::ExmiQuery2DXLNotNullViolation),
 					CException::ExsevError,
-					GPOS_WSZ_WSZLEN("NULL value in column \"%ls\" violates not-null constraint"),
+					GPOS_WSZ_WSZLEN("null value in column \"%ls\" violates not-null constraint"),
 					1, //
-					GPOS_WSZ_WSZLEN("NULL value in column violates not-null constraint")),
+					GPOS_WSZ_WSZLEN("null value in column violates not-null constraint")),
 
 			CMessage(CException(gpdxl::ExmaDXL, gpdxl::ExmiQuery2DXLDuplicateRTE),
 					CException::ExsevError,
