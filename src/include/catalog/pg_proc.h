@@ -8,7 +8,7 @@
  * Portions Copyright (c) 1996-2010, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
- * $PostgreSQL: pgsql/src/include/catalog/pg_proc.h,v 1.442 2007/02/03 14:06:55 petere Exp $
+ * $PostgreSQL: pgsql/src/include/catalog/pg_proc.h,v 1.443 2007/02/07 23:11:30 tgl Exp $
  *
  * NOTES
  *	  The script catalog/genbki.sh reads this file and generates .bki
@@ -2410,7 +2410,7 @@ DESCR("deparse an encoded expression");
 DATA(insert OID = 1665 (  pg_get_serial_sequence	PGNSP PGUID 12 1 0 f f t f s 2 25 "25 25" _null_ _null_ _null_	pg_get_serial_sequence - _null_ ));
 DESCR("name of sequence for a serial column");
 /* pg_get_function_arguments(oid) => text */
-DATA(insert OID = 2230 ( pg_get_function_arguments  PGNSP PGUID 12 1 0 f f t f s 1 25 "26" _null_ _null_ _null_ pg_get_function_arguments - _null_ ));
+DATA(insert OID = 2096 ( pg_get_function_arguments  PGNSP PGUID 12 1 0 f f t f s 1 25 "26" _null_ _null_ _null_ pg_get_function_arguments - _null_ ));
 DESCR("argument list of a function");
 
 /* pg_get_function_result(oid) => text */
@@ -3043,8 +3043,6 @@ DATA(insert OID = 1936 (  pg_stat_get_backend_idset		PGNSP PGUID 12 1 100 f f t 
 DESCR("Statistics: Currently active backend IDs");
 DATA(insert OID = 2026 (  pg_backend_pid				PGNSP PGUID 12 1 0 f f t f s 0 23 "" _null_ _null_ _null_ pg_backend_pid - _null_ ));
 DESCR("Statistics: Current backend PID");
-DATA(insert OID = 2274 (  pg_stat_reset				PGNSP PGUID 12 1 0 f f f f v 0 16  "" _null_ _null_ _null_	pg_stat_reset - _null_ ));
-DESCR("Statistics: Reset collected statistics");
 DATA(insert OID = 1937 (  pg_stat_get_backend_pid		PGNSP PGUID 12 1 0 f f t f s 1 23 "23" _null_ _null_ _null_ pg_stat_get_backend_pid - _null_ ));
 DESCR("Statistics: PID of backend");
 DATA(insert OID = 1938 (  pg_stat_get_backend_dbid		PGNSP PGUID 12 1 0 f f t f s 1 26 "23" _null_ _null_ _null_ pg_stat_get_backend_dbid - _null_ ));
@@ -3075,6 +3073,10 @@ DATA(insert OID = 1944 (  pg_stat_get_db_blocks_fetched PGNSP PGUID 12 1 0 f f t
 DESCR("Statistics: Blocks fetched for database");
 DATA(insert OID = 1945 (  pg_stat_get_db_blocks_hit		PGNSP PGUID 12 1 0 f f t f s 1 20 "26" _null_ _null_ _null_ pg_stat_get_db_blocks_hit - _null_ ));
 DESCR("Statistics: Blocks found in cache for database");
+DATA(insert OID = 2230 (  pg_stat_clear_snapshot		PGNSP PGUID 12 1 0 f f f f v 0 2278  "" _null_ _null_ _null_	pg_stat_clear_snapshot - _null_ ));
+DESCR("Statistics: Discard current transaction's statistics snapshot");
+DATA(insert OID = 2274 (  pg_stat_reset					PGNSP PGUID 12 1 0 f f f f v 0 2278  "" _null_ _null_ _null_	pg_stat_reset - _null_ ));
+DESCR("Statistics: Reset collected statistics for current database");
 
 DATA(insert OID = 1946 (  encode						PGNSP PGUID 12 1 0 f f t f i 2 25 "17 25" _null_ _null_ _null_	binary_encode - _null_ ));
 DESCR("Convert bytea value into some ascii-only text string");

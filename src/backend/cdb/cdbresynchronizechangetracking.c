@@ -778,30 +778,31 @@ void ChangeTracking_GetRelationChangeInfoFromXlog(
 					break;
 				}
 				case XLOG_BTREE_SPLIT_L:
-				case XLOG_BTREE_SPLIT_R:
 				case XLOG_BTREE_SPLIT_L_ROOT:
+				case XLOG_BTREE_SPLIT_R:
 				case XLOG_BTREE_SPLIT_R_ROOT:
 				{
+					/* 83MERGE_FIXME_DG
 					xl_btree_split *xlrec = (xl_btree_split *) data;
-					BlockIdData blkid = xlrec->target.tid.ip_blkid;
+					BlockIdData blkid = xlrec->node.tid.ip_blkid;
 					
 					ChangeTracking_AddRelationChangeInfo(
 													   relationChangeInfoArray,
 													   relationChangeInfoArrayCount,
 													   relationChangeInfoMaxSize,
-													   &(xlrec->target.node),
+													   &(xlrec->node),
 													   BlockIdGetBlockNumber(&blkid),
-													   &xlrec->target.persistentTid,
-													   xlrec->target.persistentSerialNum);
+													   &xlrec->node.persistentTid,
+													   xlrec->node.persistentSerialNum);
 					
 					ChangeTracking_AddRelationChangeInfo(
 													   relationChangeInfoArray,
 													   relationChangeInfoArrayCount,
 													   relationChangeInfoMaxSize,
-													   &(xlrec->target.node),
+													   &(xlrec->node),
 													   xlrec->otherblk,
-													   &xlrec->target.persistentTid,
-													   xlrec->target.persistentSerialNum);
+													   &xlrec->node.persistentTid,
+													   xlrec->node.persistentSerialNum);
 					
 					if (xlrec->rightblk != P_NONE)
 					{
@@ -809,12 +810,12 @@ void ChangeTracking_GetRelationChangeInfoFromXlog(
 														   relationChangeInfoArray,
 														   relationChangeInfoArrayCount,
 														   relationChangeInfoMaxSize,
-														   &(xlrec->target.node),
-														   xlrec->rightblk,
-														   &xlrec->target.persistentTid,
-														   xlrec->target.persistentSerialNum);
+														   &(xlrec->node),
+														   xlrec->rightsib,
+														   &xlrec->node.persistentTid,
+														   xlrec->node.persistentSerialNum);
 					}
-					
+					*/
 					break;
 				}
 				case XLOG_BTREE_DELETE:

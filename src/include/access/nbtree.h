@@ -7,7 +7,7 @@
  * Portions Copyright (c) 1996-2008, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
- * $PostgreSQL: pgsql/src/include/access/nbtree.h,v 1.110 2007/02/05 04:22:18 tgl Exp $
+ * $PostgreSQL: pgsql/src/include/access/nbtree.h,v 1.115 2007/11/16 19:53:50 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -286,33 +286,50 @@ typedef struct xl_btree_insert
 #define SizeOfBtreeInsert	(offsetof(xl_btreetid, tid) + SizeOfIptrData)
 
 /*
- * On insert with split we save items of both left and right siblings
- * and restore content of both pages from log record.  This way takes less
- * xlog space than the normal approach, because if we did it standardly,
+ * On insert with split, we save all the items going into the right sibling
+ * so that we can restore it completely from the log record.  This way takes
+ * less xlog space than the normal approach, because if we did it standardly,
  * XLogInsert would almost always think the right page is new and store its
- * whole page image.
+ * whole page image.  The left page, however, is handled in the normal
+ * incremental-update fashion.
  *
  * Note: the four XLOG_BTREE_SPLIT xl_info codes all use this data record.
  * The _L and _R variants indicate whether the inserted tuple went into the
- * left or right split page (and thus, whether otherblk is the right or left
- * page of the split pair).  The _ROOT variants indicate that we are splitting
+ * left or right split page (and thus, whether newitemoff and the new item
+ * are stored or not).  The _ROOT variants indicate that we are splitting
  * the root page, and thus that a newroot record rather than an insert or
  * split record should follow.	Note that a split record never carries a
  * metapage update --- we'll do that in the parent-level update.
  */
 typedef struct xl_btree_split
 {
-	xl_btreetid target;			/* inserted tuple id */
-	BlockNumber otherblk;		/* second block participated in split: */
-	/* first one is stored in target' tid */
-	BlockNumber leftblk;		/* prev/left block */
-	BlockNumber rightblk;		/* next/right block */
+	RelFileNode node;
+	BlockNumber leftsib;		/* orig page / new left page */
+	BlockNumber rightsib;		/* new right page */
+	BlockNumber rnext;			/* next block (orig page's rightlink) */
 	uint32		level;			/* tree level of page being split */
-	uint16		leftlen;		/* len of left page items below */
-	/* LEFT AND RIGHT PAGES TUPLES FOLLOW AT THE END */
+	OffsetNumber firstright;	/* first item moved to right page */
+
+	/*
+	 * If level > 0, BlockIdData downlink follows.  (We use BlockIdData
+	 * rather than BlockNumber for alignment reasons: SizeOfBtreeSplit
+	 * is only 16-bit aligned.)
+	 *
+	 * If level > 0, an IndexTuple representing the HIKEY of the left page
+	 * follows.  We don't need this on leaf pages, because it's the same
+	 * as the leftmost key in the new right page.  Also, it's suppressed if
+	 * XLogInsert chooses to store the left page's whole page image.
+	 *
+	 * In the _L variants, next are OffsetNumber newitemoff and the new item.
+	 * (In the _R variants, the new item is one of the right page's tuples.)
+	 * The new item, but not newitemoff, is suppressed if XLogInsert chooses
+	 * to store the left page's whole page image.
+	 *
+	 * Last are the right page's tuples in the form used by _bt_restore_page.
+	 */
 } xl_btree_split;
 
-#define SizeOfBtreeSplit	(offsetof(xl_btree_split, leftlen) + sizeof(uint16))
+#define SizeOfBtreeSplit	(offsetof(xl_btree_split, firstright) + sizeof(OffsetNumber))
 
 /*
  * This is what we need to know about delete of individual leaf index tuples.

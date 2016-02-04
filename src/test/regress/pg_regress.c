@@ -1030,6 +1030,57 @@ spawn_process(const char *cmdline)
 
 	ZeroMemory(&si, sizeof(si));
 	si.cb = sizeof(si);
+	
+	Advapi32Handle = LoadLibrary("ADVAPI32.DLL");
+	if (Advapi32Handle != NULL)
+	{
+      _CreateRestrictedToken = (__CreateRestrictedToken) GetProcAddress(Advapi32Handle, "CreateRestrictedToken");
+   }
+   
+   if (_CreateRestrictedToken == NULL)
+   {
+      if (Advapi32Handle != NULL)
+      	FreeLibrary(Advapi32Handle);
+      fprintf(stderr, "ERROR: Unable to create restricted tokens on this platform\n");
+      exit_nicely(2);
+   }
+
+   /* Open the current token to use as base for the restricted one */
+   if (!OpenProcessToken(GetCurrentProcess(), TOKEN_ALL_ACCESS, &origToken))
+   {
+      fprintf(stderr, "Failed to open process token: %lu\n", GetLastError());
+      exit_nicely(2);
+   }
+
+	/* Allocate list of SIDs to remove */
+	ZeroMemory(&dropSids, sizeof(dropSids));
+	if (!AllocateAndInitializeSid(&NtAuthority, 2,
+			SECURITY_BUILTIN_DOMAIN_RID, DOMAIN_ALIAS_RID_ADMINS, 0, 0, 0, 0, 0, 0, &dropSids[0].Sid) ||
+		 !AllocateAndInitializeSid(&NtAuthority, 2,
+		   SECURITY_BUILTIN_DOMAIN_RID, DOMAIN_ALIAS_RID_POWER_USERS, 0, 0, 0, 0, 0, 0, &dropSids[1].Sid))
+   {
+      fprintf(stderr, "Failed to allocate SIDs: %lu\n", GetLastError());
+      exit_nicely(2);
+   }
+	
+	b = _CreateRestrictedToken(origToken,
+          DISABLE_MAX_PRIVILEGE,
+          sizeof(dropSids)/sizeof(dropSids[0]),
+          dropSids,
+          0, NULL,
+          0, NULL,
+          &restrictedToken);
+
+   FreeSid(dropSids[1].Sid);
+   FreeSid(dropSids[0].Sid);
+   CloseHandle(origToken);
+   FreeLibrary(Advapi32Handle);
+   
+   if (!b)
+   {
+      fprintf(stderr, "Failed to create restricted token: %lu\n", GetLastError());
+      exit_nicely(2);
+   }
 
 	Advapi32Handle = LoadLibrary("ADVAPI32.DLL");
 	if (Advapi32Handle != NULL)

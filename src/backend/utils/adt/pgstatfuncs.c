@@ -8,7 +8,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/utils/adt/pgstatfuncs.c,v 1.37 2007/01/05 22:19:41 momjian Exp $
+ *	  $PostgreSQL: pgsql/src/backend/utils/adt/pgstatfuncs.c,v 1.38 2007/02/07 23:11:29 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -625,16 +625,6 @@ pg_backend_pid(PG_FUNCTION_ARGS)
 	PG_RETURN_INT32(MyProcPid);
 }
 
-/*
- * Built-in function for resetting the counters
- */
-Datum
-pg_stat_reset(PG_FUNCTION_ARGS)
-{
-	pgstat_reset_counters();
-
-	PG_RETURN_BOOL(true);
-}
 
 Datum
 pg_stat_get_backend_pid(PG_FUNCTION_ARGS)
@@ -995,6 +985,7 @@ pg_stat_get_db_blocks_hit(PG_FUNCTION_ARGS)
 	PG_RETURN_INT64(result);
 }
 
+
 /* Discard the active statistics snapshot */
 Datum
 pg_stat_clear_snapshot(PG_FUNCTION_ARGS)
@@ -1093,3 +1084,11 @@ pg_renice_session(PG_FUNCTION_ARGS)
 	PG_RETURN_INT32(prio_out);
 }
 
+/* Reset all counters for the current database */
+Datum
+pg_stat_reset(PG_FUNCTION_ARGS)
+{
+	pgstat_reset_counters();
+
+	PG_RETURN_VOID();
+}

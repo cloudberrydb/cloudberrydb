@@ -1,7 +1,7 @@
 /* -----------------------------------------------------------------------
  * formatting.c
  *
- * $PostgreSQL: pgsql/src/backend/utils/adt/formatting.c,v 1.116.2.4 2009/03/12 00:53:41 tgl Exp $
+ * $PostgreSQL: pgsql/src/backend/utils/adt/formatting.c,v 1.121 2007/02/09 03:15:48 momjian Exp $
  *
  *
  *	 Portions Copyright (c) 1999-2008, PostgreSQL Global Development Group
@@ -122,6 +122,7 @@
  */
 #define MAXFLOATWIDTH	60
 #define MAXDOUBLEWIDTH	500
+
 
 
 /* ----------
@@ -1001,6 +1002,20 @@ static NUMCacheEntry *NUM_cache_search(char *str);
 static NUMCacheEntry *NUM_cache_getnew(char *str);
 static void NUM_cache_remove(NUMCacheEntry *ent);
 
+
+/*
+ * External (defined in oracle_compat.c 
+ */
+#if defined(HAVE_WCSTOMBS) && defined(HAVE_TOWLOWER)
+#define USE_WIDE_UPPER_LOWER
+extern char *wstring_upper(char *str);
+extern char *wstring_lower(char *str);
+static char *localized_str_toupper(char *buff);
+static char *localized_str_tolower(char *buff);
+#else
+#define localized_str_toupper str_toupper
+#define localized_str_tolower str_tolower
+#endif
 
 /* ----------
  * Fast sequential search, use index for data selection which
@@ -3865,7 +3880,6 @@ NUM_prepare_locale(NUMProc *Np)
 		 */
 		if (lconv->decimal_point && *lconv->decimal_point)
 			Np->decimal = lconv->decimal_point;
-
 		else
 			Np->decimal = ".";
 

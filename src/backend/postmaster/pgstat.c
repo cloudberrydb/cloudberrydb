@@ -13,7 +13,7 @@
  *
  *	Copyright (c) 2001-2009, PostgreSQL Global Development Group
  *
- *	$PostgreSQL: pgsql/src/backend/postmaster/pgstat.c,v 1.144 2007/01/26 20:06:52 tgl Exp $
+ *	$PostgreSQL: pgsql/src/backend/postmaster/pgstat.c,v 1.145 2007/02/07 23:11:29 tgl Exp $
  * ----------
  */
 #include "postgres.h"
@@ -3631,14 +3631,14 @@ backend_read_statsfile(void)
  */
 static void
 pgstat_setup_memcxt(void)
-		{
+{
 	if (!pgStatLocalContext)
 		pgStatLocalContext = AllocSetContextCreate(TopMemoryContext,
 												   "Statistics snapshot",
 												   ALLOCSET_SMALL_MINSIZE,
 												   ALLOCSET_SMALL_INITSIZE,
 												   ALLOCSET_SMALL_MAXSIZE);
-		}
+}
 
 
 /* ----------
@@ -3663,7 +3663,7 @@ pgstat_clear_snapshot(void)
 	pgStatDBHash = NULL;
 	localBackendStatusTable = NULL;
 	localNumBackends = 0;
-	}
+}
 
 
 /* ----------
