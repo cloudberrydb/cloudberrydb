@@ -54,7 +54,8 @@
 #include <openssl/ssl.h>
 #include <openssl/rand.h>
 #include <openssl/err.h>
-#include <gpfdist_helper.h>
+#include "gpfdist_helper.h"
+#include <pg_config.h>
 
 /*  A data block */
 typedef struct blockhdr_t blockhdr_t;
@@ -132,12 +133,6 @@ static gnet_request_t* gnet_parse_request(const char* buf, int* len,
 										  apr_pool_t* pool);
 static char* gstring_trim(char* s);
 static void percent_encoding_to_char(char* p, char* pp, char* path);
-
-#ifndef GP_VERSION
-#define GP_VERSION unknown
-#endif
-
-#define GP_VERSIONX APR_STRINGIFY(GP_VERSION)
 
 /* CR-2723 */
 #define GPFDIST_MAX_LINE_LOWER_LIMIT (32*1024)
@@ -506,7 +501,7 @@ static void usage_error(const char* msg, int print_usage)
 
 static void print_version(void)
 {
-	printf("gpfdist version \"%s\"\n", GP_VERSIONX);
+	printf("gpfdist version \"%s\"\n", GP_VERSION);
 	exit(0);
 }
 
@@ -808,7 +803,7 @@ static void http_error(request_t* r, int code, const char* msg)
 	n = apr_snprintf(buf, sizeof(buf), "HTTP/1.0 %d %s\r\n"
 		"Content-length: 0\r\n"
 		"Expires: 0\r\n"
-		"X-GPFDIST-VERSION: " GP_VERSIONX "\r\n"
+		"X-GPFDIST-VERSION: " GP_VERSION "\r\n"
 		"Cache-Control: no-cache\r\n"
 		"Connection: close\r\n\r\n", code, msg);
 
@@ -822,7 +817,7 @@ static void http_empty(request_t* r)
 		"Content-type: text/plain\r\n"
 		"Content-length: 0\r\n"
 		"Expires: 0\r\n"
-		"X-GPFDIST-VERSION: " GP_VERSIONX "\r\n"
+		"X-GPFDIST-VERSION: " GP_VERSION "\r\n"
 		"Cache-Control: no-cache\r\n"
 		"Connection: close\r\n\r\n";
 	gprintln(r, "HTTP EMPTY: %s %s %s - OK", r->peer, r->in.req->argv[0], r->in.req->argv[1]);
@@ -846,7 +841,7 @@ static apr_status_t http_ok(request_t* r)
 	const char* fmt = "HTTP/1.0 200 ok\r\n"
 		"Content-type: text/plain\r\n"
 		"Expires: 0\r\n"
-		"X-GPFDIST-VERSION: " GP_VERSIONX "\r\n"
+		"X-GPFDIST-VERSION: " GP_VERSION "\r\n"
 		"X-GP-PROTO: %d\r\n"
 		"Cache-Control: no-cache\r\n"
 		"Connection: close\r\n\r\n";
@@ -1011,7 +1006,7 @@ static apr_status_t send_gpfdist_status(request_t* r)
 	int n = apr_snprintf(buf, sizeof(buf),	"HTTP/1.0 200 ok\r\n"
 										"Content-type: text/plain\r\n"
 										"Expires: 0\r\n"
-										"X-GPFDIST-VERSION: " GP_VERSIONX "\r\n"
+										"X-GPFDIST-VERSION: " GP_VERSION "\r\n"
 										"Cache-Control: no-cache\r\n"
 										"Connection: close\r\n\r\n"
 										"requst_time %s\r\n"

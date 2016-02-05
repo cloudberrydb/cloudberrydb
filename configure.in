@@ -224,7 +224,14 @@ PGAC_ARG_BOOL(enable, atomics, yes,
 # gpfdist
 #
 PGAC_ARG_BOOL(enable, gpfdist, yes,
-             [  --disable-gpfdist       do not use gpfdist])
+              [  --disable-gpfdist       do not use gpfdist],
+              [ if test "$with_openssl" = no || test "$with_openssl" = ""; then
+                 dnl we don't want to enable win32 openssl for now through gpfdist
+                 if test "$PORTNAME" != win32; then
+                   with_openssl=yes;
+                   AC_MSG_RESULT(enabling --with-openssl for gpfdist.)
+                 fi
+                fi ])
 AC_SUBST(enable_gpfdist)
 
 #
@@ -904,9 +911,14 @@ AC_SUBST(with_libcurl)
 # libapr. Used for gpfdist.
 #
 AC_ARG_WITH(apr-config,
-            [AS_HELP_STRING([--with-apr-config=PATH],[path to apr-1-config])],
-            , [with_apr_config=yes])
-AC_SUBST(with_apr_config)
+[AS_HELP_STRING([--with-apr-config=PATH],[path to apr-1-config])],
+[], [with_apr_config=yes])
+
+if test "$with_apr_config" = yes; then
+  AC_PATH_PROGS(APR_CONFIG, apr-1-config)
+else
+  APR_CONFIG=$with_apr_config
+fi
 
 #
 # Elf
@@ -1104,6 +1116,32 @@ if test "$with_krb5" = yes ; then
   fi
 fi
 
+#
+# Find APR headers and libraries
+#
+
+if test -n "$APR_CONFIG"; then
+  apr_includes=`"$APR_CONFIG" --includes`
+  apr_link_ld_libs=`"$APR_CONFIG" --link-ld --libs`
+  apr_cflags=`"$APR_CONFIG" --cflags`
+  apr_cppflags=`"$APR_CONFIG" --cppflags`
+  CPPFLAGS="$CPPFLAGS $apr_includes $apr_cppflags"
+  CFLAGS="$CFLAGS $apr_cflags"
+  LIBS="$LIBS $apr_link_ld_libs"
+fi
+
+if test "$enable_gpfdist" = yes ; then
+  # If the 'apr-1-config --link-ld' produced correct output, -lapr-1 is already
+  # in LIBS, hence AC_SEARCH_LIBS rather than AC_CHECK_LIB. (and the autoconf
+  # manual recommends always using AC_SEARCH_LIBS rather than AC_CHECK_LIB
+  # anyway)
+  AC_SEARCH_LIBS(apr_getopt_long, [apr-1], [], [AC_MSG_ERROR([libapr-1 is required for gpfdist])])
+  AC_SEARCH_LIBS(event_add, [event], [], [AC_MSG_ERROR([libevent is required for gpfdist])])
+
+  AC_SEARCH_LIBS(yaml_parser_initialize, [yaml], [have_yaml=yes], [AC_MSG_WARN([libyaml is not found. disabling transformations for gpfdist.])])
+  AC_SUBST(have_yaml)
+fi
+
 if test "$with_openssl" = yes ; then
   dnl Order matters!
   if test "$PORTNAME" != "win32"; then
@@ -1220,6 +1258,16 @@ Use --without-readline to disable libedit support.])])])])
   AC_CHECK_HEADERS(editline/history.h, [],
         [AC_CHECK_HEADERS(history.h, [],
                 [AC_CHECK_HEADERS(readline/history.h)])])
+fi
+
+if test "$enable_gpfdist" = yes; then
+  if test "$PORTNAME" = "win32"; then
+    AC_CHECK_HEADERS([winsock2.h])
+  fi
+
+  AC_CHECK_HEADER(yaml.h, [], [AC_MSG_WARN([header file <yaml.h> is not found. disabling transformations for gpfdist.])])
+  AC_CHECK_HEADER(apr_getopt.h, [], [AC_MSG_ERROR([header file <apr_getopt.h> is required])])
+  AC_CHECK_HEADER(event.h, [], [AC_MSG_ERROR([header file <event.h> is required])])
 fi
 
 if test "$with_zlib" = yes; then
@@ -2035,6 +2083,7 @@ fi
 AC_MSG_NOTICE([using CFLAGS=$CFLAGS])
 AC_MSG_NOTICE([using CPPFLAGS=$CPPFLAGS])
 AC_MSG_NOTICE([using LDFLAGS=$LDFLAGS])
+AC_MSG_NOTICE([using LIBS=$LIBS])
 
 
 # prepare build tree if outside source tree

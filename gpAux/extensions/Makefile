@@ -21,30 +21,9 @@ ifneq ($(with_apr_config),yes)
 endif
 endif
 
-all: mkgpfdist mkdbgen mkgphdfs
+all: mkdbgen mkgphdfs
 
 .PHONY:
-mkgpfdist:
-	if [ "$(enable_gpfdist)" = "yes" ]; then \
-		echo "gpfdist enabled"; \
-		if [ -d "$(ext_dir)" ]; then \
-			$(MAKE) -f Makefile.gpfdist INSTLOC=$(prefix); \
-		else \
-			cd gpfdist && ./configure --enable-transformations $(GPFDIST_FLAG) --prefix=$(prefix) \
-			&& $(MAKE); \
-		fi; \
-	else \
-		echo "gpfdist disabled"; \
-	fi
-
-install: mkgpfdist
-	if [ "$(enable_gpfdist)" = "yes" ]; then \
-		if [ ! -d $(prefix)/bin ]; then \
-			mkdir -p $(prefix)/bin ; \
-		fi; \
-		cp -p gpfdist/gpfdist$(EXE_EXT) $(prefix)/bin/ ; \
-	fi
-
 clean:
 	@if [ -f gpfdist/GNUmakefile ]; then $(MAKE) -C gpfdist clean; fi
 

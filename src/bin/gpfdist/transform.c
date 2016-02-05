@@ -1,111 +1,7 @@
 #ifdef WIN32
 /* don't build this for now */
 #else
-
-#ifdef HAVE_CONFIG_H
-#include <config.h>
-#endif
-
-#ifdef NDEBUG
-#undef NDEBUG
-#endif
-#include <assert.h>
-
-#include <string.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <regex.h>
-
-#include <apr.h>
-#if APR_HAVE_UNISTD_H
-#include <unistd.h>
-#endif
-#if APR_HAVE_IO_H
-#include <io.h>
-#endif
-
-#include <apr_general.h>
-#include <apr_thread_proc.h>
-#include <apr_strings.h>
-
-#include <yaml.h>
-
-/*
- * YAML gpfdist configuration parser, stage 1.  
- *
- * In this stage we build a simple structure from the YAML input.
- * For example the following YAML document
- *
- *  ---
- *      abc: 123
- *      xyz:
- *        def: 456
- *
- * results in the following memory structure:
- *
- *   streamstate        mapping
- *       document --->   nxt NULL
- *                       kvlist
- *                          |
- *                          v
- *                      keyvalue         keyvalue
- *                        nxt --------->   nxt -----> ...
- *                        type KV_SCALAR   type KV_MAPPING
- *                        key "abc"        key "xyz"
- *                        scalar "123"     scalar NULL
- *                        mapping NULL     mapping
- *                                           |
- *                                           v             
- *                                       mapping                   
- *                                          nxt ---> ...     
- *                                          kvlist       
- *                                             |             
- *                                             v             
- *                                         keyvalue        
- *                                           nxt NULL        
- *                                           type KV_SCALAR
- *                                           key "def"     
- *                                           scalar "456"  
- *                                           mapping NULL  
- *
- * At this stage we're only concerned about verifying the general
- * syntax and structure of the document.  Note that the gpfdist configuration
- * does not make use of sequences or aliases so we treat these as errors here.
- */
-
-struct keyvalue 
-{
-    struct keyvalue*  nxt;              /* next keyvalue in linked list or NULL */
-#define KV_UNKNOWN 0
-#define KV_SCALAR  1
-#define KV_MAPPING 2
-    int               type;             /* type of keyvalue (KV_SCALAR or KV_MAPPING) */
-#define MAX_KEYLEN 256
-    char*             key;              /* this keyvalue's key */
-    char*             scalar;           /* for KV_SCALAR, this keyvalue's scalar value */
-    struct mapping*   map;              /* for KV_MAPPING, this keyvalue's mapping value */
-    yaml_mark_t       keymark;          /* index, line, column of key */
-    yaml_mark_t       valuemark;        /* index, line, column of scalar or mapping */
-};
-
-struct mapping 
-{
-    struct mapping*   nxt;              /* next mapping in linked list or NULL */
-    struct keyvalue*  kvlist;           /* linked list of keyvalues in this mapping */
-};
-
-struct streamstate 
-{
-    const char*       filename;         /* name of YAML file (for error reporting) */
-    yaml_parser_t     parser;           /* YAML parser */
-    yaml_event_t      event;            /* current YAML event */
-    int               stream_start;     /* 1 if between stream start and stream end */
-    int               document_start;   /* 1 if between document start and document end */
-    struct mapping*   document;         /* top level mapping "document" */
-    struct mapping*   curmap;           /* current mapping being built */
-    struct keyvalue*  curkv;            /* current keyvalue being built */
-    char              errbuf[1024];     /* buffer for error message */
-};
+#include "transform.h"
 
 /*
  * debugging/dumping/error handling
@@ -469,51 +365,6 @@ stage1_parse(struct streamstate* stp, FILE* file, int verbose)
     return error;
 }
 
-
-
-/*
- * YAML gpfdist configuration parser, stage 2.  
- *
- * In this stage we construct the list of transformations from the mappings
- * built in stage 1 and validate that the values are legal.  The final result
- * is fairly straightforward:
- *
- *   parsestate        transform         transform
- *       trlist ----->   nxt ---------->   nxt --------> ...
- *                       type              type
- *                       command           command
- *
- */
-
-struct transform 
-{
-    struct transform* nxt;              /* next transform in linked list or NULL */
-    struct keyvalue*  kv;               /* keyvalue whose key is the name of this transform */
-#define TR_UNKNOWN 0
-#define TR_INPUT   1
-#define TR_OUTPUT  2
-    int               type;             /* type of transform (TR_INPUT or TR_OUTPUT) */
-    char*             command;          /* command string to execute */
-#define TR_FN_UNKNOWN 0
-#define TR_FN_DATA    1
-#define TR_FN_PATHS   2
-	int               content;          /* what transform expects %filename% to contain (data or path names) */
-	char*             safe;             /* if set, regex specifying safe file names */
-	regex_t           saferegex;        /* compiled form of safe */
-#define TR_ER_UNKNOWN 0
-#define TR_ER_CONSOLE 1
-#define TR_ER_SERVER  2
-    int               errs;             /* where stderr output should go (console or server) */
-};
-
-struct parsestate 
-{
-    const char*       filename;         /* name of YAML file (for error reporting) */
-    struct transform* trlist;           /* list of transformations in the YAML file */
-    char              errbuf[1024];     /* buffer for error message */
-};
-
-
 /*
  * debugging/dumping/error handling
  */
@@ -565,8 +416,6 @@ error_failed_to_find_transformations(struct parsestate* psp)
 {
     return format_onlyfilename(psp, "%s:0:0:failed to find TRANSFORMATIONS");
 }
-
-#define ERRFMT "%s:%d:%d:"
 
 int
 error_transformations_not_proper_yaml_map(struct parsestate* psp, struct keyvalue* kv)

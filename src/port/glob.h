@@ -77,7 +77,7 @@ typedef struct {
 #define	GLOB_NOCHECK	0x0010	/* Return pattern itself if nothing matches. */
 #define	GLOB_NOSORT	0x0020	/* Don't sort. */
 
-#ifndef _POSIX_SOURCE
+#if !defined __USE_POSIX2 || defined __USE_BSD || defined __USE_GNU
 #define	GLOB_ALTDIRFUNC	0x0040	/* Use alternately specified directory funcs. */
 #define	GLOB_BRACE	0x0080	/* Expand braces ala csh. */
 #define	GLOB_MAGCHAR	0x0100	/* Pattern had globbing characters. */

@@ -30,7 +30,7 @@
 	path = gpMgmt/bin/pythonSrc/ext
 	url = ssh://git@stash.eng.pivotal.io:2222/gpdb/pythonsrc-ext.git
 	branch = master
-[submodule "gpAux/extensions/gpfdist/ext"]
-	path = gpAux/extensions/gpfdist/ext
+[submodule "src/bin/gpfdist/ext"]
+	path = src/bin/gpfdist/ext
 	url = ssh://git@stash.eng.pivotal.io:2222/gpdb/gpfdist-ext.git
 	branch = master
