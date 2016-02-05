@@ -1,7 +1,7 @@
 /* -----------------------------------------------------------------------
  * formatting.c
  *
- * $PostgreSQL: pgsql/src/backend/utils/adt/formatting.c,v 1.121 2007/02/09 03:15:48 momjian Exp $
+ * $PostgreSQL: pgsql/src/backend/utils/adt/formatting.c,v 1.122 2007/02/09 04:17:58 momjian Exp $
  *
  *
  *	 Portions Copyright (c) 1999-2008, PostgreSQL Global Development Group
@@ -3917,7 +3917,6 @@ NUM_prepare_locale(NUMProc *Np)
 		Np->L_negative_sign = "-";
 		Np->L_positive_sign = "+";
 		Np->decimal = ".";
-
 		Np->L_thousands_sep = ",";
 		Np->L_currency_symbol = " ";
 	}

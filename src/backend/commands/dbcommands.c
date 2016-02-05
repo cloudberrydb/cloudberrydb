@@ -14,7 +14,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/commands/dbcommands.c,v 1.191 2007/02/01 19:10:26 momjian Exp $
+ *	  $PostgreSQL: pgsql/src/backend/commands/dbcommands.c,v 1.192 2007/02/09 16:12:18 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -47,6 +47,7 @@
 #include "miscadmin.h"
 #include "pgstat.h"
 #include "postmaster/checkpoint.h"
+#include "postmaster/bgwriter.h"
 #include "storage/freespace.h"
 #include "storage/ipc.h"
 #include "storage/procarray.h"
@@ -1474,6 +1475,11 @@ dropdb(const char *dbname, bool missing_ok)
 	 * Also, clean out any entries in the shared free space map.
 	 */
 	FreeSpaceMapForgetDatabase(InvalidOid, db_id);
+
+	/*
+	 * Tell the stats collector to forget it immediately, too.
+	 */
+	pgstat_drop_database(db_id);
 
 	/*
 	 * Tell bgwriter to forget any pending fsync requests for files in the

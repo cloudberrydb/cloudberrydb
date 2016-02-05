@@ -8,7 +8,7 @@
  * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
- * $PostgreSQL: pgsql/src/include/access/htup.h,v 1.90 2007/02/05 04:22:18 tgl Exp $
+ * $PostgreSQL: pgsql/src/include/access/htup.h,v 1.91 2007/02/09 03:35:34 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -613,7 +613,7 @@ typedef struct xl_heap_freeze
 extern CommandId HeapTupleHeaderGetCmin(HeapTupleHeader tup);
 extern CommandId HeapTupleHeaderGetCmax(HeapTupleHeader tup);
 extern void HeapTupleHeaderAdjustCmax(HeapTupleHeader tup,
-						  CommandId *cmax,
-						  bool *iscombo);
-						  
+									  CommandId *cmax,
+									  bool *iscombo);
+
 #endif   /* HTUP_H */

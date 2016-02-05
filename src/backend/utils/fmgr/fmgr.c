@@ -8,7 +8,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/utils/fmgr/fmgr.c,v 1.102.2.4 2009/12/09 21:58:29 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/utils/fmgr/fmgr.c,v 1.104 2007/02/09 03:35:34 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */

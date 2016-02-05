@@ -9,7 +9,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/tcop/postgres.c,v 1.521 2007/01/05 22:19:39 momjian Exp $
+ *	  $PostgreSQL: pgsql/src/backend/tcop/postgres.c,v 1.522 2007/02/10 14:58:55 petere Exp $
  *
  * NOTES
  *	  this is the "main" module of the postgres backend and
@@ -3972,7 +3972,7 @@ process_postgres_switches(int argc, char *argv[], GucContext ctx,
 			case 'r':
 				/* send output (stdout and stderr) to the given file */
 				if (secure)
-					StrNCpy(OutputFileName, optarg, MAXPGPATH);
+					strlcpy(OutputFileName, optarg, MAXPGPATH);
 				break;
 
 			case 'S':
