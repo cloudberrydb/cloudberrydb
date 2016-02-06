@@ -423,9 +423,21 @@ wloop:
 	else
 #endif
 	{
-		prepare_for_client_write();
+		bool saved_ImmediateInterruptOK = ImmediateInterruptOK;
+		CommandDest saved_CommandDest = whereToSendOutput;
+
+		whereToSendOutput = DestNone;
+		ImmediateInterruptOK = true;
+
+		if (ProcDiePending)
+		{
+			CHECK_FOR_INTERRUPTS();
+		}
+
 		n = send(port->sock, ptr, len, 0);
-		client_write_ended();
+
+		ImmediateInterruptOK = saved_ImmediateInterruptOK;
+		whereToSendOutput = saved_CommandDest;
 	}
 
 	return n;
@@ -481,8 +493,6 @@ my_sock_write(BIO *h, const char *buf, int size)
 {
 	int			res = 0;
 
-	prepare_for_client_write();
-
 	res = send(h->num, buf, size, 0);
 	if (res <= 0)
 	{
@@ -491,8 +501,6 @@ my_sock_write(BIO *h, const char *buf, int size)
 			BIO_set_retry_write(h);
 		}
 	}
-
-	client_write_ended();
 
 	return res;
 }
