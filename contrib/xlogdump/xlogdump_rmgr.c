@@ -1009,10 +1009,10 @@ print_rmgr_btree(XLogRecPtr cur, XLogRecord *record, uint8 info)
 #endif
 
 #if PG_VERSION_NUM >= 80300
-			snprintf(buf, sizeof(buf), "split_l%s: s/d/r:%s/%s/%s rightsib %u"
+			snprintf(buf, sizeof(buf), "split_l%s: s/d/r:%s/%s/%s"
 				 " lsib %u rsib %u rnext %u level %u firstright %u",
 				info == XLOG_BTREE_SPLIT_L_ROOT ? "_root" : "",
-				spaceName, dbName, relName, xlrec.rightsib,
+				spaceName, dbName, relName,
 				xlrec.leftsib, xlrec.rightsib,
 				xlrec.rnext, xlrec.level, xlrec.firstright);
 #else
@@ -1065,9 +1065,12 @@ print_rmgr_btree(XLogRecPtr cur, XLogRecord *record, uint8 info)
 #endif
 
 #if PG_VERSION_NUM >= 80300
-			snprintf(buf, sizeof(buf), "split_r%s: s/d/r:%s/%s/%s leftsib %u\n", 
-					info == XLOG_BTREE_SPLIT_R_ROOT ? "_root" : "",
-					spaceName, dbName, relName, xlrec.leftsib);
+			snprintf(buf, sizeof(buf), "split_r%s: s/d/r:%s/%s/%s"
+				 " lsib %u rsib %u rnext %u level %u firstright %u",
+				info == XLOG_BTREE_SPLIT_L_ROOT ? "_root" : "",
+				spaceName, dbName, relName,
+				xlrec.leftsib, xlrec.rightsib,
+				xlrec.rnext, xlrec.level, xlrec.firstright);
 #else
 			snprintf(buf, sizeof(buf), "split_r%s: leftblk %u\n", 
 					info == XLOG_BTREE_SPLIT_R_ROOT ? "_root" : "",
