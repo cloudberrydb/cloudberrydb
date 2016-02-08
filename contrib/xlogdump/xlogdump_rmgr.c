@@ -294,7 +294,8 @@ print_rmgr_xact(XLogRecPtr cur, XLogRecord *record, uint8 info, bool hideTimesta
 		snprintf(buf, sizeof(buf), "d/s:%d/%d commit at %s",
 			 xlrec.dbId, xlrec.tsId,
 			 str_time(_timestamptz_to_time_t(xlrec.xact_time)));
-#elif PG_VERSION_NUM >= 80300
+/* 83MERGE_FIXME_HL: re-enable this after merging the relevant change */ */
+#elif PG_VERSION_NUM >= 80300 && 0
 		snprintf(buf, sizeof(buf), "commit at %s",
 			 str_time(_timestamptz_to_time_t(xlrec.xact_time)));
 #else
@@ -314,7 +315,8 @@ print_rmgr_xact(XLogRecPtr cur, XLogRecord *record, uint8 info, bool hideTimesta
 		xl_xact_abort	xlrec;
 		memcpy(&xlrec, XLogRecGetData(record), sizeof(xlrec));
 		snprintf(buf, sizeof(buf), "abort at %s",
-#if PG_VERSION_NUM >= 80300
+/* 83MERGE_FIXME_HL: re-enable this after merging the relevant change */
+#if PG_VERSION_NUM >= 80300 && 0
 			 str_time(_timestamptz_to_time_t(xlrec.xact_time)));
 #else
 			 str_time(_timestamptz_to_time_t(xlrec.xtime)));
@@ -333,7 +335,8 @@ print_rmgr_xact(XLogRecPtr cur, XLogRecord *record, uint8 info, bool hideTimesta
 			 xlrec.xid,
 			 xlrec.crec.dbId, xlrec.crec.tsId,
 			 str_time(_timestamptz_to_time_t(xlrec.crec.xact_time)));
-#elif PG_VERSION_NUM >= 80300
+/* 83MERGE_FIXME_HL: re-enable this after merging the relevant change */
+#elif PG_VERSION_NUM >= 80300 && 0
 		snprintf(buf, sizeof(buf), "commit prepared xid:%d, commit at %s",
 			 xlrec.xid,
 			 str_time(_timestamptz_to_time_t(xlrec.crec.xact_time)));
@@ -355,7 +358,8 @@ print_rmgr_xact(XLogRecPtr cur, XLogRecord *record, uint8 info, bool hideTimesta
 			 xlrec.xid,
 			 xlrec.crec.dbId, xlrec.crec.tsId,
 			 str_time(_timestamptz_to_time_t(xlrec.crec.xact_time)));
-#elif PG_VERSION_NUM >= 80300
+/* 83MERGE_FIXME_HL: re-enable this after merging the relevant change */
+#elif PG_VERSION_NUM >= 80300 && 0
 		snprintf(buf, sizeof(buf), "abort prepared xid:%d, commit at %s",
 			 xlrec.xid,
 			 str_time(_timestamptz_to_time_t(xlrec.crec.xact_time)));
@@ -496,6 +500,7 @@ print_rmgr_dbase(XLogRecPtr cur, XLogRecord *record, uint8 info)
 	  }
 	  break;
 
+#if 0 /* Doesn't exist in GPDB */
 	case XLOG_DBASE_DROP:
 	  {
 	    xl_dbase_drop_rec *xlrec = (xl_dbase_drop_rec *)XLogRecGetData(record);
@@ -504,6 +509,7 @@ print_rmgr_dbase(XLogRecPtr cur, XLogRecord *record, uint8 info)
 		     xlrec->tablespace_id);
 	  }
 	  break;
+#endif
 
 	default:
 		snprintf(buf, sizeof(buf), "unknown DBASE operation - %d.", info);
@@ -613,15 +619,16 @@ print_rmgr_heap2(XLogRecPtr cur, XLogRecord *record, uint8 info)
 			xl_heap_freeze xlrec;
 			memcpy(&xlrec, XLogRecGetData(record), sizeof(xlrec));
 			snprintf(buf, sizeof(buf), "freeze: ts %d db %d rel %d block %d cutoff_xid %d",
-				xlrec.node.spcNode,
-				xlrec.node.dbNode,
-				xlrec.node.relNode,
+				xlrec.heapnode.node.spcNode,
+				xlrec.heapnode.node.dbNode,
+				xlrec.heapnode.node.relNode,
 				xlrec.block, xlrec.cutoff_xid
 			);
 		}
 		break;
 
-#if PG_VERSION_NUM >= 80300
+/* 83MERGE_FIXME_HL: re-enable this after merging the relevant change */
+#if PG_VERSION_NUM >= 80300 && 0
 		case XLOG_HEAP2_CLEAN:
 #if PG_VERSION_NUM < 90000
 		case XLOG_HEAP2_CLEAN_MOVE:
@@ -776,7 +783,8 @@ print_rmgr_heap(XLogRecPtr cur, XLogRecord *record, uint8 info, bool statements)
 			break;
 		}
 		case XLOG_HEAP_UPDATE:
-#if PG_VERSION_NUM >= 80300
+/* 83MERGE_FIXME_HL: re-enable this after merging the relevant change */
+#if PG_VERSION_NUM >= 80300 && 0
 		case XLOG_HEAP_HOT_UPDATE:
 #endif
 		{
@@ -791,7 +799,8 @@ print_rmgr_heap(XLogRecPtr cur, XLogRecord *record, uint8 info, bool statements)
 				printUpdate((xl_heap_update *) XLogRecGetData(record), record->xl_len - SizeOfHeapUpdate - SizeOfHeapHeader, relName);
 
 			snprintf(buf, sizeof(buf), "%supdate%s: s/d/r:%s/%s/%s block %u off %u to block %u off %u",
-#if PG_VERSION_NUM >= 80300
+/* 83MERGE_FIXME_HL: re-enable this after merging the relevant change */
+#if PG_VERSION_NUM >= 80300 && 0
 				   (info & XLOG_HEAP_HOT_UPDATE) ? "hot_" : "",
 #else
 				   "",
@@ -836,9 +845,9 @@ print_rmgr_heap(XLogRecPtr cur, XLogRecord *record, uint8 info, bool statements)
 			xl_heap_newpage xlrec;
 
 			memcpy(&xlrec, XLogRecGetData(record), sizeof(xlrec));
-			getSpaceName(xlrec.node.spcNode, spaceName, sizeof(spaceName));
-			getDbName(xlrec.node.dbNode, dbName, sizeof(dbName));
-			getRelName(xlrec.node.relNode, relName, sizeof(relName));
+			getSpaceName(xlrec.heapnode.node.spcNode, spaceName, sizeof(spaceName));
+			getDbName(xlrec.heapnode.node.dbNode, dbName, sizeof(dbName));
+			getRelName(xlrec.heapnode.node.relNode, relName, sizeof(relName));
 			snprintf(buf, sizeof(buf), "newpage: s/d/r:%s/%s/%s block %u", 
 					spaceName, dbName, relName,
 				   xlrec.blkno);
@@ -1071,9 +1080,9 @@ print_rmgr_btree(XLogRecPtr cur, XLogRecord *record, uint8 info)
 			xl_btree_delete xlrec;
 
 			memcpy(&xlrec, XLogRecGetData(record), sizeof(xlrec));
-			getSpaceName(xlrec.node.spcNode, spaceName, sizeof(spaceName));
-			getDbName(xlrec.node.dbNode, dbName, sizeof(dbName));
-			getRelName(xlrec.node.relNode, relName, sizeof(relName));
+			getSpaceName(xlrec.btreenode.node.spcNode, spaceName, sizeof(spaceName));
+			getDbName(xlrec.btreenode.node.dbNode, dbName, sizeof(dbName));
+			getRelName(xlrec.btreenode.node.relNode, relName, sizeof(relName));
 			snprintf(buf, sizeof(buf), "delete: s/d/r:%s/%s/%s block %u", 
 					spaceName, dbName,	relName,
 				   	xlrec.block);
@@ -1121,9 +1130,9 @@ print_rmgr_btree(XLogRecPtr cur, XLogRecord *record, uint8 info)
 			xl_btree_newroot xlrec;
 
 			memcpy(&xlrec, XLogRecGetData(record), sizeof(xlrec));
-			getSpaceName(xlrec.node.spcNode, spaceName, sizeof(spaceName));
-			getDbName(xlrec.node.dbNode, dbName, sizeof(dbName));
-			getRelName(xlrec.node.relNode, relName, sizeof(relName));
+			getSpaceName(xlrec.btreenode.node.spcNode, spaceName, sizeof(spaceName));
+			getDbName(xlrec.btreenode.node.dbNode, dbName, sizeof(dbName));
+			getRelName(xlrec.btreenode.node.relNode, relName, sizeof(relName));
 
 			snprintf(buf, sizeof(buf), "newroot: s/d/r:%s/%s/%s rootblk %u level %u", 
 					spaceName, dbName, relName,
