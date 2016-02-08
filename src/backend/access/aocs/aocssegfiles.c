@@ -740,11 +740,67 @@ UpdateAOCSFileSegInfo(AOCSInsertDesc idesc)
 	d[Anum_pg_aocs_modcount-1] += 1;
 	repl[Anum_pg_aocs_modcount-1] = true;
 
+	/*
+	 * Lets fetch the vpinfo structure from the existing tuple in pg_aocsseg.
+	 * vpinfo provides us with the end-of-file (EOF) values for each column file.
+	 */
+	Datum d_tmp = fastgetattr(oldtup, Anum_pg_aocs_vpinfo, tupdesc,
+						&null[Anum_pg_aocs_vpinfo-1]);
+	Assert(!null[Anum_pg_aocs_vpinfo-1]);
+	struct varlena *v = (struct varlena *) DatumGetPointer(d_tmp);
+	struct varlena *dv = pg_detoast_datum(v);
+	Assert(VARSIZE(dv) == aocs_vpinfo_size(nvp));
+	AOCSVPInfo *oldvpinfo = (AOCSVPInfo *) dv;
+
+	/*
+	 * Number of columns fetched from vpinfo should match number of attributes
+	 * for relation.
+	 */
+	Assert(nvp == oldvpinfo->nEntry);
+
+	/* Check and update EOF value for each column file. */
 	for(i=0; i<nvp; ++i)
 	{
-		vpinfo->entry[i].eof = idesc->ds[i]->eof;
-		vpinfo->entry[i].eof_uncompressed = idesc->ds[i]->eofUncompress;
+		/*
+		 * For CO by design due to append-only nature,
+		 * new end-of-file (EOF) to be recorded in aoseg table has to be greater
+		 * than currently stored EOF value, as new writes must move it forward only.
+		 * If new end-of-file value is less than currently stored end-of-file
+		 * something is incorrect and updating the same will yeild incorrect result
+		 * during reads. Hence abort the write transaction trying to update the
+		 * incorrect EOF value.
+		 */
+
+		if (oldvpinfo->entry[i].eof <= idesc->ds[i]->eof)
+		{
+			vpinfo->entry[i].eof = idesc->ds[i]->eof;
+		}
+		else
+		{
+			elog(ERROR, "Unexpected compressed EOF for relation %s, relfilenode %u, segment file %d coln %d. "
+						"EOF " INT64_FORMAT " to be updated cannot be smaller than current EOF " INT64_FORMAT " in pg_aocsseg",
+						RelationGetRelationName(prel), prel->rd_node.relNode,
+						idesc->cur_segno, i, idesc->ds[i]->eof, oldvpinfo->entry[i].eof);
+		}
+
+		if (oldvpinfo->entry[i].eof_uncompressed <= idesc->ds[i]->eofUncompress)
+		{
+			vpinfo->entry[i].eof_uncompressed = idesc->ds[i]->eofUncompress;
+		}
+		else
+		{
+			elog(ERROR, "Unexpected EOF for relation %s, relfilenode %u, segment file %d coln %d. "
+						"EOF " INT64_FORMAT " to be updated cannot be smaller than current EOF "INT64_FORMAT" in pg_aocsseg",
+						RelationGetRelationName(prel), prel->rd_node.relNode,
+						idesc->cur_segno, i, idesc->ds[i]->eofUncompress, oldvpinfo->entry[i].eof_uncompressed);
+		}
 	}
+
+	if(dv!=v)
+	{
+		pfree(dv);
+	}
+
 	d[Anum_pg_aocs_vpinfo-1] = PointerGetDatum(vpinfo);
 	null[Anum_pg_aocs_vpinfo-1] = false;
 	repl[Anum_pg_aocs_vpinfo-1] = true;
