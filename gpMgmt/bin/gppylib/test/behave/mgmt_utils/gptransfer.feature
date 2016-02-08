@@ -1040,7 +1040,7 @@ Feature: gptransfer tests
         And the database "gptransfer_testdb5" does not exist
         And the user runs "gptransfer -d gptransfer_testdb1 --source-port $GPTRANSFER_SOURCE_PORT --source-host $GPTRANSFER_SOURCE_HOST --source-user $GPTRANSFER_SOURCE_USER --dest-user $GPTRANSFER_SOURCE_USER --dest-port $GPTRANSFER_SOURCE_PORT --dest-host $GPTRANSFER_SOURCE_HOST --source-map-file $GPTRANSFER_MAP_FILE"        
         Then gptransfer should return a return code of 2
-        And gptransfer should print Source and destination systems cannot be the same unless --dest-database option is set to stdout
+        And gptransfer should print Source and destination systems cannot be the same unless --dest-database or --partition-transfer option is set to stdout
 
     @T339900
     Scenario:  gptransfer --dest-database option specified to a different name within the same system, should succeed
