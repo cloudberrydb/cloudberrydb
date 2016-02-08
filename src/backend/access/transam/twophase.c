@@ -7,7 +7,7 @@
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
- *		$PostgreSQL: pgsql/src/backend/access/transam/twophase.c,v 1.27 2007/01/16 13:28:56 alvherre Exp $
+ *		$PostgreSQL: pgsql/src/backend/access/transam/twophase.c,v 1.28 2007/02/13 19:39:42 tgl Exp $
  *
  * NOTES
  *		Each global transaction is associated with a global transaction
@@ -677,6 +677,18 @@ LockGXact(const char *gid, Oid user, bool raiseErrorIfNotFound)
 					 errhint("Connect to the database where the transaction was prepared to finish it.")));
 		}
 
+
+		/*
+		 * Note: it probably would be possible to allow committing from another
+		 * database; but at the moment NOTIFY is known not to work and there
+		 * may be some other issues as well.  Hence disallow until someone
+		 * gets motivated to make it work.
+		 */
+		if (MyDatabaseId != gxact->proc.databaseId)
+			ereport(ERROR,
+					(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
+					 errmsg("prepared transaction belongs to another database"),
+					 errhint("Connect to the database where the transaction was prepared to finish it.")));
 
 		/* OK for me to lock it */
 		gxact->locking_xid = GetTopTransactionId();

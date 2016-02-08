@@ -227,7 +227,7 @@ ifeq ($(PORTNAME), hpux)
     # ld can find the same libraries gcc does.  Make sure it goes after any
     # -L switches provided explicitly.
     ifeq ($(GCC), yes)
-      SHLIB_LINK = $(filter -L%, $(SHLIB_LINK)) -L/usr/local/lib $(filter-out -L%, $(SHLIB_LINK))
+      SHLIB_LINK := $(filter -L%, $(SHLIB_LINK)) -L/usr/local/lib $(filter-out -L%, $(SHLIB_LINK))
     endif
   endif
   # do this last so above filtering doesn't pull out -L switches in LDFLAGS
