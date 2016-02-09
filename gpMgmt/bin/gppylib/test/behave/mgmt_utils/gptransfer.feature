@@ -2131,7 +2131,7 @@ Feature: gptransfer tests
         And there is a file "input_file" with tables "gptest.public.employee_1_prt_boys, gptest.public.employee_1_prt_boys"
         When the user runs "gptransfer -f input_file --partition-transfer --source-port $GPTRANSFER_DEST_PORT --source-host $GPTRANSFER_DEST_HOST --source-user $GPTRANSFER_DEST_USER --dest-user $GPTRANSFER_DEST_USER --dest-port $GPTRANSFER_DEST_PORT --dest-host $GPTRANSFER_DEST_HOST --source-map-file $GPTRANSFER_MAP_FILE -a"
         Then gptransfer should return a return code of 2
-        And gptransfer should print Can not transfer between same partition table to stdout
+        And gptransfer should print Cannot transfer between same partition table to stdout
 
     @partition_transfer
     @prt_transfer_38
@@ -2181,7 +2181,7 @@ Feature: gptransfer tests
         And there is a file "input_file" with tables ", gptest.public.tbl1"
         When the user runs "gptransfer -f input_file --partition-transfer --source-port $GPTRANSFER_SOURCE_PORT --source-host $GPTRANSFER_SOURCE_HOST --source-user $GPTRANSFER_SOURCE_USER --dest-user $GPTRANSFER_DEST_USER --dest-port $GPTRANSFER_DEST_PORT --dest-host $GPTRANSFER_DEST_HOST --source-map-file $GPTRANSFER_MAP_FILE -a"
         Then gptransfer should return a return code of 2
-        And gptransfer should print Can not specify empty source table name to stdout
+        And gptransfer should print Cannot specify empty source table name to stdout
 
     @partition_transfer
     @prt_transfer_43
@@ -2190,7 +2190,7 @@ Feature: gptransfer tests
         And there is a file "input_file" with tables "gptest.public.tbl,"
         When the user runs "gptransfer -f input_file --partition-transfer --source-port $GPTRANSFER_SOURCE_PORT --source-host $GPTRANSFER_SOURCE_HOST --source-user $GPTRANSFER_SOURCE_USER --dest-user $GPTRANSFER_DEST_USER --dest-port $GPTRANSFER_DEST_PORT --dest-host $GPTRANSFER_DEST_HOST --source-map-file $GPTRANSFER_MAP_FILE -a"
         Then gptransfer should return a return code of 2
-        And gptransfer should print Can not specify empty destination table name to stdout
+        And gptransfer should print Cannot specify empty destination table name to stdout
 
     @partition_transfer
     @prt_transfer_44
