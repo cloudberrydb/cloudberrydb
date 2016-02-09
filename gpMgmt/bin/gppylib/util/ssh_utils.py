@@ -194,10 +194,15 @@ class Session(cmd.Cmd):
                 if self.verbose:
                     with print_lock:
                         print '[INFO] login %s' % host
-            except:
+            except Exception as e:
                 with print_lock:
                     print '[ERROR] unable to login to %s' % host
-                    print 'hint: use gpssh-exkeys to setup public-key authentication between hosts'
+                    if type(e) is pxssh.ExceptionPxssh:
+                        print e
+                    elif type(e) is pxssh.EOF:
+                        print 'Could not acquire connection.'
+                    else:
+                        print 'hint: use gpssh-exkeys to setup public-key authentication between hosts'
 
         thread_list = []
         for host in hostList:
