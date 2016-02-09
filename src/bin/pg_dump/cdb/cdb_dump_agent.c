@@ -7805,12 +7805,13 @@ dumpDatabaseDefinition()
 	 * get a good error message from sh if we can't write to the file
 	 */
 	fcat = fopen(pszBackupFileName, "w");
-	free(pszBackupFileName);
 	if (fcat == NULL)
 	{
 		mpp_err_msg(logError, progname, "Error creating file %s in gp_dump_agent",
 					pszBackupFileName);
+		exit_nicely();
 	}
+	free(pszBackupFileName);
 
 	fprintf(fcat, "--\n-- Database creation\n--\n\n");
 
@@ -7928,8 +7929,7 @@ dumpDatabaseDefinitionToDDBoost()
 	if (err)
 	{
 		mpp_err_msg(logError, progname, "Error creating directory on ddboost\n");
-		free(pszBackupFileName);
-		return ;
+		exit_nicely();
 	}
 
 	path1.path_name = pszBackupFileName;
@@ -7939,8 +7939,7 @@ dumpDatabaseDefinitionToDDBoost()
 	{
 		mpp_err_msg(logError, progname, "Error creating file %s on ddboost from gp_dump_agent",
 					pszBackupFileName);
-		free(pszBackupFileName);
-		return ;
+		exit_nicely();
 	}
 	free(pszBackupFileName);
 
@@ -7949,7 +7948,7 @@ dumpDatabaseDefinitionToDDBoost()
 	if(err)
 	{
 		mpp_err_msg(logError, progname, "Write to cdatabase file failed\n");
-		return;
+		exit_nicely();
 	}
 
 	offset += ret_count;
@@ -8010,7 +8009,10 @@ dumpDatabaseDefinitionToDDBoost()
 	nmemb = strlen(creaQry->data);
 	err = ddp_write(handle, creaQry->data, nmemb, offset, &ret_count);
 	if (ret_count != nmemb)
+	{
 		mpp_err_msg(logError, progname, "write to cdatabase file failed on ddboost\n");
+		exit_nicely();
+	}
 
 	ddp_close_file(handle);
 	PQclear(res);
