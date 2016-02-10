@@ -17,6 +17,10 @@
 ##
 ## ======================================================================
 
+os:
+  - linux
+  - osx
+
 language: c
 sudo: false
 
@@ -38,7 +42,8 @@ python:
 ## ----------------------------------------------------------------------
 
 install:
-  - pip install --user psi
+  - pip install --user --upgrade pip
+  - pip install --user --pre psi
   - pip install --user lockfile
   - pip install --user paramiko
   - pip install --user setuptools
@@ -100,9 +105,17 @@ script:
   - gpfdist --version
 
 ## ----------------------------------------------------------------------
+## Before install 
+## install libevent 
+## ----------------------------------------------------------------------
+before_install:
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then 
+       brew install libevent          ; 
+    fi
+
+## ----------------------------------------------------------------------
 ## Notification
 ## ----------------------------------------------------------------------
-
 notifications:
   email:
     recipients:
