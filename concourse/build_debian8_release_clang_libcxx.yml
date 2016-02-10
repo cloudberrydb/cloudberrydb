@@ -2,6 +2,9 @@ platform: linux
 image: docker:///yolo/orcadev#jessie
 inputs:
 - name: gpos_src
+outputs:
+- name: build_and_test_debian8_release_clang_libcxx
+  path: build_and_test_debian8_release_clang_libcxx
 run:
   path: /usr/bin/python2
   args:

@@ -2,6 +2,9 @@ platform: linux
 image: docker:///yolo/orcadev#centos5
 inputs:
 - name: gpos_src
+outputs:
+- name: build_and_test_centos5_release
+  path: build_and_test_centos5_release
 run:
   path: /usr/bin/python2
   args:

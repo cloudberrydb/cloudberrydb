@@ -4,6 +4,7 @@ inputs:
 - name: gpos_src
 outputs:
 - name: build_and_test_centos5_debug
+  path: build_and_test_centos5_debug
 run:
   path: /usr/bin/python2
   args:
