@@ -452,14 +452,34 @@ select * from t1,
 (select * from t1 where a=1 and a=2 and a > (select t2.b from t2)) foo
 where t1.a = foo.a;
 
-explain select gp_segment_id, relname, relowner from gp_dist_random('pg_class') 
-where relname like 'gp_%' and gp_segment_id=0
-except 
-select i, relname, relowner from pg_class, generate_series(-1, (select max(content) 
-from gp_configuration)) i order by 1;
-
 drop table if exists t1;
 drop table if exists t2;
+
+--
+-- Test for a bug we used to have with eliminating InitPlans. The subplan,
+-- (select max(content) from y), was eliminated when it shouldn't have been.
+-- The query is supposed to return 0 rows, but returned > 0 when the bug was
+-- present.
+--
+CREATE TABLE initplan_x (i int4, t text);
+insert into initplan_x values
+ (1, 'foobar1'),
+ (2, 'foobar2'),
+ (3, 'foobar3'),
+ (4, 'foobar4'),
+ (5, 'foobar5');
+
+CREATE TABLE initplan_y (content int4);
+insert into initplan_y values (5);
+
+select i, t from initplan_x
+except
+select g, t from initplan_x,
+                 generate_series(0, (select max(content) from initplan_y)) g
+order by 1;
+
+drop table if exists initplan_x;
+drop table if exists initplan_y;
 
 --
 -- apply parallelization for subplan MPP-24563
