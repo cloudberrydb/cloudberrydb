@@ -8287,7 +8287,6 @@ is_exchangeable(Relation rel, Relation oldrel, Relation newrel, bool throw)
  * Note that pgcon (the ConstraintRelationId appropriately locked)
  * is supplied externally for efficiency.  No other relation should
  * be supplied via this argument.
-
  */
 static NewConstraint *
 constraint_apply_mapped(HeapTuple tuple, AttrMap *map, Relation cand,
@@ -8369,6 +8368,9 @@ constraint_apply_mapped(HeapTuple tuple, AttrMap *map, Relation cand,
 								  InvalidOid,
 								  InvalidOid,
 								  NULL,
+								  NULL,
+								  NULL,
+								  NULL,
 								  0,
 								  ' ',
 								  ' ',
@@ -8416,6 +8418,9 @@ constraint_apply_mapped(HeapTuple tuple, AttrMap *map, Relation cand,
 								  InvalidOid,
 								  con->confrelid,
 								  fkeys,
+								  NULL,
+								  NULL,
+								  NULL,
 								  nfkeys,
 								  con->confupdtype,
 								  con->confdeltype,

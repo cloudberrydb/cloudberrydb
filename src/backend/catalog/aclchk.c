@@ -8,7 +8,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/catalog/aclchk.c,v 1.136 2007/02/01 19:10:25 momjian Exp $
+ *	  $PostgreSQL: pgsql/src/backend/catalog/aclchk.c,v 1.137 2007/02/14 01:58:56 tgl Exp $
  *
  * NOTES
  *	  See acl.h.
@@ -2929,24 +2929,24 @@ pg_database_ownercheck(Oid db_oid, Oid roleid)
 bool
 pg_conversion_ownercheck(Oid conv_oid, Oid roleid)
 {
+	HeapTuple	tuple;
 	Oid			ownerId;
-	int			fetchCount = 0;
 
 	/* Superusers bypass all permission checking. */
 	if (superuser_arg(roleid))
 		return true;
 
-	ownerId = caql_getoid_plus(
-			NULL,
-			&fetchCount,
-			NULL,
-			cql("SELECT conowner FROM pg_conversion WHERE oid = :1 ",
-				ObjectIdGetDatum(conv_oid)));
-
-	if (0 == fetchCount)
+	tuple = SearchSysCache(CONVOID,
+						   ObjectIdGetDatum(conv_oid),
+						   0, 0, 0);
+	if (!HeapTupleIsValid(tuple))
 		ereport(ERROR,
 				(errcode(ERRCODE_UNDEFINED_OBJECT),
 				 errmsg("conversion with OID %u does not exist", conv_oid)));
+
+	ownerId = ((Form_pg_conversion) GETSTRUCT(tuple))->conowner;
+
+	ReleaseSysCache(tuple);
 
 	return has_privs_of_role(roleid, ownerId);
 }

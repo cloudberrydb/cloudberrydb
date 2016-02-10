@@ -235,10 +235,11 @@ DROP TABLE tmp2;
 -- is run in parallel with foreign_key.sql.
 CREATE TEMP TABLE PKTABLE (ptest1 int PRIMARY KEY) distributed by (ptest1);
 NOTICE:  CREATE TABLE / PRIMARY KEY will create implicit index "pktable_pkey" for table "pktable"
+INSERT INTO PKTABLE VALUES(42);
 CREATE TEMP TABLE FKTABLE (ftest1 inet);
 NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'ftest1' as the Greenplum Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
--- This next should fail, because inet=int does not exist
+-- This next should fail, because int=inet does not exist
 ALTER TABLE FKTABLE ADD FOREIGN KEY(ftest1) references pktable;
 ERROR:  foreign key constraint "fktable_ftest1_fkey" cannot be implemented
 DETAIL:  Key columns "ftest1" and "ptest1" are of incompatible types: inet and integer.
@@ -247,25 +248,38 @@ DETAIL:  Key columns "ftest1" and "ptest1" are of incompatible types: inet and i
 ALTER TABLE FKTABLE ADD FOREIGN KEY(ftest1) references pktable(ptest1);
 ERROR:  foreign key constraint "fktable_ftest1_fkey" cannot be implemented
 DETAIL:  Key columns "ftest1" and "ptest1" are of incompatible types: inet and integer.
--- This should succeed, even though they are different types
--- because varchar=int does exist
 DROP TABLE FKTABLE;
-CREATE TEMP TABLE FKTABLE (ftest1 varchar);
+-- This should succeed, even though they are different types,
+-- because int=int8 exists and is a member of the integer opfamily
+CREATE TEMP TABLE FKTABLE (ftest1 int8);
 NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'ftest1' as the Greenplum Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 ALTER TABLE FKTABLE ADD FOREIGN KEY(ftest1) references pktable;
-WARNING:  foreign key constraint "fktable_ftest1_fkey" will require costly sequential scans
-DETAIL:  Key columns "ftest1" and "ptest1" are of different types: character varying and integer.
-WARNING:  Referential integrity (FOREIGN KEY) constraints are not supported in Greenplum Database, will not be enforced.
--- As should this
-ALTER TABLE FKTABLE ADD FOREIGN KEY(ftest1) references pktable(ptest1);
-WARNING:  foreign key constraint "fktable_ftest1_fkey1" will require costly sequential scans
-DETAIL:  Key columns "ftest1" and "ptest1" are of different types: character varying and integer.
-WARNING:  Referential integrity (FOREIGN KEY) constraints are not supported in Greenplum Database, will not be enforced.
-DROP TABLE pktable cascade;
-NOTICE:  drop cascades to constraint fktable_ftest1_fkey1 on table fktable
-NOTICE:  drop cascades to constraint fktable_ftest1_fkey on table fktable
-DROP TABLE fktable;
+-- Check it actually works
+INSERT INTO FKTABLE VALUES(42);		-- should succeed
+INSERT INTO FKTABLE VALUES(43);		-- should fail
+DROP TABLE FKTABLE;
+-- This should fail, because we'd have to cast numeric to int which is
+-- not an implicit coercion (or use numeric=numeric, but that's not part
+-- of the integer opfamily)
+CREATE TEMP TABLE FKTABLE (ftest1 numeric);
+ALTER TABLE FKTABLE ADD FOREIGN KEY(ftest1) references pktable;
+ERROR:  foreign key constraint "fktable_ftest1_fkey" cannot be implemented
+DETAIL:  Key columns "ftest1" and "ptest1" are of incompatible types: numeric and integer.
+DROP TABLE FKTABLE;
+DROP TABLE PKTABLE;
+-- On the other hand, this should work because int implicitly promotes to
+-- numeric, and we allow promotion on the FK side
+CREATE TEMP TABLE PKTABLE (ptest1 numeric PRIMARY KEY);
+NOTICE:  CREATE TABLE / PRIMARY KEY will create implicit index "pktable_pkey" for table "pktable"
+INSERT INTO PKTABLE VALUES(42);
+CREATE TEMP TABLE FKTABLE (ftest1 int);
+ALTER TABLE FKTABLE ADD FOREIGN KEY(ftest1) references pktable;
+-- Check it actually works
+INSERT INTO FKTABLE VALUES(42);		-- should succeed
+INSERT INTO FKTABLE VALUES(43);		-- should fail
+DROP TABLE FKTABLE;
+DROP TABLE PKTABLE;
 CREATE TEMP TABLE PKTABLE (ptest1 int, ptest2 inet,
                            PRIMARY KEY(ptest1, ptest2))
                            distributed by (ptest1);

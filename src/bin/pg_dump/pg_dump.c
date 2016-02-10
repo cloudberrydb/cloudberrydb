@@ -26,7 +26,7 @@
  *	http://archives.postgresql.org/pgsql-bugs/2010-02/msg00187.php
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/bin/pg_dump/pg_dump.c,v 1.459 2007/01/25 03:30:43 momjian Exp $
+ *	  $PostgreSQL: pgsql/src/bin/pg_dump/pg_dump.c,v 1.460 2007/02/14 01:58:57 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -3699,24 +3699,46 @@ getTriggers(TableInfo tblinfo[], int numTables)
 
 		resetPQExpBuffer(query);
 
-		/*
-		 * We ignore triggers that are tied to a foreign-key constraint
-		 */
-		appendPQExpBuffer(query,
-						  "SELECT tgname, "
-						  "tgfoid::pg_catalog.regproc as tgfname, "
-						  "tgtype, tgnargs, tgargs, tgenabled, "
-						  "tgisconstraint, tgconstrname, tgdeferrable, "
-						  "tgconstrrelid, tginitdeferred, tableoid, oid, "
+		if (g_fout->remoteVersion >= 80300)
+		{
+			/*
+			 * We ignore triggers that are tied to a foreign-key constraint
+			 */
+			appendPQExpBuffer(query,
+							  "SELECT tgname, "
+							  "tgfoid::pg_catalog.regproc as tgfname, "
+							  "tgtype, tgnargs, tgargs, tgenabled, "
+							  "tgisconstraint, tgconstrname, tgdeferrable, "
+							  "tgconstrrelid, tginitdeferred, tableoid, oid, "
 					 "tgconstrrelid::pg_catalog.regclass as tgconstrrelname "
-						  "from pg_catalog.pg_trigger t "
-						  "where tgrelid = '%u'::pg_catalog.oid "
-						  "and (not tgisconstraint "
-						  " OR NOT EXISTS"
-						  "  (SELECT 1 FROM pg_catalog.pg_depend d "
-						  "   JOIN pg_catalog.pg_constraint c ON (d.refclassid = c.tableoid AND d.refobjid = c.oid) "
-						  "   WHERE d.classid = t.tableoid AND d.objid = t.oid AND d.deptype = 'i' AND c.contype = 'f'))",
-						  tbinfo->dobj.catId.oid);
+							  "from pg_catalog.pg_trigger t "
+							  "where tgrelid = '%u'::pg_catalog.oid "
+							  "and tgconstraint = 0",
+							  tbinfo->dobj.catId.oid);
+		}
+		else
+		{
+			/*
+			 * We ignore triggers that are tied to a foreign-key constraint,
+			 * but in these versions we have to grovel through pg_constraint
+			 * to find out
+			 */
+			appendPQExpBuffer(query,
+							  "SELECT tgname, "
+							  "tgfoid::pg_catalog.regproc as tgfname, "
+							  "tgtype, tgnargs, tgargs, tgenabled, "
+							  "tgisconstraint, tgconstrname, tgdeferrable, "
+							  "tgconstrrelid, tginitdeferred, tableoid, oid, "
+					 "tgconstrrelid::pg_catalog.regclass as tgconstrrelname "
+							  "from pg_catalog.pg_trigger t "
+							  "where tgrelid = '%u'::pg_catalog.oid "
+							  "and (not tgisconstraint "
+							  " OR NOT EXISTS"
+							  "  (SELECT 1 FROM pg_catalog.pg_depend d "
+							  "   JOIN pg_catalog.pg_constraint c ON (d.refclassid = c.tableoid AND d.refobjid = c.oid) "
+							  "   WHERE d.classid = t.tableoid AND d.objid = t.oid AND d.deptype = 'i' AND c.contype = 'f'))",
+							  tbinfo->dobj.catId.oid);
+		}
 
 		res = PQexec(g_conn, query->data);
 		check_sql_result(res, g_conn, query->data, PGRES_TUPLES_OK);

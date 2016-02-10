@@ -60,6 +60,7 @@ typedef struct Trigger
 	bool		tgenabled;
 	bool		tgisconstraint;
 	Oid			tgconstrrelid;
+	Oid			tgconstraint;
 	bool		tgdeferrable;
 	bool		tginitdeferred;
 	int16		tgnargs;

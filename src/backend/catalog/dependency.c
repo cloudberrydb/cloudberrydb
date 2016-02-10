@@ -8,7 +8,7 @@
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/catalog/dependency.c,v 1.63 2007/02/01 19:10:25 momjian Exp $
+ *	  $PostgreSQL: pgsql/src/backend/catalog/dependency.c,v 1.64 2007/02/14 01:58:56 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -1847,22 +1847,16 @@ getObjectDescription(const ObjectAddress *object)
 
 		case OCLASS_CONSTRAINT:
 			{
-				HeapTuple	tup;
+				HeapTuple	conTup;
 				Form_pg_constraint con;
 
-				/* XXX XXX: SELECT conname, conrelid */
-					
-				tup = caql_getfirst(
-						NULL,
-						cql("SELECT * FROM pg_constraint "
-							" WHERE oid = :1 ",
-							ObjectIdGetDatum(object->objectId)));
-
-				if (!HeapTupleIsValid(tup))
-					elog(ERROR, "could not find tuple for constraint %u",
+				conTup = SearchSysCache(CONSTROID,
+										ObjectIdGetDatum(object->objectId),
+										0, 0, 0);
+				if (!HeapTupleIsValid(conTup))
+					elog(ERROR, "cache lookup failed for constraint %u",
 						 object->objectId);
-
-				con = (Form_pg_constraint) GETSTRUCT(tup);
+				con = (Form_pg_constraint) GETSTRUCT(conTup);
 
 				if (OidIsValid(con->conrelid))
 				{
@@ -1876,28 +1870,23 @@ getObjectDescription(const ObjectAddress *object)
 									 NameStr(con->conname));
 				}
 
+				ReleaseSysCache(conTup);
 				break;
 			}
 
 		case OCLASS_CONVERSION:
 			{
-				char	   *conname;
-				int			fetchCount;
+				HeapTuple	conTup;
 
-				conname = caql_getcstring_plus(
-						NULL,
-						&fetchCount,
-						NULL,
-						cql("SELECT conname FROM pg_conversion "
-							 " WHERE oid = :1 ",
-							 ObjectIdGetDatum(object->objectId)));
-
-				if (!fetchCount)
+				conTup = SearchSysCache(CONVOID,
+										ObjectIdGetDatum(object->objectId),
+										0, 0, 0);
+				if (!HeapTupleIsValid(conTup))
 					elog(ERROR, "cache lookup failed for conversion %u",
 						 object->objectId);
 				appendStringInfo(&buffer, _("conversion %s"),
-								 conname);
-				pfree(conname);
+				 NameStr(((Form_pg_conversion) GETSTRUCT(conTup))->conname));
+				ReleaseSysCache(conTup);
 				break;
 			}
 

@@ -825,6 +825,9 @@ index_create(Oid heapRelationId,
 											   InvalidOid,	/* no domain */
 											   InvalidOid,	/* no foreign key */
 											   NULL,
+											   NULL,
+											   NULL,
+											   NULL,
 											   0,
 											   ' ',
 											   ' ',

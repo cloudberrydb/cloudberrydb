@@ -8,7 +8,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/catalog/pg_conversion.c,v 1.34 2007/01/05 22:19:25 momjian Exp $
+ *	  $PostgreSQL: pgsql/src/backend/catalog/pg_conversion.c,v 1.35 2007/02/14 01:58:56 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -159,16 +159,10 @@ ConversionDrop(Oid conversionOid, DropBehavior behavior)
 {
 	HeapTuple	tuple;
 	ObjectAddress object;
-	cqContext  *pcqCtx;
 
-	pcqCtx = caql_beginscan(
-			NULL,
-			cql("SELECT * FROM pg_conversion "
-				" WHERE oid = :1 ",
-				ObjectIdGetDatum(conversionOid)));
-
-	tuple = caql_getnext(pcqCtx);
-
+	tuple = SearchSysCache(CONVOID,
+						   ObjectIdGetDatum(conversionOid),
+						   0, 0, 0);
 	if (!HeapTupleIsValid(tuple))
 		elog(ERROR, "cache lookup failed for conversion %u", conversionOid);
 
@@ -177,7 +171,7 @@ ConversionDrop(Oid conversionOid, DropBehavior behavior)
 		aclcheck_error(ACLCHECK_NOT_OWNER, ACL_KIND_CONVERSION,
 				  NameStr(((Form_pg_conversion) GETSTRUCT(tuple))->conname));
 
-	caql_endscan(pcqCtx);
+	ReleaseSysCache(tuple);
 
 	/*
 	 * Do the deletion
@@ -319,7 +313,6 @@ pg_convert_using(PG_FUNCTION_ARGS)
 	char	   *str;
 	char	   *result;
 	int			len;
-	cqContext  *pcqCtx;
 
 	/* Convert input string to null-terminated form */
 	len = VARSIZE(string) - VARHDRSZ;
@@ -336,14 +329,9 @@ pg_convert_using(PG_FUNCTION_ARGS)
 				 errmsg("conversion \"%s\" does not exist",
 						NameListToString(parsed_name))));
 
-	pcqCtx = caql_beginscan(
-			NULL,
-			cql("SELECT * FROM pg_conversion "
-				" WHERE oid = :1 ",
-				ObjectIdGetDatum(convoid)));
-
-	tuple = caql_getnext(pcqCtx);
-
+	tuple = SearchSysCache(CONVOID,
+						   ObjectIdGetDatum(convoid),
+						   0, 0, 0);
 	if (!HeapTupleIsValid(tuple))
 		elog(ERROR, "cache lookup failed for conversion %u", convoid);
 	body = (Form_pg_conversion) GETSTRUCT(tuple);
@@ -358,7 +346,7 @@ pg_convert_using(PG_FUNCTION_ARGS)
 					 CStringGetDatum(result),
 					 Int32GetDatum(len));
 
-	caql_endscan(pcqCtx);
+	ReleaseSysCache(tuple);
 
 	/*
 	 * build text result structure. we cannot use textin() here, since textin

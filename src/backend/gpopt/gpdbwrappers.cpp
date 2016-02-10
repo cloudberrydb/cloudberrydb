@@ -3079,7 +3079,7 @@ register_mdcache_invalidation_callbacks(void)
 		AGGFNOID,			/* pg_aggregate */
 		AMOPOPID,			/* pg_amop */
 		CASTSOURCETARGET,	/* pg_cast */
-		CONOID,				/* pg_constraint */
+		CONSTROID,			/* pg_constraint */
 		OPEROID,			/* pg_operator */
 		OPFAMILYOID,		/* pg_opfamily */
 		PARTOID,			/* pg_partition */

@@ -35,6 +35,7 @@ typedef struct NewConstraint
 	char	   *name;			/* Constraint name, or NULL if none */
 	ConstrType	contype;		/* CHECK or FOREIGN */
 	Oid			refrelid;		/* PK rel, if FOREIGN */
+	Oid			conid;			/* OID of pg_constraint entry, if FOREIGN */
 	Node	   *qual;			/* Check expr or FkConstraint struct */
 	List	   *qualstate;		/* Execution state for CHECK */
 } NewConstraint;

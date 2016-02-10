@@ -10,7 +10,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/tcop/utility.c,v 1.271 2007/01/23 05:07:18 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/tcop/utility.c,v 1.272 2007/02/14 01:58:57 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -1474,7 +1474,7 @@ ProcessUtility(Node *parsetree,
 
 		case T_CreateTrigStmt:
 			{
-				Oid trigOid = CreateTrigger((CreateTrigStmt *) parsetree, false);
+				Oid trigOid = CreateTrigger((CreateTrigStmt *) parsetree, InvalidOid);
 				if (Gp_role == GP_ROLE_DISPATCH)
 				{
 					((CreateTrigStmt *) parsetree)->trigOid = trigOid;

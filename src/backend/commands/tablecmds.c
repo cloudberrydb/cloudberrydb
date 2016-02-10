@@ -9,7 +9,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/commands/tablecmds.c,v 1.213 2007/02/02 00:07:02 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/commands/tablecmds.c,v 1.214 2007/02/14 01:58:56 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -47,6 +47,7 @@
 #include "catalog/pg_extprotocol.h"
 #include "catalog/pg_inherits.h"
 #include "catalog/pg_namespace.h"
+#include "catalog/pg_opclass.h"
 #include "catalog/pg_operator.h"
 #include "catalog/pg_trigger.h"
 #include "catalog/pg_type.h"
@@ -229,10 +230,9 @@ static int transformFkeyGetPrimaryKey(Relation pkrel, Oid *indexOid,
 						   int16 *attnums, Oid *atttypids,
 						   Oid *opclasses);
 static void validateForeignKeyConstraint(FkConstraint *fkconstraint,
-							 Relation rel, Relation pkrel);
+							 Relation rel, Relation pkrel, Oid constraintOid);
 static void createForeignKeyTriggers(Relation rel, FkConstraint *fkconstraint,
-						 Oid constrOid);
-static char *fkMatchTypeToString(char match_type);
+						 Oid constraintOid);
 static void ATController(Relation rel, List *cmds, bool recurse, 
 						 int * oidInfoCount, TableOidInfo ** oidInfo, List **poidmap);
 static void ATPrepCmd(List **wqueue, Relation rel, AlterTableCmd *cmd,
@@ -361,11 +361,6 @@ copy_buffer_pool_data(
 	bool		useWal);
 
 static bool TypeTupleExists(Oid typeId);
-static void update_ri_trigger_args(Oid relid,
-					   const char *oldname,
-					   const char *newname,
-					   bool fk_scan,
-					   bool update_relname);
 static Datum transformLocationUris(List *locs, bool isweb, bool iswritable);
 static Datum transformExecOnClause(List	*on_clause);
 static char transformFormatType(char *formatname);
@@ -3128,21 +3123,6 @@ renameatt(Oid myrelid,
 
 	heap_close(attrelation, RowExclusiveLock);
 
-	/*
-	 * Update att name in any RI triggers associated with the relation.
-	 */
-	if (targetrelation->rd_rel->reltriggers > 0)
-	{
-		/* update tgargs column reference where att is primary key */
-		update_ri_trigger_args(RelationGetRelid(targetrelation),
-							   oldattname, newattname,
-							   false, false);
-		/* update tgargs column reference where att is foreign key */
-		update_ri_trigger_args(RelationGetRelid(targetrelation),
-							   oldattname, newattname,
-							   true, false);
-	}
-
 	/* MPP-6929, MPP-7600: metadata tracking */
 	if ((Gp_role == GP_ROLE_DISPATCH)
 		&& MetaTrackValidKindNsp(targetrelation->rd_rel))
@@ -3258,24 +3238,6 @@ renamerel(Oid myrelid, const char *newrelname, RenameStmt *stmt)
 			TypeRename(typeId, newrelname);
 	}
 
-	/*
-	 * Update rel name in any RI triggers associated with the relation.
-	 */
-	if (relhastriggers)
-	{
-		/* update tgargs where relname is primary key */
-		update_ri_trigger_args(myrelid,
-							   oldrelname,
-							   newrelname,
-							   false, true);
-		/* update tgargs where relname is foreign key */
-		update_ri_trigger_args(myrelid,
-							   oldrelname,
-							   newrelname,
-							   true, true);
-	}
-
-
 	/* MPP-3059: recursive rename of partitioned table */
 	/* Note: the top-level RENAME has bAllowPartn=FALSE, while the
 	 * generated statements from this block set it to TRUE.  That way,
@@ -3379,194 +3341,6 @@ TypeTupleExists(Oid typeId)
 	heap_close(pg_type_desc, AccessShareLock);
 
 	return (bExists);
-}
-
-/*
- * Scan pg_trigger for RI triggers that are on the specified relation
- * (if fk_scan is false) or have it as the tgconstrrel (if fk_scan
- * is true).  Update RI trigger args fields matching oldname to contain
- * newname instead.  If update_relname is true, examine the relname
- * fields; otherwise examine the attname fields.
- */
-static void
-update_ri_trigger_args(Oid relid,
-					   const char *oldname,
-					   const char *newname,
-					   bool fk_scan,
-					   bool update_relname)
-{
-	cqContext  *pcqCtx;
-	HeapTuple	tuple;
-	Datum		values[Natts_pg_trigger];
-	bool		nulls[Natts_pg_trigger];
-	bool		replaces[Natts_pg_trigger];
-
-	if (fk_scan)
-	{
-		pcqCtx = caql_beginscan(
-				NULL,
-				cql("SELECT * FROM pg_trigger "
-					" WHERE tgconstrrelid = :1 "
-					" FOR UPDATE ",
-					ObjectIdGetDatum(relid)));
-	}
-	else
-	{
-		pcqCtx = caql_beginscan(
-				NULL,
-				cql("SELECT * FROM pg_trigger "
-					" WHERE tgrelid = :1 "
-					" FOR UPDATE ",
-					ObjectIdGetDatum(relid)));
-	}
-
-	while (HeapTupleIsValid(tuple = caql_getnext(pcqCtx)))
-	{
-		Form_pg_trigger pg_trigger = (Form_pg_trigger) GETSTRUCT(tuple);
-		bytea	   *val;
-		bytea	   *newtgargs;
-		bool		isnull;
-		int			tg_type;
-		bool		examine_pk;
-		bool		changed;
-		int			tgnargs;
-		int			i;
-		int			newlen;
-		const char *arga[RI_MAX_ARGUMENTS];
-		const char *argp;
-
-		tg_type = RI_FKey_trigger_type(pg_trigger->tgfoid);
-		if (tg_type == RI_TRIGGER_NONE)
-		{
-			/* Not an RI trigger, forget it */
-			continue;
-		}
-
-		/*
-		 * It is an RI trigger, so parse the tgargs bytea.
-		 *
-		 * NB: we assume the field will never be compressed or moved out of
-		 * line; so does trigger.c ...
-		 */
-		tgnargs = pg_trigger->tgnargs;
-		val = DatumGetByteaP(caql_getattr(pcqCtx,
-										  Anum_pg_trigger_tgargs,
-										  &isnull));
-		if (isnull || tgnargs < RI_FIRST_ATTNAME_ARGNO ||
-			tgnargs > RI_MAX_ARGUMENTS)
-		{
-			/* This probably shouldn't happen, but ignore busted triggers */
-			continue;
-		}
-		argp = (const char *) VARDATA(val);
-		for (i = 0; i < tgnargs; i++)
-		{
-			arga[i] = argp;
-			argp += strlen(argp) + 1;
-		}
-
-		/*
-		 * Figure out which item(s) to look at.  If the trigger is primary-key
-		 * type and attached to my rel, I should look at the PK fields; if it
-		 * is foreign-key type and attached to my rel, I should look at the FK
-		 * fields.	But the opposite rule holds when examining triggers found
-		 * by tgconstrrel search.
-		 */
-		examine_pk = (tg_type == RI_TRIGGER_PK) == (!fk_scan);
-
-		changed = false;
-		if (update_relname)
-		{
-			/* Change the relname if needed */
-			i = examine_pk ? RI_PK_RELNAME_ARGNO : RI_FK_RELNAME_ARGNO;
-			if (strcmp(arga[i], oldname) == 0)
-			{
-				arga[i] = newname;
-				changed = true;
-			}
-		}
-		else
-		{
-			/* Change attname(s) if needed */
-			i = examine_pk ? RI_FIRST_ATTNAME_ARGNO + RI_KEYPAIR_PK_IDX :
-				RI_FIRST_ATTNAME_ARGNO + RI_KEYPAIR_FK_IDX;
-			for (; i < tgnargs; i += 2)
-			{
-				if (strcmp(arga[i], oldname) == 0)
-				{
-					arga[i] = newname;
-					changed = true;
-				}
-			}
-		}
-
-		if (!changed)
-		{
-			/* Don't need to update this tuple */
-			continue;
-		}
-
-		/*
-		 * Construct modified tgargs bytea.
-		 */
-		newlen = VARHDRSZ;
-		for (i = 0; i < tgnargs; i++)
-			newlen += strlen(arga[i]) + 1;
-		newtgargs = (bytea *) palloc(newlen);
-		SET_VARSIZE(newtgargs, newlen);
-		newlen = VARHDRSZ;
-		for (i = 0; i < tgnargs; i++)
-		{
-			strcpy(((char *) newtgargs) + newlen, arga[i]);
-			newlen += strlen(arga[i]) + 1;
-		}
-
-		/*
-		 * Build modified tuple.
-		 */
-		for (i = 0; i < Natts_pg_trigger; i++)
-		{
-			values[i] = (Datum) 0;
-			replaces[i] = false;
-			nulls[i] = false;
-		}
-		values[Anum_pg_trigger_tgargs - 1] = PointerGetDatum(newtgargs);
-		replaces[Anum_pg_trigger_tgargs - 1] = true;
-
-		tuple = caql_modify_current(pcqCtx, values, nulls, replaces);
-
-		/*
-		 * Update pg_trigger and its indexes
-		 */
-		caql_update_current(pcqCtx, tuple);
-
-		/*
-		 * Invalidate trigger's relation's relcache entry so that other
-		 * backends (and this one too!) are sent SI message to make them
-		 * rebuild relcache entries.  (Ideally this should happen
-		 * automatically...)
-		 *
-		 * We can skip this for triggers on relid itself, since that relcache
-		 * flush will happen anyway due to the table or column rename.	We
-		 * just need to catch the far ends of RI relationships.
-		 */
-		pg_trigger = (Form_pg_trigger) GETSTRUCT(tuple);
-		if (pg_trigger->tgrelid != relid)
-			CacheInvalidateRelcacheByRelid(pg_trigger->tgrelid);
-
-		/* free up our scratch memory */
-		pfree(newtgargs);
-		heap_freetuple(tuple);
-	}
-	
-	caql_endscan(pcqCtx);
-
-	/*
-	 * Increment cmd counter to make updates visible; this is needed in case
-	 * the same tuple has to be updated again by next pass (can happen in case
-	 * of a self-referential FK relationship).
-	 */
-	CommandCounterIncrement();
 }
 
 /*
@@ -5707,7 +5481,8 @@ ATRewriteTables(List **wqueue,
 
 				refrel = heap_open(con->refrelid, RowShareLock);
 
-				validateForeignKeyConstraint(fkconstraint, rel, refrel);
+				validateForeignKeyConstraint(fkconstraint, rel, refrel,
+											 con->conid);
 
 				heap_close(refrel, NoLock);
 			}
@@ -8455,6 +8230,9 @@ ATAddForeignKeyConstraint(AlteredTableInfo *tab, Relation rel,
 	Oid			pktypoid[INDEX_MAX_KEYS];
 	Oid			fktypoid[INDEX_MAX_KEYS];
 	Oid			opclasses[INDEX_MAX_KEYS];
+	Oid			pfeqoperators[INDEX_MAX_KEYS];
+	Oid			ppeqoperators[INDEX_MAX_KEYS];
+	Oid			ffeqoperators[INDEX_MAX_KEYS];
 	int			i;
 	int			numfks,
 				numpks;
@@ -8543,6 +8321,9 @@ ATAddForeignKeyConstraint(AlteredTableInfo *tab, Relation rel,
 	MemSet(pktypoid, 0, sizeof(pktypoid));
 	MemSet(fktypoid, 0, sizeof(fktypoid));
 	MemSet(opclasses, 0, sizeof(opclasses));
+	MemSet(pfeqoperators, 0, sizeof(pfeqoperators));
+	MemSet(ppeqoperators, 0, sizeof(ppeqoperators));
+	MemSet(ffeqoperators, 0, sizeof(ffeqoperators));
 
 	numfks = transformColumnNameList(RelationGetRelid(rel),
 									 fkconstraint->fk_attrs,
@@ -8571,7 +8352,15 @@ ATAddForeignKeyConstraint(AlteredTableInfo *tab, Relation rel,
 										   opclasses);
 	}
 
-	/* Be sure referencing and referenced column types are comparable */
+	/*
+	 * Look up the equality operators to use in the constraint.
+	 *
+	 * Note that we look for operator(s) with the PK type on the left; when
+	 * the types are different this is the right choice because the PK index
+	 * will need operators with the indexkey on the left.  Also, we take the
+	 * PK type as being the declared input type of the opclass, which might be
+	 * binary-compatible but not identical to the PK column type.
+	 */
 	if (numfks != numpks)
 		ereport(ERROR,
 				(errcode(ERRCODE_INVALID_FOREIGN_KEY),
@@ -8579,24 +8368,71 @@ ATAddForeignKeyConstraint(AlteredTableInfo *tab, Relation rel,
 
 	for (i = 0; i < numpks; i++)
 	{
-		/*
-		 * pktypoid[i] is the primary key table's i'th key's type fktypoid[i]
-		 * is the foreign key table's i'th key's type
-		 *
-		 * Note that we look for an operator with the PK type on the left;
-		 * when the types are different this is critical because the PK index
-		 * will need operators with the indexkey on the left. (Ordinarily both
-		 * commutator operators will exist if either does, but we won't get
-		 * the right answer from the test below on opclass membership unless
-		 * we select the proper operator.)
-		 */
-		Operator	o = oper(NULL, list_make1(makeString("=")),
-							 pktypoid[i], fktypoid[i],
-							 true, -1);
+		HeapTuple		cla_ht;
+		Form_pg_opclass	cla_tup;
+		Oid				amid;
+		Oid				opfamily;
+		Oid				pktype;
+		Oid				fktype;
+		Oid				pfeqop;
+		Oid				ppeqop;
+		Oid				ffeqop;
+		int16			eqstrategy;
 
-		if (o == NULL)
+		/* We need several fields out of the pg_opclass entry */
+		cla_ht = SearchSysCache(CLAOID,
+								ObjectIdGetDatum(opclasses[i]),
+								0, 0, 0);
+		if (!HeapTupleIsValid(cla_ht))
+			elog(ERROR, "cache lookup failed for opclass %u", opclasses[i]);
+		cla_tup = (Form_pg_opclass) GETSTRUCT(cla_ht);
+		amid = cla_tup->opcmethod;
+		opfamily = cla_tup->opcfamily;
+		pktype = cla_tup->opcintype;
+		ReleaseSysCache(cla_ht);
+
+		/*
+		 * Check it's a btree; currently this can never fail since no other
+		 * index AMs support unique indexes.  If we ever did have other
+		 * types of unique indexes, we'd need a way to determine which
+		 * operator strategy number is equality.  (Is it reasonable to
+		 * insist that every such index AM use btree's number for equality?)
+		 */
+		if (amid != BTREE_AM_OID)
+			elog(ERROR, "only b-tree indexes are supported for foreign keys");
+		eqstrategy = BTEqualStrategyNumber;
+
+		/*
+		 * There had better be a PK = PK operator for the index.
+		 */
+		ppeqop = get_opfamily_member(opfamily, pktype, pktype, eqstrategy);
+
+		if (!OidIsValid(ppeqop))
+			elog(ERROR, "missing operator %d(%u,%u) in opfamily %u",
+						eqstrategy, pktype, pktype, opfamily);
+
+		/*
+		 * Are there equality operators that take exactly the FK type?
+		 * Assume we should look through any domain here.
+		 */
+		fktype = getBaseType(fktypoid[i]);
+
+		pfeqop = get_opfamily_member(opfamily, pktype, fktype, eqstrategy);
+		ffeqop = get_opfamily_member(opfamily, fktype, fktype, eqstrategy);
+
+		if (!(OidIsValid(pfeqop) && OidIsValid(ffeqop)))
+		{
+			/*
+			 * Otherwise, look for an implicit cast from the FK type to
+			 * the PK type, and if found, use the PK type's equality operator.
+			 */
+			if (can_coerce_type(1, &fktype, &pktype, COERCION_IMPLICIT))
+				pfeqop = ffeqop = ppeqop;
+		}
+
+		if (!(OidIsValid(pfeqop) && OidIsValid(ffeqop)))
 			ereport(ERROR,
-					(errcode(ERRCODE_UNDEFINED_FUNCTION),
+					(errcode(ERRCODE_DATATYPE_MISMATCH),
 					 errmsg("foreign key constraint \"%s\" "
 							"cannot be implemented",
 							fkconstraint->constr_name),
@@ -8607,42 +8443,9 @@ ATAddForeignKeyConstraint(AlteredTableInfo *tab, Relation rel,
 							   format_type_be(fktypoid[i]),
 							   format_type_be(pktypoid[i]))));
 
-		/*
-		 * Check that the found operator is compatible with the PK index, and
-		 * generate a warning if not, since otherwise costly seqscans will be
-		 * incurred to check FK validity.
-		 */
-		if (Gp_role != GP_ROLE_EXECUTE &&
-			!op_in_opfamily(oprid(o), get_opclass_family(opclasses[i])))
-			ereport(WARNING,
-					(errmsg("foreign key constraint \"%s\" "
-							"will require costly sequential scans",
-							fkconstraint->constr_name),
-					 errdetail("Key columns \"%s\" and \"%s\" "
-							   "are of different types: %s and %s.",
-							   strVal(list_nth(fkconstraint->fk_attrs, i)),
-							   strVal(list_nth(fkconstraint->pk_attrs, i)),
-							   format_type_be(fktypoid[i]),
-							   format_type_be(pktypoid[i]))));
-
-		ReleaseOperator(o);
-	}
-
-	/*
-	 * Tell Phase 3 to check that the constraint is satisfied by existing rows
-	 * (we can skip this during table creation).
-	 */
-	if (!fkconstraint->skip_validation)
-	{
-		NewConstraint *newcon;
-
-		newcon = (NewConstraint *) palloc0(sizeof(NewConstraint));
-		newcon->name = fkconstraint->constr_name;
-		newcon->contype = CONSTR_FOREIGN;
-		newcon->refrelid = RelationGetRelid(pkrel);
-		newcon->qual = (Node *) fkconstraint;
-
-		tab->constraints = lappend(tab->constraints, newcon);
+		pfeqoperators[i] = pfeqop;
+		ppeqoperators[i] = ppeqop;
+		ffeqoperators[i] = ffeqop;
 	}
 
 	/*
@@ -8661,6 +8464,9 @@ ATAddForeignKeyConstraint(AlteredTableInfo *tab, Relation rel,
 														 * constraint */
 									  RelationGetRelid(pkrel),
 									  pkattnum,
+									  pfeqoperators,
+									  ppeqoperators,
+									  ffeqoperators,
 									  numpks,
 									  fkconstraint->fk_upd_action,
 									  fkconstraint->fk_del_action,
@@ -8675,6 +8481,24 @@ ATAddForeignKeyConstraint(AlteredTableInfo *tab, Relation rel,
 	 * Create the triggers that will enforce the constraint.
 	 */
 	createForeignKeyTriggers(rel, fkconstraint, constrOid);
+
+	/*
+	 * Tell Phase 3 to check that the constraint is satisfied by existing rows
+	 * (we can skip this during table creation).
+	 */
+	if (!fkconstraint->skip_validation)
+	{
+		NewConstraint *newcon;
+
+		newcon = (NewConstraint *) palloc0(sizeof(NewConstraint));
+		newcon->name = fkconstraint->constr_name;
+		newcon->contype = CONSTR_FOREIGN;
+		newcon->refrelid = RelationGetRelid(pkrel);
+		newcon->conid = constrOid;
+		newcon->qual = (Node *) fkconstraint;
+
+		tab->constraints = lappend(tab->constraints, newcon);
+	}
 
 	/*
 	 * Close pk table, but keep lock until we've committed.
@@ -8952,25 +8776,15 @@ transformFkeyCheckAttrs(Relation pkrel,
 static void
 validateForeignKeyConstraint(FkConstraint *fkconstraint,
 							 Relation rel,
-							 Relation pkrel)
+							 Relation pkrel,
+							 Oid constraintOid)
 {
 	HeapScanDesc scan;
 	HeapTuple	tuple;
 	Trigger		trig;
-	ListCell   *list;
-	int			count;
 
 	/*
-	 * See if we can do it with a single LEFT JOIN query.  A FALSE result
-	 * indicates we must proceed with the fire-the-trigger method.
-	 */
-	if (RI_Initial_Check(fkconstraint, rel, pkrel))
-		return;
-
-	/*
-	 * Scan through each tuple, calling RI_FKey_check_ins (insert trigger) as
-	 * if that tuple had just been inserted.  If any of those fail, it should
-	 * ereport(ERROR) and that's that.
+	 * Build a trigger call structure; we'll need it either way.
 	 */
 	MemSet(&trig, 0, sizeof(trig));
 	trig.tgoid = InvalidOid;
@@ -8978,35 +8792,23 @@ validateForeignKeyConstraint(FkConstraint *fkconstraint,
 	trig.tgenabled = TRUE;
 	trig.tgisconstraint = TRUE;
 	trig.tgconstrrelid = RelationGetRelid(pkrel);
+	trig.tgconstraint = constraintOid;
 	trig.tgdeferrable = FALSE;
 	trig.tginitdeferred = FALSE;
+	/* we needn't fill in tgargs */
 
-	trig.tgargs = (char **) palloc(sizeof(char *) *
-								   (4 + list_length(fkconstraint->fk_attrs)
-									+ list_length(fkconstraint->pk_attrs)));
+	/*
+	 * See if we can do it with a single LEFT JOIN query.  A FALSE result
+	 * indicates we must proceed with the fire-the-trigger method.
+	 */
+	if (RI_Initial_Check(&trig, rel, pkrel))
+		return;
 
-	trig.tgargs[0] = trig.tgname;
-	trig.tgargs[1] = RelationGetRelationName(rel);
-	trig.tgargs[2] = RelationGetRelationName(pkrel);
-	trig.tgargs[3] = fkMatchTypeToString(fkconstraint->fk_matchtype);
-	count = 4;
-	foreach(list, fkconstraint->fk_attrs)
-	{
-		char	   *fk_at = strVal(lfirst(list));
-
-		trig.tgargs[count] = fk_at;
-		count += 2;
-	}
-	count = 5;
-	foreach(list, fkconstraint->pk_attrs)
-	{
-		char	   *pk_at = strVal(lfirst(list));
-
-		trig.tgargs[count] = pk_at;
-		count += 2;
-	}
-	trig.tgnargs = count - 1;
-
+	/*
+	 * Scan through each tuple, calling RI_FKey_check_ins (insert trigger) as
+	 * if that tuple had just been inserted.  If any of those fail, it should
+	 * ereport(ERROR) and that's that.
+	 */
 	scan = heap_beginscan(rel, SnapshotNow, 0, NULL);
 
 	while ((tuple = heap_getnext(scan, ForwardScanDirection)) != NULL)
@@ -9039,18 +8841,14 @@ validateForeignKeyConstraint(FkConstraint *fkconstraint,
 	}
 
 	heap_endscan(scan);
-
-	pfree(trig.tgargs);
 }
 
 static void
 CreateFKCheckTrigger(RangeVar *myRel, FkConstraint *fkconstraint,
-					 ObjectAddress *constrobj, ObjectAddress *trigobj,
-					 bool on_insert)
+					 Oid constraintOid, bool on_insert)
 {
 	CreateTrigStmt *fk_trigger;
-	ListCell   *fk_attr;
-	ListCell   *pk_attr;
+	Oid trigobj;
 
 	fk_trigger = makeNode(CreateTrigStmt);
 	fk_trigger->trigname = fkconstraint->constr_name;
@@ -9079,35 +8877,13 @@ CreateFKCheckTrigger(RangeVar *myRel, FkConstraint *fkconstraint,
 	fk_trigger->constrrel = fkconstraint->pktable;
 
 	fk_trigger->args = NIL;
-	fk_trigger->args = lappend(fk_trigger->args,
-							   makeString(fkconstraint->constr_name));
-	fk_trigger->args = lappend(fk_trigger->args,
-							   makeString(myRel->relname));
-	fk_trigger->args = lappend(fk_trigger->args,
-							   makeString(fkconstraint->pktable->relname));
-	fk_trigger->args = lappend(fk_trigger->args,
-				makeString(fkMatchTypeToString(fkconstraint->fk_matchtype)));
-	if (list_length(fkconstraint->fk_attrs) != list_length(fkconstraint->pk_attrs))
-		ereport(ERROR,
-				(errcode(ERRCODE_INVALID_FOREIGN_KEY),
-				 errmsg("number of referencing and referenced columns for foreign key disagree")));
 
-	forboth(fk_attr, fkconstraint->fk_attrs,
-			pk_attr, fkconstraint->pk_attrs)
-	{
-		fk_trigger->args = lappend(fk_trigger->args, lfirst(fk_attr));
-		fk_trigger->args = lappend(fk_trigger->args, lfirst(pk_attr));
-	}
-
-	trigobj->objectId = CreateTrigger(fk_trigger, true);
+	trigobj = CreateTrigger(fk_trigger, constraintOid);
 
 	if (on_insert)
-		fkconstraint->trig1Oid = trigobj->objectId;
+		fkconstraint->trig1Oid = trigobj;
 	else
-		fkconstraint->trig2Oid = trigobj->objectId;
-
-	/* Register dependency from trigger to constraint */
-	recordDependencyOn(trigobj, constrobj, DEPENDENCY_INTERNAL);
+		fkconstraint->trig2Oid = trigobj;
 
 	/* Make changes-so-far visible */
 	CommandCounterIncrement();
@@ -9118,14 +8894,10 @@ CreateFKCheckTrigger(RangeVar *myRel, FkConstraint *fkconstraint,
  */
 static void
 createForeignKeyTriggers(Relation rel, FkConstraint *fkconstraint,
-						 Oid constrOid)
+						 Oid constraintOid)
 {
 	RangeVar   *myRel;
 	CreateTrigStmt *fk_trigger;
-	ListCell   *fk_attr;
-	ListCell   *pk_attr;
-	ObjectAddress trigobj,
-				constrobj;
 
 	/*
 	 * Special for Greenplum Database: Ignore foreign keys for now, with warning
@@ -9144,15 +8916,6 @@ createForeignKeyTriggers(Relation rel, FkConstraint *fkconstraint,
 	myRel = makeRangeVar(get_namespace_name(RelationGetNamespace(rel)),
 						 pstrdup(RelationGetRelationName(rel)), -1);
 
-	/*
-	 * Preset objectAddress fields
-	 */
-	constrobj.classId = ConstraintRelationId;
-	constrobj.objectId = constrOid;
-	constrobj.objectSubId = 0;
-	trigobj.classId = TriggerRelationId;
-	trigobj.objectSubId = 0;
-
 	/* Make changes-so-far visible */
 	CommandCounterIncrement();
 
@@ -9160,8 +8923,8 @@ createForeignKeyTriggers(Relation rel, FkConstraint *fkconstraint,
 	 * Build and execute a CREATE CONSTRAINT TRIGGER statement for the CHECK
 	 * action for both INSERTs and UPDATEs on the referencing table.
 	 */
-	CreateFKCheckTrigger(myRel, fkconstraint, &constrobj, &trigobj, true);
-	CreateFKCheckTrigger(myRel, fkconstraint, &constrobj, &trigobj, false);
+	CreateFKCheckTrigger(myRel, fkconstraint, constraintOid, true);
+	CreateFKCheckTrigger(myRel, fkconstraint, constraintOid, false);
 
 	/*
 	 * Build and execute a CREATE CONSTRAINT TRIGGER statement for the ON
@@ -9211,29 +8974,9 @@ createForeignKeyTriggers(Relation rel, FkConstraint *fkconstraint,
 	}
 
 	fk_trigger->args = NIL;
-	fk_trigger->args = lappend(fk_trigger->args,
-							   makeString(fkconstraint->constr_name));
-	fk_trigger->args = lappend(fk_trigger->args,
-							   makeString(myRel->relname));
-	fk_trigger->args = lappend(fk_trigger->args,
-							   makeString(fkconstraint->pktable->relname));
-	fk_trigger->args = lappend(fk_trigger->args,
-				makeString(fkMatchTypeToString(fkconstraint->fk_matchtype)));
-	forboth(fk_attr, fkconstraint->fk_attrs,
-			pk_attr, fkconstraint->pk_attrs)
-	{
-		fk_trigger->args = lappend(fk_trigger->args, lfirst(fk_attr));
-		fk_trigger->args = lappend(fk_trigger->args, lfirst(pk_attr));
-	}
-
 	fk_trigger->trigOid = fkconstraint->trig3Oid;
 
-	trigobj.objectId = CreateTrigger(fk_trigger, true);
-
-	fkconstraint->trig3Oid = trigobj.objectId;
-
-	/* Register dependency from trigger to constraint */
-	recordDependencyOn(&trigobj, &constrobj, DEPENDENCY_INTERNAL);
+	fkconstraint->trig3Oid = CreateTrigger(fk_trigger, constraintOid);
 
 	/* Make changes-so-far visible */
 	CommandCounterIncrement();
@@ -9285,52 +9028,12 @@ createForeignKeyTriggers(Relation rel, FkConstraint *fkconstraint,
 	}
 
 	fk_trigger->args = NIL;
-	fk_trigger->args = lappend(fk_trigger->args,
-							   makeString(fkconstraint->constr_name));
-	fk_trigger->args = lappend(fk_trigger->args,
-							   makeString(myRel->relname));
-	fk_trigger->args = lappend(fk_trigger->args,
-							   makeString(fkconstraint->pktable->relname));
-	fk_trigger->args = lappend(fk_trigger->args,
-				makeString(fkMatchTypeToString(fkconstraint->fk_matchtype)));
-	forboth(fk_attr, fkconstraint->fk_attrs,
-			pk_attr, fkconstraint->pk_attrs)
-	{
-		fk_trigger->args = lappend(fk_trigger->args, lfirst(fk_attr));
-		fk_trigger->args = lappend(fk_trigger->args, lfirst(pk_attr));
-	}
 
 	fk_trigger->trigOid = fkconstraint->trig4Oid;
 
-	trigobj.objectId = CreateTrigger(fk_trigger, true);
-
-	fkconstraint->trig4Oid = trigobj.objectId;
-
-	/* Register dependency from trigger to constraint */
-	recordDependencyOn(&trigobj, &constrobj, DEPENDENCY_INTERNAL);
+	fkconstraint->trig4Oid = CreateTrigger(fk_trigger, constraintOid);
 }
 
-/*
- * fkMatchTypeToString -
- *	  convert FKCONSTR_MATCH_xxx code to string to use in trigger args
- */
-static char *
-fkMatchTypeToString(char match_type)
-{
-	switch (match_type)
-	{
-		case FKCONSTR_MATCH_FULL:
-			return pstrdup("FULL");
-		case FKCONSTR_MATCH_PARTIAL:
-			return pstrdup("PARTIAL");
-		case FKCONSTR_MATCH_UNSPECIFIED:
-			return pstrdup("UNSPECIFIED");
-		default:
-			elog(ERROR, "unrecognized match type: %d",
-				 (int) match_type);
-	}
-	return NULL;				/* can't get here */
-}
 
 /*
  * ALTER TABLE DROP CONSTRAINT
