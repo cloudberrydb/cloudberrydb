@@ -4,7 +4,7 @@ inputs:
 - name: gpos_src
 outputs:
 - name: build_and_test_debian8_debug_clang
-  task: build_and_test_debian8_debug_clang
+  path: build_and_test_debian8_debug_clang
 run:
   path: /usr/bin/python2
   args:
