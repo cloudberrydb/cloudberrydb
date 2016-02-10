@@ -372,7 +372,7 @@ cdbpath_match_preds_to_partkey_tail(CdbpathMatchPredsContext *ctx,
 				else if (pathkey->pk_eclass == rinfo->right_ec)
 					copathkey = makePathKeyForEC(rinfo->left_ec);
 			}
-			else if (CdbPathLocus_IsHashed(ctx->locus))
+			else if (CdbPathLocus_IsHashedOJ(ctx->locus))
 			{
 				List	   *sublist = (List *) lfirst(partkeycell);
 
