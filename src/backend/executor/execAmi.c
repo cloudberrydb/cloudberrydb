@@ -6,7 +6,7 @@
  * Portions Copyright (c) 1996-2008, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
- *	$PostgreSQL: pgsql/src/backend/executor/execAmi.c,v 1.89.2.1 2007/02/15 03:07:21 tgl Exp $
+ *	$PostgreSQL: pgsql/src/backend/executor/execAmi.c,v 1.91 2007/02/15 03:07:13 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -326,7 +326,6 @@ ExecMarkPos(PlanState *node)
 				errmsg("unsupported call to mark position of Motion operator")
 				));
 			break;
-
 
 		default:
 			/* don't make hard error unless caller asks to restore... */

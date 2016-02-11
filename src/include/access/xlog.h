@@ -120,12 +120,6 @@ typedef struct XLogRecord
 #define SYNC_METHOD_FSYNC_WRITETHROUGH	3
 extern int	sync_method;
 
-#ifdef O_DIRECT
-#define PG_O_DIRECT                             O_DIRECT
-#else
-#define PG_O_DIRECT                             0
-#endif
-
 /*
  * The rmgr data to be written by XLogInsert() is defined by a chain of
  * one or more XLogRecData structs.  (Multiple structs would be used when

@@ -27,7 +27,7 @@
 
 #include "cdb/cdbvars.h"
 
-#include "access/xlog.h"
+#include "access/xlogdefs.h"
 #include "cdb/cdbfilerepservice.h"
 #include "cdb/cdbfilerepmirror.h"
 #include "cdb/cdbfilerepmirrorack.h"
