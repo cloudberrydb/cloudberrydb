@@ -37,6 +37,7 @@
 #include "access/xlogutils.h"
 #include "catalog/catalog.h"
 #include "catalog/catversion.h"
+#include "catalog/pg_authid.h"
 #include "catalog/pg_control.h"
 #include "catalog/pg_type.h"
 #include "catalog/pg_database.h"
