@@ -607,9 +607,14 @@ print_rmgr_standby(XLogRecPtr cur, XLogRecord *record, uint8 info)
 void
 print_rmgr_heap2(XLogRecPtr cur, XLogRecord *record, uint8 info)
 {
-	char spaceName[NAMEDATALEN];
-	char dbName[NAMEDATALEN];
-	char relName[NAMEDATALEN];
+	/*
+	 * 83MERGE_FIXME: re-enable the declaration of these variables when the
+	 * relevant changes are merged (see below).
+	 *
+	 * char spaceName[NAMEDATALEN];
+	 * char dbName[NAMEDATALEN];
+	 * char relName[NAMEDATALEN];
+	 */
 	char buf[1024];
 
 	switch (info)

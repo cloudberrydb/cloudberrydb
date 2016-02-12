@@ -16,14 +16,6 @@
 
 static int printValue(const char *, const int, const attrib_t, const uint32);
 
-#if PG_VERSION_NUM < 80400
- #ifdef HAVE_INT64_TIMESTAMP
- typedef int64 TimeOffset;
- #else
- typedef double TimeOffset;
- #endif
-#endif
-
 #if PG_VERSION_NUM < 80300
 #define MaxHeapTupleSize  (BLCKSZ - MAXALIGN(sizeof(PageHeaderData)))
 #endif
