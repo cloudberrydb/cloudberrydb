@@ -919,12 +919,7 @@ void AOCSFileSegInfoAddVpe(Relation prel, AppendOnlyEntry *aoEntry, int32 segno,
 				d[Anum_pg_aocs_vpinfo-1]);
 		struct varlena *dv = pg_detoast_datum(v);
 		Assert(VARSIZE(dv) == aocs_vpinfo_size(nvp - num_newcols));
-		oldvpinfo = create_aocs_vpinfo(nvp - num_newcols);
-		memcpy(oldvpinfo, dv, aocs_vpinfo_size(nvp - num_newcols));
-		if(dv!=v)
-		{
-			pfree(dv);
-		}
+		oldvpinfo = (AOCSVPInfo *)dv;
 		Assert(oldvpinfo->nEntry + num_newcols == nvp);
 		/* copy existing columns' eofs to new vpinfo */
 		for (i = 0; i < oldvpinfo->nEntry; ++i)
@@ -940,6 +935,10 @@ void AOCSFileSegInfoAddVpe(Relation prel, AppendOnlyEntry *aoEntry, int32 segno,
 			newvpinfo->entry[i].eof_uncompressed =
 					desc->dsw[j]->eofUncompress;
 		}
+		if(dv!=v)
+		{
+			pfree(dv);
+		}
 	}
 	d[Anum_pg_aocs_vpinfo-1] = PointerGetDatum(newvpinfo);
 	null[Anum_pg_aocs_vpinfo-1] = false;
@@ -952,10 +951,6 @@ void AOCSFileSegInfoAddVpe(Relation prel, AppendOnlyEntry *aoEntry, int32 segno,
 
 	pfree(newtup);
 	pfree(newvpinfo);
-	if (!empty)
-	{
-		pfree(oldvpinfo);
-	}
 
 	index_endscan(scan);
 	/*
