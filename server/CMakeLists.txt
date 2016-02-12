@@ -134,7 +134,8 @@ add_gpos_test(CMemoryPoolBasicTest)
 add_gpos_test(CCacheTest)
 
 # net
-add_gpos_test(CSocketTest)
+# enable after fixing race condition
+# add_gpos_test(CSocketTest)
 
 # string
 add_gpos_test(CWStringTest)
