@@ -1841,6 +1841,7 @@ checkIODataDirectory(void)
 	int fd;
 	char filename[MAXPGPATH];
 	int size = BLCKSZ + BLCKSZ;
+	int magic_len = strlen(FTS_PROBE_MAGIC_STRING) + 1;
 	char *data = malloc(size);
 	if (data == NULL)
 	{
@@ -1876,8 +1877,7 @@ checkIODataDirectory(void)
 							errmsg("FTS: could not create file \"%s\": %m", 
 								filename)));
 				}
-				int len = strlen(FTS_PROBE_MAGIC_STRING);
-				strncpy(dataAligned, FTS_PROBE_MAGIC_STRING, len);
+				strncpy(dataAligned, FTS_PROBE_MAGIC_STRING, magic_len);
 				if (write(fd, dataAligned, BLCKSZ) != BLCKSZ)
 				{
 					ereport(LOG, (errcode_for_file_access(), 
@@ -1910,11 +1910,9 @@ checkIODataDirectory(void)
 			break;
 		}
 
-		if (strncmp(dataAligned, FTS_PROBE_MAGIC_STRING, strlen(FTS_PROBE_MAGIC_STRING)) != 0)
+		if (strncmp(dataAligned, FTS_PROBE_MAGIC_STRING, magic_len) != 0)
 		{
-			ereport(LOG, (errmsg("FTS: Failed to compare read data (%s) "
-					"from file with MAGIC (%s)",
-	                                data, FTS_PROBE_MAGIC_STRING)));
+			ereport(LOG, (errmsg("FTS: Read corrupted data from \"%s\" file", filename)));
 			failure = true;
 			break;
 		}
