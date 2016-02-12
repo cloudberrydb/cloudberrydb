@@ -2,7 +2,10 @@ platform: linux
 image: docker:///yolo/orcadev#jessie
 inputs:
 - name: xerces_patch
+outputs:
+- name: build_debian8
 run:
   path: /usr/bin/python2
   args:
   - xerces_patch/concourse/xerces-c/build_xerces.py
+  - --output_dir=build_debian8/install
