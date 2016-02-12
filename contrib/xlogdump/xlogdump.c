@@ -721,7 +721,7 @@ help(void)
 	printf("  -T, --hide-timestamps     Do not print timestamps.\n");
 	printf("  -?, --help                Show this help.\n");
 	printf("\n");
-	printf("oid2name supplimental options:\n");
+	printf("oid2name supplemental options:\n");
 	printf("  -h, --host=HOST           database server host or socket directory\n");
 	printf("  -p, --port=PORT           database server port number\n");
 	printf("  -U, --user=NAME           database user name to connect\n");
