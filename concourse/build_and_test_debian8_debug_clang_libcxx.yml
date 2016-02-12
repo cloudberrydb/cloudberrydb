@@ -1,15 +1,18 @@
 platform: linux
 image: docker:///yolo/orcadev#jessie
 inputs:
-- name: bin_gpos_debian8_debug_clang_libcxx
-- name: bin_xerces_debian8_clang_libcxx
-- name: orca_src
+  - name: bin_gpos_debian8_debug_clang_libcxx
+  - name: bin_xerces_debian8_clang_libcxx
+  - name: orca_src
+outputs:
+  - name: build_and_test_debian8_debug_clang_libcxx
 run:
   path: /usr/bin/python2
   args:
-  - orca_src/concourse/build_and_test.py
-  - --build_type=DEBUG
-  - --compiler=clang++
-  - --cxxflags=-stdlib=libc++
-  - bin_gpos_debian8_debug_clang_libcxx
-  - bin_xerces_debian8_clang_libcxx
+    - orca_src/concourse/build_and_test.py
+    - --build_type=DEBUG
+    - --compiler=clang++
+    - --cxxflags=-stdlib=libc++
+    - --output_dir=build_and_test_debian8_debug_clang_libcxx/install
+    - bin_gpos_debian8_debug_clang_libcxx
+    - bin_xerces_debian8_clang_libcxx

@@ -29,11 +29,11 @@ def install_dependency(dependency_name):
          "-C",
          "/usr/local"])
 
-def cmake_configure(src_dir, build_type, cxx_compiler = None, cxxflags = None):
+def cmake_configure(src_dir, build_type, output_dir, cxx_compiler = None, cxxflags = None):
     os.mkdir("build")
     cmake_args = ["cmake",
                   "-D", "CMAKE_BUILD_TYPE=" + build_type,
-                  "-D", "CMAKE_INSTALL_PREFIX=../install"]
+                  "-D", "CMAKE_INSTALL_PREFIX=../" + output_dir]
     if cxx_compiler:
         cmake_args.append("-D")
         cmake_args.append("CMAKE_CXX_COMPILER=" + cxx_compiler)
@@ -59,6 +59,7 @@ def main():
     parser.add_option("--build_type", dest="build_type", default="RELEASE")
     parser.add_option("--compiler", dest="compiler")
     parser.add_option("--cxxflags", dest="cxxflags")
+    parser.add_option("--output_dir", dest="output_dir", default="install")
     (options, args) = parser.parse_args()
     for dependency in args:
         status = install_dependency(dependency)
@@ -66,6 +67,7 @@ def main():
             return status
     status = cmake_configure("orca_src",
                              options.build_type,
+                             options.output_dir,
                              options.compiler,
                              options.cxxflags)
     if status:

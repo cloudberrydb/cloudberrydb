@@ -1,13 +1,16 @@
 platform: linux
 image: docker:///yolo/orcadev#jessie
 inputs:
-- name: bin_gpos_debian8_debug
-- name: bin_xerces_debian8
-- name: orca_src
+  - name: bin_gpos_debian8_debug
+  - name: bin_xerces_debian8
+  - name: orca_src
+outputs:
+  - name: build_and_test_debian8_debug
 run:
   path: /usr/bin/python2
   args:
-  - orca_src/concourse/build_and_test.py
-  - --build_type=DEBUG
-  - bin_gpos_debian8_debug
-  - bin_xerces_debian8
+    - orca_src/concourse/build_and_test.py
+    - --build_type=DEBUG
+    - --output_dir=build_and_test_debian8_debug/install
+    - bin_gpos_debian8_debug
+    - bin_xerces_debian8
