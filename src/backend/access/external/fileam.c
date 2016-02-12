@@ -768,7 +768,6 @@ else \
 \
 	ErrorData	*edata; \
 	MemoryContext oldcontext;\
-	bool	errmsg_is_a_copy = false; \
 \
 	/* SREH must only handle data errors. all other errors must not be caught */\
 	if(ERRCODE_TO_CATEGORY(elog_geterrcode()) != ERRCODE_DATA_EXCEPTION)\
@@ -797,19 +796,18 @@ else \
 		pstate->cdbsreh->errmsg = (char *) palloc((strlen(edata->message) + \
 												   strlen(pstate->cur_attname) + \
 												   10 + 1) * sizeof(char)); \
-		errmsg_is_a_copy = true; \
 		sprintf(pstate->cdbsreh->errmsg, "%s, column %s", \
 				edata->message, \
 				pstate->cur_attname); \
 	}\
 	else\
 	{\
-		pstate->cdbsreh->errmsg = edata->message; \
+		pstate->cdbsreh->errmsg = pstrdup(edata->message); \
 	}\
 \
 	HandleSingleRowError(pstate->cdbsreh); \
 	FreeErrorData(edata);\
-	if (errmsg_is_a_copy && !IsRejectLimitReached(pstate->cdbsreh)) \
+	if (!IsRejectLimitReached(pstate->cdbsreh)) \
 		pfree(pstate->cdbsreh->errmsg); \
 }
 
