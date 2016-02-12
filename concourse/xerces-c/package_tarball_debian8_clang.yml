@@ -3,9 +3,11 @@ image: docker:///yolo/orcadev#jessie
 inputs:
 - name: xerces_patch
 - name: build_debian8_clang
+outputs:
+- name: package_tarball_debain8_clang
 run:
   path: /bin/bash
   args:
   - xerces_patch/concourse/package_tarball.bash
   - build_debian8_clang
-  - bin_xerces_debian8_clang.tar.gz
+  - package_tarball_debain8_clang/bin_xerces_debian8_clang.tar.gz
