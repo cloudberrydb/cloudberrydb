@@ -1,8 +1,11 @@
 platform: linux
 image: docker:///yolo/orcadev#centos5
 inputs:
-- name: xerces_patch
+  - name: xerces_patch
+outputs:
+  - name: build_centos5
 run:
   path: /usr/bin/python2
   args:
-  - xerces_patch/concourse/xerces-c/build_xerces.py
+    - xerces_patch/concourse/xerces-c/build_xerces.py
+    - --output_dir=build_centos5/install
