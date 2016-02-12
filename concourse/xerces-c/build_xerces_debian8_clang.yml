@@ -2,7 +2,7 @@ platform: linux
 image: docker:///yolo/orcadev#jessie
 inputs:
 - name: xerces_patch
-output:
+outputs:
 - name: build_debian8_clang
 run:
   path: /usr/bin/python2
