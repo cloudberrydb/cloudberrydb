@@ -6,8 +6,7 @@ inputs:
 outputs:
   - name: package_tarball_debian8_debug
 run:
-  path: /bin/bash
-  args:
-    - orca_src/concourse/package_tarball.bash
-    - build_and_test_debian8_debug
-    - package_tarball_debian8_debug/bin_orca_debian8_debug.tar.gz
+  path: orca_src/concourse/package_tarball.bash
+params:
+  src_root: build_and_test_debian8_debug/install
+  dst_tarball: package_tarball_debian8_debug/bin_orca_debian8_debug.tar.gz
