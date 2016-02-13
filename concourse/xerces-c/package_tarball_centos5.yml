@@ -6,8 +6,7 @@ inputs:
 outputs:
   - name: package_tarball_centos5
 run:
-  path: /bin/bash
-  args:
-    - xerces_patch/concourse/package_tarball.bash
-    - build_centos5
-    - package_tarball_centos5/bin_xerces_centos5.tar.gz
+  path: xerces_patch/concourse/package_tarball.bash
+params:
+  src_root: build_centos5/install
+  dst_tarball: package_tarball_centos5/bin_xerces_centos5.tar.gz
