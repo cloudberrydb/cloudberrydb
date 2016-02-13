@@ -7,9 +7,8 @@ inputs:
 outputs:
   - name: build_and_test_debian8_debug
 run:
-  path: /usr/bin/python2
+  path: orca_src/concourse/build_and_test.py
   args:
-    - orca_src/concourse/build_and_test.py
     - --build_type=DEBUG
     - --output_dir=build_and_test_debian8_debug/install
     - bin_gpos_debian8_debug
