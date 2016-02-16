@@ -38,7 +38,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/postmaster/postmaster.c,v 1.524 2007/02/16 02:59:41 momjian Exp $
+ *	  $PostgreSQL: pgsql/src/backend/postmaster/postmaster.c,v 1.525 2007/02/16 17:06:59 tgl Exp $
  *
  * NOTES
  *
@@ -241,7 +241,6 @@ static int	SendStop = false;
 
 /* still more option variables */
 bool		EnableSSL = false;
-char	   *SSLCipherSuites;
 bool		SilentMode = false; /* silent_mode */
 
 int			PreAuthDelay = 0;

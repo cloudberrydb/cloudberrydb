@@ -9,7 +9,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/optimizer/plan/initsplan.c,v 1.130 2007/02/13 02:31:03 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/optimizer/plan/initsplan.c,v 1.131 2007/02/16 20:57:19 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -1015,12 +1015,7 @@ distribute_qual_to_rels(PlannerInfo *root, Node *clause,
 	{
 		/*
 		 * The qual is attached to an outer join and mentions (some of the)
-		 * rels on the nonnullable side.
-		 *
-		 * Note: an outer-join qual that mentions only nullable-side rels can
-		 * be pushed down into the nullable side without changing the join
-		 * result, so we treat it almost the same as an ordinary inner-join
-		 * qual (see below).
+		 * rels on the nonnullable side, so it's not degenerate.
 		 *
 		 * We can't use such a clause to deduce equivalence (the left and right
 		 * sides might be unequal above the join because one of them has gone
@@ -1212,7 +1207,7 @@ distribute_qual_to_rels(PlannerInfo *root, Node *clause,
  * higher-level joins is reflected by setting delay_upper_joins to TRUE in
  * OuterJoinInfo structs.
  *
- * For a non-outer-join qual, we can evaluate the qual as soon as (1) we have
+ * For an is_pushed_down qual, we can evaluate the qual as soon as (1) we have
  * all the rels it mentions, and (2) we are at or above any outer joins that
  * can null any of these rels and are below the syntactic location of the
  * given qual.  We must enforce (2) because pushing down such a clause below
@@ -1232,7 +1227,7 @@ distribute_qual_to_rels(PlannerInfo *root, Node *clause,
  * B/C join is done first then the join to A can null C, so a qual actually
  * mentioning only C cannot be applied below the join to A.
  *
- * For an outer-join qual, this isn't going to determine where we place the
+ * For a non-pushed-down qual, this isn't going to determine where we place the
  * qual, but we need to determine outerjoin_delayed anyway so we can decide
  * whether the qual is potentially useful for equivalence deductions.
  *

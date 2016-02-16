@@ -110,6 +110,7 @@ static bool ssl_loaded_verify_locations = false;
 
 /* GUC variable controlling SSL cipher list */
 char	   *SSLCipherSuites = NULL;
+
 #endif
 
 /* ------------------------------------------------------------ */

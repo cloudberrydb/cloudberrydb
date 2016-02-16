@@ -113,6 +113,11 @@ extern bool fullPageWrites;
 extern char *SSLCipherSuites;
 #endif
 
+#ifdef USE_SSL
+extern char *SSLCipherSuites;
+#endif
+
+
 static const char *assign_log_destination(const char *value,
 					   bool doit, GucSource source);
 
