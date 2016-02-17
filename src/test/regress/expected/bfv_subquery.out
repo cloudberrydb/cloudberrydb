@@ -69,8 +69,10 @@ where a = (select x.a from (select distinct a from bfv_subquery_s2 where bfv_sub
  1 | 1
 (1 row)
 
+-- start_ignore
 DROP FUNCTION IF EXISTS csq_f(a int);
 NOTICE:  function csq_f(pg_catalog.int4) does not exist, skipping
+-- end_ignore
 CREATE FUNCTION csq_f(a int) RETURNS int AS $$ select $1 $$ LANGUAGE SQL;
 --start_ignore
 DROP TABLE IF EXISTS csq_r;

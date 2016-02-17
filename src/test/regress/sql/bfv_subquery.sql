@@ -52,7 +52,9 @@ insert into bfv_subquery_s2 values (1,1);
 select * from bfv_subquery_r2 
 where a = (select x.a from (select distinct a from bfv_subquery_s2 where bfv_subquery_s2.b = bfv_subquery_r2	.b) x);
 
+-- start_ignore
 DROP FUNCTION IF EXISTS csq_f(a int);
+-- end_ignore
 CREATE FUNCTION csq_f(a int) RETURNS int AS $$ select $1 $$ LANGUAGE SQL;
 
 --start_ignore
