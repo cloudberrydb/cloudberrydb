@@ -84,6 +84,7 @@ int			optreset;
 #include <limits.h>
 #include <regex.h>
 #include <sys/wait.h>
+#include "lib/stringinfo.h"
 
 #define DUMP_PREFIX (dump_prefix==NULL?"":dump_prefix)
 
@@ -1847,7 +1848,7 @@ dumpDatabase(Archive *AH)
 					  "FROM pg_database "
 					  "WHERE datname = ",
 					  username_subquery);
-	appendStringLiteralAH(dbQry, datname, AH);
+	appendStringLiteralConn(dbQry, datname, g_conn);
 
 	res = PQexec(g_conn, dbQry->data);
 	check_sql_result(res, g_conn, dbQry->data, PGRES_TUPLES_OK);
@@ -6191,7 +6192,8 @@ dumpTableSchema(Archive *fout, TableInfo *tbinfo)
 				relname = pg_strdup(PQgetvalue(res, i, i_relname));
 				parname = pg_strdup(PQgetvalue(res, i, i_parname));
 				snprintf(tmpExtTable, sizeof(tmpExtTable), "%s%s", relname, EXT_PARTITION_NAME_POSTFIX);
-				appendPQExpBuffer(q, "ALTER TABLE %s ", fmtId(tbinfo->dobj.name));
+				appendPQExpBuffer(q, "ALTER TABLE %s.", fmtId(tbinfo->dobj.namespace->dobj.name));
+				appendPQExpBuffer(q, "%s ", fmtId(tbinfo->dobj.name));
 				appendPQExpBuffer(q, "EXCHANGE PARTITION %s ", fmtId(parname));
 				appendPQExpBuffer(q, "WITH TABLE %s WITHOUT VALIDATION; ", fmtId(tmpExtTable));
 

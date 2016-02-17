@@ -1,6 +1,9 @@
 #!/usr/bin/env python
 
 import os
+import imp
+gpcrondump_path = os.path.abspath('gpcrondump')
+gpcrondump = imp.load_source('gpcrondump', gpcrondump_path)
 import unittest2 as unittest
 from datetime import datetime
 from gppylib import gplog
@@ -33,7 +36,7 @@ class GpCronDumpTestCase(unittest.TestCase):
             self.cleanup_date = None
             self.cleanup_total = None
             self.dump_schema = False
-            self.dump_databases = 'testdb'
+            self.dump_databases = ['testdb']
             self.bypass_disk_check = True
             self.backup_set = None
             self.dump_global = False
@@ -380,7 +383,7 @@ class GpCronDumpTestCase(unittest.TestCase):
         dbname = 'foo'
         timestamp = '20141016010101'
         file = gpcd.get_schema_list_file(dbname)
-        self.assertTrue(file.startswith('/tmp/foo'))
+        self.assertTrue(file.startswith('/tmp/schema_list'))
         if os.path.exists('/tmp/foo'):
             os.remove('/tmp/foo')
 
@@ -496,7 +499,7 @@ class GpCronDumpTestCase(unittest.TestCase):
     def test_options13(self, mock, mock2, mock3):
         options = GpCronDumpTestCase.Options()
         options.incremental = True
-        options.dump_databases = 'bkdb'
+        options.dump_databases = ['bkdb']
 
         #If this is successful then it should not raise an exception
         GpCronDump(options, None)
@@ -561,7 +564,7 @@ class GpCronDumpTestCase(unittest.TestCase):
     @patch('gpcrondump.validate_current_timestamp')
     def test_options20(self, mock, mock2):
         options = GpCronDumpTestCase.Options()
-        options.dump_databases = None
+        options.dump_databases = []
         options.incremental = True
         with self.assertRaisesRegexp(Exception, 'Must supply -x <database name> with incremental option'):
             cron = GpCronDump(options, None)
@@ -638,7 +641,7 @@ class GpCronDumpTestCase(unittest.TestCase):
     @patch('gpcrondump.validate_current_timestamp')
     def test_options28(self, mock, mock2):
         options = GpCronDumpTestCase.Options()
-        options.dump_databases = 'bkdb'
+        options.dump_databases = ['bkdb']
         options.timestamp_key = True
         options.ddboost = True
         options.list_backup_files = True
@@ -649,7 +652,7 @@ class GpCronDumpTestCase(unittest.TestCase):
     @patch('gpcrondump.validate_current_timestamp')
     def test_options29(self, mock, mock2):
         options = GpCronDumpTestCase.Options()
-        options.dump_databases = 'bkdb'
+        options.dump_databases = ['bkdb']
         options.timestamp_key = True
         options.ddboost = True
         options.netbackup_service_host = "mdw"
@@ -757,9 +760,9 @@ class GpCronDumpTestCase(unittest.TestCase):
     def test_verify_tablenames_00_bad(self, mock1, mock2, mock3):
         options = GpCronDumpTestCase.Options()
         cron = GpCronDump(options, None)
-        ao_partition_list = ['public, aot1:asd, 2190', 'public, aot2, 3190']
-        co_partition_list = ['public, cot1, 2190', 'public, cot2:asd, 3190']
-        heap_partition_list = ['public, heapt1, 2190', 'public, heapt2,asdasd , 3190']
+        ao_partition_list = ['public, aot1!asd, 2190', 'public, aot2, 3190']
+        co_partition_list = ['public, cot1, 2190', 'public, cot2\nasd, 3190']
+        heap_partition_list = ['public, heapt1, 2190', 'public, heapt2!asdasd , 3190']
         with self.assertRaisesRegexp(Exception, ''):
             cron._verify_tablenames(ao_partition_list, co_partition_list, heap_partition_list)
 

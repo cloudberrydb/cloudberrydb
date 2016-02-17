@@ -177,7 +177,8 @@ main(int argc, char **argv)
 		goto cleanup;
 
 	mpp_msg(logInfo, progname, "Reading Greenplum Database configuration info from master database.\n");
-	if (!GetDumpSegmentDatabaseArray(master_db_conn, remote_version, &segDBAr, inputOpts.actors, inputOpts.pszRawDumpSet, dataOnly, schemaOnly))
+	if (!GetDumpSegmentDatabaseArray(master_db_conn, remote_version, &segDBAr, inputOpts.actors, 
+					inputOpts.pszRawDumpSet, inputOpts.pszDBName, inputOpts.pszUserName, dataOnly, schemaOnly))
 		goto cleanup;
 
 	/*

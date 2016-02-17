@@ -1,6 +1,7 @@
 import fnmatch
 import glob
 import os
+import re
 import tempfile
 from gppylib import gplog
 from gppylib.commands.base import WorkerPool, Command, REMOTE
@@ -9,6 +10,7 @@ from gppylib.db import dbconn
 from gppylib.db.dbconn import execSQL
 from gppylib.gparray import GpArray
 from pygresql import pg
+from gppylib.operations.utils import DEFAULT_NUM_WORKERS
 
 logger = gplog.get_default_logger()
 
@@ -35,7 +37,7 @@ def get_all_parent_tables(dbname):
     return set([d[0] for d in data])
 
 def list_to_quoted_string(filter_tables):
-    filter_string = "'" + "', '".join([t.strip() for t in filter_tables]) + "'"
+    filter_string = "'" + "', '".join([pg.escape_string(t) for t in filter_tables]) + "'"
     return filter_string
 
 def convert_parents_to_leafs(dbname, parents):
@@ -66,8 +68,8 @@ def convert_parents_to_leafs(dbname, parents):
 #output: same list but parent tables converted to leafs
 def expand_partition_tables(dbname, filter_tables):
 
-    if filter_tables is None:
-        return None
+    if not filter_tables or len(filter_tables) == 0:
+        return filter_tables
     parent_tables = list()
     non_parent_tables = list()
     expanded_list = list()
@@ -95,12 +97,16 @@ def get_batch_from_list(length, batch_size):
     return indices
 
 def create_temp_file_from_list(entries, prefix):
-    if entries is None:
+    """
+    When writing the entries into temp file, don't do any strip as there might be
+    white space in schema name and table name.
+    """
+    if len(entries) == 0:
         return None
 
     fd = tempfile.NamedTemporaryFile(mode='w', prefix=prefix, delete=False)
     for entry in entries:
-        fd.write(entry.rstrip() + '\n')
+        fd.write(entry + '\n')
     tmp_file_name = fd.name
     fd.close()
 
@@ -110,6 +116,9 @@ def create_temp_file_from_list(entries, prefix):
 
 def create_temp_file_with_tables(table_list):
     return create_temp_file_from_list(table_list, 'table_list_')
+
+def create_temp_file_with_schemas(schema_list):
+    return create_temp_file_from_list(schema_list, 'schema_file_')
 
 def validate_timestamp(timestamp):
     if not timestamp:
@@ -180,16 +189,57 @@ def check_cdatabase_exists(dbname, report_file, dump_prefix, ddboost=False, netb
         restore_file_with_nbu(netbackup_service_host, netbackup_block_size, filename)
         cdatabase_contents = get_lines_from_file(filename)
     else:
-        cdatabase_contents = get_lines_from_file(filename, ddboost)
+        cdatabase_contents = get_lines_from_file(filename)
 
+    dbname = escapeDoubleQuoteInSQLString(dbname, forceDoubleQuote=False)
     for line in cdatabase_contents:
         if 'CREATE DATABASE' in line:
-            parts = line.split()
-            if len(parts) < 3:
+            dump_dbname = get_dbname_from_cdatabaseline(line)
+            if dump_dbname is None:
                 continue
-            if parts[2] is not None and dbname == parts[2].strip('"'):
-                return True
+            else:
+                if dbname == checkAndRemoveEnclosingDoubleQuote(dump_dbname):
+                    return True
     return False
+
+def get_dbname_from_cdatabaseline(line):
+    """
+    Line format: CREATE DATABASE "DBNAME" WITH TEMPLATE = template0 ENCODING = 'UTF8' OWNER = gpadmin;
+
+    To get the dbname:
+    substring between the ending index of the first statement: CREATE DATABASE and the starting index
+    of WITH TEMPLATE whichever is not inside any double quotes, based on the fact that double quote
+    inside any name will be escaped by extra double quote, so there's always only one WITH TEMPLATE not
+    inside any doubles, means its previous and post string should have only even number of double
+    quotes.
+    Note: OWER name can also have special characters with double quote.
+    """
+    cdatabase = "CREATE DATABASE "
+    try:
+        start = line.index(cdatabase)
+    except Exception as e:
+        logger.error('Failed to find substring %s in line %s, error: %s' % (cdatabase, line, str(e)))
+        return None
+
+    with_template = " WITH TEMPLATE = "
+    all_positions = get_all_occurrences(with_template, line)
+    if all_positions != None:
+        for pos in all_positions:
+            pre_string = line[:pos]
+            post_string = line[pos + len(with_template):]
+            double_quotes_before = get_all_occurrences('"', pre_string)
+            double_quotes_after = get_all_occurrences('"', post_string)
+            num_double_quotes_before = 0 if double_quotes_before is None else len(double_quotes_before)
+            num_double_quotes_after = 0 if double_quotes_after is None else len(double_quotes_after)
+            if num_double_quotes_before % 2 == 0 and num_double_quotes_after % 2 == 0:
+                dbname = line[start+len(cdatabase) : pos]
+                return dbname
+    return None
+
+def get_all_occurrences(substr, line):
+    if substr is None or line is None or len(substr) > len(line):
+        return None
+    return [m.start() for m in re.finditer('(?=%s)' % substr, line)]
 
 def get_type_ts_from_report_file(dbname, report_file, backup_type, dump_prefix, ddboost=False, netbackup_service_host=None, netbackup_block_size=None):
     report_file_contents = get_lines_from_file(report_file)
@@ -229,6 +279,9 @@ def check_backup_type(report_file_contents, backup_type):
     return False
 
 def get_lines_from_file(fname, ddboost=None):
+    """
+    Don't strip white space here as it may be part of schema name and table name
+    """
     content = []
     if ddboost:
         contents = get_lines_from_dd_file(fname)
@@ -236,18 +289,26 @@ def get_lines_from_file(fname, ddboost=None):
     else:
         with open(fname) as fd:
             for line in fd:
-                content.append(line.rstrip())
+                content.append(line.strip('\n'))
         return content
 
 def write_lines_to_file(filename, lines):
+    """
+    Don't do strip in line for white space in case it is part of schema name or table name
+    """
+
     with open(filename, 'w') as fp:
         for line in lines:
-            fp.write("%s\n" % line.rstrip())
+            fp.write("%s\n" % line.strip('\n'))
 
 def verify_lines_in_file(fname, expected):
     lines = get_lines_from_file(fname)
+
     if lines != expected:
-        raise Exception("After writing file '%s' contents not as expected, suspected IO error" % fname)
+        raise Exception("After writing file '%s' contents not as expected.\n"
+                        "Lines read from file %s\n"
+                        "Lines expected from file %s\n"
+                        "Suspected IO error" % (fname, lines, expected))
 
 def check_dir_writable(directory):
     fp = None
@@ -499,12 +560,6 @@ def scp_file_to_hosts(host_list, filename, batch_default):
     pool.haltWork()
     pool.check_results()
 
-def remove_file_from_segments(master_port, filename):
-    hostlist = get_all_segment_addresses(master_port)
-    for hname in hostlist:
-        cmd = Command('Remove tmp files', 'rm -f %s' % filename, ctxt=REMOTE, remoteHost=hname)
-        cmd.run(validateAfter=True)
-
 def run_pool_command(host_list, cmd_str, batch_default, check_results=True):
     pool = WorkerPool(numWorkers=min(len(host_list), batch_default))
 
@@ -517,10 +572,19 @@ def run_pool_command(host_list, cmd_str, batch_default, check_results=True):
     if check_results:
         pool.check_results()
 
-def check_funny_chars_in_tablenames(tablenames):
-    for tablename in tablenames:
-        if '\n' in tablename or ',' in tablename or ':' in tablename:
-            raise Exception('Tablename has an invalid character "\\n", ":", "," : "%s"' % tablename)
+def check_funny_chars_in_names(names, is_full_qualified_name=True):
+    """
+    '\n' inside table name makes it hard to specify the object name in shell command line,
+    this may be worked around by using table file, but currently we read input line by line.
+    '!' inside table name will mess up with the shell history expansion.     
+    ',' is used for separating tables in plan file during incremental restore.
+    '.' dot is currently being used for full qualified table name in format: schema.table
+    """
+    if names and len(names) > 0:
+        for name in names:
+            if ('\t' in name or '\n' in name or '!' in name or ',' in name or
+               (is_full_qualified_name and name.count('.') > 1) or (not is_full_qualified_name and name.count('.') > 0)):
+                raise Exception('Name has an invalid character "\\t" "\\n" "!" "," ".": "%s"' % name)
 
 #Form and run command line to backup individual file with NBU
 def backup_file_with_nbu(netbackup_service_host, netbackup_policy, netbackup_schedule, netbackup_block_size, netbackup_keyword, netbackup_filepath, hostname=None):
@@ -639,3 +703,85 @@ def check_schema_exists(schema_name, dbname):
     if len(getRows(dbname, schema_check_sql)) < 1:
         return False
     return True
+
+def isDoubleQuoted(string):
+    if len(string) > 2 and string[0] == '"' and string[-1] == '"':
+        return True
+    return False
+
+def checkAndRemoveEnclosingDoubleQuote(string):
+    if isDoubleQuoted(string):
+        string = string[1 : len(string) - 1]
+    return string
+
+def checkAndAddEnclosingDoubleQuote(string):
+    if not isDoubleQuoted(string):
+        string = '"' + string + '"'
+    return string
+
+def escapeDoubleQuoteInSQLString(string, forceDoubleQuote=True):
+    """
+    Accept true database name, schema name, table name, escape the double quote
+    inside the name, add enclosing double quote by default.
+    """
+    string = string.replace('"', '""')
+
+    if forceDoubleQuote:
+        string = '"' + string + '"'
+    return string
+
+def removeEscapingDoubleQuoteInSQLString(string, forceDoubleQuote=True):
+    """
+    Remove the escaping double quote in database/schema/table name. 
+    """
+    if string is None:
+        return string
+
+    string = string.replace('""', '"')
+
+    if forceDoubleQuote:
+        string = '"' + string + '"'
+    return string
+
+def formatSQLString(rel_file, isTableName=False):
+    """
+    Read the full qualified schema or table name, do a split 
+    if each item is a table name into schema and table,
+    escape the double quote inside the name properly.
+    """
+    relnames = []
+    if rel_file and os.path.exists(rel_file):
+        with open(rel_file, 'r') as fr:
+            lines = fr.read().strip('\n').split('\n')
+            for line in lines:
+                if isTableName:
+                    schema, table = split_fqn(line)
+                    schema = escapeDoubleQuoteInSQLString(schema)
+                    table = escapeDoubleQuoteInSQLString(table)
+                    relnames.append(schema + '.' + table)
+                else:
+                    schema = escapeDoubleQuoteInSQLString(line)
+                    relnames.append(schema)
+        if len(relnames) > 0:
+            tmp_file = create_temp_file_from_list(relnames, os.path.basename(rel_file))
+            return tmp_file
+
+def split_fqn(fqn_name):
+    """
+    Split full qualified table name into schema and table by separator '.',
+    """
+    try:
+        schema, table = fqn_name.split('.')
+    except Exception as e:
+        logger.error("Failed to split name %s into schema and table, please check the format is schema.table" % fqn_name)
+        raise Exception('%s' % str(e))
+    return schema, table
+
+def remove_file_on_segments(master_port, filename, batch_default=DEFAULT_NUM_WORKERS):
+    addresses = get_all_segment_addresses(master_port)
+
+    try:
+        cmd = 'rm -f %s' % filename
+        run_pool_command(addresses, cmd, batch_default, check_results=False)
+    except Exception as e:
+        logger.error("cleaning up file failed: %s" % e.__str__())

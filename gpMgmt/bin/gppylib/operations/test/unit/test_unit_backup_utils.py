@@ -16,7 +16,7 @@ from gppylib.operations.backup_utils import generate_report_filename, validate_t
                                             check_backup_type, get_timestamp_val, get_dump_dirs, get_latest_full_dump_timestamp, \
                                             generate_pgstatlastoperation_filename, get_latest_report_timestamp, get_latest_report_in_dir, \
                                             create_temp_file_from_list, get_timestamp_from_increments_filename, get_full_timestamp_for_incremental,\
-                                            check_funny_chars_in_tablenames, expand_partition_tables, populate_filter_tables, expand_partitions_and_populate_filter_file, \
+                                            check_funny_chars_in_names, expand_partition_tables, populate_filter_tables, expand_partitions_and_populate_filter_file, \
                                             generate_files_filename, generate_pipes_filename, generate_master_config_filename, generate_segment_config_filename, \
                                             generate_global_prefix, generate_master_dbdump_prefix, get_ddboost_backup_directory, \
                                             generate_master_status_prefix, generate_seg_dbdump_prefix, generate_seg_status_prefix, \
@@ -347,7 +347,7 @@ class BackupUtilsTestCase(unittest.TestCase):
         fname = 'foo'
         expected = ['t1', 't2']
 
-        with self.assertRaisesRegexp(Exception, 'contents not as expected, suspected IO error'):
+        with self.assertRaisesRegexp(Exception, 'After writing file \'foo\' contents not as expected'):
             verify_lines_in_file(fname, expected)
 
     @patch('gppylib.operations.backup_utils.get_lines_from_file', return_value=[' t1', 't2'])
@@ -355,7 +355,7 @@ class BackupUtilsTestCase(unittest.TestCase):
         fname = 'foo'
         expected = ['t1', 't2']
 
-        with self.assertRaisesRegexp(Exception, 'contents not as expected, suspected IO error'):
+        with self.assertRaisesRegexp(Exception, 'After writing file \'foo\' contents not as expected'):
             verify_lines_in_file(fname, expected)
 
     @patch('gppylib.operations.backup_utils.get_lines_from_file', return_value=['t1'])
@@ -363,7 +363,7 @@ class BackupUtilsTestCase(unittest.TestCase):
         fname = 'foo'
         expected = ['t1', 't2']
 
-        with self.assertRaisesRegexp(Exception, 'contents not as expected, suspected IO error'):
+        with self.assertRaisesRegexp(Exception, 'After writing file \'foo\' contents not as expected'):
             verify_lines_in_file(fname, expected)
 
     @patch('gppylib.operations.backup_utils.get_lines_from_file', return_value=['t1', 't2', 't3'])
@@ -371,7 +371,7 @@ class BackupUtilsTestCase(unittest.TestCase):
         fname = 'foo'
         expected = ['t1', 't2']
 
-        with self.assertRaisesRegexp(Exception, 'contents not as expected, suspected IO error'):
+        with self.assertRaisesRegexp(Exception, 'After writing file \'foo\' contents not as expected'):
             verify_lines_in_file(fname, expected)
 
     @patch('gppylib.operations.backup_utils.get_lines_from_file', return_value=[])
@@ -379,7 +379,7 @@ class BackupUtilsTestCase(unittest.TestCase):
         fname = 'foo'
         expected = ['t1', 't2']
 
-        with self.assertRaisesRegexp(Exception, 'contents not as expected, suspected IO error'):
+        with self.assertRaisesRegexp(Exception, 'After writing file \'foo\' contents not as expected'):
             verify_lines_in_file(fname, expected)
 
     def test41_generate_plan_filename(self):
@@ -433,7 +433,7 @@ class BackupUtilsTestCase(unittest.TestCase):
         write_lines_to_file(filename, lines)
         self.assertTrue(os.path.isfile(filename))
         content = get_lines_from_file(filename)
-        expected_output = [s.rstrip() for s in lines]
+        expected_output = [s.strip('\n') for s in lines]
         self.assertEquals(expected_output, content)
         os.remove(filename)
 
@@ -908,24 +908,19 @@ class BackupUtilsTestCase(unittest.TestCase):
         full_ts = get_full_timestamp_for_incremental(backup_dir, self.dump_dir, self.dump_prefix, ts)
         self.assertEquals(full_ts, '20130207093000')
 
-    def test_check_funny_chars_in_tablenames_00(self):
-        tablenames = ['hello, world', 'correct']
-        with self.assertRaisesRegexp(Exception, 'Tablename has an invalid character'):
-            check_funny_chars_in_tablenames(tablenames)
+    def test_check_funny_chars_in_names_00(self):
+        tablenames = ['hello! world', 'correct']
+        with self.assertRaisesRegexp(Exception, 'Name has an invalid character'):
+            check_funny_chars_in_names(tablenames)
 
-    def test_check_funny_chars_in_tablenames_01(self):
+    def test_check_funny_chars_in_names_01(self):
         tablenames = ['hello\nworld', 'propertablename']
-        with self.assertRaisesRegexp(Exception, 'Tablename has an invalid character'):
-            check_funny_chars_in_tablenames(tablenames)
+        with self.assertRaisesRegexp(Exception, 'Name has an invalid character'):
+            check_funny_chars_in_names(tablenames)
 
-    def test_check_funny_chars_in_tablenames_02(self):
-        tablenames = ['hello:world', 'propertablename']
-        with self.assertRaisesRegexp(Exception, 'Tablename has an invalid character'):
-            check_funny_chars_in_tablenames(tablenames)
-
-    def test_check_funny_chars_in_tablenames_03(self):
+    def test_check_funny_chars_in_names_02(self):
         tablenames = ['helloworld', 'propertablename']
-        check_funny_chars_in_tablenames(tablenames) #should not raise an exception
+        check_funny_chars_in_names(tablenames) #should not raise an exception
 
     def test_expand_partition_tables_00(self):
         self.assertEqual(expand_partition_tables('foo', None), None)
@@ -994,7 +989,7 @@ class BackupUtilsTestCase(unittest.TestCase):
     @patch('gppylib.operations.backup_utils.expand_partition_tables', return_value=[])
     def test_expand_partitions_and_populate_filter_file03(self, mock):
         dbname = 'testdb'
-        partition_list = []
+        partition_list = ['part_table']
         file_prefix = 'exclude_dump_tables_file'
         result = expand_partitions_and_populate_filter_file(dbname, partition_list, file_prefix)
         self.assertTrue(os.path.basename(result).startswith(file_prefix))
@@ -1046,7 +1041,7 @@ class BackupUtilsTestCase(unittest.TestCase):
 
     def test_list_to_quoted_string01(self):
         input = ['   public.ao_table', 'public.co_table   ']
-        expected = "'public.ao_table', 'public.co_table'"
+        expected = "'   public.ao_table', 'public.co_table   '"
         output = list_to_quoted_string(input)
         self.assertEqual(expected, output)
 

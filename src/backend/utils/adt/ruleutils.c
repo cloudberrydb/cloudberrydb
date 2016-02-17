@@ -55,6 +55,8 @@
 #include "utils/lsyscache.h"
 #include "utils/typcache.h"
 #include "utils/xml.h"
+#include "gp-libpq-fe.h"
+#include "pqexpbuffer.h"
 
 
 /* ----------
@@ -6812,6 +6814,7 @@ partition_rule_def_worker(PartitionRule *rule, Node *start,
 		if (bLeafTablename) /* MPP-6297: dump by tablename */	
 		{
 			StringInfoData      	 sid1;
+			PQExpBuffer      	 pqbuf = createPQExpBuffer();
 
 			initStringInfo(&sid1);
 
@@ -6819,8 +6822,25 @@ partition_rule_def_worker(PartitionRule *rule, Node *start,
 
 			/* always quote to make WITH (tablename=...) work correctly */
 			/* MPP-12243: but don't use quote_identifier if already quoted! */
-			appendStringInfo(&sid1, "tablename=\'%s\'", 
-							 get_rel_name(rule->parchildrelid));
+
+			char *relname = get_rel_name(rule->parchildrelid);
+			int len = strlen(relname);
+
+			if(strchr(relname, '\\') != NULL)
+				appendPQExpBufferChar(pqbuf, ESCAPE_STRING_SYNTAX);
+
+			appendPQExpBufferChar(pqbuf, '\'');
+
+			if(!enlargePQExpBuffer(pqbuf, 2 * len + 2))
+				elog(ERROR, "failed to increase buffer size for escaping relname %s", relname);
+
+			pqbuf->len += PQescapeString(pqbuf->data + pqbuf->len, relname, len);
+
+			appendPQExpBufferChar(pqbuf, '\'');
+
+			appendStringInfo(&sid1, "tablename=%s", pqbuf->data);
+
+			destroyPQExpBuffer(pqbuf);
 
 			/* MPP-7191, MPP-7193: fully-qualify storage type if not
 			 * specified (and not a template)
@@ -6886,9 +6906,26 @@ partition_rule_def_worker(PartitionRule *rule, Node *start,
 			 *
 			 * MPP-10480: use tablename
 			 */
-			appendStringInfo(&buf, "tablename=\'%s\'",
-							 quote_identifier(
-									 get_rel_name(part->parrelid)));
+
+			PQExpBuffer pqbuf = createPQExpBuffer();
+			char *relname = get_rel_name(part->parrelid);
+			int len = strlen(relname);
+
+			if(strchr(relname, '\\') != NULL)
+				 appendPQExpBufferChar(pqbuf, ESCAPE_STRING_SYNTAX);
+
+			appendPQExpBufferChar(pqbuf, '\'');
+
+			if(!enlargePQExpBuffer(pqbuf, 2 * len + 2))
+				elog(ERROR, "failed to increase buffer size for escaping relname %s", relname);
+
+			pqbuf->len += PQescapeString(pqbuf->data + pqbuf->len, relname, len);
+
+			appendPQExpBufferChar(pqbuf, '\'');
+
+			appendStringInfo(&buf, "tablename=%s", pqbuf->data);
+
+			destroyPQExpBuffer(pqbuf);
 		}
 
 		opts = rule->parreloptions;

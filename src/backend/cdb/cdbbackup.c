@@ -15,6 +15,8 @@
 
 #include "regex/regex.h"
 #include "libpq/libpq-be.h"
+#include "gp-libpq-fe.h"
+#include "gp-libpq-int.h"
 #include "fmgr.h"
 #include "funcapi.h"
 #include "utils/builtins.h"
@@ -58,6 +60,7 @@ static char* parse_prefix_from_params(char *params);
 static char* parse_status_from_params(char *params);
 static char* parse_option_from_params(char *params, char *option);
 static char *queryNBUBackupFilePathName(char *netbackupServiceHost, char *netbackupRestoreFileName);
+static char *shellEscape(const char *shellArg, PQExpBuffer escapeBuf, bool addQuote);
 
 
 #ifdef USE_DDBOOST
@@ -307,6 +310,8 @@ gp_backup_launch__(PG_FUNCTION_ARGS)
 		}
 	}
 
+	PQExpBuffer escapeBuf = createPQExpBuffer();
+
 	pszDBName = NULL;
 	pszUserName = (char *) NULL;
 	if (MyProcPort != NULL)
@@ -317,6 +322,8 @@ gp_backup_launch__(PG_FUNCTION_ARGS)
 
 	if (pszDBName == NULL)
 		pszDBName = "";
+	else
+		pszDBName = shellEscape(pszDBName, escapeBuf, true);
 	if (pszUserName == NULL)
 		pszUserName = "";
 
@@ -1155,6 +1162,8 @@ gp_restore_launch__(PG_FUNCTION_ARGS)
 
 	len_name = strlen(pszBackupFileName);
 
+	PQExpBuffer escapeBuf = NULL;
+	PQExpBuffer aclNameBuf = NULL;
 	pszDBName = NULL;
 	pszUserName = NULL;
 	if (MyProcPort != NULL)
@@ -1165,6 +1174,13 @@ gp_restore_launch__(PG_FUNCTION_ARGS)
 
 	if (pszDBName == NULL)
 		pszDBName = "";
+	else
+	{
+		escapeBuf = createPQExpBuffer();
+		aclNameBuf = createPQExpBuffer();
+		pszDBName = shellEscape(pszDBName, escapeBuf, true);
+	}
+
 	if (pszUserName == NULL)
 		pszUserName = "";
 
@@ -1367,7 +1383,6 @@ gp_restore_launch__(PG_FUNCTION_ARGS)
 #endif
 	}
 
-
 		elog(LOG, "gp_restore_agent command line: %s\n", pszCmdLine);
 
 		/* This execs a shell that runs the gp_restore_agent program  */
@@ -1385,6 +1400,9 @@ gp_restore_launch__(PG_FUNCTION_ARGS)
 	restoreTimers(&savetimers);
 
 	assert(pszBackupFileName != NULL && pszBackupFileName[0] != '\0');
+
+	destroyPQExpBuffer(escapeBuf);
+	destroyPQExpBuffer(aclNameBuf);
 
 	return DirectFunctionCall1(textin, CStringGetDatum(pszBackupFileName));
 }
@@ -2333,3 +2351,47 @@ static char *formDDBoostFileName(char *pszBackupKey, bool isPostData, bool isCom
        return pszBackupFileName;
 }
 #endif
+
+
+/*
+ * shellEscape: Returns a string in which the shell-significant quoted-string characters are
+ * escaped.
+ *
+ * This function escapes the following characters: '"', '$', '`', '\', '!', '''.
+ *
+ * The StringInfo escapeBuf is used for assembling the escaped string and is reset at the
+ * start of this function.
+ */
+char *
+shellEscape(const char *shellArg, PQExpBuffer escapeBuf, bool addQuote)
+{
+        const char *s = shellArg;
+        const char      escape = '\\';
+
+	resetPQExpBuffer(escapeBuf);
+
+	if (addQuote)
+		appendPQExpBufferChar(escapeBuf, '\"');
+        /*
+         * Copy the shellArg into the escapeBuf prepending any characters
+         * requiring an escape with the escape character.
+         */
+        while (*s != '\0')
+        {
+                switch (*s)
+                {
+                        case '"':
+                        case '$':
+                        case '\\':
+                        case '`':
+                        case '!':
+                                appendPQExpBufferChar(escapeBuf, escape);
+                }
+                appendPQExpBufferChar(escapeBuf, *s);
+                s++;
+        }
+
+	if(addQuote)
+		appendPQExpBufferChar(escapeBuf, '\"');
+        return escapeBuf->data;
+}

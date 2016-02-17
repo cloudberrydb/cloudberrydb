@@ -9,6 +9,8 @@ from gppylib.db import dbconn
 from gppylib.test.behave_utils.utils import run_gpcommand, getRows, validate_parse_email_file
 from gppylib.gparray import GpArray
 from gppylib.operations.unix import CheckFile
+from gppylib.test.behave_utils.utils import run_command, backup_data, backup_data_to_file, check_table_exists, check_table_exists,\
+                                            validate_restore_data_in_file
 
 master_data_dir = os.environ.get('MASTER_DATA_DIRECTORY')
 
@@ -389,3 +391,20 @@ def impl(context, role_name, dbname):
             raise Exception("Role %s does not exist in database %s." % (role_name, dbname))
     except:
         raise Exception("Role %s does not exist in database %s." % (role_name, dbname))
+
+@given('there is a list of files "{filenames}" of tables "{table_list}" in "{dbname}" exists for validation')
+@when('there is a list of files "{filenames}" of tables "{table_list}" in "{dbname}" exists for validation')
+@then('there is a list of files "{filenames}" of tables "{table_list}" in "{dbname}" exists for validation')
+def impl(context, filenames, table_list, dbname):
+    files = [f for f in filenames.split(',')]
+    tables = [t for t in table_list.split(',')]
+    for t,f in zip(tables,files):
+        backup_data_to_file(context, t, dbname, f)
+
+@when('verify with backedup file "{filename}" that there is a "{table_type}" table "{tablename}" in "{dbname}" with data')
+@then('verify with backedup file "{filename}" that there is a "{table_type}" table "{tablename}" in "{dbname}" with data')
+def impl(context, filename, table_type, tablename, dbname):
+    if not check_table_exists(context, dbname=dbname, table_name=tablename, table_type=table_type):
+        raise Exception("Table '%s' does not exist when it should" % tablename)
+    validate_restore_data_in_file(context, tablename, dbname, filename)
+

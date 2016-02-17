@@ -14,12 +14,14 @@ gpdbrestore { -t <timestamp_key> { [-L]
               | -s <database_name> } 
      [--noplan]  [--noanalyze]  [-u <backup_directory>] [--list-backup]
      [--prefix <prefix_string> ] [--report-status-dir <report_directory> ]
-     [-T <schema>.<table> [,...]] [--table-file <file_name>]
+     [-T <schema>.<table> [-T ...]] [--table-file <file_name>]
      [--truncate] [-e] [-G] 
      [-B <parallel_processes>] 
      [-d <master_data_directory>] [-a] [-q] [-l <logfile_directory>] 
      [-v] [--ddboost ]
+     [-S <schema_name> [-S ...]]
      [--redirect <database_name> ]
+     [--change-schema=<schema_name> ]
      
 gpdbrestore -? 
 
@@ -347,11 +349,19 @@ OPTIONS
 
 -T <schema>.<table_name>
 
- A comma-separated list of specific table names to restore. The named 
- table(s) must exist in the backup set of the database being restored. 
+ Table names to restore, specify multiple times for multiple tables. The 
+ named table(s) must exist in the backup set of the database being restored. 
  Existing tables are not automatically truncated before data is restored 
  from backup. If your intention is to replace existing data in the table 
  from backup, truncate the table prior to running gpdbrestore -T. 
+
+
+-S <schema>
+
+ Schema names to restore, specify multiple times for multiple schemas. 
+ Existing tables are not automatically truncated before data is restored 
+ from backup. If your intention is to replace existing data in the table 
+ from backup, truncate the table prior to running gpdbrestore -S. 
 
 
 --table-file <file_name> 

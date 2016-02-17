@@ -16,7 +16,7 @@ from base import *
 from unix import *
 import pg
 from gppylib import pgconf
-from gppylib.utils import writeLinesToFile, createFromSingleHostFile
+from gppylib.utils import writeLinesToFile, createFromSingleHostFile, shellEscape
 
 
 logger = get_default_logger()
@@ -1014,7 +1014,10 @@ class Psql(Command):
             cmdStr += '-f %s ' % filename
         else:
             raise Exception('Psql must be passed a query or a filename.')    
-        cmdStr += '%s ' % database
+
+        # shell escape and force double quote of database in case of any funny chars
+        cmdStr += '"%s" ' % shellEscape(database)
+
         # Need to escape " for REMOTE or it'll interfere with ssh
         if ctxt == REMOTE:
              cmdStr = cmdStr.replace('"', '\\"')

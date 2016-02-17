@@ -5,7 +5,7 @@ from gppylib.commands.gp import GpStart, chk_local_db_running
 from gppylib.commands.base import Command, ExecutionError, REMOTE
 from gppylib.db import dbconn
 from gppylib.gparray import GpArray, MODE_SYNCHRONIZED
-from pygresql import pg
+from gppylib.operations.backup_utils import pg, escapeDoubleQuoteInSQLString
 
 PARTITION_START_DATE = '2010-01-01'
 PARTITION_END_DATE = '2013-01-01'
@@ -242,15 +242,21 @@ def get_table_data_to_file(filename, tablename, dbname):
                                 from pg_class as c
                                     inner join pg_namespace as n
                                     on c.relnamespace = n.oid
-                                where (n.nspname || '.' || c.relname = '%s')
-                                    or c.relname = '%s'
+                                where (n.nspname || '.' || c.relname = E'%s')
+                                    or c.relname = E'%s'
                         ) as q;
-                """ % (tablename, tablename)
+                """ % (pg.escape_string(tablename), pg.escape_string(tablename))
     query = order_sql
     conn = dbconn.connect(dbconn.DbURL(dbname=dbname))
     try:
         res = dbconn.execSQLForSingleton(conn, query)
-        data_sql = "COPY (select gp_segment_id, * from %s order by %s) TO '%s'" %(tablename.strip(), res, filename)
+        # check if tablename is fully qualified <schema_name>.<table_name>
+        if '.' in tablename:
+            schema_name, table_name = tablename.split('.')
+            data_sql = '''COPY (select gp_segment_id, * from "%s"."%s" order by %s) TO '%s' ''' % (escapeDoubleQuoteInSQLString(schema_name, False),
+                                                                                                   escapeDoubleQuoteInSQLString(table_name, False), res, filename)
+        else:
+            data_sql = '''COPY (select gp_segment_id, * from "%s" order by %s) TO '%s' ''' %(escapeDoubleQuoteInSQLString(tablename, False), res, filename)
         query = data_sql
         dbconn.execSQL(conn, query)
         conn.commit()
@@ -274,6 +280,16 @@ def validate_restore_data(context, tablename, dbname, backedup_table=None):
     restore_file = os.path.join(current_dir, './gppylib/test/data', tablename.strip() + "_restore")
     diff_backup_restore_data(context, backup_file, restore_file)
 
+def validate_restore_data_in_file(context, tablename, dbname, file_name, backedup_table=None):
+    filename = file_name + "_restore"
+    get_table_data_to_file(filename, tablename, dbname)
+    current_dir = os.getcwd()
+    if backedup_table != None:
+        backup_file = os.path.join(current_dir, './gppylib/test/data', backedup_table.strip() + "_backup")
+    else:
+        backup_file = os.path.join(current_dir, './gppylib/test/data', file_name + "_backup")
+    restore_file = os.path.join(current_dir, './gppylib/test/data', file_name + "_restore")
+    diff_backup_restore_data(context, backup_file, restore_file)
 
 def validate_db_data(context, dbname, expected_table_count):
     tbls = get_table_names(dbname)
@@ -297,6 +313,10 @@ def backup_data(context, tablename, dbname):
     filename = tablename + "_backup"
     get_table_data_to_file(filename, tablename, dbname)
 
+def backup_data_to_file(context, tablename, dbname, filename):
+    filename = filename + "_backup"
+    get_table_data_to_file(filename, tablename, dbname)
+
 def check_partition_table_exists(context, dbname, schemaname, table_name, table_type=None, part_level=1, part_number=1):
     partitions = get_partition_names(schemaname, table_name, dbname, part_level, part_number)
     if not partitions:
@@ -304,12 +324,19 @@ def check_partition_table_exists(context, dbname, schemaname, table_name, table_
     return check_table_exists(context, dbname, partitions[0][0].strip(), table_type) 
 
 def check_table_exists(context, dbname, table_name, table_type=None, host=None, port=0, user=None):
-
-    SQL = """
-            select oid::regclass, relkind, relstorage, reloptions \
-            from pg_class \
-            where oid = '%s'::regclass; \
-          """ % table_name
+    if '.' in table_name:
+        schemaname, tablename = table_name.split('.')
+        SQL = """
+              select c.oid, c.relkind, c.relstorage, c.reloptions
+              from pg_class c, pg_namespace n
+              where c.relname = E'%s' and n.nspname = E'%s' and c.relnamespace = n.oid;
+              """ % (pg.escape_string(tablename), pg.escape_string(schemaname))
+    else:
+        SQL = """
+              select oid, relkind, relstorage, reloptions \
+              from pg_class \
+              where relname = E'%s'; \
+              """ % pg.escape_string(table_name)
 
     table_row = None 
     with dbconn.connect(dbconn.DbURL(hostname=host, port=port, username=user, dbname=dbname)) as conn:
@@ -359,8 +386,10 @@ def drop_external_table_if_exists(context, table_name, dbname):
         drop_external_table(context, table_name=table_name, dbname=dbname)
 
 def drop_table_if_exists(context, table_name, dbname, host=None, port=0, user=None):
-    if check_table_exists(context, table_name=table_name, dbname=dbname, host=host, port=port, user=user):
-        drop_table(context, table_name=table_name, dbname=dbname, host=host, port=port, user=user)
+    SQL = 'drop table if exists %s' % table_name
+    with dbconn.connect(dbconn.DbURL(hostname=host, port=port, username=user, dbname=dbname)) as conn:
+        dbconn.execSQL(conn, SQL)
+        conn.commit()
 
 def drop_external_table(context, table_name, dbname, host=None, port=0, user=None):
     SQL = 'drop external table %s' % table_name
@@ -933,7 +962,14 @@ def create_large_num_partitions(table_type, table_name, db_name, num_partitions=
                                       """ % (table_name, condition, num_partitions)
     execute_sql(db_name, create_large_partitions_sql)
 
-    verify_table_exists_sql = """select count(*) from pg_class where relname = '%s'""" % table_name
+    if '.' in table_name:
+        schema, table = table_name.split('.')
+        verify_table_exists_sql = """select count(*) from pg_class c, pg_namespace n
+                                     where c.relname = E'%s' and n.nspname = E'%s' and c.relnamespace = n.oid;
+                                  """ % (table, schema)
+    else:
+        verify_table_exists_sql = """select count(*) from pg_class where relname = E'%s'""" % table_name
+
     num_rows = getRows(db_name, verify_table_exists_sql)[0][0] 
     if num_rows != 1:
         raise Exception('Creation of table "%s:%s" failed. Num rows in pg_class = %s' % (db_name, table_name, num_rows))

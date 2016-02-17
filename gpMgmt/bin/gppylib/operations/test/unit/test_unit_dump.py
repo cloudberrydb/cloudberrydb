@@ -77,7 +77,7 @@ class DumpTestCase(unittest.TestCase):
 
     def test00_create_dump_line_without_incremental(self):
         output = self.dumper.create_dump_string('dcddev', '20121212', '01234567891234')
-        expected_output = """gp_dump -p 0 -U dcddev --gp-d=/data/master/p1/db_dumps/20121212 --gp-r=/data/master/p1/db_dumps/20121212 --gp-s=p --gp-k=01234567891234 --no-lock --gp-c --no-expand-children -n "\\"testschema\\"" testdb --table-file=/tmp/table_list.txt"""
+        expected_output = """gp_dump -p 0 -U dcddev --gp-d=/data/master/p1/db_dumps/20121212 --gp-r=/data/master/p1/db_dumps/20121212 --gp-s=p --gp-k=01234567891234 --no-lock --gp-c --no-expand-children -n "\\"testschema\\"" "testdb" --table-file=/tmp/table_list.txt"""
         self.assertEquals(output, expected_output)
 
     @patch('gppylib.operations.dump.get_heap_partition_list', return_value=[['123', 'public', 't4'], ['123', 'public', 't5'], ['123', 'pepper', 't6']])
@@ -324,7 +324,7 @@ class DumpTestCase(unittest.TestCase):
         dbname = 'bkdb'
         port = '5432'
         partition_list_file = os.path.join(os.getcwd(), 'test')
-        with self.assertRaisesRegexp(Exception, 'After writing file .* contents not as expected, suspected IO error'):
+        with self.assertRaisesRegexp(Exception, 'contents not as expected'):
             write_partition_list_file(master_datadir, backup_dir, timestamp_key, port, dbname, self.dumper.dump_dir, self.dumper.dump_prefix)
 
     def test_dirty_file_to_temp_00(self):
@@ -408,7 +408,7 @@ class DumpTestCase(unittest.TestCase):
         master_port=5432
         dbname='testdb'
         partition_info = [(123, 'pepper', 't1', 4444), (234, 'pepper', 't2', 5555)]
-        expected_output = ['pepper, t1, 100', 'pepper, t2, 100']
+        expected_output = ['pepper,t1,100', 'pepper,t2,100']
         result = get_partition_state(master_port, dbname, 'pg_aoseg', partition_info)
         self.assertEqual(result, expected_output)
 
@@ -440,7 +440,7 @@ class DumpTestCase(unittest.TestCase):
         master_port=5432
         dbname='testdb'
         partition_info = [(123, 'pepper', 't1', 4444), (234, 'pepper', 't2', 5555)] * 1000
-        expected_output = ['pepper, t1, 100', 'pepper, t2, 100'] * 1000
+        expected_output = ['pepper,t1,100', 'pepper,t2,100'] * 1000
         result = get_partition_state(master_port, dbname, 'pg_aoseg', partition_info)
         self.assertEqual(result, expected_output)
 
@@ -619,7 +619,7 @@ class DumpTestCase(unittest.TestCase):
         self.assertEqual(result, expected_output)
 
     def test_create_partition_dict_00(self):
-        partition_list = ['pepper, t1, 100', 'pepper, t2, 200']
+        partition_list = ['pepper,t1,100', 'pepper,t2,200']
         expected_output = {'pepper.t1':'100', 'pepper.t2':'200'}
         result = create_partition_dict(partition_list)
         self.assertEqual(result, expected_output)
@@ -851,7 +851,7 @@ class DumpTestCase(unittest.TestCase):
         backup_dir = None
         full_timestamp = '20121212010101'
         table_type = 'ao'
-        curr_state_partition_list = ['pepper, t3, 300', 'pepper, t1, 200']
+        curr_state_partition_list = ['pepper,t3,300', 'pepper,t1,200']
         expected_output = set(['pepper.t3', 'pepper.t1'])
         result = get_dirty_partition_tables(table_type, curr_state_partition_list, master_datadir, backup_dir, self.dumper.dump_dir, self.dumper.dump_prefix, full_timestamp)
         self.assertEqual(result, expected_output)
@@ -862,7 +862,7 @@ class DumpTestCase(unittest.TestCase):
         backup_dir = None
         full_timestamp = '20121212010101'
         table_type = 'ao'
-        curr_state_partition_list = ['pepper, t3, 300', 'pepper, t1, 200']
+        curr_state_partition_list = ['pepper,t3,300', 'pepper,t1,200']
         netbackup_service_host = "mdw"
         netbackup_block_size = "1024"
         expected_output = set(['pepper.t3', 'pepper.t1'])
@@ -987,36 +987,36 @@ class DumpTestCase(unittest.TestCase):
     def test_create_dump_line_00(self):
         self.dumper.include_schema_file = '/tmp/foo'
         output = self.dumper.create_dump_string('dcddev', '20121212', '01234567891234')
-        expected_output = """gp_dump -p 0 -U dcddev --gp-d=/data/master/p1/db_dumps/20121212 --gp-r=/data/master/p1/db_dumps/20121212 --gp-s=p --gp-k=01234567891234 --no-lock --gp-c --no-expand-children -n "\\"testschema\\"" testdb --table-file=/tmp/table_list.txt --schema-file=/tmp/foo"""
+        expected_output = """gp_dump -p 0 -U dcddev --gp-d=/data/master/p1/db_dumps/20121212 --gp-r=/data/master/p1/db_dumps/20121212 --gp-s=p --gp-k=01234567891234 --no-lock --gp-c --no-expand-children -n "\\"testschema\\"" "testdb" --table-file=/tmp/table_list.txt --schema-file=/tmp/foo"""
         self.assertEquals(output, expected_output)
 
     def test00_create_dump_line_with_prefix(self):
         self.dumper.dump_prefix = 'foo_'
         output = self.dumper.create_dump_string('dcddev', '20121212', '01234567891234')
-        expected_output = """gp_dump -p 0 -U dcddev --gp-d=/data/master/p1/db_dumps/20121212 --gp-r=/data/master/p1/db_dumps/20121212 --gp-s=p --gp-k=01234567891234 --no-lock --gp-c --prefix=foo_ --no-expand-children -n "\\"testschema\\"" testdb --table-file=/tmp/table_list.txt"""
+        expected_output = """gp_dump -p 0 -U dcddev --gp-d=/data/master/p1/db_dumps/20121212 --gp-r=/data/master/p1/db_dumps/20121212 --gp-s=p --gp-k=01234567891234 --no-lock --gp-c --prefix=foo_ --no-expand-children -n "\\"testschema\\"" "testdb" --table-file=/tmp/table_list.txt"""
         self.assertEquals(output, expected_output)
 
     def test_create_dump_line_with_include_file(self):
         self.dumper.dump_prefix = 'metro_'
         self.dumper.include_dump_tables_file = ('bar')
         output = self.dumper.create_dump_string('dcddev', '20121212', '01234567891234')
-        expected_output = """gp_dump -p 0 -U dcddev --gp-d=/data/master/p1/db_dumps/20121212 --gp-r=/data/master/p1/db_dumps/20121212 --gp-s=p --gp-k=01234567891234 --no-lock --gp-c --prefix=metro_ --no-expand-children -n "\\"testschema\\"" testdb --table-file=%s""" % self.dumper.include_dump_tables_file
+        expected_output = """gp_dump -p 0 -U dcddev --gp-d=/data/master/p1/db_dumps/20121212 --gp-r=/data/master/p1/db_dumps/20121212 --gp-s=p --gp-k=01234567891234 --no-lock --gp-c --prefix=metro_ --no-expand-children -n "\\"testschema\\"" "testdb" --table-file=%s""" % self.dumper.include_dump_tables_file
         self.assertEquals(output, expected_output)
 
     def test_create_dump_line_with_no_file_args(self):
         self.dumper.dump_prefix = 'metro_'
-        self.dumper.include_dump_tables_file = (None,)
+        self.dumper.include_dump_tables_file = None
         output = self.dumper.create_dump_string('dcddev', '20121212', '01234567891234')
-        expected_output = """gp_dump -p 0 -U dcddev --gp-d=/data/master/p1/db_dumps/20121212 --gp-r=/data/master/p1/db_dumps/20121212 --gp-s=p --gp-k=01234567891234 --no-lock --gp-c --prefix=metro_ --no-expand-children -n "\\"testschema\\"" testdb"""
+        expected_output = '''gp_dump -p 0 -U dcddev --gp-d=/data/master/p1/db_dumps/20121212 --gp-r=/data/master/p1/db_dumps/20121212 --gp-s=p --gp-k=01234567891234 --no-lock --gp-c --prefix=metro_ --no-expand-children -n "\\"testschema\\"" "testdb"'''
         self.assertEquals(output, expected_output)
 
     def test_create_dump_line_with_netbackup_params(self):
-        self.dumper.include_dump_tables_file = (None,)
+        self.dumper.include_dump_tables_file = None 
         self.dumper.netbackup_service_host = "mdw"
         self.dumper.netbackup_policy = "test_policy"
         self.dumper.netbackup_schedule = "test_schedule"
         output = self.dumper.create_dump_string('dcddev', '20121212', '01234567891234')
-        expected_output = """gp_dump -p 0 -U dcddev --gp-d=/data/master/p1/db_dumps/20121212 --gp-r=/data/master/p1/db_dumps/20121212 --gp-s=p --gp-k=01234567891234 --no-lock --gp-c --no-expand-children -n "\\"testschema\\"" testdb --netbackup-service-host=mdw --netbackup-policy=test_policy --netbackup-schedule=test_schedule"""
+        expected_output = """gp_dump -p 0 -U dcddev --gp-d=/data/master/p1/db_dumps/20121212 --gp-r=/data/master/p1/db_dumps/20121212 --gp-s=p --gp-k=01234567891234 --no-lock --gp-c --no-expand-children -n "\\"testschema\\"" "testdb" --netbackup-service-host=mdw --netbackup-policy=test_policy --netbackup-schedule=test_schedule"""
         self.assertEquals(output, expected_output)
 
     def test_get_backup_dir_with_master_data_dir(self):
@@ -1155,7 +1155,7 @@ class DumpTestCase(unittest.TestCase):
     def test_create_filtered_dump_string(self, mock1):
         self.dumper.dump_prefix = 'foo_'
         output = self.dumper.create_filtered_dump_string('dcddev', '20121212', '01234567891234')
-        expected_output = """gp_dump -p 0 -U dcddev --gp-d=/data/master/p1/db_dumps/20121212 --gp-r=/data/master/p1/db_dumps/20121212 --gp-s=p --gp-k=01234567891234 --no-lock --gp-c --prefix=foo_ --no-expand-children -n "\\"testschema\\"" testdb --table-file=/tmp/table_list.txt --incremental-filter=/tmp/db_dumps/20121212/foo_gp_dump_01234567891234_filter"""
+        expected_output = """gp_dump -p 0 -U dcddev --gp-d=/data/master/p1/db_dumps/20121212 --gp-r=/data/master/p1/db_dumps/20121212 --gp-s=p --gp-k=01234567891234 --no-lock --gp-c --prefix=foo_ --no-expand-children -n "\\"testschema\\"" "testdb" --table-file=/tmp/table_list.txt --incremental-filter=/tmp/db_dumps/20121212/foo_gp_dump_01234567891234_filter"""
         self.assertEquals(output, expected_output)
 
     @patch('gppylib.operations.dump.Command.get_results', return_value=CommandResult(0, "", "", True, False))

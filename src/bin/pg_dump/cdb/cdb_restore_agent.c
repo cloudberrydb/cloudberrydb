@@ -150,12 +150,14 @@ static char * dump_prefix = NULL;
 static char *netbackup_service_host = NULL;
 static char *netbackup_block_size = NULL;
 
-static char *change_schema = NULL;
+static char *change_schema_file = NULL;
+static char *schema_level_file = NULL;
 
 int
 main(int argc, char **argv)
 {
 	PQExpBuffer valueBuf = NULL;
+	PQExpBuffer escapeBuf = createPQExpBuffer();
 	RestoreOptions *opts;
 	int			c;
 	int			exit_code = 0;
@@ -239,7 +241,8 @@ main(int argc, char **argv)
 		{"status", required_argument, NULL, 14},
 		{"netbackup-service-host", required_argument, NULL, 15},
 		{"netbackup-block-size", required_argument, NULL, 16},
-		{"change-schema", required_argument, NULL, 17},
+		{"change-schema-file", required_argument, NULL, 17},
+		{"schema-level-file", required_argument, NULL, 18},
 		{NULL, 0, NULL, 0}
 	};
 
@@ -450,10 +453,11 @@ main(int argc, char **argv)
 				netbackup_block_size = strdup(optarg);
 				break;
 			case 17:
-				change_schema = strdup(fmtId(optarg));
+				change_schema_file = strdup(optarg);
 				break;
-
-
+			case 18:
+				schema_level_file = strdup(optarg);
+				break;
 			default:
 				fprintf(stderr, _("Try \"%s --help\" for more information.\n"), progname);
 				exit(1);
@@ -800,8 +804,8 @@ main(int argc, char **argv)
 			{
 				formDDBoostPsqlCommandLine(&pszCmdLine, bCompUsed, ddboostPg, g_compPg,
 						ddp_file_name, dd_boost_buf_size,
-						filterScript, table_filter_file,
-						g_role, psqlPg, postDataSchemaOnly);
+						postDataSchemaOnly? postDataFilterScript : filterScript, table_filter_file,
+						g_role, psqlPg, postDataSchemaOnly, change_schema_file, schema_level_file);
 			}
 			else
 			{
@@ -810,7 +814,8 @@ main(int argc, char **argv)
 				{
 					formPostDataSchemaOnlyPsqlCommandLine(&pszCmdLine, inputFileSpec, bCompUsed, g_compPg,
 							postDataFilterScript, table_filter_file, psqlPg, catPg,
-							gpNBURestorePg, netbackup_service_host, netbackup_block_size);
+							gpNBURestorePg, netbackup_service_host, netbackup_block_size,
+							change_schema_file, schema_level_file);
 				}
 				else
 				{
@@ -818,7 +823,8 @@ main(int argc, char **argv)
 					formSegmentPsqlCommandLine(&pszCmdLine, inputFileSpec, bCompUsed, g_compPg,
 							filterScript, table_filter_file,
 							g_role, psqlPg, catPg,
-							gpNBURestorePg, netbackup_service_host, netbackup_block_size, change_schema);
+							gpNBURestorePg, netbackup_service_host, netbackup_block_size,
+                                                        change_schema_file, schema_level_file);
 				}
 #ifdef USE_DDBOOST
 			}
@@ -830,7 +836,16 @@ main(int argc, char **argv)
 			strcat(pszCmdLine, g_targetPort);
 			strcat(pszCmdLine, " -U ");
 			strcat(pszCmdLine, SegDB.pszDBUser);
+
 			strcat(pszCmdLine, " -d ");
+
+			// Shell escape DBName for command line
+			SegDB.pszDBName = shellEscape(SegDB.pszDBName, escapeBuf);
+
+			// quote the DBName in case of any funy chars
+			char *quotedDBName = MakeString("\"%s\"", SegDB.pszDBName);
+			free(SegDB.pszDBName);
+			SegDB.pszDBName = quotedDBName;
 			strcat(pszCmdLine, SegDB.pszDBName);
 			strcat(pszCmdLine, " -a ");
 
@@ -1005,8 +1020,10 @@ main(int argc, char **argv)
 
 	DestroyStatusOpList(g_pStatusOpList);
 
-    if (change_schema)
-        free(change_schema);
+	if (change_schema_file)
+		free(change_schema_file);
+	if (schema_level_file)
+		free(schema_level_file);
 	if (SegDB.pszHost)
 		free(SegDB.pszHost);
 	if (SegDB.pszDBName)
@@ -1017,6 +1034,8 @@ main(int argc, char **argv)
 		free(SegDB.pszDBPswd);
 	if (valueBuf)
 		destroyPQExpBuffer(valueBuf);
+	if (escapeBuf)
+		destroyPQExpBuffer(escapeBuf);
 
 	PQfinish(g_conn);
 	if (exit_code == 0)

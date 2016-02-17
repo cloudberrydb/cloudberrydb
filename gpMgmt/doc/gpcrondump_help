@@ -787,8 +787,8 @@ OPTIONS
 
 -x <database_name> 
 
- Required. The name of the Greenplum database to dump. Multiple databases 
- can be specified in a comma-separated list. 
+ Required. The name of the Greenplum database to dump. Specify multiple times for 
+ multiple databases. 
 
 
 -y <reportfile> 

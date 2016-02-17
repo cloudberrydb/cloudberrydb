@@ -8,6 +8,7 @@ import fnmatch
 import os
 import sys
 from optparse import OptionGroup, OptionValueError
+from pygresql import pg
 
 try:
     import gpmfr
@@ -24,7 +25,7 @@ try:
     from gppylib.gpparseopts import OptParser, OptChecker
     from gppylib.operations import Operation
     from gppylib.operations.backup_utils import check_dir_writable, generate_createdb_prefix, generate_master_dbdump_prefix, \
-                                                generate_report_filename, get_lines_from_file, check_schema_exists
+                                                generate_report_filename, get_lines_from_file, check_schema_exists, check_funny_chars_in_names
     from gppylib.operations.restore import GetDbName, GetDumpTables, RecoverRemoteDumps, RestoreDatabase, ValidateTimestamp, \
                                            config_files_dumped, create_restore_plan, get_restore_dir, get_restore_tables_from_table_file, \
                                            global_file_dumped, is_begin_incremental_run, is_incremental_restore, restore_cdatabase_file_with_nbu, \
@@ -69,7 +70,7 @@ class GpdbRestore(Operation):
         self.list_tables = options.list_tables
         self.db_date_dir = options.db_date_dir
         self.db_host_path = options.db_host_path
-        self.search_for_dbname = options.search_for_dbname.strip('"') if options.search_for_dbname is not None else options.search_for_dbname
+        self.search_for_dbname = options.search_for_dbname
         self.drop_db = options.drop_db
         self.restore_global = options.restore_global
         self.restore_tables = options.restore_tables
@@ -87,6 +88,7 @@ class GpdbRestore(Operation):
         self.change_schema = options.change_schema
         self.restore_stats = options.restore_stats
         self.metadata_only = options.metadata_only
+        self.schema_level_restore_list = options.restore_schemas
 
         if self.restore_stats:
             self.no_analyze = True
@@ -99,7 +101,7 @@ class GpdbRestore(Operation):
         else:
             self.dump_prefix = options.local_dump_prefix
 
-        if self.truncate and not (self.restore_tables or self.table_file):
+        if self.truncate and not (len(self.restore_tables) > 0 or self.table_file):
             raise Exception('--truncate can be specified only with -T or --table-file option')
 
         if self.truncate and self.drop_db:
@@ -108,10 +110,10 @@ class GpdbRestore(Operation):
         if self.restore_stats == "only" and self.drop_db:
             raise Exception('Cannot specify --restore-stats only and -e together')
 
-        if self.table_file and self.restore_tables:
+        if self.table_file and len(self.restore_tables) > 0:
             raise Exception('Cannot specify -T and --table-file together')
 
-        if self.list_backup and self.restore_tables:
+        if self.list_backup and len(self.restore_tables) > 0:
             raise Exception('Cannot specify -T and --list-backup together')
 
         if self.metadata_only and self.no_plan:
@@ -120,11 +122,14 @@ class GpdbRestore(Operation):
         if self.metadata_only and self.no_analyze:
             raise Exception('Cannot specify --noanalyze and -m together.')
 
-        if self.change_schema and not (self.restore_tables or self.table_file):
+        if self.change_schema and len(self.change_schema) == 0:
+            raise Exception('--change-schema name can not be empty')
+
+        if self.change_schema and not (len(self.restore_tables) > 0 or self.table_file):
             raise Exception('-T or --table-file option must be specified with the --change-schema option')
 
-        if self.restore_tables is not None:
-            self.restore_tables = self.restore_tables.split(',')
+        if self.change_schema and len(self.schema_level_restore_list) > 0:
+            raise Exception('-S schema level restore does not work with --change-schema option')
 
         if self.table_file is not None:
             self.restore_tables = get_restore_tables_from_table_file(self.table_file)
@@ -149,6 +154,11 @@ class GpdbRestore(Operation):
         if self.list_tables and self.netbackup_service_host:
             raise Exception('-L is not supported with NetBackup.')
 
+        if self.redirected_restore_db:
+            check_funny_chars_in_names(self.redirected_restore_db, is_full_qualified_name = False)
+
+        if self.search_for_dbname:
+            check_funny_chars_in_names(self.search_for_dbname, is_full_qualified_name = False)
         # force non-interactive if list_backup
         if options.list_backup:
             self.interactive = False
@@ -213,24 +223,24 @@ class GpdbRestore(Operation):
             restore_type = "Metadata-Only Restore"
 
         elif is_incremental_restore(self.master_datadir, self.backup_dir, self.dump_dir, self.dump_prefix, info['restore_timestamp']):
-            if self.restore_tables is not None:
+            if len(self.restore_tables) > 0:
                 restore_type = "Incremental Table Restore"
             else:
                 restore_type = "Incremental Restore"
-        elif self.restore_tables is not None:
+        elif len(self.restore_tables) > 0:
             restore_type = "Table Restore"
         else:
             restore_type = "Full Database"
 
+        if self.change_schema:
+            check_funny_chars_in_names(self.change_schema, is_full_qualified_name = False)
+
+            if not self.redirected_restore_db and not check_schema_exists(self.change_schema, info['restore_db']):
+                raise Exception('Cannot restore tables to schema %s: schema does not exist' % self.change_schema)
+            elif self.redirected_restore_db and not check_schema_exists(self.change_schema, self.redirected_restore_db):
+                raise Exception('Cannot restore tables to the database %s: schema %s does not exist' % (self.redirected_restore_db, self.change_schema))
+
         self._output_info(info, restore_type)
-
-        if self.change_schema and not check_schema_exists(self.change_schema, info['restore_db']) and not self.redirected_restore_db:
-            raise Exception('Cannot restore tables to schema %s: schema does not exist' % self.change_schema)
-
-        if self.change_schema and self.redirected_restore_db:
-            if self.redirected_restore_db is not None:
-                if not check_schema_exists(self.change_schema, self.redirected_restore_db):
-                    raise Exception('Cannot restore tables to the database %s: schema %s does not exist' % (self.redirected_restore_db, self.change_schema))
 
         if self.interactive:
             if not userinput.ask_yesno(None, "\nContinue with Greenplum restore", 'N'):
@@ -254,11 +264,11 @@ class GpdbRestore(Operation):
         if not is_incremental_restore(self.master_datadir, self.backup_dir, self.dump_dir, self.dump_prefix, info['restore_timestamp']) and self.list_backup:
             raise Exception('--list-backup is not supported for restore with full timestamps')
 
-        if self.restore_tables and self.truncate:
+        if len(self.restore_tables) > 0 and self.truncate:
             if self.redirected_restore_db:
-                truncate_restore_tables(self.restore_tables, self.master_port, self.redirected_restore_db)
+                truncate_restore_tables(self.restore_tables, self.master_port, self.redirected_restore_db, self.schema_level_restore_list)
             else:
-                truncate_restore_tables(self.restore_tables, self.master_port, info['restore_db'])
+                truncate_restore_tables(self.restore_tables, self.master_port, info['restore_db'], self.schema_level_restore_list)
 
         if is_begin_incremental_run(self.master_datadir, self.backup_dir, self.dump_dir, self.dump_prefix, info['restore_timestamp'], self.no_plan):
             if self.netbackup_service_host:
@@ -289,7 +299,8 @@ class GpdbRestore(Operation):
                         metadata_only = self.metadata_only,
                         netbackup_service_host = self.netbackup_service_host,
                         netbackup_block_size = self.netbackup_block_size,
-                        change_schema = self.change_schema).run()
+                        change_schema = self.change_schema,
+                        schema_level_restore_list = self.schema_level_restore_list).run()
 
         if self.no_analyze and not self.restore_stats:
             logger.warn('--------------------------------------------------------------------------------------------------')
@@ -305,7 +316,7 @@ class GpdbRestore(Operation):
 
         logger.info("Restore type               = %s" % restore_type)
 
-        if self.restore_tables is not None:
+        if len(self.restore_tables) > 0:
             logger.info("Database name              = %s" % info['restore_db'])
             logger.info("------------------------------------------")
             logger.info("Table restore list")
@@ -326,15 +337,15 @@ class GpdbRestore(Operation):
             else:
                 logger.info("Drop and re-create db      = Off")
 
-        if self.db_timestamp is not None and self.restore_tables is None:
+        if self.db_timestamp is not None and len(self.restore_tables) == 0:
             logger.info("Restore method             = Restore specific timestamp")
-        if self.search_for_dbname is not None and self.restore_tables is None:
+        if self.search_for_dbname is not None and len(self.restore_tables) == 0:
             logger.info("Restore method             = Search for latest")
         if self.redirected_restore_db is not None:
             logger.info("Redirect Restore database  = %s" % self.redirected_restore_db)
-        if self.db_date_dir is not None and self.restore_tables is None:
+        if self.db_date_dir is not None and len(self.restore_tables) ==0:
             logger.info("Restore method             = Restore specific date")
-        if self.restore_tables is not None:
+        if len(self.restore_tables) > 0:
             logger.info("Restore method             = Specific table restore")
         if self.db_host_path is not None:
             host, path = self.db_host_path
@@ -424,14 +435,14 @@ class GpdbRestore(Operation):
         if not self.drop_db:
             dburl = dbconn.DbURL(port=self.master_port)
             conn = dbconn.connect(dburl)
-            count = dbconn.execSQLForSingleton(conn, "select count(*) from pg_database where datname='%s';" % restore_db)
+            count = dbconn.execSQLForSingleton(conn, "select count(*) from pg_database where datname='%s';" % pg.escape_string(restore_db))
             # TODO: -e is needed even if the database doesn't exist yet?
             if count == 0:
                 raise ExceptionNoStackTraceNeeded("Database %s does not exist and -e option not supplied" % restore_db)
 
         table_counts = []
-        if self.restore_tables is not None:
-            self.restore_tables = validate_tablenames(self.restore_tables)
+        if len(self.restore_tables) > 0 or len(self.schema_level_restore_list) > 0:
+            self.restore_tables, self.schema_level_restore_list = validate_tablenames(self.restore_tables, self.schema_level_restore_list)
 
         if not self.db_host_path and not self.ddboost:
             report_filename = generate_report_filename(self.master_datadir, self.backup_dir, self.dump_dir, self.dump_prefix, restore_timestamp)
@@ -612,8 +623,10 @@ def create_parser():
                      help="Dispatches work to segment hosts in batches of specified size [default: %s]" % DEFAULT_NUM_WORKERS)
     addTo.add_option('-G', dest='restore_global', action="callback", callback=restore_global_callback,
                      help="Restore global objects dump file if found in target dumpset. The global objects file is secured via the gpcrondump -G options, and has a filename of the form gp_global_1_1_<timestamp>. Specify \"-G only\" to only restore the global objects dump file or \"-G include\" to restore globals objects along with a normal restore. Defaults to \"include\" if neither argument is provided.")
-    addTo.add_option('-T', dest='restore_tables', metavar='<schema.tablename>',
-                     help="Restore a single table from a backup set. For multiple tables, supply a comma separated list of schema.tablenames. Note, table schema must exist in target database.")
+    addTo.add_option('-S', action='append', dest='restore_schemas', default=[], metavar='<schema name>',
+                     help="Perform schema level restore from a backup set. -S can be provided multiple times to include multiple schema names.")
+    addTo.add_option('-T', action='append', dest='restore_tables', default=[], metavar='<schema.tablename>',
+                     help="Restore a single table from a backup set. -T can be provided multiple times to include multiple schema.tablenames. Note, table schema must exist in target database.")
     addTo.add_option('-K', action='store_true', dest='keep_dump_files', default=False,
                      help="Retain temporary generated table dump files.")
     addTo.add_option('-m', action='store_true', dest='metadata_only', default=False,
