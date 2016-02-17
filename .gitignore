@@ -22,3 +22,4 @@
 build
 server/minidumps/
 ivy-*.xml
+concourse/gporca_vars.yml

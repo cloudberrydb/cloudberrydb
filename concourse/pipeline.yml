@@ -1,0 +1,394 @@
+resources:
+- name: gpos_src
+  type: git
+  source:
+    branch: concourse-infrastructure
+    private_key: {{private-repo-key}}
+    uri: git@github.com:greenplum-db/gpos.git
+- name: xerces_patch
+  type: git
+  source:
+    branch: concourse-infrastructure
+    paths:
+    - patches/xerces-c-gpdb.patch
+    - concourse/xerces-c
+    - concourse/package_tarball.bash
+    private_key: {{private-repo-key}}
+    uri: git@github.com:greenplum-db/gp-orca.git
+- name: orca_src
+  type: git
+  source:
+    branch: concourse-infrastructure
+    private_key: {{private-repo-key}}
+    uri: git@github.com:greenplum-db/gp-orca.git
+- name: bin_xerces_centos5
+  type: s3
+  source:
+    access_key_id: {{aws-access-key-id}}
+    bucket: {{bucket-name}}
+    region_name: {{aws-region}}
+    secret_access_key: {{aws-secret-access-key}}
+    versioned_file: bin_xerces_centos5.tar.gz
+- name: bin_xerces_debian8
+  type: s3
+  source:
+    access_key_id: {{aws-access-key-id}}
+    bucket: {{bucket-name}}
+    region_name: {{aws-region}}
+    secret_access_key: {{aws-secret-access-key}}
+    versioned_file: bin_xerces_debian8.tar.gz
+- name: bin_xerces_debian8_clang
+  type: s3
+  source:
+    access_key_id: {{aws-access-key-id}}
+    bucket: {{bucket-name}}
+    region_name: {{aws-region}}
+    secret_access_key: {{aws-secret-access-key}}
+    versioned_file: bin_xerces_debian8_clang.tar.gz
+- name: bin_xerces_debian8_clang_libcxx
+  type: s3
+  source:
+    access_key_id: {{aws-access-key-id}}
+    bucket: {{bucket-name}}
+    region_name: {{aws-region}}
+    secret_access_key: {{aws-secret-access-key}}
+    versioned_file: bin_xerces_debian8_clang_libcxx.tar.gz
+- name: bin_gpos_centos5_debug
+  type: s3
+  source:
+    access_key_id: {{aws-access-key-id}}
+    bucket: {{bucket-name}}
+    region_name: {{aws-region}}
+    secret_access_key: {{aws-secret-access-key}}
+    versioned_file: bin_gpos_centos5_debug.tar.gz
+- name: bin_gpos_centos5_release
+  type: s3
+  source:
+    access_key_id: {{aws-access-key-id}}
+    bucket: {{bucket-name}}
+    region_name: {{aws-region}}
+    secret_access_key: {{aws-secret-access-key}}
+    versioned_file: bin_gpos_centos5_release.tar.gz
+- name: bin_gpos_debian8_debug
+  type: s3
+  source:
+    access_key_id: {{aws-access-key-id}}
+    bucket: {{bucket-name}}
+    region_name: {{aws-region}}
+    secret_access_key: {{aws-secret-access-key}}
+    versioned_file: bin_gpos_debian8_debug.tar.gz
+- name: bin_gpos_debian8_release
+  type: s3
+  source:
+    access_key_id: {{aws-access-key-id}}
+    bucket: {{bucket-name}}
+    region_name: {{aws-region}}
+    secret_access_key: {{aws-secret-access-key}}
+    versioned_file: bin_gpos_debian8_release.tar.gz
+- name: bin_gpos_debian8_debug_clang
+  type: s3
+  source:
+    access_key_id: {{aws-access-key-id}}
+    bucket: {{bucket-name}}
+    region_name: {{aws-region}}
+    secret_access_key: {{aws-secret-access-key}}
+    versioned_file: bin_gpos_debian8_debug_clang.tar.gz
+- name: bin_gpos_debian8_release_clang
+  type: s3
+  source:
+    access_key_id: {{aws-access-key-id}}
+    bucket: {{bucket-name}}
+    region_name: {{aws-region}}
+    secret_access_key: {{aws-secret-access-key}}
+    versioned_file: bin_gpos_debian8_release_clang.tar.gz
+- name: bin_gpos_debian8_debug_clang_libcxx
+  type: s3
+  source:
+    access_key_id: {{aws-access-key-id}}
+    bucket: {{bucket-name}}
+    region_name: {{aws-region}}
+    secret_access_key: {{aws-secret-access-key}}
+    versioned_file: bin_gpos_debian8_debug_clang_libcxx.tar.gz
+- name: bin_gpos_debian8_release_clang_libcxx
+  type: s3
+  source:
+    access_key_id: {{aws-access-key-id}}
+    bucket: {{bucket-name}}
+    region_name: {{aws-region}}
+    secret_access_key: {{aws-secret-access-key}}
+    versioned_file: bin_gpos_debian8_release_clang_libcxx.tar.gz
+- name: bin_orca_centos5_debug
+  type: s3
+  source:
+    access_key_id: {{aws-access-key-id}}
+    bucket: {{bucket-name}}
+    region_name: {{aws-region}}
+    secret_access_key: {{aws-secret-access-key}}
+    versioned_file: bin_orca_centos5_debug.tar.gz
+- name: bin_orca_centos5_release
+  type: s3
+  source:
+    access_key_id: {{aws-access-key-id}}
+    bucket: {{bucket-name}}
+    region_name: {{aws-region}}
+    secret_access_key: {{aws-secret-access-key}}
+    versioned_file: bin_orca_centos5_release.tar.gz
+- name: bin_orca_debian8_debug
+  type: s3
+  source:
+    access_key_id: {{aws-access-key-id}}
+    bucket: {{bucket-name}}
+    region_name: {{aws-region}}
+    secret_access_key: {{aws-secret-access-key}}
+    versioned_file: bin_orca_debian8_debug.tar.gz
+- name: bin_orca_debian8_release
+  type: s3
+  source:
+    access_key_id: {{aws-access-key-id}}
+    bucket: {{bucket-name}}
+    region_name: {{aws-region}}
+    secret_access_key: {{aws-secret-access-key}}
+    versioned_file: bin_orca_debian8_release.tar.gz
+- name: bin_orca_debian8_debug_clang
+  type: s3
+  source:
+    access_key_id: {{aws-access-key-id}}
+    bucket: {{bucket-name}}
+    region_name: {{aws-region}}
+    secret_access_key: {{aws-secret-access-key}}
+    versioned_file: bin_orca_debian8_debug_clang.tar.gz
+- name: bin_orca_debian8_release_clang
+  type: s3
+  source:
+    access_key_id: {{aws-access-key-id}}
+    bucket: {{bucket-name}}
+    region_name: {{aws-region}}
+    secret_access_key: {{aws-secret-access-key}}
+    versioned_file: bin_orca_debian8_release_clang.tar.gz
+- name: bin_orca_debian8_debug_clang_libcxx
+  type: s3
+  source:
+    access_key_id: {{aws-access-key-id}}
+    bucket: {{bucket-name}}
+    region_name: {{aws-region}}
+    secret_access_key: {{aws-secret-access-key}}
+    versioned_file: bin_orca_debian8_debug_clang_libcxx.tar.gz
+- name: bin_orca_debian8_release_clang_libcxx
+  type: s3
+  source:
+    access_key_id: {{aws-access-key-id}}
+    bucket: {{bucket-name}}
+    region_name: {{aws-region}}
+    secret_access_key: {{aws-secret-access-key}}
+    versioned_file: bin_orca_debian8_release_clang_libcxx.tar.gz
+jobs:
+- name: gpos
+  plan:
+  - get: gpos_src
+    trigger: true
+  - aggregate:
+    - task: build_and_test_centos5_debug
+      file: gpos_src/concourse/build_centos5_debug.yml
+    - task: build_and_test_centos5_release
+      file: gpos_src/concourse/build_centos5_release.yml
+    - task: build_and_test_debian8_debug
+      file: gpos_src/concourse/build_debian8_debug.yml
+    - task: build_and_test_debian8_release
+      file: gpos_src/concourse/build_debian8_release.yml
+    - task: build_and_test_debian8_debug_clang
+      file: gpos_src/concourse/build_debian8_debug_clang.yml
+    - task: build_and_test_debian8_release_clang
+      file: gpos_src/concourse/build_debian8_release_clang.yml
+    - task: build_and_test_debian8_debug_clang_libcxx
+      file: gpos_src/concourse/build_debian8_debug_clang_libcxx.yml
+    - task: build_and_test_debian8_release_clang_libcxx
+      file: gpos_src/concourse/build_debian8_release_clang_libcxx.yml
+  - aggregate:
+    - task: package_tarball_centos5_debug
+      file: gpos_src/concourse/package_tarball_centos5_debug.yml
+    - task: package_tarball_centos5_release
+      file: gpos_src/concourse/package_tarball_centos5_release.yml
+    - task: package_tarball_debian8_debug
+      file: gpos_src/concourse/package_tarball_debian8_debug.yml
+    - task: package_tarball_debian8_release
+      file: gpos_src/concourse/package_tarball_debian8_release.yml
+    - task: package_tarball_debian8_debug_clang
+      file: gpos_src/concourse/package_tarball_debian8_debug_clang.yml
+    - task: package_tarball_debian8_release_clang
+      file: gpos_src/concourse/package_tarball_debian8_release_clang.yml
+    - task: package_tarball_debian8_debug_clang_libcxx
+      file: gpos_src/concourse/package_tarball_debian8_debug_clang_libcxx.yml
+    - task: package_tarball_debian8_release_clang_libcxx
+      file: gpos_src/concourse/package_tarball_debian8_release_clang_libcxx.yml
+  - aggregate:
+    - put: bin_gpos_centos5_debug
+      params:
+        from: package_tarball_centos5_debug/bin_gpos_centos5_debug.tar.gz
+    - put: bin_gpos_centos5_release
+      params:
+        from: package_tarball_centos5_release/bin_gpos_centos5_release.tar.gz
+    - put: bin_gpos_debian8_debug
+      params:
+        from: package_tarball_debian8_debug/bin_gpos_debian8_debug.tar.gz
+    - put: bin_gpos_debian8_release
+      params:
+        from: package_tarball_debian8_release/bin_gpos_debian8_release.tar.gz
+    - put: bin_gpos_debian8_debug_clang
+      params:
+        from: package_tarball_debian8_debug_clang/bin_gpos_debian8_debug_clang.tar.gz
+    - put: bin_gpos_debian8_release_clang
+      params:
+        from: package_tarball_debian8_release_clang/bin_gpos_debian8_release_clang.tar.gz
+    - put: bin_gpos_debian8_debug_clang_libcxx
+      params:
+        from: package_tarball_debian8_debug_clang_libcxx/bin_gpos_debian8_debug_clang_libcxx.tar.gz
+    - put: bin_gpos_debian8_release_clang_libcxx
+      params:
+        from: package_tarball_debian8_release_clang_libcxx/bin_gpos_debian8_release_clang_libcxx.tar.gz
+- name: gp_xerces
+  plan:
+  - get: xerces_patch
+    trigger: true
+  - aggregate:
+    - task: build_centos5
+      file: xerces_patch/concourse/xerces-c/build_xerces_centos5.yml
+    - task: build_debian8
+      file: xerces_patch/concourse/xerces-c/build_xerces_debian8.yml
+    - task: build_debian8_clang
+      file: xerces_patch/concourse/xerces-c/build_xerces_debian8_clang.yml
+    - task: build_debian8_clang_libcxx
+      file: xerces_patch/concourse/xerces-c/build_xerces_debian8_clang_libcxx.yml
+  - aggregate:
+    - task: package_tarball_centos5
+      file: xerces_patch/concourse/xerces-c/package_tarball_centos5.yml
+    - task: package_tarball_debian8
+      file: xerces_patch/concourse/xerces-c/package_tarball_debian8.yml
+    - task: package_tarball_debian8_clang
+      file: xerces_patch/concourse/xerces-c/package_tarball_debian8_clang.yml
+    - task: package_tarball_debian8_clang_libcxx
+      file: xerces_patch/concourse/xerces-c/package_tarball_debian8_clang_libcxx.yml
+  - aggregate:
+    - put: bin_xerces_centos5
+      params:
+        from: package_tarball_centos5/bin_xerces_centos5.tar.gz
+    - put: bin_xerces_debian8
+      params:
+        from: package_tarball_debian8/bin_xerces_debian8.tar.gz
+    - put: bin_xerces_debian8_clang
+      params:
+        from: package_tarball_debian8_clang/bin_xerces_debian8_clang.tar.gz
+    - put: bin_xerces_debian8_clang_libcxx
+      params:
+        from: package_tarball_debian8_clang_libcxx/bin_xerces_debian8_clang_libcxx.tar.gz
+- name: orca
+  plan:
+  - aggregate:
+    - get: bin_gpos_centos5_debug
+      passed:
+      - gpos
+      trigger: true
+    - get: bin_gpos_centos5_release
+      passed:
+      - gpos
+      trigger: true
+    - get: bin_gpos_debian8_debug
+      passed:
+      - gpos
+      trigger: true
+    - get: bin_gpos_debian8_release
+      passed:
+      - gpos
+      trigger: true
+    - get: bin_gpos_debian8_debug_clang
+      passed:
+      - gpos
+      trigger: true
+    - get: bin_gpos_debian8_release_clang
+      passed:
+      - gpos
+      trigger: true
+    - get: bin_gpos_debian8_debug_clang_libcxx
+      passed:
+      - gpos
+      trigger: true
+    - get: bin_gpos_debian8_release_clang_libcxx
+      passed:
+      - gpos
+      trigger: true
+    - get: bin_xerces_centos5
+      passed:
+      - gp_xerces
+      trigger: true
+    - get: bin_xerces_debian8
+      passed:
+      - gp_xerces
+      trigger: true
+    - get: bin_xerces_debian8_clang
+      passed:
+      - gp_xerces
+      trigger: true
+    - get: bin_xerces_debian8_clang_libcxx
+      passed:
+      - gp_xerces
+      trigger: true
+    - get: orca_src
+      trigger: true
+  - aggregate:
+    - task: build_and_test_centos5_debug
+      file: orca_src/concourse/build_and_test_centos5_debug.yml
+    - task: build_and_test_centos5_release
+      file: orca_src/concourse/build_and_test_centos5_release.yml
+    - task: build_and_test_debian8_debug
+      file: orca_src/concourse/build_and_test_debian8_debug.yml
+    - task: build_and_test_debian8_release
+      file: orca_src/concourse/build_and_test_debian8_release.yml
+    - task: build_and_test_debian8_debug_clang
+      file: orca_src/concourse/build_and_test_debian8_debug_clang.yml
+    - task: build_and_test_debian8_release_clang
+      file: orca_src/concourse/build_and_test_debian8_release_clang.yml
+    - task: build_and_test_debian8_debug_clang_libcxx
+      file: orca_src/concourse/build_and_test_debian8_debug_clang_libcxx.yml
+    - task: build_and_test_debian8_release_clang_libcxx
+      file: orca_src/concourse/build_and_test_debian8_release_clang_libcxx.yml
+  - aggregate:
+    - task: package_tarball_centos5_debug
+      file: orca_src/concourse/package_tarball_centos5_debug.yml
+    - task: package_tarball_centos5_release
+      file: orca_src/concourse/package_tarball_centos5_release.yml
+    - task: package_tarball_debian8_debug
+      file: orca_src/concourse/package_tarball_debian8_debug.yml
+    - task: package_tarball_debian8_release
+      file: orca_src/concourse/package_tarball_debian8_release.yml
+    - task: package_tarball_debian8_debug_clang
+      file: orca_src/concourse/package_tarball_debian8_debug_clang.yml
+    - task: package_tarball_debian8_release_clang
+      file: orca_src/concourse/package_tarball_debian8_release_clang.yml
+    - task: package_tarball_debian8_debug_clang_libcxx
+      file: orca_src/concourse/package_tarball_debian8_debug_clang_libcxx.yml
+    - task: package_tarball_debian8_release_clang_libcxx
+      file: orca_src/concourse/package_tarball_debian8_release_clang_libcxx.yml
+  - aggregate:
+    - put: bin_orca_centos5_debug
+      params:
+        from: package_tarball_centos5_debug/bin_orca_centos5_debug.tar.gz
+    - put: bin_orca_centos5_release
+      params:
+        from: package_tarball_centos5_release/bin_orca_centos5_release.tar.gz
+    - put: bin_orca_debian8_debug
+      params:
+        from: package_tarball_debian8_debug/bin_orca_debian8_debug.tar.gz
+    - put: bin_orca_debian8_release
+      params:
+        from: package_tarball_debian8_release/bin_orca_debian8_release.tar.gz
+    - put: bin_orca_debian8_debug_clang
+      params:
+        from: package_tarball_debian8_debug_clang/bin_orca_debian8_debug_clang.tar.gz
+    - put: bin_orca_debian8_release_clang
+      params:
+        from: package_tarball_debian8_release_clang/bin_orca_debian8_release_clang.tar.gz
+    - put: bin_orca_debian8_debug_clang_libcxx
+      params:
+        from: package_tarball_debian8_debug_clang_libcxx/bin_orca_debian8_debug_clang_libcxx.tar.gz
+    - put: bin_orca_debian8_release_clang_libcxx
+      params:
+        from: package_tarball_debian8_release_clang_libcxx/bin_orca_debian8_release_clang_libcxx.tar.gz
