@@ -8,6 +8,7 @@ set gp_create_table_random_default_distribution=off;
 -- start_ignore
 \connect postgres;
 drop database if exists bfv_legacy;
+NOTICE:  database "bfv_legacy" does not exist, skipping
 create database bfv_legacy;
 \connect bfv_legacy;
 -- end_ignore
@@ -98,43 +99,50 @@ group by 1,b.revenue;
 --- check schema drop
 ---
 --start_ignore
-drop schema if exists hotel;
-NOTICE:  schema "hotel" does not exist, skipping
+drop schema if exists test_schema;
+NOTICE:  schema "test_schema" does not exist, skipping
 --end_ignore
 select 
     table_schema, table_name, column_name, ordinal_position
 from 
     information_schema.columns
 where 
-    table_schema ='hotel'
+    table_schema ='test_schema'
     and ordinal_position =1;
  table_schema | table_name | column_name | ordinal_position 
 --------------+------------+-------------+------------------
 (0 rows)
 
-create schema hotel;
-select table_schema, table_name,column_name,ordinal_position from information_schema.columns where table_schema ='hotel' and ordinal_position =1;
+create schema test_schema;
+create table test_schema.test_table(c int);
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'c' as the Greenplum Database data distribution key for this table.
+HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
+-- EXPECT NO ERROR of 'violates check constraint' BEFORE drop schema
+select table_schema, table_name,column_name,ordinal_position 
+from information_schema.columns 
+where table_schema ='test_schema' and ordinal_position =1;
+ table_schema | table_name | column_name | ordinal_position 
+--------------+------------+-------------+------------------
+ test_schema  | test_table | c           |                1
+(1 row)
+
+drop table test_schema.test_table;
+drop SCHEMA test_schema;
+-- EXPECT NO ERROR of 'violates check constraint' AFTER drop schema
+select table_schema, table_name,column_name,ordinal_position 
+from information_schema.columns 
+where table_schema ='test_schema' and ordinal_position =1;
  table_schema | table_name | column_name | ordinal_position 
 --------------+------------+-------------+------------------
 (0 rows)
 
-drop SCHEMA hotel;
-select table_catalog, table_schema, table_name from information_schema.columns where ordinal_position=1 and table_schema='information_schema' order by ordinal_position, table_name limit 10;
- table_catalog |    table_schema    |            table_name             
----------------+--------------------+-----------------------------------
- bfv_legacy    | information_schema | administrable_role_authorizations
- bfv_legacy    | information_schema | applicable_roles
- bfv_legacy    | information_schema | attributes
- bfv_legacy    | information_schema | check_constraint_routine_usage
- bfv_legacy    | information_schema | check_constraints
- bfv_legacy    | information_schema | column_domain_usage
- bfv_legacy    | information_schema | column_privileges
- bfv_legacy    | information_schema | column_udt_usage
- bfv_legacy    | information_schema | columns
- bfv_legacy    | information_schema | constraint_column_usage
-(10 rows)
-
-select * FROM (select attnum::information_schema.cardinal_number from pg_attribute where attnum > 0) q where attnum = 4 limit 10;
+-- EXPECT NO ERROR of 'violates check constraint'
+select * 
+FROM (
+	select attnum::information_schema.cardinal_number 
+	from pg_attribute 
+	where attnum > 0) q 
+where attnum = 4 limit 10;
  attnum 
 --------
       4
@@ -151,8 +159,8 @@ select * FROM (select attnum::information_schema.cardinal_number from pg_attribu
 
 -- CLEANUP
 --start_ignore
-drop schema if exists hotel;
-NOTICE:  schema "hotel" does not exist, skipping
+drop schema if exists test_schema;
+NOTICE:  schema "test_schema" does not exist, skipping
 --end_ignore
 ---
 --- plpythonu function 
@@ -603,37 +611,37 @@ CREATE TABLE tbl_test_data_1(x float, y float) DISTRIBUTED BY (x);
 INSERT INTO tbl_test_data_1 VALUES(1,10);
 INSERT INTO tbl_test_data_1 VALUES('Infinity',20);
 SELECT mregr_coef(y,array[x,1]::float[]) FROM tbl_test_data_1;
-ERROR:  design matrix is not finite  (seg1 slice1 xzhangmac:25433 pid=25350)
+ERROR:  design matrix is not finite  (seg1 slice1 xzhangmac:25433 pid=21424)
 SELECT mregr_r2(y,array[x,1]::float[]) FROM tbl_test_data_1;
-ERROR:  design matrix is not finite  (seg1 slice1 xzhangmac:25433 pid=25350)
+ERROR:  design matrix is not finite  (seg1 slice1 xzhangmac:25433 pid=21424)
 SELECT mregr_tstats(y,array[x,1]::float[]) FROM tbl_test_data_1;
-ERROR:  design matrix is not finite  (seg1 slice1 xzhangmac:25433 pid=25350)
+ERROR:  design matrix is not finite  (seg1 slice1 xzhangmac:25433 pid=21424)
 SELECT mregr_pvalues(y,array[x,1]::float[]) FROM tbl_test_data_1;
-ERROR:  design matrix is not finite  (seg1 slice1 xzhangmac:25433 pid=25350)
+ERROR:  design matrix is not finite  (seg1 slice1 xzhangmac:25433 pid=21424)
 -- -Infinity value
 CREATE TABLE tbl_test_data_2(x float, y float) DISTRIBUTED BY (x);
 INSERT INTO tbl_test_data_2 VALUES(1,10);
 INSERT INTO tbl_test_data_2 VALUES('-Infinity',20);
 SELECT mregr_coef(y,array[x,1]::float[]) FROM tbl_test_data_2;
-ERROR:  design matrix is not finite  (seg0 slice1 xzhangmac:25432 pid=25349)
+ERROR:  design matrix is not finite  (seg0 slice1 xzhangmac:25432 pid=21422)
 SELECT mregr_r2(y,array[x,1]::float[]) FROM tbl_test_data_2;
-ERROR:  design matrix is not finite  (seg0 slice1 xzhangmac:25432 pid=25349)
+ERROR:  design matrix is not finite  (seg0 slice1 xzhangmac:25432 pid=21422)
 SELECT mregr_tstats(y,array[x,1]::float[]) FROM tbl_test_data_2;
-ERROR:  design matrix is not finite  (seg0 slice1 xzhangmac:25432 pid=25349)
+ERROR:  design matrix is not finite  (seg0 slice1 xzhangmac:25432 pid=21422)
 SELECT mregr_pvalues(y,array[x,1]::float[]) FROM tbl_test_data_2;
-ERROR:  design matrix is not finite  (seg0 slice1 xzhangmac:25432 pid=25349)
+ERROR:  design matrix is not finite  (seg0 slice1 xzhangmac:25432 pid=21422)
 -- NaN value
 CREATE TABLE tbl_test_data_3(x float, y float) DISTRIBUTED BY (x);
 INSERT INTO tbl_test_data_3 VALUES(1,10);
 INSERT INTO tbl_test_data_3 VALUES('NaN',20);
 SELECT mregr_coef(y,array[x,1]::float[]) FROM tbl_test_data_3;
-ERROR:  design matrix is not finite  (seg0 slice1 xzhangmac:25432 pid=25349)
+ERROR:  design matrix is not finite  (seg0 slice1 xzhangmac:25432 pid=21422)
 SELECT mregr_r2(y,array[x,1]::float[]) FROM tbl_test_data_3;
-ERROR:  design matrix is not finite  (seg0 slice1 xzhangmac:25432 pid=25349)
+ERROR:  design matrix is not finite  (seg0 slice1 xzhangmac:25432 pid=21422)
 SELECT mregr_tstats(y,array[x,1]::float[]) FROM tbl_test_data_3;
-ERROR:  design matrix is not finite  (seg0 slice1 xzhangmac:25432 pid=25349)
+ERROR:  design matrix is not finite  (seg0 slice1 xzhangmac:25432 pid=21422)
 SELECT mregr_pvalues(y,array[x,1]::float[]) FROM tbl_test_data_3;
-ERROR:  design matrix is not finite  (seg0 slice1 xzhangmac:25432 pid=25349)
+ERROR:  design matrix is not finite  (seg0 slice1 xzhangmac:25432 pid=21422)
 -- NULL value
 CREATE TABLE tbl_test_data_4(x float, y float) DISTRIBUTED BY (x);
 INSERT INTO tbl_test_data_4 VALUES(1,10);
@@ -786,7 +794,7 @@ HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sur
 insert into int4_tbl values(123456), (-2147483647), (0), (-123456), (2147483647);
 update t_s set c_v = 11
        from int4_tbl a join int4_tbl b on (a.f1 = (select f1 from int4_tbl c where c.f1=b.f1));
-ERROR:  multiple updates to a row by the same query is not allowed  (seg1 xzhangmac:25433 pid=25350)
+ERROR:  multiple updates to a row by the same query is not allowed  (seg1 xzhangmac:25433 pid=21424)
 -- CLEANUP
 drop view if exists t_s_view;
 drop table if exists t_p cascade;
@@ -1130,7 +1138,7 @@ SELECT 1::FLOAT8 AS y,
             FROM generate_series(1,(2^16)::INTEGER) AS no ) AS x
 DISTRIBUTED BY (y);
 SELECT mregr_coef(y, x) FROM regtest_65536;
-ERROR:  number of independent variables is too large  (seg2 slice1 xzhangmac:25434 pid=25351)
+ERROR:  number of independent variables is too large  (seg2 slice1 xzhangmac:25434 pid=21425)
 SELECT mregr_coef(y, x)
 FROM (
       SELECT 1::FLOAT8 AS y,
@@ -1317,7 +1325,7 @@ $$ LANGUAGE plpythonu;
 -- EXPECT to see ERROR other than SEGV. The error is like:
 --     ERROR:  plpy.SPIError: function cannot execute on segment because it accesses relation "public.testdata_in" (plpython.c:4648)
 INSERT INTO testdata_out SELECT * FROM func_plpythonu(10);
-ERROR:  plpy.SPIError: function cannot execute on segment because it accesses relation "public.testdata_in" (plpython.c:4648)  (entry db xzhangmac:15432 pid=26242)
+ERROR:  plpy.SPIError: function cannot execute on segment because it accesses relation "public.testdata_in" (plpython.c:4648)  (entry db xzhangmac:15432 pid=22167)
 DETAIL:  
 Traceback (most recent call last):
   PL/Python function "func_plpythonu", line 3, in <module>
@@ -1337,18 +1345,10 @@ NOTICE:  table "emp" does not exist, skipping
     
 -- Create a non-privileged user triggertest_nopriv_a
 drop role if exists triggertest_nopriv_a;
-NOTICE:  role "triggertest_nopriv_a" does not exist, skipping
-NOTICE:  role "triggertest_nopriv_a" does not exist, skipping  (seg0 xzhangmac:25432 pid=25349)
-NOTICE:  role "triggertest_nopriv_a" does not exist, skipping  (seg1 xzhangmac:25433 pid=25350)
-NOTICE:  role "triggertest_nopriv_a" does not exist, skipping  (seg2 xzhangmac:25434 pid=25351)
 create role triggertest_nopriv_a with login ;
 NOTICE:  resource queue required -- using default resource queue "pg_default"
 -- Create another non-privileged user triggertest_nopriv_b
 drop role if exists triggertest_nopriv_b;
-NOTICE:  role "triggertest_nopriv_b" does not exist, skipping
-NOTICE:  role "triggertest_nopriv_b" does not exist, skipping  (seg0 xzhangmac:25432 pid=25349)
-NOTICE:  role "triggertest_nopriv_b" does not exist, skipping  (seg1 xzhangmac:25433 pid=25350)
-NOTICE:  role "triggertest_nopriv_b" does not exist, skipping  (seg2 xzhangmac:25434 pid=25351)
 create role triggertest_nopriv_b with login ;
 NOTICE:  resource queue required -- using default resource queue "pg_default"
 -- Connect as non-privileged user "triggertest_nopriv_a"
@@ -1382,7 +1382,7 @@ after insert on emp
 for each row execute procedure process_emp_audit();
 -- Verified the trigger works correctly
 insert into emp values ('Tammy', 100000);
-NOTICE:  100000  (seg0 xzhangmac:25432 pid=25349)
+NOTICE:  100000  (seg0 xzhangmac:25432 pid=21422)
 -- connect as non-privileged user "triggertest_nopriv_b"
 SET ROLE triggertest_nopriv_b;
 select user;
@@ -1422,7 +1422,7 @@ after insert on my_emp
 for each row execute procedure process_emp_audit();
 -- Verified trigger can be run correctly
 insert into my_emp values ('Tammy', 100000);
-NOTICE:  100000  (seg0 xzhangmac:25432 pid=25349)
+NOTICE:  100000  (seg0 xzhangmac:25432 pid=21422)
 -- Now to confirm that we only check trigger function's EXECUTE
 -- permission at trigger create time, but not at trigger run time
 -- by revoking EXECUTE permission from triggertest_nopriv_b after
@@ -1436,7 +1436,7 @@ SET ROLE triggertest_nopriv_b;
 -- even the current user does NOT have the EXECUTE permission 
 -- on the trigger function.
 insert into my_emp values ('Sammy', 100001);
-NOTICE:  100001  (seg1 xzhangmac:25433 pid=25350)
+NOTICE:  100001  (seg1 xzhangmac:25433 pid=21424)
 -- Clean up
 DROP TRIGGER my_emp_audit on my_emp;
 DROP TABLE IF EXISTS my_emp;
@@ -1617,41 +1617,6 @@ SELECT * FROM func_split_plpythonu(10);
  10 | 10
 (2 rows)
 
-SELECT func_split_plpythonu(10);
- func_split_plpythonu 
-----------------------
- (10,10)
- (10,10)
-(2 rows)
-
-SELECT (func_split_plpythonu(10)).*;
- a  | b  
-----+----
- 10 | 10
- 10 | 10
-(2 rows)
-
-DROP FUNCTION IF EXISTS func_split_plpythonu(INT8);
-DROP TYPE IF EXISTS tuple_split CASCADE;
----
----
----
--- start_ignore
-DROP FUNCTION IF EXISTS func_split_plpythonu(INT8);
-NOTICE:  function func_split_plpythonu(int8) does not exist, skipping
-DROP TYPE IF EXISTS tuple_split CASCADE;
-NOTICE:  type "tuple_split" does not exist, skipping
--- end_ignore
-CREATE TYPE tuple_split AS (a INT8, b INT8);
-CREATE OR REPLACE FUNCTION func_split_plpythonu(input INT8)
-RETURNS SETOF tuple_split
-AS $$
-    yield [input, input];
-    yield [input, input]
-$$ LANGUAGE plpythonu;
-SELECT * FROM func_split_plpythonu(10);
-ERROR:  could not compile PL/Python function "func_split_plpythonu" (plpython.c:4648)
-DETAIL:  KeyError: 'input'
 SELECT func_split_plpythonu(10);
  func_split_plpythonu 
 ----------------------

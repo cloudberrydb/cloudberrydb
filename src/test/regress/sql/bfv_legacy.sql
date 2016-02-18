@@ -86,7 +86,7 @@ group by 1,b.revenue;
 ---
 
 --start_ignore
-drop schema if exists hotel;
+drop schema if exists test_schema;
 --end_ignore
 
 select 
@@ -94,22 +94,36 @@ select
 from 
     information_schema.columns
 where 
-    table_schema ='hotel'
+    table_schema ='test_schema'
     and ordinal_position =1;
 
-create schema hotel;
+create schema test_schema;
+create table test_schema.test_table(c int);
 
-select table_schema, table_name,column_name,ordinal_position from information_schema.columns where table_schema ='hotel' and ordinal_position =1;
+-- EXPECT NO ERROR of 'violates check constraint' BEFORE drop schema
+select table_schema, table_name,column_name,ordinal_position 
+from information_schema.columns 
+where table_schema ='test_schema' and ordinal_position =1;
 
-drop SCHEMA hotel;
+drop table test_schema.test_table;
+drop SCHEMA test_schema;
 
-select table_catalog, table_schema, table_name from information_schema.columns where ordinal_position=1 and table_schema='information_schema' order by ordinal_position, table_name limit 10;
+-- EXPECT NO ERROR of 'violates check constraint' AFTER drop schema
+select table_schema, table_name,column_name,ordinal_position 
+from information_schema.columns 
+where table_schema ='test_schema' and ordinal_position =1;
 
-select * FROM (select attnum::information_schema.cardinal_number from pg_attribute where attnum > 0) q where attnum = 4 limit 10;
+-- EXPECT NO ERROR of 'violates check constraint'
+select * 
+FROM (
+	select attnum::information_schema.cardinal_number 
+	from pg_attribute 
+	where attnum > 0) q 
+where attnum = 4 limit 10;
 
 -- CLEANUP
 --start_ignore
-drop schema if exists hotel;
+drop schema if exists test_schema;
 --end_ignore
 
 ---
@@ -1169,30 +1183,6 @@ SELECT func_exec_query_plpythonu( 'SELECT 1' );
 SELECT func_exec_query_plpythonu( 'SELECT x' );
 
 DROP FUNCTION IF EXISTS func_exec_query_plpythonu( text );
-
----
----
----
-
--- start_ignore
-DROP FUNCTION IF EXISTS func_split_plpythonu(INT8);
-DROP TYPE IF EXISTS tuple_split CASCADE;
--- end_ignore
-
-CREATE TYPE tuple_split AS (a INT8, b INT8);
-CREATE OR REPLACE FUNCTION func_split_plpythonu(input INT8)
-RETURNS SETOF tuple_split
-AS $$
-    yield [input, input];
-    yield [input, input]
-$$ LANGUAGE plpythonu;
-
-SELECT * FROM func_split_plpythonu(10);
-SELECT func_split_plpythonu(10);
-SELECT (func_split_plpythonu(10)).*;
-
-DROP FUNCTION IF EXISTS func_split_plpythonu(INT8);
-DROP TYPE IF EXISTS tuple_split CASCADE;
 
 ---
 ---
