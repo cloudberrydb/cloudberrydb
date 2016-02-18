@@ -1,9 +1,18 @@
 ---
---- GUC
+--- SETUP: GUC
 ---
 set gp_create_table_random_default_distribution=off;
 ---
---- Helper functions for query plan verification
+--- SETUP: create seperate database to run in parallel with other tests
+---
+-- start_ignore
+\connect postgres;
+drop database if exists bfv_legacy;
+create database bfv_legacy;
+\connect bfv_legacy;
+-- end_ignore
+---
+--- SETUP: Helper functions for query plan verification
 ---
 --start_ignore
 create language plpythonu;
@@ -113,16 +122,16 @@ drop SCHEMA hotel;
 select table_catalog, table_schema, table_name from information_schema.columns where ordinal_position=1 and table_schema='information_schema' order by ordinal_position, table_name limit 10;
  table_catalog |    table_schema    |            table_name             
 ---------------+--------------------+-----------------------------------
- regression    | information_schema | administrable_role_authorizations
- regression    | information_schema | applicable_roles
- regression    | information_schema | attributes
- regression    | information_schema | check_constraint_routine_usage
- regression    | information_schema | check_constraints
- regression    | information_schema | column_domain_usage
- regression    | information_schema | column_privileges
- regression    | information_schema | column_udt_usage
- regression    | information_schema | columns
- regression    | information_schema | constraint_column_usage
+ bfv_legacy    | information_schema | administrable_role_authorizations
+ bfv_legacy    | information_schema | applicable_roles
+ bfv_legacy    | information_schema | attributes
+ bfv_legacy    | information_schema | check_constraint_routine_usage
+ bfv_legacy    | information_schema | check_constraints
+ bfv_legacy    | information_schema | column_domain_usage
+ bfv_legacy    | information_schema | column_privileges
+ bfv_legacy    | information_schema | column_udt_usage
+ bfv_legacy    | information_schema | columns
+ bfv_legacy    | information_schema | constraint_column_usage
 (10 rows)
 
 select * FROM (select attnum::information_schema.cardinal_number from pg_attribute where attnum > 0) q where attnum = 4 limit 10;
@@ -140,6 +149,11 @@ select * FROM (select attnum::information_schema.cardinal_number from pg_attribu
       4
 (10 rows)
 
+-- CLEANUP
+--start_ignore
+drop schema if exists hotel;
+NOTICE:  schema "hotel" does not exist, skipping
+--end_ignore
 ---
 --- plpythonu function 
 ---
@@ -589,37 +603,37 @@ CREATE TABLE tbl_test_data_1(x float, y float) DISTRIBUTED BY (x);
 INSERT INTO tbl_test_data_1 VALUES(1,10);
 INSERT INTO tbl_test_data_1 VALUES('Infinity',20);
 SELECT mregr_coef(y,array[x,1]::float[]) FROM tbl_test_data_1;
-ERROR:  design matrix is not finite  (seg1 slice1 xzhangmac:25433 pid=84104)
+ERROR:  design matrix is not finite  (seg1 slice1 xzhangmac:25433 pid=25350)
 SELECT mregr_r2(y,array[x,1]::float[]) FROM tbl_test_data_1;
-ERROR:  design matrix is not finite  (seg1 slice1 xzhangmac:25433 pid=84104)
+ERROR:  design matrix is not finite  (seg1 slice1 xzhangmac:25433 pid=25350)
 SELECT mregr_tstats(y,array[x,1]::float[]) FROM tbl_test_data_1;
-ERROR:  design matrix is not finite  (seg1 slice1 xzhangmac:25433 pid=84104)
+ERROR:  design matrix is not finite  (seg1 slice1 xzhangmac:25433 pid=25350)
 SELECT mregr_pvalues(y,array[x,1]::float[]) FROM tbl_test_data_1;
-ERROR:  design matrix is not finite  (seg1 slice1 xzhangmac:25433 pid=84104)
+ERROR:  design matrix is not finite  (seg1 slice1 xzhangmac:25433 pid=25350)
 -- -Infinity value
 CREATE TABLE tbl_test_data_2(x float, y float) DISTRIBUTED BY (x);
 INSERT INTO tbl_test_data_2 VALUES(1,10);
 INSERT INTO tbl_test_data_2 VALUES('-Infinity',20);
 SELECT mregr_coef(y,array[x,1]::float[]) FROM tbl_test_data_2;
-ERROR:  design matrix is not finite  (seg0 slice1 xzhangmac:25432 pid=84103)
+ERROR:  design matrix is not finite  (seg0 slice1 xzhangmac:25432 pid=25349)
 SELECT mregr_r2(y,array[x,1]::float[]) FROM tbl_test_data_2;
-ERROR:  design matrix is not finite  (seg0 slice1 xzhangmac:25432 pid=84103)
+ERROR:  design matrix is not finite  (seg0 slice1 xzhangmac:25432 pid=25349)
 SELECT mregr_tstats(y,array[x,1]::float[]) FROM tbl_test_data_2;
-ERROR:  design matrix is not finite  (seg0 slice1 xzhangmac:25432 pid=84103)
+ERROR:  design matrix is not finite  (seg0 slice1 xzhangmac:25432 pid=25349)
 SELECT mregr_pvalues(y,array[x,1]::float[]) FROM tbl_test_data_2;
-ERROR:  design matrix is not finite  (seg0 slice1 xzhangmac:25432 pid=84103)
+ERROR:  design matrix is not finite  (seg0 slice1 xzhangmac:25432 pid=25349)
 -- NaN value
 CREATE TABLE tbl_test_data_3(x float, y float) DISTRIBUTED BY (x);
 INSERT INTO tbl_test_data_3 VALUES(1,10);
 INSERT INTO tbl_test_data_3 VALUES('NaN',20);
 SELECT mregr_coef(y,array[x,1]::float[]) FROM tbl_test_data_3;
-ERROR:  design matrix is not finite  (seg0 slice1 xzhangmac:25432 pid=84103)
+ERROR:  design matrix is not finite  (seg0 slice1 xzhangmac:25432 pid=25349)
 SELECT mregr_r2(y,array[x,1]::float[]) FROM tbl_test_data_3;
-ERROR:  design matrix is not finite  (seg0 slice1 xzhangmac:25432 pid=84103)
+ERROR:  design matrix is not finite  (seg0 slice1 xzhangmac:25432 pid=25349)
 SELECT mregr_tstats(y,array[x,1]::float[]) FROM tbl_test_data_3;
-ERROR:  design matrix is not finite  (seg0 slice1 xzhangmac:25432 pid=84103)
+ERROR:  design matrix is not finite  (seg0 slice1 xzhangmac:25432 pid=25349)
 SELECT mregr_pvalues(y,array[x,1]::float[]) FROM tbl_test_data_3;
-ERROR:  design matrix is not finite  (seg0 slice1 xzhangmac:25432 pid=84103)
+ERROR:  design matrix is not finite  (seg0 slice1 xzhangmac:25432 pid=25349)
 -- NULL value
 CREATE TABLE tbl_test_data_4(x float, y float) DISTRIBUTED BY (x);
 INSERT INTO tbl_test_data_4 VALUES(1,10);
@@ -772,7 +786,7 @@ HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sur
 insert into int4_tbl values(123456), (-2147483647), (0), (-123456), (2147483647);
 update t_s set c_v = 11
        from int4_tbl a join int4_tbl b on (a.f1 = (select f1 from int4_tbl c where c.f1=b.f1));
-ERROR:  multiple updates to a row by the same query is not allowed  (seg1 xzhangmac:25433 pid=84104)
+ERROR:  multiple updates to a row by the same query is not allowed  (seg1 xzhangmac:25433 pid=25350)
 -- CLEANUP
 drop view if exists t_s_view;
 drop table if exists t_p cascade;
@@ -996,8 +1010,21 @@ NOTICE:  table "mpp_t" does not exist, skipping
 create table mpp_t(a bigint, b bigint) distributed by (a);
 insert into mpp_t select a, a / 10 from generate_series(1, 100)a;
 select sum((select count(*) from mpp_t group by b having b = s.b)) from (select * from mpp_t order by a)s group by b order by 1;
-ERROR:  One or more assertions failed  (seg1 slice3 xzhangmac:25433 pid=84709)
-DETAIL:  Expected no more than one row to be returned by expression
+ sum 
+-----
+   1
+  81
+ 100
+ 100
+ 100
+ 100
+ 100
+ 100
+ 100
+ 100
+ 100
+(11 rows)
+
 -- CLEANUP
 drop table if exists mpp_t;
 ---
@@ -1103,7 +1130,7 @@ SELECT 1::FLOAT8 AS y,
             FROM generate_series(1,(2^16)::INTEGER) AS no ) AS x
 DISTRIBUTED BY (y);
 SELECT mregr_coef(y, x) FROM regtest_65536;
-ERROR:  number of independent variables is too large  (seg2 slice1 xzhangmac:25434 pid=84106)
+ERROR:  number of independent variables is too large  (seg2 slice1 xzhangmac:25434 pid=25351)
 SELECT mregr_coef(y, x)
 FROM (
       SELECT 1::FLOAT8 AS y,
@@ -1290,7 +1317,7 @@ $$ LANGUAGE plpythonu;
 -- EXPECT to see ERROR other than SEGV. The error is like:
 --     ERROR:  plpy.SPIError: function cannot execute on segment because it accesses relation "public.testdata_in" (plpython.c:4648)
 INSERT INTO testdata_out SELECT * FROM func_plpythonu(10);
-ERROR:  plpy.SPIError: function cannot execute on segment because it accesses relation "public.testdata_in" (plpython.c:4648)  (entry db xzhangmac:15432 pid=84932)
+ERROR:  plpy.SPIError: function cannot execute on segment because it accesses relation "public.testdata_in" (plpython.c:4648)  (entry db xzhangmac:15432 pid=26242)
 DETAIL:  
 Traceback (most recent call last):
   PL/Python function "func_plpythonu", line 3, in <module>
@@ -1310,10 +1337,18 @@ NOTICE:  table "emp" does not exist, skipping
     
 -- Create a non-privileged user triggertest_nopriv_a
 drop role if exists triggertest_nopriv_a;
+NOTICE:  role "triggertest_nopriv_a" does not exist, skipping
+NOTICE:  role "triggertest_nopriv_a" does not exist, skipping  (seg0 xzhangmac:25432 pid=25349)
+NOTICE:  role "triggertest_nopriv_a" does not exist, skipping  (seg1 xzhangmac:25433 pid=25350)
+NOTICE:  role "triggertest_nopriv_a" does not exist, skipping  (seg2 xzhangmac:25434 pid=25351)
 create role triggertest_nopriv_a with login ;
 NOTICE:  resource queue required -- using default resource queue "pg_default"
 -- Create another non-privileged user triggertest_nopriv_b
 drop role if exists triggertest_nopriv_b;
+NOTICE:  role "triggertest_nopriv_b" does not exist, skipping
+NOTICE:  role "triggertest_nopriv_b" does not exist, skipping  (seg0 xzhangmac:25432 pid=25349)
+NOTICE:  role "triggertest_nopriv_b" does not exist, skipping  (seg1 xzhangmac:25433 pid=25350)
+NOTICE:  role "triggertest_nopriv_b" does not exist, skipping  (seg2 xzhangmac:25434 pid=25351)
 create role triggertest_nopriv_b with login ;
 NOTICE:  resource queue required -- using default resource queue "pg_default"
 -- Connect as non-privileged user "triggertest_nopriv_a"
@@ -1347,7 +1382,7 @@ after insert on emp
 for each row execute procedure process_emp_audit();
 -- Verified the trigger works correctly
 insert into emp values ('Tammy', 100000);
-NOTICE:  100000  (seg0 xzhangmac:25432 pid=84103)
+NOTICE:  100000  (seg0 xzhangmac:25432 pid=25349)
 -- connect as non-privileged user "triggertest_nopriv_b"
 SET ROLE triggertest_nopriv_b;
 select user;
@@ -1387,7 +1422,7 @@ after insert on my_emp
 for each row execute procedure process_emp_audit();
 -- Verified trigger can be run correctly
 insert into my_emp values ('Tammy', 100000);
-NOTICE:  100000  (seg0 xzhangmac:25432 pid=84103)
+NOTICE:  100000  (seg0 xzhangmac:25432 pid=25349)
 -- Now to confirm that we only check trigger function's EXECUTE
 -- permission at trigger create time, but not at trigger run time
 -- by revoking EXECUTE permission from triggertest_nopriv_b after
@@ -1401,7 +1436,7 @@ SET ROLE triggertest_nopriv_b;
 -- even the current user does NOT have the EXECUTE permission 
 -- on the trigger function.
 insert into my_emp values ('Sammy', 100001);
-NOTICE:  100001  (seg1 xzhangmac:25433 pid=84104)
+NOTICE:  100001  (seg1 xzhangmac:25433 pid=25350)
 -- Clean up
 DROP TRIGGER my_emp_audit on my_emp;
 DROP TABLE IF EXISTS my_emp;
@@ -1634,11 +1669,18 @@ SELECT (func_split_plpythonu(10)).*;
 DROP FUNCTION IF EXISTS func_split_plpythonu(INT8);
 DROP TYPE IF EXISTS tuple_split CASCADE;
 ---
---- cleanup helper functions for query optimizer verification
+--- CLEANUP: helper functions for query optimizer verification
 ---
 DROP FUNCTION IF EXISTS nonzero_width(TEXT);
 DROP FUNCTION IF EXISTS count_operator(TEXT, TEXT);
+---
+--- CLEANUP: seperate database to run in parallel with other tests
+---
+-- start_ignore
+\connect postgres;
+drop database if exists bfv_legacy;
+-- end_ignore
 --- 
---- cleanup GUC
+--- CLEANUP: GUC
 ---
 reset gp_create_table_random_default_distribution;

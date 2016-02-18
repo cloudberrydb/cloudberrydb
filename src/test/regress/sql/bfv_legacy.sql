@@ -1,10 +1,20 @@
 ---
---- GUC
+--- SETUP: GUC
 ---
 set gp_create_table_random_default_distribution=off;
 
 ---
---- Helper functions for query plan verification
+--- SETUP: create seperate database to run in parallel with other tests
+---
+-- start_ignore
+\connect postgres;
+drop database if exists bfv_legacy;
+create database bfv_legacy;
+\connect bfv_legacy;
+-- end_ignore
+
+---
+--- SETUP: Helper functions for query plan verification
 ---
 --start_ignore
 create language plpythonu;
@@ -96,6 +106,11 @@ drop SCHEMA hotel;
 select table_catalog, table_schema, table_name from information_schema.columns where ordinal_position=1 and table_schema='information_schema' order by ordinal_position, table_name limit 10;
 
 select * FROM (select attnum::information_schema.cardinal_number from pg_attribute where attnum > 0) q where attnum = 4 limit 10;
+
+-- CLEANUP
+--start_ignore
+drop schema if exists hotel;
+--end_ignore
 
 ---
 --- plpythonu function 
@@ -1204,12 +1219,20 @@ DROP FUNCTION IF EXISTS func_split_plpythonu(INT8);
 DROP TYPE IF EXISTS tuple_split CASCADE;
 
 ---
---- cleanup helper functions for query optimizer verification
+--- CLEANUP: helper functions for query optimizer verification
 ---
 DROP FUNCTION IF EXISTS nonzero_width(TEXT);
 DROP FUNCTION IF EXISTS count_operator(TEXT, TEXT);
 
+---
+--- CLEANUP: seperate database to run in parallel with other tests
+---
+-- start_ignore
+\connect postgres;
+drop database if exists bfv_legacy;
+-- end_ignore
+
 --- 
---- cleanup GUC
+--- CLEANUP: GUC
 ---
 reset gp_create_table_random_default_distribution;
