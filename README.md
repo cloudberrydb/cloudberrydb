@@ -21,6 +21,8 @@ operating system's package manager.
 ## Quick Start: Build GPORCA and install under /usr/local
 
 ```
+git clone https://github.com/greenplum-db/gporca.git
+cd gporca
 mkdir build
 cd build
 cmake ../
@@ -67,7 +69,7 @@ building GP-Xerces would be something like the following:
 wget http://archive.apache.org/dist/xerces/c/3/sources/xerces-c-3.1.2.tar.gz
 tar -xzf xerces-c-3.1.2.tar.gz
 cd xerces-c-3.1.2
-patch -p1 < /path/to/orca/patches/xerces-c-gpdb.patch
+patch -p1 < ../gporca/xerces-c-gpdb.patch
 mkdir build
 cd build
 
