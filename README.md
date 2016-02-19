@@ -64,7 +64,7 @@ before building. Presuming that you downloaded Xerces-C 3.1.2, a recipe for
 building GP-Xerces would be something like the following:
 
 ```
-wget http://www.trieuvan.com/apache//xerces/c/3/sources/xerces-c-3.1.2.tar.gz
+wget http://archive.apache.org/dist/xerces/c/3/sources/xerces-c-3.1.2.tar.gz
 tar -xzf xerces-c-3.1.2.tar.gz
 cd xerces-c-3.1.2
 patch -p1 < /path/to/orca/patches/xerces-c-gpdb.patch
