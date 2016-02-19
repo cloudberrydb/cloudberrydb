@@ -1,7 +1,7 @@
 /*-------------------------------------------------------------------------
  *
  * cdbsrlz.h
- *	  definitions for paln serialization utilities
+ *	  definitions for plan serialization utilities
  *
  * Copyright (c) 2004-2008, Greenplum inc
  *
