@@ -224,14 +224,7 @@ PGAC_ARG_BOOL(enable, atomics, yes,
 # gpfdist
 #
 PGAC_ARG_BOOL(enable, gpfdist, yes,
-              [  --disable-gpfdist       do not use gpfdist],
-              [ if test "$with_openssl" = no || test "$with_openssl" = ""; then
-                 dnl we don't want to enable win32 openssl for now through gpfdist
-                 if test "$PORTNAME" != win32; then
-                   with_openssl=yes;
-                   AC_MSG_RESULT(enabling --with-openssl for gpfdist.)
-                 fi
-                fi ])
+             [  --disable-gpfdist       do not use gpfdist])
 AC_SUBST(enable_gpfdist)
 
 #

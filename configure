@@ -3232,13 +3232,7 @@ if test "${enable_gpfdist+set}" = set; then :
   enableval=$enable_gpfdist;
   case $enableval in
     yes)
-       if test "$with_openssl" = no || test "$with_openssl" = ""; then
-                                  if test "$PORTNAME" != win32; then
-                   with_openssl=yes;
-                   { $as_echo "$as_me:${as_lineno-$LINENO}: result: enabling --with-openssl for gpfdist." >&5
-$as_echo "enabling --with-openssl for gpfdist." >&6; }
-                 fi
-                fi
+      :
       ;;
     no)
       :
@@ -3250,13 +3244,7 @@ $as_echo "enabling --with-openssl for gpfdist." >&6; }
 
 else
   enable_gpfdist=yes
- if test "$with_openssl" = no || test "$with_openssl" = ""; then
-                                  if test "$PORTNAME" != win32; then
-                   with_openssl=yes;
-                   { $as_echo "$as_me:${as_lineno-$LINENO}: result: enabling --with-openssl for gpfdist." >&5
-$as_echo "enabling --with-openssl for gpfdist." >&6; }
-                 fi
-                fi
+
 fi
 
 
