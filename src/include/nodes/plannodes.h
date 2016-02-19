@@ -9,7 +9,7 @@
  * Portions Copyright (c) 1996-2008, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
- * $PostgreSQL: pgsql/src/include/nodes/plannodes.h,v 1.89 2007/01/10 18:06:04 tgl Exp $
+ * $PostgreSQL: pgsql/src/include/nodes/plannodes.h,v 1.90 2007/02/19 02:23:12 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -646,7 +646,10 @@ typedef struct SubqueryScan
 typedef struct FunctionScan
 {
 	Scan		scan;
-	/* no other fields needed at present */
+	Node	   *funcexpr;		/* expression tree for func call */
+	List	   *funccolnames;	/* output column names (string Value nodes) */
+	List	   *funccoltypes;	/* OID list of column type OIDs */
+	List	   *funccoltypmods; /* integer list of column typmods */
 } FunctionScan;
 
 /* ----------------
@@ -666,7 +669,7 @@ typedef struct TableFunctionScan
 typedef struct ValuesScan
 {
 	Scan		scan;
-	/* no other fields needed at present */
+	List	   *values_lists;	/* list of expression lists */
 } ValuesScan;
 
 /* ----------------

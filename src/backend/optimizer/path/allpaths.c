@@ -9,7 +9,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/optimizer/path/allpaths.c,v 1.158 2007/01/28 18:50:40 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/optimizer/path/allpaths.c,v 1.159 2007/02/19 07:03:28 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */

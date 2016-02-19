@@ -17,7 +17,7 @@
  *
  *
  * IDENTIFICATION
- *		$PostgreSQL: pgsql/src/bin/pg_dump/pg_backup_archiver.h,v 1.74 2007/01/25 03:30:43 momjian Exp $
+ *		$PostgreSQL: pgsql/src/bin/pg_dump/pg_backup_archiver.h,v 1.75 2007/02/19 15:05:06 mha Exp $
  *
  *-------------------------------------------------------------------------
  */

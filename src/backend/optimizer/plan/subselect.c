@@ -8,7 +8,7 @@
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/optimizer/plan/subselect.c,v 1.118 2007/02/06 02:59:11 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/optimizer/plan/subselect.c,v 1.120 2007/02/19 07:03:30 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -67,7 +67,8 @@ static bool subplan_is_hashable(Plan *plan, PlannerInfo *root);
 static bool testexpr_is_hashable(Node *testexpr);
 static bool hash_ok_operator(OpExpr *expr);
 static Node *replace_correlation_vars_mutator(Node *node, PlannerInfo *root);
-static Node *process_sublinks_mutator(Node *node, process_sublinks_context *context);
+static Node *process_sublinks_mutator(Node *node,
+									  process_sublinks_context *context);
 static Bitmapset *finalize_plan(PlannerInfo *root, Plan *plan, List *rtable,
 			  Bitmapset *outer_params,
 			  Bitmapset *valid_params);
@@ -92,13 +93,13 @@ replace_outer_var(PlannerInfo *root, Var *var)
 	abslevel = root->query_level - var->varlevelsup;
 
 	/*
-	 * If there's already a paramlist entry for this same Var, just use it.
-	 * NOTE: in sufficiently complex querytrees, it is possible for the same
-	 * varno/abslevel to refer to different RTEs in different parts of the
-	 * parsetree, so that different fields might end up sharing the same Param
-	 * number.	As long as we check the vartype/typmod as well, I believe that this
-	 * sort of aliasing will cause no trouble. The correct field should get
-	 * stored into the Param slot at execution in each part of the tree.
+	 * If there's already a paramlist entry for this same Var, just use
+	 * it.	NOTE: in sufficiently complex querytrees, it is possible for the
+	 * same varno/abslevel to refer to different RTEs in different parts of
+	 * the parsetree, so that different fields might end up sharing the same
+	 * Param number.  As long as we check the vartype as well, I believe that
+	 * this sort of aliasing will cause no trouble. The correct field should
+	 * get stored into the Param slot at execution in each part of the tree.
 	 *
 	 * We need to demand a match on vartypmod.  This does not matter for
 	 * the Param itself, since those are not typmod-dependent, but it does
@@ -877,7 +878,7 @@ replace_correlation_vars_mutator(Node *node, PlannerInfo *root)
 	}
 	return expression_tree_mutator(node,
 								   replace_correlation_vars_mutator,
-								   root);
+								   (void *) root);
 }
 
 /*
@@ -1194,25 +1195,13 @@ finalize_plan(PlannerInfo *root, Plan *plan, List *rtable,
 			break;
 
 		case T_FunctionScan:
-			{
-				RangeTblEntry *rte;
-
-				rte = rt_fetch(((FunctionScan *) plan)->scan.scanrelid,
-							   rtable);
-				Assert(rte->rtekind == RTE_FUNCTION);
-				finalize_primnode(rte->funcexpr, &context);
-			}
+			finalize_primnode(((FunctionScan *) plan)->funcexpr,
+							  &context);
 			break;
 
 		case T_ValuesScan:
-			{
-				RangeTblEntry *rte;
-
-				rte = rt_fetch(((ValuesScan *) plan)->scan.scanrelid,
-							   rtable);
-				Assert(rte->rtekind == RTE_VALUES);
-				finalize_primnode((Node *) rte->values_lists, &context);
-			}
+			finalize_primnode((Node *) ((ValuesScan *) plan)->values_lists,
+							  &context);
 			break;
 
 		case T_Append:

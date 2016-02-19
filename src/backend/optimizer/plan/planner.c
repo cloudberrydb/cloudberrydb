@@ -9,7 +9,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/optimizer/plan/planner.c,v 1.212 2007/01/20 20:45:39 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/optimizer/plan/planner.c,v 1.213 2007/02/19 07:03:29 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -62,8 +62,6 @@ double cursor_tuple_fraction = DEFAULT_CURSOR_TUPLE_FRACTION;
 
 /* Hook for plugins to get control in planner() */
 planner_hook_type planner_hook = NULL;
-
-ParamListInfo PlannerBoundParamList = NULL;		/* current boundParams */
 
 /* Expression kind codes for preprocess_expression */
 #define EXPRKIND_QUAL		0
@@ -329,9 +327,6 @@ standard_planner(Query *parse, int cursorOptions, ParamListInfo boundParams)
 	}
 
 	/*
-	 * The planner can be called recursively (an example is when
-	 * eval_const_expressions tries to pre-evaluate an SQL function).
-	 *
 	 * Set up global state for this planner invocation.  This data is needed
 	 * across all levels of sub-Query that might exist in the given command,
 	 * so we keep it in a separate struct that's linked to by each per-Query
@@ -558,6 +553,7 @@ subquery_planner(PlannerGlobal *glob,
 	root->query_level = parent_root ? parent_root->query_level + 1 : 1;
 	root->parent_root = parent_root;
 	root->planner_cxt = CurrentMemoryContext;
+	root->init_plans = NIL;
 	root->eq_classes = NIL;
 	root->init_plans = NIL;
 
@@ -1032,6 +1028,7 @@ inheritance_planner(PlannerInfo *root)
 		subroot.in_info_list = (List *)
 			adjust_appendrel_attrs(&subroot, (Node *) root->in_info_list,
 								   appinfo);
+		subroot.init_plans = NIL;
 		/* There shouldn't be any OJ info to translate, as yet */
 		Assert(subroot.oj_info_list == NIL);
 
@@ -1105,6 +1102,9 @@ inheritance_planner(PlannerInfo *root)
 		parse->rtable = subroot.parse->rtable;
 
 		subplans = lappend(subplans, subplan);
+
+		/* Make sure any initplans from this rel get into the outer list */
+		root->init_plans = list_concat(root->init_plans, subroot.init_plans);
 
 		/* Build target-relations list for the executor */
 		resultRelations = lappend_int(resultRelations, appinfo->child_relid);

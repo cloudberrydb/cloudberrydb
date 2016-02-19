@@ -398,14 +398,14 @@ DATA(insert OID = 81 (	pg_proc	   PGNSP PGUID -1 f c t \054 1255	0 record_in rec
 DATA(insert OID = 83 (	pg_class	   PGNSP PGUID -1 f c t \054 1259	0 record_in record_out record_recv record_send - - - d x f 0 -1 0 _null_ _null_ ));
 #define PG_CLASS_RELTYPE_OID 83
 
-DATA(insert OID = 2925 (	pg_authid	   PGNSP PGUID -1 f c t \054 1260	0 record_in record_out record_recv record_send - - - d x f 0 -1 0 _null_ _null_ ));
-#define PG_AUTHID_RELTYPE_OID 2925
+DATA(insert OID = 2967 (	pg_authid	   PGNSP PGUID -1 f c t \054 1260	0 record_in record_out record_recv record_send - - - d x f 0 -1 0 _null_ _null_ ));
+#define PG_AUTHID_RELTYPE_OID 2967
 
-DATA(insert OID = 2923 (	pg_auth_members	   PGNSP PGUID -1 f c t \054 1261	0 record_in record_out record_recv record_send - - - d x f 0 -1 0 _null_ _null_ ));
-#define PG_AUTH_MEMBERS_RELTYPE_OID 2923
+DATA(insert OID = 2966 (	pg_auth_members	   PGNSP PGUID -1 f c t \054 1261	0 record_in record_out record_recv record_send - - - d x f 0 -1 0 _null_ _null_ ));
+#define PG_AUTH_MEMBERS_RELTYPE_OID 2966
 
-DATA(insert OID = 2924 (	pg_database	   PGNSP PGUID -1 f c t \054 1262	0 record_in record_out record_recv record_send - - - d x f 0 -1 0 _null_ _null_ ));
-#define PG_DATABASE_RELTYPE_OID 2924
+DATA(insert OID = 2970 (	pg_database	   PGNSP PGUID -1 f c t \054 1262	0 record_in record_out record_recv record_send - - - d x f 0 -1 0 _null_ _null_ ));
+#define PG_DATABASE_RELTYPE_OID 2970
 
 DATA(insert OID = 6995 (	gp_global_sequence	   PGNSP PGUID -1 f c t \054 5096	0 record_in record_out record_recv record_send - - - d x f 0 -1 0 _null_ _null_ ));
 #define GP_GLOBAL_SEQUENCE_RELTYPE_OID 6995

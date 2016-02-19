@@ -9,7 +9,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/nodes/outfuncs.c,v 1.297 2007/02/12 17:19:30 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/nodes/outfuncs.c,v 1.299 2007/02/19 07:03:27 tgl Exp $
  *
  * NOTES
  *	  Every node type that can appear in stored rules' parsetrees *must*
@@ -690,6 +690,11 @@ _outFunctionScan(StringInfo str, FunctionScan *node)
 	WRITE_NODE_TYPE("FUNCTIONSCAN");
 
 	_outScanInfo(str, (Scan *) node);
+
+	WRITE_NODE_FIELD(funcexpr);
+	WRITE_NODE_FIELD(funccolnames);
+	WRITE_NODE_FIELD(funccoltypes);
+	WRITE_NODE_FIELD(funccoltypmods);
 }
 
 static void
@@ -698,6 +703,8 @@ _outValuesScan(StringInfo str, ValuesScan *node)
 	WRITE_NODE_TYPE("VALUESSCAN");
 
 	_outScanInfo(str, (Scan *) node);
+
+	WRITE_NODE_FIELD(values_lists);
 }
 
 static void
@@ -1982,7 +1989,10 @@ _outPlannerInfo(StringInfo str, PlannerInfo *node)
 
 	/* NB: this isn't a complete set of fields */
 	WRITE_NODE_FIELD(parse);
+	WRITE_NODE_FIELD(glob);
+	WRITE_UINT_FIELD(query_level);
 	WRITE_NODE_FIELD(join_rel_list);
+	WRITE_NODE_FIELD(init_plans);
 	WRITE_NODE_FIELD(eq_classes);
 	WRITE_NODE_FIELD(canon_pathkeys);
 	WRITE_NODE_FIELD(left_join_clauses);
@@ -2244,6 +2254,15 @@ _outAppendRelInfo(StringInfo str, AppendRelInfo *node)
 	WRITE_NODE_FIELD(col_mappings);
 	WRITE_NODE_FIELD(translated_vars);
 	WRITE_OID_FIELD(parent_reloid);
+}
+
+static void
+_outPlannerParamItem(StringInfo str, PlannerParamItem *node)
+{
+	WRITE_NODE_TYPE("PLANNERPARAMITEM");
+
+	WRITE_NODE_FIELD(item);
+	WRITE_UINT_FIELD(abslevel);
 }
 
 /*****************************************************************************
@@ -4571,6 +4590,9 @@ _outNode(StringInfo str, void *obj)
 				break;
 			case T_AppendRelInfo:
 				_outAppendRelInfo(str, obj);
+				break;
+			case T_PlannerParamItem:
+				_outPlannerParamItem(str, obj);
 				break;
 
 

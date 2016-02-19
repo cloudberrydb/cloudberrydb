@@ -1512,6 +1512,9 @@ _outNode(StringInfo str, void *obj)
 			case T_PlannerInfo:
 				_outPlannerInfo(str, obj);
 				break;
+			case T_PlannerParamItem:
+				_outPlannerParamItem(str, obj);
+				break;
 			case T_RelOptInfo:
 				_outRelOptInfo(str, obj);
 				break;

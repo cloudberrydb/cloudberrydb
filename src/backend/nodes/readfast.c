@@ -1444,6 +1444,16 @@ _readGrantRoleStmt(void)
 	READ_DONE();
 }
 
+static PlannerParamItem *
+_readPlannerParamItem(void)
+{
+	READ_LOCALS(PlannerParamItem);
+	READ_NODE_FIELD(item);
+	READ_UINT_FIELD(abslevel);
+
+	READ_DONE();
+}
+
 /*
  * _readPlannedStmt
  */
@@ -1824,6 +1834,11 @@ _readFunctionScan(void)
 
 	readScanInfo((Scan *)local_node);
 
+	READ_NODE_FIELD(funcexpr);
+	READ_NODE_FIELD(funccolnames);
+	READ_NODE_FIELD(funccoltypes);
+	READ_NODE_FIELD(funccoltypmods);
+
 	READ_DONE();
 }
 
@@ -1836,6 +1851,8 @@ _readValuesScan(void)
 	READ_LOCALS(ValuesScan);
 
 	readScanInfo((Scan *)local_node);
+
+	READ_NODE_FIELD(values_lists);
 
 	READ_DONE();
 }
@@ -2642,6 +2659,9 @@ readNodeBinary(void)
 			case T_Plan:
 					return_value = _readPlan();
 					break;
+			case T_PlannerParamItem:
+				return_value = _readPlannerParamItem();
+				break;
 			case T_Result:
 				return_value = _readResult();
 				break;

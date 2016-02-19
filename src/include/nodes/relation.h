@@ -8,7 +8,7 @@
  * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
- * $PostgreSQL: pgsql/src/include/nodes/relation.h,v 1.135 2007/02/16 20:57:19 tgl Exp $
+ * $PostgreSQL: pgsql/src/include/nodes/relation.h,v 1.136 2007/02/19 07:03:33 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -132,6 +132,7 @@ typedef struct CtePlanInfo
 	List *pathkeys;
 } CtePlanInfo;
 
+
 /*----------
  * PlannerInfo
  *		Per-query information for planning/optimization
@@ -192,7 +193,7 @@ typedef struct PlannerInfo
 	List	   *returningLists; /* list of lists of TargetEntry, or NIL */
 	List	   *result_aosegnos;
 
-	List	   *init_plans;		/* init subplans for query */
+	List	   *init_plans;				/* init subplans for query */
 
 	List       *list_cteplaninfo; /* list of CtePlannerInfo, one for each CTE */
 

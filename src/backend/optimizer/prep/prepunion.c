@@ -23,7 +23,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/optimizer/prep/prepunion.c,v 1.137 2007/01/22 20:00:39 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/optimizer/prep/prepunion.c,v 1.138 2007/02/19 07:03:30 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
@@ -182,7 +182,11 @@ recurse_set_operations(Node *setOp, PlannerInfo *root,
 		 * Generate plan for primitive subquery
 		 */
 		PlannerConfig *config = CopyPlannerConfig(root->config);
-		subplan = subquery_planner(root->glob, subquery, root, tuple_fraction, &subroot, config);
+		subplan = subquery_planner(root->glob, subquery,
+								   root,
+								   tuple_fraction,
+								   &subroot,
+								   config);
 
 		/*
 		 * Add a SubqueryScan with the caller-requested targetlist

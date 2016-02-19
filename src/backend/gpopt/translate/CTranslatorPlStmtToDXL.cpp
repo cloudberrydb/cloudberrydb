@@ -1483,12 +1483,12 @@ CTranslatorPlStmtToDXL::PdxlnFunctionScanFromPlan
 
 	CMappingVarColId mapvarcolid(m_pmp);
 
-	if (!IsA(prte->funcexpr, FuncExpr))
+	if (!IsA(pfuncscan->funcexpr, FuncExpr))
 	{
 		// for folded function expressions, construct a result node
 		CDXLNode *pdxln = PdxlnResultFromFoldedFuncExpr
 							(
-							(Expr *)prte->funcexpr,
+							(Expr *)pfuncscan->funcexpr,
 							pstrAlias,
 							pdxlprop,
 							&mapvarcolid
@@ -1498,7 +1498,7 @@ CTranslatorPlStmtToDXL::PdxlnFunctionScanFromPlan
 		return pdxln;
 	}
 
-	FuncExpr *pfuncexpr = (FuncExpr *) prte->funcexpr;
+	FuncExpr *pfuncexpr = (FuncExpr *) pfuncscan->funcexpr;
 	CMDIdGPDB *pmdidFunc = GPOS_NEW(m_pmp) CMDIdGPDB(pfuncexpr->funcid);
 	CMDIdGPDB *pmdidRetType = GPOS_NEW(m_pmp) CMDIdGPDB(pfuncexpr->funcresulttype);
 

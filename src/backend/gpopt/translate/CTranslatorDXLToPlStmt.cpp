@@ -1871,6 +1871,9 @@ CTranslatorDXLToPlStmt::PplanFunctionScanFromDXLTVF
 	RangeTblEntry *prte = PrteFromDXLTVF(pdxlnTVF, pdxltrctxOut, &dxltrctxbt, pplan);
 	GPOS_ASSERT(NULL != prte);
 
+	pfuncscan->funcexpr = prte->funcexpr;
+	pfuncscan->funccolnames = prte->eref->colnames;
+
 	m_pctxdxltoplstmt->AddRTE(prte);
 
 	pplan->plan_node_id = m_pctxdxltoplstmt->UlNextPlanId();
@@ -1914,8 +1917,8 @@ CTranslatorDXLToPlStmt::PplanFunctionScanFromDXLTVF
 
 		INT typMod = gpdb::IExprTypeMod((Node*) pte->expr);
 
-		prte->funccoltypes = gpdb::PlAppendOid(prte->funccoltypes, oidType);
-		prte->funccoltypmods = gpdb::PlAppendInt(prte->funccoltypmods, typMod);
+		pfuncscan->funccoltypes = gpdb::PlAppendOid(pfuncscan->funccoltypes, oidType);
+		pfuncscan->funccoltypmods = gpdb::PlAppendInt(pfuncscan->funccoltypmods, typMod);
 	}
 
 	SetParamIds(pplan);

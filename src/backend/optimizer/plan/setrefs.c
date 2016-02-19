@@ -10,7 +10,7 @@
  *
  *
  * IDENTIFICATION
- *	  $PostgreSQL: pgsql/src/backend/optimizer/plan/setrefs.c,v 1.129 2007/02/16 03:49:04 tgl Exp $
+ *	  $PostgreSQL: pgsql/src/backend/optimizer/plan/setrefs.c,v 1.130 2007/02/19 02:23:12 tgl Exp $
  *
  *-------------------------------------------------------------------------
  */
