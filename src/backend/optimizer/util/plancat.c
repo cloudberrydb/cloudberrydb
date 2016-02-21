@@ -846,6 +846,29 @@ relation_excluded_by_constraints(PlannerInfo *root, RelOptInfo *rel, RangeTblEnt
 			safe_restrictions = lappend(safe_restrictions, rinfo->clause);
 	}
 
+	/*
+	 * GPDB: Check if there's a constant False condition. That's unlikely
+	 * to help much in most cases, as we'll create a Result node with
+	 * a False one-time filter anyway, so the underlying plan will not
+	 * be executed in any case. But we can avoid some planning overhead.
+	 * Also, the Result node might be put under a Motion node, so we avoid
+	 * a little bit of network traffic at execution time, if we can eliminate
+	 * the relation altogether here.
+	 */
+	foreach(lc, rel->baserestrictinfo)
+	{
+		RestrictInfo *rinfo = (RestrictInfo *) lfirst(lc);
+
+		if (IsA(rinfo->clause, Const))
+		{
+			Const *c = (Const *) rinfo->clause;
+
+			if (c->consttype == BOOLOID &&
+				(c->constisnull || DatumGetBool(c->constvalue) == false))
+				return true;
+		}
+	}
+
 	if (predicate_refuted_by(safe_restrictions, safe_restrictions))
 		return true;
 
