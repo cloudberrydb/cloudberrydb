@@ -1044,25 +1044,13 @@ ERROR:  permission denied for relation exttab_permissions_1  (seg2 slice1 @hostn
 SELECT COUNT(*) FROM gp_read_error_log('exttab_permissions_2');
 ERROR:  permission denied for relation exttab_permissions_2  (seg1 slice1 @hostname@:40001 pid=50437)
 SELECT gp_truncate_error_log('exttab_permissions_1');
-ERROR:  permission denied for relation exttab_permissions_1  (seg0 @hostname@:40000 pid=50430) (cdbsreh.c:1081)
-DETAIL:  
-permission denied for relation exttab_permissions_1  (seg1 @hostname@:40001 pid=50437)
-permission denied for relation exttab_permissions_1  (seg2 @hostname@:40002 pid=50448)
+ERROR:  permission denied for relation exttab_permissions_1
 SELECT gp_truncate_error_log('exttab_permissions_2');
-ERROR:  permission denied for relation exttab_permissions_2  (seg0 @hostname@:40000 pid=50430) (cdbsreh.c:1081)
-DETAIL:  
-permission denied for relation exttab_permissions_2  (seg1 @hostname@:40001 pid=50437)
-permission denied for relation exttab_permissions_2  (seg2 @hostname@:40002 pid=50448)
+ERROR:  permission denied for relation exttab_permissions_2
 SELECT gp_truncate_error_log('*');
-ERROR:  must be owner of database regression  (seg0 @hostname@:40000 pid=50430) (cdbsreh.c:1081)
-DETAIL:  
-must be owner of database regression  (seg1 @hostname@:40001 pid=50437)
-must be owner of database regression  (seg2 @hostname@:40002 pid=50448)
+ERROR:  must be owner of database regression
 SELECT gp_truncate_error_log('*.*');
-ERROR:  must be superuser to delete all error log files  (seg0 @hostname@:40000 pid=50430) (cdbsreh.c:1081)
-DETAIL:  
-must be superuser to delete all error log files  (seg1 @hostname@:40001 pid=50437)
-must be superuser to delete all error log files  (seg2 @hostname@:40002 pid=50448)
+ERROR:  must be superuser to delete all error log files
 RESET ROLE;
 DROP ROLE IF EXISTS exttab_superuser;
 CREATE ROLE exttab_superuser WITH SUPERUSER LOGIN;
@@ -1146,29 +1134,17 @@ SET ROLE exttab_user2;
 SELECT COUNT(*) FROM gp_read_error_log('exttab_permissions_1');
 ERROR:  permission denied for relation exttab_permissions_1  (seg0 slice1 @hostname@:40000 pid=51060)
 SELECT gp_truncate_error_log('*');
-ERROR:  must be owner of database exttab_db  (seg0 @hostname@:40000 pid=51060) (cdbsreh.c:1081)
-DETAIL:  
-must be owner of database exttab_db  (seg1 @hostname@:40001 pid=51061)
-must be owner of database exttab_db  (seg2 @hostname@:40002 pid=51062)
+ERROR:  must be owner of database exttab_db
 SELECT gp_truncate_error_log('*.*');
-ERROR:  must be superuser to delete all error log files  (seg0 @hostname@:40000 pid=51060) (cdbsreh.c:1081)
-DETAIL:  
-must be superuser to delete all error log files  (seg1 @hostname@:40001 pid=51061)
-must be superuser to delete all error log files  (seg2 @hostname@:40002 pid=51062)
+ERROR:  must be superuser to delete all error log files
 SELECT gp_truncate_error_log('exttab_permissions_1');
-ERROR:  permission denied for relation exttab_permissions_1  (seg0 @hostname@:40000 pid=51060) (cdbsreh.c:1081)
-DETAIL:  
-permission denied for relation exttab_permissions_1  (seg1 @hostname@:40001 pid=51061)
-permission denied for relation exttab_permissions_1  (seg2 @hostname@:40002 pid=51062)
+ERROR:  permission denied for relation exttab_permissions_1
 SET ROLE exttab_user1;
 -- Database owner can still not perform read / truncate on specific tables. This follows the same mechanism as TRUNCATE table.
 SELECT COUNT(*) FROM gp_read_error_log('exttab_permissions_1');
 ERROR:  permission denied for relation exttab_permissions_1  (seg1 slice1 @hostname@:40001 pid=51061)
 SELECT gp_truncate_error_log('exttab_permissions_1');
-ERROR:  permission denied for relation exttab_permissions_1  (seg0 @hostname@:40000 pid=51060) (cdbsreh.c:1081)
-DETAIL:  
-permission denied for relation exttab_permissions_1  (seg1 @hostname@:40001 pid=51061)
-permission denied for relation exttab_permissions_1  (seg2 @hostname@:40002 pid=51062)
+ERROR:  permission denied for relation exttab_permissions_1
 SELECT gp_truncate_error_log('*');
  gp_truncate_error_log 
 -----------------------
@@ -1177,10 +1153,7 @@ SELECT gp_truncate_error_log('*');
 
 -- should fail
 SELECT gp_truncate_error_log('*.*');
-ERROR:  must be superuser to delete all error log files  (seg0 @hostname@:40000 pid=51060) (cdbsreh.c:1081)
-DETAIL:  
-must be superuser to delete all error log files  (seg1 @hostname@:40001 pid=51061)
-must be superuser to delete all error log files  (seg2 @hostname@:40002 pid=51062)
+ERROR:  must be superuser to delete all error log files
 RESET ROLE;
 SELECT * FROM gp_read_error_log('exttab_permissions_1');
  cmdtime | relname | filename | linenum | bytenum | errmsg | rawdata | rawbytes 
@@ -1217,10 +1190,7 @@ SET ROLE errlog_exttab_user4;
 SELECT COUNT(*) FROM gp_read_error_log('exttab_permissions_3');
 ERROR:  permission denied for relation exttab_permissions_3  (seg0 slice1 @hostname@:40000 pid=51087)
 SELECT gp_truncate_error_log('exttab_permissions_3');
-ERROR:  permission denied for relation exttab_permissions_3  (seg0 @hostname@:40000 pid=51087) (cdbsreh.c:1081)
-DETAIL:  
-permission denied for relation exttab_permissions_3  (seg1 @hostname@:40001 pid=51088)
-permission denied for relation exttab_permissions_3  (seg2 @hostname@:40002 pid=51089)
+ERROR:  permission denied for relation exttab_permissions_3
 -- should go through fine with table owner
 SET ROLE errlog_exttab_user3;
 SELECT gp_truncate_error_log('exttab_permissions_3');

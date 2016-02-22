@@ -978,48 +978,6 @@ gp_truncate_error_log(PG_FUNCTION_ARGS)
 
 	relname = PG_GETARG_TEXT_P(0);
 
-	/*
-	 * Dispatch the work to segments.
-	 */
-	if (Gp_role == GP_ROLE_DISPATCH)
-	{
-		int			i, resultCount = 0;
-		StringInfoData	sql, errbuf;
-		PGresult  **results;
-
-		initStringInfo(&sql);
-		initStringInfo(&errbuf);
-
-		appendStringInfo(&sql,
-						 "SELECT pg_catalog.gp_truncate_error_log('%s')",
-						 text_to_cstring(relname));
-
-		results = cdbdisp_dispatchRMCommand(sql.data, true, &errbuf,
-											&resultCount);
-
-		if (errbuf.len > 0)
-			elog(ERROR, "%s", errbuf.data);
-		Assert(resultCount > 0);
-
-		for (i = 0; i < resultCount; i++)
-		{
-			Datum		value;
-			bool		isnull;
-
-			if (PQresultStatus(results[i]) != PGRES_TUPLES_OK)
-				ereport(ERROR,
-						(errmsg("unexpected result from segment: %d",
-								PQresultStatus(results[i]))));
-
-			value = ResultToDatum(results[i], 0, 0, boolin, &isnull);
-			allResults &= (!isnull && DatumGetBool(value));
-			PQclear(results[i]);
-		}
-
-		pfree(errbuf.data);
-		pfree(sql.data);
-	}
-
 	relname_str = text_to_cstring(relname);
 	if (strcmp(relname_str, "*.*") == 0)
 	{
@@ -1064,6 +1022,48 @@ gp_truncate_error_log(PG_FUNCTION_ARGS)
 
 		/* We don't care if this fails or not. */
 		ErrorLogDelete(MyDatabaseId, relid);
+	}
+
+	/*
+	 * Dispatch the work to segments.
+	 */
+	if (Gp_role == GP_ROLE_DISPATCH)
+	{
+		int			i, resultCount = 0;
+		StringInfoData	sql, errbuf;
+		PGresult  **results;
+
+		initStringInfo(&sql);
+		initStringInfo(&errbuf);
+
+		appendStringInfo(&sql,
+						 "SELECT pg_catalog.gp_truncate_error_log(%s)",
+						 quote_literal_internal(text_to_cstring(relname)));
+
+		results = cdbdisp_dispatchRMCommand(sql.data, true, &errbuf,
+											&resultCount);
+
+		if (errbuf.len > 0)
+			elog(ERROR, "%s", errbuf.data);
+		Assert(resultCount > 0);
+
+		for (i = 0; i < resultCount; i++)
+		{
+			Datum		value;
+			bool		isnull;
+
+			if (PQresultStatus(results[i]) != PGRES_TUPLES_OK)
+				ereport(ERROR,
+						(errmsg("unexpected result from segment: %d",
+								PQresultStatus(results[i]))));
+
+			value = ResultToDatum(results[i], 0, 0, boolin, &isnull);
+			allResults &= (!isnull && DatumGetBool(value));
+			PQclear(results[i]);
+		}
+
+		pfree(errbuf.data);
+		pfree(sql.data);
 	}
 
 	/* Return true iif all segments return true. */
