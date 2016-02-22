@@ -208,7 +208,7 @@ class Worker(Thread):
                     # misleading exception raised during interpreter shutdown
                     return 
 
-                if self.cmd is not None and isinstance(self.cmd, Command) and not self.shouldStop:
+                if self.cmd is not None and not self.shouldStop:
                     self.logger.debug("[%s] got cmd: %s" % (self.name,self.cmd.cmdStr))
                     self.cmd.run()
                     self.logger.debug("[%s] finished cmd: %s" % (self.name, self.cmd))
