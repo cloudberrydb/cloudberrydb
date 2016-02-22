@@ -1,6 +1,5 @@
 \echo -- start_ignore
 -- start_ignore
-set optimizer_disable_missing_stats_collection = on;
 drop database create_objects_db;
 ERROR:  database "create_objects_db" does not exist
 drop database create_table_db;
@@ -256,6 +255,7 @@ select current_database();
 ------------------
  template1
 (1 row)
+
 DROP DATABASE db_test_bed;
 DROP ROLE admin ;
 ERROR:  role "admin" does not exist
