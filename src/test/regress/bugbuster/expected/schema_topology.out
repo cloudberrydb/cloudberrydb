@@ -222,29 +222,6 @@ DROP ROLE ron;
 ERROR:  role "ron" does not exist
 DROP ROLE ken;
 ERROR:  role "ken" does not exist
-\c db_test_bed 
-DROP TABLE if exists sch_tbint CASCADE;
-NOTICE:  table "sch_tbint" does not exist, skipping
-DROP TABLE if exists sch_tchar CASCADE;
-NOTICE:  table "sch_tchar" does not exist, skipping
-DROP TABLE if exists sch_tclob CASCADE;
-NOTICE:  table "sch_tclob" does not exist, skipping
-DROP TABLE if exists sch_tversion CASCADE;
-NOTICE:  table "sch_tversion" does not exist, skipping
-DROP TABLE if exists sch_tjoin2 CASCADE;
-NOTICE:  table "sch_tjoin2" does not exist, skipping
-DROP TABLE if exists sch_T29 CASCADE;
-NOTICE:  table "sch_t29" does not exist, skipping
-DROP TABLE if exists sch_T33 CASCADE;
-NOTICE:  table "sch_t33" does not exist, skipping
-DROP TABLE if exists sch_T43 CASCADE;
-NOTICE:  table "sch_t43" does not exist, skipping
-DROP view if exists sch_srf_view1;
-NOTICE:  view "sch_srf_view1" does not exist, skipping
-DROP view if exists sch_fn_view2;
-NOTICE:  view "sch_fn_view2" does not exist, skipping
-DROP FUNCTION sch_multiply(integer,integer);
-ERROR:  function sch_multiply(integer, integer) does not exist
 \c template1
 select current_database();
  current_database 
@@ -279,8 +256,6 @@ select current_database();
 ------------------
  template1
 (1 row)
-drop database heap_table_drop_col3;
-ERROR:  database "heap_table_drop_col3" does not exist
 --
 \echo -- end_ignore
 -- end_ignore

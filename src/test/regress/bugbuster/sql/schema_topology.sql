@@ -127,18 +127,6 @@ DROP TABLE test_emp_view;
 DROP ROLE sally;
 DROP ROLE ron;
 DROP ROLE ken;
-\c db_test_bed 
-DROP TABLE if exists sch_tbint CASCADE;
-DROP TABLE if exists sch_tchar CASCADE;
-DROP TABLE if exists sch_tclob CASCADE;
-DROP TABLE if exists sch_tversion CASCADE;
-DROP TABLE if exists sch_tjoin2 CASCADE;
-DROP TABLE if exists sch_T29 CASCADE;
-DROP TABLE if exists sch_T33 CASCADE;
-DROP TABLE if exists sch_T43 CASCADE;
-DROP view if exists sch_srf_view1;
-DROP view if exists sch_fn_view2;
-DROP FUNCTION sch_multiply(integer,integer);
 \c template1
 select current_database();
 DROP DATABASE db_test_bed;
@@ -155,7 +143,6 @@ drop table lineitem_hybrid_part;
 drop table customer_hybrid_part;
 \c template1
 select current_database();
-drop database heap_table_drop_col3;
 
 --
 \echo -- end_ignore
