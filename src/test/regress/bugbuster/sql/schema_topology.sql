@@ -10,9 +10,7 @@ drop database check_oid_relfilenode_db;
 drop database vacuum_data_db;
 drop database unvacuum_data_db;
 drop database "TEST_DB";
-drop database test_db;
 drop database "TEST_db";
-drop database test_db1;
 drop database alter_table_db;
 drop database cancel_trans;
 drop database ao_table_drop_col1;
@@ -366,20 +364,11 @@ create rule two as on insert to bar_ao do instead delete from foo_ao where a=1;
     create database "TEST_DB";
     --drop database "TEST_DB";
     
---with lowercase
-                                                                                           create database test_db;
-    --drop database test_db;
-
 --with mixedcase
 
     create database "TEST_db";
     --drop database "TEST_db";
 
---with numbers
-\echo -- start_ignore
-    create database test_db1;
-   -- drop database test_db1;
-\echo -- end_ignore
 --
 
 create database create_table_db;
@@ -950,20 +939,11 @@ create rule two as on insert to bar_ao do instead delete from foo_ao where a=1;
     create database "TEST_DB";
     --drop database "TEST_DB";
 
---with lowercase
-
-    create database test_db;
-    --drop database test_db;
-
 --with mixedcase
 
     create database "TEST_db";
     --drop database "TEST_db";
 
---with numbers
-
-    create database test_db1;
-   -- drop database test_db1;
 create database create_table_db;
 \c create_table_db
 

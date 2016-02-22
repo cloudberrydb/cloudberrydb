@@ -22,12 +22,8 @@ drop database unvacuum_data_db;
 ERROR:  database "unvacuum_data_db" does not exist
 drop database "TEST_DB";
 ERROR:  database "TEST_DB" does not exist
-drop database test_db;
-ERROR:  database "test_db" does not exist
 drop database "TEST_db";
 ERROR:  database "TEST_db" does not exist
-drop database test_db1;
-ERROR:  database "test_db1" does not exist
 drop database alter_table_db;
 ERROR:  database "alter_table_db" does not exist
 drop database cancel_trans;
@@ -471,19 +467,9 @@ NOTICE:  resource queue required -- using default resource queue "pg_default"
     create database "TEST_DB";
     --drop database "TEST_DB";
     
---with lowercase
-                                                                                           create database test_db;
-    --drop database test_db;
 --with mixedcase
     create database "TEST_db";
     --drop database "TEST_db";
---with numbers
-\echo -- start_ignore
--- start_ignore
-    create database test_db1;
-   -- drop database test_db1;
-\echo -- end_ignore
--- end_ignore
 --
 create database create_table_db;
 \c create_table_db
