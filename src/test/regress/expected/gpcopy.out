@@ -557,27 +557,27 @@ SELECT * FROM errcopy;
  5 | 5 |  
 (1 row)
 
-SELECT relname, linenum, errmsg, rawdata FROM gp_read_error_log('errcopy') ORDER BY linenum;
- relname | linenum |                        errmsg                         |    rawdata    
----------+---------+-------------------------------------------------------+---------------
- errcopy |       1 | invalid input syntax for integer: "1_text", column c  | 1,1,1_text    
-                                                                           : 
- errcopy |       2 | invalid input syntax for integer: "3_text", column c  | 3,3,3_text    
-                                                                           : 
- errcopy |       3 | invalid input syntax for integer: "8_text", column c  | 8,8,8_text    
-                                                                           : 
- errcopy |       4 | invalid input syntax for integer: "2_text", column c  | 2,2,2_text    
-                                                                           : 
- errcopy |       5 | invalid input syntax for integer: "4_text", column c  | 4,4,4_text    
-                                                                           : 
- errcopy |       6 | invalid input syntax for integer: "9_text", column c  | 9,9,9_text    
-                                                                           : 
- errcopy |       8 | invalid input syntax for integer: "10_text", column c | 10,10,10_text 
-                                                                           : 
- errcopy |       9 | invalid input syntax for integer: "6_text", column c  | 6,6,6_text    
-                                                                           : 
- errcopy |      10 | invalid input syntax for integer: "7_text", column c  | 7,7,7_text    
-                                                                           : 
+SELECT relname, errmsg, rawdata FROM gp_read_error_log('errcopy');
+ relname |                        errmsg                         |    rawdata    
+---------+-------------------------------------------------------+---------------
+ errcopy | invalid input syntax for integer: "1_text", column c  | 1,1,1_text    
+                                                                 : 
+ errcopy | invalid input syntax for integer: "3_text", column c  | 3,3,3_text    
+                                                                 : 
+ errcopy | invalid input syntax for integer: "7_text", column c  | 7,7,7_text    
+                                                                 : 
+ errcopy | invalid input syntax for integer: "9_text", column c  | 9,9,9_text    
+                                                                 : 
+ errcopy | invalid input syntax for integer: "2_text", column c  | 2,2,2_text    
+                                                                 : 
+ errcopy | invalid input syntax for integer: "4_text", column c  | 4,4,4_text    
+                                                                 : 
+ errcopy | invalid input syntax for integer: "6_text", column c  | 6,6,6_text    
+                                                                 : 
+ errcopy | invalid input syntax for integer: "8_text", column c  | 8,8,8_text    
+                                                                 : 
+ errcopy | invalid input syntax for integer: "10_text", column c | 10,10,10_text 
+                                                                 : 
 (9 rows)
 
 -- reject one row with extra column, one row with fewer columns
@@ -604,13 +604,13 @@ SELECT * FROM errcopy ORDER BY a;
  10 | 10 | 10
 (8 rows)
 
-SELECT relname, linenum, errmsg, rawdata FROM gp_read_error_log('errcopy') ORDER BY linenum;
- relname | linenum |                errmsg                 | rawdata 
----------+---------+---------------------------------------+---------
- errcopy |       4 | missing data for column "c"           | 4,4     
-                                                           : 
- errcopy |       5 | extra data after last expected column | 5,5,5,5 
-                                                           : 
+SELECT relname, errmsg, rawdata FROM gp_read_error_log('errcopy');
+ relname |                errmsg                 | rawdata 
+---------+---------------------------------------+---------
+ errcopy | missing data for column "c"           | 4,4     
+                                                 : 
+ errcopy | extra data after last expected column | 5,5,5,5 
+                                                 : 
 (2 rows)
 
 -- metacharacter
@@ -644,11 +644,11 @@ SELECT * FROM errcopy;
 ---+---+---
 (0 rows)
 
-SELECT relname, filename, linenum, bytenum, errmsg FROM gp_read_error_log('errcopy') ORDER BY linenum;
- relname | filename | linenum | bytenum |           errmsg            
----------+----------+---------+---------+-----------------------------
- errcopy | <stdin>  |       1 |         | missing data for column "b"
- errcopy | <stdin>  |       2 |         | missing data for column "b"
+SELECT relname, filename, bytenum, errmsg FROM gp_read_error_log('errcopy');
+ relname | filename | bytenum |           errmsg            
+---------+----------+---------+-----------------------------
+ errcopy | <stdin>  |         | missing data for column "b"
+ errcopy | <stdin>  |         | missing data for column "b"
 (2 rows)
 
 -- abort and keep
@@ -662,11 +662,11 @@ SELECT gp_truncate_error_log('errcopy');
 COPY errcopy from stdin delimiter '/' log errors segment reject limit 3 rows;
 ERROR:  Segment reject limit reached. Aborting operation. Last error was: missing data for column "b"  (seg0 subraa4-mac:40000 pid=87505)
 CONTEXT:  COPY errcopy, line 5: "1"
-SELECT relname, filename, linenum, bytenum, errmsg FROM gp_read_error_log('errcopy');
- relname | filename | linenum | bytenum |                errmsg                 
----------+----------+---------+---------+---------------------------------------
- errcopy | <stdin>  |       2 |         | missing data for column "c"
- errcopy | <stdin>  |       4 |         | extra data after last expected column
+SELECT relname, filename, bytenum, errmsg FROM gp_read_error_log('errcopy');
+ relname | filename | bytenum |                errmsg                 
+---------+----------+---------+---------------------------------------
+ errcopy | <stdin>  |         | missing data for column "c"
+ errcopy | <stdin>  |         | extra data after last expected column
 (2 rows)
 
 -- gp_initial_bad_row_limit guc test. This guc allows user to set the initial

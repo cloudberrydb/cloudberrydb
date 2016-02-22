@@ -602,7 +602,7 @@ ALTER table errcopy ADD COLUMN c int;
 
 COPY errcopy from '/tmp/errcopy.csv' csv null '' log errors segment reject limit 10 rows;
 SELECT * FROM errcopy;
-SELECT relname, linenum, errmsg, rawdata FROM gp_read_error_log('errcopy') ORDER BY linenum;
+SELECT relname, errmsg, rawdata FROM gp_read_error_log('errcopy');
 
 -- reject one row with extra column, one row with fewer columns
 TRUNCATE errcopy;
@@ -612,7 +612,7 @@ COPY (select i::text || ',' || i::text || case when i = 4 then '' else ',' || i:
 COPY errcopy from '/tmp/errcopy.csv' csv null '' log errors segment reject limit 10 rows;
 
 SELECT * FROM errcopy ORDER BY a;
-SELECT relname, linenum, errmsg, rawdata FROM gp_read_error_log('errcopy') ORDER BY linenum;
+SELECT relname, errmsg, rawdata FROM gp_read_error_log('errcopy');
 
 -- metacharacter
 TRUNCATE errcopy;
@@ -638,7 +638,7 @@ COPY errcopy from stdin delimiter '\t' log errors segment reject limit 3 rows;
 1       30      999
 \.
 SELECT * FROM errcopy;
-SELECT relname, filename, linenum, bytenum, errmsg FROM gp_read_error_log('errcopy') ORDER BY linenum;
+SELECT relname, filename, bytenum, errmsg FROM gp_read_error_log('errcopy');
 
 -- abort and keep
 TRUNCATE errcopy;
@@ -652,7 +652,7 @@ COPY errcopy from stdin delimiter '/' log errors segment reject limit 3 rows;
 1
 1/17/18
 \.
-SELECT relname, filename, linenum, bytenum, errmsg FROM gp_read_error_log('errcopy');
+SELECT relname, filename, bytenum, errmsg FROM gp_read_error_log('errcopy');
 
 -- gp_initial_bad_row_limit guc test. This guc allows user to set the initial
 -- number of rows which can contain errors before the database stops loading
