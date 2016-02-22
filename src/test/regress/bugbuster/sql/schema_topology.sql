@@ -102,8 +102,6 @@ DROP ROLE ken;
 \c template1
 select current_database();
 DROP ROLE admin ;
-\c template1
-select current_database();
 
 --
 \echo -- end_ignore
@@ -199,25 +197,6 @@ CREATE DATABASE db_test_bed;
     CLUSTER clusterindex on table2; 
     --drop index clusterindex;
 
-    
---Create View
-
-    create table employees1(id integer,empname varchar,sal integer) distributed randomly;
-    insert into employees1 values (1,'mohit',1000);
-    insert into employees1 values (2,'lalit',2000);
-    insert into employees1 select i,i||'_'||repeat('text',100),i from generate_series(3,100)i;
-
-    select count(*) from employees1;
-    create view empvw1 as select * from employees1; drop view empvw1;
-    --drop table employees1; 
-    
---Create Function
-    
-    CREATE FUNCTION add(integer,integer) RETURNS integer AS 'select $1 + $2;'
-    LANGUAGE SQL IMMUTABLE CONTAINS SQL
-    RETURNS NULL ON NULL INPUT;
-    --DROP FUNCTION add(integer,integer);
-    
 --Create Group
     \echo -- start_ignore
     create GROUP prachgrp; 
