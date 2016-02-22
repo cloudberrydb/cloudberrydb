@@ -1,6 +1,5 @@
 \echo -- start_ignore
-drop database create_objects_db;
-drop database create_table_db;
+drop database db_test_bed;
 drop database db_tobe_vacuum;
 drop database db_tobe_vacuum_analyze;
 drop database db_test;
@@ -32,8 +31,6 @@ drop role "iso123" ;
 
 drop GROUP prachgrp;
 
-create database db_test_bed;
-\c db_test_bed
 DROP RESOURCE QUEUE db_resque2;
 DROP RESOURCE QUEUE DB_RESque3;
 DROP RESOURCE QUEUE DB_RESQUE4;
@@ -51,7 +48,6 @@ DROP ROLE db_role10;
 DROP ROLE db_role11;
 DROP ROLE db_role12;
 DROP GROUP db_grp1;
-DROP SCHEMA db_schema1;
 
 DROP GROUP db_user_grp1;
 DROP ROLE db_user1;
@@ -66,7 +62,6 @@ DROP ROLE db_user9;
 DROP ROLE db_user10;
 DROP ROLE db_user11;
 DROP ROLE db_user12;
-DROP SCHEMA db_schema2;
 DROP RESOURCE QUEUE resqueu3;
 DROP RESOURCE QUEUE resqueu4;
 
@@ -76,7 +71,6 @@ DROP USER db_user13 ;
 DROP ROLE db_owner1;
 DROP DATABASE db_name1;
 DROP ROLE db_owner2;
-DROP SCHEMA myschema;
 
 DROP GROUP db_group1; 
 DROP GROUP db_grp2;
@@ -97,50 +91,17 @@ DROP RESOURCE QUEUE grp_rsq1 ;
 
 DROP RESOURCE QUEUE db_resque1;
 
-DROP TABLE test_tbl;
-DROP SEQUENCE  db_seq3;
-DROP SEQUENCE  db_seq4;
-DROP SEQUENCE  db_seq5;
-DROP SEQUENCE  db_seq7;
-DROP SCHEMA db_schema9 CASCADE;
-
-DROP TABLE test_emp CASCADE;
-
-DROP DOMAIN domain_us_zip_code;
-DROP DOMAIN domain_1;
-DROP DOMAIN domain_2;
-DROP SCHEMA domain_schema CASCADE;
 DROP ROLE domain_owner;
 
-DROP FUNCTION scube_accum(numeric, numeric)CASCADE;
-DROP FUNCTION pre_accum(numeric, numeric)CASCADE;
-DROP FUNCTION final_accum(numeric)CASCADE;
 DROP ROLE agg_owner;
-DROP SCHEMA agg_schema;
-DROP FUNCTION add(integer, integer) CASCADE; 
 DROP ROLE func_role ;
-DROP SCHEMA func_schema; 
-
-DROP VIEW IF EXISTS emp_view CASCADE;
-DROP TABLE test_emp_view;
 
 DROP ROLE sally;
 DROP ROLE ron;
 DROP ROLE ken;
 \c template1
 select current_database();
-DROP DATABASE db_test_bed;
 DROP ROLE admin ;
-create database gptest;
-\c gptest
-drop table region_hybrid_part;
-drop table nation_hybrid_part;
-drop table part_hybrid_part;
-drop table partsupp_hybrid_part;
-drop table supplier_hybrid_part;
-drop table orders_hybrid_part;
-drop table lineitem_hybrid_part;
-drop table customer_hybrid_part;
 \c template1
 select current_database();
 
@@ -151,8 +112,7 @@ create database ao_db;
 CREATE DATABASE db_test_bed;
 
 --
-create database create_objects_db;
-\c create_objects_db
+\c regression
 
 
 --Create Table
@@ -266,17 +226,15 @@ create database create_objects_db;
 --Create Domain
     
     create DOMAIN country_code1 char(2) NOT NULL;
-    create TABLE countrylist1(id integer,country text)distributed randomly;
    --drop DOMAIN country_code1 CASCADE;
-   --drop TABLE countrylist1; 
     
 --Create Rule
-                                                                                       create table foo_ao (a int) with (appendonly=true);
-create table bar_ao (a int);
+create table foo_rule_ao (a int) with (appendonly=true);
+create table bar_rule_ao (a int);
 
 --try and trick by setting rules
-create rule one as on insert to bar_ao do instead update foo_ao set a=1;
-create rule two as on insert to bar_ao do instead delete from foo_ao where a=1;
+create rule one as on insert to bar_rule_ao do instead update foo_rule_ao set a=1;
+create rule two as on insert to bar_rule_ao do instead delete from foo_rule_ao where a=1;
 
 --Create User
 \echo -- start_ignore
@@ -358,8 +316,7 @@ create rule two as on insert to bar_ao do instead delete from foo_ao where a=1;
 
 --
 
-create database create_table_db;
-\c create_table_db
+\c regression
 
 
 --Table with all data types

@@ -1,9 +1,7 @@
 \echo -- start_ignore
 -- start_ignore
-drop database create_objects_db;
-ERROR:  database "create_objects_db" does not exist
-drop database create_table_db;
-ERROR:  database "create_table_db" does not exist
+drop database db_test_bed;
+ERROR:  database "db_test_bed" does not exist
 drop database db_tobe_vacuum;
 ERROR:  database "db_tobe_vacuum" does not exist
 drop database db_tobe_vacuum_analyze;
@@ -58,8 +56,6 @@ drop role "iso123" ;
 ERROR:  role "iso123" does not exist
 drop GROUP prachgrp;
 ERROR:  role "prachgrp" does not exist
-create database db_test_bed;
-\c db_test_bed
 DROP RESOURCE QUEUE db_resque2;
 ERROR:  resource queue "db_resque2" does not exist
 DROP RESOURCE QUEUE DB_RESque3;
@@ -92,8 +88,6 @@ DROP ROLE db_role12;
 ERROR:  role "db_role12" does not exist
 DROP GROUP db_grp1;
 ERROR:  role "db_grp1" does not exist
-DROP SCHEMA db_schema1;
-ERROR:  schema "db_schema1" does not exist
 DROP GROUP db_user_grp1;
 ERROR:  role "db_user_grp1" does not exist
 DROP ROLE db_user1;
@@ -120,8 +114,6 @@ DROP ROLE db_user11;
 ERROR:  role "db_user11" does not exist
 DROP ROLE db_user12;
 ERROR:  role "db_user12" does not exist
-DROP SCHEMA db_schema2;
-ERROR:  schema "db_schema2" does not exist
 DROP RESOURCE QUEUE resqueu3;
 ERROR:  resource queue "resqueu3" does not exist
 DROP RESOURCE QUEUE resqueu4;
@@ -136,8 +128,6 @@ DROP DATABASE db_name1;
 ERROR:  database "db_name1" does not exist
 DROP ROLE db_owner2;
 ERROR:  role "db_owner2" does not exist
-DROP SCHEMA myschema;
-ERROR:  schema "myschema" does not exist
 DROP GROUP db_group1; 
 ERROR:  role "db_group1" does not exist
 DROP GROUP db_grp2;
@@ -172,50 +162,12 @@ DROP RESOURCE QUEUE grp_rsq1 ;
 ERROR:  resource queue "grp_rsq1" does not exist
 DROP RESOURCE QUEUE db_resque1;
 ERROR:  resource queue "db_resque1" does not exist
-DROP TABLE test_tbl;
-ERROR:  table "test_tbl" does not exist
-DROP SEQUENCE  db_seq3;
-ERROR:  sequence "db_seq3" does not exist
-DROP SEQUENCE  db_seq4;
-ERROR:  sequence "db_seq4" does not exist
-DROP SEQUENCE  db_seq5;
-ERROR:  sequence "db_seq5" does not exist
-DROP SEQUENCE  db_seq7;
-ERROR:  sequence "db_seq7" does not exist
-DROP SCHEMA db_schema9 CASCADE;
-ERROR:  schema "db_schema9" does not exist
-DROP TABLE test_emp CASCADE;
-ERROR:  table "test_emp" does not exist
-DROP DOMAIN domain_us_zip_code;
-ERROR:  type "domain_us_zip_code" does not exist
-DROP DOMAIN domain_1;
-ERROR:  type "domain_1" does not exist
-DROP DOMAIN domain_2;
-ERROR:  type "domain_2" does not exist
-DROP SCHEMA domain_schema CASCADE;
-ERROR:  schema "domain_schema" does not exist
 DROP ROLE domain_owner;
 ERROR:  role "domain_owner" does not exist
-DROP FUNCTION scube_accum(numeric, numeric)CASCADE;
-ERROR:  function scube_accum(numeric, numeric) does not exist
-DROP FUNCTION pre_accum(numeric, numeric)CASCADE;
-ERROR:  function pre_accum(numeric, numeric) does not exist
-DROP FUNCTION final_accum(numeric)CASCADE;
-ERROR:  function final_accum(numeric) does not exist
 DROP ROLE agg_owner;
 ERROR:  role "agg_owner" does not exist
-DROP SCHEMA agg_schema;
-ERROR:  schema "agg_schema" does not exist
-DROP FUNCTION add(integer, integer) CASCADE; 
-ERROR:  function add(integer, integer) does not exist
 DROP ROLE func_role ;
 ERROR:  role "func_role" does not exist
-DROP SCHEMA func_schema; 
-ERROR:  schema "func_schema" does not exist
-DROP VIEW IF EXISTS emp_view CASCADE;
-NOTICE:  view "emp_view" does not exist, skipping
-DROP TABLE test_emp_view;
-ERROR:  table "test_emp_view" does not exist
 DROP ROLE sally;
 ERROR:  role "sally" does not exist
 DROP ROLE ron;
@@ -229,33 +181,15 @@ select current_database();
  template1
 (1 row)
 
-DROP DATABASE db_test_bed;
 DROP ROLE admin ;
 ERROR:  role "admin" does not exist
-create database gptest;
-\c gptest
-drop table region_hybrid_part;
-ERROR:  table "region_hybrid_part" does not exist
-drop table nation_hybrid_part;
-ERROR:  table "nation_hybrid_part" does not exist
-drop table part_hybrid_part;
-ERROR:  table "part_hybrid_part" does not exist
-drop table partsupp_hybrid_part;
-ERROR:  table "partsupp_hybrid_part" does not exist
-drop table supplier_hybrid_part;
-ERROR:  table "supplier_hybrid_part" does not exist
-drop table orders_hybrid_part;
-ERROR:  table "orders_hybrid_part" does not exist
-drop table lineitem_hybrid_part;
-ERROR:  table "lineitem_hybrid_part" does not exist
-drop table customer_hybrid_part;
-ERROR:  table "customer_hybrid_part" does not exist
 \c template1
 select current_database();
  current_database 
 ------------------
  template1
 (1 row)
+
 --
 \echo -- end_ignore
 -- end_ignore
@@ -263,8 +197,7 @@ set optimizer_disable_missing_stats_collection = on;
 create database ao_db;
 CREATE DATABASE db_test_bed;
 --
-create database create_objects_db;
-\c create_objects_db
+\c regression
 --Create Table
 --with uppercase
     CREATE TABLE "TABLE_NAME"( col_text text, col_numeric numeric ) DISTRIBUTED RANDOMLY;
@@ -366,20 +299,18 @@ NOTICE:  resource queue required -- using default resource queue "pg_default"
 --Create Domain
     
     create DOMAIN country_code1 char(2) NOT NULL;
-    create TABLE countrylist1(id integer,country text)distributed randomly;
    --drop DOMAIN country_code1 CASCADE;
-   --drop TABLE countrylist1; 
     
 --Create Rule
-                                                                                       create table foo_ao (a int) with (appendonly=true);
+create table foo_rule_ao (a int) with (appendonly=true);
 NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Greenplum Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
-create table bar_ao (a int);
+create table bar_rule_ao (a int);
 NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Greenplum Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 --try and trick by setting rules
-create rule one as on insert to bar_ao do instead update foo_ao set a=1;
-create rule two as on insert to bar_ao do instead delete from foo_ao where a=1;
+create rule one as on insert to bar_rule_ao do instead update foo_rule_ao set a=1;
+create rule two as on insert to bar_rule_ao do instead delete from foo_rule_ao where a=1;
 --Create User
 \echo -- start_ignore
 -- start_ignore
@@ -445,8 +376,7 @@ NOTICE:  resource queue required -- using default resource queue "pg_default"
     create database "TEST_db";
     --drop database "TEST_db";
 --
-create database create_table_db;
-\c create_table_db
+\c regression
 --Table with all data types
     CREATE TABLE all_types( bit1 bit(1), bit2 bit varying(50), boolean1 boolean, char1 char(50), charvar1 character varying(50), char2 character(50),
 varchar1 varchar(50),date1 date,dp1 double precision,int1 integer,interval1 interval,numeric1 numeric,real1 real,smallint1 smallint,time1 time,bigint1 bigint,
