@@ -2360,6 +2360,8 @@ class GpTransfer(object):
         self._src_databases = None
         self._dest_databases = None
 
+        self._src_dest_partition_table_mapping = None
+
         self._all_src_databases = get_user_databases(self._options.source_host,
                                              self._options.source_port,
                                              self._options.source_user)
@@ -3151,6 +3153,9 @@ class GpTransfer(object):
         # --partition-transfer will have the exact database name for each destination table,
         # not support the regexp
         if self._options.partition_transfer:
+
+            self._src_dest_partition_table_mapping = dict()
+
             self._get_tables_from_partition_input_file()
             user_tables = get_user_tables(self._options.source_host,
                                           self._options.source_port,
@@ -3158,11 +3163,22 @@ class GpTransfer(object):
                                           self._src_databases,
                                           False,
                                           self._options.partition_transfer)
+
             # filter out non-exist source tables from source databases.
-            for tbl in self.src_dest_partition_table_mapping:
+            # key in dict: self._src_dest_partition_table_mapping maps to index of list: source_tables
+            key = 0
+            for i in range(len(self._src_prt_tables)):
+                tbl = self._src_prt_tables[i]
                 for user_tbl in user_tables:
                     if tbl == str(user_tbl):
                         source_tables.append(user_tbl)
+                        self._src_dest_partition_table_mapping[key] = self._dest_prt_tables[i]
+                        key += 1
+                        break
+
+            del self._src_prt_tables[:]
+            del self._dest_prt_tables[:]
+
             return source_tables
 
         if self._options.full:
@@ -3285,7 +3301,8 @@ class GpTransfer(object):
         read comma ',' separated partition table pair: <source, destination>,
         populate all source-destination pairs with their exact name(does not expect regexp).
         """
-        self.src_dest_partition_table_mapping = dict()
+        self._src_prt_tables = []
+        self._dest_prt_tables = []
         self._dest_databases = []
         self._src_databases = []
         fqn_format = '<db_name>.<schema_name>.<table_name>'
@@ -3326,14 +3343,17 @@ class GpTransfer(object):
                    self._options.source_port == self._options.dest_port):
                     raise Exception('Cannot transfer between same partition table %s' % src_table)
 
-                if (src_table in self.src_dest_partition_table_mapping and
-                    self.src_dest_partition_table_mapping[src_table] == dest_table):
-                    logger.warning('Duplicate entries found, source partition table %s, destination partition table %s ' %
-                                   (src_table, dest_table))
+                if src_table in self._src_prt_tables:
+                    indexes = [i for i, tbl in enumerate(self._src_prt_tables) if tbl == src_table]
+                    for i in indexes:
+                        if self._dest_prt_tables[i] == dest_table:
+                            logger.warning('Duplicate entries found, source partition table %s, destination partition table %s ' %
+                                          (src_table, dest_table))
                     continue
 
                 logger.debug('Getting source partition table "%s", destination partition table "%s"' % (src_table, dest_table))
-                self.src_dest_partition_table_mapping[src_table] = dest_table
+                self._src_prt_tables.append(src_table)
+                self._dest_prt_tables.append(dest_table)
 
                 src_db = split_fqn(src_table)[0]
                 if src_db not in self._src_databases:
@@ -3442,10 +3462,13 @@ class GpTransfer(object):
         table_pairs = list()
         seen = set()
 
-        for src_table in self._src_tables:
+        for i in range(len(self._src_tables)):
+
+            src_table = self._src_tables[i]
+
             if self._options.partition_transfer:
-                src_tbl_key = str(src_table)
-                dest_db, dest_schema, dest_tbl = split_fqn(self.src_dest_partition_table_mapping[src_tbl_key])
+                dest_prt_table = self._src_dest_partition_table_mapping[i]
+                dest_db, dest_schema, dest_tbl = split_fqn(dest_prt_table)
                 table_pair = GpTransferTablePair(src_table,
                                              GpTransferTable(dest_db,
                                                              dest_schema,
@@ -3465,6 +3488,9 @@ class GpTransfer(object):
             if table_pair not in seen:
                 seen.add(table_pair)
                 table_pairs.append(table_pair)
+
+        if self._src_dest_partition_table_mapping:
+            self._src_dest_partition_table_mapping.clear()
 
         logger.info('Number of tables to transfer: %s', len(table_pairs))
 

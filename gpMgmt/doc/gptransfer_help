@@ -228,6 +228,9 @@ OPTIONS
  the destination database. If not specified, the default is 2. The 
  maximum is 10. 
 
+ When set to 1, it starts transferring of all tables based on the order 
+ specified from -t and -f option.
+
 -d <database>
 
  A source database to copy. This option can be specified multiple times 

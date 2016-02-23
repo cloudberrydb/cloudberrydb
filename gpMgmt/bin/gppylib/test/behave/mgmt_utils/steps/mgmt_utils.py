@@ -3699,12 +3699,13 @@ def impl(context, filepath, line):
     if line in open(filepath).read():
         raise Exception("The file '%s' does contain '%s'" % (filepath, line))
 
-@then('verify that gptransfer is in order of "{filepath}"')
-def impl(context, filepath):
+@then('verify that gptransfer is in order of "{filepath}" when partition transfer is "{is_partition_transfer}"')
+def impl(context, filepath, is_partition_transfer):
     table = []
     with open(filepath) as f:
-        input_file = f.read().splitlines()
-        table = [x.replace('/', "")  for x in input_file]
+        table = f.read().splitlines()
+        if is_partition_transfer != "None":
+            table = [x.split(',')[0] for x in table]
 
     split_message = re.findall("Starting transfer of.*\n", context.stdout_message)
 
