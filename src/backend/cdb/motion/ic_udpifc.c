@@ -4343,6 +4343,26 @@ logPkt(char *prefix, icpkthdr *pkt)
  * 		Called by sender to process acked packet.
  *
  * 	Remove it from unack queue and unack queue ring, change the rtt ...
+ *
+ * 	RTT (Round Trip Time) is computed as the time between we send the packet
+ * 	and receive the acknowledgement for the packet. When an acknowledgement 
+ * 	is received, an estimated RTT value (called SRTT, smoothed RTT) is updated
+ * 	by using the following equation. And we also set a limitation of the max
+ * 	value and min value for SRTT.
+ *	    (1) SRTT = (1 - g) SRTT + g x RTT (0 < g < 1)
+ *	where RTT is the measured round trip time of the packet. In implementation,
+ *	g is set to 1/8. In order to compute expiration period, we also compute an
+ *	estimated delay variance SDEV by using:
+ *	    (2) SDEV = (1 - h) x SDEV + h x |SERR| (0 < h < 1, In implementation, h is set to 1/4)
+ *	where SERR is calculated by using:
+ *	    (3) SERR = RTT - SRTT
+ *	Expiration period determines the timing we resend a packet. A long RTT means
+ *	a long expiration period. Delay variance is used to incorporate the variance
+ *	of workload/network variances at different time. When a packet is retransmitted,
+ *	we back off exponentially the expiration period.
+ *	    (4) exp_period = (SRTT + y x SDEV) << retry
+ *	Here y is a constant (In implementation, we use 4) and retry is the times the
+ *	packet is retransmitted.
  */
 static void inline
 handleAckedPacket(MotionConn *ackConn, ICBuffer *buf, uint64 now)
@@ -4379,7 +4399,7 @@ handleAckedPacket(MotionConn *ackConn, ICBuffer *buf, uint64 now)
 	        	newRTT = Min(MAX_RTT, Max(newRTT, MIN_RTT));
 	        	buf->conn->rtt = newRTT;
 
-				newDEV = buf->conn->dev - (buf->conn->dev >> DEV_SHIFT_COEFFICIENT) + ((ackTime - newRTT) >> DEV_SHIFT_COEFFICIENT);
+	        	newDEV = buf->conn->dev - (buf->conn->dev >> DEV_SHIFT_COEFFICIENT) + ((Max(ackTime, newRTT) - Min(ackTime, newRTT)) >> DEV_SHIFT_COEFFICIENT);
 	        	newDEV = Min(MAX_DEV, Max(newDEV, MIN_DEV));
 	        	buf->conn->dev = newDEV;
 
