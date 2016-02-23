@@ -58,7 +58,7 @@ PSQLDIR = $(bindir)
 
 # where to find xsubpp for building XS.
 XSUBPPDIR = $(shell $(PERL) -e 'use List::Util qw(first); print first { -r "$$_/ExtUtils/xsubpp" } @INC')
-
+rpath = -Wl,-rpath,'$(rpathdir)',--enable-new-dtags
 include $(top_srcdir)/src/Makefile.shlib
 
 plperl.o: perlchunks.h plperl_opmask.h

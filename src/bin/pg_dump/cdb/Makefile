@@ -31,7 +31,7 @@ endif
 ifeq ($(enable_netbackup), yes)
 NETBACKUPLIB75 += -L../../../../gpAux/ext/rhel5_x86_64/Netbackup/nbu75/lib -lxbsa64 -lnbclientcST -lnbbasecST -lvxcPBXST
 NETBACKUPLIB71 += -L../../../../gpAux/ext/rhel5_x86_64/Netbackup/nbu71/lib -lxbsa64 -lnbclientcST -lnbbasecST -lvxcPBXST
-GPBSALIB += -L$(top_builddir)/src/bin/pg_dump/cdb -lgpbsa -Wl,-rpath-link,'../../../../gpAux/ext/rhel5_x86_64/Netbackup/nbu75/lib'
+GPBSALIB += -L$(top_builddir)/src/bin/pg_dump/cdb -lgpbsa -Wl,-rpath-link,\$$ORIGIN/..:\$$ORIGIN/../lib
 override CFLAGS += -I$(top_builddir)/gpAux/ext/$(BLD_ARCH)/Netbackup/nbu75/include
 endif
 
@@ -70,10 +70,10 @@ gpddboost: cdb_ddboost_util.o cdb_backup_status.o cdb_seginst.o cdb_backup_state
 	$(CC) $(CFLAGS) cdb_ddboost_util.o cdb_backup_status.o cdb_seginst.o cdb_backup_state.o cdb_table.o cdb_dump_util.o $(PGDUMP_DIR)/dumputils.o $(KEYWRDOBJS) $(libpq) $(LDFLAGS) $(LIBS) $(DDBOOSTLIB) -o $@
 
 libgpbsa75.so: cdb_bsa_util.c $(libpq_builddir)/libpq.a
-	$(CC) $(CFLAGS) -fPIC cdb_bsa_util.c $(libpq) $(LDFLAGS) -shared $(LIBS) $(DDBOOSTLIB) $(NETBACKUPLIB75) -o $@
+	$(CC) $(CFLAGS) -fPIC cdb_bsa_util.c $(libpq_builddir)/libpq.a $(LDFLAGS) -shared $(LIBS) $(DDBOOSTLIB) $(NETBACKUPLIB75) -o $@
 
 libgpbsa71.so: cdb_bsa_util.c $(libpq_builddir)/libpq.a
-	$(CC) $(CFLAGS) -fPIC cdb_bsa_util.c $(libpq) $(LDFLAGS) -shared $(LIBS) $(DDBOOSTLIB) $(NETBACKUPLIB71) -o $@
+	$(CC) $(CFLAGS) -fPIC cdb_bsa_util.c $(libpq_builddir)/libpq.a $(LDFLAGS) -shared $(LIBS) $(DDBOOSTLIB) $(NETBACKUPLIB71) -o $@
 
 libgpbsa.so: libgpbsa75.so
 	cp libgpbsa75.so libgpbsa.so
