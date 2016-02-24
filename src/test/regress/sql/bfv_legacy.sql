@@ -674,7 +674,11 @@ SELECT CASE WHEN abs(reltuples-10000000)/10000000 < 0.05 THEN 'reltuples and num
             ELSE 'reltuples and number of records for table tbl_truncate_load are inconsistent'
        END AS remark
 FROM pg_class WHERE oid='tbl_truncate_load'::regclass;
+
+-- start_ignore
 SELECT reltuples FROM pg_class WHERE oid='tbl_truncate_load'::regclass;
+-- end_ignore
+
 SELECT count(*) FROM tbl_truncate_load;
 
 
