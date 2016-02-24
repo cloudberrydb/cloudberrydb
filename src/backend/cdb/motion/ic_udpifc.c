@@ -4564,7 +4564,8 @@ handleAcks(ChunkTransportState *transportStates, ChunkTransportStateEntry *pEntr
 					break;
 				}
 
-				if (pkt->seq <= ackConn->receivedAckSeq)
+				/* don't get out of the loop if pkt->seq equals to ackConn->receivedAckSeq, need to check UDPIC_FLAGS_STOP flag */
+				if (pkt->seq < ackConn->receivedAckSeq)
 				{
 					if (DEBUG1 >= log_min_messages)
 						write_log("ack with bad seq?! expected (%d, %d] got %d flags 0x%x, capacity %d consumedSeq %d", ackConn->receivedAckSeq, ackConn->sentSeq, pkt->seq, pkt->flags, ackConn->capacity, ackConn->consumedSeq);
@@ -4581,6 +4582,13 @@ handleAcks(ChunkTransportState *transportStates, ChunkTransportStateEntry *pEntr
 					ackConn->conn_info.flags |= UDPIC_FLAGS_STOP;
 					ret = true;
 					/* continue to deal with acks */
+				}
+
+				if (pkt->seq == ackConn->receivedAckSeq)
+				{
+					if (DEBUG1 >= log_min_messages)
+						write_log("ack with bad seq?! expected (%d, %d] got %d flags 0x%x, capacity %d consumedSeq %d", ackConn->receivedAckSeq, ackConn->sentSeq, pkt->seq, pkt->flags, ackConn->capacity, ackConn->consumedSeq);
+					break;
 				}
 
 				/* deal with a regular ack. */
