@@ -47,12 +47,8 @@ class GpLoadTestCase(unittest.TestCase):
         gploader.read_config()
 	gploader.locations = [ 'gpfdist://localhost:8080/test' ]
         rejectLimit = '9999'
-        errTableOid = 12345
-	sql = gploader.get_reuse_exttable_query('csv', 'header', rejectLimit, errTableOid, {}, None, False)
-        self.assertTrue('12345' in sql)
-        self.assertTrue(rejectLimit in sql)
 
-	sql = gploader.get_reuse_exttable_query('csv', 'header', None, None, {}, None, False)
+	sql = gploader.get_reuse_exttable_query('csv', 'header', None, {}, None, False)
         self.assertTrue('pgext.fmterrtbl IS NULL' in sql)
         self.assertTrue('pgext.rejectlimit IS NULL' in sql)
 

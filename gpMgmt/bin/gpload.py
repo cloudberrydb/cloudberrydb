@@ -1447,6 +1447,8 @@ class gpload:
             # like libpq, just inherit USER
             self.options.d = self.options.U
 
+        if self.getconfig('gpload:input:error_table', unicode, None):
+            self.control_file_error("ERROR_TABLE is not supported. Please use LOG_ERRORS instead.")
 
     def gpfdist_port_options(self, name, availablePorts, popenList):
         """
@@ -1965,7 +1967,7 @@ class gpload:
     # This function will return the SQL to run in order to find out whether
     # such a table exists.
     # 
-    def get_reuse_exttable_query(self, formatType, formatOpts, limitStr, errorTableOid, from_cols, schemaName, log_errors):
+    def get_reuse_exttable_query(self, formatType, formatOpts, limitStr, from_cols, schemaName, log_errors):
         sqlFormat = """select attrelid::regclass
                  from (
                         select 
@@ -2008,9 +2010,7 @@ class gpload:
 
         sql = sqlFormat % (joinStr, conditionStr)
 
-        if errorTableOid:
-            sql += " WHERE pgext.fmterrtbl = %d\n " % errorTableOid
-        elif log_errors:
+        if log_errors:
             sql += " WHERE pgext.fmterrtbl = pgext.reloid "
         else:
             sql += " WHERE pgext.fmterrtbl IS NULL " 
@@ -2174,9 +2174,6 @@ class gpload:
         encodingStr = self.getconfig('gpload:input:encoding', unicode, None)
 
         limitStr = self.getconfig('gpload:input:error_limit',int, None)
-        if self.error_table and not limitStr:
-            self.control_file_error("gpload:input:error_table requires " +
-                    "gpload:input:error_limit to be specified")
         if self.log_errors and not limitStr:
             self.control_file_error("gpload:input:log_errors requires " +
                     "gpload:input:error_limit to be specified")
@@ -2198,17 +2195,15 @@ class gpload:
         # the one that we need to use. It must have identical attributes,
         # external location, format, and encoding specifications.
         if self.reuse_tables == True:
-                         
-            if (not self.error_table or self.error_table_oid): 
-                sql = self.get_reuse_exttable_query(formatType, formatOpts,
-                        limitStr, self.error_table_oid, from_cols, self.extSchemaName, self.log_errors)
-                resultList = self.db.query(sql.encode('utf-8')).getresult()
-                if len(resultList) > 0:
-                    # found an external table to reuse. no need to create one. we're done here.
-                    self.extTableName = (resultList[0])[0]
-                    self.extSchemaTable = self.extTableName
-                    self.log(self.INFO, "reusing external table %s" % self.extSchemaTable)
-                    return
+            sql = self.get_reuse_exttable_query(formatType, formatOpts,
+                    limitStr, from_cols, self.extSchemaName, self.log_errors)
+            resultList = self.db.query(sql.encode('utf-8')).getresult()
+            if len(resultList) > 0:
+                # found an external table to reuse. no need to create one. we're done here.
+                self.extTableName = (resultList[0])[0]
+                self.extSchemaTable = self.extTableName
+                self.log(self.INFO, "reusing external table %s" % self.extSchemaTable)
+                return
 
             # didn't find an existing external table suitable for reuse. Format a reusable
             # name and issue a CREATE EXTERNAL TABLE on it. Hopefully we can use it next time
@@ -2228,8 +2223,6 @@ class gpload:
             sql += "(%s) "% formatOpts
         if encodingStr:
             sql += "encoding%s "%quote(encodingStr)
-        if self.error_table:
-            sql += "log errors into %s " % self.error_table
         if self.log_errors:
             sql += "log errors "
 
@@ -2332,12 +2325,9 @@ class gpload:
 
     def count_errors(self):
         notice_processor(self)
-        if (self.error_table or self.log_errors) and not self.options.D and not self.reuse_tables:
+        if self.log_errors and not self.options.D and not self.reuse_tables:
             # make sure we only get errors for our own instance
-            if self.error_table:
-                queryStr = 'select count(*) from ' + self.error_table + " WHERE relname = '%s'" % self.extTableName
-            else:
-                queryStr = "select count(*) from gp_read_error_log('%s')" %self.extTableName
+            queryStr = "select count(*) from gp_read_error_log('%s')" % pg.escape_string(self.extTableName)
             results = self.db.query(queryStr.encode('utf-8')).getresult()
             return (results[0])[0]
         return 0
@@ -2582,15 +2572,10 @@ class gpload:
         # Is the table to be truncated before the load?
         preload = self.getconfig('gpload:preload', list, default=None)
         method = self.getconfig('gpload:output:mode', unicode, 'insert').lower()
-        self.error_table = self.getconfig('gpload:input:error_table', unicode, None)
         self.log_errors = self.getconfig('gpload:input:log_errors', bool, False)
-        if self.error_table and self.log_errors:
-            self.control_file_error("gpload:input:log_errors and gpload:input:error_table are not allowd to use together.")
         truncate = False
         self.reuse_tables = False
 
-        self.error_table_oid = self.get_table_oid(self.error_table)
-        
         if not self.options.no_auto_trans and not method=='insert':
             self.db.query("BEGIN")
 
