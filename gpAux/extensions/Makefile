@@ -24,11 +24,25 @@ endif
 all: mkdbgen mkgphdfs mks3ext
 
 .PHONY:
+mapreduce:
+	if [ "$(enable_mapreduce)" = "yes" ]; then \
+		echo "gpmapreduce enabled"; \
+		$(MAKE) -C gpmapreduce; \
+	fi
+
+install: mapreduce
+	if [ "$(enable_mapreduce)" = "yes" ]; then \
+		$(MAKE) -C gpmapreduce install; \
+	fi
+
 clean:
-	@if [ -f gpfdist/GNUmakefile ]; then $(MAKE) -C gpfdist clean; fi
+	@if [ -f gpfdist/GNUmakefile ]; then $(MAKE) -C gpfdist clean; fi; \
+	if [ "$(enable_mapreduce)" = "yes" ]; then $(MAKE) -C gpmapreduce clean; fi
+
 
 distclean:
-	@if [ -f gpfdist/GNUmakefile ]; then $(MAKE) -C gpfdist clean; fi
+	@if [ -f gpfdist/GNUmakefile ]; then $(MAKE) -C gpfdist clean; fi; \
+	if [ "$(enable_mapreduce)" = "yes" ]; then $(MAKE) -C gpmapreduce distclean; fi
 
 .PHONY:
 mkgphdfs:
