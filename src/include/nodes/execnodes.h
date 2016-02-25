@@ -2586,7 +2586,6 @@ typedef struct PartitionSelectorState
 
 } PartitionSelectorState;
 
-extern void sendInitGpmonPkts(Plan *node, EState *estate);
 extern void initGpmonPktForResult(Plan *planNode, gpmon_packet_t *gpmon_pkt, EState *estate);
 extern void initGpmonPktForAppend(Plan *planNode, gpmon_packet_t *gpmon_pkt, EState *estate);
 extern void initGpmonPktForSequence(Plan *planNode, gpmon_packet_t *gpmon_pkt, EState *estate);
@@ -2622,11 +2621,5 @@ extern void initGpmonPktForRepeat(Plan *planNode, gpmon_packet_t *gpmon_pkt, ESt
 extern void initGpmonPktForDefunctOperators(Plan *planNode, gpmon_packet_t *gpmon_pkt, EState *estate);
 extern void initGpmonPktForDML(Plan *planNode, gpmon_packet_t *gpmon_pkt, EState *estate);
 extern void initGpmonPktForPartitionSelector(Plan *planNode, gpmon_packet_t *gpmon_pkt, EState *estate);
-/*
- * The funcion pointers to init gpmon package for each plan node.
- * The order of the function pointers are the same as the one defined in
- * NodeTag (nodes.h).
- */
-extern void (*initGpmonPktFuncs[T_Plan_End - T_Plan_Start])(Plan *planNode, gpmon_packet_t *gpmon_pkt, EState *estate);
 
 #endif   /* EXECNODES_H */
