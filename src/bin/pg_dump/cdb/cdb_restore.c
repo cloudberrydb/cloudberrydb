@@ -207,11 +207,6 @@ main(int argc, char **argv)
 			mpp_err_msg(logInfo, progname, "All remote %s programs are finished.\n", pszAgent);
 		}
 
-		/*
-		 * If any AO table data was restored, update the master AO statistics
-		 */
-		if (bAoStats)
-			updateAppendOnlyStats(pConn);
 	}
 
 	/*
@@ -1393,112 +1388,6 @@ restoreMaster(InputOptions * pInputOpts,
 	return rtn;
 }
 
-/*
- * updateAppendOnlyStats
- *
- * for every append only that exists in the database (whether we just restored
- * it or not) update its statistics on the master - note that this must not be
- * made with utility mode connection, but rather a regular connection.
- */
-void
-updateAppendOnlyStats(PGconn *pConn)
-{
-	/* query that gets all ao tables in the database */
-	PQExpBuffer get_query = createPQExpBuffer();
-	PGresult   *get_res;
-	int			get_ntups = 0;
-
-	/* query that updates all ao tables in the database */
-	PQExpBuffer update_query = createPQExpBuffer();
-	PGresult   *update_res = NULL;
-	int			update_ntups = 0;
-
-	/* misc */
-	int			i_tablename = 0;
-	int			i_schemaname = 0;
-	int			i = 0;
-
-	mpp_err_msg(logInfo, progname, "updating Append Only table statistics\n");
-
-	/* Fetch all Append Only tables */
-	appendPQExpBuffer(get_query,
-					  "SELECT c.relname,n.nspname "
-					  "FROM pg_class c, pg_namespace n "
-					  "WHERE c.relnamespace=n.oid "
-					  "AND (c.relstorage='a' OR c.relstorage='c')");
-
-	get_res = PQexec(pConn, get_query->data);
-
-	if (!get_res || PQresultStatus(get_res) != PGRES_TUPLES_OK)
-	{
-		const char *err;
-
-		if (get_res)
-			err = PQresultErrorMessage(get_res);
-		else
-			err = PQerrorMessage(pConn);
-
-		mpp_err_msg(logWarn, progname,
-					"Failed to get Append Only tables for updating stats. "
-					"error was: %s\n", err);
-
-	}
-	else
-	{
-		/* A-OK */
-		get_ntups = PQntuples(get_res);
-		i_tablename = PQfnumber(get_res, "relname");
-		i_schemaname = PQfnumber(get_res, "nspname");
-
-		for (i = 0; i < get_ntups; i++)
-		{
-			char	   *tablename = PQgetvalue(get_res, i, i_tablename);
-			char	   *schemaname = PQgetvalue(get_res, i, i_schemaname);
-
-			resetPQExpBuffer(update_query);
-			appendPQExpBuffer(update_query,
-							  "SELECT * "
-							  "FROM gp_update_ao_master_stats('%s.%s')",
-							  schemaname, tablename);
-
-			update_res = PQexec(pConn, update_query->data);
-
-			if (!update_res || PQresultStatus(update_res) != PGRES_TUPLES_OK)
-			{
-				const char *err;
-
-				if (update_res)
-					err = PQresultErrorMessage(update_res);
-				else
-					err = PQerrorMessage(pConn);
-
-				mpp_err_msg(logWarn, progname,
-							"Failed to update Append Only table stats. error "
-						"was: %s, query was: %s\n", err, update_query->data);
-			}
-			else
-			{
-				/* A-OK */
-				update_ntups = PQntuples(update_res);
-				if (update_ntups != 1)
-					mpp_err_msg(logWarn, progname,
-								"Expected 1 tuple, got %d. query was: %s\n",
-								update_ntups, update_query->data);
-			}
-		}
-	}
-
-	/* clean up */
-	if (update_res)
-		PQclear(update_res);
-
-	if (get_res)
-		PQclear(get_res);
-
-	destroyPQExpBuffer(get_query);
-	destroyPQExpBuffer(update_query);
-
-}
 
 /*
  * spinOffThreads: This function deals with all the threads that drive the backend restores.
