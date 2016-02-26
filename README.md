@@ -18,19 +18,14 @@ On x86 systems, GPORCA can also be built as a 32-bit or 64-bit library. You'll
 need CMake 3.0 or higher to build GPORCA. Get it from cmake.org, or your
 operating system's package manager.
 
-## Quick Start: Build GPORCA and install under /usr/local
+# First Time Setup
+
+## Clone GPORCA
 
 ```
 git clone https://github.com/greenplum-db/gporca.git
 cd gporca
-mkdir build
-cd build
-cmake ../
-make
-sudo make install
 ```
-
-Or read on for more detailed instructions below...
 
 ## Pre-Requisites
 
@@ -44,17 +39,6 @@ GPORCA uses the following libraries:
 gives instructions for building and installing GPOS. Note that the build type
 (e.g. DEBUG vs. RELEASE) for GPOS and GPORCA should match (mixing and matching
 can lead to errors).
-
-If GPOS was installed to the default location, the cmake build system for
-GPORCA should find it automatically. Otherwise, cmake can be pointed to your
-GPOS installation with the `GPOS_INCLUDE_DIR` and `GPOS_LIBRARY` options like
-so:
-
-```
-cmake -D GPOS_INCLUDE_DIR=/opt/gpos/include -D GPOS_LIBRARY=/opt/gpos/lib/libgpos.so ..
-```
-
-Note that on Mac OS X, the library name will end with `.dylib` instead of `.so`.
 
 ### Installing GP-Xerces
 
@@ -81,35 +65,17 @@ make
 sudo make install
 ```
 
-It is recommended to use the `--prefix` option to the Xerces-C configure script
-to install GP-Xerces in a location other than the default under `/usr/local/`,
-because you may have other software that depends on Xerces-C, and the changes
-introduced in the GP-Xerces patch make it incompatible with the upstream
-version. Installing in a non-default prefix allows you to have GP-Xerces
-installed side-by-side with unpatched Xerces without incompatibilities.
-
-You can point cmake at your patched GP-Xerces installation using the
-`XERCES_INCLUDE_DIR` and `XERCES_LIBRARY` options like so:
-
-However, to use the current build scripts in GPDB, Xerces with the gp_xerces
-patch will need to be placed on the /usr path.
+## Build GPORCA
 
 ```
-cmake -D XERCES_INCLUDE_DIR=/opt/gp_xerces/include -D XERCES_LIBRARY=/opt/gp_xerces/lib/libxerces-c.so ..
+mkdir build
+cd build
+cmake ../
+make
+sudo make install
 ```
 
-Again, on Mac OS X, the library name will end with `.dylib` instead of `.so`.
-
-**Advanced - Cross-compiling 32-bit or 64-bit libraries** Unless you intend to
-cross-compile a 32 or 64-bit version of GP-Orca, you can ignore these
-instructions. If you need to explicitly compile for the 32 or 64-bit version of
-your architecture, you need to set the `CFLAGS` and `CXXFLAGS` environment
-variables for the configure script like so (use `-m32` for 32-bit, `-m64` for
-64-bit):
-
-```
-CFLAGS="-m32" CXXFLAGS="-m32" ../configure --prefix=/opt/gp_xerces_32
-```
+# Advanced Setup
 
 ## Preperation for build
 
@@ -144,6 +110,53 @@ cmake -D CMAKE_BUILD_TYPE=RELEASE ../
 ```
 
 ## Explicitly Specifying GPOS and GP-Xerces For Build
+
+### GPOS
+
+If GPOS was installed to the default location, the cmake build system for
+GPORCA should find it automatically. Otherwise, cmake can be pointed to your
+GPOS installation with the `GPOS_INCLUDE_DIR` and `GPOS_LIBRARY` options like
+so:
+
+```
+cmake -D GPOS_INCLUDE_DIR=/opt/gpos/include -D GPOS_LIBRARY=/opt/gpos/lib/libgpos.so ..
+```
+
+Note that on Mac OS X, the library name will end with `.dylib` instead of `.so`.
+
+### GP-XERCES
+
+It is recommended to use the `--prefix` option to the Xerces-C configure script
+to install GP-Xerces in a location other than the default under `/usr/local/`,
+because you may have other software that depends on Xerces-C, and the changes
+introduced in the GP-Xerces patch make it incompatible with the upstream
+version. Installing in a non-default prefix allows you to have GP-Xerces
+installed side-by-side with unpatched Xerces without incompatibilities.
+
+You can point cmake at your patched GP-Xerces installation using the
+`XERCES_INCLUDE_DIR` and `XERCES_LIBRARY` options like so:
+
+However, to use the current build scripts in GPDB, Xerces with the gp_xerces
+patch will need to be placed on the /usr path.
+
+```
+cmake -D XERCES_INCLUDE_DIR=/opt/gp_xerces/include -D XERCES_LIBRARY=/opt/gp_xerces/lib/libxerces-c.so ..
+```
+
+Again, on Mac OS X, the library name will end with `.dylib` instead of `.so`.
+
+**Advanced - Cross-compiling 32-bit or 64-bit libraries** Unless you intend to
+cross-compile a 32 or 64-bit version of GP-Orca, you can ignore these
+instructions. If you need to explicitly compile for the 32 or 64-bit version of
+your architecture, you need to set the `CFLAGS` and `CXXFLAGS` environment
+variables for the configure script like so (use `-m32` for 32-bit, `-m64` for
+64-bit):
+
+```
+CFLAGS="-m32" CXXFLAGS="-m32" ../configure --prefix=/opt/gp_xerces_32
+```
+
+### GPORCA
 
 As noted in the prerequisites section above, you may specify the
 `GPOS_INCLUDE_DIR` and `GPOS_LIBRARY` options to tell cmake where to find
