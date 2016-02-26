@@ -385,6 +385,7 @@ CDXLTokens::Init
 			{EdxltokenGpSegmentIdColId, GPOS_WSZ_LIT("SegmentIdCol")},
 			{EdxltokenTupleOidColId, GPOS_WSZ_LIT("TupleOidCol")},
 			{EdxltokenUpdatePreservesOids, GPOS_WSZ_LIT("PreserveOids")},
+			{EdxltokenInputSorted, GPOS_WSZ_LIT("InputSorted")},
 
 			{EdxltokenInputSegments, GPOS_WSZ_LIT("InputSegments")},
 			{EdxltokenOutputSegments, GPOS_WSZ_LIT("OutputSegments")},

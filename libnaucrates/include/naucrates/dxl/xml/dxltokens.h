@@ -345,6 +345,7 @@ namespace gpdxl
 		EdxltokenGpSegmentIdColId,
 		EdxltokenTupleOidColId,
 		EdxltokenUpdatePreservesOids,
+		EdxltokenInputSorted,
 		
 		EdxltokenInputSegments,
 		EdxltokenOutputSegments,

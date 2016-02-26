@@ -240,7 +240,7 @@
       </dxl:LogicalInsert>
     </dxl:Query>
 <dxl:Plan Id="0" SpaceSize="2">
-  <dxl:DMLInsert Columns="0,1" ActionCol="10" OidCol="9" CtidCol="0" SegmentIdCol="0">
+  <dxl:DMLInsert Columns="0,1" ActionCol="10" OidCol="9" CtidCol="0" SegmentIdCol="0" InputSorted="false">
     <dxl:Properties>
       <dxl:Cost StartupCost="0" TotalCost="3.074219" Rows="1.000000" Width="16"/>
     </dxl:Properties>

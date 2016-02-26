@@ -77,13 +77,15 @@ namespace gpopt
 			// required columns by local members
 			CColRefSet *m_pcrsRequiredLocal;
 
+			// needs the data to be sorted or not
+			BOOL m_fInputSorted;
+
 			// compute required order spec
 			COrderSpec *PosComputeRequired
 				(
 				IMemoryPool *pmp, 
 				CTableDescriptor *ptabdesc
-				)
-				const;
+				);
 			
 			// compute local required columns
 			void ComputeRequiredLocalColumns(IMemoryPool *pmp);
@@ -188,6 +190,13 @@ namespace gpopt
 			BOOL FInputOrderSensitive() const
 			{
 				return false;
+			}
+
+			// needs the data to be sorted or not
+			virtual
+			BOOL FInputSorted() const
+			{
+				return m_fInputSorted;
 			}
 					
 			//-------------------------------------------------------------------------------------

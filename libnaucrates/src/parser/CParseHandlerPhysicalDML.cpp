@@ -56,7 +56,8 @@ CParseHandlerPhysicalDML::CParseHandlerPhysicalDML
 	m_ulCtid(0),
 	m_ulSegmentId(0),	
 	m_fPreserveOids(false),
-	m_ulTupleOidColId(0)
+	m_ulTupleOidColId(0),
+	m_fInputSorted(false)
 {
 }
 
@@ -120,6 +121,18 @@ CParseHandlerPhysicalDML::StartElement
 	if (m_fPreserveOids)
 	{
 		m_ulTupleOidColId = CDXLOperatorFactory::UlValueFromAttrs(m_pphm->Pmm(), attrs, EdxltokenTupleOidColId, EdxltokenPhysicalDMLUpdate);
+	}
+
+	const XMLCh *xmlszInputSorted = attrs.getValue(CDXLTokens::XmlstrToken(EdxltokenInputSorted));
+	if (NULL != xmlszInputSorted)
+	{
+		m_fInputSorted = CDXLOperatorFactory::FValueFromXmlstr
+											(
+											m_pphm->Pmm(),
+											xmlszInputSorted,
+											EdxltokenInputSorted,
+											EdxltokenPhysicalDMLInsert
+											);
 	}
 
 	// parse handler for physical operator
@@ -195,7 +208,7 @@ CParseHandlerPhysicalDML::EndElement
 
 	CDXLDirectDispatchInfo *pdxlddinfo = pphDirectDispatch->Pdxlddinfo();
 	pdxlddinfo->AddRef();
-	CDXLPhysicalDML *pdxlop = GPOS_NEW(m_pmp) CDXLPhysicalDML(m_pmp, m_edxldmltype, pdxltabdesc, m_pdrgpul, m_ulAction, m_ulOid, m_ulCtid, m_ulSegmentId, m_fPreserveOids, m_ulTupleOidColId, pdxlddinfo);
+	CDXLPhysicalDML *pdxlop = GPOS_NEW(m_pmp) CDXLPhysicalDML(m_pmp, m_edxldmltype, pdxltabdesc, m_pdrgpul, m_ulAction, m_ulOid, m_ulCtid, m_ulSegmentId, m_fPreserveOids, m_ulTupleOidColId, pdxlddinfo, m_fInputSorted);
 	m_pdxln = GPOS_NEW(m_pmp) CDXLNode(m_pmp, pdxlop);
 	
 	// set statistics and physical properties

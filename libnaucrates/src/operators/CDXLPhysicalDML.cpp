@@ -46,7 +46,8 @@ CDXLPhysicalDML::CDXLPhysicalDML
 	ULONG ulSegmentId,
 	BOOL fPreserveOids,
 	ULONG ulTupleOid,
-	CDXLDirectDispatchInfo *pdxlddinfo
+	CDXLDirectDispatchInfo *pdxlddinfo,
+	BOOL fInputSorted
 	)
 	:
 	CDXLPhysical(pmp),
@@ -59,7 +60,8 @@ CDXLPhysicalDML::CDXLPhysicalDML
 	m_ulSegmentId(ulSegmentId),
 	m_fPreserveOids(fPreserveOids),
 	m_ulTupleOid(ulTupleOid),
-	m_pdxlddinfo(pdxlddinfo)
+	m_pdxlddinfo(pdxlddinfo),
+	m_fInputSorted(fInputSorted)
 {
 	GPOS_ASSERT(EdxldmlSentinel > edxldmltype);
 	GPOS_ASSERT(NULL != pdxltabdesc);
@@ -146,6 +148,7 @@ CDXLPhysicalDML::SerializeToDXL
 	pxmlser->AddAttribute(CDXLTokens::PstrToken(EdxltokenOidColId), m_ulOid);
 	pxmlser->AddAttribute(CDXLTokens::PstrToken(EdxltokenCtidColId), m_ulCtid);
 	pxmlser->AddAttribute(CDXLTokens::PstrToken(EdxltokenGpSegmentIdColId), m_ulSegmentId);
+	pxmlser->AddAttribute(CDXLTokens::PstrToken(EdxltokenInputSorted), m_fInputSorted);
 	
 	if (Edxldmlupdate == m_edxldmltype)
 	{

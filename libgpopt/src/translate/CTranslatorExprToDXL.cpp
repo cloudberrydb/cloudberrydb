@@ -4940,7 +4940,8 @@ CTranslatorExprToDXL::PdxlnDML
 									ulSegmentId, 
 									fPreserveOids, 
 									ulTupleOid,
-									pdxlddinfo
+									pdxlddinfo,
+									popDML->FInputSorted()
 									);
 	
 	// project list

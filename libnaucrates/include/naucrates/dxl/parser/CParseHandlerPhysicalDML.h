@@ -65,6 +65,9 @@ namespace gpdxl
 			// tuple oid column id
 			ULONG m_ulTupleOidColId;
 
+			// needs data to be sorted
+			BOOL m_fInputSorted;
+
 			// private copy ctor
 			CParseHandlerPhysicalDML(const CParseHandlerPhysicalDML &);
 
