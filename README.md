@@ -67,6 +67,8 @@ sudo make install
 
 ## Build GPORCA
 
+Go into `gporca` directory:
+
 ```
 mkdir build
 cd build
@@ -75,37 +77,61 @@ make
 sudo make install
 ```
 
+## Test GPORCA
+
+To run all GPORCA tests, simply use the `ctest` command from the build directory
+after `make` finishes.
+
+```
+ctest
+```
+
+Much like `make`, `ctest` has a -j option that allows running multiple tests in
+parallel to save time. Using it is recommended for faster testing.
+
+```
+ctest -j7
+```
+
+By default, `ctest` does not print the output of failed tests. To print the
+output of failed tests, use the `--output-on-failure` flag like so (this is
+useful for debugging failed tests):
+
+```
+ctest -j7 --output-on-failure
+```
+
+To run a specific individual test, use the `gporca_test` executable directly.
+
+```
+./server/gporca_test -U CAggTest
+```
+
+Note that some tests use assertions that are only enabled for DEBUG builds, so
+DEBUG-mode tests tend to be more rigorous.
+
 # Advanced Setup
 
-## Preperation for build
+## How to generate make files with different options
 
-
-Go into gporca and create a build folder
-```
-mkdir build
-cd build
-```
-
-### How to generate make files with default options
 Please ensure that build type of GPOS matches the version of Optimizer libraries
 you are trying to build. Mixing and matching a DEBUG GPOS with a RELEASE Orca or
 vice-versa may cause problems.
 
-* debug build
+Here are few build flavors:
 
 ```
+# debug build
 cmake -D CMAKE_BUILD_TYPE=DEBUG ../
 ```
 
-* release build with debug info
-
 ```
+# release build with debug info
 cmake -D CMAKE_BUILD_TYPE=RelWithDebInfo ../
 ```
 
-* release build
-
 ```
+# release build
 cmake -D CMAKE_BUILD_TYPE=RELEASE ../
 ```
 
@@ -145,17 +171,6 @@ cmake -D XERCES_INCLUDE_DIR=/opt/gp_xerces/include -D XERCES_LIBRARY=/opt/gp_xer
 
 Again, on Mac OS X, the library name will end with `.dylib` instead of `.so`.
 
-**Advanced - Cross-compiling 32-bit or 64-bit libraries** Unless you intend to
-cross-compile a 32 or 64-bit version of GP-Orca, you can ignore these
-instructions. If you need to explicitly compile for the 32 or 64-bit version of
-your architecture, you need to set the `CFLAGS` and `CXXFLAGS` environment
-variables for the configure script like so (use `-m32` for 32-bit, `-m64` for
-64-bit):
-
-```
-CFLAGS="-m32" CXXFLAGS="-m32" ../configure --prefix=/opt/gp_xerces_32
-```
-
 ### GPORCA
 
 As noted in the prerequisites section above, you may specify the
@@ -170,7 +185,20 @@ For example:
 cmake -D XERCES_INCLUDE_DIR=/opt/gp_xerces/include -D XERCES_LIBRARY=/opt/gp_xerces/lib/libxerces-c.so ../
 ```
 
-## Advanced: Cross-Compiling 32-bit or 64-bit libraries
+## Cross-Compiling 32-bit or 64-bit libraries
+
+### GP-XERCES
+Unless you intend to cross-compile a 32 or 64-bit version of GP-Orca, you can ignore these
+instructions. If you need to explicitly compile for the 32 or 64-bit version of
+your architecture, you need to set the `CFLAGS` and `CXXFLAGS` environment
+variables for the configure script like so (use `-m32` for 32-bit, `-m64` for
+64-bit):
+
+```
+CFLAGS="-m32" CXXFLAGS="-m32" ../configure --prefix=/opt/gp_xerces_32
+```
+
+### GPORCA
 
 For the most part you should not need to explicitly compile a 32-bit or 64-bit
 version of the optimizer libraries. By default, a "native" version for your host
@@ -194,60 +222,21 @@ And for 64-bit x86:
 cmake -D CMAKE_TOOLCHAIN_FILE=../cmake/x86_64.toolchain.cmake ../
 ```
 
-## How to build
+## How to speed-up the build (or debug it)
 
-* build
-
-```
-make
-```
-
-* for faster build use the -j option of make. For instance, the following command runs make on 7 job slots
+For faster build use the -j option of make. For instance, the following command runs make on 7 job slots
 
 ```
 make -j7
 ```
 
-* show all commands being run as part of make
+Show all commands being run as part of make (for debugging purpose)
 
 ```
 make VERBOSE=1
 ```
 
-## How to test
-
-To run all GPORCA tests, simply use the `ctest` command from the build directory
-after `make` finishes.
-
-```
-ctest
-```
-
-Much like `make`, `ctest` has a -j option that allows running multiple tests in
-parallel to save time. Using it is recommended for faster testing.
-
-```
-ctest -j7
-```
-
-By default, `ctest` does not print the output of failed tests. To print the
-output of failed tests, use the `--output-on-failure` flag like so (this is
-useful for debugging failed tests):
-
-```
-ctest -j7 --output-on-failure
-```
-
-To run a specific individual test, use the `gporca_test` executable directly.
-
-```
-./server/gporca_test -U CAggTest
-```
-
-Note that some tests use assertions that are only enabled for DEBUG builds, so
-DEBUG-mode tests tend to be more rigorous.
-
-### Advanced: Extended Tests
+### Extended Tests
 
 Debug builds of GPORCA include a couple of "extended" tests for features like
 fault-simulation and time-slicing that work by running the entire test suite
@@ -255,7 +244,7 @@ in combination with the feature being tested. These tests can take a long time
 to run and are not enabled by default. To turn extended tests on, add the cmake
 arguments `-D ENABLE_EXTENDED_TESTS=1`.
 
-## How to install
+## Installation Details
 
 GPORCA has three libraries:
 
@@ -284,20 +273,25 @@ the library is located at:
 /usr/local/lib/libgpopt.so*
 ```
 
-* build and install
+Build and install:
 ```
 make install
 ```
-* build and install with verbose output
+
+Build and install with verbose output
 ```
 make VERBOSE=1 install
 ```
 
-## Clean up stuff
+## Cleanup
 
-* remove the cmake files generated under build
+Remove the `cmake` files generated under `build` folder of `gporca` repo:
 
-* Remove gporca header files and library, (assuming the default install prefix /usr/local)
+```
+rm -fr build/*
+```
+
+Remove gporca header files and library, (assuming the default install prefix /usr/local)
 
 ```
 rm -rf /usr/local/include/naucrates
