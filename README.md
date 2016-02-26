@@ -18,19 +18,14 @@ On x86 systems, GPORCA can also be built as a 32-bit or 64-bit library. You'll
 need CMake 3.0 or higher to build GPORCA. Get it from cmake.org, or your
 operating system's package manager.
 
-## Quick Start: Build GPORCA and install under /usr/local
+# First Time Setup
+
+## Clone GPORCA
 
 ```
 git clone https://github.com/greenplum-db/gporca.git
 cd gporca
-mkdir build
-cd build
-cmake ../
-make
-sudo make install
 ```
-
-Or read on for more detailed instructions below...
 
 ## Pre-Requisites
 
@@ -44,17 +39,6 @@ GPORCA uses the following libraries:
 gives instructions for building and installing GPOS. Note that the build type
 (e.g. DEBUG vs. RELEASE) for GPOS and GPORCA should match (mixing and matching
 can lead to errors).
-
-If GPOS was installed to the default location, the cmake build system for
-GPORCA should find it automatically. Otherwise, cmake can be pointed to your
-GPOS installation with the `GPOS_INCLUDE_DIR` and `GPOS_LIBRARY` options like
-so:
-
-```
-cmake -D GPOS_INCLUDE_DIR=/opt/gpos/include -D GPOS_LIBRARY=/opt/gpos/lib/libgpos.so ..
-```
-
-Note that on Mac OS X, the library name will end with `.dylib` instead of `.so`.
 
 ### Installing GP-Xerces
 
@@ -81,127 +65,19 @@ make
 sudo make install
 ```
 
-It is recommended to use the `--prefix` option to the Xerces-C configure script
-to install GP-Xerces in a location other than the default under `/usr/local/`,
-because you may have other software that depends on Xerces-C, and the changes
-introduced in the GP-Xerces patch make it incompatible with the upstream
-version. Installing in a non-default prefix allows you to have GP-Xerces
-installed side-by-side with unpatched Xerces without incompatibilities.
+## Build GPORCA
 
-You can point cmake at your patched GP-Xerces installation using the
-`XERCES_INCLUDE_DIR` and `XERCES_LIBRARY` options like so:
+Go into `gporca` directory:
 
-However, to use the current build scripts in GPDB, Xerces with the gp_xerces
-patch will need to be placed on the /usr path.
-
-```
-cmake -D XERCES_INCLUDE_DIR=/opt/gp_xerces/include -D XERCES_LIBRARY=/opt/gp_xerces/lib/libxerces-c.so ..
-```
-
-Again, on Mac OS X, the library name will end with `.dylib` instead of `.so`.
-
-**Advanced - Cross-compiling 32-bit or 64-bit libraries** Unless you intend to
-cross-compile a 32 or 64-bit version of GP-Orca, you can ignore these
-instructions. If you need to explicitly compile for the 32 or 64-bit version of
-your architecture, you need to set the `CFLAGS` and `CXXFLAGS` environment
-variables for the configure script like so (use `-m32` for 32-bit, `-m64` for
-64-bit):
-
-```
-CFLAGS="-m32" CXXFLAGS="-m32" ../configure --prefix=/opt/gp_xerces_32
-```
-
-## Preperation for build
-
-
-Go into gporca and create a build folder
 ```
 mkdir build
 cd build
-```
-
-### How to generate make files with default options
-Please ensure that build type of GPOS matches the version of Optimizer libraries
-you are trying to build. Mixing and matching a DEBUG GPOS with a RELEASE Orca or
-vice-versa may cause problems.
-
-* debug build
-
-```
-cmake -D CMAKE_BUILD_TYPE=DEBUG ../
-```
-
-* release build with debug info
-
-```
-cmake -D CMAKE_BUILD_TYPE=RelWithDebInfo ../
-```
-
-* release build
-
-```
-cmake -D CMAKE_BUILD_TYPE=RELEASE ../
-```
-
-## Explicitly Specifying GPOS and GP-Xerces For Build
-
-As noted in the prerequisites section above, you may specify the
-`GPOS_INCLUDE_DIR` and `GPOS_LIBRARY` options to tell cmake where to find
-GPOS (or similarly with `XERCES_INCLUDE_DIR` and `XERCES_LIBRARY` for
-GP-Xerces). These options are useful if GPOS/GP-Xerces is installed in a
-nonstandard place, or if multiple versions are installed in different locations
-(for instance DEBUG vs. RELEASE, or 32 vs. 64-bit builds).
-
-For example:
-```
-cmake -D XERCES_INCLUDE_DIR=/opt/gp_xerces/include -D XERCES_LIBRARY=/opt/gp_xerces/lib/libxerces-c.so ../
-```
-
-## Advanced: Cross-Compiling 32-bit or 64-bit libraries
-
-For the most part you should not need to explicitly compile a 32-bit or 64-bit
-version of the optimizer libraries. By default, a "native" version for your host
-platform will be compiled. However, if you are on x86 and want to, for example,
-build a 32-bit version of Optimizer libraries on a 64-bit machine, you can do
-so as described below. Note that you will need a "multilib" C++ compiler that
-supports the -m32/-m64 switches, and you may also need to install 32-bit ("i386")
-versions of the C and C++ standard libraries for your OS. Finally, you will need
-to build 32-bit or 64-bit versions of GPOS and GP-Xerces as appropriate.
-
-Toolchain files for building 32 or 64-bit x86 libraries are located in the cmake
-directory. Here is an example of building for 32-bit x86:
-
-```
-cmake -D CMAKE_TOOLCHAIN_FILE=../cmake/i386.toolchain.cmake ../
-```
-
-And for 64-bit x86:
-
-```
-cmake -D CMAKE_TOOLCHAIN_FILE=../cmake/x86_64.toolchain.cmake ../
-```
-
-## How to build
-
-* build
-
-```
+cmake ../
 make
+sudo make install
 ```
 
-* for faster build use the -j option of make. For instance, the following command runs make on 7 job slots
-
-```
-make -j7
-```
-
-* show all commands being run as part of make
-
-```
-make VERBOSE=1
-```
-
-## How to test
+## Test GPORCA
 
 To run all GPORCA tests, simply use the `ctest` command from the build directory
 after `make` finishes.
@@ -234,7 +110,133 @@ To run a specific individual test, use the `gporca_test` executable directly.
 Note that some tests use assertions that are only enabled for DEBUG builds, so
 DEBUG-mode tests tend to be more rigorous.
 
-### Advanced: Extended Tests
+# Advanced Setup
+
+## How to generate make files with different options
+
+Please ensure that build type of GPOS matches the version of Optimizer libraries
+you are trying to build. Mixing and matching a DEBUG GPOS with a RELEASE Orca or
+vice-versa may cause problems.
+
+Here are few build flavors:
+
+```
+# debug build
+cmake -D CMAKE_BUILD_TYPE=DEBUG ../
+```
+
+```
+# release build with debug info
+cmake -D CMAKE_BUILD_TYPE=RelWithDebInfo ../
+```
+
+```
+# release build
+cmake -D CMAKE_BUILD_TYPE=RELEASE ../
+```
+
+## Explicitly Specifying GPOS and GP-Xerces For Build
+
+### GPOS
+
+If GPOS was installed to the default location, the cmake build system for
+GPORCA should find it automatically. Otherwise, cmake can be pointed to your
+GPOS installation with the `GPOS_INCLUDE_DIR` and `GPOS_LIBRARY` options like
+so:
+
+```
+cmake -D GPOS_INCLUDE_DIR=/opt/gpos/include -D GPOS_LIBRARY=/opt/gpos/lib/libgpos.so ..
+```
+
+Note that on Mac OS X, the library name will end with `.dylib` instead of `.so`.
+
+### GP-XERCES
+
+It is recommended to use the `--prefix` option to the Xerces-C configure script
+to install GP-Xerces in a location other than the default under `/usr/local/`,
+because you may have other software that depends on Xerces-C, and the changes
+introduced in the GP-Xerces patch make it incompatible with the upstream
+version. Installing in a non-default prefix allows you to have GP-Xerces
+installed side-by-side with unpatched Xerces without incompatibilities.
+
+You can point cmake at your patched GP-Xerces installation using the
+`XERCES_INCLUDE_DIR` and `XERCES_LIBRARY` options like so:
+
+However, to use the current build scripts in GPDB, Xerces with the gp_xerces
+patch will need to be placed on the /usr path.
+
+```
+cmake -D XERCES_INCLUDE_DIR=/opt/gp_xerces/include -D XERCES_LIBRARY=/opt/gp_xerces/lib/libxerces-c.so ..
+```
+
+Again, on Mac OS X, the library name will end with `.dylib` instead of `.so`.
+
+### GPORCA
+
+As noted in the prerequisites section above, you may specify the
+`GPOS_INCLUDE_DIR` and `GPOS_LIBRARY` options to tell cmake where to find
+GPOS (or similarly with `XERCES_INCLUDE_DIR` and `XERCES_LIBRARY` for
+GP-Xerces). These options are useful if GPOS/GP-Xerces is installed in a
+nonstandard place, or if multiple versions are installed in different locations
+(for instance DEBUG vs. RELEASE, or 32 vs. 64-bit builds).
+
+For example:
+```
+cmake -D XERCES_INCLUDE_DIR=/opt/gp_xerces/include -D XERCES_LIBRARY=/opt/gp_xerces/lib/libxerces-c.so ../
+```
+
+## Cross-Compiling 32-bit or 64-bit libraries
+
+### GP-XERCES
+Unless you intend to cross-compile a 32 or 64-bit version of GP-Orca, you can ignore these
+instructions. If you need to explicitly compile for the 32 or 64-bit version of
+your architecture, you need to set the `CFLAGS` and `CXXFLAGS` environment
+variables for the configure script like so (use `-m32` for 32-bit, `-m64` for
+64-bit):
+
+```
+CFLAGS="-m32" CXXFLAGS="-m32" ../configure --prefix=/opt/gp_xerces_32
+```
+
+### GPORCA
+
+For the most part you should not need to explicitly compile a 32-bit or 64-bit
+version of the optimizer libraries. By default, a "native" version for your host
+platform will be compiled. However, if you are on x86 and want to, for example,
+build a 32-bit version of Optimizer libraries on a 64-bit machine, you can do
+so as described below. Note that you will need a "multilib" C++ compiler that
+supports the -m32/-m64 switches, and you may also need to install 32-bit ("i386")
+versions of the C and C++ standard libraries for your OS. Finally, you will need
+to build 32-bit or 64-bit versions of GPOS and GP-Xerces as appropriate.
+
+Toolchain files for building 32 or 64-bit x86 libraries are located in the cmake
+directory. Here is an example of building for 32-bit x86:
+
+```
+cmake -D CMAKE_TOOLCHAIN_FILE=../cmake/i386.toolchain.cmake ../
+```
+
+And for 64-bit x86:
+
+```
+cmake -D CMAKE_TOOLCHAIN_FILE=../cmake/x86_64.toolchain.cmake ../
+```
+
+## How to speed-up the build (or debug it)
+
+For faster build use the -j option of make. For instance, the following command runs make on 7 job slots
+
+```
+make -j7
+```
+
+Show all commands being run as part of make (for debugging purpose)
+
+```
+make VERBOSE=1
+```
+
+### Extended Tests
 
 Debug builds of GPORCA include a couple of "extended" tests for features like
 fault-simulation and time-slicing that work by running the entire test suite
@@ -242,7 +244,7 @@ in combination with the feature being tested. These tests can take a long time
 to run and are not enabled by default. To turn extended tests on, add the cmake
 arguments `-D ENABLE_EXTENDED_TESTS=1`.
 
-## How to install
+## Installation Details
 
 GPORCA has three libraries:
 
@@ -271,20 +273,25 @@ the library is located at:
 /usr/local/lib/libgpopt.so*
 ```
 
-* build and install
+Build and install:
 ```
 make install
 ```
-* build and install with verbose output
+
+Build and install with verbose output
 ```
 make VERBOSE=1 install
 ```
 
-## Clean up stuff
+## Cleanup
 
-* remove the cmake files generated under build
+Remove the `cmake` files generated under `build` folder of `gporca` repo:
 
-* Remove gporca header files and library, (assuming the default install prefix /usr/local)
+```
+rm -fr build/*
+```
+
+Remove gporca header files and library, (assuming the default install prefix /usr/local)
 
 ```
 rm -rf /usr/local/include/naucrates
