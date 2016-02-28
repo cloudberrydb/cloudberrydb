@@ -2133,6 +2133,24 @@ CTranslatorExprToDXL::PdxlnComputeScalar
 	GPOS_ASSERT(NULL != pexprComputeScalar->Prpp());
 	CColRefSet *pcrsOutput = pexprComputeScalar->Prpp()->PcrsRequired();
 
+	// iterate the columns in the projection list, add the columns containing
+	// set-returning functions to the output columns
+	const ULONG ulPrLs = pexprProjList->UlArity();
+	for (ULONG ul = 0; ul < ulPrLs; ul++)
+	{
+		CExpression *pexprPrE = (*pexprProjList)[ul];
+		CDrvdPropScalar *pdpscalar = CDrvdPropScalar::Pdpscalar(pexprPrE->PdpDerive());
+
+		// for column that doesn't contain set-returning function, if it is not the
+		// required column in the relational plan properties, then no need to add them
+		// to the output columns
+		if (pdpscalar->FHasNonScalarFunction())
+		{
+			CScalarProjectElement *popScPrE = CScalarProjectElement::PopConvert(pexprPrE->Pop());
+			pcrsOutput->Include(popScPrE->Pcr());
+		}
+	}
+
 	// translate project list expression
 	CDXLNode *pdxlnPrL = NULL;
 	if (NULL == pdrgpcr || CUtils::FHasDuplicates(pdrgpcr))

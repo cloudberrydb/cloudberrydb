@@ -40,6 +40,7 @@ add_executable(gporca_test
                src/unittest/gpopt/search/CSchedulerTest.cpp
                src/unittest/gpopt/search/CSearchStrategyTest.cpp
                src/unittest/gpopt/minidump/CAggTest.cpp
+               src/unittest/gpopt/minidump/CPruneColumnsTest.cpp
                src/unittest/gpopt/minidump/CMissingStatsTest.cpp
                src/unittest/gpopt/minidump/CBitmapTest.cpp
                src/unittest/gpopt/minidump/CPartTblTest.cpp
@@ -132,6 +133,7 @@ add_orca_test(CDMLTest)
 add_orca_test(CDirectDispatchTest)
 add_orca_test(CTVFTest)
 add_orca_test(CAggTest)
+add_orca_test(CPruneColumnsTest)
 add_orca_test(CMissingStatsTest)
 add_orca_test(CIndexTest)
 add_orca_test(CPartTblTest)

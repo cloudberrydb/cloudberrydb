@@ -49,7 +49,6 @@ const CHAR *rgszFileNames[] =
 		"../data/dxl/minidump/OrderByNullsFirst.mdp",
 		// disabling test because it is non-deterministic.
 		// "../data/dxl/minidump/MissingStatsForPartialPlan.mdp",
-		"../data/dxl/minidump/PruneIntermediateUnusedColumns.mdp",
 		"../data/dxl/minidump/ConvertHashToRandomSelect.mdp",
 		"../data/dxl/minidump/ConvertHashToRandomInsert.mdp",
 		"../data/dxl/minidump/DMLCollapseProject.mdp",

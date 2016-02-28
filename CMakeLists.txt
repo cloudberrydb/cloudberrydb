@@ -4,7 +4,7 @@ cmake_minimum_required(VERSION 3.0 FATAL_ERROR)
 project(gpopt LANGUAGES CXX C)
 
 set(GPORCA_VERSION_MAJOR 1)
-set(GPORCA_VERSION_MINOR 624)
+set(GPORCA_VERSION_MINOR 625)
 set(GPORCA_VERSION_STRING ${GPORCA_VERSION_MAJOR}.${GPORCA_VERSION_MINOR})
 
 # Whenever an ABI-breaking change is made to GPORCA, this should be incremented.

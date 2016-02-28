@@ -21,7 +21,7 @@
 #include "gpopt/operators/CScalar.h"
 #include "gpopt/base/CDrvdPropScalar.h"
 #include "gpopt/operators/CExpressionHandle.h"
-
+#include "gpopt/operators/CScalarProjectElement.h"
 
 using namespace gpopt;
 
@@ -36,6 +36,7 @@ using namespace gpopt;
 CDrvdPropScalar::CDrvdPropScalar()
 	:
 	m_pcrsDefined(NULL),
+	m_pcrsSetReturningFunction(NULL),
 	m_pcrsUsed(NULL),
 	m_fHasSubquery(false),
 	m_ppartinfo(NULL),
@@ -57,6 +58,7 @@ CDrvdPropScalar::CDrvdPropScalar()
 CDrvdPropScalar::~CDrvdPropScalar()
 {
 	CRefCount::SafeRelease(m_pcrsDefined);
+	CRefCount::SafeRelease(m_pcrsSetReturningFunction);
 	CRefCount::SafeRelease(m_pcrsUsed);
 	CRefCount::SafeRelease(m_ppartinfo);
 	CRefCount::SafeRelease(m_pfp);
@@ -85,6 +87,9 @@ CDrvdPropScalar::Derive
 	GPOS_ASSERT(NULL == m_pcrsDefined);
 	m_pcrsDefined = popScalar->PcrsDefined(pmp, exprhdl);
 
+	GPOS_ASSERT(NULL == m_pcrsSetReturningFunction);
+	m_pcrsSetReturningFunction = popScalar->PcrsSetReturningFunction(pmp, exprhdl);
+	
 	GPOS_ASSERT(NULL == m_pcrsUsed);
 	m_pcrsUsed = popScalar->PcrsUsed(pmp, exprhdl);
 
@@ -100,6 +105,7 @@ CDrvdPropScalar::Derive
 		{
 			m_pcrsDefined->Union(exprhdl.Pdpscalar(i)->PcrsDefined());
 			m_pcrsUsed->Union(exprhdl.Pdpscalar(i)->PcrsUsed());
+			m_pcrsSetReturningFunction->Union(exprhdl.Pdpscalar(i)->PcrsSetReturningFunction());
 		}
 		else
 		{
@@ -130,6 +136,15 @@ CDrvdPropScalar::Derive
 	{
 		m_ulDistinctAggs = CScalarProjectList::UlDistinctAggs(exprhdl);
 		m_fHasMultipleDistinctAggs = CScalarProjectList::FHasMultipleDistinctAggs(exprhdl);
+	}
+
+	if (COperator::EopScalarProjectElement == exprhdl.Pop()->Eopid())
+	{
+		if (m_fHasNonScalarFunction)
+		{
+			CScalarProjectElement *pspeProject = (CScalarProjectElement *)(exprhdl.Pop());
+			m_pcrsSetReturningFunction->Include(pspeProject->Pcr());
+		}
 	}
 }
 
@@ -196,8 +211,9 @@ CDrvdPropScalar::OsPrint
 {
 		os	<<	"Defined Columns: [" << *m_pcrsDefined << "], "
 			<<	"Used Columns: [" << *m_pcrsUsed << "], "
+			<<	"Set Returning Function Columns: [" << *m_pcrsSetReturningFunction << "], "
 			<<	"Has Subqs: [" << m_fHasSubquery << "], "
-			<<  "Function Properties: [" << *m_pfp << "], "
+			<<	"Function Properties: [" << *m_pfp << "], "
 			<<	"Has Non-scalar Funcs: [" << m_fHasNonScalarFunction << "], ";
 
 		if (0 < m_ulDistinctAggs)
