@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/xinzweb/gpos.svg?branch=master)](https://travis-ci.org/xinzweb/gpos)
+
 <pre>
 ======================================================================
 					   __________  ____  _____
