@@ -71,7 +71,7 @@ REGRESS = plpython_schema plpython_populate plpython_function plpython_test \
 	plpython_returns plpython_error plpython_drop
 # where to find psql for running the tests
 PSQLDIR = $(bindir)
-rpath=-Wl,-rpath,'$(rpathdir)',--enable-new-dtags
+
 include $(top_srcdir)/src/Makefile.shlib
 
 
