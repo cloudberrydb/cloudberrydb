@@ -20,7 +20,8 @@ from gppylib.operations.restore import RestoreDatabase, create_restore_plan, get
 
 from gppylib.commands.base import ExecutionError
 from gppylib.mainUtils import ExceptionNoStackTraceNeeded
-from mock import patch, MagicMock, Mock
+from mock import mock_open, patch, MagicMock, Mock
+import __builtin__
 
 class restoreTestCase(unittest.TestCase):
 
@@ -1354,27 +1355,35 @@ CREATE DATABASE monkey WITH TEMPLATE = template0 ENCODING = 'UTF8' OWNER = thisg
     def test_validate_tablenames_00(self):
         table_list = ['publicao1', 'public.ao2']
         with self.assertRaisesRegexp(Exception, 'No schema name supplied'):
-            validate_tablenames(table_list)
+            validate_tablenames(table_list, "/data", None, "db_dumps", "", "20160101010101")
 
-    def test_validate_tablenames_01(self):
+    @patch('gppylib.operations.restore.get_lines_from_zipped_file', return_value = ['-- Name: ao1; Type: TABLE; Schema: public; Owner', '-- Name: ao2; Type: TABLE; Schema: public; Owner'])
+    @patch('os.path.isfile', return_value = True)
+    def test_validate_tablenames_01(self, mock, mock1):
         table_list = ['public.ao1', 'public.ao2']
-        validate_tablenames(table_list)
+        validate_tablenames(table_list, "/data", None, "db_dumps", "", "20160101010101")
 
-    def test_validate_tablenames_02(self):
+    @patch('gppylib.operations.restore.get_lines_from_zipped_file', return_value = [])
+    @patch('os.path.isfile', return_value = True)
+    def test_validate_tablenames_02(self, mock, mock1):
         table_list = []
         schema_list = []
-        validate_tablenames(table_list, schema_list)
+        validate_tablenames(table_list, "/data", None, "db_dumps", "", "20160101010101", schema_list)
 
-    def test_validate_tablenames_03(self):
+    @patch('gppylib.operations.restore.get_lines_from_zipped_file', return_value = ['-- Name: ao1; Type: TABLE; Schema: public; Owner'])
+    @patch('os.path.isfile', return_value = True)
+    def test_validate_tablenames_03(self, mock, mock1):
         table_list = ['public.ao1', 'public.ao1']
-        resolved_list, _ = validate_tablenames(table_list, [])
+        resolved_list, _ = validate_tablenames(table_list, "/data", None, "db_dumps", "", "20160101010101", [])
         self.assertEqual(resolved_list, ['public.ao1'])
 
-    def test_validate_tablenames_04(self):
-        table_list = [' `\'"@#$%^&( )_|\\:;<>?/-+={}[]*1Aa . `\'"@#$%^&( )_|\\:;<>?/-+={}[]*1Aa ', 'schema.ao1']
+    @patch('gppylib.operations.restore.get_lines_from_zipped_file', return_value = [r'-- Name: ao1; Type: TABLE; Schema: schema; Owner', r'-- Name:  `"@#$%^&( )_|:;<>?/-+={}[]*1Aa ; Type: TABLE; Schema:  `"@#$%^&( )_|:;<>?/-+={}[]*1Aa ; Owner'])
+    @patch('os.path.isfile', return_value = True)
+    def test_validate_tablenames_04(self, mock, mock1):
+        table_list = [r' `"@#$%^&( )_|:;<>?/-+={}[]*1Aa . `"@#$%^&( )_|:;<>?/-+={}[]*1Aa ', 'schema.ao1']
         schema_list = ['schema', 'schema']
-        resolved_table_list, resolved_schema_list = validate_tablenames(table_list, schema_list)
-        self.assertEqual(resolved_table_list, [' `\'"@#$%^&( )_|\\:;<>?/-+={}[]*1Aa . `\'"@#$%^&( )_|\\:;<>?/-+={}[]*1Aa '])
+        resolved_table_list, resolved_schema_list = validate_tablenames(table_list, "/data", None, "db_dumps", "", "20160101010101", schema_list)
+        self.assertEqual(resolved_table_list, [r' `"@#$%^&( )_|:;<>?/-+={}[]*1Aa . `"@#$%^&( )_|:;<>?/-+={}[]*1Aa '])
         self.assertEqual(resolved_schema_list, ['schema'])
 
     def test_get_restore_table_list_00(self):

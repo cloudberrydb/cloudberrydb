@@ -20,7 +20,8 @@ from gppylib.operations.backup_utils import check_backup_type, check_dir_writabl
                                             execute_sql, expand_partition_tables, generate_ao_state_filename, generate_cdatabase_filename, \
                                             generate_co_state_filename, generate_createdb_filename, generate_createdb_prefix, generate_dbdump_prefix, \
                                             generate_dirtytable_filename, generate_global_filename, generate_global_prefix, generate_increments_filename, \
-                                            generate_master_config_filename, generate_master_dbdump_prefix, generate_stats_filename, generate_stats_prefix, generate_metadata_filename, \
+                                            generate_master_config_filename, generate_master_dbdump_prefix, generate_stats_filename, generate_stats_prefix, \
+                                            generate_metadata_filename, get_lines_from_zipped_file, \
                                             generate_partition_list_filename, generate_pgstatlastoperation_filename, generate_plan_filename, generate_report_filename, \
                                             generate_segment_config_filename, get_all_segment_addresses, get_backup_directory, get_full_timestamp_for_incremental, \
                                             get_full_timestamp_for_incremental_with_nbu, get_lines_from_file, restore_file_with_nbu, run_pool_command, scp_file_to_hosts, \
@@ -1196,20 +1197,17 @@ def validate_tablenames(table_list, master_data_dir, backup_dir, dump_dir, dump_
     filename = generate_metadata_filename(master_data_dir, backup_dir, dump_dir, dump_prefix, timestamp)
 
     dumped_tables = []
-    fd = gzip.open(filename, 'r')
-    try:
-        for line in fd:
-            pattern = "-- Name: (.+?); Type: (.+?); Schema: (.+?);"
-            match = search(pattern, line)
-            if match is None:
-                continue
-            name, type, schema = match.group(1), match.group(2), match.group(3)
-            if type == "TABLE":
-                schema = pg.escape_string(schema)
-                name = pg.escape_string(name)
-                dumped_tables.append('%s.%s' % (schema, name))
-    finally:
-        fd.close()
+    lines = get_lines_from_zipped_file(filename)
+    for line in lines:
+        pattern = "-- Name: (.+?); Type: (.+?); Schema: (.+?); Owner"
+        match = search(pattern, line)
+        if match is None:
+            continue
+        name, type, schema = match.group(1), match.group(2), match.group(3)
+        if type == "TABLE":
+            schema = pg.escape_string(schema)
+            name = pg.escape_string(name)
+            dumped_tables.append('%s.%s' % (schema, name))
     for table in restore_table_list:
         if table not in dumped_tables:
             raise Exception("Table %s not found in backup" % table)
