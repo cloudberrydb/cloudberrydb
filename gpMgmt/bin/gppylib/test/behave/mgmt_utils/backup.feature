@@ -291,13 +291,13 @@ Feature: Validate command line arguments
         And gpdbrestore should print Table public.heap_table to stdout
         And gpdbrestore should print Table public.part_mixed_1 to stdout
         And database "bkdb" is dropped and recreated
-        And the user runs gp_restore with the the stored timestamp and subdir in "bkdb"
-        And gp_restore should return a return code of 0
+        When the user runs gpdbrestore with the stored timestamp
+        Then gpdbrestore should return a return code of 0
         And verify that partitioned tables "ao_part_table, co_part_table, heap_part_table" in "bkdb" have 6 partitions
         And verify that partitioned tables "ao_part_table_comp, co_part_table_comp" in "bkdb" have 6 partitions
         And verify that partitioned tables "part_external" in "bkdb" have 5 partitions in partition level "0"
-        And verify that partitioned tables "ao_part_table, co_part_table_comp" in "bkdb" has 5 empty partitions
-        And verify that partitioned tables "co_part_table, ao_part_table_comp" in "bkdb" has 6 empty partitions
+        And verify that partitioned tables "ao_part_table, co_part_table_comp" in "bkdb" has 0 empty partitions
+        And verify that partitioned tables "co_part_table, ao_part_table_comp" in "bkdb" has 0 empty partitions
         And verify that partitioned tables "heap_part_table" in "bkdb" has 0 empty partitions
         And verify that there is a "heap" table "public.heap_table" in "bkdb"
         And verify that there is a "heap" table "public.heap_index_table" in "bkdb"
@@ -308,8 +308,6 @@ Feature: Validate command line arguments
         And verify that there is partition "3" of "heap" partition table "heap_part_table" in "bkdb" in "public"
         And verify that there is partition "1" of mixed partition table "part_mixed_1" with storage_type "c"  in "bkdb" in "public"
         And verify that there is partition "2" in partition level "0" of mixed partition table "part_external" with storage_type "x"  in "bkdb" in "public"
-        And verify that tables "public.ao_table, public.co_table, public.ao_table_comp, public.co_table_comp" in "bkdb" has no rows
-        And verify that tables "public.co_index_table, public.ao_index_table_comp, public.co_index_table_comp" in "bkdb" has no rows
         And verify that the data of the dirty tables under " " in "bkdb" is validated after restore
         And verify that the distribution policy of all the tables in "bkdb" are validated after restore
         And verify that the incremental file has the stored timestamp
@@ -3388,6 +3386,55 @@ Feature: Validate command line arguments
         And verify that there is a "heap" table "schema_heap.heap_table" in "bkdb" with data
         And verify that there is a "ao" table "schema_ao.ao_part_table" in "bkdb" with data
         And verify that there is no table "testschema.heap_table" in "bkdb"
+
+    @aoco_stat_update
+    Scenario: Simple Full Backup with AO/CO statistics w/ filter
+        Given the test is initialized
+        And there is a "ao" table "public.ao_table" in "bkdb" with data
+        And there is a "ao" table "public.ao_index_table" in "bkdb" with data
+        When the user runs "gpcrondump -a -x bkdb"
+        Then gpcrondump should return a return code of 0
+        And the timestamp from gpcrondump is stored
+        When the user runs gpdbrestore with the stored timestamp and options "--noaostats"
+        Then gpdbrestore should return a return code of 0
+        And verify that there are "0" tuples in "bkdb" for table "public.ao_index_table"
+        And verify that there are "0" tuples in "bkdb" for table "public.ao_table"
+        When the user runs gpdbrestore with the stored timestamp and options "-T public.ao_table" without -e option
+        Then gpdbrestore should return a return code of 0
+        And verify that there are "0" tuples in "bkdb" for table "public.ao_index_table"
+        And verify that there are "4380" tuples in "bkdb" for table "public.ao_table"
+
+    @aoco_stat_update
+    Scenario: Simple Full Backup with AO/CO statistics w/ filter schema
+        Given the test is initialized
+        And there is schema "schema_ao, testschema" exists in "bkdb"
+        And there is a "ao" table "public.ao_table" in "bkdb" with data
+        And there is a "ao" table "public.ao_index_table" in "bkdb" with data
+        And there is a "ao" table "schema_ao.ao_index_table" in "bkdb" with data
+        And there is a "ao" partition table "schema_ao.ao_part_table" in "bkdb" with data
+        And there is a "ao" partition table "testschema.ao_foo" in "bkdb" with data
+        When the user runs "gpcrondump -a -x bkdb"
+        Then gpcrondump should return a return code of 0
+        And the timestamp from gpcrondump is stored
+        When the user runs gpdbrestore with the stored timestamp and options "--noaostats"
+        Then gpdbrestore should return a return code of 0
+        And verify that there are "0" tuples in "bkdb" for table "public.ao_index_table"
+        And verify that there are "0" tuples in "bkdb" for table "public.ao_table"
+        And verify that there are "0" tuples in "bkdb" for table "schema_ao.ao_index_table"
+        And verify that there are "0" tuples in "bkdb" for table "schema_ao.ao_part_table"
+        And verify that there are "0" tuples in "bkdb" for table "testschema.ao_foo"
+        When the user runs gpdbrestore with the stored timestamp and options "-S schema_ao -S testschema" without -e option
+        Then gpdbrestore should return a return code of 0
+        And verify that there are "0" tuples in "bkdb" for table "public.ao_index_table"
+        And verify that there are "0" tuples in "bkdb" for table "public.ao_table"
+        And verify that there are "730" tuples in "bkdb" for table "testschema.ao_foo_1_prt_p1_2_prt_1"
+        And verify that there are "730" tuples in "bkdb" for table "testschema.ao_foo_1_prt_p1_2_prt_2"
+        And verify that there are "730" tuples in "bkdb" for table "testschema.ao_foo_1_prt_p1_2_prt_3"
+        And verify that there are "730" tuples in "bkdb" for table "testschema.ao_foo_1_prt_p2_2_prt_1"
+        And verify that there are "730" tuples in "bkdb" for table "testschema.ao_foo_1_prt_p2_2_prt_2"
+        And verify that there are "730" tuples in "bkdb" for table "testschema.ao_foo_1_prt_p2_2_prt_3"
+        And verify that there are "4380" tuples in "bkdb" for table "schema_ao.ao_index_table"
+        And verify that there are "0" tuples in "bkdb" for table "schema_ao.ao_part_table"
 
     # THIS SHOULD BE THE LAST TEST
     @backupfire

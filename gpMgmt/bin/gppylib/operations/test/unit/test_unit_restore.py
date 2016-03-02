@@ -16,7 +16,7 @@ from gppylib.operations.restore import RestoreDatabase, create_restore_plan, get
         update_ao_stat_func, update_ao_statistics, _build_gpdbrestore_cmd_line, ValidateTimestamp, \
         is_full_restore, restore_state_files_with_nbu, restore_report_file_with_nbu, restore_cdatabase_file_with_nbu, \
         restore_global_file_with_nbu, restore_config_files_with_nbu, config_files_dumped, global_file_dumped, \
-        restore_partition_list_file_with_nbu, restore_increments_file_with_nbu
+        restore_partition_list_file_with_nbu, restore_increments_file_with_nbu, generate_restored_tables
 
 from gppylib.commands.base import ExecutionError
 from gppylib.mainUtils import ExceptionNoStackTraceNeeded
@@ -1526,6 +1526,34 @@ CREATE DATABASE monkey WITH TEMPLATE = template0 ENCODING = 'UTF8' OWNER = thisg
         db = 'testdb'
         restored_tables = []
         update_ao_statistics(port, db, restored_tables)
+
+        update_ao_statistics(port, db, restored_tables=['public.t1'], restored_schema=[], restore_all=False)
+        update_ao_statistics(port, db, restored_tables=[], restored_schema=['public'], restore_all=False)
+        update_ao_statistics(port, db, restored_tables=[], restored_schema=[], restore_all=True)
+
+    def test_generate_restored_tables_no_table(self):
+        results = [['t1','public'], ['t2', 'public'], ['foo', 'bar']]
+
+        tables = generate_restored_tables(results, restored_tables=[], restored_schema=[], restore_all=False)
+        self.assertEqual(tables, set())
+
+    def test_generate_restored_tables_specified_table(self):
+        results = [['t1','public'], ['t2', 'public'], ['foo', 'bar']]
+
+        tables = generate_restored_tables(results, restored_tables=['public.t1'], restored_schema=[], restore_all=False)
+        self.assertEqual(tables, set([('public','t1')]))
+
+    def test_generate_restored_tables_specified_schema(self):
+        results = [['t1','public'], ['t2', 'public'], ['foo', 'bar']]
+
+        tables = generate_restored_tables(results, restored_tables=[], restored_schema=['public'], restore_all=False)
+        self.assertEqual(tables, set([('public','t1'), ('public', 't2')]))
+
+    def test_generate_restored_tables_full_restore(self):
+        results = [['t1','public'], ['t2', 'public'], ['foo', 'bar']]
+
+        tables = generate_restored_tables(results, restored_tables=[], restored_schema=[], restore_all=True)
+        self.assertEqual(tables, set([('public','t1'), ('public', 't2'), ('bar', 'foo')]))
 
     @patch('gppylib.operations.restore.dbconn.connect')
     @patch('gppylib.db.dbconn.execSQLForSingleton', return_value=5)
