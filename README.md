@@ -107,9 +107,9 @@ To run a specific individual test, use the `gporca_test` executable directly.
 ./server/gporca_test -U CAggTest
 ```
 
-To run a specific minidump, for example for `Query.xml`:
+To run a specific minidump, for example for `../data/dxl/minidump/TVFRandom.mdp`:
 ```
-./server/gporca_test -d ../data/dxl/minidump/Query.xml
+./server/gporca_test -d ../data/dxl/minidump/TVFRandom.mdp
 ```
 
 Note that some tests use assertions that are only enabled for DEBUG builds, so
