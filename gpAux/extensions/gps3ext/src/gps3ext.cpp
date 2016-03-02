@@ -20,6 +20,7 @@
 #include "gps3ext.h"
 #include "gps3conf.h"
 
+#include <signal.h>
 #include <pthread.h>
 #include <openssl/err.h>
 
