@@ -314,7 +314,7 @@ def process_data(dump_schemas, dump_tables, fdin, fdout, change_schema=None, sch
         elif (line[0] == copy_start) and line.startswith(copy_expr) and line.endswith(copy_expr_end):
             table = extract_table(line)
             table = removeEscapingDoubleQuoteInSQLString(table, False)
-            if (schema_level_restore_list and schema_wo_escaping in schema_level_restore_list) or ((schema_wo_escaping, table) in dump_tables):
+            if (schema_level_restore_list and schema_wo_escaping in schema_level_restore_list) or (dump_tables and (schema_wo_escaping, table) in dump_tables):
                 output = True
         elif output and (line[0] == copy_end_start) and line.startswith(copy_end_expr):
             table = None
