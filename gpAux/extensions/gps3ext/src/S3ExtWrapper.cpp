@@ -15,6 +15,7 @@ S3ExtBase *CreateExtWrapper(const char *url) {
         S3ExtBase *ret = new S3Reader(url);
         return ret;
     } catch (...) {
+        S3ERROR("Caught an exception, aborting");
         return NULL;
     }
 }
@@ -100,6 +101,7 @@ bool S3Reader::Init(int segid, int segnum, int chunksize) {
         S3INFO("Got %d files to download", this->keylist->contents.size());
         this->getNextDownloader();
     } catch (...) {
+        S3ERROR("Caught an exception, aborting");
         return false;
     }
 
@@ -183,6 +185,7 @@ bool S3Reader::TransferData(char *data, uint64_t &len) {
         }
         len = buflen;
     } catch (...) {
+        S3ERROR("Caught an exception, aborting");
         return false;
     }
 
@@ -203,6 +206,7 @@ bool S3Reader::Destroy() {
             delete this->keylist;
         }
     } catch (...) {
+        S3ERROR("Caught an exception, aborting");
         return false;
     }
 
