@@ -9543,6 +9543,7 @@ fi
 
 # Check for EMC Connect
 if test "$enable_connectemc" = yes ; then
+  _LIBS="$LIBS"
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking for main in -lemcconnect" >&5
 $as_echo_n "checking for main in -lemcconnect... " >&6; }
 if ${ac_cv_lib_emcconnect_main+:} false; then :
@@ -9584,10 +9585,12 @@ else
   as_fn_error $? "library 'emcconnect' is required for Connect EMC support" "$LINENO" 5
 fi
 
+  LIBS="$_LIBS"
 fi
 
 # Check for DD Boost
 if test "$enable_ddboost" = yes ; then
+  _LIBS="$LIBS"
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking for main in -lDDBoost" >&5
 $as_echo_n "checking for main in -lDDBoost... " >&6; }
 if ${ac_cv_lib_DDBoost_main+:} false; then :
@@ -9629,6 +9632,7 @@ else
   as_fn_error $? "library 'DDBoost' is required for DD Boost support" "$LINENO" 5
 fi
 
+  LIBS="$_LIBS"
 fi
 
 ##
