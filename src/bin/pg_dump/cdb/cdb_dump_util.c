@@ -319,7 +319,7 @@ MakeDBConnection(const SegmentDatabase *pSegDB, bool bDispatch)
 	char	   *pszOptions;
 	char	   *pszHost;
 	char	   *pszDBName;
-	char	   *tmpDBName;
+	char	   *tmpDBName = NULL;
 	char	   *pszUser;
 	char	   *pszDBPswd;
 	char	   *pszConnInfo;
