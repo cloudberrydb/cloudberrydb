@@ -90,10 +90,11 @@ test: qp_misc_jiras
 test: bfv_cte bfv_joins bfv_statistic bfv_subquery bfv_planner bfv_legacy
 
 test: qp_executor qp_olap_windowerr qp_olap_window qp_derived_table qp_bitmapscan
+test: qp_functions qp_misc_rio_join_small qp_misc_rio
 
 test: qp_correlated_query 
 
-test: qp_dpe qp_subquery qp_function qp_regexp qp_resource_queue
+test: qp_dpe qp_subquery qp_functions_idf qp_regexp qp_resource_queue
 
 test: qp_gist_indexes2 qp_gist_indexes3 qp_gist_indexes4
 
