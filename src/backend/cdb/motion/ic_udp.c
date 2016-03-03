@@ -4228,6 +4228,7 @@ rx_handle_mismatch(struct icpkthdr *pkt, struct sockaddr_storage *peer, int peer
 			dummyconn.peer_len = peer_len;
 
 			dummyconn.conn_info.flags |= ack_flags;
+			dummyconn.route = 0;
 
 			if (DEBUG4 >= log_min_messages)
 				write_log("idle, acking old packet ?");
