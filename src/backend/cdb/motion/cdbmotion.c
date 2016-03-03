@@ -735,6 +735,13 @@ EndMotionLayerNode(MotionLayerState *mlStates, int16 motNodeID, bool flushCommLa
 		{
 			pCSEntry = &pMNEntry->ready_tuple_lists[i];
 
+			/*
+			 * QD should not expect end-of-stream comes from QEs who is not members of
+			 * direct dispatch 
+			 */
+			if (!pCSEntry->init)
+				continue;
+
 			if (pMNEntry->preserve_order &&
 				gp_log_interconnect >= GPVARS_VERBOSITY_DEBUG)
 			{
