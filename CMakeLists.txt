@@ -15,6 +15,13 @@ set(GPORCA_VERSION_STRING ${GPORCA_VERSION_MAJOR}.${GPORCA_VERSION_MINOR})
 # doubt, do the safe thing and increment this number.
 set(GPORCA_ABI_VERSION 3)
 
+# Configure CCache if available
+find_program(CCACHE_FOUND ccache)
+if(CCACHE_FOUND)
+       set_property(GLOBAL PROPERTY RULE_LAUNCH_COMPILE ccache)
+       set_property(GLOBAL PROPERTY RULE_LAUNCH_LINK ccache)
+endif(CCACHE_FOUND)
+
 # Check build type
 if(NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE "RelWithDebInfo")
