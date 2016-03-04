@@ -889,16 +889,16 @@ class BackupUtilsTestCase(unittest.TestCase):
     def test_get_full_timestamp_for_incremental_00(self, m1):
         backup_dir = 'home'
         ts = '20130207133000'
-        full_ts = get_full_timestamp_for_incremental(backup_dir, self.dump_dir, self.dump_prefix, ts)
-        self.assertEquals(full_ts, None)
+        with self.assertRaisesRegexp(Exception, "Could not locate fullbackup associated with timestamp '20130207133000'. Either increments file or full backup is missing."):
+            get_full_timestamp_for_incremental(backup_dir, self.dump_dir, self.dump_prefix, ts)
 
     @patch('glob.glob', return_value=['foo'])
     @patch('gppylib.operations.backup_utils.get_lines_from_file', return_value=[])
     def test_get_full_timestamp_for_incremental_01(self, m1, m2):
         backup_dir = 'home'
         ts = '20130207133000'
-        full_ts = get_full_timestamp_for_incremental(backup_dir, self.dump_dir, self.dump_prefix, ts)
-        self.assertEquals(full_ts, None)
+        with self.assertRaisesRegexp(Exception, "Could not locate fullbackup associated with timestamp '20130207133000'. Either increments file or full backup is missing."):
+            get_full_timestamp_for_incremental(backup_dir, self.dump_dir, self.dump_prefix, ts)
 
     @patch('glob.glob', return_value=['/tmp/db_dumps/20130207/gp_dump_20130207093000_increments'])
     @patch('gppylib.operations.backup_utils.get_lines_from_file', return_value=['20130207133001', '20130207133000'])
@@ -1241,8 +1241,8 @@ class BackupUtilsTestCase(unittest.TestCase):
         backup_dir = 'home'
         ts = '20130207133000'
         dump_prefix = 'foo_'
-        full_ts = get_full_timestamp_for_incremental(backup_dir, self.dump_dir, self.dump_prefix, ts)
-        self.assertEquals(full_ts, None)
+        with self.assertRaisesRegexp(Exception, "Could not locate fullbackup associated with timestamp '20130207133000'. Either increments file or full backup is missing."):
+            get_full_timestamp_for_incremental(backup_dir, self.dump_dir, self.dump_prefix, ts)
 
     @patch('glob.glob', return_value=['foo'])
     @patch('gppylib.operations.backup_utils.get_lines_from_file', return_value=[])
@@ -1250,8 +1250,8 @@ class BackupUtilsTestCase(unittest.TestCase):
         backup_dir = 'home'
         ts = '20130207133000'
         dump_prefix = 'foo_'
-        full_ts = get_full_timestamp_for_incremental(backup_dir, self.dump_dir, self.dump_prefix, ts)
-        self.assertEquals(full_ts, None)
+        with self.assertRaisesRegexp(Exception, "Could not locate fullbackup associated with timestamp '20130207133000'. Either increments file or full backup is missing."):
+            get_full_timestamp_for_incremental(backup_dir, self.dump_dir, self.dump_prefix, ts)
 
     @patch('glob.glob', return_value=['/tmp/db_dumps/20130207/foo_gp_dump_20130207093000_increments'])
     @patch('gppylib.operations.backup_utils.get_lines_from_file', return_value=['20130207133001', '20130207133000'])

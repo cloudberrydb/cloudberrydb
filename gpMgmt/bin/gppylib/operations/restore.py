@@ -27,7 +27,8 @@ from gppylib.operations.backup_utils import check_backup_type, check_dir_writabl
                                             get_full_timestamp_for_incremental_with_nbu, get_lines_from_file, restore_file_with_nbu, run_pool_command, scp_file_to_hosts, \
                                             verify_lines_in_file, write_lines_to_file, split_fqn, escapeDoubleQuoteInSQLString, get_dbname_from_cdatabaseline, \
                                             checkAndRemoveEnclosingDoubleQuote, checkAndAddEnclosingDoubleQuote, removeEscapingDoubleQuoteInSQLString, \
-                                            create_temp_file_with_schemas, check_funny_chars_in_names, remove_file_on_segments
+                                            create_temp_file_with_schemas, check_funny_chars_in_names, remove_file_on_segments, get_restore_dir, get_nonquoted_keyword_index, \
+                                            unescape_string, get_table_info
 from gppylib.operations.unix import CheckFile, CheckRemoteDir, MakeRemoteDir, CheckRemotePath
 from re import compile, search, sub
 
@@ -98,12 +99,6 @@ def update_ao_statistics(master_port, dbname, restored_tables, restored_schema=[
         logger.info("Error updating ao statistics after restore")
         raise e
 
-def get_restore_dir(data_dir, backup_dir):
-    if backup_dir is not None:
-        return backup_dir
-    else:
-        return data_dir
-
 def get_restore_tables_from_table_file(table_file):
     if not os.path.isfile(table_file):
         raise Exception('Table file does not exist "%s"' % table_file)
@@ -171,15 +166,7 @@ def create_restore_plan(master_datadir, backup_dir, dump_dir, dump_prefix, db_ti
 
     table_set_from_metadata_file = [schema + '.' + table for schema, table in dump_tables]
 
-    if ddboost:
-        full_timestamp = get_full_timestamp_for_incremental(master_datadir, dump_dir, dump_prefix, db_timestamp)
-    elif netbackup_service_host:
-        full_timestamp = get_full_timestamp_for_incremental_with_nbu(dump_prefix, db_timestamp, netbackup_service_host, netbackup_block_size)
-    else:
-        full_timestamp = get_full_timestamp_for_incremental(get_restore_dir(master_datadir, backup_dir), dump_dir, dump_prefix, db_timestamp)
-
-    if not full_timestamp:
-        raise Exception("Could not locate fullbackup associated with ts '%s'. Either increments file or fullback is missing." % db_timestamp)
+    full_timestamp = get_full_timestamp_for_incremental(master_datadir, dump_dir, dump_prefix, db_timestamp, backup_dir, ddboost, netbackup_service_host, netbackup_block_size)
 
     incremental_restore_timestamps = get_incremental_restore_timestamps(master_datadir, backup_dir, dump_dir, dump_prefix, full_timestamp, db_timestamp)
 
@@ -414,7 +401,7 @@ def statistics_file_dumped(master_datadir, backup_dir, dump_dir, dump_prefix, re
 
 def _build_gpdbrestore_cmd_line(ts, table_file, backup_dir, redirected_restore_db, report_status_dir, dump_prefix, ddboost=False, netbackup_service_host=None,
                                 netbackup_block_size=None, change_schema=None, schema_level_restore_file=None):
-    cmd = 'gpdbrestore -t %s --table-file %s -a -v --noplan --noanalyze --noaostats' % (ts, table_file)
+    cmd = 'gpdbrestore -t %s --table-file %s -a -v --noplan --noanalyze --noaostats --no-validate-table-name' % (ts, table_file)
     if backup_dir is not None:
         cmd += " -u %s" % backup_dir
     if dump_prefix:
@@ -686,7 +673,6 @@ class RestoreDatabase(Operation):
 
                 for tbl in analyze_list:
                     analyze_table = "analyze " + tbl
-                    logger.info('analyze table statement is %s' % analyze_table)
                     try:
                         execSQL(conn, analyze_table)
                     except Exception as e:
@@ -1154,7 +1140,18 @@ class ValidateTimestamp(Operation):
                                                       .format(ucfile=uncompressed_file))
         return compress
 
+    def validate_timestamp_format(self):
+        if not self.candidate_timestamp:
+            raise Exception('Timestamp must not be None.')
+        else:
+            # timestamp has to be a string of 14 digits(YYYYMMDDHHMMSS)
+            timestamp_pattern = compile(r'\d{14}')
+            if not search(timestamp_pattern, self.candidate_timestamp):
+                raise Exception('Invalid timestamp specified, please specify in the following format: YYYYMMDDHHMMSS.')
+
     def execute(self):
+        self.validate_timestamp_format()
+
         path = os.path.join(get_restore_dir(self.master_datadir, self.backup_dir), self.dump_dir, self.candidate_timestamp[0:8])
         createdb_file = generate_createdb_filename(self.master_datadir, self.backup_dir, self.dump_dir, self.dump_prefix, self.candidate_timestamp, self.ddboost)
         if not CheckFile(createdb_file).run():
@@ -1197,7 +1194,7 @@ class ValidateSegments(Operation):
                 if not exists:
                     raise ExceptionNoStackTraceNeeded("No dump file on %s at %s" % (seg.getSegmentHostName(), path))
 
-def validate_tablenames(table_list, master_data_dir, backup_dir, dump_dir, dump_prefix, timestamp, schema_level_restore_list=None):
+def check_table_name_format_and_duplicate(table_list, schema_level_restore_list=None):
     """
     verify table list, and schema list, resolve duplicates and overlaps
     """
@@ -1222,26 +1219,20 @@ def validate_tablenames(table_list, master_data_dir, backup_dir, dump_dir, dump_
             table_set.add((schema, table))
             restore_table_list.append(restore_table)
 
-    # validate tables
-    filename = generate_metadata_filename(master_data_dir, backup_dir, dump_dir, dump_prefix, timestamp)
-
-    dumped_tables = []
-    lines = get_lines_from_zipped_file(filename)
-    for line in lines:
-        pattern = "-- Name: (.+?); Type: (.+?); Schema: (.+?); Owner"
-        match = search(pattern, line)
-        if match is None:
-            continue
-        name, type, schema = match.group(1), match.group(2), match.group(3)
-        if type == "TABLE":
-            schema = pg.escape_string(schema)
-            name = pg.escape_string(name)
-            dumped_tables.append('%s.%s' % (schema, name))
-    for table in restore_table_list:
-        if table not in dumped_tables:
-            raise Exception("Table %s not found in backup" % table)
-
     return restore_table_list, schema_level_restore_list
+
+def validate_tablenames_exist_in_dump_file(restore_tables, dumped_tables):
+    unmatched_table_names = []
+    if dumped_tables:
+        dumped_table_names = [schema + '.' + table for (schema, table, _) in dumped_tables]
+        for table in restore_tables:
+            if table not in dumped_table_names:
+                unmatched_table_names.append(table)
+    else:
+        raise Exception('No dumped tables to restore.')
+
+    if len(unmatched_table_names) > 0:
+        raise Exception("Tables %s not found in backup" % unmatched_table_names)
 
 class ValidateRestoreTables(Operation):
     def __init__(self, restore_tables, restore_db, master_port):
@@ -1396,105 +1387,158 @@ class RecoverRemoteDumps(Operation):
         self.pool.join()
         self.pool.check_results()
 
-class GetDumpTables(Operation):
-    def __init__(self, restore_timestamp, master_datadir, backup_dir, dump_dir, dump_prefix, ddboost, netbackup_service_host):
+
+class GetDumpTablesOperation(Operation):
+    def __init__(self, restore_timestamp, master_datadir, backup_dir, dump_dir, dump_prefix, compress):
         self.master_datadir = master_datadir
         self.restore_timestamp = restore_timestamp
         self.dump_dir = dump_dir
         self.dump_prefix = dump_prefix
         self.backup_dir = backup_dir
-        self.ddboost = ddboost
-        self.netbackup_service_host = netbackup_service_host
+        self.grep_cmdStr = ''' | grep -e "-- Name: " -e "^\W*START (" -e "^\W*PARTITION " -e "^\W*DEFAULT PARTITION " -e "^\W*SUBPARTITION " -e "^\W*DEFAULT SUBPARTITION "'''
+        self.compress = compress
+        self.gunzip_maybe = ' | gunzip' if self.compress else ''
+
+    def extract_dumped_tables(self, lines):
+        schema = ''
+        owner = ''
+        table = ''
+        ret = []
+        for line in lines:
+            if line.startswith("-- Name: "):
+                table, table_type, schema, owner = get_table_info(line)
+                if table_type in ["TABLE", "EXTERNAL TABLE"]:
+                    ret.append((schema, table, owner))
+            else:
+                line = line.strip()
+                if (line.startswith("START (") or line.startswith("DEFAULT PARTITION ") or line.startswith("PARTITION ") or
+                    line.startswith("SUBPARTITION ") or line.startswith("DEFAULT SUBPARTITION ")):
+
+                    keyword = " WITH \(tablename=E"
+
+                    # minus the length of keyword below as we escaped '(' with an extra back slash (\)
+                    pos = get_nonquoted_keyword_index(line, keyword, "'", len(keyword) - 1)
+                    if pos == -1:
+                        keyword = " WITH \(tablename="
+                        pos = get_nonquoted_keyword_index(line, keyword, "'", len(keyword) - 1)
+                        if pos == -1:
+                            continue
+                    # len(keyword) plus one to not include the first single quote
+                    table = line[pos + len(keyword) : line.rfind("'")]
+                    # unescape table name to get the defined name in database
+                    table = unescape_string(table)
+                    ret.append((schema, table, owner))
+
+        return ret
+
+class GetDDboostDumpTablesOperation(GetDumpTablesOperation):
+    def __init__(self, restore_timestamp, master_datadir, backup_dir, dump_dir, dump_prefix, compress, dump_file):
+        self.dump_file = dump_file
+        super(GetDDboostDumpTablesOperation, self).__init__(restore_timestamp, master_datadir, backup_dir, dump_dir, dump_prefix, compress)
 
     def execute(self):
-        (restore_timestamp, restore_db, compress) = ValidateTimestamp(master_datadir = self.master_datadir,
-                                                                      backup_dir = self.backup_dir,
-                                                                      candidate_timestamp = self.restore_timestamp,
-                                                                      dump_dir = self.dump_dir,
-                                                                      dump_prefix = self.dump_prefix,
-                                                                      netbackup_service_host = self.netbackup_service_host,
-                                                                      ddboost = self.ddboost).run()
-        dump_file = os.path.join(get_restore_dir(self.master_datadir, self.backup_dir), self.dump_dir, restore_timestamp[0:8], "%s%s" % (generate_master_dbdump_prefix(self.dump_prefix), restore_timestamp))
-        if compress:
-            dump_file += '.gz'
+        ddboost_cmdStr = 'gpddboost --readFile --from-file=%s' % self.dump_file
 
-        if self.ddboost:
-            from_file = os.path.join(self.dump_dir, restore_timestamp[0:8], "%s%s" % (generate_master_dbdump_prefix(self.dump_prefix), restore_timestamp))
-            if compress:
-                from_file += '.gz'
-            ret = []
-            schema = ''
-            owner = ''
-            if compress:
-                cmd = Command('DDBoost copy of master dump file',
-                              'gpddboost --readFile --from-file=%s | gunzip | grep -e "SET search_path = " -e "-- Data for Name: " -e "COPY "'
-                              % (from_file))
+        cmdStr = ddboost_cmdStr + self.gunzip_maybe + self.grep_cmdStr
+        cmd = Command('DDBoost copy of master dump file', cmdStr)
+
+        cmd.run(validateAfter=True)
+        line_list = cmd.get_results().stdout.splitlines()
+
+        ret = self.extract_dumped_tables(line_list)
+        return ret
+
+
+class GetNetBackupDumpTablesOperation(GetDumpTablesOperation):
+    def __init__(self, restore_timestamp, master_datadir, backup_dir, dump_dir, dump_prefix, compress, netbackup_service_host, dump_file):
+        self.netbackup_service_host = netbackup_service_host
+        self.dump_file = dump_file
+        super(GetNetBackupDumpTablesOperation, self).__init__(restore_timestamp, master_datadir, backup_dir, dump_dir, dump_prefix, compress)
+
+    def execute(self):
+        nbu_cmdStr = 'gp_bsa_restore_agent --netbackup-service-host %s --netbackup-filename %s' % (self.netbackup_service_host, self.dump_file)
+        cmdStr = nbu_cmdStr + self.gunzip_maybe + self.grep_cmdStr
+
+        cmd = Command('NetBackup copy of master dump file', cmdStr)
+        cmd.run(validateAfter=True)
+        line_list = cmd.get_results().stdout.splitlines()
+
+        ret = self.extract_dumped_tables(line_list)
+        return ret
+
+class GetLocalDumpTablesOperation(GetDumpTablesOperation):
+    def __init__(self, restore_timestamp, master_datadir, backup_dir, dump_dir, dump_prefix, compress, dump_file):
+        self.dump_file = dump_file
+        super(GetLocalDumpTablesOperation, self).__init__(restore_timestamp, master_datadir, backup_dir, dump_dir, dump_prefix, compress)
+
+    def execute(self):
+        ret = []
+        f = None
+        try:
+            if self.compress:
+                f = gzip.open(self.dump_file, 'r')
             else:
-                cmd = Command('DDBoost copy of master dump file',
-                              'gpddboost --readFile --from-file=%s | grep -e "SET search_path = " -e "-- Data for Name: " -e "COPY "'
-                              % (from_file))
+                f = open(self.dump_file, 'r')
 
-            # TODO: The code below is duplicated from the code for local restore
-            #       We need to refactor this. Probably use the same String IO interfaces
-            #       to extract lines in both the cases.
-            cmd.run(validateAfter=True)
-            line_list = cmd.get_results().stdout.splitlines()
-            for line in line_list:
-                if line.startswith("SET search_path = "):
-                    line = line[len("SET search_path = ") : ]
-                    if ", pg_catalog;" in line:
-                        schema = line[ : line.index(", pg_catalog;")]
-                    else:
-                        schema = "pg_catalog"
-                elif line.startswith("-- Data for Name: "):
-                    owner = line[line.index("; Owner: ") + 9 : ].rstrip()
-                elif line.startswith("COPY "):
-                    table = line[5:]
-                    if table.rstrip().endswith(") FROM stdin;"):
-                        if table.startswith("\""):
-                            table = table[: table.index("\" (") + 1]
-                        else:
-                            table = table[: table.index(" (")]
-                    else:
-                        table = table[: table.index(" FROM stdin;")]
-                    table = table.rstrip()
-                    ret.append((schema, table, owner))
-            return ret
+            lines = f.readlines()
+            ret = self.extract_dumped_tables(lines)
+
+        finally:
+            if f is not None:
+                f.close()
+        return ret
+
+class GetRemoteDumpTablesOperation(GetDumpTablesOperation):
+    def __init__(self, restore_timestamp, master_datadir, backup_dir, dump_dir, dump_prefix, compress, remote_host, dump_file):
+        self.host = remote_host
+        self.dump_file = dump_file
+        super(GetRemoteDumpTablesOperation, self).__init__(restore_timestamp, master_datadir, backup_dir, dump_dir, dump_prefix, compress)
+
+    def execute(self):
+        cat_cmdStr = 'cat %s%s' % (self.dump_file, self.gunzip_maybe)
+        get_remote_dump_tables = '''ssh %s %s%s''' % (self.host, cat_cmdStr, self.grep_cmdStr)
+
+        cmd = Command('Get remote copy of dumped tables', get_remote_dump_tables)
+        cmd.run(validateAfter=True)
+        line_list = cmd.get_results().stdout.splitlines()
+
+        return self.extract_dumped_tables(line_list)
+
+class GetDumpTables():
+    def __init__(self, restore_timestamp, master_datadir, backup_dir,
+                        dump_dir, dump_prefix, compress, ddboost,
+                        netbackup_service_host, remote_host=None,
+                        dump_file=None):
+        """
+        backup_dir: user specified backup directory, using -u option
+        dump_dir: dump directory name, e.g. ddboost default dump directory
+        compress: dump file is compressed or not
+        remote_host: not ddboost or netbackup server, a normal remote host name where a dump file exist
+        dump_file: the path to the dump file with exact file format(.gz)
+        """
+        self.restore_timestamp = restore_timestamp
+        self.master_datadir = master_datadir
+        self.backup_dir = backup_dir
+        self.dump_dir = dump_dir
+        self.dump_prefix = dump_prefix
+        self.compress = compress
+        self.ddboost = ddboost
+        self.netbackup_service_host = netbackup_service_host
+        self.remote_hostname = remote_host
+        self.dump_file = dump_file
+
+    def get_dump_tables(self):
+        if self.ddboost:
+            get_dump_table_cmd = GetDDboostDumpTablesOperation(self.restore_timestamp, self.master_datadir, self.backup_dir,
+                                                                self.dump_dir, self.dump_prefix, self.compress, self.dump_file)
+        elif self.netbackup_service_host:
+            get_dump_table_cmd = GetNetBackupDumpTablesOperation(self.restore_timestamp, self.master_datadir, self.backup_dir, self.dump_dir,
+                                                                 self.dump_prefix, self.compress, self.netbackup_service_host, self.dump_file)
+        elif self.remote_hostname:
+            get_dump_table_cmd = GetRemoteDumpTablesOperation(self.restore_timestamp, self.master_datadir, self.backup_dir, self.dump_dir,
+                                                              self.dump_prefix, self.compress, self.remote_hostname, self.dump_file)
         else:
-            f = None
-            schema = ''
-            owner = ''
-            ret = []
-            try:
-                if compress:
-                    f = gzip.open(dump_file, 'r')
-                else:
-                    f = open(dump_file, 'r')
+            get_dump_table_cmd = GetLocalDumpTablesOperation(self.restore_timestamp, self.master_datadir, self.backup_dir,
+                                                             self.dump_dir, self.dump_prefix, self.compress, self.dump_file)
 
-                while True:
-                    line = f.readline()
-                    if not line:
-                        break
-                    if line.startswith("SET search_path = "):
-                        line = line[len("SET search_path = ") : ]
-                        if ", pg_catalog;" in line:
-                            schema = line[ : line.index(", pg_catalog;")]
-                        else:
-                            schema = "pg_catalog"
-                    elif line.startswith("-- Data for Name: "):
-                        owner = line[line.index("; Owner: ") + 9 : ].rstrip()
-                    elif line.startswith("COPY "):
-                        table = line[5:]
-                        if table.rstrip().endswith(") FROM stdin;"):
-                            if table.startswith("\""):
-                                table = table[: table.index("\" (") + 1]
-                            else:
-                                table = table[: table.index(" (")]
-                        else:
-                            table = table[: table.index(" FROM stdin;")]
-                        table = table.rstrip()
-                        ret.append((schema, table, owner))
-            finally:
-                if f is not None:
-                    f.close()
-            return ret
+        return get_dump_table_cmd.run()

@@ -6,8 +6,9 @@ from gppylib.mainUtils import addMasterDirectoryOptionForSingleClusterProgram, a
                               ExceptionNoStackTraceNeeded, ProgramArgumentValidationException, UserAbortedException
 import fnmatch
 import os
+import stat
 import sys
-from optparse import OptionGroup, OptionValueError
+from optparse import OptionGroup, OptionValueError, SUPPRESS_HELP
 from pygresql import pg
 
 try:
@@ -25,13 +26,15 @@ try:
     from gppylib.gpparseopts import OptParser, OptChecker
     from gppylib.operations import Operation
     from gppylib.operations.backup_utils import check_dir_writable, generate_createdb_prefix, generate_master_dbdump_prefix, \
-                                                generate_report_filename, get_lines_from_file, check_schema_exists, check_funny_chars_in_names
+                                                generate_report_filename, get_lines_from_file, check_schema_exists, check_funny_chars_in_names, \
+                                                get_full_timestamp_for_incremental, get_master_dump_file
     from gppylib.operations.restore import GetDbName, GetDumpTables, RecoverRemoteDumps, RestoreDatabase, ValidateTimestamp, \
                                            config_files_dumped, create_restore_plan, get_restore_dir, get_restore_tables_from_table_file, \
                                            global_file_dumped, is_begin_incremental_run, is_incremental_restore, restore_cdatabase_file_with_nbu, \
                                            restore_config_files_with_nbu, restore_global_file_with_nbu, restore_statistics_file_with_nbu, \
                                            restore_increments_file_with_nbu, restore_partition_list_file_with_nbu, restore_report_file_with_nbu, \
-                                           restore_state_files_with_nbu, statistics_file_dumped, truncate_restore_tables, validate_tablenames
+                                           restore_state_files_with_nbu, statistics_file_dumped, truncate_restore_tables, check_table_name_format_and_duplicate, \
+                                           get_incremental_restore_timestamps, validate_tablenames_exist_in_dump_file
     from gppylib.operations.utils import DEFAULT_NUM_WORKERS
     from gppylib.operations.unix import CheckFile, CheckRemoteFile, ListFilesByPattern, ListRemoteFilesByPattern
 except ImportError, e:
@@ -89,6 +92,7 @@ class GpdbRestore(Operation):
         self.restore_stats = options.restore_stats
         self.metadata_only = options.metadata_only
         self.schema_level_restore_list = options.restore_schemas
+        self.no_validate_table_name = options.no_validate_table_name
 
         if self.restore_stats:
             self.no_analyze = True
@@ -211,10 +215,14 @@ class GpdbRestore(Operation):
             if statistics_file_dumped(self.master_datadir, self.backup_dir, self.dump_dir, self.dump_prefix, self.db_timestamp, self.netbackup_service_host):
                 restore_statistics_file_with_nbu(self.master_datadir, self.backup_dir, self.dump_dir, self.dump_prefix, self.db_timestamp, self.netbackup_service_host, self.netbackup_block_size)
 
-        if self.list_tables and self.db_timestamp is not None:
-            return self._list_dump_tables()
+        info = self._gather_dump_info()
 
-        info = self._gather_info()
+        if self.list_tables and self.db_timestamp is not None:
+            return self._list_dump_tables(info['restore_timestamp'], info['dump_host'], info['dump_file'], info['compress'])
+
+        info.update(self._gather_cluster_info())
+
+        self.validate_tablename_from_filtering_options(info['restore_timestamp'], info['dump_host'], info['dump_file'], info['compress'])
 
         if self.restore_stats == "only":
             restore_type = "Statistics-Only Restore"
@@ -380,14 +388,20 @@ class GpdbRestore(Operation):
         pgconf_dict = pgconf.readfile(datadir + "/postgresql.conf")
         return pgconf_dict.int('port')
 
-    def _list_dump_tables(self):
-        dump_tables = GetDumpTables(master_datadir = self.master_datadir,
-                                    backup_dir = self.backup_dir,
-                                    restore_timestamp = self.db_timestamp,
-                                    dump_dir = self.dump_dir,
-                                    dump_prefix = self.dump_prefix,
-                                    ddboost = self.ddboost,
-                                    netbackup_service_host = self.netbackup_service_host).run()
+    def _list_dump_tables(self, restore_timestamp, dump_host, dump_file, compress):
+        """
+           Only list dumped tables for specified timestamp, this is specified through the -t option along with the -L option
+        """
+        dump_tables = GetDumpTables(master_datadir=self.master_datadir,
+                                    backup_dir=self.backup_dir,
+                                    restore_timestamp=restore_timestamp,
+                                    dump_dir=self.dump_dir,
+                                    dump_prefix=self.dump_prefix,
+                                    compress=compress,
+                                    ddboost=self.ddboost,
+                                    netbackup_service_host=self.netbackup_service_host,
+                                    remote_host=dump_host,
+                                    dump_file=dump_file).get_dump_tables()
 
         logger.info("--------------------------------------------------------------------")
         logger.info("List of database tables for dump file with time stamp %s" % self.db_timestamp)
@@ -405,7 +419,11 @@ class GpdbRestore(Operation):
             logger.info("Backup Timestamp: %s" % (line.split(':')[0].strip()))
         logger.info("--------------------------------------------------------------------")
 
-    def _gather_info(self):
+    def _gather_cluster_info(self):
+        """
+        Checking cluster status, no primary should be down.
+        """
+
         fault_action = self.gparray.getFaultStrategy()
         primaries = [seg for seg in self.gparray.getDbList() if seg.isSegmentPrimary(current_role=True)]
         fail_count = len([seg for seg in primaries if seg.isSegmentDown()])
@@ -416,7 +434,15 @@ class GpdbRestore(Operation):
             logger.info("Use gprecoverseg utility to recover failed segment instances")
             raise ExceptionNoStackTraceNeeded("Unable to continue")
 
-        (restore_timestamp, restore_db, compress) = (None, None, None)
+        return {'fault_action': fault_action,
+                'fail_count': fail_count}
+
+    def _gather_dump_info(self):
+        """
+        Validate the restore timestamp, collect information of the dump path and location.
+        """
+
+        (restore_timestamp, restore_db, compress, dump_host, dump_file) = (None, None, None, None, None)
         if self.db_timestamp is not None:
             (restore_timestamp, restore_db, compress) = ValidateTimestamp(candidate_timestamp = self.db_timestamp,
                                                                           master_datadir = self.master_datadir,
@@ -428,7 +454,7 @@ class GpdbRestore(Operation):
         elif self.db_date_dir is not None:
             (restore_timestamp, restore_db, compress) = self._validate_db_date_dir()
         elif self.db_host_path is not None:
-            (restore_timestamp, restore_db, compress) = self._validate_db_host_path()
+            (restore_timestamp, restore_db, compress, dump_host, dump_file) = self._validate_db_host_path()
         elif self.search_for_dbname is not None:
             (restore_timestamp, restore_db, compress) = self._search_for_latest()
 
@@ -441,21 +467,49 @@ class GpdbRestore(Operation):
                 raise ExceptionNoStackTraceNeeded("Database %s does not exist and -e option not supplied" % restore_db)
 
         table_counts = []
-        if len(self.restore_tables) > 0 or len(self.schema_level_restore_list) > 0:
-            self.restore_tables, self.schema_level_restore_list = validate_tablenames(self.restore_tables, self.master_datadir, self.backup_dir, self.dump_dir,
-                                                                                      self.dump_prefix, restore_timestamp, self.schema_level_restore_list)
 
         if not self.db_host_path and not self.ddboost:
             report_filename = generate_report_filename(self.master_datadir, self.backup_dir, self.dump_dir, self.dump_prefix, restore_timestamp)
             if not os.path.isfile(report_filename):
                 raise ExceptionNoStackTraceNeeded("Report file does not exist for the given restore timestamp %s: '%s'" % (restore_timestamp, report_filename))
 
-        return {'fault_action': fault_action,
-                'fail_count': fail_count,
-                'restore_timestamp': restore_timestamp,
+        if not self.db_host_path:
+            dump_file = get_master_dump_file(self.master_datadir, self.backup_dir, self.dump_dir, restore_timestamp, self.dump_prefix, self.ddboost)
+            dump_file = dump_file + ('.gz' if compress else '')
+
+        return {'restore_timestamp': restore_timestamp,
                 'restore_db': restore_db,
                 'compress': compress,
+                'dump_host': dump_host,
+                'dump_file': dump_file,
                 'table_counts': table_counts}
+
+    def validate_tablename_from_filtering_options(self, restore_timestamp, dump_host=None, dump_file=None, compress=None):
+        """
+        This validates table name format and resolves duplicates of user inputs from any of the gpdbrestore filtering options
+        """
+
+        if len(self.restore_tables) > 0 or len(self.schema_level_restore_list) > 0:
+            self.restore_tables, self.schema_level_restore_list = check_table_name_format_and_duplicate(self.restore_tables, self.schema_level_restore_list)
+
+        if not self.no_validate_table_name and len(self.restore_tables) > 0:
+
+            is_remote_service = self.ddboost or self.netbackup_service_host or self.db_host_path
+            if not is_remote_service and stat.S_ISFIFO(os.stat(dump_file).st_mode):
+                logger.warn('Skipping validation of tables in dump file due to the use of named pipes')
+            else:
+                dumped_tables = GetDumpTables(
+                                restore_timestamp = restore_timestamp,
+                                master_datadir = self.master_datadir,
+                                backup_dir = self.backup_dir,
+                                dump_dir = self.dump_dir,
+                                dump_prefix = self.dump_prefix,
+                                compress = compress,
+                                ddboost = self.ddboost,
+                                netbackup_service_host = self.netbackup_service_host,
+                                remote_host = dump_host,
+                                dump_file = dump_file).get_dump_tables()
+                validate_tablenames_exist_in_dump_file(self.restore_tables, dumped_tables)
 
     def _validate_db_date_dir(self):
         root = os.path.join(get_restore_dir(self.master_datadir, self.backup_dir), self.dump_dir, self.db_date_dir)
@@ -477,24 +531,30 @@ class GpdbRestore(Operation):
             temp = match[len(generate_createdb_prefix(self.dump_prefix)):]
             restore_timestamp = temp[0:14]
         restore_db = GetDbName(os.path.join(root, "%s%s" % (generate_createdb_prefix(self.dump_prefix), restore_timestamp))).run()
-        compressed_file = "%s%s.gz" % (generate_master_dbdump_prefix(self.dump_prefix), restore_timestamp)
-        compress = CheckFile(os.path.join(root, compressed_file)).run()
+        if not self.ddboost:
+            compressed_file = os.path.join(root, "%s%s.gz" % (generate_master_dbdump_prefix(self.dump_prefix), restore_timestamp))
+        else:
+            compressed_file = os.path.join(root, "%s%s_post_data.gz" % (generate_master_dbdump_prefix(self.dump_prefix), restore_timestamp))
+        compress = CheckFile(compressed_file).run()
         return (restore_timestamp, restore_db, compress)
 
     def _validate_db_host_path(self):
         # The format of the -R option should be 'hostname:path_to_dumpset', hence the length should be 2 (hostname, path_to_dumpset)
         if len(self.db_host_path) != 2:
-            raise ProgramArgumentValidationException("The arguments of the -R flag are incorrect. The correct form should be as follows:\nIPv4_address:path_to_dumpset\n-OR-\n[IPv6_address]:path_to_dumpset\n", False)
+            raise ProgramArgumentValidationException("The arguments of the -R flag are incorrect. The correct form should be as "
+                                                     "follows:\nIPv4_address:path_to_dumpset\n-OR-\n[IPv6_address]:path_to_dumpset\n", False)
 
         host, path = self.db_host_path
         logger.debug("The host is %s" % host)
         logger.debug("The path is %s" % path)
 
         Ping.local('Pinging %s' % host, host)
+
         matching = ListRemoteFilesByPattern(path, "%s*" % generate_createdb_prefix(self.dump_prefix), host).run()
         if len(matching) == 0:
             raise ExceptionNoStackTraceNeeded("Could not locate Master database dump files at %s:%s" % (host, path))
         matching = sorted(matching, key=lambda x: int(x[len(generate_createdb_prefix(self.dump_prefix)):].strip()))
+
         if len(matching) > 1:
             dates_and_times = []
             for match in matching:
@@ -514,9 +574,21 @@ class GpdbRestore(Operation):
         restore_db = GetDbName(filename).run()
         os.remove(filename)
 
-        compressed_file = "%s%s.gz" % (generate_master_dbdump_prefix(self.dump_prefix), restore_timestamp)
-        compress = CheckRemoteFile(os.path.join(path, compressed_file), host).run()
-        return (restore_timestamp, restore_db, compress)
+        compress = False
+        file_name = "%s%s" % (generate_master_dbdump_prefix(self.dump_prefix), restore_timestamp)
+        uncompressed_file_path = os.path.join(path, file_name)
+        compressed_file_path = uncompressed_file_path + '.gz'
+
+        res = CheckRemoteFile(uncompressed_file_path, host).run()
+        if not res:
+            res = CheckRemoteFile(compressed_file_path, host).run()
+            if not res:
+                raise Exception("Cannot find dump file %s on remote %s" % (compressed_file_path, host))
+            else:
+                compress = True
+                return (restore_timestamp, restore_db, compress, host, compressed_file_path)
+        else:
+            return (restore_timestamp, restore_db, compress, host, uncompressed_file_path)
 
     def _search_for_latest(self):
         logger.info("Scanning Master host for latest dump file set for database %s" % self.search_for_dbname)
@@ -539,7 +611,14 @@ class GpdbRestore(Operation):
         restore_timestamp = str(max(timestamps))
         logger.info("Identified latest dump timestamp for %s as %s" %  (self.search_for_dbname, restore_timestamp))
         restore_db = self.search_for_dbname
-        compressed_file = os.path.join(get_restore_dir(self.master_datadir, self.backup_dir), self.dump_dir, restore_timestamp[0:8], "%s%s.gz" % (generate_master_dbdump_prefix(self.dump_prefix), restore_timestamp))
+        if not self.ddboost:
+            compressed_file = os.path.join(get_restore_dir(self.master_datadir, self.backup_dir),
+                                           self.dump_dir, restore_timestamp[0:8],
+                                           "%s%s.gz" % (generate_master_dbdump_prefix(self.dump_prefix), restore_timestamp))
+        else:
+            compressed_file = os.path.join(get_restore_dir(self.master_datadir, self.backup_dir),
+                                           self.dump_dir, restore_timestamp[0:8],
+                                           "%s%s_post_data.gz" % (generate_master_dbdump_prefix(self.dump_prefix), restore_timestamp))
         compress = CheckFile(compressed_file).run()
         return (restore_timestamp, restore_db, compress)
 
@@ -652,6 +731,8 @@ def create_parser():
                      help="Different schema name to which tables will be restored")
     addTo.add_option('--restore-stats', dest='restore_stats', action="callback", callback=restore_stats_callback,
                      help="Restore database statistics. Analysis is skipped as if the --noanalyze flag were set.")
+    # --no-validate-table-name option used only for separating table restore and data restore phases, set as hidden
+    addTo.add_option('--no-validate-table-name', action='store_true', dest='no_validate_table_name', default=False, help=SUPPRESS_HELP)
     parser.add_option_group(addTo)
 
     # For Incremental Restore

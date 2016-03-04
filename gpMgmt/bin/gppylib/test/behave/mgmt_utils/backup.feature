@@ -1121,7 +1121,7 @@ Feature: Validate command line arguments
     @backupfire
     Scenario: Test gpcrondump dump deletion (-c option)
         Given the test is initialized
-        And there is a "heap" table "public.heap_table" with compression "None" in "bkdb" with data 
+        And there is a "heap" table "public.heap_table" with compression "None" in "bkdb" with data
         And the user runs "gpcrondump -a -x bkdb"
         And the full backup timestamp from gpcrondump is stored
         And gpcrondump should return a return code of 0
@@ -1460,9 +1460,9 @@ Feature: Validate command line arguments
         And gpcrondump should return a return code of 0
         And the timestamp from gpcrondump is stored
         And all the data from "bkdb" is saved for verification
-        And the user runs gpdbrestore with the stored timestamp and options "-T public.heap_table -T public.invalid"
+        And the user runs gpdbrestore with the stored timestamp and options "-T public.heap_table -T public.invalid -q"
         Then gpdbrestore should return a return code of 2
-        And gpdbrestore should print Invalid tables for -T option: The following tables were not found in plan file to stdout
+        And gpdbrestore should print Tables \[\'public.invalid\'\] not found in backup to stdout
 
     @backupfire
     Scenario: gpdbrestore -L with -u option
@@ -1823,9 +1823,11 @@ Feature: Validate command line arguments
         And the timestamp from gpcrondump is stored in a list
         And the named pipe script for the "restore" is run for the files under " "
         And all the data from "bkdb" is saved for verification
-        And the user runs gpdbrestore with the stored timestamp
         And gpdbrestore should return a return code of 0
         And verify that the data of "10" tables in "bkdb" is validated after restore
+        When the named pipe script for the "restore" is run for the files under " "
+        And the user runs gpdbrestore with the stored timestamp and options "-T public.ao_part_table"
+        Then gpdbrestore should print \[WARNING\]:-Skipping validation of tables in dump file due to the use of named pipes to stdout
         And close all opened pipes
 
     Scenario: Incremental Backup and Restore with -t filter for Full
@@ -3035,6 +3037,7 @@ Feature: Validate command line arguments
     Scenario: Funny characters in the table name or schema name for gpdbrestore
         Given the test is initialized
         And database "testdb" exists
+        And there is a "heap" table "public.table1" in "testdb" with data
         When the user runs command "gpcrondump -a -x testdb"
         And the timestamp from gpcrondump is stored
         When the user runs gpdbrestore with the stored timestamp and options "--table-file gppylib/test/behave/mgmt_utils/steps/data/special_chars/funny_char_table.txt"
@@ -3049,7 +3052,7 @@ Feature: Validate command line arguments
         When the user runs command "gpdbrestore -s "A\\t\\n.,!1""
         Then gpdbrestore should return a return code of 2
         And gpdbrestore should print Name has an invalid character to stdout
-        When the user runs gpdbrestore with the stored timestamp and options "-T public.table --change-schema A\\t\\n.,!1"
+        When the user runs gpdbrestore with the stored timestamp and options "-T public.table1 --change-schema A\\t\\n.,!1"
         Then gpdbrestore should return a return code of 2
         And gpdbrestore should print Name has an invalid character to stdout
         When the user runs gpdbrestore with the stored timestamp and options "-S A\\t\\n.,!1"
@@ -3128,7 +3131,6 @@ Feature: Validate command line arguments
         And verify with backedup file "ao" that there is a "ao" table " S`~@#$%^&*()-+[{]}|\;: \'"/?><1 . ao_T`~@#$%^&*()-+[{]}|\;: \'"/?><1 " in " DB`~@#$%^&*()_-+[{]}|\;: \'/?><;1 " with data
         And verify that there is no table " co_T`~@#$%^&*()-+[{]}|\;: \'"/?><1 " in " DB`~@#$%^&*()_-+[{]}|\;: \'/?><;1 "
         And the user runs command "dropdb " DB\`~@#\$%^&*()_-+[{]}|\\;: \\'/?><;1 ""
-
 
     Scenario: gpcrondump with --schema-file, --exclude-schema-file, -s and -S option when schema name and database name contains special character
         Given the test is initialized
@@ -3355,9 +3357,9 @@ Feature: Validate command line arguments
         When the user runs "gpcrondump -a -x bkdb"
         Then gpcrondump should return a return code of 0
         And the timestamp from gpcrondump is stored
-        When the user runs gpdbrestore with the stored timestamp and options "-T public.heap_table2"
+        When the user runs gpdbrestore with the stored timestamp and options "-T public.heap_table2 -q"
         Then gpdbrestore should return a return code of 2
-        Then gpdbrestore should print Table public.heap_table2 not found in backup to stdout
+        Then gpdbrestore should print Tables \[\'public.heap_table2\'\] to stdout
         Then gpdbrestore should not print Issue with 'ANALYZE' of restored table 'public.heap_table2' in 'bkdb' database to stdout
 
     Scenario: Absolute path should be provided with -u option for gpcrondump

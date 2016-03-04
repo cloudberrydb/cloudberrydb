@@ -9,19 +9,42 @@ import unittest2 as unittest
 import tempfile, os, shutil
 from gppylib.commands.base import CommandResult
 from gppylib.operations.restore import RestoreDatabase, create_restore_plan, get_plan_file_contents, \
-        get_restore_tables_from_table_file, write_to_plan_file, validate_tablenames, \
+        get_restore_tables_from_table_file, write_to_plan_file, check_table_name_format_and_duplicate, \
         create_plan_file_contents, GetDbName, get_dirty_table_file_contents, \
         get_incremental_restore_timestamps, get_partition_list, get_restore_dir, is_begin_incremental_run, \
         is_incremental_restore, get_restore_table_list, validate_restore_tables_list, \
         update_ao_stat_func, update_ao_statistics, _build_gpdbrestore_cmd_line, ValidateTimestamp, \
         is_full_restore, restore_state_files_with_nbu, restore_report_file_with_nbu, restore_cdatabase_file_with_nbu, \
-        restore_global_file_with_nbu, restore_config_files_with_nbu, config_files_dumped, global_file_dumped, \
-        restore_partition_list_file_with_nbu, restore_increments_file_with_nbu, generate_restored_tables
+        restore_global_file_with_nbu, restore_config_files_with_nbu, config_files_dumped, global_file_dumped, generate_restored_tables, \
+        restore_partition_list_file_with_nbu, restore_increments_file_with_nbu, GetDumpTables, validate_tablenames_exist_in_dump_file
 
 from gppylib.commands.base import ExecutionError
 from gppylib.mainUtils import ExceptionNoStackTraceNeeded
 from mock import mock_open, patch, MagicMock, Mock
 import __builtin__
+
+class ValidateTimestampMock():
+    def __init__(self, compressed=None):
+        self.compress = compressed
+
+    def run(self):
+        restore_timestamp = "20121212121212"
+        return (restore_timestamp, None, self.compress)
+
+class OpenFileMock():
+    def __init__(self, lines):
+        self.lines = lines
+        self.max = len(lines)
+        self.counter = 0
+
+    def readlines(self):
+        return self.lines
+
+    def close(self):
+        pass
+
+    def open(self):
+        return self
 
 class restoreTestCase(unittest.TestCase):
 
@@ -161,13 +184,14 @@ CREATE DATABASE monkey WITH TEMPLATE = template0 ENCODING = 'UTF8' OWNER = thisg
         backup_dir = None
         netbackup_service_host = None
         netbackup_block_size = None
+
         self.create_backup_dirs(master_datadir, [db_timestamp[0:8]])
-        with self.assertRaisesRegexp(Exception, 'Could not locate fullbackup associated with ts'):
+        with self.assertRaisesRegexp(Exception, 'Can not locate backup directory without timestamp'):
             create_restore_plan(master_datadir, backup_dir, self.restore.dump_dir, self.restore.dump_prefix, db_timestamp, ddboost, netbackup_service_host, netbackup_block_size)
         self.remove_backup_dirs(master_datadir, [db_timestamp[0:8]])
 
     @patch('gppylib.operations.restore.get_partition_list', return_value=[])
-    @patch('gppylib.operations.restore.get_full_timestamp_for_incremental_with_nbu', return_value='20120101000000')
+    @patch('gppylib.operations.restore.get_full_timestamp_for_incremental', return_value='20120101000000')
     @patch('gppylib.operations.restore.get_incremental_restore_timestamps', return_value=['20121212121212', '20121212121211'])
     @patch('gppylib.operations.restore.get_dirty_table_file_contents', return_value=['public.t1', 'public.t2'])
     @patch('gppylib.operations.restore.create_plan_file_contents')
@@ -185,7 +209,7 @@ CREATE DATABASE monkey WITH TEMPLATE = template0 ENCODING = 'UTF8' OWNER = thisg
         self.remove_backup_dirs(master_datadir, [db_timestamp[0:8]])
 
     @patch('gppylib.operations.restore.get_partition_list', return_value=[])
-    @patch('gppylib.operations.restore.get_full_timestamp_for_incremental_with_nbu', return_value=None)
+    @patch('gppylib.operations.restore.get_full_timestamp_for_incremental', return_value=None)
     def test_restore_plan_file_04(self, mock1, mock2):
         master_datadir = 'foo'
         db_timestamp = '01234567891234'
@@ -195,7 +219,7 @@ CREATE DATABASE monkey WITH TEMPLATE = template0 ENCODING = 'UTF8' OWNER = thisg
         netbackup_service_host = 'mdw'
         netbackup_block_size = '1024'
         self.create_backup_dirs(master_datadir, [db_timestamp[0:8]])
-        with self.assertRaisesRegexp(Exception, 'Could not locate fullbackup associated with ts'):
+        with self.assertRaisesRegexp(Exception, 'Can not locate backup directory without timestamp'):
             create_restore_plan(master_datadir, backup_dir, self.restore.dump_dir, self.restore.dump_prefix, db_timestamp, ddboost, netbackup_service_host, netbackup_block_size)
         self.remove_backup_dirs(master_datadir, [db_timestamp[0:8]])
 
@@ -847,7 +871,7 @@ CREATE DATABASE monkey WITH TEMPLATE = template0 ENCODING = 'UTF8' OWNER = thisg
     def test_build_gpdbrestore_cmd_line_00(self, mock1, mock2):
         ts = '20121212121212'
         dump_prefix = 'bar_'
-        expected_output = 'gpdbrestore -t 20121212121212 --table-file foo -a -v --noplan --noanalyze --noaostats --prefix=bar'
+        expected_output = 'gpdbrestore -t 20121212121212 --table-file foo -a -v --noplan --noanalyze --noaostats --no-validate-table-name --prefix=bar'
         restore_line = _build_gpdbrestore_cmd_line(ts, 'foo', None, None, None, dump_prefix)
         self.assertEqual(restore_line, expected_output)
 
@@ -856,7 +880,7 @@ CREATE DATABASE monkey WITH TEMPLATE = template0 ENCODING = 'UTF8' OWNER = thisg
     def test_redirected_restore_build_gpdbrestore_cmd_line_00(self, mock1, mock2):
         ts = '20121212121212'
         dump_prefix = 'bar_'
-        expected_output = 'gpdbrestore -t 20121212121212 --table-file foo -a -v --noplan --noanalyze --noaostats --prefix=bar --redirect="redb"'
+        expected_output = 'gpdbrestore -t 20121212121212 --table-file foo -a -v --noplan --noanalyze --noaostats --no-validate-table-name --prefix=bar --redirect="redb"'
         restore_line = _build_gpdbrestore_cmd_line(ts, 'foo', None, 'redb', None, dump_prefix)
         self.assertEqual(restore_line, expected_output)
 
@@ -865,7 +889,7 @@ CREATE DATABASE monkey WITH TEMPLATE = template0 ENCODING = 'UTF8' OWNER = thisg
     def test_build_gpdbrestore_cmd_line_01(self, mock1, mock2):
         ts = '20121212121212'
         dump_prefix = 'bar_'
-        expected_output = 'gpdbrestore -t 20121212121212 --table-file foo -a -v --noplan --noanalyze --noaostats -u /tmp --prefix=bar'
+        expected_output = 'gpdbrestore -t 20121212121212 --table-file foo -a -v --noplan --noanalyze --noaostats --no-validate-table-name -u /tmp --prefix=bar'
         restore_line = _build_gpdbrestore_cmd_line(ts, 'foo', '/tmp', None, None, dump_prefix)
         self.assertEqual(restore_line, expected_output)
 
@@ -875,7 +899,7 @@ CREATE DATABASE monkey WITH TEMPLATE = template0 ENCODING = 'UTF8' OWNER = thisg
         ts = '20121212121212'
         dump_prefix = 'bar_'
         report_status_dir = '/tmp'
-        expected_output = 'gpdbrestore -t 20121212121212 --table-file foo -a -v --noplan --noanalyze --noaostats --prefix=bar --report-status-dir=/tmp'
+        expected_output = 'gpdbrestore -t 20121212121212 --table-file foo -a -v --noplan --noanalyze --noaostats --no-validate-table-name --prefix=bar --report-status-dir=/tmp'
         restore_line = _build_gpdbrestore_cmd_line(ts, 'foo', None, None, '/tmp', dump_prefix)
         self.assertEqual(restore_line, expected_output)
 
@@ -884,7 +908,7 @@ CREATE DATABASE monkey WITH TEMPLATE = template0 ENCODING = 'UTF8' OWNER = thisg
     def test_build_gpdbrestore_cmd_line_03(self, mock1, mock2):
         ts = '20121212121212'
         dump_prefix = 'bar_'
-        expected_output = 'gpdbrestore -t 20121212121212 --table-file foo -a -v --noplan --noanalyze --noaostats --prefix=bar --report-status-dir=/tmp --ddboost'
+        expected_output = 'gpdbrestore -t 20121212121212 --table-file foo -a -v --noplan --noanalyze --noaostats --no-validate-table-name --prefix=bar --report-status-dir=/tmp --ddboost'
         ddboost = True
         restore_line = _build_gpdbrestore_cmd_line(ts, 'foo', None, None, '/tmp', dump_prefix, ddboost)
         self.assertEqual(restore_line, expected_output)
@@ -894,7 +918,7 @@ CREATE DATABASE monkey WITH TEMPLATE = template0 ENCODING = 'UTF8' OWNER = thisg
     def test_redirected_restore_build_gpdbrestore_cmd_line_01(self, mock1, mock2):
         ts = '20121212121212'
         dump_prefix = 'bar_'
-        expected_output = 'gpdbrestore -t 20121212121212 --table-file foo -a -v --noplan --noanalyze --noaostats -u /tmp --prefix=bar --redirect="redb"'
+        expected_output = 'gpdbrestore -t 20121212121212 --table-file foo -a -v --noplan --noanalyze --noaostats --no-validate-table-name -u /tmp --prefix=bar --redirect="redb"'
         restore_line = _build_gpdbrestore_cmd_line(ts, 'foo', '/tmp', 'redb', None, dump_prefix)
         self.assertEqual(restore_line, expected_output)
 
@@ -1352,39 +1376,48 @@ CREATE DATABASE monkey WITH TEMPLATE = template0 ENCODING = 'UTF8' OWNER = thisg
         with self.assertRaisesRegexp(Exception, 'Table file does not exist'):
             result = get_restore_tables_from_table_file(table_file)
 
-    def test_validate_tablenames_00(self):
+    def test_check_table_name_format_and_duplicate_00(self):
         table_list = ['publicao1', 'public.ao2']
         with self.assertRaisesRegexp(Exception, 'No schema name supplied'):
-            validate_tablenames(table_list, "/data", None, "db_dumps", "", "20160101010101")
+            check_table_name_format_and_duplicate(table_list, None)
 
-    @patch('gppylib.operations.restore.get_lines_from_zipped_file', return_value = ['-- Name: ao1; Type: TABLE; Schema: public; Owner', '-- Name: ao2; Type: TABLE; Schema: public; Owner'])
-    @patch('os.path.isfile', return_value = True)
-    def test_validate_tablenames_01(self, mock, mock1):
+    def test_check_table_name_format_and_duplicate_01(self):
         table_list = ['public.ao1', 'public.ao2']
-        validate_tablenames(table_list, "/data", None, "db_dumps", "", "20160101010101")
+        check_table_name_format_and_duplicate(table_list, [])
 
-    @patch('gppylib.operations.restore.get_lines_from_zipped_file', return_value = [])
-    @patch('os.path.isfile', return_value = True)
-    def test_validate_tablenames_02(self, mock, mock1):
+    def test_check_table_name_format_and_duplicate_02(self):
         table_list = []
         schema_list = []
-        validate_tablenames(table_list, "/data", None, "db_dumps", "", "20160101010101", schema_list)
+        check_table_name_format_and_duplicate(table_list, schema_list)
 
-    @patch('gppylib.operations.restore.get_lines_from_zipped_file', return_value = ['-- Name: ao1; Type: TABLE; Schema: public; Owner'])
-    @patch('os.path.isfile', return_value = True)
-    def test_validate_tablenames_03(self, mock, mock1):
+    def test_check_table_name_format_and_duplicate_03(self):
         table_list = ['public.ao1', 'public.ao1']
-        resolved_list, _ = validate_tablenames(table_list, "/data", None, "db_dumps", "", "20160101010101", [])
+        resolved_list, _ = check_table_name_format_and_duplicate(table_list, [])
         self.assertEqual(resolved_list, ['public.ao1'])
 
-    @patch('gppylib.operations.restore.get_lines_from_zipped_file', return_value = [r'-- Name: ao1; Type: TABLE; Schema: schema; Owner', r'-- Name:  `"@#$%^&( )_|:;<>?/-+={}[]*1Aa ; Type: TABLE; Schema:  `"@#$%^&( )_|:;<>?/-+={}[]*1Aa ; Owner'])
-    @patch('os.path.isfile', return_value = True)
-    def test_validate_tablenames_04(self, mock, mock1):
-        table_list = [r' `"@#$%^&( )_|:;<>?/-+={}[]*1Aa . `"@#$%^&( )_|:;<>?/-+={}[]*1Aa ', 'schema.ao1']
-        schema_list = ['schema', 'schema']
-        resolved_table_list, resolved_schema_list = validate_tablenames(table_list, "/data", None, "db_dumps", "", "20160101010101", schema_list)
-        self.assertEqual(resolved_table_list, [r' `"@#$%^&( )_|:;<>?/-+={}[]*1Aa . `"@#$%^&( )_|:;<>?/-+={}[]*1Aa '])
+    def test_check_table_name_format_and_duplicate_04(self):
+        table_list = [' `"@#$%^&( )_|:;<>?/-+={}[]*1Aa . `"@#$%^&( )_|:;<>?/-+={}[]*1Aa ', 'schema.ao1']
+        schema_list = ['schema']
+        resolved_table_list, resolved_schema_list = check_table_name_format_and_duplicate(table_list, schema_list)
+        self.assertEqual(resolved_table_list, [' `"@#$%^&( )_|:;<>?/-+={}[]*1Aa . `"@#$%^&( )_|:;<>?/-+={}[]*1Aa '])
         self.assertEqual(resolved_schema_list, ['schema'])
+
+    def test_validate_tablenames_exist_in_dump_file_00(self):
+        dumped_tables = []
+        table_list = ['schema.ao']
+        with self.assertRaisesRegexp(Exception, 'No dumped tables to restore.'):
+            validate_tablenames_exist_in_dump_file(table_list, dumped_tables)
+
+    def test_validate_tablenames_exist_in_dump_file_01(self):
+        dumped_tables = [('schema', 'ao', 'gpadmin')]
+        table_list = ['schema.ao']
+        validate_tablenames_exist_in_dump_file(table_list, dumped_tables)
+
+    def test_validate_tablenames_exist_in_dump_file_02(self):
+        dumped_tables = [('schema', 'ao', 'gpadmin')]
+        table_list = ['schema.ao', 'schema.co']
+        with self.assertRaisesRegexp(Exception, "Tables \['schema.co'\] not found in backup"):
+            validate_tablenames_exist_in_dump_file(table_list, dumped_tables)
 
     def test_get_restore_table_list_00(self):
         table_list = ['public.ao_table', 'public.ao_table2', 'public.co_table', 'public.heap_table']
@@ -1633,6 +1666,122 @@ CREATE DATABASE monkey WITH TEMPLATE = template0 ENCODING = 'UTF8' OWNER = thisg
         restore_tables = ['public.t1', 'public.t2']
         change_schema = 'newschema'
         self.restore._analyze_restore_tables(db_name, restore_tables, change_schema)
+
+    @patch('gppylib.operations.restore.ValidateTimestamp', return_value=ValidateTimestampMock())
+    @patch('os.path.join', return_value="")
+    @patch('__builtin__.open', return_value=OpenFileMock(["""-- Name:  ao_T`~@#$%^&*()-+[{]}|\;: \'"/?><1 ; Type: TABLE; Schema:  S`~@#$%^&*()-+[{]}|\;: \'"/?><1 ; Owner: gpadmin"""]))
+    def test_getdumptables_execute_when_no_tablespace_should_give_table_names_without_quotes(self, m1, m2, m3):
+        get = GetDumpTables(None, None, None, None, None, None, None, None)
+        result = get.get_dump_tables()
+        self.assertEqual(result, [(' S`~@#$%^&*()-+[{]}|\\;: \'"/?><1 ', ' ao_T`~@#$%^&*()-+[{]}|\\;: \'"/?><1 ', 'gpadmin')])
+
+    @patch('gppylib.operations.restore.ValidateTimestamp', return_value=ValidateTimestampMock())
+    @patch('os.path.join', return_value="")
+    @patch('__builtin__.open', return_value=OpenFileMock(["""-- Name:  ao_T`~@#$%^&*()-+[{]}|\;: \'"/?><1 ; Type: TABLE; Schema:  S`~@#$%^&*()-+[{]}|\;: \'"/?><1 ; Owner: gpadmin; Tablespace: """]))
+    def test_getdumptables_execute_should_give_table_names_without_quotes(self, m1, m2, m3):
+        get = GetDumpTables(None, None, None, None, None, None, None, None)
+        result = get.get_dump_tables()
+        self.assertEqual(result, [(' S`~@#$%^&*()-+[{]}|\\;: \'"/?><1 ', ' ao_T`~@#$%^&*()-+[{]}|\\;: \'"/?><1 ', 'gpadmin')])
+
+    @patch('gppylib.operations.restore.ValidateTimestamp', return_value=ValidateTimestampMock())
+    @patch('os.path.join', return_value="")
+    @patch('__builtin__.open', return_value=OpenFileMock(["""-- Name:  ao_T`~@#$%^&*()-+[{]}|\;: \'"/?><1 ; Type: COMMENT; Schema:  S`~@#$%^&*()-+[{]}|\;: \'"/?><1 ; Owner: gpadmin"""]))
+    def test_getdumptables_execute_when_not_table_should_return_none(self, m1, m2, m3):
+        get = GetDumpTables(None, None, None, None, None, None, None, None)
+        result = get.get_dump_tables()
+        self.assertEqual(result, [])
+
+    @patch('gppylib.operations.restore.ValidateTimestamp', return_value=ValidateTimestampMock())
+    @patch('os.path.join', return_value="")
+    @patch('__builtin__.open', return_value=OpenFileMock(["""-- Name: sales; Type: TABLE; Schema: public; Owner: gpadmin""", """START ('2011-01-01'::date) END ('2011-02-01'::date) EVERY ('1 mon'::interval) WITH (tablename='sales_1_prt_2', appendonly=false )"""]))
+    def test_getdumptables_execute_when_subpartition_table_exist(self, m1, m2, m3):
+        get = GetDumpTables(None, None, None, None, None, None, None, None)
+        result = get.get_dump_tables()
+        self.assertEqual(result, [('public', 'sales', 'gpadmin'), ('public', 'sales_1_prt_2', 'gpadmin')])
+
+    @patch('gppylib.operations.restore.ValidateTimestamp', return_value=ValidateTimestampMock())
+    @patch('os.path.join', return_value="")
+    @patch('__builtin__.open', return_value=OpenFileMock(["""-- Name:  ao_T`~@#$%^&*()-+[{]}|\;: \'"/?><1 ; Type: TABLE; Schema:  S`~@#$%^&*()-+[{]}|\;: \'"/?><1 ; Owner: gpadmin""", """START ('2011-01-01'::date) END ('2011-02-01'::date) EVERY ('1 mon'::interval) WITH (tablename=E' ao_T`~@#$%^&*()-+[{]}|\;: ''"/?><1 _1_prt_2', appendonly=false )"""]))
+    def test_getdumptables_execute_when_special_char_subpartition_table_exist(self, m1, m2, m3):
+        get = GetDumpTables(None, None, None, None, None, None, None, None)
+        result = get.get_dump_tables()
+        self.assertEqual(result, [(' S`~@#$%^&*()-+[{]}|\\;: \'"/?><1 ', ' ao_T`~@#$%^&*()-+[{]}|\\;: \'"/?><1 ', 'gpadmin'), (' S`~@#$%^&*()-+[{]}|\\;: \'"/?><1 ', ' ao_T`~@#$%^&*()-+[{]}|\\;: \'"/?><1 _1_prt_2', 'gpadmin')])
+
+    @patch('__builtin__.open', return_value=OpenFileMock(["""-- Name: sales; Type: TABLE; Schema: public; Owner: gpadmin""", """SUBPARTITION usa VALUES('usa') WITH (tablename='sales_1_prt_1', appendonly=false ),"""]))
+    def test_getdumptables_execute_when_multi_subpartition_table_exist(self, m1):
+        get = GetDumpTables(None, None, None, None, None, None, None, None)
+        result = get.get_dump_tables()
+        self.assertEqual(result, [('public', 'sales', 'gpadmin'), ('public', 'sales_1_prt_1', 'gpadmin')])
+
+    @patch('__builtin__.open', return_value=OpenFileMock(["""-- Name: sales; Type: TABLE; Schema: public; Owner: gpadmin""", """DEFAULT PARTITION outlying_dates  WITH (tablename='sales_1_prt_default', appendonly=false )"""]))
+    def test_getdumptables_execute_when_default_partition_table_exist(self, m1):
+        get = GetDumpTables(None, None, None, None, None, None, None, None)
+        result = get.get_dump_tables()
+        self.assertEqual(result, [('public', 'sales', 'gpadmin'), ('public', 'sales_1_prt_default', 'gpadmin')])
+
+    @patch('__builtin__.open', return_value=OpenFileMock(["""-- Name: sales; Type: TABLE; Schema: public; Owner: gpadmin""", """DEFAULT SUBPARTITION other_regions  WITH (tablename='sales_1_prt_13_2_prt_other_regions', appendonly=false )"""]))
+    def test_getdumptables_execute_when_default_subpartition_table_exist(self, m1):
+        get = GetDumpTables(None, None, None, None, None, None, None, None)
+        result = get.get_dump_tables()
+        self.assertEqual(result, [('public', 'sales', 'gpadmin'), ('public', 'sales_1_prt_13_2_prt_other_regions', 'gpadmin')])
+
+    @patch('gppylib.commands.base.Command.__init__', return_value=None)
+    @patch('gppylib.commands.base.Command.run', return_value=None)
+    @patch('gppylib.commands.base.Command.get_results')
+    def test_getdumptables_from_ddboost(self, m1, m2, mockCommand_init):
+            m1.stdout = ['my return']
+            get = GetDumpTables(None, None, None, None, None, None, 'ddboost', None, None, 'myfile')
+            result = get.get_dump_tables()
+            mockCommand_init.assert_called_once_with('DDBoost copy of master dump file', 'gpddboost --readFile --from-file=myfile | grep -e "-- Name: " -e "^\\W*START (" -e "^\\W*PARTITION " -e "^\\W*DEFAULT PARTITION " -e "^\\W*SUBPARTITION " -e "^\\W*DEFAULT SUBPARTITION "')
+
+
+    @patch('gppylib.commands.base.Command.__init__', return_value=None)
+    @patch('gppylib.commands.base.Command.run', return_value="myfile")
+    @patch('gppylib.commands.base.Command.get_results')
+    def test_getdumptables_from_ddboost_compressed_file(self, m1, m2, mockCommand_init):
+            m1.stdout = ['my return']
+            get = GetDumpTables(None, None, None, None, None, True, 'ddboost', None, None, 'myfile.gz')
+            result = get.get_dump_tables()
+            mockCommand_init.assert_called_once_with('DDBoost copy of master dump file', 'gpddboost --readFile --from-file=myfile.gz | gunzip | grep -e "-- Name: " -e "^\\W*START (" -e "^\\W*PARTITION " -e "^\\W*DEFAULT PARTITION " -e "^\\W*SUBPARTITION " -e "^\\W*DEFAULT SUBPARTITION "')
+
+
+    @patch('gppylib.commands.base.Command.__init__', return_value=None)
+    @patch('gppylib.commands.base.Command.run', return_value="myfile")
+    @patch('gppylib.commands.base.Command.get_results')
+    def test_getdumptables_from_netbackup(self, m1, m2, mockCommand_init):
+            m1.stdout = ['my return']
+            get = GetDumpTables(None, None, None, None, None, False, None, 'netbackup-host', None, 'myfile')
+            result = get.get_dump_tables()
+            mockCommand_init.assert_called_once_with('NetBackup copy of master dump file', 'gp_bsa_restore_agent --netbackup-service-host netbackup-host --netbackup-filename myfile | grep -e "-- Name: " -e "^\\W*START (" -e "^\\W*PARTITION " -e "^\\W*DEFAULT PARTITION " -e "^\\W*SUBPARTITION " -e "^\\W*DEFAULT SUBPARTITION "')
+
+
+    @patch('gppylib.commands.base.Command.__init__', return_value=None)
+    @patch('gppylib.commands.base.Command.run', return_value="myfile")
+    @patch('gppylib.commands.base.Command.get_results')
+    def test_getdumptables_from_netbackup_compressed_file(self, m1, m2, mockCommand_init):
+            m1.stdout = ['my return']
+            get = GetDumpTables(None, None, None, None, None, True, None, 'netbackup-host', None, 'myfile.gz')
+            result = get.get_dump_tables()
+            mockCommand_init.assert_called_once_with('NetBackup copy of master dump file', 'gp_bsa_restore_agent --netbackup-service-host netbackup-host --netbackup-filename myfile.gz | gunzip | grep -e "-- Name: " -e "^\\W*START (" -e "^\\W*PARTITION " -e "^\\W*DEFAULT PARTITION " -e "^\\W*SUBPARTITION " -e "^\\W*DEFAULT SUBPARTITION "')
+
+    @patch('gppylib.commands.base.Command.__init__', return_value=None)
+    @patch('gppylib.commands.base.Command.run', return_value="myfile")
+    @patch('gppylib.commands.base.Command.get_results')
+    def test_getdumptables_from_remote_host(self, m1, m2, mockCommand_init):
+            m1.stdout = ['my return']
+            get = GetDumpTables(None, None, None, None, None, False, None, None, 'remote_host', 'myfile')
+            result = get.get_dump_tables()
+            mockCommand_init.assert_called_once_with('Get remote copy of dumped tables', 'ssh remote_host cat myfile | grep -e "-- Name: " -e "^\\W*START (" -e "^\\W*PARTITION " -e "^\\W*DEFAULT PARTITION " -e "^\\W*SUBPARTITION " -e "^\\W*DEFAULT SUBPARTITION "')
+
+
+    @patch('gppylib.commands.base.Command.__init__', return_value=None)
+    @patch('gppylib.commands.base.Command.run', return_value="myfile")
+    @patch('gppylib.commands.base.Command.get_results')
+    def test_getdumptables_from_remote_host_compressed_file(self, m1, m2, mockCommand_init):
+            m1.stdout = ['my return']
+            get = GetDumpTables(None, None, None, None, None, True, None, None, 'remote_host', 'myfile.gz')
+            result = get.get_dump_tables()
+            mockCommand_init.assert_called_once_with('Get remote copy of dumped tables', 'ssh remote_host cat myfile.gz | gunzip | grep -e "-- Name: " -e "^\\W*START (" -e "^\\W*PARTITION " -e "^\\W*DEFAULT PARTITION " -e "^\\W*SUBPARTITION " -e "^\\W*DEFAULT SUBPARTITION "')
 
 class ValidateTimestampTestCase(unittest.TestCase):
 

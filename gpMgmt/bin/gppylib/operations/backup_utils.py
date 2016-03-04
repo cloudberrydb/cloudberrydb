@@ -43,14 +43,14 @@ def list_to_quoted_string(filter_tables):
 
 def convert_parents_to_leafs(dbname, parents):
     partition_leaves_sql = """
-                           SELECT x.partitionschemaname || '.' || x.partitiontablename 
+                           SELECT x.partitionschemaname || '.' || x.partitiontablename
                            FROM (
-                                SELECT distinct schemaname, tablename, partitionschemaname, partitiontablename, partitionlevel 
-                                FROM pg_partitions 
+                                SELECT distinct schemaname, tablename, partitionschemaname, partitiontablename, partitionlevel
+                                FROM pg_partitions
                                 WHERE schemaname || '.' || tablename in (%s)
-                                ) as X, 
-                           (SELECT schemaname, tablename maxtable, max(partitionlevel) maxlevel 
-                            FROM pg_partitions 
+                                ) as X,
+                           (SELECT schemaname, tablename maxtable, max(partitionlevel) maxlevel
+                            FROM pg_partitions
                             group by (tablename, schemaname)
                            ) as Y
                            WHERE x.schemaname = y.schemaname and x.tablename = Y.maxtable and x.partitionlevel = Y.maxlevel;
@@ -222,22 +222,30 @@ def get_dbname_from_cdatabaseline(line):
         logger.error('Failed to find substring %s in line %s, error: %s' % (cdatabase, line, str(e)))
         return None
 
-    with_template = " WITH TEMPLATE = "
-    all_positions = get_all_occurrences(with_template, line)
-    if all_positions != None:
-        for pos in all_positions:
-            pre_string = line[:pos]
-            post_string = line[pos + len(with_template):]
-            double_quotes_before = get_all_occurrences('"', pre_string)
-            double_quotes_after = get_all_occurrences('"', post_string)
-            num_double_quotes_before = 0 if double_quotes_before is None else len(double_quotes_before)
-            num_double_quotes_after = 0 if double_quotes_after is None else len(double_quotes_after)
-            if num_double_quotes_before % 2 == 0 and num_double_quotes_after % 2 == 0:
-                dbname = line[start+len(cdatabase) : pos]
-                return dbname
+    keyword = " WITH TEMPLATE = "
+    pos = get_nonquoted_keyword_index(line, keyword, '"', len(keyword))
+    if pos != -1:
+        dbname = line[start+len(cdatabase) : pos]
+        return dbname
     return None
 
+def get_nonquoted_keyword_index(line, keyword, quote, keyword_len):
+    # quote can be single quote or double quote
+    all_positions = get_all_occurrences(keyword, line)
+    if all_positions != None and len(all_positions) > 0:
+        for pos in all_positions:
+            pre_string = line[:pos]
+            post_string = line[pos + keyword_len:]
+            quotes_before = get_all_occurrences('%s' % quote, pre_string)
+            quotes_after = get_all_occurrences('%s' % quote, post_string)
+            num_quotes_before = 0 if (quotes_before is None or len(quotes_before) == 0) else len(quotes_before)
+            num_quotes_after = 0 if (quotes_after is None or len(quotes_after) == 0) else len(quotes_after)
+            if num_quotes_before % 2 == 0 and num_quotes_after % 2 == 0:
+                return pos
+    return -1
+
 def get_all_occurrences(substr, line):
+    # substr is used for generating the pattern, escape those special chars in regexp
     if substr is None or line is None or len(substr) > len(line):
         return None
     return [m.start() for m in re.finditer('(?=%s)' % substr, line)]
@@ -517,17 +525,30 @@ def get_timestamp_from_increments_filename(filename, dump_prefix):
         raise Exception("Invalid increments file '%s' passed to get_timestamp_from_increments_filename" % filename)
     return parts[-2].strip()
 
-def get_full_timestamp_for_incremental(backup_dir, dump_dir, dump_prefix, incremental_timestamp):
-    pattern = '%s/%s/[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]/%sgp_dump_[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]_increments' % (backup_dir, dump_dir, dump_prefix)
-    increments_files = glob.glob(pattern)
+def get_full_timestamp_for_incremental(master_datadir, dump_dir, dump_prefix, incremental_timestamp, backup_dir=None, ddboost=False, netbackup_service_host=None, netbackup_block_size=None):
+    full_timestamp = None
+    if netbackup_service_host:
+        full_timestamp = get_full_timestamp_for_incremental_with_nbu(dump_prefix, incremental_timestamp, netbackup_service_host, netbackup_block_size)
+    else:
+        if ddboost:
+            backup_dir = master_datadir
+        else:
+            backup_dir = get_restore_dir(master_datadir, backup_dir)
 
-    for increments_file in increments_files:
-        increment_ts = get_lines_from_file(increments_file)
-        if incremental_timestamp in increment_ts:
-            full_timestamp = get_timestamp_from_increments_filename(increments_file, dump_prefix)
-            return full_timestamp
+        pattern = '%s/%s/[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]/%sgp_dump_[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]_increments' % (backup_dir, dump_dir, dump_prefix)
+        increments_files = glob.glob(pattern)
 
-    return None
+        for increments_file in increments_files:
+            increment_ts = get_lines_from_file(increments_file)
+            if incremental_timestamp in increment_ts:
+                full_timestamp = get_timestamp_from_increments_filename(increments_file, dump_prefix)
+                break
+
+    if not full_timestamp:
+        raise Exception("Could not locate fullbackup associated with timestamp '%s'. Either increments file or full backup is missing." % incremental_timestamp)
+
+    return full_timestamp
+
 
 # backup_dir will be either MDD or some other directory depending on call
 def get_latest_full_dump_timestamp(dbname, backup_dir, dump_dir, dump_prefix, ddboost=False):
@@ -592,7 +613,7 @@ def check_funny_chars_in_names(names, is_full_qualified_name=True):
     """
     '\n' inside table name makes it hard to specify the object name in shell command line,
     this may be worked around by using table file, but currently we read input line by line.
-    '!' inside table name will mess up with the shell history expansion.     
+    '!' inside table name will mess up with the shell history expansion.
     ',' is used for separating tables in plan file during incremental restore.
     '.' dot is currently being used for full qualified table name in format: schema.table
     """
@@ -720,6 +741,11 @@ def check_schema_exists(schema_name, dbname):
         return False
     return True
 
+def unescape_string(string):
+    if string:
+        string = string.replace('\\\\', '\\').replace("''", "'")
+    return string
+
 def isDoubleQuoted(string):
     if len(string) > 2 and string[0] == '"' and string[-1] == '"':
         return True
@@ -748,7 +774,7 @@ def escapeDoubleQuoteInSQLString(string, forceDoubleQuote=True):
 
 def removeEscapingDoubleQuoteInSQLString(string, forceDoubleQuote=True):
     """
-    Remove the escaping double quote in database/schema/table name. 
+    Remove the escaping double quote in database/schema/table name.
     """
     if string is None:
         return string
@@ -761,7 +787,7 @@ def removeEscapingDoubleQuoteInSQLString(string, forceDoubleQuote=True):
 
 def formatSQLString(rel_file, isTableName=False):
     """
-    Read the full qualified schema or table name, do a split 
+    Read the full qualified schema or table name, do a split
     if each item is a table name into schema and table,
     escape the double quote inside the name properly.
     """
@@ -801,3 +827,59 @@ def remove_file_on_segments(master_port, filename, batch_default=DEFAULT_NUM_WOR
         run_pool_command(addresses, cmd, batch_default, check_results=False)
     except Exception as e:
         logger.error("cleaning up file failed: %s" % e.__str__())
+
+def get_restore_dir(data_dir, backup_dir):
+    if backup_dir is not None:
+        return backup_dir
+    else:
+        return data_dir
+
+def get_table_info(line):
+    """
+    It's complex to split when table name/schema name/user name/ tablespace name
+    contains full context of one of others', which is very unlikely, but in
+    case it happens, return None.
+
+    Since we only care about table name, type, and schema name, strip the input
+    is safe here.
+
+    line: contains the true (un-escaped) schema name, table name, and user name.
+    """
+
+
+    COMMENT_EXPR = '-- Name: '
+    TYPE_EXPR = '; Type: '
+    SCHEMA_EXPR = '; Schema: '
+    OWNER_EXPR = '; Owner: '
+    TABLESPACE_EXPR = '; Tablespace: '
+
+    temp = line.strip('\n')
+    type_start = get_all_occurrences(TYPE_EXPR, temp)
+    schema_start = get_all_occurrences(SCHEMA_EXPR, temp)
+    owner_start = get_all_occurrences(OWNER_EXPR, temp)
+    tblspace_start = get_all_occurrences(TABLESPACE_EXPR, temp)
+    if len(type_start) != 1 or len(schema_start) != 1 or len(owner_start) != 1:
+        return (None, None, None, None)
+    name = temp[len(COMMENT_EXPR) : type_start[0]]
+    type = temp[type_start[0] + len(TYPE_EXPR) : schema_start[0]]
+    schema = temp[schema_start[0] + len(SCHEMA_EXPR) : owner_start[0]]
+    if not tblspace_start:
+        tblspace_start.append(None)
+    owner = temp[owner_start[0] + len(OWNER_EXPR) : tblspace_start[0]]
+    return (name, type, schema, owner)
+
+def get_master_dump_file(master_datadir, backup_dir, dump_dir, timestamp, dump_prefix, ddboost):
+    """
+    Generate the path to master dump file for ddboost, local cluster and netbackup dump, this function
+    does not generate path to other remote dump location.
+    Currently the netbackup and local dump both have same backup directory.
+
+    DDboost is different from netbackup & local dump
+    """
+    dump_file_name = "%s%s" % (generate_master_dbdump_prefix(dump_prefix), timestamp)
+
+    if ddboost:
+        dump_file = os.path.join(dump_dir, timestamp[0:8], dump_file_name)
+    else:
+        dump_file = os.path.join(get_restore_dir(master_datadir, backup_dir), dump_dir, timestamp[0:8], dump_file_name)
+    return dump_file

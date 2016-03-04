@@ -2465,6 +2465,7 @@ def impl(context, timestamp_key, dir):
             if not 'named pipe' in results.stdout:
                 raise Exception('Expected %s to be a named pipe' % filename)
 
+@when('the named pipe script for the "{operation}" is run for the files under "{dump_directory}"')
 @then('the named pipe script for the "{operation}" is run for the files under "{dump_directory}"')
 def impl(context, operation, dump_directory):
     dump_dir = dump_directory if len(dump_directory.strip()) != 0 else master_data_dir
