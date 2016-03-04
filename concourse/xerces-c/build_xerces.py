@@ -8,7 +8,7 @@ import sys
 import tarfile
 import urllib2
 
-XERCES_SOURCE_URL = "http://www.trieuvan.com/apache/xerces/c/3/sources/xerces-c-3.1.2.tar.gz"
+XERCES_SOURCE_URL = "http://archive.apache.org/dist/xerces/c/3/sources/xerces-c-3.1.2.tar.gz"
 XERCES_SOURCE_DIR = "xerces-c-3.1.2"
 
 def num_cpus():
