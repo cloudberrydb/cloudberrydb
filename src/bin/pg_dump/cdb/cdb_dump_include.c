@@ -2434,6 +2434,7 @@ getProcLangs(int *numProcLangs)
 	int			i_lanname;
 	int			i_lanpltrusted;
 	int			i_lanplcallfoid;
+	int			i_laninline;
 	int			i_lanvalidator;
 	int			i_lanacl;
 	int			i_lanowner;
@@ -2464,6 +2465,7 @@ getProcLangs(int *numProcLangs)
 	i_lanpltrusted = PQfnumber(res, "lanpltrusted");
 	i_lanplcallfoid = PQfnumber(res, "lanplcallfoid");
 	/* these may fail and return -1: */
+	i_laninline = PQfnumber(res, "laninline");
 	i_lanvalidator = PQfnumber(res, "lanvalidator");
 	i_lanacl = PQfnumber(res, "lanacl");
 	i_lanowner = PQfnumber(res, "lanowner");
@@ -2482,6 +2484,10 @@ getProcLangs(int *numProcLangs)
 			planginfo[i].lanvalidator = atooid(PQgetvalue(res, i, i_lanvalidator));
 		else
 			planginfo[i].lanvalidator = InvalidOid;
+		if (i_laninline >= 0)
+			planginfo[i].laninline = atooid(PQgetvalue(res, i, i_laninline));
+		else
+			planginfo[i].laninline = InvalidOid;
 		if (i_lanacl >= 0)
 			planginfo[i].lanacl = strdup(PQgetvalue(res, i, i_lanacl));
 		else
@@ -2656,7 +2662,7 @@ getTableAttrs(TableInfo *tblinfo, int numTables)
 	for (i = 0; i < ntups; i++)
 	{
 		oid = atoi(PQgetvalue(res, i, 0));
- 		typstorage = *(PQgetvalue(res, i, 1));
+		typstorage = *(PQgetvalue(res, i, 1));
 		if (insertIntoHashTable(oid, typstorage) < 0)
 		{		
 			mpp_err_msg(logError, progname, "Unable to insert the following values into hash table Oid: %u, typstorage: %c"
