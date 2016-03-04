@@ -789,47 +789,6 @@ apply_motion(PlannerInfo *root, Plan *plan, Query *query)
         subplan->qDispSliceId = state.nextMotionID++;
     }
 
-#ifdef USE_ASSERT_CHECKING
-	/* Check whether plan brings back the tuples to their original segments so they
-	 * can be updated */
-	if (query->commandType == CMD_DELETE ||
-        query->commandType == CMD_UPDATE)
-	{
-		if (targetPolicyType == POLICYTYPE_ENTRY)
-		{
-			/* target table is master-only */
-			Assert(list_length(root->resultRelations) == 1);
-			Assert(result->flow->flotype == FLOW_SINGLETON && result->flow->segindex == -1);
-		}
-		else if (result->nMotionNodes > state.numInitPlanMotionNodes)
-		{
-			/* target table is distributed and plan involves motion nodes */
-			/*
-			 * Currently, we require all DML plans with Motion to have an ExplicitRedistribute
-			 * motion on top or (for partitioned tables) an Append node with ExplicitRedistribute
-			 * child plans
-			 */
-			if (list_length(root->resultRelations) == 1)
-			{
-				/* non-partitioned table */
-				Assert(IsA(result, Motion) && ((Motion *) result)->motionType == MOTIONTYPE_EXPLICIT);
-			}
-			else
-			{
-				/* updating a partitioned table */
-				Assert(IsA(result, Append));
-				ListCell *lcAppend;
-				foreach(lcAppend, ((Append *) result)->appendplans)
-				{
-					Plan *appendPlan = (Plan *) lfirst(lcAppend);
-					Assert(IsA(appendPlan, Motion) &&
-							((Motion *) appendPlan)->motionType == MOTIONTYPE_EXPLICIT);
-				}
-			}
-		}
-	}
-#endif
-
     /* 
 	 * Discard subtrees of Query node that aren't needed for execution. 
 	 * Note the targetlist (query->targetList) is used in execution of
