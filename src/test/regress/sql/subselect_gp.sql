@@ -568,3 +568,13 @@ select s_name from xsupplier
 where s_suppkey in (
   select g.l_suppkey from xlineitem g
 ) ;
+
+--
+-- Another case that failed at one point. (A planner bug in pulling up a
+-- subquery with constant distribution key, 1, in the outer queries.)
+--
+create table nested_in_tbl(tc1 int, tc2 int) distributed by (tc1);
+select * from nested_in_tbl t1  where tc1 in
+  (select 1 from nested_in_tbl t2 where tc1 in
+    (select 1 from nested_in_tbl t3 where t3.tc2 = t2.tc2));
+drop table nested_in_tbl;

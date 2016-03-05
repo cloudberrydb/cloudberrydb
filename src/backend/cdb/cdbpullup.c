@@ -379,52 +379,53 @@ cdbpullup_findPathKeyExprInTargetList(PathKey *item, List *targetlist)
 	ListCell *lc;
 	EquivalenceClass *eclass = item->pk_eclass;
 
-	/* Bail if targetlist is empty. */
-	if (!targetlist)
-		return NULL;
-
 	foreach(lc, eclass->ec_members)
 	{
 		EquivalenceMember *em = (EquivalenceMember *) lfirst(lc);
 		Expr	   *key = (Expr *) em->em_expr;
-		TargetEntry *tle;
 
+		/* A constant is OK regardless of the target list */
 		if (em->em_is_const)
 			return key;
 
-		/* Ignore possible RelabelType node atop the PathKey expr. */
-		if (IsA(key, RelabelType))
-			key = ((RelabelType *)key)->arg;
-
-		/* Check if targetlist is a List of TargetEntry */
-		if (IsA(linitial(targetlist), TargetEntry))
+		if (targetlist)
 		{
-			tle = tlist_member_ignoring_RelabelType(key, targetlist);
-			if (tle)
-				return key;
-		}
-		/* Planner's RelOptInfo targetlists don't have TargetEntry nodes */
-		else
-		{
-			ListCell *tcell;
+			/* Ignore possible RelabelType node atop the PathKey expr. */
+			if (IsA(key, RelabelType))
+				key = ((RelabelType *)key)->arg;
 
-			foreach(tcell, targetlist)
+			/* Check if targetlist is a List of TargetEntry */
+			if (IsA(linitial(targetlist), TargetEntry))
 			{
-				Expr *expr = (Expr *) lfirst(tcell);
+				TargetEntry *tle;
 
-				if (IsA(expr, RelabelType))
-					expr = ((RelabelType *)expr)->arg;
-
-				if (equal(expr, key))
+				tle = tlist_member_ignoring_RelabelType(key, targetlist);
+				if (tle)
 					return key;
 			}
-		}
+			/* Planner's RelOptInfo targetlists don't have TargetEntry nodes */
+			else
+			{
+				ListCell *tcell;
 
-		/* Return this item if all referenced Vars are in targetlist. */
-		if (!IsA(key, Var) &&
-			!cdbpullup_missingVarWalker((Node *) key, targetlist))
-		{
-			return key;
+				foreach(tcell, targetlist)
+				{
+					Expr *expr = (Expr *) lfirst(tcell);
+
+					if (IsA(expr, RelabelType))
+						expr = ((RelabelType *)expr)->arg;
+
+					if (equal(expr, key))
+						return key;
+				}
+			}
+
+			/* Return this item if all referenced Vars are in targetlist. */
+			if (!IsA(key, Var) &&
+				!cdbpullup_missingVarWalker((Node *) key, targetlist))
+			{
+				return key;
+			}
 		}
 	}
 
