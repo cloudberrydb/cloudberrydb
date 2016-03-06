@@ -31,7 +31,7 @@ PYLIB_DIR=$(SRC)/ext
 core: pygresql subprocess32
 
 ifneq "$(wildcard $(CURDIR)/pythonSrc/ext/*.tar.gz)" ""
-all: core lockfile paramiko pycrypto stream pychecker psi unittest2
+all: core lockfile paramiko pycrypto stream pychecker psutil unittest2
 else
 all: core stream
 endif
@@ -119,16 +119,16 @@ pycrypto:
 	cp -r $(PYLIB_SRC_EXT)/$(PYCRYPTO_DIR)/build/lib.*/Crypto $(PYLIB_DIR)
 
 #
-# PSI
+# PSUTIL
 #
-PSI_VERSION=0.3b2_gp
-PSI_DIR=PSI-$(PSI_VERSION)
+PSUTIL_VERSION=4.0.0
+PSUTIL_DIR=psutil-$(PSUTIL_VERSION)
 
-psi:
-	@echo "--- psi"
-	cd $(PYLIB_SRC_EXT)/ && $(TAR) xzf $(PSI_DIR).tar.gz
-	cd $(PYLIB_SRC_EXT)/$(PSI_DIR)/ && CC="$(CC)" python setup.py build
-	cp -r $(PYLIB_SRC_EXT)/$(PSI_DIR)/build/lib.*/psi $(PYLIB_DIR)
+psutil:
+	@echo "--- psutil"
+	cd $(PYLIB_SRC_EXT)/ && $(TAR) xzf $(PSUTIL_DIR).tar.gz
+	cd $(PYLIB_SRC_EXT)/$(PSUTIL_DIR)/ && CC="$(CC)" python setup.py build
+	cp -r $(PYLIB_SRC_EXT)/$(PSUTIL_DIR)/build/lib.*/psutil $(PYLIB_DIR)
 
 
 #

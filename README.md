@@ -40,7 +40,7 @@ to the segments, and collects the results.
   You will need to add the following Python modules (2.7 & 2.6 are
   supported) into your installation
 
-  * psi
+  * psutil
   * lockfile (>= 0.9.1)
   * paramiko
   * setuptools

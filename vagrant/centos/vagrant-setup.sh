@@ -20,7 +20,7 @@ sudo yum -y install perl-Env
 sudo yum -y install ccache
 wget https://bootstrap.pypa.io/get-pip.py
 sudo python get-pip.py
-sudo pip install psi lockfile paramiko setuptools epydoc
+sudo pip install psutil lockfile paramiko setuptools epydoc
 rm get-pip.py
 
 # Misc

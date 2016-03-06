@@ -14,7 +14,7 @@ pip install lockfile
 pip install paramiko
 pip install setuptools
 pip install epydoc
-pip install --pre psi
+pip install --pre psutil
 
 sudo service docker start
 sudo useradd postgres
