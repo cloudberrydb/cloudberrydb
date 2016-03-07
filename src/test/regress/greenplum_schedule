@@ -98,6 +98,9 @@ test: qp_dpe qp_subquery qp_functions_idf qp_regexp qp_resource_queue
 
 test: qp_gist_indexes2 qp_gist_indexes3 qp_gist_indexes4
 
+test: olap_setup
+test: qp_olap_group
+
 ignore: tpch500GB_orca
 
 # XXX: This test depends on libgpoptudfs library, which includes ORCA helper
