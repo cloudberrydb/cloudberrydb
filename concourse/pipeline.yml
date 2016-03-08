@@ -56,7 +56,7 @@ resources:
 - name: gpdb_src
   type: git
   source:
-    branch: master
+    branch: concourse-infrastructure
     private_key: |
       -----BEGIN RSA PRIVATE KEY-----
       MIIEpQIBAAKCAQEAyvTCWLve4+2ciHSAQflRo66+uNhF+avpUuhIfLYPUGhmX431
@@ -587,6 +587,8 @@ jobs:
       - gpos_secondary
       trigger: true
     - get: gpdb_src
+      params:
+        submodules: none
   - aggregate:
     - task: build_and_test_with_orca
       file: gpdb_src/concourse/build_and_test_with_orca.yml
