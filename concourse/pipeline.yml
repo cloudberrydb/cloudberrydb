@@ -327,6 +327,7 @@ resources:
 resource_types: []
 jobs:
 - name: gp_xerces
+  max_in_flight: 2
   plan:
   - get: xerces_patch
     trigger: true
@@ -362,6 +363,7 @@ jobs:
       params:
         from: package_tarball_debian8_clang_libcxx/bin_xerces_debian8_clang_libcxx.tar.gz
 - name: gpos_centos5_release
+  max_in_flight: 2
   plan:
   - get: gpos_src
     trigger: true
@@ -375,6 +377,7 @@ jobs:
     params:
       from: package_tarball_centos5_release/bin_gpos_centos5_release.tar.gz
 - name: gpos_centos6_release
+  max_in_flight: 2
   plan:
   - get: gpos_src
     trigger: true
@@ -388,6 +391,7 @@ jobs:
     params:
       from: package_tarball_centos6_release/bin_gpos_centos6_release.tar.gz
 - name: gpos_secondary
+  max_in_flight: 2
   plan:
   - get: gpos_src
     trigger: true
@@ -450,6 +454,7 @@ jobs:
       params:
         from: package_tarball_debian8_release_clang_libcxx/bin_gpos_debian8_release_clang_libcxx.tar.gz
 - name: orca_centos5_release
+  max_in_flight: 2
   plan:
   - get: orca_src
     trigger: true
@@ -468,6 +473,7 @@ jobs:
     params:
       from: package_tarball_centos5_release/bin_orca_centos5_release.tar.gz
 - name: orca_secondary
+  max_in_flight: 2
   plan:
   - aggregate:
     - get: bin_gpos_centos5_debug
@@ -569,6 +575,7 @@ jobs:
       params:
         from: package_tarball_debian8_release_clang_libcxx/bin_orca_debian8_release_clang_libcxx.tar.gz
 - name: gpdb_icg
+  max_in_flight: 2
   plan:
   - aggregate:
     - get: bin_gpos_centos5_release
