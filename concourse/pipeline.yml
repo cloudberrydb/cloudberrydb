@@ -32,13 +32,13 @@ resources:
   type: git
   source:
     branch: concourse-infrastructure
-    private_key: {{private-repo-key}}
+    private_key: {{gpos_deploy_key}}
     uri: git@github.com:greenplum-db/gpos.git
 - name: gpdb_src
   type: git
   source:
     branch: concourse-infrastructure
-    private_key: {{private-repo-key}}
+    private_key: {{gpdb_deploy_key}}
     uri: git@github.com:greenplum-db/gpdb.git
 - name: xerces_patch
   type: git
@@ -48,13 +48,13 @@ resources:
     - patches/xerces-c-gpdb.patch
     - concourse/xerces-c
     - concourse/package_tarball.bash
-    private_key: {{private-repo-key}}
+    private_key: {{gporca_deploy_key}}
     uri: git@github.com:greenplum-db/gp-orca.git
 - name: orca_src
   type: git
   source:
     branch: concourse-infrastructure
-    private_key: {{private-repo-key}}
+    private_key: {{gporca_deploy_key}}
     uri: git@github.com:greenplum-db/gp-orca.git
 - name: bin_xerces_centos5
   type: s3
