@@ -1549,6 +1549,20 @@ TryAgain:
 		errno = save_errno;
 	}
 
+	/*
+	 * TEMPORARY hack to log the Windows error code on fopen failures, in
+	 * hopes of diagnosing some hard-to-reproduce problems.
+	 */
+#ifdef WIN32
+	{
+		int			save_errno = errno;
+
+		elog(LOG, "Windows fopen(\"%s\",\"%s\") failed: code %lu, errno %d",
+			 name, mode, GetLastError(), save_errno);
+		errno = save_errno;
+	}
+#endif
+
 	return NULL;
 }
 
