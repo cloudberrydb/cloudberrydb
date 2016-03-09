@@ -59,6 +59,7 @@
 #include "cdb/cdbpartition.h"
 #include "cdb/cdbsreh.h"
 #include "commands/tablecmds.h"
+#include "commands/typecmds.h"
 #include "miscadmin.h"
 #include "optimizer/clauses.h"
 #include "optimizer/var.h"
@@ -104,6 +105,7 @@ static Oid AddNewRelationType(const char *typeName,
 				   Oid typeNamespace,
 				   Oid new_rel_oid,
 				   char new_rel_kind,
+				   char new_array_type,
 				   Oid ownerid);
 static void RelationRemoveInheritance(Oid relid);
 static Oid StoreRelCheck(Relation rel, char *ccname, char *ccbin, Oid conoid);
@@ -529,29 +531,57 @@ CheckAttributeType(const char *attname, Oid atttypid)
 {
 	char		att_typtype = get_typtype(atttypid);
 
-	/*
-	 * Warn user, but don't fail, if column to be created has UNKNOWN type
-	 * (usually as a result of a 'retrieve into' - jolly)
-	 *
-	 * Refuse any attempt to create a pseudo-type column.
-	 */
-	/* GPDB: The QD should've checked these already. In QE, just accept it. */
-	if (Gp_role == GP_ROLE_EXECUTE)
-		return;
-
-	if (atttypid == UNKNOWNOID)
-		ereport(WARNING,
-				(errcode(ERRCODE_INVALID_TABLE_DEFINITION),
-				 errmsg("column \"%s\" has type \"unknown\"", attname),
-				 errdetail("Proceeding with relation creation anyway.")));
-	else if (att_typtype == 'p')
+	if (Gp_role != GP_ROLE_EXECUTE)
 	{
-		/* Special hack for pg_statistic: allow ANYARRAY during initdb */
-		if (atttypid != ANYARRAYOID || IsUnderPostmaster)
-			ereport(ERROR,
+		/*
+		 * Warn user, but don't fail, if column to be created has UNKNOWN type
+		 * (usually as a result of a 'retrieve into' - jolly)
+		 *
+		 * Refuse any attempt to create a pseudo-type column.
+		 */
+		
+		if (atttypid == UNKNOWNOID)
+			ereport(WARNING,
 					(errcode(ERRCODE_INVALID_TABLE_DEFINITION),
-					 errmsg("column \"%s\" has pseudo-type %s",
-							attname, format_type_be(atttypid))));
+					 errmsg("column \"%s\" has type \"unknown\"", attname),
+					 errdetail("Proceeding with relation creation anyway.")));
+		else if (att_typtype == TYPTYPE_PSEUDO)
+		{
+			/*
+			 * Refuse any attempt to create a pseudo-type column, except for
+			 * a special hack for pg_statistic: allow ANYARRAY during initdb
+			 */
+			if (atttypid != ANYARRAYOID || IsUnderPostmaster)
+				ereport(ERROR,
+						(errcode(ERRCODE_INVALID_TABLE_DEFINITION),
+						 errmsg("column \"%s\" has pseudo-type %s",
+								attname, format_type_be(atttypid))));
+		}
+		else if (att_typtype == TYPTYPE_COMPOSITE)
+		{
+			/*
+			 * For a composite type, recurse into its attributes.  You might
+			 * think this isn't necessary, but since we allow system catalogs
+			 * to break the rule, we have to guard against the case.
+			 */
+			Relation relation;
+			TupleDesc tupdesc;
+			int i;
+
+			relation = relation_open(get_typ_typrelid(atttypid), AccessShareLock);
+
+			tupdesc = RelationGetDescr(relation);
+
+			for (i = 0; i < tupdesc->natts; i++)
+			{
+				Form_pg_attribute attr = tupdesc->attrs[i];
+
+				if (attr->attisdropped)
+					continue;
+				CheckAttributeType(NameStr(attr->attname), attr->atttypid);
+			}
+			relation_close(relation, AccessShareLock);
+		}
 	}
 }
 
@@ -1121,34 +1151,37 @@ AddNewRelationType(const char *typeName,
 				   Oid typeNamespace,
 				   Oid new_rel_oid,
 				   char new_rel_kind,
+				   char new_array_type,
 				   Oid ownerid)
 {
 	return
-		TypeCreate(typeName,	/* type name */
-				   typeNamespace,		/* type namespace */
-				   new_rel_oid, /* relation oid */
+		TypeCreate(typeName,		/* type name */
+				   typeNamespace,	/* type namespace */
+				   new_rel_oid, 	/* relation oid */
 				   new_rel_kind,	/* relation kind */
-				   ownerid,             /* owner's ID */
-				   -1,			/* internal size (varlena) */
-				   'c',			/* type-type (complex) */
-				   ',',			/* default array delimiter */
-				   F_RECORD_IN, /* input procedure */
+				   ownerid,			/* owner's ID */
+				   -1,				/* internal size (varlena) */
+				   'c',				/* type-type (complex) */
+				   DEFAULT_TYPDELIM,/* default array delimiter */
+				   F_RECORD_IN,		/* input procedure */
 				   F_RECORD_OUT,	/* output procedure */
-				   F_RECORD_RECV,		/* receive procedure */
-				   F_RECORD_SEND,		/* send procedure */
-				   InvalidOid,	/* typmodin procedure - none */
-				   InvalidOid,	/* typmodout procedure - none */
-				   InvalidOid,	/* analyze procedure - default */
-				   InvalidOid,	/* array element type - irrelevant */
-				   InvalidOid,	/* domain base type - irrelevant */
-				   NULL,		/* default value - none */
-				   NULL,		/* default binary representation */
-				   false,		/* passed by reference */
-				   'd',			/* alignment - must be the largest! */
-				   'x',			/* fully TOASTable */
-				   -1,			/* typmod */
-				   0,			/* array dimensions for typBaseType */
-				   false);		/* Type NOT NULL */
+				   F_RECORD_RECV,	/* receive procedure */
+				   F_RECORD_SEND,	/* send procedure */
+				   InvalidOid,		/* typmodin procedure - none */
+				   InvalidOid,		/* typmodout procedure - none */
+				   InvalidOid,		/* analyze procedure - default */
+				   InvalidOid,		/* array element type - irrelevant */
+				   false,			/* this is not an array type */
+				   new_array_type,	/* array type if any */
+				   InvalidOid,		/* domain base type - irrelevant */
+				   NULL,			/* default value - none */
+				   NULL,			/* default binary representation */
+				   false,			/* passed by reference */
+				   'd',				/* alignment - must be the largest! */
+				   'x',				/* fully TOASTable */
+				   -1,				/* typmod */
+				   0,				/* array dimensions for typBaseType */
+				   false);			/* Type NOT NULL */
 }
 
 void
@@ -1331,6 +1364,7 @@ heap_create_with_catalog(const char *relname,
 						 bool allow_system_table_mods,
 						 bool valid_opts,
 						 Oid *comptypeOid,
+						 Oid *comptypeArrayOid,
 						 ItemPointer persistentTid,
 						 int64 *persistentSerialNum)
 {
@@ -1338,10 +1372,16 @@ heap_create_with_catalog(const char *relname,
 	Relation	gp_relation_node_desc;
 	Relation	new_rel_desc;
 	Oid			new_type_oid;
+	Oid         new_array_oid = InvalidOid;
 	bool		appendOnlyRel;
 	StdRdOptions *stdRdOptions;
 	int			safefswritesize = gp_safefswritesize;
 
+	if (PointerIsValid(comptypeArrayOid))
+	{
+	    new_array_oid = *comptypeArrayOid;
+	}
+		
 	pg_class_desc = heap_open(RelationRelationId, RowExclusiveLock);
 
 	if (!IsBootstrapProcessingMode())
@@ -1450,6 +1490,22 @@ heap_create_with_catalog(const char *relname,
 	}
 
 	/*
+	 * Decide whether to create an array type over the relation's rowtype.
+	 * We do not create any array types for system catalogs (ie, those made
+	 * during initdb).  We create array types for regular composite types ...
+	 * but not, eg, for toast tables or sequences.
+	 */
+	if (IsUnderPostmaster &&
+		relkind == RELKIND_COMPOSITE_TYPE &&
+		!OidIsValid(new_array_oid))
+	{
+		/* OK, so pre-assign a type OID for the array type */
+		Relation pg_type = heap_open(TypeRelationId, AccessShareLock);
+		new_array_oid = GetNewOid(pg_type);
+		heap_close(pg_type, AccessShareLock);
+	}
+
+	/*
 	 * since defining a relation also defines a complex type, we add a new
 	 * system type corresponding to the new relation.
 	 *
@@ -1471,34 +1527,38 @@ heap_create_with_catalog(const char *relname,
 											  relnamespace,
 											  relid,
 											  relkind,
+											  new_array_oid,
 											  ownerid);
 		else
 		{
-			new_type_oid = TypeCreateWithOid(relname,	/* type name */
-					   relnamespace,		/* type namespace */
-					   relid, /* relation oid */
-					   relkind,	/* relation kind */
+			new_type_oid = TypeCreateWithOid(
+					   relname,			/* type name */
+					   relnamespace,	/* type namespace */
+					   relid,			/* relation oid */
+					   relkind,			/* relation kind */
 					   ownerid,
-					   -1,			/* internal size (varlena) */
-					   'c',			/* type-type (complex) */
-					   ',',			/* default array delimiter */
-					   F_RECORD_IN, /* input procedure */
+					   -1,				/* internal size (varlena) */
+					   'c',				/* type-type (complex) */
+					   DEFAULT_TYPDELIM,/* default array delimiter */
+					   F_RECORD_IN, 	/* input procedure */
 					   F_RECORD_OUT,	/* output procedure */
-					   F_RECORD_RECV,		/* receive procedure */
-					   F_RECORD_SEND,		/* send procedure */
-					   InvalidOid,	/* typmodin procedure - none */
-					   InvalidOid,	/* typmodout procedure - none */
-					   InvalidOid,	/* analyze procedure - default */
-					   InvalidOid,	/* array element type - irrelevant */
-					   InvalidOid,	/* domain base type - irrelevant */
-					   NULL,		/* default value - none */
-					   NULL,		/* default binary representation */
-					   false,		/* passed by reference */
-					   'd',			/* alignment - must be the largest! */
-					   'x',			/* fully TOASTable */
-					   -1,			/* typmod */
-					   0,			/* array dimensions for typBaseType */
-					   false,		/* Type NOT NULL */
+					   F_RECORD_RECV,	/* receive procedure */
+					   F_RECORD_SEND,	/* send procedure */
+					   InvalidOid,		/* typmodin procedure - none */
+					   InvalidOid,		/* typmodout procedure - none */
+					   InvalidOid,		/* analyze procedure - default */
+					   InvalidOid,		/* array element type - irrelevant */
+					   false,			/* this is not an array type */
+					   new_array_oid,	/* array type if any */	
+					   InvalidOid,		/* domain base type - irrelevant */
+					   NULL,			/* default value - none */
+					   NULL,			/* default binary representation */
+					   false,			/* passed by reference */
+					   'd',				/* alignment - must be the largest! */
+					   'x',				/* fully TOASTable */
+					   -1,				/* typmod */
+					   0,				/* array dimensions for typBaseType */
+					   false,			/* Type NOT NULL */
 					   *comptypeOid,
 					   0);
 		}
@@ -1506,6 +1566,52 @@ heap_create_with_catalog(const char *relname,
 
 	if (comptypeOid)
 		*comptypeOid = new_type_oid;
+
+	/*
+	 * Now make the array type if wanted.
+	 */
+	if (OidIsValid(new_array_oid))
+	{
+		char	*relarrayname;
+		relarrayname = makeArrayTypeName(relname, relnamespace);
+		TypeCreateWithOid(
+						relarrayname,		/* type name */
+						relnamespace,		/* type namespace */
+					   	InvalidOid,			/* relation oid */
+					   	0,					/* relation kind */
+					   	ownerid,
+					   	-1,					/* internal size (varlena) */
+					   	TYPTYPE_BASE,		/* type-type (complex) */
+					   	DEFAULT_TYPDELIM,	/* default array delimiter */
+					   	F_ARRAY_IN,			/* input procedure */
+					   	F_ARRAY_OUT,		/* output procedure */
+					   	F_ARRAY_RECV,		/* receive procedure */
+					   	F_ARRAY_SEND,		/* send procedure */
+					   	InvalidOid,			/* typmodin procedure */
+					   	InvalidOid,			/* typmodout procedure */
+					   	InvalidOid,			/* analyze procedure - default */
+					   	new_type_oid,		/* array element type - irrelevant */
+				   		true,				/* this is not an array type */
+				   		InvalidOid,			/* array type if any */		
+					   	InvalidOid,			/* domain base type - irrelevant */
+					   	NULL,				/* default value - none */
+					   	NULL,				/* default binary representation */
+					   	false,				/* passed by reference */
+					   	'd',				/* alignment - must be the largest! */
+					   	'x',				/* fully TOASTable */
+					   	-1,					/* typmod */
+					   	0,					/* array dimensions for typBaseType */
+					   	false,				/* Type NOT NULL */
+					   	new_array_oid,
+					   	0);	
+
+		if (PointerIsValid(comptypeArrayOid))
+		{
+			*comptypeArrayOid = new_array_oid;
+		}
+		pfree(relarrayname);
+	}
+
 	/*
 	 * now create an entry in pg_class for the relation.
 	 *

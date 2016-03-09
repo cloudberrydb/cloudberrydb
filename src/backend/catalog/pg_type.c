@@ -24,6 +24,7 @@
 #include "catalog/pg_type_encoding.h"
 #include "commands/typecmds.h"
 #include "miscadmin.h"
+#include "parser/scansup.h"
 #include "utils/acl.h"
 #include "utils/builtins.h"
 #include "utils/fmgroids.h"
@@ -131,6 +132,7 @@ TypeShellMakeWithOid(const char *typeName, Oid typeNamespace, Oid ownerId,
 	values[i++] = CharGetDatum(DEFAULT_TYPDELIM);		/* typdelim */
 	values[i++] = ObjectIdGetDatum(InvalidOid); /* typrelid */
 	values[i++] = ObjectIdGetDatum(InvalidOid); /* typelem */
+	values[i++] = ObjectIdGetDatum(InvalidOid); /* typarray */
 	values[i++] = ObjectIdGetDatum(F_SHELL_IN); /* typinput */
 	values[i++] = ObjectIdGetDatum(F_SHELL_OUT);		/* typoutput */
 	values[i++] = ObjectIdGetDatum(InvalidOid); /* typreceive */
@@ -179,6 +181,7 @@ TypeShellMakeWithOid(const char *typeName, Oid typeNamespace, Oid ownerId,
 								 InvalidOid,
 								 InvalidOid,
 								 InvalidOid,
+								 false,
 								 InvalidOid,
 								 NULL,
 								 false);
@@ -217,6 +220,8 @@ TypeCreateWithOid(const char *typeName,
 		   Oid typmodoutProcedure,
 		   Oid analyzeProcedure,
 		   Oid elementType,
+		   bool isImplicitArray,
+		   Oid arrayType,
 		   Oid baseType,
 		   const char *defaultTypeValue,		/* human readable rep */
 		   char *defaultTypeBin,	/* cooked rep */
@@ -292,8 +297,9 @@ TypeCreateWithOid(const char *typeName,
 	values[i++] = CharGetDatum(typeType);		/* typtype */
 	values[i++] = BoolGetDatum(true);	/* typisdefined */
 	values[i++] = CharGetDatum(typDelim);		/* typdelim */
-	values[i++] = ObjectIdGetDatum(typeType == 'c' ? relationOid : InvalidOid); /* typrelid */
+	values[i++] = ObjectIdGetDatum(relationOid);	/* typrelid */
 	values[i++] = ObjectIdGetDatum(elementType);		/* typelem */
+	values[i++] = ObjectIdGetDatum(arrayType);		/*  typarray */
 	values[i++] = ObjectIdGetDatum(inputProcedure);		/* typinput */
 	values[i++] = ObjectIdGetDatum(outputProcedure);	/* typoutput */
 	values[i++] = ObjectIdGetDatum(receiveProcedure);	/* typreceive */
@@ -363,6 +369,11 @@ TypeCreateWithOid(const char *typeName,
 		if (((Form_pg_type) GETSTRUCT(tup))->typowner != ownerId)
 			aclcheck_error(ACLCHECK_NOT_OWNER, ACL_KIND_TYPE, typeName);
 
+		/*  trouble if caller wanted to force the OID */
+		if (OidIsValid(newtypeOid) &&
+			newtypeOid != HeapTupleHeaderGetOid((tup)->t_data))
+			elog(ERROR, "cannot assign new OID to existing shell type");
+
 		/*
 		 * Okay to update existing shell type tuple
 		 */
@@ -411,6 +422,7 @@ TypeCreateWithOid(const char *typeName,
 								 typmodoutProcedure,
 								 analyzeProcedure,
 								 elementType,
+								 isImplicitArray,
 								 baseType,
 								 (defaultTypeBin ?
 								  stringToNode(defaultTypeBin) :
@@ -445,6 +457,8 @@ Oid TypeCreate(const char *typeName,
 		   Oid typmodoutProcedure,
 		   Oid analyzeProcedure,
 		   Oid elementType,
+		   bool isImplicitArray,
+		   Oid arrayType,
 		   Oid baseType,
 		   const char *defaultTypeValue,
 		   char *defaultTypeBin,
@@ -455,28 +469,36 @@ Oid TypeCreate(const char *typeName,
 		   int32 typNDims,
 		   bool typeNotNull)
 {
-	return TypeCreateWithOid(typeName,typeNamespace,relationOid,relationKind,ownerId,internalSize,
-		   typeType,
-		   typDelim,
-		   inputProcedure,
-		   outputProcedure,
-		   receiveProcedure,
-		   sendProcedure,
-		   typmodinProcedure,
-		   typmodoutProcedure,
-		   analyzeProcedure,
-		   elementType,
-		   baseType,
-		   defaultTypeValue,
-		   defaultTypeBin,
-		   passedByValue,
-		   alignment,
-		   storage,
-		   typeMod,
-		   typNDims,
-		   typeNotNull,
-		   InvalidOid,
-		   0);
+	return TypeCreateWithOid(
+							typeName,
+							typeNamespace,
+							relationOid,
+							relationKind,
+							ownerId,
+							internalSize,
+							typeType,
+		   					typDelim,
+		   					inputProcedure,
+		   					outputProcedure,
+		   					receiveProcedure,
+		   					sendProcedure,
+		   					typmodinProcedure,
+		   					typmodoutProcedure,
+		   					analyzeProcedure,
+		   					elementType,
+							isImplicitArray,
+							arrayType,
+		   					baseType,
+		   					defaultTypeValue,
+		   					defaultTypeBin,
+		   					passedByValue,
+		   					alignment,
+		   					storage,
+		   					typeMod,
+		   					typNDims,
+		   					typeNotNull,
+		   					InvalidOid,
+		   					0);
 }
 
 /*
@@ -500,6 +522,7 @@ GenerateTypeDependencies(Oid typeNamespace,
 						 Oid typmodoutProcedure,
 						 Oid analyzeProcedure,
 						 Oid elementType,
+						 bool isImplicitArray,
 						 Oid baseType,
 						 Node *defaultExpr,
 						 bool rebuild)
@@ -519,7 +542,8 @@ GenerateTypeDependencies(Oid typeNamespace,
 
 	/* dependency on namespace */
 	/* skip for relation rowtype, since we have indirect dependency */
-	if (!OidIsValid(relationOid) || relationKind == RELKIND_COMPOSITE_TYPE)
+	if ((!OidIsValid(relationOid) || relationKind == RELKIND_COMPOSITE_TYPE) &&
+		!isImplicitArray)
 	{
 		referenced.classId = NamespaceRelationId;
 		referenced.objectId = typeNamespace;
@@ -697,19 +721,38 @@ TypeRename(Oid typeOid, const char *newTypeName)
 
 /*
  * makeArrayTypeName(typeName);
- *	  - given a base type name, make an array of type name out of it
+ *	  - given a base type name, make an array type name for it
  *
  * the caller is responsible for pfreeing the result
  */
 char *
-makeArrayTypeName(const char *typeName)
+makeArrayTypeName(const char *typeName, Oid typeNamespace)
 {
-	char	   *arr;
+	char		*arr;
+	int			i;
+	Relation	pg_type_desc;
 
 	if (!typeName)
 		return NULL;
-	arr = palloc(NAMEDATALEN);
-	snprintf(arr, NAMEDATALEN,
-			 "_%.*s", NAMEDATALEN - 2, typeName);
+	arr = (char*)palloc(NAMEDATALEN);
+	pg_type_desc = heap_open(TypeRelationId, AccessShareLock);
+	for (i = 1; i < NAMEDATALEN - 1; i++)
+	{
+		arr[i - 1] = '_';
+		strlcpy(arr + i, typeName, NAMEDATALEN - i);
+		truncate_identifier(arr, strlen(arr), false);
+		if (!SearchSysCacheExists(TYPENAMENSP,
+								  CStringGetDatum(arr),
+								  ObjectIdGetDatum(typeNamespace),
+								  0, 0))
+			break;
+	}
+	heap_close(pg_type_desc, AccessShareLock);
+	if (i >= NAMEDATALEN-1)
+		ereport(ERROR,
+				(errcode(ERRCODE_DUPLICATE_OBJECT),
+				 errmsg("could not form array type name for type \"%s\"",
+						typeName)));
+
 	return arr;
 }

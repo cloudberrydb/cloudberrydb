@@ -87,6 +87,7 @@ typedef struct TableOidInfo
 {
 	Oid         relOid;			/* If the heap is (re-)created, create  with this relOid */
 	Oid         comptypeOid;
+	Oid         comptypeArrayOid;
 	Oid		    toastOid;		/* if toast table needed, use this for the relOid of the toast */
 	Oid		    toastIndexOid;	/* if toast table needed, use this for the relOid of the index */
 	Oid			toastComptypeOid;

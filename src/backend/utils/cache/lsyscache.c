@@ -2927,10 +2927,9 @@ get_element_type(Oid typid)
 /*
  * get_array_type
  *
- *		Given the type OID, get the corresponding array type.
+ *		Given the type OID, get the corresponding "true"  array type.
  *		Returns InvalidOid if no array type can be found.
  *
- * NB: this only considers varlena arrays to be true arrays.
  */
 Oid
 get_array_type(Oid typid)
@@ -2949,33 +2948,7 @@ get_array_type(Oid typid)
 
 	if (HeapTupleIsValid(tp))
 	{
-		Form_pg_type typtup = (Form_pg_type) GETSTRUCT(tp);
-		char	   *array_typename;
-		Oid			namespaceId;
-		cqContext  *namcqCtx;
-
-		array_typename = makeArrayTypeName(NameStr(typtup->typname));
-		namespaceId = typtup->typnamespace;
-
-		namcqCtx = caql_beginscan(
-				NULL,
-				cql("SELECT * FROM pg_type "
-					" WHERE typname = :1 "
-					" AND typnamespace = :2 ",
-					CStringGetDatum(array_typename),
-					ObjectIdGetDatum(namespaceId)));
-
-		tp = caql_getnext(namcqCtx);
-
-		pfree(array_typename);
-
-		if (HeapTupleIsValid(tp))
-		{
-			typtup = (Form_pg_type) GETSTRUCT(tp);
-			if (typtup->typlen == -1 && typtup->typelem == typid)
-				result = HeapTupleGetOid(tp);
-		}
-		caql_endscan(namcqCtx);
+		result = ((Form_pg_type) GETSTRUCT(tp))->typarray;
 	}
 
 	caql_endscan(pcqCtx);

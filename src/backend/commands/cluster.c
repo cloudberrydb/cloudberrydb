@@ -722,6 +722,7 @@ make_new_heap(Oid OIDOldHeap, const char *NewName, Oid NewTableSpace,
 	Oid			aOid = InvalidOid;
 	Oid			aiOid = InvalidOid;
 	Oid			*comptypeOid = NULL;
+	Oid			*comptypeArrayOid = NULL;
 	Oid         blkdirOid = InvalidOid;
 	Oid         blkdirIdxOid = InvalidOid;
 	Oid         visimapOid = InvalidOid;
@@ -763,6 +764,7 @@ make_new_heap(Oid OIDOldHeap, const char *NewName, Oid NewTableSpace,
 	aiOid = oidInfo->aosegIndexOid;
 	aosegComptypeOid = &oidInfo->aosegComptypeOid;
 	comptypeOid = &oidInfo->comptypeOid;
+	comptypeArrayOid = &oidInfo->comptypeArrayOid;
 	blkdirOid = oidInfo->aoblkdirOid;
 	blkdirIdxOid = oidInfo->aoblkdirIndexOid;
 	aoblkdirComptypeOid = &oidInfo->aoblkdirComptypeOid;
@@ -814,6 +816,7 @@ make_new_heap(Oid OIDOldHeap, const char *NewName, Oid NewTableSpace,
 										  allowSystemTableModsDDL,
 										  /* valid_opts */ true,
 										  comptypeOid,
+										  comptypeArrayOid,
 						 				  /* persistentTid */ NULL,
 						 				  /* persistentSerialNum */ NULL);
 

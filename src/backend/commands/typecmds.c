@@ -35,6 +35,7 @@
 #include "access/heapam.h"
 #include "access/reloptions.h"
 #include "access/xact.h"
+#include "catalog/catalog.h"
 #include "catalog/catquery.h"
 #include "catalog/dependency.h"
 #include "catalog/heap.h"
@@ -125,13 +126,15 @@ DefineType(List *names, List *parameters, Oid newOid, Oid shadowOid)
 	Oid			typmodinOid = InvalidOid;
 	Oid			typmodoutOid = InvalidOid;
 	Oid			analyzeOid = InvalidOid;
-	char	   *shadow_type;
+	char	   *array_type;
+	Oid			array_oid;
 	ListCell   *pl;
 	Oid			typoid;
 	Oid			resulttype;
 	Datum		typoptions = 0;
 	List	   *encoding = NIL;
 	bool        need_free_value = false;
+	Relation	pg_type;
 
 	/* Convert list of names to a name and namespace */
 	typeNamespace = QualifiedNameGetCreationNamespace(names, &typeName);
@@ -440,6 +443,14 @@ DefineType(List *names, List *parameters, Oid newOid, Oid shadowOid)
 	if (analyzeOid && !pg_proc_ownercheck(analyzeOid, GetUserId()))
 		aclcheck_error(ACLCHECK_NOT_OWNER, ACL_KIND_PROC,
 					   NameListToString(analyzeName));
+	/*  Preassign array type OID so we can insert it in pg_type.typarray */
+	pg_type = heap_open(TypeRelationId, AccessShareLock);
+	array_oid = shadowOid;
+	if (!OidIsValid(array_oid))
+	{
+		array_oid = GetNewOid(pg_type);
+	}
+	heap_close(pg_type, AccessShareLock);
 
 	/*
 	 * now have TypeCreate do all the real work.
@@ -461,6 +472,8 @@ DefineType(List *names, List *parameters, Oid newOid, Oid shadowOid)
 				   typmodoutOid,/* typmodout procedure */
 				   analyzeOid,	/* analyze procedure */
 				   elemType,	/* element type ID */
+				   false,		/*  this is not an array type */
+				   array_oid,	/*  array type we are about to create */
 				   InvalidOid,	/* base type ID (only for domains) */
 				   defaultValue,	/* default type value */
 				   NULL,		/* no binary form available */
@@ -481,12 +494,13 @@ DefineType(List *names, List *parameters, Oid newOid, Oid shadowOid)
 	 */
 	if (typtype == TYPTYPE_BASE)
 	{
-		shadow_type = makeArrayTypeName(typeName);
+		array_type = makeArrayTypeName(typeName, typeNamespace);
 
 		/* alignment must be 'i' or 'd' for arrays */
 		alignment = (alignment == 'd') ? 'd' : 'i';
 
-		shadowOid = TypeCreateWithOid(shadow_type,		/* type name */
+		shadowOid = TypeCreateWithOid(
+			   array_type,		/* type name */
 			   typeNamespace,	/* namespace */
 			   InvalidOid,		/* relation oid (n/a here) */
 			   0,				/* relation kind (ditto) */
@@ -502,6 +516,8 @@ DefineType(List *names, List *parameters, Oid newOid, Oid shadowOid)
 			   typmodoutOid,	/* typmodout procedure */
 			   InvalidOid,		/* analyze procedure - default */
 			   typoid,			/* element type ID */
+			   true,			/* yes this is an array type */
+			   InvalidOid,		/* no further array type */
 			   InvalidOid,		/* base type ID */
 			   NULL,			/* never a default type value */
 			   NULL,			/* binary default isn't sent either */
@@ -511,10 +527,10 @@ DefineType(List *names, List *parameters, Oid newOid, Oid shadowOid)
 			   -1,				/* typMod (Domains only) */
 			   0,				/* Array dimensions of typbasetype */
 			   false,			/* Type NOT NULL */
-			   shadowOid,
+			   array_oid,
 			   typoptions);
 
-		pfree(shadow_type);
+		pfree(array_type);
 	}
 
 	if (Gp_role == GP_ROLE_DISPATCH)
@@ -912,6 +928,8 @@ DefineDomain(CreateDomainStmt *stmt)
 				   InvalidOid,			/* typmodout procedure - none */
 				   analyzeProcedure,	/* analyze procedure */
 				   typelem,		/* element type ID */
+				   false,		/*  this isn't an array */
+				   InvalidOid,	/*  no arrays for domains (yet) */
 				   basetypeoid, /* base type ID */
 				   defaultValue,	/* default type value (text) */
 				   defaultValueBin,		/* default type value (binary) */
@@ -1495,6 +1513,7 @@ AlterDomainDefault(List *names, Node *defaultRaw)
 							 typTup->typmodout,
 							 typTup->typanalyze,
 							 typTup->typelem,
+							 false,
 							 typTup->typbasetype,
 							 defaultExpr,
 							 true);		/* Rebuild is true */
@@ -2491,7 +2510,7 @@ AlterTypeNamespace(List *names, const char *newschema)
 	nspOid = LookupCreationNamespace(newschema);
 
 	/* and do the work */
-	AlterTypeNamespaceInternal(typeOid, nspOid, true);
+	AlterTypeNamespaceInternal(typeOid, nspOid, false, true);
 }
 
 /*
@@ -2505,12 +2524,14 @@ AlterTypeNamespace(List *names, const char *newschema)
  */
 void
 AlterTypeNamespaceInternal(Oid typeOid, Oid nspOid,
+						   bool isImplicitArray,
 						   bool errorOnTableType)
 {
 	Relation	rel;
 	HeapTuple	tup;
 	Form_pg_type typform;
 	Oid			oldNspOid;
+	Oid			arrayOid;
 	bool		isCompositeType;
 	cqContext  *pcqCtx;
 	cqContext	cqc, cqc2;
@@ -2531,6 +2552,7 @@ AlterTypeNamespaceInternal(Oid typeOid, Oid nspOid,
 	typform = (Form_pg_type) GETSTRUCT(tup);
 
 	oldNspOid = typform->typnamespace;
+	arrayOid = typform->typarray;
 
 	if (oldNspOid == nspOid)
 		ereport(ERROR,
@@ -2630,7 +2652,8 @@ AlterTypeNamespaceInternal(Oid typeOid, Oid nspOid,
 	 * Update dependency on schema, if any --- a table rowtype has not got
 	 * one.
 	 */
-	if (isCompositeType || typform->typtype != TYPTYPE_COMPOSITE)
+	if ((isCompositeType || typform->typtype != TYPTYPE_COMPOSITE) &&
+		!isImplicitArray)
 		if (changeDependencyFor(TypeRelationId, typeOid,
 							NamespaceRelationId, oldNspOid, nspOid) != 1)
 			elog(ERROR, "failed to change schema dependency for type %s",
@@ -2639,6 +2662,9 @@ AlterTypeNamespaceInternal(Oid typeOid, Oid nspOid,
 	heap_freetuple(tup);
 
 	heap_close(rel, RowExclusiveLock);
+	/*  Recursively alter the associated array type, if any */
+	if (OidIsValid(arrayOid))
+		AlterTypeNamespaceInternal(arrayOid, nspOid, true, true);
 }
 
 /*

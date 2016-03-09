@@ -57,6 +57,7 @@ extern Oid heap_create_with_catalog(const char *relname,
 						 bool allow_system_table_mods,
 						 bool valid_opts,
 						 Oid *comptypeOid, /* MPP */
+						 Oid *comptypeArrayOid, /* MPP */
 						 ItemPointer persistentTid,
 						 int64 *persistentSerialNum);
 

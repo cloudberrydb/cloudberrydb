@@ -4645,6 +4645,7 @@ OpenIntoRel(QueryDesc *queryDesc)
 	DR_intorel *myState;
     Oid         intoOid;
     Oid         intoComptypeOid;
+	Oid         intoComptypeArrayOid;
     GpPolicy   *targetPolicy;
 	int			safefswritesize = gp_safefswritesize;
 	bool		bufferPoolBulkLoad;
@@ -4673,6 +4674,7 @@ OpenIntoRel(QueryDesc *queryDesc)
 	/* MPP specific stuff */
     intoOid = intoClause->oidInfo.relOid;
     intoComptypeOid = intoClause->oidInfo.comptypeOid;
+	intoComptypeArrayOid = intoClause->oidInfo.comptypeArrayOid;
 
 	/*
 	 * Security check: disallow creating temp tables from security-restricted
@@ -4784,6 +4786,7 @@ OpenIntoRel(QueryDesc *queryDesc)
 											  allowSystemTableModsDDL,
 											  /* valid_opts */false,
 											  &intoComptypeOid, 	/* MPP */
+											  &intoComptypeArrayOid, 
 						 					  &persistentTid,
 						 					  &persistentSerialNum);
 

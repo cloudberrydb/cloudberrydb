@@ -623,6 +623,7 @@ DefineRelation_int(CreateStmt *stmt,
 		Relation	pg_class_desc;
 		Relation	pg_type_desc;
 		Oid 		comptypeOid = InvalidOid;
+		Oid         comptypeArrayOid = InvalidOid;
 		Oid			toastIndexId = InvalidOid;
 		Oid			aosegIndexId = InvalidOid;
 		Oid			aoblkdirIndexId = InvalidOid;
@@ -654,6 +655,7 @@ DefineRelation_int(CreateStmt *stmt,
 		 */
 		relationId          = GetNewRelFileNode(tablespaceId, false,  pg_class_desc);
 		comptypeOid         = GetNewRelFileNode(tablespaceId, false,  pg_type_desc);
+		comptypeArrayOid    = GetNewRelFileNode(tablespaceId, false,  pg_type_desc);
 		toastRelationId     = GetNewRelFileNode(tablespaceId, false,  pg_class_desc);
 		toastIndexId        = GetNewRelFileNode(tablespaceId, false,  pg_class_desc);
 		toastComptypeOid    = GetNewRelFileNode(tablespaceId, false,  pg_type_desc);
@@ -671,6 +673,7 @@ DefineRelation_int(CreateStmt *stmt,
 
 		stmt->oidInfo.relOid = relationId;
 		stmt->oidInfo.comptypeOid = comptypeOid;
+		stmt->oidInfo.comptypeArrayOid = comptypeArrayOid;
 		stmt->oidInfo.toastOid = toastRelationId;
 		stmt->oidInfo.toastIndexOid = toastIndexId;
 		stmt->oidInfo.toastComptypeOid = toastComptypeOid;
@@ -754,6 +757,7 @@ DefineRelation_int(CreateStmt *stmt,
 										  allowSystemTableModsDDL,
 										  valid_opts,
 										  &stmt->oidInfo.comptypeOid,
+										  &stmt->oidInfo.comptypeArrayOid,
 										  &persistentTid,
 										  &persistentSerialNum);
 
@@ -6524,6 +6528,7 @@ find_composite_type_dependencies(Oid typeOid,
 {
 	cqContext  *pcqCtx;
 	HeapTuple	depTup;
+	Oid         arrayOid;
 
 	/*
 	 * We scan pg_depend to find those things that depend on the rowtype. (We
@@ -6583,6 +6588,14 @@ find_composite_type_dependencies(Oid typeOid,
 		relation_close(rel, AccessShareLock);
 	}
 	caql_endscan(pcqCtx);
+
+	/*
+	 * If there's an array type for the rowtype, must check for uses of it,
+	 * too.
+	 */
+	arrayOid = get_array_type(typeOid);
+	if (OidIsValid(arrayOid))
+		find_composite_type_dependencies(arrayOid, origTblName, NULL);
 }
 
 
@@ -16904,7 +16917,7 @@ AlterRelationNamespaceInternalTwo(Relation rel,
 								   hasDependEntry);
 
 	/* Fix the table's rowtype too */
-	AlterTypeNamespaceInternal(rel->rd_rel->reltype, newNspOid, false);
+	AlterTypeNamespaceInternal(rel->rd_rel->reltype, newNspOid, false, false);
 
 	/* Fix other dependent stuff */
 	if (rel->rd_rel->relkind == RELKIND_RELATION)
@@ -17065,7 +17078,7 @@ AlterSeqNamespaces(Relation classRel, Relation rel,
 		 * them to the new namespace, too.
 		 */
 		AlterTypeNamespaceInternal(RelationGetForm(seqRel)->reltype,
-								   newNspOid, false);
+								   newNspOid, false, false);
 
 		/* Now we can close it.  Keep the lock till end of transaction. */
 		relation_close(seqRel, NoLock);
