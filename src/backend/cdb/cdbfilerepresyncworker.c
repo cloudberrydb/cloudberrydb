@@ -192,7 +192,7 @@ FileRepPrimary_ResyncWrite(FileRepResyncHashEntry_s	*entry)
 	Buffer			buf; 
 	BlockNumber		numBlocks;
 	BlockNumber		blkno;
-	SMgrRelation	smgr_relation = NULL;
+	SMgrRelation	smgr_relation;
 	XLogRecPtr		loc;
 	int				count = 0;
 	int				thresholdCount = 0;
@@ -208,14 +208,7 @@ FileRepPrimary_ResyncWrite(FileRepResyncHashEntry_s	*entry)
 				case MirroredRelDataSynchronizationState_BufferPoolScanIncremental:
 				case MirroredRelDataSynchronizationState_FullCopy:
 
-					if (smgr_relation == NULL) 
-					{
-						smgr_relation = smgropen(entry->relFileNode);
-						
-						smgr_relation->smgr_rnode.relNode = entry->relFileNode.relNode;
-						smgr_relation->smgr_rnode.spcNode = entry->relFileNode.spcNode;
-						smgr_relation->smgr_rnode.dbNode = entry->relFileNode.dbNode;
-					}
+					smgr_relation = smgropen(entry->relFileNode);
 					
 					numBlocks = smgrnblocks(smgr_relation);
 
@@ -581,28 +574,6 @@ FileRepPrimary_ResyncBufferPoolIncrementalWrite(ChangeTrackingRequest *request)
 					NumberOfRelations--;
 					
 					smgr_relation = smgropen(result->entries[ii].relFileNode);
-					
-					if (smgr_relation == NULL)
-					{
-						ereport(WARNING,	
-								(errmsg("mirror failure, "
-										"could not resynchonize buffer pool relation '%u/%u/%u', no such relation "
-										"failover requested",
-										result->entries[ii].relFileNode.spcNode,
-										result->entries[ii].relFileNode.dbNode,
-										result->entries[ii].relFileNode.relNode),
-								 errhint("run gprecoverseg -F (full copy) to re-establish mirror connectivity"),
-								 errSendAlert(true),
-								 FileRep_errcontext()));	
-						
-						FileRep_SetSegmentState(SegmentStateFault, FaultTypeMirror);						
-						
-						goto flush_check;
-					}
-
-					smgr_relation->smgr_rnode.relNode = result->entries[ii].relFileNode.relNode;
-					smgr_relation->smgr_rnode.spcNode = result->entries[ii].relFileNode.spcNode;
-					smgr_relation->smgr_rnode.dbNode = result->entries[ii].relFileNode.dbNode;
 					
 					numBlocks = smgrnblocks(smgr_relation);
 					
