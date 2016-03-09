@@ -112,10 +112,6 @@ static void FlushBuffer(volatile BufferDesc *buf, SMgrRelation reln);
 static void AtProcExit_Buffers(int code, Datum arg);
 static Buffer ReadBuffer_Ex(Relation reln, BlockNumber blockNum, volatile BufferDesc* availBufHdr);
 
-#if 0
-static Buffer ReadBuffer_Ex_OLD(Relation reln, BlockNumber blockNum, volatile BufferDesc* availBufHdr);
-#endif
-
 static Buffer ReadBuffer_Internal(SMgrRelation smgr, 
 								 BlockNumber blockNum, 
 								 bool isLocalBuf, 
@@ -215,62 +211,25 @@ ReadBuffer(Relation reln, BlockNumber blockNum)
 static Buffer
 ReadBuffer_Ex(Relation reln, BlockNumber blockNum, volatile BufferDesc* availBufHdr)
 {
+	bool		isHit;
+	Buffer		returnBuffer;
 
-#if 1
-		bool isHit;
-		Buffer returnBuffer;
+	/* Open it at the smgr level if not already done */
+	RelationOpenSmgr(reln);
+	Assert(RelFileNodeEquals(reln->rd_node, reln->rd_smgr->smgr_rnode));
 
-		/* Open it at the smgr level if not already done */
-		RelationOpenSmgr(reln);
-		Assert(RelFileNodeEquals(reln->rd_node, reln->rd_smgr->smgr_rnode));
+	pgstat_count_buffer_read(reln);
 
-		pgstat_count_buffer_read(reln);
+	returnBuffer =
+		ReadBuffer_Internal(reln->rd_smgr, blockNum,
+							reln->rd_isLocalBuf,
+							reln->rd_istemp,RelationGetRelationName(reln),
+							&isHit);
 
-		returnBuffer = ReadBuffer_Internal(reln->rd_smgr, blockNum,
-						   reln->rd_isLocalBuf,
-						   reln->rd_istemp,RelationGetRelationName(reln),
-						   &isHit);
-
-		if (isHit){
-				pgstat_count_buffer_hit(reln);
-		}
+	if (isHit)
+		pgstat_count_buffer_hit(reln);
 
 	return returnBuffer;
-#else
-	return ReadBuffer_Ex_OLD(reln, blockNum, availBufHdr);
-
-#endif
-}
-/*
- * ReadBuffer_Ex -- returns a buffer containing the requested
- *		block of the requested relation.  If the blknum
- *		requested is P_NEW, extend the relation file and
- *		allocate a new block.  (Caller is responsible for
- *		ensuring that only one backend tries to extend a
- *		relation at the same time!)
- *
- * Returns: the buffer number for the buffer containing
- *		the block read.  The returned buffer has been pinned.
- *		Does not return on error --- elog's instead.
- *
- * Assume when this function is called, that reln has been opened already. * 
- */
-Buffer
-ReadBuffer_Ex_SMgr(SMgrRelation smgr, BlockNumber blockNum, bool isLocalBuf, bool isTemp)
-{
-
-		bool isHit;
-
-		//smgr must be open before this is called
-		Assert(smgr);
-
-		//we could assert that blockNum is not P_NEW and then set isTemp to FALSE - it only matters if isExtend
-		
-		return ReadBuffer_Internal(smgr, blockNum,
-						   isLocalBuf,
-						   isTemp,"ReadBuffer_Ex_SMgr does not have the relname",
-						   &isHit);
-
 }
 
 /*
@@ -482,228 +441,6 @@ ReadBuffer_Internal(SMgrRelation smgr, BlockNumber blockNum,
 
 	return BufferDescriptorGetBuffer(bufHdr);
 }
-
-/*
- * ReadBuffer_Ex -- returns a buffer containing the requested
- *		block of the requested relation.  If the blknum
- *		requested is P_NEW, extend the relation file and
- *		allocate a new block.  (Caller is responsible for
- *		ensuring that only one backend tries to extend a
- *		relation at the same time!)
- *
- * Returns: the buffer number for the buffer containing
- *		the block read.  The returned buffer has been pinned.
- *		Does not return on error --- elog's instead.
- *
- * Assume when this function is called, that reln has been opened already.
- * 
- */
-#if 0
-static Buffer
-ReadBuffer_Ex_OLD(Relation reln, BlockNumber blockNum, volatile BufferDesc* availBufHdr)
-{
-
-	//MIRROREDLOCK_BUFMGR_DECLARE;
-
-	volatile BufferDesc* bufHdr;
-	Block		bufBlock;
-	bool		found;
-	bool		isExtend;
-	bool		isLocalBuf;
-
-	MIRROREDLOCK_BUFMGR_MUST_ALREADY_BE_HELD;
-
-	/* Make sure we will have room to remember the buffer pin */
-	ResourceOwnerEnlargeBuffers(CurrentResourceOwner);
-
-	isExtend = (blockNum == P_NEW);
-	isLocalBuf = reln->rd_isLocalBuf;
-
-	/* Open it at the smgr level if not already done */
-	RelationOpenSmgr(reln);
-
-	/* Substitute proper block number if caller asked for P_NEW */
-	if (isExtend)
-		blockNum = smgrnblocks(reln->rd_smgr);
-
-	pgstat_count_buffer_read(reln);
-	
-	if (isLocalBuf)
-	{
-		ReadLocalBufferCount++;
-#if 0
-		bufHdr = LocalBufferAlloc(reln, blockNum, &found);
-#else
-		bufHdr = LocalBufferAlloc_SMgr(reln->rd_smgr, blockNum, &found);
-#endif
-		if (found)
-			LocalBufferHitCount++;
-	}
-	else
-	{
-		ReadBufferCount++;
-
-		/*
-		 * lookup the buffer.  IO_IN_PROGRESS is set if the requested block is
-		 * not currently in memory.
-		 */
-#if 0
-		bufHdr = BufferAlloc(reln, blockNum, &found, availBufHdr);
-#else
-		bufHdr = BufferAlloc_SMgr(reln->rd_smgr, blockNum, &found);
-#endif
-		
-		if (found)
-			BufferHitCount++;
-	}
-
-	/* At this point we do NOT hold any locks. */
-
-	/* if it was already in the buffer pool, we're done */
-	if (found)
-	{
-		if (!isExtend)
-		{
-			/* Just need to update stats before we exit */
-			pgstat_count_buffer_hit(reln);
-
-			goto done;
-		}
-
-		/*
-		 * We get here only in the corner case where we are trying to extend
-		 * the relation but we found a pre-existing buffer marked BM_VALID.
-		 * This can happen because mdread doesn't complain about reads beyond
-		 * EOF (when zero_damaged_pages is ON) and so a previous attempt to
-		 * read a block beyond EOF could have left a "valid" zero-filled
-		 * buffer.	Unfortunately, we have also seen this case occurring
-		 * because of buggy Linux kernels that sometimes return an
-		 * lseek(SEEK_END) result that doesn't account for a recent write. In
-		 * that situation, the pre-existing buffer would contain valid data
-		 * that we don't want to overwrite.  Since the legitimate case should
-		 * always have left a zero-filled buffer, complain if not PageIsNew.
-		 */
-		bufBlock = isLocalBuf ? LocalBufHdrGetBlock(bufHdr) : BufHdrGetBlock(bufHdr);
-		if (!PageIsNew((PageHeader) bufBlock))
-			ereport(ERROR,
-					(errmsg("unexpected data beyond EOF in block %u of relation \"%s\"",
-							blockNum, RelationGetRelationName(reln)),
-					 errhint("This has been seen to occur with buggy kernels; consider updating your system.")));
-
-		/*
-		 * We *must* do smgrextend before succeeding, else the page will not
-		 * be reserved by the kernel, and the next P_NEW call will decide to
-		 * return the same page.  Clear the BM_VALID bit, do the StartBufferIO
-		 * call that BufferAlloc didn't, and proceed.
-		 */
-		if (isLocalBuf)
-		{
-			/* Only need to adjust flags */
-			Assert(bufHdr->flags & BM_VALID);
-			bufHdr->flags &= ~BM_VALID;
-		}
-		else
-		{
-			/*
-			 * Loop to handle the very small possibility that someone re-sets
-			 * BM_VALID between our clearing it and StartBufferIO inspecting
-			 * it.
-			 */
-			do
-			{
-				LockBufHdr(bufHdr);
-				Assert(bufHdr->flags & BM_VALID);
-				bufHdr->flags &= ~BM_VALID;
-				UnlockBufHdr(bufHdr);
-			} while (!StartBufferIO(bufHdr, true));
-		}
-	}
-
-	/*
-	 * if we have gotten to this point, we have allocated a buffer for the
-	 * page but its contents are not yet valid.  IO_IN_PROGRESS is set for it,
-	 * if it's a shared buffer.
-	 *
-	 * Note: if smgrextend fails, we will end up with a buffer that is
-	 * allocated but not marked BM_VALID.  P_NEW will still select the same
-	 * block number (because the relation didn't get any longer on disk) and
-	 * so future attempts to extend the relation will find the same buffer (if
-	 * it's not been recycled) but come right back here to try smgrextend
-	 * again.
-	 */
-	Assert(!(bufHdr->flags & BM_VALID));		/* spinlock not needed */
-
-	bufBlock = isLocalBuf ? LocalBufHdrGetBlock(bufHdr) : BufHdrGetBlock(bufHdr);
-
-    BufferMProtect( bufHdr, PROT_WRITE | PROT_READ );
-
-	if (isExtend)
-	{
-		/* new buffers are zero-filled */
-		MemSet((char *) bufBlock, 0, BLCKSZ);
-		smgrextend(reln->rd_smgr, blockNum, (char *) bufBlock,
-				   reln->rd_istemp);
-	}
-	else
-	{
-		smgrread(reln->rd_smgr, blockNum, (char *) bufBlock);
-		/* check for garbage data */
-		if (!PageHeaderIsValid((PageHeader) bufBlock))
-		{
-			/*
-			 * During WAL recovery, the first access to any data page should
-			 * overwrite the whole page from the WAL; so a clobbered page
-			 * header is not reason to fail.  Hence, when InRecovery we may
-			 * always act as though zero_damaged_pages is ON.
-			 */
-			if (zero_damaged_pages || InRecovery)
-			{
-				ereport(WARNING,
-						(errcode(ERRCODE_DATA_CORRUPTED),
-						 errmsg("invalid page header in block %u of relation \"%s\"; zeroing out page",
-								blockNum, RelationGetRelationName(reln))));
-				MemSet((char *) bufBlock, 0, BLCKSZ);
-			}
-			else
-				ereport(ERROR,
-						(errcode(ERRCODE_DATA_CORRUPTED),
-				 errmsg("invalid page header in block %u of relation \"%s\"",
-						blockNum, RelationGetRelationName(reln)),
-				 errSendAlert(true)));
-		}
-	}
-
-    BufferMProtect( bufHdr, PROT_READ );
-
-	if (isLocalBuf)
-	{
-		/* Only need to adjust flags */
-		bufHdr->flags |= BM_VALID;
-	}
-	else
-	{
-		/* Set BM_VALID, terminate IO, and wake up any waiters */
-		TerminateBufferIO(bufHdr, false, BM_VALID);
-	}
-
-	done:
-	if (VacuumCostActive)
-		VacuumCostBalance += VacuumCostPageMiss;
-
-	if (availBufHdr && availBufHdr != bufHdr) 
-	{
-		int freebuf;
-		LockBufHdr(availBufHdr);
-		freebuf = (availBufHdr->refcount == 0 && availBufHdr->usage_count == 0 
-				   && availBufHdr->flags == 0);
-		UnlockBufHdr(availBufHdr);
-		if (freebuf)
-			StrategyFreeBuffer(availBufHdr, true);
-	}
-	
-	return BufferDescriptorGetBuffer(bufHdr);
-}
-#endif
 
 /*
  * Read Buffer for pages to be Resynced
