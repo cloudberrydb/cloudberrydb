@@ -2492,12 +2492,7 @@ url_rewind(URL_FILE *file, const char *relname)
 			break;
 
 		case CFTYPE_EXEC:
-			/* we'll need to execute the command again */
-			assert(0); /* There is no way the following code is right. */
-			url_fclose(file, true, relname);
-
-			/* most of these are null fo us. */
-			url_fopen(url, false, NULL, NULL, NULL, 0);
+			elog(ERROR, "Rescan is not supported for web external table: %s", relname);
 			break;
 
 #ifdef USE_CURL
