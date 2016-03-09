@@ -64,6 +64,14 @@ resources:
     region_name: {{aws-region}}
     secret_access_key: {{aws-secret-access-key}}
     versioned_file: bin_xerces_centos5.tar.gz
+- name: bin_xerces_centos6
+  type: s3
+  source:
+    access_key_id: {{aws-access-key-id}}
+    bucket: {{bucket-name}}
+    region_name: {{aws-region}}
+    secret_access_key: {{aws-secret-access-key}}
+    versioned_file: bin_xerces_centos6.tar.gz
 - name: bin_xerces_debian8
   type: s3
   source:
@@ -237,6 +245,8 @@ jobs:
   - aggregate:
     - task: build_centos5
       file: xerces_patch/concourse/xerces-c/build_xerces_centos5.yml
+    - task: build_centos6
+      file: xerces_patch/concourse/xerces-c/build_xerces_centos6.yml
     - task: build_debian8
       file: xerces_patch/concourse/xerces-c/build_xerces_debian8.yml
     - task: build_debian8_clang
@@ -246,6 +256,8 @@ jobs:
   - aggregate:
     - task: package_tarball_centos5
       file: xerces_patch/concourse/xerces-c/package_tarball_centos5.yml
+    - task: package_tarball_centos6
+      file: xerces_patch/concourse/xerces-c/package_tarball_centos6.yml
     - task: package_tarball_debian8
       file: xerces_patch/concourse/xerces-c/package_tarball_debian8.yml
     - task: package_tarball_debian8_clang
@@ -256,6 +268,9 @@ jobs:
     - put: bin_xerces_centos5
       params:
         from: package_tarball_centos5/bin_xerces_centos5.tar.gz
+    - put: bin_xerces_centos6
+      params:
+        from: package_tarball_centos6/bin_xerces_centos6.tar.gz
     - put: bin_xerces_debian8
       params:
         from: package_tarball_debian8/bin_xerces_debian8.tar.gz

@@ -1,0 +1,12 @@
+platform: linux
+image: docker:///yolo/orcadev#centos6
+inputs:
+  - name: xerces_patch
+  - name: build_centos6
+outputs:
+  - name: package_tarball_centos6
+run:
+  path: xerces_patch/concourse/package_tarball.bash
+params:
+  src_root: build_centos6/install
+  dst_tarball: package_tarball_centos6/bin_xerces_centos6.tar.gz
