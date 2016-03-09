@@ -8,6 +8,7 @@ groups:
   - gpos_centos6_release
   - gpos_secondary
   - orca_centos5_release
+  - orca_centos6_release
   - orca_secondary
   - gpdb_icg
 - name: xerces
