@@ -451,7 +451,7 @@ set_max_safe_fds(void)
 	if (max_safe_fds < FD_MINFREE)
 		ereport(FATAL,
 				(errcode(ERRCODE_INSUFFICIENT_RESOURCES),
-				 errmsg("insufficient file handles available to start server process"),
+				 errmsg("insufficient file descriptors available to start server process"),
 				 errdetail("System allows %d, we need at least %d.",
 						   max_safe_fds + NUM_RESERVED_FDS,
 						   FD_MINFREE + NUM_RESERVED_FDS)));
@@ -493,7 +493,7 @@ tryAgain:
 
 		ereport(LOG,
 				(errcode(ERRCODE_INSUFFICIENT_RESOURCES),
-				 errmsg("out of file handles: %m; release and retry")));
+				 errmsg("out of file descriptors: %m; release and retry")));
 		errno = 0;
 		if (ReleaseLruFile())
 			goto tryAgain;
@@ -564,8 +564,7 @@ LruDelete(File file)
 
 	/* close the file */
 	if (close(vfdP->fd))
-		elog(ERROR, "could not close file \"%s\": %m",
-			 vfdP->fileName);
+		elog(ERROR, "could not close file \"%s\": %m", vfdP->fileName);
 
 	--nfile;
 	vfdP->fd = VFD_CLOSED;
@@ -1366,7 +1365,8 @@ FileSeek(File file, int64 offset, int whence)
 		switch (whence)
 		{
 			case SEEK_SET:
-				Assert(offset >= INT64CONST(0));
+				if (offset < 0)
+					elog(ERROR, "invalid seek offset: %ld", offset);
 				VfdCache[file].seekPos = offset;
 				break;
 			case SEEK_CUR:
@@ -1380,7 +1380,7 @@ FileSeek(File file, int64 offset, int whence)
 											   offset, whence);
 				break;
 			default:
-				Assert(!"invalid whence");
+				elog(ERROR, "invalid whence: %d", whence);
 				break;
 		}
 	}
@@ -1389,7 +1389,8 @@ FileSeek(File file, int64 offset, int whence)
 		switch (whence)
 		{
 			case SEEK_SET:
-				Assert(offset >= INT64CONST(0));
+				if (offset < 0)
+					elog(ERROR, "invalid seek offset: " INT64_FORMAT, offset);
 				if (VfdCache[file].seekPos != offset)
 					VfdCache[file].seekPos = pg_lseek64(VfdCache[file].fd,
 												   offset, whence);
@@ -1404,7 +1405,7 @@ FileSeek(File file, int64 offset, int whence)
 											   offset, whence);
 				break;
 			default:
-				Assert(!"invalid whence");
+				elog(ERROR, "invalid whence: %d", whence);
 				break;
 		}
 	}
@@ -1506,7 +1507,7 @@ AllocateFile(const char *name, const char *mode)
 	 */
 	if (numAllocatedDescs >= MAX_ALLOCATED_DESCS ||
 		numAllocatedDescs >= max_safe_fds - 1)
-		elog(ERROR, "could not allocate file: out of file handles");
+		elog(ERROR, "too many private files demanded");
 
 TryAgain:
 	if ((file = fopen(name, mode)) != NULL)
@@ -1526,7 +1527,7 @@ TryAgain:
 
 		ereport(LOG,
 				(errcode(ERRCODE_INSUFFICIENT_RESOURCES),
-				 errmsg("out of file handles: %m; release and retry")));
+				 errmsg("out of file descriptors: %m; release and retry")));
 		errno = 0;
 		if (ReleaseLruFile())
 			goto TryAgain;
@@ -1544,7 +1545,7 @@ TryAgain:
 static int
 FreeDesc(AllocateDesc *desc)
 {
-	int			result = 0;
+	int			result;
 
 	/* Close the underlying object */
 	switch (desc->kind)
@@ -1556,7 +1557,8 @@ FreeDesc(AllocateDesc *desc)
 			result = closedir(desc->desc.dir);
 			break;
 		default:
-			Assert(false);
+			elog(ERROR, "AllocateDesc kind not recognized");
+			result = 0;			/* keep compiler quiet */
 			break;
 	}
 
@@ -1590,7 +1592,7 @@ FreeFile(FILE *file)
 	}
 
 	/* Only get here if someone passes us a file not in allocatedDescs */
-	elog(LOG, "file to be closed was not opened through the virtual file descriptor system");
+	elog(WARNING, "file passed to FreeFile was not obtained from AllocateFile");
 	Assert(false);
 
 	return fclose(file);
@@ -1621,7 +1623,7 @@ AllocateDir(const char *dirname)
 	 */
 	if (numAllocatedDescs >= MAX_ALLOCATED_DESCS ||
 		numAllocatedDescs >= max_safe_fds - 1)
-		elog(ERROR, "could not allocate directory: out of file handles");
+		elog(ERROR, "too many private dirs demanded");
 
 TryAgain:
 	if ((dir = opendir(dirname)) != NULL)
@@ -1641,7 +1643,7 @@ TryAgain:
 
 		ereport(LOG,
 				(errcode(ERRCODE_INSUFFICIENT_RESOURCES),
-				 errmsg("out of file handles: %m; release and retry")));
+				 errmsg("out of file descriptors: %m; release and retry")));
 		errno = 0;
 		if (ReleaseLruFile())
 			goto TryAgain;
@@ -1728,7 +1730,7 @@ FreeDir(DIR *dir)
 	}
 
 	/* Only get here if someone passes us a dir not in allocatedDescs */
-	elog(LOG, "directory to be closed was not opened through the virtual file descriptor system");
+	elog(WARNING, "dir passed to FreeDir was not obtained from AllocateDir");
 	Assert(false);
 
 	return closedir(dir);
