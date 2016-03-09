@@ -54,9 +54,6 @@
 #include "storage/ipc.h"
 #include "utils/guc.h"
 #include "utils/workfile_mgr.h"
-
-/* Debug_filerep_print guc temporaly added for troubleshooting */
-#include "utils/guc.h"
 #include "utils/faultinjector.h"
 
 // Provide some indirection here in case we have problems with lseek and
