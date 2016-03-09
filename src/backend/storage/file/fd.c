@@ -884,11 +884,10 @@ FileNameOpenFile(FileName fileName, int fileFlags, int fileMode)
  * should be unique to this particular OpenTemporaryFile() request and
  * distinct from any others in concurrent use on the same host.  As a
  * convenience for monitoring and debugging, the given 'fileName' string
- * and 'extentseqnum' are embedded in the file name.
+ * is embedded in the file name.
  *
- * If 'makenameunique' is false, then 'fileName' and 'extentseqnum' identify a
- * new or existing temporary file which other processes also could open and
- * share.
+ * If 'makenameunique' is false, then 'fileName' identify a new or existing
+ * temporary file which other processes also could open and share.
  *
  * If 'create' is true, a new file is created.  If successful, a valid vfd
  * index (>0) is returned; otherwise an error is thrown.
@@ -912,7 +911,6 @@ FileNameOpenFile(FileName fileName, int fileFlags, int fileMode)
  */
 File
 OpenTemporaryFile(const char   *fileName,
-                  int           extentseqnum,
                   bool          makenameunique,
                   bool          create,
                   bool          delOnClose,
@@ -937,18 +935,16 @@ OpenTemporaryFile(const char   *fileName,
 		 * database instance.
 		 */
 		snprintf(tempfilepath, sizeof(tempfilepath),
-				 "%s_%d_%04d.%ld",
+				 "%s_%d.%ld",
 				 tempfileprefix,
 				 MyProcPid,
-                 extentseqnum,
                  tempFileCounter++);
 	}
 	else
 	{
         snprintf(tempfilepath, sizeof(tempfilepath),
-				 "%s.%04d",
-				 tempfileprefix,
-				 extentseqnum);
+				 "%s",
+				 tempfileprefix);
 	}
 
     return OpenNamedFile(tempfilepath, create, delOnClose, closeAtEOXact);

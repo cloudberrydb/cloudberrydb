@@ -65,7 +65,6 @@ extern File PathNameOpenFile(FileName fileName, int fileFlags, int fileMode);
 
 File
 OpenTemporaryFile(const char   *fileName,
-                  int           extentseqnum,
                   bool          makenameunique,
                   bool          create,
                   bool          delOnClose,
