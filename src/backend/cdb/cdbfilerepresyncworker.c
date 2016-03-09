@@ -25,6 +25,8 @@
 #include "utils/faultinjector.h"
 #include "utils/relcache.h"
 
+#define OIDCHARS	10			/* max chars printed by %u */
+
 static int FileRepPrimary_RunResyncWorker(void);
 static int FileRepPrimary_ResyncWrite(FileRepResyncHashEntry_s	*entry);
 static int FileRepPrimary_ResyncBufferPoolIncrementalWrite(ChangeTrackingRequest *request);
@@ -193,6 +195,7 @@ FileRepPrimary_ResyncWrite(FileRepResyncHashEntry_s	*entry)
 	BlockNumber		numBlocks;
 	BlockNumber		blkno;
 	SMgrRelation	smgr_relation;
+	char			relidstr[OIDCHARS + 1 + OIDCHARS + 1 + OIDCHARS + 1];
 	XLogRecPtr		loc;
 	int				count = 0;
 	int				thresholdCount = 0;
@@ -212,14 +215,15 @@ FileRepPrimary_ResyncWrite(FileRepResyncHashEntry_s	*entry)
 					
 					numBlocks = smgrnblocks(smgr_relation);
 
-					if (Debug_filerep_print)
-						elog(LOG, "resync buffer pool relation '%u/%u/%u' "
-								  "number of blocks '%d' ",
+					snprintf(relidstr, sizeof(relidstr), "%u/%u/%u",
 							 smgr_relation->smgr_rnode.spcNode,
 							 smgr_relation->smgr_rnode.dbNode,
-							 smgr_relation->smgr_rnode.relNode,
-							 numBlocks);					
-				
+							 smgr_relation->smgr_rnode.relNode);
+
+					if (Debug_filerep_print)
+						elog(LOG, "resync buffer pool relation '%s' number of blocks '%d' ",
+							 relidstr, numBlocks);
+
 					thresholdCount = Min(numBlocks, 1024);
 					
 					/* 
@@ -245,7 +249,7 @@ FileRepPrimary_ResyncWrite(FileRepResyncHashEntry_s	*entry)
 #endif				
 						
 						FileRepResync_SetReadBufferRequest();
-						buf = ReadBuffer_Resync(smgr_relation, blkno);
+						buf = ReadBuffer_Resync(smgr_relation, blkno, relidstr);
 						FileRepResync_ResetReadBufferRequest();
 						
 						LockBuffer(buf, BUFFER_LOCK_EXCLUSIVE);
@@ -256,11 +260,9 @@ FileRepPrimary_ResyncWrite(FileRepResyncHashEntry_s	*entry)
 						if (Debug_filerep_print)
 						{
 							elog(LOG, 
-									 "full resync buffer pool identifier '%u/%u/%u' num blocks '%d' blkno '%d' lsn begin change tracking '%s(%u/%u)' "
+									 "full resync buffer pool identifier '%s' num blocks '%d' blkno '%d' lsn begin change tracking '%s(%u/%u)' "
 									 "lsn page '%s(%u/%u)' lsn end change tracking '%s(%u/%u)' ",
-									 smgr_relation->smgr_rnode.spcNode,
-									 smgr_relation->smgr_rnode.dbNode,
-									 smgr_relation->smgr_rnode.relNode,		
+									 relidstr,
 									 numBlocks,
 									 blkno,
 									 XLogLocationToString(&entry->mirrorBufpoolResyncCkptLoc),
@@ -278,10 +280,8 @@ FileRepPrimary_ResyncWrite(FileRepResyncHashEntry_s	*entry)
 							char	tmpBuf[FILEREP_MAX_LOG_DESCRIPTION_LEN];
 							
 							snprintf(tmpBuf, sizeof(tmpBuf), 
-									 "full resync buffer pool identifier '%u/%u/%u' num blocks '%d' blkno '%d' lsn begin change tracking '%s(%u/%u)' ",
-									 smgr_relation->smgr_rnode.spcNode,
-									 smgr_relation->smgr_rnode.dbNode,
-									 smgr_relation->smgr_rnode.relNode,		
+									 "full resync buffer pool identifier '%s' num blocks '%d' blkno '%d' lsn begin change tracking '%s(%u/%u)' ",
+									 relidstr,
 									 numBlocks,
 									 blkno,
 									 XLogLocationToString(&entry->mirrorBufpoolResyncCkptLoc),
@@ -291,10 +291,8 @@ FileRepPrimary_ResyncWrite(FileRepResyncHashEntry_s	*entry)
 							FileRep_InsertConfigLogEntry(tmpBuf);
 							
 							snprintf(tmpBuf, sizeof(tmpBuf), 
-									 "full resync buffer pool identifier '%u/%u/%u' lsn page '%s(%u/%u)' lsn end change tracking '%s(%u/%u)' ",
-									 smgr_relation->smgr_rnode.spcNode,
-									 smgr_relation->smgr_rnode.dbNode,
-									 smgr_relation->smgr_rnode.relNode,		
+									 "full resync buffer pool identifier '%s' lsn page '%s(%u/%u)' lsn end change tracking '%s(%u/%u)' ",
+									 relidstr,
 									 XLogLocationToString(&loc),
 									 loc.xlogid,
 									 loc.xrecoff,
@@ -547,6 +545,7 @@ FileRepPrimary_ResyncBufferPoolIncrementalWrite(ChangeTrackingRequest *request)
 	Buffer			buf; 
 	BlockNumber		numBlocks = 0;
 	SMgrRelation	smgr_relation = NULL;
+	char			relidstr[OIDCHARS + 1 + OIDCHARS + 1 + OIDCHARS + 1];
 	int				ii;
 	XLogRecPtr		loc;
 	XLogRecPtr		loc1;
@@ -575,6 +574,11 @@ FileRepPrimary_ResyncBufferPoolIncrementalWrite(ChangeTrackingRequest *request)
 					
 					smgr_relation = smgropen(result->entries[ii].relFileNode);
 					
+					snprintf(relidstr, sizeof(relidstr), "%u/%u/%u",
+							 smgr_relation->smgr_rnode.spcNode,
+							 smgr_relation->smgr_rnode.dbNode,
+							 smgr_relation->smgr_rnode.relNode);
+
 					numBlocks = smgrnblocks(smgr_relation);
 					
 					if (Debug_filerep_print)
@@ -596,12 +600,10 @@ FileRepPrimary_ResyncBufferPoolIncrementalWrite(ChangeTrackingRequest *request)
 				if (result->entries[ii].block_num >=  numBlocks)
 				{
 					ereport(LOG,	
-							(errmsg("could not resynchonize buffer pool relation '%u/%u/%u' block '%d' (maybe due to truncate), "
+							(errmsg("could not resynchonize buffer pool relation '%s' block '%d' (maybe due to truncate), "
 									"lsn change tracking '%s(%u/%u)' "
 									"number of blocks '%d' ",
-									smgr_relation->smgr_rnode.spcNode,
-									smgr_relation->smgr_rnode.dbNode,
-									smgr_relation->smgr_rnode.relNode,
+									relidstr,
 									result->entries[ii].block_num,
 									XLogLocationToString(&loc1),
 									loc1.xlogid,
@@ -615,7 +617,8 @@ FileRepPrimary_ResyncBufferPoolIncrementalWrite(ChangeTrackingRequest *request)
 				/* allow flushing buffers from buffer pool during scan */
 				FileRepResync_SetReadBufferRequest();
 				buf = ReadBuffer_Resync(smgr_relation,
-										result->entries[ii].block_num);
+										result->entries[ii].block_num,
+										relidstr);
 				FileRepResync_ResetReadBufferRequest();
 				
 				Assert(result->entries[ii].block_num < numBlocks);
@@ -628,11 +631,9 @@ FileRepPrimary_ResyncBufferPoolIncrementalWrite(ChangeTrackingRequest *request)
 				if(Debug_filerep_print)
 				{
 					elog(LOG,	
-							"incremental resync buffer pool identifier '%u/%u/%u' num blocks '%d' blkno '%d' lsn page '%s(%u/%u)' "
+							"incremental resync buffer pool identifier '%s' num blocks '%d' blkno '%d' lsn page '%s(%u/%u)' "
 							"lsn end change tracking '%s(%u/%u)' ",
-							smgr_relation->smgr_rnode.spcNode,
-							smgr_relation->smgr_rnode.dbNode,
-							smgr_relation->smgr_rnode.relNode,		
+							relidstr,
 							numBlocks,
 							result->entries[ii].block_num,
 							XLogLocationToString(&loc),
@@ -647,10 +648,8 @@ FileRepPrimary_ResyncBufferPoolIncrementalWrite(ChangeTrackingRequest *request)
 					char	tmpBuf[FILEREP_MAX_LOG_DESCRIPTION_LEN];
 					
 					snprintf(tmpBuf, sizeof(tmpBuf), 
-							 "incremental resync buffer pool identifier '%u/%u/%u' num blocks '%d' blkno '%d' lsn page '%s(%u/%u)' ",
-							 smgr_relation->smgr_rnode.spcNode,
-							 smgr_relation->smgr_rnode.dbNode,
-							 smgr_relation->smgr_rnode.relNode,		
+							 "incremental resync buffer pool identifier '%s' num blocks '%d' blkno '%d' lsn page '%s(%u/%u)' ",
+							 relidstr,
 							 numBlocks,
 							 result->entries[ii].block_num,
 							 XLogLocationToString(&loc),
@@ -660,10 +659,8 @@ FileRepPrimary_ResyncBufferPoolIncrementalWrite(ChangeTrackingRequest *request)
 					FileRep_InsertConfigLogEntry(tmpBuf);
 					
 					snprintf(tmpBuf, sizeof(tmpBuf), 
-							 "incremental resync buffer pool identifier '%u/%u/%u' lsn end change tracking '%s(%u/%u)' ",
-							 smgr_relation->smgr_rnode.spcNode,
-							 smgr_relation->smgr_rnode.dbNode,
-							 smgr_relation->smgr_rnode.relNode,		
+							 "incremental resync buffer pool identifier '%s' lsn end change tracking '%s(%u/%u)' ",
+							 relidstr,
 							 XLogLocationToString(&loc1),
 							 result->entries[ii].lsn_end.xlogid,
 							 result->entries[ii].lsn_end.xrecoff);
@@ -677,12 +674,10 @@ FileRepPrimary_ResyncBufferPoolIncrementalWrite(ChangeTrackingRequest *request)
 					if (! XLByteEQ(PageGetLSN(page), result->entries[ii].lsn_end))
 					{
 						ereport(LOG,
-							(errmsg("Resynchonize buffer pool relation '%u/%u/%u' block '%d' has page lsn less than CT lsn, "
+							(errmsg("Resynchonize buffer pool relation '%s' block '%d' has page lsn less than CT lsn, "
 								"lsn end change tracking '%s(%u/%u)' lsn page '%s(%u/%u)' "
 								"number of blocks '%d'",
-								smgr_relation->smgr_rnode.spcNode,
-								smgr_relation->smgr_rnode.dbNode,
-								smgr_relation->smgr_rnode.relNode,
+								relidstr,
 								result->entries[ii].block_num,
 								XLogLocationToString(&loc),
 								loc.xlogid,
