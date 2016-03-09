@@ -233,6 +233,7 @@ static File AllocateVfd(void);
 static void FreeVfd(File file);
 
 static int	FileAccess(File file);
+static char *make_database_relative(const char *filename);
 static void AtProcExit_Files(int code, Datum arg);
 static void CleanupTempFiles(bool isProcExit);
 static void RemovePgTempFilesInDir(const char *tmpdirname);
@@ -744,6 +745,29 @@ FreeVfd(File file)
 	VfdCache[0].nextFree = file;
 }
 
+/*
+ * make_database_relative()
+ *		Prepend DatabasePath to the given file name.
+ *
+ * Result is a palloc'd string.
+ */
+static char *
+make_database_relative(const char *filename)
+{
+	char	   *buf;
+
+	Assert(!is_absolute_path(filename));
+	buf = (char *) palloc(PATH_MAX);
+	if (snprintf(buf, PATH_MAX, "%s/%s", getCurrentTempFilePath, filename) > PATH_MAX)
+	{
+		ereport(ERROR,
+				(errmsg("cannot generate path %s/%s", getCurrentTempFilePath,
+						filename)));
+	}
+
+	return buf;
+}
+
 /* returns 0 on success, -1 on re-open failure (with errno set) */
 static int
 FileAccess(File file)
@@ -865,13 +889,7 @@ FileNameOpenFile(FileName fileName, int fileFlags, int fileMode)
 	File		fd;
 	char	   *fname;
 
-	Assert(!is_absolute_path(fileName));
-	fname = (char*)palloc(PATH_MAX);
-	if (snprintf(fname, PATH_MAX, "%s/%s", getCurrentTempFilePath, fileName) > PATH_MAX)
-	{
-		ereport(ERROR, (errmsg("cannot generate path %s/%s", getCurrentTempFilePath,
-                        fileName)));
-	}
+	fname = make_database_relative(fileName);
 	fd = PathNameOpenFile(fname, fileFlags, fileMode);
 	pfree(fname);
 	return fd;
