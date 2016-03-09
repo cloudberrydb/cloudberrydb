@@ -935,15 +935,14 @@ OpenTemporaryFile(const char   *fileName,
                   bool          closeAtEOXact)
 {
 
-	char	tempfilepath[MAXPGPATH];
+	char		tempfilepath[MAXPGPATH];
+    char		tempfileprefix[MAXPGPATH];
+	int			len;
 
 	Assert(fileName);
     AssertImply(makenameunique, create && delOnClose);
 
-
-    char tempfileprefix[MAXPGPATH];
-
-    int len = GetTempFilePrefix(tempfileprefix, MAXPGPATH, fileName);
+    len = GetTempFilePrefix(tempfileprefix, MAXPGPATH, fileName);
     insist_log(len <= MAXPGPATH - 1, "could not generate temporary file name");
 
     if (makenameunique)
@@ -953,10 +952,8 @@ OpenTemporaryFile(const char   *fileName,
 		 * database instance.
 		 */
 		snprintf(tempfilepath, sizeof(tempfilepath),
-				 "%s_%d.%ld",
-				 tempfileprefix,
-				 MyProcPid,
-                 tempFileCounter++);
+				 "%s_%d.%ld", tempfileprefix,
+				 MyProcPid, tempFileCounter++);
 	}
 	else
 	{
@@ -979,20 +976,23 @@ OpenNamedFile(const char   *fileName,
                   bool          delOnClose,
                   bool          closeAtEOXact)
 {
-	char	tempfilepath[MAXPGPATH];
+	char		tempfilepath[MAXPGPATH];
+	File		file;
+	int			fileFlags;
+
 	strncpy(tempfilepath, fileName, sizeof(tempfilepath));
 
 	/*
-	 * File flags when open the file.  Note: we don't use O_EXCL, in case there is an orphaned
+	 * Open the file.  Note: we don't use O_EXCL, in case there is an orphaned
 	 * temp file that can be reused.
 	 */
-	int fileFlags = O_RDWR | PG_BINARY;
+	fileFlags = O_RDWR | PG_BINARY;
 	if (create)
-	{
 		fileFlags |= O_TRUNC | O_CREAT;
-	}
 
-	File file = FileNameOpenFile(tempfilepath, fileFlags, 0600);
+	file = FileNameOpenFile(tempfilepath,
+							fileFlags,
+							0600);
 
 	if (file <= 0)
 	{
@@ -1009,19 +1009,20 @@ OpenNamedFile(const char   *fileName,
 		 * just did the same thing.  If it doesn't work then we'll bomb out on
 		 * the second create attempt, instead.
 		 */
-		dirpath = (char*)palloc(PATH_MAX);
-		snprintf(dirpath, PATH_MAX, "%s/%s", getCurrentTempFilePath, PG_TEMP_FILES_DIR);
+		dirpath = make_database_relative(PG_TEMP_FILES_DIR);
 		mkdir(dirpath, S_IRWXU);
 		pfree(dirpath);
 
-		file = FileNameOpenFile(tempfilepath, fileFlags, 0600);
+		file = FileNameOpenFile(tempfilepath,
+								fileFlags,
+								0600);
 		if (file <= 0)
 			elog(ERROR, "could not create temporary file \"%s\": %m",
 			     tempfilepath);
 	}
 
 	/* Mark it for deletion at close */
-	if(delOnClose)
+	if (delOnClose)
 		VfdCache[file].fdstate |= FD_TEMPORARY;
 
 	/* Mark it to be closed at end of transaction. */
