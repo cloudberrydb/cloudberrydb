@@ -2492,7 +2492,11 @@ url_rewind(URL_FILE *file, const char *relname)
 			break;
 
 		case CFTYPE_EXEC:
-			elog(ERROR, "Rescan is not supported for web external table: %s", relname);
+			{
+				elog(ERROR, "Rescan is not supported for web external table: %s. "
+						"Please use 'set optimizer=on' as a work around "
+						"and 'set optimizer_enable_master_only=on' if accessing catalog tables.", relname);
+			}
 			break;
 
 #ifdef USE_CURL
