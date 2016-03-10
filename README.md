@@ -138,9 +138,9 @@ Only need to change the `configure` with additional option `--enable-orca`.
 ```
 # Configure build environment to install at /usr/local/gpdb
 # Enable GPORCA
-# Build with perl
-# Build with python
-# Build with libxml
+# Build with perl module (PL/Perl)
+# Build with python module (PL/Python)
+# Build with XML support
 ./configure --enable-orca --with-perl --with-python --with-libxml --prefix=/usr/local/gpdb
 ```
 
