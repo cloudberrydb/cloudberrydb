@@ -2564,7 +2564,7 @@ CopyFromDispatch(CopyState cstate)
 	Datum	   *values;
 	bool	   *nulls;
 	int		   *attr_offsets;
-	int			total_rejeted_from_qes = 0;
+	int			total_rejected_from_qes = 0;
 	bool		isnull;
 	bool	   *isvarlena;
 	ResultRelInfo *resultRelInfo;
@@ -3493,7 +3493,7 @@ CopyFromDispatch(CopyState cstate)
 	 * databases Now we would like to end the copy command on
 	 * all segment databases across the cluster.
 	 */
-	total_rejeted_from_qes = cdbCopyEnd(cdbCopy);
+	total_rejected_from_qes = cdbCopyEnd(cdbCopy);
 
 	/*
 	 * If we quit the processing loop earlier due to a
@@ -3545,12 +3545,17 @@ CopyFromDispatch(CopyState cstate)
 	{
 		int total_rejected = 0;
 		int total_rejected_from_qd = cstate->cdbsreh->rejectcount;
-		
-		/* if used errtable, QD bad rows were sent to QEs and counted there. ignore QD count */
-		if (cstate->cdbsreh)
+
+		/*
+		 * If error log has been requested, then we send the row to the segment
+		 * so that it can be written in the error log file. The segment process
+		 * counts it again as a rejected row. So we ignore the reject count
+		 * from the master and only consider the reject count from segments.
+		 */
+		if (cstate->cdbsreh->log_to_file)
 			total_rejected_from_qd = 0;
-		
-		total_rejected = total_rejected_from_qd + total_rejeted_from_qes;
+
+		total_rejected = total_rejected_from_qd + total_rejected_from_qes;
 		cstate->processed -= total_rejected;
 
 		/* emit a NOTICE with number of rejected rows */

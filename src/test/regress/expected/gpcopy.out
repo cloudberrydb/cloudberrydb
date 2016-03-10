@@ -685,6 +685,7 @@ CONTEXT:  COPY test_first_segment_reject_limit, line 2: "error1"
 -- should go through fine
 SET gp_initial_bad_row_limit = 6;
 COPY test_first_segment_reject_limit FROM STDIN WITH DELIMITER '|' segment reject limit 20;
+NOTICE:  Found 4 data formatting errors (4 or more input rows). Rejected related input data.
 SELECT COUNT(*) FROM test_first_segment_reject_limit;
  count 
 -------
