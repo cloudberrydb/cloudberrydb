@@ -409,6 +409,13 @@ DATA(insert (	1988   1700 1700 3 f 1752	403 ));
 DATA(insert (	1988   1700 1700 4 f 1757	403 ));
 DATA(insert (	1988   1700 1700 5 f 1756	403 ));
 
+/* btree complex */
+DATA(insert (	3221   195 195 1 f 3481	403 ));
+DATA(insert (	3221   195 195 2 f 3483	403 ));
+DATA(insert (	3221   195 195 3 f 3469	403 ));
+DATA(insert (	3221   195 195 4 f 3484 403 ));
+DATA(insert (	3221   195 195 5 f 3482	403 ));
+
 /*
  *	btree bool
  */

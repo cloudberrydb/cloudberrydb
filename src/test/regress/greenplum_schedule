@@ -17,7 +17,7 @@
 
 ignore: leastsquares
 test: opr_sanity_gp decode_expr bitmapscan bitmapscan_ao case_gp limit_gp notin percentile naivebayes join_gp union_gp gpcopy
-test: filter gpctas gpdist matrix toast sublink sirv_functions table_functions olap_setup
+test: filter gpctas gpdist matrix toast sublink sirv_functions table_functions olap_setup complex
 
 test: dispatch
 
@@ -131,5 +131,4 @@ test: uaocs_compaction/threshold
 test: uaocs_compaction/index_stats
 test: uaocs_compaction/index
 test: uaocs_compaction/drop_column
-
 # end of tests
