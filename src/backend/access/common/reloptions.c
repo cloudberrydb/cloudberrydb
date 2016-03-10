@@ -926,7 +926,7 @@ parseRelOptions(Datum options, int numkeywords, const char *const * keywords,
 
 /*
  * Merge user-specified reloptions with pre-configured default storage
- * options and return a StdRdObtions object.
+ * options and return a StdRdOptions object.
  */
 bytea *
 default_reloptions(Datum reloptions, bool validate, char relkind,
