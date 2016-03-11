@@ -1,0 +1,12 @@
+platform: linux
+image: docker:///yolo/orcadev#jessie
+inputs:
+  - name: orca_src
+  - name: build_and_test_debian8_release_clang_libcxx
+outputs:
+  - name: package_tarball_debian8_release_clang_libcxx
+run:
+  path: orca_src/concourse/package_tarball.bash
+params:
+  src_root: build_and_test_debian8_release_clang_libcxx/install
+  dst_tarball: package_tarball_debian8_release_clang_libcxx/bin_orca_debian8_release_clang_libcxx.tar.gz

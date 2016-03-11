@@ -1,0 +1,12 @@
+platform: linux
+image: docker:///yolo/orcadev#jessie
+inputs:
+- name: xerces_patch
+- name: build_debian8_clang_libcxx
+outputs:
+- name: package_tarball_debian8_clang_libcxx
+run:
+  path: xerces_patch/concourse/package_tarball.bash
+params:
+  src_root: build_debian8_clang_libcxx/install
+  dst_tarball: package_tarball_debian8_clang_libcxx/bin_xerces_debian8_clang_libcxx.tar.gz

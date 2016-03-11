@@ -115,6 +115,25 @@ To run a specific minidump, for example for `../data/dxl/minidump/TVFRandom.mdp`
 Note that some tests use assertions that are only enabled for DEBUG builds, so
 DEBUG-mode tests tend to be more rigorous.
 
+## [Experimental] Concourse
+GPORCA contains a series of pipeline and task files to run various sets of tests
+on [concourse](concourse.ci). You can learn more about deploying concourse with
+[bosh at bosh.io](bosh.io).
+
+Our concourse currently runs the following sets of tests:
+* build and ctest on centos5
+* build and ctest on debian8
+
+We are currently working on adding support for the following sets of tests:
+* build and ctest on centos6
+* build GPDB with GPORCA and run `make installcheck-good` on centos6
+
+All configuration files for our concourse pipelines can be found in the `concourse/` 
+directory.
+
+Note: concourse jobs and pipelines for GPORCA are currently experimental and should not be considered
+ready for use in production-level CI environments.
+
 # Advanced Setup
 
 ## How to generate make files with different options
