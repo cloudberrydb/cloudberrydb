@@ -2,27 +2,12 @@
 
 set -x
 
-IP_ADDRESS=$1
-if [[ -z "$IP_ADDRESS" ]]; then
-    echo "ERROR: IP address should be provided as a parameter to the script"
-    exit 1
-fi
-
 # Stop firewall
 sudo systemctl stop firewalld
 
 # Disable SELinux
 sudo setenforce 0
 sudo sed -i 's/^SELINUX=.*$/SELINUX=disabled/' /etc/selinux/config
-
-# Setting up hostname for host-private network
-sudo hostnamectl set-hostname gpdbvagrant.pivotal.io
-sudo hostname gpdbvagrant.pivotal.io
-sudo sed -i '/vagrant/d' /etc/hosts
-sudo bash -c "echo '$IP_ADDRESS gpdbvagrant.pivotal.io gpdbvagrant' >> /etc/hosts"
-sudo sed -i '/HOSTNAME/d' /etc/sysconfig/network
-sudo bash -c 'echo "HOSTNAME=gpdbvagrant.pivotal.io" >> /etc/sysconfig/network'
-sudo bash -c 'echo "DHCP_HOSTNAME=gpdbvagrant.pivotal.io" >> /etc/sysconfig/network'
 
 # GPDB Kernel Settings
 sudo rm -f /etc/sysctl.d/gpdb.conf
@@ -43,6 +28,7 @@ sudo bash -c 'printf "net.ipv4.tcp_tw_recycle = 1\n"                   >> /etc/s
 sudo bash -c 'printf "net.ipv4.tcp_max_syn_backlog = 4096\n"           >> /etc/sysctl.d/gpdb.conf'
 sudo bash -c 'printf "net.ipv4.conf.all.arp_filter = 1\n"              >> /etc/sysctl.d/gpdb.conf'
 sudo bash -c 'printf "net.ipv4.ip_local_port_range = 1025 65535\n"     >> /etc/sysctl.d/gpdb.conf'
+sudo bash -c 'printf "net.ipv6.conf.all.disable_ipv6 = 1\n             >> /etc/sysctl.d/gpdb.conf'
 sudo bash -c 'printf "net.core.netdev_max_backlog = 10000\n"           >> /etc/sysctl.d/gpdb.conf'
 sudo bash -c 'printf "net.core.rmem_max = 2097152\n"                   >> /etc/sysctl.d/gpdb.conf'
 sudo bash -c 'printf "net.core.wmem_max = 2097152\n"                   >> /etc/sysctl.d/gpdb.conf'
