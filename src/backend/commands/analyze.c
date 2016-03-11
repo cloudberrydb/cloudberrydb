@@ -246,12 +246,6 @@ analyzeStmt(VacuumStmt *stmt, List *relids)
 	 */
 	Assert(IsNormalProcessingMode());
 	
-	/* If running in diagnostic mode, simply return */
-	if (Gp_interconnect_type == INTERCONNECT_TYPE_NIL)
-	{
-		return;
-	}
-	
 	if (stmt->verbose)
 		elevel = INFO;
 	else

@@ -1394,6 +1394,7 @@ InitMotionUDPIFC(int *listenerSocketFd, uint16 *listenerPort)
 	initMutex(&ic_control_info.lock);
 	pthread_cond_init(&ic_control_info.cond, NULL);
 	ic_control_info.shutdown = 0;
+	ic_control_info.threadCreated = false;
 
 	old = MemoryContextSwitchTo(ic_control_info.memContext);
 
@@ -3174,7 +3175,7 @@ setupOutgoingUDPConnection(ChunkTransportState *transportStates, ChunkTransportS
 		elog(DEBUG1, "setupOutgoingUDPConnection: node %d route %d srccontent %d dstcontent %d: %s",
 			 pEntry->motNodeId, conn->route, Gp_segment, conn->cdbProc->contentid, conn->remoteHostAndPort);
 
-	conn->conn_info.srcListenerPort = (Gp_listener_port>>16) & 0x0ffff;
+	conn->conn_info.srcListenerPort = Gp_listener_port;
 	conn->conn_info.srcPid = MyProcPid;
 	conn->conn_info.dstPid = conn->cdbProc->pid;
 	conn->conn_info.dstListenerPort = conn->cdbProc->listenerPort;
@@ -3430,7 +3431,7 @@ SetupUDPIFCInterconnect_Internal(EState *estate)
 				conn->conn_info.srcListenerPort = conn->cdbProc->listenerPort;
 				conn->conn_info.srcPid = conn->cdbProc->pid;
 				conn->conn_info.dstPid = MyProcPid;
-				conn->conn_info.dstListenerPort = (Gp_listener_port>>16) & 0x0ffff;
+				conn->conn_info.dstListenerPort = Gp_listener_port;
 				conn->conn_info.sessionId = gp_session_id;
 				conn->conn_info.icId = gp_interconnect_id;
 				conn->conn_info.flags = UDPIC_FLAGS_RECEIVER_TO_SENDER;
@@ -3489,9 +3490,9 @@ SetupUDPIFCInterconnect_Internal(EState *estate)
 	if (gp_log_interconnect >= GPVARS_VERBOSITY_DEBUG)
 		ereport(DEBUG1, (errmsg("SetupUDPInterconnect will activate "
 								"%d incoming, %d outgoing routes for gp_interconnect_id %d. "
-								"Listening on ports=%d/%d sockfd=%d.",
+								"Listening on ports=%d sockfd=%d.",
 								expectedTotalIncoming, expectedTotalOutgoing, gp_interconnect_id,
-								Gp_listener_port&0x0ffff, (Gp_listener_port>>16)&0x0ffff, UDP_listenerFd)));
+								Gp_listener_port, UDP_listenerFd)));
 
 	/* If there are packets cached by background thread, add them to the connections. */
 	if (gp_interconnect_cache_future_packets)
@@ -4523,7 +4524,7 @@ handleAcks(ChunkTransportState *transportStates, ChunkTransportStateEntry *pEntr
 		 */
 		if (pkt->srcContentId == Gp_segment &&
 				pkt->srcPid == MyProcPid &&
-				pkt->srcListenerPort == ((Gp_listener_port>>16) & 0x0ffff) &&
+				pkt->srcListenerPort == Gp_listener_port &&
 				pkt->sessionId == gp_session_id &&
 				pkt->icId == gp_interconnect_id)
 		{
@@ -4652,7 +4653,7 @@ handleAcks(ChunkTransportState *transportStates, ChunkTransportStateEntry *pEntr
 					pkt->srcContentId, Gp_segment,
 					pkt->srcPid, MyProcPid,
 					pkt->dstPid,
-					pkt->srcListenerPort, ((Gp_listener_port>>16) & 0x0ffff),
+					pkt->srcListenerPort, Gp_listener_port,
 					pkt->dstListenerPort,
 					pkt->sessionId, gp_session_id,
 					pkt->icId, gp_interconnect_id);
@@ -6964,5 +6965,5 @@ WaitInterconnectQuitUDPIFC(void)
 		SendDummyPacket();
 		pthread_join(ic_control_info.threadHandle, NULL);
 	}
-	ic_control_info.threadCreated = 0;
+	ic_control_info.threadCreated = false;
 }

@@ -56,8 +56,6 @@ test: vacuum_gp
 # FIXME: These tests no longer work, because they try to set
 # gp_interconnect_type, which doesn't work:
 # ERROR:  parameter "gp_interconnect_type" cannot be set after connection start
-#test: gpic
-#test: gpic_bigtup
 
 ignore: gp_portal_error
 test: partition_indexing column_compression eagerfree mapred gpparams tidycat aocs co_nestloop_idxscan  gpdtm_plpgsql alter_table_aocs alter_distribution_policy ic aoco_privileges

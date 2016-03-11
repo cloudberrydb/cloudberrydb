@@ -215,7 +215,7 @@ int			Gp_interconnect_hash_multiplier=2;	/* sets the size of the hash table used
 
 int			interconnect_setup_timeout=7200;
 
-int			Gp_interconnect_type = INTERCONNECT_TYPE_TCP;
+int			Gp_interconnect_type = INTERCONNECT_TYPE_UDPIFC;
 
 bool		gp_interconnect_aggressive_retry=true; /* fast-track app-level retry */
 
@@ -953,36 +953,15 @@ gpvars_assign_gp_interconnect_type(const char *newval, bool doit, GucSource sour
 {
 	int newtype = 0;
 
-	if (newval == NULL || newval[0] == 0 ||
-		!pg_strcasecmp("tcp", newval))
-		newtype = INTERCONNECT_TYPE_TCP;
-	else if (!pg_strcasecmp("udp", newval))
-		newtype = INTERCONNECT_TYPE_UDP;
+	if (newval == NULL || newval[0] == 0)
+		newtype = INTERCONNECT_TYPE_UDPIFC;
 	else if (!pg_strcasecmp("udpifc", newval))
 		newtype = INTERCONNECT_TYPE_UDPIFC;
-	else if (!pg_strcasecmp("nil", newval))
-		newtype = INTERCONNECT_TYPE_NIL;
 	else
-		elog(ERROR, "Unknown interconnect type. (current type is '%s')", gpvars_show_gp_interconnect_type());
+		elog(ERROR, "Only support UDPIFC, (current type is '%s')", gpvars_show_gp_interconnect_type());
 
 	if (doit)
 	{
-		if (newtype == INTERCONNECT_TYPE_NIL)
-		{
-			if (Gp_role == GP_ROLE_DISPATCH)
-				elog(WARNING, "Nil-Interconnect diagnostic mode enabled (tuple will be dropped).");
-			else
-				elog(LOG, "Nil-Interconnect diagnostic mode enabled (tuple will be dropped).");
-
-		}
-		else if (Gp_interconnect_type == INTERCONNECT_TYPE_NIL)
-		{
-			if (Gp_role == GP_ROLE_DISPATCH)
-				elog(WARNING, "Nil-Interconnect diagnostic mode disabled.");
-			else
-				elog(LOG, "Nil-Interconnect diagnostic mode disabled.");
-		}
-
 		Gp_interconnect_type = newtype;
 	}
 
@@ -992,18 +971,7 @@ gpvars_assign_gp_interconnect_type(const char *newval, bool doit, GucSource sour
 const char *
 gpvars_show_gp_interconnect_type(void)
 {
-	switch(Gp_interconnect_type)
-	{
-		case INTERCONNECT_TYPE_UDP:
-			return "UDP";
-		case INTERCONNECT_TYPE_UDPIFC:
-			return "UDPIFC";
-		case INTERCONNECT_TYPE_NIL:
-			return "NIL";
-		case INTERCONNECT_TYPE_TCP:
-		default:
-			return "TCP";
-	}
+	return "UDPIFC";
 }                               /* gpvars_show_gp_log_interconnect */
 
 /*

@@ -266,13 +266,6 @@ ExecMotion(MotionState * node)
 		} else
 			node->ps.state->active_recv_id = motion->motionID;
 
-		/* Running in diagnostic mode ? */
-		if (Gp_interconnect_type == INTERCONNECT_TYPE_NIL)
-		{
-			node->ps.state->active_recv_id = -1;
-			return NULL;
-		}
-
 		if (motion->sendSorted)
         {
             if (gp_enable_motion_mk_sort)
@@ -380,15 +373,6 @@ execMotionSender(MotionState * node)
 			node->otherTime.tv_sec++;
 		}
 #endif
-		/* Running in diagnostic mode, we just drop all tuples. */
-		if (Gp_interconnect_type == INTERCONNECT_TYPE_NIL)
-		{
-			if (!TupIsNull(outerTupleSlot))
-				continue;
-
-			return NULL;
-		}
-
 		if (done || TupIsNull(outerTupleSlot))
 		{
 			doSendEndOfStream(motion, node);
@@ -1734,9 +1718,6 @@ ExecStopMotion(MotionState * node)
 	motion = (Motion *) node->ps.plan;
 	node->stopRequested = true;
 	node->ps.state->active_recv_id = -1;
-
-	if (Gp_interconnect_type == INTERCONNECT_TYPE_NIL)
-		return;
 
 	/* pass down */
 	SendStopMessage(node->ps.state->motionlayer_context,
