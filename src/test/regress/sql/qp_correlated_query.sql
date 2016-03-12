@@ -14,23 +14,23 @@ RESET ALL;
 -- ----------------------------------------------------------------------
 
 -- start_ignore
-create table csq_t1(a int, b int);
-insert into csq_t1 values (1,2);
-insert into csq_t1 values (3,4);
-insert into csq_t1 values (5,6);
-insert into csq_t1 values (7,8);
+create table qp_csq_t1(a int, b int);
+insert into qp_csq_t1 values (1,2);
+insert into qp_csq_t1 values (3,4);
+insert into qp_csq_t1 values (5,6);
+insert into qp_csq_t1 values (7,8);
 
-create table csq_t2(x int,y int);
-insert into csq_t2 values(1,1);
-insert into csq_t2 values(3,9);
-insert into csq_t2 values(5,25);
-insert into csq_t2 values(7,49);
+create table qp_csq_t2(x int,y int);
+insert into qp_csq_t2 values(1,1);
+insert into qp_csq_t2 values(3,9);
+insert into qp_csq_t2 values(5,25);
+insert into qp_csq_t2 values(7,49);
 
-create table csq_t3(c int, d text);
-insert into csq_t3 values(1,'one');
-insert into csq_t3 values(3,'three');
-insert into csq_t3 values(5,'five');
-insert into csq_t3 values(7,'seven');
+create table qp_csq_t3(c int, d text);
+insert into qp_csq_t3 values(1,'one');
+insert into qp_csq_t3 values(3,'three');
+insert into qp_csq_t3 values(5,'five');
+insert into qp_csq_t3 values(7,'seven');
 
 create table A(i integer, j integer);
 insert into A values(1,1);
@@ -62,7 +62,7 @@ insert into C values(2,7);
 -- -- -- --
 -- Basic queries with IN clause
 -- -- -- --
-select a, x from csq_t1, csq_t2 where csq_t1.a in (select x);
+select a, x from qp_csq_t1, qp_csq_t2 where qp_csq_t1.a in (select x);
 select A.i from A where A.i in (select B.i from B where A.i = B.i) order by A.i;
 -- Not supported select A.i, B.i, C.j from A, B, C where exists (select C.j from C where C.j = A.j and B.i in (select C.i from C where C.i = A.i and C.i !=10)) order by A.i, B.i, C.j limit 10;
 select * from B where exists (select * from C,A where C.j = A.j and B.i in (select C.i from C where C.i = A.i and C.i != 10)) order by 1, 2;
@@ -85,7 +85,7 @@ select A.i, B.i, C.j from A, B, C where A.j in (select C.j from C where C.j = A.
 -- -- -- --
 -- Basic queries with NOT IN clause
 -- -- -- --
-select a, x from csq_t1, csq_t2 where csq_t1.a not in (select x) order by a,x;
+select a, x from qp_csq_t1, qp_csq_t2 where qp_csq_t1.a not in (select x) order by a,x;
 select A.i from A where A.i not in (select B.i from B where A.i = B.i) order by A.i;
 -- Not supported select A.i, B.i, C.j from A, B, C where exists (select C.j from C where C.j = A.j and B.i not in (select C.i from C where C.i = A.i and C.i !=10)) order by A.i, B.i, C.j limit 10;
 select * from A where exists (select * from B,C where C.j = A.j and B.i not in (select sum(C.i) from C where C.i = B.i and C.i != 10)) order by 1,2;
@@ -121,31 +121,31 @@ RESET ALL;
 -- ----------------------------------------------------------------------
 
 -- start_ignore
-drop table if exists csq_t1;
-drop table if exists csq_t2;
-drop table if exists csq_t3;
+drop table if exists qp_csq_t1;
+drop table if exists qp_csq_t2;
+drop table if exists qp_csq_t3;
 drop table if exists A;
 drop table if exists B;
 drop table if exists C;
 
 
-create table csq_t1(a int, b int);
-insert into csq_t1 values (1,2);
-insert into csq_t1 values (3,4);
-insert into csq_t1 values (5,6);
-insert into csq_t1 values (7,8);
+create table qp_csq_t1(a int, b int);
+insert into qp_csq_t1 values (1,2);
+insert into qp_csq_t1 values (3,4);
+insert into qp_csq_t1 values (5,6);
+insert into qp_csq_t1 values (7,8);
 
-create table csq_t2(x int,y int);
-insert into csq_t2 values(1,1);
-insert into csq_t2 values(3,9);
-insert into csq_t2 values(5,25);
-insert into csq_t2 values(7,49);
+create table qp_csq_t2(x int,y int);
+insert into qp_csq_t2 values(1,1);
+insert into qp_csq_t2 values(3,9);
+insert into qp_csq_t2 values(5,25);
+insert into qp_csq_t2 values(7,49);
 
-create table csq_t3(c int, d text);
-insert into csq_t3 values(1,'one');
-insert into csq_t3 values(3,'three');
-insert into csq_t3 values(5,'five');
-insert into csq_t3 values(7,'seven');
+create table qp_csq_t3(c int, d text);
+insert into qp_csq_t3 values(1,'one');
+insert into qp_csq_t3 values(3,'three');
+insert into qp_csq_t3 values(5,'five');
+insert into qp_csq_t3 values(7,'seven');
 
 create table A(i integer, j integer);
 insert into A values(1,1);
@@ -177,7 +177,7 @@ insert into C values(2,7);
 -- -- -- --
 -- Basic queries with ANY clause
 -- -- -- --
-select a, x from csq_t1, csq_t2 where csq_t1.a = any (select x);
+select a, x from qp_csq_t1, qp_csq_t2 where qp_csq_t1.a = any (select x);
 select A.i from A where A.i = any (select B.i from B where A.i = B.i) order by A.i;
 
 select * from A where A.j = any (select C.j from C where C.j = A.j) order by 1,2;
@@ -197,31 +197,31 @@ RESET ALL;
 -- ----------------------------------------------------------------------
 
 -- start_ignore
-drop table if exists csq_t1;
-drop table if exists csq_t2;
-drop table if exists csq_t3;
+drop table if exists qp_csq_t1;
+drop table if exists qp_csq_t2;
+drop table if exists qp_csq_t3;
 drop table if exists A;
 drop table if exists B;
 drop table if exists C;
 
 
-create table csq_t1(a int, b int);
-insert into csq_t1 values (1,2);
-insert into csq_t1 values (3,4);
-insert into csq_t1 values (5,6);
-insert into csq_t1 values (7,8);
+create table qp_csq_t1(a int, b int);
+insert into qp_csq_t1 values (1,2);
+insert into qp_csq_t1 values (3,4);
+insert into qp_csq_t1 values (5,6);
+insert into qp_csq_t1 values (7,8);
 
-create table csq_t2(x int,y int);
-insert into csq_t2 values(1,1);
-insert into csq_t2 values(3,9);
-insert into csq_t2 values(5,25);
-insert into csq_t2 values(7,49);
+create table qp_csq_t2(x int,y int);
+insert into qp_csq_t2 values(1,1);
+insert into qp_csq_t2 values(3,9);
+insert into qp_csq_t2 values(5,25);
+insert into qp_csq_t2 values(7,49);
 
-create table csq_t3(c int, d text);
-insert into csq_t3 values(1,'one');
-insert into csq_t3 values(3,'three');
-insert into csq_t3 values(5,'five');
-insert into csq_t3 values(7,'seven');
+create table qp_csq_t3(c int, d text);
+insert into qp_csq_t3 values(1,'one');
+insert into qp_csq_t3 values(3,'three');
+insert into qp_csq_t3 values(5,'five');
+insert into qp_csq_t3 values(7,'seven');
 
 create table A(i integer, j integer);
 insert into A values(1,1);
@@ -253,7 +253,7 @@ insert into C values(2,7);
 -- -- -- --
 -- Basic queries with ALL clause
 -- -- -- --
-select a, x from csq_t1, csq_t2 where csq_t1.a = all (select x) order by a;
+select a, x from qp_csq_t1, qp_csq_t2 where qp_csq_t1.a = all (select x) order by a;
 select A.i from A where A.i = all (select B.i from B where A.i = B.i) order by A.i;
 
 select * from A,B where exists (select * from C where C.j = A.j and B.i = all (select min(C.j) from C)) order by 1,2,3,4;
@@ -270,31 +270,31 @@ RESET ALL;
 -- ----------------------------------------------------------------------
 
 -- start_ignore
-drop table if exists csq_t1;
-drop table if exists csq_t2;
-drop table if exists csq_t3;
+drop table if exists qp_csq_t1;
+drop table if exists qp_csq_t2;
+drop table if exists qp_csq_t3;
 drop table if exists A;
 drop table if exists B;
 drop table if exists C;
 
 
-create table csq_t1(a int, b int);
-insert into csq_t1 values (1,2);
-insert into csq_t1 values (3,4);
-insert into csq_t1 values (5,6);
-insert into csq_t1 values (7,8);
+create table qp_csq_t1(a int, b int);
+insert into qp_csq_t1 values (1,2);
+insert into qp_csq_t1 values (3,4);
+insert into qp_csq_t1 values (5,6);
+insert into qp_csq_t1 values (7,8);
 
-create table csq_t2(x int,y int);
-insert into csq_t2 values(1,1);
-insert into csq_t2 values(3,9);
-insert into csq_t2 values(5,25);
-insert into csq_t2 values(7,49);
+create table qp_csq_t2(x int,y int);
+insert into qp_csq_t2 values(1,1);
+insert into qp_csq_t2 values(3,9);
+insert into qp_csq_t2 values(5,25);
+insert into qp_csq_t2 values(7,49);
 
-create table csq_t3(c int, d text);
-insert into csq_t3 values(1,'one');
-insert into csq_t3 values(3,'three');
-insert into csq_t3 values(5,'five');
-insert into csq_t3 values(7,'seven');
+create table qp_csq_t3(c int, d text);
+insert into qp_csq_t3 values(1,'one');
+insert into qp_csq_t3 values(3,'three');
+insert into qp_csq_t3 values(5,'five');
+insert into qp_csq_t3 values(7,'seven');
 
 create table A(i integer, j integer);
 insert into A values(1,1);
@@ -326,7 +326,7 @@ insert into C values(2,7);
 -- -- -- -- 
 -- Basic queries with EXISTS clause
 -- -- -- --
-select b from csq_t1 where exists(select * from csq_t2 where y=a);
+select b from qp_csq_t1 where exists(select * from qp_csq_t2 where y=a);
 select A.i from A where exists(select B.i from B where A.i = B.i) order by A.i;
 
 -- Not supported select A.i, B.i, C.j from A, B, C where exists (select C.j from C where C.j = A.j and exists (select C.i from C where C.i = A.i and C.i !=10)) order by A.i, B.i, C.j limit 20;
@@ -354,7 +354,7 @@ select * from A,B,C where C.i = A.i and exists (select C.j where C.j = B.j and A
 -- -- -- --
 -- Basic queries with NOT EXISTS clause
 -- -- -- --
-select b from csq_t1 where not exists(select * from csq_t2 where y=a);
+select b from qp_csq_t1 where not exists(select * from qp_csq_t2 where y=a);
 select A.i from A where not exists(select B.i from B where A.i = B.i) order by A.i;
 
 -- Not supported select A.i, B.i, C.j from A, B, C where exists (select C.j from C where C.j = A.j and not exists (select C.i from C where C.i = A.i and C.i !=10)) order by A.i, B.i, C.j limit 10;
@@ -374,19 +374,19 @@ RESET ALL;
 -- ----------------------------------------------------------------------
 
 -- start_ignore
-drop table if exists csq_t1;
-drop table if exists csq_t2;
-create table csq_t1(a int, b int) distributed by (b);
-insert into csq_t1 values (1,2);
-insert into csq_t1 values (3,4);
-insert into csq_t1 values (5,6);
-insert into csq_t1 values (7,8);
+drop table if exists qp_csq_t1;
+drop table if exists qp_csq_t2;
+create table qp_csq_t1(a int, b int) distributed by (b);
+insert into qp_csq_t1 values (1,2);
+insert into qp_csq_t1 values (3,4);
+insert into qp_csq_t1 values (5,6);
+insert into qp_csq_t1 values (7,8);
 
-create table csq_t2(x int,y int);
-insert into csq_t2 values(1,1);
-insert into csq_t2 values(3,9);
-insert into csq_t2 values(5,25);
-insert into csq_t2 values(7,49);
+create table qp_csq_t2(x int,y int);
+insert into qp_csq_t2 values(1,1);
+insert into qp_csq_t2 values(3,9);
+insert into qp_csq_t2 values(5,25);
+insert into qp_csq_t2 values(7,49);
 
 drop table if exists A;
 drop table if exists B;
@@ -422,17 +422,17 @@ insert into C values(2,7);
 -- -- -- --
 -- Basic CSQ with UPDATE statements
 -- -- -- --
-select * from csq_t1 order by a;
-update csq_t1 set a = (select y from csq_t2 where x=a) where b < 8;
-select * from csq_t1 order by a;
-update csq_t1 set a = 9999 where csq_t1.a = (select max(x) from csq_t2);
-select * from csq_t1 order by a;
-update csq_t1 set a = (select max(y) from csq_t2 where x=a) where csq_t1.a = (select min(x) from csq_t2);
-select * from csq_t1 order by a;
-update csq_t1 set a = 8888 where (select (y*2)>b from csq_t2 where a=x);
-select * from csq_t1 order by a;
-update csq_t1 set a = 3333 where csq_t1.a in (select x from csq_t2);
-select * from csq_t1 order by a;
+select * from qp_csq_t1 order by a;
+update qp_csq_t1 set a = (select y from qp_csq_t2 where x=a) where b < 8;
+select * from qp_csq_t1 order by a;
+update qp_csq_t1 set a = 9999 where qp_csq_t1.a = (select max(x) from qp_csq_t2);
+select * from qp_csq_t1 order by a;
+update qp_csq_t1 set a = (select max(y) from qp_csq_t2 where x=a) where qp_csq_t1.a = (select min(x) from qp_csq_t2);
+select * from qp_csq_t1 order by a;
+update qp_csq_t1 set a = 8888 where (select (y*2)>b from qp_csq_t2 where a=x);
+select * from qp_csq_t1 order by a;
+update qp_csq_t1 set a = 3333 where qp_csq_t1.a in (select x from qp_csq_t2);
+select * from qp_csq_t1 order by a;
 
 update A set i = 11111 from C where C.i = A.i and exists (select C.j from C,B where C.j = B.j and A.j < 10);
 select * from A;
@@ -442,15 +442,15 @@ select * from A;
 -- -- -- --
 -- Basic CSQ with DELETE statements
 -- -- -- --
-select * from csq_t1 order by a;
-delete from csq_t1 where a <= (select min(y) from csq_t2 where x=a);
-select * from csq_t1 order by a;
-delete from csq_t1 where csq_t1.a = (select x from csq_t2);
-select * from csq_t1 order by a;
-delete from csq_t1 where exists (select (y*2)>b from csq_t2 where a=x);
-select * from csq_t1 order by a;
-delete from csq_t1  where csq_t1.a = (select x from csq_t2 where a=x);
-select * from csq_t1 order by a;
+select * from qp_csq_t1 order by a;
+delete from qp_csq_t1 where a <= (select min(y) from qp_csq_t2 where x=a);
+select * from qp_csq_t1 order by a;
+delete from qp_csq_t1 where qp_csq_t1.a = (select x from qp_csq_t2);
+select * from qp_csq_t1 order by a;
+delete from qp_csq_t1 where exists (select (y*2)>b from qp_csq_t2 where a=x);
+select * from qp_csq_t1 order by a;
+delete from qp_csq_t1  where qp_csq_t1.a = (select x from qp_csq_t2 where a=x);
+select * from qp_csq_t1 order by a;
 
 delete from  A TableA where exists (select C.j from C, B where C.j = B.j and TableA.j < 10);
 select * from A order by A.i;
@@ -464,31 +464,31 @@ RESET ALL;
 -- ----------------------------------------------------------------------
 
 -- start_ignore
-drop table if exists csq_t1;
-drop table if exists csq_t2;
-drop table if exists csq_t3;
+drop table if exists qp_csq_t1;
+drop table if exists qp_csq_t2;
+drop table if exists qp_csq_t3;
 drop table if exists A;
 drop table if exists B;
 drop table if exists C;
 
 
-create table csq_t1(a int, b int);
-insert into csq_t1 values (1,2);
-insert into csq_t1 values (3,4);
-insert into csq_t1 values (5,6);
-insert into csq_t1 values (7,8);
+create table qp_csq_t1(a int, b int);
+insert into qp_csq_t1 values (1,2);
+insert into qp_csq_t1 values (3,4);
+insert into qp_csq_t1 values (5,6);
+insert into qp_csq_t1 values (7,8);
 
-create table csq_t2(x int,y int);
-insert into csq_t2 values(1,1);
-insert into csq_t2 values(3,9);
-insert into csq_t2 values(5,25);
-insert into csq_t2 values(7,49);
+create table qp_csq_t2(x int,y int);
+insert into qp_csq_t2 values(1,1);
+insert into qp_csq_t2 values(3,9);
+insert into qp_csq_t2 values(5,25);
+insert into qp_csq_t2 values(7,49);
 
-create table csq_t3(c int, d text);
-insert into csq_t3 values(1,'one');
-insert into csq_t3 values(3,'three');
-insert into csq_t3 values(5,'five');
-insert into csq_t3 values(7,'seven');
+create table qp_csq_t3(c int, d text);
+insert into qp_csq_t3 values(1,'one');
+insert into qp_csq_t3 values(3,'three');
+insert into qp_csq_t3 values(5,'five');
+insert into qp_csq_t3 values(7,'seven');
 
 create table A(i integer, j integer);
 insert into A values(1,1);
@@ -520,10 +520,10 @@ insert into C values(2,7);
 -- -- -- --
 -- Basic queries with WHERE clause
 -- -- -- --
-select a, (select y from csq_t2 where x=a) from csq_t1 where b < 8 order by a;
-select a, x from csq_t2, csq_t1 where csq_t1.a = (select x) order by a;
-select a from csq_t1 where (select (y*2)>b from csq_t2 where a=x) order by a;
-SELECT a, (SELECT d FROM csq_t3 WHERE a=c) FROM csq_t1 GROUP BY a order by a;
+select a, (select y from qp_csq_t2 where x=a) from qp_csq_t1 where b < 8 order by a;
+select a, x from qp_csq_t2, qp_csq_t1 where qp_csq_t1.a = (select x) order by a;
+select a from qp_csq_t1 where (select (y*2)>b from qp_csq_t2 where a=x) order by a;
+SELECT a, (SELECT d FROM qp_csq_t3 WHERE a=c) FROM qp_csq_t1 GROUP BY a order by a;
 RESET ALL;
 
 -- ----------------------------------------------------------------------
@@ -531,9 +531,9 @@ RESET ALL;
 -- ----------------------------------------------------------------------
 
 -- start_ignore
-drop table if exists csq_t1;
-drop table if exists csq_t2;
-drop table if exists csq_t3;
+drop table if exists qp_csq_t1;
+drop table if exists qp_csq_t2;
+drop table if exists qp_csq_t3;
 drop table if exists A;
 drop table if exists B;
 drop table if exists C;
@@ -544,23 +544,23 @@ insert into csq_emp values('a','adept',11200.00);
 insert into csq_emp values('b','adept',22222.00);
 insert into csq_emp values('c','bdept',99222.00);
 
-create table csq_t1(a int, b int);
-insert into csq_t1 values (1,2);
-insert into csq_t1 values (3,4);
-insert into csq_t1 values (5,6);
-insert into csq_t1 values (7,8);
+create table qp_csq_t1(a int, b int);
+insert into qp_csq_t1 values (1,2);
+insert into qp_csq_t1 values (3,4);
+insert into qp_csq_t1 values (5,6);
+insert into qp_csq_t1 values (7,8);
 
-create table csq_t2(x int,y int);
-insert into csq_t2 values(1,1);
-insert into csq_t2 values(3,9);
-insert into csq_t2 values(5,25);
-insert into csq_t2 values(7,49);
+create table qp_csq_t2(x int,y int);
+insert into qp_csq_t2 values(1,1);
+insert into qp_csq_t2 values(3,9);
+insert into qp_csq_t2 values(5,25);
+insert into qp_csq_t2 values(7,49);
 
-create table csq_t3(c int, d text);
-insert into csq_t3 values(1,'one');
-insert into csq_t3 values(3,'three');
-insert into csq_t3 values(5,'five');
-insert into csq_t3 values(7,'seven');
+create table qp_csq_t3(c int, d text);
+insert into qp_csq_t3 values(1,'one');
+insert into qp_csq_t3 values(3,'three');
+insert into qp_csq_t3 values(5,'five');
+insert into qp_csq_t3 values(7,'seven');
 
 create table A(i integer, j integer);
 insert into A values(1,1);
@@ -835,31 +835,31 @@ RESET ALL;
 -- ----------------------------------------------------------------------
 
 -- start_ignore
-drop table if exists csq_t1;
-drop table if exists csq_t2;
-drop table if exists csq_t3;
+drop table if exists qp_csq_t1;
+drop table if exists qp_csq_t2;
+drop table if exists qp_csq_t3;
 drop table if exists A;
 drop table if exists B;
 drop table if exists C;
 
 
-create table csq_t1(a int, b int);
-insert into csq_t1 values (1,2);
-insert into csq_t1 values (3,4);
-insert into csq_t1 values (5,6);
-insert into csq_t1 values (7,8);
+create table qp_csq_t1(a int, b int);
+insert into qp_csq_t1 values (1,2);
+insert into qp_csq_t1 values (3,4);
+insert into qp_csq_t1 values (5,6);
+insert into qp_csq_t1 values (7,8);
 
-create table csq_t2(x int,y int);
-insert into csq_t2 values(1,1);
-insert into csq_t2 values(3,9);
-insert into csq_t2 values(5,25);
-insert into csq_t2 values(7,49);
+create table qp_csq_t2(x int,y int);
+insert into qp_csq_t2 values(1,1);
+insert into qp_csq_t2 values(3,9);
+insert into qp_csq_t2 values(5,25);
+insert into qp_csq_t2 values(7,49);
 
-create table csq_t3(c int, d text);
-insert into csq_t3 values(1,'one');
-insert into csq_t3 values(3,'three');
-insert into csq_t3 values(5,'five');
-insert into csq_t3 values(7,'seven');
+create table qp_csq_t3(c int, d text);
+insert into qp_csq_t3 values(1,'one');
+insert into qp_csq_t3 values(3,'three');
+insert into qp_csq_t3 values(5,'five');
+insert into qp_csq_t3 values(7,'seven');
 
 create table A(i integer, j integer);
 insert into A values(1,1);
@@ -892,7 +892,7 @@ insert into C values(2,7);
 -- Basic queries in SELECT list
 -- -- -- --
 select A.i, (select C.j from C group by C.j having max(C.j) = any (select min(B.j) from B)) as C_j from A,B,C where A.i = 99 order by A.i, C_j limit 10;
-select (select avg(x) from csq_t1, csq_t2 where csq_t1.a = any (select x)) as avg_x from csq_t1 order by 1;
+select (select avg(x) from qp_csq_t1, qp_csq_t2 where qp_csq_t1.a = any (select x)) as avg_x from qp_csq_t1 order by 1;
 RESET ALL;
 
 -- ----------------------------------------------------------------------
@@ -1025,65 +1025,65 @@ COPY tversion (rnum, c1, cver, cnnull, ccnull) FROM stdin;
 0	1	1.0   	\N	\N
 \.
 
-CREATE TABLE tjoin1 (
+CREATE TABLE qp_tjoin1 (
     rnum integer NOT NULL,
     c1 integer,
     c2 integer
 ) DISTRIBUTED BY (rnum);
 
-CREATE TABLE tjoin2 (
+CREATE TABLE qp_tjoin2 (
     rnum integer NOT NULL,
     c1 integer,
     c2 character(2)
 ) DISTRIBUTED BY (rnum);
 
-CREATE TABLE tjoin3 (
+CREATE TABLE qp_tjoin3 (
     rnum integer NOT NULL,
     c1 integer,
     c2 character(2)
 ) DISTRIBUTED BY (rnum);
 
-CREATE TABLE tjoin4 (
+CREATE TABLE qp_tjoin4 (
     rnum integer NOT NULL,
     c1 integer,
     c2 character(2)
 ) DISTRIBUTED BY (rnum);
 
 
-COPY tjoin1 (rnum, c1, c2) FROM stdin;
+COPY qp_tjoin1 (rnum, c1, c2) FROM stdin;
 1	20	25
 0	10	15
 2	\N	50
 \.
 
-COPY tjoin2 (rnum, c1, c2) FROM stdin;
+COPY qp_tjoin2 (rnum, c1, c2) FROM stdin;
 1	15	DD
 0	10	BB
 3	10	FF
 2	\N	EE
 \.
 
-COPY tjoin3 (rnum, c1, c2) FROM stdin;
+COPY qp_tjoin3 (rnum, c1, c2) FROM stdin;
 1	15	YY
 0	10	XX
 \.
 
 
-COPY tjoin4 (rnum, c1, c2) FROM stdin;
+COPY qp_tjoin4 (rnum, c1, c2) FROM stdin;
 0	20	ZZ
 \.
 
 -- end_ignore
 
-select tjoin1.rnum, tjoin1.c1, case when 10 in ( select 1 from tversion ) then 'yes' else 'no' end from tjoin1 order by rnum;
+select qp_tjoin1.rnum, qp_tjoin1.c1, case when 10 in ( select 1 from tversion ) then 'yes' else 'no' end from qp_tjoin1 order by rnum;
 
-select rnum, c1, c2 from tjoin2 where 50 not in ( select c2 from tjoin1 where c2=25) order by rnum;
+select rnum, c1, c2 from qp_tjoin2 where 50 not in ( select c2 from qp_tjoin1 where c2=25) order by rnum;
 
-select rnum, c1, c2 from tjoin2 where 20 > all ( select c1 from tjoin1 where c1 = 100) order by rnum;
+select rnum, c1, c2 from qp_tjoin2 where 20 > all ( select c1 from qp_tjoin1 where c1 = 100) order by rnum;
 
-select rnum, c1, c2 from tjoin2 where 75 > all ( select c2 from tjoin1) order by rnum;
+select rnum, c1, c2 from qp_tjoin2 where 75 > all ( select c2 from qp_tjoin1) order by rnum;
 
-select rnum, c1, c2 from tjoin2 where 20 > all ( select c1 from tjoin1) order by rnum;
+select rnum, c1, c2 from qp_tjoin2 where 20 > all ( select c1 from qp_tjoin1) order by rnum;
 
 -- ----------------------------------------------------------------------
 -- Test: teardown.sql
