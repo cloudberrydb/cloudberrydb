@@ -35,35 +35,15 @@ GPORCA uses the following libraries:
 
 ### Installing GPOS
 
-[GPOS is available here](https://github.com/greenplum-db/gpos) The GPOS README
+[GPOS is available here](https://github.com/greenplum-db/gpos). The GPOS README
 gives instructions for building and installing GPOS. Note that the build type
 (e.g. DEBUG vs. RELEASE) for GPOS and GPORCA should match (mixing and matching
 can lead to errors).
 
 ### Installing GP-Xerces
 
-To install GP-Xerces, obtain a copy of the
-[Xerces-C source code](https://xerces.apache.org/xerces-c/download.cgi)
-(versions 3.1.1 and 3.1.2 are tested and known to work) and apply the the GPDB
-patchset (located at `patches/xerces-c-gpdb.patch` in the GP-Orca source tree)
-before building. Presuming that you downloaded Xerces-C 3.1.2, a recipe for
-building GP-Xerces would be something like the following:
-
-```
-wget http://archive.apache.org/dist/xerces/c/3/sources/xerces-c-3.1.2.tar.gz
-tar -xzf xerces-c-3.1.2.tar.gz
-cd xerces-c-3.1.2
-patch -p1 < ../gporca/patches/xerces-c-gpdb.patch
-mkdir build
-cd build
-
-# Use --prefix=/opt/gp_xerces if you don't want to override the default xerces
-# However, this qp-xerces needs to be at default location /usr/local in order
-# to build GPORCA
-../configure 
-make
-sudo make install
-```
+[GP-XERCES is available here](https://github.com/greenplum-db/gp-xerces). The GP-XERCES README
+gives instructions for building and installing.
 
 ## Build GPORCA
 
