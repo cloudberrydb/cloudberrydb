@@ -697,6 +697,7 @@ LDFLAGS_EX
 ELF_SYS
 EGREP
 GREP
+with_apr_config
 APR_CONFIG
 with_libcurl
 with_rt
@@ -6309,6 +6310,7 @@ else
   APR_CONFIG=$with_apr_config
 fi
 
+
 #
 # Elf
 #
@@ -8824,7 +8826,6 @@ if test -n "$APR_CONFIG"; then
   apr_cppflags=`"$APR_CONFIG" --cppflags`
   CPPFLAGS="$CPPFLAGS $apr_includes $apr_cppflags"
   CFLAGS="$CFLAGS $apr_cflags"
-  LIBS="$LIBS $apr_link_ld_libs"
 fi
 
 if test "$enable_gpfdist" = yes ; then
@@ -8832,6 +8833,8 @@ if test "$enable_gpfdist" = yes ; then
   # in LIBS, hence AC_SEARCH_LIBS rather than AC_CHECK_LIB. (and the autoconf
   # manual recommends always using AC_SEARCH_LIBS rather than AC_CHECK_LIB
   # anyway)
+  _LIBS="$LIBS"
+  LIBS="$LIBS $apr_link_ld_libs"
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking for library containing apr_getopt_long" >&5
 $as_echo_n "checking for library containing apr_getopt_long... " >&6; }
 if ${ac_cv_search_apr_getopt_long+:} false; then :
@@ -9008,6 +9011,7 @@ else
 $as_echo "$as_me: WARNING: libyaml is not found. disabling transformations for gpfdist." >&2;}
 fi
 
+  LIBS="$_LIBS"
 
 fi
 

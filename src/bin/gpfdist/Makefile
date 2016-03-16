@@ -9,9 +9,21 @@ endif
 override CPPFLAGS := -I. $(CPPFLAGS)
 
 OBJS = gpfdist.o gpfdist_helper.o fstream.o gfile.o
+# configure should have been run by this point.
+# we are adding the gpfdist libraries here instead
+# of the top level, so that the backend does not
+# need to link with unnecessary libraries.
+GPFDIST_LIBS =-levent
 
 ifeq ($(have_yaml),yes)
+  GPFDIST_LIBS += -lyaml
   OBJS += transform.o
+endif
+
+ifeq ($(with_apr_config),yes)
+  APR_LIB=$(shell apr-1-config --link-ld --libs)
+else
+  APR_LIB=$(shell $(with_apr_config) --link-ld --libs)
 endif
 
 ifneq ($(PORTNAME),win32)
@@ -21,7 +33,7 @@ else
   OBJS += $(top_builddir)/src/port/glob.o
 endif
 
-LDLIBS += $(LIBS)
+LDLIBS += $(LIBS) $(GPFDIST_LIBS) $(APR_LIB)
 
 all: gpfdist$(EXE_EXT)
 

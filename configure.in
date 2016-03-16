@@ -921,6 +921,7 @@ if test "$with_apr_config" = yes; then
 else
   APR_CONFIG=$with_apr_config
 fi
+AC_SUBST(with_apr_config)
 
 #
 # Elf
@@ -1129,7 +1130,6 @@ if test -n "$APR_CONFIG"; then
   apr_cppflags=`"$APR_CONFIG" --cppflags`
   CPPFLAGS="$CPPFLAGS $apr_includes $apr_cppflags"
   CFLAGS="$CFLAGS $apr_cflags"
-  LIBS="$LIBS $apr_link_ld_libs"
 fi
 
 if test "$enable_gpfdist" = yes ; then
@@ -1137,10 +1137,13 @@ if test "$enable_gpfdist" = yes ; then
   # in LIBS, hence AC_SEARCH_LIBS rather than AC_CHECK_LIB. (and the autoconf
   # manual recommends always using AC_SEARCH_LIBS rather than AC_CHECK_LIB
   # anyway)
+  _LIBS="$LIBS"
+  LIBS="$LIBS $apr_link_ld_libs"
   AC_SEARCH_LIBS(apr_getopt_long, [apr-1], [], [AC_MSG_ERROR([libapr-1 is required for gpfdist])])
   AC_SEARCH_LIBS(event_add, [event], [], [AC_MSG_ERROR([libevent is required for gpfdist])])
 
   AC_SEARCH_LIBS(yaml_parser_initialize, [yaml], [have_yaml=yes], [AC_MSG_WARN([libyaml is not found. disabling transformations for gpfdist.])])
+  LIBS="$_LIBS"
   AC_SUBST(have_yaml)
 fi
 
