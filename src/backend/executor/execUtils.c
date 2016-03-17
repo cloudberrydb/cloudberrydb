@@ -339,9 +339,9 @@ freeDynamicTableScanInfo(DynamicTableScanInfo *scanInfo)
 }
 
 /* ----------------
- *		FreeExecutorState
+ *      FreeExecutorState
  *
- *		Release an EState along with all remaining working storage.
+ *      Release an EState along with all remaining working storage.
  *
  * Note: this is not responsible for releasing non-memory resources,
  * such as open relations or buffer pins.  But it will shut down any
@@ -351,6 +351,10 @@ freeDynamicTableScanInfo(DynamicTableScanInfo *scanInfo)
  *
  * This can be called in any memory context ... so long as it's not one
  * of the ones to be freed.
+ *
+ * In Greenplum, this also clears the PartitionState, even though that's a
+ * non-memory resource, as that can be allocated for expression evaluation even
+ * when there is no Plan.
  * ----------------
  */
 void
@@ -394,6 +398,14 @@ FreeExecutorState(EState *estate)
 		Assert(proc_exit_inprogress || dynamicTableScanInfo != estate->dynamicTableScanInfo);
 		freeDynamicTableScanInfo(estate->dynamicTableScanInfo);
 		estate->dynamicTableScanInfo = NULL;
+	}
+
+	/*
+	 * Greenplum: release partition-related resources (esp. TupleDesc ref counts).
+	 */
+	if (estate->es_partition_state)
+	{
+		ClearPartitionState(estate);
 	}
 
 	/*
