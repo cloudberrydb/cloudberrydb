@@ -1035,7 +1035,7 @@ mkgphdfs:
 	@cd extensions && $(MAKE) mkgphdfs OPT="$(INSTCFLAGS)" INSTLOC=$(INSTLOC)
 
 mkgps3ext:
-    @cd extensions && $(MAKE) mks3ext OPT="$(INSTCFLAGS)" INSTLOC=$(INSTLOC)
+	@cd extensions && $(MAKE) mks3ext OPT="$(INSTCFLAGS)" INSTLOC=$(INSTLOC)
 
 mkpljava:
 	@cd extensions && $(MAKE) mkpljava OPT="$(INSTCFLAGS)" INSTLOC=$(INSTLOC)
