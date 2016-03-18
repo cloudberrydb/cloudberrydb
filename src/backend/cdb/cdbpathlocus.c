@@ -632,7 +632,7 @@ cdbpathlocus_join(CdbPathLocus a, CdbPathLocus b)
     ListCell       *acell;
     ListCell       *bcell;
     List           *equivpathkeylist;
-    CdbPathLocus    ojlocus;
+    CdbPathLocus    ojlocus = {0};
 
 	Assert(cdbpathlocus_is_valid(a));
 	Assert(cdbpathlocus_is_valid(b));
