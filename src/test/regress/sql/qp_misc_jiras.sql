@@ -2509,52 +2509,6 @@ drop index qp_misc_jiras.bmap2_index;
 drop table qp_misc_jiras.badbitmapindex;
 drop table qp_misc_jiras.bmap2;
 
-
-CREATE TABLE qp_misc_jiras.execution_table (
- id integer,
- status integer,
- execution_id integer
-)
-DISTRIBUTED BY (id);
-
-INSERT INTO qp_misc_jiras.execution_table SELECT * from generate_series(1, 1000000) i;
-
-CREATE TABLE qp_misc_jiras.execution_t2 AS
-SELECT id, execution_id, status FROM qp_misc_jiras.execution_table
-DISTRIBUTED BY (id);
-
-CREATE INDEX status_idx ON qp_misc_jiras.execution_table USING bitmap (status);
-
-SELECT status, count(*) FROM qp_misc_jiras.execution_table WHERE status = 1 group by status; -- correct: one line
-
-UPDATE qp_misc_jiras.execution_table SET EXECUTION_ID = execution_t2.EXECUTION_ID FROM qp_misc_jiras.execution_t2 WHERE execution_table.id = execution_t2.id;
-
-SELECT status, count(*) FROM qp_misc_jiras.execution_table WHERE status = 1 group by status; -- correct: one line
-Alter table qp_misc_jiras.execution_table set distributed by (status, execution_id);
-Alter table qp_misc_jiras.execution_table set distributed by (status);
-
-VACUUM FULL qp_misc_jiras.execution_table; -- test VACUUM FULL, gives wrong results before the fix
-Alter table qp_misc_jiras.execution_table set distributed by (status);
-Alter table qp_misc_jiras.execution_t2 set distributed by (execution_id);
-Alter table qp_misc_jiras.execution_table set distributed by (status, execution_id);
-Alter table qp_misc_jiras.execution_table set distributed by (execution_id);
-Alter table qp_misc_jiras.execution_table set distributed by (id,execution_id);
-
-
-SELECT status, count(*) FROM qp_misc_jiras.execution_table WHERE status = 1 group by status;
-set statement_timeout=60;
-
-Create index id_idx on qp_misc_jiras.execution_table using bitmap (id, execution_id);
-set statement_timeout=0;
-Create table qp_misc_jiras.abc_tbl9083 (a int, b int);
-set statement_timeout=20;
-DROP TABLE qp_misc_jiras.abc_tbl9083;
-set statement_timeout=0;
-
-DROP TABLE qp_misc_jiras.execution_table;
-DROP TABLE qp_misc_jiras.execution_t2;
-
-
 CREATE TABLE qp_misc_jiras.ir_voice_sms_and_data (
     imsi_number character varying(35),
     ir_call_country_name character varying(35),
