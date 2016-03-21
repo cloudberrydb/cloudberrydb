@@ -1477,6 +1477,7 @@ prepare prestmt as select * from statement_timeout_test s1, statement_timeout_te
 set statement_timeout = 1000; -- 1 sec
 execute prestmt; -- should get cancelled automatically
 drop table statement_timeout_test;
+reset statement_timeout;
 set gp_autostats_mode=none;
 drop table qp_misc_jiras.tbl_6934;
 create table qp_misc_jiras.tbl_6934(x inet);
