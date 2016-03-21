@@ -1298,8 +1298,7 @@ co_explicitly_disabled(List *opts)
 			continue;
 		}
 
-		bool need_free_arg = false;
-		arg = defGetString(el, &need_free_arg);
+		arg = defGetString(el);
 		bool result = false;
 		if (pg_strcasecmp("appendonly", el->defname) == 0 &&
 			pg_strcasecmp("false", arg) == 0)
@@ -1311,13 +1310,6 @@ co_explicitly_disabled(List *opts)
 		{
 			result = true;
 		}
-		if (need_free_arg)
-		{
-			pfree(arg);
-			arg = NULL;
-		}
-
-		AssertImply(need_free_arg, NULL == arg);
 
 		if (result)
 		{
@@ -1352,8 +1344,7 @@ is_aocs(List *opts)
 			continue;
 		}
 
-		bool need_free_arg = false;
-		arg = defGetString(el, &need_free_arg);
+		arg = defGetString(el);
 
 		if (pg_strcasecmp("appendonly", el->defname) == 0)
 		{
@@ -1366,13 +1357,6 @@ is_aocs(List *opts)
 			found_cs = true;
 			csvalue = pg_strcasecmp("column", arg) == 0;
 		}
-		if (need_free_arg)
-		{
-			pfree(arg);
-			arg = NULL;
-		}
-
-		AssertImply(need_free_arg, NULL == arg);
 	}
 	if (!found_ao)
 		aovalue = isDefaultAO();
@@ -1411,30 +1395,11 @@ encodings_overlap(List *a, List *b, bool test_conflicts)
 					}
 					else
 					{
-						bool need_free_ela = false;
-						bool need_free_elb = false;
-						char *ela_str = defGetString(ela, &need_free_ela);
-						char *elb_str = defGetString(elb, &need_free_elb);
-						int result = pg_strcasecmp(ela_str,elb_str);
-						// free ela_str, elb_str if it is initialized via TypeNameToString
-						if (need_free_ela)
-						{
-							pfree(ela_str);
-							ela_str = NULL;
-						}
-						if (need_free_elb)
-						{
-							pfree(elb_str);
-							elb_str = NULL;
-						}
+						char *ela_str = defGetString(ela);
+						char *elb_str = defGetString(elb);
 
-						AssertImply(need_free_ela, NULL == ela_str);
-						AssertImply(need_free_elb, NULL == elb_str);
-
-						if (result != 0)
-						{
+						if (pg_strcasecmp(ela_str, elb_str) != 0)
 							return true;
-						}
 					}
 				}
 				else
@@ -3160,7 +3125,6 @@ fillin_encoding(List *list)
 	bool foundCompressType = false;
 	bool foundCompressTypeNone = false;
 	char *cmplevel = NULL;
-	bool need_free_cmplevel = false;
 	bool foundBlockSize = false;
 	char *arg;
 	List *retList = list;
@@ -3175,21 +3139,13 @@ fillin_encoding(List *list)
 		if (pg_strcasecmp("compresstype", el->defname) == 0)
 		{
 			foundCompressType = true;
-			bool need_free_arg = false;
-			arg = defGetString(el, &need_free_arg);
+			arg = defGetString(el);
 			if (pg_strcasecmp("none", arg) == 0)
 				foundCompressTypeNone = true;
-			if (need_free_arg)
-			{
-				pfree(arg);
-				arg = NULL;
-			}
-
-			AssertImply(need_free_arg, NULL == arg);
 		}
 		else if (pg_strcasecmp("compresslevel", el->defname) == 0)
 		{
-			cmplevel = defGetString(el, &need_free_cmplevel);
+			cmplevel = defGetString(el);
 		}
 		else if (pg_strcasecmp("blocksize", el->defname) == 0)
 			foundBlockSize = true;

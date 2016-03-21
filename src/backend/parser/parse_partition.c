@@ -717,17 +717,9 @@ transformPartitionBy(ParseState *pstate, CreateStmtContext *cxt,
 								(errcode(ERRCODE_SYNTAX_ERROR),
 								 errmsg("invalid tablename specification")));
 
-					bool		need_free_value = false;
-					char	   *relname_str = defGetString(pDef, &need_free_value);
+					char	   *relname_str = defGetString(pDef);
 
 					relname = pstrdup(relname_str);
-					if (need_free_value)
-					{
-						pfree(relname_str);
-						relname_str = NULL;
-					}
-
-					AssertImply(need_free_value, NULL == relname_str);
 
 					prtstr[0] = '\0';
 					pWithList = list_delete_cell(pWithList, def_lc, prev_lc);
@@ -3610,17 +3602,9 @@ partition_range_every(ParseState *pstate, PartitionBy *pBy, List *coltypes,
 								 errmsg("invalid tablename specification")));
 
 					bTablename = true;
-					bool		need_free_value = false;
-					char	   *widthname_str = defGetString(pDef, &need_free_value);
+					char	   *widthname_str = defGetString(pDef);
 
 					pBSpec->pWithTnameStr = pstrdup(widthname_str);
-					if (need_free_value)
-					{
-						pfree(widthname_str);
-						widthname_str = NULL;
-					}
-
-					AssertImply(need_free_value, NULL == widthname_str);
 
 					pWithList = list_delete_cell(pWithList, def_lc, prev_lc);
 					((AlterPartitionCmd *) pStoreAttr)->arg1 =

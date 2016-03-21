@@ -12206,7 +12206,6 @@ new_rel_opts(Relation rel, List *lwith)
 {
 	Datum newOptions = PointerGetDatum(NULL);
 	bool make_heap = false;
-	bool need_free_value = false;
 	if (lwith && list_length(lwith))
 	{
 		ListCell *lc;
@@ -12219,7 +12218,7 @@ new_rel_opts(Relation rel, List *lwith)
 		{
 			DefElem *e = lfirst(lc);
 			if (pg_strcasecmp(e->defname, "appendonly") == 0 &&
-				pg_strcasecmp(defGetString(e, &need_free_value), "false") == 0)
+				pg_strcasecmp(defGetString(e), "false") == 0)
 			{
 				make_heap = true;
 				break;
@@ -17922,8 +17921,7 @@ static Datum transformFormatOpts(char formattype, List *formatOpts, int numcols,
 		{
 			DefElem    *defel = (DefElem *) lfirst(option);
 			char	   *key = defel->defname;
-			bool need_free_value = false;
-			char	   *val = defGetString(defel, &need_free_value);
+			char	   *val = defGetString(defel);
 			
 			if (strcmp(key, "formatter") == 0)
 			{
@@ -17934,22 +17932,14 @@ static Datum transformFormatOpts(char formattype, List *formatOpts, int numcols,
 					
 				formatter = strVal(defel->arg);
 			}
-			
+
 			/* MPP-14467 - replace any space chars with meta char */
 			resetStringInfo(&key_modified);
 			appendStringInfoString(&key_modified, key);
 			replaceStringInfoString(&key_modified, " ", "<gpx20>");
-			
+
 			sprintf((char *) format_str + len, "%s '%s' ", key_modified.data, val);
 			len += strlen(key_modified.data) + strlen(val) + 4;
-			
-			if (need_free_value)
-			{
-				pfree(val);
-				val = NULL;
-			}
-
-			AssertImply(need_free_value, NULL == val);
 
 			if (len > maxlen)
 				ereport(ERROR,
