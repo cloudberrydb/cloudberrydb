@@ -1548,10 +1548,10 @@ validateColumnStorageEncodingClauses(List *stenc, CreateStmt *stmt)
 		{
 			bool found = false;
 			char colname[NAMEDATALEN];
-			size_t collen = strlen(strVal(c->column));
+			size_t collen = strlen(c->column);
 			size_t n = NAMEDATALEN - 1 < collen ? NAMEDATALEN - 1 : collen;
 			MemSet(colname, 0, NAMEDATALEN);
-			memcpy(colname, strVal(c->column), n);
+			memcpy(colname, c->column, n);
 			colname[n] = '\0';
 
 			ce = hash_search(ht, colname, HASH_FIND, &found);
@@ -1578,7 +1578,7 @@ validateColumnStorageEncodingClauses(List *stenc, CreateStmt *stmt)
  * quite small in practice.
  */
 static ColumnReferenceStorageDirective *
-find_crsd(Value *column, List *stenc)
+find_crsd(char *column, List *stenc)
 {
 	ListCell *lc;
 
@@ -1586,7 +1586,7 @@ find_crsd(Value *column, List *stenc)
 	{
 		ColumnReferenceStorageDirective *c = lfirst(lc);
 
-		if (c->deflt == false && equal(column, c->column))
+		if (c->deflt == false && strcmp(column, c->column) == 0)
 			return c;
 	}
 	return NULL;
@@ -1742,7 +1742,7 @@ transformAttributeEncoding(List *stenc, CreateStmt *stmt, CreateStmtContext *cxt
 		Insist(IsA(d, ColumnDef));
 
 		c = makeNode(ColumnReferenceStorageDirective);
-		c->column = makeString(pstrdup(d->colname));
+		c->column = pstrdup(d->colname);
 
 		/*
 		 * Find a storage encoding for this column, in this order:
@@ -3127,7 +3127,7 @@ fillin_encoding(List *list)
 	char *cmplevel = NULL;
 	bool foundBlockSize = false;
 	char *arg;
-	List *retList = list;
+	List *retList = list_copy(list);
 	ListCell *lc;
 	DefElem *el;
 	const StdRdOptions *ao_opts = currentAOStorageOptions();
