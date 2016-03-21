@@ -1004,20 +1004,6 @@ static NUMCacheEntry *NUM_cache_getnew(char *str);
 static void NUM_cache_remove(NUMCacheEntry *ent);
 
 
-/*
- * External (defined in oracle_compat.c 
- */
-#if defined(HAVE_WCSTOMBS) && defined(HAVE_TOWLOWER)
-#define USE_WIDE_UPPER_LOWER
-extern char *wstring_upper(char *str);
-extern char *wstring_lower(char *str);
-static char *localized_str_toupper(char *buff);
-static char *localized_str_tolower(char *buff);
-#else
-#define localized_str_toupper str_toupper
-#define localized_str_tolower str_tolower
-#endif
-
 /* ----------
  * Fast sequential search, use index for data selection which
  * go to seq. cycle (it is very fast for unwanted strings)
