@@ -3598,16 +3598,16 @@ def runTestCatname(cat):
              'duplicate': lambda: checkTableDuplicateEntry(cat),
              'acl': lambda: checkTableACL(cat)}
 
-    for t in sorted(tests):
-        myprint("Performing test '%s' for %s" % (t,cat.getTableName()))
+    for test in sorted(tests):
+        myprint("Performing test '%s' for %s" % (test,cat.getTableName()))
         stime = time.time()
-        tests[t]()
+        tests[test]()
         etime = time.time()
         elapsed = etime - stime
         GV.elapsedTime += elapsed
         elapsed = str(datetime.timedelta(seconds=elapsed))[:-4]
         GV.totalTestRun += 1
-        myprint('Total runtime for this test: %s' % (elapsed))
+        myprint("Total runtime for test '%s': %s" % (test, elapsed))
 
 
 #-------------------------------------------------------------------------------
@@ -3629,7 +3629,7 @@ def runOneTest(name):
         elapsed = etime - stime
         GV.elapsedTime += elapsed
         elapsed = str(datetime.timedelta(seconds=elapsed))[:-4]
-        myprint('Total runtime for this test: %s' % (elapsed))
+        myprint("Total runtime for test '%s': %s" % (name, elapsed)) 
         if GV.testStatus == False:
             GV.failedTest.append(name)
 
