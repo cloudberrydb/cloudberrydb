@@ -25,12 +25,12 @@ select * from bfv_tab1, (values(147, 'RFAAAA'), (931, 'VJAAAA')) as v (i, j)
     WHERE bfv_tab1.unique1 = v.i and bfv_tab1.stringu1 = v.j;
                                                 QUERY PLAN                                                 
 -----------------------------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice1; segments: 3)  (cost=0.01..0.09 rows=4 width=280)
-   ->  Hash Join  (cost=0.01..0.09 rows=2 width=280)
-         Hash Cond: "*VALUES*".column1 = bfv_tab1.unique1 AND "*VALUES*".column2 = bfv_tab1.stringu1::text
-         ->  Values Scan on "*VALUES*"  (cost=0.00..0.03 rows=1 width=36)
-         ->  Hash  (cost=0.00..0.00 rows=1 width=244)
-               ->  Seq Scan on bfv_tab1  (cost=0.00..0.00 rows=1 width=244)
+ Gather Motion 3:1  (slice1; segments: 3)  (cost=0.06..278.70 rows=14 width=280)
+   ->  Hash Join  (cost=0.06..278.70 rows=5 width=280)
+         Hash Cond: bfv_tab1.unique1 = "*VALUES*".column1 AND bfv_tab1.stringu1::text = "*VALUES*".column2
+         ->  Seq Scan on bfv_tab1  (cost=0.00..219.00 rows=3967 width=244)
+         ->  Hash  (cost=0.03..0.03 rows=1 width=36)
+               ->  Values Scan on "*VALUES*"  (cost=0.00..0.03 rows=1 width=36)
  Optimizer status: legacy query optimizer
 (7 rows)
 
@@ -174,6 +174,7 @@ AND ft.id = dt1.id;
 
 -- start_ignore
 create language plpythonu;
+ERROR:  language "plpythonu" already exists
 -- end_ignore
 create or replace function count_index_scans(explain_query text) returns int as
 $$
@@ -446,10 +447,10 @@ select disable_xform('CXformGet2TableScan');
 
 -- end_ignore
 explain select * from tbl_ab where b::oid=1;
-                                 QUERY PLAN                                 
-----------------------------------------------------------------------------
- Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..0.00 rows=1 width=8)
-   ->  Seq Scan on tbl_ab  (cost=0.00..0.00 rows=1 width=8)
+                                   QUERY PLAN                                   
+--------------------------------------------------------------------------------
+ Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..1176.25 rows=87 width=8)
+   ->  Seq Scan on tbl_ab  (cost=0.00..1176.25 rows=29 width=8)
          Filter: b::oid = 1::oid
  Optimizer status: legacy query optimizer
 (4 rows)

@@ -384,7 +384,6 @@ cdb_estimate_rel_size(RelOptInfo   *relOptInfo,
 	double		density;
     int32       tuple_width;
     BlockNumber curpages = 0;
-	int64	size = 0;
 
     *default_stats_used = false;
 
@@ -420,53 +419,14 @@ cdb_estimate_rel_size(RelOptInfo   *relOptInfo,
 	}
 	else
 	{
-
 		/*
-		 * Let's ask the QEs for the size of the relation.
-		 * In the future, it would be better to send the command to only one QE.
-		 *
-		 * NOTE: External tables should always have >0 values in pg_class
-		 * (created this way). Therefore we should never get here. However, as
-		 * a security measure (if values in pg_class were somehow changed) we
-		 * plug in our 1K pages 1M tuples estimate here as well, and skip
-		 * cdbRelSize as we can't calculate ext table size.
+		 * Put default estimates in case no statistics are available. This saves cost of asking QEs
 		 */
-		if(!RelationIsExternal(rel))
-		{
-		    size = cdbRelSize(rel);
-		}
-		else
-		{
-			/*
-			 * Estimate a default of 1000 pages - see comment above.
-			 * NOTE: if you change this look at AddNewRelationTuple in heap.c).
-			 */
-			size = 1000 * BLCKSZ;
-		}
-
-
-		if (size < 0)
-		{
-			curpages = 100;
-			*default_stats_used = true;
-		}
-		else
-		{
-			curpages = size / BLCKSZ;  /* average blocks per primary segment DB */
-		}
-
-		if (curpages == 0 && size > 0)
-			curpages = 1;
+		curpages = RelationIsExternal(rel) ? DEFAULT_EXTERNAL_TABLE_PAGES : DEFAULT_INTERNAL_TABLE_PAGES;
 	}
 
 	/* report estimated # pages */
 	*pages = curpages;
-	/* quick exit if rel is clearly empty */
-	if (curpages == 0)
-	{
-		*tuples = 0;
-		return;
-	}
 
 	/*
 	 * If it's an index, discount the metapage.  This is a kluge
