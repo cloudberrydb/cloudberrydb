@@ -314,7 +314,10 @@ def create_partition_dict(partition_list):
         fields = partition.split(',')
         if len(fields) != 3:
             raise Exception('Invalid state file format %s' % partition)
-        # retain the space in schema name: filed[0] and table name: filed[1]
+        # new version 4.3.8.0 retains and supports spaces in schema name: field[0] and table name: field[1]
+        # below to determine if previous state file was from an old version which uses comma and space separated "schema, table, modcount"
+        if fields[2].startswith(' '):
+            fields = [x.strip() for x in fields]
         key = '%s.%s' % (fields[0], fields[1])
         table_dict[key] = fields[2].strip()
 
