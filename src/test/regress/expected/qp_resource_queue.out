@@ -595,4 +595,8 @@ NOTICE:  drop cascades to table tbl16369_x
 NOTICE:  drop cascades to table tbl16369_test1
 NOTICE:  drop cascades to table tbl16369_zipcode_gis
 NOTICE:  drop cascades to table tbl16369_test
+drop role if exists tbl16369_user1;
+drop role if exists tbl16369_user3;
+drop resource queue tbl16369_resq1;
+drop resource queue tbl16369_resq3;
 -- end_ignore

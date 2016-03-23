@@ -323,4 +323,8 @@ select tbl16369_func1(),tbl16369_func2(),tbl16369_func4(),tbl16369_func5(),tbl16
 
 -- start_ignore
 drop schema qp_resource_queue cascade;
+drop role if exists tbl16369_user1;
+drop role if exists tbl16369_user3;
+drop resource queue tbl16369_resq1;
+drop resource queue tbl16369_resq3;
 -- end_ignore
