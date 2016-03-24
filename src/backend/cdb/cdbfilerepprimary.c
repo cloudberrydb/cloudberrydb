@@ -513,29 +513,6 @@ FileRepPrimary_ConstructAndInsertMessage(
 						   FILEREP_UNDEFINED,
 						   fileRepMessageHeader->messageCount);
 	
-	if (Debug_filerep_print)
-		ereport(LOG,
-			(errmsg("P_ConstructAndInsertMessage "
-					"msg header count '%d' msg header crc '%u' position insert '%p' "
-					"msg length '%u' data length '%u'"
-					"open file flags '%x' "
-					"truncate position '" INT64_FORMAT "' ",
-					fileRepMessageHeader->messageCount,
-					fileRepMessageHeaderCrcLocal,
-					msgPositionInsert,
-					msgLength,
-					dataLength,
-					(fileRepOperation == FileRepOperationOpen || fileRepOperation == FileRepOperationCreateAndOpen) ?
-					fileRepOperationDescription.open.fileFlags : 0,
-					(fileRepOperation == FileRepOperationTruncate) ?
-					fileRepOperationDescription.truncate.position : 0),
-			 FileRep_errdetail(fileRepIdentifier,
-							   fileRepRelationType,
-							   fileRepOperation,
-							   spareField),
-			 FileRep_errdetail_Shmem(),
-			 FileRep_errcontext()));		
-
 	if (dataLength > 0)
 	{
 		fileRepMessageBody = (char *) (msgPositionInsert + 
@@ -993,22 +970,6 @@ FileRepPrimary_MirrorWrite(FileRepIdentifier_u		fileRepIdentifier,
 								   FILEREP_UNDEFINED,
 								   fileRepMessageHeader->messageCount);			
 						
-			if (Debug_filerep_print)
-				ereport(LOG,
-					(errmsg("P_ConstructAndInsertMessage "
-							"msg header count '%d' msg header crc '%u' position insert '%p' "
-							"msg body crc '%u' ",
-							fileRepMessageHeader->messageCount,
-							fileRepMessageHeaderCrcLocal,
-							msgPositionInsert,
-							fileRepMessageHeader->fileRepMessageBodyCrc),
-					 FileRep_errdetail(fileRepIdentifier,
-									   fileRepRelationType,
-									   FileRepOperationWrite,
-									   spareField),
-					 FileRep_errdetail_Shmem(),
-					 FileRep_errcontext()));					
-			
 			/* Copy Data */
 			fileRepMessageBody = (char *) (msgPositionInsert + 
 								sizeof(FileRepMessageHeader_s) + 
@@ -1752,18 +1713,6 @@ FileRepPrimary_RunSender(void)
 							   FileRepAckStateNotInitialized,
 							   spare,
 							   fileRepMessageHeader->messageCount);					
-		
-		if (Debug_filerep_print)
-			ereport(LOG,
-				(errmsg("P_RunSender msg header count '%d' local count '%d' ",
-						fileRepMessageHeader->messageCount,
-						spare),
-				 FileRep_errdetail(fileRepMessageHeader->fileRepIdentifier,
-								   fileRepMessageHeader->fileRepRelationType,
-								   fileRepMessageHeader->fileRepOperation,
-								   fileRepMessageHeader->messageCount),
-				 FileRep_errdetail_Shmem(),
-				 FileRep_errcontext()));				
 		
 		spare = fileRepMessageHeader->messageCount;
 	
