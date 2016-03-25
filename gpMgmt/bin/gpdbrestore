@@ -201,7 +201,7 @@ class GpdbRestore(Operation):
             cmd = Command('DDBoost sync', cmdline)
             cmd.run(validateAfter=True)
 
-        self.gparray = GpArray.initFromCatalog(dbconn.DbURL(port=self.master_port), utility=True)
+        self.gparray = GpArray.initFromCatalog(dbconn.DbURL(port=self.master_port, dbname='template1'), utility=True)
 
         if self.netbackup_service_host:
             logger.info("Restoring metadata files with NetBackup")
@@ -458,7 +458,7 @@ class GpdbRestore(Operation):
         elif self.search_for_dbname is not None:
             (restore_timestamp, restore_db, compress) = self._search_for_latest()
 
-        if not self.drop_db:
+        if not self.drop_db and not self.redirected_restore_db:
             dburl = dbconn.DbURL(port=self.master_port)
             conn = dbconn.connect(dburl)
             count = dbconn.execSQLForSingleton(conn, "select count(*) from pg_database where datname='%s';" % pg.escape_string(restore_db))

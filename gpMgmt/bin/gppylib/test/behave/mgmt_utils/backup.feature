@@ -3438,6 +3438,18 @@ Feature: Validate command line arguments
         And verify that there are "4380" tuples in "bkdb" for table "schema_ao.ao_index_table"
         And verify that there are "0" tuples in "bkdb" for table "schema_ao.ao_part_table"
 
+
+    @redirect
+    Scenario: Restore with --redirect option should not rely on existance of dumped database
+        Given the test is initialized
+        When the user runs "gpcrondump -a -x bkdb"
+        And the timestamp from gpcrondump is stored
+        And the database "bkdb" does not exist
+        And database "bkdb1" is dropped and recreated
+        When the user runs gpdbrestore with the stored timestamp and options "--redirect=bkdb1"
+        Then gpdbrestore should return a return code of 0
+        And the database "bkdb1" does not exist
+
     # THIS SHOULD BE THE LAST TEST
     @backupfire
     Scenario: cleanup for backup feature

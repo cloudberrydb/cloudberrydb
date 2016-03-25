@@ -879,7 +879,7 @@ class RestoreDatabase(Operation):
         """
         conn = None
         try:
-            dburl = dbconn.DbURL(port=master_port)
+            dburl = dbconn.DbURL(port=master_port, dbname='template1')
             conn = dbconn.connect(dburl)
             count = execSQLForSingleton(conn, "select count(*) from pg_database where datname='%s';" % pg.escape_string(restore_db))
 
@@ -1177,7 +1177,7 @@ class ValidateSegments(Operation):
 
     def execute(self):
         """ TODO: Improve with grouping by host and ParallelOperation dispatch. """
-        gparray = GpArray.initFromCatalog(dbconn.DbURL(port=self.master_port), utility=True)
+        gparray = GpArray.initFromCatalog(dbconn.DbURL(port=self.master_port, dbname='template1'), utility=True)
         primaries = [seg for seg in gparray.getDbList() if seg.isSegmentPrimary(current_role=True)]
         for seg in primaries:
             if seg.isSegmentDown():
