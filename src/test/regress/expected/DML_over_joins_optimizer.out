@@ -1488,7 +1488,9 @@ select sales_par.* from sales_par where id in (select s.b from s, r where s.a = 
   9 | 2004 |    10 |  10 | europe
 (2 rows)
 
+-- start_ignore
 update sales_par set region = 'new_region' where id in (select s.b from s, r where s.a = r.b) and day in (select a from r);
+-- end_ignore
 select sales_par.* from sales_par where id in (select s.b from s, r where s.a = r.b) and day in (select a from r);
  id | year | month | day |   region   
 ----+------+-------+-----+------------

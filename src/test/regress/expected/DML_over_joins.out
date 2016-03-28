@@ -1484,8 +1484,10 @@ select sales_par.* from sales_par where id in (select s.b from s, r where s.a = 
  18 | 2006 |     7 |  19 | usa
 (2 rows)
 
+-- start_ignore
 update sales_par set region = 'new_region' where id in (select s.b from s, r where s.a = r.b) and day in (select a from r);
 ERROR:  moving tuple from partition "sales_par_1_prt_usa" to partition "sales_par_1_prt_other_regions" not supported  (seg1 rhel62-vm1:25433 pid=19028)
+-- end_ignore
 select sales_par.* from sales_par where id in (select s.b from s, r where s.a = r.b) and day in (select a from r);
  id | year | month | day | region 
 ----+------+-------+-----+--------
