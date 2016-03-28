@@ -110,6 +110,7 @@ valid_tokens = {
     "error_table": {'parse_children': True, 'parent': "input"},
     "log_errors": {'parse_children': False, 'parent': "input"},
     "header": {'parse_children': True, 'parent': "input"},
+    "fully_qualified_domain_name": {'parse_children': False, 'parent': 'input'},
     "output": {'parse_children': True, 'parent': "gpload"},
     "table": {'parse_children': True, 'parent': "output"}, 
     "mode": {'parse_children': True, 'parent': "output"},
@@ -1631,7 +1632,7 @@ class gpload:
             if not local_hostname:
                 # if fully_qualified_domain_name is defined and set to true we want to
                 # resolve the fqdn rather than just grabbing the hostname.
-                fqdn = self.getconfig(name+':fully_qualified_domain_name', bool, False)
+                fqdn = self.getconfig('gpload:input:fully_qualified_domain_name', bool, False)
                 if fqdn:
                     local_hostname = socket.getfqdn()
                 else:
