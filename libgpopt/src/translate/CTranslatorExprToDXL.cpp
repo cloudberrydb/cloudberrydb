@@ -35,6 +35,7 @@
 #include "gpopt/base/CConstraintInterval.h"
 #include "gpopt/cost/ICostModel.h"
 #include "gpopt/exception.h"
+#include "gpopt/mdcache/CMDAccessorUtils.h"
 #include "gpopt/operators/CPhysicalAgg.h"
 #include "gpopt/operators/CPhysicalMotionRandom.h"
 #include "gpopt/operators/CPredicateUtils.h"
@@ -4836,7 +4837,19 @@ CTranslatorExprToDXL::PdxlnScCmpPartKey
 	IMDId *pmdidTypeOther = CScalar::PopConvert(pexprOther->Pop())->PmdidType();
 	IMDId *pmdidTypeCastExpr = NULL;
 	IMDId *pmdidCastFunc = NULL;
-	CTranslatorExprToDXLUtils::ExtractCastMdids(pexprPartKey->Pop(), &pmdidTypeCastExpr, &pmdidCastFunc);
+
+	CExpression *pexprNewPartKey = pexprPartKey;
+
+	// If the pexprPartKey is not comparable with pexprOther, then we need to add a cast on top of pexprPartKey
+	// Then, use the casted PartKey operator to generate the pmdidTypeCastExpr and pmdidCastFunc
+	if (!CMDAccessorUtils::FCmpExists(m_pmda, pmdidTypePartKey, pmdidTypeOther, ecmpt)
+		&& CMDAccessorUtils::FCastExists(m_pmda, pmdidTypePartKey, pmdidTypeOther))
+	{
+		CExpression *pexprCastedPartKey = CUtils::PexprCast(m_pmp, m_pmda, pexprPartKey, pmdidTypeOther);
+		pexprNewPartKey = pexprCastedPartKey;
+	}
+
+	CTranslatorExprToDXLUtils::ExtractCastMdids(pexprNewPartKey->Pop(), &pmdidTypeCastExpr, &pmdidCastFunc);
 
 	return CTranslatorExprToDXLUtils::PdxlnRangeFilterScCmp
 							(

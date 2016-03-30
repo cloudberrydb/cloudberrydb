@@ -254,13 +254,29 @@ CUtils::PmdidScCmp
 	GPOS_ASSERT(NULL != pmdidLeft);
 	GPOS_ASSERT(NULL != pmdidRight);
 	GPOS_ASSERT(IMDType::EcmptOther > ecmpt);
-	
+
 	if (pmdidLeft->FEquals(pmdidRight))
 	{
 		const IMDType *pmdtypeLeft = pmda->Pmdtype(pmdidLeft);
 		return pmdtypeLeft->PmdidCmp(ecmpt);
 	}
 	
+	if (CMDAccessorUtils::FCmpExists(pmda, pmdidLeft, pmdidRight, ecmpt))
+	{
+		return pmda->Pmdsccmp(pmdidLeft, pmdidRight, ecmpt)->PmdidOp();
+	}
+	else if (CMDAccessorUtils::FCmpExists(pmda, pmdidRight, pmdidRight, ecmpt) && CMDAccessorUtils::FCastExists(pmda, pmdidLeft, pmdidRight))
+	{
+		return pmda->Pmdsccmp(pmdidRight, pmdidRight, ecmpt)->PmdidOp();
+	}
+	else if (CMDAccessorUtils::FCmpExists(pmda, pmdidLeft, pmdidLeft, ecmpt) && CMDAccessorUtils::FCastExists(pmda, pmdidRight, pmdidLeft))
+	{
+		return pmda->Pmdsccmp(pmdidLeft, pmdidLeft, ecmpt)->PmdidOp();
+	}
+
+	GPOS_ASSERT(false);
+
+	// Calling CMDAccessor to raise error on non-comparable data types
 	return pmda->Pmdsccmp(pmdidLeft, pmdidRight, ecmpt)->PmdidOp();
 }
 
@@ -589,37 +605,37 @@ CUtils::PexprScalarCmp
 	CExpression *pexprNewRight = pexprRight;
 
 	IMDId *pmdidCmpOp = NULL;
+
 	if (CMDAccessorUtils::FCmpExists(pmda, pmdidLeft, pmdidRight, ecmpt))
 	{
 		pmdidCmpOp = PmdidScCmp(pmda, pmdidLeft, pmdidRight, ecmpt);
 	}
-	else
+	else if (CMDAccessorUtils::FCmpExists(pmda, pmdidLeft, pmdidLeft, ecmpt) && CMDAccessorUtils::FCastExists(pmda, pmdidRight, pmdidLeft))
 	{
-		// generate a scalar comparison by casting one of the two sides
-		if (CMDAccessorUtils::FCastExists(pmda, pmdidLeft, pmdidRight))
-		{
-			pexprNewLeft = PexprCast(pmp, pmda, pexprLeft, pmdidRight);
-			pmdidCmpOp = PmdidScCmp(pmda, pmdidRight, pmdidRight, ecmpt);
-		}
-		else
-		{
-			GPOS_ASSERT(CMDAccessorUtils::FCastExists(pmda, pmdidRight, pmdidLeft));
-			pexprNewRight = PexprCast(pmp, pmda, pexprRight, pmdidLeft);
-			pmdidCmpOp = PmdidScCmp(pmda, pmdidLeft, pmdidLeft, ecmpt);
-		}
+		pexprNewRight = PexprCast(pmp, pmda, pexprRight, pmdidLeft);
+		pmdidCmpOp = PmdidScCmp(pmda, pmdidLeft, pmdidLeft, ecmpt);
+	}
+	else if (CMDAccessorUtils::FCmpExists(pmda, pmdidRight, pmdidRight, ecmpt) && CMDAccessorUtils::FCastExists(pmda, pmdidLeft, pmdidRight))
+	{
+		pexprNewLeft = PexprCast(pmp, pmda, pexprLeft, pmdidRight);
+		pmdidCmpOp = PmdidScCmp(pmda, pmdidRight, pmdidRight, ecmpt);
 	}
 	
+	GPOS_ASSERT(NULL != pmdidCmpOp);
+
 	pmdidCmpOp->AddRef();
 	const CMDName mdname = pmda->Pmdscop(pmdidCmpOp)->Mdname();
 	CWStringConst strCmpOpName(mdname.Pstr()->Wsz());
 	
-	return GPOS_NEW(pmp) CExpression
+	CExpression *pexprResult = GPOS_NEW(pmp) CExpression
 					(
 					pmp,
 					GPOS_NEW(pmp) CScalarCmp(pmp, pmdidCmpOp, GPOS_NEW(pmp) CWStringConst(pmp, strCmpOpName.Wsz()), ecmpt),
 					pexprNewLeft,
 					pexprNewRight
 					);
+
+	return pexprResult;
 }
 
 //---------------------------------------------------------------------------
@@ -711,7 +727,6 @@ CUtils::PexprScalarEqCmp
 
 	return PexprScalarCmp(pmp, pexprLeft, pcrRight, IMDType::EcmptEq);
 }
-
 
 //---------------------------------------------------------------------------
 //	@function:

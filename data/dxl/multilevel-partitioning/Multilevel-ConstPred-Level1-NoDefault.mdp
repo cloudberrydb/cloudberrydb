@@ -14,7 +14,7 @@ select * from PT where k < 4;
       <dxl:StatisticsConfig DampingFactorFilter="0.750000" DampingFactorJoin="0.010000" DampingFactorGroupBy="0.750000"/>
       <dxl:CTEConfig CTEInliningCutoff="0"/>
       <dxl:CostModelConfig CostModelType="1" SegmentsForCosting="2"/>
-      <dxl:TraceFlags Value="102120,103001,103014,103015,105000"/>
+      <dxl:TraceFlags Value="102120,103001,103014,103015"/>
     </dxl:OptimizerConfig>
     <dxl:Metadata SystemIds="0.GPDB">
       <dxl:GPDBScalarOp Mdid="0.525.1.0" Name="&gt;=" ComparisonType="GEq" ReturnsNullOnNullInput="true">

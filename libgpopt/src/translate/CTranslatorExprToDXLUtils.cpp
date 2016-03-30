@@ -996,7 +996,7 @@ CTranslatorExprToDXLUtils::PdxlnCmp
 	)
 {
 	IMDId *pmdidScCmp = NULL;
-	
+
 	if (IMDId::FValid(pmdidTypeCastExpr))
 	{
 		pmdidScCmp = CUtils::PmdidScCmp(pmda, pmdidTypeCastExpr, pmdidTypeExpr, ecmpt);

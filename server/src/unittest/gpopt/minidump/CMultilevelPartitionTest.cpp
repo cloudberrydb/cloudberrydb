@@ -34,7 +34,13 @@ ULONG CMultilevelPartitionTest::m_ulMLPTTestCounter = 0;  // start from first te
 
 // minidump files
 const CHAR *rgszMultilevel[] =
-	{
+{
+		"../data/dxl/multilevel-partitioning/Multilevel-Casting-cast_boundary_value_to_date.mdp",
+		"../data/dxl/multilevel-partitioning/Multilevel-Casting-cast_partition_column_to_text.mdp",
+		"../data/dxl/multilevel-partitioning/Multilevel-Casting-no_casting.mdp",
+		"../data/dxl/multilevel-partitioning/Multilevel-Casting-predicate-on-all-levels.mdp",
+		"../data/dxl/multilevel-partitioning/Multilevel-Casting-predicate-on-non-leaf-levels.mdp",
+		"../data/dxl/multilevel-partitioning/Multilevel-Casting-predicate-on-non-root-levels.mdp",
 		"../data/dxl/multilevel-partitioning/Multilevel-FullScan.mdp",
 		"../data/dxl/multilevel-partitioning/Multilevel-ConstPred-Level1-NoDefault.mdp",
 		"../data/dxl/multilevel-partitioning/Multilevel-ConstPred-Level1-Default.mdp",
@@ -46,7 +52,7 @@ const CHAR *rgszMultilevel[] =
 		"../data/dxl/multilevel-partitioning/Multilevel-JoinPred-Level2.mdp",
 		"../data/dxl/multilevel-partitioning/Multilevel-JoinPred-AllLevels.mdp",
 		"../data/dxl/multilevel-partitioning/Multilevel-Nary-Join.mdp",
-	};
+};
 
 //---------------------------------------------------------------------------
 //	@function:
@@ -61,9 +67,9 @@ CMultilevelPartitionTest::EresUnittest()
 {
 
 	CUnittest rgut[] =
-		{
-		GPOS_UNITTEST_FUNC(EresUnittest_RunTests),
-		};
+	{
+			GPOS_UNITTEST_FUNC(EresUnittest_RunTests),
+	};
 
 	GPOS_RESULT eres = CUnittest::EresExecute(rgut, GPOS_ARRAY_SIZE(rgut));
 

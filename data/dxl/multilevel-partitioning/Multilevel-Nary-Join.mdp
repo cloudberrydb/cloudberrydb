@@ -24,7 +24,7 @@ select * from pt, foo, bar where pt.k=foo.a and pt.j = bar.a;
       <dxl:StatisticsConfig DampingFactorFilter="0.750000" DampingFactorJoin="0.010000" DampingFactorGroupBy="0.750000"/>
       <dxl:CTEConfig CTEInliningCutoff="0"/>
       <dxl:CostModelConfig CostModelType="1" SegmentsForCosting="2"/>
-      <dxl:TraceFlags Value="102120,103001,103014,103015,103022,103023,105000"/>
+      <dxl:TraceFlags Value="102120,103001,103014,103015,103022,103023"/>
     </dxl:OptimizerConfig>
     <dxl:Metadata SystemIds="0.GPDB">
       <dxl:ColumnStatistics Mdid="1.208136.15779.15780.4" Name="gp_segment_id" Width="4.000000" NullFreq="0.000000" NdvRemain="2.000000" FreqRemain="1.000000" ColStatsMissing="false"/>
