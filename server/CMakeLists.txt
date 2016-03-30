@@ -63,6 +63,7 @@ add_executable(gpos_test
                src/unittest/gpos/io/COstreamStringTest.cpp
                src/unittest/gpos/memory/CMemoryPoolBasicTest.cpp
                src/unittest/gpos/memory/IMemoryPoolTest.cpp
+               src/unittest/gpos/memory/CMemoryPoolAllocTest.cpp
                src/unittest/gpos/net/CSocketTest.cpp
                src/unittest/gpos/string/CStringTest.cpp
                src/unittest/gpos/string/CWStringTest.cpp
@@ -85,6 +86,12 @@ target_link_libraries(gpos_test
 function(add_gpos_test TEST_NAME)
   add_test(NAME gpos_test_${TEST_NAME}
            COMMAND gpos_test -U ${TEST_NAME})
+endfunction()
+# Adaptation of the add_gpos_test for setting up a custom allocator instead of
+# using CMemoryPoolMalloc in gpos_init().
+function(add_gpos_custom_alloc_test TEST_NAME)
+  add_test(NAME gpos_custom_alloc_test_${TEST_NAME}
+           COMMAND gpos_test -U ${TEST_NAME} "-c")
 endfunction()
 
 option(ENABLE_EXTENDED_TESTS
@@ -132,6 +139,12 @@ add_gpos_test(CFileTest)
 add_gpos_test(CMemoryPoolTest)
 add_gpos_test(CMemoryPoolBasicTest)
 add_gpos_test(CCacheTest)
+
+# custom allocator
+add_gpos_custom_alloc_test(CMemoryPoolTest)
+add_gpos_custom_alloc_test(CMemoryPoolBasicTest)
+add_gpos_custom_alloc_test(CCacheTest)
+add_gpos_custom_alloc_test(CMemoryPoolCustomAllocTest)
 
 # net
 # enable after fixing race condition

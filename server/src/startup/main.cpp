@@ -1,6 +1,6 @@
 //---------------------------------------------------------------------------
 //	Greenplum Database
-//	Copyright (C) 2008 Greenplum, Inc.
+//	Copyright (c) 2004-2015 Pivotal Software, Inc.
 //
 //	@filename:
 //		main.cpp
@@ -59,6 +59,7 @@
 #include "unittest/gpos/io/CFileTest.h"
 
 #include "unittest/gpos/memory/IMemoryPoolTest.h"
+#include "unittest/gpos/memory/CMemoryPoolAllocTest.h"
 #include "unittest/gpos/memory/CMemoryPoolBasicTest.h"
 #include "unittest/gpos/memory/CCacheTest.h"
 
@@ -123,6 +124,7 @@ static gpos::CUnittest rgut[] =
 	GPOS_UNITTEST_STD(CMemoryPoolTest),
 	GPOS_UNITTEST_STD(CMemoryPoolBasicTest),
 	GPOS_UNITTEST_STD(CCacheTest),
+	GPOS_UNITTEST_STD(CMemoryPoolAllocTest),
 
 	// net
 	GPOS_UNITTEST_STD(CSocketTest),
@@ -201,15 +203,17 @@ INT main
 	const CHAR **rgszArgs
 	)
 {	
+	// setup args for unittest params
+	CMainArgs ma(iArgs, rgszArgs, "cuU:xT:");
+
+	GPOS_INIT(&ma);
+
 	GPOS_ASSERT(iArgs >= 0);
 
 	if (gpos_set_threads(4, 20))
 	{
 		return GPOS_FAILED;
 	}
-	
-	// setup args for unittest params
-	CMainArgs ma(iArgs, rgszArgs, "uU:xT:");
 	
 	// initialize unittest framework
 	CUnittest::Init(rgut, GPOS_ARRAY_SIZE(rgut), NULL, NULL);

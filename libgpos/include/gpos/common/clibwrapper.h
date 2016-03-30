@@ -1,6 +1,6 @@
 //---------------------------------------------------------------------------
 //	Greenplum Database
-//	Copyright (C) 2011 EMC Corp.
+//	Copyright (c) 2004-2015 Pivotal Software, Inc.
 //
 //	@filename:
 //	       	clibwrapper.h
@@ -126,7 +126,7 @@ namespace gpos
 		TIME *PtmLocalTimeR(const TIME_T *ptTime, TIME *ptmResult);
 
 		// allocate dynamic memory
-		void *PvMalloc(ULONG ulSize);
+		void *PvMalloc(SIZE_T ulSize);
 
 		// free dynamic memory
 		void Free(void *pvSrc);

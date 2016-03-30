@@ -1,6 +1,6 @@
 //---------------------------------------------------------------------------
 //	Greenplum Database
-//	Copyright (C) 2010 Greenplum, Inc.
+//	Copyright (c) 2004-2015 Pivotal Software, Inc.
 //
 //	@filename:
 //		_api.cpp
@@ -44,9 +44,17 @@ bool fEnableExtendedAsserts = false;  // by default, extended asserts are disabl
 //		Initialize GPOS memory pool, worker pool and message repository
 //
 //---------------------------------------------------------------------------
-void __attribute__((constructor)) gpos_init()
-{
-	if (GPOS_OK != gpos::CMemoryPoolManager::EresInit())
+void gpos_init(struct gpos_init_params* params) {
+
+	void* (*pfnAlloc) (SIZE_T) = params->alloc;
+	void (*pfnFree) (void*) = params->free;
+
+	if (NULL == pfnAlloc || NULL == pfnFree) {
+	  pfnAlloc = clib::PvMalloc;
+	  pfnFree = clib::Free;
+	}
+
+	if (GPOS_OK != gpos::CMemoryPoolManager::EresInit(pfnAlloc, pfnFree))
 	{
 		return;
 	}
@@ -77,9 +85,7 @@ void __attribute__((constructor)) gpos_init()
 		CMemoryPoolManager::Pmpm()->Shutdown();
 	}
 #endif // GPOS_FPSIMULATOR
-
 }
-
 
 //---------------------------------------------------------------------------
 //	@function:
@@ -239,7 +245,7 @@ int gpos_exec
 //		Shutdown GPOS memory pool, worker pool and message repository
 //
 //---------------------------------------------------------------------------
-void __attribute__ ((destructor)) gpos_terminate()
+void gpos_terminate()
 {
 #ifdef GPOS_DEBUG
 #ifdef GPOS_FPSIMULATOR

@@ -1,6 +1,6 @@
 //---------------------------------------------------------------------------
 //	Greenplum Database
-//	Copyright (C) 2008 Greenplum, Inc.
+//	Copyright (c) 2004-2015 Pivotal Software, Inc.
 //
 //	@filename:
 //		CUnittest.cpp
@@ -16,6 +16,7 @@
 //---------------------------------------------------------------------------
 
 #include <stddef.h>
+
 
 #include "gpos/base.h"
 #include "gpos/common/CAutoTimer.h"

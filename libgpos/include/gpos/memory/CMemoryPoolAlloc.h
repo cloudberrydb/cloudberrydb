@@ -1,51 +1,58 @@
 //---------------------------------------------------------------------------
 //	Greenplum Database
-//	Copyright (C) 2009-2010 Greenplum Inc.
-//	Copyright (C) 2011 EMC Corp.
+//	Copyright (c) 2004-2015 Pivotal Software, Inc.
 //
 //	@filename:
-//		CMemoryPoolMalloc.h
+//		CMemoryPoolAlloc.h
 //
 //	@doc:
-//		Implementation of memory pool that allocates memory by calling malloc.
+//		Implementation of memory pool using a configurable allocator
 //
 //	@owner:
 //
 //	@test:
 //
 //---------------------------------------------------------------------------
-#ifndef GPOS_CMemoryPoolMalloc_H
-#define GPOS_CMemoryPoolMalloc_H
+#ifndef GPOS_CMemoryPoolAlloc_H
+#define GPOS_CMemoryPoolAlloc_H
 
 #include "gpos/base.h"
-#include "gpos/memory/CMemoryPool.h"
+#include "gpos/memory/CAutoMemoryPool.h"
 
 namespace gpos
 {
 	// memory pool wrapping clib allocation API
-	class CMemoryPoolMalloc : public CMemoryPool
+	class CMemoryPoolAlloc : public CMemoryPool
 	{
 		private:
 
 			// private copy ctor
-			CMemoryPoolMalloc(CMemoryPoolMalloc &);
+			CMemoryPoolAlloc(CMemoryPoolAlloc &);
+			void* (*m_pfnAlloc) (SIZE_T);
+			void (*m_pfnFree) (void*);
 
 		public:
 
 			// ctor
-			CMemoryPoolMalloc()
+			CMemoryPoolAlloc
+				(
+					void* (*pfnAlloc)(SIZE_T),
+					void (*pfnFree)(void*)
+				)
 				:
 				CMemoryPool
 					(
 					NULL /*pmpUnderlying*/,
 					false /*fOwnsUnderlying*/,
 					true /*fThreadSafe*/
-					)
+					),
+				m_pfnAlloc(pfnAlloc),
+				m_pfnFree(pfnFree)
 			{}
 
 			// dtor
 			virtual
-			~CMemoryPoolMalloc()
+			~CMemoryPoolAlloc()
 			{}
 
 			// allocate memory
@@ -57,7 +64,8 @@ namespace gpos
 				const ULONG   // ulLine
 				)
 			{
-				void *pv = gpos::clib::PvMalloc(ulNumBytes);
+
+				void* pv = m_pfnAlloc(ulNumBytes);
 
 #ifdef GPOS_DEBUG
 				if (NULL != ITask::PtskSelf() && GPOS_FTRACE(EtraceSimulateOOM) && NULL == pv)
@@ -65,7 +73,7 @@ namespace gpos
 					GPOS_RAISE(CException::ExmaSystem, CException::ExmiUnexpectedOOMDuringFaultSimulation);
 				}
 #endif // GPOS_DEBUG
-				return pv; 
+				return pv;
 			}
 
 			// free memory
@@ -75,13 +83,13 @@ namespace gpos
 				void *pv
 				)
 			{
-				gpos::clib::Free(pv);
+				m_pfnFree(pv);
 			}
 
 	};
 }
 
-#endif // !GPOS_CMemoryPoolMalloc_H
+#endif // !GPOS_CMemoryPoolAlloc_H
 
 // EOF
 

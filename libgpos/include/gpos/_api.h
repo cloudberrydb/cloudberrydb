@@ -1,6 +1,6 @@
 /*---------------------------------------------------------------------------
  *	Greenplum Database
- *	Copyright (C) 2010 Greenplum, Inc.
+ *	Copyright (c) 2004-2015 Pivotal Software, Inc.
  *
  *	@filename:
  *		_api.h
@@ -20,6 +20,7 @@
 #ifdef __cplusplus
 extern "C"
 {
+#include <stddef.h>
 #endif /* __cplusplus */
 
 #ifdef GPOS_DEBUG
@@ -42,8 +43,15 @@ struct gpos_exec_params
 	volatile bool *abort_requested; /* flag indicating if abort is requested */
 };
 
+/* struct containing initialization parameters for gpos */
+struct gpos_init_params
+{
+  void *(*alloc)(size_t);        /* custom allocator */
+  void (*free)(void*);              /* custom free      */
+};
+
 /* initialize GPOS memory pool, worker pool and message repository */
-void gpos_init(void);
+void gpos_init(struct gpos_init_params *params);
 
 /*
  * set number of threads in worker pool

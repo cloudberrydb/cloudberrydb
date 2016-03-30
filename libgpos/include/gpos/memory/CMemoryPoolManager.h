@@ -1,7 +1,8 @@
 //---------------------------------------------------------------------------
 //	Greenplum Database
-//	Copyright (C) 2008-2010 Greenplum Inc.
-//	Copyright (C) 2011-2012 EMC Corp.
+//	Copyright (c) 2004-2015 Pivotal Software, Inc.
+//
+//
 //
 //	@filename:
 //		CMemoryPoolManager.h
@@ -24,6 +25,7 @@
 #include "gpos/common/CSyncHashtableAccessByIter.h"
 #include "gpos/common/CSyncHashtableIter.h"
 #include "gpos/memory/CMemoryPool.h"
+
 
 
 #define GPOS_MEMORY_POOL_HT_SIZE	(1024)		// number of hash table buckets
@@ -182,9 +184,9 @@ namespace gpos
 			ULLONG UllTotalAllocatedSize();
 
 			// initialize global instance
-			static 
-			GPOS_RESULT EresInit();
-			
+			static
+			GPOS_RESULT EresInit(void* (*) (SIZE_T), void (*) (void*));
+
 			// global accessor
 			static
 			CMemoryPoolManager *Pmpm()

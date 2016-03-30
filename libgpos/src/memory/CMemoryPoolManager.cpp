@@ -1,7 +1,6 @@
 //---------------------------------------------------------------------------
 //	Greenplum Database
-//	Copyright (C) 2008-2010 Greenplum Inc.
-//	Copyright (C) 2011-2012 EMC Corp.
+//	Copyright (c) 2004-2015 Pivotal Software, Inc.
 //
 //	@filename:
 //		CWorkerPoolManager.cpp
@@ -25,8 +24,8 @@
 #include "gpos/error/CFSimulator.h" // for GPOS_FPSIMULATOR
 #include "gpos/error/CAutoTrace.h"
 #include "gpos/memory/IMemoryPool.h"
+#include "gpos/memory/CMemoryPoolAlloc.h"
 #include "gpos/memory/CMemoryPoolInjectFault.h"
-#include "gpos/memory/CMemoryPoolMalloc.h"
 #include "gpos/memory/CMemoryPoolManager.h"
 #include "gpos/memory/CMemoryPoolSlab.h"
 #include "gpos/memory/CMemoryPoolStack.h"
@@ -65,7 +64,7 @@ CMemoryPoolManager::CMemoryPoolManager
 {
 	GPOS_ASSERT(NULL != pmpInternal);
 	GPOS_ASSERT(NULL != pmpBase);
-	GPOS_ASSERT(GPOS_OFFSET(CMemoryPool, m_link) == GPOS_OFFSET(CMemoryPoolMalloc, m_link));
+	GPOS_ASSERT(GPOS_OFFSET(CMemoryPool, m_link) == GPOS_OFFSET(CMemoryPoolAlloc, m_link));
 	GPOS_ASSERT(GPOS_OFFSET(CMemoryPool, m_link) == GPOS_OFFSET(CMemoryPoolTracker, m_link));
 
 	m_sht.Init
@@ -83,7 +82,6 @@ CMemoryPoolManager::CMemoryPoolManager
 	m_pmpGlobal = PmpCreate(EatTracker, true, ULLONG_MAX);
 }
 
-
 //---------------------------------------------------------------------------
 //	@function:
 //		CMemoryPoolManager::Init
@@ -93,12 +91,16 @@ CMemoryPoolManager::CMemoryPoolManager
 //
 //---------------------------------------------------------------------------
 GPOS_RESULT
-CMemoryPoolManager::EresInit()
+CMemoryPoolManager::EresInit
+	(
+		void* (*pfnAlloc) (SIZE_T),
+		void (*pfnFree) (void*)
+	)
 {
 	GPOS_ASSERT(NULL == CMemoryPoolManager::m_pmpm);
 
 	// raw allocation of memory for internal memory pools
-	void *pvAllocBase = PvMalloc(sizeof(CMemoryPoolMalloc));
+	void *pvAllocBase = PvMalloc(sizeof(CMemoryPoolAlloc));
 	void *pvAllocInternal = PvMalloc(sizeof(CMemoryPoolTracker));
 
 	// check if any allocation failed
@@ -112,7 +114,7 @@ CMemoryPoolManager::EresInit()
 	}
 
 	// create base memory pool
-	IMemoryPool *pmpBase = new(pvAllocBase) CMemoryPoolMalloc();
+	IMemoryPool *pmpBase = new(pvAllocBase) CMemoryPoolAlloc(pfnAlloc, pfnFree);
 
 	// create internal memory pool
 	IMemoryPool *pmpInternal = new(pvAllocInternal) CMemoryPoolTracker

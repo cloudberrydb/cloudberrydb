@@ -1,6 +1,6 @@
 //---------------------------------------------------------------------------
 //	Greenplum Database
-//	Copyright (C) 2011 EMC Corp.
+//	Copyright (c) 2004-2015 Pivotal Software, Inc.
 //
 //	@filename:
 //		clibwrapper.cpp
@@ -660,7 +660,7 @@ gpos::clib::PtmLocalTimeR
 void*
 gpos::clib::PvMalloc
 	(
-	ULONG ulSize
+	SIZE_T ulSize
 	)
 {
 	GPOS_ASSERT_NO_SPINLOCK;
