@@ -127,6 +127,8 @@ create database drop_table_test;
 CREATE SCHEMA :cur_user;
 
 
+--the following table will be created in the ":cur_user" schema because
+-- the search_path is '"$user",public'
 CREATE TABLE tbl_to_drop(i int);
 
 
