@@ -1038,6 +1038,7 @@ SubplanQueryDesc(QueryDesc * qd)
 							NULL,		/* Null destination for the QE */
 							qd->params,
 							qd->doInstrument);
+	subqd->ddesc = qd->ddesc;
 
 	return subqd;
 }
