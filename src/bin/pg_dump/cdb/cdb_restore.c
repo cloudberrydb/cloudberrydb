@@ -47,7 +47,6 @@ static bool restoreMaster(InputOptions * pInputOpts, PGconn *pConn, SegmentDatab
 static void spinOffThreads(PGconn *pConn, InputOptions * pInputOpts, const RestorePairArray * restorePair, ThreadParmArray * pParmAr);
 static int	reportRestoreResults(const char *pszReportDirectory, const ThreadParm * pMasterParm, const ThreadParmArray * pParmAr);
 static int	reportMasterError(InputOptions inputopts, const ThreadParm * pMasterParm, const char *localMsg);
-static void updateAppendOnlyStats(PGconn *pConn);
 static bool g_b_SendCancelMessage = false;
 typedef struct option optType;
 
