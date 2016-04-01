@@ -24,7 +24,7 @@ extern "C"
 #endif // __cplusplus
 
 // initialize gpopt library
-void gpopt_init(void);
+void gpopt_init();
 
 
 // terminate gpopt library

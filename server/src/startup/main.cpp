@@ -18,6 +18,7 @@
 
 #include "gpos/_api.h"
 #include "gpos/types.h"
+#include "gpopt/init.h"
 
 #include "naucrates/init.h"
 
@@ -391,6 +392,14 @@ INT main
 	const CHAR **rgszArgs
 	)
 {	
+  
+  // Use default allocator
+  struct gpos_init_params gpos_params = { NULL, NULL };
+
+	gpos_init(&gpos_params);
+	gpdxl_init();
+	gpopt_init();
+
 	GPOS_ASSERT(iArgs >= 0);
 
 	if (gpos_set_threads(4, 20))

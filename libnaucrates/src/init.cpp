@@ -128,7 +128,7 @@ void ShutdownDXL()
 //              Initialize Xerces parser utils
 //
 //---------------------------------------------------------------------------
-void __attribute__((constructor)) gpdxl_init()
+void gpdxl_init()
 {
 	// create memory pool for Xerces global allocations
 	{
@@ -159,7 +159,7 @@ void __attribute__((constructor)) gpdxl_init()
 //              Terminate Xerces parser utils and destroy memory pool
 //
 //---------------------------------------------------------------------------
-void __attribute__((destructor)) gpdxl_terminate()
+void gpdxl_terminate()
 {
 #ifdef GPOS_DEBUG
 	ShutdownDXL();

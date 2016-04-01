@@ -24,6 +24,8 @@
 #include "gpopt/mdcache/CMDCache.h"
 #include "gpopt/exception.h"
 #include "gpopt/xforms/CXformFactory.h"
+#include "gpos/_api.h"
+#include "naucrates/init.h"
 
 using namespace gpos;
 using namespace gpopt;
@@ -36,10 +38,13 @@ static IMemoryPool *pmp = NULL;
 //              gpopt_init
 //
 //      @doc:
-//              Initialize gpopt library
+//              Initialize gpopt library. To enable memory allocations
+//              via a custom allocator, pass in non-NULL fnAlloc/fnFree
+//              allocation/deallocation functions. If either of the parameters
+//              are NULL, gpopt with be initialized with the default allocator.
 //
 //---------------------------------------------------------------------------
-void __attribute__((constructor)) gpopt_init()
+void gpopt_init()
 {
 	{
 		CAutoMemoryPool amp;
@@ -66,7 +71,7 @@ void __attribute__((constructor)) gpopt_init()
 //              Destroy the memory pool
 //
 //---------------------------------------------------------------------------
-void __attribute__((destructor)) gpopt_terminate()
+void gpopt_terminate()
 {
 #ifdef GPOS_DEBUG
 	CMDCache::Shutdown();
