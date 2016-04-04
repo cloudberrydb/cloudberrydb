@@ -273,8 +273,10 @@ CUtils::PmdidScCmp
 	{
 		return pmda->Pmdsccmp(pmdidLeft, pmdidLeft, ecmpt)->PmdidOp();
 	}
-
-	GPOS_ASSERT(false);
+	else
+	{
+		GPOS_RAISE(gpopt::ExmaGPOPT, gpopt::ExmiUnexpectedOp, GPOS_WSZ_LIT("Cannot generate metadata id for scaler comparison operator"));
+	}
 
 	// Calling CMDAccessor to raise error on non-comparable data types
 	return pmda->Pmdsccmp(pmdidLeft, pmdidRight, ecmpt)->PmdidOp();
@@ -620,8 +622,10 @@ CUtils::PexprScalarCmp
 		pexprNewLeft = PexprCast(pmp, pmda, pexprLeft, pmdidRight);
 		pmdidCmpOp = PmdidScCmp(pmda, pmdidRight, pmdidRight, ecmpt);
 	}
-	
-	GPOS_ASSERT(NULL != pmdidCmpOp);
+	else
+	{
+		GPOS_RAISE(gpopt::ExmaGPOPT, gpopt::ExmiUnexpectedOp, GPOS_WSZ_LIT("Cannot generate a comparison expression"));
+	}
 
 	pmdidCmpOp->AddRef();
 	const CMDName mdname = pmda->Pmdscop(pmdidCmpOp)->Mdname();
