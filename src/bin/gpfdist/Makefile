@@ -18,6 +18,9 @@ GPFDIST_LIBS =-levent
 ifeq ($(have_yaml),yes)
   GPFDIST_LIBS += -lyaml
   OBJS += transform.o
+  ifneq ($(PORTNAME),win32)
+    override CPPFLAGS := -DGPFXDIST $(CPPFLAGS)
+  endif
 endif
 
 ifeq ($(with_apr_config),yes)
@@ -29,8 +32,6 @@ endif
 ifeq ($(PORTNAME),win32)
   override CPPFLAGS := -I$(top_builddir)/src/port $(CPPFLAGS)
   OBJS += $(top_builddir)/src/port/glob.o
-else
-  override CPPFLAGS := -DGPFXDIST $(CPPFLAGS)
 endif
 
 LDLIBS += $(LIBS) $(GPFDIST_LIBS) $(APR_LIB)
