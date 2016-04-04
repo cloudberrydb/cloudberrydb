@@ -37,6 +37,7 @@
 #include "gpopt/translate/CTranslatorExprToDXLUtils.h"
 #include "gpopt/search/CMemo.h"
 #include "gpopt/mdcache/CMDAccessorUtils.h"
+#include "gpopt/exception.h"
 
 #include "naucrates/base/IDatumInt2.h"
 #include "naucrates/base/IDatumInt4.h"

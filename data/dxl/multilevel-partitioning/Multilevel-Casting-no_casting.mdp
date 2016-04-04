@@ -1,5 +1,22 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
+create table TestPartitionFilterCasting (
+    d1 int, 
+    p1 character varying(2),
+    p2 date,
+    p3 numeric)
+distributed by (d1) 
+partition by list (p1) 
+subpartition by list (p2)
+subpartition by list (p3)
+( 
+      partition p1a values ('a')(
+        subpartition p2c values ('2015-01-01')(
+          subpartition p3e values(1.0)
+        )
+    )
+);
+
 explain select * from TestPartitionFilterCasting where p3 = 1.0;
 -->
 <dxl:DXLMessage xmlns:dxl="http://greenplum.com/dxl/2010/12/">
