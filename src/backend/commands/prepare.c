@@ -220,16 +220,8 @@ ExecuteQuery(ExecuteStmt *stmt, const char *queryString,
 					 errmsg("prepared statement is not a SELECT")));
 
 		pstmt->intoClause = copyObject(stmt->into);
-
-		/* XXX  Is it legitimate to assign a constant default policy without 
-		 *      even checking the relation?
-		 */
-		pstmt->intoPolicy = palloc0(sizeof(GpPolicy)- sizeof(pstmt->intoPolicy->attrs)
-									+ 255 * sizeof(pstmt->intoPolicy->attrs[0]));
-		pstmt->intoPolicy->nattrs = 1;			
-		pstmt->intoPolicy->ptype = POLICYTYPE_PARTITIONED;
-		pstmt->intoPolicy->attrs[0] = 1;
-		
+		Assert(pstmt->intoPolicy != NULL);
+		pstmt->intoPolicy = GpPolicyCopy(CurrentMemoryContext, pstmt->intoPolicy);	
 		MemoryContextSwitchTo(oldContext);
 	}
 

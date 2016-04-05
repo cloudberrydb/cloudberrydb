@@ -46,6 +46,7 @@
  * than a thousand or so columns.  TOAST won't help.
  */
 #define MaxHeapAttributeNumber	1600	/* 8 * 200 */
+#define MaxPolicyAttributeNumber MaxHeapAttributeNumber
 
 /*
  * Heap tuple header.  To avoid wasting space, the fields should be

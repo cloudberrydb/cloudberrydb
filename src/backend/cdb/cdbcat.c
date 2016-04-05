@@ -30,14 +30,13 @@ static void extract_INT2OID_array(Datum array_datum, int *lenp, int16 **vecp);
  * createRandomDistribution -- Create a policy with random distribution
  */
 GpPolicy *
-createRandomDistribution(int maxattrs)
+createRandomDistribution(void)
 {
 	GpPolicy   *p = NULL;
 
-	p = (GpPolicy *) palloc(SizeOfGpPolicy(maxattrs));
+	p = (GpPolicy *) palloc0(sizeof(GpPolicy));
 	p->ptype = POLICYTYPE_PARTITIONED;
 	p->nattrs = 0;
-	p->attrs[0] = 1;
 
 	return p;
 }
