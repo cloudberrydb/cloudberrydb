@@ -999,11 +999,11 @@ CTranslatorExprToDXLUtils::PdxlnCmp
 
 	if (IMDId::FValid(pmdidTypeCastExpr))
 	{
-		pmdidScCmp = CUtils::PmdidScCmp(pmda, pmdidTypeCastExpr, pmdidTypeExpr, ecmpt);
+		pmdidScCmp = CUtils::PmdidScCmp(pmp, pmda, pmdidTypeCastExpr, pmdidTypeExpr, ecmpt);
 	}
 	else
 	{
-		pmdidScCmp = CUtils::PmdidScCmp(pmda, pmdidTypePartKey, pmdidTypeExpr, ecmpt);
+		pmdidScCmp = CUtils::PmdidScCmp(pmp, pmda, pmdidTypePartKey, pmdidTypeExpr, ecmpt);
 	}
 	
 	const IMDScalarOp *pmdscop = pmda->Pmdscop(pmdidScCmp); 
