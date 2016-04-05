@@ -140,8 +140,6 @@ CScalarConst::OsPrint
 {
 	os << SzId() << " (";
 	m_pdatum->OsPrint(os);
-	os << " , Data type: ";
-	m_pdatum->Pmdid()->OsPrint(os);
 	os << ")";
 	return os;
 }

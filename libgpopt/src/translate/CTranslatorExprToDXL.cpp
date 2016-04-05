@@ -4840,13 +4840,15 @@ CTranslatorExprToDXL::PdxlnScCmpPartKey
 
 	CExpression *pexprNewPartKey = pexprPartKey;
 
-	// If the pexprPartKey is not comparable with pexprOther, then we need to add a cast on top of pexprPartKey
-	// Then, use the casted PartKey operator to generate the pmdidTypeCastExpr and pmdidCastFunc
+	// If the pexprPartKey is not comparable with pexprOther, but can be casted to pexprOther,
+	// and not yet casted, then we add a cast on top of pexprPartKey to use the casted PartKey
+	// operator to generate the pmdidTypeCastExpr and pmdidCastFunc
 	if (!CMDAccessorUtils::FCmpExists(m_pmda, pmdidTypePartKey, pmdidTypeOther, ecmpt)
-		&& CMDAccessorUtils::FCastExists(m_pmda, pmdidTypePartKey, pmdidTypeOther))
+		&& CMDAccessorUtils::FCastExists(m_pmda, pmdidTypePartKey, pmdidTypeOther)
+		&& COperator::EopScalarCast != pexprPartKey->Pop()->Eopid())
 	{
-		CExpression *pexprCastedPartKey = CUtils::PexprCast(m_pmp, m_pmda, pexprPartKey, pmdidTypeOther);
-		pexprNewPartKey = pexprCastedPartKey;
+		pexprNewPartKey = CUtils::PexprCast(m_pmp, m_pmda, pexprPartKey, pmdidTypeOther);
+		pexprPartKey->Release();
 	}
 
 	CTranslatorExprToDXLUtils::ExtractCastMdids(pexprNewPartKey->Pop(), &pmdidTypeCastExpr, &pmdidCastFunc);
