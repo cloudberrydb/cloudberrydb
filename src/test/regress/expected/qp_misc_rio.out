@@ -1116,12 +1116,6 @@ FROM pg_class WHERE oid='tbl_truncate_load'::regclass;
  reltuples and number of records for table tbl_truncate_load are consistent
 (1 row)
 
-SELECT reltuples FROM pg_class WHERE oid='tbl_truncate_load'::regclass;
-  reltuples  
--------------
- 1.00026e+07
-(1 row)
-
 SELECT count(*) FROM tbl_truncate_load;
   count   
 ----------
