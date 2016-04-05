@@ -1709,6 +1709,7 @@ keep_going:						/* We will come back to here until there is
 					if (!IS_AF_UNIX(addr_cur->ai_family))
 					{
 						int			on = 1;
+						int			reuse = 1;
 						int			usekeepalives = useKeepalives(conn);
 						int			err = 0;
 
@@ -1741,7 +1742,17 @@ keep_going:						/* We will come back to here until there is
 						else if (!setKeepalivesWin32(conn))
 							err = 1;
 #endif /* SIO_KEEPALIVE_VALS */
-#endif /* WIN32 */
+#endif /* WIN32 */				
+
+						/* Need to set SO_REUSEADDR so the TCP port can be 
+						 * reused, or else, master might run out of TCP port */	
+						if (setsockopt(conn->sock, SOL_SOCKET, SO_REUSEADDR, (char *) &reuse, sizeof(reuse)) == -1)
+						{
+							appendPQExpBuffer(&conn->errorMessage, 
+									  libpq_gettext("setsockopt(SO_REUSEADDR) failed: %s\n"),
+									  SOCK_STRERROR(SOCK_ERRNO, sebuf, sizeof(sebuf)));
+							err = 1;
+						}
 
 						if (err)
 						{
