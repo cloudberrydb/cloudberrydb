@@ -46,9 +46,8 @@ ULONG CICGTest::m_ulNegativeIndexApplyTestCounter = 0;
 // minidump files
 const CHAR *rgszFileNames[] =
 	{
+		"../data/dxl/minidump/CollapseNot.mdp",
 		"../data/dxl/minidump/OrderByNullsFirst.mdp",
-		// disabling test because it is non-deterministic.
-		// "../data/dxl/minidump/MissingStatsForPartialPlan.mdp",
 		"../data/dxl/minidump/ConvertHashToRandomSelect.mdp",
 		"../data/dxl/minidump/ConvertHashToRandomInsert.mdp",
 		"../data/dxl/minidump/DMLCollapseProject.mdp",
