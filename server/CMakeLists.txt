@@ -50,6 +50,7 @@ add_executable(gporca_test
                src/unittest/gpopt/minidump/CMultilevelPartitionTest.cpp
                src/unittest/gpopt/minidump/CDirectDispatchTest.cpp
                src/unittest/gpopt/minidump/CCTETest.cpp
+               src/unittest/gpopt/minidump/CEscapeMechanismTest.cpp
                src/unittest/gpopt/minidump/CICGTest.cpp
                src/unittest/gpopt/minidump/CSetopTest.cpp
                src/unittest/gpopt/minidump/CIndexTest.cpp
@@ -139,6 +140,7 @@ add_orca_test(CIndexTest)
 add_orca_test(CPartTblTest)
 add_orca_test(CBitmapTest)
 add_orca_test(CCTETest)
+add_orca_test(CEscapeMechanismTest)
 
 add_orca_test(CMinidumpWithConstExprEvaluatorTest)
 add_orca_test(CParseHandlerManagerTest)

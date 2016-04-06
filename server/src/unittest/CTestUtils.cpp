@@ -4491,11 +4491,11 @@ CTestUtils::EresUnittest_RunTests
 
 	GPOS_RESULT eres = EresUnittest_RunTestsWithoutAdditionalTraceFlags
 						(
-							rgszFileNames,
-							pulTestCounter,
-							ulTests,
-							fMatchPlans,
-							fTestSpacePruning
+						rgszFileNames,
+						pulTestCounter,
+						ulTests,
+						fMatchPlans,
+						fTestSpacePruning
 						);
 	return eres;
 }

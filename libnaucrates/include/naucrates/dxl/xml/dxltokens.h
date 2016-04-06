@@ -64,6 +64,7 @@ namespace gpdxl
 		EdxltokenSegmentsForCosting,
 		EdxltokenHint,
 		EdxltokenMinNumOfPartsToRequireSortOnInsert,
+		EdxltokenJoinArityForAssociativityCommutativity,
 
 		EdxltokenPlanSamples,
 

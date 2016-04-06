@@ -32,8 +32,10 @@
 #include "gpopt/operators/CExpressionUtils.h"
 #include "gpopt/operators/CExpressionFactorizer.h"
 #include "gpopt/operators/CExpressionPreprocessor.h"
+#include "gpopt/optimizer/COptimizerConfig.h"
 
 #include "gpopt/mdcache/CMDAccessor.h"
+#include "gpopt/xforms/CXform.h"
 #include "naucrates/md/IMDScalarOp.h"
 #include "naucrates/md/IMDType.h"
 #include "naucrates/statistics/CStatistics.h"
@@ -587,16 +589,24 @@ CExpressionPreprocessor::PexprCollapseInnerJoins
 		pdrgpexpr->Append(CPredicateUtils::PexprConjunction(pmp, pdrgpexprPred));
 
 		CExpression *pexprNAryJoin = GPOS_NEW(pmp) CExpression(pmp, GPOS_NEW(pmp) CLogicalNAryJoin(pmp), pdrgpexpr);
-		if (!fCollapsed)
+		CExpression *pexprResult = pexprNAryJoin;
+		if (fCollapsed)
 		{
-			return pexprNAryJoin;
+			// a join was collapsed with its children into NAry-Join, we need to recursively
+			// process the created NAry join
+			pexprResult = PexprCollapseInnerJoins(pmp, pexprNAryJoin);
+			pexprNAryJoin->Release();
 		}
 
-		// a join was collapsed with its children into NAry-Join, we need to recursively
-		// process the created NAry join
-		CExpression *pexprResult = PexprCollapseInnerJoins(pmp, pexprNAryJoin);
-		pexprNAryJoin->Release();
+		COptimizerConfig *poconf = COptCtxt::PoctxtFromTLS()->Poconf();
+		ULONG ulJoinArityLimit = poconf->Phint()->UlJoinArityForAssociativityCommutativity();
 
+		// The last child of an n-ary join expression is the scalar expression
+		if (pexprResult->UlArity() - 1 > ulJoinArityLimit)
+		{
+			GPOPT_DISABLE_XFORM(CXform::ExfJoinCommutativity);
+			GPOPT_DISABLE_XFORM(CXform::ExfJoinAssociativity);
+		}
 		return pexprResult;
 	}
 
