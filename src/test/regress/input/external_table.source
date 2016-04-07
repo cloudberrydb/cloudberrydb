@@ -330,8 +330,8 @@ LOCATION ('file://@hostname@@abs_srcdir@/data/exttab_more_errors.data') FORMAT '
 LOG ERRORS SEGMENT REJECT LIMIT 2;
 -- should error out as segment reject limit will be reached
 SELECT * FROM exttab_basic_3;
--- Error log should have one row that was rejected until the segment reject limit reached
-select count(*) from gp_read_error_log('exttab_basic_3');
+-- Error log should be populated
+select count(*) > 0 from gp_read_error_log('exttab_basic_3');
 
 -- Insert into another table
 CREATE EXTERNAL TABLE exttab_basic_4( i int, j text ) 
@@ -340,8 +340,8 @@ LOG ERRORS SEGMENT REJECT LIMIT 100;
 CREATE TABLE exttab_insert_1 (LIKE exttab_basic_4);
 -- Insert should go through fine
 INSERT INTO exttab_insert_1 SELECT * FROM exttab_basic_4;
--- Error log should have six rows that were rejected
-select count(*) from gp_read_error_log('exttab_basic_4');
+-- Error log should be populated
+select count(*) > 0 from gp_read_error_log('exttab_basic_4');
 -- Use the same error log above
 CREATE EXTERNAL TABLE exttab_basic_5( i int, j text ) 
 LOCATION ('file://@hostname@@abs_srcdir@/data/exttab_more_errors.data') FORMAT 'TEXT' (DELIMITER '|') 
@@ -439,20 +439,27 @@ LOG ERRORS SEGMENT REJECT LIMIT 10;
 CREATE EXTERNAL TABLE exttab_cursor_2( i int, j text ) 
 LOCATION ('file://@hostname@@abs_srcdir@/data/exttab_more_errors.data') FORMAT 'TEXT' (DELIMITER '|') 
 LOG ERRORS SEGMENT REJECT LIMIT 2;
+-- Test to make sure error logs are populated when cursors are used
 BEGIN;
 DECLARE exttab_cur1 no scroll cursor FOR
-SELECT e1.i, e2.j from exttab_cursor_2 e1 INNER JOIN exttab_cursor_2 e2 ON e1.i = e2.i
+SELECT e1.i, e2.j from exttab_cursor_1 e1 INNER JOIN exttab_cursor_1 e2 ON e1.i = e2.i
 UNION ALL
-SELECT e1.i, e2.j from exttab_cursor_2 e1 INNER JOIN exttab_cursor_2 e2 ON e1.i = e2.i
+SELECT e1.i, e2.j from exttab_cursor_1 e1 INNER JOIN exttab_cursor_1 e2 ON e1.i = e2.i
 UNION ALL
-SELECT e1.i, e2.j from exttab_cursor_2 e1 INNER JOIN exttab_cursor_2 e2 ON e1.i = e2.i;
+SELECT e1.i, e2.j from exttab_cursor_1 e1 INNER JOIN exttab_cursor_1 e2 ON e1.i = e2.i;
 COMMIT;
 -- This should have the errors populated already
-SELECT count(*) > 0 FROM gp_read_error_log('exttab_cursor_2');
+SELECT count(*) > 0 FROM gp_read_error_log('exttab_cursor_1');
 
 -- Fetch on external table scans with segment reject limit reached
 SELECT gp_truncate_error_log('exttab_cursor_1');
 SELECT gp_truncate_error_log('exttab_cursor_2');
+-- DECLARE CURSOR implicitly initiates a FETCH on the segments. If one of
+-- the segments reaches the reject limit and reports the error back to the QD
+-- before the others, the transaction gets aborted. The timing of fetching the
+-- results will  influence the order of the ERROR in the output.  We set the ECHO
+-- level of psql to info so that the COMMIT message will be masked and will not
+-- cause the test to fail when the order differs from expected output.
 BEGIN;
 DECLARE exttab_cur1 no scroll cursor FOR
 SELECT e1.i, e2.j from exttab_cursor_2 e1 INNER JOIN exttab_cursor_2 e2 ON e1.i = e2.i
@@ -463,8 +470,10 @@ SELECT e1.i, e2.j from exttab_cursor_2 e1 INNER JOIN exttab_cursor_2 e2 ON e1.i 
 -- Should not fail as we would not have reached segment reject limit yet. This fails currently though
 -- because how cursors scan the rows internally is implementation dependant. 
 -- The test is here to track the issue.
+\set ECHO info
 FETCH exttab_cur1;
 COMMIT;
+\set ECHO all
 -- This should have errors populated already
 SELECT count(*) > 0 FROM gp_read_error_log('exttab_cursor_2');
 
@@ -734,7 +743,11 @@ SELECT e1.i, e2.j FROM
 WHERE e1.i = e2.i;
 COMMIT;
 -- Error logs should not have been rolled back. 
-SELECT count(*) FROM
+-- Check that number of errors is greater than 12 instead of checking for
+-- actual number of errors, since the transaction might get aborted even before
+-- rows are scanned on other segments if one of the segments hits the segment
+-- reject limit. The 12 errors are from previous scans of the external table.
+SELECT count(*) > 12 FROM
 (
 SELECT * FROM gp_read_error_log('exttab_subtxs_1')
 UNION ALL
@@ -769,7 +782,11 @@ SELECT e1.i, e2.j FROM
 (SELECT i, j FROM exttab_txs_1 WHERE i < 10) e2
 WHERE e1.i = e2.i;
 ABORT;
-SELECT count(*) FROM
+-- Check that number of errors is greater than zero instead of checking the
+-- actual number of errors since the transaction might get aborted even before
+-- rows are scanned on other segments if one of the segments hits the segment
+-- reject limit.
+SELECT count(*) > 0 FROM
 (
 SELECT * FROM gp_read_error_log('exttab_txs_1')
 UNION ALL
@@ -799,7 +816,11 @@ WHERE e1.i = e2.i;
 COMMIT;
 -- Additional error rows should have been inserted into the error logs even if the tx is aborted.
 -- Truncate of error logs should not be rolled back even if the transaction is aborted. All operation on error logs are persisted. 
-SELECT count(*) FROM
+-- Check that number of errors is greater than zero instead of checking for
+-- actual number of errors, since the transaction might get aborted even before
+-- rows are scanned on other segments if one of the segments hits the segment
+-- reject limit.
+SELECT count(*) > 0 FROM
 (
 SELECT * FROM gp_read_error_log('exttab_txs_1')
 UNION ALL
@@ -1310,17 +1331,17 @@ LOG ERRORS SEGMENT REJECT LIMIT 500;
 -- should report an error saying first rows were rejected
 SET gp_initial_bad_row_limit = 2;
 SELECT COUNT(*) FROM exttab_first_reject_limit_2;
-SELECT COUNT(*) from gp_read_error_log('exttab_first_reject_limit_2');
+SELECT COUNT(*) > 0 from gp_read_error_log('exttab_first_reject_limit_2');
 -- should report an error saying segment reject limit reached
 set gp_initial_bad_row_limit = 600;
 SELECT gp_truncate_error_log('exttab_first_reject_limit_2');
 SELECT COUNT(*) FROM exttab_first_reject_limit_2;
-SELECT COUNT(*) from gp_read_error_log('exttab_first_reject_limit_2');
+SELECT COUNT(*) > 0 from gp_read_error_log('exttab_first_reject_limit_2');
 -- set unlimited first error rows, should fail only because of segment reject limits
 set gp_initial_bad_row_limit = 0;
 SELECT gp_truncate_error_log('exttab_first_reject_limit_2');
 SELECT COUNT(*) FROM exttab_first_reject_limit_2;
-SELECT COUNT(*) from gp_read_error_log('exttab_first_reject_limit_2');
+SELECT COUNT(*) > 0 from gp_read_error_log('exttab_first_reject_limit_2');
 
 DROP EXTERNAL TABLE IF EXISTS exttab_heap_join_1;
 -- does not reach reject limit
