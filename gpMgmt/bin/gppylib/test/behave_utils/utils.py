@@ -6,6 +6,8 @@ import re
 import signal
 import stat
 import time
+import glob
+import shutil
 
 import yaml
 
@@ -1452,3 +1454,25 @@ def check_count_for_specific_query(dbname, query, nrows):
         result = dbconn.execSQLForSingleton(conn, NUM_ROWS_QUERY)
     if result != nrows:
         raise Exception('%d rows in table %s.%s, expected row count = %d' % (result, dbname, tablename, nrows))
+
+def get_primary_segment_host_port():
+    """
+    return host, port of primary segment (dbid 2)
+    """
+    FIRST_PRIMARY_DBID = 2
+    get_psegment_sql = 'select hostname, port from gp_segment_configuration where dbid=%i;' % FIRST_PRIMARY_DBID
+    with dbconn.connect(dbconn.DbURL(dbname='template1')) as conn:
+        cur = dbconn.execSQL(conn, get_psegment_sql)
+        rows = cur.fetchall()
+        primary_seg_host = rows[0][0]
+        primary_seg_port = rows[0][1]
+    return primary_seg_host, primary_seg_port
+
+def remove_local_path(dirname):
+    list = glob.glob(os.path.join(os.path.curdir, dirname))
+    for dir in list:
+        shutil.rmtree(dir, ignore_errors=True)
+
+def validate_local_path(path):
+    list = glob.glob(os.path.join(os.path.curdir, path))
+    return len(list)

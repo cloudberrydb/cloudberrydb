@@ -2215,7 +2215,7 @@ def checkOwners():
       join pg_namespace n on (n.oid = t.typnamespace)
       join pg_authid a on (a.oid = r.typowner)
       join pg_authid m on (m.oid = t.typowner)
-    where r.typowner <> t.typowner and r.typrelid = 0
+    where r.typowner <> t.typowner
     '''
     try:
         curs = db.query(qry)

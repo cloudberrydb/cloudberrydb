@@ -3795,3 +3795,25 @@ def impl(context, table, dbname, segid):
 ssh %s "source %s; export PGUSER=%s; export PGPORT=%s; export PGOPTIONS=\\\"-c gp_session_role=utility\\\"; psql -d %s -c \\\"SET allow_system_table_mods=\'dml\'; DELETE FROM pg_attribute where attrelid=\'%s\'::regclass::oid;\\\""
 """ % (host, source_file, user, port, dbname, table)
     run_command(context, remote_cmd.strip())
+
+@then('The user runs sql "{query}" in "{dbname}" on first primary segment')
+@when('The user runs sql "{query}" in "{dbname}" on first primary segment')
+@given('The user runs sql "{query}" in "{dbname}" on first primary segment')
+def impl(context, query, dbname):
+    host, port = get_primary_segment_host_port()
+    psql_cmd = "PGDATABASE=\'%s\' PGOPTIONS=\'-c gp_session_role=utility\' psql -h %s -p %s -c \'%s\'; " % (dbname, host, port, query)
+    Command(name='Running Remote command: %s' % psql_cmd, cmdStr = psql_cmd).run(validateAfter=True)
+
+@then( 'The path "{path}" is removed from current working directory')
+@when( 'The path "{path}" is removed from current working directory')
+@given('The path "{path}" is removed from current working directory')
+def impl(context, path):
+    remove_local_path(path)
+
+@given('the path "{path}" is found in cwd "{num}" times')
+@then('the path "{path}" is found in cwd "{num}" times')
+@when('the path "{path}" is found in cwd "{num}" times')
+def impl(context, path, num):
+    result = validate_local_path(path)
+    if result != int(num):
+        raise Exception("expected %s items but found %s items in path %s" % (num, result, path) )
