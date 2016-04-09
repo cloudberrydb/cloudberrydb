@@ -127,7 +127,7 @@ namespace gpopt
 			// private copy ctor
 			CTranslatorDXLToExpr(const CTranslatorDXLToExpr&);
 
-			// collapse a not node based on its child
+			// collapse a not node based on its child, return NULL if it is not collapsible.
 			CExpression *PexprCollapseNot(const CDXLNode *pdxlnBoolExpr);
 
 			// helper for creating quantified subquery

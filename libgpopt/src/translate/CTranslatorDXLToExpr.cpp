@@ -2581,7 +2581,8 @@ CTranslatorDXLToExpr::PexprScalar
 //		CTranslatorDXLToExpr::PexprCollapseNot
 //
 //	@doc:
-// 		Collapse a NOT node by looking at its child
+// 		Collapse a NOT node by looking at its child.
+//		Return NULL if it is not collapsible.
 //
 //---------------------------------------------------------------------------
 CExpression *
@@ -2619,6 +2620,13 @@ CTranslatorDXLToExpr::PexprCollapseNot
 		// get mdid and name of the inverse of the comparison operator used by quantified subquery
 		IMDId *pmdidOp = pdxlopSubqueryQuantified->PmdidScalarOp();
 		IMDId *pmdidInverseOp = m_pmda->Pmdscop(pmdidOp)->PmdidOpInverse();
+
+		// if inverse operator cannot be found in metadata, the optimizer won't collapse NOT node
+		if (NULL == pmdidInverseOp)
+		{
+			return NULL;
+		}
+
 		const CWStringConst *pstrInverseOp = m_pmda->Pmdscop(pmdidInverseOp)->Mdname().Pstr();
 		
 		pmdidInverseOp->AddRef();
