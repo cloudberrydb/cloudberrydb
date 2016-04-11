@@ -128,6 +128,10 @@ namespace gpopt
 			static
 			CHAR *SzMinidumpFileName(IMemoryPool *pmp, const CHAR *szFileName);
 
+			// return the number of segments, default return GPOPT_TEST_SEGMENTS
+			static
+			ULONG UlSegments(COptimizerConfig *poconf);
+
 		public:
 
 			// pair of DXL query file and the corresponding DXL plan file

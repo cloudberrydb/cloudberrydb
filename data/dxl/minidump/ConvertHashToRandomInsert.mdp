@@ -638,7 +638,7 @@ explain analyze insert into t1 select t2.a,t3.b from t2, t3 where t2.a = t3.a;
       </dxl:LogicalInsert>
     </dxl:Query>
     <dxl:Plan Id="0" SpaceSize="18">
-      <dxl:DMLInsert Columns="0,6" ActionCol="10" OidCol="11" CtidCol="0" SegmentIdCol="0">
+      <dxl:DMLInsert Columns="0,6" ActionCol="10" OidCol="11" CtidCol="0" SegmentIdCol="0" InputSorted="false">
         <dxl:Properties>
           <dxl:Cost StartupCost="0" TotalCost="881.654088" Rows="1000.000000" Width="7"/>
         </dxl:Properties>
@@ -700,7 +700,7 @@ explain analyze insert into t1 select t2.a,t3.b from t2, t3 where t2.a = t3.a;
                 <dxl:Ident ColId="0" ColName="a" TypeMdid="0.23.1.0"/>
               </dxl:Comparison>
             </dxl:HashCondList>
-            <dxl:RedistributeMotion InputSegments="0,1" OutputSegments="0,1">
+            <dxl:RedistributeMotion InputSegments="0,1,2,3" OutputSegments="0,1,2,3">
               <dxl:Properties>
                 <dxl:Cost StartupCost="0" TotalCost="431.011620" Rows="1000.000000" Width="7"/>
               </dxl:Properties>
@@ -743,7 +743,7 @@ explain analyze insert into t1 select t2.a,t3.b from t2, t3 where t2.a = t3.a;
                 </dxl:TableDescriptor>
               </dxl:TableScan>
             </dxl:RedistributeMotion>
-            <dxl:RedistributeMotion InputSegments="0,1" OutputSegments="0,1">
+            <dxl:RedistributeMotion InputSegments="0,1,2,3" OutputSegments="0,1,2,3">
               <dxl:Properties>
                 <dxl:Cost StartupCost="0" TotalCost="431.007878" Rows="1000.000000" Width="4"/>
               </dxl:Properties>

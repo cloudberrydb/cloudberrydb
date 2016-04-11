@@ -3151,7 +3151,7 @@ select * from customer_address, store where customer_address.ca_county::text = s
       </dxl:LogicalJoin>
     </dxl:Query>
     <dxl:Plan Id="0" SpaceSize="6">
-      <dxl:GatherMotion InputSegments="0,1" OutputSegments="-1">
+      <dxl:GatherMotion InputSegments="0,1,2" OutputSegments="-1">
         <dxl:Properties>
           <dxl:Cost StartupCost="0" TotalCost="894.708740" Rows="1061.180292" Width="439"/>
         </dxl:Properties>
@@ -3500,7 +3500,7 @@ select * from customer_address, store where customer_address.ca_county::text = s
               </dxl:Columns>
             </dxl:TableDescriptor>
           </dxl:TableScan>
-          <dxl:BroadcastMotion InputSegments="0,1" OutputSegments="0,1">
+          <dxl:BroadcastMotion InputSegments="0,1,2" OutputSegments="0,1,2">
             <dxl:Properties>
               <dxl:Cost StartupCost="0" TotalCost="431.076603" Rows="42.000000" Width="292"/>
             </dxl:Properties>

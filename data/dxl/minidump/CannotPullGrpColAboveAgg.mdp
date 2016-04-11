@@ -3754,7 +3754,7 @@ The SQL along with the DDL are in TINC repo. In the aggregates directory under q
         </dxl:ProjList>
         <dxl:Filter/>
         <dxl:OneTimeFilter/>
-        <dxl:GatherMotion InputSegments="0,1" OutputSegments="-1">
+        <dxl:GatherMotion InputSegments="0,1,2" OutputSegments="-1">
           <dxl:Properties>
             <dxl:Cost StartupCost="0" TotalCost="46098583.768785" Rows="2959212724800.000000" Width="1"/>
           </dxl:Properties>
@@ -3802,7 +3802,7 @@ The SQL along with the DDL are in TINC repo. In the aggregates directory under q
               </dxl:Properties>
               <dxl:ProjList/>
               <dxl:Filter/>
-              <dxl:BroadcastMotion InputSegments="0,1" OutputSegments="0,1">
+              <dxl:BroadcastMotion InputSegments="0,1,2" OutputSegments="0,1,2">
                 <dxl:Properties>
                   <dxl:Cost StartupCost="0" TotalCost="14065.999312" Rows="361329.000000" Width="1"/>
                 </dxl:Properties>
@@ -3846,7 +3846,7 @@ The SQL along with the DDL are in TINC repo. In the aggregates directory under q
                         <dxl:JoinFilter>
                           <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
                         </dxl:JoinFilter>
-                        <dxl:BroadcastMotion InputSegments="-1" OutputSegments="0,1">
+                        <dxl:BroadcastMotion InputSegments="-1" OutputSegments="0,1,2">
                           <dxl:Properties>
                             <dxl:Cost StartupCost="0" TotalCost="887.311360" Rows="3.000000" Width="1"/>
                           </dxl:Properties>
@@ -3908,7 +3908,7 @@ The SQL along with the DDL are in TINC repo. In the aggregates directory under q
                                   </dxl:ProjElem>
                                 </dxl:ProjList>
                                 <dxl:Filter/>
-                                <dxl:GatherMotion InputSegments="0,1" OutputSegments="-1">
+                                <dxl:GatherMotion InputSegments="0,1,2" OutputSegments="-1">
                                   <dxl:Properties>
                                     <dxl:Cost StartupCost="0" TotalCost="887.311258" Rows="1.000000" Width="16"/>
                                   </dxl:Properties>
@@ -4073,7 +4073,7 @@ The SQL along with the DDL are in TINC repo. In the aggregates directory under q
                                                   </dxl:ProjElem>
                                                 </dxl:ProjList>
                                                 <dxl:Filter/>
-                                                <dxl:RedistributeMotion InputSegments="0,1" OutputSegments="0,1">
+                                                <dxl:RedistributeMotion InputSegments="0,1,2" OutputSegments="0,1,2">
                                                   <dxl:Properties>
                                                     <dxl:Cost StartupCost="0" TotalCost="448.032973" Rows="1480.000000" Width="11"/>
                                                   </dxl:Properties>
@@ -4247,7 +4247,7 @@ The SQL along with the DDL are in TINC repo. In the aggregates directory under q
                           </dxl:ProjElem>
                         </dxl:ProjList>
                         <dxl:Filter/>
-                        <dxl:RedistributeMotion InputSegments="0,1" OutputSegments="0,1">
+                        <dxl:RedistributeMotion InputSegments="0,1,2" OutputSegments="0,1,2">
                           <dxl:Properties>
                             <dxl:Cost StartupCost="0" TotalCost="7039.746492" Rows="1480.000000" Width="11"/>
                           </dxl:Properties>
@@ -4359,7 +4359,7 @@ The SQL along with the DDL are in TINC repo. In the aggregates directory under q
                                   </dxl:Properties>
                                   <dxl:ProjList/>
                                   <dxl:Filter/>
-                                  <dxl:BroadcastMotion InputSegments="-1" OutputSegments="0,1">
+                                  <dxl:BroadcastMotion InputSegments="-1" OutputSegments="0,1,2">
                                     <dxl:Properties>
                                       <dxl:Cost StartupCost="0" TotalCost="887.311360" Rows="3.000000" Width="1"/>
                                     </dxl:Properties>
@@ -4421,7 +4421,7 @@ The SQL along with the DDL are in TINC repo. In the aggregates directory under q
                                             </dxl:ProjElem>
                                           </dxl:ProjList>
                                           <dxl:Filter/>
-                                          <dxl:GatherMotion InputSegments="0,1" OutputSegments="-1">
+                                          <dxl:GatherMotion InputSegments="0,1,2" OutputSegments="-1">
                                             <dxl:Properties>
                                               <dxl:Cost StartupCost="0" TotalCost="887.311258" Rows="1.000000" Width="16"/>
                                             </dxl:Properties>
@@ -4586,7 +4586,7 @@ The SQL along with the DDL are in TINC repo. In the aggregates directory under q
                                                             </dxl:ProjElem>
                                                           </dxl:ProjList>
                                                           <dxl:Filter/>
-                                                          <dxl:RedistributeMotion InputSegments="0,1" OutputSegments="0,1">
+                                                          <dxl:RedistributeMotion InputSegments="0,1,2" OutputSegments="0,1,2">
                                                             <dxl:Properties>
                                                             <dxl:Cost StartupCost="0" TotalCost="448.032973" Rows="1480.000000" Width="11"/>
                                                             </dxl:Properties>

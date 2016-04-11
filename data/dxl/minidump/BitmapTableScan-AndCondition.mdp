@@ -264,7 +264,7 @@ explain select * from xfoo where j = 1 and k = 2;
       </dxl:LogicalSelect>
     </dxl:Query>
 	<dxl:Plan Id="0" SpaceSize="1">
-	  <dxl:GatherMotion InputSegments="0,1" OutputSegments="-1">
+	  <dxl:GatherMotion InputSegments="0,1,2" OutputSegments="-1">
 	    <dxl:Properties>
 	      <dxl:Cost StartupCost="0" TotalCost="0.355695" Rows="1.000000" Width="32"/>
 	    </dxl:Properties>

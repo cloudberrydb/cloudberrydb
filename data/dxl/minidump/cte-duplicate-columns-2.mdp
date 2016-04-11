@@ -280,7 +280,7 @@ where x1.b = x2.b;
 	          <dxl:Ident ColId="1" ColName="b" TypeMdid="0.23.1.0"/>
 	        </dxl:ProjElem>
 	      </dxl:ProjList>
-	      <dxl:GatherMotion InputSegments="0,1" OutputSegments="-1">
+	      <dxl:GatherMotion InputSegments="0,1,2" OutputSegments="-1">
 	        <dxl:Properties>
 	          <dxl:Cost StartupCost="0" TotalCost="431.000191" Rows="1.000000" Width="12"/>
 	        </dxl:Properties>

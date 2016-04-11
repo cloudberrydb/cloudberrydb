@@ -328,7 +328,7 @@ select x.c1 * x.c2, x.c3 from (select a, b, a+b from foo) x(c1,c2,c3);
       </dxl:LogicalProject>
     </dxl:Query>
     <dxl:Plan Id="0" SpaceSize="2">
-  <dxl:GatherMotion InputSegments="0,1" OutputSegments="-1">
+  <dxl:GatherMotion InputSegments="0,1,2" OutputSegments="-1">
     <dxl:Properties>
       <dxl:Cost StartupCost="0" TotalCost="431.044407" Rows="1000.000000" Width="8"/>
     </dxl:Properties>

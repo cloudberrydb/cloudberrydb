@@ -565,7 +565,7 @@ WHERE tt.event_ts >= tq.ets AND
       </dxl:LogicalJoin>
     </dxl:Query>
 <dxl:Plan Id="3" SpaceSize="12">
-  <dxl:GatherMotion InputSegments="0,1" OutputSegments="-1">
+  <dxl:GatherMotion InputSegments="0,1,2" OutputSegments="-1">
     <dxl:Properties>
       <dxl:Cost StartupCost="0" TotalCost="2598.019199" Rows="1.000000" Width="12"/>
     </dxl:Properties>
@@ -1007,7 +1007,7 @@ WHERE tt.event_ts >= tq.ets AND
               <dxl:JoinFilter>
                 <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
               </dxl:JoinFilter>
-              <dxl:BroadcastMotion InputSegments="0,1" OutputSegments="0,1">
+              <dxl:BroadcastMotion InputSegments="0,1,2" OutputSegments="0,1,2">
                 <dxl:Properties>
                   <dxl:Cost StartupCost="0" TotalCost="431.004769" Rows="3.000000" Width="85"/>
                 </dxl:Properties>
@@ -1247,7 +1247,7 @@ WHERE tt.event_ts >= tq.ets AND
               <dxl:JoinFilter>
                 <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
               </dxl:JoinFilter>
-              <dxl:BroadcastMotion InputSegments="0,1" OutputSegments="0,1">
+              <dxl:BroadcastMotion InputSegments="0,1,2" OutputSegments="0,1,2">
                 <dxl:Properties>
                   <dxl:Cost StartupCost="0" TotalCost="431.004769" Rows="3.000000" Width="85"/>
                 </dxl:Properties>
@@ -1604,7 +1604,7 @@ WHERE tt.event_ts >= tq.ets AND
                   </dxl:ProjElem>
                 </dxl:ProjList>
                 <dxl:Filter/>
-                <dxl:BroadcastMotion InputSegments="0,1" OutputSegments="0,1">
+                <dxl:BroadcastMotion InputSegments="0,1,2" OutputSegments="0,1,2">
                   <dxl:Properties>
                     <dxl:Cost StartupCost="0" TotalCost="431.004769" Rows="3.000000" Width="85"/>
                   </dxl:Properties>

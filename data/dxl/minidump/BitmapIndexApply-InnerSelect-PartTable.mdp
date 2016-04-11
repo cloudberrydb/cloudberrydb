@@ -409,7 +409,7 @@ select * from x, y where x.i > y.j and y.k = 10;
       </dxl:LogicalJoin>
     </dxl:Query>
 	<dxl:Plan Id="0" SpaceSize="2">
-	  <dxl:GatherMotion InputSegments="0,1" OutputSegments="-1">
+	  <dxl:GatherMotion InputSegments="0,1,2" OutputSegments="-1">
 	    <dxl:Properties>
 	      <dxl:Cost StartupCost="0" TotalCost="431.357756" Rows="1.000000" Width="64"/>
 	    </dxl:Properties>
@@ -475,7 +475,7 @@ select * from x, y where x.i > y.j and y.k = 10;
 	      <dxl:JoinFilter>
 	        <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
 	      </dxl:JoinFilter>
-	      <dxl:BroadcastMotion InputSegments="0,1" OutputSegments="0,1">
+	      <dxl:BroadcastMotion InputSegments="0,1,2" OutputSegments="0,1,2">
 	        <dxl:Properties>
 	          <dxl:Cost StartupCost="0" TotalCost="431.001826" Rows="3.000000" Width="32"/>
 	        </dxl:Properties>

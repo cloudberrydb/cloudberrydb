@@ -3463,6 +3463,8 @@ CTestUtils::EresRunMinidump
 		poconf->AddRef();
 	}
 
+	ULONG ulSegments = UlSegments(poconf);
+
 	// allow sampler to throw invalid plan exception
 	poconf->Pec()->SetSampleValidPlans(false /*fSampleValidPlans*/);
 
@@ -3476,7 +3478,7 @@ CTestUtils::EresRunMinidump
 					pmda,
 					pdxlmd,
 					szMinidumpFileName,
-					GPOPT_TEST_SEGMENTS,
+					ulSegments,
 					ulSessionId,
 					ulCmdId,
 					poconf,
@@ -3755,6 +3757,8 @@ CTestUtils::EresSamplePlans
 			poconf->AddRef();
 		}
 
+		ULONG ulSegments = UlSegments(poconf);
+
 		// allow sampler to throw invalid plan exception
 		poconf->Pec()->SetSampleValidPlans(false /*fSampleValidPlans*/);
 
@@ -3768,7 +3772,7 @@ CTestUtils::EresSamplePlans
 							&mda,
 							pdxlmd,
 							rgszFileNames[ul],
-							GPOPT_TEST_SEGMENTS,
+							ulSegments,
 							ulSessionId,
 							ulCmdId,
 							poconf,
@@ -3894,6 +3898,8 @@ CTestUtils::EresCheckPlans
 			poconf->AddRef();
 		}
 
+		ULONG ulSegments = UlSegments(poconf);
+
 		// set plan checker
 		poconf->Pec()->SetPlanChecker(pfpc);
 
@@ -3910,7 +3916,7 @@ CTestUtils::EresCheckPlans
 							&mda,
 							pdxlmd,
 							rgszFileNames[ul],
-							GPOPT_TEST_SEGMENTS,
+							ulSegments,
 							ulSessionId,
 							ulCmdId,
 							poconf,
@@ -3933,6 +3939,35 @@ CTestUtils::EresCheckPlans
 
 	*pulTestCounter = 0;
 	return eres;
+}
+
+
+//---------------------------------------------------------------------------
+//	@function:
+//		CTestUtils::UlSegments
+//
+//	@doc:
+//		Return the number of segments, default return GPOPT_TEST_SEGMENTS
+//
+//---------------------------------------------------------------------------
+ULONG
+CTestUtils::UlSegments
+	(
+	COptimizerConfig *poconf
+	)
+{
+	GPOS_ASSERT(NULL != poconf);
+	ULONG ulSegments = GPOPT_TEST_SEGMENTS;
+	if (NULL != poconf->Pcm())
+	{
+		ULONG ulSegs = poconf->Pcm()->UlHosts();
+		if (ulSegments < ulSegs)
+		{
+			ulSegments = ulSegs;
+		}
+	}
+
+	return ulSegments;
 }
 
 
@@ -3999,6 +4034,8 @@ CTestUtils::EresCheckOptimizedPlan
 			poconf->Pcm()->SetParams(pdrgpcp);
 		}
 		poconf->AddRef();
+		ULONG ulSegments = UlSegments(poconf);
+
 		// allow sampler to throw invalid plan exception
 		poconf->Pec()->SetSampleValidPlans(false /*fSampleValidPlans*/);
 
@@ -4012,7 +4049,7 @@ CTestUtils::EresCheckOptimizedPlan
 							&mda,
 							pdxlmd,
 							rgszFileNames[ul],
-							GPOPT_TEST_SEGMENTS,
+							ulSegments,
 							ulSessionId,
 							ulCmdId,
 							poconf,

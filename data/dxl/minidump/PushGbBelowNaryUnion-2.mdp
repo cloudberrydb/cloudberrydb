@@ -1686,7 +1686,7 @@ select id from uav1 union select val from uav2 union select id from uav4;
       </dxl:Union>
     </dxl:Query>
     <dxl:Plan Id="0" SpaceSize="8">
-      <dxl:GatherMotion InputSegments="0,1" OutputSegments="-1">
+      <dxl:GatherMotion InputSegments="0,1,2" OutputSegments="-1">
         <dxl:Properties>
           <dxl:Cost StartupCost="0" TotalCost="1308.588337" Rows="379.533334" Width="4"/>
         </dxl:Properties>
@@ -1710,7 +1710,7 @@ select id from uav1 union select val from uav2 union select id from uav4;
             </dxl:ProjElem>
           </dxl:ProjList>
           <dxl:Filter/>
-          <dxl:RedistributeMotion InputSegments="0,1" OutputSegments="0,1">
+          <dxl:RedistributeMotion InputSegments="0,1,2" OutputSegments="0,1,2">
             <dxl:Properties>
               <dxl:Cost StartupCost="0" TotalCost="1308.567157" Rows="379.533334" Width="4"/>
             </dxl:Properties>

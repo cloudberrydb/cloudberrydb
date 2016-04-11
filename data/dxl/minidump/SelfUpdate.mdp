@@ -241,7 +241,7 @@ update t1 set b = c;
             <dxl:Column ColId="21" Attno="-8" ColName="gp_segment_id" TypeMdid="0.23.1.0"/>
           </dxl:Columns>
         </dxl:TableDescriptor>
-        <dxl:RoutedDistributeMotion SegmentIdCol="9" InputSegments="0,1" OutputSegments="0,1">
+        <dxl:RoutedDistributeMotion SegmentIdCol="9" InputSegments="0,1,2" OutputSegments="0,1,2">
           <dxl:Properties>
             <dxl:Cost StartupCost="0" TotalCost="431.000159" Rows="2.000000" Width="26"/>
           </dxl:Properties>

@@ -6,7 +6,8 @@
       <dxl:StatisticsConfig DampingFactorFilter="0.750000" DampingFactorJoin="0.010000" DampingFactorGroupBy="0.750000"/>
       <dxl:CTEConfig CTEInliningCutoff="0"/>
       <dxl:CostModelConfig CostModelType="1" SegmentsForCosting="3"/>
-      <dxl:TraceFlags Value="101013,102120,103001,103014,103015,103022,103023"/>
+      <dxl:Hint MinNumOfPartsToRequireSortOnInsert="4294967295"/>
+      <dxl:TraceFlags Value="101013,102120,103001,103014,103015,103016,103022,103023,104002"/>
     </dxl:OptimizerConfig>
     <dxl:Metadata SystemIds="0.GPDB">
       <dxl:ColumnStatistics Mdid="1.17471384.1.1.29" Name="ctid" Width="6.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000" ColStatsMissing="true"/>
@@ -398,18 +399,6 @@
           <dxl:OpClass Mdid="0.3022.1.0"/>
         </dxl:OpClasses>
       </dxl:GPDBScalarOp>
-      <dxl:GPDBScalarOp Mdid="0.1095.1.0" Name="&lt;" ComparisonType="LT" ReturnsNullOnNullInput="true">
-        <dxl:LeftType Mdid="0.1082.1.0"/>
-        <dxl:RightType Mdid="0.1082.1.0"/>
-        <dxl:ResultType Mdid="0.16.1.0"/>
-        <dxl:OpFunc Mdid="0.1087.1.0"/>
-        <dxl:Commutator Mdid="0.1097.1.0"/>
-        <dxl:InverseOp Mdid="0.1098.1.0"/>
-        <dxl:OpClasses>
-          <dxl:OpClass Mdid="0.434.1.0"/>
-          <dxl:OpClass Mdid="0.3022.1.0"/>
-        </dxl:OpClasses>
-      </dxl:GPDBScalarOp>
       <dxl:ColumnStatistics Mdid="1.17471384.1.1.25" Name="productid" Width="4.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000" ColStatsMissing="true"/>
       <dxl:ColumnStatistics Mdid="1.17471384.1.1.24" Name="ccyid" Width="4.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000" ColStatsMissing="true"/>
       <dxl:ColumnStatistics Mdid="1.17471384.1.1.17" Name="observablename" Width="8.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000" ColStatsMissing="true"/>
@@ -435,7 +424,7 @@
       <dxl:ColumnStatistics Mdid="1.17438125.1.1.0" Name="riskrunid" Width="8.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000" ColStatsMissing="true"/>
       <dxl:ColumnStatistics Mdid="1.17438125.1.1.9" Name="contractid" Width="8.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000" ColStatsMissing="true"/>
       <dxl:RelationStatistics Mdid="2.17364111.1.1" Name="mr_star1_deltas_col_part" Rows="0.000000" EmptyRelation="true"/>
-      <dxl:Relation Mdid="0.17364111.1.1" Name="mr_star1_deltas_col_part" IsTemporary="false" HasOids="false" StorageType="AppendOnly, Column-oriented" DistributionPolicy="Hash" DistributionColumns="9,18,19" Keys="30,31,29" PartitionColumns="2">
+      <dxl:Relation Mdid="0.17364111.1.1" Name="mr_star1_deltas_col_part" IsTemporary="false" HasOids="false" StorageType="AppendOnly, Column-oriented" DistributionPolicy="Hash" DistributionColumns="9,18,19" Keys="30,31,29" PartitionColumns="2" NumberLeafPartitions="0">
         <dxl:Columns>
           <dxl:Column Name="riskrunid" Attno="1" Mdid="0.20.1.0" Nullable="true">
             <dxl:DefaultValue/>
@@ -567,7 +556,7 @@
       <dxl:ColumnStatistics Mdid="1.17347476.1.1.14" Name="uomname" Width="8.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000" ColStatsMissing="true"/>
       <dxl:ColumnStatistics Mdid="1.17347476.1.1.7" Name="tradetype" Width="8.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000" ColStatsMissing="true"/>
       <dxl:ColumnStatistics Mdid="1.17347476.1.1.6" Name="entity" Width="8.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000" ColStatsMissing="true"/>
-      <dxl:Relation Mdid="0.17355788.1.1" Name="mr_star1_decorrelation_col_part" IsTemporary="false" HasOids="false" StorageType="AppendOnly, Column-oriented" DistributionPolicy="Hash" DistributionColumns="9,18,19" Keys="30,31,29" PartitionColumns="2">
+      <dxl:Relation Mdid="0.17355788.1.1" Name="mr_star1_decorrelation_col_part" IsTemporary="false" HasOids="false" StorageType="AppendOnly, Column-oriented" DistributionPolicy="Hash" DistributionColumns="9,18,19" Keys="30,31,29" PartitionColumns="2" NumberLeafPartitions="0">
         <dxl:Columns>
           <dxl:Column Name="riskrunid" Attno="1" Mdid="0.20.1.0" Nullable="true">
             <dxl:DefaultValue/>
@@ -682,18 +671,6 @@
           </dxl:And>
         </dxl:PartConstraint>
       </dxl:Relation>
-      <dxl:GPDBScalarOp Mdid="0.1098.1.0" Name="&gt;=" ComparisonType="GEq" ReturnsNullOnNullInput="true">
-        <dxl:LeftType Mdid="0.1082.1.0"/>
-        <dxl:RightType Mdid="0.1082.1.0"/>
-        <dxl:ResultType Mdid="0.16.1.0"/>
-        <dxl:OpFunc Mdid="0.1090.1.0"/>
-        <dxl:Commutator Mdid="0.1096.1.0"/>
-        <dxl:InverseOp Mdid="0.1095.1.0"/>
-        <dxl:OpClasses>
-          <dxl:OpClass Mdid="0.434.1.0"/>
-          <dxl:OpClass Mdid="0.3022.1.0"/>
-        </dxl:OpClasses>
-      </dxl:GPDBScalarOp>
       <dxl:ColumnStatistics Mdid="1.17421490.1.1.31" Name="gp_segment_id" Width="4.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000" ColStatsMissing="true"/>
       <dxl:ColumnStatistics Mdid="1.17421490.1.1.30" Name="tableoid" Width="4.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000" ColStatsMissing="true"/>
       <dxl:ColumnStatistics Mdid="1.17421490.1.1.23" Name="bookid" Width="4.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000" ColStatsMissing="true"/>
@@ -719,7 +696,7 @@
       <dxl:ColumnStatistics Mdid="1.17384494.1.1.18" Name="axis1" Width="8.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000" ColStatsMissing="true"/>
       <dxl:ColumnStatistics Mdid="1.17384494.1.1.2" Name="businessdate" Width="4.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000" ColStatsMissing="true"/>
       <dxl:RelationStatistics Mdid="2.17347476.1.1" Name="mr_star1_cashflows_col_part" Rows="0.000000" EmptyRelation="true"/>
-      <dxl:Relation Mdid="0.17347476.1.1" Name="mr_star1_cashflows_col_part" IsTemporary="false" HasOids="false" StorageType="AppendOnly, Column-oriented" DistributionPolicy="Hash" DistributionColumns="9,18,19" Keys="30,31,29" PartitionColumns="2">
+      <dxl:Relation Mdid="0.17347476.1.1" Name="mr_star1_cashflows_col_part" IsTemporary="false" HasOids="false" StorageType="AppendOnly, Column-oriented" DistributionPolicy="Hash" DistributionColumns="9,18,19" Keys="30,31,29" PartitionColumns="2" NumberLeafPartitions="0">
         <dxl:Columns>
           <dxl:Column Name="riskrunid" Attno="1" Mdid="0.20.1.0" Nullable="true">
             <dxl:DefaultValue/>
@@ -875,7 +852,7 @@
       <dxl:ColumnStatistics Mdid="1.17413178.1.1.18" Name="axis1" Width="8.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000" ColStatsMissing="true"/>
       <dxl:ColumnStatistics Mdid="1.17413178.1.1.2" Name="businessdate" Width="4.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000" ColStatsMissing="true"/>
       <dxl:RelationStatistics Mdid="2.17471384.1.1" Name="mr_star1_volofvol_col_part" Rows="0.000000" EmptyRelation="true"/>
-      <dxl:Relation Mdid="0.17471384.1.1" Name="mr_star1_volofvol_col_part" IsTemporary="false" HasOids="false" StorageType="AppendOnly, Column-oriented" DistributionPolicy="Hash" DistributionColumns="9,18,19" Keys="30,31,29" PartitionColumns="2">
+      <dxl:Relation Mdid="0.17471384.1.1" Name="mr_star1_volofvol_col_part" IsTemporary="false" HasOids="false" StorageType="AppendOnly, Column-oriented" DistributionPolicy="Hash" DistributionColumns="9,18,19" Keys="30,31,29" PartitionColumns="2" NumberLeafPartitions="0">
         <dxl:Columns>
           <dxl:Column Name="riskrunid" Attno="1" Mdid="0.20.1.0" Nullable="true">
             <dxl:DefaultValue/>
@@ -991,7 +968,7 @@
         </dxl:PartConstraint>
       </dxl:Relation>
       <dxl:RelationStatistics Mdid="2.17463072.1.1" Name="mr_star1_voldrip_col_part" Rows="0.000000" EmptyRelation="true"/>
-      <dxl:Relation Mdid="0.17463072.1.1" Name="mr_star1_voldrip_col_part" IsTemporary="false" HasOids="false" StorageType="AppendOnly, Column-oriented" DistributionPolicy="Hash" DistributionColumns="9,18,19" Keys="30,31,29" PartitionColumns="2">
+      <dxl:Relation Mdid="0.17463072.1.1" Name="mr_star1_voldrip_col_part" IsTemporary="false" HasOids="false" StorageType="AppendOnly, Column-oriented" DistributionPolicy="Hash" DistributionColumns="9,18,19" Keys="30,31,29" PartitionColumns="2" NumberLeafPartitions="0">
         <dxl:Columns>
           <dxl:Column Name="riskrunid" Attno="1" Mdid="0.20.1.0" Nullable="true">
             <dxl:DefaultValue/>
@@ -1108,7 +1085,7 @@
       </dxl:Relation>
       <dxl:RelationStatistics Mdid="2.17446437.1.1" Name="mr_star1_skew_col_part" Rows="0.000000" EmptyRelation="true"/>
       <dxl:RelationStatistics Mdid="2.17392806.1.1" Name="mr_star1_gammas_col_part" Rows="0.000000" EmptyRelation="true"/>
-      <dxl:Relation Mdid="0.17446437.1.1" Name="mr_star1_skew_col_part" IsTemporary="false" HasOids="false" StorageType="AppendOnly, Column-oriented" DistributionPolicy="Hash" DistributionColumns="9,18,19" Keys="30,31,29" PartitionColumns="2">
+      <dxl:Relation Mdid="0.17446437.1.1" Name="mr_star1_skew_col_part" IsTemporary="false" HasOids="false" StorageType="AppendOnly, Column-oriented" DistributionPolicy="Hash" DistributionColumns="9,18,19" Keys="30,31,29" PartitionColumns="2" NumberLeafPartitions="0">
         <dxl:Columns>
           <dxl:Column Name="riskrunid" Attno="1" Mdid="0.20.1.0" Nullable="true">
             <dxl:DefaultValue/>
@@ -1223,7 +1200,7 @@
           </dxl:And>
         </dxl:PartConstraint>
       </dxl:Relation>
-      <dxl:Relation Mdid="0.17392806.1.1" Name="mr_star1_gammas_col_part" IsTemporary="false" HasOids="false" StorageType="AppendOnly, Column-oriented" DistributionPolicy="Hash" DistributionColumns="9,18,19" Keys="30,31,29" PartitionColumns="2">
+      <dxl:Relation Mdid="0.17392806.1.1" Name="mr_star1_gammas_col_part" IsTemporary="false" HasOids="false" StorageType="AppendOnly, Column-oriented" DistributionPolicy="Hash" DistributionColumns="9,18,19" Keys="30,31,29" PartitionColumns="2" NumberLeafPartitions="0">
         <dxl:Columns>
           <dxl:Column Name="riskrunid" Attno="1" Mdid="0.20.1.0" Nullable="true">
             <dxl:DefaultValue/>
@@ -1379,7 +1356,7 @@
       <dxl:ColumnStatistics Mdid="1.17347476.1.1.28" Name="bookname" Width="8.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000" ColStatsMissing="true"/>
       <dxl:ColumnStatistics Mdid="1.17347476.1.1.13" Name="value" Width="8.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000" ColStatsMissing="true"/>
       <dxl:ColumnStatistics Mdid="1.17347476.1.1.12" Name="measurename" Width="8.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000" ColStatsMissing="true"/>
-      <dxl:Relation Mdid="0.17454760.1.1" Name="mr_star1_theta_col_part" IsTemporary="false" HasOids="false" StorageType="AppendOnly, Column-oriented" DistributionPolicy="Hash" DistributionColumns="9,18,19" Keys="30,31,29" PartitionColumns="2">
+      <dxl:Relation Mdid="0.17454760.1.1" Name="mr_star1_theta_col_part" IsTemporary="false" HasOids="false" StorageType="AppendOnly, Column-oriented" DistributionPolicy="Hash" DistributionColumns="9,18,19" Keys="30,31,29" PartitionColumns="2" NumberLeafPartitions="0">
         <dxl:Columns>
           <dxl:Column Name="riskrunid" Attno="1" Mdid="0.20.1.0" Nullable="true">
             <dxl:DefaultValue/>
@@ -1520,7 +1497,7 @@
       <dxl:ColumnStatistics Mdid="1.17384494.1.1.9" Name="contractid" Width="8.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000" ColStatsMissing="true"/>
       <dxl:RelationStatistics Mdid="2.17438125.1.1" Name="mr_star1_seasonality_col_part" Rows="0.000000" EmptyRelation="true"/>
       <dxl:RelationStatistics Mdid="2.17384494.1.1" Name="mr_star1_fxdeltas_col_part" Rows="0.000000" EmptyRelation="true"/>
-      <dxl:Relation Mdid="0.17438125.1.1" Name="mr_star1_seasonality_col_part" IsTemporary="false" HasOids="false" StorageType="AppendOnly, Column-oriented" DistributionPolicy="Hash" DistributionColumns="9,18,19" Keys="30,31,29" PartitionColumns="2">
+      <dxl:Relation Mdid="0.17438125.1.1" Name="mr_star1_seasonality_col_part" IsTemporary="false" HasOids="false" StorageType="AppendOnly, Column-oriented" DistributionPolicy="Hash" DistributionColumns="9,18,19" Keys="30,31,29" PartitionColumns="2" NumberLeafPartitions="0">
         <dxl:Columns>
           <dxl:Column Name="riskrunid" Attno="1" Mdid="0.20.1.0" Nullable="true">
             <dxl:DefaultValue/>
@@ -1635,7 +1612,7 @@
           </dxl:And>
         </dxl:PartConstraint>
       </dxl:Relation>
-      <dxl:Relation Mdid="0.17384494.1.1" Name="mr_star1_fxdeltas_col_part" IsTemporary="false" HasOids="false" StorageType="AppendOnly, Column-oriented" DistributionPolicy="Hash" DistributionColumns="9,18,19" Keys="30,31,29" PartitionColumns="2">
+      <dxl:Relation Mdid="0.17384494.1.1" Name="mr_star1_fxdeltas_col_part" IsTemporary="false" HasOids="false" StorageType="AppendOnly, Column-oriented" DistributionPolicy="Hash" DistributionColumns="9,18,19" Keys="30,31,29" PartitionColumns="2" NumberLeafPartitions="0">
         <dxl:Columns>
           <dxl:Column Name="riskrunid" Attno="1" Mdid="0.20.1.0" Nullable="true">
             <dxl:DefaultValue/>
@@ -1751,7 +1728,7 @@
         </dxl:PartConstraint>
       </dxl:Relation>
       <dxl:RelationStatistics Mdid="2.17429813.1.1" Name="mr_star1_position_col_part" Rows="0.000000" EmptyRelation="true"/>
-      <dxl:Relation Mdid="0.17429813.1.1" Name="mr_star1_position_col_part" IsTemporary="false" HasOids="false" StorageType="AppendOnly, Column-oriented" DistributionPolicy="Hash" DistributionColumns="9,18,19" Keys="30,31,29" PartitionColumns="2">
+      <dxl:Relation Mdid="0.17429813.1.1" Name="mr_star1_position_col_part" IsTemporary="false" HasOids="false" StorageType="AppendOnly, Column-oriented" DistributionPolicy="Hash" DistributionColumns="9,18,19" Keys="30,31,29" PartitionColumns="2" NumberLeafPartitions="0">
         <dxl:Columns>
           <dxl:Column Name="riskrunid" Attno="1" Mdid="0.20.1.0" Nullable="true">
             <dxl:DefaultValue/>
@@ -1867,7 +1844,7 @@
         </dxl:PartConstraint>
       </dxl:Relation>
       <dxl:RelationStatistics Mdid="2.17421490.1.1" Name="mr_star1_netexposure_col_part" Rows="0.000000" EmptyRelation="true"/>
-      <dxl:Relation Mdid="0.17421490.1.1" Name="mr_star1_netexposure_col_part" IsTemporary="false" HasOids="false" StorageType="AppendOnly, Column-oriented" DistributionPolicy="Hash" DistributionColumns="9,18,19" Keys="30,31,29" PartitionColumns="2">
+      <dxl:Relation Mdid="0.17421490.1.1" Name="mr_star1_netexposure_col_part" IsTemporary="false" HasOids="false" StorageType="AppendOnly, Column-oriented" DistributionPolicy="Hash" DistributionColumns="9,18,19" Keys="30,31,29" PartitionColumns="2" NumberLeafPartitions="0">
         <dxl:Columns>
           <dxl:Column Name="riskrunid" Attno="1" Mdid="0.20.1.0" Nullable="true">
             <dxl:DefaultValue/>
@@ -2023,7 +2000,7 @@
       <dxl:ColumnStatistics Mdid="1.17413178.1.1.0" Name="riskrunid" Width="8.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000" ColStatsMissing="true"/>
       <dxl:ColumnStatistics Mdid="1.17413178.1.1.9" Name="contractid" Width="8.000000" NullFreq="0.000000" NdvRemain="0.000000" FreqRemain="0.000000" ColStatsMissing="true"/>
       <dxl:RelationStatistics Mdid="2.17413178.1.1" Name="mr_star1_kappa_col_part" Rows="0.000000" EmptyRelation="true"/>
-      <dxl:Relation Mdid="0.17413178.1.1" Name="mr_star1_kappa_col_part" IsTemporary="false" HasOids="false" StorageType="AppendOnly, Column-oriented" DistributionPolicy="Hash" DistributionColumns="9,18,19" Keys="30,31,29" PartitionColumns="2">
+      <dxl:Relation Mdid="0.17413178.1.1" Name="mr_star1_kappa_col_part" IsTemporary="false" HasOids="false" StorageType="AppendOnly, Column-oriented" DistributionPolicy="Hash" DistributionColumns="9,18,19" Keys="30,31,29" PartitionColumns="2" NumberLeafPartitions="0">
         <dxl:Columns>
           <dxl:Column Name="riskrunid" Attno="1" Mdid="0.20.1.0" Nullable="true">
             <dxl:DefaultValue/>
@@ -2973,7 +2950,7 @@
       </dxl:UnionAll>
     </dxl:Query>
     <dxl:Plan Id="0" SpaceSize="549755813888">
-      <dxl:GatherMotion InputSegments="0,1" OutputSegments="-1">
+      <dxl:GatherMotion InputSegments="0,1,2" OutputSegments="-1">
         <dxl:Properties>
           <dxl:Cost StartupCost="0" TotalCost="5603.002229" Rows="1.000000" Width="24"/>
         </dxl:Properties>
@@ -3050,7 +3027,7 @@
               </dxl:SortingColumnList>
               <dxl:LimitCount/>
               <dxl:LimitOffset/>
-              <dxl:RedistributeMotion InputSegments="0,1" OutputSegments="0,1">
+              <dxl:RedistributeMotion InputSegments="0,1,2" OutputSegments="0,1,2">
                 <dxl:Properties>
                   <dxl:Cost StartupCost="0" TotalCost="431.000126" Rows="1.000000" Width="24"/>
                 </dxl:Properties>
@@ -3297,7 +3274,7 @@
               </dxl:SortingColumnList>
               <dxl:LimitCount/>
               <dxl:LimitOffset/>
-              <dxl:RedistributeMotion InputSegments="0,1" OutputSegments="0,1">
+              <dxl:RedistributeMotion InputSegments="0,1,2" OutputSegments="0,1,2">
                 <dxl:Properties>
                   <dxl:Cost StartupCost="0" TotalCost="431.000126" Rows="1.000000" Width="24"/>
                 </dxl:Properties>
@@ -3544,7 +3521,7 @@
               </dxl:SortingColumnList>
               <dxl:LimitCount/>
               <dxl:LimitOffset/>
-              <dxl:RedistributeMotion InputSegments="0,1" OutputSegments="0,1">
+              <dxl:RedistributeMotion InputSegments="0,1,2" OutputSegments="0,1,2">
                 <dxl:Properties>
                   <dxl:Cost StartupCost="0" TotalCost="431.000126" Rows="1.000000" Width="24"/>
                 </dxl:Properties>
@@ -3791,7 +3768,7 @@
               </dxl:SortingColumnList>
               <dxl:LimitCount/>
               <dxl:LimitOffset/>
-              <dxl:RedistributeMotion InputSegments="0,1" OutputSegments="0,1">
+              <dxl:RedistributeMotion InputSegments="0,1,2" OutputSegments="0,1,2">
                 <dxl:Properties>
                   <dxl:Cost StartupCost="0" TotalCost="431.000126" Rows="1.000000" Width="24"/>
                 </dxl:Properties>
@@ -4038,7 +4015,7 @@
               </dxl:SortingColumnList>
               <dxl:LimitCount/>
               <dxl:LimitOffset/>
-              <dxl:RedistributeMotion InputSegments="0,1" OutputSegments="0,1">
+              <dxl:RedistributeMotion InputSegments="0,1,2" OutputSegments="0,1,2">
                 <dxl:Properties>
                   <dxl:Cost StartupCost="0" TotalCost="431.000126" Rows="1.000000" Width="24"/>
                 </dxl:Properties>
@@ -4285,7 +4262,7 @@
               </dxl:SortingColumnList>
               <dxl:LimitCount/>
               <dxl:LimitOffset/>
-              <dxl:RedistributeMotion InputSegments="0,1" OutputSegments="0,1">
+              <dxl:RedistributeMotion InputSegments="0,1,2" OutputSegments="0,1,2">
                 <dxl:Properties>
                   <dxl:Cost StartupCost="0" TotalCost="431.000126" Rows="1.000000" Width="24"/>
                 </dxl:Properties>
@@ -4532,7 +4509,7 @@
               </dxl:SortingColumnList>
               <dxl:LimitCount/>
               <dxl:LimitOffset/>
-              <dxl:RedistributeMotion InputSegments="0,1" OutputSegments="0,1">
+              <dxl:RedistributeMotion InputSegments="0,1,2" OutputSegments="0,1,2">
                 <dxl:Properties>
                   <dxl:Cost StartupCost="0" TotalCost="431.000126" Rows="1.000000" Width="24"/>
                 </dxl:Properties>
@@ -4779,7 +4756,7 @@
               </dxl:SortingColumnList>
               <dxl:LimitCount/>
               <dxl:LimitOffset/>
-              <dxl:RedistributeMotion InputSegments="0,1" OutputSegments="0,1">
+              <dxl:RedistributeMotion InputSegments="0,1,2" OutputSegments="0,1,2">
                 <dxl:Properties>
                   <dxl:Cost StartupCost="0" TotalCost="431.000126" Rows="1.000000" Width="24"/>
                 </dxl:Properties>
@@ -5026,7 +5003,7 @@
               </dxl:SortingColumnList>
               <dxl:LimitCount/>
               <dxl:LimitOffset/>
-              <dxl:RedistributeMotion InputSegments="0,1" OutputSegments="0,1">
+              <dxl:RedistributeMotion InputSegments="0,1,2" OutputSegments="0,1,2">
                 <dxl:Properties>
                   <dxl:Cost StartupCost="0" TotalCost="431.000126" Rows="1.000000" Width="24"/>
                 </dxl:Properties>
@@ -5273,7 +5250,7 @@
               </dxl:SortingColumnList>
               <dxl:LimitCount/>
               <dxl:LimitOffset/>
-              <dxl:RedistributeMotion InputSegments="0,1" OutputSegments="0,1">
+              <dxl:RedistributeMotion InputSegments="0,1,2" OutputSegments="0,1,2">
                 <dxl:Properties>
                   <dxl:Cost StartupCost="0" TotalCost="431.000126" Rows="1.000000" Width="24"/>
                 </dxl:Properties>
@@ -5520,7 +5497,7 @@
               </dxl:SortingColumnList>
               <dxl:LimitCount/>
               <dxl:LimitOffset/>
-              <dxl:RedistributeMotion InputSegments="0,1" OutputSegments="0,1">
+              <dxl:RedistributeMotion InputSegments="0,1,2" OutputSegments="0,1,2">
                 <dxl:Properties>
                   <dxl:Cost StartupCost="0" TotalCost="431.000126" Rows="1.000000" Width="24"/>
                 </dxl:Properties>
@@ -5767,7 +5744,7 @@
               </dxl:SortingColumnList>
               <dxl:LimitCount/>
               <dxl:LimitOffset/>
-              <dxl:RedistributeMotion InputSegments="0,1" OutputSegments="0,1">
+              <dxl:RedistributeMotion InputSegments="0,1,2" OutputSegments="0,1,2">
                 <dxl:Properties>
                   <dxl:Cost StartupCost="0" TotalCost="431.000126" Rows="1.000000" Width="24"/>
                 </dxl:Properties>
@@ -6014,7 +5991,7 @@
               </dxl:SortingColumnList>
               <dxl:LimitCount/>
               <dxl:LimitOffset/>
-              <dxl:RedistributeMotion InputSegments="0,1" OutputSegments="0,1">
+              <dxl:RedistributeMotion InputSegments="0,1,2" OutputSegments="0,1,2">
                 <dxl:Properties>
                   <dxl:Cost StartupCost="0" TotalCost="431.000126" Rows="1.000000" Width="24"/>
                 </dxl:Properties>

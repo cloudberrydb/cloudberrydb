@@ -477,7 +477,7 @@ explain insert into table1 values (1,10,generate_series(1,1000000));
       </dxl:LogicalInsert>
     </dxl:Query>
     <dxl:Plan Id="0" SpaceSize="3">
-      <dxl:DMLInsert Columns="1,2,3,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,4" ActionCol="20" OidCol="21" CtidCol="0" SegmentIdCol="0">
+      <dxl:DMLInsert Columns="1,2,3,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,4" ActionCol="20" OidCol="21" CtidCol="0" SegmentIdCol="0" InputSorted="false">
         <dxl:Properties>
           <dxl:Cost StartupCost="0" TotalCost="0.172351" Rows="1.000000" Width="20"/>
         </dxl:Properties>
@@ -571,7 +571,7 @@ explain insert into table1 values (1,10,generate_series(1,1000000));
             <dxl:Column ColId="47" Attno="-8" ColName="gp_segment_id" TypeMdid="0.23.1.0"/>
           </dxl:Columns>
         </dxl:TableDescriptor>
-        <dxl:RandomMotion InputSegments="-1" OutputSegments="0,1">
+        <dxl:RandomMotion InputSegments="-1" OutputSegments="0,1,2">
           <dxl:Properties>
             <dxl:Cost StartupCost="0" TotalCost="0.000476" Rows="1.000000" Width="132"/>
           </dxl:Properties>

@@ -498,7 +498,7 @@ select * from x, y where (x.i > y.j);
       </dxl:LogicalJoin>
     </dxl:Query>
 	<dxl:Plan Id="3" SpaceSize="8">
-	  <dxl:GatherMotion InputSegments="0,1" OutputSegments="-1">
+	  <dxl:GatherMotion InputSegments="0,1,2" OutputSegments="-1">
 	    <dxl:Properties>
 	      <dxl:Cost StartupCost="0" TotalCost="2161.013063" Rows="1.000000" Width="64"/>
 	    </dxl:Properties>
@@ -1033,7 +1033,7 @@ select * from x, y where (x.i > y.j);
 	              <dxl:JoinFilter>
 	                <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
 	              </dxl:JoinFilter>
-	              <dxl:BroadcastMotion InputSegments="0,1" OutputSegments="0,1">
+	              <dxl:BroadcastMotion InputSegments="0,1,2" OutputSegments="0,1,2">
 	                <dxl:Properties>
 	                  <dxl:Cost StartupCost="0" TotalCost="431.004938" Rows="3.000000" Width="88"/>
 	                </dxl:Properties>
@@ -1354,7 +1354,7 @@ select * from x, y where (x.i > y.j);
 	                  </dxl:ProjElem>
 	                </dxl:ProjList>
 	                <dxl:Filter/>
-	                <dxl:BroadcastMotion InputSegments="0,1" OutputSegments="0,1">
+	                <dxl:BroadcastMotion InputSegments="0,1,2" OutputSegments="0,1,2">
 	                  <dxl:Properties>
 	                    <dxl:Cost StartupCost="0" TotalCost="431.004938" Rows="3.000000" Width="88"/>
 	                  </dxl:Properties>

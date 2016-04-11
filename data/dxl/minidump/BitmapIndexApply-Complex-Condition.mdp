@@ -504,7 +504,7 @@ EXPLAIN SELECT * FROM s i1, t t2 where t2.c2 = i1.c2  and t2.c3 > i1.c3 or t2.c1
       </dxl:LogicalJoin>
     </dxl:Query>
 	 <dxl:Plan Id="0" SpaceSize="1">
-	  <dxl:GatherMotion InputSegments="0,1" OutputSegments="-1">
+	  <dxl:GatherMotion InputSegments="0,1,2" OutputSegments="-1">
 	    <dxl:Properties>
 	      <dxl:Cost StartupCost="0" TotalCost="431.111813" Rows="1.000000" Width="20"/>
 	    </dxl:Properties>
@@ -606,7 +606,7 @@ EXPLAIN SELECT * FROM s i1, t t2 where t2.c2 = i1.c2  and t2.c3 > i1.c3 or t2.c1
 	      <dxl:JoinFilter>
 	        <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
 	      </dxl:JoinFilter>
-	      <dxl:BroadcastMotion InputSegments="0,1" OutputSegments="0,1">
+	      <dxl:BroadcastMotion InputSegments="0,1,2" OutputSegments="0,1,2">
 	        <dxl:Properties>
 	          <dxl:Cost StartupCost="0" TotalCost="431.000592" Rows="3.000000" Width="10"/>
 	        </dxl:Properties>

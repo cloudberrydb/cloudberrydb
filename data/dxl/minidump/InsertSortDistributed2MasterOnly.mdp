@@ -310,7 +310,7 @@ explain insert into masteronly select * from distributedtable order by 1;
             <dxl:Column ColId="21" Attno="-8" ColName="gp_segment_id" TypeMdid="0.23.1.0"/>
           </dxl:Columns>
         </dxl:TableDescriptor>
-        <dxl:GatherMotion InputSegments="0,1" OutputSegments="-1">
+        <dxl:GatherMotion InputSegments="0,1,2" OutputSegments="-1">
           <dxl:Properties>
             <dxl:Cost StartupCost="0" TotalCost="431.000135" Rows="1.000000" Width="24"/>
           </dxl:Properties>

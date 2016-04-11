@@ -334,7 +334,7 @@ WHERE  sach_vsnr = 465132477;
       </dxl:LogicalInsert>
     </dxl:Query>
     <dxl:Plan Id="0" SpaceSize="4">
-      <dxl:DMLInsert Columns="0,1,10" ActionCol="11" OidCol="12" CtidCol="0" SegmentIdCol="0">
+      <dxl:DMLInsert Columns="0,1,10" ActionCol="11" OidCol="12" CtidCol="0" SegmentIdCol="0" InputSorted="false">
         <dxl:Properties>
           <dxl:Cost StartupCost="0" TotalCost="431.001443" Rows="1.000000" Width="10"/>
         </dxl:Properties>
@@ -368,7 +368,7 @@ WHERE  sach_vsnr = 465132477;
             <dxl:Column ColId="22" Attno="-8" ColName="gp_segment_id" TypeMdid="0.23.1.0"/>
           </dxl:Columns>
         </dxl:TableDescriptor>
-        <dxl:RedistributeMotion InputSegments="0" OutputSegments="0,1" DuplicateSensitive="true">
+        <dxl:RedistributeMotion InputSegments="0" OutputSegments="0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53" DuplicateSensitive="true">
           <dxl:Properties>
             <dxl:Cost StartupCost="0" TotalCost="431.000141" Rows="1.000000" Width="18"/>
           </dxl:Properties>
@@ -437,7 +437,7 @@ WHERE  sach_vsnr = 465132477;
                 </dxl:ProjElem>
               </dxl:ProjList>
               <dxl:Filter/>
-              <dxl:BroadcastMotion InputSegments="0,1" OutputSegments="0,1">
+              <dxl:BroadcastMotion InputSegments="0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53" OutputSegments="0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53">
                 <dxl:Properties>
                   <dxl:Cost StartupCost="0" TotalCost="431.000081" Rows="54.000000" Width="6"/>
                 </dxl:Properties>

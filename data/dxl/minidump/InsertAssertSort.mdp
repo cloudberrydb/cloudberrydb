@@ -403,7 +403,7 @@ explain insert into tbl_cds_buysell_orders_new (a,b,c)
             <dxl:Column ColId="25" Attno="-8" ColName="gp_segment_id" TypeMdid="0.23.1.0"/>
           </dxl:Columns>
         </dxl:TableDescriptor>
-        <dxl:RedistributeMotion InputSegments="0,1" OutputSegments="0,1">
+        <dxl:RedistributeMotion InputSegments="0,1,2" OutputSegments="0,1,2">
           <dxl:Properties>
             <dxl:Cost StartupCost="0" TotalCost="1369.148718" Rows="1000000.000000" Width="40"/>
           </dxl:Properties>
