@@ -356,7 +356,7 @@ CXformFactory::EresInit()
 	// create xform factory memory pool
 	IMemoryPool *pmp = CMemoryPoolManager::Pmpm()->PmpCreate
 							(
-							CMemoryPoolManager::EatMalloc,
+							CMemoryPoolManager::EatTracker,
 							true /*fThreadSafe*/,
 							ULLONG_MAX
 							);
