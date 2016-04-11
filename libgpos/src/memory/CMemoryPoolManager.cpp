@@ -80,7 +80,7 @@ CMemoryPoolManager::CMemoryPoolManager
 		);
 
 	// create pool used in allocations made using global new operator
-	m_pmpGlobal = PmpCreate(EatMalloc, true, ULLONG_MAX);
+	m_pmpGlobal = PmpCreate(EatTracker, true, ULLONG_MAX);
 }
 
 
@@ -203,7 +203,7 @@ CMemoryPoolManager::PmpNew
 {
 	switch (eat)
 	{
-		case CMemoryPoolManager::EatMalloc:
+		case CMemoryPoolManager::EatTracker:
 			return GPOS_NEW(m_pmpInternal) CMemoryPoolTracker
 						(
 						pmpUnderlying,
@@ -255,7 +255,7 @@ CMemoryPoolManager::PmpCreatePoolStack
 	)
 {
 	IMemoryPool *pmpBase = m_pmpBase;
-	BOOL fMallocType = (EatMalloc == eat);
+	BOOL fMallocType = (EatTracker == eat);
 
 	// check if tracking and fault injection on internal allocations
 	// of memory pools is enabled
@@ -271,7 +271,7 @@ CMemoryPoolManager::PmpCreatePoolStack
 		// put tracker on top of fault injector
 		pmpBase = PmpNew
 				(
-				EatMalloc,
+				EatTracker,
 				pmpFPSimLow,
 				ullCapacity,
 				fThreadSafe,
@@ -302,7 +302,7 @@ CMemoryPoolManager::PmpCreatePoolStack
 				);
 
 	// put tracker on top of the stack
-	return PmpNew(EatMalloc, pmpFPSim, ullCapacity, fThreadSafe, true /*fOwnsUnderlying*/);
+	return PmpNew(EatTracker, pmpFPSim, ullCapacity, fThreadSafe, true /*fOwnsUnderlying*/);
 }
 
 #endif // GPOS_DEBUG

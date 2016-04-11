@@ -68,7 +68,7 @@ CMemoryPoolBasicTest::EresUnittest()
 #ifdef GPOS_DEBUG
 		GPOS_UNITTEST_FUNC(CMemoryPoolBasicTest::EresUnittest_Print),
 #endif // GPOS_DEBUG
-		GPOS_UNITTEST_FUNC(CMemoryPoolBasicTest::EresUnittest_TestMalloc),
+		GPOS_UNITTEST_FUNC(CMemoryPoolBasicTest::EresUnittest_TestTracker),
 		GPOS_UNITTEST_FUNC(CMemoryPoolBasicTest::EresUnittest_TestSlab),
 		GPOS_UNITTEST_FUNC(CMemoryPoolBasicTest::EresUnittest_TestStack),
 		};
@@ -110,16 +110,16 @@ CMemoryPoolBasicTest::EresUnittest_Print()
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CMemoryPoolBasicTest::EresUnittest_TestMalloc
+//		CMemoryPoolBasicTest::EresUnittest_TestTracker
 //
 //	@doc:
-//		Run tests for malloc-wrapper pool
+//		Run tests for pool tracking allocations
 //
 //---------------------------------------------------------------------------
 GPOS_RESULT
-CMemoryPoolBasicTest::EresUnittest_TestMalloc()
+CMemoryPoolBasicTest::EresUnittest_TestTracker()
 {
-	return EresTestType(CMemoryPoolManager::EatMalloc);
+	return EresTestType(CMemoryPoolManager::EatTracker);
 }
 
 

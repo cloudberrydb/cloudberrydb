@@ -45,7 +45,7 @@ namespace gpos
 			// different types of pools
 			enum EAllocType
 			{
-				EatMalloc,
+				EatTracker,
 				EatStack,
 				EatSlab
 			};

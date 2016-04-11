@@ -4,7 +4,7 @@ cmake_minimum_required(VERSION 3.0 FATAL_ERROR)
 project(gpos LANGUAGES CXX C)
 
 set(GPOS_VERSION_MAJOR 1)
-set(GPOS_VERSION_MINOR 135)
+set(GPOS_VERSION_MINOR 136)
 set(GPOS_VERSION_STRING ${GPOS_VERSION_MAJOR}.${GPOS_VERSION_MINOR})
 
 # Whenever an ABI-breaking change is made to GPOS, this should be incremented.

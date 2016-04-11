@@ -105,7 +105,7 @@ CWorkerPoolManager::EresInit
 	IMemoryPool *pmp =
 		CMemoryPoolManager::Pmpm()->PmpCreate
 			(
-			CMemoryPoolManager::EatMalloc,
+			CMemoryPoolManager::EatTracker,
 			true /*fThreadSafe*/,
 			GPOS_WORKERPOOL_MEM_POOL_SIZE
 			);

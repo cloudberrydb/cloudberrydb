@@ -163,7 +163,7 @@ namespace gpos
 				// construct a memory pool for cache entry
 				m_pmp = CMemoryPoolManager::Pmpm()->PmpCreate
 						(
-						CMemoryPoolManager::EatMalloc,
+						CMemoryPoolManager::EatTracker,
 						true /*fThreadSafe*/,
 						ULLONG_MAX
 						);
