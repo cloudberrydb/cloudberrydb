@@ -385,9 +385,11 @@ CMinidumperUtils::PdxlnExecuteMinidump
 {
 	GPOS_ASSERT(NULL != szFileName);
 
+	// reset metadata ccache
+	CMDCache::Reset();
+
 	// set up MD providers
 	CMDProviderMemory *pmdp = GPOS_NEW(pmp) CMDProviderMemory(pmp, szFileName);
-	
 	const DrgPsysid *pdrgpsysid = pdxlmd->Pdrgpsysid();
 	DrgPmdp *pdrgpmdp = GPOS_NEW(pmp) DrgPmdp(pmp);
 	pdrgpmdp->Append(pmdp);
@@ -400,7 +402,13 @@ CMinidumperUtils::PdxlnExecuteMinidump
 
 	CMDAccessor mda(pmp, CMDCache::Pcache(), pdxlmd->Pdrgpsysid(), pdrgpmdp);
 	
-	return CMinidumperUtils::PdxlnExecuteMinidump(pmp, &mda, pdxlmd, szFileName, ulSegments, ulSessionId, ulCmdId, poconf, pceeval);
+	CDXLNode *result = CMinidumperUtils::PdxlnExecuteMinidump(pmp, &mda, pdxlmd, szFileName, ulSegments, ulSessionId, ulCmdId, poconf, pceeval);
+
+	// cleanup
+	pdrgpmdp->Release();
+	pmdp->Release();
+
+	return result;
 }
 
 
