@@ -46,6 +46,7 @@ ULONG CICGTest::m_ulNegativeIndexApplyTestCounter = 0;
 // minidump files
 const CHAR *rgszFileNames[] =
 	{
+		"../data/dxl/minidump/IN-Numeric.mdp",
 		"../data/dxl/minidump/CollapseNot.mdp",
 		"../data/dxl/minidump/OrderByNullsFirst.mdp",
 		"../data/dxl/minidump/ConvertHashToRandomSelect.mdp",

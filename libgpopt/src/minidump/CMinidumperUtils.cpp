@@ -418,6 +418,16 @@ CMinidumperUtils::PdxlnExecuteMinidump
 	CBitSet *pbsDisabled = NULL;
 	SetTraceflags(pmp, pdxlmd->Pbs(), &pbsEnabled, &pbsDisabled);
 
+	BOOL fConstantExpressionEvaluator = true;
+	if (NULL == pceeval)
+	{
+		// disable constant expression evaluation when running minidump since
+		// there no executor to compute the scalar expression
+		fConstantExpressionEvaluator = false;
+	}
+
+	CAutoTraceFlag atf1(EopttraceEnableConstantExpressionEvaluation, fConstantExpressionEvaluator);
+
 	CErrorHandlerStandard errhdl;
 	GPOS_TRY_HDL(&errhdl)
 	{
@@ -501,6 +511,16 @@ CMinidumperUtils::PdxlnExecuteMinidump
 	CBitSet *pbsEnabled = NULL;
 	CBitSet *pbsDisabled = NULL;
 	SetTraceflags(pmp, pdxlmd->Pbs(), &pbsEnabled, &pbsDisabled);
+
+	BOOL fConstantExpressionEvaluator = true;
+	if (NULL == pceeval)
+	{
+		// disable constant expression evaluation when running minidump since
+		// there no executor to compute the scalar expression
+		fConstantExpressionEvaluator = false;
+	}
+
+	CAutoTraceFlag atf1(EopttraceEnableConstantExpressionEvaluation, fConstantExpressionEvaluator);
 
 	CErrorHandlerStandard errhdl;
 	GPOS_TRY_HDL(&errhdl)
