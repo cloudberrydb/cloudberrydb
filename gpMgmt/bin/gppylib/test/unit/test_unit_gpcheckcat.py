@@ -15,7 +15,7 @@ class GpCheckCatTestCase(GpTestCase):
         gpcheckcat_file = os.path.abspath(os.path.dirname(__file__) + "/../../../gpcheckcat")
         self.subject = imp.load_source('gpcheckcat', gpcheckcat_file)
 
-        self.subject.logger = Mock(spec=['log', 'info', 'debug'])
+        self.subject.logger = Mock(spec=['log', 'info', 'debug', 'error'])
         self.db_connection = Mock(spec=[])
 
         self.unique_index_violation_check = Mock(spec=['runCheck'])
@@ -59,8 +59,8 @@ class GpCheckCatTestCase(GpTestCase):
 
     def test_running_unique_index_violation_check__when_violations_are_found__fails_the_check(self):
         self.unique_index_violation_check.runCheck.return_value = [
-            dict(table_oid=123, table_name='stephen_table', index_name='finger', segment_id=8),
-            dict(table_oid=456, table_name='larry_table', index_name='stock', segment_id=-1),
+            dict(table_oid=123, table_name='stephen_table', index_name='finger', column_names='c1, c2', violated_segments=[-1,8]),
+            dict(table_oid=456, table_name='larry_table', index_name='stock', column_names='c1', violated_segments=[-1]),
         ]
 
         self.subject.runOneCheck('unique_index_violation')
@@ -70,15 +70,15 @@ class GpCheckCatTestCase(GpTestCase):
 
     def test_checkcat_report__after_running_unique_index_violations_check__reports_violations(self):
         self.unique_index_violation_check.runCheck.return_value = [
-            dict(table_oid=123, table_name='stephen_table', index_name='finger', segment_id=8),
-            dict(table_oid=456, table_name='larry_table', index_name='stock', segment_id=-1),
+            dict(table_oid=123, table_name='stephen_table', index_name='finger', column_names='c1, c2', violated_segments=[-1,8]),
+            dict(table_oid=456, table_name='larry_table', index_name='stock', column_names='c1', violated_segments=[-1]),
         ]
         self.subject.runOneCheck('unique_index_violation')
 
         self.subject.checkcatReport()
 
-        expected_message1 = 'Table stephen_table on segment 8 has a violated unique index: finger'
-        expected_message2 = 'Table larry_table on segment -1 has a violated unique index: stock'
+        expected_message1 = '    Table stephen_table has a violated unique index: finger'
+        expected_message2 = '    Table larry_table has a violated unique index: stock'
         log_messages = [args[0][1] for args in self.subject.logger.log.call_args_list]
         self.assertIn(expected_message1, log_messages)
         self.assertIn(expected_message2, log_messages)

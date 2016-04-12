@@ -12,18 +12,20 @@ class UniqueIndexViolationCheck:
     """
 
     def __init__(self):
-        self.violated_index_query = """
-            (select gp_segment_id, %s, count(*)
-            from gp_dist_random('%s')
-            where (%s) is not null
-            group by gp_segment_id, %s
-            having count(*) > 1)
-            union
-            (select gp_segment_id, %s, count(*)
-            from %s
-            where (%s) is not null
-            group by gp_segment_id, %s
-            having count(*) > 1)
+        self.violated_segments_query = """
+            select distinct(gp_segment_id) from (
+                (select gp_segment_id, %s
+                from gp_dist_random('%s')
+                where (%s) is not null
+                group by gp_segment_id, %s
+                having count(*) > 1)
+                union
+                (select gp_segment_id, %s
+                from %s
+                where (%s) is not null
+                group by gp_segment_id, %s
+                having count(*) > 1)
+            ) as violations
         """
 
     def runCheck(self, db_connection):
@@ -31,17 +33,18 @@ class UniqueIndexViolationCheck:
         violations = []
 
         for (table_oid, index_name, table_name, column_names) in unique_indexes:
-            sql = self.get_violated_index_query(table_name, column_names)
-            violated_indexes = db_connection.query(sql).getresult()
-            for violated_index in violated_indexes:
+            sql = self.get_violated_segments_query(table_name, column_names)
+            violated_segments = db_connection.query(sql).getresult()
+            if violated_segments:
                 violations.append(dict(table_oid=table_oid,
                                        table_name=table_name,
                                        index_name=index_name,
-                                       segment_id=violated_index[0]))
+                                       column_names=column_names,
+                                       violated_segments=[row[0] for row in violated_segments]))
 
         return violations
 
-    def get_violated_index_query(self, table_name, column_names):
-        return self.violated_index_query % (
+    def get_violated_segments_query(self, table_name, column_names):
+        return self.violated_segments_query % (
             column_names, table_name, column_names, column_names, column_names, table_name, column_names, column_names
         )

@@ -28,6 +28,6 @@ Feature: gpcheckcat tests
         And psql should not print (0 rows) to stdout
         When the user runs "gpcheckcat test_index"
         Then gpcheckcat should not return a return code of 0
-        And gpcheckcat should print Table pg_compression on segment -1 has a violated unique index: pg_compression_compname_index to stdout
+        And gpcheckcat should print Table pg_compression has a violated unique index: pg_compression_compname_index to stdout
         And the user runs "dropdb test_index"
         And verify that a log was created by gpcheckcat in the user's "gpAdminLogs" directory

@@ -3441,15 +3441,29 @@ def checkUniqueIndexViolation():
         logger.info('[FAIL]  %s' % checkname)
         GV.checkStatus = False
         setError(ERROR_NOREPAIR)
+        log_unique_index_violations(violations)
     else:
         logger.info('[OK]  %s' % checkname)
+
+def log_unique_index_violations(violations):
+    log_output = ['\n    segment_id | index_name | table_name | column_names']
+    log_output.append('    ---------------------------------------------------')
 
     for violation in violations:
         error_object = getGPObject(violation['table_oid'], violation['table_name'])
         issue = CatUniqueIndexViolationIssue(violation['table_name'],
-                                             violation['index_name'],
-                                             violation['segment_id'])
+                                             violation['index_name'])
         error_object.addDuplicateIssue(issue)
+
+        for seg_id in violation['violated_segments']:
+            log_output.append('    %s | %s | %s | %s' % (
+                seg_id,
+                violation['index_name'],
+                violation['table_name'],
+                violation['column_names'],
+            ))
+
+    logger.error('\n'.join(log_output))
 
 
 ############################################################################
@@ -4405,15 +4419,14 @@ class CatACLIssue:
 
 # -------------------------------------------------------------------------------
 class CatUniqueIndexViolationIssue:
-    def __init__(self, table_name, index_name, segment_id):
+    def __init__(self, table_name, index_name):
         self.catname = table_name
         self.index_name = index_name
-        self.segment_id = segment_id
 
     def report(self):
         myprint(
-            'Table %s on segment %s has a violated unique index: %s'
-            % (self.catname, self.segment_id, self.index_name)
+            '    Table %s has a violated unique index: %s'
+            % (self.catname, self.index_name)
         )
 
 # -------------------------------------------------------------------------------
