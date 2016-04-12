@@ -34,6 +34,7 @@ try:
     from gppylib.commands.unix import *
     from pygresql.pgdb import DatabaseError
     from pygresql import pg
+    from gpcheckcat_modules.gpcheckcat_unique_index_violation_check import UniqueIndexViolationCheck
 except ImportError, e:
     sys.exit('Error: unable to import module: ' + str(e))
 
@@ -442,7 +443,6 @@ def getGPConfiguration():
         cfg[row['dbid']] = row
     db.close()
     return cfg
-
 
 def checkDistribPolicy():
     logger.info('-----------------------------------')
@@ -3428,6 +3428,19 @@ def duplicatePersistentEntryQuery(catname, pkey, excol, state):
           """.format(catalog=catname, pkey=','.join(pkey), excol=excol, state=state, dbname=GV.dbname)
     return qry
 
+# -------------------------------------------------------------------------------
+def checkUniqueIndexViolation():
+    logger.info('-----------------------------------')
+    logger.info('Performing check: checking for violated unique indexes')
+    db_connection = connect2(GV.cfg[1], utilityMode=False)
+    violations = UniqueIndexViolationCheck().runCheck(db_connection)
+    for violation in violations:
+        error_object = getGPObject(violation['table_oid'], violation['table_name'])
+        issue = CatUniqueIndexViolationIssue(violation['table_name'],
+                                             violation['index_name'],
+                                             violation['segment_id'])
+        error_object.setDuplicateIssue(issue)
+
 
 ############################################################################
 # Help populating repair part for all checked types
@@ -3469,12 +3482,20 @@ name_repair = {
 ############################################################################
 
 all_checks = {
+    "unique_index_violation":
+        {
+            "description": "Check for violated unique indexes",
+            "fn": lambda: checkUniqueIndexViolation(),
+            "version": "main",
+            "order": 1,
+            "online": True
+        },
     "duplicate":
         {
             "description": "Check for duplicate entries",
             "fn": lambda: checkDuplicateEntry(),
             "version": 'main',
-            "order": 1,
+            "order": 2,
             "online": True
         },
     "missing_extraneous":
@@ -3482,7 +3503,7 @@ all_checks = {
             "description": "Cross consistency check for missing or extraneous entries",
             "fn": lambda: checkMissingEntry(),
             "version": 'main',
-            "order": 2,
+            "order": 3,
             "online": True
         },
     "inconsistent":
@@ -3490,7 +3511,7 @@ all_checks = {
             "description": "Cross consistency check for master segment inconsistency",
             "fn": lambda: checkInconsistentEntry(),
             "version": 'main',
-            "order": 3,
+            "order": 4,
             "online": True
         },
     "foreign_key":
@@ -3498,7 +3519,7 @@ all_checks = {
             "description": "Check foreign keys",
             "fn": lambda: checkForeignKey(),
             "version": 'main',
-            "order": 4,
+            "order": 5,
             "online": True
         },
     "acl":
@@ -3506,7 +3527,7 @@ all_checks = {
             "description": "Cross consistency check for access control privileges",
             "fn": lambda: checkACL(),
             "version": 'main',
-            "order": 5,
+            "order": 6,
             "online": True
         },
     "persistent":
@@ -3514,7 +3535,7 @@ all_checks = {
             "description": "Check persistent tables",
             "fn": lambda: checkPersistentTables(),
             "version": 'main',
-            "order": 6,
+            "order": 7,
             "online": False
         },
     "pgclass":
@@ -3522,7 +3543,7 @@ all_checks = {
             "description": "Check pg_class entry that does not have any correspond pg_attribute entry",
             "fn": lambda: checkPGClass(),
             "version": 'main',
-            "order": 7,
+            "order": 8,
             "online": False
         },
     "namespace":
@@ -3530,7 +3551,7 @@ all_checks = {
             "description": "Check for leaked temporary schema and missing schema definition",
             "fn": lambda: checkPGNamespace(),
             "version": 'main',
-            "order": 8,
+            "order": 9,
             "online": False
         },
     "distribution_policy":
@@ -3538,7 +3559,7 @@ all_checks = {
             "description": "Check constraints on randomly distributed tables",
             "fn": lambda: checkDistribPolicy(),
             "version": 'main',
-            "order": 9,
+            "order": 10,
             "online": False
         },
     "dependency":
@@ -3546,7 +3567,7 @@ all_checks = {
             "description": "Check for dependency on non-existent objects",
             "fn": lambda: checkDepend(),
             "version": 'main',
-            "order": 10,
+            "order": 11,
             "online": False
         },
     "owner":
@@ -3554,7 +3575,7 @@ all_checks = {
             "description": "Check table ownership that is inconsistent with the master database",
             "fn": lambda: checkOwners(),
             "version": 'main',
-            "order": 11,
+            "order": 12,
             "online": True
         },
     "part_integrity":
@@ -3578,7 +3599,7 @@ all_checks = {
             "description": "Check for duplicate gp_persistent_relation_node entries",
             "fn": lambda: checkDuplicatePersistentEntry(),
             "version": 'main',
-            "order": 16,
+            "order": 15,
             "online": True
         }
 }
@@ -4372,6 +4393,18 @@ class CatACLIssue:
             myprint('            Exist(s) on %s only: %s ' % \
                     (GV.report_cfg[self.segid]['segname'], self.sacl_only))
 
+# -------------------------------------------------------------------------------
+class CatUniqueIndexViolationIssue:
+    def __init__(self, table_name, index_name, segment_id):
+        self.catname = table_name
+        self.index_name = index_name
+        self.segment_id = segment_id
+
+    def report(self):
+        myprint(
+            'Table %s on segment %s has a violated unique index: %s'
+            % (self.catname, self.segment_id, self.index_name)
+        )
 
 # -------------------------------------------------------------------------------
 class GPObject:
@@ -4480,6 +4513,7 @@ class GPObject:
                     each.report()
             myprint('')
 
+        # Report duplicate issues
         if len(self.duplicateIssues):
             for catname, issues in self.duplicateIssues.iteritems():
                 myprint('    Name of test which found this issue: duplicate_%s' % catname)
@@ -4748,7 +4782,6 @@ def generateVerifyFile(catname, fields, results, checkname):
             fp.write(verify_sql + '\n')
     except Exception as e:
         logger.warning('Unable to generate verify file for %s (%s)' % (catname, str(e)))
-
 
 #############
 if __name__ == '__main__':

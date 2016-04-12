@@ -20,3 +20,14 @@ Feature: gpcheckcat tests
         And psql should print (0 rows) to stdout
         And verify that the schema "good_schema" exists in "leak"
         And the user runs "dropdb leak"
+
+  Scenario: gpcheckcat should report unique index violations
+        Given database "test_index" is dropped and recreated
+        And the user runs "psql test_index -f 'gppylib/test/behave/mgmt_utils/steps/data/gpcheckcat/create_unique_index_violation.sql'"
+        Then psql should return a return code of 0
+        And psql should not print (0 rows) to stdout
+        When the user runs "gpcheckcat test_index"
+        Then gpcheckcat should not return a return code of 0
+        And gpcheckcat should print Table pg_compression on segment -1 has a violated unique index: pg_compression_compname_index to stdout
+        And the user runs "dropdb test_index"
+        And verify that a log was created by gpcheckcat in the user's "gpAdminLogs" directory

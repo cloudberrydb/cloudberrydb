@@ -1,51 +1,23 @@
+import commands
 import getpass
 import glob
-import os
-import re
-import thread
-import time
-import filecmp
-import shutil
-import signal
-import socket
-import subprocess
-import commands
-import sys
-import tarfile
 import platform
-from datetime import datetime
-import yaml
+import shutil
+import socket
+import tarfile
+import thread
 from collections import defaultdict
-from gppylib.commands.base import Command, ExecutionError, REMOTE
-from gppylib.commands.unix import findCmdInPath, RemoteCopy
-from gppylib.commands.gp import SegmentStart, GpStandbyStart
-from gppylib.db import dbconn
-from gppylib.gparray import GpArray
-from gppylib.operations.unix import ListRemoteFilesByPattern, CheckRemoteFile
-from gppylib.operations.startSegments import MIRROR_MODE_MIRRORLESS
-from gppylib.test.behave_utils.utils import bring_nic_down, bring_nic_up, run_cmd, get_table_names, get_segment_hostnames,check_schema_exists,\
-                                            create_database, create_database_if_not_exists, run_command_remote, wait_till_change_tracking_transition, \
-                                            wait_till_resync_transition, wait_till_insync_transition, create_gpfilespace_config,modify_sql_file, \
-                                            match_table_select, check_empty_table, check_err_msg, check_stdout_msg, \
-                                            check_return_code, create_int_table, create_partition, check_table_exists, create_large_num_partitions,\
-                                            create_fake_pg_aoseg_table, drop_database, drop_database_if_exists, drop_table_if_exists, getRows,\
-                                            get_hosts_and_datadirs, get_master_hostname, insert_row, start_database_if_not_started, stop_database_if_started,\
-                                            run_gpcommand, check_db_exists, check_database_is_running, are_segments_synchronized, has_exception, modify_data, modify_partition_data, \
-                                            validate_part_table_data_on_segments, validate_table_data_on_segments, validate_db_data, \
-                                            get_partition_tablenames, check_partition_table_exists, create_indexes, get_partition_names, \
-                                            validate_restore_data, backup_data, backup_db_data, cleanup_report_files, run_command, \
-                                            get_distribution_policy, validate_distribution_policy, cleanup_backup_files, create_schema, drop_schema_if_exists, \
-                                            create_mixed_storage_partition, create_external_partition, validate_mixed_partition_storage_types, validate_storage_type, truncate_table, \
-                                            get_table_oid, verify_truncate_in_pg_stat_last_operation, verify_truncate_not_in_pg_stat_last_operation, insert_numbers, \
-                                            populate_partition_diff_data_same_eof, populate_partition_same_data, execute_sql, verify_integer_tuple_counts, validate_aoco_stats, validate_no_aoco_stats, \
-                                            check_string_not_present_stdout, clear_all_saved_data_verify_files, copy_file_to_all_db_hosts, validate_num_restored_tables, \
-                                            get_partition_list, verify_stats, drop_external_table_if_exists, get_all_hostnames_as_list, get_pid_for_segment, kill_process, get_num_segments, \
-                                            check_user_permissions, get_change_tracking_segment_info, add_partition, drop_partition, check_pl_exists, check_constraint_exists, \
-                                            are_segments_running, execute_sql_singleton, check_row_count, diff_backup_restore_data, check_dump_dir_exists, verify_restored_table_is_analyzed, \
-                                            analyze_database, delete_rows_from_table, check_count_for_specific_query
+from datetime import datetime
 
+import yaml
+
+from gppylib.commands.gp import SegmentStart, GpStandbyStart
+from gppylib.commands.unix import findCmdInPath
 from gppylib.operations.dump import get_partition_state
+from gppylib.operations.startSegments import MIRROR_MODE_MIRRORLESS
+from gppylib.operations.unix import ListRemoteFilesByPattern, CheckRemoteFile
 from gppylib.test.behave_utils.gpfdist_utils.gpfdist_mgmt import Gpfdist
+from gppylib.test.behave_utils.utils import *
 
 master_data_dir = os.environ.get('MASTER_DATA_DIRECTORY')
 if master_data_dir is None:
@@ -496,6 +468,12 @@ def impl(context, command, out_msg):
 @then('{command} should return a return code of {ret_code}')
 def impl(context, command, ret_code):
     check_return_code(context, ret_code)
+
+@given('{command} should not return a return code of {ret_code}')
+@when('{command} should not return a return code of {ret_code}')
+@then('{command} should not return a return code of {ret_code}')
+def impl(context, command, ret_code):
+    check_not_return_code(context, ret_code)
 
 @then('an "{ex_type}" should be raised')
 def impl(context, ex_type):
@@ -3497,25 +3475,25 @@ def impl(context, schema_name, dbname):
     if not schema_exists:
         raise Exception("Schema '%s' does not exist in the database '%s'" % (schema_name,dbname))    
 
-def get_gptransfer_log_name(logdir):
+def get_log_name(utilname, logdir):
     today = datetime.now()
-    logname = "%s/gptransfer_%s.log" % (logdir, today.strftime('%Y%m%d'))
+    logname = "%s/%s_%s.log" % (logdir, utilname, today.strftime('%Y%m%d'))
     return logname
 
-@then('verify that a log was created by gptransfer in the user\'s "{dirname}" directory')
-def impl(context, dirname):
+@then('verify that a log was created by {utilname} in the user\'s "{dirname}" directory')
+def impl(context, utilname, dirname):
     absdirname = "%s/%s" % (os.path.expanduser("~"), dirname)
     if not os.path.exists(absdirname):
         raise Exception('No such directory: %s' % absdirname)
-    logname = get_gptransfer_log_name(absdirname)
+    logname = get_log_name(utilname, absdirname)
     if not os.path.exists(logname):
         raise Exception('Log "%s" was not created' % logname)
 
-@then('verify that a log was created by gptransfer in the "{dirname}" directory')
-def impl(context, dirname):
+@then('verify that a log was created by {utilname} in the "{dirname}" directory')
+def impl(context, utilname, dirname):
     if not os.path.exists(dirname):
         raise Exception('No such directory: %s' % dirname)
-    logname = get_gptransfer_log_name(dirname)
+    logname = get_log_name(utilname, dirname)
     if not os.path.exists(logname):
         raise Exception('Log "%s" was not created' % logname)
 
@@ -3544,7 +3522,7 @@ def impl(context, num):
     logdir = "%s/gpAdminLogs" % os.path.expanduser("~")
     if not os.path.exists(logdir):
         raise Exception('No such directory: %s' % absdirname)
-    logname = get_gptransfer_log_name(logdir)
+    logname = get_log_name('gptransfer', logdir)
 
     full_path = os.path.join(logdir, logname)
 

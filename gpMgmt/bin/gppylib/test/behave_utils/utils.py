@@ -1,8 +1,16 @@
 #!/usr/bin/env python
-import re, os, signal, time, filecmp, stat, fileinput
+import filecmp
+import fileinput
+import os
+import re
+import signal
+import stat
+import time
+
 import yaml
-from gppylib.commands.gp import GpStart, chk_local_db_running
+
 from gppylib.commands.base import Command, ExecutionError, REMOTE
+from gppylib.commands.gp import chk_local_db_running
 from gppylib.db import dbconn
 from gppylib.gparray import GpArray, MODE_SYNCHRONIZED
 from gppylib.operations.backup_utils import pg, escapeDoubleQuoteInSQLString
@@ -138,6 +146,13 @@ def check_return_code(context, ret_code):
         if context.error_message:
             emsg += context.error_message
         raise Exception("expected return code '%s' does not equal actual return code '%s' %s" % (ret_code, context.ret_code, emsg))
+
+def check_not_return_code(context, ret_code):
+    if context.ret_code == int(ret_code):
+        emsg = ""
+        if context.error_message:
+            emsg += context.error_message
+        raise Exception("return code unexpectedly equals '%s' %s" % (ret_code, emsg))
 
 def check_database_is_running(context):
     if not 'PGPORT' in os.environ:
