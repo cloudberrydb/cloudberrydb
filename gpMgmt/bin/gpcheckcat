@@ -3433,6 +3433,7 @@ def checkUniqueIndexViolation():
     logger.info('-----------------------------------')
     logger.info('Performing check: checking for violated unique indexes')
     db_connection = connect2(GV.cfg[1], utilityMode=False)
+
     violations = UniqueIndexViolationCheck().runCheck(db_connection)
 
     if violations:

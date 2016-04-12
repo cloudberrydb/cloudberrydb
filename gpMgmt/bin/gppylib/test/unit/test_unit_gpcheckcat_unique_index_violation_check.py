@@ -1,4 +1,5 @@
 from mock import *
+
 from gp_unittest import *
 from gpcheckcat_modules.gpcheckcat_unique_index_violation_check import UniqueIndexViolationCheck
 
@@ -15,7 +16,7 @@ class GpCheckCatUniqueIndexViolationCheckTestCase(GpTestCase):
 
         self.violated_index_query_result = Mock()
 
-        self.db_connection = Mock()
+        self.db_connection = Mock(spec=['query'])
         self.db_connection.query.side_effect = self.mock_query_return_value
 
     def mock_query_return_value(self, query_string):

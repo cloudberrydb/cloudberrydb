@@ -1,6 +1,8 @@
 import imp
 import os
+
 from mock import *
+
 from gp_unittest import *
 
 
@@ -10,7 +12,7 @@ class GpCheckCatTestCase(GpTestCase):
         # if we had a gpcheckcat.py, this is equivalent to:
         #   from lib import gpcheckcat
         #   self.subject = gpcheckcat
-        gpcheckcat_path = os.path.abspath('lib/gpcheckcat')
+        gpcheckcat_path = os.path.abspath('gpcheckcat')
         self.subject = imp.load_source('gpcheckcat', gpcheckcat_path)
 
         self.subject.logger = Mock(spec=['log', 'info', 'debug'])
@@ -76,6 +78,17 @@ class GpCheckCatTestCase(GpTestCase):
         log_messages = [args[0][1] for args in self.subject.logger.log.call_args_list]
         self.assertIn(expected_message1, log_messages)
         self.assertIn(expected_message2, log_messages)
+
+    def test_dropLeakedSchemas_dropsOrphanedAndLeakedSchemas(self):
+        self.db_connection.mock_add_spec(['close', 'query'])
+        self.subject.getLeakedSchemas = Mock(return_value=["fake_leak_1", "fake_leak_2"])
+
+        self.subject.dropLeakedSchemas(dbname="fake_db")
+
+        drop_query_expected_list = [call('DROP SCHEMA IF EXISTS \"fake_leak_1\" CASCADE;\n'),
+                                    call('DROP SCHEMA IF EXISTS \"fake_leak_2\" CASCADE;\n')]
+        self.db_connection.query.assert_has_calls(drop_query_expected_list)
+
 
 if __name__ == '__main__':
     run_tests()
