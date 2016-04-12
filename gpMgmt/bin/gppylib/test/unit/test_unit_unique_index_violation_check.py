@@ -1,10 +1,10 @@
 from mock import *
 
 from gp_unittest import *
-from gpcheckcat_modules.gpcheckcat_unique_index_violation_check import UniqueIndexViolationCheck
+from gpcheckcat_modules.unique_index_violation_check import UniqueIndexViolationCheck
 
 
-class GpCheckCatUniqueIndexViolationCheckTestCase(GpTestCase):
+class UniqueIndexViolationCheckTestCase(GpTestCase):
     def setUp(self):
         self.subject = UniqueIndexViolationCheck()
 

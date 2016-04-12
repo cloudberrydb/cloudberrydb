@@ -34,7 +34,7 @@ try:
     from gppylib.commands.unix import *
     from pygresql.pgdb import DatabaseError
     from pygresql import pg
-    from gpcheckcat_modules.gpcheckcat_unique_index_violation_check import UniqueIndexViolationCheck
+    from gpcheckcat_modules.unique_index_violation_check import UniqueIndexViolationCheck
 except ImportError, e:
     sys.exit('Error: unable to import module: ' + str(e))
 
