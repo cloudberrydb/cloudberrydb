@@ -23,7 +23,6 @@ class UniqueIndexViolationCheck:
             having count(*) > 1)
         """
 
-
     def runCheck(self, db_connection):
         unique_indexes = db_connection.query(self.unique_indexes_query).getresult()
         violations = []
