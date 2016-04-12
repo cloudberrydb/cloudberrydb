@@ -384,24 +384,9 @@ CMinidumperUtils::PdxlnExecuteMinidump
 	)
 {
 	GPOS_ASSERT(NULL != szFileName);
-	GPOS_ASSERT(NULL != pdxlmd->PdxlnQuery() && 
-				NULL != pdxlmd->PdrgpdxlnQueryOutput() && 
-				NULL != pdxlmd->PdrgpdxlnCTE() && 
-				"No query found in Minidump");
-	GPOS_ASSERT(NULL != pdxlmd->Pdrgpmdobj() && NULL != pdxlmd->Pdrgpsysid() && "No metadata found in Minidump");
-	GPOS_ASSERT(NULL != poconf);
-
-	// reset metadata cache
-	CMDCache::Reset();
-
-	CDXLNode *pdxlnPlan = NULL;
-	CAutoTimer at("Minidump", true /*fPrint*/);
-
-	GPOS_CHECK_ABORT;
 
 	// set up MD providers
 	CMDProviderMemory *pmdp = GPOS_NEW(pmp) CMDProviderMemory(pmp, szFileName);
-	GPOS_CHECK_ABORT;
 	
 	const DrgPsysid *pdrgpsysid = pdxlmd->Pdrgpsysid();
 	DrgPmdp *pdrgpmdp = GPOS_NEW(pmp) DrgPmdp(pmp);
@@ -413,63 +398,9 @@ CMinidumperUtils::PdxlnExecuteMinidump
 		pdrgpmdp->Append(pmdp);
 	}
 
-	// set trace flags
-	CBitSet *pbsEnabled = NULL;
-	CBitSet *pbsDisabled = NULL;
-	SetTraceflags(pmp, pdxlmd->Pbs(), &pbsEnabled, &pbsDisabled);
-
-	BOOL fConstantExpressionEvaluator = true;
-	if (NULL == pceeval)
-	{
-		// disable constant expression evaluation when running minidump since
-		// there no executor to compute the scalar expression
-		fConstantExpressionEvaluator = false;
-	}
-
-	CAutoTraceFlag atf1(EopttraceEnableConstantExpressionEvaluation, fConstantExpressionEvaluator);
-
-	CErrorHandlerStandard errhdl;
-	GPOS_TRY_HDL(&errhdl)
-	{
-		CMDAccessor mda(pmp, CMDCache::Pcache(), pdxlmd->Pdrgpsysid(), pdrgpmdp);
-		pdxlnPlan = COptimizer::PdxlnOptimize
-								(
-								pmp, 
-								&mda,
-								pdxlmd->PdxlnQuery(),
-								pdxlmd->PdrgpdxlnQueryOutput(),
-								pdxlmd->PdrgpdxlnCTE(),
-								pceeval,
-								ulSegments, 
-								ulSessionId,
-								ulCmdId,
-								NULL, // pdrgpss
-								poconf,
-								szFileName
-								);
-	}
-	GPOS_CATCH_EX(ex)
-	{
-		// reset trace flags
-		ResetTraceflags(pbsEnabled, pbsDisabled);
-		CAutoTraceFlag atf1(EopttraceEnableConstantExpressionEvaluation, false);
-		CRefCount::SafeRelease(pbsEnabled);
-		CRefCount::SafeRelease(pbsDisabled);
-
-		GPOS_RETHROW(ex);
-	}
-	GPOS_CATCH_END;
-
-	// reset trace flags
-	ResetTraceflags(pbsEnabled, pbsDisabled);
-	CRefCount::SafeRelease(pbsEnabled);
-	CRefCount::SafeRelease(pbsDisabled);
-
-	// cleanup
-	pdrgpmdp->Release();
-	GPOS_CHECK_ABORT;
+	CMDAccessor mda(pmp, CMDCache::Pcache(), pdxlmd->Pdrgpsysid(), pdrgpmdp);
 	
-	return pdxlnPlan;
+	return CMinidumperUtils::PdxlnExecuteMinidump(pmp, &mda, pdxlmd, szFileName, ulSegments, ulSessionId, ulCmdId, poconf, pceeval);
 }
 
 
@@ -513,15 +444,12 @@ CMinidumperUtils::PdxlnExecuteMinidump
 	CBitSet *pbsDisabled = NULL;
 	SetTraceflags(pmp, pdxlmd->Pbs(), &pbsEnabled, &pbsDisabled);
 
-	BOOL fConstantExpressionEvaluator = true;
 	if (NULL == pceeval)
 	{
 		// disable constant expression evaluation when running minidump since
 		// there no executor to compute the scalar expression
-		fConstantExpressionEvaluator = false;
+		GPOS_UNSET_TRACE(EopttraceEnableConstantExpressionEvaluation);
 	}
-
-	CAutoTraceFlag atf1(EopttraceEnableConstantExpressionEvaluation, fConstantExpressionEvaluator);
 
 	CErrorHandlerStandard errhdl;
 	GPOS_TRY_HDL(&errhdl)
@@ -546,7 +474,6 @@ CMinidumperUtils::PdxlnExecuteMinidump
 	{
 		// reset trace flags
 		ResetTraceflags(pbsEnabled, pbsDisabled);
-		CAutoTraceFlag atf1(EopttraceEnableConstantExpressionEvaluation, false);
 
 		CRefCount::SafeRelease(pbsEnabled);
 		CRefCount::SafeRelease(pbsDisabled);
