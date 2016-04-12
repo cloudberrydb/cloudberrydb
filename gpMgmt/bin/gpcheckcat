@@ -3434,6 +3434,10 @@ def checkUniqueIndexViolation():
     logger.info('Performing check: checking for violated unique indexes')
     db_connection = connect2(GV.cfg[1], utilityMode=False)
     violations = UniqueIndexViolationCheck().runCheck(db_connection)
+
+    if violations:
+        GV.checkStatus = False
+
     for violation in violations:
         error_object = getGPObject(violation['table_oid'], violation['table_name'])
         issue = CatUniqueIndexViolationIssue(violation['table_name'],

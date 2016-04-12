@@ -23,6 +23,7 @@ class GpCheckCatTestCase(GpTestCase):
         # If we wanted full coverage we would make this a normal Mock()
         # and fully define its behavior
         self.subject.GV.cfg = MagicMock()
+        self.subject.GV.checkStatus = True
 
         self.apply_patches([
             patch("gpcheckcat.pg.connect", return_value=self.db_connection),
@@ -45,6 +46,21 @@ class GpCheckCatTestCase(GpTestCase):
         self.subject.runOneCheck('unique_index_violation')
 
         self.unique_index_violation_check.runCheck.assert_called_with(self.db_connection)
+
+    def test_runningCheck_whenNoViolationsAreFound_passesTheCheck(self):
+        self.subject.runOneCheck('unique_index_violation')
+
+        self.assertEqual(self.subject.GV.checkStatus, True)
+
+    def test_runningCheck_whenViolationsAreFound_failsTheCheck(self):
+        self.unique_index_violation_check.runCheck.return_value = [
+            dict(table_oid=123, table_name='stephen_table', index_name='finger', segment_id=8),
+            dict(table_oid=456, table_name='larry_table', index_name='stock', segment_id=-1),
+        ]
+
+        self.subject.runOneCheck('unique_index_violation')
+
+        self.assertEqual(self.subject.GV.checkStatus, False)
 
     def test_checkcatReport_afterRunningUniqueIndexViolationCheck_reportsViolations(self):
         self.unique_index_violation_check.runCheck.return_value = [
