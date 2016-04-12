@@ -18,7 +18,7 @@ extern "C" {
 
 // Do one-time global initialization of Clang and LLVM libraries. Returns 0
 // on success, nonzero on error.
-int InitCodeGen();
+int InitCodegen();
 
 #ifdef __cplusplus
 }  // extern "C"

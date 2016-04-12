@@ -221,7 +221,7 @@ ClassType* WrapPlacementNew(void* place, ArgumentTypes... args) {
  * @brief Templated wrapper function that invokes the 'new' operator with the
  *        move constructor for a class (if any) to move-from an existing object.
  *
- * @note This template works around the fact that CodeGenerator does not handle
+ * @note This template works around the fact that CodegenUtils does not handle
  *       rvalue-references. It takes a pointer which it dereferences and
  *       converts to an rvalue-reference that is moved-from.
  *
@@ -240,7 +240,7 @@ ClassType* WrapNewMove(ClassType* original) {
  *        'new' operator with the move constructor for a class (if any) to
  *        move-from an existing object.
  *
- * @note This template works around the fact that CodeGenerator does not handle
+ * @note This template works around the fact that CodegenUtils does not handle
  *       rvalue-references. It takes a pointer which it dereferences and
  *       converts to an rvalue-reference that is moved-from.
  * @warning All of the usual caveats about placement new also apply here, e.g.

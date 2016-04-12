@@ -43,7 +43,7 @@ struct AnnotatedType {
    *
    * @tparam T A C++ scalar type.
    * @param llvm_type The type's representation in LLVM, obtained by calling
-   *        CodeGenerator::GetType<T>() or similar.
+   *        CodegenUtils::GetType<T>() or similar.
    * @return An AnnotatedType that includes additional information about T not
    *         captured by the llvm::Type.
    **/
@@ -67,7 +67,7 @@ struct AnnotatedType {
    * @tparam T A C++ void pointer type with any combination of const and/or
    *         volatile qualifiers.
    * @param llvm_type The type's representation in LLVM, obtained by calling
-   *        CodeGenerator::GetType<T>() or similar.
+   *        CodegenUtils::GetType<T>() or similar.
    * @return An AnnotatedType that includes additional information about the
    *         void pointer type T not captured by the llvm::Type.
    **/

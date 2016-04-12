@@ -17,6 +17,7 @@
 #define GPCODEGEN_UTILITY_H_
 
 #include "llvm/IR/Function.h"
+#include <utility>
 
 namespace gpcodegen {
 
@@ -32,7 +33,7 @@ namespace gpcodegen {
  * @return A pointer to the specified argument, or NULL if the specified
  *         position was beyond the end of function's arguments.
  **/
-llvm::Argument* ArgumentByPosition(llvm::Function* function,
+static llvm::Argument* ArgumentByPosition(llvm::Function* function,
                                    const unsigned position) {
   llvm::Function::arg_iterator it = function->arg_begin();
   if (it == function->arg_end()) {
