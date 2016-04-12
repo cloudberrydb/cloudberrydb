@@ -11,7 +11,6 @@ explain select * from t_numeric where c5 in (10, 11);
       <dxl:StatisticsConfig DampingFactorFilter="0.750000" DampingFactorJoin="0.010000" DampingFactorGroupBy="0.750000"/>
       <dxl:CTEConfig CTEInliningCutoff="0"/>
       <dxl:CostModelConfig CostModelType="1" SegmentsForCosting="3"/>
-      <dxl:Hint MinNumOfPartsToRequireSortOnInsert="4294967295"/>
       <dxl:TraceFlags Value="101013,102120,103001,103014,103015,103022,103023,104004,104005,105000"/>
     </dxl:OptimizerConfig>
     <dxl:Metadata SystemIds="0.GPDB">
