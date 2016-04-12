@@ -26,6 +26,7 @@ class GpCheckCatTestCase(GpTestCase):
         # and fully define its behavior
         self.subject.GV.cfg = MagicMock()
         self.subject.GV.checkStatus = True
+        self.subject.setError = Mock()
 
         self.apply_patches([
             patch("gpcheckcat.pg.connect", return_value=self.db_connection),
@@ -54,6 +55,7 @@ class GpCheckCatTestCase(GpTestCase):
         self.subject.runOneCheck('unique_index_violation')
 
         self.assertEqual(self.subject.GV.checkStatus, True)
+        self.subject.setError.assert_not_called()
 
     def test_running_unique_index_violation_check__when_violations_are_found__fails_the_check(self):
         self.unique_index_violation_check.runCheck.return_value = [
@@ -64,6 +66,7 @@ class GpCheckCatTestCase(GpTestCase):
         self.subject.runOneCheck('unique_index_violation')
 
         self.assertEqual(self.subject.GV.checkStatus, False)
+        self.subject.setError.assert_any_call(self.subject.ERROR_NOREPAIR)
 
     def test_checkcat_report__after_running_unique_index_violations_check__reports_violations(self):
         self.unique_index_violation_check.runCheck.return_value = [

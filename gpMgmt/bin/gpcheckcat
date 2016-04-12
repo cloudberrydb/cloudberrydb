@@ -3436,8 +3436,13 @@ def checkUniqueIndexViolation():
 
     violations = UniqueIndexViolationCheck().runCheck(db_connection)
 
+    checkname = 'unique index violation(s)'
     if violations:
+        logger.info('[FAIL]  %s' % checkname)
         GV.checkStatus = False
+        setError(ERROR_NOREPAIR)
+    else:
+        logger.info('[OK]  %s' % checkname)
 
     for violation in violations:
         error_object = getGPObject(violation['table_oid'], violation['table_name'])
