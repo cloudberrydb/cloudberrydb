@@ -25,14 +25,14 @@ class GpCheckCatUniqueIndexViolationCheckTestCase(GpTestCase):
         else:
             return self.violated_index_query_result
 
-    def test_runIndexViolationCheck_whenThereAreNoIssues(self):
+    def test_run_check__when_there_are_no_issues(self):
         self.violated_index_query_result.getresult.return_value = []
 
         violations = self.subject.runCheck(self.db_connection)
 
         self.assertEqual(len(violations), 0)
 
-    def test_runIndexViolationCheck_whenIndexIsViolated(self):
+    def test_run_check__when_index_is_violated(self):
         self.violated_index_query_result.getresult.return_value = [
             (-1, 'value1', 'value2', 2)
         ]

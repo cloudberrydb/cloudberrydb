@@ -3444,7 +3444,7 @@ def checkUniqueIndexViolation():
         issue = CatUniqueIndexViolationIssue(violation['table_name'],
                                              violation['index_name'],
                                              violation['segment_id'])
-        error_object.setDuplicateIssue(issue)
+        error_object.addDuplicateIssue(issue)
 
 
 ############################################################################
@@ -3833,9 +3833,9 @@ def dropLeakedSchemas(dbname):
             # the query will return unquoted schema names
             # but we only search for schemas with name like pg_temp_[0-9](see the method getLeakedSchemas),
             # so we don't really need to quote the sql statement
-            logger.debug('DROP SCHEMA IF EXISTS "%s" CASCADE;\n' % schema)
             qry = 'DROP SCHEMA IF EXISTS "%s" CASCADE;\n' % schema
-            curs = db.query(qry)
+            logger.info(qry)
+            db.query(qry)
     except Exception, e:
         setError(ERROR_NOREPAIR)
         myprint('  Execution error: ' + str(e))
@@ -4124,11 +4124,11 @@ def processMissingDuplicateEntryResult(catname, colname, allValues, type):
 
         if type == "missing":
             issue = CatMissingIssue(catname, pkeys, segids, row[-2])
-            gpObj.setMissingIssue(issue)
+            gpObj.addMissingIssue(issue)
         else:
             assert (type == "duplicate")
             issue = CatDuplicateIssue(catname, pkeys, segids, row[-2])
-            gpObj.setDuplicateIssue(issue)
+            gpObj.addDuplicateIssue(issue)
 
 
 # -------------------------------------------------------------------------------
@@ -4182,7 +4182,7 @@ def processInconsistentEntryResult(catname, pknames, colname, allValues):
             rowObjName = 'pg_type'
 
         gpObj = getGPObject(oid, rowObjName)
-        gpObj.setInconsistentIssue(issue)
+        gpObj.addInconsistentIssue(issue)
 
 
 # -------------------------------------------------------------------------------
@@ -4223,7 +4223,7 @@ def processForeignKeyResult(catname, pkcatname, colname, allValues):
         elif pkcatname == 'pg_resourcetype' and gpColName == 'restypid':
             oid = getResourceTypeOid(oid)
         gpObj = getGPObject(oid, rowObjName)
-        gpObj.setForeignKeyIssue(issue)
+        gpObj.addForeignKeyIssue(issue)
 
 
 # -------------------------------------------------------------------------------
@@ -4263,7 +4263,7 @@ def processACLResult(catname, colname, allValues):
 
         issue = CatACLIssue(catname, pkeys, segid, macl_only, sacl_only)
         gpObj = getGPObject(oid, gpObjName)
-        gpObj.setACLIssue(issue)
+        gpObj.addACLIssue(issue)
 
 
 # -------------------------------------------------------------------------------
@@ -4422,31 +4422,31 @@ class GPObject:
         self.aclIssues = {}  # key=issue.catname, value=list of catACLIssue
         self.foreignkeyIssues = {}  # key=issue.catname, value=list of catForeignKeyIssue
 
-    def setMissingIssue(self, issue):
+    def addMissingIssue(self, issue):
         if issue.catname in self.missingIssues:
             self.missingIssues[issue.catname].append(issue)
         else:
             self.missingIssues[issue.catname] = [issue]
 
-    def setInconsistentIssue(self, issue):
+    def addInconsistentIssue(self, issue):
         if issue.catname in self.inconsistentIssues:
             self.inconsistentIssues[issue.catname].append(issue)
         else:
             self.inconsistentIssues[issue.catname] = [issue]
 
-    def setDuplicateIssue(self, issue):
+    def addDuplicateIssue(self, issue):
         if issue.catname in self.duplicateIssues:
             self.duplicateIssues[issue.catname].append(issue)
         else:
             self.duplicateIssues[issue.catname] = [issue]
 
-    def setACLIssue(self, issue):
+    def addACLIssue(self, issue):
         if issue.catname in self.aclIssues:
             self.aclIssues[issue.catname].append(issue)
         else:
             self.aclIssues[issue.catname] = [issue]
 
-    def setForeignKeyIssue(self, issue):
+    def addForeignKeyIssue(self, issue):
         if issue.catname in self.foreignkeyIssues:
             self.foreignkeyIssues[issue.catname].append(issue)
         else:
