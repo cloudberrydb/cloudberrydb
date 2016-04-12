@@ -452,6 +452,7 @@ CMinidumperUtils::PdxlnExecuteMinidump
 	{
 		// reset trace flags
 		ResetTraceflags(pbsEnabled, pbsDisabled);
+		CAutoTraceFlag atf1(EopttraceEnableConstantExpressionEvaluation, false);
 		CRefCount::SafeRelease(pbsEnabled);
 		CRefCount::SafeRelease(pbsDisabled);
 
@@ -545,6 +546,8 @@ CMinidumperUtils::PdxlnExecuteMinidump
 	{
 		// reset trace flags
 		ResetTraceflags(pbsEnabled, pbsDisabled);
+		CAutoTraceFlag atf1(EopttraceEnableConstantExpressionEvaluation, false);
+
 		CRefCount::SafeRelease(pbsEnabled);
 		CRefCount::SafeRelease(pbsDisabled);
 
