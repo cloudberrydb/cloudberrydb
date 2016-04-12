@@ -69,7 +69,7 @@ namespace gpopt
 			static
 			CHint *PhintDefault(IMemoryPool *pmp)
 			{
-				return GPOS_NEW(pmp) CHint(ULONG_MAX /* ulMinNumOfPartsToRequireSortOnInsert */);
+				return GPOS_NEW(pmp) CHint(INT_MAX /* ulMinNumOfPartsToRequireSortOnInsert */);
 			}
 
 	}; // class CHint
