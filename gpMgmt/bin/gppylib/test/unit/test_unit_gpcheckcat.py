@@ -13,8 +13,9 @@ class GpCheckCatTestCase(unittest.TestCase):
 
     def setUp(self):
         self.subject = imp.load_source('gpcheckcat', gpcheckcat_path)
-        self.subject.GV.cfg = [dict(), dict()]
+        self.subject.GV.cfg = mock.MagicMock()
         self.subject.logger = mock.Mock()
+
         self.db_connection = mock.Mock()
 
     @unittest.skip("order of checks")
@@ -30,7 +31,7 @@ class GpCheckCatTestCase(unittest.TestCase):
             self.subject.runOneCheck('some_unknown_check')
 
     @patch('gpcheckcat.UniqueIndexViolationCheck')
-    @patch('gpcheckcat.connect2')
+    @patch('gpcheckcat.pg.connect')
     def test_runningUniqueIndexViolationCheck_makesTheCheck(self, connect, check):
         connect.return_value = self.db_connection
 
@@ -39,7 +40,7 @@ class GpCheckCatTestCase(unittest.TestCase):
         check.return_value.runCheck.assert_called_with(self.db_connection)
 
     @patch('gpcheckcat.UniqueIndexViolationCheck')
-    @patch('gpcheckcat.connect2')
+    @patch('gpcheckcat.pg.connect')
     def test_checkcatReport_afterRunningUniqueIndexViolationCheck_reportsViolations(self, connect, check):
         connect.return_value = self.db_connection
 
