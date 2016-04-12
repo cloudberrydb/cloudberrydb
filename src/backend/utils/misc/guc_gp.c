@@ -454,9 +454,6 @@ char	   *gp_idf_deduplicate_str;
 
 bool		fts_diskio_check = false;
 
-/* gp_disable_catalog_access_on_segment */
-bool		gp_disable_catalog_access_on_segment = false;
-
 /* Planner gucs */
 bool		enable_seqscan = true;
 bool		enable_indexscan = true;
@@ -3381,16 +3378,6 @@ struct config_bool ConfigureNamesBool_gp[] =
 		},
 		&gp_enable_caql_logging,
 		true, NULL, NULL
-	},
-
-	{
-		{"gp_disable_catalog_access_on_segment", PGC_USERSET, DEVELOPER_OPTIONS,
-			gettext_noop("Disables non-builtin object access on segments"),
-			NULL,
-			GUC_NO_SHOW_ALL | GUC_NOT_IN_SAMPLE | GUC_GPDB_ADDOPT
-		},
-		&gp_disable_catalog_access_on_segment,
-		false, NULL, NULL
 	},
 
 	{
