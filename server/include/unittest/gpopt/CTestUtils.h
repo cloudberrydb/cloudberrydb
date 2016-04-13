@@ -812,6 +812,9 @@ namespace gpopt
 			static
 			GPOS_RESULT EresUnittest_RunTests(const CHAR **rgszFileNames, ULONG *pulTestCounter, ULONG ulTests);
 
+			static
+			GPOS_RESULT EresUnittest_RunTestsWithoutAdditionalTraceFlags(const CHAR **rgszFileNames, ULONG *pulTestCounter, ULONG ulTests, BOOL fMatchPlans, BOOL fTestSpacePruning);
+
 	}; // class CTestUtils
 
 } // namespace gpopt

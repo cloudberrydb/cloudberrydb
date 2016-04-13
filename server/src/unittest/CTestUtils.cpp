@@ -4469,9 +4469,6 @@ CTestUtils::EresUnittest_RunTests
 	ULONG ulTests
 	)
 {
-	CAutoMemoryPool amp;
-	IMemoryPool *pmp = amp.Pmp();
-
 	BOOL fMatchPlans = false;
 	BOOL fTestSpacePruning = false;
 #if defined(GPOS_Darwin) || defined(GPOS_Linux)
@@ -4480,7 +4477,6 @@ CTestUtils::EresUnittest_RunTests
 	fMatchPlans = true;
 	fTestSpacePruning = true;
 #endif // GPOS_Darwin || GPOS_Linux
-
 	// enable (Redistribute, Broadcast) hash join plans
 	CAutoTraceFlag atf1(EopttraceEnableRedistributeBroadcastHashJoin, true /*fVal*/);
 
@@ -4492,6 +4488,32 @@ CTestUtils::EresUnittest_RunTests
 
 	// prefer MDQA
 	CAutoTraceFlag atf5(EopttracePreferExpandedMDQAs, true);
+
+	GPOS_RESULT eres = EresUnittest_RunTestsWithoutAdditionalTraceFlags
+						(
+							rgszFileNames,
+							pulTestCounter,
+							ulTests,
+							fMatchPlans,
+							fTestSpacePruning
+						);
+	return eres;
+}
+
+
+GPOS_RESULT
+CTestUtils::EresUnittest_RunTestsWithoutAdditionalTraceFlags
+	(
+	const CHAR **rgszFileNames,
+	ULONG *pulTestCounter,
+	ULONG ulTests,
+	BOOL fMatchPlans,
+	BOOL fTestSpacePruning
+	)
+{
+	CAutoMemoryPool amp;
+	IMemoryPool *pmp = amp.Pmp();
+
 
 	GPOS_RESULT eres =
 			CTestUtils::EresRunMinidumps
