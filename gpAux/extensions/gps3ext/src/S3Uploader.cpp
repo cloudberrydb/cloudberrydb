@@ -238,7 +238,7 @@ const char *GetUploadId(const char *host, const char *bucket,
     xmlNodePtr cur = root_element->xmlChildrenNode;
     while (cur != NULL) {
         if (!xmlStrcmp(cur->name, (const xmlChar *)"UploadId")) {
-            upload_id = strdup((const char *)xmlNodeGetContent(cur));
+            upload_id = (char *)xmlNodeGetContent(cur);
             break;
         }
 
@@ -246,7 +246,9 @@ const char *GetUploadId(const char *host, const char *bucket,
     }
 
     /* always cleanup */
+    xmlDocPtr doc = xml.ctxt->myDoc;
     xmlFreeParserCtxt(xml.ctxt);
+    xmlFreeDoc(doc);
 
     return upload_id;
 }
@@ -400,9 +402,12 @@ const char *PartPutS3Object(const char *host, const char *bucket,
 
     if (response_code) {
         std::cout << "Error: " << response_code << std::endl;
+        xmlFree(response_code);
     }
 
+    xmlDocPtr doc = xml.ctxt->myDoc;
     xmlFreeParserCtxt(xml.ctxt);
+    xmlFreeDoc(doc);
 
     curl_slist_free_all(chunk);
     curl_easy_cleanup(curl);
@@ -572,10 +577,13 @@ bool CompleteMultiPutS3(const char *host, const char *bucket,
     free(body_data);
 
     if (response_code) {
+        xmlFree(response_code);
         return false;
     }
 
+    xmlDocPtr doc = xml.ctxt->myDoc;
     xmlFreeParserCtxt(xml.ctxt);
+    xmlFreeDoc(doc);
 
     return true;
 }

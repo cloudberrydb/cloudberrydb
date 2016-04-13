@@ -531,7 +531,9 @@ xmlParserCtxtPtr DoGetXML(string region, string bucket, string url,
     if (res != CURLE_OK) {
         S3ERROR("curl_easy_perform() failed: %s", curl_easy_strerror(res));
         if (xml.ctxt) {  // cleanup
+            xmlDocPtr doc = xml.ctxt->myDoc;
             xmlFreeParserCtxt(xml.ctxt);
+            xmlFreeDoc(doc);
             xml.ctxt = NULL;
         }
     } else {
@@ -554,53 +556,90 @@ static bool extractContent(ListBucketResult *result, xmlNode *root_element,
     }
 
     xmlNodePtr cur;
-    const char *key = NULL;
     bool is_truncated = false;
+    char *content = NULL;
+    char *key = NULL;
+    char *key_size = NULL;
 
     cur = root_element->xmlChildrenNode;
     while (cur != NULL) {
+        if (key) {
+            xmlFree(key);
+            key = NULL;
+        }
+
         if (!xmlStrcmp(cur->name, (const xmlChar *)"IsTruncated")) {
-            if (!strncmp((const char *)xmlNodeGetContent(cur), "true", 4)) {
-                is_truncated = true;
+            content = (char *)xmlNodeGetContent(cur);
+            if (content) {
+                if (!strncmp(content, "true", 4)) {
+                    is_truncated = true;
+                }
+                xmlFree(content);
             }
         }
 
         if (!xmlStrcmp(cur->name, (const xmlChar *)"Name")) {
-            result->Name = (const char *)xmlNodeGetContent(cur);
+            content = (char *)xmlNodeGetContent(cur);
+            if (content) {
+                result->Name = content;
+                xmlFree(content);
+            }
         }
 
         if (!xmlStrcmp(cur->name, (const xmlChar *)"Prefix")) {
-            result->Prefix = (const char *)xmlNodeGetContent(cur);
+            content = (char *)xmlNodeGetContent(cur);
+            if (content) {
+                result->Prefix = content;
+                xmlFree(content);
+                // content is not used anymore in this loop
+                content = NULL;
+            }
         }
 
         if (!xmlStrcmp(cur->name, (const xmlChar *)"Contents")) {
             xmlNodePtr contNode = cur->xmlChildrenNode;
             uint64_t size = 0;
+
             while (contNode != NULL) {
+                // no memleak here, every content has only one Key/Size node
                 if (!xmlStrcmp(contNode->name, (const xmlChar *)"Key")) {
-                    key = (const char *)xmlNodeGetContent(contNode);
+                    key = (char *)xmlNodeGetContent(contNode);
                 }
                 if (!xmlStrcmp(contNode->name, (const xmlChar *)"Size")) {
-                    xmlChar *v = xmlNodeGetContent(contNode);
-                    size = atoll((const char *)v);
+                    key_size = (char *)xmlNodeGetContent(contNode);
+                    // Size of S3 file is a natural number, don't worry
+                    size = (uint64_t)atoll((const char *)key_size);
                 }
                 contNode = contNode->next;
             }
-            if (size > 0) {  // skip empty item
-                BucketContent *item = CreateBucketContentItem(key, size);
-                if (item) {
-                    result->contents.push_back(item);
+
+            if (key) {
+                if (size > 0) {  // skip empty item
+                    BucketContent *item = CreateBucketContentItem(key, size);
+                    if (item) {
+                        result->contents.push_back(item);
+                    } else {
+                        S3ERROR("Faild to create item for %s", key);
+                    }
                 } else {
-                    S3ERROR("Faild to create item for %s", key);
+                    S3INFO("Size of %s is " PRIu64 ", skip it", key, size);
                 }
-            } else {
-                S3INFO("Size of %s is %llu, skip", key, size);
+            }
+
+            if (key_size) {
+                xmlFree(key_size);
+                key_size = NULL;
             }
         }
+
         cur = cur->next;
     }
 
-    marker = is_truncated ? key : "";
+    marker = (is_truncated && key) ? key : "";
+
+    if (key) {
+        xmlFree(key);
+    }
 
     return true;
 }
@@ -614,12 +653,16 @@ ListBucketResult *ListBucket(string schema, string region, string bucket,
 
     S3DEBUG("Host url is %s", host.str().c_str());
 
-    xmlParserCtxtPtr xmlcontext = NULL;
     ListBucketResult *result = new ListBucketResult();
+    if (!result) {
+        S3ERROR("Failed to allocate bucket list result");
+        return NULL;
+    }
+
+    stringstream url;
+    xmlParserCtxtPtr xmlcontext = NULL;
 
     do {
-        std::stringstream url;
-
         if (prefix != "") {
             url << schema << "://" << host.str() << "/" << bucket << "?";
 
@@ -637,45 +680,61 @@ ListBucketResult *ListBucket(string schema, string region, string bucket,
         }
 
         xmlcontext = DoGetXML(region, bucket, url.str(), prefix, cred, marker);
-
         if (!xmlcontext) {
             S3ERROR("Failed to list bucket for %s", url.str().c_str());
+            delete result;
             return NULL;
         }
 
+        xmlDocPtr doc = xmlcontext->myDoc;
         xmlNode *root_element = xmlDocGetRootElement(xmlcontext->myDoc);
         if (!root_element) {
             S3ERROR("Failed to parse returned xml of bucket list");
+            delete result;
             xmlFreeParserCtxt(xmlcontext);
+            xmlFreeDoc(doc);
             return NULL;
         }
 
         xmlNodePtr cur = root_element->xmlChildrenNode;
         while (cur != NULL) {
             if (!xmlStrcmp(cur->name, (const xmlChar *)"Code")) {
-                S3ERROR("Server returns error \"%s\"", xmlNodeGetContent(cur));
+                char *content = (char *)xmlNodeGetContent(cur);
+                if (content) {
+                    S3ERROR("Server returns error \"%s\"", content);
+                    xmlFree(content);
+                }
                 break;
             }
 
             cur = cur->next;
         }
 
-        if (!result) {
-            S3ERROR("Failed to allocate bucket list result");
-            xmlFreeParserCtxt(xmlcontext);
-            return NULL;
-        }
         if (!extractContent(result, root_element, marker)) {
             S3ERROR("Failed to extract key from bucket list");
             delete result;
             xmlFreeParserCtxt(xmlcontext);
+            xmlFreeDoc(doc);
             return NULL;
         }
+
+        // clear url
+        url.str("");
+
+        // always cleanup
+        xmlFreeParserCtxt(xmlcontext);
+        xmlFreeDoc(doc);
+        xmlcontext = NULL;
     } while (marker != "");
 
-    /* always cleanup */
-    xmlFreeParserCtxt(xmlcontext);
     return result;
+}
+
+ListBucketResult::~ListBucketResult() {
+    vector<BucketContent *>::iterator i;
+    for (i = this->contents.begin(); i != this->contents.end(); i++) {
+        delete *i;
+    }
 }
 
 ListBucketResult *ListBucket_FakeHTTP(string host, string bucket) {
@@ -712,6 +771,7 @@ ListBucketResult *ListBucket_FakeHTTP(string host, string bucket) {
         return NULL;
     }
 
+    xmlDocPtr doc = xml.ctxt->myDoc;
     xmlNode *root_element = xmlDocGetRootElement(xml.ctxt->myDoc);
     if (!root_element) {
         S3ERROR("Failed to create xml node");
@@ -721,6 +781,7 @@ ListBucketResult *ListBucket_FakeHTTP(string host, string bucket) {
     if (!result) {
         // allocate fail
         xmlFreeParserCtxt(xml.ctxt);
+        xmlFreeDoc(doc);
         return NULL;
     }
 
@@ -728,10 +789,12 @@ ListBucketResult *ListBucket_FakeHTTP(string host, string bucket) {
     if (!extractContent(result, root_element, marker)) {
         delete result;
         xmlFreeParserCtxt(xml.ctxt);
+        xmlFreeDoc(doc);
         return NULL;
     }
 
     /* always cleanup */
     xmlFreeParserCtxt(xml.ctxt);
+    xmlFreeDoc(doc);
     return result;
 }
