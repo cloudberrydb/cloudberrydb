@@ -392,8 +392,11 @@ CMinidumperUtils::PdxlnExecuteMinidump
 	CMDProviderMemory *pmdp = GPOS_NEW(pmp) CMDProviderMemory(pmp, szFileName);
 	const DrgPsysid *pdrgpsysid = pdxlmd->Pdrgpsysid();
 	DrgPmdp *pdrgpmdp = GPOS_NEW(pmp) DrgPmdp(pmp);
-	pdrgpmdp->Append(pmdp);
 	
+	// ensure there is at least ONE system id
+	pmdp->AddRef();
+	pdrgpmdp->Append(pmdp);
+
 	for (ULONG ul = 1; ul < pdrgpsysid->UlLength(); ul++)
 	{	
 		pmdp->AddRef();
