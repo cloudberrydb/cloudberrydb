@@ -1,14 +1,9 @@
-import logging
-import sys
 import unittest2 as unittest
 
 
 class GpTestCase(unittest.TestCase):
     def __init__(self, methodName='runTest'):
         super(GpTestCase, self).__init__(methodName)
-        logging.basicConfig(stream=sys.stderr)
-        self.logger = logging.getLogger()
-        self.logger.setLevel(logging.DEBUG)
         self.patches = []
 
     def apply_patches(self, patches):
