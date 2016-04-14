@@ -27,7 +27,7 @@ from gppylib.operations.backup_utils import backup_file_with_nbu, check_file_dum
                                             generate_seg_status_prefix, generate_segment_config_filename, get_incremental_ts_from_report_file, \
                                             get_latest_full_dump_timestamp, get_latest_full_ts_with_nbu, get_latest_report_timestamp, get_lines_from_file, \
                                             restore_file_with_nbu, validate_timestamp, verify_lines_in_file, write_lines_to_file, isDoubleQuoted, formatSQLString, \
-                                            checkAndAddEnclosingDoubleQuote, split_fqn, remove_file_on_segments
+                                            checkAndAddEnclosingDoubleQuote, split_fqn, remove_file_on_segments, generate_stats_prefix
 
 logger = gplog.get_default_logger()
 
@@ -1941,7 +1941,7 @@ set allow_system_table_mods="DML";
 
         if self.ddboost:
             abspath = self.stats_filename
-            relpath = os.path.join(self.dump_dir, DUMP_DATE, "%s%s" % (generate_global_prefix(self.dump_prefix), self.timestamp))
+            relpath = os.path.join(self.dump_dir, DUMP_DATE, "%s%s" % (generate_stats_prefix(self.dump_prefix), self.timestamp))
             logger.debug('Copying %s to DDBoost' % abspath)
             cmd = Command('DDBoost copy of %s' % abspath,
                           'gpddboost --copyToDDBoost --from-file=%s --to-file=%s' % (abspath, relpath))
