@@ -10,8 +10,8 @@ class UniqueIndexViolationCheckTestCase(GpTestCase):
 
         self.index_query_result = Mock()
         self.index_query_result.getresult.return_value = [
-            (9001, 'index1', 'table1', 'index1_column1, index1_column2'),
-            (9001, 'index2', 'table1', 'index2_column1, index2_column2')
+            (9001, 'index1', 'table1', '{index1_column1,index1_column2}'),
+            (9001, 'index2', 'table1', '{index2_column1,index2_column2}')
         ]
 
         self.violated_segments_query_result = Mock()
@@ -44,13 +44,13 @@ class UniqueIndexViolationCheckTestCase(GpTestCase):
         self.assertEqual(violations[0]['table_oid'], 9001)
         self.assertEqual(violations[0]['table_name'], 'table1')
         self.assertEqual(violations[0]['index_name'], 'index1')
-        self.assertEqual(violations[0]['column_names'], 'index1_column1, index1_column2')
+        self.assertEqual(violations[0]['column_names'], 'index1_column1,index1_column2')
         self.assertEqual(violations[0]['violated_segments'], [-1, 0, 1])
 
         self.assertEqual(violations[1]['table_oid'], 9001)
         self.assertEqual(violations[1]['table_name'], 'table1')
         self.assertEqual(violations[1]['index_name'], 'index2')
-        self.assertEqual(violations[1]['column_names'], 'index2_column1, index2_column2')
+        self.assertEqual(violations[1]['column_names'], 'index2_column1,index2_column2')
         self.assertEqual(violations[1]['violated_segments'], [-1])
 
 if __name__ == '__main__':
