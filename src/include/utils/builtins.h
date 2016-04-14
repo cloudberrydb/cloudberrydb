@@ -1014,7 +1014,6 @@ extern Datum PG_char_to_encoding(PG_FUNCTION_ARGS);
 extern Datum PG_character_set_name(PG_FUNCTION_ARGS);
 extern Datum PG_character_set_id(PG_FUNCTION_ARGS);
 extern Datum pg_convert(PG_FUNCTION_ARGS);
-extern Datum pg_convert2(PG_FUNCTION_ARGS);
 extern Datum pg_convert_to(PG_FUNCTION_ARGS);
 extern Datum pg_convert_from(PG_FUNCTION_ARGS);
 extern Datum length_in_encoding(PG_FUNCTION_ARGS);
@@ -1054,9 +1053,6 @@ extern Datum pg_advisory_unlock_all(PG_FUNCTION_ARGS);
 
 /* access/transam/twophase.c */
 extern Datum pg_prepared_xact(PG_FUNCTION_ARGS);
-
-/* catalog/pg_conversion.c */
-extern Datum pg_convert_using(PG_FUNCTION_ARGS);
 
 /* commands/prepare.c */
 extern Datum pg_prepared_statement(PG_FUNCTION_ARGS);
