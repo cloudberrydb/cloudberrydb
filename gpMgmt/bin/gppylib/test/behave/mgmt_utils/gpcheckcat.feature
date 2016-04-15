@@ -130,13 +130,10 @@ Feature: gpcheckcat tests
         Then psql should return a return code of 0
         And an attribute of table "ao_table" in database "miss_attr" is deleted on segment with content id "0"
         And psql should return a return code of 0
-        And an attribute of table "ao_table" in database "miss_attr" is deleted on segment with content id "1"
-        And psql should return a return code of 0
         When the user runs "gpcheckcat miss_attr"
         Then gpcheckcat should print Missing to stdout
         And gpcheckcat should print Table miss_attr.public.heap_table.-1 to stdout
         And gpcheckcat should print Table miss_attr.public.ao_table.0 to stdout
-        And gpcheckcat should print Table miss_attr.public.ao_table.1 to stdout
 
     Scenario: gpcheckcat should find owner error and produce timestamped repair scripts from -A (all databases) option
         Given database "db1" is dropped and recreated

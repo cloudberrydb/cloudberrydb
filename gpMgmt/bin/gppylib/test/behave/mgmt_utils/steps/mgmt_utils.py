@@ -3783,7 +3783,7 @@ def impl(context, filename):
 
 @then('an attribute of table "{table}" in database "{dbname}" is deleted on segment with content id "{segid}"')
 def impl(context, table, dbname, segid):
-    local_cmd = 'psql %s -t -c "SELECT port,hostname FROM gp_segment_configuration WHERE content=%s;"' % (dbname, segid)
+    local_cmd = 'psql %s -t -c "SELECT port,hostname FROM gp_segment_configuration WHERE content=%s and role=\'p\';"' % (dbname, segid)
     run_command(context, local_cmd)
     port, host = context.stdout_message.split("|")
     port = port.strip()
