@@ -553,6 +553,7 @@ double		optimizer_damping_factor_filter;
 double		optimizer_damping_factor_join;
 double		optimizer_damping_factor_groupby;
 int			optimizer_segments;
+int			optimizer_join_arity_for_associativity_commutativity;
 bool		optimizer_analyze_root_partition;
 bool		optimizer_analyze_midlevel_partition;
 bool		optimizer_enable_constant_expression_evaluation;
@@ -4703,6 +4704,16 @@ struct config_int ConfigureNamesInt_gp[] =
 		},
 		&optimizer_segments,
 		0, 0, INT_MAX, NULL, NULL
+	},
+
+	{
+		{"optimizer_join_arity_for_associativity_commutativity", PGC_USERSET, QUERY_TUNING_METHOD,
+			gettext_noop("Maximum number of children n-ary-join have without disabling commutativity and associativity transform"),
+			NULL,
+			GUC_NO_SHOW_ALL | GUC_NOT_IN_SAMPLE
+		},
+		&optimizer_join_arity_for_associativity_commutativity,
+		INT_MAX, 0, INT_MAX, NULL, NULL
 	},
 
 	{
