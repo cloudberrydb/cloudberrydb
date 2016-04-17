@@ -1533,6 +1533,13 @@ CExpressionPreprocessor::AddPredsToCTEProducers
 
 		ULONG ulConsumers = pcteinfo->UlConsumers(ulCTEId);
 		DrgPexpr *pdrgpexpr = const_cast<DrgPexpr *>(mi.Pt());
+
+		// skip the propagation of predicate contains volatile function e.g. random() (value change within a scan)
+		if (CPredicateUtils::FContainsVolatileFunction(pdrgpexpr))
+		{
+			continue;
+		}
+
 		if (0 < ulConsumers &&
 			pdrgpexpr->UlLength() == ulConsumers)
 		{

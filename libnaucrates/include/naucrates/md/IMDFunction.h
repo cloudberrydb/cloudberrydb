@@ -45,9 +45,9 @@ namespace gpmd
 			// function stability property
 			enum EFuncStbl
 			{
-				EfsImmutable,
-				EfsStable,
-				EfsVolatile,
+				EfsImmutable, /* never changes for given input */
+				EfsStable, /* does not change within a scan */
+				EfsVolatile, /* can change even within a scan */
 				EfsSentinel
 			};
 

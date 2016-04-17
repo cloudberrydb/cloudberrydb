@@ -166,6 +166,9 @@ namespace gpopt
 			virtual 
 			IMDId *PmdidType() const;
 
+			// function stability
+			IMDFunction::EFuncStbl EfsGetFunctionStability() const;
+
 			// boolean expression evaluation
 			virtual
 			EBoolEvalResult Eber(DrgPul *pdrgpulChildren) const;

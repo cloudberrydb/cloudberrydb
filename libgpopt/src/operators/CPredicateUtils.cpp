@@ -3104,6 +3104,74 @@ CPredicateUtils::FCompatibleIndexPredicate
 	return (pmdindex->FCompatible(pmdobjScCmp, ulKeyPos));
 }
 
+//---------------------------------------------------------------------------
+//	@function:
+//		CPredicateUtils::FContainsVolatileFunction
+//
+//	@doc:
+//		Check if given array of expressions contain a volatile function like random().
+//---------------------------------------------------------------------------
+BOOL
+CPredicateUtils::FContainsVolatileFunction
+	(
+	DrgPexpr *pdrgpexprPred
+	)
+{
+	GPOS_ASSERT(NULL != pdrgpexprPred);
+
+	const ULONG ulNumPreds = pdrgpexprPred->UlLength();
+	for (ULONG ul = 0; ul < ulNumPreds; ul++)
+	{
+		CExpression *pexpr = (CExpression *)(*pdrgpexprPred)[ul];
+
+		if (FContainsVolatileFunction(pexpr))
+		{
+			return true;
+		}
+	}
+
+	return false;
+}
+
+//---------------------------------------------------------------------------
+//	@function:
+//		CPredicateUtils::FContainsVolatileFunction
+//
+//	@doc:
+//		Check if the expression contains a volatile function like random().
+//---------------------------------------------------------------------------
+BOOL
+CPredicateUtils::FContainsVolatileFunction
+	(
+	CExpression *pexpr
+	)
+{
+	GPOS_ASSERT(NULL!=pexpr);
+
+
+	COperator *popCurrent = pexpr->Pop();
+	GPOS_ASSERT(NULL!=popCurrent);
+
+	if (COperator::EopScalarFunc == popCurrent->Eopid())
+	{
+		CScalarFunc *pCurrentFunction = CScalarFunc::PopConvert(popCurrent);
+		return IMDFunction::EfsVolatile == pCurrentFunction->EfsGetFunctionStability();
+	}
+
+	// recursively check children
+	const ULONG ulChildren = pexpr->UlArity();
+	for (ULONG ul = 0; ul < ulChildren; ul++)
+	{
+		BOOL isVolatile = FContainsVolatileFunction((*pexpr)[ul]);
+		if (isVolatile)
+		{
+			return true;
+		}
+	}
+
+	// cannot find any
+	return false;
+}
 
 //---------------------------------------------------------------------------
 //	@function:

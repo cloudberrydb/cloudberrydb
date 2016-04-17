@@ -156,7 +156,15 @@ namespace gpopt
 			// is the given expression a comparison of the given type
 			static
 			BOOL FComparison(CExpression *pexpr, IMDType::ECmpType ecmpt);
+
+			// is the given array of expressions contain a volatile function like random()
+			static
+			BOOL FContainsVolatileFunction(DrgPexpr *pdrgpexpr);
 			
+			// is the given expressions contain a volatile function like random()
+			static
+			BOOL FContainsVolatileFunction(CExpression *pexpr);
+
 			// is the given expression an equality comparison over two scalar identifiers
 			static
 			BOOL FPlainEquality(CExpression *pexpr);
@@ -165,7 +173,7 @@ namespace gpopt
 			static
 			BOOL FSelfComparison(CExpression *pexpr, IMDType::ECmpType *pecmpt);
 
-			// eliminate self comparisonif possible
+			// eliminate self comparison if possible
 			static
 			CExpression *PexprEliminateSelfComparison(IMemoryPool *pmp, CExpression *pexpr);
 

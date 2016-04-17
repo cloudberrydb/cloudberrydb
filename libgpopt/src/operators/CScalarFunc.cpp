@@ -140,6 +140,20 @@ CScalarFunc::PmdidFunc() const
 
 //---------------------------------------------------------------------------
 //	@function:
+//		CScalarFunc::EFuncStbl
+//
+//	@doc:
+//		Function stability enum
+//
+//---------------------------------------------------------------------------
+IMDFunction::EFuncStbl
+CScalarFunc::EfsGetFunctionStability() const
+{
+	return m_efs;
+}
+
+//---------------------------------------------------------------------------
+//	@function:
 //		CScalarFunc::UlHash
 //
 //	@doc:

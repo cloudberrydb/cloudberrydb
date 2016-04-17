@@ -49,6 +49,7 @@ const CHAR *rgszCTEFileNames[] =
 	"../data/dxl/minidump/CTE-10.mdp",
 	"../data/dxl/minidump/CTE-11.mdp",
 	"../data/dxl/minidump/CTE-12.mdp",
+	"../data/dxl/minidump/CTE-with-random-filter.mdp",
 	"../data/dxl/minidump/CTE-volatile.mdp",
 	"../data/dxl/minidump/CTE-PartTbl.mdp",
 	"../data/dxl/minidump/CTE-Preds1.mdp",
