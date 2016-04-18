@@ -919,12 +919,13 @@ UNION ALL
 SELECT e1.i, e2.j from exttab_cursor_2 e1 INNER JOIN exttab_cursor_2 e2 ON e1.i = e2.i
 UNION ALL
 SELECT e1.i, e2.j from exttab_cursor_2 e1 INNER JOIN exttab_cursor_2 e2 ON e1.i = e2.i;
+ERROR:  Segment reject limit reached. Aborting operation. Last error was: missing data for column "j"  (seg0 slice1 subraa4-mac:40000 pid=70279)
+DETAIL:  External table exttab_cursor_2, line 7 of file://subraa4-mac/Users/abhijits/gitdev/oss_build/gpdb/src/test/regress/data/exttab_more_errors.data: "error_1"
 -- Should not fail as we would not have reached segment reject limit yet. This fails currently though
 -- because how cursors scan the rows internally is implementation dependant. 
 -- The test is here to track the issue.
 FETCH exttab_cur1;
-ERROR:  Segment reject limit reached. Aborting operation. Last error was: missing data for column "j"  (seg0 slice1 subraa4-mac:40000 pid=70279)
-DETAIL:  External table exttab_cursor_2, line 7 of file://subraa4-mac/Users/abhijits/gitdev/oss_build/gpdb/src/test/regress/data/exttab_more_errors.data: "error_1"
+ERROR:  current transaction is aborted, commands ignored until end of transaction block
 COMMIT;
 -- This should have errors populated already
 SELECT count(*) > 0 FROM gp_read_error_log('exttab_cursor_2');
