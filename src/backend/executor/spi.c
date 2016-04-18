@@ -1666,6 +1666,7 @@ _SPI_execute_plan(_SPI_plan * plan, ParamListInfo paramLI,
 	volatile int res = 0;
 	Snapshot	saveActiveSnapshot;
 	const char *saved_query_string;
+	const char *current_query_string = NULL;
 
 	/* Be sure to restore ActiveSnapshot on error exit */
 	saveActiveSnapshot = ActiveSnapshot;
@@ -1683,7 +1684,15 @@ _SPI_execute_plan(_SPI_plan * plan, ParamListInfo paramLI,
 	 */
 
 	saved_query_string = debug_query_string;
-	debug_query_string = plan->query;
+
+	/* 
+	 * plan->query is not memory context safe when FATAL/PANIC level error occurs,
+	 * to avoid debug_query_string referring to a invalid address, need to copy
+	 * the query string from TopMemoryContext. 
+	 */
+	current_query_string = MemoryContextStrdup(TopMemoryContext, plan->query);
+
+	debug_query_string = current_query_string;
 
 	PG_TRY();
 	{
@@ -1878,6 +1887,7 @@ fail:
 	}
 	PG_CATCH();
 	{
+		pfree(current_query_string);
 		debug_query_string = saved_query_string;
 
 		/* Restore global vars and propagate error */
@@ -1889,6 +1899,7 @@ fail:
 	}
 	PG_END_TRY();
 
+	pfree(current_query_string);
 	debug_query_string = saved_query_string;
 
 	ActiveSnapshot = saveActiveSnapshot;
