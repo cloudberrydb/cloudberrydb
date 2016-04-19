@@ -1635,9 +1635,9 @@ class gpload:
                 # resolve the fqdn rather than just grabbing the hostname.
                 fqdn = self.getconfig('gpload:input:fully_qualified_domain_name', bool, False)
                 if fqdn:
-                    local_hostname = socket.getfqdn()
+                    local_hostname = [socket.getfqdn()]
                 else:
-                    local_hostname = socket.gethostname()
+                    local_hostname = [socket.gethostname()]
 
             # build gpfdist parameters
             popenList = ['gpfdist']
