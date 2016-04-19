@@ -2254,10 +2254,10 @@ ExecInitAgg(Agg *node, EState *estate, int eflags)
 	/*
 	 * Process percentile expressions.  These are treated separately from
 	 * Aggref expressions at the moment as we cannot change the catalog, but
-	 * this will be incorporated into the existing Agggref architecture
+	 * this will be incorporated into the existing Aggref architecture
 	 * when we can change the catalog.  The operation for percentile functions
 	 * is very similar to the Aggref operation except that there is no
-	 * function oid for transition function.  We manually manupilate
+	 * function oid for transition function.  We manually manipulate
 	 * FmgrInfo without the oid.
 	 * In case the Agg handles PercentileExpr, there shouldn't be Aggref
 	 * in conjunction with PercentileExpr in the target list (and havingQual),
