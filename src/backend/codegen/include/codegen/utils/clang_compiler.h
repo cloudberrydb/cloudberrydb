@@ -14,7 +14,7 @@
 //
 //---------------------------------------------------------------------------
 
-#ifndef GPCODEGEN_CLANG_COMPILER_H_
+#ifndef GPCODEGEN_CLANG_COMPILER_H_  // NOLINT(build/header_guard)
 #define GPCODEGEN_CLANG_COMPILER_H_
 
 #include <cstddef>
@@ -31,7 +31,7 @@ namespace gpcodegen {
 
 struct AnnotatedType;
 
-/** \addtogroup codegen
+/** \addtogroup gpcodegen
  *  @{
  */
 
@@ -216,8 +216,8 @@ class ConstantPrinter<
     // with the right precision.
     if (sizeof(IntType) > sizeof(int)) {
       literal.push_back('l');
-      if (sizeof(IntType) > sizeof(long) || std::is_same<IntType,
-    		  long long>::value) {  // NOLINT(runtime/int)
+      if (sizeof(IntType) > sizeof(long) ||  // NOLINT(runtime/int)
+          std::is_same<IntType, long long>::value) {  // NOLINT(runtime/int)
         literal.push_back('l');
       }
     }

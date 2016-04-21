@@ -283,20 +283,26 @@ TEST_F(InstanceMethodWrappersTest, SimpleMethodTest) {
 
   // Invoke a simple non-overloaded method via a wrapper.
   EXPECT_EQ(45,
-            (GPCODEGEN_WRAP_METHOD(&AbstractBase::AddPayload)(&instance_a1, 3)));
+            (GPCODEGEN_WRAP_METHOD(&AbstractBase::AddPayload)
+                (&instance_a1, 3)));
   EXPECT_EQ(126,
-            (GPCODEGEN_WRAP_METHOD(&AbstractBase::AddPayload)(&instance_a2, 3)));
+            (GPCODEGEN_WRAP_METHOD(&AbstractBase::AddPayload)
+                (&instance_a2, 3)));
   EXPECT_EQ(-9,
-            (GPCODEGEN_WRAP_METHOD(&AbstractBase::AddPayload)(&instance_b, 3)));
+            (GPCODEGEN_WRAP_METHOD(&AbstractBase::AddPayload)
+                (&instance_b, 3)));
 
   // Should also work fine if we refer to the derived classes rather than the
   // base.
   EXPECT_EQ(45,
-            (GPCODEGEN_WRAP_METHOD(&DerivedA::AddPayload)(&instance_a1, 3)));
+            (GPCODEGEN_WRAP_METHOD(&DerivedA::AddPayload)
+                (&instance_a1, 3)));
   EXPECT_EQ(126,
-            (GPCODEGEN_WRAP_METHOD(&DerivedA::AddPayload)(&instance_a2, 3)));
+            (GPCODEGEN_WRAP_METHOD(&DerivedA::AddPayload)
+                (&instance_a2, 3)));
   EXPECT_EQ(-9,
-            (GPCODEGEN_WRAP_METHOD(&DerivedB::AddPayload)(&instance_b, 3)));
+            (GPCODEGEN_WRAP_METHOD(&DerivedB::AddPayload)
+                (&instance_b, 3)));
 }
 
 TEST_F(InstanceMethodWrappersTest, OverloadedMethodTest) {
@@ -358,11 +364,14 @@ TEST_F(InstanceMethodWrappersTest, VirtualMethodTest) {
 
   // Invoke virtual method of base class on instances of derived classes.
   EXPECT_EQ(84,
-            (GPCODEGEN_WRAP_METHOD(&AbstractBase::MulPayload)(&instance_a1, 2)));
+            (GPCODEGEN_WRAP_METHOD(&AbstractBase::MulPayload)
+                (&instance_a1, 2)));
   EXPECT_EQ(369,
-            (GPCODEGEN_WRAP_METHOD(&AbstractBase::MulPayload)(&instance_a2, 3)));
+            (GPCODEGEN_WRAP_METHOD(&AbstractBase::MulPayload)
+                (&instance_a2, 3)));
   EXPECT_EQ(48,
-            (GPCODEGEN_WRAP_METHOD(&AbstractBase::MulPayload)(&instance_b, 4)));
+            (GPCODEGEN_WRAP_METHOD(&AbstractBase::MulPayload)
+                (&instance_b, 4)));
 
   // Should also work if we refer to the derived classes than the base.
   EXPECT_EQ(84,

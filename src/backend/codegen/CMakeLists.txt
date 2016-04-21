@@ -6,9 +6,12 @@
 
 cmake_minimum_required(VERSION 2.8.12)
 
-project(gpcodegen CXX)
+project(gpcodegen C CXX)
 set(CMAKE_BUILD_FILES_DIRECTORY build)
 set(CMAKE_BUILD_DIRECTORY build)
+get_filename_component(TOP_SRC_DIR "../../.." ABSOLUTE)
+set(MOCK_DIR ${TOP_SRC_DIR}/src/test/unit/mock)
+
 
 # Options. Turn on with 'cmake -Dvar_name=ON'
 option(build_examples "Build examples also" OFF)
@@ -30,15 +33,26 @@ CHECK_CXX_COMPILER_FLAG("-Wall" COMPILER_HAS_WALL)
 if (COMPILER_HAS_WALL)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall")
 endif()
-CHECK_CXX_COMPILER_FLAG("-pedantic" COMPILER_HAS_PEDANTIC)
-if (COMPILER_HAS_PEDANTIC)
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pedantic")
-endif()
+
+#CHECK_CXX_COMPILER_FLAG("-pedantic" COMPILER_HAS_PEDANTIC)
+#if (COMPILER_HAS_PEDANTIC)
+#  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pedantic")
+#endif()
+#CHECK_CXX_COMPILER_FLAG("-fno-enforce-eh-specs" COMPILER_HAS_NO_ENFORCE_EH_SPECS)
+#if (COMPILER_HAS_NO_ENFORCE_EH_SPECS)
+#  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-enforce-eh-specs")
+#endif()
 
 # Suppress warnings about C99 extensions that should be supported in C++11 mode.
 CHECK_CXX_COMPILER_FLAG("-Wno-c99-extensions" COMPILER_HAS_WNO_C99_EXTENSIONS)
 if (COMPILER_HAS_WNO_C99_EXTENSIONS)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-c99-extensions")
+endif()
+
+# Suppress warnings about C99 extensions that should be supported in C++11 mode.
+CHECK_CXX_COMPILER_FLAG("-Wno-conversion-null" COMPILER_HAS_WNO_C99_EXTENSIONS)
+if (COMPILER_HAS_WNO_C99_EXTENSIONS)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-conversion-null")
 endif()
 
 # Turn on the CODEGEN_DEBUG flag if this is a debug build.
@@ -71,7 +85,7 @@ else()
 endif()
 
 # Include our include paths.
-include_directories(../../include)
+include_directories(${TOP_SRC_DIR}/src/include)
 include_directories(include)
 
 # Pull in LLVM libraries.
@@ -146,12 +160,19 @@ set_target_properties(
     INSTALL_NAME_DIR ${full_install_name_dir}
     MACOSX_RPATH ON)
 
+set(GPCODEGEN_SRC
+    codegen_interface.cc
+    codegen_manager.cc
+    codegen_wrapper.cc
+    slot_deform_tuple_codegen.cc
+)
+
 # Integrate with GPDB build system. 
 # Here we compile all the GPDB code generators, and link them incrementally
 # with the gpcodegen shared library to create a binary SUBSYS.o as expected by
 # GPDB make system. We invoke the linker with -nostdlib since we don't really
 # want to create a full executable.
-add_executable(SUBSYS.o init_codegen.cc)
+add_executable(SUBSYS.o ${GPCODEGEN_SRC})
 set_target_properties(SUBSYS.o
     PROPERTIES
     LINK_FLAGS "-Wl,-r -nostdlib")
@@ -162,26 +183,125 @@ target_link_libraries(
 # Integrate with GPDB build system
 # GPDB unit tests use unittest-check instead of test, so we add an alias target
 # that calls the ctests we registered above.
-add_custom_target(unittest-check ${CMAKE_CTEST_COMMAND})
-
-SET(TEST_SOURCES
-    tests/clang_compiler_unittest.cc
-    tests/codegen_utils_unittest.cc
-    tests/instance_method_wrappers_unittest.cc)
+add_custom_target(check
+    COMMAND ${CMAKE_CTEST_COMMAND})
+add_custom_target(unittest-check 
+    COMMAND ${CMAKE_COMMAND} .
+    COMMAND ${CMAKE_MAKE_PROGRAM} check
+)
 
 # Googletest framework for tests.
 SET(GTEST_DIR ../../../gpAux/extensions/gtest)
 add_subdirectory(${GTEST_DIR} ${CMAKE_BINARY_DIR}/gtest EXCLUDE_FROM_ALL)
-include_directories(${GTEST_DIR}/include)
 enable_testing()
 
-foreach(TEST_SRC ${TEST_SOURCES})
-    get_filename_component(TEST_NAME ${TEST_SRC} NAME_WE)
+SET (TEST_LIB_INC_DIRECTORIES
+${TOP_SRC_DIR}/src/test/unit/cmockery
+${GTEST_DIR}/include)
+			
+function(prepend_path var prefix)
+   SET(listVar "")
+   FOREACH(f ${ARGN})
+      LIST(APPEND listVar "${prefix}/${f}")
+   ENDFOREACH(f)
+   SET(${var} "${listVar}" PARENT_SCOPE)
+endfunction(prepend_path)
+
+function(add_simple_gtest TEST_NAME TEST_SRC)
     add_executable(${TEST_NAME} EXCLUDE_FROM_ALL ${TEST_SRC})
+	target_include_directories(${TEST_NAME} PUBLIC ${TEST_LIB_INC_DIRECTORIES})
     target_link_libraries(${TEST_NAME} gpcodegen gtest)
     add_test(${TEST_NAME} ${TEST_NAME})
-    add_dependencies(unittest-check ${TEST_NAME})
-endforeach()
+    add_dependencies(check ${TEST_NAME})
+endfunction(add_simple_gtest)
+
+add_simple_gtest(clang_compiler_unittest.t tests/clang_compiler_unittest.cc)
+add_simple_gtest(codegen_utils_unittest.t tests/codegen_utils_unittest.cc)
+add_simple_gtest(instance_method_wrappers_unittest.t tests/instance_method_wrappers_unittest.cc)
+
+# Usage add_cmock_gtest ${TEST_NAME} ${TEST_SOURCES} ${MOCK_DIR}/hello_mock.o ${MOCK_DIR}/world_mock.o)
+function(add_cmockery_gtest TEST_NAME TEST_SOURCES)
+    set(FILES_TO_LINK ${OBJFILES})
+
+    foreach(MOCK_OBJ_NAME ${ARGN})
+        string(REPLACE "_mock" "" REAL_OBJ_NAME ${MOCK_OBJ_NAME})
+        string(REPLACE "${MOCK_DIR}" "${TOP_SRC_DIR}/src" REAL_OBJ_NAME ${REAL_OBJ_NAME})
+        list(REMOVE_ITEM FILES_TO_LINK ${REAL_OBJ_NAME})
+
+        if(EXISTS ${MOCK_OBJ_NAME})
+            list(APPEND FILES_TO_LINK ${MOCK_OBJ_NAME})
+        else()
+            string(REPLACE ".o" ".c" REAL_SRC_NAME ${REAL_OBJ_NAME})
+            string(REPLACE ".o" ".c" MOCK_SRC_NAME ${MOCK_OBJ_NAME})
+            get_filename_component(REAL_SRC_ABS_PATH ${REAL_SRC_NAME} ABSOLUTE)
+            execute_process(COMMAND python mocker.py ${REAL_SRC_ABS_PATH}
+                WORKING_DIRECTORY ${MOCK_DIR})
+            list(APPEND FILES_TO_LINK ${MOCK_SRC_NAME})
+        endif()
+    endforeach()
+
+    add_executable(${TEST_NAME} EXCLUDE_FROM_ALL 
+        ${TEST_SOURCES}
+        ${GPCODEGEN_SRC}
+        ${FILES_TO_LINK} 
+        ${MOCK_OBJS} 
+        ${CMOCKERY_OBJS}
+    )
+    target_include_directories(${TEST_NAME} PUBLIC ${TEST_LIB_INC_DIRECTORIES})
+    # Bring these from $ENV{LIBS}
+    target_link_libraries(${TEST_NAME} "-ldl -lbz2 -lxml2 -lz -lm -lcurl -L../../port -lpgport_srv" gpcodegen gtest)
+    add_test(${TEST_NAME} ${TEST_NAME})
+    add_dependencies(check ${TEST_NAME})
+endfunction(add_cmockery_gtest)
+
+# Get the list for all real objects from objfiles.txt for CMockery integration
+set(TXT_OBJFILE ${TOP_SRC_DIR}/src/backend/objfiles.txt)
+if(EXISTS ${TXT_OBJFILE})
+    file(GLOB_RECURSE GPOPT_OBJS RELATIVE ${TOP_SRC_DIR} ${TOP_SRC_DIR}/src/backend/gpopt/*.o)
+    set(EXCL_OBJS
+        src/backend/main/main.o 
+        ${GPOPT_OBJS})
+
+    file(READ ${TXT_OBJFILE} OBJFILES)
+    string(REPLACE "\n" ";" OBJFILES "${OBJFILES}")
+    string(REPLACE " " ";" OBJFILES "${OBJFILES}")
+    set(OBJFILES ${OBJFILES})
+
+    foreach(F ${OBJFILES})
+        get_filename_component(_F ${F} NAME)
+        if ("${_F}" STREQUAL "objfiles.txt")
+            list(REMOVE_ITEM OBJFILES ${F})
+        endif()
+    endforeach()
+
+    foreach(OBJ ${EXCL_OBJS})
+        list(REMOVE_ITEM OBJFILES ${OBJ})
+    endforeach()
+    prepend_path(OBJFILES ${TOP_SRC_DIR} ${OBJFILES})
+
+
+    set(MOCK_OBJS "")
+    foreach(OBJ
+        ${TOP_SRC_DIR}/src/test/unit/mock/main_mock.o
+        ${TOP_SRC_DIR}/src/test/unit/mock/gpopt_mock.o 
+    )
+        if(EXISTS ${OBJ})
+            set(MOCK_OBJS ${OBJ} ${MOCK_OBJS})
+        endif()
+    endforeach()
+
+    set(CMOCKERY_DIR ${TOP_SRC_DIR}/src/test/unit/cmockery)
+    set(CMOCKERY_OBJS ${CMOCKERY_DIR}/cmockery.o)
+endif()
+
+# Add CMockery tests
+if(EXISTS ${TXT_OBJFILE})
+    add_cmockery_gtest(codegen_framework_unittest.t 
+        tests/codegen_framework_unittest.cc
+        ${MOCK_DIR}/backend/utils/error/elog_mock.o
+    )
+endif()
+
 
 # Examples
 if (build_examples)
@@ -190,7 +310,6 @@ endif()
 
 # Installation
 install(TARGETS gpcodegen DESTINATION lib)
-#install(DIRECTORY include/codegen DESTINATION include)
 
 # Clean up
 set(CMAKE_FILES Testing CMakeCache.txt CTestTestfile.cmake cmake_install.cmake install_manifest.txt Makefile)

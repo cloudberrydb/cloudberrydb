@@ -1127,7 +1127,10 @@ heap_deformtuple(HeapTuple tuple,
  *		re-computing information about previously extracted attributes.
  *		slot->tts_nvalid is the number of attributes already extracted.
  */
-static void
+#ifndef USE_CODEGEN
+static
+#endif
+void
 slot_deform_tuple(TupleTableSlot *slot, int natts)
 {
 	HeapTuple	tuple = TupGetHeapTuple(slot); 
@@ -1241,8 +1244,11 @@ _slot_getsomeattrs(TupleTableSlot *slot, int attnum)
 	attno = HeapTupleHeaderGetNatts(tuple->t_data);
 	attno = Min(attno, attnum);
 
-	slot_deform_tuple(slot, attno);
-
+	/*
+	 * This macro will decide whether to inline regular slot_deform_tuple or
+	 * call regular / generated slot_deform_tuple if USE_CODEGEN is defined
+	 */
+	call_slot_deform_tuple(slot, attno);
 
 	/*
 	 * If tuple doesn't have all the atts indicated by tupleDesc, read the

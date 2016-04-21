@@ -6,8 +6,8 @@
 //    materialize_tuple_ex.cc
 //
 //  @doc:
-//    Contains an example that implements the MaterializeTuple() function that 
-//    uses type information available at runtime to generate an output tuple 
+//    Contains an example that implements the MaterializeTuple() function that
+//    uses type information available at runtime to generate an output tuple
 //    in a buffer.
 //
 //  @test:
@@ -26,8 +26,8 @@ namespace {
 typedef void (*MaterializeTupleFunction)(char *);
 
 enum Types {
-  kBool = 0, // 1 byte
-  kInt       // 4 bytes
+  kBool = 0,  // 1 byte
+  kInt        // 4 bytes
 };
 
 const int kTupleSize = 9;
@@ -80,7 +80,6 @@ void materializeTuple(char *tuple) {
 //
 MaterializeTupleFunction
 GenerateCodeForMaterializeTuple(gpcodegen::CodegenUtils *codegen_utils) {
-
   auto irb = codegen_utils->ir_builder();
   llvm::Function *mt_function =
       codegen_utils->CreateFunction<void, char *>("materializeTuple");
@@ -219,7 +218,7 @@ GenerateCodeForMaterializeTuple(gpcodegen::CodegenUtils *codegen_utils) {
 
   return codegen_utils->GetFunctionPointer<void, char *>("materializeTuple");
 }
-}
+}  // namespace
 
 int main() {
   bool init_ok = gpcodegen::CodegenUtils::InitializeGlobal();

@@ -13,7 +13,7 @@
 //
 //---------------------------------------------------------------------------
 
-#ifndef GPCODEGEN_MACROS_H_
+#ifndef GPCODEGEN_MACROS_H_  // NOLINT(build/header_guard)
 #define GPCODEGEN_MACROS_H_
 
 #define DISALLOW_COPY_AND_ASSIGN(classname)   \

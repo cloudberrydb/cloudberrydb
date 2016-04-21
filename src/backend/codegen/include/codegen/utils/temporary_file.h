@@ -13,7 +13,7 @@
 //
 //---------------------------------------------------------------------------
 
-#ifndef GPCODEGEN_TEMPORARY_FILE_H_
+#ifndef GPCODEGEN_TEMPORARY_FILE_H_  // NOLINT(build/header_guard)
 #define GPCODEGEN_TEMPORARY_FILE_H_
 
 #include <cstddef>
@@ -25,7 +25,7 @@
 
 namespace gpcodegen {
 
-/** \addtogroup codegen
+/** \addtogroup gpcodegen
  *  @{
  */
 

@@ -14,7 +14,7 @@
 //
 //---------------------------------------------------------------------------
 
-#ifndef GPCODEGEN_ANNOTATED_TYPE_H_
+#ifndef GPCODEGEN_ANNOTATED_TYPE_H_  // NOLINT(build/header_guard)
 #define GPCODEGEN_ANNOTATED_TYPE_H_
 
 #include <algorithm>
@@ -27,7 +27,7 @@
 
 namespace gpcodegen {
 
-/** \addtogroup codegen
+/** \addtogroup gpcodegen
  *  @{
  */
 

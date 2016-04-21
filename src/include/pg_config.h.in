@@ -827,6 +827,9 @@
 /* Define to 1 to build with Greenplum ORCA optimizer. (--enable-orca) */
 #undef USE_ORCA
 
+/* Define to 1 to build with Codegen. (--enable-codegen) */
+#undef USE_CODEGEN 
+
 /* Define to 1 to build with PAM support. (--with-pam) */
 #undef USE_PAM
 

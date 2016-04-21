@@ -5,7 +5,7 @@ program construction, optimization, and execution with additional features to
 help runtime-generated code integrate smoothly with statically compiled code.
 Key features include:
 
-* A `CodeGenerator` class that encapsulates LLVM modules, optimization passes,
+* A `CodegenUtils` class that encapsulates LLVM modules, optimization passes,
   and execution engines, managing the whole lifetime of generated code.
 * Fully automatic mapping between C++ types and LLVM IR types (including
   function types of any arity) using templates.
@@ -25,12 +25,13 @@ Key features include:
 
 # Contents
 
-1. [Building codegen utils](#building)
+1. [Building Codegen Utils](#building-codegen-utils)
 2. [Coding Guidelines](#coding-guidelines)
 3. [Debugging Generated Code](#debugging-generated-code)
 4. [Learning Resources](#learning-resources)
+5. [Codegen GPDB Function](#codegen-gpdb-function)
 
-## Building codegen utils
+## Building Codegen Utils
 
 ### Prerequisites
 To build codegen utils, you will need cmake 2.8 or higher and a recent version of
@@ -253,3 +254,29 @@ assignment, and has the illusion of unlimited registers.
 * [C++ Variadic Templates Guide](http://eli.thegreenplace.net/2014/variadic-templates-in-c/)
   A nice guided tour of variadic templates in C++11 and how to use them to make
   variadic code that is both type-safe and fast.
+  
+## Codegen GPDB Function
+In order to facilitate codegen GPDB function, we introduced the following classes:
+* `CodegenInterface` - Interface for all code generators.
+* `BaseCodegen`	     - Inherits CodegenInterface and provides common implementation for all
+					   generators that derive from it.
+* `CodegenManager`   - Manages all CodegenInterface.
+
+More details for above classes are available in doxygen document or in respective source code.
+
+Below are the necessary steps to codegen a target function *F* (e.g. `slot_deform_tuple`) which is
+access through an operator.
+
+1. Create a CodegenManager instance in the corresponding operator.
+2. Create a new generator class *GC* (E.g. `SlotDeformTupleCodegen`) that derives from BaseCodegen and 
+   implements a function that generartes IR instructions / C++ code for *F*. 
+3. Store *GC* and a function pointer to *F* in an appropriate struct. For instance the proper struct
+   for `slot_deform_tuple` is `TupleTableSlot`.
+4. Enroll *GC* with the manager for current operator during `ExecInit`. Enrollment
+   process makes sure that the function pointer initally points to the regular version of *F*.
+5. Replace the actual function call in GPDB with a call to the above function pointer.
+
+After `ExecInit`, manager uses `CodegenInterface` to generate the runtime code. On sucessful generation,
+manager swaps the function pointer (see Step 3) to point to the generated version of *F*. Note that, *GC*
+stores the target function *F* along with a reference to a function pointer to *F* (see Step 3). This
+mechanism allows manager to fallback on the regular version of *F* when code generation fails.  
