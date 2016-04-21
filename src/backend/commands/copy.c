@@ -38,6 +38,7 @@
 #include "commands/tablecmds.h"
 #include "commands/trigger.h"
 #include "executor/executor.h"
+#include "executor/execDML.h"
 #include "libpq/libpq.h"
 #include "libpq/pqformat.h"
 #include "mb/pg_wchar.h"
