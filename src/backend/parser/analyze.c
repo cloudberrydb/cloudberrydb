@@ -2456,7 +2456,6 @@ transformDistributedBy(ParseState *pstate, CreateStmtContext *cxt,
 	ListCell   *keys = NULL;
 	GpPolicy  *policy = NULL;
 	int			colindex = 0;
-	int			maxattrs = MaxPolicyAttributeNumber;
 	int			numUniqueIndexes = 0;
 	Constraint *uniqueindex = NULL;
 
@@ -2578,7 +2577,7 @@ transformDistributedBy(ParseState *pstate, CreateStmtContext *cxt,
 	/*
 	 * If new table INHERITS from one or more parent tables, check parents.
 	 */
-	if (cxt->inhRelations != NIL)
+	if (cxt && cxt->inhRelations != NIL)
 	{
 		ListCell   *entry;
 
@@ -2679,7 +2678,7 @@ transformDistributedBy(ParseState *pstate, CreateStmtContext *cxt,
 
 		colindex = 0;
 
-		if (cxt->inhRelations)
+		if (cxt && cxt->inhRelations)
 		{
 			/* try inherited tables */
 			ListCell   *inher;
@@ -2729,7 +2728,7 @@ transformDistributedBy(ParseState *pstate, CreateStmtContext *cxt,
 
 		}
 
-		if (!assignedDefault)
+		if (!assignedDefault && cxt && cxt->columns)
 		{
 			foreach(columns, cxt->columns)
 			{
@@ -2804,7 +2803,7 @@ transformDistributedBy(ParseState *pstate, CreateStmtContext *cxt,
 
 				colindex = 0;
 
-				if (cxt->inhRelations)
+				if (cxt && cxt->inhRelations)
 				{
 					/* try inherited tables */
 					ListCell   *inher;
@@ -2846,7 +2845,7 @@ transformDistributedBy(ParseState *pstate, CreateStmtContext *cxt,
 					}
 				}
 
-				if (!found)
+				if (!found && cxt && cxt->columns)
 				{
 					foreach(columns, cxt->columns)
 					{
@@ -2886,7 +2885,7 @@ transformDistributedBy(ParseState *pstate, CreateStmtContext *cxt,
 				* DefineIndex will complain about them if not, and will also
 				* take care of marking them NOT NULL.
 				*/
-				if (!found && !cxt->isalter)
+				if (!found && cxt && !cxt->isalter)
 					ereport(ERROR,
 							(errcode(ERRCODE_UNDEFINED_COLUMN),
 							 errmsg("column \"%s\" named in 'DISTRIBUTED BY' clause does not exist",
@@ -2987,7 +2986,7 @@ transformDistributedBy(ParseState *pstate, CreateStmtContext *cxt,
 					}
 				}
 
-				if (!found)
+				if (!found && cxt->columns)
 				{
 					foreach(columns, cxt->columns)
 					{
@@ -3041,7 +3040,7 @@ transformDistributedBy(ParseState *pstate, CreateStmtContext *cxt,
 
 				colindex = 0;
 
-				if (cxt->inhRelations)
+				if (cxt && cxt->inhRelations)
 				{
 					/* try inherited tables */
 					ListCell   *inher;
@@ -3084,7 +3083,7 @@ transformDistributedBy(ParseState *pstate, CreateStmtContext *cxt,
 					}
 				}
 
-				if (!found)
+				if (!found && cxt && cxt->columns)
 				foreach(columns, cxt->columns)
 				{
 					column = (ColumnDef *) lfirst(columns);
@@ -6990,42 +6989,43 @@ setQryDistributionPolicy(SelectStmt *stmt, Query *qry)
 			qry->intoPolicy = policy;
 		}
 		else
-		foreach(keys, stmt->distributedBy)
 		{
-			char	   *key = strVal(lfirst(keys));
-			bool		found = false;
-
-			AttrNumber	n;
-
-			for(n=1;n<=list_length(qry->targetList);n++)
+			foreach(keys, stmt->distributedBy)
 			{
-
-				TargetEntry *target = get_tle_by_resno(qry->targetList, n);
-				colindex = n;
-
-				if (target->resname && strcmp(target->resname, key) == 0)
+				char	   *key = strVal(lfirst(keys));
+				bool		found = false;
+	
+				AttrNumber	n;
+	
+				for(n=1;n<=list_length(qry->targetList);n++)
 				{
-					found = true;
-
-				} /*if*/
-
-				if (found)
-					break;
-
-			} /*for*/
-
-			if (!found)
-				ereport(ERROR,
-						(errcode(ERRCODE_UNDEFINED_COLUMN),
-						 errmsg("column \"%s\" named in DISTRIBUTED BY "
-								"clause does not exist",
-								key)));
-
-			policy->attrs[policy->nattrs++] = colindex;
-
-		} /*foreach */
-		if (policy->nattrs > 0)
+	
+					TargetEntry *target = get_tle_by_resno(qry->targetList, n);
+					colindex = n;
+	
+					if (target->resname && strcmp(target->resname, key) == 0)
+					{
+						found = true;
+	
+					} /*if*/
+	
+					if (found)
+						break;
+	
+				} /*for*/
+	
+				if (!found)
+					ereport(ERROR,
+							(errcode(ERRCODE_UNDEFINED_COLUMN),
+							 errmsg("column \"%s\" named in DISTRIBUTED BY "
+									"clause does not exist",
+									key)));
+	
+				policy->attrs[policy->nattrs++] = colindex;
+	
+			} /*foreach */
 			qry->intoPolicy = policy;
+		}
 	}
 }
 
