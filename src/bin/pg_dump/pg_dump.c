@@ -118,6 +118,10 @@ static SimpleOidList table_include_oids = {NULL, NULL};
 static SimpleStringList table_exclude_patterns = {NULL, NULL};
 static SimpleOidList table_exclude_oids = {NULL, NULL};
 
+static SimpleStringList relid_string_list = {NULL, NULL};
+static SimpleStringList funcid_string_list = {NULL, NULL};
+static SimpleOidList function_include_oids = {NULL, NULL};
+
 /*
  * Indicates whether or not SET SESSION AUTHORIZATION statements should be emitted
  * instead of ALTER ... OWNER statements to establish object ownership.
@@ -156,6 +160,8 @@ static void help(const char *progname);
 static void expand_schema_name_patterns(SimpleStringList *patterns,
 							SimpleOidList *oids);
 static void expand_table_name_patterns(SimpleStringList *patterns,
+						   SimpleOidList *oids);
+static void expand_oid_patterns(SimpleStringList *patterns,
 						   SimpleOidList *oids);
 static NamespaceInfo *findNamespace(Oid nsoid, Oid objoid);
 static void dumpTableData(Archive *fout, TableDataInfo *tdinfo);
@@ -423,6 +429,8 @@ main(int argc, char **argv)
 		{"no-gp-syntax", no_argument, NULL, 2},
 		{"pre-data-schema-only", no_argument, &preDataSchemaOnly, 1},
 		{"post-data-schema-only", no_argument, &postDataSchemaOnly, 1},
+		{"function-oids", required_argument, NULL, 3},
+		{"relation-oids", required_argument, NULL, 4},
 		/* END MPP ADDITION */
 		{NULL, 0, NULL, 0}
 	};
@@ -621,6 +629,16 @@ main(int argc, char **argv)
 					exit(1);
 				}
 				gp_syntax_option = GPS_DISABLED;
+				break;
+
+			case 3:
+				simple_string_list_append(&funcid_string_list, optarg);
+				include_everything = false;
+				break;
+
+			case 4:
+				simple_string_list_append(&relid_string_list, optarg);
+				include_everything = false;
 				break;
 
 			default:
@@ -834,6 +852,8 @@ main(int argc, char **argv)
 	/* non-matching exclusion patterns aren't an error */
 
 
+	expand_oid_patterns(&relid_string_list, &table_include_oids);
+	expand_oid_patterns(&funcid_string_list, &function_include_oids);
 
 	/*
 	 * Dumping blobs is now default unless we saw an inclusion switch or -s
@@ -985,6 +1005,8 @@ help(const char *progname)
 	/* START MPP ADDITION */
 	printf(_("  --gp-syntax                 dump with Greenplum Database syntax (default if gpdb)\n"));
 	printf(_("  --no-gp-syntax              dump without Greenplum Database syntax (default if postgresql)\n"));
+	printf(_("  --function-oids             dump only function(s) of given list of oids\n"));
+	printf(_("  --relation-oids             dump only relation(s) of given list of oids\n"));
 	/* END MPP ADDITION */
 
 	printf(_("\nConnection options:\n"));
@@ -1102,6 +1124,39 @@ expand_table_name_patterns(SimpleStringList *patterns, SimpleOidList *oids)
 }
 
 /*
+ * Parse the OIDs matching the given list of patterns separated by non-digit
+ * characters, and append them to the given OID list.
+ */
+static void
+expand_oid_patterns(SimpleStringList *patterns, SimpleOidList *oids)
+{
+	SimpleStringListCell *cell;
+
+	if (patterns->head == NULL)
+		return;					/* nothing to do */
+
+	for (cell = patterns->head; cell; cell = cell->next)
+	{
+		const char *cp = cell->val;
+		const char *ch = cp;
+		while (*cp)
+		{
+			if (*cp < '0' || *cp > '9')
+			{
+				if (cp != ch)
+					simple_oid_list_append(oids, atooid(strndup(ch, cp - ch)));
+				ch = ++cp;
+			}
+			else
+				++cp;
+		}
+
+		if (cp != ch)
+			simple_oid_list_append(oids, atooid(strndup(ch, cp - ch)));
+	}
+}
+
+/*
  * selectDumpableNamespace: policy-setting subroutine
  *		Mark a namespace as to be dumped or not
  */
@@ -1188,6 +1243,28 @@ selectDumpableType(TypeInfo *tinfo)
 	else
 		tinfo->dobj.dump = true;
 }
+
+/*
+ * selectDumpableFunction: policy-setting subroutine
+ *		Mark a function as to be dumped or not
+ */
+static void
+selectDumpableFunction(FuncInfo *finfo)
+{
+	/*
+	 * If specific functions are being dumped, dump just those functions; else, dump
+	 * according to the parent namespace's dump flag if parent namespace is not null;
+	 * else, always dump the function.
+	 */
+	if (function_include_oids.head != NULL)
+		finfo->dobj.dump = simple_oid_list_member(&function_include_oids,
+												   finfo->dobj.catId.oid);
+	else if (finfo->dobj.namespace)
+		finfo->dobj.dump = finfo->dobj.namespace->dobj.dump;
+	else
+		finfo->dobj.dump = true;
+}
+
 
 /*
  * selectDumpableObject: policy-setting subroutine
@@ -2898,7 +2975,7 @@ getFuncs(int *numFuncs)
 		}
 
 		/* Decide whether we want to dump it */
-		selectDumpableObject(&(finfo[i].dobj));
+		selectDumpableFunction(&finfo[i]);
 
 		if (strlen(finfo[i].rolname) == 0)
 			write_msg(NULL,
