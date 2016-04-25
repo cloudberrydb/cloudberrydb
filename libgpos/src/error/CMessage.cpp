@@ -279,6 +279,12 @@ CMessage::Pmsg
 				 GPOS_WSZ_WSZLEN("Test sql error message: %ls"),
 				 1, // error message
 				 GPOS_WSZ_WSZLEN("Test sql error message")),
+
+		CMessage(CException(CException::ExmaUnhandled, CException::ExmiUnhandled),
+				 CException::ExsevError,
+				 GPOS_WSZ_WSZLEN("Unhandled exception"),
+				 0,
+				 GPOS_WSZ_WSZLEN("Unhandled exception")),
 	};
 
 	return &rgmsg[ulIndex];
