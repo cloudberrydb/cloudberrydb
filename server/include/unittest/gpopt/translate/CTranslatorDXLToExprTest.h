@@ -80,6 +80,7 @@ namespace gpopt
 			static GPOS_RESULT EresUnittest();
 
 			// tests for supported operators
+			static GPOS_RESULT EresUnittest_MetadataColumnMapping();
 			static GPOS_RESULT EresUnittest_SingleTableQuery();
 			static GPOS_RESULT EresUnittest_SelectQuery();
 			static GPOS_RESULT EresUnittest_SelectQueryWithConst();

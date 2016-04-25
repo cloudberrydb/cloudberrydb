@@ -44,11 +44,14 @@
 #include "gpopt/operators/CScalarIdent.h"
 #include "gpopt/metadata/CColumnDescriptor.h"
 #include "gpopt/metadata/CTableDescriptor.h"
+#include "gpopt/minidump/CMetadataAccessorFactory.h"
+#include "gpopt/minidump/CMinidumperUtils.h"
 #include "gpopt/translate/CTranslatorDXLToExpr.h"
 
 #define GPDB_INT4_GT_OP OID(521)
 #define GPDB_INT4_ADD_OP OID(551)
 
+const CHAR *szQueryDroppedColumn = "../data/dxl/expressiontests/NullableDroppedColumn.xml";
 const CHAR *szQueryTableScan = "../data/dxl/expressiontests/TableScan.xml";
 const CHAR *szQueryLimit = "../data/dxl/expressiontests/LimitQuery.xml";
 const CHAR *szQueryLimitNoOffset = "../data/dxl/expressiontests/LimitQueryNoOffset.xml";
@@ -77,6 +80,7 @@ CTranslatorDXLToExprTest::EresUnittest()
 {
 	CUnittest rgut[] =
 		{
+				GPOS_UNITTEST_FUNC(CTranslatorDXLToExprTest::EresUnittest_MetadataColumnMapping),
 				GPOS_UNITTEST_FUNC(CTranslatorDXLToExprTest::EresUnittest_SingleTableQuery),
 				GPOS_UNITTEST_FUNC(CTranslatorDXLToExprTest::EresUnittest_SelectQuery),
 				GPOS_UNITTEST_FUNC(CTranslatorDXLToExprTest::EresUnittest_SelectQueryWithConst),
@@ -235,6 +239,59 @@ CTranslatorDXLToExprTest::Pstr
 	return pstrExpr;
 }
 
+
+namespace
+{
+	class GetBuilder
+	{
+			IMemoryPool *m_pmp;
+			CTableDescriptor *m_ptabdesc;
+			CWStringConst m_strTableName;
+			const IMDTypeInt4 *m_pmdtypeint4;
+
+		public:
+			GetBuilder
+				(
+				IMemoryPool *pmp,
+				CWStringConst strTableName,
+				OID oidTableOid
+				):
+				m_pmp(pmp),
+				m_strTableName(strTableName)
+			{
+				CMDAccessor *pmda = COptCtxt::PoctxtFromTLS()->Pmda();
+				m_pmdtypeint4 = pmda->PtMDType<IMDTypeInt4>(CTestUtils::m_sysidDefault);
+				CMDIdGPDB *pmdid = GPOS_NEW(pmp) CMDIdGPDB(oidTableOid, 1, 1);
+
+				const BOOL fConvertHashToRandom = false;
+				const ULONG ulExecuteAsUser = 0;
+				m_ptabdesc =
+					GPOS_NEW(pmp) CTableDescriptor
+						(
+							pmp,
+							pmdid,
+							CName(&strTableName),
+							fConvertHashToRandom,
+							CMDRelationGPDB::EreldistrMasterOnly,
+							CMDRelationGPDB::ErelstorageHeap,
+							ulExecuteAsUser
+						);
+			}
+
+			void AddIntColumn(CWStringConst strColumnName, int iAttno, BOOL fNullable)
+			{
+				CColumnDescriptor *pcoldesc = GPOS_NEW(m_pmp) CColumnDescriptor(m_pmp, m_pmdtypeint4, CName(&strColumnName), iAttno, fNullable);
+				m_ptabdesc->AddColumn(pcoldesc);
+			}
+
+			CExpression *PexprLogicalGet()
+			{
+				return CTestUtils::PexprLogicalGet(m_pmp, m_ptabdesc, &m_strTableName);
+			}
+	};
+}
+
+
 //---------------------------------------------------------------------------
 //	@function:
 //		CTranslatorDXLToExprTest::PexprGet
@@ -249,40 +306,14 @@ CTranslatorDXLToExprTest::PexprGet
 	IMemoryPool *pmp
 	)
 {
-	CMDAccessor *pmda = COptCtxt::PoctxtFromTLS()->Pmda();
-
-	const IMDTypeInt4 *pmdtypeint4 = pmda->PtMDType<IMDTypeInt4>(CTestUtils::m_sysidDefault);
-
 	CWStringConst strTblName(GPOS_WSZ_LIT("r"));
+	const BOOL fNullable = true;
 
-	CMDIdGPDB *pmdid = GPOS_NEW(pmp) CMDIdGPDB(GPOPT_TEST_REL_OID21, 1, 1);
+	GetBuilder gb(pmp, strTblName, GPOPT_TEST_REL_OID21);
+	gb.AddIntColumn(CWStringConst(GPOS_WSZ_LIT("a")), 1, fNullable);
+	gb.AddIntColumn(CWStringConst(GPOS_WSZ_LIT("b")), 2, fNullable);
 
-	CTableDescriptor *ptabdesc =
-		GPOS_NEW(pmp) CTableDescriptor
-					(
-					pmp, 
-					pmdid, 
-					CName(&strTblName), 
-					false, // fConvertHashToRandom
-					CMDRelationGPDB::EreldistrMasterOnly, 
-					CMDRelationGPDB::ErelstorageHeap, 
-					0 // ulExecuteAsUser
-					);
-
-	// create an integer column (a) with column id 1
-	CWStringConst strColA(GPOS_WSZ_LIT("a"));
-	CColumnDescriptor *pcoldescIntA = GPOS_NEW(pmp) CColumnDescriptor(pmp, pmdtypeint4, CName(&strColA), 1, false /*FNullable*/);
-	ptabdesc->AddColumn(pcoldescIntA);
-
-	// create an integer column (b) with column id 2
-	CWStringConst strColB(GPOS_WSZ_LIT("b"));
-	CColumnDescriptor *pcoldescIntB = GPOS_NEW(pmp) CColumnDescriptor(pmp, pmdtypeint4, CName(&strColB), 2, false /*FNullable*/);
-	ptabdesc->AddColumn(pcoldescIntB);
-
-	// generate get expression
-	CWStringConst strTblNameAlias(GPOS_WSZ_LIT("r"));
-
-	return CTestUtils::PexprLogicalGet(pmp, ptabdesc, &strTblNameAlias);
+	return gb.PexprLogicalGet();
 }
 
 //---------------------------------------------------------------------------
@@ -752,6 +783,34 @@ CTranslatorDXLToExprTest::EresUnittest_ScalarSubquery()
 
 	pexprTranslated->Release();
 	GPOS_DELETE(poss);
+	return GPOS_OK;
+}
+
+GPOS_RESULT CTranslatorDXLToExprTest::EresUnittest_MetadataColumnMapping()
+{
+	CAutoMemoryPool amp;
+	IMemoryPool *pmp = amp.Pmp();
+
+	CAutoP<CDXLMinidump> apdxlmd(CMinidumperUtils::PdxlmdLoad(pmp, szQueryDroppedColumn));
+
+	CMetadataAccessorFactory factory(pmp, apdxlmd.Pt(), szQueryDroppedColumn);
+
+	CAutoOptCtxt aoc
+					(
+					pmp,
+					factory.Pmda(),
+					NULL,
+					CTestUtils::Pcm(pmp)
+					);
+
+	CAutoRef<CExpression> apExpr(CTranslatorDXLToExprTest::Pexpr(pmp, szQueryDroppedColumn));
+
+	CLogicalGet *pActualGet = (CLogicalGet *) apExpr->Pop();
+	DrgPcoldesc *pDrgColDesc = pActualGet->Ptabdesc()->Pdrgpcoldesc();
+	CColumnDescriptor *pColDesc = (*pDrgColDesc)[0];
+	bool actualNullable = pColDesc->FNullable();
+	GPOS_RTL_ASSERT(actualNullable == false);
+
 	return GPOS_OK;
 }
 

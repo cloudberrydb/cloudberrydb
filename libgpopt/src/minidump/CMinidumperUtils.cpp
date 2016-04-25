@@ -18,6 +18,7 @@
 
 #include "gpos/base.h"
 #include "gpos/common/CAutoTimer.h"
+#include "gpos/common/CAutoRef.h"
 #include "gpos/common/CBitSet.h"
 #include "gpos/common/syslibwrapper.h"
 #include "gpos/error/CAutoTrace.h"
@@ -42,6 +43,7 @@
 #include "gpopt/engine/CStatisticsConfig.h"
 #include "gpopt/mdcache/CMDAccessor.h"
 #include "gpopt/mdcache/CMDCache.h"
+#include "gpopt/minidump/CMetadataAccessorFactory.h"
 #include "gpopt/minidump/CMinidumperUtils.h"
 #include "gpopt/minidump/CMiniDumperDXL.h"
 #include "gpopt/optimizer/COptimizer.h"
@@ -388,28 +390,9 @@ CMinidumperUtils::PdxlnExecuteMinidump
 	// reset metadata ccache
 	CMDCache::Reset();
 
-	// set up MD providers
-	CMDProviderMemory *pmdp = GPOS_NEW(pmp) CMDProviderMemory(pmp, szFileName);
-	const DrgPsysid *pdrgpsysid = pdxlmd->Pdrgpsysid();
-	DrgPmdp *pdrgpmdp = GPOS_NEW(pmp) DrgPmdp(pmp);
-	
-	// ensure there is at least ONE system id
-	pmdp->AddRef();
-	pdrgpmdp->Append(pmdp);
+	CMetadataAccessorFactory factory(pmp, pdxlmd, szFileName);
 
-	for (ULONG ul = 1; ul < pdrgpsysid->UlLength(); ul++)
-	{	
-		pmdp->AddRef();
-		pdrgpmdp->Append(pmdp);
-	}
-
-	CMDAccessor mda(pmp, CMDCache::Pcache(), pdxlmd->Pdrgpsysid(), pdrgpmdp);
-	
-	CDXLNode *result = CMinidumperUtils::PdxlnExecuteMinidump(pmp, &mda, pdxlmd, szFileName, ulSegments, ulSessionId, ulCmdId, poconf, pceeval);
-
-	// cleanup
-	pdrgpmdp->Release();
-	pmdp->Release();
+	CDXLNode *result = CMinidumperUtils::PdxlnExecuteMinidump(pmp, factory.Pmda(), pdxlmd, szFileName, ulSegments, ulSessionId, ulCmdId, poconf, pceeval);
 
 	return result;
 }

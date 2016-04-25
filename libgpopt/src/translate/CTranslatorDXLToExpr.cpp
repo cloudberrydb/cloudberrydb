@@ -2084,6 +2084,7 @@ CTranslatorDXLToExpr::Ptabdesc
 
 	// construct mappings for columns that are not dropped
 	HMIUl *phmiulAttnoColMapping = GPOS_NEW(m_pmp) HMIUl(m_pmp);
+	HMIUl *phmiulAttnoPosMapping = GPOS_NEW(m_pmp) HMIUl(m_pmp);
 	HMUlUl *phmululColMapping = GPOS_NEW(m_pmp) HMUlUl(m_pmp);
 	
 	const ULONG ulAllColumns = pmdrel->UlColumns();
@@ -2096,6 +2097,7 @@ CTranslatorDXLToExpr::Ptabdesc
 			continue;
 		}
 		(void) phmiulAttnoColMapping->FInsert(GPOS_NEW(m_pmp) INT(pmdcol->IAttno()), GPOS_NEW(m_pmp) ULONG(ulPosNonDropped));
+		(void) phmiulAttnoPosMapping->FInsert(GPOS_NEW(m_pmp) INT(pmdcol->IAttno()), GPOS_NEW(m_pmp) ULONG(ulPos));
 		(void) phmululColMapping->FInsert(GPOS_NEW(m_pmp) ULONG(ulPos), GPOS_NEW(m_pmp) ULONG(ulPosNonDropped));
 
 		ulPosNonDropped++;
@@ -2119,17 +2121,17 @@ CTranslatorDXLToExpr::Ptabdesc
 						pdxltabdesc->UlExecuteAsUser()
 						);
 
-	// populate column information from the dxl table descriptor
 	const ULONG ulColumns = pdxltabdesc->UlArity();
 	for (ULONG ul = 0; ul < ulColumns; ul++)
 	{
-		BOOL fNullable = false;
-		if (ul < pmdrel->UlColumns())
-		{
-			fNullable = pmdrel->Pmdcol(ul)->FNullable();
-		}
-
 		const CDXLColDescr *pdxlcoldesc = pdxltabdesc->Pdxlcd(ul);
+		INT iAttno = pdxlcoldesc->IAttno();
+
+		ULONG *pulPos = phmiulAttnoPosMapping->PtLookup(&iAttno);
+		GPOS_ASSERT(NULL != pulPos);
+		const IMDColumn *pmdcolNext = pmdrel->Pmdcol(*pulPos);
+
+		BOOL fNullable = pmdcolNext->FNullable();
 
 		GPOS_ASSERT(pdxlcoldesc->PmdidType()->FValid());
 		const IMDType *pmdtype = m_pmda->Pmdtype(pdxlcoldesc->PmdidType());
@@ -2175,6 +2177,7 @@ CTranslatorDXLToExpr::Ptabdesc
 	// populate key sets
 	CTranslatorDXLToExprUtils::AddKeySets(m_pmp, ptabdesc, pmdrel, phmululColMapping);
 	
+	phmiulAttnoPosMapping->Release();
 	phmiulAttnoColMapping->Release();
 	phmululColMapping->Release();
 

@@ -85,6 +85,7 @@ add_library(gpopt SHARED
             src/metadata/CPartConstraint.cpp
             src/metadata/CTableDescriptor.cpp
             src/minidump/CDXLMinidump.cpp
+            src/minidump/CMetadataAccessorFactory.cpp
             src/minidump/CMiniDumperDXL.cpp
             src/minidump/CMinidumperUtils.cpp
             src/minidump/CSerializableMDAccessor.cpp
@@ -401,7 +402,8 @@ add_library(gpopt SHARED
             src/xforms/CXformUnion2UnionAll.cpp
             src/xforms/CXformUnnestTVF.cpp
             src/xforms/CXformUpdate2DML.cpp
-            src/xforms/CXformUtils.cpp)
+            src/xforms/CXformUtils.cpp
+            )
 
 target_link_libraries(gpopt
                       gpdbcost
