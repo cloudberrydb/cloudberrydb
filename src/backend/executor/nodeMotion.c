@@ -517,7 +517,7 @@ execMotionUnsortedReceiver(MotionState * node)
  * We keep track of which one was selected, this will be slot we will need
  * to fill during the next call.
  *
- * Subsuquent calls to this function (after the 1st time) will start by
+ * Subsequent calls to this function (after the 1st time) will start by
  * trying to receive a tuple for the slot that was emptied the previous call.
  * Then we again select the lowest value and return that tuple.
  *
@@ -641,7 +641,7 @@ static void create_motion_mk_heap(MotionState *node)
     
 static void destroy_motion_mk_heap(MotionState *node)
 {
-    /* Don't need to do anything.  Memory are allocated from
+    /* Don't need to do anything.  Memory is allocated from
      * query execution context.  By calling this, we are at
      * the end of the life of a query. 
      */
