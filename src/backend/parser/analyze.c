@@ -5877,51 +5877,6 @@ transformAlterTable_all_PartitionStmt(
 	{
 		case AT_PartAdd:				/* Add */
 		case AT_PartSetTemplate:		/* Set Subpartn Template */
-
-			if (pci->arg2) /* could be null for settemplate... */
-			{
-				AlterPartitionCmd 	*pc2 = (AlterPartitionCmd *) pci->arg2;
-				CreateStmt 			*ct;
-				InhRelation			*inh = makeNode(InhRelation);
-				List				*cl  = NIL;
-
-				Assert(IsA(pc2->arg2, List));
-				ct = (CreateStmt *)linitial((List *)pc2->arg2);
-
-				inh->relation = copyObject(rv);
-				inh->options = list_make3_int(
-						CREATE_TABLE_LIKE_INCLUDING_DEFAULTS,
-						CREATE_TABLE_LIKE_INCLUDING_CONSTRAINTS,
-						CREATE_TABLE_LIKE_INCLUDING_INDEXES);
-				/*
-				 * fill in remaining fields from parse time (gram.y):
-				 * the new partition is LIKE the parent and it
-				 * inherits from it
-				 */
-				ct->tableElts = lappend(ct->tableElts, inh);
-
-				/*
-				 * If this is an AOCO ADD PARTITION, add in the
-				 * DEFAULT ENCODING provided in the ADD PARTITION WITH clause.
-				 */
-				if (is_aocs(ct->options))
-				{
-					List *stenc = form_default_storage_directive(ct->options);
-					ColumnReferenceStorageDirective *deflt =
-						makeNode(ColumnReferenceStorageDirective);
-
-					stenc = transformStorageEncodingClause(stenc);
-
-					deflt->deflt = true;
-					deflt->encoding = stenc;
-
-					ct->attr_encodings = list_make1(deflt);
-				}
-
-				cl = list_make1(ct);
-
-				pc2->arg2 = (Node *)cl;
-			}
 		case AT_PartCoalesce:			/* Coalesce */
 		case AT_PartDrop:				/* Drop */
 		case AT_PartExchange:			/* Exchange */

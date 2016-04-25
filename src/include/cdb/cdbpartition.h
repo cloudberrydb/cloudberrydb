@@ -166,9 +166,9 @@ extern Oid selectPartition(PartitionNode *partnode, Datum *values,
 						   PartitionAccessMethods *accessMethods);
 
 extern Node *atpxPartAddList(Relation rel, 
-							 AlterPartitionCmd *pc,
+							 bool is_split,
+							 List *colencs,
 							 PartitionNode *pNode, 
-							 Node *pUtl,
 							 char *partName,
 							 bool isDefault,
 							 PartitionElem *pelem,

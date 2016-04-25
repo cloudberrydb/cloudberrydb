@@ -5357,9 +5357,9 @@ atpxPart_validate_spec(
 
 Node *
 atpxPartAddList(Relation rel,
-				AlterPartitionCmd *pc,
+				bool is_split,
+				List *colencs,
 				PartitionNode  *pNode,
-				Node *pUtl,     /* pc2->arg2 */
 				char *partName, /* pid->partiddef (or NULL) */
 				bool isDefault,
 				PartitionElem *pelem,
@@ -5369,7 +5369,6 @@ atpxPartAddList(Relation rel,
 				bool bSetTemplate,
 				Oid ownerid)
 {
-	CreateStmt			*ct		   = NULL;
 	DestReceiver		*dest	   = None_Receiver;
 	int					 maxpartno = 0;
 	typedef enum {
@@ -5379,14 +5378,13 @@ atpxPartAddList(Relation rel,
 	} NewPosition;
 	NewPosition newPos = MIDDLE;
 	bool				 bOpenGap  = false;
-	PartitionBy			*pBy	   = makeNode(PartitionBy);
+	PartitionBy			*pBy;
 	CreateStmtContext    cxt;
 	Node				*pSubSpec  = NULL;	/* return the subpartition spec */
 	Relation			 par_rel   = rel;
 	PartitionNode		 pNodebuf;
 	PartitionNode		*pNode2 = &pNodebuf;
-	AlterPartitionCmd   *pc2 = (AlterPartitionCmd *)pc->arg2;
-	bool is_split = PointerIsValid(pc2->partid);
+	CreateStmt *ct;
 
 	/* get the relation for the parent of the new partition */
 	if (par_prule && par_prule->topRule)
@@ -5396,29 +5394,6 @@ atpxPartAddList(Relation rel,
 	MemSet(&cxt, 0, sizeof(cxt));
 
 	Assert( (PARTTYP_LIST == part_type) || (PARTTYP_RANGE == part_type) );
-
-	/* ct - the CreateStmt from pUtl ammended to show that it is for an
-	 * added part, that it is owned by the argument ownerid, and that it
-	 * is distributed like the parent rel.  Note that, at this time,
-	 * the name is "fake_partition_name". */
-
-	Assert(IsA(pUtl, List));
-
-	ct = (CreateStmt *)linitial((List *)pUtl);
-	Assert(IsA(ct, CreateStmt));
-
-	ct->is_add_part = true; /* subroutines need to know this */
-	ct->ownerid = ownerid;
-
-	if (!ct->distributedBy)
-		ct->distributedBy = make_dist_clause(rel);
-
-	if (bSetTemplate)
-	/* if creating a template, silence partition name messages */
-		pBy->partQuiet = PART_VERBO_NOPARTNAME;
-	else
-	/* just silence distribution policy messages */
-		pBy->partQuiet = PART_VERBO_NODISTRO;
 
 	/* XXX XXX: handle case of missing boundary spec for range with EVERY */
 
@@ -6448,6 +6423,85 @@ atpxPartAddList(Relation rel,
 		} /* end if parttype_range */
 	} /* end if pelem && pelem->boundspec */
 
+	/*
+	 * Create a phony CREATE TABLE statement for the parent table.
+	 * The parse_analyze call later expands it, and we extract just the constituent
+	 * commands we need to create the new partition, and ignore the commands for
+	 * the already-existing parent table
+	 */
+	ct = makeNode(CreateStmt);
+	ct->relation = makeRangeVar(get_namespace_name(RelationGetNamespace(par_rel)),
+								RelationGetRelationName(par_rel), -1);
+
+	/*
+	 * in analyze.c, fill in tableelts with a list of inhrelation of
+	 * the partition parent table, and fill in inhrelations with copy
+	 * of rangevar for parent table
+	 */
+	InhRelation			*inh = makeNode(InhRelation);
+	inh->relation = copyObject(ct->relation);
+	inh->options = list_make3_int(
+		CREATE_TABLE_LIKE_INCLUDING_DEFAULTS,
+		CREATE_TABLE_LIKE_INCLUDING_CONSTRAINTS,
+		CREATE_TABLE_LIKE_INCLUDING_INDEXES);
+
+	/*
+	 * fill in remaining fields from parse time (gram.y):
+	 * the new partition is LIKE the parent and it
+	 * inherits from it
+	 */
+	ct->tableElts = lappend(ct->tableElts, inh);
+	ct->constraints = NIL;
+
+	if (pelem->storeAttr)
+		ct->options = (List *) ((AlterPartitionCmd *) pelem->storeAttr)->arg1;
+
+	ct->tableElts = list_concat(ct->tableElts, list_copy(colencs));
+
+	ct->oncommit = ONCOMMIT_NOOP;
+	if (pelem->storeAttr && ((AlterPartitionCmd *) pelem->storeAttr)->arg2)
+		ct->tablespacename = strVal(((AlterPartitionCmd *) pelem->storeAttr)->arg2);
+	else
+		ct->tablespacename = NULL;
+
+	pBy = makeNode(PartitionBy);
+	if (pelem->subSpec) /* treat subspec as partition by... */
+	{
+		pBy->partSpec = pelem->subSpec;
+		pBy->partDepth = 0;
+		pBy->partQuiet = PART_VERBO_NODISTRO;
+		pBy->location  = -1;
+		pBy->partDefault = NULL;
+		pBy->parentRel = copyObject(ct->relation);
+	}
+	else if (bSetTemplate)
+	{
+		/* if creating a template, silence partition name messages */
+		pBy->partQuiet = PART_VERBO_NOPARTNAME;
+	}
+	else
+	{
+		/* just silence distribution policy messages */
+		pBy->partQuiet = PART_VERBO_NODISTRO;
+	}
+
+	ct->distributedBy = NULL;
+	ct->partitionBy = (Node *)pBy;
+	ct->oidInfo.relOid = 0;
+	ct->oidInfo.comptypeOid = 0;
+	ct->oidInfo.toastOid = 0;
+	ct->oidInfo.toastIndexOid = 0;
+	ct->oidInfo.toastComptypeOid = 0;
+	ct->relKind = RELKIND_RELATION;
+	ct->policy = 0;
+	ct->postCreate = NULL;
+
+	ct->is_add_part = true; /* subroutines need to know this */
+	ct->ownerid = ownerid;
+
+	if (!ct->distributedBy)
+		ct->distributedBy = make_dist_clause(rel);
+
 	/* this function does transformExpr on the boundary specs */
 	(void) atpxPart_validate_spec(pBy, &cxt, rel, ct, pelem, pNode, partName,
 								  isDefault, part_type, "");
@@ -6517,13 +6571,6 @@ atpxPartAddList(Relation rel,
 	{
 		elog(ERROR, "too many partitions, parruleord overflow");
 	}
-	/* create the partition - change the table name from "fake_partition_name" to
-	 * name of the parent relation
-	 */
-
-	ct->relation = makeRangeVar(
-								get_namespace_name(RelationGetNamespace(par_rel)),
-								RelationGetRelationName(par_rel), -1);
 
 	if (newPos == FIRST && pNode && list_length(pNode->rules) > 0)
 	{
@@ -6649,8 +6696,6 @@ atpxPartAddList(Relation rel,
 		int				 pby_templ_depth	 = 0;	   /* template partdepth */
 		Oid				 skipTableRelid		 = InvalidOid;
 		List			*attr_encodings		 = NIL;
-
-		ct->partitionBy = (Node *)pBy;
 
 		/* this parse_analyze expands the phony create of a partitioned table
 		 * that we just build into the constituent commands we need to create

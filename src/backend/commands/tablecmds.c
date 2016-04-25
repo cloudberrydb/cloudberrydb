@@ -3448,6 +3448,7 @@ ATVerifyObject(AlterTableStmt *stmt, Relation rel)
 				case AT_DropInherit:
 				case AT_SetDistributedBy:
 				case AT_PartAdd:
+				case AT_PartAddForSplit:
 				case AT_PartAlter:
 				case AT_PartCoalesce:
 				case AT_PartDrop:
@@ -4798,6 +4799,7 @@ ATPrepCmd(List **wqueue, Relation rel, AlterTableCmd *cmd,
 						errmsg("Cannot modify subpartition template for partitioned table")));
 			}
 		case AT_PartAdd:				/* Add */
+		case AT_PartAddForSplit:		/* Add, as part of a split */
 		case AT_PartCoalesce:			/* Coalesce */
 		case AT_PartDrop:				/* Drop */
 		case AT_PartRename:				/* Rename */
@@ -5109,6 +5111,7 @@ ATExecCmd(List **wqueue, AlteredTableInfo *tab, Relation *rel, AlterTableCmd *cm
 			break;
 			/* CDB: Partitioned Table commands */
 		case AT_PartAdd:				/* Add */
+		case AT_PartAddForSplit:		/* Add, as part of a Split */
 			ATPExecPartAdd(tab, *rel, (AlterPartitionCmd *) cmd->def,
 						   cmd->subtype);
             break;
@@ -13729,18 +13732,21 @@ ATPExecPartAdd(AlteredTableInfo *tab,
 	char 		 		 lRelNameBuf[(NAMEDATALEN*2)];
 	char 				*lrelname   = NULL;
 	Node 				*pSubSpec 	= NULL;
-	AlterPartitionCmd   *pc2		= NULL;
 	bool				 is_split = false;
 	bool				 bSetTemplate = (att == AT_PartSetTemplate);
+	PartitionElem *pelem;
+	List	   *colencs = NIL;
 
 	/* This whole function is QD only. */
 	if (Gp_role != GP_ROLE_DISPATCH)
 		return;
 
-	pc2 = (AlterPartitionCmd *)pc->arg2;
-
-	if (pc2->partid)
+	if (att == AT_PartAddForSplit)
+	{
 		is_split = true;
+		colencs = (List *) pc->arg2;
+	}
+	pelem = (PartitionElem *) pc->arg1;
 
 	locPid =
 			wack_pid_relname(pid,
@@ -13809,7 +13815,7 @@ ATPExecPartAdd(AlteredTableInfo *tab,
 
 	if (!prule)
 	{
-		bool isDefault = intVal(pc->arg1);
+		bool isDefault = pelem->isDefault;
 
 		/* DEFAULT checks */
 		if (!isDefault && (pNode->default_part) &&
@@ -13845,46 +13851,37 @@ ATPExecPartAdd(AlteredTableInfo *tab,
 								lrelname)));
 
 			/* XXX XXX: move this check to gram.y ? */
-			if (pc2->arg1)
-			{
-				PartitionElem *pelem = (PartitionElem *) pc2->arg1;
-
-				if (pelem->boundSpec)
-					ereport(ERROR,
-							(errcode(ERRCODE_INVALID_TABLE_DEFINITION),
-							 errmsg("invalid use of boundary specification "
-									"for DEFAULT partition%s of %s",
-									namBuf,
-									lrelname)));
-			}
+			if (pelem && pelem->boundSpec)
+				ereport(ERROR,
+						(errcode(ERRCODE_INVALID_TABLE_DEFINITION),
+						 errmsg("invalid use of boundary specification "
+								"for DEFAULT partition%s of %s",
+								namBuf,
+								lrelname)));
 		}
 
 		/* Do the real work for add ... */
-		
 
 		if ('r' == pNode->part->parkind)
 		{
 			pSubSpec =
-			atpxPartAddList(rel, pc, pNode,
-							pc2->arg2, /* utl statement */
+			atpxPartAddList(rel, is_split, colencs, pNode,
 							(locPid->idtype == AT_AP_IDName) ?
 							strVal(locPid->partiddef) : NULL, /* partition name */
-							isDefault, (PartitionElem *) pc2->arg1,
+							isDefault, pelem,
 							PARTTYP_RANGE,
 							par_prule,
 							lrelname,
 							bSetTemplate,
 							rel->rd_rel->relowner);
-
 		}
 		else if ('l' == pNode->part->parkind)
 		{
 			pSubSpec =
-			atpxPartAddList(rel, pc, pNode,
-							pc2->arg2, /* utl statement */
+			atpxPartAddList(rel, is_split, colencs, pNode,
 							(locPid->idtype == AT_AP_IDName) ?
 							strVal(locPid->partiddef) : NULL, /* partition name */
-							isDefault, (PartitionElem *) pc2->arg1,
+							isDefault, pelem,
 							PARTTYP_LIST,
 							par_prule,
 							lrelname,
@@ -13953,6 +13950,7 @@ ATPExecPartAlter(List **wqueue, AlteredTableInfo *tab, Relation rel,
 	switch (atc->subtype)
 	{
 		case AT_PartAdd:				/* Add */
+		case AT_PartAddForSplit:		/* Add */
 		case AT_PartCoalesce:			/* Coalesce */
 		case AT_PartDrop:				/* Drop */
 		case AT_PartSplit:				/* Split */
@@ -16060,6 +16058,7 @@ ATPExecPartSplit(Relation *rel,
 
 		mypc2->arg1 = (Node *)makeInteger(0);
 		mypc2->arg2 = (Node *)makeInteger(1); /* tell them we're SPLIT */
+		mypc2->location = -1;
 		cmd->def = (Node *)mypc;
 		ats->cmds = list_make1(cmd);
 		parsetrees = parse_analyze((Node *)ats, NULL, NULL, 0);
@@ -16195,7 +16194,6 @@ ATPExecPartSplit(Relation *rel,
 		{
 			/* build up commands for adding two. */
 			AlterPartitionId *mypid = makeNode(AlterPartitionId);
-			CreateStmt *mycs = makeNode(CreateStmt);
 			char *parname = NULL;
 			AlterPartitionId *intopid = NULL;
 			PartitionElem *pelem = makeNode(PartitionElem);
@@ -16223,23 +16221,6 @@ ATPExecPartSplit(Relation *rel,
 				if (into_exists == i && prule->topRule->parname)
 					parname = pstrdup(prule->topRule->parname);
 			}
-
-			mycs->relation = makeRangeVar(NULL, "fake_partition_name", -1);
-			mycs->relKind = RELKIND_RELATION;
-
-			/*
-			 * If the new partition is column oriented, initialize the column
-			 * entity list to the set of column encodings. Latter in parse
-			 * analysis of this statement, we will append to this list a LIKE
-			 * clause to clone the other column attributes.
-			 *
-			 * Be careful to copy the list since it is modified by parse
-			 * analysis.
-			 */
-			if (colencs)
-				mycs->tableElts = list_copy(colencs);
-
-			mycs->options = orient;
 
 			mypid->idtype = AT_AP_IDNone;
 			mypid->location = -1;
@@ -16480,19 +16461,16 @@ ATPExecPartSplit(Relation *rel,
 								parname &&
 								(0 == strcmp(parname, defparname)));
 
-			/* tell ADD PARTITION we're doing a SPLIT */
-			mypc2->partid = (Node *)makeInteger(1);
-
-			mypc2->arg1 = (Node *)pelem;
-			mypc2->arg2 = (Node *)list_make1(mycs);
-			mypc2->location = -1;
-
-			mypc->arg1 = (Node *)makeInteger(pelem->isDefault ? 1 : 0);
-			mypc->arg2 = (Node *)mypc2;
+			mypc->arg1 = (Node *) pelem;
+			/*
+			 * Pass the set of column encodings to the ADD PARTITION command
+			 * (if any).
+			 */
+			mypc->arg2 = (Node *) colencs;
 			mypc->location = -1;
 
-			cmd->subtype = AT_PartAdd;
-			cmd->def = (Node *)mypc;
+			cmd->subtype = AT_PartAddForSplit;
+			cmd->def = (Node *) mypc;
 
 			/* turn this into ALTER PARTITION if need be */
 			if (pid->idtype == AT_AP_IDRule)
@@ -18130,6 +18108,7 @@ char *alterTableCmdString(AlterTableType subtype)
 			break;
 			
 		case AT_PartAdd: /* Add */
+		case AT_PartAddForSplit: /* Add */
 		case AT_PartAlter: /* Alter */
 		case AT_PartCoalesce: /* Coalesce */
 		case AT_PartDrop: /* Drop */

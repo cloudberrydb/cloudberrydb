@@ -107,7 +107,6 @@ static bool QueryIsRule = FALSE;
  */
 /*#define __YYSCLASS*/
 
-static Node *makeAddPartitionCreateStmt(Node *n, Node *subSpec);
 static Node *makeColumnRef(char *colname, List *indirection, int location);
 static Node *makeTypeCast(Node *arg, TypeName *typename, int location);
 static Node *makeStringConst(char *str, TypeName *typename, int location);
@@ -2492,32 +2491,25 @@ alter_table_partition_cmd:
            
 				{
 					AlterPartitionId  *pid   = makeNode(AlterPartitionId);
-					AlterPartitionCmd *pc    = makeNode(AlterPartitionCmd);
-					AlterPartitionCmd *pc2   = makeNode(AlterPartitionCmd);
+					AlterPartitionCmd *pc = makeNode(AlterPartitionCmd);
 					AlterTableCmd     *n     = makeNode(AlterTableCmd);
-                    Node              *ct    = makeAddPartitionCreateStmt($4, $5);
                     PartitionElem     *pelem = makeNode(PartitionElem); 
 
                     pid->idtype = AT_AP_IDNone;
                     pid->location = @3;
                     pid->partiddef = NULL;
 
-                    pc->partid = (Node *)pid;
+                    pc->partid = (Node *) pid;
 
                     pelem->partName  = NULL;
                     pelem->boundSpec = $3;
                     pelem->subSpec   = $5;
                     pelem->location  = @3;
-                    pelem->isDefault = 0;
+                    pelem->isDefault = false; /* not default */
                     pelem->storeAttr = $4;
                     pelem->AddPartDesc = NULL;
+					pc->arg1 = (Node *) pelem;
 
-                    pc2->arg1 = (Node *)pelem;
-                    pc2->arg2 = (Node *)list_make1(ct);
-                    pc2->location = @3;
-
-                    pc->arg1 = (Node *)makeInteger(FALSE); /* not default */
-                    pc->arg2 = (Node *)pc2;
                     pc->location = @3;
 
 					n->subtype = AT_PartAdd;
@@ -2531,10 +2523,8 @@ alter_table_partition_cmd:
 			OptTabSubPartitionSpec 
 				{
 					AlterPartitionId  *pid   = (AlterPartitionId *)$4;
-					AlterPartitionCmd *pc    = makeNode(AlterPartitionCmd);
-					AlterPartitionCmd *pc2   = makeNode(AlterPartitionCmd);
+					AlterPartitionCmd *pc = makeNode(AlterPartitionCmd);
 					AlterTableCmd     *n     = makeNode(AlterTableCmd);
-                    Node              *ct    = makeAddPartitionCreateStmt($6, $7);
                     PartitionElem     *pelem = makeNode(PartitionElem); 
 
                     if (pid->idtype != AT_AP_IDName)
@@ -2542,7 +2532,7 @@ alter_table_partition_cmd:
 								(errcode(ERRCODE_SYNTAX_ERROR),
 								 errmsg("Can only ADD a partition by name")));
 
-                    pc->partid = (Node *)pid;
+                    pc->partid = (Node *) pid;
 
                     pelem->partName  = NULL;
                     pelem->boundSpec = $5;
@@ -2551,13 +2541,7 @@ alter_table_partition_cmd:
                     pelem->isDefault = true;
                     pelem->storeAttr = $6;
                     pelem->AddPartDesc = NULL;
-
-                    pc2->arg1 = (Node *)pelem;
-                    pc2->arg2 = (Node *)list_make1(ct);
-                    pc2->location = @5;
-
-                    pc->arg1 = (Node *)makeInteger(true);
-                    pc->arg2 = (Node *)pc2;
+					pc->arg1 = (Node *) pelem;
                     pc->location = @5;
 
 					n->subtype = AT_PartAdd;
@@ -2572,10 +2556,7 @@ alter_table_partition_cmd:
 				{
 					AlterPartitionId  *pid   = (AlterPartitionId *)$3;
 					AlterPartitionCmd *pc    = makeNode(AlterPartitionCmd);
-					AlterPartitionCmd *pc2   = makeNode(AlterPartitionCmd);
 					AlterTableCmd     *n     = makeNode(AlterTableCmd);
-                    Node              *ct    = makeAddPartitionCreateStmt($5, 
-																		  $6);
                     PartitionElem     *pelem = makeNode(PartitionElem); 
 
                     if (pid->idtype != AT_AP_IDName)
@@ -2583,7 +2564,7 @@ alter_table_partition_cmd:
 								(errcode(ERRCODE_SYNTAX_ERROR),
 								 errmsg("Can only ADD a partition by name")));
 
-                    pc->partid = (Node *)pid;
+                    pc->partid = (Node *) pid;
 
                     pelem->partName  = NULL;
                     pelem->boundSpec = $4;
@@ -2592,13 +2573,8 @@ alter_table_partition_cmd:
                     pelem->isDefault = false;
                     pelem->storeAttr = $5;
                     pelem->AddPartDesc = NULL;
+                    pc->arg1 = (Node *) pelem;
 
-                    pc2->arg1 = (Node *)pelem;
-                    pc2->arg2 = (Node *)list_make1(ct);
-                    pc2->location = @4;
-
-                    pc->arg1 = (Node *)makeInteger(false);
-                    pc->arg2 = (Node *)pc2;
                     pc->location = @4;
 
 					n->subtype = AT_PartAdd;
@@ -2858,9 +2834,7 @@ alter_table_partition_cmd:
 				{
 					AlterPartitionId  *pid   = makeNode(AlterPartitionId);
 					AlterPartitionCmd *pc    = makeNode(AlterPartitionCmd);
-					AlterPartitionCmd *pc2   = makeNode(AlterPartitionCmd);
 					AlterTableCmd     *n     = makeNode(AlterTableCmd);
-                    Node              *ct    = NULL;
                     PartitionElem     *pelem = makeNode(PartitionElem); 
 					PartitionSpec	  *ps    = makeNode(PartitionSpec); 
 
@@ -2871,7 +2845,7 @@ alter_table_partition_cmd:
                     pid->partiddef = 
 						(Node *)makeString("subpartition_template");
 
-                    pc->partid = (Node *)pid;
+                    pc->partid = (Node *) pid;
 
 					/* build a subpartition spec and add it to CREATE TABLE */
 					ps->partElem   = $5; 
@@ -2879,19 +2853,14 @@ alter_table_partition_cmd:
 					ps->istemplate = true;
 					ps->location   = @4;
 
-					ct = makeAddPartitionCreateStmt(NULL,
-													(Node *)ps);
-
                     pelem->partName  = NULL;
                     pelem->boundSpec = NULL;
                     pelem->subSpec   = (Node *)ps;
                     pelem->location  = @4;
-					/*
-                    pelem->isDefault = false;
-					*/
                     pelem->isDefault = true;
                     pelem->storeAttr = NULL;
                     pelem->AddPartDesc = NULL;
+					pc->arg1 = (Node *) pelem;
 
 					/* a little (temporary?) syntax check on templates */
 					if (ps->partElem)
@@ -2917,15 +2886,6 @@ alter_table_partition_cmd:
 						}
 					}
 
-                    pc2->arg1 = (Node *)pelem;
-                    pc2->arg2 = (Node *)list_make1(ct);
-                    pc2->location = @5;
-
-					/*
-                    pc->arg1 = (Node *)makeInteger(false);
-					*/
-                    pc->arg1 = (Node *)makeInteger(true);
-                    pc->arg2 = (Node *)pc2;
                     pc->location = @5;
 
 					n->subtype = AT_PartSetTemplate;
@@ -13064,62 +13024,6 @@ SpecialRuleRelation:
 		;
 
 %%
-
-static Node *
-makeAddPartitionCreateStmt(Node *n, Node *subSpec)
-{
-    AlterPartitionCmd *pc_StAttr = (AlterPartitionCmd *)n;
-	CreateStmt        *ct        = makeNode(CreateStmt);
-    PartitionBy       *pBy       = NULL;
-
-    ct->relation = makeRangeVar(NULL, "fake_partition_name", -1);
-
-    /* in analyze.c, fill in tableelts with a list of inhrelation of
-       the partition parent table, and fill in inhrelations with copy
-       of rangevar for parent table */
-
-    ct->tableElts    = NIL; /* fill in later */
-    ct->inhRelations = NIL; /* fill in later */
-
-    ct->constraints = NIL;
-
-    if (pc_StAttr)
-        ct->options = (List *)pc_StAttr->arg1;
-    else
-        ct->options = NIL;
-
-    ct->oncommit = ONCOMMIT_NOOP;
-        
-    if (pc_StAttr && pc_StAttr->arg2)
-        ct->tablespacename = strVal(pc_StAttr->arg2);
-    else
-        ct->tablespacename = NULL;
-
-    if (subSpec) /* treat subspec as partition by... */
-	{
-        pBy = makeNode(PartitionBy); 
-
-        pBy->partSpec = subSpec;
-        pBy->partDepth = 0;
-		pBy->partQuiet = PART_VERBO_NODISTRO;
-        pBy->location  = -1;
-        pBy->partDefault = NULL;
-        pBy->parentRel = copyObject(ct->relation);
-    }
-
-    ct->distributedBy = NULL;
-    ct->partitionBy = (Node *)pBy;
-    ct->oidInfo.relOid = 0;
-    ct->oidInfo.comptypeOid = 0;
-    ct->oidInfo.toastOid = 0;
-    ct->oidInfo.toastIndexOid = 0;
-    ct->oidInfo.toastComptypeOid = 0;
-    ct->relKind = RELKIND_RELATION;
-    ct->policy = 0;
-    ct->postCreate = NULL;
-
-    return (Node *)ct;
-}
 
 static Node *
 makeColumnRef(char *colname, List *indirection, int location)

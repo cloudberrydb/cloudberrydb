@@ -1184,6 +1184,7 @@ typedef enum AlterTableType
 	AT_SetDistributedBy,		/* SET DISTRIBUTED BY */
 	/* CDB: Partitioned Tables */
 	AT_PartAdd,					/* Add */
+	AT_PartAddForSplit,			/* Add, as subcommand of a split */
 	AT_PartAlter,				/* Alter */
 	AT_PartCoalesce,			/* Coalesce */
 	AT_PartDrop,				/* Drop */
