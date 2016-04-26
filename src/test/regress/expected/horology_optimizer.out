@@ -13,6 +13,8 @@ INSERT INTO ABSTIME_HOROLOGY_TBL (f1) VALUES ('Jan 14, 1973 03:14:21'),
 (abstime 'May 10, 1947 23:59:12');
 -- orca will fail for this
 INSERT INTO ABSTIME_HOROLOGY_TBL (f1) VALUES('Jun 10, 1843');
+ERROR:  cannot convert abstime "invalid" to timestamp
+ERROR:  GPDB exception. Aborting GPORCA plan generation. (CGPOptimizer.cpp:66)
 CREATE TABLE INTERVAL_HOROLOGY_TBL (f1 interval);
 NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'f1' as the Greenplum Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
@@ -2340,7 +2342,12 @@ SELECT '' AS two, d1 AS "timestamp", abstime(d1) AS abstime
 
 SELECT '' AS three, f1 as abstime, cast(f1 as timestamp) AS "timestamp"
   FROM ABSTIME_HOROLOGY_TBL WHERE NOT isfinite(f1) ORDER BY 2;
-ERROR:  cannot convert abstime "invalid" to timestamp
+ three |  abstime  | timestamp 
+-------+-----------+-----------
+       | -infinity | -infinity
+       | infinity  | infinity
+(2 rows)
+
 SELECT '' AS ten, f1 AS interval, reltime(f1) AS reltime
   FROM INTERVAL_HOROLOGY_TBL ORDER BY 2;
  ten |           interval            |            reltime            
@@ -2459,8 +2466,7 @@ SELECT '' AS seven, f1 AS us_postgres FROM ABSTIME_HOROLOGY_TBL ORDER BY 2;
        | Sun Jan 14 03:14:21 1973 PST
        | Mon May 01 00:30:30 1995 PDT
        | infinity
-       | invalid
-(7 rows)
+(6 rows)
 
 SET DateStyle TO 'US,ISO';
 SELECT '' AS "64", d1 AS us_iso FROM TIMESTAMP_HOROLOGY_TBL ORDER BY 2;
@@ -2542,8 +2548,7 @@ SELECT '' AS seven, f1 AS us_iso FROM ABSTIME_HOROLOGY_TBL ORDER BY 2;
        | 1973-01-14 03:14:21-08
        | 1995-05-01 00:30:30-07
        | infinity
-       | invalid
-(7 rows)
+(6 rows)
 
 SET DateStyle TO 'US,SQL';
 SHOW DateStyle;
@@ -2631,8 +2636,7 @@ SELECT '' AS seven, f1 AS us_sql FROM ABSTIME_HOROLOGY_TBL ORDER BY 2;
        | 01/14/1973 03:14:21 PST
        | 05/01/1995 00:30:30 PDT
        | infinity
-       | invalid
-(7 rows)
+(6 rows)
 
 SET DateStyle TO 'European,Postgres';
 SHOW DateStyle;
@@ -2728,8 +2732,7 @@ SELECT '' AS seven, f1 AS european_postgres FROM ABSTIME_HOROLOGY_TBL ORDER BY 2
        | Sun 14 Jan 03:14:21 1973 PST
        | Mon 01 May 00:30:30 1995 PDT
        | infinity
-       | invalid
-(7 rows)
+(6 rows)
 
 SET DateStyle TO 'European,ISO';
 SHOW DateStyle;
@@ -2818,8 +2821,7 @@ SELECT '' AS seven, f1 AS european_iso FROM ABSTIME_HOROLOGY_TBL ORDER BY 2;
        | 1973-01-14 03:14:21-08
        | 1995-05-01 00:30:30-07
        | infinity
-       | invalid
-(7 rows)
+(6 rows)
 
 SET DateStyle TO 'European,SQL';
 SHOW DateStyle;
@@ -2908,8 +2910,7 @@ SELECT '' AS seven, f1 AS european_sql FROM ABSTIME_HOROLOGY_TBL ORDER BY 2;
        | 14/01/1973 03:14:21 PST
        | 01/05/1995 00:30:30 PDT
        | infinity
-       | invalid
-(7 rows)
+(6 rows)
 
 RESET DateStyle;
 --

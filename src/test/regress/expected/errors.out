@@ -485,9 +485,13 @@ create function infinite_recurse() returns int as
 -- # mpp-2756
 -- m/(ERROR|WARNING|CONTEXT|NOTICE):.*stack depth limit exceeded\s+at\s+character/
 -- s/\s+at\s+character.*//
+-- m/ERROR:.*GPDB exception. Aborting GPORCA.*/
+-- s/ERROR:.*GPDB exception. Aborting GPORCA.*//
 -- end_matchsubs
+-- start_ignore
 select infinite_recurse();
 ERROR:  stack depth limit exceeded
+-- end_ignore
 select 1; -- test that this works
  ?column? 
 ----------

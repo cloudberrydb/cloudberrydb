@@ -215,8 +215,13 @@
 
 #define GP_WRAP_END	\
 		}	\
+		else \
+		{ \
+			EmitErrorReport(); \
+			FlushErrorState(); \
+			GPOS_RAISE(gpdxl::ExmaGPDB, gpdxl::ExmiGPDBError); \
+		} \
 	}	\
-	GPOS_RAISE(gpdxl::ExmaGPDB, gpdxl::ExmiGPDBError)
 
 using namespace gpos;
 

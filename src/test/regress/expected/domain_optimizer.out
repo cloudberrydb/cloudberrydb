@@ -157,7 +157,7 @@ create table nulltest
            , col5 dcheck CHECK (col5 IN ('c', 'd'))
            );
 INSERT INTO nulltest DEFAULT VALUES;
-ERROR:  null value in column "col3" violates not-null constraint
+ERROR:  domain dnotnull does not allow null values
 INSERT INTO nulltest values ('a', 'b', 'c', 'd', 'c');  -- Good
 insert into nulltest values ('a', 'b', 'c', 'd', NULL);
 ERROR:  domain dcheck does not allow null values
