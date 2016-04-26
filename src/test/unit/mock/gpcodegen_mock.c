@@ -13,7 +13,7 @@ InitCodegen()
 
 // creates a manager for an operator
 void*
-CodeGeneratorManagerCreate()
+CodeGeneratorManagerCreate(const char* module_name)
 {
 	elog(ERROR, "mock implementation of CodeGeneratorManager_Create called");
 	return NULL;
