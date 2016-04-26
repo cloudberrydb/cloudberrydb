@@ -24,7 +24,8 @@ gpcrondump -x database_name
      [--no-owner | --use-set-session-authorization] 
      [--no-privileges] [--rsyncable] 
      { [--ddboost [--replicate --max-streams <max_IO_streams> 
-     [--ddboost-skip-ping] ] ] } |
+     [--ddboost-skip-ping] 
+     [--ddboost-storage-unit=<storage_unit_name>] ] ] } |
      { [--netbackup-service-host <netbackup_server> 
      --netbackup-policy <netbackup_policy> 
      --netbackup-schedule <netbackup_schedule> 
@@ -240,11 +241,24 @@ OPTIONS
 
 
 --ddboost [--replicate --max-streams <max_IO_streams> 
-  [--ddboost-skip-ping] ]
+  [--ddboost-skip-ping] [--ddboost-storage-unit=<storage_unit_name>]]
 
  Use Data Domain Boost for this backup. Before using Data Domain Boost, 
  set up the Data Domain Boost credential, as described in the next option 
  below. 
+
+ --ddboost-storage-unit is optional, which provides a dynamic storage
+ unit where to replicate dump files between source and target DDBoost Servers,
+ backup directory defaults to the cluster's config file when the Data Domain
+ Boost credentials were set. If this option is not specified, it also defaults
+ to the cluster's config file.
+
+ Note: storage unit will be created on DDBoost server only if one does
+ not already exist and following options are not specified:
+
+ --incremental, --list-backup-file, --list-filter-tables, 
+ -o, --ddboost-config-remove
+
 
  The following option is recommended if --ddboost is specified. 
 
@@ -357,9 +371,10 @@ OPTIONS
  Dump optimizer statistics from pg_statistic. Statistics are dumped in the
  master data directory to db_dumps/YYYYMMDD/gp_statistics_1_1_<timestamp>.
 
- If --ddboost is specified, the backup is located on the default storage
- unit in the directory specified by --ddboost-backupdir when the Data
- Domain Boost credentials were set.
+ If --ddboost is specified, the backup is located on the storage unit 
+ specified by --ddboost-storge-unit, or by default, the storage unit 
+ from cluster's config file, under the default directory configured by 
+ --ddboost-backupdir when the Data Domain Boost credentials were set.
 
 
 -E <encoding> 
@@ -396,10 +411,10 @@ OPTIONS
  files are dumped in the master or segment data directory to 
  db_dumps/YYYYMMDD/config_files_<timestamp>.tar. 
 
- If --ddboost is specified, the backup is located on the default storage 
- unit in the directory specified by --ddboost-backupdir when the Data 
- Domain Boost credentials were set.
-
+ If --ddboost is specified, the backup is located on the storage unit
+ specified by --ddboost-storge-unit, or by default, the storage unit
+ from cluster's config file, under the default directory configured by
+ --ddboost-backupdir when the Data Domain Boost credentials were set.
 
 -G (dump global objects) 
 
@@ -407,10 +422,10 @@ OPTIONS
  Global objects are dumped in the master data directory to 
  db_dumps/YYYYMMDD/gp_global_1_1_<timestamp>. 
  
- If --ddboost is specified, the backup is located on the default storage 
- unit in the directory specified by --ddboost-backupdir when the Data 
- Domain Boost credentials were set.
-
+ If --ddboost is specified, the backup is located on the storage unit
+ specified by --ddboost-storge-unit, or by default, the storage unit
+ from cluster's config file, under the default directory configured by
+ --ddboost-backupdir when the Data Domain Boost credentials were set.
 
 -h (record dump details) 
 

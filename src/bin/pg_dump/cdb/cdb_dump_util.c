@@ -24,12 +24,13 @@
 #include "cdb_dump_util.h"
 
 #define DDP_CL_DDP 1
+#define DEFAULT_STORAGE_UNIT "GPDB"
 
 static char predump_errmsg[1024];
 
 bool shouldDumpSchemaOnly(int g_role, bool incrementalBackup, void *list) {
     if (g_role != ROLE_SEGDB || !incrementalBackup)
-        return false;    
+        return false;
 
     if (list)
         return false;
@@ -104,7 +105,7 @@ FreeInputOptions(InputOptions * pInputOpts)
 
     /* hard coded as gzip for now, no need to free
 	if ( pInputOpts->pszCompressionProgram != NULL )
-		free( pInputOpts->pszCompressionProgram ); 
+		free( pInputOpts->pszCompressionProgram );
 	*/
 
 	if (pInputOpts->pszPassThroughParms != NULL)
@@ -175,8 +176,8 @@ shouldExpandChildren(bool g_gp_supportsPartitioning, bool no_expand_children)
 }
 
 /*
- * isFilteringAllowed: This method checks if we should filter out tables based on 
- *                     whether we are using incremental mode for backup and if 
+ * isFilteringAllowed: This method checks if we should filter out tables based on
+ *                     whether we are using incremental mode for backup and if
  *                     we are on the master
  *  Arguments:
  *           role - The role of the segment E.g ROLE_MASTER, NON_MASTER etc
@@ -187,7 +188,7 @@ shouldExpandChildren(bool g_gp_supportsPartitioning, bool no_expand_children)
  *
  */
 bool
-isFilteringAllowedNow(int role, bool incrementalBackup, char *incrementalFilter) 
+isFilteringAllowedNow(int role, bool incrementalBackup, char *incrementalFilter)
 {
 	if (!incrementalBackup)
 		return true;
@@ -822,7 +823,7 @@ GetTimestampKey(char* timestamp_key)
 	if (!timestamp_key){
 		mpp_err_msg("INFO", "GetTimestampKey", "Timestamp key is generated as it is not provided by the user.\n");
 		return GenerateTimestampKey();
-	} 
+	}
 
 	/* User has provided a valid timestamp, we simply use that */
 	return strdup(timestamp_key);
@@ -961,7 +962,7 @@ parseDbidSet(int *dbidset, char *dump_set)
 	return count;
 }
 
-const char* 
+const char*
 getBackupTypeString(bool incremental)
 {
 	if (incremental)
@@ -974,7 +975,7 @@ getBackupTypeString(bool incremental)
 	}
 }
 
-char* 
+char*
 formCompressionProgramString(char* compPg)
 {
 	char extra[] = " -c ";
@@ -986,9 +987,9 @@ formCompressionProgramString(char* compPg)
 	return retVal;
 }
 
-void 
+void
 formPostDataSchemaOnlyPsqlCommandLine(char** retVal, const char* inputFileSpec, bool compUsed, const char* compProg,
-									const char* post_data_filter_script, const char* table_filter_file, 
+									const char* post_data_filter_script, const char* table_filter_file,
 									const char* psqlPg, const char* catPg,
 									const char* gpNBURestorePg, const char* netbackupServiceHost, const char* netbackupBlockSize,
 									const char* change_schema_file, const char *schema_level_file)
@@ -1024,9 +1025,9 @@ formPostDataSchemaOnlyPsqlCommandLine(char** retVal, const char* inputFileSpec, 
 
 		strcat(pszCmdLine, " | ");
 		strcat(pszCmdLine, psqlPg);
-	}    
-	else 
-	{    
+	}
+	else
+	{
 		if (netbackupServiceHost)
 		{
 			strncpy(pszCmdLine, gpNBURestorePg, (1 + strlen(gpNBURestorePg)));
@@ -1056,14 +1057,14 @@ formPostDataSchemaOnlyPsqlCommandLine(char** retVal, const char* inputFileSpec, 
 			strcat(pszCmdLine, " | ");
 			strcat(pszCmdLine, psqlPg);
 		}
-	} 
+	}
 }
 
 
 /* Build command line for gp_restore_agent */
-void 
+void
 formSegmentPsqlCommandLine(char** retVal, const char* inputFileSpec, bool compUsed, const char* compProg,
-							const char* filter_script, const char* table_filter_file, 
+							const char* filter_script, const char* table_filter_file,
 							int role, const char* psqlPg, const char* catPg,
 							const char* gpNBURestorePg, const char* netbackupServiceHost, const char* netbackupBlockSize,
 							const char* change_schema_file, const char *schema_level_file)
@@ -1125,8 +1126,8 @@ formSegmentPsqlCommandLine(char** retVal, const char* inputFileSpec, bool compUs
 }
 
 /* Build command line with gprestore_filter.py and its passed through parameters */
-void 
-formFilterCommandLine(char** retVal, const char* filter_script, const char* table_filter_file, 
+void
+formFilterCommandLine(char** retVal, const char* filter_script, const char* table_filter_file,
 			int role, const char* change_schema_file, const char *schema_level_file)
 {
 	char* pszCmdLine = *retVal;
@@ -1162,8 +1163,8 @@ formFilterCommandLine(char** retVal, const char* filter_script, const char* tabl
 }
 
 /* Build command line with gprestore_post_data_filter.py and its passed through parameters */
-void 
-formPostDataFilterCommandLine(char** retVal, const char* post_data_filter_script, const char* table_filter_file, 
+void
+formPostDataFilterCommandLine(char** retVal, const char* post_data_filter_script, const char* table_filter_file,
 			const char* change_schema_file, const char *schema_level_file)
 {
 	char* pszCmdLine = *retVal;
@@ -1226,7 +1227,7 @@ static int setLBEnv(void);
 static int createLB(clbHandle* LB,char* name);
 static int openLB(clbHandle* LB,char* name);
 static int validateDDBoostCredential(char *hostname, char *user, char *password, char* log_level ,char* log_size, char *default_backup_directory, bool remote);
-int getDDBoostCredential(char** hostname, char** user, char** password, char** log_level ,char** log_size, char **default_backup_directory, bool remote);
+int getDDBoostCredential(char** hostname, char** user, char** password, char** log_level ,char** log_size, char **default_backup_directory, char **ddboost_storage_unit, bool remote);
 
 /*
  * Set the environment variable LD_LIBRARY_PATH in order to dynamically load LB's libraries.
@@ -1316,6 +1317,12 @@ setItem(clbHandle* LB, char *key, char *value)
 }
 
 static int
+setItemWithDefault(clbHandle *LB, char *key, char *value, char *defaultValue)
+{
+	return setItem(LB, key, value ?: defaultValue);
+}
+
+static int
 getItem(clbHandle* LB, char *key, char **value)
 {
 	int iError = clb_retrieveItemAsText(*LB, key, value);
@@ -1365,11 +1372,11 @@ createLB(clbHandle* LB,char* name)
 		clb_pass[i] = _base64[rand() % _base64_len];
 	}
 	clb_pass[34] = '\0';
-	
-	/* 
+
+	/*
 	 * for creating the lockbox we should call to clb_create.
 	 * this function needs a password with at least 8 characters, with several constraints.
-	 * the password is set to optional few lines later, but we must initialize it during the LB creation. 
+	 * the password is set to optional few lines later, but we must initialize it during the LB creation.
 	 * of course we don't want to use fixed password, so we're using a random password
 	 */
 	mpp_err_msg("INFO", "ddboost", "creating LB on %s\n", filepath);
@@ -1398,8 +1405,8 @@ static int
 openLB(clbHandle* LB,char* name)
 {
 	int iError;
-	char filepath[PATH_MAX];	
-	char *home = getenv("HOME");	
+	char filepath[PATH_MAX];
+	char *home = getenv("HOME");
 	char* eMsg = NULL;
 
 	if (NULL == home)
@@ -1407,10 +1414,10 @@ openLB(clbHandle* LB,char* name)
 		mpp_err_msg("ERROR", "ddboost", "HOME undefined, can't set ddboost credentials\n");
 		return -1;
 	}
-	
+
 	memset(filepath, 0, PATH_MAX);
 	snprintf(filepath, strlen(home) + strlen(name) + 2, "%s/%s", home, name);
-	
+
 	if (setLBEnv() < 0)
 	{
 		return -1;
@@ -1432,9 +1439,11 @@ openLB(clbHandle* LB,char* name)
  * Returns 0 in case of success, and -1 otherwise.
  */
 int
-setDDBoostCredential(char *hostname, char *user, char *password, char* log_level ,char* log_size, char *default_backup_directory, bool remote)
+setDDBoostCredential(char *hostname, char *user, char *password, char* log_level ,char* log_size, char *default_backup_directory, char *ddboost_storage_unit, bool remote)
 {
-	/* TODO: validate default backup directory name if needed */
+	/* TODO: validate default backup directory name if needed 
+	   TODO: validate storage unit
+	*/
 	if (validateDDBoostCredential(hostname, user, password, log_level , log_size, default_backup_directory, remote))
 		return -1;
 
@@ -1455,44 +1464,27 @@ setDDBoostCredential(char *hostname, char *user, char *password, char* log_level
 		return -1;
 	if (setItem(&LB , "password",password))
 		return -1;
+
+	int ret_code = 0;
 	if (!remote)
 	{
-		if (setItem(&LB , "default_backup_directory",default_backup_directory))
-			return -1;
+		ret_code |= setItem(&LB , "default_backup_directory",default_backup_directory);
+		ret_code |= setItemWithDefault(&LB, "ddboost_storage_unit", ddboost_storage_unit, DEFAULT_STORAGE_UNIT);
 	}
 
-	if (log_level)
-	{
-		if (setItem(&LB , "log_level",log_level))
-			return -1;
-	}
-	else
-	{
-		if (setItem(&LB , "log_level","WARNING"))
-			return -1;
-	}
-
-	if (log_size)
-	{
-		if (setItem(&LB , "log_size",log_size))
-			return -1;
-	}
-	else
-	{
-		if (setItem(&LB , "log_size","50"))
-			return -1;
-	}
+	ret_code |= setItemWithDefault(&LB, "log_level", log_level, "WARNING");
+	ret_code |= setItemWithDefault(&LB, "log_size", log_size, "50");
 
 	clb_close(LB);
 
-	return 0;
+	return ret_code;
 }
 
 int
-getDDBoostCredential(char** hostname, char** user, char** password, char **log_level ,char** log_size, char **default_backup_directory, bool remote)
+getDDBoostCredential(char** hostname, char** user, char** password, char **log_level ,char** log_size, char **default_backup_directory, char **ddboost_storage_unit, bool remote)
 {
 	clbHandle LB;
-	
+
 	if (remote)
 	{
 		if (openLB(&LB,"DDBOOST_MFR_CONFIG"))
@@ -1511,13 +1503,17 @@ getDDBoostCredential(char** hostname, char** user, char** password, char **log_l
 		return -1;
 	if (!remote)
 	{
-		if (getItem(&LB , "default_backup_directory",default_backup_directory))
+		if (getItem(&LB , "default_backup_directory", default_backup_directory))
+			return -1;
+
+		if (getItem(&LB , "ddboost_storage_unit", ddboost_storage_unit))
 			return -1;
 	}
 	if (getItem(&LB , "log_level",log_level))
 		return -1;
 	if (getItem(&LB , "log_size",log_size))
 		return -1;
+
 	clb_close(LB);
 	return 0;
 }
@@ -1583,16 +1579,16 @@ validateDDBoostCredential(char *hostname, char *user, char *password, char* log_
 int
 parseDDBoostCredential(char *hostname, char *user, char *password, const char *progName)
 {
-	char filepath[PATH_MAX];	
+	char filepath[PATH_MAX];
 	char *home = getenv("HOME");
 	char line[PATH_MAX];
-	
+
 	if (NULL == home)
 	{
 		mpp_err_msg("ERROR", progName, "HOME undefined, can't set ddboost credentials\n");
 		return -1;
 	}
-	
+
 	memset(filepath, 0, PATH_MAX);
 	snprintf(filepath, strlen(home) + strlen(DDBOOST_CONFIG_FILE) + 2, "%s/%s", home, DDBOOST_CONFIG_FILE);
 
@@ -1687,13 +1683,13 @@ parseDDBoostCredential(char *hostname, char *user, char *password, const char *p
 void rotate_dd_logs(const char *file_name, unsigned int num_of_files, unsigned int log_size)
 {
     struct stat st;
-    
+
     if (stat(file_name,&st) == 0)
         {
             unsigned int size = (unsigned int)st.st_size;
             if (size > log_size)
                 {
-                    
+
                     char tmp_name[80];
                     char next_tmp_name[80];
                     sprintf(tmp_name,"%s_%u",file_name,num_of_files);
@@ -1701,24 +1697,24 @@ void rotate_dd_logs(const char *file_name, unsigned int num_of_files, unsigned i
                     if (r != 0)
                         mpp_err_msg("INFO","rotate_dd_logs","didn't delete of %s , %s\n" ,tmp_name, strerror( errno ));
 
-                    for (unsigned int i = num_of_files - 1; i > 0; i--){                        
+                    for (unsigned int i = num_of_files - 1; i > 0; i--){
                         snprintf(next_tmp_name, 80, "%s_%u",file_name,i + 1);
                         snprintf(tmp_name,80 ,"%s_%u", file_name,i);
-                      
+
                         if (rename(tmp_name, next_tmp_name) != 0)
                             mpp_err_msg("INFO","rotate_dd_logs","didn't rename of %s to %s : %s\n" ,tmp_name,next_tmp_name,strerror( errno ));
                     }
                     snprintf(next_tmp_name, 80, "%s_%u",file_name,1);
                     if ((r = rename(file_name, next_tmp_name)) != 0)
                         mpp_err_msg("INFO","rotate_dd_logs","didn't rename first log %s to %s : %s" ,tmp_name,next_tmp_name,strerror( errno ));
-                   
+
                 }
         }
     else
         mpp_err_msg("INFO","rotate_dd_logs","failed to find size");
 }
 /* Initialize the file for logging DDboost related information */
-void 
+void
 _ddp_test_log(const void *session_ptr, const ddp_char_t *log_msg, ddp_severity_t severity)
 {
 
@@ -1729,12 +1725,12 @@ _ddp_test_log(const void *session_ptr, const ddp_char_t *log_msg, ddp_severity_t
     time_t ltime;
     struct tm *Tm;
     char file_name[] = "libDDBoost.log";
-    
+
     rotate_dd_logs(file_name, DDBOOST_LOG_NUM_OF_FILES, ddboost_logs_info.logsSize / DDBOOST_LOG_NUM_OF_FILES);
 
     log_file = fopen(file_name, "a");
 
-       
+
     if (log_file) {
         ltime = time(NULL);
         Tm = localtime(&ltime);
@@ -1746,18 +1742,18 @@ _ddp_test_log(const void *session_ptr, const ddp_char_t *log_msg, ddp_severity_t
     }
 }
 
-int 
-initDDSystem(ddp_inst_desc_t *ddp_inst, ddp_conn_desc_t *ddp_conn, ddp_client_info_t *cl_info, char **ddp_su_name,
+int
+initDDSystem(ddp_inst_desc_t *ddp_inst, ddp_conn_desc_t *ddp_conn, ddp_client_info_t *cl_info, char **ddboost_storage_unit,
             bool createStorageUnit, char **default_backup_directory, bool remote)
 {
 	int err = DD_ERR_NONE;
 	unsigned int POOL_SIZE = DDBOOST_POOL_SIZE;
-	char *storage_unit_name = NULL;
 	char *dd_boost_username = NULL;
 	char *dd_boost_passwd = NULL;
 	char *dd_boost_hostname = NULL;
 	char *log_level = NULL;
 	char *log_size = NULL;
+	char *storage_unit_configured = NULL;
 
 	err = getDDBoostCredential(&dd_boost_hostname,
 			&dd_boost_username,
@@ -1765,7 +1761,14 @@ initDDSystem(ddp_inst_desc_t *ddp_inst, ddp_conn_desc_t *ddp_conn, ddp_client_in
 			&log_level,
 			&log_size,
 			default_backup_directory,
+			&storage_unit_configured,
 			remote);
+
+
+	if (*ddboost_storage_unit == NULL)
+		*ddboost_storage_unit = Safe_strdup(storage_unit_configured);
+
+	free(storage_unit_configured);
 
 	if (err)
 	{
@@ -1773,15 +1776,6 @@ initDDSystem(ddp_inst_desc_t *ddp_inst, ddp_conn_desc_t *ddp_conn, ddp_client_in
 		return -1;
 	}
 
-	storage_unit_name = (char*)malloc(PATH_MAX);
-	if (storage_unit_name == NULL)
-	{
-		mpp_err_msg("ERROR", "ddboost", "Memory allocation failed during DDBoost initialization\n");
-		return -1;
-	}
-	sprintf(storage_unit_name, "%s", "GPDB");	
-	*ddp_su_name = storage_unit_name;
-	
 	if (*ddp_inst == DDP_INVALID_DESCRIPTOR)
 	{
 		err = ddp_instance_create(POOL_SIZE, cl_info, ddp_inst);
@@ -1794,8 +1788,8 @@ initDDSystem(ddp_inst_desc_t *ddp_inst, ddp_conn_desc_t *ddp_conn, ddp_client_in
 		ddp_log_init(*ddp_inst, NULL, _ddp_test_log);
 	}
 
-	
-	err = ddp_connect_with_user_pwd(*ddp_inst, dd_boost_hostname, NULL, dd_boost_username, dd_boost_passwd, ddp_conn);	
+
+	err = ddp_connect_with_user_pwd(*ddp_inst, dd_boost_hostname, NULL, dd_boost_username, dd_boost_passwd, ddp_conn);
 	if (err != DD_ERR_NONE) {
                mpp_err_msg("ERROR", "ddboost", "ddboost connect failed. Err = %d, remote = %d\n", err, remote);
                return err;
@@ -1803,7 +1797,7 @@ initDDSystem(ddp_inst_desc_t *ddp_inst, ddp_conn_desc_t *ddp_conn, ddp_client_in
 
 	if (createStorageUnit)
 	{
-		err = ddp_create_storage_unit(*ddp_conn, storage_unit_name);
+		err = ddp_create_storage_unit(*ddp_conn, *ddboost_storage_unit);
 		if (err != DD_ERR_NONE) {
 			mpp_err_msg("ERROR", "ddboost", "ddboost create storage unit failed. Err = %d\n", err);
 			return err;
@@ -1820,20 +1814,19 @@ initDDSystem(ddp_inst_desc_t *ddp_inst, ddp_conn_desc_t *ddp_conn, ddp_client_in
 		ddboost_logs_info.logLevel = DDP_SEV_ERROR;
 	else if (!strncmp("NONE",log_level,4))
 		ddboost_logs_info.logLevel = DDP_SEV_NONE;
-	
-	ddboost_logs_info.logsSize = atoi(log_size)*1024*1024;	
+
+	ddboost_logs_info.logsSize = atoi(log_size)*1024*1024;
 
 	return 0;
 }
 
-				
-
 void
-formDDBoostPsqlCommandLine(char** retVal, bool compUsed, const char* ddboostPg, const char* compProg, 
+formDDBoostPsqlCommandLine(char** retVal, bool compUsed, const char* ddboostPg, const char* compProg,
 							const char* ddp_file_name, const char* dd_boost_buf_size,
-							const char* filter_script, const char* table_filter_file, 
+							const char* filter_script, const char* table_filter_file,
 							int role, const char* psqlPg, bool postSchemaOnly,
-							const char* change_schema_file, const char *schema_level_file)
+							const char* change_schema_file, const char *schema_level_file,
+							const char* ddboost_storage_unit)
 {
 	char* pszCmdLine = *retVal;
 
@@ -1841,10 +1834,15 @@ formDDBoostPsqlCommandLine(char** retVal, bool compUsed, const char* ddboostPg, 
 	strcat(pszCmdLine, " --readFile");
 	strcat(pszCmdLine, " --from-file=");
 	strcat(pszCmdLine, ddp_file_name);
-	
 	if(compUsed)
 	{
 		strcat(pszCmdLine, ".gz");
+	}
+
+	if (ddboost_storage_unit)
+	{
+		strcat(pszCmdLine, " --ddboost-storage-unit=");
+		strcat(pszCmdLine, ddboost_storage_unit);
 	}
 
 	strcat(pszCmdLine, " --dd_boost_buf_size=");
@@ -1858,7 +1856,7 @@ formDDBoostPsqlCommandLine(char** retVal, bool compUsed, const char* ddboostPg, 
 
 	if (postSchemaOnly)
 		formPostDataFilterCommandLine(&pszCmdLine, filter_script, table_filter_file, change_schema_file, schema_level_file);
-	else	
+	else
 		formFilterCommandLine(&pszCmdLine, filter_script, table_filter_file, role, change_schema_file, schema_level_file);
 
 	strcat(pszCmdLine, " | ");
@@ -1888,7 +1886,7 @@ const char EMPTY_TYPSTORAGE = '\0';
 
 int
 initializeHashTable(int num_elems)
-{ 
+{
     HASH_TABLE_SIZE = num_elems;
 
     if(!(hash_table = (Node **)calloc(HASH_TABLE_SIZE, sizeof(Node*))))
@@ -1908,7 +1906,7 @@ insertIntoHashTable(Oid o, char t)
 
     Node *new_node = (Node *)malloc(sizeof(Node));
 
-	if (!new_node) 
+	if (!new_node)
 		return -1;
 
     new_node->oid = o;
@@ -1953,8 +1951,8 @@ char getTypstorage(Oid o)
             return temp->typstorage;
         temp = temp->next;
     }
-    
-    return EMPTY_TYPSTORAGE;    
+
+    return EMPTY_TYPSTORAGE;
 }
 
 int removeNode(Oid o)

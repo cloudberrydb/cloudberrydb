@@ -80,13 +80,13 @@ extern ddp_client_info_t dd_client_info;
 static ddp_inst_desc_t ddp_inst = DDP_INVALID_DESCRIPTOR;
 static ddp_conn_desc_t ddp_conn = DDP_INVALID_DESCRIPTOR;
 
-static char *DDP_SU_NAME = NULL;
 static char *DEFAULT_BACKUP_DIRECTORY = NULL;
 
 char *log_message_path = NULL;
 static int dd_boost_enabled = 0;
 static char *dd_boost_buf_size = NULL;
 static char *ddboostPg = NULL;
+static char *ddboost_storage_unit = NULL;
 #endif
 
 #ifndef PATH_NAME_MAX
@@ -243,6 +243,7 @@ main(int argc, char **argv)
 		{"netbackup-block-size", required_argument, NULL, 16},
 		{"change-schema-file", required_argument, NULL, 17},
 		{"schema-level-file", required_argument, NULL, 18},
+		{"ddboost-storage-unit",required_argument, NULL, 19},
 		{NULL, 0, NULL, 0}
 	};
 
@@ -458,6 +459,11 @@ main(int argc, char **argv)
 			case 18:
 				schema_level_file = strdup(optarg);
 				break;
+#ifdef USE_DDBOOST
+			case 19:
+				ddboost_storage_unit = strdup(optarg);
+				break;
+#endif
 			default:
 				fprintf(stderr, _("Try \"%s --help\" for more information.\n"), progname);
 				exit(1);
@@ -532,14 +538,14 @@ main(int argc, char **argv)
 			exit(1);
 		}
 
-		if (initDDSystem(&ddp_inst, &ddp_conn, &dd_client_info, &DDP_SU_NAME, false, &DEFAULT_BACKUP_DIRECTORY, false))
+		if (initDDSystem(&ddp_inst, &ddp_conn, &dd_client_info, &ddboost_storage_unit, false, &DEFAULT_BACKUP_DIRECTORY, false))
                	{
 			mpp_err_msg(logInfo, progname, "Initializing DD system failed\n");
 			exit(1);
 		}
-                
+
 		mpp_err_msg(logInfo, progname, "ddboost is initialized\n");
-		
+
 		ddp_file_name = formDDBoostFileName(g_gpdumpKey, postDataSchemaOnly, dd_boost_dir);
 		if (ddp_file_name == NULL)
 		{
@@ -804,8 +810,13 @@ main(int argc, char **argv)
 			{
 				formDDBoostPsqlCommandLine(&pszCmdLine, bCompUsed, ddboostPg, g_compPg,
 						ddp_file_name, dd_boost_buf_size,
-						postDataSchemaOnly? postDataFilterScript : filterScript, table_filter_file,
-						g_role, psqlPg, postDataSchemaOnly, change_schema_file, schema_level_file);
+						postDataSchemaOnly? postDataFilterScript : filterScript,
+						table_filter_file,
+						g_role, psqlPg,
+						postDataSchemaOnly,
+						change_schema_file,
+						schema_level_file,
+						ddboost_storage_unit);
 			}
 			else
 			{
@@ -1014,6 +1025,7 @@ main(int argc, char **argv)
 #ifdef USE_DDBOOST
 	if(dd_boost_enabled)
 		cleanupDDSystem();
+	free(ddboost_storage_unit);
 #endif
 
 	makeSureMonitorThreadEnds(TASK_RC_SUCCESS, TASK_MSG_SUCCESS);
@@ -1083,6 +1095,8 @@ usage(const char *progname)
 	printf(_("  --use-set-session-authorization\n"
 			 "                           use SESSION AUTHORIZATION commands instead of\n"
 			 "                           OWNER TO commands\n"));
+
+	printf(_("  --ddboost-storage-unit     Storage unit to use on the ddboost server\n"));
 
 	printf(_("\nConnection options:\n"));
 	printf(_("  -h, --host=HOSTNAME      database server host or socket directory\n"));
@@ -1209,17 +1223,17 @@ monitorThreadProc(void *arg __attribute__((unused)))
 	/* Once we've seen the TASK_FINISH insert request, we know to leave */
 	while (!bGotFinished)
 	{
-		/* Replacing select() by poll() here to overcome the limitations of 
+		/* Replacing select() by poll() here to overcome the limitations of
 		select() to handle large socket file descriptor values.
 		*/
 
 		pollInput->fd = sock;
 		pollInput->events = POLLIN;
-		pollInput->revents = 0; 
+		pollInput->revents = 0;
 		pollTimeout = 2000;
 		pollResult = poll(pollInput, 1, pollTimeout);
 
-		if(pollResult < 0) 
+		if(pollResult < 0)
 		{
 			mpp_err_msg(logError, progname, "poll failed for backup key %s, instid %d, segid %d failed\n",
 						g_gpdumpKey, g_role, g_sourceDBID);
@@ -1572,14 +1586,14 @@ static char *formDDBoostFileName(char *pszBackupKey, bool isPostData, char *dd_b
         int     len = 0;
         char    *pszBackupFileName;
 	char 	*dir_name = "db_dumps";		/* default directory */
-	
+
         instid = g_role;           		/* dispatch node */
         segid = g_sourceDBID;
 
        	memset(szFileNamePrefix, 0, (1+PATH_NAME_MAX));
 	if (dd_boost_dir)
         	snprintf(szFileNamePrefix, 1 + PATH_NAME_MAX, "%s/%sgp_dump_%d_%d_", dd_boost_dir, DUMP_PREFIX, instid, segid);
-	else	
+	else
         	snprintf(szFileNamePrefix, 1 + PATH_NAME_MAX, "%s/%sgp_dump_%d_%d_", dir_name, DUMP_PREFIX, instid, segid);
 
         /* Now add up the length of the pieces */
@@ -1602,7 +1616,7 @@ static char *formDDBoostFileName(char *pszBackupKey, bool isPostData, char *dd_b
         }
 
        	memset(pszBackupFileName, 0, len + 1 );
- 
+
         strcat(pszBackupFileName, szFileNamePrefix);
         strcat(pszBackupFileName, pszBackupKey);
 

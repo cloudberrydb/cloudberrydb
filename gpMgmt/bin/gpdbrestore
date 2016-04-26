@@ -182,6 +182,11 @@ class GpdbRestore(Operation):
             raise Exception(str(e))
 
         self.ddboost = options.ddboost
+        self.ddboost_storage_unit = options.ddboost_storage_unit
+
+        if self.ddboost_storage_unit and not self.ddboost:
+            raise Exception('Cannot use ddboost storage unit option without specifying --ddboost option.')
+
         if self.ddboost:
             if self.netbackup_service_host:
                 raise Exception('--ddboost option is not supported with NetBackup')
@@ -191,13 +196,15 @@ class GpdbRestore(Operation):
             elif self.backup_dir:
                 raise ExceptionNoStackTraceNeeded('-u cannot be used with DDBoost parameters.')
             dd = gpmfr.DDSystem("local")
-            self.dump_dir = dd.defaultBackupDir
+            self.dump_dir = dd.DDBackupDir
         else:
             self.dump_dir = 'db_dumps'
 
     def execute(self):
         if self.ddboost:
             cmdline = 'gpddboost --sync --dir=%s' % self.master_datadir
+            if self.ddboost_storage_unit:
+                cmdline += ' --ddboost-storage-unit %s' % self.ddboost_storage_unit
             cmd = Command('DDBoost sync', cmdline)
             cmd.run(validateAfter=True)
 
@@ -297,6 +304,7 @@ class GpdbRestore(Operation):
                         dump_dir = self.dump_dir,
                         dump_prefix = self.dump_prefix,
                         ddboost = self.ddboost,
+                        ddboost_storage_unit = self.ddboost_storage_unit,
                         no_plan = self.no_plan,
                         restore_tables = self.restore_tables,
                         batch_default = self.batch_default,
@@ -506,6 +514,7 @@ class GpdbRestore(Operation):
                                 dump_prefix = self.dump_prefix,
                                 compress = compress,
                                 ddboost = self.ddboost,
+                                ddboost_storage_unit = self.ddboost_storage_unit,
                                 netbackup_service_host = self.netbackup_service_host,
                                 remote_host = dump_host,
                                 dump_file = dump_file).get_dump_tables()
@@ -752,6 +761,9 @@ def create_parser():
     # For DDBoost Restore
     ddOpt = OptionGroup(parser, "DDBoost")
     ddOpt.add_option('--ddboost', dest='ddboost', help="Dump to DDBoost using ~/.ddconfig", action="store_true", default=False)
+
+    ddOpt.add_option('--ddboost-storage-unit', dest='ddboost_storage_unit', default=None,
+                     help="Storage unit where backup files are retrieved from the ddboost server")
     parser.add_option_group(ddOpt)
 
     return parser

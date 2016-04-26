@@ -66,6 +66,7 @@ class GpCronDumpTestCase(unittest.TestCase):
             ## Enterprise init
             self.incremental = False
             self.ddboost = False
+            self.ddboost_storage_unit = None
             self.ddboost_hosts = None
             self.ddboost_user = None
             self.ddboost_config_remove = False
@@ -659,6 +660,17 @@ class GpCronDumpTestCase(unittest.TestCase):
         options.netbackup_policy = "test_policy"
         options.netbackup_schedule = "test_schedule"
         with self.assertRaisesRegexp(Exception, '--ddboost is not supported with NetBackup'):
+            GpCronDump(options, None)
+
+    @patch('gpcrondump.GpCronDump._get_master_port')
+    def test_options_ddboost_storage_unit_should_be_used_with_ddboost(self, mock):
+        """
+        --ddboost-storage-unit option must come with --ddboost option
+        """
+        options = GpCronDumpTestCase.Options()
+        options.dump_databases = ['bkdb']
+        options.ddboost_storage_unit = "GPDB"
+        with self.assertRaisesRegexp(Exception, 'Must specify --ddboost option together with the --ddboost-storage-unit'):
             GpCronDump(options, None)
 
     @patch('gpcrondump.GpCronDump._get_master_port')

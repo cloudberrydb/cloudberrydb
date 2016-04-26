@@ -134,6 +134,7 @@ PQExpBuffer dump_prefix_buf = NULL;
 #ifdef USE_DDBOOST
 #include "ddp_api.h"
 static int dd_boost_enabled = 0;
+static char *ddboost_storage_unit = NULL;
 #endif
 
 int
@@ -177,7 +178,7 @@ main(int argc, char **argv)
 		goto cleanup;
 
 	mpp_msg(logInfo, progname, "Reading Greenplum Database configuration info from master database.\n");
-	if (!GetDumpSegmentDatabaseArray(master_db_conn, remote_version, &segDBAr, inputOpts.actors, 
+	if (!GetDumpSegmentDatabaseArray(master_db_conn, remote_version, &segDBAr, inputOpts.actors,
 					inputOpts.pszRawDumpSet, inputOpts.pszDBName, inputOpts.pszUserName, dataOnly, schemaOnly))
 		goto cleanup;
 
@@ -828,6 +829,7 @@ fillInputOptions(int argc, char **argv, InputOptions * pInputOpts)
 
 #ifdef USE_DDBOOST
 		{"ddboost", no_argument, NULL, 6},
+		{"ddboost-storage-unit", required_argument, NULL, 21},
 #endif
 		{"table-file", required_argument, NULL, 7},
 		{"exclude-table-file", required_argument, NULL, 8},
@@ -1157,6 +1159,10 @@ fillInputOptions(int argc, char **argv, InputOptions * pInputOpts)
 			case 6:
 				dd_boost_enabled = 1;
 				break;
+			case 21:
+				ddboost_storage_unit = pg_strdup(optarg);
+				pInputOpts->pszPassThroughParms = addPassThroughLongParm("ddboost-storage-unit", ddboost_storage_unit, pInputOpts->pszPassThroughParms);
+				break;
 #endif
 			case 7:
 				/* table-file option */
@@ -1210,7 +1216,7 @@ fillInputOptions(int argc, char **argv, InputOptions * pInputOpts)
 					goto cleanup;
 				}
 				break;
-        
+
 			case 11:
 				no_expand_children = true;
 				break;
@@ -1293,12 +1299,12 @@ fillInputOptions(int argc, char **argv, InputOptions * pInputOpts)
 	{
 		pInputOpts->pszPassThroughParms = addPassThroughLongParm("dd_boost_enabled", NULL, pInputOpts->pszPassThroughParms);
 
-		/* If no directory is specified, for example when we gp_dump, then dump to default directory db_dumps */		
+		/* If no directory is specified, for example when we gp_dump, then dump to default directory db_dumps */
 		if (pInputOpts->pszBackupDirectory)
 			ddboost_directory = pg_strdup(pInputOpts->pszBackupDirectory);
 		else
 			ddboost_directory = pg_strdup("db_dumps/");
-	
+
 		pInputOpts->pszPassThroughParms = addPassThroughLongParm("dd_boost_dir", ddboost_directory, pInputOpts->pszPassThroughParms);
 	}
 #endif
@@ -1391,7 +1397,7 @@ fillInputOptions(int argc, char **argv, InputOptions * pInputOpts)
 	if (pInputOpts->pszPassThroughParms != NULL)
 		mpp_msg(logInfo, progname, "Read params: %s\n", pInputOpts->pszPassThroughParms);
 	else
-		mpp_msg(logInfo, progname, "Read params: <empty>\n");		
+		mpp_msg(logInfo, progname, "Read params: <empty>\n");
 
 	cleanup:
 
@@ -1487,6 +1493,7 @@ help(const char *progname)
 	printf(("                          or (i)ndividual segdb (must be followed with a list of dbids\n"));
 	printf(("                          of primary segments to dump. For example: --gp-s=i[10,12,14]\n"));
 	printf(("  --rsyncable             pass --rsyncable option to gzip"));
+	printf(("  --ddboost-storage-unit             pass the storage unit name"));
 
 	printf(("\nIf no database name is supplied, then the PGDATABASE environment\n"
 			"variable value is used.\n\n"));
@@ -2150,7 +2157,7 @@ threadProc(void *arg)
 	 * another thread failing. A BackupStateMachine object is used to manage
 	 * receiving these notifications
 	 */
-	
+
 	time(&now);
 	time(&last);
 
@@ -2173,8 +2180,8 @@ threadProc(void *arg)
 			bSentCancelMessage = true;
 			goto cleanup;
 		}
-		
-		/* Replacing select() by poll() here to overcome the limitations of 
+
+		/* Replacing select() by poll() here to overcome the limitations of
 			select() to handle large socket file descriptor values.
 		*/
 
