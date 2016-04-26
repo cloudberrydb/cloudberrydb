@@ -170,6 +170,7 @@ class Global():
         self.checkStatus = True
         self.failedChecks = []
         self.missing_attr_tables = []
+        self.extra_attr_tables = []
 
 
 GV = Global()
@@ -4516,12 +4517,17 @@ class GPObject:
                         if 'relid' in key or key in ['ev_class', 'reloid', 'fmterrtbl']:
                             table_list = db.query(oid_query % issue.pkeys[key]).getresult()
                             if table_list:
-                                GV.missing_attr_tables.append( (table_list[0][0], issue.segids) )
+                                if issue.type == 'missing':
+                                    GV.missing_attr_tables.append( (table_list[0][0], issue.segids) )
+                                else:
+                                    GV.extra_attr_tables.append( (table_list[0][0], issue.segids) )
                         elif key == 'oid':
                             table_list = db.query(type_query % issue.pkeys[key]).getresult()
                             if table_list:
-                                GV.missing_attr_tables.append( (table_list[0][0], issue.segids) )
-
+                                if issue.type == 'missing':
+                                    GV.missing_attr_tables.append( (table_list[0][0], issue.segids) )
+                                else:
+                                    GV.extra_attr_tables.append( (table_list[0][0], issue.segids) )
 
 
     def __cmp__(self, other):
@@ -4747,7 +4753,7 @@ def checkcatReport():
         myprint('')
 
         # Report tables with missing attributes in a more usable format
-        if len(GV.missing_attr_tables):
+        if len(GV.missing_attr_tables) or len(GV.extra_attr_tables):
             # Expand partition tables
             db = connect2(GV.cfg[1], utilityMode=False)
             parent_tables = [t[0] for t in db.query("SELECT DISTINCT (schemaname || '.' || tablename) FROM pg_partitions").getresult()]
@@ -4766,17 +4772,32 @@ def checkcatReport():
             """ % ("'" + "', '".join([pg.escape_string(t) for t in parent_tables]) + "'")
 
             GV.missing_attr_tables = list(set(GV.missing_attr_tables))
-            myprint('----------------------------------------------------')
-            myprint("    Tables with missing issues:")
-            myprint("        Format [database name].[schema name].[table name].[segment id]:")
-            for table, segids in GV.missing_attr_tables:
-                if table in parent_tables:
-                    for part_table in db.query(partition_leaves_sql).getresult():
-                        GV.missing_attr_tables.append( (part_table[0], segids) )
-            for table, segids in sorted(GV.missing_attr_tables):
-                for id in segids[1:-1].split(','):
-                    myprint("        Table %s.%s.%s" % (GV.dbname, table, id))
-            myprint('')
+            if len(GV.missing_attr_tables) > 0:
+                myprint('----------------------------------------------------')
+                myprint("    Tables with missing issues:")
+                myprint("        Format [database name].[schema name].[table name].[segment id]:")
+                for table, segids in GV.missing_attr_tables:
+                    if table in parent_tables:
+                        for part_table in db.query(partition_leaves_sql).getresult():
+                            GV.missing_attr_tables.append( (part_table[0], segids) )
+                for table, segids in sorted(GV.missing_attr_tables):
+                    for id in segids[1:-1].split(','):
+                        myprint("        Table %s.%s.%s" % (GV.dbname, table, id))
+                myprint('')
+
+            GV.extra_attr_tables = list(set(GV.extra_attr_tables))
+            if len(GV.extra_attr_tables) > 0:
+                myprint('----------------------------------------------------')
+                myprint("    Tables with extra issues:")
+                myprint("        Format [database name].[schema name].[table name].[segment id]:")
+                for table, segids in GV.extra_attr_tables:
+                    if table in parent_tables:
+                        for part_table in db.query(partition_leaves_sql).getresult():
+                            GV.extra_attr_tables.append( (part_table[0], segids) )
+                for table, segids in sorted(GV.extra_attr_tables):
+                    for id in segids[1:-1].split(','):
+                        myprint("        Table %s.%s.%s" % (GV.dbname, table, id))
+                myprint('')
             myprint('')
 
     notReported = set(GV.failedChecks).difference(reportedCheck)
