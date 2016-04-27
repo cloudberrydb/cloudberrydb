@@ -1,5 +1,6 @@
 import imp
 import os
+import sys
 
 from mock import *
 
@@ -16,7 +17,7 @@ class GpCheckCatTestCase(GpTestCase):
         self.subject = imp.load_source('gpcheckcat', gpcheckcat_file)
 
         self.subject.logger = Mock(spec=['log', 'info', 'debug', 'error'])
-        self.db_connection = Mock(spec=['close'])
+        self.db_connection = Mock(spec=['close', 'query'])
 
         self.unique_index_violation_check = Mock(spec=['runCheck'])
         self.unique_index_violation_check.runCheck.return_value = []
@@ -27,7 +28,8 @@ class GpCheckCatTestCase(GpTestCase):
         # MagicMock: we are choosing to trust the implementation of GV.cfg
         # If we wanted full coverage we would make this a normal Mock()
         # and fully define its behavior
-        self.subject.GV.cfg = MagicMock()
+        self.subject.GV.cfg = {0:dict(hostname='host0', port=123, id=1, address='123', datadir='dir', content=-1, dbid=0),
+                               1:dict(hostname='host1', port=123, id=1, address='123', datadir='dir', content=1, dbid=1)}
         self.subject.GV.checkStatus = True
         self.subject.setError = Mock()
 
@@ -113,6 +115,74 @@ class GpCheckCatTestCase(GpTestCase):
         expected_message = "Found and dropped 2 unbound temporary schemas"
         log_messages = [args[0][1] for args in self.subject.logger.log.call_args_list]
         self.assertIn(expected_message, log_messages)
+
+    def test_automatic_thread_count(self):
+        self.db_connection.query.return_value.getresult.return_value = [[0]]
+
+        self._run_batch_size_experiment(100)
+        self._run_batch_size_experiment(101)
+
+    @patch('gpcheckcat.GPCatalog', return_value=Mock())
+    @patch('sys.exit')
+    @patch('gpcheckcat.log_literal')
+    def test_truncate_batch_size(self, mock_log, mock_gpcheckcat, mock_sys_exit):
+        self.subject.GV.opt['-B'] = 300  # override the setting from available memory
+        # setup conditions for 50 primaries and plenty of RAM such that max threads > 50
+        primaries = [dict(hostname='host0', port=123, id=1, address='123', datadir='dir', content=-1, dbid=0, isprimary='t')]
+
+        for i in range(1, 50):
+            primaries.append(dict(hostname='host0', port=123, id=1, address='123', datadir='dir', content=1, dbid=i, isprimary='t'))
+        self.db_connection.query.return_value.getresult.return_value = [['4.3']]
+        self.db_connection.query.return_value.dictresult.return_value = primaries
+
+        testargs = ['gpcrondump', '-port 1', '-R foo']
+
+        # GOOD_MOCK_EXAMPLE for testing functionality in "__main__": put all code inside a method "main()",
+        # which can then be mocked as necessary.
+        with patch.object(sys, 'argv', testargs):
+            self.subject.main()
+            self.assertEquals(self.subject.GV.opt['-B'], len(primaries))
+
+        #mock_log.assert_any_call(50, "Truncated batch size to number of primaries: 50")
+        # I am confused that .assert_any_call() did not seem to work as expected --Larry
+        last_call = mock_log.call_args_list[0][0][2]
+        self.assertEquals(last_call, "Truncated batch size to number of primaries: 50")
+
+
+
+    ####################### PRIVATE METHODS #######################
+    def _run_batch_size_experiment(self, num_primaries):
+        BATCH_SIZE = 4
+        self.subject.GV.opt['-B'] = BATCH_SIZE
+        self.num_batches = 0
+        self.num_joins = 0
+        self.num_starts = 0
+        self.is_remainder_case = False
+        for i in range(2, num_primaries):
+            self.subject.GV.cfg[i] = dict(hostname='host1', port=123, id=1, address='123',
+                                          datadir='dir', content=1, dbid=i)
+
+        def count_starts():
+            self.num_starts += 1
+
+        def count_joins():
+            if self.num_starts != BATCH_SIZE:
+                self.is_remainder_case = True
+            self.num_joins += 1
+            if self.num_joins == BATCH_SIZE:
+                self.num_batches += 1
+                self.num_joins = 0
+                self.num_starts = 0
+
+        with patch('gpcheckcat.execThread') as mock_execThread:
+            mock_execThread.return_value.cfg = self.subject.GV.cfg[0]
+            mock_execThread.return_value.join.side_effect = count_joins
+            mock_execThread.return_value.start.side_effect = count_starts
+            self.subject.runOneCheck('persistent')
+
+            self.assertTrue(self.num_batches > 0)
+            if self.is_remainder_case:
+                self.assertTrue(self.num_joins < BATCH_SIZE)
 
 if __name__ == '__main__':
     run_tests()

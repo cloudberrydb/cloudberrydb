@@ -33,6 +33,7 @@ try:
     from gppylib.gplog import *
     from gppylib.gpcatalog import *
     from gppylib.commands.unix import *
+    from gppylib.system.info import *
     from pygresql.pgdb import DatabaseError
     from pygresql import pg
     from gpcheckcat_modules.unique_index_violation_check import UniqueIndexViolationCheck
@@ -40,7 +41,6 @@ try:
 except ImportError, e:
     sys.exit('Error: unable to import module: ' + str(e))
 
-parallelism = 8
 # cache OID -> object name cache
 oidmap = {}
 
@@ -50,8 +50,10 @@ setup_tool_logging(EXECNAME, getLocalHostname(), getUserName())
 very_quiet_stdout_logging()
 logger = get_default_logger()
 
+sysinfo = SystemInfo(logger)
 
-# -------------------------------------------------------------------------------
+parallelism = get_max_available_thread_count()
+#-------------------------------------------------------------------------------
 
 ################
 def parse_int(val):
@@ -4830,9 +4832,13 @@ def generateVerifyFile(catname, fields, results, checkname):
     except Exception as e:
         logger.warning('Unable to generate verify file for %s (%s)' % (catname, str(e)))
 
-#############
-if __name__ == '__main__':
+def truncate_batch_size(primaries):
+    if GV.opt['-B'] > primaries:
+        GV.opt['-B'] = primaries
+        myprint("Truncated batch size to number of primaries: %d" % primaries)
 
+
+def main():
     parseCommandLine()
     if GV.opt['-l']:
         listAllChecks()
@@ -4844,6 +4850,8 @@ if __name__ == '__main__':
         sys.exit(GV.retcode)
 
     GV.cfg = getGPConfiguration()
+    truncate_batch_size(len(GV.cfg.keys()))
+
     GV.report_cfg = getReportConfiguration()
     GV.max_content = max([GV.cfg[dbid]['content'] for dbid in GV.cfg])
     GV.catalog = getCatalog()
@@ -4860,6 +4868,7 @@ if __name__ == '__main__':
         myprint("Connected as user \'%s\' to database '%s', port '%d', gpdb version '%s'" \
                 % (GV.opt['-U'], GV.dbname, GV.report_cfg[-1]['port'], GV.version))
         myprint('-------------------------------------------------------------------')
+        myprint('Batch size: %s' % GV.opt['-B'])
 
         drop_leaked_schemas(leaked_schema_dropper, dbname)
 
@@ -4889,3 +4898,7 @@ if __name__ == '__main__':
             GV.opt['-S'] = "none"
 
     sys.exit(GV.retcode)
+
+#############
+if __name__ == '__main__':
+    main()
