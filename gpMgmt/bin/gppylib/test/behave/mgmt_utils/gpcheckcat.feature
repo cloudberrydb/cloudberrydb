@@ -157,3 +157,17 @@ Feature: gpcheckcat tests
         And the user runs "dropdb db1"
         And the user runs "dropdb db2"
         And the path "gpcheckcat.repair.*" is removed from current working directory
+
+    @persistent
+    Scenario: gpcheckcat should find persistence errors
+        Given database "db1" is dropped and recreated
+        And there is a "heap" table "myheaptable1" in "db1" with data
+        And there is a "heap" table "myheaptable2" in "db1" with data
+        And there is a "heap" table "myheaptable3" in "db1" with data
+        And there is a "heap" table "myheaptable4" in "db1" with data
+        And there is a "heap" table "myheaptable5" in "db1" with data
+        And the user runs "psql db1 -c "select gp_delete_persistent_relation_node_entry(ctid) from (select ctid from gp_persistent_relation_node where relfilenode_oid=(select relfilenode from pg_class where relname = 'myheaptable2')) as unwanted;""
+        And the user runs "psql db1 -c "select gp_delete_persistent_relation_node_entry(ctid) from (select ctid from gp_persistent_relation_node where relfilenode_oid=(select relfilenode from pg_class where relname = 'myheaptable3')) as unwanted;""
+        When the user runs "gpcheckcat -R persistent db1"
+        Then gpcheckcat should print Failed test\(s\) that are not reported here: persistent to stdout
+
