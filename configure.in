@@ -638,9 +638,9 @@ AC_SUBST(enable_codegen)
 AS_IF([test "$enable_codegen" = yes],
 [ # then
    AC_CHECK_PROG(CMAKE, cmake, yes)
-   AS_IF([test "${CMAKE}" != yes], [AC_MSG_ERROR(['cmake is required for build GPDB with codegen enabled'])])
+   AS_IF([test "${CMAKE}" != yes], [AC_MSG_ERROR(['cmake is required for building GPDB with codegen enabled'])])
 
-   PGAC_ARG_OPTARG(with, codegen-prefix, [  --with-codegen-prefix   semicolon saperated prefix search path for LLVM and Clang], 
+   PGAC_ARG_OPTARG(with, codegen-prefix, [  --with-codegen-prefix   semicolon separated prefix search path for LLVM and Clang],
                    [codegen_prefix=], [codegen_prefix=$withval])
 
    cd src/backend/codegen
