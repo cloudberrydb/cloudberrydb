@@ -2155,21 +2155,23 @@ PrintPgaosegAndGprelationNodeEntries(FileSegInfo **allseginfo, int totalsegs, bo
 	char tmp[10] = {0};
 	memset(segnumArray, 0, sizeof(segnumArray));
 
+	char		*head = segnumArray;
+	const char	*tail = segnumArray + sizeof(segnumArray);
+
 	for (int i = 0 ; i < totalsegs && allseginfo; i++)
 	{
 		snprintf(tmp, sizeof(tmp), "%d:%jd", allseginfo[i]->segno, allseginfo[i]->eof);
 
-		if (strlen(segnumArray) + strlen(tmp) + strlen(delimiter) >= 1000)
-		{
-			break;
-		}
+        if (strlen(tmp) + strlen(delimiter) >= (tail - head))
+            break;
 
-		strncat(segnumArray, tmp, sizeof(tmp));
-		strncat(segnumArray, delimiter, sizeof(delimiter));
+        head += strlcpy(head, tmp, tail - head);
+        head += strlcpy(head, delimiter, tail - head);
 	}
 	elog(LOG, "pg_aoseg segno:eof entries: %s", segnumArray);
 
 	memset(segnumArray, 0, sizeof(segnumArray));
+	head = segnumArray;
 
 	for (int i = 0; i < AOTupleId_MaxSegmentFileNum; i++)
 	{
@@ -2177,13 +2179,11 @@ PrintPgaosegAndGprelationNodeEntries(FileSegInfo **allseginfo, int totalsegs, bo
 		{
 			snprintf(tmp, sizeof(tmp), "%d", i);
 
-			if (strlen(segnumArray) + strlen(tmp) + strlen(delimiter) >= 1000)
-			{
+			if (strlen(tmp) + strlen(delimiter) >= (tail - head))
 				break;
-			}
 
-			strncat(segnumArray, tmp, sizeof(tmp));
-			strncat(segnumArray, delimiter, sizeof(delimiter));
+			head += strlcpy(head, tmp, tail - head);
+			head += strlcpy(head, delimiter, tail - head);
 		}
 	}
 	elog(LOG, "gp_relation_node segno entries: %s", segnumArray);
