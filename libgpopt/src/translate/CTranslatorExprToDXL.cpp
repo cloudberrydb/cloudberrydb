@@ -3873,6 +3873,16 @@ CTranslatorExprToDXL::PdxlnMotion
 	// set input and output segment information
 	pdxlopMotion->SetSegmentInfo(PdrgpiInputSegIds(pexprMotion), PdrgpiOutputSegIds(pexprMotion));
 
+	// validate the input segment info for Gather Motion
+	// if Gather has only 1 segment when there are more hosts
+	// it's obviously invalid and we fall back
+	if (EdxlopPhysicalMotionGather == pdxlopMotion->Edxlop())
+	{
+		if((pdxlopMotion->PdrgpiInputSegIds()->UlLength() == 1) && COptCtxt::PoctxtFromTLS()->Pcm()->UlHosts() > 1)
+		{
+			GPOS_RAISE(gpopt::ExmaGPOPT, gpopt::ExmiInvalidPlanAlternative, GPOS_WSZ_LIT("GatherMotion has 1 input but there are more segments in the system"));
+		}
+	}
 	CDXLNode *pdxlnMotion = GPOS_NEW(m_pmp) CDXLNode(m_pmp, pdxlopMotion);
 	CDXLPhysicalProperties *pdxlprop = Pdxlprop(pexprMotion);
 	pdxlnMotion->SetProperties(pdxlprop);

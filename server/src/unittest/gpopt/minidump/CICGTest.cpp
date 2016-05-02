@@ -258,6 +258,7 @@ const CHAR *rgszFileNames[] =
 // unsupported minidump files
 const CHAR *rgszUnsupportedFileNames[] =
 	{
+		"../data/dxl/minidump/OneSegmentGather.mdp",
 		"../data/dxl/minidump/CTEWithOuterReferences.mdp",
 		"../data/dxl/minidump/BitmapIndexUnsupportedOperator.mdp",
 	};
