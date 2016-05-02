@@ -363,26 +363,23 @@ CICGTest::EresUnittest_RunUnsupportedMinidumpTests()
 		{
 			ICostModel *pcm = CTestUtils::Pcm(pmp);
 
-			COptimizerConfig *poconf = GPOS_NEW(pmp) COptimizerConfig
-						(
-						CEnumeratorConfig::Pec(pmp, 0 /*ullPlanId*/),
-						CStatisticsConfig::PstatsconfDefault(pmp),
-						CCTEConfig::PcteconfDefault(pmp),
-						pcm,
-						CHint::PhintDefault(pmp)
-						);
+			CDXLMinidump *pdxlmd = CMinidumperUtils::PdxlmdLoad(pmp, rgszUnsupportedFileNames[ul]);
+
+			COptimizerConfig *poconf = pdxlmd->Poconf();
 			CDXLNode *pdxlnPlan = CMinidumperUtils::PdxlnExecuteMinidump
 									(
 									pmp, 
 									rgszUnsupportedFileNames[ul],
-									GPOPT_TEST_SEGMENTS /*ulSegments*/,
+									poconf->Pcm()->UlHosts() /*ulSegments*/,
 									1 /*ulSessionId*/, 
 									1, /*ulCmdId*/
 									poconf,
 									NULL /*pceeval*/
 									);
+
+
 			GPOS_CHECK_ABORT;
-			poconf->Release();
+			GPOS_DELETE(pdxlmd);
 			pdxlnPlan->Release();
 			pcm->Release();
 
