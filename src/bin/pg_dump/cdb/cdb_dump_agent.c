@@ -6246,12 +6246,13 @@ dumpTableSchema(Archive *fout, TableInfo *tbinfo)
 			char *relname = NULL;
 			resetPQExpBuffer(query);
 
-			/* Prefixing the quoted object name in where clause with 'E' to avoid backslash escape warnings. */
-			appendPQExpBuffer(query, "SELECT "
-						"partitionschemaname, partitiontablename FROM pg_catalog.pg_partitions "
-						"WHERE partitionschemaname != schemaname AND tablename = ");
-
+			appendPQExpBuffer(query,
+			    "SELECT partitionschemaname, partitiontablename FROM pg_catalog.pg_partitions "
+				" WHERE partitionschemaname != schemaname AND schemaname = ");
+			appendStringLiteralConn(query, tbinfo->dobj.namespace, g_conn);
+			appendPQExpBuffer(query, " AND tablename = ");
 			appendStringLiteralConn(query, tbinfo->dobj.name, g_conn);
+
 			res = PQexec(g_conn, query->data);
 			check_sql_result(res, g_conn, query->data, PGRES_TUPLES_OK);
 

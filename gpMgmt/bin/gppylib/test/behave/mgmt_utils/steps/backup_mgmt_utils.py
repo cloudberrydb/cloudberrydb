@@ -1,16 +1,14 @@
 # coding: utf-8 
 
-import thread
 import os
 import socket
-import filecmp
-from gppylib.commands.base import Command, ExecutionError, REMOTE, WorkerPool, CommandResult
+import gzip
+from gppylib.commands.base import Command, REMOTE, WorkerPool, CommandResult
 from gppylib.db import dbconn
-from gppylib.test.behave_utils.utils import run_gpcommand, getRows, validate_parse_email_file
+from gppylib.test.behave_utils.utils import getRows, validate_parse_email_file
 from gppylib.gparray import GpArray
 from gppylib.operations.unix import CheckFile
-from gppylib.test.behave_utils.utils import run_command, backup_data, backup_data_to_file, check_table_exists, check_table_exists,\
-                                            validate_restore_data_in_file
+from gppylib.test.behave_utils.utils import backup_data_to_file, check_table_exists, validate_restore_data_in_file
 
 master_data_dir = os.environ.get('MASTER_DATA_DIRECTORY')
 
@@ -25,7 +23,7 @@ len_start_comment_expr = len(comment_start_expr)
 @then('the user locks "{table_name}" in "{lock_mode}" using connection "{conn}" on "{dbname}"')
 def impl(context, table_name, lock_mode, conn, dbname):
     query = "begin; lock table %s in %s" % (table_name, lock_mode)
-    conn = dbconn.connect(dbconn.DbURL(dbname=dbname))
+    conn = dbconn.connect(dbconn.DbURL(dbname=dbname)) # todo not truthful about using conn parameter
     dbconn.execSQL(conn, query) 
     context.conn = conn
 
@@ -157,30 +155,40 @@ def impl(context, directory):
     names = ["Name", "Data", "Data for Name"]
     types = ["TABLE", "TABLE DATA", "EXTERNAL TABLE", "ACL", "CONSTRAINT", "COMMENT", "PROCEDURAL LANGUAGE", "SCHEMA", "AOSTORAGEOPTS"]
     master_dump_dir = directory if len(directory.strip()) != 0 else master_data_dir
-    timestamp = context.backup_timestamp
-    metadata_file = '%s/db_dumps/%s/gp_dump_1_1_%s.gz' % (master_dump_dir, timestamp[0:8], timestamp)
-    tmp_metadata_file = '/tmp/behave_metadata_file'
+    metadata_path = __get_dump_metadata_path(context, master_dump_dir)
 
-    cmd = Command(name="Unzip conetnts of metadata dump file to temp file", cmdStr='zcat %s > %s' % (metadata_file, tmp_metadata_file))
-    cmd.run(validateAfter=True)
+    with gzip.open(metadata_path, 'r') as fd:
+        line = None
+        for line in fd:
+            if (line[:3] == comment_start_expr):
+                if (line.startswith(comment_expr) or line.startswith(comment_data_expr_a) or line.startswith(comment_data_expr_b)):
+                    name_k, type_k, schema_k = get_comment_keys(line)
+                    if (name_k not in names and type_k != "Type" and schema_k != "Schema"):
+                        raise Exception("Unknown key in the comment line of the metdata_file '%s'. Please check and confirm if the key is correct" % (metadata_file))
+                    name_v, type_v, schema_v = get_comment_values(line)
+                    if (type_v not in types):
+                        raise Exception("Value of Type in the comment line '%s' of the metadata_file '%s' does not fall under the expected list %s. Please check if the value is correct" %(type_v, metadata_file, types))
+        if not line:
+            raise Exception('Metadata file has no data')
 
-    try:
-        with open(tmp_metadata_file, 'r') as fd:
-            lines = fd.readlines() 
-            if len(lines) == 0:
-                raise Exception('Metadata file has no data')
-            for line in lines:
-                if (line[:3] == comment_start_expr):
-                    if (line.startswith(comment_expr) or line.startswith(comment_data_expr_a) or line.startswith(comment_data_expr_b)):
-                        name_k, type_k, schema_k = get_comment_keys(line)
-                        if (name_k not in names and type_k != "Type" and schema_k != "Schema"):
-                            raise Exception("Unknown key in the comment line of the metdata_file '%s'. Please check and confirm if the key is correct" % (metadata_file))
-                        name_v, type_v, schema_v = get_comment_values(line)
-                        if (type_v not in types):
-                            raise Exception("Value of Type in the comment line '%s' of the metadata_file '%s' does not fall under the expected list %s. Please check if the value is correct" %(type_v, metadata_file, types))
-    finally:
-        if os.path.exists(tmp_metadata_file):
-            os.remove(tmp_metadata_file)
+@given('verify the metadata dump file does not contain "{target}"')
+@when('verify the metadata dump file does not contain "{target}"')
+@then('verify the metadata dump file does not contain "{target}"')
+def impl(context, target):
+    metadata_path = __get_dump_metadata_path(context, master_data_dir)
+
+    with gzip.open(metadata_path, 'r') as fd:
+        line = None
+        for line in fd:
+            if target in line:
+                raise Exception("Unexpectedly found %s in metadata file %s" % (target, metadata_path))
+        if not line:
+            raise Exception('Metadata file has no data')
+
+def __get_dump_metadata_path(context, dump_dir):
+    filename = "gp_dump_1_1_%s.gz" % context.backup_timestamp
+    metadata_path = os.path.join(dump_dir, "db_dumps", context.backup_timestamp[0:8], filename)
+    return metadata_path
 
 def get_comment_keys(line):
     try:

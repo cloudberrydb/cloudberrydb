@@ -3450,6 +3450,22 @@ Feature: Validate command line arguments
         Then gpdbrestore should return a return code of 0
         And the database "bkdb1" does not exist
 
+    Scenario: Tables with same name but different partitioning should not pollute one another's dump during backup
+        Given the test is initialized
+        And there is schema "withpartition" exists in "bkdb"
+        And there is schema "withoutpartition" exists in "bkdb"
+        And there is schema "aaa" exists in "bkdb"
+        And there is a "heap" table "withoutpartition.rank" in "bkdb" with data
+        And there is a "heap" partition table "withpartition.rank" in "bkdb" with data
+        When the user runs "psql -c 'alter table withpartition.rank_1_prt_p1 set SCHEMA aaa;' bkdb"
+        Then psql should return a return code of 0
+        And the user runs "psql -c 'alter table withpartition.rank_1_prt_p2 set SCHEMA aaa;' bkdb"
+        Then psql should return a return code of 0
+        When the user runs "gpcrondump -a -x bkdb -t withoutpartition.rank"
+        And the timestamp from gpcrondump is stored
+        Then verify the metadata dump file does not contain "ALTER TABLE rank_1_prt_p1 SET SCHEMA aaa"
+        Then verify the metadata dump file does not contain "ALTER TABLE rank_1_prt_p2 SET SCHEMA aaa"
+
     # THIS SHOULD BE THE LAST TEST
     @backupfire
     Scenario: cleanup for backup feature
