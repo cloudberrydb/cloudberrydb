@@ -20,6 +20,7 @@ test: opr_sanity_gp decode_expr bitmapscan bitmapscan_ao case_gp limit_gp notin 
 test: filter gpctas gpdist matrix toast sublink sirv_functions table_functions olap_setup complex opclass_ddl
 
 test: dispatch
+test: lc_numeric_check
 
 # 'segspace' relies on the segment spill space to be 0, and uses fault injectors
 # so it needs to be in a group by itself
