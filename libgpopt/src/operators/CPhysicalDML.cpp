@@ -552,12 +552,9 @@ CPhysicalDML::PosComputeRequired
 	{
 		COptimizerConfig *poconf = COptCtxt::PoctxtFromTLS()->Poconf();
 
-		BOOL fInsertSortOnParquet = !GPOS_FTRACE(EopttraceDisableSortForDMLOnParquet) &&
-				(IMDRelation::ErelstorageAppendOnlyParquet == m_ptabdesc->Erelstorage());
+		BOOL fInsertSortOnParquet = FInsertSortOnParquet();
+		BOOL fInsertSortOnRows = FInsertSortOnRows(poconf);
 
-		BOOL fInsertSortOnRows = (IMDRelation::ErelstorageAppendOnlyRows == m_ptabdesc->Erelstorage()) &&
-				(poconf->Phint()->UlMinNumOfPartsToRequireSortOnInsert() <= m_ptabdesc->UlPartitions());
-		
 		if (fInsertSortOnParquet || fInsertSortOnRows)
 		{
 			GPOS_ASSERT(CLogicalDML::EdmlInsert == m_edmlop);
@@ -573,6 +570,40 @@ CPhysicalDML::PosComputeRequired
 	return pos;
 }
 
+//---------------------------------------------------------------------------
+//	@function:
+//		CPhysicalDML::FInsertSortOnParquet
+//
+//	@doc:
+//		Do we need to sort on parquet table
+//
+//---------------------------------------------------------------------------
+BOOL
+CPhysicalDML::FInsertSortOnParquet()
+{
+	return !GPOS_FTRACE(EopttraceDisableSortForDMLOnParquet) &&
+					(IMDRelation::ErelstorageAppendOnlyParquet == m_ptabdesc->Erelstorage());
+}
+
+//---------------------------------------------------------------------------
+//	@function:
+//		CPhysicalDML::FInsertSortOnRows
+//
+//	@doc:
+//		Do we need to sort on insert
+//
+//---------------------------------------------------------------------------
+BOOL
+CPhysicalDML::FInsertSortOnRows
+	(
+	COptimizerConfig *poconf
+	)
+{
+	GPOS_ASSERT(NULL != poconf);
+
+	return (IMDRelation::ErelstorageAppendOnlyRows == m_ptabdesc->Erelstorage()) &&
+			(poconf->Phint()->UlMinNumOfPartsToRequireSortOnInsert() <= m_ptabdesc->UlPartitions());
+}
 
 //---------------------------------------------------------------------------
 //	@function:

@@ -80,6 +80,12 @@ namespace gpopt
 			// needs the data to be sorted or not
 			BOOL m_fInputSorted;
 
+			// do we need to sort on parquet table
+			BOOL FInsertSortOnParquet();
+
+			// do we need to sort on insert
+			BOOL FInsertSortOnRows(COptimizerConfig *poconf);
+
 			// compute required order spec
 			COrderSpec *PosComputeRequired
 				(
