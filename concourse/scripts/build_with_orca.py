@@ -48,7 +48,8 @@ def install_system_deps():
                               "perl-Env",
                               "perl-ExtUtils-Embed",
                               "libxml2-devel",
-                              "libxslt-devel"])
+                              "libxslt-devel",
+                              "libffi-devel"])
     if status:
         return status
 
