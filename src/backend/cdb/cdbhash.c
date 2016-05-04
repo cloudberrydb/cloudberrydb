@@ -62,11 +62,11 @@
 #define FASTMOD(x,y)		((x) & ((y)-1))
 
 /* local function declarations */
-uint32		fnv1_32_buf(void *buf, size_t len, uint32 hashval);
-uint32		fnv1a_32_buf(void *buf, size_t len, uint32 hashval);
-int			inet_getkey(inet *addr, unsigned char *inet_key, int key_size);
-int			ignoreblanks(char *data, int len);
-int			ispowof2(int numsegs);
+static uint32 fnv1_32_buf(void *buf, size_t len, uint32 hashval);
+static uint32 fnv1a_32_buf(void *buf, size_t len, uint32 hashval);
+static int	inet_getkey(inet *addr, unsigned char *inet_key, int key_size);
+static int	ignoreblanks(char *data, int len);
+static int	ispowof2(int numsegs);
 
 
 /*================================================================
@@ -190,7 +190,6 @@ cdbhash(CdbHash *h, Datum datum, Oid type)
 void
 hashDatum(Datum datum, Oid type, datumHashFunction hashFn, void *clientData)
 {
-
 	void	   *buf = NULL;		/* pointer to the data */
 	size_t		len = 0;		/* length for the data buffer */
 	
@@ -609,7 +608,7 @@ hashDatum(Datum datum, Oid type, datumHashFunction hashFn, void *clientData)
 
 	/* do the hash using the selected algorithm */
 	hashFn(clientData, buf, len);
-	if(tofree)
+	if (tofree)
 		pfree(tofree);
 }
 
@@ -786,7 +785,7 @@ bool isGreenplumDbHashable(Oid typid)
  * returns:
  *	32 bit hash as a static hash type
  */
-uint32
+static uint32
 fnv1_32_buf(void *buf, size_t len, uint32 hval)
 {
 	unsigned char *bp = (unsigned char *) buf;	/* start of buffer */
@@ -824,7 +823,7 @@ fnv1_32_buf(void *buf, size_t len, uint32 hval)
  * returns:
  *	32 bit hash as a static hash type
  */
-uint32
+static uint32
 fnv1a_32_buf(void *buf, size_t len, uint32 hval)
 {
 	unsigned char *bp = (unsigned char *) buf;	/* start of buffer */
@@ -857,7 +856,8 @@ fnv1a_32_buf(void *buf, size_t len, uint32 hval)
  * Since network_cmp considers only ip_family, ip_bits, and ip_addr,
  * only these fields may be used in the hash; in particular don't use type.
  */
-int inet_getkey(inet *addr, unsigned char *inet_key, int key_size)
+static int
+inet_getkey(inet *addr, unsigned char *inet_key, int key_size)
 {
 	int			addrsize;
 	
@@ -893,7 +893,7 @@ int inet_getkey(inet *addr, unsigned char *inet_key, int key_size)
  * recalculating the length after ignoring any trailing blanks. The
  * actual data is remained unmodified.
  */
-int
+static int
 ignoreblanks(char *data, int len)
 {
 
@@ -913,7 +913,7 @@ ignoreblanks(char *data, int len)
 /*
  * returns 1 is the input int is a power of 2 and 0 otherwize.
  */
-int
+static int
 ispowof2(int numsegs)
 {
 
