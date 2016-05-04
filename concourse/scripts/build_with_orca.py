@@ -6,8 +6,9 @@ import sys
 from gporca import GporcaCommon
 
 def make():
+    ciCommon = GporcaCommon()
     return subprocess.call(["make",
-                            "-j" + str(num_cpus())], cwd="gpdb_src")
+                            "-j" + str(ciCommon.num_cpus())], cwd="gpdb_src")
 
 def install(output_dir):
     subprocess.call(["make", "install"], cwd="gpdb_src")
