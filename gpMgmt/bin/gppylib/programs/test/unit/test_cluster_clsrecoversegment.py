@@ -3,6 +3,7 @@
 import os
 import unittest2 as unittest
 
+from gppylib import gparray
 from gppylib.commands.base import CommandResult
 from gppylib.mainUtils import ExceptionNoStackTraceNeeded
 from gppylib.programs.clsRecoverSegment import GpRecoverSegmentProgram
@@ -57,7 +58,7 @@ class GpRecoverSegmentProgramTestCase(unittest.TestCase):
         with self.assertRaisesRegexp(Exception, 'Please fix the persistent tables issue'):
             gprecover_prog._check_persistent_tables(segments)
 
-    @patch('gppylib.programs.clsRecoverSegment.GpRecoverSegmentProgram._check_segment_state')
+    @patch('gppylib.programs.clsRecoverSegment.GpRecoverSegmentProgram._check_segment_state_for_connection')
     @patch('time.sleep')
     def test_check_database_connection(self, mock1, mock2):
         options = Mock()
@@ -65,7 +66,7 @@ class GpRecoverSegmentProgramTestCase(unittest.TestCase):
         gprecover_prog = GpRecoverSegmentProgram(options)
         self.assertTrue(gprecover_prog._check_database_connection(confProvider))
 
-    @patch('gppylib.programs.clsRecoverSegment.GpRecoverSegmentProgram._check_segment_state', side_effect=[Exception('Error')] * 5)
+    @patch('gppylib.programs.clsRecoverSegment.GpRecoverSegmentProgram._check_segment_state_for_connection', side_effect=[Exception('Error')] * 5)
     @patch('time.sleep')
     def test_check_database_connection_exceed_max_retries(self, mock1, mock2):
         options = Mock()
@@ -95,7 +96,7 @@ class GpRecoverSegmentProgramTestCase(unittest.TestCase):
         confProvider.loadSystemConfig.return_value = gparray 
         gprecover_prog = GpRecoverSegmentProgram(options)
         gprecover_prog._GpRecoverSegmentProgram__pool = mock_pool 
-        gprecover_prog._check_segment_state(confProvider)
+        gprecover_prog._check_segment_state_for_connection(confProvider)
 
     def test_check_segment_state_with_segment_not_ready(self):
         options = Mock()
@@ -120,4 +121,50 @@ class GpRecoverSegmentProgramTestCase(unittest.TestCase):
         gprecover_prog = GpRecoverSegmentProgram(options)
         gprecover_prog._GpRecoverSegmentProgram__pool = mock_pool 
         with self.assertRaisesRegexp(Exception, 'Not ready to connect to database'):
-            gprecover_prog._check_segment_state(confProvider)
+            gprecover_prog._check_segment_state_for_connection(confProvider)
+
+    @patch('gppylib.commands.base.Command.get_results')
+    def test_check_segment_state_ready_for_recovery_with_segment_in_change_tracking_disabled(self, mock_results):
+        options = Mock()
+        mock_results.return_value = CommandResult(0, '', 'mode: PrimarySegment\nsegmentState: ChangeTrackingDisabled\ndataState: InChangeTracking\n', False, True)
+        m2 = Mock()
+        m2.isSegmentQD.return_value = False
+        m2.isSegmentModeInChangeLogging.return_value = True
+        m2.getSegmentHostName.return_value = 'foo1'
+        m2.getSegmentDataDirectory.return_value = 'bar'
+        m2.getSegmentPort.return_value = 5555
+        m2.getSegmentDbId.return_value = 2
+        m2.getSegmentRole.return_value = 'p'
+        m2.getSegmentMode.return_value = 'c'
+
+        segmentList = [m2]
+        dbsMap = {2:m2}
+
+        gprecover_prog = GpRecoverSegmentProgram(options)
+        mock_pool= Mock()
+        mock_pool.addCommand = Mock()
+        mock_pool.join = Mock()
+        gprecover_prog._GpRecoverSegmentProgram__pool = mock_pool
+
+        segmentStates = gprecover_prog.check_segment_state_ready_for_recovery(segmentList, dbsMap)
+        self.assertEquals(segmentStates, {2: 'ChangeTrackingDisabled'})
+
+    def test_output_segments_in_change_tracking_disabled_should_print_failed_segments(self):
+        segs_in_change_tracking_disabled = {2:'ChangeTrackingDisabled', 4:'ChangeTrackingDisabled'}
+        options = Mock()
+        gprecover_prog = GpRecoverSegmentProgram(options)
+        gprecover_prog.logger.warn = Mock()
+        gprecover_prog._output_segments_in_change_tracking_disabled(segs_in_change_tracking_disabled)
+        gprecover_prog.logger.warn.assert_called_once_with('Segments with dbid 2 ,4 in change tracking disabled state, need to run recoverseg with -F option.')
+
+    def test_check_segment_change_tracking_disabled_state_return_true(self):
+        options = Mock()
+        gprecover_prog = GpRecoverSegmentProgram(options)
+        res = gprecover_prog.check_segment_change_tracking_disabled_state(gparray.SEGMENT_STATE_CHANGE_TRACKING_DISABLED)
+        self.assertEquals(res, True)
+
+    def test_check_segment_change_tracking_disabled_state_return_false(self):
+        options = Mock()
+        gprecover_prog = GpRecoverSegmentProgram(options)
+        res = gprecover_prog.check_segment_change_tracking_disabled_state(gparray.SEGMENT_STATE_READY)
+        self.assertEquals(res, False)
