@@ -523,6 +523,10 @@ extern void PersistentStore_ResetFreeList(
 	PersistentStoreData 		*storeData,
 	PersistentStoreSharedData 	*storeSharedData);
 
+extern uint64 PersistentStore_RebuildFreeList(
+	PersistentStoreData 		*storeData,
+	PersistentStoreSharedData 	*storeSharedData);
+
 extern void PersistentStore_InitScanUnderLock(
 	PersistentStoreData 		*storeData,
 	PersistentStoreSharedData 	*storeSharedData);

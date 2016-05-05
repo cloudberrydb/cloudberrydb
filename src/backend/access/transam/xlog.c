@@ -7020,6 +7020,22 @@ StartupXLOG(void)
 		XLogInitRelationCache();
 
 		/*
+		 * Setup syscache so that PT tuples may be updated using usual
+		 * heap access methods.  This is safe because:
+		 *
+		 *   1. Catalog cache is backend local.
+		 *
+		 *   2. The backend handling this pass (pass 1) of recovery is
+		 *   about to exit.  Rebuilding PT is the last operation
+		 *   performed by this backend.
+		 *
+		 *   3. At the beginning of pass 2, we are initializing
+		 *   catlaog cache, see StartupProcessMain()
+		 */
+		if (IsUnderPostmaster)
+			InitCatalogCache();
+
+		/*
 		 * During startup after we have performed recovery is the only place we
 		 * scan in the persistent meta-data into memory on already initdb database.
 		 */
