@@ -14,7 +14,7 @@ set optimizer_enable_master_only_queries = on;
 -- master only tables
 create schema orca;
 create table orca.r();
-NOTICE:  Table has no attributes to distribute on.
+NOTICE:  Table doesn't have 'distributed by' clause, and no column type is suitable for a distribution key. Creating a NULL policy entry.
 set allow_system_table_mods='DML';
 delete from gp_distribution_policy where localoid='orca.r'::regclass;
 reset allow_system_table_mods;
@@ -22,7 +22,7 @@ alter table orca.r add column a int;
 alter table orca.r add column b int;
 insert into orca.r select i, i/3 from generate_series(1,20) i;
 create table orca.s();
-NOTICE:  Table has no attributes to distribute on.
+NOTICE:  Table doesn't have 'distributed by' clause, and no column type is suitable for a distribution key. Creating a NULL policy entry.
 set allow_system_table_mods='DML';
 delete from gp_distribution_policy where localoid='orca.s'::regclass;
 reset allow_system_table_mods;
@@ -3146,11 +3146,11 @@ select r.* from orca.r, orca.s where s.c=2;
 ----------------------------------------------------------------------
 set optimizer=off;
 create table orca.m();
-NOTICE:  Table has no attributes to distribute on.
+NOTICE:  Table doesn't have 'distributed by' clause, and no column type is suitable for a distribution key. Creating a NULL policy entry.
 alter table orca.m add column a int;
 alter table orca.m add column b int;
 create table orca.m1();
-NOTICE:  Table has no attributes to distribute on.
+NOTICE:  Table doesn't have 'distributed by' clause, and no column type is suitable for a distribution key. Creating a NULL policy entry.
 alter table orca.m1 add column a int;
 alter table orca.m1 add column b int;
 insert into orca.m select i-1, i%2 from generate_series(1,35) i;
