@@ -29,6 +29,7 @@
 #include "naucrates/dxl/operators/CDXLColRef.h"
 #include "naucrates/dxl/operators/CDXLPhysicalDML.h"
 #include "naucrates/dxl/operators/CDXLPhysicalAgg.h"
+#include "naucrates/dxl/operators/CDXLPhysicalMotion.h"
 #include "naucrates/dxl/operators/CDXLScalarArrayRefIndexList.h"
 #include "naucrates/dxl/operators/CDXLScalarSubPlan.h"
 
@@ -775,6 +776,9 @@ namespace gpopt
 			// compute the direct dispatch info for the given DML expression
 			CDXLDirectDispatchInfo *Pdxlddinfo(CExpression *pexprDML);
 			
+			// check if the motion node is valid
+			void CheckValidity(CDXLPhysicalMotion *pdxlopMotion);
+
 			// helper to find subplan type from a correlated left outer join expression
 			static
 			EdxlSubPlanType EdxlsubplantypeCorrelatedLOJ(CExpression *pexprCorrelatedLOJ);
