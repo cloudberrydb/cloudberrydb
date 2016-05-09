@@ -8131,6 +8131,22 @@ select * from orca.t order by 1,2;
  201208 |       2 | tag1  | tag2 
 (7 rows)
 
+-- test EXPLAIN support of partition selection nodes, while we're at it.
+explain select * from orca.t order by 1,2;
+                                             QUERY PLAN                                              
+-----------------------------------------------------------------------------------------------------
+ Gather Motion 2:1  (slice1; segments: 2)  (cost=0.00..431.00 rows=1 width=32)
+   Merge Key: timest, user_id
+   ->  Sequence  (cost=0.00..431.00 rows=1 width=32)
+         ->  Partition Selector for t (dynamic scan id: 1)  (cost=10.00..100.00 rows=50 width=4)
+               Partitions selected:  6 (out of 6)
+         ->  Sort  (cost=0.00..431.00 rows=1 width=32)
+               Sort Key: timest, user_id
+               ->  Dynamic Table Scan on t (dynamic scan id: 1)  (cost=0.00..431.00 rows=1 width=32)
+ Settings:  optimizer=on; optimizer_segments=3
+ Optimizer status: PQO version 1.630
+(10 rows)
+
 select tag2, tag1 from orca.t order by 1, 2;;
  tag2  | tag1  
 -------+-------

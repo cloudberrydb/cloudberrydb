@@ -8132,6 +8132,24 @@ select * from orca.t order by 1,2;
  201208 |       2 | tag1  | tag2 
 (7 rows)
 
+-- test EXPLAIN support of partition selection nodes, while we're at it.
+explain select * from orca.t order by 1,2;
+                                                  QUERY PLAN                                                  
+--------------------------------------------------------------------------------------------------------------
+ Gather Motion 2:1  (slice1; segments: 2)  (cost=16113.11..16515.11 rows=160800 width=92)
+   Merge Key: orca.t.timest, orca.t.user_id
+   ->  Sort  (cost=16113.11..16515.11 rows=80400 width=92)
+         Sort Key: orca.t.timest, orca.t.user_id
+         ->  Append  (cost=0.00..2208.00 rows=80400 width=92)
+               ->  Append-only Columnar Scan on t_1_prt_part201203 t  (cost=0.00..368.00 rows=13400 width=92)
+               ->  Append-only Scan on t_1_prt_part201204 t  (cost=0.00..368.00 rows=13400 width=92)
+               ->  Seq Scan on t_1_prt_part201205 t  (cost=0.00..368.00 rows=13400 width=92)
+               ->  Append-only Columnar Scan on t_1_prt_part201206 t  (cost=0.00..368.00 rows=13400 width=92)
+               ->  Append-only Scan on t_1_prt_part201207 t  (cost=0.00..368.00 rows=13400 width=92)
+               ->  Seq Scan on t_1_prt_part201208 t  (cost=0.00..368.00 rows=13400 width=92)
+ Settings:  optimizer=off; optimizer_segments=3
+(12 rows)
+
 select tag2, tag1 from orca.t order by 1, 2;;
  tag2  | tag1  
 -------+-------

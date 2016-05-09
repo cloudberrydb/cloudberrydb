@@ -475,6 +475,9 @@ insert into orca.t values('201208',2,'tag1','tag2');
 -- test projections
 select * from orca.t order by 1,2;
 
+-- test EXPLAIN support of partition selection nodes, while we're at it.
+explain select * from orca.t order by 1,2;
+
 select tag2, tag1 from orca.t order by 1, 2;;
 
 select tag1, user_id from orca.t order by 1, 2;
