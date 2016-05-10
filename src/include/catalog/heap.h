@@ -129,10 +129,6 @@ extern void CheckAttributeNamesTypes(TupleDesc tupdesc, char relkind);
 extern void CheckAttributeType(const char *attname, Oid atttypid);
 extern void SetRelationNumChecks(Relation rel, int numchecks);
 
-extern Oid setNewRelfilenode(Relation relation);
-
-extern Oid setNewRelfilenodeToOid(Relation relation, Oid newrelfilenode);
-
 /* MPP-6929: metadata tracking */
 extern void MetaTrackAddObject(Oid		classid, 
 							   Oid		objoid, 
@@ -152,5 +148,7 @@ extern void MetaTrackDropObject(Oid		classid,
 		|| ((relkind) == RELKIND_INDEX) \
 		|| ((relkind) == RELKIND_SEQUENCE) \
 		|| ((relkind) == RELKIND_VIEW)) 
+
+extern void remove_gp_relation_node_and_schedule_drop(Relation rel);
 
 #endif   /* HEAP_H */
