@@ -259,16 +259,6 @@ heapgetpage(HeapScanDesc scan, BlockNumber page, bool backward)
 				ItemPointerSet(&(loctup.t_self), page, lineoff);
 
 				valid = HeapTupleSatisfiesVisibility(scan->rs_rd, &loctup, snapshot, buffer);
-#ifdef WATCH_VISIBILITY_IN_ACTION
-				elog(LOG, "VISIBILITY(%s) %s %s",
-				     (valid ? "true" : "false"),
-	     		     RelationGetRelationName(scan->rs_rd),
-				     WatchVisibilityInActionString(
-				     			page,
-				     			lineoff,
-				     			&loctup,
-				     			snapshot));
-#endif
 				if (valid)
 				{
 					t_xmax = HeapTupleHeaderGetXmax(loctup.t_data);
@@ -480,46 +470,9 @@ heapgettup(HeapScanDesc scan,
 													 tuple,
 													 snapshot,
 													 scan->rs_cbuf);
-#ifdef WATCH_VISIBILITY_IN_ACTION
-//				if (gp_watch_visibility_in_action)
-				{
-					bool keyMatches = true;
-
-					/*
-					 * Always test the key reguardless if it is visible.
-					 */
-					if (key != NULL)
-						HeapKeyTest(tuple, RelationGetDescr(scan->rs_rd),
-									nkeys, key, keyMatches);
-
-					/*
-					 * Log when the key matches.
-					 */
-					if (keyMatches)
-					{
-						elog(LOG, "VISIBILITY(%s) %s %s",
-						     (valid ? "true" : "false"),
-			     		     RelationGetRelationName(scan->rs_rd),
-						     WatchVisibilityInActionString(page,lineoff,tuple,snapshot));
-					}
-
-					if (valid && !keyMatches)
-						valid = false;
-				}
-//				else
-//				{
-//					/*
-//					 * Normal path copied from below...
-//					 */
-//					if (valid && key != NULL)
-//						HeapKeyTest(tuple, RelationGetDescr(scan->rs_rd),
-//									nkeys, key, valid);
-//				}
-#else
 				if (valid && key != NULL)
 					HeapKeyTest(tuple, RelationGetDescr(scan->rs_rd),
 								nkeys, key, valid);
-#endif
 
 				if (valid)
 				{
@@ -1847,17 +1800,6 @@ heap_release_fetch(Relation relation,
 	 */
 	valid = HeapTupleSatisfiesVisibility(relation, tuple, snapshot, buffer);
 
-#ifdef WATCH_VISIBILITY_IN_ACTION
-	elog(LOG, "VISIBILITY(%s) %s %s",
-	     (valid ? "true" : "false"),
-	     RelationGetRelationName(relation),
-	     WatchVisibilityInActionString(
-	     			ItemPointerGetBlockNumber(tid),
-	     			offnum,
-	     			tuple,
-	     			snapshot));
-#endif
-
 	LockBuffer(buffer, BUFFER_LOCK_UNLOCK);
 	
 	MIRROREDLOCK_BUFMGR_UNLOCK;
@@ -2009,16 +1951,6 @@ heap_get_latest_tid(Relation relation,
 		 * result candidate.
 		 */
 		valid = HeapTupleSatisfiesVisibility(relation, &tp, snapshot, buffer);
-#ifdef WATCH_VISIBILITY_IN_ACTION
-		elog(LOG, "VISIBILITY(%s) %s %s",
-		     (valid ? "true" : "false"),
-		     RelationGetRelationName(relation),
-		     WatchVisibilityInActionString(
-		     			ItemPointerGetBlockNumber(&ctid),
-		     			offnum,
-		     			&tp,
-		     			snapshot));
-#endif
 		if (valid)
 			*tid = ctid;
 

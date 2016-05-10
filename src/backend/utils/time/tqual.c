@@ -103,12 +103,6 @@ TransactionId TransactionXmin = InvalidTransactionId;
 TransactionId RecentXmin = InvalidTransactionId;
 TransactionId RecentGlobalXmin = InvalidTransactionId;
 
-#ifdef WATCH_VISIBILITY_IN_ACTION
-
-uint8 WatchVisibilityFlags[WATCH_VISIBILITY_BYTE_LEN];
-
-#endif
-
 /* local functions */
 static bool XidInSnapshot(TransactionId xid, Snapshot snapshot, bool isXmax,
 			  bool distributedSnapshotIgnore, bool *setDistributedSnapshotIgnore);
@@ -125,9 +119,6 @@ markDirty(Buffer buffer, bool disabled, Relation relation, HeapTupleHeader tuple
 
 	if (!disabled)
 	{
-		WATCH_VISIBILITY_ADDPAIR(
-			WATCH_VISIBILITY_GUC_OFF_MARK_BUFFFER_DIRTY_FOR_XMIN, !isXmin);
-
 		SetBufferCommitInfoNeedsSave(buffer);
 		return;
 	}
@@ -138,9 +129,6 @@ markDirty(Buffer buffer, bool disabled, Relation relation, HeapTupleHeader tuple
 	 */
 	if (relation == NULL)
 	{
-		WATCH_VISIBILITY_ADDPAIR(
-			WATCH_VISIBILITY_NO_REL_MARK_BUFFFER_DIRTY_FOR_XMIN, !isXmin);
-
 		SetBufferCommitInfoNeedsSave(buffer);
 		return;
 	}
@@ -148,9 +136,6 @@ markDirty(Buffer buffer, bool disabled, Relation relation, HeapTupleHeader tuple
 	if (relation->rd_issyscat)
 	{
 		/* Assume we want to always mark the buffer dirty */
-
-		WATCH_VISIBILITY_ADDPAIR(
-			WATCH_VISIBILITY_SYS_CAT_MARK_BUFFFER_DIRTY_FOR_XMIN, !isXmin);
 
 		SetBufferCommitInfoNeedsSave(buffer);
 		return;
@@ -166,9 +151,6 @@ markDirty(Buffer buffer, bool disabled, Relation relation, HeapTupleHeader tuple
 
 	if (xid == InvalidTransactionId)
 	{
-		WATCH_VISIBILITY_ADDPAIR(
-			WATCH_VISIBILITY_NO_XID_MARK_BUFFFER_DIRTY_FOR_XMIN, !isXmin);
-
 		SetBufferCommitInfoNeedsSave(buffer);
 		return;
 	}
@@ -178,23 +160,10 @@ markDirty(Buffer buffer, bool disabled, Relation relation, HeapTupleHeader tuple
 	 */
 	if (CLOGTransactionIsOld(xid))
 	{
-		WATCH_VISIBILITY_ADDPAIR(
-			WATCH_VISIBILITY_TOO_OLD_MARK_BUFFFER_DIRTY_FOR_XMIN, !isXmin);
-
 		SetBufferCommitInfoNeedsSave(buffer);
 		return;
 	}
-	else
-	{
-		WATCH_VISIBILITY_ADDPAIR(
-			WATCH_VISIBILITY_YOUNG_DO_NOT_MARK_BUFFFER_DIRTY_FOR_XMIN, !isXmin);
-	}
 }
-
-#ifdef WATCH_VISIBILITY_IN_ACTION
-static char WatchVisibilityXminCurrent[2000];
-static char WatchVisibilityXmaxCurrent[2000];
-#endif
 
 /*
  * HeapTupleSatisfiesItself
@@ -224,8 +193,6 @@ bool
 HeapTupleSatisfiesItself(Relation relation, HeapTupleHeader tuple, Buffer buffer)
 {
 	const bool disableTupleHints = gp_disable_tuple_hints;
-
-	WATCH_VISIBILITY_CLEAR();
 
 	if (!(tuple->t_infomask & HEAP_XMIN_COMMITTED))
 	{
@@ -406,31 +373,17 @@ HeapTupleSatisfiesNow(Relation relation, HeapTupleHeader tuple, Buffer buffer)
 {
 	const bool disableTupleHints = gp_disable_tuple_hints;
 
-	WATCH_VISIBILITY_CLEAR();
-
 	if (!(tuple->t_infomask & HEAP_XMIN_COMMITTED))
 	{
-		WATCH_VISIBILITY_ADD(WATCH_VISIBILITY_XMIN_NOT_HINT_COMMITTED);
-
 		if (tuple->t_infomask & HEAP_XMIN_INVALID)
-		{
-			WATCH_VISIBILITY_ADD(WATCH_VISIBILITY_XMIN_ABORTED);
-
 			return false;
-		}
 
 		if (tuple->t_infomask & HEAP_MOVED_OFF)
 		{
 			TransactionId xvac = HeapTupleHeaderGetXvac(tuple);
 
-			WATCH_VISIBILITY_ADD(WATCH_VISIBILITY_XMIN_MOVED_AWAY_BY_VACUUM);
-
 			if (TransactionIdIsCurrentTransactionId(xvac))
-			{
-				WATCH_VISIBILITY_ADD(WATCH_VISIBILITY_VACUUM_XID_CURRENT);
-
 				return false;
-			}
 			if (!TransactionIdIsInProgress(xvac))
 			{
 				if (TransactionIdDidCommit(xvac))
@@ -438,45 +391,29 @@ HeapTupleSatisfiesNow(Relation relation, HeapTupleHeader tuple, Buffer buffer)
 					tuple->t_infomask |= HEAP_XMIN_INVALID;
 					markDirty(buffer, disableTupleHints, relation, tuple, /* isXmin */ true);
 
-					WATCH_VISIBILITY_ADD(WATCH_VISIBILITY_SET_XMIN_VACUUM_MOVED_INVALID);
-
 					return false;
 				}
 				tuple->t_infomask |= HEAP_XMIN_COMMITTED;
 				markDirty(buffer, disableTupleHints, relation, tuple, /* isXmin */ true);
-
-				WATCH_VISIBILITY_ADD(WATCH_VISIBILITY_SET_XMIN_COMMITTED);
 			}
 		}
 		else if (tuple->t_infomask & HEAP_MOVED_IN)
 		{
 			TransactionId xvac = HeapTupleHeaderGetXvac(tuple);
 
-			WATCH_VISIBILITY_ADD(WATCH_VISIBILITY_XMIN_MOVED_IN_BY_VACUUM);
-
 			if (!TransactionIdIsCurrentTransactionId(xvac))
 			{
-				WATCH_VISIBILITY_ADD(WATCH_VISIBILITY_VACUUM_XID_NOT_CURRENT);
-
 				if (TransactionIdIsInProgress(xvac))
-				{
-					WATCH_VISIBILITY_ADD(WATCH_VISIBILITY_VACUUM_XID_IN_PROGRESS);
-
 					return false;
-				}
 				if (TransactionIdDidCommit(xvac))
 				{
 					tuple->t_infomask |= HEAP_XMIN_COMMITTED;
 					markDirty(buffer, disableTupleHints, relation, tuple, /* isXmin */ true);
-
-					WATCH_VISIBILITY_ADD(WATCH_VISIBILITY_SET_XMIN_COMMITTED);
 				}
 				else
 				{
 					tuple->t_infomask |= HEAP_XMIN_INVALID;
 					markDirty(buffer, disableTupleHints, relation, tuple, /* isXmin */ true);
-
-					WATCH_VISIBILITY_ADD(WATCH_VISIBILITY_SET_XMIN_ABORTED);
 
 					return false;
 				}
@@ -484,31 +421,14 @@ HeapTupleSatisfiesNow(Relation relation, HeapTupleHeader tuple, Buffer buffer)
 		}
 		else if (TransactionIdIsCurrentTransactionId(HeapTupleHeaderGetXmin(tuple)))
 		{
-			WATCH_VISIBILITY_ADD(WATCH_VISIBILITY_XMIN_CURRENT);
-#ifdef WATCH_VISIBILITY_IN_ACTION
-			strcpy(WatchVisibilityXminCurrent, WatchCurrentTransactionString());
-#endif
-
 			if (HeapTupleHeaderGetCmin(tuple) >= GetCurrentCommandId())
-			{
-				WATCH_VISIBILITY_ADD(WATCH_VISIBILITY_XMIN_INSERTED_AFTER_SCAN_STARTED);
-
 				return false;	/* inserted after scan started */
-			}
 
 			if (tuple->t_infomask & HEAP_XMAX_INVALID)	/* xid invalid */
-			{
-				WATCH_VISIBILITY_ADD(WATCH_VISIBILITY_XMAX_INVALID);
-
 				return true;
-			}
 
 			if (tuple->t_infomask & HEAP_IS_LOCKED)		/* not deleter */
-			{
-				WATCH_VISIBILITY_ADD(WATCH_VISIBILITY_LOCKED);
-
 				return true;
-			}
 
 			Assert(!(tuple->t_infomask & HEAP_XMAX_IS_MULTI));
 
@@ -519,13 +439,9 @@ HeapTupleSatisfiesNow(Relation relation, HeapTupleHeader tuple, Buffer buffer)
 
 				/* If ComboCID format cid, roll it back to normal Cmin */
 				if (tuple->t_infomask & HEAP_COMBOCID)
-				{
 					HeapTupleHeaderSetCmin(tuple, HeapTupleHeaderGetCmin(tuple));
-				}
 
 				markDirty(buffer, disableTupleHints, relation, tuple, /* isXmin */ false);
-
-				WATCH_VISIBILITY_ADD(WATCH_VISIBILITY_SET_XMAX_ABORTED);
 
 				return true;
 			}
@@ -533,44 +449,24 @@ HeapTupleSatisfiesNow(Relation relation, HeapTupleHeader tuple, Buffer buffer)
 			Assert(TransactionIdIsCurrentTransactionId(HeapTupleHeaderGetXmax(tuple)));
 
 			if (HeapTupleHeaderGetCmax(tuple) >= GetCurrentCommandId())
-			{
-				WATCH_VISIBILITY_ADD(WATCH_VISIBILITY_DELETED_AFTER_SCAN_STARTED);
-
 				return true;	/* deleted after scan started */
-			}
 			else
-			{
-				WATCH_VISIBILITY_ADD(WATCH_VISIBILITY_DELETED_BEFORE_SCAN_STARTED);
-
 				return false;	/* deleted before scan started */
-			}
 		}
 		else
 		{
-			WATCH_VISIBILITY_ADD(WATCH_VISIBILITY_XMIN_NOT_CURRENT);
-#ifdef WATCH_VISIBILITY_IN_ACTION
-			strcpy(WatchVisibilityXminCurrent, WatchCurrentTransactionString());
-#endif
 			if (TransactionIdIsInProgress(HeapTupleHeaderGetXmin(tuple)))
-			{
-				WATCH_VISIBILITY_ADD(WATCH_VISIBILITY_XMIN_IN_PROGRESS);
-
 				return false;
-			}
 			else if (TransactionIdDidCommit(HeapTupleHeaderGetXmin(tuple)))
 			{
 				tuple->t_infomask |= HEAP_XMIN_COMMITTED;
 				markDirty(buffer, disableTupleHints, relation, tuple, /* isXmin */ true);
-
-				WATCH_VISIBILITY_ADD(WATCH_VISIBILITY_SET_XMIN_COMMITTED);
 			}
 			else
 			{
 				/* it must have aborted or crashed */
 				tuple->t_infomask |= HEAP_XMIN_INVALID;
 				markDirty(buffer, disableTupleHints, relation, tuple, /* isXmin */ true);
-
-				WATCH_VISIBILITY_ADD(WATCH_VISIBILITY_SET_XMIN_ABORTED);
 
 				return false;
 			}
@@ -580,29 +476,17 @@ HeapTupleSatisfiesNow(Relation relation, HeapTupleHeader tuple, Buffer buffer)
 	/* by here, the inserting transaction has committed */
 
 	if (tuple->t_infomask & HEAP_XMAX_INVALID)	/* xid invalid or aborted */
-	{
-		WATCH_VISIBILITY_ADD(WATCH_VISIBILITY_XMAX_INVALID_OR_ABORTED);
-
 		return true;
-	}
 
 	if (tuple->t_infomask & HEAP_XMAX_COMMITTED)
 	{
-		WATCH_VISIBILITY_ADD(WATCH_VISIBILITY_XMAX_HINT_COMMITTED);
-
 		if (tuple->t_infomask & HEAP_IS_LOCKED)
-		{
-			WATCH_VISIBILITY_ADD(WATCH_VISIBILITY_LOCKED);
-
 			return true;
-		}
 		return false;
 	}
 
 	if (tuple->t_infomask & HEAP_XMAX_IS_MULTI)
 	{
-		WATCH_VISIBILITY_ADD(WATCH_VISIBILITY_XMAX_MULTIXACT);
-
 		/* MultiXacts are currently only allowed to lock tuples */
 		Assert(tuple->t_infomask & HEAP_IS_LOCKED);
 		return true;
@@ -610,42 +494,22 @@ HeapTupleSatisfiesNow(Relation relation, HeapTupleHeader tuple, Buffer buffer)
 
 	if (TransactionIdIsCurrentTransactionId(HeapTupleHeaderGetXmax(tuple)))
 	{
-		WATCH_VISIBILITY_ADD(WATCH_VISIBILITY_XMAX_CURRENT);
-
 		if (tuple->t_infomask & HEAP_IS_LOCKED)
-		{
-			WATCH_VISIBILITY_ADD(WATCH_VISIBILITY_LOCKED);
-
 			return true;
-		}
 		if (HeapTupleHeaderGetCmax(tuple) >= GetCurrentCommandId())
-		{
-			WATCH_VISIBILITY_ADD(WATCH_VISIBILITY_DELETED_AFTER_SCAN_STARTED);
-
 			return true;	/* deleted after scan started */
-		}
 		else
-		{
-			WATCH_VISIBILITY_ADD(WATCH_VISIBILITY_DELETED_BEFORE_SCAN_STARTED);
-
 			return false;	/* deleted before scan started */
-		}
 	}
 
 	if (TransactionIdIsInProgress(HeapTupleHeaderGetXmax(tuple)))
-	{
-		WATCH_VISIBILITY_ADD(WATCH_VISIBILITY_XMAX_IN_PROGRESS);
-
 		return true;
-	}
 
 	if (!TransactionIdDidCommit(HeapTupleHeaderGetXmax(tuple)))
 	{
 		/* it must have aborted or crashed */
 		tuple->t_infomask |= HEAP_XMAX_INVALID;
 		markDirty(buffer, disableTupleHints, relation, tuple, /* isXmin */ false);
-
-		WATCH_VISIBILITY_ADD(WATCH_VISIBILITY_SET_XMAX_ABORTED);
 
 		return true;
 	}
@@ -654,8 +518,6 @@ HeapTupleSatisfiesNow(Relation relation, HeapTupleHeader tuple, Buffer buffer)
 
 	if (tuple->t_infomask & HEAP_IS_LOCKED)
 	{
-		WATCH_VISIBILITY_ADD(WATCH_VISIBILITY_LOCKED);
-
 		tuple->t_infomask |= HEAP_XMAX_INVALID;
 		markDirty(buffer, disableTupleHints, relation, tuple, /* isXmin */ false);
 		return true;
@@ -663,8 +525,6 @@ HeapTupleSatisfiesNow(Relation relation, HeapTupleHeader tuple, Buffer buffer)
 
 	tuple->t_infomask |= HEAP_XMAX_COMMITTED;
 	markDirty(buffer, disableTupleHints, relation, tuple, /* isXmin */ false);
-
-	WATCH_VISIBILITY_ADD(WATCH_VISIBILITY_SET_XMAX_COMMITTED);
 
 	return false;
 }
@@ -687,8 +547,6 @@ bool
 HeapTupleSatisfiesToast(Relation relation, HeapTupleHeader tuple, Buffer buffer)
 {
 	const bool disableTupleHints = gp_disable_tuple_hints;
-
-	WATCH_VISIBILITY_CLEAR();
 
 	if (!(tuple->t_infomask & HEAP_XMIN_COMMITTED))
 	{
@@ -772,8 +630,6 @@ HeapTupleSatisfiesUpdate(Relation relation, HeapTupleHeader tuple, CommandId cur
 						 Buffer buffer)
 {
 	const bool disableTupleHints = gp_disable_tuple_hints;
-
-	WATCH_VISIBILITY_CLEAR();
 
 	if (!(tuple->t_infomask & HEAP_XMIN_COMMITTED))
 	{
@@ -953,8 +809,6 @@ HeapTupleSatisfiesDirty(Relation relation, HeapTupleHeader tuple, Buffer buffer)
 {
 	const bool disableTupleHints = gp_disable_tuple_hints;
 
-	WATCH_VISIBILITY_CLEAR();
-
 	SnapshotDirty->xmin = SnapshotDirty->xmax = InvalidTransactionId;
 
 	if (!(tuple->t_infomask & HEAP_XMIN_COMMITTED))
@@ -1126,31 +980,17 @@ HeapTupleSatisfiesSnapshot(Relation relation, HeapTupleHeader tuple, Snapshot sn
 	bool inSnapshot = false;
 	bool setDistributedSnapshotIgnore = false;
 
-	WATCH_VISIBILITY_CLEAR();
-
 	if (!(tuple->t_infomask & HEAP_XMIN_COMMITTED))
 	{
-		WATCH_VISIBILITY_ADD(WATCH_VISIBILITY_XMIN_NOT_HINT_COMMITTED);
-
 		if (tuple->t_infomask & HEAP_XMIN_INVALID)
-		{
-			WATCH_VISIBILITY_ADD(WATCH_VISIBILITY_XMIN_ABORTED);
-
 			return false;
-		}
 
 		if (tuple->t_infomask & HEAP_MOVED_OFF)
 		{
 			TransactionId xvac = HeapTupleHeaderGetXvac(tuple);
 
-			WATCH_VISIBILITY_ADD(WATCH_VISIBILITY_XMIN_MOVED_AWAY_BY_VACUUM);
-
 			if (TransactionIdIsCurrentTransactionId(xvac))
-			{
-				WATCH_VISIBILITY_ADD(WATCH_VISIBILITY_VACUUM_XID_CURRENT);
-
 				return false;
-			}
 			if (!TransactionIdIsInProgress(xvac))
 			{
 				if (TransactionIdDidCommit(xvac))
@@ -1158,45 +998,29 @@ HeapTupleSatisfiesSnapshot(Relation relation, HeapTupleHeader tuple, Snapshot sn
 					tuple->t_infomask |= HEAP_XMIN_INVALID;
 					markDirty(buffer, disableTupleHints, relation, tuple, /* isXmin */ true);
 
-					WATCH_VISIBILITY_ADD(WATCH_VISIBILITY_SET_XMIN_VACUUM_MOVED_INVALID);
-
 					return false;
 				}
 				tuple->t_infomask |= HEAP_XMIN_COMMITTED;
 				markDirty(buffer, disableTupleHints, relation, tuple, /* isXmin */ true);
-
-				WATCH_VISIBILITY_ADD(WATCH_VISIBILITY_SET_XMIN_COMMITTED);
 			}
 		}
 		else if (tuple->t_infomask & HEAP_MOVED_IN)
 		{
 			TransactionId xvac = HeapTupleHeaderGetXvac(tuple);
 
-			WATCH_VISIBILITY_ADD(WATCH_VISIBILITY_XMIN_MOVED_IN_BY_VACUUM);
-
 			if (!TransactionIdIsCurrentTransactionId(xvac))
 			{
-				WATCH_VISIBILITY_ADD(WATCH_VISIBILITY_VACUUM_XID_NOT_CURRENT);
-
 				if (TransactionIdIsInProgress(xvac))
-				{
-					WATCH_VISIBILITY_ADD(WATCH_VISIBILITY_VACUUM_XID_IN_PROGRESS);
-
 					return false;
-				}
 				if (TransactionIdDidCommit(xvac))
 				{
 					tuple->t_infomask |= HEAP_XMIN_COMMITTED;
 					markDirty(buffer, disableTupleHints, relation, tuple, /* isXmin */ true);
-
-					WATCH_VISIBILITY_ADD(WATCH_VISIBILITY_SET_XMIN_COMMITTED);
 				}
 				else
 				{
 					tuple->t_infomask |= HEAP_XMIN_INVALID;
 					markDirty(buffer, disableTupleHints, relation, tuple, /* isXmin */ true);
-
-					WATCH_VISIBILITY_ADD(WATCH_VISIBILITY_SET_XMIN_ABORTED);
 
 					return false;
 				}
@@ -1204,31 +1028,14 @@ HeapTupleSatisfiesSnapshot(Relation relation, HeapTupleHeader tuple, Snapshot sn
 		}
 		else if (TransactionIdIsCurrentTransactionId(HeapTupleHeaderGetXmin(tuple)))
 		{
-			WATCH_VISIBILITY_ADD(WATCH_VISIBILITY_XMIN_CURRENT);
-#ifdef WATCH_VISIBILITY_IN_ACTION
-			strcpy(WatchVisibilityXminCurrent, WatchCurrentTransactionString());
-#endif
-
 			if (HeapTupleHeaderGetCmin(tuple) >= snapshot->curcid)
-			{
-				WATCH_VISIBILITY_ADD(WATCH_VISIBILITY_XMIN_INSERTED_AFTER_SCAN_STARTED);
-
 				return false;	/* inserted after scan started */
-			}
 
 			if (tuple->t_infomask & HEAP_XMAX_INVALID)	/* xid invalid */
-			{
-				WATCH_VISIBILITY_ADD(WATCH_VISIBILITY_XMAX_INVALID);
-
 				return true;
-			}
 
 			if (tuple->t_infomask & HEAP_IS_LOCKED)		/* not deleter */
-			{
-				WATCH_VISIBILITY_ADD(WATCH_VISIBILITY_LOCKED);
-
 				return true;
-			}
 
 			Assert(!(tuple->t_infomask & HEAP_XMAX_IS_MULTI));
 
@@ -1246,8 +1053,6 @@ HeapTupleSatisfiesSnapshot(Relation relation, HeapTupleHeader tuple, Snapshot sn
 
 				markDirty(buffer, disableTupleHints, relation, tuple, /* isXmin */ false);
 
-				WATCH_VISIBILITY_ADD(WATCH_VISIBILITY_SET_XMAX_ABORTED);
-
 				return true;
 			}
 
@@ -1257,45 +1062,24 @@ HeapTupleSatisfiesSnapshot(Relation relation, HeapTupleHeader tuple, Snapshot sn
 			Assert(QEDtxContextInfo.cursorContext || TransactionIdIsCurrentTransactionId(HeapTupleHeaderGetXmax(tuple)));
 
 			if (HeapTupleHeaderGetCmax(tuple) >= snapshot->curcid)
-			{
-				WATCH_VISIBILITY_ADD(WATCH_VISIBILITY_DELETED_AFTER_SCAN_STARTED);
-
 				return true;	/* deleted after scan started */
-			}
 			else
-			{
-				WATCH_VISIBILITY_ADD(WATCH_VISIBILITY_DELETED_BEFORE_SCAN_STARTED);
-
 				return false;	/* deleted before scan started */
-			}
 		}
 		else
 		{
-			WATCH_VISIBILITY_ADD(WATCH_VISIBILITY_XMIN_NOT_CURRENT);
-#ifdef WATCH_VISIBILITY_IN_ACTION
-			strcpy(WatchVisibilityXminCurrent, WatchCurrentTransactionString());
-#endif
-
 			if (TransactionIdIsInProgress(HeapTupleHeaderGetXmin(tuple)))
-			{
-				WATCH_VISIBILITY_ADD(WATCH_VISIBILITY_XMIN_IN_PROGRESS);
-
 				return false;
-			}
 			else if (TransactionIdDidCommit(HeapTupleHeaderGetXmin(tuple)))
 			{
 				tuple->t_infomask |= HEAP_XMIN_COMMITTED;
 				markDirty(buffer, disableTupleHints, relation, tuple, /* isXmin */ true);
-
-				WATCH_VISIBILITY_ADD(WATCH_VISIBILITY_SET_XMIN_COMMITTED);
 			}
 			else
 			{
 				/* it must have aborted or crashed */
 				tuple->t_infomask |= HEAP_XMIN_INVALID;
 				markDirty(buffer, disableTupleHints, relation, tuple, /* isXmin */ true);
-
-				WATCH_VISIBILITY_ADD(WATCH_VISIBILITY_SET_XMIN_ABORTED);
 
 				return false;
 			}
@@ -1316,35 +1100,19 @@ HeapTupleSatisfiesSnapshot(Relation relation, HeapTupleHeader tuple, Snapshot sn
 	{
 		tuple->t_infomask2 |= HEAP_XMIN_DISTRIBUTED_SNAPSHOT_IGNORE;
 		markDirty(buffer, disableTupleHints, relation, tuple, /* isXmin */ true);
-
-		WATCH_VISIBILITY_ADD(WATCH_VISIBILITY_SET_XMIN_DISTRIBUTED_SNAPSHOT_IGNORE);
 	}
 
 	if (inSnapshot)
-	{
-		WATCH_VISIBILITY_ADD(WATCH_VISIBILITY_SNAPSHOT_SAYS_XMIN_IN_PROGRESS);
-
 		return false;			/* treat as still in progress */
-	}
 
 	if (tuple->t_infomask & HEAP_XMAX_INVALID)	/* xid invalid or aborted */
-	{
-		WATCH_VISIBILITY_ADD(WATCH_VISIBILITY_XMAX_INVALID_OR_ABORTED);
-
 		return true;
-	}
 
 	if (tuple->t_infomask & HEAP_IS_LOCKED)
-	{
-		WATCH_VISIBILITY_ADD(WATCH_VISIBILITY_LOCKED);
-
 		return true;
-	}
 
 	if (tuple->t_infomask & HEAP_XMAX_IS_MULTI)
 	{
-		WATCH_VISIBILITY_ADD(WATCH_VISIBILITY_XMAX_MULTIXACT);
-
 		/* MultiXacts are currently only allowed to lock tuples */
 		Assert(tuple->t_infomask & HEAP_IS_LOCKED);
 		return true;
@@ -1352,32 +1120,16 @@ HeapTupleSatisfiesSnapshot(Relation relation, HeapTupleHeader tuple, Snapshot sn
 
 	if (!(tuple->t_infomask & HEAP_XMAX_COMMITTED))
 	{
-		WATCH_VISIBILITY_ADD(WATCH_VISIBILITY_XMAX_NOT_HINT_COMMITTED);
-
 		if (TransactionIdIsCurrentTransactionId(HeapTupleHeaderGetXmax(tuple)))
 		{
-			WATCH_VISIBILITY_ADD(WATCH_VISIBILITY_XMAX_CURRENT);
-
 			if (HeapTupleHeaderGetCmax(tuple) >= snapshot->curcid)
-			{
-				WATCH_VISIBILITY_ADD(WATCH_VISIBILITY_DELETED_AFTER_SCAN_STARTED);
-
 				return true;	/* deleted after scan started */
-			}
 			else
-			{
-				WATCH_VISIBILITY_ADD(WATCH_VISIBILITY_DELETED_BEFORE_SCAN_STARTED);
-
 				return false;	/* deleted before scan started */
-			}
 		}
 
 		if (TransactionIdIsInProgress(HeapTupleHeaderGetXmax(tuple)))
-		{
-			WATCH_VISIBILITY_ADD(WATCH_VISIBILITY_XMAX_IN_PROGRESS);
-
 			return true;
-		}
 
 		if (!TransactionIdDidCommit(HeapTupleHeaderGetXmax(tuple)))
 		{
@@ -1385,16 +1137,12 @@ HeapTupleSatisfiesSnapshot(Relation relation, HeapTupleHeader tuple, Snapshot sn
 			tuple->t_infomask |= HEAP_XMAX_INVALID;
 			markDirty(buffer, disableTupleHints, relation, tuple, /* isXmin */ false);
 
-			WATCH_VISIBILITY_ADD(WATCH_VISIBILITY_SET_XMAX_ABORTED);
-
 			return true;
 		}
 
 		/* xmax transaction committed */
 		tuple->t_infomask |= HEAP_XMAX_COMMITTED;
 		markDirty(buffer, disableTupleHints, relation, tuple, /* isXmin */ false);
-
-		WATCH_VISIBILITY_ADD(WATCH_VISIBILITY_SET_XMAX_COMMITTED);
 	}
 
 	/*
@@ -1410,18 +1158,10 @@ HeapTupleSatisfiesSnapshot(Relation relation, HeapTupleHeader tuple, Snapshot sn
 	{
 		tuple->t_infomask2 |= HEAP_XMAX_DISTRIBUTED_SNAPSHOT_IGNORE;
 		markDirty(buffer, disableTupleHints, relation, tuple, /* isXmin */ false);
-
-		WATCH_VISIBILITY_ADD(WATCH_VISIBILITY_SET_XMAX_DISTRIBUTED_SNAPSHOT_IGNORE);
 	}
 
 	if (inSnapshot)
-	{
-		WATCH_VISIBILITY_ADD(WATCH_VISIBILITY_SNAPSHOT_SAYS_XMAX_IN_PROGRESS);
-
 		return true;			/* treat as still in progress */
-	}
-
-	WATCH_VISIBILITY_ADD(WATCH_VISIBILITY_SNAPSHOT_SAYS_XMAX_VISIBLE);
 
 	return false;
 }
@@ -1442,8 +1182,6 @@ HTSV_Result
 HeapTupleSatisfiesVacuum(HeapTupleHeader tuple, TransactionId OldestXmin,
 						 Buffer buffer)
 {
-	WATCH_VISIBILITY_CLEAR();
-
 	/*
 	 * Has inserting transaction committed?
 	 *
@@ -1809,9 +1547,6 @@ XidInSnapshot(
 	{
 		DistributedSnapshotCommitted	distributedSnapshotCommitted;
 
-		WATCH_VISIBILITY_ADDPAIR(
-			WATCH_VISIBILITY_USE_DISTRIBUTED_SNAPSHOT_FOR_XMIN, isXmax);
-
 		/*
 		 * First, check if this committed transaction is a distributed committed
 		 * transaction and should be evaluated against the distributed snapshot
@@ -1845,18 +1580,6 @@ XidInSnapshot(
 				break;
 		}
 	}
-#ifdef WATCH_VISIBILITY_IN_ACTION
-	else if (snapshot->haveDistribSnapshot)
-	{
-		WATCH_VISIBILITY_ADDPAIR(
-			WATCH_VISIBILITY_IGNORE_DISTRIBUTED_SNAPSHOT_FOR_XMIN, isXmax);
-	}
-	else
-	{
-		WATCH_VISIBILITY_ADDPAIR(
-			WATCH_VISIBILITY_NO_DISTRIBUTED_SNAPSHOT_FOR_XMIN, isXmax);
-	}
-#endif
 
 	return XidInSnapshot_Local(xid, snapshot, isXmax);
 }
@@ -1873,9 +1596,6 @@ XidInSnapshot(
 static bool
 XidInSnapshot_Local(TransactionId xid, Snapshot snapshot, bool isXmax)
 {
-#ifdef WATCH_VISIBILITY_IN_ACTION
-	TransactionId saveXid = xid;
-#endif
 	uint32		i;
 
 	/*
@@ -1888,20 +1608,10 @@ XidInSnapshot_Local(TransactionId xid, Snapshot snapshot, bool isXmax)
 
 	/* Any xid < xmin is not in-progress */
 	if (TransactionIdPrecedes(xid, snapshot->xmin))
-	{
-		WATCH_VISIBILITY_ADDPAIR(
-			WATCH_VISIBILITY_XMIN_LESS_THAN_SNAPSHOT_XMIN, isXmax);
-
 		return false;
-	}
 	/* Any xid >= xmax is in-progress */
 	if (TransactionIdFollowsOrEquals(xid, snapshot->xmax))
-	{
-		WATCH_VISIBILITY_ADDPAIR(
-			WATCH_VISIBILITY_XMIN_LESS_THAN_SNAPSHOT_XMIN, isXmax);
-
 		return true;
-	}
 
 	/*
 	 * If the snapshot contains full subxact data, the fastest way to check
@@ -1918,11 +1628,7 @@ XidInSnapshot_Local(TransactionId xid, Snapshot snapshot, bool isXmax)
 		for (j = 0; j < snapshot->subxcnt; j++)
 		{
 			if (TransactionIdEquals(xid, snapshot->subxip[j]))
-			{
-				WATCH_VISIBILITY_ADDPAIR(
-					WATCH_VISIBILITY_XMIN_SNAPSHOT_SUBTRANSACTION, isXmax);
 				return true;
-			}
 		}
 
 		/* not there, fall through to search xip[] */
@@ -1932,427 +1638,22 @@ XidInSnapshot_Local(TransactionId xid, Snapshot snapshot, bool isXmax)
 		/* overflowed, so convert xid to top-level */
 		xid = SubTransGetTopmostTransaction(xid);
 
-#ifdef WATCH_VISIBILITY_IN_ACTION
-		if (saveXid != xid)
-		{
-			WATCH_VISIBILITY_ADDPAIR(
-				WATCH_VISIBILITY_XMIN_MAPPED_SUBTRANSACTION, isXmax);
-		}
-#endif
 		/*
 		 * If xid was indeed a subxact, we might now have an xid < xmin, so
 		 * recheck to avoid an array scan.	No point in rechecking xmax.
 		 */
 		if (TransactionIdPrecedes(xid, snapshot->xmin))
-		{
-			WATCH_VISIBILITY_ADDPAIR(
-				WATCH_VISIBILITY_XMIN_LESS_THAN_SNAPSHOT_XMIN_2, isXmax);
-
 			return false;
-		}
 	}
 
 	for (i = 0; i < snapshot->xcnt; i++)
 	{
 		if (TransactionIdEquals(xid, snapshot->xip[i]))
-		{
-			WATCH_VISIBILITY_ADDPAIR(
-				WATCH_VISIBILITY_XMIN_SNAPSHOT_IN_PROGRESS, isXmax);
-
 			return true;
-		}
 	}
-
-	WATCH_VISIBILITY_ADDPAIR(
-		WATCH_VISIBILITY_XMIN_SNAPSHOT_NOT_IN_PROGRESS, isXmax);
 
 	return false;
 }
-
-#ifdef WATCH_VISIBILITY_IN_ACTION
-
-bool WatchVisibilityAllZeros(void)
-{
-	int i;
-
-	for (i = 0; i < WATCH_VISIBILITY_BYTE_LEN; i++)
-	{
-		if (WatchVisibilityFlags[i] != 0)
-			return false;
-	}
-
-	return true;
-}
-
-static char WatchVisibilityBuffer[2000];
-
-char *
-WatchVisibilityInActionString(
-	BlockNumber 	page,
-	OffsetNumber 	lineoff,
-	HeapTuple		tuple,
-	Snapshot		snapshot)
-{
-	int b;
-	int count = 0;
-	CommandId snapshotCurcid = 0;
-	TransactionId snapshotXmin = InvalidTransactionId;
-	TransactionId snapshotXmax = InvalidTransactionId;
-	DistributedTransactionId xminAllDistributedSnapshots = InvalidTransactionId;
-	DistributedTransactionId xminDistributedSnapshot = InvalidTransactionId;
-	DistributedTransactionId xmaxDistributedSnapshot = InvalidTransactionId;
-	char *snapshotStr = NULL;
-	bool atLeastOne = false;
-
-	if (snapshot == SnapshotNow)
-		snapshotStr = "SnapshotNow";
-	else if (snapshot == SnapshotSelf)
-		snapshotStr = "SnapshotSelf";
-	else if (snapshot == SnapshotAny)
-		snapshotStr = "SnapshotAny";
-	else if (snapshot == SnapshotToast)
-		snapshotStr = "SnapshotToast";
-	else if (snapshot == SnapshotDirty)
-		snapshotStr = "SnapshotDirty";
-	else
-	{
-		if (snapshot == LatestSnapshot)
-			snapshotStr = "LatestSnapshot";
-		else if (snapshot == SerializableSnapshot)
-			snapshotStr = "SerializableSnapshot";
-		else
-			snapshotStr = "OtherSnapshot";
-
-		snapshotCurcid = snapshot->curcid;
-		snapshotXmin = snapshot->xmin;
-		snapshotXmax = snapshot->xmax;
-
-		if (snapshot->haveDistribSnapshot)
-		{
-			xminAllDistributedSnapshots = snapshot->distribSnapshotWithLocalMapping.header.xminAllDistributedSnapshots;
-			xminDistributedSnapshot = snapshot->distribSnapshotWithLocalMapping.header.xmin;
-			xmaxDistributedSnapshot = snapshot->distribSnapshotWithLocalMapping.header.xmax;
-		}
-	}
-
-	count += sprintf(&WatchVisibilityBuffer[count],"(%u,%u)", page, lineoff);
-	count += sprintf(&WatchVisibilityBuffer[count]," xmin %u, xmax %u, %s: ",
-		             HeapTupleHeaderGetXmin(tuple->t_data),
-		             HeapTupleHeaderGetXmax(tuple->t_data),
-		             snapshotStr);
-
-	if (WatchVisibilityAllZeros())
-	{
-		count += sprintf(&WatchVisibilityBuffer[count],"no visiblity path collected");
-		return WatchVisibilityBuffer;
-	}
-
-	for (b = 0; b < MAX_WATCH_VISIBILITY; b++)
-	{
-		int nthbyte = (b) >> 3;
-		char nthbit  = 1 << ((b) & 7);
-
-		if ((WatchVisibilityFlags[nthbyte] & nthbit) != 0)
-		{
-			if (atLeastOne)
-				count += sprintf(&WatchVisibilityBuffer[count], "; ");
-
-			switch (b)
-			{
-				case WATCH_VISIBILITY_XMIN_NOT_HINT_COMMITTED:
-					count += sprintf(&WatchVisibilityBuffer[count],"Xmin not hint committed");
-					break;
-				case WATCH_VISIBILITY_XMIN_ABORTED:
-					count += sprintf(&WatchVisibilityBuffer[count],"Xmin aborted");
-					break;
-				case WATCH_VISIBILITY_XMIN_MOVED_AWAY_BY_VACUUM:
-					count += sprintf(&WatchVisibilityBuffer[count],"Xmin moved away by vacuum");
-					break;
-				case WATCH_VISIBILITY_VACUUM_XID_CURRENT:
-					count += sprintf(&WatchVisibilityBuffer[count],"Vacuum xid current");
-					break;
-				case WATCH_VISIBILITY_SET_XMIN_VACUUM_MOVED_INVALID:
-					count += sprintf(&WatchVisibilityBuffer[count],"Set xmin vacuum moved invalid");
-					break;
-				case WATCH_VISIBILITY_SET_XMIN_COMMITTED:
-					count += sprintf(&WatchVisibilityBuffer[count],"Set xmin committed");
-					break;
-				case WATCH_VISIBILITY_SET_XMIN_ABORTED:
-					count += sprintf(&WatchVisibilityBuffer[count],"Set xmin aborted");
-					break;
-				case WATCH_VISIBILITY_XMIN_MOVED_IN_BY_VACUUM:
-					count += sprintf(&WatchVisibilityBuffer[count],"Xmin moved in by vacuum");
-					break;
-				case WATCH_VISIBILITY_VACUUM_XID_NOT_CURRENT:
-					count += sprintf(&WatchVisibilityBuffer[count],"Vacuum xid not current");
-					break;
-				case WATCH_VISIBILITY_VACUUM_XID_IN_PROGRESS:
-					count += sprintf(&WatchVisibilityBuffer[count],"Vacuum xid in progress");
-					break;
-				case WATCH_VISIBILITY_XMIN_CURRENT:
-					count += sprintf(&WatchVisibilityBuffer[count],"Xmin current %s", WatchVisibilityXminCurrent);
-					break;
-				case WATCH_VISIBILITY_XMIN_NOT_CURRENT:
-					count += sprintf(&WatchVisibilityBuffer[count],"Xmin not current %s", WatchVisibilityXminCurrent);
-					break;
-				case WATCH_VISIBILITY_XMIN_INSERTED_AFTER_SCAN_STARTED:
-					count += sprintf(&WatchVisibilityBuffer[count],"Xmin inserted after scan started (curcid %d)",
-									 snapshotCurcid);
-					break;
-				case WATCH_VISIBILITY_XMAX_INVALID:
-					count += sprintf(&WatchVisibilityBuffer[count],"Xmax invalid");
-					break;
-				case WATCH_VISIBILITY_LOCKED:
-					count += sprintf(&WatchVisibilityBuffer[count],"Locked");
-					break;
-				case WATCH_VISIBILITY_SET_XMAX_ABORTED:
-					count += sprintf(&WatchVisibilityBuffer[count],"Set xmax aborted");
-					break;
-				case WATCH_VISIBILITY_DELETED_AFTER_SCAN_STARTED:
-					count += sprintf(&WatchVisibilityBuffer[count],"Deleted after scan started");
-					break;
-				case WATCH_VISIBILITY_DELETED_BEFORE_SCAN_STARTED:
-					count += sprintf(&WatchVisibilityBuffer[count],"Deleted before scan started");
-					break;
-				case WATCH_VISIBILITY_XMIN_IN_PROGRESS:
-					count += sprintf(&WatchVisibilityBuffer[count],"Xmin in progress");
-					break;
-				case WATCH_VISIBILITY_SNAPSHOT_SAYS_XMIN_IN_PROGRESS:
-					count += sprintf(&WatchVisibilityBuffer[count],"Snapshot says xmin in progress");
-					break;
-				case WATCH_VISIBILITY_XMAX_INVALID_OR_ABORTED:
-					count += sprintf(&WatchVisibilityBuffer[count],"Xmax invalid or aborted");
-					break;
-				case WATCH_VISIBILITY_XMAX_MULTIXACT:
-					count += sprintf(&WatchVisibilityBuffer[count],"Xmax multixact");
-					break;
-				case WATCH_VISIBILITY_XMAX_NOT_HINT_COMMITTED:
-					count += sprintf(&WatchVisibilityBuffer[count],"Xmax not hint committed");
-					break;
-				case WATCH_VISIBILITY_XMAX_HINT_COMMITTED:
-					count += sprintf(&WatchVisibilityBuffer[count],"Xmax hint committed");
-					break;
-				case WATCH_VISIBILITY_XMAX_CURRENT:
-					count += sprintf(&WatchVisibilityBuffer[count],"Xmax current");
-					break;
-				case WATCH_VISIBILITY_XMAX_IN_PROGRESS:
-					count += sprintf(&WatchVisibilityBuffer[count],"Xmax in progress");
-					break;
-				case WATCH_VISIBILITY_SET_XMAX_COMMITTED:
-					count += sprintf(&WatchVisibilityBuffer[count],"Set xmax committed");
-					break;
-				case WATCH_VISIBILITY_SNAPSHOT_SAYS_XMAX_IN_PROGRESS:
-					count += sprintf(&WatchVisibilityBuffer[count],"Xmax in progress");
-					break;
-				case WATCH_VISIBILITY_SNAPSHOT_SAYS_XMAX_VISIBLE:
-					count += sprintf(&WatchVisibilityBuffer[count],"Snapshot says xmax visible");
-					break;
-				case WATCH_VISIBILITY_USE_DISTRIBUTED_SNAPSHOT_FOR_XMIN:
-					count += sprintf(&WatchVisibilityBuffer[count],"Use distributed snapshot for xmin");
-					break;
-				case WATCH_VISIBILITY_USE_DISTRIBUTED_SNAPSHOT_FOR_XMAX:
-					count += sprintf(&WatchVisibilityBuffer[count],"Use distributed snapshot for xmax");
-					break;
-				case WATCH_VISIBILITY_IGNORE_DISTRIBUTED_SNAPSHOT_FOR_XMIN:
-					count += sprintf(&WatchVisibilityBuffer[count],"Ignore distributed snapshot for xmin");
-					break;
-				case WATCH_VISIBILITY_IGNORE_DISTRIBUTED_SNAPSHOT_FOR_XMAX:
-					count += sprintf(&WatchVisibilityBuffer[count],"Ignore distributed snapshot for xmax");
-					break;
-				case WATCH_VISIBILITY_NO_DISTRIBUTED_SNAPSHOT_FOR_XMIN:
-					count += sprintf(&WatchVisibilityBuffer[count],"No distributed snapshot for xmin");
-					break;
-				case WATCH_VISIBILITY_NO_DISTRIBUTED_SNAPSHOT_FOR_XMAX:
-					count += sprintf(&WatchVisibilityBuffer[count],"No distributed snapshot for xmax");
-					break;
-				case WATCH_VISIBILITY_XMIN_DISTRIBUTED_SNAPSHOT_IN_PROGRESS_FOUND_BY_LOCAL:
-					count += sprintf(&WatchVisibilityBuffer[count],"Xmin distributed snapshot in progress -- found by local");
-					break;
-				case WATCH_VISIBILITY_XMAX_DISTRIBUTED_SNAPSHOT_IN_PROGRESS_FOUND_BY_LOCAL:
-					count += sprintf(&WatchVisibilityBuffer[count],"Xmax distributed snapshot in progress -- found by local");
-					break;
-				case WATCH_VISIBILITY_XMIN_LOCAL_DISTRIBUTED_CACHE_RETURNED_LOCAL:
-					count += sprintf(&WatchVisibilityBuffer[count],"Xmin in local distributed cache returned local");
-					break;
-				case WATCH_VISIBILITY_XMAX_LOCAL_DISTRIBUTED_CACHE_RETURNED_LOCAL:
-					count += sprintf(&WatchVisibilityBuffer[count],"Xmax in local distributed cache returned local");
-					break;
-				case WATCH_VISIBILITY_XMIN_LOCAL_DISTRIBUTED_CACHE_RETURNED_DISTRIB:
-					count += sprintf(&WatchVisibilityBuffer[count],"Xmin in local distributed cache returned distrib");
-					break;
-				case WATCH_VISIBILITY_XMAX_LOCAL_DISTRIBUTED_CACHE_RETURNED_DISTRIB:
-					count += sprintf(&WatchVisibilityBuffer[count],"Xmax in local distributed cache returned distrib");
-					break;
-				case WATCH_VISIBILITY_XMIN_NOT_KNOWN_BY_LOCAL_DISTRIBUTED_XACT:
-					count += sprintf(&WatchVisibilityBuffer[count],"Xmin not known by local distributed xact module");
-					break;
-				case WATCH_VISIBILITY_XMAX_NOT_KNOWN_BY_LOCAL_DISTRIBUTED_XACT:
-					count += sprintf(&WatchVisibilityBuffer[count],"Xmax not known by local distributed xact module");
-					break;
-				case WATCH_VISIBILITY_XMIN_DIFF_DTM_START_IN_DISTRIBUTED_LOG:
-					count += sprintf(&WatchVisibilityBuffer[count],"Xmin different DTM start in distributed log");
-					break;
-				case WATCH_VISIBILITY_XMAX_DIFF_DTM_START_IN_DISTRIBUTED_LOG:
-					count += sprintf(&WatchVisibilityBuffer[count],"Xmax different DTM start in distributed log");
-					break;
-				case WATCH_VISIBILITY_XMIN_FOUND_IN_DISTRIBUTED_LOG:
-					count += sprintf(&WatchVisibilityBuffer[count],"Xmin found in distributed log");
-					break;
-				case WATCH_VISIBILITY_XMAX_FOUND_IN_DISTRIBUTED_LOG:
-					count += sprintf(&WatchVisibilityBuffer[count],"Xmax found in distributed log");
-					break;
-				case WATCH_VISIBILITY_XMIN_KNOWN_LOCAL_IN_DISTRIBUTED_LOG:
-					count += sprintf(&WatchVisibilityBuffer[count],"Xmin known local in distributed log");
-					break;
-				case WATCH_VISIBILITY_XMAX_KNOWN_LOCAL_IN_DISTRIBUTED_LOG:
-					count += sprintf(&WatchVisibilityBuffer[count],"Xmax known local in distributed log");
-					break;
-				case WATCH_VISIBILITY_XMIN_KNOWN_BY_LOCAL_DISTRIBUTED_XACT:
-					count += sprintf(&WatchVisibilityBuffer[count],"Xmin known by local distributed xact module");
-					break;
-				case WATCH_VISIBILITY_XMAX_KNOWN_BY_LOCAL_DISTRIBUTED_XACT:
-					count += sprintf(&WatchVisibilityBuffer[count],"Xmax known by local distributed xact module");
-					break;
-				case WATCH_VISIBILITY_XMIN_LESS_THAN_ALL_CURRENT_DISTRIBUTED:
-					count += sprintf(&WatchVisibilityBuffer[count],"Xmin < all current distributed %u",
-									 xminAllDistributedSnapshots);
-					break;
-				case WATCH_VISIBILITY_XMAX_LESS_THAN_ALL_CURRENT_DISTRIBUTED:
-					count += sprintf(&WatchVisibilityBuffer[count],"Xmax < all current distributed %u",
-									 xminAllDistributedSnapshots);
-					break;
-				case WATCH_VISIBILITY_XMIN_LESS_THAN_DISTRIBUTED_SNAPSHOT_XMIN:
-					count += sprintf(&WatchVisibilityBuffer[count],"Xmin < distributed snapshot xmin %u",
-									 xminDistributedSnapshot);
-					break;
-				case WATCH_VISIBILITY_XMAX_LESS_THAN_DISTRIBUTED_SNAPSHOT_XMIN:
-					count += sprintf(&WatchVisibilityBuffer[count],"Xmax < distributed snapshot xmin %u",
-									 xminDistributedSnapshot);
-					break;
-				case WATCH_VISIBILITY_XMIN_GREATER_THAN_EQUAL_DISTRIBUTED_SNAPSHOT_XMAX:
-					count += sprintf(&WatchVisibilityBuffer[count],"Xmin >= distributed snapshot xmax %u",
-									 xmaxDistributedSnapshot);
-					break;
-				case WATCH_VISIBILITY_XMAX_GREATER_THAN_EQUAL_DISTRIBUTED_SNAPSHOT_XMAX:
-					count += sprintf(&WatchVisibilityBuffer[count],"Xmax >= distributed snapshot xmax %u",
-									 xmaxDistributedSnapshot);
-					break;
-				case WATCH_VISIBILITY_XMIN_DISTRIBUTED_SNAPSHOT_IN_PROGRESS_BY_DISTRIB:
-					count += sprintf(&WatchVisibilityBuffer[count],"Xmin in distributed snapshot in progress by distrib");
-					break;
-				case WATCH_VISIBILITY_XMAX_DISTRIBUTED_SNAPSHOT_IN_PROGRESS_BY_DISTRIB:
-					count += sprintf(&WatchVisibilityBuffer[count],"Xmax in distributed snapshot in progress by distrib");
-					break;
-				case WATCH_VISIBILITY_XMIN_DISTRIBUTED_SNAPSHOT_NOT_IN_PROGRESS:
-					count += sprintf(&WatchVisibilityBuffer[count],"Xmin not in distributed snapshot in progress");
-					break;
-				case WATCH_VISIBILITY_XMAX_DISTRIBUTED_SNAPSHOT_NOT_IN_PROGRESS:
-					count += sprintf(&WatchVisibilityBuffer[count],"Xmax not in distributed snapshot in progress");
-					break;
-				case WATCH_VISIBILITY_XMIN_LESS_THAN_SNAPSHOT_XMIN:
-					count += sprintf(&WatchVisibilityBuffer[count],"Xmin < snapshot xmin %u",
-									 snapshotXmin);
-					break;
-				case WATCH_VISIBILITY_XMAX_LESS_THAN_SNAPSHOT_XMIN:
-					count += sprintf(&WatchVisibilityBuffer[count],"Xmax < snapshot xmin %u",
-									 snapshotXmin);
-					break;
-				case WATCH_VISIBILITY_XMIN_GREATER_THAN_EQUAL_SNAPSHOT_XMAX:
-					count += sprintf(&WatchVisibilityBuffer[count],"Xmin >= snapshot xmax %u",
-									 snapshotXmax);
-					break;
-				case WATCH_VISIBILITY_XMAX_GREATER_THAN_EQUAL_SNAPSHOT_XMAX:
-					count += sprintf(&WatchVisibilityBuffer[count],"Xmax >= snapshot xmax %u",
-									 snapshotXmax);
-					break;
-				case WATCH_VISIBILITY_XMIN_SNAPSHOT_SUBTRANSACTION:
-					count += sprintf(&WatchVisibilityBuffer[count],"Xmin snapshot subtransaction");
-					break;
-				case WATCH_VISIBILITY_XMAX_SNAPSHOT_SUBTRANSACTION:
-					count += sprintf(&WatchVisibilityBuffer[count],"Xmax snapshot subtransaction");
-					break;
-				case WATCH_VISIBILITY_XMIN_MAPPED_SUBTRANSACTION:
-					count += sprintf(&WatchVisibilityBuffer[count],"Xmin mapped subtransaction");
-					break;
-				case WATCH_VISIBILITY_XMAX_MAPPED_SUBTRANSACTION:
-					count += sprintf(&WatchVisibilityBuffer[count],"Xmax mapped subtransaction");
-					break;
-				case WATCH_VISIBILITY_XMIN_LESS_THAN_SNAPSHOT_XMIN_2:
-					count += sprintf(&WatchVisibilityBuffer[count],"Xmin < snapshot xmin %u (#2)",
-									 snapshotXmin);
-					break;
-				case WATCH_VISIBILITY_XMAX_LESS_THAN_SNAPSHOT_XMIN_2:
-					count += sprintf(&WatchVisibilityBuffer[count],"Xmax < snapshot xmin %u (#2)",
-									 snapshotXmin);
-					break;
-				case WATCH_VISIBILITY_XMIN_SNAPSHOT_IN_PROGRESS:
-					count += sprintf(&WatchVisibilityBuffer[count],"Xmin snapshot in progress");
-					break;
-				case WATCH_VISIBILITY_XMAX_SNAPSHOT_IN_PROGRESS:
-					count += sprintf(&WatchVisibilityBuffer[count],"Xmax snapshot in progress");
-					break;
-				case WATCH_VISIBILITY_XMIN_SNAPSHOT_NOT_IN_PROGRESS:
-					count += sprintf(&WatchVisibilityBuffer[count],"Xmin snapshot not in progress");
-					break;
-				case WATCH_VISIBILITY_XMAX_SNAPSHOT_NOT_IN_PROGRESS:
-					count += sprintf(&WatchVisibilityBuffer[count],"Xmax snapshot not in progress");
-					break;
-				case WATCH_VISIBILITY_SET_XMIN_DISTRIBUTED_SNAPSHOT_IGNORE:
-					count += sprintf(&WatchVisibilityBuffer[count],"Set xmin distributed snapshot ignore");
-					break;
-				case WATCH_VISIBILITY_SET_XMAX_DISTRIBUTED_SNAPSHOT_IGNORE:
-					count += sprintf(&WatchVisibilityBuffer[count],"Set xmax distributed snapshot ignore");
-					break;
-				case WATCH_VISIBILITY_GUC_OFF_MARK_BUFFFER_DIRTY_FOR_XMIN:
-					count += sprintf(&WatchVisibilityBuffer[count],"(gp_disable_tuple_hints OFF) mark buffer dirty for xmin");
-					break;
-				case WATCH_VISIBILITY_GUC_OFF_MARK_BUFFFER_DIRTY_FOR_XMAX:
-					count += sprintf(&WatchVisibilityBuffer[count],"(gp_disable_tuple_hints OFF) mark buffer dirty for xmax");
-					break;
-				case WATCH_VISIBILITY_NO_REL_MARK_BUFFFER_DIRTY_FOR_XMIN:
-					count += sprintf(&WatchVisibilityBuffer[count],"(gp_disable_tuple_hints ON) no relation -- mark buffer dirty for xmin");
-					break;
-				case WATCH_VISIBILITY_NO_REL_MARK_BUFFFER_DIRTY_FOR_XMAX:
-					count += sprintf(&WatchVisibilityBuffer[count],"(gp_disable_tuple_hints ON) no relation -- mark buffer dirty for xmax");
-					break;
-				case WATCH_VISIBILITY_SYS_CAT_MARK_BUFFFER_DIRTY_FOR_XMIN:
-					count += sprintf(&WatchVisibilityBuffer[count],"(gp_disable_tuple_hints ON) system catalog -- mark buffer dirty for xmin");
-					break;
-				case WATCH_VISIBILITY_SYS_CAT_MARK_BUFFFER_DIRTY_FOR_XMAX:
-					count += sprintf(&WatchVisibilityBuffer[count],"(gp_disable_tuple_hints ON) system catalog -- mark buffer dirty for xmax");
-					break;
-				case WATCH_VISIBILITY_NO_XID_MARK_BUFFFER_DIRTY_FOR_XMIN:
-					count += sprintf(&WatchVisibilityBuffer[count],"(gp_disable_tuple_hints ON) no xid -- mark buffer dirty for xmin");
-					break;
-				case WATCH_VISIBILITY_NO_XID_MARK_BUFFFER_DIRTY_FOR_XMAX:
-					count += sprintf(&WatchVisibilityBuffer[count],"(gp_disable_tuple_hints ON) no xid -- mark buffer dirty for xmax");
-					break;
-				case WATCH_VISIBILITY_TOO_OLD_MARK_BUFFFER_DIRTY_FOR_XMIN:
-					count += sprintf(&WatchVisibilityBuffer[count],"(gp_disable_tuple_hints ON) too old -- mark buffer dirty for xmin");
-					break;
-				case WATCH_VISIBILITY_TOO_OLD_MARK_BUFFFER_DIRTY_FOR_XMAX:
-					count += sprintf(&WatchVisibilityBuffer[count],"(gp_disable_tuple_hints ON) too old -- mark buffer dirty for xmax");
-					break;
-				case WATCH_VISIBILITY_YOUNG_DO_NOT_MARK_BUFFFER_DIRTY_FOR_XMIN:
-					count += sprintf(&WatchVisibilityBuffer[count],"(gp_disable_tuple_hints ON) young -- do not mark buffer dirty for xmin");
-					break;
-				case WATCH_VISIBILITY_YOUNG_DO_NOT_MARK_BUFFFER_DIRTY_FOR_XMAX:
-					count += sprintf(&WatchVisibilityBuffer[count],"(gp_disable_tuple_hints ON) young -- do not mark buffer dirty for xmax");
-					break;
-				default:
-					count += sprintf(&WatchVisibilityBuffer[count],"<Unknown %d>", b);
-					break;
-			}
-
-			atLeastOne = true;
-		}
-
-	}
-
-	return WatchVisibilityBuffer;
-}
-
-#endif
 
 static char *TupleTransactionStatus_Name(TupleTransactionStatus status)
 {
