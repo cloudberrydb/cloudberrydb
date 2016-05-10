@@ -53,6 +53,7 @@
 #include "utils/memutils.h"
 #include "utils/relcache.h"
 #include "utils/resscheduler.h"
+#include "utils/sharedsnapshot.h"
 #include "access/distributedlog.h"
 #include "access/clog.h"
 #include "utils/vmem_tracker.h"

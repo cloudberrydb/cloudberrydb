@@ -58,6 +58,7 @@
 #include "storage/spin.h"
 #include "utils/resscheduler.h"
 #include "utils/faultinjector.h"
+#include "utils/sharedsnapshot.h"
 #include "utils/simex.h"
 
 #include "cdb/cdbfts.h"

@@ -25,6 +25,7 @@
 #include "postmaster/postmaster.h"
 #include "tcop/tcopprot.h"
 #include "utils/portal.h"
+#include "utils/sharedsnapshot.h"
 #include "tcop/pquery.h"
 
 extern int	CommitDelay;

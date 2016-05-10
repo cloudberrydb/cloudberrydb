@@ -51,7 +51,7 @@
 #include "utils/timestamp.h"
 #include "utils/portal.h"
 
-#include "utils/tqual.h"  /*SharedLocalSnapshotSlot*/
+#include "utils/sharedsnapshot.h"  /*SharedLocalSnapshotSlot*/
 
 #include "cdb/cdblocaldistribxact.h"
 #include "cdb/cdbgang.h"
