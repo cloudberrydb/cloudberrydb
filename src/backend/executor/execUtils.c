@@ -689,6 +689,9 @@ ExecGetResultType(PlanState *planstate)
 	return slot->tts_tupleDescriptor;
 }
 
+extern void
+ExecVariableList(ProjectionInfo *projInfo, Datum *values, bool *isnull);
+
 /* ----------------
  *		ExecBuildProjectionInfo
  *
@@ -823,6 +826,10 @@ ExecBuildProjectionInfo(List *targetList,
 		projInfo->pi_varNumbers = NULL;
 	}
 
+#ifdef USE_CODEGEN
+	// Set the default location for ExecVariableList
+	projInfo->ExecVariableList_gen_info.ExecVariableList_fn = ExecVariableList;
+#endif
 	return projInfo;
 }
 

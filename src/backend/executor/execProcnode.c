@@ -223,7 +223,9 @@ ExecInitNode(Plan *node, EState *estate, int eflags)
 
 	MemoryAccount* curMemoryAccount = NULL;
 
-	void* CodegenManager = CodeGeneratorManagerCreate("execProcnode");
+	StringInfo codegenManagerName = makeStringInfo();
+	appendStringInfo(codegenManagerName, "%s-%d-%d", "execProcnode", node->plan_node_id, node->type);
+	void* CodegenManager = CodeGeneratorManagerCreate(codegenManagerName->data);
 	START_CODE_GENERATOR_MANAGER(CodegenManager);
 	{
 

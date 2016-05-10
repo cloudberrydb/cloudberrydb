@@ -36,9 +36,14 @@
 #include "llvm/IR/Verifier.h"
 #include "llvm/Support/Casting.h"
 
+extern "C" {
+#include <utils/elog.h>
+}
+
 using gpcodegen::CodegenManager;
 
 CodegenManager::CodegenManager(const std::string& module_name) {
+  module_name_ = module_name;
   codegen_utils_.reset(new gpcodegen::CodegenUtils(module_name));
 }
 
@@ -69,9 +74,10 @@ unsigned int CodegenManager::PrepareGeneratedFunctions() {
     return success_count;
   }
 
+
   // Call CodegenUtils to compile entire module
   bool compilation_status = codegen_utils_->PrepareForExecution(
-      gpcodegen::CodegenUtils::OptimizationLevel::kNone, true);
+      gpcodegen::CodegenUtils::OptimizationLevel::kDefault, true);
 
   if (!compilation_status) {
     return success_count;

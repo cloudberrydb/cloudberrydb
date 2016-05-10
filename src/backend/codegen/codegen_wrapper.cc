@@ -12,19 +12,20 @@
 
 #include "codegen/codegen_wrapper.h"
 #include "codegen/codegen_manager.h"
-#include "codegen/slot_deform_tuple_codegen.h"
+#include "codegen/ExecVariableList_codegen.h"
 
 #include "codegen/utils/codegen_utils.h"
 
 using gpcodegen::CodegenManager;
 using gpcodegen::BaseCodegen;
-using gpcodegen::SlotDeformTupleCodegen;
+using gpcodegen::ExecVariableListCodegen;
 
 // Current code generator manager that oversees all code generators
 static void* ActiveCodeGeneratorManager = nullptr;
 static bool is_codegen_initalized = false;
 
 extern bool codegen;  // defined from guc
+extern bool init_codegen;  // defined from guc
 
 // Perform global set-up tasks for code generation. Returns 0 on
 // success, nonzero on error.
@@ -106,12 +107,12 @@ ClassType* CodegenEnroll(FuncType regular_func_ptr,
     return generator;
 }
 
-void* SlotDeformTupleCodegenEnroll(
-    SlotDeformTupleFn regular_func_ptr,
-    SlotDeformTupleFn* ptr_to_chosen_func_ptr,
-    TupleTableSlot* slot) {
-  SlotDeformTupleCodegen* generator = CodegenEnroll<SlotDeformTupleCodegen>(
-      regular_func_ptr, ptr_to_chosen_func_ptr, slot);
+void* ExecVariableListCodegenEnroll(
+    ExecVariableListFn regular_func_ptr,
+    ExecVariableListFn* ptr_to_chosen_func_ptr,
+    ProjectionInfo* proj_info,
+	  TupleTableSlot* slot) {
+  ExecVariableListCodegen* generator = CodegenEnroll<ExecVariableListCodegen>(
+      regular_func_ptr, ptr_to_chosen_func_ptr, proj_info, slot);
   return generator;
 }
-

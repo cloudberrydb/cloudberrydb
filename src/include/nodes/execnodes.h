@@ -218,6 +218,14 @@ typedef struct ReturnSetInfo
 	TupleDesc	setDesc;		/* actual descriptor for returned tuples */
 } ReturnSetInfo;
 
+typedef struct ExecVariableListCodegenInfo
+{
+	/* Pointer to store ExecVariableListCodegen from Codegen */
+	void* code_generator;
+	/* Function pointer that points to either regular or generated slot_deform_tuple */
+	ExecVariableListFn ExecVariableList_fn;
+} ExecVariableListCodegenInfo;
+
 /* ----------------
  *		ProjectionInfo node information
  *
@@ -261,6 +269,10 @@ typedef struct ProjectionInfo
 	int			pi_lastInnerVar;
 	int			pi_lastOuterVar;
 	int			pi_lastScanVar;
+
+#ifdef USE_CODEGEN
+    ExecVariableListCodegenInfo ExecVariableList_gen_info;
+#endif
 } ProjectionInfo;
 
 /* ----------------

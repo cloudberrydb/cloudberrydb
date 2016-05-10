@@ -67,12 +67,13 @@ SetActiveCodeGeneratorManager(void* manager)
 
 // returns the pointer to the SlotDeformTupleCodegen
 void*
-SlotDeformTupleCodegenEnroll(SlotDeformTupleFn regular_func_ptr,
-        SlotDeformTupleFn* ptr_to_regular_func_ptr,
-        struct TupleTableSlot* slot)
+ExecVariableListCodegenEnroll(ExecVariableListFn regular_func_ptr,
+                              ExecVariableListFn* ptr_to_regular_func_ptr,
+                              struct ProjectionInfo* proj_info,
+                              struct TupleTableSlot* slot)
 {
   *ptr_to_regular_func_ptr = regular_func_ptr;
-	elog(ERROR, "mock implementation of SlotDeformTupleCodegen_Enroll called");
+	elog(ERROR, "mock implementation of ExecVariableListEnroll called");
 	return NULL;
 }
 

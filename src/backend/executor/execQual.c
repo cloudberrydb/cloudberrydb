@@ -5862,7 +5862,10 @@ ExecTargetList(List *targetlist,
  *
  * Results are stored into the passed values and isnull arrays.
  */
-static void
+#ifndef USE_CODEGEN
+static
+#endif
+void
 ExecVariableList(ProjectionInfo *projInfo,
 				 Datum *values,
 				 bool *isnull)
@@ -5931,7 +5934,7 @@ ExecProject(ProjectionInfo *projInfo, ExprDoneCond *isDone)
 		if (isDone)
 			*isDone = ExprSingleResult;
 
-		ExecVariableList(projInfo,
+		call_ExecVariableList(projInfo,
 						 slot_get_values(slot),
 						 slot_get_isnull(slot));
 		ExecStoreVirtualTuple(slot);

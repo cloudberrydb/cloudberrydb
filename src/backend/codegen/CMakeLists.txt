@@ -164,7 +164,7 @@ set(GPCODEGEN_SRC
     codegen_interface.cc
     codegen_manager.cc
     codegen_wrapper.cc
-    slot_deform_tuple_codegen.cc
+    ExecVariableList_codegen.cc
 )
 
 # Integrate with GPDB build system. 

@@ -396,6 +396,20 @@ class CodegenUtils {
   template <typename FunctionType>
   FunctionType GetFunctionPointer(const std::string& function_name);
 
+
+  /**
+    * @brief Generate the commonly used "fallback case" that generates a call to
+    * the regular_function passing all parameters from generated_function.
+    *
+    * @tparam FuncType FunctionType. e.g ReturnType (*)(ArgumenTypes)
+    * @param regular_function     LLVM Function pointer to the regular fallback function
+    * @param generated_function   LLVM Function pointer to the function being generated
+    *
+    **/
+  template<typename FunctionType>
+  void CreateFallback(llvm::Function* regular_function,
+                      llvm::Function* generated_function);
+
  private:
   // Give ClangCompiler access to 'context_' add allow it to add compiled C++
   // sources to 'auxiliary_modules_'.
@@ -1057,6 +1071,28 @@ auto CodegenUtils::GetFunctionPointerImpl(const std::string& function_name)
         engine_->getFunctionAddress(function_name));
   } else {
     return nullptr;
+  }
+}
+
+template <typename FunctionType>
+void CodegenUtils::CreateFallback(llvm::Function* regular_function,
+                                  llvm::Function* generated_function) {
+
+  assert(regular_function != nullptr);
+  assert(generated_function != nullptr);
+
+  std::vector<llvm::Value*> forwarded_args;
+  for (llvm::Argument& arg : generated_function->args()) {
+    forwarded_args.push_back(&arg);
+  }
+
+  llvm::CallInst* call_fallback_func = ir_builder()->CreateCall(
+      regular_function, forwarded_args);
+  /* Return the result of the call, or void if the function returns void. */
+  if (std::is_same<typename codegen_utils_detail::FunctionTypeUnpacker<FunctionType>::R, void>::value) {
+    ir_builder()->CreateRetVoid();
+  } else {
+    ir_builder()->CreateRet(call_fallback_func);
   }
 }
 

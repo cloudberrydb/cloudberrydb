@@ -103,6 +103,8 @@ class CodegenManager {
   // CodegenUtils provides a facade to LLVM subsystem.
   std::unique_ptr<gpcodegen::CodegenUtils> codegen_utils_;
 
+  std::string module_name_;
+
   // List of all enrolled code generators.
   std::vector<std::unique_ptr<CodegenInterface>> enrolled_code_generators_;
 

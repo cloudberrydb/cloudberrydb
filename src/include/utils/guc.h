@@ -454,6 +454,7 @@ extern bool optimizer_prefer_scalar_dqa_multistage_agg;
 /**
  * GUCs related to code generation.
  **/
+extern bool init_codegen;
 extern bool codegen;
 
 /**

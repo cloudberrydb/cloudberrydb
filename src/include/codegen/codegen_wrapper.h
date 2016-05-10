@@ -13,12 +13,21 @@
 #define CODEGEN_WRAPPER_H_
 
 #include "pg_config.h"
+#include "c.h"
+
+#ifndef __cplusplus
+#include "postgres.h"
+#else
+typedef int64 Datum;
+#endif
 
 /*
  * Code that needs to be shared irrespective of whether USE_CODEGEN is enabled or not.
  */
 struct TupleTableSlot;
-typedef void (*SlotDeformTupleFn) (struct TupleTableSlot *slot, int natts);
+struct ProjectionInfo;
+
+typedef void (*ExecVariableListFn) (struct ProjectionInfo *projInfo, Datum *values, bool *isnull);
 
 #ifndef USE_CODEGEN
 
@@ -35,15 +44,10 @@ typedef void (*SlotDeformTupleFn) (struct TupleTableSlot *slot, int natts);
 #define END_CODE_GENERATOR_MANAGER()
 
 #define init_codegen()
-#define call_slot_deform_tuple(slot, attno) slot_deform_tuple(slot, attno)
-#define enroll_slot_deform_tuple_codegen(regular_func, ptr_to_chosen_func, slot)
+#define call_ExecVariableList(projInfo, values, isnull) ExecVariableList(projInfo, values, isnull)
+#define enroll_ExecVariableList_codegen(regular_func, ptr_to_chosen_func, proj_info, slot)
 
 #else
-
-/*
- * Forward extern declaration of slot deform tuple if code gen is enabled
- */
-extern void slot_deform_tuple(struct TupleTableSlot *slot, int natts);
 
 /*
  * @brief Life span of Code generator instance
@@ -67,6 +71,12 @@ typedef enum CodegenFuncLifespan
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+/*
+ * Forward extern declaration of code generated functions if code gen is enabled
+ */
+extern void ExecVariableList(struct ProjectionInfo *projInfo, Datum *values, bool *isnull);
+
 
 /*
  * Do one-time global initialization of LLVM library. Returns 1
@@ -119,13 +129,13 @@ void
 SetActiveCodeGeneratorManager(void* manager);
 
 /*
- * returns the pointer to the SlotDeformTupleCodegen
+ * returns the pointer to the ExecVariableList
  */
 void*
-SlotDeformTupleCodegenEnroll(SlotDeformTupleFn regular_func_ptr,
-                              SlotDeformTupleFn* ptr_to_regular_func_ptr,
+ExecVariableListCodegenEnroll(ExecVariableListFn regular_func_ptr,
+                              ExecVariableListFn* ptr_to_regular_func_ptr,
+                              struct ProjectionInfo* proj_info,
                               struct TupleTableSlot* slot);
-
 
 #ifdef __cplusplus
 }  // extern "C"
@@ -158,7 +168,7 @@ SlotDeformTupleCodegenEnroll(SlotDeformTupleFn regular_func_ptr,
  * Initialize LLVM library
  */
 #define init_codegen() \
-	if (codegen) { \
+	if (init_codegen) { \
 			if (InitCodegen() == 0) { \
 				ereport(FATAL, \
 					(errcode(ERRCODE_INTERNAL_ERROR), \
@@ -171,22 +181,20 @@ SlotDeformTupleCodegenEnroll(SlotDeformTupleFn regular_func_ptr,
 		} \
 
 /*
- * Call slot_deform_tuple using function pointer slot_deform_tuple_fn.
+ * Call ExecVariableList using function pointer ExecVariableList_fn.
  * Function pointer may point to regular version or generated function
  */
-#define call_slot_deform_tuple(slot, attno) \
-		slot->slot_deform_tuple_gen_info.slot_deform_tuple_fn(slot, attno)
-
+#define call_ExecVariableList(projInfo, values, isnull) \
+		projInfo->ExecVariableList_gen_info.ExecVariableList_fn(projInfo, values, isnull)
 /*
- * Enroll given slot to codegen manager.
- * The enrollment process also ensures that the slot_deform_tuple_fn pointer
+ * Enrollment macros
+ * The enrollment process also ensures that the generated function pointer
  * is set to the regular version initially
  */
-#define enroll_slot_deform_tuple_codegen(regular_func, ptr_to_regular_func_ptr, slot) \
-		slot->slot_deform_tuple_gen_info.code_generator = SlotDeformTupleCodegenEnroll( \
-				regular_func, ptr_to_regular_func_ptr, slot); \
-		Assert(slot->slot_deform_tuple_gen_info.slot_deform_tuple_fn == regular_func); \
-
+#define enroll_ExecVariableList_codegen(regular_func, ptr_to_regular_func_ptr, proj_info, slot) \
+		proj_info->ExecVariableList_gen_info.code_generator = ExecVariableListCodegenEnroll( \
+				regular_func, ptr_to_regular_func_ptr, proj_info, slot); \
+		Assert(proj_info->ExecVariableList_gen_info.ExecVariableList_fn == regular_func); \
 
 #endif //USE_CODEGEN
 

@@ -111,17 +111,6 @@
 #define         TTS_SHOULDFREE 	2
 #define         TTS_VIRTUAL     4
 
-/*
- * Interface to the CodegenManager for slot_deform_tuple code generation
- */
-typedef struct SlotDeformTupleCodegenInfo
-{
-	/* Pointer to store SlotDeformTupleCodegen from Codegen */
-	void* code_generator;
-	/* Function pointer that points to either regular or generated slot_deform_tuple */
-	SlotDeformTupleFn slot_deform_tuple_fn;
-} SlotDeformTupleCodegenInfo;
-
 typedef struct TupleTableSlot
 {
 	NodeTag		type;		/* vestigial ... allows IsA tests */
@@ -152,10 +141,6 @@ typedef struct TupleTableSlot
 
     /* System attributes */
     Oid         tts_tableOid;
-
-#ifdef USE_CODEGEN
-    SlotDeformTupleCodegenInfo slot_deform_tuple_gen_info;
-#endif
 } TupleTableSlot;
 
 static inline bool TupIsNull(TupleTableSlot *slot)
