@@ -381,7 +381,7 @@ int main (int argc, char *argv[])
 				}
 				check_version(conn);
 				
-				/* Prepare to receive interupts */
+				/* Prepare to receive interrupts */
 				cancelConn = PQgetCancel(conn);
 
 				if (signal(SIGINT, sigint_handler) == SIG_IGN)
@@ -468,7 +468,7 @@ void read_password(char *p, size_t len)
     if (fgets(p, len, termin) == NULL)
         p[0] = '\0';
 
-    /* If that didn't get the whole input suck the rest off */
+    /* If that didn't get the whole input, drain the rest */
     len = strlen(p);
     if (len > 0)
     {
@@ -538,13 +538,13 @@ void check_version(PGconn *conn)
 
 
 /*
- * sigint_handler() -  Interupt handler to cancel active queries
+ * sigint_handler() -  Interrupt handler to cancel active queries
  */
 static void sigint_handler(SIGNAL_ARGS)
 {
 	char errbuf[256];
 
-	/* Once we accept an interupt it's best to simply disable the handler */
+	/* Once we accept an interrupt it's best to simply disable the handler */
 	signal(SIGINT, SIG_IGN);
 	signal(SIGHUP, SIG_IGN);
 	signal(SIGTERM, SIG_IGN);
