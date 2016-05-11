@@ -392,9 +392,9 @@ INT main
 	const CHAR **rgszArgs
 	)
 {	
-  
-  // Use default allocator
-  struct gpos_init_params gpos_params = { NULL, NULL };
+
+	// Use default allocator
+	struct gpos_init_params gpos_params = { NULL, NULL };
 
 	gpos_init(&gpos_params);
 	gpdxl_init();
@@ -412,7 +412,7 @@ INT main
 	
 	// initialize unittest framework
 	CUnittest::Init(rgut, GPOS_ARRAY_SIZE(rgut), ConfigureTests, Cleanup);
-    
+
 	gpos_exec_params params;
 	params.func = PvExec;
 	params.arg = &ma;
