@@ -11,6 +11,7 @@ from gpcrondump import GpCronDump
 from gppylib.operations.utils import DEFAULT_NUM_WORKERS
 from mock import patch, Mock
 from gppylib.operations.dump import MailDumpEvent
+from gppylib.commands.base import CommandResult
 from gppylib.operations.backup_utils import get_backup_directory, write_lines_to_file
 import mock
 
@@ -74,6 +75,7 @@ class GpCronDumpTestCase(unittest.TestCase):
             self.ddboost_remote = None
             self.ddboost_ping = None
             self.ddboost_backupdir = None
+            self.ddboost_show_config = False
             self.replicate = None
             self.max_streams = None
             self.netbackup_service_host = None
@@ -1198,6 +1200,53 @@ class GpCronDumpTestCase(unittest.TestCase):
         time_end = '12:08:18'
         cron = GpCronDump(options, None)
         cron._send_email(dump_database, current_exit_status, time_start, time_end)
+
+    @patch('gppylib.commands.base.Command.run')
+    @patch('gppylib.commands.base.Command.get_results')
+    @patch('gpcrondump.GpCronDump._get_master_port')
+    def test_show_ddboost_config_local_DDServer(self, mock_get_pgport, mock_result, mock_run):
+        mock_result.return_value = CommandResult(0, '''20160510:15:45:01|ddboost-[DEBUG]:-Libraries were loaded successfully
+20160510:15:45:01|ddboost-[INFO]:-opening LB on /home/gpadmin/DDBOOST_CONFIG
+Data Domain Hostname:qadd01
+Data Domain Boost Username:metro
+Default Backup Directory:MY_MFR
+Data Domain default log level:WARNING
+Data Domain Storage Unit:GPDB''', '', False, True)
+
+        options = GpCronDumpTestCase.Options()
+        options.ddboost_show_config = True
+
+        cron = GpCronDump(options, None)
+        logger.info = Mock()
+        cron.show_ddboost_config()
+        logger.info.assert_any_call('Data Domain Hostname:qadd01')
+        logger.info.assert_any_call('Data Domain Boost Username:metro')
+        logger.info.assert_any_call('Default Backup Directory:MY_MFR')
+        logger.info.assert_any_call('Data Domain default log level:WARNING')
+        logger.info.assert_any_call('Data Domain Storage Unit:GPDB')
+
+
+    @patch('gppylib.commands.base.Command.run')
+    @patch('gppylib.commands.base.Command.get_results')
+    @patch('gpcrondump.GpCronDump._get_master_port')
+    def test_show_ddboost_config_remote_DDServer(self, mock_get_pgport, mock_result, mock_run):
+        mock_result.return_value = CommandResult(0, '''20160511:10:28:06|ddboost-[DEBUG]:-Libraries were loaded successfully
+20160511:10:28:06|ddboost-[INFO]:-opening LB on /home/gpadmin/DDBOOST_MFR_CONFIG
+Data Domain Hostname:dd1
+Data Domain Boost Username:gpadmin
+Data Domain default log level:WARNING
+Data Domain default log size:50''', '', False, True)
+
+        options = GpCronDumpTestCase.Options()
+        options.ddboost_show_config = True
+
+        cron = GpCronDump(options, None)
+        logger.info = Mock()
+        cron.show_ddboost_config()
+        logger.info.assert_any_call('Data Domain Hostname:dd1')
+        logger.info.assert_any_call('Data Domain Boost Username:gpadmin')
+        logger.info.assert_any_call('Data Domain default log level:WARNING')
+        logger.info.assert_any_call('Data Domain default log size:50')
 
 #------------------------------- Mainline --------------------------------
 if __name__ == '__main__':

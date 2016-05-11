@@ -135,6 +135,7 @@ class GpCronDump(Operation):
         self.ddboost_remote = options.ddboost_remote
         self.ddboost_ping = options.ddboost_ping
         self.ddboost_backupdir = options.ddboost_backupdir
+        self.ddboost_show_config = options.ddboost_show_config
         # This variable indicates whether we need to exit after verifying the DDBoost credentials
         self.ddboost_verify_and_exit = False
         # NetBackup params
@@ -175,7 +176,8 @@ class GpCronDump(Operation):
             if self.timestamp_key and len(self.dump_databases) > 1:
                 raise ExceptionNoStackTraceNeeded('multi-database backup is not supported with -K option')
 
-        if not (self.clear_dumps_only or bool(self.ddboost_hosts) or bool(self.ddboost_user) or self.ddboost_config_remove):
+        if not (self.clear_dumps_only or bool(self.ddboost_hosts) or bool(self.ddboost_user) or
+                self.ddboost_config_remove or self.ddboost_show_config):
             if len(self.dump_databases) == 0:
                 if 'PGDATABASE' in os.environ:
                     self.dump_databases = [os.environ['PGDATABASE']]
@@ -801,6 +803,10 @@ class GpCronDump(Operation):
         #                        in this loop over the -x arguments
         final_exit_status = current_exit_status = 0
 
+        if self.ddboost_show_config:
+            self.show_ddboost_config()
+            return 0
+
         for dump_database in self.dump_databases:
             timestamp = self._get_timestamp_object(self.timestamp_key)
             timestamp_str = timestamp.strftime('%Y%m%d%H%M%S')
@@ -1216,6 +1222,22 @@ class GpCronDump(Operation):
                                                seg_config % (self.dump_prefix, segdb.getSegmentDbId(), timestamp)))
 
         return pipe_list
+
+
+    def show_ddboost_config(self):
+        cmdStr = 'gpddboost --show-config'
+        if self.ddboost_remote:
+            cmdStr += ' --remote'
+        cmd = Command('Get the ddboost configuration information', cmdStr)
+        cmd.run(validateAfter=True)
+        config_info = cmd.get_results().stdout
+        config_items = config_info.strip().split('\n')[2:]
+        logger.info('DDBoost Server Configuration Details.')
+        logger.info('-----------------------------------------------------')
+        for item in config_items:
+            logger.info(item)
+        logger.info('-----------------------------------------------------')
+
 
     def _list_backup_files(self, timestamp):
         pipe_list = []
@@ -1662,6 +1684,9 @@ def create_parser():
                            help="Verify DDBoost credentials on DDBoost host.")
     ddConfigOpt.add_option('--ddboost-skip-ping', dest='ddboost_ping', action='store_false', default=True,
                            help="Ping DDBoost host as a sanity check before writing configuration.")
+    ddConfigOpt.add_option('--ddboost-show-config', dest='ddboost_show_config', action='store_true', default=False,
+                           help="Show DDBoost and MFR related configuration information: DDBoost hostname, \n"
+                                "username, default backup directory, default storage unit.")
     parser.add_option_group(ddConfigOpt)
 
     parser.setHelp([
