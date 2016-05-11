@@ -127,7 +127,7 @@ bool ExecVariableListCodegen::GenerateExecVariableList(
   assert(NULL != codegen_utils);
 
   ElogWrapper elogwrapper(codegen_utils);
-  static_assert(sizeof(Datum) == sizeof(int64));
+  static_assert(sizeof(Datum) == sizeof(int64), "sizeof(Datum) doesn't match sizeof(int64)");
 
   if ( NULL == proj_info_->pi_varSlotOffsets ) {
     elog(DEBUG1, "Cannot codegen ExecVariableList because varSlotOffsets are null");
