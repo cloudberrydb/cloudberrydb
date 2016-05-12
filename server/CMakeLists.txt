@@ -54,6 +54,7 @@ add_executable(gporca_test
                src/unittest/gpopt/minidump/CICGTest.cpp
                src/unittest/gpopt/minidump/CSetopTest.cpp
                src/unittest/gpopt/minidump/CIndexTest.cpp
+               src/unittest/gpopt/minidump/CPullUpProjectElementTest.cpp
                src/unittest/gpopt/minidump/CTpcdsTest.cpp
                src/unittest/gpopt/minidump/CTVFTest.cpp
                src/unittest/gpopt/xforms/CDecorrelatorTest.cpp
@@ -87,7 +88,8 @@ add_executable(gporca_test
                src/unittest/gpopt/metadata/CTableDescriptorTest.cpp
                src/unittest/gpopt/metadata/CColumnDescriptorTest.cpp
                src/unittest/gpopt/metadata/CIndexDescriptorTest.cpp
-               src/unittest/gpopt/metadata/CNameTest.cpp)
+               src/unittest/gpopt/metadata/CNameTest.cpp
+        )
 target_link_libraries(gporca_test
                       gporca_test_longlong_tests
                       gpdbcost
@@ -133,6 +135,7 @@ add_orca_test(CSetopTest)
 add_orca_test(CDMLTest)
 add_orca_test(CDirectDispatchTest)
 add_orca_test(CTVFTest)
+add_orca_test(CPullUpProjectElementTest)
 add_orca_test(CAggTest)
 add_orca_test(CPruneColumnsTest)
 add_orca_test(CMissingStatsTest)

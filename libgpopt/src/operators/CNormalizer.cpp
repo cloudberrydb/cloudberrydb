@@ -1245,8 +1245,12 @@ CNormalizer::PexprPullUpProjectElements
 
 		// a proj elem can be pulled up only if the defined column is not in
 		// pcrsUsed and its used columns are in pcrOutput
+		// NB we don't pull up projections that call set-returning functions
 		pexprPrEl->AddRef();
-		if (!pcrsUsed->FMember(pcrDefined) && pcrsOutput->FSubset(pcrsUsedByProjElem))
+
+		CDrvdPropScalar *pdpscalar = CDrvdPropScalar::Pdpscalar(pexprPrEl->PdpDerive());
+
+		if (!pcrsUsed->FMember(pcrDefined) && pcrsOutput->FSubset(pcrsUsedByProjElem) && !pdpscalar->FHasNonScalarFunction())
 		{
 			(*ppdrgpexprPrElPullUp)->Append(pexprPrEl);
 		}

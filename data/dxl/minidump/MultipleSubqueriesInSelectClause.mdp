@@ -1166,7 +1166,7 @@
         </dxl:LogicalGet>
       </dxl:LogicalProject>
     </dxl:Query>
-	<dxl:Plan Id="0" SpaceSize="821">
+    <dxl:Plan Id="0" SpaceSize="1441">
       <dxl:Result>
         <dxl:Properties>
           <dxl:Cost StartupCost="0" TotalCost="9342.072976" Rows="3000000.000000" Width="32"/>
@@ -1279,11 +1279,11 @@
                         <dxl:Cost StartupCost="0" TotalCost="0.000011" Rows="1.000000" Width="5"/>
                       </dxl:Properties>
                       <dxl:ProjList>
-                        <dxl:ProjElem ColId="8" Alias="a">
-                          <dxl:Ident ColId="8" ColName="a" TypeMdid="0.23.1.0"/>
-                        </dxl:ProjElem>
                         <dxl:ProjElem ColId="25" Alias="ColRef_0025">
                           <dxl:Ident ColId="25" ColName="ColRef_0025" TypeMdid="0.16.1.0"/>
+                        </dxl:ProjElem>
+                        <dxl:ProjElem ColId="8" Alias="a">
+                          <dxl:Ident ColId="8" ColName="a" TypeMdid="0.23.1.0"/>
                         </dxl:ProjElem>
                       </dxl:ProjList>
                       <dxl:Filter/>
@@ -1292,11 +1292,11 @@
                           <dxl:Cost StartupCost="0" TotalCost="0.000006" Rows="1.000000" Width="5"/>
                         </dxl:Properties>
                         <dxl:ProjList>
-                          <dxl:ProjElem ColId="8" Alias="a">
-                            <dxl:FuncExpr FuncId="0.9255091.1.0" FuncRetSet="true" TypeMdid="0.23.1.0"/>
-                          </dxl:ProjElem>
                           <dxl:ProjElem ColId="25" Alias="ColRef_0025">
                             <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
+                          </dxl:ProjElem>
+                          <dxl:ProjElem ColId="8" Alias="a">
+                            <dxl:FuncExpr FuncId="0.9255091.1.0" FuncRetSet="true" TypeMdid="0.23.1.0"/>
                           </dxl:ProjElem>
                         </dxl:ProjList>
                         <dxl:Filter/>
@@ -1343,11 +1343,11 @@
                         <dxl:Cost StartupCost="0" TotalCost="0.000011" Rows="1.000000" Width="5"/>
                       </dxl:Properties>
                       <dxl:ProjList>
-                        <dxl:ProjElem ColId="11" Alias="b">
-                          <dxl:Ident ColId="11" ColName="b" TypeMdid="0.23.1.0"/>
-                        </dxl:ProjElem>
                         <dxl:ProjElem ColId="26" Alias="ColRef_0026">
                           <dxl:Ident ColId="26" ColName="ColRef_0026" TypeMdid="0.16.1.0"/>
+                        </dxl:ProjElem>
+                        <dxl:ProjElem ColId="11" Alias="b">
+                          <dxl:Ident ColId="11" ColName="b" TypeMdid="0.23.1.0"/>
                         </dxl:ProjElem>
                       </dxl:ProjList>
                       <dxl:Filter/>
@@ -1356,11 +1356,11 @@
                           <dxl:Cost StartupCost="0" TotalCost="0.000006" Rows="1.000000" Width="5"/>
                         </dxl:Properties>
                         <dxl:ProjList>
-                          <dxl:ProjElem ColId="11" Alias="b">
-                            <dxl:FuncExpr FuncId="0.9255091.1.0" FuncRetSet="true" TypeMdid="0.23.1.0"/>
-                          </dxl:ProjElem>
                           <dxl:ProjElem ColId="26" Alias="ColRef_0026">
                             <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
+                          </dxl:ProjElem>
+                          <dxl:ProjElem ColId="11" Alias="b">
+                            <dxl:FuncExpr FuncId="0.9255091.1.0" FuncRetSet="true" TypeMdid="0.23.1.0"/>
                           </dxl:ProjElem>
                         </dxl:ProjList>
                         <dxl:Filter/>
@@ -1407,11 +1407,11 @@
                         <dxl:Cost StartupCost="0" TotalCost="0.000011" Rows="1.000000" Width="5"/>
                       </dxl:Properties>
                       <dxl:ProjList>
-                        <dxl:ProjElem ColId="14" Alias="c">
-                          <dxl:Ident ColId="14" ColName="c" TypeMdid="0.23.1.0"/>
-                        </dxl:ProjElem>
                         <dxl:ProjElem ColId="27" Alias="ColRef_0027">
                           <dxl:Ident ColId="27" ColName="ColRef_0027" TypeMdid="0.16.1.0"/>
+                        </dxl:ProjElem>
+                        <dxl:ProjElem ColId="14" Alias="c">
+                          <dxl:Ident ColId="14" ColName="c" TypeMdid="0.23.1.0"/>
                         </dxl:ProjElem>
                       </dxl:ProjList>
                       <dxl:Filter/>
@@ -1420,11 +1420,11 @@
                           <dxl:Cost StartupCost="0" TotalCost="0.000006" Rows="1.000000" Width="5"/>
                         </dxl:Properties>
                         <dxl:ProjList>
-                          <dxl:ProjElem ColId="14" Alias="c">
-                            <dxl:FuncExpr FuncId="0.9255091.1.0" FuncRetSet="true" TypeMdid="0.23.1.0"/>
-                          </dxl:ProjElem>
                           <dxl:ProjElem ColId="27" Alias="ColRef_0027">
                             <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
+                          </dxl:ProjElem>
+                          <dxl:ProjElem ColId="14" Alias="c">
+                            <dxl:FuncExpr FuncId="0.9255091.1.0" FuncRetSet="true" TypeMdid="0.23.1.0"/>
                           </dxl:ProjElem>
                         </dxl:ProjList>
                         <dxl:Filter/>
