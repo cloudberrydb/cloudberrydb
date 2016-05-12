@@ -92,6 +92,8 @@ struct DummyStruct {
   int int_field;
   bool bool_field;
   double double_field;
+  int int_array_field[5];
+  bool bool_array_field[2];
 };
 
 // A dummy struct with several char fields that map to LLVM's i8 type. Used to
@@ -503,6 +505,7 @@ class CodegenUtilsTest : public ::testing::Test {
     CheckAnnotationsForPointer<const PointedType* const>(annotated_type);
   }
 
+
   // Similar to CheckAllPointerFlavors(), but also checks the lvalue-reference
   // types 'PointedType&' and 'const PointedType&', which should map to the
   // same LLVM pointer type.
@@ -561,6 +564,91 @@ class CodegenUtilsTest : public ::testing::Test {
         EnumType,
         decltype(enum_pointer_check_lambda)>(
             enum_pointer_check_lambda);
+  }
+
+  // Helper method for GetArrayTypeTest. Tests the correct dimensionality for
+  // single and multi dimensional arrays, which is expected to contain elements
+  // of ElementType. The proper ElementType can be checked by a call to the
+  // appropriate ScalarCheckFunctor
+  template <typename ElementType, size_t... Ns, typename ScalarCheckFunctor>
+  void CheckGetMultiDimensionalArray(
+      const llvm::Type* llvm_type,
+      ScalarCheckFunctor check_functor) {
+    std::vector<size_t> dimensions = { Ns... };
+
+    for ( size_t dim : dimensions ) {
+      ASSERT_NE(llvm_type, nullptr);
+      ASSERT_TRUE(llvm_type->isArrayTy());
+      ASSERT_EQ(llvm::dyn_cast<llvm::ArrayType>(
+            llvm_type)->getNumElements(), dim);
+      llvm_type = llvm_type->getArrayElementType();
+    }
+    // Check the correctness of the scalar element type
+    ASSERT_NE(llvm_type, nullptr);
+    check_functor(llvm_type);
+  };
+
+  // Helper method for GetArrayTypeTest. Calls CodegenUtils::GetType() for
+  // one, two and three dimensional arrays of 'ElementType', calling
+  // CodegenUtils::CheckGetMultiDimensionalArray() with appropriate llvm type
+  // and ScalarCheckFunctor.
+  template <typename ElementType, typename ScalarCheckFunctor>
+  void CheckForVariousArrayDimensions(const ScalarCheckFunctor& check_functor) {
+    CheckGetMultiDimensionalArray<ElementType, 5>(
+        codegen_utils_->GetType<ElementType[5]>(),
+        check_functor);
+    CheckGetMultiDimensionalArray<ElementType, 5, 10>(
+        codegen_utils_->GetType<ElementType[5][10]>(),
+        check_functor);
+    CheckGetMultiDimensionalArray<ElementType, 5, 10, 15>(
+        codegen_utils_->GetType<ElementType[5][10][15]>(),
+        check_functor);
+  }
+
+  // Helper method for GetArrayTypeTest. Tests the various different flavors
+  // of an array of 'IntegerType'.
+  template <typename IntegerType>
+  void CheckGetArrayOfIntegersType() {
+    auto integer_check_lambda = [](const llvm::Type* llvm_type) {
+      ASSERT_NE(llvm_type, nullptr);
+      EXPECT_TRUE(llvm_type->isIntegerTy(sizeof(IntegerType) << 3));
+    };
+
+    CheckForVariousArrayDimensions<IntegerType, decltype(integer_check_lambda)>(integer_check_lambda);
+  }
+
+  // Helper method for GetArrayTypeTest. Tests arrays of various flavors
+  // of pointers to 'PointedType'.
+  template <typename PointedType, typename ScalarCheckFunctor>
+  void CheckGetArrayOfPointersType(ScalarCheckFunctor check_functor) {
+    // Pointer flavors
+    CheckForVariousArrayDimensions<PointedType*, decltype(check_functor)>(
+        check_functor);
+    CheckForVariousArrayDimensions<PointedType* const, decltype(check_functor)>(
+        check_functor);
+    CheckForVariousArrayDimensions<const PointedType*, decltype(check_functor)>(
+        check_functor);
+    CheckForVariousArrayDimensions<const PointedType* const, decltype(check_functor)>(
+        check_functor);
+
+    // TODO Add checks for annotated types here
+  }
+
+  // Helper method for GetArrayTypeTest. Tests various different flavors of an
+  // array of 'EnumType', which is expected to map to an array of
+  // 'EquivalentIntegerType'.
+  template <typename EnumType, typename EquivalentIntegerType>
+  void CheckGetArrayOfEnumsType() {
+    auto enum_check_lambda = [this](const llvm::Type* llvm_type) {
+      ASSERT_NE(llvm_type, nullptr);
+      EXPECT_TRUE(llvm_type->isIntegerTy(sizeof(EquivalentIntegerType) << 3));
+
+      llvm::Type* int_llvm_type
+          = codegen_utils_->GetType<EquivalentIntegerType>();
+      EXPECT_EQ(llvm_type, int_llvm_type);
+    };
+
+    CheckForVariousArrayDimensions<EnumType, decltype(enum_check_lambda)>(enum_check_lambda);
   }
 
   // Helper method for GetScalarConstantTest. Tests
@@ -930,6 +1018,46 @@ class CodegenUtilsTest : public ::testing::Test {
         = codegen_utils_->ir_builder()->CreateLoad(member_ptr);
     // Return the loaded value.
     codegen_utils_->ir_builder()->CreateRet(member_value);
+
+    // Check that the accessor function is well-formed. LLVM verification
+    // functions return false if no errors are detected.
+    EXPECT_FALSE(llvm::verifyFunction(*accessor_function));
+  }
+
+  // Helper method for GetPointerToMemberTest for accessing an element of an
+  // array that is a member of structure.  Generates an accessor function that
+  // takes a StructType* pointer and an index into the array and returns the
+  // value of the member variable at the index indicated by
+  // 'pointers_to_members'.
+  template <typename StructType,
+            typename OneDimArrayMemberType,
+            typename... PointerToMemberTypes>
+  void MakeStructArrayMemberElementAccessorFunction(
+      const std::string& function_name,
+      PointerToMemberTypes&&... pointers_to_members) {
+    typedef typename std::remove_extent<OneDimArrayMemberType>::type ElementType;
+    typedef ElementType (*AccessorFn) (const StructType*, size_t index);
+    llvm::Function* accessor_function
+        = codegen_utils_->CreateFunction<AccessorFn>(
+            function_name);
+    llvm::BasicBlock* accessor_function_body
+        = codegen_utils_->CreateBasicBlock("accessor_fn_body",
+                                            accessor_function);
+    codegen_utils_->ir_builder()->SetInsertPoint(accessor_function_body);
+
+    // Get pointer to member that is the array.
+    llvm::Value* array_member_ptr = codegen_utils_->GetPointerToMember(
+        ArgumentByPosition(accessor_function, 0),
+        std::forward<PointerToMemberTypes>(pointers_to_members)...);
+    // Get pointer to the index in that array
+    llvm::Value* element_ptr = codegen_utils_->ir_builder()->CreateGEP(
+        array_member_ptr,
+        { codegen_utils_->GetConstant(0), ArgumentByPosition(accessor_function, 1) });
+    // Actually load the value from the pointer.
+    llvm::Value* element_value
+        = codegen_utils_->ir_builder()->CreateLoad(element_ptr);
+    // Return the loaded value.
+    codegen_utils_->ir_builder()->CreateRet(element_value);
 
     // Check that the accessor function is well-formed. LLVM verification
     // functions return false if no errors are detected.
@@ -1426,6 +1554,121 @@ TEST_F(CodegenUtilsTest, GetPointerTypeTest) {
       Squarer*,
       decltype(pointer_to_pointer_to_void_check_lambda)>(
           pointer_to_pointer_to_void_check_lambda);
+}
+
+TEST_F(CodegenUtilsTest, GetArrayTypeTest) {
+  // Check void*. Void pointers are a special case, because convention in the
+  // LLVM type system is to use i8* (equivalent to char* in C) for all
+  // "untyped" pointers.
+  auto void_pointer_array_check_lambda = [](const llvm::Type* llvm_type) {
+    ASSERT_NE(llvm_type, nullptr);
+    ASSERT_TRUE(llvm_type->isPointerTy());
+    EXPECT_TRUE(llvm_type->getPointerElementType()->isIntegerTy(8));
+  };
+  // Unlike other types, we check only pointers, not references, because there
+  // is no such thing as void&.
+  CheckForVariousArrayDimensions<void*, decltype(void_pointer_array_check_lambda)>(
+      void_pointer_array_check_lambda);
+
+  // Check bool* (bool is represented as i1 in LLVM IR).
+  auto bool_pointer_array_check_lambda = [](const llvm::Type* llvm_type) {
+    ASSERT_NE(llvm_type, nullptr);
+    ASSERT_TRUE(llvm_type->isPointerTy());
+    EXPECT_TRUE(llvm_type->getPointerElementType()->isIntegerTy(1));
+  };
+  CheckForVariousArrayDimensions<
+      bool*,
+      decltype(bool_pointer_array_check_lambda)>(
+          bool_pointer_array_check_lambda);
+
+  // Check float.
+  auto float_array_check_lambda = [](const llvm::Type* llvm_type) {
+    ASSERT_NE(llvm_type, nullptr);
+    EXPECT_TRUE(llvm_type->isFloatTy());
+  };
+  CheckForVariousArrayDimensions<
+      float,
+      decltype(float_array_check_lambda)>(
+          float_array_check_lambda);
+
+  // Check double.
+  auto double_array_check_lambda = [](const llvm::Type* llvm_type) {
+    ASSERT_NE(llvm_type, nullptr);
+    EXPECT_TRUE(llvm_type->isDoubleTy());
+  };
+  CheckForVariousArrayDimensions<
+      double,
+      decltype(double_array_check_lambda)>(
+          double_array_check_lambda);
+
+  // Check arrays of some C built-in integral types.
+  CheckGetArrayOfIntegersType<char>();
+  CheckGetArrayOfIntegersType<short>();      // NOLINT(runtime/int)
+  CheckGetArrayOfIntegersType<int>();
+  CheckGetArrayOfIntegersType<long>();       // NOLINT(runtime/int)
+  CheckGetArrayOfIntegersType<long long>();  // NOLINT(runtime/int)
+
+  // Check arrays of explicitly signed and unsigned versions of int
+  CheckGetArrayOfIntegersType<signed int>();
+  CheckGetArrayOfIntegersType<unsigned int>();
+
+  // Check arrays of cstddef typedefs.
+  CheckGetArrayOfIntegersType<std::size_t>();
+  CheckGetArrayOfIntegersType<std::ptrdiff_t>();
+
+  // Check arrays of enums.
+  CheckGetArrayOfEnumsType<
+      SimpleEnum,
+      std::underlying_type<SimpleEnum>::type>();
+  CheckGetArrayOfEnumsType<StronglyTypedEnumUint64, std::uint64_t>();
+
+  // Check arrays of pointers to structs and classes
+  // Pointers and references to structs and classes get transformed to untyped
+  // pointers (i8* in LLVM, equivalent to void* in C++). We can reuse
+  // 'void_pointer_check_lambda' here.
+  CheckForVariousArrayDimensions<
+      DummyStruct*,
+      decltype(void_pointer_array_check_lambda)>(
+          void_pointer_array_check_lambda);
+  CheckForVariousArrayDimensions<
+      DummyAbstractBaseClass*,
+      decltype(void_pointer_array_check_lambda)>(
+          void_pointer_array_check_lambda);
+  CheckForVariousArrayDimensions<
+      Squarer*,
+      decltype(void_pointer_array_check_lambda)>(
+          void_pointer_array_check_lambda);
+
+  // Check arrays of various flavors of pointers to integers
+  auto int_pointer_check_lambda = [](const llvm::Type* llvm_type) {
+    ASSERT_NE(llvm_type, nullptr);
+    EXPECT_TRUE(llvm_type->isPointerTy());
+    EXPECT_TRUE(llvm_type->getPointerElementType()->isIntegerTy(sizeof(int) << 3));
+  };
+  CheckGetArrayOfPointersType<int>(int_pointer_check_lambda);
+
+  // Check arrays of various flavors of pointers to pointers to integers
+  auto char_pointer_to_pointer_check_lambda = [](const llvm::Type* llvm_type) {
+    ASSERT_NE(llvm_type, nullptr);
+    EXPECT_TRUE(llvm_type->isPointerTy());
+    EXPECT_TRUE(llvm_type->getPointerElementType()->isPointerTy());
+    EXPECT_TRUE(llvm_type->getPointerElementType()->
+        getPointerElementType()->isIntegerTy(sizeof(char) << 3));
+  };
+  CheckGetArrayOfPointersType<char*>(char_pointer_to_pointer_check_lambda);
+
+  // Check pointers to arrays
+  auto int_pointer_to_array_of_ints_check_lambda = [](
+      const llvm::Type* llvm_type) {
+    ASSERT_NE(llvm_type, nullptr);
+    EXPECT_TRUE(llvm_type->isPointerTy());
+    EXPECT_TRUE(llvm_type->getPointerElementType()->isArrayTy());
+    ASSERT_EQ(llvm::dyn_cast<llvm::ArrayType>(
+        llvm_type->getPointerElementType())->getNumElements(), 5);
+    EXPECT_TRUE(llvm_type->getPointerElementType()->
+        getArrayElementType()->isIntegerTy(sizeof(int) << 3));
+  };
+  int_pointer_to_array_of_ints_check_lambda(codegen_utils_->GetType<int (*) [5]>());
 }
 
 TEST_F(CodegenUtilsTest, GetScalarConstantTest) {
@@ -2271,6 +2514,14 @@ TEST_F(CodegenUtilsTest, GetPointerToMemberTest) {
   MakeStructMemberAccessorFunction<DummyStruct, double>(
       "Get_DummyStruct::double_field",
       &DummyStruct::double_field);
+  MakeStructArrayMemberElementAccessorFunction<DummyStruct, int[5]>(
+      "Get_DummyStruct::int_array_field",
+      &DummyStruct::int_array_field);
+  // Special case for a boolean array
+  MakeStructArrayMemberElementAccessorFunction<DummyStruct, char[5]>(
+      "Get_DummyStruct::bool_array_field",
+      reinterpret_cast<char (DummyStruct::*) [5]> (
+        &DummyStruct::bool_array_field));
 
   // Check that module is well-formed, then compile.
   EXPECT_FALSE(llvm::verifyModule(*codegen_utils_->module()));
@@ -2293,22 +2544,50 @@ TEST_F(CodegenUtilsTest, GetPointerToMemberTest) {
       decltype(Get_DummyStruct_double_field)>("Get_DummyStruct::double_field");
   ASSERT_NE(Get_DummyStruct_double_field, nullptr);
 
+  int (*Get_DummyStruct_int_array_field)(const DummyStruct*, size_t index)
+      = codegen_utils_->GetFunctionPointer<
+      decltype(Get_DummyStruct_int_array_field)>("Get_DummyStruct::int_array_field");
+  ASSERT_NE(Get_DummyStruct_int_array_field, nullptr);
+
+  // Although LLVM uses i1 to represent a boolean value, regard an array of bools
+  // as equivalent to an array of chars to preserve the size from C++ and make
+  // offset calculations using GEP easy.
+  char (*Get_DummyStruct_bool_array_field)(const DummyStruct*, size_t index)
+      = codegen_utils_->GetFunctionPointer<
+      decltype(Get_DummyStruct_bool_array_field)>("Get_DummyStruct::bool_array_field");
+  ASSERT_NE(Get_DummyStruct_bool_array_field, nullptr);
+
   // Call generated accessor function and make sure they read values from the
   // passed-in struct pointer properly.
-  DummyStruct test_struct{42, true, -12.34};
+  DummyStruct test_struct{42, true, -12.34, {1, 2, 3, 4, 5}, {true, false} };
 
   EXPECT_EQ(42, (*Get_DummyStruct_int_field)(&test_struct));
   EXPECT_EQ(true, (*Get_DummyStruct_bool_field)(&test_struct));
   EXPECT_EQ(-12.34, (*Get_DummyStruct_double_field)(&test_struct));
+  EXPECT_EQ(1, (*Get_DummyStruct_int_array_field)(&test_struct, 0));
+  EXPECT_EQ(3, (*Get_DummyStruct_int_array_field)(&test_struct, 2));
+  EXPECT_EQ(5, (*Get_DummyStruct_int_array_field)(&test_struct, 4));
+  EXPECT_TRUE((*Get_DummyStruct_bool_array_field)(&test_struct, 0));
+  EXPECT_FALSE((*Get_DummyStruct_bool_array_field)(&test_struct, 1));
 
   // Modify and read again.
   test_struct.int_field = -123;
   test_struct.bool_field = false;
   test_struct.double_field = 1e100;
+  test_struct.int_array_field[0] = 56;
+  test_struct.int_array_field[1] = 58;
+  test_struct.int_array_field[3] = 55;
+  test_struct.bool_array_field[0] = false;
+  test_struct.bool_array_field[1] = true;
 
   EXPECT_EQ(-123, (*Get_DummyStruct_int_field)(&test_struct));
   EXPECT_FALSE((*Get_DummyStruct_bool_field)(&test_struct));
   EXPECT_EQ(1e100, (*Get_DummyStruct_double_field)(&test_struct));
+  EXPECT_EQ(56, (*Get_DummyStruct_int_array_field)(&test_struct, 0));
+  EXPECT_EQ(58, (*Get_DummyStruct_int_array_field)(&test_struct, 1));
+  EXPECT_EQ(55, (*Get_DummyStruct_int_array_field)(&test_struct, 3));
+  EXPECT_FALSE((*Get_DummyStruct_bool_array_field)(&test_struct, 0));
+  EXPECT_TRUE((*Get_DummyStruct_bool_array_field)(&test_struct, 1));
 }
 
 TEST_F(CodegenUtilsTest, OptimizationTest) {
