@@ -131,7 +131,6 @@ static void recoverTM(void);
 static bool recoverInDoubtTransactions(void);
 static HTAB *gatherRMInDoubtTransactions(void);
 static void abortRMInDoubtTransactions(HTAB *htab);
-static void cleanRMResultSets(PGresult **pgresultSets);
 
 static void dumpAllDtx(void);
 /* static void resolveInDoubtDtx(void); */
@@ -2286,7 +2285,9 @@ doDispatchDtxProtocolCommand(DtxProtocolCommand dtxProtocolCommand, int flags,
 	pfree(errbuf.data);
 
 	/* Now we clean up the results array. */
-	cleanRMResultSets(results);
+	for (i = 0; i < resultCount; i++)
+		PQclear(results[i]);
+	free(results);
 
 	return (numOfFailed == 0);
 }
@@ -2356,7 +2357,9 @@ dispatchDtxCommand(const char *cmd, bool withSnapshot, bool raiseError)
 	pfree(errbuf.data);
 
 	/* Now we clean up the results array. */
-	cleanRMResultSets(results);
+	for (i = 0; i < resultCount; i++)
+		PQclear(results[i]);
+	free(results);
 
 	return (numOfFailed == 0);
 }
@@ -3408,7 +3411,6 @@ determineSegmentMaxDistributedXid(void)
 
 	for (i = 0; i < resultCount; i++)
 		PQclear(results[i]);
-
 	free(results);
 
 	return max;
@@ -3427,16 +3429,17 @@ determineSegmentMaxDistributedXid(void)
 static HTAB *
 gatherRMInDoubtTransactions(void)
 {
-	PGresult  **pgresultSets = NULL;
+	PGresult  **pgresultSets;
+	int			nresultSets;
 	StringInfoData errmsgbuf;
 	const char *cmdbuf = "select gid from pg_prepared_xacts";
-	PGresult  **rs;
+	PGresult   *rs;
 
 	InDoubtDtx *lastDtx = NULL;
 
 	HASHCTL		hctl;
 	HTAB	   *htab = NULL;
-
+	int			i;
 	int			j,
 				rows;
 	bool		found;
@@ -3445,7 +3448,7 @@ gatherRMInDoubtTransactions(void)
 
 	/* call to all QE to get in-doubt transactions */
 	pgresultSets = cdbdisp_dispatchRMCommand(cmdbuf, /* withSnapshot */false,
-											 &errmsgbuf, NULL);
+											 &errmsgbuf, &nresultSets);
 
 	/* display error messages */
 	if (errmsgbuf.len > 0)
@@ -3464,9 +3467,10 @@ gatherRMInDoubtTransactions(void)
 	pfree(errmsgbuf.data);
 
 	/* If any result set is nonempty, there are in-doubt transactions. */
-	for (rs = pgresultSets; *rs; ++rs)
+	for (i = 0; i < nresultSets; i++)
 	{
-		rows = PQntuples(*rs);
+		rs  = pgresultSets[i];
+		rows = PQntuples(rs);
 
 		for (j = 0; j < rows; j++)
 		{
@@ -3492,7 +3496,7 @@ gatherRMInDoubtTransactions(void)
 				}
 			}
 
-			gid = PQgetvalue(*rs, j, 0);
+			gid = PQgetvalue(rs, j, 0);
 
 			/* Now we can add entry to hash table */
 			lastDtx = (InDoubtDtx *) hash_search(htab, gid, HASH_ENTER, &found);
@@ -3511,7 +3515,9 @@ gatherRMInDoubtTransactions(void)
 		}
 	}
 
-	cleanRMResultSets(pgresultSets);
+	for (i = 0; i < nresultSets; i++)
+		PQclear(pgresultSets[i]);
+	free(pgresultSets);
 
 	return htab;
 }
@@ -3575,27 +3581,6 @@ abortRMInDoubtTransactions(HTAB *htab)
 		doAbortInDoubt(entry->gid);
 
 	}
-}
-
-/*
- * cleanRMResultSets:
- * Goes the set of PGresults passed in and clears and frees them.
- */
-static void
-cleanRMResultSets(PGresult **pgresultSets)
-{
-	/* TODO: need to handle multiple dbs in a segment case */
-	/*
-	 int tolaldbs = CdbClusterDefinition->segment_count * CdbClusterDefinition->db_count;
-	 */
-	int			i = 0;
-	PGresult   *rs = pgresultSets[0];
-
-	do
-	{
-		PQclear(rs);
-	} while ((rs = pgresultSets[++i]) != NULL);
-	free(pgresultSets);
 }
 
 /*

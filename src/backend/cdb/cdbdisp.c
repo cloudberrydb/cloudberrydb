@@ -658,7 +658,6 @@ cdbdisp_returnResults(CdbDispatchResults *primaryResults,
 					  StringInfo errmsgbuf,
 					  int *numresults)
 {
-	CdbDispatchResults *gangResults;
 	CdbDispatchResult *dispatchResult;
 	PGresult  **resultSets = NULL;
 	int			nslots;
@@ -667,12 +666,15 @@ cdbdisp_returnResults(CdbDispatchResults *primaryResults,
 	int			totalResultCount=0;
 
 	/*
-	 * Allocate result set ptr array. Make room for one PGresult ptr per
-	 * primary segment db, plus a null terminator slot after the
-	 * last entry. The caller must PQclear() each PGresult and free() the
-	 * array.
+	 * Allocate result set ptr array. The caller must PQclear() each PGresult
+	 * and free() the array.
 	 */
-	nslots = 2 * largestGangsize() + 1;
+	nslots = 0;
+	if (primaryResults)
+	{
+		for (i = 0; i < primaryResults->resultCount; ++i)
+			nslots += cdbdisp_numPGresult(&primaryResults->resultArray[i]);
+	}
 	resultSets = (struct pg_result **)calloc(nslots, sizeof(*resultSets));
 
 	if (!resultSets)
@@ -680,14 +682,13 @@ cdbdisp_returnResults(CdbDispatchResults *primaryResults,
 						errmsg("cdbdisp_returnResults failed: out of memory")));
 
 	/* Collect results from primary gang. */
-	gangResults = primaryResults;
-	if (gangResults)
+	if (primaryResults)
 	{
-		totalResultCount = gangResults->resultCount;
+		totalResultCount = primaryResults->resultCount;
 
-		for (i = 0; i < gangResults->resultCount; ++i)
+		for (i = 0; i < primaryResults->resultCount; ++i)
 		{
-			dispatchResult = &gangResults->resultArray[i];
+			dispatchResult = &primaryResults->resultArray[i];
 
 			/* Append error messages to caller's buffer. */
 			cdbdisp_dumpDispatchResult(dispatchResult, false, errmsgbuf);
@@ -695,17 +696,13 @@ cdbdisp_returnResults(CdbDispatchResults *primaryResults,
 			/* Take ownership of this QE's PGresult object(s). */
 			nresults += cdbdisp_snatchPGresults(dispatchResult,
 												resultSets + nresults,
-												nslots - nresults - 1);
+												nslots - nresults);
 		}
 	}
+	Assert(nresults == nslots);
 
-	/* Put a stopper at the end of the array. */
-	Assert(nresults < nslots);
-	resultSets[nresults] = NULL;
-
-	/* If our caller is interested, tell them how many sets we're returning. */
-	if (numresults != NULL)
-		*numresults = totalResultCount;
+	/* tell the caller how many sets we're returning. */
+	*numresults = totalResultCount;
 
 	return resultSets;
 }
@@ -715,7 +712,6 @@ cdbdisp_returnResults(CdbDispatchResults *primaryResults,
  *
  * Returns a malloc'ed array containing the PGresult objects thus
  * produced; the caller must PQclear() them and free() the array.
- * A NULL entry follows the last used entry in the array.
  *
  * Any error messages - whether or not they are associated with
  * PGresult objects - are appended to a StringInfo buffer provided
