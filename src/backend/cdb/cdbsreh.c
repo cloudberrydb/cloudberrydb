@@ -868,7 +868,7 @@ gp_read_error_log(PG_FUNCTION_ARGS)
 			PQclear(context->segResults[i]);
 
 		/* XXX: better to copy to palloc'ed area */
-		free(context->segResults[i]);
+		free(context->segResults);
 	}
 
 	/*
