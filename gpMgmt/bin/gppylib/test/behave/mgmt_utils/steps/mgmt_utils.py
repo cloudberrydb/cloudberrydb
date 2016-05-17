@@ -626,7 +626,7 @@ def impl(context, dbname, dir):
             command = '%s -f %s > %s' % (dbconn_dest, os.path.join(dir, file), out_file_path)
             run_command(context, command)
             
-            gpdiff_cmd = 'gpdiff.pl -w -I NOTICE: -I HINT: -I CONTEXT: -I GP_IGNORE: --gp_init_file=gppylib/test/behave/mgmt_utils/steps/data/global_init_file %s %s > %s' % (ans_file_path, out_file_path, diff_file_path)
+            gpdiff_cmd = 'gpdiff.pl -w -I NOTICE: -I HINT: -I CONTEXT: -I GP_IGNORE: --gpd_init=gppylib/test/behave/mgmt_utils/steps/data/global_init_file %s %s > %s' % (ans_file_path, out_file_path, diff_file_path)
             run_command(context, gpdiff_cmd)
             if context.ret_code != 0:
                 raise Exception ("Found difference between source and destination system, see %s" % file)
@@ -645,7 +645,7 @@ def impl(context, dir):
             command = '%s -f %s > %s'%(dbconn, os.path.join(dir,file), out_file_path)
             run_command(context, command)
      
-            gpdiff_cmd = 'gpdiff.pl -w  -I NOTICE: -I HINT: -I CONTEXT: -I GP_IGNORE: --gp_init_file=gppylib/test/behave/mgmt_utils/steps/data/global_init_file %s %s > %s'%(ans_file_path, out_file_path, diff_file_path)          
+            gpdiff_cmd = 'gpdiff.pl -w  -I NOTICE: -I HINT: -I CONTEXT: -I GP_IGNORE: --gpd_init=gppylib/test/behave/mgmt_utils/steps/data/global_init_file %s %s > %s'%(ans_file_path, out_file_path, diff_file_path)          
             run_command(context, gpdiff_cmd)
     for file in os.listdir(dir):
         if file.endswith('.diff') and os.path.getsize(os.path.join(dir,file)) > 0:
