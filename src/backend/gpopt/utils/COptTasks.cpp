@@ -26,7 +26,6 @@
 #include "gpopt/translate/CTranslatorUtils.h"
 #include "gpopt/translate/CTranslatorQueryToDXL.h"
 #include "gpopt/translate/CTranslatorDXLToPlStmt.h"
-#include "gpopt/translate/CTranslatorDXLToQuery.h"
 #include "gpopt/translate/CContextDXLToPlStmt.h"
 #include "gpopt/translate/CTranslatorRelcacheToDXL.h"
 #include "gpopt/eval/CConstExprEvaluatorDXL.h"
@@ -1301,66 +1300,6 @@ COptTasks::PvPlstmtFromDXLTask
 	return NULL;
 }
 
-
-//---------------------------------------------------------------------------
-//	@function:
-//		COptTasks::PvQueryFromDXLTask
-//
-//	@doc:
-//		task that does the translation from xml to dxl to pquery
-//
-//---------------------------------------------------------------------------
-void*
-COptTasks::PvQueryFromDXLTask
-	(
-	void *pv
-	)
-{
-	GPOS_ASSERT(NULL != pv);
-
-	SOptContext *poctx = SOptContext::PoptctxtConvert(pv);
-
-	GPOS_ASSERT(NULL == poctx->m_pquery);
-	GPOS_ASSERT(NULL != poctx->m_szQueryDXL);
-
-	AUTO_MEM_POOL(amp);
-	IMemoryPool *pmp = amp.Pmp();
-
-	CWStringDynamic str(pmp);
-	COstreamString oss(&str);
-
-	// parse the DXL
-	CQueryToDXLResult *ptroutput = CDXLUtils::PdxlnParseDXLQuery(pmp, poctx->m_szQueryDXL, NULL);
-
-	GPOS_ASSERT(NULL != ptroutput->Pdxln());
-
-	// relcache MD provider
-	CMDProviderRelcache *pmdpr = GPOS_NEW(pmp) CMDProviderRelcache(pmp);
-
-	{
-		CAutoMDAccessor amda(pmp, pmdpr, sysidDefault);
-
-		// initialize hash table that maintains the mapping between ColId and Var
-		TEMap *ptemap = GPOS_NEW(pmp) TEMap(pmp);
-
-		CTranslatorDXLToQuery trdxlquery(pmp, amda.Pmda(), gpdb::UlSegmentCountGP());
-		CStateDXLToQuery statedxltoquery(pmp);
-
-		Query *pquery = trdxlquery.PqueryFromDXL(ptroutput->Pdxln(), ptroutput->PdrgpdxlnOutputCols(), &statedxltoquery, ptemap, GPDXL_QUERY_LEVEL);
-
-		CRefCount::SafeRelease(ptemap);
-		GPOS_DELETE(ptroutput);
-
-		GPOS_ASSERT(NULL != pquery);
-		GPOS_ASSERT(NULL != CurrentMemoryContext);
-
-		poctx->m_pquery = pquery;
-	}
-
-	return NULL;
-}
-
-
 //---------------------------------------------------------------------------
 //	@function:
 //		COptTasks::PvDXLFromMDObjsTask
@@ -1721,33 +1660,6 @@ COptTasks::SzDXL
 	octx.Free(octx.epinQuery, octx.epinQueryDXL);
 
 	return octx.m_szQueryDXL;
-}
-
-
-//---------------------------------------------------------------------------
-//	@function:
-//		COptTasks::PqueryFromXML
-//
-//	@doc:
-//		deserializes query from DXL
-//
-//---------------------------------------------------------------------------
-Query *
-COptTasks::PqueryFromXML
-	(
-	char *szDXL
-	)
-{
-	Assert(NULL != szDXL);
-
-	SOptContext octx;
-	octx.m_szQueryDXL = szDXL;
-	Execute(&PvQueryFromDXLTask, &octx);
-
-	// clean up context
-	octx.Free(octx.epinQueryDXL, octx.epinQuery);
-
-	return (Query *) octx.m_pquery;
 }
 
 
