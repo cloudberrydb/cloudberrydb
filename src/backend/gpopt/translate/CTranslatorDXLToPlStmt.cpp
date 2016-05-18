@@ -1087,10 +1087,8 @@ CTranslatorDXLToPlStmt::PtsFromDXLTblScan
 	Index iRel = gpdb::UlListLength(m_pctxdxltoplstmt->PlPrte()) + 1;
 
 	const CDXLTableDescr *pdxltabdesc = pdxlopTS->Pdxltabdesc();
-	
 	const IMDRelation *pmdrel = m_pmda->Pmdrel(pdxltabdesc->Pmdid());
-	const ULONG ulRelCols = pmdrel->UlColumns() - pmdrel->UlSystemColumns();
-	RangeTblEntry *prte = PrteFromTblDescr(pdxltabdesc, NULL /*pdxlid*/, ulRelCols, iRel, &dxltrctxbt);
+	RangeTblEntry *prte = PrteFromTblDescr(pdxltabdesc, NULL /*pdxlid*/, iRel, &dxltrctxbt);
 	GPOS_ASSERT(NULL != prte);
 	prte->requiredPerms |= ACL_SELECT;
 	m_pctxdxltoplstmt->AddRTE(prte);
@@ -1289,8 +1287,8 @@ CTranslatorDXLToPlStmt::PisFromDXLIndexScan
 	}
 
 	const IMDRelation *pmdrel = m_pmda->Pmdrel(pdxlopIndexScan->Pdxltabdesc()->Pmdid());
-	const ULONG ulRelCols = pmdrel->UlColumns() - pmdrel->UlSystemColumns();
-	RangeTblEntry *prte = PrteFromTblDescr(pdxlopIndexScan->Pdxltabdesc(), pdxlid, ulRelCols, iRel, &dxltrctxbt);
+
+	RangeTblEntry *prte = PrteFromTblDescr(pdxlopIndexScan->Pdxltabdesc(), pdxlid, iRel, &dxltrctxbt);
 	GPOS_ASSERT(NULL != prte);
 	prte->requiredPerms |= ACL_SELECT;
 	m_pctxdxltoplstmt->AddRTE(prte);
@@ -4216,10 +4214,7 @@ CTranslatorDXLToPlStmt::PplanDTS
 	// add the new range table entry as the last element of the range table
 	Index iRel = gpdb::UlListLength(m_pctxdxltoplstmt->PlPrte()) + 1;
 
-	const IMDRelation *pmdrel = m_pmda->Pmdrel(pdxlop->Pdxltabdesc()->Pmdid());
-	const ULONG ulRelCols = pmdrel->UlColumns() - pmdrel->UlSystemColumns();
-	
-	RangeTblEntry *prte = PrteFromTblDescr(pdxlop->Pdxltabdesc(), NULL /*pdxlid*/, ulRelCols, iRel, &dxltrctxbt);
+	RangeTblEntry *prte = PrteFromTblDescr(pdxlop->Pdxltabdesc(), NULL /*pdxlid*/, iRel, &dxltrctxbt);
 	GPOS_ASSERT(NULL != prte);
 	prte->requiredPerms |= ACL_SELECT;
 
@@ -4295,9 +4290,7 @@ CTranslatorDXLToPlStmt::PplanDIS
 	Index iRel = gpdb::UlListLength(m_pctxdxltoplstmt->PlPrte()) + 1;
 
 	const IMDRelation *pmdrel = m_pmda->Pmdrel(pdxlop->Pdxltabdesc()->Pmdid());
-	const ULONG ulRelCols = pmdrel->UlColumns() - pmdrel->UlSystemColumns();
-
-	RangeTblEntry *prte = PrteFromTblDescr(pdxlop->Pdxltabdesc(), NULL /*pdxlid*/, ulRelCols, iRel, &dxltrctxbt);
+	RangeTblEntry *prte = PrteFromTblDescr(pdxlop->Pdxltabdesc(), NULL /*pdxlid*/, iRel, &dxltrctxbt);
 	GPOS_ASSERT(NULL != prte);
 	prte->requiredPerms |= ACL_SELECT;
 	m_pctxdxltoplstmt->AddRTE(prte);
@@ -4457,10 +4450,9 @@ CTranslatorDXLToPlStmt::PplanDML
 	m_plResultRelations = gpdb::PlAppendInt(m_plResultRelations, iRel);
 
 	const IMDRelation *pmdrel = m_pmda->Pmdrel(pdxlop->Pdxltabdesc()->Pmdid());
-	const ULONG ulRelCols = pmdrel->UlColumns() - pmdrel->UlSystemColumns();
 
 	CDXLTableDescr *pdxltabdesc = pdxlop->Pdxltabdesc();
-	RangeTblEntry *prte = PrteFromTblDescr(pdxltabdesc, NULL /*pdxlid*/, ulRelCols, iRel, &dxltrctxbt);
+	RangeTblEntry *prte = PrteFromTblDescr(pdxltabdesc, NULL /*pdxlid*/, iRel, &dxltrctxbt);
 	GPOS_ASSERT(NULL != prte);
 	prte->requiredPerms |= aclmode;
 	m_pctxdxltoplstmt->AddRTE(prte);
@@ -4922,11 +4914,15 @@ CTranslatorDXLToPlStmt::PrteFromTblDescr
 	(
 	const CDXLTableDescr *pdxltabdesc,
 	const CDXLIndexDescr *pdxlid, // should be NULL unless we have an index-only scan
-	ULONG ulRelColumns,
 	Index iRel,
 	CDXLTranslateContextBaseTable *pdxltrctxbtOut
 	)
 {
+	GPOS_ASSERT(NULL != pdxltabdesc);
+
+	const IMDRelation *pmdrel = m_pmda->Pmdrel(pdxltabdesc->Pmdid());
+	const ULONG ulRelColumns = CTranslatorUtils::UlNonSystemColumns(pmdrel);
+
 	RangeTblEntry *prte = MakeNode(RangeTblEntry);
 	prte->rtekind = RTE_RELATION;
 
@@ -5972,9 +5968,8 @@ CTranslatorDXLToPlStmt::PplanBitmapTableScan
 	Index iRel = gpdb::UlListLength(m_pctxdxltoplstmt->PlPrte()) + 1;
 
 	const IMDRelation *pmdrel = m_pmda->Pmdrel(pdxltabdesc->Pmdid());
-	const ULONG ulRelCols = pmdrel->UlColumns() - pmdrel->UlSystemColumns();
 
-	RangeTblEntry *prte = PrteFromTblDescr(pdxltabdesc, NULL /*pdxlid*/, ulRelCols, iRel, &dxltrctxbt);
+	RangeTblEntry *prte = PrteFromTblDescr(pdxltabdesc, NULL /*pdxlid*/, iRel, &dxltrctxbt);
 	GPOS_ASSERT(NULL != prte);
 	prte->requiredPerms |= ACL_SELECT;
 

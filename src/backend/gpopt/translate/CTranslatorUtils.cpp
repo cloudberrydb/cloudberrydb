@@ -811,7 +811,7 @@ CTranslatorUtils::PdrgdxlcdComposite
 
 	for (ULONG ul = 0; ul < pdrgPmdCol->UlLength(); ul++)
 	{
-		CMDColumn *pmdcol = (*pdrgPmdCol)[ul];
+		IMDColumn *pmdcol = (*pdrgPmdCol)[ul];
 
 		CMDName *pmdColName = GPOS_NEW(pmp) CMDName(pmp, pmdcol->Mdname().Pstr());
 		IMDId *pmdidColType = pmdcol->PmdidType();
@@ -3074,5 +3074,36 @@ CTranslatorUtils::PlAssertErrorMsgs
 	return plErrorMsgs;
 }
 
+//---------------------------------------------------------------------------
+//	@function:
+//		CTranslatorUtils::UlNonSystemColumns
+//
+//	@doc:
+//		Return the count of non-system columns in the relation
+//
+//---------------------------------------------------------------------------
+ULONG
+CTranslatorUtils::UlNonSystemColumns
+	(
+	const IMDRelation *pmdrel
+	)
+{
+	GPOS_ASSERT(NULL != pmdrel);
+
+	ULONG ulNonSystemCols = 0;
+
+	const ULONG ulCols = pmdrel->UlColumns();
+	for (ULONG ul = 0; ul < ulCols; ul++)
+	{
+		const IMDColumn *pmdcol  = pmdrel->Pmdcol(ul);
+
+		if (!pmdcol->FSystemColumn())
+		{
+			ulNonSystemCols++;
+		}
+	}
+
+	return ulNonSystemCols;
+}
 
 // EOF

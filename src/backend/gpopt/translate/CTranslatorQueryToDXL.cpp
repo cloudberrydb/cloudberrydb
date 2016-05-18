@@ -686,14 +686,15 @@ CTranslatorQueryToDXL::PdxlnInsert()
 		GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiQuery2DXLUnsupportedFeature, GPOS_WSZ_LIT("INSERT with constraints"));
 	}
 	
-	const ULONG ulLenTblCols = pmdrel->UlColumns() - pmdrel->UlSystemColumns();
+	const ULONG ulLenTblCols = CTranslatorUtils::UlNonSystemColumns(pmdrel);
 	const ULONG ulLenTL = gpdb::UlListLength(m_pquery->targetList);
 	GPOS_ASSERT(ulLenTblCols >= ulLenTL);
 	GPOS_ASSERT(ulLenTL == m_pdrgpdxlnQueryOutput->UlLength());
 
 	CDXLNode *pdxlnPrL = NULL;
 	
-	const ULONG ulLenNonDroppedCols = pmdrel->UlNonDroppedCols() - pmdrel->UlSystemColumns();
+	const ULONG ulSystemCols = pmdrel->UlColumns() - ulLenTblCols;
+	const ULONG ulLenNonDroppedCols = pmdrel->UlNonDroppedCols() - ulSystemCols;
 	if (ulLenNonDroppedCols > ulLenTL)
 	{
 		// missing target list entries

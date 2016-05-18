@@ -461,6 +461,10 @@ namespace gpdxl
 			// translate the list of error messages from an assert constraint list
 			static 
 			List *PlAssertErrorMsgs(CDXLNode *pdxlnAssertConstraintList);
+
+			// return the count of non-system columns in the relation
+			static
+			ULONG UlNonSystemColumns(const IMDRelation *pmdrel);
 	};
 }
 
