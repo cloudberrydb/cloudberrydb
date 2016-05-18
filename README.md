@@ -176,7 +176,7 @@ your system.
 ```
 # Configure build environment to install at /usr/local/gpdb
 # Enable CODEGEN
-./configure --enable-codegen --prefix=/usr/local/gpdb --with-codegen-prefix="/path/to/llvm;/path/to/clang
+./configure --enable-codegen --prefix=/usr/local/gpdb --with-codegen-prefix="/path/to/llvm;/path/to/clang"
 ```
 
 ## Regression tests
