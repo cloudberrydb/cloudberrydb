@@ -17,6 +17,8 @@
 #include "codegen/utils/codegen_utils.h"
 #include "codegen/codegen_interface.h"
 
+#include "llvm/IR/Function.h"
+
 namespace gpcodegen {
 
 /** \addtogroup gpcodegen
@@ -43,6 +45,16 @@ class BaseCodegen: public CodegenInterface {
 
   bool GenerateCode(gpcodegen::CodegenUtils* codegen_utils) final {
     is_generated_ = GenerateCodeInternal(codegen_utils);
+    if (!is_generated_) {
+      // If failed to generate, make sure we do clean up
+      // by erasing all the llvm functions.
+      for (llvm::Function* function : uncompiled_generated_functions_) {
+        assert(nullptr != function);
+        function->eraseFromParent();
+      }
+    }
+    // We don't need to keep these pointers any more
+    std::vector<llvm::Function*>().swap(uncompiled_generated_functions_);
     return is_generated_;
   }
 
@@ -147,12 +159,39 @@ class BaseCodegen: public CodegenInterface {
    **/
   virtual bool GenerateCodeInternal(gpcodegen::CodegenUtils* codegen_utils) = 0;
 
+  /**
+   * @brief Create llvm Function for given type and store the function pointer
+   *        in vector
+   *
+   * @note  If generation fails, this class takes responsibility to clean up all
+   *        the functions it created
+   *
+   * @tparam FunctionType Type of the function to create
+   *
+   * @param codegen_utils Utility to ease the code generation process.
+   * @param function_name Name of the function to create
+   * @return llvm::Function pointer
+   **/
+  template <typename FunctionType>
+  llvm::Function* CreateFunction(gpcodegen::CodegenUtils* codegen_utils,
+                                 const std::string& function_name) {
+    assert(nullptr != codegen_utils);
+    llvm::Function* function = codegen_utils->CreateFunction<FunctionType>(
+        function_name);
+    assert(nullptr != function);
+    uncompiled_generated_functions_.push_back(function);
+    return function;
+  }
+
  private:
   std::string orig_func_name_;
   std::string unique_func_name_;
   FuncPtrType regular_func_ptr_;
   FuncPtrType* ptr_to_chosen_func_ptr_;
   bool is_generated_;
+  // To track uncompiled llvm functions it creates and erase from
+  // llvm module on failed generations.
+  std::vector<llvm::Function*> uncompiled_generated_functions_;
 };
 /** @} */
 }  // namespace gpcodegen
