@@ -71,10 +71,6 @@ namespace gpmd
 			// length of the column
 			virtual ULONG UlLength() const = 0;
 
-			// serialize metadata object in DXL format given a serializer object
-			virtual
-			void Serialize(gpdxl::CXMLSerializer *) const = 0;
-
 #ifdef GPOS_DEBUG
 			// debug print of the column
 			virtual 
@@ -83,8 +79,11 @@ namespace gpmd
 	};
 
 	// IMDColumn array
-	typedef CDynamicPtrArray<IMDColumn, CleanupRelease> DrgPmdcol;
+//	typedef CDynamicPtrArray<IMDColumn, CleanupRelease> DrgPmdcol;
+
 }
+
+
 
 #endif // !GPMD_IMDColumn_H
 

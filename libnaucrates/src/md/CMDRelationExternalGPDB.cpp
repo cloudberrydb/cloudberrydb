@@ -17,7 +17,6 @@
 //---------------------------------------------------------------------------
 
 #include "naucrates/md/CMDRelationExternalGPDB.h"
-#include "naucrates/md/CMDUtilsGPDB.h"
 #include "naucrates/dxl/xml/CXMLSerializer.h"
 #include "naucrates/dxl/CDXLUtils.h"
 
@@ -65,6 +64,7 @@ CMDRelationExternalGPDB::CMDRelationExternalGPDB
 	m_iRejectLimit(iRejectLimit),
 	m_fRejLimitInRows(fRejLimitInRows),
 	m_pmdidFmtErrRel(pmdidFmtErrRel),
+	m_ulSystemColumns(0),
 	m_phmululNonDroppedCols(NULL),
 	m_phmiulAttno2Pos(NULL),
 	m_pdrgpulNonDroppedCols(NULL)
@@ -82,9 +82,39 @@ CMDRelationExternalGPDB::CMDRelationExternalGPDB
 	m_phmiulAttno2Pos = GPOS_NEW(m_pmp) HMIUl(m_pmp);
 	m_pdrgpulNonDroppedCols = GPOS_NEW(m_pmp) DrgPul(m_pmp);
 	
-	CMDUtilsGPDB::InitializeMDColInfo(pmp, pdrgpmdcol, m_phmiulAttno2Pos, m_pdrgpulNonDroppedCols, m_phmululNonDroppedCols);
-	m_ulDroppedCols = m_pdrgpulNonDroppedCols->UlLength();
+	ULONG ulPosNonDropped = 0;
+	const ULONG ulArity = pdrgpmdcol->UlLength();
+	for (ULONG ul = 0; ul < ulArity; ul++)
+	{
+		IMDColumn *pmdcol = (*pdrgpmdcol)[ul];
 
+		BOOL fSystemCol = pmdcol->FSystemColumn();
+		if (fSystemCol)
+		{
+			m_ulSystemColumns++;
+		}
+		
+		if (pmdcol->FDropped())
+		{
+			m_ulDroppedCols++;
+		}
+		else		
+		{
+			if (!fSystemCol)
+			{
+				m_pdrgpulNonDroppedCols->Append(GPOS_NEW(m_pmp) ULONG(ul));
+			}
+
+			(void) m_phmululNonDroppedCols->FInsert(GPOS_NEW(m_pmp) ULONG(ul), GPOS_NEW(m_pmp) ULONG(ulPosNonDropped));
+			ulPosNonDropped++;
+		}
+
+		(void) m_phmiulAttno2Pos->FInsert
+									(
+									GPOS_NEW(m_pmp) INT(pmdcol->IAttno()),
+									GPOS_NEW(m_pmp) ULONG(ul)
+									);
+	}
 	m_pstr = CDXLUtils::PstrSerializeMDObj(m_pmp, this, false /*fSerializeHeader*/, false /*fIndent*/);
 }
 
@@ -198,6 +228,20 @@ ULONG
 CMDRelationExternalGPDB::UlNonDroppedCols() const
 {	
 	return UlColumns() - m_ulDroppedCols;
+}
+
+//---------------------------------------------------------------------------
+//	@function:
+//		CMDRelationExternalGPDB::UlSystemColumns
+//
+//	@doc:
+//		Returns the number of system columns of this relation
+//
+//---------------------------------------------------------------------------
+ULONG
+CMDRelationExternalGPDB::UlSystemColumns() const
+{
+	return m_ulSystemColumns;
 }
 
 //---------------------------------------------------------------------------
@@ -568,7 +612,7 @@ CMDRelationExternalGPDB::Serialize
 						CDXLTokens::PstrToken(EdxltokenColumns));
 	for (ULONG ul = 0; ul < m_pdrgpmdcol->UlLength(); ul++)
 	{
-		IMDColumn *pmdcol = (*m_pdrgpmdcol)[ul];
+		CMDColumn *pmdcol = (*m_pdrgpmdcol)[ul];
 		pmdcol->Serialize(pxmlser);
 	}
 

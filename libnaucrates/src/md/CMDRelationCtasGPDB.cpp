@@ -17,8 +17,6 @@
 //---------------------------------------------------------------------------
 
 #include "naucrates/md/CMDRelationCtasGPDB.h"
-#include "naucrates/md/CMDUtilsGPDB.h"
-
 #include "naucrates/dxl/xml/CXMLSerializer.h"
 #include "naucrates/dxl/operators/CDXLCtasStorageOptions.h"
 
@@ -63,6 +61,7 @@ CMDRelationCtasGPDB::CMDRelationCtasGPDB
 	m_pdrgpmdcol(pdrgpmdcol),
 	m_pdrgpulDistrColumns(pdrgpulDistrColumns),
 	m_pdrgpdrgpulKeys(pdrgpdrgpulKeys),
+	m_ulSystemColumns(0),
 	m_pdrgpulNonDroppedCols(NULL),
 	m_pdxlctasopt(pdxlctasopt),
 	m_pdrgpiVarTypeMod(pdrgpiVarTypeMod)
@@ -77,8 +76,28 @@ CMDRelationCtasGPDB::CMDRelationCtasGPDB
 	m_phmiulAttno2Pos = GPOS_NEW(m_pmp) HMIUl(m_pmp);
 	m_pdrgpulNonDroppedCols = GPOS_NEW(m_pmp) DrgPul(m_pmp);
 	
-	CMDUtilsGPDB::InitializeMDColInfo(pmp, pdrgpmdcol, m_phmiulAttno2Pos, m_pdrgpulNonDroppedCols, NULL /* m_phmululNonDroppedCols */);
+	const ULONG ulArity = pdrgpmdcol->UlLength();
+	for (ULONG ul = 0; ul < ulArity; ul++)
+	{
+		IMDColumn *pmdcol = (*pdrgpmdcol)[ul];
+		GPOS_ASSERT(!pmdcol->FDropped() && "Cannot create a table with dropped columns");
 
+		BOOL fSystemCol = pmdcol->FSystemColumn();
+		if (fSystemCol)
+		{
+			m_ulSystemColumns++;
+		}
+		else
+		{
+			m_pdrgpulNonDroppedCols->Append(GPOS_NEW(m_pmp) ULONG(ul));
+		}		
+
+		(void) m_phmiulAttno2Pos->FInsert
+									(
+									GPOS_NEW(m_pmp) INT(pmdcol->IAttno()),
+									GPOS_NEW(m_pmp) ULONG(ul)
+									);
+	}
 	m_pstr = CDXLUtils::PstrSerializeMDObj(m_pmp, this, false /*fSerializeHeader*/, false /*fIndent*/);
 }
 
@@ -175,6 +194,21 @@ CMDRelationCtasGPDB::UlColumns() const
 	GPOS_ASSERT(NULL != m_pdrgpmdcol);
 
 	return m_pdrgpmdcol->UlLength();
+}
+
+
+//---------------------------------------------------------------------------
+//	@function:
+//		CMDRelationCtasGPDB::UlSystemColumns
+//
+//	@doc:
+//		Returns the number of system columns of this relation
+//
+//---------------------------------------------------------------------------
+ULONG
+CMDRelationCtasGPDB::UlSystemColumns() const
+{
+	return m_ulSystemColumns;
 }
 
 //---------------------------------------------------------------------------
@@ -306,7 +340,7 @@ CMDRelationCtasGPDB::Serialize
 	const ULONG ulCols = m_pdrgpmdcol->UlLength();
 	for (ULONG ul = 0; ul < ulCols; ul++)
 	{
-		IMDColumn *pmdcol = (*m_pdrgpmdcol)[ul];
+		CMDColumn *pmdcol = (*m_pdrgpmdcol)[ul];
 		pmdcol->Serialize(pxmlser);
 	}
 
