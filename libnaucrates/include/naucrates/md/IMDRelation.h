@@ -126,10 +126,6 @@ namespace gpmd
 			virtual
 			DrgPul *PdrgpulNonDroppedCols() const = 0;
 
-			// number of system columns
-			virtual
-			ULONG UlSystemColumns() const = 0;
-			
 			// retrieve the column at the given position
 			virtual 
 			const IMDColumn *Pmdcol(ULONG ulPos) const = 0;

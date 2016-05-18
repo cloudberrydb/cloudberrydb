@@ -508,7 +508,7 @@ CMDAccessorTest::EresUnittest_CheckConstraint()
 	// create the array of column reference for the table columns
 	// for the DXL to Expr translation
 	DrgPcr *pdrgpcr = GPOS_NEW(pmp) DrgPcr(pmp);
-	const ULONG ulCols = pmdrel->UlColumns() - pmdrel->UlSystemColumns();
+	const ULONG ulCols = pmdrel->UlColumns();
 	for (ULONG ul = 0; ul < ulCols; ul++)
 	{
 		const IMDColumn *pmdcol = pmdrel->Pmdcol(ul);
@@ -584,10 +584,11 @@ CMDAccessorTest::EresUnittest_IndexPartConstraint()
 	// create the array of column reference for the table columns
 	// for the DXL to Expr translation
 	DrgPcr *pdrgpcr = GPOS_NEW(pmp) DrgPcr(pmp);
-	const ULONG ulCols = pmdrel->UlColumns() - pmdrel->UlSystemColumns();
+	const ULONG ulCols = pmdrel->UlColumns();
 	for (ULONG ul = 0; ul < ulCols; ul++)
 	{
 		const IMDColumn *pmdcol = pmdrel->Pmdcol(ul);
+
 		const IMDType *pmdtype = mda.Pmdtype(pmdcol->PmdidType());
 		CColRef *pcr = pcf->PcrCreate(pmdtype);
 		pdrgpcr->Append(pcr);

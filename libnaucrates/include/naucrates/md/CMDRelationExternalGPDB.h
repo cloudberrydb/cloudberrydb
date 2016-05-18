@@ -97,9 +97,6 @@ namespace gpmd
 			// format error table mdid
 			IMDId *m_pmdidFmtErrRel;
 
-			// number of system columns
-			ULONG m_ulSystemColumns;
-
 			// mapping of column position to positions excluding dropped columns
 			HMUlUl *m_phmululNonDroppedCols;
 			
@@ -175,10 +172,6 @@ namespace gpmd
 			// return the original positions of all the non-dropped columns
 			virtual
 			DrgPul *PdrgpulNonDroppedCols() const;
-
-			// number of system columns
-			virtual
-			ULONG UlSystemColumns() const;
 
 			// return true if a hash distributed table needs to be considered as random
 			virtual

@@ -2084,7 +2084,6 @@ CTranslatorDXLToExpr::Ptabdesc
 
 	// construct mappings for columns that are not dropped
 	HMIUl *phmiulAttnoColMapping = GPOS_NEW(m_pmp) HMIUl(m_pmp);
-	HMIUl *phmiulAttnoPosMapping = GPOS_NEW(m_pmp) HMIUl(m_pmp);
 	HMUlUl *phmululColMapping = GPOS_NEW(m_pmp) HMUlUl(m_pmp);
 	
 	const ULONG ulAllColumns = pmdrel->UlColumns();
@@ -2097,7 +2096,6 @@ CTranslatorDXLToExpr::Ptabdesc
 			continue;
 		}
 		(void) phmiulAttnoColMapping->FInsert(GPOS_NEW(m_pmp) INT(pmdcol->IAttno()), GPOS_NEW(m_pmp) ULONG(ulPosNonDropped));
-		(void) phmiulAttnoPosMapping->FInsert(GPOS_NEW(m_pmp) INT(pmdcol->IAttno()), GPOS_NEW(m_pmp) ULONG(ulPos));
 		(void) phmululColMapping->FInsert(GPOS_NEW(m_pmp) ULONG(ulPos), GPOS_NEW(m_pmp) ULONG(ulPosNonDropped));
 
 		ulPosNonDropped++;
@@ -2127,9 +2125,8 @@ CTranslatorDXLToExpr::Ptabdesc
 		const CDXLColDescr *pdxlcoldesc = pdxltabdesc->Pdxlcd(ul);
 		INT iAttno = pdxlcoldesc->IAttno();
 
-		ULONG *pulPos = phmiulAttnoPosMapping->PtLookup(&iAttno);
-		GPOS_ASSERT(NULL != pulPos);
-		const IMDColumn *pmdcolNext = pmdrel->Pmdcol(*pulPos);
+		ULONG ulPos = pmdrel->UlPosFromAttno(pdxlcoldesc->IAttno());
+		const IMDColumn *pmdcolNext = pmdrel->Pmdcol(ulPos);
 
 		BOOL fNullable = pmdcolNext->FNullable();
 
@@ -2139,15 +2136,13 @@ CTranslatorDXLToExpr::Ptabdesc
 		GPOS_ASSERT(NULL != pdxlcoldesc->Pmdname()->Pstr()->Wsz());
 		CWStringConst strColName(m_pmp, pdxlcoldesc->Pmdname()->Pstr()->Wsz());
 
-		INT iAttNo = pdxlcoldesc->IAttno();
-
 		const ULONG ulWidth = pdxlcoldesc->UlWidth();
 		CColumnDescriptor *pcoldesc = GPOS_NEW(m_pmp) CColumnDescriptor
 													(
 													m_pmp,
 													pmdtype,
 													CName(m_pmp, &strColName),
-													iAttNo,
+													iAttno,
 													fNullable,
 													ulWidth
 													);
@@ -2177,7 +2172,6 @@ CTranslatorDXLToExpr::Ptabdesc
 	// populate key sets
 	CTranslatorDXLToExprUtils::AddKeySets(m_pmp, ptabdesc, pmdrel, phmululColMapping);
 	
-	phmiulAttnoPosMapping->Release();
 	phmiulAttnoColMapping->Release();
 	phmululColMapping->Release();
 

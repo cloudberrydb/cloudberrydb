@@ -108,9 +108,6 @@ namespace gpmd
 			// does this table have oids
 			BOOL m_fHasOids;
 
-			// number of system columns
-			ULONG m_ulSystemColumns;
-			
 			// mapping of column position to positions excluding dropped columns
 			HMUlUl *m_phmululNonDroppedCols;
 		
@@ -202,10 +199,6 @@ namespace gpmd
 			// return the original positions of all the non-dropped columns
 			virtual
 			DrgPul *PdrgpulNonDroppedCols() const;
-
-			// number of system columns
-			virtual
-			ULONG UlSystemColumns() const;
 
 			// retrieve the column at the given position
 			virtual 

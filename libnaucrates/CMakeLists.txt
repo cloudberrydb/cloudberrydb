@@ -55,6 +55,7 @@ add_library(naucrates SHARED
             src/md/CMDTypeInt4GPDB.cpp
             src/md/CMDTypeInt8GPDB.cpp
             src/md/CMDTypeOidGPDB.cpp
+            src/md/CMDUtilsGPDB.cpp
             src/md/CSystemId.cpp
             src/md/IMDCacheObject.cpp
             src/md/IMDIndex.cpp

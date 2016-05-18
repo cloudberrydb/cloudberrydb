@@ -86,9 +86,6 @@ namespace gpmd
 			
 			// array of key sets
 			DrgPdrgPul *m_pdrgpdrgpulKeys;
-
-			// number of system columns
-			ULONG m_ulSystemColumns;
 			
 			// mapping of attribute number in the system catalog to the positions of
 			// the non dropped column in the metadata object
@@ -96,7 +93,7 @@ namespace gpmd
 
 			// the original positions of all the non-dropped columns
 			DrgPul *m_pdrgpulNonDroppedCols;
-			
+
 			// storage options
 			CDXLCtasStorageOptions *m_pdxlctasopt;
 
@@ -205,10 +202,6 @@ namespace gpmd
 			{
 				return m_pdrgpulNonDroppedCols;
 			}
-
-			// number of system columns
-			virtual
-			ULONG UlSystemColumns() const;
 
 			// retrieve the column at the given position
 			virtual

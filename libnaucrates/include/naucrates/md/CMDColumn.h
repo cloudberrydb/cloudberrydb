@@ -122,19 +122,15 @@ namespace gpmd
 			BOOL FDropped() const;
 		
 			// serialize metadata object in DXL format given a serializer object
-			virtual	
+			virtual
 			void Serialize(gpdxl::CXMLSerializer *) const;
-			
+
 #ifdef GPOS_DEBUG
 			// debug print of the column
 			virtual
 			void DebugPrint(IOstream &os) const;
 #endif
 	};
-
-	// array of metadata column descriptor
-	typedef CDynamicPtrArray<CMDColumn, CleanupRelease> DrgPmdcol;
-
 }
 
 #endif // !GPMD_CDXLColumn_H
