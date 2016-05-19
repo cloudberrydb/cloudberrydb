@@ -586,7 +586,7 @@ class CodegenUtilsTest : public ::testing::Test {
     // Check the correctness of the scalar element type
     ASSERT_NE(llvm_type, nullptr);
     check_functor(llvm_type);
-  };
+  }
 
   // Helper method for GetArrayTypeTest. Calls CodegenUtils::GetType() for
   // one, two and three dimensional arrays of 'ElementType', calling
@@ -614,7 +614,8 @@ class CodegenUtilsTest : public ::testing::Test {
       EXPECT_TRUE(llvm_type->isIntegerTy(sizeof(IntegerType) << 3));
     };
 
-    CheckForVariousArrayDimensions<IntegerType, decltype(integer_check_lambda)>(integer_check_lambda);
+    CheckForVariousArrayDimensions<IntegerType,
+        decltype(integer_check_lambda)>(integer_check_lambda);
   }
 
   // Helper method for GetArrayTypeTest. Tests arrays of various flavors
@@ -622,16 +623,16 @@ class CodegenUtilsTest : public ::testing::Test {
   template <typename PointedType, typename ScalarCheckFunctor>
   void CheckGetArrayOfPointersType(ScalarCheckFunctor check_functor) {
     // Pointer flavors
-    CheckForVariousArrayDimensions<PointedType*, decltype(check_functor)>(
-        check_functor);
-    CheckForVariousArrayDimensions<PointedType* const, decltype(check_functor)>(
-        check_functor);
-    CheckForVariousArrayDimensions<const PointedType*, decltype(check_functor)>(
-        check_functor);
-    CheckForVariousArrayDimensions<const PointedType* const, decltype(check_functor)>(
-        check_functor);
+    CheckForVariousArrayDimensions<PointedType*,
+        decltype(check_functor)>(check_functor);
+    CheckForVariousArrayDimensions<PointedType* const,
+        decltype(check_functor)>(check_functor);
+    CheckForVariousArrayDimensions<const PointedType*,
+        decltype(check_functor)>(check_functor);
+    CheckForVariousArrayDimensions<const PointedType* const,
+        decltype(check_functor)>(check_functor);
 
-    // TODO Add checks for annotated types here
+    // TODO(shardikar) Add checks for annotated types here
   }
 
   // Helper method for GetArrayTypeTest. Tests various different flavors of an
@@ -648,7 +649,8 @@ class CodegenUtilsTest : public ::testing::Test {
       EXPECT_EQ(llvm_type, int_llvm_type);
     };
 
-    CheckForVariousArrayDimensions<EnumType, decltype(enum_check_lambda)>(enum_check_lambda);
+    CheckForVariousArrayDimensions<EnumType,
+        decltype(enum_check_lambda)>(enum_check_lambda);
   }
 
   // Helper method for GetScalarConstantTest. Tests
@@ -1035,7 +1037,8 @@ class CodegenUtilsTest : public ::testing::Test {
   void MakeStructArrayMemberElementAccessorFunction(
       const std::string& function_name,
       PointerToMemberTypes&&... pointers_to_members) {
-    typedef typename std::remove_extent<OneDimArrayMemberType>::type ElementType;
+    typedef typename std::remove_extent<
+        OneDimArrayMemberType>::type ElementType;
     typedef ElementType (*AccessorFn) (const StructType*, size_t index);
     llvm::Function* accessor_function
         = codegen_utils_->CreateFunction<AccessorFn>(
@@ -1051,8 +1054,9 @@ class CodegenUtilsTest : public ::testing::Test {
         std::forward<PointerToMemberTypes>(pointers_to_members)...);
     // Get pointer to the index in that array
     llvm::Value* element_ptr = codegen_utils_->ir_builder()->CreateGEP(
-        array_member_ptr,
-        { codegen_utils_->GetConstant(0), ArgumentByPosition(accessor_function, 1) });
+        array_member_ptr, {
+          codegen_utils_->GetConstant(0),
+          ArgumentByPosition(accessor_function, 1) });
     // Actually load the value from the pointer.
     llvm::Value* element_value
         = codegen_utils_->ir_builder()->CreateLoad(element_ptr);
@@ -1567,8 +1571,9 @@ TEST_F(CodegenUtilsTest, GetArrayTypeTest) {
   };
   // Unlike other types, we check only pointers, not references, because there
   // is no such thing as void&.
-  CheckForVariousArrayDimensions<void*, decltype(void_pointer_array_check_lambda)>(
-      void_pointer_array_check_lambda);
+  CheckForVariousArrayDimensions<void*,
+      decltype(void_pointer_array_check_lambda)>(
+          void_pointer_array_check_lambda);
 
   // Check bool* (bool is represented as i1 in LLVM IR).
   auto bool_pointer_array_check_lambda = [](const llvm::Type* llvm_type) {
@@ -1653,7 +1658,8 @@ TEST_F(CodegenUtilsTest, GetArrayTypeTest) {
   auto int_pointer_check_lambda = [](const llvm::Type* llvm_type) {
     ASSERT_NE(llvm_type, nullptr);
     EXPECT_TRUE(llvm_type->isPointerTy());
-    EXPECT_TRUE(llvm_type->getPointerElementType()->isIntegerTy(sizeof(int) << 3));
+    EXPECT_TRUE(llvm_type->getPointerElementType()->
+        isIntegerTy(sizeof(int) << 3));
   };
   CheckGetArrayOfPointersType<int>(int_pointer_check_lambda);
 
@@ -1678,7 +1684,8 @@ TEST_F(CodegenUtilsTest, GetArrayTypeTest) {
     EXPECT_TRUE(llvm_type->getPointerElementType()->
         getArrayElementType()->isIntegerTy(sizeof(int) << 3));
   };
-  int_pointer_to_array_of_ints_check_lambda(codegen_utils_->GetType<int (*) [5]>());
+  int_pointer_to_array_of_ints_check_lambda(
+      codegen_utils_->GetType<int(*) [5]>());
 }
 
 TEST_F(CodegenUtilsTest, GetScalarConstantTest) {
@@ -2037,16 +2044,16 @@ TEST_F(CodegenUtilsTest, VariadicExternalFunctionTest) {
   llvm::Function* llvm_printf_function =
       codegen_utils_->RegisterExternalFunction(printf);
   ASSERT_NE(llvm_printf_function, nullptr);
-  ASSERT_EQ(
-      (codegen_utils_->GetFunctionType<int, char*>(true)->getPointerTo()),
+  ASSERT_EQ((codegen_utils_->
+        GetFunctionType<int, char*>(true)->getPointerTo()),
       llvm_printf_function->getType());
 
   // Register sprintf with takes variable arguments past char*, char*
   llvm::Function* llvm_sprintf_function =
       codegen_utils_->RegisterExternalFunction(sprintf);
   ASSERT_NE(llvm_sprintf_function, nullptr);
-  ASSERT_EQ(
-      (codegen_utils_->GetFunctionType<int, char*, char*>(true)->getPointerTo()),
+  ASSERT_EQ((codegen_utils_->
+        GetFunctionType<int, char*, char*>(true)->getPointerTo()),
       llvm_sprintf_function->getType());
 
   char sprintf_with_three_args_buffer[16], sprintf_with_four_args_buffer[16];
@@ -2057,7 +2064,7 @@ TEST_F(CodegenUtilsTest, VariadicExternalFunctionTest) {
   llvm::Function* sprintf_test =
       codegen_utils_->CreateFunction<SprintfTestType>("sprintf_test");
   llvm::BasicBlock* main_block =
-      codegen_utils_->CreateBasicBlock( "main", sprintf_test);
+      codegen_utils_->CreateBasicBlock("main", sprintf_test);
 
   codegen_utils_->ir_builder()->SetInsertPoint(main_block);
   codegen_utils_->ir_builder()->CreateCall(
