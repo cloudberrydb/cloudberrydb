@@ -1581,6 +1581,16 @@ TEST_F(CodegenUtilsTest, GetArrayTypeTest) {
       decltype(bool_pointer_array_check_lambda)>(
           bool_pointer_array_check_lambda);
 
+  // Check bool
+  auto bool_array_check_lambda = [](const llvm::Type* llvm_type) {
+    ASSERT_NE(llvm_type, nullptr);
+    EXPECT_TRUE(llvm_type->isIntegerTy(1));
+  };
+  CheckForVariousArrayDimensions<
+      bool,
+      decltype(bool_array_check_lambda)>(
+          bool_array_check_lambda);
+
   // Check float.
   auto float_array_check_lambda = [](const llvm::Type* llvm_type) {
     ASSERT_NE(llvm_type, nullptr);
@@ -2517,11 +2527,9 @@ TEST_F(CodegenUtilsTest, GetPointerToMemberTest) {
   MakeStructArrayMemberElementAccessorFunction<DummyStruct, int[5]>(
       "Get_DummyStruct::int_array_field",
       &DummyStruct::int_array_field);
-  // Special case for a boolean array
-  MakeStructArrayMemberElementAccessorFunction<DummyStruct, char[5]>(
+  MakeStructArrayMemberElementAccessorFunction<DummyStruct, bool[5]>(
       "Get_DummyStruct::bool_array_field",
-      reinterpret_cast<char (DummyStruct::*) [5]> (
-        &DummyStruct::bool_array_field));
+        &DummyStruct::bool_array_field);
 
   // Check that module is well-formed, then compile.
   EXPECT_FALSE(llvm::verifyModule(*codegen_utils_->module()));
@@ -2546,15 +2554,14 @@ TEST_F(CodegenUtilsTest, GetPointerToMemberTest) {
 
   int (*Get_DummyStruct_int_array_field)(const DummyStruct*, size_t index)
       = codegen_utils_->GetFunctionPointer<
-      decltype(Get_DummyStruct_int_array_field)>("Get_DummyStruct::int_array_field");
+      decltype(Get_DummyStruct_int_array_field)>(
+          "Get_DummyStruct::int_array_field");
   ASSERT_NE(Get_DummyStruct_int_array_field, nullptr);
 
-  // Although LLVM uses i1 to represent a boolean value, regard an array of bools
-  // as equivalent to an array of chars to preserve the size from C++ and make
-  // offset calculations using GEP easy.
-  char (*Get_DummyStruct_bool_array_field)(const DummyStruct*, size_t index)
+  bool (*Get_DummyStruct_bool_array_field)(const DummyStruct*, size_t index)
       = codegen_utils_->GetFunctionPointer<
-      decltype(Get_DummyStruct_bool_array_field)>("Get_DummyStruct::bool_array_field");
+      decltype(Get_DummyStruct_bool_array_field)>(
+          "Get_DummyStruct::bool_array_field");
   ASSERT_NE(Get_DummyStruct_bool_array_field, nullptr);
 
   // Call generated accessor function and make sure they read values from the
