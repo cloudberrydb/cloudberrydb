@@ -750,11 +750,6 @@ class TypeMaker<ArrayElementType[N]> {
       llvm::Type* unit_type = codegen_utils_detail::TypeMaker<ArrayElementType>::Get(context);
       return llvm::ArrayType::get(unit_type, N);
     }
-
-    static AnnotatedType GetAnnotated(llvm::LLVMContext* context) {
-      // TODO Currently unsupported
-      return nullptr;
-    }
 };
 
 }  // namespace codegen_utils_detail
