@@ -1,9 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <dxl:DXLMessage xmlns:dxl="http://greenplum.com/dxl/2010/12/">
 <!--
---
--- Name: reprotables; Type: TABLE; Owner: -; Tablespace: 
---
+
+
+/* Name: reprotables; Type: TABLE; Owner: -; Tablespace: */
+
 
 DROP TABLE IF EXISTS reprotables;
 
@@ -15,9 +16,9 @@ WITH (appendonly=false) DISTRIBUTED RANDOMLY;
 
 SET allow_system_table_mods="DML";
 
---
--- Table: reprotables, Attribute: join_col
---
+
+/* Table: reprotables, Attribute: join_col */
+
 INSERT INTO pg_statistic VALUES (
 	'reprotables'::regclass,
 	1::smallint,
@@ -42,9 +43,9 @@ INSERT INTO pg_statistic VALUES (
 	NULL::int4[]);
 
 
---
--- Table: reprotables, Attribute: filter_col
---
+
+/* Table: reprotables, Attribute: filter_col */
+
 INSERT INTO pg_statistic VALUES (
 	'reprotables'::regclass,
 	5::smallint,
@@ -68,7 +69,7 @@ INSERT INTO pg_statistic VALUES (
 	NULL::varchar[],
 	NULL::varchar[]);
 
--- Table: reprotables
+/* Table: reprotables */
 UPDATE pg_class
 SET
 	relpages = 30::int,

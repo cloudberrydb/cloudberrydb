@@ -360,11 +360,11 @@ CICGTest::EresUnittest_RunUnsupportedMinidumpTests()
 	const ULONG ulTests = GPOS_ARRAY_SIZE(rgszUnsupportedFileNames);
 	for (ULONG ul = m_ulUnsupportedTestCounter; ul < ulTests; ul++)
 	{
+		CDXLMinidump *pdxlmd = CMinidumperUtils::PdxlmdLoad(pmp, rgszUnsupportedFileNames[ul]);
+
 		GPOS_TRY
 		{
 			ICostModel *pcm = CTestUtils::Pcm(pmp);
-
-			CDXLMinidump *pdxlmd = CMinidumperUtils::PdxlmdLoad(pmp, rgszUnsupportedFileNames[ul]);
 
 			COptimizerConfig *poconf = pdxlmd->Poconf();
 			CDXLNode *pdxlnPlan = CMinidumperUtils::PdxlnExecuteMinidump
@@ -380,7 +380,6 @@ CICGTest::EresUnittest_RunUnsupportedMinidumpTests()
 
 
 			GPOS_CHECK_ABORT;
-			GPOS_DELETE(pdxlmd);
 			pdxlnPlan->Release();
 			pcm->Release();
 
@@ -393,6 +392,8 @@ CICGTest::EresUnittest_RunUnsupportedMinidumpTests()
 			GPOS_RESET_EX;
 		}
 		GPOS_CATCH_END;
+
+		GPOS_DELETE(pdxlmd);
 		m_ulUnsupportedTestCounter++;
 	}
 	
