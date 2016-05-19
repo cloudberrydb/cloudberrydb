@@ -6111,7 +6111,7 @@ allcountrystats as
 )
 
 select allcountrystats.CITY_CNT,allcountrystats.LANG_CNT,allcountrystats.name,
-       "REGION_SURFACE_AREA","REGION_LIFETIME",longlivingregions."REGION_POP",longlivingregions.lang_count,longlivingregions."REGION_GNP",longlivingregions.region
+       "REGION_LIFETIME",longlivingregions."REGION_POP",longlivingregions.lang_count,longlivingregions."REGION_GNP",longlivingregions.region
 from longlivingregions,denseregions,allcountrystats,country
 where longlivingregions.region = denseregions.region and allcountrystats.code = country.code and country.region = longlivingregions.region
 and country.indepyear between 1800 and 1850
@@ -6119,7 +6119,7 @@ and country.indepyear between 1800 and 1850
 UNION ALL
 
 select allcountrystats.CITY_CNT,allcountrystats.LANG_CNT,allcountrystats.name,
-       "REGION_SURFACE_AREA","REGION_LIFETIME",longlivingregions."REGION_POP",longlivingregions.lang_count,longlivingregions."REGION_GNP",longlivingregions.region
+       "REGION_LIFETIME",longlivingregions."REGION_POP",longlivingregions.lang_count,longlivingregions."REGION_GNP",longlivingregions.region
 from longlivingregions,denseregions,allcountrystats,country
 where longlivingregions.region = denseregions.region and allcountrystats.code = country.code and country.region = longlivingregions.region
 and country.indepyear between 1850 and 1900
@@ -6127,7 +6127,7 @@ and country.indepyear between 1850 and 1900
 UNION ALL
 
 select allcountrystats.CITY_CNT,allcountrystats.LANG_CNT,allcountrystats.name,
-       "REGION_SURFACE_AREA","REGION_LIFETIME",longlivingregions."REGION_POP",longlivingregions.lang_count,longlivingregions."REGION_GNP",longlivingregions.region
+       "REGION_LIFETIME",longlivingregions."REGION_POP",longlivingregions.lang_count,longlivingregions."REGION_GNP",longlivingregions.region
 from longlivingregions,denseregions,allcountrystats,country
 where longlivingregions.region = denseregions.region and allcountrystats.code = country.code and country.region = longlivingregions.region
 and country.indepyear > 1900

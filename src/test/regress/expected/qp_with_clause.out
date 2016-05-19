@@ -1587,76 +1587,76 @@ allcountrystats as
   group by country.code,country.name
 )
 select allcountrystats.CITY_CNT,allcountrystats.LANG_CNT,allcountrystats.name,
-       "REGION_SURFACE_AREA","REGION_LIFETIME",longlivingregions."REGION_POP",longlivingregions.lang_count,longlivingregions."REGION_GNP",longlivingregions.region
+       "REGION_LIFETIME",longlivingregions."REGION_POP",longlivingregions.lang_count,longlivingregions."REGION_GNP",longlivingregions.region
 from longlivingregions,denseregions,allcountrystats,country
 where longlivingregions.region = denseregions.region and allcountrystats.code = country.code and country.region = longlivingregions.region
 and country.indepyear between 1800 and 1850
 UNION ALL
 select allcountrystats.CITY_CNT,allcountrystats.LANG_CNT,allcountrystats.name,
-       "REGION_SURFACE_AREA","REGION_LIFETIME",longlivingregions."REGION_POP",longlivingregions.lang_count,longlivingregions."REGION_GNP",longlivingregions.region
+       "REGION_LIFETIME",longlivingregions."REGION_POP",longlivingregions.lang_count,longlivingregions."REGION_GNP",longlivingregions.region
 from longlivingregions,denseregions,allcountrystats,country
 where longlivingregions.region = denseregions.region and allcountrystats.code = country.code and country.region = longlivingregions.region
 and country.indepyear between 1850 and 1900
 UNION ALL
 select allcountrystats.CITY_CNT,allcountrystats.LANG_CNT,allcountrystats.name,
-       "REGION_SURFACE_AREA","REGION_LIFETIME",longlivingregions."REGION_POP",longlivingregions.lang_count,longlivingregions."REGION_GNP",longlivingregions.region
+       "REGION_LIFETIME",longlivingregions."REGION_POP",longlivingregions.lang_count,longlivingregions."REGION_GNP",longlivingregions.region
 from longlivingregions,denseregions,allcountrystats,country
 where longlivingregions.region = denseregions.region and allcountrystats.code = country.code and country.region = longlivingregions.region
 and country.indepyear > 1900
 order by name
 LIMIT 50;
- city_cnt | lang_cnt |                 name                  | REGION_SURFACE_AREA | REGION_LIFETIME  | REGION_POP | lang_count | REGION_GNP |          region           
-----------+----------+---------------------------------------+---------------------+------------------+------------+------------+------------+---------------------------
-        4 |        5 | Afghanistan                           |         9.07498e+07 | 61.3500003814697 | 1490776000 |         54 |  810604.00 | Southern and Central Asia
-        1 |        3 | Albania                               |          5.8452e+06 | 76.5285720825195 |  144674200 |         22 | 2012289.00 | Southern Europe
-       18 |        2 | Algeria                               |         3.69935e+07 | 65.3857127598354 |  173266000 |         14 |  243870.00 | Northern Africa
-        5 |        9 | Angola                                |          5.5663e+07 | 50.3111110263401 |   95652000 |         47 |   32938.00 | Central Africa
-        1 |        2 | Antigua and Barbuda                   |              363261 | 73.0583332379659 |   38140000 |         10 |  103586.20 | Caribbean
-       57 |        3 | Argentina                             |         7.43182e+07 | 70.9461532005897 |  345780000 |         21 | 1511874.00 | South America
-        3 |        2 | Armenia                               |         1.01537e+07 | 70.5666671329074 |  188380700 |         21 |  677260.00 | Middle East
-       14 |        8 | Australia                             |         6.24712e+07 | 78.8000030517578 |   22753100 |         11 |  405851.00 | Australia and New Zealand
-        6 |        8 | Austria                               |         6.64977e+06 | 78.2555567423503 |  183247600 |         21 | 4673272.00 | Western Europe
-        4 |        4 | Azerbaijan                            |         1.01537e+07 | 70.5666671329074 |  188380700 |         21 |  677260.00 | Middle East
-        1 |        2 | Bahamas                               |              363261 | 73.0583332379659 |   38140000 |         10 |  103586.20 | Caribbean
-        1 |        2 | Bahrain                               |         1.01537e+07 | 70.5666671329074 |  188380700 |         21 |  677260.00 | Middle East
-       24 |        7 | Bangladesh                            |         9.07498e+07 | 61.3500003814697 | 1490776000 |         54 |  810604.00 | Southern and Central Asia
-        1 |        2 | Barbados                              |              363261 | 73.0583332379659 |   38140000 |         10 |  103586.20 | Caribbean
-       16 |        4 | Belarus                               |         2.14732e+08 | 69.9299995422363 |  307026000 |         28 |  659980.00 | Eastern Europe
-        9 |        6 | Belgium                               |         6.64977e+06 | 78.2555567423503 |  183247600 |         21 | 4673272.00 | Western Europe
-        2 |        4 | Belize                                |         1.40524e+07 | 71.0249996185303 |  135221000 |         23 |  473151.00 | Central America
-        4 |        7 | Benin                                 |         3.97449e+07 | 52.7411768296186 |  221672000 |         65 |  106711.00 | Western Africa
-        1 |        3 | Bhutan                                |         9.07498e+07 | 61.3500003814697 | 1490776000 |         54 |  810604.00 | Southern and Central Asia
-        8 |        4 | Bolivia                               |         7.43182e+07 | 70.9461532005897 |  345780000 |         21 | 1511874.00 | South America
-        3 |        1 | Bosnia and Herzegovina                |          5.8452e+06 | 76.5285720825195 |  144674200 |         22 | 2012289.00 | Southern Europe
-        2 |        5 | Botswana                              |         2.30602e+07 | 44.8199996948242 |   46886000 |         21 |  126931.00 | Southern Africa
-      250 |        5 | Brazil                                |         7.43182e+07 | 70.9461532005897 |  345780000 |         21 | 1511874.00 | South America
-        1 |        4 | Brunei                                |         3.53222e+07 | 64.4000001387163 |  518541000 |         47 |  642643.00 | Southeast Asia
-       10 |        4 | Bulgaria                              |         2.14732e+08 | 69.9299995422363 |  307026000 |         28 |  659980.00 | Eastern Europe
-        3 |        6 | Burkina Faso                          |         3.97449e+07 | 52.7411768296186 |  221672000 |         65 |  106711.00 | Western Africa
-        1 |        3 | Burundi                               |         4.36313e+07 | 50.8105261953254 |  246999000 |         80 |   69925.00 | Eastern Africa
-        3 |        4 | Cambodia                              |         3.53222e+07 | 64.4000001387163 |  518541000 |         47 |  642643.00 | Southeast Asia
-        7 |        8 | Cameroon                              |          5.5663e+07 | 50.3111110263401 |   95652000 |         47 |   32938.00 | Central Africa
-       49 |       12 | Canada                                |         2.36342e+08 | 75.8199996948242 |  309632000 |         18 | 9111890.00 | North America
-        1 |        2 | Cape Verde                            |         3.97449e+07 | 52.7411768296186 |  221672000 |         65 |  106711.00 | Western Africa
-        1 |        6 | Central African Republic              |          5.5663e+07 | 50.3111110263401 |   95652000 |         47 |   32938.00 | Central Africa
-        2 |        8 | Chad                                  |          5.5663e+07 | 50.3111110263401 |   95652000 |         47 |   32938.00 | Central Africa
-       29 |        4 | Chile                                 |         7.43182e+07 | 70.9461532005897 |  345780000 |         21 | 1511874.00 | South America
-       38 |        5 | Colombia                              |         7.43182e+07 | 70.9461532005897 |  345780000 |         21 | 1511874.00 | South America
-        1 |        5 | Comoros                               |         4.36313e+07 | 50.8105261953254 |  246999000 |         80 |   69925.00 | Eastern Africa
-        2 |        6 | Congo                                 |          5.5663e+07 | 50.3111110263401 |   95652000 |         47 |   32938.00 | Central Africa
-       18 |       10 | Congo, The Democratic Republic of the |          5.5663e+07 | 50.3111110263401 |   95652000 |         47 |   32938.00 | Central Africa
-        1 |        4 | Costa Rica                            |         1.40524e+07 | 71.0249996185303 |  135221000 |         23 |  473151.00 | Central America
-        5 |        5 | Cote deIvoire                         |         3.97449e+07 | 52.7411768296186 |  221672000 |         65 |  106711.00 | Western Africa
-        4 |        2 | Croatia                               |          5.8452e+06 | 76.5285720825195 |  144674200 |         22 | 2012289.00 | Southern Europe
-       14 |        1 | Cuba                                  |              363261 | 73.0583332379659 |   38140000 |         10 |  103586.20 | Caribbean
-        2 |        2 | Cyprus                                |         1.01537e+07 | 70.5666671329074 |  188380700 |         21 |  677260.00 | Middle East
-       10 |        8 | Czech Republic                        |         2.14732e+08 | 69.9299995422363 |  307026000 |         28 |  659980.00 | Eastern Europe
-        1 |        3 | Djibouti                              |         4.36313e+07 | 50.8105261953254 |  246999000 |         80 |   69925.00 | Eastern Africa
-        1 |        2 | Dominica                              |              363261 | 73.0583332379659 |   38140000 |         10 |  103586.20 | Caribbean
-        6 |        2 | Dominican Republic                    |              363261 | 73.0583332379659 |   38140000 |         10 |  103586.20 | Caribbean
-       15 |        2 | Ecuador                               |         7.43182e+07 | 70.9461532005897 |  345780000 |         21 | 1511874.00 | South America
-       37 |        2 | Egypt                                 |         3.69935e+07 | 65.3857127598354 |  173266000 |         14 |  243870.00 | Northern Africa
-        7 |        2 | El Salvador                           |         1.40524e+07 | 71.0249996185303 |  135221000 |         23 |  473151.00 | Central America
+ city_cnt | lang_cnt |                 name                  | REGION_LIFETIME  | REGION_POP | lang_count | REGION_GNP |          region           
+----------+----------+---------------------------------------+------------------+------------+------------+------------+---------------------------
+        4 |        5 | Afghanistan                           | 61.3500003814697 | 1490776000 |         54 |  810604.00 | Southern and Central Asia
+        1 |        3 | Albania                               | 76.5285720825195 |  144674200 |         22 | 2012289.00 | Southern Europe
+       18 |        2 | Algeria                               | 65.3857127598354 |  173266000 |         14 |  243870.00 | Northern Africa
+        5 |        9 | Angola                                | 50.3111110263401 |   95652000 |         47 |   32938.00 | Central Africa
+        1 |        2 | Antigua and Barbuda                   | 73.0583332379659 |   38140000 |         10 |  103586.20 | Caribbean
+       57 |        3 | Argentina                             | 70.9461532005897 |  345780000 |         21 | 1511874.00 | South America
+        3 |        2 | Armenia                               | 70.5666671329074 |  188380700 |         21 |  677260.00 | Middle East
+       14 |        8 | Australia                             | 78.8000030517578 |   22753100 |         11 |  405851.00 | Australia and New Zealand
+        6 |        8 | Austria                               | 78.2555567423503 |  183247600 |         21 | 4673272.00 | Western Europe
+        4 |        4 | Azerbaijan                            | 70.5666671329074 |  188380700 |         21 |  677260.00 | Middle East
+        1 |        2 | Bahamas                               | 73.0583332379659 |   38140000 |         10 |  103586.20 | Caribbean
+        1 |        2 | Bahrain                               | 70.5666671329074 |  188380700 |         21 |  677260.00 | Middle East
+       24 |        7 | Bangladesh                            | 61.3500003814697 | 1490776000 |         54 |  810604.00 | Southern and Central Asia
+        1 |        2 | Barbados                              | 73.0583332379659 |   38140000 |         10 |  103586.20 | Caribbean
+       16 |        4 | Belarus                               | 69.9299995422363 |  307026000 |         28 |  659980.00 | Eastern Europe
+        9 |        6 | Belgium                               | 78.2555567423503 |  183247600 |         21 | 4673272.00 | Western Europe
+        2 |        4 | Belize                                | 71.0249996185303 |  135221000 |         23 |  473151.00 | Central America
+        4 |        7 | Benin                                 | 52.7411768296186 |  221672000 |         65 |  106711.00 | Western Africa
+        1 |        3 | Bhutan                                | 61.3500003814697 | 1490776000 |         54 |  810604.00 | Southern and Central Asia
+        8 |        4 | Bolivia                               | 70.9461532005897 |  345780000 |         21 | 1511874.00 | South America
+        3 |        1 | Bosnia and Herzegovina                | 76.5285720825195 |  144674200 |         22 | 2012289.00 | Southern Europe
+        2 |        5 | Botswana                              | 44.8199996948242 |   46886000 |         21 |  126931.00 | Southern Africa
+      250 |        5 | Brazil                                | 70.9461532005897 |  345780000 |         21 | 1511874.00 | South America
+        1 |        4 | Brunei                                | 64.4000001387163 |  518541000 |         47 |  642643.00 | Southeast Asia
+       10 |        4 | Bulgaria                              | 69.9299995422363 |  307026000 |         28 |  659980.00 | Eastern Europe
+        3 |        6 | Burkina Faso                          | 52.7411768296186 |  221672000 |         65 |  106711.00 | Western Africa
+        1 |        3 | Burundi                               | 50.8105261953254 |  246999000 |         80 |   69925.00 | Eastern Africa
+        3 |        4 | Cambodia                              | 64.4000001387163 |  518541000 |         47 |  642643.00 | Southeast Asia
+        7 |        8 | Cameroon                              | 50.3111110263401 |   95652000 |         47 |   32938.00 | Central Africa
+       49 |       12 | Canada                                | 75.8199996948242 |  309632000 |         18 | 9111890.00 | North America
+        1 |        2 | Cape Verde                            | 52.7411768296186 |  221672000 |         65 |  106711.00 | Western Africa
+        1 |        6 | Central African Republic              | 50.3111110263401 |   95652000 |         47 |   32938.00 | Central Africa
+        2 |        8 | Chad                                  | 50.3111110263401 |   95652000 |         47 |   32938.00 | Central Africa
+       29 |        4 | Chile                                 | 70.9461532005897 |  345780000 |         21 | 1511874.00 | South America
+       38 |        5 | Colombia                              | 70.9461532005897 |  345780000 |         21 | 1511874.00 | South America
+        1 |        5 | Comoros                               | 50.8105261953254 |  246999000 |         80 |   69925.00 | Eastern Africa
+        2 |        6 | Congo                                 | 50.3111110263401 |   95652000 |         47 |   32938.00 | Central Africa
+       18 |       10 | Congo, The Democratic Republic of the | 50.3111110263401 |   95652000 |         47 |   32938.00 | Central Africa
+        1 |        4 | Costa Rica                            | 71.0249996185303 |  135221000 |         23 |  473151.00 | Central America
+        5 |        5 | Cote deIvoire                         | 52.7411768296186 |  221672000 |         65 |  106711.00 | Western Africa
+        4 |        2 | Croatia                               | 76.5285720825195 |  144674200 |         22 | 2012289.00 | Southern Europe
+       14 |        1 | Cuba                                  | 73.0583332379659 |   38140000 |         10 |  103586.20 | Caribbean
+        2 |        2 | Cyprus                                | 70.5666671329074 |  188380700 |         21 |  677260.00 | Middle East
+       10 |        8 | Czech Republic                        | 69.9299995422363 |  307026000 |         28 |  659980.00 | Eastern Europe
+        1 |        3 | Djibouti                              | 50.8105261953254 |  246999000 |         80 |   69925.00 | Eastern Africa
+        1 |        2 | Dominica                              | 73.0583332379659 |   38140000 |         10 |  103586.20 | Caribbean
+        6 |        2 | Dominican Republic                    | 73.0583332379659 |   38140000 |         10 |  103586.20 | Caribbean
+       15 |        2 | Ecuador                               | 70.9461532005897 |  345780000 |         21 | 1511874.00 | South America
+       37 |        2 | Egypt                                 | 65.3857127598354 |  173266000 |         14 |  243870.00 | Northern Africa
+        7 |        2 | El Salvador                           | 71.0249996185303 |  135221000 |         23 |  473151.00 | Central America
 (50 rows)
 
 --query 11
