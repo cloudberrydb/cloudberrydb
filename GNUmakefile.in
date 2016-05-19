@@ -105,7 +105,7 @@ distclean maintainer-clean:
 
 check: all
 
-check installcheck installcheck-parallel installcheck-good:
+check installcheck installcheck-parallel installcheck-good installcheck-optfunctional:
 	$(MAKE) -C src/test $@
 	$(MAKE) -C gpAux/extensions $@
 
