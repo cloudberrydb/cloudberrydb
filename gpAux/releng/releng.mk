@@ -43,7 +43,7 @@ endif
 
 # by default use optimized build libraries of GP Optimizer
 # use 'make BLD_TYPE=debug' to work with debug build libraries of GP Optimizer
-BLD_TYPE=opt
+BLD_TYPE?=opt
 
 OBJDIR_DEFAULT = .obj.$(UNAME_ALL)$(ARCH_FLAGS).$(BLD_TYPE)
 
