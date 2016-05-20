@@ -158,7 +158,7 @@ static void performDtxProtocolCommitPrepared(const char *gid, bool raiseErrorIfN
 static void performDtxProtocolAbortPrepared(const char *gid, bool raiseErrorIfNotFound);
 static DistributedTransactionId determineSegmentMaxDistributedXid(void);
 
-extern void resetSessionForPrimaryGangLoss(void);
+extern void resetSessionForPrimaryGangLoss(bool resetSession);
 extern void CheckForResetSession(void);
 
 /**
@@ -794,7 +794,7 @@ doNotifyingCommitPrepared(void)
 		 * at the top in PostgresMain.
 		 */
 		elog(NOTICE, "Releasing segworker group to retry broadcast.");
-		disconnectAndDestroyAllGangs();
+		disconnectAndDestroyAllGangs(true);
 
 		/*
 		 * This call will at a minimum change the session id so we will
@@ -871,7 +871,7 @@ doNotifyingAbort(void)
 				 * Reset the dispatch logic and disconnect from any segment that didn't respond to our abort.
 				 */
 				elog(NOTICE, "Releasing segworker groups to finish aborting the transaction.");
-				disconnectAndDestroyAllGangs();
+				disconnectAndDestroyAllGangs(true);
 
 				/*
 				 * This call will at a minimum change the session id so we will
@@ -930,7 +930,7 @@ doNotifyingAbort(void)
 			 * Reset the dispatch logic (i.e. deallocate gang) so we can attempt a retry.
 			 */
 			elog(NOTICE, "Releasing segworker groups to retry broadcast.");
-			disconnectAndDestroyAllGangs();
+			disconnectAndDestroyAllGangs(true);
 
 			/*
 			 * This call will at a minimum change the session id so we will
@@ -1029,8 +1029,7 @@ doDtxPhase2Retry(void)
 				}
 
 				/*
-				 * KLUDGE: FtsHandleGangConnectionFailure will need a special
-				 * transaction context to tell it not to raise an ERROR...
+				 * Todo: Maybe we don't need DTX_CONTEXT_QD_RETRY_PHASE_2 anymore.
 				 */
 				setDistributedTransactionContext(DTX_CONTEXT_QD_RETRY_PHASE_2);
 				elog(DTM_DEBUG5,
@@ -1041,17 +1040,35 @@ doDtxPhase2Retry(void)
 
 				currentGxact->retryPhase2RecursionStop = true;
 
-				succeeded = doDispatchDtxProtocolCommand(dtxProtocolCommand, /* flags */ 0,
-														 currentGxact->gid, currentGxact->gxid,
-														 &badGangs, /* raiseError */ false,
-														 &direct, NULL, 0);
+				/*
+				 * We don't want doDispatchDtxProtocolCommand to raise error. But it will call
+				 * createGang to allocate a writer gang, which could fail and error out.
+				 *
+				 * We catch the error and log a FATAL error instead of a PANIC.
+				 */
+				PG_TRY();
+				{
+					succeeded = doDispatchDtxProtocolCommand(dtxProtocolCommand, /* flags */ 0,
+															 currentGxact->gid, currentGxact->gxid,
+															 &badGangs, /* raiseError */ false,
+															 &direct, NULL, 0);
+				}
+				PG_CATCH();
+				{
+					succeeded = false;
+				}
+				PG_END_TRY();
+
 				if (!succeeded)
 				{
 					elog(FATAL, "A retry of the distributed transaction '%s Prepared' broadcast failed to one or more segments for gid = %s.",
 						 prepareKind, currentGxact->gid);
 				}
-				elog(NOTICE, "Retry of the distributed transaction '%s Prepared' broadcast succeeded to the segments for gid = %s.",
-					 prepareKind, currentGxact->gid);
+				else
+				{
+					elog(NOTICE, "Retry of the distributed transaction '%s Prepared' broadcast succeeded to the segments for gid = %s.",
+							prepareKind, currentGxact->gid);
+				}
 
 				/*
 				 * Global locking order: ProcArrayLock then DTM lock since
@@ -1241,7 +1258,7 @@ rollbackDtxTransaction(void)
 			 * segments.  What's left are possibily prepared transactions.
 			 */
 			elog(WARNING, "Releasing segworker groups since one or more segment connections failed.  This will abort the transactions in the segments that did not get prepared.");
-			disconnectAndDestroyAllGangs();
+			disconnectAndDestroyAllGangs(true);
 
 			/*
 			 * This call will at a minimum change the session id so we will
@@ -1266,7 +1283,7 @@ rollbackDtxTransaction(void)
 		 * segments.
 		 */
 		elog(NOTICE, "Releasing segworker groups to finish aborting the transaction.");
-		disconnectAndDestroyAllGangs();
+		disconnectAndDestroyAllGangs(true);
 
 		/*
 		 * This call will at a minimum change the session id so we will
@@ -1334,7 +1351,7 @@ rollbackDtxTransaction(void)
 		 * segment instances.  And, we will abort the transactions in the
 		 * segments.
 		 */
-		disconnectAndDestroyAllGangs();
+		disconnectAndDestroyAllGangs(true);
 
 		/*
 		 * This call will at a minimum change the session id so we will
@@ -1561,11 +1578,11 @@ initTM(void)
 			PG_TRY();
 			{
 				/*
-				 * detectFailedConnections could throw ERROR, so
+				 * FtsNotifyProber could throw ERROR, so
 				 * we should catch it if it happens.
 				 */
 				if (!first)
-					detectFailedConnections();
+					FtsNotifyProber();
 
 				initTM_recover_as_needed();
 				succeeded = true;
@@ -3165,8 +3182,7 @@ cdbtm_performDeferredRecovery(void)
 
 			*shmDtmRecoveryDeferred = false;
 			elog(NOTICE, "Releasing segworker groups for deferred recovery.");
-			disconnectAndDestroyAllGangs();
-			resetSessionForPrimaryGangLoss();
+			disconnectAndDestroyAllGangs(true);
 		}
 		releaseTmLock();
 		CheckForResetSession();

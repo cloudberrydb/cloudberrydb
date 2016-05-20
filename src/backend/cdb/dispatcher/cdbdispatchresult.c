@@ -141,12 +141,6 @@ cdbdisp_makeResult(struct CdbDispatchResults *meleeResults,
 		}
 	}
 
-	/*
-	 * Insert the slice index in error messages related to this QE.
-	 */
-	if (segdbDesc)
-		cdbconn_setSliceIndex(segdbDesc, sliceIndex);
-
 	return dispatchResult;
 }
 

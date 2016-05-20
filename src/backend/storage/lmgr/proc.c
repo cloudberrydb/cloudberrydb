@@ -1491,13 +1491,6 @@ disable_sig_alarm(bool is_statement_timeout)
  * we need to allocate gangs (at least the writer gang) to do anything.  This entails extra work,
  * so we don't want to do this if we don't think the session has gone idle.
  *
- * We can call cleanupIdleReaderGangs() to just free some resources, or cleanupAllIdleGangs() to
- * free up everything possible on the segDB side.  At the moment, I can't find a reason to
- * use cleanupIdleReaderGangs(), but it we wanted to, we would have two timeouts:  The first
- * when we free the reader gangs, and the second later time free the writer gang.
- * My current thinking is that it is better to free all the gangs as soon as we decide
- * the session is idle.
- *
  * P.s:  Is there anything we can free up on the master (QD) side?  I can't think of anything.
  *
  */
@@ -1505,18 +1498,45 @@ static void
 HandleClientWaitTimeout(void)
 {
 	elog(DEBUG2,"HandleClientWaitTimeout");
+
 	/*
 	 * cancel the timer, as there is no reason we need it to go off again.
 	 */
 	disable_sig_alarm(false);
+
 	/*
 	 * Free gangs to free up resources on the segDBs.
 	 */
 	if (gangsExist())
 	{
-		cleanupAllIdleGangs();
+		if (IsTransactionOrTransactionBlock() || TempNamespaceOidIsValid())
+		{
+			/*
+			 * If we are in a transaction, we can't release the writer gang,
+			 * as this will abort the transaction.
+			 *
+			 * If we have a TempNameSpace, we can't release the writer gang, as this
+			 * would drop any temp tables we own.
+			 *
+			 * Since we are idle, any reader gangs will be available but not allocated.
+			 */
+			disconnectAndDestroyIdleReaderGangs();
+		}
+		else
+		{
+			/*
+			 * Get rid of ALL gangs... Readers and primary writer.
+			 * After this, we have no resources being consumed on the segDBs at all.
+			 *
+			 * Our session wasn't destroyed due to an fatal error or FTS action, so
+			 * we don't need to do anything special.  Specifically, we DON'T want
+			 * to act like we are now in a new session, since that would be confusing
+			 * in the log.
+			 *
+			 */
+			disconnectAndDestroyAllGangs(false);
+		}
 	}
-
 }
 
 /*

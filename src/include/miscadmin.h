@@ -367,6 +367,7 @@ extern char *make_absolute_path(const char *path);
 
 /* in utils/misc/superuser.c */
 extern bool superuser(void);	/* current user is superuser */
+extern bool procRoleIsSuperuser(void); /* proc role id is superuser */
 extern bool superuser_arg(Oid roleid);	/* given user is superuser */
 
 

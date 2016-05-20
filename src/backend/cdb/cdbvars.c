@@ -49,7 +49,6 @@ bool		Gp_is_writer; 		/* is this qExec a "writer" process. */
 
 int 		gp_session_id;    /* global unique id for session. */
 
-
 char		*qdHostname;		/*QD hostname */
 int			qdPostmasterPort;	/*Master Segment Postmaster port. */
 char       *gp_qd_callback_info;	/* info for QE to call back to QD */
@@ -668,7 +667,7 @@ assign_gp_connections_per_thread(int newval, bool doit, GucSource source __attri
  *
  * See src/backend/util/misc/guc.c for option definition.
  */
-void disconnectAndDestroyAllGangs(void);
+void disconnectAndDestroyAllGangs(bool resetSession);
 
 bool
 assign_gp_use_dispatch_agent(bool newval, bool doit, GucSource source __attribute__((unused)) )
@@ -688,7 +687,7 @@ assign_gp_use_dispatch_agent(bool newval, bool doit, GucSource source __attribut
 		 * will wipe them out.
 		 */
 		if (newval != gp_use_dispatch_agent && Gp_role != GP_ROLE_UTILITY)
-			disconnectAndDestroyAllGangs();
+			disconnectAndDestroyAllGangs(true);
 		gp_use_dispatch_agent = newval;
 	}
 
