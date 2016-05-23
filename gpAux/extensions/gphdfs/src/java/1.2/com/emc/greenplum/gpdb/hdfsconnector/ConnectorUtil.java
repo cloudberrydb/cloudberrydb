@@ -85,18 +85,18 @@ public class ConnectorUtil
 	}
 	
 	/**
-	 * transfter val to boolean
+	 * transfer val to boolean
 	 */
 	public static boolean getBoolean(String key, String val) {
 		try {
 			return Boolean.parseBoolean(val);
 		} catch (NumberFormatException e) {
-			throw new IllegalArgumentException("param value mast be boolean, key:" + key);
+			throw new IllegalArgumentException("param value must be boolean, key:" + key);
 		}
 	}
 
 	/**
-	 * transfter val to int, just for avro:deflate codec, so val must be 1 - 9
+	 * transfer val to int, just for avro:deflate codec, so val must be 1 - 9
 	 */
 	public static int getCodecLevel(String val) {
 		int codecLevel = -1;
@@ -115,7 +115,7 @@ public class ConnectorUtil
 	}
 
 	/**
-	 * transfter val to int
+	 * transfer val to int
 	 */
 	public static int getInt(String key, String value) throws IllegalArgumentException {
 		try {
@@ -126,7 +126,7 @@ public class ConnectorUtil
 	}
 
 	/**
-	 * transfter val to int, number should between [min, max]
+	 * transfer val to int, number should between [min, max]
 	 */
 	public static int getIntBetween(String key, String value, int min, int max) {
 		try {
