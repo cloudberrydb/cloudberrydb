@@ -115,9 +115,9 @@ ExecVariableListCodegen::ExecVariableListCodegen
     ExecVariableListFn* ptr_to_regular_func_ptr,
     ProjectionInfo* proj_info,
     TupleTableSlot* slot) :
-        BaseCodegen(kExecVariableListPrefix, regular_func_ptr, ptr_to_regular_func_ptr),
-        proj_info_(proj_info),
-        slot_(slot) {
+    BaseCodegen(kExecVariableListPrefix, regular_func_ptr, ptr_to_regular_func_ptr),
+    proj_info_(proj_info),
+    slot_(slot) {
 }
 
 
@@ -176,12 +176,12 @@ bool ExecVariableListCodegen::GenerateExecVariableList(
   // BasicBlock for heap tuple check.
   llvm::BasicBlock* heap_tuple_check_block = codegen_utils->CreateBasicBlock(
       "heap_tuple_check", ExecVariableList_func);
-  // BasicBlock for null check block.
-  llvm::BasicBlock* null_check_block = codegen_utils->CreateBasicBlock(
-      "null_check", ExecVariableList_func);
   // BasicBlock for main.
   llvm::BasicBlock* main_block = codegen_utils->CreateBasicBlock(
       "main", ExecVariableList_func);
+  // BasicBlock for final computations.
+  llvm::BasicBlock* final_block = codegen_utils->CreateBasicBlock(
+      "final", ExecVariableList_func);
   // BasicBlock for fall back.
   llvm::BasicBlock* fallback_block = codegen_utils->CreateBasicBlock(
       "fallback", ExecVariableList_func);
@@ -273,16 +273,15 @@ bool ExecVariableListCodegen::GenerateExecVariableList(
       llvm_slot_PRIVATE_tts_heaptuple,
       codegen_utils->GetConstant((HeapTuple) NULL));
   irb->CreateCondBr(llvm_tuple_has_heaptuple,
-                    null_check_block /*true*/,
+                    main_block /*true*/,
                     fallback_block /*false*/);
 
-  // Start of slot_deform_tuple
-
-  // Null check block
-  // -------------------------
-  // Fall back if the slot has any null attributes
-  // TODO: What to do if any attribute is null????
-  irb->SetInsertPoint(null_check_block);
+  // Main block
+  // ----------
+  // We generate code for slot_deform_tuple.
+  // Note that we do not need to check the type of the tuple, since previous check
+  // guarantees that the we use the enrolled slot, which includes a heap tuple.
+  irb->SetInsertPoint(main_block);
 
   llvm::Value* llvm_heaptuple_t_data =
       irb->CreateLoad(codegen_utils->GetPointerToMember(
@@ -293,22 +292,6 @@ bool ExecVariableListCodegen::GenerateExecVariableList(
   llvm::Value* llvm_heaptuple_t_data_t_infomask =
       irb->CreateLoad( codegen_utils->GetPointerToMember(
           llvm_heaptuple_t_data, &HeapTupleHeaderData::t_infomask));
-
-  // Check  and fall back accordingly
-  irb->CreateCondBr(
-      irb->CreateICmpNE(
-          irb->CreateAnd(
-              llvm_heaptuple_t_data_t_infomask,
-              codegen_utils->GetConstant<uint16>(HEAP_HASNULL)),
-              codegen_utils->GetConstant<uint16>(0)),
-              fallback_block, /* true */
-              main_block /* false */
-  );
-
-  // Main block
-  // ----------
-  // Finally we generate code for slot_deform_tuple
-  irb->SetInsertPoint(main_block);
 
   // Implementation for : {{{
   // attno = HeapTupleHeaderGetNatts(tuple->t_data);
@@ -346,24 +329,40 @@ bool ExecVariableListCodegen::GenerateExecVariableList(
       codegen_utils->GetPointerToMember(llvm_heaptuple_t_data,
                                         &HeapTupleHeaderData::t_hoff));
 
+  // tup->t_bits
+  llvm::Value* llvm_heaptuple_t_data_t_bits =
+      codegen_utils->GetPointerToMember(
+          llvm_heaptuple_t_data,
+          &HeapTupleHeaderData::t_bits);
+
   // Find the start of input data byte array
   // same as tp in slot_deform_tuple (pointer to tuple data)
   llvm::Value* llvm_tuple_data_ptr = irb->CreateInBoundsGEP(
       llvm_heaptuple_t_data, {llvm_heaptuple_t_data_t_hoff});
 
-
   int off = 0;
   TupleDesc tupleDesc = slot_->tts_tupleDescriptor;
   Form_pg_attribute* att = tupleDesc->attrs;
 
+  // For each attribute we use three blocks to i) check for null,
+  // ii) handle null case, and iii) handle not null case.
+  // Note that if an attribute cannot be null then we do not create
+  // the last two blocks.
+  llvm::BasicBlock* attribute_block = nullptr;
+  llvm::BasicBlock* is_null_block = nullptr;
+  llvm::BasicBlock* is_not_null_block = nullptr;
+
+  // points to the attribute_block of the next attribute
+  llvm::BasicBlock* next_attribute_block = nullptr;
+
+  // block of first attribute
+  attribute_block = codegen_utils->CreateBasicBlock(
+      "attribute_block_"+0, ExecVariableList_func);
+
+  irb->CreateBr(attribute_block);
+
   for (int attnum = 0; attnum < max_attr; ++attnum) {
     Form_pg_attribute thisatt = att[attnum];
-
-    if ( thisatt->attcacheoff > 0 ) {
-      off = thisatt->attcacheoff;
-    }else {
-      off = att_align(off, thisatt->attalign);
-    }
 
     // If any thisatt is varlen
     if (thisatt->attlen < 0) {
@@ -371,14 +370,103 @@ bool ExecVariableListCodegen::GenerateExecVariableList(
       return false;
     }
 
-    // values[attnum] = fetchatt(thisatt, tp + off) {{{
-    llvm::Value* llvm_next_t_data_ptr =
-        irb->CreateInBoundsGEP(llvm_tuple_data_ptr,
-                               {codegen_utils->GetConstant(off)});
+    // ith attribute's block
+    // ----------
+    // Check if attribute can be null. If yes, then create blocks
+    // to handle null and not null cases.
+    irb->SetInsertPoint(attribute_block);
+
+    // Create the block of (attnum+1)th attribute and jump to it after
+    // you finish with current attribute.
+    next_attribute_block = codegen_utils->CreateBasicBlock(
+        "attribute_block_"+(attnum+1), ExecVariableList_func);
 
     llvm::Value* llvm_next_values_ptr =
         irb->CreateInBoundsGEP(llvm_slot_PRIVATE_tts_values,
                                {codegen_utils->GetConstant(attnum)});
+
+    // If attribute can be null, then create blocks to handle
+    // null and not null cases.
+    if (!thisatt->attnotnull) {
+      // Create blocks
+      is_null_block = codegen_utils->CreateBasicBlock(
+          "is_null_block_"+attnum, ExecVariableList_func);
+      is_not_null_block = codegen_utils->CreateBasicBlock(
+          "is_not_null_block_"+attnum, ExecVariableList_func);
+
+      llvm::Value* llvm_attnum = codegen_utils->GetConstant(attnum);
+
+      // Check if attribute is null
+      // if (hasnulls && att_isnull(attnum, bp)) {{{
+      // att_isnull(attnum, bp): !((BITS)[(ATT) >> 3] & (1<<((ATT) & 0x07))) {{
+      // Expr_1: ((BITS)[(ATT) >> 3]
+      llvm::Value* llvm_expr_1= irb->CreateLoad(irb->CreateGEP(
+          llvm_heaptuple_t_data_t_bits,
+          {codegen_utils->GetConstant(0),
+              irb->CreateAShr(llvm_attnum, codegen_utils->GetConstant(3))}));
+      // Expr_2: (1 << ((ATT) & 0x07))
+      llvm::Value* llvm_expr_2 = irb->CreateTrunc(
+          irb->CreateShl(codegen_utils->GetConstant(1),
+                         irb->CreateAnd(llvm_attnum,
+                                        codegen_utils->GetConstant(0x07))),
+                                        codegen_utils->GetType<int8>());
+      // !(Exp_1 & Expr_2)
+      llvm::Value* llvm_att_isnull = irb->CreateNot(
+          irb->CreateTrunc(irb->CreateAnd(llvm_expr_1, llvm_expr_2),
+                           codegen_utils->GetType<bool>()));
+      // }}
+
+      llvm::Value* llvm_hasnulls = irb->CreateTrunc(
+          irb->CreateAnd(llvm_heaptuple_t_data_t_infomask,
+                         codegen_utils->GetConstant<uint16>(HEAP_HASNULL)),
+                         codegen_utils->GetType<bool>());
+
+      // hasnulls && att_isnull(attnum, bp)
+      llvm::Value* llvm_is_null = irb->CreateAnd(
+          llvm_hasnulls, llvm_att_isnull);
+
+      irb->CreateCondBr(
+          llvm_is_null,
+          is_null_block, /* true */
+          is_not_null_block /* false */);
+      //}}} End of if (hasnulls && att_isnull(attnum, bp))
+
+      // Is null block
+      // ----------------
+
+      irb->SetInsertPoint(is_null_block);
+
+      // values[attnum] = (Datum) 0; {{{
+      irb->CreateStore(
+          codegen_utils->GetConstant<Datum>(0),
+          llvm_next_values_ptr);
+      // }}}
+
+      // isnull[attnum] = true; {{{
+      llvm::Value* llvm_isnull_ptr =
+          irb->CreateInBoundsGEP(llvm_slot_PRIVATE_tts_isnull,
+                                 {llvm_attnum});
+      irb->CreateStore(
+          codegen_utils->GetConstant<bool>(true),
+          llvm_isnull_ptr);
+      // }}}
+
+      // Jump to next attribute
+      irb->CreateBr(next_attribute_block);
+
+      // Is not null block
+      // ----------------
+
+      irb->SetInsertPoint(is_not_null_block);
+
+    } // End of if (!thisatt->attnotnull)
+
+    off = att_align(off, thisatt->attalign);
+
+    // values[attnum] = fetchatt(thisatt, tp + off) {{{
+    llvm::Value* llvm_next_t_data_ptr =
+        irb->CreateInBoundsGEP(llvm_tuple_data_ptr,
+                               {codegen_utils->GetConstant(off)});
 
     llvm::Value* llvm_colVal = nullptr;
     if( thisatt->attbyval) {
@@ -390,8 +478,9 @@ bool ExecVariableListCodegen::GenerateExecVariableList(
         break;
         case sizeof(int16):
                   llvm_colVal = irb->CreateLoad(
-                      codegen_utils->GetType<int16>(),irb->CreateBitCast(
-                          llvm_next_t_data_ptr, codegen_utils->GetType<int16*>()));
+                      codegen_utils->GetType<int16>(),
+                      irb->CreateBitCast(llvm_next_t_data_ptr,
+                                         codegen_utils->GetType<int16*>()));
         break;
         case sizeof(int32):
                   llvm_colVal = irb->CreateLoad(
@@ -401,8 +490,9 @@ bool ExecVariableListCodegen::GenerateExecVariableList(
         break;
         case sizeof(Datum):
                   llvm_colVal = irb->CreateLoad(
-                      codegen_utils->GetType<int64>(), irb->CreateBitCast(
-                          llvm_next_t_data_ptr, codegen_utils->GetType<int64*>()));
+                      codegen_utils->GetType<int64>(),
+                      irb->CreateBitCast(llvm_next_t_data_ptr,
+                                         codegen_utils->GetType<int64*>()));
         break;
         default:
           // We do not support other data type length, passed by value
@@ -429,8 +519,26 @@ bool ExecVariableListCodegen::GenerateExecVariableList(
         llvm_next_isnull_ptr);
     // }}} End of isnull[attnum] = false;
 
+    // Jump to next attribute
+    irb->CreateBr(next_attribute_block);
+
     off += thisatt->attlen;
+    // Process next attribute
+    attribute_block = next_attribute_block;
   } // end for
+
+  // Next attribute block
+  // ----------------
+  // Note that we have iterated over all attributes already,
+  // so simply jump to final block.
+
+  irb->SetInsertPoint(next_attribute_block);
+  irb->CreateBr(final_block);
+
+  // Final block
+  // ----------------
+
+  irb->SetInsertPoint(final_block);
 
   // slot->PRIVATE_tts_off = off;
   llvm::Value* llvm_slot_PRIVATE_tts_off_ptr /* long* */=
@@ -442,15 +550,7 @@ bool ExecVariableListCodegen::GenerateExecVariableList(
   // slot->PRIVATE_tts_nvalid = attnum;
   irb->CreateStore(llvm_max_attr, llvm_slot_PRIVATE_tts_nvalid_ptr);
 
-  // slot->PRIVATE_tts_slow = slow;
-  llvm::Value* llvm_slot_PRIVATE_tts_slow_ptr /* bool* */=
-      codegen_utils->GetPointerToMember(
-          llvm_slot, &TupleTableSlot::PRIVATE_tts_slow);
-  irb->CreateStore(codegen_utils->GetConstant<bool>(false),
-                   llvm_slot_PRIVATE_tts_slow_ptr);
-
   // End of slot_deform_tuple
-
 
   // _slot_getsomeattrs() after calling slot_deform_tuple {{{
   // for (; attno < attnum; attno++)
@@ -463,23 +563,23 @@ bool ExecVariableListCodegen::GenerateExecVariableList(
   llvm::Value* llvm_num_bytes = irb->CreateMul(
       codegen_utils->GetConstant(sizeof(Datum)),
       irb->CreateZExtOrTrunc(
-        irb->CreateSub(llvm_max_attr, llvm_attno),
-        codegen_utils->GetType<size_t>()));
+          irb->CreateSub(llvm_max_attr, llvm_attno),
+          codegen_utils->GetType<size_t>()));
   codegen_utils->ir_builder()->CreateCall(
       llvm_memset, {
           irb->CreateBitCast(
               irb->CreateInBoundsGEP(llvm_slot_PRIVATE_tts_values, {llvm_attno}),
               codegen_utils->GetType<void*>()),
-          codegen_utils->GetConstant(0),
-          llvm_num_bytes});
+              codegen_utils->GetConstant(0),
+              llvm_num_bytes});
 
   codegen_utils->ir_builder()->CreateCall(
       llvm_memset, {
           irb->CreateBitCast(
               irb->CreateInBoundsGEP(llvm_slot_PRIVATE_tts_isnull, {llvm_attno}),
               codegen_utils->GetType<void*>()),
-          codegen_utils->GetConstant((int) true),
-          llvm_num_bytes});
+              codegen_utils->GetConstant((int) true),
+              llvm_num_bytes});
 
   // TupSetVirtualTuple(slot);
   irb->CreateStore(
@@ -526,7 +626,6 @@ bool ExecVariableListCodegen::GenerateExecVariableList(
   llvm_error->addIncoming(codegen_utils->GetConstant(0), slot_check_block);
   llvm_error->addIncoming(codegen_utils->GetConstant(1), tuple_type_check_block);
   llvm_error->addIncoming(codegen_utils->GetConstant(2), heap_tuple_check_block);
-  llvm_error->addIncoming(codegen_utils->GetConstant(3), null_check_block);
 
   elogwrapper.CreateElog(DEBUG1, "Falling back to regular ExecVariableList, reason = %d", llvm_error);
 
