@@ -199,7 +199,7 @@
       <term><option>--ignore-version</option></term>
       <listitem>
        <para>
-        Ignore database version checks.
+        This option has been deprecated.
        </para>
       </listitem>
      </varlistentry>
