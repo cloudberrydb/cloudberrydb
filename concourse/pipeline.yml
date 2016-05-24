@@ -13,6 +13,7 @@ groups:
   - build_gpdb_centos6
   - gpdb_icg
   - gpos_publish_tag
+  - orca_publish_tag
 - name: xerces
   jobs:
   - gp_xerces
@@ -50,6 +51,12 @@ resources:
     user: greenplum-db
     repository: gpos
     access_token: {{gposbot_access_token}}
+- name: orca_github_release
+  type: github-release
+  source:
+    user: greenplum-db
+    repository: gporca
+    access_token: {{gporcabot_access_token}}
 - name: gpos_src
   type: git
   source:
@@ -289,6 +296,28 @@ jobs:
       globs:
         - gpos_github_release_stage/bin_gpos_centos5_release.tar.gz
         - gpos_github_release_stage/bin_gpos_centos5_debug.tar.gz
+- name: orca_publish_tag
+  max_in_flight: 1
+  plan:
+  - get: orca_src
+    passed:
+    - orca_centos5_release
+  - get: bin_orca_centos5_release
+    passed:
+    - orca_centos5_release
+    trigger: true
+  - get: bin_orca_centos5_debug
+    trigger: true
+  - task: orca_publish_tag
+    file: orca_src/concourse/publish_tag.yml
+  - put: orca_github_release
+    params:
+      name: orca_github_release_stage/tag.txt
+      tag: orca_github_release_stage/tag.txt
+      commitish: orca_github_release_stage/commit.txt
+      globs:
+        - orca_github_release_stage/bin_orca_centos5_release.tar.gz
+        - orca_github_release_stage/bin_orca_centos5_debug.tar.gz
 - name: gp_xerces
   max_in_flight: 2
   plan:
