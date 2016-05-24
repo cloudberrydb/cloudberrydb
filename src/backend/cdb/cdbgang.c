@@ -1198,7 +1198,7 @@ getAllIdleReaderGangs()
 }
 
 List *
-getAllBusyReaderGangs()
+getAllAllocatedReaderGangs()
 {
 	List *res = NIL;
 	ListCell *le;
