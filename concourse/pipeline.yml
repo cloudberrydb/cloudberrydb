@@ -6,10 +6,8 @@ groups:
   - gp_xerces
   - gpos_centos5_release
   - gpos_centos6_release
-  - gpos_secondary
   - orca_centos5_release
   - orca_centos6_release
-  - orca_secondary
   - build_gpdb_centos6
   - gpdb_icg
   - gpos_publish_tag
@@ -21,10 +19,11 @@ groups:
   jobs:
   - gpos_centos5_release
   - orca_centos5_release
-- name: secondary
+- name: platforms
   jobs:
-  - gpos_secondary
-  - orca_secondary
+  - gpos_platforms
+  - orca_platforms
+  - xerces_platforms
 - name: gpdb
   jobs:
   - gp_xerces
@@ -318,7 +317,7 @@ jobs:
       globs:
         - orca_github_release_stage/bin_orca_centos5_release.tar.gz
         - orca_github_release_stage/bin_orca_centos5_debug.tar.gz
-- name: gp_xerces
+- name: xerces_platforms
   max_in_flight: 2
   plan:
   - get: xerces_patch
@@ -361,6 +360,28 @@ jobs:
     - put: bin_xerces_debian8_clang_libcxx
       params:
         from: package_tarball_debian8_clang_libcxx/bin_xerces_debian8_clang_libcxx.tar.gz
+- name: gp_xerces
+  max_in_flight: 2
+  plan:
+  - get: xerces_patch
+    trigger: true
+  - aggregate:
+    - task: build_centos5
+      file: xerces_patch/concourse/xerces-c/build_xerces_centos5.yml
+    - task: build_centos6
+      file: xerces_patch/concourse/xerces-c/build_xerces_centos6.yml
+  - aggregate:
+    - task: package_tarball_centos5
+      file: xerces_patch/concourse/xerces-c/package_tarball_centos5.yml
+    - task: package_tarball_centos6
+      file: xerces_patch/concourse/xerces-c/package_tarball_centos6.yml
+  - aggregate:
+    - put: bin_xerces_centos5
+      params:
+        from: package_tarball_centos5/bin_xerces_centos5.tar.gz
+    - put: bin_xerces_centos6
+      params:
+        from: package_tarball_centos6/bin_xerces_centos6.tar.gz
 
 - name: gpos_centos5_release
   max_in_flight: 2
@@ -392,17 +413,11 @@ jobs:
     params:
       from: package_tarball_centos6_release/bin_gpos_centos6_release.tar.gz
 
-- name: gpos_secondary
+- name: gpos_platforms
   max_in_flight: 2
   plan:
   - get: gpos_src
     trigger: true
-  - get: bin_orca_centos5_release
-    passed:
-    - orca_centos5_release
-    trigger: true
-    params:
-      skip_download: true
 
   - aggregate:
     - task: build_and_test_centos5_debug
@@ -469,6 +484,7 @@ jobs:
   - get: bin_xerces_centos5
     passed:
     - gp_xerces
+    trigger: true
   - task: build_and_test_centos5_release
     file: orca_src/concourse/build_and_test_centos5_release.yml
   - task: package_tarball_centos5_release
@@ -496,53 +512,53 @@ jobs:
   - put: bin_orca_centos6_release
     params:
       from: package_tarball_centos6_release/bin_orca_centos6_release.tar.gz
-- name: orca_secondary
+- name: orca_platforms
   max_in_flight: 2
   plan:
   - aggregate:
     - get: bin_gpos_centos5_debug
       passed:
-      - gpos_secondary
+      - gpos_platforms
       trigger: true
     - get: bin_gpos_debian8_debug
       passed:
-      - gpos_secondary
+      - gpos_platforms
       trigger: true
     - get: bin_gpos_debian8_release
       passed:
-      - gpos_secondary
+      - gpos_platforms
       trigger: true
     - get: bin_gpos_debian8_debug_clang
       passed:
-      - gpos_secondary
+      - gpos_platforms
       trigger: true
     - get: bin_gpos_debian8_release_clang
       passed:
-      - gpos_secondary
+      - gpos_platforms
       trigger: true
     - get: bin_gpos_debian8_debug_clang_libcxx
       passed:
-      - gpos_secondary
+      - gpos_platforms
       trigger: true
     - get: bin_gpos_debian8_release_clang_libcxx
       passed:
-      - gpos_secondary
+      - gpos_platforms
       trigger: true
     - get: bin_xerces_centos5
       passed:
-      - gp_xerces
+      - xerces_platforms
       trigger: true
     - get: bin_xerces_debian8
       passed:
-      - gp_xerces
+      - xerces_platforms
       trigger: true
     - get: bin_xerces_debian8_clang
       passed:
-      - gp_xerces
+      - xerces_platforms
       trigger: true
     - get: bin_xerces_debian8_clang_libcxx
       passed:
-      - gp_xerces
+      - xerces_platforms
       trigger: true
     - get: orca_src
       trigger: true
@@ -615,6 +631,7 @@ jobs:
     - get: gpdb_src
       params:
         submodules: none
+      trigger: true
   - task: build_with_orca
     file: gpdb_src/concourse/build_with_orca.yml
   - task: package_tarball_centos6
