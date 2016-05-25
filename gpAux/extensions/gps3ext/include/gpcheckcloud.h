@@ -1,5 +1,5 @@
-#ifndef __S3_CHK_CFG__
-#define __S3_CHK_CFG__
+#ifndef __GP_CHECK_CLOUD__
+#define __GP_CHECK_CLOUD__
 
 #include <unistd.h>
 #define __STDC_FORMAT_MACROS

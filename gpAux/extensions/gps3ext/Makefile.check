@@ -15,8 +15,8 @@ ifeq ($(DEBUG_S3_SYMBOL),y)
 endif
 
 # Targets
-PROGRAM = s3chkcfg
-OBJS = src/s3chkcfg.o src/s3conf.o src/s3downloader.o src/s3wrapper.o src/s3utils.o src/s3log.o src/s3common.o lib/http_parser.o lib/ini.o src/s3url_parser.o src/s3http_headers.o src/s3thread.o
+PROGRAM = gpcheckcloud
+OBJS = src/gpcheckcloud.o src/s3conf.o src/s3downloader.o src/s3wrapper.o src/s3utils.o src/s3log.o src/s3common.o lib/http_parser.o lib/ini.o src/s3url_parser.o src/s3http_headers.o src/s3thread.o
 
 # Launch
 PGXS := $(shell pg_config --pgxs)
