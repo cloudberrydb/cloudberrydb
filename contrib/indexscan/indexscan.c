@@ -240,7 +240,7 @@ readindex(PG_FUNCTION_ARGS)
 			 * across calls (we wouldn't have a chance to release it, if the
 			 * function isn't run to completion.)
 			 */
-			info->page = palloc(BLCKSZ);
+			info->page = MemoryContextAlloc(funcctx->multi_call_memory_ctx, BLCKSZ);
 
 			MIRROREDLOCK_BUFMGR_LOCK;
 			buf = ReadBuffer(irel, info->blkno);
