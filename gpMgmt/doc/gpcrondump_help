@@ -31,11 +31,12 @@ gpcrondump -x database_name
      --netbackup-schedule <netbackup_schedule> 
      [--netbackup-block-size <size> ] 
      [--netbackup-keyword <keyword> ] } }
-     
-gpcrondump --ddboost-host <ddboost_hostname> 
-    [--ddboost-host ddboost_hostname ... ]
+
+gpcrondump --ddboost-host <ddboost_hostname>
+     [--ddboost-host ddboost_hostname ... ]
      --ddboost-user <ddboost_user>
-     --ddboost-backupdir <backup_directory> 
+     --ddboost-backupdir <backup_directory>
+     [--ddboost-storage-unit=<storage_unit_name>]
      [--ddboost-remote] [--ddboost-skip-ping]
 
 gpcrondump --ddboost-config-remove
@@ -249,11 +250,13 @@ OPTIONS
  set up the Data Domain Boost credential, as described in the next option 
  below. 
 
- --ddboost-storage-unit is optional, which provides a dynamic storage
- unit where to replicate dump files between source and target DDBoost Servers,
- backup directory defaults to the cluster's config file when the Data Domain
- Boost credentials were set. If this option is not specified, it also defaults
- to the cluster's config file.
+ --ddboost-storage-unit is optional. Specify a Data Domain system storage
+ unit name where a back up is stored. The storage unit name is also used
+ to replicate dump files between source and target Data Domain systems
+ if --ddboost-remote is specified.
+
+ If --ddboost-storage-unit is not specified, it defaults to the value
+ stored in the DD Boost config file for the Greenplum Database cluster.
 
  Note: storage unit will be created on DDBoost server only if one does
  not already exist and following options are not specified:
@@ -305,7 +308,8 @@ OPTIONS
 --ddboost-host ddboost_hostname
   [--ddboost-host ddboost_hostname ... ]
   --ddboost-user <ddboost_user> 
-  --ddboost-backupdir <backup_directory> 
+  --ddboost-backupdir <backup_directory>
+  [--ddboost-storage-unit=<storage_unit_name>]
   [--ddboost-remote] [--ddboost-skip-ping]
 
  Sets the Data Domain Boost credentials. Do not combine this options with 
@@ -323,9 +327,14 @@ OPTIONS
  files, and global objects on the Data Domain system. The location on the
  system is GPDB/<backup_directory>. 
 
+ --ddboost-storage-unit is optional. Create or update the storage unit ID
+ in the DD Boost credentials file. Default storage unit ID is GPDB.
+
  --ddboost-remote is optional. Indicates that the configuration 
  parameters are for the remote Data Domain system that is used for backup 
  replication Data Domain Boost managed file replication. 
+
+ If --ddboost-remote is specified, --ddboost-storage-unit is ignored.
 
  Example: 
    gpcrondump --ddboost-host 172.28.8.230 --ddboost-user 
@@ -360,8 +369,10 @@ OPTIONS
  gpcrondump option. 
 
 --ddboost-show-config
- Show DDBoost and MFR related configuration information: DDBoost hostname,
- username, default backup directory, default storage unit.
+
+ Show DDBoost and MFR (--ddboost-remote) related configuration
+ information: DDBoost hostname, username, default backup directory,
+ default storage unit.
 
  --ddboost-remote is optional, specify it to show the DDBoost and MFR
  related configuration information for remote DDBoost server.
