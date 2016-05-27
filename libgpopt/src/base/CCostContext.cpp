@@ -306,10 +306,10 @@ CCostContext::FValid
 		CAutoTrace at(pmp);
 		IOstream &os = at.Os();
 
-		os << "PROPERTY MISMATCH:" << std::endl << "GEXPR:";
-		(void) Pgexpr()->OsPrint(os," ");
+		os << std::endl << "PROPERTY MISMATCH:" << std::endl;
+		os << std::endl << "GEXPR:" << std::endl << Pgexpr();
 		os << std::endl << "REQUIRED PROPERTIES:" << std::endl << *(m_poc->Prpp());
-		os	<< std::endl << "DERIVED PROPERTIES:" << std::endl << *pdprel << std::endl << *m_pdpplan;
+		os << std::endl << "DERIVED PROPERTIES:" << std::endl << *pdprel << std::endl << *m_pdpplan;
 	}
 #endif //GPOS_DEBUG
 

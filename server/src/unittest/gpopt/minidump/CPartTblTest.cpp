@@ -55,11 +55,6 @@ const CHAR *rgszPartTblFileNames[] =
 	"../data/dxl/minidump/PartTbl-MultiWayJoinWithDPE-2.mdp",
 	"../data/dxl/minidump/PartTbl-AsymmetricRangePredicate.mdp",
 	"../data/dxl/minidump/PartTbl-NEqPredicate.mdp",
-
-	// TODO: ; 02/14/2014: the plan in this test keeps changing between runs
-	// re-enable test after this issue is fixed
-	//		"../data/dxl/minidump/PartTbl-MultipleEqPredicates.mdp",
-
 	"../data/dxl/minidump/PartTbl-SQExists.mdp",
 	"../data/dxl/minidump/PartTbl-SQNotExists.mdp",
 	"../data/dxl/minidump/PartTbl-SQAny.mdp",

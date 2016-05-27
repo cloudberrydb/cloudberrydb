@@ -222,7 +222,7 @@ CPhysicalSplit::PdsRequired
 {
 	GPOS_ASSERT(0 == ulChildIndex);
 
- 	return GPOS_NEW(pmp) CDistributionSpecAny();
+ 	return GPOS_NEW(pmp) CDistributionSpecAny(this->Eopid());
 }
 
 //---------------------------------------------------------------------------

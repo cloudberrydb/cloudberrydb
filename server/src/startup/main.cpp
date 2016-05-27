@@ -84,6 +84,7 @@
 #include "unittest/gpopt/minidump/CPullUpProjectElementTest.h"
 #include "unittest/gpopt/minidump/CMiniDumperDXLTest.h"
 #include "unittest/gpopt/minidump/CMinidumpWithConstExprEvaluatorTest.h"
+#include "unittest/gpopt/minidump/CWindowTest.h"
 #include "unittest/gpopt/minidump/CICGTest.h"
 #include "unittest/gpopt/minidump/CTpcdsTest.h"
 #include "unittest/gpopt/minidump/CMultilevelPartitionTest.h"
@@ -149,6 +150,7 @@ static gpos::CUnittest rgut[] =
 #endif  // !defined(GPOS_SunOS)
 	GPOS_UNITTEST_STD(CMiniDumperDXLTest),
 	GPOS_UNITTEST_STD(CExpressionPreprocessorTest),
+	GPOS_UNITTEST_STD(CWindowTest),
 	GPOS_UNITTEST_STD(CICGTest),
 	GPOS_UNITTEST_STD(CMultilevelPartitionTest),
 	GPOS_UNITTEST_STD(CSetopTest),
@@ -354,17 +356,36 @@ PvExec
 		
 		CAutoMemoryPool amp;
 		IMemoryPool *pmp = amp.Pmp();
-		COptimizerConfig* poconf = COptimizerConfig::PoconfDefault(pmp);
+
+		// load dump file
+		CDXLMinidump *pdxlmd = CMinidumperUtils::PdxlmdLoad(pmp, szFileName);
+		GPOS_CHECK_ABORT;
+
+		COptimizerConfig *poconf = pdxlmd->Poconf();
+
+		if (NULL == poconf)
+		{
+			poconf = COptimizerConfig::PoconfDefault(pmp);
+		}
+		else
+		{
+			poconf -> AddRef();
+		}
+
+		ULONG ulSegments = CTestUtils::UlSegments(poconf);
+
 		CDXLNode *pdxlnPlan = CMinidumperUtils::PdxlnExecuteMinidump
 								(
 								pmp,
 								szFileName,
-								GPOPT_TEST_SEGMENTS,
+								ulSegments,
 								1 /*ulSessionId*/,
 								1 /*ulCmdId*/,
 								poconf,
 								NULL /*pceeval*/
 								);
+
+		GPOS_DELETE(pdxlmd);
 		poconf->Release();
 		pdxlnPlan->Release();
 		CMDCache::Shutdown();

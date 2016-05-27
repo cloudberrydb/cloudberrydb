@@ -1391,10 +1391,9 @@ CExpression::PexprRehydrate
 			CAutoTrace at(pmp);
 			IOstream &os = at.Os();
 
-			os << "INVALID EXPRESSION: " << *pexpr;
+			os << std::endl << "INVALID EXPRESSION: " << std::endl << *pexpr;
 			os << std::endl << "REQUIRED PROPERTIES: " << std::endl << *(pcc->Poc()->Prpp());
-			os << std::endl << "DERIVED PROPERTIES:";
-			os << std::endl << *CDrvdPropPlan::Pdpplan(pexpr->PdpDerive()) << std::endl;
+			os << std::endl << "DERIVED PROPERTIES: " << std::endl << *CDrvdPropPlan::Pdpplan(pexpr->PdpDerive()) << std::endl;
 		}
 #endif  // GPOS_DEBUG
 		GPOS_RAISE(gpopt::ExmaGPOPT, gpopt::ExmiUnsatisfiedRequiredProperties);

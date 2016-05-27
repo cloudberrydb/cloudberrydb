@@ -457,7 +457,7 @@ CEnumeratorTest::EresUnittest_RunUnsatisfiedRequiredPropertiesTests()
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CICGTest::EresUnittest_RunCompatibleDistributions
+//		CEnumeratorTest::EresUnittest_RunCompatibleDistributions
 //
 //	@doc:
 //		Run plans testing that various distributions are compatible and

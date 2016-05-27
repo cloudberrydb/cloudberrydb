@@ -2823,36 +2823,36 @@ CTestUtils::PexprScalarNestedPreds
 
 	CColRefSet *pcrs = CDrvdPropRelational::Pdprel(pexpr->PdpDerive())->PcrsOutput();
 	CColRef *pcrLeft =  pcrs->PcrAny();
-	CExpression *pexprConstFst = CUtils::PexprScalarConstInt4(pmp, 3 /*iVal*/);
+	CExpression *pexprConstActual = CUtils::PexprScalarConstInt4(pmp, 3 /*iVal*/);
 
-	CExpression *pexprPredFst = CUtils::PexprScalarEqCmp(pmp, pcrLeft, pexprConstFst);
-	CExpression *pexprPredSnd = NULL;
-
-	if (CScalarBoolOp::EboolopNot != eboolop)
-	{
-		CExpression *pexprConstSnd = CUtils::PexprScalarConstInt4(pmp, 5 /*iVal*/);
-		pexprPredSnd = CUtils::PexprScalarEqCmp(pmp, pcrLeft, pexprConstSnd);
-	}
-
-	DrgPexpr *pdrgpexprFst = GPOS_NEW(pmp) DrgPexpr(pmp);
-	pdrgpexprFst->Append(pexprPredFst);
+	CExpression *pexprPredActual = CUtils::PexprScalarEqCmp(pmp, pcrLeft, pexprConstActual);
+	CExpression *pexprPredExpected = NULL;
 
 	if (CScalarBoolOp::EboolopNot != eboolop)
 	{
-		pdrgpexprFst->Append(pexprPredSnd);
+		CExpression *pexprConstExpected = CUtils::PexprScalarConstInt4(pmp, 5 /*iVal*/);
+		pexprPredExpected = CUtils::PexprScalarEqCmp(pmp, pcrLeft, pexprConstExpected);
 	}
 
-	CExpression *pexprBoolOp = CUtils::PexprScalarBoolOp(pmp, eboolop , pdrgpexprFst);
-	DrgPexpr *pdrgpexprSnd = GPOS_NEW(pmp) DrgPexpr(pmp);
-	pdrgpexprSnd->Append(pexprBoolOp);
+	DrgPexpr *pdrgpexprActual = GPOS_NEW(pmp) DrgPexpr(pmp);
+	pdrgpexprActual->Append(pexprPredActual);
 
 	if (CScalarBoolOp::EboolopNot != eboolop)
 	{
-		pexprPredSnd->AddRef();
-		pdrgpexprSnd->Append(pexprPredSnd);
+		pdrgpexprActual->Append(pexprPredExpected);
 	}
 
-	return CUtils::PexprScalarBoolOp(pmp, eboolop , pdrgpexprSnd);
+	CExpression *pexprBoolOp = CUtils::PexprScalarBoolOp(pmp, eboolop , pdrgpexprActual);
+	DrgPexpr *pdrgpexprExpected = GPOS_NEW(pmp) DrgPexpr(pmp);
+	pdrgpexprExpected->Append(pexprBoolOp);
+
+	if (CScalarBoolOp::EboolopNot != eboolop)
+	{
+		pexprPredExpected->AddRef();
+		pdrgpexprExpected->Append(pexprPredExpected);
+	}
+
+	return CUtils::PexprScalarBoolOp(pmp, eboolop , pdrgpexprExpected);
 }
 
 //---------------------------------------------------------------------------
@@ -3185,15 +3185,15 @@ CTestUtils::FPlanMatch
 	(
 	IMemoryPool *pmp,
 	IOstream &os,
-	const CDXLNode *pdxlnFst,
-	ULLONG ullPlanIdFst,
-	ULLONG ullPlanSpaceSizeFst,
-	const CDXLNode *pdxlnSnd,
-	ULLONG ullPlanIdSnd,
-	ULLONG ullPlanSpaceSizeSnd
+	const CDXLNode *pdxlnActual,
+	ULLONG ullPlanIdActual,
+	ULLONG ullPlanSpaceSizeActual,
+	const CDXLNode *pdxlnExpected,
+	ULLONG ullPlanIdExpected,
+	ULLONG ullPlanSpaceSizeExpected
 	)
 {
-	if (NULL == pdxlnFst && NULL == pdxlnSnd)
+	if (NULL == pdxlnActual && NULL == pdxlnExpected)
 	{
 		CAutoTrace at(pmp);
 		at.Os() << "Both plans are NULL." << std::endl;
@@ -3201,69 +3201,69 @@ CTestUtils::FPlanMatch
 		return true;
 	}
 
-	if (NULL != pdxlnFst && NULL == pdxlnSnd)
+	if (NULL != pdxlnActual && NULL == pdxlnExpected)
 	{
 		CAutoTrace at(pmp);
-		at.Os() << "Second plan is NULL. First: " << std::endl;
-		CWStringDynamic *pstrFst = CDXLUtils::PstrSerializePlan(pmp, pdxlnFst, ullPlanIdFst, ullPlanSpaceSizeFst, false /*fDocumentHeaderFooter*/, true /*fIndent*/);
-		at.Os()  << pstrFst->Wsz() << std::endl;
+		at.Os() << "Expected plan is NULL. Actual: " << std::endl;
+		CWStringDynamic *pstrActual = CDXLUtils::PstrSerializePlan(pmp, pdxlnActual, ullPlanIdActual, ullPlanSpaceSizeActual, false /*fDocumentHeaderFooter*/, true /*fIndent*/);
+		at.Os()  << pstrActual->Wsz() << std::endl;
 
-		GPOS_DELETE(pstrFst);
+		GPOS_DELETE(pstrActual);
 
 		return false;
 	}
 
-	if (NULL == pdxlnFst && NULL != pdxlnSnd)
+	if (NULL == pdxlnActual && NULL != pdxlnExpected)
 	{
 		CAutoTrace at(pmp);
-		at.Os()  << "First plan is NULL. Second: " << std::endl;
-		CWStringDynamic *pstrSnd = CDXLUtils::PstrSerializePlan(pmp, pdxlnSnd, ullPlanIdSnd, ullPlanSpaceSizeSnd, false /*fDocumentHeaderFooter*/, true /*fIndent*/);
-		at.Os()  << pstrSnd->Wsz() << std::endl;
+		at.Os()  << "Actual plan is NULL. Expected: " << std::endl;
+		CWStringDynamic *pstrExpected = CDXLUtils::PstrSerializePlan(pmp, pdxlnExpected, ullPlanIdExpected, ullPlanSpaceSizeExpected, false /*fDocumentHeaderFooter*/, true /*fIndent*/);
+		at.Os()  << pstrExpected->Wsz() << std::endl;
 
-		GPOS_DELETE(pstrSnd);
+		GPOS_DELETE(pstrExpected);
 
 		return false;
 	}		
 		
-	GPOS_ASSERT(NULL != pdxlnFst);
-	GPOS_ASSERT(NULL != pdxlnSnd);
+	GPOS_ASSERT(NULL != pdxlnActual);
+	GPOS_ASSERT(NULL != pdxlnExpected);
 	
 	// plan id's and space sizes are already compared before this point,
 	// overwrite PlanId's and space sizes with zeros to pass string comparison on plan body
-	CWStringDynamic *pstrFst = CDXLUtils::PstrSerializePlan(pmp, pdxlnFst, 0 /*ullPlanIdFst*/, 0 /*ullPlanSpaceSizeFst*/, false /*fDocumentHeaderFooter*/, true /*fIndent*/);
+	CWStringDynamic *pstrActual = CDXLUtils::PstrSerializePlan(pmp, pdxlnActual, 0 /*ullPlanIdActual*/, 0 /*ullPlanSpaceSizeActual*/, false /*fDocumentHeaderFooter*/, true /*fIndent*/);
 	GPOS_CHECK_ABORT;
 
-	CWStringDynamic *pstrSnd = CDXLUtils::PstrSerializePlan(pmp, pdxlnSnd, 0 /*ullPlanIdSnd*/, 0 /*ullPlanSpaceSizeSnd*/, false /*fDocumentHeaderFooter*/, true /*fIndent*/);
+	CWStringDynamic *pstrExpected = CDXLUtils::PstrSerializePlan(pmp, pdxlnExpected, 0 /*ullPlanIdExpected*/, 0 /*ullPlanSpaceSizeExpected*/, false /*fDocumentHeaderFooter*/, true /*fIndent*/);
 	GPOS_CHECK_ABORT;
 	
-	BOOL fResult = pstrFst->FEquals(pstrSnd);
+	BOOL fResult = pstrActual->FEquals(pstrExpected);
 
 	// cleanup
-	GPOS_DELETE(pstrFst);
-	GPOS_DELETE(pstrSnd);
+	GPOS_DELETE(pstrActual);
+	GPOS_DELETE(pstrExpected);
 
 	if (!fResult)
 	{
 		// serialize plans again to restore id's and space size before printing error message
-		CWStringDynamic *pstrFst = CDXLUtils::PstrSerializePlan(pmp, pdxlnFst, ullPlanIdFst, ullPlanSpaceSizeFst, false /*fDocumentHeaderFooter*/, true /*fIndent*/);
+		CWStringDynamic *pstrActual = CDXLUtils::PstrSerializePlan(pmp, pdxlnActual, ullPlanIdActual, ullPlanSpaceSizeActual, false /*fDocumentHeaderFooter*/, true /*fIndent*/);
 		GPOS_CHECK_ABORT;
 
-		CWStringDynamic *pstrSnd = CDXLUtils::PstrSerializePlan(pmp, pdxlnSnd, ullPlanIdSnd, ullPlanSpaceSizeSnd, false /*fDocumentHeaderFooter*/, true /*fIndent*/);
+		CWStringDynamic *pstrExpected = CDXLUtils::PstrSerializePlan(pmp, pdxlnExpected, ullPlanIdExpected, ullPlanSpaceSizeExpected, false /*fDocumentHeaderFooter*/, true /*fIndent*/);
 		GPOS_CHECK_ABORT;
 
 		{
 			CAutoTrace at(pmp);
 
-			at.Os() << "First: " << std::endl;
-			at.Os()  << pstrFst->Wsz() << std::endl;
+			at.Os() << "Actual: " << std::endl;
+			at.Os()  << pstrActual->Wsz() << std::endl;
 		}
 
-		os << "Second: " << std::endl;
-		os << pstrSnd->Wsz() << std::endl;
+		os << "Expected: " << std::endl;
+		os << pstrExpected->Wsz() << std::endl;
 
 		// cleanup
-		GPOS_DELETE(pstrFst);
-		GPOS_DELETE(pstrSnd);
+		GPOS_DELETE(pstrActual);
+		GPOS_DELETE(pstrExpected);
 	}
 	
 	
@@ -3284,12 +3284,12 @@ CTestUtils::FPlanCompare
 	(
 	IMemoryPool *pmp,
 	IOstream &os,
-	const CDXLNode *pdxlnFst,
-	ULLONG ullPlanIdFst,
-	ULLONG ullPlanSpaceSizeFst,
-	const CDXLNode *pdxlnSnd,
-	ULLONG ullPlanIdSnd,
-	ULLONG ullPlanSpaceSizeSnd,
+	const CDXLNode *pdxlnActual,
+	ULLONG ullPlanIdActual,
+	ULLONG ullPlanSpaceSizeActual,
+	const CDXLNode *pdxlnExpected,
+	ULLONG ullPlanIdExpected,
+	ULLONG ullPlanSpaceSizeExpected,
 	BOOL fMatchPlans,
 	INT iCmpSpaceSize
 	)
@@ -3301,34 +3301,34 @@ CTestUtils::FPlanCompare
 
 	CAutoTrace at(pmp);
 
-	if (ullPlanIdFst != ullPlanIdSnd)
+	if (ullPlanIdActual != ullPlanIdExpected)
 	{
 		at.Os()
 		<< "Plan Id mismatch." << std::endl
-		<< "\tCurrent Id: " << ullPlanIdFst << std::endl
-		<< "\tExpected Id: " << ullPlanIdSnd << std::endl;
+		<< "\tActual Id: " << ullPlanIdActual << std::endl
+		<< "\tExpected Id: " << ullPlanIdExpected << std::endl;
 
 		return false;
 	}
 
 	// check plan space size required comparison
 	if (
-		(0 == iCmpSpaceSize && ullPlanSpaceSizeFst != ullPlanSpaceSizeSnd) ||	// required comparison is equality
-		(-1 == iCmpSpaceSize && ullPlanSpaceSizeFst > ullPlanSpaceSizeSnd) ||	// required comparison is (Fst <= Snd)
-		(1 == iCmpSpaceSize && ullPlanSpaceSizeFst < ullPlanSpaceSizeSnd)  // required comparison is (Fst >= Snd)
+		(0 == iCmpSpaceSize && ullPlanSpaceSizeActual != ullPlanSpaceSizeExpected) ||	// required comparison is equality
+		(-1 == iCmpSpaceSize && ullPlanSpaceSizeActual > ullPlanSpaceSizeExpected) ||	// required comparison is (Actual <= Expected)
+		(1 == iCmpSpaceSize && ullPlanSpaceSizeActual < ullPlanSpaceSizeExpected)  // required comparison is (Actual >= Expected)
 		)
 	{
 		at.Os()
 				<< "Plan space size comparison failed." << std::endl
 				<< "Required comparison: " << iCmpSpaceSize << std::endl
-				<< "\tCurrent size: " << ullPlanSpaceSizeFst << std::endl
-				<< "\tExpected size: " << ullPlanSpaceSizeSnd << std::endl;
+				<< "\tActual size: " << ullPlanSpaceSizeActual << std::endl
+				<< "\tExpected size: " << ullPlanSpaceSizeExpected << std::endl;
 
 		return false;
 	}
 
 	// perform deep matching on plan bodies
-	return FPlanMatch(pmp, os, pdxlnFst, ullPlanIdFst, ullPlanSpaceSizeFst, pdxlnSnd, ullPlanIdSnd, ullPlanSpaceSizeSnd);
+	return FPlanMatch(pmp, os, pdxlnActual, ullPlanIdActual, ullPlanSpaceSizeActual, pdxlnExpected, ullPlanIdExpected, ullPlanSpaceSizeExpected);
 }
 
 //---------------------------------------------------------------------------
@@ -4412,16 +4412,16 @@ CExpression *
 CTestUtils::PexprAnd
 	(
 	IMemoryPool *pmp,
-	CExpression *pexprFst,
-	CExpression *pexprSnd
+	CExpression *pexprActual,
+	CExpression *pexprExpected
 	)
 {
-	GPOS_ASSERT(NULL != pexprFst);
-	GPOS_ASSERT(NULL != pexprSnd);
+	GPOS_ASSERT(NULL != pexprActual);
+	GPOS_ASSERT(NULL != pexprExpected);
 
 	DrgPexpr *pdrgpexpr = GPOS_NEW(pmp) DrgPexpr(pmp);
-	pdrgpexpr->Append(pexprFst);
-	pdrgpexpr->Append(pexprSnd);
+	pdrgpexpr->Append(pexprActual);
+	pdrgpexpr->Append(pexprExpected);
 
 	return CUtils::PexprScalarBoolOp(pmp, CScalarBoolOp::EboolopAnd, pdrgpexpr);
 }
@@ -4439,16 +4439,16 @@ CExpression *
 CTestUtils::PexprOr
 	(
 	IMemoryPool *pmp,
-	CExpression *pexprFst,
-	CExpression *pexprSnd
+	CExpression *pexprActual,
+	CExpression *pexprExpected
 	)
 {
-	GPOS_ASSERT(NULL != pexprFst);
-	GPOS_ASSERT(NULL != pexprSnd);
+	GPOS_ASSERT(NULL != pexprActual);
+	GPOS_ASSERT(NULL != pexprExpected);
 
 	DrgPexpr *pdrgpexpr = GPOS_NEW(pmp) DrgPexpr(pmp);
-	pdrgpexpr->Append(pexprFst);
-	pdrgpexpr->Append(pexprSnd);
+	pdrgpexpr->Append(pexprActual);
+	pdrgpexpr->Append(pexprExpected);
 
 	return CUtils::PexprScalarBoolOp(pmp, CScalarBoolOp::EboolopOr, pdrgpexpr);
 }

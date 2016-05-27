@@ -544,7 +544,7 @@ CPhysicalPartitionSelector::PdsRequired
 		// if partition consumer is defined below, do not pass distribution
 		// requirements down as this will cause the consumer and enforcer to be
 		// in separate slices
-		return GPOS_NEW(pmp) CDistributionSpecAny();
+		return GPOS_NEW(pmp) CDistributionSpecAny(this->Eopid());
 	}
 
 	return PdsPassThru(pmp, exprhdl, pdsInput, ulChildIndex);

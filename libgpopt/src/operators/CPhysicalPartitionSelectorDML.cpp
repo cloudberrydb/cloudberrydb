@@ -154,7 +154,7 @@ CPhysicalPartitionSelectorDML::PdsRequired
 	CRefCount::SafeRelease(pcrs);
 	if (fUsesDefinedCols)
 	{
-		return GPOS_NEW(pmp) CDistributionSpecAny();
+		return GPOS_NEW(pmp) CDistributionSpecAny(this->Eopid());
 	}
 
 	return PdsPassThru(pmp, exprhdl, pdsInput, ulChildIndex);

@@ -76,16 +76,6 @@ const CHAR *rgszFileNames[] =
 		"../data/dxl/minidump/Join-Disj-Subqs.mdp",
 		"../data/dxl/minidump/Stat-Derivation-Leaf-Pattern.mdp",
 		"../data/dxl/minidump/MultiLevelDecorrelationWithSemiJoins.mdp",
-		"../data/dxl/minidump/WinFuncWithSubqArgs.mdp",
-		"../data/dxl/minidump/WinFunc-Simple.mdp",
-		"../data/dxl/minidump/WindowFrame-SingleEdged.mdp",
-		"../data/dxl/minidump/Join-WinFunc-Preds.mdp",
-		"../data/dxl/minidump/Lead-Lag-WinFuncs.mdp",
-		"../data/dxl/minidump/Preds-Over-WinFunc1.mdp",
-		"../data/dxl/minidump/Preds-Over-WinFunc2.mdp",
-		"../data/dxl/minidump/Preds-Over-WinFunc3.mdp",
-		"../data/dxl/minidump/Preds-Over-WinFunc4.mdp",
-		"../data/dxl/minidump/Preds-Over-WinFunc5.mdp",
 		"../data/dxl/minidump/QueryMismatchedDistribution.mdp",
 		"../data/dxl/minidump/QueryMismatchedDistribution-DynamicIndexScan.mdp",
 		"../data/dxl/minidump/UnnestSQJoins.mdp",
@@ -173,9 +163,6 @@ const CHAR *rgszFileNames[] =
 #endif
 		"../data/dxl/minidump/Sequence-With-Universal-Outer.mdp",
 
-		// this test fixes a plan id which could change over time
-//		"../data/dxl/tpch/q16-plan2-HJN-BC-Outer.mdp",
-
 	 	"../data/dxl/minidump/IN.mdp",
 		"../data/dxl/minidump/OR.mdp",
 		"../data/dxl/minidump/UnsupportedStatsPredicate.mdp",
@@ -200,13 +187,9 @@ const CHAR *rgszFileNames[] =
 		"../data/dxl/minidump/JOIN-cast2text-int4-Eq-cast2text-double.mdp",
 		"../data/dxl/minidump/JOIN-int4-Eq-int2.mdp",
 
-		// TODO:  - Feb 27, 2014; Enable when the difference in generated plans is resolved
-		//"../data/dxl/minidump/Join-Varchar-Equality.mdp",
-
 		"../data/dxl/minidump/CastOnSubquery.mdp",
 		"../data/dxl/minidump/InnerJoin-With-OuterRefs.mdp",
 		"../data/dxl/minidump/OuterJoin-With-OuterRefs.mdp",
-		//"../data/dxl/minidump/ProjectCountStarWithOuterRefs.mdp",
 #ifndef GPOS_DEBUG
 		// TODO:  - Jul 14 2015; disabling it for debug build to reduce testing time
 		"../data/dxl/minidump/TPCH-Q5.mdp",
@@ -232,7 +215,6 @@ const CHAR *rgszFileNames[] =
 		"../data/dxl/minidump/NullConstant-INDF-Col.mdp",
 		"../data/dxl/minidump/EqualityJoin.mdp",
 		"../data/dxl/minidump/EffectsOfJoinFilter.mdp",
-		//"../data/dxl/minidump/Join-INDF.mdp", (created a story https://www.pivotaltracker.com/story/show/86449808)
 		"../data/dxl/minidump/Join-IDF.mdp",
 		"../data/dxl/minidump/CoerceToDomain.mdp",
 		"../data/dxl/minidump/LeftOuter2InnerUnionAllAntiSemiJoin.mdp",

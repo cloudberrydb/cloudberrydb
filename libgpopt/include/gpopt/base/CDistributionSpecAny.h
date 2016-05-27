@@ -22,11 +22,14 @@
 #include "gpos/base.h"
 
 #include "gpopt/base/CDistributionSpec.h"
+#include "gpopt/operators/CPhysical.h"
 
 namespace gpopt
 {
 	using namespace gpos;
 	
+	class CPhysical;
+
 	//---------------------------------------------------------------------------
 	//	@class:
 	//		CDistributionSpecAny
@@ -40,26 +43,36 @@ namespace gpopt
 	{
 		private:
 
+			// the physical operator that originally requested this distribution spec
+			COperator::EOperatorId m_eopidRequested;
+
 			// allow outer references in the operator tree where distribution is requested
 			BOOL m_fAllowOuterRefs;
 
 			// private copy ctor
 			CDistributionSpecAny(const CDistributionSpecAny &);
 			
+
 		public:
 
 			//ctor
-			CDistributionSpecAny()
+			CDistributionSpecAny
+				(
+				COperator::EOperatorId eopidRequested
+				)
 				:
+				m_eopidRequested(eopidRequested),
 				m_fAllowOuterRefs(false)
 			{}
 			
 			//ctor
 			CDistributionSpecAny
 				(
+				COperator::EOperatorId eopidRequested,
 				BOOL fAllowOuterRefs
 				)
 				:
+				m_eopidRequested(eopidRequested),
 				m_fAllowOuterRefs(fAllowOuterRefs)
 			{}
 
@@ -102,7 +115,7 @@ namespace gpopt
 			virtual
 			IOstream &OsPrint(IOstream &os) const
 			{
-				return os << "ANY ";
+				return os << "ANY " << " EOperatorId: " << m_eopidRequested << " ";
 			}
 
 			// return distribution partitioning type
@@ -129,6 +142,13 @@ namespace gpopt
 				GPOS_ASSERT(EdtAny == pds->Edt());
 
 				return dynamic_cast<CDistributionSpecAny*>(pds);
+			}
+
+			// retrieve the physical operator requesting this distribution spec
+			COperator::EOperatorId
+			GetRequestedOperatorId() const
+			{
+				return m_eopidRequested;
 			}
 
 	}; // class CDistributionSpecAny

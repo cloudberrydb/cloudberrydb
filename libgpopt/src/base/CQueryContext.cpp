@@ -232,7 +232,7 @@ CQueryContext::PqcGenerate
 
 	if (fDML)
 	{
-		pds = GPOS_NEW(pmp) CDistributionSpecAny();
+		pds = GPOS_NEW(pmp) CDistributionSpecAny(COperator::EopSentinel);
 	}
 	else
 	{

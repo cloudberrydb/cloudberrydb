@@ -262,7 +262,7 @@ CPhysicalSequence::PdsRequired
 	if (0 == ulChildIndex)
 	{
 		// no distribution requirement on first child
-		return GPOS_NEW(pmp) CDistributionSpecAny();
+		return GPOS_NEW(pmp) CDistributionSpecAny(this->Eopid());
 	}
 
 	// get derived plan properties of first child
@@ -279,7 +279,7 @@ CPhysicalSequence::PdsRequired
 	if (CDistributionSpec::EdtUniversal == pds->Edt())
 	{
 		// first child is universal, impose no requirements on second child
-		return GPOS_NEW(pmp) CDistributionSpecAny();
+		return GPOS_NEW(pmp) CDistributionSpecAny(this->Eopid());
 	}
 
 	// first child is non-singleton, request a non-singleton distribution on second child

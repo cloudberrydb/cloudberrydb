@@ -205,7 +205,7 @@ CPhysicalComputeScalar::PdsRequired
 	// distribution, the result of the set function is spread uniformly over all nodes
 	if (pdpscalar->FHasNonScalarFunction())
 	{
-		return GPOS_NEW(pmp) CDistributionSpecAny();
+		return GPOS_NEW(pmp) CDistributionSpecAny(this->Eopid());
 	}
 
 	// if required distribution uses any defined column, it has to be enforced on top of ComputeScalar,
@@ -219,7 +219,7 @@ CPhysicalComputeScalar::PdsRequired
 		pcrs->Release();
 		if (fUsesDefinedCols)
 		{
-			return GPOS_NEW(pmp) CDistributionSpecAny();
+			return GPOS_NEW(pmp) CDistributionSpecAny(this->Eopid());
 		}
 	}
 
@@ -232,14 +232,14 @@ CPhysicalComputeScalar::PdsRequired
 		pcrs->Release();
 		if (fUsesDefinedCols)
 		{
-			return GPOS_NEW(pmp) CDistributionSpecAny();
+			return GPOS_NEW(pmp) CDistributionSpecAny(this->Eopid());
 		}
 	}
 
 	if (0 == ulOptReq)
 	{
 		// Req0: required distribution will be enforced on top of ComputeScalar
-		return GPOS_NEW(pmp) CDistributionSpecAny();
+		return GPOS_NEW(pmp) CDistributionSpecAny(this->Eopid());
 	}
 
 	// Req1: required distribution will be enforced on top of ComputeScalar's child

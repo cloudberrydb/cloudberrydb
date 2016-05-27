@@ -451,7 +451,7 @@ CPhysical::PdsUnary
 
 	// operator does not have distribution requirements, required distribution
 	// will be enforced on its output
-	return GPOS_NEW(pmp) CDistributionSpecAny();
+	return GPOS_NEW(pmp) CDistributionSpecAny(exprhdl.Pop()->Eopid());
 }
 
 

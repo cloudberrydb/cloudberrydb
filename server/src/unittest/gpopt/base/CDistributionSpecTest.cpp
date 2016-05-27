@@ -87,7 +87,7 @@ CDistributionSpecTest::EresUnittest_Any()
 	IMemoryPool *pmp = amp.Pmp();
 
 	// any distribution
-	CDistributionSpecAny *pdsany = GPOS_NEW(pmp) CDistributionSpecAny();
+	CDistributionSpecAny *pdsany = GPOS_NEW(pmp) CDistributionSpecAny(COperator::EopSentinel);
 	
 	GPOS_ASSERT(pdsany->FSatisfies(pdsany));
 	GPOS_ASSERT(pdsany->FMatch(pdsany));
@@ -142,7 +142,7 @@ CDistributionSpecTest::EresUnittest_Random()
 	GPOS_ASSERT(!pdsUniversal->FSatisfies(pdsRandomDuplicateSensitive));
 	
 	// random and any
-	CDistributionSpecAny *pdsany = GPOS_NEW(pmp) CDistributionSpecAny();
+	CDistributionSpecAny *pdsany = GPOS_NEW(pmp) CDistributionSpecAny(COperator::EopSentinel);
 	
 	GPOS_ASSERT(!pdsany->FSatisfies(pdsRandomDuplicateSensitive));
 	GPOS_ASSERT(pdsRandomDuplicateSensitive->FSatisfies(pdsany));	
@@ -194,7 +194,7 @@ CDistributionSpecTest::EresUnittest_Replicated()
 	GPOS_ASSERT(pdsreplicated->FSatisfies(pdsrandom));
 	
 	// replicated and any 
-	CDistributionSpecAny *pdsany = GPOS_NEW(pmp) CDistributionSpecAny();
+	CDistributionSpecAny *pdsany = GPOS_NEW(pmp) CDistributionSpecAny(COperator::EopSentinel);
 	
 	GPOS_ASSERT(!pdsany->FSatisfies(pdsreplicated));
 	GPOS_ASSERT(pdsreplicated->FSatisfies(pdsany));	
@@ -264,7 +264,7 @@ CDistributionSpecTest::EresUnittest_Singleton()
 	GPOS_ASSERT(!pdssMaster->FSatisfies(pdsrandom));
 	
 	// singleton and any 
-	CDistributionSpecAny *pdsany = GPOS_NEW(pmp) CDistributionSpecAny();
+	CDistributionSpecAny *pdsany = GPOS_NEW(pmp) CDistributionSpecAny(COperator::EopSentinel);
 	
 	GPOS_ASSERT(!pdsany->FSatisfies(pdssSegment));
 	GPOS_ASSERT(pdssSegment->FSatisfies(pdsany));
@@ -328,7 +328,7 @@ CDistributionSpecTest::EresUnittest_Universal()
 	GPOS_ASSERT(pdsuniversal->FSatisfies(pdsrandom));
 
 	// universal and any
-	CDistributionSpecAny *pdsany = GPOS_NEW(pmp) CDistributionSpecAny();
+	CDistributionSpecAny *pdsany = GPOS_NEW(pmp) CDistributionSpecAny(COperator::EopSentinel);
 
 	GPOS_ASSERT(pdsuniversal->FSatisfies(pdsany));
 
@@ -460,7 +460,7 @@ CDistributionSpecTest::EresUnittest_Hashed()
 	GPOS_ASSERT(!pdshashed1->FSatisfies(pdsrandom));
 	
 	// hashed and any 
-	CDistributionSpecAny *pdsany = GPOS_NEW(pmp) CDistributionSpecAny();
+	CDistributionSpecAny *pdsany = GPOS_NEW(pmp) CDistributionSpecAny(COperator::EopSentinel);
 	
 	GPOS_ASSERT(!pdsany->FSatisfies(pdshashed1));
 	GPOS_ASSERT(pdshashed1->FSatisfies(pdsany));
@@ -500,7 +500,7 @@ CDistributionSpecTest::EresUnittest_NegativeAny()
 	IMemoryPool *pmp = amp.Pmp();
 
 	// cannot add enforcers for ANY distribution
-	CDistributionSpecAny *pdsany = GPOS_NEW(pmp) CDistributionSpecAny();
+	CDistributionSpecAny *pdsany = GPOS_NEW(pmp) CDistributionSpecAny(COperator::EopSentinel);
 	CExpressionHandle *pexprhdl = GPOS_NEW(pmp) CExpressionHandle(pmp);
 	pdsany->AppendEnforcers(NULL /*pmp*/, *pexprhdl, NULL /*prpp*/, NULL /*pdrgpexpr*/, NULL /*pexpr*/);
 	pdsany->Release();

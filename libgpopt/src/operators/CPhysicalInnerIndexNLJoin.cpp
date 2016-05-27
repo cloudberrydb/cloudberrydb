@@ -119,7 +119,7 @@ CPhysicalInnerIndexNLJoin::PdsRequired
 		// inner (index-scan side) is requested for Any distribution,
 		// we allow outer references on the inner child of the join since it needs
 		// to refer to columns in join's outer child
-		return GPOS_NEW(pmp) CDistributionSpecAny(true /*fAllowOuterRefs*/);
+		return GPOS_NEW(pmp) CDistributionSpecAny(this->Eopid(), true /*fAllowOuterRefs*/);
 	}
 
 	// we need to match distribution of inner

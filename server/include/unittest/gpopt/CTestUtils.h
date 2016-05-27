@@ -128,10 +128,6 @@ namespace gpopt
 			static
 			CHAR *SzMinidumpFileName(IMemoryPool *pmp, const CHAR *szFileName);
 
-			// return the number of segments, default return GPOPT_TEST_SEGMENTS
-			static
-			ULONG UlSegments(COptimizerConfig *poconf);
-
 		public:
 
 			// pair of DXL query file and the corresponding DXL plan file
@@ -815,8 +811,10 @@ namespace gpopt
 			static
 			GPOS_RESULT EresUnittest_RunTestsWithoutAdditionalTraceFlags(const CHAR **rgszFileNames, ULONG *pulTestCounter, ULONG ulTests, BOOL fMatchPlans, BOOL fTestSpacePruning);
 
+			// return the number of segments, default return GPOPT_TEST_SEGMENTS
+			static
+			ULONG UlSegments(COptimizerConfig *poconf);
 	}; // class CTestUtils
-
 } // namespace gpopt
 
 // include implementation of templated functions

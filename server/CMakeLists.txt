@@ -51,6 +51,7 @@ add_executable(gporca_test
                src/unittest/gpopt/minidump/CDirectDispatchTest.cpp
                src/unittest/gpopt/minidump/CCTETest.cpp
                src/unittest/gpopt/minidump/CEscapeMechanismTest.cpp
+               src/unittest/gpopt/minidump/CWindowTest.cpp
                src/unittest/gpopt/minidump/CICGTest.cpp
                src/unittest/gpopt/minidump/CSetopTest.cpp
                src/unittest/gpopt/minidump/CIndexTest.cpp
@@ -129,6 +130,7 @@ endif()
 
 add_orca_test(CMiniDumperDXLTest)
 add_orca_test(CExpressionPreprocessorTest)
+add_orca_test(CWindowTest)
 add_orca_test(CICGTest)
 add_orca_test(CMultilevelPartitionTest)
 add_orca_test(CSetopTest)

@@ -243,7 +243,7 @@ CPhysicalAgg::PdsRequiredAgg
 
 	if (0 == ulOptReq)
 	{
-		return GPOS_NEW(pmp) CDistributionSpecAny();
+		return GPOS_NEW(pmp) CDistributionSpecAny(this->Eopid());
 	}
 
 	// we randomly distribute the input for skew-elimination

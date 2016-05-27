@@ -166,9 +166,7 @@ namespace gpopt
 			{
 				return CDistributionSpec::EdtSingleton == Edt() || CDistributionSpec::EdtStrictSingleton == Edt();
 			}
-
 	}; // class CDistributionSpec
-
 
 	// arrays of distribution spec
 	typedef CDynamicPtrArray<CDistributionSpec, CleanupRelease> DrgPds;

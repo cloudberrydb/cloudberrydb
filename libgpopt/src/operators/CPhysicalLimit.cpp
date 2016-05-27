@@ -211,7 +211,7 @@ CPhysicalLimit::PdsRequired
 				return PdsPassThru(pmp, exprhdl, pdsInput, ulChildIndex);
 			}
 
-			return GPOS_NEW(pmp) CDistributionSpecAny();
+			return GPOS_NEW(pmp) CDistributionSpecAny(this->Eopid());
 		}
 		if (CDistributionSpec::EdtSingleton == pdsInput->Edt())
 		{
@@ -234,7 +234,7 @@ CPhysicalLimit::PdsRequired
 	GPOS_ASSERT(0 == exprhdl.Pdprel()->PcrsOuter()->CElements());
 
 	// for local limit, we impose no distribution requirements
-	return GPOS_NEW(pmp) CDistributionSpecAny();
+	return GPOS_NEW(pmp) CDistributionSpecAny(this->Eopid());
 }
 
 

@@ -333,7 +333,7 @@ CPhysicalJoin::PdsRequired
 	}
 
 	// no distribution requirement on the outer side
-	return GPOS_NEW(pmp) CDistributionSpecAny();
+	return GPOS_NEW(pmp) CDistributionSpecAny(this->Eopid());
 }
 
 

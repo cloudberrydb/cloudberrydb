@@ -527,7 +527,7 @@ CPhysicalUnionAll::PdsRequired
 	if (0 == ulChildIndex)
 	{
 		// otherwise, ANY distribution is requested from outer child
-		return GPOS_NEW(pmp) CDistributionSpecAny();
+		return GPOS_NEW(pmp) CDistributionSpecAny(this->Eopid());
 	}
 
 	// inspect distribution delivered by outer child

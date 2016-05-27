@@ -107,7 +107,7 @@ CPhysicalMotion::PdsRequired
 
 	// any motion operator is distribution-establishing and does not require
 	// child to deliver any specific distribution
-	return GPOS_NEW(pmp) CDistributionSpecAny();
+	return GPOS_NEW(pmp) CDistributionSpecAny(this->Eopid());
 }
 
 

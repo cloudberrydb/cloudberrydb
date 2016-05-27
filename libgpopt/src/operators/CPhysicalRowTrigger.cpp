@@ -217,7 +217,7 @@ CPhysicalRowTrigger::PdsRequired
 		return PdsEnforceMaster(pmp, exprhdl, pdsInput, ulChildIndex);
 	}
 
-	return GPOS_NEW(pmp) CDistributionSpecAny();
+	return GPOS_NEW(pmp) CDistributionSpecAny(this->Eopid());
 }
 
 //---------------------------------------------------------------------------

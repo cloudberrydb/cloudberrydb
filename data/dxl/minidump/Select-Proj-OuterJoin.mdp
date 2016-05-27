@@ -888,7 +888,7 @@
         </dxl:LogicalSelect>
       </dxl:LogicalLimit>
     </dxl:Query>
-	<dxl:Plan Id="0" SpaceSize="35548">
+	<dxl:Plan Id="0" SpaceSize="23072">
 	  <dxl:Sort SortDiscardDuplicates="false">
 	    <dxl:Properties>
 	      <dxl:Cost StartupCost="0" TotalCost="281618.935587" Rows="3009.000000" Width="64"/>
