@@ -99,8 +99,6 @@ namespace gpos
 	
 				ExmaSQL = 2,
 				
-				ExmaUnhandled = 3,
-
 				ExmaSentinel
 			};
 	
@@ -131,9 +129,6 @@ namespace gpos
 				
 				// warnings
 				ExmiDummyWarning,
-
-				// unknown exception
-				ExmiUnhandled,
 	
 				ExmiSentinel
 			};

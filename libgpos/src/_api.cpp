@@ -94,7 +94,6 @@ void gpos_init(struct gpos_init_params* params) {
 //	@doc:
 //		Set number of threads in worker pool;
 //		return 0 for successful completion, 1 for error;
-//		if any exception happens re-throw it.
 //
 //---------------------------------------------------------------------------
 int gpos_set_threads(int min, int max)
@@ -171,7 +170,7 @@ int gpos_exec
 			// scope for ATP
 			{
 				// task handler for this process
-				CAutoTaskProxy atp(pmp, pwpm, true /*fPropagateError*/);
+				CAutoTaskProxy atp(pmp, pwpm, false/*fPropagateError*/);
 
 				CTask *ptsk = atp.PtskCreate(params->func, params->arg, params->abort_requested);
 
@@ -226,12 +225,12 @@ int gpos_exec
 			<< std::endl;
 
 		// unexpected failure
-		throw ex;
+		return 1;
 	}
 	catch (...)
 	{
 		// unexpected failure
-		GPOS_RAISE(CException::ExmaUnhandled, CException::ExmiUnhandled);
+		return 1;
 	}
 
 	return 0;

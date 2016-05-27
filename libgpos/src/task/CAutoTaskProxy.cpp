@@ -514,17 +514,10 @@ CAutoTaskProxy::Execute
 	}
 	GPOS_CATCH_END;
 
-	// Raise exception if task encounters an exception
+	// reset exception context
 	if (ptsk->FPendingExc())
 	{
-		if (m_fPropagateError)
-		{
-			GPOS_RETHROW(ptsk->Perrctxt()->Exc());
-		}
-		else
-		{
-			ptsk->Perrctxt()->Reset();
-		}
+		ptsk->Perrctxt()->Reset();
 	}
 
 	// mark task as reported
