@@ -1894,6 +1894,7 @@ void freeGangsForPortal(char *portal_name)
 	while (cur_item != NULL)
 	{
 		Gang *gp = (Gang *) lfirst(cur_item);
+		ListCell *next_item = lnext(cur_item);
 
 		if (isTargetPortal(gp->portal_name, portal_name))
 		{
@@ -1909,10 +1910,7 @@ void freeGangsForPortal(char *portal_name)
 			else
 				disconnectAndDestroyGang(gp);
 
-			if (prev_item)
-				cur_item = lnext(prev_item);
-			else
-				cur_item = list_head(allocatedReaderGangsN);
+			cur_item = next_item;
 		}
 		else
 		{
@@ -1920,14 +1918,16 @@ void freeGangsForPortal(char *portal_name)
 
 			/* cur_item must be preserved */
 			prev_item = cur_item;
-			cur_item = lnext(prev_item);
+			cur_item = next_item;
 		}
 	}
 
+	prev_item = NULL;
 	cur_item = list_head(allocatedReaderGangs1);
 	while (cur_item != NULL)
 	{
 		Gang *gp = (Gang *) lfirst(cur_item);
+		ListCell *next_item = lnext(cur_item);
 
 		if (isTargetPortal(gp->portal_name, portal_name))
 		{
@@ -1943,10 +1943,7 @@ void freeGangsForPortal(char *portal_name)
 			else
 				disconnectAndDestroyGang(gp);
 
-			if (prev_item)
-				cur_item = lnext(prev_item);
-			else
-				cur_item = list_head(allocatedReaderGangs1);
+			cur_item = next_item;
 		}
 		else
 		{
@@ -1954,7 +1951,7 @@ void freeGangsForPortal(char *portal_name)
 
 			/* cur_item must be preserved */
 			prev_item = cur_item;
-			cur_item = lnext(prev_item);
+			cur_item = next_item;
 		}
 	}
 
