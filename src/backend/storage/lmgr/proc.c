@@ -834,8 +834,15 @@ AuxiliaryProcKill(int code, Datum arg)
 	/* Release ownership of the process's latch, too */
 	DisownLatch(&MyProc->procLatch);
 
+	SpinLockAcquire(ProcStructLock);
+
+	/* Mark auxiliary proc no longer in use */
+	MyProc->pid = 0;
+
 	/* Update shared estimate of spins_per_delay */
 	update_spins_per_delay();
+
+	SpinLockRelease(ProcStructLock);
 
 	/*
 	 * If the parent process of this auxiliary process does not exist, we
