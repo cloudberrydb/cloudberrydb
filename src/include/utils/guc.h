@@ -230,7 +230,6 @@ extern bool filerep_inject_change_tracking_recovery_fault;
 extern bool filerep_mirrorvalidation_during_resync;
 extern bool log_filerep_to_syslogger;
 extern bool gp_crash_recovery_suppress_ao_eof;
-extern bool Debug_check_for_invalid_persistent_tid;
 extern bool gp_create_table_random_default_distribution;
 extern bool gp_allow_non_uniform_partitioning_ddl;
 extern bool gp_enable_exchange_default_partition;

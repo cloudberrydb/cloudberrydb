@@ -255,7 +255,6 @@ bool		gp_persistent_repair_global_sequence = false;
 bool		Debug_print_xlog_relation_change_info = false;
 bool		Debug_print_xlog_relation_change_info_skip_issues_only = false;
 bool		Debug_print_xlog_relation_change_info_backtrace_skip_issues = false;
-bool		Debug_check_for_invalid_persistent_tid = false;
 
 bool		Debug_filerep_crc_on = true;
 bool		Debug_filerep_print = false;
@@ -2049,16 +2048,6 @@ struct config_bool ConfigureNamesBool_gp[] =
 			GUC_SUPERUSER_ONLY | GUC_NO_SHOW_ALL | GUC_NOT_IN_SAMPLE
 		},
 		&Debug_print_xlog_relation_change_info_backtrace_skip_issues,
-		false, NULL, NULL
-	},
-
-	{
-		{"debug_check_for_invalid_persistent_tid", PGC_SUSET, DEVELOPER_OPTIONS,
-			gettext_noop("Check for invalid persistent TID"),
-			NULL,
-			GUC_SUPERUSER_ONLY | GUC_NO_SHOW_ALL | GUC_NOT_IN_SAMPLE
-		},
-		&Debug_check_for_invalid_persistent_tid,
 		false, NULL, NULL
 	},
 

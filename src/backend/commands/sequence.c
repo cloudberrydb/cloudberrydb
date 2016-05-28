@@ -343,8 +343,7 @@ Sequence_FetchGpRelationNodeForXLog(Relation rel)
 				 ItemPointerToString(&rel->rd_segfile0_relationnodeinfo.persistentTid));
 	}
 
-	if (Debug_check_for_invalid_persistent_tid &&
-		!Persistent_BeforePersistenceWork() &&
+	if (!Persistent_BeforePersistenceWork() &&
 		PersistentStore_IsZeroTid(&rel->rd_segfile0_relationnodeinfo.persistentTid))
 	{	
 		elog(ERROR, 

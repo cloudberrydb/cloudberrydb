@@ -654,8 +654,7 @@ RelationFetchSegFile0GpRelationNode(
 		}
 
 		Assert(!Persistent_BeforePersistenceWork());
-		if (Debug_check_for_invalid_persistent_tid &&
-			PersistentStore_IsZeroTid(&relation->rd_segfile0_relationnodeinfo.persistentTid))
+		if (PersistentStore_IsZeroTid(&relation->rd_segfile0_relationnodeinfo.persistentTid))
 		{	
 			elog(ERROR, 
 				 "RelationFetchSegFile0GpRelationNode has invalid TID (0,0) into relation %u/%u/%u '%s', serial number " INT64_FORMAT,
