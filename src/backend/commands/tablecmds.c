@@ -1296,7 +1296,7 @@ DefinePartitionedRelation(CreateStmt *stmt, Oid relOid)
 
 				ProcessUtility((Node *)(((Query *)pUtl)->utilityStmt),
 							   synthetic_sql,
-							   NULL, 
+							   NULL,
 							   false, /* not top level */
 							   dest,
 							   NULL);
@@ -1338,7 +1338,7 @@ EvaluateDeferredStatements(List *deferredStmts)
 			uquery = (Query*)utilityStmt;
 			Insist(uquery->commandType == CMD_UTILITY);
 			
-			ereport(DEBUG1, 
+			ereport(DEBUG1,
 					(errmsg("processing deferred utility statement")));
 			
 			ProcessUtility((Node*)uquery->utilityStmt,
@@ -6532,7 +6532,7 @@ find_composite_type_dependencies(Oid typeOid,
 {
 	cqContext  *pcqCtx;
 	HeapTuple	depTup;
-	Oid         arrayOid;
+	Oid			arrayOid;
 
 	/*
 	 * We scan pg_depend to find those things that depend on the rowtype. (We
@@ -7946,11 +7946,11 @@ ATExecAddIndex(AlteredTableInfo *tab, Relation rel,
 
 			heap_close(crel, AccessShareLock); /* already locked master */
 
-			ProcessUtility((Node *)ats, 
+			ProcessUtility((Node *)ats,
 						   synthetic_sql,
-						   NULL, 
+						   NULL,
 						   false, /* not top level */
-						   dest, 
+						   dest,
 						   NULL);
 		}
 	}
@@ -8695,7 +8695,7 @@ transformFkeyCheckAttrs(Relation pkrel,
 		caql_endscan(pcqCtx);
 		if (found)
 			break;
-	} /* end foreach(indexoidscan, indexoidlist) */
+	}
 
 	if (!found)
 		ereport(ERROR,
@@ -10405,19 +10405,12 @@ ATExecSetRelOptions(Relation rel, List *defList, bool isReset)
 static void 
 copy_append_only_data(
 	RelFileNode		*oldRelFileNode,
-	
 	RelFileNode		*newRelFileNode,
-	
 	int32			segmentFileNum,
-
 	char			*relationName,
-
 	int64			eof,
-
 	ItemPointer		persistentTid,
-	
 	int64			persistentSerialNum,
-	
 	char			*buffer)
 {
 	MIRRORED_LOCK_DECLARE;
@@ -11220,16 +11213,9 @@ ATExecSetTableSpace(Oid tableOid, Oid newTableSpace, TableOidInfo *oidInfo)
  * Copy data, block by block
  */
 static void
-copy_buffer_pool_data(
-	Relation 	rel,
-
-	SMgrRelation dst,
-
-	ItemPointer persistentTid,
-
-	int64 		persistentSerialNum,
-
-	bool		useWal)
+copy_buffer_pool_data(Relation rel, SMgrRelation dst,
+					  ItemPointer persistentTid, int64 persistentSerialNum,
+					  bool useWal)
 {
 	SMgrRelation src;
 	BlockNumber nblocks;
@@ -12397,11 +12383,11 @@ build_hidden_type(Form_pg_attribute att)
 	parsetrees = parse_analyze((Node *)newtype, NULL, NULL, 0);
 	Assert(list_length(parsetrees) == 1);
 	q = (Query *)linitial(parsetrees);
-	ProcessUtility((Node *)q->utilityStmt, 
+	ProcessUtility((Node *)q->utilityStmt,
 				   synthetic_sql,
-				   NULL, 
+				   NULL,
 				   false, /* not top level */
-				   dest, 
+				   dest,
 				   NULL);
 	CommandCounterIncrement();
 
@@ -12412,11 +12398,11 @@ build_hidden_type(Form_pg_attribute att)
 	inputname = copyObject(linitial(iofunc->funcname));
 	parsetrees = parse_analyze((Node *)iofunc, NULL, NULL, 0);
 	q = (Query *)linitial(parsetrees);
-	ProcessUtility((Node *)q->utilityStmt, 
+	ProcessUtility((Node *)q->utilityStmt,
 				   synthetic_sql,
-				   NULL, 
+				   NULL,
 				   false, /* not top level */
-				   dest, 
+				   dest,
 				   NULL);
 	CommandCounterIncrement();
 
@@ -12428,9 +12414,9 @@ build_hidden_type(Form_pg_attribute att)
 	q = (Query *)linitial(parsetrees);
 	ProcessUtility((Node *)q->utilityStmt,
 				   synthetic_sql,
-				   NULL, 
+				   NULL,
 				   false, /* not top level */
-				   dest, 
+				   dest,
 				   NULL);
 	CommandCounterIncrement();
 
@@ -12471,9 +12457,9 @@ build_hidden_type(Form_pg_attribute att)
 	q = (Query *)linitial(parsetrees);
 	ProcessUtility((Node *)q->utilityStmt,
 				   synthetic_sql,
-				   NULL, 
+				   NULL,
 				   false, /* not top level */
-				   dest, 
+				   dest,
 				   NULL);
 	CommandCounterIncrement();
 
@@ -12785,11 +12771,11 @@ prebuild_temp_table(Relation rel, RangeVar *tmpname, List *distro, List *opts,
 		parsetrees = parse_analyze((Node *)cs, NULL, NULL, 0);
 		Assert(list_length(parsetrees) == 1);
 		q = (Query *)linitial(parsetrees);
-		ProcessUtility((Node *)q->utilityStmt, 
+		ProcessUtility((Node *)q->utilityStmt,
 					   synthetic_sql,
-					   NULL, 
+					   NULL,
 					   false, /* not top level */
-					   dest, 
+					   dest,
 					   NULL);
 		CommandCounterIncrement();
 
@@ -12821,11 +12807,11 @@ prebuild_temp_table(Relation rel, RangeVar *tmpname, List *distro, List *opts,
 			parsetrees = parse_analyze((Node *)ats, NULL, NULL, 0);
 			Assert(list_length(parsetrees) == 1);
 			q = (Query *)linitial(parsetrees);
-			ProcessUtility((Node *)q->utilityStmt, 
+			ProcessUtility((Node *)q->utilityStmt,
 						   synthetic_sql,
-						   NULL, 
+						   NULL,
 						   false, /* not top level */
-						   dest, 
+						   dest,
 						   NULL);
 			CommandCounterIncrement();
 		}
@@ -14343,9 +14329,9 @@ ATPExecPartDrop(Relation rel,
 
 		ProcessUtility((Node *) ds,
 					   synthetic_sql,
-					   NULL, 
+					   NULL,
 					   false, /* not top level */
-					   dest, 
+					   dest,
 					   NULL);
 
 		/* Notify of name if did not use name for partition id spec */
@@ -15074,7 +15060,7 @@ ATPExecPartRename(Relation rel,
 					   synthetic_sql,
 					   NULL,
 					   false, /* not top level */
-					   dest, 
+					   dest,
 					   NULL);
 
 		/* process children if there are any */
@@ -15095,9 +15081,9 @@ ATPExecPartRename(Relation rel,
 
 				ProcessUtility((Node *) renStmt,
 							   synthetic_sql,
-							   NULL, 
+							   NULL,
 							   false, /* not top level */
-							   dest, 
+							   dest,
 							   NULL);
 				renamed++;
 			}
@@ -16025,7 +16011,7 @@ ATPExecPartSplit(Relation *rel,
 					   synthetic_sql,
 					   NULL,
 					   false, /* not top level */
-					   dest, 
+					   dest,
 					   NULL);
 		CommandCounterIncrement();
 
@@ -16069,9 +16055,9 @@ ATPExecPartSplit(Relation *rel,
 		heap_close(*rel, NoLock);
 		ProcessUtility((Node *)q->utilityStmt,
 					   synthetic_sql,
-					   NULL, 
+					   NULL,
 					   false, /* not top level */
-					   dest, 
+					   dest,
 					   NULL);
 		*rel = heap_open(relid, AccessExclusiveLock);
 		CommandCounterIncrement();
@@ -16130,11 +16116,11 @@ ATPExecPartSplit(Relation *rel,
 		{
 			q = (Query *)lfirst(lc);
 
-			ProcessUtility((Node *)q->utilityStmt, 
+			ProcessUtility((Node *)q->utilityStmt,
 						   synthetic_sql,
-						   NULL, 
+						   NULL,
 						   false, /* not top level */
-						   dest, 
+						   dest,
 						   NULL);
 		}
 
@@ -16494,11 +16480,11 @@ ATPExecPartSplit(Relation *rel,
 			q = (Query *)linitial(parsetrees);
 
 			heap_close(*rel, NoLock);
-			ProcessUtility((Node *)q->utilityStmt, 
+			ProcessUtility((Node *)q->utilityStmt,
 						   synthetic_sql,
-						   NULL, 
+						   NULL,
 						   false, /* not top level */
-						   dest, 
+						   dest,
 						   NULL);
 			*rel = heap_open(relid, AccessExclusiveLock);
 
@@ -16763,9 +16749,9 @@ ATPExecPartTruncate(Relation rel,
 
 		ProcessUtility( (Node *) ts,
 					   synthetic_sql,
-					   NULL, 
+					   NULL,
 					   false, /* not top level */
-					   dest, 
+					   dest,
 					   NULL);
 
 		/* Notify of name if did not use name for partition id spec */
@@ -16893,8 +16879,7 @@ AlterTableNamespace(RangeVar *relation, const char *newschema)
 }
 
 static void
-AlterRelationNamespaceInternalTwo(Relation rel,
-								  Oid relid,
+AlterRelationNamespaceInternalTwo(Relation rel, Oid relid,
 								  Oid oldNspOid, Oid newNspOid,
 								  bool hasDependEntry,
 								  const char *newschema)

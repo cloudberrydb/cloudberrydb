@@ -714,9 +714,8 @@ bool isGreenplumDbHashable(Oid typid)
 	/* we can hash all arrays */
 	if (typeIsArrayType(typid))
 		return true;
-	/*
-	 * if this type is a domain type, get its base type.
-	 */
+
+	/* if this type is a domain type, get its base type */
 	if (get_typtype(typid) == 'd')
 		typid = getBaseType(typid);
 	
@@ -916,6 +915,5 @@ ignoreblanks(char *data, int len)
 static int
 ispowof2(int numsegs)
 {
-
 	return !(numsegs & (numsegs - 1));
 }

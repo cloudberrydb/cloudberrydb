@@ -201,56 +201,55 @@ static void
 ExplainDXL(Query *query, ExplainStmt *stmt, const char *queryString,
 				ParamListInfo params, TupOutputState *tstate)
 {
-    MemoryContext   oldcxt = CurrentMemoryContext;
-	ExplainState    explainState;
-    ExplainState   *es = &explainState;
+	MemoryContext oldcxt = CurrentMemoryContext;
+	ExplainState explainState;
+	ExplainState *es = &explainState;
 	StringInfoData buf;
+	bool		save_enumerate;
 
-    /* Initialize ExplainState structure. */
-    memset(es, 0, sizeof(*es));
-    es->showstatctx = NULL;
-    es->deferredError = NULL;
-    es->pstmt = NULL;
+	/* Initialize ExplainState structure. */
+	memset(es, 0, sizeof(*es));
+	es->showstatctx = NULL;
+	es->deferredError = NULL;
+	es->pstmt = NULL;
 
 	initStringInfo(&buf);
 
-    bool enumerate = optimizer_enumerate_plans;
+	save_enumerate = optimizer_enumerate_plans;
 
-    /* Do the EXPLAIN. */
-    PG_TRY();
-    {
-    	// enable plan enumeration before calling optimizer
-    	optimizer_enumerate_plans = true;
+	/* Do the EXPLAIN. */
+	PG_TRY();
+	{
+		// enable plan enumeration before calling optimizer
+		optimizer_enumerate_plans = true;
 
-    	// optimize query using optimizer and get generated plan in DXL format
-    	char *dxl = SzDXLPlan(query);
+		// optimize query using optimizer and get generated plan in DXL format
+		char *dxl = SzDXLPlan(query);
 
-    	// restore old value of enumerate plans GUC
-    	optimizer_enumerate_plans = enumerate;
+		// restore old value of enumerate plans GUC
+		optimizer_enumerate_plans = save_enumerate;
 
-    	if (NULL == dxl)
-    	{
-    		elog(NOTICE, "Optimizer failed to produce plan");
-    	}
-    	else
-    	{
+		if (dxl == NULL)
+			elog(NOTICE, "Optimizer failed to produce plan");
+		else
+		{
 			do_text_output_multiline(tstate, dxl);
 			do_text_output_oneline(tstate, ""); /* separator line */
 			pfree(dxl);
-    	}
+		}
 
-    	 /* Free the memory we used. */
-    	MemoryContextSwitchTo(oldcxt);
-    }
-    PG_CATCH();
-    {
-    	// restore old value of enumerate plans GUC
-    	optimizer_enumerate_plans = enumerate;
+		/* Free the memory we used. */
+		MemoryContextSwitchTo(oldcxt);
+	}
+	PG_CATCH();
+	{
+		// restore old value of enumerate plans GUC
+		optimizer_enumerate_plans = save_enumerate;
 
-    	/* Exit to next error handler. */
-    	PG_RE_THROW();
-    }
-    PG_END_TRY();
+		/* Exit to next error handler. */
+		PG_RE_THROW();
+	}
+	PG_END_TRY();
 }
 #endif
 
