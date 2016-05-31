@@ -6599,7 +6599,7 @@ find_composite_type_dependencies(Oid typeOid,
 	 */
 	arrayOid = get_array_type(typeOid);
 	if (OidIsValid(arrayOid))
-		find_composite_type_dependencies(arrayOid, origTblName, NULL);
+		find_composite_type_dependencies(arrayOid, origTblName, origTypeName);
 }
 
 
