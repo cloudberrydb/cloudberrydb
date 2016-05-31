@@ -3818,7 +3818,7 @@ CTranslatorExprToDXL::CheckValidity
 	{
 		if((pdxlopMotion->PdrgpiInputSegIds()->UlLength() == 1) && COptCtxt::PoctxtFromTLS()->Pcm()->UlHosts() > 1)
 		{
-			GPOS_RAISE(gpopt::ExmaGPOPT, gpopt::ExmiInvalidPlanAlternative, GPOS_WSZ_LIT("GatherMotion has 1 input but there are more segments in the system"));
+			GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiExpr2DXLUnsupportedFeature, GPOS_WSZ_LIT("GatherMotion has 1 input but there are more segments in the system"));
 		}
 	}
 }
