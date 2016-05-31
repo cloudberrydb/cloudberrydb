@@ -338,7 +338,7 @@ expand_targetlist(List *tlist, int command_type,
 					if (!att_tup->attisdropped)
 					{
 						new_expr = (Node *) makeConst(atttype,
-								                      -1,
+													  -1,
 													  att_tup->attlen,
 													  (Datum) 0,
 													  true,		/* isnull */
@@ -355,11 +355,11 @@ expand_targetlist(List *tlist, int command_type,
 					{
 						/* Insert NULL for dropped column */
 						new_expr = (Node *) makeConst(INT4OID,
-								                      -1,
+													  -1,
 													  sizeof(int32),
 													  (Datum) 0,
 													  true,		/* isnull */
-													  true /* byval */);
+													  true /* byval */ );
 					}
 					break;
 				case CMD_UPDATE:
@@ -375,11 +375,11 @@ expand_targetlist(List *tlist, int command_type,
 					{
 						/* Insert NULL for dropped column */
 						new_expr = (Node *) makeConst(INT4OID,
+													  -1,
 													  sizeof(int32),
 													  (Datum) 0,
 													  true,		/* isnull */
-													  true /* byval */,
-													  -1);
+													  true /* byval */ );
 					}
 					break;
 				default:
