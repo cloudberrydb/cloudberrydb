@@ -29,6 +29,7 @@
 
 #include "naucrates/dxl/operators/CDXLNode.h"
 #include "naucrates/dxl/operators/CDXLPhysicalNLJoin.h"
+#include "naucrates/exception.h"
 
 #include "unittest/base.h"
 #include "unittest/gpopt/CConstExprEvaluatorForDates.h"
@@ -255,12 +256,24 @@ const CHAR *rgszFileNames[] =
 #endif
 	};
 
+struct UnSupportedTestCase
+{
+	// file name of minidump
+	const CHAR *szFilename;
+
+	// expected exception major
+	ULONG ulMajor;
+
+	// expected exception minor
+	ULONG ulMinor;
+};
+
 // unsupported minidump files
-const CHAR *rgszUnsupportedFileNames[] =
+const struct UnSupportedTestCase unSupportedTestCases[] =
 	{
-		"../data/dxl/minidump/OneSegmentGather.mdp",
-		"../data/dxl/minidump/CTEWithOuterReferences.mdp",
-		"../data/dxl/minidump/BitmapIndexUnsupportedOperator.mdp",
+		{"../data/dxl/minidump/OneSegmentGather.mdp", gpdxl::ExmaDXL, gpdxl::ExmiExpr2DXLUnsupportedFeature},
+		{"../data/dxl/minidump/CTEWithOuterReferences.mdp", gpopt::ExmaGPOPT, gpopt::ExmiUnsupportedOp},
+		{"../data/dxl/minidump/BitmapIndexUnsupportedOperator.mdp", gpopt::ExmaGPOPT, gpopt::ExmiNoPlanFound}
 	};
 
 // negative index apply tests
@@ -296,10 +309,11 @@ CICGTest::EresUnittest()
 
 	CUnittest rgut[] =
 		{
-		GPOS_UNITTEST_FUNC(CICGTest::EresUnittest_RunMinidumpTests),
 		// keep test for testing partially supported operators/xforms
 		GPOS_UNITTEST_FUNC(CICGTest::EresUnittest_RunUnsupportedMinidumpTests),
 		GPOS_UNITTEST_FUNC(CICGTest::EresUnittest_NegativeIndexApplyTests),
+
+		GPOS_UNITTEST_FUNC(CICGTest::EresUnittest_RunMinidumpTests),
 
 #ifndef GPOS_DEBUG
 		// This test is slow in debug build because it has to free a lot of memory structures
@@ -357,10 +371,14 @@ CICGTest::EresUnittest_RunUnsupportedMinidumpTests()
 	IMemoryPool *pmp = amp.Pmp();
 	
 	GPOS_RESULT eres = GPOS_OK;
-	const ULONG ulTests = GPOS_ARRAY_SIZE(rgszUnsupportedFileNames);
+	const ULONG ulTests = GPOS_ARRAY_SIZE(unSupportedTestCases);
 	for (ULONG ul = m_ulUnsupportedTestCounter; ul < ulTests; ul++)
 	{
-		CDXLMinidump *pdxlmd = CMinidumperUtils::PdxlmdLoad(pmp, rgszUnsupportedFileNames[ul]);
+		const CHAR *szFilename = unSupportedTestCases[ul].szFilename;
+		CDXLMinidump *pdxlmd = CMinidumperUtils::PdxlmdLoad(pmp, szFilename);
+		bool unmatchedException = false;
+		ULONG unmatchedExceptionMajor = 0;
+		ULONG unmatchedExceptionMinor = 0;
 
 		GPOS_TRY
 		{
@@ -370,7 +388,7 @@ CICGTest::EresUnittest_RunUnsupportedMinidumpTests()
 			CDXLNode *pdxlnPlan = CMinidumperUtils::PdxlnExecuteMinidump
 									(
 									pmp, 
-									rgszUnsupportedFileNames[ul],
+									szFilename,
 									poconf->Pcm()->UlHosts() /*ulSegments*/,
 									1 /*ulSessionId*/, 
 									1, /*ulCmdId*/
@@ -389,12 +407,34 @@ CICGTest::EresUnittest_RunUnsupportedMinidumpTests()
 		}
 		GPOS_CATCH_EX(ex)
 		{
+			unmatchedExceptionMajor = ex.UlMajor();
+			unmatchedExceptionMinor = ex.UlMinor();
+
+			// verify expected exception
+			if (unSupportedTestCases[ul].ulMajor == unmatchedExceptionMajor
+					&& unSupportedTestCases[ul].ulMinor == unmatchedExceptionMinor)
+			{
+				eres = GPOS_OK;
+			}
+			else
+			{
+				unmatchedException = true;
+				eres = GPOS_FAILED;
+			}
 			GPOS_RESET_EX;
 		}
 		GPOS_CATCH_END;
 
 		GPOS_DELETE(pdxlmd);
 		m_ulUnsupportedTestCounter++;
+
+		if (GPOS_FAILED == eres && unmatchedException)
+		{
+			CAutoTrace at(pmp);
+			at.Os() << "Test failed due to unmatched exceptions." << std::endl;
+			at.Os() << " Expected result: " << unSupportedTestCases[ul].ulMajor << "." << unSupportedTestCases[ul].ulMinor << std::endl;
+			at.Os() << " Actual result: " << unmatchedExceptionMajor << "." << unmatchedExceptionMinor << std::endl;
+		}
 	}
 	
 	if (GPOS_OK == eres)
