@@ -6530,7 +6530,9 @@ find_composite_type_dependencies(Oid typeOid,
 								 const char *origTblName,
 								 const char *origTypeName)
 {
-	cqContext  *pcqCtx;
+	Relation	depRel;
+	ScanKeyData key[2];
+	SysScanDesc depScan;
 	HeapTuple	depTup;
 	Oid			arrayOid;
 
@@ -6538,16 +6540,21 @@ find_composite_type_dependencies(Oid typeOid,
 	 * We scan pg_depend to find those things that depend on the rowtype. (We
 	 * assume we can ignore refobjsubid for a rowtype.)
 	 */
+	depRel = heap_open(DependRelationId, AccessShareLock);
 
-	pcqCtx = caql_beginscan(
-			NULL,
-			cql("SELECT * FROM pg_depend "
-				" WHERE refclassid = :1 "
-				" AND refobjid = :2 ",
-				ObjectIdGetDatum(TypeRelationId),
-				ObjectIdGetDatum(typeOid)));
+	ScanKeyInit(&key[0],
+				Anum_pg_depend_refclassid,
+				BTEqualStrategyNumber, F_OIDEQ,
+				ObjectIdGetDatum(TypeRelationId));
+	ScanKeyInit(&key[1],
+				Anum_pg_depend_refobjid,
+				BTEqualStrategyNumber, F_OIDEQ,
+				ObjectIdGetDatum(typeOid));
 
-	while (HeapTupleIsValid(depTup = caql_getnext(pcqCtx)))
+	depScan = systable_beginscan(depRel, DependReferenceIndexId, true,
+								 SnapshotNow, 2, key);
+
+	while (HeapTupleIsValid(depTup = systable_getnext(depScan)))
 	{
 		Form_pg_depend pg_depend = (Form_pg_depend) GETSTRUCT(depTup);
 		Relation	rel;
@@ -6591,7 +6598,10 @@ find_composite_type_dependencies(Oid typeOid,
 
 		relation_close(rel, AccessShareLock);
 	}
-	caql_endscan(pcqCtx);
+
+	systable_endscan(depScan);
+
+	relation_close(depRel, AccessShareLock);
 
 	/*
 	 * If there's an array type for the rowtype, must check for uses of it,
@@ -8518,7 +8528,6 @@ transformFkeyGetPrimaryKey(Relation pkrel, Oid *indexOid,
 	bool		isnull;
 	oidvector  *indclass;
 	int			i;
-	cqContext  *pcqCtx = NULL;
 
 	/*
 	 * Get the list of index OIDs for the table from the relcache, and look up
@@ -8533,14 +8542,9 @@ transformFkeyGetPrimaryKey(Relation pkrel, Oid *indexOid,
 	{
 		Oid			indexoid = lfirst_oid(indexoidscan);
 
-		pcqCtx = caql_beginscan(
-				NULL,
-				cql("SELECT * FROM pg_index "
-					" WHERE indexrelid = :1 ",
-					ObjectIdGetDatum(indexoid)));
-
-		indexTuple = caql_getnext(pcqCtx);
-
+		indexTuple = SearchSysCache(INDEXRELID,
+									ObjectIdGetDatum(indexoid),
+									0, 0, 0);
 		if (!HeapTupleIsValid(indexTuple))
 			elog(ERROR, "cache lookup failed for index %u", indexoid);
 		indexStruct = (Form_pg_index) GETSTRUCT(indexTuple);
@@ -8549,7 +8553,7 @@ transformFkeyGetPrimaryKey(Relation pkrel, Oid *indexOid,
 			*indexOid = indexoid;
 			break;
 		}
-		caql_endscan(pcqCtx);
+		ReleaseSysCache(indexTuple);
 	}
 
 	list_free(indexoidlist);
@@ -8564,8 +8568,8 @@ transformFkeyGetPrimaryKey(Relation pkrel, Oid *indexOid,
 						RelationGetRelationName(pkrel))));
 
 	/* Must get indclass the hard way */
-	indclassDatum = caql_getattr(pcqCtx,
-								 Anum_pg_index_indclass, &isnull);
+	indclassDatum = SysCacheGetAttr(INDEXRELID, indexTuple,
+									Anum_pg_index_indclass, &isnull);
 	Assert(!isnull);
 	indclass = (oidvector *) DatumGetPointer(indclassDatum);
 
@@ -8585,7 +8589,7 @@ transformFkeyGetPrimaryKey(Relation pkrel, Oid *indexOid,
 			   makeString(pstrdup(NameStr(*attnumAttName(pkrel, pkattno)))));
 	}
 
-	caql_endscan(pcqCtx);
+	ReleaseSysCache(indexTuple);
 
 	return i;
 }
@@ -8618,20 +8622,14 @@ transformFkeyCheckAttrs(Relation pkrel,
 	foreach(indexoidscan, indexoidlist)
 	{
 		HeapTuple	indexTuple;
-		cqContext  *pcqCtx;
 		Form_pg_index indexStruct;
 		int			i,
 					j;
 
 		indexoid = lfirst_oid(indexoidscan);
-		pcqCtx = caql_beginscan(
-				NULL,
-				cql("SELECT * FROM pg_index "
-					" WHERE indexrelid = :1 ",
-					ObjectIdGetDatum(indexoid)));
-
-		indexTuple = caql_getnext(pcqCtx);
-
+		indexTuple = SearchSysCache(INDEXRELID,
+									ObjectIdGetDatum(indexoid),
+									0, 0, 0);
 		if (!HeapTupleIsValid(indexTuple))
 			elog(ERROR, "cache lookup failed for index %u", indexoid);
 		indexStruct = (Form_pg_index) GETSTRUCT(indexTuple);
@@ -8650,8 +8648,8 @@ transformFkeyCheckAttrs(Relation pkrel,
 			bool		isnull;
 			oidvector  *indclass;
 
-			indclassDatum = caql_getattr(pcqCtx,
-										 Anum_pg_index_indclass, &isnull);
+			indclassDatum = SysCacheGetAttr(INDEXRELID, indexTuple,
+											Anum_pg_index_indclass, &isnull);
 			Assert(!isnull);
 			indclass = (oidvector *) DatumGetPointer(indclassDatum);
 
@@ -8692,7 +8690,7 @@ transformFkeyCheckAttrs(Relation pkrel,
 				}
 			}
 		}
-		caql_endscan(pcqCtx);
+		ReleaseSysCache(indexTuple);
 		if (found)
 			break;
 	}
