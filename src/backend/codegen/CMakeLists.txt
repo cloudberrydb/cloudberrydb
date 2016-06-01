@@ -165,6 +165,7 @@ set(GPCODEGEN_SRC
     codegen_manager.cc
     codegen_wrapper.cc
     exec_variable_list_codegen.cc
+    exec_qual_codegen.cc
 )
 
 # Integrate with GPDB build system. 
