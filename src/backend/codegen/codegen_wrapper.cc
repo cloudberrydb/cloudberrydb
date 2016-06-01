@@ -12,7 +12,7 @@
 
 #include "codegen/codegen_wrapper.h"
 #include "codegen/codegen_manager.h"
-#include "codegen/ExecVariableList_codegen.h"
+#include "codegen/exec_variable_list_codegen.h"
 
 #include "codegen/utils/codegen_utils.h"
 
@@ -111,7 +111,7 @@ void* ExecVariableListCodegenEnroll(
     ExecVariableListFn regular_func_ptr,
     ExecVariableListFn* ptr_to_chosen_func_ptr,
     ProjectionInfo* proj_info,
-	  TupleTableSlot* slot) {
+    TupleTableSlot* slot) {
   ExecVariableListCodegen* generator = CodegenEnroll<ExecVariableListCodegen>(
       regular_func_ptr, ptr_to_chosen_func_ptr, proj_info, slot);
   return generator;
