@@ -1277,6 +1277,9 @@ explain select * from orca.index_test where c = 5;
 -- force_explain
 explain select * from orca.index_test where a = 5 and c = 5;
 
+-- renaming columns
+select * from (values (2),(null)) v(k);
+
 -- clean up
 drop schema orca cascade;
 reset optimizer_segments;

@@ -9934,6 +9934,14 @@ explain select * from orca.index_test where a = 5 and c = 5;
  Optimizer status: PQO version 1.602
 (5 rows)
 
+-- renaming columns
+select * from (values (2),(null)) v(k);
+ k
+---
+ 2
+
+(2 rows)
+
 -- clean up
 drop schema orca cascade;
 NOTICE:  drop cascades to table orca.index_test
