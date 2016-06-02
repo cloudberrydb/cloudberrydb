@@ -1408,6 +1408,12 @@ transformCaseExpr(ParseState *pstate, CaseExpr *c)
 			 */
 			if (isWhenIsNotDistinctFromExpr(warg))
 			{
+				/*
+				 * Make a copy before we change warg.
+				 * In transformation we don't want to change source (CaseExpr* Node).
+				 * Always create new node and do the transformation
+				 */
+				warg = copyObject(warg);
 				A_Expr *top  = (A_Expr *) warg;
 				A_Expr *expr = (A_Expr *) top->rexpr;
 				expr->lexpr = (Node *) placeholder;
