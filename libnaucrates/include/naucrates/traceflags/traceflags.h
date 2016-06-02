@@ -75,6 +75,9 @@ namespace gpos
 		// enable plan sampling
 		EopttraceSamplePlans = 101014,
 
+		// print MEMO during property enforcement process
+		EopttracePrintMemoEnforcement = 101015,
+
 		///////////////////////////////////////////////////////
 		////////////////// transformations flags //////////////
 		///////////////////////////////////////////////////////
