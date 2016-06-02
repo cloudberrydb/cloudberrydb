@@ -278,6 +278,7 @@ addRemoteExecParamsToParamList(PlannedStmt *stmt, ParamListInfo extPrm, ParamExe
 		{
 			// param of id i not found. Likely have been removed because of
 			// constant folding
+			j++;
 			continue;
 		}
 

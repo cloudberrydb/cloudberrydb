@@ -762,12 +762,19 @@ ExecInitSubPlan(SubPlanState *node, EState *estate, int eflags)
 				prmExt = &paramInfo->params[extParamIndex];
 
 				/* Make sure the types are valid */
-				Assert(OidIsValid(prmExt->ptype) && "Invalid Oid for pre-evaluated parameter.");				
-
-				/** Hurray! Copy value from external parameter and don't bother setting up execPlan. */
-				prmExec->execPlan = NULL;
-				prmExec->isnull = prmExt->isnull;
-				prmExec->value = prmExt->value;
+				if (!OidIsValid(prmExt->ptype))
+				{
+					prmExec->execPlan = NULL;
+					prmExec->isnull = true;
+					prmExec->value = (Datum) 0;
+				}
+				else
+				{
+					/** Hurray! Copy value from external parameter and don't bother setting up execPlan. */
+					prmExec->execPlan = NULL;
+					prmExec->isnull = prmExt->isnull;
+					prmExec->value = prmExt->value;
+				}
 			}
 			else
 			{
