@@ -356,17 +356,6 @@ _outPlannedStmt(StringInfo str, PlannedStmt *node)
 }
 
 static void
-_outQueryDispatchDesc(StringInfo str, QueryDispatchDesc *node)
-{
-	WRITE_NODE_TYPE("QUERYDISPATCHDESC");
-
-	WRITE_NODE_FIELD(transientTypeRecords);
-	WRITE_NODE_FIELD(intoOidInfo);
-	WRITE_STRING_FIELD(intoTableSpaceName);
-	WRITE_NODE_FIELD(sliceTable);
-}
-
-static void
 outLogicalIndexInfo(StringInfo str, LogicalIndexInfo *node)
 {
 	WRITE_OID_FIELD(logicalIndexOid);

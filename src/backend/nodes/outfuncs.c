@@ -321,6 +321,17 @@ _outPlannedStmt(StringInfo str, PlannedStmt *node)
 }
 #endif /* COMPILING_BINARY_FUNCS */
 
+static void
+_outQueryDispatchDesc(StringInfo str, QueryDispatchDesc *node)
+{
+	WRITE_NODE_TYPE("QUERYDISPATCHDESC");
+
+	WRITE_NODE_FIELD(transientTypeRecords);
+	WRITE_NODE_FIELD(intoOidInfo);
+	WRITE_STRING_FIELD(intoTableSpaceName);
+	WRITE_NODE_FIELD(sliceTable);
+}
+
 #ifndef COMPILING_BINARY_FUNCS
 /*
  * print the basic stuff of all nodes that inherit from Plan
@@ -4240,6 +4251,9 @@ _outNode(StringInfo str, void *obj)
 		{
 			case T_PlannedStmt:
 				_outPlannedStmt(str, obj);
+				break;
+			case T_QueryDispatchDesc:
+				_outQueryDispatchDesc(str, obj);
 				break;
 			case T_Plan:
 				_outPlan(str, obj);
