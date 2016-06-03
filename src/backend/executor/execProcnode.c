@@ -729,9 +729,6 @@ ExecInitNode(Plan *node, EState *estate, int eflags)
 
 	if (result != NULL)
 	{
-		enroll_ExecQual_codegen(ExecQual,
-	          &result->ExecQual_gen_info.ExecQual_fn, result);
-
 		SAVE_EXECUTOR_MEMORY_ACCOUNT(result, curMemoryAccount);
 		result->CodegenManager = CodegenManager;
 		CodeGeneratorManagerGenerateCode(CodegenManager);
