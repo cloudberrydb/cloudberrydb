@@ -1037,7 +1037,7 @@ _readRangeTblEntry(void)
 	READ_OID_FIELD(checkAsUser);
 
 	READ_BOOL_FIELD(forceDistRandom);
-
+	/* 'pseudocols' is intentionally missing, see out function */
 	READ_DONE();
 }
 
