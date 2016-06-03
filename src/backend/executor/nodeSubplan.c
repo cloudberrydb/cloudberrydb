@@ -1016,7 +1016,6 @@ SubplanQueryDesc(QueryDesc * qd)
 	substmt->utilityStmt = stmt->utilityStmt;
 	substmt->intoClause = NULL;
 	substmt->subplans = stmt->subplans;
-	substmt->rewindPlanIDs = stmt->rewindPlanIDs;
 	substmt->returningLists = stmt->returningLists;
 	substmt->rowMarks = stmt->rowMarks;
 	substmt->relationOids = stmt->relationOids;

@@ -178,7 +178,6 @@ static void postprocess_plan(PlannedStmt *plan)
 	/* initialize */
 	globNew->paramlist = NIL;
 	globNew->subrtables = NIL;
-	globNew->rewindPlanIDs = NULL;
 	globNew->finalrtable = NIL;
 	globNew->relationOids = NIL;
 	globNew->invalItems = NIL;
@@ -344,7 +343,6 @@ standard_planner(Query *parse, int cursorOptions, ParamListInfo boundParams)
 	glob->paramlist = NIL;
 	glob->subplans = NIL;
 	glob->subrtables = NIL;
-	glob->rewindPlanIDs = NULL;
 	glob->finalrtable = NIL;
 	glob->relationOids = NIL;
 	glob->invalItems = NIL;
@@ -486,7 +484,6 @@ standard_planner(Query *parse, int cursorOptions, ParamListInfo boundParams)
 	result->utilityStmt = parse->utilityStmt;
 	result->intoClause = parse->intoClause;
 	result->subplans = glob->subplans;
-	result->rewindPlanIDs = glob->rewindPlanIDs;
 	result->returningLists = root->returningLists;
 	result->result_partitions = root->result_partitions;
 	result->result_aosegnos = root->result_aosegnos;

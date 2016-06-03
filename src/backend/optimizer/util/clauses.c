@@ -4505,7 +4505,6 @@ flatten_join_alias_var_optimizer(Query *query, int queryLevel)
 	root->glob->paramlist = NIL;
 	root->glob->subplans = NIL;
 	root->glob->subrtables = NIL;
-	root->glob->rewindPlanIDs = NULL;
 	root->glob->finalrtable = NIL;
 	root->glob->relationOids = NIL;
 	root->glob->invalItems = NIL;

@@ -167,7 +167,6 @@ _copyPlannedStmt(PlannedStmt *from)
 	COPY_NODE_FIELD(utilityStmt);
 	COPY_NODE_FIELD(intoClause);
 	COPY_NODE_FIELD(subplans);
-	COPY_NODE_FIELD(rewindPlanIDs);
 	COPY_NODE_FIELD(returningLists);
 	
 	COPY_NODE_FIELD(result_partitions);

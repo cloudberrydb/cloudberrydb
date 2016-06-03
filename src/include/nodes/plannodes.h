@@ -94,8 +94,6 @@ typedef struct PlannedStmt
 
 	List	   *subplans;		/* Plan trees for SubPlan expressions */
 
-	Bitmapset  *rewindPlanIDs;	/* indices of subplans that require REWIND */
-
 	/*
 	 * If the query has a returningList then the planner will store a list of
 	 * processed targetlists (one per result relation) here.  We must have a
