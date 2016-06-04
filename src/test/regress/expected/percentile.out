@@ -1006,7 +1006,7 @@ select b, percentile_disc(0.1) within group (order by a) from perct;
 ERROR:  column "perct.b" must appear in the GROUP BY clause or be used in an aggregate function
 -- nested aggregate
 select percentile_cont(count(*)) within group (order by a) from perct;
-ERROR:  argument of percentile function must not contain variables
+ERROR:  argument of percentile function must not contain aggregates
 LINE 1: select percentile_cont(count(*)) within group (order by a) f...
                                ^
 select sum(percentile_cont(0.22) within group (order by a)) from perct;

@@ -52,6 +52,7 @@ typedef struct
 } flatten_join_alias_vars_context;
 
 static bool contain_var_clause_walker(Node *node, void *context);
+static bool contain_vars_of_level_walker(Node *node, int *sublevels_up);
 static bool pull_var_clause_walker(Node *node,
 					   pull_var_clause_context *context);
 static Node *flatten_join_alias_vars_mutator(Node *node,
@@ -273,38 +274,50 @@ contain_var_clause_walker(Node *node, void *context)
  *
  * Will recurse into sublinks.	Also, may be invoked directly on a Query.
  */
-static bool
-contain_vars_of_level_cbVar(Var *var, void *unused, int sublevelsup)
-{
-	if ((int)var->varlevelsup == sublevelsup)
-		return true;		    /* abort tree traversal and return true */
-    return false;
-}
-
-static bool
-contain_vars_of_level_cbAggref(Aggref *aggref, void *unused, int sublevelsup)
-{
-	if ((int)aggref->agglevelsup == sublevelsup)
-        return true;
-
-    /* visit aggregate's args */
-	return cdb_walk_vars((Node *)aggref->args,
-                         contain_vars_of_level_cbVar,
-                         contain_vars_of_level_cbAggref,
-                         NULL,
-                         NULL,
-                         sublevelsup);
-}
-
 bool
 contain_vars_of_level(Node *node, int levelsup)
 {
-	return cdb_walk_vars(node,
-                         contain_vars_of_level_cbVar,
-                         contain_vars_of_level_cbAggref,
-                         NULL,
-                         NULL,
-                         levelsup);
+	int			sublevels_up = levelsup;
+
+	return query_or_expression_tree_walker(node,
+										   contain_vars_of_level_walker,
+										   (void *) &sublevels_up,
+										   0);
+}
+
+static bool
+contain_vars_of_level_walker(Node *node, int *sublevels_up)
+{
+	if (node == NULL)
+		return false;
+	if (IsA(node, Var))
+	{
+		if (((Var *) node)->varlevelsup == *sublevels_up)
+			return true;		/* abort tree traversal and return true */
+		return false;
+	}
+	if (IsA(node, CurrentOfExpr))
+	{
+		if (*sublevels_up == 0)
+			return true;
+		return false;
+	}
+	if (IsA(node, Query))
+	{
+		/* Recurse into subselects */
+		bool		result;
+
+		(*sublevels_up)++;
+		result = query_tree_walker((Query *) node,
+								   contain_vars_of_level_walker,
+								   (void *) sublevels_up,
+								   0);
+		(*sublevels_up)--;
+		return result;
+	}
+	return expression_tree_walker(node,
+								  contain_vars_of_level_walker,
+								  (void *) sublevels_up);
 }
 
 /*
