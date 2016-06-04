@@ -38,6 +38,7 @@
 
 #include "access/transam.h"
 #include "access/xact.h"
+#include "catalog/namespace.h"
 #include "miscadmin.h"
 #include "postmaster/autovacuum.h"
 #include "replication/syncrep.h"
