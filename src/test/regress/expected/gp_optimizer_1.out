@@ -2210,6 +2210,8 @@ SELECT 1 AS one FROM orca.foo group by x1 having 1 < 2;
 
 SELECT x1 AS one FROM orca.foo having 1 < 2;
 ERROR:  column "foo.x1" must appear in the GROUP BY clause or be used in an aggregate function
+LINE 1: SELECT x1 AS one FROM orca.foo having 1 < 2;
+               ^
 -- distinct clause
 select distinct 1, null;
  ?column? | ?column? 

@@ -579,8 +579,6 @@ select fun_array(25,50) as intarray, fun_array('abc'::text, 'bcf') AS textarray;
 
 select fun_array(25,50) as intarray, fun_array('abc', 'bcf') AS textarray;
 ERROR:  could not determine anyarray/anyelement type because input has type "unknown"
-LINE 1: select fun_array(25,50) as intarray, fun_array('abc', 'bcf')...
-                                             ^
 -- start_ignore
 create or replace function fun_is_greater(anyelement,anyelement) returns boolean AS $$ select $1 > $2 $$ language sql;
 -- end_ignore

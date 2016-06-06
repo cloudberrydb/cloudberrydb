@@ -1113,7 +1113,7 @@ _outRangeVar(StringInfo str, RangeVar *node)
 	WRITE_ENUM_FIELD(inhOpt, InhOption);
 	WRITE_BOOL_FIELD(istemp);
 	WRITE_NODE_FIELD(alias);
-    WRITE_INT_FIELD(location);  /*CDB*/
+    WRITE_LOCATION_FIELD(location);
 }
 
 static void

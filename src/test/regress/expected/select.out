@@ -773,7 +773,7 @@ INSERT INTO nosort VALUES(1), (2);
 SELECT * FROM nosort ORDER BY i USING <<;
 ERROR:  operator << is not a valid ordering operator
 LINE 1: SELECT * FROM nosort ORDER BY i USING <<;
-                                      ^
+                                              ^
 HINT:  Ordering operators must be "<" or ">" members of btree operator families.
 DROP TABLE nosort;
 -- Test dispatch of recursive functions: MPP-8382

@@ -92,12 +92,6 @@ typedef struct
 								 * the schema */
 } CreateSchemaStmtContext;
 
-typedef struct
-{
-	Oid		   *paramTypes;
-	int			numParams;
-} check_parameter_resolution_context;
-
 /* Context for transformGroupedWindows() which mutates components
  * of a query that mixes windowing and aggregation or grouping.  It
  * accumulates context for eventual construction of a subquery (the
@@ -184,12 +178,11 @@ static int collectSetopTypes(ParseState *pstate, SelectStmt *stmt,
 static void getSetColTypes(ParseState *pstate, Node *node,
 			   List **colTypes, List **colTypmods);
 static void transformLockingClause(Query *qry, LockingClause *lc);
+static bool check_parameter_resolution_walker(Node *node, ParseState *pstate);
 static void transformConstraintAttrs(List *constraintList);
 static void transformColumnType(ParseState *pstate, ColumnDef *column);
 static void release_pstate_resources(ParseState *pstate);
 static FromExpr *makeFromExpr(List *fromlist, Node *quals);
-static bool check_parameter_resolution_walker(Node *node,
-								check_parameter_resolution_context *context);
 
 static void setQryDistributionPolicy(SelectStmt *stmt, Query *qry);
 static List *getLikeDistributionPolicy(InhRelation *e);
@@ -263,20 +256,14 @@ parse_analyze_varparams(Node *parseTree, const char *sourceText,
 
 	result = do_parse_analyze(parseTree, pstate);
 
+	/* make sure all is well with parameter types */
+	if (pstate->p_numparams > 0)
+		check_parameter_resolution_walker((Node *) result, pstate);
+
 	*paramTypes = pstate->p_paramtypes;
 	*numParams = pstate->p_numparams;
 
 	free_parsestate(pstate);
-
-	/* make sure all is well with parameter types */
-	if (*numParams > 0)
-	{
-		check_parameter_resolution_context context;
-
-		context.paramTypes = *paramTypes;
-		context.numParams = *numParams;
-		check_parameter_resolution_walker((Node *) result, &context);
-	}
 
 	return result;
 }
@@ -385,9 +372,6 @@ do_parse_analyze(Node *parseTree, ParseState *pstate)
 
 	/* CDB: Pop error context callback stack. */
 	error_context_stack = errcontext.previous;
-
-	/* CDB: All breadcrumbs should have been popped. */
-	Assert(!pstate->p_breadcrumb.pop);
 
 	/* don't need to access result relation any more */
 	release_pstate_resources(pstate);
@@ -509,7 +493,6 @@ static void
 parse_analyze_error_callback(void *parsestate)
 {
     ParseState             *pstate = (ParseState *)parsestate;
-    ParseStateBreadCrumb   *bc;
     int                     location = -1;
 
     /* No-op if errposition has already been set. */
@@ -519,23 +502,6 @@ parse_analyze_error_callback(void *parsestate)
     /* NOTICE messages don't need any extra baggage. */
     if (elog_getelevel() == NOTICE)
         return;
-
-    /*
-	 * Backtrack through trail of breadcrumbs to find a node with location
-	 * info. A null node ptr tells us to keep quiet rather than give a
-	 * misleading pointer to a token which may be far from the actual problem.
-     */
-    for (bc = &pstate->p_breadcrumb; bc && bc->node; bc = bc->pop)
-    {
-        location = parse_expr_location((Expr *)bc->node);
-        if (location >= 0)
-            break;
-    }
-
-    /* Shush the parent query's error callback if we found a location or null */
-    if (bc &&
-        pstate->parentParseState)
-        pstate->parentParseState->p_breadcrumb.node = NULL;
 
     /* Report approximate offset of error from beginning of statement text. */
     if (location >= 0)
@@ -839,9 +805,6 @@ transformDeleteStmt(ParseState *pstate, DeleteStmt *stmt)
 	qry->returningList = transformReturningList(pstate, stmt->returningList);
 #endif
 
-	/* CDB: Cursor position not available for errors below this point. */
-	pstate->p_breadcrumb.node = NULL;
-
 	/* done building the range table and jointree */
 	qry->rtable = pstate->p_rtable;
 	qry->jointree = makeFromExpr(pstate->p_joinlist, qual);
@@ -1030,9 +993,6 @@ transformInsertStmt(ParseState *pstate, InsertStmt *stmt,
 		{
 			List	   *sublist = (List *) lfirst(lc);
 
-			/* CDB: In case of error, note which sublist is involved. */
-			pstate->p_breadcrumb.node = (Node *)sublist;
-
 			/* Do basic expression transformation (same as a ROW() expr) */
 			sublist = transformExpressionList(pstate, sublist);
 
@@ -1063,9 +1023,6 @@ transformInsertStmt(ParseState *pstate, InsertStmt *stmt,
 			exprsLists = lappend(exprsLists, sublist);
 		}
 
-		/* CDB: Clear error location. */
-		pstate->p_breadcrumb.node = NULL;
-
 		/*
 		 * There mustn't have been any table references in the expressions,
 		 * else strange things would happen, like Cartesian products of those
@@ -1074,7 +1031,9 @@ transformInsertStmt(ParseState *pstate, InsertStmt *stmt,
 		if (pstate->p_joinlist != NIL)
 			ereport(ERROR,
 					(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
-					 errmsg("VALUES must not contain table references")));
+					 errmsg("VALUES must not contain table references"),
+					 parser_errposition(pstate,
+							  locate_var_of_level((Node *) exprsLists, 0))));
 
 		/*
 		 * Another thing we can't currently support is NEW/OLD references in
@@ -1087,7 +1046,9 @@ transformInsertStmt(ParseState *pstate, InsertStmt *stmt,
 			ereport(ERROR,
 					(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
 					 errmsg("VALUES must not contain OLD or NEW references"),
-					 errhint("Use SELECT ... UNION ALL ... instead.")));
+					 errhint("Use SELECT ... UNION ALL ... instead."),
+					 parser_errposition(pstate,
+							  locate_var_of_level((Node *) exprsLists, 0))));
 
 		/*
 		 * Generate the VALUES RTE
@@ -1188,10 +1149,6 @@ transformInsertStmt(ParseState *pstate, InsertStmt *stmt,
 	}
 #endif
 
-
-	/* CDB: Cursor position not available for errors below this point. */
-	pstate->p_breadcrumb.node = NULL;
-
 	/* done building the range table and jointree */
 	qry->rtable = pstate->p_rtable;
 	qry->jointree = makeFromExpr(pstate->p_joinlist, NULL);
@@ -1201,10 +1158,12 @@ transformInsertStmt(ParseState *pstate, InsertStmt *stmt,
 	if (pstate->p_hasAggs)
 		ereport(ERROR,
 				(errcode(ERRCODE_GROUPING_ERROR),
-				 errmsg("cannot use aggregate function in VALUES")));
+				 errmsg("cannot use aggregate function in VALUES"),
+				 parser_errposition(pstate,
+									locate_agg_of_level((Node *) qry, 0))));
 	if (pstate->p_hasWindFuncs)
 		ereport(ERROR,
-				(errcode(ERRCODE_SYNTAX_ERROR),
+				(errcode(ERRCODE_WINDOWING_ERROR),
 				 errmsg("cannot use window function in VALUES")));
 
 	return qry;
@@ -3561,9 +3520,6 @@ transformRuleStmt(ParseState *pstate, RuleStmt *stmt,
 	stmt->whereClause = transformWhereClause(pstate, stmt->whereClause,
 											 "WHERE");
 
-    /* CDB: Cursor position not available for errors below this point. */
-    pstate->p_breadcrumb.node = NULL;
-
 	if (list_length(pstate->p_rtable) != 2)		/* naughty, naughty... */
 		ereport(ERROR,
 				(errcode(ERRCODE_INVALID_OBJECT_DEFINITION),
@@ -4503,9 +4459,6 @@ transformSelectStmt(ParseState *pstate, SelectStmt *stmt)
 	qry->limitCount = transformLimitClause(pstate, stmt->limitCount,
 										   "LIMIT");
 
-    /* CDB: Cursor position not available for errors below this point. */
-    pstate->p_breadcrumb.node = NULL;
-
 	/* handle any SELECT INTO/CREATE TABLE AS spec */
 	qry->intoClause = NULL;
 	if (stmt->intoClause)
@@ -4626,7 +4579,9 @@ transformValuesClause(ParseState *pstate, SelectStmt *stmt)
 		{
 			ereport(ERROR,
 					(errcode(ERRCODE_SYNTAX_ERROR),
-					 errmsg("VALUES lists must all be the same length")));
+					 errmsg("VALUES lists must all be the same length"),
+					 parser_errposition(pstate,
+										exprLocation((Node *) sublist))));
 		}
 
 		exprsLists = lappend(exprsLists, sublist);
@@ -4705,9 +4660,6 @@ transformValuesClause(ParseState *pstate, SelectStmt *stmt)
 	qry->limitCount = transformLimitClause(pstate, stmt->limitCount,
 										   "LIMIT");
 
-    /* CDB: Cursor position not available for errors below this point. */
-    pstate->p_breadcrumb.node = NULL;
-
 	if (stmt->lockingClause)
 		ereport(ERROR,
 				(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
@@ -4734,7 +4686,9 @@ transformValuesClause(ParseState *pstate, SelectStmt *stmt)
 	if (list_length(pstate->p_joinlist) != 1)
 		ereport(ERROR,
 				(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
-				 errmsg("VALUES must not contain table references")));
+				 errmsg("VALUES must not contain table references"),
+				 parser_errposition(pstate,
+						   locate_var_of_level((Node *) newExprsLists, 0))));
 
 	/*
 	 * Another thing we can't currently support is NEW/OLD references in rules
@@ -4747,7 +4701,9 @@ transformValuesClause(ParseState *pstate, SelectStmt *stmt)
 		ereport(ERROR,
 				(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
 				 errmsg("VALUES must not contain OLD or NEW references"),
-				 errhint("Use SELECT ... UNION ALL ... instead.")));
+				 errhint("Use SELECT ... UNION ALL ... instead."),
+				 parser_errposition(pstate,
+						   locate_var_of_level((Node *) newExprsLists, 0))));
 
 	qry->rtable = pstate->p_rtable;
 	qry->jointree = makeFromExpr(pstate->p_joinlist, NULL);
@@ -4757,11 +4713,12 @@ transformValuesClause(ParseState *pstate, SelectStmt *stmt)
 	if (pstate->p_hasAggs)
 		ereport(ERROR,
 				(errcode(ERRCODE_GROUPING_ERROR),
-				 errmsg("cannot use aggregate function in VALUES")));
-
+				 errmsg("cannot use aggregate function in VALUES"),
+				 parser_errposition(pstate,
+						   locate_agg_of_level((Node *) newExprsLists, 0))));
 	if (pstate->p_hasWindFuncs)
 		ereport(ERROR,
-				(errcode(ERRCODE_SYNTAX_ERROR),
+				(errcode(ERRCODE_WINDOWING_ERROR),
 				 errmsg("cannot use window function in VALUES")));
 
 	return qry;
@@ -5097,15 +5054,14 @@ transformSetOperationStmt(ParseState *pstate, SelectStmt *stmt)
 				(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
 				 errmsg("invalid UNION/INTERSECT/EXCEPT ORDER BY clause"),
 				 errdetail("Only result column names can be used, not expressions or functions."),
-				 errhint("Add the expression/function to every SELECT, or move the UNION into a FROM clause.")));
+				 errhint("Add the expression/function to every SELECT, or move the UNION into a FROM clause."),
+				 parser_errposition(pstate,
+						   exprLocation(list_nth(qry->targetList, tllen)))));
 
 	qry->limitOffset = transformLimitClause(pstate, limitOffset,
 											"OFFSET");
 	qry->limitCount = transformLimitClause(pstate, limitCount,
 										   "LIMIT");
-
-    /* CDB: Cursor position not available for errors below this point. */
-    pstate->p_breadcrumb.node = NULL;
 
 	/*
 	 * Handle SELECT INTO/CREATE TABLE AS.
@@ -5154,7 +5110,9 @@ transformSetOperationTree(ParseState *pstate, SelectStmt *stmt)
 	if (stmt->intoClause)
 		ereport(ERROR,
 				(errcode(ERRCODE_SYNTAX_ERROR),
-				 errmsg("INTO is only allowed on first SELECT of UNION/INTERSECT/EXCEPT")));
+				 errmsg("INTO is only allowed on first SELECT of UNION/INTERSECT/EXCEPT"),
+				 parser_errposition(pstate,
+								  exprLocation((Node *) stmt->intoClause))));
 	/* We don't support FOR UPDATE/SHARE with set ops at the moment. */
 	if (stmt->lockingClause)
 		ereport(ERROR,
@@ -5597,9 +5555,6 @@ transformUpdateStmt(ParseState *pstate, UpdateStmt *stmt)
         fixup_unknown_vars_in_targetlist(pstate, qry->returningList);
     }
 
-    /* CDB: Cursor position not available for errors below this point. */
-    pstate->p_breadcrumb.node = NULL;
-
 	qry->rtable = pstate->p_rtable;
 	qry->jointree = makeFromExpr(pstate->p_joinlist, qual);
 
@@ -5613,11 +5568,12 @@ transformUpdateStmt(ParseState *pstate, UpdateStmt *stmt)
 	if (pstate->p_hasAggs)
 		ereport(ERROR,
 				(errcode(ERRCODE_GROUPING_ERROR),
-				 errmsg("cannot use aggregate function in UPDATE")));
-
+				 errmsg("cannot use aggregate function in UPDATE"),
+				 parser_errposition(pstate,
+									locate_agg_of_level((Node *) qry, 0))));
 	if (pstate->p_hasWindFuncs)
 		ereport(ERROR,
-				(errcode(ERRCODE_SYNTAX_ERROR),
+				(errcode(ERRCODE_WINDOWING_ERROR),
 				 errmsg("cannot use window function in UPDATE")));
 
 	/*
@@ -5654,9 +5610,6 @@ transformUpdateStmt(ParseState *pstate, UpdateStmt *stmt)
 			elog(ERROR, "UPDATE target count mismatch --- internal error");
 		origTarget = (ResTarget *) lfirst(origTargetList);
 		Assert(IsA(origTarget, ResTarget));
-
-        /* CDB: Drop a breadcrumb in case of error. */
-        pstate->p_breadcrumb.node = (Node *)origTarget;
 
 		attrno = attnameAttNum(pstate->p_target_relation,
 							   origTarget->name, true);
@@ -5719,28 +5672,29 @@ transformReturningList(ParseState *pstate, List *returningList)
 	/* transform RETURNING identically to a SELECT targetlist */
 	rlist = transformTargetList(pstate, returningList);
 
-    /* CDB: Cursor position not available for errors below this point. */
-    pstate->p_breadcrumb.node = NULL;
-
 	/* check for disallowed stuff */
 
 	/* aggregates not allowed (but subselects are okay) */
 	if (pstate->p_hasAggs)
 		ereport(ERROR,
 				(errcode(ERRCODE_GROUPING_ERROR),
-				 errmsg("cannot use aggregate function in RETURNING")));
-
-	if (pstate->p_hasWindFuncs)
+				 errmsg("cannot use aggregate function in RETURNING"),
+				 parser_errposition(pstate,
+									locate_agg_of_level((Node *) rlist, 0))));
+	if (pstate->p_hasWindowFuncs)
 		ereport(ERROR,
-				(errcode(ERRCODE_SYNTAX_ERROR),
-				 errmsg("cannot use window function in RETURNING")));
+				(errcode(ERRCODE_WINDOWING_ERROR),
+				 errmsg("cannot use window function in RETURNING"),
+				 parser_errposition(pstate,
+									locate_windowfunc((Node *) rlist))));
 
 
 	/* no new relation references please */
 	if (list_length(pstate->p_rtable) != length_rtable)
 		ereport(ERROR,
 				(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
-		 errmsg("RETURNING cannot contain references to other relations")));
+			errmsg("RETURNING cannot contain references to other relations"),
+				 parser_errposition(pstate, vlocation)));
 
 	/* mark column origins */
 	markTargetListOrigins(pstate, rlist);
@@ -6171,8 +6125,10 @@ transformDeclareCursorStmt(ParseState *pstate, DeclareCursorStmt *stmt)
 	/* But we must explicitly disallow DECLARE CURSOR ... SELECT INTO */
 	if (result->intoClause)
 		ereport(ERROR,
-				(errcode(ERRCODE_INVALID_CURSOR_DEFINITION),
-				 errmsg("DECLARE CURSOR cannot specify INTO")));
+				(errcode(ERRCODE_SYNTAX_ERROR),
+				 errmsg("INSERT ... SELECT cannot specify INTO"),
+				 parser_errposition(pstate,
+						   exprLocation((Node *) result->intoClause))));
 
 	/* We won't need the raw querytree any more */
 	stmt->query = NULL;
@@ -6869,8 +6825,7 @@ analyzeCreateSchemaStmt(CreateSchemaStmt *stmt)
  * and yet other instances seen later might have gotten coerced.
  */
 static bool
-check_parameter_resolution_walker(Node *node,
-								  check_parameter_resolution_context *context)
+check_parameter_resolution_walker(Node *node, ParseState *pstate)
 {
 	if (node == NULL)
 		return false;
@@ -6883,16 +6838,18 @@ check_parameter_resolution_walker(Node *node,
 			int			paramno = param->paramid;
 
 			if (paramno <= 0 || /* shouldn't happen, but... */
-				paramno > context->numParams)
+				paramno > pstate->p_numparams)
 				ereport(ERROR,
 						(errcode(ERRCODE_UNDEFINED_PARAMETER),
-						 errmsg("there is no parameter $%d", paramno)));
+						 errmsg("there is no parameter $%d", paramno),
+						 parser_errposition(pstate, param->location)));
 
-			if (param->paramtype != context->paramTypes[paramno - 1])
+			if (param->paramtype != pstate->p_paramtypes[paramno - 1])
 				ereport(ERROR,
 						(errcode(ERRCODE_AMBIGUOUS_PARAMETER),
 					 errmsg("could not determine data type of parameter $%d",
-							paramno)));
+							paramno),
+						 parser_errposition(pstate, param->location)));
 		}
 		return false;
 	}
@@ -6901,10 +6858,10 @@ check_parameter_resolution_walker(Node *node,
 		/* Recurse into RTE subquery or not-yet-planned sublink subquery */
 		return query_tree_walker((Query *) node,
 								 check_parameter_resolution_walker,
-								 (void *) context, 0);
+								 (void *) pstate, 0);
 	}
 	return expression_tree_walker(node, check_parameter_resolution_walker,
-								  (void *) context);
+								  (void *) pstate);
 }
 
 static void

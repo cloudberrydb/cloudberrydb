@@ -103,6 +103,10 @@
 		appendBinaryStringInfo(str, (const char *)&slen, sizeof(int)); \
 		if (slen>0) appendBinaryStringInfo(str, node->fldname, strlen(node->fldname));}
 
+/* Write a parse location field (actually same as INT case) */
+#define WRITE_LOCATION_FIELD(fldname) \
+	{ appendBinaryStringInfo(str, (const char *)&node->fldname, sizeof(int)); }
+
 /* Write a Node field */
 #define WRITE_NODE_FIELD(fldname) \
 	(_outNode(str, node->fldname))

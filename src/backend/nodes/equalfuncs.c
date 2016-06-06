@@ -125,7 +125,7 @@ _equalRangeVar(RangeVar *a, RangeVar *b)
 	COMPARE_SCALAR_FIELD(inhOpt);
 	COMPARE_SCALAR_FIELD(istemp);
 	COMPARE_NODE_FIELD(alias);
-	/* do not compare 'location' field */
+	COMPARE_LOCATION_FIELD(location);
 
 	return true;
 }
@@ -2120,10 +2120,11 @@ _equalTypeCast(TypeCast *a, TypeCast *b)
 static bool
 _equalSortBy(SortBy *a, SortBy *b)
 {
+	COMPARE_NODE_FIELD(node);
 	COMPARE_SCALAR_FIELD(sortby_dir);
 	COMPARE_SCALAR_FIELD(sortby_nulls);
 	COMPARE_NODE_FIELD(useOp);
-	COMPARE_NODE_FIELD(node);
+	COMPARE_LOCATION_FIELD(location);
 
 	return true;
 }
