@@ -1594,18 +1594,14 @@ exec_simple_query(const char *query_string, const char *seqServerHost, int seqSe
 	 */
 	parsetree_list = pg_parse_query(query_string);
 
-	/* Disable statement logging during mapreduce */
-	if (!gp_mapreduce_define)
+	/* Log immediately if dictated by log_statement */
+	if (check_log_statement(parsetree_list))
 	{
-		/* Log immediately if dictated by log_statement */
-		if (check_log_statement(parsetree_list))
-		{
-			ereport(LOG,
+		ereport(LOG,
 				(errmsg("statement: %s", query_string),
 				 errhidestmt(true),
 				 errdetail_execute(parsetree_list)));
-			was_logged = true;
-		}
+		was_logged = true;
 	}
 
 	/*
@@ -1857,22 +1853,20 @@ exec_simple_query(const char *query_string, const char *seqServerHost, int seqSe
 	/*
 	 * Emit duration logging if appropriate.
 	 */
-	if (!gp_mapreduce_define)
+	switch (check_log_duration(msec_str, was_logged))
 	{
-		switch (check_log_duration(msec_str, was_logged))
-		{
-			case 1:
-				ereport(LOG,
+		case 1:
+			ereport(LOG,
 					(errmsg("duration: %s ms", msec_str),
 					 errhidestmt(true)));
-				break;
-			case 2:
-				ereport(LOG, (errmsg("duration: %s ms  statement: %s",
-									 msec_str, query_string),
-							  errdetail_execute(parsetree_list),
-							  errhidestmt(true)));
-				break;
-		}
+			break;
+		case 2:
+			ereport(LOG,
+					(errmsg("duration: %s ms  statement: %s",
+							msec_str, query_string),
+					 errdetail_execute(parsetree_list),
+					 errhidestmt(true)));
+			break;
 	}
 
 	if (save_log_statement_stats)
@@ -2813,6 +2807,10 @@ check_log_statement(List *stmt_list)
 {
 	ListCell   *stmt_item;
 
+	/* Disable statement logging during mapreduce */
+	if (gp_mapreduce_define)
+		return false;
+
 	if (log_statement == LOGSTMT_NONE)
 		return false;
 	if (log_statement == LOGSTMT_ALL)
@@ -2848,6 +2846,10 @@ check_log_statement(List *stmt_list)
 int
 check_log_duration(char *msec_str, bool was_logged)
 {
+	/* Disable statement logging during mapreduce */
+	if (gp_mapreduce_define)
+		return 0;
+
 	if (log_duration || log_min_duration_statement >= 0)
 	{
 		long		secs;
