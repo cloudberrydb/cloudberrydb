@@ -2802,18 +2802,20 @@ transformDistinctToGroupBy(ParseState *pstate, List **targetlist,
 		 * append remaining group clauses to the end of group clause list
 		 */
 		ListCell *lc = NULL;
-		SortBy sortby;
-
-		sortby.sortby_dir = SORTBY_DEFAULT;
-		sortby.sortby_nulls = SORTBY_NULLS_DEFAULT;
-		sortby.useOp = NIL;
-		sortby.location = -1;
 
 		foreach(lc, group_tlist_remainder)
 		{
 			TargetEntry *tle = (TargetEntry *) lfirst(lc);
 			if (!tle->resjunk)
 			{
+				SortBy sortby;
+
+				sortby.type = T_SortBy;
+				sortby.sortby_dir = SORTBY_DEFAULT;
+				sortby.sortby_nulls = SORTBY_NULLS_DEFAULT;
+				sortby.useOp = NIL;
+				sortby.location = -1;
+				sortby.node = (Node *) tle->expr;
 				group_clause_list = addTargetToSortList(pstate, tle,
 														group_clause_list, *targetlist,
 														&sortby, true);
@@ -2934,12 +2936,6 @@ transformDistinctClause(ParseState *pstate, List *distinctlist,
 		 * trouble than it's worth.
 		 */
 		ListCell   *nextsortlist = list_head(*sortClause);
-		SortBy sortby;
-
-		sortby.sortby_dir = SORTBY_DEFAULT;
-		sortby.sortby_nulls = SORTBY_NULLS_DEFAULT;
-		sortby.useOp = NIL;
-		sortby.location = -1;
 
 		foreach(dlitem, distinctlist)
 		{
@@ -2962,6 +2958,14 @@ transformDistinctClause(ParseState *pstate, List *distinctlist,
 			}
 			else
 			{
+				SortBy sortby;
+
+				sortby.type = T_SortBy;
+				sortby.sortby_dir = SORTBY_DEFAULT;
+				sortby.sortby_nulls = SORTBY_NULLS_DEFAULT;
+				sortby.useOp = NIL;
+				sortby.location = -1;
+				sortby.node = (Node *) tle->expr;
 				*sortClause = addTargetToSortList(pstate, tle,
 												  *sortClause, *targetlist,
 												  &sortby, true);
@@ -3049,21 +3053,25 @@ addAllTargetsToSortList(ParseState *pstate, List *sortlist,
 						List *targetlist, bool resolveUnknown)
 {
 	ListCell   *l;
-	SortBy		sortby;
-
-	sortby.sortby_dir = SORTBY_DEFAULT;
-	sortby.sortby_nulls = SORTBY_NULLS_DEFAULT;
-	sortby.useOp = NIL;
-	sortby.location = -1;
 
 	foreach(l, targetlist)
 	{
 		TargetEntry *tle = (TargetEntry *) lfirst(l);
 
 		if (!tle->resjunk)
+		{
+			SortBy		sortby;
+
+			sortby.type = T_SortBy;
+			sortby.sortby_dir = SORTBY_DEFAULT;
+			sortby.sortby_nulls = SORTBY_NULLS_DEFAULT;
+			sortby.useOp = NIL;
+			sortby.location = -1;
+			sortby.node = (Node *) tle->expr;
 			sortlist = addTargetToSortList(pstate, tle,
 										   sortlist, targetlist,
 										   &sortby, resolveUnknown);
+		}
 	}
 	return sortlist;
 }
