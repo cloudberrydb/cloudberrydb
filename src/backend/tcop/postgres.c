@@ -124,6 +124,7 @@ int			max_stack_depth = 100;
 int			PostAuthDelay = 0;
 
 
+
 /* ----------------
  *		private variables
  * ----------------
@@ -1281,13 +1282,13 @@ exec_mpp_query(const char *query_string,
 					(errcode(ERRCODE_IN_FAILED_SQL_TRANSACTION),
 					 errmsg("current transaction is aborted, "
 							"commands ignored until end of transaction block")));
-		
+
 		/* Make sure we are in a transaction command */
 		start_xact_command();
-		
+
 		/* If we got a cancel signal in parsing or prior command, quit */
 		CHECK_FOR_INTERRUPTS();
-		
+
 		/*
 		 * OK to analyze, rewrite, and plan this query.
 		 *
@@ -1295,12 +1296,10 @@ exec_mpp_query(const char *query_string,
 		 * these must outlive the execution context).
 		 */
 		oldcontext = MemoryContextSwitchTo(MessageContext);
-		
-		
-		
+
 		/* If we got a cancel signal in analysis or planning, quit */
 		CHECK_FOR_INTERRUPTS();
-		
+
 		/*
 		 * Create unnamed portal to run the query or queries in. If there
 		 * already is one, silently drop it.
@@ -1366,8 +1365,7 @@ exec_mpp_query(const char *query_string,
 		 * error, not one and then the other.
 		 */
 		finish_xact_command();
-		
-		
+
 		if (Debug_dtm_action == DEBUG_DTM_ACTION_FAIL_END_COMMAND &&
 			CheckDebugDtmActionSqlCommandTag(commandTag))
 		{
@@ -1382,7 +1380,6 @@ exec_mpp_query(const char *query_string,
 		 * aborted by error will not send an EndCommand report at all.)
 		 */
 		EndCommand(completionTag, dest);
-		
 	}							/* end loop over parsetrees */
 	
 	/*
@@ -1419,10 +1416,9 @@ exec_mpp_query(const char *query_string,
 		BackoffBackendEntryExit();
 	}
 
-
 	debug_query_string = NULL;
 }
-	
+
 static bool
 CheckDebugDtmActionProtocol(DtxProtocolCommand dtxProtocolCommand, 
 				DtxContextInfo *contextInfo)
@@ -2011,10 +2007,10 @@ exec_parse_message(const char *query_string,	/* string to execute */
 					(errcode(ERRCODE_IN_FAILED_SQL_TRANSACTION),
 					 errmsg("current transaction is aborted, "
 						"commands ignored until end of transaction block")));
-		
-        /*
-         * Set up a snapshot if parse analysis/planning will need one.
-         */
+
+		/*
+		 * Set up a snapshot if parse analysis/planning will need one.
+		 */
 		if (analyze_requires_snapshot(parsetree))
 		{
 			mySnapshot = CopySnapshot(GetTransactionSnapshot());
@@ -2078,7 +2074,6 @@ exec_parse_message(const char *query_string,	/* string to execute */
 		ActiveSnapshot = NULL;
 		if (mySnapshot)
 			FreeSnapshot(mySnapshot);
-		
 	}
 	else
 	{
@@ -2667,7 +2662,7 @@ exec_execute_message(const char *portal_name, int64 max_rows)
 	 * Report query to various monitoring facilities.
 	 */
 	debug_query_string = sourceText ? sourceText : "<EXECUTE>";
-		
+
 	pgstat_report_activity(debug_query_string);
 
 	set_ps_display(portal->commandTag, false);
