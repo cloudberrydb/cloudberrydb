@@ -52,6 +52,7 @@
 #include "cdb/cdbvars.h"
 #include "tcop/utility.h"
 
+#include "cdb/cdbdisp_query.h"
 #include "cdb/cdbtm.h"
 
 /*
@@ -2359,12 +2360,15 @@ recomputeNamespacePath(void)
 static void
 InitTempTableNamespace(void)
 {
-	char		namespaceName[NAMEDATALEN];
-	int			fetchCount;
-	char	   *rolname;
-	CreateSchemaStmt *stmt;
+	InitTempTableNamespaceWithOids(InvalidOid);
+}
 
-	Assert(!OidIsValid(myTempNamespace));
+void
+InitTempTableNamespaceWithOids(Oid tempSchema)
+{
+	char		namespaceName[NAMEDATALEN];
+	Oid			namespaceId;
+	int			session_suffix;
 
 	/*
 	 * First, do permission check to see if we are authorized to make temp
@@ -2383,26 +2387,55 @@ InitTempTableNamespace(void)
 				 errmsg("permission denied to create temporary tables in database \"%s\"",
 						get_database_name(MyDatabaseId))));
 
-	/* 
+	/*
 	 * TempNamespace name creation rules are different depending on the
 	 * nature of the current connection role.
 	 */
 	switch (Gp_role)
 	{
 		case GP_ROLE_DISPATCH:
-			snprintf(namespaceName, sizeof(namespaceName), "pg_temp_%d", 
-					 gp_session_id);
+		case GP_ROLE_EXECUTE:
+			session_suffix = gp_session_id;
 			break;
 
 		case GP_ROLE_UTILITY:
-			snprintf(namespaceName, sizeof(namespaceName), "pg_temp_%d", 
-					 MyBackendId);
+			session_suffix = MyBackendId;
 			break;
 
 		default:
 			/* Should never hit this */
 			elog(ERROR, "invalid backend temp schema creation");
+			session_suffix = -1;	/* keep compiler quiet */
 			break;
+	}
+
+	snprintf(namespaceName, sizeof(namespaceName), "pg_temp_%d", session_suffix);
+
+	namespaceId = GetSysCacheOid(NAMESPACENAME,
+								 CStringGetDatum(namespaceName),
+								 0, 0, 0);
+
+	/*
+	 * GPDB: Delete old temp schema.
+	 *
+	 * Remove any vestigages of old temporary schema, if any.  This can
+	 * happen when an old session crashes and doesn't run normal session
+	 * shutdown.
+	 *
+	 * In postgres they try to reuse existing schemas in this case,
+	 * however that does not work well for us since the schemas may exist
+	 * on a segment by segment basis and we want to keep them syncronized
+	 * on oid.  The best way of dealing with this is to just delete the
+	 * old schemas.
+	 */
+	if (OidIsValid(namespaceId))
+	{
+		RemoveTempRelations(namespaceId);
+		RemoveSchemaById(namespaceId);
+		elog(DEBUG1, "Remove schema entry %u from pg_namespace",
+			 namespaceId);
+		namespaceId = InvalidOid;
+		CommandCounterIncrement();
 	}
 
 	/*
@@ -2413,34 +2446,46 @@ InitTempTableNamespace(void)
 	 * temp tables.  This works because the places that access the temp
 	 * namespace for my own backend skip permissions checks on it.
 	 */
+	namespaceId = NamespaceCreate(namespaceName, BOOTSTRAP_SUPERUSERID, tempSchema);
+	/* Advance command counter to make namespace visible */
+	CommandCounterIncrement();
 
-	/* 
-	 * CDB: Dispatch CREATE SCHEMA command.
-	 *
-	 * We need to keep the OID of temp schemas synchronized across the
-	 * cluster which means that we must go through regular dispatch
-	 * logic rather than letting every backend manage the 
+	/*
+	 * Okay, we've prepared the temp namespace ... but it's not committed yet,
+	 * so all our work could be undone by transaction rollback.  Set flag for
+	 * AtEOXact_Namespace to know what to do.
 	 */
-		
-	/* Lookup the name of the superuser */
+	myTempNamespace = namespaceId;
 
-	rolname = caql_getcstring_plus(
-					NULL,
-					&fetchCount,
-					NULL,
-					cql("SELECT rolname FROM pg_authid "
-						" WHERE oid = :1 ",
-						ObjectIdGetDatum(BOOTSTRAP_SUPERUSERID)));
+	/* It should not be done already. */
+	AssertState(myTempNamespaceSubID == InvalidSubTransactionId);
+	myTempNamespaceSubID = GetCurrentSubTransactionId();
 
-	Assert(fetchCount);  /* bootstrap user MUST exist */
+	namespaceSearchPathValid = false;	/* need to rebuild list */
 
-	/* Execute the internal DDL */
-	stmt = makeNode(CreateSchemaStmt);
-	stmt->schemaname = namespaceName;
-	stmt->istemp	 = true;
-	stmt->authid	 = rolname;
-	ProcessUtility((Node*) stmt, "(internal create temp schema command)",
-				   NULL, false, None_Receiver, NULL);
+	/*
+	 * GPDB: Dispatch a special CREATE SCHEMA command, to also create the
+	 * temp schema in all the segments.
+	 *
+	 * We need to keep the OID of the temp schema synchronized across the
+	 * cluster which means that we must go through regular dispatch
+	 * logic rather than letting every backend manage it.
+	 */
+	if (Gp_role == GP_ROLE_DISPATCH)
+	{
+		CreateSchemaStmt *stmt;
+
+		stmt = makeNode(CreateSchemaStmt);
+		stmt->istemp	 = true;
+		stmt->schemaOid = namespaceId;
+
+		/*
+		 * Dispatch the command to all primary and mirror segment dbs.
+		 * Starts a global transaction and reconfigures cluster if needed.
+		 * Waits for QEs to finish.  Exits via ereport(ERROR,...) if error.
+		 */
+		CdbDispatchUtilityStatement((Node *)stmt, "(internal create temp schema command)");
+	}
 }
 
 /*
