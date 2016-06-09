@@ -687,8 +687,7 @@ ExecInitSubPlan(SubPlanState *node, EState *estate, int eflags)
 	sp_estate->es_plannedstmt = estate->es_plannedstmt;
 	sp_estate->es_param_list_info = estate->es_param_list_info;
 	sp_estate->es_param_exec_vals = estate->es_param_exec_vals;
-	sp_estate->es_tupleTable =
-		ExecCreateTupleTable(ExecCountSlotsNode(exec_subplan_get_plan(sp_estate->es_plannedstmt, subplan)) + 10);
+	sp_estate->es_tupleTable = NIL;
 	sp_estate->es_snapshot = estate->es_snapshot;
 	sp_estate->es_crosscheck_snapshot = estate->es_crosscheck_snapshot;
 	sp_estate->es_instrument = estate->es_instrument;
@@ -792,7 +791,6 @@ ExecInitSubPlan(SubPlanState *node, EState *estate, int eflags)
 		int			ncols,
 					i;
 		TupleDesc	tupDesc;
-		TupleTable	tupTable;
 		TupleTableSlot *slot;
 		List	   *oplist,
 				   *lefttlist,
@@ -931,15 +929,6 @@ ExecInitSubPlan(SubPlanState *node, EState *estate, int eflags)
 		}
 
 		/*
-		 * Create a tupletable to hold these tuples.  (Note: we never bother
-		 * to free the tupletable explicitly; that's okay because it will
-		 * never store raw disk tuples that might have associated buffer pins.
-		 * The only resource involved is memory, which will be cleaned up by
-		 * freeing the query context.)
-		 */
-		tupTable = ExecCreateTupleTable(2);
-
-		/*
 		 * Construct tupdescs, slots and projection nodes for left and right
 		 * sides.  The lefthand expressions will be evaluated in the parent
 		 * plan node's exprcontext, which we don't have access to here.
@@ -948,7 +937,7 @@ ExecInitSubPlan(SubPlanState *node, EState *estate, int eflags)
 		 * own innerecontext.
 		 */
 		tupDesc = ExecTypeFromTL(leftptlist, false);
-		slot = ExecAllocTableSlot(tupTable);
+		slot = ExecInitExtraTupleSlot(estate);
 		ExecSetSlotDescriptor(slot, tupDesc);
 		node->projLeft = ExecBuildProjectionInfo(lefttlist,
 												 NULL,
@@ -956,7 +945,7 @@ ExecInitSubPlan(SubPlanState *node, EState *estate, int eflags)
 												 NULL);
 
 		tupDesc = ExecTypeFromTL(rightptlist, false);
-		slot = ExecAllocTableSlot(tupTable);
+		slot = ExecInitExtraTupleSlot(estate);
 		ExecSetSlotDescriptor(slot, tupDesc);
 		node->projRight = ExecBuildProjectionInfo(righttlist,
 												  node->innerecontext,

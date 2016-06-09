@@ -271,7 +271,7 @@ InternalCreateExecutorState(MemoryContext qcontext, bool is_subquery)
 
 	estate->es_query_cxt = qcontext;
 
-	estate->es_tupleTable = NULL;
+	estate->es_tupleTable = NIL;
 
 	estate->es_processed = 0;
 	estate->es_lastoid = InvalidOid;
