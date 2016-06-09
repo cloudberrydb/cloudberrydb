@@ -40,6 +40,7 @@ add_executable(gporca_test
                src/unittest/gpopt/search/CSchedulerTest.cpp
                src/unittest/gpopt/search/CSearchStrategyTest.cpp
                src/unittest/gpopt/minidump/CAggTest.cpp
+               src/unittest/gpopt/minidump/CArrayExpansionTest.cpp
                src/unittest/gpopt/minidump/CPruneColumnsTest.cpp
                src/unittest/gpopt/minidump/CMissingStatsTest.cpp
                src/unittest/gpopt/minidump/CBitmapTest.cpp
@@ -128,6 +129,7 @@ if (NOT (${CMAKE_SYSTEM_NAME} MATCHES "SunOS"))
   add_orca_test(CMDProviderCommTest)
 endif()
 
+add_orca_test(CArrayExpansionTest)
 add_orca_test(CMiniDumperDXLTest)
 add_orca_test(CExpressionPreprocessorTest)
 add_orca_test(CWindowTest)

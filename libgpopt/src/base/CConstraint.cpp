@@ -27,6 +27,7 @@
 #include "gpopt/base/CConstraintNegation.h"
 #include "gpopt/operators/CScalarIdent.h"
 #include "gpopt/operators/CScalarArrayCmp.h"
+#include "gpopt/optimizer/COptimizerConfig.h"
 #include "gpopt/operators/CPredicateUtils.h"
 
 using namespace gpopt;
@@ -106,10 +107,21 @@ CConstraint::PcnstrFromScalarArrayCmp
 
 		// get comparison type
 		IMDType::ECmpType ecmpt = CUtils::Ecmpt(popScArrayCmp->PmdidOp());
-
 		CExpression *pexprArray = (*pexpr)[1];
-		DrgPcnstr *pdrgpcnstr = GPOS_NEW(pmp) DrgPcnstr(pmp);
+
 		const ULONG ulArity = pexprArray->UlArity();
+
+		// When array size exceeds the threshold, don't expand it into a DNF
+		COptimizerConfig *poconf = COptCtxt::PoctxtFromTLS()->Poconf();
+		ULONG ulArrayExpansionThreshold = poconf->Phint()->UlArrayExpansionThreshold();
+
+		if (ulArity > ulArrayExpansionThreshold)
+		{
+			return NULL;
+		}
+
+		DrgPcnstr *pdrgpcnstr = GPOS_NEW(pmp) DrgPcnstr(pmp);
+
 		for (ULONG ul = 0; ul < ulArity; ul++)
 		{
 			GPOS_ASSERT(CUtils::FScalarConst((*pexprArray)[ul]) && "expecting a constant");

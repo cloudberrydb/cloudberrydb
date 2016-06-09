@@ -91,8 +91,9 @@ CParseHandlerHint::StartElement
 	// parse hint configuration options
 	ULONG ulMinNumOfPartsToRequireSortOnInsert = CDXLOperatorFactory::UlValueFromAttrs(m_pphm->Pmm(), attrs, EdxltokenMinNumOfPartsToRequireSortOnInsert, EdxltokenHint);
 	ULONG ulJoinArityForAssociativityCommutativity = CDXLOperatorFactory::UlValueFromAttrs(m_pphm->Pmm(), attrs, EdxltokenJoinArityForAssociativityCommutativity, EdxltokenHint, true, INT_MAX);
+	ULONG ulArrayExpansionThreshold = CDXLOperatorFactory::UlValueFromAttrs(m_pphm->Pmm(), attrs, EdxltokenArrayExpansionThreshold, EdxltokenHint, true, INT_MAX);
 
-	m_phint = GPOS_NEW(m_pmp) CHint(ulMinNumOfPartsToRequireSortOnInsert, ulJoinArityForAssociativityCommutativity);
+	m_phint = GPOS_NEW(m_pmp) CHint(ulMinNumOfPartsToRequireSortOnInsert, ulJoinArityForAssociativityCommutativity, ulArrayExpansionThreshold);
 }
 
 //---------------------------------------------------------------------------

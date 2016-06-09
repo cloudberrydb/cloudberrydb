@@ -81,6 +81,7 @@
 #include "unittest/gpopt/mdcache/CMDAccessorTest.h"
 #include "unittest/gpopt/mdcache/CMDProviderTest.h"
 
+#include "unittest/gpopt/minidump/CArrayExpansionTest.h"
 #include "unittest/gpopt/minidump/CPullUpProjectElementTest.h"
 #include "unittest/gpopt/minidump/CMiniDumperDXLTest.h"
 #include "unittest/gpopt/minidump/CMinidumpWithConstExprEvaluatorTest.h"
@@ -175,6 +176,7 @@ static gpos::CUnittest rgut[] =
 	GPOS_UNITTEST_STD(CXMLSerializerTest),
 
 	// opt
+	GPOS_UNITTEST_STD(CArrayExpansionTest),
 	GPOS_UNITTEST_STD(CPullUpProjectElementTest),
 	GPOS_UNITTEST_STD(CCNFConverterTest),
 	GPOS_UNITTEST_STD(CColumnDescriptorTest),

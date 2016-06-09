@@ -43,6 +43,8 @@ namespace gpopt
 
 			ULONG m_ulJoinArityForAssociativityCommutativity;
 
+			ULONG m_ulArrayExpansionThreshold;
+
 
 			// private copy ctor
 			CHint(const CHint &);
@@ -53,11 +55,13 @@ namespace gpopt
 			CHint
 				(
 				ULONG ulMinNumOfPartsToRequireSortOnInsert,
-				ULONG ulJoinArityForAssociativityCommutativity
+				ULONG ulJoinArityForAssociativityCommutativity,
+				ULONG ulArrayExpansionThreshold
 				)
 				:
 				m_ulMinNumOfPartsToRequireSortOnInsert(ulMinNumOfPartsToRequireSortOnInsert),
-				m_ulJoinArityForAssociativityCommutativity(ulJoinArityForAssociativityCommutativity)
+				m_ulJoinArityForAssociativityCommutativity(ulJoinArityForAssociativityCommutativity),
+				m_ulArrayExpansionThreshold(ulArrayExpansionThreshold)
 			{
 			}
 
@@ -78,13 +82,23 @@ namespace gpopt
 				return m_ulJoinArityForAssociativityCommutativity;
 			}
 
+			// Maximum number of elements in the scalar comparison with an array which
+			// will be expanded during constraint derivation. The benefits of using a smaller number
+			// are avoiding expensive expansion of constraints in terms of memory and optimization
+			// time
+			ULONG UlArrayExpansionThreshold() const
+			{
+				return m_ulArrayExpansionThreshold;
+			}
+
 			// generate default hint configurations, which disables sort during insert on
 			// append only row-oriented partitioned tables by default
 			static
 			CHint *PhintDefault(IMemoryPool *pmp)
 			{
 				return GPOS_NEW(pmp) CHint(INT_MAX /* ulMinNumOfPartsToRequireSortOnInsert */,
-										   INT_MAX /* ulJoinArityForAssociativityCommutativity */);
+										   INT_MAX /* ulJoinArityForAssociativityCommutativity */,
+										   INT_MAX /* ulArrayExpansionThreshold */);
 			}
 
 	}; // class CHint

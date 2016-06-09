@@ -1241,8 +1241,8 @@ CDXLUtils::PstrSerializeOptimizerConfig
 
 	xmlser.OpenElement(CDXLTokens::PstrToken(EdxltokenNamespacePrefix), CDXLTokens::PstrToken(EdxltokenHint));
 	xmlser.AddAttribute(CDXLTokens::PstrToken(EdxltokenMinNumOfPartsToRequireSortOnInsert), phint->UlMinNumOfPartsToRequireSortOnInsert());
-	xmlser.AddAttribute(CDXLTokens::PstrToken(EdxltokenJoinArityForAssociativityCommutativity),
-						phint->UlJoinArityForAssociativityCommutativity());
+	xmlser.AddAttribute(CDXLTokens::PstrToken(EdxltokenJoinArityForAssociativityCommutativity), phint->UlJoinArityForAssociativityCommutativity());
+	xmlser.AddAttribute(CDXLTokens::PstrToken(EdxltokenArrayExpansionThreshold), phint->UlArrayExpansionThreshold());
 	xmlser.CloseElement(CDXLTokens::PstrToken(EdxltokenNamespacePrefix), CDXLTokens::PstrToken(EdxltokenHint));
 
 	return pstr;
