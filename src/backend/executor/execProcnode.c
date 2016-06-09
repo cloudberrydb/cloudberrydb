@@ -338,6 +338,18 @@ ExecInitNode(Plan *node, EState *estate, int eflags)
 													 estate, eflags);
 			}
 			END_MEMORY_ACCOUNT();
+#ifdef USE_CODEGEN
+			/* Enroll quals' expression evaluation functions in codegen_manager */
+			if (result && NULL != result->qual)
+			{
+				ListCell   *l;
+				foreach(l, result->qual)
+				{
+					ExprState  *exprstate = (ExprState *) lfirst(l);
+					enroll_ExecEvalExpr_codegen(exprstate->evalfunc, &exprstate->evalfunc, exprstate, result->ps_ExprContext);
+				}
+			}
+#endif
 			break;
 
 		case T_DynamicTableScan:

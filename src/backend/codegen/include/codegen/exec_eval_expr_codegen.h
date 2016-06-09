@@ -3,15 +3,15 @@
 //  Copyright (C) 2016 Pivotal Software, Inc.
 //
 //  @filename:
-//    ExecQual_codegen.h
+//    exec_eval_expr_codegen.h
 //
 //  @doc:
-//    Headers for ExecQual codegen.
+//    Headers for ExecEvalExpr codegen.
 //
 //---------------------------------------------------------------------------
 
-#ifndef GPCODEGEN_EXECQUAL_CODEGEN_H_  // NOLINT(build/header_guard)
-#define GPCODEGEN_EXECQUAL_CODEGEN_H_
+#ifndef GPCODEGEN_EXECEVALEXPR_CODEGEN_H_  // NOLINT(build/header_guard)
+#define GPCODEGEN_EXECEVALEXPR_CODEGEN_H_
 
 #include "codegen/codegen_wrapper.h"
 #include "codegen/base_codegen.h"
@@ -22,53 +22,54 @@ namespace gpcodegen {
  *  @{
  */
 
-class ExecQualCodegen: public BaseCodegen<ExecQualFn> {
+class ExecEvalExprCodegen: public BaseCodegen<ExecEvalExprFn> {
  public:
   /**
    * @brief Constructor
    *
    * @param regular_func_ptr       Regular version of the target function.
    * @param ptr_to_chosen_func_ptr Reference to the function pointer that the caller will call.
-   * @param slot         The slot to use for generating code.
+   * @param exprstate         The ExprState to use for generating code.
    *
    * @note 	The ptr_to_chosen_func_ptr can refer to either the generated function or the
    * 			corresponding regular version.
    *
    **/
-  explicit ExecQualCodegen(ExecQualFn regular_func_ptr,
-                                   ExecQualFn* ptr_to_regular_func_ptr,
-                                   PlanState *planstate);
+  explicit ExecEvalExprCodegen(ExecEvalExprFn regular_func_ptr,
+		  ExecEvalExprFn* ptr_to_regular_func_ptr,
+		  ExprState *exprstate,
+		  ExprContext *econtext);
 
-  virtual ~ExecQualCodegen() = default;
+  virtual ~ExecEvalExprCodegen() = default;
 
  protected:
   /**
-   * @brief Generate code for ExecQual.
+   * @brief Generate code for expression evaluation.
    *
    * @param codegen_utils
    *
    * @return true on successful generation; false otherwise.
    *
-   * @note Currently, it simply falls back to regular ExecQual.
+   * @note Currently, it simply falls back to regular function for expression evaluation.
    */
-  bool GenerateCodeInternal(gpcodegen::GpCodegenUtils* codegen_utils) final;
+  bool GenerateCodeInternal(gpcodegen::CodegenUtils* codegen_utils) final;
 
  private:
-  PlanState *planstate_;
+  ExprState *exprstate_;
+  ExprContext *econtext_;
 
-
-  static constexpr char kExecQualPrefix[] = "ExecQual";
+  static constexpr char kExecEvalExprPrefix[] = "ExecEvalExpr";
 
   /**
-   * @brief Generates runtime code that implements ExecQual.
+   * @brief Generates runtime code that implements expression evaluation.
    *
    * @param codegen_utils Utility to ease the code generation process.
    * @return true on successful generation.
    **/
-  bool GenerateExecQual(gpcodegen::GpCodegenUtils* codegen_utils);
+  bool GenerateExecEvalExpr(gpcodegen::CodegenUtils* codegen_utils);
 };
 
 /** @} */
 
 }  // namespace gpcodegen
-#endif  // GPCODEGEN_EXECQUAL_CODEGEN_H_
+#endif  // GPCODEGEN_EXECEVALEXPR_CODEGEN_H_

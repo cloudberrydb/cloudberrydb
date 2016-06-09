@@ -3,7 +3,7 @@
 //  Copyright (C) 2016 Pivotal Software, Inc.
 //
 //  @filename:
-//    init_codegen.cpp
+//    codegen_wrapper.cc
 //
 //  @doc:
 //    C wrappers for initialization of code generator.
@@ -13,12 +13,14 @@
 #include "codegen/codegen_wrapper.h"
 #include "codegen/codegen_manager.h"
 #include "codegen/exec_variable_list_codegen.h"
+#include "codegen/exec_eval_expr_codegen.h"
 
 #include "codegen/utils/gp_codegen_utils.h"
 
 using gpcodegen::CodegenManager;
 using gpcodegen::BaseCodegen;
 using gpcodegen::ExecVariableListCodegen;
+using gpcodegen::ExecEvalExprCodegen;
 
 // Current code generator manager that oversees all code generators
 static void* ActiveCodeGeneratorManager = nullptr;
@@ -116,3 +118,14 @@ void* ExecVariableListCodegenEnroll(
       regular_func_ptr, ptr_to_chosen_func_ptr, proj_info, slot);
   return generator;
 }
+
+void* ExecEvalExprCodegenEnroll(
+    ExecEvalExprFn regular_func_ptr,
+    ExecEvalExprFn* ptr_to_chosen_func_ptr,
+    ExprState *exprstate,
+    ExprContext *econtext) {
+  ExecEvalExprCodegen* generator = CodegenEnroll<ExecEvalExprCodegen>(
+      regular_func_ptr, ptr_to_chosen_func_ptr, exprstate, econtext);
+  return generator;
+}
+
