@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Class representing MD external relations
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPMD_CMDRelationExternalGPDB_H

@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Abstract class for retrieving metadata from an external location.
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 

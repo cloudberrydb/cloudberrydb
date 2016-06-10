@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of basic exploration transformation
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

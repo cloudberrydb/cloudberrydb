@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		SAX parse handler class for parsing optimizer config options
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPDXL_CParseHandlerOptimizerConfig_H

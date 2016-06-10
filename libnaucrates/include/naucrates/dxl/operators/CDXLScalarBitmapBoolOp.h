@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Class for representing DXL bitmap boolean operator
-//		
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPDXL_CDXLScalarBitmapBoolOp_H

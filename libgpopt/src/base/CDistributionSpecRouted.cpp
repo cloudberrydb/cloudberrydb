@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Specification of routed distribution
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "naucrates/traceflags/traceflags.h"

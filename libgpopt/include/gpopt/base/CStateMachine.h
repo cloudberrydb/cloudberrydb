@@ -14,13 +14,6 @@
 //
 //		Provides debug functionality to draw state diagram and validation
 //		function to detect unreachable states.
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CStateMachine_H
 #define GPOPT_CStateMachine_H

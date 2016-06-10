@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Transform Project to Apply
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CXformProject2Apply_H
 #define GPOPT_CXformProject2Apply_H

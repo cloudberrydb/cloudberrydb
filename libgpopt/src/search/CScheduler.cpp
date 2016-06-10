@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of optimizer job scheduler
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

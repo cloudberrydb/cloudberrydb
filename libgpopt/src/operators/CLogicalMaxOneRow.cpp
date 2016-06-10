@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of logical MaxOneRow operator
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

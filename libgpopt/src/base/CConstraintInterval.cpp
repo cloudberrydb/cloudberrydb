@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of interval constraints
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

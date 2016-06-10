@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implement logical const table with a physical const table get
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CXformImplementConstTableGet_H
 #define GPOPT_CXformImplementConstTableGet_H

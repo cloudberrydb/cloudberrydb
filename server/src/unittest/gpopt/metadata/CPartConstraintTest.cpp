@@ -7,13 +7,6 @@
 //
 //	@doc:
 //      Test for CPartConstraint
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef __STDC_CONSTANT_MACROS

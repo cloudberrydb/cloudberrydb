@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of DXL physical gather motion operator
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 

@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Test for functional dependencies
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CFunctionalDependencyTest_H
 #define GPOPT_CFunctionalDependencyTest_H

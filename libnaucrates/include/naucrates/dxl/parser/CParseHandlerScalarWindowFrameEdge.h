@@ -8,13 +8,6 @@
 //	@doc:
 //		SAX parse handler class for parsing a window frame edge
 //		
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPDXL_CParseHandlerScalarWindowFrameEdge_H
 #define GPDXL_CParseHandlerScalarWindowFrameEdge_H

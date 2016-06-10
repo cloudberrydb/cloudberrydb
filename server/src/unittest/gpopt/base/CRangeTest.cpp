@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Test for ranges
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #include "unittest/base.h"
 #include "unittest/gpopt/base/CRangeTest.h"

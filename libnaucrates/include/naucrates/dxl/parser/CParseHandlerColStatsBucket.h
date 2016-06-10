@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		SAX parse handler class for parsing a bucket of a column stats object
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPDXL_CParseHandlerColStatsBucket_H

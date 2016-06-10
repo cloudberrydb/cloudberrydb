@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Tests for distribution specification
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "naucrates/md/IMDTypeInt4.h"

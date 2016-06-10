@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of common methods for MD cache objects
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 

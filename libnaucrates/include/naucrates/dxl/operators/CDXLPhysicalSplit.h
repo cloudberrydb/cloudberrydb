@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Class for representing physical split operator
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPDXL_CDXLPhysicalSplit_H

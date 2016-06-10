@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Class for creating XML documents.
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPDXL_CXMLSerializer_H

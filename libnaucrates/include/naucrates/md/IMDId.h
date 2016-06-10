@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Abstract class for representing metadata object ids
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 

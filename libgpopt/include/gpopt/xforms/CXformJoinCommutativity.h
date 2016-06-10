@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Transform join by commutativity
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CXformJoinCommutativity_H
 #define GPOPT_CXformJoinCommutativity_H

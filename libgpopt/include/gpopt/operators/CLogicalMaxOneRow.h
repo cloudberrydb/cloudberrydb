@@ -8,13 +8,6 @@
 //	@doc:
 //		MaxOneRow operator,
 //		an operator that can pass at most one row from its input
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CLogicalMaxOneRow_H
 #define GPOPT_CLogicalMaxOneRow_H

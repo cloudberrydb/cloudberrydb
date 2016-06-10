@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Interface for INT8 types in the metadata cache
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPMD_IMDTypeInt8_H

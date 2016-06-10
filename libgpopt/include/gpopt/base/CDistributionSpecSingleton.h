@@ -8,13 +8,6 @@
 //	@doc:
 //		Description of a singleton distribution; 
 //		Can be used as required or derived property;
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CDistributionSpecSingleton_H
 #define GPOPT_CDistributionSpecSingleton_H

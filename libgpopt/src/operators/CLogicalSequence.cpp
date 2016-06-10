@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of logical sequence operator
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

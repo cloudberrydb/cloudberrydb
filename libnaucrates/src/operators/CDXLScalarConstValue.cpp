@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of DXL scalar const
-//		
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "naucrates/dxl/operators/CDXLScalarConstValue.h"

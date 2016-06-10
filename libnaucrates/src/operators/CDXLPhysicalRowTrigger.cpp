@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of DXL physical row trigger operator
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "naucrates/dxl/operators/CDXLPhysicalRowTrigger.h"

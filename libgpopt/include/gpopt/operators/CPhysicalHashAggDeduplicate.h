@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Hash Aggregate operator for deduplicating join outputs
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOS_CPhysicalHashAggDeduplicate_H
 #define GPOS_CPhysicalHashAggDeduplicate_H

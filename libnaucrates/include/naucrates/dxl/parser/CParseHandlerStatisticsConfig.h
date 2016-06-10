@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		SAX parse handler class for parsing statistics configuration
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPDXL_CParseHandlerStatisticsConfig_H

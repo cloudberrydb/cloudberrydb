@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Physical const table get
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CPhysicalConstTableGet_H
 #define GPOPT_CPhysicalConstTableGet_H

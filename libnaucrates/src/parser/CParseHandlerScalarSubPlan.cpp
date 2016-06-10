@@ -8,13 +8,6 @@
 //	@doc:
 //		
 //		Implementation of the SAX parse handler class for parsing scalar SubPlan
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "naucrates/dxl/parser/CParseHandlerPhysicalOp.h"

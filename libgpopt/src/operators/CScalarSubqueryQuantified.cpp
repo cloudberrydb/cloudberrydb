@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of quantified subquery operator
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

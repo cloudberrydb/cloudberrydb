@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Base class for transforming Apply to Join
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CXformApply2Join_H
 #define GPOPT_CXformApply2Join_H

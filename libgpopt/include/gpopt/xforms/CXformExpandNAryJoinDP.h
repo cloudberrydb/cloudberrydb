@@ -8,13 +8,6 @@
 //	@doc:
 //		Expand n-ary join into series of binary joins using dynamic
 //		programming
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CXformExpandNAryJoinDP_H
 #define GPOPT_CXformExpandNAryJoinDP_H

@@ -8,13 +8,6 @@
 //	@doc:
 //		SAX parse handler class for converting physical plans from a DXL document
 //		into a DXL tree.
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPDXL_CParseHandlerPlan_H

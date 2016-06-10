@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Tests parsing DXL documents into DXL trees.
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

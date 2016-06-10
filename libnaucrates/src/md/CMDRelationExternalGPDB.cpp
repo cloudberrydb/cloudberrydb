@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of the class for representing MD cache external relations
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "naucrates/md/CMDRelationExternalGPDB.h"

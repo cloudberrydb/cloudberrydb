@@ -8,13 +8,6 @@
 //	@doc:
 //		Turn Left Semi Apply (with IN semantics) into Left Semi join when inner
 //		child has no outer references
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CXformLeftSemiApplyIn2LeftSemiJoinNoCorrelations_H
 #define GPOPT_CXformLeftSemiApplyIn2LeftSemiJoinNoCorrelations_H

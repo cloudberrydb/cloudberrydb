@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Class for representing DXL scalar LimitOffset (This is only used by CDXLPhysicalLimit)
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPDXL_CDXLScalarLimitOffset_H

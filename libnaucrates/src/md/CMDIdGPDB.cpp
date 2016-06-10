@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of metadata identifiers
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "naucrates/md/CMDIdGPDB.h"

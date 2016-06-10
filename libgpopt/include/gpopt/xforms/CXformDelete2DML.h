@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Transform Logical Delete to Logical DML
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CXformDelete2DML_H
 #define GPOPT_CXformDelete2DML_H

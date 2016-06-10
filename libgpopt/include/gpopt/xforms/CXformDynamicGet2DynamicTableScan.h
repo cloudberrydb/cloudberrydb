@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Transform DynamicGet to DynamicTableScan
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CXformDynamicGet2DynamicTableScan_H
 #define GPOPT_CXformDynamicGet2DynamicTableScan_H

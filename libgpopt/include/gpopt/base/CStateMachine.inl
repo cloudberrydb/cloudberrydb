@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Inline functions for CStateMachine
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CStateMachine_INL
 #define GPOPT_CStateMachine_INL

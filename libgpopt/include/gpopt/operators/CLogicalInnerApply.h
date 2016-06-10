@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Logical Inner Apply operator
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CLogicalInnerApply_H
 #define GPOPT_CLogicalInnerApply_H

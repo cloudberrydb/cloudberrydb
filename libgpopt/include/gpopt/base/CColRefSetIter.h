@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of iterator for column ref sets
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOS_CColRefSetIter_H
 #define GPOS_CColRefSetIter_H

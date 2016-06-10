@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Base class for implementation transforms
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CXformImplementation_H
 #define GPOPT_CXformImplementation_H

@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Utility functions for normalizing scalar predicates
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CPredicateUtils_H
 #define GPOPT_CPredicateUtils_H

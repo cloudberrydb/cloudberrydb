@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Test for optimizing queries that can use a bitmap index
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Class for representing DXL Const Value
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPDXL_CDXLScalarConstValue_H

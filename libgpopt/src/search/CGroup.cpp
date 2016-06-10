@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of Memo groups; database agnostic
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

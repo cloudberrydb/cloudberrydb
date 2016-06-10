@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		DXL-based minidump handler;
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CMiniDumperDXL_H
 #define GPOPT_CMiniDumperDXL_H

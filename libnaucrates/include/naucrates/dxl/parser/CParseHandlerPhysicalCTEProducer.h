@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Parse handler for parsing a physical CTE producer operator
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPDXL_CParseHandlerPhysicalCTEProducer_H
 #define GPDXL_CParseHandlerPhysicalCTEProducer_H

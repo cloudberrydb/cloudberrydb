@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of inner join operator
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

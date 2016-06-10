@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Tests for functional dependencies
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #include "gpopt/base/CFunctionalDependency.h"
 #include "gpopt/eval/CConstExprEvaluatorDefault.h"

@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Join on statistics
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPNAUCRATES_CStatisticsJoin_H
 #define GPNAUCRATES_CStatisticsJoin_H

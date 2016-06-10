@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Transform Inner Join to IndexGet Apply
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

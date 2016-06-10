@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Global definitions for optimizer unittests
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef UNITTEST_BASE_H
 #define UNITTEST_BASE_H

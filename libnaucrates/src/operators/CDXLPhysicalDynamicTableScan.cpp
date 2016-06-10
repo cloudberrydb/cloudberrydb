@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of DXL physical dynamic table scan operator
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 

@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Transform inner join to inner NLJ
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CXformInnerJoin2NLJoin_H
 #define GPOPT_CXformInnerJoin2NLJoin_H

@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Derived scalar properties
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CDrvdPropScalar_H
 #define GPOPT_CDrvdPropScalar_H

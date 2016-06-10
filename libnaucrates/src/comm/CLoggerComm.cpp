@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of socket logging using communicator
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "naucrates/comm/CLoggerComm.h"

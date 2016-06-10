@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Push grouping below set operation
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CXformPushGbBelowSetOp_H
 #define GPOPT_CXformPushGbBelowSetOp_H

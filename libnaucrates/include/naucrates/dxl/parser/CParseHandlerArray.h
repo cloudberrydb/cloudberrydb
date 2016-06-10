@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		SAX parse handler class for scalar array operators
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPDXL_CParseHandlerArray_H

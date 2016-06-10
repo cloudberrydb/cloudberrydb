@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Class for representing DXL logical CTE anchors
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPDXL_CDXLLogicalCTEAnchor_H
 #define GPDXL_CDXLLogicalCTEAnchor_H

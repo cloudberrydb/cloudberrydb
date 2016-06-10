@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Base class for all enforceable properties
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CEnfdProp_H
 #define GPOPT_CEnfdProp_H

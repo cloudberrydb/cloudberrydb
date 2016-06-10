@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of physical sequence project operator
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

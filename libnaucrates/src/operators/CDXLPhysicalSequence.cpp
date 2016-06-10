@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of DXL physical sequence operator
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 

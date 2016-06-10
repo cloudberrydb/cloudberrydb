@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		SAX parse handler class for parsing sequence operator nodes
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPDXL_CParseHandlerSequence_H

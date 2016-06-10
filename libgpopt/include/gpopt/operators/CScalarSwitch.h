@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Scalar switch operator
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CScalarSwitch_H
 #define GPOPT_CScalarSwitch_H

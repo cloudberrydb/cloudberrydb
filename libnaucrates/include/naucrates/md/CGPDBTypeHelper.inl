@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Inlined function implementation of MD type helper
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOS_CGPDBTypeHelper_INL
 #define GPOS_CGPDBTypeHelper_INL

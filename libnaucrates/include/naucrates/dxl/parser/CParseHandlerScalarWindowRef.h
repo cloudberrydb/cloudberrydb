@@ -8,13 +8,6 @@
 //	@doc:
 //		
 //		SAX parse handler class for parsing scalar WindowRef
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPDXL_CParseHandlerScalarWindowRef_H

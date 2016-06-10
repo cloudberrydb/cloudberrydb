@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Test for distribution spec
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOS_CDistributionSpecTest_H
 #define GPOS_CDistributionSpecTest_H

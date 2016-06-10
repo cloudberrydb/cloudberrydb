@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		SAX parse handler class for parsing a partition selector
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPDXL_CParseHandlerScalarPartitionSelector_H

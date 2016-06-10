@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Filter operator
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CPhysicalFilter_H
 #define GPOPT_CPhysicalFilter_H

@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Logical row-level trigger operator
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CLogicalRowTrigger_H
 #define GPOPT_CLogicalRowTrigger_H

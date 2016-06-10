@@ -8,13 +8,6 @@
 //	@doc:
 //		Transform LeftOuter correlated apply to physical LeftOuter correlated
 //		apply
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CXformImplementLeftOuterCorrelatedApply_H
 #define GPOPT_CXformImplementLeftOuterCorrelatedApply_H

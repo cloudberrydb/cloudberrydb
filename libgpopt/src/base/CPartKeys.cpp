@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of partitioning keys
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

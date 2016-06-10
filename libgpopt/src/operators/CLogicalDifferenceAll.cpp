@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of DifferenceAll operator
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

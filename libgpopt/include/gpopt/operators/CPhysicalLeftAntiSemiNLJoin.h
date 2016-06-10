@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Left anti semi nested-loops join operator
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CPhysicalLeftAntiSemiNLJoin_H
 #define GPOPT_CPhysicalLeftAntiSemiNLJoin_H

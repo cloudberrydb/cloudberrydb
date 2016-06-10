@@ -8,13 +8,6 @@
 //	@doc:
 //		Base class for all transformations: substitution, exploration, 
 //		and implementation
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CXform_H
 #define GPOPT_CXform_H

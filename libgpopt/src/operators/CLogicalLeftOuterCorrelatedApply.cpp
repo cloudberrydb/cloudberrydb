@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of left outer correlated apply operator
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

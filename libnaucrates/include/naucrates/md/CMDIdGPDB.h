@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Class for representing id and version of metadata objects in GPDB
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 

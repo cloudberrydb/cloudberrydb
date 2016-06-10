@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		SAX parse handler class for parsing assert operator nodes
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPDXL_CParseHandlerAssert_H

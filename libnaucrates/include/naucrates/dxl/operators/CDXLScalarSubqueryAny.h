@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Class for representing ANY subqueries
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPDXL_CDXLScalarSubqueryAny_H

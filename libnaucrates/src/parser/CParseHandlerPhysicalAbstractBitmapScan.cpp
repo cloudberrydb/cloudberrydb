@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		SAX parse handler parent class for parsing bitmap scan operator nodes
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "naucrates/dxl/parser/CParseHandlerPhysicalAbstractBitmapScan.h"

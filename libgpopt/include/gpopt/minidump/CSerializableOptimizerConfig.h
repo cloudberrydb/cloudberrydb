@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Serializable optimizer configuration object used to use for minidumping
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOS_CSerializableOptimizerConfig_H
 #define GPOS_CSerializableOptimizerConfig_H

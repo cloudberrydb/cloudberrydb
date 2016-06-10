@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Test for contradiction detection
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CContradictionTest_H
 #define GPOPT_CContradictionTest_H

@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Parameters of GPDB's legacy cost model
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpdbcost/CCostModelParamsGPDBLegacy.h"

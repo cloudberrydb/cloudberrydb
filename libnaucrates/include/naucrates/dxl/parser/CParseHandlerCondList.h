@@ -8,13 +8,6 @@
 //	@doc:
 //		SAX parse handler class for parsing the list of conditions in a 
 //		hash join or merge join node.
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPDXL_CParseHandlerCondList_H

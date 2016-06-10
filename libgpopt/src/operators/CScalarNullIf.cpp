@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of scalar NullIf operator
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

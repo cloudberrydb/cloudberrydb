@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Assert operator
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOS_CLogicalAssert_H
 #define GPOS_CLogicalAssert_H

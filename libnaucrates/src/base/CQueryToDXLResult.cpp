@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of the methods for accessing the result of the translation
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 

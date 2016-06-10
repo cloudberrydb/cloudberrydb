@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Class for representing metadata about relation's columns.
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 

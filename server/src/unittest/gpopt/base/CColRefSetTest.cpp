@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Tests for CColRefSet
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #include "gpopt/base/CColRefSet.h"
 #include "gpopt/base/CColRefSetIter.h"

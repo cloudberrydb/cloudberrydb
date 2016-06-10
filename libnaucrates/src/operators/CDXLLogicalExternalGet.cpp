@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of DXL logical external get operator
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "naucrates/dxl/operators/CDXLLogicalExternalGet.h"

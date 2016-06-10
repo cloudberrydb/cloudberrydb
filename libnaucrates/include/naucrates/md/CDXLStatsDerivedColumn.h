@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Class representing DXL derived column statistics
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPMD_CDXLStatsDerivedColumn_H

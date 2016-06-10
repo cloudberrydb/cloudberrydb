@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of a MD proxy for answering communicator-based requests
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/io/COstreamString.h"

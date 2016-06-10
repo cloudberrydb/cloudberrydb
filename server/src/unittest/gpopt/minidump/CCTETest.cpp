@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Test for optimizing queries with CTEs
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "unittest/gpopt/minidump/CCTETest.h"

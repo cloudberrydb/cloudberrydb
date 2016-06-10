@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		SAX parse handler class for parsing dynamic index scan operator nodes
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPDXL_CParseHandlerDynamicIndexScan_H

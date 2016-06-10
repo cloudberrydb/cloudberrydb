@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Class for representing DXL physical shared scan operators.
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPDXL_CDXLPhysicalSharedScan_H

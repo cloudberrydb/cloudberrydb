@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of DXL Window Frame
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "naucrates/dxl/operators/CDXLWindowFrame.h"

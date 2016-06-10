@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Memo lookup table for dynamic programming
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CMemo_H
 #define GPOPT_CMemo_H

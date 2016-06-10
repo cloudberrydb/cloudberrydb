@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		GPDB-specific oid representation
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPNAUCRATES_CDatumOidGPDB_H
 #define GPNAUCRATES_CDatumOidGPDB_H

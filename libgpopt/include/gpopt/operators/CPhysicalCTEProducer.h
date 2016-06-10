@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Physical CTE producer operator
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CPhysicalCTEProducer_H
 #define GPOPT_CPhysicalCTEProducer_H

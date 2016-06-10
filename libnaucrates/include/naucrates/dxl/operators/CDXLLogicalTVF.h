@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Class for representing table-valued functions
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPDXL_CDXLLogicalTVF_H

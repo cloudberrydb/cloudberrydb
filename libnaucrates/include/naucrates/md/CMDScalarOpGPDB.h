@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Class for representing GPDB-specific scalar operators in the MD cache
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 

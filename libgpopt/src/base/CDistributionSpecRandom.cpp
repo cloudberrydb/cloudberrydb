@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Specification of random distribution
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "naucrates/traceflags/traceflags.h"

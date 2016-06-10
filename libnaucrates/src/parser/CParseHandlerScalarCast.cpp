@@ -8,13 +8,6 @@
 //	@doc:
 //		
 //		Implementation of the SAX parse handler class for parsing scalar cast operator.
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "naucrates/dxl/parser/CParseHandlerScalarOp.h"

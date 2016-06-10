@@ -8,13 +8,6 @@
 //	@doc:
 //		Collapse two cascaded GbAgg operators into a single GbAgg
 //
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CXformCollapseGbAgg_H
 #define GPOPT_CXformCollapseGbAgg_H

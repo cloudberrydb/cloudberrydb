@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Test for CPoint
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPNAUCRATES_CStatisticsTest_H
 #define GPNAUCRATES_CStatisticsTest_H

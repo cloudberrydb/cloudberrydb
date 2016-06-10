@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of scalar assert constraint
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

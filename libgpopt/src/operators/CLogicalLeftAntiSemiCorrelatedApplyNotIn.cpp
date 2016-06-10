@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of left anti semi correlated apply with NOT-IN/ANY semantics
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

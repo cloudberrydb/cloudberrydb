@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of DXL scalar coerce
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "naucrates/dxl/operators/CDXLScalarCoerceToDomain.h"

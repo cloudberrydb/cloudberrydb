@@ -9,13 +9,6 @@
 //		Implementation of the SAX parse handler class for stack traces.
 //		This is a pass-through parse handler, since we do not do anything with
 //		the stack traces
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "naucrates/dxl/parser/CParseHandlerStacktrace.h"

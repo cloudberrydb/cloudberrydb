@@ -8,13 +8,6 @@
 //	@doc:
 //		Implementation of the class for representing GPDB-specific casts
 //		in the MD cache
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 

@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Optimizer class implementation
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/common/CBitSet.h"

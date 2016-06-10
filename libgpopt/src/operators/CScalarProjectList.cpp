@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of scalar projection list operator
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

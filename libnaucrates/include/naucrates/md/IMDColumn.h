@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Interface class for columns in a metadata cache relation
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 

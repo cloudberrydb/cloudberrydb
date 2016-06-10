@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Transform Select to Filter
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CXformSelect2Filter_H
 #define GPOPT_CXformSelect2Filter_H

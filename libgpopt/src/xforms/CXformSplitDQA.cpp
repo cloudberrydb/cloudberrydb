@@ -8,13 +8,6 @@
 //	@doc:
 //		Implementation of the splitting of an aggregate into a three levels -- namely,
 //		local, intermediate and global, aggregate
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

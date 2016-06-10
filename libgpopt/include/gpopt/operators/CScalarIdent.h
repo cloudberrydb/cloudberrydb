@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Scalar column identifier
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CScalarIdent_H
 #define GPOPT_CScalarIdent_H

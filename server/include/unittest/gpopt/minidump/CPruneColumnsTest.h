@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Test for optimizing queries where intermediate columns are pruned
-//
-//	@owner:
-//
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CPruneColumnsTest_H
 #define GPOPT_CPruneColumnsTest_H

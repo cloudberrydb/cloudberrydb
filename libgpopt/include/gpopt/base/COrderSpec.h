@@ -8,13 +8,6 @@
 //	@doc:
 //		Description of sort order; 
 //		Can be used as required or derived property;
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_COrderSpec_H
 #define GPOPT_COrderSpec_H

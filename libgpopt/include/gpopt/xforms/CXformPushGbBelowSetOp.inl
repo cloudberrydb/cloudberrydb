@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Push grouping below set operation
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of left semi join operator
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

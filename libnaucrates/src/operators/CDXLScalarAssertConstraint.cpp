@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of DXL scalar assert predicate
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "naucrates/dxl/operators/CDXLScalarAssertConstraint.h"

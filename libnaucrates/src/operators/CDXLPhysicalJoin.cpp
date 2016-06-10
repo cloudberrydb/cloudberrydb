@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of the base class for DXL physical join operators
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 

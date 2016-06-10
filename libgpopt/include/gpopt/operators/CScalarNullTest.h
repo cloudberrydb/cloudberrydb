@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Scalar null test
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CScalarNullTest_H
 #define GPOPT_CScalarNullTest_H

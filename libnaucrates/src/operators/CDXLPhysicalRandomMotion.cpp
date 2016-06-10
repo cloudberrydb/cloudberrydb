@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of DXL physical random motion operator
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 

@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Tests the memory manager to be plugged in Xerces parser.
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 

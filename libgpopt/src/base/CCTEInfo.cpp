@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Information about CTEs in a query
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

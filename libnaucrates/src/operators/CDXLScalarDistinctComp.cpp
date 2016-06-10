@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of DXL "is distinct from" comparison operator
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 

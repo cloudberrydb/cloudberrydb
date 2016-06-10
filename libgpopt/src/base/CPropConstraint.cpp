@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of constraint property
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

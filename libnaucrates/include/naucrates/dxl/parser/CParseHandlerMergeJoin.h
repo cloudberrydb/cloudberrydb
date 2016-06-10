@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		SAX parse handler class for parsing merge join operator nodes.
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPDXL_CParseHandlerMergeJoin_H

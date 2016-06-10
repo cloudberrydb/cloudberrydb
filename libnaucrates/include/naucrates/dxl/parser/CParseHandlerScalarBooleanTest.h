@@ -8,13 +8,6 @@
 //	@doc:
 //		
 //		SAX parse handler class for parsing scalar BooleanTest.
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPDXL_CParseHandlerScalarBooleanTest_H

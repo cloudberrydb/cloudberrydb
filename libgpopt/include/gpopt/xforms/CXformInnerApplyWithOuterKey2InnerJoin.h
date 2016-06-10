@@ -8,13 +8,6 @@
 //	@doc:
 //		Turn inner apply into inner join under the condition that
 //		outer child of apply has key
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CXformInnerApplyWithOuterKey2InnerJoin_H
 #define GPOPT_CXformInnerApplyWithOuterKey2InnerJoin_H

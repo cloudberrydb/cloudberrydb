@@ -8,13 +8,6 @@
 //	@doc:
 //		SAX parse handler class for parsing the index descriptor portions
 //		of index scan operator nodes
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPDXL_CParseHandlerIndexDescriptor_H

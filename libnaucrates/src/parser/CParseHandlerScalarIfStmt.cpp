@@ -8,13 +8,6 @@
 //	@doc:
 //		
 //		Implementation of the SAX parse handler class for an if statement.
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 

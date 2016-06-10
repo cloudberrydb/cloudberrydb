@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Class for representing DXL dynamic index scan operators
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPDXL_CDXLPhysicalDynamicIndexScan_H

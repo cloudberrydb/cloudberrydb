@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of negation constraints
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

@@ -10,13 +10,6 @@
 //		into inner join;
 //		external correlations are correlations in the inner child of LSA
 //		that use columns not defined by the outer child of LSA
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CXformLeftSemiApplyInWithExternalCorrs2InnerJoin_H
 #define GPOPT_CXformLeftSemiApplyInWithExternalCorrs2InnerJoin_H

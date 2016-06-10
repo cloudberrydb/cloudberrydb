@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Turn inner apply into inner join
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CXformInnerApply2InnerJoin_H
 #define GPOPT_CXformInnerApply2InnerJoin_H

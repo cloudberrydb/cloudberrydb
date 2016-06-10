@@ -9,13 +9,6 @@
 //		Logical Left Outer Correlated Apply operator;
 //		a variant of left outer apply that captures the need to implement a
 //		correlated-execution strategy on the physical side
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CLogicalLeftOuterCorrelatedApply_H
 #define GPOPT_CLogicalLeftOuterCorrelatedApply_H

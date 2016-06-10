@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Join Order Generation
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CJoinOrder_H
 #define GPOPT_CJoinOrder_H

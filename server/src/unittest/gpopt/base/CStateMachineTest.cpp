@@ -10,13 +10,6 @@
 //
 //		Implements functionality of CTestMachine: transitions and names
 //		of states and events;
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/types.h"

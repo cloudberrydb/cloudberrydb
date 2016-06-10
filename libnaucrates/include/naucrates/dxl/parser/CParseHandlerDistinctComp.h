@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		SAX parse handler class for parsing distinct comparison nodes.
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPDXL_CParseHandlerDistinctComp_H

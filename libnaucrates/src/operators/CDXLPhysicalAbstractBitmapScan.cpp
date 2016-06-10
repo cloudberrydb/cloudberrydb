@@ -8,13 +8,6 @@
 //	@doc:
 //		Parent class for representing DXL bitmap table scan operators, both
 //		not partitioned and dynamic.
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "naucrates/dxl/operators/CDXLPhysicalAbstractBitmapScan.h"

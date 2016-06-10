@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Physical row-level trigger operator
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CPhysicalRowTrigger_H
 #define GPOPT_CPhysicalRowTrigger_H

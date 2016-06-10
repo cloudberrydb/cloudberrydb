@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Test for CScheduler
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CSchedulerTest_H
 #define GPOPT_CSchedulerTest_H

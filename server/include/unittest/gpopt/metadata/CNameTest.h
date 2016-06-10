@@ -7,13 +7,6 @@
 //
 //	@doc:
 //      Test for CName
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CNameTest_H
 #define GPOPT_CNameTest_H

@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Class for representing a list of sorting columns in a DXL Sort and Motion nodes.
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPDXL_CDXLScalarSortColList_H

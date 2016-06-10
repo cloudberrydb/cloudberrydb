@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		@see CParseHandlerScalarExpr.h
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "naucrates/dxl/parser/CParseHandlerScalarExpr.h"

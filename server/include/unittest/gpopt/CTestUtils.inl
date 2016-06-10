@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of inlined functions;
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CTestUtils_INL
 #define GPOPT_CTestUtils_INL

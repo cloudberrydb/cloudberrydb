@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of broadcast motion operator
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

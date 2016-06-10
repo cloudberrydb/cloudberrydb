@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Hint configurations
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CHint_H
 #define GPOPT_CHint_H

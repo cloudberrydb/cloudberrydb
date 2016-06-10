@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Physical Hash distribute motion operator
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CPhysicalMotionHashDistribute_H
 #define GPOPT_CPhysicalMotionHashDistribute_H

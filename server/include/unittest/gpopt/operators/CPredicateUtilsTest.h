@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Test for predicate utilities
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CPredicateUtilsTest_H
 #define GPOPT_CPredicateUtilsTest_H

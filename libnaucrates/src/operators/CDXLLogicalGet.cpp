@@ -8,13 +8,6 @@
 //	@doc:
 //		Implementation of DXL logical get operator
 //		
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "naucrates/dxl/operators/CDXLLogicalGet.h"

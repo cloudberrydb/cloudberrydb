@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		SAX parse handler class for parsing statistics from a DXL document.
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPDXL_CParseHandlerStatistics_H

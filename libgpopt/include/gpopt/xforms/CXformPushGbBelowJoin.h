@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Push group by below join transform
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CXformPushGbBelowJoin_H
 #define GPOPT_CXformPushGbBelowJoin_H

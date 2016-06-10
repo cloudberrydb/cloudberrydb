@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Abstract statistics API
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPNAUCRATES_IStatistics_H
 #define GPNAUCRATES_IStatistics_H

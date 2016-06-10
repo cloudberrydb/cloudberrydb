@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Tests for datum classes
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #include "gpos/io/COstreamString.h"
 #include "gpos/string/CWStringDynamic.h"

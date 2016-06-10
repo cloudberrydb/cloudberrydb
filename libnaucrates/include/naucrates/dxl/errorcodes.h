@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Enum of errorcodes 
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_errorcodes_H
 #define GPOPT_errorcodes_H

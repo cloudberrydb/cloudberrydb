@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Dynamic programming-based join order generation
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CJoinOrderDP_H
 #define GPOPT_CJoinOrderDP_H

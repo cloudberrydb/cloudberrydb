@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of scalar subqueries
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

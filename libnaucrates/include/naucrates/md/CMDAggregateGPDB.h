@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Class for representing for GPDB-specific aggregates in the metadata cache
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 

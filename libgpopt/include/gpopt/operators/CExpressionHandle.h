@@ -9,13 +9,6 @@
 //		Handle to convey context wherever an expression is used in a shallow 
 //		context, i.e. operator and the properties of its children but no
 //		access to the children is needed.
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CExpressionHandle_H
 #define GPOPT_CExpressionHandle_H

@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Class for representing NOT EXISTS subqueries
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPDXL_CDXLScalarSubqueryNotExists_H

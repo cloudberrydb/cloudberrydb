@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Transform select over table into an index get
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CXformSelect2IndexGet_H
 #define GPOPT_CXformSelect2IndexGet_H

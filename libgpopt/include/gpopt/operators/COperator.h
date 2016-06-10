@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Base class for all operators: logical, physical, scalar, patterns
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_COperator_H
 #define GPOPT_COperator_H

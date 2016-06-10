@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Section headers in DXL documents
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPDXL_CDXLSections_H
 #define GPDXL_CDXLSections_H

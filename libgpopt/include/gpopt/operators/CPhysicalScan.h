@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Base class for physical scan operators
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CPhysicalScan_H
 #define GPOPT_CPhysicalScan_H

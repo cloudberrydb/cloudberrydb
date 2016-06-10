@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of DXL DML action expression
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "naucrates/dxl/operators/CDXLScalarDMLAction.h"

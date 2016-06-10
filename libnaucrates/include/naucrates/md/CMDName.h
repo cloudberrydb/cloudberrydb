@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Class for representing metadata names.
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPMD_CMDName_H

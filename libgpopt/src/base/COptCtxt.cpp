@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of optimizer context
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Test for optimizing queries on tables with indexes
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CIndexTest_H
 #define GPOPT_CIndexTest_H

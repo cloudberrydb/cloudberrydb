@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Physical Random motion operator
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CPhysicalMotionRandom_H
 #define GPOPT_CPhysicalMotionRandom_H

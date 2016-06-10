@@ -8,13 +8,6 @@
 //	@doc:
 //		Parse handler for parsing a logical GroupBy operator
 //		
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPDXL_CParseHandlerLogicalGroupBy_H
 #define GPDXL_CParseHandlerLogicalGroupBy_H

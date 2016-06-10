@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of scalar arrays
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

@@ -8,13 +8,6 @@
 //	@doc:
 //		Class representing the result of the Query to DXL translation
 //		
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPDXL_CTranslatorQueryToDXLOutput_H

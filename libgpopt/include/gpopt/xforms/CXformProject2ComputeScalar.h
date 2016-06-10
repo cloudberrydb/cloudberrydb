@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Transform Project to ComputeScalar
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CXformProject2ComputeScalar_H
 #define GPOPT_CXformProject2ComputeScalar_H

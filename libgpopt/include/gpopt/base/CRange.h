@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Representation of a range of values
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CRange_H
 #define GPOPT_CRange_H

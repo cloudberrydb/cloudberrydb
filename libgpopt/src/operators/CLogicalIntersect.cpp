@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of Intersect operator
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Transform left outer join to left outer hash join
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CXformLeftOuterJoin2HashJoin_H
 #define GPOPT_CXformLeftOuterJoin2HashJoin_H

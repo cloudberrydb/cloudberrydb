@@ -8,13 +8,6 @@
 //	@doc:
 //		Implementation of DXL Scalar Limit Offset
 //		
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "naucrates/dxl/operators/CDXLScalarLimitOffset.h"

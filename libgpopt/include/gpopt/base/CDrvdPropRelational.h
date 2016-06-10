@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Derived logical properties
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CDrvdPropRelational_H
 #define GPOPT_CDrvdPropRelational_H

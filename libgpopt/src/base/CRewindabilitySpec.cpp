@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Specification of rewindability of intermediate query results
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpopt/base/CRewindabilitySpec.h"

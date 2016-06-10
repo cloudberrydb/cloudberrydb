@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Information about CTEs in a query
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CCTEInfo_H
 #define GPOPT_CCTEInfo_H

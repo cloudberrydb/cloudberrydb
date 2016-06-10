@@ -8,13 +8,6 @@
 //	@doc:
 //		SAX parse handler class for parsing table descriptor portions
 //		of scan operator nodes.
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPDXL_CParseHandlerTableDescriptor_H

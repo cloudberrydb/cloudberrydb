@@ -8,13 +8,6 @@
 //	@doc:
 //
 //		Implementation of the SAX parse handler class for a SwitchCase operator
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 

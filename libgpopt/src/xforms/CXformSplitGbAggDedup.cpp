@@ -8,13 +8,6 @@
 //	@doc:
 //		Implementation of the splitting of a dedup aggregate into a pair of
 //		local and global aggregates
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

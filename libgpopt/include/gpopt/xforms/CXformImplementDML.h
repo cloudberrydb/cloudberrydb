@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Transform Logical DML to Physical DML
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CXformImplementDML_H
 #define GPOPT_CXformImplementDML_H

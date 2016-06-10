@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of scalar array comparison operator
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

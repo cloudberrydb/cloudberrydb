@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Class for representing DXL physical assert operators
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPDXL_CDXLPhysicalAssert_H

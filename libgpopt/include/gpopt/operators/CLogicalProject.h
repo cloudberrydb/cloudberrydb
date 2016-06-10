@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Project operator
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOS_CLogicalProject_H
 #define GPOS_CLogicalProject_H

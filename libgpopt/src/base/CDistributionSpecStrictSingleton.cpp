@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Specification of strict singleton distribution
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpopt/base/CDistributionSpecStrictSingleton.h"

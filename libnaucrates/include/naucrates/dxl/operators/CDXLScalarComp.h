@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Class for representing DXL scalar comparison operators.
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPDXL_CDXLScalarComp_H

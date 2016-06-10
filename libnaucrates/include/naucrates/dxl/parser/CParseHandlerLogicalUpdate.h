@@ -8,13 +8,6 @@
 //	@doc:
 //		Parse handler for parsing a logical update operator
 //
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPDXL_CParseHandlerLogicalUpdate_H
 #define GPDXL_CParseHandlerLogicalUpdate_H

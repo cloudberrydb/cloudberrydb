@@ -11,13 +11,6 @@
 //		This returns the minimum (or maximum) value from a list of any number of
 //		scalar expressions. NULL values in the list are ignored. The result will
 //		be NULL only if all the expressions evaluate to NULL.
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CScalarMinMax_H
 #define GPOPT_CScalarMinMax_H

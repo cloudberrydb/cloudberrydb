@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Serializable query object used to dump the query when an exception is raised;
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOS_CSerializableQuery_H
 #define GPOS_CSerializableQuery_H

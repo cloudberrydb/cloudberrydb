@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Collective include for all xform related headers
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_xforms_H
 #define GPOPT_xforms_H

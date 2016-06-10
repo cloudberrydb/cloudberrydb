@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Class for representing the list of merge conditions in DXL Merge join nodes.
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPDXL_CDXLScalarMergeCondList_H

@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Class for representing DXL scalar array comparison such as in, not in, any, all
-//		
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPDXL_CDXLScalarArrayComp_H

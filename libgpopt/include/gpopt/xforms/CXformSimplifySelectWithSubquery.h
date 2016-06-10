@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Simplify Select with subquery
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CXformSimplifySelectWithSubquery_H
 #define GPOPT_CXformSimplifySelectWithSubquery_H

@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		A container for query-specific input objects to the optimizer
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CQueryContext_H
 #define GPOPT_CQueryContext_H

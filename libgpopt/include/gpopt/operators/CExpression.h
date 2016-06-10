@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Basic tree/DAG-based representation for an expression
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CExpression_H
 #define GPOPT_CExpression_H

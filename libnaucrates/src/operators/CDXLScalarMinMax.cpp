@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of DXL MinMax
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "naucrates/dxl/operators/CDXLScalarMinMax.h"

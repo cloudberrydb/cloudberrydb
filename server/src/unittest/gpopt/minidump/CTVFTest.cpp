@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Test for optimizing queries with TVF
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

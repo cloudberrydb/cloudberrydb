@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Class for representing a join filter node inside DXL join operators.
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPDXL_CDXLScalarJoinFilter_H

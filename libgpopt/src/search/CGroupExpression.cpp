@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of group expressions
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

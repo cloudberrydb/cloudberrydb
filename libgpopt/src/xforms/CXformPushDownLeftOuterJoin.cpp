@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of left outer join push down transformation
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

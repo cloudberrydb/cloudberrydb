@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of DXL If Statement
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "naucrates/dxl/operators/CDXLScalarIfStmt.h"

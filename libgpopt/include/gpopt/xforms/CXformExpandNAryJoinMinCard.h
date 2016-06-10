@@ -8,13 +8,6 @@
 //	@doc:
 //		Expand n-ary join into series of binary joins while minimizing
 //		cardinality of intermediate results
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CXformExpandNAryJoinMinCard_H
 #define GPOPT_CXformExpandNAryJoinMinCard_H

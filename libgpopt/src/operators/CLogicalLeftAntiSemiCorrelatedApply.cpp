@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of left anti semi correlated apply for NOT EXISTS subqueries
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

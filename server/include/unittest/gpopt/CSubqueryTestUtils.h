@@ -8,13 +8,6 @@
 //	@doc:
 //		Optimizer test utility functions for tests requiring subquery
 //		expressions
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CSubqueryTestUtils_H
 #define GPOPT_CSubqueryTestUtils_H

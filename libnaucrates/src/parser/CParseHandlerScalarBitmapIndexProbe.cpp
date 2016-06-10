@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		SAX parse handler class for parsing bitmap index probe operator nodes
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "naucrates/dxl/parser/CParseHandlerScalarBitmapIndexProbe.h"

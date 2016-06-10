@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Result container for all transformations
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CXformResult_H
 #define GPOPT_CXformResult_H

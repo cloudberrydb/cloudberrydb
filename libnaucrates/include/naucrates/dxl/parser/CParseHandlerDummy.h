@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Dummy SAX parse handler used for validation of XML documents.
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPDXL_CParseHandlerDummy_H

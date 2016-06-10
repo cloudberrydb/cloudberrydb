@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Base class for index descriptor
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CIndexDescriptor_H
 #define GPOPT_CIndexDescriptor_H

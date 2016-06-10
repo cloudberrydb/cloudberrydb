@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Logical DML operator
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CLogicalDML_H
 #define GPOPT_CLogicalDML_H

@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of DXL arrays
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "naucrates/dxl/operators/CDXLScalarArray.h"

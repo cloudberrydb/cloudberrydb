@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Class for representing DXL scalar identifier operators.
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPDXL_CDXLScalarIdent_H

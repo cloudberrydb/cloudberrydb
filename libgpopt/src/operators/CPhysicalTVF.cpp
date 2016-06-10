@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of table-valued functions
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

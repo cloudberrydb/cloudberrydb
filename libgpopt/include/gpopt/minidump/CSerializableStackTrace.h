@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Serializable stack trace object
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CSerializableStackTrace_H
 #define GPOPT_CSerializableStackTrace_H

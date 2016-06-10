@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Test for DXL-based minidumoers
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CMiniDumperDXLTest_H
 #define GPOPT_CMiniDumperDXLTest_H

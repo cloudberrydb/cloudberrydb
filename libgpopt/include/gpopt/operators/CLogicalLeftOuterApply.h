@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Logical Left Outer Apply operator
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CLogicalLeftOuterApply_H
 #define GPOPT_CLogicalLeftOuterApply_H

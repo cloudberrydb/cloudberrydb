@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		GPDB's legacy (uncalibrated) cost model
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPDBCOST_CCostModelGPDBLegacy_H
 #define GPDBCOST_CCostModelGPDBLegacy_H

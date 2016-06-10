@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Statistics predicate helper routines
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Transform left semi join to inner join under a groupby
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CXformLeftSemiJoin2InnerJoinUnderGb_H
 #define GPOPT_CXformLeftSemiJoin2InnerJoinUnderGb_H

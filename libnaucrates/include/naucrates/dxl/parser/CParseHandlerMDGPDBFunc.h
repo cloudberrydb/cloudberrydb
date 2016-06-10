@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		SAX parse handler class for GPDB function metadata
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPDXL_CParseHandlerMDGPDBFunc_H

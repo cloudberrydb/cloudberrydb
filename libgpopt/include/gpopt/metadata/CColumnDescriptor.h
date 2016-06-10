@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Abstraction of columns in tables, functions, external tables etc.
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CColumnDescriptor_H
 #define GPOPT_CColumnDescriptor_H

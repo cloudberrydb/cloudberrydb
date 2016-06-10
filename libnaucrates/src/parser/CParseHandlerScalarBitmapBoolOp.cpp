@@ -9,13 +9,6 @@
 //		
 //		Implementation of the SAX parse handler class for parsing scalar bitmap
 //		bool op
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "naucrates/dxl/parser/CParseHandlerScalarOp.h"

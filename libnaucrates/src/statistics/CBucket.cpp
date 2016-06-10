@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of histogram bucket
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #include <stdlib.h>
 #include "gpos/base.h"

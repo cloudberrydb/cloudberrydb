@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Class for representing a scalar filter node inside DXL physical operators.
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPDXL_CDXLScalarFilter_H

@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Initialization of the gpdxl library.
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------*/
 #ifndef GPDXL_init_H
 #define GPDXL_init_H

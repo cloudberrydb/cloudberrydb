@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of general scalar operator
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

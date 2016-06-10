@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of inner apply operator
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

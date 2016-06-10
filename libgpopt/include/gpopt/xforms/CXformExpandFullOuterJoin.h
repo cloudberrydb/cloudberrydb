@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Transform logical FOJ to a UNION ALL between LOJ and LASJ
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CXformExpandFullOuterJoin_H
 #define GPOPT_CXformExpandFullOuterJoin_H

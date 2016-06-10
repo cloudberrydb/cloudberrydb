@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of logical Delete operator
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

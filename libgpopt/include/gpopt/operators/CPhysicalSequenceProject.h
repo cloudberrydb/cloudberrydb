@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Physical Sequence Project operator
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CPhysicalSequenceProject_H
 #define GPOPT_CPhysicalSequenceProject_H

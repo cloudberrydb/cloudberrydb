@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Transform Logical Insert to Logical DML
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CXformInsert2DML_H
 #define GPOPT_CXformInsert2DML_H

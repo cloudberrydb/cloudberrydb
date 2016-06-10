@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of left anti semi hash join operator with NotIn semantics
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

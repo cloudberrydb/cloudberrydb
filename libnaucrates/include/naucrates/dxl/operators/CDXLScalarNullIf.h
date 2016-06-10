@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Class for representing DXL scalar NullIf operator
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPDXL_CDXLScalarNullIf_H

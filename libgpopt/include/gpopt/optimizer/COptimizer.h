@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Optimizer class, entry point for query optimization
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_COptimizer_H
 #define GPOPT_COptimizer_H

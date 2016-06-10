@@ -8,13 +8,6 @@
 //	@doc:
 //		Class for representing spooling info in shared scan nodes, and nodes that
 //		allow sharing (currently Materialize and Sort).
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 

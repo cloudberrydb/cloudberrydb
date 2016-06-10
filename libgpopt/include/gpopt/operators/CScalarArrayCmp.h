@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Class for scalar array compare operators
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CScalarArrayCmp_H
 #define GPOPT_CScalarArrayCmp_H

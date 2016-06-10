@@ -8,13 +8,6 @@
 //	@doc:
 //		
 //		SAX parse handler class for parsing a single Param of a SubPlan
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPDXL_CParseHandlerScalarSubPlanParam_H

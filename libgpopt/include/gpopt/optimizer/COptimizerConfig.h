@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Configurations used by the optimizer
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_COptimizerConfig_H
 #define GPOPT_COptimizerConfig_H

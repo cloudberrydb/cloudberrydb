@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of the base SAX parse handler class for parsing DXL operators.
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "naucrates/dxl/parser/CParseHandlerOp.h"

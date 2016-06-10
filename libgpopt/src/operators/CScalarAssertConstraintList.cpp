@@ -8,13 +8,6 @@
 //	@doc:
 //		Implementation of scalar assert constraint list representing the predicate
 //		of assert operators
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

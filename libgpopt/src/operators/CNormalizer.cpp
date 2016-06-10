@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of expression tree normalizer
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

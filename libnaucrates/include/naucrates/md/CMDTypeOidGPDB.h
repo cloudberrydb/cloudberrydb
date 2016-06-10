@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Class for representing OID types in GPDB
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPMD_CMDTypeOidGPDB_H

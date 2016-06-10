@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of DXL index condition lists for DXL index scan operator
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #include "naucrates/dxl/operators/CDXLScalarIndexCondList.h"
 

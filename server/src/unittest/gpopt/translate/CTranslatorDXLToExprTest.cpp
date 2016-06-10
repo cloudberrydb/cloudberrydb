@@ -8,13 +8,6 @@
 //	@doc:
 //		Tests translating DXL trees into Expr tree.
 //		
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #include "gpos/error/CException.h"
 #include "gpos/error/CMessage.h"

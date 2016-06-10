@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of operator base class
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

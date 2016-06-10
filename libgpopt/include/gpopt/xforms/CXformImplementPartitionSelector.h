@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implement PartitionSelector
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CXformImplementPartitionSelector_H
 #define GPOPT_CXformImplementPartitionSelector_H

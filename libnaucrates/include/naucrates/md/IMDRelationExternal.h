@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Interface for external relations in the metadata cache
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPMD_IMDRelationExternal_H

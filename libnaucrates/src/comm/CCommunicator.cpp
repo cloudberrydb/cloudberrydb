@@ -8,13 +8,6 @@
 //	@doc:
 //		Implementation of communication handler for message exchange
 //		between OPT and QD
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

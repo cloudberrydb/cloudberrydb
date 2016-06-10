@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		SAX parse handler class for GPDB scalar operator metadata
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPDXL_CParseHandlerMDGPDBScalarOp_H

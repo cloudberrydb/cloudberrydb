@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of minidump utility functions
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

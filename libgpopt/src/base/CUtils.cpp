@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of general utility functions
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #include "gpos/common/clibwrapper.h"
 #include "gpos/common/syslibwrapper.h"

@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of DXL hash expression lists for redistribute operators
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #include "naucrates/dxl/operators/CDXLScalarHashExprList.h"
 

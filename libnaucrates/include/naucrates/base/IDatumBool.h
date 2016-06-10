@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Base abstract class for bool representation
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPNAUCRATES_IDatumBool_H
 #define GPNAUCRATES_IDatumBool_H

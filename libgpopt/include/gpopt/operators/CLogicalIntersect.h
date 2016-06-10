@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Logical Intersect operator
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CLogicalIntersect_H
 #define GPOPT_CLogicalIntersect_H

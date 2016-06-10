@@ -14,13 +14,6 @@
 //		if the value passes, it is returned as the result, otherwise an error
 //		is raised.
 
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CScalarCoerceToDomain_H
 #define GPOPT_CScalarCoerceToDomain_H

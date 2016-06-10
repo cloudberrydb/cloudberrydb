@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Test for communication handler
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CCommunicatorTest_H
 #define GPOPT_CCommunicatorTest_H

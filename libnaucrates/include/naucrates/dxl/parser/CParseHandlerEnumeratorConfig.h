@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		SAX parse handler class for parsing enumerator configuration options
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPDXL_CParseHandlerEnumeratorConfig_H

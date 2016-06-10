@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of DXL datum of type boolean
-//		
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "naucrates/dxl/operators/CDXLDatumBool.h"

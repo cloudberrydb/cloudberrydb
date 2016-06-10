@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		SAX parse handler class for parsing limit operator nodes.
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPDXL_CParseHandlerLimit_H

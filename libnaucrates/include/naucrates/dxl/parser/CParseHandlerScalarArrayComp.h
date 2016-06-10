@@ -8,13 +8,6 @@
 //	@doc:
 //		
 //		SAX parse handler class for parsing CDXLScalarArrayComp.
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPDXL_CParseHandlerScalarArrayComp_H

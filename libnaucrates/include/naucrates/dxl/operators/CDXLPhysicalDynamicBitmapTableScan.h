@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Class for representing dynamic DXL bitmap table scan operators.
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPDXL_CDXLPhysicalDynamicBitmapTableScan_H

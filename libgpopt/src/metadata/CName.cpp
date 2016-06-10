@@ -10,13 +10,6 @@
 //		Encapsulates encoding etc. so optimizer logic does not have to
 //		deal with it. 
 //		Only assumption, name string is NULL terminated;
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

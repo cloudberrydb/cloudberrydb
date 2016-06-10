@@ -8,13 +8,6 @@
 //	@doc:
 //		
 //		Class for representing DXL If Statement (Case Statement is represented as a nested if statement)
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPDXL_CDXLScalarIfStmt_H

@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Class for representing logical update operator
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPDXL_CDXLLogicalUpdate_H

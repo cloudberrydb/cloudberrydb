@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implement the transformation of CLogicalIntersectAll into a left semi join
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

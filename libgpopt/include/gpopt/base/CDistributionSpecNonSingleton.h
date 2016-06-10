@@ -9,13 +9,6 @@
 //		Description of a general distribution which imposes no singleton
 //		distribution requirements;
 //		Can be used only as a required property;
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CDistributionSpecNonSingleton_H
 #define GPOPT_CDistributionSpecNonSingleton_H

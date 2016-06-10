@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of histogram point
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

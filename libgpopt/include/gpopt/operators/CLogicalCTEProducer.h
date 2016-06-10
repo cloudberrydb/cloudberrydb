@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Logical CTE producer operator
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CLogicalCTEProducer_H
 #define GPOPT_CLogicalCTEProducer_H

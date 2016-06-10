@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Interface class for partition constraints in the MD cache
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 

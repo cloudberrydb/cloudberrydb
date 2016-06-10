@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of DXL physical DML operator
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "naucrates/dxl/operators/CDXLDirectDispatchInfo.h"

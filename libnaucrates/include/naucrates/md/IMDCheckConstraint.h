@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Interface class for check constraint in a metadata cache relation
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPMD_IMDCheckConstraint_H

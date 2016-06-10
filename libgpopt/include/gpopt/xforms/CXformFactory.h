@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Management of global xform set
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CXformFactory_H
 #define GPOPT_CXformFactory_H

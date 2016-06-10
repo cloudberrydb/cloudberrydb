@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of decorrelation logic
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

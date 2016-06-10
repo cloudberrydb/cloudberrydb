@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Turn LS apply into LS join
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CXformLeftSemiApply2LeftSemiJoin_H
 #define GPOPT_CXformLeftSemiApply2LeftSemiJoin_H

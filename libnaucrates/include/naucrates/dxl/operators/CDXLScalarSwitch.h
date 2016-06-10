@@ -8,13 +8,6 @@
 //	@doc:
 //
 //		Class for representing DXL Switch (corresponds to Case (expr) ...)
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPDXL_CDXLScalarSwitch_H

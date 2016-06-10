@@ -19,13 +19,6 @@
 //				|-- A
 //				|-- B
 //				+-- A.a1 <> B.b1
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOS_CLogicalGbAggDeduplicate_H
 #define GPOS_CLogicalGbAggDeduplicate_H

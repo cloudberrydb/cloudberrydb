@@ -8,13 +8,6 @@
 //	@doc:
 //		Parse handler for parsing a logical project operator
 //		
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPDXL_CParseHandlerLogicalProject_H
 #define GPDXL_CParseHandlerLogicalProject_H

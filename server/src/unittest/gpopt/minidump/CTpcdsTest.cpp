@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Test for optimizing TPC-DS queries
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

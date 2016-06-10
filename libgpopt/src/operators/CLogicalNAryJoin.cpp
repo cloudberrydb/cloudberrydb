@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of n-ary inner join operator
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

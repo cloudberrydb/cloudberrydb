@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of scalar window function call operators
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

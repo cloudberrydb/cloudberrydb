@@ -8,13 +8,6 @@
 //	@doc:
 //		Transform select over partitioned table into a union all of dynamic 
 //		index gets
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CXformSelect2PartialDynamicIndexGet_H
 #define GPOPT_CXformSelect2PartialDynamicIndexGet_H

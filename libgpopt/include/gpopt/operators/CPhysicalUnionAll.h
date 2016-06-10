@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Physical union all operator
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CPhysicalUnionAll_H
 #define GPOPT_CPhysicalUnionAll_H

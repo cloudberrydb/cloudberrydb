@@ -8,13 +8,6 @@
 //	@doc:
 //		Implementation of collapsing two cascaded group-by operators
 //		into a single group-by
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

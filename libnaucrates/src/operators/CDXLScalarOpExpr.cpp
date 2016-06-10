@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of DXL Scalar OpExpr
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "naucrates/md/IMDScalarOp.h"

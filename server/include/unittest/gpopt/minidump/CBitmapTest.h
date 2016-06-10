@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Test for optimizing queries that can use a bitmap index
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CBitmapTest_H
 #define GPOPT_CBitmapTest_H

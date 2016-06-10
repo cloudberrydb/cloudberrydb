@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of Hash Aggregate operator for deduplicating join outputs
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

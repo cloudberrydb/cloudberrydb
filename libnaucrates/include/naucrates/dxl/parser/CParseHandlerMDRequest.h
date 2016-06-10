@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		SAX parse handler class for metadata requests
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPDXL_CParseHandlerMDRequest_H

@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of DXL physical hash join operator
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 

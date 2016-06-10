@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		SAX parse handler class for parsing hash join operator nodes.
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPDXL_CParseHandlerHashJoin_H

@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Optimizer utility functions
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CUtils_H
 #define GPOPT_CUtils_H

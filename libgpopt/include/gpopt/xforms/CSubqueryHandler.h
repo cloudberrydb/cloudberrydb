@@ -8,13 +8,6 @@
 //	@doc:
 //		Helper class for transforming subquery expressions to Apply
 //		expressions
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CSubqueryHandler_H
 #define GPOPT_CSubqueryHandler_H

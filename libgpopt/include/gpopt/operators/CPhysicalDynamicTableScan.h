@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Dynamic Table scan operator
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CPhysicalDynamicTableScan_H
 #define GPOPT_CPhysicalDynamicTableScan_H

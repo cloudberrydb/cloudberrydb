@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Test for CEngine
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #include "gpos/task/CAutoTraceFlag.h"
 

@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Left anti semi hash join operator with NotIn semantics
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CPhysicalLeftAntiSemiHashJoinNotIn_H
 #define GPOPT_CPhysicalLeftAntiSemiHashJoinNotIn_H

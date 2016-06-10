@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Basic tree/DAG-based representation for DXL tree nodes
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPDXL_CDXLNode_H
 #define GPDXL_CDXLNode_H

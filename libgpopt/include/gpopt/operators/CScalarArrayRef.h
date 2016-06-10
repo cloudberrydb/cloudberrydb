@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Class for scalar arrayref
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CScalarArrayRef_H
 #define GPOPT_CScalarArrayRef_H

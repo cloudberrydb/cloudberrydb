@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Transform select over table into a bitmap table get with bitmap bool op
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CXformSelect2BitmapBoolOp_H
 #define GPOPT_CXformSelect2BitmapBoolOp_H

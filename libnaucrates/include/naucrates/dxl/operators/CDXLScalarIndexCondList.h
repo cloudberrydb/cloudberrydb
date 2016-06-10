@@ -8,13 +8,6 @@
 //	@doc:
 //		Class for representing the list of index conditions in DXL index scan
 //		operator
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPDXL_CDXLScalarIndexCondList_H

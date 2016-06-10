@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Test for optimizing queries on multilevel partitioned tables
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CMultilevelPartitionTest_H
 #define GPOPT_CMultilevelPartitionTest_H

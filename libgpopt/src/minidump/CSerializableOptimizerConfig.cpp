@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Class for serializing optimizer config objects
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

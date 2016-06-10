@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Transform GbAgg to HashAgg
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CXformGbAgg2HashAgg_H
 #define GPOPT_CXformGbAgg2HashAgg_H

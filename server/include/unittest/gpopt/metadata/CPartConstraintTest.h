@@ -7,13 +7,6 @@
 //
 //	@doc:
 //      Test for CPartConstraint
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CPartConstraintTest_H
 #define GPOPT_CPartConstraintTest_H

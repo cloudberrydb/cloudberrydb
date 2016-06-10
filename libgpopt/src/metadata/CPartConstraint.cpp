@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of part constraints
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

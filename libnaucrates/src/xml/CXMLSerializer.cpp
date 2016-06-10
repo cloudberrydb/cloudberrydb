@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of the class for creating XML documents.
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/string/CWStringDynamic.h"

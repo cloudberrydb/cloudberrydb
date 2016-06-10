@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of a key for metadata cache objects
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/io/COstreamString.h"

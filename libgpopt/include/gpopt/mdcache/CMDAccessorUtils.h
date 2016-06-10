@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Utility functions associated with the metadata cache accessor
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 

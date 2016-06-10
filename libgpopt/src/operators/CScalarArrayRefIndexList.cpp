@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of scalar arrayref index list
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Logical Left Anti Semi Apply operator used in NOT IN/ALL subqueries
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CLogicalLeftAntiSemiApplyNotIn_H
 #define GPOPT_CLogicalLeftAntiSemiApplyNotIn_H

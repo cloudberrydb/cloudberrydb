@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Specification of order property
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpopt/base/CColRefSet.h"

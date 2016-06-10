@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of left semi correlated apply for EXISTS subqueries
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

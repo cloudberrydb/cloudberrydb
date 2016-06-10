@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		SAX parse handler class for parsing random motion operator nodes.
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPDXL_CParseHandlerRandomMotion_H

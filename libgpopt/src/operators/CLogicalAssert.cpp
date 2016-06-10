@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of assert operator
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

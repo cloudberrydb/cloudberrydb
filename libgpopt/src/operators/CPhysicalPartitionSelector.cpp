@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of physical partition selector
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		SAX parse handler class for parsing EXISTS and NOT EXISTS subquery operator nodes.
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPDXL_CParseHandlerScalarSubqueryExists_H

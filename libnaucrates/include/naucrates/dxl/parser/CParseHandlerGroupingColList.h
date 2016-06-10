@@ -8,13 +8,6 @@
 //	@doc:
 //		SAX parse handler class for parsing the list of grouping columns ids in an
 //		aggregate operator node.
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPDXL_CParseHandlerGroupingColList_H

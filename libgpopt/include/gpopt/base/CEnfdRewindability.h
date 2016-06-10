@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Enforceable rewindability property
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CEnfdRewindability_H
 #define GPOPT_CEnfdRewindability_H

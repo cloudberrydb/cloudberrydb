@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Test for optimizing queries where intermediate columns are pruned
-//
-//	@owner:
-//
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

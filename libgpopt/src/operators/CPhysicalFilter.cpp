@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of filter operator
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Configurations of plan enumerator
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CEnumeratorConfig_H
 #define GPOPT_CEnumeratorConfig_H

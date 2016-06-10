@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Test for ranges
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CRangeTest_H
 #define GPOPT_CRangeTest_H

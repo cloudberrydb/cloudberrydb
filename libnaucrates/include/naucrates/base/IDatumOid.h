@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Base abstract class for oid representation
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPNAUCRATES_IDatumOid_H
 #define GPNAUCRATES_IDatumOid_H

@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of unsupported statistics predicate
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "naucrates/statistics/CHistogram.h"

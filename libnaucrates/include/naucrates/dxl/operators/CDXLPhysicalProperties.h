@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Representation of properties of a physical DXL operator
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPDXL_CDXLPhysicalProperties_H
 #define GPDXL_CDXLPhysicalProperties_H

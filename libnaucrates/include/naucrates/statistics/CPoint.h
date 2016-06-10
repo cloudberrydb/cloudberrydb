@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Point in the datum space
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPNAUCRATES_CPoint_H
 #define GPNAUCRATES_CPoint_H

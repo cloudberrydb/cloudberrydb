@@ -10,13 +10,6 @@
 //		Tokens are represented in both in CWStringConst format, and as XMLCh
 //		arrays - the native format of the Xerces parser.
 //		Constants are dynamically created during loading of the dxl library.
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPDXL_dxltokens_H
 #define GPDXL_dxltokens_H

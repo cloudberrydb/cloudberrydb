@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Class for representing DXL AggRef
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPDXL_CDXLScalarAggref_H

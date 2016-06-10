@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Logical Difference operator
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CLogicalDifference_H
 #define GPOPT_CLogicalDifference_H

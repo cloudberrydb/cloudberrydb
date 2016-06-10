@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of DXL column descriptors
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/string/CWStringDynamic.h"

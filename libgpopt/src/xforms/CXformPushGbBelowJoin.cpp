@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of pushing group by below join transform
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

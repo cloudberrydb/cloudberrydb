@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Class for representing DXL scalar arrayref index list
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPDXL_CDXLScalarArrayRefIndexList_H

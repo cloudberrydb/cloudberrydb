@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Superclass of group expression jobs
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CJobGroupExpression_H
 #define GPOPT_CJobGroupExpression_H

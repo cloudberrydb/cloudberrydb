@@ -8,13 +8,6 @@
 //	@doc:
 //		Implementation of the utility function associated with the metadata
 //		accessor
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

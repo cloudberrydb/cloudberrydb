@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Class for representing DXL scalar assert constraint lists for Assert operators
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPDXL_CDXLScalarAssertConstraintList_H

@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Base class for all derived properties
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CDrvdProp_H
 #define GPOPT_CDrvdProp_H

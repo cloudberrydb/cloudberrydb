@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of the splitting of limit
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

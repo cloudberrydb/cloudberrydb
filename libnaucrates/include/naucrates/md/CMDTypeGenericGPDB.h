@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Class representing GPDB generic types
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPMD_CMDTypeGenericGPDB_H

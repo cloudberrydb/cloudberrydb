@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Dynamic table accessor for partitioned tables
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CLogicalDynamicGet_H
 #define GPOPT_CLogicalDynamicGet_H

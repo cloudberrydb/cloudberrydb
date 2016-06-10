@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Parse handler for search stage.
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPDXL_CParseHandlerSearchStage_H

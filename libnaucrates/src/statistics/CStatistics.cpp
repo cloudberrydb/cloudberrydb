@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Histograms based statistics
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "naucrates/dxl/CDXLUtils.h"

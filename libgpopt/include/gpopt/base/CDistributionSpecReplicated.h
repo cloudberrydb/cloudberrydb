@@ -8,13 +8,6 @@
 //	@doc:
 //		Description of a replicated distribution; 
 //		Can be used as required or derived property;
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CDistributionSpecReplicated_H
 #define GPOPT_CDistributionSpecReplicated_H

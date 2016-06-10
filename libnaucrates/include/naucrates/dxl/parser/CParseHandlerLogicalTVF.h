@@ -8,13 +8,6 @@
 //	@doc:
 //
 //		SAX parse handler class for parsing Logical TVF
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPDXL_CParseHandlerLogicalTVF_H

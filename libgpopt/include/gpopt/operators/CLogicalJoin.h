@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Base class of all logical join operators
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOS_CLogicalJoin_H
 #define GPOS_CLogicalJoin_H

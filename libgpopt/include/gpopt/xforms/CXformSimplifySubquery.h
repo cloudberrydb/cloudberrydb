@@ -8,13 +8,6 @@
 //	@doc:
 //		Simplify existential/quantified subqueries by transforming
 //		into count(*) subqueries
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CXformSimplifySubquery_H
 #define GPOPT_CXformSimplifySubquery_H

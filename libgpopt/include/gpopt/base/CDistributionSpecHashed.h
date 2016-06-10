@@ -8,13 +8,6 @@
 //	@doc:
 //		Description of a hashed distribution; 
 //		Can be used as required or derived property;
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CDistributionSpecHashed_H
 #define GPOPT_CDistributionSpecHashed_H

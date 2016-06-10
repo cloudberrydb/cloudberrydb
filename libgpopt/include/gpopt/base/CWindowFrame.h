@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Description of window frame
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CWindowFrame_H
 #define GPOPT_CWindowFrame_H

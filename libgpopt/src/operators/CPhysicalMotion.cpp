@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of motion operator
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

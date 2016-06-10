@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of MD index
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/string/CWStringDynamic.h"

@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of DXL NullIf operator
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "naucrates/dxl/operators/CDXLScalarNullIf.h"

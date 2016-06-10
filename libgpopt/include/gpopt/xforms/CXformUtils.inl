@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of inlined xform utilities;
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CXformUtils_INL
 #define GPOPT_CXformUtils_INL

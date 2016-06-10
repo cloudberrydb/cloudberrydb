@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Column reference management; one instance per optimization
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CColumnFactory_H
 #define GPOPT_CColumnFactory_H

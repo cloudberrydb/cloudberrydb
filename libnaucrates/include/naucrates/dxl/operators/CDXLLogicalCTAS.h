@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Class for representing logical "CREATE TABLE AS" (CTAS) operator
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPDXL_CDXLLogicalCTAS_H

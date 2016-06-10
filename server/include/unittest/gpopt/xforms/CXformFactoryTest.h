@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Unittests for management of global xform set
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CXformFactoryTest_H
 #define GPOPT_CXformFactoryTest_H

@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Part constraints for partitioned tables
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CPartConstraint_H
 #define GPOPT_CPartConstraint_H

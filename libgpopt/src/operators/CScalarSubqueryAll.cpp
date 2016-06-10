@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of scalar subquery ALL operator
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

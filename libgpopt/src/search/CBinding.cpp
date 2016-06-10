@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of Binding structure
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpopt/operators/CPattern.h"

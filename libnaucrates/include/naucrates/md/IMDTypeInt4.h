@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Interface for INT4 types in the metadata cache
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPMD_IMDTypeInt4_H

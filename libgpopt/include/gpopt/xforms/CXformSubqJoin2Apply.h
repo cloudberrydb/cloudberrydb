@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Transform Inner Join to Apply
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CXformSubqJoin2Apply_H
 #define GPOPT_CXformSubqJoin2Apply_H

@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Logical Sequence Project operator
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOS_CLogicalSequenceProject_H
 #define GPOS_CLogicalSequenceProject_H

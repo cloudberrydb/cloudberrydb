@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of DXL sorting column lists for sort and motion operator nodes.
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #include "naucrates/dxl/operators/CDXLScalarSortColList.h"
 

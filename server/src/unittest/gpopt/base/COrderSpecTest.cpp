@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Tests for order specification
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #include "naucrates/md/IMDId.h"
 #include "naucrates/md/IMDTypeInt4.h"

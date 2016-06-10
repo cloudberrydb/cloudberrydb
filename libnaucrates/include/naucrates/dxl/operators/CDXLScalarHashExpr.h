@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Class for representing hash expressions list in DXL Redistribute motion nodes.
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPDXL_CDXLScalarHashExpr_H

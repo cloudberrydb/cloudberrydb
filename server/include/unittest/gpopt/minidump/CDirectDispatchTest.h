@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Test for direct dispatch
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CDirectDispatchTest_H
 #define GPOPT_CDirectDispatchTest_H

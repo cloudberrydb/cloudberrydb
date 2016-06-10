@@ -9,13 +9,6 @@
 //		Implementation of transform;
 //		external correlations are correlations in the inner child of LSA
 //		that use columns not defined by the outer child of LSA
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

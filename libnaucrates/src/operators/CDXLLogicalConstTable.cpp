@@ -8,13 +8,6 @@
 //	@doc:
 //		Implementation of DXL logical constant tables
 //		
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "naucrates/dxl/operators/CDXLLogicalConstTable.h"

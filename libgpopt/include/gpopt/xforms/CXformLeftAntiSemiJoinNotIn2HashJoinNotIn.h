@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Transform left anti semi join to left anti semi hash join (NotIn semantics)
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CXformLeftAntiSemiJoinNotIn2HashJoinNotIn_H
 #define GPOPT_CXformLeftAntiSemiJoinNotIn2HashJoinNotIn_H

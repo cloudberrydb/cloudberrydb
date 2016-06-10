@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Base class for representing constraints
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CConstraint_H
 #define GPOPT_CConstraint_H

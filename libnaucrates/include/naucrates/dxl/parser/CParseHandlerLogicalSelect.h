@@ -8,13 +8,6 @@
 //	@doc:
 //		Parse handler for parsing a logical Select operator
 //		
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPDXL_CParseHandlerLogicalSelect_H
 #define GPDXL_CParseHandlerLogicalSelect_H

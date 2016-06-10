@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Point filter on statistics
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPNAUCRATES_CStatsPredPoint_H
 #define GPNAUCRATES_CStatsPredPoint_H

@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Inline implementation of job state machine
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CJobStateMachine_INL
 #define GPOPT_CJobStateMachine_INL

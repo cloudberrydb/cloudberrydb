@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Left semi hash join operator
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CPhysicalLeftSemiHashJoin_H
 #define GPOPT_CPhysicalLeftSemiHashJoin_H

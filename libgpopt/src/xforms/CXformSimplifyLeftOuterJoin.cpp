@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Simplify Left Outer Join with constant false predicate
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

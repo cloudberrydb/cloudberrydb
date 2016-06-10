@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Pattern that matches entire expression trees
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CPatternTree_H
 #define GPOPT_CPatternTree_H

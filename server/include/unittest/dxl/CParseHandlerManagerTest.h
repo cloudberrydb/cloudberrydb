@@ -8,13 +8,6 @@
 //	@doc:
 //		Tests parse handler manager, responsible for stacking up parse handlers
 //		during DXL parsing.
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 

@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Test for CEngine
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #include "gpos/base.h"
 #include "gpos/memory/CAutoMemoryPool.h"

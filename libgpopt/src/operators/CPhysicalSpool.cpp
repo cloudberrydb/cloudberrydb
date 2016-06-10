@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of spool operator
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Transform left semi join to left semi hash join
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CXformLeftSemiJoin2HashJoin_H
 #define GPOPT_CXformLeftSemiJoin2HashJoin_H

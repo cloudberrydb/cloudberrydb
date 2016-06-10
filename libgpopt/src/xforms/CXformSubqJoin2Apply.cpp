@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of Inner Join to Apply transform
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

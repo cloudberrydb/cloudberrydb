@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Interface for OID types in the metadata cache
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPMD_IMDTypeOid_H

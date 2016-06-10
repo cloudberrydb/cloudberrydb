@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of the class for representing buckets in DXL column stats
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 

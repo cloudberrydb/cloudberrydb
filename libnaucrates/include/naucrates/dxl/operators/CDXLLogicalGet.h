@@ -8,13 +8,6 @@
 //	@doc:
 //		Class for representing DXL logical get operators
 //		
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPDXL_CDXLLogicalGet_H

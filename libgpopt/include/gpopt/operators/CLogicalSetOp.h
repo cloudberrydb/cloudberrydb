@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Base for set operations
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOS_CLogicalSetOp_H
 #define GPOS_CLogicalSetOp_H

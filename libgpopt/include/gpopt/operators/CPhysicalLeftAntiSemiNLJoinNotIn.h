@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Left anti semi nested-loops join operator with NotIn semantics
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CPhysicalLeftAntiSemiNLJoinNotIn_H
 #define GPOPT_CPhysicalLeftAntiSemiNLJoinNotIn_H

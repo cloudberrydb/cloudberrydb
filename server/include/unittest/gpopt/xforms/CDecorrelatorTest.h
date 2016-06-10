@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Tests for decorrelating expression trees
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CDecorrelatorTest_H
 #define GPOPT_CDecorrelatorTest_H

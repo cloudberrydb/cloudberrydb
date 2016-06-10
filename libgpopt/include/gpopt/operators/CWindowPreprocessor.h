@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Preprocessing routines of window functions
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CWindowPreprocessor_H
 #define GPOPT_CWindowPreprocessor_H

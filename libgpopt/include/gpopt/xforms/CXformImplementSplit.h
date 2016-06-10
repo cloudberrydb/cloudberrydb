@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Transform Logical Split to Physical Split
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CXformImplementSplit_H
 #define GPOPT_CXformImplementSplit_H

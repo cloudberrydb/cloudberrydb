@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Transform Logical CTE Consumer to Physical CTE Consumer
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CXformImplementCTEConsumer_H
 #define GPOPT_CXformImplementCTEConsumer_H

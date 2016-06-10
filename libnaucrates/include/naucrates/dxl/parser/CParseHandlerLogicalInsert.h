@@ -8,13 +8,6 @@
 //	@doc:
 //		Parse handler for parsing a logical insert operator
 //		
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPDXL_CParseHandlerLogicalInsert_H
 #define GPDXL_CParseHandlerLogicalInsert_H

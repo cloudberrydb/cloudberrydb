@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Class for representing DXL index only scan operators
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPDXL_CDXLPhysicalIndexOnlyScan_H

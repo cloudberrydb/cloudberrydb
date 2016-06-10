@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Logical external get operator
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CLogicalExternalGet_H
 #define GPOPT_CLogicalExternalGet_H

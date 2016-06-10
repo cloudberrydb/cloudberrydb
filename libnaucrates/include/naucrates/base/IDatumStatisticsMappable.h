@@ -8,13 +8,6 @@
 //	@doc:
 //		Abstract class that implements statistics operations
 //		based on mapping to LINT or CDouble
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPNAUCRATES_CDatumStatisticsMappable_H
 #define GPNAUCRATES_CDatumStatisticsMappable_H

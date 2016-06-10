@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Parent class for quantified subquery operators
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CScalarSubqueryQuantified_H
 #define GPOPT_CScalarSubqueryQuantified_H

@@ -9,13 +9,6 @@
 //		Container of information passed among expression nodes during
 //		derivation of plan properties
 //
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CDrvdPropCtxtPlan_H
 #define GPOPT_CDrvdPropCtxtPlan_H

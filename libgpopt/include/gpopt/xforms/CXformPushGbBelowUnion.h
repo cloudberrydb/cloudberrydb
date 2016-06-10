@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Push grouping below Union operation
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CXformPushGbBelowUnion_H
 #define GPOPT_CXformPushGbBelowUnion_H

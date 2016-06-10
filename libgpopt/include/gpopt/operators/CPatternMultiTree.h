@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Pattern that matches a variable number of trees
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CPatternMultiTree_H
 #define GPOPT_CPatternMultiTree_H

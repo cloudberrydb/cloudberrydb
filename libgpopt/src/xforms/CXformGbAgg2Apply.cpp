@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of GbAgg to Apply transform
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

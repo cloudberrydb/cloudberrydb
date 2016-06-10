@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of DXL BoolExpr
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "naucrates/dxl/operators/CDXLScalarBoolExpr.h"

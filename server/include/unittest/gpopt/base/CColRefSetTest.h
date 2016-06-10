@@ -7,13 +7,6 @@
 //
 //	@doc:
 //	    Test for CColRefSet
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOS_CColRefSetTest_H
 #define GPOS_CColRefSetTest_H

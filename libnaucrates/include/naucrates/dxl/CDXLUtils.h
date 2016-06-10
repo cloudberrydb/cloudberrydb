@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Entry point for parsing and serializing DXL documents.
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPDXL_CDXLUtils_H

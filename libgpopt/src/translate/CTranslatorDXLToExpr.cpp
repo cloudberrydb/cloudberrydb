@@ -9,13 +9,6 @@
 //		Implementation of the methods used to translate a DXL tree into Expr tree.
 //		All translator methods allocate memory in the provided memory pool, and
 //		the caller is responsible for freeing it.
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/common/CAutoTimer.h"

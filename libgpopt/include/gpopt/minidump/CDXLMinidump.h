@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		DXL-based minidump structure
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CDXLMinidump_H
 #define GPOPT_CDXLMinidump_H

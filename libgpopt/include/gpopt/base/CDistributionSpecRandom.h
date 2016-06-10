@@ -8,13 +8,6 @@
 //	@doc:
 //		Description of a forced random distribution; 
 //		Can be used as required or derived property;
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CDistributionSpecRandom_H
 #define GPOPT_CDistributionSpecRandom_H

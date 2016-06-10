@@ -11,13 +11,6 @@
 //		be in the derived CTE map of that subtree, while an optional CTE may or
 //		may not be there). If the CTE entry represents a consumer, then the
 //		plan properties of the corresponding producer are also part of that entry
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CCTEReq_H
 #define GPOPT_CCTEReq_H

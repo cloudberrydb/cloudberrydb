@@ -8,13 +8,6 @@
 //	@doc:
 //		Parse handler for parsing a logical CTE anchor operator
 //		
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPDXL_CParseHandlerLogicalCTEAnchor_H
 #define GPDXL_CParseHandlerLogicalCTEAnchor_H

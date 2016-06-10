@@ -8,13 +8,6 @@
 //	@doc:
 //		Cost context object stores the cost of a group expression under
 //		a given optimization context
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CCostContext_H
 #define GPOPT_CCostContext_H

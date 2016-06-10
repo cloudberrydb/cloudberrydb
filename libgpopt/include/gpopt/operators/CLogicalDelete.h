@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Logical Delete operator
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CLogicalDelete_H
 #define GPOPT_CLogicalDelete_H

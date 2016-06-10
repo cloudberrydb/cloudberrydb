@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Transform left-deep join tree by associativity
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CXformJoinAssociativity_H
 #define GPOPT_CXformJoinAssociativity_H

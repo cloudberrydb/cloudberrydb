@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of DXL case test
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "naucrates/dxl/operators/CDXLScalarCaseTest.h"

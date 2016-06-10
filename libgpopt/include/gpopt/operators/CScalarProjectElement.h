@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Scalar project element operator
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CScalarProjectElement_H
 #define GPOPT_CScalarProjectElement_H

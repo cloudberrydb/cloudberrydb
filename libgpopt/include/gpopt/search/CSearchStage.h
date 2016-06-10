@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Search stage
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CSearchStage_H
 #define GPOPT_CSearchStage_H

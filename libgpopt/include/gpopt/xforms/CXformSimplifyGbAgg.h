@@ -8,13 +8,6 @@
 //	@doc:
 //		Simplify an aggregate by splitting grouping columns into a set of
 //		functional dependencies in preparation for pushing Gb below join
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CXformSimplifyGbAgg_H
 #define GPOPT_CXformSimplifyGbAgg_H

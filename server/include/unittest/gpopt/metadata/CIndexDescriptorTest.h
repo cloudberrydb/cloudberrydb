@@ -7,13 +7,6 @@
 //
 //	@doc:
 //      Test for CTableDescriptor
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CIndexDescriptorTest_H
 #define GPOPT_CIndexDescriptorTest_H

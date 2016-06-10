@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Test for optimizing queries on tables with indexes
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

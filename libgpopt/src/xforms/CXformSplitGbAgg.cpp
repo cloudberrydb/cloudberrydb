@@ -8,13 +8,6 @@
 //	@doc:
 //		Implementation of the splitting of an aggregate into a pair of
 //		local and global aggregate
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

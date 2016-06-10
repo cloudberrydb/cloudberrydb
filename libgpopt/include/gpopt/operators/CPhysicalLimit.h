@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Physical Limit operator
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CPhysicalLimit_H
 #define GPOPT_CPhysicalLimit_H

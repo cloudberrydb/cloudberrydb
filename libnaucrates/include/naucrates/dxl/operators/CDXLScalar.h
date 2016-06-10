@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Base class for representing scalar DXL operators.
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPDXL_CDXLScalar_H

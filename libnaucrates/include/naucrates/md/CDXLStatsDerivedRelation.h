@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Class representing DXL derived relation statistics
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPMD_CDXLStatsDerivedRelation_H

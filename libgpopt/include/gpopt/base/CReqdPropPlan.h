@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Derived required relational properties
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CReqdPropPlan_H
 #define GPOPT_CReqdPropPlan_H

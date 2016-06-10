@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		LIKE filter for statistics
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPNAUCRATES_CStatsPredLike_H
 #define GPNAUCRATES_CStatsPredLike_H

@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of cardinality-based join order generation
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

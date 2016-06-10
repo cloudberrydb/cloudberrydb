@@ -8,13 +8,6 @@
 //	@doc:
 //		SAX parse handler class for parsing a sorting column in the sorting
 //		column list of sort and motion nodes.
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPDXL_CParseHandlerSortCol_H

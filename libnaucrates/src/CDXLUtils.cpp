@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of the utility methods for parsing and searializing DXL.
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #define ALLOW_strlen

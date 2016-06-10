@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of routed distribute motion operator
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

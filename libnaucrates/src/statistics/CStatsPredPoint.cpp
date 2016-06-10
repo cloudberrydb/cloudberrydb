@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of statistics filter that compares a column to a constant
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "naucrates/statistics/CStatsPredPoint.h"

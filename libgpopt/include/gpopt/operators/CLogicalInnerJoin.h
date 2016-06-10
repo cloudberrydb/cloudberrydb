@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Inner join operator
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOS_CLogicalInnerJoin_H
 #define GPOS_CLogicalInnerJoin_H

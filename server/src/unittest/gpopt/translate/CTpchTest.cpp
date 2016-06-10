@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Test for translating CExpressions into DXL for TPC-H benchmark
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

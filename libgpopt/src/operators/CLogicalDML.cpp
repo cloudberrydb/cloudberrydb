@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of logical DML operator
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

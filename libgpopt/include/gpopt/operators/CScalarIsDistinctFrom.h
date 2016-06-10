@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Is distinct from operator
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CScalarIsDistinctFrom_H
 #define GPOPT_CScalarIsDistinctFrom_H

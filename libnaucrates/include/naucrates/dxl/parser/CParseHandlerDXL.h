@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		SAX parse handler class for parsing a DXL document
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPDXL_CParseHandlerDXL_H

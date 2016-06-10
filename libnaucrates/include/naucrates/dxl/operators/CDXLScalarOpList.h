@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Class for representing DXL list of scalar expressions
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPDXL_CDXLScalarOpList_H

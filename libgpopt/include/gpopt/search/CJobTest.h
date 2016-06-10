@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Job implementation for testing purposes
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CJobTest_H
 #define GPOPT_CJobTest_H

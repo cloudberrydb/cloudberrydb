@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of logical row-level trigger operator
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

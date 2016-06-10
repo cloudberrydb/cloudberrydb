@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Class for representing DXL logical CTE Consumer operators
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPDXL_CDXLLogicalCTEConsumer_H
 #define GPDXL_CDXLLogicalCTEConsumer_H

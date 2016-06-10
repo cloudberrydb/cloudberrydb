@@ -8,13 +8,6 @@
 //	@doc:
 //		
 //		SAX parse handler class for parsing scalar bitmap bool expressions
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPDXL_CParseHandlerScalarBitmapBoolOp_H

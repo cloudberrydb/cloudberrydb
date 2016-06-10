@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Class for scalar arrayref index list
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CScalarArrayRefIndexList_H
 #define GPOPT_CScalarArrayRefIndexList_H

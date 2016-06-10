@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of column reference class for computed columns
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

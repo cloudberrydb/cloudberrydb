@@ -8,13 +8,6 @@
 //	@doc:
 //		Base class for all scalar operations such as arithmetic and string
 //		evaluations
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CScalarOp_H
 #define GPOPT_CScalarOp_H

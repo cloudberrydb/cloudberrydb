@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of DXL physical routed redistribute motion operator
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 

@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Tests for CKeyCollectionTest
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #include "gpopt/base/CKeyCollection.h"
 #include "gpopt/eval/CConstExprEvaluatorDefault.h"

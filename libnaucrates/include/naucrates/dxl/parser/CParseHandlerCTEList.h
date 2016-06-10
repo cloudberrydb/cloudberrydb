@@ -8,13 +8,6 @@
 //	@doc:
 //		Parse handler for parsing a CTE list
 //		
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPDXL_CParseHandlerCTEList_H
 #define GPDXL_CParseHandlerCTEList_H

@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Class providing methods for translating from DXL tree to Expr Tree.
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPOPT_CTranslatorDXLToExpr_H

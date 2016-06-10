@@ -8,13 +8,6 @@
 //	@doc:
 //		Rewindability of intermediate query results;
 //		Can be used as required or derived property;
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CRewindabilitySpec_H
 #define GPOPT_CRewindabilitySpec_H

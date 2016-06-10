@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Test for optimizing queries on partitioned tables
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CPartTblTest_H
 #define GPOPT_CPartTblTest_H

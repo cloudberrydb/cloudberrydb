@@ -9,13 +9,6 @@
 //		
 //		Implementation of the SAX parse handler class for parsing
 //	    the bounds of the bucket
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "naucrates/dxl/parser/CParseHandlerStatsBound.h"

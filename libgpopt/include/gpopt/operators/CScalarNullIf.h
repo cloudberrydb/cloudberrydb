@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Scalar NullIf Operator
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CScalarNullIf_H
 #define GPOPT_CScalarNullIf_H

@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Class for representing DXL scalar "is distinct from" comparison operators.
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPDXL_CDXLScalarDistinctComp_H

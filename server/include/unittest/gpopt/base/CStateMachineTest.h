@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Test for state machines
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CStateMachineTest_H
 #define GPOPT_CStateMachineTest_H

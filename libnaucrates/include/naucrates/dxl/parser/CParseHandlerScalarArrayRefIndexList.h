@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		SAX parse handler class for parsing the list of arrayref indexes
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPDXL_CParseHandlerScalarScalarArrayRefIndexList_H

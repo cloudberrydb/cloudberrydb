@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of table abstraction
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

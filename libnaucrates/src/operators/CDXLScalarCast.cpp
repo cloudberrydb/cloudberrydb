@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of DXL RelabelType
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "naucrates/dxl/operators/CDXLScalarCast.h"

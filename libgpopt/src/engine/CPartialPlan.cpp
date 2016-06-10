@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of partial plans created during optimization
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

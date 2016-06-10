@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Scalar Aggregate operator
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOS_CPhysicalScalarAgg_H
 #define GPOS_CPhysicalScalarAgg_H

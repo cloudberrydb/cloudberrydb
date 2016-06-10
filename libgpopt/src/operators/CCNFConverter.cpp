@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of CNF converter
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

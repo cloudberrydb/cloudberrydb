@@ -8,13 +8,6 @@
 //	@doc:
 //		Test for optimizing queries for exploring fewer alternatives and
 //		run optimization process faster
-//
-//	@owner:
-//
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

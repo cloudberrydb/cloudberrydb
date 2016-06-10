@@ -8,13 +8,6 @@
 //	@doc:
 //		SAX parse handler class for parsing the list of output column references
 //		in the DXL representation of the query.
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPDXL_CParseHandlerQueryOutput_H

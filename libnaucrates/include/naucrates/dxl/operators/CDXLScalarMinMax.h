@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Class for representing DXL MinMax operator
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPDXL_CDXLScalarMinMax_H

@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Test for array expansion in WHERE clause
-//
-//	@owner:
-//
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #include "unittest/gpopt/minidump/CArrayExpansionTest.h"
 #include "unittest/gpopt/CTestUtils.h"

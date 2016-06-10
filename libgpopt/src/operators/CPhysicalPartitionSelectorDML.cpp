@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of physical partition selector for DML
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

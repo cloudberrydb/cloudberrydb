@@ -17,13 +17,6 @@
 //                  |  |--CScalarIdent "c" (3) 
 //                  |  +--CScalarConst (0)
 //                  +--CScalarConst (0)
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CScalarAssertConstraint_H
 #define GPOPT_CScalarAssertConstraint_H

@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of dynamic index scan operator
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

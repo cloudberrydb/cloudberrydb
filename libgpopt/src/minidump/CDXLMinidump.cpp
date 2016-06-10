@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of DXL-based minidump object
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/common/CBitSet.h"

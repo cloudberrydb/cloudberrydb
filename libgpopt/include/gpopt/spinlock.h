@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Definition of GPOPT-specific spinlock types
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_spinlock_H
 #define GPOPT_spinlock_H

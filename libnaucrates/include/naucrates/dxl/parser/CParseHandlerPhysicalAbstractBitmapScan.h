@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		SAX parse handler parent class for parsing bitmap scan operator nodes
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPDXL_CParseHandlerPhysicalAbstractBitmapScan_H

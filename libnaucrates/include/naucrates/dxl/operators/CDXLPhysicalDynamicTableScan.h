@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Class for representing DXL dynamic table scan operators
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 

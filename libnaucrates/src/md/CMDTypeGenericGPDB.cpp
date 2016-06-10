@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of the class for representing GPDB generic types
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/string/CWStringDynamic.h"

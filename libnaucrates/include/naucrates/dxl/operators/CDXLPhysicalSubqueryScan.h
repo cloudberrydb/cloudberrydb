@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Class for representing DXL physical subquery scan (projection) operators.
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 

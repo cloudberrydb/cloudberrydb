@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Test for translating CExpression to DXL
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CTranslatorExprToDXLTest_H
 #define GPOPT_CTranslatorExprToDXLTest_H

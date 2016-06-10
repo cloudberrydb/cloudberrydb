@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of group optimization job
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpopt/engine/CEngine.h"

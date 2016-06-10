@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Projection list
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CScalarProjectList_H
 #define GPOPT_CScalarProjectList_H

@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of subquery ANY
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/string/CWStringDynamic.h"

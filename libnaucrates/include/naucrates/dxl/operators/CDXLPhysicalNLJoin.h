@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Class for representing DXL nested loop join operators.
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 

@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Class for representing DXL Coalesce operator
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPDXL_CDXLScalarCoalesce_H

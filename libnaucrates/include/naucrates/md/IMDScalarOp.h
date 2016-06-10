@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Interface for scalar operators in the metadata cache
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 

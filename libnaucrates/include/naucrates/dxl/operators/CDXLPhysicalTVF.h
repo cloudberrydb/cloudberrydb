@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Class for representing DXL physical table-valued functions
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPDXL_CDXLPhysicalTVF_H

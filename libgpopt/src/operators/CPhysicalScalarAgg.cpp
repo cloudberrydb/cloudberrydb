@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of scalar aggregation operator
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

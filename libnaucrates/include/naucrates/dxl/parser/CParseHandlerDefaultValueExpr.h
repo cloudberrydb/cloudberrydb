@@ -8,13 +8,6 @@
 //	@doc:
 //		SAX parse handler class for parsing the default column value expression in
 //		a column's metadata info.
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPDXL_CParseHandlerDefaultValueExpr_H

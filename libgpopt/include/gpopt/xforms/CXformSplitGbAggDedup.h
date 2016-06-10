@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Split a dedup aggregate into a pair of local and global dedup aggregates
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CXformSplitGbAggDedup_H
 #define GPOPT_CXformSplitGbAggDedup_H

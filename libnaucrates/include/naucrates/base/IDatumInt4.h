@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Base abstract class for int4 representation
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPNAUCRATES_IDatumInt4_H
 #define GPNAUCRATES_IDatumInt4_H

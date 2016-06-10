@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Class for representing DXL Scalar InitPlan operator
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPDXL_CDXLScalarInitPlan_H

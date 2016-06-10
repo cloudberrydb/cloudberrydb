@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Test for expression preprocessing
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CExpressionPreprocessorTest_H
 #define GPOPT_CExpressionPreprocessorTest_H

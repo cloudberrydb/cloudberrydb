@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Physical Inner Correlated NLJ operator capturing correlated execution
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CPhysicalCorrelatedInnerNLJoin_H
 #define GPOPT_CPhysicalCorrelatedInnerNLJoin_H

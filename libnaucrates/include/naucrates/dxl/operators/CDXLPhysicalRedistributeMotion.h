@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Class for representing DXL Redistribute motion operators.
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 

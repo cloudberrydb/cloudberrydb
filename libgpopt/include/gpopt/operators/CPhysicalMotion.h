@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Base class for Motion operators
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CPhysicalMotion_H
 #define GPOPT_CPhysicalMotion_H

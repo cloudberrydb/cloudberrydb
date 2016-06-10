@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		enum of traceflags which can be used in a task's context
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_traceflags_H
 #define GPOPT_traceflags_H

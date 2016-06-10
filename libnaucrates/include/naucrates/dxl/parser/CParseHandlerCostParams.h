@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Parse handler for cost model paerameters
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPDXL_CParseHandlerCostParams_H

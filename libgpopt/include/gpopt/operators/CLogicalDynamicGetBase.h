@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Base class for dynamic table accessors for partitioned tables
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CLogicalDynamicGetBase_H
 #define GPOPT_CLogicalDynamicGetBase_H

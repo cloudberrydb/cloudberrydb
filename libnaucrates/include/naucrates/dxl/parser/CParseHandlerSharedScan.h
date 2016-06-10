@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		SAX parse handler class for parsing shared scan operator nodes.
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPDXL_CParseHandlerSharedScan_H

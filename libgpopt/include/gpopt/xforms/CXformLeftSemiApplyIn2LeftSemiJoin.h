@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Turn Left Semi Apply with IN semantics into Left Semi Join
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CXformLeftSemiApplyIn2LeftSemiJoin_H
 #define GPOPT_CXformLeftSemiApplyIn2LeftSemiJoin_H

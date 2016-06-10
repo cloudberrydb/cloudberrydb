@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Tests for converting subquery expressions into Apply trees
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CSubqueryHandlerTest_H
 #define GPOPT_CSubqueryHandlerTest_H

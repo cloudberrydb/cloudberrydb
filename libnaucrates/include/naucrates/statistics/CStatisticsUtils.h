@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Utility functions for statistics
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CStatisticsUtils_H
 #define GPOPT_CStatisticsUtils_H

@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		GPDB-specific Int8 representation
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPNAUCRATES_CDatumInt8GPDB_H
 #define GPNAUCRATES_CDatumInt8GPDB_H

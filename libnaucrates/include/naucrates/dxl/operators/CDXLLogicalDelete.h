@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Class for representing logical delete operator
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPDXL_CDXLLogicalDelete_H

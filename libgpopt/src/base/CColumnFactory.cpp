@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of column reference management
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

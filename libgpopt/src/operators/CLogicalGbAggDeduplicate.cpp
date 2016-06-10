@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of aggregate operator for deduplicating semijoin outputs
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

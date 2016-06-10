@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Derived required relational properties
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CReqdPropRelational_H
 #define GPOPT_CReqdPropRelational_H

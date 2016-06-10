@@ -8,13 +8,6 @@
 //	@doc:
 //		Physical Left Semi NLJ operator capturing correlated execution
 //		with IN/ANY semantics
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CPhysicalCorrelatedInLeftSemiNLJoin_H
 #define GPOPT_CPhysicalCorrelatedInLeftSemiNLJoin_H

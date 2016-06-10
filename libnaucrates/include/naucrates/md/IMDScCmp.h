@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Interface for scalar comparison operators in the MD cache
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 

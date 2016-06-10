@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of predicate normalization
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of hash aggregation operator
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

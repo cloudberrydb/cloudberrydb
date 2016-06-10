@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of logical join class
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

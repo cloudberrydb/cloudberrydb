@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Base class for all scalar operators
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CScalar_H
 #define GPOPT_CScalar_H

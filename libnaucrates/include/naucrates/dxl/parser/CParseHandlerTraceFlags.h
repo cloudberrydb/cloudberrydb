@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		SAX parse handler class for parsing a set of traceflags
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPDXL_CParseHandlerTraceFlags_H

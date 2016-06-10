@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Simplify Left Outer Join with constant false predicate
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CXformSimplifyLeftOuterJoin_H
 #define GPOPT_CXformSimplifyLeftOuterJoin_H

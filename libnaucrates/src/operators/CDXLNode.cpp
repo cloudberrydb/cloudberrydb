@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of DXL nodes
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "naucrates/dxl/operators/CDXLNode.h"

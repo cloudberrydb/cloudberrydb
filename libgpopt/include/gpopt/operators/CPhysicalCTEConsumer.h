@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Physical CTE consumer operator
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CPhysicalCTEConsumer_H
 #define GPOPT_CPhysicalCTEConsumer_H

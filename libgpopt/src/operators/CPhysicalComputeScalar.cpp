@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of ComputeScalar operator
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

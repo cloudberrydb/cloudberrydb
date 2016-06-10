@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Transform Select to Apply
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CXformSelect2Apply_H
 #define GPOPT_CXformSelect2Apply_H

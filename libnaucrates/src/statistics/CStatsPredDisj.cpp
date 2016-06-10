@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of statistics Disjunctive filter
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "naucrates/statistics/CStatsPredDisj.h"

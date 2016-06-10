@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of DXL Part Bound expression
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "naucrates/dxl/operators/CDXLScalarPartBound.h"

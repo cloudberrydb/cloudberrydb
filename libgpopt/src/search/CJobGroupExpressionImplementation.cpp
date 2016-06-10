@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of group expression implementation job
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpopt/engine/CEngine.h"

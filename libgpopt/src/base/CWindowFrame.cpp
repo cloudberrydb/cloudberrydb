@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of window frame
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpopt/base/CWindowFrame.h"

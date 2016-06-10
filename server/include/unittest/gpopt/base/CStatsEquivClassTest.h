@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Testing the generation of equivalence class for the purposed of statistics
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CStatsEquivClassTest_H
 #define GPOPT_CStatsEquivClassTest_H

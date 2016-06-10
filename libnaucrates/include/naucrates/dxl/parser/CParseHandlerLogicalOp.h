@@ -8,13 +8,6 @@
 //	@doc:
 //		SAX parse handler class for parsing logical operators.
 //		
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPDXL_CParseHandlerLogicalOp_H

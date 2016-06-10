@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Factory methods for creating SAX parse handlers
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPDXL_CParseHandlerFactory_H

@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of basic index access
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

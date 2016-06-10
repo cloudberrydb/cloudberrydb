@@ -8,13 +8,6 @@
 //	@doc:
 //		Equivalence classes between columns for the purpose of statistic
 //		computation
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CStatsEquivClass_H
 #define GPOPT_CStatsEquivClass_H

@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Class for representing DXL scalar arrays
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPDXL_CDXLScalarArray_H

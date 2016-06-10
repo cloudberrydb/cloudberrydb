@@ -8,13 +8,6 @@
 //	@doc:
 //		Implementation of DXL logical CTE Consumer operator
 //		
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/string/CWStringDynamic.h"

@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Hash Aggregate operator
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOS_CPhysicalHashAgg_H
 #define GPOS_CPhysicalHashAgg_H

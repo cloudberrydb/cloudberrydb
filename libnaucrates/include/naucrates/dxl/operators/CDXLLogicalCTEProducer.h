@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Class for representing DXL logical CTE producer operators
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPDXL_CDXLLogicalCTEProducer_H
 #define GPDXL_CDXLLogicalCTEProducer_H

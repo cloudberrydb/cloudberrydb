@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Specification of partition propagation requirements
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/memory/CAutoMemoryPool.h"

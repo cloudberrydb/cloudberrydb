@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of trace flags routines
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of partition index map
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

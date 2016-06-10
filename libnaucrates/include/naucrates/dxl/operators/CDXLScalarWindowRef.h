@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Class for representing DXL scalar WindowRef
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPDXL_CDXLScalarWindowRef_H

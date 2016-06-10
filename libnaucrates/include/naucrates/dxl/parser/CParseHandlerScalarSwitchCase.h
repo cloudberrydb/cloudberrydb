@@ -8,13 +8,6 @@
 //	@doc:
 //
 //		SAX parse handler class for parsing a SwitchCase operator
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPDXL_CParseHandlerScalarSwitchCase_H
 #define GPDXL_CParseHandlerScalarSwitchCase_H

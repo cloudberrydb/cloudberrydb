@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of the dummy SAX parse handler class used for XSD validation.
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "naucrates/dxl/parser/CParseHandlerDummy.h"

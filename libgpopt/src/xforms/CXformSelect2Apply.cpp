@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of Select to Apply transform
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

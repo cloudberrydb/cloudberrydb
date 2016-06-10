@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of left semi correlated apply with IN semantics
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

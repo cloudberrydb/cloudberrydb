@@ -8,13 +8,6 @@
 //	@doc:
 //
 //		SAX parse handler class for parsing case test
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPDXL_CParseHandlerScalarCaseTest_H
 #define GPDXL_CParseHandlerScalarCaseTest_H

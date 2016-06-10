@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Class for scalar arrays
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CScalarArray_H
 #define GPOPT_CScalarArray_H

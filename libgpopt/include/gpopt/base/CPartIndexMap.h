@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Mapping of partition index to a manipulator type
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CPartIndexMap_H
 #define GPOPT_CPartIndexMap_H

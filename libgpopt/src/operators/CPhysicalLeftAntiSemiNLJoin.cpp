@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of left anti semi nested-loops join operator
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

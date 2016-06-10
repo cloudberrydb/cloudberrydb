@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of base nested-loops join operator
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

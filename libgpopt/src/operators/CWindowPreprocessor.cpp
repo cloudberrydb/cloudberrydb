@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Preprocessing routines of window functions
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

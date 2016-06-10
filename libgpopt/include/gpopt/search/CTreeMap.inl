@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of template functions for tree map
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CTreeMap_INL
 #define GPOPT_CTreeMap_INL

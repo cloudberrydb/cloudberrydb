@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of logical unary operators
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

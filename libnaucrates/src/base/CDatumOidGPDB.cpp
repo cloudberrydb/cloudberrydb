@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of GPDB oid datum
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

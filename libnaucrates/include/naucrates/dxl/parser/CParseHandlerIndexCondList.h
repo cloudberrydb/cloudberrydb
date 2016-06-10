@@ -8,13 +8,6 @@
 //	@doc:
 //		SAX parse handler class for parsing the list of index conditions in a
 //		index scan node
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPDXL_CParseHandlerIndexCondList_H

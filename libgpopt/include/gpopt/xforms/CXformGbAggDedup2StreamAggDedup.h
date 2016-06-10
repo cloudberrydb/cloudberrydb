@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Transform GbAggDeduplicate to StreamAggDeduplicate
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CXformGbAggDedup2StreamAggDedup_H
 #define GPOPT_CXformGbAggDedup2StreamAggDedup_H

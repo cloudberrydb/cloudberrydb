@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of TVF unnesting xform
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

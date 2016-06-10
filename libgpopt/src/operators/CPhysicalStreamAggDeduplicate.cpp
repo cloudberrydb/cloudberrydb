@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of stream aggregation operator for deduplicating join outputs
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

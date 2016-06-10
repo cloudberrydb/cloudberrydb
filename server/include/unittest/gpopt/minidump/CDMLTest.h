@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Test for optimizing DML queries
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CDMLTest_H
 #define GPOPT_CDMLTest_H

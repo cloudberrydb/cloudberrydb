@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Class for representing mdids of scalar comparison operators
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPMD_CMDIdScCmpFunc_H

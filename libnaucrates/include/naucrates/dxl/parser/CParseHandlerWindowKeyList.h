@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		SAX parse handler class for parsing the list of window keys
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPDXL_CParseHandlerWindowKeyList_H

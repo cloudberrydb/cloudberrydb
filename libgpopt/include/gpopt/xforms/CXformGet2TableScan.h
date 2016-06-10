@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Transform Get to TableScan
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CXformGet2TableScan_H
 #define GPOPT_CXformGet2TableScan_H

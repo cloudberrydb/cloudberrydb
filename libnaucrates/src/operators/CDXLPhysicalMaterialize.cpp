@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of DXL physical materialize operator
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 

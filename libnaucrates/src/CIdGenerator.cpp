@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementing the ULONG Counter
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "naucrates/dxl/CIdGenerator.h"

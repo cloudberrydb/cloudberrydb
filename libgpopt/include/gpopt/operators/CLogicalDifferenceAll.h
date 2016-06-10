@@ -8,13 +8,6 @@
 //	@doc:
 //		Logical Difference all operator (Difference all does not remove
 //		duplicates from the left child)
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CLogicalDifferenceAll_H
 #define GPOPT_CLogicalDifferenceAll_H

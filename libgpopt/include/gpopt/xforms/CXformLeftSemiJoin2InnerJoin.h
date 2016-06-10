@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Transform left semi join to inner join
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CXformLeftSemiJoin2InnerJoin_H
 #define GPOPT_CXformLeftSemiJoin2InnerJoin_H

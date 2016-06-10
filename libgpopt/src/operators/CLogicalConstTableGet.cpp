@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of const table access
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

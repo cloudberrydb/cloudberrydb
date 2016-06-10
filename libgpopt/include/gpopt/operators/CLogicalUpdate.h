@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Logical Update operator
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CLogicalUpdate_H
 #define GPOPT_CLogicalUpdate_H

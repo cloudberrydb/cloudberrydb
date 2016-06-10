@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of logging interface over communicator
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CLoggerComm_H
 #define GPOPT_CLoggerComm_H

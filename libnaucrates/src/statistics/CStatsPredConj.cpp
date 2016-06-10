@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of statistics Conjunctive filter
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "naucrates/statistics/CStatsPredConj.h"

@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of DXL AggRef
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "naucrates/dxl/operators/CDXLScalarAggref.h"

@@ -21,13 +21,6 @@
 //		The handler can also be used to always enforce generating correlated apply
 //		expressions, this behavior can be enforced by setting the flag
 //		fEnforceCorrelatedApply to true
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

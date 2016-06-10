@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of auto opt context
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

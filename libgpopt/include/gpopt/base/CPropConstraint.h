@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Representation of constraint property
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CPropConstraint_H
 #define GPOPT_CPropConstraint_H

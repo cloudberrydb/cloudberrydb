@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Base class for all transformations
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

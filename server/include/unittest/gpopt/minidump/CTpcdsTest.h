@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Test for optimizing TPC-DS queries
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CTpcdsTest_H
 #define GPOPT_CTpcdsTest_H

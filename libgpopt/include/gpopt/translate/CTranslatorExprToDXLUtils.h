@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Class providing helper methods for translating from Expr to DXL 
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CTranslatorExprToDXLUtils_H
 #define GPOPT_CTranslatorExprToDXLUtils_H

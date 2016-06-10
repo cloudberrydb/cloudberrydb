@@ -8,13 +8,6 @@
 //	@doc:
 //		
 //		SAX parse handler class for parsing If statement operator
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPDXL_CParseHandlerIfStmt_H
 #define GPDXL_CParseHandlerIfStmt_H

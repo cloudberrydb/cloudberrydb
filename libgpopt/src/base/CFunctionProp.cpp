@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of function properties
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

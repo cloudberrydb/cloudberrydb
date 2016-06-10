@@ -8,13 +8,6 @@
 //	@doc:
 //		Parse handler for parsing a physical CTE Consumer operator
 //		
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPDXL_CParseHandlerPhysicalCTEConsumer_H
 #define GPDXL_CParseHandlerPhysicalCTEConsumer_H

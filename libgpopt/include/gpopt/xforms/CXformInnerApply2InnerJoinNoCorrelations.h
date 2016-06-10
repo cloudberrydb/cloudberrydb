@@ -8,13 +8,6 @@
 //	@doc:
 //		Turn inner Apply into Inner Join when Apply's inner child has no
 //		correlations
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CXformInnerApply2InnerJoinNoCorrelations_H
 #define GPOPT_CXformInnerApply2InnerJoinNoCorrelations_H

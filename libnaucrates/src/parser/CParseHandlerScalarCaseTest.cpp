@@ -8,13 +8,6 @@
 //	@doc:
 //
 //		Implementation of the SAX parse handler class for a case test
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "naucrates/dxl/parser/CParseHandlerFactory.h"

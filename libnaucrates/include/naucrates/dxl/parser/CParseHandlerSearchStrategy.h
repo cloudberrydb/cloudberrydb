@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Parse handler for search strategy
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPDXL_CParseHandlerSearchStrategy_H

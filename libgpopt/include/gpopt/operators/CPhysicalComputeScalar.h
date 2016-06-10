@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		ComputeScalar operator
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CPhysicalComputeScalar_H
 #define GPOPT_CPhysicalComputeScalar_H

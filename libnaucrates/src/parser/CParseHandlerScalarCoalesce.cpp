@@ -8,13 +8,6 @@
 //	@doc:
 //
 //		Implementation of the SAX parse handler class for a coalesce operator
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 

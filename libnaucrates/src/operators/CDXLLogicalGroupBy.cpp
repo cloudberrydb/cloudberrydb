@@ -8,13 +8,6 @@
 //	@doc:
 //		Implementation of DXL logical group by operator
 //		
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "naucrates/dxl/operators/CDXLLogicalGroupBy.h"

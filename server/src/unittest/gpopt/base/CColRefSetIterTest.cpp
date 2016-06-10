@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Test of ColRefSet iterator
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpopt/base/CColumnFactory.h"

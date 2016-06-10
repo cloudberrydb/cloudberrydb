@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Class for representing DXL BoolExpr
-//		
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPDXL_CDXLScalarBoolExpr_H

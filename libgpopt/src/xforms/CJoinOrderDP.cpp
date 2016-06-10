@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of dynamic programming-based join order generation
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Logical CTE anchor operator
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CLogicalCTEAnchor_H
 #define GPOPT_CLogicalCTEAnchor_H

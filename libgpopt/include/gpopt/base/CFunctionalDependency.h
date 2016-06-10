@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Functional dependency representation
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CFunctionalDependency_H
 #define GPOPT_CFunctionalDependency_H

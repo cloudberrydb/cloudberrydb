@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Derived physical properties
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CDrvdPropPlan_H
 #define GPOPT_CDrvdPropPlan_H

@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		GPDB-specific bool representation
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPNAUCRATES_CDatumBoolGPDB_H
 #define GPNAUCRATES_CDatumBoolGPDB_H

@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Transform Sequence Project to Apply
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CXformSequenceProject2Apply_H
 #define GPOPT_CXformSequenceProject2Apply_H

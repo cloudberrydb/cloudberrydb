@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of DXL Part Default expression
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "naucrates/dxl/operators/CDXLScalarPartDefault.h"

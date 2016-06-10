@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Scalar subquery EXISTS operator
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CScalarSubqueryExists_H
 #define GPOPT_CScalarSubqueryExists_H

@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Class for representing DXL bitmap index probe operators
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "naucrates/dxl/operators/CDXLIndexDescr.h"

@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Basic index accessor
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CLogicalIndexGet_H
 #define GPOPT_CLogicalIndexGet_H

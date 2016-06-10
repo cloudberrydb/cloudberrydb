@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Class for representing DXL physical CTE Consumer operators
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPDXL_CDXLPhysicalCTEConsumer_H
 #define GPDXL_CDXLPhysicalCTEConsumer_H

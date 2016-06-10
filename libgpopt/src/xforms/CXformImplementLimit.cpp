@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of limit operator
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

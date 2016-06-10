@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of rewindability property
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

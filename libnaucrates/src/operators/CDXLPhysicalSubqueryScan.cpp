@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of DXL physical subquery scan operators
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 

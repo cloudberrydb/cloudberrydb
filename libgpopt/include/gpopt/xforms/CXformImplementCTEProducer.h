@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Transform Logical CTE Producer to Physical CTE Producer
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CXformImplementCTEProducer_H
 #define GPOPT_CXformImplementCTEProducer_H

@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Class for representing DXL bitmap table scan operators.
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPDXL_CDXLPhysicalBitmapTableScan_H

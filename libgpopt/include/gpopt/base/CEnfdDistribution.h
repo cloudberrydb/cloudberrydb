@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Enforceable distribution property
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CEnfdDistribution_H
 #define GPOPT_CEnfdDistribution_H

@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Utility functions for computing scale factors used in stats computation
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CScaleFactorUtils_H
 #define GPOPT_CScaleFactorUtils_H

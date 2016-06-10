@@ -8,13 +8,6 @@
 //	@doc:
 //		Parse handler for parsing a logical window operator
 //		
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPDXL_CParseHandlerLogicalWindow_H
 #define GPDXL_CParseHandlerLogicalWindow_H

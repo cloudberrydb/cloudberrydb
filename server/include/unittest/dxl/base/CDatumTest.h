@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Test for datum classes
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPNAUCRATES_CDatumTest_H
 #define GPNAUCRATES_CDatumTest_H

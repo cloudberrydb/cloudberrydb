@@ -8,13 +8,6 @@
 //	@doc:
 //		Logical partition selector operator. This is used for DML
 //		on partitioned tables
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CLogicalPartitionSelector_H
 #define GPOPT_CLogicalPartitionSelector_H

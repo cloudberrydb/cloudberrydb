@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Physical dynamic index scan operators on partitioned tables
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CPhysicalDynamicIndexScan_H
 #define GPOPT_CPhysicalDynamicIndexScan_H

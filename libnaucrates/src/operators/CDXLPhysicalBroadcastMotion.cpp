@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of DXL physical broadcast motion operator
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 

@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Class for representing DXL physical CTAS operators
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPDXL_CDXLPhysicalCTAS_H
 #define GPDXL_CDXLPhysicalCTAS_H

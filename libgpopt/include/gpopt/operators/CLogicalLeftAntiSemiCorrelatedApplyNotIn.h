@@ -10,13 +10,6 @@
 //		a variant of left anti semi apply (for ALL/NOT IN subqueries)
 //		to capture the need to implement a correlated-execution strategy
 //		on the physical side
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CLogicalLeftAntiSemiCorrelatedApplyNotIn_H
 #define GPOPT_CLogicalLeftAntiSemiCorrelatedApplyNotIn_H

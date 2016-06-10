@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Pass-through parse handler class for stack traces
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPDXL_CParseHandlerStacktrace_H

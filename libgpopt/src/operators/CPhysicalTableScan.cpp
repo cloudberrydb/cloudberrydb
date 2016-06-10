@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of basic table scan operator
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

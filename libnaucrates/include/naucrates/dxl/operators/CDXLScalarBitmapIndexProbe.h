@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Class for representing DXL bitmap index probe operators
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPDXL_CDXLScalarBitmapIndexProbe_H

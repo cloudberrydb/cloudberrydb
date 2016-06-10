@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Test for CColumnDescriptor
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CColumnDescriptorTest_H
 #define GPOPT_CColumnDescriptorTest_H

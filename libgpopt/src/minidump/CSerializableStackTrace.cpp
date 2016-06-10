@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Serializable stack trace object
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

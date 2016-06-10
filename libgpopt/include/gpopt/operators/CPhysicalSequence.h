@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Physical sequence operator
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CPhysicalSequence_H
 #define GPOPT_CPhysicalSequence_H

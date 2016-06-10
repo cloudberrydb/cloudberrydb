@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of union all operator
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

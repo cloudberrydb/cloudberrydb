@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implement group job
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CJobGroupImplementation_H
 #define GPOPT_CJobGroupImplementation_H

@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of select over a partitioned table to a dynamic index get
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

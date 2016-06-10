@@ -9,13 +9,6 @@
 //		Logical Inner Correlated Apply operator;
 //		a variant of inner apply that captures the need to implement a
 //		correlated-execution strategy on the physical side
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CLogicalInnerCorrelatedApply_H
 #define GPOPT_CLogicalInnerCorrelatedApply_H

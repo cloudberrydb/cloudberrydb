@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		SAX parse handler class for parsing a list of metadata identifiers
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPDXL_CParseHandlerMetadataIdList_H

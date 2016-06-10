@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Class for scalar function calls
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CScalarFunc_H
 #define GPOPT_CScalarFunc_H

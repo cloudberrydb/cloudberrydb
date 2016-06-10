@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of DXL-specific minidump handler
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

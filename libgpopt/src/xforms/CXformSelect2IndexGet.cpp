@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of select over a table to an index get transformation
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

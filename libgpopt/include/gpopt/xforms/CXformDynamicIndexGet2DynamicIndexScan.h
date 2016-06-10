@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Transform DynamicIndexGet to DynamicIndexScan
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CXformDynamicIndexGet2DynamicIndexScan_H
 #define GPOPT_CXformDynamicIndexGet2DynamicIndexScan_H

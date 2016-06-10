@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Class representing buckets in a DXL column stats histogram
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 

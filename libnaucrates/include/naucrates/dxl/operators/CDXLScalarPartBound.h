@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Class for representing DXL Part boundary expressions
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPDXL_CDXLScalarPartBound_H

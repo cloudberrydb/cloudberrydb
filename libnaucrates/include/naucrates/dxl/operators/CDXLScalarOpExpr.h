@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Class for representing DXL scalar OpExpr such as A.a1 + (B.b1 * C.c1)
-//		
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPDXL_CDXLScalarOpExpr_H

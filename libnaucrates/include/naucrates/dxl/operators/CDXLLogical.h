@@ -8,13 +8,6 @@
 //	@doc:
 //		Base class for DXL logical operators.
 //		
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPDXL_CDXLLogical_H

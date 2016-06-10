@@ -9,13 +9,6 @@
 //		Logical Left Semi Correlated Apply operator;
 //		a variant of left semi apply that captures the need to implement a
 //		correlated-execution strategy on the physical side
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CLogicalLeftSemiCorrelatedApplyIn_H
 #define GPOPT_CLogicalLeftSemiCorrelatedApplyIn_H

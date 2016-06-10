@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of DXL hash condition lists for hash join operators
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #include "naucrates/dxl/operators/CDXLScalarHashCondList.h"
 

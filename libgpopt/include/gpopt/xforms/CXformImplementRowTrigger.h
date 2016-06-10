@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Transform Logical Row Trigger to Physical Row Trigger
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CXformImplementRowTrigger_H
 #define GPOPT_CXformImplementRowTrigger_H

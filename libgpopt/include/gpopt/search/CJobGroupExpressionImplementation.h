@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Explore group expression job
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CJobGroupExpressionImplementation_H
 #define GPOPT_CJobGroupExpressionImplementation_H

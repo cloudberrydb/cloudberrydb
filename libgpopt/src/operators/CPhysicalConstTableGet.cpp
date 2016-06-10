@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of physical const table get operator
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"
