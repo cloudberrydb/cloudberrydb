@@ -155,6 +155,7 @@ add_library(naucrates SHARED
             src/operators/CDXLScalarCast.cpp
             src/operators/CDXLScalarCoalesce.cpp
             src/operators/CDXLScalarCoerceToDomain.cpp
+            src/operators/CDXLScalarCoerceViaIO.cpp
             src/operators/CDXLScalarComp.cpp
             src/operators/CDXLScalarConstValue.cpp
             src/operators/CDXLScalarDistinctComp.cpp
@@ -323,6 +324,7 @@ add_library(naucrates SHARED
             src/parser/CParseHandlerScalarCast.cpp
             src/parser/CParseHandlerScalarCoalesce.cpp
             src/parser/CParseHandlerScalarCoerceToDomain.cpp
+            src/parser/CParseHandlerScalarCoerceViaIO.cpp
             src/parser/CParseHandlerScalarComp.cpp
             src/parser/CParseHandlerScalarConstValue.cpp
             src/parser/CParseHandlerScalarDMLAction.cpp

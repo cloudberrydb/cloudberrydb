@@ -3,26 +3,22 @@
 //	Copyright (C) 2014 Pivotal Inc.
 //
 //	@filename:
-//		CDXLScalarCoerceToDomain.h
+//		CDXLScalarCoerceViaIO.h
 //
 //	@doc:
-//		Class for representing DXL CoerceToDomain operation,
-//		the operator captures coercing a value to a domain type,
-//
-//		at runtime, the precise set of constraints to be checked against
-//		value are determined,
-//		if the value passes, it is returned as the result, otherwise an error
-//		is raised.
+//		Class for representing DXL CoerceViaIO operation,
+//		the operator captures coercing a value from one type to another, by
+//		calling the output function of the argument type, and passing the
+//		result to the input function of the result type.
 //
 //	@owner:
-//		
 //
 //	@test:
 //
 //---------------------------------------------------------------------------
 
-#ifndef GPDXL_CDXLScalarCoerceToDomain_H
-#define GPDXL_CDXLScalarCoerceToDomain_H
+#ifndef GPDXL_CDXLScalarCoerceViaIO_H
+#define GPDXL_CDXLScalarCoerceViaIO_H
 
 #include "gpos/base.h"
 #include "naucrates/dxl/operators/CDXLScalar.h"
@@ -35,13 +31,13 @@ namespace gpdxl
 
 	//---------------------------------------------------------------------------
 	//	@class:
-	//		CDXLScalarCoerceToDomain
+	//		CDXLScalarCoerceViaIO
 	//
 	//	@doc:
 	//		Class for representing DXL casting operator
 	//
 	//---------------------------------------------------------------------------
-	class CDXLScalarCoerceToDomain : public CDXLScalar
+	class CDXLScalarCoerceViaIO : public CDXLScalar
 	{
 
 		private:
@@ -59,11 +55,11 @@ namespace gpdxl
 			INT m_iLoc;
 
 			// private copy ctor
-			CDXLScalarCoerceToDomain(const CDXLScalarCoerceToDomain&);
+			CDXLScalarCoerceViaIO(const CDXLScalarCoerceViaIO&);
 
 		public:
 			// ctor/dtor
-			CDXLScalarCoerceToDomain
+			CDXLScalarCoerceViaIO
 				(
 				IMemoryPool *pmp,
 				IMDId *pmdidType,
@@ -73,13 +69,13 @@ namespace gpdxl
 				);
 
 			virtual
-			~CDXLScalarCoerceToDomain();
+			~CDXLScalarCoerceViaIO();
 
 			// ident accessor
 			virtual
 			Edxlopid Edxlop() const
 			{
-				return EdxlopScalarCoerceToDomain;
+				return EdxlopScalarCoerceViaIO;
 			}
 
 			// return result type
@@ -117,15 +113,15 @@ namespace gpdxl
 
 			// conversion function
 			static
-			CDXLScalarCoerceToDomain *PdxlopConvert
+			CDXLScalarCoerceViaIO *PdxlopConvert
 				(
 				CDXLOperator *pdxlop
 				)
 			{
 				GPOS_ASSERT(NULL != pdxlop);
-				GPOS_ASSERT(EdxlopScalarCoerceToDomain == pdxlop->Edxlop());
+				GPOS_ASSERT(EdxlopScalarCoerceViaIO == pdxlop->Edxlop());
 
-				return dynamic_cast<CDXLScalarCoerceToDomain*>(pdxlop);
+				return dynamic_cast<CDXLScalarCoerceViaIO*>(pdxlop);
 			}
 
 #ifdef GPOS_DEBUG
@@ -141,6 +137,6 @@ namespace gpdxl
 	};
 }
 
-#endif // !GPDXL_CDXLScalarCoerceToDomain_H
+#endif // !GPDXL_CDXLScalarCoerceViaIO_H
 
 // EOF

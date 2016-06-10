@@ -1041,14 +1041,14 @@ CDXLOperatorFactory::PdxlopCast
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CDXLOperatorFactory::PdxlopCoerce
+//		CDXLOperatorFactory::PdxlopCoerceToDomain
 //
 //	@doc:
 //		Construct a scalar coerce
 //
 //---------------------------------------------------------------------------
 CDXLScalar *
-CDXLOperatorFactory::PdxlopCoerce
+CDXLOperatorFactory::PdxlopCoerceToDomain
 	(
 	CDXLMemoryManager *pmm,
 	const Attributes &attrs
@@ -1064,6 +1064,33 @@ CDXLOperatorFactory::PdxlopCoerce
 	INT iLoc = IValueFromAttrs(pmm, attrs, EdxltokenLocation, EdxltokenScalarCoerceToDomain);
 
 	return GPOS_NEW(pmp) CDXLScalarCoerceToDomain(pmp, pmdidType, iMod, (EdxlCoercionForm) ulCoercionForm, iLoc);
+}
+
+//---------------------------------------------------------------------------
+//	@function:
+//		CDXLOperatorFactory::PdxlopCoerceViaIO
+//
+//	@doc:
+//		Construct a scalar coerce
+//
+//---------------------------------------------------------------------------
+CDXLScalar *
+CDXLOperatorFactory::PdxlopCoerceViaIO
+	(
+	CDXLMemoryManager *pmm,
+	const Attributes &attrs
+	)
+{
+	// get the memory pool from the memory manager
+	IMemoryPool *pmp = pmm->Pmp();
+
+	// parse type id and function id
+	IMDId *pmdidType = PmdidFromAttrs(pmm, attrs, EdxltokenTypeId, EdxltokenScalarCoerceViaIO);
+	INT iMod = IValueFromAttrs(pmm, attrs, EdxltokenTypeMod, EdxltokenScalarCoerceViaIO);
+	ULONG ulCoercionForm = UlValueFromAttrs(pmm, attrs, EdxltokenCoercionForm, EdxltokenScalarCoerceViaIO);
+	INT iLoc = IValueFromAttrs(pmm, attrs, EdxltokenLocation, EdxltokenScalarCoerceViaIO);
+
+	return GPOS_NEW(pmp) CDXLScalarCoerceViaIO(pmp, pmdidType, iMod, (EdxlCoercionForm) ulCoercionForm, iLoc);
 }
 
 //---------------------------------------------------------------------------

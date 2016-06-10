@@ -154,6 +154,7 @@ CTranslatorExprToDXL::InitScalarTranslators()
 			{COperator::EopScalarMinMax, &gpopt::CTranslatorExprToDXL::PdxlnScMinMax},
 			{COperator::EopScalarCast, &gpopt::CTranslatorExprToDXL::PdxlnScCast},
 			{COperator::EopScalarCoerceToDomain, &gpopt::CTranslatorExprToDXL::PdxlnScCoerceToDomain},
+			{COperator::EopScalarCoerceViaIO, &gpopt::CTranslatorExprToDXL::PdxlnScCoerceViaIO},
 			{COperator::EopScalarArray, &gpopt::CTranslatorExprToDXL::PdxlnArray},
 			{COperator::EopScalarArrayCmp, &gpopt::CTranslatorExprToDXL::PdxlnArrayCmp},
 			{COperator::EopScalarArrayRef, &gpopt::CTranslatorExprToDXL::PdxlnArrayRef},
@@ -6269,6 +6270,51 @@ CTranslatorExprToDXL::PdxlnScCoerceToDomain
 			(
 			m_pmp,
 			GPOS_NEW(m_pmp) CDXLScalarCoerceToDomain
+					(
+					m_pmp,
+					pmdid,
+					popScCerce->IMod(),
+					(EdxlCoercionForm) popScCerce->Ecf(), // map Coercion Form directly based on position in enum
+					popScCerce->ILoc()
+					)
+			);
+
+	// translate child
+	GPOS_ASSERT(1 == pexprCoerce->UlArity());
+	CExpression *pexprChild = (*pexprCoerce)[0];
+	CDXLNode *pdxlnChild = PdxlnScalar(pexprChild);
+	pdxlnCoerce->AddChild(pdxlnChild);
+
+	return pdxlnCoerce;
+}
+
+
+//---------------------------------------------------------------------------
+//	@function:
+//		CTranslatorExprToDXL::PdxlnScCoerceViaIO
+//
+//	@doc:
+//		Create a DXL scalar coerce node from an optimizer scalar coerce expr.
+//
+//---------------------------------------------------------------------------
+CDXLNode *
+CTranslatorExprToDXL::PdxlnScCoerceViaIO
+	(
+	CExpression *pexprCoerce
+	)
+{
+	GPOS_ASSERT(NULL != pexprCoerce);
+	CScalarCoerceViaIO *popScCerce = CScalarCoerceViaIO::PopConvert(pexprCoerce->Pop());
+
+	IMDId *pmdid = popScCerce->PmdidType();
+	pmdid->AddRef();
+
+
+	CDXLNode *pdxlnCoerce =
+		GPOS_NEW(m_pmp) CDXLNode
+			(
+			m_pmp,
+			GPOS_NEW(m_pmp) CDXLScalarCoerceViaIO
 					(
 					m_pmp,
 					pmdid,

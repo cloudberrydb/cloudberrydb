@@ -3,14 +3,13 @@
 //	Copyright (C) 2014 Pivotal Inc.
 //
 //	@filename:
-//		CParseHandlerScalarCoerceToDomain.cpp
+//		CParseHandlerScalarCoerceViaIO.cpp
 //
 //	@doc:
 //
 //		Implementation of the SAX parse handler class for parsing scalar coerce operator.
 //
 //	@owner:
-//		
 //
 //	@test:
 //
@@ -22,7 +21,7 @@
 #include "naucrates/dxl/CDXLUtils.h"
 #include "naucrates/dxl/operators/CDXLOperatorFactory.h"
 
-#include "naucrates/dxl/parser/CParseHandlerScalarCoerceToDomain.h"
+#include "naucrates/dxl/parser/CParseHandlerScalarCoerceViaIO.h"
 
 
 using namespace gpdxl;
@@ -32,13 +31,13 @@ XERCES_CPP_NAMESPACE_USE
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CParseHandlerScalarCoerceToDomain::CParseHandlerScalarCoerceToDomain
+//		CParseHandlerScalarCoerceViaIO::CParseHandlerScalarCoerceViaIO
 //
 //	@doc:
 //		Ctor
 //
 //---------------------------------------------------------------------------
-CParseHandlerScalarCoerceToDomain::CParseHandlerScalarCoerceToDomain
+CParseHandlerScalarCoerceViaIO::CParseHandlerScalarCoerceViaIO
 	(
 	IMemoryPool *pmp,
 	CParseHandlerManager *pphm,
@@ -51,14 +50,14 @@ CParseHandlerScalarCoerceToDomain::CParseHandlerScalarCoerceToDomain
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CParseHandlerScalarCoerceToDomain::StartElement
+//		CParseHandlerScalarCoerceViaIO::StartElement
 //
 //	@doc:
 //		Processes a Xerces start element event
 //
 //---------------------------------------------------------------------------
 void
-CParseHandlerScalarCoerceToDomain::StartElement
+CParseHandlerScalarCoerceViaIO::StartElement
 	(
 	const XMLCh* const, // xmlszUri,
 	const XMLCh* const xmlszLocalname,
@@ -66,7 +65,7 @@ CParseHandlerScalarCoerceToDomain::StartElement
 	const Attributes& attrs
 	)
 {
-	if(0 == XMLString::compareString(CDXLTokens::XmlstrToken(EdxltokenScalarCoerceToDomain), xmlszLocalname))
+	if(0 == XMLString::compareString(CDXLTokens::XmlstrToken(EdxltokenScalarCoerceViaIO), xmlszLocalname))
 	{
 		if (NULL != m_pdxln)
 		{
@@ -75,7 +74,7 @@ CParseHandlerScalarCoerceToDomain::StartElement
 		}
 
 		// parse and create scalar coerce
-		CDXLScalarCoerceToDomain *pdxlop = (CDXLScalarCoerceToDomain*) CDXLOperatorFactory::PdxlopCoerceToDomain(m_pphm->Pmm(), attrs);
+		CDXLScalarCoerceViaIO *pdxlop = (CDXLScalarCoerceViaIO*) CDXLOperatorFactory::PdxlopCoerceViaIO(m_pphm->Pmm(), attrs);
 
 		m_pdxln = GPOS_NEW(m_pmp) CDXLNode(m_pmp, pdxlop);
 
@@ -95,21 +94,21 @@ CParseHandlerScalarCoerceToDomain::StartElement
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CParseHandlerScalarCoerceToDomain::EndElement
+//		CParseHandlerScalarCoerceViaIO::EndElement
 //
 //	@doc:
 //		Processes a Xerces end element event
 //
 //---------------------------------------------------------------------------
 void
-CParseHandlerScalarCoerceToDomain::EndElement
+CParseHandlerScalarCoerceViaIO::EndElement
 	(
 	const XMLCh* const, // xmlszUri,
 	const XMLCh* const xmlszLocalname,
 	const XMLCh* const // xmlszQname
 	)
 {
-	if(0 != XMLString::compareString(CDXLTokens::XmlstrToken(EdxltokenScalarCoerceToDomain), xmlszLocalname))
+	if(0 != XMLString::compareString(CDXLTokens::XmlstrToken(EdxltokenScalarCoerceViaIO), xmlszLocalname))
 	{
 		CWStringDynamic *pstr = CDXLUtils::PstrFromXMLCh(m_pphm->Pmm(), xmlszLocalname);
 		GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiDXLUnexpectedTag, pstr->Wsz());

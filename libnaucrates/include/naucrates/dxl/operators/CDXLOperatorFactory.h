@@ -323,7 +323,11 @@ namespace gpdxl
 
 			// create a coerce
 			static
-			CDXLScalar *PdxlopCoerce(CDXLMemoryManager *pmm, const Attributes &attrs);
+			CDXLScalar *PdxlopCoerceToDomain(CDXLMemoryManager *pmm, const Attributes &attrs);
+
+			// create a CoerceViaIo
+			static
+			CDXLScalar *PdxlopCoerceViaIO(CDXLMemoryManager *pmm, const Attributes &attrs);
 
 			// create a scalar identifier operator
 			static

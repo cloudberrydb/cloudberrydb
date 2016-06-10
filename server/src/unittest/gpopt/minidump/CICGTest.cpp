@@ -217,6 +217,7 @@ const CHAR *rgszFileNames[] =
 		"../data/dxl/minidump/EffectsOfJoinFilter.mdp",
 		"../data/dxl/minidump/Join-IDF.mdp",
 		"../data/dxl/minidump/CoerceToDomain.mdp",
+		"../data/dxl/minidump/CoerceViaIO.mdp",
 		"../data/dxl/minidump/LeftOuter2InnerUnionAllAntiSemiJoin.mdp",
 #ifndef GPOS_DEBUG
 		// TODO:  - Jul 14 2015; disabling it for debug build to reduce testing time

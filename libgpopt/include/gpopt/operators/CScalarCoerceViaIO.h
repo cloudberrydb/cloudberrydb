@@ -3,27 +3,22 @@
 //	Copyright (C) 2014 Pivotal Inc.
 //
 //	@filename:
-//		CScalarCoerceToDomain.h
+//		CScalarCoerceViaIO.h
 //
 //	@doc:
-//		Scalar CoerceToDomain operator,
-//		the operator captures coercing a value to a domain type,
-//
-//		at runtime, the precise set of constraints to be checked against
-//		value are determined,
-//		if the value passes, it is returned as the result, otherwise an error
-//		is raised.
-
+//		Scalar CoerceViaIO operator,
+//		the operator captures coercing a value from one type to another, by
+//		calling the output function of the argument type, and passing the
+//		result to the input function of the result type.
 //
 //	@owner:
-//		
 //
 //	@test:
 //
 //
 //---------------------------------------------------------------------------
-#ifndef GPOPT_CScalarCoerceToDomain_H
-#define GPOPT_CScalarCoerceToDomain_H
+#ifndef GPOPT_CScalarCoerceViaIO_H
+#define GPOPT_CScalarCoerceViaIO_H
 
 #include "gpos/base.h"
 #include "gpopt/base/COptCtxt.h"
@@ -36,13 +31,13 @@ namespace gpopt
 
 	//---------------------------------------------------------------------------
 	//	@class:
-	//		CScalarCoerceToDomain
+	//		CScalarCoerceViaIO
 	//
 	//	@doc:
-	//		Scalar CoerceToDomain operator
+	//		Scalar CoerceViaIO operator
 	//
 	//---------------------------------------------------------------------------
-	class CScalarCoerceToDomain : public CScalar
+	class CScalarCoerceViaIO : public CScalar
 	{
 
 		private:
@@ -59,16 +54,13 @@ namespace gpopt
 			// location of token to be coerced
 			INT m_iLoc;
 
-			// does operator return NULL on NULL input?
-			BOOL m_fReturnsNullOnNullInput;
-
 			// private copy ctor
-			CScalarCoerceToDomain(const CScalarCoerceToDomain &);
+			CScalarCoerceViaIO(const CScalarCoerceViaIO &);
 
 		public:
 
 			// ctor
-			CScalarCoerceToDomain
+			CScalarCoerceViaIO
 				(
 				IMemoryPool *pmp,
 				IMDId *pmdidType,
@@ -79,7 +71,7 @@ namespace gpopt
 
 			// dtor
 			virtual
-			~CScalarCoerceToDomain()
+			~CScalarCoerceViaIO()
 			{
 				m_pmdidResultType->Release();
 			}
@@ -112,14 +104,14 @@ namespace gpopt
 			virtual
 			EOperatorId Eopid() const
 			{
-				return EopScalarCoerceToDomain;
+				return EopScalarCoerceViaIO;
 			}
 
 			// return a string for operator name
 			virtual
 			const CHAR *SzId() const
 			{
-				return "CScalarCoerceToDomain";
+				return "CScalarCoerceViaIO";
 			}
 
 			// match function
@@ -145,28 +137,24 @@ namespace gpopt
 				return PopCopyDefault();
 			}
 
-			// boolean expression evaluation
-			virtual
-			EBoolEvalResult Eber(DrgPul *pdrgpulChildren) const;
-
 			// conversion function
 			static
-			CScalarCoerceToDomain *PopConvert
+			CScalarCoerceViaIO *PopConvert
 				(
 				COperator *pop
 				)
 			{
 				GPOS_ASSERT(NULL != pop);
-				GPOS_ASSERT(EopScalarCoerceToDomain == pop->Eopid());
+				GPOS_ASSERT(EopScalarCoerceViaIO == pop->Eopid());
 
-				return dynamic_cast<CScalarCoerceToDomain*>(pop);
+				return dynamic_cast<CScalarCoerceViaIO*>(pop);
 			}
 
-	}; // class CScalarCoerceToDomain
+	}; // class CScalarCoerceViaIO
 
 }
 
 
-#endif // !GPOPT_CScalarCoerceToDomain_H
+#endif // !GPOPT_CScalarCoerceViaIO_H
 
 // EOF

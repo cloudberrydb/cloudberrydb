@@ -233,6 +233,7 @@ add_library(gpopt SHARED
             src/operators/CScalarCmp.cpp
             src/operators/CScalarCoalesce.cpp
             src/operators/CScalarCoerceToDomain.cpp
+            src/operators/CScalarCoerceViaIO.cpp
             src/operators/CScalarConst.cpp
             src/operators/CScalarDMLAction.cpp
             src/operators/CScalarFunc.cpp

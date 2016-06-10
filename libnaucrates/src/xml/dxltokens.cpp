@@ -209,6 +209,7 @@ CDXLTokens::Init
 			{EdxltokenScalarProjElem, GPOS_WSZ_LIT("ProjElem")},
 			{EdxltokenScalarCast, GPOS_WSZ_LIT("Cast")},
 			{EdxltokenScalarCoerceToDomain, GPOS_WSZ_LIT("CoerceToDomain")},
+			{EdxltokenScalarCoerceViaIO, GPOS_WSZ_LIT("CoerceViaIO")},
 			{EdxltokenScalarSortCol, GPOS_WSZ_LIT("SortingColumn")},
 			{EdxltokenScalarSortColList, GPOS_WSZ_LIT("SortingColumnList")},
 			{EdxltokenScalarGroupingColList, GPOS_WSZ_LIT("GroupingColumns")},

@@ -98,6 +98,7 @@
 #include "naucrates/dxl/operators/CDXLScalarNullTest.h"
 #include "naucrates/dxl/operators/CDXLScalarCast.h"
 #include "naucrates/dxl/operators/CDXLScalarCoerceToDomain.h"
+#include "naucrates/dxl/operators/CDXLScalarCoerceViaIO.h"
 #include "naucrates/dxl/operators/CDXLScalarBooleanTest.h"
 #include "naucrates/dxl/operators/CDXLScalarInitPlan.h"
 #include "naucrates/dxl/operators/CDXLScalarArray.h"

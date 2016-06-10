@@ -105,6 +105,7 @@ namespace gpdxl
 		EdxlopScalarNullIf,
 		EdxlopScalarCast,
 		EdxlopScalarCoerceToDomain,
+		EdxlopScalarCoerceViaIO,
 		EdxlopScalarAggref,
 		EdxlopScalarArrayComp,
 		EdxlopScalarBooleanTest,
@@ -199,6 +200,15 @@ namespace gpdxl
 		EdxlisdNoMovement,
 
 		EdxlisdSentinel
+	};
+
+	// coercion form
+	enum EdxlCoercionForm
+	{
+		EdxlcfExplicitCall,		// display as a function call
+		EdxlcfExplicitCast,		// display as an explicit cast
+		EdxlcfImplicitCast,		// implicit cast, so hide it
+		EdxlcfDontCare			// don't care about display
 	};
 
 	//---------------------------------------------------------------------------

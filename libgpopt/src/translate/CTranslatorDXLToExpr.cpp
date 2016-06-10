@@ -181,6 +181,7 @@ CTranslatorDXLToExpr::InitTranslators()
 		{EdxlopScalarCoalesce, 		&gpopt::CTranslatorDXLToExpr::PexprScalarCoalesce},
 		{EdxlopScalarCast, 			&gpopt::CTranslatorDXLToExpr::PexprScalarCast},
 		{EdxlopScalarCoerceToDomain,&gpopt::CTranslatorDXLToExpr::PexprScalarCoerceToDomain},
+		{EdxlopScalarCoerceViaIO,	&gpopt::CTranslatorDXLToExpr::PexprScalarCoerceViaIO},
 		{EdxlopScalarSubquery, 		&gpopt::CTranslatorDXLToExpr::PexprScalarSubquery},
 		{EdxlopScalarSubqueryAny, 	&gpopt::CTranslatorDXLToExpr::PexprScalarSubqueryQuantified},
 		{EdxlopScalarSubqueryAll, 	&gpopt::CTranslatorDXLToExpr::PexprScalarSubqueryQuantified},
@@ -3639,7 +3640,51 @@ CTranslatorDXLToExpr::PexprScalarCoerceToDomain
 						m_pmp,
 						pmdidType,
 						pdxlop->IMod(),
-						(ECoercionForm) edxlcf, // map Coercion Form directly based on position in enum
+						(COperator::ECoercionForm) edxlcf, // map Coercion Form directly based on position in enum
+						pdxlop->ILoc()
+						),
+				pexprChild
+				);
+}
+
+
+//---------------------------------------------------------------------------
+//	@function:
+//		CTranslatorDXLToExpr::PexprScalarCoerceViaIO
+//
+//	@doc:
+// 		Create a scalar CoerceViaIO from a DXL scalar CoerceViaIO
+//
+//---------------------------------------------------------------------------
+CExpression *
+CTranslatorDXLToExpr::PexprScalarCoerceViaIO
+	(
+	const CDXLNode *pdxlnCoerce
+	)
+{
+	// get dxl scalar coerce operator
+	CDXLScalarCoerceViaIO *pdxlop = CDXLScalarCoerceViaIO::PdxlopConvert(pdxlnCoerce->Pdxlop());
+	GPOS_ASSERT(NULL != pdxlop);
+
+	// translate child expression
+	GPOS_ASSERT(1 == pdxlnCoerce->UlArity());
+	CDXLNode *pdxlnChild = (*pdxlnCoerce)[0];
+	CExpression *pexprChild = Pexpr(pdxlnChild);
+
+	IMDId *pmdidType = pdxlop->PmdidResultType();
+	pmdidType->AddRef();
+
+	EdxlCoercionForm edxlcf = pdxlop->Edxlcf();
+
+	return GPOS_NEW(m_pmp) CExpression
+				(
+				m_pmp,
+				GPOS_NEW(m_pmp) CScalarCoerceViaIO
+						(
+						m_pmp,
+						pmdidType,
+						pdxlop->IMod(),
+						(COperator::ECoercionForm) edxlcf, // map Coercion Form directly based on position in enum
 						pdxlop->ILoc()
 						),
 				pexprChild

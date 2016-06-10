@@ -191,6 +191,7 @@ namespace gpopt
 				EopScalarCaseTest,
 				EopScalarCast,
 				EopScalarCoerceToDomain,
+				EopScalarCoerceViaIO,
 				EopScalarCoalesce,
 				EopScalarArray,
 				EopScalarArrayCmp,
@@ -291,6 +292,15 @@ namespace gpopt
 
 				EgbaggtypeSentinel
 				};
+
+			// coercion form
+			enum ECoercionForm
+			{
+				EcfExplicitCall,		// display as a function call
+				EcfExplicitCast,		// display as an explicit cast
+				EcfImplicitCast,		// implicit cast, so hide it
+				EcfDontCare				// don't care about display
+			};
 
 			// ctor
 			explicit

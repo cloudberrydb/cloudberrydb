@@ -935,6 +935,15 @@ namespace gpdxl
 				CParseHandlerBase *pphRoot
 				);
 
+			// construct a coerceviaio parse handler
+			static
+			CParseHandlerBase *PphScalarCoerceViaIO
+				(
+				IMemoryPool *pmp,
+				CParseHandlerManager *pphm,
+				CParseHandlerBase *pphRoot
+				);
+
 			// construct an init plan parse handler
 			static
 			CParseHandlerBase *PphScalarInitPlan
