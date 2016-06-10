@@ -8,12 +8,6 @@
 //	@doc:
 //      Tests for CSyncHashtableTest; spliced out into a separate
 //		class CSyncHashtableTest to avoid template parameter confusion for the compiler
-//
-//	@owner:
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

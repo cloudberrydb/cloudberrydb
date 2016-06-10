@@ -11,12 +11,6 @@
 //		The Worker abstraction contains only components needed to schedule,
 //		execute, and abort tasks; no task specific configuration such as
 //		output streams is contained in Worker;
-//
-//	@owner: 
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOS_IWorker_H
 #define GPOS_IWorker_H

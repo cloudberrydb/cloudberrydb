@@ -7,12 +7,6 @@
 //
 //	@doc:
 //		Listens for connection requests on socket
-//
-//	@owner:
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOS_CSocketListener_H
 #define GPOS_CSocketListener_H

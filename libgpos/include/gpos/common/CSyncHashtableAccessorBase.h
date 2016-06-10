@@ -13,12 +13,6 @@
 //		target bucket; this allows clients to implement more complex
 //		functionality than simple test-and-insert/remove functions.
 //
-//
-//	@owner:
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOS_CSyncHashtableAccessorBase_H_
 #define GPOS_CSyncHashtableAccessorBase_H_

@@ -7,12 +7,6 @@
 //
 //	@doc:
 //		Implementation of class of all objects that must reside on the heap;
-//
-//	@owner:
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/utils.h"

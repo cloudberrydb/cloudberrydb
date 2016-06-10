@@ -7,12 +7,6 @@
 //
 //	@doc:
 //		Extended time slicing test
-//
-//	@owner:
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/common/CMainArgs.h"

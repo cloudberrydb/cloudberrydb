@@ -8,12 +8,6 @@
 //	@doc:
 //		Wrapper around spinlock base class; releases spinlock in destructor
 //		if acquired previously;
-//
-//	@owner:
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 

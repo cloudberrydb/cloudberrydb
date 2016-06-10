@@ -7,12 +7,6 @@
 //
 //	@doc:
 //      Test for CSyncHashtable
-//
-//	@owner:
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOS_CSyncHashtableTest_H
 #define GPOS_CSyncHashtableTest_H

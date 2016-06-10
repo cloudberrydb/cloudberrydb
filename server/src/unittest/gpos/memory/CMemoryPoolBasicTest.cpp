@@ -7,12 +7,6 @@
 //
 //	@doc:
 //		Tests for CMemoryPoolBasicTest
-//
-//	@owner:
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/assert.h"

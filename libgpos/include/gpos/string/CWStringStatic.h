@@ -7,12 +7,6 @@
 //
 //	@doc:
 //		Wide character String class with buffer.
-//
-//	@owner:
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOS_CWStringStatic_H
 #define GPOS_CWStringStatic_H

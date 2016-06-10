@@ -7,12 +7,6 @@
 //
 //	@doc:
 //		Auto object holding file descriptor
-//
-//	@owner:
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOS_CAutoFileDescriptor_H
 #define GPOS_CAutoFileDescriptor_H

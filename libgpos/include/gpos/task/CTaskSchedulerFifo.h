@@ -7,12 +7,6 @@
 //
 //	@doc:
 //		Task scheduler using FIFO.
-//
-//	@owner:
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOS_CTaskSchedulerFifo_H
 #define GPOS_CTaskSchedulerFifo_H

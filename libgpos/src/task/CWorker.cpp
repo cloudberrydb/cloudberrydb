@@ -7,12 +7,6 @@
 //
 //	@doc:
 //		Worker abstraction, e.g. thread
-//
-//	@owner: 
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/common/syslibwrapper.h"

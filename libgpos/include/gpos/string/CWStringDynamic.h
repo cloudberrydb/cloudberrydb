@@ -7,12 +7,6 @@
 //
 //	@doc:
 //		Wide character string class with dynamic buffer allocation.
-//
-//	@owner:
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOS_CWStringDynamic_H
 #define GPOS_CWStringDynamic_H

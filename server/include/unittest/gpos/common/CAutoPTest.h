@@ -7,12 +7,6 @@
 //
 //	@doc:
 //      Unit test for CAutoP
-//
-//	@owner:
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOS_CAutoPTest_H
 #define GPOS_CAutoPTest_H

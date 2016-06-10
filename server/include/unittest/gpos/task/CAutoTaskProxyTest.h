@@ -7,12 +7,6 @@
 //
 //	@doc:
 //		Test for CAutoTaskProxy
-//
-//	@owner:
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOS_CAutoTaskProxyTest_H
 #define GPOS_CAutoTaskProxyTest_H

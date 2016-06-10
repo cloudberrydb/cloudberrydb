@@ -7,12 +7,6 @@
 //
 //	@doc:
 //		Test for enum sets
-//
-//	@owner:
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOS_CEnumSetTest_H
 #define GPOS_CEnumSetTest_H

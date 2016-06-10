@@ -7,12 +7,6 @@
 //
 //	@doc:
 //		Abstraction of task identification
-//
-//	@owner:
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPOS_CTaskId_H

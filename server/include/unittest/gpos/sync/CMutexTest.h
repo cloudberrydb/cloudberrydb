@@ -8,12 +8,6 @@
 //	@doc:
 //      Unit test for CMutex
 //
-//
-//	@owner:
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOS_CMutexTest_H
 #define GPOS_CMutexTest_H

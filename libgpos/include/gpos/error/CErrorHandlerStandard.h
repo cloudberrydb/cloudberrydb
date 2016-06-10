@@ -7,12 +7,6 @@
 //
 //	@doc:
 //		Standard error handler
-//
-//	@owner: 
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOS_CErrorHandlerStandard_H
 #define GPOS_CErrorHandlerStandard_H

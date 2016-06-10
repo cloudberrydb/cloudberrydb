@@ -7,12 +7,6 @@
 //
 //	@doc:
 //		Task implementation
-//
-//	@owner: 
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/error/CErrorContext.h"

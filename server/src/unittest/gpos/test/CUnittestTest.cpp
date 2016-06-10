@@ -7,12 +7,6 @@
 //
 //	@doc:
 //		Test for CUnittest with subtests
-//
-//	@owner:
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

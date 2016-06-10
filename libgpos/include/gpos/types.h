@@ -13,12 +13,6 @@
 //		external tools; for the time being these are hard-coded; cpl asserts
 //		are used to make sure things are failing if compiled with a different
 //		compiler.
-//
-//	@owner: 
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOS_types_H
 #define GPOS_types_H

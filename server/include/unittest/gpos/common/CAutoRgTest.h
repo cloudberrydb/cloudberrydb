@@ -7,12 +7,6 @@
 //
 //	@doc:
 //		Test for basic auto range implementation
-//
-//	@owner:
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOS_CAutoRgTest_H
 #define GPOS_CAutoRgTest_H

@@ -7,12 +7,6 @@
 //
 //	@doc:
 //		Test for CAutoMutex
-//
-//	@owner:
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOS_CAutoMutexTest_H
 #define GPOS_CAutoMutexTest_H

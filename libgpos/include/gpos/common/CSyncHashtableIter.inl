@@ -7,12 +7,6 @@
 //
 //	@doc:
 //		Implementation of hash table iterator
-//
-//	@owner: 
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 namespace gpos

@@ -7,12 +7,6 @@
 //
 //	@doc:
 //		Implementation of task scheduler with FIFO.
-//
-//	@owner:
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/task/CTaskSchedulerFifo.h"

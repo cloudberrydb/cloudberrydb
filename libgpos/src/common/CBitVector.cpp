@@ -7,12 +7,6 @@
 //
 //	@doc:
 //		Implementation of simple, static bit vector class
-//
-//	@owner: 
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 

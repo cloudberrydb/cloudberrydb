@@ -7,12 +7,6 @@
 //
 //	@doc:
 //		Interface for thread management
-//
-//	@owner:
-//
-//	@test:
-//
-//
 //--------------------------------------------------------------------------------
 
 #ifndef GPOS_CThreadManager_H

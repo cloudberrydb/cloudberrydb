@@ -7,12 +7,6 @@
 //
 //	@doc:
 //		Interface class for task scheduling
-//
-//	@owner:
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOS_ITaskScheduler_H
 #define GPOS_ITaskScheduler_H

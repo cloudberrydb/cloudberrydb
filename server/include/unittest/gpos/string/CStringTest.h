@@ -7,12 +7,6 @@
 //
 //	@doc:
 //		Tests for the CStringStatic class
-//
-//	@owner:
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOS_CStringTest_H
 #define GPOS_CStringTest_H

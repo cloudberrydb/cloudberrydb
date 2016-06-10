@@ -7,12 +7,6 @@
 //
 //	@doc:
 //		Test for CStack
-//
-//	@owner:
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOS_CStackTest_H
 #define GPOS_CStackTest_H

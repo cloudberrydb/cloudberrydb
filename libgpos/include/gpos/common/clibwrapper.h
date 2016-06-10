@@ -8,12 +8,6 @@
 //	@doc:
 //	       	Wrapper for functions in C library
 //
-//
-//	@owner:
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPOS_clibwrapper_H

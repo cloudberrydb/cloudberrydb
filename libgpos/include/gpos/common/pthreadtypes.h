@@ -7,12 +7,6 @@
 //
 //	@doc:
 //		pthread type definitions for GPOS;
-//
-//	@owner: 
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOS_pthreadtypes_H
 #define GPOS_pthreadtypes_H

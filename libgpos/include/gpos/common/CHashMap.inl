@@ -7,12 +7,6 @@
 //
 //	@doc:
 //		Inline implementation of hash map template
-//
-//	@owner: 
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOS_CHashMap_INL
 #define GPOS_CHashMap_INL

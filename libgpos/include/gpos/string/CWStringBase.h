@@ -7,12 +7,6 @@
 //
 //	@doc:
 //		Abstract wide character string class
-//
-//	@owner:
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOS_CWStringBase_H
 #define GPOS_CWStringBase_H

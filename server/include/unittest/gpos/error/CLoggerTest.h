@@ -7,12 +7,6 @@
 //
 //	@doc:
 //      Unit test for logger classes.
-//
-//	@owner:
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOS_CLoggerTest_H
 #define GPOS_CLoggerTest_H

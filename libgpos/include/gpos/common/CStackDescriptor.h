@@ -7,12 +7,6 @@
 //
 //	@doc:
 //		Interface class for execution stack tracing.
-//
-//	@owner:
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPOS_CStackDescriptor_H

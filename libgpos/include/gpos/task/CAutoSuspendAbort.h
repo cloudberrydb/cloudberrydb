@@ -7,12 +7,6 @@
 //
 //	@doc:
 //		Auto object for suspending and resuming task cancellation
-//
-//	@owner:
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOS_CAutoSuspendAbort_H
 #define GPOS_CAutoSuspendAbort_H

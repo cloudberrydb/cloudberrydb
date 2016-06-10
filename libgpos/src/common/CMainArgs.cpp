@@ -7,12 +7,6 @@
 //
 //	@doc:
 //		Implementation of getopt abstraction
-//
-//	@owner: 
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

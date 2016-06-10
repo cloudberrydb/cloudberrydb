@@ -7,12 +7,6 @@
 //
 //	@doc:
 //		Output file stream class;
-//
-//	@owner: 
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOS_COstreamFile_H
 #define GPOS_COstreamFile_H

@@ -7,12 +7,6 @@
 //
 //	@doc:
 //		Auto object to toggle TF in scope
-//
-//	@owner: 
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

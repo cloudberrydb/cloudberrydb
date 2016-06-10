@@ -12,12 +12,6 @@
 
 
 //		e.g. Task's memory pool, global memory etc.
-//
-//	@owner: 
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOS_CTaskLocalStorage_H
 #define GPOS_CTaskLocalStorage_H

@@ -7,12 +7,6 @@
 //
 //	@doc:
 //		Tests for CFileWriter and CFileReader
-//
-//	@owner:
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPOS_CFileTest_H

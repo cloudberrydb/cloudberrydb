@@ -8,12 +8,6 @@
 //	@doc:
 //	       	Wrapper for functions in system library
 //
-//
-//	@owner:
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPOS_syslibwrapper_H

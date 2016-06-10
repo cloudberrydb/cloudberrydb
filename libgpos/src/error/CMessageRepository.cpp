@@ -7,12 +7,6 @@
 //
 //	@doc:
 //		Singleton to keep error messages;
-//
-//	@owner: 
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/utils.h"

@@ -19,12 +19,6 @@
 //			- New elements may or may not be seen
 //			- No element is returned twice
 //
-//
-//	@owner:
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOS_CSyncHashtableIter_H
 #define GPOS_CSyncHashtableIter_H

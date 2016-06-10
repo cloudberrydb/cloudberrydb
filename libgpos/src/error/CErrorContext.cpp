@@ -7,12 +7,6 @@
 //
 //	@doc:
 //		Implements context container for error handling
-//
-//	@owner: 
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/utils.h"

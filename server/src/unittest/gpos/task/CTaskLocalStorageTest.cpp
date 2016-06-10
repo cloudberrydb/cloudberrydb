@@ -7,12 +7,6 @@
 //
 //	@doc:
 //		Tests for CTaskLocalStorage
-//
-//	@owner:
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/common/CSyncHashtableAccessByKey.h"

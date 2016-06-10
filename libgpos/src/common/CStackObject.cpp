@@ -7,12 +7,6 @@
 //
 //	@doc:
 //		Implementation of classes of all objects that must reside on the stack;
-//
-//	@owner:
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/utils.h"

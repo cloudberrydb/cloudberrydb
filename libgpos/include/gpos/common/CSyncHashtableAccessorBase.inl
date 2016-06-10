@@ -7,12 +7,6 @@
 //
 //	@doc:
 //		Implementation of hash table base accessor
-//
-//	@owner: 
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 namespace gpos

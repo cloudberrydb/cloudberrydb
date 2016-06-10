@@ -7,12 +7,6 @@
 //
 //	@doc:
 //		Safe implementation of floating point numbers and operations.
-//
-//	@owner:
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOS_CDouble_H
 #define GPOS_CDouble_H

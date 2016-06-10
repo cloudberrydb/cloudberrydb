@@ -7,12 +7,6 @@
 //
 //	@doc:
 //		Test for CDynamicPtrArray
-//
-//	@owner:
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOS_CDynamicPtrArrayTest_H
 #define GPOS_CDynamicPtrArrayTest_H

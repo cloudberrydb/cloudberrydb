@@ -7,12 +7,6 @@
 //
 //	@doc:
 //		A timer which records time between construction and the UlElapsedMS call;
-//
-//	@owner:
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOS_ITimer_H
 #define GPOS_ITimer_H

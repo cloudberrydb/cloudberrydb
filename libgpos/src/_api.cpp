@@ -7,12 +7,6 @@
 //
 //	@doc:
 //		Implementation of GPOS wrapper interface for GPDB.
-//
-//	@owner:
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

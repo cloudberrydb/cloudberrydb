@@ -7,12 +7,6 @@
 //
 //	@doc:
 //		Implementation of the wide character constant string class
-//
-//	@owner: 
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

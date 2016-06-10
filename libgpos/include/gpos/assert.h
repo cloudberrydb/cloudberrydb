@@ -18,12 +18,6 @@
 //			GPOS_ASSERT(!"Should not get here because of xyz");
 //	
 //		Avoid using GPOS_ASSERT(false);
-//
-//	@owner: 
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOS_assert_H
 #define GPOS_assert_H

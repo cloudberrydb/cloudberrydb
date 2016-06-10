@@ -8,12 +8,6 @@
 //
 //	@doc:
 //		Partial implementation of output stream interface;
-//
-//	@owner: 
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOS_COstream_H
 #define GPOS_COstream_H

@@ -10,12 +10,6 @@
 //		stacks. Stack walker determines computes a hash value for call stack
 //		when checking for a failpoint: if stack has been seen before, skip, 
 //		otherwise raise exception.
-//
-//	@owner: 
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

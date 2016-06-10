@@ -7,12 +7,6 @@
 //
 //	@doc:
 //		Unit Test for CAutoRef
-//
-//	@owner:
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOS_CAutoRefTest_H
 #define GPOS_CAutoRefTest_H

@@ -7,12 +7,6 @@
 //
 //	@doc:
 //		Tests for CException
-//
-//	@owner:
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/task/CWorkerPoolManager.h"

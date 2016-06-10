@@ -7,12 +7,6 @@
 //
 //	@doc:
 //		Test for CException
-//
-//	@owner:
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOS_CExceptionTest_H
 #define GPOS_CExceptionTest_H

@@ -7,12 +7,6 @@
 //
 //	@doc:
 //		Implements standard error handler
-//
-//	@owner: 
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

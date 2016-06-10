@@ -10,12 +10,6 @@
 //	@doc:
 //		Central memory pool manager;
 //		provides factory method to generate memory pools;
-//
-//	@owner: 
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOS_CMemoryPoolManager_H
 #define GPOS_CMemoryPoolManager_H

@@ -7,12 +7,6 @@
 //
 //	@doc:
 //		Partial implementation of interface class for logging
-//
-//	@owner:
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOS_CLogger_H
 #define GPOS_CLogger_H

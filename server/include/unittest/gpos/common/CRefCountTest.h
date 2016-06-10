@@ -7,12 +7,6 @@
 //
 //	@doc:
 //      Test for CRefCount
-//
-//	@owner:
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOS_CRefCountTest_H
 #define GPOS_CRefCountTest_H

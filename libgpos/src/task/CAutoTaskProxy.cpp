@@ -7,12 +7,6 @@
 //
 //	@doc:
 //		Implementation of interface class for task management and execution.
-//
-//	@owner:
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/common/CAutoP.h"

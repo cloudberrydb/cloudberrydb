@@ -7,12 +7,6 @@
 //
 //	@doc:
 //		A timer which records wall clock time;
-//
-//	@owner:
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOS_CWallClock_H
 #define GPOS_CWallClock_H

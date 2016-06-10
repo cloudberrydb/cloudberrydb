@@ -7,12 +7,6 @@
 //
 //	@doc:
 //		Creates UDS socket to connect with remote host
-//
-//	@owner:
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOS_CSocketListenerUDS_H
 #define GPOS_CSocketListenerUDS_H

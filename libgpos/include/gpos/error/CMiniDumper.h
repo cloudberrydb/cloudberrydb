@@ -7,12 +7,6 @@
 //
 //	@doc:
 //		Interface for minidump handler;
-//
-//	@owner:
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOS_CMiniDumper_H
 #define GPOS_CMiniDumper_H

@@ -7,12 +7,6 @@
 //
 //	@doc:
 //      Test for CEnumSet/CEnumSetIter
-//
-//	@owner:
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

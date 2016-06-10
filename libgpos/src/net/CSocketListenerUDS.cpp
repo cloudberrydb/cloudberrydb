@@ -7,12 +7,6 @@
 //
 //	@doc:
 //		Creates UDS socket to connect with remote host
-//
-//	@owner:
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

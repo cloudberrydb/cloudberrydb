@@ -8,12 +8,6 @@
 //	@doc:
 //		Implementation of the wide character string class
 //		with dynamic buffer allocation.
-//
-//	@owner:
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/common/clibwrapper.h"

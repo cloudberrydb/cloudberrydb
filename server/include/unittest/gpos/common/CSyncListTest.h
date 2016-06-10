@@ -7,12 +7,6 @@
 //
 //	@doc:
 //		Tests for CSyncList
-//
-//	@owner:
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOS_CSyncListTest_H
 #define GPOS_CSyncListTest_H

@@ -7,12 +7,6 @@
 //
 //	@doc:
 //		Implementation of interface class for execution stack tracing.
-//
-//	@owner:
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/utils.h"

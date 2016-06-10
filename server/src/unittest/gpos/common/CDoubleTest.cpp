@@ -7,12 +7,6 @@
 //
 //	@doc:
 //		Tests for the floating-point wrapper class.
-//
-//	@owner:
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

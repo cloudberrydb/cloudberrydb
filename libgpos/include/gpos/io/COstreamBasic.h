@@ -7,12 +7,6 @@
 //
 //	@doc:
 //		Output stream base class;
-//
-//	@owner: 
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOS_COstreamBasic_H
 #define GPOS_COstreamBasic_H

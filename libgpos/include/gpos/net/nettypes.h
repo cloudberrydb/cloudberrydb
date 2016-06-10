@@ -7,12 +7,6 @@
 //
 //	@doc:
 //		Networking type definitions for GPOS;
-//
-//	@owner:
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOS_nettypes_H
 #define GPOS_nettypes_H

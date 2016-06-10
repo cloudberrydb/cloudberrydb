@@ -7,12 +7,6 @@
 //
 //	@doc:
 //		clib definitions for GPOS;
-//
-//	@owner: 
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOS_clibtypes_H
 #define GPOS_clibtypes_H

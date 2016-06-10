@@ -16,12 +16,6 @@
 //
 //		In order for the objects to be used in lock-free lists, the class uses
 //		the clock algorithm to recycle objects.
-//
-//	@owner:
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOS_CSyncPool_H
 #define GPOS_CSyncPool_H

@@ -7,12 +7,6 @@
 //
 //	@doc:
 //		Implementation of inlined functions;
-//
-//	@owner: 
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOS_CDynamicPtrArray_INL
 #define GPOS_CDynamicPtrArray_INL

@@ -20,12 +20,6 @@
 //		The acquisition of spinlocks of rank 0 or higher are tracked in the
 //		process context; the implementation is fortified with simple asserts
 //		to prevent self-deadlock;
-//
-//	@owner: 
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOS_CSpinlock_H
 #define GPOS_CSpinlock_H

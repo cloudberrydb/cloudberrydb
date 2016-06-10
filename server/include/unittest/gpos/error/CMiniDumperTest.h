@@ -7,12 +7,6 @@
 //
 //	@doc:
 //		Test for minidump handler
-//
-//	@owner:
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOS_CMiniDumperTest_H
 #define GPOS_CMiniDumperTest_H

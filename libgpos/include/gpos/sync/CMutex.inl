@@ -7,12 +7,6 @@
 //
 //	@doc:
 //		Implementation of inlined functions
-//
-//	@owner: 
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOS_CMutex_INL
 #define GPOS_CMutex_INL

@@ -7,12 +7,6 @@
 //
 //	@doc:
 //		Output stream interface;
-//
-//	@owner: 
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOS_IOstream_H
 #define GPOS_IOstream_H

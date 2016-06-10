@@ -7,12 +7,6 @@
 //
 //	@doc:
 //		Tests for CWStringBase, CWString, and CWStringConst
-//
-//	@owner:
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

@@ -13,12 +13,6 @@
 //		This is primarily used for auto destruction.
 //		Not using Boost's auto pointer logic to discourage blurring ownership
 //		of objects.
-//
-//	@owner: 
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOS_CAutoP_H
 #define GPOS_CAutoP_H

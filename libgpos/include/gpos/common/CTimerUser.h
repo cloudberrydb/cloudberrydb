@@ -7,12 +7,6 @@
 //
 //	@doc:
 //		A timer which records elapsed user time;
-//
-//	@owner:
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOS_CTimerUser_H
 #define GPOS_CTimerUser_H

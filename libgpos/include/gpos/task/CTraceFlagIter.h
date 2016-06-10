@@ -7,12 +7,6 @@
 //
 //	@doc:
 //		Trace flag iterator
-//
-//	@owner:
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOS_CTraceFlagIter_H
 #define GPOS_CTraceFlagIter_H

@@ -7,12 +7,6 @@
 //
 //	@doc:
 //		Creates socket to connect with remote host
-//
-//	@owner:
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOS_CSocketConnector_H
 #define GPOS_CSocketConnector_H

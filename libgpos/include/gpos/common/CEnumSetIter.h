@@ -7,12 +7,6 @@
 //
 //	@doc:
 //		Implementation of iterator for enum set
-//
-//	@owner: 
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOS_CEnumSetIter_H
 #define GPOS_CEnumSetIter_H

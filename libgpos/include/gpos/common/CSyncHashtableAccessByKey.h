@@ -13,12 +13,6 @@
 //		allows clients to implement more complex functionality than simple
 //		test-and-insert/remove functions; acquiring and releasing locks is
 //		done by the parent CSyncHashtableAccessorBase class.
-//
-//	@owner: 
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOS_CSyncHashtableAccessByKey_H
 #define GPOS_CSyncHashtableAccessByKey_H

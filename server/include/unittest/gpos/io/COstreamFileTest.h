@@ -7,12 +7,6 @@
 //
 //	@doc:
 //		Test for COstreamFile
-//
-//	@owner:
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOS_COstreamFileTest_H
 #define GPOS_COstreamFileTest_H

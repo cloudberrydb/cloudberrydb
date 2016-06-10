@@ -7,12 +7,6 @@
 //
 //	@doc:
 //		Interface for serializable objects
-//
-//	@owner:
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

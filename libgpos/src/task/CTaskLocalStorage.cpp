@@ -7,12 +7,6 @@
 //
 //	@doc:
 //		Task-local storage implementation
-//
-//	@owner: 
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/task/CTaskLocalStorage.h"

@@ -8,12 +8,6 @@
 //	@doc:
 //		Collection of commonly used OS abstraction primitives;
 //		Most files should be fine including only this one from the GPOS folder;
-//
-//	@owner: 
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOS_base_H
 #define GPOS_base_H

@@ -7,12 +7,6 @@
 //
 //	@doc:
 //		Tests for CList 
-//
-//	@owner:
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOS_CListTest_H
 #define GPOS_CListTest_H

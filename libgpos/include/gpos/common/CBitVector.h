@@ -7,12 +7,6 @@
 //
 //	@doc:
 //		Implementation of static bit vector;
-//
-//	@owner: 
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOS_CBitVector_H
 #define GPOS_CBitVector_H

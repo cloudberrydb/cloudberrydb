@@ -10,12 +10,6 @@
 //		Ref-counting is single-threaded only;
 //		Enforces allocation on the heap, i.e. no deletion unless the 
 //		count has really dropped to zero
-//
-//	@owner: 
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOS_CRefCount_H
 #define GPOS_CRefCount_H

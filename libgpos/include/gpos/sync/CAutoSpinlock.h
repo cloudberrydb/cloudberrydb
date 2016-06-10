@@ -8,12 +8,6 @@
 //	@doc:
 //		Auto class to be put on stack to ensure spinlock is released when
 //		going out of scope;
-//
-//	@owner: 
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOS_CAutoSpinlock_H
 #define GPOS_CAutoSpinlock_H

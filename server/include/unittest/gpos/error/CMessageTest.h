@@ -7,12 +7,6 @@
 //
 //	@doc:
 //		Test for CMessage
-//
-//	@owner:
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOS_CMessageTest_H
 #define GPOS_CMessageTest_H

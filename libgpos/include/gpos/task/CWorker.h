@@ -7,12 +7,6 @@
 //
 //	@doc:
 //		Abstraction of schedule-able unit, e.g. a pthread etc.
-//
-//	@owner: 
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOS_CWorker_H
 #define GPOS_CWorker_H
