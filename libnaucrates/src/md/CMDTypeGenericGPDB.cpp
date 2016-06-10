@@ -39,6 +39,10 @@ using namespace gpmd;
 
 #define GPDB_ANYARRAY_OID OID(2277) // oid of GPDB ANYARRAY type
 
+#define GPDB_ANYNONARRAY_OID OID(2776) // oid of GPDB ANYNONARRAY type
+
+#define GPDB_ANYENUM_OID OID(3500) // oid of GPDB ANYENUM type
+
 //---------------------------------------------------------------------------
 //	@function:
 //		CMDTypeGenericGPDB::CMDTypeGenericGPDB
@@ -376,14 +380,18 @@ CMDTypeGenericGPDB::Pdxldatum
 //		CMDTypeGenericGPDB::FAmbiguous
 //
 //	@doc:
-// 		Is type an ambiguous one? e.g., AnyElement/AnyArray in GPDB
+// 		Is type an ambiguous one? I.e. a "polymorphic" type in GPDB terms
 //
 //---------------------------------------------------------------------------
 BOOL
 CMDTypeGenericGPDB::FAmbiguous() const
 {
 	OID oid = CMDIdGPDB::PmdidConvert(m_pmdid)->OidObjectId();
-	return (GPDB_ANYELEMENT_OID == oid || GPDB_ANYARRAY_OID == oid);
+	// This should match the IsPolymorphicType() macro in GPDB's pg_type.h
+	return (GPDB_ANYELEMENT_OID == oid ||
+		GPDB_ANYARRAY_OID == oid ||
+		GPDB_ANYNONARRAY_OID == oid ||
+		GPDB_ANYENUM_OID == oid);
 }
 
 //---------------------------------------------------------------------------
