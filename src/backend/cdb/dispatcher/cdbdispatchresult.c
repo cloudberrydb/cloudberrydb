@@ -284,40 +284,6 @@ cdbdisp_seterrcode(int errcode, /* ERRCODE_xxx or 0 */
 }
 
 /*
- * Transfer connection error messages to dispatchResult from segdbDesc.
- * returns true if segdbDesc had err info
- */
-bool
-cdbdisp_mergeConnectionErrors(CdbDispatchResult * dispatchResult,
-							  struct SegmentDatabaseDescriptor *segdbDesc)
-{
-	if (!segdbDesc)
-		return false;
-	if (segdbDesc->errcode == 0 && segdbDesc->error_message.len == 0)
-		return false;
-
-	/*
-	 * Error code should always be accompanied by text and vice-versa.
-	 */
-	Assert(segdbDesc->errcode != 0 && segdbDesc->error_message.len > 0);
-
-	/*
-	 * Append error message text and save error code.
-	 */
-	cdbdisp_appendMessage(dispatchResult, 0, segdbDesc->errcode, "%s",
-						  segdbDesc->error_message.data);
-
-	/*
-	 * Reset connection object's error info. 
-	 */
-	segdbDesc->errcode = 0;
-	segdbDesc->error_message.len = 0;
-	segdbDesc->error_message.data[0] = '\0';
-
-	return true;
-}
-
-/*
  * Format a message, printf-style, and append to the error_message buffer.
  * Also write it to stderr if logging is enabled for messages of the
  * given severity level 'elevel' (for example, DEBUG1; or 0 to suppress).
@@ -550,7 +516,6 @@ void
 cdbdisp_dumpDispatchResult(CdbDispatchResult *dispatchResult,
 						   bool verbose, struct StringInfoData *buf)
 {
-	SegmentDatabaseDescriptor *segdbDesc = dispatchResult->segdbDesc;
 	int ires;
 	int nres;
 
@@ -629,14 +594,6 @@ cdbdisp_dumpDispatchResult(CdbDispatchResult *dispatchResult,
 				goto done;
 		}
 	}
-
-	/*
-	 * segdbDesc error message shouldn't be possible here, but check anyway.
-	 * Ordinarily dispatchResult->segdbDesc is NULL here because we are
-	 * called after it has been cleared by CdbCheckDispatchResult().
-	 */
-	if (dispatchResult->segdbDesc)
-		cdbdisp_mergeConnectionErrors(dispatchResult, segdbDesc);
 
 	/*
 	 * Error found on our side of the libpq interface?

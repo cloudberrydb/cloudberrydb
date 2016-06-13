@@ -79,8 +79,7 @@ cdbdisp_dispatchToGang_internal(struct CdbDispatcherState *ds,
 
 void
 CdbCheckDispatchResult_internal(struct CdbDispatcherState *ds,
-								struct SegmentDatabaseDescriptor *** failedSegDB,
-								int *numOfFailed, DispatchWaitMode waitMode); 
+								DispatchWaitMode waitMode);
 
 void cdbdisp_waitThreads(void);
 

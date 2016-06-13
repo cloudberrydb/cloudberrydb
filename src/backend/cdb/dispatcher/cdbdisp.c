@@ -111,7 +111,7 @@ CdbCheckDispatchResult(struct CdbDispatcherState *ds,
 {
 	PG_TRY();
 	{
-		CdbCheckDispatchResult_internal(ds, NULL, NULL, waitMode);
+		CdbCheckDispatchResult_internal(ds, waitMode);
 	}
 	PG_CATCH();
 	{

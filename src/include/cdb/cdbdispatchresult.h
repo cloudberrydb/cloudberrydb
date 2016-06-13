@@ -195,14 +195,6 @@ cdbdisp_seterrcode(int errcode, /* ERRCODE_xxx or 0 */
                    CdbDispatchResult *dispatchResult);
 
 /*
- * Transfer connection error messages to dispatchResult from segdbDesc.
- * Returns true if segdbDesc had err info
- */
-bool
-cdbdisp_mergeConnectionErrors(CdbDispatchResult *dispatchResult,
-                              struct SegmentDatabaseDescriptor *segdbDesc);
-
-/*
  * Format a message, printf-style, and append to the error_message buffer.
  * Also write it to stderr if logging is enabled for messages of the
  * given severity level 'elevel' (for example, DEBUG1; or 0 to suppress).
