@@ -64,6 +64,7 @@ typedef enum DependencyType
 	DEPENDENCY_NORMAL = 'n',
 	DEPENDENCY_AUTO = 'a',
 	DEPENDENCY_INTERNAL = 'i',
+	DEPENDENCY_EXTENSION = 'e',
 	DEPENDENCY_PIN = 'p'
 } DependencyType;
 
@@ -147,6 +148,7 @@ typedef enum ObjectClass
 	OCLASS_FILESPACE,           /* pg_filespace */
 	OCLASS_EXTPROTOCOL,			/* pg_extprotocol */
 	OCLASS_COMPRESSION,			/* pg_compression */
+	OCLASS_EXTENSION,           /* pg_extension */
 	MAX_OCLASS					/* MUST BE LAST */
 } ObjectClass;
 
@@ -219,6 +221,11 @@ extern Oid	get_index_constraint(Oid indexId);
 extern void recordSharedDependencyOn(ObjectAddress *depender,
 						 ObjectAddress *referenced,
 						 SharedDependencyType deptype);
+
+extern Oid	getExtensionOfObject(Oid classId, Oid objectId);
+
+extern void recordDependencyOnCurrentExtension(const ObjectAddress *object,
+								   bool isReplace);
 
 extern void deleteSharedDependencyRecordsFor(Oid classId, Oid objectId);
 

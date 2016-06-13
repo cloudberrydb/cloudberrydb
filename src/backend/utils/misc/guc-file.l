@@ -58,13 +58,6 @@ enum {
 	GUC_ERROR = 100
 };
 
-struct name_value_pair
-{
-	char       *name;
-	char       *value;
-	struct name_value_pair *next;
-};
-
 static unsigned int ConfigFileLineno;
 static const char *GUC_flex_fatal_errmsg;
 static sigjmp_buf *GUC_flex_fatal_jmp;
@@ -386,7 +379,7 @@ GUC_flex_fatal(const char *msg)
  * where an error will lead to immediate process exit anyway; so there is
  * no point in contorting the code so it can clean up nicely.
  */
-static bool
+bool
 ParseConfigFile(const char *config_file, const char *calling_file,
 				int depth, GucContext context, int elevel,
 				struct name_value_pair **head_p,
@@ -607,7 +600,7 @@ cleanup_exit:
 /*
  * Free a list of name/value pairs, including the names and the values
  */
-static void
+void
 free_name_value_list(struct name_value_pair *list)
 {
 	struct name_value_pair *item;

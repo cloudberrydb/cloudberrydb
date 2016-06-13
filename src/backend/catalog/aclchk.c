@@ -29,6 +29,7 @@
 #include "catalog/pg_authid.h"
 #include "catalog/pg_conversion.h"
 #include "catalog/pg_database.h"
+#include "catalog/pg_extension.h"
 #include "catalog/pg_extprotocol.h"
 #include "catalog/pg_language.h"
 #include "catalog/pg_namespace.h"
@@ -3032,6 +3033,48 @@ pg_extprotocol_ownercheck(Oid protOid, Oid roleid)
 
 	systable_endscan(scan);
 	heap_close(pg_extprotocol, AccessShareLock);
+
+	return has_privs_of_role(roleid, ownerId);
+}
+
+/*
+ * Ownership check for a extension (specified by OID).
+ */
+bool
+pg_extension_ownercheck(Oid ext_oid, Oid roleid)
+{
+	Relation	pg_extension;
+	ScanKeyData entry[1];
+	SysScanDesc scan;
+	HeapTuple	tuple;
+	Oid			ownerId;
+
+	/* Superusers bypass all permission checking. */
+	if (superuser_arg(roleid))
+		return true;
+
+	/* There's no syscache for pg_extension, so do it the hard way */
+	pg_extension = heap_open(ExtensionRelationId, AccessShareLock);
+
+	ScanKeyInit(&entry[0],
+				ObjectIdAttributeNumber,
+				BTEqualStrategyNumber, F_OIDEQ,
+				ObjectIdGetDatum(ext_oid));
+
+	scan = systable_beginscan(pg_extension,
+							  ExtensionOidIndexId, true,
+							  SnapshotNow, 1, entry);
+
+	tuple = systable_getnext(scan);
+	if (!HeapTupleIsValid(tuple))
+		ereport(ERROR,
+				(errcode(ERRCODE_UNDEFINED_OBJECT),
+						errmsg("extension with OID %u does not exist", ext_oid)));
+
+	ownerId = ((Form_pg_extension) GETSTRUCT(tuple))->extowner;
+
+	systable_endscan(scan);
+	heap_close(pg_extension, AccessShareLock);
 
 	return has_privs_of_role(roleid, ownerId);
 }

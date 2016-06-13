@@ -238,6 +238,8 @@ CreateOpFamily(char *amname, char *opfname, Oid namespaceoid, Oid amoid)
 	/* dependency on owner */
 	recordDependencyOnOwner(OperatorFamilyRelationId, opfamilyoid, GetUserId());
 
+	/* dependency on extension */
+	recordDependencyOnCurrentExtension(&myself, false);
 	heap_close(rel, RowExclusiveLock);
 
 	return opfamilyoid;
@@ -645,6 +647,8 @@ DefineOpClass(CreateOpClassStmt *stmt)
 
 	/* dependency on owner */
 	recordDependencyOnOwner(OperatorClassRelationId, opclassoid, GetUserId());
+	/* dependency on extension */
+	recordDependencyOnCurrentExtension(&myself, false);
 
 	heap_close(rel, RowExclusiveLock);
 	

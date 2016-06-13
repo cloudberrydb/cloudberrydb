@@ -1077,6 +1077,18 @@ static void readJoinInfo(Join *local_node);
 static Bitmapset *bitmapsetRead(void);
 
 
+static CreateExtensionStmt *
+_readCreateExtensionStmt(void)
+{
+	READ_LOCALS(CreateExtensionStmt);
+	READ_STRING_FIELD(extname);
+	READ_BOOL_FIELD(if_not_exists);
+	READ_NODE_FIELD(options);
+	READ_ENUM_FIELD(create_ext_state, CreateExtensionState);
+
+	READ_DONE();
+}
+
 static CreateStmt *
 _readCreateStmt(void)
 {
@@ -2998,6 +3010,9 @@ readNodeBinary(void)
 				break;
 			case T_CreateExternalStmt:
 				return_value = _readCreateExternalStmt();
+				break;
+			case T_CreateExtensionStmt:
+				return_value = _readCreateExtensionStmt();
 				break;
 			case T_IndexStmt:
 				return_value = _readIndexStmt();

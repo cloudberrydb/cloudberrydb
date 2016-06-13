@@ -2023,6 +2023,9 @@ CreateCast(CreateCastStmt *stmt)
 		recordDependencyOn(&myself, &referenced, DEPENDENCY_NORMAL);
 	}
 
+	/* dependency on extension */
+	recordDependencyOnCurrentExtension(&myself, false);
+
 	heap_freetuple(tuple);
 
 	heap_close(relation, RowExclusiveLock);

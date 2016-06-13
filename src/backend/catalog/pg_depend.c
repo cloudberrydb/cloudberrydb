@@ -16,10 +16,13 @@
 
 #include "access/genam.h"
 #include "access/heapam.h"
+#include "catalog/catquery.h"
 #include "catalog/dependency.h"
 #include "catalog/indexing.h"
+#include "catalog/pg_extension.h"
 #include "catalog/pg_constraint.h"
 #include "catalog/pg_depend.h"
+#include "commands/extension.h"
 #include "miscadmin.h"
 #include "utils/fmgroids.h"
 #include "utils/lsyscache.h"
@@ -118,6 +121,58 @@ recordMultipleDependencies(const ObjectAddress *depender,
 		CatalogCloseIndexes(indstate);
 
 	heap_close(dependDesc, RowExclusiveLock);
+}
+
+/*
+ * If we are executing a CREATE EXTENSION operation, mark the given object
+ * as being a member of the extension.  Otherwise, do nothing.
+ *
+ * This must be called during creation of any user-definable object type
+ * that could be a member of an extension.
+ *
+ * If isReplace is true, the object already existed (or might have already
+ * existed), so we must check for a pre-existing extension membership entry.
+ * Passing false is a guarantee that the object is newly created, and so
+ * could not already be a member of any extension.
+ */
+void
+recordDependencyOnCurrentExtension(const ObjectAddress *object,
+								   bool isReplace)
+{
+	/* Only whole objects can be extension members */
+	Assert(object->objectSubId == 0);
+
+	if (creating_extension)
+	{
+		ObjectAddress extension;
+
+		/* Only need to check for existing membership if isReplace */
+		if (isReplace)
+		{
+			Oid			oldext;
+
+			oldext = getExtensionOfObject(object->classId, object->objectId);
+			if (OidIsValid(oldext))
+			{
+				/* If already a member of this extension, nothing to do */
+				if (oldext == CurrentExtensionObject)
+					return;
+				/* Already a member of some other extension, so reject */
+				ereport(ERROR,
+						(errcode(ERRCODE_OBJECT_NOT_IN_PREREQUISITE_STATE),
+						 errmsg("%s is already a member of extension \"%s\"",
+								getObjectDescription(object),
+								get_extension_name(oldext))));
+			}
+		}
+
+		/* OK, record it as a member of CurrentExtensionObject */
+		extension.classId = ExtensionRelationId;
+		extension.objectId = CurrentExtensionObject;
+		extension.objectSubId = 0;
+
+		recordDependencyOn(object, &extension, DEPENDENCY_EXTENSION);
+	}
 }
 
 /*
@@ -317,6 +372,59 @@ isObjectPinned(const ObjectAddress *object, Relation rel)
  * Various special-purpose lookups and manipulations of pg_depend.
  */
 
+
+/*
+ * Find the extension containing the specified object, if any
+ *
+ * Returns the OID of the extension, or InvalidOid if the object does not
+ * belong to any extension.
+ *
+ * Extension membership is marked by an EXTENSION dependency from the object
+ * to the extension.  Note that the result will be indeterminate if pg_depend
+ * contains links from this object to more than one extension ... but that
+ * should never happen.
+ */
+Oid
+getExtensionOfObject(Oid classId, Oid objectId)
+{
+	Oid			result = InvalidOid;
+	Relation	depRel;
+	ScanKeyData key[2];
+	SysScanDesc scan;
+	HeapTuple	tup;
+
+	depRel = heap_open(DependRelationId, AccessShareLock);
+
+	ScanKeyInit(&key[0],
+				Anum_pg_depend_classid,
+				BTEqualStrategyNumber, F_OIDEQ,
+				ObjectIdGetDatum(classId));
+	ScanKeyInit(&key[1],
+				Anum_pg_depend_objid,
+				BTEqualStrategyNumber, F_OIDEQ,
+				ObjectIdGetDatum(objectId));
+
+	scan = systable_beginscan(depRel, DependDependerIndexId, true,
+							  SnapshotNow, 2, key);
+
+	while (HeapTupleIsValid((tup = systable_getnext(scan))))
+	{
+		Form_pg_depend depform = (Form_pg_depend) GETSTRUCT(tup);
+
+		if (depform->refclassid == ExtensionRelationId &&
+			depform->deptype == DEPENDENCY_EXTENSION)
+		{
+			result = depform->refobjid;
+			break;				/* no need to keep scanning */
+		}
+	}
+
+	systable_endscan(scan);
+
+	heap_close(depRel, AccessShareLock);
+
+	return result;
+}
 
 /*
  * Detect whether a sequence is marked as "owned" by a column

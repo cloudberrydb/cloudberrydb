@@ -34,6 +34,7 @@
 #include "catalog/pg_auth_members.h"
 #include "catalog/pg_class.h"
 #include "catalog/pg_database.h"
+#include "catalog/pg_extension.h"
 #include "catalog/pg_filespace.h"
 #include "catalog/pg_namespace.h"
 #include "catalog/pg_tablespace.h"

@@ -435,6 +435,8 @@ create_proc_lang(const char *languageName,
 		recordDependencyOn(&myself, &referenced, DEPENDENCY_NORMAL);
 	}
 
+	/* dependency on extension */
+	recordDependencyOnCurrentExtension(&myself, false);
 	heap_close(rel, RowExclusiveLock);
 }
 

@@ -2447,6 +2447,26 @@ QualifiedNameGetCreationNamespace(List *names, char **objname_p)
 }
 
 /*
+ * get_namespace_oid - given a namespace name, look up the OID
+ *
+ * If missing_ok is false, throw an error if namespace name not found.  If
+ * true, just return InvalidOid.
+ */
+Oid
+get_namespace_oid(const char *nspname, bool missing_ok)
+{
+	Oid			oid;
+
+	oid = GetSysCacheOid1(NAMESPACENAME, CStringGetDatum(nspname));
+	if (!OidIsValid(oid) && !missing_ok)
+		ereport(ERROR,
+				(errcode(ERRCODE_UNDEFINED_SCHEMA),
+				 errmsg("schema \"%s\" does not exist", nspname)));
+
+	return oid;
+}
+
+/*
  * makeRangeVarFromNameList
  *		Utility routine to convert a qualified-name list into RangeVar form.
  */
