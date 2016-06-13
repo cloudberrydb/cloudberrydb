@@ -63,3 +63,31 @@ publish: make_tarballs
 		fi; \
 	  done; \
 	 )
+
+make_tarballs_local: 
+	@(BLD_ARCH=$$( GPOS_BIT=$(ARCH_BIT) $(BLD_TOP)/make/platform_defines.sh ); \
+	  mkdir -p tmp/$${BLD_ARCH}/libgpos; \
+	  cp -r ../libgpos/include \
+	        tmp/$${BLD_ARCH}/libgpos; \
+	  cp -r ../libgpos/.obj.$(UNAME_ALL)$(ARCH_FLAGS).* \
+	        tmp/$${BLD_ARCH}/libgpos; \
+	  pushd tmp; \
+	  tar zcf ../targzs/$(LIB_NAME)-$${BLD_ARCH}-${LIB_VERSION}.targz $${BLD_ARCH}; \
+	  popd; \
+	  rm -rf tmp; \
+	 )
+
+publish_local: make_tarballs_local
+	@(for ivyfile in ivy.xml ivy-devel.xml; do \
+		if [ -f "targzs/$${ivyfile}" ]; then \
+			java -jar /opt/releng/apache-ant/lib/ivy-2.2.0.jar \
+			     -settings targzs/ivysettings.xml \
+			     -ivy targzs/$${ivyfile} \
+			     -publish local \
+			     -publishpattern "targzs/[artifact]-[revision].[ext]" \
+			     -revision ${LIB_VERSION} \
+			     -status release \
+			     -overwrite; \
+		fi; \
+	  done; \
+	 )

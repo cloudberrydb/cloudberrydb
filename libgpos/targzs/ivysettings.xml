@@ -18,7 +18,7 @@
   <!--Authentication required for publishing (deployment). 'Artifactory Realm' is the realm used by Artifactory so don't change it.-->
   <!-- ====================================================================== -->
 
-  <credentials host="repo.eng.pivotal.io" realm="Artifactory Realm" username="build_gpdb" passwd="Piv@gpdb1" />
+  <credentials host="repo.pivotal.io" realm="Artifactory Realm" username="build_gpdb" passwd="Piv@gpdb1" />
 
   <!-- ====================================================================== -->
 
@@ -28,8 +28,8 @@
       <artifact pattern="${repo.dir}/[organization]/[module]/[revision]/[type]s/[artifact]-[revision].[ext]" />
     </filesystem>
     <url name="public">
-      <ivy      pattern="https://repo.eng.pivotal.io/artifactory/gpdb-ext-release-local/[organization]/[module]/[revision]/[type]s/ivy-[revision].xml" />
-      <artifact pattern="https://repo.eng.pivotal.io/artifactory/gpdb-ext-release-local/[organization]/[module]/[revision]/[type]s/[artifact]-[revision].[ext]" />
+      <ivy      pattern="https://repo.pivotal.io/artifactory/gpdb-ext-release-local/[organization]/[module]/[revision]/[type]s/ivy-[revision].xml" />
+      <artifact pattern="https://repo.pivotal.io/artifactory/gpdb-ext-release-local/[organization]/[module]/[revision]/[type]s/[artifact]-[revision].[ext]" />
     </url>
   </resolvers>
 
