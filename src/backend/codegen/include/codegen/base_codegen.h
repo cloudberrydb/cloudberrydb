@@ -12,12 +12,19 @@
 #ifndef GPCODEGEN_BASE_CODEGEN_H_  // NOLINT(build/header_guard)
 #define GPCODEGEN_BASE_CODEGEN_H_
 
+extern "C" {
+#include <utils/elog.h>
+}
+
 #include <string>
 #include <vector>
 #include "codegen/utils/codegen_utils.h"
 #include "codegen/codegen_interface.h"
 
 #include "llvm/IR/Function.h"
+#include "llvm/IR/Verifier.h"
+
+extern bool codegen_validate_functions;
 
 namespace gpcodegen {
 
@@ -44,15 +51,31 @@ class BaseCodegen: public CodegenInterface {
   }
 
   bool GenerateCode(gpcodegen::CodegenUtils* codegen_utils) final {
-    is_generated_ = GenerateCodeInternal(codegen_utils);
-    if (!is_generated_) {
-      // If failed to generate, make sure we do clean up
-      // by erasing all the llvm functions.
+    bool valid_generated_functions = true;
+    valid_generated_functions &= GenerateCodeInternal(codegen_utils);
+
+    // Do this check only if it enabled by guc
+    if (codegen_validate_functions && valid_generated_functions) {
+      for (llvm::Function* function : uncompiled_generated_functions_) {
+        assert(nullptr != function);
+        // Verify function returns true if there are errors.
+        valid_generated_functions &= !llvm::verifyFunction(*function);
+        if (!valid_generated_functions) {
+          std::string func_name = function->getName();
+          elog(WARNING, "Broken function found '%s'", func_name.c_str());
+          break;
+        }
+      }
+    }
+    if (!valid_generated_functions) {
+      // If failed to generate, or have invalid functions, make sure we
+      // do clean up by erasing all the llvm functions.
       for (llvm::Function* function : uncompiled_generated_functions_) {
         assert(nullptr != function);
         function->eraseFromParent();
       }
     }
+    is_generated_ = valid_generated_functions;
     // We don't need to keep these pointers any more
     std::vector<llvm::Function*>().swap(uncompiled_generated_functions_);
     return is_generated_;
