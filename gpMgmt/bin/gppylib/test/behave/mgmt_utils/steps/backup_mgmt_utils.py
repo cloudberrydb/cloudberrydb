@@ -450,7 +450,7 @@ def impl(context, filename, table_type, tablename, dbname):
     validate_restore_data_in_file(context, tablename, dbname, filename)
 
 @then('verify that the owner of "{dbname}" is "{expected_owner}"')
-def impl(context, dbname, owner):
+def impl(context, dbname, expected_owner):
     with dbconn.connect(dbconn.DbURL(dbname=dbname)) as conn:
         query = "SELECT pg_catalog.pg_get_userbyid(d.datdba) FROM pg_catalog.pg_database d WHERE d.datname = '%s';" % dbname
         actual_owner = dbconn.execSQLForSingleton(conn, query)

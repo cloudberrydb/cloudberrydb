@@ -3466,7 +3466,12 @@ Feature: Validate command line arguments
 
     Scenario: Database owner can be assigned to role containing special characters
         Given the test is initialized
-        When the user runs "psql -c 'ALTER DATABASE bkdb OWNER TO "Foo%user"'"
+        When the user runs "psql -c 'DROP ROLE IF EXISTS "Foo%user"' -d bkdb"
+        Then psql should return a return code of 0
+        When the user runs "psql -c 'CREATE ROLE "Foo%user"' -d bkdb"
+        Then psql should return a return code of 0
+        When the user runs "psql -c 'ALTER DATABASE bkdb OWNER TO "Foo%user"' -d bkdb"
+        Then psql should return a return code of 0
         And there is a "ao" table "public.ao_table" in "bkdb" with data
         When the user runs "gpcrondump -a -x bkdb"
         Then gpcrondump should return a return code of 0
@@ -3475,6 +3480,9 @@ Feature: Validate command line arguments
         When the user runs gpdbrestore with the stored timestamp
         Then gpdbrestore should return a return code of 0
         And verify that the owner of "bkdb" is "Foo%user"
+        And database "bkdb" is dropped and recreated
+        When the user runs "psql -c 'DROP ROLE "Foo%user"' -d bkdb"
+        Then psql should return a return code of 0
 
     # THIS SHOULD BE THE LAST TEST
     @backupfire
