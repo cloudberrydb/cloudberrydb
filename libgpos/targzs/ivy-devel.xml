@@ -4,6 +4,8 @@
     <configurations>
       <conf name="osx105_x86_32" description="osx105_x86_32" visibility="public"/>
       <conf name="osx105_x86_64" description="osx105_x86_64" visibility="public"/>
+      <conf name="osx106_x86_32" description="osx106_x86_32" visibility="public"/>
+      <conf name="osx106_x86_64" description="osx106_x86_64" visibility="public"/>
       <conf name="rhel5_x86_32" description="rhel5_x86_32" visibility="public"/>
       <conf name="rhel5_x86_64" description="rhel5_x86_64" visibility="public"/>
       <conf name="sol10_sparc_32" description="sol10_sparc_32" visibility="public"/>
@@ -16,6 +18,8 @@
     <publications> 
       <artifact name="libgpos-devel-osx105_x86_32" type="targz" ext="targz" conf="osx105_x86_32"/>
       <artifact name="libgpos-devel-osx105_x86_64" type="targz" ext="targz" conf="osx105_x86_64"/>
+      <artifact name="libgpos-devel-osx106_x86_32" type="targz" ext="targz" conf="osx106_x86_32"/>
+      <artifact name="libgpos-devel-osx106_x86_64" type="targz" ext="targz" conf="osx106_x86_64"/>
       <artifact name="libgpos-devel-rhel5_x86_32" type="targz" ext="targz" conf="rhel5_x86_32"/>
       <artifact name="libgpos-devel-rhel5_x86_64" type="targz" ext="targz" conf="rhel5_x86_64"/>
       <artifact name="libgpos-devel-sol10_sparc_32" type="targz" ext="targz" conf="sol10_sparc_32"/>

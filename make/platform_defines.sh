@@ -64,7 +64,7 @@ fi
 
 if [ ${PLAT} = "Darwin" ]; then
     PLATFORM_BASENAME="osx"
-    sw_vers | grep ProductVersion | grep 10.5 > /dev/null 2>&1
+    sw_vers | grep ProductVersion | grep 10.5. > /dev/null 2>&1
     if [ $? = 0 ]; then
         OS_VERSION_MAJOR="105"
     else
