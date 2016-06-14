@@ -25,14 +25,12 @@
 #include "cdb/cdbvars.h"
 #include "executor/executor.h"
 #include "executor/nodeShareInputScan.h"
-
-#include "utils/tuplestorenew.h"
 #include "miscadmin.h"
-
-#include "utils/debugbreak.h"
-#include "utils/tuplesort.h"
 #include "postmaster/primary_mirror_mode.h"
+#include "utils/faultinjector.h"
 #include "utils/gp_alloc.h"
+#include "utils/tuplesort.h"
+#include "utils/tuplestorenew.h"
 
 typedef struct ShareInput_Lk_Context
 {
@@ -213,11 +211,11 @@ ShareInputNext(ShareInputScanState *node)
 		{
 			if(gp_enable_mk_sort)
 			{
-				gotOK = tuplesort_gettupleslot_pos_mk(node->ts_state->sortstore_mk, (TuplesortPos_mk *)node->ts_pos, forward, slot);
+				gotOK = tuplesort_gettupleslot_pos_mk(node->ts_state->sortstore_mk, (TuplesortPos_mk *)node->ts_pos, forward, slot, CurrentMemoryContext);
 			}
 			else
 			{
-				gotOK = tuplesort_gettupleslot_pos(node->ts_state->sortstore, (TuplesortPos *)node->ts_pos, forward, slot);
+				gotOK = tuplesort_gettupleslot_pos(node->ts_state->sortstore, (TuplesortPos *)node->ts_pos, forward, slot, CurrentMemoryContext);
 			}
 		}
 
@@ -226,6 +224,14 @@ ShareInputNext(ShareInputScanState *node)
 
 		Gpmon_M_Incr_Rows_Out(GpmonPktFromShareInputState(node)); 
 		CheckSendPlanStateGpmonPkt(&node->ss.ps);
+
+#ifdef FAULT_INJECTOR
+	FaultInjector_InjectFaultIfSet(
+			ExecShareInputNext,
+			DDLNotSpecified,
+			"",  // databaseName
+			""); // tableName
+#endif
 
 		return slot;
 	}
