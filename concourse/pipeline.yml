@@ -268,6 +268,22 @@ resources:
     region_name: {{aws-region}}
     secret_access_key: {{aws-secret-access-key}}
     versioned_file: bin_orca_debian8_release_clang_libcxx.tar.gz
+- name: regression_diffs
+  type: s3
+  source:
+     access_key_id: {{aws-access-key-id}}
+     bucket: {{bucket-name}}
+     region_name: {{aws-region}}
+     secret_access_key: {{aws-secret-access-key}}
+     versioned_file: regression.diffs
+- name: regression_out
+  type: s3
+  source:
+     access_key_id: {{aws-access-key-id}}
+     bucket: {{bucket-name}}
+     region_name: {{aws-region}}
+     secret_access_key: {{aws-secret-access-key}}
+     versioned_file: regression.out
 
 ########
 # JOBS #
@@ -659,6 +675,12 @@ jobs:
     - get: bin_xerces_centos6
       passed:
       - gp_xerces
-  - aggregate:
-    - task: test_with_orca
-      file: gpdb_src/concourse/test_with_orca.yml
+  - task: test_with_orca
+    file: gpdb_src/concourse/test_with_orca.yml
+    on_failure:
+    - put: regression_diffs
+      params:
+        from: icg_output/regression.diffs
+    - put: regression_out
+      params:
+        from: icg_output/regression.out
