@@ -4284,10 +4284,9 @@ retry:
 		if (!readRecordBuf)
 		{
 			readRecordBufSize = 0;
-			/* We treat this as a "bogus data" condition */
 			ereport(emode,
-					(errmsg("record length %u at %X/%X too long",
-							total_len, RecPtr->xlogid, RecPtr->xrecoff)));
+					(errmsg("cannot allocate %u bytes for record at %X/%X",
+							newSize, RecPtr->xlogid, RecPtr->xrecoff)));
 			goto next_record_is_invalid;
 		}
 		readRecordBufSize = newSize;
