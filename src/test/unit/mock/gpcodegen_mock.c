@@ -77,14 +77,14 @@ ExecVariableListCodegenEnroll(ExecVariableListFn regular_func_ptr,
 	return NULL;
 }
 
-// returns the pointer to the ExecQualGenerator
 void*
-ExecQualCodegenEnroll(ExecQualFn regular_func_ptr,
-					  ExecQualFn* ptr_to_regular_func_ptr,
-					  struct PlanState *planstate)
+ExecEvalExprCodegenEnroll(ExecEvalExprFn regular_func_ptr,
+                          ExecEvalExprFn* ptr_to_regular_func_ptr,
+                          struct ExprState *exprstate,
+                          struct ExprContext *econtext)
 {
   *ptr_to_regular_func_ptr = regular_func_ptr;
-  elog(ERROR, "mock implementation of ExecQualCodegenEnroll called");
-  return NULL;
+   elog(ERROR, "mock implementation of ExecEvalExprCodegenEnroll called");
+   return NULL;
 }
 

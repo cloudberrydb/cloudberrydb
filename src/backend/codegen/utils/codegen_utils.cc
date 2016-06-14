@@ -358,6 +358,16 @@ llvm::Value* CodegenUtils::GetPointerToMemberImpl(
   }
 }
 
+llvm::Value* CodegenUtils::CreateArithOp(llvm::Intrinsic::ID Id,
+                                         llvm::ArrayRef<llvm::Type*> Tys,
+                                         llvm::Value* arg0,
+                                         llvm::Value* arg1) {
+  llvm::Function* llvm_intr_func = llvm::Intrinsic::getDeclaration(module(),
+                                                                   Id,
+                                                                   Tys);
+  return ir_builder()->CreateCall(llvm_intr_func, {arg0, arg1});
+}
+
 }  // namespace gpcodegen
 
 // EOF

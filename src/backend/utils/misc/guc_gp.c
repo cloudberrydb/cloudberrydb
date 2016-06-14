@@ -3357,7 +3357,7 @@ struct config_bool ConfigureNamesBool_gp[] =
 		{"codegen", PGC_USERSET, DEVELOPER_OPTIONS,
 			gettext_noop("Perform just-in-time code generation."),
 			NULL,
-			GUC_NO_SHOW_ALL | GUC_NOT_IN_SAMPLE
+			GUC_NO_SHOW_ALL | GUC_NOT_IN_SAMPLE | GUC_GPDB_ADDOPT
 		},
 		&codegen,
 		false, NULL, NULL

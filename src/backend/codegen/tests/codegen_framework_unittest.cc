@@ -42,6 +42,7 @@
 #include "llvm/IR/Type.h"
 #include "llvm/IR/Value.h"
 #include "llvm/IR/Verifier.h"
+#include "llvm/IR/Intrinsics.h"
 #include "llvm/Support/Casting.h"
 
 extern "C" {
@@ -62,6 +63,7 @@ namespace gpcodegen {
 
 typedef int (*SumFunc) (int x, int y);
 typedef void (*UncompilableFunc)(int x);
+typedef int (*MulFunc) (int x, int y);
 
 int SumFuncRegular(int x, int y) {
   return x + y;
@@ -71,9 +73,14 @@ void UncompilableFuncRegular(int x) {
   return;
 }
 
+int MulFuncRegular(int x, int y) {
+  return x * y;
+}
+
 SumFunc sum_func_ptr = nullptr;
 SumFunc failed_func_ptr = nullptr;
 UncompilableFunc uncompilable_func_ptr = nullptr;
+MulFunc mul_func_ptr = nullptr;
 
 class SumCodeGenerator : public BaseCodegen<SumFunc> {
  public:
@@ -103,6 +110,57 @@ class SumCodeGenerator : public BaseCodegen<SumFunc> {
 
  public:
   static constexpr char kAddFuncNamePrefix[] = "SumFunc";
+};
+
+class MulOverflowCodeGenerator : public BaseCodegen<MulFunc> {
+ public:
+  explicit MulOverflowCodeGenerator(MulFunc regular_func_ptr,
+                                    MulFunc* ptr_to_regular_func_ptr) :
+                                    BaseCodegen(kMulFuncNamePrefix,
+                                         regular_func_ptr,
+                                         ptr_to_regular_func_ptr) {
+  }
+
+  virtual ~MulOverflowCodeGenerator() = default;
+
+ protected:
+  bool GenerateCodeInternal(gpcodegen::CodegenUtils* codegen_utils) final {
+    llvm::Function* mul2_func
+       = CreateFunction<MulFunc>(codegen_utils, GetUniqueFuncName());
+    llvm::BasicBlock* mul2_body = codegen_utils->CreateBasicBlock("body",
+                                                                   mul2_func);
+    llvm::BasicBlock* result_result_block = codegen_utils->CreateBasicBlock(
+           "return_result", mul2_func);
+    llvm::BasicBlock* return_overflow_block = codegen_utils->CreateBasicBlock(
+           "return_overflow", mul2_func);
+
+    codegen_utils->ir_builder()->SetInsertPoint(mul2_body);
+    llvm::Value* arg0 = ArgumentByPosition(mul2_func, 0);
+    llvm::Value* arg1 = ArgumentByPosition(mul2_func, 1);
+
+    llvm::Function* llvm_mul_overflow = llvm::Intrinsic::getDeclaration(codegen_utils->module(),
+                                                                    llvm::Intrinsic::smul_with_overflow,
+                                                                    arg0->getType());
+    llvm::Value* llvm_umul_results = codegen_utils->ir_builder()->CreateCall(llvm_mul_overflow, {arg0, arg1});
+    llvm::Value* llvm_overflow_flag = codegen_utils->ir_builder()->CreateExtractValue(llvm_umul_results, 1);
+    llvm::Value* llvm_results = codegen_utils->ir_builder()->CreateExtractValue(llvm_umul_results, 0);
+
+    codegen_utils->ir_builder()->CreateCondBr(
+        codegen_utils->ir_builder()->CreateICmpSLE(llvm_overflow_flag, codegen_utils->GetConstant<bool>(true)),
+              return_overflow_block,
+              result_result_block );
+
+    codegen_utils->ir_builder()->SetInsertPoint(return_overflow_block);
+    codegen_utils->ir_builder()->CreateAdd(llvm_results, codegen_utils->GetConstant(1));
+
+    codegen_utils->ir_builder()->SetInsertPoint(result_result_block);
+    codegen_utils->ir_builder()->CreateRet(llvm_results);
+    mul2_func->dump();
+    return true;
+  }
+
+ public:
+  static constexpr char kMulFuncNamePrefix[] = "MulOverflowFunc";
 };
 
 class FailingCodeGenerator : public BaseCodegen<SumFunc> {
@@ -157,6 +215,7 @@ class UncompilableCodeGenerator : public BaseCodegen<UncompilableFunc> {
 
 constexpr char SumCodeGenerator::kAddFuncNamePrefix[];
 constexpr char FailingCodeGenerator::kFailingFuncNamePrefix[];
+constexpr char MulOverflowCodeGenerator::kMulFuncNamePrefix[];
 template <bool GEN_SUCCESS>
 constexpr char
 UncompilableCodeGenerator<GEN_SUCCESS>::kUncompilableFuncNamePrefix[];
@@ -365,6 +424,29 @@ TEST_F(CodegenManagerTest, UnCompilablePassedGenerationTest) {
   ASSERT_TRUE(SumFuncRegular == sum_func_ptr);
   ASSERT_TRUE(SumFuncRegular == failed_func_ptr);
   ASSERT_TRUE(UncompilableFuncRegular == uncompilable_func_ptr);
+}
+
+TEST_F(CodegenManagerTest, MulOverFlowTest) {
+  // Test if generation happens successfully
+  mul_func_ptr = nullptr;
+  EnrollCodegen<MulOverflowCodeGenerator, MulFunc>(MulFuncRegular, &mul_func_ptr);
+  EXPECT_EQ(1, manager_->GenerateCode());
+
+
+  ASSERT_TRUE(MulFuncRegular == mul_func_ptr);
+
+  // This should cause program to exit because of
+  // broken function
+  EXPECT_EQ(1, manager_->PrepareGeneratedFunctions());
+
+  EXPECT_EQ(6, mul_func_ptr(2, 3));
+
+  EXPECT_EQ(1, mul_func_ptr(2147483647, 3));
+
+  EXPECT_EQ(-6, mul_func_ptr(-2, 3));
+
+  // Reset the manager, so that all the code generators go away
+  manager_.reset(nullptr);
 }
 
 TEST_F(CodegenManagerTest, ResetTest) {
