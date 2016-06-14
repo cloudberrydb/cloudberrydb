@@ -95,6 +95,57 @@ To run a specific minidump, for example for `../data/dxl/minidump/TVFRandom.mdp`
 Note that some tests use assertions that are only enabled for DEBUG builds, so
 DEBUG-mode tests tend to be more rigorous.
 
+## Adding tests
+
+Most of the regression tests come in the form of a "minidump" file.
+A minidump is an XML file that contains all the input needed to plan a query,
+including information about all tables, datatypes, and functions used, as well
+as statistics. It also contains the resulting plan.
+
+A new minidump can be created by running a query on a live GPDB server:
+
+1. Run these in a psql session:
+
+   ```
+set client_min_messages='log';
+set optimizer=on;
+set optimizer_enumerate_plans=on;
+set optimizer_minidump=always;
+set optimizer_enable_constant_expression_evaluation=off;
+   ```
+
+2. Run the query in the same psql session. It will create a minidump file
+   under the "minidumps" directory, in the master's data directory:
+
+   ```
+$ ls -l ~/data-master/minidumps/
+total 12
+-rw------- 1 heikki heikki 10818 Jun 10 22:02 Minidump_20160610_220222_4_14.mdp
+   ```
+
+3. Run xmllint on the minidump to format it better, and copy it under the
+   data/dxl/minidump directory:
+
+   ```
+xmllint --format ~/data-master/minidumps/Minidump_20160610_220222_4_14.mdp > data/dxl/minidump/MyTest.xml
+   ```
+
+5. Add it to the test suite, in server/src/unittest/gpopt/minidump/CICGTest.cpp
+
+   ```
+--- a/server/src/unittest/gpopt/minidump/CICGTest.cpp
++++ b/server/src/unittest/gpopt/minidump/CICGTest.cpp
+@@ -217,6 +217,7 @@ const CHAR *rgszFileNames[] =
+                "../data/dxl/minidump/EffectsOfJoinFilter.mdp",
+                "../data/dxl/minidump/Join-IDF.mdp",
+                "../data/dxl/minidump/CoerceToDomain.mdp",
++               "../data/dxl/minidump/Mytest.mdp",
+                "../data/dxl/minidump/LeftOuter2InnerUnionAllAntiSemiJoin.mdp",
+ #ifndef GPOS_DEBUG
+                // TODO:  - Jul 14 2015; disabling it for debug build to reduce testing time
+   ```
+
+
 ## [Experimental] Concourse
 GPORCA contains a series of pipeline and task files to run various sets of tests
 on [concourse](concourse.ci). You can learn more about deploying concourse with
