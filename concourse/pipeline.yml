@@ -678,9 +678,10 @@ jobs:
   - task: test_with_orca
     file: gpdb_src/concourse/test_with_orca.yml
     on_failure:
-    - put: regression_diffs
-      params:
-        from: icg_output/regression.diffs
-    - put: regression_out
-      params:
-        from: icg_output/regression.out
+      aggregate:
+      - put: regression_diffs
+        params:
+          from: icg_output/regression.diffs
+      - put: regression_out
+        params:
+          from: icg_output/regression.out
