@@ -106,11 +106,6 @@
 #define a64l GPOS_BANNED_API(a64l)
 #endif
 
-#ifndef ALLOW_abs
-#undef abs
-#define abs GPOS_BANNED_API(abs)
-#endif
-
 #ifndef ALLOW_addmntent
 #undef addmntent
 #define addmntent GPOS_BANNED_API(addmntent)
@@ -136,19 +131,9 @@
 #define aio_fsync64 GPOS_BANNED_API(aio_fsync64)
 #endif
 
-#ifndef ALLOW_acos
-#undef acos
-#define acos GPOS_BANNED_API(acos)
-#endif
-
 #ifndef ALLOW_aio_write
 #undef aio_write
 #define aio_write GPOS_BANNED_API(aio_write)
-#endif
-
-#ifndef ALLOW_acosf
-#undef acosf
-#define acosf GPOS_BANNED_API(acosf)
 #endif
 
 #ifndef ALLOW_aio_write64
@@ -156,19 +141,9 @@
 #define aio_write64 GPOS_BANNED_API(aio_write64)
 #endif
 
-#ifndef ALLOW_acosh
-#undef acosh
-#define acosh GPOS_BANNED_API(acosh)
-#endif
-
 #ifndef ALLOW_alarm
 #undef alarm
 #define alarm GPOS_BANNED_API(alarm)
-#endif
-
-#ifndef ALLOW_acoshf
-#undef acoshf
-#define acoshf GPOS_BANNED_API(acoshf)
 #endif
 
 #ifndef ALLOW_argp_error
@@ -176,19 +151,9 @@
 #define argp_error GPOS_BANNED_API(argp_error)
 #endif
 
-#ifndef ALLOW_acoshl
-#undef acoshl
-#define acoshl GPOS_BANNED_API(acoshl)
-#endif
-
 #ifndef ALLOW_argp_failure
 #undef argp_failure
 #define argp_failure GPOS_BANNED_API(argp_failure)
-#endif
-
-#ifndef ALLOW_acosl
-#undef acosl
-#define acosl GPOS_BANNED_API(acosl)
 #endif
 
 #ifndef ALLOW_argz_add_sep
@@ -241,19 +206,9 @@
 #define aio_cancel64 GPOS_BANNED_API(aio_cancel64)
 #endif
 
-#ifndef ALLOW_asin
-#undef asin
-#define asin GPOS_BANNED_API(asin)
-#endif
-
 #ifndef ALLOW_aio_error
 #undef aio_error
 #define aio_error GPOS_BANNED_API(aio_error)
-#endif
-
-#ifndef ALLOW_asinf
-#undef asinf
-#define asinf GPOS_BANNED_API(asinf)
 #endif
 
 #ifndef ALLOW_aio_error64
@@ -261,19 +216,9 @@
 #define aio_error64 GPOS_BANNED_API(aio_error64)
 #endif
 
-#ifndef ALLOW_asinh
-#undef asinh
-#define asinh GPOS_BANNED_API(asinh)
-#endif
-
 #ifndef ALLOW_aio_init
 #undef aio_init
 #define aio_init GPOS_BANNED_API(aio_init)
-#endif
-
-#ifndef ALLOW_asinhf
-#undef asinhf
-#define asinhf GPOS_BANNED_API(asinhf)
 #endif
 
 #ifndef ALLOW_aio_read
@@ -281,19 +226,9 @@
 #define aio_read GPOS_BANNED_API(aio_read)
 #endif
 
-#ifndef ALLOW_asinhl
-#undef asinhl
-#define asinhl GPOS_BANNED_API(asinhl)
-#endif
-
 #ifndef ALLOW_aio_read64
 #undef aio_read64
 #define aio_read64 GPOS_BANNED_API(aio_read64)
-#endif
-
-#ifndef ALLOW_asinl
-#undef asinl
-#define asinl GPOS_BANNED_API(asinl)
 #endif
 
 #ifndef ALLOW_aio_return
@@ -401,19 +336,9 @@
 #define argp_usage GPOS_BANNED_API(argp_usage)
 #endif
 
-#ifndef ALLOW_cabs
-#undef cabs
-#define cabs GPOS_BANNED_API(cabs)
-#endif
-
 #ifndef ALLOW_argz_add
 #undef argz_add
 #define argz_add GPOS_BANNED_API(argz_add)
-#endif
-
-#ifndef ALLOW_cabsf
-#undef cabsf
-#define cabsf GPOS_BANNED_API(cabsf)
 #endif
 
 #ifndef ALLOW_argz_count
@@ -421,19 +346,9 @@
 #define argz_count GPOS_BANNED_API(argz_count)
 #endif
 
-#ifndef ALLOW_cabsl
-#undef cabsl
-#define cabsl GPOS_BANNED_API(cabsl)
-#endif
-
 #ifndef ALLOW_argz_create_sep
 #undef argz_create_sep
 #define argz_create_sep GPOS_BANNED_API(argz_create_sep)
-#endif
-
-#ifndef ALLOW_cacos
-#undef cacos
-#define cacos GPOS_BANNED_API(cacos)
 #endif
 
 #ifndef ALLOW_argz_delete
@@ -441,19 +356,9 @@
 #define argz_delete GPOS_BANNED_API(argz_delete)
 #endif
 
-#ifndef ALLOW_cacosf
-#undef cacosf
-#define cacosf GPOS_BANNED_API(cacosf)
-#endif
-
 #ifndef ALLOW_argz_extract
 #undef argz_extract
 #define argz_extract GPOS_BANNED_API(argz_extract)
-#endif
-
-#ifndef ALLOW_cacosh
-#undef cacosh
-#define cacosh GPOS_BANNED_API(cacosh)
 #endif
 
 #ifndef ALLOW_argz_insert
@@ -461,29 +366,14 @@
 #define argz_insert GPOS_BANNED_API(argz_insert)
 #endif
 
-#ifndef ALLOW_cacoshf
-#undef cacoshf
-#define cacoshf GPOS_BANNED_API(cacoshf)
-#endif
-
 #ifndef ALLOW_argz_next
 #undef argz_next
 #define argz_next GPOS_BANNED_API(argz_next)
 #endif
 
-#ifndef ALLOW_cacoshl
-#undef cacoshl
-#define cacoshl GPOS_BANNED_API(cacoshl)
-#endif
-
 #ifndef ALLOW_argz_stringify
 #undef argz_stringify
 #define argz_stringify GPOS_BANNED_API(argz_stringify)
-#endif
-
-#ifndef ALLOW_cacosl
-#undef cacosl
-#define cacosl GPOS_BANNED_API(cacosl)
 #endif
 
 #ifndef ALLOW_assert
@@ -494,96 +384,6 @@
 #ifndef ALLOW_canonicalize_file_name
 #undef canonicalize_file_name
 #define canonicalize_file_name GPOS_BANNED_API(canonicalize_file_name)
-#endif
-
-#ifndef ALLOW_atan
-#undef atan
-#define atan GPOS_BANNED_API(atan)
-#endif
-
-#ifndef ALLOW_carg
-#undef carg
-#define carg GPOS_BANNED_API(carg)
-#endif
-
-#ifndef ALLOW_atan2
-#undef atan2
-#define atan2 GPOS_BANNED_API(atan2)
-#endif
-
-#ifndef ALLOW_cargf
-#undef cargf
-#define cargf GPOS_BANNED_API(cargf)
-#endif
-
-#ifndef ALLOW_atan2f
-#undef atan2f
-#define atan2f GPOS_BANNED_API(atan2f)
-#endif
-
-#ifndef ALLOW_cargl
-#undef cargl
-#define cargl GPOS_BANNED_API(cargl)
-#endif
-
-#ifndef ALLOW_atan2l
-#undef atan2l
-#define atan2l GPOS_BANNED_API(atan2l)
-#endif
-
-#ifndef ALLOW_catan
-#undef catan
-#define catan GPOS_BANNED_API(catan)
-#endif
-
-#ifndef ALLOW_atanf
-#undef atanf
-#define atanf GPOS_BANNED_API(atanf)
-#endif
-
-#ifndef ALLOW_catanf
-#undef catanf
-#define catanf GPOS_BANNED_API(catanf)
-#endif
-
-#ifndef ALLOW_atanh
-#undef atanh
-#define atanh GPOS_BANNED_API(atanh)
-#endif
-
-#ifndef ALLOW_catanh
-#undef catanh
-#define catanh GPOS_BANNED_API(catanh)
-#endif
-
-#ifndef ALLOW_atanhf
-#undef atanhf
-#define atanhf GPOS_BANNED_API(atanhf)
-#endif
-
-#ifndef ALLOW_catanhf
-#undef catanhf
-#define catanhf GPOS_BANNED_API(catanhf)
-#endif
-
-#ifndef ALLOW_atanhl
-#undef atanhl
-#define atanhl GPOS_BANNED_API(atanhl)
-#endif
-
-#ifndef ALLOW_catanhl
-#undef catanhl
-#define catanhl GPOS_BANNED_API(catanhl)
-#endif
-
-#ifndef ALLOW_atanl
-#undef atanl
-#define atanl GPOS_BANNED_API(atanl)
-#endif
-
-#ifndef ALLOW_catanl
-#undef catanl
-#define catanl GPOS_BANNED_API(catanl)
 #endif
 
 #ifndef ALLOW_atof
@@ -641,29 +441,14 @@
 #define basename GPOS_BANNED_API(basename)
 #endif
 
-#ifndef ALLOW_ceil
-#undef ceil
-#define ceil GPOS_BANNED_API(ceil)
-#endif
-
 #ifndef ALLOW_bcmp
 #undef bcmp
 #define bcmp GPOS_BANNED_API(bcmp)
 #endif
 
-#ifndef ALLOW_ceilf
-#undef ceilf
-#define ceilf GPOS_BANNED_API(ceilf)
-#endif
-
 #ifndef ALLOW_bindtextdomain
 #undef bindtextdomain
 #define bindtextdomain GPOS_BANNED_API(bindtextdomain)
-#endif
-
-#ifndef ALLOW_ceill
-#undef ceill
-#define ceill GPOS_BANNED_API(ceill)
 #endif
 
 #ifndef ALLOW_bsearch
@@ -696,19 +481,9 @@
 #define cfmakeraw GPOS_BANNED_API(cfmakeraw)
 #endif
 
-#ifndef ALLOW_casin
-#undef casin
-#define casin GPOS_BANNED_API(casin)
-#endif
-
 #ifndef ALLOW_cfree
 #undef cfree
 #define cfree GPOS_BANNED_API(cfree)
-#endif
-
-#ifndef ALLOW_casinf
-#undef casinf
-#define casinf GPOS_BANNED_API(casinf)
 #endif
 
 #ifndef ALLOW_cfsetispeed
@@ -716,19 +491,9 @@
 #define cfsetispeed GPOS_BANNED_API(cfsetispeed)
 #endif
 
-#ifndef ALLOW_casinh
-#undef casinh
-#define casinh GPOS_BANNED_API(casinh)
-#endif
-
 #ifndef ALLOW_cfsetospeed
 #undef cfsetospeed
 #define cfsetospeed GPOS_BANNED_API(cfsetospeed)
-#endif
-
-#ifndef ALLOW_casinhf
-#undef casinhf
-#define casinhf GPOS_BANNED_API(casinhf)
 #endif
 
 #ifndef ALLOW_chmod
@@ -736,24 +501,9 @@
 #define chmod GPOS_BANNED_API(chmod)
 #endif
 
-#ifndef ALLOW_casinhl
-#undef casinhl
-#define casinhl GPOS_BANNED_API(casinhl)
-#endif
-
 #ifndef ALLOW_chown
 #undef chown
 #define chown GPOS_BANNED_API(chown)
-#endif
-
-#ifndef ALLOW_casinl
-#undef casinl
-#define casinl GPOS_BANNED_API(casinl)
-#endif
-
-#ifndef ALLOW_cimag
-#undef cimag
-#define cimag GPOS_BANNED_API(cimag)
 #endif
 
 #ifndef ALLOW_catclose
@@ -761,54 +511,9 @@
 #define catclose GPOS_BANNED_API(catclose)
 #endif
 
-#ifndef ALLOW_cimagf
-#undef cimagf
-#define cimagf GPOS_BANNED_API(cimagf)
-#endif
-
 #ifndef ALLOW_catopen
 #undef catopen
 #define catopen GPOS_BANNED_API(catopen)
-#endif
-
-#ifndef ALLOW_cimagl
-#undef cimagl
-#define cimagl GPOS_BANNED_API(cimagl)
-#endif
-
-#ifndef ALLOW_ccos
-#undef ccos
-#define ccos GPOS_BANNED_API(ccos)
-#endif
-
-#ifndef ALLOW_clog
-#undef clog
-#define clog GPOS_BANNED_API(clog)
-#endif
-
-#ifndef ALLOW_ccosf
-#undef ccosf
-#define ccosf GPOS_BANNED_API(ccosf)
-#endif
-
-#ifndef ALLOW_clogf
-#undef clogf
-#define clogf GPOS_BANNED_API(clogf)
-#endif
-
-#ifndef ALLOW_ccosh
-#undef ccosh
-#define ccosh GPOS_BANNED_API(ccosh)
-#endif
-
-#ifndef ALLOW_clogl
-#undef clogl
-#define clogl GPOS_BANNED_API(clogl)
-#endif
-
-#ifndef ALLOW_ccoshf
-#undef ccoshf
-#define ccoshf GPOS_BANNED_API(ccoshf)
 #endif
 
 #ifndef ALLOW_closedir
@@ -816,54 +521,9 @@
 #define closedir GPOS_BANNED_API(closedir)
 #endif
 
-#ifndef ALLOW_ccoshl
-#undef ccoshl
-#define ccoshl GPOS_BANNED_API(ccoshl)
-#endif
-
 #ifndef ALLOW_confstr
 #undef confstr
 #define confstr GPOS_BANNED_API(confstr)
-#endif
-
-#ifndef ALLOW_ccosl
-#undef ccosl
-#define ccosl GPOS_BANNED_API(ccosl)
-#endif
-
-#ifndef ALLOW_cos
-#undef cos
-#define cos GPOS_BANNED_API(cos)
-#endif
-
-#ifndef ALLOW_cexp
-#undef cexp
-#define cexp GPOS_BANNED_API(cexp)
-#endif
-
-#ifndef ALLOW_cosf
-#undef cosf
-#define cosf GPOS_BANNED_API(cosf)
-#endif
-
-#ifndef ALLOW_cexpf
-#undef cexpf
-#define cexpf GPOS_BANNED_API(cexpf)
-#endif
-
-#ifndef ALLOW_cosh
-#undef cosh
-#define cosh GPOS_BANNED_API(cosh)
-#endif
-
-#ifndef ALLOW_cexpl
-#undef cexpl
-#define cexpl GPOS_BANNED_API(cexpl)
-#endif
-
-#ifndef ALLOW_coshf
-#undef coshf
-#define coshf GPOS_BANNED_API(coshf)
 #endif
 
 #ifndef ALLOW_cfsetspeed
@@ -871,19 +531,9 @@
 #define cfsetspeed GPOS_BANNED_API(cfsetspeed)
 #endif
 
-#ifndef ALLOW_coshl
-#undef coshl
-#define coshl GPOS_BANNED_API(coshl)
-#endif
-
 #ifndef ALLOW_chdir
 #undef chdir
 #define chdir GPOS_BANNED_API(chdir)
-#endif
-
-#ifndef ALLOW_cosl
-#undef cosl
-#define cosl GPOS_BANNED_API(cosl)
 #endif
 
 #ifndef ALLOW_clearenv
@@ -891,29 +541,14 @@
 #define clearenv GPOS_BANNED_API(clearenv)
 #endif
 
-#ifndef ALLOW_cpow
-#undef cpow
-#define cpow GPOS_BANNED_API(cpow)
-#endif
-
 #ifndef ALLOW_clearerr
 #undef clearerr
 #define clearerr GPOS_BANNED_API(clearerr)
 #endif
 
-#ifndef ALLOW_cpowf
-#undef cpowf
-#define cpowf GPOS_BANNED_API(cpowf)
-#endif
-
 #ifndef ALLOW_clearerr_unlocked
 #undef clearerr_unlocked
 #define clearerr_unlocked GPOS_BANNED_API(clearerr_unlocked)
-#endif
-
-#ifndef ALLOW_cpowl
-#undef cpowl
-#define cpowl GPOS_BANNED_API(cpowl)
 #endif
 
 #ifndef ALLOW_clock
@@ -951,19 +586,9 @@
 #define clog10l GPOS_BANNED_API(clog10l)
 #endif
 
-#ifndef ALLOW_creal
-#undef creal
-#define creal GPOS_BANNED_API(creal)
-#endif
-
 #ifndef ALLOW_close
 #undef close
 #define close GPOS_BANNED_API(close)
-#endif
-
-#ifndef ALLOW_crealf
-#undef crealf
-#define crealf GPOS_BANNED_API(crealf)
 #endif
 
 #ifndef ALLOW_closelog
@@ -971,34 +596,14 @@
 #define closelog GPOS_BANNED_API(closelog)
 #endif
 
-#ifndef ALLOW_creall
-#undef creall
-#define creall GPOS_BANNED_API(creall)
-#endif
-
-#ifndef ALLOW_conj
-#undef conj
-#define conj GPOS_BANNED_API(conj)
-#endif
-
 #ifndef ALLOW_creat
 #undef creat
 #define creat GPOS_BANNED_API(creat)
 #endif
 
-#ifndef ALLOW_conjf
-#undef conjf
-#define conjf GPOS_BANNED_API(conjf)
-#endif
-
 #ifndef ALLOW_creat64
 #undef creat64
 #define creat64 GPOS_BANNED_API(creat64)
-#endif
-
-#ifndef ALLOW_conjl
-#undef conjl
-#define conjl GPOS_BANNED_API(conjl)
 #endif
 
 #ifndef ALLOW_crypt_r
@@ -1011,94 +616,9 @@
 #define connect GPOS_BANNED_API(connect)
 #endif
 
-#ifndef ALLOW_csin
-#undef csin
-#define csin GPOS_BANNED_API(csin)
-#endif
-
-#ifndef ALLOW_copysign
-#undef copysign
-#define copysign GPOS_BANNED_API(copysign)
-#endif
-
-#ifndef ALLOW_csinf
-#undef csinf
-#define csinf GPOS_BANNED_API(csinf)
-#endif
-
-#ifndef ALLOW_copysignf
-#undef copysignf
-#define copysignf GPOS_BANNED_API(copysignf)
-#endif
-
-#ifndef ALLOW_csinh
-#undef csinh
-#define csinh GPOS_BANNED_API(csinh)
-#endif
-
-#ifndef ALLOW_copysignl
-#undef copysignl
-#define copysignl GPOS_BANNED_API(copysignl)
-#endif
-
-#ifndef ALLOW_csinhf
-#undef csinhf
-#define csinhf GPOS_BANNED_API(csinhf)
-#endif
-
-#ifndef ALLOW_cproj
-#undef cproj
-#define cproj GPOS_BANNED_API(cproj)
-#endif
-
-#ifndef ALLOW_csinhl
-#undef csinhl
-#define csinhl GPOS_BANNED_API(csinhl)
-#endif
-
-#ifndef ALLOW_cprojf
-#undef cprojf
-#define cprojf GPOS_BANNED_API(cprojf)
-#endif
-
-#ifndef ALLOW_csinl
-#undef csinl
-#define csinl GPOS_BANNED_API(csinl)
-#endif
-
-#ifndef ALLOW_cprojl
-#undef cprojl
-#define cprojl GPOS_BANNED_API(cprojl)
-#endif
-
-#ifndef ALLOW_csqrt
-#undef csqrt
-#define csqrt GPOS_BANNED_API(csqrt)
-#endif
-
 #ifndef ALLOW_CPU_CLR
 #undef CPU_CLR
 #define CPU_CLR GPOS_BANNED_API(CPU_CLR)
-#endif
-
-#ifndef ALLOW_csqrtf
-#undef csqrtf
-#define csqrtf GPOS_BANNED_API(csqrtf)
-#endif
-
-#ifndef ALLOW_ctan
-#undef ctan
-#define ctan GPOS_BANNED_API(ctan)
-#endif
-
-#ifndef ALLOW_csqrtl
-#undef csqrtl
-#define csqrtl GPOS_BANNED_API(csqrtl)
-#endif
-
-#ifndef ALLOW_ctanf
-#undef ctanf
-#define ctanf GPOS_BANNED_API(ctanf)
 #endif
 
 #ifndef ALLOW_ctime_r
@@ -1106,19 +626,9 @@
 #define ctime_r GPOS_BANNED_API(ctime_r)
 #endif
 
-#ifndef ALLOW_ctanh
-#undef ctanh
-#define ctanh GPOS_BANNED_API(ctanh)
-#endif
-
 #ifndef ALLOW_cuserid
 #undef cuserid
 #define cuserid GPOS_BANNED_API(cuserid)
-#endif
-
-#ifndef ALLOW_ctanhf
-#undef ctanhf
-#define ctanhf GPOS_BANNED_API(ctanhf)
 #endif
 
 #ifndef ALLOW_dgettext
@@ -1126,24 +636,9 @@
 #define dgettext GPOS_BANNED_API(dgettext)
 #endif
 
-#ifndef ALLOW_ctanhl
-#undef ctanhl
-#define ctanhl GPOS_BANNED_API(ctanhl)
-#endif
-
 #ifndef ALLOW_dirfd
 #undef dirfd
 #define dirfd GPOS_BANNED_API(dirfd)
-#endif
-
-#ifndef ALLOW_ctanl
-#undef ctanl
-#define ctanl GPOS_BANNED_API(ctanl)
-#endif
-
-#ifndef ALLOW_div
-#undef div
-#define div GPOS_BANNED_API(div)
 #endif
 
 #ifndef ALLOW_ctermid
@@ -1391,19 +886,9 @@
 #define error GPOS_BANNED_API(error)
 #endif
 
-#ifndef ALLOW_exp
-#undef exp
-#define exp GPOS_BANNED_API(exp)
-#endif
-
 #ifndef ALLOW_execle
 #undef execle
 #define execle GPOS_BANNED_API(execle)
-#endif
-
-#ifndef ALLOW_exp2
-#undef exp2
-#define exp2 GPOS_BANNED_API(exp2)
 #endif
 
 #ifndef ALLOW_execve
@@ -1411,19 +896,9 @@
 #define execve GPOS_BANNED_API(execve)
 #endif
 
-#ifndef ALLOW_exp2f
-#undef exp2f
-#define exp2f GPOS_BANNED_API(exp2f)
-#endif
-
 #ifndef ALLOW_exit
 #undef exit
 #define exit GPOS_BANNED_API(exit)
-#endif
-
-#ifndef ALLOW_exp2l
-#undef exp2l
-#define exp2l GPOS_BANNED_API(exp2l)
 #endif
 
 #ifndef ALLOW_exp10
@@ -1431,54 +906,14 @@
 #define exp10 GPOS_BANNED_API(exp10)
 #endif
 
-#ifndef ALLOW_expf
-#undef expf
-#define expf GPOS_BANNED_API(expf)
-#endif
-
 #ifndef ALLOW_exp10f
 #undef exp10f
 #define exp10f GPOS_BANNED_API(exp10f)
 #endif
 
-#ifndef ALLOW_expl
-#undef expl
-#define expl GPOS_BANNED_API(expl)
-#endif
-
 #ifndef ALLOW_exp10l
 #undef exp10l
 #define exp10l GPOS_BANNED_API(exp10l)
-#endif
-
-#ifndef ALLOW_expm1
-#undef expm1
-#define expm1 GPOS_BANNED_API(expm1)
-#endif
-
-#ifndef ALLOW_fabs
-#undef fabs
-#define fabs GPOS_BANNED_API(fabs)
-#endif
-
-#ifndef ALLOW_expm1f
-#undef expm1f
-#define expm1f GPOS_BANNED_API(expm1f)
-#endif
-
-#ifndef ALLOW_fabsf
-#undef fabsf
-#define fabsf GPOS_BANNED_API(fabsf)
-#endif
-
-#ifndef ALLOW_expm1l
-#undef expm1l
-#define expm1l GPOS_BANNED_API(expm1l)
-#endif
-
-#ifndef ALLOW_fabsl
-#undef fabsl
-#define fabsl GPOS_BANNED_API(fabsl)
 #endif
 
 #ifndef ALLOW_fchmod
@@ -1526,29 +961,14 @@
 #define fcntl GPOS_BANNED_API(fcntl)
 #endif
 
-#ifndef ALLOW_fdim
-#undef fdim
-#define fdim GPOS_BANNED_API(fdim)
-#endif
-
 #ifndef ALLOW_FD_ISSET
 #undef FD_ISSET
 #define FD_ISSET GPOS_BANNED_API(FD_ISSET)
 #endif
 
-#ifndef ALLOW_fdimf
-#undef fdimf
-#define fdimf GPOS_BANNED_API(fdimf)
-#endif
-
 #ifndef ALLOW_FD_SET
 #undef FD_SET
 #define FD_SET GPOS_BANNED_API(FD_SET)
-#endif
-
-#ifndef ALLOW_fdiml
-#undef fdiml
-#define fdiml GPOS_BANNED_API(fdiml)
 #endif
 
 #ifndef ALLOW_FD_ZERO
@@ -1766,29 +1186,14 @@
 #define fmemopen GPOS_BANNED_API(fmemopen)
 #endif
 
-#ifndef ALLOW_floor
-#undef floor
-#define floor GPOS_BANNED_API(floor)
-#endif
-
 #ifndef ALLOW_fnmatch
 #undef fnmatch
 #define fnmatch GPOS_BANNED_API(fnmatch)
 #endif
 
-#ifndef ALLOW_floorf
-#undef floorf
-#define floorf GPOS_BANNED_API(floorf)
-#endif
-
 #ifndef ALLOW_forkpty
 #undef forkpty
 #define forkpty GPOS_BANNED_API(forkpty)
-#endif
-
-#ifndef ALLOW_floorl
-#undef floorl
-#define floorl GPOS_BANNED_API(floorl)
 #endif
 
 #ifndef ALLOW_fpathconf
@@ -1826,19 +1231,9 @@
 #define fputwc_unlocked GPOS_BANNED_API(fputwc_unlocked)
 #endif
 
-#ifndef ALLOW_fmax
-#undef fmax
-#define fmax GPOS_BANNED_API(fmax)
-#endif
-
 #ifndef ALLOW_fputws
 #undef fputws
 #define fputws GPOS_BANNED_API(fputws)
-#endif
-
-#ifndef ALLOW_fmaxf
-#undef fmaxf
-#define fmaxf GPOS_BANNED_API(fmaxf)
 #endif
 
 #ifndef ALLOW_fputws_unlocked
@@ -1846,19 +1241,9 @@
 #define fputws_unlocked GPOS_BANNED_API(fputws_unlocked)
 #endif
 
-#ifndef ALLOW_fmaxl
-#undef fmaxl
-#define fmaxl GPOS_BANNED_API(fmaxl)
-#endif
-
 #ifndef ALLOW_freopen
 #undef freopen
 #define freopen GPOS_BANNED_API(freopen)
-#endif
-
-#ifndef ALLOW_fmin
-#undef fmin
-#define fmin GPOS_BANNED_API(fmin)
 #endif
 
 #ifndef ALLOW_freopen64
@@ -1866,49 +1251,9 @@
 #define freopen64 GPOS_BANNED_API(freopen64)
 #endif
 
-#ifndef ALLOW_fminf
-#undef fminf
-#define fminf GPOS_BANNED_API(fminf)
-#endif
-
-#ifndef ALLOW_frexp
-#undef frexp
-#define frexp GPOS_BANNED_API(frexp)
-#endif
-
-#ifndef ALLOW_fminl
-#undef fminl
-#define fminl GPOS_BANNED_API(fminl)
-#endif
-
-#ifndef ALLOW_frexpf
-#undef frexpf
-#define frexpf GPOS_BANNED_API(frexpf)
-#endif
-
-#ifndef ALLOW_fmod
-#undef fmod
-#define fmod GPOS_BANNED_API(fmod)
-#endif
-
-#ifndef ALLOW_frexpl
-#undef frexpl
-#define frexpl GPOS_BANNED_API(frexpl)
-#endif
-
-#ifndef ALLOW_fmodf
-#undef fmodf
-#define fmodf GPOS_BANNED_API(fmodf)
-#endif
-
 #ifndef ALLOW_fscanf
 #undef fscanf
 #define fscanf GPOS_BANNED_API(fscanf)
-#endif
-
-#ifndef ALLOW_fmodl
-#undef fmodl
-#define fmodl GPOS_BANNED_API(fmodl)
 #endif
 
 #ifndef ALLOW_fseeko
@@ -2626,19 +1971,9 @@
 #define grantpt GPOS_BANNED_API(grantpt)
 #endif
 
-#ifndef ALLOW_ilogb
-#undef ilogb
-#define ilogb GPOS_BANNED_API(ilogb)
-#endif
-
 #ifndef ALLOW_gtty
 #undef gtty
 #define gtty GPOS_BANNED_API(gtty)
-#endif
-
-#ifndef ALLOW_ilogbf
-#undef ilogbf
-#define ilogbf GPOS_BANNED_API(ilogbf)
 #endif
 
 #ifndef ALLOW_hasmntopt
@@ -2646,24 +1981,9 @@
 #define hasmntopt GPOS_BANNED_API(hasmntopt)
 #endif
 
-#ifndef ALLOW_ilogbl
-#undef ilogbl
-#define ilogbl GPOS_BANNED_API(ilogbl)
-#endif
-
 #ifndef ALLOW_htons
 #undef htons
 #define htons GPOS_BANNED_API(htons)
-#endif
-
-#ifndef ALLOW_imaxabs
-#undef imaxabs
-#define imaxabs GPOS_BANNED_API(imaxabs)
-#endif
-
-#ifndef ALLOW_hypot
-#undef hypot
-#define hypot GPOS_BANNED_API(hypot)
 #endif
 
 #ifndef ALLOW_inet_aton
@@ -2671,19 +1991,9 @@
 #define inet_aton GPOS_BANNED_API(inet_aton)
 #endif
 
-#ifndef ALLOW_hypotf
-#undef hypotf
-#define hypotf GPOS_BANNED_API(hypotf)
-#endif
-
 #ifndef ALLOW_inet_lnaof
 #undef inet_lnaof
 #define inet_lnaof GPOS_BANNED_API(inet_lnaof)
-#endif
-
-#ifndef ALLOW_hypotl
-#undef hypotl
-#define hypotl GPOS_BANNED_API(hypotl)
 #endif
 
 #ifndef ALLOW_inet_netof
@@ -2736,11 +2046,6 @@
 #define ioctl GPOS_BANNED_API(ioctl)
 #endif
 
-#ifndef ALLOW_imaxdiv
-#undef imaxdiv
-#define imaxdiv GPOS_BANNED_API(imaxdiv)
-#endif
-
 #ifndef ALLOW_isalnum
 #undef isalnum
 #define isalnum GPOS_BANNED_API(isalnum)
@@ -2791,11 +2096,6 @@
 #define inet_pton GPOS_BANNED_API(inet_pton)
 #endif
 
-#ifndef ALLOW_isinf
-#undef isinf
-#define isinf GPOS_BANNED_API(isinf)
-#endif
-
 #ifndef ALLOW_initgroups
 #undef initgroups
 #define initgroups GPOS_BANNED_API(initgroups)
@@ -2831,19 +2131,9 @@
 #define isatty GPOS_BANNED_API(isatty)
 #endif
 
-#ifndef ALLOW_islessequal
-#undef islessequal
-#define islessequal GPOS_BANNED_API(islessequal)
-#endif
-
 #ifndef ALLOW_isblank
 #undef isblank
 #define isblank GPOS_BANNED_API(isblank)
-#endif
-
-#ifndef ALLOW_islessgreater
-#undef islessgreater
-#define islessgreater GPOS_BANNED_API(islessgreater)
 #endif
 
 #ifndef ALLOW_isgraph
@@ -2854,21 +2144,6 @@
 #ifndef ALLOW_islower
 #undef islower
 #define islower GPOS_BANNED_API(islower)
-#endif
-
-#ifndef ALLOW_isgreater
-#undef isgreater
-#define isgreater GPOS_BANNED_API(isgreater)
-#endif
-
-#ifndef ALLOW_isnan
-#undef isnan
-#define isnan GPOS_BANNED_API(isnan)
-#endif
-
-#ifndef ALLOW_isgreaterequal
-#undef isgreaterequal
-#define isgreaterequal GPOS_BANNED_API(isgreaterequal)
 #endif
 
 #ifndef ALLOW_isnanf
@@ -3031,19 +2306,9 @@
 #define jnf GPOS_BANNED_API(jnf)
 #endif
 
-#ifndef ALLOW_ldexp
-#undef ldexp
-#define ldexp GPOS_BANNED_API(ldexp)
-#endif
-
 #ifndef ALLOW_jnl
 #undef jnl
 #define jnl GPOS_BANNED_API(jnl)
-#endif
-
-#ifndef ALLOW_ldexpf
-#undef ldexpf
-#define ldexpf GPOS_BANNED_API(ldexpf)
 #endif
 
 #ifndef ALLOW_jrand48_r
@@ -3051,24 +2316,9 @@
 #define jrand48_r GPOS_BANNED_API(jrand48_r)
 #endif
 
-#ifndef ALLOW_ldexpl
-#undef ldexpl
-#define ldexpl GPOS_BANNED_API(ldexpl)
-#endif
-
 #ifndef ALLOW_kill
 #undef kill
 #define kill GPOS_BANNED_API(kill)
-#endif
-
-#ifndef ALLOW_ldiv
-#undef ldiv
-#define ldiv GPOS_BANNED_API(ldiv)
-#endif
-
-#ifndef ALLOW_labs
-#undef labs
-#define labs GPOS_BANNED_API(labs)
 #endif
 
 #ifndef ALLOW_lfind
@@ -3111,44 +2361,9 @@
 #define lgammal_r GPOS_BANNED_API(lgammal_r)
 #endif
 
-#ifndef ALLOW_lldiv
-#undef lldiv
-#define lldiv GPOS_BANNED_API(lldiv)
-#endif
-
 #ifndef ALLOW_link
 #undef link
 #define link GPOS_BANNED_API(link)
-#endif
-
-#ifndef ALLOW_llrint
-#undef llrint
-#define llrint GPOS_BANNED_API(llrint)
-#endif
-
-#ifndef ALLOW_llabs
-#undef llabs
-#define llabs GPOS_BANNED_API(llabs)
-#endif
-
-#ifndef ALLOW_llrintf
-#undef llrintf
-#define llrintf GPOS_BANNED_API(llrintf)
-#endif
-
-#ifndef ALLOW_llround
-#undef llround
-#define llround GPOS_BANNED_API(llround)
-#endif
-
-#ifndef ALLOW_llrintl
-#undef llrintl
-#define llrintl GPOS_BANNED_API(llrintl)
-#endif
-
-#ifndef ALLOW_llroundf
-#undef llroundf
-#define llroundf GPOS_BANNED_API(llroundf)
 #endif
 
 #ifndef ALLOW_localtime_r
@@ -3156,69 +2371,9 @@
 #define localtime_r GPOS_BANNED_API(localtime_r)
 #endif
 
-#ifndef ALLOW_llroundl
-#undef llroundl
-#define llroundl GPOS_BANNED_API(llroundl)
-#endif
-
-#ifndef ALLOW_log10
-#undef log10
-#define log10 GPOS_BANNED_API(log10)
-#endif
-
 #ifndef ALLOW_localeconv
 #undef localeconv
 #define localeconv GPOS_BANNED_API(localeconv)
-#endif
-
-#ifndef ALLOW_log10f
-#undef log10f
-#define log10f GPOS_BANNED_API(log10f)
-#endif
-
-#ifndef ALLOW_log
-#undef log
-#define log GPOS_BANNED_API(log)
-#endif
-
-#ifndef ALLOW_log10l
-#undef log10l
-#define log10l GPOS_BANNED_API(log10l)
-#endif
-
-#ifndef ALLOW_log2
-#undef log2
-#define log2 GPOS_BANNED_API(log2)
-#endif
-
-#ifndef ALLOW_log1p
-#undef log1p
-#define log1p GPOS_BANNED_API(log1p)
-#endif
-
-#ifndef ALLOW_log2f
-#undef log2f
-#define log2f GPOS_BANNED_API(log2f)
-#endif
-
-#ifndef ALLOW_log1pf
-#undef log1pf
-#define log1pf GPOS_BANNED_API(log1pf)
-#endif
-
-#ifndef ALLOW_log2l
-#undef log2l
-#define log2l GPOS_BANNED_API(log2l)
-#endif
-
-#ifndef ALLOW_log1pl
-#undef log1pl
-#define log1pl GPOS_BANNED_API(log1pl)
-#endif
-
-#ifndef ALLOW_logb
-#undef logb
-#define logb GPOS_BANNED_API(logb)
 #endif
 
 #ifndef ALLOW_login
@@ -3226,19 +2381,9 @@
 #define login GPOS_BANNED_API(login)
 #endif
 
-#ifndef ALLOW_logbf
-#undef logbf
-#define logbf GPOS_BANNED_API(logbf)
-#endif
-
 #ifndef ALLOW_login_tty
 #undef login_tty
 #define login_tty GPOS_BANNED_API(login_tty)
-#endif
-
-#ifndef ALLOW_logbl
-#undef logbl
-#define logbl GPOS_BANNED_API(logbl)
 #endif
 
 #ifndef ALLOW_longjmp
@@ -3246,34 +2391,9 @@
 #define longjmp GPOS_BANNED_API(longjmp)
 #endif
 
-#ifndef ALLOW_logf
-#undef logf
-#define logf GPOS_BANNED_API(logf)
-#endif
-
-#ifndef ALLOW_lrint
-#undef lrint
-#define lrint GPOS_BANNED_API(lrint)
-#endif
-
-#ifndef ALLOW_logl
-#undef logl
-#define logl GPOS_BANNED_API(logl)
-#endif
-
-#ifndef ALLOW_lrintf
-#undef lrintf
-#define lrintf GPOS_BANNED_API(lrintf)
-#endif
-
 #ifndef ALLOW_logout
 #undef logout
 #define logout GPOS_BANNED_API(logout)
-#endif
-
-#ifndef ALLOW_lrintl
-#undef lrintl
-#define lrintl GPOS_BANNED_API(lrintl)
 #endif
 
 #ifndef ALLOW_logwtmp
@@ -3296,24 +2416,9 @@
 #define madvise GPOS_BANNED_API(madvise)
 #endif
 
-#ifndef ALLOW_lround
-#undef lround
-#define lround GPOS_BANNED_API(lround)
-#endif
-
-#ifndef ALLOW_lroundf
-#undef lroundf
-#define lroundf GPOS_BANNED_API(lroundf)
-#endif
-
 #ifndef ALLOW_makecontext
 #undef makecontext
 #define makecontext GPOS_BANNED_API(makecontext)
-#endif
-
-#ifndef ALLOW_lroundl
-#undef lroundl
-#define lroundl GPOS_BANNED_API(lroundl)
 #endif
 
 #ifndef ALLOW_mallopt
@@ -3346,19 +2451,9 @@
 #define lseek64 GPOS_BANNED_API(lseek64)
 #endif
 
-#ifndef ALLOW_memcmp
-#undef memcmp
-#define memcmp GPOS_BANNED_API(memcmp)
-#endif
-
 #ifndef ALLOW_lstat
 #undef lstat
 #define lstat GPOS_BANNED_API(lstat)
-#endif
-
-#ifndef ALLOW_memcpy
-#undef memcpy
-#define memcpy GPOS_BANNED_API(memcpy)
 #endif
 
 #ifndef ALLOW_lstat64
@@ -3374,11 +2469,6 @@
 #ifndef ALLOW_mallinfo
 #undef mallinfo
 #define mallinfo GPOS_BANNED_API(mallinfo)
-#endif
-
-#ifndef ALLOW_memset
-#undef memset
-#define memset GPOS_BANNED_API(memset)
 #endif
 
 #ifndef ALLOW_malloc
@@ -3491,11 +2581,6 @@
 #define munlock GPOS_BANNED_API(munlock)
 #endif
 
-#ifndef ALLOW_memchr
-#undef memchr
-#define memchr GPOS_BANNED_API(memchr)
-#endif
-
 #ifndef ALLOW_muntrace
 #undef muntrace
 #define muntrace GPOS_BANNED_API(muntrace)
@@ -3506,29 +2591,9 @@
 #define memfrob GPOS_BANNED_API(memfrob)
 #endif
 
-#ifndef ALLOW_nan
-#undef nan
-#define nan GPOS_BANNED_API(nan)
-#endif
-
 #ifndef ALLOW_memmem
 #undef memmem
 #define memmem GPOS_BANNED_API(memmem)
-#endif
-
-#ifndef ALLOW_nanf
-#undef nanf
-#define nanf GPOS_BANNED_API(nanf)
-#endif
-
-#ifndef ALLOW_memmove
-#undef memmove
-#define memmove GPOS_BANNED_API(memmove)
-#endif
-
-#ifndef ALLOW_nanl
-#undef nanl
-#define nanl GPOS_BANNED_API(nanl)
 #endif
 
 #ifndef ALLOW_memrchr
@@ -3581,29 +2646,14 @@
 #define nftw GPOS_BANNED_API(nftw)
 #endif
 
-#ifndef ALLOW_modf
-#undef modf
-#define modf GPOS_BANNED_API(modf)
-#endif
-
 #ifndef ALLOW_nftw64
 #undef nftw64
 #define nftw64 GPOS_BANNED_API(nftw64)
 #endif
 
-#ifndef ALLOW_modff
-#undef modff
-#define modff GPOS_BANNED_API(modff)
-#endif
-
 #ifndef ALLOW_ngettext
 #undef ngettext
 #define ngettext GPOS_BANNED_API(ngettext)
-#endif
-
-#ifndef ALLOW_modfl
-#undef modfl
-#define modfl GPOS_BANNED_API(modfl)
 #endif
 
 #ifndef ALLOW_nice
@@ -3661,19 +2711,9 @@
 #define obstack_1grow_fast GPOS_BANNED_API(obstack_1grow_fast)
 #endif
 
-#ifndef ALLOW_nearbyint
-#undef nearbyint
-#define nearbyint GPOS_BANNED_API(nearbyint)
-#endif
-
 #ifndef ALLOW_obstack_alloc
 #undef obstack_alloc
 #define obstack_alloc GPOS_BANNED_API(obstack_alloc)
-#endif
-
-#ifndef ALLOW_nearbyintf
-#undef nearbyintf
-#define nearbyintf GPOS_BANNED_API(nearbyintf)
 #endif
 
 #ifndef ALLOW_obstack_base
@@ -3681,19 +2721,9 @@
 #define obstack_base GPOS_BANNED_API(obstack_base)
 #endif
 
-#ifndef ALLOW_nearbyintl
-#undef nearbyintl
-#define nearbyintl GPOS_BANNED_API(nearbyintl)
-#endif
-
 #ifndef ALLOW_obstack_blank_fast
 #undef obstack_blank_fast
 #define obstack_blank_fast GPOS_BANNED_API(obstack_blank_fast)
-#endif
-
-#ifndef ALLOW_nexttoward
-#undef nexttoward
-#define nexttoward GPOS_BANNED_API(nexttoward)
 #endif
 
 #ifndef ALLOW_obstack_chunk_alloc
@@ -3701,19 +2731,9 @@
 #define obstack_chunk_alloc GPOS_BANNED_API(obstack_chunk_alloc)
 #endif
 
-#ifndef ALLOW_nexttowardf
-#undef nexttowardf
-#define nexttowardf GPOS_BANNED_API(nexttowardf)
-#endif
-
 #ifndef ALLOW_obstack_chunk_size
 #undef obstack_chunk_size
 #define obstack_chunk_size GPOS_BANNED_API(obstack_chunk_size)
-#endif
-
-#ifndef ALLOW_nexttowardl
-#undef nexttowardl
-#define nexttowardl GPOS_BANNED_API(nexttowardl)
 #endif
 
 #ifndef ALLOW_obstack_copy
@@ -3961,29 +2981,14 @@
 #define putchar_unlocked GPOS_BANNED_API(putchar_unlocked)
 #endif
 
-#ifndef ALLOW_pow
-#undef pow
-#define pow GPOS_BANNED_API(pow)
-#endif
-
 #ifndef ALLOW_putpwent
 #undef putpwent
 #define putpwent GPOS_BANNED_API(putpwent)
 #endif
 
-#ifndef ALLOW_powf
-#undef powf
-#define powf GPOS_BANNED_API(powf)
-#endif
-
 #ifndef ALLOW_putwc
 #undef putwc
 #define putwc GPOS_BANNED_API(putwc)
-#endif
-
-#ifndef ALLOW_powl
-#undef powl
-#define powl GPOS_BANNED_API(powl)
 #endif
 
 #ifndef ALLOW_putwc_unlocked
@@ -4076,29 +3081,14 @@
 #define pututline GPOS_BANNED_API(pututline)
 #endif
 
-#ifndef ALLOW_remainder
-#undef remainder
-#define remainder GPOS_BANNED_API(remainder)
-#endif
-
 #ifndef ALLOW_pututxline
 #undef pututxline
 #define pututxline GPOS_BANNED_API(pututxline)
 #endif
 
-#ifndef ALLOW_remainderf
-#undef remainderf
-#define remainderf GPOS_BANNED_API(remainderf)
-#endif
-
 #ifndef ALLOW_putw
 #undef putw
 #define putw GPOS_BANNED_API(putw)
-#endif
-
-#ifndef ALLOW_remainderl
-#undef remainderl
-#define remainderl GPOS_BANNED_API(remainderl)
 #endif
 
 #ifndef ALLOW_putwchar
@@ -4116,29 +3106,14 @@
 #define putwchar_unlocked GPOS_BANNED_API(putwchar_unlocked)
 #endif
 
-#ifndef ALLOW_rint
-#undef rint
-#define rint GPOS_BANNED_API(rint)
-#endif
-
 #ifndef ALLOW_qecvt_r
 #undef qecvt_r
 #define qecvt_r GPOS_BANNED_API(qecvt_r)
 #endif
 
-#ifndef ALLOW_rintf
-#undef rintf
-#define rintf GPOS_BANNED_API(rintf)
-#endif
-
 #ifndef ALLOW_raise
 #undef raise
 #define raise GPOS_BANNED_API(raise)
-#endif
-
-#ifndef ALLOW_rintl
-#undef rintl
-#define rintl GPOS_BANNED_API(rintl)
 #endif
 
 #ifndef ALLOW_rand_r
@@ -4331,29 +3306,14 @@
 #define sched_rr_get_interval GPOS_BANNED_API(sched_rr_get_interval)
 #endif
 
-#ifndef ALLOW_round
-#undef round
-#define round GPOS_BANNED_API(round)
-#endif
-
 #ifndef ALLOW_sched_setparam
 #undef sched_setparam
 #define sched_setparam GPOS_BANNED_API(sched_setparam)
 #endif
 
-#ifndef ALLOW_roundf
-#undef roundf
-#define roundf GPOS_BANNED_API(roundf)
-#endif
-
 #ifndef ALLOW_sched_setscheduler
 #undef sched_setscheduler
 #define sched_setscheduler GPOS_BANNED_API(sched_setscheduler)
-#endif
-
-#ifndef ALLOW_roundl
-#undef roundl
-#define roundl GPOS_BANNED_API(roundl)
 #endif
 
 #ifndef ALLOW_sched_yield
@@ -4716,29 +3676,14 @@
 #define sigaddset GPOS_BANNED_API(sigaddset)
 #endif
 
-#ifndef ALLOW_sincos
-#undef sincos
-#define sincos GPOS_BANNED_API(sincos)
-#endif
-
 #ifndef ALLOW_sigaltstack
 #undef sigaltstack
 #define sigaltstack GPOS_BANNED_API(sigaltstack)
 #endif
 
-#ifndef ALLOW_sincosf
-#undef sincosf
-#define sincosf GPOS_BANNED_API(sincosf)
-#endif
-
 #ifndef ALLOW_sigblock
 #undef sigblock
 #define sigblock GPOS_BANNED_API(sigblock)
-#endif
-
-#ifndef ALLOW_sincosl
-#undef sincosl
-#define sincosl GPOS_BANNED_API(sincosl)
 #endif
 
 #ifndef ALLOW_sigdelset
@@ -4801,11 +3746,6 @@
 #define ssignal GPOS_BANNED_API(ssignal)
 #endif
 
-#ifndef ALLOW_signbit
-#undef signbit
-#define signbit GPOS_BANNED_API(signbit)
-#endif
-
 #ifndef ALLOW_stpcpy
 #undef stpcpy
 #define stpcpy GPOS_BANNED_API(stpcpy)
@@ -4831,19 +3771,9 @@
 #define strcasecmp GPOS_BANNED_API(strcasecmp)
 #endif
 
-#ifndef ALLOW_sin
-#undef sin
-#define sin GPOS_BANNED_API(sin)
-#endif
-
 #ifndef ALLOW_strcat
 #undef strcat
 #define strcat GPOS_BANNED_API(strcat)
-#endif
-
-#ifndef ALLOW_sinf
-#undef sinf
-#define sinf GPOS_BANNED_API(sinf)
 #endif
 
 #ifndef ALLOW_strchrnul
@@ -4851,19 +3781,9 @@
 #define strchrnul GPOS_BANNED_API(strchrnul)
 #endif
 
-#ifndef ALLOW_sinh
-#undef sinh
-#define sinh GPOS_BANNED_API(sinh)
-#endif
-
 #ifndef ALLOW_strcmp
 #undef strcmp
 #define strcmp GPOS_BANNED_API(strcmp)
-#endif
-
-#ifndef ALLOW_sinhf
-#undef sinhf
-#define sinhf GPOS_BANNED_API(sinhf)
 #endif
 
 #ifndef ALLOW_strcoll
@@ -4871,19 +3791,9 @@
 #define strcoll GPOS_BANNED_API(strcoll)
 #endif
 
-#ifndef ALLOW_sinhl
-#undef sinhl
-#define sinhl GPOS_BANNED_API(sinhl)
-#endif
-
 #ifndef ALLOW_strcpy
 #undef strcpy
 #define strcpy GPOS_BANNED_API(strcpy)
-#endif
-
-#ifndef ALLOW_sinl
-#undef sinl
-#define sinl GPOS_BANNED_API(sinl)
 #endif
 
 #ifndef ALLOW_strcspn
@@ -4911,29 +3821,14 @@
 #define strfmon GPOS_BANNED_API(strfmon)
 #endif
 
-#ifndef ALLOW_sqrt
-#undef sqrt
-#define sqrt GPOS_BANNED_API(sqrt)
-#endif
-
 #ifndef ALLOW_strncasecmp
 #undef strncasecmp
 #define strncasecmp GPOS_BANNED_API(strncasecmp)
 #endif
 
-#ifndef ALLOW_sqrtf
-#undef sqrtf
-#define sqrtf GPOS_BANNED_API(sqrtf)
-#endif
-
 #ifndef ALLOW_strncat
 #undef strncat
 #define strncat GPOS_BANNED_API(strncat)
-#endif
-
-#ifndef ALLOW_sqrtl
-#undef sqrtl
-#define sqrtl GPOS_BANNED_API(sqrtl)
 #endif
 
 #ifndef ALLOW_strncmp
@@ -5001,11 +3896,6 @@
 #define strtoq GPOS_BANNED_API(strtoq)
 #endif
 
-#ifndef ALLOW_strchr
-#undef strchr
-#define strchr GPOS_BANNED_API(strchr)
-#endif
-
 #ifndef ALLOW_strtoul
 #undef strtoul
 #define strtoul GPOS_BANNED_API(strtoul)
@@ -5049,11 +3939,6 @@
 #ifndef ALLOW_success
 #undef success
 #define success GPOS_BANNED_API(success)
-#endif
-
-#ifndef ALLOW_strlen
-#undef strlen
-#define strlen GPOS_BANNED_API(strlen)
 #endif
 
 #ifndef ALLOW_swprintf
@@ -5101,29 +3986,14 @@
 #define syscall GPOS_BANNED_API(syscall)
 #endif
 
-#ifndef ALLOW_strrchr
-#undef strrchr
-#define strrchr GPOS_BANNED_API(strrchr)
-#endif
-
 #ifndef ALLOW_sysconf
 #undef sysconf
 #define sysconf GPOS_BANNED_API(sysconf)
 #endif
 
-#ifndef ALLOW_strspn
-#undef strspn
-#define strspn GPOS_BANNED_API(strspn)
-#endif
-
 #ifndef ALLOW_syslog
 #undef syslog
 #define syslog GPOS_BANNED_API(syslog)
-#endif
-
-#ifndef ALLOW_strstr
-#undef strstr
-#define strstr GPOS_BANNED_API(strstr)
 #endif
 
 #ifndef ALLOW_system
@@ -5136,19 +4006,9 @@
 #define strtod GPOS_BANNED_API(strtod)
 #endif
 
-#ifndef ALLOW_tan
-#undef tan
-#define tan GPOS_BANNED_API(tan)
-#endif
-
 #ifndef ALLOW_strtof
 #undef strtof
 #define strtof GPOS_BANNED_API(strtof)
-#endif
-
-#ifndef ALLOW_tanf
-#undef tanf
-#define tanf GPOS_BANNED_API(tanf)
 #endif
 
 #ifndef ALLOW_strtok_r
@@ -5156,19 +4016,9 @@
 #define strtok_r GPOS_BANNED_API(strtok_r)
 #endif
 
-#ifndef ALLOW_tanh
-#undef tanh
-#define tanh GPOS_BANNED_API(tanh)
-#endif
-
 #ifndef ALLOW_strtol
 #undef strtol
 #define strtol GPOS_BANNED_API(strtol)
-#endif
-
-#ifndef ALLOW_tanhf
-#undef tanhf
-#define tanhf GPOS_BANNED_API(tanhf)
 #endif
 
 #ifndef ALLOW_strtold
@@ -5176,19 +4026,9 @@
 #define strtold GPOS_BANNED_API(strtold)
 #endif
 
-#ifndef ALLOW_tanhl
-#undef tanhl
-#define tanhl GPOS_BANNED_API(tanhl)
-#endif
-
 #ifndef ALLOW_strtoll
 #undef strtoll
 #define strtoll GPOS_BANNED_API(strtoll)
-#endif
-
-#ifndef ALLOW_tanl
-#undef tanl
-#define tanl GPOS_BANNED_API(tanl)
 #endif
 
 #ifndef ALLOW_strtouq
@@ -5266,29 +4106,14 @@
 #define tcgetattr GPOS_BANNED_API(tcgetattr)
 #endif
 
-#ifndef ALLOW_tgamma
-#undef tgamma
-#define tgamma GPOS_BANNED_API(tgamma)
-#endif
-
 #ifndef ALLOW_tcgetpgrp
 #undef tcgetpgrp
 #define tcgetpgrp GPOS_BANNED_API(tcgetpgrp)
 #endif
 
-#ifndef ALLOW_tgammaf
-#undef tgammaf
-#define tgammaf GPOS_BANNED_API(tgammaf)
-#endif
-
 #ifndef ALLOW_tcsendbreak
 #undef tcsendbreak
 #define tcsendbreak GPOS_BANNED_API(tcsendbreak)
-#endif
-
-#ifndef ALLOW_tgammal
-#undef tgammal
-#define tgammal GPOS_BANNED_API(tgammal)
 #endif
 
 #ifndef ALLOW_tcsetattr
@@ -5401,11 +4226,6 @@
 #define umask GPOS_BANNED_API(umask)
 #endif
 
-#ifndef ALLOW_trunc
-#undef trunc
-#define trunc GPOS_BANNED_API(trunc)
-#endif
-
 #ifndef ALLOW_ungetwc
 #undef ungetwc
 #define ungetwc GPOS_BANNED_API(ungetwc)
@@ -5431,19 +4251,9 @@
 #define updwtmp GPOS_BANNED_API(updwtmp)
 #endif
 
-#ifndef ALLOW_truncf
-#undef truncf
-#define truncf GPOS_BANNED_API(truncf)
-#endif
-
 #ifndef ALLOW_utimes
 #undef utimes
 #define utimes GPOS_BANNED_API(utimes)
-#endif
-
-#ifndef ALLOW_truncl
-#undef truncl
-#define truncl GPOS_BANNED_API(truncl)
 #endif
 
 #ifndef ALLOW_utmpname
