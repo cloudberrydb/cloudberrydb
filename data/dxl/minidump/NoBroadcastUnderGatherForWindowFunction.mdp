@@ -1,4 +1,36 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<!--
+CREATE TABLE networks (
+    network_id integer,
+    network_name character varying(255)
+) WITH (appendonly=false) DISTRIBUTED RANDOMLY;
+
+SELECT
+buyer_name
+, curr_bidrate
+FROM
+        (SELECT
+        buyer_name
+        , curr_bidrate
+        FROM
+                (SELECT
+                buyer_name,
+                SUM(curr_bidcnt) OVER() curr_bidrate
+        	FROM
+                	(SELECT
+           	     	network_name AS buyer_name
+               		, curr_bidcnt
+               	 	FROM
+				(SELECT
+					1 network_id,
+					6 curr_bidcnt
+				) X
+			JOIN networks USING (network_id)
+                ) AS A
+        ) AS B
+) AS C
+WHERE buyer_name = 'ABC'
+-->
 <dxl:DXLMessage xmlns:dxl="http://greenplum.com/dxl/2010/12/">
   <dxl:Thread Id="0">
    <dxl:OptimizerConfig>
