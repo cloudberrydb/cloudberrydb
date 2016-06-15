@@ -3974,7 +3974,7 @@ add_second_stage_agg(PlannerInfo *root,
 	 *
 	 * The result of the preliminary aggregation (represented by lower_tlist)
 	 * may contain targets with no representatives in the range of its outer 
-	 * relation.  We resolve this be treating the preliminary aggregation as 
+	 * relation.  We resolve this by treating the preliminary aggregation as
 	 * a subquery.
 	 *
 	 * However, this breaks the correspondence between the Plan tree and
@@ -4019,8 +4019,8 @@ add_second_stage_agg(PlannerInfo *root,
 				else
 				{
 					const char *fmt = "unnamed_attr_%d";
-					char buf[32]; /* big enuf for fmt */
-					sprintf(buf,fmt,tle->resno);
+					char buf[32]; /* big enough for fmt */
+					sprintf(buf, fmt, tle->resno);
 					tle->resname = pstrdup(buf);
 				}
 			}
@@ -5573,7 +5573,7 @@ make_deduplicate_plan(PlannerInfo *root,
 	/*
 	 * It is doable to just concatenate groupClause and sortClause,
 	 * but it is more semantic to convert sortClause to groupClause.
-	 * Especially we want to use make_pathkeys_from_grouplcause later where
+	 * Especially we want to use make_pathkeys_from_groupclause later where
 	 * sortClause is not handled.
 	 *
 	 * Copy input groupClause, since we change it.
