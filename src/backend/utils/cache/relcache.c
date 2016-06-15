@@ -2726,8 +2726,7 @@ AtEOXact_RelationCache(bool isCommit)
 	 * to maintain a coherent view of the storage layer.
 	 */
 	if (!need_eoxact_work
-		/* GPDB_83_MERGE_FIXME: disabled this special case, see FIXME comment below */
-		//&& DistributedTransactionContext != DTX_CONTEXT_QE_READER
+		&& DistributedTransactionContext != DTX_CONTEXT_QE_READER
 #ifdef USE_ASSERT_CHECKING
 		&& !assert_enabled
 #endif
