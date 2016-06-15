@@ -647,7 +647,7 @@ jobs:
     - get: gpdb_src
       params:
         submodules: none
-      trigger: true
+      trigger: false
   - task: build_with_orca
     file: gpdb_src/concourse/build_with_orca.yml
   - task: package_tarball_centos6
