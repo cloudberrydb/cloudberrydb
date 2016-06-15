@@ -24,8 +24,8 @@
 #include "cdb/cdbfilerep.h"
 #include "cdb/cdbfilerepservice.h"
 #include "cdb/cdbresynchronizechangetracking.h"
-#include "postmaster/bgwriter.h"
 #include "cdb/cdbutil.h"
+#include "postmaster/bgwriter.h"
 #include "postmaster/fts.h"
 #include "storage/spin.h"
 #include "storage/shmem.h"
@@ -822,7 +822,7 @@ FaultInjector_InjectFaultIfSet(
 				FaultInjector_UpdateHashEntry(entryLocal);
 			}
 
-			RequestCheckpoint(true, false);
+			RequestCheckpoint(CHECKPOINT_WAIT | CHECKPOINT_IMMEDIATE);
 			ereport(PANIC,
 					(errmsg("fault triggered, fault name:'%s' fault type:'%s' ",
 							FaultInjectorIdentifierEnumToString[entryLocal->faultInjectorIdentifier],

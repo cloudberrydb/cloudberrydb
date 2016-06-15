@@ -274,8 +274,8 @@ ExecInitShareInputScan(ShareInputScan *node, EState *estate, int eflags)
 	outerPlanState(sisstate) = ExecInitNode(outerPlan, estate, eflags);
 
 	sisstate->ss.ps.targetlist = (List *) 
-		ExecInitExpr((Expr *) node->plan.targetlist, (PlanState *) sisstate);
-	Assert(node->plan.qual == NULL);
+		ExecInitExpr((Expr *) node->scan.plan.targetlist, (PlanState *) sisstate);
+	Assert(node->scan.plan.qual == NULL);
 	sisstate->ss.ps.qual = NULL;
 
 	/* Misc initialization 
@@ -298,7 +298,7 @@ ExecInitShareInputScan(ShareInputScan *node, EState *estate, int eflags)
 		if (!ExecContextForcesOids(&sisstate->ss.ps, &hasoid))
 			hasoid = false;
 
-		tupDesc = ExecTypeFromTL(node->plan.targetlist, hasoid);
+		tupDesc = ExecTypeFromTL(node->scan.plan.targetlist, hasoid);
 	}
 		
 	ExecAssignScanType(&sisstate->ss, tupDesc);

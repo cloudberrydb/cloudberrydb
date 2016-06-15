@@ -1,3 +1,7 @@
+/*
+ * GPDB_83MERGE_FIXME: PostgreSQL 8.3 added "bounded" sort support to
+ * tuplesort.c. It has not been ported to tuplesort_mk.c yet
+ */
 /*-------------------------------------------------------------------------
  *
  * tuplesort.c
@@ -907,6 +911,7 @@ tuplesort_begin_index_mk(Relation indexRel,
             tupdesc, 0, 0);
    
     state->mkctxt.enforceUnique = enforceUnique;
+	state->mkctxt.indexname = RelationGetRelationName(indexRel);
     state->mkctxt.indexRel = indexRel;
     MemoryContextSwitchTo(oldcontext);
 
@@ -956,6 +961,35 @@ tuplesort_begin_datum_mk(ScanState * ss,
     MemoryContextSwitchTo(oldcontext);
 
     return state;
+}
+
+/*
+ * tuplesort_set_bound
+ *
+ *	Advise tuplesort that at most the first N result tuples are required.
+ *
+ * Must be called before inserting any tuples.	(Actually, we could allow it
+ * as long as the sort hasn't spilled to disk, but there seems no need for
+ * delayed calls at the moment.)
+ *
+ * This is a hint only. The tuplesort may still return more tuples than
+ * requested.
+ */
+void
+tuplesort_set_bound_mk(Tuplesortstate_mk *state, int64 bound)
+{
+	/*
+	 * GPDB_83_MERGE_FIXME: bounded sort not implemented for tuplesort_mk.
+	 * The top-N feature was added to tuplesort.c in PostgreSQL 8.3, but it
+	 * hasn't been ported over to tuplesort_mk.c yet. Or perhaps we should just
+	 * pick the valuable parts of tuplesort_mk.c into tuplesort.c, and get
+	 * rid of the separate tuplesort_mk.c?
+	 *
+	 * Until we do something about this, everything's still going to work,
+	 * but the top-N optimization won't apply when tuplesort_mk is used.
+	 * Note that the planner doesn't know about that, so cost estimates
+	 * involving sorting with tuplesort_mk and LIMIT might be way off.
+	 */
 }
 
 /*
@@ -2545,6 +2579,60 @@ void
 tuplesort_restorepos_mk(Tuplesortstate_mk *state)
 {
     tuplesort_restorepos_pos_mk(state, &state->pos);
+}
+
+
+/*
+ * tuplesort_explain - produce a line of information for EXPLAIN ANALYZE
+ *
+ * This can be called after tuplesort_performsort() finishes to obtain
+ * printable summary information about how the sort was performed.
+ *
+ * The result is a palloc'd string.
+ */
+char *
+tuplesort_explain_mk(Tuplesortstate_mk *state)
+{
+	char	   *result = (char *) palloc(100);
+	long		spaceUsed;
+
+	/*
+	 * Note: it might seem we should print both memory and disk usage for a
+	 * disk-based sort.  However, the current code doesn't track memory space
+	 * accurately once we have begun to return tuples to the caller (since we
+	 * don't account for pfree's the caller is expected to do), so we cannot
+	 * rely on availMem in a disk sort.  This does not seem worth the overhead
+	 * to fix.	Is it worth creating an API for the memory context code to
+	 * tell us how much is actually used in sortcontext?
+	 */
+	if (state->tapeset)
+		spaceUsed = LogicalTapeSetBlocks(state->tapeset);
+	else
+		spaceUsed = (MemoryContextGetCurrentSpace(state->sortcontext) + 1024) / 1024;
+
+	switch (state->status)
+	{
+		case TSS_SORTEDINMEM:
+			snprintf(result, 100,
+					 "Sort Method:  quicksort  Memory: %ldkB",
+					 spaceUsed);
+			break;
+		case TSS_SORTEDONTAPE:
+			snprintf(result, 100,
+					 "Sort Method:  external sort  Disk: %ldkB",
+					 spaceUsed);
+			break;
+		case TSS_FINALMERGE:
+			snprintf(result, 100,
+					 "Sort Method:  external merge  Disk: %ldkB",
+					 spaceUsed);
+			break;
+		default:
+			snprintf(result, 100, "sort still in progress");
+			break;
+	}
+
+	return result;
 }
 
 /*

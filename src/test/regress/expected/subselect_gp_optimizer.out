@@ -373,23 +373,23 @@ select * from csq_d1;
 -- outer plan node is master-only and CSQ has distributed relation
 --
 explain select * from csq_m1 where x not in (select x from csq_d1) or x < -100; -- gather motion
-                                                                                                  QUERY PLAN                                                                                                  
---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Result  (cost=0.00..1293.00 rows=2 width=4)
-   Filter: CASE WHEN NOT csq_m1.x IS NULL THEN CASE WHEN "ColRef_0018" = "ColRef_0017" THEN NULL::boolean WHEN NOT "ColRef_0018" IS NULL THEN false ELSE true END ELSE NULL::boolean END OR csq_m1.x < (-100)
-   ->  GroupAggregate  (cost=0.00..1293.00 rows=2 width=20)
+                                                                                                                                        QUERY PLAN                                                                                                                                        
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Result  (cost=0.00..1293.00 rows=1 width=4)
+   Filter: CASE WHEN NOT csq_m1.x IS NULL THEN CASE WHEN (sum((CASE WHEN csq_d1.x IS NULL THEN 1 ELSE 0 END))) = (count()) THEN NULL::boolean WHEN NOT (sum((CASE WHEN csq_d1.x IS NULL THEN 1 ELSE 0 END))) IS NULL THEN false ELSE true END ELSE NULL::boolean END OR csq_m1.x < (-100)
+   ->  GroupAggregate  (cost=0.00..1293.00 rows=1 width=20)
          Group By: csq_m1.x, csq_m1.ctid, csq_m1.gp_segment_id
-         ->  Nested Loop Left Join  (cost=0.00..1293.00 rows=4 width=18)
-               Join Filter: csq_m1.x = csq_d1.x OR csq_d1.x IS NULL
-               ->  Sort  (cost=0.00..431.00 rows=2 width=14)
-                     Sort Key: csq_m1.x, csq_m1.ctid, csq_m1.gp_segment_id
-                     ->  Table Scan on csq_m1  (cost=0.00..431.00 rows=2 width=14)
-               ->  Result  (cost=0.00..431.00 rows=1 width=8)
-                     ->  Materialize  (cost=0.00..431.00 rows=1 width=4)
-                           ->  Gather Motion 2:1  (slice1; segments: 2)  (cost=0.00..431.00 rows=2 width=4)
-                                 ->  Table Scan on csq_d1  (cost=0.00..431.00 rows=1 width=4)
+         ->  Sort  (cost=0.00..1293.00 rows=1 width=18)
+               Sort Key: csq_m1.x, csq_m1.ctid, csq_m1.gp_segment_id
+               ->  Nested Loop Left Join  (cost=0.00..1293.00 rows=1 width=18)
+                     Join Filter: csq_m1.x = csq_d1.x OR csq_d1.x IS NULL
+                     ->  Table Scan on csq_m1  (cost=0.00..431.00 rows=1 width=14)
+                     ->  Result  (cost=0.00..431.00 rows=1 width=8)
+                           ->  Materialize  (cost=0.00..431.00 rows=1 width=4)
+                                 ->  Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..431.00 rows=2 width=4)
+                                       ->  Table Scan on csq_d1  (cost=0.00..431.00 rows=1 width=4)
  Settings:  optimizer=on; optimizer_segments=3
- Optimizer status: PQO version 1.621
+ Optimizer status: PQO version 1.633
 (15 rows)
 
 select * from csq_m1 where x not in (select x from csq_d1) or x < -100; -- (3)

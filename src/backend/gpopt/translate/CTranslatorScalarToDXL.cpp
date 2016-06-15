@@ -1922,6 +1922,13 @@ CTranslatorScalarToDXL::PdxlnArrayRef
 	GPOS_ASSERT(IsA(pexpr, ArrayRef));
 
 	const ArrayRef *parrayref = (ArrayRef *) pexpr;
+	Oid restype;
+
+	/* slice and/or store operations yield the array type */
+	if (parrayref->reflowerindexpr || parrayref->refassgnexpr)
+		restype = parrayref->refarraytype;
+	else
+		restype = parrayref->refelemtype;
 
 	CDXLScalarArrayRef *pdxlop =
 			GPOS_NEW(m_pmp) CDXLScalarArrayRef
@@ -1929,7 +1936,7 @@ CTranslatorScalarToDXL::PdxlnArrayRef
 						m_pmp,
 						GPOS_NEW(m_pmp) CMDIdGPDB(parrayref->refelemtype),
 						GPOS_NEW(m_pmp) CMDIdGPDB(parrayref->refarraytype),
-						GPOS_NEW(m_pmp) CMDIdGPDB(parrayref->refrestype)
+						GPOS_NEW(m_pmp) CMDIdGPDB(restype)
 						);
 
 	CDXLNode *pdxln = GPOS_NEW(m_pmp) CDXLNode(m_pmp, pdxlop);
