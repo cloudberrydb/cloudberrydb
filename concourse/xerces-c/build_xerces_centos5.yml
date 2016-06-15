@@ -5,7 +5,7 @@ inputs:
 outputs:
   - name: build_centos5
 run:
-  path: /usr/bin/python2
+  path: /usr/bin/python
   args:
     - xerces_patch/concourse/xerces-c/build_xerces.py
     - --output_dir=build_centos5/install
