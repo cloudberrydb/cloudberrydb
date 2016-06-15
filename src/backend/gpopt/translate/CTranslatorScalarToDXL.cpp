@@ -258,6 +258,7 @@ CTranslatorScalarToDXL::PdxlnScOpFromExpr
 		{T_NullIfExpr, &CTranslatorScalarToDXL::PdxlnScNullIfFromExpr},
 		{T_RelabelType, &CTranslatorScalarToDXL::PdxlnScCastFromRelabelType},
 		{T_CoerceToDomain, &CTranslatorScalarToDXL::PdxlnScCoerceFromCoerce},
+		{T_CoerceViaIO, &CTranslatorScalarToDXL::PdxlnScCoerceFromCoerceViaIO},
 		{T_SubLink, &CTranslatorScalarToDXL::PdxlnFromSublink},
 		{T_ArrayExpr, &CTranslatorScalarToDXL::PdxlnArray},
 		{T_ArrayRef, &CTranslatorScalarToDXL::PdxlnArrayRef},
@@ -1159,6 +1160,49 @@ CTranslatorScalarToDXL::PdxlnScCoerceFromCoerce
                                                                                                 GPOS_NEW(m_pmp) CMDIdGPDB(pcoerce->resulttype),
                                                                                                pcoerce->resulttypmod,
                                                                                                (EdxlCoercionForm) pcoerce->coercionformat,
+                                                                                               pcoerce->location
+                                                                                                )
+                                                                        );
+        pdxln->AddChild(pdxlnChild);
+
+        return pdxln;
+}
+
+//---------------------------------------------------------------------------
+//      @function:
+//              CTranslatorScalarToDXL::PdxlnScCoerceFromCoerceViaIO
+//
+//      @doc:
+//              Create a DXL node for a scalar coerce expression from a
+//             GPDB coerce expression
+//---------------------------------------------------------------------------
+CDXLNode *
+CTranslatorScalarToDXL::PdxlnScCoerceFromCoerceViaIO
+        (
+        const Expr *pexpr,
+        const CMappingVarColId* pmapvarcolid
+        )
+{
+        GPOS_ASSERT(IsA(pexpr, CoerceViaIO));
+
+        const CoerceViaIO *pcoerce = (CoerceViaIO *) pexpr;
+
+        GPOS_ASSERT(NULL != pcoerce->arg);
+
+        CDXLNode *pdxlnChild = PdxlnScOpFromExpr(pcoerce->arg, pmapvarcolid);
+
+        GPOS_ASSERT(NULL != pdxlnChild);
+
+        // create the DXL node holding the scalar boolean operator
+        CDXLNode *pdxln = GPOS_NEW(m_pmp) CDXLNode
+                                                                        (
+                                                                        m_pmp,
+                                                                        GPOS_NEW(m_pmp) CDXLScalarCoerceViaIO
+                                                                                                (
+                                                                                                m_pmp,
+                                                                                                GPOS_NEW(m_pmp) CMDIdGPDB(pcoerce->resulttype),
+                                                                                               -1,
+                                                                                               (EdxlCoercionForm) pcoerce->coerceformat,
                                                                                                pcoerce->location
                                                                                                 )
                                                                         );

@@ -105,7 +105,8 @@ CTranslatorDXLToScalar::PexprFromDXLNodeScalar
 		{EdxlopScalarAggref, &CTranslatorDXLToScalar::PaggrefFromDXLNodeScAggref},
 		{EdxlopScalarWindowRef, &CTranslatorDXLToScalar::PwindowrefFromDXLNodeScWindowRef},
 		{EdxlopScalarCast, &CTranslatorDXLToScalar::PrelabeltypeFromDXLNodeScCast},
-		{EdxlopScalarCoerceToDomain, &CTranslatorDXLToScalar::PcoerceFromDXLNodeScCoerce},
+		{EdxlopScalarCoerceToDomain, &CTranslatorDXLToScalar::PcoerceFromDXLNodeScCoerceToDomain},
+		{EdxlopScalarCoerceViaIO, &CTranslatorDXLToScalar::PcoerceFromDXLNodeScCoerceViaIO},
 		{EdxlopScalarInitPlan, &CTranslatorDXLToScalar::PparamFromDXLNodeScInitPlan},
 		{EdxlopScalarSubPlan, &CTranslatorDXLToScalar::PsubplanFromDXLNodeScSubPlan},
 		{EdxlopScalarArray, &CTranslatorDXLToScalar::PexprArray},
@@ -1198,14 +1199,14 @@ CTranslatorDXLToScalar::PrelabeltypeFromDXLNodeScCast
 
 //---------------------------------------------------------------------------
 //      @function:
-//              CTranslatorDXLToScalar::PcoerceFromDXLNodeScCoerce
+//              CTranslatorDXLToScalar::PcoerceFromDXLNodeScCoerceToDomain
 //
 //      @doc:
-//              Translates a DXL scalar coerce into a GPDB coerce node
+//              Translates a DXL scalar coerce into a GPDB coercetodomain node
 //
 //---------------------------------------------------------------------------
 Expr *
-CTranslatorDXLToScalar::PcoerceFromDXLNodeScCoerce
+CTranslatorDXLToScalar::PcoerceFromDXLNodeScCoerceToDomain
         (
         const CDXLNode *pdxlnCoerce,
         CMappingColIdVar *pmapcidvar
@@ -1227,6 +1228,40 @@ CTranslatorDXLToScalar::PcoerceFromDXLNodeScCoerce
         pcoerce->resulttypmod = pdxlop->IMod();
         pcoerce->location = pdxlop->ILoc();
         pcoerce->coercionformat = (CoercionForm)  pdxlop->Edxlcf();
+
+        return (Expr *) pcoerce;
+}
+
+//---------------------------------------------------------------------------
+//      @function:
+//              CTranslatorDXLToScalar::PcoerceFromDXLNodeScCoerceViaIO
+//
+//      @doc:
+//              Translates a DXL scalar coerce into a GPDB coerceviaio node
+//
+//---------------------------------------------------------------------------
+Expr *
+CTranslatorDXLToScalar::PcoerceFromDXLNodeScCoerceViaIO
+        (
+        const CDXLNode *pdxlnCoerce,
+        CMappingColIdVar *pmapcidvar
+        )
+{
+        GPOS_ASSERT(NULL != pdxlnCoerce);
+        CDXLScalarCoerceViaIO *pdxlop = CDXLScalarCoerceViaIO::PdxlopConvert(pdxlnCoerce->Pdxlop());
+
+        GPOS_ASSERT(1 == pdxlnCoerce->UlArity());
+        CDXLNode *pdxlnChild = (*pdxlnCoerce)[0];
+
+        Expr *pexprChild = PexprFromDXLNodeScalar(pdxlnChild, pmapcidvar);
+
+
+        CoerceViaIO *pcoerce = MakeNode(CoerceViaIO);
+
+        pcoerce->resulttype = CMDIdGPDB::PmdidConvert(pdxlop->PmdidResultType())->OidObjectId();
+        pcoerce->arg = pexprChild;
+        pcoerce->location = pdxlop->ILoc();
+        pcoerce->coerceformat = (CoercionForm)  pdxlop->Edxlcf();
 
         return (Expr *) pcoerce;
 }
