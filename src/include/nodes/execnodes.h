@@ -2664,7 +2664,7 @@ typedef struct MotionState
  * ExecNode for PartitionSelector.
  * This operator contains a Plannode in PlanState.
  */
-typedef struct PartitionSelectorState
+struct PartitionSelectorState
 {
 	PlanState ps;                                       /* its first field is NodeTag */
 	PartitionNode *rootPartitionNode;                   /* PartitionNode for root table */
@@ -2676,7 +2676,7 @@ typedef struct PartitionSelectorState
 	ExprState *residualPredicateExprState;              /* ExprState for evaluating residual predicate */
 	ExprState *propagationExprState;                    /* ExprState for evaluating propagation expression */
 
-} PartitionSelectorState;
+};
 
 extern void initGpmonPktForResult(Plan *planNode, gpmon_packet_t *gpmon_pkt, EState *estate);
 extern void initGpmonPktForAppend(Plan *planNode, gpmon_packet_t *gpmon_pkt, EState *estate);

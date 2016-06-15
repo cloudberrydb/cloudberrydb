@@ -1187,7 +1187,7 @@ typedef struct PlanInvalItem
  * in a plan.
  * ----------------
  */
-typedef struct PartitionSelector
+struct PartitionSelector
 {
 	Plan		plan;
 	Oid 		relid;  				/* OID of target relation */
@@ -1203,6 +1203,6 @@ typedef struct PartitionSelector
 	List		*staticPartOids;    	/* list of statically selected parts */
 	List		*staticScanIds;     	/* scan ids used to propagate statically selected part oids */
 
-} PartitionSelector;
+};
 
 #endif   /* PLANNODES_H */
