@@ -1065,24 +1065,6 @@ ReleaseAndReadBuffer(Buffer buffer,
 	return ReadBuffer(relation, blockNum);
 }
 
-Buffer
-KillAndReadBuffer(Buffer buffer,
-					 Relation relation,
-					 BlockNumber blockNum)
-{
-	MIRROREDLOCK_BUFMGR_MUST_ALREADY_BE_HELD;
-
-	/*
-	 * TODO: This used to try to reuse the same buffer. This is used for
-	 * readahead in a seqscan. Instead of trying to make that work
-	 * efficiently, we should refactor the readahead code to use a bulk
-	 * BufferAccessStrategy instead. For now, just map this to
-	 * ReleaseAndReadBuffer(), which doesn't try to do anything particularly
-	 * efficient.
-	 */
-	return ReleaseAndReadBuffer(buffer, relation, blockNum);
-}
-
 /*
  * PinBuffer -- make buffer unavailable for replacement.
  *

@@ -94,7 +94,6 @@ static bool HeapSatisfiesHOTUpdate(Relation relation, Bitmapset *hot_attrs,
 static void
 initscan(HeapScanDesc scan, ScanKey key, bool is_rescan)
 {
-	int i;
 	bool		allow_strat;
 	bool		allow_sync;
 
@@ -168,11 +167,6 @@ initscan(HeapScanDesc scan, ScanKey key, bool is_rescan)
 	ItemPointerSetInvalid(&scan->rs_ctup.t_self);
 	scan->rs_cbuf = InvalidBuffer;
 	scan->rs_cblock = InvalidBlockNumber;
-	for (i = 0; i < lengthof(scan->rs_rahead); i++)
-	{
-		scan->rs_rahead[i].buffer = InvalidBuffer;
-		scan->rs_rahead[i].block = InvalidBlockNumber;
-	}
 
 	/* we don't have a marked position... */
 	ItemPointerSetInvalid(&(scan->rs_mctid));
@@ -214,10 +208,6 @@ heapgetpage(HeapScanDesc scan, BlockNumber page, bool backward)
 
 	MIRROREDLOCK_BUFMGR_MUST_ALREADY_BE_HELD;
 
-	/* don't run prefetching code if the table is small. This has the
-	   side effect of using the full buffer pool to cache the table */
-	bool        is_small = (scan->rs_nblocks <= (NBuffers * 60 / 100));
-
 	Assert(page < scan->rs_nblocks);
 
 	/* release previous scan buffer, if any */
@@ -240,73 +230,8 @@ heapgetpage(HeapScanDesc scan, BlockNumber page, bool backward)
 										   scan->rs_strategy);
 	scan->rs_cblock = page;
 
-	if (! scan->rs_pageatatime)
-	{
-		scan->rs_cbuf = ReleaseAndReadBuffer(scan->rs_cbuf,
-											 scan->rs_rd,
-											 page);
-		scan->rs_cblock = page;
+	if (!scan->rs_pageatatime)
 		return;
-	}
-
-	if (is_small)
-	{
-		scan->rs_cbuf = ReleaseAndReadBuffer(scan->rs_cbuf, scan->rs_rd, page);
-		scan->rs_cblock = page;
-	}
-	else
-	{
-		int         ri, i;
-		const int   incr = backward ? -1 : 1;
-		const int   rimax = lengthof(scan->rs_rahead);
-
-		/*
-		 *  This will fill up to the first 2 quarters of read ahead
-		 */
-		for (i = 0; i < rimax / 2; i++)
-		{
-			const int pg = page + incr * i;
-			if (! (0 <= pg && pg < scan->rs_nblocks))
-				break;
-			ri = pg % rimax;
-			if (scan->rs_rahead[ri].block == pg)
-				continue;
-			scan->rs_rahead[ri].block = pg;
-			scan->rs_rahead[ri].buffer
-				= KillAndReadBuffer(scan->rs_rahead[ri].buffer, scan->rs_rd, pg);
-			/*elog(LOG, "heapgetpage: 1 [%d] read %d at %x", ri, pg, scan->rs_rahead[ri].buffer);*/
-		}
-		/* THIS MAY ONLY BE HELPFUL WITH AIO */
-		/*
-		 *  This will fill the 3rd quarter of read ahead provided that it is not filled
-		 */
-		for (i = rimax / 2; i < rimax * 3 / 4; i++)
-		{
-			const int pg = page + incr * i;
-			if (! (0 <= pg && pg < scan->rs_nblocks))
-				break;
-			ri = pg % rimax;
-			if (scan->rs_rahead[ri].block == pg)
-				break;
-			scan->rs_rahead[ri].block = pg;
-			scan->rs_rahead[ri].buffer
-				= KillAndReadBuffer(scan->rs_rahead[ri].buffer, scan->rs_rd, pg);
-			/*elog(LOG, "heapgetpage: 2 [%d] read %d at %x", ri, pg, scan->rs_rahead[ri].buffer);*/
-		}
-
-		ri = page % rimax;
-		if (scan->rs_rahead[ri].block != page)
-			ereport(ERROR,
-					(errcode(ERRCODE_INTERNAL_ERROR),
-					 errmsg("page number mismatch, expect %d, but got %d",
-							page, scan->rs_rahead[ri].block)));
-
-		if (BufferIsValid(scan->rs_cbuf))
-			ReleaseBuffer(scan->rs_cbuf);
-		scan->rs_cbuf = scan->rs_rahead[ri].buffer;
-		scan->rs_cblock = page;
-		IncrBufferRefCount(scan->rs_cbuf);
-	}
 
 	buffer = scan->rs_cbuf;
 	snapshot = scan->rs_snapshot;
@@ -1642,26 +1567,6 @@ heap_beginscan_internal(Relation relation, Snapshot snapshot,
 	return scan;
 }
 
-static void release_all_buffers(HeapScanDesc scan)
-{
-	int i;
-	/*
-	 * unpin scan buffers
-	 */
-	if (BufferIsValid(scan->rs_cbuf)) {
-		ReleaseBuffer(scan->rs_cbuf);
-		scan->rs_cbuf = InvalidBuffer;
-	}
-	for (i = 0; i < lengthof(scan->rs_rahead); i++)  {
-		if (BufferIsValid(scan->rs_rahead[i].buffer)) {
-			ReleaseBuffer(scan->rs_rahead[i].buffer);
-			scan->rs_rahead[i].buffer = InvalidBuffer;
-		}
-	}
-}
-
-
-
 /* ----------------
  *		heap_rescan		- restart a relation scan
  * ----------------
@@ -1673,7 +1578,8 @@ heap_rescan(HeapScanDesc scan,
 	/*
 	 * unpin scan buffers
 	 */
-	release_all_buffers(scan);
+	if (BufferIsValid(scan->rs_cbuf))
+		ReleaseBuffer(scan->rs_cbuf);
 
 	/*
 	 * reinitialize scan descriptor
@@ -1696,7 +1602,9 @@ heap_endscan(HeapScanDesc scan)
 	/*
 	 * unpin scan buffers
 	 */
-	release_all_buffers(scan);
+	if (BufferIsValid(scan->rs_cbuf))
+		ReleaseBuffer(scan->rs_cbuf);
+
 	/*
 	 * decrement relation reference count and free scan descriptor storage
 	 */
@@ -1754,7 +1662,6 @@ heap_getnext(HeapScanDesc scan, ScanDirection direction)
 
 	if (scan->rs_ctup.t_data == NULL)
 	{
-		release_all_buffers(scan);
 		HEAPDEBUG_2;			/* heap_getnext returning EOS */
 
 		MIRROREDLOCK_BUFMGR_VERIFY_NO_LOCK_LEAK_EXIT;
@@ -1819,7 +1726,6 @@ heap_getnextx(HeapScanDesc scan, ScanDirection dir,
 
 	if (NULL == (t = scan->rs_ctup.t_data ? &scan->rs_ctup : 0))
 	{
-		release_all_buffers(scan);
 		*tdatacnt = 0, *seen_EOS = 1;
 		
 		MIRROREDLOCK_BUFMGR_VERIFY_NO_LOCK_LEAK_EXIT;
@@ -4737,7 +4643,8 @@ heap_restrpos(HeapScanDesc scan)
 		/*
 		 * unpin scan buffers
 		 */
-		release_all_buffers(scan);
+		if (BufferIsValid(scan->rs_cbuf))
+			ReleaseBuffer(scan->rs_cbuf);
 		scan->rs_cbuf = InvalidBuffer;
 		scan->rs_cblock = InvalidBlockNumber;
 		scan->rs_inited = false;
