@@ -35,6 +35,7 @@ ULONG CSetopTest::m_ulSetopTestCounter = 0;  // start from first test
 // minidump files
 const CHAR *rgszSetOpFileNames[] =
 	{
+	"../data/dxl/minidump/ValueScanWithDuplicateAndSelfComparison.mdp",
 	"../data/dxl/minidump/PushGbBelowNaryUnionAll.mdp",
 	"../data/dxl/minidump/PushGbBelowNaryUnion-1.mdp",
 	"../data/dxl/minidump/PushGbBelowNaryUnion-2.mdp",

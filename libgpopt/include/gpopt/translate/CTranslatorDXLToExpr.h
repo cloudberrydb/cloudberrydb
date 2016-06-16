@@ -388,9 +388,6 @@ namespace gpopt
 			 
 			// register MD provider for serving MD relation entry for CTAS
 			void RegisterMDRelationCtas(CDXLLogicalCTAS *pdxlopCTAS);
-			
-			// create an array of column descriptors from an array of dxl column references
-			DrgPcoldesc *Pdrgpdxlcd(const DrgPdxlcd *pdrgpdxlcd);
 
 			// create an array of column references from an array of dxl column references
 			DrgPcr *Pdrgpcr(const DrgPdxlcd *pdrgpdxlcd);

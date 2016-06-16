@@ -147,7 +147,7 @@
         </dxl:LogicalConstTable>
       </dxl:LogicalProject>
     </dxl:Query>
-	<dxl:Plan Id="0" SpaceSize="1386">
+    <dxl:Plan Id="0" SpaceSize="1386">
       <dxl:Result>
         <dxl:Properties>
           <dxl:Cost StartupCost="0" TotalCost="18.062500" Rows="1.000000" Width="1"/>
@@ -203,18 +203,23 @@
                           <dxl:Ident ColId="2" ColName="?column?" TypeMdid="0.23.1.0"/>
                         </dxl:ProjElem>
                       </dxl:ProjList>
-                      <dxl:Filter/>
+                      <dxl:Filter>
+                        <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
+                          <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>
+                          <dxl:Ident ColId="2" ColName="?column?" TypeMdid="0.23.1.0"/>
+                        </dxl:Comparison>
+                      </dxl:Filter>
                       <dxl:OneTimeFilter/>
                       <dxl:Result>
                         <dxl:Properties>
                           <dxl:Cost StartupCost="0" TotalCost="0.000000" Rows="0.000000" Width="4"/>
                         </dxl:Properties>
                         <dxl:ProjList>
-                          <dxl:ProjElem ColId="2" Alias="?column?">
-                            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="true" IsByValue="true"/>
-                          </dxl:ProjElem>
                           <dxl:ProjElem ColId="1" Alias="">
                             <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="true" IsByValue="true"/>
+                          </dxl:ProjElem>
+                          <dxl:ProjElem ColId="2" Alias="?column?">
+                            <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="true" IsByValue="true"/>
                           </dxl:ProjElem>
                         </dxl:ProjList>
                         <dxl:Filter/>

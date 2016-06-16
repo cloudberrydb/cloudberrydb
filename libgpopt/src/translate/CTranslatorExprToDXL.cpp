@@ -1476,10 +1476,6 @@ CTranslatorExprToDXL::PdxlnResult
 					pdxlprop
 					);
 		}
-		case COperator::EopPhysicalConstTableGet:
-		{
-			return PdxlnResultFromConstTableGet(pexprRelational, pdrgpcr, pexprScalar);
-		}
 		case COperator::EopPhysicalDynamicTableScan:
 		{
 			pdxlprop->AddRef();
