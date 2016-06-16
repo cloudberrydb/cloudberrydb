@@ -3,11 +3,11 @@ image: docker:///yolo/orcadev#centos5
 inputs:
 - name: gpos_src
 outputs:
-- name: build_and_test_centos5_release
-  path: build_and_test_centos5_release
+- name: build_and_test_release
+  path: build_and_test_release
 run:
   path: /usr/bin/python2
   args:
   - gpos_src/concourse/build_and_test.py
   - --build_type=RELEASE
-  - --output_dir=build_and_test_centos5_release/install
+  - --output_dir=build_and_test_release/install
