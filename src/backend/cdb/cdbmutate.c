@@ -2880,15 +2880,14 @@ remove_unused_initplans_helper(Plan *plan, Bitmapset **usedParams, Bitmapset *rt
 				/*
 				 * This init plan is unused. Leave it out of this plan node's
 				 * initPlan list, and also replace it in the global list of
-				 * subplans with a dummy. (We can't just remove it from the global
-				 * list, because that would screw up the plan_id numbering
-				 * of the subplans).
+				 * subplans with a dummy. (We can't just remove it from the
+				 * global list, because that would screw up the plan_id
+				 * numbering of the subplans).
 				 */
 				ListCell *plancell = list_nth_cell(root->glob->subplans, initplan->plan_id-1);
 				ListCell *rtablecell = list_nth_cell(root->glob->subrtables, initplan->plan_id-1);
-				Plan *subplan = (Plan *) lfirst(plancell);
 
-				lfirst(plancell) = make_result(root, subplan->targetlist,
+				lfirst(plancell) = make_result(root, NIL,
 											   (Node *) list_make1(makeBoolConst(false, false)),
 											   NULL);;
 				lfirst(rtablecell) = NIL;
