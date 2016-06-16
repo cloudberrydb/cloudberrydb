@@ -1,0 +1,9 @@
+platform: darwin
+inputs:
+  - name: gpos_src
+  - name: bin_gpos_osx_release
+  - name: bin_gpos_osx_debug
+outputs:
+  - name: gpos_github_release_stage_osx
+run:
+  path: gpos_src/concourse/publish_tag_osx.bash

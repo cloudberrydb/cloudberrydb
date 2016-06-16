@@ -1,4 +1,4 @@
-#!/usr/bin/python2
+#!/usr/bin/python
 
 import optparse
 import os
@@ -21,7 +21,7 @@ def num_cpus():
     # Guess
     return 2
 
-def cmake_configure(src_dir, build_type, output_dir, cxx_compiler = None, cxxflags = None):
+def cmake_configure(src_dir, build_type, output_dir, cxx_compiler = None, cxxflags = None, thirty_two_bit = False):
     os.mkdir("build")
     cmake_args = ["cmake",
                   "-D", "CMAKE_BUILD_TYPE=" + build_type,
@@ -32,6 +32,11 @@ def cmake_configure(src_dir, build_type, output_dir, cxx_compiler = None, cxxfla
     if cxxflags:
         cmake_args.append("-D")
         cmake_args.append("CMAKE_CXX_FLAGS=" + cxxflags)
+
+    if thirty_two_bit:
+        cmake_args.append("-D")
+        cmake_args.append("CMAKE_TOOLCHAIN_FILE=../" + src_dir + "/i386.toolchain.cmake")
+
     cmake_args.append("../" + src_dir)
     return subprocess.call(cmake_args, cwd="build")
 
@@ -52,6 +57,7 @@ def main():
     parser.add_option("--output_dir", dest="output_dir", default="install")
     parser.add_option("--compiler", dest="compiler")
     parser.add_option("--cxxflags", dest="cxxflags")
+    parser.add_option("--32", dest="thirty_two_bit", default=False)
     (options, args) = parser.parse_args()
     if len(args) > 0:
         print "Unknown arguments"
@@ -60,7 +66,8 @@ def main():
                              options.build_type,
                              options.output_dir,
                              options.compiler,
-                             options.cxxflags)
+                             options.cxxflags,
+                             options.thirty_two_bit)
     if status:
         return status
     status = make()
