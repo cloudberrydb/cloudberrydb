@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of print prefix class
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

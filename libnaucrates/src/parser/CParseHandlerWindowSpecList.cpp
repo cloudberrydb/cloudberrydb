@@ -8,13 +8,6 @@
 //	@doc:
 //		Implementation of the SAX parse handler class for parsing the list of
 //		window specifications in the logical window operator
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "naucrates/dxl/parser/CParseHandlerWindowSpec.h"

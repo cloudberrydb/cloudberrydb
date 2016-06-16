@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		SAX parse handler class for parsing hint configuration
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPDXL_CParseHandlerHint_H

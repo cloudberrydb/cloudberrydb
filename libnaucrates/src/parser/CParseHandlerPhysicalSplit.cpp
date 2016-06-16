@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of the SAX parse handler class for parsing physical split
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "naucrates/dxl/parser/CParseHandlerPhysicalSplit.h"

@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of column reference set based on bit sets
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

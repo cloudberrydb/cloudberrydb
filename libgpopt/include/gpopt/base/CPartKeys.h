@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		A collection of partitioning keys for a partitioned table
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CPartKeys_H
 #define GPOPT_CPartKeys_H

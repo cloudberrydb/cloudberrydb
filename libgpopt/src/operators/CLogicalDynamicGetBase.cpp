@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of dynamic table access base class
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

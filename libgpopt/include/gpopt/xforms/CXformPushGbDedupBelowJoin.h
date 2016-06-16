@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Push dedup group by below join transform
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CXformPushGbDedupBelowJoin_H
 #define GPOPT_CXformPushGbDedupBelowJoin_H

@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Class for representing DXL random motion operators.
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 

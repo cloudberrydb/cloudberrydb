@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of the SAX parse handler class for parsing part bound openness
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "naucrates/dxl/parser/CParseHandlerScalarPartBoundOpen.h"

@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of disjunction constraints
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

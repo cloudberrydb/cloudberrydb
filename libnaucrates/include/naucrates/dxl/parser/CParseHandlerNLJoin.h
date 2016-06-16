@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		SAX parse handler class for parsing nested loop join operator nodes.
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPDXL_CParseHandlerNLJoin_H

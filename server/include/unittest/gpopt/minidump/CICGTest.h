@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Test for installcheck-good bugs
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CICGTest_H
 #define GPOPT_CICGTest_H

@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Column reference implementation for base table columns
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOS_CColRefTable_H
 #define GPOS_CColRefTable_H

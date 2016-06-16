@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of Logical partition selector
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

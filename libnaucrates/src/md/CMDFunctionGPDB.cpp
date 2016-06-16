@@ -8,13 +8,6 @@
 //	@doc:
 //		Implementation of the class for representing GPDB-specific functions
 //		in the MD cache
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 

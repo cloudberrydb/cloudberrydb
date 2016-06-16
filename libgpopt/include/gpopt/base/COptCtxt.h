@@ -8,13 +8,6 @@
 //	@doc:
 //		Optimizer context object; contains all global objects pertaining to
 //		one optimization
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_COptCtxt_H
 #define GPOPT_COptCtxt_H

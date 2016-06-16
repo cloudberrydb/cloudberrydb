@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Lock mechanism for access to a given group
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CGroupProxy_H
 #define GPOPT_CGroupProxy_H

@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Parent class for existential subquery operators
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CScalarSubqueryExistential_H
 #define GPOPT_CScalarSubqueryExistential_H

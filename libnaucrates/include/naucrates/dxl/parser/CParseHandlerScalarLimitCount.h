@@ -8,13 +8,6 @@
 //	@doc:
 //		SAX parse handler class for parsing LimitCount
 //		
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPDXL_CParseHandlerScalarLimitCount_H
 #define GPDXL_CParseHandlerScalarLimitCount_H

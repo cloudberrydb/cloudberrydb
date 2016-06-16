@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Partition Propagation spec in required properties
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CPartitionPropagationSpec_H
 #define GPOPT_CPartitionPropagationSpec_H

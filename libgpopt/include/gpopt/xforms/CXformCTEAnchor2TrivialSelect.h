@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Transform logical CTE anchor to select with "true" predicate
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CXformCTEAnchor2TrivialSelect_H
 #define GPOPT_CXformCTEAnchor2TrivialSelect_H

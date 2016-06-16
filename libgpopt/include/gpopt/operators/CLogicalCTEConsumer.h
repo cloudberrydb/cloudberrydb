@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Logical CTE consumer operator
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CLogicalCTEConsumer_H
 #define GPOPT_CLogicalCTEConsumer_H

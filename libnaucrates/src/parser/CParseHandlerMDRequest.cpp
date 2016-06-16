@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of the SAX parse handler class for parsing MD requests
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "naucrates/dxl/parser/CParseHandlerMDRequest.h"

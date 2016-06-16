@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of a generic MD provider.
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/io/COstreamString.h"

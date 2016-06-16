@@ -8,13 +8,6 @@
 //	@doc:
 //		Simplify existential/quantified subqueries by transforming
 //		into count(*) subqueries
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

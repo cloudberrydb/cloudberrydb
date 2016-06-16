@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Proxy for answering communicator-based MD requests
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPMD_CMDProviderCommProxy_H

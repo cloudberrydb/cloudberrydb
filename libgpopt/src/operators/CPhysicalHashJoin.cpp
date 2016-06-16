@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of hash join operator
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

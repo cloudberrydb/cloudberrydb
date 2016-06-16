@@ -8,13 +8,6 @@
 //	@doc:
 //		Transform a GbAgg with multiple distinct qualified aggregates (MDQAs)
 //		to a join tree with single DQA leaves
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

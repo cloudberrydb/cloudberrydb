@@ -8,13 +8,6 @@
 //	@doc:
 //		Class for representing DXL logical project operators
 //		
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPDXL_CDXLLogicalProject_H
 #define GPDXL_CDXLLogicalProject_H

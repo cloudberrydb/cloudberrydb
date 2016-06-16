@@ -8,13 +8,6 @@
 //	@doc:
 //		Implementation of initialization and termination functions for
 //		libgpopt.
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/memory/CAutoMemoryPool.h"

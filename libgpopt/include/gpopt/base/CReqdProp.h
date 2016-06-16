@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Base class for all required properties
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CReqdProp_H
 #define GPOPT_CReqdProp_H

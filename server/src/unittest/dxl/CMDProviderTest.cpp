@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Tests the file-based metadata provider.
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

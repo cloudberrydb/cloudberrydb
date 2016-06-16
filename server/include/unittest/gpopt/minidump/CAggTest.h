@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Test for optimizing queries with aggregates
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CAggTest_H
 #define GPOPT_CAggTest_H

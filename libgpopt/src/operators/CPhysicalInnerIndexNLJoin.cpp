@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of index inner nested-loops join operator
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

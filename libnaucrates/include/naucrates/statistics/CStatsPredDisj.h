@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Disjunctive filter on statistics
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPNAUCRATES_CStatsPredDisj_H
 #define GPNAUCRATES_CStatsPredDisj_H

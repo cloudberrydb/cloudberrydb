@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of DXL merge condition lists for merge join operators
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #include "naucrates/dxl/operators/CDXLScalarMergeCondList.h"
 

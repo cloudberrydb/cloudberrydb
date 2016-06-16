@@ -8,13 +8,6 @@
 //	@doc:
 //		Implementation of the SAX parse handler class for parsing physical 
 //		assert operators
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "naucrates/dxl/parser/CParseHandlerAssert.h"

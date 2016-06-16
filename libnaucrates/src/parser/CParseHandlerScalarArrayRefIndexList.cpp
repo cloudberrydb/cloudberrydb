@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of the SAX parse handler class for parsing arrayref indexes
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "naucrates/dxl/parser/CParseHandlerScalarArrayRefIndexList.h"

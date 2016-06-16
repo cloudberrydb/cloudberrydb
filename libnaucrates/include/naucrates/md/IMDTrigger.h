@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Interface for triggers in the metadata cache
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPMD_IMDTrigger_H

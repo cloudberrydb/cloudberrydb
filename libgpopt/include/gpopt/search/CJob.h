@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Interface class for optimization job abstraction
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CJob_H
 #define GPOPT_CJob_H

@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Base class for exploration transforms
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CXformExploration_H
 #define GPOPT_CXformExploration_H

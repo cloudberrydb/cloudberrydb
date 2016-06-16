@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of Intersect all operator
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

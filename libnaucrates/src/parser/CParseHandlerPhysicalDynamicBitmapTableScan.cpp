@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		SAX parse handler class for parsing dynamic bitmap table scan operator nodes
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "naucrates/dxl/parser/CParseHandlerPhysicalDynamicBitmapTableScan.h"

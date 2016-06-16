@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Class providing helper methods for parse handler
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPDXL_CParseHandlerUtils_H

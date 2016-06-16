@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Constant table accessor
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CLogicalConstTableGet_H
 #define GPOPT_CLogicalConstTableGet_H

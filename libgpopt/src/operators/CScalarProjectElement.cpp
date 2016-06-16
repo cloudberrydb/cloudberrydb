@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of scalar project operator
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

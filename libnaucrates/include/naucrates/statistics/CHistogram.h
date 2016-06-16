@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Histogram implementation
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPNAUCRATES_CHistogram_H
 #define GPNAUCRATES_CHistogram_H

@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of DXL Switch case
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "naucrates/dxl/operators/CDXLScalarSwitchCase.h"

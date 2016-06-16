@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Base class for all logical operators
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CLogical_H
 #define GPOPT_CLogical_H

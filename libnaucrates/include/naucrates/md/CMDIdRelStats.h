@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Class for representing mdids for relation statistics
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 

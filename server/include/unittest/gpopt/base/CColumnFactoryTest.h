@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Test for CColumnFactory
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CColumnFactoryTest_H
 #define GPOPT_CColumnFactoryTest_H

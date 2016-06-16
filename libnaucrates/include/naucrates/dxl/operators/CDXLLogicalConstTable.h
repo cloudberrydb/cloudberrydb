@@ -8,13 +8,6 @@
 //	@doc:
 //		Class for representing DXL logical constant tables
 //		
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPDXL_CDXLLogicalConstTable_H

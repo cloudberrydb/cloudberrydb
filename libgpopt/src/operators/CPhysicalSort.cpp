@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of physical sort operator
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

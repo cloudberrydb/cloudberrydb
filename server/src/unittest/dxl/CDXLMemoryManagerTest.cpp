@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Tests the memory manager to be plugged in Xerces.
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

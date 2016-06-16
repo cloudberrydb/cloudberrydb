@@ -8,13 +8,6 @@
 //	@doc:
 //		Transform select over partitioned table into a dynamic bitmap table get
 //		with a bitmap bool op child
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CXformSelect2DynamicBitmapBoolOp_H
 #define GPOPT_CXformSelect2DynamicBitmapBoolOp_H

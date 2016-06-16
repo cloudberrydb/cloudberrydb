@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		SAX parse handler class for parsing a physical window operator
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPDXL_CParseHandlerPhysicalWindow_H

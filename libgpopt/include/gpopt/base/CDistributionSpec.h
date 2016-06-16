@@ -8,13 +8,6 @@
 //	@doc:
 //		Description of distribution; 
 //		Can be used as required or derived property;
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_IDistributionSpec_H
 #define GPOPT_IDistributionSpec_H

@@ -7,13 +7,6 @@
 //
 //	@doc:
 //
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "naucrates/base/IDatumStatisticsMappable.h"

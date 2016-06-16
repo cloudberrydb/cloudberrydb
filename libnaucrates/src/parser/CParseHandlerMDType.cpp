@@ -8,13 +8,6 @@
 //	@doc:
 //		Implementation of the SAX parse handler class for parsing metadata for
 //		GPDB types.
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "naucrates/dxl/parser/CParseHandlerMDType.h"

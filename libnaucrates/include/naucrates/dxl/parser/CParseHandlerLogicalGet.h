@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		SAX parse handler class for parsing logical get operator nodes.
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPDXL_CParseHandlerLogicalGet_H

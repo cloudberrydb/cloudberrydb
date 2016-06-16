@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of group expression job superclass
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpopt/search/CGroupExpression.h"

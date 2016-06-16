@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Base abstract class for datum representation inside optimizer
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPNAUCRATES_IDatum_H
 #define GPNAUCRATES_IDatum_H

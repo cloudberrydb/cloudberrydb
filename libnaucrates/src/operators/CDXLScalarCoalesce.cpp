@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of DXL Coalesce
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "naucrates/dxl/operators/CDXLScalarCoalesce.h"

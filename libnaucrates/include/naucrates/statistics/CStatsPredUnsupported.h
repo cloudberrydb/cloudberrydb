@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Class representing unsupported statistics filter
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPNAUCRATES_CStatsPredUnsupported_H
 #define GPNAUCRATES_CStatsPredUnsupported_H

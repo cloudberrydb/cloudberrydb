@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Class for representing subqueries computing scalar values
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPDXL_CDXLScalarSubquery_H

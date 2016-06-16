@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		SAX parse handler class for parsing an MD index
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPDXL_CParseHandlerMDIndex_H

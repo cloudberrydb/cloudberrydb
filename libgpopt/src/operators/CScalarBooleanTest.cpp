@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of scalar boolean test operator
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

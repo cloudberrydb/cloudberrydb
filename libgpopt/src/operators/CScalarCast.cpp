@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of scalar relabel type  operator
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

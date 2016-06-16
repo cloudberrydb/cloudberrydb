@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		SAX parse handler class for parsing assert constraint list nodes
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPDXL_CParseHandlerScalarAssertConstraintList_H

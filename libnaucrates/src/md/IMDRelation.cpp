@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/string/CWStringDynamic.h"

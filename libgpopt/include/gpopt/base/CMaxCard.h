@@ -10,13 +10,6 @@
 //
 //		This numeric is NOT an estimate but a guaranteed upper bound
 //		on the cardinality, ie., plans can be pruned based on this information
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CMaxCard_H
 #define GPOPT_CMaxCard_H

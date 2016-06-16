@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of DXL WindowRef
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "naucrates/dxl/operators/CDXLScalarWindowRef.h"

@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Transform left anti semi join with NotIn semantics to cross product
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CXformLeftAntiSemiJoinNotIn2CrossProduct_H
 #define GPOPT_CXformLeftAntiSemiJoinNotIn2CrossProduct_H

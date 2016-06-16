@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Class for representing DXL bitmap table scan operators.
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "naucrates/dxl/operators/CDXLPhysicalDynamicBitmapTableScan.h"

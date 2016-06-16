@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Transform Index Get to Index Scan
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CXformIndexGet2IndexScan_H
 #define GPOPT_CXformIndexGet2IndexScan_H

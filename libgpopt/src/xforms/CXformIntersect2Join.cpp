@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implement the transformation of Intersect into a Join
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

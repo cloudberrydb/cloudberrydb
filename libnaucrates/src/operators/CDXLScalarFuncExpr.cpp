@@ -8,13 +8,6 @@
 //	@doc:
 //		Implementation of DXL Scalar FuncExpr
 //		
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "naucrates/dxl/operators/CDXLScalarFuncExpr.h"

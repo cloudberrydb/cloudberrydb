@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Select operator
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOS_CLogicalSelect_H
 #define GPOS_CLogicalSelect_H

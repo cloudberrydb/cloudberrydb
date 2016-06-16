@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of DXL projection list operators
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #include "naucrates/dxl/operators/CDXLScalarProjList.h"
 

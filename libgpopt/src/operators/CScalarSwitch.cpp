@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of scalar switch operator
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

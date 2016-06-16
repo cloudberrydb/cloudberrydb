@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Transform GbAgg to Apply
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CXformGbAgg2Apply_H
 #define GPOPT_CXformGbAgg2Apply_H

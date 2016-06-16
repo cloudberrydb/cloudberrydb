@@ -8,13 +8,6 @@
 //	@doc:
 //		Class for representing DXL scalar LimitCount (Limit Count Node is only used by CDXLPhysicalLimit
 //		
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPDXL_CDXLScalarLimitCount_H

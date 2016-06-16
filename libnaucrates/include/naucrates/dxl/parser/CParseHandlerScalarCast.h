@@ -8,13 +8,6 @@
 //	@doc:
 //		
 //		SAX parse handler class for parsing relabel node to a CDXLScalarCast operator.
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPDXL_CParseHandlerScalarCast_H

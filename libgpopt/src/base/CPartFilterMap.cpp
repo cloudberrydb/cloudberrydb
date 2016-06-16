@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of partitioned table filter map
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "naucrates/statistics/IStatistics.h"

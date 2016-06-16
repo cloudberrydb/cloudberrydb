@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		SAX parse handler class for parsing metadata from a DXL document.
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPDXL_CParseHandlerMetadata_H

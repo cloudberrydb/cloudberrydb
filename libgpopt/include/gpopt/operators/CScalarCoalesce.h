@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Scalar coalesce operator
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CScalarCoalesce_H
 #define GPOPT_CScalarCoalesce_H

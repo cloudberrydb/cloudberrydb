@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Class representing a GPDB partition constraint in the MD cache
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPMD_CMDPartConstraintGPDB_H

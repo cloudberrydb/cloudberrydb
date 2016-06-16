@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Statistics configurations
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CStatisticsConfig_H
 #define GPOPT_CStatisticsConfig_H

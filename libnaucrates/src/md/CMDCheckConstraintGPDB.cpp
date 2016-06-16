@@ -8,13 +8,6 @@
 //	@doc:
 //		Implementation of the class representing a GPDB check constraint
 //		in a metadata cache relation
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "naucrates/md/CMDCheckConstraintGPDB.h"

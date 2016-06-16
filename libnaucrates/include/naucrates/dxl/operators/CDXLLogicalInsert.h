@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Class for representing logical insert operators
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPDXL_CDXLLogicalInsert_H

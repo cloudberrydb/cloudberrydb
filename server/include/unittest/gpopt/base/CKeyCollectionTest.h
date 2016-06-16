@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Test for key collection functionality
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOS_CKeyCollectionTest_H
 #define GPOS_CKeyCollectionTest_H

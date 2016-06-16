@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Unittests for management of the global xform set
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

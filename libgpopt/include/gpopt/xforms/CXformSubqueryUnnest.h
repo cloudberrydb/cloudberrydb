@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Base class for subquery unnesting xforms
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CXformSubqueryUnnest_H
 #define GPOPT_CXformSubqueryUnnest_H

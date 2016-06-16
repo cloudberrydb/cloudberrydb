@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of optimizer search stage
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpopt/search/CSearchStage.h"

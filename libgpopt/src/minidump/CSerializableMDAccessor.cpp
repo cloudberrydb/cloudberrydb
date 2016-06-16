@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Wrapper for serializing MD objects
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

@@ -9,13 +9,6 @@
 //		Container of information passed among expression nodes during
 //		derivation of scalar properties
 //
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CDrvdPropCtxtScalar_H
 #define GPOPT_CDrvdPropCtxtScalar_H

@@ -8,13 +8,6 @@
 //	@doc:
 //		Implementation of the SAX parse handler class for parsing EXISTS and NOT EXISTS 
 //		 subquery operators.
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "naucrates/dxl/parser/CParseHandlerScalarSubqueryExists.h"

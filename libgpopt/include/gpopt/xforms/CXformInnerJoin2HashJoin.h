@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Transform inner join to inner Hash Join
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CXformInnerJoin2HashJoin_H
 #define GPOPT_CXformInnerJoin2HashJoin_H

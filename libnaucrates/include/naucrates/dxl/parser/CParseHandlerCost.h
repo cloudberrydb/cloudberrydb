@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		SAX parse handler class for parsing cost estimates of physical operators.
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPDXL_CParseHandlerCost_H

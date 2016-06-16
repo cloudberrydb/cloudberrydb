@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Class for representing DXL Part Oid expressions
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPDXL_CDXLScalarPartOid_H

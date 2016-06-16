@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Pattern that matches a variable number of leaves
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CPatternMultiLeaf_H
 #define GPOPT_CPatternMultiLeaf_H

@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Test for CExpression
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #include "gpos/io/COstreamString.h"
 #include "gpos/string/CWStringDynamic.h"

@@ -8,13 +8,6 @@
 //	@doc:
 //		Implementation of the SAX parse handler class for parsing grouping column
 //		id lists.
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "naucrates/dxl/parser/CParseHandlerGroupingColList.h"

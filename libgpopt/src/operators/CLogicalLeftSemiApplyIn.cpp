@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of left-semi-apply operator with In semantics
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

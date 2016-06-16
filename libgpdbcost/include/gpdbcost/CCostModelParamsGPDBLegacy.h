@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Parameters in GPDB's legacy cost model
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPDBCOST_CCostModelParamsGPDBLegacy_H
 #define GPDBCOST_CCostModelParamsGPDBLegacy_H

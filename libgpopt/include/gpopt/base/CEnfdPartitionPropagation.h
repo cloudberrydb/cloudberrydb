@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Enforceable partition propagation property
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CEnfdPartitionPropagation_H
 #define GPOPT_CEnfdPartitionPropagation_H

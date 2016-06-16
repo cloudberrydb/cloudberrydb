@@ -14,13 +14,6 @@
 //			null not in (1,2) --> unknown
 //			null not in (empty) --> true
 //			null not in (1,2,null) --> unknown
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOS_CLogicalLeftAntiSemiJoinNotIn_H
 #define GPOS_CLogicalLeftAntiSemiJoinNotIn_H

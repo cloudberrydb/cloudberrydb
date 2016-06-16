@@ -8,13 +8,6 @@
 //	@doc:
 //		Implementation of the helper methods used during Expr to DXL translation
 //		
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpopt/translate/CTranslatorExprToDXLUtils.h"

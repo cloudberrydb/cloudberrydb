@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		An operator class that wraps a scalar constant
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CScalarConst_H
 #define GPOPT_CScalarConst_H

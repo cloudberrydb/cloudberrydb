@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of optimizer job test class
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/string/CWStringDynamic.h"

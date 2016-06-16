@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Test for order spec
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOS_COrderSpecTest_H
 #define GPOS_COrderSpecTest_H

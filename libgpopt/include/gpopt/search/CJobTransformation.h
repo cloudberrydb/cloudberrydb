@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Transform group expression job
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CJobTransformation_H
 #define GPOPT_CJobTransformation_H

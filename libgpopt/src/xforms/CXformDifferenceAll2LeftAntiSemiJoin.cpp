@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of the transformation a logical difference all into LASJ
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

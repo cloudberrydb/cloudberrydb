@@ -8,13 +8,6 @@
 //	@doc:
 //
 //		SAX parse handler class for parsing coalesce operator
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPDXL_CParseHandlerScalarCoalesce_H
 #define GPDXL_CParseHandlerScalarCoalesce_H

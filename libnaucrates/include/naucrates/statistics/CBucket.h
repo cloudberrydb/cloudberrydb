@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Bucket in a histogram
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPNAUCRATES_CBucket_H

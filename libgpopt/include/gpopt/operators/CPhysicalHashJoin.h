@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Base hash join operator
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CPhysicalHashJoin_H
 #define GPOPT_CPhysicalHashJoin_H

@@ -8,13 +8,6 @@
 //	@doc:
 //		Test for ensuring the expected number of missing stats during optimization
 //		is correct.
-//
-//	@owner:
-//
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CMissingStatsTest_H
 #define GPOPT_CMissingStatsTest_H

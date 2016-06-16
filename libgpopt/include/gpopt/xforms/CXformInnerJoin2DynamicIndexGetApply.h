@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Transform Inner Join to DynamicIndexGet-Apply
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CXformInnerJoin2DynamicIndexGetApply_H
 #define GPOPT_CXformInnerJoin2DynamicIndexGetApply_H

@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Inner nested-loops join operator
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CPhysicalInnerNLJoin_H
 #define GPOPT_CPhysicalInnerNLJoin_H

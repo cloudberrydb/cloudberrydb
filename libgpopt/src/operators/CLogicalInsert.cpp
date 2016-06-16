@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of logical Insert operator
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

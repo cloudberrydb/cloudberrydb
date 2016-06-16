@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Expand n-ary join into series of binary joins
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CXformExpandNAryJoin_H
 #define GPOPT_CXformExpandNAryJoin_H

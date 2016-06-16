@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Transform Logical Sequence Project to Physical Sequence Project
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CXformImplementSequenceProject_H
 #define GPOPT_CXformImplementSequenceProject_H

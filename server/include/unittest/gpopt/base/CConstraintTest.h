@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Test for constraints
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CConstraintTest_H
 #define GPOPT_CConstraintTest_H

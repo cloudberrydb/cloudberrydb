@@ -8,13 +8,6 @@
 //	@doc:
 //		Class for representing DXL Part Default expressions
 //		These expressions indicate whether a particular part is a default part
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPDXL_CDXLScalarPartDefault_H

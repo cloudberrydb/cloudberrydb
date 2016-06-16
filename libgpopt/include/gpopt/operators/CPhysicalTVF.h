@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Physical Table-valued function
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CPhysicalTVF_H
 #define GPOPT_CPhysicalTVF_H

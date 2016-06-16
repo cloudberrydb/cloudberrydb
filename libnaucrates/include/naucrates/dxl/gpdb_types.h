@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Types from GPDB.
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPDXL_gpdb_types_H
 #define GPDXL_gpdb_types_H

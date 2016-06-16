@@ -8,13 +8,6 @@
 //	@doc:
 //		Parse handler for parsing CTAS storage options
 //		
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPDXL_CParseHandlerCTASStorageOptions_H
 #define GPDXL_CParseHandlerCTASStorageOptions_H

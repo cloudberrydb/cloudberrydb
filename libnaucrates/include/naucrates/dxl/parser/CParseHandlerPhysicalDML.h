@@ -8,13 +8,6 @@
 //	@doc:
 //		Parse handler for parsing a physical DML operator
 //		
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPDXL_CParseHandlerPhysicalDML_H
 #define GPDXL_CParseHandlerPhysicalDML_H

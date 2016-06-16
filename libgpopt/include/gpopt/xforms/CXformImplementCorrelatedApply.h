@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Base class for implementing correlated NLJ
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CXformImplementCorrelatedApply_H
 #define GPOPT_CXformImplementCorrelatedApply_H

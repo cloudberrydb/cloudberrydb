@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of the controller for parse handlers.
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "naucrates/dxl/parser/CParseHandlerManager.h"

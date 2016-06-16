@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Limit operator
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CLogicalLimit_H
 #define GPOPT_CLogicalLimit_H

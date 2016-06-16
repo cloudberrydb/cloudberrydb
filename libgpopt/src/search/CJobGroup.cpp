@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of group job superclass
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpopt/search/CGroupProxy.h"

@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Column reference implementation for computed columns
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOS_CColRefComputed_H
 #define GPOS_CColRefComputed_H

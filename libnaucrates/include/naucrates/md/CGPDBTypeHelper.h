@@ -8,13 +8,6 @@
 //	@doc:
 //		Helper class that provides implementation for common functions across
 //		different GPDB types (CMDTypeInt4GPDB, CMDTypeBoolGPDB, and CMDTypeGenericGPDB)
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPMD_CGPDBHelper_H
 #define GPMD_CGPDBHelper_H

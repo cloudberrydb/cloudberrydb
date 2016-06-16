@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Class representing a GPDB check constraint in a metadata cache relation
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPMD_CMDCheckConstraintGPDB_H

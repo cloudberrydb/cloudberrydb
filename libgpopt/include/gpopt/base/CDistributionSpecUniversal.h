@@ -8,13 +8,6 @@
 //	@doc:
 //		Description of a general distribution which reports availability everywhere;
 //		Can be used only as a derived property;
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CDistributionSpecUniversal_H
 #define GPOPT_CDistributionSpecUniversal_H

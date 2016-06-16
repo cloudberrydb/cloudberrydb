@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of the class for representing relation stats in DXL
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 

@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Transform logical CTE anchor to logical sequence over CTE producer
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CXformCTEAnchor2Sequence_H
 #define GPOPT_CXformCTEAnchor2Sequence_H

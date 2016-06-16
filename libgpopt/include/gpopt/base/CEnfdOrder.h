@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Enforceable order property
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CEnfdOrder_H
 #define GPOPT_CEnfdOrder_H

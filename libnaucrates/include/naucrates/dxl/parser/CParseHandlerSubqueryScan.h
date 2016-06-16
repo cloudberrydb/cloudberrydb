@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		SAX parse handler class for parsing subquery scan operator nodes.
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPDXL_CParseHandlerSubqueryScan_H

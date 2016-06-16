@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of DXL Scalar SubPlan operator
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

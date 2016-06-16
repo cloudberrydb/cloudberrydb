@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of DXL bitmap bool operator
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "naucrates/dxl/operators/CDXLScalarBitmapBoolOp.h"

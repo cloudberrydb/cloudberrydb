@@ -11,13 +11,6 @@
 //		invoked during initialization of the library (init.cpp),
 //		and destroyed in CDXLTokens::Terminate when the library is unloaded
 //		
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "naucrates/dxl/xml/dxltokens.h"

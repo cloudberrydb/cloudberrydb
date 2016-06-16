@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of column reference sets based on bitset
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOS_CColRefSet_H
 #define GPOS_CColRefSet_H

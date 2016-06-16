@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Class for representing physical DML operator
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPDXL_CDXLPhysicalDML_H

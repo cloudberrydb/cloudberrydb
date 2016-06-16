@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implement Assert
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CXformImplementAssert_H
 #define GPOPT_CXformImplementAssert_H

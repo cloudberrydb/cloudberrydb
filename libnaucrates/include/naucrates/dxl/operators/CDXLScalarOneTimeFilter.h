@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Class for representing a scalar filter that is executed once inside DXL physical operators.
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPDXL_CDXLScalarOneTimeFilter_H

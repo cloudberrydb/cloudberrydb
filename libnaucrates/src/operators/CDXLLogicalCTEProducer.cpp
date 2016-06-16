@@ -8,13 +8,6 @@
 //	@doc:
 //		Implementation of DXL logical CTE producer operator
 //		
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/string/CWStringDynamic.h"

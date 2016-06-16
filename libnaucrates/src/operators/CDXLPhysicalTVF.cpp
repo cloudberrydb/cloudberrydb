@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of DXL physical table-valued function
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/string/CWStringDynamic.h"

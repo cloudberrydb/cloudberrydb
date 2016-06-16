@@ -12,13 +12,6 @@
 //		a consumer and a producer with the same ID appear in the subtree, they
 //		cancel each other, and that CTE does not appear in the map for this
 //		operator
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CCTEMap_H
 #define GPOPT_CCTEMap_H

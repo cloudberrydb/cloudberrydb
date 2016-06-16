@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of CTE requirements
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

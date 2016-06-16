@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of Inner Index Apply operator
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

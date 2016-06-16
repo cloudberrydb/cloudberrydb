@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of DXL scalar assert constraint lists
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "naucrates/dxl/operators/CDXLScalarAssertConstraintList.h"

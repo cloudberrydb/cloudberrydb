@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of statistics context
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

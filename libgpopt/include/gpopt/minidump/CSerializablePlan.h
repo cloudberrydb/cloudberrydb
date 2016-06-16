@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Serializable plan object used to dump the query plan
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CSerializablePlan_H
 #define GPOPT_CSerializablePlan_H

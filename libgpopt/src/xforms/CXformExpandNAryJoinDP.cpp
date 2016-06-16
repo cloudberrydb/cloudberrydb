@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of n-ary join expansion using dynamic programming
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

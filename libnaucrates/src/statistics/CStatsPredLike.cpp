@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of statistics LIKE filter
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "naucrates/statistics/CStatsPredLike.h"

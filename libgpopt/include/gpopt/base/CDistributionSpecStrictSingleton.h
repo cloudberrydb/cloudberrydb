@@ -10,13 +10,6 @@
 //		that satisfies hash distribution requests, the strict singleton distribution is only
 //		compatible with other singleton distributions
 //		Can be used as a derived property;
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CDistributionSpecStrictSingleton_H
 #define GPOPT_CDistributionSpecStrictSingleton_H

@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of DXL logical "CREATE TABLE AS" (CTAS) operator
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/string/CWStringDynamic.h"

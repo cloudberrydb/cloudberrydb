@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Context container passed to every application of a transformation
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CXformContext_H
 #define GPOPT_CXformContext_H

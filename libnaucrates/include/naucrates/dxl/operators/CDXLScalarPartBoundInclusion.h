@@ -9,13 +9,6 @@
 //		Class for representing DXL Part boundary inclusion expressions
 //		These expressions indicate whether a particular boundary of a part
 //		constraint is closed (inclusive) or open (exclusive)
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPDXL_CDXLScalarPartBoundInclusion_H

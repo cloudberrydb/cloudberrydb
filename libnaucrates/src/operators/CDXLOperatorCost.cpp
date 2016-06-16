@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Class for representing cost estimates in physical operators.
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "naucrates/dxl/operators/CDXLOperatorCost.h"

@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of DXL Part oid expression
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "naucrates/dxl/operators/CDXLScalarPartOid.h"

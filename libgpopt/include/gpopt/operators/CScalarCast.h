@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Scalar casting operator
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CScalarCast_H
 #define GPOPT_CScalarCast_H

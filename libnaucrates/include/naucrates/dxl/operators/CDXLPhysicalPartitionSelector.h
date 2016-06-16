@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Class for representing DXL partition selector
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPDXL_CDXLPhysicalPartitionSelector_H

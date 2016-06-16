@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of DXL NullTest
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "naucrates/dxl/operators/CDXLScalarNullTest.h"

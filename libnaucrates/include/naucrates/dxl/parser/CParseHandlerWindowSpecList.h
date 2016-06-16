@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		SAX parse handler class for parsing the list of window specifications
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPDXL_CParseHandlerWindowSpecList_H

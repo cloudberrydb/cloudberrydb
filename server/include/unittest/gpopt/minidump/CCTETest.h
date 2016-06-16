@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Test for optimizing queries with CTEs
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CCTETest_H
 #define GPOPT_CCTETest_H

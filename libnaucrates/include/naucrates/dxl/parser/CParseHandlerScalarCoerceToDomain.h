@@ -8,13 +8,6 @@
 //	@doc:
 //
 //		SAX parse handler class for parsing CoerceToDomain operator.
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPDXL_CParseHandlerScalarCoerceToDomain_H

@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of result container
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

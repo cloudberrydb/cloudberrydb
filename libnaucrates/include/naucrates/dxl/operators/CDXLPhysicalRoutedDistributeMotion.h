@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Class for representing DXL routed redistribute motion operators.
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 

@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Physical Broadcast motion operator
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CPhysicalMotionBroadcast_H
 #define GPOPT_CPhysicalMotionBroadcast_H

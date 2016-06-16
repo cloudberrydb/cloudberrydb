@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of EXISTS subqueries
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/string/CWStringDynamic.h"

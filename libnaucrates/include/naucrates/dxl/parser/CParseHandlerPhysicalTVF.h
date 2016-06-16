@@ -8,13 +8,6 @@
 //	@doc:
 //
 //		SAX parse handler class for parsing Physical TVF
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPDXL_CParseHandlerPhysicalTVF_H

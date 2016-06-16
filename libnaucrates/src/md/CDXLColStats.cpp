@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of the class for representing column stats in DXL
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 

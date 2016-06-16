@@ -8,13 +8,6 @@
 //	@doc:
 //		Implementation of the transformation that takes a logical union and
 //		coverts it into an aggregate over a logical union all
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

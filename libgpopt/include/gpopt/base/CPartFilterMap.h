@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Partitioned table filter map used in required and derived properties
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CPartFilterMap_H
 #define GPOPT_CPartFilterMap_H

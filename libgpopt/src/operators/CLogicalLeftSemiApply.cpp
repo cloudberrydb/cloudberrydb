@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of left semi-apply operator
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

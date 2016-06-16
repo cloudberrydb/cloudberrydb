@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		SAX parse handler class for parsing materialize operator nodes.
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPDXL_CParseHandlerMaterialize_H

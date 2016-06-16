@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Class for scalar subquery ANY operators
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CScalarSubqueryAny_H
 #define GPOPT_CScalarSubqueryAny_H

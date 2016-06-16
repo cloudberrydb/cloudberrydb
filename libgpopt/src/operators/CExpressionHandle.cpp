@@ -11,13 +11,6 @@
 //		The handle provides access to an expression and the properties
 //		of its children; regardless of whether the expression is a group
 //		expression or a stand-alone tree;
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

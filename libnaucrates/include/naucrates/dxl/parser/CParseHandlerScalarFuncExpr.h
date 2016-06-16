@@ -8,13 +8,6 @@
 //	@doc:
 //		
 //		SAX parse handler class for parsing scalar FuncExpr.
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPDXL_CParseHandlerScalarFuncExpr_H

@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Test for search strategy
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CSearchStrategyTest_H
 #define GPOPT_CSearchStrategyTest_H

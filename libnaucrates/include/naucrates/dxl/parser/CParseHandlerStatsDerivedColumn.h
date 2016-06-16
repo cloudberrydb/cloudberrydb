@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Parse handler for derived column statistics
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPDXL_CParseHandlerStatsDerivedColumn_H

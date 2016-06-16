@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		SAX parse handler class for parsing a bounds of a bucket
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPDXL_CParseHandlerStatsBound_H

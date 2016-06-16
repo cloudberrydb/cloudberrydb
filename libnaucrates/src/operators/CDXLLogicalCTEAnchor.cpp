@@ -8,13 +8,6 @@
 //	@doc:
 //		Implementation of DXL logical CTE anchors
 //		
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "naucrates/dxl/operators/CDXLLogicalCTEAnchor.h"

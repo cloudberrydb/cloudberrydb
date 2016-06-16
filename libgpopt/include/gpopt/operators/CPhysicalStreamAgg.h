@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Sort-based stream Aggregate operator
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOS_CPhysicalStreamAgg_H
 #define GPOS_CPhysicalStreamAgg_H

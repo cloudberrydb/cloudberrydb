@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		CTE configurations
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CCTEConfig_H
 #define GPOPT_CCTEConfig_H

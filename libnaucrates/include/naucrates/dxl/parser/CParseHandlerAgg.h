@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		SAX parse handler class for parsing aggregate operator nodes.
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPDXL_CParseHandlerGroupBy_H

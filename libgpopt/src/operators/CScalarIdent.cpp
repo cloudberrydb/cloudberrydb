@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of scalar identity operator
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

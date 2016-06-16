@@ -8,13 +8,6 @@
 //	@doc:
 //		Class for representing DXL logical group by operators
 //		
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPDXL_CDXLLogicalGroupBy_H
 #define GPDXL_CDXLLogicalGroupBy_H

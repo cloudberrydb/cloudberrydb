@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of scalar CoerceToDomain operators
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

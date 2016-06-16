@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Turn LS apply into LS join when inner child has no outer references
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CXformLeftAntiSemiApply2LeftAntiSemiJoinNoCorrelations_H
 #define GPOPT_CXformLeftAntiSemiApply2LeftAntiSemiJoinNoCorrelations_H

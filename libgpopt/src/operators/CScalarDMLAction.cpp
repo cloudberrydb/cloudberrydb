@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of scalar DML action operator
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

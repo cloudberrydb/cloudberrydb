@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		SAX parse handler class for parsing filter operator nodes.
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPDXL_CParseHandlerFilter_H

@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of GPDB-specific triggers in the metadata cache
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPMD_CMDTriggerGPDB_H

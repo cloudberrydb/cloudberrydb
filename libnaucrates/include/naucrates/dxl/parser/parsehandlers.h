@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		collective include file for all parse handlers
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPDXL_parsehandlers_H

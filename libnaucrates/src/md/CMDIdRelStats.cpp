@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of mdids for relation statistics
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 

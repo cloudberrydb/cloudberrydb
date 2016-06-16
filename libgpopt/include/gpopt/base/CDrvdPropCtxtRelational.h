@@ -9,13 +9,6 @@
 //		Container of information passed among expression nodes during
 //		derivation of relational properties
 //
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CDrvdPropCtxtRelational_H
 #define GPOPT_CDrvdPropCtxtRelational_H

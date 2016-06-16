@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of DXL BooleanTest
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "naucrates/dxl/operators/CDXLScalarBooleanTest.h"

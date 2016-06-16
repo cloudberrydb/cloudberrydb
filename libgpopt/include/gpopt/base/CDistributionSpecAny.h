@@ -8,13 +8,6 @@
 //	@doc:
 //		Description of a general distribution which imposes no requirements; 
 //		Can be used only as a required property;
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CDistributionSpecAny_H
 #define GPOPT_CDistributionSpecAny_H

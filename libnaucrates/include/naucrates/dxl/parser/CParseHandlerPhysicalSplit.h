@@ -8,13 +8,6 @@
 //	@doc:
 //		Parse handler for parsing a physical split operator
 //
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPDXL_CParseHandlerPhysicalSplit_H
 #define GPDXL_CParseHandlerPhysicalSplit_H

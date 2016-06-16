@@ -9,13 +9,6 @@
 //		Class for representing DXL Part boundary openness expressions
 //		These expressions indicate whether a particular boundary of a part
 //		constraint is open (unbounded)
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPDXL_CDXLScalarPartBoundOpen_H

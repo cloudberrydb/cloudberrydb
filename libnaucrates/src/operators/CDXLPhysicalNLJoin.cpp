@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of DXL physical nested loop join operator
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 

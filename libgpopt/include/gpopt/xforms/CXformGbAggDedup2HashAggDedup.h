@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Transform GbAggDeduplicate to HashAggDeduplicate
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CXformGbAggDedup2HashAggDedup_H
 #define GPOPT_CXformGbAggDedup2HashAggDedup_H

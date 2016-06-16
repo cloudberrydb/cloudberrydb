@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Group of equivalent expressions in the Memo structure
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CGroup_H
 #define GPOPT_CGroup_H

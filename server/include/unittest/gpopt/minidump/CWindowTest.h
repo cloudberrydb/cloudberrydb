@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Test for Window functions
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CWindowTest_H
 #define GPOPT_CWindowTest_H

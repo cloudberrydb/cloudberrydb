@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Specification of hashed distribution
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "naucrates/traceflags/traceflags.h"

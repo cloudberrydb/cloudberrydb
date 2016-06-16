@@ -8,13 +8,6 @@
 //	@doc:
 //		Implementation of n-ary join expansion based on cardinality
 //		of intermediate results
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

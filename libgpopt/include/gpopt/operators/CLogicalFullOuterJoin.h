@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Full outer join operator
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOS_CLogicalFullOuterJoin_H
 #define GPOS_CLogicalFullOuterJoin_H

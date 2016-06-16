@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		External scan operator
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CPhysicalExternalScan_H
 #define GPOPT_CPhysicalExternalScan_H

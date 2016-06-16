@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Class for scalar aggregate function calls
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CScalarAggFunc_H
 #define GPOPT_CScalarAggFunc_H

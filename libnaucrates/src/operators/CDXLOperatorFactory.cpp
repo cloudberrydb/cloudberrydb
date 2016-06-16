@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of the factory methods for creation of DXL elements.
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #define ALLOW_strncasecmp

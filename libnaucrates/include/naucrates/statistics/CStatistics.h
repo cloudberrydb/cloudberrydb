@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Statistics implementation over 1D histograms
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPNAUCRATES_CStatistics_H
 #define GPNAUCRATES_CStatistics_H

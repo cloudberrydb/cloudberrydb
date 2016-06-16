@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Initialization of the gpopt library.
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_init_H
 #define GPOPT_init_H

@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of the class for metadata requests
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 

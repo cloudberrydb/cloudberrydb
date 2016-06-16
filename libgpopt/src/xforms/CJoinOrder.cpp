@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of join order logic
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

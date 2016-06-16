@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Class for representing mdids of cast functions
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPMD_CMDIdCastFunc_H

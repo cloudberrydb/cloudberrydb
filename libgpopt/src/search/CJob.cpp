@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of optimizer job base class
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

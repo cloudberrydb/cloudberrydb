@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Scalar DML action operator
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CScalarDMLAction_H
 #define GPOPT_CScalarDMLAction_H

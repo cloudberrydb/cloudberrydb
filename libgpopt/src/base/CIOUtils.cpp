@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of optimizer I/O utilities
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

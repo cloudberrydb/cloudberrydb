@@ -8,13 +8,6 @@
 //	@doc:
 //		SAX parse handler class for parsing the list of projection elements
 //		in a DXL physical operator node.
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPDXL_CParseHandlerScalarProjList_H

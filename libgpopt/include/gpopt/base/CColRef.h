@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Column reference implementation
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOS_CColRef_H
 #define GPOS_CColRef_H

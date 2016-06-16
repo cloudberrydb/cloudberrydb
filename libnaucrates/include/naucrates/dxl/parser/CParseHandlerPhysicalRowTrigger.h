@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Parse handler for parsing a physical row trigger operator
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPDXL_CParseHandlerPhysicalRowTrigger_H
 #define GPDXL_CParseHandlerPhysicalRowTrigger_H

@@ -13,13 +13,6 @@
 //			F. Waas, C. Galindo-Legaria, "Counting, Enumerating, and 
 //			Sampling of Execution Plans in a Cost-Based Query Optimizer",
 //			ACM SIGMOD, 2000
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CTreeMap_H
 #define GPOPT_CTreeMap_H

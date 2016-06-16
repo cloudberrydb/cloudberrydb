@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Test for CExpression
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CExpressionTest_H
 #define GPOPT_CExpressionTest_H

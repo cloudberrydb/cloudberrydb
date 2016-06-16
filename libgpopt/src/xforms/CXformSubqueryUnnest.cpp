@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of subquery unnesting base class
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

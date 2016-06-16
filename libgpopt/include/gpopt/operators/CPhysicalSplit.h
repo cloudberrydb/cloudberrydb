@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Physical split operator
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOS_CPhysicalSplit_H
 #define GPOS_CPhysicalSplit_H

@@ -9,13 +9,6 @@
 //		Expression tree preprocessing routines, needed to prepare an input
 //		logical expression to be optimized
 //
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CExpressionPreprocessor_H
 #define GPOPT_CExpressionPreprocessor_H

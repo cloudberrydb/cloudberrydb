@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		collective include file for all operators
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_ops_H
 #define GPOPT_ops_H

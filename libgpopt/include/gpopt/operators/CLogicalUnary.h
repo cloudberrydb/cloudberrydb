@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Base class of logical unary operators
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOS_CLogicalUnary_H
 #define GPOS_CLogicalUnary_H

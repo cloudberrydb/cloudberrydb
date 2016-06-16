@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		SAX parse handler class for parsing bitmap index probe operator nodes
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPDXL_CParseHandlerScalarBitmapIndexProbe_H

@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		SAX parse handler class for parsing the direct dispatch info
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPDXL_CParseHandlerDirectDispatchInfo_H

@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Left anti semi join operator
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOS_CLogicalLeftAntiSemiJoin_H
 #define GPOS_CLogicalLeftAntiSemiJoin_H

@@ -8,13 +8,6 @@
 //	@doc:
 //
 //		SAX parse handler class for parsing Switch operator
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPDXL_CParseHandlerScalarSwitch_H
 #define GPDXL_CParseHandlerScalarSwitch_H

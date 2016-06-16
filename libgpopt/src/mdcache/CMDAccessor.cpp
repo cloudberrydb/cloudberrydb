@@ -8,13 +8,6 @@
 //	@doc:
 //		Implementation of the metadata accessor class handling accesses to
 //		metadata objects in an optimization session
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/common/CAutoP.h"

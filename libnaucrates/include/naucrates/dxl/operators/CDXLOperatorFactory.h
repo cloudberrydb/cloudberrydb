@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Factory for creating DXL tree elements out of parsed XML attributes
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPDXL_CDXLOperatorFactory_H

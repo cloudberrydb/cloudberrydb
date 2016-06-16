@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of inlined functions;
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CUtils_INL
 #define GPOPT_CUtils_INL

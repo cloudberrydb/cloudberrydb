@@ -8,13 +8,6 @@
 //	@doc:
 //		Representation of a conjunction constraint. A conjunction is a number
 //		of ANDed constraints
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CConstraintConjunction_H
 #define GPOPT_CConstraintConjunction_H

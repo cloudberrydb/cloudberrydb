@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of the class for representing DXL derived relation statistics
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/string/CWStringDynamic.h"

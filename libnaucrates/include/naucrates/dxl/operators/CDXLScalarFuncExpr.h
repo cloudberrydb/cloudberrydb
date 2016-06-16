@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Class for representing DXL scalar FuncExpr
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPDXL_CDXLScalarFuncExpr_H

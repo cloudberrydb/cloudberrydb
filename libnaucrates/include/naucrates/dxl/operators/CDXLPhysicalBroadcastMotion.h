@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Class for representing DXL Broadcast motion operators.
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 

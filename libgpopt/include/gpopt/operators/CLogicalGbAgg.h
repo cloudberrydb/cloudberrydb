@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Group Aggregate operator
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOS_CLogicalGbAgg_H
 #define GPOS_CLogicalGbAgg_H

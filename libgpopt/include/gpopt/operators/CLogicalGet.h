@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Basic table accessor
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CLogicalGet_H
 #define GPOPT_CLogicalGet_H

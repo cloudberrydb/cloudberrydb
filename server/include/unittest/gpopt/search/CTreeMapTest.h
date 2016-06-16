@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Test for tree map implementation
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CTreeMapTest_H
 #define GPOPT_CTreeMapTest_H

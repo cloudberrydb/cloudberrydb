@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Binding mechanism to extract expression from Memo according to pattern
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CBinding_H
 #define GPOPT_CBinding_H

@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Cardinality-based join order generation
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CJoinOrderMinCard_H
 #define GPOPT_CJoinOrderMinCard_H

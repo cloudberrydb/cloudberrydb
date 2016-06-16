@@ -8,13 +8,6 @@
 //	@doc:
 //		Parse handler for converting a query (logical plan) from a DXL document
 //		into a DXL tree.
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPDXL_CParseHandlerQuery_H

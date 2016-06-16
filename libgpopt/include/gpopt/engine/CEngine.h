@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Optimization engine
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CEngine_H
 #define GPOPT_CEngine_H

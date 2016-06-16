@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Test for correlated subqueries
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CCorrelatedExecutionTest_H
 #define GPOPT_CCorrelatedExecutionTest_H

@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Test for CNF conversion
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CCNFConverterTest_H
 #define GPOPT_CCNFConverterTest_H

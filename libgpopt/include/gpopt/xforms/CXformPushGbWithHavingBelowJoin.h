@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Push group by with having clause below join transform
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CXformPushGbWithHavingBelowJoin_H
 #define GPOPT_CXformPushGbWithHavingBelowJoin_H

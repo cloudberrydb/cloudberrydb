@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Representation of function properties
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CFunctionProp_H
 #define GPOPT_CFunctionProp_H

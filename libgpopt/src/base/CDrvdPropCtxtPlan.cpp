@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Derived plan properties context
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

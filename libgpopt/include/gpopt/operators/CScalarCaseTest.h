@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Scalar case test operator
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CScalarCaseTest_H
 #define GPOPT_CScalarCaseTest_H

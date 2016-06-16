@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Column abstraction for tables, functions, external tables etc.
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

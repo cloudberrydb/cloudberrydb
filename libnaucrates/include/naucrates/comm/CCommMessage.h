@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Descriptor of message exchanged between OPT and QD processes
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPNAUCRATES_CCommMessage_H
 #define GPNAUCRATES_CCommMessage_H

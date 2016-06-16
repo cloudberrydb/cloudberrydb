@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of DXL logical insert operator
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/string/CWStringDynamic.h"

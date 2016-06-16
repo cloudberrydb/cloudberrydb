@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Transform left semi join to left semi NLJ
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CXformLeftSemiJoin2NLJoin_H
 #define GPOPT_CXformLeftSemiJoin2NLJoin_H

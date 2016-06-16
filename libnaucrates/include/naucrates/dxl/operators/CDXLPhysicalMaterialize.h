@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Class for representing DXL physical materialize operators.
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPDXL_CDXLPhysicalMaterialize_H

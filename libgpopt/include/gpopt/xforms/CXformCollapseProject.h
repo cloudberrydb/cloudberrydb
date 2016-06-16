@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Transform that collapses two cascaded project nodes
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CXformCollapseProject_H
 #define GPOPT_CXformCollapseProject_H

@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Scheduler interface for execution of optimization jobs
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CScheduler_H
 #define GPOPT_CScheduler_H

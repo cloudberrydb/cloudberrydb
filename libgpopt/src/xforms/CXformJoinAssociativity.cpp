@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of associativity transform for left-deep joins
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

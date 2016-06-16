@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		SAX parse handler class for parsing projection elements.
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPDXL_CParseHandlerProjElem_H

@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Container for objects associated with scheduling context of a job
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CSchedulerContext_H
 #define GPOPT_CSchedulerContext_H

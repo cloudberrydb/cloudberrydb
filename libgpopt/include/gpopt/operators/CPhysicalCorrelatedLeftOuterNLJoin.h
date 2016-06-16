@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Physical Left Outer NLJ  operator capturing correlated execution
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CPhysicalCorrelatedLeftOuterNLJoin_H
 #define GPOPT_CPhysicalCorrelatedLeftOuterNLJoin_H

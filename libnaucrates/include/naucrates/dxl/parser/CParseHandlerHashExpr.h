@@ -8,13 +8,6 @@
 //	@doc:
 //		SAX parse handler class for parsing a hash expressions 
 //		in the hash expr list of a redistribute motion node.
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPDXL_CParseHandlerHashExpr_H

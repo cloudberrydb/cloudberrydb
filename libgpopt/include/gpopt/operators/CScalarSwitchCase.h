@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Scalar SwitchCase operator
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CScalarSwitchCase_H
 #define GPOPT_CScalarSwitchCase_H

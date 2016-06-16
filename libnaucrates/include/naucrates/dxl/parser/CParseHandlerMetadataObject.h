@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Base SAX parse handler class for parsing metadata objects.
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPDXL_CParseHandlerMetadataObject_H

@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of basic implementation transformation
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

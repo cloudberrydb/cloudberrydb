@@ -8,13 +8,6 @@
 //	@doc:
 //		Memory manager for parsing DXL documents used in the Xerces XML parser.
 //		Provides a wrapper around the GPOS IMemoryPool interface.
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPDXL_CDXLMemoryManager_H

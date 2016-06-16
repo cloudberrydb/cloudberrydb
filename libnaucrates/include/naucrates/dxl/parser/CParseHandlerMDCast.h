@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		SAX parse handler class for GPDB cast metadata
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPDXL_CParseHandlerMDCast_H

@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Test for installcheck-good bugs
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/task/CAutoTraceFlag.h"

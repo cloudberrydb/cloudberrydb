@@ -8,13 +8,6 @@
 //	@doc:
 //		Test for optimizing queries for exploring fewer alternatives and
 //		run optimization process faster
-//
-//	@owner:
-//
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CEscapeMechanismTest_H
 #define GPOPT_CEscapeMechanismTest_H

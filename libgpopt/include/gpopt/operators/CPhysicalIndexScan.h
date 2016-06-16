@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Base class for physical index scan operators
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CPhysicalIndexScan_H
 #define GPOPT_CPhysicalIndexScan_H

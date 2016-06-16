@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		SAX parse handler class for GPDB trigger metadata
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPDXL_CParseHandlerMDGPDBTrigger_H

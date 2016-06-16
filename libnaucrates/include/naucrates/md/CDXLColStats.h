@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Class representing column stats
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPMD_CDXLColStats_H

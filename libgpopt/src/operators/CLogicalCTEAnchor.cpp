@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of CTE anchor operator
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

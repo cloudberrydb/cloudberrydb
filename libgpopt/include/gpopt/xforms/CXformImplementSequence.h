@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Transform logical to physical Sequence
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CXformImplementSequence_H
 #define GPOPT_CXformImplementSequence_H

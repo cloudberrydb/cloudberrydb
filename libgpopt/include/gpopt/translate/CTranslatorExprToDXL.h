@@ -8,13 +8,6 @@
 //	@doc:
 //		Class providing methods for translating optimizer Expression trees 
 //		into DXL Tree.
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPOPT_CTranslatorExprToDXL_H

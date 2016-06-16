@@ -8,13 +8,6 @@
 //	@doc:
 //		Parse handler for parsing a physical CTAS operator
 //		
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPDXL_CParseHandlerPhysicalCTAS_H
 #define GPDXL_CParseHandlerPhysicalCTAS_H

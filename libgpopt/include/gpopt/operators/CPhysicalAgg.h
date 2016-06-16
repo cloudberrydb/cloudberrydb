@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Basic physical aggregate operator
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOS_CPhysicalAgg_H
 #define GPOS_CPhysicalAgg_H

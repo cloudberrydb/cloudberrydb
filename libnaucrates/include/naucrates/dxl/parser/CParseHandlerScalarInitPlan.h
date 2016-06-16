@@ -8,13 +8,6 @@
 //	@doc:
 //		
 //		SAX parse handler class for parsing InitPlan.
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPDXL_CParseHandlerScalarInitPlan_H

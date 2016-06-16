@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Template implementation of transformer
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CXformApply2Join_INL
 #define GPOPT_CXformApply2Join_INL

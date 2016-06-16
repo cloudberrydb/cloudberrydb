@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Representation of physical operator costs
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPDXL_CDXLOperatorCost_H
 #define GPDXL_CDXLOperatorCost_H

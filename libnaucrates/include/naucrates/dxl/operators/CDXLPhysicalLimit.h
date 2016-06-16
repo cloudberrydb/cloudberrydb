@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Class for representing DXL physical LIMIT operator
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPDXL_CDXLPhysicalLimit_H

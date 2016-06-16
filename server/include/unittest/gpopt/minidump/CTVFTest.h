@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Test for optimizing queries with TVF
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CTVFTest_H
 #define GPOPT_CTVFTest_H

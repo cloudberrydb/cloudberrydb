@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of the transform that collapses two cascaded project nodes
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

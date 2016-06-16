@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		SAX parse handler class for parsing cost model config
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPDXL_CParseHandlerCostModel_H

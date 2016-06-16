@@ -8,13 +8,6 @@
 //	@doc:
 //		Transform left anti semi correlated apply with NOT-IN/ALL semantics
 //		to physical left anti semi correlated join
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CXformImplementLeftAntiSemiCorrelatedApplyNotIn_H
 #define GPOPT_CXformImplementLeftAntiSemiCorrelatedApplyNotIn_H

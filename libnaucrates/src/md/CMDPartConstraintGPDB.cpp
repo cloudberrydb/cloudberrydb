@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of part constraints in the MD cache
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "naucrates/md/CMDPartConstraintGPDB.h"

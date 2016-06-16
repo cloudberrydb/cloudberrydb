@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Base class for all scalar boolean operators
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CScalarBoolOp_H
 #define GPOPT_CScalarBoolOp_H

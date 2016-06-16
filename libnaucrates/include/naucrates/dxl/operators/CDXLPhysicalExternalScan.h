@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Class for representing DXL external scan operators
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPDXL_CDXLPhysicalExternalScan_H

@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Push LOJ below NAry join
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CXformPushDownLeftOuterJoin_H
 #define GPOPT_CXformPushDownLeftOuterJoin_H

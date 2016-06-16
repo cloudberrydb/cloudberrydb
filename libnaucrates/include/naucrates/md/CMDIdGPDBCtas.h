@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Class for representing mdids for GPDB CTAS queries
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 

@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Interface for cast functions in the metadata cache
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 

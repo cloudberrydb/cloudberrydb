@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Class for scalar subqueries
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CScalarSubquery_H
 #define GPOPT_CScalarSubquery_H

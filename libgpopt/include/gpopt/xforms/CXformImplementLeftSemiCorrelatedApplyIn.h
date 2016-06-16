@@ -8,13 +8,6 @@
 //	@doc:
 //		Transform left semi correlated apply with IN/ANY semantics
 //		to physical left semi correlated join
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CXformImplementLeftSemiCorrelatedApplyIn_H
 #define GPOPT_CXformImplementLeftSemiCorrelatedApplyIn_H

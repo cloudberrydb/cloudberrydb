@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of proxy object for group access
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Class to transform of Intersect into a Join
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CXformIntersect2Join_H
 #define GPOPT_CXformIntersect2Join_H

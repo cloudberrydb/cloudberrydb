@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Initialization of GPOPT-specific exception messages
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/error/CMessage.h"

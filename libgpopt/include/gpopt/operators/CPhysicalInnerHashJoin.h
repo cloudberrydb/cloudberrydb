@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Inner hash join operator
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CPhysicalInnerHashJoin_H
 #define GPOPT_CPhysicalInnerHashJoin_H

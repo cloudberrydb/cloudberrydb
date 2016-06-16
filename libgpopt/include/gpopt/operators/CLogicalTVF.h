@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Table-valued function
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CLogicalTVF_H
 #define GPOPT_CLogicalTVF_H

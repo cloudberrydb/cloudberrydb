@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Scalar boolean test
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CScalarBooleanTest_H
 #define GPOPT_CScalarBooleanTest_H

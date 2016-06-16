@@ -8,13 +8,6 @@
 //	@doc:
 //		Expression tree preprocessing routines, needed to prepare an input
 //		logical expression to be optimized
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

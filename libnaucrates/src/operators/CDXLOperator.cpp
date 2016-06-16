@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of base DXL operator class
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "naucrates/dxl/operators/CDXLOperator.h"

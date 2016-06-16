@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Test for CEngine
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CEngineTest_H
 #define GPOPT_CEngineTest_H

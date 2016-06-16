@@ -8,13 +8,6 @@
 //	@doc:
 //		Implementation of DXL Scalar Limit Count
 //		
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "naucrates/dxl/operators/CDXLScalarLimitCount.h"

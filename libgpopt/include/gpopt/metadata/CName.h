@@ -8,13 +8,6 @@
 //	@doc:
 //		Name abstraction for metadata names to keep optimizer
 //		agnostic of encodings etc.
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CName_H
 #define GPOPT_CName_H

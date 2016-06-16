@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Class for representing index descriptors
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPDXL_CDXLIndexDescriptor_H

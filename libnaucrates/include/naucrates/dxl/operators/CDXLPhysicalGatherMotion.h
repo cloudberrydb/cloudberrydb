@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Class for representing DXL Gather motion operators.
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 

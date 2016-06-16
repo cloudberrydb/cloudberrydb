@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Physical sort operator
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOS_CPhysicalSort_H
 #define GPOS_CPhysicalSort_H

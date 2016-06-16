@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Physical join base class
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CPhysicalJoin_H
 #define GPOPT_CPhysicalJoin_H

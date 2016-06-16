@@ -8,13 +8,6 @@
 //	@doc:
 //		Base class for derived properties context;
 //
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CDrvdPropCtxt_H
 #define GPOPT_CDrvdPropCtxt_H

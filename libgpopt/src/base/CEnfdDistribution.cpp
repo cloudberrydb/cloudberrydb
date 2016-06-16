@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of enforceable distribution property
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

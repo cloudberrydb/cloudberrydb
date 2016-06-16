@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Split an aggregate into a pair of local and global aggregate
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CXformSplitGbAgg_H
 #define GPOPT_CXformSplitGbAgg_H

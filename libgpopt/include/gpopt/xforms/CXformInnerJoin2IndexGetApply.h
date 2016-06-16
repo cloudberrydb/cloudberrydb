@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Transform Inner Join to IndexGet Apply
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CXformInnerJoin2IndexGetApply_H
 #define GPOPT_CXformInnerJoin2IndexGetApply_H

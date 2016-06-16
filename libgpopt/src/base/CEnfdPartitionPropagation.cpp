@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of enforced partition propagation property
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

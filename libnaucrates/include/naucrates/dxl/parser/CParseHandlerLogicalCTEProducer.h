@@ -8,13 +8,6 @@
 //	@doc:
 //		Parse handler for parsing a logical CTE producer operator
 //		
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPDXL_CParseHandlerLogicalCTEProducer_H
 #define GPDXL_CParseHandlerLogicalCTEProducer_H

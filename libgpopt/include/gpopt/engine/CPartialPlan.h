@@ -13,13 +13,6 @@
 //		plan's cost gives a lower bound on the cost of the corresponding complete plan,
 //		this information is used to prune the optimization search space during branch
 //		and bound search
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CPartialPlan_H
 #define GPOPT_CPartialPlan_H

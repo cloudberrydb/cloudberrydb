@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of DXL physical external scan operator
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "naucrates/dxl/operators/CDXLPhysicalExternalScan.h"

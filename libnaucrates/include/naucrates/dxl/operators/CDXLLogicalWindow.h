@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Class for representing DXL logical window operators
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPDXL_CDXLLogicalWindow_H

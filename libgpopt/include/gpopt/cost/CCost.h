@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Cost type
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPNAUCRATES_CCost_H
 #define GPNAUCRATES_CCost_H

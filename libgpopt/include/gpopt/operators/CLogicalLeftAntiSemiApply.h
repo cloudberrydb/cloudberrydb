@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Logical Left Anti Semi Apply operator
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CLogicalLeftAntiSemiApply_H
 #define GPOPT_CLogicalLeftAntiSemiApply_H

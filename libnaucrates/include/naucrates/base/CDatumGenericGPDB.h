@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		GPDB-specific generic datum representation
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPNAUCRATES_CDatumGenericGPDB_H
 #define GPNAUCRATES_CDatumGenericGPDB_H

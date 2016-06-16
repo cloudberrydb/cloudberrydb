@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Convert scalar predicate to conjunctive normal form
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CCNFConverter_H
 #define GPOPT_CCNFConverter_H

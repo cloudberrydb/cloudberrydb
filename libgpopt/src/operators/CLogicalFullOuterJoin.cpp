@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of full outer join operator
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

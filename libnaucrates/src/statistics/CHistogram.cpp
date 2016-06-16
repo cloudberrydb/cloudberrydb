@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of single-dimensional histogram
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 

@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		N-ary inner join operator
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOS_CLogicalNAryJoin_H
 #define GPOS_CLogicalNAryJoin_H

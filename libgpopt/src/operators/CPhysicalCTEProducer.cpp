@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of CTE producer operator
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

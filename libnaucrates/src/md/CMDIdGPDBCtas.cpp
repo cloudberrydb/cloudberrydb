@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of metadata identifiers for GPDB CTAS queries
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "naucrates/md/CMDIdGPDBCtas.h"

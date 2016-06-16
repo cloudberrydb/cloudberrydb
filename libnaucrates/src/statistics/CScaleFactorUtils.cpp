@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Helper routines to compute scale factors / damping factors
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Transform inner correlated apply to physical inner correlated apply
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CXformImplementInnerCorrelatedApply_H
 #define GPOPT_CXformImplementInnerCorrelatedApply_H

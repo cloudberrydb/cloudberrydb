@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Transform NAry Join to Apply
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CXformSubqNAryJoin2Apply_H
 #define GPOPT_CXformSubqNAryJoin2Apply_H

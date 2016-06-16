@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		SAX parse handler class for column metadata
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPDXL_CParseHandlerMetadataColumn_H

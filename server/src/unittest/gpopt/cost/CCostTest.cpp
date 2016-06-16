@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Tests for basic operations on cost
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #include "gpos/error/CAutoTrace.h"
 #include "gpos/task/CAutoTraceFlag.h"

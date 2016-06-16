@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Swap cascaded inner join and anti semi-join with NotIn semantics
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CXformInnerJoinAntiSemiJoinNotInSwap_H
 #define GPOPT_CXformInnerJoinAntiSemiJoinNotInSwap_H

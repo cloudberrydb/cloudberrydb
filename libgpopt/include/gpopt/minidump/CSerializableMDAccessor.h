@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Wrapper for serializing MD accessor objects
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOS_CSerializableMDAccessor_H
 #define GPOS_CSerializableMDAccessor_H

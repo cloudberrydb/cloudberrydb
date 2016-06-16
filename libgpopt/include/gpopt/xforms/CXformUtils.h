@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Utility functions for xforms
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CXformUtils_H
 #define GPOPT_CXformUtils_H

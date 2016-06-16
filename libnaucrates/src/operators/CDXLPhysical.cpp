@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of DXL physical operators
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "naucrates/dxl/operators/CDXLPhysical.h"

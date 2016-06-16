@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Class for representing DXL physical CTE producer operators
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPDXL_CDXLPhysicalCTEProducer_H
 #define GPDXL_CDXLPhysicalCTEProducer_H

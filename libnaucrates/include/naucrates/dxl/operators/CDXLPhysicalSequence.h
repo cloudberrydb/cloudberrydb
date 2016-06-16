@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Class for representing DXL physical sequence operators
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPDXL_CDXLPhysicalSequence_H

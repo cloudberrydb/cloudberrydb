@@ -8,13 +8,6 @@
 //	@doc:
 //		Implementation of DXL window key
 //		
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "naucrates/dxl/operators/CDXLWindowKey.h"

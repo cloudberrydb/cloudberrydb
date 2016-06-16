@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementing Inner Index Apply
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CXformImplementInnerIndexApply_H
 #define GPOPT_CXformImplementInnerIndexApply_H

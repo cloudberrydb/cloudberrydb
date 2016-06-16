@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of group expression optimization job
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpopt/base/CDrvdPropCtxtPlan.h"

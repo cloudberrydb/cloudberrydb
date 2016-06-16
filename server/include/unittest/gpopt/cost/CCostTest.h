@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Basic tests for costing
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CCostTest_H
 #define GPOPT_CCostTest_H

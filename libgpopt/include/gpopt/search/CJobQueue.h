@@ -8,13 +8,6 @@
 //	@doc:
 //		Class controlling unique execution of an operation that is
 //		potentially assigned to many jobs.
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CJobQueue_H
 #define GPOPT_CJobQueue_H

@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Base abstract class for int8 representation
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPNAUCRATES_IDatumInt8_H
 #define GPNAUCRATES_IDatumInt8_H

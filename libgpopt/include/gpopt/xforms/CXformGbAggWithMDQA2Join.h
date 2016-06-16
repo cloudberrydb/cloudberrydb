@@ -8,13 +8,6 @@
 //	@doc:
 //		Transform a GbAgg with multiple distinct qualified aggregates (MDQAs)
 //		to a join tree with single DQA leaves
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CXformGbAggWithMDQA2Join_H
 #define GPOPT_CXformGbAggWithMDQA2Join_H

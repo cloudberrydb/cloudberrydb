@@ -8,13 +8,6 @@
 //	@doc:
 //		Parse handler for parsing a logical limit operator
 //		
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPDXL_CParseHandlerLogicalLimit_H
 #define GPDXL_CParseHandlerLogicalLimit_H

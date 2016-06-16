@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Base abstract class for generic datum representation
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPNAUCRATES_IDatumGeneric_H
 #define GPNAUCRATES_IDatumGeneric_H

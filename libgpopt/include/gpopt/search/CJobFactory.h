@@ -9,13 +9,6 @@
 //		Highly concurrent job factory;
 //		Uses bulk memory allocation and atomic primitives to
 //		create and recycle jobs with minimal sychronization;
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CJobFactory_H
 #define GPOPT_CJobFactory_H

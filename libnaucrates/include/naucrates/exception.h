@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Definition of DXL-specific exception types
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef DXL_exception_H
 #define DXL_exception_H

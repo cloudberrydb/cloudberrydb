@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Class for representing the list of hash conditions in DXL Hash join nodes.
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPDXL_CDXLScalarHashCondList_H

@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Specification of non-singleton distribution
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "naucrates/traceflags/traceflags.h"

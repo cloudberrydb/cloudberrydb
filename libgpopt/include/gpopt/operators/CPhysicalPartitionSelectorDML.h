@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Physical partition selector operator used for DML on partitioned tables
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CPhysicalPartitionSelectorDML_H
 #define GPOPT_CPhysicalPartitionSelectorDML_H

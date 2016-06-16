@@ -8,13 +8,6 @@
 //	@doc:
 //		Implementation of DXL logical Join operator
 //		
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "naucrates/dxl/operators/CDXLLogicalJoin.h"

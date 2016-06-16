@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Logical split operator used for DML updates
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CLogicalSplit_H
 #define GPOPT_CLogicalSplit_H

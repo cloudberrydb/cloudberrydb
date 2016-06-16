@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of GPDB generic datum
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

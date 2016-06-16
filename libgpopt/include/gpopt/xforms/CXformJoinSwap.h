@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Join swap transformation
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CXformJoinSwap_H
 #define GPOPT_CXformJoinSwap_H

@@ -7,12 +7,6 @@
 //
 //	@doc:
 //		Implementation of derived properties context
-//
-//	@owner:
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

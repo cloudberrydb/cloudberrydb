@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Split a global limit into pair of local and global limit
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CXformSplitLimit_H
 #define GPOPT_CXformSplitLimit_H

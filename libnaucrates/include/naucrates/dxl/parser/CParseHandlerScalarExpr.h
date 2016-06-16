@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		SAX parse handler class for parsing top level scalar expressions.
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPDXL_CParseHandlerScalarExpr_H

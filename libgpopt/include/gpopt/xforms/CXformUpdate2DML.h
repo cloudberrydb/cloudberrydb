@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Transform Logical Update to Logical DML
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CXformUpdate2DML_H
 #define GPOPT_CXformUpdate2DML_H

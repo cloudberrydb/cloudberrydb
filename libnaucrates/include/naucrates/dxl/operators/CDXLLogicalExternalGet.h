@@ -8,13 +8,6 @@
 //	@doc:
 //		Class for representing DXL logical external get operator, for reading
 //		from external tables
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPDXL_CDXLLogicalExternalGet_H

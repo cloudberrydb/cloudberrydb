@@ -8,13 +8,6 @@
 //	@doc:
 //		Implementation of the class for representing GPDB-specific triggers
 //		in the MD cache
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 

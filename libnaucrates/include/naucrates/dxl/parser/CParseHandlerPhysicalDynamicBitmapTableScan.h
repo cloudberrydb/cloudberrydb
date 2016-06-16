@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		SAX parse handler class for parsing dynamic bitmap table scan operator nodes
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPDXL_CParseHandlerPhysicalDynamicBitmapTableScan_H

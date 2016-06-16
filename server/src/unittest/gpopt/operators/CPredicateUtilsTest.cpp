@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Test for predicate utilities
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #include "gpopt/base/CColRefSetIter.h"
 #include "gpopt/base/CUtils.h"

@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Optimizer I/O utility functions
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CIOUtils_H
 #define GPOPT_CIOUtils_H

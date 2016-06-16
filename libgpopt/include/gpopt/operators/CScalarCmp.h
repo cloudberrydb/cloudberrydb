@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Base class for all ScalarCmp operators
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CScalarCmp_H
 #define GPOPT_CScalarCmp_H

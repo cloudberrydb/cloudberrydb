@@ -8,13 +8,6 @@
 //	@doc:
 //		Class for representing DXL logical limit operators
 //		
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPDXL_CDXLLogicalLimit_H
 #define GPDXL_CDXLLogicalLimit_H

@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Logical Left Semi Apply operator used in IN/ANY subqueries
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CLogicalLeftSemiApplyIn_H
 #define GPOPT_CLogicalLeftSemiApplyIn_H

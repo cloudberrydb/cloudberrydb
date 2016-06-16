@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Left outer hash join operator
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CPhysicalLeftOuterHashJoin_H
 #define GPOPT_CPhysicalLeftOuterHashJoin_H

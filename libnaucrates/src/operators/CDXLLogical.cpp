@@ -8,13 +8,6 @@
 //	@doc:
 //		Implementation of DXL logical operators
 //		
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #include "naucrates/dxl/operators/CDXLLogical.h"
 #include "naucrates/dxl/operators/CDXLNode.h"

@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Test for expression preprocessing
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #define ALLOW_strstr
 

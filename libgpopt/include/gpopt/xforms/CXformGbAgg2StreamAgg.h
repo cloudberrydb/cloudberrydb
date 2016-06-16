@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Transform GbAgg to StreamAgg
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CXformGbAgg2StreamAgg_H
 #define GPOPT_CXformGbAgg2StreamAgg_H

@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Swap two cascaded anti semi-joins
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CXformAntiSemiJoinAntiSemiJoinSwap_H
 #define GPOPT_CXformAntiSemiJoinAntiSemiJoinSwap_H

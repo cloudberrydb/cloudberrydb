@@ -8,13 +8,6 @@
 //	@doc:
 //		Implementation of the helper methods for parse handler
 //		
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "naucrates/dxl/parser/CParseHandlerUtils.h"

@@ -7,12 +7,6 @@
 //
 //	@doc:
 //		Implementation of enforced property
-//
-//	@owner:
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

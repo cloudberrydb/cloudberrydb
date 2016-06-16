@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of the class for representing MD cache CTAS relations
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "naucrates/md/CMDRelationCtasGPDB.h"

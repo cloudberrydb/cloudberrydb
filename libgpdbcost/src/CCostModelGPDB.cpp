@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of GPDB cost model
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpopt/base/COrderSpec.h"

@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Interface for the parameters of the underlying cost model
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 

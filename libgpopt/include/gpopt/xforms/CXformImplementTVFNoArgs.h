@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implement logical TVF with a physical TVF with no arguments
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CXformImplementTVFNoArgs_H
 #define GPOPT_CXformImplementTVFNoArgs_H

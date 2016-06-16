@@ -7,13 +7,6 @@
 //
 //      @doc:
 //              Upper bound on the number of distinct values for a given set of columns
-//
-//      @owner:
-//              
-//
-//      @test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPNAUCRATES_CUpperBoundNDVs_H

@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		SAX parse handler class for parsing the window frame in a window key
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPDXL_CParseHandlerWindowFrame_H

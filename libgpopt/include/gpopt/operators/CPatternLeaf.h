@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Pattern that matches a single leaf
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CPatternLeaf_H
 #define GPOPT_CPatternLeaf_H

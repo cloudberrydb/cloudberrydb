@@ -8,13 +8,6 @@
 //	@doc:
 //		Transform left semi correlated apply to physical left semi
 //		correlated join
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CXformImplementLeftSemiCorrelatedApply_H
 #define GPOPT_CXformImplementLeftSemiCorrelatedApply_H

@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Optimize group job
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CJobGroupOptimization_H
 #define GPOPT_CJobGroupOptimization_H

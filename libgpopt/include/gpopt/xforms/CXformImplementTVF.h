@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implement logical TVF with a physical TVF
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CXformImplementTVF_H
 #define GPOPT_CXformImplementTVF_H

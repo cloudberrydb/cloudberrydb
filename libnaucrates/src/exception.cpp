@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Initialization of DXL-specific exception messages
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/error/CMessage.h"

@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		SAX parse handler class for parsing xform nodes.
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPDXL_CParseHandlerXform_H

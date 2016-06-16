@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of base scan operator
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of optimization engine
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #include "gpos/base.h"
 #include "gpos/common/CAutoTimer.h"

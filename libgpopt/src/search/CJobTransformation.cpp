@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of group expression transformation job
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpopt/engine/CEngine.h"

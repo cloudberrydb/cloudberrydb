@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of DXL physical window operators
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "naucrates/dxl/CDXLUtils.h"

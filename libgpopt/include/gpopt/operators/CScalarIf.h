@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Scalar if operator
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CScalarIf_H
 #define GPOPT_CScalarIf_H

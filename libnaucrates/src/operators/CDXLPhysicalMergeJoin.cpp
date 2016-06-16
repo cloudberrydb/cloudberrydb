@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of DXL physical merge join operator
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 

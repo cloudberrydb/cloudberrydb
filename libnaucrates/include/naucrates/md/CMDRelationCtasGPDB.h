@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Class representing MD CTAS relations
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPMD_CMDRelationCTASGPDB_H

@@ -8,13 +8,6 @@
 //	@doc:
 //		Normalization of expression trees;
 //		this currently includes predicates push down
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CNormalizer_H
 #define GPOPT_CNormalizer_H

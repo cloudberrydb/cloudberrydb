@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Template implementation of transformer
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CXformImplementCorrelatedApply_INL
 #define GPOPT_CXformImplementCorrelatedApply_INL

@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of DXL physical partition selector
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "naucrates/dxl/operators/CDXLPhysicalPartitionSelector.h"

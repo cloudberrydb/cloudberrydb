@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Derived partition information at the logical level
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CPartInfo_H
 #define GPOPT_CPartInfo_H

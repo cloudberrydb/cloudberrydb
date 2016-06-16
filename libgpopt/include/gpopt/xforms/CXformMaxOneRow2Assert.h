@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Transform MaxOneRow into LogicalAssert
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CXformMaxOneRow2Assert_H
 #define GPOPT_CXformMaxOneRow2Assert_H

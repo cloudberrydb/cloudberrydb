@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		SAX parse handler class for parsing scalar part default
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPDXL_CParseHandlerScalarScalarPartDefault_H

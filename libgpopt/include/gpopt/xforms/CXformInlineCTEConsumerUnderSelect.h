@@ -9,13 +9,6 @@
 //		Transform logical Select on top of a CTE consumer to a select on top of
 //		a copy of the expression under its corresponding producer then attempt
 //		push the selection down
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CXformInlineCTEConsumerUnderSelect_H
 #define GPOPT_CXformInlineCTEConsumerUnderSelect_H

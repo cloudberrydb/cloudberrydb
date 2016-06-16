@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Decorrelation processor
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CDecorrelator_H
 #define GPOPT_CDecorrelator_H

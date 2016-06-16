@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Physical Gather motion operator
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CPhysicalMotionGather_H
 #define GPOPT_CPhysicalMotionGather_H

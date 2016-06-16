@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		SAX parse handler class for parsing routed motion operator nodes.
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPDXL_CParseHandlerRoutedMotion_H

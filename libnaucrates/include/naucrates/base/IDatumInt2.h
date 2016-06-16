@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Base abstract class for int2 representation
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPNAUCRATES_IDatumInt2_H
 #define GPNAUCRATES_IDatumInt2_H

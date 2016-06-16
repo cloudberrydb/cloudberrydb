@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		SAX parse handler class for parsing dynamic table scan operator nodes
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPDXL_CParseHandlerDynamicTableScan_H

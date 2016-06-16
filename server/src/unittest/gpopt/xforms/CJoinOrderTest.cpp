@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Test for join ordering
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #include "gpos/io/COstreamString.h"
 #include "gpos/test/CUnittest.h"

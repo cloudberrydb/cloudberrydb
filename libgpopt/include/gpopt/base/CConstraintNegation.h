@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Representation of a negation constraint
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CConstraintNegation_H
 #define GPOPT_CConstraintNegation_H

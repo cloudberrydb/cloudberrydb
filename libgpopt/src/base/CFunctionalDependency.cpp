@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of functional dependency
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

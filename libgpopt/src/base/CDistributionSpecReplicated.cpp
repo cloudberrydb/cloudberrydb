@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Specification of replicated distribution
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "naucrates/traceflags/traceflags.h"

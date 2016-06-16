@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of mdids for scalar comparisons functions
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "naucrates/md/CMDIdScCmp.h"

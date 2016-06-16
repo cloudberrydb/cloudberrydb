@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Transform Logical into Physical Limit
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CXformImplementLimit_H
 #define GPOPT_CXformImplementLimit_H

@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		SAX parse handler class for parsing base relation column stats objects
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPDXL_CParseHandlerColStats_H

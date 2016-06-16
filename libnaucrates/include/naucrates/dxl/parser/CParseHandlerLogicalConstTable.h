@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		SAX parse handler class for parsing logical const tables.
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPDXL_CParseHandlerLogicalConstTable_H

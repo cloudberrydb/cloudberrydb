@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of subqueries computing scalar values
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/string/CWStringDynamic.h"

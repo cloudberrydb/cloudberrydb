@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		SAX parse handler class for parsing scalar part bound openness
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPDXL_CParseHandlerScalarScalarPartBoundOpen_H

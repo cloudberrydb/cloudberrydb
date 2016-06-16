@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Class for representing DXL window frame
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPDXL_CDXLWindowFrame_H

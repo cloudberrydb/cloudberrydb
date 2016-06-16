@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Simplify Project with subquery
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CXformSimplifyProjectWithSubquery_H
 #define GPOPT_CXformSimplifyProjectWithSubquery_H

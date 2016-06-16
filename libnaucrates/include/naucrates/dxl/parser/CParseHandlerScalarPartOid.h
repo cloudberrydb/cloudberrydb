@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		SAX parse handler class for parsing scalar part oid
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPDXL_CParseHandlerScalarScalarPartOid_H

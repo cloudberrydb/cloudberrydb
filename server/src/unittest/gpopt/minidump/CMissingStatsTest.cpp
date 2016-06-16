@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Test for optimizing queries with aggregates
-//
-//	@owner:
-//
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "unittest/gpopt/minidump/CMissingStatsTest.h"

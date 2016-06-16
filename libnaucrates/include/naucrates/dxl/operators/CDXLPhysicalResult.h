@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Class for representing DXL physical result operators.
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPDXL_CDXLPhysicalResult_H

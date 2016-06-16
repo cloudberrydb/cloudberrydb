@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Physical DML operator
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOS_CPhysicalDML_H
 #define GPOS_CPhysicalDML_H

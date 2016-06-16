@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Test for optimizing queries on partitioned tables
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of derived partition information at the logical level
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

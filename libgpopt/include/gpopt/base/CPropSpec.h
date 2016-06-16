@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Abstraction for specification of properties;
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CPropSpec_H
 #define GPOPT_CPropSpec_H

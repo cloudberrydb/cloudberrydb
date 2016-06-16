@@ -8,13 +8,6 @@
 //	@doc:
 //
 //		Class for representing a DXL case test
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPDXL_CDXLScalarCaseTest_H

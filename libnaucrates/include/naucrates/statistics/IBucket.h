@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Simple bucket interface
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPNAUCRATES_IBucket_H

@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Conjunctive filter on statistics
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPNAUCRATES_CStatsPredConj_H
 #define GPNAUCRATES_CStatsPredConj_H

@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Test for max card functionality
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOS_CMaxCardTest_H
 #define GPOS_CMaxCardTest_H

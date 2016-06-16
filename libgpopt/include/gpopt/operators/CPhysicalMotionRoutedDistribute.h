@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Physical routed distribute motion operator
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CPhysicalMotionRoutedDistribute_H
 #define GPOPT_CPhysicalMotionRoutedDistribute_H

@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of DXL scalar operators
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #include "naucrates/dxl/operators/CDXLScalar.h"
 

@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Base class for representing DXL motion operators.
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 

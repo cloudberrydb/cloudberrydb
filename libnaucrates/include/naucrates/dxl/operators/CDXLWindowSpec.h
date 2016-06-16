@@ -8,13 +8,6 @@
 //	@doc:
 //		Class for representing DXL window specification in the DXL
 //		representation of the logical query tree
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPDXL_CDXLWindowSpec_H

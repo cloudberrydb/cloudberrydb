@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Test for jobs created during optimization
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_COptimizationJobsTest_H
 #define GPOPT_COptimizationJobsTest_H

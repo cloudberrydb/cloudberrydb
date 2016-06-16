@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Spool operator
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CPhysicalSpool_H
 #define GPOPT_CPhysicalSpool_H

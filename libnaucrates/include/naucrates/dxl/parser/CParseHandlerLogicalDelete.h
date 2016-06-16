@@ -8,13 +8,6 @@
 //	@doc:
 //		Parse handler for parsing a logical delete operator
 //
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPDXL_CParseHandlerLogicalDelete_H
 #define GPDXL_CParseHandlerLogicalDelete_H

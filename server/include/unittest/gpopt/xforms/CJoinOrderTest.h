@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Tests for join ordering
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CJoinOrderTest_H
 #define GPOPT_CJoinOrderTest_H

@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Class for representing DXL BooleanTest
-//		
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPDXL_CDXLScalarBooleanTest_H

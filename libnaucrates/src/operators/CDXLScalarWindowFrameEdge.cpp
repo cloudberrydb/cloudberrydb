@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of DXL scalar window frame edge
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "naucrates/dxl/operators/CDXLScalarWindowFrameEdge.h"

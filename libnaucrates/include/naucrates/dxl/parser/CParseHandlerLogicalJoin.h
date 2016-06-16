@@ -8,13 +8,6 @@
 //	@doc:
 //		Parse handler for parsing a logical join operator
 //		
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPDXL_CParseHandlerLogicalJoin_H
 #define GPDXL_CParseHandlerLogicalJoin_H

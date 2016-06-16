@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Base class for all physical operators
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CPhysical_H
 #define GPOPT_CPhysical_H

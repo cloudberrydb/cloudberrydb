@@ -10,13 +10,6 @@
 //		In the common use case the actual strings are constants and a chain
 //		of prefixes is built up on the stack;
 //		Not ref-counted nor does it own any of the data it points to.
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOS_CPrintPrefix_H
 #define GPOS_CPrintPrefix_H

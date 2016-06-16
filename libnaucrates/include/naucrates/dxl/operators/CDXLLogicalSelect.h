@@ -8,13 +8,6 @@
 //	@doc:
 //		Class for representing DXL logical select operators
 //		
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPDXL_CDXLLogicalSelect_H
 #define GPDXL_CDXLLogicalSelect_H

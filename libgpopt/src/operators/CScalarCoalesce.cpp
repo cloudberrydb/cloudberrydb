@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of scalar coalesce operator
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

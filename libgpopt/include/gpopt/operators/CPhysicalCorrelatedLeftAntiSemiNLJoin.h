@@ -8,13 +8,6 @@
 //	@doc:
 //		Physical Left Anti Semi NLJ operator capturing correlated execution
 //		of NOT EXISTS subqueries
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CPhysicalCorrelatedLeftAntiSemiNLJoin_H
 #define GPOPT_CPhysicalCorrelatedLeftAntiSemiNLJoin_H

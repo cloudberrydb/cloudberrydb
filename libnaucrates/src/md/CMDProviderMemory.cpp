@@ -8,13 +8,6 @@
 //	@doc:
 //		Implementation of a memory-based metadata provider, which loads all
 //		objects in memory and provides a function for looking them up by id.
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/io/COstreamString.h"

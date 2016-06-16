@@ -8,13 +8,6 @@
 //	@doc:
 //		Abstraction of metadata for tables; represents metadata as stored
 //		in the catalog -- not as used in queries, e.g. no aliasing etc.
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CTableDescriptor_H
 #define GPOPT_CTableDescriptor_H

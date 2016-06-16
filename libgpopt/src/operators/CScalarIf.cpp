@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of scalar if operator
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

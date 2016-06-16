@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Test for CNF conversion
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #include "gpos/io/COstreamString.h"
 #include "gpos/string/CWStringDynamic.h"

@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of scalar SwitchCase operator
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

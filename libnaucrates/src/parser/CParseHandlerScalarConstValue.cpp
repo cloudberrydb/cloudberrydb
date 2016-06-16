@@ -8,13 +8,6 @@
 //	@doc:
 //		
 //		Implementation of the SAX parse handler class for parsing scalar ConstVal.
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "naucrates/dxl/parser/CParseHandlerScalarConstValue.h"

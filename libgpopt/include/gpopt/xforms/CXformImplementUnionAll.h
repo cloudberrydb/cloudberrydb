@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Transform Logical into Physical Union All
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CXformImplementUnionAll_H
 #define GPOPT_CXformImplementUnionAll_H

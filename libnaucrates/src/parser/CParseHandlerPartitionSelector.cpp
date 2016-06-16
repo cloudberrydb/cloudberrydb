@@ -9,13 +9,6 @@
 //
 //		Implementation of the SAX parse handler class for parsing partition
 //		selectors
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "naucrates/dxl/parser/CParseHandlerFactory.h"

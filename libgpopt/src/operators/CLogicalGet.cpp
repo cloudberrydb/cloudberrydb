@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of basic table access
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

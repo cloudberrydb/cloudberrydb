@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Class for representing DXL Scalar SubPlan operator
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPDXL_CDXLScalarSubPlan_H

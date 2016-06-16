@@ -8,13 +8,6 @@
 //	@doc:
 //		Implementation of the SAX parse handler class parsing the list of
 //		output column references in a DXL query.
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "naucrates/dxl/parser/CParseHandlerQueryOutput.h"

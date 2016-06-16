@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of index description
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

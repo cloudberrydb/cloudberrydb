@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Tests for CColRefSetIter
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOS_CColRefSetIterTest_H
 #define GPOS_CColRefSetIterTest_H

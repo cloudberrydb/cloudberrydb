@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Utility functions for extracting statistics predicates
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CStatsPredUtils_H
 #define GPOPT_CStatsPredUtils_H

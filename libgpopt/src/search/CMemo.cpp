@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of Memo structure
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

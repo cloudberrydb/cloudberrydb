@@ -8,13 +8,6 @@
 //	@doc:
 //		State machine to execute actions and maintain state of
 //		optimization jobs;
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CJobStateMachine_H
 #define GPOPT_CJobStateMachine_H

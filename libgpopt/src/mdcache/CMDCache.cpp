@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		 Function implementation of CMDCache
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/task/CAutoTraceFlag.h"

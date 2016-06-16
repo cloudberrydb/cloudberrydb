@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Test for plan enumeration and sampling
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CEnumeratorTest_H
 #define GPOPT_CEnumeratorTest_H

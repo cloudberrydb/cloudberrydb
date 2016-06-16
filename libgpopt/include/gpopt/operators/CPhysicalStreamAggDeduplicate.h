@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Sort-based stream Aggregate operator for deduplicating join outputs
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOS_CPhysicalStreamAggDeduplicate_H
 #define GPOS_CPhysicalStreamAggDeduplicate_H

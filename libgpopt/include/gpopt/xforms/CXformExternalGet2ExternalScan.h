@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Transform ExternalGet to ExternalScan
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CXformExternalGet2ExternalScan_H
 #define GPOPT_CXformExternalGet2ExternalScan_H

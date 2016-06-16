@@ -10,13 +10,6 @@
 //		a variant of inner apply that captures the need to implement a
 //		correlated-execution strategy on the physical side, where the inner
 //		side is an index scan with parameters from outer side
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CLogicalInnerIndexApply_H
 #define GPOPT_CLogicalInnerIndexApply_H

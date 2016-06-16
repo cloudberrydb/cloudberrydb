@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of a communicator-based metadata provider
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/io/COstreamString.h"

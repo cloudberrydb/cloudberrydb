@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Base class for all pattern operators
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CPattern_H
 #define GPOPT_CPattern_H

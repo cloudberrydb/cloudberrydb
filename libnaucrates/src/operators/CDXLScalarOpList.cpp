@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of DXL list of scalar expressions
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "naucrates/dxl/operators/CDXLScalarOpList.h"

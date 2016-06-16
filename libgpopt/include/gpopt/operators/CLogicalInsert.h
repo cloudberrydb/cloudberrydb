@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Logical Insert operator
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CLogicalInsert_H
 #define GPOPT_CLogicalInsert_H

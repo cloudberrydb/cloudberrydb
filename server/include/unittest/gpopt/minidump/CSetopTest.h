@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Test for optimizing queries with set operators
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CSetopTest_H
 #define GPOPT_CSetopTest_H

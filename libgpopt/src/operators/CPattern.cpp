@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of base class of pattern operators
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

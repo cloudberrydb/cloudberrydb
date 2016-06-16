@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		SAX parse handler class for parsing physical operators.
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPDXL_CParseHandlerPhysicalOp_H

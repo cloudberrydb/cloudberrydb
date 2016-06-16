@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Class for scalar subquery ALL operators
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CScalarSubqueryAll_H
 #define GPOPT_CScalarSubqueryAll_H

@@ -8,13 +8,6 @@
 //	@doc:
 //		Transform left anti semi correlated apply (for NOT EXISTS subqueries)
 //		to physical left anti semi correlated join
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CXformImplementLeftAntiSemiCorrelatedApply_H
 #define GPOPT_CXformImplementLeftAntiSemiCorrelatedApply_H

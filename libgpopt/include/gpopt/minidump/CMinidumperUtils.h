@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Minidump utility functions
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CMiniDumperUtils_H
 #define GPOPT_CMiniDumperUtils_H

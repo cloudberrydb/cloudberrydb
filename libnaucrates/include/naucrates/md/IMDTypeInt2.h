@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Interface for INT2 types in the metadata cache
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPMD_IMDTypeInt2_H

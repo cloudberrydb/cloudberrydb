@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Logical Apply operator
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CLogicalApply_H
 #define GPOPT_CLogicalApply_H

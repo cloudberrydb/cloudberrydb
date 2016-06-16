@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		SAX parse handler class for CTAS relation metadata
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPDXL_CParseHandlerMDRelationCTAS_H

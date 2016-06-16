@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Filter on statistics
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPNAUCRATES_CStatsPred_H
 #define GPNAUCRATES_CStatsPred_H

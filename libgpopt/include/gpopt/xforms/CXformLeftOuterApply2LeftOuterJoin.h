@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Turn left outer apply into left outer join
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CXformLeftOuterApply2LeftOuterJoin_H
 #define GPOPT_CXformLeftOuterApply2LeftOuterJoin_H

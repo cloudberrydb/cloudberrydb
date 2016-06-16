@@ -9,13 +9,6 @@
 //		Representation of an interval constraint. An interval contains a number
 //		of ranges + "is null" and "is not null" flags. The interval can be interpreted
 //		as the ORing of the ranges and the flags that are set
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CConstraintInterval_H
 #define GPOPT_CConstraintInterval_H

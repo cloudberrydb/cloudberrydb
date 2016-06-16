@@ -8,13 +8,6 @@
 //	@doc:
 //		Class for representing DXL logical Join operators
 //		
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPDXL_CDXLLogicalJoin_H
 #define GPDXL_CDXLLogicalJoin_H

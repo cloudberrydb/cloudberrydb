@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Interface for CTAS relation entries in the metadata cache
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPMD_IMDRelationCTAS_H

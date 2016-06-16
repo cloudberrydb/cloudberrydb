@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Class to transform of CLogicalIntersectAll into a left semi join
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CXformIntersectAll2LeftSemiJoin_H
 #define GPOPT_CXformIntersectAll2LeftSemiJoin_H

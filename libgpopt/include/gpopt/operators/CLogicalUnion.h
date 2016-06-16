@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Logical Union operator
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CLogicalUnion_H
 #define GPOPT_CLogicalUnion_H

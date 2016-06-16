@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Required relational properties;
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

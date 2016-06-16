@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Turn LAS apply into LAS join (NotIn semantics)
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CXformLeftAntiSemiApplyNotIn2LeftAntiSemiJoinNotIn_H
 #define GPOPT_CXformLeftAntiSemiApplyNotIn2LeftAntiSemiJoinNotIn_H

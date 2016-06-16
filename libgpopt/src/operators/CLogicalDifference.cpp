@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of Difference operator
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

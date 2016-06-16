@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Dynamic index get operator for partitioned tables
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CLogicalDynamicIndexGet_H
 #define GPOPT_CLogicalDynamicIndexGet_H

@@ -8,13 +8,6 @@
 //	@doc:
 //		Implementation of the class for representing metadata about relation's
 //		columns
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 

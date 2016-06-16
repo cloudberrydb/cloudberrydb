@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of DXL physical index scan operators
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "naucrates/dxl/operators/CDXLPhysicalIndexScan.h"

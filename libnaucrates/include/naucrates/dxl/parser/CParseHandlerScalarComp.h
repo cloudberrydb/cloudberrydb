@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		SAX parse handler class for parsing scalar comparison nodes.
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPDXL_CParseHandlerScalarComp_H

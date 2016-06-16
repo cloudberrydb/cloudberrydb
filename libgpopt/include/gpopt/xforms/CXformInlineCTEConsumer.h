@@ -8,13 +8,6 @@
 //	@doc:
 //		Transform logical CTE consumer to a copy of the expression under its
 //		corresponding producer
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CXformInlineCTEConsumer_H
 #define GPOPT_CXformInlineCTEConsumer_H

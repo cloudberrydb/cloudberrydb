@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Class for representing the system id of a metadata provider
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 

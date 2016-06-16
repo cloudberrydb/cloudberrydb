@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		SAX parse handler class for parsing sub plan test expression
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPDXL_CParseHandlerScalarSubPlanTestExpr_H

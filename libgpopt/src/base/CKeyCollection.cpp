@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of key collections
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

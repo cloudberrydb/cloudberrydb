@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		 Unnest TVF with subquery arguments
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CXformUnnestTVF_H
 #define GPOPT_CXformUnnestTVF_H

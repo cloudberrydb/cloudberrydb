@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of DXL physical Split operator
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "naucrates/dxl/operators/CDXLPhysicalSplit.h"

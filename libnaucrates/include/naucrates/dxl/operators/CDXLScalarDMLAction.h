@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Class for representing DXL DML action expressions
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPDXL_CDXLScalarDMLAction_H

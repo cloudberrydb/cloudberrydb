@@ -8,13 +8,6 @@
 //	@doc:
 //		Implementation of the class for representing the GPDB bool types in the
 //		MD cache
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/string/CWStringDynamic.h"

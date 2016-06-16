@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of logical split operator
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

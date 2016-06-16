@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Test for CXForm
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CXformTest_H
 #define GPOPT_CXformTest_H

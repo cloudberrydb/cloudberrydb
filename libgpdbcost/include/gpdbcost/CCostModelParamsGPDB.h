@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Parameters in GPDB cost model
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPDBCOST_CCostModelParamsGPDB_H
 #define GPDBCOST_CCostModelParamsGPDB_H

@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of commutativity transform
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

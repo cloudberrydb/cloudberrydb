@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of DXL scalar array comparison
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "naucrates/dxl/operators/CDXLScalarArrayComp.h"

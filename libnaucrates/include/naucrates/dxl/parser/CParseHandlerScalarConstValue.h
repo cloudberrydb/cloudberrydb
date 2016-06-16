@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		SAX parse handler class for parsing scalar ConstVal node.
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPDXL_CParseHandlerScalarConst_H

@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Logical sequence operator
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CLogicalSequence_H
 #define GPOPT_CLogicalSequence_H

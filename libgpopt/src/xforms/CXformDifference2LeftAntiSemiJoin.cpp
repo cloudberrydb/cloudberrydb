@@ -8,13 +8,6 @@
 //	@doc:
 //		Implementation of the transformation that takes a logical difference and
 //		converts it into an aggregate over a left anti-semi join
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

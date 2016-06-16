@@ -8,13 +8,6 @@
 //	@doc:
 //		Test for translating DXL->Log-CExpression-> Phy-CExpression-> DXL
 //		 for TPCH queries
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CTpchTest_H
 #define GPOPT_CTpchTest_H

@@ -8,13 +8,6 @@
 //	@doc:
 //		Implementation of the SAX parse handler class for ANY and ALL subquery 
 //		operators.
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "naucrates/dxl/parser/CParseHandlerScalarSubqueryQuantified.h"

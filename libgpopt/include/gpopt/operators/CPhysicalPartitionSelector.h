@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Physical partition selector operator used for property enforcement
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CPhysicalPartitionSelector_H
 #define GPOPT_CPhysicalPartitionSelector_H

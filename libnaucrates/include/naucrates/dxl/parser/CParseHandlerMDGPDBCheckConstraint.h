@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		SAX parse handler class for parsing an MD check constraint
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPDXL_CParseHandlerMDGPDBCheckConstraint_H

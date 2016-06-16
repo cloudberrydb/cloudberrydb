@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Representation of properties of a DXL operator node such as stats
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPDXL_CDXLProperties_H
 #define GPDXL_CDXLProperties_H

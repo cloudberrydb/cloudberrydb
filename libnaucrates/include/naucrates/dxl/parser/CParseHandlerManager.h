@@ -9,13 +9,6 @@
 //		Class for managing the creation and installation of parse handlers.
 //		The class serves as a factory for creating parse handler objects, and
 //		for switching between parse handlers during parsing.
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPDXL_CParseHandlerManager_H

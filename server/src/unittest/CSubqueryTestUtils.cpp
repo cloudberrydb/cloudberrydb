@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of test utility functions
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpopt/base/CUtils.h"

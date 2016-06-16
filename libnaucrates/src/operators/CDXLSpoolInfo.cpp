@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of DXL sorting columns for sort and motion operator nodes
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "naucrates/dxl/operators/CDXLSpoolInfo.h"

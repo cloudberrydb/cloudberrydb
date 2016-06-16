@@ -8,13 +8,6 @@
 //	@doc:
 //		Representation of a disjunction constraint. A disjunction is a number
 //		of ORed constraints
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CConstraintDisjunction_H
 #define GPOPT_CConstraintDisjunction_H

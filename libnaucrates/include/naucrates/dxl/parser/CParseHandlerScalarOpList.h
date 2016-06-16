@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		SAX parse handler class for parsing a list of scalar operators
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPDXL_CParseHandlerScalarScalarOpList_H

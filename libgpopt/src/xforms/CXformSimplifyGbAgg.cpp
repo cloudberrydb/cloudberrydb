@@ -8,13 +8,6 @@
 //	@doc:
 //		Implementation of simplifying an aggregate expression by finding
 //		the minimal grouping columns based on functional dependencies
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

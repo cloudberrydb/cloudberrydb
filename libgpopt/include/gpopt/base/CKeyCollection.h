@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Encodes key sets for a relation
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CKeyCollection_H
 #define GPOPT_CKeyCollection_H

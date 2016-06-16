@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Split an aggregate into a three level aggregation
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CXformSplitDQA_H
 #define GPOPT_CXformSplitDQA_H

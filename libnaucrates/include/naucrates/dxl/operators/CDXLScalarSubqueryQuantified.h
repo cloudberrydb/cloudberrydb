@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Base class for ANY/ALL subqueries
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPDXL_CDXLScalarSubqueryQuantified_H

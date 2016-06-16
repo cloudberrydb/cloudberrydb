@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Class for representing physical row trigger operator
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPDXL_CDXLPhysicalRowTrigger_H

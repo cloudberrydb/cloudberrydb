@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Equivalent of CExpression inside Memo structure
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CGroupExpression_H
 #define GPOPT_CGroupExpression_H

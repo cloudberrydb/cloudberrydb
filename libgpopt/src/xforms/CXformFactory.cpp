@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Management of the global xform set
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

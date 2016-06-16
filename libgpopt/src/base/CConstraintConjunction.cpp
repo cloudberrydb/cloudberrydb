@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of conjunction constraints
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

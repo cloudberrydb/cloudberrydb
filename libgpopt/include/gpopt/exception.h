@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Definition of GPOPT-specific exception types
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_exception_H
 #define GPOPT_exception_H

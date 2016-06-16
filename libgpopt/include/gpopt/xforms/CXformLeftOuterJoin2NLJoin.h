@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Transform left outer join to left outer NLJ
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CXformLeftOuterJoin2NLJoin_H
 #define GPOPT_CXformLeftOuterJoin2NLJoin_H

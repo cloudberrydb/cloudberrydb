@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Communication handler for message exchange between OPT and QD
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CCommunicator_H
 #define GPOPT_CCommunicator_H

@@ -8,13 +8,6 @@
 //      @doc:
 //              Implementation of upper bound on the number of distinct values for a
 //              given set of columns
-//
-//      @owner:
-//              
-//
-//      @test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "naucrates/statistics/CUpperBoundNDVs.h"

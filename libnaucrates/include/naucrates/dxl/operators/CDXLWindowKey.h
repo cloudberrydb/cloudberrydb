@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Class for representing DXL window key
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPDXL_CDXLWindowKey_H

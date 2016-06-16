@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Transform left anti semi join to cross product
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CXformLeftAntiSemiJoin2CrossProduct_H
 #define GPOPT_CXformLeftAntiSemiJoin2CrossProduct_H

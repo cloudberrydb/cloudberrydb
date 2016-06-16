@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Transform select over partitioned table into a dynamic index get
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOPT_CXformSelect2DynamicIndexGet_H
 #define GPOPT_CXformSelect2DynamicIndexGet_H

@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of GPDB-specific functions in the metadata cache
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 

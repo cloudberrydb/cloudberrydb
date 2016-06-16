@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of GPDB-specific scalar comparison operators in the MD cache
-//
-//	@owner: 
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 

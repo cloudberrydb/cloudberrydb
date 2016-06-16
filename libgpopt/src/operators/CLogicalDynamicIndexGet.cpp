@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of index access for partitioned tables
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

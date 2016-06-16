@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		Implementation of DXL physical one-time filter operator
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 

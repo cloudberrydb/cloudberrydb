@@ -7,13 +7,6 @@
 //
 //	@doc:
 //		GPDB-specific int2 representation
-//
-//	@owner:
-//		
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPNAUCRATES_CDatumInt2GPDB_H
 #define GPNAUCRATES_CDatumInt2GPDB_H
