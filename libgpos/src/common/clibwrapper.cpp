@@ -8,12 +8,6 @@
 //	@doc:
 //		Wrapper for functions in C library
 //
-//
-//	@owner:
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #define ALLOW_log2

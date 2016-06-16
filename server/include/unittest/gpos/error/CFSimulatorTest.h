@@ -7,12 +7,6 @@
 //
 //	@doc:
 //      Unit tests for CFSimulator
-//
-//	@owner:
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOS_CFSimulatorTest_H
 #define GPOS_CFSimulatorTest_H

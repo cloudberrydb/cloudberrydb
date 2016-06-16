@@ -7,12 +7,6 @@
 //
 //	@doc:
 //		A timer which records wall-time between construction and destruction;
-//
-//	@owner:
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOS_CAutoTimer_H
 #define GPOS_CAutoTimer_H

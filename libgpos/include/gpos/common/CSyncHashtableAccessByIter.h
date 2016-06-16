@@ -8,12 +8,6 @@
 //	@doc:
 //		Iterator's accessor provides protected access to hashtable elements
 //		during iteration.
-//
-//	@owner:
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOS_CSyncHashtableAccessByIter_H
 #define GPOS_CSyncHashtableAccessByIter_H

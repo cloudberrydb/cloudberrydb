@@ -7,12 +7,6 @@
 //
 //	@doc:
 //		Test for CWorkerPoolManager
-//
-//	@owner:
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOS_CWorkerPoolManagerTest_H
 #define GPOS_CWorkerPoolManagerTest_H

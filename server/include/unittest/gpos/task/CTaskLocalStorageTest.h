@@ -7,12 +7,6 @@
 //
 //	@doc:
 //		Task-local storage facility; implements TLS to store an instance
-//
-//	@owner:
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOS_CTaskLocalStorageTest_H
 #define GPOS_CTaskLocalStorageTest_H

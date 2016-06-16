@@ -7,12 +7,6 @@
 //
 //	@doc:
 //		Unit test for CBitVector
-//
-//	@owner:
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOS_CBitVectorTest_H
 #define GPOS_CBitVectorTest_H

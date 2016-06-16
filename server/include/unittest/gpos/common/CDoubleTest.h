@@ -7,12 +7,6 @@
 //
 //	@doc:
 //		Tests for the floating-point wrapper class.
-//
-//	@owner:
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOS_CDoubleTest_H
 #define GPOS_CDoubleTest_H

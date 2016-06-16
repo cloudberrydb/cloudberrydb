@@ -7,12 +7,6 @@
 //
 //	@doc:
 //		Implementation of bitset iterator
-//
-//	@owner: 
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

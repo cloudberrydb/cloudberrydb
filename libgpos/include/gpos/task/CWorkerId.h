@@ -7,12 +7,6 @@
 //
 //	@doc:
 //		Abstraction of worker identification
-//
-//	@owner: 
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOS_CWorkerId_H
 #define GPOS_CWorkerId_H

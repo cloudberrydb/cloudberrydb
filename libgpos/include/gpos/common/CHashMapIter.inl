@@ -7,12 +7,6 @@
 //
 //	@doc:
 //		Inline implementation of hash map iterator template
-//
-//	@owner: 
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOS_CHashMapIter_INL
 #define GPOS_CHashMapIter_INL

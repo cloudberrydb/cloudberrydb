@@ -7,12 +7,6 @@
 //
 //	@doc:
 //		Unittest driver
-//
-//	@owner: 
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOS_CUnittest_H
 #define GPOS_CUnittest_H

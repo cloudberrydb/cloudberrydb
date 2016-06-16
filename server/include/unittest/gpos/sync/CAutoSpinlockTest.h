@@ -7,12 +7,6 @@
 //
 //	@doc:
 //		Test for CAutoSpinlock
-//
-//	@owner:
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOS_CAutoSpinlockTest_H
 #define GPOS_CAutoSpinlockTest_H

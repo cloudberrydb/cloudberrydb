@@ -7,12 +7,6 @@
 //
 //	@doc:
 //		Interface class for task management and execution.
-//
-//	@owner:
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPOS_CAutoTaskProxy_H

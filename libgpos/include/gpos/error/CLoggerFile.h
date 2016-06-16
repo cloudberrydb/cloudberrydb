@@ -7,12 +7,6 @@
 //
 //	@doc:
 //		Implementation of logging interface over file
-//
-//	@owner:
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOS_CLoggerFile_H
 #define GPOS_CLoggerFile_H

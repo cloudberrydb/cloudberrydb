@@ -7,12 +7,6 @@
 //
 //	@doc:
 //		Implementation of stream logging
-//
-//	@owner:
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/error/CLoggerStream.h"

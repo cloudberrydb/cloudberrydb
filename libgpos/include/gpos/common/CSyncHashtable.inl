@@ -7,12 +7,6 @@
 //
 //	@doc:
 //		Inlined function implementation of hashtable
-//
-//	@owner: 
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOS_CSyncHashtable_INL
 #define GPOS_CSyncHashtable_INL

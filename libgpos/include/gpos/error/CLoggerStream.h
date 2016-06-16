@@ -7,12 +7,6 @@
 //
 //	@doc:
 //		Implementation of logging interface over stream
-//
-//	@owner:
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOS_CLoggerStream_H
 #define GPOS_CLoggerStream_H

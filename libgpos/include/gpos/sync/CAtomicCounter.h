@@ -7,12 +7,6 @@
 //
 //	@doc:
 //		Implements an atomic ULONG counter
-//
-//	@owner: 
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOS_CAtomicCounter_H
 #define GPOS_CAtomicCounter_H

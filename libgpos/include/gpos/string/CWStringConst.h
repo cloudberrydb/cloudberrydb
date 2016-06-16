@@ -7,12 +7,6 @@
 //
 //	@doc:
 //		Constant string class
-//
-//	@owner:
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOS_CWStringConst_H
 #define GPOS_CWStringConst_H

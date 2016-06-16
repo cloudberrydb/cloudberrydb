@@ -7,12 +7,6 @@
 //
 //	@doc:
 //		Implementation of I/O utilities
-//
-//	@owner:
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #define ALLOW_stat

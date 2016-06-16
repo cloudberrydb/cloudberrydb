@@ -7,12 +7,6 @@
 //
 //	@doc:
 //		Implementation of output file stream class;
-//
-//	@owner: 
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

@@ -7,12 +7,6 @@
 //
 //	@doc:
 //		Auto wrapper to set/reset a traceflag for a scope
-//
-//	@owner: 
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOS_CAutoTraceFlag_H
 #define GPOS_CAutoTraceFlag_H

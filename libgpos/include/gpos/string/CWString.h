@@ -7,12 +7,6 @@
 //
 //	@doc:
 //		Wide character string interface.
-//
-//	@owner:
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOS_CWString_H
 #define GPOS_CWString_H

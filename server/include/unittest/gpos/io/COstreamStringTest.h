@@ -7,12 +7,6 @@
 //
 //	@doc:
 //		Test for COstreamString
-//
-//	@owner:
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOS_COstreamStringTest_H
 #define GPOS_COstreamStringTest_H

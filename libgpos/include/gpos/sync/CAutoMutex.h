@@ -8,12 +8,6 @@
 //	@doc:
 //		Auto wrapper around base mutex class; destructor unlocks mutex
 //		if it acquired the lock previously;
-//
-//	@owner: 
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOS_CAutoMutex_H
 #define GPOS_CAutoMutex_H

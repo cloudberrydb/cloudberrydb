@@ -9,12 +9,6 @@
 //		Error message container; each instance corresponds to a message as
 //		loaded from an external configuration file;
 //		Both warnings and errors;
-//
-//	@owner: 
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOS_CMessage_H
 #define GPOS_CMessage_H

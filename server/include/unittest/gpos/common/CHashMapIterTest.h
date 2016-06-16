@@ -7,12 +7,6 @@
 //
 //	@doc:
 //		Test for CHashMapIter
-//
-//	@owner:
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOS_CHashMapIterTest_H
 #define GPOS_CHashMapIterTest_H

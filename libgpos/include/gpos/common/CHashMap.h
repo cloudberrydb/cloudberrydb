@@ -11,12 +11,6 @@
 //		* equality == on key uses template function argument
 //		* does not allow insertion of duplicates (no equality on value class req'd)
 //		* destroys objects based on client-side provided destroy functions
-//
-//	@owner: 
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOS_CHashMap_H
 #define GPOS_CHashMap_H

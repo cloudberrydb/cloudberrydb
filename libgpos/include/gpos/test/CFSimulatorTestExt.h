@@ -7,12 +7,6 @@
 //
 //	@doc:
 //      Extended FS tests
-//
-//	@owner:
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOS_CFSimulatorTestExt_H
 #define GPOS_CFSimulatorTestExt_H

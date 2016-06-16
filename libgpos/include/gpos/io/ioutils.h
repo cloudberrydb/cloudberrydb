@@ -8,12 +8,6 @@
 //	@doc:
 //		I/O utilities;
 //		generic I/O functions that are not associated with file descriptors
-//
-//	@owner:
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPOS_ioutils_H

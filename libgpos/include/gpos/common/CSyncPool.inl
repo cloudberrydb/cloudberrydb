@@ -7,12 +7,6 @@
 //
 //	@doc:
 //		Implementation of synchronized object pool class
-//
-//	@owner:
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/sync/atomic.h"

@@ -10,12 +10,6 @@
 //		In order to be useful for system programming the class must be 
 //		allocation-less, i.e. manage elements without additional allocation,
 //		to work in exceptions or OOM situations
-//
-//	@owner: 
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/task/ITask.h"

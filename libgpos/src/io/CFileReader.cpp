@@ -7,12 +7,6 @@
 //
 //	@doc:
 //		Implementation of file handler for raw input
-//
-//	@owner:
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include <fcntl.h>

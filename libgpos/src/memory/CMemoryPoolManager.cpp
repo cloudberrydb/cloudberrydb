@@ -9,12 +9,6 @@
 //		Central scheduler; 
 //		* maintains global worker-local-storage
 //		* keeps track of all worker pools
-//
-//	@owner: 
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

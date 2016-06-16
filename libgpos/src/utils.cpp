@@ -7,12 +7,6 @@
 //
 //	@doc:
 //		Various utilities which are not necessarily gpos specific
-//
-//	@owner: 
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #include "gpos/types.h"
 #include "gpos/utils.h"

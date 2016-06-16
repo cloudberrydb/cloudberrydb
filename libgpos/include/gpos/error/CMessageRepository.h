@@ -7,12 +7,6 @@
 //
 //	@doc:
 //		Error message repository; 
-//
-//	@owner: 
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOS_CMessageRepository_H
 #define GPOS_CMessageRepository_H

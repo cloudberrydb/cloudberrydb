@@ -17,12 +17,6 @@
 //		In order to be useful for system programming the class must be
 //		allocation-less, i.e. manage elements without additional allocation,
 //		to work in exception or OOM situations;
-//
-//	@owner:
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOS_CSyncList_H
 #define GPOS_CSyncList_H

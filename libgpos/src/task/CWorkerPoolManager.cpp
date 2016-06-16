@@ -10,12 +10,6 @@
 //		* maintains worker local storage
 //		* hosts task scheduler
 //		* assigns tasks to workers
-//
-//	@owner: 
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 

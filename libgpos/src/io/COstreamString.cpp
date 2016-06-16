@@ -7,12 +7,6 @@
 //
 //	@doc:
 //		Implementation of basic wide character output stream
-//
-//	@owner: 
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

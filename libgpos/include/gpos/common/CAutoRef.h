@@ -7,12 +7,6 @@
 //
 //	@doc:
 //		Basic auto pointer for ref-counted objects
-//
-//	@owner: 
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOS_CAutoRef_H
 #define GPOS_CAutoRef_H

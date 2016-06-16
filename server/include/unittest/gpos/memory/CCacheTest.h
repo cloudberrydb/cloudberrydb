@@ -7,12 +7,6 @@
 //
 //	@doc:
 //		Test for CCache
-//
-//	@owner:
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOS_CCACHETEST_H_
 #define GPOS_CCACHETEST_H_

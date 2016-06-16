@@ -7,12 +7,6 @@
 //
 //	@doc:
 //		Partial implementation of interface class for logging
-//
-//	@owner:
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/common/syslibwrapper.h"

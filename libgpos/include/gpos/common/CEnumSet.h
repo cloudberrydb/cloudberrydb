@@ -7,12 +7,6 @@
 //
 //	@doc:
 //		Implementation of set of enums as bitset
-//
-//	@owner: 
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOS_CEnumSet_H
 #define GPOS_CEnumSet_H

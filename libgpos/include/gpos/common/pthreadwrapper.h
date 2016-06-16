@@ -8,12 +8,6 @@
 //	@doc:
 //		Wrapper for functions in pthread library
 //
-//
-//	@owner:
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifndef GPOS_pthreadwrapper_H

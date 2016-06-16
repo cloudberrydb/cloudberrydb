@@ -7,12 +7,6 @@
 //
 //	@doc:
 //		Implementation of inlined stack functions;
-//
-//	@owner: 
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOS_CStack_INL
 #define GPOS_CStack_INL

@@ -8,12 +8,6 @@
 //	@doc:
 //		Abstraction of mutex primitives; maps error values from mutex operations
 //		onto GPOS's exception framework
-//
-//	@owner: 
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOS_CMutex_H
 #define GPOS_CMutex_H

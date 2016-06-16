@@ -7,12 +7,6 @@
 //
 //	@doc:
 //		Hash map iterator
-//
-//	@owner: 
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOS_CHashMapIter_H
 #define GPOS_CHashMapIter_H

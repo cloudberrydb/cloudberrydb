@@ -7,12 +7,6 @@
 //
 //	@doc:
 //		Test for CHashMap
-//
-//	@owner:
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOS_CHashMapTest_H
 #define GPOS_CHashMapTest_H

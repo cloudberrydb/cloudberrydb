@@ -7,12 +7,6 @@
 //
 //	@doc:
 //		Implementation of networking utilities
-//
-//	@owner:
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #define ALLOW_accept

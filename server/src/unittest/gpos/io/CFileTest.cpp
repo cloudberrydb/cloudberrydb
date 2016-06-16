@@ -7,12 +7,6 @@
 //
 //	@doc:
 //		Tests for CFileWriter and CFileReader
-//
-//	@owner:
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/assert.h"

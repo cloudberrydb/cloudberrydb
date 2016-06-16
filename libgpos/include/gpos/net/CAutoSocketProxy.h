@@ -7,12 +7,6 @@
 //
 //	@doc:
 //		Socket proxy; ensures proper release of socket
-//
-//	@owner:
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOS_CAutoSocketProxy_H
 #define GPOS_CAutoSocketProxy_H

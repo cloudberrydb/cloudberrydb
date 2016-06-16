@@ -7,12 +7,6 @@
 //
 //	@doc:
 //		Implementation of the base abstract wide character string class
-//
-//	@owner: 
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

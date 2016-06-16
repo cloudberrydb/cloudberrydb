@@ -7,12 +7,6 @@
 //
 //	@doc:
 //		Implementation of bitset as linked list of bitvectors
-//
-//	@owner: 
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOS_CBitSet_H
 #define GPOS_CBitSet_H

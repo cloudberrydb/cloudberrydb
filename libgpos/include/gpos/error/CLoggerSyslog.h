@@ -7,12 +7,6 @@
 //
 //	@doc:
 //		Implementation of logging interface over syslog
-//
-//	@owner:
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOS_CLoggerSyslog_H
 #define GPOS_CLoggerSyslog_H

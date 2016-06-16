@@ -7,12 +7,6 @@
 //
 //	@doc:
 //		Socket abstraction
-//
-//	@owner:
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOS_CSocket_H
 #define GPOS_CSocket_H

@@ -8,12 +8,6 @@
 //
 //	@doc:
 //		Implements functions that are used by the operators "new" and "delete"
-//
-//	@owner: 
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/error/CAutoTrace.h"

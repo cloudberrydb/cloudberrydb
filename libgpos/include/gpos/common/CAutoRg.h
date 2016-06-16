@@ -9,12 +9,6 @@
 //		Basic auto range implementation; do not anticipate ownership based
 //		on assignment to other auto ranges etc. Require explicit return/assignment
 //		to re-init the object;
-//
-//	@owner:
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOS_CAutoRg_H
 #define GPOS_CAutoRg_H

@@ -7,12 +7,6 @@
 //
 //	@doc:
 //		File descriptor abstraction
-//
-//	@owner:
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOS_CFileDescriptor_H
 #define GPOS_CFileDescriptor_H

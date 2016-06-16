@@ -7,12 +7,6 @@
 //
 //	@doc:
 //		Implementation of interface class for thread management.
-//
-//	@owner:
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/task/CThreadManager.h"

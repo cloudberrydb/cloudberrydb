@@ -7,12 +7,6 @@
 //
 //	@doc:
 //		Task context implementation
-//
-//	@owner: 
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/common/CAutoRef.h"

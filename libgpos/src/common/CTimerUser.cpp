@@ -7,12 +7,6 @@
 //
 //	@doc:
 //		Implementation of wall clock timer
-//
-//	@owner: 
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

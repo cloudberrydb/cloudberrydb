@@ -7,12 +7,6 @@
 //
 //	@doc:
 //		Tests for the CWStringBase, CWStringConst, CWString classes
-//
-//	@owner:
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOS_CWStringTest_H
 #define GPOS_CWStringTest_H

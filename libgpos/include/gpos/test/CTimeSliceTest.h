@@ -7,12 +7,6 @@
 //
 //	@doc:
 //      Extended test for time slice enforcement.
-//
-//	@owner:
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOS_CTimeSliceTest_H
 #define GPOS_CTimeSliceTest_H

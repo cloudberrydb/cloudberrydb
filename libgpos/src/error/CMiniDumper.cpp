@@ -7,12 +7,6 @@
 //
 //	@doc:
 //		Partial implementation of interface for minidump handler
-//
-//	@owner:
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

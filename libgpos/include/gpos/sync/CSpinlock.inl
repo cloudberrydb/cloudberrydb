@@ -7,12 +7,6 @@
 //
 //	@doc:
 //		Implementation of inlined functions;
-//
-//	@owner: 
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOS_CSpinlock_INL
 #define GPOS_CSpinlock_INL

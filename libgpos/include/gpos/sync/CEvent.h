@@ -8,12 +8,6 @@
 //	@doc:
 //		Abstraction of event primitives; maps error values from event operations
 //		onto GPOS's exception framework
-//
-//	@owner: 
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOS_CEvent_H
 #define GPOS_CEvent_H

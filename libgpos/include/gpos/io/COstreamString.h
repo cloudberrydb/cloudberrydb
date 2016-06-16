@@ -7,12 +7,6 @@
 //
 //	@doc:
 //		Output string stream class;
-//
-//	@owner: 
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOS_COstreamString_H
 #define GPOS_COstreamString_H

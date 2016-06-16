@@ -7,12 +7,6 @@
 //
 //	@doc:
 //		Implementation of auto object for creating trace messages
-//
-//	@owner:
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/error/CAutoTrace.h"

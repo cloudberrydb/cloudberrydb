@@ -7,12 +7,6 @@
 //
 //	@doc:
 //		Implementation of file logging
-//
-//	@owner:
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/io/ioutils.h"

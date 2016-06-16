@@ -7,12 +7,6 @@
 //
 //	@doc:
 //		Unit test for logger classes.
-//
-//	@owner:
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/error/ILogger.h"

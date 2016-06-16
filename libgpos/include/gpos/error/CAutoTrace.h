@@ -7,12 +7,6 @@
 //
 //	@doc:
 //		Auto object for creating trace messages
-//
-//	@owner:
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOS_CAutoTrace_H
 #define GPOS_CAutoTrace_H

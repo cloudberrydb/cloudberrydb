@@ -7,12 +7,6 @@
 //
 //	@doc:
 //		Test for CBitSetIter
-//
-//	@owner:
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOS_CBitSetIterTest_H
 #define GPOS_CBitSetIterTest_H

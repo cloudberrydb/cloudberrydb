@@ -10,12 +10,6 @@
 //		Implementation of abstract interface; 
 //		implements helper functions for extraction of allocation
 //		header from memory block;
-//
-//	@owner: 
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #ifdef GPOS_DEBUG

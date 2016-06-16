@@ -7,12 +7,6 @@
 //
 //	@doc:
 //		Implements simplified exception handling.
-//
-//	@owner: 
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/common/clibwrapper.h"

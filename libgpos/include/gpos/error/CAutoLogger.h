@@ -7,12 +7,6 @@
 //
 //	@doc:
 //		Auto object for replacing the logger for output/error.
-//
-//	@owner:
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOS_CAutoLogger_H
 #define GPOS_CAutoLogger_H

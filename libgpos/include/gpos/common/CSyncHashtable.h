@@ -16,12 +16,6 @@
 //			members with appopriate accessors;
 //		3)	clients must provide their own hash function;
 //		4)	hashtable synchronizes through spinlocks on each bucket;
-//
-//	@owner: 
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOS_CSyncHashtable_H
 #define GPOS_CSyncHashtable_H

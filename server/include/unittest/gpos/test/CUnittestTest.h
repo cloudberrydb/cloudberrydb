@@ -7,12 +7,6 @@
 //
 //	@doc:
 //		Test for CUnittest with subtests
-//
-//	@owner:
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOS_CUnittestTest_H
 #define GPOS_CUnittestTest_H

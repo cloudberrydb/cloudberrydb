@@ -8,12 +8,6 @@
 //
 //	@doc:
 //		Error context to record error message, stack, etc.
-//
-//	@owner: 
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOS_CErrorContext_H
 #define GPOS_CErrorContext_H

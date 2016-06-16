@@ -7,12 +7,6 @@
 //
 //	@doc:
 //		Error message table; 
-//
-//	@owner: 
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOS_CMessageTable_H
 #define GPOS_CMessageTable_H

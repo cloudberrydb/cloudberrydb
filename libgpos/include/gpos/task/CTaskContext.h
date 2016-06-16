@@ -9,12 +9,6 @@
 //		Context object for task; holds configurable state of worker, e.g.
 //		GUCs, trace options, output streams etc.; by default inherited from 
 //		parent task
-//
-//	@owner: 
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOS_CTaskContext_H
 #define GPOS_CTaskContext_H

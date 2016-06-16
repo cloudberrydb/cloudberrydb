@@ -7,12 +7,6 @@
 //
 //	@doc:
 //		IO type definitions for GPOS;
-//
-//	@owner: 
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOS_iotypes_H
 #define GPOS_iotypes_H

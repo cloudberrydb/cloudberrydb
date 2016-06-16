@@ -7,12 +7,6 @@
 //
 //	@doc:
 //		Base class for objects stored in TLS
-//
-//	@owner: 
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOS_CTaskLocalStorageObject_H
 #define GPOS_CTaskLocalStorageObject_H

@@ -7,12 +7,6 @@
 //
 //	@doc:
 //		ASCII-character String class with buffer
-//
-//	@owner:
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOS_CStringStatic_H
 #define GPOS_CStringStatic_H

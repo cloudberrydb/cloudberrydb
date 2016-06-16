@@ -7,12 +7,6 @@
 //
 //	@doc:
 //		Implementation of iterator for bitset
-//
-//	@owner: 
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOS_CBitSetIter_H
 #define GPOS_CBitSetIter_H

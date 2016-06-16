@@ -8,12 +8,6 @@
 //	@doc:
 //		Wrapper for functions in system library
 //
-//
-//	@owner:
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #define ALLOW_closelog

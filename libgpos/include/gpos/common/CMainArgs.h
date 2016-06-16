@@ -7,12 +7,6 @@
 //
 //	@doc:
 //		simple wrapper to pass standard args from main to other routines
-//
-//	@owner: 
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOS_CMainArgs_H
 #define GPOS_CMainArgs_H

@@ -7,12 +7,6 @@
 //
 //	@doc:
 //		Test for CAutoTaskProxy
-//
-//	@owner:
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/memory/CAutoMemoryPool.h"

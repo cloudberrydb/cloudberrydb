@@ -7,12 +7,6 @@
 //
 //	@doc:
 //		Implementation of Syslog logging
-//
-//	@owner:
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include <syslog.h>

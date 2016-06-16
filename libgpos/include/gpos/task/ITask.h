@@ -7,12 +7,6 @@
 //
 //	@doc:
 //		Interface class for task abstraction
-//
-//	@owner:
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOS_ITask_H
 #define GPOS_ITask_H

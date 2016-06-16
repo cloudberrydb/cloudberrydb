@@ -10,12 +10,6 @@
 //
 //		Underlying assumption: a set contains only a few links of bitvectors
 //		hence, keeping them in a linked list is efficient;
-//
-//	@owner: 
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"

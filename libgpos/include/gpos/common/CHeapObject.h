@@ -7,12 +7,6 @@
 //
 //	@doc:
 //		Class of all objects that must reside on the heap;
-//
-//	@owner: 
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOS_CHeapObject_H
 #define GPOS_CHeapObject_H

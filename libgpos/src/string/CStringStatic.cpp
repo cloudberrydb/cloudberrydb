@@ -8,12 +8,6 @@
 //	@doc:
 //		Implementation of the ASCII-character String class
 //		with static buffer allocation
-//
-//	@owner:
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 
 #include "gpos/common/clibwrapper.h"

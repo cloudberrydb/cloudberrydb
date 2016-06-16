@@ -7,12 +7,6 @@
 //
 //	@doc:
 //		Interface for error context to record error message, stack, etc.
-//
-//	@owner: 
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOS_IErrorContext_H
 #define GPOS_IErrorContext_H

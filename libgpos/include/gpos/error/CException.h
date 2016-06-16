@@ -9,12 +9,6 @@
 //		Implements basic exception handling. All excpetion handling related
 //		functionality is wrapped in macros to facilitate easy modifications
 //		at a later point in time.
-//
-//	@owner: 
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOS_CException_H
 #define GPOS_CException_H

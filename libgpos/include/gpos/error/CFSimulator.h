@@ -10,12 +10,6 @@
 //		call stack; if stack has not been seen before, stack repository 
 //		returns true which makes the call macro simulate a failure, i.e.
 //		throw an exception.
-//
-//	@owner: 
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOS_CFSimulator_H
 #define GPOS_CFSimulator_H

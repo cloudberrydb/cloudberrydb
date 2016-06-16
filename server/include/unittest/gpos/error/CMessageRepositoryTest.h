@@ -7,12 +7,6 @@
 //
 //	@doc:
 //		Test for CMessageTable
-//
-//	@owner:
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOS_CMessageRepositoryTest_H
 #define GPOS_CMessageRepositoryTest_H

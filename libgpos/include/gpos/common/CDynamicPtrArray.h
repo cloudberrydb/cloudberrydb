@@ -7,12 +7,6 @@
 //
 //	@doc:
 //		Dynamic array of pointers frequently used in optimizer data structures
-//
-//	@owner: 
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOS_CDynamicPtrArray_H
 #define GPOS_CDynamicPtrArray_H

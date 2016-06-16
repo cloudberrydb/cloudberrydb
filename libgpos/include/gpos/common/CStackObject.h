@@ -8,12 +8,6 @@
 //	@doc:
 //		Class of all objects that must reside on the stack;
 //		e.g., auto objects;
-//
-//	@owner: 
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOS_CStackObject_H
 #define GPOS_CStackObject_H

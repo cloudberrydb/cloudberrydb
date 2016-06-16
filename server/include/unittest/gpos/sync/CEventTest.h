@@ -7,12 +7,6 @@
 //
 //	@doc:
 //      Unit test for CEvent
-//
-//	@owner:
-//
-//	@test:
-//
-//
 //---------------------------------------------------------------------------
 #ifndef GPOS_CEventTest_H
 #define GPOS_CEventTest_H
