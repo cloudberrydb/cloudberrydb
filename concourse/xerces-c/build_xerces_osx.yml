@@ -1,0 +1,10 @@
+platform: darwin
+inputs:
+  - name: xerces_patch
+outputs:
+  - name: build_osx
+run:
+  path: /usr/bin/python
+  args:
+    - xerces_patch/concourse/xerces-c/build_xerces.py
+    - --output_dir=build_osx/install

@@ -1,0 +1,14 @@
+platform: darwin
+inputs:
+  - name: bin_gpos_osx_debug
+  - name: bin_xerces_osx
+  - name: orca_src
+outputs:
+  - name: build_and_test_osx_debug
+run:
+  path: orca_src/concourse/build_and_test.py
+  args:
+    - --build_type=DEBUG
+    - --output_dir=build_and_test_osx_debug/install
+    - bin_gpos_osx_debug
+    - bin_xerces_osx
