@@ -89,7 +89,8 @@ UserPtrSize_GetVmemPtrSize(size_t payload_size)
 }
 
 /* Gets the end address of a Vmem pointer */
-static void* VmemPtr_GetEndAddress(VmemHeader *ptr)
+static inline void*
+VmemPtr_GetEndAddress(VmemHeader *ptr)
 {
 	return (((char *)ptr) + UserPtrSize_GetVmemPtrSize(VmemPtr_GetUserPtrSize(ptr)));
 }
@@ -117,14 +118,14 @@ VmemPtr_GetPointerToFooterChecksum(VmemHeader *ptr)
 }
 
 /* Stores a checksum in the footer for debugging purpose */
-static void
+static inline void
 VmemPtr_SetFooterChecksum(VmemHeader *ptr)
 {
 	*VmemPtr_GetPointerToFooterChecksum(ptr) = VMEM_FOOTER_CHECKSUM;
 }
 
 /* Checks if the footer checksum of a Vmem pointer matches */
-static void
+static inline void
 VmemPtr_VerifyFooterChecksum(VmemHeader *ptr)
 {
 	Assert(*VmemPtr_GetPointerToFooterChecksum(ptr) == VMEM_FOOTER_CHECKSUM);
@@ -139,21 +140,21 @@ VmemPtr_VerifyFooterChecksum(VmemHeader *ptr)
 #endif
 
 /* Extracts the size from an user pointer */
-static size_t
+static inline size_t
 UserPtr_GetUserPtrSize(void *ptr)
 {
 	return VmemPtr_GetUserPtrSize(UserPtr_GetVmemPtr(ptr));
 }
 
 /* Extracts the Vmem size from an user pointer */
-static size_t
+static inline size_t
 UserPtr_GetVmemPtrSize(void *ptr)
 {
 	return UserPtrSize_GetVmemPtrSize(VmemPtr_GetUserPtrSize(UserPtr_GetVmemPtr(ptr)));
 }
 
 /* The end address of a user pointer */
-static void*
+static inline void*
 UserPtr_GetEndPtr(void *ptr)
 {
 	return (((char *)ptr) + UserPtr_GetUserPtrSize(ptr));
