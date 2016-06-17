@@ -45,16 +45,16 @@ void OpExprTreeGenerator::InitializeSupportedFunction() {
       int32_t, int32_t>(1088, "date_le", &IRBuilder<>::CreateICmpSLE));
 
   supported_function_[177] = std::unique_ptr<PGFuncGeneratorInterface>(
-          new PGGenericFuncGenerator<int32_t, int32_t>(
-              141, "int4pl", &PGArithFuncGenerator<int32_t, int32_t, int32_t>::AddWithOverflow));
+      new PGGenericFuncGenerator<int32_t, int32_t>(
+          177, "int4pl", &PGArithFuncGenerator<int32_t, int32_t, int32_t>::AddWithOverflow));
 
   supported_function_[181] = std::unique_ptr<PGFuncGeneratorInterface>(
-          new PGGenericFuncGenerator<int32_t, int32_t>(
-              141, "int4mi", &PGArithFuncGenerator<int32_t, int32_t, int32_t>::SubWithOverflow));
+      new PGGenericFuncGenerator<int32_t, int32_t>(
+          181, "int4mi", &PGArithFuncGenerator<int32_t, int32_t, int32_t>::SubWithOverflow));
 
   supported_function_[141] = std::unique_ptr<PGFuncGeneratorInterface>(
-        new PGGenericFuncGenerator<int32_t, int32_t>(
-            141, "int4mul", &PGArithFuncGenerator<int32_t, int32_t, int32_t>::MulWithOverflow));
+      new PGGenericFuncGenerator<int32_t, int32_t>(
+          141, "int4mul", &PGArithFuncGenerator<int32_t, int32_t, int32_t>::MulWithOverflow));
 }
 
 OpExprTreeGenerator::OpExprTreeGenerator(
