@@ -635,8 +635,9 @@ print_rmgr_heap2(XLogRecPtr cur, XLogRecord *record, uint8 info)
 			int total_off;
 			int nunused = 0;
 
-#if PG_VERSION_NUM >= 90000
 			memcpy(&xlrec, XLogRecGetData(record), sizeof(xlrec));
+
+#if PG_VERSION_NUM >= 90000
 			getSpaceName(xlrec.node.spcNode, spaceName, sizeof(spaceName));
 			getDbName(xlrec.node.dbNode, dbName, sizeof(dbName));
 			getRelName(xlrec.node.relNode, relName, sizeof(relName));
