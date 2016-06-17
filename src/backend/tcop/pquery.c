@@ -424,20 +424,6 @@ ProcessQuery(Portal portal,
 				ExecuteTruncate(truncStmt);
 			}
 		}
-
-		/* MPP-4407. Logging number of tuples modified. */
-		if (relationOid != InvalidOid)
-		{
-			if (cmdType < AUTOSTATS_CMDTYPE_SENTINEL &&			
-				GetPlannedStmtLogLevel(stmt) <= log_statement)
-			{
-				elog(DEBUG1, "type_of_statement = %s dboid = %d tableoid = %d num_tuples_modified = %u", 
-					 autostats_cmdtype_to_string(cmdType), 
-					 MyDatabaseId, 
-					 relationOid, 
-					 (unsigned int) queryDesc->es_processed);
-			}
-		}
 		
 		/* MPP-4082. Issue automatic ANALYZE if conditions are satisfied. */
 		bool inFunction = false;

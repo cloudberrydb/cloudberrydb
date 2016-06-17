@@ -29,9 +29,6 @@ extern const char *CreateCommandTag(Node *parsetree);
 
 extern LogStmtLevel GetCommandLogLevel(Node *parsetree);
 
-/* GPDB_83MERGE_FIXME Function is deprecated upstream but used in MPP code, replace */
-extern LogStmtLevel GetPlannedStmtLogLevel(PlannedStmt * stmt);
-
 extern bool CommandIsReadOnly(Node *parsetree);
 
 extern void CheckRelationOwnership(RangeVar *rel, bool noCatalogs);
