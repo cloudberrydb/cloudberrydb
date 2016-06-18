@@ -17,6 +17,7 @@
 #include "utils/builtins.h"
 #include "gpopt/utils/nodeutils.h"
 #include "rewrite/rewriteHandler.h"
+#include "tcop/tcopprot.h"
 #include "c.h"
 
 extern
@@ -145,8 +146,8 @@ gp_dump_query_oids(PG_FUNCTION_ARGS)
 		Query *query = (Query *) lfirst(plc);
 		if (CMD_UTILITY == query->commandType && T_ExplainStmt == query->utilityStmt->type)
 		{
-			Query *queryExplain = ((ExplainStmt *)query->utilityStmt)->query;
-			List *queryTree = QueryRewrite(queryExplain);
+			Node *queryExplain = ((ExplainStmt *)query->utilityStmt)->query;
+			List *queryTree = pg_analyze_and_rewrite(queryExplain, sqlText, NULL, 0);
 			Assert(1 == list_length(queryTree));
 			query = (Query *) lfirst(list_head(queryTree));
 		}
