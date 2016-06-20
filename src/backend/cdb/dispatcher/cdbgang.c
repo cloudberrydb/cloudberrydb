@@ -336,7 +336,7 @@ createGang(GangType type, int gang_id, int size, int content)
 	Assert(CurrentMemoryContext == GangContext);
 	if (type == GANGTYPE_PRIMARY_WRITER)
 		Assert(gang_id == PRIMARY_WRITER_GANG_ID);
-	Assert(gp_connections_per_thread >= 0);
+	Assert(gp_connections_per_thread > 0);
 
 create_gang_retry:
 	/* If we're in a retry, we may need to reset our initial state, a bit */
@@ -366,10 +366,7 @@ create_gang_retry:
 	 * We allocate enough memory for this many DoConnectParms structures,
 	 * even though we may not use them all.
 	 */
-	if (gp_connections_per_thread == 0)
-		threadCount = 1;
-	else
-		threadCount = 1 + (size - 1) / gp_connections_per_thread;
+	threadCount = 1 + (size - 1) / gp_connections_per_thread;
 	Assert(threadCount > 0);
 
 	/* initialize connect parameters */
@@ -993,7 +990,7 @@ static DoConnectParms* makeConnectParms(int parmsCount, GangType type, int gangI
 			parmsCount * sizeof(DoConnectParms));
 	DoConnectParms* pParms = NULL;
 	StringInfo pOptions = makeStringInfo();
-	int segdbPerThread = gp_connections_per_thread == 0 ? getgpsegmentCount() : gp_connections_per_thread;
+	int segdbPerThread = gp_connections_per_thread;
 	int i = 0;
 
 	addOptions(pOptions, type == GANGTYPE_PRIMARY_WRITER);

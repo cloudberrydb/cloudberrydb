@@ -649,7 +649,7 @@ assign_gp_connections_per_thread(int newval, bool doit, GucSource source __attri
 
 	if (doit)
 	{
-		if (newval < 0)
+		if (newval <= 0)
 			return false;
 
 		gp_connections_per_thread = newval;

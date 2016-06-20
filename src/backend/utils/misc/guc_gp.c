@@ -4020,7 +4020,7 @@ struct config_int ConfigureNamesInt_gp[] =
 			GUC_NOT_IN_SAMPLE | GUC_GPDB_ADDOPT
 		},
 		&gp_connections_per_thread,
-		512, 0, INT_MAX, assign_gp_connections_per_thread, show_gp_connections_per_thread
+		512, 1, INT_MAX, assign_gp_connections_per_thread, show_gp_connections_per_thread
 	},
 
 	{

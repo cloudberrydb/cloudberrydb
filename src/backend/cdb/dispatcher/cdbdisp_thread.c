@@ -103,7 +103,7 @@ cdbdisp_dispatchToGang_internal(struct CdbDispatcherState *ds,
 	Assert(gangSize <= largestGangsize());
 	db_descriptors = gp->db_descriptors;
 
-	Assert(gp_connections_per_thread >= 0);
+	Assert(gp_connections_per_thread > 0);
 	Assert(ds->dispatchThreads != NULL);
 	/*
 	 * If we attempt to reallocate, there is a race here: we
@@ -166,7 +166,7 @@ cdbdisp_dispatchToGang_internal(struct CdbDispatcherState *ds,
 		if (segdbDesc->errcode || segdbDesc->error_message.len)
 			cdbdisp_mergeConnectionErrors(qeResult, segdbDesc);
 
-		parmsIndex = gp_connections_per_thread == 0 ? 0 : segdbs_in_thread_pool / gp_connections_per_thread;
+		parmsIndex = segdbs_in_thread_pool / gp_connections_per_thread;
 		pParms = ds->dispatchThreads->dispatchCommandParmsAr + ds->dispatchThreads->threadCount + parmsIndex;
 		pParms->dispatchResultPtrArray[pParms->db_count++] = qeResult;
 
@@ -187,66 +187,50 @@ cdbdisp_dispatchToGang_internal(struct CdbDispatcherState *ds,
 	 * thread pool, knowing that each thread handles gp_connections_per_thread
 	 * segdbs.
 	 */
-	if (segdbs_in_thread_pool == 0)
-		newThreads = 0;
-	else if (gp_connections_per_thread == 0)
-		newThreads = 1;
-	else
-		newThreads = 1 + (segdbs_in_thread_pool - 1) / gp_connections_per_thread;
+	Assert(segdbs_in_thread_pool != 0);
+	newThreads = 1 + (segdbs_in_thread_pool - 1) / gp_connections_per_thread;
 
 	/*
 	 * Create the threads. (which also starts the dispatching).
 	 */
 	for (i = 0; i < newThreads; i++)
 	{
+		int pthread_err = 0;
 		DispatchCommandParms *pParms = &(ds->dispatchThreads->dispatchCommandParmsAr + ds->dispatchThreads->threadCount)[i];
-
 		Assert(pParms != NULL);
 
-		if (gp_connections_per_thread == 0)
-		{
-			Assert(newThreads <= 1);
-			thread_DispatchOut(pParms);
-		}
-		else
-		{
-			int	pthread_err = 0;
+		pParms->thread_valid = true;
 
-			pParms->thread_valid = true;
-			pthread_err = gp_pthread_create(&pParms->thread, thread_DispatchCommand, pParms, "dispatchToGang");
+		pthread_err = gp_pthread_create(&pParms->thread, thread_DispatchCommand, pParms, "dispatchToGang");
+		if (pthread_err != 0)
+		{
+			int j;
 
-			if (pthread_err != 0)
+			pParms->thread_valid = false;
+
+			/*
+			 * Error during thread create (this should be caused by
+			 * resource constraints). If we leave the threads running,
+			 * they'll immediately have some problems -- so we need to
+			 * join them, and *then* we can issue our FATAL error
+			 */
+			pParms->waitMode = DISPATCH_WAIT_CANCEL;
+
+			for (j = 0; j < ds->dispatchThreads->threadCount + (i - 1); j++)
 			{
-				int	j;
+				DispatchCommandParms *pParms;
 
-				pParms->thread_valid = false;
+				pParms = &ds->dispatchThreads->dispatchCommandParmsAr[j];
 
-				/*
-				 * Error during thread create (this should be caused by
-				 * resource constraints). If we leave the threads running,
-				 * they'll immediately have some problems -- so we need to
-				 * join them, and *then* we can issue our FATAL error
-				 */
 				pParms->waitMode = DISPATCH_WAIT_CANCEL;
-
-				for (j = 0; j < ds->dispatchThreads->threadCount + (i - 1); j++)
-				{
-					DispatchCommandParms *pParms;
-
-					pParms = &ds->dispatchThreads->dispatchCommandParmsAr[j];
-
-					pParms->waitMode = DISPATCH_WAIT_CANCEL;
-					pParms->thread_valid = false;
-					pthread_join(pParms->thread, NULL);
-				}
-
-				ereport(FATAL,
-						(errcode(ERRCODE_INTERNAL_ERROR),
-						 errmsg("could not create thread %d of %d", i + 1, newThreads),
-						 errdetail ("pthread_create() failed with err %d", pthread_err)));
+				pParms->thread_valid = false;
+				pthread_join(pParms->thread, NULL);
 			}
-		}
 
+			ereport(FATAL, (errcode(ERRCODE_INTERNAL_ERROR),
+						    errmsg("could not create thread %d of %d", i + 1, newThreads),
+							errdetail ("pthread_create() failed with err %d", pthread_err)));
+		}
 	}
 
 	ds->dispatchThreads->threadCount += newThreads;
@@ -303,33 +287,26 @@ CdbCheckDispatchResult_internal(struct CdbDispatcherState *ds,
 				break;
 		}
 
-		if (gp_connections_per_thread == 0)
-		{
-			thread_DispatchWait(pParms);
-		}
-		else
-		{
-			elog(DEBUG4, "CheckDispatchResult: Joining to thread %d of %d",
-				 i + 1, ds->dispatchThreads->threadCount);
+		elog(DEBUG4, "CheckDispatchResult: Joining to thread %d of %d", i + 1, ds->dispatchThreads->threadCount);
 
-			if (pParms->thread_valid)
-			{
-				int			pthread_err = 0;
+		if (pParms->thread_valid)
+		{
+			int pthread_err = 0;
 
-				pthread_err = pthread_join(pParms->thread, NULL);
-				if (pthread_err != 0)
-					elog(FATAL,
-						 "CheckDispatchResult: pthread_join failed on thread %d (%lu) of %d (returned %d attempting to join to %lu)",
-						 i + 1,
+			pthread_err = pthread_join(pParms->thread, NULL);
+			if (pthread_err != 0)
+				elog(FATAL,
+					"CheckDispatchResult: pthread_join failed on thread %d (%lu) of %d (returned %d attempting to join to %lu)",
+					i + 1,
 #ifndef _WIN32
-						 (unsigned long) pParms->thread,
+					(unsigned long) pParms->thread,
 #else
-						 (unsigned long) pParms->thread.p,
+					(unsigned long) pParms->thread.p,
 #endif
-						 ds->dispatchThreads->threadCount, pthread_err,
-						 (unsigned long) mythread());
-			}
+					ds->dispatchThreads->threadCount, pthread_err,
+					(unsigned long) mythread());
 		}
+
 		HOLD_INTERRUPTS();
 		pParms->thread_valid = false;
 		MemSet(&pParms->thread, 0, sizeof(pParms->thread));
@@ -472,7 +449,7 @@ cdbdisp_makeDispatchThreads(int maxSlices)
 	 */
 	int	maxThreads = maxThreadsPerGang * 4 * Max(maxSlices, 5);
 
-	int	maxConn = gp_connections_per_thread == 0 ? largestGangsize() : gp_connections_per_thread;
+	int	maxConn = gp_connections_per_thread;
 	int	size = 0;
 	int	i = 0;
 	CdbDispatchCmdThreads *dThreads = palloc0(sizeof(*dThreads));
@@ -1399,13 +1376,7 @@ handlePollTimeout(DispatchCommandParms * pParms,
 static int
 getMaxThreadsPerGang(void)
 {
-	int	maxThreads = 0;
-
-	if (gp_connections_per_thread == 0)
-		maxThreads = 1; /* one, not zero, because we need to allocate one param block */
-	else
-		maxThreads = 1 + (largestGangsize() - 1) / gp_connections_per_thread;
-	return maxThreads;
+	return 1 + (largestGangsize() - 1) / gp_connections_per_thread;
 }
 
 /*
