@@ -103,7 +103,7 @@ typedef struct DoConnectParms
 	int gangId;
 
 	/* connect options. GUC etc. */
-	StringInfo connectOptions;
+	char *connectOptions;
 
 	/* The pthread_t thread handle. */
 	pthread_t thread;
@@ -125,7 +125,7 @@ static void disconnectAndDestroyGang(Gang *gp);
 static void disconnectAndDestroyAllReaderGangs(bool destroyAllocated);
 
 static bool isTargetPortal(const char *p1, const char *p2);
-static void addOptions(StringInfo string, bool iswriter);
+static char *makeOptions(bool iswriter);
 static bool cleanupGang(Gang * gp);
 static void resetSessionForPrimaryGangLoss(void);
 static const char* gangTypeToString(GangType);
@@ -549,7 +549,7 @@ thread_DoConnect(void *arg)
 						   pParms->gangId);
 
 		/* check the result in createGang */
-		cdbconn_doConnect(segdbDesc, gpqeid, pParms->connectOptions->data);
+		cdbconn_doConnect(segdbDesc, gpqeid, pParms->connectOptions);
 	}
 
 	return (NULL);
@@ -930,21 +930,25 @@ static void addOneOption(StringInfo string, struct config_generic * guc)
 /*
  * Add GUCs to option string.
  */
-static void addOptions(StringInfo string, bool iswriter)
+static char*
+makeOptions(bool iswriter)
 {
 	struct config_generic **gucs = get_guc_variables();
 	int ngucs = get_num_guc_variables();
 	CdbComponentDatabaseInfo *qdinfo = NULL;
+	StringInfoData string;
 	int i;
 
+	initStringInfo(&string);
+
 	Assert (Gp_role == GP_ROLE_DISPATCH);
-	LOG_GANG_DEBUG(LOG, "addOptions: iswriter %d", iswriter);
+	LOG_GANG_DEBUG(LOG, "makeOptions: iswriter %d", iswriter);
 
 	qdinfo = &cdb_component_dbs->entry_db_info[0];
-	appendStringInfo(string, " -c gp_qd_hostname=%s", qdinfo->hostip);
-	appendStringInfo(string, " -c gp_qd_port=%d", qdinfo->port);
+	appendStringInfo(&string, " -c gp_qd_hostname=%s", qdinfo->hostip);
+	appendStringInfo(&string, " -c gp_qd_port=%d", qdinfo->port);
 
-	appendStringInfo(string, " -c gp_qd_callback_info=port=%d", PostPortNumber);
+	appendStringInfo(&string, " -c gp_qd_callback_info=port=%d", PostPortNumber);
 
 	/*
 	 * Transactions are tricky.
@@ -961,13 +965,13 @@ static void addOptions(StringInfo string, bool iswriter)
 	if (DefaultXactIsoLevel != XACT_READ_COMMITTED)
 	{
 		if (DefaultXactIsoLevel == XACT_SERIALIZABLE)
-			appendStringInfo(string, " -c default_transaction_isolation=serializable");
+			appendStringInfo(&string, " -c default_transaction_isolation=serializable");
 	}
 
 	if (XactIsoLevel != XACT_READ_COMMITTED)
 	{
 		if (XactIsoLevel == XACT_SERIALIZABLE)
-			appendStringInfo(string, " -c transaction_isolation=serializable");
+			appendStringInfo(&string, " -c transaction_isolation=serializable");
 	}
 
 	for (i = 0; i < ngucs; ++i)
@@ -975,8 +979,10 @@ static void addOptions(StringInfo string, bool iswriter)
 		struct config_generic *guc = gucs[i];
 
 		if ((guc->flags & GUC_GPDB_ADDOPT) && (guc->context == PGC_USERSET || procRoleIsSuperuser()))
-			addOneOption(string, guc);
+			addOneOption(&string, guc);
 	}
+
+	return string.data;
 }
 
 /*
@@ -989,11 +995,8 @@ static DoConnectParms* makeConnectParms(int parmsCount, GangType type, int gangI
 	DoConnectParms *doConnectParmsAr = (DoConnectParms*) palloc0(
 			parmsCount * sizeof(DoConnectParms));
 	DoConnectParms* pParms = NULL;
-	StringInfo pOptions = makeStringInfo();
 	int segdbPerThread = gp_connections_per_thread;
 	int i = 0;
-
-	addOptions(pOptions, type == GANGTYPE_PRIMARY_WRITER);
 
 	for (i = 0; i < parmsCount; i++)
 	{
@@ -1003,7 +1006,7 @@ static DoConnectParms* makeConnectParms(int parmsCount, GangType type, int gangI
 		MemSet(&pParms->thread, 0, sizeof(pthread_t));
 		pParms->db_count = 0;
 		pParms->type = type;
-		pParms->connectOptions = pOptions;
+		pParms->connectOptions = makeOptions(type == GANGTYPE_PRIMARY_WRITER);
 		pParms->gangId = gangId;
 	}
 	return doConnectParmsAr;
@@ -1020,13 +1023,11 @@ static void destroyConnectParms(DoConnectParms *doConnectParmsAr, int count)
 		for (i = 0; i < count; i++)
 		{
 			DoConnectParms *pParms = &doConnectParmsAr[i];
-			StringInfo pOptions = pParms->connectOptions;
-			if (pOptions->data != NULL)
+			if (pParms->connectOptions != NULL)
 			{
-				pfree(pOptions->data);
-				pOptions->data = NULL;
+				pfree(pParms->connectOptions);
+				pParms->connectOptions = NULL;
 			}
-			pParms->connectOptions = NULL;
 
 			pfree(pParms->segdbDescPtrArray);
 			pParms->segdbDescPtrArray = NULL;

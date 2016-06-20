@@ -514,29 +514,30 @@ void setQEIdentifier(SegmentDatabaseDescriptor *segdbDesc,
 {
 	CdbComponentDatabaseInfo *cdbinfo = segdbDesc->segment_database_info;
 	MemoryContext oldContext = MemoryContextSwitchTo(mcxt);
-	StringInfo string = makeStringInfo();
+	StringInfoData string;
+
+	initStringInfo(&string);
 
 	/* Format the identity of the segment db. */
 	if (segdbDesc->segindex >= 0)
 	{
-		appendStringInfo(string, "seg%d", segdbDesc->segindex);
+		appendStringInfo(&string, "seg%d", segdbDesc->segindex);
 
 		/* Format the slice index. */
 		if (sliceIndex > 0)
-			appendStringInfo(string, " slice%d", sliceIndex);
+			appendStringInfo(&string, " slice%d", sliceIndex);
 	}
 	else
-		appendStringInfo(string, SEGMENT_IS_ACTIVE_PRIMARY(cdbinfo) ? "entry db" : "mirror entry db");
+		appendStringInfo(&string, SEGMENT_IS_ACTIVE_PRIMARY(cdbinfo) ? "entry db" : "mirror entry db");
 
 	/* Format the connection info. */
-	appendStringInfo(string, " %s:%d", cdbinfo->hostip, cdbinfo->port);
+	appendStringInfo(&string, " %s:%d", cdbinfo->hostip, cdbinfo->port);
 
 	/* If connected, format the QE's process id. */
 	if (segdbDesc->backendPid != 0)
-		appendStringInfo(string, " pid=%d", segdbDesc->backendPid);
+		appendStringInfo(&string, " pid=%d", segdbDesc->backendPid);
 
-	segdbDesc->whoami = string->data;
-	pfree(string);
+	segdbDesc->whoami = string.data;
 	MemoryContextSwitchTo(oldContext);
 }
 

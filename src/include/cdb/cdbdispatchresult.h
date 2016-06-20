@@ -244,11 +244,10 @@ cdbdisp_debugDispatchResult(CdbDispatchResult  *dispatchResult,
 
 /*
  * Format a CdbDispatchResult into a StringInfo buffer provided by caller.
- * If verbose = true, reports all results; else reports at most one error.
+ * It reports at most one error.
  */
 void
 cdbdisp_dumpDispatchResult(CdbDispatchResult *dispatchResult,
-                           bool verbose,
                            struct StringInfoData *buf);
 
 /*
@@ -259,8 +258,7 @@ cdbdisp_dumpDispatchResult(CdbDispatchResult *dispatchResult,
  */
 int
 cdbdisp_dumpDispatchResults(struct CdbDispatchResults *gangResults,
-                            struct StringInfoData *buffer,
-                            bool verbose);
+                            struct StringInfoData *buffer);
 
 /*
  * Return sum of the cmdTuples values from CdbDispatchResult

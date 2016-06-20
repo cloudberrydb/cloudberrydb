@@ -202,7 +202,7 @@ cdbdisp_finishCommand(struct CdbDispatcherState *ds,
 	 * Format error messages from the primary gang.
 	 */
 	initStringInfo(&buf);
-	cdbdisp_dumpDispatchResults(ds->primaryResults, &buf, false);
+	cdbdisp_dumpDispatchResults(ds->primaryResults, &buf);
 
 	cdbdisp_destroyDispatcherState(ds);
 

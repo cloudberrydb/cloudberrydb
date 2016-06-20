@@ -510,11 +510,11 @@ cdbdisp_debugDispatchResult(CdbDispatchResult * dispatchResult,
 
 /*
  * Format a CdbDispatchResult into a StringInfo buffer provided by caller.
- * If verbose = true, reports all info; else reports at most one error.
+ * It reports at most one error.
  */
 void
 cdbdisp_dumpDispatchResult(CdbDispatchResult *dispatchResult,
-						   bool verbose, struct StringInfoData *buf)
+						   struct StringInfoData *buf)
 {
 	int ires;
 	int nres;
@@ -540,59 +540,46 @@ cdbdisp_dumpDispatchResult(CdbDispatchResult *dispatchResult,
 			resultStatus == PGRES_COPY_IN ||
 			resultStatus == PGRES_COPY_OUT ||
 			resultStatus == PGRES_EMPTY_QUERY)
-		{
-			if (verbose)
-			{
-				char *cmdStatus = PQcmdStatus(pgresult);
-
-				oneTrailingNewline(buf);
-				appendStringInfo(buf, "ok: %s", cmdStatus ? cmdStatus : "");
-				if (whoami)
-					appendStringInfo(buf, " (%s)", whoami);
-			}
-		}
+			continue;
 
 		/*
 		 * QE error or libpq error
 		 */
+		char *pri = PQresultErrorField(pgresult, PG_DIAG_MESSAGE_PRIMARY);
+		char *dtl = PQresultErrorField(pgresult, PG_DIAG_MESSAGE_DETAIL);
+		char *ctx = PQresultErrorField(pgresult, PG_DIAG_CONTEXT);
+
+		oneTrailingNewline(buf);
+		if (pri)
+		{
+			appendStringInfoString(buf, pri);
+		}
 		else
 		{
-			char *pri = PQresultErrorField(pgresult, PG_DIAG_MESSAGE_PRIMARY);
-			char *dtl = PQresultErrorField(pgresult, PG_DIAG_MESSAGE_DETAIL);
-			char *ctx = PQresultErrorField(pgresult, PG_DIAG_CONTEXT);
-
-			oneTrailingNewline(buf);
-			if (pri)
-			{
-				appendStringInfoString(buf, pri);
-			}
-			else
-			{
-				elog(LOG, "No primary message?");
-				appendStringInfoString(buf, PQresultErrorMessage(pgresult));
-			}
-
-			if (whoami)
-			{
-				noTrailingNewline(buf);
-				appendStringInfo(buf, "  (%s)", whoami);
-			}
-
-			if (dtl)
-			{
-				oneTrailingNewline(buf);
-				appendStringInfo(buf, "%s", dtl);
-			}
-
-			if (ctx)
-			{
-				oneTrailingNewline(buf);
-				appendStringInfo(buf, "%s", ctx);
-			}
-
-			if (!verbose)
-				goto done;
+			elog(LOG, "No primary message?");
+			appendStringInfoString(buf, PQresultErrorMessage(pgresult));
 		}
+
+		if (whoami)
+		{
+			noTrailingNewline(buf);
+			appendStringInfo(buf, "  (%s)", whoami);
+		}
+
+		if (dtl)
+		{
+			oneTrailingNewline(buf);
+			appendStringInfo(buf, "%s", dtl);
+		}
+
+		if (ctx)
+		{
+			oneTrailingNewline(buf);
+			appendStringInfo(buf, "%s", ctx);
+		}
+
+		noTrailingNewline(buf);
+		return;
 	}
 
 	/*
@@ -603,12 +590,8 @@ cdbdisp_dumpDispatchResult(CdbDispatchResult *dispatchResult,
 	{
 		oneTrailingNewline(buf);
 		appendStringInfoString(buf, dispatchResult->error_message->data);
-		if (!verbose)
-			goto done;
+		noTrailingNewline(buf);
 	}
-
-done:
-	noTrailingNewline(buf);
 }
 
 /*
@@ -619,7 +602,7 @@ done:
  */
 int
 cdbdisp_dumpDispatchResults(struct CdbDispatchResults *meleeResults,
-							struct StringInfoData *buffer, bool verbose)
+							struct StringInfoData *buffer)
 {
 	CdbDispatchResult *dispatchResult;
 
@@ -643,24 +626,7 @@ cdbdisp_dumpDispatchResults(struct CdbDispatchResults *meleeResults,
 	/*
 	 * Format one QE's result. 
 	 */
-	cdbdisp_dumpDispatchResult(dispatchResult, verbose, buffer);
-
-	/*
-	 * Optionally, format results from the rest of the QEs that got errors.
-	 */
-	if (verbose)
-	{
-		int	i;
-
-		for (i = 0; i < meleeResults->resultCount; ++i)
-		{
-			dispatchResult = &meleeResults->resultArray[i];
-			if (i == meleeResults->iFirstError)
-				continue;
-			if (dispatchResult->errcode)
-				cdbdisp_dumpDispatchResult(dispatchResult, verbose, buffer);
-		}
-	}
+	cdbdisp_dumpDispatchResult(dispatchResult, buffer);
 
 	return meleeResults->errcode;
 }
@@ -877,7 +843,7 @@ cdbdisp_returnResults(CdbDispatchResults * primaryResults,
 			/*
 			 * Append error messages to caller's buffer. 
 			 */
-			cdbdisp_dumpDispatchResult(dispatchResult, false, errmsgbuf);
+			cdbdisp_dumpDispatchResult(dispatchResult, errmsgbuf);
 
 			/*
 			 * Take ownership of this QE's PGresult object(s). 
