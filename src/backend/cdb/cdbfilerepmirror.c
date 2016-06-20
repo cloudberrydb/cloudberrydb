@@ -28,6 +28,7 @@
 #include "cdb/cdbvars.h"
 
 #include "access/xlogdefs.h"
+#include "access/slru.h"
 #include "cdb/cdbfilerepservice.h"
 #include "cdb/cdbfilerepmirror.h"
 #include "cdb/cdbfilerepmirrorack.h"
@@ -2039,6 +2040,41 @@ FileRepMirror_RunConsumer(void)
 				
 			case FileRepOperationHeartBeat:
 				/* NoOp. Just send ACK back. */
+				break;
+
+			case FileRepOperationStartSlruChecksum:
+				Assert(fileRepMessageHeader->fileRepRelationType == FileRepRelationTypeFlatFile);
+
+				ereport(LOG,
+						(errmsg("mirror beginning SLRU checksum file creation, dir: %s",
+								fileRepMessageHeader->fileRepIdentifier.fileRepFlatFileIdentifier.directorySimpleName)));
+
+				if (SlruCreateChecksumFile(
+						fileRepMessageHeader->fileRepIdentifier.fileRepFlatFileIdentifier.directorySimpleName) < 0)
+				{
+					fileRepMessageHeader->fileRepOperationDescription.startChecksum.mirrorStatus
+						= FileRepStatusSlruChecksumFailed;
+				}
+
+				break;
+
+			case FileRepOperationVerifySlruDirectoryChecksum:
+				Assert(fileRepMessageHeader->fileRepRelationType == FileRepRelationTypeFlatFile);
+
+				ereport(LOG,
+						(errmsg("mirror beginning checksum comparison, dir: %s, checksum file: %s",
+								fileRepMessageHeader->fileRepIdentifier.fileRepFlatFileIdentifier.directorySimpleName,
+								fileRepMessageHeader->fileRepIdentifier.fileRepFlatFileIdentifier.fileSimpleName)));
+
+				if (SlruMirrorVerifyDirectoryChecksum(
+						fileRepMessageHeader->fileRepIdentifier.fileRepFlatFileIdentifier.directorySimpleName,
+						fileRepMessageHeader->fileRepIdentifier.fileRepFlatFileIdentifier.fileSimpleName,
+						fileRepMessageHeader->fileRepOperationDescription.verifyDirectoryChecksum.md5) < 0)
+				{
+					fileRepMessageHeader->fileRepOperationDescription.verifyDirectoryChecksum.mirrorStatus
+						= FileRepStatusSlruChecksumFailed;
+				}
+
 				break;
 
 		    default:

@@ -88,7 +88,38 @@ class FilerepE2EScenarioTestCase(ScenarioTestCase, MPPTestCase):
 
     def test_full_primary(self):
         self.do_test('full', 'primary')
-    
+
+    def test_flat_file_resync_on_checksum_mismatch(self):
+
+        filename = 'pg_distributedlog/FFFF'
+        # This should cause the md5 check to fail and trigger a resync of the flat files
+        self.filerep.create_file_in_datadir(0, 'p', filename)
+
+        try:
+            self.filerep.stop_start_validate()
+            self.filerep.verify_file_exists(0, 'm', filename)
+        finally:
+            self.filerep.remove_file_in_datadir(0, 'p', filename)
+            self.filerep.remove_file_in_datadir(0, 'm', filename)
+
+    def test_flat_file_resync_on_checksum_match(self):
+
+        filename = 'pg_distributedlog/FFFF'
+
+        self.filerep.create_file_in_datadir(0, 'p', filename)
+        self.filerep.create_file_in_datadir(0, 'm', filename)
+
+        try:
+            timestamp_before_restart = self.filerep.get_timestamp_of_file_in_datadir(0, 'm', filename)
+            self.filerep.stop_start_validate()
+            timestamp_after_restart = self.filerep.get_timestamp_of_file_in_datadir(0, 'm', filename)
+            self.assertEqual(timestamp_before_restart, timestamp_after_restart,
+                             'File %s transferred after restart. timestamp before restart (%s), timestamp after restart (%s)' %
+                              (filename, timestamp_before_restart, timestamp_after_restart))
+        finally:
+            self.filerep.remove_file_in_datadir(0, 'p', filename)
+            self.filerep.remove_file_in_datadir(0, 'm', filename)
+
     def do_test(self,rec_mode,fail_type):
         '''
         @rec_mode: recovery mode, can be full or incremental
