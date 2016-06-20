@@ -9,10 +9,13 @@
 //		Test for CAutoTaskProxy
 //---------------------------------------------------------------------------
 
+#include <pthread.h>
+
 #include "gpos/memory/CAutoMemoryPool.h"
 #include "gpos/test/CUnittest.h"
 
 #include "unittest/gpos/task/CAutoTaskProxyTest.h"
+
 
 using namespace gpos;
 
@@ -37,6 +40,7 @@ CAutoTaskProxyTest::EresUnittest()
 		GPOS_UNITTEST_FUNC(CAutoTaskProxyTest::EresUnittest_Destroy),
 		GPOS_UNITTEST_FUNC(CAutoTaskProxyTest::EresUnittest_PropagateCancelError),
 		GPOS_UNITTEST_FUNC(CAutoTaskProxyTest::EresUnittest_PropagateExecError),
+		GPOS_UNITTEST_FUNC(CAutoTaskProxyTest::EresUnittest_ExecuteError),
 		GPOS_UNITTEST_FUNC(CAutoTaskProxyTest::EresUnittest_CheckErrorPropagation)
 		};
 
@@ -502,6 +506,31 @@ CAutoTaskProxyTest::Unittest_PropagateErrorInternal
 	}
 }
 
+void* CAutoTaskProxyTest::Unittest_CheckExecuteErrorInternal(void* pv)
+{
+	GPOS_ASSERT(NULL != pv);
+	STestThreadDescriptor *ptd = reinterpret_cast<STestThreadDescriptor *>(pv);
+	CWorker wrkr(ptd->ulId, GPOS_WORKER_STACK_SIZE, (ULONG_PTR) &ptd);
+	ptd->fException = false;
+	CWorkerPoolManager *pwpm = CWorkerPoolManager::Pwpm();
+	// scope for ATP
+	{
+		CAutoTaskProxy atp(ptd->m_pmp, pwpm, ptd->fPropagateException);
+		CTask *task = atp.PtskCreate(CAutoTaskProxyTest::PvUnittest_Error, NULL);
+		GPOS_TRY
+		{
+			atp.Execute(task);
+		}
+		GPOS_CATCH_EX(ex)
+		{
+			GPOS_MATCH_EX(ex, CException::ExmaSystem, CException::ExmiAbort);
+			ptd->fException = true;
+		}
+		GPOS_CATCH_END;
+	}
+	return NULL;
+}
+
 
 //---------------------------------------------------------------------------
 //	@function:
@@ -533,6 +562,60 @@ CAutoTaskProxyTest::EresUnittest_PropagateExecError()
 {
 	Unittest_PropagateErrorInternal(CAutoTaskProxyTest::PvUnittest_Error, false /* fInvokeCancel */);
 
+	return GPOS_OK;
+}
+
+//---------------------------------------------------------------------------
+//	@function:
+//		CAutoTaskProxyTest::EresUnittest_ExecuteError
+//
+//	@doc:
+//		When task and autotask run in same thread by calling CAutoTaskProxy::Execute,
+//		check whether exception propagation is controlled by fPropagateException
+//
+//---------------------------------------------------------------------------
+GPOS_RESULT
+CAutoTaskProxyTest::EresUnittest_ExecuteError()
+{
+	CAutoMemoryPool amp;
+	IMemoryPool *pmp = amp.Pmp();
+
+	// Create new thread so worker for this new
+	// thread is available to run the task ("CAutoTaskProxyTest::PvUnittest_Error")
+	// from Unittest_CheckExecuteErrorInternal
+	STestThreadDescriptor st;
+	st.ulId = GPOS_THREAD_MAX + 1;
+	st.m_pmp = pmp;
+	st.fException = false;
+	st.fPropagateException = true;
+
+	INT res = pthread_create(&st.m_pthrdt, NULL /*pthrAttr*/, Unittest_CheckExecuteErrorInternal, &st);
+
+	// check for error
+	if (0 != res)
+	{
+		return GPOS_FAILED;
+	}
+	pthread_join(st.m_pthrdt, NULL);
+	if (!st.fException)  // Expect to see exception propagated
+	{
+		return GPOS_FAILED;
+	}
+
+	// Disable Propagate
+	st.fPropagateException = false;
+	res = pthread_create(&st.m_pthrdt, NULL /*pthrAttr*/, Unittest_CheckExecuteErrorInternal, &st);
+
+	// check for error
+	if (0 != res)
+	{
+		return GPOS_FAILED;
+	}
+	pthread_join(st.m_pthrdt, NULL);
+	if (st.fException)  // Don't expect to see exception propagated
+	{
+		return GPOS_FAILED;
+	}
 	return GPOS_OK;
 }
 

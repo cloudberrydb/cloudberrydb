@@ -39,6 +39,24 @@ namespace gpos
 				EwtSentinel
 			};
 
+			struct STestThreadDescriptor
+			{
+				// pthread descriptor
+				PTHREAD_T m_pthrdt;
+
+				// thread id
+				ULONG ulId;
+
+				// return value
+				BOOL fException;
+
+				// Propagate Exception
+				BOOL fPropagateException;
+
+				// IMemoryPool
+				IMemoryPool *m_pmp;
+			};
+
 			// unittests
 			static GPOS_RESULT EresUnittest();
 			static GPOS_RESULT EresUnittest_Wait();
@@ -48,11 +66,13 @@ namespace gpos
 			static GPOS_RESULT EresUnittest_Destroy();
 			static GPOS_RESULT EresUnittest_PropagateCancelError();
 			static GPOS_RESULT EresUnittest_PropagateExecError();
+			static GPOS_RESULT EresUnittest_ExecuteError();
 			static GPOS_RESULT EresUnittest_CheckErrorPropagation();
 
 			// propagate error with/without cancel by specific value
 			// need to access the private method of CTask
 			static void Unittest_PropagateErrorInternal(void *(*)(void*), BOOL);
+			static void* Unittest_CheckExecuteErrorInternal(void*);
 
 			// execute *wait* functions with/without cancel
 			static void Unittest_ExecuteWaitFunc(CAutoTaskProxy &, CTask *, BOOL, EWaitType);
