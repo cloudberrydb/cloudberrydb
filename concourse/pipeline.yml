@@ -119,17 +119,18 @@ jobs:
 - name: gpos_publish_tag
   max_in_flight: 1
   plan:
-  - get: gpos_src
-    passed:
-    - gpos_release
-    - gpos_debug
-    trigger: true
-  - get: bin_gpos_release
-    passed:
-    - gpos_release
-  - get: bin_gpos_debug
-    passed:
-    - gpos_debug
+  - aggregate:
+    - get: gpos_src
+      passed:
+      - gpos_release
+      - gpos_debug
+      trigger: true
+    - get: bin_gpos_release
+      passed:
+      - gpos_release
+    - get: bin_gpos_debug
+      passed:
+      - gpos_debug
   - task: gpos_publish_tag
     file: gpos_src/concourse/publish_tag.yml
   - put: gpos_github_release
@@ -144,15 +145,18 @@ jobs:
 - name: orca_publish_tag
   max_in_flight: 1
   plan:
-  - get: orca_src
-    passed:
-    - orca_release
-  - get: bin_orca_release
-    passed:
-    - orca_release
-    trigger: true
-  - get: bin_orca_debug
-    trigger: true
+  - aggregate:
+    - get: orca_src
+      trigger: true
+      passed:
+      - orca_release
+      - orca_debug
+    - get: bin_orca_release
+      passed:
+      - orca_release
+    - get: bin_orca_debug
+      passed:
+      - orca_debug
   - task: orca_publish_tag
     file: orca_src/concourse/publish_tag.yml
   - put: orca_github_release
