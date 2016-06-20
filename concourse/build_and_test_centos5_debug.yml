@@ -1,15 +1,15 @@
 platform: linux
 image: docker:///yolo/orcadev#centos5
 inputs:
-  - name: bin_gpos_centos5_debug
-  - name: bin_xerces_centos5
+  - name: bin_gpos_debug
+  - name: bin_xerces
   - name: orca_src
 outputs:
-  - name: build_and_test_centos5_debug
+  - name: build_and_test_debug
 run:
   path: orca_src/concourse/build_and_test.py
   args:
     - --build_type=DEBUG
-    - --output_dir=build_and_test_centos5_debug/install
-    - bin_gpos_centos5_debug
-    - bin_xerces_centos5
+    - --output_dir=build_and_test_debug/install
+    - bin_gpos_debug
+    - bin_xerces

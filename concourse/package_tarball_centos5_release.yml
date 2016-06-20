@@ -2,11 +2,11 @@ platform: linux
 image: docker:///yolo/orcadev#centos5
 inputs:
   - name: orca_src
-  - name: build_and_test_centos5_release
+  - name: build_and_test_release
 outputs:
-  - name: package_tarball_centos5_release
+  - name: package_tarball_release
 run:
   path: orca_src/concourse/package_tarball.bash
 params:
-  src_root: build_and_test_centos5_release/install
-  dst_tarball: package_tarball_centos5_release/bin_orca_centos5_release.tar.gz
+  src_root: build_and_test_release/install
+  dst_tarball: package_tarball_release/bin_orca_release.tar.gz
