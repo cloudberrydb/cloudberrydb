@@ -50,6 +50,14 @@ resources:
     region_name: {{aws-region}}
     secret_access_key: {{aws-secret-access-key}}
     versioned_file: bin_xerces_centos5.tar.gz
+- name: bin_xerces_osx
+  type: s3
+  source:
+    access_key_id: {{aws-access-key-id}}
+    bucket: {{bucket-name}}
+    region_name: {{aws-region}}
+    secret_access_key: {{aws-secret-access-key}}
+    versioned_file: bin_xerces_osx.tar.gz
 - name: bin_gpos_debug
   type: s3
   source:
@@ -58,6 +66,25 @@ resources:
     region_name: {{aws-region}}
     secret_access_key: {{aws-secret-access-key}}
     versioned_file: bin_gpos_centos5_debug.tar.gz
+
+- name: bin_gpos_osx_debug
+  type: s3
+  source:
+    access_key_id: {{aws-access-key-id}}
+    bucket: {{bucket-name}}
+    region_name: {{aws-region}}
+    secret_access_key: {{aws-secret-access-key}}
+    versioned_file: bin_gpos_osx_debug.tar.gz
+
+- name: bin_gpos_osx_release
+  type: s3
+  source:
+    access_key_id: {{aws-access-key-id}}
+    bucket: {{bucket-name}}
+    region_name: {{aws-region}}
+    secret_access_key: {{aws-secret-access-key}}
+    versioned_file: bin_gpos_osx_release.tar.gz
+
 - name: bin_gpos_release
   type: s3
   source:
@@ -111,6 +138,7 @@ jobs:
       passed:
       - gpos_release
       - gpos_debug
+      - gpos_osx
       trigger: true
     - get: bin_gpos_release
       passed:
@@ -118,6 +146,9 @@ jobs:
     - get: bin_gpos_debug
       passed:
       - gpos_debug
+    - get: bin_gpos_osx_release
+      passed:
+      - gpos_osx
   - task: gpos_publish_tag
     file: gpos_src/concourse/publish_tag.yml
   - put: gpos_github_release
@@ -128,6 +159,7 @@ jobs:
       globs:
         - gpos_github_release_stage/bin_gpos_centos5_release.tar.gz
         - gpos_github_release_stage/bin_gpos_centos5_debug.tar.gz
+        - gpos_github_release_stage/bin_gpos_osx_release.tar.gz
 
 - name: orca_publish_tag
   max_in_flight: 1
@@ -170,6 +202,18 @@ jobs:
       params:
         from: package_tarball_centos5/bin_xerces_centos5.tar.gz
 
+- name: xerces_osx
+  plan:
+    - get: xerces_patch
+      trigger: true
+    - task: build
+      file: xerces_patch/concourse/xerces-c/build_xerces_osx.yml
+    - task: package_tarball
+      file: xerces_patch/concourse/xerces-c/package_tarball_osx.yml
+    - put: bin_xerces_osx
+      params:
+        from: package_tarball_osx/bin_xerces_osx.tar.gz
+
 - name: gpos_release
   max_in_flight: 2
   plan:
@@ -195,6 +239,18 @@ jobs:
   - put: bin_gpos_debug
     params:
       from: package_tarball_debug/bin_gpos_debug.tar.gz
+
+- name: gpos_osx
+  plan:
+  - get: gpos_src
+    trigger: true
+  - task: build_and_test_release
+    file: gpos_src/concourse/build_osx_release.yml
+  - task: package_tarball_release
+    file: gpos_src/concourse/package_tarball_osx_release.yml
+  - put: bin_gpos_osx_release
+    params:
+      from: package_tarball_osx_release/bin_gpos_osx_release.tar.gz
 
 - name: orca_release
   max_in_flight: 2

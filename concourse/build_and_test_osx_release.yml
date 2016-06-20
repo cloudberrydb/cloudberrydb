@@ -10,5 +10,6 @@ run:
   args:
     - --build_type=RELEASE
     - --output_dir=build_and_test_osx_release/install
+    - --32=True
     - bin_gpos_osx_release
     - bin_xerces_osx
