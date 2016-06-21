@@ -2123,7 +2123,7 @@ strtokx2(const char *s,
 		 * since we do not want to change how this is stored at this point
 		 * (as it will affect previous versions of the software already
 		 * in production) the following code block will detect this scenario
-		 * where 3 quote characters follow each other, with no forth one.
+		 * where 3 quote characters follow each other, with no fourth one.
 		 * in that case, we will skip the second one (the first is skipped
 		 * just above) and the last trailing quote will be skipped below.
 		 * the result will be the actual token (''') and after stripping
