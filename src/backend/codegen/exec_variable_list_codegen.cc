@@ -37,7 +37,7 @@
 #include "llvm/Support/Casting.h"
 
 extern "C" {
-#include "postgres.h"
+#include "postgres.h"  // NOLINT(build/include)
 #include "utils/elog.h"
 #include "access/htup.h"
 #include "nodes/execnodes.h"
@@ -133,14 +133,16 @@ bool ExecVariableListCodegen::GenerateExecVariableList(
       "fallback", exec_variable_list_func);
 
   // External functions
-  llvm::Function* llvm_memset = codegen_utils->GetOrRegisterExternalFunction(memset);
+  llvm::Function* llvm_memset = codegen_utils->GetOrRegisterExternalFunction(
+      memset);
 
   // Generation-time constants
   llvm::Value* llvm_max_attr = codegen_utils->GetConstant(max_attr);
   llvm::Value* llvm_slot = codegen_utils->GetConstant(slot_);
 
   // Function arguments to ExecVariableList
-  llvm::Value* llvm_projInfo_arg = ArgumentByPosition(exec_variable_list_func, 0);
+  llvm::Value* llvm_projInfo_arg = ArgumentByPosition(exec_variable_list_func,
+                                                      0);
   llvm::Value* llvm_values_arg = ArgumentByPosition(exec_variable_list_func, 1);
   llvm::Value* llvm_isnull_arg = ArgumentByPosition(exec_variable_list_func, 2);
 
@@ -404,7 +406,6 @@ bool ExecVariableListCodegen::GenerateExecVariableList(
       irb->SetInsertPoint(is_not_null_block);
     }  // End of if ( !thisatt->attnotnull )
 
-    // TODO : hardikar & nikos verify compatibility with 8.3 merge
     off = att_align_nominal(off, thisatt->attalign);
 
     // values[attnum] = fetchatt(thisatt, tp + off) {{{
@@ -487,8 +488,9 @@ bool ExecVariableListCodegen::GenerateExecVariableList(
   llvm::Value* llvm_slot_PRIVATE_tts_off_ptr /* long* */ =
       codegen_utils->GetPointerToMember(
           llvm_slot, &TupleTableSlot::PRIVATE_tts_off);
-  irb->CreateStore(codegen_utils->GetConstant<long>(off),
-                   llvm_slot_PRIVATE_tts_off_ptr);
+  irb->CreateStore(
+      codegen_utils->GetConstant<long>(off),  // NOLINT(runtime/int)
+      llvm_slot_PRIVATE_tts_off_ptr);
 
   // slot->PRIVATE_tts_nvalid = attnum;
   irb->CreateStore(llvm_max_attr, llvm_slot_PRIVATE_tts_nvalid_ptr);

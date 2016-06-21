@@ -162,10 +162,10 @@ static void ExecCdbTraceNode(PlanState *node, bool entry, TupleTableSlot *result
   			        void           *context,
   			        int flags);
 
- void
+ static void
  EnrollQualList(PlanState* result);
 
- void
+ static void
  EnrollProjInfoTargetList(ProjectionInfo* ProjInfo);
 
 /*
@@ -770,9 +770,9 @@ ExecInitNode(Plan *node, EState *estate, int eflags)
 }
 
 /* ----------------------------------------------------------------
- *    EnrollTargetAndQualList
+ *    EnrollQualList
  *
- *    Enroll Target and Qual List from PlanState to Codegen
+ *    Enroll Qual List's expr state from PlanState for codegen.
  * ----------------------------------------------------------------
  */
 void
@@ -797,6 +797,12 @@ EnrollQualList(PlanState* result)
 #endif
 }
 
+/* ----------------------------------------------------------------
+ *    EnrollProjInfoTargetList
+ *
+ *    Enroll Targetlist from ProjectionInfo to Codegen
+ * ----------------------------------------------------------------
+ */
 void
 EnrollProjInfoTargetList(ProjectionInfo* ProjInfo)
 {

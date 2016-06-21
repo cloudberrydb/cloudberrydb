@@ -180,7 +180,8 @@ class BaseCodegen: public CodegenInterface {
    * @param codegen_utils Utility to ease the code generation process.
    * @return true on successful generation.
    **/
-  virtual bool GenerateCodeInternal(gpcodegen::GpCodegenUtils* codegen_utils) = 0;
+  virtual bool GenerateCodeInternal(
+      gpcodegen::GpCodegenUtils* codegen_utils) = 0;
 
   /**
    * @brief Create llvm Function for given type and store the function pointer

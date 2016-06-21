@@ -38,7 +38,7 @@
 #include "llvm/Support/Casting.h"
 
 extern "C" {
-#include "postgres.h"
+#include "postgres.h"  // NOLINT(build/include)
 #include "utils/elog.h"
 #include "nodes/execnodes.h"
 }
@@ -46,69 +46,6 @@ extern "C" {
 using gpcodegen::ExecEvalExprCodegen;
 
 constexpr char ExecEvalExprCodegen::kExecEvalExprPrefix[];
-
-class ElogWrapper {
- public:
-  ElogWrapper(gpcodegen::CodegenUtils* codegen_utils) :
-    codegen_utils_(codegen_utils) {
-    SetupElog();
-  }
-  ~ElogWrapper() {
-    TearDownElog();
-  }
-
-  template<typename... V>
-  void CreateElog(
-      llvm::Value* llvm_elevel,
-      llvm::Value* llvm_fmt,
-      V ... args ) {
-
-    assert(NULL != llvm_elevel);
-    assert(NULL != llvm_fmt);
-
-    codegen_utils_->ir_builder()->CreateCall(
-        llvm_elog_start_, {
-            codegen_utils_->GetConstant(""), // Filename
-            codegen_utils_->GetConstant(0),  // line number
-            codegen_utils_->GetConstant("")  // function name
-    });
-    codegen_utils_->ir_builder()->CreateCall(
-        llvm_elog_finish_, {
-            llvm_elevel,
-            llvm_fmt,
-            args...
-    });
-  }
-  template<typename... V>
-  void CreateElog(
-      int elevel,
-      const char* fmt,
-      V ... args ) {
-    CreateElog(codegen_utils_->GetConstant(elevel),
-               codegen_utils_->GetConstant(fmt),
-               args...);
-  }
- private:
-  llvm::Function* llvm_elog_start_;
-  llvm::Function* llvm_elog_finish_;
-
-  gpcodegen::CodegenUtils* codegen_utils_;
-
-  void SetupElog(){
-    assert(codegen_utils_ != nullptr);
-    llvm_elog_start_ = codegen_utils_->RegisterExternalFunction(elog_start);
-    assert(llvm_elog_start_ != nullptr);
-    llvm_elog_finish_ = codegen_utils_->RegisterExternalFunction(elog_finish);
-    assert(llvm_elog_finish_ != nullptr);
-  }
-
-  void TearDownElog(){
-    llvm_elog_start_ = nullptr;
-    llvm_elog_finish_ = nullptr;
-  }
-
-};
-
 
 ExecEvalExprCodegen::ExecEvalExprCodegen
 (
@@ -119,12 +56,12 @@ ExecEvalExprCodegen::ExecEvalExprCodegen
     BaseCodegen(kExecEvalExprPrefix,
                 regular_func_ptr, ptr_to_regular_func_ptr),
                 exprstate_(exprstate),
-                econtext_(econtext){
+                econtext_(econtext) {
 }
 
 
 bool ExecEvalExprCodegen::GenerateExecEvalExpr(
-    gpcodegen::CodegenUtils* codegen_utils) {
+    gpcodegen::GpCodegenUtils* codegen_utils) {
 
   assert(NULL != codegen_utils);
   if (nullptr == exprstate_ ||
@@ -132,9 +69,7 @@ bool ExecEvalExprCodegen::GenerateExecEvalExpr(
       nullptr == econtext_) {
     return false;
   }
-
-  ElogWrapper elogwrapper(codegen_utils);
-  //TODO : krajaraman move to better place
+  // TODO(krajaraman): move to better place
   OpExprTreeGenerator::InitializeSupportedFunction();
 
   llvm::Function* exec_eval_expr_func = CreateFunction<ExecEvalExprFn>(
@@ -147,10 +82,6 @@ bool ExecEvalExprCodegen::GenerateExecEvalExpr(
   llvm::Value* llvm_isnull_arg = ArgumentByPosition(exec_eval_expr_func, 2);
   llvm::Value* llvm_isDone_arg = ArgumentByPosition(exec_eval_expr_func, 3);
 
-  // External functions
-  llvm::Function* llvm_slot_getattr =
-      codegen_utils->RegisterExternalFunction(slot_getattr);
-
   // BasicBlock of function entry.
   llvm::BasicBlock* llvm_entry_block = codegen_utils->CreateBasicBlock(
       "entry", exec_eval_expr_func);
@@ -161,14 +92,14 @@ bool ExecEvalExprCodegen::GenerateExecEvalExpr(
 
   irb->SetInsertPoint(llvm_entry_block);
 
-  elogwrapper.CreateElog(
+  codegen_utils->CreateElog(
         DEBUG1,
         "Calling codegen'ed expression evaluation");
 
   // Check if we can codegen. If so create ExprTreeGenerator
   std::unique_ptr<ExprTreeGenerator> expr_tree_generator(nullptr);
   bool can_generate = ExprTreeGenerator::VerifyAndCreateExprTree(
-      exprstate_, econtext_, expr_tree_generator);
+      exprstate_, econtext_, &expr_tree_generator);
   if (!can_generate ||
       expr_tree_generator.get() == nullptr) {
     return false;
@@ -181,7 +112,7 @@ bool ExecEvalExprCodegen::GenerateExecEvalExpr(
                                                         exec_eval_expr_func,
                                                         llvm_error_block,
                                                         llvm_isnull_arg,
-                                                        value);
+                                                        &value);
   if (!is_generated ||
       nullptr == value) {
     return false;
@@ -192,19 +123,17 @@ bool ExecEvalExprCodegen::GenerateExecEvalExpr(
 
   irb->SetInsertPoint(llvm_error_block);
   irb->CreateRet(codegen_utils->GetConstant<int64_t>(0));
-  exec_eval_expr_func->dump();
   return true;
 }
 
 
-bool ExecEvalExprCodegen::GenerateCodeInternal(CodegenUtils* codegen_utils) {
+bool ExecEvalExprCodegen::GenerateCodeInternal(GpCodegenUtils* codegen_utils) {
   bool isGenerated = GenerateExecEvalExpr(codegen_utils);
 
   if (isGenerated) {
     elog(DEBUG1, "ExecEvalExpr was generated successfully!");
     return true;
-  }
-  else {
+  } else {
     elog(DEBUG1, "ExecEvalExpr generation failed!");
     return false;
   }

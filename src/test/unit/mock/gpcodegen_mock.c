@@ -77,6 +77,7 @@ ExecVariableListCodegenEnroll(ExecVariableListFn regular_func_ptr,
 	return NULL;
 }
 
+// Enroll and returns the pointer to ExecEvalExprGenerator
 void*
 ExecEvalExprCodegenEnroll(ExecEvalExprFn regular_func_ptr,
                           ExecEvalExprFn* ptr_to_regular_func_ptr,

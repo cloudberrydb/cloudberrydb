@@ -27,18 +27,19 @@ class ExecEvalExprCodegen: public BaseCodegen<ExecEvalExprFn> {
   /**
    * @brief Constructor
    *
-   * @param regular_func_ptr       Regular version of the target function.
-   * @param ptr_to_chosen_func_ptr Reference to the function pointer that the caller will call.
-   * @param exprstate         The ExprState to use for generating code.
+   * @param regular_func_ptr        Regular version of the target function.
+   * @param ptr_to_chosen_func_ptr  Reference to the function pointer that the
+   *                                caller will call.
+   * @param exprstate               The ExprState to use for generating code.
    *
-   * @note 	The ptr_to_chosen_func_ptr can refer to either the generated function or the
-   * 			corresponding regular version.
+   * @note 	The ptr_to_chosen_func_ptr can refer to either the generated
+   *        function or the corresponding regular version.
    *
    **/
   explicit ExecEvalExprCodegen(ExecEvalExprFn regular_func_ptr,
-		  ExecEvalExprFn* ptr_to_regular_func_ptr,
-		  ExprState *exprstate,
-		  ExprContext *econtext);
+                               ExecEvalExprFn* ptr_to_regular_func_ptr,
+                               ExprState *exprstate,
+                               ExprContext *econtext);
 
   virtual ~ExecEvalExprCodegen() = default;
 
@@ -50,9 +51,18 @@ class ExecEvalExprCodegen: public BaseCodegen<ExecEvalExprFn> {
    *
    * @return true on successful generation; false otherwise.
    *
-   * @note Currently, it simply falls back to regular function for expression evaluation.
+   * @note Walks down expression tree and create respective ExprTreeGenerator
+   * to generate code.
+   *
+   * This implementation does not support:
+   *  (1) Null attributes
+   *  (2) Variable length attributes
+   *
+   * If at execution time, we see any of the above types of attributes,
+   * we fall backs to the regular function.
+   *
    */
-  bool GenerateCodeInternal(gpcodegen::CodegenUtils* codegen_utils) final;
+  bool GenerateCodeInternal(gpcodegen::GpCodegenUtils* codegen_utils) final;
 
  private:
   ExprState *exprstate_;
@@ -66,7 +76,7 @@ class ExecEvalExprCodegen: public BaseCodegen<ExecEvalExprFn> {
    * @param codegen_utils Utility to ease the code generation process.
    * @return true on successful generation.
    **/
-  bool GenerateExecEvalExpr(gpcodegen::CodegenUtils* codegen_utils);
+  bool GenerateExecEvalExpr(gpcodegen::GpCodegenUtils* codegen_utils);
 };
 
 /** @} */

@@ -73,8 +73,8 @@ class ExecVariableListCodegen: public BaseCodegen<ExecVariableListFn> {
    *  (2) Variable length attributes
    *  (3) Attributes passed by reference
    *
-   * If at execution time, we see any of the above types of attributes, we fall backs to
-   * the regular function.
+   * If at execution time, we see any of the above types of attributes,
+   * we fall backs to the regular function.
    */
   bool GenerateCodeInternal(gpcodegen::GpCodegenUtils* codegen_utils) final;
 

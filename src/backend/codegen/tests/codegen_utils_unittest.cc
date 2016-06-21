@@ -2739,21 +2739,25 @@ TEST_F(CodegenUtilsTest, CppClassObjectTest) {
 // Test GetOrGetOrRegisterExternalFunction to return the right llvm::Function if
 // previously registered or else register it anew
 TEST_F(CodegenUtilsTest, GetOrGetOrRegisterExternalFunctionTest) {
-
   // Test previous unregistered function
   EXPECT_EQ(nullptr, codegen_utils_->module()->getFunction("floor"));
-  llvm::Function* floor_func = codegen_utils_->GetOrRegisterExternalFunction(floor, "floor");
+  llvm::Function* floor_func = codegen_utils_->GetOrRegisterExternalFunction(
+      floor, "floor");
   EXPECT_EQ(floor_func, codegen_utils_->module()->getFunction("floor"));
 
   // Test previous registered Non vararg function
-  llvm::Function* expected_fabs_func = codegen_utils_->GetOrRegisterExternalFunction(ceil);
-  llvm::Function* fabs_func = codegen_utils_->GetOrRegisterExternalFunction(ceil);
+  llvm::Function* expected_fabs_func = codegen_utils_->
+      GetOrRegisterExternalFunction(ceil);
+  llvm::Function* fabs_func = codegen_utils_->
+      GetOrRegisterExternalFunction(ceil);
 
   EXPECT_EQ(expected_fabs_func, fabs_func);
 
   // Test previously registered vararg function
-  llvm::Function* expected_vprintf_func = codegen_utils_->GetOrRegisterExternalFunction(vprintf);
-  llvm::Function* vprintf_func = codegen_utils_->GetOrRegisterExternalFunction(vprintf);
+  llvm::Function* expected_vprintf_func = codegen_utils_->
+      GetOrRegisterExternalFunction(vprintf);
+  llvm::Function* vprintf_func = codegen_utils_->
+      GetOrRegisterExternalFunction(vprintf);
 
   EXPECT_EQ(expected_vprintf_func, vprintf_func);
 }

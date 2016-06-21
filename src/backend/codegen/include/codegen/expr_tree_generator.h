@@ -3,7 +3,7 @@
 //  Copyright (C) 2016 Pivotal Software, Inc.
 //
 //  @filename:
-//    base_codegen.h
+//    expr_tree_generator.h
 //
 //  @doc:
 //    Base class for expression tree to generate code
@@ -43,23 +43,58 @@ enum class ExprTreeNodeType {
 
 class ExprTreeGenerator {
  public:
+  virtual ~ExprTreeGenerator() = default;
+
+  /**
+   * @brief Verify if we support the given expression tree, and create an
+   * 		instance of ExprTreeGenerator if supported.
+   *
+   * @param expr_state  Expression state from expression tree.
+   * @param econtext    Respective expression context.
+   * @param expr_tree   Hold the new instance of expression tree class.
+   *
+   * @return true when it can codegen otherwise it return false.
+   **/
   static bool VerifyAndCreateExprTree(
       ExprState* expr_state,
       ExprContext* econtext,
-      std::unique_ptr<ExprTreeGenerator>& expr_tree);
+      std::unique_ptr<ExprTreeGenerator>* expr_tree);
 
+  /**
+   * @brief Generate the code for given expression.
+   *
+   * @param codegen_utils   Utility to easy code generation.
+   * @param econtext        Respective expression context.
+   * @param llvm_main_func  Current function for which we are generating code
+   * @param llvm_isnull_arg Set to true if current expr is null
+   * @param llvm_out_value  Store the expression results
+   *
+   * @return true when it generated successfully otherwise it return false.
+   **/
   virtual bool GenerateCode(gpcodegen::CodegenUtils* codegen_utils,
                             ExprContext* econtext,
                             llvm::Function* llvm_main_func,
                             llvm::BasicBlock* llvm_error_block,
                             llvm::Value* llvm_isnull_arg,
-                            llvm::Value* & value) = 0;
+                            llvm::Value** value) = 0;
 
+
+  /**
+   * @return Expression state
+   **/
   ExprState* expr_state() { return expr_state_; }
-protected:
+
+ protected:
+  /**
+   * @brief Constructor.
+   *
+   * @param expr_state Expression state
+   * @param node_type   Type of the ExprTreeGenerator
+   **/
   ExprTreeGenerator(ExprState* expr_state,
                     ExprTreeNodeType node_type) :
                       expr_state_(expr_state), node_type_(node_type) {}
+
  private:
   ExprState* expr_state_;
   ExprTreeNodeType node_type_;

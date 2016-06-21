@@ -24,7 +24,6 @@ using gpcodegen::ExecEvalExprCodegen;
 
 // Current code generator manager that oversees all code generators
 static void* ActiveCodeGeneratorManager = nullptr;
-static bool is_codegen_initalized = false;
 
 extern bool codegen;  // defined from guc
 extern bool init_codegen;  // defined from guc

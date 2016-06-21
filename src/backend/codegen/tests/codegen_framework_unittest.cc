@@ -124,7 +124,7 @@ class MulOverflowCodeGenerator : public BaseCodegen<MulFunc> {
   virtual ~MulOverflowCodeGenerator() = default;
 
  protected:
-  bool GenerateCodeInternal(gpcodegen::CodegenUtils* codegen_utils) final {
+  bool GenerateCodeInternal(gpcodegen::GpCodegenUtils* codegen_utils) final {
     llvm::Function* mul2_func
        = CreateFunction<MulFunc>(codegen_utils, GetUniqueFuncName());
     llvm::BasicBlock* mul2_body = codegen_utils->CreateBasicBlock("body",
@@ -138,20 +138,25 @@ class MulOverflowCodeGenerator : public BaseCodegen<MulFunc> {
     llvm::Value* arg0 = ArgumentByPosition(mul2_func, 0);
     llvm::Value* arg1 = ArgumentByPosition(mul2_func, 1);
 
-    llvm::Function* llvm_mul_overflow = llvm::Intrinsic::getDeclaration(codegen_utils->module(),
-                                                                    llvm::Intrinsic::smul_with_overflow,
-                                                                    arg0->getType());
-    llvm::Value* llvm_umul_results = codegen_utils->ir_builder()->CreateCall(llvm_mul_overflow, {arg0, arg1});
-    llvm::Value* llvm_overflow_flag = codegen_utils->ir_builder()->CreateExtractValue(llvm_umul_results, 1);
-    llvm::Value* llvm_results = codegen_utils->ir_builder()->CreateExtractValue(llvm_umul_results, 0);
+    llvm::Function* llvm_mul_overflow = llvm::Intrinsic::getDeclaration(
+        codegen_utils->module(),
+        llvm::Intrinsic::smul_with_overflow,
+        arg0->getType());
+    llvm::Value* llvm_umul_results = codegen_utils->ir_builder()->CreateCall(
+        llvm_mul_overflow, {arg0, arg1});
+    llvm::Value* llvm_overflow_flag = codegen_utils->ir_builder()->
+        CreateExtractValue(llvm_umul_results, 1);
+    llvm::Value* llvm_results = codegen_utils->ir_builder()->CreateExtractValue(
+        llvm_umul_results, 0);
 
     codegen_utils->ir_builder()->CreateCondBr(
-        codegen_utils->ir_builder()->CreateICmpSLE(llvm_overflow_flag, codegen_utils->GetConstant<bool>(true)),
-              return_overflow_block,
-              result_result_block );
+        codegen_utils->ir_builder()->CreateICmpSLE(
+            llvm_overflow_flag, codegen_utils->GetConstant<bool>(true)),
+            return_overflow_block,
+            result_result_block);
 
     codegen_utils->ir_builder()->SetInsertPoint(return_overflow_block);
-    codegen_utils->ir_builder()->CreateAdd(llvm_results, codegen_utils->GetConstant(1));
+    codegen_utils->ir_builder()->CreateRet(codegen_utils->GetConstant(1));
 
     codegen_utils->ir_builder()->SetInsertPoint(result_result_block);
     codegen_utils->ir_builder()->CreateRet(llvm_results);
@@ -429,7 +434,8 @@ TEST_F(CodegenManagerTest, UnCompilablePassedGenerationTest) {
 TEST_F(CodegenManagerTest, MulOverFlowTest) {
   // Test if generation happens successfully
   mul_func_ptr = nullptr;
-  EnrollCodegen<MulOverflowCodeGenerator, MulFunc>(MulFuncRegular, &mul_func_ptr);
+  EnrollCodegen<MulOverflowCodeGenerator, MulFunc>(MulFuncRegular,
+                                                   &mul_func_ptr);
   EXPECT_EQ(1, manager_->GenerateCode());
 
 
