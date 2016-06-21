@@ -1,16 +1,3 @@
-### Groups ###
-
-groups:
-- name: all
-  jobs:
-  - gp_xerces
-  - gpos_release
-  - gpos_debug
-  - orca_release
-  - orca_debug
-  - gpos_publish_tag
-  - orca_publish_tag
-
 #############
 # RESOURCES #
 #############
