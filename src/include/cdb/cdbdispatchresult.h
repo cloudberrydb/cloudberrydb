@@ -198,12 +198,11 @@ cdbdisp_seterrcode(int errcode, /* ERRCODE_xxx or 0 */
  */
 void
 cdbdisp_appendMessage(CdbDispatchResult *dispatchResult,
-                      int elevel,
                       int errcode,
                       const char *fmt,
                       ...)
 /* This extension allows gcc to check the format string */
-__attribute__((format(printf, 4, 5)));
+__attribute__((format(printf, 3, 4)));
 
 /*
  * Store a PGresult object ptr in the result buffer.

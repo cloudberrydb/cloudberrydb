@@ -463,20 +463,12 @@ thread_DispatchOut(DispatchCommandParms *pParms)
 
 			if (PQstatus(dispatchResult->segdbDesc->conn) == CONNECTION_BAD)
 			{
-				char *msg;
-
-				msg = PQerrorMessage(dispatchResult->segdbDesc->conn);
-
-				write_log
-					("Dispatcher noticed a problem before query transmit: %s (%s)",
-					 msg ? msg : "unknown error",
-					 dispatchResult->segdbDesc->whoami);
+				char *msg = PQerrorMessage(dispatchResult->segdbDesc->conn);
 
 				/*
 				 * Save error info for later.
 				 */
 				cdbdisp_appendMessage(dispatchResult, LOG,
-									  ERRCODE_GP_INTERCONNECTION_ERROR,
 									  "Error before transmit from %s: %s",
 									  dispatchResult->segdbDesc->whoami,
 									  msg ? msg : "unknown error");
@@ -551,8 +543,7 @@ thread_DispatchWait(DispatchCommandParms *pParms)
 				 * Save error info for later.
 				 */
 				cdbdisp_appendMessage(dispatchResult, DEBUG1,
-									  ERRCODE_GP_INTERCONNECTION_ERROR,
-									  "Lost connection to %s. %s",
+									  "Lost connection to %s.  %s",
 									  segdbDesc->whoami, msg ? msg : "");
 
 				/*
@@ -765,16 +756,11 @@ dispatchCommand(CdbDispatchResult *dispatchResult,
 	{
 		char *msg = PQerrorMessage(segdbDesc->conn);
 
-		if (DEBUG3 >= log_min_messages)
-			write_log("PQsendMPPQuery_shared error %s %s",
-					  segdbDesc->whoami, msg ? msg : "");
-
 		/*
 		 * Note the error.
 		 */
 		cdbdisp_appendMessage(dispatchResult, LOG,
-							  ERRCODE_GP_INTERCONNECTION_ERROR,
-							  "Command could not be sent to segment db %s; %s",
+							  "Command could not be sent to segment db %s;  %s",
 							  segdbDesc->whoami, msg ? msg : "");
 		PQfinish(conn);
 		segdbDesc->conn = NULL;
@@ -846,21 +832,12 @@ handlePollError(DispatchCommandParms *pParms, int db_count, int sock_errno)
 		 */
 		if (PQstatus(dispatchResult->segdbDesc->conn) == CONNECTION_BAD)
 		{
-			char *msg;
-
-			msg = PQerrorMessage(dispatchResult->segdbDesc->conn);
-			if (msg)
-				write_log("Dispatcher encountered connection error on %s: %s",
-						  dispatchResult->segdbDesc->whoami, msg);
-
-			write_log
-				("Dispatcher noticed bad connection in handlePollError()");
+			char *msg = PQerrorMessage(dispatchResult->segdbDesc->conn);
 
 			/*
 			 * Save error info for later.
 			 */
 			cdbdisp_appendMessage(dispatchResult, LOG,
-								  ERRCODE_GP_INTERCONNECTION_ERROR,
 								  "Error after dispatch from %s: %s",
 								  dispatchResult->segdbDesc->whoami,
 								  msg ? msg : "unknown error");
@@ -1006,7 +983,6 @@ handlePollTimeout(DispatchCommandParms *pParms,
 				 * Note the error.
 				 */
 				cdbdisp_appendMessage(dispatchResult, DEBUG1,
-									  ERRCODE_GP_INTERCONNECTION_ERROR,
 									  "Lost connection to one or more segments - fault detector checking for segment failures. (%s)",
 									  segdbDesc->whoami);
 
@@ -1063,17 +1039,8 @@ shouldStillDispatchCommand(DispatchCommandParms *pParms,
 		 * Save error info for later.
 		 */
 		cdbdisp_appendMessage(dispatchResult, LOG,
-							  ERRCODE_GP_INTERCONNECTION_ERROR,
-							  "Lost connection to %s. %s",
+							  "Lost connection to %s.  %s",
 							  segdbDesc->whoami, msg ? msg : "");
-
-		if (DEBUG4 >= log_min_messages)
-		{
-			/*
-			 * Don't use elog, it's not thread-safe
-			 */
-			write_log("Lost connection: %s", segdbDesc->whoami);
-		}
 
 		/*
 		 * Free the PGconn object at once whenever we notice it's gone bad.
@@ -1300,15 +1267,10 @@ processResults(CdbDispatchResult *dispatchResult)
 connection_error:
 	msg = PQerrorMessage(segdbDesc->conn);
 
-	if (msg)
-		write_log("Dispatcher encountered connection error on %s: %s",
-				  segdbDesc->whoami, msg);
-
 	/*
 	 * Save error info for later.
 	 */
 	cdbdisp_appendMessage(dispatchResult, LOG,
-						  ERRCODE_GP_INTERCONNECTION_ERROR,
 						  "Error on receive from %s: %s",
 						  segdbDesc->whoami, msg ? msg : "unknown error");
 
