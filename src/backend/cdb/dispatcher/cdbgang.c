@@ -43,10 +43,6 @@
 
 #include "utils/guc_tables.h"
 
-#define LOG_GANG_DEBUG(...) do { \
-	if (gp_log_gang >= GPVARS_VERBOSITY_DEBUG) elog(__VA_ARGS__); \
-    } while(false);
-
 #define MAX_CACHED_1_GANGS 1
 
 /*
@@ -150,8 +146,8 @@ allocateReaderGang(GangType type, char *portal_name)
 	int size = 0;
 	int content = 0;
 
-	LOG_GANG_DEBUG(LOG,
-			"allocateReaderGang for portal %s: allocatedReaderGangsN %d, availableReaderGangsN %d, allocatedReaderGangs1 %d, availableReaderGangs1 %d",
+	ELOG_DISPATCHER_DEBUG("allocateReaderGang for portal %s: allocatedReaderGangsN %d, availableReaderGangsN %d, "
+			"allocatedReaderGangs1 %d, availableReaderGangs1 %d",
 			(portal_name ? portal_name : "<unnamed>"),
 			list_length(allocatedReaderGangsN),
 			list_length(availableReaderGangsN),
@@ -205,8 +201,8 @@ allocateReaderGang(GangType type, char *portal_name)
 	gp = getAvailableGang(type, size, content);
 	if (gp == NULL)
 	{
-		LOG_GANG_DEBUG(LOG, "Creating a new reader size %d gang for %s", size,
-				(portal_name ? portal_name : "unnamed portal"));
+		ELOG_DISPATCHER_DEBUG("Creating a new reader size %d gang for %s",
+				size, (portal_name ? portal_name : "unnamed portal"));
 
 		gp = createGang(type, gang_id_counter++, size, content);
 		gp->allocated = true;
@@ -229,8 +225,8 @@ allocateReaderGang(GangType type, char *portal_name)
 
 	MemoryContextSwitchTo(oldContext);
 
-	LOG_GANG_DEBUG(LOG,
-			"on return: allocatedReaderGangs %d, availableReaderGangsN %d, allocatedReaderGangs1 %d, availableReaderGangs1 %d",
+	ELOG_DISPATCHER_DEBUG("on return: allocatedReaderGangs %d, availableReaderGangsN %d, "
+			"allocatedReaderGangs1 %d, availableReaderGangs1 %d",
 			list_length(allocatedReaderGangsN),
 			list_length(availableReaderGangsN),
 			list_length(allocatedReaderGangs1),
@@ -249,7 +245,7 @@ allocateWriterGang()
 	MemoryContext oldContext = NULL;
 	int i = 0;
 
-	LOG_GANG_DEBUG(LOG, "allocateWriterGang begin.");
+	ELOG_DISPATCHER_DEBUG("allocateWriterGang begin.");
 
 	if (Gp_role != GP_ROLE_DISPATCH)
 	{
@@ -294,7 +290,7 @@ allocateWriterGang()
 	}
 	else
 	{
-		LOG_GANG_DEBUG(LOG, "Reusing an existing primary writer gang");
+		ELOG_DISPATCHER_DEBUG("Reusing an existing primary writer gang");
 		writerGang = primaryWriterGang;
 	}
 
@@ -302,7 +298,7 @@ allocateWriterGang()
 	if (!gangOK(writerGang))
 		elog(ERROR, "could not connect to segment: initialization of segworker group failed");
 
-	LOG_GANG_DEBUG(LOG, "allocateWriterGang end.");
+	ELOG_DISPATCHER_DEBUG("allocateWriterGang end.");
 
 	primaryWriterGang = writerGang;
 	return writerGang;
@@ -328,7 +324,7 @@ createGang(GangType type, int gang_id, int size, int content)
 	int in_recovery_mode_count = 0;
 	int successful_connections = 0;
 
-	LOG_GANG_DEBUG(LOG, "createGang type = %d, gang_id = %d, size = %d, content = %d",
+	ELOG_DISPATCHER_DEBUG("createGang type = %d, gang_id = %d, size = %d, content = %d",
 			type, gang_id, size, content);
 
 	/* check arguments */
@@ -386,8 +382,7 @@ create_gang_retry:
 		int pthread_err;
 		pParms = &doConnectParmsAr[i];
 
-		LOG_GANG_DEBUG(LOG,
-				"createGang creating thread %d of %d for libpq connections",
+		ELOG_DISPATCHER_DEBUG("createGang creating thread %d of %d for libpq connections",
 				i + 1, threadCount);
 
 		pthread_err = gp_pthread_create(&pParms->thread, thread_DoConnect, pParms, "createGang");
@@ -417,7 +412,7 @@ create_gang_retry:
 	 */
 	for (i = 0; i < threadCount; i++)
 	{
-		LOG_GANG_DEBUG(LOG, "joining to thread %d of %d for libpq connections",
+		ELOG_DISPATCHER_DEBUG("joining to thread %d of %d for libpq connections",
 				i + 1, threadCount);
 
 		if (0 != pthread_join(doConnectParmsAr[i].thread, NULL))
@@ -436,7 +431,7 @@ create_gang_retry:
 	checkConnectionStatus(newGangDefinition, &in_recovery_mode_count,
 			&successful_connections);
 
-	LOG_GANG_DEBUG(LOG,"createGang: %d processes requested; %d successful connections %d in recovery",
+	ELOG_DISPATCHER_DEBUG("createGang: %d processes requested; %d successful connections %d in recovery",
 			size, successful_connections, in_recovery_mode_count);
 
 	MemoryContextSwitchTo(GangContext);
@@ -486,7 +481,7 @@ create_gang_retry:
 		disconnectAndDestroyGang(newGangDefinition);
 		newGangDefinition = NULL;
 
-		LOG_GANG_DEBUG(LOG, "createGang: gang creation failed, but retryable.");
+		ELOG_DISPATCHER_DEBUG("createGang: gang creation failed, but retryable.");
 
 		CHECK_FOR_INTERRUPTS();
 		pg_usleep(gp_gang_creation_retry_timer * 1000);
@@ -703,7 +698,7 @@ getComponentDatabases(void)
 	}
 	else if (cdb_component_dbs->fts_version != ftsVersion)
 	{
-		LOG_GANG_DEBUG(LOG, "FTS rescanned, get new component databases info.");
+		ELOG_DISPATCHER_DEBUG("FTS rescanned, get new component databases info.");
 		freeCdbComponentDatabases(cdb_component_dbs);
 		cdb_component_dbs = getCdbComponentDatabases();
 		cdb_component_dbs->fts_version = ftsVersion;
@@ -777,8 +772,8 @@ buildGangDefinition(GangType type, int gang_id, int size, int content)
 	int segCount = 0;
 	int i = 0;
 
-	LOG_GANG_DEBUG(LOG, "buildGangDefinition:Starting %d qExec processes for %s gang", size,
-			gangTypeToString(type));
+	ELOG_DISPATCHER_DEBUG("buildGangDefinition:Starting %d qExec processes for %s gang",
+			size, gangTypeToString(type));
 
 	Assert(CurrentMemoryContext == GangContext);
 	Assert(size == 1 || size == getgpsegmentCount());
@@ -794,7 +789,7 @@ buildGangDefinition(GangType type, int gang_id, int size, int content)
 	/* if mirroring is not configured */
 	if (cdb_component_dbs->total_segment_dbs == cdb_component_dbs->total_segments)
 	{
-		LOG_GANG_DEBUG(LOG, "building Gang: mirroring not configured");
+		ELOG_DISPATCHER_DEBUG("building Gang: mirroring not configured");
 		disableFTS();
 	}
 
@@ -868,7 +863,7 @@ buildGangDefinition(GangType type, int gang_id, int size, int content)
 		Assert(false);
 	}
 
-	LOG_GANG_DEBUG(LOG, "buildGangDefinition done");
+	ELOG_DISPATCHER_DEBUG("buildGangDefinition done");
 	MemoryContextSwitchTo(GangContext);
 	return newGangDefinition;
 }
@@ -1207,7 +1202,7 @@ static Gang *getAvailableGang(GangType type, int size, int content)
 				Assert(gang->size == size);
 				if (gang->db_descriptors[0].segindex == content)
 				{
-					LOG_GANG_DEBUG(LOG, "reusing an available reader 1-gang for seg%d", content);
+					ELOG_DISPATCHER_DEBUG("reusing an available reader 1-gang for seg%d", content);
 					retGang = gang;
 					availableReaderGangs1 = list_delete_cell(availableReaderGangs1, cell, prevcell);
 					break;
@@ -1220,7 +1215,7 @@ static Gang *getAvailableGang(GangType type, int size, int content)
 	case GANGTYPE_PRIMARY_READER:
 		if (availableReaderGangsN != NULL) /* There are gangs already created */
 		{
-			LOG_GANG_DEBUG(LOG, "Reusing an available reader N-gang");
+			ELOG_DISPATCHER_DEBUG("Reusing an available reader N-gang");
 
 			retGang = linitial(availableReaderGangsN);
 			Assert(retGang != NULL);
@@ -1325,7 +1320,7 @@ findGangById(int gang_id)
 	}
 	else
 	{
-		LOG_GANG_DEBUG(LOG, "could not find segworker group %d", gang_id);
+		ELOG_DISPATCHER_DEBUG("could not find segworker group %d", gang_id);
 	}
 
 	return NULL;
@@ -1383,8 +1378,7 @@ getCdbProcessList(Gang *gang, int sliceIndex, DirectDispatchInfo *directDispatch
 	List *list = NULL;
 	int i = 0;
 
-	Assert(gang != NULL);
-	LOG_GANG_DEBUG(LOG, "getCdbProcessList slice%d gangtype=%d gangsize=%d",
+	ELOG_DISPATCHER_DEBUG("getCdbProcessList slice%d gangtype=%d gangsize=%d",
 			sliceIndex, gang->type, gang->size);
 
 	Assert(Gp_role == GP_ROLE_DISPATCH);
@@ -1419,8 +1413,7 @@ getCdbProcessList(Gang *gang, int sliceIndex, DirectDispatchInfo *directDispatch
 			setQEIdentifier(segdbDesc, sliceIndex, gang->perGangContext);
 			list = lappend(list, process);
 
-			LOG_GANG_DEBUG(LOG,
-					"Gang assignment (gang_id %d): slice%d seg%d %s:%d pid=%d",
+			ELOG_DISPATCHER_DEBUG("Gang assignment (gang_id %d): slice%d seg%d %s:%d pid=%d",
 					gang->gang_id, sliceIndex, process->contentid,
 					process->listenerAddr, process->listenerPort, process->pid);
 		}
@@ -1494,11 +1487,10 @@ static disconnectAndDestroyGang(Gang *gp)
 	if (gp == NULL)
 		return;
 
-	LOG_GANG_DEBUG(LOG, "disconnectAndDestroyGang entered: id = %d", gp->gang_id);
+	ELOG_DISPATCHER_DEBUG("disconnectAndDestroyGang entered: id = %d", gp->gang_id);
 
 	if (gp->allocated)
-		LOG_GANG_DEBUG(LOG, "Warning: disconnectAndDestroyGang called on an allocated gang");
-
+		ELOG_DISPATCHER_DEBUG("Warning: disconnectAndDestroyGang called on an allocated gang");
 	/*
 	 * Loop through the segment_database_descriptors array and, for each
 	 * SegmentDatabaseDescriptor:
@@ -1516,7 +1508,7 @@ static disconnectAndDestroyGang(Gang *gp)
 
 	MemoryContextDelete(gp->perGangContext);
 
-	LOG_GANG_DEBUG(LOG, "disconnectAndDestroyGang done");
+	ELOG_DISPATCHER_DEBUG("disconnectAndDestroyGang done");
 }
 
 /*
@@ -1570,7 +1562,7 @@ void disconnectAndDestroyAllGangs(bool resetSession)
 	if (Gp_role == GP_ROLE_UTILITY)
 		return;
 
-	LOG_GANG_DEBUG(LOG, "disconnectAndDestroyAllGangs");
+	ELOG_DISPATCHER_DEBUG("disconnectAndDestroyAllGangs");
 
 	/* for now, destroy all readers, regardless of the portal that owns them */
 	disconnectAndDestroyAllReaderGangs(true);
@@ -1591,7 +1583,7 @@ void disconnectAndDestroyAllGangs(bool resetSession)
 		cdb_component_dbs = NULL;
 	}
 
-	LOG_GANG_DEBUG(LOG, "disconnectAndDestroyAllGangs done");
+	ELOG_DISPATCHER_DEBUG("disconnectAndDestroyAllGangs done");
 }
 
 /*
@@ -1602,11 +1594,11 @@ void disconnectAndDestroyAllGangs(bool resetSession)
  */
 void disconnectAndDestroyIdleReaderGangs(void)
 {
-	LOG_GANG_DEBUG(LOG, "disconnectAndDestroyIdleReaderGangs beginning");
+	ELOG_DISPATCHER_DEBUG("disconnectAndDestroyIdleReaderGangs beginning");
 
 	disconnectAndDestroyAllReaderGangs(false);
 
-	LOG_GANG_DEBUG(LOG, "disconnectAndDestroyIdleReaderGangs done");
+	ELOG_DISPATCHER_DEBUG("disconnectAndDestroyIdleReaderGangs done");
 
 	return;
 }
@@ -1624,11 +1616,8 @@ static bool cleanupGang(Gang *gp)
 {
 	int i = 0;
 
-	if (gp == NULL)
-		return true;
-
-	LOG_GANG_DEBUG(LOG,
-			"cleanupGang: cleaning gang id %d type %d size %d, was used for portal: %s",
+	ELOG_DISPATCHER_DEBUG("cleanupGang: cleaning gang id %d type %d size %d, "
+			"was used for portal: %s",
 			gp->gang_id, gp->type, gp->size,
 			(gp->portal_name ? gp->portal_name : "(unnamed)"));
 
@@ -1636,7 +1625,7 @@ static bool cleanupGang(Gang *gp)
 		return false;
 
 	if (gp->allocated)
-		LOG_GANG_DEBUG(LOG, "cleanupGang called on a gang that is allocated");
+		ELOG_DISPATCHER_DEBUG("cleanupGang called on a gang that is allocated");
 
 	/*
 	 * if the process is in the middle of blowing up... then we don't do
@@ -1676,7 +1665,7 @@ static bool cleanupGang(Gang *gp)
 
 	gp->allocated = false;
 
-	LOG_GANG_DEBUG(LOG, "cleanupGang done");
+	ELOG_DISPATCHER_DEBUG("cleanupGang done");
 	return true;
 }
 
@@ -1779,12 +1768,12 @@ void cleanupPortalGangs(Portal portal)
 	if (portal->name && strcmp(portal->name, "") != 0)
 	{
 		portal_name = portal->name;
-		LOG_GANG_DEBUG(LOG, "cleanupPortalGangs %s", portal_name);
+		ELOG_DISPATCHER_DEBUG("cleanupPortalGangs %s", portal_name);
 	}
 	else
 	{
 		portal_name = NULL;
-		LOG_GANG_DEBUG(LOG, "cleanupPortalGangs (unamed portal)");
+		ELOG_DISPATCHER_DEBUG("cleanupPortalGangs (unamed portal)");
 	}
 
 	if (GangContext)
@@ -1795,7 +1784,7 @@ void cleanupPortalGangs(Portal portal)
 	availableReaderGangsN = cleanupPortalGangList(availableReaderGangsN, gp_cached_gang_threshold);
 	availableReaderGangs1 = cleanupPortalGangList(availableReaderGangs1, MAX_CACHED_1_GANGS);
 
-	LOG_GANG_DEBUG(LOG, "cleanupPortalGangs '%s'. Reader gang inventory: "
+	ELOG_DISPATCHER_DEBUG("cleanupPortalGangs '%s'. Reader gang inventory: "
 			"allocatedN=%d availableN=%d allocated1=%d available1=%d",
 			(portal_name ? portal_name : "unnamed portal"),
 			list_length(allocatedReaderGangsN),
@@ -1850,7 +1839,7 @@ void freeGangsForPortal(char *portal_name)
 	 * and we free all the gangs that belong to the portal that
 	 * was specified by our caller.
 	 */
-	LOG_GANG_DEBUG(LOG, "freeGangsForPortal '%s'. Reader gang inventory: "
+	ELOG_DISPATCHER_DEBUG("freeGangsForPortal '%s'. Reader gang inventory: "
 			"allocatedN=%d availableN=%d allocated1=%d available1=%d",
 			(portal_name ? portal_name : "unnamed portal"),
 			list_length(allocatedReaderGangsN),
@@ -1869,7 +1858,7 @@ void freeGangsForPortal(char *portal_name)
 
 		if (isTargetPortal(gp->portal_name, portal_name))
 		{
-			LOG_GANG_DEBUG(LOG, "Returning a reader N-gang to the available list");
+			ELOG_DISPATCHER_DEBUG("Returning a reader N-gang to the available list");
 
 			/* cur_item must be removed */
 			allocatedReaderGangsN = list_delete_cell(allocatedReaderGangsN,
@@ -1885,7 +1874,7 @@ void freeGangsForPortal(char *portal_name)
 		}
 		else
 		{
-			LOG_GANG_DEBUG(LOG, "Skipping the release of a reader N-gang. It is used by another portal");
+			ELOG_DISPATCHER_DEBUG("Skipping the release of a reader N-gang. It is used by another portal");
 
 			/* cur_item must be preserved */
 			prev_item = cur_item;
@@ -1902,7 +1891,7 @@ void freeGangsForPortal(char *portal_name)
 
 		if (isTargetPortal(gp->portal_name, portal_name))
 		{
-			LOG_GANG_DEBUG(LOG, "Returning a reader 1-gang to the available list");
+			ELOG_DISPATCHER_DEBUG("Returning a reader 1-gang to the available list");
 
 			/* cur_item must be removed */
 			allocatedReaderGangs1 = list_delete_cell(allocatedReaderGangs1,
@@ -1918,7 +1907,7 @@ void freeGangsForPortal(char *portal_name)
 		}
 		else
 		{
-			LOG_GANG_DEBUG(LOG, "Skipping the release of a reader 1-gang. It is used by another portal");
+			ELOG_DISPATCHER_DEBUG("Skipping the release of a reader 1-gang. It is used by another portal");
 
 			/* cur_item must be preserved */
 			prev_item = cur_item;
@@ -1928,8 +1917,7 @@ void freeGangsForPortal(char *portal_name)
 
 	MemoryContextSwitchTo(oldContext);
 
-	LOG_GANG_DEBUG(LOG,
-			"Gangs released for portal '%s'. Reader gang inventory: "
+	ELOG_DISPATCHER_DEBUG("Gangs released for portal '%s'. Reader gang inventory: "
 					"allocatedN=%d availableN=%d allocated1=%d available1=%d",
 			(portal_name ? portal_name : "unnamed portal"),
 			list_length(allocatedReaderGangsN),
