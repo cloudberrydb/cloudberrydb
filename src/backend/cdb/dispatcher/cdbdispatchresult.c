@@ -887,11 +887,11 @@ cdbdisp_checkResultsErrcode(struct CdbDispatchResults *meleeResults)
  * memory context.
  */
 CdbDispatchResults *
-cdbdisp_makeDispatchResults(int resultCapacity,
-                            int sliceCapacity,
+cdbdisp_makeDispatchResults(int sliceCapacity,
                             bool cancelOnError)
 {
     CdbDispatchResults *results = palloc0(sizeof(*results));
+    int resultCapacity = largestGangsize() * sliceCapacity;
     int nbytes = resultCapacity * sizeof(results->resultArray[0]);
 
     results->resultArray = palloc0(nbytes);

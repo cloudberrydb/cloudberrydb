@@ -511,7 +511,6 @@ cdbdisp_dispatchCommand(const char *strCommand,
 {
 	DispatchCommandQueryParms queryParms;
 	Gang *primaryGang;
-	int	nsegdb = getgpsegmentCount();
 	CdbComponentDatabaseInfo *qdinfo;
 
 	if (log_dispatch_stats)
@@ -560,7 +559,7 @@ cdbdisp_dispatchCommand(const char *strCommand,
 	 */
 	ds->primaryResults = NULL;
 	ds->dispatchThreads = NULL;
-	cdbdisp_makeDispatcherState(ds, nsegdb, 0, cancelOnError);
+	cdbdisp_makeDispatcherState(ds, /*slice count*/1, cancelOnError);
 	cdbdisp_queryParmsInit(ds, &queryParms);
 	ds->primaryResults->writer_gang = primaryGang;
 
@@ -1272,7 +1271,7 @@ cdbdisp_dispatchX(DispatchCommandQueryParms *pQueryParms,
 	ds->primaryResults = NULL;
 	ds->dispatchThreads = NULL;
 
-	cdbdisp_makeDispatcherState(ds, nSlices * largestGangsize(), nSlices, cancelOnError);
+	cdbdisp_makeDispatcherState(ds, nSlices, cancelOnError);
 	cdbdisp_queryParmsInit(ds, pQueryParms);
 
 	cdb_total_plans++;
@@ -1441,7 +1440,6 @@ cdbdisp_dispatchSetCommandToAllGangs(const char *strCommand,
 	List *allocatedReaderGangs;
 	ListCell *le;
 
-	int nsegdb = getgpsegmentCount();
 	int	gangCount;
 
 	MemSet(&queryParms, 0, sizeof(queryParms));
@@ -1478,7 +1476,7 @@ cdbdisp_dispatchSetCommandToAllGangs(const char *strCommand,
 
 	ds->primaryResults = NULL;
 	ds->dispatchThreads = NULL;
-	cdbdisp_makeDispatcherState(ds, nsegdb * gangCount, gangCount, cancelOnError);
+	cdbdisp_makeDispatcherState(ds, gangCount, cancelOnError);
 	cdbdisp_queryParmsInit(ds, &queryParms);
 	ds->primaryResults->writer_gang = primaryGang;
 

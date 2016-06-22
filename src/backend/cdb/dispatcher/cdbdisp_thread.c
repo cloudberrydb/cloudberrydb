@@ -394,15 +394,7 @@ CdbDispatchCmdThreads *
 cdbdisp_makeDispatchThreads(int maxSlices)
 {
 	int	maxThreadsPerGang = getMaxThreadsPerGang();
-
-	/*
-	 * the maximum number of command parameter blocks we'll possibly need is
-	 * * one for each slice on the primary gang. Max sure that we
-	 * * have enough -- once we've created the command block we're stuck with it
-	 * * for the duration of this statement (including CDB-DTM ).
-	 * * X 2 for good measure ?
-	 */
-	int	maxThreads = maxThreadsPerGang * 4 * Max(maxSlices, 5);
+	int	maxThreads = maxThreadsPerGang * maxSlices;
 
 	int	maxConn = gp_connections_per_thread;
 	int	size = 0;

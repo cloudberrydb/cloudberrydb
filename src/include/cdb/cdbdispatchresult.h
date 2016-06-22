@@ -316,8 +316,7 @@ cdbdisp_checkResultsErrcode(struct CdbDispatchResults *meeleResults);
  * memory context.
  */
 CdbDispatchResults *
-cdbdisp_makeDispatchResults(int resultCapacity,
-							int sliceCapacity,
+cdbdisp_makeDispatchResults(int sliceCapacity,
 							bool cancelOnError);
 
 #endif   /* CDBDISPATCHRESULT_H */

@@ -88,7 +88,6 @@ cdbdisp_dispatchDtxProtocolCommand(DtxProtocolCommand dtxProtocolCommand,
 
 	DispatchCommandDtxProtocolParms dtxProtocolParms;
 	Gang *primaryGang;
-	int	nsegdb = getgpsegmentCount();
 
 	elog((Debug_print_full_dtm ? LOG : DEBUG5),
 		 "cdbdisp_dispatchDtxProtocolCommand: %s for gid = %s, direct content #: %d",
@@ -125,7 +124,7 @@ cdbdisp_dispatchDtxProtocolCommand(DtxProtocolCommand dtxProtocolCommand,
 	/*
 	 * Dispatch the command.
 	 */
-	cdbdisp_makeDispatcherState(&ds, nsegdb, 0, /* cancelOnError */ false);
+	cdbdisp_makeDispatcherState(&ds, /* slice count */1, /* cancelOnError */ false);
 	cdbdisp_dtxParmsInit(&ds, &dtxProtocolParms);
 	ds.primaryResults->writer_gang = primaryGang;
 

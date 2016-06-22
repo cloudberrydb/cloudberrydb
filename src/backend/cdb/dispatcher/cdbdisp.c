@@ -318,12 +318,12 @@ cdbdisp_handleError(struct CdbDispatcherState *ds)
  *
  * Call cdbdisp_destroyDispatcherState to free it.
  *
- *	 maxResults: max number of results, normally equals to max number of QEs.
  *	 maxSlices: max number of slices of the query/command.
  */
 void
-cdbdisp_makeDispatcherState(CdbDispatcherState * ds, int maxResults,
-							int maxSlices, bool cancelOnError)
+cdbdisp_makeDispatcherState(CdbDispatcherState * ds,
+							int maxSlices,
+							bool cancelOnError)
 {
 	MemoryContext oldContext = NULL;
 
@@ -339,8 +339,7 @@ cdbdisp_makeDispatcherState(CdbDispatcherState * ds, int maxResults,
 													 ALLOCSET_DEFAULT_MAXSIZE);
 
 	oldContext = MemoryContextSwitchTo(ds->dispatchStateContext);
-	ds->primaryResults = cdbdisp_makeDispatchResults(maxResults,
-													 maxSlices,
+	ds->primaryResults = cdbdisp_makeDispatchResults(maxSlices,
 													 cancelOnError);
 	ds->dispatchThreads = cdbdisp_makeDispatchThreads(maxSlices);
 	MemoryContextSwitchTo(oldContext);
