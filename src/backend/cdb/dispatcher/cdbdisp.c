@@ -30,6 +30,7 @@ CdbDispatchDirectDesc default_dispatch_direct_desc = { false, 0, {0}};
 
 static void cdbdisp_clearGangActiveFlag(CdbDispatcherState *ds);
 
+DispatcherInternalFuncs *pDispatchFuncs = &ThreadedFuncs;
 /*
  * cdbdisp_dispatchToGang:
  * Send the strCommand SQL statement to the subset of all segdbs in the cluster
@@ -94,7 +95,7 @@ cdbdisp_dispatchToGang(struct CdbDispatcherState *ds,
 	 * WIP: will use a function pointer for implementation later, currently just use an internal function to move dispatch
 	 * thread related code into a separate file.
 	 */
-	cdbdisp_dispatchToGang_internal(ds, gp, sliceIndex, disp_direct);
+	(pDispatchFuncs->dispatchToGang)(ds, gp, sliceIndex, disp_direct);
 }
 
 /*
@@ -111,7 +112,7 @@ CdbCheckDispatchResult(struct CdbDispatcherState *ds,
 {
 	PG_TRY();
 	{
-		CdbCheckDispatchResult_internal(ds, waitMode);
+		(pDispatchFuncs->checkResults)(ds, waitMode);
 	}
 	PG_CATCH();
 	{
@@ -323,25 +324,28 @@ cdbdisp_handleError(struct CdbDispatcherState *ds)
 void
 cdbdisp_makeDispatcherState(CdbDispatcherState *ds,
 							int maxSlices,
-							bool cancelOnError)
+							bool cancelOnError,
+							char *queryText,
+							int queryTextLen)
 {
 	MemoryContext oldContext = NULL;
 
 	Assert(ds != NULL);
 	Assert(ds->dispatchStateContext == NULL);
-	Assert(ds->dispatchThreads == NULL);
+	Assert(ds->dispatchParams == NULL);
 	Assert(ds->primaryResults == NULL);
 
-	ds->dispatchStateContext = AllocSetContextCreate(TopMemoryContext,
-													 "Dispatch Context",
-													 ALLOCSET_DEFAULT_MINSIZE,
-													 ALLOCSET_DEFAULT_INITSIZE,
-													 ALLOCSET_DEFAULT_MAXSIZE);
+	if (ds->dispatchStateContext == NULL)
+		ds->dispatchStateContext = AllocSetContextCreate(TopMemoryContext,
+														 "Dispatch Context",
+														 ALLOCSET_DEFAULT_MINSIZE,
+														 ALLOCSET_DEFAULT_INITSIZE,
+														 ALLOCSET_DEFAULT_MAXSIZE);
 
 	oldContext = MemoryContextSwitchTo(ds->dispatchStateContext);
-	ds->primaryResults = cdbdisp_makeDispatchResults(maxSlices,
-													 cancelOnError);
-	ds->dispatchThreads = cdbdisp_makeDispatchThreads(maxSlices);
+	ds->primaryResults = cdbdisp_makeDispatchResults(maxSlices, cancelOnError);
+	ds->dispatchParams = (pDispatchFuncs->makeDispatchParams)(maxSlices, queryText, queryTextLen);
+
 	MemoryContextSwitchTo(oldContext);
 }
 
@@ -374,7 +378,7 @@ cdbdisp_destroyDispatcherState(CdbDispatcherState *ds)
 	}
 
 	ds->dispatchStateContext = NULL;
-	ds->dispatchThreads = NULL;
+	ds->dispatchParams = NULL;
 	ds->primaryResults = NULL;
 }
 
@@ -389,4 +393,17 @@ cdbdisp_clearGangActiveFlag(CdbDispatcherState *ds)
 	{
 		ds->primaryResults->writer_gang->dispatcherActive = false;
 	}
+}
+
+bool cdbdisp_checkForCancel(CdbDispatcherState * ds)
+{
+	if (pDispatchFuncs == NULL || pDispatchFuncs->checkForCancel == NULL)
+		return false;
+	return (pDispatchFuncs->checkForCancel)(ds);
+}
+
+void cdbdisp_onProcExit(void)
+{
+	if (pDispatchFuncs != NULL && pDispatchFuncs->procExitCallBack != NULL)
+		(pDispatchFuncs->procExitCallBack)();
 }

@@ -41,6 +41,68 @@
 #define DISPATCH_WAIT_TIMEOUT_SEC 2
 
 
+
+/*
+ * Parameter structure for the DispatchCommand threads
+ */
+typedef struct DispatchCommandParms
+{
+	/*
+	 * Text information to dispatch:
+	 * The format is type(1 byte) + length(size of int) + content(n bytes)
+	 *
+	 * For DTX command, type is 'T', it's built by function buildGpDtxProtocolCommand.
+	 * For query, type is 'M', it's built by function buildGpQueryString.
+	 */
+	char *query_text;
+	int	query_text_len;
+
+	/*
+	 * db_count: The number of segdbs that this thread is responsible
+	 * for dispatching the command to.
+	 * Equals the count of segdbDescPtrArray below.
+	 */
+	int	db_count;
+
+
+	/*
+	 * dispatchResultPtrArray: Array[0..db_count-1] of CdbDispatchResult*
+	 * Each CdbDispatchResult object points to a SegmentDatabaseDescriptor
+	 * that this thread is responsible for dispatching the command to.
+	 */
+	struct CdbDispatchResult **dispatchResultPtrArray;
+
+	/*
+	 * Depending on this mode, we may send query cancel or query finish
+	 * message to QE while we are waiting it to complete.  NONE means
+	 * we expect QE to complete without any instruction.
+	 */
+	volatile DispatchWaitMode waitMode;
+
+	/*
+	 * pollfd supports for libpq
+	 */
+	int	nfds;
+	struct pollfd *fds;
+
+	/*
+	 * The pthread_t thread handle.
+	 */
+	pthread_t thread;
+	bool thread_valid;
+
+} DispatchCommandParms;
+
+/*
+ * Keeps state of all the dispatch command threads.
+ */
+typedef struct CdbDispatchCmdThreads
+{
+	struct DispatchCommandParms *dispatchCommandParmsAr;
+	int	dispatchCommandParmsArSize;
+	int	threadCount;
+}   CdbDispatchCmdThreads;
+
 /*
  * Counter to indicate there are some dispatch threads running. This will
  * be incremented at the beginning of dispatch threads and decremented at
@@ -76,6 +138,33 @@ static void handlePollSuccess(DispatchCommandParms* pParms);
 static void
 DecrementRunningCount(void *arg);
 
+static void
+cdbdisp_waitThreads(void);
+
+static bool
+cdbdisp_shouldCancel(struct CdbDispatcherState *ds);
+
+static void *
+cdbdisp_makeDispatchThreads(int maxSlices, char *queryText, int queryTextLen);
+
+static void
+CdbCheckDispatchResult_internal(struct CdbDispatcherState *ds,
+								DispatchWaitMode waitMode);
+
+static void
+cdbdisp_dispatchToGang_internal(struct CdbDispatcherState *ds,
+								struct Gang *gp,
+								int sliceIndex,
+								CdbDispatchDirectDesc * dispDirect);
+
+DispatcherInternalFuncs ThreadedFuncs =
+{
+    cdbdisp_waitThreads,
+	cdbdisp_shouldCancel,
+	cdbdisp_makeDispatchThreads,
+	CdbCheckDispatchResult_internal,
+	cdbdisp_dispatchToGang_internal
+};
 
 /*
  * Initialize dispatcher thread parameters.
@@ -88,9 +177,13 @@ cdbdisp_initDispatchParmsForGang(struct CdbDispatcherState* ds,
 								 int sliceIndex,
 								 CdbDispatchDirectDesc* disp_direct)
 {
+	CdbDispatchCmdThreads *pThreads = NULL;
 	int segdbsToDispatch = 0;
 	int i = 0;
 
+
+	Assert(ds->dispatchParams != NULL);
+	pThreads = (CdbDispatchCmdThreads*)ds->dispatchParams;
     /*
      * Create the thread parms structures based targetSet parameter.
      * This will add the segdbDesc pointers appropriate to the
@@ -128,8 +221,7 @@ cdbdisp_initDispatchParmsForGang(struct CdbDispatcherState* ds,
 		}
 
 		parmsIndex = segdbsToDispatch / gp_connections_per_thread;
-		pParms = ds->dispatchThreads->dispatchCommandParmsAr
-				+ ds->dispatchThreads->threadCount + parmsIndex;
+		pParms = pThreads->dispatchCommandParmsAr + pThreads->threadCount + parmsIndex;
 		pParms->dispatchResultPtrArray[pParms->db_count++] = qeResult;
 		/*
 		 * This CdbDispatchResult/SegmentDatabaseDescriptor pair will be
@@ -157,7 +249,8 @@ cdbdisp_dispatchToGang_internal(struct CdbDispatcherState *ds,
 								CdbDispatchDirectDesc * disp_direct)
 {
 	int	i = 0;
-	int threadStartIndex = ds->dispatchThreads->threadCount;
+	CdbDispatchCmdThreads *pThreads = (CdbDispatchCmdThreads*)ds->dispatchParams;
+	int threadStartIndex = pThreads->threadCount;
 	int newThreads = cdbdisp_initDispatchParmsForGang(ds, gp, sliceIndex, disp_direct);
 
 	/*
@@ -166,7 +259,7 @@ cdbdisp_dispatchToGang_internal(struct CdbDispatcherState *ds,
 	for (i = 0; i < newThreads; i++)
 	{
 		int pthread_err = 0;
-		DispatchCommandParms *pParms = ds->dispatchThreads->dispatchCommandParmsAr + threadStartIndex + i;
+		DispatchCommandParms *pParms = pThreads->dispatchCommandParmsAr + threadStartIndex + i;
 		Assert(pParms != NULL);
 
 		pParms->thread_valid = true;
@@ -190,7 +283,7 @@ cdbdisp_dispatchToGang_internal(struct CdbDispatcherState *ds,
 			{
 				DispatchCommandParms *pParms;
 
-				pParms = &ds->dispatchThreads->dispatchCommandParmsAr[j];
+				pParms = &pThreads->dispatchCommandParmsAr[j];
 
 				pParms->waitMode = DISPATCH_WAIT_CANCEL;
 				pParms->thread_valid = false;
@@ -201,26 +294,27 @@ cdbdisp_dispatchToGang_internal(struct CdbDispatcherState *ds,
 						    errmsg("could not create thread %d of %d", i + 1, newThreads),
 							errdetail ("pthread_create() failed with err %d", pthread_err)));
 		}
-		ds->dispatchThreads->threadCount++;
+		pThreads->threadCount++;
 	}
 
-	ELOG_DISPATCHER_DEBUG("dispatchToGang: Total threads now %d", ds->dispatchThreads->threadCount);
+	ELOG_DISPATCHER_DEBUG("dispatchToGang: Total threads now %d", pThreads->threadCount);
 }
 
 void
 CdbCheckDispatchResult_internal(struct CdbDispatcherState *ds,
 								DispatchWaitMode waitMode)
 {
+	CdbDispatchCmdThreads *pThreads = NULL;
 	int	i;
 	int	j;
-	DispatchCommandParms *pParms;
+	int threadCount;
 
 	Assert(ds != NULL);
-
+	pThreads = (CdbDispatchCmdThreads*)ds->dispatchParams;
 	/*
 	 * No-op if no work was dispatched since the last time we were called.
 	 */
-	if (!ds->dispatchThreads || ds->dispatchThreads->threadCount == 0)
+	if (pThreads == NULL || pThreads->threadCount == 0)
 	{
 		ELOG_DISPATCHER_DEBUG("CheckDispatchResult: no threads active");
 		return;
@@ -229,17 +323,18 @@ CdbCheckDispatchResult_internal(struct CdbDispatcherState *ds,
 	/*
 	 * Wait for threads to finish.
 	 */
-	for (i = 0; i < ds->dispatchThreads->threadCount; i++)
+
+	threadCount = pThreads->threadCount;
+	for (i = 0; i < threadCount; i++)
 	{
-		pParms = &ds->dispatchThreads->dispatchCommandParmsAr[i];
+		DispatchCommandParms *pParms = &pThreads->dispatchCommandParmsAr[i];
 		Assert(pParms != NULL);
 
 		/* Don't overwrite DISPATCH_WAIT_CANCEL or DISPATCH_WAIT_FINISH with DISPATCH_WAIT_NONE */
 		if (waitMode != DISPATCH_WAIT_NONE)
 			pParms->waitMode = waitMode;
 
-		ELOG_DISPATCHER_DEBUG("CheckDispatchResult: Joining to thread %d of %d",
-				i + 1, ds->dispatchThreads->threadCount);
+		ELOG_DISPATCHER_DEBUG("CheckDispatchResult: Joining to thread %d of %d", i + 1, threadCount);
 
 		if (pParms->thread_valid)
 		{
@@ -255,7 +350,7 @@ CdbCheckDispatchResult_internal(struct CdbDispatcherState *ds,
 #else
 					(unsigned long) pParms->thread.p,
 #endif
-					ds->dispatchThreads->threadCount, pthread_err,
+					pThreads->threadCount, pthread_err,
 					(unsigned long) mythread());
 		}
 
@@ -276,12 +371,11 @@ CdbCheckDispatchResult_internal(struct CdbDispatcherState *ds,
 				cdbdisp_debugDispatchResult(dispatchResult);
 			}
 		}
+
+		pThreads->threadCount--;
 	}
 
-	/*
-	 * reset thread state (will be destroyed later on in finishCommand)
-	 */
-	ds->dispatchThreads->threadCount = 0;
+	Assert(pThreads->threadCount == 0);
 
 	/*
 	 * It looks like everything went fine, make sure we don't miss a
@@ -336,8 +430,8 @@ cdbdisp_waitThreads(void)
  * Will be freed in function cdbdisp_destroyDispatcherState by deleting the
  * memory context.
  */
-CdbDispatchCmdThreads *
-cdbdisp_makeDispatchThreads(int maxSlices)
+void *
+cdbdisp_makeDispatchThreads(int maxSlices, char *queryText, int queryTextLen)
 {
 	int	maxThreadsPerGang = getMaxThreadsPerGang();
 	int	maxThreads = maxThreadsPerGang * maxSlices;
@@ -364,9 +458,11 @@ cdbdisp_makeDispatchThreads(int maxSlices)
 
 		size = sizeof(struct pollfd) * maxConn;
 		pParms->fds = (struct pollfd *) palloc0(size);
+		pParms->query_text = queryText;
+		pParms->query_text_len = queryTextLen;
 	}
 
-	return dThreads;
+	return (void*)dThreads;
 }
 
 /*
@@ -1110,4 +1206,11 @@ cdbdisp_signalQE(SegmentDatabaseDescriptor *segdbDesc,
 	PQfreeCancel(cn);
 
 	return (ret != 0 ? waitMode : DISPATCH_WAIT_NONE);
+}
+
+static bool
+cdbdisp_shouldCancel(struct CdbDispatcherState *ds)
+{
+	Assert(ds);
+	return cdbdisp_checkResultsErrcode(ds->primaryResults);
 }

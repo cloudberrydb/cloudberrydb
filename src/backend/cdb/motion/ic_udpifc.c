@@ -40,7 +40,7 @@
 #include "cdb/tupchunklist.h"
 #include "cdb/ml_ipc.h"
 #include "cdb/cdbvars.h"
-#include "cdb/cdbdisp_query.h"
+#include "cdb/cdbdisp.h"
 #include "cdb/cdbdispatchresult.h"
 #include "cdb/cdbicudpfaultinjection.h"
 
@@ -3209,9 +3209,8 @@ checkForCancelFromQD(ChunkTransportState *pTransportStates)
 	Assert(Gp_role == GP_ROLE_DISPATCH);
 	Assert(pTransportStates);
 	Assert(pTransportStates->estate);
-	Assert(pTransportStates->estate->dispatcherState);
 
-	if (cdbdisp_checkResultsErrcode(pTransportStates->estate->dispatcherState->primaryResults))
+	if (cdbdisp_checkForCancel(pTransportStates->estate->dispatcherState))
 	{
 		ereport(ERROR, (errcode(ERRCODE_GP_INTERCONNECTION_ERROR),
 						errmsg(CDB_MOTION_LOST_CONTACT_STRING)));

@@ -43,10 +43,19 @@ extern CdbDispatchDirectDesc default_dispatch_direct_desc;
 typedef struct CdbDispatcherState
 {
 	struct CdbDispatchResults *primaryResults;
-	struct CdbDispatchCmdThreads *dispatchThreads;
+	void *dispatchParams;
 	MemoryContext dispatchStateContext;
 } CdbDispatcherState;
 
+typedef struct DispatcherInternalFuncs
+{
+	void (*procExitCallBack)(void);
+	bool (*checkForCancel)(struct CdbDispatcherState *ds);
+	void* (*makeDispatchParams)(int maxSlices, char *queryText, int queryTextLen);
+	void (*checkResults)(struct CdbDispatcherState *ds, DispatchWaitMode waitMode);
+	void (*dispatchToGang)(struct CdbDispatcherState *ds, struct Gang *gp,
+			int sliceIndex, CdbDispatchDirectDesc *direct);
+}DispatcherInternalFuncs;
 /*--------------------------------------------------------------------*/
 /*
  * cdbdisp_dispatchToGang:
@@ -134,7 +143,9 @@ cdbdisp_handleError(struct CdbDispatcherState *ds);
 void
 cdbdisp_makeDispatcherState(CdbDispatcherState *ds,
 							int maxSlices,
-							bool cancelOnError);
+							bool cancelOnError,
+							char *queryText,
+							int queryTextLen);
 
 /*
  * Free memory in CdbDispatcherState
@@ -143,5 +154,10 @@ cdbdisp_makeDispatcherState(CdbDispatcherState *ds,
  * Free dispatcher memory context.
  */
 void cdbdisp_destroyDispatcherState(CdbDispatcherState *ds);
+
+bool cdbdisp_checkForCancel(CdbDispatcherState * ds);
+
+void cdbdisp_onProcExit(void);
+
 
 #endif   /* CDBDISP_H */
