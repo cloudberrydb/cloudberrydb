@@ -5,6 +5,7 @@ inputs:
   - name: bin_gpos_release
   - name: bin_gpos_debug
   - name: bin_gpos_osx_release
+  - name: bin_gpos_osx_debug
 outputs:
   - name: gpos_github_release_stage
 run:
