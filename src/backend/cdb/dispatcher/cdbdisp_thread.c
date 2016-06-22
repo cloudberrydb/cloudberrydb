@@ -217,7 +217,6 @@ CdbCheckDispatchResult_internal(struct CdbDispatcherState *ds,
 	int	i;
 	int	j;
 	DispatchCommandParms *pParms;
-	CdbDispatchResult *dispatchResult;
 
 	Assert(ds != NULL);
 
@@ -271,34 +270,13 @@ CdbCheckDispatchResult_internal(struct CdbDispatcherState *ds,
 		 * Examine the CdbDispatchResult objects containing the results
 		 * from this thread's QEs.
 		 */
-		for (j = 0; j < pParms->db_count; j++)
+		if (gp_log_gang >= GPVARS_VERBOSITY_DEBUG)
 		{
-			dispatchResult = pParms->dispatchResultPtrArray[j];
-
-			if (dispatchResult == NULL)
+			for (j = 0; j < pParms->db_count; j++)
 			{
-				elog(LOG, "CheckDispatchResult: result object is NULL ? skipping.");
-				continue;
+				CdbDispatchResult *dispatchResult = pParms->dispatchResultPtrArray[j];
+				cdbdisp_debugDispatchResult(dispatchResult);
 			}
-
-			if (dispatchResult->segdbDesc == NULL)
-			{
-				elog(LOG, "CheckDispatchResult: result object segment descriptor is NULL ? skipping.");
-				continue;
-			}
-
-			/*
-			 * Log the result
-			 */
-			if (DEBUG2 >= log_min_messages)
-				cdbdisp_debugDispatchResult(dispatchResult, DEBUG2, DEBUG3);
-
-			/*
-			 * Zap our SegmentDatabaseDescriptor ptr because it may be
-			 * invalidated by the call to FtsHandleNetFailure() below.
-			 * Anything we need from there, we should get before this.
-			 */
-			dispatchResult->segdbDesc = NULL;
 		}
 	}
 

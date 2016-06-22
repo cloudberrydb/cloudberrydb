@@ -393,21 +393,12 @@ cdbdisp_numPGresult(CdbDispatchResult *dispatchResult)
  * Call only from main thread, during or after cdbdisp_checkDispatchResults.
  */
 void
-cdbdisp_debugDispatchResult(CdbDispatchResult *dispatchResult,
-							int elevel_error, int elevel_success)
+cdbdisp_debugDispatchResult(CdbDispatchResult * dispatchResult)
 {
-	char esqlstate[8];
 	int	ires;
 	int	nres;
 
-	/*
-	 * Skip if user has messages turned off.
-	 */
-	if (elevel_error < log_min_messages && elevel_success < log_min_messages)
-		return;
-
-	if (dispatchResult == NULL)
-		return;
+	Assert (dispatchResult != NULL);
 
 	/*
 	 * PGresult messages
@@ -422,9 +413,6 @@ cdbdisp_debugDispatchResult(CdbDispatchResult *dispatchResult,
 		if (!whoami)
 			whoami = "no process id";
 
-		/*
-		 * QE success
-		 */
 		if (resultStatus == PGRES_COMMAND_OK ||
 			resultStatus == PGRES_TUPLES_OK ||
 			resultStatus == PGRES_COPY_IN ||
@@ -433,18 +421,17 @@ cdbdisp_debugDispatchResult(CdbDispatchResult *dispatchResult,
 		{
 			char *cmdStatus = PQcmdStatus(pgresult);
 
-			elog(elevel_success, "DispatchResult: ok %s (%s)",
+			elog(LOG, "DispatchResult from %s: ok %s (%s)",
+				 dispatchResult->segdbDesc->whoami,
 				 cmdStatus ? cmdStatus : "(no cmdStatus)", whoami);
 		}
-
-		/*
-		 * QE error or libpq error
-		 */
 		else
 		{
 			char *sqlstate = PQresultErrorField(pgresult, PG_DIAG_SQLSTATE);
 			char *pri = PQresultErrorField(pgresult, PG_DIAG_MESSAGE_PRIMARY);
 			char *dtl = PQresultErrorField(pgresult, PG_DIAG_MESSAGE_DETAIL);
+			char *sourceFile = PQresultErrorField(pgresult, PG_DIAG_SOURCE_FILE);
+			char *sourceLine = PQresultErrorField(pgresult, PG_DIAG_SOURCE_LINE);
 			int	lenpri = (pri == NULL) ? 0 : strlen(pri);
 
 			if (!sqlstate)
@@ -453,12 +440,17 @@ cdbdisp_debugDispatchResult(CdbDispatchResult *dispatchResult,
 			while (lenpri > 0 && pri[lenpri - 1] <= ' ' && pri[lenpri - 1] > '\0')
 				lenpri--;
 
-			ereport(elevel_error,
-					(errmsg("DispatchResult: (%s) %s %.*s (%s)", sqlstate,
-							PQresStatus(PQresultStatus (pgresult)),
-							lenpri, pri ? pri : "", whoami),
-					 errdetail("(%s:%s) %s", PQresultErrorField(pgresult, PG_DIAG_SOURCE_FILE),
-							   PQresultErrorField(pgresult, PG_DIAG_SOURCE_LINE), dtl ? dtl : "")));
+			ereport(LOG,
+					(errmsg("DispatchResult from %s: error (%s) %s %.*s (%s)",
+							dispatchResult->segdbDesc->whoami,
+							sqlstate,
+							PQresStatus(resultStatus),
+							lenpri,
+							pri ? pri : "", whoami),
+					 errdetail("(%s:%s) %s",
+							 sourceFile ? sourceFile : "unknown file",
+							 sourceLine ? sourceLine : "unknown line",
+							 dtl ? dtl : "")));
 		}
 	}
 
@@ -468,31 +460,20 @@ cdbdisp_debugDispatchResult(CdbDispatchResult *dispatchResult,
 	if (dispatchResult->error_message &&
 		dispatchResult->error_message->len > 0)
 	{
+		char esqlstate[6];
 		errcode_to_sqlstate(dispatchResult->errcode, esqlstate);
-		elog(elevel_error, "DispatchResult: (%s) %s",
+		elog(LOG, "DispatchResult from %s: connect error (%s) %s",
+			 dispatchResult->segdbDesc->whoami,
 			 esqlstate, dispatchResult->error_message->data);
-	}
-
-	/*
-	 * Connection error?
-	 */
-	if (dispatchResult->segdbDesc &&
-		dispatchResult->segdbDesc->error_message.len > 0)
-	{
-		errcode_to_sqlstate(dispatchResult->segdbDesc->errcode,
-									esqlstate);
-		elog(elevel_error, "DispatchResult: (%s) %s", esqlstate,
-			 dispatchResult->segdbDesc->error_message.data);
 	}
 
 	/*
 	 * Should have either an error code or an ok result.
 	 */
-	if (!dispatchResult->errcode && dispatchResult->okindex < 0)
+	if (dispatchResult->errcode == 0 && dispatchResult->okindex < 0)
 	{
-		elog(elevel_error,
-			 "DispatchResult: No ending status from %s",
-			 dispatchResult->segdbDesc ? dispatchResult->segdbDesc->whoami : "?");
+		elog(LOG, "DispatchResult from %s: No ending status.",
+			 dispatchResult->segdbDesc->whoami);
 	}
 }
 

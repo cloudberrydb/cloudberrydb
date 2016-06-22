@@ -231,9 +231,7 @@ cdbdisp_numPGresult(CdbDispatchResult *dispatchResult);
  * Call only from main thread, during or after cdbdisp_checkDispatchResults.
  */
 void
-cdbdisp_debugDispatchResult(CdbDispatchResult  *dispatchResult,
-                            int elevel_error,
-                            int elevel_success);
+cdbdisp_debugDispatchResult(CdbDispatchResult  *dispatchResult);
 
 /*
  * Format a CdbDispatchResult into a StringInfo buffer provided by caller.
