@@ -78,87 +78,61 @@ handlePollTimeout(DispatchCommandParms *pParms,
 static void
 DecrementRunningCount(void *arg);
 
-void
-cdbdisp_dispatchToGang_internal(struct CdbDispatcherState *ds,
-								struct Gang *gp,
-								int sliceIndex,
-								CdbDispatchDirectDesc *disp_direct)
+
+/*
+ * Initialize dispatcher thread parameters.
+ *
+ * return the number of threads needed for this gang.
+ */
+static int
+cdbdisp_initDispatchParmsForGang(struct CdbDispatcherState* ds,
+								 struct Gang* gp,
+								 int sliceIndex,
+								 CdbDispatchDirectDesc* disp_direct)
 {
-	struct CdbDispatchResults *dispatchResults = ds->primaryResults;
-	SegmentDatabaseDescriptor *segdbDesc;
-	int	i,
-		max_threads,
-		segdbs_in_thread_pool = 0,
-		newThreads = 0;
-	int	gangSize = 0;
-	SegmentDatabaseDescriptor *db_descriptors;
-	DispatchCommandParms *pParms = NULL;
+	int segdbsToDispatch = 0;
+	int i = 0;
 
-	gangSize = gp->size;
-	Assert(gangSize <= largestGangsize());
-	db_descriptors = gp->db_descriptors;
-
-	Assert(gp_connections_per_thread > 0);
-	Assert(ds->dispatchThreads != NULL);
-	/*
-	 * If we attempt to reallocate, there is a race here: we
-	 * know that we have threads running using the
-	 * dispatchCommandParamsAr! If we reallocate we
-	 * potentially yank it out from under them! Don't do
-	 * it!
-	 */
-	max_threads = getMaxThreadsPerGang();
-	if (ds->dispatchThreads->dispatchCommandParmsArSize <
-		(ds->dispatchThreads->threadCount + max_threads))
+    /*
+     * Create the thread parms structures based targetSet parameter.
+     * This will add the segdbDesc pointers appropriate to the
+     * targetSet into the thread Parms structures, making sure that each thread
+     * handles gp_connections_per_thread segdbs.
+     */
+	for (i = 0; i < gp->size; i++)
 	{
-		elog(ERROR,
-			 "Attempted to reallocate dispatchCommandParmsAr while other threads still running size %d new threadcount %d",
-			 ds->dispatchThreads->dispatchCommandParmsArSize,
-			 ds->dispatchThreads->threadCount + max_threads);
-	}
-
-	/*
-	 * Create the thread parms structures based targetSet parameter.
-	 * This will add the segdbDesc pointers appropriate to the
-	 * targetSet into the thread Parms structures, making sure that each thread
-	 * handles gp_connections_per_thread segdbs.
-	 */
-	for (i = 0; i < gangSize; i++)
-	{
-		CdbDispatchResult *qeResult;
-
-		segdbDesc = &db_descriptors[i];
-		int	parmsIndex = 0;
-
-		Assert(segdbDesc != NULL);
+        CdbDispatchResult* qeResult = NULL;
+        DispatchCommandParms *pParms = NULL;
+        int parmsIndex = 0;
+        SegmentDatabaseDescriptor *segdbDesc = &gp->db_descriptors[i];
+        Assert(segdbDesc != NULL);
 
 		if (disp_direct->directed_dispatch)
 		{
-			Assert(disp_direct->count == 1);	/* currently we allow direct-to-one dispatch, only */
-
+			/* currently we allow direct-to-one dispatch, only */
+			Assert(disp_direct->count == 1);
 			if (disp_direct->content[0] != segdbDesc->segindex)
 				continue;
 		}
-
 		/*
 		 * Initialize the QE's CdbDispatchResult object.
 		 */
-		qeResult = cdbdisp_makeResult(dispatchResults, segdbDesc, sliceIndex);
-
+		qeResult = cdbdisp_makeResult(ds->primaryResults, segdbDesc, sliceIndex);
 		if (qeResult == NULL)
 		{
 			/*
 			 * writer_gang could be NULL if this is an extended query.
 			 */
-			if (dispatchResults->writer_gang)
-				dispatchResults->writer_gang->dispatcherActive = true;
+			if (ds->primaryResults->writer_gang)
+				ds->primaryResults->writer_gang->dispatcherActive = true;
+
 			elog(FATAL, "could not allocate resources for segworker communication");
 		}
 
-		parmsIndex = segdbs_in_thread_pool / gp_connections_per_thread;
-		pParms = ds->dispatchThreads->dispatchCommandParmsAr + ds->dispatchThreads->threadCount + parmsIndex;
+		parmsIndex = segdbsToDispatch / gp_connections_per_thread;
+		pParms = ds->dispatchThreads->dispatchCommandParmsAr
+				+ ds->dispatchThreads->threadCount + parmsIndex;
 		pParms->dispatchResultPtrArray[pParms->db_count++] = qeResult;
-
 		/*
 		 * This CdbDispatchResult/SegmentDatabaseDescriptor pair will be
 		 * dispatched and monitored by a thread to be started below. Only that
@@ -167,17 +141,26 @@ cdbdisp_dispatchToGang_internal(struct CdbDispatcherState *ds,
 		 * to wait for completion.
 		 */
 		qeResult->stillRunning = true;
-
-		segdbs_in_thread_pool++;
+		segdbsToDispatch++;
 	}
-
 	/*
 	 * Compute the thread count based on how many segdbs were added into the
 	 * thread pool, knowing that each thread handles gp_connections_per_thread
 	 * segdbs.
 	 */
-	Assert(segdbs_in_thread_pool != 0);
-	newThreads = 1 + (segdbs_in_thread_pool - 1) / gp_connections_per_thread;
+	Assert(segdbsToDispatch > 0);
+	return 1 + (segdbsToDispatch - 1) / gp_connections_per_thread;
+}
+
+void
+cdbdisp_dispatchToGang_internal(struct CdbDispatcherState *ds,
+								struct Gang *gp,
+								int sliceIndex,
+								CdbDispatchDirectDesc * disp_direct)
+{
+	int	i = 0;
+	int threadStartIndex = ds->dispatchThreads->threadCount;
+	int newThreads = cdbdisp_initDispatchParmsForGang(ds, gp, sliceIndex, disp_direct);
 
 	/*
 	 * Create the threads. (which also starts the dispatching).
@@ -185,7 +168,7 @@ cdbdisp_dispatchToGang_internal(struct CdbDispatcherState *ds,
 	for (i = 0; i < newThreads; i++)
 	{
 		int pthread_err = 0;
-		DispatchCommandParms *pParms = &(ds->dispatchThreads->dispatchCommandParmsAr + ds->dispatchThreads->threadCount)[i];
+		DispatchCommandParms *pParms = ds->dispatchThreads->dispatchCommandParmsAr + threadStartIndex + i;
 		Assert(pParms != NULL);
 
 		pParms->thread_valid = true;
@@ -205,7 +188,7 @@ cdbdisp_dispatchToGang_internal(struct CdbDispatcherState *ds,
 			 */
 			pParms->waitMode = DISPATCH_WAIT_CANCEL;
 
-			for (j = 0; j < ds->dispatchThreads->threadCount + (i - 1); j++)
+			for (j = 0; j < threadStartIndex + (i - 1); j++)
 			{
 				DispatchCommandParms *pParms;
 
@@ -220,11 +203,10 @@ cdbdisp_dispatchToGang_internal(struct CdbDispatcherState *ds,
 						    errmsg("could not create thread %d of %d", i + 1, newThreads),
 							errdetail ("pthread_create() failed with err %d", pthread_err)));
 		}
+		ds->dispatchThreads->threadCount++;
 	}
 
-	ds->dispatchThreads->threadCount += newThreads;
-	elog(DEBUG4, "dispatchToGang: Total threads now %d",
-		 ds->dispatchThreads->threadCount);
+	elog(DEBUG4, "dispatchToGang: Total threads now %d", ds->dispatchThreads->threadCount);
 }
 
 void
