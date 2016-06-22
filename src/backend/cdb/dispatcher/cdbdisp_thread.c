@@ -57,7 +57,7 @@ static bool
 shouldStillDispatchCommand(DispatchCommandParms *pParms,
 						   CdbDispatchResult *dispatchResult);
 
-static void
+static bool
 dispatchCommand(CdbDispatchResult *dispatchResult,
 				const char *query_text, int query_text_len);
 
@@ -238,18 +238,9 @@ CdbCheckDispatchResult_internal(struct CdbDispatcherState *ds,
 		pParms = &ds->dispatchThreads->dispatchCommandParmsAr[i];
 		Assert(pParms != NULL);
 
-		/*
-		 * Does caller want to stop short?
-		 */
-		switch (waitMode)
-		{
-			case DISPATCH_WAIT_CANCEL:
-			case DISPATCH_WAIT_FINISH:
-				pParms->waitMode = waitMode;
-				break;
-			default:
-				break;
-		}
+		/* Don't overwrite DISPATCH_WAIT_CANCEL or DISPATCH_WAIT_FINISH with DISPATCH_WAIT_NONE */
+		if (waitMode != DISPATCH_WAIT_NONE)
+			pParms->waitMode = waitMode;
 
 		elog(DEBUG4, "CheckDispatchResult: Joining to thread %d of %d", i + 1, ds->dispatchThreads->threadCount);
 
@@ -402,6 +393,9 @@ cdbdisp_makeDispatchThreads(int maxSlices)
 	return dThreads;
 }
 
+/*
+ * Dispatch the command to all segment DBs.
+ */
 static void
 thread_DispatchOut(DispatchCommandParms *pParms)
 {
@@ -417,19 +411,10 @@ thread_DispatchOut(DispatchCommandParms *pParms)
 	{
 		dispatchResult = pParms->dispatchResultPtrArray[i];
 
-		/*
-		 * Don't use elog, it's not thread-safe
-		 */
-		if (DEBUG5 >= log_min_messages)
-		{
-			if (dispatchResult->segdbDesc->conn)
-			{
-				write_log
-					("thread_DispatchCommand working on %d of %d commands. asyncStatus %d",
-					 i + 1, db_count,
-					 dispatchResult->segdbDesc->conn->asyncStatus);
-			}
-		}
+		Assert(dispatchResult->segdbDesc != NULL &&
+			   dispatchResult->segdbDesc->conn != NULL);
+		WRITE_LOG_DISPATCHER_DEBUG("thread_DispatchOut working on %d of %d commands. asyncStatus %d",
+							i + 1, db_count, dispatchResult->segdbDesc->conn->asyncStatus);
 
 		dispatchResult->hasDispatched = false;
 		dispatchResult->sentSignal = DISPATCH_WAIT_NONE;
@@ -442,45 +427,30 @@ thread_DispatchOut(DispatchCommandParms *pParms)
 			 */
 			dispatchResult->stillRunning = false;
 			if (PQisBusy(dispatchResult->segdbDesc->conn))
-				write_log
-					(" We thought we were done, because !shouldStillDispatchCommand(), but libpq says we are still busy");
-			if (PQstatus(dispatchResult->segdbDesc->conn) == CONNECTION_BAD)
-				write_log
-					(" We thought we were done, because !shouldStillDispatchCommand(), but libpq says the connection died?");
+				write_log("We thought we were done, because !shouldStillDispatchCommand(), "
+						  "but libpq says we are still busy");
+			continue;
+		}
+
+		/*
+		 * Kick off the command over the libpq connection.
+		 * If unsuccessful, proceed anyway, and check for lost connection below.
+		 */
+		if (dispatchCommand(dispatchResult, pParms->query_text, pParms->query_text_len))
+		{
+			/*
+			 * We'll keep monitoring this QE -- whether or not the command
+			 * was dispatched -- in order to check for a lost connection
+			 * or any other errors that libpq might have in store for us.
+			 */
+			WRITE_LOG_DISPATCHER_DEBUG("Command dispatched to segment db (%s)",
+					dispatchResult->segdbDesc->whoami);
 		}
 		else
 		{
-			/*
-			 * Kick off the command over the libpq connection.
-			 * If unsuccessful, proceed anyway, and check for lost connection below.
-			 */
-			if (PQisBusy(dispatchResult->segdbDesc->conn))
-			{
-				write_log
-					("Trying to send to busy connection %s %d %d asyncStatus %d",
-					 dispatchResult->segdbDesc->whoami, i, db_count,
-					 dispatchResult->segdbDesc->conn->asyncStatus);
-			}
-
-			if (PQstatus(dispatchResult->segdbDesc->conn) == CONNECTION_BAD)
-			{
-				char *msg = PQerrorMessage(dispatchResult->segdbDesc->conn);
-
-				/*
-				 * Save error info for later.
-				 */
-				cdbdisp_appendMessage(dispatchResult, LOG,
-									  "Error before transmit from %s: %s",
-									  dispatchResult->segdbDesc->whoami,
-									  msg ? msg : "unknown error");
-
-				dispatchResult->stillRunning = false;
-
-				continue;
-			}
-
-			dispatchCommand(dispatchResult, pParms->query_text,
-							pParms->query_text_len);
+			dispatchResult->stillRunning = false;
+			write_log("Command could not be sent to segment db (%s)",
+					dispatchResult->segdbDesc->whoami);
 		}
 	}
 }
@@ -727,12 +697,11 @@ thread_DispatchCommand(void *arg)
  * NOTE: since this is called via a thread, the same rules apply as to
  *		 thread_DispatchCommand absolutely no elog'ing.
  */
-static void
-dispatchCommand(CdbDispatchResult *dispatchResult,
+static bool
+dispatchCommand(CdbDispatchResult * dispatchResult,
 				const char *query_text, int query_text_len)
 {
 	SegmentDatabaseDescriptor *segdbDesc = dispatchResult->segdbDesc;
-	PGconn *conn = segdbDesc->conn;
 	TimestampTz beforeSend = 0;
 	long secs;
 	int	usecs;
@@ -740,21 +709,27 @@ dispatchCommand(CdbDispatchResult *dispatchResult,
 	if (DEBUG1 >= log_min_messages)
 		beforeSend = GetCurrentTimestamp();
 
-	/*
-	 * Submit the command asynchronously.
-	 */
-	if (PQsendGpQuery_shared(conn, (char *) query_text, query_text_len) == 0)
+	if (PQisBusy(segdbDesc->conn))
+		write_log("Trying to send to busy connection %s: asyncStatus %d",
+				  segdbDesc->whoami,
+				  segdbDesc->conn->asyncStatus);
+
+	if (cdbconn_isBadConnection(segdbDesc))
 	{
 		char *msg = PQerrorMessage(segdbDesc->conn);
 
-		/*
-		 * Note the error.
-		 */
 		cdbdisp_appendMessage(dispatchResult, LOG,
-							  "Command could not be sent to segment db %s;  %s",
-							  segdbDesc->whoami, msg ? msg : "");
-		dispatchResult->stillRunning = false;
+							  "Error before transmit from %s: %s",
+							  dispatchResult->segdbDesc->whoami,
+							  msg ? msg : "unknown error");
+		return false;
 	}
+
+	/*
+	 * Submit the command asynchronously.
+	 */
+	if (PQsendGpQuery_shared(dispatchResult->segdbDesc->conn, (char *) query_text, query_text_len) == 0)
+		return false;
 
 	if (DEBUG1 >= log_min_messages)
 	{
@@ -764,12 +739,7 @@ dispatchCommand(CdbDispatchResult *dispatchResult,
 			write_log("time for PQsendGpQuery_shared %ld.%06d", secs, usecs);
 	}
 
-	dispatchResult->hasDispatched = true;
-	/*
-	 * We'll keep monitoring this QE -- whether or not the command
-	 * was dispatched -- in order to check for a lost connection
-	 * or any other errors that libpq might have in store for us.
-	 */
+	return true;
 }
 
 /*
@@ -912,12 +882,7 @@ shouldStillDispatchCommand(DispatchCommandParms *pParms,
 	SegmentDatabaseDescriptor *segdbDesc = dispatchResult->segdbDesc;
 	CdbDispatchResults *gangResults = dispatchResult->meleeResults;
 
-	/*
-	 * Don't dispatch to a QE that is not connected. Note, that PQstatus() correctly
-	 * handles the case where segdbDesc->conn is NULL, and we *definitely* want to
-	 * produce an error for that case.
-	 */
-	if (PQstatus(segdbDesc->conn) == CONNECTION_BAD)
+	if (cdbconn_isBadConnection(segdbDesc))
 	{
 		char *msg = PQerrorMessage(segdbDesc->conn);
 
@@ -928,7 +893,6 @@ shouldStillDispatchCommand(DispatchCommandParms *pParms,
 							  "Lost connection to %s.  %s",
 							  segdbDesc->whoami, msg ? msg : "");
 
-		dispatchResult->stillRunning = false;
 		return false;
 	}
 
@@ -936,22 +900,14 @@ shouldStillDispatchCommand(DispatchCommandParms *pParms,
 	 * Don't submit if already encountered an error. The error has already
 	 * been noted, so just keep quiet.
 	 */
-	if (pParms->waitMode == DISPATCH_WAIT_CANCEL || gangResults->errcode)
+	if ((pParms->waitMode == DISPATCH_WAIT_CANCEL || gangResults->errcode) &&
+		gangResults->cancelOnError)
 	{
-		if (gangResults->cancelOnError)
-		{
-			dispatchResult->wasCanceled = true;
-
-			if (Debug_cancel_print || DEBUG4 >= log_min_messages)
-			{
-				/*
-				 * Don't use elog, it's not thread-safe
-				 */
-				write_log("Error cleanup in progress; command not sent to %s",
-						  segdbDesc->whoami);
-			}
-			return false;
-		}
+		dispatchResult->wasCanceled = true;
+		if (Debug_cancel_print || gp_log_gang >= GPVARS_VERBOSITY_DEBUG)
+			write_log("Error cleanup in progress; command not sent to %s",
+					segdbDesc->whoami);
+		return false;
 	}
 
 	/*
@@ -961,7 +917,7 @@ shouldStillDispatchCommand(DispatchCommandParms *pParms,
 	if (InterruptPending && gangResults->cancelOnError)
 	{
 		dispatchResult->wasCanceled = true;
-		if (Debug_cancel_print || DEBUG4 >= log_min_messages)
+		if (Debug_cancel_print || gp_log_gang >= GPVARS_VERBOSITY_DEBUG)
 			write_log("Cancellation request pending; command not sent to %s",
 					  segdbDesc->whoami);
 		return false;
