@@ -98,6 +98,12 @@ TupleTableSlot *ExecutorRun(QueryDesc *pqueryDesc, ScanDirection direction, long
 extern
 void ExecutorEnd(QueryDesc *pqueryDesc);
 
+extern
+void ExecCheckRTPerms(List *rangeTable);
+
+extern
+void ExecCheckRTEPerms(RangeTblEntry *rte);
+
 } // end extern C
 
 

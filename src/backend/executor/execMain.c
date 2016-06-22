@@ -132,8 +132,6 @@ static void ExecSelect(TupleTableSlot *slot,
 
 static TupleTableSlot *EvalPlanQualNext(EState *estate);
 static void EndEvalPlanQual(EState *estate);
-static void ExecCheckRTPerms(List *rangeTable);
-static void ExecCheckRTEPerms(RangeTblEntry *rte);
 static void ExecCheckXactReadOnly(PlannedStmt *plannedstmt);
 static void EvalPlanQualStart(evalPlanQual *epq, EState *estate,
 				  evalPlanQual *priorepq);
@@ -146,6 +144,9 @@ static void intorel_shutdown(DestReceiver *self);
 static void intorel_destroy(DestReceiver *self);
 
 static void FillSliceTable(EState *estate, PlannedStmt *stmt);
+
+void ExecCheckRTPerms(List *rangeTable);
+void ExecCheckRTEPerms(RangeTblEntry *rte);
 
 /*
  * For a partitioned insert target only:  
@@ -1219,7 +1220,7 @@ ExecutorRewind(QueryDesc *queryDesc)
  * ExecCheckRTPerms
  *		Check access permissions for all relations listed in a range table.
  */
-static void
+void
 ExecCheckRTPerms(List *rangeTable)
 {
 	ListCell   *l;
@@ -1234,7 +1235,7 @@ ExecCheckRTPerms(List *rangeTable)
  * ExecCheckRTEPerms
  *		Check access permissions for a single RTE.
  */
-static void
+void
 ExecCheckRTEPerms(RangeTblEntry *rte)
 {
 	AclMode		requiredPerms;
@@ -1282,7 +1283,6 @@ ExecCheckRTEPerms(RangeTblEntry *rte)
 		aclcheck_error(ACLCHECK_NO_PRIV, ACL_KIND_CLASS, rel_name);
 	}
 }
-
 
 /*
  * This function is used to check if the current statement will perform any writes.

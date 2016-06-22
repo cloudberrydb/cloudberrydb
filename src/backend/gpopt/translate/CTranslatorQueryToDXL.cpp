@@ -475,8 +475,11 @@ CTranslatorQueryToDXL::PdrgpdxlnCTE() const
 CDXLNode *
 CTranslatorQueryToDXL::PdxlnFromQueryInternal()
 {
-	// GPDB_83_MERGE_FIXME: Why do we check permissions here? The executor
-	// will do it anyway...
+	// The parsed query contains an RTE for the view, which is maintained all the way through planned statement.
+	// This entries is annotated as requiring SELECT permissions for the current user.
+	// In Orca, we only keep range table entries for the base tables in the planned statement, but not for the view itself.
+	// Since permissions are only checked during ExecutorStart, we lose track of the permissions required for the view and the select goes through successfully.
+	// We therefore need to check permissions before we go into optimization for all RTEs, including the ones not explicitly referred in the query, e.g. views.
 	CTranslatorUtils::CheckRTEPermissions(m_pquery->rtable);
 	
 	CDXLNode *pdxlnChild = NULL;

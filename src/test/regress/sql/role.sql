@@ -57,3 +57,21 @@ create role sha256 password 'abc';
 -- OpenSSL SHA2 returning a different SHA2 to RSA BSAFE!
 --select rolname, rolpassword from pg_authid where rolname = 'sha256';
 drop role sha256;
+
+drop view if exists t1_view;
+drop table if exists t1;
+
+drop role if exists u1;
+drop role if exists superuser;
+
+create role superuser;
+create role u1;
+set role superuser;
+
+create table t1(a int, b int constraint c check (b>=100));
+create view t1_view as select * from t1;
+grant all privileges on t1, t1_view to u1;
+set role superuser;
+revoke all privileges on TABLE t1, t1_view FROM u1;
+set role u1;
+select * from t1_view order by 1;
