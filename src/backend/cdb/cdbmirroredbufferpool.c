@@ -733,7 +733,7 @@ bool MirroredBufferPool_Write(
 		if (writeBuf == NULL)
 			ereport(ERROR, 
 					(errcode(ERRCODE_OUT_OF_MEMORY),
-					 (errmsg("could not allocate memory for mirrored alligned buffer"))));
+					 (errmsg("could not allocate memory for mirrored aligned buffer"))));
 	}	
 	
 	/*
