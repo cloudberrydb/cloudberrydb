@@ -1,0 +1,10 @@
+platform: linux
+image: docker:///yolo/orcadev#centos5
+inputs:
+  - name: gpos_src
+  - name: bin_gpos_release
+  - name: bin_gpos_debug
+outputs:
+  - name: gpos_github_release_stage
+run:
+  path: gpos_src/concourse/publish_tag.bash
