@@ -9,8 +9,9 @@ inputs:
 outputs:
   - name: icg_output
 run:
-  path: gpdb_src/concourse/scripts/test_with_orca.py
+  path: gpdb_src/concourse/scripts/test_gpdb.py
   args:
+    - --mode=orca
     - --gpdb_name=bin_gpdb_with_orca_centos6
     - bin_orca_centos6_release
     - bin_gpos_centos6_release

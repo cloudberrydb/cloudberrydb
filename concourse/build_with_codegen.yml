@@ -1,0 +1,12 @@
+platform: linux
+image: docker:///pivotaldata/gpdb-devel-gcc5#centos6
+inputs:
+  - name: gpdb_src
+outputs:
+  - name: bin_gpdb
+run:
+  path: /bin/bash
+  args:
+    - -l
+    - -c
+    - gpdb_src/concourse/scripts/build_gpdb.py --mode=codegen --output_dir=bin_gpdb/install

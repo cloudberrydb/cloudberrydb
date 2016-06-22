@@ -1,0 +1,12 @@
+platform: linux
+image: docker:///pivotaldata/gpdb-devel-gcc5#centos6
+inputs:
+  - name: gpdb_src
+  - name: bin_gpdb
+outputs:
+  - name: icg_output
+run:
+  path: gpdb_src/concourse/scripts/test_gpdb.py
+  args:
+    - --mode=codegen
+    - --gpdb_name=bin_gpdb

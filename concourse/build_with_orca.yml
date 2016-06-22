@@ -10,6 +10,7 @@ outputs:
 run:
   path: gpdb_src/concourse/scripts/build_with_orca.py
   args:
+    - --mode=orca
     - --output_dir=bin_gpdb_with_orca_centos6/install
     - bin_orca_centos6_release
     - bin_gpos_centos6_release
