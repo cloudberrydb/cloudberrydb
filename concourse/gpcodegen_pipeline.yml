@@ -1,0 +1,121 @@
+#############
+# RESOURCES #
+#############
+resources:
+- name: gpdb_src
+  type: git
+  source:
+    branch: concourse
+    private_key: {{gpdb_deploy_key}}
+    uri: git@github.com:hardikar/gpdb.git
+
+- name: bin_gpdb_planner
+  type: s3
+  source:
+    access_key_id: {{aws-access-key-id}}
+    bucket: gporca-concourse-bucket
+    region_name: us-west-2
+    secret_access_key: {{aws-secret-access-key}}
+    versioned_file: bin_gpdb_with_codegen_centos6.tar.gz
+
+- name: bin_gpdb_orca
+  type: s3
+  source:
+    access_key_id: {{aws-access-key-id}}
+    bucket: gporca-concourse-bucket
+    region_name: us-west-2
+    secret_access_key: {{aws-secret-access-key}}
+    versioned_file: bin_gpdb_with_orca_and_codegen_centos6.tar.gz
+
+- name: regression_diffs
+  type: s3
+  source:
+    access_key_id: {{aws-access-key-id}}
+    bucket: {{bucket-name}}
+    region_name: {{aws-region}}
+    secret_access_key: {{aws-secret-access-key}}
+    versioned_file: regression.diffs
+- name: regression_out
+  type: s3
+  source:
+    access_key_id: {{aws-access-key-id}}
+    bucket: {{bucket-name}}
+    region_name: {{aws-region}}
+    secret_access_key: {{aws-secret-access-key}}
+    versioned_file: regression.out
+
+- name: bin_xerces
+  type: s3
+  source:
+    access_key_id: {{aws-access-key-id}}
+    bucket: {{bucket-name}}
+    region_name: {{aws-region}}
+    secret_access_key: {{aws-secret-access-key}}
+    regexp: bin_xerces_centos(6).tar.gz
+
+########
+# JOBS #
+########
+jobs:
+- name: build_gpdb_planner
+  max_in_flight: 1
+  plan:
+  - aggregate:
+    - get: gpdb_src
+      params:
+        submodules: none
+      trigger: true
+  - task: build_with_codegen
+    file: gpdb_src/concourse/build_with_codegen.yml
+    output_mapping: {bin_gpdb: bin_gpdb_planner}
+  - task: package_tarball
+    input_mapping: {bin_gpdb: bin_gpdb_planner}
+    file: gpdb_src/concourse/package_tarball.yml
+  - put: bin_gpdb_planner
+    params:
+      from: package_tarball/bin_gpdb.tar.gz
+
+- name: gpdb_icg_codegen
+  max_in_flight: 1
+  plan:
+  - aggregate:
+    - get: gpdb_src
+      params:
+        submodules: none
+    - get: bin_gpdb_planner
+      passed:
+      - build_gpdb_planner
+      trigger: true
+  - task: test_gpdb
+    input_mapping: {bin_gpdb: bin_gpdb_planner}
+    file: gpdb_src/concourse/test_with_codegen.yml
+    on_failure:
+      aggregate:
+      - put: regression_diffs
+        params:
+          from: icg_output/regression.diffs
+      - put: regression_out
+        params:
+          from: icg_output/regression.out
+
+
+- name: build_gpdb_orca
+  max_in_flight: 1
+  plan:
+  - aggregate:
+    - get: gpdb_src
+      params:
+        submodules: none
+      trigger: true
+    - get: bin_xerces
+  - task: prepare_orca_dependencies
+    file: gpdb_src/concourse/prepare_orca_dependencies.yml
+  - task: build_with_orca_and_codegen
+    file: gpdb_src/concourse/build_with_orca_and_codegen.yml
+    output_mapping: {bin_gpdb: bin_gpdb_orca}
+  - task: package_tarball
+    input_mapping: {bin_gpdb: bin_gpdb_orca}
+    file: gpdb_src/concourse/package_tarball.yml
+  - put: bin_gpdb_orca
+    params:
+      from: package_tarball/bin_gpdb.tar.gz
