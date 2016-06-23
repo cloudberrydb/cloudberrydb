@@ -10,4 +10,4 @@ run:
   args:
     - gpos_src/concourse/package_tarball.bash
     - build_and_test_release
-    - package_tarball_release/bin_gpos_release.tar.gz
+    - package_tarball_release/bin_gpos_centos5_release.tar.gz

@@ -1,0 +1,12 @@
+platform: darwin
+inputs:
+  - name: gpos_src
+  - name: build_and_test_osx32_release
+outputs:
+  - name: package_tarball_osx32_release
+run:
+  path: /bin/bash
+  args:
+    - gpos_src/concourse/package_tarball.bash
+    - build_and_test_osx32_release
+    - package_tarball_osx32_release/bin_gpos_osx32_release.tar.gz
