@@ -101,4 +101,14 @@ void cdbconn_resetQEErrorMessage(SegmentDatabaseDescriptor *segdbDesc);
 
 /* Set the slice index for error messages related to this QE. */
 void setQEIdentifier(SegmentDatabaseDescriptor *segdbDesc, int sliceIndex, MemoryContext mcxt);
+
+/*
+ * Send cancel/finish signal to still-running QE through libpq.
+ *
+ * errbuf is used to return error message(recommended size is 256 bytes).
+ *
+ * Returns true if we successfully sent a signal
+ * (not necessarily received by the target process).
+ */
+bool cdbconn_signalQE(SegmentDatabaseDescriptor *segdbDesc, char *errbuf, bool isCancel);
 #endif   /* CDBCONN_H */

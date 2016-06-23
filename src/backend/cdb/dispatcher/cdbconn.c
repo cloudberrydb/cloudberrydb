@@ -436,15 +436,16 @@ void cdbconn_disconnect(SegmentDatabaseDescriptor *segdbDesc)
 		if (status == PQTRANS_ACTIVE)
 		{
 			char errbuf[256];
-			PGcancel *cn = PQgetCancel(segdbDesc->conn);
+			bool sent;
+
+			memset(errbuf, 0, sizeof(errbuf));
 
 			if (Debug_cancel_print || gp_log_gang >= GPVARS_VERBOSITY_DEBUG)
 				elog(LOG, "Calling PQcancel for %s", segdbDesc->whoami);
 
-			if (PQcancel(cn, errbuf, 256) == 0)
-				elog(LOG, "Unable to cancel %s: %s", segdbDesc->whoami, errbuf);
-
-			PQfreeCancel(cn);
+			sent = cdbconn_signalQE(segdbDesc, errbuf, true);
+			if (!sent)
+				elog(LOG, "Unable to cancel: %s", strlen(errbuf) == 0 ? "cannot allocate PGCancel" : errbuf);
 		}
 
 		PQfinish(segdbDesc->conn);
@@ -489,7 +490,8 @@ bool cdbconn_discardResults(SegmentDatabaseDescriptor *segdbDesc,
 /* Return if it's a bad connection */
 bool cdbconn_isBadConnection(SegmentDatabaseDescriptor *segdbDesc)
 {
-	return PQstatus(segdbDesc->conn) == CONNECTION_BAD;
+	return (PQsocket(segdbDesc->conn) < 0 ||
+		    PQstatus(segdbDesc->conn) == CONNECTION_BAD);
 }
 
 /* Reset error message buffer */
@@ -535,3 +537,30 @@ void setQEIdentifier(SegmentDatabaseDescriptor *segdbDesc,
 	MemoryContextSwitchTo(oldContext);
 }
 
+/*
+ * Send cancel/finish signal to still-running QE through libpq.
+ *
+ * errbuf is used to return error message(recommended size is 256 bytes).
+ *
+ * Returns true if we successfully sent a signal
+ * (not necessarily received by the target process).
+ */
+bool
+cdbconn_signalQE(SegmentDatabaseDescriptor *segdbDesc,
+				 char *errbuf,
+				 bool isCancel)
+{
+	bool ret;
+
+	PGcancel *cn = PQgetCancel(segdbDesc->conn);
+	if (cn == NULL)
+		return false;
+
+	if (isCancel)
+		ret = PQcancel(cn, errbuf, 256);
+	else
+		ret = PQrequestFinish(cn, errbuf, 256);
+
+	PQfreeCancel(cn);
+	return ret;
+}

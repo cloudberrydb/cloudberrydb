@@ -123,10 +123,6 @@ dispatchCommand(CdbDispatchResult *dispatchResult,
 /* returns true if command complete */
 static bool processResults(CdbDispatchResult *dispatchResult);
 
-static DispatchWaitMode
-cdbdisp_signalQE(SegmentDatabaseDescriptor *segdbDesc,
-				 DispatchWaitMode waitMode);
-
 static void *thread_DispatchCommand(void *arg);
 static void thread_DispatchOut(DispatchCommandParms *pParms);
 static void thread_DispatchWait(DispatchCommandParms *pParms);
@@ -510,6 +506,7 @@ thread_DispatchOut(DispatchCommandParms *pParms)
 		 */
 		if (dispatchCommand(dispatchResult, pParms->query_text, pParms->query_text_len))
 		{
+			dispatchResult->hasDispatched = true;
 			/*
 			 * We'll keep monitoring this QE -- whether or not the command
 			 * was dispatched -- in order to check for a lost connection
@@ -871,7 +868,21 @@ cdbdisp_checkCancel(DispatchCommandParms * pParms)
 		if (waitMode != DISPATCH_WAIT_NONE &&
 			waitMode != dispatchResult->sentSignal &&
 			!cdbconn_isBadConnection(segdbDesc))
-			dispatchResult->sentSignal = cdbdisp_signalQE(segdbDesc, waitMode);
+		{
+			char errbuf[256];
+			bool sent;
+
+			memset(errbuf, 0, sizeof(errbuf));
+
+			if (Debug_cancel_print || gp_log_gang >= GPVARS_VERBOSITY_DEBUG)
+				write_log("Calling PQcancel for %s", segdbDesc->whoami);
+
+			sent = cdbconn_signalQE(segdbDesc, errbuf, waitMode == DISPATCH_WAIT_CANCEL);
+			if (sent)
+				dispatchResult->sentSignal = waitMode;
+			else
+				write_log("Unable to cancel: %s", strlen(errbuf) == 0 ? "cannot allocate PGCancel" : errbuf);
+		}
 	}
 }
 
@@ -1162,50 +1173,6 @@ connection_error:
 						  segdbDesc->whoami, msg ? msg : "unknown error");
 
 	return true; /* connection is gone! */
-}
-
-/*
- * Send cancel/finish signal to still-running QE through libpq.
- * waitMode is either CANCEL or FINISH. Returns true if we successfully
- * sent a signal (not necessarily received by the target process).
- */
-static DispatchWaitMode
-cdbdisp_signalQE(SegmentDatabaseDescriptor *segdbDesc,
-				 DispatchWaitMode waitMode)
-{
-	char errbuf[256];
-	PGcancel *cn = PQgetCancel(segdbDesc->conn);
-	int	ret = 0;
-
-	if (cn == NULL)
-		return DISPATCH_WAIT_NONE;
-
-	/*
-	 * PQcancel uses some strcpy/strcat functions; let's
-	 * clear this for safety.
-	 */
-	MemSet(errbuf, 0, sizeof(errbuf));
-
-	if (Debug_cancel_print || gp_log_gang >= GPVARS_VERBOSITY_DEBUG)
-		write_log("Calling PQcancel for %s", segdbDesc->whoami);
-
-	/*
-	 * Send query-finish, unless the client really wants to cancel the
-	 * query. This could happen if cancel comes after we sent finish.
-	 */
-	if (waitMode == DISPATCH_WAIT_CANCEL)
-		ret = PQcancel(cn, errbuf, 256);
-	else if (waitMode == DISPATCH_WAIT_FINISH)
-		ret = PQrequestFinish(cn, errbuf, 256);
-	else
-		write_log("unknown waitMode: %d", waitMode);
-
-	if (ret == 0 && (Debug_cancel_print || gp_log_gang >= GPVARS_VERBOSITY_DEBUG))
-		write_log("Unable to cancel: %s", errbuf);
-
-	PQfreeCancel(cn);
-
-	return (ret != 0 ? waitMode : DISPATCH_WAIT_NONE);
 }
 
 static bool
