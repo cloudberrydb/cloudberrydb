@@ -3385,7 +3385,12 @@ struct config_bool ConfigureNamesBool_gp[] =
 			GUC_NOT_IN_SAMPLE
 		},
 		&init_codegen,
-		false, NULL, NULL
+#ifdef USE_CODEGEN
+		true,
+#else
+		false,
+#endif
+		NULL, NULL
 	},
 
 	{
