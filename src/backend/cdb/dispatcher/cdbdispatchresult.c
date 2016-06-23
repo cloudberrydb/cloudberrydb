@@ -337,6 +337,57 @@ cdbdisp_appendMessage(CdbDispatchResult * dispatchResult,
 	noTrailingNewlinePQ(dispatchResult->error_message);
 }
 
+
+/*
+ * NonThread version of cdbdisp_appendMessage.
+ *
+ * It's safe to use palloc/pfree or elog/ereport.
+ */
+void
+cdbdisp_appendMessageNonThread(CdbDispatchResult * dispatchResult,
+							   int elevel, const char *fmt, ...)
+{
+	va_list	args;
+	int	msgoff;
+
+	/*
+	 * Remember first error.
+	 */
+	cdbdisp_seterrcode(ERRCODE_GP_INTERCONNECTION_ERROR, -1, dispatchResult);
+
+	/*
+	 * Allocate buffer if first message.
+	 * Insert newline between previous message and new one.
+	 */
+	Assert(dispatchResult->error_message != NULL);
+	oneTrailingNewlinePQ(dispatchResult->error_message);
+
+	msgoff = dispatchResult->error_message->len;
+
+	/*
+	 * Format the message and append it to the buffer.
+	 */
+	va_start(args, fmt);
+	appendPQExpBufferVA(dispatchResult->error_message, fmt, args);
+	va_end(args);
+
+	/*
+	 * Display the message on stderr for debugging, if requested.
+	 * This helps to clarify the actual timing of threaded events.
+	 */
+	if (elevel >= log_min_messages)
+	{
+		oneTrailingNewlinePQ(dispatchResult->error_message);
+		elog(LOG, "%s", dispatchResult->error_message->data + msgoff);
+	}
+
+	/*
+	 * In case the caller wants to hand the buffer to ereport(),
+	 * follow the ereport() convention of not ending with a newline.
+	 */
+	noTrailingNewlinePQ(dispatchResult->error_message);
+}
+
 /*
  * Store a PGresult object ptr in the result buffer.
  * NB: Caller must not PQclear() the PGresult object.

@@ -19,6 +19,7 @@
 #include "catalog/gp_segment_config.h"
 #include "cdb/cdbvars.h"
 #include "cdb/cdbfts.h"
+#include "cdb/cdbdisp.h"
 #include "cdb/cdbutil.h"
 #include "lib/stringinfo.h"
 #include "libpq/libpq-be.h"
@@ -648,6 +649,7 @@ assign_gp_connections_per_thread(int newval, bool doit, GucSource source __attri
 			return false;
 
 		gp_connections_per_thread = newval;
+		cdbdisp_setAsync(true);
 	}
 
 	return true;

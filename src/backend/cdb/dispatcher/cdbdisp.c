@@ -17,6 +17,7 @@
 #include "tcop/tcopprot.h"
 #include "cdb/cdbdisp.h"
 #include "cdb/cdbdisp_thread.h"
+#include "cdb/cdbdisp_async.h"
 #include "cdb/cdbdispatchresult.h"
 #include "cdb/cdbfts.h"
 #include "cdb/cdbgang.h"
@@ -30,7 +31,8 @@ CdbDispatchDirectDesc default_dispatch_direct_desc = { false, 0, {0}};
 
 static void cdbdisp_clearGangActiveFlag(CdbDispatcherState *ds);
 
-DispatcherInternalFuncs *pDispatchFuncs = &ThreadedFuncs;
+static DispatcherInternalFuncs *pDispatchFuncs = NULL;
+
 /*
  * cdbdisp_dispatchToGang:
  * Send the strCommand SQL statement to the subset of all segdbs in the cluster
@@ -406,4 +408,12 @@ void cdbdisp_onProcExit(void)
 {
 	if (pDispatchFuncs != NULL && pDispatchFuncs->procExitCallBack != NULL)
 		(pDispatchFuncs->procExitCallBack)();
+}
+
+void cdbdisp_setAsync(bool async)
+{
+	if (async)
+		pDispatchFuncs = &DispatcherAsyncFuncs;
+	else
+		pDispatchFuncs = &DispatcherSyncFuncs;
 }

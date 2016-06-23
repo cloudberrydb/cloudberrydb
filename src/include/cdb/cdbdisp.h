@@ -56,6 +56,9 @@ typedef struct DispatcherInternalFuncs
 	void (*dispatchToGang)(struct CdbDispatcherState *ds, struct Gang *gp,
 			int sliceIndex, CdbDispatchDirectDesc *direct);
 }DispatcherInternalFuncs;
+
+#define DISPATCH_WAIT_TIMEOUT_SEC 2
+
 /*--------------------------------------------------------------------*/
 /*
  * cdbdisp_dispatchToGang:
@@ -159,5 +162,6 @@ bool cdbdisp_checkForCancel(CdbDispatcherState * ds);
 
 void cdbdisp_onProcExit(void);
 
+void cdbdisp_setAsync(bool async);
 
 #endif   /* CDBDISP_H */

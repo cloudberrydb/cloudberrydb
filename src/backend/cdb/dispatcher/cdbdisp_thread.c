@@ -153,7 +153,7 @@ cdbdisp_dispatchToGang_internal(struct CdbDispatcherState *ds,
 								int sliceIndex,
 								CdbDispatchDirectDesc * dispDirect);
 
-DispatcherInternalFuncs ThreadedFuncs =
+DispatcherInternalFuncs DispatcherSyncFuncs =
 {
     cdbdisp_waitThreads,
 	cdbdisp_shouldCancel,
