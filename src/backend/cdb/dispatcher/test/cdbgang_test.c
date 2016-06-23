@@ -112,6 +112,9 @@ void mockLibpq(PGconn *pgConn, int motionListener, int qePid)
 	expect_value_count(PQstatus, conn, pgConn, -1);
 	will_return_count(PQstatus, CONNECTION_OK, -1);
 
+	expect_value_count(PQsocket, conn, pgConn, -1);
+	will_return_count(PQsocket, 100, -1);
+
 	expect_value_count(PQsetNoticeReceiver, conn, pgConn, -1);
 	expect_any_count(PQsetNoticeReceiver, proc, -1);
 	expect_any_count(PQsetNoticeReceiver, arg, -1);
@@ -139,6 +142,8 @@ static void test__createWriterGang(void **state)
 	will_return_count(getFtsVersion, ftsVersion, 1);
 
 	mockLibpq(conn, motionListener, qePid);
+
+	cdbgang_setAsync(false);
 
 	Gang * gang = allocateWriterGang();
 
@@ -187,6 +192,7 @@ static void test__createReaderGang(void **state)
 
 	mockLibpq(conn, motionListener, qePid);
 
+	cdbgang_setAsync(false);
 	Gang * gang = allocateReaderGang(GANGTYPE_PRIMARY_READER, portalName);
 
 	/* validate gang */

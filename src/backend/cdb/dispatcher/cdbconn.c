@@ -287,8 +287,9 @@ void cdbconn_termSegmentDescriptor(SegmentDatabaseDescriptor *segdbDesc)
  * Connect to a QE as a client via libpq.
  * returns true if connected.
  */
-void cdbconn_doConnect(SegmentDatabaseDescriptor *segdbDesc, const char *gpqeid,
-		const char *options)
+void cdbconn_doConnect(SegmentDatabaseDescriptor *segdbDesc,
+					   const char *gpqeid,
+					   const char *options)
 {
 #define MAX_KEYWORDS 10
 #define MAX_INT_STRING_LEN 20
@@ -423,6 +424,112 @@ void cdbconn_doConnect(SegmentDatabaseDescriptor *segdbDesc, const char *gpqeid,
 	}
 }
 
+/*
+ * Establish socket connection via libpq.
+ * Caller should call PQconnectPoll to finish it up.
+ */
+void
+cdbconn_doConnectStart(SegmentDatabaseDescriptor *segdbDesc,
+					   const char *gpqeid,
+					   const char *options)
+{
+#define MAX_KEYWORDS 10
+#define MAX_INT_STRING_LEN 20
+	CdbComponentDatabaseInfo *cdbinfo = segdbDesc->segment_database_info;
+	const char *keywords[MAX_KEYWORDS];
+	const char *values[MAX_KEYWORDS];
+	char portstr[MAX_INT_STRING_LEN];
+	int nkeywords = 0;
+
+	keywords[nkeywords] = "gpqeid";
+	values[nkeywords] = gpqeid;
+	nkeywords++;
+
+	/*
+	 * Build the connection string
+	 */
+	if (options)
+	{
+		keywords[nkeywords] = "options";
+		values[nkeywords] = options;
+		nkeywords++;
+	}
+
+	/*
+	 * For entry DB connection, we make sure both "hostaddr" and "host" are empty string.
+	 * Or else, it will fall back to environment variables and won't use domain socket
+	 * in function connectDBStart.
+	 *
+	 * For other QE connections, we set "hostaddr". "host" is not used.
+	 */
+	if (segdbDesc->segindex == MASTER_CONTENT_ID &&
+		GpIdentity.segindex == MASTER_CONTENT_ID)
+	{
+		keywords[nkeywords] = "hostaddr";
+		values[nkeywords] = "";
+		nkeywords++;
+	}
+	else
+	{
+		Assert(cdbinfo->hostip != NULL);
+		keywords[nkeywords] = "hostaddr";
+		values[nkeywords] = cdbinfo->hostip;
+		nkeywords++;
+	}
+
+	keywords[nkeywords] = "host";
+	values[nkeywords] = "";
+	nkeywords++;
+
+	snprintf(portstr, sizeof(portstr), "%u", cdbinfo->port);
+	keywords[nkeywords] = "port";
+	values[nkeywords] = portstr;
+	nkeywords++;
+
+	if (MyProcPort->database_name)
+	{
+		keywords[nkeywords] = "dbname";
+		values[nkeywords] = MyProcPort->database_name;
+		nkeywords++;
+	}
+
+	Assert(MyProcPort->user_name);
+	keywords[nkeywords] = "user";
+	values[nkeywords] = MyProcPort->user_name;
+	nkeywords++;
+
+	keywords[nkeywords] = NULL;
+	values[nkeywords] = NULL;
+
+	Assert(nkeywords < MAX_KEYWORDS);
+
+	segdbDesc->conn = PQconnectStartParams(keywords, values, false);
+	return;
+}
+
+void
+cdbconn_doConnectComplete(SegmentDatabaseDescriptor *segdbDesc)
+{
+	PQsetNoticeReceiver(segdbDesc->conn, &MPPnoticeReceiver, segdbDesc);
+	/* Command the QE to initialize its motion layer.
+	 * Wait for it to respond giving us the TCP port number
+	 * where it listens for connections from the gang below.
+	 */
+	segdbDesc->motionListener = PQgetQEdetail(segdbDesc->conn);
+	segdbDesc->backendPid = PQbackendPID(segdbDesc->conn);
+	if (segdbDesc->motionListener == -1)
+		ereport(ERROR,
+				(errcode(ERRCODE_GP_INTERNAL_ERROR),
+				 errmsg("Internal error: No motion listener port for %s\n",
+						segdbDesc->whoami)));
+	else if (gp_log_gang >= GPVARS_VERBOSITY_DEBUG)
+		elog(LOG, "Connected to %s motionListenerPorts=%d/%d with options %s",
+			 segdbDesc->whoami,
+			 (segdbDesc->motionListener & 0x0ffff),
+			 ((segdbDesc->motionListener >> 16) & 0x0ffff),
+			 PQoptions(segdbDesc->conn));
+}
+
 /* Disconnect from QE */
 void cdbconn_disconnect(SegmentDatabaseDescriptor *segdbDesc)
 {
@@ -492,6 +599,12 @@ bool cdbconn_isBadConnection(SegmentDatabaseDescriptor *segdbDesc)
 {
 	return (PQsocket(segdbDesc->conn) < 0 ||
 		    PQstatus(segdbDesc->conn) == CONNECTION_BAD);
+}
+
+/* Return if it's a connection OK */
+bool cdbconn_isConnectionOk(SegmentDatabaseDescriptor *segdbDesc)
+{
+	return (PQstatus(segdbDesc->conn) == CONNECTION_OK);
 }
 
 /* Reset error message buffer */

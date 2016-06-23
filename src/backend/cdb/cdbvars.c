@@ -21,6 +21,7 @@
 #include "cdb/cdbfts.h"
 #include "cdb/cdbdisp.h"
 #include "cdb/cdbutil.h"
+#include "cdb/cdbdisp.h"
 #include "lib/stringinfo.h"
 #include "libpq/libpq-be.h"
 #include "utils/memutils.h"
@@ -645,11 +646,12 @@ assign_gp_connections_per_thread(int newval, bool doit, GucSource source __attri
 
 	if (doit)
 	{
-		if (newval <= 0)
+		if (newval < 0)
 			return false;
 
+		cdbdisp_setAsync(newval == 0);
+		cdbgang_setAsync(newval == 0);
 		gp_connections_per_thread = newval;
-		cdbdisp_setAsync(true);
 	}
 
 	return true;

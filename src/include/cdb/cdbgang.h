@@ -53,6 +53,7 @@ typedef struct Gang
 
 extern int qe_gang_id;
 
+extern MemoryContext GangContext;
 
 extern Gang *allocateReaderGang(GangType type, char *portal_name);
 
@@ -66,6 +67,7 @@ extern List *getCdbProcessesForQD(int isPrimary);
 
 extern void freeGangsForPortal(char *portal_name);
 
+extern void disconnectAndDestroyGang(Gang *gp);
 extern void disconnectAndDestroyAllGangs(bool resetSession);
 
 extern void CheckForResetSession(void);
@@ -77,11 +79,17 @@ extern List *getAllAllocatedReaderGangs(void);
 extern CdbComponentDatabases *getComponentDatabases(void);
 
 extern bool gangsExist(void);
+extern bool readerGangsExist(void);
 
 extern struct SegmentDatabaseDescriptor *getSegmentDescriptorFromGang(const Gang *gp, int seg);
 
 extern Gang *findGangById(int gang_id);
 
+bool isPrimaryWriterGangAlive(void);
+Gang *buildGangDefinition(GangType type, int gang_id, int size, int content);
+void build_gpqeid_param(char *buf, int bufsz, int segIndex, bool is_writer, int gangId);
+char *makeOptions(void);
+bool segment_failure_due_to_recovery(struct SegmentDatabaseDescriptor *segdbDesc);
 
 /*
  * disconnectAndDestroyIdleReaderGangs()
@@ -107,6 +115,7 @@ extern void disconnectAndDestroyIdleReaderGangs(void);
 extern void cleanupPortalGangs(Portal portal);
 
 extern int largestGangsize(void);
+extern void setLargestGangsize(int size);
 
 extern int gp_pthread_create(pthread_t *thread, void *(*start_routine)(void *), void *arg, const char *caller);
 
@@ -148,6 +157,8 @@ typedef struct CdbProcess
 	int contentid;
 } CdbProcess;
 
+typedef Gang *(*CreateGangFunc)(GangType type, int gang_id, int size, int content);
 
+extern void cdbgang_setAsync(bool async);
 
 #endif   /* _CDBGANG_H_ */

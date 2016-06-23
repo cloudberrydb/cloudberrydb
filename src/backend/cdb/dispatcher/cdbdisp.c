@@ -333,7 +333,6 @@ cdbdisp_makeDispatcherState(CdbDispatcherState *ds,
 	MemoryContext oldContext = NULL;
 
 	Assert(ds != NULL);
-	Assert(ds->dispatchStateContext == NULL);
 	Assert(ds->dispatchParams == NULL);
 	Assert(ds->primaryResults == NULL);
 
