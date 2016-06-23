@@ -2,17 +2,17 @@ platform: linux
 image: docker:///yolo/orcadev#centos6
 inputs:
   - name: gpdb_src
-  - name: bin_orca_centos6_release
-  - name: bin_gpos_centos6_release
-  - name: bin_xerces_centos6
-  - name: bin_gpdb_with_orca_centos6
+  - name: bin_orca
+  - name: bin_gpos
+  - name: bin_xerces
+  - name: bin_gpdb
 outputs:
   - name: icg_output
 run:
   path: gpdb_src/concourse/scripts/test_gpdb.py
   args:
     - --mode=orca
-    - --gpdb_name=bin_gpdb_with_orca_centos6
-    - bin_orca_centos6_release
-    - bin_gpos_centos6_release
-    - bin_xerces_centos6
+    - --gpdb_name=bin_gpdb
+    - bin_orca
+    - bin_gpos
+    - bin_xerces
