@@ -18,7 +18,7 @@ extern "C" {
 
 #include <string>
 #include <vector>
-#include "codegen/utils/codegen_utils.h"
+#include "codegen/utils/gp_codegen_utils.h"
 #include "codegen/codegen_interface.h"
 
 #include "llvm/IR/Function.h"
@@ -50,7 +50,7 @@ class BaseCodegen: public CodegenInterface {
     SetToRegular(regular_func_ptr_, ptr_to_chosen_func_ptr_);
   }
 
-  bool GenerateCode(gpcodegen::CodegenUtils* codegen_utils) final {
+  bool GenerateCode(gpcodegen::GpCodegenUtils* codegen_utils) final {
     bool valid_generated_functions = true;
     valid_generated_functions &= GenerateCodeInternal(codegen_utils);
 
@@ -87,7 +87,7 @@ class BaseCodegen: public CodegenInterface {
     return true;
   }
 
-  bool SetToGenerated(gpcodegen::CodegenUtils* codegen_utils) final {
+  bool SetToGenerated(gpcodegen::GpCodegenUtils* codegen_utils) final {
     if (false == IsGenerated()) {
       assert(*ptr_to_chosen_func_ptr_ == regular_func_ptr_);
       return false;
@@ -180,7 +180,7 @@ class BaseCodegen: public CodegenInterface {
    * @param codegen_utils Utility to ease the code generation process.
    * @return true on successful generation.
    **/
-  virtual bool GenerateCodeInternal(gpcodegen::CodegenUtils* codegen_utils) = 0;
+  virtual bool GenerateCodeInternal(gpcodegen::GpCodegenUtils* codegen_utils) = 0;
 
   /**
    * @brief Create llvm Function for given type and store the function pointer
@@ -196,7 +196,7 @@ class BaseCodegen: public CodegenInterface {
    * @return llvm::Function pointer
    **/
   template <typename FunctionType>
-  llvm::Function* CreateFunction(gpcodegen::CodegenUtils* codegen_utils,
+  llvm::Function* CreateFunction(gpcodegen::GpCodegenUtils* codegen_utils,
                                  const std::string& function_name) {
     assert(nullptr != codegen_utils);
     llvm::Function* function = codegen_utils->CreateFunction<FunctionType>(

@@ -20,7 +20,7 @@ extern "C" {
 #include "codegen/utils/clang_compiler.h"
 #include "codegen/utils/utility.h"
 #include "codegen/utils/instance_method_wrappers.h"
-#include "codegen/utils/codegen_utils.h"
+#include "codegen/utils/gp_codegen_utils.h"
 #include "codegen/codegen_interface.h"
 
 #include "codegen/codegen_manager.h"
@@ -44,7 +44,7 @@ using gpcodegen::CodegenManager;
 
 CodegenManager::CodegenManager(const std::string& module_name) {
   module_name_ = module_name;
-  codegen_utils_.reset(new gpcodegen::CodegenUtils(module_name));
+  codegen_utils_.reset(new gpcodegen::GpCodegenUtils(module_name));
 }
 
 bool CodegenManager::EnrollCodeGenerator(
@@ -74,9 +74,9 @@ unsigned int CodegenManager::PrepareGeneratedFunctions() {
   }
 
 
-  // Call CodegenUtils to compile entire module
+  // Call GpCodegenUtils to compile entire module
   bool compilation_status = codegen_utils_->PrepareForExecution(
-      gpcodegen::CodegenUtils::OptimizationLevel::kDefault, true);
+      gpcodegen::GpCodegenUtils::OptimizationLevel::kDefault, true);
 
   if (!compilation_status) {
     return success_count;
@@ -84,7 +84,7 @@ unsigned int CodegenManager::PrepareGeneratedFunctions() {
 
   // On successful compilation, go through all generator and swap
   // the pointer so compiled function get called
-  gpcodegen::CodegenUtils* codegen_utils = codegen_utils_.get();
+  gpcodegen::GpCodegenUtils* codegen_utils = codegen_utils_.get();
   for (std::unique_ptr<CodegenInterface>& generator :
       enrolled_code_generators_) {
     success_count += generator->SetToGenerated(codegen_utils);

@@ -76,7 +76,7 @@ class ExecVariableListCodegen: public BaseCodegen<ExecVariableListFn> {
    * If at execution time, we see any of the above types of attributes, we fall backs to
    * the regular function.
    */
-  bool GenerateCodeInternal(gpcodegen::CodegenUtils* codegen_utils) final;
+  bool GenerateCodeInternal(gpcodegen::GpCodegenUtils* codegen_utils) final;
 
  private:
   ProjectionInfo* proj_info_;
@@ -91,7 +91,7 @@ class ExecVariableListCodegen: public BaseCodegen<ExecVariableListFn> {
    * @param codegen_utils Utility to ease the code generation process.
    * @return true on successful generation.
    **/
-  bool GenerateExecVariableList(gpcodegen::CodegenUtils* codegen_utils);
+  bool GenerateExecVariableList(gpcodegen::GpCodegenUtils* codegen_utils);
 };
 
 /** @} */

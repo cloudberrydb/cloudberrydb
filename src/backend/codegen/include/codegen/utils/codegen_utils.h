@@ -80,7 +80,7 @@ class CodegenUtils {
    **/
   explicit CodegenUtils(llvm::StringRef module_name);
 
-  ~CodegenUtils() {
+  virtual ~CodegenUtils() {
   }
 
   /**
@@ -328,6 +328,60 @@ class CodegenUtils {
         true);
   }
 
+  /*
+   * @brief Register an external function if previously unregistered. Otherwise
+   *        return a pointer to the previously registered llvm::Function
+   *
+   * @warning This method returns a pointer to an llvm::Function object. The
+   *          caller should NOT attempt to add BasicBlocks to the function, as
+   *          that would cause conflicts when mapping the function to its
+   *          external implementation during PrepareForExecution().
+   *
+   * @tparam ReturnType The return type of the external_function. This does not
+   *         need to be specified if external_function is not overloaded (it
+   *         will be inferred automatically).
+   * @tparam argument_types The types of the arguments to external_function.
+   *         These do not need to be specified if external_function is not
+   *         overloaded (they will be inferred automatically).
+   * @param external_function A function pointer to install for use in this
+   *        CodegenUtils.
+   * @param name An optional name to refer to the external function by. If
+   *        non-empty, this CodegenUtils will record additional information
+   *        so that the registered function will also be callable by its name
+   *        in C++ source code compiled by ClangCompiler (see
+   *        ClangCompiler::GenerateExternalFunctionDeclarations()).
+   * @param is_var_arg Whether the function has trailing variable arguments list
+   * @return A callable LLVM function.
+   */
+  template <typename ReturnType, typename... ArgumentTypes>
+  llvm::Function* GetOrRegisterExternalFunction(
+      ReturnType (*external_function)(ArgumentTypes...),
+      const std::string& name = "",
+      const bool is_var_arg = false) {
+    auto it = std::find_if(
+        external_functions_.begin(),
+        external_functions_.end(),
+        [external_function] (decltype(external_functions_)::value_type val) -> bool {
+          return val.second == reinterpret_cast<std::uint64_t>(external_function);
+    });
+
+    if (it == external_functions_.end()) {
+      // If not found
+      return RegisterExternalFunction(external_function, name, is_var_arg);
+    } else {
+      return module()->getFunction(it->first);
+    }
+  }
+
+  template <typename ReturnType, typename... ArgumentTypes>
+  llvm::Function* GetOrRegisterExternalFunction(
+      ReturnType (*external_function)(ArgumentTypes..., ...),
+      const std::string& name = "") {
+    return GetOrRegisterExternalFunction(
+        reinterpret_cast<ReturnType (*)(ArgumentTypes...)>(external_function),
+        name,
+        true);
+  }
 
   /**
    * @brief Optimize the code in the module managed by this CodegenUtils before

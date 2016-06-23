@@ -23,7 +23,7 @@ namespace gpcodegen {
  */
 
 // Forward declaration
-class CodegenUtils;
+class GpCodegenUtils;
 
 /**
  * @brief Interface for all code generators.
@@ -39,7 +39,7 @@ class CodegenInterface {
    * @param codegen_utils Utility to ease the code generation process.
    * @return true on successful generation.
    **/
-  virtual bool GenerateCode(gpcodegen::CodegenUtils* codegen_utils) = 0;
+  virtual bool GenerateCode(gpcodegen::GpCodegenUtils* codegen_utils) = 0;
 
   /**
    * @brief Sets up the caller to use the corresponding regular version of the
@@ -58,7 +58,7 @@ class CodegenInterface {
    *        the compiled module.
    * @return true on successfully setting to generated functions
    **/
-  virtual bool SetToGenerated(gpcodegen::CodegenUtils* codegen_utils) = 0;
+  virtual bool SetToGenerated(gpcodegen::GpCodegenUtils* codegen_utils) = 0;
 
   /**
    * @brief Resets the state of the generator, including reverting back to

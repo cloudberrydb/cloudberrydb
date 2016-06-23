@@ -51,7 +51,7 @@ class ExecQualCodegen: public BaseCodegen<ExecQualFn> {
    *
    * @note Currently, it simply falls back to regular ExecQual.
    */
-  bool GenerateCodeInternal(gpcodegen::CodegenUtils* codegen_utils) final;
+  bool GenerateCodeInternal(gpcodegen::GpCodegenUtils* codegen_utils) final;
 
  private:
   PlanState *planstate_;
@@ -65,7 +65,7 @@ class ExecQualCodegen: public BaseCodegen<ExecQualFn> {
    * @param codegen_utils Utility to ease the code generation process.
    * @return true on successful generation.
    **/
-  bool GenerateExecQual(gpcodegen::CodegenUtils* codegen_utils);
+  bool GenerateExecQual(gpcodegen::GpCodegenUtils* codegen_utils);
 };
 
 /** @} */

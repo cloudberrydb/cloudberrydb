@@ -15,7 +15,7 @@
 #include "codegen/exec_variable_list_codegen.h"
 #include "codegen/exec_qual_codegen.h"
 
-#include "codegen/utils/codegen_utils.h"
+#include "codegen/utils/gp_codegen_utils.h"
 
 using gpcodegen::CodegenManager;
 using gpcodegen::BaseCodegen;
@@ -32,7 +32,7 @@ extern bool init_codegen;  // defined from guc
 // Perform global set-up tasks for code generation. Returns 0 on
 // success, nonzero on error.
 unsigned int InitCodegen() {
-  return gpcodegen::CodegenUtils::InitializeGlobal();
+  return gpcodegen::GpCodegenUtils::InitializeGlobal();
 }
 
 void* CodeGeneratorManagerCreate(const char* module_name) {
