@@ -10,6 +10,6 @@ outputs:
 run:
   path: /bin/bash
   args:
-    - -l
+    - -l  # login shell to source gcc 5 path
     - -c
     - gpdb_src/concourse/scripts/build_gpdb.py --mode=orca_codegen --output_dir=bin_gpdb/install bin_orca bin_gpos bin_xerces

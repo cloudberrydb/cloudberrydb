@@ -6,7 +6,8 @@ inputs:
 outputs:
   - name: icg_output
 run:
-  path: gpdb_src/concourse/scripts/test_gpdb.py
+  path: /bin/bash
   args:
-    - --mode=codegen
-    - --gpdb_name=bin_gpdb
+    - -l
+    - -c
+    - gpdb_src/concourse/scripts/test_gpdb.py --mode=codegen --gpdb_name=bin_gpdb

@@ -31,6 +31,6 @@ class GporcacodegenBuild(GpdbBuildBase):
             return status
         return subprocess.call([
             "runuser gpadmin -c \"source /usr/local/gpdb/greenplum_path.sh \
-            && source gpAux/gpdemo/gpdemo-env.sh && PGOPTIONS='-c optimizer=on codegen=on' \
+            && source gpAux/gpdemo/gpdemo-env.sh && PGOPTIONS='-c optimizer=on -c codegen=on' \
             make installcheck-good\""], cwd="gpdb_src", shell=True)
     

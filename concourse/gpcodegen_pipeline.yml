@@ -7,7 +7,7 @@ resources:
   source:
     branch: concourse
     private_key: {{gpdb_deploy_key}}
-    uri: git@github.com:hardikar/gpdb.git
+    uri: git@github.com:greenplum-db/gpdb.git
 
 - name: bin_gpdb_planner
   type: s3
@@ -75,7 +75,7 @@ jobs:
     params:
       from: package_tarball/bin_gpdb.tar.gz
 
-- name: gpdb_icg_codegen
+- name: gpdb_icg_planner
   max_in_flight: 1
   plan:
   - aggregate:
@@ -119,3 +119,41 @@ jobs:
   - put: bin_gpdb_orca
     params:
       from: package_tarball/bin_gpdb.tar.gz
+
+- name: gpdb_icg_orca
+  max_in_flight: 1
+  plan:
+  - aggregate:
+    - get: gpdb_src
+      params:
+        submodules: none
+    - get: bin_gpdb
+      passed:
+      - build_gpdb_orca
+      trigger: true
+    - get: bin_xerces
+  - task: prepare_orca_dependencies
+    file: gpdb_src/concourse/prepare_orca_dependencies.yml
+  - task: test_gpdb
+    input_mapping: {bin_gpdb: bin_gpdb_orca}
+    file: gpdb_src/concourse/test_with_orca_and_codegen.yml
+    on_failure:
+      aggregate:
+      - put: regression_diffs
+        params:
+          from: icg_output/regression.diffs
+      - put: regression_out
+        params:
+          from: icg_output/regression.out
+
+
+- name: cpplint
+  max_in_flight: 3
+  plan:
+  - aggregate:
+    - get: gpdb_src
+      params:
+        submodules: none
+      trigger: true
+  - task: cpplint
+    file: gpdb_src/concourse/cpplint.yml
