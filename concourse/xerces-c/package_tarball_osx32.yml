@@ -1,0 +1,11 @@
+platform: darwin
+inputs:
+  - name: xerces_patch
+  - name: build_osx32
+outputs:
+  - name: package_tarball_osx32
+run:
+  path: xerces_patch/concourse/package_tarball.bash
+params:
+  src_root: build_osx32/install
+  dst_tarball: package_tarball_osx32/bin_xerces_osx32.tar.gz

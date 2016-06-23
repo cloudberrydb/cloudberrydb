@@ -2,9 +2,11 @@ platform: darwin
 inputs:
   - name: xerces_patch
 outputs:
-  - name: build_osx
+  - name: build_osx32
 run:
   path: /usr/bin/python
   args:
     - xerces_patch/concourse/xerces-c/build_xerces.py
-    - --output_dir=build_osx/install
+    - --output_dir=build_osx32/install
+    - --cxxflags=-m32
+    - --cflags=-m32

@@ -42,13 +42,15 @@ def get_xerces_source():
         stdin = patchfile,
         cwd = XERCES_SOURCE_DIR)
 
-def configure(cxx_compiler, cxxflags, output_dir):
+def configure(cxx_compiler, cxxflags, cflags, output_dir):
     os.mkdir("build")
     environment = os.environ.copy()
     if cxx_compiler:
         environment["CXX"] = cxx_compiler
     if cxxflags:
         environment["CXXFLAGS"] = cxxflags
+    if cflags:
+        environment["CFLAGS"] = cflags
     return subprocess.call(
         [os.path.abspath(XERCES_SOURCE_DIR + "/configure"), "--prefix=" + os.path.abspath(output_dir)],
         env = environment,
@@ -64,6 +66,7 @@ def main():
     parser = optparse.OptionParser()
     parser.add_option("--compiler", dest="compiler")
     parser.add_option("--cxxflags", dest="cxxflags")
+    parser.add_option("--cflags", dest="cflags")
     parser.add_option("--output_dir", dest="output_dir", default="install")
     (options, args) = parser.parse_args()
     if len(args) > 0:
@@ -72,7 +75,7 @@ def main():
     status = get_xerces_source()
     if status:
         return status
-    status = configure(options.compiler, options.cxxflags, options.output_dir)
+    status = configure(options.compiler, options.cxxflags, options.cflags, options.output_dir)
     if status:
         return status
     status = make()

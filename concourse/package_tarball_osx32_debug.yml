@@ -1,0 +1,11 @@
+platform: darwin
+inputs:
+  - name: orca_src
+  - name: build_and_test_osx32_debug
+outputs:
+  - name: package_tarball_osx32_debug
+run:
+  path: orca_src/concourse/package_tarball.bash
+params:
+  src_root: build_and_test_osx32_debug/install
+  dst_tarball: package_tarball_osx32_debug/bin_orca_osx32_debug.tar.gz

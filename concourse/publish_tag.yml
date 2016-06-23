@@ -2,7 +2,10 @@ platform: linux
 image: docker:///yolo/orcadev#centos5
 inputs:
   - name: orca_src
-  - name: bin_orca_release
+  - name: bin_orca_centos5_release
+  - name: bin_orca_centos5_debug
+  - name: bin_orca_osx32_release
+  - name: bin_orca_osx32_debug
 outputs:
   - name: orca_github_release_stage
 run:
