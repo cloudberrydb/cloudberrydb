@@ -171,12 +171,13 @@ set(GPCODEGEN_SRC
     codegen_interface.cc
     codegen_manager.cc
     codegen_wrapper.cc
+    const_expr_tree_generator.cc
     exec_variable_list_codegen.cc
     exec_eval_expr_codegen.cc
     expr_tree_generator.cc
     op_expr_tree_generator.cc
+    pg_date_func_generator.cc
     var_expr_tree_generator.cc
-    const_expr_tree_generator.cc
 )
 
 # Integrate with GPDB build system. 

@@ -23,7 +23,7 @@ extern "C" {
 
 using gpcodegen::VarExprTreeGenerator;
 using gpcodegen::ExprTreeGenerator;
-using gpcodegen::CodegenUtils;
+using gpcodegen::GpCodegenUtils;
 
 bool VarExprTreeGenerator::VerifyAndCreateExprTree(
     ExprState* expr_state,
@@ -41,7 +41,7 @@ VarExprTreeGenerator::VarExprTreeGenerator(ExprState* expr_state) :
     ExprTreeGenerator(expr_state, ExprTreeNodeType::kVar) {
 }
 
-bool VarExprTreeGenerator::GenerateCode(CodegenUtils* codegen_utils,
+bool VarExprTreeGenerator::GenerateCode(GpCodegenUtils* codegen_utils,
                                         ExprContext* econtext,
                                         llvm::Function* llvm_main_func,
                                         llvm::BasicBlock* llvm_error_block,

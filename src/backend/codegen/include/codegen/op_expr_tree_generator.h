@@ -45,7 +45,7 @@ class OpExprTreeGenerator : public ExprTreeGenerator {
         ExprContext* econtext,
         std::unique_ptr<ExprTreeGenerator>* expr_tree);
 
-  bool GenerateCode(gpcodegen::CodegenUtils* codegen_utils,
+  bool GenerateCode(gpcodegen::GpCodegenUtils* codegen_utils,
                     ExprContext* econtext,
                     llvm::Function* llvm_main_func,
                     llvm::BasicBlock* llvm_error_block,

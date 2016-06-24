@@ -39,7 +39,7 @@ ConstExprTreeGenerator::ConstExprTreeGenerator(ExprState* expr_state) :
     ExprTreeGenerator(expr_state, ExprTreeNodeType::kConst) {
 }
 
-bool ConstExprTreeGenerator::GenerateCode(CodegenUtils* codegen_utils,
+bool ConstExprTreeGenerator::GenerateCode(GpCodegenUtils* codegen_utils,
                                         ExprContext* econtext,
                                         llvm::Function* llvm_main_func,
                                         llvm::BasicBlock* llvm_error_block,

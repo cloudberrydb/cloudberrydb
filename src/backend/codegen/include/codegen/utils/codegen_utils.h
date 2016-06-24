@@ -492,7 +492,7 @@ class CodegenUtils {
     // Check that the call instruction belongs to a BasicBlock which is part of
     // a valid function
     if (!(call_inst && call_inst->getParent()
-          && call_inst->getParent()->getParent())){
+          && call_inst->getParent()->getParent())) {
       return false;
     }
     llvm::InlineFunctionInfo info;
@@ -1360,7 +1360,6 @@ class ArithOpMaker<float> {
 template <>
 class ArithOpMaker<double> {
  public:
-
   static llvm::Value* CreateAddOverflow(CodegenUtils* generator,
                                         llvm::Value* arg0,
                                         llvm::Value* arg1) {
@@ -1370,7 +1369,7 @@ class ArithOpMaker<double> {
     llvm::Value* casted_arg1 = generator->ir_builder()->
         CreateBitCast(arg1, generator->GetType<double>());
 
-    // TODO: armenatzoglou Support overflow
+    // TODO(armenatzoglou) Support overflow
     return generator->ir_builder()->CreateFAdd(casted_arg0, casted_arg1);
   }
 
@@ -1383,7 +1382,7 @@ class ArithOpMaker<double> {
     llvm::Value* casted_arg1 = generator->ir_builder()->
         CreateBitCast(arg1, generator->GetType<double>());
 
-    // TODO: armenatzoglou Support overflow
+    // TODO(armenatzoglou) Support overflow
     return generator->ir_builder()->CreateFSub(casted_arg0, casted_arg1);
   }
 
@@ -1396,7 +1395,7 @@ class ArithOpMaker<double> {
     llvm::Value* casted_arg1 = generator->ir_builder()->
         CreateBitCast(arg1, generator->GetType<double>());
 
-    // TODO: armenatzoglou Support overflow
+    // TODO(armenatzoglou) Support overflow
     return generator->ir_builder()->CreateFMul(casted_arg0, casted_arg1);
   }
 

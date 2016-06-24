@@ -18,7 +18,7 @@
 #include <utility>
 #include <unordered_map>
 
-#include "codegen/utils/codegen_utils.h"
+#include "codegen/utils/gp_codegen_utils.h"
 
 #include "llvm/IR/Value.h"
 
@@ -71,7 +71,7 @@ class ExprTreeGenerator {
    *
    * @return true when it generated successfully otherwise it return false.
    **/
-  virtual bool GenerateCode(gpcodegen::CodegenUtils* codegen_utils,
+  virtual bool GenerateCode(gpcodegen::GpCodegenUtils* codegen_utils,
                             ExprContext* econtext,
                             llvm::Function* llvm_main_func,
                             llvm::BasicBlock* llvm_error_block,

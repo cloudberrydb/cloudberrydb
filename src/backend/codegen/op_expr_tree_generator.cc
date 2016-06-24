@@ -14,6 +14,7 @@
 #include "codegen/op_expr_tree_generator.h"
 
 #include "include/codegen/pg_arith_func_generator.h"
+#include "include/codegen/pg_date_func_generator.h"
 #include "llvm/IR/Value.h"
 
 extern "C" {
@@ -25,7 +26,7 @@ extern "C" {
 
 using gpcodegen::OpExprTreeGenerator;
 using gpcodegen::ExprTreeGenerator;
-using gpcodegen::CodegenUtils;
+using gpcodegen::GpCodegenUtils;
 using gpcodegen::PGFuncGeneratorInterface;
 using gpcodegen::PGFuncGenerator;
 using gpcodegen::CodeGenFuncMap;
@@ -59,7 +60,6 @@ void OpExprTreeGenerator::InitializeSupportedFunction() {
           "int4mi",
           &PGArithFuncGenerator<int32_t, int32_t, int32_t>::SubWithOverflow));
 
-
   supported_function_[216] = std::unique_ptr<PGFuncGeneratorInterface>(
       new PGGenericFuncGenerator<float8, float8>(
           216,
@@ -82,6 +82,11 @@ void OpExprTreeGenerator::InitializeSupportedFunction() {
       new PGIRBuilderFuncGenerator<decltype(&IRBuilder<>::CreateICmpSLE),
       int32_t, int32_t>(1088, "date_le", &IRBuilder<>::CreateICmpSLE));
 
+  supported_function_[2339] = std::unique_ptr<PGFuncGeneratorInterface>(
+      new PGGenericFuncGenerator<int32_t, int64_t>(
+          2339,
+          "date_le_timestamp",
+          &PGDateFuncGenerator::DateLETimestamp));
 }
 
 OpExprTreeGenerator::OpExprTreeGenerator(
@@ -125,8 +130,8 @@ bool OpExprTreeGenerator::VerifyAndCreateExprTree(
     assert(nullptr != argstate);
     std::unique_ptr<ExprTreeGenerator> arg(nullptr);
     supported_tree &= ExprTreeGenerator::VerifyAndCreateExprTree(argstate,
-                                                                econtext,
-                                                                &arg);
+                                                                 econtext,
+                                                                 &arg);
     if (!supported_tree) {
       break;
     }
@@ -141,7 +146,7 @@ bool OpExprTreeGenerator::VerifyAndCreateExprTree(
   return true;
 }
 
-bool OpExprTreeGenerator::GenerateCode(CodegenUtils* codegen_utils,
+bool OpExprTreeGenerator::GenerateCode(GpCodegenUtils* codegen_utils,
                                        ExprContext* econtext,
                                        llvm::Function* llvm_main_func,
                                        llvm::BasicBlock* llvm_error_block,

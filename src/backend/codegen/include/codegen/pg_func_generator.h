@@ -17,7 +17,7 @@
 #include <memory>
 
 #include "codegen/pg_func_generator_interface.h"
-#include "codegen/utils/codegen_utils.h"
+#include "codegen/utils/gp_codegen_utils.h"
 
 #include "llvm/IR/IRBuilder.h"
 #include "llvm/IR/Value.h"
@@ -28,7 +28,7 @@ namespace gpcodegen {
  *  @{
  */
 
-typedef bool (*PGFuncGenerator)(gpcodegen::CodegenUtils* codegen_utils,
+typedef bool (*PGFuncGenerator)(gpcodegen::GpCodegenUtils* codegen_utils,
     llvm::Function* llvm_main_func,
     llvm::BasicBlock* llvm_error_block,
     const std::vector<llvm::Value*>& llvm_args,
@@ -63,7 +63,7 @@ class PGFuncBaseGenerator : public PGFuncGeneratorInterface {
    *
    * @return true on successful preprocess otherwise return false.
    **/
-  bool PreProcessArgs(gpcodegen::CodegenUtils* codegen_utils,
+  bool PreProcessArgs(gpcodegen::GpCodegenUtils* codegen_utils,
                       const std::vector<llvm::Value*>& llvm_in_args,
                       std::vector<llvm::Value*>* llvm_out_args) {
     assert(nullptr != codegen_utils &&
@@ -132,7 +132,7 @@ Arg0, Arg1> {
                                              mem_func_ptr) {
   }
 
-  bool GenerateCode(gpcodegen::CodegenUtils* codegen_utils,
+  bool GenerateCode(gpcodegen::GpCodegenUtils* codegen_utils,
                     llvm::Function* llvm_main_func,
                     llvm::BasicBlock* llvm_error_block,
                     const std::vector<llvm::Value*>& llvm_args,
@@ -178,7 +178,7 @@ Arg0, Arg1> {
                                              func_ptr) {
   }
 
-  bool GenerateCode(gpcodegen::CodegenUtils* codegen_utils,
+  bool GenerateCode(gpcodegen::GpCodegenUtils* codegen_utils,
                     llvm::Function* llvm_main_func,
                     llvm::BasicBlock* llvm_error_block,
                     const std::vector<llvm::Value*>& llvm_args,
