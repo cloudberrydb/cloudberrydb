@@ -5,7 +5,7 @@ resources:
 - name: gpdb_src
   type: git
   source:
-    branch: concourse
+    branch: master
     private_key: {{gpdb_deploy_key}}
     uri: git@github.com:greenplum-db/gpdb.git
 
