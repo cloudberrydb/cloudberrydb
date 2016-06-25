@@ -127,7 +127,7 @@ jobs:
     - get: gpdb_src
       params:
         submodules: none
-    - get: bin_gpdb
+    - get: bin_gpdb_orca
       passed:
       - build_gpdb_orca
       trigger: true
