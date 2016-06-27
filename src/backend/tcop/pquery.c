@@ -260,7 +260,7 @@ ProcessQuery(Portal portal,
 		if (gp_resqueue_memory_policy != RESQUEUE_MEMORY_POLICY_NONE)
 			queryDesc->plannedstmt->query_mem = ResourceQueueGetQueryMemoryLimit(queryDesc->plannedstmt, portal->queueId);
 		
-		portal->holdingResLock = ResLockPortal(portal, queryDesc);
+		portal->releaseResLock = ResLockPortal(portal, queryDesc);
 	}
 
 	portal->status = PORTAL_ACTIVE;
@@ -679,7 +679,7 @@ PortalStart(Portal portal, ParamListInfo params, Snapshot snapshot,
 	/* Set up the sequence server */
 	SetupSequenceServer(seqServerHost, seqServerPort);
 
-	portal->holdingResLock = false;
+	portal->releaseResLock = false;
     
 	portal->ddesc = ddesc;
 
@@ -784,7 +784,7 @@ PortalStart(Portal portal, ParamListInfo params, Snapshot snapshot,
 					 */ 
 					if (SPI_context() && 
 						saveActivePortal && 
-						saveActivePortal->holdingResLock)
+						saveActivePortal->releaseResLock)
 					{
 						portal->status = PORTAL_QUEUE;
 						if (gp_resqueue_memory_policy != RESQUEUE_MEMORY_POLICY_NONE)
@@ -796,7 +796,7 @@ PortalStart(Portal portal, ParamListInfo params, Snapshot snapshot,
 						
 						if (gp_resqueue_memory_policy != RESQUEUE_MEMORY_POLICY_NONE)
 							queryDesc->plannedstmt->query_mem = ResourceQueueGetQueryMemoryLimit(queryDesc->plannedstmt, portal->queueId);
-						portal->holdingResLock = ResLockPortal(portal, queryDesc);
+						portal->releaseResLock = ResLockPortal(portal, queryDesc);
 					}
 				}
 
