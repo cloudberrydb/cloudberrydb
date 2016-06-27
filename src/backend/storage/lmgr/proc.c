@@ -1440,7 +1440,7 @@ CheckDeadLock(void)
 		}
 		else
 		{
-			RemoveFromWaitQueue(MyProc, LockTagHashCode(&(MyProc->waitLock->tag)), true);
+			RemoveFromWaitQueue(MyProc, LockTagHashCode(&(MyProc->waitLock->tag)));
 		}
 
 		/*
