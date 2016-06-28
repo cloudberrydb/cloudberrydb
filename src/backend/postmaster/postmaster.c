@@ -8431,6 +8431,6 @@ setProcAffinity(int id)
 static void
 setProcAffinity(int id)
 {
-	elog(LOG, "gp_proc_affinity setting ignored; feature not configured");
+	elog(LOG, "gp_set_proc_affinity setting ignored; feature not configured");
 }
 #endif
