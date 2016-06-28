@@ -23,6 +23,7 @@
 #include <string>
 #include <type_traits>
 #include <utility>
+#include <unordered_map>
 #include <vector>
 
 #include "codegen/utils/annotated_type.h"
@@ -268,66 +269,6 @@ class CodegenUtils {
     return llvm::BasicBlock::Create(context_, name, parent, nullptr);
   }
 
-  /**
-   * @brief Register an external function from the calling environment so that
-   *        it can be called from generated code.
-   *
-   * @note This works for plain functions and for static methods of classes,
-   *       but not instance methods of classes.
-   * @note If a function has multiple overloaded versions, then the template
-   *       parameters of this method can be explicitly set to disambiguate
-   *       which version of the function is desired. For non-overloaded
-   *       functions, this is not necessary and the function's type signature
-   *       can be automatically inferred.
-   * @warning This method returns a pointer to an llvm::Function object. The
-   *          caller should NOT attempt to add BasicBlocks to the function, as
-   *          that would cause conflicts when mapping the function to its
-   *          external implementation during PrepareForExecution().
-   *
-   * @tparam ReturnType The return type of the external_function. This does not
-   *         need to be specified if external_function is not overloaded (it
-   *         will be inferred automatically).
-   * @tparam argument_types The types of the arguments to external_function.
-   *         These do not need to be specified if external_function is not
-   *         overloaded (they will be inferred automatically).
-   * @param external_function A function pointer to install for use in this
-   *        CodegenUtils.
-   * @param name An optional name to refer to the external function by. If
-   *        non-empty, this CodegenUtils will record additional information
-   *        so that the registered function will also be callable by its name
-   *        in C++ source code compiled by ClangCompiler (see
-   *        ClangCompiler::GenerateExternalFunctionDeclarations()).
-   * @param is_var_arg Whether the function has trailing variable arguments list
-   * @return A callable LLVM function.
-   **/
-  template <typename ReturnType, typename... ArgumentTypes>
-  llvm::Function* RegisterExternalFunction(
-      ReturnType (*external_function)(ArgumentTypes...),
-      const std::string& name = "",
-      const bool is_var_arg = false) {
-    external_functions_.emplace_back(
-        name.empty() ? GenerateExternalFunctionName()
-                     : name,
-        reinterpret_cast<std::uint64_t>(external_function));
-
-    if (!name.empty()) {
-      RecordNamedExternalFunction<ReturnType, ArgumentTypes...>(name);
-    }
-
-    return CreateFunctionImpl<ReturnType, ArgumentTypes...>(
-        external_functions_.back().first, is_var_arg);
-  }
-
-  template <typename ReturnType, typename... ArgumentTypes>
-  llvm::Function* RegisterExternalFunction(
-      ReturnType (*external_function)(ArgumentTypes..., ...),
-      const std::string& name = "") {
-    return RegisterExternalFunction(
-        reinterpret_cast<ReturnType (*)(ArgumentTypes...)>(external_function),
-        name,
-        true);
-  }
-
   /*
    * @brief Register an external function if previously unregistered. Otherwise
    *        return a pointer to the previously registered llvm::Function
@@ -358,18 +299,24 @@ class CodegenUtils {
       ReturnType (*external_function)(ArgumentTypes...),
       const std::string& name = "",
       const bool is_var_arg = false) {
-    auto it = std::find_if(
-        external_functions_.begin(),
-        external_functions_.end(),
-        [external_function] (decltype(external_functions_)::value_type val) -> bool {
-          return val.second == reinterpret_cast<std::uint64_t>(external_function);
-    });
 
-    if (it == external_functions_.end()) {
-      // If not found
-      return RegisterExternalFunction(external_function, name, is_var_arg);
+    std::unordered_map<std::uint64_t, std::string>::iterator it;
+    bool key_absent;
+
+    std::tie(it, key_absent) = external_functions_.emplace(
+        reinterpret_cast<std::uint64_t>(external_function),
+        name.empty() ? GenerateExternalFunctionName()
+                     : name);
+
+    if (!key_absent) {
+      return module()->getFunction(it->second);
     } else {
-      return module()->getFunction(it->first);
+
+      if (!name.empty()) {
+        RecordNamedExternalFunction<ReturnType, ArgumentTypes...>(name);
+      }
+      return CreateFunctionImpl<ReturnType, ArgumentTypes...>(
+          it->second, is_var_arg);
     }
   }
 
@@ -565,11 +512,10 @@ class CodegenUtils {
 
   std::unique_ptr<llvm::ExecutionEngine> engine_;
 
-  // Pairs of (function_name, address) for each external function registered by
-  // RegisterExternalFunction(). PrepareForExecution() adds a mapping for each
-  // such function to '*engine_' after creating it.
-  std::vector<std::pair<const std::string, const std::uint64_t>>
-      external_functions_;
+  // Map of (address, function_name) for each external function registered by
+  // GetOrRegisterExternalFunction(). PrepareForExecution() adds a mapping for
+  // each such function to '*engine_' after creating it.
+  std::unordered_map<std::uint64_t, std::string> external_functions_;
 
   // Keep track of additional information about named external functions so that
   // ClangCompiler can reconstruct accurate declarations for them.

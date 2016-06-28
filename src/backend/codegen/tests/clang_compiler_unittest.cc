@@ -372,7 +372,7 @@ static const char kExternalFunctionBinomialCoefficientSource[] =
 }  // namespace
 
 TEST_F(ClangCompilerTest, ExternalFunctionTest) {
-  codegen_utils_->RegisterExternalFunction(&factorial, "factorial");
+  codegen_utils_->GetOrRegisterExternalFunction(&factorial, "factorial");
   EXPECT_TRUE(clang_compiler_->CompileCppSource(
       llvm::Twine(clang_compiler_->GenerateExternalFunctionDeclarations())
           .concat(kExternalFunctionBinomialCoefficientSource)));
@@ -429,16 +429,16 @@ static const char kExternalMethodInvocationSource[] =
 }  // namespace
 
 TEST_F(ClangCompilerTest, ExternalMethodTest) {
-  codegen_utils_->RegisterExternalFunction(
+  codegen_utils_->GetOrRegisterExternalFunction(
       &WrapNew<Accumulator<double>, double>,
       "new_Accumulator");
-  codegen_utils_->RegisterExternalFunction(
+  codegen_utils_->GetOrRegisterExternalFunction(
       &WrapDelete<Accumulator<double>>,
       "delete_Accumulator");
-  codegen_utils_->RegisterExternalFunction(
+  codegen_utils_->GetOrRegisterExternalFunction(
       &GPCODEGEN_WRAP_METHOD(&Accumulator<double>::Accumulate),
       "Accumulator_Accumulate");
-  codegen_utils_->RegisterExternalFunction(
+  codegen_utils_->GetOrRegisterExternalFunction(
       &GPCODEGEN_WRAP_METHOD(&Accumulator<double>::Get),
       "Accumulator_Get");
 

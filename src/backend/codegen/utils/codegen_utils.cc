@@ -248,16 +248,16 @@ bool CodegenUtils::PrepareForExecution(const OptimizationLevel cpu_opt_level,
   }
 
   // Map registered external functions to their actual locations in memory.
-  for (const std::pair<const std::string,
-                       const std::uint64_t>& external_function
+  for (const std::pair<const std::uint64_t,
+                       const std::string>& external_function
        : external_functions_) {
     engine_->addGlobalMapping(
 #ifdef __APPLE__
-        std::string(1, '_') + external_function.first,
+        std::string(1, '_') + external_function.second,
 #else  // !__APPLE__
-        external_function.first,
+        external_function.second,
 #endif
-        external_function.second);
+        external_function.first);
   }
 
   return true;

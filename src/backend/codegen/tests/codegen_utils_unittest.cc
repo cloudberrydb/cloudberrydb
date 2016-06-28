@@ -907,7 +907,7 @@ class CodegenUtilsTest : public ::testing::Test {
     // Register 'external_function' in 'codegen_utils_' and check that it has
     // the expected type-signature.
     llvm::Function* llvm_external_function
-        = codegen_utils_->RegisterExternalFunction(external_function);
+        = codegen_utils_->GetOrRegisterExternalFunction(external_function);
     ASSERT_NE(llvm_external_function, nullptr);
     EXPECT_EQ(
         (codegen_utils_->GetFunctionType<ReturnType, ArgumentTypes...>()
@@ -2042,7 +2042,7 @@ TEST_F(CodegenUtilsTest, VariadicExternalFunctionTest) {
 
   // Register printf with takes variable arguments past char*
   llvm::Function* llvm_printf_function =
-      codegen_utils_->RegisterExternalFunction(printf);
+      codegen_utils_->GetOrRegisterExternalFunction(printf);
   ASSERT_NE(llvm_printf_function, nullptr);
   ASSERT_EQ((codegen_utils_->
         GetFunctionType<int, char*>(true)->getPointerTo()),
@@ -2050,7 +2050,7 @@ TEST_F(CodegenUtilsTest, VariadicExternalFunctionTest) {
 
   // Register sprintf with takes variable arguments past char*, char*
   llvm::Function* llvm_sprintf_function =
-      codegen_utils_->RegisterExternalFunction(sprintf);
+      codegen_utils_->GetOrRegisterExternalFunction(sprintf);
   ASSERT_NE(llvm_sprintf_function, nullptr);
   ASSERT_EQ((codegen_utils_->
         GetFunctionType<int, char*, char*>(true)->getPointerTo()),
@@ -2667,16 +2667,16 @@ TEST_F(CodegenUtilsTest, OptimizationTest) {
 TEST_F(CodegenUtilsTest, CppClassObjectTest) {
   // Register method wrappers for Accumulator<double>
   llvm::Function* new_accumulator_double
-      = codegen_utils_->RegisterExternalFunction(
+      = codegen_utils_->GetOrRegisterExternalFunction(
           &WrapNew<Accumulator<double>, double>);
   llvm::Function* delete_accumulator_double
-      = codegen_utils_->RegisterExternalFunction(
+      = codegen_utils_->GetOrRegisterExternalFunction(
           &WrapDelete<Accumulator<double>>);
   llvm::Function* accumulator_double_accumulate
-      = codegen_utils_->RegisterExternalFunction(
+      = codegen_utils_->GetOrRegisterExternalFunction(
           &GPCODEGEN_WRAP_METHOD(&Accumulator<double>::Accumulate));
   llvm::Function* accumulator_double_get
-      = codegen_utils_->RegisterExternalFunction(
+      = codegen_utils_->GetOrRegisterExternalFunction(
           &GPCODEGEN_WRAP_METHOD(&Accumulator<double>::Get));
 
   typedef double (*AccumulateTestFn) (double);
@@ -2736,9 +2736,9 @@ TEST_F(CodegenUtilsTest, CppClassObjectTest) {
   EXPECT_EQ(-12.75, (*accumulate_test_fn_compiled)(-22.75));
 }
 
-// Test GetOrRegisterExternalFunction to return the right llvm::Function if
+// Test GetOrGetOrRegisterExternalFunction to return the right llvm::Function if
 // previously registered or else register it anew
-TEST_F(CodegenUtilsTest, GetOrRegisterExternalFunctionTest) {
+TEST_F(CodegenUtilsTest, GetOrGetOrRegisterExternalFunctionTest) {
 
   // Test previous unregistered function
   EXPECT_EQ(nullptr, codegen_utils_->module()->getFunction("floor"));
@@ -2746,13 +2746,13 @@ TEST_F(CodegenUtilsTest, GetOrRegisterExternalFunctionTest) {
   EXPECT_EQ(floor_func, codegen_utils_->module()->getFunction("floor"));
 
   // Test previous registered Non vararg function
-  llvm::Function* expected_fabs_func = codegen_utils_->RegisterExternalFunction(ceil);
+  llvm::Function* expected_fabs_func = codegen_utils_->GetOrRegisterExternalFunction(ceil);
   llvm::Function* fabs_func = codegen_utils_->GetOrRegisterExternalFunction(ceil);
 
   EXPECT_EQ(expected_fabs_func, fabs_func);
 
   // Test previously registered vararg function
-  llvm::Function* expected_vprintf_func = codegen_utils_->RegisterExternalFunction(vprintf);
+  llvm::Function* expected_vprintf_func = codegen_utils_->GetOrRegisterExternalFunction(vprintf);
   llvm::Function* vprintf_func = codegen_utils_->GetOrRegisterExternalFunction(vprintf);
 
   EXPECT_EQ(expected_vprintf_func, vprintf_func);
@@ -2782,7 +2782,7 @@ TEST_F(CodegenUtilsDeathTest, WrongFunctionTypeTest) {
 TEST_F(CodegenUtilsDeathTest, ModifyExternalFunctionTest) {
   // Register an external function, then try to add a BasicBlock to it.
   llvm::Function* external_function
-      = codegen_utils_->RegisterExternalFunction(&std::mktime);
+      = codegen_utils_->GetOrRegisterExternalFunction(&std::mktime);
 
   EXPECT_DEATH(codegen_utils_->CreateBasicBlock("body", external_function),
                "");
