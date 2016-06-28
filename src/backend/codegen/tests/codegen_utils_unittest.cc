@@ -41,6 +41,7 @@
 #include "llvm/IR/GlobalVariable.h"
 #include "llvm/IR/Instruction.h"
 #include "llvm/IR/Instructions.h"
+#include "llvm/IR/InstIterator.h"
 #include "llvm/IR/Module.h"
 #include "llvm/IR/Type.h"
 #include "llvm/IR/Value.h"
@@ -2736,9 +2737,9 @@ TEST_F(CodegenUtilsTest, CppClassObjectTest) {
   EXPECT_EQ(-12.75, (*accumulate_test_fn_compiled)(-22.75));
 }
 
-// Test GetOrGetOrRegisterExternalFunction to return the right llvm::Function if
+// Test GetOrRegisterExternalFunction to return the right llvm::Function if
 // previously registered or else register it anew
-TEST_F(CodegenUtilsTest, GetOrGetOrRegisterExternalFunctionTest) {
+TEST_F(CodegenUtilsTest, GetOrRegisterExternalFunctionTest) {
   // Test previous unregistered function
   EXPECT_EQ(nullptr, codegen_utils_->module()->getFunction("floor"));
   llvm::Function* floor_func = codegen_utils_->GetOrRegisterExternalFunction(
@@ -2760,6 +2761,56 @@ TEST_F(CodegenUtilsTest, GetOrGetOrRegisterExternalFunctionTest) {
       GetOrRegisterExternalFunction(fprintf);
 
   EXPECT_EQ(expected_fprintf_func, fprintf_func);
+}
+
+// Utility method to compute the number of calls in an llvm::Function*
+int GetLLVMFunctionCallCount(llvm::Function* F) {
+  return std::count_if(llvm::inst_begin(F), llvm::inst_end(F),
+      [] (llvm::Instruction& i)-> bool {
+            return (llvm::dyn_cast<llvm::CallInst>(&i));
+      });
+}
+
+// Test InlineFunction
+TEST_F(CodegenUtilsTest, InlineFunctionTest) {
+  auto irb = codegen_utils_->ir_builder();
+
+  typedef int (*AddConstToIntFn) (int);
+
+  // Create a simple adds 1 to a number and returns the new value
+  llvm::Function* add_one_fn = codegen_utils_->CreateFunction<AddConstToIntFn>("add_one");
+  irb->SetInsertPoint(codegen_utils_->CreateBasicBlock("main", add_one_fn));
+  irb->CreateRet(irb->CreateAdd(ArgumentByPosition(add_one_fn, 0),
+                                codegen_utils_->GetConstant(1)));
+
+  // Create another simple function add_two which calls add_one twice
+  llvm::Function* add_two_fn = codegen_utils_->CreateFunction<AddConstToIntFn>("add_two");
+  irb->SetInsertPoint(codegen_utils_->CreateBasicBlock("main", add_two_fn));
+  llvm::CallInst* first_call = irb->CreateCall(add_one_fn, {ArgumentByPosition(add_two_fn, 0)});
+  llvm::CallInst* second_call = irb->CreateCall(add_one_fn, {first_call});
+  irb->CreateRet(second_call);
+
+
+  EXPECT_EQ(GetLLVMFunctionCallCount(add_two_fn), 2);
+
+  EXPECT_TRUE(codegen_utils_->InlineFunction(first_call));
+  EXPECT_EQ(GetLLVMFunctionCallCount(add_two_fn), 1);
+
+  EXPECT_FALSE(codegen_utils_->InlineFunction(first_call));
+
+  EXPECT_TRUE(codegen_utils_->InlineFunction(second_call));
+  EXPECT_EQ(GetLLVMFunctionCallCount(add_two_fn), 0);
+
+  // Compiled module
+  EXPECT_TRUE(codegen_utils_->PrepareForExecution(
+      CodegenUtils::OptimizationLevel::kNone, false));
+  AddConstToIntFn compiled_add_two_fn =
+      codegen_utils_->GetFunctionPointer<AddConstToIntFn>("add_two");
+
+  // Test normal functionality, even after inlining
+  EXPECT_TRUE(nullptr != compiled_add_two_fn);
+  EXPECT_EQ(compiled_add_two_fn(5), 7);
+  EXPECT_EQ(compiled_add_two_fn(-5), -3);
 }
 
 

@@ -30,6 +30,7 @@
 #include "codegen/utils/macros.h"
 #include "llvm/ADT/StringRef.h"
 #include "llvm/ADT/Twine.h"
+#include "llvm/Analysis/CallGraph.h"
 #include "llvm/ExecutionEngine/ExecutionEngine.h"
 #include "llvm/IR/BasicBlock.h"
 #include "llvm/IR/Constants.h"
@@ -43,6 +44,7 @@
 #include "llvm/IR/Type.h"
 #include "llvm/IR/Intrinsics.h"
 #include "llvm/IR/Value.h"
+#include "llvm/Transforms/Utils/Cloning.h"
 
 namespace gpcodegen {
 
@@ -478,6 +480,24 @@ class CodegenUtils {
   template<typename FunctionType>
   void CreateFallback(llvm::Function* regular_function,
                       llvm::Function* generated_function);
+
+  /*
+   * @brief Force inline an LLVM function at the call site. Note that this only
+   *        does one level of inlining.
+   *
+   * @param LLVM call Instruction where the called function should be inlined
+   * @return false if it is not possible to inline. true otherwise.
+   */
+  bool InlineFunction(llvm::CallInst* call_inst) {
+    // Check that the call instruction belongs to a BasicBlock which is part of
+    // a valid function
+    if (!(call_inst && call_inst->getParent()
+          && call_inst->getParent()->getParent())){
+      return false;
+    }
+    llvm::InlineFunctionInfo info;
+    return llvm::InlineFunction(llvm::CallSite(call_inst), info);
+  }
 
  private:
   // Give ClangCompiler access to 'context_' add allow it to add compiled C++
