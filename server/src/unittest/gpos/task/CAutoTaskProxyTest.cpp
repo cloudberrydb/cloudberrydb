@@ -523,7 +523,7 @@ void* CAutoTaskProxyTest::Unittest_CheckExecuteErrorInternal(void* pv)
 		}
 		GPOS_CATCH_EX(ex)
 		{
-			GPOS_MATCH_EX(ex, CException::ExmaSystem, CException::ExmiAbort);
+			GPOS_ASSERT(GPOS_MATCH_EX(ex, CException::ExmaSystem, CException::ExmiAbort));
 			ptd->fException = true;
 		}
 		GPOS_CATCH_END;
