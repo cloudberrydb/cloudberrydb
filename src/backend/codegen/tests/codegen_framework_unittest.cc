@@ -48,7 +48,7 @@
 extern "C" {
     #include "utils/elog.h"
     #undef elog
-    #define elog
+    #define elog(...)
 }
 
 #include "codegen/utils/codegen_utils.h"

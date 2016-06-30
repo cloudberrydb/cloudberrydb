@@ -161,9 +161,6 @@ bool ExecVariableListCodegen::GenerateExecVariableList(
   llvm::Value* llvm_econtext =
       irb->CreateLoad(codegen_utils->GetPointerToMember(
           llvm_projInfo_arg, &ProjectionInfo::pi_exprContext));
-  llvm::Value* llvm_varSlotOffsets =
-      irb->CreateLoad(codegen_utils->GetPointerToMember(
-          llvm_projInfo_arg, &ProjectionInfo::pi_varSlotOffsets));
 
   // We want to fall back when ExecVariableList is called with a slot that's
   // different from the one we generated the function (eg HashJoin). We also
@@ -325,7 +322,7 @@ bool ExecVariableListCodegen::GenerateExecVariableList(
     // Create the block of (attnum+1)th attribute and jump to it after
     // you finish with current attribute.
     next_attribute_block = codegen_utils->CreateBasicBlock(
-        "attribute_block_"+(attnum+1), exec_variable_list_func);
+        "attribute_block_" + std::to_string(attnum+1), exec_variable_list_func);
 
     llvm::Value* llvm_next_values_ptr =
         irb->CreateInBoundsGEP(llvm_slot_PRIVATE_tts_values,
@@ -336,9 +333,10 @@ bool ExecVariableListCodegen::GenerateExecVariableList(
     if (!thisatt->attnotnull) {
       // Create blocks
       is_null_block = codegen_utils->CreateBasicBlock(
-          "is_null_block_"+attnum, exec_variable_list_func);
+          "is_null_block_" + std::to_string(attnum), exec_variable_list_func);
       is_not_null_block = codegen_utils->CreateBasicBlock(
-          "is_not_null_block_"+attnum, exec_variable_list_func);
+          "is_not_null_block_" + std::to_string(attnum),
+          exec_variable_list_func);
 
       llvm::Value* llvm_attnum = codegen_utils->GetConstant(attnum);
 

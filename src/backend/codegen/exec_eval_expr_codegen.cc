@@ -76,11 +76,7 @@ bool ExecEvalExprCodegen::GenerateExecEvalExpr(
       codegen_utils, GetUniqueFuncName());
 
   // Function arguments to ExecVariableList
-  llvm::Value* llvm_expression_arg =
-      ArgumentByPosition(exec_eval_expr_func, 0);
-  llvm::Value* llvm_econtext_arg = ArgumentByPosition(exec_eval_expr_func, 1);
   llvm::Value* llvm_isnull_arg = ArgumentByPosition(exec_eval_expr_func, 2);
-  llvm::Value* llvm_isDone_arg = ArgumentByPosition(exec_eval_expr_func, 3);
 
   // BasicBlock of function entry.
   llvm::BasicBlock* llvm_entry_block = codegen_utils->CreateBasicBlock(

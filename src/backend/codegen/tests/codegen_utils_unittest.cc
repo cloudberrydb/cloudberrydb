@@ -1076,7 +1076,7 @@ class CodegenUtilsTest : public ::testing::Test {
      InputType* input = new InputType[input_size];
      for (size_t idx = 0; idx < input_size; ++idx) {
          unsigned int seed = idx;
-         input[idx] = rand_r(&seed) % (2 ^ (sizeof(InputType) * 8) - 1);
+         input[idx] = rand_r(&seed) % ((2 ^ (sizeof(InputType) * 8)) - 1);
      }
      return input;
   }
@@ -2754,12 +2754,12 @@ TEST_F(CodegenUtilsTest, GetOrGetOrRegisterExternalFunctionTest) {
   EXPECT_EQ(expected_fabs_func, fabs_func);
 
   // Test previously registered vararg function
-  llvm::Function* expected_vprintf_func = codegen_utils_->
-      GetOrRegisterExternalFunction(vprintf);
-  llvm::Function* vprintf_func = codegen_utils_->
-      GetOrRegisterExternalFunction(vprintf);
+  llvm::Function* expected_fprintf_func = codegen_utils_->
+      GetOrRegisterExternalFunction(fprintf);
+  llvm::Function* fprintf_func = codegen_utils_->
+      GetOrRegisterExternalFunction(fprintf);
 
-  EXPECT_EQ(expected_vprintf_func, vprintf_func);
+  EXPECT_EQ(expected_fprintf_func, fprintf_func);
 }
 
 
