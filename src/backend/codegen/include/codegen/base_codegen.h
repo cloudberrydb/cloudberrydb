@@ -196,6 +196,7 @@ class BaseCodegen: public CodegenInterface {
    * @param function_name Name of the function to create
    * @return llvm::Function pointer
    **/
+ public:
   template <typename FunctionType>
   llvm::Function* CreateFunction(gpcodegen::GpCodegenUtils* codegen_utils,
                                  const std::string& function_name) {

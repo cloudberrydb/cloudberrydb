@@ -42,6 +42,12 @@ class ExecVariableListCodegen: public BaseCodegen<ExecVariableListFn> {
 
   virtual ~ExecVariableListCodegen() = default;
 
+  static bool WrapGenerateSlotGetAttr(
+              gpcodegen::GpCodegenUtils* codegen_utils,
+              const std::string& function_name,
+              TupleTableSlot* slot,
+              int max_attr,
+              llvm::Function** out_func);
  protected:
   /**
    * @brief Generate code for the code path ExecVariableList > slot_getattr >
@@ -92,6 +98,14 @@ class ExecVariableListCodegen: public BaseCodegen<ExecVariableListFn> {
    * @return true on successful generation.
    **/
   bool GenerateExecVariableList(gpcodegen::GpCodegenUtils* codegen_utils);
+
+
+  static bool GenerateSlotGetAttr(
+              gpcodegen::GpCodegenUtils* codegen_utils,
+              const std::string& function_name,
+              TupleTableSlot* slot,
+              int max_attr,
+              llvm::Function** out_func);
 };
 
 /** @} */

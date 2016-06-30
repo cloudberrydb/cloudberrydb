@@ -38,6 +38,7 @@ typedef enum tmp_enum{
 
 typedef void (*ExecVariableListFn) (struct ProjectionInfo *projInfo, Datum *values, bool *isnull);
 typedef Datum (*ExecEvalExprFn) (struct ExprState *expression, struct ExprContext *econtext, bool *isNull, /*ExprDoneCond*/ tmp_enum *isDone);
+typedef Datum (*SlotGetAttrFn) (struct TupleTableSlot *slot, int attnum, bool *isnull);
 
 #ifndef USE_CODEGEN
 
