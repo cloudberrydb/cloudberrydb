@@ -3791,7 +3791,7 @@ ExecUpdate(TupleTableSlot *slot,
 	{
 		/*
 		 * It is necessary to reconstruct a logically compatible tuple to
-		 * a phyiscally compatible tuple.  The slot's tuple descriptor comes
+		 * a physically compatible tuple.  The slot's tuple descriptor comes
 		 * from the projection target list, which doesn't indicate dropped
 		 * columns, and MemTuple cannot deal with cases without converting
 		 * the target list back into the original relation's tuple desc.
@@ -5616,7 +5616,7 @@ static Node *apply_attrmap_mutator(Node *node, AttrMap *map)
 	{
 		AttrNumber anum = 0;
 		Var *var = (Var*)node;
-		Assert(var->varno == 1); /* in CHECK contraints */
+		Assert(var->varno == 1); /* in CHECK constraints */
 		anum = attrMap(map, var->varattno);
 		
 		if ( anum == 0 )
