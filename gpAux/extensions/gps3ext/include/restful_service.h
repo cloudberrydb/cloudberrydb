@@ -34,6 +34,10 @@ class Response {
         return buffer;
     }
 
+    vector<uint8_t>&& moveDataBuffer() {
+        return std::move(buffer);
+    }
+
     const string& getMessage() const {
         return message;
     }
@@ -56,10 +60,7 @@ class Response {
     }
 
     void clearBuffer() {
-        buffer.clear();
-
-        // shrink to fit is added in C++11
-        // buffer.shrink_to_fit();
+        buffer = vector<uint8_t>();
     }
 
    private:
