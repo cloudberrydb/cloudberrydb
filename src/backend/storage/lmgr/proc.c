@@ -1926,7 +1926,7 @@ ResLockWaitCancel(void)
 	if (lockAwaited != NULL)
 	{
 		/* Unlink myself from the wait queue, if on it  */
-		partitionLock = LockHashPartition(lockAwaited->hashcode);
+		partitionLock = LockHashPartitionLock(lockAwaited->hashcode);
 		LWLockAcquire(partitionLock, LW_EXCLUSIVE);
 
 		if (MyProc->links.next != INVALID_OFFSET)
