@@ -144,9 +144,9 @@ static inline short compute_null_save_b(short *null_saves, unsigned char b)
 /* compute the null saved bytes by the whole null bit map, by the attribute
  * physically precedes the one.
  */
-static inline short compute_null_save(short *null_saves, unsigned char *nullbitmaps, int nbyte, unsigned char nbit)
+static inline int compute_null_save(short *null_saves, unsigned char *nullbitmaps, int nbyte, unsigned char nbit)
 {
-	short ret = 0;
+	int ret = 0;
 	int curr_byte = 0;
 	while(curr_byte < nbyte) 
 	{
@@ -522,7 +522,7 @@ uint32 compute_memtuple_size(MemTupleBinding *pbind, Datum *values, bool *isnull
 
 static inline char* memtuple_get_attr_ptr(char *start, MemTupleAttrBinding *bind, short *null_saves, unsigned char *nullp)
 {
-	short ns = 0;
+	int ns = 0;
 
 	if(nullp)
 		ns = compute_null_save(null_saves, nullp, bind->null_byte, bind->null_mask);
