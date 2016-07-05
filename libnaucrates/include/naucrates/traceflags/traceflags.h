@@ -160,6 +160,9 @@ namespace gpos
 		// prune unused computed columns
 		EopttraceDisablePruneUnusedComputedColumns = 103024,
 
+		// enable parallel append
+		EopttraceEnableParallelAppend = 103025,
+
 		///////////////////////////////////////////////////////
 		///////////////////// statistics flags ////////////////
 		//////////////////////////////////////////////////////

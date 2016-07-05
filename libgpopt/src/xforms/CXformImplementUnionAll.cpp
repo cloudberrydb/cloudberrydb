@@ -79,6 +79,11 @@ CXformImplementUnionAll::Transform
 		GPOS_RAISE(gpopt::ExmaGPOPT, gpopt::ExmiUnsupportedOp, GPOS_WSZ_LIT("Union of non-identical types"));
 	}
 
+	if (GPOS_FTRACE(EopttraceEnableParallelAppend))
+	{
+		GPOS_RAISE(gpopt::ExmaGPOPT, gpopt::ExmiUnsupportedOp, GPOS_WSZ_LIT("Parallel Append is not supported yet"));
+	}
+
 	DrgPexpr *pdrgpexpr = GPOS_NEW(pmp) DrgPexpr(pmp);
 	const ULONG ulArity = pexpr->UlArity();
 
