@@ -161,89 +161,247 @@ configure_file(version.h.in
 
 # Compile .cpp source files under libgpos/src into monolithic gpos library.
 add_library(gpos SHARED
+            libgpos/include/gpos/assert.h
+            libgpos/include/gpos/base.h
+            libgpos/include/gpos/common/banned_api.h
+            libgpos/include/gpos/common/banned_gpdb.h
+            libgpos/include/gpos/common/banned_posix_nonreentrant.h
+            libgpos/include/gpos/common/banned_posix_reentrant.h
+            libgpos/include/gpos/common/CAutoP.h
+            libgpos/include/gpos/common/CAutoRef.h
+            libgpos/include/gpos/common/CAutoRg.h
+            libgpos/include/gpos/common/CDouble.h
+            libgpos/include/gpos/common/CDouble.inl
+            libgpos/include/gpos/common/CDynamicPtrArray.h
+            libgpos/include/gpos/common/CDynamicPtrArray.inl
+            libgpos/include/gpos/common/CDynamicPtrArrayUtils.h
+            libgpos/include/gpos/common/CDynamicPtrArrayUtils.inl
+            libgpos/include/gpos/common/CEnumSet.h
+            libgpos/include/gpos/common/CEnumSetIter.h
+            libgpos/include/gpos/common/CHashMap.h
+            libgpos/include/gpos/common/CHashMap.inl
+            libgpos/include/gpos/common/CHashMapIter.h
+            libgpos/include/gpos/common/CHashMapIter.inl
+            libgpos/include/gpos/common/CHashSet.h
+            libgpos/include/gpos/common/CHashSet.inl
+            libgpos/include/gpos/common/clibtypes.h
+            libgpos/include/gpos/common/CList.h
+            libgpos/include/gpos/common/CList.inl
+            libgpos/include/gpos/common/CRefCount.h
+            libgpos/include/gpos/common/CStack.h
+            libgpos/include/gpos/common/CStack.inl
+            libgpos/include/gpos/common/CSyncHashtable.h
+            libgpos/include/gpos/common/CSyncHashtable.inl
+            libgpos/include/gpos/common/CSyncHashtableAccessByIter.h
+            libgpos/include/gpos/common/CSyncHashtableAccessByIter.inl
+            libgpos/include/gpos/common/CSyncHashtableAccessByKey.h
+            libgpos/include/gpos/common/CSyncHashtableAccessByKey.inl
+            libgpos/include/gpos/common/CSyncHashtableAccessorBase.h
+            libgpos/include/gpos/common/CSyncHashtableAccessorBase.inl
+            libgpos/include/gpos/common/CSyncHashtableIter.h
+            libgpos/include/gpos/common/CSyncHashtableIter.inl
+            libgpos/include/gpos/common/CSyncList.h
+            libgpos/include/gpos/common/CSyncList.inl
+            libgpos/include/gpos/common/CSyncPool.h
+            libgpos/include/gpos/common/CSyncPool.inl
+            libgpos/include/gpos/common/ITimer.h
+            libgpos/include/gpos/common/pthreadtypes.h
+            libgpos/include/gpos/error/CAutoLogger.h
+            libgpos/include/gpos/error/CErrorHandler.h
+            libgpos/include/gpos/error/IErrorContext.h
+            libgpos/include/gpos/io/CAutoFileDescriptor.h
+            libgpos/include/gpos/io/IOstream.h
+            libgpos/include/gpos/io/iotypes.h
+            libgpos/include/gpos/memory/CCache.h
+            libgpos/include/gpos/memory/CCacheAccessor.h
+            libgpos/include/gpos/memory/CCacheEntry.h
+            libgpos/include/gpos/memory/CMemoryPoolAlloc.h
+            libgpos/include/gpos/memory/CMemoryPoolStatistics.h
+            libgpos/include/gpos/memory/ICache.h
+            libgpos/include/gpos/memory/IMemoryVisitor.h
+            libgpos/include/gpos/memory/README.md
+            libgpos/include/gpos/net/CAutoSocketProxy.h
+            libgpos/include/gpos/net/CSocketConnector.h
+            libgpos/include/gpos/net/nettypes.h
+            libgpos/include/gpos/sync/CAtomicCounter.h
+            libgpos/include/gpos/sync/CMutex.h
+            libgpos/include/gpos/sync/CMutex.inl
+            libgpos/include/gpos/sync/CSpinlock.h
+            libgpos/include/gpos/sync/CSpinlock.inl
+            libgpos/include/gpos/task/CTaskId.h
+            libgpos/include/gpos/task/CTaskLocalStorageObject.h
+            libgpos/include/gpos/task/CTraceFlagIter.h
+            libgpos/include/gpos/task/ITaskScheduler.h
+            libgpos/include/gpos/task/traceflags.h
+            libgpos/include/gpos/types.h
+
+            libgpos/include/gpos/_api.h
             libgpos/src/_api.cpp
+            libgpos/include/gpos/utils.h
             libgpos/src/utils.cpp
+            libgpos/include/gpos/common/CAutoTimer.h
             libgpos/src/common/CAutoTimer.cpp
+            libgpos/include/gpos/common/CBitSet.h
             libgpos/src/common/CBitSet.cpp
+            libgpos/include/gpos/common/CBitSetIter.h
             libgpos/src/common/CBitSetIter.cpp
+            libgpos/include/gpos/common/CBitVector.h
             libgpos/src/common/CBitVector.cpp
+            libgpos/include/gpos/common/CHeapObject.h
             libgpos/src/common/CHeapObject.cpp
+            libgpos/include/gpos/common/clibwrapper.h
             libgpos/src/common/clibwrapper.cpp
+            libgpos/include/gpos/common/CMainArgs.h
             libgpos/src/common/CMainArgs.cpp
+            libgpos/include/gpos/common/CRandom.h
             libgpos/src/common/CRandom.cpp
+            libgpos/include/gpos/common/CStackDescriptor.h
             libgpos/src/common/CStackDescriptor.cpp
+            libgpos/include/gpos/common/CStackObject.h
             libgpos/src/common/CStackObject.cpp
+            libgpos/include/gpos/common/CTimerUser.h
             libgpos/src/common/CTimerUser.cpp
+            libgpos/include/gpos/common/CWallClock.h
             libgpos/src/common/CWallClock.cpp
+            libgpos/include/gpos/common/pthreadwrapper.h
             libgpos/src/common/pthreadwrapper.cpp
+            libgpos/include/gpos/common/syslibwrapper.h
             libgpos/src/common/syslibwrapper.cpp
+            libgpos/include/gpos/error/CAutoExceptionStack.h
             libgpos/src/error/CAutoExceptionStack.cpp
+            libgpos/include/gpos/error/CAutoTrace.h
             libgpos/src/error/CAutoTrace.cpp
+            libgpos/include/gpos/error/CErrorContext.h
             libgpos/src/error/CErrorContext.cpp
+            libgpos/include/gpos/error/CErrorHandlerStandard.h
             libgpos/src/error/CErrorHandlerStandard.cpp
+            libgpos/include/gpos/error/CException.h
             libgpos/src/error/CException.cpp
+            libgpos/include/gpos/error/CFSimulator.h
             libgpos/src/error/CFSimulator.cpp
+            libgpos/include/gpos/error/CLogger.h
             libgpos/src/error/CLogger.cpp
+            libgpos/include/gpos/error/CLoggerFile.h
             libgpos/src/error/CLoggerFile.cpp
+            libgpos/include/gpos/error/CLoggerStream.h
             libgpos/src/error/CLoggerStream.cpp
+            libgpos/include/gpos/error/CLoggerSyslog.h
             libgpos/src/error/CLoggerSyslog.cpp
+            libgpos/include/gpos/error/CMessage.h
             libgpos/src/error/CMessage.cpp
+            libgpos/include/gpos/error/CMessageRepository.h
             libgpos/src/error/CMessageRepository.cpp
+            libgpos/include/gpos/error/CMessageTable.h
             libgpos/src/error/CMessageTable.cpp
+            libgpos/include/gpos/error/CMiniDumper.h
             libgpos/src/error/CMiniDumper.cpp
+            libgpos/include/gpos/error/CSerializable.h
             libgpos/src/error/CSerializable.cpp
+            libgpos/include/gpos/error/ILogger.h
             libgpos/src/error/ILogger.cpp
+            libgpos/include/gpos/io/CFileDescriptor.h
             libgpos/src/io/CFileDescriptor.cpp
+            libgpos/include/gpos/io/CFileReader.h
             libgpos/src/io/CFileReader.cpp
+            libgpos/include/gpos/io/CFileWriter.h
             libgpos/src/io/CFileWriter.cpp
+            libgpos/include/gpos/io/COstream.h
             libgpos/src/io/COstream.cpp
+            libgpos/include/gpos/io/COstreamBasic.h
             libgpos/src/io/COstreamBasic.cpp
+            libgpos/include/gpos/io/COstreamFile.h
             libgpos/src/io/COstreamFile.cpp
+            libgpos/include/gpos/io/COstreamString.h
             libgpos/src/io/COstreamString.cpp
+            libgpos/include/gpos/io/ioutils.h
             libgpos/src/io/ioutils.cpp
+            libgpos/include/gpos/memory/CAutoMemoryPool.h
             libgpos/src/memory/CAutoMemoryPool.cpp
+            libgpos/include/gpos/memory/CCacheFactory.h
             libgpos/src/memory/CCacheFactory.cpp
+            libgpos/include/gpos/memory/CMemoryPool.h
             libgpos/src/memory/CMemoryPool.cpp
+            libgpos/include/gpos/memory/CMemoryPoolInjectFault.h
             libgpos/src/memory/CMemoryPoolInjectFault.cpp
+            libgpos/include/gpos/memory/CMemoryPoolManager.h
             libgpos/src/memory/CMemoryPoolManager.cpp
+            libgpos/include/gpos/memory/CMemoryPoolSlab.h
             libgpos/src/memory/CMemoryPoolSlab.cpp
+            libgpos/include/gpos/memory/CMemoryPoolStack.h
             libgpos/src/memory/CMemoryPoolStack.cpp
+            libgpos/include/gpos/memory/CMemoryPoolTracker.h
             libgpos/src/memory/CMemoryPoolTracker.cpp
+            libgpos/include/gpos/memory/CMemoryVisitorPrint.h
             libgpos/src/memory/CMemoryVisitorPrint.cpp
+            libgpos/include/gpos/memory/CSlab.h
             libgpos/src/memory/CSlab.cpp
+            libgpos/include/gpos/memory/CSlabCache.h
             libgpos/src/memory/CSlabCache.cpp
+            libgpos/include/gpos/memory/IMemoryPool.h
             libgpos/src/memory/IMemoryPool.cpp
+            libgpos/include/gpos/net/CSocket.h
             libgpos/src/net/CSocket.cpp
+            libgpos/include/gpos/net/CSocketConnectorUDS.h
             libgpos/src/net/CSocketConnectorUDS.cpp
+            libgpos/include/gpos/net/CSocketListener.h
             libgpos/src/net/CSocketListener.cpp
+            libgpos/include/gpos/net/CSocketListenerUDS.h
             libgpos/src/net/CSocketListenerUDS.cpp
+            libgpos/include/gpos/net/netutils.h
             libgpos/src/net/netutils.cpp
+            libgpos/include/gpos/string/CStringStatic.h
             libgpos/src/string/CStringStatic.cpp
+            libgpos/include/gpos/string/CWString.h
             libgpos/src/string/CWString.cpp
+            libgpos/include/gpos/string/CWStringBase.h
             libgpos/src/string/CWStringBase.cpp
+            libgpos/include/gpos/string/CWStringConst.h
             libgpos/src/string/CWStringConst.cpp
+            libgpos/include/gpos/string/CWStringDynamic.h
             libgpos/src/string/CWStringDynamic.cpp
+            libgpos/include/gpos/string/CWStringStatic.h
             libgpos/src/string/CWStringStatic.cpp
+            libgpos/include/gpos/sync/atomic.h
             libgpos/src/sync/atomic.cpp
+            libgpos/include/gpos/sync/CAutoMutex.h
             libgpos/src/sync/CAutoMutex.cpp
+            libgpos/include/gpos/sync/CAutoSpinlock.h
             libgpos/src/sync/CAutoSpinlock.cpp
+            libgpos/include/gpos/sync/CEvent.h
             libgpos/src/sync/CEvent.cpp
+            libgpos/include/gpos/task/CAutoSuspendAbort.h
             libgpos/src/task/CAutoSuspendAbort.cpp
+            libgpos/include/gpos/task/CAutoTaskProxy.h
             libgpos/src/task/CAutoTaskProxy.cpp
+            libgpos/include/gpos/task/CAutoTraceFlag.h
             libgpos/src/task/CAutoTraceFlag.cpp
+            libgpos/include/gpos/task/CTask.h
             libgpos/src/task/CTask.cpp
+            libgpos/include/gpos/task/CTaskContext.h
             libgpos/src/task/CTaskContext.cpp
+            libgpos/include/gpos/task/CTaskLocalStorage.h
             libgpos/src/task/CTaskLocalStorage.cpp
+            libgpos/include/gpos/task/CTaskSchedulerFifo.h
             libgpos/src/task/CTaskSchedulerFifo.cpp
+            libgpos/include/gpos/task/CThreadManager.h
             libgpos/src/task/CThreadManager.cpp
+            libgpos/include/gpos/task/CWorker.h
             libgpos/src/task/CWorker.cpp
+            libgpos/include/gpos/task/CWorkerId.h
             libgpos/src/task/CWorkerId.cpp
+            libgpos/include/gpos/task/CWorkerPoolManager.h
             libgpos/src/task/CWorkerPoolManager.cpp
+            libgpos/include/gpos/task/ITask.h
             libgpos/src/task/ITask.cpp
+            libgpos/include/gpos/task/IWorker.h
             libgpos/src/task/IWorker.cpp
+            libgpos/include/gpos/test/CFSimulatorTestExt.h
             libgpos/src/test/CFSimulatorTestExt.cpp
+            libgpos/include/gpos/test/CTimeSliceTest.h
             libgpos/src/test/CTimeSliceTest.cpp
-            libgpos/src/test/CUnittest.cpp)
+            libgpos/include/gpos/test/CUnittest.h
+            libgpos/src/test/CUnittest.cpp
+            )
 target_link_libraries(gpos ${CMAKE_THREAD_LIBS_INIT} ${CMAKE_DL_LIBS})
 
 # Extra system libs needed on Solaris.
