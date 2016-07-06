@@ -223,7 +223,13 @@ gpdxl::EresExceptionInit
 					CException::ExsevError,
 					GPOS_WSZ_WSZLEN("DXL-to-Expr Translation: Attribute number %d not found in project list"),
 					1, // attno
-					GPOS_WSZ_WSZLEN("DXL-to-Expr Translation: Attribute number not found in project list"))
+					GPOS_WSZ_WSZLEN("DXL-to-Expr Translation: Attribute number not found in project list")),
+
+			CMessage(CException(gpdxl::ExmaDXL, gpdxl::ExmiWarningAsError),
+								CException::ExsevError,
+								GPOS_WSZ_WSZLEN("PQO unable to generate plan, please see the above message for details."),
+								1, // attno
+								GPOS_WSZ_WSZLEN("PQO unable to generate plan, please see the above message for details."))
 
 	};
 

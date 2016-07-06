@@ -72,6 +72,9 @@ namespace gpdxl
 		// exceptions related to constant expression evaluation
 		ExmiConstExprEvalNonConst,
 
+		// Unrecoverable warning that needs to be treated as error
+		ExmiWarningAsError,
+
 		ExmiDXLSentinel
 	};
 
