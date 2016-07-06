@@ -320,7 +320,7 @@ window_planner(PlannerInfo *root, double tuple_fraction, List **pathkeys_ptr)
 
 	/*
 	 * Set context->win_specs and context->orig_tlist. These
-	 * are needed in preprecess_window_tlist() to check NTILE function
+	 * are needed in preprocess_window_tlist() to check NTILE function
 	 * arguments.
 	 */
 	context->win_specs = parse->windowClause;
@@ -3343,15 +3343,17 @@ static RangeTblEntry *rte_for_coplan(
 	return rte;
 }
 
-/* Package a plan as a pre-planned subquery RTE.
+/*
+ * package_plan_as_rte
+ *	   Package a plan as a pre-planned subquery RTE
  *
  * Note that the input query is often root->parse (since that is the
- * query from which this invocation of the planner usually takes its 
- * context), but may be a derived query, e.g., in the case of sequential 
+ * query from which this invocation of the planner usually takes it's
+ * context), but may be a derived query, e.g., in the case of sequential
  * window plans or multiple-DQA pruning (in cdbgroup.c).
  * 
  * Note also that the supplied plan's target list must be congruent with
- * the supplied query: its Var nodes must refer to RTEs in the range 
+ * the supplied query: its Var nodes must refer to RTEs in the range
  * table of the Query node, it should conserve sort/group reference
  * values, and its SubqueryScan nodes should match up with the query's
  * Subquery RTEs.
@@ -3360,11 +3362,12 @@ static RangeTblEntry *rte_for_coplan(
  * plan, alias, and pathkeys (if any) directly.  The input query is not
  * modified.
  *
- * The caller must install the RTE in the range table of an appropriate query 
- * and the corresponding plan should reference its results through a 
+ * The caller must install the RTE in the range table of an appropriate query
+ * and the corresponding plan should reference it's results through a
  * SubqueryScan node.
  */
-RangeTblEntry *package_plan_as_rte(Query *query, Plan *plan, Alias *eref, List *pathkeys)
+RangeTblEntry *
+package_plan_as_rte(Query *query, Plan *plan, Alias *eref, List *pathkeys)
 {
 	Query *subquery;
 	RangeTblEntry *rte;
