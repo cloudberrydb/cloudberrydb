@@ -53,3 +53,10 @@ s3test
 gpcheckcloud
 
 s3.conf
+
+sql
+expected
+results
+
+*.out
+*.diffs
