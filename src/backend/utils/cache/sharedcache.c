@@ -326,7 +326,6 @@ Cache_Create(CacheCtl *cacheCtl)
 	Assert(NULL != cacheCtl->keyCopy);
 	Assert(NULL != cacheCtl->hash);
 	Assert(NULL != cacheCtl->match);
-	Assert(NULL != cacheCtl->equivalentEntries);
 	Assert(NULL != cacheCtl->cleanupEntry);
 
 	MemoryContext oldcxt;
