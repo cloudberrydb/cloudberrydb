@@ -4,11 +4,16 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../libgpopt/include)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../libnaucrates/include)
 add_library(gpdbcost SHARED
+            include/gpdbcost/CCostModelGPDB.h
             src/CCostModelGPDB.cpp
+            include/gpdbcost/CCostModelGPDBLegacy.h
             src/CCostModelGPDBLegacy.cpp
+            include/gpdbcost/CCostModelParamsGPDB.h
             src/CCostModelParamsGPDB.cpp
+            include/gpdbcost/CCostModelParamsGPDBLegacy.h
             src/CCostModelParamsGPDBLegacy.cpp
-            src/ICostModel.cpp)
+            src/ICostModel.cpp
+        )
 
 target_link_libraries(gpdbcost  
                       ${CMAKE_THREAD_LIBS_INIT} ${CMAKE_DL_LIBS}
