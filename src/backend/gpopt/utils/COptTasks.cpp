@@ -35,6 +35,7 @@
 #include "utils/guc.h"
 
 #include "gpos/base.h"
+#include "gpos/error/CException.h"
 #undef setstate
 
 #include "gpos/_api.h"
@@ -162,6 +163,37 @@ COptTasks::SOptContext::SOptContext()
 	m_fUnexpectedFailure(false),
 	m_szErrorMsg(NULL)
 {}
+
+//---------------------------------------------------------------------------
+//	@function:
+//		COptTasks::SOptContext::HandleError
+//
+//	@doc:
+//		If there is an error print as warning and throw GPOS_EXCEPTION to abort
+//		plan generation. Calling elog::ERROR will result in longjump and hence
+//		a memory leak.
+//---------------------------------------------------------------------------
+void
+COptTasks::SOptContext::HandleError
+	(
+	BOOL *pfUnexpectedFailure
+	)
+{
+	BOOL bhasError = false;
+	if (NULL != m_szErrorMsg)
+	{
+		bhasError = true;
+		elog(WARNING, "%s", m_szErrorMsg);
+	}
+	*pfUnexpectedFailure = m_fUnexpectedFailure;
+
+	// clean up context
+	Free(epinQuery, epinPlStmt);
+	if (bhasError)
+	{
+		GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiWarningAsError);
+	}
+}
 
 
 //---------------------------------------------------------------------------
@@ -1620,17 +1652,17 @@ COptTasks::PplstmtOptimize
 	SOptContext octx;
 	octx.m_pquery = pquery;
 	octx.m_fGeneratePlStmt= true;
-	Execute(&PvOptimizeTask, &octx);
-
-	if (NULL != octx.m_szErrorMsg)
+	GPOS_TRY
 	{
-		elog(ERROR, "%s", octx.m_szErrorMsg);
+		Execute(&PvOptimizeTask, &octx);
 	}
-	*pfUnexpectedFailure = octx.m_fUnexpectedFailure;
-
-	// clean up context
-	octx.Free(octx.epinQuery, octx.epinPlStmt);
-
+	GPOS_CATCH_EX(ex)
+	{
+		octx.HandleError(pfUnexpectedFailure);
+		GPOS_RETHROW(ex);
+	}
+	GPOS_CATCH_END;
+	octx.HandleError(pfUnexpectedFailure);
 	return octx.m_pplstmt;
 }
 

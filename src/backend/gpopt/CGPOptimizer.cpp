@@ -61,9 +61,13 @@ CGPOptimizer::PplstmtOptimize
 	}
 	GPOS_CATCH_EX(ex)
 	{
+		if (GPOS_MATCH_EX(ex, gpdxl::ExmaDXL, gpdxl::ExmiWarningAsError))
+		{
+		  elog(ERROR, "PQO unable to generate plan, please see the above message for details.");
+		}
 		if (GPOS_MATCH_EX(ex, gpdxl::ExmaGPDB, gpdxl::ExmiGPDBError))
 		{
-		  elog(ERROR, "GPDB exception. Aborting GPORCA plan generation.");
+		  elog(ERROR, "GPDB exception. Aborting PQO plan generation.");
 		}
 	}
 	GPOS_CATCH_END;
