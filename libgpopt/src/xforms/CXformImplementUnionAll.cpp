@@ -14,7 +14,8 @@
 #include "gpopt/exception.h"
 #include "gpopt/xforms/CXformImplementUnionAll.h"
 #include "gpopt/xforms/CXformUtils.h"
-#include "gpopt/operators/CPhysicalSerialUnionAll.h"
+#include "gpopt/operators/CPhysicalUnionAll.h"
+#include "gpopt/operators/CPhysicalUnionAllFactory.h"
 
 #include "gpopt/operators/ops.h"
 
@@ -71,19 +72,8 @@ CXformImplementUnionAll::Transform
 
 	// extract components
 	CLogicalUnionAll *popUnionAll = CLogicalUnionAll::PopConvert(pexpr->Pop());
-	DrgPcr *pdrgpcrOutput = popUnionAll->PdrgpcrOutput();
-	DrgDrgPcr *pdrgpdrgpcrInput = popUnionAll->PdrgpdrgpcrInput();
-
-	// TODO:  May 2nd 2012; support compatible types
-	if (!CXformUtils::FSameDatatype(pdrgpdrgpcrInput))
-	{
-		GPOS_RAISE(gpopt::ExmaGPOPT, gpopt::ExmiUnsupportedOp, GPOS_WSZ_LIT("Union of non-identical types"));
-	}
-
-	if (GPOS_FTRACE(EopttraceEnableParallelAppend))
-	{
-		GPOS_RAISE(gpopt::ExmaGPOPT, gpopt::ExmiUnsupportedOp, GPOS_WSZ_LIT("Parallel Append is not supported yet"));
-	}
+	CPhysicalUnionAllFactory factory(popUnionAll, GPOS_FTRACE(EopttraceEnableParallelAppend));
+	CPhysicalUnionAll *popPhysicalUnionAll = factory.PopPhysicalUnionAll(pmp);
 
 	DrgPexpr *pdrgpexpr = GPOS_NEW(pmp) DrgPexpr(pmp);
 	const ULONG ulArity = pexpr->UlArity();
@@ -95,21 +85,12 @@ CXformImplementUnionAll::Transform
 		pdrgpexpr->Append(pexprChild);
 	}
 
-	pdrgpcrOutput->AddRef();
-	pdrgpdrgpcrInput->AddRef();
-
 	// assemble physical operator
 	CExpression *pexprUnionAll =
 		GPOS_NEW(pmp) CExpression
 					(
 					pmp,
-					GPOS_NEW(pmp) CPhysicalSerialUnionAll
-						(
-						pmp,
-						pdrgpcrOutput,
-						pdrgpdrgpcrInput,
-						popUnionAll->UlScanIdPartialIndex()
-						),
+					popPhysicalUnionAll,
 					pdrgpexpr
 					);
 

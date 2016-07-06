@@ -883,7 +883,8 @@ add_library(gpopt
             src/xforms/CXformUpdate2DML.cpp
             include/gpopt/xforms/CXformUtils.h
             src/xforms/CXformUtils.cpp
-            )
+            src/operators/CPhysicalUnionAllFactory.cpp
+            include/gpopt/operators/CPhysicalUnionAllFactory.h)
 
 target_link_libraries(gpopt
                       gpdbcost

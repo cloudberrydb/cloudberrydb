@@ -96,10 +96,10 @@
 #include "unittest/gpopt/minidump/CDirectDispatchTest.h"
 
 #include "unittest/gpopt/operators/CCNFConverterTest.h"
+#include "unittest/gpopt/operators/CContradictionTest.h"
+#include "unittest/gpopt/operators/CExpressionPreprocessorTest.h"
 #include "unittest/gpopt/operators/CExpressionTest.h"
 #include "unittest/gpopt/operators/CPredicateUtilsTest.h"
-#include "unittest/gpopt/operators/CExpressionPreprocessorTest.h"
-#include "unittest/gpopt/operators/CContradictionTest.h"
 
 #include "unittest/gpopt/search/CSchedulerTest.h"
 #include "unittest/gpopt/search/CSearchStrategyTest.h"
