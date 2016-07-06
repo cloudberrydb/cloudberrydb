@@ -3911,7 +3911,6 @@ GPObjectGraph = {}  # key = GPObject, value=[GPObject]
 # -------------------------------------------------------------------------------
 TableMainColumn = {}
 # Table with no OID
-TableMainColumn['gp_verification_history'] = ['vertoken', 'gp_verification_history']
 TableMainColumn['gp_version_at_initdb'] = ['schemaversion', 'gp_version_at_initdb']
 TableMainColumn['pg_aggregate'] = ['aggfnoid', 'pg_proc']
 TableMainColumn['pg_amop'] = ['amopclaid', 'pg_opclass']

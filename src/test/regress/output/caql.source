@@ -218,7 +218,6 @@ WARNING:  skipping "gp_version_at_initdb" --- only table or database owner can v
 WARNING:  skipping "gp_segment_configuration" --- only table or database owner can vacuum it
 WARNING:  skipping "gp_fault_strategy" --- only table or database owner can vacuum it
 WARNING:  skipping "gp_san_configuration" --- only table or database owner can vacuum it
-WARNING:  skipping "gp_verification_history" --- only table or database owner can vacuum it
 -- end_ignore
 vacuum main_table;
 vacuum full main_table;

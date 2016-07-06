@@ -355,7 +355,6 @@ outgoing message queue would always have 1 slot and incoming would have mailboxe
 //JNM TODO replace fileRepProcIndex with FILEREP_OUTGOING_MESSAGE_QUEUE ?
 #define FILEREP_OUTGOING_MESSAGE_QUEUE 0
 
-//must be 63 or less due to the gp_verification_history table
 #define FILEREP_VERIFY_MAX_REQUEST_TOKEN_LEN 63
 
 extern FileRepShmem_s	*fileRepShmemArray[FILEREP_SHMEM_MAX_SLOTS];
