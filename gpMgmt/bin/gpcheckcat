@@ -19,14 +19,9 @@ Usage: gpcheckcat [<option>] [dbname]
 '''
 import getopt
 import re
-import stat
 import sys
+import time
 from datetime import datetime
-from time import localtime, strftime
-
-
-TIMESTAMP = datetime.now().strftime("%Y%m%d%H%M%S")
-REPAIR_SCRIPT = 'runsql_%s.sh' % TIMESTAMP
 
 try:
     from gppylib.db import dbconn
@@ -38,6 +33,8 @@ try:
     from pygresql import pg
     from gpcheckcat_modules.unique_index_violation_check import UniqueIndexViolationCheck
     from gpcheckcat_modules.leaked_schema_dropper import LeakedSchemaDropper
+    from gpcheckcat_modules.repair import Repair
+
 except ImportError, e:
     sys.exit('Error: unable to import module: ' + str(e))
 
@@ -103,7 +100,7 @@ class Global():
         self.opt['-V'] = False
         self.opt['-t'] = False
 
-        self.opt['-g'] = 'gpcheckcat.repair.' + strftime('%Y-%m-%d.%H.%M.%S', localtime())
+        self.opt['-g'] = 'gpcheckcat.repair.' + Repair.TIMESTAMP
         self.opt['-B'] = parallelism
         self.opt['-T'] = None
 
@@ -149,9 +146,6 @@ class Global():
         # array of SQL statements. Key is dbid
         self.ReSync = {}
 
-        # Indexes to rebuild
-        self.Reindex = []
-
         # constraints which are actually unenforcable
         self.Constraints = []
 
@@ -160,6 +154,9 @@ class Global():
 
         # fix distribution policies
         self.Policies = []
+
+        # Indexes to rebuild
+        self.Reindex = []
 
         self.missingEntryStatus = None
         self.inconsistentEntryStatus = None
@@ -187,7 +184,6 @@ def usage(exitarg=None):
 ###############################
 
 def getversion():
-    versions = ["3.2", "3.3", "4.0", "4.1", "main"]
     db = connect()
     curs = db.query('''
     select regexp_replace(version(),
@@ -529,6 +525,7 @@ def checkDistribPolicy():
         myprint('[ERROR] executing test: checkDistribPolicy')
         myprint('  Execution error: ' + str(e))
 
+    checkConstraintsRepair()
 
 #############
 def checkPartitionIntegrity():
@@ -726,6 +723,7 @@ def checkPartitionIntegrity():
 
     db.close()
 
+    checkPoliciesRepair()
 
 #############
 # A dictionary of SQL statements for checkPartitionRegularity()
@@ -1931,7 +1929,8 @@ def removeFastSequence(db):
                               union
                               select oid from gp_dist_random('pg_class')) AS c
                         ON (fs.objid = c.oid)
-                     WHERE c.oid IS NULL) AS r
+                        WHERE c.oid IS NULL
+                        ) AS r
                   ON r.gp_segment_id = cfg.content
                WHERE cfg.role = 'p';
               """
@@ -2233,6 +2232,8 @@ def checkOwners():
         # Check owners in pg_operator
         # Check owners in pg_opclass
         # ...
+
+    checkOwnersRepair()
 
 
 def checkPersistentTables():
@@ -2928,7 +2929,7 @@ def fkQuery(catname, pkcatname, fkeystr, pkeystr, pkeys, cat1pkeys):
 # -------------------------------------------------------------------------------
 def checkMissingEntry():
     logger.info('-----------------------------------')
-    logger.info('Performing cross consistency tests: check for missing or extraneous entries')
+    logger.info('Performing cross consistency tests: check for missing or extraneous issues')
 
     if GV.missingEntryStatus == None:
         GV.missingEntryStatus = True
@@ -2936,8 +2937,18 @@ def checkMissingEntry():
     # looks up information in the catalog:
     tables = GV.catalog.getCatalogTables()
 
-    for cat in sorted(tables):
-        checkTableMissingEntry(cat)
+    catalog_issues = {}
+
+    for catalog_table_obj in sorted(tables):
+        issues = checkTableMissingEntry(catalog_table_obj)
+        if not issues:
+            continue
+
+        catalog_name = catalog_table_obj.getTableName()
+        _, pk_name = getPrimaryKeyColumn(catalog_name, catalog_table_obj.getPrimaryKey())
+        catalog_issues[(catalog_name, pk_name)] = issues
+
+    do_repair_for_extra(catalog_issues)
 
 
 # -------------------------------------------------------------------------------
@@ -2987,7 +2998,6 @@ def checkTableMissingEntry(cat):
                 log_level = logging.WARNING
             else:
                 GV.checkStatus = False
-                setError(ERROR_NOREPAIR)
                 GV.missingEntryStatus = False
                 logger_with_level = logger.error
                 log_level = logging.ERROR
@@ -3003,6 +3013,9 @@ def checkTableMissingEntry(cat):
             processMissingDuplicateEntryResult(catname, fields, results, "missing")
             if catname == 'pg_type':
                 generateVerifyFile(catname, fields, results, 'missing_extraneous')
+
+            return results
+
     except Exception, e:
         setError(ERROR_NOREPAIR)
         GV.missingEntryStatus = False
@@ -3452,26 +3465,6 @@ name_repair = {
             "description": "Check if needs repairing segment",
             "fn": lambda maybeRemove, catmod_guc, seg: checkSegmentRepair(maybeRemove, catmod_guc, seg)
         },
-    "reindex":
-        {
-            "description": "Check if needs repair file for reindex",
-            "fn": lambda: checkReindexRepair()
-        },
-    "constraints":
-        {
-            "description": "Check if needs repair file to fix constraints",
-            "fn": lambda: checkConstraintsRepair()
-        },
-    "owners":
-        {
-            "description": "Check if needs repair file to fix messed up ownership",
-            "fn": lambda: checkOwnersRepair()
-        },
-    "policies":
-        {
-            "description": "Check if needs repair file to fix distribution policy",
-            "fn": lambda: checkPoliciesRepair()
-        }
 }
 
 ############################################################################
@@ -3660,7 +3653,6 @@ def runOneCheck(name):
             GV.failedChecks.append(name)
 
 
-
 #-------------------------------------------------------------------------------
 def runAllChecks():
     '''
@@ -3675,25 +3667,13 @@ def runAllChecks():
     fixes = (len(GV.Remove) > 0 or
              len(GV.AdjustConname) > 0 or
              len(GV.DemoteConstraint) > 0 or
-             len(GV.ReSync) > 0 or
-             len(GV.Reindex) > 0 or
-             len(GV.Constraints) > 0 or
-             len(GV.Owners) > 0 or
-             len(GV.Policies) > 0)
+             len(GV.ReSync) > 0)
     if GV.opt['-g'] != None and fixes:
-        try:
-            if not os.path.exists(GV.opt['-g']):
-                os.mkdir(GV.opt['-g'])
-        except Exception, e:
-            logger.fatal('Unable to create directory "%s": %s' % (GV.opt['-g'], str(e)))
-            sys.exit(1)
-
+        repair_obj = Repair(context=GV)
+        repair_dir_path = repair_obj.create_repair_dir()
         logger.debug('Building catalog repair scripts')
         # build a script to run these files
         script = ''
-        # if repair script already exist, do not have to add extra script type to head
-        if not os.path.isfile(os.path.join(GV.opt['-g'], REPAIR_SCRIPT)):
-            script = '#!/bin/bash\ncd $(dirname $0)\n'
         # set allow_system_table_mods GUC for gpdb >= 4.2
         catmod_guc = ""
         if GV.version >= "4.2":
@@ -3717,43 +3697,55 @@ def runAllChecks():
             segment_repair_script = name_repair["segment"]["fn"](maybeRemove, catmod_guc, seg)
             script += segment_repair_script
 
-        c = GV.cfg[1]
-        for name in name_repair:
-            # skip checking on the segment repeatedly
-            if name in ['segment']:
-                continue
-            description, repair_filename = name_repair[name]["fn"]()
-            if repair_filename != None:
-                script += description
-                script += 'psql -X -a -h %s -p %i -f %s "%s" > %s.out 2>&1\n' % \
-                          (c['hostname'], c['port'], repair_filename, GV.dbname, repair_filename)
+        repair_obj.append_content_to_bash_script(repair_dir_path, script)
 
-        generate_repair_script(script)
+        print_repair_issues(repair_dir_path)
 
     if GV.retcode >= ERROR_NOREPAIR:
         logger.warn('[WARN]: unable to generate repairs for some issues')
     logger.info("Check complete")
 
 
-def generate_repair_script(script):
-    try:
-        path = '%s/%s' % (GV.opt['-g'], REPAIR_SCRIPT)
-        file = open(path, 'a')
-        file.write(script)
-        file.close()
-        os.chmod(path, stat.S_IXUSR | stat.S_IRUSR | stat.S_IWUSR)
-    except Exception, e:
-        logger.fatal('Could not write script: %s' % str(e))
-        sys.exit(1)
+def do_repair(sql_repair_contents, issue_type, description):
+    if len(sql_repair_contents) == 0:
+        return
 
+    repair_dir_path = ""
+    try:
+        repair_obj = Repair(context=GV, issue_type=issue_type, desc=description)
+        repair_dir_path = repair_obj.create_repair(sql_repair_contents=sql_repair_contents)
+    except Exception, ex:
+        logger.fatal(str(ex))
+
+    print_repair_issues(repair_dir_path)
+
+
+def do_repair_for_extra(catalog_issues):
+    if len(catalog_issues) == 0:
+        return
+
+    setError(ERROR_REMOVE)
+    repair_dir_path = ""
+    for (catalog_name, pk_name), issues in catalog_issues.iteritems():
+        try:
+            repair_obj = Repair(context=GV, issue_type="extra", desc="Removing extra entries")
+            repair_dir_path = repair_obj.create_repair_for_extra_missing(catalog_name=catalog_name, issues=issues, pk_name=pk_name)
+        except Exception, ex:
+            logger.fatal(str(ex))
+
+    print_repair_issues(repair_dir_path)
+
+
+def print_repair_issues(repair_dir_path):
     myprint('')
-    myprint('[INFO]: repair scripts generated: %s' % path)
+    myprint("catalog issue(s) found , repair script(s) generated in dir {0}".format(repair_dir_path))
+    myprint('')
 
 
 def checkReindexRepair():
     if len(GV.Reindex) > 0:
         # dbname.type.timestamp.sql
-        filename = '%s.%s.%s.sql' % (GV.dbname, "reindex", TIMESTAMP)
+        filename = '%s.%s.%s.sql' % (GV.dbname, "reindex", Repair.TIMESTAMP)
         fullpath = '%s/%s' % (GV.opt['-g'], filename)
         try:
             file = open(fullpath, 'w')
@@ -3769,76 +3761,23 @@ def checkReindexRepair():
     else:
         return None, None
 
-
 def checkConstraintsRepair():
-    if len(GV.Constraints) > 0:
-        # dbname.type.timestamp.sql
-        filename = '%s.%s.%s.sql' % (GV.dbname, "removeconstraints", TIMESTAMP)
-        fullpath = '%s/%s' % (GV.opt['-g'], filename)
-        try:
-            file = open(fullpath, 'w')
-        except Exception, e:
-            logger.fatal('Unable to create file "%s": %s' % (fullpath, str(e)))
-            sys.exit(1)
-
-        description = '\necho "Dropping invalid unique constraints"\n'
-        GV.Constraints = list(set(GV.Constraints))
-        for r in GV.Constraints:
-            file.write('%s\n' % r)
-        file.close()
-        return description, filename
-    else:
-        return None, None
-
+    do_repair(GV.Constraints, issue_type="removeconstraints", description='Dropping invalid unique constraints')
 
 def checkOwnersRepair():
-    if len(GV.Owners) > 0:
-        # Previously we removed duplicate statements from the "Owners" list
-        # by casting it through a "list(set(...))", however this does not work
-        # since the order of items in the list is important for correct results.
-
-        # dbname.type.timestamp.sql
-        filename = '%s.%s.%s.sql' % (GV.dbname, "fixowners", TIMESTAMP)
-        fullpath = '%s/%s' % (GV.opt['-g'], filename)
-        try:
-            file = open(fullpath, 'w')
-        except Exception, e:
-            logger.fatal('Unable to create file "%s": %s' % (fullpath, str(e)))
-            sys.exit(1)
-
-        description = '\necho "Correcting table ownership"\n'
-        for r in GV.Owners:
-            file.write('%s\n' % r)
-        file.close()
-        return description, filename
-    else:
-        return None, None
+    # Previously we removed duplicate statements from the "Owners" list
+    # by casting it through a "list(set(...))", however this does not work
+    # since the order of items in the list is important for correct results.
+    do_repair(GV.Owners, issue_type="fixowner", description='Correcting table ownership')
 
 def checkPoliciesRepair():
     # changes to distribution policies
-    if len(GV.Policies) > 0:
-        # dbname.type.timestamp.sql
-        filename = '%s.%s.%s.sql' % (GV.dbname, "fixdistribution", TIMESTAMP)
-        fullpath = '%s/%s' % (GV.opt['-g'], filename)
-        try:
-            file = open(fullpath, 'w')
-        except Exception, e:
-            logger.fatal('Unable to create file "%s": %s' % (fullpath, str(e)))
-            sys.exit(1)
-
-        description = '\necho "Fixing distribution policies"\n'
-        for r in GV.Policies:
-            file.write('%s\n' % r)
-        file.close()
-        return description, filename
-    else:
-        return None, None
-
+    do_repair(GV.Policies, issue_type="fixdistribution", description='Fixing distribution policies')
 
 def checkSegmentRepair(maybeRemove, catmod_guc, seg):
     # dbid.host.port.dbname.timestamp.sql
     c = GV.cfg[seg]
-    filename = '%i.%s.%i.%s.%s.sql' % (seg, c['hostname'], c['port'], GV.dbname, TIMESTAMP)
+    filename = '%i.%s.%i.%s.%s.sql' % (seg, c['hostname'], c['port'], GV.dbname, Repair.TIMESTAMP)
     filename = filename.replace(' ', '_')
     fullpath = '%s/%s' % (GV.opt['-g'], filename)
     try:
@@ -3849,9 +3788,9 @@ def checkSegmentRepair(maybeRemove, catmod_guc, seg):
 
     # unique
     lines = set()
-    if GV.Remove.has_key(seg):
+    if GV.Remove.has_key(seg):#foreign_key check
         lines = lines.union(GV.Remove[seg])
-    if GV.AdjustConname.has_key(seg):
+    if GV.AdjustConname.has_key(seg):#part_constraint
         lines = lines.union(GV.AdjustConname[seg])
     if GV.DemoteConstraint.has_key(seg):
         lines = lines.union(GV.DemoteConstraint[seg])
@@ -4195,6 +4134,17 @@ def processForeignKeyResult(catname, pkcatname, colname, allValues):
         gpObj.addForeignKeyIssue(issue)
 
 
+def getPrimaryKeyColumn(catname, pknames):
+    # We have to look up key to report (pg_pltemplate)
+    gpObjName = catname
+    gpColName = None
+    if catname in TableMainColumn:
+        gpColName = TableMainColumn[catname][0]
+        gpObjName = TableMainColumn[catname][1]
+    elif 'oid' in pknames:
+        gpColName = 'oid'
+    return gpObjName, gpColName
+
 # -------------------------------------------------------------------------------
 def processACLResult(catname, colname, allValues):
     '''
@@ -4203,16 +4153,9 @@ def processACLResult(catname, colname, allValues):
     				1 | gptest | None | {=Tc/nmiller,nmiller=CTc/nmiller,person2=CTc/nmiller}
     '''
 
-    gpObjName = catname
-    gpColName = None
     pknames = [i for i in colname[1:-2]]
 
-    # We have to look up key to report (pg_pltemplate)
-    if catname in TableMainColumn:
-        gpColName = TableMainColumn[catname][0]
-        gpObjName = TableMainColumn[catname][1]
-    elif 'oid' in pknames:
-        gpColName = 'oid'
+    gpObjName, gpColName = getPrimaryKeyColumn(catname, pknames)
 
     # Process entries
     for row in allValues:
@@ -4824,7 +4767,7 @@ def generateVerifyFile(catname, fields, results, checkname):
           ) alltyprelids
           GROUP BY relname, oid ORDER BY count(*) desc
     '''.format(in_clause=in_clause)
-    filename = 'gpcheckcat.verify.%s.%s.%s.%s.sql' % (GV.dbname, catname, checkname, TIMESTAMP)
+    filename = 'gpcheckcat.verify.%s.%s.%s.%s.sql' % (GV.dbname, catname, checkname, Repair.TIMESTAMP)
     try:
         with open(filename, 'w') as fp:
             fp.write(verify_sql + '\n')

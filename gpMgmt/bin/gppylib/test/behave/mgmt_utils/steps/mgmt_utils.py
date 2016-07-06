@@ -6,6 +6,8 @@ import shutil
 import socket
 import tarfile
 import thread
+import fnmatch
+import os
 from collections import defaultdict
 from datetime import datetime
 
@@ -25,14 +27,14 @@ if master_data_dir is None:
     raise Exception('Please set MASTER_DATA_DIRECTORY in environment')
 
 @given('the database is running')
-def impl(context): 
+def impl(context):
     start_database_if_not_started(context)
     if has_exception(context):
         raise context.exception
 
 @given('the database is not running')
 @when('the database is not running')
-def impl(context): 
+def impl(context):
     stop_database_if_started(context)
     if has_exception(context):
         raise context.exception
@@ -42,7 +44,7 @@ def impl(context, dbconn, version):
     command = '%s -t -q -c \'select version();\''%(dbconn)
     (rc, out, err) = run_cmd(command)
     if not ('Greenplum Database '+version) in out:
-        print 'version %s does not match current gpdb version %s'%(version, out)  
+        print 'version %s does not match current gpdb version %s'%(version, out)
 
 @given('database "{dbname}" exists')
 @then('database "{dbname}" exists')
@@ -75,33 +77,33 @@ def impl(context, dbname, HOST, PORT, USER):
 @given('the database "{dbname}" does not exist with connection "{dbconn}"')
 @when('the database "{dbname}" does not exist with connection "{dbconn}"')
 @then('the database "{dbname}" does not exist with connection "{dbconn}"')
-def impl(context, dbname, dbconn): 
+def impl(context, dbname, dbconn):
     command = '%s -c \'drop database if exists %s;\''%(dbconn, dbname)
     run_command(context, command)
 
 @given('the database "{dbname}" exists with connection "{dbconn}"')
 @when('the database "{dbname}" exists with connection "{dbconn}"')
 @then('the database "{dbname}" exists with connection "{dbconn}"')
-def impl(context, dbname, dbconn): 
+def impl(context, dbname, dbconn):
     command = '%s -c \'create database %s;\''%(dbconn, dbname)
     run_command(context, command)
 
 def get_segment_hostlist():
     gparray = GpArray.initFromCatalog(dbconn.DbURL())
-    segment_hostlist = sorted(gparray.get_hostlist(includeMaster=False)) 
+    segment_hostlist = sorted(gparray.get_hostlist(includeMaster=False))
     if not segment_hostlist:
         raise Exception('segment_hostlist was empty')
     return segment_hostlist
 
 @given('we have determined the first segment hostname')
 def impl(context):
-    segment_hostlist = get_segment_hostlist()    
-    context.first_segment_hostname = segment_hostlist[0] 
+    segment_hostlist = get_segment_hostlist()
+    context.first_segment_hostname = segment_hostlist[0]
 
 @given('{nic} on the first segment host is {nic_status}')
 @then('{nic} on the first segment host is {nic_status}')
 def impl(context, nic, nic_status):
-    if nic_status.strip() == 'down': 
+    if nic_status.strip() == 'down':
         bring_nic_down(context.first_segment_hostname, nic)
     elif nic_status.strip() == 'up':
         bring_nic_up(context.first_segment_hostname, nic)
@@ -128,16 +130,16 @@ def impl(context, table, dbname):
         insert_sql = """ALTER TABLE %s add column cnew int default 0""" % table
         dbconn.execSQL(conn, insert_sql)
         conn.rollback()
- 
+
 @given('the user truncates "{table_list}" tables in "{dbname}"')
 @when('the user truncates "{table_list}" tables in "{dbname}"')
 @then('the user truncates "{table_list}" tables in "{dbname}"')
 def impl(context, table_list, dbname):
     if not table_list:
         raise Exception('Table list is empty')
-    tables = table_list.split(',') 
+    tables = table_list.split(',')
     for t in tables:
-        truncate_table(dbname, t.strip()) 
+        truncate_table(dbname, t.strip())
 
 def populate_regular_table_data(context, tabletype, table_name, compression_type, dbname, rowcount=1094, with_data=False, host=None, port=0, user=None):
     create_database_if_not_exists(context, dbname, host=host, port=port, user=user)
@@ -204,7 +206,7 @@ def impl(context, tablename, dbname, filename, port):
     create_database_if_not_exists(context, dbname)
     drop_table_if_exists(context, table_name=tablename, dbname=dbname)
     create_external_partition(context, tablename, dbname, port, filename)
- 
+
 @given('"{dbname}" does not exist')
 def impl(context, dbname):
     drop_database(context, dbname)
@@ -224,7 +226,7 @@ def impl(context, tmp_file_prefix):
         run_command(context, 'rm -f /tmp/%s*' % tmp_file_prefix)
     else:
         raise Exception('Invalid call to temp file removal %s' % tmp_file_prefix)
-    
+
 @then('{env_var} environment variable should be restored')
 def impl(context, env_var):
     if not hasattr(context, 'orig_env'):
@@ -241,27 +243,27 @@ def impl(context, env_var):
 @then('the table names in "{dbname}" is stored')
 def impl(context, dbname):
     context.table_names = get_table_names(dbname)
-   
-@given('the user runs "{command}"') 
+
+@given('the user runs "{command}"')
 @when('the user runs "{command}"')
 @then('the user runs "{command}"')
 def impl(context, command):
     run_gpcommand(context, command)
 
-@given('the user runs command "{command}"') 
-@when('the user runs command "{command}"') 
+@given('the user runs command "{command}"')
+@when('the user runs command "{command}"')
 @then('the user runs command "{command}"')
-def impl(context, command):                 
-    run_command(context, command) 
+def impl(context, command):
+    run_command(context, command)
 
-@given('the user puts cluster on "{HOST}" "{PORT}" "{USER}" in "{transition}"') 
-@when('the user puts cluster on "{HOST}" "{PORT}" "{USER}" in "{transition}"') 
+@given('the user puts cluster on "{HOST}" "{PORT}" "{USER}" in "{transition}"')
+@when('the user puts cluster on "{HOST}" "{PORT}" "{USER}" in "{transition}"')
 @then('the user puts cluster on "{HOST}" "{PORT}" "{USER}" in "{transition}"')
 def impl(context, HOST, PORT, USER, transition):
     host = os.environ.get(HOST)
     user = os.environ.get(USER)
     port = os.environ.get(PORT)
-    source_file = os.path.join(os.environ.get('GPHOME'),'greenplum_path.sh') 
+    source_file = os.path.join(os.environ.get('GPHOME'),'greenplum_path.sh')
     master_dd = os.environ.get('MASTER_DATA_DIRECTORY')
     export_mdd = 'export MASTER_DATA_DIRECTORY=%s;export PGPORT=%s'%(master_dd, port)
     # reset all fault inject entry if exists
@@ -288,11 +290,11 @@ def impl(context, HOST, PORT, USER, transition):
         run_command_remote(context, 'gpstop -air', host, source_file, export_mdd)
         run_command_remote(context, 'gprecoverseg -a', host, source_file, export_mdd)
         wait_till_insync_transition(host,port,user)
-        run_command_remote(context, 'gprecoverseg -ar', host, source_file, export_mdd)  
+        run_command_remote(context, 'gprecoverseg -ar', host, source_file, export_mdd)
 
 @given('the user runs workload under "{dir}" with connection "{dbconn}"')
 @when('the user runs workload under "{dir}" with connection "{dbconn}"')
-def impl(context, dir, dbconn): 
+def impl(context, dir, dbconn):
     for file in os.listdir(dir):
         if file.endswith('.sql'):
             command = '%s -f %s'%(dbconn, os.path.join(dir,file))
@@ -323,7 +325,7 @@ def impl(context, USER, HOST, PORT, config_file, dir):
 
 @given('the user modifies the external_table.sql file "{filepath}" with host "{HOST}" and port "{port}"')
 @when('the user modifies the external_table.sql file "{filepath}" with host "{HOST}" and port "{port}"')
-def impl(context, filepath, HOST, port): 
+def impl(context, filepath, HOST, port):
     host=os.environ.get(HOST)
     substr = host+':'+port
     modify_sql_file(filepath, substr)
@@ -386,7 +388,7 @@ def run_valgrind_command(context, command, suppressions_file):
     run_command(context, cmd_text)
     for line in context.error_message.splitlines():
         if 'ERROR SUMMARY' in line:
-            if '0 errors from 0 contexts' not in line: 
+            if '0 errors from 0 contexts' not in line:
                 raise Exception('Output: %s' % context.error_message)
             else:
                 return
@@ -398,7 +400,7 @@ def impl(context, command, options):
     port = os.environ.get('PGPORT')
     user = getpass.getuser()
     if hasattr(context, 'backup_timestamp'):
-        ts = context.backup_timestamp 
+        ts = context.backup_timestamp
     bnr_tool = command.split()[0].strip()
     if bnr_tool == 'gp_dump':
         command_str = command
@@ -407,8 +409,8 @@ def impl(context, command, options):
     elif bnr_tool == 'gp_restore':
         command_str = "%s %s --gp-k %s --gp-d db_dumps/%s --gp-r db_dumps/%s" % (command, options, context.backup_timestamp, context.backup_timestamp[0:8], context.backup_timestamp[0:8])
     elif bnr_tool == 'gp_restore_agent':
-        command_str = "%s %s --gp-k %s --gp-d db_dumps/%s -p %s -U %s --target-host localhost --target-port %s db_dumps/%s/gp_dump_1_1_%s_post_data.gz" % (command, options, ts, ts[0:8], port, user, port, ts[0:8], ts) 
-        
+        command_str = "%s %s --gp-k %s --gp-d db_dumps/%s -p %s -U %s --target-host localhost --target-port %s db_dumps/%s/gp_dump_1_1_%s_post_data.gz" % (command, options, ts, ts[0:8], port, user, port, ts[0:8], ts)
+
     run_valgrind_command(context, command_str, "valgrind_suppression.txt")
 
 @then('the user runs valgrind with "{command}" and options "{options}" and suppressions file "{suppressions_file}" using netbackup')
@@ -437,14 +439,14 @@ def impl(context, command, options, suppressions_file):
         command_str = "%s %s" % (command, options)
 
     run_valgrind_command(context, command_str, "netbackup_suppressions.txt")
- 
+
 @when('the timestamp key is stored')
 def impl(context):
     stdout = context.stdout_message
     for line in stdout.splitlines():
         if '--gp-k' in line:
             pat = re.compile('.* --gp-k=([0-9]{14}).*')
-            m = pat.search(line) 
+            m = pat.search(line)
             if not m:
                 raise Exception('Timestamp key not found')
             context.timestamp_key = m.group(1)
@@ -488,13 +490,13 @@ def impl(context, ex_type):
 @when('database "{dbname}" health check should pass on table "{tablename}"')
 @then('database "{dbname}" health check should pass on table "{tablename}"')
 def impl(context, dbname, tablename):
-    
+
     drop_database_if_exists(context, dbname)
     create_database(context, dbname)
     create_int_table(context, tablename, dbname=dbname)
     drop_database(context, dbname)
 
-    
+
 @given('the segments are synchronized')
 @when('the segments are synchronized')
 @then('the segments are synchronized')
@@ -526,7 +528,7 @@ def impl(context, table_list, dbname):
 @then('all the data from "{dbname}" is saved for verification')
 def impl(context, dbname):
     backup_db_data(context, dbname)
-    
+
 @then('partition "{partition}" of partition table "{table_list}" is assumed to be in dirty state in "{dbname}" in schema "{schema}"')
 @when('partition "{partition}" of partition table "{table_list}" is assumed to be in dirty state in "{dbname}" in schema "{schema}"')
 @given('partition "{partition}" of partition table "{table_list}" is assumed to be in dirty state in "{dbname}" in schema "{schema}"')
@@ -538,7 +540,7 @@ def impl(context, partition, table_list, dbname, schema, partitionlevel=1):
     for t in tables:
         part_t = get_partition_names(schema, t.strip(), dbname, partitionlevel, partition)
         if len(part_t) < 1 or len(part_t[0]) < 1:
-            print part_t 
+            print part_t
         dirty_table_name = part_t[0][0].strip()
         modify_partition_data(context, dirty_table_name, dbname, int(partition))
         backup_data(context, dirty_table_name, dbname)
@@ -552,15 +554,15 @@ def validate_timestamp(ts):
     if len(ts) != 14:
         raise Exception('Timestamp is invalid %s' % ts)
 
-@when('the subdir from gpcrondump is stored')    
+@when('the subdir from gpcrondump is stored')
 @then('the subdir from gpcrondump is stored')
 def impl(context):
     stdout = context.stdout_message
     for line in stdout.splitlines():
         if 'Dump subdirectory' in line:
-            log_msg, delim, subdir = line.partition('=') 
+            log_msg, delim, subdir = line.partition('=')
             context.backup_subdir = subdir.strip()
-            return 
+            return
 
     raise Exception('Dump subdirectory not found %s' % stdout)
 
@@ -569,13 +571,13 @@ def get_timestamp_from_output(context):
     stdout = context.stdout_message
     for line in stdout.splitlines():
         if 'Timestamp key = ' in line:
-            log_msg, delim, timestamp = line.partition('=') 
+            log_msg, delim, timestamp = line.partition('=')
             ts = timestamp.strip()
             validate_timestamp(ts)
             return ts
 
     raise Exception('Timestamp not found %s' % stdout)
- 
+
 
 @given('the full backup timestamp from gpcrondump is stored')
 @when('the full backup timestamp from gpcrondump is stored')
@@ -583,7 +585,7 @@ def get_timestamp_from_output(context):
 def impl(context):
     context.full_backup_timestamp = get_timestamp_from_output(context)
 
-@when('the timestamp from gpcrondump is stored')    
+@when('the timestamp from gpcrondump is stored')
 @then('the timestamp from gpcrondump is stored')
 def impl(context):
     context.backup_timestamp = get_timestamp_from_output(context)
@@ -626,7 +628,7 @@ def impl(context, dbname, dir):
             # run the command to get the data from the destination system, locally
             command = '%s -f %s > %s' % (dbconn_dest, os.path.join(dir, file), out_file_path)
             run_command(context, command)
-            
+
             gpdiff_cmd = 'gpdiff.pl -w -I NOTICE: -I HINT: -I CONTEXT: -I GP_IGNORE: --gpd_init=gppylib/test/behave/mgmt_utils/steps/data/global_init_file %s %s > %s' % (ans_file_path, out_file_path, diff_file_path)
             run_command(context, gpdiff_cmd)
             if context.ret_code != 0:
@@ -645,13 +647,13 @@ def impl(context, dir):
             dbconn = 'psql -d template1 -p $GPTRANSFER_DEST_PORT -U $GPTRANSFER_DEST_USER -h $GPTRANSFER_DEST_HOST'
             command = '%s -f %s > %s'%(dbconn, os.path.join(dir,file), out_file_path)
             run_command(context, command)
-     
-            gpdiff_cmd = 'gpdiff.pl -w  -I NOTICE: -I HINT: -I CONTEXT: -I GP_IGNORE: --gpd_init=gppylib/test/behave/mgmt_utils/steps/data/global_init_file %s %s > %s'%(ans_file_path, out_file_path, diff_file_path)          
+
+            gpdiff_cmd = 'gpdiff.pl -w  -I NOTICE: -I HINT: -I CONTEXT: -I GP_IGNORE: --gpd_init=gppylib/test/behave/mgmt_utils/steps/data/global_init_file %s %s > %s'%(ans_file_path, out_file_path, diff_file_path)
             run_command(context, gpdiff_cmd)
     for file in os.listdir(dir):
         if file.endswith('.diff') and os.path.getsize(os.path.join(dir,file)) > 0:
             # if there is some difference generated into the diff file, raise expception
-                raise Exception ("Found difference between source and destination system, see %s"%file) 
+                raise Exception ("Found difference between source and destination system, see %s"%file)
 
 @then('the timestamp from gpcrondump is stored in the backup timestamp list')
 def impl(context):
@@ -663,13 +665,13 @@ def impl(context):
 
     inc_file_name = 'gp_dump_%s_increments' % context.full_backup_timestamp
     subdirectory = context.full_backup_timestamp[0:8]
-    full_path = os.path.join(master_data_dir, 'db_dumps', subdirectory, inc_file_name) 
+    full_path = os.path.join(master_data_dir, 'db_dumps', subdirectory, inc_file_name)
 
     if not os.path.isfile(full_path):
         raise Exception ("Can not find increments file: %s" % full_path)
 
     contents = ""
-    with open(full_path) as fd: 
+    with open(full_path) as fd:
         contents = fd.read().strip()
 
     if context.backup_timestamp != contents:
@@ -678,14 +680,14 @@ def impl(context):
 def check_increments_file_for_list(context, location):
     inc_file_name = 'gp_dump_%s_increments' % context.full_backup_timestamp
     subdirectory = context.full_backup_timestamp[0:8]
-    full_path = os.path.join(location, 'db_dumps', subdirectory, inc_file_name) 
+    full_path = os.path.join(location, 'db_dumps', subdirectory, inc_file_name)
 
     if not os.path.isfile(full_path):
         raise Exception ("Can not find increments file: %s" % full_path)
 
     found_timestamps = []
     contents = ""
-    with open(full_path) as fd: 
+    with open(full_path) as fd:
         contents = fd.read()
         for line in contents.splitlines():
             line = line.strip()
@@ -716,8 +718,8 @@ def impl(context):
     context.inc_backup_timestamps = sorted(context.inc_backup_timestamps)
     latest_ts = context.inc_backup_timestamps[-1]
     plan_file_dir = os.path.join(master_data_dir, 'db_dumps', latest_ts[0:8])
-    plan_file_count =  len(glob.glob('/%s/*_plan' % plan_file_dir)) 
-    if plan_file_count != 1: 
+    plan_file_count =  len(glob.glob('/%s/*_plan' % plan_file_dir))
+    if plan_file_count != 1:
         raise Exception('Expected only one plan file, found %s' % plan_file_count)
     filename = '%s/gp_restore_%s_plan' % (plan_file_dir, latest_ts)
     if not os.path.exists(filename):
@@ -729,14 +731,14 @@ def impl(context, subdir):
     context.backup_subdir = subdir
     for line in stdout.splitlines():
         if 'Timestamp Key: ' in line:
-            context.backup_timestamp = line.split()[-1] 
+            context.backup_timestamp = line.split()[-1]
             validate_timestamp(context.backup_timestamp)
-            return 
+            return
 
     raise Exception('Timestamp not found %s' % stdout)
-   
-@when('the state files are generated under "{dir}" for stored "{backup_type}" timestamp') 
-@then('the state files are generated under "{dir}" for stored "{backup_type}" timestamp') 
+
+@when('the state files are generated under "{dir}" for stored "{backup_type}" timestamp')
+@then('the state files are generated under "{dir}" for stored "{backup_type}" timestamp')
 def impl(context, dir, backup_type):
     dump_dir = dir if len(dir.strip()) != 0 else master_data_dir
     if backup_type == 'full':
@@ -762,7 +764,7 @@ def impl(context, file_type, dirname, backup_type):
         timestamp = context.full_backup_timestamp
     else:
         timestamp = context.backup_timestamp
-    last_operation_filename = "%s/db_dumps/%s/gp_dump_%s_last_operation" % (dump_dir, timestamp[0:8], timestamp) 
+    last_operation_filename = "%s/db_dumps/%s/gp_dump_%s_last_operation" % (dump_dir, timestamp[0:8], timestamp)
     if not os.path.exists(last_operation_filename):
         raise Exception('Last operation file %s not generated' % last_operation_filename)
 
@@ -830,7 +832,7 @@ def impl(context, cmd):
 
 @then('verify that there is no table "{tablename}" in "{dbname}"')
 def impl(context, tablename, dbname):
-    if check_table_exists(context, dbname=dbname, table_name=tablename): 
+    if check_table_exists(context, dbname=dbname, table_name=tablename):
         raise Exception("Table '%s' still exists when it should not" % tablename)
 
 @then('verify that there is no view "{viewname}" in "{dbname}"')
@@ -850,12 +852,12 @@ def impl(context, conname, dbname):
 
 @then('verify that there is a "{table_type}" table "{tablename}" in "{dbname}"')
 def impl(context, table_type, tablename, dbname):
-    if not check_table_exists(context, dbname=dbname, table_name=tablename,table_type=table_type): 
+    if not check_table_exists(context, dbname=dbname, table_name=tablename,table_type=table_type):
         raise Exception("Table '%s' of type '%s' does not exist when expected" % (tablename, table_type))
 
 @then('verify that there is partition "{partition}" of "{table_type}" partition table "{tablename}" in "{dbname}" in "{schemaname}"')
 def impl(context, partition, table_type, tablename, dbname, schemaname):
-    if not check_partition_table_exists(context, dbname=dbname, schemaname=schemaname, table_name=tablename, table_type=table_type, part_level=1, part_number=partition): 
+    if not check_partition_table_exists(context, dbname=dbname, schemaname=schemaname, table_name=tablename, table_type=table_type, part_level=1, part_number=partition):
         raise Exception("Partition %s for table '%s' of type '%s' does not exist when expected" % (partition, tablename, table_type))
 
 @then('verify that there is partition "{partition}" of mixed partition table "{tablename}" with storage_type "{storage_type}"  in "{dbname}" in "{schemaname}"')
@@ -881,24 +883,24 @@ def impl(context, tablename, dbname):
 
 @then('data for partition table "{table_name}" with partition level "{part_level}" is distributed across all segments on "{dbname}"')
 def impl(context, table_name, part_level, dbname):
-    validate_part_table_data_on_segments(context, table_name, part_level, dbname) 
+    validate_part_table_data_on_segments(context, table_name, part_level, dbname)
 
 @then('data for table "{table_name}" is distributed across all segments on "{dbname}"')
 def impl(context, table_name, dbname):
-    validate_table_data_on_segments(context, table_name, dbname) 
+    validate_table_data_on_segments(context, table_name, dbname)
 
 @then('verify that the data of the {file} under "{backup_dir}" in "{dbname}" is validated after restore')
 def impl(context, file, dbname, backup_dir):
     dump_dir = backup_dir if len(backup_dir.strip()) != 0 else master_data_dir
 
-    if file == 'dirty tables': 
+    if file == 'dirty tables':
         dirty_list_filename = '%s/db_dumps/%s/gp_dump_%s_dirty_list' % (dump_dir, context.backup_timestamp[0:8], context.backup_timestamp)
     elif file == 'table_filter_file':
         dirty_list_filename = os.path.join(os.getcwd(), file)
-        
+
     if not os.path.exists(dirty_list_filename):
         raise Exception('Dirty list file %s does not exist' % dirty_list_filename)
-    
+
     with open(dirty_list_filename) as fd:
         tables = fd.readlines()
         for table in tables:
@@ -910,7 +912,7 @@ def impl(context, dbname):
 
 @then('verify that tables "{table_list}" in "{dbname}" has no rows')
 def impl(context, table_list, dbname):
-    tables = [t.strip() for t in table_list.split(',')] 
+    tables = [t.strip() for t in table_list.split(',')]
     for t in tables:
         check_empty_table(t, dbname)
 
@@ -930,7 +932,7 @@ def impl(context, src_tname, src_dbname, dest_tname, dest_dbname, orderby):
 @then('verify that partitioned tables "{table_list}" in "{dbname}" have {num_parts} partitions in partition level "{partitionlevel}"')
 def impl(context, table_list, dbname, num_parts, partitionlevel=1):
     num_parts = int(num_parts.strip())
-    tables = [t.strip() for t in table_list.split(',')] 
+    tables = [t.strip() for t in table_list.split(',')]
     for t in tables:
         names = get_partition_tablenames(t, dbname, partitionlevel)
         if len(names) != num_parts:
@@ -985,7 +987,7 @@ def impl(context):
 @then('verify that partitioned tables "{table_list}" in "{dbname}" has {num_parts} empty partitions')
 def impl(context, table_list, dbname, num_parts):
     expected_num_parts = int(num_parts.strip())
-    tables = [t.strip() for t in table_list.split(',')] 
+    tables = [t.strip() for t in table_list.split(',')]
     for t in tables:
         check_x_empty_parts(dbname, t, expected_num_parts)
 
@@ -993,9 +995,9 @@ def impl(context, table_list, dbname, num_parts):
 @when('there is a backupfile of tables "{table_list}" in "{dbname}" exists for validation')
 @then('there is a backupfile of tables "{table_list}" in "{dbname}" exists for validation')
 def impl(context, table_list, dbname):
-    tables = [t.strip() for t in table_list.split(',')] 
+    tables = [t.strip() for t in table_list.split(',')]
     for t in tables:
-        backup_data(context, t.strip(), dbname) 
+        backup_data(context, t.strip(), dbname)
 
 @when('verify that there is a table "{tablename}" of "{tabletype}" type in "{dbname}" with same data as table "{backedup_table}"')
 @then('verify that there is a table "{tablename}" of "{tabletype}" type in "{dbname}" with same data as table "{backedup_table}"')
@@ -1009,7 +1011,7 @@ def impl(context, tablename, tabletype, dbname, backedup_table):
 def impl(context, table_type, tablename, dbname):
     if not check_table_exists(context, dbname=dbname, table_name=tablename, table_type=table_type):
         raise Exception("Table '%s' does not exist when it should" % tablename)
-    validate_restore_data(context, tablename, dbname) 
+    validate_restore_data(context, tablename, dbname)
 
 @given('there is schema "{schema_list}" exists in "{dbname}"')
 @then('there is schema "{schema_list}" exists in "{dbname}"')
@@ -1070,7 +1072,7 @@ def verify_file_contents(context, file_type, file_dir, text_find, should_contain
         fn = '%sgp_cdatabase_1_1_%s' % (context.dump_prefix, context.backup_timestamp)
 
     subdirectory = context.backup_timestamp[0:8]
-    
+
     if file_type == 'pg_dump_log':
         full_path = os.path.join(file_dir, fn)
     else:
@@ -1086,8 +1088,8 @@ def verify_file_contents(context, file_type, file_dir, text_find, should_contain
     if should_contain and not text_find in contents:
         raise Exception("Did not find '%s' in file %s" % (text_find, full_path))
     elif not should_contain and text_find in contents:
-        raise Exception("Found '%s' in file '%s'" % (text_find, full_path)) 
-    
+        raise Exception("Found '%s' in file '%s'" % (text_find, full_path))
+
 @then('verify that the "{file_type}" file in "{file_dir}" dir contains "{text_find}"')
 def impl(context, file_type, file_dir, text_find):
     verify_file_contents(context, file_type, file_dir, text_find)
@@ -1100,12 +1102,12 @@ def impl(context, file_type, file_dir, text_find):
 def impl(context):
     if not hasattr(context, 'timestamp_key'):
         raise Exception('Unable to find timestamp key in context')
-       
-    if hasattr(context, 'backup_dir'): 
+
+    if hasattr(context, 'backup_dir'):
         report_file = os.path.join(context.backup_dir, 'db_dumps', '%s' % (context.timestamp_key[0:8]),'gp_dump_%s.rpt' % context.timestamp_key)
     else:
         report_file = os.path.join(master_data_dir, 'db_dumps', '%s' % (context.timestamp_key[0:8]), 'gp_dump_%s.rpt' % context.timestamp_key)
-    
+
     with open(report_file) as rpt:
         for line in rpt:
             if line.startswith('Timestamp Key'):
@@ -1117,17 +1119,17 @@ def impl(context):
 def impl(context, dbname):
     if not hasattr(context, 'timestamp_key'):
         raise Exception('Unable to find timestamp key in context')
-       
-    master_hostname = get_master_hostname(dbname) 
+
+    master_hostname = get_master_hostname(dbname)
     results = get_hosts_and_datadirs(dbname)
 
     for (host, datadir) in results:
         if host == master_hostname:
-            if hasattr(context, 'backup_dir'): 
+            if hasattr(context, 'backup_dir'):
                 dump_dir = os.path.join(context.backup_dir, 'db_dumps', '%s' % (context.timestamp_key[0:8]))
             else:
                 dump_dir = os.path.join(master_data_dir, 'db_dumps', '%s' % (context.timestamp_key[0:8]))
-    
+
             master_dump_files = ['%s/gp_dump_1_1_%s' % (dump_dir, context.timestamp_key),
                                  '%s/gp_dump_status_1_1_%s'  % (dump_dir, context.timestamp_key),
                                  '%s/gp_cdatabase_1_1_%s' % (dump_dir, context.timestamp_key),
@@ -1140,7 +1142,7 @@ def impl(context, dbname):
                 if int(results.stdout.strip()) != 1:
                     raise Exception('Dump file %s not found after gp_dump on host %s' % (dump_file, host))
         else:
-            if hasattr(context, 'backup_dir'): 
+            if hasattr(context, 'backup_dir'):
                 dump_dir = os.path.join(context.backup_dir, 'db_dumps', '%s' % (context.timestamp_key[0:8]))
             else:
                 dump_dir = os.path.join(datadir, 'db_dumps', '%s' % (context.timestamp_key[0:8]))
@@ -1201,7 +1203,7 @@ def impl(context, filename):
         raise Exception("File contents do not match '%s' and '%s'" % (generated_filename, golden_filename))
 
 def parse_plan_file(filename):
-    plan = {} 
+    plan = {}
     with open(filename) as fd:
         for line in fd:
             parts = line.partition(":")
@@ -1226,7 +1228,7 @@ def modify_plan_with_labels(context, expected_plan):
 def compare_plans(expected, actual):
     expected_keys = expected.keys()
     actual_keys = actual.keys()
-    
+
     if len(expected_keys) != len(actual_keys):
         raise Exception("Expected plan has %s timestamps actual plan has %s timestamps" % (len(expected_keys), len(actual_keys)))
 
@@ -1250,7 +1252,7 @@ def impl(context, expected_plan):
     expected_plan = parse_plan_file(expected_file)
     expected_plan = modify_plan_with_labels(context, expected_plan)
     compare_plans(expected_plan, context.restore_plan)
-    
+
 @then('there should be "{numtimestamps}" timestamps in the plan file')
 def impl(context, numtimestamps):
     num = int(numtimestamps)
@@ -1284,7 +1286,7 @@ def impl(context, filetype, dir):
 
     if os.path.exists(file_path):
         os.remove(file_path)
- 
+
 
 @when('"{filetype}" file should be created under "{dir}"')
 @then('"{filetype}" file should be created under "{dir}"')
@@ -1322,10 +1324,10 @@ def impl(context, filetype, dir):
 @then('verify there are no "{tmp_file_prefix}" tempfiles')
 def impl(context, tmp_file_prefix):
     if tmp_file_prefix is not None and tmp_file_prefix:
-       if glob.glob('/tmp/%s*' % tmp_file_prefix): 
+       if glob.glob('/tmp/%s*' % tmp_file_prefix):
             raise Exception('Found temp %s files where they should not be present' % tmp_file_prefix)
     else:
-        raise Exception('Invalid call to temp file removal %s' % tmp_file_prefix) 
+        raise Exception('Invalid call to temp file removal %s' % tmp_file_prefix)
 
 @then('tables names should be identical to stored table names in "{dbname}"')
 def impl(context, dbname):
@@ -1338,7 +1340,7 @@ def impl(context, dbname):
         print "Table names after restore:"
         print table_names
         raise Exception('Schema not restored correctly. List of tables are not equal before and after restore in database %s' % dbname)
-   
+
 @then('tables in "{dbname}" should not contain any data')
 def impl(context, dbname):
     for table in context.table_names:
@@ -1363,14 +1365,14 @@ def impl(context, dbname, dir, backup_type):
         print type(seg[0].strip())
         cmdStr = "%s -o 'StrictHostKeyChecking no' -r %s:%s %s" % (findCmdInPath('scp'), seg[0].strip(),from_path, to_path)
         run_command(context, cmdStr)
-    
+
 @then('pg_stat_last_operation registers the truncate for tables "{table_list}" in "{dbname}" in schema "{schema}"')
 def impl(context, table_list, dbname, schema):
     if not table_list:
         raise Exception('Empty table list')
     tables = table_list.split(',')
     for t in tables:
-        table_oid = get_table_oid(context, dbname, schema, t.strip())  
+        table_oid = get_table_oid(context, dbname, schema, t.strip())
         verify_truncate_in_pg_stat_last_operation(context, dbname, table_oid)
 
 @then('pg_stat_last_operation does not register the truncate for tables "{table_list}" in "{dbname}" in schema "{schema}"')
@@ -1379,7 +1381,7 @@ def impl(context, table_list, dbname, schema):
         raise Exception('Empty table list')
     tables = table_list.split(',')
     for t in tables:
-        table_oid = get_table_oid(context, dbname, schema, t.strip())  
+        table_oid = get_table_oid(context, dbname, schema, t.strip())
         verify_truncate_not_in_pg_stat_last_operation(context, dbname, table_oid)
 
 @given('the numbers "{lownum}" to "{highnum}" are inserted into "{tablename}" tables in "{dbname}"')
@@ -1419,7 +1421,7 @@ def impl(context, directory):
     increments_filename = os.path.join(dump_dir, 'gp_dump_%s_increments' % context.full_backup_timestamp)
 
     if not os.path.exists(increments_filename):
-        raise Exception('Increments file %s does not exist !' % increments_filename) 
+        raise Exception('Increments file %s does not exist !' % increments_filename)
 
     with open(increments_filename) as fd:
         lines = fd.readlines()
@@ -1442,7 +1444,7 @@ def impl(context, table_type, backup_dir, backup_type):
 
 @then('the saved state file is deleted')
 def impl(context):
-    run_command(context, 'rm -f %s' % context.state_file) 
+    run_command(context, 'rm -f %s' % context.state_file)
     if context.exception:
         raise context.exception
 
@@ -1477,9 +1479,9 @@ def impl(context, table_name, dbname):
     execute_sql(dbname, select_sql)
     drop_sql = 'drop table %s' % table_name
     execute_sql(dbname, drop_sql)
-    recreate_sql = 'select * into %s from public.temp' % table_name 
+    recreate_sql = 'select * into %s from public.temp' % table_name
     execute_sql(dbname, recreate_sql)
-    
+
 @then('verify that plan file has latest timestamp for "{table_name}"')
 def impl(context, table_name):
     plan_file = get_plan_filename(context)
@@ -1498,7 +1500,7 @@ def impl(context, row_values, table, dbname):
 @when('the method get_partition_state is executed on table "{table}" in "{dbname}" for ao table "{ao_table}"')
 def impl(context, table, dbname, ao_table):
     (sch, tbl) = table.split('.')
-    ao_sch, ao_tbl = ao_table.split('.') 
+    ao_sch, ao_tbl = ao_table.split('.')
     part_info = [(1, ao_sch, ao_tbl, tbl)]
     try:
         backup_utils = Context()
@@ -1527,7 +1529,7 @@ def impl(context, elem):
         raise Exception('get_partition_state returned more results than expected "%s"' % context.partition_list_res)
 
     if elem not in context.partition_list_res:
-        raise Exception('Expected text "%s" not found in partition list returned by get_partition_state "%s"' % (elem, context.partition_list_res)) 
+        raise Exception('Expected text "%s" not found in partition list returned by get_partition_state "%s"' % (elem, context.partition_list_res))
 
 @given('older backup directories "{dirlist}" exists')
 @when('older backup directories "{dirlist}" exists')
@@ -1559,21 +1561,21 @@ def impl(context, dirlist):
     for d in dirs:
         dump_dir = os.path.join(master_data_dir, 'db_dumps', d)
         if os.path.exists(dump_dir):
-            raise Exception('Unexpected directory exists %s' % dump_dir) 
+            raise Exception('Unexpected directory exists %s' % dump_dir)
 
 @then('the dump directory for the stored timestamp should exist')
 def impl(context):
     if not hasattr(context, 'full_backup_timestamp'):
         raise Exception('Full backup timestamp needs to be stored')
-   
-    dump_dir = os.path.join(master_data_dir, 'db_dumps', context.full_backup_timestamp[0:8]) 
+
+    dump_dir = os.path.join(master_data_dir, 'db_dumps', context.full_backup_timestamp[0:8])
     if not os.path.exists(dump_dir):
         raise Exception('Expected directory does not exist %s' % dump_dir)
 
 def validate_master_config_backup_files(context):
     if not hasattr(context, "dump_prefix"):
         context.dump_prefix = ''
-    master_dump_dir = os.path.join(master_data_dir, 'db_dumps', context.backup_timestamp[0:8]) 
+    master_dump_dir = os.path.join(master_data_dir, 'db_dumps', context.backup_timestamp[0:8])
     dump_files = os.listdir(master_dump_dir)
     for df in dump_files:
         if df.startswith('%sgp_master_config_files' % context.dump_prefix) and df.endswith('.tar'):
@@ -1588,24 +1590,24 @@ def validate_segment_config_backup_files(context):
 
     for ps in primary_segs:
         dump_dir = os.path.join(ps.getSegmentDataDirectory(), 'db_dumps', context.backup_timestamp[0:8])
-        dump_files = ListRemoteFilesByPattern(dump_dir, 
+        dump_files = ListRemoteFilesByPattern(dump_dir,
                                               '%sgp_segment_config_files_*.tar' % context.dump_prefix,
                                               ps.getSegmentHostName()).run()
         if len(dump_files) != 1:
-            raise Exception('Error in finding config files "%s" for segment %s' % (dump_files, ps.getSegmentDataDirectory())) 
-        
+            raise Exception('Error in finding config files "%s" for segment %s' % (dump_files, ps.getSegmentDataDirectory()))
+
 @then('config files should be backed up on all segments')
 def impl(context):
     if not hasattr(context, 'backup_timestamp'):
         raise Exception('Backup timestamp needs to be stored')
-    
+
     validate_master_config_backup_files(context)
     validate_segment_config_backup_files(context)
 
 @then('verify that the table "{table_name}" in "{dbname}" has dump info for the stored timestamp')
 def impl(context, table_name, dbname):
     dump_history = {}
-    dump_history_sql = 'select dump_key,options from public.%s' % table_name 
+    dump_history_sql = 'select dump_key,options from public.%s' % table_name
     dump_history =  getRows(dbname, dump_history_sql)
     for (dump_key,options) in dump_history:
         if context.backup_timestamp == dump_key.strip() and dbname in options:
@@ -1636,7 +1638,7 @@ def get_timestamp_from_output_for_db(context):
     stdout = context.stdout_message
     for line in stdout.splitlines():
         if 'Target database' in line:
-            log_msg, delim, database = line.partition('=') 
+            log_msg, delim, database = line.partition('=')
             db = database.strip()
         elif 'Dump key ' in line:
             log_msg, delim, timestamp = line.partition('=')
@@ -1665,7 +1667,7 @@ def impl(context, db_list):
         if db.strip() not in context.db_timestamps:
             raise Exception('Could not find timestamp for database: %s' % context.db_timestamps)
 
-    timestamp_set = set([v for v in context.db_timestamps.values()]) 
+    timestamp_set = set([v for v in context.db_timestamps.values()])
     if len(timestamp_set) != len(context.db_timestamps):
         raise Exception('Some databases have same timestamp: "%s"' % context.db_timestamps)
 
@@ -1684,7 +1686,7 @@ def impl(context, table_type, table_name, db_name, num_partitions):
 @given('the length of partition names of table "{table_name}" in "{db_name}" exceeds the command line maximum limit')
 def impl(context, table_name, db_name):
     partitions = get_partition_tablenames(table_name, db_name)
-    partition_list_string = '' 
+    partition_list_string = ''
     for part in partitions:
         partition_list_string += (part[0] + ',')
     if partition_list_string[-1] == ',':
@@ -1720,19 +1722,19 @@ def get_host_and_port():
             master_host = seg.getSegmentAddress()
 
     if master_host is None:
-        raise Exception('Unable to determine the master hostname') 
+        raise Exception('Unable to determine the master hostname')
 
     return (master_host, port)
 
 @given('there is an external table "{tablename}" in "{dbname}" with data for file "{file_location}"')
 def impl(context, tablename, dbname, file_location):
-    create_ext_table_file(file_location) 
+    create_ext_table_file(file_location)
     host, port = get_host_and_port()
-    ext_table_sql = """CREATE EXTERNAL WEB TABLE %s(name text, column1 int, column2 int) EXECUTE 'cat %s 2> /dev/null || true' 
+    ext_table_sql = """CREATE EXTERNAL WEB TABLE %s(name text, column1 int, column2 int) EXECUTE 'cat %s 2> /dev/null || true'
                        ON MASTER FORMAT 'CSV' (DELIMITER ',')""" % (tablename, file_location)
     execute_sql(dbname, ext_table_sql)
-   
-    verify_ext_table_creation_sql = """SELECT count(*) FROM pg_class WHERE relname = '%s'""" % tablename 
+
+    verify_ext_table_creation_sql = """SELECT count(*) FROM pg_class WHERE relname = '%s'""" % tablename
     row_count = getRows(dbname, verify_ext_table_creation_sql)[0][0]
     if row_count != 1:
         raise Exception('Creation of external table failed for "%s:%s, row count = %s"' % (file_location, tablename, row_count))
@@ -1747,7 +1749,7 @@ def impl(context, tablename, file_type, backup_dir):
     with open(filename) as fd:
         for line in fd:
             if tablename.strip() == line.strip():
-                raise Exception('Found an unwanted table in the file: "%s" in line: "%s"' %(filename, line))  
+                raise Exception('Found an unwanted table in the file: "%s" in line: "%s"' %(filename, line))
 
 @then('verify that exactly "{num_tables}" tables in "{dbname}" have been restored')
 def impl(context, num_tables, dbname):
@@ -1768,15 +1770,15 @@ def impl(context):
             process_ts = True
         elif process_ts:
             if 'Enter timestamp number to restore' not in line:
-                timestamps.append(line.strip().split('......')[-1].strip()) 
+                timestamps.append(line.strip().split('......')[-1].strip())
             else:
                 process_ts = False
                 break
-            
-    timestamps = [ts.split()[0]+ts.split()[1] for ts in timestamps] 
 
-    sorted_timestamps = sorted(timestamps, key=lambda x: int(x))    
-    
+    timestamps = [ts.split()[0]+ts.split()[1] for ts in timestamps]
+
+    sorted_timestamps = sorted(timestamps, key=lambda x: int(x))
+
     if sorted_timestamps != timestamps:
         raise Exception('Timestamps are not in sorted order "%s"' % timestamps)
 
@@ -1792,7 +1794,7 @@ def impl(context, table_count, tabletype, table_name, dbname):
 @given('the tables "{table_list}" are in dirty hack file "{dirty_hack_file}"')
 def impl(context, table_list, dirty_hack_file):
     tables = [t.strip() for t in table_list.split(',')]
-    
+
     with open(dirty_hack_file, 'w') as fd:
         for t in tables:
             fd.write(t + '\n')
@@ -1819,19 +1821,19 @@ def impl(context, part_num, table_list, dbname, schema, dirty_hack_file):
 def impl(context):
     if not hasattr(context, 'backup_timestamp'):
         raise Exception('Timestamp needs to be stored')
-    
+
     config_file = os.path.join(master_data_dir, 'db_dumps', context.backup_timestamp[0:8],
                                'gp_master_config_files_%s.tar' % context.backup_timestamp)
     if not os.path.exists(config_file):
         raise Exception('Failed to locate config file on master "%s"' % config_file)
 
     gparray = GpArray.initFromCatalog(dbconn.DbURL())
-    
+
     primary_segs = [seg for seg in gparray.getDbList() if seg.isSegmentPrimary(current_role=True)]
 
     for seg in primary_segs:
         segment_config_file = os.path.join(seg.getSegmentDataDirectory(), 'db_dumps', context.backup_timestamp[0:8],
-                                           'gp_segment_config_files_0_%s_%s.tar' % (seg.getSegmentDbId(), context.backup_timestamp)) 
+                                           'gp_segment_config_files_0_%s_%s.tar' % (seg.getSegmentDbId(), context.backup_timestamp))
         if not CheckRemoteFile(segment_config_file, seg.getSegmentAddress()):
             raise Exception('Failed to locate "%s" on "%s"' % segment_config_file, seg.getSegmentDataDirectory())
 
@@ -1844,7 +1846,7 @@ def impl(context):
             ts_str = 'Backup Timestamp: %s' % ts
             if ts_str in line:
                 found_ts += 1
-                          
+
     print 'context.inc_backup_timestamps = ', context.inc_backup_timestamps
     if found_ts != len(context.inc_backup_timestamps):
         raise Exception('Expected "%d" timestamps but found "%d" timestamps' % (len(context.inc_backup_timestamps), found_ts))
@@ -1862,7 +1864,7 @@ def impl(context, table_type, tablename, dbname):
     elif table_type == 'heap':
         pass
     else:
-        raise Exception('Unknown table type specified "%s"' % table_type) 
+        raise Exception('Unknown table type specified "%s"' % table_type)
 
     execute_sql(dbname.strip(), funny_chars_table_name_sql)
 
@@ -1901,7 +1903,7 @@ def impl(context, num_seconds):
 @given('the file "{filename}" is removed from the system')
 @when('the file "{filename}" is removed from the system')
 @then('the file "{filename}" is removed from the system')
-def impl(context, filename): 
+def impl(context, filename):
     os.remove(filename)
 
 @given('the client program "{program_name}" is present under {parent_dir} in "{sub_dir}"')
@@ -1950,12 +1952,12 @@ def impl(context, msg, min_val, max_val):
         if msg in line:
             val = re.finadall(r'\d+', line)
             if not val:
-                raise Exception('Expected a numeric digit after message: %s' % msg) 
+                raise Exception('Expected a numeric digit after message: %s' % msg)
             if len(val) > 1:
-                raise Exception('Expected one numeric digit after message: %s' % msg) 
+                raise Exception('Expected one numeric digit after message: %s' % msg)
 
             if val[0] < min_val or val[0] > max_val:
-                raise Exception('Value not in acceptable range %s' % val[0]) 
+                raise Exception('Value not in acceptable range %s' % val[0])
 
 @given('the directory "{dirname}" exists in current working directory')
 def impl(context, dirname):
@@ -1998,9 +2000,9 @@ def impl(context, readwrite, tname, fname, dbname):
 
     hostname = socket.gethostname()
 
-    sql = """CREATE %s EXTERNAL TABLE  
-            %s (name varchar(255), id int) 
-            LOCATION ('gpfdist://%s:8088/%s') 
+    sql = """CREATE %s EXTERNAL TABLE
+            %s (name varchar(255), id int)
+            LOCATION ('gpfdist://%s:8088/%s')
             FORMAT 'text'
             (DELIMITER '|');
             """ % (readwrite, tname, hostname, fname)
@@ -2019,7 +2021,7 @@ def impl(context, tname, dbname):
     context.stored_rows = []
 
     with dbconn.connect(dbconn.DbURL(dbname=dbname)) as conn:
-        sql = "SELECT * FROM %s" % tname 
+        sql = "SELECT * FROM %s" % tname
         curs = dbconn.execSQL(conn, sql)
         context.stored_rows = curs.fetchall()
 
@@ -2066,21 +2068,21 @@ def impl(context, numlines):
 
 def get_standby_host():
     gparray = GpArray.initFromCatalog(dbconn.DbURL())
-    segments = gparray.getDbList() 
+    segments = gparray.getDbList()
     standby_master = [seg.getSegmentHostName() for seg in segments if seg.isSegmentStandby()]
     if len(standby_master) > 0:
         return standby_master[0]
     else:
         return []
 
-@given('user does not have ssh permissions') 
+@given('user does not have ssh permissions')
 def impl(context):
     user_home = os.environ.get('HOME')
     authorized_keys_file = '%s/.ssh/authorized_keys' % user_home
     if os.path.exists(os.path.abspath(authorized_keys_file)):
-       shutil.move(authorized_keys_file, '%s.bk' % authorized_keys_file) 
+       shutil.move(authorized_keys_file, '%s.bk' % authorized_keys_file)
 
-@then('user has ssh permissions') 
+@then('user has ssh permissions')
 def impl(context):
     user_home = os.environ.get('HOME')
     authorized_keys_backup_file = '%s/.ssh/authorized_keys.bk' % user_home
@@ -2094,7 +2096,7 @@ def delete_data_dir(host):
            remoteHost=host)
     cmd.run(validateAfter=True)
 
-@when('the user initializes standby master on "{hostname}"') 
+@when('the user initializes standby master on "{hostname}"')
 def impl(context, hostname):
     create_standby(context, hostname)
 
@@ -2115,8 +2117,8 @@ def create_standby(context, hostname):
         context.ret_code = 0
         context.stdout_message = ''
         context.error_message = ''
-        segment_hostlist = get_segment_hostlist()    
-        segment_hosts = [seg for seg in segment_hostlist if seg != context.master] 
+        segment_hostlist = get_segment_hostlist()
+        segment_hosts = [seg for seg in segment_hostlist if seg != context.master]
         context.standby_host = segment_hosts[0]
         gparray = GpArray.initFromCatalog(dbconn.DbURL())
         segdbs = gparray.getDbList()
@@ -2131,7 +2133,7 @@ def create_standby(context, hostname):
             context.standby_was_initialized = True
             context.standby_host = standby
             return
-    
+
         delete_data_dir(context.standby_host)
         cmd = "gpinitstandby -a -s %s" % context.standby_host
         run_gpcommand(context, cmd)
@@ -2151,7 +2153,7 @@ def impl(context):
     hostlist = get_all_hostnames_as_list(context, 'template1')
     host_str = ' -h '.join(hostlist)
     cmd_str = 'gpssh-exkeys %s' % host_str
-    run_gpcommand(context, cmd_str) 
+    run_gpcommand(context, cmd_str)
 
 @then('the temp files "{filename_prefix}" are not created in the system')
 def impl(context, filename_prefix):
@@ -2160,9 +2162,9 @@ def impl(context, filename_prefix):
     file_pattern = 'ls /tmp/%s* | wc -l' % filename_prefix
     print file_pattern
     for host in hostlist:
-        cmd = Command(name='check for temp files', 
-                      cmdStr=file_pattern, 
-                      ctxt=REMOTE, 
+        cmd = Command(name='check for temp files',
+                      cmdStr=file_pattern,
+                      ctxt=REMOTE,
                       remoteHost=host)
         cmd.run(validateAfter=True)
         results = cmd.get_results()
@@ -2173,7 +2175,7 @@ def impl(context, filename_prefix):
 @then('the user activates standby on the standbyhost')
 def impl(context):
     port = os.environ.get('PGPORT')
-    cmd = 'PGPORT=%s MASTER_DATA_DIRECTORY=%s gpactivatestandby -d %s -fa' % (port, master_data_dir, master_data_dir) 
+    cmd = 'PGPORT=%s MASTER_DATA_DIRECTORY=%s gpactivatestandby -d %s -fa' % (port, master_data_dir, master_data_dir)
     cmd = Command('run remote command', cmd, ctxt=REMOTE, remoteHost=context.standby_host)
     cmd.run(validateAfter=True)
 
@@ -2181,7 +2183,7 @@ def impl(context):
 @when('the user runs the command "{cmd}" from standby')
 def impl(context, cmd):
     port = os.environ.get('PGPORT')
-    cmd = 'PGPORT=%s MASTER_DATA_DIRECTORY=%s %s' % (port, master_data_dir, cmd) 
+    cmd = 'PGPORT=%s MASTER_DATA_DIRECTORY=%s %s' % (port, master_data_dir, cmd)
     cmd = Command('run remote command', cmd, ctxt=REMOTE, remoteHost=context.standby_host)
     cmd.run(validateAfter=True)
 
@@ -2192,7 +2194,7 @@ def impl(context):
     if hasattr(context, 'pseg'):
         seg_data_dir = context.pseg_data_dir
         seg_host = context.pseg_hostname
-        seg_port = context.pseg.getSegmentPort() 
+        seg_port = context.pseg.getSegmentPort()
     else:
         gparray=GpArray.initFromCatalog(dbconn.DbURL())
         for seg in gparray.getDbList():
@@ -2201,8 +2203,8 @@ def impl(context):
                 seg_host = seg.getSegmentHostName()
                 seg_port = seg.getSegmentPort()
                 break
-    
-    pid = get_pid_for_segment(seg_data_dir, seg_host) 
+
+    pid = get_pid_for_segment(seg_data_dir, seg_host)
     if pid is None:
         raise Exception('Unable to locate segment "%s" on host "%s"' % (seg_data_dir, seg_host))
 
@@ -2212,7 +2214,7 @@ def impl(context):
 
     pid = get_pid_for_segment(seg_data_dir, seg_host)
     if pid is not None:
-        raise Exception('Unable to kill postmaster with pid "%d" datadir "%s"' % (pid, seg_data_dir)) 
+        raise Exception('Unable to kill postmaster with pid "%d" datadir "%s"' % (pid, seg_data_dir))
 
     context.killed_seg_host = seg_host
     context.killed_seg_port = seg_port
@@ -2253,13 +2255,13 @@ def impl(context):
             with dbconn.connect(dbconn.DbURL()) as conn:
                 break
         except Exception as e:
-            attempt +=1 
+            attempt +=1
             pass
         time.sleep(1)
-   
+
     if attempt == num_retries:
-        raise Exception('Unable to establish a connection to database !!!') 
-    
+        raise Exception('Unable to establish a connection to database !!!')
+
 @when('user runs "{cmd}" with sudo access')
 def impl(context, cmd):
     gphome = os.environ.get('GPHOME')
@@ -2267,39 +2269,39 @@ def impl(context, cmd):
     python_home = os.environ.get('PYTHONHOME')
     ld_library_path = os.environ.get('LD_LIBRARY_PATH')
     path = os.environ.get('PATH')
-    cmd_str = """sudo GPHOME=%s 
-                    PATH=%s 
-                    PYTHONHOME=%s 
-                    PYTHONPATH=%s 
-                    LD_LIBRARY_PATH=%s %s/bin/%s""" % (gphome, path, python_home, python_path, ld_library_path, gphome, cmd) 
+    cmd_str = """sudo GPHOME=%s
+                    PATH=%s
+                    PYTHONHOME=%s
+                    PYTHONPATH=%s
+                    LD_LIBRARY_PATH=%s %s/bin/%s""" % (gphome, path, python_home, python_path, ld_library_path, gphome, cmd)
     run_command(context, cmd_str)
 
 def verify_num_files(results, expected_num_files, timestamp):
     num_files = results.stdout.strip()
     if num_files != expected_num_files:
         raise Exception('Expected "%s" files with timestamp key "%s" but found "%s"' % (expected_num_files, timestamp,num_files))
-    
-    
+
+
 def verify_timestamps_on_master(timestamp, dump_type):
-    list_cmd = 'ls -l %s/db_dumps/%s/*%s* | wc -l' % (master_data_dir, timestamp[:8], timestamp) 
+    list_cmd = 'ls -l %s/db_dumps/%s/*%s* | wc -l' % (master_data_dir, timestamp[:8], timestamp)
     cmd = Command('verify timestamps on master', list_cmd)
     cmd.run(validateAfter=True)
     expected_num_files = '10' if dump_type == 'incremental' else '8'
     verify_num_files(cmd.get_results(), expected_num_files, timestamp)
 
 def verify_timestamps_on_segments(timestamp):
-    gparray = GpArray.initFromCatalog(dbconn.DbURL()) 
+    gparray = GpArray.initFromCatalog(dbconn.DbURL())
     primary_segs = [segdb for segdb in gparray.getDbList() if segdb.isSegmentPrimary()]
 
     for seg in primary_segs:
-        db_dumps_dir = os.path.join(seg.getSegmentDataDirectory(), 
+        db_dumps_dir = os.path.join(seg.getSegmentDataDirectory(),
                                     'db_dumps',
                                     timestamp[:8])
-        list_cmd = 'ls -l %s/*%s* | wc -l' % (db_dumps_dir, timestamp) 
+        list_cmd = 'ls -l %s/*%s* | wc -l' % (db_dumps_dir, timestamp)
         cmd = Command('get list of dump files', list_cmd, ctxt=REMOTE, remoteHost=seg.getSegmentHostName())
         cmd.run(validateAfter=True)
         verify_num_files(cmd.get_results(), '2', timestamp)
-        
+
 @then('verify that "{dump_type}" dump files have stored timestamp in their filename')
 def impl(context, dump_type):
     if dump_type.strip().lower() != 'full' and dump_type.strip().lower() != 'incremental':
@@ -2309,7 +2311,7 @@ def impl(context, dump_type):
     verify_timestamps_on_segments(context.backup_timestamp)
 
 def validate_files(file_list, pattern_list, expected_file_count):
-    file_count = 0 
+    file_count = 0
     for pattern in pattern_list:
         pat = re.compile(pattern)
         pat_found = False
@@ -2324,12 +2326,12 @@ def validate_files(file_list, pattern_list, expected_file_count):
 
     if file_count != expected_file_count:
         raise Exception('Expected count of %d does not match actual count %d in file list "%s"' % (expected_file_count, file_count, file_list))
-     
+
 @then('the "{file_type}" file under "{directory}" with options "{options}" is validated after dump operation')
 def impl(context, file_type, directory, options):
-    backup_dir = directory.strip() if directory.strip() != '' else master_data_dir  
+    backup_dir = directory.strip() if directory.strip() != '' else master_data_dir
     if len(options.split(',')) > 3:
-        raise Exception('Invalid options specified "%s"' % options) 
+        raise Exception('Invalid options specified "%s"' % options)
     option_list = options.split(',')
 
     pipe_file_count = 1 + get_num_segments(primary=True, mirror=False, master=True, standby=False)
@@ -2338,11 +2340,11 @@ def impl(context, file_type, directory, options):
     pipes_pattern_list = ['gp_dump_.*_%s.*(?:\.gz)?' % context.backup_timestamp]
     regular_pattern_list = ['gp_cdatabase_1_1_%s' % context.backup_timestamp, 'gp_dump_%s.*' % context.backup_timestamp, 'gp_dump_status_1_1_%s' % context.backup_timestamp]
 
-    if '-G' in option_list: 
+    if '-G' in option_list:
         pipe_file_count += 1
         pipes_pattern_list += ['gp_global_1_1_%s' % context.backup_timestamp]
     if '-g' in option_list:
-        pipe_file_count += get_num_segments(primary=True, mirror=False, master=True, standby=False) 
+        pipe_file_count += get_num_segments(primary=True, mirror=False, master=True, standby=False)
         pipes_pattern_list += ['gp_master_config_files_%s.*' % context.backup_timestamp, 'gp_segment_config_files_.*_.*_%s.*' % context.backup_timestamp]
     if '--incremental' in option_list:
         regular_pattern_list += ['gp_dump_%s.*' % context.full_backup_timestamp]
@@ -2365,7 +2367,7 @@ def impl(context, file_type, directory, options):
         validate_files(file_list, pipes_pattern_list, pipe_file_count)
     elif file_type == 'regular_files':
         validate_files(file_list, regular_pattern_list, reg_file_count)
-        
+
 @then('the timestamp key "{timestamp_key}" for gpcrondump is stored')
 def impl(context, timestamp_key):
     context.backup_timestamp = timestamp_key
@@ -2375,7 +2377,7 @@ def impl(context, prefix):
     context.dump_prefix = prefix + '_'
 
 def get_segment_dump_files(context, dir):
-    results = [] 
+    results = []
     gparray = GpArray.initFromCatalog(dbconn.DbURL())
     primary_segs = [seg for seg in gparray.getDbList() if seg.isSegmentPrimary()]
     for seg in primary_segs:
@@ -2384,7 +2386,7 @@ def get_segment_dump_files(context, dir):
         cmd.run(validateAfter=False) #because we expect ls to fail
         results.append((seg, [r for r in cmd.get_results().stdout.strip().split()]))
     return results
-    
+
 @then('there are no dump files created under "{dir}"')
 def impl(context, dir):
     dir = dir.strip()
@@ -2398,11 +2400,11 @@ def impl(context, dir):
         if len(dump_files) != 0:
             print seg, dump_files
             raise Exception('Found extra dump files on the segment %s under %s/db_dumps/%s' % (seg.getSegmentDataDirectory(), segment_dump_dir, context.backup_timestamp[0:8]))
-    
+
     cmd = Command('check dump files', 'ls %s/db_dumps/%s' % (master_dump_dir, context.backup_timestamp[0:8]))
     cmd.run(validateAfter=True)
     results = cmd.get_results().stdout.strip().split('\n')
-    
+
     if len(results) != 2:
         raise Exception('Found extra dump files %s on the master under %s' % (results, master_dump_dir))
 
@@ -2456,7 +2458,7 @@ def impl(context, operation, dump_directory):
         if not hasattr(context, 'backup_timestamp'):
             raise Exception('Backup timestamp not stored')
         for ts in context.inc_backup_timestamps:
-            open_named_pipes(context, operation, ts, dump_dir) 
+            open_named_pipes(context, operation, ts, dump_dir)
     else:
         open_named_pipes(context, operation, context.backup_timestamp, dump_dir)
 
@@ -2467,26 +2469,26 @@ def impl(context):
         find_cmd = Command('get list of pipe processes',
                       "ps -eaf | grep _pipe.py | grep -v grep | grep -v ssh",
                       ctxt=REMOTE,
-                      remoteHost=h) 
+                      remoteHost=h)
         find_cmd.run()
         results = find_cmd.get_results().stdout.strip().split('\n')
         for process in results:
             if not process.strip():
                 continue
             pid = process.split()[1].strip()
-            print 'pid = %s on host %s' % (pid, h) 
+            print 'pid = %s on host %s' % (pid, h)
             cmd = Command('Kill pipe process',
                           "kill %s" % pid,
                           ctxt=REMOTE,
                           remoteHost=h)
             cmd.run(validateAfter=True)
-      
+
         find_cmd.run() # We expecte failure here
 
         results = find_cmd.get_results().stdout.strip()
         if results:
-            raise Exception('Unexpected pipe processes found "%s"' % results) 
-    
+            raise Exception('Unexpected pipe processes found "%s"' % results)
+
 
 def open_named_pipes(context, operation, timestamp, dump_dir):
     sleeptime = 5
@@ -2526,19 +2528,19 @@ def impl(context, stage, utility):
     files_list = os.listdir(context.core_dir)
     for f in files_list:
         if f.startswith('core'):
-            core_files_count += 1 
+            core_files_count += 1
 
     if stage.strip() == 'before':
-        context.before_core_count = core_files_count 
+        context.before_core_count = core_files_count
     elif stage.strip() == 'after':
-        context.after_core_count = core_files_count 
+        context.after_core_count = core_files_count
     else:
         raise Exception('Invalid stage entered: %s' % stage)
 
 @then('the number of core files is the same')
 def impl(context):
     if not hasattr(context, 'before_core_count'):
-        raise Exception('Core file count not stored before operation') 
+        raise Exception('Core file count not stored before operation')
     if not hasattr(context, 'after_core_count'):
         raise Exception('Core file count not stored after operation')
 
@@ -2547,8 +2549,8 @@ def impl(context):
 
 @given('the gpAdminLogs directory has been backed up')
 def impl(context):
-    src = os.path.join(os.path.expanduser('~'), 'gpAdminLogs') 
-    dest = os.path.join(os.path.expanduser('~'), 'gpAdminLogs.bk') 
+    src = os.path.join(os.path.expanduser('~'), 'gpAdminLogs')
+    dest = os.path.join(os.path.expanduser('~'), 'gpAdminLogs.bk')
     shutil.move(src, dest)
 
 @given('the user does not have "{access}" permission on the home directory')
@@ -2561,7 +2563,7 @@ def impl(context, access):
 
     if check_user_permissions(home_dir, access):
         raise Exception('Unable to change "%s" permissions for the directory "%s"' % (access, home_dir))
-    
+
 @then('the "{filetype}" path "{file_path}" should "{cond}" exist')
 def impl(context, filetype, file_path, cond):
     cond = cond.strip()
@@ -2584,7 +2586,7 @@ def impl(context, filetype, file_path, cond):
 def impl(context, file_path):
 
     if file_path[0] == '~':
-        file_path = os.path.join(os.path.expanduser('~'), file_path[2:]) 
+        file_path = os.path.join(os.path.expanduser('~'), file_path[2:])
     backup_file_path = file_path + '.bk'
 
     if not os.path.exists(backup_file_path):
@@ -2607,15 +2609,15 @@ def impl(context, directory, prefix):
         segment_dump_dir =  directory if len(directory.strip()) != 0 else seg.getSegmentDataDirectory()
         if len(dump_files) == 0:
             raise Exception('Failed to find dump files on the segment %s under %s/db_dumps/%s' % (seg.getSegmentDataDirectory(), segment_dump_dir, context.backup_timestamp[0:8]))
-  
+
         for dump_file in dump_files:
             if not dump_file.startswith(dump_prefix):
                 raise Exception('Dump file %s on the segment %s under %s/db_dumps/%s does not start with required prefix %s' % (dump_file, seg.getSegmentDataDirectory(), segment_dump_dir, context.backup_timestamp[0:8], prefix))
- 
+
     cmd = Command('check dump files', 'ls %s/db_dumps/%s' % (master_dump_dir, context.backup_timestamp[0:8]))
     cmd.run(validateAfter=True)
     results = cmd.get_results().stdout.strip().split('\n')
-    
+
     if len(results) == 0:
         raise Exception('Failed to find dump files %s on the master under %s' % (results, master_dump_dir))
     for file in results:
@@ -2659,27 +2661,27 @@ def impl(context, dbname):
 def impl(context, filename, dbname):
     with open(filename) as fr:
         for line in fr:
-            query = line.strip() 
+            query = line.strip()
     thread.start_new_thread(execute_sql, (dbname, query))
     time.sleep(30)
 
 @then('the following text should be printed to stdout')
 def impl(context):
-   check_stdout_msg(context, context.text.strip()) 
+   check_stdout_msg(context, context.text.strip())
 
 @then('the text in the file "{filename}" should be printed to stdout')
 def impl(context, filename):
     contents = ''
     with open(filename) as fr:
         for line in fr:
-            contents = line.strip()       
+            contents = line.strip()
     print "contents: ", contents
-    check_stdout_msg(context, contents) 
+    check_stdout_msg(context, contents)
 
-@when('the user runs command "{cmd}" on the "{seg_type}" segment') 
+@when('the user runs command "{cmd}" on the "{seg_type}" segment')
 def impl(context, cmd, seg_type):
     if seg_type == 'Change Tracking':
-        port, host = get_change_tracking_segment_info() 
+        port, host = get_change_tracking_segment_info()
     elif seg_type == 'Original':
         port, host = context.killed_seg_port, context.killed_seg_host
     else:
@@ -2688,7 +2690,7 @@ def impl(context, cmd, seg_type):
     cmd += ' -p %s -h %s' % (port, host)
 
     run_command(context, cmd)
-    
+
 @given('below sql is executed in "{dbname}" db')
 @when('below sql is executed in "{dbname}" db')
 def impl(context, dbname):
@@ -2723,7 +2725,7 @@ def impl(context, message):
                 return
 
     print context.stored_rows
-    print message 
+    print message
     raise Exception("'%s' not found in stored rows" % message)
 
 @then('verify that file "{filename}" exists under "{path}"')
@@ -2782,7 +2784,7 @@ def impl(context, file, prefix, path):
     tarpath = os.path.join(path, collection_dirlist[0])
     collection_filelist = os.listdir(tarpath)
 
-    if len(collection_filelist) > 1: 
+    if len(collection_filelist) > 1:
         raise Exception('Too many files found in "%s"' %tarpath)
     if len(collection_filelist) == 0:
         raise Exception('No files found in "%s"' %tarpath)
@@ -2846,13 +2848,13 @@ def impl(context, os_type):
 @then('{file1} and {file2} should exist and have a new mtime')
 def impl(context, file1, file2):
     gphome = os.environ.get('GPHOME')
-   
+
     if not os.path.isfile(os.path.join(gphome, file1)) or not os.path.isfile(os.path.join(gphome, file2)):
         raise Exception('installation of ' + context.utility + ' failed because one or more files do not exist in ' + os.path.join(gphome, file1))
 
     file1_mtime = os.path.getmtime(os.path.join(gphome, file1))
     file2_mtime = os.path.getmtime(os.path.join(gphome, file2))
-    
+
     if file1_mtime < context.currenttime or file2_mtime < context.currenttime:
         raise Exception('one or both file mtime was not updated')
 
@@ -2973,14 +2975,14 @@ def impl(context, tablename, dbname):
     drop_table_if_exists(context, table_name=tablename, dbname=dbname)
 
 def create_trigger_function(dbname, trigger_func_name, tablename):
-    trigger_func_sql = """ 
+    trigger_func_sql = """
     CREATE OR REPLACE FUNCTION %s() RETURNS TRIGGER AS $$
     BEGIN
     INSERT INTO %s VALUES(2001, 'backup', '2100-08-23');
     END;
     $$ LANGUAGE plpgsql
     """ % (trigger_func_name, tablename)
-    execute_sql(dbname, trigger_func_sql) 
+    execute_sql(dbname, trigger_func_sql)
 
 def create_trigger(dbname, trigger_func_name, trigger_name, tablename):
     SQL = """
@@ -2995,7 +2997,7 @@ def impl(context, trigger_name, tablename, dbname, trigger_func_name):
 
 @then('there is a trigger function "{trigger_func_name}" on table "{tablename}" in "{dbname}"')
 def impl(context, trigger_func_name, tablename, dbname):
-    create_trigger_function(dbname, trigger_func_name, tablename) 
+    create_trigger_function(dbname, trigger_func_name, tablename)
 
 @when('the index "{index_name}" in "{dbname}" is dropped')
 def impl(context, index_name, dbname):
@@ -3021,8 +3023,8 @@ def impl(context):
 @then('the "{seg}" segment information is saved')
 def impl(context, seg):
     gparray = GpArray.initFromCatalog(dbconn.DbURL())
-   
-    if seg == "primary": 
+
+    if seg == "primary":
         primary_segs = [seg for seg in gparray.getDbList() if seg.isSegmentPrimary()]
         context.pseg = primary_segs[0]
         context.pseg_data_dir = context.pseg.getSegmentDataDirectory()
@@ -3047,7 +3049,7 @@ def impl(context, seg):
         hostname = context.standby_host
 
     filename = os.path.join(os.getcwd(), './gppylib/test/behave/mgmt_utils/steps/data/pid_background_script.py')
-    
+
     cmd = Command(name="Remove background script on remote host", cmdStr='rm -f /tmp/pid_background_script.py', remoteHost=hostname, ctxt=REMOTE)
     cmd.run(validateAfter=True)
 
@@ -3062,7 +3064,7 @@ def impl(context, seg):
     context.bg_pid = cmd.get_results().stdout.strip()
     if not context.bg_pid:
         raise Exception("Unable to obtain the pid of the background script. Seg Host: %s, get_results: %s" % (hostname, cmd.get_results().stdout.strip()))
- 
+
 @when('the background pid is killed on "{seg}" segment')
 @then('the background pid is killed on "{seg}" segment')
 def impl(context, seg):
@@ -3096,7 +3098,7 @@ def impl(context, seg):
         hostname = context.standby_host
         data_dir = context.standby_host_data_dir
 
-    
+
     pid_file = os.path.join(data_dir, 'postmaster.pid')
     pid_file_orig = pid_file + '.orig'
 
@@ -3117,7 +3119,7 @@ def impl(context, seg):
 
     cpCmd = Command(name='copy pid file to segment after editing', cmdStr='scp /tmp/postmaster.pid %s:%s' % (hostname, pid_file))
     cpCmd.run(validateAfter=True)
- 
+
 @when('we generate the postmaster.pid file with a non running pid on the same "{seg}" segment')
 def impl(context, seg):
     if seg == "primary":
@@ -3134,7 +3136,7 @@ def impl(context, seg):
 
     pid_file = os.path.join(data_dir, 'postmaster.pid')
     pid_file_orig = pid_file + '.orig'
-    
+
     cmd = Command(name="Copy pid file", cmdStr='cp %s %s' % (pid_file_orig, pid_file), remoteHost=hostname, ctxt=REMOTE)
     cmd.run(validateAfter=True)
 
@@ -3153,7 +3155,7 @@ def impl(context, seg):
         else:
             break
 
-    
+
     with open('/tmp/postmaster.pid', 'r') as fr:
         lines = fr.readlines()
 
@@ -3164,7 +3166,7 @@ def impl(context, seg):
 
     cpCmd = Command(name='copy pid file to segment after editing', cmdStr='scp /tmp/postmaster.pid %s:%s' % (hostname, pid_file))
     cpCmd.run(validateAfter=True)
-        
+
 @when('the user starts one "{seg}" segment')
 def impl(context, seg):
     if seg == "primary":
@@ -3179,7 +3181,7 @@ def impl(context, seg):
     segStartCmd = SegmentStart( name = "Starting new segment dbid %s on host %s." % (str(dbid), hostname)
                               , gpdb = segment
                               , numContentsInCluster = 0  # Starting seg on it's own.
-                              , era = None 
+                              , era = None
                               , mirrormode = MIRROR_MODE_MIRRORLESS
                               , utilityMode = False
                               , ctxt = REMOTE
@@ -3204,10 +3206,10 @@ def impl(context, seg):
 
     pid_file = os.path.join(data_dir, 'postmaster.pid')
     pid_file_orig = pid_file + '.orig'
-        
+
     cmd = Command(name="Copy pid file", cmdStr='cp %s %s' % (pid_file, pid_file_orig), remoteHost=hostname, ctxt=REMOTE)
     cmd.run(validateAfter=True)
- 
+
 @then('the backup pid file is deleted on "{seg}" segment')
 def impl(context, seg):
     if seg == "primary":
@@ -3267,7 +3269,7 @@ def impl(context):
     gparray = GpArray.initFromCatalog(dbconn.DbURL())
     primary_segs = [seg for seg in gparray.getDbList() if (seg.isSegmentPrimary() and not seg.isSegmentMaster())]
     context.standby = primary_segs[0].getSegmentHostName()
-    
+
 @given('user runs the init command "{cmd}" with the saved standby host')
 @when('user runs the init command "{cmd}" with the saved standby host')
 @then('user runs the init command "{cmd}" with the saved standby host')
@@ -3278,7 +3280,7 @@ def impl(context, cmd):
 @given('there is a sequence "{seq_name}" in "{dbname}"')
 def impl(context, seq_name, dbname):
     sequence_sql = 'CREATE SEQUENCE %s' % seq_name
-    execute_sql(dbname, sequence_sql) 
+    execute_sql(dbname, sequence_sql)
 
 @when('the user removes the "{cmd}" command on standby')
 @then('the user removes the "{cmd}" command on standby')
@@ -3296,7 +3298,7 @@ def impl(context, cmd):
     cmdStr = 'cp ~/.bashrc.backup ~/.bashrc'
     run_cmd = Command('run remote command', cmdStr, ctxt=REMOTE, remoteHost=context.standby_host)
     run_cmd.run(validateAfter=True)
-   
+
 @when('the user stops the syncmaster')
 @then('the user stops the syncmaster')
 def impl(context):
@@ -3328,11 +3330,11 @@ def impl(context):
 @then('partition "{partition}" of partition table "{schema_parent}.{table_name}" is assumed to be in schema "{schema_child}" in database "{dbname}"')
 def impl(context, partition, schema_parent, table_name, schema_child, dbname):
     part_t = get_partition_names(schema_parent.strip(), table_name.strip(), dbname.strip(), 1, partition)
-    if len(part_t) < 1 or len(part_t[0]) < 1: 
-        print part_t 
+    if len(part_t) < 1 or len(part_t[0]) < 1:
+        print part_t
     a_partition_name = part_t[0][0].strip()
     alter_sql = """ALTER TABLE %s SET SCHEMA %s""" % (a_partition_name, schema_child)
-    execute_sql(dbname, alter_sql) 
+    execute_sql(dbname, alter_sql)
 
 @given('this test sleeps for "{secs}" seconds')
 @when('this test sleeps for "{secs}" seconds')
@@ -3369,7 +3371,7 @@ def impl(context, query, dbname, sec):
 @then('verify that the contents of the files "{filepath1}" and "{filepath2}" are identical')
 def impl(context, filepath1, filepath2):
     contents1 = []
-    contents2 = [] 
+    contents2 = []
     with open(filepath1) as fr1:
         contents1 = fr1.readlines()
 
@@ -3446,7 +3448,7 @@ def impl(context, table, dbname):
             if t == table:
                 if float(c) != compression_rate and float(c) - 0.1 * float(c) > compression_rate: #10% more than original compression rate
                     raise Exception('Expected compression ratio to be greater than or equal to %s but got %s' % (c, compression_rate))
-            found = True 
+            found = True
     if not found:
        raise Exception('Compression ratio for table %s was not stored' % table)
 
@@ -3478,7 +3480,7 @@ def impl(context, schema_list, dbname):
 def impl(context, schema_name, dbname):
     schema_exists = check_schema_exists(context, schema_name, dbname)
     if not schema_exists:
-        raise Exception("Schema '%s' does not exist in the database '%s'" % (schema_name,dbname))    
+        raise Exception("Schema '%s' does not exist in the database '%s'" % (schema_name,dbname))
 
 def get_log_name(utilname, logdir):
     today = datetime.now()
@@ -3509,7 +3511,7 @@ def impl(context, length, dbconn):
     tablename = 'public.wide_row_%s' % length
     entry = "x" * length
     with open (wide_row_file, 'w') as sql_file:
-        sql_file.write("CREATE TABLE %s (a integer, b text);\n" % tablename) 
+        sql_file.write("CREATE TABLE %s (a integer, b text);\n" % tablename)
         for i in range(10):
             sql_file.write("INSERT INTO %s VALUES (%d, \'%s\');\n" % (tablename, i, entry))
     command = '%s -f %s'%(dbconn, wide_row_file)
@@ -3517,7 +3519,7 @@ def impl(context, length, dbconn):
 
 @then('drop the table "{tablename}" with connection "{dbconn}"')
 def impl(context, tablename, dbconn):
-    command = "%s -c \'drop table if exists %s\'"%(dbconn, tablename) 
+    command = "%s -c \'drop table if exists %s\'"%(dbconn, tablename)
     run_gpcommand(context, command)
 
 # gptransfer must be run in verbose mode (-v) with default log location when using this step
@@ -3534,7 +3536,7 @@ def impl(context, num):
     if not os.path.isfile(full_path):
         raise Exception ("Can not find %s file: %s" % (file_type, full_path))
 
-    contents = "" 
+    contents = ""
     with open(full_path) as fd:
         contents = fd.read()
 
@@ -3606,9 +3608,9 @@ def impl(context, filename, output):
     contents = ''
     with open(filename) as fr:
         for line in fr:
-            contents = line.strip()       
+            contents = line.strip()
     print contents
-    check_stdout_msg(context, output) 
+    check_stdout_msg(context, output)
 
 @then('the user waits for "{process_name}" to finish running')
 def impl(context, process_name):
@@ -3760,6 +3762,15 @@ def impl(context):
         And the backup files in "/tmp" are deleted
     ''')
 
+@then('validate and run gpcheckcat repair')
+def impl(context):
+    context.execute_steps(u'''
+        Then gpcheckcat should print repair script\(s\) generated in dir gpcheckcat.repair.* to stdout
+        Then the path "gpcheckcat.repair.*" is found in cwd "1" times
+        Then run all the repair scripts in the dir "gpcheckcat.repair.*"
+        And the path "gpcheckcat.repair.*" is removed from current working directory
+    ''')
+
 @given('there is a "{tabletype}" table "{tablename}" in "{dbname}" with data')
 @then('there is a "{tabletype}" table "{tablename}" in "{dbname}" with data')
 @when('there is a "{tabletype}" table "{tablename}" in "{dbname}" with data')
@@ -3806,8 +3817,23 @@ ssh %s "source %s; export PGUSER=%s; export PGPORT=%s; export PGOPTIONS=\\\"-c g
 @given('The user runs sql "{query}" in "{dbname}" on first primary segment')
 def impl(context, query, dbname):
     host, port = get_primary_segment_host_port()
-    psql_cmd = "PGDATABASE=\'%s\' PGOPTIONS=\'-c gp_session_role=utility\' psql -h %s -p %s -c \'%s\'; " % (dbname, host, port, query)
+    psql_cmd = "PGDATABASE=\'%s\' PGOPTIONS=\'-c gp_session_role=utility\' psql -h %s -p %s -c \"%s\"; " % (dbname, host, port, query)
     Command(name='Running Remote command: %s' % psql_cmd, cmdStr = psql_cmd).run(validateAfter=True)
+
+@then('The user runs sql file "{file}" in "{dbname}" on all the segments')
+@when('The user runs sql file "{file}" in "{dbname}" on all the segments')
+@given('The user runs sql file "{file}" in "{dbname}" on all the segments')
+def impl(context, file, dbname):
+    with open(file) as fd:
+        query = fd.read().strip()
+    gparray = GpArray.initFromCatalog(dbconn.DbURL())
+    segments = gparray.getDbList()
+    for seg in segments:
+        host = seg.getSegmentHostName()
+        if seg.isSegmentPrimary() or seg.isSegmentMaster():
+            port = seg.getSegmentPort()
+            psql_cmd = "PGDATABASE=\'%s\' PGOPTIONS=\'-c gp_session_role=utility\' psql -h %s -p %s -c \"%s\"; " % (dbname, host, port, query)
+            Command(name='Running Remote command: %s' % psql_cmd, cmdStr = psql_cmd).run(validateAfter=True)
 
 @then( 'The path "{path}" is removed from current working directory')
 @when( 'The path "{path}" is removed from current working directory')
@@ -3823,6 +3849,11 @@ def impl(context, path, num):
     if result != int(num):
         raise Exception("expected %s items but found %s items in path %s" % (num, result, path) )
 
+@then('run all the repair scripts in the dir "{dir}"')
+def impl(context, dir):
+    command = "cd {0} ; for i in *.sh ; do bash $i; done".format(dir)
+    run_command(context, command)
+
 
 @when('the entry for the table "{user_table}" is removed from "{catalog_table}" in the database "{db_name}"')
 def impl(context, user_table, catalog_table, db_name):
@@ -3832,3 +3863,22 @@ def impl(context, user_table, catalog_table, db_name):
         for qry in ["set allow_system_table_mods='dml';", "set allow_segment_dml=true;", delete_qry]:
             dbconn.execSQL(conn, qry)
             conn.commit()
+
+@given('the timestamps in the repair dir are consistent')
+@when('the timestamps in the repair dir are consistent')
+@then('the timestamps in the repair dir are consistent')
+def impl(_):
+    repair_regex = "gpcheckcat.repair.*"
+    timestamp = ""
+    repair_dir = ""
+    for file in os.listdir('.'):
+        if fnmatch.fnmatch(file, repair_regex):
+            repair_dir = file
+            timestamp = repair_dir.split('.')[2]
+
+    if not timestamp:
+        raise Exception("Timestamp was not found")
+
+    for file in os.listdir(repair_dir):
+        if not timestamp in file:
+            raise Exception("file found containing inconsistent timestamp")
