@@ -19,7 +19,7 @@ def unittest():
 def main():
     parser = optparse.OptionParser()
     parser.add_option("--build_type", dest="build_type", default="RELEASE")
-    parser.add_option("--mode", choices=['orca', 'codegen', 'orca_codegen'])
+    parser.add_option("--mode", choices=['orca', 'codegen', 'orca_codegen'], default="orca_codegen")
     parser.add_option("--compiler", dest="compiler")
     parser.add_option("--cxxflags", dest="cxxflags")
     parser.add_option("--output_dir", dest="output_dir", default="install")

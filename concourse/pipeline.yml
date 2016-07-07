@@ -1,0 +1,49 @@
+resources:
+  - name: gpdb_src
+    type: git
+    source:
+      uri: https://github.com/greenplum-db/gpdb
+      branch: master
+
+  - name: gpos_github_release
+    type: github-release
+    source:
+      user: greenplum-db
+      repository: gpos
+
+  - name: orca_github_release
+    type: github-release
+    source:
+      user: greenplum-db
+      repository: gporca
+
+  - name: bin_xerces
+    type: s3
+    source:
+      access_key_id: {{aws-access-key-id}}
+      bucket: {{bucket-name}}
+      region_name: {{aws-region}}
+      secret_access_key: {{aws-secret-access-key}}
+      versioned_file: bin_xerces_centos5.tar.gz
+
+jobs:
+  - name: build_with_orca
+    plan:
+      - get: gpos_github_release
+        params:
+          globs:
+            - bin_gpos_centos5_release.tar.gz
+      - get: orca_github_release
+        params:
+          globs:
+            - bin_orca_centos5_release.tar.gz
+      - get: bin_xerces
+      - get: gpdb_src
+        params:
+          submodules: none
+        trigger: true
+      - task: build_with_orca
+        file: gpdb_src/concourse/build_with_orca.yml
+        input_mapping:
+          bin_orca: orca_github_release
+          bin_gpos: gpos_github_release
