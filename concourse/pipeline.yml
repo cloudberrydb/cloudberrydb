@@ -29,19 +29,20 @@ resources:
 jobs:
   - name: build_with_orca
     plan:
-      - get: gpos_github_release
-        params:
-          globs:
-            - bin_gpos_centos5_release.tar.gz
-      - get: orca_github_release
-        params:
-          globs:
-            - bin_orca_centos5_release.tar.gz
-      - get: bin_xerces
-      - get: gpdb_src
-        params:
-          submodules: none
-        trigger: true
+      - aggregate:
+        - get: gpos_github_release
+          params:
+            globs:
+              - bin_gpos_centos5_release.tar.gz
+        - get: orca_github_release
+          params:
+            globs:
+              - bin_orca_centos5_release.tar.gz
+        - get: bin_xerces
+        - get: gpdb_src
+          params:
+            submodules: none
+          trigger: true
       - task: build_with_orca
         file: gpdb_src/concourse/build_with_orca.yml
         input_mapping:
