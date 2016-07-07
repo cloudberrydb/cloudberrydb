@@ -659,24 +659,31 @@ class CodegenUtilsTest : public ::testing::Test {
   template <typename IntegerType>
   void CheckGetSingleIntegerConstant(const IntegerType integer_constant) {
     llvm::Constant* constant = codegen_utils_->GetConstant(integer_constant);
-
-    // Check the type.
-    EXPECT_EQ(codegen_utils_->GetType<IntegerType>(), constant->getType());
-
-    // Check the value.
-    const llvm::APInt& constant_apint = constant->getUniqueInteger();
-    if (std::is_signed<IntegerType>::value) {
-      // If signed, compare with the APInt's sign-extended representation.
-      EXPECT_TRUE(constant_apint.isSignedIntN(sizeof(IntegerType) << 3));
-      EXPECT_EQ(integer_constant,
-                static_cast<IntegerType>(constant_apint.getSExtValue()));
-    } else {
-      // If unsigned, compare with the APInt's zero-extended representation.
-      EXPECT_TRUE(constant_apint.isIntN(sizeof(IntegerType) << 3));
-      EXPECT_EQ(integer_constant,
-                static_cast<IntegerType>(constant_apint.getZExtValue()));
-    }
+    CheckGetSingleIntegerConstant(integer_constant, constant);
   }
+
+  // Helper method for GetScalarConstantTest. Tests
+  // CodegenUtils::GetConstant() for a single 'integer_constant'.
+  template <typename IntegerType>
+  void CheckGetSingleIntegerConstant(const IntegerType integer_constant,
+                                     llvm::Constant* constant) {
+      // Check the type.
+      EXPECT_EQ(codegen_utils_->GetType<IntegerType>(), constant->getType());
+
+      // Check the value.
+      const llvm::APInt& constant_apint = constant->getUniqueInteger();
+      if (std::is_signed<IntegerType>::value) {
+        // If signed, compare with the APInt's sign-extended representation.
+        EXPECT_TRUE(constant_apint.isSignedIntN(sizeof(IntegerType) << 3));
+        EXPECT_EQ(integer_constant,
+                  static_cast<IntegerType>(constant_apint.getSExtValue()));
+      } else {
+        // If unsigned, compare with the APInt's zero-extended representation.
+        EXPECT_TRUE(constant_apint.isIntN(sizeof(IntegerType) << 3));
+        EXPECT_EQ(integer_constant,
+                  static_cast<IntegerType>(constant_apint.getZExtValue()));
+      }
+    }
 
   // Helper method for GetScalarConstantTest. Tests
   // CodegenUtils::GetConstant() for an 'IntegerType' with several values
@@ -697,33 +704,77 @@ class CodegenUtilsTest : public ::testing::Test {
     }
   }
 
+  // Helper method for CreateCastTest. Test CreateCast
+  // for Integer types
+  template <typename IntegerDestType, typename IntegerSrcType>
+  void CheckIntegerCast(const IntegerDestType integer_constant) {
+    llvm::Constant* constant = codegen_utils_->GetConstant<IntegerSrcType>(
+        static_cast<IntegerSrcType>(integer_constant));
+    llvm::Constant* casted_constant =
+        dynamic_cast<llvm::Constant*>(
+            codegen_utils_->CreateCast<IntegerDestType, IntegerSrcType>(
+                constant));
+    CheckGetSingleIntegerConstant(integer_constant, casted_constant);
+  }
+
+  // Helper method for CreateCastTest. Tests
+  // CodegenUtils::CreateCast() for an 'IntegerType' with several values
+  // of the specified integer type (0, 1, 123, the maximum, and if signed,
+  // -1, -123, and the minimum).
+  template <typename IntegerDestType, typename IntegerSrcType>
+    void CheckIntegerCast() {
+    CheckIntegerCast<IntegerDestType, IntegerSrcType>(0);
+    CheckIntegerCast<IntegerDestType, IntegerSrcType>(1);
+    CheckIntegerCast<IntegerDestType, IntegerSrcType>(123);
+    CheckIntegerCast<IntegerDestType, IntegerSrcType>(
+          static_cast<IntegerDestType>(
+              std::numeric_limits<IntegerSrcType>::max()));
+      if (std::is_signed<IntegerDestType>::value ||
+          std::is_signed<IntegerSrcType>::value) {
+        IntegerSrcType src_value = -1;
+        CheckIntegerCast<IntegerDestType, IntegerSrcType>(
+            static_cast<IntegerDestType>(src_value));
+        src_value = -123;
+        CheckIntegerCast<IntegerDestType, IntegerSrcType>(
+            static_cast<IntegerDestType>(src_value));
+        src_value = std::numeric_limits<IntegerSrcType>::min();
+        CheckIntegerCast<IntegerDestType, IntegerSrcType>(
+            static_cast<IntegerDestType>(src_value));
+      }
+    }
+
   // Helper method for GetScalarConstantTest. Tests
   // CodegenUtils::GetConstant() for a single 'fp_constant'.
   template <typename FloatingPointType>
   void CheckGetSingleFloatingPointConstant(
       const FloatingPointType fp_constant) {
     llvm::Constant* constant = codegen_utils_->GetConstant(fp_constant);
-
-    // Check the type.
-    EXPECT_EQ(codegen_utils_->GetType<FloatingPointType>(),
-              constant->getType());
-
-    // Check the value.
-    llvm::ConstantFP* constant_as_fp
-        = llvm::dyn_cast<llvm::ConstantFP>(constant);
-    ASSERT_NE(constant_as_fp, nullptr);
-    if (std::is_same<double, FloatingPointType>::value) {
-      EXPECT_EQ(fp_constant,
-                constant_as_fp->getValueAPF().convertToDouble());
-    } else if (std::is_same<float, FloatingPointType>::value) {
-      EXPECT_EQ(fp_constant,
-                constant_as_fp->getValueAPF().convertToFloat());
-    } else {
-      ASSERT_TRUE(false)
-          << "Can not check value of floating point constant for a type that "
-          << "is not float or double.";
-    }
+    CheckGetSingleFloatingPointConstant(fp_constant, constant);
   }
+
+  template <typename FloatingPointType>
+    void CheckGetSingleFloatingPointConstant(
+        const FloatingPointType fp_constant,
+        llvm::Constant* constant) {      // Check the type.
+      EXPECT_EQ(codegen_utils_->GetType<FloatingPointType>(),
+                constant->getType());
+
+      // Check the value.
+      llvm::ConstantFP* constant_as_fp
+          = llvm::dyn_cast<llvm::ConstantFP>(constant);
+      ASSERT_NE(constant_as_fp, nullptr);
+      if (std::is_same<double, FloatingPointType>::value) {
+        EXPECT_EQ(fp_constant,
+                  constant_as_fp->getValueAPF().convertToDouble());
+      } else if (std::is_same<float, FloatingPointType>::value) {
+        EXPECT_EQ(fp_constant,
+                  constant_as_fp->getValueAPF().convertToFloat());
+      } else {
+        ASSERT_TRUE(false)
+            << "Can not check value of floating point constant for a type that "
+            << "is not float or double.";
+      }
+    }
 
   // Helper method for GetScalarConstantTest. Tests
   // CodegenUtils::GetConstant() for a 'FloatingPointType' with several values
@@ -747,6 +798,38 @@ class CodegenUtilsTest : public ::testing::Test {
         std::numeric_limits<FloatingPointType>::denorm_min());
     CheckGetSingleFloatingPointConstant(
         std::numeric_limits<FloatingPointType>::infinity());
+  }
+
+  // Helper method for CreateCastTest. Test CreateCast
+  // for Floating Point types
+  template <typename FloatDestType, typename FloatSrcType>
+  void CheckFloatingPointCast(const FloatDestType fp_constant) {
+    llvm::Constant* constant = codegen_utils_->GetConstant<FloatSrcType>(
+        static_cast<FloatSrcType>(fp_constant));
+    llvm::Constant* casted_constant =
+        dynamic_cast<llvm::Constant*>(
+            codegen_utils_->CreateCast<FloatDestType, FloatSrcType>(constant));
+    CheckGetSingleFloatingPointConstant(fp_constant, casted_constant);
+  }
+
+  // Helper method for CreateCastTest. Tests
+  // CodegenUtils::CreateCast() for a 'FloatSrcType' with several values
+  // of the specified floating point type (positive and negative zero, positive
+  // and negative 12.34, the minimum and maximum possible normalized values,
+  // the highest-magnitude negative value, the smallest possible nonzero
+  // denormalized value, and infinity).
+  template <typename FloatDestType, typename FloatSrcType>
+  void CheckFloatingPointCast() {
+    std::vector<FloatSrcType> src_values = {0.0, -0.0, 12.34, -12.34,
+        std::numeric_limits<FloatSrcType>::min(),
+        std::numeric_limits<FloatSrcType>::max(),
+        std::numeric_limits<FloatSrcType>::lowest(),
+        std::numeric_limits<FloatSrcType>::denorm_min(),
+        std::numeric_limits<FloatSrcType>::infinity()};
+    for (const FloatSrcType& src_value : src_values) {
+      CheckFloatingPointCast<FloatDestType, FloatSrcType>(
+          static_cast<FloatDestType>(src_value));
+    }
   }
 
   // Helper method for GetScalarConstantTest. Tests
@@ -1772,6 +1855,37 @@ TEST_F(CodegenUtilsTest, GetScalarConstantTest) {
   CheckGetEnumConstants<StronglyTypedEnumUint64>(
       {StronglyTypedEnumUint64::kCaseA, StronglyTypedEnumUint64::kCaseB,
        StronglyTypedEnumUint64::kCaseC});
+}
+
+TEST_F(CodegenUtilsTest, CreateCastTest) {
+  // Check different integer types
+  // signed to signed with ext / trunc
+  CheckIntegerCast<std::int16_t, std::int8_t>();
+  CheckIntegerCast<std::int8_t, std::int16_t>();
+
+  // unsigned to unsigned with ext / trunc
+  CheckIntegerCast<std::uint16_t, std::uint8_t>();
+  CheckIntegerCast<std::uint8_t, std::uint16_t>();
+
+  // signed to unsigned with ext / trunc
+  CheckIntegerCast<std::uint16_t, std::int8_t>();
+  CheckIntegerCast<std::uint8_t, std::int16_t>();
+
+  // unsigned to signed with ext / trunc
+  CheckIntegerCast<std::int16_t, std::uint8_t>();
+  CheckIntegerCast<std::int8_t, std::uint16_t>();
+
+  // integer type of same size
+  CheckIntegerCast<std::int8_t, std::int8_t>();
+  CheckIntegerCast<std::uint8_t, std::uint8_t>();
+
+  // Check floating-point types.
+  CheckFloatingPointCast<float, double>();
+  CheckFloatingPointCast<double, float>();
+
+  // Floating type of same size
+  CheckFloatingPointCast<float, float>();
+  CheckFloatingPointCast<double, double>();
 }
 
 TEST_F(CodegenUtilsTest, GetPointerConstantTest) {

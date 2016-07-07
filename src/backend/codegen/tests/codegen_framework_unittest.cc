@@ -28,6 +28,14 @@
 
 #include "gtest/gtest.h"
 
+extern "C" {
+#include "postgres.h"  // NOLINT(build/include)
+#undef newNode  // undef newNode so it doesn't have name collision with llvm
+#include "utils/elog.h"
+#undef elog
+#define elog(...)
+}
+
 #include "llvm/ADT/APFloat.h"
 #include "llvm/ADT/APInt.h"
 #include "llvm/IR/Argument.h"
@@ -45,13 +53,9 @@
 #include "llvm/IR/Intrinsics.h"
 #include "llvm/Support/Casting.h"
 
-extern "C" {
-    #include "utils/elog.h"
-    #undef elog
-    #define elog(...)
-}
 
 #include "codegen/utils/codegen_utils.h"
+#include "codegen/utils/gp_codegen_utils.h"
 #include "codegen/utils/utility.h"
 #include "codegen/codegen_manager.h"
 #include "codegen/codegen_wrapper.h"
@@ -59,11 +63,15 @@ extern "C" {
 #include "codegen/base_codegen.h"
 
 extern bool codegen_validate_functions;
+using gpcodegen::GpCodegenUtils;
 namespace gpcodegen {
 
 typedef int (*SumFunc) (int x, int y);
 typedef void (*UncompilableFunc)(int x);
 typedef int (*MulFunc) (int x, int y);
+
+template <typename dest_type, typename src_type>
+using DatumCastFn = dest_type (*)(src_type);
 
 int SumFuncRegular(int x, int y) {
   return x + y;
@@ -218,9 +226,88 @@ class UncompilableCodeGenerator : public BaseCodegen<UncompilableFunc> {
   static constexpr char kUncompilableFuncNamePrefix[] = "UncompilableFunc";
 };
 
+template <typename dest_type>
+class DatumToCppCastGenerator :
+    public BaseCodegen<DatumCastFn<dest_type, Datum>> {
+  using DatumCastTemplateFn = DatumCastFn<dest_type, Datum>;
+
+ public:
+  explicit DatumToCppCastGenerator(
+      DatumCastTemplateFn regular_func_ptr,
+      DatumCastTemplateFn* ptr_to_regular_func_ptr):
+      BaseCodegen<DatumCastTemplateFn>(kDatumToCppCastFuncNamePrefix,
+                  regular_func_ptr,
+                  ptr_to_regular_func_ptr) {
+  }
+
+  virtual ~DatumToCppCastGenerator() = default;
+
+ protected:
+  bool GenerateCodeInternal(gpcodegen::GpCodegenUtils* codegen_utils) final {
+    llvm::Function* cast_func
+                = this->template CreateFunction<DatumCastTemplateFn>(
+                    codegen_utils, this->GetUniqueFuncName());
+    llvm::BasicBlock* entry_block = codegen_utils->CreateBasicBlock("entry",
+                                                                  cast_func);
+    codegen_utils->ir_builder()->SetInsertPoint(entry_block);
+    llvm::Value* llvm_arg0 = ArgumentByPosition(cast_func, 0);
+    codegen_utils->ir_builder()->CreateRet(
+                    codegen_utils->CreateDatumToCppTypeCast<dest_type>(
+                        llvm_arg0));
+    cast_func->dump();
+    return true;
+  }
+
+ private:
+  static constexpr char kDatumToCppCastFuncNamePrefix[] = "DatumToCppCastFunc";
+};
+
+template <typename src_type>
+class CppToDatumCastGenerator :
+    public BaseCodegen<DatumCastFn<Datum, src_type>> {
+  using DatumCastTemplateFn = DatumCastFn<Datum, src_type>;
+ public:
+  explicit CppToDatumCastGenerator(
+      DatumCastTemplateFn regular_func_ptr,
+      DatumCastTemplateFn* ptr_to_regular_func_ptr):
+      BaseCodegen<DatumCastTemplateFn>(kCppToDatumCastFuncNamePrefix,
+                  regular_func_ptr,
+                  ptr_to_regular_func_ptr) {
+  }
+
+  virtual ~CppToDatumCastGenerator() = default;
+
+ protected:
+  bool GenerateCodeInternal(gpcodegen::GpCodegenUtils* codegen_utils) final {
+    llvm::Function* cast_func
+                = this->template CreateFunction<DatumCastTemplateFn>(
+                    codegen_utils, this->GetUniqueFuncName());
+    llvm::BasicBlock* entry_block = codegen_utils->CreateBasicBlock("entry",
+                                                                  cast_func);
+    codegen_utils->ir_builder()->SetInsertPoint(entry_block);
+    llvm::Value* llvm_arg0 = ArgumentByPosition(cast_func, 0);
+    codegen_utils->ir_builder()->CreateRet(
+                    codegen_utils->CreateCppTypeToDatumCast(
+                        llvm_arg0, std::is_unsigned<src_type>::value));
+    cast_func->dump();
+    return true;
+  }
+
+ private:
+  static constexpr char kCppToDatumCastFuncNamePrefix[] = "CppToDatumCastFunc";
+};
+
 constexpr char SumCodeGenerator::kAddFuncNamePrefix[];
 constexpr char FailingCodeGenerator::kFailingFuncNamePrefix[];
 constexpr char MulOverflowCodeGenerator::kMulFuncNamePrefix[];
+template <typename dest_type>
+constexpr char
+DatumToCppCastGenerator<dest_type>::kDatumToCppCastFuncNamePrefix[];
+
+template <typename src_type>
+constexpr char
+CppToDatumCastGenerator<src_type>::kCppToDatumCastFuncNamePrefix[];
+
 template <bool GEN_SUCCESS>
 constexpr char
 UncompilableCodeGenerator<GEN_SUCCESS>::kUncompilableFuncNamePrefix[];
@@ -248,6 +335,42 @@ class CodegenManagerTest : public ::testing::Test {
     ASSERT_TRUE(manager_->EnrollCodeGenerator(
         CodegenFuncLifespan_Parameter_Invariant,
         code_gen));
+  }
+
+  template <typename CppType>
+  void CheckDatumCast(DatumCastFn<Datum, CppType> CppToDatumReg,
+                      DatumCastFn<CppType, Datum> DatumToCppReg,
+                      const std::vector<CppType>& values) {
+    DatumCastFn<Datum, CppType> CppToDatumCgFn = CppToDatumReg;
+    CppToDatumCastGenerator<CppType>* cpp_datum_gen =
+        new CppToDatumCastGenerator<CppType>(CppToDatumReg, &CppToDatumCgFn);
+
+
+    DatumCastFn<CppType, Datum> DatumToCppCgFn = DatumToCppReg;
+    DatumToCppCastGenerator<CppType>* datum_cpp_gen =
+        new DatumToCppCastGenerator<CppType>(DatumToCppReg, &DatumToCppCgFn);
+
+    ASSERT_TRUE(manager_->EnrollCodeGenerator(
+        CodegenFuncLifespan_Parameter_Invariant, cpp_datum_gen));
+
+    ASSERT_TRUE(manager_->EnrollCodeGenerator(
+        CodegenFuncLifespan_Parameter_Invariant, datum_cpp_gen));
+
+    EXPECT_EQ(2, manager_->GenerateCode());
+
+    ASSERT_TRUE(manager_->PrepareGeneratedFunctions());
+
+    ASSERT_TRUE(CppToDatumCgFn != CppToDatumReg);
+    ASSERT_TRUE(DatumToCppCgFn != DatumToCppReg);
+
+    for (const CppType& v : values) {
+      Datum d_gpdb = CppToDatumReg(v);
+      Datum d_codegen = CppToDatumCgFn(v);
+      std::cout << "d_gpdb " << d_gpdb
+          << " d_codegen " << d_codegen << std::endl;
+      EXPECT_EQ(d_gpdb, d_codegen);
+      EXPECT_EQ(DatumToCppReg(d_gpdb), DatumToCppCgFn(d_codegen));
+    }
   }
 
   std::unique_ptr<CodegenManager> manager_;
@@ -479,6 +602,213 @@ TEST_F(CodegenManagerTest, ResetTest) {
 
   // Make sure Reset set the function pointer back to regular version.
   ASSERT_TRUE(SumFuncRegular == sum_func_ptr);
+}
+
+TEST_F(CodegenManagerTest, TestDatumBoolCast) {
+  CheckDatumCast<bool>(BoolGetDatum,
+                       DatumGetBool,
+                        {true, false});
+}
+
+TEST_F(CodegenManagerTest, TestDatumCharCast) {
+  CheckDatumCast<char>(CharGetDatum,
+                       DatumGetChar,
+                        {'a', 'A'});
+}
+
+TEST_F(CodegenManagerTest, TestDatumInt8Cast) {
+  std::vector<int8_t> values = {0, -0, 23, -23,
+      std::numeric_limits<int8_t>::max(),
+      std::numeric_limits<int8_t>::min(),
+      std::numeric_limits<int8_t>::lowest()
+  };
+  CheckDatumCast<int8_t>(Int8GetDatum,
+                         DatumGetInt8,
+                        values);
+}
+
+TEST_F(CodegenManagerTest, TestDatumUInt8Cast) {
+  std::vector<uint8_t> values = {0, -0, 23, static_cast<uint8_t>(-23),
+        std::numeric_limits<uint8_t>::max(),
+        std::numeric_limits<uint8_t>::min(),
+        std::numeric_limits<uint8_t>::lowest()
+    };
+  CheckDatumCast<uint8_t>(UInt8GetDatum,
+                         DatumGetUInt8,
+                         values);
+}
+
+TEST_F(CodegenManagerTest, TestDatumInt16Cast) {
+  std::vector<int16_t> values = {0, -0, 23, -23,
+        std::numeric_limits<int16_t>::max(),
+        std::numeric_limits<int16_t>::min(),
+        std::numeric_limits<int16_t>::lowest()
+    };
+  CheckDatumCast<int16_t>(Int16GetDatum,
+                         DatumGetInt16,
+                         values);
+}
+
+TEST_F(CodegenManagerTest, TestDatumUInt16Cast) {
+  std::vector<uint16_t> values = {0, -0, 23, static_cast<uint16_t>(-23),
+          std::numeric_limits<uint16_t>::max(),
+          std::numeric_limits<uint16_t>::min(),
+          std::numeric_limits<uint16_t>::lowest()
+      };
+  CheckDatumCast<uint16_t>(UInt16GetDatum,
+                         DatumGetUInt16,
+                         values);
+}
+
+TEST_F(CodegenManagerTest, TestDatumInt32Cast) {
+  std::vector<int32_t> values = {0, -0, 23, -23,
+          std::numeric_limits<int32_t>::max(),
+          std::numeric_limits<int32_t>::min(),
+          std::numeric_limits<int32_t>::lowest()
+      };
+  CheckDatumCast<int32_t>(Int32GetDatum,
+                         DatumGetInt32,
+                         values);
+}
+
+TEST_F(CodegenManagerTest, TestDatumUInt32Cast) {
+  std::vector<uint32_t> values = {0, -0, 23, static_cast<uint32_t>(-23),
+            std::numeric_limits<uint32_t>::max(),
+            std::numeric_limits<uint32_t>::min(),
+            std::numeric_limits<uint32_t>::lowest()
+        };
+  CheckDatumCast<uint32_t>(UInt32GetDatum,
+                         DatumGetUInt32,
+                         values);
+}
+
+TEST_F(CodegenManagerTest, TestDatumInt64Cast) {
+  std::vector<int64> values = {0, -0, 23, -23,
+            std::numeric_limits<int64>::max(),
+            std::numeric_limits<int64>::min(),
+            std::numeric_limits<int64>::lowest()
+        };
+  CheckDatumCast<int64>(Int64GetDatum,
+                         DatumGetInt64,
+                        values);
+}
+
+TEST_F(CodegenManagerTest, TestDatumUInt64Cast) {
+  std::vector<uint64> values = {0, -0, 23, static_cast<uint64>(-23),
+              std::numeric_limits<uint64>::max(),
+              std::numeric_limits<uint64>::min(),
+              std::numeric_limits<uint64>::lowest()
+          };
+  CheckDatumCast<uint64>(UInt64GetDatum,
+                         DatumGetUInt64,
+                         values);
+}
+
+TEST_F(CodegenManagerTest, TestDatumOidCast) {
+  std::vector<Oid> values = {0, -0, 23, static_cast<Oid>(-23),
+              std::numeric_limits<Oid>::max(),
+              std::numeric_limits<Oid>::min(),
+              std::numeric_limits<Oid>::lowest()
+          };
+  CheckDatumCast<Oid>(ObjectIdGetDatum,
+                      DatumGetObjectId,
+                      values);
+}
+
+TEST_F(CodegenManagerTest, TestDatumTxIdCast) {
+  std::vector<TransactionId> values = {0, -0, 23,
+                static_cast<TransactionId>(-23),
+                std::numeric_limits<TransactionId>::max(),
+                std::numeric_limits<TransactionId>::min(),
+                std::numeric_limits<TransactionId>::lowest()
+            };
+  CheckDatumCast<TransactionId>(TransactionIdGetDatum,
+                                DatumGetTransactionId,
+                                values);
+}
+
+TEST_F(CodegenManagerTest, TestDatumCmdIdCast) {
+  std::vector<CommandId> values = {0, -0, 23,
+                  static_cast<CommandId>(-23),
+                  std::numeric_limits<CommandId>::max(),
+                  std::numeric_limits<CommandId>::min(),
+                  std::numeric_limits<CommandId>::lowest()
+              };
+  CheckDatumCast<CommandId>(CommandIdGetDatum,
+                            DatumGetCommandId,
+                            values);
+}
+
+TEST_F(CodegenManagerTest, TestDatumPtrCast) {
+  struct DatumVoidPtr {
+    static Datum PointerGetDatumNoConst(void *p) {
+      return PointerGetDatum((const void*)p);
+    }
+  };
+  std::vector<void*> values = {reinterpret_cast<void*>(23),
+      reinterpret_cast<void*>(-23),
+      reinterpret_cast<void*>(NULL)};
+  CheckDatumCast<void*>(DatumVoidPtr::PointerGetDatumNoConst,
+                        DatumGetPointer,
+                        values);
+}
+
+TEST_F(CodegenManagerTest, TestDatumCStringCast) {
+  struct DatumVoidPtr {
+    static Datum PointerGetDatumNoConst(char *p) {
+      return PointerGetDatum((const char*)p);
+    }
+  };
+  std::vector<char*> values = {const_cast<char*>("dfdFD"),
+      const_cast<char*>(""),
+      static_cast<char*>(nullptr)};
+  CheckDatumCast<char*>(DatumVoidPtr::PointerGetDatumNoConst,
+                        DatumGetCString,
+                        values);
+}
+
+TEST_F(CodegenManagerTest, TestDatumNameCast) {
+  Name n1 = new nameData();
+  Name n2 = new nameData();
+  strncpy(n1->data, "iqbal", sizeof(n1->data) - 1);
+  strncpy(n2->data, "", sizeof(n2->data) - 1);
+  CheckDatumCast<Name>(NameGetDatum,
+                            DatumGetName,
+                            {n1, n2});
+  delete n1;
+  delete n2;
+}
+
+TEST_F(CodegenManagerTest, TestDatumFloatCast) {
+  std::vector<float> values = {0.0, -0.0, 12.34, -12.34,
+      std::numeric_limits<float>::min(),
+      std::numeric_limits<float>::max(),
+      std::numeric_limits<float>::lowest(),
+      std::numeric_limits<float>::denorm_min(),
+      std::numeric_limits<float>::infinity()};
+  CheckDatumCast<float>(Float4GetDatum,
+                        DatumGetFloat4,
+                        values);
+}
+
+TEST_F(CodegenManagerTest, TestDatumDoubleCast) {
+  std::vector<double> values = {0.0, -0.0, 12.34, -12.34,
+        std::numeric_limits<double>::min(),
+        std::numeric_limits<double>::max(),
+        std::numeric_limits<double>::lowest(),
+        std::numeric_limits<double>::denorm_min(),
+        std::numeric_limits<double>::infinity()};
+  CheckDatumCast<double>(Float8GetDatum,
+                        DatumGetFloat8,
+                        values);
+}
+
+TEST_F(CodegenManagerTest, TestDatumItemPtrCast) {
+  ItemPointer p1 = reinterpret_cast<ItemPointer>(23);
+  ItemPointer p2 = reinterpret_cast<ItemPointer>(42);
+  CheckDatumCast<ItemPointer>(ItemPointerGetDatum,
+                        DatumGetItemPointer,
+                        {p1, p2});
 }
 
 }  // namespace gpcodegen

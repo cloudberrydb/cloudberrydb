@@ -274,35 +274,6 @@ class CodegenUtils {
   }
 
   /**
-   * @brief Create a Cast instruction to convert given llvm::Value to given Cpp
-   *        type
-   *
-   * @tparam CppType  Destination cpp type
-   * @param value LLVM Value on which casting has to be done.
-   *
-   * @return LLVM Value that casted to given Cpp type.
-   *
-   * @note Depend on type's size, it will do extent or trunc or bit cast.
-   **/
-  template <typename CppType>
-  llvm::Value* CreateCast(llvm::Value* value) {
-    assert(nullptr != value);
-    llvm::Type* llvm_dest_type = GetType<CppType>();
-    unsigned dest_size = llvm_dest_type->getScalarSizeInBits();
-
-    llvm::Type* llvm_src_type = value->getType();
-    unsigned src_size = llvm_src_type->getScalarSizeInBits();
-    if (src_size < dest_size) {
-      return ir_builder()->CreateZExt(value, llvm_dest_type);
-    } else if (src_size > dest_size) {
-      return ir_builder()->CreateTrunc(value, llvm_dest_type);
-    } else if (llvm_src_type->getTypeID() != llvm_dest_type->getTypeID()) {
-      return ir_builder()->CreateBitCast(value, llvm_dest_type);
-    }
-    return value;
-  }
-
-  /**
    * @brief Use LLVM intrinsic to create Multiplication with overflow
    *        instruction
    *
@@ -340,6 +311,19 @@ class CodegenUtils {
    **/
   template <typename CppType>
   llvm::Value* CreateSubOverflow(llvm::Value* arg0, llvm::Value* arg1);
+
+  /**
+   * @brief Cast given llvm::value to DestType.
+   *
+   * @tparam DestType  Destination type
+   * @tparam SrcType   Source type
+   * @param value  Value that needs to be casted. Expected to be of same type as
+   *               SrcType
+   *
+   * @return LLVM Value of DestType
+   **/
+  template <typename DestType, typename SrcType>
+  llvm::Value* CreateCast(llvm::Value* value);
 
   /**
    * @brief Register an external function if previously unregistered. Otherwise
@@ -497,6 +481,14 @@ class CodegenUtils {
     }
     llvm::InlineFunctionInfo info;
     return llvm::InlineFunction(llvm::CallSite(call_inst), info);
+  }
+
+ protected:
+  /**
+   * @return LLVMContext
+   **/
+  llvm::LLVMContext* context() {
+    return &context_;
   }
 
  private:
@@ -1237,50 +1229,46 @@ std::is_integral<UnsignedIntType>::value
   static llvm::Value* CreateAddOverflow(CodegenUtils* generator,
                                         llvm::Value* arg0,
                                         llvm::Value* arg1) {
-    Checker(arg0, arg1);
-    llvm::Value* casted_arg0 = generator->CreateCast<UnsignedIntType>(arg0);
-    llvm::Value* casted_arg1 = generator->CreateCast<UnsignedIntType>(arg1);
-
+    Checker(generator->GetType<UnsignedIntType>(), arg0, arg1);
     return generator->CreateIntrinsicInstrCall(
         llvm::Intrinsic::uadd_with_overflow,
         generator->GetType<UnsignedIntType>(),
-        casted_arg0,
-        casted_arg1);
+        arg0,
+        arg1);
   }
   static llvm::Value* CreateSubOverflow(CodegenUtils* generator,
                                         llvm::Value* arg0,
                                         llvm::Value* arg1) {
-    Checker(arg0, arg1);
-    llvm::Value* casted_arg0 = generator->CreateCast<UnsignedIntType>(arg0);
-    llvm::Value* casted_arg1 = generator->CreateCast<UnsignedIntType>(arg1);
-
+    Checker(generator->GetType<UnsignedIntType>(), arg0, arg1);
     return generator->CreateIntrinsicInstrCall(
         llvm::Intrinsic::usub_with_overflow,
         generator->GetType<UnsignedIntType>(),
-        casted_arg0,
-        casted_arg1);
+        arg0,
+        arg1);
   }
   static llvm::Value* CreateMulOverflow(CodegenUtils* generator,
                                         llvm::Value* arg0,
                                         llvm::Value* arg1) {
-    Checker(arg0, arg1);
-    llvm::Value* casted_arg0 = generator->CreateCast<UnsignedIntType>(arg0);
-    llvm::Value* casted_arg1 = generator->CreateCast<UnsignedIntType>(arg1);
-
+    Checker(generator->GetType<UnsignedIntType>(), arg0, arg1);
     return generator->CreateIntrinsicInstrCall(
         llvm::Intrinsic::umul_with_overflow,
         generator->GetType<UnsignedIntType>(),
-        casted_arg0,
-        casted_arg1);
+        arg0,
+        arg1);
   }
 
  private:
-  static void Checker(llvm::Value* arg0,
+  static void Checker(llvm::Type* llvm_unsigned_type,
+                      llvm::Value* arg0,
                       llvm::Value* arg1) {
     assert(nullptr != arg0 && nullptr != arg0->getType());
     assert(nullptr != arg1 && nullptr != arg1->getType());
     assert(arg0->getType()->isIntegerTy());
+    assert(arg0->getType()->getScalarSizeInBits() ==
+        llvm_unsigned_type->getScalarSizeInBits());
     assert(arg1->getType()->isIntegerTy());
+    assert(arg1->getType()->getScalarSizeInBits() ==
+            llvm_unsigned_type->getScalarSizeInBits());
   }
 };
 
@@ -1295,50 +1283,47 @@ std::is_integral<SignedIntType>::value
   static llvm::Value* CreateAddOverflow(CodegenUtils* generator,
                                         llvm::Value* arg0,
                                         llvm::Value* arg1) {
-    Checker(arg0, arg1);
-    llvm::Value* casted_arg0 = generator->CreateCast<SignedIntType>(arg0);
-    llvm::Value* casted_arg1 = generator->CreateCast<SignedIntType>(arg1);
+    Checker(generator->GetType<SignedIntType>(), arg0, arg1);
     return generator->CreateIntrinsicInstrCall(
         llvm::Intrinsic::sadd_with_overflow,
         generator->GetType<SignedIntType>(),
-        casted_arg0,
-        casted_arg1);
+        arg0,
+        arg1);
   }
 
   static llvm::Value* CreateSubOverflow(CodegenUtils* generator,
                                         llvm::Value* arg0,
                                         llvm::Value* arg1) {
-    Checker(arg0, arg1);
-    llvm::Value* casted_arg0 = generator->CreateCast<SignedIntType>(arg0);
-    llvm::Value* casted_arg1 = generator->CreateCast<SignedIntType>(arg1);
-
+    Checker(generator->GetType<SignedIntType>(), arg0, arg1);
     return generator->CreateIntrinsicInstrCall(
         llvm::Intrinsic::ssub_with_overflow,
         generator->GetType<SignedIntType>(),
-        casted_arg0,
-        casted_arg1);
+        arg0,
+        arg1);
   }
 
   static llvm::Value* CreateMulOverflow(CodegenUtils* generator,
                                         llvm::Value* arg0,
                                         llvm::Value* arg1) {
-    Checker(arg0, arg1);
-    llvm::Value* casted_arg0 = generator->CreateCast<SignedIntType>(arg0);
-    llvm::Value* casted_arg1 = generator->CreateCast<SignedIntType>(arg1);
-
+    Checker(generator->GetType<SignedIntType>(), arg0, arg1);
     return generator->CreateIntrinsicInstrCall(
         llvm::Intrinsic::smul_with_overflow,
         generator->GetType<SignedIntType>(),
-        casted_arg0,
-        casted_arg1);
+        arg0,
+        arg1);
   }
  private:
-  static void Checker(llvm::Value* arg0,
+  static void Checker(llvm::Type* llvm_signed_type,
+                      llvm::Value* arg0,
                       llvm::Value* arg1) {
     assert(nullptr != arg0 && nullptr != arg0->getType());
     assert(nullptr != arg1 && nullptr != arg1->getType());
     assert(arg0->getType()->isIntegerTy());
+    assert(arg0->getType()->getScalarSizeInBits() ==
+        llvm_signed_type->getScalarSizeInBits());
     assert(arg1->getType()->isIntegerTy());
+    assert(arg1->getType()->getScalarSizeInBits() ==
+            llvm_signed_type->getScalarSizeInBits());
   }
 };
 
@@ -1364,39 +1349,27 @@ class ArithOpMaker<double> {
                                         llvm::Value* arg0,
                                         llvm::Value* arg1) {
     Checker(arg0, arg1);
-    llvm::Value* casted_arg0 = generator->ir_builder()->
-        CreateBitCast(arg0, generator->GetType<double>());
-    llvm::Value* casted_arg1 = generator->ir_builder()->
-        CreateBitCast(arg1, generator->GetType<double>());
 
     // TODO(armenatzoglou) Support overflow
-    return generator->ir_builder()->CreateFAdd(casted_arg0, casted_arg1);
+    return generator->ir_builder()->CreateFAdd(arg0, arg1);
   }
 
   static llvm::Value* CreateSubOverflow(CodegenUtils* generator,
                                         llvm::Value* arg0,
                                         llvm::Value* arg1) {
     Checker(arg0, arg1);
-    llvm::Value* casted_arg0 = generator->ir_builder()->
-        CreateBitCast(arg0, generator->GetType<double>());
-    llvm::Value* casted_arg1 = generator->ir_builder()->
-        CreateBitCast(arg1, generator->GetType<double>());
 
     // TODO(armenatzoglou) Support overflow
-    return generator->ir_builder()->CreateFSub(casted_arg0, casted_arg1);
+    return generator->ir_builder()->CreateFSub(arg0, arg1);
   }
 
   static llvm::Value* CreateMulOverflow(CodegenUtils* generator,
                                         llvm::Value* arg0,
                                         llvm::Value* arg1) {
     Checker(arg0, arg1);
-    llvm::Value* casted_arg0 = generator->ir_builder()->
-        CreateBitCast(arg0, generator->GetType<double>());
-    llvm::Value* casted_arg1 = generator->ir_builder()->
-        CreateBitCast(arg1, generator->GetType<double>());
 
     // TODO(armenatzoglou) Support overflow
-    return generator->ir_builder()->CreateFMul(casted_arg0, casted_arg1);
+    return generator->ir_builder()->CreateFMul(arg0, arg1);
   }
 
 
@@ -1405,8 +1378,8 @@ class ArithOpMaker<double> {
                       llvm::Value* arg1) {
     assert(nullptr != arg0 && nullptr != arg0->getType());
     assert(nullptr != arg1 && nullptr != arg1->getType());
-    assert(arg0->getType()->isIntegerTy());
-    assert(arg1->getType()->isIntegerTy());
+    assert(arg0->getType()->isDoubleTy());
+    assert(arg1->getType()->isDoubleTy());
   }
 };
 
@@ -1435,6 +1408,145 @@ llvm::Value* CodegenUtils::CreateMulOverflow(llvm::Value* arg0,
   return codegen_utils_detail::ArithOpMaker<CppType>::CreateMulOverflow(this,
                                                                         arg0,
                                                                         arg1);
+}
+
+// ----------------------------------------------------------------------------
+// Implementation of CodegenUtils::CreateCast().
+
+// Helper template classes are nested in this namespace and are not considered
+// part of the public API.
+namespace codegen_utils_detail {
+
+// CastMaker has various template specializations to handle casting of
+// different C++ types. The specialized versions have a static method
+// CreateCast() that takes an 'llvm::Value' of SrcType and a pointer to
+// CodegenUtils object,  and returns a pointer to an
+// 'llvm::Value' equivalent to DestType
+template <typename DestType,
+          typename SrcType,
+          typename Enable = void>
+class CastMaker {
+};
+
+// Partial specialization for unsigned int to signed / unsigned integer.
+template <typename IntegerType, typename UnsignedIntType>
+class CastMaker<
+    IntegerType,
+    UnsignedIntType,
+    typename std::enable_if<
+        std::is_integral<IntegerType>::value
+        && std::is_integral<UnsignedIntType>::value
+        && std::is_unsigned<UnsignedIntType>::value>::type> {
+ public:
+  static llvm::Value* CreateCast(llvm::Value* value,
+                                 CodegenUtils* codegen_utils) {
+    assert(nullptr != codegen_utils);
+    llvm::Type* llvm_dest_type = codegen_utils->GetType<IntegerType>();
+    Checker(value, llvm_dest_type);
+    return codegen_utils->ir_builder()->CreateZExtOrTrunc(value,
+                                                         llvm_dest_type);
+  }
+ private:
+  static void Checker(llvm::Value* value,
+               llvm::Type* llvm_dest_type) {
+    assert(nullptr != value);
+    assert(nullptr != value->getType());
+    assert(value->getType()->isIntegerTy());
+    assert(llvm_dest_type->isIntegerTy());
+  }
+};
+
+// Partial specialization for signed int to signed / unsigned integer.
+template <typename IntegerType, typename SignedIntType>
+class CastMaker<
+    IntegerType,
+    SignedIntType,
+    typename std::enable_if<
+        std::is_integral<IntegerType>::value
+        && std::is_integral<SignedIntType>::value
+        && std::is_signed<SignedIntType>::value>::type> {
+ public:
+  static llvm::Value* CreateCast(llvm::Value* value,
+                                 CodegenUtils* codegen_utils) {
+    assert(nullptr != codegen_utils);
+    llvm::Type* llvm_dest_type = codegen_utils->GetType<IntegerType>();
+    Checker(value, llvm_dest_type);
+
+    return codegen_utils->ir_builder()->CreateSExtOrTrunc(value,
+                                                          llvm_dest_type);
+  }
+ private:
+  static void Checker(llvm::Value* value,
+               llvm::Type* llvm_dest_type) {
+    assert(nullptr != value);
+    assert(nullptr != value->getType());
+    assert(value->getType()->isIntegerTy());
+    assert(llvm_dest_type->isIntegerTy());
+  }
+};
+
+// Partial specialization for any floating point to 32-bit float
+template <typename FloatingPoint>
+class CastMaker<
+    float,
+    FloatingPoint,
+    typename std::enable_if<
+            std::is_floating_point<FloatingPoint>::value>::type> {
+ public:
+  static llvm::Value* CreateCast(llvm::Value* value,
+                                 CodegenUtils* codegen_utils) {
+    assert(nullptr != codegen_utils);
+    llvm::Type* llvm_dest_type = codegen_utils->GetType<float>();
+    Checker(value, llvm_dest_type);
+    if (value->getType()->isFloatTy()) { return value; }
+    return codegen_utils->ir_builder()->CreateFPTrunc(
+        value, llvm_dest_type);
+  }
+ private:
+  static void Checker(llvm::Value* value,
+                 llvm::Type* llvm_dest_type) {
+      assert(nullptr != value);
+      assert(nullptr != value->getType());
+      assert(value->getType()->isFloatTy() ||
+             value->getType()->isDoubleTy());
+      assert(llvm_dest_type->isFloatTy());
+    }
+};
+
+// Partial specialization for any floating point to 64-bit float
+template <typename FloatingPoint>
+class CastMaker<
+    double,
+    FloatingPoint,
+    typename std::enable_if<
+            std::is_floating_point<FloatingPoint>::value>::type> {
+ public:
+  static llvm::Value* CreateCast(llvm::Value* value,
+                                 CodegenUtils* codegen_utils) {
+    assert(nullptr != codegen_utils);
+    llvm::Type* llvm_dest_type = codegen_utils->GetType<double>();
+    Checker(value, llvm_dest_type);
+    if (value->getType()->isDoubleTy()) { return value; }
+    return codegen_utils->ir_builder()->CreateFPExt(
+        value, llvm_dest_type);
+  }
+ private:
+  static void Checker(llvm::Value* value,
+                      llvm::Type* llvm_dest_type) {
+    assert(nullptr != value);
+    assert(nullptr != value->getType());
+    assert(value->getType()->isFloatTy() ||
+           value->getType()->isDoubleTy());
+    assert(llvm_dest_type->isDoubleTy());
+  }
+};
+
+}  // namespace codegen_utils_detail
+
+template <typename DestType, typename SrcType>
+llvm::Value* CodegenUtils::CreateCast(llvm::Value* value) {
+  return codegen_utils_detail::CastMaker<DestType, SrcType>::CreateCast(
+      value, this);
 }
 
 }  // namespace gpcodegen

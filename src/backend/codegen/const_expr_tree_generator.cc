@@ -45,6 +45,7 @@ bool ConstExprTreeGenerator::GenerateCode(GpCodegenUtils* codegen_utils,
                                           llvm::Value** llvm_out_value) {
   assert(nullptr != llvm_out_value);
   Const* const_expr = reinterpret_cast<Const*>(expr_state()->expr);
+  // const_expr->constvalue is a datum
   *llvm_out_value = codegen_utils->GetConstant(const_expr->constvalue);
   return true;
 }
