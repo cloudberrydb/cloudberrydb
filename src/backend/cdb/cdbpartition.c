@@ -98,6 +98,11 @@ constrNodeHash(const void *keyPtr, Size keysize);
 
 static int
 constrNodeMatch(const void *keyPtr1, const void *keyPtr2, Size keysize);
+
+static void
+parruleord_open_gap(Oid partid, int2 level, Oid parent,
+					int2 ruleord, int stopkey, bool closegap);
+
 /*
  * Hash keys are null-terminated C strings assumed to be stably
  * allocated. We accomplish this by allocating them in a context
@@ -1922,7 +1927,7 @@ parruleord_reset_rank(Oid partid, int2 level, Oid parent, int2 ruleord)
  * If closegap is set, parruleord values are decremented, to close a
  * gap in parruleord sequence.
  */
-void
+static void
 parruleord_open_gap(Oid partid, int2 level, Oid parent, int2 ruleord,
 					int stopkey, bool closegap)
 {
