@@ -122,9 +122,10 @@ void* ExecEvalExprCodegenEnroll(
     ExecEvalExprFn regular_func_ptr,
     ExecEvalExprFn* ptr_to_chosen_func_ptr,
     ExprState *exprstate,
-    ExprContext *econtext) {
+    ExprContext *econtext,
+    TupleTableSlot* slot) {
   ExecEvalExprCodegen* generator = CodegenEnroll<ExecEvalExprCodegen>(
-      regular_func_ptr, ptr_to_chosen_func_ptr, exprstate, econtext);
+      regular_func_ptr, ptr_to_chosen_func_ptr, exprstate, econtext, slot);
   return generator;
 }
 

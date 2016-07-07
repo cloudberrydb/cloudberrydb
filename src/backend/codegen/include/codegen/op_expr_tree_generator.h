@@ -41,15 +41,13 @@ class OpExprTreeGenerator : public ExprTreeGenerator {
   static void InitializeSupportedFunction();
 
   static bool VerifyAndCreateExprTree(
-        ExprState* expr_state,
-        ExprContext* econtext,
+        const ExprState* expr_state,
+        ExprTreeGeneratorInfo* gen_info,
         std::unique_ptr<ExprTreeGenerator>* expr_tree);
 
   bool GenerateCode(gpcodegen::GpCodegenUtils* codegen_utils,
-                    ExprContext* econtext,
-                    llvm::Function* llvm_main_func,
-                    llvm::BasicBlock* llvm_error_block,
-                    llvm::Value* llvm_isnull_arg,
+                    const ExprTreeGeneratorInfo& gen_info,
+                    llvm::Value* llvm_isnull_ptr,
                     llvm::Value** llvm_out_value) final;
 
  protected:
@@ -60,7 +58,7 @@ class OpExprTreeGenerator : public ExprTreeGenerator {
    * @param arguments Arguments to operator as list of ExprTreeGenerator
    **/
   OpExprTreeGenerator(
-      ExprState* expr_state,
+      const ExprState* expr_state,
       std::vector<
           std::unique_ptr<
               ExprTreeGenerator>>&& arguments);  // NOLINT(build/c++11)

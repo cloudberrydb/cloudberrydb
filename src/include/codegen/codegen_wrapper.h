@@ -155,7 +155,8 @@ void*
 ExecEvalExprCodegenEnroll(ExecEvalExprFn regular_func_ptr,
                           ExecEvalExprFn* ptr_to_regular_func_ptr,
                           struct ExprState *exprstate,
-                          struct ExprContext *econtext);
+                          struct ExprContext *econtext,
+                          struct TupleTableSlot* slot);
 
 
 #ifdef __cplusplus
@@ -217,9 +218,9 @@ ExecEvalExprCodegenEnroll(ExecEvalExprFn regular_func_ptr,
 				regular_func, ptr_to_regular_func_ptr, proj_info, slot); \
 		Assert(proj_info->ExecVariableList_gen_info.ExecVariableList_fn == regular_func); \
 
-#define enroll_ExecEvalExpr_codegen(regular_func, ptr_to_regular_func_ptr, exprstate, econtext) \
+#define enroll_ExecEvalExpr_codegen(regular_func, ptr_to_regular_func_ptr, exprstate, econtext, slot) \
 		exprstate->ExecEvalExpr_code_generator = ExecEvalExprCodegenEnroll( \
-        (ExecEvalExprFn)regular_func, (ExecEvalExprFn*)ptr_to_regular_func_ptr, exprstate, econtext); \
+        (ExecEvalExprFn)regular_func, (ExecEvalExprFn*)ptr_to_regular_func_ptr, exprstate, econtext, slot); \
         Assert(exprstate->evalfunc == regular_func); \
 
 #endif //USE_CODEGEN

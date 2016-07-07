@@ -31,6 +31,8 @@ class ExecEvalExprCodegen: public BaseCodegen<ExecEvalExprFn> {
    * @param ptr_to_chosen_func_ptr  Reference to the function pointer that the
    *                                caller will call.
    * @param exprstate               The ExprState to use for generating code.
+   * @param econtext                The ExprContext to use for generating code.
+   * @param slot                    The slot to use for generating code.
    *
    * @note 	The ptr_to_chosen_func_ptr can refer to either the generated
    *        function or the corresponding regular version.
@@ -39,7 +41,8 @@ class ExecEvalExprCodegen: public BaseCodegen<ExecEvalExprFn> {
   explicit ExecEvalExprCodegen(ExecEvalExprFn regular_func_ptr,
                                ExecEvalExprFn* ptr_to_regular_func_ptr,
                                ExprState *exprstate,
-                               ExprContext *econtext);
+                               ExprContext *econtext,
+                               TupleTableSlot* slot);
 
   virtual ~ExecEvalExprCodegen() = default;
 
@@ -67,6 +70,7 @@ class ExecEvalExprCodegen: public BaseCodegen<ExecEvalExprFn> {
  private:
   ExprState *exprstate_;
   ExprContext *econtext_;
+  TupleTableSlot* slot_;
 
   static constexpr char kExecEvalExprPrefix[] = "ExecEvalExpr";
 

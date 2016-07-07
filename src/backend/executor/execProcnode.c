@@ -163,10 +163,10 @@ static void ExecCdbTraceNode(PlanState *node, bool entry, TupleTableSlot *result
   			        int flags);
 
  static void
- EnrollQualList(PlanState* result);
+ EnrollQualList(PlanState* result, TupleTableSlot* slot);
 
  static void
- EnrollProjInfoTargetList(ProjectionInfo* ProjInfo);
+ EnrollProjInfoTargetList(ProjectionInfo* ProjInfo, TupleTableSlot* slot);
 
 /*
  * setSubplanSliceId
@@ -346,10 +346,10 @@ ExecInitNode(Plan *node, EState *estate, int eflags)
 			 * Enroll targetlist & quals' expression evaluation functions
 			 * in codegen_manager
 			 */
-			EnrollQualList(result);
+			EnrollQualList(result, ((ScanState*) result)->ss_ScanTupleSlot);
 			if (NULL !=result)
 			{
-			  EnrollProjInfoTargetList(result->ps_ProjInfo);
+			  EnrollProjInfoTargetList(result->ps_ProjInfo, ((ScanState*) result)->ss_ScanTupleSlot);
 			}
 			}
 			END_MEMORY_ACCOUNT();
@@ -580,14 +580,14 @@ ExecInitNode(Plan *node, EState *estate, int eflags)
 			 * Enroll targetlist & quals' expression evaluation functions
 			 * in codegen_manager
 			 */
-			EnrollQualList(result);
+			EnrollQualList(result, ((ScanState*) result)->ss_ScanTupleSlot);
 			if (NULL != result)
 			{
 			  AggState* aggstate = (AggState*)result;
 			  for (int aggno = 0; aggno < aggstate->numaggs; aggno++)
 			  {
 			    AggStatePerAgg peraggstate = &aggstate->peragg[aggno];
-			    EnrollProjInfoTargetList(peraggstate->evalproj);
+			    EnrollProjInfoTargetList(peraggstate->evalproj, ((ScanState*) result)->ss_ScanTupleSlot);
 			  }
 			}
 			}
@@ -776,7 +776,7 @@ ExecInitNode(Plan *node, EState *estate, int eflags)
  * ----------------------------------------------------------------
  */
 void
-EnrollQualList(PlanState* result)
+EnrollQualList(PlanState* result, TupleTableSlot* slot)
 {
 #ifdef USE_CODEGEN
 	if (NULL == result ||
@@ -791,7 +791,9 @@ EnrollQualList(PlanState* result)
 	  ExprState *exprstate = (ExprState*) lfirst(l);
 	  enroll_ExecEvalExpr_codegen(exprstate->evalfunc,
 	                              &exprstate->evalfunc,
-	                              exprstate, result->ps_ExprContext);
+	                              exprstate,
+	                              result->ps_ExprContext,
+	                              slot);
 	}
 
 #endif
@@ -804,7 +806,7 @@ EnrollQualList(PlanState* result)
  * ----------------------------------------------------------------
  */
 void
-EnrollProjInfoTargetList(ProjectionInfo* ProjInfo)
+EnrollProjInfoTargetList(ProjectionInfo* ProjInfo, TupleTableSlot* slot)
 {
 #ifdef USE_CODEGEN
   if (NULL == ProjInfo ||
@@ -823,7 +825,8 @@ EnrollProjInfoTargetList(ProjectionInfo* ProjInfo)
     enroll_ExecEvalExpr_codegen(gstate->arg->evalfunc,
                                 &gstate->arg->evalfunc,
                                 gstate->arg,
-                                ProjInfo->pi_exprContext);
+                                ProjInfo->pi_exprContext,
+                                slot);
 
   }
 #endif
