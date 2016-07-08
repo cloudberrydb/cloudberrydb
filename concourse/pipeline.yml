@@ -26,6 +26,16 @@ resources:
       secret_access_key: {{aws-secret-access-key}}
       versioned_file: bin_xerces_centos5.tar.gz
 
+  - name: bin_gpdb
+    type: s3
+    source:
+      access_key_id: {{aws-access-key-id}}
+      bucket: gporca-concourse-bucket
+      region_name: us-west-2
+      secret_access_key: {{aws-secret-access-key}}
+      versioned_file: bin_gpdb_with_orca_centos6.tar.gz
+
+
 jobs:
   - name: build_with_orca
     plan:
@@ -45,6 +55,44 @@ jobs:
           trigger: true
       - task: build_with_orca
         file: gpdb_src/concourse/build_with_orca.yml
+        input_mapping:
+          bin_orca: orca_github_release
+          bin_gpos: gpos_github_release
+      - task: package_tarball
+        file: gpdb_src/concourse/package_tarball.yml
+      - put: bin_gpdb
+        params:
+          file: package_tarball/bin_gpdb.tar.gz
+
+  - name: icg
+    plan:
+      - aggregate:
+        - get: gpos_github_release
+          params:
+            globs:
+              - bin_gpos_centos5_release.tar.gz
+          passed:
+            - build_with_orca
+        - get: orca_github_release
+          params:
+            globs:
+              - bin_orca_centos5_release.tar.gz
+          passed:
+            - build_with_orca
+        - get: bin_xerces
+          passed:
+            - build_with_orca
+        - get: bin_gpdb
+          passed:
+            - build_with_orca
+        - get: gpdb_src
+          trigger: true
+          passed:
+            - build_with_orca
+          params:
+            submodules: none
+      - task: icg
+        file: gpdb_src/concourse/test_with_orca.yml
         input_mapping:
           bin_orca: orca_github_release
           bin_gpos: gpos_github_release
