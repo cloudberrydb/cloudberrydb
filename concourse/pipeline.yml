@@ -35,6 +35,24 @@ resources:
       secret_access_key: {{aws-secret-access-key}}
       versioned_file: bin_gpdb_with_orca_centos6.tar.gz
 
+  - name: regression_diffs
+    type: s3
+    source:
+       access_key_id: {{aws-access-key-id}}
+       bucket: {{bucket-name}}
+       region_name: {{aws-region}}
+       secret_access_key: {{aws-secret-access-key}}
+       versioned_file: regression.diffs
+
+  - name: regression_out
+    type: s3
+    source:
+       access_key_id: {{aws-access-key-id}}
+       bucket: {{bucket-name}}
+       region_name: {{aws-region}}
+       secret_access_key: {{aws-secret-access-key}}
+       versioned_file: regression.out
+
 
 jobs:
   - name: build_with_orca
@@ -96,3 +114,11 @@ jobs:
         input_mapping:
           bin_orca: orca_github_release
           bin_gpos: gpos_github_release
+        on_failure:
+          aggregate:
+          - put: regression_diffs
+            params:
+              from: icg_output/regression.diffs
+          - put: regression_out
+            params:
+              from: icg_output/regression.out
