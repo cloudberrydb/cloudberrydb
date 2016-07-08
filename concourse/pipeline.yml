@@ -114,6 +114,7 @@ jobs:
         input_mapping:
           bin_orca: orca_github_release
           bin_gpos: gpos_github_release
+        timeout: 2h30m
         on_failure:
           aggregate:
           - put: regression_diffs
