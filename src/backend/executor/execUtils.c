@@ -2125,7 +2125,7 @@ void mppExecutorFinishup(QueryDesc *queryDesc)
 		 * error, report it and exit to our error handler via PG_THROW.
 		 * NB: This call doesn't wait, because we already waited above.
 		 */
-		cdbdisp_finishCommand(estate->dispatcherState, NULL, NULL);
+		cdbdisp_finishCommand(estate->dispatcherState);
 	}
 
 	/* Teardown the Interconnect */

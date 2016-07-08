@@ -426,7 +426,7 @@ DefineRelation(CreateStmt *stmt, char relkind, char relstorage)
 	 * qExecs, if dispatched.  This waits for them to all finish, and exits
 	 * via ereport(ERROR,...) if unsuccessful.
 	 */
-	cdbdisp_finishCommand((struct CdbDispatcherState *)&ds, NULL, NULL);
+	cdbdisp_finishCommand((struct CdbDispatcherState *)&ds);
 
     return reloid;
 }
@@ -1252,7 +1252,7 @@ DefineExternalRelation(CreateExternalStmt *createExtStmt)
 	 * qExecs, if dispatched.  This waits for them to all finish, and exits
 	 * via ereport(ERROR,...) if unsuccessful.
 	 */
-	cdbdisp_finishCommand((struct CdbDispatcherState *)&ds, NULL, NULL);
+	cdbdisp_finishCommand((struct CdbDispatcherState *)&ds);
 	
 	if(customProtName)
 		pfree(customProtName);
@@ -1819,7 +1819,11 @@ ExecuteTruncate(TruncateStmt *stmt)
 			stmt->new_aovisimap_oids = new_aovisimap_oids;
 			stmt->new_ind_oids = new_ind_oids;
 
-			CdbDispatchUtilityStatement((Node *) stmt, "ExecuteTruncate");
+			CdbDispatchUtilityStatement((Node *) stmt,
+										DF_CANCEL_ON_ERROR |
+										DF_WITH_SNAPSHOT |
+										DF_NEED_TWO_PHASE,
+										NULL);
 
 			/* MPP-6929: metadata tracking */
 			foreach(lc, meta_relids)
@@ -3426,7 +3430,11 @@ AlterTable(AlterTableStmt *stmt)
 				 &stmt->oidmap);
 
 	if (Gp_role == GP_ROLE_DISPATCH)
-		CdbDispatchUtilityStatement((Node *) stmt, "AlterTable");
+		CdbDispatchUtilityStatement((Node *) stmt,
+									DF_CANCEL_ON_ERROR |
+									DF_WITH_SNAPSHOT |
+									DF_NEED_TWO_PHASE,
+									NULL);
 }
 
 /*

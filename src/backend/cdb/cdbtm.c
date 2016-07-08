@@ -2236,16 +2236,16 @@ doDispatchDtxProtocolCommand(DtxProtocolCommand dtxProtocolCommand, int flags,
 	if (errbuf.len > 0)
 	{
 		ereport((raiseError ? ERROR : LOG),
-				(errmsg("DTM error (gathered %d results from cmd '%s')", resultCount, dtxProtocolCommandStr),
+				(errmsg("DTM error (gathered results from cmd '%s')", dtxProtocolCommandStr),
 				 errdetail("%s", errbuf.data)));
 		return false;
 	}
 
-	Assert(results != NULL);
 	if (results == NULL)
 	{
 		numOfFailed++; /* If we got no results, we need to treat it as an error! */
 	}
+
 	for (i = 0; i < resultCount; i++)
 	{
 		char			*cmdStatus;
@@ -2281,7 +2281,6 @@ doDispatchDtxProtocolCommand(DtxProtocolCommand dtxProtocolCommand, int flags,
 	/* discard the errbuf text */
 	pfree(errbuf.data);
 
-	/* Now we clean up the results array. */
 	for (i = 0; i < resultCount; i++)
 		PQclear(results[i]);
 	free(results);

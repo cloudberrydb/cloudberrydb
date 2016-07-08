@@ -608,7 +608,7 @@ createdb(CreatedbStmt *stmt)
 	PG_TRY();
 	{
 		createdb_int(stmt, (struct CdbDispatcherState *)&ds);
-		cdbdisp_finishCommand((struct CdbDispatcherState *)&ds, NULL, NULL);
+		cdbdisp_finishCommand((struct CdbDispatcherState *)&ds);
 	}
 	PG_CATCH();
 	{
