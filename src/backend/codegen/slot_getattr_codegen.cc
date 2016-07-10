@@ -42,9 +42,17 @@ extern "C" {
 #include "access/htup.h"
 #include "nodes/execnodes.h"
 #include "executor/tuptable.h"
+
+extern void slot_deform_tuple(TupleTableSlot* slot, int nattr);
 }
 
 using gpcodegen::SlotGetAttrCodegen;
+
+// TODO(shardikar): Retire this GUC after performing experiments to find the
+// tradeoff of codegen-ing slot_getattr() (potentially by measuring the
+// difference in the number of instructions) when one of the first few
+// attributes is varlen.
+extern const int codegen_varlen_tolerance;
 
 // TODO(shardikar, krajaraman) Remove this wrapper after implementing an
 // interface to share code generation logic.
@@ -73,11 +81,12 @@ bool SlotGetAttrCodegen::GenerateSlotGetAttr(
 }
 
 bool SlotGetAttrCodegen::GenerateSlotGetAttrInternal(
-     gpcodegen::GpCodegenUtils* codegen_utils,
-     const std::string& function_name,
-     TupleTableSlot *slot,
-     int max_attr,
-     llvm::Function** out_func) {
+    gpcodegen::GpCodegenUtils* codegen_utils,
+    const std::string& function_name,
+    TupleTableSlot *slot,
+    int max_attr,
+    llvm::Function** out_func) {
+
   // So looks like we're going to generate code
   *out_func = codegen_utils->CreateFunction<SlotGetAttrFn>(function_name);
   llvm::Function* slot_getattr_func = *out_func;
@@ -109,6 +118,8 @@ bool SlotGetAttrCodegen::GenerateSlotGetAttrInternal(
   // External functions
   llvm::Function* llvm_memset =
       codegen_utils->GetOrRegisterExternalFunction(memset);
+  llvm::Function* llvm_slot_deform_tuple =
+      codegen_utils->GetOrRegisterExternalFunction(slot_deform_tuple);
 
   // Generation-time constants
   llvm::Value* llvm_slot = codegen_utils->GetConstant(slot);
@@ -273,14 +284,24 @@ bool SlotGetAttrCodegen::GenerateSlotGetAttrInternal(
 
   irb->CreateBr(attribute_block);
 
-  for (int attnum = 0; attnum < max_attr; ++attnum) {
+  bool varlen_attrs_found = false;
+  int attnum = 0;
+  for (; attnum < max_attr; ++attnum) {
     Form_pg_attribute thisatt = att[attnum];
 
     // If any thisatt is varlen
     if (thisatt->attlen < 0) {
-      // We don't support variable length attributes.
-      elog(DEBUG1, "We don't support variable length attributes.");
-      return false;
+      // When we have variable length attributes, we can no longer benefit
+      // from codegen, since the next offset needs to be computed after the
+      // tuple is read into memory.
+      if (attnum < codegen_varlen_tolerance) {
+        // Also, if one of the first few attributes is varlen, might as well
+        // call slot_deform_tuple directly, instead of going through a codegen'd
+        // wrapper function.
+        return false;
+      }
+      varlen_attrs_found = true;
+      break;
     }
 
     // ith attribute's block
@@ -450,8 +471,10 @@ bool SlotGetAttrCodegen::GenerateSlotGetAttrInternal(
   irb->SetInsertPoint(next_attribute_block);
   irb->CreateBr(final_block);
 
+
   // Final block
   // ----------------
+  // Save the state for the next execution
 
   irb->SetInsertPoint(final_block);
 
@@ -464,7 +487,17 @@ bool SlotGetAttrCodegen::GenerateSlotGetAttrInternal(
       llvm_slot_PRIVATE_tts_off_ptr);
 
   // slot->PRIVATE_tts_nvalid = attnum;
-  irb->CreateStore(llvm_max_attr, llvm_slot_PRIVATE_tts_nvalid_ptr);
+  irb->CreateStore(codegen_utils->GetConstant(attnum),
+                   llvm_slot_PRIVATE_tts_nvalid_ptr);
+
+  if (varlen_attrs_found) {
+    // If we encountered any varlen attribute, we stop codegen from that
+    // attribute onwards and call slot_deform_tuple() directly to deform the
+    // rest of the tuple.
+    irb->CreateCall(llvm_slot_deform_tuple, {
+        llvm_slot_arg,
+        llvm_max_attr});
+  }
 
   // End of slot_deform_tuple
 

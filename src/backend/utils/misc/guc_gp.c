@@ -568,6 +568,7 @@ bool		optimizer_prefer_scalar_dqa_multistage_agg;
 bool		init_codegen;
 bool		codegen;
 bool		codegen_validate_functions;
+int			codegen_varlen_tolerance;
 
 /* Security */
 bool		gp_reject_internal_tcp_conn = true;
@@ -4770,6 +4771,16 @@ struct config_int ConfigureNamesInt_gp[] =
 		},
 		(int *) &gp_indexcheck_vacuum,
 		INDEX_CHECK_NONE, 0, INDEX_CHECK_ALL, NULL, NULL
+	},
+
+	{
+		{"codegen_varlen_tolerance", PGC_USERSET, DEVELOPER_OPTIONS,
+			gettext_noop("Minimum number of initial fixed length attributes in the table to generate code for deforming tuples."),
+			NULL,
+			GUC_NO_SHOW_ALL | GUC_NOT_IN_SAMPLE | GUC_GPDB_ADDOPT
+		},
+		&codegen_varlen_tolerance,
+		5, 0, INT_MAX, NULL, NULL
 	},
 
 	/* End-of-list marker */

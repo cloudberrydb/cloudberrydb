@@ -1342,7 +1342,10 @@ heap_deformtuple(HeapTuple tuple,
  *		re-computing information about previously extracted attributes.
  *		slot->tts_nvalid is the number of attributes already extracted.
  */
-static void
+#ifndef USE_CODEGEN
+static
+#endif
+void
 slot_deform_tuple(TupleTableSlot *slot, int natts)
 {
 	HeapTuple	tuple = TupGetHeapTuple(slot); 
