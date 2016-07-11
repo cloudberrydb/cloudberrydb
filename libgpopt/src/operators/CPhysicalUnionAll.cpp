@@ -86,9 +86,11 @@ CPhysicalUnionAll *CPhysicalUnionAll::PopConvert
 	)
 {
 	GPOS_ASSERT(NULL != pop);
-	GPOS_ASSERT(EopPhysicalSerialUnionAll == pop->Eopid());
 
-	return dynamic_cast<CPhysicalUnionAll*>(pop);
+	CPhysicalUnionAll* popPhysicalUnionAll = dynamic_cast<CPhysicalUnionAll*>(pop);
+	GPOS_ASSERT(NULL != popPhysicalUnionAll);
+
+	return popPhysicalUnionAll;
 }
 
 //---------------------------------------------------------------------------
