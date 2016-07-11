@@ -231,7 +231,7 @@ CDrvdPropCtxtPlan::SetExpectedPartitionSelectors
 	{
 		ulScanId = CPhysicalDynamicScan::PopConvert(pop)->UlScanId();
 	}
-	else if (COperator::EopPhysicalUnionAll == pop->Eopid() && CPhysicalUnionAll::PopConvert(pop)->FPartialIndex())
+	else if (COperator::EopPhysicalSerialUnionAll == pop->Eopid() && CPhysicalUnionAll::PopConvert(pop)->FPartialIndex())
 	{
 		ulScanId = CPhysicalUnionAll::PopConvert(pop)->UlScanIdPartialIndex();
 	}

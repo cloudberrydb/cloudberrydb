@@ -248,7 +248,7 @@ namespace gpopt
 				EopPhysicalStreamAggDeduplicate,
 				EopPhysicalScalarAgg,
 
-				EopPhysicalUnionAll,
+				EopPhysicalSerialUnionAll,
 
 				EopPhysicalSort,
 				EopPhysicalLimit,

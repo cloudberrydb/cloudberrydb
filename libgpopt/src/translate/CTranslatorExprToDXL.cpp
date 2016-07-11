@@ -236,7 +236,7 @@ CTranslatorExprToDXL::InitPhysicalTranslators()
 			{COperator::EopPhysicalPartitionSelectorDML, &gpopt::CTranslatorExprToDXL::PdxlnPartitionSelectorDML},
 			{COperator::EopPhysicalConstTableGet, &gpopt::CTranslatorExprToDXL::PdxlnResultFromConstTableGet},
 			{COperator::EopPhysicalTVF, &gpopt::CTranslatorExprToDXL::PdxlnTVF},
-			{COperator::EopPhysicalUnionAll, &gpopt::CTranslatorExprToDXL::PdxlnAppend},
+			{COperator::EopPhysicalSerialUnionAll, &gpopt::CTranslatorExprToDXL::PdxlnAppend},
 			{COperator::EopPhysicalDML, &gpopt::CTranslatorExprToDXL::PdxlnDML},
 			{COperator::EopPhysicalSplit, &gpopt::CTranslatorExprToDXL::PdxlnSplit},
 			{COperator::EopPhysicalRowTrigger, &gpopt::CTranslatorExprToDXL::PdxlnRowTrigger},

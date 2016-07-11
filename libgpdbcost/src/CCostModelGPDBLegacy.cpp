@@ -53,7 +53,7 @@ const CCostModelGPDBLegacy::SCostMapping CCostModelGPDBLegacy::m_rgcm[] =
 
 	{COperator::EopPhysicalTVF, CostTVF},
 
-	{COperator::EopPhysicalUnionAll, CostUnionAll},
+	{COperator::EopPhysicalSerialUnionAll, CostUnionAll},
 
 	{COperator::EopPhysicalInnerHashJoin, CostHashJoin},
 	{COperator::EopPhysicalLeftSemiHashJoin, CostHashJoin},
@@ -647,7 +647,7 @@ CCostModelGPDBLegacy::CostUnionAll
 {
 	GPOS_ASSERT(NULL != pcmgpdb);
 	GPOS_ASSERT(NULL != pci);
-	GPOS_ASSERT(COperator::EopPhysicalUnionAll == exprhdl.Pop()->Eopid());
+	GPOS_ASSERT(COperator::EopPhysicalSerialUnionAll == exprhdl.Pop()->Eopid());
 
 	CCost costLocal = CCost(pci->DRebinds() * CostTupleProcessing(pci->DRows(), pci->DWidth(), pcmgpdb->Pcp()).DVal());
 	CCost costChild = CostSum(pci->PdCost(), pci->UlChildren());
