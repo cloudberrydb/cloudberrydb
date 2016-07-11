@@ -13,6 +13,8 @@
 #ifndef GPCODEGEN_SLOT_GETATTR_CODEGEN_H_  // NOLINT(build/header_guard)
 #define GPCODEGEN_SLOT_GETATTR_CODEGEN_H_
 
+#include <string>
+
 #include "codegen/codegen_wrapper.h"
 #include "codegen/utils/gp_codegen_utils.h"
 
@@ -84,4 +86,4 @@ class SlotGetAttrCodegen {
 /** @} */
 
 }  // namespace gpcodegen
-#endif // GPCODEGEN_SLOT_GETATTR_CODEGEN_H_
+#endif  // GPCODEGEN_SLOT_GETATTR_CODEGEN_H_

@@ -2778,15 +2778,18 @@ TEST_F(CodegenUtilsTest, InlineFunctionTest) {
   typedef int (*AddConstToIntFn) (int);
 
   // Create a simple adds 1 to a number and returns the new value
-  llvm::Function* add_one_fn = codegen_utils_->CreateFunction<AddConstToIntFn>("add_one");
+  llvm::Function* add_one_fn =
+      codegen_utils_->CreateFunction<AddConstToIntFn>("add_one");
   irb->SetInsertPoint(codegen_utils_->CreateBasicBlock("main", add_one_fn));
   irb->CreateRet(irb->CreateAdd(ArgumentByPosition(add_one_fn, 0),
                                 codegen_utils_->GetConstant(1)));
 
   // Create another simple function add_two which calls add_one twice
-  llvm::Function* add_two_fn = codegen_utils_->CreateFunction<AddConstToIntFn>("add_two");
+  llvm::Function* add_two_fn =
+      codegen_utils_->CreateFunction<AddConstToIntFn>("add_two");
   irb->SetInsertPoint(codegen_utils_->CreateBasicBlock("main", add_two_fn));
-  llvm::CallInst* first_call = irb->CreateCall(add_one_fn, {ArgumentByPosition(add_two_fn, 0)});
+  llvm::CallInst* first_call =
+      irb->CreateCall(add_one_fn, {ArgumentByPosition(add_two_fn, 0)});
   llvm::CallInst* second_call = irb->CreateCall(add_one_fn, {first_call});
   irb->CreateRet(second_call);
 

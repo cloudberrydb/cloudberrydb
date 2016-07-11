@@ -15,7 +15,7 @@
 #include "codegen/utils/gp_codegen_utils.h"
 
 extern "C" {
-#include "postgres.h"
+#include "postgres.h"  // NOLINT(build/include)
 #include "utils/elog.h"
 #include "utils/date.h"
 #include "utils/timestamp.h"
@@ -44,10 +44,11 @@ bool PGDateFuncGenerator::DateLETimestamp(
 
   // timestamp_cmp_internal {{{
 #ifdef HAVE_INT64_TIMESTAMP
-  *llvm_out_value = irb->CreateICmpSLE(llvm_arg0_Timestamp, llvm_arg1_Timestamp);
+  *llvm_out_value =
+      irb->CreateICmpSLE(llvm_arg0_Timestamp, llvm_arg1_Timestamp);
 #else
-  // TODO: We do not support NaNs.
-  elog(DEBUG1,"Timestamp != int_64: NaNs are not supported.");
+  // We do not support NaNs.
+  elog(DEBUG1, "Timestamp != int_64: NaNs are not supported.");
   return false;
 #endif
   // }}}
@@ -83,7 +84,9 @@ llvm::Value* PGDateFuncGenerator::GenerateDate2Timestamp(
 
   llvm::Value* llvm_overflow_flag = irb->CreateExtractValue(llvm_mul_output, 1);
 
-  irb->CreateCondBr(llvm_overflow_flag, llvm_overflow_block, llvm_non_overflow_block);
+  irb->CreateCondBr(llvm_overflow_flag,
+                    llvm_overflow_block,
+                    llvm_non_overflow_block);
 
   irb->SetInsertPoint(llvm_overflow_block);
   codegen_utils->CreateElog(ERROR, "date out of range for timestamp");

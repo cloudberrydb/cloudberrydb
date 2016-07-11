@@ -42,7 +42,7 @@ class ExecVariableListCodegen: public BaseCodegen<ExecVariableListFn> {
 
   virtual ~ExecVariableListCodegen() = default;
 
-  protected:
+ protected:
   /**
    * @brief Generate code for the code path ExecVariableList > slot_getattr >
    * _slot_getsomeattrs > slot_deform_tuple.

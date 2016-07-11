@@ -137,10 +137,16 @@ bool ExecVariableListCodegen::GenerateExecVariableList(
 
 
   // Generate slot_getattr for attributes all the way to max_attr
-  std::string slot_getattr_func_name = "slot_getattr_" + std::to_string(max_attr);
+  std::string slot_getattr_func_name =
+      "slot_getattr_" + std::to_string(max_attr);
   llvm::Function* slot_getattr_func = nullptr;
-  if (!SlotGetAttrCodegen::GenerateSlotGetAttr(
-      codegen_utils, slot_getattr_func_name, slot_, max_attr, &slot_getattr_func)) {
+  bool ok = SlotGetAttrCodegen::GenerateSlotGetAttr(
+      codegen_utils,
+      slot_getattr_func_name,
+      slot_,
+      max_attr,
+      &slot_getattr_func);
+  if (!ok) {
     elog(DEBUG1, "Cannot generate code for ExecVariableList "
                  "because slot_getattr generation failed!");
     return false;
