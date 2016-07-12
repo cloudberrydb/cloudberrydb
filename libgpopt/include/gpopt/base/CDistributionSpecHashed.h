@@ -170,9 +170,10 @@ namespace gpopt
 				)
 			{
 				GPOS_ASSERT(NULL != pds);
-				GPOS_ASSERT(EdtHashed == pds->Edt());
+				CDistributionSpecHashed *pdsHashed = dynamic_cast<CDistributionSpecHashed*>(pds);
+				GPOS_ASSERT(NULL != pdsHashed);
 
-				return dynamic_cast<CDistributionSpecHashed*>(pds);
+				return pdsHashed;
 			}
 
 			// conversion function: const argument
@@ -183,9 +184,10 @@ namespace gpopt
 				)
 			{
 				GPOS_ASSERT(NULL != pds);
-				GPOS_ASSERT(EdtHashed == pds->Edt());
+				const CDistributionSpecHashed *pdsHashed = dynamic_cast<const CDistributionSpecHashed*>(pds);
+				GPOS_ASSERT(NULL != pdsHashed);
 
-				return dynamic_cast<const CDistributionSpecHashed*>(pds);
+				return pdsHashed;
 			}
 
 	}; // class CDistributionSpecHashed
