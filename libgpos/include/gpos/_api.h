@@ -17,6 +17,8 @@
 #ifndef GPOS_api_H
 #define GPOS_api_H
 
+#include "gpos/config.h"
+
 #ifdef __cplusplus
 extern "C"
 {

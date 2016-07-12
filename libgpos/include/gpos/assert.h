@@ -22,6 +22,7 @@
 #ifndef GPOS_assert_H
 #define GPOS_assert_H
 
+#include "gpos/config.h"
 
 // retail assert; available in all builds
 #define GPOS_RTL_ASSERT(x)		((x) ? ((void)0) : \
