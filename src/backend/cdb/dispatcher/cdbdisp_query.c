@@ -572,38 +572,6 @@ cdbdisp_dispatchCommand(const char *strCommand,
 }
 
 /*
- * CdbDoCommand:
- * Combination of cdbdisp_dispatchCommand and cdbdisp_finishCommand.
- * If not all QEs execute the command successfully, throws an error and
- * does not return.
- *
- * needTwoPhase specifies a desire to include global transaction control
- * before dispatch.
- */
-void
-CdbDoCommand(const char *strCommand, bool cancelOnError, bool needTwoPhase)
-{
-	CdbDispatcherState ds = {NULL, NULL, NULL};
-	const bool withSnapshot = true;
-
-	elog((Debug_print_full_dtm ? LOG : DEBUG5),
-		 "CdbDoCommand for command = '%s', needTwoPhase = %s", strCommand,
-		 (needTwoPhase ? "true" : "false"));
-
-	dtmPreCommand("CdbDoCommand", strCommand, NULL, needTwoPhase, withSnapshot,
-				  false /* inCursor */ );
-
-	cdbdisp_dispatchCommand(strCommand, NULL, 0, cancelOnError, needTwoPhase,
-							true, &ds);
-
-	/*
-	 * Wait for all QEs to finish. If not all of our QEs were successful,
-	 * report the error and throw up.
-	 */
-	cdbdisp_finishCommand(&ds);
-}
-
-/*
  * Dispatch a command - already parsed and in the form of a Node tree
  * - to all primary segdbs. Does not wait for completion. Does not
  * start a global transaction.
@@ -670,69 +638,25 @@ cdbdisp_dispatchUtilityStatement(struct Node *stmt,
 }
 
 /*
- * cdbdisp_dispatchRMCommand:
- * Sends a non-cancelable command to all segment dbs.
+ * CdbDispatchCommand:
  *
- * Returns a malloc'ed array containing the PGresult objects thus
- * produced; the caller must PQclear() them and free() the array.
- * A NULL entry follows the last used entry in the array.
+ * Execute plain command on all primary writer QEs.
+ * If one or more QEs got error, throw a Error.
  *
- * Any error messages - whether or not they are associated with
- * PGresult objects - are appended to a StringInfo buffer provided
- * by the caller.
+ * -flags:
+ *  Is the combination of EUS_NEED_TWO_PHASE, EUS_WITH_SNAPSHOT,EUS_CANCEL_ON_ERROR
+ *
  */
-struct pg_result **
-cdbdisp_dispatchRMCommand(const char *strCommand,
-						  bool withSnapshot,
-						  StringInfo errmsgbuf,
-						  int *numresults)
+void
+CdbDispatchCommand(const char* strCommand,
+					int flags,
+					CdbPgResults* cdb_pgresults)
 {
-	volatile struct CdbDispatcherState ds = {NULL, NULL, NULL};
-
-	CdbPgResults cdb_pgresults;
-
-	/*
-	 * never want to start a global transaction for these
-	 */
-	bool needTwoPhase = false;
-
-	elog(((Debug_print_full_dtm || Debug_print_snapshot_dtm) ? LOG : DEBUG5),
-		 "cdbdisp_dispatchRMCommand for command = '%s', withSnapshot = %s",
-		 strCommand, (withSnapshot ? "true" : "false"));
-
-	PG_TRY();
-	{
-		/*
-		 * Launch the command. Don't cancel on error.
-		 */
-		cdbdisp_dispatchCommand(strCommand, NULL, 0,
-								false, /* cancelOnError */
-								needTwoPhase, withSnapshot,
-								(struct CdbDispatcherState *) &ds);
-
-		/*
-		 * Wait for all QEs to finish. Don't cancel.
-		 */
-		CdbCheckDispatchResult((struct CdbDispatcherState *) &ds, DISPATCH_WAIT_NONE);
-	}
-	PG_CATCH();
-	{
-		/*
-		 * Something happend, clean up after ourselves
-		 */
-		CdbCheckDispatchResult((struct CdbDispatcherState *) &ds, DISPATCH_WAIT_NONE);
-
-		cdbdisp_destroyDispatcherState((struct CdbDispatcherState *) &ds);
-		PG_RE_THROW();
-	}
-	PG_END_TRY();
-
-	cdbdisp_returnResults(ds.primaryResults, &cdb_pgresults);
-	cdbdisp_dumpDispatchResults(ds.primaryResults, errmsgbuf);
-
-	cdbdisp_destroyDispatcherState((struct CdbDispatcherState *) &ds);
-
-	return cdb_pgresults.pg_results;
+	return cdbdisp_dispatchCommandInternal(strCommand,
+											NULL,
+											0,
+											flags,
+											cdb_pgresults);
 }
 
 /*
@@ -917,11 +841,6 @@ cdbdisp_dispatchCommandInternal(const char *strCommand,
 	PG_END_TRY();
 
 	cdbdisp_destroyDispatcherState(&ds);
-
-	/*
-	 * don't pfree serializedShapshot here, it will be pfree'd when
-	 * the first thread is destroyed.
-	 */
 }
 
 /*

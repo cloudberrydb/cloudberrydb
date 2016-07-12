@@ -1,4 +1,3 @@
-src/backend/cdb/dispatcher/cdbdispatchresult.c
 /*-------------------------------------------------------------------------
  *
  * cdbdispatchresult.c
