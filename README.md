@@ -204,12 +204,14 @@ make installcheck-bugbuster
   some tests are known to fail with Greenplum. The
   __installcheck-good__ schedule excludes those tests.
 
-## Development with Docker (alpha)
+## Development with Docker
 
 We provide a docker image with all dependencies required to compile and test
 GPDB. You can view the dependency dockerfile at `./docker/base/Dockerfile`.
 The image is hosted on docker hub at `pivotaldata/gpdb-devel`. This docker
 image is currently under heavy development.
+
+A quickstart guide to Docker can be found on the [Pivotal Engineering Journal](http://engineering.pivotal.io/post/docker-gpdb/).
 
 Known issues:
 * The `installcheck-good` make target has at least 4 failures, some of which
