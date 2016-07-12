@@ -333,7 +333,8 @@ jobs:
       from: package_tarball_debug/bin_orca_centos5_debug.tar.gz
 
 - name: orca_osx32_release
-  max_in_flight: 2
+  serial_groups:
+    - osx
   plan:
   - get: orca_src
     trigger: true
@@ -354,7 +355,8 @@ jobs:
       from: package_tarball_osx32_release/bin_orca_osx32_release.tar.gz
 
 - name: orca_osx32_debug
-  max_in_flight: 2
+  serial_groups:
+    - osx
   plan:
   - get: orca_src
     trigger: true
