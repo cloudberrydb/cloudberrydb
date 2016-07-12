@@ -88,36 +88,6 @@ if (COMPILER_HAS_FNO_OMIT_FRAME_POINTER)
   SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-omit-frame-pointer")
 endif()
 
-# Turn on GPOS_DEBUG define for DEBUG builds.
-cmake_policy(SET CMP0043 NEW)
-set_property(
-    DIRECTORY
-    APPEND PROPERTY COMPILE_DEFINITIONS $<$<CONFIG:Debug>:GPOS_DEBUG>)
-
-# Turn on platform-specific defines.
-set_property(
-    DIRECTORY
-    APPEND PROPERTY COMPILE_DEFINITIONS
-        GPOS_${CMAKE_SYSTEM_NAME}
-        GPOS_${CMAKE_SYSTEM_PROCESSOR})
-
-# Autodetect bit-width if not already set by toolchain file.
-if (NOT GPOS_ARCH_BITS)
-  # Autodetect bit-width.
-  if (${CMAKE_SIZEOF_VOID_P} EQUAL 8)
-    set(GPOS_ARCH_BITS 64)
-  elseif (${CMAKE_SIZEOF_VOID_P} EQUAL 4)
-    set(GPOS_ARCH_BITS 32)
-  else()
-    message(FATAL_ERROR "Could not detect 32-bit OR 64-bit architecture")
-  endif()
-endif()
-
-set_property(
-    DIRECTORY
-    APPEND PROPERTY COMPILE_DEFINITIONS
-        GPOS_${GPOS_ARCH_BITS}BIT)
-
 # Library dependencies for optimizer.
 set(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake")
 
