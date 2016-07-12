@@ -298,11 +298,9 @@ jobs:
   - get: bin_gpos_centos5_release
     passed:
     - gpos_publish_tag
-    trigger: true
   - get: bin_xerces_centos5
     passed:
     - xerces_centos5
-    trigger: true
   - task: build_and_test_release
     file: orca_src/concourse/build_and_test_centos5_release.yml
   - task: package_tarball_release
@@ -319,11 +317,9 @@ jobs:
   - get: bin_gpos_centos5_debug
     passed:
     - gpos_publish_tag
-    trigger: true
   - get: bin_xerces_centos5
     passed:
     - xerces_centos5
-    trigger: true
   - task: build_and_test_debug
     file: orca_src/concourse/build_and_test_centos5_debug.yml
   - task: package_tarball_debug
@@ -341,11 +337,9 @@ jobs:
   - get: bin_gpos_osx32_release
     passed:
     - gpos_publish_tag
-    trigger: true
   - get: bin_xerces_osx32
     passed:
     - xerces_osx32
-    trigger: true
   - task: build_and_test_release
     file: orca_src/concourse/build_and_test_osx32_release.yml
   - task: package_tarball_release
@@ -363,11 +357,9 @@ jobs:
   - get: bin_gpos_osx32_debug
     passed:
     - gpos_publish_tag
-    trigger: true
   - get: bin_xerces_osx32
     passed:
     - xerces_osx32
-    trigger: true
   - task: build_and_test_debug
     file: orca_src/concourse/build_and_test_osx32_debug.yml
   - task: package_tarball_debug
