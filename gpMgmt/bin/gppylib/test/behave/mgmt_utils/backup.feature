@@ -139,7 +139,7 @@ Feature: Validate command line arguments
     Scenario: Valid option combinations for gpdbrestore
         When the user runs "gpdbrestore -t 20140101010101 --truncate -a"
         Then gpdbrestore should return a return code of 2
-        And gpdbrestore should print --truncate can be specified only with -T or --table-file option to stdout
+        And gpdbrestore should print --truncate can be specified only with -S, -T, or --table-file option to stdout
         When the user runs "gpdbrestore -t 20140101010101 --truncate -e -T public.foo -a"
         Then gpdbrestore should return a return code of 2
         And gpdbrestore should print Cannot specify --truncate and -e together to stdout
@@ -3305,7 +3305,7 @@ Feature: Validate command line arguments
         When the user runs command "gpdbrestore -s " DB\`~@#\$%^&*()_-+[{]}|\\;:.;\n\t \\'/?><;2 ""
         Then gpdbrestore should print Name has an invalid character to stdout
 
-    Scenario: gpdbrestore, -S option, schema level restore with special chars in schema name
+    Scenario: gpdbrestore, -S option, -S truncate option schema level restore with special chars in schema name
         Given the test is initialized
         And the user runs "psql -f gppylib/test/behave/mgmt_utils/steps/data/special_chars/create_special_database.sql template1"
         And the user runs "psql -f gppylib/test/behave/mgmt_utils/steps/data/special_chars/create_special_schema.sql template1"
@@ -3317,6 +3317,12 @@ Feature: Validate command line arguments
         And the timestamp from gpcrondump is stored
         When the user runs command "psql -f gppylib/test/behave/mgmt_utils/steps/data/special_chars/select_from_special_table.sql " DB\`~@#\$%^&*()_-+[{]}|\\;: \\'/?><;1 " > /tmp/special_table_data.ans"
         When the user runs gpdbrestore with the stored timestamp and options "-S " S\`~@#\$%^&*()-+[{]}|\\;: \\'\"/?><1 ""
+        And the user runs command "psql -f gppylib/test/behave/mgmt_utils/steps/data/special_chars/select_from_special_table.sql " DB\`~@#\$%^&*()_-+[{]}|\\;: \\'/?><;1 " > /tmp/special_table_data.out"
+        Then verify that the contents of the files "/tmp/special_table_data.out" and "/tmp/special_table_data.ans" are identical
+
+        # -S with truncate option
+        When the user runs "gpdbrestore -S " S\`~@#\$%^&*()-+[{]}|\\;: \\'\"/?><1 " -a --truncate" with the stored timestamp
+        Then gpdbrestore should return a return code of 0
         And the user runs command "psql -f gppylib/test/behave/mgmt_utils/steps/data/special_chars/select_from_special_table.sql " DB\`~@#\$%^&*()_-+[{]}|\\;: \\'/?><;1 " > /tmp/special_table_data.out"
         Then verify that the contents of the files "/tmp/special_table_data.out" and "/tmp/special_table_data.ans" are identical
 
@@ -3433,7 +3439,18 @@ Feature: Validate command line arguments
         And verify that there are "730" tuples in "bkdb" for table "testschema.ao_foo_1_prt_p2_2_prt_3"
         And verify that there are "4380" tuples in "bkdb" for table "schema_ao.ao_index_table"
         And verify that there are "0" tuples in "bkdb" for table "schema_ao.ao_part_table"
-
+        When the user runs gpdbrestore with the stored timestamp and options "-S schema_ao -S testschema --truncate" without -e option
+        Then gpdbrestore should return a return code of 0
+        And verify that there are "0" tuples in "bkdb" for table "public.ao_index_table"
+        And verify that there are "0" tuples in "bkdb" for table "public.ao_table"
+        And verify that there are "365" tuples in "bkdb" for table "testschema.ao_foo_1_prt_p1_2_prt_1"
+        And verify that there are "365" tuples in "bkdb" for table "testschema.ao_foo_1_prt_p1_2_prt_2"
+        And verify that there are "365" tuples in "bkdb" for table "testschema.ao_foo_1_prt_p1_2_prt_3"
+        And verify that there are "365" tuples in "bkdb" for table "testschema.ao_foo_1_prt_p2_2_prt_1"
+        And verify that there are "365" tuples in "bkdb" for table "testschema.ao_foo_1_prt_p2_2_prt_2"
+        And verify that there are "365" tuples in "bkdb" for table "testschema.ao_foo_1_prt_p2_2_prt_3"
+        And verify that there are "2190" tuples in "bkdb" for table "schema_ao.ao_index_table"
+        And verify that there are "0" tuples in "bkdb" for table "schema_ao.ao_part_table"
     Scenario: Restore with --redirect option should not rely on existance of dumped database
         Given the test is initialized
         When the user runs "gpcrondump -a -x bkdb"
