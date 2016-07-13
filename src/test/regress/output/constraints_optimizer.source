@@ -317,7 +317,8 @@ DETAIL:  Key (i)=(1) already exists.
 INSERT INTO PRIMARY_TBL VALUES (4, 'three');
 INSERT INTO PRIMARY_TBL VALUES (5, 'one');
 INSERT INTO PRIMARY_TBL (t) VALUES ('six');
-ERROR:  null value in column "i" violates not-null constraint
+WARNING:  null value in column "i" violates not-null constraint
+ERROR:  PQO unable to generate plan, please see the above message for details. (CGPOptimizer.cpp:66)
 SELECT '' AS four, * FROM PRIMARY_TBL;
  four | i |   t   
 ------+---+-------
@@ -337,7 +338,8 @@ INSERT INTO PRIMARY_TBL VALUES (1, 'three');
 INSERT INTO PRIMARY_TBL VALUES (4, 'three');
 INSERT INTO PRIMARY_TBL VALUES (5, 'one');
 INSERT INTO PRIMARY_TBL (t) VALUES ('six');
-ERROR:  null value in column "i" violates not-null constraint
+WARNING:  null value in column "i" violates not-null constraint
+ERROR:  PQO unable to generate plan, please see the above message for details. (CGPOptimizer.cpp:66)
 SELECT '' AS three, * FROM PRIMARY_TBL;
  three | i |   t   
 -------+---+-------

@@ -10215,7 +10215,7 @@ insert into orca_exc_handle select i, i from generate_Series(1,4) as i;
 --end_ignore
 select a from orca_exc_handle;
 ERROR:  fault triggered, fault name:'opt_relcache_translator_catalog_access' fault type:'error' (faultinjector.c:671)
-ERROR:  GPDB exception. Aborting GPORCA plan generation. (CGPOptimizer.cpp:66)
+ERROR:  GPDB exception. Aborting PQO plan generation. (CGPOptimizer.cpp:66)
 -- reset the fault injector
 --start_ignore
 \! gpfaultinjector -f opt_relcache_translator_catalog_access -y reset --seg_dbid 1
