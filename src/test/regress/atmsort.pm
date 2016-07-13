@@ -283,30 +283,17 @@ sub init_match_subs
 m/\s+(\W)?(\W)?\(seg.*pid.*\)/
 s/\s+(\W)?(\W)?\(seg.*pid.*\)//
 
-m/WARNING:\s+foreign key constraint \".*\" will require costly sequential scans/
-s/\".*\"/\"dummy key\"/
-
-m/CONTEXT:.*\s+of this segment db input data/
-s/\s+of this segment db input data//
-
 # distributed transactions
-m/(ERROR|WARNING|CONTEXT|NOTICE):.*gid\s+=\s+(\d+)/
+m/^(ERROR|WARNING|CONTEXT|NOTICE):.*gid\s+=\s+(\d+)/
 s/gid.*/gid DUMMY/
 
-m/(ERROR|WARNING|CONTEXT|NOTICE):.*DTM error.*gathered (\d+) results from cmd.*/
+m/^(ERROR|WARNING|CONTEXT|NOTICE):.*DTM error.*gathered (\d+) results from cmd.*/
 s/gathered.*results/gathered SOME_NUMBER_OF results/
 
-# fix code locations eg "(xact.c:1458)" to "(xact.c:SOME_LINE)"
-m/(ERROR|WARNING|CONTEXT|NOTICE):\s+Raise an error as directed by/
+m/^(ERROR|WARNING|CONTEXT|NOTICE):\s+Could not .* savepoint/
 s/\.c\:\d+\)/\.c\:SOME_LINE\)/
 
-m/(DETAIL|ERROR|WARNING|CONTEXT|NOTICE):\s+Raise .* for debug_dtm_action\s*\=\s* \d+/
-s/\.c\:\d+\)/\.c\:SOME_LINE\)/
-
-m/(ERROR|WARNING|CONTEXT|NOTICE):\s+Could not .* savepoint/
-s/\.c\:\d+\)/\.c\:SOME_LINE\)/
-
-m/(ERROR|WARNING|CONTEXT|NOTICE):.*connection.*failed.*(http|gpfdist)/
+m/^(ERROR|WARNING|CONTEXT|NOTICE):.*connection.*failed.*(http|gpfdist)/
 s/connection.*failed.*(http|gpfdist).*/connection failed dummy_protocol\:\/\/DUMMY_LOCATION/
 
 # the EOF ends the HERE document
@@ -440,17 +427,16 @@ sub init_matchignores
 
         # XXX XXX: note the discrepancy in the NOTICE messages
         # 'distributed by' vs 'DISTRIBUTED BY'
-m/NOTICE:\s+Table doesn\'t have \'distributed by\' clause\, and no column type is suitable/i
+m/^NOTICE:  Table doesn\'t have \'distributed by\' clause/
+m/^NOTICE:  Table doesn\'t have \'DISTRIBUTED BY\' clause/
 
-m/NOTICE:\s+Table doesn\'t have \'DISTRIBUTED BY\' clause/i
+m/^NOTICE:  Dropping a column that is part of the distribution policy/
 
-m/NOTICE:\s+Dropping a column that is part of the distribution policy/
+m/^NOTICE:  Table has parent\, setting distribution columns to match parent table/
 
-m/NOTICE:\s+Table has parent\, setting distribution columns to match parent table/
+m/^HINT:  The \'DISTRIBUTED BY\' clause determines the distribution of data/
 
-m/HINT:\s+The \'DISTRIBUTED BY\' clause determines the distribution of data/
-
-m/WARNING:\s+Referential integrity \(.*\) constraints are not supported in Greenplum Database/
+m/^WARNING:  Referential integrity \(.*\) constraints are not supported in Greenplum Database/
 
 
 m/^\s*Distributed by:\s+\(.*\)\s*$/
@@ -460,7 +446,7 @@ m/^\s*Distributed by:\s+\(.*\)\s*$/
         #
         # the NOTICE is different from the ERROR case, which does not
         # end with "skipping"
-m/^NOTICE:\s+\w+\s+\".*\"\s+does not exist\,\s+skipping\s*$/
+m/^NOTICE:  \w+ \".*\" does not exist\, skipping\s*$/
 
 
 # the EOF ends the HERE document

@@ -2,8 +2,6 @@
 -- FLOAT8
 --
 CREATE TABLE FLOAT8_TBL(i INT DEFAULT 1, f1 float8);
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'i' as the Greenplum Database data distribution key for this table.
-HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 INSERT INTO FLOAT8_TBL(f1) VALUES ('    0.0   ');
 INSERT INTO FLOAT8_TBL(f1) VALUES ('1004.30  ');
 INSERT INTO FLOAT8_TBL(f1) VALUES ('   -34.84');
@@ -564,8 +562,6 @@ SELECT '' AS five, f1 FROM FLOAT8_TBL ORDER BY 2;
 -- test if you can dump/restore subnormal (1e-323) values
 -- using COPY
 CREATE TABLE FLOATS(a float8);
-psql:cdb-pg/src/test/regress/sql/float8.sql:172: NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Greenplum Database data distribution key for this table.
-HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 INSERT INTO FLOATS select 1e-307::float8 / 10^i FROM generate_series(1,16) i;
 SELECT * FROM FLOATS ORDER BY a;
            a           

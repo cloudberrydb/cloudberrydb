@@ -1,14 +1,11 @@
 -- start_matchignore
 # match ignore the gpmon WARNING message
 m/^WARNING:  gpmon:.*Connection refused.*/
-s/^WARNING:  gpmon:.*Connection refused.*//
 
 # MPP-20400
 m/^WARNING:  gpmon:.*No buffer space available socket.*/
-s/^WARNING:  gpmon:.*No buffer space available socket.*//
 
 m/^ Optimizer status:.*/
-s/^ Optimizer status:.*//
 
 # We have disabled ignoring NOTICE statements because some tests rely on these
 # NOTICEs to verify that the test is correct e.g (vacuum). Ignoring them would
@@ -24,7 +21,6 @@ s/^ Optimizer status:.*//
 # to manually modify the corresponding expected output. Hence we want to ignore
 # these.
 m/^NOTICE:.*Table doesn't have 'DISTRIBUTED BY' clause -- Using column named '.*' as the Greenplum Database data distribution key for this table./
-s/^NOTICE:.*Table doesn't have 'DISTRIBUTED BY' clause -- Using column named '.*' as the Greenplum Database data distribution key for this table.//
 
 # The following NOTICE is generated when a partitioned table is created. For
 # each child partition that gets created, it will generate a NOTICE saying that
@@ -34,7 +30,6 @@ s/^NOTICE:.*Table doesn't have 'DISTRIBUTED BY' clause -- Using column named '.*
 # E.g CREATE TABLE will create partition "hhh_1_prt_r1987544232" for table "hhh" 
 #     CREATE TABLE will create partition "hhh_1_prt_r1987553186" for table "hhh"
 m/^NOTICE:.*CREATE TABLE will create partition ".*" for table ".*"/
-s/^NOTICE:.*CREATE TABLE will create partition ".*" for table ".*"//
 
 # The following NOTICE is generated when creating a role. It is to inform the
 # user that the database will assign the default resource queue to the role if
@@ -42,21 +37,18 @@ s/^NOTICE:.*CREATE TABLE will create partition ".*" for table ".*"//
 # cause the tests to output these messages and we would need to manually modify
 # the corresponding expected output. Hence we want to ignore these.
 m/^NOTICE:.*resource queue required -- using default resource queue ".*"/
-s/^NOTICE:.*resource queue required -- using default resource queue ".*"//
 
 # The following NOTICE is generated when a user creates an index on the parent
 # partition table. For each child partition, it informs the user that the
 # database will create an index for that parition. The messages might appear in
 # different order for the child partitions.
-m/NOTICE:.*building index for child partition ".*"/
-s/NOTICE:.*building index for child partition ".*"//
+m/^NOTICE:.*building index for child partition ".*"/
 
 # The following NOTICE is generated when a user tries to split a partition or
 # exchange a partition with the default partition.
 # In case of split partitions we end up creating temp tables to exchange the partitions
 # E.g exchanged partition "p1" of relation "parttest_t" with relation "pg_temp_4062621"
 m/^NOTICE:.*exchanged partition ".*" with relation ".*"/
-s/^NOTICE:.*exchanged partition ".*" with relation ".*"//
 
 # The following two NOTICEs are generated when user runs CREATE function. In
 # some cases, when the database creates a function internally, the NOTICE might
@@ -64,10 +56,8 @@ s/^NOTICE:.*exchanged partition ".*" with relation ".*"//
 # For e.g  NOTICE:  return type pg_atsdb_133977_2_3 is only a shell. It is not
 # really providing useful information to the user and hence can be ignored.
 m/^NOTICE:.*return type .* is only a shell/
-s/^NOTICE:.*return type .* is only a shell//
 
 m/^NOTICE:.*argument type .* is only a shell/
-s/^NOTICE:.*argument type .* is only a shell//
 
 # The following NOTICE is generated when a user creates a table with no
 # columns. E.g CREATE TABLE foo(). It is to inform the user that database
@@ -76,7 +66,6 @@ s/^NOTICE:.*argument type .* is only a shell//
 # manually modify the corresponding expected output. Hence we want to ignore
 # these.
 m/^NOTICE:.*Table has no attributes to distribute on./
-s/^NOTICE:.*Table has no attributes to distribute on.//
 
 # The following NOTICE is generated when user runs ANALYZE. The NOTICE message
 # generated seems to be non deterministic in that separate test runs produce
@@ -84,10 +73,8 @@ s/^NOTICE:.*Table has no attributes to distribute on.//
 # test run it produced the following NOTICE for pg_auth and in other it
 # produced a NOTICE for pg_auth and pg_auth_constraints.
 m/^NOTICE:.*ANALYZE detected all empty sample pages for table .*, please run VACUUM FULL for accurate estimation/
-s/^NOTICE:.*ANALYZE detected all empty sample pages for table .*, please run VACUUM FULL for accurate estimation//
 
 m/^WARNING:  could not close temporary file .*: No such file or directory/
-s/^WARNING:  could not close temporary file .*: No such file or directory//
 -- end_matchignore
 
 -- start_matchsubs
