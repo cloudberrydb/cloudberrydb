@@ -103,7 +103,7 @@ ExecEvalExprCodegenEnroll(ExecEvalExprFn regular_func_ptr,
                           ExecEvalExprFn* ptr_to_regular_func_ptr,
                           struct ExprState *exprstate,
                           struct ExprContext *econtext,
-                          struct TupleTableSlot* slot)
+                          struct PlanState* planstate)
 {
   *ptr_to_regular_func_ptr = regular_func_ptr;
    elog(ERROR, "mock implementation of ExecEvalExprCodegenEnroll called");

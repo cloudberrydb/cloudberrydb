@@ -54,14 +54,48 @@ ExecEvalExprCodegen::ExecEvalExprCodegen
     ExecEvalExprFn* ptr_to_regular_func_ptr,
     ExprState *exprstate,
     ExprContext *econtext,
-    TupleTableSlot* slot) :
+    PlanState* plan_state) :
     BaseCodegen(kExecEvalExprPrefix,
                 regular_func_ptr, ptr_to_regular_func_ptr),
                 exprstate_(exprstate),
                 econtext_(econtext),
-                slot_(slot) {
+                plan_state_(plan_state) {
 }
 
+void ExecEvalExprCodegen::PrepareSlotGetAttr(
+    gpcodegen::GpCodegenUtils* codegen_utils, ExprTreeGeneratorInfo* gen_info) {
+  assert(nullptr != plan_state_);
+  switch (nodeTag(plan_state_)) {
+    case T_SeqScanState:
+    case T_TableScanState:
+      // Generate dependent slot_getattr() implementation for the given slot
+      if (gen_info->max_attr > 0) {
+        TupleTableSlot* slot = reinterpret_cast<ScanState*>(plan_state_)
+            ->ss_ScanTupleSlot;
+        assert(nullptr != slot);
+        std::string slot_getattr_func_name = "slot_getattr_"
+            + std::to_string(reinterpret_cast<uint64_t>(slot)) + "_"
+            + std::to_string(gen_info->max_attr);
+        bool ok = SlotGetAttrCodegen::GenerateSlotGetAttr(
+            codegen_utils, slot_getattr_func_name, slot, gen_info->max_attr,
+            &gen_info->llvm_slot_getattr_func);
+        if (!ok) {
+          elog(DEBUG1, "slot_getattr generation for ExecEvalExpr failed!");
+        }
+      }
+      break;
+    case T_AggState:
+      // For now, we assume that tuples for the Aggs are already going to be
+      // deformed in which case, we can avoid generating and calling the
+      // generated slot_getattr(). This may not be true always, but calling the
+      // regular slot_getattr() will still preserve correctness.
+      gen_info->llvm_slot_getattr_func = nullptr;
+      break;
+    default:
+      elog(DEBUG1,
+          "Attempting to generate ExecEvalExpr for an unsupported operator!");
+  }
+}
 
 bool ExecEvalExprCodegen::GenerateExecEvalExpr(
     gpcodegen::GpCodegenUtils* codegen_utils) {
@@ -104,24 +138,8 @@ bool ExecEvalExprCodegen::GenerateExecEvalExpr(
     return false;
   }
 
-  // Generate dependant slot_getattr() implementation for the given slot
-  if (gen_info.max_attr > 0) {
-    assert(nullptr != slot_);
-
-    std::string slot_getattr_func_name = "slot_getattr_" +
-        std::to_string(reinterpret_cast<uint64_t>(slot_)) + "_" +
-        std::to_string(gen_info.max_attr);
-
-    bool ok = SlotGetAttrCodegen::GenerateSlotGetAttr(
-        codegen_utils,
-        slot_getattr_func_name,
-        slot_,
-        gen_info.max_attr,
-        &gen_info.llvm_slot_getattr_func);
-    if (!ok) {
-      elog(DEBUG1, "slot_getattr generation for ExecEvalExpr failed!");
-    }
-  }
+  // Prepare dependent slot_getattr() generation
+  PrepareSlotGetAttr(codegen_utils, &gen_info);
 
   // In case the generation above failed either or it was not needed,
   // we revert to use the external slot_getattr()

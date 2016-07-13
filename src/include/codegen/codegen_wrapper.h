@@ -28,6 +28,7 @@ struct TupleTableSlot;
 struct ProjectionInfo;
 struct ExprContext;
 struct ExprState;
+struct PlanState;
 
 /*
  * Enum used to mimic ExprDoneCond in ExecEvalExpr function pointer.
@@ -171,7 +172,7 @@ ExecEvalExprCodegenEnroll(ExecEvalExprFn regular_func_ptr,
                           ExecEvalExprFn* ptr_to_regular_func_ptr,
                           struct ExprState *exprstate,
                           struct ExprContext *econtext,
-                          struct TupleTableSlot* slot);
+                          struct PlanState* plan_state);
 
 #ifdef __cplusplus
 }  // extern "C"
@@ -232,9 +233,9 @@ ExecEvalExprCodegenEnroll(ExecEvalExprFn regular_func_ptr,
 				regular_func, ptr_to_regular_func_ptr, proj_info, slot); \
 		Assert(proj_info->ExecVariableList_gen_info.ExecVariableList_fn == regular_func); \
 
-#define enroll_ExecEvalExpr_codegen(regular_func, ptr_to_regular_func_ptr, exprstate, econtext, slot) \
+#define enroll_ExecEvalExpr_codegen(regular_func, ptr_to_regular_func_ptr, exprstate, econtext, plan_state) \
 		exprstate->ExecEvalExpr_code_generator = ExecEvalExprCodegenEnroll( \
-        (ExecEvalExprFn)regular_func, (ExecEvalExprFn*)ptr_to_regular_func_ptr, exprstate, econtext, slot); \
+        (ExecEvalExprFn)regular_func, (ExecEvalExprFn*)ptr_to_regular_func_ptr, exprstate, econtext, plan_state); \
         Assert(exprstate->evalfunc == regular_func); \
 
 #endif //USE_CODEGEN
