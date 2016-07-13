@@ -123,6 +123,11 @@ bool SlotGetAttrCodegen::GenerateSlotGetAttrInternal(
   // -----------
 
   irb->SetInsertPoint(entry_block);
+#ifdef CODEGEN_DEBUG
+  codegen_utils->CreateElog(
+      DEBUG1,
+      "Codegen'ed slot_getattr called!");
+#endif
   // We start a sequence of checks to ensure that everything is fine and
   // we do not need to fall back.
   irb->CreateBr(slot_check_block);

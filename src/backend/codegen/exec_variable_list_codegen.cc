@@ -156,6 +156,11 @@ bool ExecVariableListCodegen::GenerateExecVariableList(
   // Entry block
   // -----------
   irb->SetInsertPoint(entry_block);
+#ifdef CODEGEN_DEBUG
+  codegen_utils->CreateElog(
+      DEBUG1,
+      "Codegen'ed ExecVariableList called!");
+#endif
   irb->CreateBr(slot_check_block);
 
   // Slot check block

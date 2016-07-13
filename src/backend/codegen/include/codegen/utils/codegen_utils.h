@@ -265,11 +265,11 @@ class CodegenUtils {
    **/
   llvm::BasicBlock* CreateBasicBlock(const llvm::Twine& name,
                                      llvm::Function* parent) {
-#ifdef GPCODEGEN_DEBUG
+#ifdef CODEGEN_DEBUG
     // DEBUG-only assertion to make sure that caller does not try to generate IR
     // for an external function.
     assert(!parent->getName().startswith(kExternalFunctionNamePrefix));
-#endif  // GPCODEGEN_DEBUG
+#endif  // CODEGEN_DEBUG
     return llvm::BasicBlock::Create(context_, name, parent, nullptr);
   }
 
@@ -1175,7 +1175,7 @@ template <typename ReturnType, typename... ArgumentTypes>
 auto CodegenUtils::GetFunctionPointerImpl(const std::string& function_name)
     -> ReturnType (*)(ArgumentTypes...) {
   if (engine_) {
-#ifdef GPCODEGEN_DEBUG
+#ifdef CODEGEN_DEBUG
     CheckFunctionType(function_name,
                       GetFunctionType<ReturnType, ArgumentTypes...>());
 #endif

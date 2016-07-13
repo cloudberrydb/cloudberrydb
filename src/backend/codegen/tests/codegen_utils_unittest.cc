@@ -2817,7 +2817,7 @@ TEST_F(CodegenUtilsTest, InlineFunctionTest) {
 }
 
 
-#ifdef GPCODEGEN_DEBUG
+#ifdef CODEGEN_DEBUG
 
 TEST_F(CodegenUtilsDeathTest, WrongFunctionTypeTest) {
   // Create a function identical to the one in TrivialCompilationTest, but try
@@ -2879,7 +2879,7 @@ TEST_F(CodegenUtilsDeathTest, GetPointerToMemberFromWrongTypeBasePointerTest) {
                "");
 }
 
-#endif  // GPCODEGEN_DEBUG
+#endif  // CODEGEN_DEBUG
 
 }  // namespace gpcodegen
 
