@@ -29,9 +29,7 @@ namespace gpcodegen {
  */
 
 typedef bool (*PGFuncGenerator)(gpcodegen::GpCodegenUtils* codegen_utils,
-    llvm::Function* llvm_main_func,
-    llvm::BasicBlock* llvm_error_block,
-    const std::vector<llvm::Value*>& llvm_args,
+    const PGFuncGeneratorInfo& pg_func_info,
     llvm::Value** llvm_out_value);
 
 
@@ -136,13 +134,13 @@ Arg0, Arg1> {
   }
 
   bool GenerateCode(gpcodegen::GpCodegenUtils* codegen_utils,
-                    llvm::Function* llvm_main_func,
-                    llvm::BasicBlock* llvm_error_block,
-                    const std::vector<llvm::Value*>& llvm_args,
+                    const PGFuncGeneratorInfo& pg_func_info,
                     llvm::Value** llvm_out_value) final {
     assert(nullptr != llvm_out_value);
     std::vector<llvm::Value*> llvm_preproc_args;
-    if (!this->PreProcessArgs(codegen_utils, llvm_args, &llvm_preproc_args)) {
+    if (!this->PreProcessArgs(codegen_utils,
+                              pg_func_info.llvm_args,
+                              &llvm_preproc_args)) {
       return false;
     }
     llvm::IRBuilder<>* irb = codegen_utils->ir_builder();
@@ -182,20 +180,21 @@ Arg0, Arg1> {
   }
 
   bool GenerateCode(gpcodegen::GpCodegenUtils* codegen_utils,
-                    llvm::Function* llvm_main_func,
-                    llvm::BasicBlock* llvm_error_block,
-                    const std::vector<llvm::Value*>& llvm_args,
+                    const PGFuncGeneratorInfo& pg_func_info,
                     llvm::Value** llvm_out_value) final {
-    assert(nullptr != codegen_utils &&
-           nullptr != llvm_out_value);
+    assert(nullptr != codegen_utils);
+    assert(nullptr != llvm_out_value);
     std::vector<llvm::Value*> llvm_preproc_args;
-    if (!this->PreProcessArgs(codegen_utils, llvm_args, &llvm_preproc_args)) {
+    if (!this->PreProcessArgs(codegen_utils,
+                              pg_func_info.llvm_args,
+                              &llvm_preproc_args)) {
       return false;
     }
+    PGFuncGeneratorInfo pg_processed_func_info(pg_func_info.llvm_main_func,
+                                               pg_func_info.llvm_error_block,
+                                               llvm_preproc_args);
     this->func_ptr()(codegen_utils,
-        llvm_main_func,
-        llvm_error_block,
-        llvm_preproc_args,
+        pg_processed_func_info,
         llvm_out_value);
     return true;
   }

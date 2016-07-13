@@ -186,11 +186,12 @@ bool OpExprTreeGenerator::GenerateCode(GpCodegenUtils* codegen_utils,
     llvm_arguments.push_back(llvm_arg);
   }
   llvm::Value* llvm_op_value = nullptr;
-  bool retval = pg_func_interface->GenerateCode(codegen_utils,
-                                   gen_info.llvm_main_func,
+  PGFuncGeneratorInfo pg_func_info(gen_info.llvm_main_func,
                                    gen_info.llvm_error_block,
-                                   llvm_arguments,
-                                   &llvm_op_value);
+                                   llvm_arguments);
+  bool retval = pg_func_interface->GenerateCode(codegen_utils,
+                                                pg_func_info,
+                                                &llvm_op_value);
   // convert return type to Datum
   *llvm_out_value = codegen_utils->CreateCppTypeToDatumCast(llvm_op_value);
   return retval;
