@@ -10,12 +10,14 @@ resources:
     source:
       user: greenplum-db
       repository: gpos
+      access_token: {{gposbot_access_token}}
 
   - name: orca_github_release
     type: github-release
     source:
       user: greenplum-db
       repository: gporca
+      access_token: {{gporcabot_access_token}}
 
   - name: bin_xerces
     type: s3
