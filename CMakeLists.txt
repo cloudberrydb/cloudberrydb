@@ -15,6 +15,9 @@ set(GPORCA_VERSION_STRING ${GPORCA_VERSION_MAJOR}.${GPORCA_VERSION_MINOR})
 # doubt, do the safe thing and increment this number.
 set(GPORCA_ABI_VERSION 3)
 
+# Default to shared libraries.
+option(BUILD_SHARED_LIBS "build shared libraries" ON)
+
 # Configure CCache if available
 find_program(CCACHE_FOUND ccache)
 if(CCACHE_FOUND)

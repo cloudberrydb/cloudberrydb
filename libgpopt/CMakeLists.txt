@@ -8,7 +8,7 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../libnaucrates/include)
 configure_file(version.h.in
         ${PROJECT_BINARY_DIR}/libgpopt/include/libgpopt/version.h)
 
-add_library(gpopt SHARED
+add_library(gpopt
             include/gpopt/base/CDistributionSpec.h
             include/gpopt/base/CDistributionSpecAny.h
             include/gpopt/base/CDistributionSpecUniversal.h

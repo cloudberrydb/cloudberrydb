@@ -3,7 +3,7 @@
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../libgpopt/include)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../libgpdbcost/include)
-add_library(naucrates SHARED
+add_library(naucrates
             include/naucrates/base/IDatum.h
             include/naucrates/base/IDatumBool.h
             include/naucrates/base/IDatumGeneric.h
