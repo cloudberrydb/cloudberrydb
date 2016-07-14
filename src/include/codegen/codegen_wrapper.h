@@ -47,6 +47,8 @@ typedef Datum (*SlotGetAttrFn) (struct TupleTableSlot *slot, int attnum, bool *i
 #define CodeGeneratorManagerGenerateCode(manager);
 #define CodeGeneratorManagerPrepareGeneratedFunctions(manager) 1
 #define CodeGeneratorManagerNotifyParameterChange(manager) 1
+#define CodeGeneratorManagerAccumulateExplainString(manager) 1
+#define CodeGeneratorManagerGetExplainString(manager) 1
 #define CodeGeneratorManagerDestroy(manager);
 #define GetActiveCodeGeneratorManager() NULL
 #define SetActiveCodeGeneratorManager(manager);
@@ -128,6 +130,19 @@ void
 CodeGeneratorManagerDestroy(void* manager);
 
 /*
+ * Accumulate the explain string with a dump of all the underlying LLVM modules
+ */
+void
+CodeGeneratorManagerAccumulateExplainString(void* manager);
+
+/*
+ * Return a copy in CurrentMemoryContext of the previously accumulated explain
+ * string
+ */
+char*
+CodeGeneratorManagerGetExplainString(void* manager);
+
+/*
  * Get the active code generator manager
  */
 void*
@@ -157,7 +172,6 @@ ExecEvalExprCodegenEnroll(ExecEvalExprFn regular_func_ptr,
                           struct ExprState *exprstate,
                           struct ExprContext *econtext,
                           struct TupleTableSlot* slot);
-
 
 #ifdef __cplusplus
 }  // extern "C"

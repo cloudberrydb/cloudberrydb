@@ -99,6 +99,17 @@ class CodegenManager {
     return enrolled_code_generators_.size();
   }
 
+  /*
+   * @brief Accumulate the explain string with a dump of all the underlying LLVM
+   *        modules
+   */
+  void AccumulateExplainString();
+
+  /*
+   * @brief Return the previous accumulated explain string
+   */
+  const std::string& GetExplainString();
+
  private:
   // GpCodegenUtils provides a facade to LLVM subsystem.
   std::unique_ptr<gpcodegen::GpCodegenUtils> codegen_utils_;
@@ -107,6 +118,9 @@ class CodegenManager {
 
   // List of all enrolled code generators.
   std::vector<std::unique_ptr<CodegenInterface>> enrolled_code_generators_;
+
+  // Holds the dumped IR of all underlying modules for EXPLAIN CODEGEN queries
+  std::string explain_string_;
 
   DISALLOW_COPY_AND_ASSIGN(CodegenManager);
 };

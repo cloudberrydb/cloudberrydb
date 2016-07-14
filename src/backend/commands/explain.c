@@ -86,6 +86,9 @@ static void ExplainDXL(Query *query, ExplainStmt *stmt,
 							const char *queryString,
 							ParamListInfo params, TupOutputState *tstate);
 #endif
+#ifdef USE_CODEGEN
+static void ExplainCodegen(PlanState *planstate, TupOutputState *tstate);
+#endif
 static double elapsed_time(instr_time *starttime);
 static ErrorData *explain_defer_error(ExplainState *es);
 static void explain_outNode(StringInfo str,
@@ -116,7 +119,6 @@ show_motion_keys(Plan *plan, List *hashExpr, int nkeys, AttrNumber *keycols,
                  StringInfo str, int indent, ExplainState *es);
 static void
 show_static_part_selection(PartitionSelector *ps, Sequence *parent, StringInfo str, int indent, ExplainState *es);
-
 
 /*
  * ExplainQuery -
@@ -316,6 +318,32 @@ ExplainOneUtility(Node *utilityStmt, ExplainStmt *stmt,
 							   "Utility statements have no plan structure");
 }
 
+#ifdef USE_CODEGEN
+/*
+ * ExplainCodegen -
+ * 		given a PlanState tree, traverse its nodes, collect any accumulated
+ * 		explain strings from the state's CodegenManager, and print to EXPLAIN
+ * 		output
+ * 		NB: This method does not recurse into sub plans at this point.
+ */
+static void
+ExplainCodegen(PlanState *planstate, TupOutputState *tstate) {
+	if (NULL == planstate) {
+		return;
+	}
+
+	Assert(NULL != tstate);
+
+	ExplainCodegen(planstate->lefttree, tstate);
+
+	char* str = CodeGeneratorManagerGetExplainString(planstate->CodegenManager);
+	Assert(NULL != str);
+	do_text_output_oneline(tstate, str);
+
+	ExplainCodegen(planstate->righttree, tstate);
+}
+#endif
+
 /*
  * ExplainOnePlan -
  *		given a planned query, execute it if needed, and then print
@@ -399,10 +427,22 @@ ExplainOnePlan(PlannedStmt *plannedstmt, ParamListInfo params,
 		{
 			queryDesc->plannedstmt->query_mem = ResourceQueueGetQueryMemoryLimit(queryDesc->plannedstmt, GetResQueueId());			
 		}
-    }
+	}
+
+#ifdef USE_CODEGEN
+	if (stmt->codegen && codegen && Gp_segment == -1) {
+		eflags |= EXEC_FLAG_EXPLAIN_CODEGEN;
+	}
+#endif
 
 	/* call ExecutorStart to prepare the plan for execution */
 	ExecutorStart(queryDesc, eflags);
+
+#ifdef USE_CODEGEN
+	if (stmt->codegen && codegen && Gp_segment == -1) {
+		ExplainCodegen(queryDesc->planstate, tstate);
+	}
+#endif
 
     estate = queryDesc->estate;
 

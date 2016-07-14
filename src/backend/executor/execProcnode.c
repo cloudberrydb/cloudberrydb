@@ -761,7 +761,12 @@ ExecInitNode(Plan *node, EState *estate, int eflags)
 		SAVE_EXECUTOR_MEMORY_ACCOUNT(result, curMemoryAccount);
 		result->CodegenManager = CodegenManager;
 		CodeGeneratorManagerGenerateCode(CodegenManager);
-		CodeGeneratorManagerPrepareGeneratedFunctions(CodegenManager);
+		if (eflags & EXEC_FLAG_EXPLAIN_CODEGEN) {
+			CodeGeneratorManagerAccumulateExplainString(CodegenManager);
+		}
+		if (!(eflags & EXEC_FLAG_EXPLAIN_ONLY)) {
+			CodeGeneratorManagerPrepareGeneratedFunctions(CodegenManager);
+		}
 	}
 	}
 	END_CODE_GENERATOR_MANAGER();

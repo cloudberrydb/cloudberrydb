@@ -263,6 +263,22 @@ bool CodegenUtils::PrepareForExecution(const OptimizationLevel cpu_opt_level,
   return true;
 }
 
+void CodegenUtils::PrintUnderlyingModules(llvm::raw_ostream& out) {
+  // Print the main module
+  out << "==== MAIN MODULE ====" << "\n";
+  out.flush();
+  module()->print(out, nullptr);
+
+  // Print auxiliary modules
+  out << "==== AUXILIARY MODULES ====" << "\n";
+  out.flush();
+  for (std::unique_ptr<llvm::Module>& auxiliary_module : auxiliary_modules_) {
+      auxiliary_module->print(out, nullptr);
+  }
+  out << "==== END MODULES ====" << "\n\n";
+  out.flush();
+}
+
 llvm::GlobalVariable* CodegenUtils::AddExternalGlobalVariable(
     llvm::Type* type,
     const void* address) {

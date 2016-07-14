@@ -17,6 +17,10 @@
 
 #include "codegen/utils/gp_codegen_utils.h"
 
+extern "C" {
+#include "lib/stringinfo.h"
+}
+
 using gpcodegen::CodegenManager;
 using gpcodegen::BaseCodegen;
 using gpcodegen::ExecVariableListCodegen;
@@ -59,6 +63,25 @@ unsigned int CodeGeneratorManagerNotifyParameterChange(void* manager) {
   // parameter change notification is not supported yet
   assert(false);
   return 0;
+}
+
+void CodeGeneratorManagerAccumulateExplainString(void* manager) {
+  if (!codegen) {
+    return;
+  }
+  assert(nullptr != manager);
+  static_cast<CodegenManager*>(manager)->AccumulateExplainString();
+}
+
+char* CodeGeneratorManagerGetExplainString(void* manager) {
+  if (!codegen) {
+    return nullptr;
+  }
+  StringInfo return_string = makeStringInfo();
+  appendStringInfoString(
+      return_string,
+      static_cast<CodegenManager*>(manager)->GetExplainString().c_str());
+  return return_string->data;
 }
 
 void CodeGeneratorManagerDestroy(void* manager) {

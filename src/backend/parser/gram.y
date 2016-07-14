@@ -336,6 +336,7 @@ static Node *makeIsNotDistinctFromNode(Node *expr, int position);
 %type <boolean> opt_freeze opt_default opt_ordered opt_recheck
 %type <boolean> opt_rootonly_all
 %type <boolean> opt_dxl
+%type <boolean> codegen
 %type <defelt>	opt_binary opt_oids copy_delimiter
 
 %type <boolean> copy_from skip_external_partition
@@ -490,7 +491,7 @@ static Node *makeIsNotDistinctFromNode(Node *expr, int position);
 
 	CACHE CALLED CASCADE CASCADED CASE CAST CHAIN CHAR_P
 	CHARACTER CHARACTERISTICS CHECK CHECKPOINT CLASS CLOSE
-	CLUSTER COALESCE COLLATE COLUMN COMMENT COMMIT
+	CLUSTER COALESCE CODEGEN COLLATE COLUMN COMMENT COMMIT
 	COMMITTED CONCURRENTLY CONFIGURATION CONNECTION CONSTRAINT CONSTRAINTS CONTAINS
 	CONTENT_P CONTINUE_P CONVERSION_P COPY COST CREATE CREATEDB
 	CREATEEXTTABLE
@@ -8499,7 +8500,7 @@ opt_name_list:
  *
  *****************************************************************************/
 
-ExplainStmt: EXPLAIN opt_analyze opt_verbose opt_dxl opt_force ExplainableStmt
+ExplainStmt: EXPLAIN opt_analyze opt_verbose opt_dxl opt_force codegen ExplainableStmt
 				{
 					ExplainStmt *n = makeNode(ExplainStmt);
 					n->analyze = $2;
@@ -8509,7 +8510,8 @@ ExplainStmt: EXPLAIN opt_analyze opt_verbose opt_dxl opt_force ExplainableStmt
 						ereport(ERROR, (errcode(ERRCODE_SYNTAX_ERROR), 
 								errmsg("cannot use force with explain statement")
 							       ));
-					n->query = $6;
+					n->codegen = $6;
+					n->query = $7;
 					$$ = (Node *)n;
 				}
 		;
@@ -8537,6 +8539,11 @@ opt_dxl:	DXL										{ $$ = TRUE; }
 
 opt_analyze:
 			analyze_keyword			{ $$ = TRUE; }
+			| /* EMPTY */			{ $$ = FALSE; }
+		;
+
+codegen:
+			CODEGEN				{ $$ = TRUE; }
 			| /* EMPTY */			{ $$ = FALSE; }
 		;
 
@@ -12616,6 +12623,7 @@ unreserved_keyword:
 			| CLASS
 			| CLOSE
 			| CLUSTER
+			| CODEGEN
 			| COMMENT
 			| COMMIT
 			| COMMITTED

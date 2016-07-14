@@ -52,6 +52,7 @@ struct ChunkTransportState;             /* #include "cdb/cdbinterconnect.h" */
 #define EXEC_FLAG_REWIND		0x0002	/* expect rescan */
 #define EXEC_FLAG_BACKWARD		0x0004	/* need backward scan */
 #define EXEC_FLAG_MARK			0x0008	/* need mark/restore */
+#define EXEC_FLAG_EXPLAIN_CODEGEN	0x0010	/* EXPLAIN CODEGEN */
 
 
 /*

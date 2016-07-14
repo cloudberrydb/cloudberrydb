@@ -102,3 +102,13 @@ bool CodegenManager::InvalidateGeneratedFunctions() {
   assert(false);
   return false;
 }
+
+const std::string& CodegenManager::GetExplainString() {
+  return explain_string_;
+}
+
+void CodegenManager::AccumulateExplainString() {
+  explain_string_.clear();
+  llvm::raw_string_ostream out(explain_string_);
+  codegen_utils_->PrintUnderlyingModules(out);
+}
