@@ -8,26 +8,22 @@ include_directories(include)
 # compilers (notably Clang) detect this and generate a warning. We suppress
 # such warnings ONLY for CExceptionTest, which we compile as a static library
 # separate from the rest of the tests.
-add_library(gpos_test_error_CExceptionTest
-            src/unittest/gpos/error/CExceptionTest.cpp)
 check_cxx_compiler_flag("-Wno-infinite-recursion"
                         COMPILER_HAS_WNO_INFINITE_RECURSION)
 if (COMPILER_HAS_WNO_INFINITE_RECURSION)
-  set_target_properties(gpos_test_error_CExceptionTest
-                        PROPERTIES COMPILE_FLAGS "-Wno-infinite-recursion")
+  set_source_files_properties(src/unittest/gpos/error/CExceptionTest.cpp
+    PROPERTIES COMPILE_FLAGS "-Wno-infinite-recursion")
 endif()
 
 # CCacheTest sets some variables that are only read in DEBUG builds, causing
 # warnings about unused variables for RELEASE builds. We suppress such warnings
 # ONLY for CCacheTest, which we compile as a static library separate from the
 # rest of the tests.
-add_library(gpos_test_memory_CCacheTest
-            src/unittest/gpos/memory/CCacheTest.cpp)
 check_cxx_compiler_flag("-Wno-unused-variable"
                         COMPILER_HAS_WNO_UNUSED_VARIABLE)
 if (COMPILER_HAS_WNO_UNUSED_VARIABLE)
-  set_target_properties(gpos_test_memory_CCacheTest
-                        PROPERTIES COMPILE_FLAGS "-Wno-unused-variable")
+  set_source_files_properties(src/unittest/gpos/memory/CCacheTest.cpp
+    PROPERTIES COMPILE_FLAGS "-Wno-unused-variable")
 endif()
 
 # Monolithic gpos_test executable.
@@ -51,6 +47,7 @@ add_executable(gpos_test
                src/unittest/gpos/common/CSyncHashtableTest.cpp
                src/unittest/gpos/common/CSyncListTest.cpp
                src/unittest/gpos/error/CErrorHandlerTest.cpp
+               src/unittest/gpos/error/CExceptionTest.cpp
                src/unittest/gpos/error/CFSimulatorTest.cpp
                src/unittest/gpos/error/CLoggerTest.cpp
                src/unittest/gpos/error/CMessageRepositoryTest.cpp
@@ -61,6 +58,7 @@ add_executable(gpos_test
                src/unittest/gpos/io/COstreamBasicTest.cpp
                src/unittest/gpos/io/COstreamFileTest.cpp
                src/unittest/gpos/io/COstreamStringTest.cpp
+               src/unittest/gpos/memory/CCacheTest.cpp
                src/unittest/gpos/memory/CMemoryPoolBasicTest.cpp
                src/unittest/gpos/memory/IMemoryPoolTest.cpp
                src/unittest/gpos/memory/CMemoryPoolAllocTest.cpp
@@ -77,9 +75,7 @@ add_executable(gpos_test
                src/unittest/gpos/task/CWorkerPoolManagerTest.cpp
                src/unittest/gpos/test/CUnittestTest.cpp)
 target_link_libraries(gpos_test
-                      gpos
-                      gpos_test_error_CExceptionTest
-                      gpos_test_memory_CCacheTest)
+                      gpos)
 
 # Convenience function to add the test specified by 'TEST_NAME' to the set of
 # tests to be run by CTest.
