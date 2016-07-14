@@ -7,15 +7,13 @@ include_directories("${CMAKE_CURRENT_SOURCE_DIR}/include"
 
 # Some tests use C99 long long integer constants, but the C++ dialect may not
 # explicitly include C99. We supress such errors here.
-add_library(gporca_test_longlong_tests
-            src/unittest/dxl/statistics/CStatisticsTest.cpp
-            src/unittest/gpopt/base/CConstraintTest.cpp
-            src/unittest/gpopt/metadata/CPartConstraintTest.cpp)
 check_cxx_compiler_flag("-Wno-long-long"
                         COMPILER_HAS_WNO_LONG_LONG)
 if (COMPILER_HAS_WNO_LONG_LONG)
-  set_target_properties(gporca_test_longlong_tests
-                        PROPERTIES COMPILE_FLAGS "-Wno-long-long")
+    set_source_files_properties(src/unittest/dxl/statistics/CStatisticsTest.cpp
+                                src/unittest/gpopt/base/CConstraintTest.cpp
+                                src/unittest/gpopt/metadata/CPartConstraintTest.cpp
+                                PROPERTIES COMPILE_FLAGS "-Wno-long-long")
 endif()
 
 add_executable(gporca_test
@@ -49,6 +47,8 @@ add_executable(gporca_test
                include/unittest/dxl/comm/CCommunicatorTest.h
                src/unittest/dxl/comm/CCommunicatorTest.cpp
                include/unittest/dxl/base/CDatumTest.h
+               include/unittest/dxl/statistics/CStatisticsTest.h
+               src/unittest/dxl/statistics/CStatisticsTest.cpp
                src/unittest/dxl/base/CDatumTest.cpp
                include/unittest/gpopt/translate/CTranslatorExprToDXLTest.h
                src/unittest/gpopt/translate/CTranslatorExprToDXLTest.cpp
@@ -134,6 +134,8 @@ add_executable(gporca_test
                src/unittest/gpopt/eval/CConstExprEvaluatorDXLTest.cpp
                include/unittest/gpopt/eval/CConstExprEvaluatorDefaultTest.h
                src/unittest/gpopt/eval/CConstExprEvaluatorDefaultTest.cpp
+               include/unittest/gpopt/base/CConstraintTest.h
+               src/unittest/gpopt/base/CConstraintTest.cpp
                include/unittest/gpopt/base/CKeyCollectionTest.h
                src/unittest/gpopt/base/CKeyCollectionTest.cpp
                include/unittest/gpopt/base/CColumnFactoryTest.h
@@ -160,6 +162,8 @@ add_executable(gporca_test
                src/unittest/gpopt/csq/CCorrelatedExecutionTest.cpp
                include/unittest/gpopt/cost/CCostTest.h
                src/unittest/gpopt/cost/CCostTest.cpp
+               include/unittest/gpopt/metadata/CPartConstraintTest.h
+               src/unittest/gpopt/metadata/CPartConstraintTest.cpp
                include/unittest/gpopt/metadata/CTableDescriptorTest.h
                src/unittest/gpopt/metadata/CTableDescriptorTest.cpp
                include/unittest/gpopt/metadata/CColumnDescriptorTest.h
@@ -170,7 +174,6 @@ add_executable(gporca_test
                src/unittest/gpopt/metadata/CNameTest.cpp
         )
 target_link_libraries(gporca_test
-                      gporca_test_longlong_tests
                       gpdbcost
                       gpopt
                       naucrates
