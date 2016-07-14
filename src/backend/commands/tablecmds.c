@@ -2644,7 +2644,7 @@ setRelhassubclassInRelation(Oid relationId, bool relhassubclass)
 	}
 
 	heap_freetuple(tuple);
-	heap_close(relationRelation, NoLock);
+	heap_close(relationRelation, RowExclusiveLock);
 }
 
 
