@@ -15,6 +15,9 @@ set(GPOS_VERSION_STRING ${GPOS_VERSION_MAJOR}.${GPOS_VERSION_MINOR})
 # doubt, do the safe thing and increment this number.
 set(GPOS_ABI_VERSION 10)
 
+# Default to shared libraries.
+option(BUILD_SHARED_LIBS "build shared libraries" ON)
+
 # Configure CCache if available
 find_program(CCACHE_FOUND ccache)
 if(CCACHE_FOUND)
@@ -160,7 +163,7 @@ configure_file(version.h.in
                ${PROJECT_BINARY_DIR}/libgpos/include/gpos/version.h)
 
 # Compile .cpp source files under libgpos/src into monolithic gpos library.
-add_library(gpos SHARED
+add_library(gpos
             libgpos/include/gpos/assert.h
             libgpos/include/gpos/base.h
             libgpos/include/gpos/common/banned_api.h
