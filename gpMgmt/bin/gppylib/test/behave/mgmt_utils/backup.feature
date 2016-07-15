@@ -3501,6 +3501,20 @@ Feature: Validate command line arguments
         When the user runs "psql -c 'DROP ROLE "Foo%user"' -d bkdb"
         Then psql should return a return code of 0
 
+    @exclude_schema
+    Scenario: Exclude schema (-S) should not dump pg_temp schemas
+        Given the test is initialized
+        And the user runs the command "psql bkdb -f 'gppylib/test/behave/mgmt_utils/steps/data/gpcrondump/create_temp_schema_in_transaction.sql'" in the background without sleep
+        When the user runs "gpcrondump -a -S good_schema -x bkdb"
+        Then gpcrondump should return a return code of 0
+        And the timestamp from gpcrondump is stored
+        Then read pid from file "gppylib/test/behave/mgmt_utils/steps/data/gpcrondump/pid_leak" and kill the process
+        And the temporary file "gppylib/test/behave/mgmt_utils/steps/data/gpcrondump/pid_leak" is removed
+        And waiting "2" seconds
+        And verify that the "dump" file in " " dir does not contain "pg_temp"
+        And the user runs command "dropdb bkdb"
+
+
     # THIS SHOULD BE THE LAST TEST
     @backupfire
     Scenario: cleanup for backup feature

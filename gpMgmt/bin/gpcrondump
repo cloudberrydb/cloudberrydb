@@ -599,17 +599,26 @@ class GpCronDump(Operation):
         if self.context.incremental:
             return (dirty_file, exclude_file)
 
+        # Make sure that this happens right before the include_dump_tables
+        # check. We are relying on the filtering that happens on the
+        # include_dump_tables check
+        if self.context.include_dump_tables_file:
+            self.context.include_dump_tables = get_lines_from_file(self.context.include_dump_tables_file)
+
         if self.context.include_dump_tables:
-            include_file = expand_partitions_and_populate_filter_file(dbname, self.context.include_dump_tables, 'include_dump_tables_file')
+            dump_tables_without_pg_temp = []
+            for table in self.context.include_dump_tables:
+                if table.startswith('pg_temp_'):
+                    continue
+                dump_tables_without_pg_temp.append(table)
+            include_file = expand_partitions_and_populate_filter_file(dbname,
+                                                                      dump_tables_without_pg_temp,
+                                                                      'include_dump_tables_file')
             self.context.include_dump_tables = []
 
         if self.context.exclude_dump_tables:
             exclude_file = expand_partitions_and_populate_filter_file(dbname, self.context.exclude_dump_tables, 'exclude_dump_tables_file')
             self.context.exclude_dump_tables = []
-
-        if self.context.include_dump_tables_file:
-            include_tables = get_lines_from_file(self.context.include_dump_tables_file)
-            include_file = expand_partitions_and_populate_filter_file(dbname, include_tables, 'include_dump_tables_file')
 
         if self.context.exclude_dump_tables_file:
             exclude_tables = get_lines_from_file(self.context.exclude_dump_tables_file)

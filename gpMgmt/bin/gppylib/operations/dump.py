@@ -37,6 +37,10 @@ CATALOG_SCHEMA = [
     'pg_toast'
 ]
 
+IGNORE_SCHEMA = [
+    'pg_temp'
+]
+
 GET_ALL_DATATABLES_SQL = """
 SELECT ALLTABLES.oid, ALLTABLES.schemaname, ALLTABLES.tablename FROM
 
@@ -64,11 +68,12 @@ SELECT n.nspname AS schemaname, c.relname AS tablename
     WHERE c.relkind = 'r'::"char" AND c.oid > 16384 AND n.nspname = '%s'
 """
 
+# Generally used to validate that the table(s) we want to backup
 GET_ALL_USER_TABLES_SQL = """
 SELECT n.nspname AS schemaname, c.relname AS tablename
     FROM pg_class c LEFT JOIN pg_namespace n ON n.oid = c.relnamespace
     LEFT JOIN pg_tablespace t ON t.oid = c.reltablespace
-    WHERE c.relkind = 'r'::"char" AND c.oid > 16384 AND (c.relnamespace > 16384 or n.nspname = 'public')
+    WHERE c.relkind = 'r'::"char" AND c.oid > 16384 AND (c.relnamespace > 16384 or n.nspname = 'public') AND nspname NOT LIKE 'pg_temp_%'
 """
 
 GET_APPENDONLY_DATA_TABLE_INFO_SQL = """
@@ -103,7 +108,7 @@ GET_LAST_OPERATION_SQL = """
     ORDER BY objid, staactionname
 """ % GET_ALL_AO_CO_DATATABLES_SQL
 
-GET_ALL_SCHEMAS_SQL = "SELECT nspname from pg_namespace;"
+GET_ALL_SCHEMAS_SQL = "SELECT nspname from pg_namespace WHERE nspname NOT LIKE 'pg_temp_%';"
 
 def get_include_schema_list_from_exclude_schema(context, exclude_schema_list):
     """
@@ -114,7 +119,9 @@ def get_include_schema_list_from_exclude_schema(context, exclude_schema_list):
     include_schema_list = []
     schema_list = execute_sql(GET_ALL_SCHEMAS_SQL, context.master_port, context.dump_database)
     for schema in schema_list:
-        if schema[0] not in exclude_schema_list and schema[0] not in CATALOG_SCHEMA:
+        if schema[0] not in exclude_schema_list \
+           and schema[0] not in CATALOG_SCHEMA \
+           and schema[0] not in IGNORE_SCHEMA:
             include_schema_list.append(schema[0])
 
     return include_schema_list
@@ -1065,6 +1072,8 @@ class ValidateIncludeTargets(Operation):
         for dump_table in dump_tables:
             if '.' not in dump_table:
                 raise ExceptionNoStackTraceNeeded("No schema name supplied for table %s" % dump_table)
+            if dump_table.startswith('pg_temp_'):
+                continue
             schema, table = split_fqn(dump_table)
             exists = CheckTableExists(self.context, schema, table).run()
             if not exists:

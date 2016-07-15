@@ -1,17 +1,18 @@
 import commands
+import fnmatch
 import getpass
 import glob
+import gzip
+import os
 import platform
 import shutil
 import socket
 import tarfile
 import thread
-import fnmatch
-import os
+import yaml
+
 from collections import defaultdict
 from datetime import datetime
-
-import yaml
 
 from gppylib.commands.gp import SegmentStart, GpStandbyStart
 from gppylib.commands.unix import findCmdInPath
@@ -1070,6 +1071,8 @@ def verify_file_contents(context, file_type, file_dir, text_find, should_contain
         fn = '%sgp_dump_%s_schema' % (context.dump_prefix, context.backup_timestamp)
     elif file_type == 'cdatabase':
         fn = '%sgp_cdatabase_1_1_%s' % (context.dump_prefix, context.backup_timestamp)
+    elif file_type == 'dump':
+        fn = '%sgp_dump_1_1_%s.gz' % (context.dump_prefix, context.backup_timestamp)
 
     subdirectory = context.backup_timestamp[0:8]
 
@@ -1082,8 +1085,13 @@ def verify_file_contents(context, file_type, file_dir, text_find, should_contain
         raise Exception ("Can not find %s file: %s" % (file_type, full_path))
 
     contents = ""
-    with open(full_path) as fd:
-        contents = fd.read()
+
+    if file_type == 'dump':
+        fd = gzip.open(full_path)
+    else:
+        fd =  open(full_path)
+    contents = fd.read()
+    fd.close()
 
     if should_contain and not text_find in contents:
         raise Exception("Did not find '%s' in file %s" % (text_find, full_path))
