@@ -4,11 +4,11 @@
 resources:
 - name: gpdb_src
   type: git
-  paths:
-    - src/backend/codegen/*
-    - src/include/codegen/*
   source:
     branch: master
+    paths:
+      - src/backend/codegen/*
+      - src/include/codegen/*
     private_key: {{gpdb_deploy_key}}
     uri: git@github.com:greenplum-db/gpdb.git
 
