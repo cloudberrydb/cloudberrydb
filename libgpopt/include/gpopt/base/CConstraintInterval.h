@@ -18,9 +18,14 @@
 #include "gpopt/base/CConstraint.h"
 #include "gpopt/base/CRange.h"
 #include "gpopt/operators/CScalarConst.h"
+#include "gpopt/operators/CScalarArrayCmp.h"
 
 namespace gpopt
 {
+
+	// range array
+	typedef CDynamicPtrArray<CRange, CleanupRelease> DrgPrng;
+
 	using namespace gpos;
 	using namespace gpmd;
 
@@ -30,6 +35,9 @@ namespace gpopt
 	//
 	//	@doc:
 	//		Representation of an interval constraint
+	//
+	//		If x has a CConstraintInterval C on it, this means that x is in the
+	//		ranges contained in C.
 	//
 	//---------------------------------------------------------------------------
 	class CConstraintInterval : public CConstraint
@@ -84,6 +92,8 @@ namespace gpopt
 			virtual
 			CExpression *PexprConstructScalar(IMemoryPool *pmp) const;
 
+			CExpression *PexprConstructArrayScalar(IMemoryPool *pmp) const;
+
 			// create interval from scalar comparison expression
 			static
 			CConstraintInterval *PciIntervalFromScalarCmp
@@ -128,6 +138,15 @@ namespace gpopt
 									CExpression *pexpr,
 									CColRef *pcr
 									);
+
+			static
+			DrgPrng *PciRangeFromColConstCmp(IMemoryPool *pmp,
+											 IMDType::ECmpType ecmpt,
+											 const CScalarConst *popScConst);
+
+			// create an array IN or NOT IN expression
+			CExpression *
+			PexprConstructArrayScalar(IMemoryPool *pmp, bool isIn) const;
 		public:
 
 			// ctor
@@ -216,6 +235,12 @@ namespace gpopt
 			virtual
 			CConstraint *PcnstrRemapForColumn(IMemoryPool *pmp, CColRef *pcr) const;
 
+			// converts to an array in expression
+			bool convertsToNotIn() const;
+
+			// converts to an array not in expression
+			bool convertsToIn() const;
+
 			// print
 			virtual
 			IOstream &OsPrint(IOstream &os) const;
@@ -257,7 +282,31 @@ namespace gpopt
 				CColRef *pcr = NULL
 				);
 
+			//  ConstraintInterval from the given expression
+			static
+			CConstraintInterval *PcnstrIntervalFromScalarArrayCmp
+				(
+				IMemoryPool *pmp,
+				CExpression *pexpr,
+				CColRef *pcr
+				);
+
 	}; // class CConstraintInterval
+
+	// shorthand for printing, reference
+	inline
+	IOstream &operator << (IOstream &os, const CConstraintInterval &interval)
+	{
+		return interval.OsPrint(os);
+	}
+
+	// shorthand for printing, pointer
+	inline
+	IOstream &operator << (IOstream &os, const CConstraintInterval *interval)
+	{
+		return interval->OsPrint(os);
+	}
+
 }
 
 #endif // !GPOPT_CConstraintInterval_H

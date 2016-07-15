@@ -11,13 +11,15 @@
 
 #include "gpos/base.h"
 
-#include "gpopt/base/CUtils.h"
-#include "gpopt/base/CDefaultComparator.h"
-#include "gpopt/base/CConstraintInterval.h"
-#include "gpopt/base/CConstraintDisjunction.h"
 #include "gpopt/base/CColRefSetIter.h"
-#include "gpopt/operators/CScalarIdent.h"
+#include "gpopt/base/CConstraintDisjunction.h"
+#include "gpopt/base/CConstraintInterval.h"
+#include "gpopt/base/CDefaultComparator.h"
+#include "gpopt/base/CUtils.h"
 #include "gpopt/operators/CPredicateUtils.h"
+#include "gpopt/operators/CScalarArray.h"
+#include "gpopt/operators/CScalarIdent.h"
+#include "naucrates/md/IMDScalarOp.h"
 
 using namespace gpopt;
 
@@ -128,6 +130,7 @@ CConstraintInterval::PciIntervalFromScalarExpr
 	CColRef *pcr
 	)
 {
+
 	GPOS_ASSERT(NULL != pexpr);
 	GPOS_ASSERT(pexpr->Pop()->FScalar());
 
@@ -136,30 +139,158 @@ CConstraintInterval::PciIntervalFromScalarExpr
 	CDrvdPropScalar *pdpScalar = CDrvdPropScalar::Pdpscalar(pexpr->PdpDerive());
 	GPOS_ASSERT(1 >= pdpScalar->PcrsUsed()->CElements());
 #endif //GPOS_DEBUG
-
+	CConstraintInterval *pci;
 	switch (pexpr->Pop()->Eopid())
 	{
 		case COperator::EopScalarNullTest:
-			return PciIntervalFromScalarNullTest(pmp, pexpr, pcr);
-
+			pci = PciIntervalFromScalarNullTest(pmp, pexpr, pcr);
+			break;
 		case COperator::EopScalarBoolOp:
-			return PciIntervalFromScalarBoolOp(pmp, pexpr, pcr);
-
+			pci =  PciIntervalFromScalarBoolOp(pmp, pexpr, pcr);
+			break;
 		case COperator::EopScalarCmp:
-			return PciIntervalFromScalarCmp(pmp, pexpr, pcr);
-
+			pci =  PciIntervalFromScalarCmp(pmp, pexpr, pcr);
+			break;
 		case COperator::EopScalarConst:
 			{
 				if (CUtils::FScalarConstTrue(pexpr))
 				{
-					return CConstraintInterval::PciUnbounded(pmp, pcr, true/*fIncludesNull*/);
+					pci =  CConstraintInterval::PciUnbounded(pmp, pcr, true/*fIncludesNull*/);
 				}
-				return GPOS_NEW(pmp) CConstraintInterval(pmp, pcr, GPOS_NEW(pmp) DrgPrng(pmp), false /*fIncludesNull*/);
+				else
+				{
+					pci =  GPOS_NEW(pmp) CConstraintInterval(pmp, pcr, GPOS_NEW(pmp) DrgPrng(pmp), false /*fIncludesNull*/);
+				}
+			}
+			break;
+		case COperator::EopScalarArrayCmp:
+			// remove array derive to constraint interval
+			if (GPOS_FTRACE(EopttraceEnableArrayDerive))
+			{
+				pci = CConstraintInterval::PcnstrIntervalFromScalarArrayCmp(pmp, pexpr, pcr);
+			}
+			else
+			{
+				pci = NULL;
+			}
+			break;
+		default:
+			pci = NULL;
+	}
+
+	return pci;
+}
+
+//---------------------------------------------------------------------------
+//	@function:
+//		CConstraint::PcnstrFromScalarArrayCmp
+//
+//	@doc:
+//		Create constraint from scalar array comparison expression. Returns
+//		NULL if a constraint interval cannot be created.
+//
+//---------------------------------------------------------------------------
+CConstraintInterval *
+CConstraintInterval::PcnstrIntervalFromScalarArrayCmp
+	(
+	IMemoryPool *pmp,
+	CExpression *pexpr,
+	CColRef *pcr
+	)
+{
+	GPOS_ASSERT(NULL != pexpr);
+	GPOS_ASSERT(CUtils::FScalarArrayCmp(pexpr));
+
+	CScalarArrayCmp *popScArrayCmp = CScalarArrayCmp::PopConvert(pexpr->Pop());
+	CScalarArrayCmp::EArrCmpType earrccmpt = popScArrayCmp->Earrcmpt();
+
+	if (!CPredicateUtils::FCompareIdentToConstArray(pexpr) ||
+		!(CScalarArrayCmp::EarrcmpAny == earrccmpt  || CScalarArrayCmp::EarrcmpAll == earrccmpt))
+	{
+		return NULL;
+	}
+	else
+	{
+#ifdef GPOS_DEBUG
+		// verify column in expr is the same as column which was passed in
+		CScalarIdent *popScId = CScalarIdent::PopConvert((*pexpr)[0]->Pop());
+		GPOS_ASSERT(pcr == (CColRef *) popScId->Pcr());
+#endif // GPOS_DEBUG
+	}
+
+	// get comparison type
+	IMDType::ECmpType ecmpt = CUtils::Ecmpt(popScArrayCmp->PmdidOp());
+	CExpression *pexprArray = (*pexpr)[1];
+	GPOS_ASSERT(COperator::EopScalarArray == pexprArray->Pop()->Eopid());
+
+	const ULONG ulArity = pexprArray->UlArity();
+	if (0 == ulArity)
+	{
+		return NULL;
+	}
+
+	// need sorted datums for the range generation - create array and sort
+	DrgPdatum *rngdatum = GPOS_NEW(pmp) DrgPdatum(pmp);
+	for (ULONG ul = 0; ul < ulArity; ul++)
+	{
+		CScalarConst *popScConst = CScalarConst::PopConvert((*pexprArray)[ul]->Pop());
+		IDatum *pdatum = popScConst->Pdatum();
+		pdatum->AddRef();
+		rngdatum->Append(pdatum);
+	}
+	rngdatum->Sort(&CUtils::IDatumCmp);
+
+	// construct ranges representing IN or NOT IN
+	DrgPrng *prgrng = GPOS_NEW(pmp) DrgPrng(pmp);
+	const IComparator *pcomp = COptCtxt::PoctxtFromTLS()->Pcomp();
+
+	if (IMDType::EcmptNEq == ecmpt || IMDType::EcmptIDF == ecmpt)
+	{
+		// NOT IN case, create ranges: (-inf, X) (X, Y) (Y, Z) (Z, inf)
+
+		IDatum *pprevdatum = NULL;
+		IDatum *pdatum = NULL;
+
+		for (ULONG ul = 0; ul < ulArity; ul++)
+		{
+			if (NULL != pprevdatum)
+			{
+				pprevdatum->AddRef();
 			}
 
-		default:
-			return NULL;
+			pdatum = (*rngdatum)[ul];
+			pdatum->AddRef();
+
+			IMDId *pmdid = pdatum->Pmdid();
+			pmdid->AddRef();
+
+			CRange *prng = GPOS_NEW(pmp) CRange(pmdid, pcomp, pprevdatum, CRange::EriExcluded, pdatum, CRange::EriExcluded);
+			prgrng->Append(prng);
+
+			pprevdatum = pdatum;
+		}
+
+		// add the last datum, making range (last, inf)
+		IMDId *pmdid = pprevdatum->Pmdid();
+		pprevdatum->AddRef();
+		pmdid->AddRef();
+		CRange *prng = GPOS_NEW(pmp) CRange(pmdid, pcomp, pprevdatum, CRange::EriExcluded, NULL, CRange::EriExcluded);
+		prgrng->Append(prng);
 	}
+	else
+	{
+		// IN case, create ranges [X, X] [Y, Y] [Z, Z]
+		for (ULONG ul = 0; ul < ulArity; ul++)
+		{
+			(*rngdatum)[ul]->AddRef();
+			CRange *prng = GPOS_NEW(pmp) CRange(pcomp, IMDType::EcmptEq, (*rngdatum)[ul]);
+			prgrng->Append(prng);
+		}
+	}
+
+	rngdatum->Release();
+
+	return GPOS_NEW(pmp) CConstraintInterval(pmp, pcr, prgrng, false /* IsNull */);
 }
 
 //---------------------------------------------------------------------------
@@ -257,33 +388,13 @@ CConstraintInterval::PciIntervalFromColConstCmp
 	CScalarConst *popScConst
 	)
 {
-	GPOS_ASSERT(CScalar::EopScalarConst == popScConst->Eopid());
-
-	// comparison operator
-	if (IMDType::EcmptOther == ecmpt)
+	DrgPrng *pdrngprng = PciRangeFromColConstCmp(pmp, ecmpt, popScConst);
+	if (NULL != pdrngprng)
 	{
-		return NULL;
+		return GPOS_NEW(pmp) CConstraintInterval(pmp, pcr, pdrngprng, false /*fIncludesNull*/);
 	}
+	return NULL;
 
-	IDatum *pdatum = popScConst->Pdatum();
-	DrgPrng *pdrgprng = GPOS_NEW(pmp) DrgPrng(pmp);
-
-	const IComparator *pcomp = COptCtxt::PoctxtFromTLS()->Pcomp();
-	if (IMDType::EcmptNEq == ecmpt || IMDType::EcmptIDF == ecmpt)
-	{
-		// need an interval with 2 ranges
-		pdatum->AddRef();
-		pdrgprng->Append(GPOS_NEW(pmp) CRange(pcomp, IMDType::EcmptL, pdatum));
-		pdatum->AddRef();
-		pdrgprng->Append(GPOS_NEW(pmp) CRange(pcomp, IMDType::EcmptG, pdatum));
-	}
-	else
-	{
-		pdatum->AddRef();
-		pdrgprng->Append(GPOS_NEW(pmp) CRange(pcomp, ecmpt, pdatum));
-	}
-
-	return GPOS_NEW(pmp) CConstraintInterval(pmp, pcr, pdrgprng, false /*fIncludesNull*/);
 }
 
 
@@ -449,7 +560,8 @@ CConstraintInterval::PciIntervalFromScalarBoolAnd
 	for (ULONG ul = 1; ul < ulArity; ul++)
 	{
 		CConstraintInterval *pciChild = PciIntervalFromScalarExpr(pmp, (*pexpr)[ul], pcr);
-
+		// here is where we will return a NULL child from not being able to create a
+		// CConstraint interval from the ScalarExpr
 		if (NULL != pciChild && NULL != pci)
 		{
 			CConstraintInterval *pciAnd = pci->PciIntersect(pmp, pciChild);
@@ -508,6 +620,18 @@ CConstraintInterval::PexprConstructScalar
 		return CUtils::PexprScalarConstBool(pmp, false /*fval*/, false /*fNull*/);
 	}
 
+	// remove array derive to expression
+	if (GPOS_FTRACE(EopttraceEnableArrayDerive))
+	{
+		// this is a candidate for conversion to an array constraint
+		CExpression *pexpr = PexprConstructArrayScalar(pmp);
+		if (pexpr != NULL)
+		{
+			return pexpr;
+		}
+	}
+
+	// otherwise, we generate a disjunction of ranges
 	DrgPexpr *pdrgpexpr = GPOS_NEW(pmp) DrgPexpr(pmp);
 
 	const ULONG ulLen = m_pdrgprng->UlLength();
@@ -538,6 +662,201 @@ CConstraintInterval::PexprConstructScalar
 	}
 
 	return CPredicateUtils::PexprDisjunction(pmp, pdrgpexpr);
+}
+
+//---------------------------------------------------------------------------
+//	@function:
+//		CConstraintInterval::convertsToIn
+//
+//	@doc:
+//		Looks for a specific pattern within the array of ranges to determine
+//		if this interval can be converted into an array IN statement. The
+//		pattern is like [[n,n], [m,m]] is an IN
+//
+//---------------------------------------------------------------------------
+bool CConstraintInterval::convertsToIn() const {
+	if (1 >= m_pdrgprng->UlLength())
+	{
+		return false;
+	}
+
+	bool isIN = true;
+	const ULONG ulLen = m_pdrgprng->UlLength();
+	for (ULONG ul = 0; ul < ulLen && isIN; ul++)
+	{
+		isIN &= (*m_pdrgprng)[ul]->FPoint();
+	}
+	return isIN;
+}
+
+//---------------------------------------------------------------------------
+//	@function:
+//		CConstraintInterval::convertsToNotIn
+//
+//	@doc:
+//		Looks for a specific pattern within the array of ranges to determine
+//		if this interval can be converted into an array NOT IN statement. The
+//		pattern is like [(-inf, m), (m, n), (n, inf)]
+//
+//---------------------------------------------------------------------------
+bool CConstraintInterval::convertsToNotIn() const {
+	if (1 >= m_pdrgprng->UlLength())
+	{
+		return false;
+	}
+
+	// for this to be a NOT IN, its edges must be unbounded
+	if ((*m_pdrgprng)[0]->PdatumLeft() != NULL ||
+		(*m_pdrgprng)[m_pdrgprng->UlLength() - 1]->PdatumRight() != NULL)
+	{
+		return false;
+	}
+
+	// check that each range is exclusive and that the inner values are equal
+	bool isNotIn = true;
+	CRange *pLeftRng = (*m_pdrgprng)[0];
+	CRange *pRightRng = NULL;
+	const ULONG ulLen = m_pdrgprng->UlLength();
+	for (ULONG ul = 1; ul < ulLen && isNotIn; ul++)
+	{
+		pRightRng = (*m_pdrgprng)[ul];
+		isNotIn &= pLeftRng->EriRight() == CRange::EriExcluded;
+		isNotIn &= pRightRng->EriLeft() == CRange::EriExcluded;
+		isNotIn &= pLeftRng->FRightEqualsLeft(pRightRng);
+
+		pLeftRng = pRightRng;
+	}
+
+	return isNotIn;
+}
+
+//---------------------------------------------------------------------------
+//	@function:
+//		CConstraintInterval::PexprConstructScalar (private)
+//
+//	@doc:
+//		Constructs an array expression from the ranges stored in this interval.
+//      It is a mistake to call this method without first detecting if the
+//      stored ranges can be converted to an IN or NOT in statement. The param
+//		'isIn' refers to the statement being an IN statement, and if set to false,
+// 		it is considered a NOT IN statement
+//
+//---------------------------------------------------------------------------
+CExpression *
+CConstraintInterval::PexprConstructArrayScalar(IMemoryPool *pmp, bool isIn) const {
+	CMDAccessor *pmda = COptCtxt::PoctxtFromTLS()->Pmda();
+
+	ULONG ulRngs = m_pdrgprng->UlLength();
+	IMDType::ECmpType eCmpType;
+	CScalarArrayCmp::EArrCmpType eArrayCmpType;
+
+	if (isIn)
+	{
+		eCmpType = IMDType::EcmptEq;
+		eArrayCmpType = CScalarArrayCmp::EarrcmpAny;
+	}
+	else
+	{
+		eCmpType = IMDType::EcmptNEq;
+		eArrayCmpType = CScalarArrayCmp::EarrcmpAll;
+
+		// if NOT IN, we skip the last range, as the right datum will be null
+		ulRngs -= 1;
+	}
+
+	// loop through all of the constants in the ranges, creating an array of CScalarConst Expressions
+	DrgPexpr *prngexpr = GPOS_NEW(pmp) DrgPexpr(pmp);
+
+	// this method assumes IN or NOT IN which means that the ranges stored will look like either
+	// [x,x], ... ,[y,y] or the NOT IN case (-inf, x),(x,y), ... ,(z,inf).
+	for (ULONG ul = 0; ul < ulRngs; ul++)
+	{
+		IDatum *pdtm = (*m_pdrgprng)[ul]->PdatumRight();
+		pdtm->AddRef();
+		CScalarConst *pscnst = GPOS_NEW(pmp) CScalarConst(pmp, pdtm);
+		CExpression *pexpr = GPOS_NEW(pmp) CExpression(pmp, pscnst);
+		prngexpr->Append(pexpr);
+	}
+
+	if(m_fIncludesNull)
+	{
+		IDatum *pdtm = (*m_pdrgprng)[0]->PdatumRight();
+		GPOS_ASSERT(NULL != pdtm);
+		IDatum * pdatumNull = pmda->Pmdtype(pdtm->Pmdid())->PdatumNull();
+		pdatumNull->AddRef();
+		CScalarConst *pscnst = GPOS_NEW(pmp) CScalarConst(pmp, pdatumNull);
+		prngexpr->Append(GPOS_NEW(pmp) CExpression(pmp, pscnst));
+	}
+
+	IMDId *pmdidColType = m_pcr->Pmdtype()->Pmdid();
+	IMDId *pmdidArrType = m_pcr->Pmdtype()->PmdidTypeArray();
+
+	IMDId *pmdidCmpOp = pmdidCmpOp = m_pcr->Pmdtype()->PmdidCmp(eCmpType);
+
+	pmdidColType->AddRef();
+	pmdidArrType->AddRef();
+	pmdidCmpOp->AddRef();
+
+	// get the name of the comparison from the metadata accessor
+	const CMDName mdname = pmda->Pmdscop(pmdidCmpOp)->Mdname();
+	CWStringConst strOp(mdname.Pstr()->Wsz());
+
+	CExpression *pexprArray = GPOS_NEW(pmp) CExpression
+										(
+										pmp,
+										GPOS_NEW(pmp) CScalarArray(pmp, pmdidColType, pmdidArrType, false /*fMultiDimensional*/),
+										prngexpr
+										);
+
+	CExpression *pexprIdent = CUtils::PexprScalarIdent(pmp, m_pcr);
+
+	CExpression *pexprArrayCmp =
+			GPOS_NEW(pmp) CExpression
+						(
+						pmp,
+						GPOS_NEW(pmp) CScalarArrayCmp(pmp,
+								pmdidCmpOp,
+								GPOS_NEW(pmp) CWStringConst(pmp, strOp.Wsz()),
+								eArrayCmpType),
+						pexprIdent,
+						pexprArray
+						);
+
+	return pexprArrayCmp;
+}
+
+//---------------------------------------------------------------------------
+//	@function:
+//		CConstraintInterval::PexprConstructScalar
+//
+//	@doc:
+//		Constructs an array expression if the interval can be converted into
+//		an array expression. Returns null if an array scalar cannot be
+//		constructed
+//
+//---------------------------------------------------------------------------
+CExpression *
+CConstraintInterval::PexprConstructArrayScalar(IMemoryPool *pmp) const
+{
+	// must have more than 1 member to be an array in
+	if (1 >= m_pdrgprng->UlLength())
+	{
+		return NULL;
+	}
+
+	if (convertsToIn())
+	{
+		return PexprConstructArrayScalar(pmp, true);
+	}
+	else if (convertsToNotIn())
+	{
+		return PexprConstructArrayScalar(pmp, false);
+	}
+	else
+	{
+		// Does not convert to either IN or NOT IN
+		return NULL;
+	}
 }
 
 //---------------------------------------------------------------------------
@@ -1101,4 +1420,49 @@ CConstraintInterval::OsPrint
 	return os;
 }
 
+//---------------------------------------------------------------------------
+//	@function:
+//		CRange::PciRangeFromColConstCmp
+//
+//	@doc:
+//		Creates an array of 1 or 2 ranges which represent the comparison to
+//		a scalar.
+//
+//---------------------------------------------------------------------------
+DrgPrng*
+CConstraintInterval::PciRangeFromColConstCmp
+	(
+	IMemoryPool *pmp,
+	IMDType::ECmpType ecmpt,
+	const CScalarConst *popsccnst
+	)
+{
+	GPOS_ASSERT(CScalar::EopScalarConst == popsccnst->Eopid());
+
+	// comparison operator
+	if (IMDType::EcmptOther == ecmpt)
+	{
+		return NULL;
+	}
+
+	IDatum *pdatum = popsccnst->Pdatum();
+	DrgPrng *pdrgprng = GPOS_NEW(pmp) DrgPrng(pmp);
+
+	const IComparator *pcomp = COptCtxt::PoctxtFromTLS()->Pcomp();
+	if (IMDType::EcmptNEq == ecmpt || IMDType::EcmptIDF == ecmpt)
+	{
+		// need an interval with 2 ranges
+		pdatum->AddRef();
+		pdrgprng->Append(GPOS_NEW(pmp) CRange(pcomp, IMDType::EcmptL, pdatum));
+		pdatum->AddRef();
+		pdrgprng->Append(GPOS_NEW(pmp) CRange(pcomp, IMDType::EcmptG, pdatum));
+	}
+	else
+	{
+		pdatum->AddRef();
+		pdrgprng->Append(GPOS_NEW(pmp) CRange(pcomp, ecmpt, pdatum));
+	}
+
+	return pdrgprng;
+}
 // EOF

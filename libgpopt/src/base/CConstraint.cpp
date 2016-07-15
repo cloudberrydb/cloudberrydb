@@ -139,7 +139,6 @@ CConstraint::PcnstrFromScalarArrayCmp
 	return NULL;
 }
 
-
 //---------------------------------------------------------------------------
 //	@function:
 //		CConstraint::PcnstrFromScalarExpr
@@ -185,13 +184,13 @@ CConstraint::PcnstrFromScalarExpr
 
 		CConstraint *pcnstr = NULL;
 		*ppdrgpcrs = GPOS_NEW(pmp) DrgPcrs(pmp);
-		if (CUtils::FScalarArrayCmp(pexpr))
+
+		// try creating a single constraint from the expression
+		pcnstr = CConstraintInterval::PciIntervalFromScalarExpr(pmp, pexpr, pcr);
+		if (NULL == pcnstr && CUtils::FScalarArrayCmp(pexpr))
 		{
+			// try creating a disjunction of several interval constraints in the array case
 			pcnstr = PcnstrFromScalarArrayCmp(pmp, pexpr, pcr);
-		}
-		else
-		{
-			pcnstr = CConstraintInterval::PciIntervalFromScalarExpr(pmp, pexpr, pcr);
 		}
 
 		if (NULL != pcnstr)

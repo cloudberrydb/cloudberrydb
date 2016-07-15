@@ -33,9 +33,6 @@ namespace gpopt
 	typedef CHashMap<CColRef, DrgPcnstr, gpos::UlHash<CColRef>, gpos::FEqual<CColRef>,
 					CleanupNULL<CColRef>, CleanupRelease<DrgPcnstr> > HMColConstr;
 
-	// range array
-	typedef CDynamicPtrArray<CRange, CleanupRelease> DrgPrng;
-
 	// mapping CConstraint -> BOOL to cache previous containment queries,
 	// we use pointer equality here for fast map lookup -- since we do shallow comparison, we do not take ownership
 	// of pointer values
@@ -274,9 +271,15 @@ namespace gpopt
 
 	}; // class CConstraint
 
+	// shorthand for printing, pointer.
+	inline
+	IOstream &operator << (IOstream &os, const CConstraint *cnstr)
+	{
+		return cnstr->OsPrint(os);
+	}
 	// shorthand for printing
 	inline
-	IOstream &operator << (IOstream &os, CConstraint &cnstr)
+	IOstream &operator << (IOstream &os, const CConstraint &cnstr)
 	{
 		return cnstr.OsPrint(os);
 	}
