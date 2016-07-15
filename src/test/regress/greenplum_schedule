@@ -108,8 +108,8 @@ ignore: tpch500GB_orca
 
 # XXX: This test depends on libgpoptudfs library, which includes ORCA helper
 # functions from src/backend/gpopt/utils/funcs.cpp. But those functions are
-# built into the backend (or rather, into libdxltranslators.so) directly,
-# so what's the point of that? Anyhow, the test is disabled for now..
+# built into the backend directly, so what's the point of that? Anyhow, the
+# test is disabled for now..
 #test: orca_udfs
 
 # Tests for "compaction", i.e. VACUUM, of updatable append-only tables
