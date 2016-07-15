@@ -1280,10 +1280,6 @@ ifeq "$(ORCA_CONFIG)" "--enable-orca"
 	rm -f $(INSTLOC)/lib/libxerces-c-3.1.$(LDSFX);
 	cp $(XERCES_LIBDIR)/libxerces-c-3.1.$(LDSFX) $(INSTLOC)/lib;
 
-	# Copy DXL translators library
-	echo "Copy DXL translators library";	
-	cp $(BLD_TOP)/../src/backend/gpopt/libdxltranslators.$(LDSFX) $(INSTLOC)/lib;
-
 	cd $(LIBSTDC++_LIBDIR); tar cvf - * | (cd $(INSTLOC)/lib; tar xfp -)
 
 	# Create GP Optimizer UDFs library  
