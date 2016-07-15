@@ -165,6 +165,9 @@ namespace gpopt
 			static GPOS_RESULT EresUnittest_CDisjunction();
 			static GPOS_RESULT EresUnittest_CNegation();
 			static GPOS_RESULT EresUnittest_CConstraintFromScalarExpr();
+			static GPOS_RESULT EresUnittest_CConstraintIntervalConvertsTo();
+			static GPOS_RESULT EresUnittest_CConstraintIntervalPexpr();
+			static GPOS_RESULT EresUnittest_CConstraintIntervalFromArrayExpr();
 
 #ifdef GPOS_DEBUG
 			// tests for unconstrainable types

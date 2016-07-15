@@ -85,6 +85,9 @@ CConstraintTest::EresUnittest()
 		GPOS_UNITTEST_FUNC(CConstraintTest::EresUnittest_CDisjunction),
 		GPOS_UNITTEST_FUNC(CConstraintTest::EresUnittest_CNegation),
 		GPOS_UNITTEST_FUNC(CConstraintTest::EresUnittest_CConstraintFromScalarExpr),
+		GPOS_UNITTEST_FUNC(CConstraintTest::EresUnittest_CConstraintIntervalConvertsTo),
+		GPOS_UNITTEST_FUNC(CConstraintTest::EresUnittest_CConstraintIntervalPexpr),
+		GPOS_UNITTEST_FUNC(CConstraintTest::EresUnittest_CConstraintIntervalFromArrayExpr),
 #ifdef GPOS_DEBUG
 		GPOS_UNITTEST_FUNC_THROW
 			(
@@ -588,6 +591,263 @@ CConstraintTest::EresUnittest_CConstraintFromScalarExpr()
 
 	pexprGet1->Release();
 	pexprGet2->Release();
+
+	return GPOS_OK;
+}
+
+//---------------------------------------------------------------------------
+//	@function:
+//		CConstraintTest::EresUnittest_CConstraintIntervalConvertsTo
+//
+//	@doc:
+//		Tests CConstraintInterval::ConvertsToIn and
+//		CConstraintInterval::ConvertsToNotIn
+//
+//---------------------------------------------------------------------------
+GPOS_RESULT
+CConstraintTest::EresUnittest_CConstraintIntervalConvertsTo()
+{
+	// create memory pool
+	CAutoMemoryPool amp;
+	IMemoryPool *pmp = amp.Pmp();
+
+	// setup a file-based provider
+	CMDProviderMemory *pmdp = CTestUtils::m_pmdpf;
+	pmdp->AddRef();
+	CMDAccessor mda(pmp, CMDCache::Pcache(), CTestUtils::m_sysidDefault, pmdp);
+
+	CConstExprEvaluatorForDates *pceeval = GPOS_NEW(pmp) CConstExprEvaluatorForDates(pmp);
+
+	// install opt context in TLS
+	CAutoOptCtxt aoc(pmp, &mda, pceeval, CTestUtils::Pcm(pmp));
+	GPOS_ASSERT(NULL != COptCtxt::PoctxtFromTLS()->Pcomp());
+
+	// create a range which should convert to an IN array expression
+	const SRangeInfo rgRangeInfoIn[] =
+			{
+				{CRange::EriIncluded, -1000, CRange::EriIncluded, -1000},
+				{CRange::EriIncluded, -5, CRange::EriIncluded, -5},
+				{CRange::EriIncluded, 0, CRange::EriIncluded, 0}
+			};
+
+	// metadata id
+	IMDTypeInt8 *pmdtypeint8 = (IMDTypeInt8 *) mda.PtMDType<IMDTypeInt8>(CTestUtils::m_sysidDefault);
+	IMDId *pmdid = pmdtypeint8->Pmdid();
+
+	// get a column ref
+	CExpression *pexprGet = CTestUtils::PexprLogicalGet(pmp);
+	CColRefSet *pcrs = CDrvdPropRelational::Pdprel(pexprGet->PdpDerive())->PcrsOutput();
+	CColRef *pcr =  pcrs->PcrAny();
+
+	// create constraint
+	DrgPrng *pdrgprng = Pdrgprng(pmp, pmdid, rgRangeInfoIn, GPOS_ARRAY_SIZE(rgRangeInfoIn));
+	CConstraintInterval *pcnstin = GPOS_NEW(pmp) CConstraintInterval(pmp, pcr, pdrgprng, true);
+
+	PrintConstraint(pmp, pcnstin);
+
+	// should convert to in
+	GPOS_ASSERT(pcnstin->convertsToIn());
+	GPOS_ASSERT(!pcnstin->convertsToNotIn());
+
+	CConstraintInterval *pcnstNotIn = pcnstin->PciComplement(pmp);
+
+	// should convert to a not in statement after taking the complement
+	GPOS_ASSERT(pcnstNotIn->convertsToNotIn());
+	GPOS_ASSERT(!pcnstNotIn->convertsToIn());
+
+	pcnstin->Release();
+	pcnstNotIn->Release();
+	pexprGet->Release();
+
+	return GPOS_OK;
+}
+
+
+//---------------------------------------------------------------------------
+//	@function:
+//		CConstraintTest::EresUnittest_CConstraintIntervalPexpr
+//
+//	@doc:
+//		Tests CConstraintInterval::PexprConstructArrayScalar
+//
+//---------------------------------------------------------------------------
+GPOS_RESULT
+CConstraintTest::EresUnittest_CConstraintIntervalPexpr()
+{
+	// create memory pool
+	CAutoMemoryPool amp;
+	IMemoryPool *pmp = amp.Pmp();
+
+	// setup a file-based provider
+	CMDProviderMemory *pmdp = CTestUtils::m_pmdpf;
+	pmdp->AddRef();
+	CMDAccessor mda(pmp, CMDCache::Pcache(), CTestUtils::m_sysidDefault, pmdp);
+
+	CConstExprEvaluatorForDates *pceeval = GPOS_NEW(pmp) CConstExprEvaluatorForDates(pmp);
+
+	// install opt context in TLS
+	CAutoOptCtxt aoc(pmp, &mda, pceeval, CTestUtils::Pcm(pmp));
+	GPOS_ASSERT(NULL != COptCtxt::PoctxtFromTLS()->Pcomp());
+
+	CAutoTraceFlag atf(EopttraceEnableArrayDerive, true);
+
+	// create a range which should convert to an IN array expression
+	const SRangeInfo rgRangeInfoIn[] =
+			{
+				{CRange::EriIncluded, -1000, CRange::EriIncluded, -1000},
+				{CRange::EriIncluded, -5, CRange::EriIncluded, -5},
+				{CRange::EriIncluded, 0, CRange::EriIncluded, 0}
+			};
+
+	// metadata id
+	IMDTypeInt8 *pmdtypeint8 = (IMDTypeInt8 *) mda.PtMDType<IMDTypeInt8>(CTestUtils::m_sysidDefault);
+	IMDId *pmdid = pmdtypeint8->Pmdid();
+
+	// get a column ref
+	CExpression *pexprGet = CTestUtils::PexprLogicalGet(pmp);
+	CColRefSet *pcrs = CDrvdPropRelational::Pdprel(pexprGet->PdpDerive())->PcrsOutput();
+	CColRef *pcr =  pcrs->PcrAny();
+
+	DrgPrng *pdrgprng = NULL;
+	CConstraintInterval *pcnstin = NULL;
+	CExpression *pexpr = NULL;
+	CConstraintInterval *pcnstNotIn = NULL;
+
+	// IN CONSTRAINT FOR SIMPLE INTERVAL (WITHOUT NULL)
+
+	// create constraint
+	pdrgprng = Pdrgprng(pmp, pmdid, rgRangeInfoIn, GPOS_ARRAY_SIZE(rgRangeInfoIn));
+	pcnstin = GPOS_NEW(pmp) CConstraintInterval(pmp, pcr, pdrgprng, false);
+
+	pexpr = pcnstin->PexprScalar(pmp); // pexpr is owned by the constraint
+	PrintConstraint(pmp, pcnstin);
+
+	GPOS_ASSERT(!pcnstin->convertsToNotIn());
+	GPOS_ASSERT(pcnstin->convertsToIn());
+	GPOS_ASSERT(CUtils::FScalarArrayCmp(pexpr));
+	GPOS_ASSERT(3 == CUtils::FCountOperator(pexpr, COperator::EopScalarConst));
+
+	pcnstin->Release();
+
+
+	// IN CONSTRAINT FOR SIMPLE INTERVAL WITH NULL
+
+	// create constraint
+	pdrgprng = Pdrgprng(pmp, pmdid, rgRangeInfoIn, GPOS_ARRAY_SIZE(rgRangeInfoIn));
+	pcnstin = GPOS_NEW(pmp) CConstraintInterval(pmp, pcr, pdrgprng, true);
+
+	pexpr = pcnstin->PexprScalar(pmp); // pexpr is owned by the constraint
+	PrintConstraint(pmp, pcnstin);
+
+	GPOS_ASSERT(!pcnstin->convertsToNotIn());
+	GPOS_ASSERT(pcnstin->convertsToIn());
+	GPOS_ASSERT(CUtils::FScalarArrayCmp(pexpr));
+	GPOS_ASSERT(4 == CUtils::FCountOperator(pexpr, COperator::EopScalarConst));
+
+	pcnstin->Release();
+
+
+	// NOT IN CONSTRAINT FOR SIMPLE INTERVAL WITHOUT NULL
+
+	// create constraint
+	pdrgprng = Pdrgprng(pmp, pmdid, rgRangeInfoIn, GPOS_ARRAY_SIZE(rgRangeInfoIn));
+	pcnstin = GPOS_NEW(pmp) CConstraintInterval(pmp, pcr, pdrgprng, true);
+
+	pcnstNotIn = pcnstin->PciComplement(pmp);
+	pcnstin->Release();
+
+	pexpr = pcnstNotIn->PexprScalar(pmp); // pexpr is owned by the constraint
+	PrintConstraint(pmp, pcnstNotIn);
+
+	GPOS_ASSERT(pcnstNotIn->convertsToNotIn());
+	GPOS_ASSERT(!pcnstNotIn->convertsToIn());
+	GPOS_ASSERT(CUtils::FScalarArrayCmp(pexpr));
+	GPOS_ASSERT(3 == CUtils::FCountOperator(pexpr, COperator::EopScalarConst));
+
+	pcnstNotIn->Release();
+
+
+	// NOT IN CONSTRAINT FOR SIMPLE INTERVAL WITH NULL
+
+	// create constraint
+	pdrgprng = Pdrgprng(pmp, pmdid, rgRangeInfoIn, GPOS_ARRAY_SIZE(rgRangeInfoIn));
+	pcnstin = GPOS_NEW(pmp) CConstraintInterval(pmp, pcr, pdrgprng, false);
+
+	pcnstNotIn = pcnstin->PciComplement(pmp);
+	pcnstin->Release();
+
+	pexpr = pcnstNotIn->PexprScalar(pmp); // pexpr is owned by the constraint
+	PrintConstraint(pmp, pcnstNotIn);
+
+	GPOS_ASSERT(pcnstNotIn->convertsToNotIn());
+	GPOS_ASSERT(!pcnstNotIn->convertsToIn());
+	GPOS_ASSERT(CUtils::FScalarArrayCmp(pexpr));
+	GPOS_ASSERT(4 == CUtils::FCountOperator(pexpr, COperator::EopScalarConst));
+
+	pcnstNotIn->Release();
+
+
+	pexprGet->Release();
+
+	return GPOS_OK;
+}
+
+//---------------------------------------------------------------------------
+//	@function:
+//		CConstraintTest::EresUnittest_CConstraintIntervalFromArrayExpr
+//
+//	@doc:
+//		Tests CConstraintInterval::PcnstrIntervalFromScalarArrayCmp
+//
+//---------------------------------------------------------------------------
+GPOS_RESULT
+CConstraintTest::EresUnittest_CConstraintIntervalFromArrayExpr()
+{
+	// create memory pool
+	CAutoMemoryPool amp;
+	IMemoryPool *pmp = amp.Pmp();
+
+	// setup a file-based provider
+	CMDProviderMemory *pmdp = CTestUtils::m_pmdpf;
+	pmdp->AddRef();
+	CMDAccessor mda(pmp, CMDCache::Pcache(), CTestUtils::m_sysidDefault, pmdp);
+
+	CConstExprEvaluatorForDates *pceeval = GPOS_NEW(pmp) CConstExprEvaluatorForDates(pmp);
+
+	// install opt context in TLS
+	CAutoOptCtxt aoc(pmp, &mda, pceeval, CTestUtils::Pcm(pmp));
+	GPOS_ASSERT(NULL != COptCtxt::PoctxtFromTLS()->Pcomp());
+
+	CAutoTraceFlag atf(EopttraceEnableArrayDerive, true);
+
+	// Create an IN array expression
+	CExpression *pexpr = CTestUtils::PexprLogicalSelectArrayCmp(pmp);
+	// get a ref to the comparison column
+	CColRef *pcr = CDrvdPropRelational::Pdprel(pexpr->PdpDerive())->PcrsOutput()->PcrAny();
+
+	// remove the array child
+	CExpression *pexprArrayComp = (*pexpr->PdrgPexpr())[1];
+	GPOS_ASSERT(CUtils::FScalarArrayCmp(pexprArrayComp));
+
+	CConstraintInterval *pIn = CConstraintInterval::PciIntervalFromScalarExpr(pmp, pexprArrayComp, pcr);
+	GPOS_ASSERT(CConstraint::EctInterval == pIn->Ect());
+	GPOS_ASSERT(pIn->Pdrgprng()->UlLength() == CUtils::FCountOperator(pexprArrayComp, COperator::EopScalarConst));
+
+	pIn->Release();
+	pexpr->Release();
+
+	// test a NOT IN expression
+
+	CExpression *pexprNotIn = CTestUtils::PexprLogicalSelectArrayCmp(pmp, CScalarArrayCmp::EarrcmpAll, IMDType::EcmptNEq);
+	CExpression *pexprArrayNotInComp = (*pexprNotIn->PdrgPexpr())[1];
+	CColRef *pcrNot = CDrvdPropRelational::Pdprel(pexprNotIn->PdpDerive())->PcrsOutput()->PcrAny();
+	CConstraintInterval *pNotIn = CConstraintInterval::PciIntervalFromScalarExpr(pmp, pexprArrayNotInComp, pcrNot);
+	GPOS_ASSERT(CConstraint::EctInterval == pNotIn->Ect());
+	// a NOT IN range array should have one more element than the expression array consts
+	GPOS_ASSERT(pNotIn->Pdrgprng()->UlLength() == 1 + CUtils::FCountOperator(pexprArrayNotInComp, COperator::EopScalarConst));
+
+	pexprNotIn->Release();
+	pNotIn->Release();
 
 	return GPOS_OK;
 }

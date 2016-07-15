@@ -14,6 +14,7 @@
 
 #include "gpos/io/COstreamString.h"
 #include "gpos/string/CWStringDynamic.h"
+#include "gpos/task/CAutoTraceFlag.h"
 
 #include "gpopt/base/CUtils.h"
 #include "gpopt/eval/CConstExprEvaluatorDefault.h"
@@ -1634,6 +1635,7 @@ CExpressionPreprocessorTest::EresUnittest_PreProcessOrPrefilters()
 {
 	CAutoMemoryPool amp;
 	IMemoryPool *pmp = amp.Pmp();
+	CAutoTraceFlag atf(EopttraceEnableArrayDerive, true /*fVal*/);
 
 	// reset metadata cache
 	CMDCache::Reset();
@@ -1758,22 +1760,26 @@ CExpressionPreprocessorTest::EresUnittest_PreProcessOrPrefilters()
 			"   |     |  +--CScalarCmp (=)\n"
 			"   |     |     |--CScalarIdent \"column_0002\" (5)\n"
 			"   |     |     +--CScalarConst (0)\n"
-			"   |     +--CScalarBoolOp (EboolopOr)\n"
-			"   |        |--CScalarCmp (=)\n"
-			"   |        |  |--CScalarIdent \"column_0000\" (3)\n"
-			"   |        |  +--CScalarConst (1)\n"
-			"   |        +--CScalarCmp (=)\n"
-			"   |           |--CScalarIdent \"column_0000\" (3)\n"
+			"   |     +--CScalarArrayCmp Any (=)\n"
+			"   |        |--CScalarIdent \"column_0000\" (3)\n"
+			"   |        +--CScalarArray: {eleMDId: (23,1.0), arrayMDId: (1007,1.0)}\n"
+			"   |           |--CScalarConst (1)\n"
 			"   |           +--CScalarConst (2)\n"
 			"   |--CLogicalSelect\n"
 			"   |  |--CLogicalGet \"BaseTableAlias\" (\"BaseTable\"), Columns: [\"column_0000\" (0), \"column_0001\" (1), \"column_0002\" (2)] Key sets: {[0]}\n"
-			"   |  +--CScalarBoolOp (EboolopOr)\n"
-			"   |     |--CScalarCmp (=)\n"
-			"   |     |  |--CScalarIdent \"column_0000\" (0)\n"
-			"   |     |  +--CScalarConst (1)\n"
-			"   |     +--CScalarCmp (=)\n"
+			"   |  +--CScalarBoolOp (EboolopAnd)\n"
+			"   |     |--CScalarBoolOp (EboolopOr)\n"
+			"   |     |  |--CScalarCmp (=)\n"
+			"   |     |  |  |--CScalarIdent \"column_0000\" (0)\n"
+			"   |     |  |  +--CScalarConst (2)\n"
+			"   |     |  +--CScalarCmp (=)\n"
+			"   |     |     |--CScalarIdent \"column_0000\" (0)\n"
+			"   |     |     +--CScalarConst (1)\n"
+			"   |     +--CScalarArrayCmp Any (=)\n"
 			"   |        |--CScalarIdent \"column_0000\" (0)\n"
-			"   |        +--CScalarConst (2)\n"
+			"   |        +--CScalarArray: {eleMDId: (23,1.0), arrayMDId: (1007,1.0)}\n"
+			"   |           |--CScalarConst (1)\n"
+			"   |           +--CScalarConst (2)\n"
 			"   +--CScalarBoolOp (EboolopAnd)\n"
 			"      |--CScalarBoolOp (EboolopOr)\n"
 			"      |  |--CScalarBoolOp (EboolopAnd)\n"
