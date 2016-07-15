@@ -64,7 +64,7 @@ extern struct Port *MyProcPort;
 static LWLockId shmControlLock;
 static volatile bool *shmTmRecoverred;
 static volatile DistributedTransactionTimeStamp *shmDistribTimeStamp;
-static volatile DistributedTransactionId *shmGIDSeq;
+static volatile DistributedTransactionId *shmGIDSeq = NULL;
 static volatile int *shmNumGxacts;
 static int *shmCurrentPhase1Count;
 
@@ -2379,7 +2379,7 @@ initGxact(TMGXACT * gxact)
 
 	gxact->explicitBeginRemembered = false;
 
-	LocalDistribXactRef_Init(&gxact->localDistribXactRef);
+	gxact->localDistribXactData.state = LOCALDISTRIBXACT_STATE_NONE;
 
     gxact->xminDistributedSnapshot = 0;
 
@@ -2500,7 +2500,7 @@ createDtxSnapshot(
 	 * ReadNewTransactionId(), the distributed-xmax of a transaction
 	 * is the last distributed-xmax available
 	 */
-	xmax = LocalDistribXact_GetMaxDistributedXid();
+	xmax = getMaxDistributedXid();
 	count = 0;
 	inProgressEntryArray = distribSnapshotWithLocalMapping->inProgressEntryArray;
 
@@ -2710,7 +2710,7 @@ createDtx(DistributedTransactionId		*distribXid,
 			*shmDistribTimeStamp,
 			gxact->gxid,
 			&gxact->localXid,
-			&gxact->localDistribXactRef);
+			&gxact->localDistribXactData);
 
 		*distribXid = gxact->gxid;
 		*localXid = gxact->localXid;
@@ -2760,8 +2760,7 @@ releaseGxact_UnderLocks(void)
 	/*
 	 * Protected by ProcArrayLock.
 	 */
-	LocalDistribXactRef_ReleaseUnderLock(
-		&currentGxact->localDistribXactRef);
+	currentGxact->localDistribXactData.state = LOCALDISTRIBXACT_STATE_NONE;
 
 	/* find slot of current transaction */
 
@@ -3039,11 +3038,23 @@ generateGID(char *gid, DistributedTransactionId *gxid)
 			(errmsg("reached limit of %u global transactions per start", LastDistributedTransactionId)));
 	}
 
-	*gxid = (*shmGIDSeq)++;
+	*gxid = ++(*shmGIDSeq);
 	sprintf(gid, "%u-%.10u", *shmDistribTimeStamp, (*gxid));
 	if (strlen(gid) >= TMGIDSIZE)
 		elog(PANIC, "Distribute transaction identifier too long (%d)",
 			 (int)strlen(gid));
+}
+
+/*
+ * Return the highest global transaction id that has been generated.
+ */
+DistributedTransactionId
+getMaxDistributedXid(void)
+{
+	if (!shmGIDSeq)
+		return 0;
+
+	return *shmGIDSeq;
 }
 
 /*
