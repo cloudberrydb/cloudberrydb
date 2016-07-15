@@ -120,6 +120,8 @@ namespace gpopt
 			virtual 
 			IMDId *PmdidType() const;
 
+			// print
+			IOstream &OsPrint(IOstream &os) const;
 
 	}; // class CScalarArray
 

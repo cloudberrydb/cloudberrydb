@@ -165,6 +165,21 @@ CScalarArray::PmdidType() const
 	return m_pmdidArray;
 }
 
+IOstream &
+CScalarArray::OsPrint(IOstream &os) const
+{
+	os << "CScalarArray: {eleMDId: ";
+	m_pmdidElem->OsPrint(os);
+	os << ", arrayMDId: ";
+	m_pmdidArray->OsPrint(os);
+	if (m_fMultiDimensional)
+	{
+		os << ", multidimensional";
+	}
+	os << "}";
+	return os;
+}
+
 
 // EOF
 

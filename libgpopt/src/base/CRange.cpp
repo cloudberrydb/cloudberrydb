@@ -241,6 +241,38 @@ CRange::FOverlapsRight
 
 //---------------------------------------------------------------------------
 //	@function:
+//		CRange::FRightEqualsLeft
+//
+//	@doc:
+//		Checks if the right element equal the left element of the given range.
+//      This is useful when checking if 2 ranges touch at the ends
+//
+//---------------------------------------------------------------------------
+BOOL
+CRange::FRightEqualsLeft
+	(
+	CRange *prange
+	)
+{
+	GPOS_ASSERT(NULL != prange);
+
+	IDatum *pdatumLeft = prange->PdatumLeft();
+
+	if (NULL == pdatumLeft && NULL == m_pdatumRight)
+	{
+		return true;
+	}
+
+	if (NULL == pdatumLeft || NULL == m_pdatumRight)
+	{
+		return false;
+	}
+
+	return m_pcomp->FEqual(m_pdatumRight, pdatumLeft);
+}
+
+//---------------------------------------------------------------------------
+//	@function:
 //		CRange::FStartsWithOrBefore
 //
 //	@doc:

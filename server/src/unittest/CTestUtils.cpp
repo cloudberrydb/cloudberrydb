@@ -880,6 +880,32 @@ CTestUtils::PexprLogicalSelectArrayCmp
 	IMemoryPool *pmp
 	)
 {
+	return PexprLogicalSelectArrayCmp(pmp, CScalarArrayCmp::EarrcmpAny, IMDType::EcmptEq);
+}
+
+//---------------------------------------------------------------------------
+//	@function:
+//		CTestUtils::PexprLogicalSelectArrayCmp
+//
+//	@doc:
+//		Generate a Select expression with an array compare. Takes an enum for
+//		the type of array comparison (ANY or ALL) and an enum for the comparator
+//		type (=, !=, <, etc)
+//
+//---------------------------------------------------------------------------
+CExpression *
+CTestUtils::PexprLogicalSelectArrayCmp
+	(
+	IMemoryPool *pmp,
+	CScalarArrayCmp::EArrCmpType eScalarArrayCmpType,
+	IMDType::ECmpType eCmpType
+	)
+{
+	// must be a valid array comparison enum
+	GPOS_ASSERT(CScalarArrayCmp::EarrcmpSentinel > eScalarArrayCmpType);
+	// must be a valid comparator type
+	GPOS_ASSERT(IMDType::EcmptOther > eCmpType);
+
 	CMDAccessor *pmda = COptCtxt::PoctxtFromTLS()->Pmda();
 
 	// generate a get expression
@@ -902,7 +928,7 @@ CTestUtils::PexprLogicalSelectArrayCmp
 	// get column type mdid and mdid of the array type corresponding to that type 
 	IMDId *pmdidColType = pcr->Pmdtype()->Pmdid();
 	IMDId *pmdidArrType = pcr->Pmdtype()->PmdidTypeArray();
-	IMDId *pmdidCmpOp = pcr->Pmdtype()->PmdidCmp(IMDType::EcmptEq);
+	IMDId *pmdidCmpOp = pcr->Pmdtype()->PmdidCmp(eCmpType);
 
 	pmdidColType->AddRef();
 	pmdidArrType->AddRef();
@@ -922,7 +948,7 @@ CTestUtils::PexprLogicalSelectArrayCmp
 			GPOS_NEW(pmp) CExpression
 						(
 						pmp,
-						GPOS_NEW(pmp) CScalarArrayCmp(pmp, pmdidCmpOp, GPOS_NEW(pmp) CWStringConst(pmp, strOp.Wsz()), CScalarArrayCmp::EarrcmpAny),
+						GPOS_NEW(pmp) CScalarArrayCmp(pmp, pmdidCmpOp, GPOS_NEW(pmp) CWStringConst(pmp, strOp.Wsz()), eScalarArrayCmpType),
 						pexprIdent,
 						pexprArray
 						);

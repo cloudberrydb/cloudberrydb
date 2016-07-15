@@ -170,6 +170,9 @@ namespace gpopt
 			// does this range overlap only the right end of the given range
 			BOOL FOverlapsRight(CRange *prange);
 
+			// does the right element equal the left element of the given range
+			BOOL FRightEqualsLeft(CRange *prange);
+
 			// does this range start before the given range starts
 			BOOL FStartsBefore(CRange *prange);
 

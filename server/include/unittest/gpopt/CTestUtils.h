@@ -20,6 +20,7 @@
 #include "gpopt/mdcache/CMDAccessor.h"
 #include "gpopt/metadata/CTableDescriptor.h"
 #include "gpopt/operators/CExpression.h"
+#include "gpopt/operators/CScalarArrayCmp.h"
 #include "gpopt/operators/CScalarConst.h"
 #include "gpopt/operators/CLogicalGet.h"
 #include "gpopt/operators/CScalarBoolOp.h"
@@ -351,6 +352,9 @@ namespace gpopt
 			// generate a select expression with an array compare
 			static
 			CExpression *PexprLogicalSelectArrayCmp(IMemoryPool *pmp);
+
+			static
+			CExpression *PexprLogicalSelectArrayCmp(IMemoryPool *pmp, CScalarArrayCmp::EArrCmpType eScalarArrayCmpType, IMDType::ECmpType eCmpType);
 			
 			// generate an n-ary join expression
 			static

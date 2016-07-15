@@ -748,6 +748,9 @@ namespace gpopt
 			static
 			BOOL FComparisonPossible(DrgPcr *pdrgpcr, IMDType::ECmpType ecmpt);
 
+			static
+			ULONG FCountOperator(CExpression *pexpr, INT Eopid);
+
 			// return the max prefix of hashable columns for the given columns
 			static
 			DrgPcr *PdrgpcrHashablePrefix(IMemoryPool *pmp, DrgPcr *pdrgpcr);
@@ -986,6 +989,10 @@ namespace gpopt
 			template <class T>
 			static
 			BOOL FMatchBitmapScan(T *pop1, COperator *pop2);
+
+			// compares two Idatums, useful for sorting functions
+			static
+			INT IDatumCmp(const void *pv1, const void *pv2);
 	}; // class CUtils
 
 } // namespace gpopt

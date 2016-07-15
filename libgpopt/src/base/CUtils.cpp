@@ -4094,6 +4094,35 @@ CUtils::FComparisonPossible
 
 //---------------------------------------------------------------------------
 //	@function:
+//		CUtils::FCountOperator
+//
+//	@doc:
+//		counts the number of times a certain operator appears
+//
+//---------------------------------------------------------------------------
+ULONG
+CUtils::FCountOperator
+	(
+		CExpression *pexpr,
+		INT Eopid
+	)
+{
+	INT iopCnt = 0;
+	if (pexpr->Pop()->Eopid() == Eopid)
+	{
+		iopCnt += 1;
+	}
+
+
+	for (ULONG ulChild = 0; ulChild < pexpr->UlArity(); ulChild++)
+	{
+		iopCnt += FCountOperator((*pexpr)[ulChild], Eopid);
+	}
+	return iopCnt;
+}
+
+//---------------------------------------------------------------------------
+//	@function:
 //		CUtils::PdrgpcrHashablePrefix
 //
 //	@doc:
@@ -5763,6 +5792,37 @@ CUtils::PexprCollapseProjects
 						pexprProject,
 						GPOS_NEW(pmp) CExpression(pmp, GPOS_NEW(pmp) CScalarProjectList(pmp), pdrgpexprPrEl)
 						);
+}
+
+//---------------------------------------------------------------------------
+//	@function:
+//		CUtils::IDatumCmp
+//
+//	@doc:
+//		Compares two datums. Takes pointer pointer to a datums.
+//
+//---------------------------------------------------------------------------
+INT CUtils::IDatumCmp
+		(
+		const void *pv1,
+		const void *pv2
+		)
+{
+	const IDatum *dat1 = *(IDatum**)(pv1);
+	const IDatum *dat2 = *(IDatum**)(pv2);
+
+	const IComparator *pcomp = COptCtxt::PoctxtFromTLS()->Pcomp();
+
+	if (pcomp->FEqual(dat1, dat2))
+	{
+		return 0;
+	}
+	else if (pcomp->FLessThan(dat1, dat2))
+	{
+		return -1;
+	}
+
+	return 1;
 }
 
 // EOF
