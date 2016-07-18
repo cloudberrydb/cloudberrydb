@@ -544,10 +544,12 @@ ProcessDropStatement(DropStmt *stmt)
 						CheckDropRelStorage(rel, stmt->removeType))
 				{
 					/*
-					 * RemoveRelation fails to find the relation on QD, will return false.
-					 * Should not dispatch the drop to segments as not holding Exclusive Lock.
+					 * If RemoveRelation fails to find the relation on QD, it
+					 * will return false and we should not dispatch the drop
+					 * to segments as not holding Exclusive Lock.
 					 */
-					dispatchDrop = RemoveRelation(rel, stmt->behavior, stmt, RELKIND_RELATION);
+					dispatchDrop = RemoveRelation(rel, stmt->behavior, stmt,
+												  RELKIND_RELATION);
 				}
 				else
 					dispatchDrop = false;
@@ -557,15 +559,15 @@ ProcessDropStatement(DropStmt *stmt)
 				rel = makeRangeVarFromNameList(names);
 				if (CheckDropPermissions(rel, RELKIND_SEQUENCE,
 										 stmt->missing_ok))
-					dispatchDrop = RemoveRelation(rel, stmt->behavior, stmt, RELKIND_SEQUENCE);
+					dispatchDrop = RemoveRelation(rel, stmt->behavior, stmt,
+												  RELKIND_SEQUENCE);
 				else
 					dispatchDrop = false;
 				break;
 
 			case OBJECT_VIEW:
 				rel = makeRangeVarFromNameList(names);
-				if (CheckDropPermissions(rel, RELKIND_VIEW,
-										 stmt->missing_ok))
+				if (CheckDropPermissions(rel, RELKIND_VIEW, stmt->missing_ok))
 					RemoveView(rel, stmt->behavior);
 				else
 					dispatchDrop = false;
@@ -573,40 +575,35 @@ ProcessDropStatement(DropStmt *stmt)
 
 			case OBJECT_INDEX:
 				rel = makeRangeVarFromNameList(names);
-				if (CheckDropPermissions(rel, RELKIND_INDEX,
-										 stmt->missing_ok))
+				if (CheckDropPermissions(rel, RELKIND_INDEX, stmt->missing_ok))
 					RemoveIndex(rel, stmt->behavior);
 				else
 					dispatchDrop = false;
 				break;
 
 			case OBJECT_TYPE:
-				/* RemoveType does its own permissions checks */
-				RemoveType(names, stmt->behavior,
-						   stmt->missing_ok);
+				/*
+				 * RemoveType does its own permissions checks
+				 */
+				RemoveType(names, stmt->behavior, stmt->missing_ok);
 				break;
 
 			case OBJECT_DOMAIN:
-
 				/*
 				 * RemoveDomain does its own permissions checks
 				 */
-				RemoveDomain(names, stmt->behavior,
-							 stmt->missing_ok);
+				RemoveDomain(names, stmt->behavior, stmt->missing_ok);
 				break;
 
 			case OBJECT_CONVERSION:
-				DropConversionCommand(names, stmt->behavior,
-									  stmt->missing_ok);
+				DropConversionCommand(names, stmt->behavior, stmt->missing_ok);
 				break;
 
 			case OBJECT_SCHEMA:
-
 				/*
 				 * RemoveSchema does its own permissions checks
 				 */
-				RemoveSchema(names, stmt->behavior,
-							 stmt->missing_ok);
+				RemoveSchema(names, stmt->behavior, stmt->missing_ok);
 				break;
 
 			case OBJECT_FILESPACE:
@@ -624,7 +621,6 @@ ProcessDropStatement(DropStmt *stmt)
 				break;
 
 			case OBJECT_EXTPROTOCOL:
-				
 				/*
 				 * RemoveExtProtocol does its own permissions checks
 				 */
