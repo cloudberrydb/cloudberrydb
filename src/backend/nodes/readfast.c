@@ -202,7 +202,7 @@ static const char *read_str_ptr;
 
 /*
  * For most structs, we reuse the definitions from readfuncs.c. See comment
- * in reafuncs.c.
+ * in readfuncs.c.
  */
 #define COMPILING_BINARY_FUNCS
 #include "readfuncs.c"
