@@ -167,6 +167,10 @@ namespace gpopt
 			static
 			GPOS_RESULT EresTestLOJ(BOOL fAddWindowFunction);
 
+			// helper to create an expression with a predicate containing an array and other comparisons
+			static
+			CExpression *PexprCreateConvertableArray(IMemoryPool *pmp, BOOL fCreateInStatement);
+
 		public:
 
 			// unittests
@@ -184,6 +188,9 @@ namespace gpopt
 			static GPOS_RESULT EresUnittest_PreProcessOrPrefilters();
 			static GPOS_RESULT EresUnittest_PreProcessOrPrefiltersPartialPush();
 			static GPOS_RESULT EresUnittest_CollapseInnerJoin();
+			static GPOS_RESULT EresUnittest_PreProcessConvert2InPredicate();
+			static GPOS_RESULT EresUnittest_PreProcessConvert2InPredicateDeepExpressionTree();
+			static GPOS_RESULT EresUnittest_PreProcessConvertArrayWithEquals();
 
 	}; // class CExpressionPreprocessorTest
 }

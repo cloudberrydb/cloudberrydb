@@ -177,6 +177,14 @@ namespace gpopt
 				const CColRefSet *pcrsReqd
 				);
 
+			// generate a scalar bool op expression or return the only child expression in array
+			static CExpression *
+			PexprScalarBoolOpConvert2In(IMemoryPool *pmp, CScalarBoolOp::EBoolOperator eboolop, DrgPexpr *pdrgpexpr);
+
+			// determines if the expression is likely convertible to an array expression
+			static BOOL
+			FConvert2InIsConvertable(CExpression *pexpr, CScalarBoolOp::EBoolOperator eboolop);
+
 			// private ctor
 			CExpressionPreprocessor();
 
@@ -200,6 +208,10 @@ namespace gpopt
 			// derive constraints on given expression
 			static
 			CExpression *PexprAddPredicatesFromConstraints(IMemoryPool *pmp, CExpression *pexpr);
+
+			// convert series of AND or OR comparisons into array IN expressions
+			static
+			CExpression *PexprConvert2In(IMemoryPool *pmp, CExpression *pexpr);
 
 	}; // class CExpressionPreprocessor
 }

@@ -16,6 +16,7 @@
 #include "gpopt/base/CColRefTable.h"
 #include "gpopt/base/CConstraintInterval.h"
 #include "gpos/common/CAutoTimer.h"
+#include "gpos/common/CAutoRef.h"
 #include "gpopt/exception.h"
 
 #include "gpopt/operators/CWindowPreprocessor.h"
@@ -531,6 +532,158 @@ CExpressionPreprocessor::PexprRemoveSuperfluousOuterRefs
 	return GPOS_NEW(pmp) CExpression(pmp, pop, pdrgpexprChildren);
 }
 
+//---------------------------------------------------------------------------
+//	@function:
+//		CUtils::PexprScalarBoolOpConvert2In
+//
+//	@doc:
+//		Generate a ScalarBoolOp expression or simply return the only expression
+//		in the array if there is only one.
+//
+//---------------------------------------------------------------------------
+CExpression *
+CExpressionPreprocessor::PexprScalarBoolOpConvert2In
+	(
+	IMemoryPool *pmp,
+	CScalarBoolOp::EBoolOperator eboolop,
+	DrgPexpr *pdrgpexpr
+	)
+{
+	GPOS_ASSERT(NULL != pdrgpexpr);
+	GPOS_ASSERT(0 < pdrgpexpr->UlLength());
+
+	if (1 == pdrgpexpr->UlLength())
+	{
+	    // if there is one child, do not wrap it in a bool op
+	    CExpression *pexpr = (* pdrgpexpr)[0];
+	    pexpr->AddRef();
+	    pdrgpexpr->Release();
+	    return pexpr;
+	}
+
+	return GPOS_NEW(pmp) CExpression
+			(
+			pmp,
+			GPOS_NEW(pmp) CScalarBoolOp(pmp, eboolop),
+			pdrgpexpr
+			);
+}
+
+//---------------------------------------------------------------------------
+//	@function:
+//		CExpressionPreprocessor::FConvert2InIsConvertable
+//
+//	@doc:
+//		Checks if the given expression is likely to be simplified by the constraints
+//		framework during array conversion. eboolop is the CScalarBoolOp type
+//		of the expression which contains the argument expression
+//
+//---------------------------------------------------------------------------
+BOOL
+CExpressionPreprocessor::FConvert2InIsConvertable(CExpression *pexpr, CScalarBoolOp::EBoolOperator eboolopParent)
+{
+	if (CPredicateUtils::FCompareIdentToConst(pexpr))
+	{
+		if (IMDType::EcmptEq == CScalarCmp::PopConvert(pexpr->Pop())->Ecmpt() &&
+				CScalarBoolOp::EboolopOr == eboolopParent)
+		{
+			return true;
+		}
+		else if (IMDType::EcmptNEq == CScalarCmp::PopConvert(pexpr->Pop())->Ecmpt() &&
+				CScalarBoolOp::EboolopAnd == eboolopParent)
+		{
+			return true;
+		}
+	}
+	else if (CPredicateUtils::FCompareIdentToConstArray(pexpr))
+	{
+		return true;
+	}
+	return false;
+}
+
+//---------------------------------------------------------------------------
+//	@function:
+//		CExpressionPreprocessor::PexprConvert2In
+//
+//	@doc:
+//		Converts series of AND or OR comparisons into array IN expressions. For
+//		example, x = 1 OR x = 2 will convert to x IN (1,2). This stage assumes
+//		the expression has been unnested using CExpressionUtils::PexprUnnest.
+//
+//---------------------------------------------------------------------------
+CExpression *
+CExpressionPreprocessor::PexprConvert2In
+	(
+	IMemoryPool *pmp,
+	CExpression *pexpr // does not take ownership
+	)
+{
+	// protect against stack overflow during recursion
+	GPOS_CHECK_STACK_SIZE;
+	GPOS_ASSERT(NULL != pmp);
+	GPOS_ASSERT(NULL != pexpr);
+
+	COperator *pop = pexpr->Pop();
+	if (CPredicateUtils::FOr(pexpr) || CPredicateUtils::FAnd(pexpr) )
+	{
+		// the bool op type of this node
+		CScalarBoolOp::EBoolOperator eboolop = CScalarBoolOp::PopConvert(pop)->Eboolop();
+		// derive constraints on all of the simple scalar children
+		// and add them to a new AND or OR expression
+		DrgPexpr *pdrgpexprCollapse = GPOS_NEW(pmp) DrgPexpr(pmp);
+		DrgPexpr *pdrgpexprRemainder = GPOS_NEW(pmp) DrgPexpr(pmp);
+		const ULONG ulArity = pexpr->UlArity();
+		for (ULONG ul = 0; ul < ulArity; ul++)
+		{
+			CExpression *pexprChild = (*pexpr)[ul];
+
+			if (FConvert2InIsConvertable(pexprChild, eboolop))
+			{
+				pexprChild->AddRef();
+				pdrgpexprCollapse->Append(pexprChild);
+			}
+			else
+			{
+				// recursively convert the remainder and add to the array
+				pdrgpexprRemainder->Append(PexprConvert2In(pmp, pexprChild));
+			}
+		}
+
+		if (0 != pdrgpexprCollapse->UlLength())
+		{
+			// create the constraint, rederive the collapsed expression
+			// add the new derived expr to remainder
+			DrgPcrs *pdrgpcr = NULL;
+			pop->AddRef();
+			CAutoRef<CExpression> apexprPreCollapse(GPOS_NEW(pmp) CExpression(pmp, pop, pdrgpexprCollapse));
+			CAutoRef<CConstraint> apcnst(CConstraint::PcnstrFromScalarExpr(pmp, apexprPreCollapse.Pt(), &pdrgpcr));
+			CExpression *pexprPostCollapse = apcnst->PexprScalar(pmp);
+
+			pexprPostCollapse->AddRef();
+			pdrgpexprRemainder->Append(pexprPostCollapse);
+			CRefCount::SafeRelease(pdrgpcr);
+		}
+		else
+		{
+			pdrgpexprCollapse->Release();
+		}
+
+		GPOS_ASSERT(0 < pdrgpexprRemainder->UlLength());
+		return PexprScalarBoolOpConvert2In(pmp, eboolop, pdrgpexprRemainder);
+	}
+
+	DrgPexpr *pdrgpexpr = GPOS_NEW(pmp) DrgPexpr(pmp);
+	DrgPexpr *pdrgexprChildren = pexpr->PdrgPexpr();
+	for (ULONG ul = 0; ul < pexpr->UlArity(); ul++)
+	{
+		pdrgpexpr->Append(PexprConvert2In(pmp, (*pdrgexprChildren)[ul]));
+	}
+
+	pop->AddRef();
+	return GPOS_NEW(pmp) CExpression(pmp, pop, pdrgpexpr);
+
+}
 
 //---------------------------------------------------------------------------
 //	@function:
@@ -1996,10 +2149,20 @@ CExpressionPreprocessor::PexprPreprocess
 	GPOS_CHECK_ABORT;
 	pexprSubqUnnested->Release();
 
+	CExpression *pexprConvert2In = pexprUnnested;
+
+	if (GPOS_FTRACE(EopttraceEnableArrayDerive))
+	{
+		// (8.5) ensure predicates are array IN or NOT IN where applicable
+		pexprConvert2In = PexprConvert2In(pmp, pexprUnnested);
+		GPOS_CHECK_ABORT;
+		pexprUnnested->Release();
+	}
+
 	// (9) infer predicates from constraints
-	CExpression *pexprInferredPreds = PexprInferPredicates(pmp, pexprUnnested);
+	CExpression *pexprInferredPreds = PexprInferPredicates(pmp, pexprConvert2In);
 	GPOS_CHECK_ABORT;
-	pexprUnnested->Release();
+	pexprConvert2In->Release();
 
 	// (10) eliminate self comparisons
 	CExpression *pexprSelfCompEliminated = PexprEliminateSelfComparison(pmp, pexprInferredPreds);
