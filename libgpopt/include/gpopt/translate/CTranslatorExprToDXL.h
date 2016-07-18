@@ -505,6 +505,17 @@ namespace gpopt
 				BOOL *pfDML
 				);
 
+			CDXLNode *PdxlArrayExprOnPartKey
+				(
+				CExpression *pexprPred,
+				CColRef *pcrPartKey,
+				IMDId *pmdidTypePartKey,
+				ULONG ulPartLevel,
+				BOOL *pfLTComparison,	// input/output
+				BOOL *pfGTComparison,	// input/output
+				BOOL *pfEQComparison	// input/output
+				);
+
 			// translate a DML operator
 			CDXLNode *PdxlnDML(CExpression *pexpr, DrgPcr *pdrgpcr, DrgPds *pdrgpdsBaseTables, ULONG *pulNonGatherMotions, BOOL *pfDML);
 

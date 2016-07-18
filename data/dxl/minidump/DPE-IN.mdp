@@ -19,7 +19,7 @@ select * from P,X where P.a=X.a  and X.a  in (1,2);
       <dxl:StatisticsConfig DampingFactorFilter="0.750000" DampingFactorJoin="0.010000" DampingFactorGroupBy="0.750000"/>
       <dxl:CTEConfig CTEInliningCutoff="0"/>
       <dxl:CostModelConfig CostModelType="1" SegmentsForCosting="2"/>
-      <dxl:TraceFlags Value="101013,102024,102025,102115,102116,102120,102128,103001,103014,103015"/>
+      <dxl:TraceFlags Value="101013,102024,102025,102115,102116,102120,102128,103001,103014,103015, 103026"/>
     </dxl:OptimizerConfig>
     <dxl:Metadata SystemIds="0.GPDB">
       <dxl:RelationStatistics Mdid="2.36394823.1.1" Name="p" Rows="0.000000" EmptyRelation="true"/>
@@ -868,25 +868,13 @@ select * from P,X where P.a=X.a  and X.a  in (1,2);
 	          </dxl:ProjElem>
 	        </dxl:ProjList>
 	        <dxl:Filter>
-	          <dxl:And>
-	            <dxl:ArrayComp OperatorName="=" OperatorMdid="0.96.1.0" OperatorType="Any">
-	              <dxl:Ident ColId="9" ColName="a" TypeMdid="0.23.1.0"/>
-	              <dxl:Array ArrayType="0.1007.1.0" ElementType="0.23.1.0" MultiDimensional="false">
-	                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>
-	                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2"/>
-	              </dxl:Array>
-	            </dxl:ArrayComp>
-	            <dxl:Or>
-	              <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
-	                <dxl:Ident ColId="9" ColName="a" TypeMdid="0.23.1.0"/>
-	                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>
-	              </dxl:Comparison>
-	              <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
-	                <dxl:Ident ColId="9" ColName="a" TypeMdid="0.23.1.0"/>
-	                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2"/>
-	              </dxl:Comparison>
-	            </dxl:Or>
-	          </dxl:And>
+	           <dxl:ArrayComp OperatorName="=" OperatorMdid="0.96.1.0" OperatorType="Any">
+	             <dxl:Ident ColId="9" ColName="a" TypeMdid="0.23.1.0"/>
+	             <dxl:Array ArrayType="0.1007.1.0" ElementType="0.23.1.0" MultiDimensional="false">
+	               <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>
+	               <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2"/>
+	             </dxl:Array>
+	           </dxl:ArrayComp>
 	        </dxl:Filter>
 	        <dxl:TableDescriptor Mdid="0.24719017.1.1" TableName="x">
 	          <dxl:Columns>
@@ -1017,16 +1005,13 @@ select * from P,X where P.a=X.a  and X.a  in (1,2);
 	              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>
 	            </dxl:PropagationExpression>
 	            <dxl:PrintableFilter>
-	              <dxl:Or>
-	                <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
-	                  <dxl:Ident ColId="0" ColName="a" TypeMdid="0.23.1.0"/>
-	                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>
-	                </dxl:Comparison>
-	                <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
-	                  <dxl:Ident ColId="0" ColName="a" TypeMdid="0.23.1.0"/>
-	                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2"/>
-	                </dxl:Comparison>
-	              </dxl:Or>
+	              <dxl:ArrayComp OperatorName="=" OperatorMdid="0.96.1.0" OperatorType="Any">
+	                 <dxl:Ident ColId="0" ColName="a" TypeMdid="0.23.1.0"/>
+	                 <dxl:Array ArrayType="0.1007.1.0" ElementType="0.23.1.0" MultiDimensional="false">
+	                   <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>
+	                   <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2"/>
+	                 </dxl:Array>
+	               </dxl:ArrayComp>
 	            </dxl:PrintableFilter>
 	          </dxl:PartitionSelector>
 	          <dxl:DynamicTableScan PartIndexId="1">
@@ -1042,16 +1027,13 @@ select * from P,X where P.a=X.a  and X.a  in (1,2);
 	              </dxl:ProjElem>
 	            </dxl:ProjList>
 	            <dxl:Filter>
-	              <dxl:Or>
-	                <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
-	                  <dxl:Ident ColId="0" ColName="a" TypeMdid="0.23.1.0"/>
-	                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>
-	                </dxl:Comparison>
-	                <dxl:Comparison ComparisonOperator="=" OperatorMdid="0.96.1.0">
-	                  <dxl:Ident ColId="0" ColName="a" TypeMdid="0.23.1.0"/>
-	                  <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2"/>
-	                </dxl:Comparison>
-	              </dxl:Or>
+	              <dxl:ArrayComp OperatorName="=" OperatorMdid="0.96.1.0" OperatorType="Any">
+	                 <dxl:Ident ColId="0" ColName="a" TypeMdid="0.23.1.0"/>
+	                 <dxl:Array ArrayType="0.1007.1.0" ElementType="0.23.1.0" MultiDimensional="false">
+	                   <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>
+	                   <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2"/>
+	                 </dxl:Array>
+	               </dxl:ArrayComp>
 	            </dxl:Filter>
 	            <dxl:TableDescriptor Mdid="0.36394823.1.1" TableName="p">
 	              <dxl:Columns>

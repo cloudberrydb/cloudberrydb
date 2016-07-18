@@ -623,6 +623,33 @@ CConstraintInterval::PexprConstructScalar
 	}
 
 	// otherwise, we generate a disjunction of ranges
+	return PexprConstructDisjunctionScalar(pmp);
+}
+
+//---------------------------------------------------------------------------
+//	@function:
+//		CConstraintInterval::PexprConstructDisjunctionScalar
+//
+//	@doc:
+//		Returns a disjunction of several equality or inequality expressions
+//		describing this interval. Or, returns a singular expression if the
+//		interval can be represented as such.
+//		For example an interval containing ranges like
+//			[1,1],(7,inf)
+//		converts to an expression like
+//			x = 1 OR x > 7
+//		but an interval containing the range
+//			(-inf, inf)
+//		converts to a scalar true
+//
+//---------------------------------------------------------------------------
+CExpression *
+CConstraintInterval::PexprConstructDisjunctionScalar
+	(
+		IMemoryPool *pmp
+	)
+	const
+{
 	DrgPexpr *pdrgpexpr = GPOS_NEW(pmp) DrgPexpr(pmp);
 
 	const ULONG ulLen = m_pdrgprng->UlLength();

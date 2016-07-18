@@ -4424,6 +4424,7 @@ CTranslatorExprToDXL::PdxlnPartitionSelectorFilter
 	CDXLNode *pdxlnPrLChild = (*pdxlnChild)[0];
 
 	CDrvdPropRelational *pdprel = CDrvdPropRelational::Pdprel(pexprChild->Pdp(CDrvdProp::EptRelational));
+
 	// we add a sequence if the scan id is found below the resolver
 	BOOL fNeedSequence = pdprel->Ppartinfo()->FContainsScanId(popSelector->UlScanId());
 
@@ -4760,9 +4761,59 @@ CTranslatorExprToDXL::PdxlnPredOnPartKey
 		return PdxlnScNullTestPartKey(pmdidTypePartKey, ulPartLevel, false /*fIsNull*/);
 	}
 
+	if (CPredicateUtils::FCompareIdentToConstArray(pexprPred))
+	{
+		return PdxlArrayExprOnPartKey(pexprPred, pcrPartKey, pmdidTypePartKey, ulPartLevel, pfLTComparison, pfGTComparison, pfEQComparison);
+	}
+
 	GPOS_ASSERT(CPredicateUtils::FOr(pexprPred) || CPredicateUtils::FAnd(pexprPred));
-	
+
 	return PdxlnConjDisjOnPartKey(pexprPred, pcrPartKey, pmdidTypePartKey, ulPartLevel, pfLTComparison, pfGTComparison, pfEQComparison);
+}
+
+//---------------------------------------------------------------------------
+//	@function:
+//		CTranslatorExprToDXL::PdxlArrayInOnPartKey
+//
+//	@doc:
+//		Translates an array expression on a partition key to a disjunction because
+//		the DXL partition translator requires expressions containing only LT, GT,
+//		or EQ comparisons
+//		For example the expression:
+//			X IN (1,2,3) cannot be translated
+//		but when converted into a constraint and then converted into a disjunction
+//			X = 1 OR x = 2 OR x = 3
+//		it can be converted to DXL
+//
+//---------------------------------------------------------------------------
+CDXLNode *
+CTranslatorExprToDXL::PdxlArrayExprOnPartKey
+	(
+	CExpression *pexprPred,
+	CColRef *pcrPartKey,
+	IMDId *pmdidTypePartKey,
+	ULONG ulPartLevel,
+	BOOL *pfLTComparison,	// input/output
+	BOOL *pfGTComparison,	// input/output
+	BOOL *pfEQComparison	// input/output
+	)
+{
+	GPOS_ASSERT(CUtils::FScalarArrayCmp(pexprPred));
+
+	CConstraintInterval* pci = CConstraintInterval::PcnstrIntervalFromScalarArrayCmp(m_pmp, pexprPred, pcrPartKey);
+	GPOS_ASSERT(NULL != pci);
+
+	// convert the interval into a disjunction
+	// (do not use CScalarArrayCmp::PexprExpand, it will use non-range
+	// comparators which cannot be translated to a partition filter)
+	CExpression *pexprDisj = pci->PexprConstructDisjunctionScalar(m_pmp);
+
+	CDXLNode* pdxln = PdxlnConjDisjOnPartKey(pexprDisj, pcrPartKey, pmdidTypePartKey, ulPartLevel, pfLTComparison, pfGTComparison, pfEQComparison);
+	pexprDisj->Release();
+	pci->Release();
+
+
+	return pdxln;
 }
 
 //---------------------------------------------------------------------------

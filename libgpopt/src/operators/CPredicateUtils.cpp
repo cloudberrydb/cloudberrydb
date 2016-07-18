@@ -1859,18 +1859,33 @@ CPredicateUtils::PexprExtractPredicatesOnPartKeys
 		return NULL;
 	}
 
-	// if we have any Array Comparisons, we expand them into conjunctions/disjunctions
-	// of comparison predicates and then reconstruct scalar expression
 	DrgPexpr *pdrgpexprConjuncts = PdrgpexprConjuncts(pmp, pexprScalar);
-	DrgPexpr *pdrgpexprExpandedConjuncts = PdrgpexprExpandConjuncts(pmp, pdrgpexprConjuncts);
-	pdrgpexprConjuncts->Release();
-	CExpression *pexprExpandedScalar = PexprConjunction(pmp, pdrgpexprExpandedConjuncts);
-	pdrgpexprConjuncts = PdrgpexprConjuncts(pmp, pexprExpandedScalar);
-
 	DrgPcrs *pdrgpcrsChild = NULL;
-	CConstraint *pcnstr = CConstraint::PcnstrFromScalarExpr(pmp, pexprExpandedScalar, &pdrgpcrsChild);
+	CConstraint *pcnstr = NULL;
+	if (GPOS_FTRACE(EopttraceEnableArrayDerive))
+	{
+		// previously, we expanded array expressions. However, there is now code to handle array
+		// constraints in the DXL translator and therefore, it is unnecessary work to expanded arrays
+		// into disjunctions, so we skip that step
+		pcnstr = CConstraint::PcnstrFromScalarExpr(pmp, pexprScalar, &pdrgpcrsChild);
+	}
+	else
+	{
+		// if we have any Array Comparisons, we expand them into conjunctions/disjunctions
+		// of comparison predicates and then reconstruct scalar expression. This is because the
+		// DXL translator for partitions would not previously handle array statements
+		DrgPexpr *pdrgpexprExpandedConjuncts = PdrgpexprExpandConjuncts(pmp, pdrgpexprConjuncts);
+		pdrgpexprConjuncts->Release();
+		CExpression *pexprExpandedScalar = PexprConjunction(pmp, pdrgpexprExpandedConjuncts);
+
+		// this will no longer contain array statements
+		pdrgpexprConjuncts = PdrgpexprConjuncts(pmp, pexprExpandedScalar);
+
+		pcnstr = CConstraint::PcnstrFromScalarExpr(pmp, pexprExpandedScalar, &pdrgpcrsChild);
+		pexprExpandedScalar->Release();
+	}
 	CRefCount::SafeRelease(pdrgpcrsChild);
-	pexprExpandedScalar->Release();
+
 
 	// check if expanded scalar leads to a contradiction in computed constraint
 	BOOL fContradiction = (NULL != pcnstr && pcnstr->FContradiction());
