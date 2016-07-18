@@ -92,9 +92,11 @@ MulFunc mul_func_ptr = nullptr;
 
 class SumCodeGenerator : public BaseCodegen<SumFunc> {
  public:
-  explicit SumCodeGenerator(SumFunc regular_func_ptr,
+  explicit SumCodeGenerator(gpcodegen::CodegenManager* manager,
+                            SumFunc regular_func_ptr,
                              SumFunc* ptr_to_regular_func_ptr) :
-                             BaseCodegen(kAddFuncNamePrefix,
+                             BaseCodegen(manager,
+                                         kAddFuncNamePrefix,
                                          regular_func_ptr,
                                          ptr_to_regular_func_ptr) {
   }
@@ -122,11 +124,13 @@ class SumCodeGenerator : public BaseCodegen<SumFunc> {
 
 class MulOverflowCodeGenerator : public BaseCodegen<MulFunc> {
  public:
-  explicit MulOverflowCodeGenerator(MulFunc regular_func_ptr,
+  explicit MulOverflowCodeGenerator(gpcodegen::CodegenManager* manager,
+                                    MulFunc regular_func_ptr,
                                     MulFunc* ptr_to_regular_func_ptr) :
-                                    BaseCodegen(kMulFuncNamePrefix,
-                                         regular_func_ptr,
-                                         ptr_to_regular_func_ptr) {
+                                    BaseCodegen(manager,
+                                                kMulFuncNamePrefix,
+                                                regular_func_ptr,
+                                                ptr_to_regular_func_ptr) {
   }
 
   virtual ~MulOverflowCodeGenerator() = default;
@@ -178,9 +182,11 @@ class MulOverflowCodeGenerator : public BaseCodegen<MulFunc> {
 
 class FailingCodeGenerator : public BaseCodegen<SumFunc> {
  public:
-  explicit FailingCodeGenerator(SumFunc regular_func_ptr,
+  explicit FailingCodeGenerator(gpcodegen::CodegenManager* manager,
+                                SumFunc regular_func_ptr,
                                 SumFunc* ptr_to_regular_func_ptr):
-                                BaseCodegen(kFailingFuncNamePrefix,
+                                BaseCodegen(manager,
+                                            kFailingFuncNamePrefix,
                                             regular_func_ptr,
                                             ptr_to_regular_func_ptr) {
   }
@@ -200,9 +206,11 @@ template <bool GEN_SUCCESS>
 class UncompilableCodeGenerator : public BaseCodegen<UncompilableFunc> {
  public:
   explicit UncompilableCodeGenerator(
+      gpcodegen::CodegenManager* manager,
       UncompilableFunc regular_func_ptr,
       UncompilableFunc* ptr_to_regular_func_ptr)
-  : BaseCodegen(kUncompilableFuncNamePrefix,
+  : BaseCodegen(manager,
+                kUncompilableFuncNamePrefix,
                 regular_func_ptr,
                 ptr_to_regular_func_ptr) {
   }
@@ -233,9 +241,11 @@ class DatumToCppCastGenerator :
 
  public:
   explicit DatumToCppCastGenerator(
+      gpcodegen::CodegenManager* manager,
       DatumCastTemplateFn regular_func_ptr,
       DatumCastTemplateFn* ptr_to_regular_func_ptr):
-      BaseCodegen<DatumCastTemplateFn>(kDatumToCppCastFuncNamePrefix,
+      BaseCodegen<DatumCastTemplateFn>(manager,
+                  kDatumToCppCastFuncNamePrefix,
                   regular_func_ptr,
                   ptr_to_regular_func_ptr) {
   }
@@ -268,9 +278,11 @@ class CppToDatumCastGenerator :
   using DatumCastTemplateFn = DatumCastFn<Datum, src_type>;
  public:
   explicit CppToDatumCastGenerator(
+      gpcodegen::CodegenManager* manager,
       DatumCastTemplateFn regular_func_ptr,
       DatumCastTemplateFn* ptr_to_regular_func_ptr):
-      BaseCodegen<DatumCastTemplateFn>(kCppToDatumCastFuncNamePrefix,
+      BaseCodegen<DatumCastTemplateFn>(manager,
+                  kCppToDatumCastFuncNamePrefix,
                   regular_func_ptr,
                   ptr_to_regular_func_ptr) {
   }
@@ -330,7 +342,7 @@ class CodegenManagerTest : public ::testing::Test {
 
   template <typename ClassType, typename FuncType>
   void EnrollCodegen(FuncType reg_func, FuncType* ptr_to_chosen_func) {
-    ClassType* code_gen = new ClassType(reg_func, ptr_to_chosen_func);
+    ClassType* code_gen = new ClassType(manager_.get(), reg_func, ptr_to_chosen_func);
     ASSERT_TRUE(reg_func == *ptr_to_chosen_func);
     ASSERT_TRUE(manager_->EnrollCodeGenerator(
         CodegenFuncLifespan_Parameter_Invariant,
@@ -343,12 +355,12 @@ class CodegenManagerTest : public ::testing::Test {
                       const std::vector<CppType>& values) {
     DatumCastFn<Datum, CppType> CppToDatumCgFn = CppToDatumReg;
     CppToDatumCastGenerator<CppType>* cpp_datum_gen =
-        new CppToDatumCastGenerator<CppType>(CppToDatumReg, &CppToDatumCgFn);
+        new CppToDatumCastGenerator<CppType>(manager_.get(), CppToDatumReg, &CppToDatumCgFn);
 
 
     DatumCastFn<CppType, Datum> DatumToCppCgFn = DatumToCppReg;
     DatumToCppCastGenerator<CppType>* datum_cpp_gen =
-        new DatumToCppCastGenerator<CppType>(DatumToCppReg, &DatumToCppCgFn);
+        new DatumToCppCastGenerator<CppType>(manager_.get(), DatumToCppReg, &DatumToCppCgFn);
 
     ASSERT_TRUE(manager_->EnrollCodeGenerator(
         CodegenFuncLifespan_Parameter_Invariant, cpp_datum_gen));
@@ -378,7 +390,8 @@ class CodegenManagerTest : public ::testing::Test {
 
 TEST_F(CodegenManagerTest, TestGetters) {
   sum_func_ptr = nullptr;
-  SumCodeGenerator* code_gen = new SumCodeGenerator(SumFuncRegular,
+  SumCodeGenerator* code_gen = new SumCodeGenerator(manager_.get(),
+                                                    SumFuncRegular,
                                                     &sum_func_ptr);
 
   EXPECT_EQ(SumCodeGenerator::kAddFuncNamePrefix,
@@ -580,7 +593,8 @@ TEST_F(CodegenManagerTest, MulOverFlowTest) {
 
 TEST_F(CodegenManagerTest, ResetTest) {
   sum_func_ptr = nullptr;
-  SumCodeGenerator* code_gen = new SumCodeGenerator(SumFuncRegular,
+  SumCodeGenerator* code_gen = new SumCodeGenerator(manager_.get(),
+                                                    SumFuncRegular,
                                                     &sum_func_ptr);
 
   ASSERT_TRUE(manager_->EnrollCodeGenerator(

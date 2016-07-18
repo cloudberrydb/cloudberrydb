@@ -40,6 +40,13 @@ bool CodegenManager::EnrollCodeGenerator(
 }
 
 unsigned int CodegenManager::GenerateCode() {
+  // First, allow all code generators to initialize their dependencies
+  for (size_t i = 0; i < enrolled_code_generators_.size(); ++i) {
+    // NB: This list is still volatile at this time, as more generators may be
+    // enrolled as we iterate to initialize dependencies.
+    enrolled_code_generators_[i]->InitDependencies();
+  }
+  // Then ask them to generate code
   unsigned int success_count = 0;
   for (std::unique_ptr<CodegenInterface>& generator :
       enrolled_code_generators_) {
