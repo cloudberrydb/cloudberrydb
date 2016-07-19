@@ -1,7 +1,7 @@
 ##
 ## TODO: list test sequence and test dependencies.
 ##
-test: executor functions indexscan subquery world DMLstmnt
+test: executor functions subquery world DMLstmnt
 test: with_clause spilltodisk
 test: tiny
 test: wrkloadadmin
