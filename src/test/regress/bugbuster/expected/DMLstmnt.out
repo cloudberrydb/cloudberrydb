@@ -1,6 +1,3 @@
-CREATE DOMAIN country_code char(2) NOT NULL;
-ALTER DOMAIN country_code DROP NOT NULL;
-DROP DOMAIN country_code;
 CREATE FUNCTION addlab1111(integer,integer) RETURNS integer
 AS 'select $1 + $2;'
 LANGUAGE SQL
