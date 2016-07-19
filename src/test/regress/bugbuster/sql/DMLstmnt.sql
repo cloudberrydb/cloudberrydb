@@ -1,53 +1,3 @@
-create table testswapna (id  integer,rank integer,gender character(1),count integer) DISTRIBUTED BY rank,gender) ;
-insert into testswapna  values(1,101,'F',10);
-
-
-
-
-select * from testswapna;
-
-drop table testswapna;
-
-
-BEGIN
-create table testswapna (id  integer,rank integer,gender character(1)) DISTRIBUTED BY rank,gender) ;
-insert into testswapna  values(1,101,'F');
-
-
-
-
-\echo -- start_ignore
-select * from testswapna;
-\echo -- end_ignore
-
-drop table testswapna;
-
-COMMIT
-
-BEGIN
-create table testswapna (id  integer,rank integer,gender character(1)) DISTRIBUTED BY rank,gender);
-SAVEPOINT my_savepoint;
-insert into testswapna  values(1,101,'F');
-ROLLBACK TO SAVEPOINT my_savepoint;
-insert into testswapna values(2,201,'M');
-
-
-
-
-
-\echo -- start_ignore
-select * from testswapna;
-\echo -- end_ignore
-
-drop table testswapna;
-
-COMMIT
-
-CREATE DATABASE lusiadas;
-ALTER DATABASE lusiadas RENAME TO lusiadas1;
-
-DROP DATABASE lusiadas1;
-
 CREATE DOMAIN country_code char(2) NOT NULL;
 ALTER DOMAIN country_code DROP NOT NULL;
 
@@ -76,7 +26,6 @@ ALTER USER jonathan12 RENAME TO jona12;
 DROP USER jona11;
 DROP USER jona12;
 
-REATE USER jonathan11 WITH PASSWORD 'abc1';
 CREATE USER jonathan12 WITH PASSWORD 'abc2';
 
 ALTER USER jonathan11 RENAME TO jona11;
@@ -147,29 +96,3 @@ drop table mpp_s6756 cascade; --ignore
 --start_ignore
 drop table if exists copytest;
 --end_ignore
-
-set gp_autostats_mode='none';
-
-create table copytest (i int, t text);
-
-COPY copytest (i, t) FROM stdin;
-0	- DW60\n- Version:\nPostgreSQL 8.2.4 (Greenplum Database Release-3_1_0_0-alpha1-branch build dev) on i386-pc-solaris2.10, compiled by GCC gcc.exe (GCC) 4.1.1 compiled on Oct  1 2007 01:01:01
-0	- DW80\n- prodgp=# SELECT version();\n                                                                      version                                                                       \n----------------------------------------------------------------------------------------------------------------------------------------------------\n PostgreSQL 8.2.6 (Greenplum Database 3.1.1.5 build 2) on i386-pc-solaris2.10, compiled by GCC gcc.exe (GCC) 4.1.1 compiled on Jul 30 2008 16:58:44\n(1 row)
-0	- DW80\n- Version\n\nprodgp=# SELECT version();\n                                                                      version                                                                       \n----------------------------------------------------------------------------------------------------------------------------------------------------\n PostgreSQL 8.2.6 (Greenplum Database 3.1.1.5 build 2) on i386-pc-solaris2.10, compiled by GCC gcc.exe (GCC) 4.1.1 compiled on Jul 30 2008 16:58:44\n
-0	- DW80\n- Version\n\nprodgp=# SELECT version();\n                                                                      version                                                                       \n----------------------------------------------------------------------------------------------------------------------------------------------------\n PostgreSQL 8.2.6 (Greenplum Database 3.1.1.5 build 2) on i386-pc-solaris2.10, compiled by GCC gcc.exe (GCC) 4.1.1 compiled on Jul 30 2008 16:58:44\n
-0	- DW80 \n- Version: \nprodgp=# SELECT version(); \n                                                                      version \n---------------------------------------------------------------------------------------------------------------------------------------------------- \n PostgreSQL 8.2.6 (Greenplum Database 3.1.1.5 build 2) on i386-pc-solaris2.10, compiled by GCC gcc.exe (GCC) 4.1.1 compiled on Jul 30 2008 16:58:44 \n(1 row) \n
-0	- DW80\n- Version:\nprodgp=# SELECT version();\n                                                                      version                                                                       \n----------------------------------------------------------------------------------------------------------------------------------------------------\n PostgreSQL 8.2.6 (Greenplum Database 3.1.1.5 build 2) on i386-pc-solaris2.10, compiled by GCC gcc.exe (GCC) 4.1.1 compiled on Jul 30 2008 16:58:44\n(1 row)\n\nTime: 2.313 ms
-0	- DW80\n- Version:\nprodgp=# SELECT version();\n                                                                      version                                                                       \n----------------------------------------------------------------------------------------------------------------------------------------------------\n PostgreSQL 8.2.6 (Greenplum Database 3.1.1.8 build 2) on i386-pc-solaris2.10, compiled by GCC gcc.exe (GCC) 4.1.1 compiled on Sep 22 2008 17:36:18\n(1 row)\n
-1	- DW80\n- prodgp=# SELECT version();\n                                                                      version                                                                       \n----------------------------------------------------------------------------------------------------------------------------------------------------\n PostgreSQL 8.2.6 (Greenplum Database 3.1.1.5 build 2) on i386-pc-solaris2.10, compiled by GCC gcc.exe (GCC) 4.1.1 compiled on Jul 30 2008 16:58:44\n(1 row)
-1	- DW80\n- Version\n\nprodgp=# SELECT version();\n                                                                      version                                                                       \n----------------------------------------------------------------------------------------------------------------------------------------------------\n PostgreSQL 8.2.6 (Greenplum Database 3.1.1.5 build 2) on i386-pc-solaris2.10, compiled by GCC gcc.exe (GCC) 4.1.1 compiled on Jul 30 2008 16:58:44\n
-1	- DW80\n- Version:\nprodgp=# SELECT version();\n                                                                      version                                                                       \n----------------------------------------------------------------------------------------------------------------------------------------------------\n PostgreSQL 8.2.6 (Greenplum Database 3.1.1.5 build 2) on i386-pc-solaris2.10, compiled by GCC gcc.exe (GCC) 4.1.1 compiled on Jul 30 2008 16:58:44\n(1 row)
-1	- DW80\n- Version:\nprodgp=# SELECT version();\n                                                                      version                                                                       \n----------------------------------------------------------------------------------------------------------------------------------------------------\n PostgreSQL 8.2.6 (Greenplum Database 3.1.1.5 build 2) on i386-pc-solaris2.10, compiled by GCC gcc.exe (GCC) 4.1.1 compiled on Jul 30 2008 16:58:44\n(1 row)
-1	- DW80\n- Version:\nprodgp=# SELECT version();\n                                                                      version                                                                       \n----------------------------------------------------------------------------------------------------------------------------------------------------\n PostgreSQL 8.2.6 (Greenplum Database 3.1.1.5 build 2) on i386-pc-solaris2.10, compiled by GCC gcc.exe (GCC) 4.1.1 compiled on Jul 30 2008 16:58:44\n(1 row)
-1	- DW80\n- Version:\nprodgp=# SELECT version();\n                                                                      version                                                                       \n----------------------------------------------------------------------------------------------------------------------------------------------------\n PostgreSQL 8.2.6 (Greenplum Database 3.1.1.5 build 2) on i386-pc-solaris2.10, compiled by GCC gcc.exe (GCC) 4.1.1 compiled on Jul 30 2008 16:58:44\n(1 row)
-1	- DW80\n- Version:\nprodgp=# SELECT version();\n                                                                      version                                                                       \n----------------------------------------------------------------------------------------------------------------------------------------------------\n PostgreSQL 8.2.6 (Greenplum Database 3.1.1.5 build 2) on i386-pc-solaris2.10, compiled by GCC gcc.exe (GCC) 4.1.1 compiled on Jul 30 2008 16:58:44\n(1 row)\n\nTime: 2.313 ms
-1	- DW80\n- Version:\nprodgp=# SELECT version();\n                                                                      version                                                                       \n----------------------------------------------------------------------------------------------------------------------------------------------------\n PostgreSQL 8.2.6 (Greenplum Database 3.1.1.5 build 2) on i386-pc-solaris2.10, compiled by GCC gcc.exe (GCC) 4.1.1 compiled on Jul 30 2008 16:58:44\n(1 row)\n\nTime: 2.313 ms
-\.
-
-
-select * from copytest order by t;
-
