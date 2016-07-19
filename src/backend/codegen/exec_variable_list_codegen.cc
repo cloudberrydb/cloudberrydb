@@ -247,7 +247,8 @@ bool ExecVariableListCodegen::GenerateExecVariableList(
       "Falling back to regular ExecVariableList");
 
   codegen_utils->CreateFallback<ExecVariableListFn>(
-      codegen_utils->GetOrRegisterExternalFunction(GetRegularFuncPointer()),
+      codegen_utils->GetOrRegisterExternalFunction(ExecVariableList,
+                                                   "ExecVariableList"),
       exec_variable_list_func);
 
   return true;

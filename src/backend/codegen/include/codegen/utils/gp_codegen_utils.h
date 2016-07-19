@@ -62,9 +62,9 @@ class GpCodegenUtils : public CodegenUtils {
     assert(NULL != llvm_fmt);
 
     llvm::Function* llvm_elog_start =
-        GetOrRegisterExternalFunction(elog_start);
+        GetOrRegisterExternalFunction(elog_start, "elog_start");
     llvm::Function* llvm_elog_finish =
-        GetOrRegisterExternalFunction(elog_finish);
+        GetOrRegisterExternalFunction(elog_finish, "elog_finish");
 
     ir_builder()->CreateCall(
         llvm_elog_start, {

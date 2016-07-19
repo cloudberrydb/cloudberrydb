@@ -127,7 +127,8 @@ bool ExecEvalExprCodegen::GenerateExecEvalExpr(
   // we revert to use the external slot_getattr()
   if (nullptr == gen_info.llvm_slot_getattr_func) {
     gen_info.llvm_slot_getattr_func =
-        codegen_utils->GetOrRegisterExternalFunction(slot_getattr);
+        codegen_utils->GetOrRegisterExternalFunction(slot_getattr,
+                                                     "slot_getattr");
   }
 
   irb->SetInsertPoint(llvm_entry_block);
