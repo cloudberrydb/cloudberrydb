@@ -89,11 +89,4 @@ CdbDispatchUtilityStatement(struct Node *stmt,
 							int flags,
 							struct CdbPgResults* cdb_pgresults);
 
-void
-cdbdisp_dispatchUtilityStatement(struct Node *stmt,
-								 bool cancelOnError,
-								 bool needTwoPhase,
-								 bool withSnapshot,
-								 struct CdbDispatcherState *ds,
-								 char *debugCaller);
 #endif   /* CDBDISP_QUERY_H */

@@ -727,34 +727,11 @@ DefineIndex(RangeVar *heapRelation,
 	 */
 	if (shouldDispatch)
 	{
-		volatile struct CdbDispatcherState ds = {NULL, NULL};
 
-		PG_TRY();
-		{
-			/*
-			 * Dispatch the command to all primary and mirror segdbs.
-			 * Doesn't start a global transaction.  Doesn't wait for
-			 * the QEs to finish execution.
-			 */
-			cdbdisp_dispatchUtilityStatement((Node *) stmt,
-											 true,      /* cancelOnError */
-											 false,      /* startTransaction */
-											 true,      /* withSnapshot */
-											 (struct CdbDispatcherState *)&ds,
-											 "DefineIndex");
-			/* Wait for all QEs to finish.	Throw up if error. */
-			cdbdisp_finishCommand((struct CdbDispatcherState *)&ds);
-		}
-		PG_CATCH();
-		{
-			/* If dispatched, stop QEs and clean up after them. */
-			if (ds.primaryResults)
-				cdbdisp_handleError((struct CdbDispatcherState *)&ds);
-
-			PG_RE_THROW();
-			/* not reached */
-		}
-		PG_END_TRY();
+		CdbDispatchUtilityStatement((Node *)stmt,
+									DF_CANCEL_ON_ERROR|
+									DF_WITH_SNAPSHOT,
+									NULL);
 	}
 
 	StartTransactionCommand();

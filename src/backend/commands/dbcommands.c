@@ -93,8 +93,6 @@ static bool get_db_info(const char *name, LOCKMODE lockmode,
 static bool have_createdb_privilege(void);
 static bool check_db_file_conflict(Oid db_id);
 
-static void createdb_int(CreatedbStmt *stmt, CdbDispatcherState *ds);
-
 /*
  * Create target database directories (under transaction).
  */
@@ -603,28 +601,6 @@ static void copy_append_only_segment_file(
 void
 createdb(CreatedbStmt *stmt)
 {
-	volatile struct CdbDispatcherState ds = {NULL, NULL, NULL};
-
-	PG_TRY();
-	{
-		createdb_int(stmt, (struct CdbDispatcherState *)&ds);
-		cdbdisp_finishCommand((struct CdbDispatcherState *)&ds);
-	}
-	PG_CATCH();
-	{
-		/* If dispatched, stop QEs and clean up after them. */
-		if (ds.primaryResults)
-			cdbdisp_handleError((struct CdbDispatcherState *)&ds);
-
-		PG_RE_THROW();
-		/* not reached */
-	}
-	PG_END_TRY();
-}
-
-static void
-createdb_int(CreatedbStmt *stmt, CdbDispatcherState *ds)
-{
 	Oid			src_dboid = InvalidOid;
 	Oid			src_owner;
 	int			src_encoding = -1;
@@ -985,12 +961,11 @@ createdb_int(CreatedbStmt *stmt, CdbDispatcherState *ds)
 		 *
 		 * Doesn't wait for the QEs to finish execution.
 		 */
-        cdbdisp_dispatchUtilityStatement((Node *)stmt,
-                                         true,      /* cancelOnError */
-                                     	 true,      /* startTransaction */
-                                     	 true,      /* withSnapshot */
-                                     	 ds,
-									 	 "createdb_int");
+		CdbDispatchUtilityStatement((Node *)stmt,
+									DF_CANCEL_ON_ERROR |
+									DF_NEED_TWO_PHASE |
+									DF_WITH_SNAPSHOT,
+									NULL);
 	}
 
 	/*
