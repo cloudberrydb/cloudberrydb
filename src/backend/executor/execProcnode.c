@@ -760,12 +760,32 @@ ExecInitNode(Plan *node, EState *estate, int eflags)
 	{
 		SAVE_EXECUTOR_MEMORY_ACCOUNT(result, curMemoryAccount);
 		result->CodegenManager = CodegenManager;
-		CodeGeneratorManagerGenerateCode(CodegenManager);
-		if (eflags & EXEC_FLAG_EXPLAIN_CODEGEN) {
-			CodeGeneratorManagerAccumulateExplainString(CodegenManager);
-		}
-		if (!(eflags & EXEC_FLAG_EXPLAIN_ONLY)) {
-			CodeGeneratorManagerPrepareGeneratedFunctions(CodegenManager);
+		/*
+		 * Generate code only if current node is not alien or
+		 * if it is from 'explain codegen` / `explain analyze codegen` query
+		 */
+		bool isExplainCodegenOnMaster = (Gp_segment == -1) &&
+				(eflags & EXEC_FLAG_EXPLAIN_CODEGEN) &&
+				(eflags & EXEC_FLAG_EXPLAIN_ONLY);
+
+		bool isExplainAnalyzeCodegenOnMaster = (Gp_segment == -1) &&
+				(eflags & EXEC_FLAG_EXPLAIN_CODEGEN) &&
+				!(eflags & EXEC_FLAG_EXPLAIN_ONLY);
+
+		if (!isAlienPlanNode ||
+				isExplainAnalyzeCodegenOnMaster ||
+				isExplainCodegenOnMaster)
+		{
+			CodeGeneratorManagerGenerateCode(CodegenManager);
+			if (isExplainAnalyzeCodegenOnMaster ||
+					isExplainCodegenOnMaster)
+			{
+				CodeGeneratorManagerAccumulateExplainString(CodegenManager);
+			}
+			if (!isExplainCodegenOnMaster)
+			{
+				CodeGeneratorManagerPrepareGeneratedFunctions(CodegenManager);
+			}
 		}
 	}
 	}
