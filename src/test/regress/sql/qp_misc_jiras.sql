@@ -487,16 +487,6 @@ select count(*) from qp_misc_jiras.tbl5028_part_test_1_prt_p1;
 select count(*) from qp_misc_jiras.tbl5028_part_test_1_prt_p2;
 select count(*) from qp_misc_jiras.tbl5028_part_test_1_prt_p3;
 
-create table qp_misc_jiras.tbl5028_delete_as_truncate (a int, b date,c text)
-partition by range(b)
-(
-        partition p1 start('2007-01-01'),
-        partition p2 start('2008-01-01'),
-        partition p3 start('2009-01-01'),
-        default partition def_part
-);
-insert into qp_misc_jiras.tbl5028_delete_as_truncate select * from qp_misc_jiras.tbl5028_part_test;
-
 DELETE FROM qp_misc_jiras.tbl5028_part_test where b >= '2007-01-01' and b <= '2007-03-01';
 
 select count(*) from qp_misc_jiras.tbl5028_part_test; -- should be 45
@@ -505,17 +495,6 @@ select count(*) from qp_misc_jiras.tbl5028_part_test_1_prt_def_part ; -- should 
 select count(*) from qp_misc_jiras.tbl5028_part_test_1_prt_p1; -- should be 9
 select count(*) from qp_misc_jiras.tbl5028_part_test_1_prt_p2; -- should be 12
 select count(*) from qp_misc_jiras.tbl5028_part_test_1_prt_p3; -- should be 12
-set gp_enable_delete_as_truncate=on;
-
-DELETE FROM qp_misc_jiras.tbl5028_delete_as_truncate where b >= '2007-01-01' and b <= '2007-03-01';
-
-select count(*) from qp_misc_jiras.tbl5028_delete_as_truncate; --should be 45
-select count(*) from qp_misc_jiras.tbl5028_delete_as_truncate_1_prt_def_part ; -- should be 12
-select count(*) from qp_misc_jiras.tbl5028_delete_as_truncate_1_prt_p1; -- should be 9
-select count(*) from qp_misc_jiras.tbl5028_delete_as_truncate_1_prt_p2; -- should be 12
-select count(*) from qp_misc_jiras.tbl5028_delete_as_truncate_1_prt_p3; -- should be 12
-
-drop table qp_misc_jiras.tbl5028_delete_as_truncate;
 drop table qp_misc_jiras.tbl5028_part_test;
 -- start_ignore
 --   MPP-11125: partition p1 start('0') end('25') every 8 (12)

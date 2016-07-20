@@ -60,7 +60,6 @@ test: vacuum_gp
 ignore: gp_portal_error
 test: partition_indexing column_compression eagerfree mapred gpparams tidycat co_nestloop_idxscan  gpdtm_plpgsql alter_table_aocs alter_distribution_policy ic aoco_privileges
 ignore: icudp_full
-ignore: gp_delete_as_trunc
 test: aocs
 
 test: resource_queue

@@ -166,14 +166,6 @@ bool	gp_enable_slow_writer_testmode = false;
  */
 bool	gp_enable_slow_cursor_testmode = false;
 
-/*
- * gp_enable_delete_as_truncate
- *
- * piggy-back a truncate on simple delete statements (statements
- * without qualifiers "delete from foo").
- */
-bool	gp_enable_delete_as_truncate = false;
-
 /**
  * Hash-join node releases hash table when it returns last tuple.
  */

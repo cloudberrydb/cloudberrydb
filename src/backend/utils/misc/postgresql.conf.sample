@@ -543,7 +543,6 @@ gp_interconnect_type=udpifc
 
 gp_connections_per_thread = 64
 gp_segment_connect_timeout = 600s
-#gp_enable_delete_as_truncate = off
 
 # - Resource limits -
 gp_vmem_protect_limit = 8192  #Virtual memory limit (in MB).

@@ -291,68 +291,6 @@ ProcessQuery(Portal portal,
 	/* Now take care of any queued AFTER triggers */
 	AfterTriggerEndQuery(queryDesc->estate);
 
-	/*
-	 * MPP-4145: convert qualifying "delete from" queries into
-	 * truncate, after the delete has run -- this will return the
-	 * correct number of rows to the client, and will also free the
-	 * underlying storage.
-	 *
-	 * We save Oid before ending query.
-	 *
-	 * If we're deleting a complete table in parallel, add on a
-	 * truncate step after we've done the delete -- this frees the
-	 * storage whereas the delete itself does not.
-	 *
-	 * A delete of the table should already have the appropriate
-	 * locks (?), so we ought not deadlock here.
-	 */
-	if (Gp_role == GP_ROLE_DISPATCH &&
-		gp_enable_delete_as_truncate &&
-		queryDesc->plannedstmt->planTree != NULL &&
-		queryDesc->plannedstmt->planTree->dispatch == DISPATCH_PARALLEL &&
-		queryDesc->operation == CMD_DELETE &&
-		list_length(queryDesc->plannedstmt->resultRelations) == 1 && /* not partitioned */
-		linitial_int(queryDesc->plannedstmt->resultRelations) == 1 /* target first in range table */
-		)
-	{
-		RangeTblEntry *rte;
-
-		rte = linitial(queryDesc->plannedstmt->rtable);
-		/*
-		 * if the delete command we just ran had no qualifiers and
-		 * was against a simple table, it is nice to be able to
-		 * substitute a truncate-command.
-		 */
-		if (queryDesc->plannedstmt->planTree->qual == NULL &&
-			queryDesc->plannedstmt->planTree->lefttree == NULL &&
-			queryDesc->plannedstmt->planTree->righttree == NULL)
-		{
-			Relation truncRel;
-
-			/*
-			 * acquire the lock required by Truncate.
-			 *
-			 * We only want to set the truncOid if we think the
-			 * truncate will not return an error (we have to be
-			 * the owner of the table, for instance).
-			 */
-			truncRel = heap_open(rte->relid, AccessExclusiveLock);
-			do
-			{
-				if (truncRel->rd_rel->relkind != RELKIND_RELATION ||
-					!pg_class_ownercheck(RelationGetRelid(truncRel), GetUserId()) ||
-					(!allowSystemTableModsDDL && IsSystemRelation(truncRel)))
-				{
-					heap_close(truncRel, AccessExclusiveLock);
-					break;
-				}
-
-				truncOid = rte->relid;
-				heap_close(truncRel, NoLock);
-			} while (0);
-		}
-	}
-
 	autostats_get_cmdtype(queryDesc, &cmdType, &relationOid);
 
 	/*

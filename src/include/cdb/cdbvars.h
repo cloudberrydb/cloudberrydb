@@ -212,11 +212,6 @@ extern bool           gp_enable_slow_writer_testmode;
 extern bool           gp_enable_slow_cursor_testmode;
 
 /*
- * MPP-4145: convert certain delete statements into truncate statements.
- */
-extern bool           gp_enable_delete_as_truncate;
-
-/*
  * MPP-6926: Resource Queues on by default
  */
 #define GP_DEFAULT_RESOURCE_QUEUE_NAME "pg_default"
