@@ -216,10 +216,10 @@ Feature: gpcheckcat tests
         When the entry for the table "gpadmin_tbl" is removed from "pg_catalog.pg_class" in the database "fkey_db"
         And the user runs "gpcheckcat -R foreign_key fkey_db"
         Then gpcheckcat should print No pg_class entry for pg_attribute column to stdout
-        Then the user runs "gpcheckcat -R missing_extraneous fkey_db"
+        Then the user runs "gpcheckcat -R missing_extraneous -E fkey_db"
         Then gpcheckcat should return a return code of 1
         Then validate and run gpcheckcat repair
-        Then the user runs "gpcheckcat -R missing_extraneous fkey_db"
+        Then the user runs "gpcheckcat -R missing_extraneous -E fkey_db"
         Then gpcheckcat should return a return code of 0
         Then the path "gpcheckcat.repair.*" is found in cwd "0" times
         And the user runs "dropdb fkey_db"
