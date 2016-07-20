@@ -21,10 +21,6 @@
  *	  This file contains the appendonly_ routines which implement
  *	  the access methods used for all append-only relations.
  *
- *            $Id: $
- *        $Change: $
- *      $DateTime: $
- *        $Author: $
  *-------------------------------------------------------------------------
  */
 #include "postgres.h"
@@ -1288,7 +1284,7 @@ getNextBlock(
 }
 
 /* ----------------
- *		appendonlygettup - fetch next heap tuple
+ *		appendonlygettup - fetch next appendonly tuple
  *
  *		Initialize the scan if not already done; then advance to the next
  *		tuple in forward direction; return the next tuple in scan->aos_ctup,
