@@ -711,7 +711,7 @@ class CodegenUtilsTest : public ::testing::Test {
     llvm::Constant* constant = codegen_utils_->GetConstant<IntegerSrcType>(
         static_cast<IntegerSrcType>(integer_constant));
     llvm::Constant* casted_constant =
-        dynamic_cast<llvm::Constant*>(
+        llvm::dyn_cast<llvm::Constant>(
             codegen_utils_->CreateCast<IntegerDestType, IntegerSrcType>(
                 constant));
     CheckGetSingleIntegerConstant(integer_constant, casted_constant);
@@ -807,7 +807,7 @@ class CodegenUtilsTest : public ::testing::Test {
     llvm::Constant* constant = codegen_utils_->GetConstant<FloatSrcType>(
         static_cast<FloatSrcType>(fp_constant));
     llvm::Constant* casted_constant =
-        dynamic_cast<llvm::Constant*>(
+        llvm::dyn_cast<llvm::Constant>(
             codegen_utils_->CreateCast<FloatDestType, FloatSrcType>(constant));
     CheckGetSingleFloatingPointConstant(fp_constant, casted_constant);
   }
