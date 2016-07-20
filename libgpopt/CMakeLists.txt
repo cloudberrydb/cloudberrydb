@@ -11,7 +11,6 @@ configure_file(version.h.in
 add_library(gpopt
             include/gpopt/base/CDistributionSpec.h
             include/gpopt/base/CDistributionSpecAny.h
-            include/gpopt/base/CDistributionSpecUniversal.h
             include/gpopt/base/CDrvdPropCtxtRelational.h
             include/gpopt/base/CDrvdPropCtxtScalar.h
             include/gpopt/base/CMaxCard.h
@@ -139,6 +138,8 @@ add_library(gpopt
             src/base/CDistributionSpecSingleton.cpp
             include/gpopt/base/CDistributionSpecStrictSingleton.h
             src/base/CDistributionSpecStrictSingleton.cpp
+            include/gpopt/base/CDistributionSpecUniversal.h
+            src/base/CDistributionSpecUniversal.cpp
             include/gpopt/base/CDrvdProp.h
             src/base/CDrvdProp.cpp
             include/gpopt/base/CDrvdPropCtxt.h

@@ -40,15 +40,11 @@ namespace gpopt
 		public:
 
 			//ctor
-			CDistributionSpecUniversal()
-			{}
+			CDistributionSpecUniversal();
 			
 			// accessor
 			virtual 
-			EDistributionType Edt() const
-			{
-				return CDistributionSpec::EdtUniversal;
-			}
+			EDistributionType Edt() const;
 			
 			// does current distribution satisfy the given one
 			virtual 
@@ -56,39 +52,11 @@ namespace gpopt
 				(
 				const CDistributionSpec *pds
 				)
-				const
-			{
-				// universal distribution does not satisfy duplicate-sensitive 
-				// hash distributions
-				if (CDistributionSpec::EdtHashed == pds->Edt() &&
-					(CDistributionSpecHashed::PdsConvert(pds))->FDuplicateSensitive())
-				{
-					return false;
-				}
-				
-				// universal distribution does not satisfy duplicate-sensitive 
-				// random distributions
-				if (CDistributionSpec::EdtRandom == pds->Edt() &&
-					(CDistributionSpecRandom::PdsConvert(pds))->FDuplicateSensitive())
-				{
-					return false;
-				}
-				
-				if (CDistributionSpec::EdtNonSingleton == pds->Edt())
-				{
-					// universal distribution does not satisfy non-singleton distribution
-					return false;
-				}
-
-				return true;
-			}
+				const;
 			
 			// return true if distribution spec can be required
 			virtual
-			BOOL FRequirable() const
-			{
-				return false;
-			}
+			BOOL FRequirable() const;
 
 			// does this distribution match the given one
 			virtual
@@ -96,15 +64,7 @@ namespace gpopt
 				(
 				const CDistributionSpec *pds
 				)
-				const
-			{
-				// universal distribution needs to match replicated / singleton requests
-				// to avoid generating duplicates
-				EDistributionType edt = pds->Edt();
-				return (CDistributionSpec::EdtUniversal == edt ||
-						CDistributionSpec::EdtSingleton == edt ||
-						CDistributionSpec::EdtReplicated == edt);
-			}
+				const;
 
 			// append enforcers to dynamic array for the given plan properties
 			virtual
@@ -115,37 +75,22 @@ namespace gpopt
 				CReqdPropPlan *, //prpp,
 				DrgPexpr * , // pdrgpexpr, 
 				CExpression * // pexpr
-				)
-			{
-				GPOS_ASSERT(!"attempt to enforce UNIVERSAL distribution");
-			}
+				);
 
 			// print
 			virtual
-			IOstream &OsPrint(IOstream &os) const
-			{
-				return os << "UNIVERSAL ";
-			}
+			IOstream &OsPrint(IOstream &os) const;
 
 			// return distribution partitioning type
 			virtual
-			EDistributionPartitioningType Edpt() const
-			{
-				return EdptNonPartitioned;
-			}
+			EDistributionPartitioningType Edpt() const;
 
 			// conversion function
 			static
 			CDistributionSpecUniversal *PdsConvert
 				(
 				CDistributionSpec *pds
-				)
-			{
-				GPOS_ASSERT(NULL != pds);
-				GPOS_ASSERT(EdtAny == pds->Edt());
-
-				return dynamic_cast<CDistributionSpecUniversal*>(pds);
-			}
+				);
 
 	}; // class CDistributionSpecUniversal
 
