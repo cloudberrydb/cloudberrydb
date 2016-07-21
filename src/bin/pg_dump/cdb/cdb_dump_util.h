@@ -23,6 +23,10 @@
 
 #define DDBOOST_CONFIG_FILE ".ddconfig"
 #define DDBOOST_USERNAME_MAXLENGTH 30
+/*
+ * NOTE: If you increase this, you must also increase OBFUSCATE_PAYLOAD_LENGTH
+ * in cdb_lockbox.c!
+ */
 #define DDBOOST_PASSWORD_MAXLENGTH 40
 #define DDBOOST_LOG_NUM_OF_FILES 10
 #ifndef DDBOOST_POOL_SIZE
