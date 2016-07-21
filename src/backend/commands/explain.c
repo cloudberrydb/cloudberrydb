@@ -2040,10 +2040,36 @@ show_grouping_keys(Plan        *plan,
         appendStringInfoString(str, "  ");
     appendStringInfo(str, "  %s: ", qlabel);
 
+    Node *outerPlan = (Node *) outerPlan(subplan);
+    Node *innerPlan = (Node *) innerPlan(subplan);
+
+    /*
+     * For Append we cannot obtain outerPlan as the lefttree
+     * is set to NULL. So, we extract the first child from the
+     * list of appendplans
+     */
+    if (IsA(subplan, Append))
+    {
+    	Assert(NULL == outerPlan);
+    	Assert(NULL == innerPlan);
+
+    	Append *append = (Append *) subplan;
+
+    	/*
+    	 * Append node with no children is legal, at least when mark_dummy_join()
+    	 * produces such a node.
+    	 */
+    	if (NULL != append->appendplans)
+    	{
+    		outerPlan = list_nth(append->appendplans, 0);
+    		Assert(NULL != outerPlan);
+    	}
+    }
+
 	/* Set up deparse context */
-	context = deparse_context_for_plan((Node *) outerPlan(subplan),
-									   (Node *) innerPlan(subplan),
-									   es->rtable);
+	context = deparse_context_for_plan(outerPlan,
+									   innerPlan,
+										   es->rtable);
 
 	if (IsA(plan, Agg))
 	{
