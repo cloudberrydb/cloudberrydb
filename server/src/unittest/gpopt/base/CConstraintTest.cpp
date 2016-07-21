@@ -646,14 +646,14 @@ CConstraintTest::EresUnittest_CConstraintIntervalConvertsTo()
 	PrintConstraint(pmp, pcnstin);
 
 	// should convert to in
-	GPOS_ASSERT(pcnstin->convertsToIn());
-	GPOS_ASSERT(!pcnstin->convertsToNotIn());
+	GPOS_ASSERT(pcnstin->FConvertsToIn());
+	GPOS_ASSERT(!pcnstin->FConvertsToNotIn());
 
 	CConstraintInterval *pcnstNotIn = pcnstin->PciComplement(pmp);
 
 	// should convert to a not in statement after taking the complement
-	GPOS_ASSERT(pcnstNotIn->convertsToNotIn());
-	GPOS_ASSERT(!pcnstNotIn->convertsToIn());
+	GPOS_ASSERT(pcnstNotIn->FConvertsToNotIn());
+	GPOS_ASSERT(!pcnstNotIn->FConvertsToIn());
 
 	pcnstin->Release();
 	pcnstNotIn->Release();
@@ -722,10 +722,10 @@ CConstraintTest::EresUnittest_CConstraintIntervalPexpr()
 	pexpr = pcnstin->PexprScalar(pmp); // pexpr is owned by the constraint
 	PrintConstraint(pmp, pcnstin);
 
-	GPOS_ASSERT(!pcnstin->convertsToNotIn());
-	GPOS_ASSERT(pcnstin->convertsToIn());
+	GPOS_ASSERT(!pcnstin->FConvertsToNotIn());
+	GPOS_ASSERT(pcnstin->FConvertsToIn());
 	GPOS_ASSERT(CUtils::FScalarArrayCmp(pexpr));
-	GPOS_ASSERT(3 == CUtils::FCountOperator(pexpr, COperator::EopScalarConst));
+	GPOS_ASSERT(3 == CUtils::UlCountOperator(pexpr, COperator::EopScalarConst));
 
 	pcnstin->Release();
 
@@ -739,10 +739,10 @@ CConstraintTest::EresUnittest_CConstraintIntervalPexpr()
 	pexpr = pcnstin->PexprScalar(pmp); // pexpr is owned by the constraint
 	PrintConstraint(pmp, pcnstin);
 
-	GPOS_ASSERT(!pcnstin->convertsToNotIn());
-	GPOS_ASSERT(pcnstin->convertsToIn());
+	GPOS_ASSERT(!pcnstin->FConvertsToNotIn());
+	GPOS_ASSERT(pcnstin->FConvertsToIn());
 	GPOS_ASSERT(CUtils::FScalarArrayCmp(pexpr));
-	GPOS_ASSERT(4 == CUtils::FCountOperator(pexpr, COperator::EopScalarConst));
+	GPOS_ASSERT(4 == CUtils::UlCountOperator(pexpr, COperator::EopScalarConst));
 
 	pcnstin->Release();
 
@@ -759,10 +759,10 @@ CConstraintTest::EresUnittest_CConstraintIntervalPexpr()
 	pexpr = pcnstNotIn->PexprScalar(pmp); // pexpr is owned by the constraint
 	PrintConstraint(pmp, pcnstNotIn);
 
-	GPOS_ASSERT(pcnstNotIn->convertsToNotIn());
-	GPOS_ASSERT(!pcnstNotIn->convertsToIn());
+	GPOS_ASSERT(pcnstNotIn->FConvertsToNotIn());
+	GPOS_ASSERT(!pcnstNotIn->FConvertsToIn());
 	GPOS_ASSERT(CUtils::FScalarArrayCmp(pexpr));
-	GPOS_ASSERT(3 == CUtils::FCountOperator(pexpr, COperator::EopScalarConst));
+	GPOS_ASSERT(3 == CUtils::UlCountOperator(pexpr, COperator::EopScalarConst));
 
 	pcnstNotIn->Release();
 
@@ -779,10 +779,10 @@ CConstraintTest::EresUnittest_CConstraintIntervalPexpr()
 	pexpr = pcnstNotIn->PexprScalar(pmp); // pexpr is owned by the constraint
 	PrintConstraint(pmp, pcnstNotIn);
 
-	GPOS_ASSERT(pcnstNotIn->convertsToNotIn());
-	GPOS_ASSERT(!pcnstNotIn->convertsToIn());
+	GPOS_ASSERT(pcnstNotIn->FConvertsToNotIn());
+	GPOS_ASSERT(!pcnstNotIn->FConvertsToIn());
 	GPOS_ASSERT(CUtils::FScalarArrayCmp(pexpr));
-	GPOS_ASSERT(4 == CUtils::FCountOperator(pexpr, COperator::EopScalarConst));
+	GPOS_ASSERT(4 == CUtils::UlCountOperator(pexpr, COperator::EopScalarConst));
 
 	pcnstNotIn->Release();
 
@@ -829,11 +829,11 @@ CConstraintTest::EresUnittest_CConstraintIntervalFromArrayExpr()
 	CExpression *pexprArrayComp = (*pexpr->PdrgPexpr())[1];
 	GPOS_ASSERT(CUtils::FScalarArrayCmp(pexprArrayComp));
 
-	CConstraintInterval *pIn = CConstraintInterval::PciIntervalFromScalarExpr(pmp, pexprArrayComp, pcr);
-	GPOS_ASSERT(CConstraint::EctInterval == pIn->Ect());
-	GPOS_ASSERT(pIn->Pdrgprng()->UlLength() == CUtils::FCountOperator(pexprArrayComp, COperator::EopScalarConst));
+	CConstraintInterval *pcnstIn = CConstraintInterval::PciIntervalFromScalarExpr(pmp, pexprArrayComp, pcr);
+	GPOS_ASSERT(CConstraint::EctInterval == pcnstIn->Ect());
+	GPOS_ASSERT(pcnstIn->Pdrgprng()->UlLength() == CUtils::UlCountOperator(pexprArrayComp, COperator::EopScalarConst));
 
-	pIn->Release();
+	pcnstIn->Release();
 	pexpr->Release();
 
 	// test a NOT IN expression
@@ -841,13 +841,13 @@ CConstraintTest::EresUnittest_CConstraintIntervalFromArrayExpr()
 	CExpression *pexprNotIn = CTestUtils::PexprLogicalSelectArrayCmp(pmp, CScalarArrayCmp::EarrcmpAll, IMDType::EcmptNEq);
 	CExpression *pexprArrayNotInComp = (*pexprNotIn->PdrgPexpr())[1];
 	CColRef *pcrNot = CDrvdPropRelational::Pdprel(pexprNotIn->PdpDerive())->PcrsOutput()->PcrAny();
-	CConstraintInterval *pNotIn = CConstraintInterval::PciIntervalFromScalarExpr(pmp, pexprArrayNotInComp, pcrNot);
-	GPOS_ASSERT(CConstraint::EctInterval == pNotIn->Ect());
+	CConstraintInterval *pcnstNotIn = CConstraintInterval::PciIntervalFromScalarExpr(pmp, pexprArrayNotInComp, pcrNot);
+	GPOS_ASSERT(CConstraint::EctInterval == pcnstNotIn->Ect());
 	// a NOT IN range array should have one more element than the expression array consts
-	GPOS_ASSERT(pNotIn->Pdrgprng()->UlLength() == 1 + CUtils::FCountOperator(pexprArrayNotInComp, COperator::EopScalarConst));
+	GPOS_ASSERT(pcnstNotIn->Pdrgprng()->UlLength() == 1 + CUtils::UlCountOperator(pexprArrayNotInComp, COperator::EopScalarConst));
 
 	pexprNotIn->Release();
-	pNotIn->Release();
+	pcnstNotIn->Release();
 
 	return GPOS_OK;
 }

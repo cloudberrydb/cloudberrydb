@@ -353,8 +353,9 @@ namespace gpopt
 			static
 			CExpression *PexprLogicalSelectArrayCmp(IMemoryPool *pmp);
 
+			// generate a select expression with an array compare
 			static
-			CExpression *PexprLogicalSelectArrayCmp(IMemoryPool *pmp, CScalarArrayCmp::EArrCmpType eScalarArrayCmpType, IMDType::ECmpType eCmpType);
+			CExpression *PexprLogicalSelectArrayCmp(IMemoryPool *pmp, CScalarArrayCmp::EArrCmpType earrcmptype, IMDType::ECmpType ecmptype);
 			
 			// generate an n-ary join expression
 			static

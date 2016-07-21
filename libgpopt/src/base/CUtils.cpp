@@ -4094,31 +4094,31 @@ CUtils::FComparisonPossible
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CUtils::FCountOperator
+//		CUtils::UlCountOperator
 //
 //	@doc:
 //		counts the number of times a certain operator appears
 //
 //---------------------------------------------------------------------------
 ULONG
-CUtils::FCountOperator
+CUtils::UlCountOperator
 	(
-		CExpression *pexpr,
-		INT Eopid
+		const CExpression *pexpr,
+		COperator::EOperatorId eopid
 	)
 {
-	INT iopCnt = 0;
-	if (pexpr->Pop()->Eopid() == Eopid)
+	ULONG ulOpCnt = 0;
+	if (eopid == pexpr->Pop()->Eopid())
 	{
-		iopCnt += 1;
+		ulOpCnt += 1;
 	}
 
-
-	for (ULONG ulChild = 0; ulChild < pexpr->UlArity(); ulChild++)
+	const ULONG ulArity = pexpr->UlArity();
+	for (ULONG ulChild = 0; ulChild < ulArity; ulChild++)
 	{
-		iopCnt += FCountOperator((*pexpr)[ulChild], Eopid);
+		ulOpCnt += UlCountOperator((*pexpr)[ulChild], eopid);
 	}
-	return iopCnt;
+	return ulOpCnt;
 }
 
 //---------------------------------------------------------------------------

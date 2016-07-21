@@ -749,7 +749,7 @@ namespace gpopt
 			BOOL FComparisonPossible(DrgPcr *pdrgpcr, IMDType::ECmpType ecmpt);
 
 			static
-			ULONG FCountOperator(CExpression *pexpr, INT Eopid);
+			ULONG UlCountOperator(const CExpression *pexpr, COperator::EOperatorId eopid);
 
 			// return the max prefix of hashable columns for the given columns
 			static

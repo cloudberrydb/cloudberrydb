@@ -92,6 +92,7 @@ namespace gpopt
 			virtual
 			CExpression *PexprConstructScalar(IMemoryPool *pmp) const;
 
+			virtual
 			CExpression *PexprConstructArrayScalar(IMemoryPool *pmp) const;
 
 			// create interval from scalar comparison expression
@@ -139,6 +140,7 @@ namespace gpopt
 									CColRef *pcr
 									);
 
+			// creates a range like [x,x] where x is a constant
 			static
 			DrgPrng *PciRangeFromColConstCmp(IMemoryPool *pmp,
 											 IMDType::ECmpType ecmpt,
@@ -236,10 +238,10 @@ namespace gpopt
 			CConstraint *PcnstrRemapForColumn(IMemoryPool *pmp, CColRef *pcr) const;
 
 			// converts to an array in expression
-			bool convertsToNotIn() const;
+			bool FConvertsToNotIn() const;
 
 			// converts to an array not in expression
-			bool convertsToIn() const;
+			bool FConvertsToIn() const;
 
 			// print
 			virtual
@@ -282,7 +284,7 @@ namespace gpopt
 				CColRef *pcr = NULL
 				);
 
-			//  ConstraintInterval from the given expression
+			// generate a ConstraintInterval from the given expression
 			static
 			CConstraintInterval *PcnstrIntervalFromScalarArrayCmp
 				(

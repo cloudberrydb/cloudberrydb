@@ -241,15 +241,18 @@ CRange::FOverlapsRight
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CRange::FRightEqualsLeft
+//		CRange::FUpperBoundEqualsLowerBound
 //
 //	@doc:
-//		Checks if the right element equal the left element of the given range.
-//      This is useful when checking if 2 ranges touch at the ends
+//		Checks if this range's upper bound value is equal to the given range's
+//		lower bound value. Ignores inclusivity/exclusivity Examples:
+//			(-inf, 8)(8, inf)	true
+//			(-inf, 8](8, inf)	true
+//			(-inf, inf)(8, inf)	false
 //
 //---------------------------------------------------------------------------
 BOOL
-CRange::FRightEqualsLeft
+CRange::FUpperBoundEqualsLowerBound
 	(
 	CRange *prange
 	)

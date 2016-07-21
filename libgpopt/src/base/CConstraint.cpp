@@ -187,11 +187,6 @@ CConstraint::PcnstrFromScalarExpr
 
 		// try creating a single constraint from the expression
 		pcnstr = CConstraintInterval::PciIntervalFromScalarExpr(pmp, pexpr, pcr);
-		if (NULL == pcnstr && CUtils::FScalarArrayCmp(pexpr))
-		{
-			// try creating a disjunction of several interval constraints in the array case
-			pcnstr = PcnstrFromScalarArrayCmp(pmp, pexpr, pcr);
-		}
 
 		if (NULL != pcnstr)
 		{
