@@ -253,7 +253,7 @@ def get_table_data_to_file(filename, tablename, dbname):
     current_dir = os.getcwd()
     filename = os.path.join(current_dir, './gppylib/test/data', filename)
     order_sql = """
-                    select string_agg(a, ',')
+                    select string_agg(a::text, ',')
                         from (
                             select generate_series(1,c.relnatts+1) as a
                                 from pg_class as c
