@@ -10,6 +10,7 @@
 
 #include <regex.h>
 #include "cdb_seginst.h"
+#include "libpq-int.h"
 
 #define CDB_BACKUP_KEY_LEN 14
 
