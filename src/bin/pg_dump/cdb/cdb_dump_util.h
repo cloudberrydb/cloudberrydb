@@ -154,8 +154,8 @@ extern const char* getBackupTypeString(bool incremental);
 /* Base64 Encoding and Decoding Routines */
 /* Base64 Data is assumed to be in a NULL terminated string */
 /* Data is just assumed to be an array of chars, with a length */
-extern char *DataToBase64(char *pszIn, unsigned int InLen);
-extern char *Base64ToData(char *pszIn, unsigned int *pOutLen);
+extern char *DataToBase64(const char *pszIn, unsigned int InLen);
+extern char *Base64ToData(const char *pszIn, unsigned int *pOutLen);
 extern char *nextToken(register char **stringp, register const char *delim);
 extern int	parseDbidSet(int *dbidset, char *dump_set);
 extern char* formCompressionProgramString(char* compPg);
