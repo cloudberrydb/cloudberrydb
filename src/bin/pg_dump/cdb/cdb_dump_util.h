@@ -31,7 +31,6 @@
 
 extern int getDDBoostCredential(char** hostname, char** user, char** password, char** log_level ,char** log_size, char **default_backup_directory, char **ddboost_storage_unit, bool remote);
 extern int  setDDBoostCredential(char *hostname, char *user, char *password, char *log_level ,char *log_size, char *default_backup_directory, char *ddboost_storage_unit,  bool remote);
-extern int  parseDDBoostCredential(char *hostname, char *user, char *password, const char *progName);
 extern void rotate_dd_logs(const char *file_name, unsigned int num_of_files, unsigned int log_size);
 extern void _ddp_test_log(const void *session_ptr, const ddp_char_t *log_msg, ddp_severity_t severity);
 extern int initDDSystem(ddp_inst_desc_t *ddp_inst, ddp_conn_desc_t *ddp_conn, ddp_client_info_t *cl_info,
