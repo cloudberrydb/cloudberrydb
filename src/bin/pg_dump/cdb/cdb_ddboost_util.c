@@ -621,7 +621,7 @@ fillInputOptions(int argc, char **argv, InputOptions * pInputOpts)
 
 	/* Initialize option fields  */
 	memset(pInputOpts, 0, sizeof(InputOptions));
-	memset(dd_options, 0, sizeof(dd_options));
+	memset(dd_options, 0, sizeof(*dd_options));
 
 	opts = (RestoreOptions *) calloc(1, sizeof(RestoreOptions));
 	if (opts == NULL)
