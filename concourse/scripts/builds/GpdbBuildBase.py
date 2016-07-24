@@ -26,11 +26,6 @@ class GpdbBuildBase:
         return subprocess.call(["yum", "install", "-y", pkg])
     
     def install_system_deps(self):
-        status = subprocess.call(["yum", "--exclude=systemtap",
-                                  "groupinstall", "-y", "Development tools"])
-        if status:
-            return status
-    
         status = subprocess.call(["yum", "install", "-y",
                                   "sudo",
                                   "passwd",
