@@ -35,7 +35,8 @@ PARAMETERS
 
 -U <username>
   Greenplum Database user name to log into the database and run the
-  SQL command. Default is the OS user name running the utility.
+  SQL command. Default is the PGUSER environment variable. If PGUSER
+  is not defined, OS user name running the utility is used.
 
 -p <port>
   Port that is used to connect to Greenplum Database.
@@ -65,6 +66,7 @@ from datetime import datetime
 
 version = '1.10'
 PATH_PREFIX = '/tmp/'
+PGDUMP_FILE = 'pg_dump_out.sql'
 sysnslist = "('pg_toast', 'pg_bitmapindex', 'pg_catalog', 'information_schema', 'gp_toolkit')"
 pgoptions = '-c gp_session_role=utility'
 
@@ -136,7 +138,12 @@ def dump_query(connectionInfo, query_file):
         errormsg = p.communicate()[1]
         sys.stderr.writelines('\nError when executing function gp_toolkit.gp_dump_query_oids.\n\n' + errormsg + '\n\n')
         sys.exit(1)
-    return p.communicate()[0]
+
+    outmsg, errormsg = p.communicate()
+    if errormsg:
+        sys.stderr.writelines('\nError when executing function gp_toolkit.gp_dump_query_oids.\n\n' + errormsg + '\n\n')
+        sys.exit(1)
+    return outmsg
 
 # relation and function oids will be extracted from the dump string
 def parse_oids(cursor, json_oids):
@@ -168,7 +175,7 @@ def parse_oids(cursor, json_oids):
     return result
 
 def pg_dump_object(mr_query, connectionInfo, envOpts):
-    out_file = PATH_PREFIX + 'minirepro.dp.sql'
+    out_file = PATH_PREFIX + PGDUMP_FILE
     dmp_cmd = 'pg_dump -h %s -p %s -U %s -sxO %s' % connectionInfo
     dmp_cmd = "%s --relation-oids %s --function-oids %s -f %s" % \
         (dmp_cmd, mr_query.relids, mr_query.funcids, E(out_file))
@@ -177,16 +184,6 @@ def pg_dump_object(mr_query, connectionInfo, envOpts):
     if p.wait() is not 0:
         sys.stderr.write('\nError while dumping schema.\n\n' + p.communicate()[1] + '\n\n')
         sys.exit(1)
-
-def print_obj_ddl(filename, f_out):
-    if filename.endswith('minirepro.dp.sql'):
-        f_path = os.path.join(PATH_PREFIX, filename)
-        with open(f_path, 'r') as f_opened:
-            line_no = 1
-            for line in f_opened:
-                if line_no == 12 or line_no > 16:
-                    f_out.writelines(line)
-                line_no += 1
 
 def dump_tuple_count(cur, oid_str, f_out):
     stmt = "SELECT pgc.relname, pgn.nspname, pgc.relpages, pgc.reltuples FROM pg_class pgc, pg_namespace pgn " \
@@ -257,7 +254,7 @@ def dump_stats(cur, oid_str, f_out):
             if val is None:
                 val = 'NULL'
             elif isinstance(val, (str, unicode)) and val[0] == '{':
-                val = "E'%s'" % val
+                val = "E'%s'" % E(val)
             rowVals.append('\t{0}::{1}'.format(val, typ))
         f_out.writelines(pstring.format(E(vals[0]), E(vals[2]), ',\n'.join(rowVals)))
 
@@ -272,8 +269,8 @@ def main():
     envOpts = os.environ
     db = args[0]
     host = options.host or platform.node()
-    user = options.user or os.getlogin()
-    port = options.port or envOpts['PGPORT'] or '5432'
+    user = options.user or ('PGUSER' in envOpts and envOpts['PGUSER']) or os.getlogin()
+    port = options.port or ('PGPORT' in envOpts and envOpts['PGPORT']) or '5432'
     query_file = options.query_file
     output_file = options.output_file
 
@@ -286,6 +283,7 @@ def main():
     if not os.path.isfile(query_file):
         parser.error('Query file %s does not exist.' % query_file)
         exit(1)
+    output_file = os.path.abspath(output_file)
 
     timestamp = generate_timestamp()
     global PATH_PREFIX
@@ -349,8 +347,8 @@ def main():
 
     # write relation and function DDLs
     print "Writing relation and function DDLs ..."
-    for f in os.listdir(PATH_PREFIX):
-        print_obj_ddl(f, f_out)
+    with open(PATH_PREFIX + PGDUMP_FILE, 'r') as f_pgdump:
+	f_out.writelines(f_pgdump)
 
     # explicitly allow editing of these pg_class & pg_statistic tables
     f_out.writelines(['\n-- ',
