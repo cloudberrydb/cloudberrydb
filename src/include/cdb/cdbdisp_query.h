@@ -14,8 +14,19 @@
 #include "cdb/cdbtm.h"
 
 #define DF_NONE 0x0
+
+/*
+ * indicate whether an error occurring on one of the qExec segdbs should cause all still-executing
+ * commands to cancel on other qExecs, normally this would be true.
+ */
 #define DF_CANCEL_ON_ERROR 0x1
+/*
+ * indicate whether the command to be dispatched should be done inside of a global transaction.
+ */
 #define DF_NEED_TWO_PHASE 0x2
+/*
+ * indicate whether the command should be dispatched to qExecs along with a snapshot.
+ */
 #define DF_WITH_SNAPSHOT  0x4
 
 struct QueryDesc;
