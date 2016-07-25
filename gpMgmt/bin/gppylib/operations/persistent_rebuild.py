@@ -73,7 +73,7 @@ class ValidateContentID:
     def _validate_contentid_file(self):
         '''
         Validate the file for invalid integers
-        Skips blank lines 
+        Skips blank lines
         '''
         if not os.path.isfile(self.contentid_file):
             raise Exception('Unable to find contentid file "%s"' % self.contentid_file)
@@ -98,7 +98,7 @@ class ValidateContentID:
 
     def _validate_content_id(self):
         """
-        Validates that the content ids are valid contents by checking 
+        Validates that the content ids are valid contents by checking
         gp_segment_configuration and that atleast the primary is up.
         Returns error if content id is not present in gp_segment_configuration
         or both primary and mirror are down
@@ -118,7 +118,7 @@ class ValidateContentID:
         """
             Collect a list of all segments where either primary or mirror is up. Whichever segment is up
             will be acting as primary. If we don't find even one segment that is up for a particular
-            content, then it mean both primary and mirror are down. Hence down_content_ids will only 
+            content, then it mean both primary and mirror are down. Hence down_content_ids will only
             be populated if both the primary and mirror are down and not if only one of them is down.
         """
         up_content_ids = set()
@@ -196,19 +196,19 @@ class GetDbIdInfo:
     def __init__(self, gparray, content_id):
         self.gparray = gparray
         self.content_id = content_id
-   
+
     def _get_filespace_to_tablespace_map(self, segdb):
         '''
         Get a map of filespace oids to tablespace oids for a given segdb
         The key is a single integer representing the oid of a filespace
-        The value is a list of oids which represent the oids of 
+        The value is a list of oids which represent the oids of
         tablespaces
         '''
         fs_to_ts_map = {}
-        fs_oids = segdb.getSegmentFilespaces().keys() 
+        fs_oids = segdb.getSegmentFilespaces().keys()
         FILESPACE_TO_TABLESPACE_MAP_QUERY = """SELECT spcfsoid, string_agg(oid, ' ')
                                                FROM pg_tablespace
-                                               WHERE spcfsoid IN (%s) GROUP BY spcfsoid""" % ', '.join(map(str, fs_oids))  
+                                               WHERE spcfsoid IN (%s) GROUP BY spcfsoid""" % ', '.join(map(str, fs_oids))
         with dbconn.connect(dbconn.DbURL(dbname=DEFAULT_DATABASE)) as conn:
             res = dbconn.execSQL(conn, FILESPACE_TO_TABLESPACE_MAP_QUERY)
             for r in res:
@@ -224,7 +224,7 @@ class GetDbIdInfo:
         ts_to_dboid_map = {}
         TABLESPACE_TO_DBOID_MAP_QUERY = """SELECT dattablespace, string_agg(oid, ' ')
                                            FROM pg_database
-                                           WHERE dattablespace IN (%s) GROUP BY dattablespace""" % ', '.join(map(str, ts_oids))  
+                                           WHERE dattablespace IN (%s) GROUP BY dattablespace""" % ', '.join(map(str, ts_oids))
         with dbconn.connect(dbconn.DbURL(dbname=DEFAULT_DATABASE)) as conn:
             res = dbconn.execSQL(conn, TABLESPACE_TO_DBOID_MAP_QUERY)
             for r in res:
@@ -234,17 +234,17 @@ class GetDbIdInfo:
     def get_info(self):
         '''
         This method gets the information for all the segdbs where we want to rebuild the
-        persistent tables. 
+        persistent tables.
         It returns a list of DbIdInfo objects
         '''
         dbid_info = []
-        
+
         for seg in self.gparray.getDbList():
             if seg.getSegmentContentId() in self.content_id:
                 fs_to_ts_map = self._get_filespace_to_tablespace_map(seg)
                 ts_oids = []
                 for fsoid, ts in fs_to_ts_map.items():
-                    ts_oids += ts 
+                    ts_oids += ts
                 ts_to_dboid_map = self._get_tablespace_to_dboid_map(ts_oids)
                 di = DbIdInfo(content=seg.getSegmentContentId(),
                               role=seg.getSegmentRole(),
@@ -264,7 +264,7 @@ class ValidateMD5Sum:
         self.batch_size = batch_size
         self.md5_prog = None
         self.md5_results_pat = None
-        self.pool = pool 
+        self.pool = pool
 
     def _get_md5_prog(self):
         """Get the appropriate md5 program for the platform"""
@@ -283,7 +283,7 @@ class ValidateMD5Sum:
         We want to parse the results of the md5progs in order to extract the filename
         and its correspoding md5sum.
         On OSX, the md5 program will return output in the following format
-        MD5 (<filename>) = <md5_hash> 
+        MD5 (<filename>) = <md5_hash>
         On Linux, the md5 program will return output in the following format
         <md5_hash> <filename>
         Hence this returns an re.pattern object so that we can extract the required
@@ -302,7 +302,7 @@ class ValidateMD5Sum:
         """
         Initialize the class with the md5 program and the pattern
         based on the platform
-        Ideally this should be called once per run of the program 
+        Ideally this should be called once per run of the program
         in order to be efficient. It is the callers reponsibilty
         to ensure that.
         """
@@ -315,7 +315,7 @@ class ValidateMD5Sum:
         and the value as the md5 hash value
         If there was any error, it raises an Exception
         """
-        md5s = {} 
+        md5s = {}
         for item in self.pool.getCompletedItems():
             result = item.get_results()
             if not result.wasSuccessful():
@@ -330,7 +330,7 @@ class ValidateMD5Sum:
                     else:
                         f, md5 = mat.group(1), mat.group(2)
                     md5s[f.strip()] = md5.strip()
-        return md5s 
+        return md5s
 
     def validate(self, src_files):
         """Run the md5 program and calculate the md5sum for the src_files"""
@@ -363,9 +363,9 @@ class BackupPersistentTableFiles:
 
     def _copy_files(self, src_files, dest_files, dbid, actionType):
         """
-        This actually does the copy of the files from src directory to backup directory 
+        This actually does the copy of the files from src directory to backup directory
         In case of backup, the destination folder might not exist. Hence we create it.
-        While restoring it, we always restore to datadirectory and it should be present, 
+        While restoring it, we always restore to datadirectory and it should be present,
         hence we do not bother to create it.
         """
         src_md5 = self.md5_validator.validate(src_files)
@@ -448,7 +448,7 @@ class BackupPersistentTableFiles:
         return src_files, dest_files
 
     def build_Xactlog_src_dest_pairs(self, srcDir, destDir):
-        """ 
+        """
         srcDir:  absolute path to source data directory
         destDir: absolute path to destination data directory
         srcFiles: list of absolute paths to source files
@@ -596,7 +596,7 @@ class BackupPersistentTableFiles:
                             src_files, dest_files = self.build_PT_src_dest_pairs(bk_dir, data_dir, file_list)
 
                         if src_files is None or len(src_files) == 0:
-                            raise Exception('Missing per-database persistent files from source directory.') 
+                            raise Exception('Missing per-database persistent files from source directory.')
 
                         logger.debug('Source files = %s' % src_files)
                         logger.debug('Destination files = %s' % dest_files)
@@ -781,13 +781,13 @@ class RebuildTableOperation(Operation):
             dbconn.execSQL(conn, 'SELECT gp_persistent_build_all(%s)' % filerep_mirror)
             conn.commit()
             logger.info('Completed gp_persistent_build_all() on %s' % self.dbid_info.filespace_dirs[SYSTEM_FSOID])
-            dbconn.execSQL(conn, 'CHECKPOINT') 
+            dbconn.execSQL(conn, 'CHECKPOINT')
             conn.commit()
             logger.info('Finished checkpoint on %s' % self.dbid_info.filespace_dirs[SYSTEM_FSOID])
 
 class ValidatePersistentBackup:
     """
-    Validate that the backup for persistent table files 
+    Validate that the backup for persistent table files
     are present before we acutally do the rebuild
     """
     def __init__(self, dbid_info, timestamp, batch_size=DEFAULT_BATCH_SIZE, backup_dir=None):
@@ -884,7 +884,7 @@ class ValidatePersistentBackup:
 class RebuildTable:
     """
     This class performs the following final checks before starting the rebuild process
-    1. Check if the backup is present on the segment. In case a segment went down, 
+    1. Check if the backup is present on the segment. In case a segment went down,
        the mirror would take over and the backup might not be present on the mirror.
        Hence we do this check.
     2. Check if there are any contents that are down i.e Both primary and mirror are down.
@@ -892,9 +892,9 @@ class RebuildTable:
     and rerun the tool.
     """
     def __init__(self, dbid_info, has_mirrors=False, batch_size=DEFAULT_BATCH_SIZE, backup_dir=None):
-        self.gparray = None 
+        self.gparray = None
         self.dbid_info = dbid_info
-        self.has_mirrors = False 
+        self.has_mirrors = False
         self.batch_size = batch_size
         self.backup_dir = backup_dir
         self.pool = None
@@ -917,7 +917,7 @@ class RebuildTable:
                 elif seg.getSegmentRole() == 'p' and seg.getSegmentStatus() != 'd':
                     valid_dbids.append(seg.getSegmentDbId())
 
-        return valid_dbids 
+        return valid_dbids
 
     def _validate_backups(self):
         RunBackupRestore(self.dbid_info, TIMESTAMP, self.batch_size, self.backup_dir).validate_backups()
@@ -936,7 +936,7 @@ class RebuildTable:
         logger.info('Validating dbids')
         content_ids = set([di.content for di in self.dbid_info])
         valid_dbids = self._get_valid_dbids(content_ids)
-        valid_dbid_info = [di for di in self.dbid_info if di.dbid in valid_dbids] 
+        valid_dbid_info = [di for di in self.dbid_info if di.dbid in valid_dbids]
         successes, failures = [], []
         rebuild_done = {}
         operation_list = []
@@ -977,7 +977,7 @@ class RunBackupRestore:
         self.validate_source_files_only = '--validate-source-file-only' if validate_only else ''
 
     def _get_host_to_dbid_info_map(self):
-        host_to_dbid_info_map = defaultdict(list) 
+        host_to_dbid_info_map = defaultdict(list)
         for di in self.dbid_info:
             host_to_dbid_info_map[di.hostname].append(di)
         return host_to_dbid_info_map
@@ -1027,9 +1027,9 @@ class RunBackupRestore:
                              pickled_global_persistent_files, self.validate_source_files_only, verbose_logging)
 
                 cmd = Command('backup pt files on a host', cmdStr=cmdStr, ctxt=REMOTE, remoteHost=host)
-                self.pool.addCommand(cmd) 
+                self.pool.addCommand(cmd)
             self.pool.join()
-            self._process_results(self.pool, err_msg) 
+            self._process_results(self.pool, err_msg)
         finally:
             self.pool.haltWork()
             self.pool.joinWorkers()
@@ -1070,19 +1070,19 @@ class RebuildPersistentTables(Operation):
     def _check_database_version(self):
         """
         Checks if the database version is greater than or equal to 4.1.0.0
-        since the gp_persistent_reset_all and gp_persistent_build_all is 
+        since the gp_persistent_reset_all and gp_persistent_build_all is
         not supported on earlier versions
         """
         if 'GPHOME' not in os.environ:
             raise Exception('GPHOME not set in the environment')
         gphome = os.environ['GPHOME']
-        db_version = gpversion.GpVersion(GpVersion.local('get version', gphome)) 
+        db_version = gpversion.GpVersion(GpVersion.local('get version', gphome))
         if db_version < gpversion.GpVersion('4.1.0.0'):
             raise Exception('This tool is not supported on Greenplum version lower than 4.1.0.0')
 
     def _stop_database(self):
         """
-        Set the validateAfter to be False in case if there are any segments' postmaster 
+        Set the validateAfter to be False in case if there are any segments' postmaster
         process killed, cause gpstop will return non zero status code
         """
         cmd = GpStop('Stop the greenplum database', fast=True)
@@ -1106,7 +1106,7 @@ class RebuildPersistentTables(Operation):
 
     def _check_platform(self):
         """
-        Solaris platform will be deprecated soon, hence we 
+        Solaris platform will be deprecated soon, hence we
         choose to support it only on Linux and OSX.
         """
         operating_sys = platform.system()
@@ -1152,10 +1152,10 @@ class RebuildPersistentTables(Operation):
             content_to_primary_dbid_host_map[content] = dbid, hostname
             with dbconn.connect(dbconn.DbURL(dbname=DEFAULT_DATABASE, hostname=hostname, port=port), utility=True) as conn:
                 res = dbconn.execSQL(conn, GLOBAL_PT_FILES_QUERY)
-                for r in res: 
+                for r in res:
                     globalfiles.append(str(r[0]))
                 res = dbconn.execSQL(conn, GET_ALL_DATABASES)
-                for r in res: 
+                for r in res:
                     databases[hostname,port].append((dbid, r[0], r[1]))
 
             if len(globalfiles) != 4:
@@ -1165,19 +1165,19 @@ class RebuildPersistentTables(Operation):
 
             GLOBAL_PERSISTENT_FILES[hostname][dbid] = globalfiles
 
-        """  
-        We have to connect to each database in all segments to get the  
+        """
+        We have to connect to each database in all segments to get the
         relfilenode ids for per db persistent files.
-        """  
+        """
         for hostname, port in databases:
             dblist = databases[(hostname, port)]
             ptfiles_dboid = defaultdict(list)
             for dbid, dboid, database in dblist:
-                if database == 'template0': #Connections to template0 are not allowed so we skip 
+                if database == 'template0': #Connections to template0 are not allowed so we skip
                     continue
                 with dbconn.connect(dbconn.DbURL(dbname=database, hostname=hostname, port=port), utility=True) as conn:
                     res = dbconn.execSQL(conn, PER_DATABASE_PT_FILES_QUERY)
-                    for r in res: 
+                    for r in res:
                         ptfiles_dboid[int(dboid)].append(str(r[0]))
 
                 if int(dboid) not in ptfiles_dboid or len(ptfiles_dboid[int(dboid)]) != 2:
@@ -1192,6 +1192,7 @@ class RebuildPersistentTables(Operation):
         We also need to backup for mirrors and standby if they are configured
         """
         if self.has_mirrors or self.has_standby:
+            # TODO: is this where we check if the mirror is down?
             for dbidinfo in self.dbid_info:
                 if dbidinfo.role == 'm':
                     content = dbidinfo.content
@@ -1206,9 +1207,9 @@ class RebuildPersistentTables(Operation):
 
     def print_warning(self):
         """
-        Prints out a warning to the user indicating that this tool should 
+        Prints out a warning to the user indicating that this tool should
         only be run by Pivotal support. It also asks for confirmation
-        before proceeding. 
+        before proceeding.
         """
         warning_msgs=  ['****************************************************', 'This tool should only be run by Pivotal support.',
                         'Please contact Pivotal support for more information.', '****************************************************']
@@ -1217,7 +1218,7 @@ class RebuildPersistentTables(Operation):
             logger.warning(warning_msg)
         input = ask_yesno(None, 'Do you still wish to continue ?', 'N')
         if not input:
-            raise Exception('Aborting rebuild due to user request') 
+            raise Exception('Aborting rebuild due to user request')
 
     def dump_restore_info(self):
         """
@@ -1251,8 +1252,8 @@ class RebuildPersistentTables(Operation):
     def run(self):
 
         """
-        Double warning to make sure that the customer 
-        does not run this tool accidentally 
+        Double warning to make sure that the customer
+        does not run this tool accidentally
         """
         self.print_warning()
         self.print_warning()
@@ -1264,7 +1265,7 @@ class RebuildPersistentTables(Operation):
 
         """
         If the restore fails, we do not attempt to restart the database since a restore is only done
-        when the PT rebuild has not succeeded. It might be dangerous to start the database when the 
+        when the PT rebuild has not succeeded. It might be dangerous to start the database when the
         PT rebuild has failed in the middle and we cannot restore the original files safely.
         """
         if self.restore:
@@ -1324,8 +1325,8 @@ class RebuildPersistentTables(Operation):
             RunBackupRestore(self.dbid_info, TIMESTAMP, self.batch_size, self.backup_dir).validate_backup_dir()
 
         """
-        We have to get the information about pt filenames from the master before we 
-        do any backup since the database will be down when we do a backup and this 
+        We have to get the information about pt filenames from the master before we
+        do any backup since the database will be down when we do a backup and this
         information is required in order to do the backup.
         """
         logger.info('Getting information about persistent table filenames')
@@ -1337,8 +1338,8 @@ class RebuildPersistentTables(Operation):
         except Exception as e:
             raise
 
-        """ 
-        If we want to start persistent table rebuild instead of only making backup, first need to save 
+        """
+        If we want to start persistent table rebuild instead of only making backup, first need to save
         the gpperfmon guc value into a file, then disable gpperfmon before shutdown cluster.
         """
         if not self.backup:
@@ -1358,10 +1359,10 @@ class RebuildPersistentTables(Operation):
             raise Exception('Failed to push a checkpoint, please contact support people')
         logger.info('Stopping Greenplum database')
         self._stop_database()
-   
+
         """
-        If a backup fails, we still attempt to restart the database since the original files are 
-        still present in their original location and we have not yet attempted to rebuild PT.  
+        If a backup fails, we still attempt to restart the database since the original files are
+        still present in their original location and we have not yet attempted to rebuild PT.
         """
         logger.info('Backing up persistent file, and all transaction log files')
         logger.info('Backup timestamp = %s' % TIMESTAMP)
@@ -1404,7 +1405,7 @@ class RebuildPersistentTables(Operation):
         finally:
             logger.info('Stopping Greenplum database that was started in admin mode')
             self._stop_database()
-        
+
         if failures:
             """
             If the PT rebuild failed for any reason, we need to restore the original PT files and transaction
@@ -1445,7 +1446,7 @@ class RebuildPersistentTables(Operation):
         logger.info('Dumping gp_enable_gpperfmon guc information into file: %s' % self.gpperfmon_file)
         with open(self.gpperfmon_file, 'w') as fw:
             fw.write('gp_enable_gpperfmon=%s'% gpperfmon_guc)
- 
+
     def disable_gpperfmon(self):
         logger.info('Disabling gpperfmon')
         cmd = Command(name = 'Run gpconfig to set gpperfmon guc value off', cmdStr = 'gpconfig -c gp_enable_gpperfmon -v off')
