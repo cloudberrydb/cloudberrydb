@@ -758,8 +758,6 @@ CConstraintInterval::PexprConstructArrayScalar(IMemoryPool *pmp, bool fIn) const
 {
 	GPOS_ASSERT(FConvertsToIn() || FConvertsToNotIn());
 
-	CMDAccessor *pmda = COptCtxt::PoctxtFromTLS()->Pmda();
-
 	ULONG ulRngs = m_pdrgprng->UlLength();
 	IMDType::ECmpType ecmptype = IMDType::EcmptEq;
 	CScalarArrayCmp::EArrCmpType earraycmptype = CScalarArrayCmp::EarrcmpAny;
@@ -789,49 +787,16 @@ CConstraintInterval::PexprConstructArrayScalar(IMemoryPool *pmp, bool fIn) const
 
 	if (m_fIncludesNull)
 	{
+		CMDAccessor *pmda = COptCtxt::PoctxtFromTLS()->Pmda();
 		IDatum *pdatum = (*m_pdrgprng)[0]->PdatumRight();
 		GPOS_ASSERT(NULL != pdatum);
-		IDatum * pdatumNull = pmda->Pmdtype(pdatum->Pmdid())->PdatumNull();
+		IDatum *pdatumNull = pmda->Pmdtype(pdatum->Pmdid())->PdatumNull();
 		pdatumNull->AddRef();
 		CScalarConst *popScConst = GPOS_NEW(pmp) CScalarConst(pmp, pdatumNull);
 		prngexpr->Append(GPOS_NEW(pmp) CExpression(pmp, popScConst));
 	}
 
-	IMDId *pmdidColType = m_pcr->Pmdtype()->Pmdid();
-	IMDId *pmdidArrType = m_pcr->Pmdtype()->PmdidTypeArray();
-
-	IMDId *pmdidCmpOp = pmdidCmpOp = m_pcr->Pmdtype()->PmdidCmp(ecmptype);
-
-	pmdidColType->AddRef();
-	pmdidArrType->AddRef();
-	pmdidCmpOp->AddRef();
-
-	// get the name of the comparison from the metadata accessor
-	const CMDName mdname = pmda->Pmdscop(pmdidCmpOp)->Mdname();
-	CWStringConst strOp(mdname.Pstr()->Wsz());
-
-	CExpression *pexprArray = GPOS_NEW(pmp) CExpression
-										(
-										pmp,
-										GPOS_NEW(pmp) CScalarArray(pmp, pmdidColType, pmdidArrType, false /*fMultiDimensional*/),
-										prngexpr
-										);
-
-	CExpression *pexprIdent = CUtils::PexprScalarIdent(pmp, m_pcr);
-
-	CExpression *pexprArrayCmp =
-			GPOS_NEW(pmp) CExpression
-						(
-						pmp,
-						GPOS_NEW(pmp) CScalarArrayCmp(pmp,
-								pmdidCmpOp,
-								GPOS_NEW(pmp) CWStringConst(pmp, strOp.Wsz()),
-								earraycmptype),
-						pexprIdent,
-						pexprArray
-						);
-
-	return pexprArrayCmp;
+	return CUtils::PexprScalarArrayCmp(pmp, earraycmptype, ecmptype, prngexpr, m_pcr);
 }
 
 //---------------------------------------------------------------------------

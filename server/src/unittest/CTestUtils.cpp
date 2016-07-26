@@ -935,16 +935,13 @@ CTestUtils::PexprLogicalSelectArrayCmp
 	GPOS_ASSERT(CScalarArrayCmp::EarrcmpSentinel > earrcmptype);
 	GPOS_ASSERT(IMDType::EcmptOther > ecmptype);
 
-	CMDAccessor *pmda = COptCtxt::PoctxtFromTLS()->Pmda();
-
 	// generate a get expression
 	CExpression *pexprGet = PexprLogicalGet(pmp);
 
 	// get the first column
 	CColRefSet *pcrs = CDrvdPropRelational::Pdprel(pexprGet->PdpDerive())->PcrsOutput();
 	CColRef *pcr =  pcrs->PcrAny();
-	CExpression *pexprIdent = CUtils::PexprScalarIdent(pmp, pcr);
-	
+
 	// construct an array of integers
 	DrgPexpr *pdrgpexprArrayElems = GPOS_NEW(pmp) DrgPexpr(pmp);
 	
@@ -955,35 +952,12 @@ CTestUtils::PexprLogicalSelectArrayCmp
 		pdrgpexprArrayElems->Append(pexprArrayElem);
 	}
 
-	// get column type mdid and mdid of the array type corresponding to that type 
-	IMDId *pmdidColType = pcr->Pmdtype()->Pmdid();
-	IMDId *pmdidArrType = pcr->Pmdtype()->PmdidTypeArray();
-	IMDId *pmdidCmpOp = pcr->Pmdtype()->PmdidCmp(ecmptype);
-
-	pmdidColType->AddRef();
-	pmdidArrType->AddRef();
-	pmdidCmpOp ->AddRef();
-	
-	const CMDName mdname = pmda->Pmdscop(pmdidCmpOp)->Mdname();
-	CWStringConst strOp(mdname.Pstr()->Wsz());
-		
-	CExpression *pexprArray = GPOS_NEW(pmp) CExpression
-										(
-										pmp,
-										GPOS_NEW(pmp) CScalarArray(pmp, pmdidColType, pmdidArrType, false /*fMultiDimensional*/),
-										pdrgpexprArrayElems
-										);
-	
-	CExpression *pexprArrayCmp = 
-			GPOS_NEW(pmp) CExpression
-						(
-						pmp,
-						GPOS_NEW(pmp) CScalarArrayCmp(pmp, pmdidCmpOp, GPOS_NEW(pmp) CWStringConst(pmp, strOp.Wsz()), earrcmptype),
-						pexprIdent,
-						pexprArray
-						);
- 
-	return CUtils::PexprLogicalSelect(pmp, pexprGet, pexprArrayCmp);
+	return CUtils::PexprLogicalSelect
+				(
+				pmp,
+				pexprGet,
+				CUtils::PexprScalarArrayCmp(pmp, earrcmptype, ecmptype, pdrgpexprArrayElems, pcr)
+				);
 }
 
 //---------------------------------------------------------------------------
