@@ -9,19 +9,30 @@
 //    Object that generator code for variable expression.
 //
 //---------------------------------------------------------------------------
-
+#include <assert.h>
+#include <cstdint>
 #include <algorithm>
+#include <memory>
 
 #include "codegen/expr_tree_generator.h"
+#include "codegen/utils/gp_codegen_utils.h"
 #include "codegen/var_expr_tree_generator.h"
 
-#include "llvm/IR/Value.h"
+#include "llvm/IR/Constant.h"
+#include "llvm/IR/IRBuilder.h"
+#include "llvm/IR/Instructions.h"
 
 extern "C" {
 #include "postgres.h"  // NOLINT(build/include)
-#include "utils/elog.h"
 #include "nodes/execnodes.h"
+#include "executor/tuptable.h"
+#include "nodes/nodes.h"
+#include "nodes/primnodes.h"
 }
+
+namespace llvm {
+class Value;
+}  // namespace llvm
 
 using gpcodegen::VarExprTreeGenerator;
 using gpcodegen::ExprTreeGenerator;
@@ -60,7 +71,7 @@ bool VarExprTreeGenerator::GenerateCode(GpCodegenUtils* codegen_utils,
   // At code generation time, slot is NULL.
   // For that reason, we keep a double pointer to slot and at execution time
   // we load slot.
-  TupleTableSlot **ptr_to_slot_ptr = NULL;
+  TupleTableSlot **ptr_to_slot_ptr = nullptr;
   switch (var_expr->varno) {
     case INNER:  /* get the tuple from the inner node */
       ptr_to_slot_ptr = &gen_info.econtext->ecxt_innertuple;

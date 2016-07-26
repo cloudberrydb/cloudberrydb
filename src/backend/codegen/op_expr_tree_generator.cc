@@ -10,20 +10,37 @@
 //
 //---------------------------------------------------------------------------
 
+#include <assert.h>
+#include <cstdint>
+#include <memory>
+#include <type_traits>
+#include <unordered_map>
+#include <utility>
+#include <vector>
+
 #include "codegen/expr_tree_generator.h"
 #include "codegen/op_expr_tree_generator.h"
+#include "codegen/pg_func_generator.h"
+#include "codegen/pg_func_generator_interface.h"
+#include "codegen/utils/gp_codegen_utils.h"
+#include "codegen/pg_arith_func_generator.h"
+#include "codegen/pg_date_func_generator.h"
 
-#include "include/codegen/pg_arith_func_generator.h"
-#include "include/codegen/pg_date_func_generator.h"
-
-#include "llvm/IR/Value.h"
+#include "llvm/IR/IRBuilder.h"
 
 extern "C" {
-#include "c.h"  // NOLINT(build/include)
 #include "postgres.h"  // NOLINT(build/include)
-#include "utils/elog.h"
+#include "c.h"  // NOLINT(build/include)
 #include "nodes/execnodes.h"
+#include "utils/elog.h"
+#include "nodes/nodes.h"
+#include "nodes/pg_list.h"
+#include "nodes/primnodes.h"
 }
+
+namespace llvm {
+class Value;
+}  // namespace llvm
 
 using gpcodegen::OpExprTreeGenerator;
 using gpcodegen::ExprTreeGenerator;

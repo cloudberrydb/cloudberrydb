@@ -10,15 +10,26 @@
 //
 //---------------------------------------------------------------------------
 
-#include "codegen/expr_tree_generator.h"
-#include "codegen/const_expr_tree_generator.h"
+#include <assert.h>
+#include <memory>
 
-#include "llvm/IR/Value.h"
+#include "codegen/const_expr_tree_generator.h"
+#include "codegen/expr_tree_generator.h"
+#include "codegen/utils/gp_codegen_utils.h"
+
+#include "llvm/IR/Constant.h"
+
 
 extern "C" {
 #include "postgres.h"  // NOLINT(build/include)
 #include "nodes/execnodes.h"
+#include "nodes/nodes.h"
+#include "nodes/primnodes.h"
 }
+namespace llvm {
+class Value;
+}  // namespace llvm
+
 
 using gpcodegen::ConstExprTreeGenerator;
 using gpcodegen::ExprTreeGenerator;

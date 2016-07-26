@@ -10,20 +10,29 @@
 //
 //---------------------------------------------------------------------------
 
+#include <assert.h>
+#include <cstdint>
+#include <memory>
+#include <vector>
 
-#include "codegen/pg_date_func_generator.h"
-#include "codegen/utils/gp_codegen_utils.h"
 #include "codegen/pg_arith_func_generator.h"
+#include "codegen/pg_date_func_generator.h"
+#include "codegen/pg_func_generator_interface.h"
+#include "codegen/utils/gp_codegen_utils.h"
+
+#include "llvm/IR/Constant.h"
+#include "llvm/IR/IRBuilder.h"
+#include "llvm/IR/Value.h"
 
 extern "C" {
 #include "postgres.h"  // NOLINT(build/include)
-#include "utils/elog.h"
-#include "utils/date.h"
+#include "c.h"  // NOLINT(build/include)
 #include "utils/timestamp.h"
 }
 
 using gpcodegen::GpCodegenUtils;
 using gpcodegen::PGDateFuncGenerator;
+using gpcodegen::PGFuncGeneratorInfo;
 
 bool PGDateFuncGenerator::DateLETimestamp(
     gpcodegen::GpCodegenUtils* codegen_utils,

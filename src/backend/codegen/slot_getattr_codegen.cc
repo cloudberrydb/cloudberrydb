@@ -9,42 +9,42 @@
 //    Contains slot_getattr generator
 //
 //---------------------------------------------------------------------------
-
-#include <algorithm>
-#include <cstdint>
+#include <assert.h>
+#include <string.h>
 #include <string>
 
-#include "codegen/slot_getattr_codegen.h"
-#include "codegen/utils/clang_compiler.h"
-#include "codegen/utils/utility.h"
-#include "codegen/utils/gp_codegen_utils.h"
 #include "codegen/base_codegen.h"
+#include "codegen/codegen_wrapper.h"
+#include "codegen/slot_getattr_codegen.h"
+#include "codegen/utils/gp_codegen_utils.h"
+#include "codegen/utils/utility.h"
 
-#include "llvm/ADT/APFloat.h"
-#include "llvm/ADT/APInt.h"
 #include "llvm/IR/Argument.h"
-#include "llvm/IR/BasicBlock.h"
 #include "llvm/IR/Constant.h"
-#include "llvm/IR/DerivedTypes.h"
 #include "llvm/IR/Function.h"
-#include "llvm/IR/GlobalVariable.h"
-#include "llvm/IR/Instruction.h"
+#include "llvm/IR/IRBuilder.h"
 #include "llvm/IR/Instructions.h"
-#include "llvm/IR/Module.h"
-#include "llvm/IR/Type.h"
-#include "llvm/IR/Value.h"
 #include "llvm/IR/Verifier.h"
-#include "llvm/Support/Casting.h"
 
 extern "C" {
 #include "postgres.h"  // NOLINT(build/include)
+#include "c.h"  // NOLINT(build/include)
+#include "executor/tuptable.h"
 #include "utils/elog.h"
 #include "access/htup.h"
-#include "nodes/execnodes.h"
-#include "executor/tuptable.h"
+#include "access/memtup.h"
+#include "access/tupdesc.h"
+#include "access/tupmacs.h"
+#include "catalog/pg_attribute.h"
 
 extern void slot_deform_tuple(TupleTableSlot* slot, int nattr);
 }
+
+namespace llvm {
+class BasicBlock;
+class Value;
+}  // namespace llvm
+
 
 using gpcodegen::SlotGetAttrCodegen;
 

@@ -11,40 +11,40 @@
 //---------------------------------------------------------------------------
 
 
+#include <assert.h>
+#include <stddef.h>
 #include <algorithm>
-#include <cstdint>
 #include <string>
+#include <cstdint>
 
+
+#include "codegen/base_codegen.h"
+#include "codegen/codegen_wrapper.h"
 #include "codegen/exec_variable_list_codegen.h"
 #include "codegen/slot_getattr_codegen.h"
-#include "codegen/utils/clang_compiler.h"
-#include "codegen/utils/utility.h"
 #include "codegen/utils/gp_codegen_utils.h"
-#include "codegen/base_codegen.h"
+#include "codegen/utils/utility.h"
 
-#include "llvm/ADT/APFloat.h"
-#include "llvm/ADT/APInt.h"
 #include "llvm/IR/Argument.h"
-#include "llvm/IR/BasicBlock.h"
 #include "llvm/IR/Constant.h"
-#include "llvm/IR/DerivedTypes.h"
-#include "llvm/IR/Function.h"
-#include "llvm/IR/GlobalVariable.h"
-#include "llvm/IR/Instruction.h"
+#include "llvm/IR/IRBuilder.h"
 #include "llvm/IR/Instructions.h"
-#include "llvm/IR/Module.h"
-#include "llvm/IR/Type.h"
-#include "llvm/IR/Value.h"
-#include "llvm/IR/Verifier.h"
-#include "llvm/Support/Casting.h"
+
 
 extern "C" {
 #include "postgres.h"  // NOLINT(build/include)
-#include "utils/elog.h"
-#include "access/htup.h"
-#include "nodes/execnodes.h"
 #include "executor/tuptable.h"
+#include "nodes/execnodes.h"
+#include "utils/elog.h"
+#include "access/tupdesc.h"
+#include "nodes/pg_list.h"
 }
+
+namespace llvm {
+class BasicBlock;
+class Function;
+class Value;
+}  // namespace llvm
 
 using gpcodegen::ExecVariableListCodegen;
 using gpcodegen::SlotGetAttrCodegen;
@@ -67,11 +67,11 @@ ExecVariableListCodegen::ExecVariableListCodegen
 
 bool ExecVariableListCodegen::GenerateExecVariableList(
     gpcodegen::GpCodegenUtils* codegen_utils) {
-  assert(NULL != codegen_utils);
-  static_assert(sizeof(Datum) == sizeof(int64),
+  assert(nullptr != codegen_utils);
+  static_assert(sizeof(Datum) == sizeof(int64_t),
       "sizeof(Datum) doesn't match sizeof(int64)");
 
-  if ( NULL == proj_info_->pi_varSlotOffsets ) {
+  if ( nullptr == proj_info_->pi_varSlotOffsets ) {
     elog(DEBUG1,
         "Cannot codegen ExecVariableList because varSlotOffsets are null");
     return false;

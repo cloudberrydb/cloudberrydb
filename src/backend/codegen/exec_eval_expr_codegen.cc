@@ -9,39 +9,39 @@
 //    Generates code for ExecEvalExpr function.
 //
 //---------------------------------------------------------------------------
-#include <algorithm>
+#include <assert.h>
+#include <stddef.h>
 #include <cstdint>
+#include <memory>
 #include <string>
 
-#include "codegen/slot_getattr_codegen.h"
+#include "codegen/base_codegen.h"
+#include "codegen/codegen_wrapper.h"
 #include "codegen/exec_eval_expr_codegen.h"
 #include "codegen/expr_tree_generator.h"
 #include "codegen/op_expr_tree_generator.h"
-#include "codegen/utils/clang_compiler.h"
+#include "codegen/slot_getattr_codegen.h"
+#include "codegen/utils/gp_codegen_utils.h"
 #include "codegen/utils/utility.h"
-#include "codegen/utils/codegen_utils.h"
 
-#include "llvm/ADT/APFloat.h"
-#include "llvm/ADT/APInt.h"
 #include "llvm/IR/Argument.h"
-#include "llvm/IR/BasicBlock.h"
 #include "llvm/IR/Constant.h"
-#include "llvm/IR/DerivedTypes.h"
-#include "llvm/IR/Function.h"
-#include "llvm/IR/GlobalVariable.h"
-#include "llvm/IR/Instruction.h"
-#include "llvm/IR/Instructions.h"
-#include "llvm/IR/Module.h"
-#include "llvm/IR/Type.h"
-#include "llvm/IR/Value.h"
-#include "llvm/IR/Verifier.h"
-#include "llvm/Support/Casting.h"
+#include "llvm/IR/IRBuilder.h"
+
 
 extern "C" {
 #include "postgres.h"  // NOLINT(build/include)
-#include "utils/elog.h"
 #include "nodes/execnodes.h"
+#include "utils/elog.h"
+#include "executor/tuptable.h"
+#include "nodes/nodes.h"
 }
+
+namespace llvm {
+class BasicBlock;
+class Function;
+class Value;
+}  // namespace llvm
 
 using gpcodegen::ExecEvalExprCodegen;
 using gpcodegen::SlotGetAttrCodegen;

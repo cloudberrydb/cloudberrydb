@@ -17,6 +17,7 @@
 #include <memory>
 
 #include "codegen/utils/gp_codegen_utils.h"
+#include "codegen/pg_func_generator_interface.h"
 
 #include "llvm/IR/IRBuilder.h"
 #include "llvm/IR/Value.h"
@@ -26,6 +27,7 @@ namespace gpcodegen {
 /** \addtogroup gpcodegen
  *  @{
  */
+
 
 namespace gpcodegen_ArithOp_detail {
 // ArithOpOverFlowErrorMsg has various template specializations to
