@@ -890,7 +890,7 @@ CTestUtils::PexprLogicalSelectArrayCmp
 //	@doc:
 //		Generate a Select expression with an array compare. Takes an enum for
 //		the type of array comparison (ANY or ALL) and an enum for the comparator
-//		type (=, !=, <, etc)
+//		type (=, !=, <, etc).
 //
 //---------------------------------------------------------------------------
 CExpression *
@@ -899,6 +899,37 @@ CTestUtils::PexprLogicalSelectArrayCmp
 	IMemoryPool *pmp,
 	CScalarArrayCmp::EArrCmpType earrcmptype,
 	IMDType::ECmpType ecmptype
+	)
+{
+	const ULONG ulArraySize = 5;
+	DrgPi *pdrgpiVals = GPOS_NEW(pmp) DrgPi(pmp);
+	for (ULONG iVal = 0; iVal < ulArraySize; iVal++)
+	{
+		pdrgpiVals->Append(GPOS_NEW(pmp) INT(iVal));
+	}
+	CExpression *pexprSelect = PexprLogicalSelectArrayCmp(pmp, earrcmptype, ecmptype, pdrgpiVals);
+	pdrgpiVals->Release();
+	return pexprSelect;
+}
+
+//---------------------------------------------------------------------------
+//	@function:
+//		CTestUtils::PexprLogicalSelectArrayCmp
+//
+//	@doc:
+//		Generate a Select expression with an array compare. Takes an enum for
+//		the type of array comparison (ANY or ALL) and an enum for the comparator
+//		type (=, !=, <, etc). The array will be populated with the given integer
+//		values.
+//
+//---------------------------------------------------------------------------
+CExpression *
+CTestUtils::PexprLogicalSelectArrayCmp
+	(
+	IMemoryPool *pmp,
+	CScalarArrayCmp::EArrCmpType earrcmptype,
+	IMDType::ECmpType ecmptype,
+	const DrgPi *pdrgpiVals
 	)
 {
 	GPOS_ASSERT(CScalarArrayCmp::EarrcmpSentinel > earrcmptype);
@@ -917,9 +948,10 @@ CTestUtils::PexprLogicalSelectArrayCmp
 	// construct an array of integers
 	DrgPexpr *pdrgpexprArrayElems = GPOS_NEW(pmp) DrgPexpr(pmp);
 	
-	for (ULONG ul = 0; ul < 5; ul++)
+	const ULONG ulValsLength = pdrgpiVals->UlLength();
+	for (ULONG ul = 0; ul < ulValsLength; ul++)
 	{
-		CExpression *pexprArrayElem = CUtils::PexprScalarConstInt4(pmp, ul);
+		CExpression *pexprArrayElem = CUtils::PexprScalarConstInt4(pmp, *(*pdrgpiVals)[ul]);
 		pdrgpexprArrayElems->Append(pexprArrayElem);
 	}
 

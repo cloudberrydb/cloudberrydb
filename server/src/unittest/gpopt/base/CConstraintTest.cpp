@@ -849,6 +849,35 @@ CConstraintTest::EresUnittest_CConstraintIntervalFromArrayExpr()
 	pexprNotIn->Release();
 	pcnstNotIn->Release();
 
+	// create an IN expression with repeated values
+	DrgPi *pdrgpi = GPOS_NEW(pmp) DrgPi(pmp);
+	INT aiValsRepeat[] = {5,1,2,5,3,4,5};
+	ULONG aiValsLength = sizeof(aiValsRepeat)/sizeof(INT);
+	for (ULONG ul = 0; ul < aiValsLength; ul++)
+	{
+		pdrgpi->Append(GPOS_NEW(pmp) INT(aiValsRepeat[ul]));
+	}
+	CExpression *pexprInRepeatsSelect =
+			CTestUtils::PexprLogicalSelectArrayCmp(pmp, CScalarArrayCmp::EarrcmpAny, IMDType::EcmptEq, pdrgpi);
+	CColRef *pcrInRepeats = CDrvdPropRelational::Pdprel(pexprInRepeatsSelect->PdpDerive())->PcrsOutput()->PcrAny();
+	CExpression *pexprArrayCmpRepeats = (*pexprInRepeatsSelect->PdrgPexpr())[1];
+	// add 2 repeated values and one unique
+	CConstraintInterval *pcnstInRepeats = CConstraintInterval::PciIntervalFromScalarExpr(pmp, pexprArrayCmpRepeats, pcrInRepeats);
+	GPOS_ASSERT(5 == pcnstInRepeats->Pdrgprng()->UlLength());
+	pexprInRepeatsSelect->Release();
+	pcnstInRepeats->Release();
+
+	// create a NOT IN expression with repeated values
+	CExpression *pexprNotInRepeatsSelect = CTestUtils::PexprLogicalSelectArrayCmp(pmp, CScalarArrayCmp::EarrcmpAll, IMDType::EcmptNEq, pdrgpi);
+	CColRef *pcrNotInRepeats = CDrvdPropRelational::Pdprel(pexprNotInRepeatsSelect->PdpDerive())->PcrsOutput()->PcrAny();
+	CExpression *pexprNotInArrayCmpRepeats = (*pexprNotInRepeatsSelect->PdrgPexpr())[1];
+	CConstraintInterval *pcnstNotInRepeats = CConstraintInterval::PciIntervalFromScalarExpr(pmp, pexprNotInArrayCmpRepeats, pcrNotInRepeats);
+	// a total of 5 unique ScalarConsts in the expression will result in 6 ranges
+	GPOS_ASSERT(6 == pcnstNotInRepeats->Pdrgprng()->UlLength());
+	pexprNotInRepeatsSelect->Release();
+	pcnstNotInRepeats->Release();
+	pdrgpi->Release();
+
 	return GPOS_OK;
 }
 
