@@ -733,6 +733,57 @@ CUtils::PexprScalarEqCmp
 
 //---------------------------------------------------------------------------
 //	@function:
+//		CUtils::PexprScalarArrayCmp
+//
+//	@doc:
+//		Generate an ArrayCmp expression given an array of CScalarConst's
+//
+//---------------------------------------------------------------------------
+CExpression *
+CUtils::PexprScalarArrayCmp
+	(
+	IMemoryPool *pmp,
+	CScalarArrayCmp::EArrCmpType earrcmptype,
+	IMDType::ECmpType ecmptype,
+	DrgPexpr *pexprScalarChildren,
+	const CColRef *pcr
+	)
+{
+	GPOS_ASSERT(pexprScalarChildren != NULL);
+	GPOS_ASSERT(0 < pexprScalarChildren->UlLength());
+
+	CMDAccessor *pmda = COptCtxt::PoctxtFromTLS()->Pmda();
+
+	// get column type mdid and mdid of the array type corresponding to that type
+	IMDId *pmdidColType = pcr->Pmdtype()->Pmdid();
+	IMDId *pmdidArrType = pcr->Pmdtype()->PmdidTypeArray();
+	IMDId *pmdidCmpOp = pcr->Pmdtype()->PmdidCmp(ecmptype);
+
+	pmdidColType->AddRef();
+	pmdidArrType->AddRef();
+	pmdidCmpOp ->AddRef();
+
+	const CMDName mdname = pmda->Pmdscop(pmdidCmpOp)->Mdname();
+	CWStringConst strOp(mdname.Pstr()->Wsz());
+
+	CExpression *pexprArray = GPOS_NEW(pmp) CExpression
+										(
+										pmp,
+										GPOS_NEW(pmp) CScalarArray(pmp, pmdidColType, pmdidArrType, false /*fMultiDimensional*/),
+										pexprScalarChildren
+										);
+
+	return GPOS_NEW(pmp) CExpression
+				(
+				pmp,
+				GPOS_NEW(pmp) CScalarArrayCmp(pmp, pmdidCmpOp, GPOS_NEW(pmp) CWStringConst(pmp, strOp.Wsz()), earrcmptype),
+				CUtils::PexprScalarIdent(pmp, pcr),
+				pexprArray
+				);
+}
+
+//---------------------------------------------------------------------------
+//	@function:
 //		CUtils::PexprZeroCmp
 //
 //	@doc:

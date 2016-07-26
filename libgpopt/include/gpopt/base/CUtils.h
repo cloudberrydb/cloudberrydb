@@ -18,6 +18,7 @@
 #include "gpopt/base/CWindowFrame.h"
 #include "gpopt/metadata/CTableDescriptor.h"
 #include "gpopt/operators/CExpression.h"
+#include "gpopt/operators/CScalarArrayCmp.h"
 #include "gpopt/operators/CScalarCmp.h"
 #include "gpopt/operators/CScalarConst.h"
 #include "gpopt/operators/CScalarBoolOp.h"
@@ -152,6 +153,10 @@ namespace gpopt
 			// generate an equality comparison expression for an expression and a column reference
 			static
 			CExpression *PexprScalarEqCmp(IMemoryPool *pmp, CExpression *pexprLeft, const CColRef *pcrRight);
+
+			// generate an array comparison expression for a column reference and an expression
+			static
+			CExpression *PexprScalarArrayCmp(IMemoryPool *pmp, CScalarArrayCmp::EArrCmpType earrcmptype, IMDType::ECmpType ecmptype, DrgPexpr *pexprScalarChildren, const CColRef *pcr);
 
 			// generate an Is Distinct From expression
 			static
