@@ -170,7 +170,7 @@ class DbIdInfo:
     """
     Stores all the information regarding a single dbid
     """
-    def __init__(self, content, role, dbid, port, hostname, filespace_dirs, fs_to_ts_map, ts_to_dboid_map):
+    def __init__(self, content, role, dbid, port, hostname, filespace_dirs, fs_to_ts_map, ts_to_dboid_map, is_down):
         self.content = content
         self.role = role
         self.dbid = dbid
@@ -179,13 +179,14 @@ class DbIdInfo:
         self.filespace_dirs = filespace_dirs
         self.fs_to_ts_map = fs_to_ts_map
         self.ts_to_dboid_map = ts_to_dboid_map
+        self.is_down = is_down
 
     def __eq__(self, other):
         return  vars(self) == vars(other)
 
     def __str__(self):
-        return '%s:%s:%s:%s:%s:%s:%s:%s' % (self.content, self.role, self.dbid, self.port, self.hostname, self.filespace_dirs,
-                                         self.fs_to_ts_map, self.ts_to_dboid_map)
+        return '%s:%s:%s:%s:%s:%s:%s:%s:%s' % (self.content, self.role, self.dbid, self.port, self.hostname, self.filespace_dirs,
+                                         self.fs_to_ts_map, self.ts_to_dboid_map, self.is_down)
 
 class GetDbIdInfo:
     """
@@ -241,6 +242,15 @@ class GetDbIdInfo:
 
         for seg in self.gparray.getDbList():
             if seg.getSegmentContentId() in self.content_id:
+                is_down = seg.isSegmentDown()
+                role = seg.getSegmentRole()
+
+                # We don't want to run the rebuild on the segments that
+                # are down. This can cause issues, especially when the segment
+                # in question has missing data/files.
+                if is_down and role == 'm':
+                    continue
+
                 fs_to_ts_map = self._get_filespace_to_tablespace_map(seg)
                 ts_oids = []
                 for fsoid, ts in fs_to_ts_map.items():
@@ -253,7 +263,8 @@ class GetDbIdInfo:
                               hostname=seg.getSegmentHostName(),
                               filespace_dirs=seg.getSegmentFilespaces(),
                               fs_to_ts_map=fs_to_ts_map,
-                              ts_to_dboid_map=ts_to_dboid_map)
+                              ts_to_dboid_map=ts_to_dboid_map,
+                              is_down=is_down)
                 dbid_info.append(di)
 
         return dbid_info
@@ -1192,9 +1203,8 @@ class RebuildPersistentTables(Operation):
         We also need to backup for mirrors and standby if they are configured
         """
         if self.has_mirrors or self.has_standby:
-            # TODO: is this where we check if the mirror is down?
             for dbidinfo in self.dbid_info:
-                if dbidinfo.role == 'm':
+                if dbidinfo.role == 'm' and not dbidinfo.is_down: # Checking if the mirror is down
                     content = dbidinfo.content
                     mirror_dbid = dbidinfo.dbid
                     mirror_hostname = dbidinfo.hostname

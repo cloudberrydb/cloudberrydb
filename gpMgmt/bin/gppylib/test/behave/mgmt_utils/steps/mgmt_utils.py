@@ -3890,3 +3890,57 @@ def impl(_):
     for file in os.listdir(repair_dir):
         if not timestamp in file:
             raise Exception("file found containing inconsistent timestamp")
+
+@when('user kills a mirror process with the saved information')
+def impl(context):
+    cmdStr = "ps ux | grep 'mirror process' | grep %s  | awk '{print $2}'" % context.mirror_port
+    cmd=Command(name='get mirror pid: %s' % cmdStr, cmdStr=cmdStr)
+    cmd.run()
+    pid = cmd.get_stdout_lines()[0]
+    kill_process(int(pid), context.mirror_segdbname, sig=signal.SIGABRT)
+
+@when('user temporarily moves the data directory of the killed mirror')
+@then('user temporarily moves the data directory of the killed mirror')
+def impl(context):
+    rmStr = "mv %s{,.bk}" % context.mirror_datadir
+    cmd=Command(name='Move mirror data directory', cmdStr=rmStr)
+    cmd.run(validateAfter=True)
+
+@when('user returns the data directory to the default location of the killed mirror')
+@then('user returns the data directory to the default location of the killed mirror')
+def impl(context):
+    rmStr = "mv %s{.bk,}" % context.mirror_datadir
+    cmd=Command(name='Move mirror data directory', cmdStr=rmStr)
+    cmd.run(validateAfter=True)
+
+@when('wait until the mirror is down')
+def impl(context):
+    qry = "select status from gp_segment_configuration where dbid='%s' and status='d' " % context.mirror_segdbId
+    start_time = current_time = datetime.now()
+    while (current_time - start_time).seconds < 120:
+        row_count = len(getRows('template1', qry))
+        if row_count == 1:
+            break
+        sleep(5)
+        current_time = datetime.now()
+
+@when('run gppersistent_rebuild with the saved content id')
+@then('run gppersistent_rebuild with the saved content id')
+def impl(context):
+    cmdStr = "echo -e 'y\ny\n' | $GPHOME/sbin/gppersistentrebuild -c %s" % context.mirror_segcid
+    cmd=Command(name='Run gppersistentrebuild',cmdStr=cmdStr)
+    cmd.run(validateAfter=True)
+    context.ret_code = cmd.get_results().rc
+
+@given('the information of a "{seg}" segment on any host is saved')
+@when('the information of a "{seg}" segment on any host is saved')
+@then('the information of a "{seg}" segment on any host is saved')
+def impl(context, seg):
+    if seg == "mirror":
+        gparray = GpArray.initFromCatalog(dbconn.DbURL())
+        mirror_segs = [seg for seg in gparray.getDbList() if seg.isSegmentMirror()]
+        context.mirror_segdbId = mirror_segs[0].getSegmentDbId()
+        context.mirror_segcid = mirror_segs[0].getSegmentContentId()
+        context.mirror_segdbname = mirror_segs[0].getSegmentHostName()
+        context.mirror_datadir = mirror_segs[0].getSegmentDataDirectory()
+        context.mirror_port = mirror_segs[0].getSegmentPort()
