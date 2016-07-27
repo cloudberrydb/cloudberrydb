@@ -504,6 +504,8 @@ add_library(gpopt
             src/operators/CPhysicalTVF.cpp
             include/gpopt/operators/CPhysicalUnionAll.h
             src/operators/CPhysicalUnionAll.cpp
+            include/gpopt/operators/CPhysicalSerialUnionAll.h
+            src/operators/CPhysicalSerialUnionAll.cpp
             include/gpopt/operators/CPredicateUtils.h
             src/operators/CPredicateUtils.cpp
             include/gpopt/operators/CScalar.h

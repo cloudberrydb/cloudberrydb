@@ -14,6 +14,7 @@
 #include "gpopt/exception.h"
 #include "gpopt/xforms/CXformImplementUnionAll.h"
 #include "gpopt/xforms/CXformUtils.h"
+#include "gpopt/operators/CPhysicalSerialUnionAll.h"
 
 #include "gpopt/operators/ops.h"
 
@@ -102,7 +103,7 @@ CXformImplementUnionAll::Transform
 		GPOS_NEW(pmp) CExpression
 					(
 					pmp,
-					GPOS_NEW(pmp) CPhysicalUnionAll
+					GPOS_NEW(pmp) CPhysicalSerialUnionAll
 						(
 						pmp,
 						pdrgpcrOutput,
