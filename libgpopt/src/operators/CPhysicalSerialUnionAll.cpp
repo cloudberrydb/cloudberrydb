@@ -29,6 +29,7 @@
 #include "gpopt/operators/CScalarIdent.h"
 #include "gpopt/operators/CExpressionHandle.h"
 #include "gpopt/exception.h"
+#include "gpopt/operators/CHashedDistributions.h"
 
 using namespace gpopt;
 
@@ -76,7 +77,7 @@ CPhysicalSerialUnionAll::CPhysicalSerialUnionAll
 	)
 	:
 	CPhysicalUnionAll(pmp, pdrgpcrOutput, pdrgpdrgpcrInput, ulScanIdPartialIndex),
-	m_pdrgpds(NULL)
+	m_pdrgpds(GPOS_NEW(pmp) CHashedDistributions(pmp, pdrgpcrOutput, pdrgpdrgpcrInput))
 {
 	// UnionAll creates two distribution requests to enforce distribution of its children:
 	// (1) (Hashed, Hashed): used to pass hashed distribution (requested from above)
@@ -86,56 +87,12 @@ CPhysicalSerialUnionAll::CPhysicalSerialUnionAll
 
 	SetDistrRequests(2 /*ulDistrReq*/);
 	GPOS_ASSERT(0 < UlDistrRequests());
-
-	BuildHashedDistributions(pmp);
 }
 
 CPhysicalSerialUnionAll::~CPhysicalSerialUnionAll()
 {
 	m_pdrgpds->Release();
 }
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CPhysicalSerialUnionAll::BuildHashedDistributions
-//
-//	@doc:
-//		Build hashed distributions used locally during distribution derivation,
-//
-//		the function builds an array of hashed distribution on input column
-//		of each child, and an output hashed distribution on UnionAll output
-//		columns
-//
-//
-//---------------------------------------------------------------------------
-void
-CPhysicalSerialUnionAll::BuildHashedDistributions
-	(
-	IMemoryPool *pmp
-	)
-{
-	GPOS_ASSERT(NULL == m_pdrgpds);
-
-	m_pdrgpds = GPOS_NEW(pmp) DrgPds(pmp);
-	const ULONG ulCols = PdrgpcrOutput()->UlLength();
-	const ULONG ulArity = PdrgpdrgpcrInput()->UlLength();
-	for (ULONG ulChild = 0; ulChild < ulArity; ulChild++)
-	{
-		DrgPcr *pdrgpcr = (*PdrgpdrgpcrInput())[ulChild];
-		DrgPexpr *pdrgpexpr = GPOS_NEW(pmp) DrgPexpr(pmp);
-		for (ULONG ulCol = 0; ulCol < ulCols; ulCol++)
-		{
-			CExpression *pexpr = CUtils::PexprScalarIdent(pmp, (*pdrgpcr)[ulCol]);
-			pdrgpexpr->Append(pexpr);
-		}
-
-		// create a hashed distribution on input columns of the current child
-		CDistributionSpecHashed *pdshashed = GPOS_NEW(pmp) CDistributionSpecHashed(pdrgpexpr, true /*fNullsColocated*/);
-		m_pdrgpds->Append(pdshashed);
-	}
-}
-
-
 
 
 // helper to do value equality check of arrays of ULONG pointers
