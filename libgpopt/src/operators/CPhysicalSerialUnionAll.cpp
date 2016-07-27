@@ -77,7 +77,7 @@ CPhysicalSerialUnionAll::CPhysicalSerialUnionAll
 	)
 	:
 	CPhysicalUnionAll(pmp, pdrgpcrOutput, pdrgpdrgpcrInput, ulScanIdPartialIndex),
-	m_pdrgpds(GPOS_NEW(pmp) CHashedDistributions(pmp, pdrgpcrOutput, pdrgpdrgpcrInput))
+	m_pdrgpds(GPOS_NEW(pmp) CHashedDistributions<CDistributionSpecHashed>(pmp, pdrgpcrOutput, pdrgpdrgpcrInput))
 {
 	// UnionAll creates two distribution requests to enforce distribution of its children:
 	// (1) (Hashed, Hashed): used to pass hashed distribution (requested from above)

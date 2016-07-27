@@ -886,7 +886,6 @@ add_library(gpopt
             src/operators/CPhysicalUnionAllFactory.cpp
             include/gpopt/operators/CPhysicalUnionAllFactory.h
             include/gpopt/operators/CHashedDistributions.h
-            src/operators/CHashedDistributions.cpp
             )
 
 target_link_libraries(gpopt
