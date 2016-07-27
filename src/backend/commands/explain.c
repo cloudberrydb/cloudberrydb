@@ -119,7 +119,7 @@ show_motion_keys(Plan *plan, List *hashExpr, int nkeys, AttrNumber *keycols,
                  StringInfo str, int indent, ExplainState *es);
 
 static void
-explain_partition_selector(PartitionSelector *ps, Sequence *parent,
+explain_partition_selector(PartitionSelector *ps, Plan *parent,
 						   StringInfo str, int indent, ExplainState *es);
 
 /*
@@ -1686,8 +1686,7 @@ explain_outNode(StringInfo str,
 			break;
 		case T_PartitionSelector:
 			{
-				Assert(IsA(parentPlan, Sequence));
-				explain_partition_selector((PartitionSelector *) plan, (Sequence *) parentPlan,
+				explain_partition_selector((PartitionSelector *) plan, parentPlan,
 						str, indent, es);
 			}
 			break;
@@ -2218,7 +2217,7 @@ show_motion_keys(Plan *plan, List *hashExpr, int nkeys, AttrNumber *keycols,
  * and number of statically selected partitions, if available.
  */
 static void
-explain_partition_selector(PartitionSelector *ps, Sequence *parent,
+explain_partition_selector(PartitionSelector *ps, Plan *parent,
 						   StringInfo str, int indent, ExplainState *es)
 {
 	if (ps->printablePredicate)
