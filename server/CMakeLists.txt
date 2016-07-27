@@ -172,6 +172,8 @@ add_executable(gporca_test
                src/unittest/gpopt/metadata/CIndexDescriptorTest.cpp
                include/unittest/gpopt/metadata/CNameTest.h
                src/unittest/gpopt/metadata/CNameTest.cpp
+               include/unittest/gpopt/minidump/CPhysicalParallelUnionAllTest.h
+               src/unittest/gpopt/minidump/CPhysicalParallelUnionAllTest.cpp
         )
 target_link_libraries(gporca_test
                       gpdbcost

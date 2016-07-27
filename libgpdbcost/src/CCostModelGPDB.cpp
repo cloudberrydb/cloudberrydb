@@ -62,6 +62,7 @@ const CCostModelGPDB::SCostMapping CCostModelGPDB::m_rgcm[] =
 	{COperator::EopPhysicalTVF, CostTVF},
 
 	{COperator::EopPhysicalSerialUnionAll, CostUnionAll},
+	{COperator::EopPhysicalParallelUnionAll, CostUnionAll},
 
 	{COperator::EopPhysicalInnerHashJoin, CostHashJoin},
 	{COperator::EopPhysicalLeftSemiHashJoin, CostHashJoin},

@@ -9,6 +9,9 @@
 
 namespace gpopt
 {
+	// Constructs a gpopt::CPhysicalUnionAll operator instance. Depending the
+	// parameter fParallel we construct either a CPhysicalParallelUnionAll or
+	// a CPhysicalSerialUnionAll instance.
 	class CPhysicalUnionAllFactory
 	{
 		private:

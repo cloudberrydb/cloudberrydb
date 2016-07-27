@@ -4,6 +4,7 @@
 
 #include "gpopt/operators/CPhysicalUnionAllFactory.h"
 #include "gpopt/operators/CPhysicalSerialUnionAll.h"
+#include "gpopt/operators/CPhysicalParallelUnionAll.h"
 #include "gpopt/xforms/CXformUtils.h"
 #include "gpopt/exception.h"
 #include "gpos/base.h"
@@ -30,21 +31,31 @@ namespace gpopt
 			GPOS_RAISE(gpopt::ExmaGPOPT, gpopt::ExmiUnsupportedOp, GPOS_WSZ_LIT("Union of non-identical types"));
 		}
 
-		if (m_fParallel)
-		{
-			GPOS_RAISE(gpopt::ExmaGPOPT, gpopt::ExmiUnsupportedOp, GPOS_WSZ_LIT("Parallel Append is not supported yet"));
-		}
-
 		pdrgpcrOutput->AddRef();
 		pdrgpdrgpcrInput->AddRef();
 
-		return GPOS_NEW(pmp) CPhysicalSerialUnionAll
-			(
-				pmp,
-				pdrgpcrOutput,
-				pdrgpdrgpcrInput,
-				m_popLogicalUnionAll->UlScanIdPartialIndex()
-			);
+		if (m_fParallel)
+		{
+			return GPOS_NEW(pmp) CPhysicalParallelUnionAll
+				(
+					pmp,
+					pdrgpcrOutput,
+					pdrgpdrgpcrInput,
+					m_popLogicalUnionAll->UlScanIdPartialIndex()
+				);
+		}
+		else
+		{
+			return GPOS_NEW(pmp) CPhysicalSerialUnionAll
+				(
+					pmp,
+					pdrgpcrOutput,
+					pdrgpdrgpcrInput,
+					m_popLogicalUnionAll->UlScanIdPartialIndex()
+				);
+
+		}
+
 	}
 
 }
