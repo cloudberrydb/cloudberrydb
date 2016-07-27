@@ -185,8 +185,14 @@ CConstraint::PcnstrFromScalarExpr
 		CConstraint *pcnstr = NULL;
 		*ppdrgpcrs = GPOS_NEW(pmp) DrgPcrs(pmp);
 
-		// try creating a single constraint from the expression
+		// first, try creating a single interval constraint from the expression
 		pcnstr = CConstraintInterval::PciIntervalFromScalarExpr(pmp, pexpr, pcr);
+		if (NULL == pcnstr && CUtils::FScalarArrayCmp(pexpr))
+		{
+			// if the interval creation failed, try creating a disjunction or conjunction
+			// of several interval constraints in the array case
+			pcnstr = PcnstrFromScalarArrayCmp(pmp, pexpr, pcr);
+		}
 
 		if (NULL != pcnstr)
 		{
