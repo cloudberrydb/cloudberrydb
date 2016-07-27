@@ -3514,6 +3514,28 @@ Feature: Validate command line arguments
         And verify that the "dump" file in " " dir does not contain "pg_temp"
         And the user runs command "dropdb bkdb"
 
+    @ignore_pg_temp
+    Scenario: pg_temp should be ignored from gpcrondump --table_file option and -t option when given
+        Given the test is initialized
+        And there is a "ao" table "public.foo4" in "bkdb" with data
+        # NOTE: pg_temp does not exist in the database at all. We are just valiating that we can still
+        # do a backup given that the user tries to backup a temporary table
+        # --table-file option ignore pg_temp
+        And there is a table-file "/tmp/table_file_foo4" with tables "public.foo4, pg_temp_1337.foo4"
+        When the user runs "gpcrondump -a --table-file /tmp/table_file_foo4 -x bkdb"
+        Then gpcrondump should return a return code of 0
+        And the timestamp from gpcrondump is stored
+        When the user runs gpdbrestore with the stored timestamp
+        Then gpdbrestore should return a return code of 0
+        And verify that there are "2190" tuples in "bkdb" for table "public.foo4"
+        # -t option ignore pg_temp
+        When the user runs "gpcrondump -a -t public.foo4 -t pg_temp_1337.foo4 -x bkdb"
+        Then gpcrondump should return a return code of 0
+        And the timestamp from gpcrondump is stored
+        When the user runs gpdbrestore with the stored timestamp
+        Then gpdbrestore should return a return code of 0
+        And verify that there are "2190" tuples in "bkdb" for table "public.foo4"
+
 
     # THIS SHOULD BE THE LAST TEST
     @backupfire
