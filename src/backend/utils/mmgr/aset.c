@@ -1359,7 +1359,7 @@ AllocSetAllocImpl(MemoryContext context, Size size, bool isHeader)
 	chunk = (AllocChunk) (block->freeptr);
 
 	block->freeptr += (chunk_size + ALLOC_CHUNKHDRSZ);
-	Assert(block->freeptr <= UserPtr_GetEndPtr(block));
+	Assert(block->freeptr <= ((char *)UserPtr_GetEndPtr(block)));
 
 	chunk->sharedHeader = NULL;
 	chunk->size = chunk_size;
