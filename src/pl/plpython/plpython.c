@@ -2556,6 +2556,9 @@ PLyList_FromArray(PLyDatumToOb *arg, Datum d)
 	int			length;
 	int			lbound;
 	int			i;
+	char		*dataptr;
+	bits8		*bitmap;
+	int			bitmask;
 
 	if (ARR_NDIM(array) == 0)
 		return PyList_New(0);
@@ -2570,23 +2573,38 @@ PLyList_FromArray(PLyDatumToOb *arg, Datum d)
 	lbound = ARR_LBOUND(array)[0];
 	list = PyList_New(length);
 
+	dataptr = ARR_DATA_PTR(array);
+	bitmap = ARR_NULLBITMAP(array);
+	bitmask = 1;
+
 	for (i = 0; i < length; i++)
 	{
-		Datum		elem;
-		bool		isnull;
-		int			offset;
-
-		offset = lbound + i;
-		elem = array_ref(array, 1, &offset, arg->typlen,
-						 elm->typlen, elm->typbyval, elm->typalign,
-						 &isnull);
-		if (isnull)
+		/* Get source element, checking for NULL */
+		if (bitmap && (*bitmap & bitmask) == 0)
 		{
 			Py_INCREF(Py_None);
 			PyList_SET_ITEM(list, i, Py_None);
 		}
 		else
-			PyList_SET_ITEM(list, i, elm->func(elm, elem));
+		{
+			Datum		itemvalue;
+
+			itemvalue = fetch_att(dataptr, elm->typbyval, elm->typlen);
+			PyList_SET_ITEM(list, i, elm->func(elm, itemvalue));
+			dataptr = att_addlength_pointer(dataptr, elm->typlen, dataptr);
+			dataptr = (char *) att_align_nominal(dataptr, elm->typalign);
+		}
+
+		/* advance bitmap pointer if any */
+		if (bitmap)
+		{
+			bitmask <<= 1;
+			if (bitmask == 0x100 /* (1<<8) */)
+			{
+				bitmap++;
+				bitmask = 1;
+			}
+		}
 	}
 
 	return list;
