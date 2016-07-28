@@ -35,13 +35,13 @@ finally:
 $$ LANGUAGE plpythonu;
 
 SELECT subtransaction_test(NULL);
-SELECT * FROM subtransaction_tbl;
+SELECT * FROM subtransaction_tbl order by i;
 TRUNCATE subtransaction_tbl;
 SELECT subtransaction_test('SPI');
-SELECT * FROM subtransaction_tbl;
+SELECT * FROM subtransaction_tbl order by i;
 TRUNCATE subtransaction_tbl;
 SELECT subtransaction_test('Python');
-SELECT * FROM subtransaction_tbl;
+SELECT * FROM subtransaction_tbl order by i;
 TRUNCATE subtransaction_tbl;
 
 -- Context manager case for Python >=2.6
@@ -58,13 +58,13 @@ with plpy.subtransaction():
 $$ LANGUAGE plpythonu;
 
 SELECT subtransaction_ctx_test(NULL);
-SELECT * FROM subtransaction_tbl;
+SELECT * FROM subtransaction_tbl order by i;
 TRUNCATE subtransaction_tbl;
 SELECT subtransaction_ctx_test('SPI');
-SELECT * FROM subtransaction_tbl;
+SELECT * FROM subtransaction_tbl order by i;
 TRUNCATE subtransaction_tbl;
 SELECT subtransaction_ctx_test('Python');
-SELECT * FROM subtransaction_tbl;
+SELECT * FROM subtransaction_tbl order by i;
 TRUNCATE subtransaction_tbl;
 
 -- Nested subtransactions
@@ -224,7 +224,7 @@ with plpy.subtransaction():
 $$ LANGUAGE plpythonu;
 
 SELECT try_catch_inside_subtransaction();
-SELECT * FROM subtransaction_tbl;
+SELECT * FROM subtransaction_tbl order by i;
 TRUNCATE subtransaction_tbl;
 
 --ALTER TABLE subtransaction_tbl ADD PRIMARY KEY (i);

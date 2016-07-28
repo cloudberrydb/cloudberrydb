@@ -37,33 +37,36 @@ SELECT subtransaction_test(NULL);
  
 (1 row)
 
-SELECT * FROM subtransaction_tbl;
+SELECT * FROM subtransaction_tbl order by i;
  i 
 ---
- 2
  1
+ 2
 (2 rows)
 
 TRUNCATE subtransaction_tbl;
 SELECT subtransaction_test('SPI');
-ERROR:  plpy.SPIError: invalid input syntax for integer: "oops" (plpython.c:4648)
+ERROR:  plpy.SPIError: invalid input syntax for integer: "oops" (plpython.c:4718)
+LINE 1: INSERT INTO subtransaction_tbl VALUES ('oops')
+                                               ^
+QUERY:  INSERT INTO subtransaction_tbl VALUES ('oops')
 CONTEXT:  Traceback (most recent call last):
   PL/Python function "subtransaction_test", line 11, in <module>
     plpy.execute("INSERT INTO subtransaction_tbl VALUES ('oops')")
 PL/Python function "subtransaction_test"
-SELECT * FROM subtransaction_tbl;
+SELECT * FROM subtransaction_tbl order by i;
  i 
 ---
 (0 rows)
 
 TRUNCATE subtransaction_tbl;
 SELECT subtransaction_test('Python');
-ERROR:  AttributeError: 'module' object has no attribute 'attribute_error' (plpython.c:4648)
+ERROR:  AttributeError: 'module' object has no attribute 'attribute_error' (plpython.c:4718)
 CONTEXT:  Traceback (most recent call last):
   PL/Python function "subtransaction_test", line 13, in <module>
     plpy.attribute_error
 PL/Python function "subtransaction_test"
-SELECT * FROM subtransaction_tbl;
+SELECT * FROM subtransaction_tbl order by i;
  i 
 ---
 (0 rows)
@@ -86,33 +89,36 @@ SELECT subtransaction_ctx_test(NULL);
  
 (1 row)
 
-SELECT * FROM subtransaction_tbl;
+SELECT * FROM subtransaction_tbl order by i;
  i 
 ---
- 2
  1
+ 2
 (2 rows)
 
 TRUNCATE subtransaction_tbl;
 SELECT subtransaction_ctx_test('SPI');
-ERROR:  plpy.SPIError: invalid input syntax for integer: "oops" (plpython.c:4648)
+ERROR:  plpy.SPIError: invalid input syntax for integer: "oops" (plpython.c:4718)
+LINE 1: INSERT INTO subtransaction_tbl VALUES ('oops')
+                                               ^
+QUERY:  INSERT INTO subtransaction_tbl VALUES ('oops')
 CONTEXT:  Traceback (most recent call last):
   PL/Python function "subtransaction_ctx_test", line 6, in <module>
     plpy.execute("INSERT INTO subtransaction_tbl VALUES ('oops')")
 PL/Python function "subtransaction_ctx_test"
-SELECT * FROM subtransaction_tbl;
+SELECT * FROM subtransaction_tbl order by i;
  i 
 ---
 (0 rows)
 
 TRUNCATE subtransaction_tbl;
 SELECT subtransaction_ctx_test('Python');
-ERROR:  AttributeError: 'module' object has no attribute 'attribute_error' (plpython.c:4648)
+ERROR:  AttributeError: 'module' object has no attribute 'attribute_error' (plpython.c:4718)
 CONTEXT:  Traceback (most recent call last):
   PL/Python function "subtransaction_ctx_test", line 8, in <module>
     plpy.attribute_error
 PL/Python function "subtransaction_ctx_test"
-SELECT * FROM subtransaction_tbl;
+SELECT * FROM subtransaction_tbl order by i;
  i 
 ---
 (0 rows)
@@ -199,7 +205,7 @@ with plpy.subtransaction() as s:
     s.__exit__(None, None, None)
 $$ LANGUAGE plpythonu;
 SELECT subtransaction_exit_without_enter();
-ERROR:  ValueError: this subtransaction has not been entered (plpython.c:4648)
+ERROR:  ValueError: this subtransaction has not been entered (plpython.c:4718)
 CONTEXT:  Traceback (most recent call last):
   PL/Python function "subtransaction_exit_without_enter", line 2, in <module>
     plpy.subtransaction().__exit__(None, None, None)
@@ -215,7 +221,7 @@ CONTEXT:  PL/Python function "subtransaction_enter_without_exit"
 SELECT subtransaction_exit_twice();
 WARNING:  forcibly aborting a subtransaction that has not been exited
 CONTEXT:  PL/Python function "subtransaction_exit_twice"
-ERROR:  ValueError: this subtransaction has not been entered (plpython.c:4648)
+ERROR:  ValueError: this subtransaction has not been entered (plpython.c:4718)
 CONTEXT:  Traceback (most recent call last):
   PL/Python function "subtransaction_exit_twice", line 3, in <module>
     plpy.subtransaction().__exit__(None, None, None)
@@ -231,7 +237,7 @@ CONTEXT:  PL/Python function "subtransaction_enter_twice"
 (1 row)
 
 SELECT subtransaction_exit_same_subtransaction_twice();
-ERROR:  ValueError: this subtransaction has already been exited (plpython.c:4648)
+ERROR:  ValueError: this subtransaction has already been exited (plpython.c:4718)
 CONTEXT:  Traceback (most recent call last):
   PL/Python function "subtransaction_exit_same_subtransaction_twice", line 5, in <module>
     s.__exit__(None, None, None)
@@ -239,19 +245,19 @@ PL/Python function "subtransaction_exit_same_subtransaction_twice"
 SELECT subtransaction_enter_same_subtransaction_twice();
 WARNING:  forcibly aborting a subtransaction that has not been exited
 CONTEXT:  PL/Python function "subtransaction_enter_same_subtransaction_twice"
-ERROR:  ValueError: this subtransaction has already been entered (plpython.c:4648)
+ERROR:  ValueError: this subtransaction has already been entered (plpython.c:4718)
 CONTEXT:  Traceback (most recent call last):
   PL/Python function "subtransaction_enter_same_subtransaction_twice", line 4, in <module>
     s.__enter__()
 PL/Python function "subtransaction_enter_same_subtransaction_twice"
 SELECT subtransaction_enter_subtransaction_in_with();
-ERROR:  ValueError: this subtransaction has already been entered (plpython.c:4648)
+ERROR:  ValueError: this subtransaction has already been entered (plpython.c:4718)
 CONTEXT:  Traceback (most recent call last):
   PL/Python function "subtransaction_enter_subtransaction_in_with", line 3, in <module>
     s.__enter__()
 PL/Python function "subtransaction_enter_subtransaction_in_with"
 SELECT subtransaction_exit_subtransaction_in_with();
-ERROR:  ValueError: this subtransaction has already been exited (plpython.c:4648)
+ERROR:  ValueError: this subtransaction has already been exited (plpython.c:4718)
 CONTEXT:  Traceback (most recent call last):
   PL/Python function "subtransaction_exit_subtransaction_in_with", line 3, in <module>
     s.__exit__(None, None, None)
@@ -315,7 +321,7 @@ CONTEXT:  PL/Python function "try_catch_inside_subtransaction"
  
 (1 row)
 
-SELECT * FROM subtransaction_tbl;
+SELECT * FROM subtransaction_tbl order by i;
  i 
 ---
  1
