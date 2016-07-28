@@ -48,7 +48,7 @@ namespace gpos
 	CSpinlockRanked<ulRank>::Lock()
 	{
 #ifdef GPOS_DEBUG
-		GPOS_ASSERT_IMP(0 < ulRank, 
+		GPOS_ASSERT_IMP(0 < ulRank && IWorker::PwrkrSelf(),
 			IWorker::PwrkrSelf()->FCanAcquireSpinlock(this) && 
 			"Tried to acquire spinlock in incorrect order or detected deadlock.");
 #endif // GPOS_DEBUG
@@ -104,7 +104,7 @@ namespace gpos
 		gpos::UlpExchangeAdd(&m_ulpCollisions, ulAttempts);
 
 #ifdef GPOS_DEBUG
-		if (0 < ulRank)
+		if (0 < ulRank && NULL != IWorker::PwrkrSelf())
 		{
 			IWorker::PwrkrSelf()->RegisterSpinlock(this);
 		}
@@ -128,7 +128,7 @@ namespace gpos
 	CSpinlockRanked<ulRank>::Unlock()
 	{
 #ifdef GPOS_DEBUG		
-		if (0 < ulRank)
+		if (0 < ulRank && NULL != IWorker::PwrkrSelf())
 		{
 			IWorker::PwrkrSelf()->UnregisterSpinlock(this);
 		}
