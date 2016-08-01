@@ -357,8 +357,8 @@ CConfigParamMapping::SConfigMappingElem CConfigParamMapping::m_elem[] =
 		},
 
 		{
-		EopttraceEnableArrayDerive,
-		&optimizer_enable_array_derivation,
+		EopttraceArrayConstraints,
+		&optimizer_array_constraints,
 		false, // m_fNegate
 		GPOS_WSZ_LIT("Allows the constraint framework to derive array constraints in the optimizer.")
 		}

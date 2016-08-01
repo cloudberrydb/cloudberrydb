@@ -563,7 +563,7 @@ bool		optimizer_enable_derive_stats_all_groups;
 bool		optimizer_explain_show_status;
 bool		optimizer_prefer_scalar_dqa_multistage_agg;
 bool 		optimizer_parallel_union;
-bool		optimizer_enable_array_derivation;
+bool		optimizer_array_constraints;
 
 /**
  * GUCs related to code generation.
@@ -3353,12 +3353,12 @@ struct config_bool ConfigureNamesBool_gp[] =
 	},
 
 	{
-		{"optimizer_enable_array_derivation", PGC_USERSET, DEVELOPER_OPTIONS,
-			gettext_noop("Allows the constraint framework to derive array constraints in the optimizer."),
+		{"optimizer_array_constraints", PGC_USERSET, DEVELOPER_OPTIONS,
+			gettext_noop("Allows the optimizer's constraint framework to derive array constraints."),
 			NULL,
 			GUC_NO_SHOW_ALL | GUC_NOT_IN_SAMPLE
 		},
-		&optimizer_enable_array_derivation,
+		&optimizer_array_constraints,
 		false, NULL, NULL
 	},
 
