@@ -460,6 +460,7 @@ extern bool optimizer_enable_derive_stats_all_groups;
 extern bool optimizer_explain_show_status;
 extern bool optimizer_prefer_scalar_dqa_multistage_agg;
 extern bool optimizer_parallel_union;
+extern bool optimizer_enable_array_derivation;
 
 /**
  * GUCs related to code generation.
