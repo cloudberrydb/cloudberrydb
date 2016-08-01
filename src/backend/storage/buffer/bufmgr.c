@@ -196,7 +196,7 @@ ReadBuffer(Relation reln, BlockNumber blockNum)
 									 blockNum,
 									 false, /* zeroPage */
 									 NULL, /* strategy */
-									 NULL,
+									 RelationGetRelationName(reln),
 									 &isHit);
 
 	if (isHit)
@@ -969,7 +969,7 @@ ReadBufferWithStrategy(Relation reln, BlockNumber blockNum,
 									 blockNum,
 									 false, /* zeroPage */
 									 strategy,
-									 NULL,
+									 RelationGetRelationName(reln),
 									 &isHit);
 
 	if (isHit)
@@ -1007,7 +1007,7 @@ ReadOrZeroBuffer(Relation reln, BlockNumber blockNum)
 									 blockNum,
 									 true, /* zeroPage */
 									 NULL, /* strategy */
-									 NULL,
+									 RelationGetRelationName(reln),
 									 &isHit);
 
 	if (isHit)
