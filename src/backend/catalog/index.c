@@ -2308,8 +2308,8 @@ IndexBuildAppendOnlyRowScan(Relation parentRelation,
 								  0,
 								  NULL);
 
-	if (!OidIsValid(aoscan->aoEntry->blkdirrelid) ||
-		!OidIsValid(aoscan->aoEntry->blkdiridxid))
+	if (!OidIsValid(parentRelation->rd_appendonly->blkdirrelid) ||
+		!OidIsValid(parentRelation->rd_appendonly->blkdiridxid))
 	{
 		IndexInfoOpaque *opaque;
 
@@ -2331,10 +2331,6 @@ IndexBuildAppendOnlyRowScan(Relation parentRelation,
 											 &opaque->blkdirComptypeOid,
 											 false);
 
-		/* Update blkdirrelid, blkdiridxid in aoEntry with new values */
-		aoscan->aoEntry->blkdirrelid = opaque->blkdirRelOid;
-		aoscan->aoEntry->blkdiridxid = opaque->blkdirIdxOid;
-		
 		aoscan->buildBlockDirectory = true;
 		aoscan->blockDirectory =
 			(AppendOnlyBlockDirectory *)palloc0(sizeof(AppendOnlyBlockDirectory));
@@ -2484,10 +2480,6 @@ IndexBuildAppendOnlyColScan(Relation parentRelation,
 											 opaque->blkdirIdxOid,
 											 &opaque->blkdirComptypeOid,
 											 false);
-
-		/* Update blkdirrelid, blkdiridxid in aoEntry with new values */
-		aocsscan->aoEntry->blkdirrelid = opaque->blkdirRelOid;
-		aocsscan->aoEntry->blkdiridxid = opaque->blkdirIdxOid;
 		
 		aocsscan->buildBlockDirectory = true;
 		aocsscan->blockDirectory =
