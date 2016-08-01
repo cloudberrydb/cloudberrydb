@@ -96,6 +96,7 @@ test: guc
 test: combocid
 test: tsearch
 test: plancache
+test: json
 test: limit
 ignore: plpgsql
 test: copy2
