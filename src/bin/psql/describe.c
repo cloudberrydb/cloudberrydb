@@ -1447,7 +1447,7 @@ describeOneTableDetails(const char *schemaname,
 		if (!result)
 			goto error_return;
 
-		if (PQgetisnull(result, 0, 0))
+		if (PQgetisnull(result, 0, 0) || PQgetvalue(result, 0, 0)[0] == '\0')
 		{
 			tableinfo.compressionType = pg_malloc(sizeof("None") + 1);
 			strcpy(tableinfo.compressionType, "None");
