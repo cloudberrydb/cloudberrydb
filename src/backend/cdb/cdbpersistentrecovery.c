@@ -59,6 +59,29 @@ typedef struct XactEntryData
 } XactEntryData;
 typedef XactEntryData *XactEntry;
 
+/*
+ * This hashTable is used during crash recovery. Keeps track of transactions
+ * and its state plus filesystem-objects associated with those transactions
+ * found during recovery. It's populated after scanning all the xlog
+ * records in Pass 2 for Transaction ID Resource Manager.
+ * Transaction can be found in Commit, Abort, Prepare, Abort Prepared, Commit
+ * Prepared, Distributed Commit or Distributed Abort. Depending on same this
+ * hashtable is populated to keep track of Committed
+ * (infokind=XACT_INFOKIND_COMMIT), Aborted (infokind=XACT_INFOKIND_ABORT) and
+ * Inflight (infokind=XACT_INFOKIND_NONE) transactions.
+ * "fsObjHashTable" also one of the hash-tables created during recovery, keeping
+ * track of persistent table changes keyed on its TID for file-system
+ * object. That hash-table maintains end transaction work that’s remaining on
+ * the file-system objects is used to populate and connect this xactHashTable
+ * transactions to corresponding filesystem-objects touched by it.
+ * With the help of same inflight transactions are scanned later to check if
+ * they got PREPARED or not. This is necessary so that half-done data or “Create
+ * Pending” objects would get linked to their transactions and would not get
+ * aborted automatically by the recovery process. For e.g. there could be few
+ * “Create Pending” objects for committed transaction in which case it needs to
+ * be updated to “Created” state. On the other hand, Create Pending objects
+ * associated with aborted transactions would get updated with “Aborting Create” state.
+ */
 static HTAB *xactHashTable = NULL;
 
 Pass2RecoveryHashShmem_s *pass2RecoveryHashShmem = NULL;
@@ -1493,6 +1516,61 @@ PersistentRecovery_HandlePrepareBeforeCheckpoint(void)
 
 }
 
+/*
+ * This function basically deals with finding the transactions that were left
+ * half-done (or aborted) due to the crash and cleanup the file-system objects
+ * by these trasnactions.
+ * The hashtable "fsObjHashTable" contains list of relation objects that
+ * require a persistent table change since those were related to the transactions that
+ * were either committed or aborted or prepared when the crash happened.
+ * If fsObjHashTable is non-empty then it means there are filesystem
+ * objects (relation/ database/ filespace/ tablespace) that needs some persistent
+ * change and so iterate through all the persistent filesystem object entries in
+ * fsObjHashTable and try to find information about the transaction dealing with
+ * the same. For each of transaction_id corresponding to the filesystem object
+ * in fsObjHashTable, search is performed in the hashtable "xactHashTable" (which consists of
+ * the transactions running during the crash and their state) and try to find their
+ * state (whether COMMIT, ABORT). If cannot find transaction_id in the xactHashTable
+ * then its considered as a inflight (infokind = XACT_INFOKIND_NONE) transaction
+ * and updated accordingly (this type of transactions are handled later in
+ * function as we don’t know yet if this transactions really committed or
+ * aborted).
+ * Once the transaction linking is done for the entries in fsObjHashTable, it
+ * finds the transactions that were PREPARED before the checkpoint record
+ * and so we start scanning the xactHashTable.
+ * For all the entries (or transactions) in xactHashTable that were considered
+ * PREPARED (infokind=XACT_INFOKIND_NONE), search is made in another hashtable
+ * “crashRecoverPostCheckpointPreparedTransactions_map_ht” which consists
+ * of all pre and post checkpoint inflight transactions. If we find an entry then
+ * its considered as a PREPARED (infokind=XACT_INFOKIND_NONE) transaction.
+ *
+ * So after attaching each filesystem object in fsObjHashTable to its transactions
+ * in xactHashTable and confirming if the inflight transactions are PREPARED,
+ * fresh scan is made of the xactHashTable from start.
+ * There can be 3 cases:
+ *     -> PREPARED transactions: For this don’t know yet what to do with the
+ * transaction since don’t know if it got committed or abort post the
+ * checkpoint, just have pre-checkpoint information that it is prepared
+ *     -> COMMIT or ABORT transactions: This means that we had an xlog Commit or Abort
+ * record and hence specific action can be taken.
+ *     -> Inflight transaction: These are transactions that neither have any
+ * commit/abort record in xlog nor are they listed in the checkpoint prepared
+ * transactions list. Don’t know the status of such transaction and hence
+ * need to examine if there are any Create Pending objects corresponding to this
+ * transaction. Check performed for each of filesystem object’s persistent state linked
+ * to this transaction (through xactEntry->fsObjEntryList) and if object is
+ * found in Create Pending state then do conclude the following:
+ * - The transaction was trying to create the object, which needs to be cleaned-up
+ * - The transaction needs to be aborted
+ * - Persistent state be updated to Aborting Create
+ *
+ * Following actions are performed based on above deductions:
+ * - Note the end transaction action as “Abort”
+ * - Record the crashed transaction’s abort record in XLOG
+ * - Mark this file-system object as “update needed” with a flag
+ * - State is updated to “Aborting Create”
+ * - Entry is made in “Pass 2 recovery” hashtable
+ */
 void
 PersistentRecovery_CrashAbort(void)
 {
@@ -1888,6 +1966,19 @@ PersistentRecovery_UpdateType(
 		     persistentRecoveryCount);
 }
 
+/*
+ * This is responsible for updating the persistent state for the file-system
+ * objects which was found earlier in recovery. On call to this function the hashtable
+ * fsObjHashTable contains the list of relation objects that require a
+ * persistent table change since those were related to the transactions that
+ * were either committed or aborted or prepared when the crash happened.
+ * For each of the entry in the fsObjHashTable, if the flag for “update needed”
+ * is set, then will update the persistent state to one of the following
+ * depending on the “state” in the entry found:
+ * Created or Drop Pending – incase of committed transaction for Create or drop
+ * respectively.
+ * Aborting Create – incase of aborted transaction.
+ */
 void
 PersistentRecovery_Update(void)
 {
@@ -2003,6 +2094,16 @@ PersistentRecovery_DropType(
 		     persistentRecoveryCount);
 }
 
+/*
+ * This is responsible for dropping the file-system object marked as Aborting
+ * Create and Drop Pending during recovery.
+ * It basically loops through the fsObjHashTable to check for entries with
+ * persistent state to be either “Aborting Create” or “Drop Pending”. If it
+ * finds then it proceeds with the drop of the same. Note – the entries that
+ * have mirror existence state as “Only Mirror Drop Remains” (which means that
+ * the object is dropped on primary but not on mirror) are not dropped in this
+ * step (crash recovery). They are dropped during the filerep resync operation.
+ */
 void
 PersistentRecovery_Drop(void)
 {
@@ -2022,6 +2123,34 @@ PersistentRecovery_Drop(void)
 		     "Exiting PersistentRecovery_Scan");
 }
 
+/*
+ * This is responsible for syncing the commit and loss eofs in case of AO
+ * inserts. This function uses the hashtable
+ * recoveryAppendOnlyMirrorResyncEofsTable, which contains the information
+ * regarding the resync eof for the mirrors. Checks for each entry in
+ * recoveryAppendOnlyMirrorResyncEofsTable and corresponding entry (based on
+ * persistent tid) in the fsObjHashTable, there are following cases possible for
+ * this check:
+ * -> If it doesn’t find entry in fsObjHashTable, then it concludes that the
+ * entry in the recoveryAppendOnlyMirrorResyncEofsTable has no persistent entry
+ * and the update is obsolete and thus we don’t need to update the eofs.
+ * ->  If the persistent state of the object is not “Created”, then also don’t
+ * need to update the eofs as it is in the non-created state (CreatePending,
+ * AbortingCreate, DropPending or Free).
+ * -> If the persistent serial number in fsObjHashTable is greater than the
+ * one in recoveryAppendOnlyMirrorResyncEofsTable, then it concludes that the
+ * entry is superseded by newer persistent entry and hence no update of eof is
+ * required. (Note - If it finds the persistent serial number in fsObjHashTable
+ * to be smaller than the one in recoveryAppendOnlyMirrorResyncEofsTable then it
+ * complains with an error).
+ * -> If finds the mirror loss eof to be equal to -1 for entry in
+ * recoveryAppendOnlyMirrorResyncEofsTable, then knows that need a mirror catch
+ * up while resyncing the eof. If mirror catch up is required, don’t need to
+ * update the mirror loss eof (as there is no change), but if its not required
+ * then need to update the mirror loss eof to the mirror new eof (as there is no
+ * loss) from the entry in recoveryAppendOnlyMirrorResyncEofsTable currently
+ * looping through.
+ */
 void
 PersistentRecovery_UpdateAppendOnlyMirrorResyncEofs(void)
 {
