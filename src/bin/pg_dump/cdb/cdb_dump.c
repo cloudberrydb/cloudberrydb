@@ -608,7 +608,6 @@ startTransactionAndLock(PGconn *pMasterConn)
 	 * when COMMIT is run.
 	 */
 	mpp_msg(logInfo, progname, "Getting a lock on pg_class in database %s.\n", pMasterConn->dbName);
-	pQry = createPQExpBuffer();
 	appendPQExpBuffer(pQry, "LOCK TABLE pg_catalog.pg_class IN EXCLUSIVE MODE;");
 	pRes = PQexec(pMasterConn, pQry->data);
 	if (pRes == NULL)

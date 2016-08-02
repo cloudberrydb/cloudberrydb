@@ -52,7 +52,7 @@ AddNotificationtoBackupStateMachine(BackupStateMachine * pStateMachine, PGnotify
 }
 
 /* CleanupNotifications: Frees the PGnotify * objects in the internal array, and resets the array count to 0.
- * Does NOT deallocate the array memory, as it wiull be reused.
+ * Does NOT deallocate the array memory, as it will be reused.
  */
 void
 CleanupNotifications(BackupStateMachine *pStateMachine)
@@ -139,6 +139,12 @@ DestroyBackupStateMachine(BackupStateMachine *pStateMachine)
 		CleanupNotifications(pStateMachine);
 		free(pStateMachine->ppNotifyAr);
 	}
+
+	if (pStateMachine->pszNotifyRelNameMasterProbe != NULL)
+		free(pStateMachine->pszNotifyRelNameMasterProbe);
+
+	if (pStateMachine->pszNotifyRelNameSegmentProbe != NULL)
+		free(pStateMachine->pszNotifyRelNameSegmentProbe);
 
 	free(pStateMachine);
 }
