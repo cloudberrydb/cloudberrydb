@@ -50,7 +50,6 @@ typedef enum
 } SaOpControl;
 
 extern void create_index_paths(PlannerInfo *root, RelOptInfo *rel,
-							   char relstorage,
                                List **pindexpathlist, List **pbitmappathlist);
 extern List *generate_bitmap_or_paths(PlannerInfo *root, RelOptInfo *rel,
 						 List *clauses, List *outer_clauses,

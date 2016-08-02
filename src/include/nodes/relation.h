@@ -444,6 +444,7 @@ typedef struct RelOptInfo
 	BlockNumber pages;
 	double		tuples;
     struct GpPolicy   *cdbpolicy;      /* distribution of stored tuples */
+	char		relstorage;		/* from pg_class.relstorage */
     bool        cdb_default_stats_used; /* true if ANALYZE needed */
 	struct Plan *subplan;		/* if subquery */
 	List	   *subrtable;		/* if subquery */

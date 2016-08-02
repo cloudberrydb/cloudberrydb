@@ -266,7 +266,6 @@ set_plain_rel_pathlist(PlannerInfo *root, RelOptInfo *rel, RangeTblEntry *rte)
     List       *tidpathlist = NIL;
     Path       *seqpath = NULL;
     ListCell   *cell;
-	char		relstorage;
 
 	/*
 	 * If we can prove we don't need to scan the rel via constraint exclusion,
@@ -311,10 +310,8 @@ set_plain_rel_pathlist(PlannerInfo *root, RelOptInfo *rel, RangeTblEntry *rte)
      * in a temporary list, then add them.
 	 */
 
-	relstorage = get_rel_relstorage(rte->relid);
-	
 	/* early exit for external and append only relations */
-	switch (relstorage)
+	switch (rel->relstorage)
 	{
 		case RELSTORAGE_EXTERNAL:
 			/*
@@ -343,7 +340,7 @@ set_plain_rel_pathlist(PlannerInfo *root, RelOptInfo *rel, RangeTblEntry *rte)
 			 * should not be feasible, usually indicates a failure to correctly
 			 * apply rewrite rules.
 			 */
-			elog(ERROR, "plan contains range table with relstorage='%c'", relstorage);
+			elog(ERROR, "plan contains range table with relstorage='%c'", rel->relstorage);
 			return;
 	}
 
@@ -352,7 +349,7 @@ set_plain_rel_pathlist(PlannerInfo *root, RelOptInfo *rel, RangeTblEntry *rte)
         pathlist = lappend(pathlist, seqpath);
 
 	/* Consider index and bitmap scans */
-	create_index_paths(root, rel, relstorage, 
+	create_index_paths(root, rel,
 					   &indexpathlist, &bitmappathlist);
 
 	/* 
@@ -362,8 +359,8 @@ set_plain_rel_pathlist(PlannerInfo *root, RelOptInfo *rel, RangeTblEntry *rte)
 	 * optimize fetches in TID order by keeping the last decompressed block between fetch
 	 * calls.
 	 */
-	if (relstorage == RELSTORAGE_AOROWS ||
-		relstorage == RELSTORAGE_AOCOLS)
+	if (rel->relstorage == RELSTORAGE_AOROWS ||
+		rel->relstorage == RELSTORAGE_AOCOLS)
 		indexpathlist = NIL;
 
     if (indexpathlist && root->config->enable_indexscan)
@@ -375,8 +372,8 @@ set_plain_rel_pathlist(PlannerInfo *root, RelOptInfo *rel, RangeTblEntry *rte)
     create_tidscan_paths(root, rel, &tidpathlist);
     
     /* AO and CO tables do not currently support TidScans. Disable TidScan path for such tables */
-	if (relstorage == RELSTORAGE_AOROWS ||
-		relstorage == RELSTORAGE_AOCOLS)
+	if (rel->relstorage == RELSTORAGE_AOROWS ||
+		rel->relstorage == RELSTORAGE_AOCOLS)
 		tidpathlist = NIL;
     
     if (tidpathlist && root->config->enable_tidscan)

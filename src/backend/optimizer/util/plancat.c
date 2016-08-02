@@ -74,6 +74,9 @@ cdb_estimate_rel_size(RelOptInfo   *relOptInfo,
 static void
 cdb_default_stats_warning_for_index(Oid reloid, Oid indexoid);
 
+static void get_external_relation_info(Relation relation, RelOptInfo *rel);
+
+
 /*
  * get_relation_info -
  *	  Retrieves catalog information for a given relation.
@@ -127,6 +130,12 @@ get_relation_info(PlannerInfo *root, Oid relationObjectId, bool inhparent,
      * CDB: Get partitioning key info for distributed relation.
      */
     rel->cdbpolicy = RelationGetPartitioningKey(relation);
+
+	rel->relstorage = relation->rd_rel->relstorage;
+
+	/* If it's an external table, get locations and format from catalog */
+	if (rel->relstorage == RELSTORAGE_EXTERNAL)
+		get_external_relation_info(relation, rel);
 
 	/*
 	 * Estimate relation size --- unless it's an inheritance parent, in which
@@ -363,25 +372,21 @@ get_relation_info(PlannerInfo *root, Oid relationObjectId, bool inhparent,
  * Update RelOptInfo to include the external specifications (file URI list
  * and data format) from the pg_exttable catalog.
  */
-void
-get_external_relation_info(Oid relationObjectId, RelOptInfo *rel)
+static void
+get_external_relation_info(Relation relation, RelOptInfo *rel)
 {
-
-	Relation	pg_class_rel;
-	ExtTableEntry* extentry;
+	ExtTableEntry *extentry;
 
 	/*
      * Get partitioning key info for distributed relation.
      */
-	pg_class_rel = heap_open(relationObjectId, NoLock);
-	rel->cdbpolicy = RelationGetPartitioningKey(pg_class_rel);
-	heap_close(pg_class_rel, NoLock);
+	rel->cdbpolicy = RelationGetPartitioningKey(relation);
 
 	/*
 	 * Get the pg_exttable fields for this table
 	 */
-	extentry = GetExtTableEntry(relationObjectId);
-	
+	extentry = GetExtTableEntry(RelationGetRelid(relation));
+
 	rel->locationlist = extentry->locations;	
 	rel->execcommand = extentry->command;
 	rel->fmttype = extentry->fmtcode;
@@ -391,7 +396,6 @@ get_external_relation_info(Oid relationObjectId, RelOptInfo *rel)
 	rel->fmterrtbl = extentry->fmterrtbl;
 	rel->ext_encoding = extentry->encoding;
 	rel->writable = extentry->iswritable;
-
 }
 
 /*

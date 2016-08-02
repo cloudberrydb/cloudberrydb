@@ -115,15 +115,14 @@ static Const *string_to_const(const char *str, Oid datatype);
  *   on the given relation storage option.
  */
 static Path *
-create_bitmap_scan_path(char relstorage,
-						PlannerInfo *root,
+create_bitmap_scan_path(PlannerInfo *root,
 						RelOptInfo *rel,
 						Path *bitmapqual,
 						RelOptInfo *outer_rel)
 {
 	Path *path = NULL;
 	
-	switch(relstorage)
+	switch(rel->relstorage)
 	{
 		case RELSTORAGE_HEAP:
 			path = (Path *)create_bitmap_heap_path(root, rel, bitmapqual, outer_rel);
@@ -136,7 +135,7 @@ create_bitmap_scan_path(char relstorage,
 			break;
 		default:
 			elog(ERROR, "unrecognized relstorage type %d for using bitmap scan path",
-				 relstorage);
+				 rel->relstorage);
 	}
 
 	return path;
@@ -179,7 +178,6 @@ create_bitmap_scan_path(char relstorage,
  */
 void
 create_index_paths(PlannerInfo *root, RelOptInfo *rel, 
-				   char relstorage,
                    List **pindexpathlist, List **pbitmappathlist)
 {
 	List	   *indexpaths;
@@ -263,7 +261,7 @@ create_index_paths(PlannerInfo *root, RelOptInfo *rel,
 		Path       *path = NULL;
 
 		bitmapqual = choose_bitmap_and(root, rel, bitindexpaths, NULL);
-		path = create_bitmap_scan_path(relstorage, root, rel, bitmapqual, NULL);
+		path = create_bitmap_scan_path(root, rel, bitmapqual, NULL);
 		*pbitmappathlist = lappend(*pbitmappathlist, path);
 	}
 }
@@ -1728,7 +1726,6 @@ best_inner_indexscan(PlannerInfo *root, RelOptInfo *rel,
 	InnerIndexscanInfo *info;
 	MemoryContext oldcontext;
 	RangeTblEntry *rte;
-	char relstorage;
 
 	Assert(rel->rtekind == RTE_RELATION);
 
@@ -1852,16 +1849,15 @@ best_inner_indexscan(PlannerInfo *root, RelOptInfo *rel,
 	bitindexpaths = list_concat(bitindexpaths, list_copy(indexpaths));
 
 	rte = rt_fetch(rel->relid, root->parse->rtable);
-	relstorage = get_rel_relstorage(rte->relid);
-	Assert(relstorage != '\0');
+	Assert(rel->relstorage != '\0');
 
     /* Exclude plain index paths if user doesn't want them. */
     if (!root->config->enable_indexscan && !root->config->mpp_trying_fallback_plan)
         indexpaths = NIL;
 
 	/* Exclude plain index paths if the relation is an append-only relation. */
-	if (relstorage == RELSTORAGE_AOROWS ||
-		relstorage == RELSTORAGE_AOCOLS)
+	if (rel->relstorage == RELSTORAGE_AOROWS ||
+		rel->relstorage == RELSTORAGE_AOCOLS)
 		indexpaths = NIL;
 
 	/*
@@ -1875,7 +1871,7 @@ best_inner_indexscan(PlannerInfo *root, RelOptInfo *rel,
 		Path	   *bpath;
 
 		bitmapqual = choose_bitmap_and(root, rel, bitindexpaths, outer_rel);
-		bpath = create_bitmap_scan_path(relstorage, root, rel, bitmapqual, outer_rel);
+		bpath = create_bitmap_scan_path(root, rel, bitmapqual, outer_rel);
 		indexpaths = lappend(indexpaths, bpath);
 	}
 
