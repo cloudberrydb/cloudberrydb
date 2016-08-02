@@ -125,6 +125,10 @@ namespace gpopt
 			static
 			CExpression *PexprCollapseProjects(IMemoryPool *pmp, CExpression *pexpr);
 
+			// add dummy project element below scalar subquery when the output column is an outer reference
+			static
+			CExpression *PexprProjBelowSubquery(IMemoryPool *pmp, CExpression *pexpr, BOOL fUnderPrList);
+
 			// collapse cascaded union/union all into an NAry union/union all operator
 			static
 			CExpression *PexprCollapseUnionUnionAll(IMemoryPool *pmp, CExpression *pexpr);

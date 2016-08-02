@@ -40,6 +40,8 @@ ULONG CICGTest::m_ulNegativeIndexApplyTestCounter = 0;
 // minidump files
 const CHAR *rgszFileNames[] =
 	{
+		"../data/dxl/minidump/ScSubqueryWithOuterRef.mdp",
+		"../data/dxl/minidump/ExprOnScSubqueryWithOuterRef.mdp",
 		"../data/dxl/minidump/InsertIntoNonNullAfterDroppingColumn.mdp",
 		"../data/dxl/minidump/IN-Numeric.mdp",
 		"../data/dxl/minidump/CollapseNot.mdp",
