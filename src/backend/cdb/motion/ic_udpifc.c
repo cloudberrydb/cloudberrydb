@@ -764,7 +764,7 @@ static void checkQDConnectionAlive(void);
 static void *rxThreadFunc(void *arg);
 
 static bool handleMismatch(icpkthdr *pkt, struct sockaddr_storage *peer, int peer_len);
-static void inline handleAckedPacket(MotionConn *ackConn, ICBuffer *buf, uint64 now);
+static void handleAckedPacket(MotionConn *ackConn, ICBuffer *buf, uint64 now);
 static bool handleAcks(ChunkTransportState *transportStates, ChunkTransportStateEntry *pEntry);
 static void handleStopMsgs(ChunkTransportState *transportStates, ChunkTransportStateEntry *pEntry, int16 motionId);
 static void handleDisorderPacket(MotionConn *conn, int pos, uint32 tailSeq, icpkthdr *pkt);
@@ -4366,7 +4366,7 @@ logPkt(char *prefix, icpkthdr *pkt)
  *	Here y is a constant (In implementation, we use 4) and retry is the times the
  *	packet is retransmitted.
  */
-static void inline
+static void
 handleAckedPacket(MotionConn *ackConn, ICBuffer *buf, uint64 now)
 {
 	uint64 ackTime = 0;

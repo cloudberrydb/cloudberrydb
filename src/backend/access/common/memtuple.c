@@ -52,7 +52,8 @@
  * then we use off minus saved bytes to find the attribute.
  */
 
-static inline int compute_null_bitmap_extra_size(TupleDesc tupdesc, int col_align)
+static int
+compute_null_bitmap_extra_size(TupleDesc tupdesc, int col_align)
 {
 	int nbytes = (tupdesc->natts + 7) >> 3;
 	int avail_bytes = (tupdesc->tdhasoid || col_align == 4) ? 0 : 4;
@@ -96,13 +97,15 @@ void destroy_memtuple_binding(MemTupleBinding *pbind)
 /* Compute how much space to store the null save entries.
  * The null save entries are stored in the binding, not per tuple.
  */
-static inline uint32 compute_null_save_entries(int i)
+static uint32
+compute_null_save_entries(int i)
 {
 	return ((i+7)/8) * 32; 
 }
 
 /* Add null save space into the entries */
-static inline void add_null_save(short *null_save, int i, short sz)
+static void
+add_null_save(short *null_save, int i, short sz)
 {
 	short* first = null_save + ((i/4) * 16);
 	unsigned int bit = 1 << (i%4);
@@ -119,7 +122,8 @@ static inline void add_null_save(short *null_save, int i, short sz)
  * Adds the aligned length into the array holding the space saved from null attributes.
  * Returns true if the binding length is aligned to the following binding's alignment.
  */
-static inline bool add_null_save_aligned(MemTupleAttrBinding *bind, short *null_save_aligned, int i, char next_attr_align)
+static bool
+add_null_save_aligned(MemTupleAttrBinding *bind, short *null_save_aligned, int i, char next_attr_align)
 {
 	Assert(bind);
 	Assert(bind->len > 0);
@@ -161,7 +165,8 @@ static inline int compute_null_save(short *null_saves, unsigned char *nullbitmap
 		
 #undef MEMTUPLE_INLINE_CHARTYPE
 /* Determine if an attr should be treated as offset_len in memtuple */
-static inline bool att_bind_as_varoffset(Form_pg_attribute attr)
+static bool
+att_bind_as_varoffset(Form_pg_attribute attr)
 {
 #ifdef MEMTUPLE_INLINE_CHARTYPE 
 	return (attr->attlen < 0 /* Varlen type */
