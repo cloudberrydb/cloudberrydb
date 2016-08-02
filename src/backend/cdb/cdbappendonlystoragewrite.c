@@ -311,7 +311,6 @@ void AppendOnlyStorageWrite_TransactionCreateFile(
 				persistentTid,
 				persistentSerialNum))
 	{
-		// UNDONE: Verify the gp_persistent_relation_node Append-Only EOFs are zero.
 		return;
 	}
 

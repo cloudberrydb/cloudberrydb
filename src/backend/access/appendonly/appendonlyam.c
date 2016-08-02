@@ -557,35 +557,33 @@ SetCurrentFileSegForWrite(AppendOnlyInsertDesc aoInsertDesc)
 						aoInsertDesc->cur_segno,
 						eof);
 		}
+	}
 
-
-		if (gp_appendonly_verify_eof)
+	if (gp_appendonly_verify_eof)
+	{
+		/* Get EOF from gp_persistent_relation_node */
+		appendOnlyNewEof = PersistentFileSysObj_ReadEof(
+					PersistentFsObjType_RelationFile,
+					&persistentTid);
+		/*
+		 * Verify if EOF from gp_persistent_relation_node < EOF from pg_aoseg
+		 *
+		 * Note:- EOF from gp_persistent_relation_node has to be less than the
+		 * EOF from pg_aoseg because inside a transaction the actual EOF where
+		 * the data is inserted has to be greater than or equal to Persistent
+		 * Table (PT) stored EOF as persistent table EOF value is updated at the
+		 * end of the transaction.
+		 */
+		if (eof < appendOnlyNewEof)
 		{
-			/* Get EOF from gp_persistent_relation_node */
-			appendOnlyNewEof = PersistentFileSysObj_ReadEof(
-											    PersistentFsObjType_RelationFile,
-											    &persistentTid);
-
-			/*
-			 * Verify if EOF from gp_persistent_relation_node < EOF from pg_aoseg
-			 *
-			 * Note:- EOF from gp_persistent_relation_node has to be less than the
-			 * EOF from pg_aoseg because inside a transaction the actual EOF where
-			 * the data is inserted has to be greater than or equal to Persistent
-			 * Table (PT) stored EOF as persistent table EOF value is updated at the
-			 * end of the transaction.
-			 */
-		    if (eof < appendOnlyNewEof)
-		    {
-				elog(ERROR, "Unexpected EOF for relation name %s, relfilenode %u, "
-							"segment file %d. EOF from gp_persistent_relation_node "
-							INT64_FORMAT " greater than current EOF " INT64_FORMAT,
-							aoInsertDesc->aoi_rel->rd_rel->relname.data,
-							aoInsertDesc->aoi_rel->rd_node.relNode,
-							aoInsertDesc->cur_segno,
-							appendOnlyNewEof,
-							eof);
-			}
+			elog(ERROR, "Unexpected EOF for relation name %s, relfilenode %u, "
+				 "segment file %d. EOF from gp_persistent_relation_node "
+				 INT64_FORMAT " greater than current EOF " INT64_FORMAT,
+				 aoInsertDesc->aoi_rel->rd_rel->relname.data,
+				 aoInsertDesc->aoi_rel->rd_node.relNode,
+				 aoInsertDesc->cur_segno,
+				 appendOnlyNewEof,
+				 eof);
 		}
 	}
 
