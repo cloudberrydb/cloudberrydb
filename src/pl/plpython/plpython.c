@@ -2552,111 +2552,62 @@ PLyList_FromArray(PLyDatumToOb *arg, Datum d)
 {
 	ArrayType  *array = DatumGetArrayTypeP(d);
 	PLyDatumToOb *elm = arg->elm;
-	int			ndim;
-	int		   *dims;
-	int		   *lb;
-	char	   *dataptr;
-	bits8	   *bitmap;
-	int			bitmask;
+	PyObject   *list;
+	int			length;
+	int			lbound;
 	int			i;
-	int 		dim;
-	int			indx[MAXDIM];
-	PyObject   *lists[MAXDIM];
+	char		*dataptr;
+	bits8		*bitmap;
+	int			bitmask;
 
 	if (ARR_NDIM(array) == 0)
 		return PyList_New(0);
 
-	/* Array dimensions and left bounds */
-	ndim = ARR_NDIM(array);
-	dims = ARR_DIMS(array);
-	lb = ARR_LBOUND(array);
+	if (ARR_NDIM(array) != 1)
+		ereport(ERROR,
+				(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
+			  errmsg("cannot convert multidimensional array to Python list"),
+			  errdetail("PL/Python only supports one-dimensional arrays.")));
 
-	/* Internal array representation pointers */
+	length = ARR_DIMS(array)[0];
+	lbound = ARR_LBOUND(array)[0];
+	list = PyList_New(length);
+
 	dataptr = ARR_DATA_PTR(array);
 	bitmap = ARR_NULLBITMAP(array);
 	bitmask = 1;
 
-	/* Iterators initialization */
-	for (i = 0; i < ndim; i++) {
-		indx[i] = lb[i];
-		lists[i] = NULL;
-	}
-	lists[0] = PyList_New(dims[0]);
-
-	/* We need this incref to keep the pointer valid after the array traversal
-	 * terminates, as this traversal does DECREF for all the lists in array */
-	Py_INCREF(lists[0]);
-
-	/* In this cycle we are going over array dimensions. Postgres offers you an
-	 * option to iterate over all the multi-dimensional array elemens in order.
-	 * For 3-dimesnional array the order of iteration would be following - first
-	 * you start with [0,0,0] elements through [0,0,k], then [0,1,0] till [0,1,k]
-	 * till [0,m,k], then [1,0,0] till [1,0,k] till [1,m,k], and so on.
-	 * In Python, each 1-d array is a separate list object, so 3-d array of
-	 * [n,m,k] element is a list of n m-element arrays, each element of which is
-	 * k-element array. In this cycle we traverse from outter dimensions to
-	 * inner ones, creating nested Python lists during traversal */
-	dim = 0;
-	while (dim >= 0)
+	for (i = 0; i < length; i++)
 	{
-		/* If we finished up iterating over current dimension - go one level up */
-		if (indx[dim] > dims[dim])
+		/* Get source element, checking for NULL */
+		if (bitmap && (*bitmap & bitmask) == 0)
 		{
-			Py_DECREF(lists[dim]);
-			indx[dim] = 0;
-			dim -= 1;
+			Py_INCREF(Py_None);
+			PyList_SET_ITEM(list, i, Py_None);
 		}
-		/* If we are processing inner dimension - create one more list */
-		else if (dim < ndim - 1)
+		else
 		{
-			lists[dim+1] = PyList_New(dims[dim+1]);
+			Datum		itemvalue;
 
-			/* We need this INCREF as we keep array pointer on our side,
-			 * while PyList_SET_ITEM steals the reference */
-			Py_INCREF(lists[dim+1]);
-
-			PyList_SET_ITEM(lists[dim], indx[dim] - lb[dim], lists[dim+1]);
-			indx[dim] += 1;
-			dim += 1;
-			indx[dim] = lb[dim];
+			itemvalue = fetch_att(dataptr, elm->typbyval, elm->typlen);
+			PyList_SET_ITEM(list, i, elm->func(elm, itemvalue));
+			dataptr = att_addlength_pointer(dataptr, elm->typlen, dataptr);
+			dataptr = (char *) att_align_nominal(dataptr, elm->typalign);
 		}
-		/* If we are iterating over the outter dimension, fill the list with
-		 * values from the original Postgres array */
-		else if (dim == ndim - 1)
+
+		/* advance bitmap pointer if any */
+		if (bitmap)
 		{
-			for (indx[dim] = lb[dim]; indx[dim] <= dims[dim]; indx[dim]++)
+			bitmask <<= 1;
+			if (bitmask == 0x100 /* (1<<8) */)
 			{
-				/* checking for NULL */
-				if (bitmap && (*bitmap & bitmask) == 0)
-				{
-					Py_INCREF(Py_None);
-					PyList_SET_ITEM(lists[dim], indx[dim] - lb[dim], Py_None);
-				}
-				else
-				{
-					Datum		itemvalue;
-
-					itemvalue = fetch_att(dataptr, elm->typbyval, elm->typlen);
-					PyList_SET_ITEM(lists[dim], indx[dim] - lb[dim], elm->func(elm, itemvalue));
-					dataptr = att_addlength_pointer(dataptr, elm->typlen, dataptr);
-					dataptr = (char *) att_align_nominal(dataptr, elm->typalign);
-				}
-
-				/* advance bitmap pointer if any */
-				if (bitmap)
-				{
-					bitmask <<= 1;
-					if (bitmask == 0x100 /* (1<<8) */)
-					{
-						bitmap++;
-						bitmask = 1;
-					}
-				}
+				bitmap++;
+				bitmask = 1;
 			}
 		}
 	}
 
-	return lists[0];
+	return list;
 }
 
 static PyObject *
@@ -2905,116 +2856,39 @@ PLySequence_ToArray(PLyObToDatum *arg, int32 typmod, PyObject *plrv)
 	Datum	   *elems;
 	bool	   *nulls;
 	int			len;
-	PyObject   *pyptr;
-	int			ndim;
-	int			dims[MAXDIM];
-	int         lbs[MAXDIM];
-	int         indx[MAXDIM];
-	PyObject   *stack[MAXDIM];
-	int         dim;
-	int         idxelem;
+	int			lbs;
 
 	Assert(plrv != Py_None);
 
 	if (!PySequence_Check(plrv))
 		PLy_elog(ERROR, "return value of function with array return type is not a Python sequence");
 
-	pyptr = plrv;
-	ndim = 0;
-	len = 1;
-
-	/* We want to iterate through all iterable objects except by strings */
-	while (pyptr != NULL && PySequence_Check(pyptr) &&
-			!(PyString_Check(pyptr) || PyBytes_Check(pyptr) || PyUnicode_Check(pyptr))) {
-		dims[ndim] = PySequence_Length(pyptr);
-		if (dims[ndim] < 0)
-			PLy_elog(ERROR, "Cannot determine sequence length for function return value");
-		len *= dims[ndim];
-		stack[ndim] = pyptr;
-		ndim += 1;
-		if (dims[ndim - 1] == 0) {
-			pyptr = NULL;
-			break;
-		}
-		pyptr = PySequence_GetItem(pyptr, 0);
-	}
-
-	/* Pyptr points to element of n-dimensional array, we don't need its reference */
-	Py_XDECREF(pyptr);
-
-	/* We need this incref to keep the pointer valid after the array traversal
-	 * terminates, as this traversal does DECREF for all the lists in array, and
-	 * stack[0] corresponds to function return value */
-	Py_INCREF(stack[0]);
-
+	len = PySequence_Length(plrv);
 	elems = palloc(sizeof(*elems) * len);
 	nulls = palloc(sizeof(*nulls) * len);
 
-	for (i = 0; i < ndim; i++) {
-		indx[i] = 0;
-		lbs[i] = 1;
-	}
-
-	/* In this cycle we are going over nested Python lists, fetching elements
-	 * from the deepest level and putting them into a linear array for Postgres
-	 * to interpret them as n-dimensional array. This is a cycle implementation
-	 * of DFS (recursive traversal of nested arrays here), keeping the stack in
-	 * "stack" variable */
-	dim = 0;
-	idxelem = 0;
-	while (dim >= 0)
+	for (i = 0; i < len; i++)
 	{
-		/* If we finished up iterating over current list - go one level up */
-		if (indx[dim] == dims[dim])
-		{
-			Py_DECREF(stack[dim]);
-			indx[dim] = 0;
-			dim -= 1;
-		}
-		/* If we are processing inner list - create one more list */
-		else if (dim < ndim - 1)
-		{
-			stack[dim+1] = PySequence_GetItem(stack[dim], indx[dim]);
-			if (PySequence_Length(stack[dim+1]) != dims[dim+1])
-				PLy_elog(ERROR, "Multidimensional arrays must have array expressions with matching dimensions. "
-								"PL/Python function return value has sequence length %d while expected %d",
-								(int)PySequence_Length(stack[dim+1]), dims[dim+1]);
-			indx[dim] += 1;
-			dim += 1;
-		}
-		/* If we are iterating over the outter list, fill the output array */
-		else if (dim == ndim - 1)
-		{
-			for (indx[dim] = 0; indx[dim] < dims[dim]; indx[dim]++) {
-				PyObject *obj = PySequence_GetItem(stack[dim], indx[dim]);
+		PyObject   *obj = PySequence_GetItem(plrv, i);
 
-				if (obj == Py_None)
-					nulls[idxelem] = true;
-				else
-				{
-					nulls[idxelem] = false;
+		if (obj == Py_None)
+			nulls[i] = true;
+		else
+		{
+			nulls[i] = false;
 
-					/*
-					 * We don't support arrays of row types yet, so the first argument
-					 * can be NULL.
-					 */
-					elems[idxelem] = arg->elm->func(arg->elm, -1, obj);
-				}
-				Py_XDECREF(obj);
-				idxelem += 1;
-			}
+			/*
+			 * We don't support arrays of row types yet, so the first argument
+			 * can be NULL.
+			 */
+			elems[i] = arg->elm->func(arg->elm, -1, obj);
 		}
+		Py_XDECREF(obj);
 	}
 
-	array = construct_md_array(elems,
-							   nulls,
-							   ndim,
-							   dims,
-							   lbs,
-							   get_element_type(arg->typoid),
-							   arg->elm->typlen,
-							   arg->elm->typbyval,
-							   arg->elm->typalign);
+	lbs = 1;
+	array = construct_md_array(elems, nulls, 1, &len, &lbs,
+							   get_element_type(arg->typoid), arg->elm->typlen, arg->elm->typbyval, arg->elm->typalign);
 	return PointerGetDatum(array);
 }
 
