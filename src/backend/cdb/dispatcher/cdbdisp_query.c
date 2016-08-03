@@ -1428,9 +1428,6 @@ buildSliceIndexGangIdMap(SliceVec *sliceVec, int numSlices, int numTotalSlices)
 	/* would be freed in buildGpQueryString */
 	int *sliceIndexGangIdMap = palloc0(numTotalSlices * sizeof(int));
 
-	if (sliceIndexGangIdMap == NULL)
-		return NULL;
-
 	Slice *slice = NULL;
 	int index;
 
