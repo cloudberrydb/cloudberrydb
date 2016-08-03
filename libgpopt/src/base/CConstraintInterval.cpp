@@ -20,6 +20,8 @@
 #include "gpopt/operators/CScalarArray.h"
 #include "gpopt/operators/CScalarIdent.h"
 #include "naucrates/md/IMDScalarOp.h"
+#include "gpopt/base/CDatumSortedSet.h"
+#include "gpos/common/CAutoRef.h"
 
 using namespace gpopt;
 
@@ -210,7 +212,6 @@ CConstraintInterval::PcnstrIntervalFromScalarArrayCmp
 	CScalarArrayCmp *popScArrayCmp = CScalarArrayCmp::PopConvert(pexpr->Pop());
 	IMDType::ECmpType ecmpt = CUtils::Ecmpt(popScArrayCmp->PmdidOp());
 
-	bool fContainsNull = false;
 
 	CExpression *pexprArray = (*pexpr)[1];
 	const ULONG ulArrayExprArity = pexprArray->UlArity();
@@ -219,42 +220,21 @@ CConstraintInterval::PcnstrIntervalFromScalarArrayCmp
 		return NULL;
 	}
 
-	// need sorted datums for the range generation - create array and sort
-	DrgPdatum *prngdatum = GPOS_NEW(pmp) DrgPdatum(pmp);
-	for (ULONG ul = 0; ul < ulArrayExprArity; ul++)
-	{
-		CScalarConst *popScConst = CScalarConst::PopConvert((*pexprArray)[ul]->Pop());
-		IDatum *pdatum = popScConst->Pdatum();
-		if (pdatum->FNull())
-		{
-			fContainsNull = true;
-		}
-		else
-		{
-			pdatum->AddRef();
-			prngdatum->Append(pdatum);
-		}
-	}
-	prngdatum->Sort(&CUtils::IDatumCmp);
-
+	const IComparator *pcomp = COptCtxt::PoctxtFromTLS()->Pcomp();
+	gpos::CAutoRef<CDatumSortedSet> apdatumsortedset(GPOS_NEW(pmp) CDatumSortedSet(pmp, pexprArray, pcomp));
 	// construct ranges representing IN or NOT IN
 	DrgPrng *prgrng = GPOS_NEW(pmp) DrgPrng(pmp);
-	const ULONG ulRangeArrayArity = prngdatum->UlLength();
-	const IComparator *pcomp = COptCtxt::PoctxtFromTLS()->Pcomp();
 
 	switch(ecmpt)
 	{
 		case IMDType::EcmptEq:
 		{
 			// IN case, create ranges [X, X] [Y, Y] [Z, Z]
-			for (ULONG ul = 0; ul < ulRangeArrayArity; ul++)
+			for (ULONG ul = 0; ul < apdatumsortedset->UlLength(); ul++)
 			{
-				if (0 == ul || !pcomp->FEqual((*prngdatum)[ul], (*prngdatum)[ul-1]))
-				{
-					(*prngdatum)[ul]->AddRef();
-					CRange *prng = GPOS_NEW(pmp) CRange(pcomp, IMDType::EcmptEq, (*prngdatum)[ul]);
-					prgrng->Append(prng);
-				}
+				(*apdatumsortedset)[ul]->AddRef();
+				CRange *prng = GPOS_NEW(pmp) CRange(pcomp, IMDType::EcmptEq, (*apdatumsortedset)[ul]);
+				prgrng->Append(prng);
 			}
 			break;
 		}
@@ -264,18 +244,14 @@ CConstraintInterval::PcnstrIntervalFromScalarArrayCmp
 			IDatum *pprevdatum = NULL;
 			IDatum *pdatum = NULL;
 
-			for (ULONG ul = 0; ul < ulRangeArrayArity; ul++)
+			for (ULONG ul = 0; ul < apdatumsortedset->UlLength(); ul++)
 			{
-				if (0 != ul && pcomp->FEqual(pprevdatum, (*prngdatum)[ul]))
-				{
-					continue;
-				}
-				else if (0 != ul)
+				if (0 != ul)
 				{
 					pprevdatum->AddRef();
 				}
 
-				pdatum = (*prngdatum)[ul];
+				pdatum = (*apdatumsortedset)[ul];
 				pdatum->AddRef();
 
 				IMDId *pmdid = pdatum->Pmdid();
@@ -298,13 +274,12 @@ CConstraintInterval::PcnstrIntervalFromScalarArrayCmp
 		default:
 		{
 			// does not handle IS DISTINCT FROM
-			prngdatum->Release();
 			prgrng->Release();
 			return NULL;
 		}
 	}
 
-	prngdatum->Release();
+	BOOL fContainsNull = apdatumsortedset->FIncludesNull();
 
 	return GPOS_NEW(pmp) CConstraintInterval(pmp, pcr, prgrng, fContainsNull);
 }
