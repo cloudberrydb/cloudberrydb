@@ -83,8 +83,6 @@ extern bool readerGangsExist(void);
 
 extern struct SegmentDatabaseDescriptor *getSegmentDescriptorFromGang(const Gang *gp, int seg);
 
-extern Gang *findGangById(int gang_id);
-
 bool isPrimaryWriterGangAlive(void);
 Gang *buildGangDefinition(GangType type, int gang_id, int size, int content);
 void build_gpqeid_param(char *buf, int bufsz, int segIndex, bool is_writer, int gangId);
