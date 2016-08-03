@@ -2202,7 +2202,6 @@ exec_bind_message(StringInfo input_message)
 	Snapshot	mySnapshot = NULL;
 	char		msec_str[32];
 
-
 	/* Get the fixed part of the message */
 	portal_name = pq_getmsgstring(input_message);
 	stmt_name = pq_getmsgstring(input_message);
@@ -2342,15 +2341,7 @@ exec_bind_message(StringInfo input_message)
 	 */
 	if (numParams > 0)
 	{
-		Snapshot        mySnapshot;
 		int			paramno;
-		
-		 /*
-		  * Set a snapshot if we have parameters to fetch (since the input
-		  * functions might need it).
-		  */
-		mySnapshot = CopySnapshot(GetTransactionSnapshot());
-		ActiveSnapshot = mySnapshot;
 
 		/* sizeof(ParamListInfoData) includes the first array element */
 		params = (ParamListInfo) palloc(sizeof(ParamListInfoData) +
@@ -2476,12 +2467,6 @@ exec_bind_message(StringInfo input_message)
 			params->params[paramno].pflags = PARAM_FLAG_CONST;
 			params->params[paramno].ptype = ptype;
 		}
-
-		MemoryContextSwitchTo(oldContext);
-		
-		/* Done with the snapshot used for parameter I/O */
-		ActiveSnapshot = NULL;
-		FreeSnapshot(mySnapshot);
 	}
 	else
 		params = NULL;
