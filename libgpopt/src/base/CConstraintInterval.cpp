@@ -164,7 +164,6 @@ CConstraintInterval::PciIntervalFromScalarExpr
 			}
 			break;
 		case COperator::EopScalarArrayCmp:
-			// remove array derive to constraint interval
 			if (GPOS_FTRACE(EopttraceEnableArrayDerive))
 			{
 				pci = CConstraintInterval::PcnstrIntervalFromScalarArrayCmp(pmp, pexpr, pcr);
@@ -209,30 +208,38 @@ CConstraintInterval::PcnstrIntervalFromScalarArrayCmp
 #endif // GPOS_DEBUG
 
 	CScalarArrayCmp *popScArrayCmp = CScalarArrayCmp::PopConvert(pexpr->Pop());
-
-	// get comparison type
 	IMDType::ECmpType ecmpt = CUtils::Ecmpt(popScArrayCmp->PmdidOp());
-	CExpression *pexprArray = (*pexpr)[1];
 
-	const ULONG ulArity = pexprArray->UlArity();
-	if (0 == ulArity)
+	bool fContainsNull = false;
+
+	CExpression *pexprArray = (*pexpr)[1];
+	const ULONG ulArrayExprArity = pexprArray->UlArity();
+	if (0 == ulArrayExprArity)
 	{
 		return NULL;
 	}
 
 	// need sorted datums for the range generation - create array and sort
 	DrgPdatum *prngdatum = GPOS_NEW(pmp) DrgPdatum(pmp);
-	for (ULONG ul = 0; ul < ulArity; ul++)
+	for (ULONG ul = 0; ul < ulArrayExprArity; ul++)
 	{
 		CScalarConst *popScConst = CScalarConst::PopConvert((*pexprArray)[ul]->Pop());
 		IDatum *pdatum = popScConst->Pdatum();
-		pdatum->AddRef();
-		prngdatum->Append(pdatum);
+		if (pdatum->FNull())
+		{
+			fContainsNull = true;
+		}
+		else
+		{
+			pdatum->AddRef();
+			prngdatum->Append(pdatum);
+		}
 	}
 	prngdatum->Sort(&CUtils::IDatumCmp);
 
 	// construct ranges representing IN or NOT IN
 	DrgPrng *prgrng = GPOS_NEW(pmp) DrgPrng(pmp);
+	const ULONG ulRangeArrayArity = prngdatum->UlLength();
 	const IComparator *pcomp = COptCtxt::PoctxtFromTLS()->Pcomp();
 
 	switch(ecmpt)
@@ -240,7 +247,7 @@ CConstraintInterval::PcnstrIntervalFromScalarArrayCmp
 		case IMDType::EcmptEq:
 		{
 			// IN case, create ranges [X, X] [Y, Y] [Z, Z]
-			for (ULONG ul = 0; ul < ulArity; ul++)
+			for (ULONG ul = 0; ul < ulRangeArrayArity; ul++)
 			{
 				if (0 == ul || !pcomp->FEqual((*prngdatum)[ul], (*prngdatum)[ul-1]))
 				{
@@ -257,7 +264,7 @@ CConstraintInterval::PcnstrIntervalFromScalarArrayCmp
 			IDatum *pprevdatum = NULL;
 			IDatum *pdatum = NULL;
 
-			for (ULONG ul = 0; ul < ulArity; ul++)
+			for (ULONG ul = 0; ul < ulRangeArrayArity; ul++)
 			{
 				if (0 != ul && pcomp->FEqual(pprevdatum, (*prngdatum)[ul]))
 				{
@@ -299,7 +306,7 @@ CConstraintInterval::PcnstrIntervalFromScalarArrayCmp
 
 	prngdatum->Release();
 
-	return GPOS_NEW(pmp) CConstraintInterval(pmp, pcr, prgrng, false /* IsNull */);
+	return GPOS_NEW(pmp) CConstraintInterval(pmp, pcr, prgrng, fContainsNull);
 }
 
 //---------------------------------------------------------------------------

@@ -66,6 +66,8 @@ const WCHAR *CConstraintTest::wszInternalRepresentationFor2012_01_02 =
 const WCHAR *CConstraintTest::wszInternalRepresentationFor2012_01_22 =
 		GPOS_WSZ_LIT("MhEAAA==");
 
+static GPOS_RESULT EresUnittest_CConstraintIntervalFromArrayExprIncludesNull();
+
 //---------------------------------------------------------------------------
 //	@function:
 //		CConstraintTest::EresUnittest
@@ -79,6 +81,7 @@ CConstraintTest::EresUnittest()
 {
 	CUnittest rgut[] =
 		{
+		GPOS_UNITTEST_FUNC(EresUnittest_CConstraintIntervalFromArrayExprIncludesNull),
 		GPOS_UNITTEST_FUNC(CConstraintTest::EresUnittest_CInterval),
 		GPOS_UNITTEST_FUNC(CConstraintTest::EresUnittest_CIntervalFromScalarExpr),
 		GPOS_UNITTEST_FUNC(CConstraintTest::EresUnittest_CConjunction),
@@ -876,6 +879,68 @@ CConstraintTest::EresUnittest_CConstraintIntervalFromArrayExpr()
 	GPOS_ASSERT(6 == pcnstNotInRepeats->Pdrgprng()->UlLength());
 	pexprNotInRepeatsSelect->Release();
 	pcnstNotInRepeats->Release();
+	pdrgpi->Release();
+
+	return GPOS_OK;
+}
+
+
+//---------------------------------------------------------------------------
+//	@function:
+//		CConstraintTest::EresUnittest_CConstraintIntervalFromArrayExprIncludesNull
+//
+//	@doc:
+//		Tests CConstraintInterval::PcnstrIntervalFromScalarArrayCmp in cases
+//		where NULL is in the scalar array expression
+//
+//---------------------------------------------------------------------------
+GPOS_RESULT
+EresUnittest_CConstraintIntervalFromArrayExprIncludesNull()
+{
+	// create memory pool
+	CAutoMemoryPool amp;
+	IMemoryPool *pmp = amp.Pmp();
+
+	// setup a file-based provider
+	CMDProviderMemory *pmdp = CTestUtils::m_pmdpf;
+	pmdp->AddRef();
+	CMDAccessor mda(pmp, CMDCache::Pcache(), CTestUtils::m_sysidDefault, pmdp);
+
+	CConstExprEvaluatorForDates *pceeval = GPOS_NEW(pmp) CConstExprEvaluatorForDates(pmp);
+
+	// install opt context in TLS
+	CAutoOptCtxt aoc(pmp, &mda, pceeval, CTestUtils::Pcm(pmp));
+	GPOS_ASSERT(NULL != COptCtxt::PoctxtFromTLS()->Pcomp());
+
+	CAutoTraceFlag atf(EopttraceEnableArrayDerive, true);
+
+	// test for includes NULL
+	// create an IN expression with repeated values
+	DrgPi *pdrgpi = GPOS_NEW(pmp) DrgPi(pmp);
+	INT rngiValues[] = {1,2};
+	ULONG ulValsLength = GPOS_ARRAY_SIZE(rngiValues);
+	for (ULONG ul = 0; ul < ulValsLength; ul++)
+	{
+		pdrgpi->Append(GPOS_NEW(pmp) INT(rngiValues[ul]));
+	}
+	CExpression *pexprIn =
+		CTestUtils::PexprLogicalSelectArrayCmp(pmp, CScalarArrayCmp::EarrcmpAny, IMDType::EcmptEq, pdrgpi);
+
+	CExpression *pexprArrayChild = (*(*pexprIn)[1])[1];
+	// create a int4 datum
+	const IMDTypeInt4 *pmdtypeint4 = mda.PtMDType<IMDTypeInt4>();
+	IDatumInt4 *pdatumNull =  pmdtypeint4->PdatumInt4(pmp, 0, true);
+
+	CExpression *pexprConstNull =
+		GPOS_NEW(pmp) CExpression(pmp, GPOS_NEW(pmp) CScalarConst(pmp, (IDatum*) pdatumNull));
+	pexprArrayChild->PdrgPexpr()->Append(pexprConstNull);
+
+	CColRef *pcr = CDrvdPropRelational::Pdprel(pexprIn->PdpDerive())->PcrsOutput()->PcrAny();
+	CConstraintInterval *pci = CConstraintInterval::PciIntervalFromScalarExpr(pmp, (*pexprIn)[1], pcr);
+	GPOS_RTL_ASSERT(pci->FIncludesNull());
+	GPOS_RTL_ASSERT(2 == pci->Pdrgprng()->UlLength());
+	pexprIn->Release();
+	pci->Release();
 	pdrgpi->Release();
 
 	return GPOS_OK;
