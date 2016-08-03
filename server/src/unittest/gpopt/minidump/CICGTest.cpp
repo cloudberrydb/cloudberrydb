@@ -52,6 +52,8 @@ const CHAR *rgszFileNames[] =
 		"../data/dxl/minidump/CollapseCascadeProjects2of2.mdp",
 		"../data/dxl/minidump/CollapseCascadeProjects2of3.mdp",
 		"../data/dxl/minidump/CannotCollapseCascadeProjects.mdp",
+		"../data/dxl/minidump/CollapseProject-SetReturning.mdp",
+		"../data/dxl/minidump/CollapseProject-SetReturning-CTE.mdp",
 		"../data/dxl/minidump/RemoveUnusedProjElementsInGbAgg.mdp",
 		"../data/dxl/minidump/RemoveUnusedProjElements.mdp",
 		"../data/dxl/minidump/OptimizerConfigWithSegmentsForCosting.mdp",

@@ -5627,7 +5627,21 @@ CUtils::FDuplicateHazardMotion
 //		CUtils::PexprCollapseProjects
 //
 //	@doc:
-//		Collapse the top two project nodes, if unable return NULL;
+//		Collapse the top two project nodes like this, if unable return NULL;
+//
+//	+--CLogicalProject                                            <-- pexpr
+//		|--CLogicalProject                                        <-- pexprRel
+//		|  |--CLogicalGet "t" ("t"), Columns: ["a" (0), "b" (1)]  <-- pexprChildRel
+//		|  +--CScalarProjectList                                  <-- pexprChildScalar
+//		|     +--CScalarProjectElement "c" (9)
+//		|        +--CScalarFunc ()
+//		|           |--CScalarIdent "a" (0)
+//		|           +--CScalarConst ()
+//		+--CScalarProjectList                                     <-- pexprScalar
+//		   +--CScalarProjectElement "d" (10)                      <-- pexprPrE
+//			  +--CScalarFunc ()
+//				 |--CScalarIdent "b" (1)
+//				 +--CScalarConst ()
 //
 //---------------------------------------------------------------------------
 CExpression *
@@ -5663,6 +5677,8 @@ CUtils::PexprCollapseProjects
 										*CDrvdPropScalar::Pdpscalar(pexprChildScalar->PdpDerive())->PcrsDefined()
 										);
 
+	BOOL fChildProjElHasSetReturn = CDrvdPropScalar::Pdpscalar(pexprChildScalar->PdpDerive())->FHasNonScalarFunction();
+
 	// array of project elements for the new child project node
 	DrgPexpr *pdrgpexprPrElChild = GPOS_NEW(pmp) DrgPexpr(pmp);
 
@@ -5681,10 +5697,16 @@ CUtils::PexprCollapseProjects
 
 		pexprPrE->AddRef();
 
+
+		BOOL fParentProjElHasSetReturn = CDrvdPropScalar::Pdpscalar(pexprPrE->PdpDerive())->FHasNonScalarFunction();
+
+		// if both pexprPrE and pexprChildScalar have set returning functions we should not collapse
+		BOOL fBothHasSetReturningFunc = fChildProjElHasSetReturn && fParentProjElHasSetReturn;
+
 		pcrsUsed->Intersection(pcrsDefinedChild);
 		ULONG ulIntersect = pcrsUsed->CElements();
 
-		if (0 == ulIntersect)
+		if (0 == ulIntersect && !fBothHasSetReturningFunc)
 		{
 			pdrgpexprPrElChild->Append(pexprPrE);
 		}
