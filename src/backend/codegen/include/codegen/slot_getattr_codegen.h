@@ -148,7 +148,8 @@ class SlotGetAttrCodegen : public BaseCodegen<SlotGetAttrFn> {
   int max_attr_;
   // Primary function to be generated and populated
   llvm::Function* llvm_function_;
-  // A dummy function pointer that can be swapped by the BaseCodegen implementation
+  // A dummy function pointer that can be swapped by the BaseCodegen
+  // implementation
   SlotGetAttrFn dummy_func_;
 
   static constexpr char kSlotGetAttrPrefix[] = "slot_getattr";
@@ -165,9 +166,10 @@ class SlotGetAttrCodegen : public BaseCodegen<SlotGetAttrFn> {
    *
    * Map of the form: { manager -> { slot -> slot_getattr_codegen } }
    */
-  typedef std::unordered_map<TupleTableSlot*, SlotGetAttrCodegen*> SlotGetAttrCodegenCache;
-  static std::unordered_map<gpcodegen::CodegenManager*, SlotGetAttrCodegenCache> codegen_cache_by_manager;
-
+  typedef std::unordered_map<TupleTableSlot*, SlotGetAttrCodegen*>
+      SlotGetAttrCodegenCache;
+  static std::unordered_map<gpcodegen::CodegenManager*, SlotGetAttrCodegenCache>
+      codegen_cache_by_manager;
 };
 
 /** @} */

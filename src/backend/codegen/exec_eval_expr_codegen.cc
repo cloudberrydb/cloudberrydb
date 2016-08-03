@@ -126,7 +126,8 @@ bool ExecEvalExprCodegen::GenerateExecEvalExpr(
                                                      "slot_getattr");
   } else {
     slot_getattr_codegen_->GenerateCode(codegen_utils);
-    gen_info_.llvm_slot_getattr_func = slot_getattr_codegen_->GetGeneratedFunction();
+    gen_info_.llvm_slot_getattr_func =
+      slot_getattr_codegen_->GetGeneratedFunction();
   }
 
   llvm::Function* exec_eval_expr_func = CreateFunction<ExecEvalExprFn>(

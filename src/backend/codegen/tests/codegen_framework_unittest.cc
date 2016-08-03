@@ -342,7 +342,8 @@ class CodegenManagerTest : public ::testing::Test {
 
   template <typename ClassType, typename FuncType>
   void EnrollCodegen(FuncType reg_func, FuncType* ptr_to_chosen_func) {
-    ClassType* code_gen = new ClassType(manager_.get(), reg_func, ptr_to_chosen_func);
+    ClassType* code_gen = new ClassType(
+        manager_.get(), reg_func, ptr_to_chosen_func);
     ASSERT_TRUE(reg_func == *ptr_to_chosen_func);
     ASSERT_TRUE(manager_->EnrollCodeGenerator(
         CodegenFuncLifespan_Parameter_Invariant,
@@ -355,12 +356,14 @@ class CodegenManagerTest : public ::testing::Test {
                       const std::vector<CppType>& values) {
     DatumCastFn<Datum, CppType> CppToDatumCgFn = CppToDatumReg;
     CppToDatumCastGenerator<CppType>* cpp_datum_gen =
-        new CppToDatumCastGenerator<CppType>(manager_.get(), CppToDatumReg, &CppToDatumCgFn);
+        new CppToDatumCastGenerator<CppType>(
+            manager_.get(), CppToDatumReg, &CppToDatumCgFn);
 
 
     DatumCastFn<CppType, Datum> DatumToCppCgFn = DatumToCppReg;
     DatumToCppCastGenerator<CppType>* datum_cpp_gen =
-        new DatumToCppCastGenerator<CppType>(manager_.get(), DatumToCppReg, &DatumToCppCgFn);
+        new DatumToCppCastGenerator<CppType>(
+            manager_.get(), DatumToCppReg, &DatumToCppCgFn);
 
     ASSERT_TRUE(manager_->EnrollCodeGenerator(
         CodegenFuncLifespan_Parameter_Invariant, cpp_datum_gen));

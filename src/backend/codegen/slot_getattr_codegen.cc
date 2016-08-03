@@ -56,8 +56,9 @@ constexpr char SlotGetAttrCodegen::kSlotGetAttrPrefix[];
 // attributes is varlen.
 extern const int codegen_varlen_tolerance;
 
-std::unordered_map<gpcodegen::CodegenManager*,
-    SlotGetAttrCodegen::SlotGetAttrCodegenCache> SlotGetAttrCodegen::codegen_cache_by_manager;
+std::unordered_map<
+  gpcodegen::CodegenManager*, SlotGetAttrCodegen::SlotGetAttrCodegenCache>
+    SlotGetAttrCodegen::codegen_cache_by_manager;
 
 SlotGetAttrCodegen* SlotGetAttrCodegen::GetCodegenInstance(
     gpcodegen::CodegenManager* manager,
@@ -88,7 +89,9 @@ SlotGetAttrCodegen* SlotGetAttrCodegen::GetCodegenInstance(
 void SlotGetAttrCodegen::RemoveSelfFromCache() {
   CodegenManager* manager = this->manager();
 
-  assert(manager != nullptr && codegen_cache_by_manager.find(manager) != codegen_cache_by_manager.end());
+  assert(manager != nullptr &&
+         codegen_cache_by_manager.find(manager) !=
+             codegen_cache_by_manager.end());
   std::unordered_map<TupleTableSlot*, SlotGetAttrCodegen*>& cache_map =
       codegen_cache_by_manager[manager];
   auto it = codegen_cache_by_manager[manager].find(slot_);
@@ -110,7 +113,8 @@ SlotGetAttrCodegen::~SlotGetAttrCodegen() {
 bool SlotGetAttrCodegen::GenerateCodeInternal(
     gpcodegen::GpCodegenUtils* codegen_utils) {
 
-  // This function may be called multiple times, but it should generate code only once
+  // This function may be called multiple times, but it should generate code
+  // only once
   if (IsGenerated()) {
     return true;
   }
@@ -119,9 +123,11 @@ bool SlotGetAttrCodegen::GenerateCodeInternal(
   std::string function_name = GetUniqueFuncName() + "_" +
       std::to_string(reinterpret_cast<uint64_t>(slot_)) + "_" +
       std::to_string(max_attr_);
-  llvm::Function* function = CreateFunction<SlotGetAttrFn>(codegen_utils, function_name);
+  llvm::Function* function = CreateFunction<SlotGetAttrFn>(codegen_utils,
+                                                           function_name);
 
-  bool isGenerated = GenerateSlotGetAttr(codegen_utils, slot_, max_attr_, function);
+  bool isGenerated = GenerateSlotGetAttr(
+      codegen_utils, slot_, max_attr_, function);
 
   if (isGenerated) {
     elog(DEBUG1, "slot_getattr was generated successfully!");

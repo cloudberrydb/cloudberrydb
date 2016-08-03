@@ -130,7 +130,10 @@ ClassType* CodegenEnroll(FuncType regular_func_ptr,
     }
 
   ClassType* generator = new ClassType(
-      manager, regular_func_ptr, ptr_to_chosen_func_ptr, std::forward<Args>(args)...);
+      manager,
+      regular_func_ptr,
+      ptr_to_chosen_func_ptr,
+      std::forward<Args>(args)...);
     bool is_enrolled = manager->EnrollCodeGenerator(
         CodegenFuncLifespan_Parameter_Invariant, generator);
     assert(is_enrolled);
