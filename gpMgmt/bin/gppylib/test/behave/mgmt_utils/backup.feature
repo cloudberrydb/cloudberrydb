@@ -581,6 +581,7 @@ Feature: Validate command line arguments
         And verify that there is no table "public.heap_table" in "bkdb"
         And the user runs "psql -c 'DROP ROLE foo_user' bkdb"
 
+    @valgrind
     Scenario: Valgrind test of gp_dump incremental
         Given the test is initialized
         And there is a "heap" table "public.heap_table" in "bkdb" with data
@@ -590,6 +591,7 @@ Feature: Validate command line arguments
         Then gpcrondump should return a return code of 0
         And the user runs valgrind with "gp_dump --gp-d=db_dumps --gp-s=p --gp-c --incremental bkdb" and options " "
 
+    @valgrind
     Scenario: Valgrind test of gp_dump incremental with table file
         Given the test is initialized
         And there is a "heap" table "public.heap_table" in "bkdb" with data
@@ -602,6 +604,7 @@ Feature: Validate command line arguments
         Then gpcrondump should return a return code of 0
         And the user runs valgrind with "gp_dump --gp-d=db_dumps --gp-s=p --gp-c --incremental bkdb --table-file=/tmp/dirty_hack.txt" and options " "
 
+    @valgrind
     Scenario: Valgrind test of gp_dump full with table file
         Given the test is initialized
         And there is a "heap" table "public.heap_table" in "bkdb" with data
@@ -614,6 +617,7 @@ Feature: Validate command line arguments
         Then gpcrondump should return a return code of 0
         And the user runs valgrind with "gp_dump --gp-d=db_dumps --gp-s=p --gp-c bkdb --table-file=/tmp/dirty_hack.txt" and options " "
 
+    @valgrind
     Scenario: Valgrind test of gp_dump_agent incremental with table file
         Given the test is initialized
         And there is a "heap" table "public.heap_table" in "bkdb" with data
@@ -626,6 +630,7 @@ Feature: Validate command line arguments
         Then gpcrondump should return a return code of 0
         And the user runs valgrind with "gp_dump_agent --gp-k 11111111111111_1_1_ --gp-d /tmp --pre-data-schema-only bkdb --incremental --table-file=/tmp/dirty_hack.txt" and options " "
 
+    @valgrind
     Scenario: Valgrind test of gp_dump_agent full with table file
         Given the test is initialized
         And there is a "heap" table "public.heap_table" in "bkdb" with data
@@ -638,6 +643,7 @@ Feature: Validate command line arguments
         Then gpcrondump should return a return code of 0
         And the user runs valgrind with "gp_dump_agent --gp-k 11111111111111_1_1_ --gp-d /tmp --pre-data-schema-only bkdb --table-file=/tmp/dirty_hack.txt" and options " "
 
+    @valgrind
     Scenario: Valgrind test of gp_dump_agent incremental
         Given the test is initialized
         And there is a "heap" table "public.heap_table" in "bkdb" with data
@@ -647,6 +653,7 @@ Feature: Validate command line arguments
         Then gpcrondump should return a return code of 0
         And the user runs valgrind with "gp_dump_agent --gp-k 11111111111111_1_1_ --gp-d /tmp --pre-data-schema-only bkdb --incremental" and options " "
 
+    @valgrind
     Scenario: Valgrind test of gp_restore for incremental backup
         Given the test is initialized
         And there is a "heap" table "public.heap_table" in "bkdb" with data
@@ -660,6 +667,7 @@ Feature: Validate command line arguments
         And the timestamp from gpcrondump is stored
         And the user runs valgrind with "gp_restore" and options "-i --gp-i --gp-l=p -d bkdb --gp-c"
 
+    @valgrind
     Scenario: Valgrind test of gp_restore_agent for incremental backup
         Given the test is initialized
         And there is a "heap" table "public.heap_table" in "bkdb" with data
