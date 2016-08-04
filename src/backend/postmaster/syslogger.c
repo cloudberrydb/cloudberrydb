@@ -2106,7 +2106,7 @@ logfile_getname(pg_time_t timestamp, const char *suffix, const char *log_directo
     if (strchr(log_file_pattern, '%'))
     {
         /* treat it as a strftime pattern */
-		pg_strftime(filename + len, MAXPGPATH - len, Log_filename,
+		pg_strftime(filename + len, MAXPGPATH - len, log_file_pattern,
 				   pg_localtime(&timestamp, log_timezone));
     }
     else
