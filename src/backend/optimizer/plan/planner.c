@@ -193,8 +193,9 @@ optimize_query(Query *parse, ParamListInfo boundParams)
 	glob->subrtables = NIL;
 	glob->rewindPlanIDs = NULL;
 	glob->transientPlan = false;
-	glob->share.sharedNodes = NIL;
-	glob->share.sliceMarks = NIL;
+	glob->share.producers = NULL;
+	glob->share.producer_count = 0;
+	glob->share.sliceMarks = NULL;
 	glob->share.motStack = NIL;
 	glob->share.qdShares = NIL;
 	glob->share.qdSlices = NIL;
@@ -242,6 +243,20 @@ optimize_query(Query *parse, ParamListInfo boundParams)
 	glob->finalrtable = result->rtable;
 	glob->subplans = result->subplans;
 
+	/*
+	 * For optimizer, we already have share_id and the plan tree is already a tree.
+	 * However, the apply_shareinput_dag_to_tree walker does more than DAG conversion.
+	 * It will also populate column names for RTE_CTE entries that will be later used
+	 * for readable column names in EXPLAIN, if needed.
+	 */
+	foreach(lp, glob->subplans)
+	{
+		Plan	   *subplan = (Plan *) lfirst(lp);
+
+		collect_shareinput_producers(glob, subplan, result->rtable);
+	}
+	collect_shareinput_producers(glob, result->planTree, result->rtable);
+
 	/* Post-process ShareInputScan nodes */
 	(void) apply_shareinput_xslice(result->planTree, glob);
 
@@ -252,9 +267,9 @@ optimize_query(Query *parse, ParamListInfo boundParams)
 	foreach(lp, glob->subplans)
 	{
 		Plan	   *subplan = (Plan *) lfirst(lp);
-		lfirst(lp) = replace_shareinput_targetlists(glob, subplan);
+		lfirst(lp) = replace_shareinput_targetlists(glob, subplan, result->rtable);
 	}
-	result->planTree = replace_shareinput_targetlists(glob, result->planTree);
+	result->planTree = replace_shareinput_targetlists(glob, result->planTree, result->rtable);
 
 	/*
 	 * To save on memory, and on the network bandwidth when the plan is
@@ -425,8 +440,9 @@ standard_planner(Query *parse, int cursorOptions, ParamListInfo boundParams)
 	glob->invalItems = NIL;
 	glob->transientPlan = false;
 	/* ApplyShareInputContext initialization. */
-	glob->share.sharedNodes = NIL;
-	glob->share.sliceMarks = NIL;
+	glob->share.producers = NULL;
+	glob->share.producer_count = 0;
+	glob->share.sliceMarks = NULL;
 	glob->share.motStack = NIL;
 	glob->share.qdShares = NIL;
 	glob->share.qdSlices = NIL;
@@ -521,6 +537,14 @@ standard_planner(Query *parse, int cursorOptions, ParamListInfo boundParams)
 		top_plan = cdbparallelize(root, top_plan, parse,
 									cursorOptions,
 									boundParams);
+		/*
+		 * cdbparallelize() mutates all the nodes, so the producer nodes
+		 * we memorized earlier are no longer valid. apply_shareinput_xslice()
+		 * will re-populate it, but clear it for now, just to make sure
+		 * that we don't access the obsolete copies of the nodes.
+		 */
+		if (glob->share.producer_count > 0)
+			memset(glob->share.producers, 0, glob->share.producer_count * sizeof(ShareInputScan *));
 
 		/* cdbparallelize may create additional slices that may affect share input.
 		 * need to mark material nodes that are split acrossed multi slices.
@@ -545,9 +569,9 @@ standard_planner(Query *parse, int cursorOptions, ParamListInfo boundParams)
 	foreach(lp, glob->subplans)
 	{
 		Plan	   *subplan = (Plan *) lfirst(lp);
-		lfirst(lp) = replace_shareinput_targetlists(glob, subplan);
+		lfirst(lp) = replace_shareinput_targetlists(glob, subplan, glob->finalrtable);
 	}
-	top_plan = replace_shareinput_targetlists(glob, top_plan);
+	top_plan = replace_shareinput_targetlists(glob, top_plan, glob->finalrtable);
 
 	/*
 	 * To save on memory, and on the network bandwidth when the plan is dispatched
