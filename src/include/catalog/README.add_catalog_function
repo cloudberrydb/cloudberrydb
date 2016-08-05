@@ -24,7 +24,7 @@ the following steps are needed.
   DATA statement for the fn_sql function definition.
 
   For more information on catullus.pl, please refer to 
-  cdb-pg/src/include/catalog/README.tidycat.
+  cdb-pg/src/include/catalog/README.modifying_catalogs.
 
 4. Since the catalogs are being modified, the catalog number in
    cdb-pg/src/include/catalog/catversion.h should be bumped up. This is to 
@@ -34,30 +34,16 @@ the following steps are needed.
    Since catversion is bumped up, we have to regenerate the catalog json file,
    gpMgmt/bin/gppylib/data/X.X.json. Otherwise, catversion test would fail.
 
-   $ perl tidycat.pl -dd foo.json -df json *.h
+   $ cd src/backend/catalog
+   $ make 4.3.json
 
-   After tidycat.pl generates foo.json, rename it with the major release version 
-   and move it to gpMgmt/bin/gppylib/data/
+   After 4.3.json is generated, move it to gpMgmt/bin/gppylib/data/
 
-
-5. Adding a new function to the catalog has an impact on upgrade. Add a new
-   entry to the appropriate upgrade script. For instance if the new function 
-   was being added in 4.2, modify the 
-   cdb-pg/src/test/regress/data/upgrade42/upg2_catupgrade_42.sql.in
-   script and add the following SQL to add the function, fn_sql, under
-   the schema, pg_catalog, to it: 
-
-   	CREATE FUNCTION @gpupgradeschemaname@.fn_sql(int4, int4) 
-		RETURNS bool LANGUAGE internal IMMUTABLE STRICT 
-		AS 'fn_be' WITH (OID=5075);
-	COMMENT ON FUNCTION @gpupgradeschemaname@.fn_sql(int4, int4) 
-		IS 'Description of the function';
-
-6. Run make distclean, make, gpinitsystem and you should be able to see your
+5. Run make distclean, make, gpinitsystem and you should be able to see your
    newly added function in pg_proc.
 
-7. Make sure you run and possibly repair the upgrade regression test in
+6. Make sure you run and possibly repair the upgrade regression test in
    install-check.
 
-8. Don't forget to "git add" and commit the generated file, pg_proc_gp.h,
+7. Don't forget to "git add" and commit the generated file, pg_proc_gp.h,
    along with any modified files.
