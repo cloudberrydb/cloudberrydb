@@ -70,6 +70,4 @@ upg2_pg_type_toadd33.data.in
 upgrade_pg_partitions.sql
 upg_catupgrade_*.sql
 pg_class32.data
-tidyddl.sql
-tidyproc.sql
 wet_region.out

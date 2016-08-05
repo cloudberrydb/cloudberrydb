@@ -16,14 +16,11 @@ mapred.out
 sreh.out
 upg2.out
 ereport.out
-tidycat.out
 filespace.out
 upgrade.out
 auth_constraint.out
-catversion.out
 resource_queue_function.out
 table_functions.out
-tidycat2.out
 tpch500GB.out
 partindex_test.out
 external_table.out
