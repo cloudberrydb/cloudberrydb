@@ -10,8 +10,6 @@ restore_restoredb.sql
 sreh.sql
 upg2.sql
 gptokencheck.sql
-loadcat33.sql
-loadcat34.sql
 bkuprestore_advance.sql
 bkuprestore_cleanup.sql
 caql.sql
