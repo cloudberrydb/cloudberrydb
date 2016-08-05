@@ -275,7 +275,7 @@ cdbdisp_dispatchToGang_internal(struct CdbDispatcherState *ds,
 			 */
 			pParms->waitMode = DISPATCH_WAIT_CANCEL;
 
-			for (j = 0; j < threadStartIndex + (i - 1); j++)
+			for (j = 0; j < threadStartIndex + i; j++)
 			{
 				DispatchCommandParms *pParms;
 
@@ -631,6 +631,12 @@ thread_DispatchWait(DispatchCommandParms *pParms)
 			CdbDispatchResult *dispatchResult = pParms->dispatchResultPtrArray[i];
 			SegmentDatabaseDescriptor *segdbDesc = dispatchResult->segdbDesc;
 
+			/*
+			 * Already finished with this QE?
+			 */
+			if (!dispatchResult->stillRunning)
+				continue;
+
 			if (cdbconn_isBadConnection(segdbDesc))
 			{
 				char *msg = PQerrorMessage(segdbDesc->conn);
@@ -640,12 +646,6 @@ thread_DispatchWait(DispatchCommandParms *pParms)
 				dispatchResult->stillRunning = false;
 				continue;
 			}
-
-			/*
-			 * Already finished with this QE?
-			 */
-			if (!dispatchResult->stillRunning)
-				continue;
 
 			/*
 			 * Add socket to fd_set if still connected.

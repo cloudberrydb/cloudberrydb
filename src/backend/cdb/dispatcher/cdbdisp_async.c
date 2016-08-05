@@ -173,17 +173,6 @@ cdbdisp_dispatchToGang_async(struct CdbDispatcherState *ds,
 		}
 		pParms->dispatchResultPtrArray[pParms->dispatchCount++] = qeResult;
 
-		if (cdbconn_isBadConnection(segdbDesc))
-		{
-			char *msg = PQerrorMessage(qeResult->segdbDesc->conn);
-			qeResult->stillRunning = false;
-
-			ereport(ERROR,
-					(errcode(ERRCODE_GP_INTERCONNECTION_ERROR),
-					 errmsg("Connection lost before dispatch to %s: %s",
-							 segdbDesc->whoami, msg ? msg : "unknown error")));
-		}
-
 		dispatchCommand(qeResult, pParms->query_text, pParms->query_text_len);
 	}
 }
@@ -294,6 +283,12 @@ checkDispatchResult(CdbDispatcherState *ds,
 			dispatchResult = pParms->dispatchResultPtrArray[i];
 			segdbDesc = dispatchResult->segdbDesc;
 
+			/*
+			 * Already finished with this QE?
+			 */
+			if (!dispatchResult->stillRunning)
+				continue;
+
 			if (cdbconn_isBadConnection(segdbDesc))
 			{
 				char *msg = PQerrorMessage(segdbDesc->conn);
@@ -301,14 +296,8 @@ checkDispatchResult(CdbDispatcherState *ds,
 				cdbdisp_appendMessageNonThread(dispatchResult, LOG,
 									  "Connection lost during dispatch to %s: %s",
 									  dispatchResult->segdbDesc->whoami, msg ? msg : "unknown error");
-
-			}
-
-			/*
-			 * Already finished with this QE?
-			 */
-			if (!dispatchResult->stillRunning)
 				continue;
+			}
 
 			/*
 			 * Add socket to fd_set if still connected.

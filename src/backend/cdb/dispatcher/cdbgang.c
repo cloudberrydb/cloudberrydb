@@ -1370,10 +1370,7 @@ void freeGangsForPortal(char *portal_name)
 		primaryWriterGang != NULL &&
 		!cleanupGang(primaryWriterGang))
 	{
-		primaryWriterGang = NULL;
 		disconnectAndDestroyAllGangs(true);
-
-		elog(ERROR, "could not temporarily connect to one or more segments");
 		return;
 	}
 

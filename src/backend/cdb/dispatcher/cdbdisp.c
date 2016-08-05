@@ -186,7 +186,7 @@ cdbdisp_getDispatchResults(struct CdbDispatcherState *ds, StringInfoData *qeErro
 void
 cdbdisp_finishCommand(struct CdbDispatcherState *ds)
 {
-	StringInfoData qeErrorMsg;
+	StringInfoData qeErrorMsg = {NULL, 0, 0, 0};
 	CdbDispatchResults *pr = NULL;
 	/*
 	 * If cdbdisp_dispatchToGang() wasn't called, don't wait.
@@ -209,28 +209,26 @@ cdbdisp_finishCommand(struct CdbDispatcherState *ds)
 	/*
 	 * Wait for all QEs to finish. Don't cancel them.
 	 */
-	initStringInfo(&qeErrorMsg);
-
-	pr = cdbdisp_getDispatchResults(ds, &qeErrorMsg);
-
-	if (!pr)
+	PG_TRY();
 	{
-		cdbdisp_destroyDispatcherState(ds);
+		initStringInfo(&qeErrorMsg);
 
-		PG_TRY();
-		{
+		pr = cdbdisp_getDispatchResults(ds, &qeErrorMsg);
+	
+		if (!pr)
 			ereport(ERROR, (errcode(ERRCODE_INTERNAL_ERROR),
-					errOmitLocation(true), errmsg("%s", qeErrorMsg.data)));
-		}
-		PG_CATCH();
-		{
-			pfree(qeErrorMsg.data);
-			PG_RE_THROW();
-		}
-		PG_END_TRY();
-	}
+				errOmitLocation(true), errmsg("%s", qeErrorMsg.data)));
 
-	pfree(qeErrorMsg.data);
+		pfree(qeErrorMsg.data);
+	}
+	PG_CATCH();
+	{
+		if (qeErrorMsg.data != NULL)
+			pfree(qeErrorMsg.data);
+		cdbdisp_destroyDispatcherState(ds);
+		PG_RE_THROW();
+	}
+	PG_END_TRY();
 
 	/*
 	 * If no errors, free the CdbDispatchResults objects and return.

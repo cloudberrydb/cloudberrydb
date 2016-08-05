@@ -273,6 +273,10 @@ create_gang_retry:
 
 			goto create_gang_retry;
 		}
+		else
+		{
+			goto exit;
+		}
 	}
 	PG_END_TRY();
 
