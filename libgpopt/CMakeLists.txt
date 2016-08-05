@@ -890,6 +890,8 @@ add_library(gpopt
             src/operators/CPhysicalParallelUnionAll.cpp
             include/gpopt/base/CDistributionSpecStrictHashed.h
             src/base/CDistributionSpecStrictHashed.cpp
+            include/gpopt/base/CDatumSortedSet.h
+            src/base/CDatumSortedSet.cpp
             )
 
 target_link_libraries(gpopt
