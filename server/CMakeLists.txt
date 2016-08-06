@@ -62,7 +62,6 @@ add_executable(gpos_test
                src/unittest/gpos/memory/CMemoryPoolBasicTest.cpp
                src/unittest/gpos/memory/IMemoryPoolTest.cpp
                src/unittest/gpos/memory/CMemoryPoolAllocTest.cpp
-               src/unittest/gpos/net/CSocketTest.cpp
                src/unittest/gpos/string/CStringTest.cpp
                src/unittest/gpos/string/CWStringTest.cpp
                src/unittest/gpos/sync/CAutoMutexTest.cpp
@@ -141,10 +140,6 @@ add_gpos_custom_alloc_test(CMemoryPoolTest)
 add_gpos_custom_alloc_test(CMemoryPoolBasicTest)
 add_gpos_custom_alloc_test(CCacheTest)
 add_gpos_custom_alloc_test(CMemoryPoolCustomAllocTest)
-
-# net
-# enable after fixing race condition
-# add_gpos_test(CSocketTest)
 
 # string
 add_gpos_test(CWStringTest)

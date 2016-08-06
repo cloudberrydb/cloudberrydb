@@ -103,14 +103,8 @@ namespace gpos
 		// read from a file descriptor
 		INT_PTR IRead(INT iFd, void *pvBuf, const ULONG_PTR ulpCount);
 
-		// create a unique temporary filename
-		CHAR *SzMkTemp(CHAR *szTemplate);
-
 		// create a unique temporary directory
 		void SzMkDTemp(CHAR *szTemplate);
-
-		// create temporary file
-		void ConstructTempFilePath(CHAR *szBuffer, ULONG ulSIze);
 
 #ifdef GPOS_FPSIMULATOR
 		// inject I/O error for functions whose returned value type is INT

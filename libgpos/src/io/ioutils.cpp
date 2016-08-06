@@ -21,7 +21,6 @@
 #define ALLOW_fstat
 #define ALLOW_write
 #define ALLOW_read
-#define ALLOW_mktemp
 #define ALLOW_mkdtemp
 #define ALLOW_fopen
 #define ALLOW_fread
@@ -523,20 +522,18 @@ gpos::ioutils::IRead
 	return iRes;
 }
 
-
 //---------------------------------------------------------------------------
 //	@function:
-//		ioutils::SzMkTempInternal
+//		ioutils::SzMkDTemp
 //
 //	@doc:
-//		Make a unique temporary file/directory
+//		Create a unique temporary directory
 //
 //---------------------------------------------------------------------------
-static CHAR*
-SzMkTempInternal
+void
+gpos::ioutils::SzMkDTemp
 	(
-	CHAR *szTemplate,
-	BOOL fDirectory
+	CHAR *szTemplate
 	)
 {
 	GPOS_ASSERT(NULL != szTemplate);
@@ -554,96 +551,22 @@ SzMkTempInternal
 	CHAR* szRes = NULL;
 
 
-	if (fDirectory)
-	{
 #ifdef GPOS_SunOS
-		// check to simulate I/O error
-		GPOS_CHECK_SIM_IO_ERR(&szRes, mktemp(szTemplate));
+	// check to simulate I/O error
+	GPOS_CHECK_SIM_IO_ERR(&szRes, mktemp(szTemplate));
 
-		ioutils::MkDir(szTemplate, S_IRUSR  | S_IWUSR  | S_IXUSR);
+	ioutils::MkDir(szTemplate, S_IRUSR  | S_IWUSR  | S_IXUSR);
 #else
-		// check to simulate I/O error
-		GPOS_CHECK_SIM_IO_ERR(&szRes, mkdtemp(szTemplate));
+	// check to simulate I/O error
+	GPOS_CHECK_SIM_IO_ERR(&szRes, mkdtemp(szTemplate));
 #endif // GPOS_SunOS
-	}
-	else
-	{
-		// check to simulate I/O error
-		GPOS_CHECK_SIM_IO_ERR(&szRes, mktemp(szTemplate));
-	}
 
 	if (NULL == szRes)
 	{
 		GPOS_RAISE(CException::ExmaSystem, CException::ExmiIOError, errno);
 	}
 
-	return szRes;
-}
-
-
-//---------------------------------------------------------------------------
-//	@function:
-//		ioutils::SzMkTemp
-//
-//	@doc:
-//		Create a unique temporary filename
-//
-//---------------------------------------------------------------------------
-CHAR*
-gpos::ioutils::SzMkTemp
-	(
-	CHAR *szTemplate
-	)
-{
-	GPOS_ASSERT_NO_SPINLOCK;
-
-	return SzMkTempInternal(szTemplate, false /*fDirectory*/);
-}
-
-
-//---------------------------------------------------------------------------
-//	@function:
-//		ioutils::SzMkDTemp
-//
-//	@doc:
-//		Create a unique temporary directory
-//
-//---------------------------------------------------------------------------
-void
-gpos::ioutils::SzMkDTemp
-	(
-	CHAR *szTemplate
-	)
-{
-	GPOS_ASSERT_NO_SPINLOCK;
-
-	SzMkTempInternal(szTemplate, true /*fDirectory*/);
-
 	return;
-}
-
-
-//---------------------------------------------------------------------------
-//	@function:
-//		ioutils::ConstructTempFilePath
-//
-//	@doc:
-//		Create temporary file path
-//
-//---------------------------------------------------------------------------
-void
-gpos::ioutils::ConstructTempFilePath
-	(
-	CHAR *szBuffer,
-	ULONG ulSize
-	)
-{
-	CStringStatic strTmp(szBuffer, ulSize);
-	const CHAR *szTemplate = "/tmp/CSocketTest.XXXXXX";
-
-	// create unique temporary directory name under /tmp
-	strTmp.AppendFormat(szTemplate);
-	ioutils::SzMkTemp(szBuffer);
 }
 
 

@@ -57,8 +57,6 @@
 #include "unittest/gpos/memory/CMemoryPoolBasicTest.h"
 #include "unittest/gpos/memory/CCacheTest.h"
 
-#include "unittest//gpos/net/CSocketTest.h"
-
 #include "unittest/gpos/sync/CAutoSpinlockTest.h"
 #include "unittest/gpos/sync/CAutoMutexTest.h"
 #include "unittest/gpos/sync/CEventTest.h"
@@ -119,9 +117,6 @@ static gpos::CUnittest rgut[] =
 	GPOS_UNITTEST_STD(CMemoryPoolBasicTest),
 	GPOS_UNITTEST_STD(CCacheTest),
 	GPOS_UNITTEST_STD(CMemoryPoolAllocTest),
-
-	// net
-	GPOS_UNITTEST_STD(CSocketTest),
 
 	// string
 	GPOS_UNITTEST_STD(CWStringTest),
