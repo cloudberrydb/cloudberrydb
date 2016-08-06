@@ -15,19 +15,13 @@
 #include "gpos/io/COstreamString.h"
 #include "gpos/task/CAutoTaskProxy.h"
 #include "gpos/test/CUnittest.h"
-#include "gpos/net/CSocketConnectorUDS.h"
-#include "gpos/net/CSocketListenerUDS.h"
 
 #include "unittest/gpopt/mdcache/CMDProviderTest.h"
 #include "unittest/gpopt/CTestUtils.h"
 
-#include "naucrates/md/CMDProviderComm.h"
-#include "naucrates/md/CMDProviderCommProxy.h"
 #include "naucrates/md/CMDProviderMemory.h"
 #include "naucrates/md/CMDIdRelStats.h"
 #include "naucrates/md/CMDIdColStats.h"
-
-#include "naucrates/comm/CCommunicator.h"
 
 #include "naucrates/exception.h"
 #include "naucrates/dxl/CDXLUtils.h"
@@ -40,7 +34,6 @@ using namespace gpdxl;
 using namespace gpopt;
 
 const CHAR *CMDProviderTest::szFileName = "../data/dxl/metadata/md.xml";
-#define GPNAUCRATES_TEST_COMM_BUFFER_SIZE (128)
 
 //---------------------------------------------------------------------------
 //	@function:

@@ -40,12 +40,8 @@ add_executable(gporca_test
                src/unittest/dxl/CXMLSerializerTest.cpp
                include/unittest/dxl/CDXLUtilsTest.h
                src/unittest/dxl/CDXLUtilsTest.cpp
-               include/unittest/dxl/CMDProviderCommTest.h
-               src/unittest/dxl/CMDProviderCommTest.cpp
                include/unittest/dxl/CParseHandlerTest.h
                src/unittest/dxl/CParseHandlerTest.cpp
-               include/unittest/dxl/comm/CCommunicatorTest.h
-               src/unittest/dxl/comm/CCommunicatorTest.cpp
                include/unittest/dxl/base/CDatumTest.h
                include/unittest/dxl/statistics/CStatisticsTest.h
                src/unittest/dxl/statistics/CStatisticsTest.cpp
@@ -206,11 +202,6 @@ add_orca_test(CDXLMemoryManagerTest)
 add_orca_test(CDXLUtilsTest)
 add_orca_test(CMDAccessorTest)
 add_orca_test(CMDProviderTest)
-
-if (NOT (${CMAKE_SYSTEM_NAME} MATCHES "SunOS"))
-  add_orca_test(CMDProviderCommTest)
-endif()
-
 add_orca_test(CArrayExpansionTest)
 add_orca_test(CMiniDumperDXLTest)
 add_orca_test(CExpressionPreprocessorTest)
@@ -280,11 +271,6 @@ add_orca_test(CIndexDescriptorTest)
 add_orca_test(CTreeMapTest)
 add_orca_test(CXformFactoryTest)
 add_orca_test(CXformTest)
-
-if ((NOT (${CMAKE_SYSTEM_NAME} MATCHES "SunOS"))
-    AND (${CMAKE_BUILD_TYPE} MATCHES "Debug"))
-  add_orca_test(CCommunicatorTest)
-endif()
 
 add_orca_test(CConstExprEvaluatorDefaultTest)
 add_orca_test(CConstExprEvaluatorDXLTest)

@@ -11,7 +11,6 @@ add_library(naucrates
             include/naucrates/base/IDatumInt4.h
             include/naucrates/base/IDatumInt8.h
             include/naucrates/base/IDatumOid.h
-            include/naucrates/comm/CCommMessage.h
             include/naucrates/dxl/CDXLUtils.inl
             include/naucrates/dxl/errorcodes.h
             include/naucrates/dxl/gpdb_types.h
@@ -73,10 +72,6 @@ add_library(naucrates
             src/base/CQueryToDXLResult.cpp
             include/naucrates/base/IDatumStatisticsMappable.h
             src/base/IDatumStatisticsMappable.cpp
-            include/naucrates/comm/CCommunicator.h
-            src/comm/CCommunicator.cpp
-            include/naucrates/comm/CLoggerComm.h
-            src/comm/CLoggerComm.cpp
             include/naucrates/md/CDXLBucket.h
             src/md/CDXLBucket.cpp
             include/naucrates/md/CDXLColStats.h
@@ -115,10 +110,6 @@ add_library(naucrates
             src/md/CMDName.cpp
             include/naucrates/md/CMDPartConstraintGPDB.h
             src/md/CMDPartConstraintGPDB.cpp
-            include/naucrates/md/CMDProviderComm.h
-            src/md/CMDProviderComm.cpp
-            include/naucrates/md/CMDProviderCommProxy.h
-            src/md/CMDProviderCommProxy.cpp
             include/naucrates/md/CMDProviderGeneric.h
             src/md/CMDProviderGeneric.cpp
             include/naucrates/md/CMDProviderMemory.h

@@ -38,16 +38,12 @@
 
 #include "unittest/dxl/CDXLMemoryManagerTest.h"
 #include "unittest/dxl/CDXLUtilsTest.h"
-#include "unittest/dxl/CMDProviderCommTest.h"
 #include "unittest/dxl/CParseHandlerManagerTest.h"
 #include "unittest/dxl/CParseHandlerTest.h"
 
 #include "unittest/dxl/CXMLSerializerTest.h"
 
 #include "unittest/dxl/base/CDatumTest.h"
-
-
-#include "unittest/dxl/comm/CCommunicatorTest.h"
 
 #include "unittest/gpopt/CTestUtils.h"
 #include "unittest/gpopt/base/CColRefSetIterTest.h"
@@ -139,10 +135,6 @@ static gpos::CUnittest rgut[] =
 	GPOS_UNITTEST_STD(CDXLUtilsTest),
 	GPOS_UNITTEST_STD(CMDAccessorTest),
 	GPOS_UNITTEST_STD(CMDProviderTest),
-
-#if !defined(GPOS_SunOS)
-	GPOS_UNITTEST_STD(CMDProviderCommTest),
-#endif  // !defined(GPOS_SunOS)
 	GPOS_UNITTEST_STD(CMiniDumperDXLTest),
 	GPOS_UNITTEST_STD(CExpressionPreprocessorTest),
 	GPOS_UNITTEST_STD(CWindowTest),
@@ -209,9 +201,6 @@ static gpos::CUnittest rgut[] =
 	GPOS_UNITTEST_STD(CTreeMapTest),
 	GPOS_UNITTEST_STD(CXformFactoryTest),
 	GPOS_UNITTEST_STD(CXformTest),
-#if defined(GPOS_DEBUG) && !defined(GPOS_SunOS)
-	GPOS_UNITTEST_STD(CCommunicatorTest),
-#endif  // !defined(GPOS_DEBUG) && !defined(GPOS_SunOS)
 	GPOS_UNITTEST_STD(CConstExprEvaluatorDefaultTest),
 	GPOS_UNITTEST_STD(CConstExprEvaluatorDXLTest),
 	// disable CEnumeratorTest until it is fixed
