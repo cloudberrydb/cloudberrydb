@@ -225,6 +225,8 @@ extern bool gp_startup_integrity_checks;
 extern bool gp_change_tracking;
 extern bool	gp_persistent_skip_free_list;
 extern bool	gp_persistent_repair_global_sequence;
+extern bool gp_validate_pt_info_relcache;
+extern bool gp_disable_HOT;
 extern bool Debug_print_xlog_relation_change_info;
 extern bool Debug_print_xlog_relation_change_info_skip_issues_only;
 extern bool Debug_print_xlog_relation_change_info_backtrace_skip_issues;

@@ -673,6 +673,50 @@ RelationFetchSegFile0GpRelationNode(
 		relation->rd_segfile0_relationnodeinfo.isPresent = true;
 		
 	}
+	else if (gp_validate_pt_info_relcache &&
+		     !(relation->rd_index &&
+			   relation->rd_index->indrelid == GpRelationNodeRelationId))
+	{
+		/*
+		 * bypass the check for gp_relation_node_index because
+		 * ReadGpRelationNode() uses the same index to probe relfile node.
+		 */
+
+		ItemPointerData persistentTid;
+		int64			persistentSerialNum;
+
+		if (!ReadGpRelationNode(
+					relation->rd_node.relNode,
+					/* segmentFileNum */ 0,
+					&persistentTid,
+					&persistentSerialNum))
+		{
+			elog(ERROR,
+				 "did not find gp_relation_node entry for relation name %s, "
+				 "relation id %u, relfilenode %u", relation->rd_rel->relname.data,
+				 relation->rd_id, relation->rd_node.relNode);
+		}
+
+		if (ItemPointerCompare(&persistentTid,
+							   &relation->rd_segfile0_relationnodeinfo.persistentTid) ||
+			(persistentSerialNum != relation->rd_segfile0_relationnodeinfo.persistentSerialNum))
+		{
+			ereport(ERROR,
+					(errmsg("invalid persistent TID and/or serial number in "
+							"relcache entry"),
+					 errdetail("relation name %s, relation id %u, relfilenode %u "
+							   "contains invalid persistent TID %s and/or serial "
+							   "number " INT64_FORMAT ".  Expected TID is %s and "
+							   "serial number " INT64_FORMAT,
+							   relation->rd_rel->relname.data, relation->rd_id,
+							   relation->rd_node.relNode,
+							   ItemPointerToString(
+								   &relation->rd_segfile0_relationnodeinfo.persistentTid),
+							   relation->rd_segfile0_relationnodeinfo.persistentSerialNum,
+							   ItemPointerToString2(&persistentTid),
+							   persistentSerialNum)));
+		}
+	}
 
 }
 
