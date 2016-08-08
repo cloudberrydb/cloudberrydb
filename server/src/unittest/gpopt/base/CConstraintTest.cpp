@@ -690,7 +690,7 @@ CConstraintTest::EresUnittest_CConstraintIntervalPexpr()
 
 	// install opt context in TLS
 	CAutoOptCtxt aoc(pmp, &mda, pceeval, CTestUtils::Pcm(pmp));
-	GPOS_ASSERT(NULL != COptCtxt::PoctxtFromTLS()->Pcomp());
+	GPOS_RTL_ASSERT(NULL != COptCtxt::PoctxtFromTLS()->Pcomp());
 
 	CAutoTraceFlag atf(EopttraceEnableArrayDerive, true);
 
@@ -725,10 +725,10 @@ CConstraintTest::EresUnittest_CConstraintIntervalPexpr()
 	pexpr = pcnstin->PexprScalar(pmp); // pexpr is owned by the constraint
 	PrintConstraint(pmp, pcnstin);
 
-	GPOS_ASSERT(!pcnstin->FConvertsToNotIn());
-	GPOS_ASSERT(pcnstin->FConvertsToIn());
-	GPOS_ASSERT(CUtils::FScalarArrayCmp(pexpr));
-	GPOS_ASSERT(3 == CUtils::UlCountOperator(pexpr, COperator::EopScalarConst));
+	GPOS_RTL_ASSERT(!pcnstin->FConvertsToNotIn());
+	GPOS_RTL_ASSERT(pcnstin->FConvertsToIn());
+	GPOS_RTL_ASSERT(CUtils::FScalarArrayCmp(pexpr));
+	GPOS_RTL_ASSERT(3 == CUtils::UlCountOperator(pexpr, COperator::EopScalarConst));
 
 	pcnstin->Release();
 
@@ -742,10 +742,10 @@ CConstraintTest::EresUnittest_CConstraintIntervalPexpr()
 	pexpr = pcnstin->PexprScalar(pmp); // pexpr is owned by the constraint
 	PrintConstraint(pmp, pcnstin);
 
-	GPOS_ASSERT(!pcnstin->FConvertsToNotIn());
-	GPOS_ASSERT(pcnstin->FConvertsToIn());
-	GPOS_ASSERT(CUtils::FScalarArrayCmp(pexpr));
-	GPOS_ASSERT(4 == CUtils::UlCountOperator(pexpr, COperator::EopScalarConst));
+	GPOS_RTL_ASSERT(!pcnstin->FConvertsToNotIn());
+	GPOS_RTL_ASSERT(pcnstin->FConvertsToIn());
+	GPOS_RTL_ASSERT(CUtils::FScalarArrayCmp(pexpr));
+	GPOS_RTL_ASSERT(4 == CUtils::UlCountOperator(pexpr, COperator::EopScalarConst));
 
 	pcnstin->Release();
 
@@ -762,10 +762,10 @@ CConstraintTest::EresUnittest_CConstraintIntervalPexpr()
 	pexpr = pcnstNotIn->PexprScalar(pmp); // pexpr is owned by the constraint
 	PrintConstraint(pmp, pcnstNotIn);
 
-	GPOS_ASSERT(pcnstNotIn->FConvertsToNotIn());
-	GPOS_ASSERT(!pcnstNotIn->FConvertsToIn());
-	GPOS_ASSERT(CUtils::FScalarArrayCmp(pexpr));
-	GPOS_ASSERT(3 == CUtils::UlCountOperator(pexpr, COperator::EopScalarConst));
+	GPOS_RTL_ASSERT(pcnstNotIn->FConvertsToNotIn());
+	GPOS_RTL_ASSERT(!pcnstNotIn->FConvertsToIn());
+	GPOS_RTL_ASSERT(CUtils::FScalarArrayCmp(pexpr));
+	GPOS_RTL_ASSERT(3 == CUtils::UlCountOperator(pexpr, COperator::EopScalarConst));
 
 	pcnstNotIn->Release();
 
@@ -782,10 +782,10 @@ CConstraintTest::EresUnittest_CConstraintIntervalPexpr()
 	pexpr = pcnstNotIn->PexprScalar(pmp); // pexpr is owned by the constraint
 	PrintConstraint(pmp, pcnstNotIn);
 
-	GPOS_ASSERT(pcnstNotIn->FConvertsToNotIn());
-	GPOS_ASSERT(!pcnstNotIn->FConvertsToIn());
-	GPOS_ASSERT(CUtils::FScalarArrayCmp(pexpr));
-	GPOS_ASSERT(4 == CUtils::UlCountOperator(pexpr, COperator::EopScalarConst));
+	GPOS_RTL_ASSERT(pcnstNotIn->FConvertsToNotIn());
+	GPOS_RTL_ASSERT(!pcnstNotIn->FConvertsToIn());
+	GPOS_RTL_ASSERT(CUtils::FScalarArrayCmp(pexpr));
+	GPOS_RTL_ASSERT(4 == CUtils::UlCountOperator(pexpr, COperator::EopScalarConst));
 
 	pcnstNotIn->Release();
 
