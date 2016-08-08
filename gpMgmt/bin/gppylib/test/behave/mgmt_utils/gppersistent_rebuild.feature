@@ -9,7 +9,7 @@
     And wait until the mirror is down
     Then run gppersistent_rebuild with the saved content id
     And gppersistent_rebuild should return a return code of 0
-    And the user runs command "$GPHOME/bin/lib/gpcheckcat -R persistent -A"
+    And the user runs command "gpcheckcat -R persistent -A"
     And gpcheckcat should return a return code of 0
     And user returns the data directory to the default location of the killed mirror
     And the user runs command "gprecoverseg -a"
