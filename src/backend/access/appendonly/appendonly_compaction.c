@@ -666,8 +666,7 @@ AppendOnlyCompact(Relation aorel,
 	/* Get information about all the file segments we need to scan */
 	segfile_array = GetAllFileSegInfo(aorel, SnapshotNow, &total_segfiles);
 
-	insertDesc = appendonly_insert_init(aorel, SnapshotNow,
-		insert_segno, false);
+	insertDesc = appendonly_insert_init(aorel, insert_segno, false);
 
 	for(i = 0 ; i < total_segfiles ; i++)
 	{

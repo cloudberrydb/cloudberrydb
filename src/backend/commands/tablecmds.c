@@ -5384,7 +5384,7 @@ ATRewriteTable(AlteredTableInfo *tab, Oid OIDNewHeap)
 			MemTupleBinding*		mt_bind;
 
 			if(newrel)
-				aoInsertDesc = appendonly_insert_init(newrel, SnapshotNow, segno, false);
+				aoInsertDesc = appendonly_insert_init(newrel, segno, false);
 
 			mt_bind = (newrel ? aoInsertDesc->mt_bind : create_memtuple_binding(newTupDesc));
 
@@ -14801,7 +14801,7 @@ split_rows(Relation intoa, Relation intob, Relation temprel)
 			if (!(*targetAODescPtr))
 			{
 				MemoryContextSwitchTo(oldCxt);
-				*targetAODescPtr = appendonly_insert_init(targetRelation, SnapshotNow,
+				*targetAODescPtr = appendonly_insert_init(targetRelation,
 														  RESERVED_SEGNO, false);
 				MemoryContextSwitchTo(GetPerTupleMemoryContext(estate));
 			}

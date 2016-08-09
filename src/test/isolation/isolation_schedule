@@ -3,3 +3,4 @@
 
 test: ao-serializable-read
 test: ao-serializable-vacuum
+test: ao-insert-eof
