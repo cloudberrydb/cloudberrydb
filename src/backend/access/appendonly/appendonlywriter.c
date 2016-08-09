@@ -1927,7 +1927,7 @@ AtEOXact_AppendOnly_Relation(AORelHashEntry	aoentry, TransactionId currentXid)
 	}
 
 	/*
-	 * Was any segfile  updated in our own transaction?
+	 * Was any segfile updated in our own transaction?
 	 */
 	for (i = 0 ; i < MAX_AOREL_CONCURRENCY ; i++)
 	{
@@ -1952,6 +1952,18 @@ AtEOXact_AppendOnly_Relation(AORelHashEntry	aoentry, TransactionId currentXid)
 		ereportif(Debug_appendonly_print_segfile_choice, LOG,
 			(errmsg("AtEOXact_AppendOnly: updated txns_using_rel, it is now %d",
 								  aoentry->txns_using_rel)));	
+	}
+
+	if (test_AppendOnlyHash_eviction_vs_just_marking_not_inuse)
+	{
+		/*
+		 * If no transaction is using this entry, it can be removed if
+		 * hash-table gets full. So perform the same here if the above GUC is set.
+		 */
+		if (aoentry->txns_using_rel == 0)
+		{
+			AORelRemoveHashEntry(aoentry->relid);
+		}
 	}
 }
 /*
