@@ -2263,9 +2263,10 @@ CExpressionPreprocessorTest::EresUnittest_PreProcessConvert2InPredicate()
 //		CExpressionPreprocessorTest::PexprCreateConvertableArray
 //
 //	@doc:
-//		Test that an array expression like A IN (1,2,3,4,5) OR A = 6 OR A = 7
-//		converts to A IN (1,2,3,4,5,6,7). If fCreateInStatement is set to false,
-//		the resulting expression will be a conjunction of NOT IN and NEqs
+//		If fCreateInStatement is true then create an array expression like
+//			A IN (1,2,3,4,5) OR A = 6 OR A = 7
+//		If fCreateInStatement is set to false, create the NOT IN version like
+//			A NOT IN (1,2,3,4,5) AND A <> 6 AND A <> 7
 //
 //---------------------------------------------------------------------------
 CExpression *
@@ -2336,25 +2337,30 @@ CExpressionPreprocessorTest::EresUnittest_PreProcessConvertArrayWithEquals()
 
 	// test the IN OR Eq variant
 	CAutoRef<CExpression> apexprInConvertable(PexprCreateConvertableArray(pmp, true));
-
-	GPOS_ASSERT(2 == CUtils::UlCountOperator(apexprInConvertable.Pt(), COperator::EopScalarCmp));
-
 	CAutoRef<CExpression> apexprInConverted(CExpressionPreprocessor::PexprConvert2In(pmp, apexprInConvertable.Pt()));
 
-	GPOS_ASSERT(0 == CUtils::UlCountOperator(apexprInConverted.Pt(), COperator::EopScalarCmp));
-	GPOS_ASSERT(7 == CUtils::UlCountOperator(apexprInConverted.Pt(), COperator::EopScalarConst));
-	GPOS_ASSERT(1 == CUtils::UlCountOperator(apexprInConverted.Pt(), COperator::EopScalarArrayCmp));
+	GPOS_RTL_ASSERT(0 == CUtils::UlCountOperator(apexprInConverted.Pt(), COperator::EopScalarCmp));
+	GPOS_RTL_ASSERT(7 == CUtils::UlCountOperator(apexprInConverted.Pt(), COperator::EopScalarConst));
+	GPOS_RTL_ASSERT(1 == CUtils::UlCountOperator(apexprInConverted.Pt(), COperator::EopScalarArrayCmp));
+
+	CExpression *pexprArrayInCmp = CTestUtils::PexprFindFirstExpressionWithOpId(apexprInConverted.Pt(), COperator::EopScalarArrayCmp);
+	GPOS_ASSERT(NULL != pexprArrayInCmp);
+	CScalarArrayCmp *popCmpInArray = CScalarArrayCmp::PopConvert(pexprArrayInCmp->Pop());
+	GPOS_RTL_ASSERT(CScalarArrayCmp::EarrcmpAny == popCmpInArray->Earrcmpt());
 
 	// test the NOT IN OR NEq variant
 	CAutoRef<CExpression> apexprNotInConvertable(PexprCreateConvertableArray(pmp, false));
-	GPOS_ASSERT(2 == CUtils::UlCountOperator(apexprNotInConvertable.Pt(), COperator::EopScalarCmp));
-
 	CAutoRef<CExpression> apexprNotInConverted(CExpressionPreprocessor::PexprConvert2In(pmp, apexprNotInConvertable.Pt()));
 
-	GPOS_ASSERT(0 == CUtils::UlCountOperator(apexprNotInConverted.Pt(), COperator::EopScalarCmp));
-	GPOS_ASSERT(7 == CUtils::UlCountOperator(apexprNotInConverted.Pt(), COperator::EopScalarConst));
-	GPOS_ASSERT(1 == CUtils::UlCountOperator(apexprNotInConverted.Pt(), COperator::EopScalarArrayCmp));
-	// TODO: test that the array cmp is ALL and comparison is NEq
+	GPOS_RTL_ASSERT(0 == CUtils::UlCountOperator(apexprNotInConverted.Pt(), COperator::EopScalarCmp));
+	GPOS_RTL_ASSERT(7 == CUtils::UlCountOperator(apexprNotInConverted.Pt(), COperator::EopScalarConst));
+	GPOS_RTL_ASSERT(1 == CUtils::UlCountOperator(apexprNotInConverted.Pt(), COperator::EopScalarArrayCmp));
+
+	CExpression *pexprArrayCmpNotIn = CTestUtils::PexprFindFirstExpressionWithOpId(apexprNotInConverted.Pt(), COperator::EopScalarArrayCmp);
+	GPOS_ASSERT(NULL != pexprArrayCmpNotIn);
+	CScalarArrayCmp *popCmpNotInArray = CScalarArrayCmp::PopConvert(pexprArrayCmpNotIn->Pop());
+	GPOS_RTL_ASSERT(CScalarArrayCmp::EarrcmpAll == popCmpNotInArray->Earrcmpt());
+
 	return GPOS_OK;
 }
 

@@ -545,6 +545,10 @@ namespace gpopt
 			static
 			CExpression *PexprScalarNestedPreds(IMemoryPool *pmp, CExpression *pexpr, CScalarBoolOp::EBoolOperator eboolop);
 
+			// find the first child expression with the given operator id
+			static
+			CExpression *PexprFindFirstExpressionWithOpId(CExpression *pexpr, COperator::EOperatorId eopid);
+
 			// equality predicate shortcut
 			static
 			void EqualityPredicate(IMemoryPool *pmp, CColRefSet *pcrsLeft, CColRefSet *pcrsRight, DrgPexpr *pdrgpexpr);

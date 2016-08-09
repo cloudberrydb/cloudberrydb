@@ -2880,6 +2880,41 @@ CTestUtils::PexprScalarNestedPreds
 
 //---------------------------------------------------------------------------
 //	@function:
+//		CTestUtils::PexprFindFirstExpressionWithOpId
+//
+//	@doc:
+//		DFS of expression tree to find and return a pointer to the expression
+//		containing the given operator type. NULL if not found
+//
+//---------------------------------------------------------------------------
+CExpression *
+CTestUtils::PexprFindFirstExpressionWithOpId
+	(
+	CExpression *pexpr,
+	COperator::EOperatorId eopid
+	)
+{
+	GPOS_ASSERT(NULL != pexpr);
+	if (eopid == pexpr->Pop()->Eopid())
+	{
+		return pexpr;
+	}
+
+	ULONG ulArity = pexpr->UlArity();
+	for (ULONG ul = 0; ul < ulArity; ul++)
+	{
+		CExpression *pexprFound = PexprFindFirstExpressionWithOpId((*pexpr)[ul], eopid);
+		if (NULL != pexprFound)
+		{
+			return pexprFound;
+		}
+	}
+
+	return NULL;
+}
+
+//---------------------------------------------------------------------------
+//	@function:
 //		CTestUtils::EqualityPredicate
 //
 //	@doc:
