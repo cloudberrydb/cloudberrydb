@@ -692,7 +692,7 @@ CConstraintTest::EresUnittest_CConstraintIntervalPexpr()
 	CAutoOptCtxt aoc(pmp, &mda, pceeval, CTestUtils::Pcm(pmp));
 	GPOS_RTL_ASSERT(NULL != COptCtxt::PoctxtFromTLS()->Pcomp());
 
-	CAutoTraceFlag atf(EopttraceEnableArrayDerive, true);
+	CAutoTraceFlag atf(EopttraceArrayConstraints, true);
 
 	// create a range which should convert to an IN array expression
 	const SRangeInfo rgRangeInfoIn[] =
@@ -821,7 +821,7 @@ CConstraintTest::EresUnittest_CConstraintIntervalFromArrayExpr()
 	CAutoOptCtxt aoc(pmp, &mda, pceeval, CTestUtils::Pcm(pmp));
 	GPOS_ASSERT(NULL != COptCtxt::PoctxtFromTLS()->Pcomp());
 
-	CAutoTraceFlag atf(EopttraceEnableArrayDerive, true);
+	CAutoTraceFlag atf(EopttraceArrayConstraints, true);
 
 	// Create an IN array expression
 	CExpression *pexpr = CTestUtils::PexprLogicalSelectArrayCmp(pmp);
@@ -912,7 +912,7 @@ EresUnittest_CConstraintIntervalFromArrayExprIncludesNull()
 	CAutoOptCtxt aoc(pmp, &mda, pceeval, CTestUtils::Pcm(pmp));
 	GPOS_ASSERT(NULL != COptCtxt::PoctxtFromTLS()->Pcomp());
 
-	CAutoTraceFlag atf(EopttraceEnableArrayDerive, true);
+	CAutoTraceFlag atf(EopttraceArrayConstraints, true);
 
 	// test for includes NULL
 	// create an IN expression with repeated values

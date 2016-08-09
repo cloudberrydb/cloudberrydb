@@ -1639,7 +1639,7 @@ CExpressionPreprocessorTest::EresUnittest_PreProcessOrPrefilters()
 {
 	CAutoMemoryPool amp;
 	IMemoryPool *pmp = amp.Pmp();
-	CAutoTraceFlag atf(EopttraceEnableArrayDerive, true /*fVal*/);
+	CAutoTraceFlag atf(EopttraceArrayConstraints, true /*fVal*/);
 
 	// reset metadata cache
 	CMDCache::Reset();
@@ -2212,7 +2212,7 @@ CExpressionPreprocessorTest::EresUnittest_CollapseInnerJoin()
 GPOS_RESULT
 CExpressionPreprocessorTest::EresUnittest_PreProcessConvert2InPredicate()
 {
-	CAutoTraceFlag atf(EopttraceEnableArrayDerive, true /*fVal*/);
+	CAutoTraceFlag atf(EopttraceArrayConstraints, true /*fVal*/);
 
 	CAutoMemoryPool amp;
 	IMemoryPool *pmp = amp.Pmp();
@@ -2320,7 +2320,7 @@ CExpressionPreprocessorTest::PexprCreateConvertableArray
 GPOS_RESULT
 CExpressionPreprocessorTest::EresUnittest_PreProcessConvertArrayWithEquals()
 {
-	CAutoTraceFlag atf(EopttraceEnableArrayDerive, true /*fVal*/);
+	CAutoTraceFlag atf(EopttraceArrayConstraints, true /*fVal*/);
 
 	CAutoMemoryPool amp;
 	IMemoryPool *pmp = amp.Pmp();
@@ -2378,7 +2378,7 @@ CExpressionPreprocessorTest::EresUnittest_PreProcessConvertArrayWithEquals()
 GPOS_RESULT
 CExpressionPreprocessorTest::EresUnittest_PreProcessConvert2InPredicateDeepExpressionTree()
 {
-	CAutoTraceFlag atf(EopttraceEnableArrayDerive, true /*fVal*/);
+	CAutoTraceFlag atf(EopttraceArrayConstraints, true /*fVal*/);
 
 	CAutoMemoryPool amp;
 	IMemoryPool *pmp = amp.Pmp();

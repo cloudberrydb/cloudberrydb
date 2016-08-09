@@ -166,7 +166,7 @@ CConstraintInterval::PciIntervalFromScalarExpr
 			}
 			break;
 		case COperator::EopScalarArrayCmp:
-			if (GPOS_FTRACE(EopttraceEnableArrayDerive))
+			if (GPOS_FTRACE(EopttraceArrayConstraints))
 			{
 				pci = CConstraintInterval::PcnstrIntervalFromScalarArrayCmp(pmp, pexpr, pcr);
 			}
@@ -612,7 +612,7 @@ CConstraintInterval::PexprConstructScalar
 		return CUtils::PexprScalarConstBool(pmp, false /*fval*/, false /*fNull*/);
 	}
 
-	if (GPOS_FTRACE(EopttraceEnableArrayDerive))
+	if (GPOS_FTRACE(EopttraceArrayConstraints))
 	{
 		// try creating an array IN/NOT IN expression
 		CExpression *pexpr = PexprConstructArrayScalar(pmp);

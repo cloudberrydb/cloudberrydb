@@ -1862,7 +1862,7 @@ CPredicateUtils::PexprExtractPredicatesOnPartKeys
 	DrgPexpr *pdrgpexprConjuncts = PdrgpexprConjuncts(pmp, pexprScalar);
 	DrgPcrs *pdrgpcrsChild = NULL;
 	CConstraint *pcnstr = NULL;
-	if (GPOS_FTRACE(EopttraceEnableArrayDerive))
+	if (GPOS_FTRACE(EopttraceArrayConstraints))
 	{
 		// previously, we expanded array expressions. However, there is now code to handle array
 		// constraints in the DXL translator and therefore, it is unnecessary work to expanded arrays

@@ -164,7 +164,7 @@ namespace gpos
 		EopttraceEnableParallelAppend = 103025,
 
 		// create constraint intervals from array expressions in preprocessing
-		EopttraceEnableArrayDerive = 103026,
+		EopttraceArrayConstraints = 103026,
 
 		///////////////////////////////////////////////////////
 		///////////////////// statistics flags ////////////////

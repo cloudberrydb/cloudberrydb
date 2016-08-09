@@ -2151,7 +2151,7 @@ CExpressionPreprocessor::PexprPreprocess
 
 	CExpression *pexprConvert2In = pexprUnnested;
 
-	if (GPOS_FTRACE(EopttraceEnableArrayDerive))
+	if (GPOS_FTRACE(EopttraceArrayConstraints))
 	{
 		// (8.5) ensure predicates are array IN or NOT IN where applicable
 		pexprConvert2In = PexprConvert2In(pmp, pexprUnnested);
