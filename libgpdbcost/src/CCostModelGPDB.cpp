@@ -1311,11 +1311,15 @@ CCostModelGPDB::CostBitmapTableScan
 		return CCost(pci->DRebinds() * (pci->DRows() * pci->DWidth()) / dRandomIOBandwidth);
 	}
 
-	GPOS_ASSERT(1 == pcrsUsed->CElements());
-
-	CColRef *pcrIndexCond =  pcrsUsed->PcrFirst();
-	GPOS_ASSERT(NULL != pcrIndexCond);
-	CDouble dNDV = pci->Pcstats()->DNDV(pcrIndexCond);
+	// if the expression is const table get, the pcrsUsed is empty
+	// so we use minimum value DMinDistinct for dNDV in that case.
+	CDouble dNDV = CHistogram::DMinDistinct;
+	if (1 == pcrsUsed->CElements())
+	{
+		CColRef *pcrIndexCond =  pcrsUsed->PcrFirst();
+		GPOS_ASSERT(NULL != pcrIndexCond);
+		dNDV = pci->Pcstats()->DNDV(pcrIndexCond);
+	}
 	CDouble dNDVThreshold = pcmgpdb->Pcp()->PcpLookup(CCostModelParamsGPDB::EcpBitmapNDVThreshold)->DVal();
 
 	if (dNDVThreshold <= dNDV)

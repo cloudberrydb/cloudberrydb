@@ -2220,25 +2220,28 @@ CPredicateUtils::PexprIndexLookupKeyOnRight
 
 	CExpression *pexprLeft = (*pexprScalar)[0];
 	CExpression *pexprRight = (*pexprScalar)[1];
-	CScalarCmp *popScCmp = CScalarCmp::PopConvert(pexprScalar->Pop());
-	
-	const IMDScalarOp *pmdscalarop = pmda->Pmdscop(popScCmp->PmdidOp());
-	IMDId *pmdidscalaropCommute = pmdscalarop->PmdidOpCommute();
-
-	if (pmdidscalaropCommute->FValid())
+	if (CUtils::FScalarCmp(pexprScalar))
 	{
+		CScalarCmp *popScCmp = CScalarCmp::PopConvert(pexprScalar->Pop());
 		
-		// build new comparison after switching arguments and using commutative comparison operator
-		pexprRight->AddRef();
-		pexprLeft->AddRef();
-		pmdidscalaropCommute->AddRef();
-		const CWStringConst *pstr = pmda->Pmdscop(pmdidscalaropCommute)->Mdname().Pstr();
+		const IMDScalarOp *pmdscalarop = pmda->Pmdscop(popScCmp->PmdidOp());
+		IMDId *pmdidscalaropCommute = pmdscalarop->PmdidOpCommute();
 
-		CExpression *pexprCommuted = CUtils::PexprScalarCmp(pmp, pexprRight, pexprLeft, *pstr, pmdidscalaropCommute);
-		CExpression *pexprIndexCond = PexprIndexLookupKeyOnLeft(pmp, pmda, pexprCommuted, pmdindex, pdrgpcrIndex, pcrsOuterRefs);
-		pexprCommuted->Release();
-		
-		return pexprIndexCond;
+		if (pmdidscalaropCommute->FValid())
+		{
+
+			// build new comparison after switching arguments and using commutative comparison operator
+			pexprRight->AddRef();
+			pexprLeft->AddRef();
+			pmdidscalaropCommute->AddRef();
+			const CWStringConst *pstr = pmda->Pmdscop(pmdidscalaropCommute)->Mdname().Pstr();
+
+			CExpression *pexprCommuted = CUtils::PexprScalarCmp(pmp, pexprRight, pexprLeft, *pstr, pmdidscalaropCommute);
+			CExpression *pexprIndexCond = PexprIndexLookupKeyOnLeft(pmp, pmda, pexprCommuted, pmdindex, pdrgpcrIndex, pcrsOuterRefs);
+			pexprCommuted->Release();
+
+			return pexprIndexCond;
+		}
 	}
 	
 	return NULL;
@@ -2274,12 +2277,17 @@ CPredicateUtils::PexprIndexLookup
 	GPOS_ASSERT(NULL != pexprScalar);
 	GPOS_ASSERT(NULL != pdrgpcrIndex);
 
-	if (!CUtils::FScalarCmp(pexprScalar))
+	IMDType::ECmpType cmptype = IMDType::EcmptOther;
+
+	if (CUtils::FScalarCmp(pexprScalar))
 	{
-		return NULL;
+		cmptype = CScalarCmp::PopConvert(pexprScalar->Pop())->Ecmpt();
+	}
+	else if (CUtils::FScalarArrayCmp(pexprScalar))
+	{
+		cmptype = CUtils::Ecmpt(CScalarArrayCmp::PopConvert(pexprScalar->Pop())->PmdidOp());
 	}
 
-	IMDType::ECmpType cmptype = CScalarCmp::PopConvert(pexprScalar->Pop())->Ecmpt();
 	if (cmptype == IMDType::EcmptNEq ||
 		cmptype == IMDType::EcmptIDF ||
 		cmptype == IMDType::EcmptOther)
@@ -3094,12 +3102,21 @@ CPredicateUtils::FCompatibleIndexPredicate
 	GPOS_ASSERT(NULL != pexprPred);
 	GPOS_ASSERT(NULL != pmdindex);
 
-	if (COperator::EopScalarCmp != pexprPred->Pop()->Eopid())
+	const IMDScalarOp *pmdobjScCmp = NULL;
+	if (COperator::EopScalarCmp == pexprPred->Pop()->Eopid())
+	{
+		CScalarCmp *popScCmp = CScalarCmp::PopConvert(pexprPred->Pop());
+		pmdobjScCmp = pmda->Pmdscop(popScCmp->PmdidOp());
+	}
+	else if (COperator::EopScalarArrayCmp == pexprPred->Pop()->Eopid())
+	{
+		CScalarArrayCmp *popScArrCmp = CScalarArrayCmp::PopConvert(pexprPred->Pop());
+		pmdobjScCmp = pmda->Pmdscop(popScArrCmp->PmdidOp());
+	}
+	else
 	{
 		return false;
 	}
-	CScalarCmp *popScCmp = CScalarCmp::PopConvert(pexprPred->Pop());
-	const IMDScalarOp *pmdobjScCmp = pmda->Pmdscop(popScCmp->PmdidOp());
 
 	CExpression *pexprLeft = (*pexprPred)[0];
 	CColRefSet *pcrsUsed = CDrvdPropScalar::Pdpscalar(pexprLeft->PdpDerive())->PcrsUsed();
