@@ -43,10 +43,10 @@ namespace gpdxl
 			AttrNumber m_attno;
 
 			// index qual expression tailored for GPDB
-			OpExpr *m_popExpr;
+			Expr *m_pexpr;
 
 			// original index qual expression
-			OpExpr *m_popOriginalExpr;
+			Expr *m_pexprOriginal;
 
 			// index strategy information
 			StrategyNumber m_sn;
@@ -58,18 +58,21 @@ namespace gpdxl
 			CIndexQualInfo
 				(
 				AttrNumber attno,
-				OpExpr *popExpr,
-				OpExpr *popOriginalExpr,
+				Expr *pexpr,
+				Expr *pexprOriginal,
 				StrategyNumber sn,
 				OID oidIndexSubtype
 				)
 				:
 				m_attno(attno),
-				m_popExpr(popExpr),
-				m_popOriginalExpr(popOriginalExpr),
+				m_pexpr(pexpr),
+				m_pexprOriginal(pexprOriginal),
 				m_sn(sn),
 				m_oidIndexSubtype(oidIndexSubtype)
-				{}
+				{
+					GPOS_ASSERT((IsA(m_pexpr, OpExpr) && IsA(m_pexprOriginal, OpExpr)) ||
+						(IsA(m_pexpr, ScalarArrayOpExpr) && IsA(m_pexprOriginal, ScalarArrayOpExpr)));
+				}
 
 				// dtor
 				~CIndexQualInfo()
