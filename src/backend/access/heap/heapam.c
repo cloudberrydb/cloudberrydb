@@ -3582,9 +3582,6 @@ HeapSatisfiesHOTUpdate(Relation relation, Bitmapset *hot_attrs,
 {
 	int			attrnum;
 
-	if (gp_disable_HOT)
-		return false;
-
 	while ((attrnum = bms_first_member(hot_attrs)) >= 0)
 	{
 		/* Adjust for system attributes */

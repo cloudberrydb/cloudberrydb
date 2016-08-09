@@ -258,7 +258,6 @@ bool		gp_change_tracking = true;
 bool		gp_persistent_skip_free_list = false;
 bool		gp_persistent_repair_global_sequence = false;
 bool		gp_validate_pt_info_relcache = false;
-bool		gp_disable_HOT = false;
 bool		Debug_print_xlog_relation_change_info = false;
 bool		Debug_print_xlog_relation_change_info_skip_issues_only = false;
 bool		Debug_print_xlog_relation_change_info_backtrace_skip_issues = false;
@@ -2203,16 +2202,6 @@ struct config_bool ConfigureNamesBool_gp[] =
 			GUC_SUPERUSER_ONLY | GUC_NO_SHOW_ALL | GUC_NOT_IN_SAMPLE
 		},
 		&gp_validate_pt_info_relcache,
-		false, NULL, NULL
-	},
-
-	{
-		{"gp_disable_HOT", PGC_SUSET, DEVELOPER_OPTIONS,
-			gettext_noop("Disable Heap Only Tuple (HOT) feature."),
-			NULL,
-			GUC_SUPERUSER_ONLY | GUC_NO_SHOW_ALL | GUC_NOT_IN_SAMPLE
-		},
-		&gp_disable_HOT,
 		false, NULL, NULL
 	},
 

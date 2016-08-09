@@ -356,4 +356,5 @@ crash_recovery_filerep_end_to_end:
 crash_recovery_schema_topology:
 	$(TESTER) $(DISCOVER) \
 	-s tincrepo/mpp/gpdb/tests/storage/crashrecovery \
-	-p test_crash_recovery_schema_topology.py
+	-p test_crash_recovery_schema_topology.py \
+	-p test_reindex_pg_class.py

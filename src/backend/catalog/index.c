@@ -1437,6 +1437,9 @@ setNewRelfilenodeToOid(Relation relation, TransactionId freezeXid, Oid newrelfil
 	bool		isAppendOnly;
 	bool		is_gp_relation_node_index;
 
+	ItemPointerData		persistentTid;
+	int64				persistentSerialNum;
+
 	/* Can't change relfilenode for nailed tables (indexes ok though) */
 	Assert(!relation->rd_isnailed ||
 		   relation->rd_rel->relkind == RELKIND_INDEX);
@@ -1515,8 +1518,8 @@ setNewRelfilenodeToOid(Relation relation, TransactionId freezeXid, Oid newrelfil
 											NameStr(relation->rd_rel->relname),
 											/* doJustInTimeDirCreate */ true,
 											/* bufferPoolBulkLoad */ false,
-											&relation->rd_segfile0_relationnodeinfo.persistentTid,
-											&relation->rd_segfile0_relationnodeinfo.persistentSerialNum);
+											&persistentTid,
+											&persistentSerialNum);
 		smgrclose(srel);
 	}
 	else
@@ -1526,12 +1529,12 @@ setNewRelfilenodeToOid(Relation relation, TransactionId freezeXid, Oid newrelfil
 											/* segmentFileNum */ 0,
 											NameStr(relation->rd_rel->relname),
 											/* doJustInTimeDirCreate */ true,
-											&relation->rd_segfile0_relationnodeinfo.persistentTid,
-											&relation->rd_segfile0_relationnodeinfo.persistentSerialNum);
+											&persistentTid,
+											&persistentSerialNum);
 	}
 
 	if (!Persistent_BeforePersistenceWork() &&
-		PersistentStore_IsZeroTid(&relation->rd_segfile0_relationnodeinfo.persistentTid))
+		PersistentStore_IsZeroTid(&persistentTid))
 	{
 		elog(ERROR,
 			 "setNewRelfilenodeCommon has invalid TID (0,0) for relation %u/%u/%u '%s', serial number " INT64_FORMAT,
@@ -1539,18 +1542,16 @@ setNewRelfilenodeToOid(Relation relation, TransactionId freezeXid, Oid newrelfil
 			 newrnode.dbNode,
 			 newrnode.relNode,
 			 NameStr(relation->rd_rel->relname),
-			 relation->rd_segfile0_relationnodeinfo.persistentSerialNum);
+			 persistentSerialNum);
 	}
-
-	relation->rd_segfile0_relationnodeinfo.isPresent = true;
 
 	if (Debug_persistent_print)
 		elog(Persistent_DebugPrintLevel(),
 			 "setNewRelfilenodeCommon: NEW '%s', Append-Only '%s', persistent TID %s and serial number " INT64_FORMAT,
 			 relpath(newrnode),
 			 (isAppendOnly ? "true" : "false"),
-			 ItemPointerToString(&relation->rd_segfile0_relationnodeinfo.persistentTid),
-			 relation->rd_segfile0_relationnodeinfo.persistentSerialNum);
+			 ItemPointerToString(&persistentTid),
+			 persistentSerialNum);
 
 	/* update the pg_class row */
 	rd_rel->relfilenode = newrelfilenode;
@@ -1576,8 +1577,8 @@ setNewRelfilenodeToOid(Relation relation, TransactionId freezeXid, Oid newrelfil
 						newrelfilenode,
 						/* segmentFileNum */ 0,
 						/* updateIndex */ !is_gp_relation_node_index,
-						&relation->rd_segfile0_relationnodeinfo.persistentTid,
-						relation->rd_segfile0_relationnodeinfo.persistentSerialNum);
+						&persistentTid,
+						persistentSerialNum);
 
 	heap_freetuple(tuple);
 
