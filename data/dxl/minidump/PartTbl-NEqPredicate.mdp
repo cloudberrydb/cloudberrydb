@@ -5,7 +5,7 @@
       <dxl:EnumeratorConfig Id="0" PlanSamples="0" CostThreshold="0"/>
       <dxl:StatisticsConfig DampingFactorFilter="0.750000" DampingFactorJoin="0.010000" DampingFactorGroupBy="0.750000"/>
       <dxl:CTEConfig CTEInliningCutoff="0"/>
-      <dxl:TraceFlags Value="102,101013,103001"/>
+      <dxl:TraceFlags Value="102,101013,103001,103026"/>
     </dxl:OptimizerConfig>
     <dxl:Metadata SystemIds="0.GPDB">
       <dxl:Type Mdid="0.16.1.0" Name="bool" IsRedistributable="true" IsHashable="true" IsComposite="false" IsFixedLength="true" Length="1" PassByValue="true">
@@ -552,16 +552,12 @@
           <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>
         </dxl:PropagationExpression>
         <dxl:PrintableFilter>
-          <dxl:Or>
-            <dxl:Comparison ComparisonOperator="&lt;" OperatorMdid="0.97.1.0">
-              <dxl:Ident ColId="2" ColName="c" TypeMdid="0.23.1.0"/>
-              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2"/>
-            </dxl:Comparison>
-            <dxl:Comparison ComparisonOperator="&gt;" OperatorMdid="0.521.1.0">
-              <dxl:Ident ColId="2" ColName="c" TypeMdid="0.23.1.0"/>
-              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2"/>
-            </dxl:Comparison>
-          </dxl:Or>
+           <dxl:ArrayComp OperatorName="&lt;&gt;" OperatorMdid="0.518.1.0" OperatorType="All">
+             <dxl:Ident ColId="2" ColName="c" TypeMdid="0.23.1.0"/>
+             <dxl:Array ArrayType="0.1007.1.0" ElementType="0.23.1.0" MultiDimensional="false">
+               <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2"/>
+             </dxl:Array>
+           </dxl:ArrayComp>
         </dxl:PrintableFilter>
       </dxl:PartitionSelector>
       <dxl:DynamicTableScan PartIndexId="1">
