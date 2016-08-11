@@ -6,7 +6,7 @@
       <dxl:StatisticsConfig DampingFactorFilter="0.750000" DampingFactorJoin="0.010000" DampingFactorGroupBy="0.750000"/>
       <dxl:CTEConfig CTEInliningCutoff="0"/>
       <dxl:CostModelConfig CostModelType="1" SegmentsForCosting="2"/>
-      <dxl:TraceFlags Value="101013,102024,102025,102115,102116,102117,102119,102121,103001,103014,103015"/>
+      <dxl:TraceFlags Value="101013,102024,102025,102115,102116,102117,102119,102121,103001,103014,103015,103026"/>
     </dxl:OptimizerConfig>
     <dxl:Metadata SystemIds="0.GPDB">
       <dxl:GPDBScalarOp Mdid="0.518.1.0" Name="&lt;&gt;" ComparisonType="NEq" ReturnsNullOnNullInput="true">
@@ -801,16 +801,12 @@
           <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>
         </dxl:PropagationExpression>
         <dxl:PrintableFilter>
-          <dxl:Or>
-            <dxl:Comparison ComparisonOperator="&lt;" OperatorMdid="0.97.1.0">
-              <dxl:Ident ColId="0" ColName="c1" TypeMdid="0.23.1.0"/>
+          <dxl:ArrayComp OperatorName="&lt;&gt;" OperatorMdid="0.518.1.0" OperatorType="All">
+            <dxl:Ident ColId="0" ColName="c1" TypeMdid="0.23.1.0"/>
+            <dxl:Array ArrayType="0.1007.1.0" ElementType="0.23.1.0" MultiDimensional="false">
               <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="50"/>
-            </dxl:Comparison>
-            <dxl:Comparison ComparisonOperator="&gt;" OperatorMdid="0.521.1.0">
-              <dxl:Ident ColId="0" ColName="c1" TypeMdid="0.23.1.0"/>
-              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="50"/>
-            </dxl:Comparison>
-          </dxl:Or>
+            </dxl:Array>
+          </dxl:ArrayComp>
         </dxl:PrintableFilter>
       </dxl:PartitionSelector>
       <dxl:DynamicTableScan PartIndexId="1">
