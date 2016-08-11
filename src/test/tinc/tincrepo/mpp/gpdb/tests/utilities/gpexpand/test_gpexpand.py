@@ -496,19 +496,16 @@ class GPExpandTestCase(MPPTestCase, ScenarioTestCase):
     def construct_expansion_scenario(self):
 
         classlist = []
-        classlist.append('mpp.gpdb.tests.catalog.schema_topology.test_ST_DMLOverJoinsTest.DMLOverJoinsTest')
         classlist.append('mpp.gpdb.tests.catalog.schema_topology.test_ST_EnhancedTableFunctionTest.EnhancedTableFunctionTest')
         classlist.append('mpp.gpdb.tests.catalog.schema_topology.test_ST_OSSpecificSQLsTest.OSSpecificSQLsTest')
         classlist.append('mpp.gpdb.tests.catalog.schema_topology.test_ST_AllSQLsTest.AllSQLsTest')
         classlist.append('mpp.gpdb.tests.catalog.schema_topology.test_ST_GPFilespaceTablespaceTest.GPFilespaceTablespaceTest')
 
-        # removed check for helpfile 
-
         if self.run_workload:
             # Run expansion workload
             if self.use_parallel_expansion:
                 self.test_case_scenario.append(['%s.scenarios.workloads.test_run_workload.PreExpansionWorkloadTests.test_create_parallel_expansion_workload' %self.package_name])
-            elif self.duration_enabled or self.use_end_time:    
+            elif self.duration_enabled or self.use_end_time:
                 self.test_case_scenario.append(['%s.scenarios.workloads.test_run_workload.PreExpansionWorkloadTests.test_create_duration_workload' %self.package_name])
             elif self.ranks_enabled:
                 self.test_case_scenario.append(['%s.scenarios.workloads.test_run_workload.PreExpansionWorkloadTests.test_create_base_workload' %self.package_name])

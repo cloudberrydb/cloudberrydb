@@ -34,24 +34,23 @@ class CrashRecoverySchemaTopologyTestCase(ScenarioTestCase):
         db.setupDatabase('gptest')
         #Run setup class which creates database componets, filespaces etc.
         test_ST_GPFilespaceTablespaceTest.GPFilespaceTablespaceTest.setUpClass()
-        
+
     def execute_individual_tests(self):
         '''
-        This test runs the five schema topology tests from classlist. Each of these five tests has a number of sql files. 
-        tloader.loadTestsFromName creates test methods for individual sql files. 
+        This test runs four schema topology tests from classlist. Each of these four tests has a number of sql files.
+        tloader.loadTestsFromName creates test methods for individual sql files.
         For each sql file in each test case we first run the suspend check point fault injector, next we run the test method gerenrated earlier
         finally we run checks.
         '''
 
         classlist = []
-        classlist.append('mpp.gpdb.tests.catalog.schema_topology.test_ST_DMLOverJoinsTest.DMLOverJoinsTest')
         classlist.append('mpp.gpdb.tests.catalog.schema_topology.test_ST_EnhancedTableFunctionTest.EnhancedTableFunctionTest')
         classlist.append('mpp.gpdb.tests.catalog.schema_topology.test_ST_OSSpecificSQLsTest.OSSpecificSQLsTest')
         classlist.append('mpp.gpdb.tests.catalog.schema_topology.test_ST_AllSQLsTest.AllSQLsTest')
         classlist.append('mpp.gpdb.tests.catalog.schema_topology.test_ST_GPFilespaceTablespaceTest.GPFilespaceTablespaceTest')
 
         for classname in classlist:
-            
+
             tinctest.logger.info("\n\nrunning the test")
             tloader = TINCTestLoader()
             tests = tloader.loadTestsFromName(name=classname)
@@ -60,16 +59,16 @@ class CrashRecoverySchemaTopologyTestCase(ScenarioTestCase):
             test_list_2 = []
             test_list_2.append('mpp.gpdb.tests.storage.crashrecovery.SuspendCheckpointCrashRecovery.run_fault_injector_to_skip_checkpoint')
             self.test_case_scenario.append(test_list_2)
- 
+
             for test in tests:
                 testname = '%s.%s.%s' %(test.__class__.__module__, test.__class__.__name__, test._testMethodName)
                 tinctest.logger.info(testname)
-    
+
                 test_list_3 = []
                 test_list_3.append(testname)
                 self.test_case_scenario.append(test_list_3)
                 tinctest.logger.info(testname)
-    
+
             test_list_4 = []
             test_list_4.append('mpp.gpdb.tests.storage.crashrecovery.SuspendCheckpointCrashRecovery.do_post_run_checks')
             self.test_case_scenario.append(test_list_4)

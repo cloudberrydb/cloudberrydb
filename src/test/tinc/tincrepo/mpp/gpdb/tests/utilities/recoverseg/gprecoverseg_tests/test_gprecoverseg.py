@@ -156,12 +156,9 @@ class GprecoversegTest(ScenarioTestCase):
         test_case_list3.append('mpp.gpdb.tests.catalog.schema_topology.test_ST_GPFilespaceTablespaceTest.GPFilespaceTablespaceTest')
         self.test_case_scenario.append(test_case_list3)
         test_case_list4 = []
-        test_case_list4.append('mpp.gpdb.tests.catalog.schema_topology.test_ST_DMLOverJoinsTest.DMLOverJoinsTest')
+        test_case_list4.append('mpp.gpdb.tests.catalog.schema_topology.test_ST_EnhancedTableFunctionTest.EnhancedTableFunctionTest')
         self.test_case_scenario.append(test_case_list4)
-        test_case_list5 = []
-        test_case_list5.append('mpp.gpdb.tests.catalog.schema_topology.test_ST_EnhancedTableFunctionTest.EnhancedTableFunctionTest')
-        self.test_case_scenario.append(test_case_list5)
-         
+
 
     def test_gprecoverseg_config_validation(self):
         """
