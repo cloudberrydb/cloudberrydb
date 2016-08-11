@@ -10,7 +10,7 @@ BLD_TOP := $(shell sh -c pwd)
 include make/gpo.mk
 
 LIB_NAME = optimizer
-LIB_VERSION = 1.658
+LIB_VERSION = 1.659
 ## ----------------------------------------------------------------------
 ## top level variables; only used in this makefile
 ## ----------------------------------------------------------------------
