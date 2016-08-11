@@ -3108,8 +3108,7 @@ CPredicateUtils::FCompatibleIndexPredicate
 		CScalarCmp *popScCmp = CScalarCmp::PopConvert(pexprPred->Pop());
 		pmdobjScCmp = pmda->Pmdscop(popScCmp->PmdidOp());
 	}
-	else if (COperator::EopScalarArrayCmp == pexprPred->Pop()->Eopid() &&
-			IMDIndex::EmdindBitmap == pmdindex->Emdindt())
+	else if (COperator::EopScalarArrayCmp == pexprPred->Pop()->Eopid())
 	{
 		CScalarArrayCmp *popScArrCmp = CScalarArrayCmp::PopConvert(pexprPred->Pop());
 		pmdobjScCmp = pmda->Pmdscop(popScArrCmp->PmdidOp());
