@@ -64,7 +64,7 @@ AlterTableCreateAoVisimapTableWithOid(Oid relOid, Oid newOid, Oid newIndexOid,
 					   -1, 0);
 	TupleDescInitEntry(tupdesc, (AttrNumber) 3,
 					   "visimap",
-					   VARBITOID,
+					   BYTEAOID,
 					   -1, 0);
 
 	/*
