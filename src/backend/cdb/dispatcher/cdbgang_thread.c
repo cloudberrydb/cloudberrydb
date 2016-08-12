@@ -52,7 +52,7 @@ typedef struct DoConnectParms
 static DoConnectParms *makeConnectParms(int parmsCount, GangType type, int gangId);
 static void destroyConnectParms(DoConnectParms *doConnectParmsAr, int count);
 static void *thread_DoConnect(void *arg);
-static void checkConnectionStatus(Gang* gp, int* countInRecovery, int* countSuccessful);
+static void checkConnectionStatus(Gang* gp, int* countInRecovery, int* countSuccessful, struct PQExpBufferData* errorMessage);
 static Gang *createGang_thread(GangType type, int gang_id, int size, int content);
 
 CreateGangFunc pCreateGangFuncThreaded = createGang_thread;
@@ -76,6 +76,8 @@ createGang_thread(GangType type, int gang_id, int size, int content)
 	int in_recovery_mode_count = 0;
 	int successful_connections = 0;
 
+	PQExpBufferData create_gang_error;
+
 	ELOG_DISPATCHER_DEBUG("createGang type = %d, gang_id = %d, size = %d, content = %d",
 			type, gang_id, size, content);
 
@@ -85,6 +87,18 @@ createGang_thread(GangType type, int gang_id, int size, int content)
 	Assert(CurrentMemoryContext == GangContext);
 	Assert(gp_connections_per_thread > 0);
 
+	/* Writer gang is created before reader gangs. */
+	if (type == GANGTYPE_PRIMARY_WRITER)
+		Insist(!gangsExist());
+
+	/* Check writer gang firstly*/
+	if (type != GANGTYPE_PRIMARY_WRITER && !isPrimaryWriterGangAlive())
+		ereport(ERROR, (errcode(ERRCODE_GP_INTERCONNECTION_ERROR),
+						errmsg("failed to create gang on one or more segments"),
+						errdetail("writer gang got broken before creating reader gangs")));
+
+	initPQExpBuffer(&create_gang_error);
+
 create_gang_retry:
 	/* If we're in a retry, we may need to reset our initial state, a bit */
 	newGangDefinition = NULL;
@@ -93,13 +107,6 @@ create_gang_retry:
 	in_recovery_mode_count = 0;
 	threadCount = 0;
 
-	/* Check the writer gang first. */
-	if (type != GANGTYPE_PRIMARY_WRITER && !isPrimaryWriterGangAlive())
-	{
-		elog(LOG, "primary writer gang is broken");
-		goto exit;
-	}
-
 	/* allocate and initialize a gang structure */
 	newGangDefinition = buildGangDefinition(type, gang_id, size, content);
 	Assert(newGangDefinition != NULL);
@@ -107,6 +114,7 @@ create_gang_retry:
 	Assert(newGangDefinition->perGangContext != NULL);
 	MemoryContextSwitchTo(newGangDefinition->perGangContext);
 
+	resetPQExpBuffer(&create_gang_error);
 	/*
 	 * The most threads we could have is segdb_count / gp_connections_per_thread, rounded up.
 	 * This is equivalent to 1 + (segdb_count-1) / gp_connections_per_thread.
@@ -179,7 +187,7 @@ create_gang_retry:
 
 	/* find out the successful connections and the failed ones */
 	checkConnectionStatus(newGangDefinition, &in_recovery_mode_count,
-			&successful_connections);
+			&successful_connections, &create_gang_error);
 
 	ELOG_DISPATCHER_DEBUG("createGang: %d processes requested; %d successful connections %d in recovery",
 			size, successful_connections, in_recovery_mode_count);
@@ -189,65 +197,60 @@ create_gang_retry:
 	if (size == successful_connections)
 	{
 		setLargestGangsize(size);
+		termPQExpBuffer(&create_gang_error);
 		return newGangDefinition;
 	}
 
 	/* there'er failed connections */
 
-	/*
-	 * If this is a reader gang and the writer gang is invalid, destroy all gangs.
-	 * This happens when one segment is reset.
-	 */
-	if (type != GANGTYPE_PRIMARY_WRITER && !isPrimaryWriterGangAlive())
-	{
-		elog(LOG, "primary writer gang is broken");
-		goto exit;
-	}
-
 	/* FTS shows some segment DBs are down, destroy all gangs. */
 	if (isFTSEnabled() &&
 		FtsTestSegmentDBIsDown(newGangDefinition->db_descriptors, size))
 	{
-		elog(LOG, "FTS detected some segments are down");
+		appendPQExpBuffer(&create_gang_error, "FTS detected one or more segments are down\n");
 		goto exit;
 	}
 
-	/* Writer gang is created before reader gangs. */
-	if (type == GANGTYPE_PRIMARY_WRITER)
-		Insist(!gangsExist());
-
-	/*
-	 * Retry when any of the following condition is met:
-	 * 1) This is the writer gang.
-	 * 2) This is the first reader gang.
-	 * 3) All failed segments are in recovery mode.
-	 */
-	if(gp_gang_creation_retry_count &&
-	   create_gang_retry_counter++ < gp_gang_creation_retry_count &&
-	   (type == GANGTYPE_PRIMARY_WRITER ||
-	    !readerGangsExist() ||
-	    successful_connections + in_recovery_mode_count == size))
+	/* failure due to recovery*/
+	if (successful_connections + in_recovery_mode_count == size)
 	{
-		disconnectAndDestroyGang(newGangDefinition);
-		newGangDefinition = NULL;
+		if (gp_gang_creation_retry_count &&
+			create_gang_retry_counter++ < gp_gang_creation_retry_count &&
+			type == GANGTYPE_PRIMARY_WRITER)
+		{
+			/*
+			 * Retry for non-writer gangs is meaningless because
+			 * writer gang must has gone when QE is in recovery mode
+			 */
+			disconnectAndDestroyGang(newGangDefinition);
+			newGangDefinition = NULL;
+	
+			ELOG_DISPATCHER_DEBUG("createGang: gang creation failed, but retryable.");
+	
+			CHECK_FOR_INTERRUPTS();
+			pg_usleep(gp_gang_creation_retry_timer * 1000);
+			CHECK_FOR_INTERRUPTS();
+	
+			goto create_gang_retry;
+		}
 
-		ELOG_DISPATCHER_DEBUG("createGang: gang creation failed, but retryable.");
-
-		CHECK_FOR_INTERRUPTS();
-		pg_usleep(gp_gang_creation_retry_timer * 1000);
-		CHECK_FOR_INTERRUPTS();
-
-		goto create_gang_retry;
+		appendPQExpBuffer(&create_gang_error, "segments is in recovery mode\n");
 	}
-
+	
 exit:
 	if(newGangDefinition != NULL)
 		disconnectAndDestroyGang(newGangDefinition);
 
-	disconnectAndDestroyAllGangs(true);
-	CheckForResetSession();
+	if (type == GANGTYPE_PRIMARY_WRITER)
+	{
+		disconnectAndDestroyAllGangs(true);
+		CheckForResetSession();
+	}
+
 	ereport(ERROR,
-			(errcode(ERRCODE_GP_INTERCONNECTION_ERROR), errmsg("failed to acquire resources on one or more segments")));
+			(errcode(ERRCODE_GP_INTERCONNECTION_ERROR),
+			 errmsg("failed to acquire resources on one or more segments"),
+			 errdetail("%s", create_gang_error.data)));
 	return NULL;
 }
 
@@ -359,7 +362,7 @@ static void destroyConnectParms(DoConnectParms *doConnectParmsAr, int count)
  * the count of failed connections due to recovery.
  */
 static void
-checkConnectionStatus(Gang* gp, int* countInRecovery, int* countSuccessful)
+checkConnectionStatus(Gang* gp, int* countInRecovery, int* countSuccessful, struct PQExpBufferData* errorMessage)
 {
 	SegmentDatabaseDescriptor* segdbDesc = NULL;
 	int size = gp->size;
@@ -376,7 +379,7 @@ checkConnectionStatus(Gang* gp, int* countInRecovery, int* countSuccessful)
 		 * check connection established or not, if not, we may have to
 		 * re-build this gang.
 		 */
-		if (cdbconn_isBadConnection(segdbDesc))
+		if (segdbDesc->errcode && segdbDesc->error_message.len > 0)
 		{
 			/*
 			 * Log failed connections.	Complete failures
@@ -389,11 +392,19 @@ checkConnectionStatus(Gang* gp, int* countInRecovery, int* countSuccessful)
 					"connection is null, but no error code or error message, for segDB %d", i);
 
 			ereport(LOG, (errcode(segdbDesc->errcode), errmsg("%s",segdbDesc->error_message.data)));
-			cdbconn_resetQEErrorMessage(segdbDesc);
 
 			/* this connect failed -- but why ? */
-			if (segment_failure_due_to_recovery(segdbDesc))
+			if (segment_failure_due_to_recovery(&segdbDesc->error_message))
+			{
+				elog(LOG, "segment is in recovery mode (%s)", segdbDesc->whoami);
 				(*countInRecovery)++;
+			}
+			else
+			{
+				appendPQExpBuffer(errorMessage, "%s (%s)\n", segdbDesc->error_message.data, segdbDesc->whoami);	
+			}
+
+			cdbconn_resetQEErrorMessage(segdbDesc);
 		}
 		else
 		{
