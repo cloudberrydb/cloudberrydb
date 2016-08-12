@@ -1387,7 +1387,7 @@ adjust_relid_set(Relids relids, Index oldrelid, Index newrelid)
  * Note that this is not needed for INSERT because INSERT isn't inheritable.
  */
 static List *
-adjust_inherited_tlist(List *tlist, AppendRelInfo *apprelinfo)
+adjust_inherited_tlist(List *tlist, AppendRelInfo *context)
 {
 	bool		changed_it = false;
 	ListCell   *tl;
@@ -1396,7 +1396,7 @@ adjust_inherited_tlist(List *tlist, AppendRelInfo *apprelinfo)
 	int			attrno;
 
 	/* This should only happen for an inheritance case, not UNION ALL */
-	Assert(OidIsValid(apprelinfo->parent_reloid));
+	Assert(OidIsValid(context->parent_reloid));
 
 	/* Scan tlist and update resnos to match attnums of child rel */
 	foreach(tl, tlist)
@@ -1409,13 +1409,13 @@ adjust_inherited_tlist(List *tlist, AppendRelInfo *apprelinfo)
 
 		/* Look up the translation of this column */
 		if (tle->resno <= 0 ||
-			tle->resno > list_length(apprelinfo->col_mappings))
+			tle->resno > list_length(context->col_mappings))
 			elog(ERROR, "attribute %d of relation \"%s\" does not exist",
-				 tle->resno, get_rel_name(apprelinfo->parent_reloid));
-		newattno = list_nth_int(apprelinfo->col_mappings, tle->resno - 1);
+				 tle->resno, get_rel_name(context->parent_reloid));
+		newattno = list_nth_int(context->col_mappings, tle->resno - 1);
 		if (newattno <= 0)
 			elog(ERROR, "attribute %d of relation \"%s\" does not exist",
-				 tle->resno, get_rel_name(apprelinfo->parent_reloid));
+				 tle->resno, get_rel_name(context->parent_reloid));
 
 		if (tle->resno != newattno)
 		{
