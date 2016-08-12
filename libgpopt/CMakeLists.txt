@@ -202,8 +202,6 @@ add_library(gpopt
             src/base/CReqdPropRelational.cpp
             include/gpopt/base/CRewindabilitySpec.h
             src/base/CRewindabilitySpec.cpp
-            include/gpopt/base/CStatsEquivClass.h
-            src/base/CStatsEquivClass.cpp
             include/gpopt/base/CUtils.h
             src/base/CUtils.cpp
             include/gpopt/base/CWindowFrame.h

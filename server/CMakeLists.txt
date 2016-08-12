@@ -140,8 +140,6 @@ add_executable(gporca_test
                src/unittest/gpopt/base/CStateMachineTest.cpp
                include/unittest/gpopt/base/CColRefSetIterTest.h
                src/unittest/gpopt/base/CColRefSetIterTest.cpp
-               include/unittest/gpopt/base/CStatsEquivClassTest.h
-               src/unittest/gpopt/base/CStatsEquivClassTest.cpp
                include/unittest/gpopt/base/CColRefSetTest.h
                src/unittest/gpopt/base/CColRefSetTest.cpp
                include/unittest/gpopt/base/CFunctionalDependencyTest.h
@@ -237,7 +235,6 @@ add_orca_test(CColumnFactoryTest)
 add_orca_test(CColRefSetIterTest)
 add_orca_test(CColRefSetTest)
 add_orca_test(CConstraintTest)
-add_orca_test(CStatsEquivClassTest)
 add_orca_test(CContradictionTest)
 add_orca_test(CCorrelatedExecutionTest)
 add_orca_test(CDecorrelatorTest)

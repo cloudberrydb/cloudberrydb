@@ -57,7 +57,6 @@
 #include "unittest/gpopt/base/COrderSpecTest.h"
 #include "unittest/gpopt/base/CRangeTest.h"
 #include "unittest/gpopt/base/CConstraintTest.h"
-#include "unittest/gpopt/base/CStatsEquivClassTest.h"
 #include "unittest/gpopt/engine/CEngineTest.h"
 #include "unittest/gpopt/engine/CEnumeratorTest.h"
 
@@ -171,7 +170,6 @@ static gpos::CUnittest rgut[] =
 	GPOS_UNITTEST_STD(CColRefSetIterTest),
 	GPOS_UNITTEST_STD(CColRefSetTest),
 	GPOS_UNITTEST_STD(CConstraintTest),
-	GPOS_UNITTEST_STD(CStatsEquivClassTest),
 	GPOS_UNITTEST_STD(CContradictionTest),
 	GPOS_UNITTEST_STD(CCorrelatedExecutionTest),
 	GPOS_UNITTEST_STD(CDecorrelatorTest),
