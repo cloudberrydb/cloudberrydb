@@ -34,6 +34,15 @@ namespace gpopt
 			virtual CEnfdProp::EPropEnforcingType
 			EpetDistribution(CExpressionHandle &exprhdl, const CEnfdDistribution *ped) const;
 
+			virtual
+			CEnfdDistribution::EDistributionMatching Edm
+				(
+				CReqdPropPlan *, // prppInput
+				ULONG,  // ulChildIndex
+				DrgPdp *, //pdrgpdpCtxt
+				ULONG // ulOptReq
+				);
+
 			virtual ~CPhysicalParallelUnionAll();
 	};
 }

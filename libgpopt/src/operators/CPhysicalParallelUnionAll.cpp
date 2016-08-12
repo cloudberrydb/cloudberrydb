@@ -66,6 +66,18 @@ namespace gpopt
 		return pdsChild;
 	}
 
+	CEnfdDistribution::EDistributionMatching
+	CPhysicalParallelUnionAll::Edm
+		(
+		CReqdPropPlan *, // prppInput
+		ULONG,  // ulChildIndex
+		DrgPdp *, //pdrgpdpCtxt
+		ULONG // ulOptReq
+		)
+	{
+		return CEnfdDistribution::EdmExact;
+	}
+
 	CPhysicalParallelUnionAll::~CPhysicalParallelUnionAll()
 	{
 		m_pdrgpds->Release();

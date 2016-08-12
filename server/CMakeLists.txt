@@ -221,7 +221,7 @@ add_orca_test(CPartTblTest)
 add_orca_test(CBitmapTest)
 add_orca_test(CCTETest)
 add_orca_test(CEscapeMechanismTest)
-
+add_orca_test(CPhysicalParallelUnionAllTest)
 add_orca_test(CMinidumpWithConstExprEvaluatorTest)
 add_orca_test(CParseHandlerManagerTest)
 add_orca_test(CParseHandlerTest)

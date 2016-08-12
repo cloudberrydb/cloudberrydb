@@ -1329,4 +1329,26 @@ CPhysical::FUnaryUsesDefinedColumns
 	return !pcrs->FDisjoint(exprhdl.Pdpscalar(1)->PcrsDefined());
 }
 
+CEnfdDistribution::EDistributionMatching
+CPhysical::Edm(CReqdPropPlan *, ULONG , DrgPdp *, ULONG)
+{
+	// by default, request distribution satisfaction
+	return CEnfdDistribution::EdmSatisfy;
+}
+
+CEnfdOrder::EOrderMatching
+CPhysical::Eom(CReqdPropPlan *, ULONG , DrgPdp *, ULONG)
+{
+	// request satisfaction by default
+	return CEnfdOrder::EomSatisfy;
+}
+
+CEnfdRewindability::ERewindabilityMatching
+CPhysical::Erm(CReqdPropPlan *, ULONG , DrgPdp *, ULONG)
+{
+	// request satisfaction by default
+	return CEnfdRewindability::ErmSatisfy;
+}
+
+
 // EOF

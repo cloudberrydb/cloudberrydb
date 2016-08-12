@@ -577,44 +577,32 @@ namespace gpopt
 			virtual
 			CEnfdDistribution::EDistributionMatching Edm
 				(
-				CReqdPropPlan *, // prppInput
-				ULONG,  // ulChildIndex
-				DrgPdp *, //pdrgpdpCtxt
-				ULONG // ulOptReq
-				)
-			{
-				// by default, request distribution satisfaction
-				return CEnfdDistribution::EdmSatisfy;
-			}
+				CReqdPropPlan *prppInput,
+				ULONG ulChildIndex,
+				DrgPdp *pdrgpdpCtxt,
+				ULONG ulOptReq
+				);
 
 			// order matching type
 			virtual
 			CEnfdOrder::EOrderMatching Eom
 				(
-				CReqdPropPlan *, // prppInput
-				ULONG,  // ulChildIndex
-				DrgPdp *, //pdrgpdpCtxt
-				ULONG // ulOptReq
-				)
-			{
-				// request satisfaction by default
-				return CEnfdOrder::EomSatisfy;
-			}
+				CReqdPropPlan *prppInput,
+				ULONG ulChildIndex,
+				DrgPdp *pdrgpdpCtxt,
+				ULONG ulOptReq
+				);
 			
 			// rewindability matching type
 			virtual
 			CEnfdRewindability::ERewindabilityMatching Erm
 				(
-				CReqdPropPlan *, // prppInput
-				ULONG,  // ulChildIndex
-				DrgPdp *, //pdrgpdpCtxt
-				ULONG // ulOptReq
-				)
-			{
-				// request satisfaction by default
-				return CEnfdRewindability::ErmSatisfy;
-			}
-			
+				CReqdPropPlan *prppInput,
+				ULONG ulChildIndex,
+				DrgPdp *pdrgpdpCtxt,
+				ULONG ulOptReq
+				);
+
 			// check if optimization contexts is valid
 			virtual
 			BOOL FValidContext

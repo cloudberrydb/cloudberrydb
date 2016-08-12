@@ -15,6 +15,8 @@ static ULONG ulCounter = 0;
 static const CHAR *rgszFileNames[] =
 	{
 		"../data/dxl/minidump/CPhysicalParallelUnionAllTest/TwoHashedTables.mdp",
+		"../data/dxl/minidump/CPhysicalParallelUnionAllTest/ParallelUnion-Insert.mdp",
+		"../data/dxl/minidump/CPhysicalParallelUnionAllTest/ParallelUnion-ConstTable.mdp",
 	};
 
 namespace gpopt
