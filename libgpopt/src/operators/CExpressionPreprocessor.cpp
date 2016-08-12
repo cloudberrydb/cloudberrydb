@@ -582,24 +582,32 @@ CExpressionPreprocessor::PexprScalarBoolOpConvert2In
 BOOL
 CExpressionPreprocessor::FConvert2InIsConvertable(CExpression *pexpr, CScalarBoolOp::EBoolOperator eboolopParent)
 {
+	bool fConvertableExpression = false;
 	if (CPredicateUtils::FCompareIdentToConst(pexpr))
 	{
-		if (IMDType::EcmptEq == CScalarCmp::PopConvert(pexpr->Pop())->Ecmpt() &&
-				CScalarBoolOp::EboolopOr == eboolopParent)
-		{
-			return true;
-		}
-		else if (IMDType::EcmptNEq == CScalarCmp::PopConvert(pexpr->Pop())->Ecmpt() &&
-				CScalarBoolOp::EboolopAnd == eboolopParent)
-		{
-			return true;
-		}
+		fConvertableExpression |=
+				IMDType::EcmptEq == CScalarCmp::PopConvert(pexpr->Pop())->Ecmpt() &&
+					CScalarBoolOp::EboolopOr == eboolopParent;
+		fConvertableExpression |=
+				IMDType::EcmptNEq == CScalarCmp::PopConvert(pexpr->Pop())->Ecmpt() &&
+					CScalarBoolOp::EboolopAnd == eboolopParent;
 	}
 	else if (CPredicateUtils::FCompareIdentToConstArray(pexpr))
 	{
-		return true;
+		fConvertableExpression = true;
 	}
-	return false;
+
+	if (fConvertableExpression)
+	{
+		GPOS_ASSERT(0 < pexpr->UlArity());
+		CScalarIdent *pscid = CScalarIdent::PopConvert((*pexpr)[0]->Pop());
+		if (!CUtils::FConstrainableType(pscid->PmdidType()))
+		{
+			fConvertableExpression = false;
+		}
+	}
+
+	return fConvertableExpression;
 }
 
 //---------------------------------------------------------------------------
@@ -658,6 +666,8 @@ CExpressionPreprocessor::PexprConvert2In
 			pop->AddRef();
 			CAutoRef<CExpression> apexprPreCollapse(GPOS_NEW(pmp) CExpression(pmp, pop, pdrgpexprCollapse));
 			CAutoRef<CConstraint> apcnst(CConstraint::PcnstrFromScalarExpr(pmp, apexprPreCollapse.Pt(), &pdrgpcr));
+
+			GPOS_ASSERT(NULL != apcnst.Pt());
 			CExpression *pexprPostCollapse = apcnst->PexprScalar(pmp);
 
 			pexprPostCollapse->AddRef();
