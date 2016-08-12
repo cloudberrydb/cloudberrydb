@@ -10034,82 +10034,65 @@ drop table canSetTag_input_data;
 -- Test B-Tree index scan with in list
 CREATE TABLE btree_test as SELECT * FROM generate_series(1,100) as a distributed randomly;
 CREATE INDEX btree_test_index ON btree_test(a);
-EXPLAIN SELECT * FROM btree_test WHERE a in (select 1);
-                                          QUERY PLAN                                           
------------------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..2.00 rows=1 width=4)
-   ->  Nested Loop  (cost=0.00..2.00 rows=1 width=4)
-         Join Filter: true
-         ->  Result  (cost=0.00..0.00 rows=1 width=4)
-               ->  Result  (cost=0.00..0.00 rows=1 width=1)
-         ->  Index Scan using btree_test_index on btree_test  (cost=0.00..2.00 rows=1 width=4)
-               Index Cond: btree_test.a = (1)
- Settings:  optimizer=on; optimizer_metadata_caching=on
- Optimizer status: PQO version 1.647
-(9 rows)
-
 EXPLAIN SELECT * FROM btree_test WHERE a in (1, 47);
-                                       QUERY PLAN                                        
------------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..6.00 rows=3 width=4)
-   ->  Index Scan using btree_test_index on btree_test  (cost=0.00..6.00 rows=1 width=4)
-         Index Cond: a = ANY ('{1,47}'::integer[])
+                                 QUERY PLAN                                 
+----------------------------------------------------------------------------
+ Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..4.25 rows=2 width=4)
+   ->  Seq Scan on btree_test  (cost=0.00..4.25 rows=1 width=4)
+         Filter: a = ANY ('{1,47}'::integer[])
  Settings:  optimizer=on; optimizer_metadata_caching=on
- Optimizer status: PQO version 1.647
+ Optimizer status: legacy query optimizer
 (5 rows)
 
 EXPLAIN SELECT * FROM btree_test WHERE a in ('2', 47);
-                                       QUERY PLAN                                        
------------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..6.00 rows=3 width=4)
-   ->  Index Scan using btree_test_index on btree_test  (cost=0.00..6.00 rows=1 width=4)
-         Index Cond: a = ANY ('{2,47}'::integer[])
+                                 QUERY PLAN                                 
+----------------------------------------------------------------------------
+ Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..4.25 rows=2 width=4)
+   ->  Seq Scan on btree_test  (cost=0.00..4.25 rows=1 width=4)
+         Filter: a = ANY ('{2,47}'::integer[])
  Settings:  optimizer=on; optimizer_metadata_caching=on
- Optimizer status: PQO version 1.647
+ Optimizer status: legacy query optimizer
 (5 rows)
 
 EXPLAIN SELECT * FROM btree_test WHERE a in ('1', '2');
-                                       QUERY PLAN                                        
------------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..6.00 rows=3 width=4)
-   ->  Index Scan using btree_test_index on btree_test  (cost=0.00..6.00 rows=1 width=4)
-         Index Cond: a = ANY ('{1,2}'::integer[])
+                                 QUERY PLAN                                 
+----------------------------------------------------------------------------
+ Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..4.25 rows=2 width=4)
+   ->  Seq Scan on btree_test  (cost=0.00..4.25 rows=1 width=4)
+         Filter: a = ANY ('{1,2}'::integer[])
  Settings:  optimizer=on; optimizer_metadata_caching=on
- Optimizer status: PQO version 1.647
+ Optimizer status: legacy query optimizer
 (5 rows)
 
 EXPLAIN SELECT * FROM btree_test WHERE a in ('1', '2', 47);
-                                       QUERY PLAN                                        
------------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..8.00 rows=4 width=4)
-   ->  Index Scan using btree_test_index on btree_test  (cost=0.00..8.00 rows=2 width=4)
-         Index Cond: a = ANY ('{1,2,47}'::integer[])
+                                 QUERY PLAN                                 
+----------------------------------------------------------------------------
+ Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..4.38 rows=3 width=4)
+   ->  Seq Scan on btree_test  (cost=0.00..4.38 rows=1 width=4)
+         Filter: a = ANY ('{1,2,47}'::integer[])
  Settings:  optimizer=on; optimizer_metadata_caching=on
- Optimizer status: PQO version 1.647
+ Optimizer status: legacy query optimizer
 (5 rows)
 
 -- Test Bitmap index scan with in list
 CREATE TABLE bitmap_test as SELECT * FROM generate_series(1,100) as a distributed randomly;
 CREATE INDEX bitmap_index ON bitmap_test USING BITMAP(a);
--- The following query should fall back to planner. 
--- Update the result file when this has been fixed in ORCA.
 EXPLAIN SELECT * FROM bitmap_test WHERE a in (select 1);
-                                           QUERY PLAN                                            
--------------------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice2; segments: 3)  (cost=0.07..4.38 rows=7 width=4)
-   ->  Hash Join  (cost=0.07..4.38 rows=3 width=4)
-         Hash Cond: bitmap_test.a = (1)
-         ->  Seq Scan on bitmap_test  (cost=0.00..4.00 rows=34 width=4)
-         ->  Hash  (cost=0.05..0.05 rows=1 width=4)
-               ->  Broadcast Motion 1:3  (slice1; segments: 1)  (cost=0.02..0.05 rows=1 width=4)
-                     ->  HashAggregate  (cost=0.02..0.03 rows=1 width=4)
-                           Group By: 1
-                           ->  Result  (cost=0.00..0.01 rows=1 width=0)
+                                      QUERY PLAN                                       
+---------------------------------------------------------------------------------------
+ Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..0.05 rows=100 width=4)
+   ->  Nested Loop  (cost=0.00..0.04 rows=34 width=4)
+         Join Filter: true
+         ->  Result  (cost=0.00..0.00 rows=1 width=4)
+               ->  Result  (cost=0.00..0.00 rows=1 width=1)
+         ->  Bitmap Table Scan on bitmap_test  (cost=0.00..0.04 rows=1 width=4)
+               Recheck Cond: bitmap_test.a = (1)
+               ->  Bitmap Index Scan on bitmap_index  (cost=0.00..0.00 rows=0 width=0)
+                     Index Cond: bitmap_test.a = (1)
  Settings:  optimizer=on; optimizer_metadata_caching=on
- Optimizer status: legacy query optimizer
+ Optimizer status: PQO version 1.658
 (11 rows)
 
--- The following queries should work without falling back to planner.
 EXPLAIN SELECT * FROM bitmap_test WHERE a in (1, 47);
                                    QUERY PLAN                                    
 ---------------------------------------------------------------------------------
