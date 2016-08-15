@@ -5,7 +5,7 @@
       <dxl:EnumeratorConfig Id="0" PlanSamples="0" CostThreshold="0"/>
       <dxl:StatisticsConfig DampingFactorFilter="0.750000" DampingFactorJoin="0.010000" DampingFactorGroupBy="0.750000"/>
       <dxl:CTEConfig CTEInliningCutoff="0"/>
-      <dxl:TraceFlags Value="102007,103001"/>
+      <dxl:TraceFlags Value="102007,103001,103026"/>
     </dxl:OptimizerConfig>
     <dxl:Metadata SystemIds="0.GPDB">
       <dxl:Type Mdid="0.20.1.0" Name="Int8" IsRedistributable="true" IsHashable="true" IsComposite="false" IsFixedLength="true" Length="8" PassByValue="true">
@@ -427,7 +427,7 @@
         </dxl:LogicalGet>
       </dxl:LogicalSelect>
     </dxl:Query>
-<dxl:Plan Id="0" SpaceSize="281662">
+<dxl:Plan Id="0" SpaceSize="281382">
   <dxl:GatherMotion InputSegments="0,1" OutputSegments="-1">
     <dxl:Properties>
       <dxl:Cost StartupCost="0" TotalCost="16.184570" Rows="1.000000" Width="8"/>
@@ -607,10 +607,12 @@
                     </dxl:ProjElem>
                   </dxl:ProjList>
                   <dxl:Filter>
-                    <dxl:Comparison ComparisonOperator="&lt;&gt;" OperatorMdid="0.518.1.0">
+                    <dxl:ArrayComp OperatorName="&lt;&gt;" OperatorMdid="0.518.1.0" OperatorType="All">
                       <dxl:Ident ColId="27" ColName="i" TypeMdid="0.23.1.0"/>
-                      <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="10"/>
-                    </dxl:Comparison>
+                      <dxl:Array ArrayType="0.1007.1.0" ElementType="0.23.1.0" MultiDimensional="false">
+                        <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="10"/>
+                      </dxl:Array>
+                    </dxl:ArrayComp>
                   </dxl:Filter>
                   <dxl:TableDescriptor Mdid="0.1159322.1.1" TableName="c">
                     <dxl:Columns>

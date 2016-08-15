@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <dxl:DXLMessage xmlns:dxl="http://greenplum.com/dxl/2010/12/">
 <!--
-TPCDS SQL: 
-select item.i_item_id, item.i_item_desc, item.i_current_price 
-from item, store_sales 
-where ss_item_sk=i_item_sk and  i_current_price &gt= 62::numeric AND i_current_price &lt= 92::numeric AND (i_manufact_id = ANY (ARRAY[129, 270, 821, 423]))  
+TPCDS SQL:
+select item.i_item_id, item.i_item_desc, item.i_current_price
+from item, store_sales
+where ss_item_sk=i_item_sk and  i_current_price &gt= 62::numeric AND i_current_price &lt= 92::numeric AND (i_manufact_id = ANY (ARRAY[129, 270, 821, 423]))
 group  by item.i_item_id, item.i_item_desc, item.i_current_price;
 -->
   <dxl:Thread Id="0">
@@ -12,7 +12,7 @@ group  by item.i_item_id, item.i_item_desc, item.i_current_price;
       <dxl:EnumeratorConfig Id="0" PlanSamples="0" CostThreshold="0"/>
       <dxl:StatisticsConfig DampingFactorFilter="0.750000" DampingFactorJoin="0.010000" DampingFactorGroupBy="0.750000"/>
       <dxl:CTEConfig CTEInliningCutoff="0"/>
-      <dxl:TraceFlags Value="102024,102025,102115,102116,102117,102119,102121,103001"/>
+      <dxl:TraceFlags Value="102024,102025,102115,102116,102117,102119,102121,103001,103026"/>
     </dxl:OptimizerConfig>
     <dxl:Metadata SystemIds="0.GPDB">
       <dxl:RelationStatistics Mdid="2.25472.1.1" Name="store_sales" Rows="737331968.000000" EmptyRelation="false"/>
@@ -11096,8 +11096,8 @@ group  by item.i_item_id, item.i_item_desc, item.i_current_price;
                       <dxl:Array ArrayType="0.1007.1.0" ElementType="0.23.1.0" MultiDimensional="false">
                         <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="129"/>
                         <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="270"/>
-                        <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="821"/>
                         <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="423"/>
+                        <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="821"/>
                       </dxl:Array>
                     </dxl:ArrayComp>
                   </dxl:And>
