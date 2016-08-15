@@ -2320,6 +2320,14 @@ UPDATE gp_distribution_policy
             # schema doesn't exist.  Cancel or error during setup
             pass
 
+    def halt_work(self):
+        if self.pool:
+            self.pool.haltWork()
+            self.pool.joinWorkers()
+
+        if self.queue:
+            self.queue.haltWork()
+            self.queue.joinWorkers()
 
     def cleanup_schema(self, gpexpand_db_status):
         """Removes the gpexpand schema"""
@@ -3156,5 +3164,8 @@ finally:
     except NameError:
         pass
     
+    if gp_expand is not None:
+        gp_expand.halt_work()
+
     coverage.stop()
     coverage.generate_report()
