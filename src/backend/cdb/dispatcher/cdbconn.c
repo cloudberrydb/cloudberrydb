@@ -406,8 +406,7 @@ void cdbconn_doConnect(SegmentDatabaseDescriptor *segdbDesc,
 		{
 			segdbDesc->errcode = ERRCODE_GP_INTERNAL_ERROR;
 			appendPQExpBuffer(&segdbDesc->error_message,
-					"Internal error: No motion listener port for %s\n",
-					segdbDesc->whoami);
+					"Internal error: No motion listener port");
 
 			if (gp_log_gang >= GPVARS_VERBOSITY_DEBUG)
 				write_log("%s\n", segdbDesc->error_message.data);
@@ -517,17 +516,15 @@ cdbconn_doConnectComplete(SegmentDatabaseDescriptor *segdbDesc)
 	 */
 	segdbDesc->motionListener = PQgetQEdetail(segdbDesc->conn);
 	segdbDesc->backendPid = PQbackendPID(segdbDesc->conn);
-	if (segdbDesc->motionListener == -1)
-		ereport(ERROR,
-				(errcode(ERRCODE_GP_INTERNAL_ERROR),
-				 errmsg("Internal error: No motion listener port for %s\n",
-						segdbDesc->whoami)));
-	else if (gp_log_gang >= GPVARS_VERBOSITY_DEBUG)
+
+	if (segdbDesc->motionListener != -1 && gp_log_gang >= GPVARS_VERBOSITY_DEBUG)
+	{
 		elog(LOG, "Connected to %s motionListenerPorts=%d/%d with options %s",
 			 segdbDesc->whoami,
 			 (segdbDesc->motionListener & 0x0ffff),
 			 ((segdbDesc->motionListener >> 16) & 0x0ffff),
 			 PQoptions(segdbDesc->conn));
+	}
 }
 
 /* Disconnect from QE */

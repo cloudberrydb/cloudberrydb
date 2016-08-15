@@ -280,7 +280,8 @@ createGang(GangType type, int gang_id, int size, int content)
 /*
  * Test if the connections of the primary writer gang are alive.
  */
-bool isPrimaryWriterGangAlive(void)
+bool
+isPrimaryWriterGangAlive(void)
 {
 	if (primaryWriterGang == NULL)
 		return false;
@@ -303,15 +304,15 @@ bool isPrimaryWriterGangAlive(void)
 /*
  * Check the segment failure reason by comparing connection error message.
  */
-bool segment_failure_due_to_recovery(SegmentDatabaseDescriptor *segdbDesc)
+bool segment_failure_due_to_recovery(struct PQExpBufferData* error_message)
 {
 	char *fatal = NULL, *message = NULL, *ptr = NULL;
 	int fatal_len = 0;
 
-	if (segdbDesc == NULL)
+	if (error_message == NULL)
 		return false;
 
-	message = segdbDesc->error_message.data;
+	message = error_message->data;
 
 	if (message == NULL)
 		return false;
@@ -1692,13 +1693,6 @@ bool gangsExist(void)
 			availableReaderGangs1 != NIL);
 }
 
-bool readerGangsExist(void)
-{
-	return (allocatedReaderGangsN != NIL ||
-			availableReaderGangsN != NIL ||
-			allocatedReaderGangs1 != NIL||
-			availableReaderGangs1 != NIL);
-}
 
 int largestGangsize(void)
 {

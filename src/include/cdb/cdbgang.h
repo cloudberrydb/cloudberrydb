@@ -17,6 +17,7 @@ struct Port;
 struct QueryDesc;
 struct DirectDispatchInfo;
 struct EState;
+struct PQExpBufferData;
 
 /*
  * A gang represents a single group of workers on each connected segDB
@@ -79,15 +80,15 @@ extern List *getAllAllocatedReaderGangs(void);
 extern CdbComponentDatabases *getComponentDatabases(void);
 
 extern bool gangsExist(void);
-extern bool readerGangsExist(void);
 
 extern struct SegmentDatabaseDescriptor *getSegmentDescriptorFromGang(const Gang *gp, int seg);
 
 bool isPrimaryWriterGangAlive(void);
+
 Gang *buildGangDefinition(GangType type, int gang_id, int size, int content);
 void build_gpqeid_param(char *buf, int bufsz, int segIndex, bool is_writer, int gangId);
 char *makeOptions(void);
-bool segment_failure_due_to_recovery(struct SegmentDatabaseDescriptor *segdbDesc);
+bool segment_failure_due_to_recovery(struct PQExpBufferData *segdbDesc);
 
 /*
  * disconnectAndDestroyIdleReaderGangs()
