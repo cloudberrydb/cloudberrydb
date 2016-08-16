@@ -673,7 +673,7 @@ recursiveDeletion(const ObjectAddress *object,
 						 objDescription);
 				owningObject = otherObject;
 				amOwned = true;
-				/* "continue" bypasses the caql_delete call below */
+				/* "continue" bypasses the simple_heap_delete call below */
 				continue;
 			case DEPENDENCY_PIN:
 
