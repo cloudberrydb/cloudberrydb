@@ -6,6 +6,8 @@ inputs:
   - name: bin_orca
   - name: bin_gpos
   - name: bin_xerces
+outputs:
+  - name: icg_output
 run:
   path: /bin/bash
   args:
