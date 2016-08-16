@@ -7,6 +7,7 @@
  * Portions Copyright (c) 1996-2008, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
+ *
  * IDENTIFICATION
  *	  $PostgreSQL: pgsql/src/backend/commands/opclasscmds.c,v 1.58.2.1 2010/07/03 13:53:38 rhaas Exp $
  *
@@ -1866,7 +1867,6 @@ RenameOpClass(List *name, const char *access_method, const char *newname)
 	}
 
 	/* make sure the new name doesn't exist */
-	/* make sure the new name doesn't exist */
 	if (SearchSysCacheExists(CLAAMNAMENSP,
 							 ObjectIdGetDatum(amOid),
 							 CStringGetDatum(newname),
@@ -2091,7 +2091,6 @@ AlterOpClassOwner_oid(Oid opclassOid, Oid newOwnerId)
 }
 
 /*
- * The zeroeth parameter is the caql context, with a single valid tuple.
  * The first parameter is pg_opclass, opened and suitably locked.  The second
  * parameter is a copy of the tuple from pg_opclass we want to modify.
  */
