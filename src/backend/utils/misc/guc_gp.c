@@ -792,16 +792,6 @@ struct config_bool ConfigureNamesBool_gp[] =
 	},
 
 	{
-		{"gp_enable_tablespace_auto_mkdir", PGC_USERSET, DEVELOPER_OPTIONS,
-			gettext_noop("Enable tablespace code to create empty directory if necessary"),
-			NULL,
-			GUC_NO_SHOW_ALL | GUC_NOT_IN_SAMPLE
-		},
-		&gp_enable_tablespace_auto_mkdir,
-		false, NULL, NULL
-	},
-
-	{
 		{"gp_enable_preunique", PGC_USERSET, QUERY_TUNING_METHOD,
 			gettext_noop("Enable 2-phase duplicate removal."),
 			gettext_noop("If true, planner may choose to remove duplicates in "
@@ -828,16 +818,6 @@ struct config_bool ConfigureNamesBool_gp[] =
 			   "window specifications sequentially rather that in parallel.")
 		},
 		&gp_enable_sequential_window_plans,
-		true, NULL, NULL
-	},
-
-	{
-		{"gp_hashagg_recalc_density", PGC_USERSET, QUERY_TUNING_METHOD,
-			gettext_noop("(Obsolete) Executor can recalculate grouping density based on pre-spill real density."),
-			NULL,
-			GUC_NO_SHOW_ALL | GUC_NOT_IN_SAMPLE
-		},
-		&defunct_bool,
 		true, NULL, NULL
 	},
 
@@ -1068,15 +1048,6 @@ struct config_bool ConfigureNamesBool_gp[] =
 	},
 
 	{
-		{"gp_enable_interconnect_aggressive_retry", PGC_USERSET, DEVELOPER_OPTIONS,
-			gettext_noop("Enable application-level fast-track interconnect retries"),
-			NULL,
-			GUC_NO_RESET_ALL | GUC_NO_SHOW_ALL | GUC_NOT_IN_SAMPLE
-		},
-		&gp_interconnect_aggressive_retry,
-		true, NULL, NULL
-	},
-	{
 		{"gp_crash_recovery_abort_suppress_fatal", PGC_SUSET, DEVELOPER_OPTIONS,
 			gettext_noop("Warning about crash recovery abort transaction issue"),
 			NULL,
@@ -1151,16 +1122,6 @@ struct config_bool ConfigureNamesBool_gp[] =
 			GUC_NO_SHOW_ALL | GUC_NOT_IN_SAMPLE
 		},
 		&gp_debug_pgproc,
-		false, NULL, NULL
-	},
-
-	{
-		{"Debug_print_combocid_detail", PGC_USERSET, DEVELOPER_OPTIONS,
-			gettext_noop("When running into combocid limit, emit detailed snapshot information."),
-			NULL,
-			GUC_NO_SHOW_ALL | GUC_NOT_IN_SAMPLE
-		},
-		&Debug_print_combocid_detail,
 		false, NULL, NULL
 	},
 
@@ -1274,15 +1235,6 @@ struct config_bool ConfigureNamesBool_gp[] =
 	},
 
 	{
-		{"gp_enable_adaptive_nestloop", PGC_USERSET, QUERY_TUNING_METHOD,
-			gettext_noop("Enables the planner's use of the Adaptive Join Choice operator."),
-			gettext_noop("During query execution, actual outer row count determines choice of Nested or Hash Join.")
-		},
-		&enable_adaptive_nestloop,
-		true, NULL, NULL
-	},
-
-	{
 		{"gp_is_writer", PGC_BACKEND, GP_WORKER_IDENTITY,
 			gettext_noop("True in a worker process which can directly update its local database segment."),
 			NULL,
@@ -1350,16 +1302,6 @@ struct config_bool ConfigureNamesBool_gp[] =
 	},
 
 	{
-		{"gp_interconnect_elide_setup", PGC_USERSET, DEPRECATED_OPTIONS,
-			gettext_noop("Avoid performing full startup handshake for every statement."),
-			NULL,
-			GUC_NO_SHOW_ALL | GUC_NOT_IN_SAMPLE | GUC_GPDB_ADDOPT
-		},
-		&gp_interconnect_elide_setup,
-		true, NULL, NULL
-	},
-
-	{
 		{"gp_interconnect_log_stats", PGC_USERSET, QUERY_TUNING_OTHER,
 			gettext_noop("Emit statistics from the UDP-IC at the end of every statement."),
 			NULL,
@@ -1375,16 +1317,6 @@ struct config_bool ConfigureNamesBool_gp[] =
 			NULL,
 		},
 		&gp_interconnect_cache_future_packets,
-		true, NULL, NULL
-	},
-
-	{
-		{"gp_version_mismatch_error", PGC_USERSET, QUERY_TUNING_OTHER,
-			gettext_noop("QD/QE version string mismatches reported as an error"),
-			NULL,
-			GUC_NOT_IN_SAMPLE | GUC_NO_SHOW_ALL
-		},
-		&gp_version_mismatch_error,
 		true, NULL, NULL
 	},
 
@@ -4299,26 +4231,6 @@ struct config_int ConfigureNamesInt_gp[] =
 	},
 
 	{
-		{"gp_hashagg_spillbatch_min", PGC_USERSET, GP_ARRAY_TUNING,
-			gettext_noop("(Obsolete) Minimum number of spill batches of HashAgg"),
-			gettext_noop("Controlling number of spill batches, if too small, hashagg may respill"),
-			GUC_NOT_IN_SAMPLE | GUC_NO_SHOW_ALL
-		},
-		&gp_hashagg_spillbatch_min,
-		0, 0, 1000000, NULL, NULL
-	},
-
-	{
-		{"gp_hashagg_spillbatch_max", PGC_USERSET, GP_ARRAY_TUNING,
-			gettext_noop("(Obsolete) Maximum number of spill batches of HashAgg"),
-			gettext_noop("Controlling number of spill batches, if too big, hashagg spill I/O will be slow"),
-			GUC_NOT_IN_SAMPLE | GUC_NO_SHOW_ALL
-		},
-		&gp_hashagg_spillbatch_max,
-		0, 0, 1000000, NULL, NULL
-	},
-
-	{
 		{"gp_hashjoin_bloomfilter", PGC_USERSET, GP_ARRAY_TUNING,
 			gettext_noop("Use bloomfilter in hash join"),
 			gettext_noop("Use bloomfilter may speed up hashtable probing"),
@@ -4441,15 +4353,6 @@ struct config_int ConfigureNamesInt_gp[] =
 		32, 0, 1024, NULL, NULL
 	},
 
-	{
-		{"gp_dbg_flags", PGC_USERSET, QUERY_TUNING_OTHER,
-			gettext_noop("Experimental feature: Generic sort flags."),
-			NULL,
-			GUC_NO_SHOW_ALL | GUC_NOT_IN_SAMPLE | GUC_GPDB_ADDOPT
-		},
-		&gp_dbg_flags,
-		0, 0, INT_MAX, NULL, NULL
-	},
 	{
 		{"gp_statistics_blocks_target", PGC_USERSET, STATS_ANALYZE,
 			gettext_noop("The number of blocks to be sampled to estimate reltuples/relpages for heap tables."),
@@ -4832,16 +4735,6 @@ struct config_real ConfigureNamesReal_gp[] =
 		},
 		&cursor_tuple_fraction,
 		DEFAULT_CURSOR_TUPLE_FRACTION, 0.0, 1.0, NULL, NULL
-	},
-
-	{
-		{"gp_process_memory_cutoff", PGC_USERSET, RESOURCES_MEM,
-			gettext_noop("Virtual memory limit per process, in kilobytes."),
-			gettext_noop("0 for no limit.  Process is terminated if limit is exceeded."),
-			GUC_UNIT_KB | GUC_NO_SHOW_ALL
-		},
-		&gp_process_memory_cutoff,
-		0, 0, SIZE_MAX / 2 / 1024, NULL, NULL,
 	},
 
 	{

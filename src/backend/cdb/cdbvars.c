@@ -62,8 +62,6 @@ bool		Debug_print_prelim_plan;	/* Shall we log argument of
 
 bool		Debug_print_slice_table;	/* Shall we log the slice table? */
 
-bool		Debug_print_dispatch_plan;	/* Shall we log the plan we'll dispatch? */
-
 bool            gp_backup_directIO = false;     /* disable\enable direct I/O dump */
 
 int             gp_backup_directIO_read_chunk_mb = 20; /* size of readChunk buffer for directIO dump */
@@ -88,8 +86,6 @@ bool		Gp_write_shared_snapshot;	/* tell the writer QE to write the
 										 * shared snapshot */
 
 bool		gp_reraise_signal=false;	/* try to dump core when we get SIGABRT & SIGSEGV */
-
-bool		gp_version_mismatch_error=true;	/* Enforce same-version on QD&QE. */
 
 bool		gp_set_proc_affinity=false; /* set processor affinity (if platform supports it) */
 
@@ -172,11 +168,6 @@ bool	gp_enable_slow_cursor_testmode = false;
 bool gp_eager_hashtable_release = true;
 
 /*
- * Debug_print_combocid_detail: request details when we hit combocid limits.
- */
-bool	Debug_print_combocid_detail = false;
-
-/*
  * TCP port the Interconnect listens on for incoming connections from other
  * backends.  Assigned by initMotionLayerIPC() at process startup.  This port
  * is used for the duration of this process and should never change.
@@ -203,11 +194,7 @@ int			interconnect_setup_timeout=7200;
 
 int			Gp_interconnect_type = INTERCONNECT_TYPE_UDPIFC;
 
-bool		gp_interconnect_aggressive_retry=true; /* fast-track app-level retry */
-
 bool gp_interconnect_full_crc=false; /* sanity check UDP data. */
-
-bool gp_interconnect_elide_setup=true; /* under some conditions we can eliminate the setup */
 
 bool gp_interconnect_log_stats=false; /* emit stats at log-level */
 
@@ -239,20 +226,12 @@ uint32 gp_interconnect_id=0;
  * Resource management
  */
 
-/*
- * gp_process_memory_cutoff (real)
- * Deprecated.  Will remove in next release.
- */
-double  gp_process_memory_cutoff;           /* SET/SHOW in units of kB */
-
-
 double gp_hashagg_respill_bias = 1;
 
 /* --------------------------------------------------------------------------------------------------
  * Greenplum Optimizer GUCs
  */
 
-bool        enable_adaptive_nestloop = true;
 double      gp_motion_cost_per_row = 0;
 int         gp_segments_for_planner = 0;
 
