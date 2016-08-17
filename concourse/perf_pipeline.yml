@@ -1,19 +1,67 @@
+#############
+# RESOURCES #
+#############
 resources:
-  - name: gpdb_src
-    type: git
-    source:
-      uri: https://github.com/greenplum-db/gpdb
-      branch: master
+- name: gpdb_src
+  type: git
+  source:
+    branch: master 
+    uri: https://github.com/greenplum-db/gpdb
 
+- name: instance_ids
+  type: s3
+  source:
+    access_key_id: {{aws-access-key-id}}
+    bucket: {{bucket-name}}
+    region_name: {{aws-region}}
+    secret_access_key: {{aws-secret-access-key}}
+    versioned_file: instance_ids.txt
+
+########
+# JOBS #
+########
 jobs:
-  - name: dummy_job
-    plan:
-      - get: gpdb_src
-        params:
-          submodules: none
-        trigger: true
-      - task: dummy_task
-        config:
-          platform: linux
-          run:
-            path: true
+- name: provision
+  max_in_flight: 1
+  plan:
+  - aggregate:
+    - get: gpdb_src
+      params:
+        submodules: none
+      trigger: false  # At this stage we don't want create/delete VMs for each commit
+  - task: provision_instance
+    file: gpdb_src/concourse/provision.yml
+    params: &aws_config
+      AWS_ACCESS_KEY : {{aws-access-key-id}}
+      AWS_SECRET_KEY : {{aws-secret-access-key}}
+      AWS_KEYPAIR : "qp_perf"
+      AWS_KEYPAIR_VALUE : {{aws_perf_key}}
+      AWS_REGION : {{aws-region}}
+      AMI : "ami-7f7ab01f"
+      INSTANCE_TYPE : "t2.micro"
+      INSTANCE_NAME : "qp-perf-test0"
+      SUBNET_ID : "subnet-370a1940"
+      SECURITY_GROUP_ID : "sg-d074ceb7"
+      SSH_USER : "centos"
+      TENANCY : "default"
+      WAIT_SECS : "30"
+      RETRIES : "10"
+    on_failure: *unprovision
+  - put: instance_ids
+    params:
+      file: instance_ids/instance_ids.txt
+- name: unprovision
+  max_in_flight: 1
+  plan:
+  - aggregate:
+    - get: gpdb_src
+      passed: [provision]
+      params:
+        submodules: none
+    - get: instance_ids
+      passed: [provision]
+      trigger: true
+  - &unprovision
+    task: unprovision_instance
+    file: gpdb_src/concourse/unprovision.yml
+    params: *aws_config
