@@ -1342,6 +1342,27 @@ CUtils::FPhysicalJoin
 }
 
 
+//---------------------------------------------------------------------------
+//	@function:
+//		CUtils::FPhysicalOuterJoin
+//
+//	@doc:
+//		Check if a given operator is a physical outer join
+//
+//---------------------------------------------------------------------------
+BOOL
+CUtils::FPhysicalOuterJoin
+	(
+	COperator *pop
+	)
+{
+	GPOS_ASSERT(NULL != pop);
+
+	return 	COperator::EopPhysicalLeftOuterNLJoin == pop->Eopid() ||
+		COperator::EopPhysicalLeftOuterHashJoin == pop->Eopid() ||
+		COperator::EopPhysicalCorrelatedLeftOuterNLJoin == pop->Eopid();
+}
+
 
 //---------------------------------------------------------------------------
 //	@function:

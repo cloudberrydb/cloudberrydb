@@ -577,6 +577,10 @@ namespace gpopt
 			static
 			BOOL FPhysicalJoin(COperator *pop);
 
+			// check if a given operator is a physical outer join
+			static
+			BOOL FPhysicalOuterJoin(COperator *pop);
+
 			// check if a given operator is a physical scan
 			static
 			BOOL FPhysicalScan(COperator *pop);
