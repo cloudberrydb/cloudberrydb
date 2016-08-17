@@ -50,7 +50,6 @@ select * from locktest;
  gp_distribution_policy     | RowExclusiveLock    | relation | master
  locktest                   | AccessShareLock     | relation | master
  pg_class                   | AccessShareLock     | relation | master
- pg_class                   | RowExclusiveLock    | relation | n segments
  pg_class                   | RowExclusiveLock    | relation | master
  pg_class_oid_index         | AccessShareLock     | relation | master
  pg_class_relname_nsp_index | AccessShareLock     | relation | master
@@ -64,7 +63,7 @@ select * from locktest;
  toast index                | AccessExclusiveLock | relation | master
  toast table                | ShareLock           | relation | n segments
  toast table                | ShareLock           | relation | master
-(19 rows)
+(18 rows)
 
 commit;
 -- drop
@@ -116,7 +115,6 @@ select * from locktest;
  pg_appendonly              | RowExclusiveLock    | relation | n segments
  pg_appendonly              | RowExclusiveLock    | relation | master
  pg_class                   | AccessShareLock     | relation | master
- pg_class                   | RowExclusiveLock    | relation | n segments
  pg_class                   | RowExclusiveLock    | relation | master
  pg_class_oid_index         | AccessShareLock     | relation | master
  pg_class_relname_nsp_index | AccessShareLock     | relation | master
@@ -130,7 +128,7 @@ select * from locktest;
  toast index                | AccessExclusiveLock | relation | master
  toast table                | ShareLock           | relation | n segments
  toast table                | ShareLock           | relation | master
-(21 rows)
+(20 rows)
 
 commit;
 begin;
