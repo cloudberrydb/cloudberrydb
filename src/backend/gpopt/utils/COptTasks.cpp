@@ -565,7 +565,21 @@ COptTasks::Execute
 	params.abort_requested = &abort_flag;
 
 	// execute task and send log message to server log
-	(void) gpos_exec(&params);
+	GPOS_TRY
+	{
+		(void) gpos_exec(&params);
+	}
+	GPOS_CATCH_EX(ex)
+	{
+		LogErrorAndDelete(err_buf);
+		GPOS_RETHROW(ex);
+	}
+	GPOS_CATCH_END;
+	LogErrorAndDelete(err_buf);
+}
+
+void
+COptTasks::LogErrorAndDelete(CHAR* err_buf) {
 
 	if ('\0' != err_buf[0])
 	{

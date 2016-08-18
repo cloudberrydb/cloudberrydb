@@ -167,6 +167,10 @@ class COptTasks
 		static
 		void Execute ( void *(*pfunc) (void *), void *pfuncArg);
 
+		// print error and delete the given error buffer
+		static
+		void LogErrorAndDelete(CHAR* err_buf);
+
 		// task that does the translation from xml to dxl to pplstmt
 		static
 		void* PvPlstmtFromDXLTask(void *pv);

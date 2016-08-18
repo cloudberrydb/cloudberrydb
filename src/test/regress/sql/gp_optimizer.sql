@@ -1365,6 +1365,20 @@ EXPLAIN SELECT * FROM bitmap_test WHERE a in ('2', 47);
 EXPLAIN SELECT * FROM bitmap_test WHERE a in ('1', '2');
 EXPLAIN SELECT * FROM bitmap_test WHERE a in ('1', '2', 47);
 
+-- Test Logging for unsupported features in ORCA
+-- start_ignore
+drop table if exists foo;
+-- end_ignore
+
+create table foo(a int, b int);
+set client_min_messages='log';
+select count(*) from foo group by cube(a,b);
+reset client_min_messages;
+
+-- start_ignore
+drop table foo;
+-- end_ignore
+
 -- clean up
 drop schema orca cascade;
 reset optimizer_segments;
