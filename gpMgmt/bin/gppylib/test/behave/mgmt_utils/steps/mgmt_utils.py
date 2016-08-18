@@ -1351,6 +1351,18 @@ def impl(context, dbname, fq_table_name):
         print table_names
         raise Exception('Schema not restored correctly. List of tables are not equal before and after restore in database %s' % dbname)
 
+@then('tables names should be identical to stored table names in "{dbname}"')
+def impl(context, dbname, fq_table_name):
+    table_names = sorted(get_table_names(dbname))
+    stored_table_names = sorted(context.table_names)
+
+    if table_names != stored_table_names:
+        print "Table names after backup:"
+        print stored_table_names
+        print "Table names after restore:"
+        print table_names
+        raise Exception('Schema not restored correctly. List of tables are not equal before and after restore in database %s' % dbname)
+
 @then('tables in "{dbname}" should not contain any data')
 def impl(context, dbname):
     for table in context.table_names:
