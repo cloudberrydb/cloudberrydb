@@ -393,3 +393,9 @@ DECLARE c1 CURSOR FOR SELECT * FROM ucview;
 FETCH FROM c1;
 DELETE FROM ucview WHERE CURRENT OF c1; -- fail, views not supported
 ROLLBACK;
+
+-- Check cursors for functions.
+BEGIN;
+DECLARE c1 CURSOR FOR SELECT * FROM LOWER('TEST');
+FETCH ALL FROM c1;
+COMMIT;

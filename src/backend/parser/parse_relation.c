@@ -1489,6 +1489,15 @@ isSimplyUpdatableRelation(Oid relid, bool noerror)
 {
 	Relation rel;
 
+	if (!OidIsValid(relid))
+	{
+		if (!noerror)
+			ereport(ERROR,
+					(errcode(ERRCODE_UNDEFINED_OBJECT),
+					 errmsg("Invalid oid: %d is not simply updatable", relid)));
+		return false;
+	}
+
 	rel = relation_open(relid, AccessShareLock);
 
 	/*

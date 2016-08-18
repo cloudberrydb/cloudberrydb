@@ -935,3 +935,13 @@ FETCH FROM c1;
 DELETE FROM ucview WHERE CURRENT OF c1; -- fail, views not supported
 ERROR:  WHERE CURRENT OF on a view is not implemented
 ROLLBACK;
+-- Check cursors for functions.
+BEGIN;
+DECLARE c1 CURSOR FOR SELECT * FROM LOWER('TEST');
+FETCH ALL FROM c1;
+ lower
+-------
+ test
+(1 row)
+
+COMMIT;
