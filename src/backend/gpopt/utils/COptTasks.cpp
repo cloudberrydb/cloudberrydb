@@ -375,7 +375,8 @@ COptTasks::SzAllocate
 	}
 	GPOS_CATCH_EX(ex)
 	{
-		elog(ERROR, "no available memory to allocate string buffer");
+		elog(WARNING, "no available memory to allocate string buffer");
+		GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiWarningAsError);
 	}
 	GPOS_CATCH_END;
 
@@ -1890,8 +1891,9 @@ COptTasks::UlCmpt
 			return rgcmpt[ul];
 		}
 	}
-	
-	elog(ERROR, "Invalid comparison type code. Valid values are Eq, NEq, LT, LEq, GT, GEq");
+
+	elog(WARNING, "Invalid comparison type code. Valid values are Eq, NEq, LT, LEq, GT, GEq");
+	GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiWarningAsError);
 	return CmptOther;
 }
 
