@@ -303,58 +303,6 @@ GetDatabasePath(Oid dbNode, Oid spcNode)
 	return path;
 }
 
-void
-CopyDatabasePath(char *target, int targetMaxLen, Oid dbNode, Oid spcNode)
-{
-	int 		snprintfResult;
-
-	if (spcNode == GLOBALTABLESPACE_OID)
-	{
-		/* Shared system relations live in {datadir}/global */
-		Assert(dbNode == 0);
-
-		// Using strncpy is error prone.
-		snprintfResult =
-			snprintf(target, targetMaxLen, "global");
-	}
-	else if (spcNode == DEFAULTTABLESPACE_OID)
-	{
-		/* The default tablespace is {datadir}/base */
-		snprintfResult =
-			snprintf(target, targetMaxLen, "base/%u",
-					 dbNode);
-	}
-	else
-	{
-		char *primary_path;
-
-		/* All other tablespaces are accessed via filespace locations */
-		GetFilespacePathForTablespace(
-								spcNode,
-								&primary_path);
-
-		/* Copy path into the passed in target location */
-		snprintfResult =
-			snprintf(target, targetMaxLen, "%s/%u/%u",
-					 primary_path, spcNode, dbNode);
-
-		/* Throw away the allocation we got from persistent layer */
-		pfree(primary_path);
-	}
-
-	if (snprintfResult < 0)
-		elog(ERROR, "CopyDatabasePath formatting error");
-
-	/*
-	 * Magically truncating the result to fit in the target string is unacceptable here
-	 * because it can result in the wrong file-system object being referenced.
-	 */
-	if (snprintfResult >= targetMaxLen)
-		elog(ERROR, "CopyDatabasePath formatting result length %d exceeded the maximum length %d",
-					snprintfResult,
-					targetMaxLen);
-}
-
 
 void FormDatabasePath(
 	char *databasePath,
@@ -398,14 +346,14 @@ void FormDatabasePath(
 	}
 
 	if (snprintfResult < 0)
-		elog(ERROR, "CopyDatabasePath formatting error");
+		elog(ERROR, "FormDatabasePath formatting error");
 
 	/*
 	 * Magically truncating the result to fit in the target string is unacceptable here
 	 * because it can result in the wrong file-system object being referenced.
 	 */
 	if (snprintfResult >= targetMaxLen)
-		elog(ERROR, "CopyDatabasePath formatting result length %d exceeded the maximum length %d",
+		elog(ERROR, "FormDatabasePath formatting result length %d exceeded the maximum length %d",
 					snprintfResult,
 					targetMaxLen);
 }
@@ -566,30 +514,6 @@ IsToastClass(Form_pg_class reltuple)
 	Oid			relnamespace = reltuple->relnamespace;
 
 	return IsToastNamespace(relnamespace);
-}
-
-/*
- * IsAoSegmentRelation
- *		True iff relation is an AO segment support relation (or index).
- */
-bool
-IsAoSegmentRelation(Relation relation)
-{
-	return IsAoSegmentNamespace(RelationGetNamespace(relation));
-}
-
-/*
- * IsAoSegmentClass
- *		Like the above, but takes a Form_pg_class as argument.
- *		Used when we do not want to open the relation and have to
- *		search pg_class directly.
- */
-bool
-IsAoSegmentClass(Form_pg_class reltuple)
-{
-	Oid			relnamespace = reltuple->relnamespace;
-	
-	return IsAoSegmentNamespace(relnamespace);
 }
 
 /*

@@ -31,8 +31,6 @@ extern void ExecHashJoinSaveTuple(PlanState *ps, MemTuple tuple, uint32 hashvalu
 								  MemoryContext bfCxt);
 extern void ExecEagerFreeHashJoin(HashJoinState *node);
 
-extern void ExecHashJoinSaveFirstInnerBatch(HashJoinTable hashtable);
-
 enum 
 {
 	GPMON_HASHJOIN_SPILLBATCH = GPMON_QEXEC_M_NODE_START,

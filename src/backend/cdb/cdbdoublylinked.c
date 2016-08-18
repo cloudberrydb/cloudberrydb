@@ -19,13 +19,6 @@ DoublyLinkedHead_Init(
 	head->count = 0;
 }
 
-int32
-DoublyLinkedHead_Count(
-	DoublyLinkedHead		*head)
-{
-	return head->count;
-}
-
 void*
 DoublyLinkedHead_First(
 	int						offsetToDoubleLinks,

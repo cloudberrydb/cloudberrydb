@@ -339,9 +339,6 @@ extern bool appendonly_fetch(
 	AppendOnlyFetchDesc aoFetchDesc,
 	AOTupleId *aoTid,
 	TupleTableSlot *slot);
-extern void appendonly_fetch_detail(
-	AppendOnlyFetchDesc aoFetchDesc, 
-	AppendOnlyFetchDetail *aoFetchDetail);
 extern void appendonly_fetch_finish(AppendOnlyFetchDesc aoFetchDesc);
 extern AppendOnlyInsertDesc appendonly_insert_init(Relation rel, int segno, bool update_mode);
 extern void appendonly_insert(

@@ -97,16 +97,6 @@ extern Datum int48mi(PG_FUNCTION_ARGS);
 extern Datum int48mul(PG_FUNCTION_ARGS);
 extern Datum int48div(PG_FUNCTION_ARGS);
 
-extern Datum int82pl(PG_FUNCTION_ARGS);
-extern Datum int82mi(PG_FUNCTION_ARGS);
-extern Datum int82mul(PG_FUNCTION_ARGS);
-extern Datum int82div(PG_FUNCTION_ARGS);
-
-extern Datum int28pl(PG_FUNCTION_ARGS);
-extern Datum int28mi(PG_FUNCTION_ARGS);
-extern Datum int28mul(PG_FUNCTION_ARGS);
-extern Datum int28div(PG_FUNCTION_ARGS);
-
 extern Datum int48(PG_FUNCTION_ARGS);
 extern Datum int84(PG_FUNCTION_ARGS);
 

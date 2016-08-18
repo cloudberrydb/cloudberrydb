@@ -3866,34 +3866,6 @@ Oid lookup_agg_transtype(Aggref *aggref)
 	return result;
 }
 
-/* Function:  adapt_flow_to_targetlist
- *
- * Sometimes we replace the targetlist (especially subplan of an Agg).
- * In this case, we need to assure that any hash expressions in the
- * node's flow remain in the targetlist OR null out the hash leaving,
- * in effect, a strewn flow.
- */
-void adapt_flow_to_targetlist(Plan *plan)
-{
-	ListCell   *c;
-	Flow *flow;
-
-	Assert(plan != NULL);
-	flow = plan->flow;
-
-	Assert(flow); 
-
-	foreach(c, flow->hashExpr)
-	{
-		Node *expr = (Node*)lfirst(c);
-		if (!tlist_member(expr, plan->targetlist))
-        {
-		    flow->hashExpr = NIL;
-			break;
-        }
-	}
-}
-
 /**
  * Update the scatter clause before a query tree's targetlist is about to
  * be modified. The scatter clause of a query tree will correspond to

@@ -605,13 +605,6 @@ int MirroredFlatFile_Append(
 	return save_errno;
 }
 
-int32 MirroredFlatFile_GetAppendPosition(
-	MirroredFlatFileOpen *open)
-				/* The open struct. */
-{
-	return open->appendPosition;
-}
-
 /*
  * Write a mirrored flat file.
  */

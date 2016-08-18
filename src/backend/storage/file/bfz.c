@@ -41,12 +41,6 @@ static const struct{
 
 static bfz_t *bfz_create_internal(bfz_t * bfz_handle, const char *fileName, bool open_existing, bool delOnClose, int compress);
 
-const char *
-bfz_compression_to_string(int compress)
-{
-	return compression_algorithms[compress].name[0];
-}
-
 int
 bfz_string_to_compression(const char *string)
 {

@@ -16,20 +16,6 @@
 #include "cdb/cdbpersistentstore.h"
 #include "cdb/cdbpersistentfilesysobj.h"
 
-
-char *PersistentXactObjKind_Name(
-	PersistentEndXactObjKind objKind)
-{
-	switch (objKind)
-	{
-	case PersistentEndXactObjKind_FileSysAction: 				return "File-System Action";
-	case PersistentEndXactObjKind_AppendOnlyMirrorResyncEofs:	return "Append-Only Mirror Resync EOFs";
-		
-	default:
-		return "Unknown";
-	}
-}
-
 char *EndXactRecKind_Name(
 	EndXactRecKind endXactRecKind)
 {

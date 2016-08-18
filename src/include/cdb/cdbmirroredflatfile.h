@@ -173,13 +173,6 @@ extern int MirroredFlatFile_Append(
 	bool		suppressError);
 
 /*
- * Get the current append position on the primary.
- */
-extern int32 MirroredFlatFile_GetAppendPosition(
-	MirroredFlatFileOpen *open);
-				/* The open struct. */
-
-/*
  * Write a mirrored flat file.
  */
 extern int MirroredFlatFile_Write(

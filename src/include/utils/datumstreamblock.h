@@ -1124,7 +1124,6 @@ extern char *DatumStreamVersion_String(DatumStreamVersion datumStreamVersion);
  * varlena header info to string.
  */
 extern char *VarlenaInfoToString(uint8 * p);
-extern char *VarlenaInfoToString2(uint8 * p);
 
 extern int errdetail_datumstreamblockread(
 							   DatumStreamBlockRead * dsr);

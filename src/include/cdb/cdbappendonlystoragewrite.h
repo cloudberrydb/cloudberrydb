@@ -213,13 +213,6 @@ extern void AppendOnlyStorageWrite_Init(
 				 */
 
 /*
- * Return (read-only) pointer to relation name.
- */
-extern char* AppendOnlyStorageWrite_RelationName(
-	AppendOnlyStorageWrite			*storageWrite);
-
-
-/*
  * Finish using the AppendOnlyStorageWrite session created with ~Init.
  */
 extern void AppendOnlyStorageWrite_FinishSession(
@@ -321,30 +314,6 @@ void AppendOnlyStorageWrite_TransactionFlushAndCloseFile(
 // -----------------------------------------------------------------------------
 // Usable Block Length
 // -----------------------------------------------------------------------------
-
-/*
- *    When writing �short� content intended to stay within the maxBufferLen (also known as
- *    blocksize), some of the buffer will be used for the Append-Only Block Header.  This
- *    function returns that overhead length.
- *
- *    Isn�t the length of the Append-Only Storage Block constant? NO.
- *
- *    Currently, there are two things that can make it longer.  When checksums are configured,
- *    we add checksum data to the header.  And there is optional header data
- *   (e.g. firstRowNum).
- *
- *   We call the header portion with the optional checksums the fixed header because we
- *   need to be able to read and evaluate the checksums before we can interpret flags
- *   in the fixed header that indicate there is more header information.
- *
- *  The complete header length is the fixed header plus optional information.
- */
-
-/*
- * Returns the Append-Only Storage Block fixed header length in bytes.
- */
-extern int32 AppendOnlyStorageWrite_FixedHeaderLen(
-	AppendOnlyStorageWrite		*storageWrite);
 
 /*
  * Returns the Append-Only Storage Block complete header length in bytes.

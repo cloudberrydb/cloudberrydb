@@ -109,10 +109,6 @@ bool AppendOnlyVisimap_IsVisible(
 	AppendOnlyVisimap *visiMap,
 	AOTupleId *tupleId);
 
-HTSU_Result AppendOnlyVisimap_Hide(
-	AppendOnlyVisimap * visiMap,
-	AOTupleId *tupleId);
-
 void AppendOnlyVisimap_Finish(
 	AppendOnlyVisimap *visiMap,
 	LOCKMODE lockmode);
@@ -120,13 +116,6 @@ void AppendOnlyVisimap_Finish(
 void AppendOnlyVisimap_DeleteSegmentFile(
 	AppendOnlyVisimap *visiMap,
 	int segno);
-
-bool AppendOnlyVisimap_IsSegmentFileFullyVisible(
-	AppendOnlyVisimap *visiMap,
-	int segno);
-
-bool AppendOnlyVisimap_IsRelationFullyVisible(
-	AppendOnlyVisimap *visiMap);
 
 int64 AppendOnlyVisimap_GetSegmentFileHiddenTupleCount(
 	AppendOnlyVisimap *visiMap,

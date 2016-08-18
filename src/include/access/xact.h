@@ -193,7 +193,6 @@ extern char *XactInfoKind_Name(
 	const XactInfoKind		kind);
 extern void SetSharedTransactionId(void);
 extern void SetSharedTransactionId_reader(TransactionId xid, CommandId cid);
-extern void SetXactSeqXlog(void);
 extern bool IsTransactionState(void);
 extern bool IsAbortInProgress(void);
 extern bool IsAbortedTransactionBlockState(void);

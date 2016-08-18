@@ -383,24 +383,6 @@ AppendOnlyStorageFormat_SmallContentHeaderStr(
 	return buf.data;
 }
 
-void
-AppendOnlyStorageFormat_LogSmallContentHeader(
-	uint8			*headerPtr,
-	bool			usingChecksums,
-	int				version)
-{
-	char *str;
-
-	str = AppendOnlyStorageFormat_SmallContentHeaderStr(
-												headerPtr,
-												usingChecksums,
-												version);
-
-	elog(LOG, "%s", str);
-
-	pfree(str);
-}
-
 char *
 AppendOnlyStorageFormat_LargeContentHeaderStr(
 	uint8			*headerPtr,
@@ -479,24 +461,6 @@ AppendOnlyStorageFormat_LargeContentHeaderStr(
 		 overallBlockLen);
 
 	return buf.data;
-}
-
-void
-AppendOnlyStorageFormat_LogLargeContentHeader(
-	uint8			*headerPtr,
-	bool			usingChecksums,
-	int				version)
-{
-	char *str;
-
-	str = AppendOnlyStorageFormat_LargeContentHeaderStr(
-												headerPtr,
-												usingChecksums,
-												version);
-
-	elog(LOG, "%s", str);
-
-	pfree(str);
 }
 
 char *
@@ -580,24 +544,6 @@ AppendOnlyStorageFormat_NonBulkDenseContentHeaderStr(
 		 overallBlockLen);
 
 	return buf.data;
-}
-
-void
-AppendOnlyStorageFormat_LogNonBulkDenseContentHeader(
-	uint8			*headerPtr,
-	bool			usingChecksums,
-	int				version)
-{
-	char *str;
-
-	str = AppendOnlyStorageFormat_NonBulkDenseContentHeaderStr(
-												headerPtr,
-												usingChecksums,
-												version);
-
-	elog(LOG, "%s", str);
-
-	pfree(str);
 }
 
 char *
@@ -702,25 +648,6 @@ AppendOnlyStorageFormat_BulkDenseContentHeaderStr(
 	return buf.data;
 }
 
-void
-AppendOnlyStorageFormat_LogBulkDenseContentHeader(
-	uint8			*headerPtr,
-	bool			usingChecksums,
-	int				version)
-{
-	char *str;
-
-	str = AppendOnlyStorageFormat_BulkDenseContentHeaderStr(
-												headerPtr,
-												usingChecksums,
-												version);
-
-	elog(LOG, "%s", str);
-
-	pfree(str);
-}
-
-
 char *
 AppendOnlyStorageFormat_BlockHeaderStr(
 	uint8			*headerPtr,
@@ -781,24 +708,6 @@ AppendOnlyStorageFormat_BlockHeaderStr(
 	}
 
 	return str;
-}
-
-void
-AppendOnlyStorageFormat_LogBlockHeader(
-	uint8			*headerPtr,
-	bool			usingChecksums,
-	int				version)
-{
-	char *str;
-
-	str = AppendOnlyStorageFormat_BlockHeaderStr(
-											headerPtr,
-											usingChecksums,
-											version);
-
-	elog(LOG, "%s", str);
-
-	pfree(str);
 }
 
 /*
@@ -1540,19 +1449,6 @@ AppendOnlyStorageFormat_GetSmallContentHeaderInfo(
 	}
 	
 	return AOHeaderCheckOk;
-}
-
-int32
-AppendOnlyStorageFormat_GetUncompressedLen(
-	uint8			*headerPtr)
-{
-	AOSmallContentHeader 	*blockHeader;
-
-	Assert(headerPtr != NULL);
-	blockHeader = (AOSmallContentHeader*)headerPtr;
-	Assert(blockHeader->smallcontent_bytes_0_3 != 0);
-
-	return AOSmallContentHeaderGet_dataLength(blockHeader);
 }
 
 int32

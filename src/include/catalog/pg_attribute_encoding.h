@@ -47,7 +47,6 @@ typedef FormData_pg_attribute_encoding *Form_pg_attribute_encoding;
 #define Anum_pg_attribute_encoding_attoptions	3
 
 extern PGFunction *get_funcs_for_compression(char *compresstype);
-extern PGFunction **RelationGetColumnCompressionFuncs(Relation rel);
 extern StdRdOptions **RelationGetAttributeOptions(Relation rel);
 extern List **RelationGetUntransformedAttributeOptions(Relation rel);
 

@@ -5572,16 +5572,9 @@ VarlenaInfoToBuffer(char *buffer, uint8 * p)
 }
 
 static char varlenaInfoBuffer[100];
-static char varlenaInfoBuffer2[100];
 
 char *
 VarlenaInfoToString(uint8 * p)
 {
 	return VarlenaInfoToBuffer(varlenaInfoBuffer, p);
-}
-
-char *
-VarlenaInfoToString2(uint8 * p)
-{
-	return VarlenaInfoToBuffer(varlenaInfoBuffer2, p);
 }

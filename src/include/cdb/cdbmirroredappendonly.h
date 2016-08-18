@@ -190,10 +190,6 @@ extern void MirroredAppendOnly_OpenResynchonize(
 	
 	bool						*mirrorDataLossOccurred);
 
-extern bool MirroredAppendOnly_IsActive(
-					MirroredAppendOnlyOpen *open);
-
-
 /*
  * Flush and Close an Append-Only relation file.
  *

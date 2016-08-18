@@ -1280,51 +1280,6 @@ ExecEagerFreeHashJoin(HashJoinState *node)
 	}
 }
 
-void
-ExecHashJoinSaveFirstInnerBatch(HashJoinTable hashtable)
-{
-
-	Assert(hashtable != NULL);
-
-	if (hashtable->nbatch == 1)
-	{
-		/* Nothing to do, we're not spilling */
-		return;
-	}
-
-	HashJoinBatchSide *batchside = &hashtable->batches[0]->innerside;
-
-	int i;
-	for (i = 0; i < hashtable->nbuckets; i++)
-	{
-		HashJoinTuple tuple;
-		tuple = hashtable->buckets[i];
-
-		while (tuple != NULL)
-		{
-
-#ifdef USE_ASSERT_CHECKING
-			int			bucketno;
-			int			batchno;
-
-			ExecHashGetBucketAndBatch(hashtable, tuple->hashvalue,
-					&bucketno, &batchno);
-			Assert(bucketno == i);
-			Assert(batchno == 0);
-#endif
-
-			ExecHashJoinSaveTuple(&hashtable->hjstate->js.ps, HJTUPLE_MINTUPLE(tuple),
-								  tuple->hashvalue,
-								  hashtable,
-                                  batchside,
-								  hashtable->bfCxt);
-
-
-			tuple = tuple->next;
-		}
-	}
-}
-
 /*
  * isHashtableEmpty
  *

@@ -137,33 +137,3 @@ void gp_decompress_new(
 			 uncompressedLen,
 			 bufferCount);
 }
-
-void
-gp_issuecompresserror(
-	int				zlibCompressError,
-	int32			sourceLen)
-{
-	char *detail = NULL;
-
-	switch(zlibCompressError)
-	{
-	case Z_MEM_ERROR:
-		detail = "Insufficient memory";
-		break;
-	case Z_BUF_ERROR:
-		detail = "The buffer was not large enough to hold the compressed data";
-		break;
-	case Z_STREAM_ERROR:
-		detail = "The level was not Z_DEFAULT_LEVEL, or was not between 0 and 9";
-		break;
-	default:
-		elog(ERROR,"ZLIB compress2 failed -- reason %d unknown (uncompressed length %d)",
-			 zlibCompressError, sourceLen);
-		break;
-	}
-
-	elog(ERROR,"ZLIB compress2 failed (detail: '%s', uncompressed length %d)",
-		 detail, sourceLen);
-}
-
-

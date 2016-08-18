@@ -79,10 +79,6 @@ void AppendOnlyVisimapStore_DeleteSegmentFile(
 	AppendOnlyVisimapStore* visiMapStore,
 	int segno);
 
-bool AppendOnlyVisimapStore_IsSegmentFileFullyVisible(
-	AppendOnlyVisimapStore *visiMapStore,
-	int segno);
-
 int64 AppendOnlyVisimapStore_GetSegmentFileHiddenTupleCount(
 	AppendOnlyVisimapStore *visiMapStore,
 	AppendOnlyVisimapEntry *visiMapEntry,
@@ -91,9 +87,6 @@ int64 AppendOnlyVisimapStore_GetSegmentFileHiddenTupleCount(
 int64 AppendOnlyVisimapStore_GetRelationHiddenTupleCount(
 	AppendOnlyVisimapStore *visiMapStore,
 	AppendOnlyVisimapEntry *visiMapEntry);
-
-bool AppendOnlyVisimapStore_IsRelationFullyVisible(
-	AppendOnlyVisimapStore *visiMapStore);
 
 /* Scan related functions */
 

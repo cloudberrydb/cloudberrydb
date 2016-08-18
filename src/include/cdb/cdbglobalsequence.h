@@ -11,14 +11,6 @@
 
 #include "catalog/gp_global_sequence.h"
 
-int64 GlobalSequence_Next(
-	GpGlobalSequence		gpGlobalSequence);
-
-int64 GlobalSequence_NextInterval(
-	GpGlobalSequence		gpGlobalSequence,
-
-	int64					interval);
-
 int64 GlobalSequence_Current(
 	GpGlobalSequence		gpGlobalSequence);
 

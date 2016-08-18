@@ -1050,31 +1050,6 @@ build_join_pathkeys(PlannerInfo *root,
  ****************************************************************************/
 
 /*
- * cdb_make_pathkey_for_expr_non_canonical
- *	  Returns a a non canonicalized pathkey item.
- *
- *    The caller specifies the name of the equality operator thus:
- *          list_make1(makeString("="))
- *
- *    The 'sortop' field of the expr's PathKey node is filled
- *    with the Oid of the sort operator that would be used for a
- *    merge join with another expr of the same data type, using the
- *    equality operator whose name is given.  Partitioning doesn't
- *    itself use the sort operator, but its Oid is needed to
- *    associate the PathKey with the same equivalence class
- *    (canonical pathkey) as any other expressions to which
- *    our expr is constrained by compatible merge-joinable
- *    equality operators.  (We assume, in what may be a temporary
- *    excess of optimism, that our hashed partitioning function
- *    implements the same notion of equality as these operators.)
- */
-PathKey *
-cdb_make_pathkey_for_expr_non_canonical(PlannerInfo *root, Node *expr, List *eqopname)
-{
-	return cdb_make_pathkey_for_expr(root, expr, eqopname, false);
-}
-
-/*
  * cdb_make_pathkey_for_expr
  *	  Returns a canonicalized PathKey which represents an equivalence
  *    class of expressions that must be equal to the given expression.

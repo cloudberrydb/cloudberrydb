@@ -89,18 +89,6 @@ CdbHeap_Destroy(CdbHeap *hp);
 void
 CdbHeap_Heapify(CdbHeap *hp, int nSlotsUsed);
 
-/*
- * Sort elements in descending order.
- * The heap property must be satisfied on entry, but no longer holds on return.
- * Returns ptr to the first sorted element (the max).
- */
-void *
-CdbHeap_SortDescending(CdbHeap *hp);
-
-/* Insert a copy of the given element into the heap. */
-void
-CdbHeap_Insert(CdbHeap *hp, void *newElement);
-
 /* Delete the smallest element. */
 void
 CdbHeap_DeleteMin(CdbHeap *hp);

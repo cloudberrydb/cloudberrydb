@@ -86,11 +86,6 @@ static void PersistentRelation_VerifyInitScan(void)
 // Helpers 
 // -----------------------------------------------------------------------------
 
-void PersistentRelation_FlushXLog(void)
-{
-	PersistentFileSysObj_FlushXLog();
-}
-
 extern void PersistentRelation_Reset(void)
 {
 	// Currently, nothing to do.

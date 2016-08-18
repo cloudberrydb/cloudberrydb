@@ -18,6 +18,4 @@
 
 extern List *raw_parser(const char *str);
 
-extern char *pg_parse_string_token(const char *token);
-
 #endif   /* PARSER_H */

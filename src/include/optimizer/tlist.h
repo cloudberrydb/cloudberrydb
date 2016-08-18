@@ -52,7 +52,4 @@ extern Index maxSortGroupRef(List *targetlist, bool include_orderedagg);
 
 extern int get_row_width(List *tlist);
 
-/* check that two target lists are aligned */
-extern void insist_target_lists_aligned(List *tlistFst, List *tlistSnd);
-
 #endif   /* TLIST_H */

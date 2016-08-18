@@ -270,8 +270,6 @@ extern int errFatalReturn(bool fatalReturn); /* GPDB: true => return on FATAL er
 
 extern int errSendAlert(bool sendAlert);		/* GPDB: Send alert via e-mail or SNMP */
 
-extern int errSuppressOutputToLog(void);   /* GP */
-
 /*----------
  * Old-style error reporting API: to be used in this way:
  *		elog(ERROR, "portal \"%s\" not found", stmt->portalname);
@@ -515,7 +513,6 @@ extern size_t backtrace(void **buffer, int size);
 extern char **backtrace_symbols(void *const *buffer, int size);
 #endif
 
-extern void GetLastLogTimeVal(struct timeval *lastLogTimeVal);
 extern void write_message_to_server_log(int elevel,
 										int sqlerrcode,
 										const char *message,

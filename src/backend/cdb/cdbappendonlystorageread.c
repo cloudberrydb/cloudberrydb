@@ -1096,18 +1096,6 @@ bool AppendOnlyStorageRead_GetBlockInfo(
 }
 
 /*
- * Return the current Append-Only Storage Block buffer.
- */
-uint8 *AppendOnlyStorageRead_CurrentBuffer(
-	AppendOnlyStorageRead		*storageRead)
-{
-	Assert(storageRead != NULL);
-	Assert(storageRead->isActive);
-
-	return BufferedReadGetCurrentBuffer(&storageRead->bufferedRead);
-}
-
-/*
  * Return the file offset of the current Append-Only Storage Block.
  */
 int64 AppendOnlyStorageRead_CurrentHeaderOffsetInFile(

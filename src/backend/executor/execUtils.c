@@ -2229,15 +2229,6 @@ void mppExecutorCleanup(QueryDesc *queryDesc)
 	}
 }
 
-void
-initGpmonPktForDefunctOperators(Plan *planNode, gpmon_packet_t *gpmon_pkt, EState *estate)
-{
-	Assert(IsA(planNode, SeqScan) ||
-		   IsA(planNode, AppendOnlyScan) ||
-		   IsA(planNode, AOCSScan));
-	insist_log(false, "SeqScan/AppendOnlyScan/AOCSScan are defunct");
-}
-
 void ResetExprContext(ExprContext *econtext)
 {
 	MemoryContext memctxt = econtext->ecxt_per_tuple_memory;

@@ -107,10 +107,6 @@ extern SharedOidSearchObjHeader *SharedOidSearch_Find(
 	Oid 					oid1,
 	Oid 					oid2);
 
-extern SharedOidSearchObjHeader *SharedOidSearch_Probe(
-	SharedOidSearchTable 	*table,
-	Oid 					oid1);
-
 extern void SharedOidSearch_Iterate(
 	SharedOidSearchTable 		*table,
 	SharedOidSearchObjHeader	**header);

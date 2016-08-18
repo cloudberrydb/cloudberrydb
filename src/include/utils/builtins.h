@@ -1133,7 +1133,6 @@ extern Datum float8_matrix_smultiply(PG_FUNCTION_ARGS);
 Datum int4_pivot_accum(PG_FUNCTION_ARGS);
 Datum int8_pivot_accum(PG_FUNCTION_ARGS);
 Datum float8_pivot_accum(PG_FUNCTION_ARGS);
-Datum text_unpivot(PG_FUNCTION_ARGS);
 Datum unnest(PG_FUNCTION_ARGS);
 
 /* utils/stat/bayes.c */

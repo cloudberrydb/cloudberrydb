@@ -750,28 +750,6 @@ void VarBlockReaderInit(
     varBlockReader->nextItemPtr = &buffer[VARBLOCK_HEADER_LEN];
 }
 
-/*
- * Set the position to a variable-length item.
- *
- * The next call to VarBlockReaderGetNextItemPtr will
- * get the specified item.
- */
-void VarBlockReaderPosition(
-    VarBlockReader      *varBlockReader,
-    int                 itemIndex)
-{
-	VarBlockByteLen itemLen;
-	
-	Assert(varBlockReader != NULL);
-	Assert(itemIndex >= 0);
-	Assert(itemIndex < VarBlockGet_itemCount(varBlockReader->header));
-
-	VarBlockGetItemPtrAndLen(varBlockReader, itemIndex, 
-		                     &varBlockReader->nextItemPtr, &itemLen);
-	
-	varBlockReader->nextIndex = itemIndex;
-}
-
 static VarBlockByteLen VarBlockGetItemLen(
     VarBlockReader      *varBlockReader,
     int                 itemIndex)

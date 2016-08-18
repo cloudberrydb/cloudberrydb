@@ -372,29 +372,6 @@ void BufferedAppendFinishBuffer(
 }
 
 /*
- * Finish the current buffer and get the next
- * buffer for appending.
- *
- * Returns NULL when the current file does not have enough
- * room for another buffer.
- */
-uint8 *BufferedAppendMoveToNextBuffer(
-    BufferedAppend       *bufferedAppend,
-    int32                usedLen,
-    int32				 usedLen_uncompressed)
-{
-	Assert(bufferedAppend != NULL);
-	
-	BufferedAppendFinishBuffer(
-			    		bufferedAppend,
-			    		usedLen,
-			    		usedLen_uncompressed);
-	
-	return BufferedAppendGetMaxBuffer(bufferedAppend);
-}
-
-
-/*
  * Returns the current file length.
  */
 int64 BufferedAppendFileLen(

@@ -1158,21 +1158,6 @@ void ntuplestore_trim(NTupleStore *ts, NTupleStorePos *pos)
 	nts_pin_page(ts, ts->first_page);
 }
 
-int ntuplestore_compare_pos(NTupleStore *ts, NTupleStorePos *pos1, NTupleStorePos *pos2)
-{
-	if(pos1->blockn < pos2->blockn)
-		return -1;
-	if(pos1->blockn > pos2->blockn)
-		return 1;
-
-	if(pos1->slotn < pos2->slotn)
-		return -1;
-	if(pos1->slotn > pos2->slotn)
-		return 1;
-
-	return 0;
-}
-
 static void ntuplestore_acc_advance_in_page(NTupleStoreAccessor *tsa, int* pn)
 {
 	if(*pn == 0)
@@ -1445,55 +1430,6 @@ void ntuplestore_acc_seek_eof(NTupleStoreAccessor *tsa)
 
 	tsa->pos.blockn = nts_page_blockn(tsa->page);
 	tsa->pos.slotn = nts_page_slot_cnt(tsa->page);
-}
-
-int ntuplestore_count_slot_acc(NTupleStore *nts, NTupleStoreAccessor *tsa1, NTupleStoreAccessor *tsa2)
-{
-	int ret = 0;
-	bool fOK; 
-	NTupleStorePos oldpos1 =
-		{
-		0, /* blockn */
-		0, /* slotn */
-		};
-	
-	fOK = ntuplestore_acc_tell(tsa1, &oldpos1);
-	if(!fOK)
-		return -1;
-
-	fOK = ntuplestore_acc_tell(tsa2, NULL);
-	if(!fOK)
-		return -1;
-
-	if(ntuplestore_compare_pos(nts, &tsa1->pos, &tsa2->pos) > 0)
-		return -1;
-
-	while(tsa1->pos.blockn < tsa2->pos.blockn)
-	{
-		int tmp = 1000000; /* Larger than possible slots can be hold in one page */
-
-		NTupleStorePage *oldpage = tsa1->page;
-
-		ntuplestore_acc_advance_in_page(tsa1, &tmp);
-		ret += 1000000 - tmp;
-
-		tsa1->page = nts_load_next_page(nts, tsa1->page);
-		Assert(tsa1->page);
-
-		nts_unpin_page(nts, oldpage);
-		nts_pin_page(nts, tsa1->page);
-
-		tsa1->pos.blockn = nts_page_blockn(tsa1->page);
-		tsa1->pos.slotn = -1;
-	}
-
-	Assert(tsa1->pos.blockn == tsa2->pos.blockn);
-	ret += tsa2->pos.slotn - tsa1->pos.slotn;
-
-	fOK = ntuplestore_acc_seek(tsa1, &oldpos1);
-	Assert(fOK);
-	
-	return ret;
 }
 
 /*

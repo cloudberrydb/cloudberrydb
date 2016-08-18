@@ -119,8 +119,5 @@ extern void DistributedSnapshot_Copy(
 	DistributedSnapshot *target,
 	DistributedSnapshot *source);
 
-extern char* DistributedSnapshotCommittedToString(
-	DistributedSnapshotCommitted distributedSnapshotCommitted);
-
 #endif   /* CDBDISTRIBUTEDSNAPSHOT_H */
 

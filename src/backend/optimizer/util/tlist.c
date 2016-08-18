@@ -567,25 +567,3 @@ int get_row_width(List *tlist)
 
     return width;
 }
-
-
-/*
- * insist_target_lists_aligned
- * 		Check that two target lists have the same number and type of entries
- */
-void
-insist_target_lists_aligned(List *tlistFst, List *tlistSnd)
-{
-	Assert(list_length(tlistFst) == list_length(tlistSnd));
-	
-	ListCell *lcFst = NULL;
-	ListCell *lcSnd = NULL;
-	
-	forboth (lcFst, tlistFst, lcSnd, tlistSnd)
-	{
-		TargetEntry *teFst = lfirst(lcFst);
-		TargetEntry *teSnd = lfirst(lcSnd);
-		
-		Insist(exprType((Node*) teFst->expr) == exprType((Node *) teSnd->expr));
-	}
-}

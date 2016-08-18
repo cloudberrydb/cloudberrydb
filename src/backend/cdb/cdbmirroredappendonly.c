@@ -759,14 +759,6 @@ void MirroredAppendOnly_OpenResynchonize(
 	}
 }
 
-
-bool MirroredAppendOnly_IsActive(
-	MirroredAppendOnlyOpen *open)
-					/* The open struct. */
-{
-	return open->isActive;
-}
-
 /*
  * Flush and close a bulk relation file.
  *

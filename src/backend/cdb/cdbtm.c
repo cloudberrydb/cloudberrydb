@@ -88,7 +88,6 @@ static TMGXACT **shmGxactArray;
  */
 static TMGXACT *currentGxact;
 
-static bool duringRecovery = false;
 static int	max_tm_gxacts = 100;
 
 static int	redoFileFD = -1;
@@ -626,15 +625,6 @@ isCurrentDtxTwoPhase(void)
 	{
 		return currentGxact->state == DTX_STATE_ACTIVE_DISTRIBUTED;
 	}
-}
-
-/*
- * When cleaning up FTS needs to know if there is a transaction active.
- */
-bool
-isCurrentDtxActive(void)
-{
-	return (currentGxact != NULL);
 }
 
 DtxState
@@ -1880,12 +1870,6 @@ releaseTmLock(void)
 
 }
 
-bool
-isTMInRecovery(void)
-{
-	return duringRecovery;
-}
-
 /*
  * Redo transaction commit log record.
  */
@@ -3112,46 +3096,6 @@ recoverTM(void)
 	elog(LOG, "DTM Started");
 }
 
-static bool deferredRecoveryActive=false;
-
-/*
- * When running in readonly-mode, we may wind up in a state where we've deferred
- * recovery waiting for a segment to come online.
- */
-void
-cdbtm_performDeferredRecovery(void)
-{
-	if (deferredRecoveryActive)
-		return;
-
-	if (*shmDtmRecoveryDeferred)
-	{
-		getTmLock();
-		if (*shmDtmRecoveryDeferred)
-		{
-			deferredRecoveryActive=true;
-			PG_TRY();
-			{
-				recoverInDoubtTransactions();
-
-				deferredRecoveryActive=false;
-			}
-			PG_CATCH();
-			{
-				deferredRecoveryActive=false;
-				PG_RE_THROW();
-			}
-			PG_END_TRY();
-
-			*shmDtmRecoveryDeferred = false;
-			elog(NOTICE, "Releasing segworker groups for deferred recovery.");
-			disconnectAndDestroyAllGangs(true);
-		}
-		releaseTmLock();
-		CheckForResetSession();
-	}
-}
-
 /* recoverInDoubtTransactions:
  * Go through all in-doubt transactions that the DTM knows about and
  * resolve them.
@@ -4023,19 +3967,6 @@ sendDtxExplicitBegin(void)
 	{
 		ereport(ERROR, (errmsg("Global transaction BEGIN failed for gid = \"%s\" due to error",
 							   currentGxact->gid)));
-	}
-}
-
-int dtxCurrentPhase1Count(void)
-{
-	if (shmDtmStarted == NULL || !*shmDtmStarted)
-	{
-		return 0;
-	}
-	else
-	{
-		Assert(shmCurrentPhase1Count != NULL);
-		return *shmCurrentPhase1Count;
 	}
 }
 

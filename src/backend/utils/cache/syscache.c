@@ -990,35 +990,6 @@ SysCacheGetAttr(int cacheId, HeapTuple tup,
  * List-search interface
  */
 struct catclist *
-SearchSysCacheKeyArrayList(int cacheId, int numkeys,
-						   Datum *keys)
-{
-	/* for catquery */
-	Datum	key1 = 0,  
-			key2 = 0,  
-			key3 = 0,  
-			key4 = 0;
-
-	Assert(numkeys < 5);
-
-	switch(numkeys)
-	{
-		case 4:
-			key4 = keys[3];
-		case 3:
-			key3 = keys[2];
-		case 2:
-			key2 = keys[1];
-		case 1:
-			key1 = keys[0];
-		default:				
-			break;
-	}
-
-	return SearchSysCacheList(cacheId, numkeys, key1, key2, key3, key4);
-}
-
-struct catclist *
 SearchSysCacheList(int cacheId, int nkeys,
 				   Datum key1, Datum key2, Datum key3, Datum key4)
 {

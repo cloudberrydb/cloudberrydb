@@ -120,9 +120,6 @@ typedef union PersistentEndXactRecObjects
 	
 } PersistentEndXactRecObjects;
 
-char *PersistentXactObjKind_Name(
-	PersistentEndXactObjKind objKind);
-
 extern char *EndXactRecKind_Name(
 	EndXactRecKind endXactRecKind);
 

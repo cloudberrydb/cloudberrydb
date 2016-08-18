@@ -354,16 +354,6 @@ extern void VarBlockReaderInit(
     VarBlockByteLen     bufferLen);
 
 /*
- * Set the position to a variable-length item.
- *
- * The next call to VarBlockReaderGetNextItemPtr will
- * get the specified item.
- */
-extern void VarBlockReaderPosition(
-    VarBlockReader      *varBlockReader,
-    int                 itemIndex);
-
-/*
  * Get a pointer to the next variable-length item.
  *
  * Returns NULL when there are no more items.

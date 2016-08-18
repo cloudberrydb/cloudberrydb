@@ -47,25 +47,6 @@ static bool create_toast_table(Relation rel, Oid toastOid, Oid toastIndexOid,
  * to end with CommandCounterIncrement if it makes any changes.
  */
 void
-AlterTableCreateToastTable(Oid relOid)
-{
-	Relation	rel;
-	bool is_part_child = !rel_needs_long_lock(relOid);
-
-	/*
-	 * Grab an exclusive lock on the target table, which we will NOT release
-	 * until end of transaction.  (This is probably redundant in all present
-	 * uses...)
-	 */
-	rel = heap_open(relOid, AccessExclusiveLock);
-
-	/* create_toast_table does all the work */
-	(void) create_toast_table(rel, InvalidOid, InvalidOid, NULL, is_part_child);
-
-	heap_close(rel, NoLock);
-}
-
-void
 AlterTableCreateToastTableWithOid(Oid relOid, Oid newOid, Oid newIndexOid,
 								  Oid * comptypeOid, bool is_part_child)
 {

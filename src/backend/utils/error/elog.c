@@ -1383,23 +1383,6 @@ errSendAlert(bool sendAlert)
 }
 
 /*
- * GP: errSuppressOutputToLog -- set flag indicating message is not to go to
- * the system log.
- */
-int errSuppressOutputToLog(void)
-{
-	ErrorData  *edata = &errordata[errordata_stack_depth];
-
-	/* we don't bother incrementing recursion_depth */
-	CHECK_STACK_DEPTH();
-
-	edata->output_to_server = false;
-
-	return 0;					/* return value does not matter */
-}
-
-
-/*
  * CDB: errFatalReturn -- set flag indicating errfinish() should return
  * to the caller instead of calling proc_exit() after reporting a FATAL
  * error.  Allows termination by re-raising a signal in order to obtain
@@ -2282,16 +2265,6 @@ cdb_tidy_message(ErrorData *edata)
 	}
 }							   /* cdb_tidy_message */
 
-static struct timeval LastLogTimeVal = {0, 0};
-
-void
-GetLastLogTimeVal(struct timeval *lastLogTimeVal)
-{
-	Assert(lastLogTimeVal != NULL);
-
-	*lastLogTimeVal = LastLogTimeVal;
-}
-
 /*
  * Format tag info for log lines; append to the provided buffer.
  */
@@ -2398,8 +2371,6 @@ log_line_prefix(StringInfo buf)
 
 					gettimeofday(&tv, NULL);
 					stamp_time = (pg_time_t) tv.tv_sec;
-					/* GP: Save the time of the last log line. */
-					LastLogTimeVal = tv;
 
 					/*
 					 * Normally we print log timestamps in log_timezone, but

@@ -216,8 +216,6 @@ extern void relation_close(Relation relation, LOCKMODE lockmode);
 extern Relation heap_open(Oid relationId, LOCKMODE lockmode);
 extern Relation heap_openrv(const RangeVar *relation, LOCKMODE lockmode);
 extern Relation try_heap_open(Oid relationId, LOCKMODE lockmode, bool noWait);
-extern Relation try_heap_openrv(const RangeVar *relation, LOCKMODE lockmode,
-								bool noWait);
 
 #define heap_close(r,l)  relation_close(r,l)
 

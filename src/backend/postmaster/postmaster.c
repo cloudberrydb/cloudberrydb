@@ -722,7 +722,7 @@ HANDLE		PostmasterHandle;
 
 /*
  * Is this a part of a segment database.  Note that this is
- *   not always the same as ! GPPostmaster because
+ *   not always the same as ! Gp_entry_postmaster because
  *   when the cluster master is started in utility mode then
  *   Gp_entry_postmaster will not be set
  */
@@ -734,11 +734,6 @@ bool GPIsSegmentDatabase()
 bool GPAreFileReplicationStructuresRequired(void)
 {
     return AreFileReplicationStructuresRequired;
-}
-
-bool GPPostmaster()
-{
-	return (Gp_entry_postmaster);
 }
 
 /**
@@ -769,12 +764,6 @@ int
 PostmasterGetMppLocalProcessCounter(void)
 {
 	return Save_MppLocalProcessCounter;
-}
-
-DistributedTransactionTimeStamp
-PostmasterGetDtxStartTime(void)
-{
-	return Save_DtxStartTime;
 }
 
 static void

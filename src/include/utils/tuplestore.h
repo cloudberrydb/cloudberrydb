@@ -58,7 +58,6 @@ tuplestore_set_instrument(Tuplestorestate          *state,
  * to support the same behavior for IndexTuples and/or bare Datums.
  */
 
-extern void tuplestore_begin_pos(Tuplestorestate* state, TuplestorePos **pos);
 extern Tuplestorestate* tuplestore_begin_heap(bool randomAccess,
 					  bool interXact,
 					  int maxKBytes);
@@ -84,7 +83,6 @@ extern bool tuplestore_advance(Tuplestorestate *state, bool forward);
 
 extern void tuplestore_end(Tuplestorestate *state);
 
-extern bool tuplestore_ateof_pos(Tuplestorestate *state, TuplestorePos *pos);
 extern bool tuplestore_ateof(Tuplestorestate *state);
 
 extern void tuplestore_rescan_pos(Tuplestorestate *state, TuplestorePos *pos);
@@ -95,7 +93,5 @@ extern void tuplestore_markpos(Tuplestorestate *state);
 
 extern void tuplestore_restorepos_pos(Tuplestorestate *state, TuplestorePos *pos);
 extern void tuplestore_restorepos(Tuplestorestate *state);
-
-extern void tuplestore_flush(Tuplestorestate *state);
 
 #endif   /* TUPLESTORE_H */

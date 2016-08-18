@@ -19,7 +19,6 @@
 #include "storage/buf.h"
 #include "utils/pg_crc.h"
 #include "utils/relcache.h"
-#include "utils/segadmin.h"
 #include "utils/timestamp.h"
 #include "cdb/cdbpublic.h"
 

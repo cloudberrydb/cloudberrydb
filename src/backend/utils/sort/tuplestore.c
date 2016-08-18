@@ -262,24 +262,6 @@ static void *copytup_heap(Tuplestorestate *state, TuplestorePos *pos, void *tup)
 static void writetup_heap(Tuplestorestate *state, TuplestorePos *pos, void *tup);
 static void *readtup_heap(Tuplestorestate *state, TuplestorePos *pos, uint32 len);
 
-
-/*
- * 		tuplestore_begin_pos
- * 		
- * Intialize tuple store pos data structure 
- */
-void 
-tuplestore_begin_pos(Tuplestorestate* state, TuplestorePos **pos)
-{
-	TuplestorePos *st_pos;
-
-	Assert(state != NULL);
-	st_pos = (TuplestorePos *) palloc0(sizeof(TuplestorePos));
-
-	memcpy(st_pos, &(state->pos), sizeof(TuplestorePos));
-	*pos = st_pos;
-}
-
 /*
  *		tuplestore_begin_xxx
  *
@@ -449,12 +431,7 @@ tuplestore_end(Tuplestorestate *state)
  * Returns the current eof_reached state.
  */
 bool
-tuplestore_ateof_pos(Tuplestorestate *state, TuplestorePos *pos)
-{
-	return pos->eof_reached;
-}
-bool
-tuplestore_ateof(Tuplestorestate *state) 
+tuplestore_ateof(Tuplestorestate *state)
 {
 	return state->pos.eof_reached;
 }
@@ -858,14 +835,6 @@ dumptuples(Tuplestorestate *state, TuplestorePos *pos)
 		WRITETUP(state, pos, state->memtuples[i]);
 	}
 	state->memtupcount = 0;
-}
-
-/* flush underlying file */
-void tuplestore_flush(Tuplestorestate *state)
-{
-	if(!state->myfile)
-		return;
-	BufFileFlush(state->myfile);
 }
 
 /*

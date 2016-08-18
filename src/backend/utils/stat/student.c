@@ -204,38 +204,3 @@ static inline float8 studentT_cdf_approx(uint64 nu, float8 t)
 	
 	return normal_cdf(z);
 }
-
-/* 
- * Datum studentT_cdf(PG_FUNCTION_ARGS)
- * 
- *    Expose the studentT_cdf as a user-defined function.
- */
-Datum 
-student_t_cdf(PG_FUNCTION_ARGS)
-{
-	int64		nu;
-	float8		t;
-	
-	/* 
-	 * Perform all the error checking needed to ensure that no one is
-	 * trying to call this in some sort of crazy way. 
-	 */
-	if (PG_NARGS() != 2)
-	{
-		ereport(ERROR,
-				(errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-				 errmsg("student_t_cdf called with %d arguments", 
-						PG_NARGS())));
-	}
-	if (PG_ARGISNULL(0) || PG_ARGISNULL(1))
-		PG_RETURN_NULL();
-	
-	nu = PG_GETARG_INT64(0);
-	t = PG_GETARG_FLOAT8(1);
-	
-	/* We want to ensure nu > 0 */
-	if (nu <= 0)
-		PG_RETURN_NULL();
-	
-	PG_RETURN_FLOAT8(studentT_cdf(nu, t));
-}

@@ -17,9 +17,6 @@
 
 extern void PersistentTablespace_Reset(void);
 
-extern bool PersistentTablespace_Check(
-	Oid 			tablespace);
-
 extern PersistentFileSysState PersistentTablespace_GetState(
 	Oid 	tablespaceOid);
 
@@ -201,12 +198,8 @@ extern void PersistentTablespace_AddMirrorAll(int16 pridbid,
 extern void PersistentTablespace_RemoveSegment(int16 dbid, bool ismirror);
 extern void PersistentTablespace_ActivateStandby(int16 oldmaster,
 												 int16 newmaster);
-extern void xlog_persistent_tablespace_create(Oid filespaceoid,
-											  Oid tablespaceoid);
 extern Oid PersistentTablespace_GetFileSpaceOid(Oid tablespaceOid);
 
-extern void xlog_persistent_tablespace_create(Oid filespaceoid,
-											  Oid tablespaceoid);
 #ifdef MASTER_MIRROR_SYNC 
 void get_tablespace_data(tspc_agg_state **tas, char *caller);
 #endif

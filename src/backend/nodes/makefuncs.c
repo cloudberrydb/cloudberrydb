@@ -370,24 +370,6 @@ makeDefElem(char *name, Node *arg)
 }
 
 /*
- * makeDefElemExtended -
- *	build a DefElem node with all fields available to be specified
- */
-DefElem *
-makeDefElemExtended(/*char *nameSpace, */char *name, Node *arg,
-					DefElemAction defaction)
-{
-	DefElem    *res = makeNode(DefElem);
-
-	/*res->defnamespace = nameSpace;*/
-	res->defname = name;
-	res->arg = arg;
-	res->defaction = defaction;
-
-	return res;
-}
-
-/*
  * makeAggrefByOid -
  * 	make a trivial aggregate expression.
  *

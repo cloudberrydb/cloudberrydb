@@ -330,45 +330,5 @@ SharedDoublyLinkedHead_RemoveFirst(
 	return firstEle;
 }
 
-void
-SharedDoubleLinks_AddBefore(
-	SharedListBase				*base,
-	SharedDoublyLinkedHead		*head,
-	void						*atEle,
-	void						*newEle)
-{
-	SharedDoubleLinks	*newDoubleLinks;
-	SharedDoubleLinks	*atDoubleLinks;
-	SharedDoubleLinks	*prevDoubleLinks;
-	
-	Assert(base != NULL);
-	Assert(head != NULL);
-	Assert(head->count > 0);
-	Assert(atEle != NULL);
-	Assert(newEle != NULL);
-	newDoubleLinks = SharedDoubleLinks_FromElement(base, newEle);
-	Assert(newDoubleLinks->prev == -1);
-	Assert(newDoubleLinks->next == -1);
-
-	atDoubleLinks = SharedDoubleLinks_FromElement(base, atEle);
-	if (head->first == atDoubleLinks->index)
-	{
-		SharedDoublyLinkedHead_AddFirst(
-									base,
-									head,
-									newEle);
-		return;
-	}
-
-	prevDoubleLinks = 
-		SharedListBase_ToDoubleLinks(base, atDoubleLinks->prev);
-	
-	prevDoubleLinks->next = atDoubleLinks->prev = newDoubleLinks->index;
-	newDoubleLinks->next = atDoubleLinks->index;
-	newDoubleLinks->prev = prevDoubleLinks->index;
-	head->count++;
-	
-}
-
 //******************************************************************************
 

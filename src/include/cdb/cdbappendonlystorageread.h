@@ -388,12 +388,6 @@ extern bool AppendOnlyStorageRead_ReadNextBlock(
 	AppendOnlyStorageRead		*storageRead);
 
 /*
- * Return the current Append-Only Storage Block buffer.
- */
-extern uint8 *AppendOnlyStorageRead_CurrentBuffer(
-	AppendOnlyStorageRead		*storageRead);
-
-/*
  * Return the file offset of the current Append-Only Storage Block.
  */
 extern int64 AppendOnlyStorageRead_CurrentHeaderOffsetInFile(

@@ -185,13 +185,6 @@ extern bool ChangeTracking_PrintRelationChangeInfo(
 
 extern int ChangeTracking_GetInfoArrayDesiredMaxLength(RmgrId rmid, uint8 info);
 
-/*
- * Get the total number of (unique) blocks that had changed and
- * need to be resynchronized. returns number of blocks or -1 for
- * error.
- */
-extern int64 ChangeTracking_GetTotalBlocksToSync(void);
-
 /**
  * Get the total amount of space, in bytes, used by the changetracking information.
  */

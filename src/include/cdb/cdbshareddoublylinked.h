@@ -87,12 +87,5 @@ extern void* SharedDoublyLinkedHead_RemoveFirst(
 	SharedListBase				*base,
 	SharedDoublyLinkedHead		*head);
 
-extern void SharedDoubleLinks_AddBefore(
-	SharedListBase				*base,
-	SharedDoublyLinkedHead		*head,
-	void						*atEle,
-	void						*newEle);
-
-
 #endif   /* CDBSHAREDDOUBLYLINKED_H */
 

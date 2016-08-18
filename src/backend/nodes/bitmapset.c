@@ -598,30 +598,6 @@ bms_is_empty(const Bitmapset *a)
 
 
 /*
- * bms_assign - copy 'tgt' from 'src'
- *
- * 'tgt' set is modified or recycled!
- */
-Bitmapset *
-bms_assign(Bitmapset *tgt, const Bitmapset *src)
-{
-	int			i;
-
-	if (tgt == NULL)
-		return bms_copy(src);
-    if (tgt->nwords < src->nwords)
-    {
-        pfree(tgt);
-        return bms_copy(src);
-    }
-    for (i = 0; i < src->nwords; i++)
-        tgt->words[i] = src->words[i];
-    for (; i < tgt->nwords; i++)
-        tgt->words[i] = 0;
-    return tgt;
-}                               /* bms_assign */
-
-/*
  * bms_add_member - add a specified member to set
  *
  * Input set is modified or recycled!

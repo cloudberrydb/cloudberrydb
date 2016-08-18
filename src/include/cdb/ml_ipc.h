@@ -319,10 +319,6 @@ extern ChunkTransportStateEntry *createChunkTransportState(ChunkTransportState *
 extern ChunkTransportStateEntry *removeChunkTransportState(ChunkTransportState *transportStates,
 														   int16 motNodeID);
 
-extern void forceEosToPeers(MotionLayerState       *mlStates,
-							ChunkTransportState    *transportStates,
-							int                     motNodeID);
-
 extern void InitMotionTCP(int *listenerSocketFd, uint16 *listenerPort);
 extern void InitMotionUDP(int *listenerSocketFd, uint16 *listenerPort);
 extern void InitMotionUDPIFC(int *listenerSocketFd, uint16 *listenerPort);

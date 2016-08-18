@@ -27,8 +27,6 @@ extern void PersistentRelation_CheckTablespace(
 	int32			*useCount,
 	RelFileNode 	*exampleRelFileNode);
 
-extern void PersistentRelation_FlushXLog(void);
-
 extern void PersistentRelation_Reset(void);
 
 /*

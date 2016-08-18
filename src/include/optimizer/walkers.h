@@ -47,9 +47,7 @@ typedef struct plan_tree_base_prefix
 } plan_tree_base_prefix;
 
 extern void planner_init_plan_tree_base(plan_tree_base_prefix *base, PlannerInfo *root);
-extern void global_init_plan_tree_base(plan_tree_base_prefix *base, PlannerGlobal *glob);
 extern void exec_init_plan_tree_base(plan_tree_base_prefix *base, PlannedStmt *stmt);
-extern void null_init_plan_tree_base(plan_tree_base_prefix *base);
 extern Plan *plan_tree_base_subplan_get_plan(plan_tree_base_prefix *base, SubPlan *subplan);
 extern void plan_tree_base_subplan_put_plan(plan_tree_base_prefix *base, SubPlan *subplan, Plan *plan);
 
@@ -65,7 +63,6 @@ extern "C" {
  * Useful functions that aggregate information from expressions or plans.
  */
 extern List *extract_nodes(PlannerGlobal *glob, Node *node, int nodeTag);
-extern bool contains_node_type(PlannerGlobal *glob, Node *node, int nodeTag);
 extern List *extract_nodes_plan(Plan *pl, int nodeTag, bool descendIntoSubqueries);
 extern List *extract_nodes_expression(Node *node, int nodeTag, bool descendIntoSubqueries);
 extern int find_nodes(Node *node, List *nodeTags);

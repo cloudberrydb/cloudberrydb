@@ -168,30 +168,6 @@ static SharedOidSearchObjHeader *SharedOidSearch_FindInBucket(
 	return NULL;
 }
 
-static SharedOidSearchObjHeader *SharedOidSearch_ProbeInBucket(
-	SharedOidSearchTable		*table,
-	SharedOidSearchHashBucket	*bucket,
-	Oid 						oid1)
-{
-	SharedListBase				*listBase = &table->private.freePool.listBase;
-	SharedDoublyLinkedHead		*listHead;
-	SharedOidSearchObjHeader 	*ele;
-
-	listHead = &bucket->bucketListHead;
-	ele = (SharedOidSearchObjHeader*)
-					SharedDoublyLinkedHead_First(listBase, listHead);
-	while (ele != NULL)
-	{
-		if (ele->oid1 == oid1)
-			return ele;
-
-		ele = (SharedOidSearchObjHeader*)
-					SharedDoubleLinks_Next(listBase, listHead, ele);
-	}
-
-	return NULL;
-}
-
 static void SharedOidSearch_RemoveFromBucket(
 	SharedOidSearchTable		*table,
 	SharedOidSearchHashBucket	*bucket,
@@ -266,22 +242,6 @@ SharedOidSearchObjHeader *SharedOidSearch_Find(
 	bucket = SharedOidSearch_GetBucket(table, oid1);
 
 	ele = SharedOidSearch_FindInBucket(table, bucket, oid1, oid2);
-	if (ele == NULL)
-		return NULL;
-
-	return ele;
-}
-
-SharedOidSearchObjHeader *SharedOidSearch_Probe(
-	SharedOidSearchTable 	*table,
-	Oid 					oid1)
-{
-	SharedOidSearchHashBucket	*bucket;
-	SharedOidSearchObjHeader 	*ele;
-
-	bucket = SharedOidSearch_GetBucket(table, oid1);
-
-	ele = SharedOidSearch_ProbeInBucket(table, bucket, oid1);
 	if (ele == NULL)
 		return NULL;
 

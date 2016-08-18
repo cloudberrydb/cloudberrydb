@@ -66,11 +66,9 @@ extern void ShmemBackendArrayAllocation(void);
 
 /* CDB */
 typedef int (PMSubStartCallback)(void);
-extern bool GPPostmaster(void);
 extern bool GPIsSegmentDatabase(void);
 extern bool GPAreFileReplicationStructuresRequired(void);
 extern int PostmasterGetMppLocalProcessCounter(void);
-extern DistributedTransactionTimeStamp PostmasterGetDtxStartTime(void);
 
 extern void StartMasterOrPrimaryPostmasterProcesses(void);
 extern void SignalShutdownFilerepProcess(void);

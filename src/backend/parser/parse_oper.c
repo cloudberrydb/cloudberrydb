@@ -385,21 +385,6 @@ equality_oper_funcid(Oid argtype)
 }
 
 /*
- * ordering_oper_opid - convenience routine for oprfuncid(ordering_oper())
- */
-Oid
-ordering_oper_funcid(Oid argtype)
-{
-	Operator	optup;
-	Oid			result;
-
-	optup = ordering_oper(argtype, false);
-	result = oprfuncid(optup);
-	ReleaseOperator(optup);
-	return result;
-}
-
-/*
  * ordering_oper_opid - convenience routine for oprid(ordering_oper())
  *
  * This was formerly called any_ordering_op()

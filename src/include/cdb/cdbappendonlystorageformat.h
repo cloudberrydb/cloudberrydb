@@ -57,9 +57,6 @@ extern AOHeaderCheckError AppendOnlyStorageFormat_GetSmallContentHeaderInfo(
 	bool			*isCompressed,
 	int32			*compressedLen);
 
-extern int32 AppendOnlyStorageFormat_GetUncompressedLen(
-	uint8			*headerPtr);
-
 extern int32 AppendOnlyStorageFormat_GetCompressedLen(
 	uint8			*headerPtr);
 
@@ -141,17 +138,7 @@ extern char *AppendOnlyStorageFormat_SmallContentHeaderStr(
 	bool			usingChecksums,
 	int				version);
 
-extern void AppendOnlyStorageFormat_LogSmallContentHeader(
-	uint8			*headerPtr,
-	bool			usingChecksums,
-	int				version);
-
 extern char *AppendOnlyStorageFormat_LargeContentHeaderStr(
-	uint8			*headerPtr,
-	bool			usingChecksums,
-	int				version);
-
-extern void AppendOnlyStorageFormat_LogLargeContentHeader(
 	uint8			*headerPtr,
 	bool			usingChecksums,
 	int				version);
@@ -161,27 +148,12 @@ extern char *AppendOnlyStorageFormat_NonBulkDenseContentHeaderStr(
 	bool			usingChecksums,
 	int				version);
 
-extern void AppendOnlyStorageFormat_LogNonBulkDenseContentHeader(
-	uint8			*headerPtr,
-	bool			usingChecksums,
-	int				version);
-
 extern char *AppendOnlyStorageFormat_BulkDenseContentHeaderStr(
 	uint8			*headerPtr,
 	bool			usingChecksums,
 	int				version);
 
-extern void AppendOnlyStorageFormat_LogBulkDenseContentHeader(
-	uint8			*headerPtr,
-	bool			usingChecksums,
-	int				version);
-
 extern char *AppendOnlyStorageFormat_BlockHeaderStr(
-	uint8			*headerPtr,
-	bool			usingChecksums,
-	int				version);
-
-extern void AppendOnlyStorageFormat_LogBlockHeader(
 	uint8			*headerPtr,
 	bool			usingChecksums,
 	int				version);

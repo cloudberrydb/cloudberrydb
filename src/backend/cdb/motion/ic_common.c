@@ -674,27 +674,6 @@ SetupInterconnect(EState *estate)
 }
 
 
-/*
- * Move this out to separate stack frame, so that we don't have to mark
- * tons of stuff volatile in TeardownInterconnect().
- */
-void
-forceEosToPeers(MotionLayerState       *mlStates,
-			    ChunkTransportState    *transportStates,
-			    int                     motNodeID)
-{
-	if (!transportStates)
-	{
-		elog(FATAL, "no transport-states.");
-	}
-
-	transportStates->teardownActive = true;
-
-	transportStates->SendEos(mlStates, transportStates, motNodeID, get_eos_tuplechunklist());
-
-	transportStates->teardownActive = false;
-}
-
 /* TeardownInterconnect() function is used to cleanup interconnect resources that
  * were allocated during SetupInterconnect().  This function should ALWAYS be
  * called after SetupInterconnect to avoid leaking resources (like sockets)

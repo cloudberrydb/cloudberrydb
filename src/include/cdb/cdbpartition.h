@@ -202,9 +202,6 @@ extern AlterTableCmd *basic_AT_cmd(AlterTableCmd *cmd);
 extern bool can_implement_dist_on_part(Relation rel, List *dist_cnames);
 extern bool is_exchangeable(Relation rel, Relation oldrel, Relation newrel, bool fthrow);
 
-extern char *
-ChooseConstraintNameForPartitionEarly(Relation rel, ConstrType contype, Node *expr);
-
 extern void
 fixCreateStmtForPartitionedTable(CreateStmt *stmt);
 

@@ -40,17 +40,6 @@ nodeReadSkip(void);
 bool
 pg_strtok_peek_fldname(const char *fldname);
 
-/*
- * pg_strtok_prereq
- *    If the next tokens to be returned by pg_strtok are, case-sensitively,
- *          :prereq <featurename>
- *    then this function consumes them and returns true.  Otherwise false
- *    is returned and no tokens are consumed.
- */
-bool
-pg_strtok_prereq(const char *featurename);
-
-
 /*-------------------------------------------------------------------------
  * prototypes for functions in readfuncs.c
  */

@@ -139,7 +139,6 @@ void workfile_update_in_progress_size(ExecWorkFile *workfile, int64 size);
 /* Workfile File operations */
 ExecWorkFile *workfile_mgr_create_file(workfile_set *work_set);
 ExecWorkFile *workfile_mgr_create_fileno(workfile_set *work_set, uint32 file_no);
-ExecWorkFile *workfile_mgr_open_fileno(workfile_set *work_set, uint32 file_no);
 int64 workfile_mgr_close_file(workfile_set *work_set, ExecWorkFile *file);
 
 /* Workfile diskspace operations */

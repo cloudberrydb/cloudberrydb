@@ -32,10 +32,6 @@ extern void
 DoublyLinkedHead_Init(
 	DoublyLinkedHead		*head);
 
-extern int32 
-DoublyLinkedHead_Count(
-	DoublyLinkedHead		*head);
-
 extern void* 
 DoublyLinkedHead_First(
 	int 					offsetToDoubleLinks,

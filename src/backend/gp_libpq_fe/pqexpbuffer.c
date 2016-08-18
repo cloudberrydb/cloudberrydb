@@ -404,19 +404,3 @@ appendBinaryPQExpBuffer(PQExpBuffer str, const char *data, size_t datalen)
 	 */
 	str->data[str->len] = '\0';
 }
-
-/*------------------------
- * truncatePQExpBuffer
- * Make sure a PQExpBuffer's string is no longer than 'nchars' characters.
- */
-void 
-truncatePQExpBuffer(PQExpBuffer str, int nchars)
-{
-    if (str &&
-        str->len > nchars)
-    {
-        str->len = nchars;
-        str->data[nchars] = '\0';
-    }
-}                               /* truncatePQExpBuffer */
-

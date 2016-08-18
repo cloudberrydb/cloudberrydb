@@ -321,11 +321,9 @@ extern void descDistributedForgetCommitRecord(StringInfo buf, TMGXACT_LOG *gxact
 extern void dtmPreCommand(const char *debugCaller, const char *debugDetail, PlannedStmt *stmt,
 							bool needsTwoPhaseCommit, bool dispatchToPrimaries, bool dispatchToMirrors );
 extern bool isCurrentDtxTwoPhase(void);
-extern bool isCurrentDtxActive(void);
 extern DtxState getCurrentDtxState(void);
 
 extern void sendDtxExplicitBegin(void);
-extern int dtxCurrentPhase1Count(void);
 
 extern bool dispatchDtxCommand(const char *cmd);
 
@@ -337,7 +335,6 @@ extern void restoreGxact(TMGXACT_LOG * gxact, DtxState state);
 extern void getDtxCheckPointInfoAndLock(char **result, int *result_size);
 extern void freeDtxCheckPointInfoAndUnlock(char *info, int info_size, XLogRecPtr *recptr);
 
-extern bool isTMInRecovery(void);
 extern void setRecoverTMOn(void);
 
 extern void verify_shared_snapshot_ready(void);
@@ -365,8 +362,6 @@ extern void doDtxPhase2Retry(void);
 extern void UtilityModeFindOrCreateDtmRedoFile(void);
 extern void UtilityModeCloseDtmRedoFile(void);
 extern void PleaseDebugMe(char *caller);
-
-extern void cdbtm_performDeferredRecovery(void);
 
 extern bool doDispatchSubtransactionInternalCmd(DtxProtocolCommand cmdType);
 

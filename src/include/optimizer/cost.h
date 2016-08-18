@@ -90,8 +90,6 @@ extern void cost_bitmap_heap_scan(Path *path, PlannerInfo *root, RelOptInfo *bas
 					  Path *bitmapqual, RelOptInfo *outer_rel);
 extern void cost_bitmap_appendonly_scan(Path *path, PlannerInfo *root, RelOptInfo *baserel,
 					  Path *bitmapqual, RelOptInfo *outer_rel);
-extern void cost_bitmap_aocs_scan(Path *path, PlannerInfo *root, RelOptInfo *baserel,
-					  Path *bitmapqual, RelOptInfo *outer_rel);
 extern void cost_bitmap_table_scan(Path *path, PlannerInfo *root, RelOptInfo *baserel,
 					  Path *bitmapqual, RelOptInfo *outer_rel);
 extern void cost_bitmap_and_node(BitmapAndPath *path, PlannerInfo *root);

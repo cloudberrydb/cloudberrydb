@@ -230,50 +230,6 @@ cdbCopySendData(CdbCopy *c, int target_seg, const char *buffer,
 }
 
 /*
- * sends data to a copy command on a specific segment (usually
- * the hash result of the data value).
- */
-void
-cdbCopySendDataSingle(CdbCopy *c, int target_seg, const char *buffer,
-				int nbytes)
-{
-	SegmentDatabaseDescriptor *q;
-	Gang	   *gp;
-	int			result;
-
-	/* clean err message */
-	c->err_msg.len = 0;
-	c->err_msg.data[0] = '\0';
-	c->err_msg.cursor = 0;
- 
-	gp = c->primary_writer;
-	
-	Assert(gp);
-
-	q = getSegmentDescriptorFromGang(gp, target_seg);
-
-	/* transmit the COPY data */
-	elog(DEBUG4,"PQputCopyData to segment %d\n", target_seg);
-	result = PQputCopyData(q->conn, buffer, nbytes);
-
-	if (result != 1)
-	{
-		if (result == 0)
-			appendStringInfo(&(c->err_msg),
-							 "Failed to send data to segment %d, attempt blocked\n",
-							 target_seg);
-
-		if (result == -1)
-			appendStringInfo(&(c->err_msg),
-							 "Failed to send data to segment %d: %s\n",
-							 target_seg, PQerrorMessage(q->conn));
-
-		c->io_errors = true;
-	}
- 
-}
-
-/*
  * gets a chunk of rows of data from a copy command.
  * returns boolean true if done. Caller should still
  * empty the leftovers in the outbuf in that case.
@@ -669,20 +625,4 @@ cdbCopyEnd(CdbCopy *c)
 	pfree(failedSegDBs);
 
 	return total_rows_rejected;
-}
-
-
-/*
- * start a global transaction for COPY.
- */
-void
-cdbCopyStartTransaction(void)
-{
-	/* since we don't use cdbdisp's dispatch services, we need to explicitly
-	 * kick off a BEGIN if its the real start of a transaction
-	 */
-	sendDtxExplicitBegin();
-	
-	/* this txn is gonna be dirty */
-	dtmPreCommand("cdbCopyStartTransaction", "(none)", NULL, /* needs two-phase */ true, /* withSnapshot */ true, /* inCursor */ false );
 }

@@ -711,22 +711,10 @@ void planner_init_plan_tree_base(plan_tree_base_prefix *base, PlannerInfo *root)
 	base->node = (Node*)root;
 }
 
-/* Initialize a plan_tree_base_prefix from a PlannerGlobal. */
-void global_init_plan_tree_base(plan_tree_base_prefix *base, PlannerGlobal *glob)
-{
-	base->node = (Node*)glob;
-}
-
 /* Initialize a plan_tree_base_prefix after planning. */
 void exec_init_plan_tree_base(plan_tree_base_prefix *base, PlannedStmt *stmt)
 {
 	base->node = (Node*)stmt;
-}
-
-/* Initialize a plan_tree_base_prefix after planning. */
-void null_init_plan_tree_base(plan_tree_base_prefix *base)
-{
-	base->node = NULL;
 }
 
 static bool walk_scan_node_fields(Scan *scan, bool (*walker) (), void *context);
@@ -1259,14 +1247,6 @@ typedef struct extract_context
 
 static bool extract_nodes_walker(Node *node, extract_context *context);
 static bool extract_nodes_expression_walker(Node *node, extract_context *context);
-
-/**
- * Does node contain a sub-node with the specific nodeTag?
- */
-bool contains_node_type(PlannerGlobal *glob, Node *node, int nodeTag)
-{
-	return (list_length(extract_nodes(glob, node, nodeTag)) > 0);
-}
 
 /**
  * Extract nodes with specific tag.

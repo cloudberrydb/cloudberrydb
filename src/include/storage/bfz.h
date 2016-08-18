@@ -69,7 +69,6 @@ extern void bfz_write_ex(bfz_t * thiz, const char *buffer, int size);
 extern int	bfz_read_ex(bfz_t * thiz, char *buffer, int size);
 
 /* These functions are interface to bfz. */
-extern const char *bfz_compression_to_string(int compress);
 extern int	bfz_string_to_compression(const char *string);
 
 extern bfz_t *bfz_create(const char *filePrefix, bool delOnClose, int compress);

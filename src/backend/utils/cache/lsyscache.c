@@ -2138,37 +2138,6 @@ get_rel_relkind(Oid relid)
 }
 
 /*
- * get_rel_reltuples
- *
- *		Returns the estimated number of tuples of a given relation.
- */
-float4
-get_rel_reltuples(Oid relid)
-{
-	HeapTuple	tp;
-	cqContext  *pcqCtx;
-	float4 result = 0;
-
-	pcqCtx = caql_beginscan(
-			NULL,
-			cql("SELECT * FROM pg_class "
-				" WHERE oid = :1 ",
-				ObjectIdGetDatum(relid)));
-
-	tp = caql_getnext(pcqCtx);
-
-	if (HeapTupleIsValid(tp))
-	{
-		Form_pg_class reltup = (Form_pg_class) GETSTRUCT(tp);
-
-		result = reltup->reltuples;
-	}
-
-	caql_endscan(pcqCtx);
-	return result;
-}
-
-/*
  * get_rel_relstorage
  *
  *		Returns the relstorage associated with a given relation.
@@ -3088,35 +3057,6 @@ get_attavgwidth(Oid relid, AttrNumber attnum)
 			return stawidth;
 	}
 	return 0;
-}
-
-/*
- * get_attdistinct
- *
- *	  Given the table and attribute number of a column, get the number of
- *	  distinct values in the column.  Return zero if no data available.
- */
-float4
-get_attdistinct(Oid relid, AttrNumber attnum)
-{
-	cqContext *pcqCtx = caql_beginscan(
-			NULL,
-			cql("SELECT * FROM pg_statistic "
-				" WHERE starelid = :1 "
-				" AND staattnum = :2 ",
-				ObjectIdGetDatum(relid),
-				Int16GetDatum(attnum)));
-
-	HeapTuple tp = caql_getnext(pcqCtx);
-
-	float4 result = 0;
-	if (HeapTupleIsValid(tp))
-	{
-		result = ((Form_pg_statistic) GETSTRUCT(tp))->stadistinct;
-	}
-
-	caql_endscan(pcqCtx);
-	return result;
 }
 
 /*

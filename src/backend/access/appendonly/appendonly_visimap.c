@@ -173,40 +173,6 @@ AppendOnlyVisimap_Find(
 }
 
 /*
- * Hides the given tuple id.
- * 
- * After the function call, the tuple is marked hidden, but
- * the state is not yet persisted.
- */ 
-HTSU_Result
-AppendOnlyVisimap_Hide(
-		AppendOnlyVisimap *visiMap,
-		AOTupleId *aoTupleId)
-{
-	Assert(visiMap);
-	Assert(aoTupleId);
-
-	elogif (Debug_appendonly_print_visimap, LOG, 
-			"Append-only visi map: Hide tuple "
-			"(tupleId) = %s", 
-			AOTupleIdToString(aoTupleId)); 
-
-	if (!AppendOnlyVisimapEntry_CoversTuple(&visiMap->visimapEntry,
-			aoTupleId))
-	{
-		/* if necessary persist the current entry before moving. */
-		if (AppendOnlyVisimapEntry_HasChanged(&visiMap->visimapEntry))
-		{
-			AppendOnlyVisimap_Store(visiMap);
-		}
-
-		AppendOnlyVisimap_Find(visiMap, aoTupleId);
-	}
-
-	return AppendOnlyVisimapEntry_HideTuple(&visiMap->visimapEntry, aoTupleId);
-}
-
-/*
  * Checks if a tuple is visible according to the visibility map.
  * A positive result is a necessary but not sufficient condition for
  * a tuple to be visible to the user.
@@ -278,32 +244,6 @@ AppendOnlyVisimap_DeleteSegmentFile(
 			"Delete visimap for segment file %d", segno);
 
 	AppendOnlyVisimapStore_DeleteSegmentFile(&visiMap->visimapStore,
-			segno);
-}
-
-/*
- * Returns true iff all entries of the relation are visible.
- */ 
-bool
-AppendOnlyVisimap_IsRelationFullyVisible(
-	AppendOnlyVisimap *visiMap)
-{
-	Assert(visiMap);
-
-	return AppendOnlyVisimapStore_IsRelationFullyVisible(&visiMap->visimapStore);
-}
-
-/*
- * Returns true iff all entries of a segment file are visible.
- */ 
-bool
-AppendOnlyVisimap_IsSegmentFileFullyVisible(
-	AppendOnlyVisimap *visiMap,
-	int segno)
-{
-	Assert(visiMap);
-
-	return AppendOnlyVisimapStore_IsSegmentFileFullyVisible(&visiMap->visimapStore,
 			segno);
 }
 

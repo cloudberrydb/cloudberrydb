@@ -239,16 +239,6 @@ _bitmap_findnexttid(BMBatchWords *words, BMIterateResult *result)
 }
 
 /*
- * _bitmap_findprevtid() -- find the previous tid location in an array of tids.
- */
-void
-_bitmap_findprevtid(BMIterateResult *result)
-{
-	Assert(result->nextTidLoc > 0);
-	result->nextTidLoc--;
-}
-
-/*
  * _bitmap_findnexttids() -- find the next set of tids from a given
  *  batch of bitmap words.
  *

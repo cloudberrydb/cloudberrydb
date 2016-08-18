@@ -2407,30 +2407,6 @@ appendonly_fetch(
 }
 
 void
-appendonly_fetch_detail(
-	AppendOnlyFetchDesc 		aoFetchDesc,
-	AppendOnlyFetchDetail 		*aoFetchDetail)
-{
-	aoFetchDetail->rangeFileOffset =
-			aoFetchDesc->currentBlock.blockDirectoryEntry.range.fileOffset;
-	aoFetchDetail->rangeFirstRowNum =
-			aoFetchDesc->currentBlock.blockDirectoryEntry.range.firstRowNum;
-	aoFetchDetail->rangeAfterFileOffset =
-			aoFetchDesc->currentBlock.blockDirectoryEntry.range.afterFileOffset;
-	aoFetchDetail->rangeLastRowNum =
-			aoFetchDesc->currentBlock.blockDirectoryEntry.range.lastRowNum;
-
-	aoFetchDetail->skipBlockCount = aoFetchDesc->skipBlockCount;
-
-	aoFetchDetail->blockFileOffset = aoFetchDesc->currentBlock.fileOffset;
-	aoFetchDetail->blockOverallLen = aoFetchDesc->currentBlock.overallBlockLen;
-	aoFetchDetail->blockFirstRowNum = aoFetchDesc->currentBlock.firstRowNum;
-	aoFetchDetail->blockLastRowNum = aoFetchDesc->currentBlock.lastRowNum;
-	aoFetchDetail->isCompressed = aoFetchDesc->currentBlock.isCompressed;
-	aoFetchDetail->isLargeContent = aoFetchDesc->currentBlock.isLargeContent;
-}
-
-void
 appendonly_fetch_finish(AppendOnlyFetchDesc aoFetchDesc)
 {
 	RelationDecrementReferenceCount(aoFetchDesc->relation);

@@ -61,29 +61,6 @@ workfile_mgr_create_fileno(workfile_set *work_set, uint32 file_no)
 }
 
 /*
- * Opens a numbered workfile of a given set
- *
- *  The given file_no is used to generate the file name
- */
-ExecWorkFile *
-workfile_mgr_open_fileno(workfile_set *work_set, uint32 file_no)
-{
-
-	Assert(NULL != work_set);
-
-	char file_name[MAXPGPATH];
-	retrieve_file_no(work_set, file_no, file_name, sizeof(file_name));
-	ExecWorkFile *ewfile = ExecWorkFile_Open(file_name,
-			work_set->metadata.type,
-			true /* del_on_close */,
-			work_set->metadata.bfz_compress_type);
-
-	ExecWorkfile_SetWorkset(ewfile, work_set);
-
-	return ewfile;
-}
-
-/*
  * Closes a given workfile and updates the diskspace accordingly
  *
  *  work_set can be NULL for workfile that were created outside of the workfile manager,

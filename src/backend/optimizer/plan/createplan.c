@@ -41,7 +41,6 @@
 #include "utils/lsyscache.h"
 #include "utils/uri.h"
 
-#include "cdb/cdbgroup.h"       /* adapt_flow_to_targetlist() */
 #include "cdb/cdbllize.h"       /* pull_up_Flow() */
 #include "cdb/cdbpath.h"        /* cdbpath_rows() */
 #include "cdb/cdbpathtoplan.h"  /* cdbpathtoplan_create_flow() etc. */

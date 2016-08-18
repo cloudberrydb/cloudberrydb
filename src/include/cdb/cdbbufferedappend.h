@@ -160,19 +160,6 @@ extern void BufferedAppendFinishBuffer(
     int32				 usedLen_uncompressed);
 
 /*
- * Finish the current buffer and get the next
- * buffer for appending.
- *
- * Returns NULL when the current file does not have enough
- * room for another buffer.
- */
-extern uint8 *BufferedAppendMoveToNextBuffer(
-    BufferedAppend       *bufferedAppend,
-    int32                usedLen,
-    int32				 usedLen_uncompressed);
-
-
-/*
  * Returns the current file’s length.
  */
 extern int64 BufferedAppendFileLen(

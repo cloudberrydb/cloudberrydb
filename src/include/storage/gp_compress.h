@@ -38,8 +38,4 @@ extern void gp_decompress_new(
 			  CompressionState *compressionState,
 				int64			 bufferCount);
 
-extern void gp_issuecompresserror(
-	int				zlibCompressError,
-	int32			sourceLen);
-
 #endif

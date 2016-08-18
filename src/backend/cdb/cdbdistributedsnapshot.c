@@ -254,23 +254,3 @@ DistributedSnapshot_Copy(
 		source->inProgressXidArray, 
 		source->header.count * sizeof(DistributedTransactionId));
 }
-
-char* 
-DistributedSnapshotCommittedToString(
-	DistributedSnapshotCommitted distributedSnapshotCommitted)
-{
-	switch (distributedSnapshotCommitted)
-	{
-	case DISTRIBUTEDSNAPSHOT_COMMITTED_INPROGRESS:
-		return "In-Progress";
-		
-	case DISTRIBUTEDSNAPSHOT_COMMITTED_VISIBLE:
-		return "Visible";
-
-	case DISTRIBUTEDSNAPSHOT_COMMITTED_IGNORE:
-		return "Ignore";
-
-	default:
-		return "Unknown";
-	}
-}

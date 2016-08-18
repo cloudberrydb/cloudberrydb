@@ -609,39 +609,3 @@ pg_strtok_peek_fldname(const char *fldname)
 
     return false;
 }                                   /* pg_strtok_peek_fldname */
-
-
-/*
- * pg_strtok_prereq
- *    If the next tokens to be returned by pg_strtok are, case-sensitively,
- *          :prereq <featurename>
- *    then this function consumes them and returns true.  Otherwise false
- *    is returned and no tokens are consumed.
- */
-bool
-pg_strtok_prereq(const char *featurename)
-{
-    char   *prereq;
-    char   *token;
-    int     tok_len;
-    int     featurename_len;
-
-    /* Is ":prereq" next? */
-    if (!pg_strtok_peek_fldname("prereq"))
-        return false;
-
-    /* Consume ":prereq" and the token after it. */
-    prereq = pg_strtok(&tok_len);
-    token = pg_strtok(&tok_len);
-
-    /* Success if the feature name matches. */
-    featurename_len = strlen(featurename);
-    if (token &&
-        tok_len == featurename_len &&
-        memcmp(token, featurename, featurename_len) == 0)
-        return true;
-
-    /* Doesn't match.  Unget the two tokens. */
-    pg_strtok_ptr = prereq;
-    return false;
-}                                   /* pg_strtok_prereq */

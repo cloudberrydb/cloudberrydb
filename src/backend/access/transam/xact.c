@@ -629,16 +629,6 @@ SetCurrentStatementStartTimestamp(void)
 }
 
 /*
- *	SetCurrentStatementStartTimestampToMaster
- */
-void
-SetCurrentStatementStartTimestampToMaster(TimestampTz masterTime)
-{
-	if (masterTime != 0)
-		stmtStartTimestamp = masterTime;
-}
-
-/*
  *	SetCurrentTransactionStopTimestamp
  */
 static inline void
@@ -2830,18 +2820,6 @@ ShowSubtransactionsForSharedSnapshot(void)
 		elog((Debug_print_full_dtm ? LOG : DEBUG5), "subxid %u",
 		     SharedLocalSnapshotSlot->subxids[i]);
 	}
-}
-
-/*
- * MPP routine for marking when a sequence makes a mark in the xlog.
- * we need to keep track of this because sequences are the only reason
- * a reader should ever write to the xlog during commit.  As a result,
- * we keep track of such and will complain loudly if its violated.
- */
-void
-SetXactSeqXlog(void)
-{
-	seqXlogWrite = true;
 }
 
 /*
@@ -7125,7 +7103,7 @@ xact_desc_distributed_commit(StringInfo buf, xl_xact_commit *xlrec)
 static void
 xact_desc_distributed_forget(StringInfo buf, xl_xact_distributed_forget *xlrec)
 {
-	descDistributedCommitRecord(buf, &xlrec->gxact_log);
+	descDistributedForgetCommitRecord(buf, &xlrec->gxact_log);
 }
 
 

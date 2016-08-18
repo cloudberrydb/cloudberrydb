@@ -1560,12 +1560,6 @@ tbm_bitmap_upd_instrument(Node *bm)
     }
 }                               /* tbm_bitmap_upd_instrument */
 
-void tbm_convert_appendonly_tid_in(AOTupleId *aoTid, ItemPointer psudeoHeapTid)
-{
-	// UNDONE: For now, just copy.
-	memcpy(psudeoHeapTid, aoTid, SizeOfIptrData);
-}
-
 void tbm_convert_appendonly_tid_out(ItemPointer psudeoHeapTid, AOTupleId *aoTid)
 {
 	// UNDONE: For now, just copy.

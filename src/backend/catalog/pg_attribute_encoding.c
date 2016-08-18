@@ -204,30 +204,6 @@ RelationGetAttributeOptions(Relation rel)
 }
 
 /*
- * Return an array of compression function arrays for
- * each attribute in a table.
- *
- * Set NULL for columns without storage options.
- */
-PGFunction **
-RelationGetColumnCompressionFuncs(Relation rel)
-{
-	StdRdOptions  **opts = RelationGetAttributeOptions(rel);
-	PGFunction	  **funcs = palloc0(RelationGetNumberOfAttributes(rel)
-									* sizeof(PGFunction *));
-	int 			i;
-
-	for (i = 0; i < RelationGetNumberOfAttributes(rel); i++)
-	{
-		if (opts[i])
-		{
-			funcs[i] = get_funcs_for_compression(opts[i]->compresstype);
-		}
-	}
-	return funcs;
-}
-
-/*
  * Given a WITH(...) clause and no other column encoding directives -- such as
  * in the case of CREATE TABLE WITH () AS SELECT -- fill in the column encoding
  * catalog entries for that relation.

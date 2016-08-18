@@ -111,9 +111,6 @@ extern Datum SysCacheGetAttr(int cacheId, HeapTuple tup,
 extern struct catclist *SearchSysCacheList(int cacheId, int nkeys,
 				   Datum key1, Datum key2, Datum key3, Datum key4);
 
-extern struct catclist *SearchSysCacheKeyArrayList(int cacheId, int nkeys,
-												   Datum *keys);
-
 extern int GetSysCacheId(Oid indexoid);
 
 /*
