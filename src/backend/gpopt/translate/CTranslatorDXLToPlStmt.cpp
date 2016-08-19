@@ -1454,7 +1454,7 @@ CTranslatorDXLToPlStmt::TranslateIndexConditions
 
 		if (IsA(pexprIndexCond, ScalarArrayOpExpr) && IMDIndex::EmdindBitmap != pmdindex->Emdindt())
 		{
-			GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiDXL2PlStmtConversion, GPOS_WSZ_LIT("ScalarArrayOpExpr condition on index scan is not supported"));
+			GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiDXL2PlStmtConversion, GPOS_WSZ_LIT("ScalarArrayOpExpr condition on index scan"));
 		}
 
 		// for indexonlyscan, we already have the attno referring to the index
