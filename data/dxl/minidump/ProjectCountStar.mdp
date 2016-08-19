@@ -1,4 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<!--
+SELECT (SELECT 1 + count(*) FROM x) FROM y;
+-->
 <dxl:DXLMessage xmlns:dxl="http://greenplum.com/dxl/2010/12/">
   <dxl:Thread Id="0">
     <dxl:OptimizerConfig>
@@ -760,10 +763,7 @@
               <dxl:ProjElem ColId="19" Alias="?column?">
                 <dxl:OpExpr OperatorName="+" OperatorMdid="0.692.1.0" OperatorType="0.20.1.0">
                   <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>
-                  <dxl:Coalesce TypeMdid="0.20.1.0">
-                    <dxl:Ident ColId="21" ColName="ColRef_0021" TypeMdid="0.20.1.0"/>
-                    <dxl:ConstValue TypeMdid="0.20.1.0" IsNull="false" IsByValue="true" Value="0"/>
-                  </dxl:Coalesce>
+                  <dxl:Ident ColId="21" ColName="ColRef_0021" TypeMdid="0.20.1.0"/>
                 </dxl:OpExpr>
               </dxl:ProjElem>
             </dxl:ProjList>

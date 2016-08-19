@@ -1,4 +1,20 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<!--
+SELECT *
+FROM pg_am, pg_opclass, pg_amop AS outer
+WHERE
+  opcamid = pg_am.oid AND
+  amopclaid = pg_opclass.oid AND
+  amname <> 'btree' AND /* we don't really know, but any value should be good */
+  amname <> 'bitmap' AND /* again, we don't know ... */
+  amstrategies <> (
+    SELECT count(*)
+    FROM pg_amop AS inner
+    WHERE
+      amopclaid = pgopclass.oid AND
+      inner.amopsubtype = outer.amopsubtype
+  )
+-->
 <dxl:DXLMessage xmlns:dxl="http://greenplum.com/dxl/2010/12/">
   <dxl:Thread Id="0">
     <dxl:Stacktrace/>
@@ -1297,10 +1313,7 @@
       <dxl:Filter>
         <dxl:Comparison ComparisonOperator="&lt;&gt;" OperatorMdid="0.1863.1.0">
           <dxl:Ident ColId="1" ColName="amstrategies" TypeMdid="0.21.1.0"/>
-          <dxl:Coalesce TypeMdid="0.20.1.0">
-            <dxl:Ident ColId="73" ColName="ColRef_0073" TypeMdid="0.20.1.0"/>
-            <dxl:ConstValue TypeMdid="0.20.1.0" IsNull="false" IsByValue="true" Value="0"/>
-          </dxl:Coalesce>
+          <dxl:Ident ColId="73" ColName="ColRef_0073" TypeMdid="0.20.1.0"/>
         </dxl:Comparison>
       </dxl:Filter>
       <dxl:OneTimeFilter/>

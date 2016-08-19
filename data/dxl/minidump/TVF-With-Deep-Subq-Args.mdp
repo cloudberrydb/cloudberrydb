@@ -1,4 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<!--
+SELECT generate_series((
+    SELECT count(*) FROM x
+    ),
+    16,
+    (
+    SELECT count(*) FROM x
+    ) / 2
+);
+-->
 <dxl:DXLMessage xmlns:dxl="http://greenplum.com/dxl/2010/12/">
   <dxl:Thread Id="0">
     <dxl:OptimizerConfig>
@@ -295,17 +305,11 @@
 	          </dxl:Properties>
 	          <dxl:ProjList>
 	            <dxl:ProjElem ColId="51" Alias="ColRef_0024">
-	              <dxl:Coalesce TypeMdid="0.20.1.0">
-	                <dxl:Ident ColId="76" ColName="ColRef_0076" TypeMdid="0.20.1.0"/>
-	                <dxl:ConstValue TypeMdid="0.20.1.0" IsNull="false" IsByValue="true" Value="0"/>
-	              </dxl:Coalesce>
+                <dxl:Ident ColId="76" ColName="ColRef_0076" TypeMdid="0.20.1.0"/>
 	            </dxl:ProjElem>
 	            <dxl:ProjElem ColId="52" Alias="ColRef_0025">
 	              <dxl:OpExpr OperatorName="/" OperatorMdid="0.691.1.0">
-	                <dxl:Coalesce TypeMdid="0.20.1.0">
-	                  <dxl:Ident ColId="77" ColName="ColRef_0077" TypeMdid="0.20.1.0"/>
-	                  <dxl:ConstValue TypeMdid="0.20.1.0" IsNull="false" IsByValue="true" Value="0"/>
-	                </dxl:Coalesce>
+                    <dxl:Ident ColId="77" ColName="ColRef_0077" TypeMdid="0.20.1.0"/>
 	                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2"/>
 	              </dxl:OpExpr>
 	            </dxl:ProjElem>
@@ -490,17 +494,11 @@
 	          </dxl:Properties>
 	          <dxl:ProjList>
 	            <dxl:ProjElem ColId="51" Alias="ColRef_0024">
-	              <dxl:Coalesce TypeMdid="0.20.1.0">
-	                <dxl:Ident ColId="76" ColName="ColRef_0076" TypeMdid="0.20.1.0"/>
-	                <dxl:ConstValue TypeMdid="0.20.1.0" IsNull="false" IsByValue="true" Value="0"/>
-	              </dxl:Coalesce>
+                  <dxl:Ident ColId="76" ColName="ColRef_0076" TypeMdid="0.20.1.0"/>
 	            </dxl:ProjElem>
 	            <dxl:ProjElem ColId="52" Alias="ColRef_0025">
 	              <dxl:OpExpr OperatorName="/" OperatorMdid="0.691.1.0">
-	                <dxl:Coalesce TypeMdid="0.20.1.0">
-	                  <dxl:Ident ColId="77" ColName="ColRef_0077" TypeMdid="0.20.1.0"/>
-	                  <dxl:ConstValue TypeMdid="0.20.1.0" IsNull="false" IsByValue="true" Value="0"/>
-	                </dxl:Coalesce>
+	                <dxl:Ident ColId="77" ColName="ColRef_0077" TypeMdid="0.20.1.0"/>
 	                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="2"/>
 	              </dxl:OpExpr>
 	            </dxl:ProjElem>

@@ -1,4 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<!--
+SELECT NULLIF(x.i, (
+  SELECT count(*) FROM y
+  WHERE y.i = x.i
+  ), i + j
+FROM x
+-->
 <dxl:DXLMessage xmlns:dxl="http://greenplum.com/dxl/2010/12/">
   <dxl:Thread Id="0">
     <dxl:OptimizerConfig>
@@ -437,10 +444,7 @@
         <dxl:ProjElem ColId="19" Alias="nullif">
           <dxl:NullIf OperatorMdid="0.15.1.0" TypeMdid="0.23.1.0">
             <dxl:Ident ColId="0" ColName="i" TypeMdid="0.23.1.0"/>
-            <dxl:Coalesce TypeMdid="0.20.1.0">
-              <dxl:Ident ColId="21" ColName="ColRef_0021" TypeMdid="0.20.1.0"/>
-              <dxl:ConstValue TypeMdid="0.20.1.0" IsNull="false" IsByValue="true" Value="0"/>
-            </dxl:Coalesce>
+            <dxl:Ident ColId="21" ColName="ColRef_0021" TypeMdid="0.20.1.0"/>
           </dxl:NullIf>
         </dxl:ProjElem>
         <dxl:ProjElem ColId="20" Alias="?column?">
