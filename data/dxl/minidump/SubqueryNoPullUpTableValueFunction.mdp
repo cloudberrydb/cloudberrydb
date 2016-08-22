@@ -143,7 +143,10 @@ SELECT 0 IS DISTINCT FROM (SELECT COUNT(*) FROM (SELECT UNNEST(ARRAY[1,2,3,4])) 
           <dxl:ProjElem ColId="4" Alias="?column?">
             <dxl:IsDistinctFrom OperatorMdid="0.15.1.0">
               <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="0"/>
-              <dxl:Ident ColId="5" ColName="ColRef_0005" TypeMdid="0.20.1.0"/>
+              <dxl:Coalesce TypeMdid="0.20.1.0">
+                <dxl:Ident ColId="5" ColName="ColRef_0005" TypeMdid="0.20.1.0"/>
+                <dxl:ConstValue TypeMdid="0.20.1.0" IsNull="false" IsByValue="true" Value="0"/>
+              </dxl:Coalesce>
             </dxl:IsDistinctFrom>
           </dxl:ProjElem>
         </dxl:ProjList>

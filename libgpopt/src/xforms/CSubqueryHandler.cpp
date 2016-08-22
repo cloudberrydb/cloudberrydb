@@ -606,8 +606,8 @@ CSubqueryHandler::FCreateOuterApplyForScalarSubquery
 	)
 {
 	CScalarSubquery *popSubquery = CScalarSubquery::PopConvert(pexprSubquery->Pop());
-	const CColRef * const pcr = popSubquery->Pcr();
-	const BOOL fSuccess = true;
+	const CColRef *pcr = popSubquery->Pcr();
+	BOOL fSuccess = true;
 
 	// generate an outer apply between outer expression and the relational child of scalar subquery
 	CExpression *pexprLeftOuterApply = CUtils::PexprLogicalApply<CLogicalLeftOuterApply>(pmp, pexprOuter, pexprInner, pcr, popSubquery->Eopid());
@@ -628,7 +628,7 @@ CSubqueryHandler::FCreateOuterApplyForScalarSubquery
 	*ppexprNewOuter = pexprPrj;
 
 	BOOL fGeneratedByQuantified =  popSubquery->FGeneratedByQuantified();
-	if (fGeneratedByQuantified)
+	if (fGeneratedByQuantified || pcrCount == pcr)
 	{
 		CMDAccessor *pmda = COptCtxt::PoctxtFromTLS()->Pmda();
 		const IMDTypeInt8 *pmdtypeint8 = pmda->PtMDType<IMDTypeInt8>();
@@ -643,25 +643,35 @@ CSubqueryHandler::FCreateOuterApplyForScalarSubquery
 					CUtils::PexprScalarConstInt8(pmp, 0 /*iVal*/)
 					);
 
-		// we produce Null if count(*) value is -1,
-		// this case can only occur when transforming quantified subquery to
-		// count(*) subquery using CXformSimplifySubquery
-		pmdidInt8->AddRef();
-		*ppexprResidualScalar =
-			GPOS_NEW(pmp) CExpression
-				(
-				pmp,
-				GPOS_NEW(pmp) CScalarIf(pmp, pmdidInt8),
-				CUtils::PexprScalarEqCmp(pmp, pcrComputed, CUtils::PexprScalarConstInt8(pmp, -1 /*fVal*/)),
-				CUtils::PexprScalarConstInt8(pmp, 0 /*fVal*/, true /*fNull*/),
-				pexprCoalesce
-				);
+		if (fGeneratedByQuantified)
+		{
+			// we produce Null if count(*) value is -1,
+			// this case can only occur when transforming quantified subquery to
+			// count(*) subquery using CXformSimplifySubquery
+			pmdidInt8->AddRef();
+			*ppexprResidualScalar =
+				GPOS_NEW(pmp) CExpression
+					(
+					pmp,
+					GPOS_NEW(pmp) CScalarIf(pmp, pmdidInt8),
+					CUtils::PexprScalarEqCmp(pmp, pcrComputed, CUtils::PexprScalarConstInt8(pmp, -1 /*fVal*/)),
+					CUtils::PexprScalarConstInt8(pmp, 0 /*fVal*/, true /*fNull*/),
+					pexprCoalesce
+					);
+		}
+		else
+		{
+			// count(*) value can either be NULL (if produced by a lower outer join), or some value >= 0,
+			// we return coalesce(count(*), 0) in this case
+
+			*ppexprResidualScalar = pexprCoalesce;
+		}
+
+		return fSuccess;
 	}
-	else
-	{
-		// residual scalar uses the computed subquery column
-		*ppexprResidualScalar = CUtils::PexprScalarIdent(pmp, pcrComputed);
-	}
+
+	// residual scalar uses the computed subquery column
+	*ppexprResidualScalar = CUtils::PexprScalarIdent(pmp, pcrComputed);
 	return fSuccess;
 }
 
