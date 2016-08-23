@@ -30,7 +30,7 @@ Where Things Go
 List of Management Scripts Written in Perl
 ------------------------------------------
 bin/gpugpart.pl         -  Upgrades postgres style partition to Greenplum partitioning
-run_operator_tests.pl   -  ???
+bin/run_operator_tests.pl -
 
 List of Management Scripts Written in Bash
 ------------------------------------------
@@ -91,8 +91,8 @@ gparray.py
    +-  GpSegment - Configuration information for a single content id
    |     \-  Contains multiple GpDB objects
    |
-   +-  GpArray   - Configuartion information for a Greenplum Database
-         \-  Contains mulptile GpSegment objects
+   +-  GpArray   - Configuration information for a Greenplum Database
+         \-  Contains multiple GpSegment objects
 
 gphostcache.py   
   |
