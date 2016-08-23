@@ -1234,8 +1234,7 @@ _bt_split(Relation rel, Buffer buf, OffsetNumber firstright,
 		xlrec.firstright = firstright;
 
 		/* Set persistentTid and persistentSerialNum like xl_btreetid_set() does */
-		xlrec.persistentTid = rel->rd_segfile0_relationnodeinfo.persistentTid;
-		xlrec.persistentSerialNum = rel->rd_segfile0_relationnodeinfo.persistentSerialNum;
+		RelationGetPTInfo(rel, &xlrec.persistentTid, &xlrec.persistentSerialNum);
 
 		rdata[0].data = (char *) &xlrec;
 		rdata[0].len = SizeOfBtreeSplit;

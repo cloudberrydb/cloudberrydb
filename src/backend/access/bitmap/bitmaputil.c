@@ -810,8 +810,7 @@ _bitmap_log_newpage(Relation rel, uint8 info, Buffer buf)
 	RelationFetchGpRelationNodeForXLog(rel);
 
 	xlNewPage.bm_node = rel->rd_node;
-	xlNewPage.bm_persistentTid = rel->rd_segfile0_relationnodeinfo.persistentTid;
-	xlNewPage.bm_persistentSerialNum = rel->rd_segfile0_relationnodeinfo.persistentSerialNum;
+	RelationGetPTInfo(rel, &xlNewPage.bm_persistentTid, &xlNewPage.bm_persistentSerialNum);
 	xlNewPage.bm_new_blkno = BufferGetBlockNumber(buf);
 
 	elog(DEBUG1, "_bitmap_log_newpage: blkno=%d", xlNewPage.bm_new_blkno);
@@ -845,8 +844,7 @@ _bitmap_log_metapage(Relation rel, Page page)
 	xlMeta = (xl_bm_metapage *)
 		palloc(MAXALIGN(sizeof(xl_bm_metapage)));
 	xlMeta->bm_node = rel->rd_node;
-	xlMeta->bm_persistentTid = rel->rd_segfile0_relationnodeinfo.persistentTid;
-	xlMeta->bm_persistentSerialNum = rel->rd_segfile0_relationnodeinfo.persistentSerialNum;
+	RelationGetPTInfo(rel, &xlMeta->bm_persistentTid, &xlMeta->bm_persistentSerialNum);
 	xlMeta->bm_lov_heapId = metapage->bm_lov_heapId;
 	xlMeta->bm_lov_indexId = metapage->bm_lov_indexId;
 	xlMeta->bm_lov_lastpage = metapage->bm_lov_lastpage;
@@ -878,8 +876,7 @@ _bitmap_log_bitmap_lastwords(Relation rel, Buffer lovBuffer,
 	RelationFetchGpRelationNodeForXLog(rel);
 
 	xlLastwords.bm_node = rel->rd_node;
-	xlLastwords.bm_persistentTid = rel->rd_segfile0_relationnodeinfo.persistentTid;
-	xlLastwords.bm_persistentSerialNum = rel->rd_segfile0_relationnodeinfo.persistentSerialNum;
+	RelationGetPTInfo(rel, &xlLastwords.bm_persistentTid, &xlLastwords.bm_persistentSerialNum);
 	xlLastwords.bm_last_compword = lovItem->bm_last_compword;
 	xlLastwords.bm_last_word = lovItem->bm_last_word;
 	xlLastwords.lov_words_header = lovItem->lov_words_header;
@@ -919,8 +916,7 @@ _bitmap_log_lovitem(Relation rel, Buffer lovBuffer, OffsetNumber offset,
 	Assert(BufferGetBlockNumber(lovBuffer) > 0);
 
 	xlLovItem.bm_node = rel->rd_node;
-	xlLovItem.bm_persistentTid = rel->rd_segfile0_relationnodeinfo.persistentTid;
-	xlLovItem.bm_persistentSerialNum = rel->rd_segfile0_relationnodeinfo.persistentSerialNum;
+	RelationGetPTInfo(rel, &xlLovItem.bm_persistentTid, &xlLovItem.bm_persistentSerialNum);
 	xlLovItem.bm_lov_blkno = BufferGetBlockNumber(lovBuffer);
 	xlLovItem.bm_lov_offset = offset;
 	memcpy(&(xlLovItem.bm_lovItem), lovItem, sizeof(BMLOVItemData));
@@ -988,8 +984,7 @@ _bitmap_log_bitmapwords(Relation rel, Buffer bitmapBuffer, Buffer lovBuffer,
 				MAXALIGN(cwords_size) + MAXALIGN(hwords_size));
 
 	xlBitmapWords->bm_node = rel->rd_node;
-	xlBitmapWords->bm_persistentTid = rel->rd_segfile0_relationnodeinfo.persistentTid;
-	xlBitmapWords->bm_persistentSerialNum = rel->rd_segfile0_relationnodeinfo.persistentSerialNum;
+	RelationGetPTInfo(rel, &xlBitmapWords->bm_persistentTid, &xlBitmapWords->bm_persistentSerialNum);
 	xlBitmapWords->bm_blkno = BufferGetBlockNumber(bitmapBuffer);
 	xlBitmapWords->bm_next_blkno = nextBlkno;
 	xlBitmapWords->bm_last_tid = bitmapPageOpaque->bm_last_tid_location;
@@ -1056,8 +1051,7 @@ _bitmap_log_updateword(Relation rel, Buffer bitmapBuffer, int word_no)
 	bitmap = (BMBitmap) PageGetContentsMaxAligned(bitmapPage);
 
 	xlBitmapWord.bm_node = rel->rd_node;
-	xlBitmapWord.bm_persistentTid = rel->rd_segfile0_relationnodeinfo.persistentTid;
-	xlBitmapWord.bm_persistentSerialNum = rel->rd_segfile0_relationnodeinfo.persistentSerialNum;
+	RelationGetPTInfo(rel, &xlBitmapWord.bm_persistentTid, &xlBitmapWord.bm_persistentSerialNum);
 	xlBitmapWord.bm_blkno = BufferGetBlockNumber(bitmapBuffer);
 	xlBitmapWord.bm_word_no = word_no;
 	xlBitmapWord.bm_cword = bitmap->cwords[word_no];
@@ -1146,8 +1140,7 @@ _bitmap_log_updatewords(Relation rel,
 	RelationFetchGpRelationNodeForXLog(rel);
 
 	xlBitmapWords.bm_node = rel->rd_node;
-	xlBitmapWords.bm_persistentTid = rel->rd_segfile0_relationnodeinfo.persistentTid;
-	xlBitmapWords.bm_persistentSerialNum = rel->rd_segfile0_relationnodeinfo.persistentSerialNum;
+	RelationGetPTInfo(rel, &xlBitmapWords.bm_persistentTid, &xlBitmapWords.bm_persistentSerialNum);
 	xlBitmapWords.bm_lov_blkno = BufferGetBlockNumber(lovBuffer);
 	xlBitmapWords.bm_lov_offset = lovOffset;
 	xlBitmapWords.bm_new_lastpage = new_lastpage;

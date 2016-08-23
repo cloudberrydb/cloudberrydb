@@ -986,7 +986,17 @@ PersistentRecovery_ShouldHandlePass3XLogRec(
 				 xlogRelFileNode.relNode);
 		return true;
 	}
-		
+
+	if (PersistentStore_IsZeroTid(&xlogPersistentTid))
+	{
+		int level = ERROR;
+		if (gp_persistent_statechange_suppress_error)
+		{
+			level = WARNING;
+		}
+		elog(level, "xlog record with zero persistenTID");
+	}
+
 	/*
 	 * Further qualify using the RelFileNode.
 	 */

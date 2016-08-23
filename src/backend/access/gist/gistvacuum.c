@@ -23,7 +23,6 @@
 #include "utils/memutils.h"
 #include "cdb/cdbfilerepprimary.h"
 
-
 typedef struct GistBulkDeleteResult
 {
 	IndexBulkDeleteResult std;	/* common state */
@@ -122,8 +121,7 @@ gistDeleteSubtree(GistVacuum *gv, BlockNumber blkno)
 		RelationFetchGpRelationNodeForXLog(gv->index);
 
 		xlrec.node = gv->index->rd_node;
-		xlrec.persistentTid = gv->index->rd_segfile0_relationnodeinfo.persistentTid;
-		xlrec.persistentSerialNum = gv->index->rd_segfile0_relationnodeinfo.persistentSerialNum;
+		RelationGetPTInfo(gv->index, &xlrec.persistentTid, &xlrec.persistentSerialNum);
 		xlrec.blkno = blkno;
 
 		rdata[0].buffer = buffer;

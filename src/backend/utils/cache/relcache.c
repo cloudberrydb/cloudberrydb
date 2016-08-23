@@ -4958,3 +4958,20 @@ unlink_initfile(const char *initfilename)
 			elog(LOG, "could not remove cache file \"%s\": %m", initfilename);
 	}
 }
+
+void
+RelationGetPTInfo(Relation rel,
+	ItemPointer persistentTid,
+	int64 *persistentSerialNum)
+{
+	if (! GpPersistent_SkipXLogInfo(rel->rd_node.relNode) &&
+		! rel->rd_segfile0_relationnodeinfo.isPresent)
+	{
+		elog(ERROR,
+			 "required Persistent Table information missing for relation %u/%u/%u",
+			 rel->rd_node.spcNode, rel->rd_node.dbNode, rel->rd_node.relNode);
+	}
+
+	*persistentTid = rel->rd_segfile0_relationnodeinfo.persistentTid;
+	*persistentSerialNum = rel->rd_segfile0_relationnodeinfo.persistentSerialNum;
+}

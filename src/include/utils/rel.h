@@ -454,5 +454,6 @@ typedef struct TidycatOptions
 /* routines in utils/cache/relcache.c */
 extern void RelationIncrementReferenceCount(Relation rel);
 extern void RelationDecrementReferenceCount(Relation rel);
+extern void RelationGetPTInfo(Relation rel, ItemPointer persistentTid, int64 *persistentSerialNum);
 
 #endif   /* REL_H */
