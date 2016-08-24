@@ -1,4 +1,20 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<!--
+SELECT *
+FROM pg_am, pg_opclass, pg_amop AS outer
+WHERE
+  opcamid = pg_am.oid AND
+  amopclaid = pg_opclass.oid AND
+  amname <> 'btree' AND /* we don't really know, but any value should be good */
+  amname <> 'bitmap' AND /* again, we don't know ... */
+  amstrategies <> (
+    SELECT count(*)
+    FROM pg_amop AS inner
+    WHERE
+      amopclaid = pgopclass.oid AND
+      inner.amopsubtype = outer.amopsubtype
+  )
+-->
 <dxl:DXLMessage xmlns:dxl="http://greenplum.com/dxl/2010/12/">
   <dxl:Thread Id="0">
     <dxl:Stacktrace/>

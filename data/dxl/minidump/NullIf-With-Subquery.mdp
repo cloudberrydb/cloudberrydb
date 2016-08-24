@@ -1,4 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<!--
+SELECT NULLIF(x.i, (
+  SELECT count(*) FROM y
+  WHERE y.i = x.i
+  ), i + j
+FROM x
+-->
 <dxl:DXLMessage xmlns:dxl="http://greenplum.com/dxl/2010/12/">
   <dxl:Thread Id="0">
     <dxl:OptimizerConfig>
