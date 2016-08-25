@@ -18,7 +18,6 @@ test__aocs_begin_headerscan(void **state)
 	AOCSHeaderScanDesc desc;
 	RelationData reldata;
 	FormData_pg_appendonly pgappendonly;
-	pgappendonly.version = 1;
 	pgappendonly.checksum = true;
 	reldata.rd_appendonly = &pgappendonly;
 	FormData_pg_class pgclass;
@@ -90,8 +89,6 @@ test__aocs_addcol_init(void **state)
 	expect_value(create_datumstreamwrite, safeFSWriteSize, 0);
 	expect_value(create_datumstreamwrite, maxsz, 8192);
 	expect_value(create_datumstreamwrite, maxsz, 8192*2);
-	expect_any(create_datumstreamwrite, version);
-	expect_any(create_datumstreamwrite, version);
 	expect_any(create_datumstreamwrite, attr);
 	expect_any(create_datumstreamwrite, attr);
 	expect_any(create_datumstreamwrite, relname);
@@ -100,7 +97,6 @@ test__aocs_addcol_init(void **state)
 	expect_any(create_datumstreamwrite, title);
 	will_return_count(create_datumstreamwrite, NULL, 2);
 
-	pgappendonly.version = 1;
 	pgappendonly.checksum = true;
 	reldata.rd_appendonly = &pgappendonly;
 	reldata.rd_att = (TupleDesc) malloc(sizeof(struct tupleDesc));

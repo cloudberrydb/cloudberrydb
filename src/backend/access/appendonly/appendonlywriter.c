@@ -263,7 +263,7 @@ AORelCreateHashEntry(Oid relid)
 
 	/*
 	 * update the tupcount of each 'segment' file in the append
-	 * only hash according to tupcounts in the pg_aoseg table.
+	 * only hash according to the information in the pg_aoseg table.
 	 */
 	for (i = 0 ; i < total_segfiles; i++)
 	{
@@ -1001,9 +1001,9 @@ SetSegnoForCompactionInsert(Relation rel,
 			list_find_int(compactedSegmentFileList, i) >= 0;
 
 		if (segfilestat->total_tupcount < min_tupcount &&
-				segfilestat->state == AVAILABLE && 
-				!usedByConcurrentTransaction(segfilestat, i) &&
-				!in_compaction_list)
+			segfilestat->state == AVAILABLE &&
+			!usedByConcurrentTransaction(segfilestat, i) &&
+			!in_compaction_list)
 		{
 			min_tupcount = segfilestat->total_tupcount;
 			usesegno = i;
@@ -1141,8 +1141,9 @@ SetSegnoForWrite(Relation rel, int existingsegno)
 
 				if(!segfilestat->isfull)
 				{
-					if(segfilestat->state == AVAILABLE && !segno_chosen &&
-					   !usedByConcurrentTransaction(segfilestat, i))
+					if (segfilestat->state == AVAILABLE &&
+						!segno_chosen &&
+						!usedByConcurrentTransaction(segfilestat, i))
 					{
 						/*
 						 * this segno is avaiable and not full. use it.

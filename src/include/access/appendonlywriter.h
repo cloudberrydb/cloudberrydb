@@ -157,7 +157,7 @@ typedef struct AOSegfileStatus
 	 * transaction id
 	 */
 	DistributedTransactionId latestWriteXid;
-	
+
 	AOSegfileState state;
 
 	/* if true - never insert into this segno anymore */ 	

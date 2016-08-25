@@ -65,6 +65,12 @@ NewAOCSFileSegInfo(int4 segno, int4 nvp)
 	seginfo->vpinfo.nEntry = nvp;
 	seginfo->state = AOSEG_STATE_DEFAULT;
 
+	/*
+	 * New segments are created in the latest format. For testing purposes,
+	 * though, you can force a different version, by settting this GUC.
+	 */
+	seginfo->formatversion = test_appendonly_version_default;
+
 	return seginfo;
 }
 
@@ -76,6 +82,13 @@ InsertInitialAOCSFileSegInfo(Relation prel, int4 segno, int4 nvp)
     AOCSVPInfo *vpinfo = create_aocs_vpinfo(nvp);
     HeapTuple segtup;
 	Relation segrel;
+	int16		formatVersion;
+
+	/*
+	 * New segments are created in the latest format. For testing purposes,
+	 * though, you can force a different version, by settting this GUC.
+	 */
+	formatVersion = test_appendonly_version_default;
 
     segrel = heap_open(prel->rd_appendonly->segrelid, RowExclusiveLock);
 
@@ -87,6 +100,7 @@ InsertInitialAOCSFileSegInfo(Relation prel, int4 segno, int4 nvp)
     values[Anum_pg_aocs_vpinfo-1] = PointerGetDatum(vpinfo);
 	values[Anum_pg_aocs_tupcount-1] = Int64GetDatum(0);
 	values[Anum_pg_aocs_varblockcount-1] = Int64GetDatum(0);
+	values[Anum_pg_aocs_formatversion-1] = Int16GetDatum(formatVersion);
 	values[Anum_pg_aocs_state-1] = Int16GetDatum(AOSEG_STATE_DEFAULT);
 
     segtup = heap_form_tuple(RelationGetDescr(segrel), values, nulls);
@@ -190,6 +204,9 @@ GetAOCSFileSegInfo(Relation			prel,
 
 	Assert(!null[Anum_pg_aocs_modcount - 1]);
 	seginfo->modcount = DatumGetInt64(d[Anum_pg_aocs_modcount - 1]);
+
+	Assert(!null[Anum_pg_aocs_formatversion - 1]);
+	seginfo->formatversion = DatumGetInt16(d[Anum_pg_aocs_formatversion - 1]);
 
 	Assert(!null[Anum_pg_aocs_state - 1]);
 	seginfo->state = DatumGetInt16(d[Anum_pg_aocs_state - 1]);
@@ -330,6 +347,10 @@ GetAllAOCSFileSegInfo_pg_aocsseg_rel(int numOfColumns,
 		Assert(!null[Anum_pg_aocs_modcount - 1] || snapshot == SnapshotAny);
 		if (!null[Anum_pg_aocs_modcount - 1])
 			seginfo->modcount = DatumGetInt64(d[Anum_pg_aocs_modcount - 1]);
+
+		Assert(!null[Anum_pg_aocs_formatversion - 1]);
+		if (!null[Anum_pg_aocs_formatversion - 1])
+			seginfo->formatversion = DatumGetInt16(d[Anum_pg_aocs_formatversion - 1]);
 
 		Assert(!null[Anum_pg_aocs_state - 1] || snapshot == SnapshotAny);
 		if (!null[Anum_pg_aocs_state - 1])
@@ -627,6 +648,10 @@ ClearAOCSFileSegInfo(Relation prel, int segno, FileSegInfoState newState)
 	Assert(!null[Anum_pg_aocs_varblockcount-1]);
 	d[Anum_pg_aocs_varblockcount-1] = 0;
 	repl[Anum_pg_aocs_varblockcount-1] = true;
+
+	/* When the segment is later recreated, it will be in new format */
+	d[Anum_pg_aocs_formatversion-1] = Int16GetDatum(test_appendonly_version_default);
+	repl[Anum_pg_aocs_formatversion-1] = true;
 
 	/* We do not reset the modcount here */
 
@@ -1118,7 +1143,7 @@ gp_aocsseg_internal(PG_FUNCTION_ARGS, Oid aocsRelOid)
 		oldcontext = MemoryContextSwitchTo(funcctx->multi_call_memory_ctx);
 
 		/* build tupdesc for result tuples */
-		tupdesc = CreateTemplateTupleDesc(9, false);
+		tupdesc = CreateTemplateTupleDesc(10, false);
 		TupleDescInitEntry(tupdesc, (AttrNumber) 1, "gp_tid",
 						   TIDOID, -1, 0);
 		TupleDescInitEntry(tupdesc, (AttrNumber) 2, "segno",
@@ -1135,7 +1160,9 @@ gp_aocsseg_internal(PG_FUNCTION_ARGS, Oid aocsRelOid)
 						   INT8OID, -1, 0);
 		TupleDescInitEntry(tupdesc, (AttrNumber) 8, "modcount",
 						   INT8OID, -1, 0);
-		TupleDescInitEntry(tupdesc, (AttrNumber) 9, "state",
+		TupleDescInitEntry(tupdesc, (AttrNumber) 9, "formatversion",
+						   INT2OID, -1, 0);
+		TupleDescInitEntry(tupdesc, (AttrNumber) 10, "state",
 						   INT2OID, -1, 0);
 
 		funcctx->tuple_desc = BlessTupleDesc(tupdesc);
@@ -1188,8 +1215,8 @@ gp_aocsseg_internal(PG_FUNCTION_ARGS, Oid aocsRelOid)
 	 */
 	while (true)
 	{
-		Datum		values[9];
-		bool		nulls[9];
+		Datum		values[10];
+		bool		nulls[10];
 		HeapTuple	tuple;
 		Datum		result;
 
@@ -1234,7 +1261,8 @@ gp_aocsseg_internal(PG_FUNCTION_ARGS, Oid aocsRelOid)
 		values[5] = Int64GetDatum(entry->eof);
 		values[6] = Int64GetDatum(entry->eof_uncompressed);
 		values[7] = Int64GetDatum(aocsSegfile->modcount);
-		values[8] = Int16GetDatum(aocsSegfile->state);
+		values[8] = Int16GetDatum(aocsSegfile->formatversion);
+		values[9] = Int16GetDatum(aocsSegfile->state);
 
 		tuple = heap_form_tuple(funcctx->tuple_desc, values, nulls);
 		result = HeapTupleGetDatum(tuple);
@@ -1327,7 +1355,7 @@ gp_aocsseg_history(PG_FUNCTION_ARGS)
 		oldcontext = MemoryContextSwitchTo(funcctx->multi_call_memory_ctx);
 
 		/* build tupdesc for result tuples */
-		tupdesc = CreateTemplateTupleDesc(19, false);
+		tupdesc = CreateTemplateTupleDesc(20, false);
 		TupleDescInitEntry(tupdesc, (AttrNumber) 1, "gp_tid",
 						   TIDOID, -1, 0);
 		TupleDescInitEntry(tupdesc, (AttrNumber) 2, "gp_xmin",
@@ -1364,7 +1392,9 @@ gp_aocsseg_history(PG_FUNCTION_ARGS)
 						   INT8OID, -1, 0);
 		TupleDescInitEntry(tupdesc, (AttrNumber) 18, "modcount",
 						   INT8OID, -1, 0);
-		TupleDescInitEntry(tupdesc, (AttrNumber) 19, "state",
+		TupleDescInitEntry(tupdesc, (AttrNumber) 19, "formatversion",
+						   INT2OID, -1, 0);
+		TupleDescInitEntry(tupdesc, (AttrNumber) 20, "state",
 						   INT2OID, -1, 0);
 
 		funcctx->tuple_desc = BlessTupleDesc(tupdesc);
@@ -1417,8 +1447,8 @@ gp_aocsseg_history(PG_FUNCTION_ARGS)
 	 */
 	while (true)
 	{
-		Datum		values[19];
-		bool		nulls[19];
+		Datum		values[20];
+		bool		nulls[20];
 		HeapTuple	tuple;
 		Datum		result;
 
@@ -1467,7 +1497,8 @@ gp_aocsseg_history(PG_FUNCTION_ARGS)
 		values[15] = Int64GetDatum(entry->eof);
 		values[16] = Int64GetDatum(entry->eof_uncompressed);
 		values[17] = Int64GetDatum(aocsSegfile->modcount);
-		values[18] = Int16GetDatum(aocsSegfile->state);
+		values[18] = Int16GetDatum(aocsSegfile->formatversion);
+		values[19] = Int16GetDatum(aocsSegfile->state);
 
 		tuple = heap_form_tuple(funcctx->tuple_desc, values, nulls);
 		result = HeapTupleGetDatum(tuple);
