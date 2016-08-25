@@ -570,15 +570,13 @@ rel_is_leaf_partition(Oid relid)
 	if (!OidIsValid(paroid) || !fetchCount)
 		return false;
 
-	tuple = caql_getfirst(NULL,
-						  cql("SELECT * FROM pg_partition "
-							   " WHERE oid = :1 ",
-							   ObjectIdGetDatum(paroid)));
+	tuple = SearchSysCache1(PARTOID, ObjectIdGetDatum(paroid));
 
 	Insist(HeapTupleIsValid(tuple));
 
 	mylevel = ((Form_pg_partition)GETSTRUCT(tuple))->parlevel;
 	partitioned_rel = ((Form_pg_partition)GETSTRUCT(tuple))->parrelid;
+	ReleaseSysCache(tuple);
 
 	pcqCtx = caql_beginscan(
 			cqclr(&cqc),
@@ -1977,7 +1975,7 @@ parruleord_open_gap(Oid partid, int2 level, Oid parent, int2 ruleord,
  * Exported for ruleutils.c
  */
 PartitionRule *
-ruleMakePartitionRule(HeapTuple tuple, TupleDesc tupdesc)
+ruleMakePartitionRule(HeapTuple tuple)
 {
 	Form_pg_partition_rule rule_desc =
 	(Form_pg_partition_rule)GETSTRUCT(tuple);
@@ -2002,10 +2000,9 @@ ruleMakePartitionRule(HeapTuple tuple, TupleDesc tupdesc)
 	rule->parrangeendincl = rule_desc->parrangeendincl;
 
 	/* start range */
-	rule_datum = heap_getattr(tuple,
-							  Anum_pg_partition_rule_parrangestart,
-							  tupdesc,
-							  &isnull);
+	rule_datum = SysCacheGetAttr(PARTRULEOID, tuple,
+								 Anum_pg_partition_rule_parrangestart,
+								 &isnull);
 	Assert(!isnull);
 	rule_text = DatumGetTextP(rule_datum);
 	rule_str = DatumGetCString(DirectFunctionCall1(textout,
@@ -2016,10 +2013,9 @@ ruleMakePartitionRule(HeapTuple tuple, TupleDesc tupdesc)
 	pfree(rule_str);
 
 	/* end range */
-	rule_datum = heap_getattr(tuple,
-							  Anum_pg_partition_rule_parrangeend,
-							  tupdesc,
-							  &isnull);
+	rule_datum = SysCacheGetAttr(PARTRULEOID, tuple,
+								 Anum_pg_partition_rule_parrangeend,
+								 &isnull);
 	Assert(!isnull);
 	rule_text = DatumGetTextP(rule_datum);
 	rule_str = DatumGetCString(DirectFunctionCall1(textout,
@@ -2030,10 +2026,9 @@ ruleMakePartitionRule(HeapTuple tuple, TupleDesc tupdesc)
 	pfree(rule_str);
 
 	/* every */
-	rule_datum = heap_getattr(tuple,
-							  Anum_pg_partition_rule_parrangeevery,
-							  tupdesc,
-							  &isnull);
+	rule_datum = SysCacheGetAttr(PARTRULEOID, tuple,
+								 Anum_pg_partition_rule_parrangeevery,
+								 &isnull);
 	Assert(!isnull);
 	rule_text = DatumGetTextP(rule_datum);
 	rule_str = DatumGetCString(DirectFunctionCall1(textout,
@@ -2042,10 +2037,9 @@ ruleMakePartitionRule(HeapTuple tuple, TupleDesc tupdesc)
 	rule->parrangeevery = stringToNode(rule_str);
 
 	/* list values */
-	rule_datum = heap_getattr(tuple,
-							  Anum_pg_partition_rule_parlistvalues,
-							  tupdesc,
-							  &isnull);
+	rule_datum = SysCacheGetAttr(PARTRULEOID, tuple,
+								 Anum_pg_partition_rule_parlistvalues,
+								 &isnull);
 	Assert(!isnull);
 	rule_text = DatumGetTextP(rule_datum);
 	rule_str = DatumGetCString(DirectFunctionCall1(textout,
@@ -2058,10 +2052,9 @@ ruleMakePartitionRule(HeapTuple tuple, TupleDesc tupdesc)
 	if (rule->parlistvalues)
 		Assert(IsA(rule->parlistvalues, List));
 
-	rule_datum = heap_getattr(tuple,
-							  Anum_pg_partition_rule_parreloptions,
-							  tupdesc,
-							  &isnull);
+	rule_datum = SysCacheGetAttr(PARTRULEOID, tuple,
+								 Anum_pg_partition_rule_parreloptions,
+								 &isnull);
 
 	if (isnull)
 		rule->parreloptions = NIL;
@@ -2103,10 +2096,9 @@ ruleMakePartitionRule(HeapTuple tuple, TupleDesc tupdesc)
 
 	}
 
-	rule_datum = heap_getattr(tuple,
-							  Anum_pg_partition_rule_partemplatespace,
-							  tupdesc,
-							  &isnull);
+	rule_datum = SysCacheGetAttr(PARTRULEOID, tuple,
+								 Anum_pg_partition_rule_partemplatespace,
+								 &isnull);
 	if (isnull)
 		rule->partemplatespaceId = InvalidOid;
 	else
@@ -2120,7 +2112,7 @@ ruleMakePartitionRule(HeapTuple tuple, TupleDesc tupdesc)
  * Result is in the given memory context.
  */
 Partition *
-partMakePartition(HeapTuple tuple, TupleDesc tupdesc)
+partMakePartition(HeapTuple tuple)
 {
 	oidvector *oids;
 	int2vector *atts;
@@ -2137,11 +2129,13 @@ partMakePartition(HeapTuple tuple, TupleDesc tupdesc)
 	p->paristemplate = partrow->paristemplate;
 	p->parnatts = partrow->parnatts;
 
-	atts = DatumGetPointer(heap_getattr(tuple, Anum_pg_partition_paratts,
-										tupdesc, &isnull));
+	atts = DatumGetPointer(SysCacheGetAttr(PARTOID, tuple,
+										   Anum_pg_partition_paratts,
+										   &isnull));
 	Assert(!isnull);
-	oids = DatumGetPointer(heap_getattr(tuple, Anum_pg_partition_parclass,
-										tupdesc, &isnull));
+	oids = DatumGetPointer(SysCacheGetAttr(PARTOID, tuple,
+										   Anum_pg_partition_parclass,
+										   &isnull));
 	Assert(!isnull);
 
 	p->paratts = palloc(sizeof(int2) * p->parnatts);
@@ -2206,7 +2200,7 @@ get_parts(Oid relid, int2 level, Oid parent, bool inctemplate,
 	if (HeapTupleIsValid(tuple))
 	{
 		pnode = makeNode(PartitionNode);
-		pnode->part = partMakePartition(tuple, RelationGetDescr(rel));
+		pnode->part = partMakePartition(tuple);
 	}
 
 	heap_close(rel, AccessShareLock);
@@ -2245,7 +2239,7 @@ get_parts(Oid relid, int2 level, Oid parent, bool inctemplate,
 	{
 		PartitionRule *rule;
 
-		rule = ruleMakePartitionRule(tuple, RelationGetDescr(rel));
+		rule = ruleMakePartitionRule(tuple);
 		if (includesubparts)
 		{
 			rule->children = get_parts(relid, level + 1, rule->parruleid,
@@ -3127,9 +3121,9 @@ rel_partition_get_root(Oid relid)
 Oid
 rel_partition_get_master(Oid relid)
 {
-	Oid paroid = InvalidOid;
-	Oid masteroid = InvalidOid;
-	int	fetchCount = 0;
+	Oid			paroid;
+	Oid			masteroid;
+	HeapTuple	tuple;
 
 	/* pg_partition and  pg_partition_rule are populated only on the
 	 * entry database, so our result is only meaningful there. */
@@ -3143,17 +3137,13 @@ rel_partition_get_master(Oid relid)
 	if (!OidIsValid(paroid))
 		return InvalidOid;
 
-	masteroid = caql_getoid_plus(NULL,
-								 &fetchCount,
-								 NULL,
-								 cql("SELECT parrelid FROM pg_partition "
-									 " WHERE oid = :1 ",
-									 ObjectIdGetDatum(paroid)));
-
-	if (!fetchCount)
+	tuple = SearchSysCache1(PARTOID, ObjectIdGetDatum(paroid));
+	if (!tuple)
 		elog(ERROR, "could not find pg_partition entry with oid %d for "
 			 "pg_partition_rule with child table %d", paroid, relid);
 
+	masteroid = ((Form_pg_partition) GETSTRUCT(tuple))->parrelid;
+	ReleaseSysCache(tuple);
 
 	return masteroid;
 
@@ -3200,20 +3190,19 @@ List *rel_get_part_path1(Oid relid)
 
 	while (OidIsValid(parparentrule))
 	{
-		tuple = caql_getfirst(NULL,
-							  cql("SELECT * FROM pg_partition_rule "
-								  " WHERE oid = :1 ",
-								  ObjectIdGetDatum(parparentrule)));
+		tuple = SearchSysCache1(PARTRULEOID, ObjectIdGetDatum(parparentrule));
 		if (HeapTupleIsValid(tuple))
 		{
 			Form_pg_partition_rule rule_desc =
-			(Form_pg_partition_rule)GETSTRUCT(tuple);
+				(Form_pg_partition_rule) GETSTRUCT(tuple);
 
 			paroid = rule_desc->paroid;
 			parparentrule = rule_desc->parparentrule;
 
 			/* prepend relid of child table to list */
 			lrelid = lcons_oid(rule_desc->parchildrelid, lrelid);
+
+			ReleaseSysCache(tuple);
 		}
 		else
 			parparentrule = InvalidOid; /* we are done */
@@ -6742,23 +6731,15 @@ atpxPartAddList(Relation rel,
 				Datum aclDatum;
 				bool isNull;
 				CreateStmt *t = (CreateStmt *) s;
-				cqContext	*classcqCtx;
 
-				classcqCtx = caql_beginscan(
-						NULL,
-						cql("SELECT * FROM pg_class "
-							" WHERE oid = :1 ",
-							ObjectIdGetDatum(RelationGetRelid(rel))));
-
-				tuple = caql_getnext(classcqCtx);
-
+				tuple = SearchSysCache1(RELOID, ObjectIdGetDatum(RelationGetRelid(rel)));
 				if (!HeapTupleIsValid(tuple))
 					elog(ERROR, "cache lookup failed for relation %u",
 						 RelationGetRelid(rel));
 
-				aclDatum = caql_getattr(classcqCtx,
-										Anum_pg_class_relacl,
-										&isNull);
+				aclDatum = SysCacheGetAttr(RELOID, tuple,
+										   Anum_pg_class_relacl,
+										   &isNull);
 				if (!isNull)
 				{
 					List *cp = NIL;
@@ -6799,7 +6780,7 @@ atpxPartAddList(Relation rel,
 					}
 				}
 
-				caql_endscan(classcqCtx);
+				ReleaseSysCache(tuple);
 				break;
 			}
 		}
