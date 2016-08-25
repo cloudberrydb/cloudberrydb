@@ -1472,7 +1472,7 @@ gp_update_aocol_master_stats_internal(Relation parentrel, Snapshot appendOnlyMet
 	char			aoseg_relname[NAMEDATALEN];
 	int				proc;
 	int				ret;
-	float8			total_count = 0;
+	int64			total_count = 0;
 	MemoryContext	oldcontext = CurrentMemoryContext;
     int32			nvp = RelationGetNumberOfAttributes(parentrel);
 
@@ -1631,7 +1631,7 @@ gp_update_aocol_master_stats_internal(Relation parentrel, Snapshot appendOnlyMet
 
 	pfree(sqlstmt.data);
 
-	PG_RETURN_FLOAT8(total_count);
+	PG_RETURN_INT64(total_count);
 }
 
 Datum

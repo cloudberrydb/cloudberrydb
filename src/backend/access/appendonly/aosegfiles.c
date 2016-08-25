@@ -108,10 +108,10 @@ InsertInitialSegnoEntry(Relation parentrel, int segno)
 	pg_aoseg_idx = index_open(parentrel->rd_appendonly->segidxid, RowExclusiveLock);
 
 	values[Anum_pg_aoseg_segno - 1] = Int32GetDatum(segno);
-	values[Anum_pg_aoseg_tupcount - 1] = Float8GetDatum(0);
-	values[Anum_pg_aoseg_varblockcount - 1] = Float8GetDatum(0);
-	values[Anum_pg_aoseg_eof - 1] = Float8GetDatum(0);
-	values[Anum_pg_aoseg_eofuncompressed - 1] = Float8GetDatum(0);
+	values[Anum_pg_aoseg_tupcount - 1] = Int64GetDatum(0);
+	values[Anum_pg_aoseg_varblockcount - 1] = Int64GetDatum(0);
+	values[Anum_pg_aoseg_eof - 1] = Int64GetDatum(0);
+	values[Anum_pg_aoseg_eofuncompressed - 1] = Int64GetDatum(0);
 	values[Anum_pg_aoseg_modcount - 1] = Int64GetDatum(0);
 	values[Anum_pg_aoseg_state - 1] = Int16GetDatum(AOSEG_STATE_DEFAULT);
 
@@ -256,15 +256,15 @@ GetFileSegInfo(Relation parentrel, Snapshot appendOnlyMetaDataSnapshot, int segn
 	}
 	else
 	{
-		fsinfo->eof_uncompressed = (int64)DatumGetFloat8(eof_uncompressed);
+		fsinfo->eof_uncompressed = DatumGetInt64(eof_uncompressed);
 	}
 
 	fsinfo->segno = segno;
-	fsinfo->eof = (int64)DatumGetFloat8(eof);
-	fsinfo->total_tupcount = (int64)DatumGetFloat8(tupcount);
-	fsinfo->varblockcount = (int64)DatumGetFloat8(varbcount);
-	fsinfo->modcount = (int64)DatumGetInt64(modcount);
-	fsinfo->state = (int32)DatumGetInt16(state);
+	fsinfo->eof = DatumGetInt64(eof);
+	fsinfo->total_tupcount = DatumGetInt64(tupcount);
+	fsinfo->varblockcount = DatumGetInt64(varbcount);
+	fsinfo->modcount = DatumGetInt64(modcount);
+	fsinfo->state = DatumGetInt16(state);
 
 	if (fsinfo->eof < 0)
 		ereport(ERROR,
@@ -388,13 +388,13 @@ GetAllFileSegInfo_pg_aoseg_rel(char *relationName,
 		oneseginfo->segno = DatumGetInt32(segno);
 
 		eof = fastgetattr(tuple, Anum_pg_aoseg_eof, pg_aoseg_dsc, &isNull);
-		oneseginfo->eof += (int64)DatumGetFloat8(eof);
+		oneseginfo->eof += DatumGetInt64(eof);
 
 		tupcount = fastgetattr(tuple, Anum_pg_aoseg_tupcount, pg_aoseg_dsc, &isNull);
-		oneseginfo->total_tupcount += (int64)DatumGetFloat8(tupcount);
+		oneseginfo->total_tupcount += DatumGetInt64(tupcount);
 
 		varblockcount = fastgetattr(tuple, Anum_pg_aoseg_varblockcount, pg_aoseg_dsc, &isNull);
-		oneseginfo->varblockcount += (int64)DatumGetFloat8(varblockcount);
+		oneseginfo->varblockcount += DatumGetInt64(varblockcount);
 
 		modcount = fastgetattr(tuple, Anum_pg_aoseg_modcount, pg_aoseg_dsc, &isNull);
 		oneseginfo->modcount += DatumGetInt64(modcount);
@@ -409,7 +409,7 @@ GetAllFileSegInfo_pg_aoseg_rel(char *relationName,
 		if(isNull)
 			oneseginfo->eof_uncompressed = InvalidUncompressedEof;
 		else
-			oneseginfo->eof_uncompressed += (int64)DatumGetFloat8(eof);
+			oneseginfo->eof_uncompressed += DatumGetInt64(eof);
 
 		elogif(Debug_appendonly_print_scan, LOG,
 				"Append-only found existing segno %d with eof " INT64_FORMAT " for table '%s'",
@@ -532,13 +532,13 @@ ClearFileSegInfo(Relation parentrel,
 	new_record = palloc0(sizeof(Datum) * pg_aoseg_dsc->natts);
 	new_record_nulls = palloc0(sizeof(bool) * pg_aoseg_dsc->natts);
 	new_record_repl = palloc0(sizeof(bool) * pg_aoseg_dsc->natts);
-	new_record[Anum_pg_aoseg_eof - 1] = Float8GetDatum(0);
+	new_record[Anum_pg_aoseg_eof - 1] = Int64GetDatum(0);
 	new_record_repl[Anum_pg_aoseg_eof - 1] = true;
-	new_record[Anum_pg_aoseg_tupcount - 1] = Float8GetDatum(0);
+	new_record[Anum_pg_aoseg_tupcount - 1] = Int64GetDatum(0);
 	new_record_repl[Anum_pg_aoseg_tupcount - 1] = true;
-	new_record[Anum_pg_aoseg_varblockcount - 1] = Float8GetDatum(0);
+	new_record[Anum_pg_aoseg_varblockcount - 1] = Int64GetDatum(0);
 	new_record_repl[Anum_pg_aoseg_varblockcount - 1] = true;
-	new_record[Anum_pg_aoseg_eofuncompressed - 1] = Float8GetDatum(0);
+	new_record[Anum_pg_aoseg_eofuncompressed - 1] = Int64GetDatum(0);
 	new_record_repl[Anum_pg_aoseg_eofuncompressed - 1] = true;
 	/* We do not reset the modcount here */
 
@@ -622,14 +622,14 @@ UpdateFileSegInfo_internal(Relation parentrel,
 	ScanKeyData			key;
 	IndexScanDesc		aoscan;
 	HeapTuple			tuple, new_tuple;
-	Datum				filetupcount;
-	Datum				filevarblockcount;
-	Datum				new_tuple_count;
-	Datum				new_varblock_count;
-	Datum               new_modcount;
-	Datum               old_eof;
-	Datum               old_eof_uncompressed;
-	Datum               old_modcount;
+	int64				filetupcount;
+	int64				filevarblockcount;
+	int64				new_tuple_count;
+	int64				new_varblock_count;
+	int64               new_modcount;
+	int64               old_eof;
+	int64               old_eof_uncompressed;
+	int64               old_modcount;
 	Datum			   *new_record;
 	bool			   *new_record_nulls;
 	bool			   *new_record_repl;
@@ -683,12 +683,11 @@ UpdateFileSegInfo_internal(Relation parentrel,
 	new_record_nulls = palloc0(sizeof(bool) * pg_aoseg_dsc->natts);
 	new_record_repl = palloc0(sizeof(bool) * pg_aoseg_dsc->natts);
 
-	old_eof = fastgetattr(tuple,
-			Anum_pg_aoseg_eof,
-			pg_aoseg_dsc,
-			&isNull);
-
-	if(isNull)
+	old_eof = DatumGetInt64(fastgetattr(tuple,
+										Anum_pg_aoseg_eof,
+										pg_aoseg_dsc,
+										&isNull));
+	if (isNull)
 		ereport(ERROR,
 				(errcode(ERRCODE_UNDEFINED_OBJECT),
 				 errmsg("got invalid pg_aoseg eof value: NULL")));
@@ -704,106 +703,95 @@ UpdateFileSegInfo_internal(Relation parentrel,
 	 */
 	if (eof < 0)
 	{
-
-		eof = DatumGetFloat8(old_eof);
+		eof = old_eof;
 	}
-	else if (eof < DatumGetFloat8(old_eof))
+	else if (eof < old_eof)
 	{
 		elog(ERROR, "Unexpected compressed EOF for relation %s, relfilenode %u, segment file %d. "
-			"EOF " INT64_FORMAT " to be updated cannot be smaller than current EOF %f in pg_aoseg",
+			"EOF " INT64_FORMAT " to be updated cannot be smaller than current EOF " INT64_FORMAT " in pg_aoseg",
 			RelationGetRelationName(parentrel), parentrel->rd_node.relNode,
-			segno, eof, DatumGetFloat8(old_eof));
+			segno, eof, old_eof);
 	}
 
-	old_eof_uncompressed = fastgetattr(tuple,
-			Anum_pg_aoseg_eofuncompressed,
-			pg_aoseg_dsc,
-			&isNull);
-
-	if(isNull)
+	old_eof_uncompressed = DatumGetInt64(fastgetattr(tuple,
+													 Anum_pg_aoseg_eofuncompressed,
+													 pg_aoseg_dsc,
+													 &isNull));
+	if (isNull)
 		ereport(ERROR,
 				(errcode(ERRCODE_UNDEFINED_OBJECT),
 				 errmsg("got invalid pg_aoseg eofuncompressed value: NULL")));
 
 	if (eof_uncompressed < 0)
 	{
-		eof_uncompressed = DatumGetFloat8(old_eof_uncompressed);
+		eof_uncompressed = old_eof_uncompressed;
 	}
-	else if (eof_uncompressed < DatumGetFloat8(old_eof_uncompressed))
+	else if (eof_uncompressed < old_eof_uncompressed)
 	{
 		elog(ERROR, "Unexpected EOF for relation %s, relfilenode %u, segment file %d."
-			"EOF " INT64_FORMAT " to be updated cannot be smaller than current EOF %f in pg_aoseg",
+			"EOF " INT64_FORMAT " to be updated cannot be smaller than current EOF " INT64_FORMAT " in pg_aoseg",
 			RelationGetRelationName(parentrel), parentrel->rd_node.relNode,
-			segno, eof_uncompressed, DatumGetFloat8(old_eof_uncompressed));
+			segno, eof_uncompressed, old_eof_uncompressed);
 	}
-	
-	/* get the current tuple count so we can add to it */
-	filetupcount = fastgetattr(tuple,
-								Anum_pg_aoseg_tupcount,
-								pg_aoseg_dsc,
-								&isNull);
 
-	if(isNull)
+	/* get the current tuple count so we can add to it */
+	filetupcount = DatumGetInt64(fastgetattr(tuple,
+											 Anum_pg_aoseg_tupcount,
+											 pg_aoseg_dsc,
+											 &isNull));
+	if (isNull)
 		ereport(ERROR,
 				(errcode(ERRCODE_UNDEFINED_OBJECT),
 				errmsg("got invalid pg_aoseg filetupcount value: NULL")));
 
 	/* calculate the new tuple count */
-	new_tuple_count = DirectFunctionCall2(float8pl,
-										  filetupcount,
-										  Float8GetDatum((float8)tuples_added));
-	Assert(DatumGetFloat8(new_tuple_count) > -1.0);
+	new_tuple_count = filetupcount + tuples_added;
+	Assert(new_tuple_count >= 0);
 
 	/* get the current varblock count so we can add to it */
-	filevarblockcount = fastgetattr(tuple,
-									Anum_pg_aoseg_varblockcount,
-									pg_aoseg_dsc,
-									&isNull);
-
-	if(isNull)
+	filevarblockcount = DatumGetInt64(fastgetattr(tuple,
+												  Anum_pg_aoseg_varblockcount,
+												  pg_aoseg_dsc,
+												  &isNull));
+	if (isNull)
 		ereport(ERROR,
 				(errcode(ERRCODE_UNDEFINED_OBJECT),
 				errmsg("got invalid pg_aoseg varblockcount value: NULL")));
 
 	/* calculate the new tuple count */
-	new_varblock_count = DirectFunctionCall2(float8pl,
-											 filevarblockcount,
-											 Float8GetDatum((float8)varblocks_added));
-	Assert(DatumGetFloat8(new_varblock_count) > -1.0);
+	new_varblock_count = filevarblockcount + varblocks_added;
+	Assert(new_varblock_count >= 0);
 
 	/* get the current modcount so we can add to it */
-	old_modcount = fastgetattr(tuple,
-									Anum_pg_aoseg_modcount,
-									pg_aoseg_dsc,
-									&isNull);
-
-	if(isNull)
+	old_modcount = DatumGetInt64(fastgetattr(tuple,
+											 Anum_pg_aoseg_modcount,
+											 pg_aoseg_dsc,
+											 &isNull));
+	if (isNull)
 		ereport(ERROR,
 				(errcode(ERRCODE_UNDEFINED_OBJECT),
 				errmsg("got invalid pg_aoseg modcount value: NULL")));
 
 	/* calculate the new mod count */
-	new_modcount = DirectFunctionCall2(int8pl,
-											 old_modcount,
-											 Int64GetDatum(modcount_added));
-	Assert(DatumGetInt64(new_modcount) >= 0);
+	new_modcount = old_modcount + modcount_added;
+	Assert(new_modcount >= 0);
 
 	/*
 	 * Build a tuple to update
 	 */
-	new_record[Anum_pg_aoseg_eof - 1] = Float8GetDatum((float8)eof);
+	new_record[Anum_pg_aoseg_eof - 1] = Int64GetDatum(eof);
 	new_record_repl[Anum_pg_aoseg_eof - 1] = true;
 
-	new_record[Anum_pg_aoseg_tupcount - 1] = new_tuple_count;
+	new_record[Anum_pg_aoseg_tupcount - 1] = Int64GetDatum(new_tuple_count);
 	new_record_repl[Anum_pg_aoseg_tupcount - 1] = true;
 
-	new_record[Anum_pg_aoseg_varblockcount - 1] = new_varblock_count;
+	new_record[Anum_pg_aoseg_varblockcount - 1] = Int64GetDatum(new_varblock_count);
 	new_record_repl[Anum_pg_aoseg_varblockcount - 1] = true;
 
-	new_record[Anum_pg_aoseg_modcount - 1] = new_modcount;
+	new_record[Anum_pg_aoseg_modcount - 1] = Int64GetDatum(new_modcount);
 	new_record_repl[Anum_pg_aoseg_modcount - 1] = true;
 
-	new_record[Anum_pg_aoseg_eofuncompressed - 1] = Float8GetDatum((float8)eof_uncompressed);
+	new_record[Anum_pg_aoseg_eofuncompressed - 1] = Int64GetDatum(eof_uncompressed);
 	new_record_repl[Anum_pg_aoseg_eofuncompressed - 1] = true;
 
 	if (newState > 0)
@@ -875,15 +863,15 @@ GetSegFilesTotals(Relation parentrel, Snapshot appendOnlyMetaDataSnapshot)
 		if(isNull)
 			result->totalbytesuncompressed = InvalidUncompressedEof;
 		else
-			result->totalbytesuncompressed += (int64)DatumGetFloat8(eof_uncompressed);
+			result->totalbytesuncompressed += DatumGetInt64(eof_uncompressed);
 
-		result->totalbytes += (int64)DatumGetFloat8(eof);
+		result->totalbytes += DatumGetInt64(eof);
 
 		if (DatumGetInt16(state) != AOSEG_STATE_AWAITING_DROP)
 		{
-			result->totaltuples += (int64)DatumGetFloat8(tupcount);
+			result->totaltuples += DatumGetInt64(tupcount);
 		}
-		result->totalvarblocks += (int64)DatumGetFloat8(varblockcount);
+		result->totalvarblocks += DatumGetInt64(varblockcount);
 		result->totalfilesegs++;
 
 		CHECK_FOR_INTERRUPTS();
@@ -926,7 +914,7 @@ int64 GetAOTotalBytes(Relation parentrel, Snapshot appendOnlyMetaDataSnapshot)
 		eof = fastgetattr(tuple, Anum_pg_aoseg_eof, pg_aoseg_dsc, &isNull);
 		Assert(!isNull);
 
-		result += (int64)DatumGetFloat8(eof);
+		result += DatumGetInt64(eof);
 
 		CHECK_FOR_INTERRUPTS();
 	}
@@ -1135,7 +1123,6 @@ gp_update_aorow_master_stats_internal(Relation parentrel, Snapshot appendOnlyMet
 					"from gp_dist_random('pg_aoseg.%s') "
 					"group by (segno)", aoseg_relname);
 
-
 	PG_TRY();
 	{
 
@@ -1184,10 +1171,8 @@ gp_update_aorow_master_stats_internal(Relation parentrel, Snapshot appendOnlyMet
 				 * Convert to desired data type
 				 */
 				qe_segno = pg_atoi(val_segno, sizeof(int32), 0);
-				qe_tupcount = (int64)DatumGetFloat8(DirectFunctionCall1(float8in,
-																 CStringGetDatum(val_tupcount)));
-
-
+				qe_tupcount = DatumGetInt64(DirectFunctionCall1(int8in,
+																CStringGetDatum(val_tupcount)));
 				total_count += qe_tupcount;
 
 				/*
@@ -1220,8 +1205,6 @@ gp_update_aorow_master_stats_internal(Relation parentrel, Snapshot appendOnlyMet
 
 				/*
 				 * check if numbers match.
-				 * NOTE: proper way is to use int8eq() but since we
-				 * don't expect any NAN's in here better do it directly
 				 */
 				if(fsinfo->total_tupcount != qe_tupcount)
 				{
@@ -1276,7 +1259,7 @@ gp_update_aorow_master_stats_internal(Relation parentrel, Snapshot appendOnlyMet
 
 	pfree(sqlstmt.data);
 
-	PG_RETURN_FLOAT8((float8)total_count);
+	PG_RETURN_INT64(total_count);
 }
 
 PG_FUNCTION_INFO_V1(gp_aoseg_name);
@@ -1595,17 +1578,14 @@ get_ao_distribution_oid(PG_FUNCTION_ARGS)
 		 */
 		initStringInfo(&sqlstmt);
 		if (RelationIsAoRows(parentrel))
-			appendStringInfo(&sqlstmt, "select gp_segment_id,sum(tupcount) "
+			appendStringInfo(&sqlstmt, "select gp_segment_id,sum(tupcount)::bigint "
 							"from gp_dist_random('pg_aoseg.%s') "
 							"group by (gp_segment_id)", aoseg_relname);
 		else
 		{
 			Assert(RelationIsAoCols(parentrel));
 
-			/*
-			 * Type cast the bigint tupcount to the expected output type float8.
-			 */
-			appendStringInfo(&sqlstmt, "select gp_segment_id,sum(tupcount::float8) "
+			appendStringInfo(&sqlstmt, "select gp_segment_id,sum(tupcount)::bigint "
 							"from gp_dist_random('pg_aoseg.%s') "
 							"group by (gp_segment_id)", aoseg_relname);
 		}
@@ -2015,18 +1995,16 @@ aorow_compression_ratio_internal(Relation parentrel)
 			 */
 			if(val_eof_uncomp != NULL && val_eof != NULL)
 			{
-				Datum eof = DirectFunctionCall1(float8in, CStringGetDatum(val_eof));
-				Datum eof_uncomp = DirectFunctionCall1(float8in, CStringGetDatum(val_eof_uncomp));
+				int64 eof = DatumGetInt64(DirectFunctionCall1(int8in, CStringGetDatum(val_eof)));
+				int64 eof_uncomp = DatumGetInt64(DirectFunctionCall1(int8in, CStringGetDatum(val_eof_uncomp)));
 
 				/* guard against division by zero */
-				if(DatumGetFloat8(eof) > 0)
+				if (eof > 0)
 				{
 					char  buf[8];
 
 					/* calculate the compression ratio */
-					float8 compress_ratio_raw = DatumGetFloat8(DirectFunctionCall2(float8div,
-																				eof_uncomp,
-																				eof));
+					float8 compress_ratio_raw = ((float8) eof_uncomp) / ((float8) eof);
 
 					/* format to 2 digits past the decimal point */
 					snprintf(buf, 8, "%.2f", compress_ratio_raw);
@@ -2085,7 +2063,7 @@ ao_compression_ratio_internal(Oid relid)
 	{
 		returnDatum = aocol_compression_ratio_internal(parentrel);
 	}
-	
+
 	heap_close(parentrel, AccessShareLock);
 
 	return returnDatum;

@@ -54,19 +54,19 @@ AlterTableCreateAoSegTableWithOid(Oid relOid, Oid newOid, Oid newIndexOid,
 						-1, 0);
 		TupleDescInitEntry(tupdesc, (AttrNumber) 2,
 						"eof",
-						FLOAT8OID,
+						INT8OID,
 						-1, 0);
 		TupleDescInitEntry(tupdesc, (AttrNumber) 3,
 						"tupcount",
-						FLOAT8OID,
+						INT8OID,
 						-1, 0);
 		TupleDescInitEntry(tupdesc, (AttrNumber) 4,
 						"varblockcount",
-						FLOAT8OID,
+						INT8OID,
 						-1, 0);
 		TupleDescInitEntry(tupdesc, (AttrNumber) 5,
 						"eofuncompressed",
-						FLOAT8OID,
+						INT8OID,
 						-1, 0);
 		TupleDescInitEntry(tupdesc, (AttrNumber) 6,
 						"modcount",
