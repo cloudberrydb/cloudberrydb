@@ -12,7 +12,6 @@ upg2.sql
 gptokencheck.sql
 bkuprestore_advance.sql
 bkuprestore_cleanup.sql
-caql.sql
 aocs.sql
 appendonly.sql
 bkup_bkupdb.sql

@@ -98,7 +98,7 @@ uninstall:
 # Build dynamically-loaded object file for CREATE FUNCTION ... LANGUAGE C.
 
 NAME = regress
-OBJS = regress.o caqltest.o partindex.o
+OBJS = regress.o partindex.o
 
 include $(top_srcdir)/src/Makefile.shlib
 

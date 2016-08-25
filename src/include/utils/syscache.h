@@ -82,7 +82,6 @@ enum SysCacheIdentifier
 	WINFNOID
 };
 
-
 extern void InitCatalogCache(void);
 extern void InitCatalogCachePhase2(void);
 
@@ -91,8 +90,6 @@ extern HeapTuple SearchSysCache(int cacheId,
 extern void ReleaseSysCache(HeapTuple tuple);
 
 /* convenience routines */
-extern HeapTuple SearchSysCacheKeyArray(int cacheId, int numkeys,
-										Datum *keys);
 extern HeapTuple SearchSysCacheCopy(int cacheId,
 				   Datum key1, Datum key2, Datum key3, Datum key4);
 extern bool SearchSysCacheExists(int cacheId,
@@ -110,8 +107,6 @@ extern Datum SysCacheGetAttr(int cacheId, HeapTuple tup,
 /* list-search interface.  Users of this must import catcache.h too */
 extern struct catclist *SearchSysCacheList(int cacheId, int nkeys,
 				   Datum key1, Datum key2, Datum key3, Datum key4);
-
-extern int GetSysCacheId(Oid indexoid);
 
 /*
  * The use of the macros below rather than direct calls to the corresponding

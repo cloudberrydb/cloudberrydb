@@ -7,7 +7,6 @@
 /misc.out
 /tablespace.out
 
-caql.out
 constraints_optimizer.out
 aocs.out
 appendonly.out

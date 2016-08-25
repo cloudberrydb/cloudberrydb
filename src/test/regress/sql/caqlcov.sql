@@ -1,9 +1,8 @@
 -- ---------------------------------------------------------------------
 -- caqlcov
 --
--- This test aims to cover caql calls that are missed in the rest of
--- the installcheck-good schedule.  Since this is not a sourcified
--- file, add to caql.source if you need sourcify.
+-- This test aims to cover syscache calls that are missed in the rest of
+-- the installcheck-good schedule.
 -- ---------------------------------------------------------------------
 
 -- start_ignore
