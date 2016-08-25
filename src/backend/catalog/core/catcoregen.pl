@@ -225,8 +225,6 @@ static const CatCoreType CatCoreType_char_array =
 	{1002, F_ARRAY_EQ, F_ARRAY_LT, F_ARRAY_LE, F_ARRAY_GE, F_ARRAY_GT};
 static const CatCoreType CatCoreType_int2_array =
 	{INT2ARRAYOID, F_ARRAY_EQ, F_ARRAY_LT, F_ARRAY_LE, F_ARRAY_GE, F_ARRAY_GT};
-static const CatCoreType CatCoreType_int4_array =
-	{INT4ARRAYOID, F_ARRAY_EQ, F_ARRAY_LT, F_ARRAY_LE, F_ARRAY_GE, F_ARRAY_GT};
 static const CatCoreType CatCoreType_text_array =
 	{TEXTARRAYOID, F_ARRAY_EQ, F_ARRAY_LT, F_ARRAY_LE, F_ARRAY_GE, F_ARRAY_GT};
 static const CatCoreType CatCoreType_float4_array =
