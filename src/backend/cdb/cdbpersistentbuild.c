@@ -498,9 +498,7 @@ PersistentBuild_BuildDb(
 	DatabaseInfo		*info;
 	Oid					 defaultTablespace;
 	int					 t;
-	cqContext			 cqc;
-	cqContext			 dbcqc;
-	cqContext			*pcqCtx;
+	SysScanDesc sscan;
 
 	/*
 	 * Turn this on so we don't try to fetch persistence information from
@@ -523,20 +521,14 @@ PersistentBuild_BuildDb(
 
 	/* 
 	 * If the gp_global_sequence table hasn't been populated yet then we need 
-	 * to populate it before we can procede with building the rest of the 
+	 * to populate it before we can proceed with building the rest of the
 	 * persistent tables. 
+	 *
+	 * SELECT * FROM gp_global_sequence FOR UPDATE
 	 */
 	gp_global_sequence = heap_open(GpGlobalSequenceRelationId, RowExclusiveLock);
-
-
-	pcqCtx = caql_beginscan(
-			caql_addrel(cqclr(&cqc), gp_global_sequence),
-			cql("SELECT * FROM gp_global_sequence "
-				" FOR UPDATE ",
-				NULL));
-
-	tuple = caql_getnext(pcqCtx);
-
+	sscan = systable_beginscan(gp_global_sequence, InvalidOid, false, SnapshotNow, 0, NULL);
+	tuple = systable_getnext(sscan);
 	if (!HeapTupleIsValid(tuple))
 	{
 		Datum			values[Natts_gp_global_sequence];
@@ -545,28 +537,22 @@ PersistentBuild_BuildDb(
 		/* Insert N frozen tuples of value 0 */
 		MemSet(nulls, false, sizeof(nulls));
 		values[Anum_gp_global_sequence_sequence_num-1] = Int64GetDatum(0);
-		tuple = caql_form_tuple(pcqCtx, values, nulls);
+		tuple = heap_form_tuple(RelationGetDescr(gp_global_sequence), values, nulls);
 
 		if (!HeapTupleIsValid(tuple))
 			elog(ERROR, "failed to build global sequence tuple");
-		
+
 		for (t = 0; t < GpGlobalSequence_MaxSequenceTid; t++)
 			frozen_heap_insert(gp_global_sequence, tuple);
 	}
-	caql_endscan(pcqCtx);
+	systable_endscan(sscan);
 	heap_close(gp_global_sequence, RowExclusiveLock);
 
 	/* Lookup the information for the current database */
 	pg_database = heap_open(DatabaseRelationId, RowExclusiveLock);
 
 	/* Fetch a copy of the tuple to scribble on */
-	tuple = caql_getfirst(			
-			caql_addrel(cqclr(&dbcqc), pg_database),
-			cql("SELECT * FROM pg_database "
-				" WHERE oid = :1 "
-				" FOR UPDATE ",
-				ObjectIdGetDatum(dbOid)));
-
+	tuple = SearchSysCacheCopy1(DATABASEOID, ObjectIdGetDatum(dbOid));
 	if (!HeapTupleIsValid(tuple))
 		elog(ERROR, "could not find tuple for database %u", dbOid);
 	form_pg_database = (Form_pg_database) GETSTRUCT(tuple);
