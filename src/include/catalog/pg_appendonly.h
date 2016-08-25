@@ -134,6 +134,4 @@ static inline void AORelationVersion_CheckValid(int version)
 	(version > AORelationVersion_Original) \
 )
 
-extern int test_appendonly_version_default;
-
 #endif   /* PG_APPENDONLY_H */

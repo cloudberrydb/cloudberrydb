@@ -973,6 +973,73 @@ AppendOnlyExecutorReadBlock_ResetCounts(
 	executorReadBlock->totalRowsScannned = 0;
 }
 
+/*
+ * Given a tuple in 'formatversion', convert it to a format that is
+ * understood by the rest of the system.
+ */
+static MemTuple
+upgrade_tuple(MemTuple mtup, MemTupleBinding *pbind, int formatversion, bool *shouldFree)
+{
+	TupleDesc	tupdesc = pbind->tupdesc;
+	const int	natts = tupdesc->natts;
+	MemTuple	newtuple;
+
+	static Datum *values = NULL;
+	static bool *isnull = NULL;
+	static int nallocated = 0;
+
+	bool		convert_alignment = false;
+
+	/*
+	 * MPP-7372: If the AO table was created before the fix for this issue, it may
+	 * contain tuples with misaligned bindings. Here we check if the stored memtuple
+	 * is problematic and then create a clone of the tuple with properly aligned
+	 * bindings to be used by the executor.
+	 */
+	if (formatversion < AORelationVersion_Aligned64bit &&
+		memtuple_has_misaligned_attribute(mtup, pbind))
+		convert_alignment = true;
+
+	if (!convert_alignment)
+	{
+		/* No conversion required. Return the original tuple unmodified. */
+		*shouldFree = false;
+		return mtup;
+	}
+
+	/* Conversion is needed. */
+
+	/* enlarge the arrays if needed */
+	if (natts > nallocated)
+	{
+		if (values)
+			pfree(values);
+		if (isnull)
+			pfree(values);
+		values = (Datum *) MemoryContextAlloc(TopMemoryContext, natts * sizeof(Datum));
+		isnull = (bool *) MemoryContextAlloc(TopMemoryContext, natts * sizeof(bool));
+		nallocated = natts;
+	}
+
+	if (convert_alignment)
+	{
+		/* get attribute values form mis-aligned tuple */
+		memtuple_deform_misaligned(mtup, pbind, values, isnull);
+		/* Form a new, properly-aligned, tuple */
+		newtuple = memtuple_form_to(pbind, values, isnull, NULL, NULL, true);
+	}
+	else
+	{
+		/*
+		 * make a modifiable copy
+		 */
+		newtuple = memtuple_copy_to(mtup, pbind, NULL, NULL);
+	}
+
+	*shouldFree = true;
+	return newtuple;
+}
+
 static bool
 AppendOnlyExecutorReadBlock_ProcessTuple(
 	AppendOnlyExecutorReadBlock		*executorReadBlock,
@@ -985,36 +1052,22 @@ AppendOnlyExecutorReadBlock_ProcessTuple(
 {
 	bool	valid = true;	// Assume for HeapKeyTestUsingSlot define.
 	AOTupleId *aoTupleId = (AOTupleId*)&executorReadBlock->cdb_fake_ctid;
+	int			formatVersion = executorReadBlock->storageRead->formatVersion;
+
+	AORelationVersion_CheckValid(formatVersion);
 
 	AOTupleIdInit_Init(aoTupleId);
 	AOTupleIdInit_segmentFileNum(aoTupleId, executorReadBlock->segmentFileNum);
 	AOTupleIdInit_rowNum(aoTupleId, rowNum);
 
-	if(slot)
+	if (slot)
 	{
-		/*
-		 * MPP-7372: If the AO table was created before the fix for this issue, it may
-		 * contain tuples with misaligned bindings. Here we check if the stored memtuple
-		 * is problematic and then create a clone of the tuple with properly aligned
-		 * bindings to be used by the executor.
-		 */
-		if (!IsAOBlockAndMemtupleAlignmentFixed(executorReadBlock->storageRead->formatVersion) &&
-			memtuple_has_misaligned_attribute(tuple, slot->tts_mt_bind))
-		{
-			/*
-			 * Create a properly aligned clone of the memtuple.
-			 * We p'alloc memory for the clone, so the slot is
-			 * responsible for releasing the allocated memory.
-			 */
-			tuple = memtuple_aligned_clone(tuple, slot->tts_mt_bind, true /* upgrade */);
-			Assert(tuple);
-			ExecStoreMinimalTuple(tuple, slot, true /* shouldFree */);
-		}
-		else
-		{
-			ExecStoreMinimalTuple(tuple, slot, false);
-		}
+		bool		shouldFree = false;
 
+		/* If the tuple is not in the latest format, convert it */
+		if (formatVersion < AORelationVersion_GetLatest())
+			tuple = upgrade_tuple(tuple, slot->tts_mt_bind, formatVersion, &shouldFree);
+		ExecStoreMinimalTuple(tuple, slot, shouldFree);
 		slot_set_ctid(slot, &(executorReadBlock->cdb_fake_ctid));
 	}
 
@@ -2873,25 +2926,6 @@ appendonly_insert_init(Relation rel, int segno, bool update_mode)
 												true, true);
 	else
 		tup = instup;
-
-	/*
-	 * MPP-7372: If the AO table was created before the fix for this issue, it may contain
-	 * tuples with misaligned bindings. Here we check if the memtuple to be stored is
-	 * problematic and then create a clone of the tuple with the old (misaligned) bindings
-	 * to preserve consistency.
-	 */
-	if (!IsAOBlockAndMemtupleAlignmentFixed(aoInsertDesc->storageWrite.formatVersion) &&
-		memtuple_has_misaligned_attribute(tup, aoInsertDesc->mt_bind))
-	{
-		/* Create a clone of the memtuple using misaligned bindings. */
-		MemTuple tuple = memtuple_aligned_clone(tup, aoInsertDesc->mt_bind, false /* downgrade */);
-		Assert(tuple);
-		if(tup != instup)
-		{
-			pfree(tup);
-		}
-		tup = tuple;
-	}
 
 	/*
 	 * get space to insert our next item (tuple)

@@ -70,12 +70,8 @@ NewFileSegInfo(int segno)
 	fsinfo = (FileSegInfo *) palloc0(sizeof(FileSegInfo));
 	fsinfo->segno = segno;
 	fsinfo->state = AOSEG_STATE_DEFAULT;
-
-	/*
-	 * New segments are created in the latest format. For testing purposes,
-	 * though, you can force a different version, by settting this GUC.
-	 */
-	fsinfo->formatversion = test_appendonly_version_default;
+	/* New segments are always created in the latest format */
+	fsinfo->formatversion = AORelationVersion_GetLatest();
 
 	return fsinfo;
 }
@@ -100,11 +96,8 @@ InsertInitialSegnoEntry(Relation parentrel, int segno)
 	Datum	   *values;
 	int16		formatVersion;
 
-	/*
-	 * New segments are created in the latest format. For testing purposes,
-	 * though, you can force a different version, by settting this GUC.
-	 */
-	formatVersion = test_appendonly_version_default;
+	/* New segments are always created in the latest format */
+	formatVersion = AORelationVersion_GetLatest();
 
 	InsertFastSequenceEntry(parentrel->rd_appendonly->segrelid,
 							(int64)segno,
@@ -601,7 +594,7 @@ ClearFileSegInfo(Relation parentrel,
 	new_record_repl[Anum_pg_aoseg_eofuncompressed - 1] = true;
 
 	/* When the segment is later recreated, it will be in new format */
-	new_record[Anum_pg_aoseg_formatversion - 1] = Int16GetDatum(test_appendonly_version_default);
+	new_record[Anum_pg_aoseg_formatversion - 1] = Int16GetDatum(AORelationVersion_GetLatest());
 	new_record_repl[Anum_pg_aoseg_formatversion - 1] = true;
 
 	/* We do not reset the modcount here */
