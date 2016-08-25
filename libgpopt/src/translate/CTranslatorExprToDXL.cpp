@@ -3814,9 +3814,9 @@ CTranslatorExprToDXL::CheckValidity
 	// it's obviously invalid and we fall back
 	if (EdxlopPhysicalMotionGather == pdxlopMotion->Edxlop())
 	{
-		if((pdxlopMotion->PdrgpiInputSegIds()->UlLength() == 1) && COptCtxt::PoctxtFromTLS()->Pcm()->UlHosts() > 1)
+		if (m_pdrgpiSegments->UlLength() != pdxlopMotion->PdrgpiInputSegIds()->UlLength())
 		{
-			GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiExpr2DXLUnsupportedFeature, GPOS_WSZ_LIT("GatherMotion has 1 input but there are more segments in the system"));
+			GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiExpr2DXLUnsupportedFeature, GPOS_WSZ_LIT("GatherMotion input segments number does not match with the number of segments in the system"));
 		}
 	}
 }
