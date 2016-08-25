@@ -22,7 +22,6 @@
 #include "funcapi.h"
 
 #include "access/formatter.h"
-#include "catalog/catquery.h"
 #include "catalog/pg_proc.h"
 #include "utils/builtins.h"
 #include "utils/memutils.h"
@@ -252,28 +251,6 @@ static void byteArrayToBoolArray(bits8* data, int len, bool** booldata, int bool
 		(*booldata)[i] =  ((data[j] >> k--) & 0x01) == 1;
         if (k < 0) { j++; k = 7; }
 	}
-}
-
-/**
- * Get the name of the type, given the OID
- */
-static void getTypeName(Oid typeid, char* data)
-{
-	char*     name;
-
-	/* XXX: would have been get_type_name() */
-	name = caql_getcstring_plus(
-					NULL,
-					NULL,
-					NULL,
-					cql("SELECT typname FROM pg_type "
-						" WHERE oid = :1 ",
-						ObjectIdGetDatum(typeid)));
-
-	Insist(name);
-
-	strcpy(data, name);
-	pfree(name);
 }
 
 Datum
@@ -641,8 +618,11 @@ gphdfsformatter_import(PG_FUNCTION_ARGS)
 		if ((isBinaryFormatType(defined_type) || isBinaryFormatType(input_type)) &&
 			input_type != defined_type)
 		{
-			char intype[NAMEDATALEN];
-			getTypeName(input_type, intype);
+			char	   *intype;
+
+			intype = get_type_name(input_type);
+			Insist(intype);
+
 			ereport(ERROR, (errcode(ERRCODE_DATA_EXCEPTION),
 							errmsg("input data column %d of type \"%s\" did not match the external table definition",
 									i+1, intype),
