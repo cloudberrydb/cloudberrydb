@@ -707,15 +707,6 @@ struct config_bool ConfigureNamesBool_gp[] =
 		&memory_protect_buffer_pool, false, NULL, NULL
 	},
 	{
-		{"gp_flush_buffer_pages_when_evicted", PGC_SUSET, DEVELOPER_OPTIONS,
-			gettext_noop("Always flushes buffer pages, regardless of dirty status"),
-			gettext_noop("When buffer pool pages are evicted, flush them to disk regardless of their dirty status."),
-			GUC_NOT_IN_SAMPLE | GUC_NO_SHOW_ALL
-		},
-		&flush_buffer_pages_when_evicted,
-		false, NULL, NULL
-	},
-	{
 		{"debug_print_prelim_plan", PGC_USERSET, LOGGING_WHAT,
 			gettext_noop("Prints the preliminary execution plan to server log."),
 			NULL

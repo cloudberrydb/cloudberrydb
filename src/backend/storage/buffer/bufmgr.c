@@ -69,7 +69,6 @@
 
 /* GUC variables */
 bool        memory_protect_buffer_pool = true;
-bool 		flush_buffer_pages_when_evicted = false;
 bool		zero_damaged_pages = false;
 int			bgwriter_lru_maxpages = 100;
 double		bgwriter_lru_multiplier = 2.0;
@@ -558,8 +557,7 @@ BufferAlloc(SMgrRelation smgr,
 		 * won't prevent hint-bit updates).  We will recheck the dirty bit
 		 * after re-locking the buffer header.
 		 */
-		if (oldFlags & BM_DIRTY ||
-				(flush_buffer_pages_when_evicted && (oldFlags & BM_VALID)))
+		if (oldFlags & BM_DIRTY)
 		{
 			/*
 			 * If using a nondefault strategy, and writing the buffer
@@ -2720,8 +2718,6 @@ WaitIO(volatile BufferDesc *buf)
 static bool
 StartBufferIO(volatile BufferDesc *buf, bool forInput)
 {
-	bool ioNeeded;
-
 	Assert(!InProgressBuf);
 
 	for (;;)
@@ -2751,24 +2747,7 @@ StartBufferIO(volatile BufferDesc *buf, bool forInput)
 	/* Once we get here, there is definitely no I/O active on this buffer */
 
 	/* check if we can avoid io because some else already did it */
-	if (forInput)
-	{
-		ioNeeded = !(buf->flags & BM_VALID);
-	}
-	else if (flush_buffer_pages_when_evicted)
-	{
-		/* not 100% accurate because this flush could be called during non-eviction time,
-		* but it should cause only an extra unneeded flush, which we have lots of with this
-		* option on anyway
-		*/
-		ioNeeded = buf->flags & BM_VALID;
-	}
-	else
-	{
-		ioNeeded = buf->flags & BM_DIRTY;
-	}
-
-	if (!ioNeeded)
+	if (forInput ? (buf->flags & BM_VALID) : !(buf->flags & BM_DIRTY))
 	{
 		/* someone else already did the I/O */
 		UnlockBufHdr(buf);
