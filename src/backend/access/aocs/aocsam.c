@@ -415,8 +415,6 @@ aocs_beginscan(Relation relation,
 	ValidateAppendOnlyMetaDataSnapshot(&appendOnlyMetaDataSnapshot);
     RelationIncrementReferenceCount(relation);
 
-	Assert(relation->rd_appendonly->majorversion == 1 && relation->rd_appendonly->minorversion == 1);
-
     seginfo = GetAllAOCSFileSegInfo(relation, appendOnlyMetaDataSnapshot, &total_seg);
 
 	return aocs_beginscan_internal(relation,
@@ -457,7 +455,6 @@ aocs_beginscan_internal(Relation relation,
     scan->aos_rel = relation;
 	scan->appendOnlyMetaDataSnapshot = appendOnlyMetaDataSnapshot;
 	scan->snapshot = snapshot;
-    Assert(relation->rd_appendonly->majorversion == 1 && relation->rd_appendonly->minorversion == 1);
 
     scan->compLevel = relation->rd_appendonly->compresslevel;
     scan->compType = NameStr(relation->rd_appendonly->compresstype);
@@ -762,8 +759,6 @@ aocs_insert_init(Relation rel, int segno, bool update_mode)
 	AOCSInsertDesc desc;
 	TupleDesc tupleDesc;
 	int64 firstSequence = 0;
-
-    Assert(rel->rd_appendonly->majorversion == 1 && rel->rd_appendonly->minorversion == 1);
 
     desc = (AOCSInsertDesc) palloc0(sizeof(AOCSInsertDescData));
     desc->aoi_rel = rel;
@@ -1195,8 +1190,6 @@ aocs_fetch_init(Relation relation,
 
 	Assert(proj);
 	aocsFetchDesc->proj = proj;
-
-    Assert(relation->rd_appendonly->majorversion == 1 && relation->rd_appendonly->minorversion == 1);
 
 	aocsFetchDesc->segmentFileInfo =
 		GetAllAOCSFileSegInfo(relation, appendOnlyMetaDataSnapshot, &aocsFetchDesc->totalSegfiles);
@@ -1638,8 +1631,6 @@ aocs_delete_init(Relation rel)
 	/*
 	 * Get the pg_appendonly information
 	 */
-	Assert(rel->rd_appendonly->majorversion == 1 && rel->rd_appendonly->minorversion == 1);
-
 	AOCSDeleteDesc aoDeleteDesc = palloc0(sizeof(AOCSDeleteDescData));
 	aoDeleteDesc->aod_rel = rel;
 	aoDeleteDesc->appendOnlyMetaDataSnapshot = SnapshotNow;

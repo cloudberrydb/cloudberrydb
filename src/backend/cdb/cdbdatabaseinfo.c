@@ -1023,7 +1023,7 @@ DatabaseInfo_HandleAppendOnly(
 			if (Debug_persistent_print)
 				elog(Persistent_DebugPrintLevel(), 
 					 "DatabaseInfo_AddPgClassStoredRelation: Append-Only entry for relation id %u, relation name %s, "
-				     "blocksize %d, safefswritesize %d, compresslevel %d, major version %d, minor version %d, "
+				     "blocksize %d, safefswritesize %d, compresslevel %d, "
 				     " checksum %s, compresstype %s, columnstore %s, segrelid %u, segidxid %u, blkdirrelid %u, blkdiridxid %u, "
 					 " visimaprelid %u, visimapidxid %u",
 				     dbInfoRel->relationOid,
@@ -1031,8 +1031,6 @@ DatabaseInfo_HandleAppendOnly(
 					 aoEntry->blocksize,
 					 aoEntry->safefswritesize,
 					 aoEntry->compresslevel,
-					 aoEntry->majorversion,
-					 aoEntry->minorversion,
 					 (aoEntry->checksum ? "true" : "false"),
 					 NameStr(aoEntry->compresstype),
 					 (aoEntry->columnstore ? "true" : "false"),
@@ -1154,14 +1152,12 @@ DatabaseInfo_CollectPgAppendOnly(
 		if (Debug_persistent_print)
 			elog(Persistent_DebugPrintLevel(), 
 				 "DatabaseInfo_Collect: Append-Only entry for relation id %u, "
-				 "blocksize %d, safefswritesize %d, compresslevel %d, major version %d, minor version %d, "
+				 "blocksize %d, safefswritesize %d, compresslevel %d, "
 				 " checksum %s, compresstype %s, columnstore %s, segrelid %u, segidxid %u, blkdirrelid %u, blkdiridxid %u",
 				 aoEntry->relid,
 				 aoEntry->blocksize,
 				 aoEntry->safefswritesize,
 				 aoEntry->compresslevel,
-				 aoEntry->majorversion,
-				 aoEntry->minorversion,
 				 (aoEntry->checksum ? "true" : "false"),
 				 NameStr(aoEntry->compresstype),
 				 (aoEntry->columnstore ? "true" : "false"),

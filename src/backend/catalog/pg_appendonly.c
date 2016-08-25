@@ -56,10 +56,6 @@ InsertAppendOnlyEntry(Oid relid,
 	Datum	   *values;
 	int			natts = 0;
 
-	/* these are hardcoded for now. in the future should get passed in */
-	const int	majorversion = 1;
-	const int	minorversion = 1;
-
     /*
      * Open and lock the pg_appendonly catalog.
      */
@@ -77,8 +73,6 @@ InsertAppendOnlyEntry(Oid relid,
 	values[Anum_pg_appendonly_blocksize - 1] = Int32GetDatum(blocksize);
 	values[Anum_pg_appendonly_safefswritesize - 1] = Int32GetDatum(safefswritesize);
 	values[Anum_pg_appendonly_compresslevel - 1] = Int32GetDatum(compresslevel);
-	values[Anum_pg_appendonly_majorversion - 1] = Int32GetDatum(majorversion);
-	values[Anum_pg_appendonly_minorversion - 1] = Int32GetDatum(minorversion);
 	values[Anum_pg_appendonly_checksum - 1] = BoolGetDatum(checksum);
 	values[Anum_pg_appendonly_compresstype - 1] = NameGetDatum(&compresstype_name);
 	values[Anum_pg_appendonly_columnstore - 1] = BoolGetDatum(columnstore);
