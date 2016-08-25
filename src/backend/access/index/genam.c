@@ -308,19 +308,6 @@ systable_getnext(SysScanDesc sysscan)
 	return htup;
 }
 
-HeapTuple
-systable_getprev(SysScanDesc sysscan)
-{
-	HeapTuple	htup;
-
-	if (sysscan->irel)
-		htup = index_getnext(sysscan->iscan, BackwardScanDirection);
-	else
-		htup = heap_getnext(sysscan->scan, BackwardScanDirection);
-
-	return htup;
-}
-
 /*
  * systable_endscan --- close scan, release resources
  *
