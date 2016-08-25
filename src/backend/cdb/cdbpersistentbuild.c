@@ -19,7 +19,6 @@
 #include "access/nbtree.h"
 #include "access/transam.h"
 #include "catalog/catalog.h"
-#include "catalog/catquery.h"
 #include "catalog/heap.h"
 #include "catalog/pg_namespace.h"
 #include "catalog/pg_authid.h"
