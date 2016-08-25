@@ -97,7 +97,11 @@ compute_checksum(const char *buffer, uint32 size)
 		currSectorBegin += BFZ_CHECKSUM_SECTOR_SIZE;
 	}
 
-	FIN_CRC32C(crc);
+	/*
+	 * By historical accident, the checksum calculated here
+	 * is *not* inverted, like CRC-32C checksums usually are.
+	 */
+	/* FIN_CRC32C(crc); */
 
 	return crc;
 }

@@ -29,7 +29,12 @@ AppendOnlyStorageFormat_ComputeHeaderChecksum(
 	 */
 	INIT_CRC32C(crc);
 	COMP_CRC32C(crc, headerPtr, headerLen);
-	FIN_CRC32C(crc);
+
+	/*
+	 * By historical accident, the checksum calculated for append-only blocks
+	 * is *not* inverted, like CRC-32C checksums usually are.
+	 */
+	/* FIN_CRC32C(crc); */
 
 	return crc;
 }
@@ -54,7 +59,11 @@ AppendOnlyStorageFormat_ComputeBlockChecksum(
 	/* Compute CRC of the header. */
 	INIT_CRC32C(crc);
 	COMP_CRC32C(crc, headerPtr + dataOffset, overallBlockLen - dataOffset);
-	FIN_CRC32C(crc);
+	/*
+	 * By historical accident, the checksum calculated for append-only blocks
+	 * is *not* inverted, like CRC-32C checksums usually are.
+	 */
+	/* FIN_CRC32C(crc); */
 
 	return crc;
 }
