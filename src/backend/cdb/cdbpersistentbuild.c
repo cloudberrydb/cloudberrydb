@@ -645,10 +645,9 @@ gp_persistent_build_all(PG_FUNCTION_ARGS)
 	bool mirrored = PG_GETARG_BOOL(0);
 
 	Relation pg_tablespace;
+	Relation pg_database;
 	HeapTuple tuple;
-	cqContext	 cqc;
-	cqContext	*pcqCtx;
-	
+	SysScanDesc sscan;
 	Datum	*d;
 	bool	*null;
 	
@@ -660,19 +659,10 @@ gp_persistent_build_all(PG_FUNCTION_ARGS)
 	d = (Datum *) palloc(sizeof(Datum) * Natts_pg_tablespace);
 	null = (bool *) palloc(sizeof(bool) * Natts_pg_tablespace);	
 	
-	pg_tablespace = heap_open(
-							  TableSpaceRelationId,
-							  AccessShareLock);
-	
-	pcqCtx = caql_beginscan(
-			caql_syscache(
-					caql_indexOK(caql_addrel(cqclr(&cqc), pg_tablespace), 
-								 false),
-					false),
-			cql("SELECT * FROM pg_tablespace ",
-				NULL));
+	pg_tablespace = heap_open(TableSpaceRelationId, AccessShareLock);
 
-	while (HeapTupleIsValid(tuple = caql_getnext(pcqCtx)))
+	sscan = systable_beginscan(pg_tablespace, InvalidOid, false, SnapshotNow, 0, NULL);
+	while (HeapTupleIsValid(tuple = systable_getnext(sscan)))
 	{
 		Oid tablespaceOid;
 		
@@ -709,7 +699,7 @@ gp_persistent_build_all(PG_FUNCTION_ARGS)
 										/* flushToXLog */ false);
 	}
 	
-	caql_endscan(pcqCtx);
+	systable_endscan(sscan);
 	
 	heap_close(pg_tablespace, AccessShareLock);
 	
@@ -731,15 +721,11 @@ gp_persistent_build_all(PG_FUNCTION_ARGS)
 	/*
 	 * Now, the remaining databases.
 	 */
+	pg_database = heap_open(DatabaseRelationId, AccessShareLock);
 
-	pcqCtx = caql_beginscan(
-			caql_syscache(
-					caql_indexOK(cqclr(&cqc), false),
-					false),
-			cql("SELECT * FROM pg_database ",
-				NULL));
+	sscan = systable_beginscan(pg_database, InvalidOid, false, SnapshotNow, 0, NULL);
 
-	while (HeapTupleIsValid(tuple = caql_getnext(pcqCtx)))
+	while (HeapTupleIsValid(tuple = systable_getnext(sscan)))
 	{
 		Oid dbOid;
 		
@@ -762,7 +748,8 @@ gp_persistent_build_all(PG_FUNCTION_ARGS)
 							mirrored);
 	}
 
-	caql_endscan(pcqCtx);
+	systable_endscan(sscan);
+	heap_close(pg_database, AccessShareLock);
 
 	PersistentStore_FlushXLog();
 
@@ -778,9 +765,8 @@ PersistentBuild_FindGpRelationNodeIndex(
 	RelFileNode		*relFileNode)
 {
 	Relation	pg_class_rel;
+	SysScanDesc sscan;
 	HeapTuple	tuple;
-	cqContext	cqc;
-	cqContext  *pcqCtx;
 	bool found;
 
 	/*
@@ -791,16 +777,9 @@ PersistentBuild_FindGpRelationNodeIndex(
 							defaultTablespace, 
 							database);
 
+	sscan = systable_beginscan(pg_class_rel, InvalidOid, false, SnapshotNow, 0, NULL);
 	found = false;
-	pcqCtx = caql_beginscan(
-			caql_syscache(
-					caql_indexOK(caql_addrel(cqclr(&cqc), pg_class_rel), 
-								 false),
-					false),
-			cql("SELECT * FROM pg_class ",
-				NULL));
-
-	while (HeapTupleIsValid(tuple = caql_getnext(pcqCtx)))
+	while (HeapTupleIsValid(tuple = systable_getnext(sscan)))
 	{
 		Oid 			relationOid;
 
@@ -830,7 +809,7 @@ PersistentBuild_FindGpRelationNodeIndex(
 		found = true;
 		break;
 	}
-	caql_endscan(pcqCtx);
+	systable_endscan(sscan);
 
 	DirectOpen_PgClassClose(pg_class_rel);
 
@@ -844,23 +823,20 @@ PersistentBuild_FindGpRelationNodeIndex(
 static int64
 PersistentBuild_TruncateAllGpRelationNode(void)
 {
+	Relation	pg_database;
 	HeapTuple	 tuple;
-	cqContext	 cqc;
-	cqContext	*pcqCtx;
+	SysScanDesc	sscan;
 	int64		 count;
 
 	/*
 	 * Truncate gp_relation_node and its index in each database.
 	 */
 	count = 0;
-	pcqCtx = caql_beginscan(
-			caql_syscache(
-					caql_indexOK(cqclr(&cqc), false),
-					false),
-			cql("SELECT * FROM pg_database ",
-				NULL));
 
-	while (HeapTupleIsValid(tuple = caql_getnext(pcqCtx)))
+	pg_database = heap_open(DatabaseRelationId, AccessShareLock);
+	sscan = systable_beginscan(pg_database, InvalidOid, false, SnapshotNow, 0, NULL);
+
+	while (HeapTupleIsValid(tuple = systable_getnext(sscan)))
 	{
 		Form_pg_database form_pg_database =
 						(Form_pg_database)GETSTRUCT(tuple);
@@ -939,7 +915,8 @@ PersistentBuild_TruncateAllGpRelationNode(void)
 		count++;
 	}
 
-	caql_endscan(pcqCtx);
+	systable_endscan(sscan);
+	heap_close(pg_database, AccessShareLock);
 
 	return count;
 }
