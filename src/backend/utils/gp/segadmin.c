@@ -691,16 +691,27 @@ add_segment_config_entry(int16 pridbid, seginfo *i, ArrayType *fsmap)
 static void
 remove_segment_config(int16 dbid)
 {
-	cqContext	cqc;
 	int numDel = 0;
-	Relation rel = heap_open(GpSegmentConfigRelationId,
-							 RowExclusiveLock);
+	ScanKeyData scankey;
+	SysScanDesc sscan;
+	HeapTuple tuple;
+	Relation rel;
 
-	numDel = caql_getcount(
-			caql_addrel(cqclr(&cqc), rel),
-			cql("DELETE FROM gp_segment_configuration "
-				" WHERE dbid = :1 ",
-				Int16GetDatum(dbid)));
+	rel = heap_open(GpSegmentConfigRelationId, RowExclusiveLock);
+
+	ScanKeyInit(&scankey,
+				Anum_gp_segment_configuration_dbid,
+				BTEqualStrategyNumber, F_INT2EQ,
+				Int16GetDatum(dbid));
+
+	sscan = systable_beginscan(rel, GpSegmentConfigDbidIndexId, true,
+							   SnapshotNow, 1, &scankey);
+	while((tuple = systable_getnext(sscan)) != NULL)
+	{
+		simple_heap_delete(rel, &tuple->t_self);
+		numDel++;
+	}
+	systable_endscan(sscan);
 
 	Insist(numDel > 0);
 

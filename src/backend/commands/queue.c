@@ -735,8 +735,9 @@ CreateQueue(CreateQueueStmt *stmt)
 {
 	Relation	pg_resqueue_rel;
 	TupleDesc	pg_resqueue_dsc;
+	ScanKeyData scankey;
+	SysScanDesc sscan;
 	HeapTuple	tuple;
-	cqContext	cqc2;
 	Oid			queueid;
 	Cost		thresholds[NUM_RES_LIMIT_TYPES];
 	Datum		new_record[Natts_pg_resqueue];
@@ -903,19 +904,22 @@ CreateQueue(CreateQueueStmt *stmt)
 	 */
 	Relation resqueueCapabilityRel = 
 			heap_open(ResQueueCapabilityRelationId, RowExclusiveLock);
-	Relation resqueueCapabilityIndexRel = 
-			index_open(ResQueueCapabilityResqueueidIndexId, AccessShareLock);
 
-	if (caql_getcount(
-			caql_addrel(cqclr(&cqc2), pg_resqueue_rel),
-			cql("SELECT COUNT(*) FROM pg_resqueue WHERE rsqname = :1", 
-				CStringGetDatum(stmt->queue))))
-	{
+	ScanKeyInit(&scankey,
+				Anum_pg_resqueue_rsqname,
+				BTEqualStrategyNumber, F_NAMEEQ,
+				CStringGetDatum(stmt->queue));
+
+	sscan = systable_beginscan(pg_resqueue_rel, ResQueueRsqnameIndexId, true,
+							   SnapshotNow, 1, &scankey);
+
+	if (systable_getnext(sscan))
 		ereport(ERROR,
 				(errcode(ERRCODE_DUPLICATE_OBJECT),
 				 errmsg("resource queue \"%s\" already exists",
 						stmt->queue)));
-	}
+
+	systable_endscan(sscan);
 
 	/*
 	 * Build a tuple to insert
@@ -1023,7 +1027,6 @@ CreateQueue(CreateQueueStmt *stmt)
 				);
 	}
 
-	heap_close(resqueueCapabilityIndexRel, NoLock);
 	heap_close(resqueueCapabilityRel, NoLock);
 	heap_close(pg_resqueue_rel, NoLock);
 }
@@ -1268,8 +1271,6 @@ AlterQueue(AlterQueueStmt *stmt)
 	 * Get database locks in anticipation that we'll need to access this catalog table later.
 	 */
 	Relation resqueueCapabilityRel = heap_open(ResQueueCapabilityRelationId, RowExclusiveLock);
-	Relation resqueueCapabilityIndexRel = index_open(ResQueueCapabilityResqueueidIndexId, AccessShareLock);
-
 	pg_resqueue_dsc = RelationGetDescr(pg_resqueue_rel);
 
 	ScanKeyInit(&scankey,
@@ -1438,7 +1439,6 @@ AlterQueue(AlterQueueStmt *stmt)
 		}
 	}
 
-	heap_close(resqueueCapabilityIndexRel, NoLock);
 	heap_close(resqueueCapabilityRel, NoLock);
 
 	/* MPP-6929, MPP-7583: metadata tracking */
