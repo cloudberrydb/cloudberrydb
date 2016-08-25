@@ -25,9 +25,6 @@ OBJS = catalog.o dependency.o heap.o index.o indexing.o namespace.o aclchk.o \
        gp_global_sequence.o gp_persistent.o pg_appendonly.o \
        aocatalog.o $(QUICKLZ_COMPRESSION)
 
-
-SUBDIRS = core
-
 BKIFILES = postgres.bki postgres.description postgres.shdescription
 
 include $(top_srcdir)/src/backend/common.mk
