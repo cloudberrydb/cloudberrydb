@@ -396,15 +396,8 @@ GetAllFileSegInfo_pg_aoseg_rel(char *relationName,
 		varblockcount = fastgetattr(tuple, Anum_pg_aoseg_varblockcount, pg_aoseg_dsc, &isNull);
 		oneseginfo->varblockcount += (int64)DatumGetFloat8(varblockcount);
 
-		/*
-		 * Modcount cannot be NULL in normal operation. However, when
-		 * called from gp_aoseg_history after an upgrade, the old now invisible
-		 * entries may have not set the state and the modcount.
-		 */
 		modcount = fastgetattr(tuple, Anum_pg_aoseg_modcount, pg_aoseg_dsc, &isNull);
-		Assert(!isNull || appendOnlyMetaDataSnapshot == SnapshotAny);
-		if (!isNull)
-			oneseginfo->modcount += (int64)DatumGetInt64(modcount);
+		oneseginfo->modcount += DatumGetInt64(modcount);
 
 		state = fastgetattr(tuple, Anum_pg_aoseg_state, pg_aoseg_dsc, &isNull);
 		Assert(!isNull || appendOnlyMetaDataSnapshot == SnapshotAny);
