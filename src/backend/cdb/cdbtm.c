@@ -4230,7 +4230,7 @@ performDtxProtocolCommand(DtxProtocolCommand dtxProtocolCommand,
 					break;
 				default:
 					/* Lets flag this situation out, with explicit crash */
-					Assert (DistributedTransactionContext != DistributedTransactionContext);
+					Assert (false);
 					elog(DTM_DEBUG5, 
 						" SUBTRANSACTION_BEGIN_INTERNAL distributed transaction context invalid: %d",
 						 (int) DistributedTransactionContext);
