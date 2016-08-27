@@ -1809,7 +1809,7 @@ url_fclose(URL_FILE *file, bool failOnError, const char *relname)
 
 				free(file);
 				if (!retVal)
-					elog(ERROR, "Error when close writable externtal table");
+					elog(ERROR, "Error when closing writable external table");
 			}
 #else
 			ereport(ERROR,
@@ -1831,7 +1831,7 @@ url_fclose(URL_FILE *file, bool failOnError, const char *relname)
 
 			break;
 			
-		default: /* unknown or supported type - oh dear */
+		default: /* unknown or unsupported type - oh dear */
 			free(file);
 			ereport(ERROR,
 					(errcode(ERRCODE_INTERNAL_ERROR),
