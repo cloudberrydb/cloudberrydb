@@ -7,7 +7,7 @@ ifeq ($(PORTNAME),win32)
 endif
 
 override CPPFLAGS := -I. $(CPPFLAGS) $(apr_includes) $(apr_cppflags)
-override CLAGS := $(CFLAGS) $(apr_cflags)
+override CFLAGS := $(CFLAGS) $(apr_cflags)
 
 OBJS = gpfdist.o gpfdist_helper.o fstream.o gfile.o
 # configure should have been run by this point.
@@ -40,7 +40,7 @@ gfile.c: $(top_builddir)/src/backend/utils/misc/fstream/gfile.c
 	ln -s $< $@
 
 gpfdist$(EXE_EXT): $(OBJS)
-	$(CC) $(LDFLAGS) $(OBJS) $(LDLIBS) -o $@
+	$(CC) $(LDFLAGS) $(CFLAGS) $(OBJS) $(LDLIBS) -o $@
 
 install: all
 	$(INSTALL) gpfdist$(EXE_EXT) $(prefix)/bin

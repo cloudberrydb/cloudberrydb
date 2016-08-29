@@ -17,8 +17,10 @@ top_builddir = ../../..
 include $(top_builddir)/src/Makefile.global
 
 ifneq ($(PORTNAME), win32)
-override CFLAGS := -I$(libpq_srcdir) $(CPPFLAGS) $(PTHREAD_CFLAGS) -pthread
+override CFLAGS += $(PTHREAD_CFLAGS) -pthread
 endif
+
+override CPPFLAGS := -I$(libpq_srcdir) $(CPPFLAGS)
 
 OBJS=receivelog.o streamutil.o $(WIN32RES)
 
