@@ -612,9 +612,10 @@ CSubqueryHandler::FCreateOuterApplyForScalarSubquery
 	// generate an outer apply between outer expression and the relational child of scalar subquery
 	CExpression *pexprLeftOuterApply = CUtils::PexprLogicalApply<CLogicalLeftOuterApply>(pmp, pexprOuter, pexprInner, pcr, popSubquery->Eopid());
 
-	CColRef *pcrCount = NULL;
-	BOOL fHasCountAgg = CUtils::FHasCountAgg((*pexprSubquery)[0], &pcrCount);
-	if (!fHasCountAgg)
+	const CLogicalGbAgg *pgbAgg = NULL;
+	BOOL fHasCountAggMatchingColumn = CUtils::FHasCountAggMatchingColumn((*pexprSubquery)[0], pcr, &pgbAgg);
+
+	if (!fHasCountAggMatchingColumn)
 	{
 		// residual scalar uses the scalar subquery column
 		*ppexprNewOuter = pexprLeftOuterApply;
@@ -628,7 +629,7 @@ CSubqueryHandler::FCreateOuterApplyForScalarSubquery
 	*ppexprNewOuter = pexprPrj;
 
 	BOOL fGeneratedByQuantified =  popSubquery->FGeneratedByQuantified();
-	if (fGeneratedByQuantified || pcrCount == pcr)
+	if (fGeneratedByQuantified || (fHasCountAggMatchingColumn && 0 == pgbAgg->Pdrgpcr()->UlLength()))
 	{
 		CMDAccessor *pmda = COptCtxt::PoctxtFromTLS()->Pmda();
 		const IMDTypeInt8 *pmdtypeint8 = pmda->PtMDType<IMDTypeInt8>();

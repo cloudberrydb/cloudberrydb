@@ -44,6 +44,7 @@ namespace gpopt
 	class CDistributionSpec;
 	class IConstExprEvaluator;
 	class CLogical;
+	class CLogicalGbAgg;
 
 	//---------------------------------------------------------------------------
 	//	@class:
@@ -251,6 +252,10 @@ namespace gpopt
 			// check if given expression has a count(*)/count(Any) agg
 			static
 			BOOL FHasCountAgg(CExpression *pexpr, CColRef **ppcrCount);
+
+			// check if given expression has count matching the given column, returns the Logical GroupBy Agg above
+			static
+			BOOL FHasCountAggMatchingColumn(const CExpression *pexpr, const CColRef *pcr, const CLogicalGbAgg** ppgbAgg);
 
 			// generate a GbAgg with count(*) and sum(col) over the given expression
 			static

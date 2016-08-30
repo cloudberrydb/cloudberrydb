@@ -2515,6 +2515,55 @@ CUtils::FHasCountAgg
 }
 
 
+static BOOL FCountAggMatchingColumn(CExpression* pexprPrjElem, const CColRef* pcr)
+{
+	CColRef* pcrCount = NULL;
+	return CUtils::FCountAggProjElem(pexprPrjElem, &pcrCount) && pcr == pcrCount;
+}
+
+
+BOOL
+CUtils::FHasCountAggMatchingColumn
+	(
+	const CExpression *pexpr,
+	const CColRef *pcr,
+	const CLogicalGbAgg **ppgbAgg
+	)
+{
+	COperator* pop = pexpr->Pop();
+	// base case, we have a logical agg operator
+	if (COperator::EopLogicalGbAgg == pop->Eopid())
+	{
+		const CExpression* const pexprProjectList = (*pexpr)[1];
+		GPOS_ASSERT(COperator::EopScalarProjectList == pexprProjectList->Pop()->Eopid());
+		const ULONG ulArity = pexprProjectList->UlArity();
+		for (ULONG ul = 0; ul < ulArity; ul++)
+		{
+			CExpression* const pexprPrjElem = (*pexprProjectList)[ul];
+			if (FCountAggMatchingColumn(pexprPrjElem, pcr))
+			{
+				const CLogicalGbAgg* pgbAgg = CLogicalGbAgg::PopConvert(pop);
+				*ppgbAgg = pgbAgg;
+				return true;
+			}
+		}
+	}
+	// recurse
+	else
+	{
+		const ULONG ulArity = pexpr->UlArity();
+		for (ULONG ul = 0; ul < ulArity; ul++)
+		{
+			const CExpression* pexprChild = (*pexpr)[ul];
+			if (FHasCountAggMatchingColumn(pexprChild, pcr, ppgbAgg))
+			{
+				return true;
+			}
+		}
+	}
+	return false;
+}
+
 //---------------------------------------------------------------------------
 //	@function:
 //		CUtils::PexprSum

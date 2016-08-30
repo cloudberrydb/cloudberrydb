@@ -1194,7 +1194,7 @@ Select * from X where X.a < ANY (select a from P);
         </dxl:LogicalGet>
       </dxl:LogicalSelect>
     </dxl:Query>
-	<dxl:Plan Id="0" SpaceSize="31">
+	<dxl:Plan Id="0" SpaceSize="30">
 	  <dxl:GatherMotion InputSegments="0,1" OutputSegments="-1">
 	    <dxl:Properties>
 	      <dxl:Cost StartupCost="0" TotalCost="3660.836565" Rows="11000.000000" Width="4"/>
@@ -1259,7 +1259,7 @@ Select * from X where X.a < ANY (select a from P);
 	                    <dxl:Cost StartupCost="10" TotalCost="100" Rows="100" Width="4"/>
 	                  </dxl:Properties>
 	                  <dxl:ProjList>
-	                    <dxl:ProjElem ColId="18" Alias="ColRef_0018">
+	                    <dxl:ProjElem ColId="17" Alias="ColRef_0017">
 	                      <dxl:PartOid Level="0"/>
 	                    </dxl:ProjElem>
 	                  </dxl:ProjList>
