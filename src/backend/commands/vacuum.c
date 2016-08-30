@@ -1448,6 +1448,16 @@ get_rel_oids(List *relids, const RangeVar *vacrel, const char *stmttype,
 					classForm->relstorage == RELSTORAGE_VIRTUAL))
 				continue;
 
+			/* Skip persistent tables. Vacuum lazy is harmless, but also no
+			 * benefit to perform. Vacuum full could turn out dangerous as it
+			 * has potential to move tuples around causing the TIDs for tuples
+			 * to change, which violates its reference from
+			 * gp_relation_node. One scenario where this can happen is zero-page
+			 * due to failure after page extension but before page initialization.
+			 */
+			 if (GpPersistent_IsPersistentRelation(HeapTupleGetOid(tuple)))
+				 continue;
+
 			/* Make a relation list entry for this guy */
 			oldcontext = MemoryContextSwitchTo(vac_context);
 			oid_list = lappend_oid(oid_list, HeapTupleGetOid(tuple));
@@ -1770,6 +1780,10 @@ vac_update_datfrozenxid(void)
 				classForm->relstorage == RELSTORAGE_EXTERNAL ||
 				classForm->relstorage == RELSTORAGE_FOREIGN  ||
 				classForm->relstorage == RELSTORAGE_VIRTUAL))
+			continue;
+
+		/* exclude persistent tables, as all updates to it are frozen */
+		if (GpPersistent_IsPersistentRelation(HeapTupleGetOid(classTup)))
 			continue;
 
 		Assert(TransactionIdIsNormal(classForm->relfrozenxid));
@@ -5370,7 +5384,9 @@ open_relation_and_check_permission(VacuumStmt *vacstmt,
 	 * Check that it's a plain table; we used to do this in get_rel_oids() but
 	 * seems safer to check after we've locked the relation.
 	 */
-	if (onerel->rd_rel->relkind != expected_relkind || RelationIsExternal(onerel))
+	if (onerel->rd_rel->relkind != expected_relkind ||
+		RelationIsExternal(onerel) ||
+		GpPersistent_IsPersistentRelation(RelationGetRelid(onerel)))
 	{
 		ereport(WARNING,
 				(errmsg("skipping \"%s\" --- cannot vacuum indexes, views, external tables, or special system tables",
