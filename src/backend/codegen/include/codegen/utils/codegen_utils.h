@@ -55,6 +55,15 @@ template <typename> class FunctionTypeUnpacker;
 template <typename, typename> class ArithOpMaker;
 }  // namespace codegen_utils_detail
 
+
+// Easy static check to match integer macros with enum equivalents
+#define STATIC_ASSERT_OPTIMIZATION_LEVEL(ename, mname) \
+    static_assert(gpcodegen::CodegenUtils::OptimizationLevel::ename == \
+    gpcodegen::CodegenUtils::OptimizationLevel(mname), \
+    "gpcodegen::CodegenUtils::OptimizationLevel::" #ename  \
+    " == " #mname)
+
+
 /** \addtogroup gpcodegen
  *  @{
  */

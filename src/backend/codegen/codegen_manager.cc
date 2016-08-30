@@ -23,6 +23,11 @@
 #include "codegen/utils/codegen_utils.h"
 #include "codegen/utils/gp_codegen_utils.h"
 
+extern "C" {
+#include "postgres.h"  // NOLINT(build/include)
+#include "utils/guc.h"
+}
+
 using gpcodegen::CodegenManager;
 
 CodegenManager::CodegenManager(const std::string& module_name) {
@@ -63,10 +68,19 @@ unsigned int CodegenManager::PrepareGeneratedFunctions() {
     return success_count;
   }
 
+  STATIC_ASSERT_OPTIMIZATION_LEVEL(kNone,
+                                   CODEGEN_OPTIMIZATION_LEVEL_NONE);
+  STATIC_ASSERT_OPTIMIZATION_LEVEL(kLess,
+                                   CODEGEN_OPTIMIZATION_LEVEL_LESS);
+  STATIC_ASSERT_OPTIMIZATION_LEVEL(kDefault,
+                                   CODEGEN_OPTIMIZATION_LEVEL_DEFAULT);
+  STATIC_ASSERT_OPTIMIZATION_LEVEL(kAggressive,
+                                   CODEGEN_OPTIMIZATION_LEVEL_AGGRESSIVE);
 
   // Call GpCodegenUtils to compile entire module
   bool compilation_status = codegen_utils_->PrepareForExecution(
-      gpcodegen::GpCodegenUtils::OptimizationLevel::kDefault, true);
+      gpcodegen::GpCodegenUtils::OptimizationLevel(codegen_optimization_level),
+      true);
 
   if (!compilation_status) {
     return success_count;
@@ -99,6 +113,12 @@ const std::string& CodegenManager::GetExplainString() {
 
 void CodegenManager::AccumulateExplainString() {
   explain_string_.clear();
+  // This is called only when EXPLAIN CODEGEN. Because we don't want to compile
+  // at this time, we need to call CodegenUtils::Optimize to "optimize" LLVM IR.
+  codegen_utils_->Optimize(gpcodegen::CodegenUtils::OptimizationLevel(
+                               codegen_optimization_level),
+                           gpcodegen::CodegenUtils::SizeLevel::kNormal,
+                           false);
   llvm::raw_string_ostream out(explain_string_);
   codegen_utils_->PrintUnderlyingModules(out);
 }

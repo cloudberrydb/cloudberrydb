@@ -86,6 +86,8 @@ static const char *assign_optimizer_minidump(const char *newval,
 						  bool doit, GucSource source);
 static bool assign_optimizer(bool newval, bool doit, GucSource source);
 static bool assign_codegen(bool newval, bool doit, GucSource source);
+static const char *assign_codegen_optimization_level(const char *newval,
+                                                     bool doit, GucSource source);
 static const char *assign_optimizer_cost_model(const char *newval,
 							bool doit, GucSource source);
 static const char *assign_gp_workfile_caching_loglevel(const char *newval,
@@ -572,7 +574,10 @@ bool		optimizer_array_constraints;
 bool		init_codegen;
 bool		codegen;
 bool		codegen_validate_functions;
-int			codegen_varlen_tolerance;
+int		codegen_varlen_tolerance;
+int		codegen_optimization_level;
+static char 	*codegen_optimization_level_str;
+
 
 /* Security */
 bool		gp_reject_internal_tcp_conn = true;
@@ -5453,6 +5458,16 @@ struct config_string ConfigureNamesString_gp[] =
 		"csv", assign_gp_log_format, NULL
 	},
 
+	{
+		{"codegen_optimization_level", PGC_USERSET, DEVELOPER_OPTIONS,
+			gettext_noop("Sets optimizer level to use when compiling generated code."),
+			gettext_noop("Valid values are none, less, default, aggressive."),
+			GUC_NO_SHOW_ALL | GUC_NOT_IN_SAMPLE | GUC_GPDB_ADDOPT
+		},
+		&codegen_optimization_level_str,
+		"default", assign_codegen_optimization_level, NULL
+	},
+
 	/* End-of-list marker */
 	{
 		{NULL, 0, 0, NULL, NULL}, NULL, NULL, NULL, NULL
@@ -5614,6 +5629,39 @@ assign_optimizer_log_failure(const char *val, bool assign, GucSource source)
 	else
 	{
 		return NULL;			/* fail */
+	}
+
+	return val;
+}
+
+static const char*
+assign_codegen_optimization_level(const char *val, bool assign, GucSource source) {
+#ifndef USE_CODEGEN
+	if (val)
+		ereport(ERROR,
+			(errcode(ERRCODE_INVALID_PARAMETER_VALUE),
+				errmsg("Code generation is not supported by this build")));
+#endif
+
+	if (pg_strcasecmp(val, "none") == 0 && assign)
+	{
+		codegen_optimization_level = CODEGEN_OPTIMIZATION_LEVEL_NONE;
+	}
+	else if (pg_strcasecmp(val, "less") == 0 && assign)
+	{
+		codegen_optimization_level = CODEGEN_OPTIMIZATION_LEVEL_LESS;
+	}
+	else if (pg_strcasecmp(val, "default") == 0 && assign)
+	{
+		codegen_optimization_level = CODEGEN_OPTIMIZATION_LEVEL_DEFAULT;
+	}
+	else if (pg_strcasecmp(val, "aggressive") == 0 && assign)
+	{
+		codegen_optimization_level = CODEGEN_OPTIMIZATION_LEVEL_AGGRESSIVE;
+	}
+	else
+	{
+		return NULL;      /* fail */
 	}
 
 	return val;
