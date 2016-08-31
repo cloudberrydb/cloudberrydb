@@ -50,6 +50,7 @@ using gpcodegen::PGFuncGenerator;
 using gpcodegen::CodeGenFuncMap;
 using llvm::IRBuilder;
 
+
 CodeGenFuncMap
 OpExprTreeGenerator::supported_function_;
 
@@ -57,17 +58,19 @@ void OpExprTreeGenerator::InitializeSupportedFunction() {
   if (!supported_function_.empty()) { return; }
 
   supported_function_[141] = std::unique_ptr<PGFuncGeneratorInterface>(
-      new PGGenericFuncGenerator<int32_t, int32_t>(
+      new PGGenericFuncGenerator<int32_t, int32_t, int32_t>(
           141,
           "int4mul",
           &PGArithFuncGenerator<int32_t, int32_t, int32_t>::MulWithOverflow));
 
   supported_function_[149] = std::unique_ptr<PGFuncGeneratorInterface>(
-      new PGIRBuilderFuncGenerator<decltype(&IRBuilder<>::CreateICmpSLE),
-      int32_t, int32_t>(149, "int4le", &IRBuilder<>::CreateICmpSLE));
+      new PGIRBuilderFuncGenerator<int32_t, int32_t, int32_t>(
+          149,
+          "int4le",
+          &IRBuilder<>::CreateICmpSLE));
 
   supported_function_[177] = std::unique_ptr<PGFuncGeneratorInterface>(
-      new PGGenericFuncGenerator<int32_t, int32_t>(
+      new PGGenericFuncGenerator<int32_t, int32_t, int32_t>(
           177,
           "int4pl",
           &PGArithFuncGenerator<int32_t, int32_t, int32_t>::AddWithOverflow));
@@ -79,7 +82,7 @@ void OpExprTreeGenerator::InitializeSupportedFunction() {
           &PGArithFuncGenerator<int64_t, int64_t, int32_t>::AddWithOverflow));
 
   supported_function_[181] = std::unique_ptr<PGFuncGeneratorInterface>(
-      new PGGenericFuncGenerator<int32_t, int32_t>(
+      new PGGenericFuncGenerator<int32_t, int32_t, int32_t>(
           181,
           "int4mi",
           &PGArithFuncGenerator<int32_t, int32_t, int32_t>::SubWithOverflow));
@@ -91,29 +94,29 @@ void OpExprTreeGenerator::InitializeSupportedFunction() {
           &PGArithFuncGenerator<int64_t, int64_t, int64_t>::AddWithOverflow));
 
   supported_function_[216] = std::unique_ptr<PGFuncGeneratorInterface>(
-      new PGGenericFuncGenerator<float8, float8>(
+      new PGGenericFuncGenerator<float8, float8, float8>(
           216,
           "float8mul",
           &PGArithFuncGenerator<float8, float8, float8>::MulWithOverflow));
 
   supported_function_[218] = std::unique_ptr<PGFuncGeneratorInterface>(
-      new PGGenericFuncGenerator<float8, float8>(
+      new PGGenericFuncGenerator<float8, float8, float8>(
           218,
           "float8pl",
           &PGArithFuncGenerator<float8, float8, float8>::AddWithOverflow));
 
   supported_function_[219] = std::unique_ptr<PGFuncGeneratorInterface>(
-      new PGGenericFuncGenerator<float8, float8>(
+      new PGGenericFuncGenerator<float8, float8, float8>(
           219,
           "float8mi",
           &PGArithFuncGenerator<float8, float8, float8>::SubWithOverflow));
 
   supported_function_[1088] = std::unique_ptr<PGFuncGeneratorInterface>(
-      new PGIRBuilderFuncGenerator<decltype(&IRBuilder<>::CreateICmpSLE),
-      int32_t, int32_t>(1088, "date_le", &IRBuilder<>::CreateICmpSLE));
+      new PGIRBuilderFuncGenerator<bool, int32_t, int32_t>(
+          1088, "date_le", &IRBuilder<>::CreateICmpSLE));
 
   supported_function_[2339] = std::unique_ptr<PGFuncGeneratorInterface>(
-      new PGGenericFuncGenerator<int32_t, int64_t>(
+      new PGGenericFuncGenerator<int32_t, int32_t, int64_t>(
           2339,
           "date_le_timestamp",
           &PGDateFuncGenerator::DateLETimestamp));

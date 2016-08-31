@@ -315,6 +315,10 @@ if(EXISTS ${TXT_OBJFILE})
         tests/codegen_framework_unittest.cc
         ${MOCK_DIR}/backend/postmaster/postmaster_mock.o
     )
+    add_cmockery_gtest(codegen_pg_func_generator_unittest.t 
+        tests/codegen_pg_func_generator_unittest.cc
+        ${MOCK_DIR}/backend/postmaster/postmaster_mock.o
+    )
 endif()
 
 

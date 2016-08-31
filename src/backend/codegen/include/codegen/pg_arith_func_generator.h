@@ -214,10 +214,6 @@ bool PGArithFuncGenerator<rtype, Arg0, Arg1>::ArithOpWithOverflow(
   return true;
 }
 
-
-
-
-
 /** @} */
 }  // namespace gpcodegen
 
