@@ -576,7 +576,7 @@ bool		codegen;
 bool		codegen_validate_functions;
 int		codegen_varlen_tolerance;
 int		codegen_optimization_level;
-static char 	*codegen_optimization_level_str;
+static char 	*codegen_optimization_level_str = NULL;
 
 
 /* Security */
@@ -5465,7 +5465,12 @@ struct config_string ConfigureNamesString_gp[] =
 			GUC_NO_SHOW_ALL | GUC_NOT_IN_SAMPLE | GUC_GPDB_ADDOPT
 		},
 		&codegen_optimization_level_str,
-		"default", assign_codegen_optimization_level, NULL
+#ifdef USE_CODEGEN
+		"default",
+#else
+		"",
+#endif
+		assign_codegen_optimization_level, NULL
 	},
 
 	/* End-of-list marker */
@@ -5637,11 +5642,11 @@ assign_optimizer_log_failure(const char *val, bool assign, GucSource source)
 static const char*
 assign_codegen_optimization_level(const char *val, bool assign, GucSource source) {
 #ifndef USE_CODEGEN
-	if (val)
+	if (val && pg_strcasecmp(val, "") != 0)
 		ereport(ERROR,
 			(errcode(ERRCODE_INVALID_PARAMETER_VALUE),
 				errmsg("Code generation is not supported by this build")));
-#endif
+#else
 
 	if (pg_strcasecmp(val, "none") == 0 && assign)
 	{
@@ -5663,6 +5668,7 @@ assign_codegen_optimization_level(const char *val, bool assign, GucSource source
 	{
 		return NULL;      /* fail */
 	}
+#endif
 
 	return val;
 }
