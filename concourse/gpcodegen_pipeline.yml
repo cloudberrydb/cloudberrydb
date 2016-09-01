@@ -10,8 +10,7 @@ resources:
       - src/backend/codegen/*
       - src/include/codegen/*
       - concourse/*
-    private_key: {{gpdb_deploy_key}}
-    uri: git@github.com:greenplum-db/gpdb.git
+    uri: https://github.com/greenplum-db/gpdb.git
 
 - name: bin_gpdb_planner
   type: s3
