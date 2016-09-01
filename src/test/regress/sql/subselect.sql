@@ -365,19 +365,3 @@ select * from outer_7597 where (f1, f2) not in (select * from inner_7597);
 --
 
 select '1'::text in (select '1'::name union all select '1'::name);
-
---
--- Test case for when there is case clause in join filter
---
-
-drop table if exists t_case_subquery1;
-create table t_case_subquery1 (a int, b int, c text);
-insert into t_case_subquery1 values(1, 5, NULL), (1, 2, NULL);
-
-select t1.* from t_case_subquery1 t1 where t1.b = (
-  select max(b) from t_case_subquery1 t2 where t1.a = t2.a and t2.b < 5 and
-    case
-    when t1.c is not null and t2.c is not null
-    then t1.c = t2.c
-    end
-);

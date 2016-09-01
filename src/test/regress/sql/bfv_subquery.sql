@@ -173,3 +173,25 @@ drop table if exists mpp_t1;
 drop table if exists mpp_t2;
 drop table if exists mpp_t3;
 -- end_ignore
+
+--
+-- Test case for when there is case clause in join filter
+--
+
+-- start_ignore
+drop table if exists t_case_subquery1;
+-- end_ignore
+
+create table t_case_subquery1 (a int, b int, c text);
+insert into t_case_subquery1 values(1, 5, NULL), (1, 2, NULL);
+
+select t1.* from t_case_subquery1 t1 where t1.b = (
+  select max(b) from t_case_subquery1 t2 where t1.a = t2.a and t2.b < 5 and
+    case
+    when t1.c is not null and t2.c is not null
+    then t1.c = t2.c
+    end
+);
+-- start_ignore
+drop table if exists t_case_subquery1;
+-- end_ignore
