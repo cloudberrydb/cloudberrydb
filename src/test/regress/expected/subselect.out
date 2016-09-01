@@ -604,3 +604,4 @@ select t1.* from t_case_subquery1 t1 where t1.b = (
  a | b | c
 ---+---+---
 (0 rows)
+
