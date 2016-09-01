@@ -3619,7 +3619,7 @@ static void tuplesort_limit_sort(Tuplesortstate_mk *state)
 			mkheap_putAndGet(state->mkheap, state->entries+i);
 		}
 
-        Assert(mkheap_cnt(state->mkheap) == 0);
+        Assert(QueryFinishPending || (mkheap_cnt(state->mkheap) == 0));
         state->entry_count = state->entry_allocsize;
     }
 
