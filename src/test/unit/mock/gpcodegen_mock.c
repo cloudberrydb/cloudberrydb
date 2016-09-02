@@ -110,3 +110,13 @@ ExecEvalExprCodegenEnroll(ExecEvalExprFn regular_func_ptr,
    return NULL;
 }
 
+// Enroll and returns the pointer to AdvanceAggregateGenerator
+void*
+AdvanceAggregatesCodegenEnroll(AdvanceAggregatesFn regular_func_ptr,
+		AdvanceAggregatesFn* ptr_to_regular_func_ptr,
+		struct AggState *aggstate) {
+	*ptr_to_regular_func_ptr = regular_func_ptr;
+	elog(ERROR, "mock implementation of AdvanceAggregatesCodegenEnroll called");
+	return NULL;
+}
+
