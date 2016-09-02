@@ -641,7 +641,6 @@ SELECT user_relns() AS user_relns
  stud_emp
  student
  subselect_tbl
- t_case_subquery1
  tab1
  tab2
  tenk1
@@ -656,7 +655,7 @@ SELECT user_relns() AS user_relns
  toyemp
  usr_define_type
  varchar_tbl
-(152 rows)
+(151 rows)
 
 SELECT name(equipment(hobby_construct(text 'skywalking', text 'mer')));
  name 
