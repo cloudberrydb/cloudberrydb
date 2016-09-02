@@ -195,3 +195,38 @@ select t1.* from t_case_subquery1 t1 where t1.b = (
 -- start_ignore
 drop table if exists t_case_subquery1;
 -- end_ignore
+
+--
+-- Test case for if coalesce is needed for specific cases where a subquery with
+-- count aggregate has to return 0 or null. Count returns 0 on empty relations
+-- where other queries return NULL.
+--
+
+-- start_ignore
+drop table if exists t_coalesce_count_subquery;
+drop table if exists t_coalesce_count_subquery_empty;
+drop table if exists t_coalesce_count_subquery_empty2;
+CREATE TABLE t_coalesce_count_subquery(a, b) AS VALUES (1, 1);
+CREATE TABLE t_coalesce_count_subquery_empty(c int, d int);
+CREATE TABLE t_coalesce_count_subquery_empty2(e int, f int);
+-- end_ignore
+
+SELECT (SELECT count(*) FROM t_coalesce_count_subquery_empty where c = a) FROM t_coalesce_count_subquery;
+
+SELECT (SELECT COUNT(*) FROM t_coalesce_count_subquery_empty GROUP BY c LIMIT 1) FROM t_coalesce_count_subquery;
+
+SELECT (SELECT a1 FROM (SELECT count(*) FROM t_coalesce_count_subquery_empty2 group by e
+        union all
+        SELECT count(*) from t_coalesce_count_subquery_empty group by c) x(a1) LIMIT 1)
+FROM t_coalesce_count_subquery;
+
+SELECT (SELECT a1 FROM (SELECT count(*) from t_coalesce_count_subquery_empty group by c
+        union all
+        SELECT count(*) FROM t_coalesce_count_subquery_empty2 group by e) x(a1) LIMIT 1)
+FROM t_coalesce_count_subquery;
+
+-- start_ignore
+drop table if exists t_coalesce_count_subquery;
+drop table if exists t_coalesce_count_subquery_empty;
+drop table if exists t_coalesce_count_subquery_empty2;
+-- end_ignore
