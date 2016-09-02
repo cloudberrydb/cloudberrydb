@@ -3449,10 +3449,19 @@ CTranslatorExprToDXL::PdxlnResultFromNLJoinOuter
 	// create a result node from the input expression
 	CDXLNode *pdxlnResult = PdxlnResult(pexprRelational, pdrgpcr, pdrgpdsBaseTables, pulNonGatherMotions, pfDML, pdxlprop);
 
-	// add the new filter to the result replacing its original
-	// empty filter
-	CDXLNode *pdxlnFilter = PdxlnFilter(pdxlnCond);
-	pdxlnResult->ReplaceChild(EdxltsIndexFilter /*ulPos*/, pdxlnFilter);
+	// In case the OuterChild is a physical sequence, it will already have the filter in the partition selector and
+	// dynamic scan, thus we should not replace the filter.
+	if(EdxlopPhysicalSequence != pdxlnResult->Pdxlop()->Edxlop())
+	{
+		// add the new filter to the result replacing its original
+		// empty filter
+		CDXLNode *pdxlnFilter = PdxlnFilter(pdxlnCond);
+		pdxlnResult->ReplaceChild(EdxltsIndexFilter /*ulPos*/, pdxlnFilter);
+	}
+	else
+	{
+		pdxlnCond->Release();
+	}
 
 	return pdxlnResult;
 }

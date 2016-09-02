@@ -28,6 +28,7 @@ ULONG CPartTblTest::m_ulPartTblTestCounter = 0;  // start from first test
 // minidump files
 const CHAR *rgszPartTblFileNames[] =
 	{
+	"../data/dxl/minidump/PartTbl-DPE-Correlated-NLOuter.mdp",
 	"../data/dxl/minidump/Select-Over-PartTbl.mdp",
 	"../data/dxl/minidump/PartTbl-DPE.mdp",
 	"../data/dxl/minidump/PartTbl-DPE-WindowFunction.mdp",
