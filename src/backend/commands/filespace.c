@@ -1238,7 +1238,7 @@ num_filespaces(void)
 
 	/* XXX: should we do this via gp_persistent_filespace_node? */
 	sd = systable_beginscan(rel, InvalidOid, false,	/* no index */
-							SnapshotNow, 1, NULL);
+							SnapshotNow, 0, NULL);
 
 	while (systable_getnext(sd) != NULL)
 		n++;
