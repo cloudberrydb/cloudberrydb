@@ -8,12 +8,15 @@
 
 #include <float.h>
 #include <math.h>
+#include <unistd.h>
 
+#include "pgstat.h"
 #include "access/transam.h"
 #include "access/xact.h"
 #include "catalog/pg_language.h"
 #include "catalog/pg_type.h"
 #include "cdb/memquota.h"
+#include "cdb/cdbgang.h"
 #include "commands/sequence.h"
 #include "commands/trigger.h"
 #include "executor/executor.h"
@@ -73,6 +76,15 @@ extern Datum checkRelationAfterInvalidation(PG_FUNCTION_ARGS);
 
 /* Gang management test support */
 extern Datum gangRaiseInfo(PG_FUNCTION_ARGS);
+
+/* brutally cleanup all gangs */
+extern Datum cleanupAllGangs(PG_FUNCTION_ARGS);
+
+/* check if QD has gangs exist */
+extern Datum hasGangsExist(PG_FUNCTION_ARGS);
+
+/* get number of backends on segments except myself */
+extern Datum numBackendsOnSegment(PG_FUNCTION_ARGS);
 
 /*
  * test_atomic_ops was backported from 9.5. This prototype doesn't appear
@@ -2433,6 +2445,40 @@ gangRaiseInfo(PG_FUNCTION_ARGS)
 	PG_RETURN_BOOL(true);
 }
 
+PG_FUNCTION_INFO_V1(cleanupAllGangs);
+Datum
+cleanupAllGangs(PG_FUNCTION_ARGS)
+{
+	disconnectAndDestroyAllGangs(false);
+	PG_RETURN_BOOL(true);
+}
+
+PG_FUNCTION_INFO_V1(hasGangsExist);
+Datum
+hasGangsExist(PG_FUNCTION_ARGS)
+{
+	if (gangsExist())
+		PG_RETURN_BOOL(true);
+	PG_RETURN_BOOL(false);
+}
+
+PG_FUNCTION_INFO_V1(numBackendsOnSegment);
+Datum
+numBackendsOnSegment(PG_FUNCTION_ARGS)
+{
+	int	beid;
+	int32 result = 0;
+	int pid = getpid();
+	int tot_backends = pgstat_fetch_stat_numbackends();
+	for (beid = 1; beid <= tot_backends; beid++)
+	{
+		PgBackendStatus *beentry = pgstat_fetch_stat_beentry(beid);
+		if (beentry && beentry->st_procpid >0 && beentry->st_procpid != pid)
+			result++;
+	}
+	
+	PG_RETURN_INT32(result);
+}
 
 #ifndef PG_HAVE_ATOMIC_FLAG_SIMULATION
 static void

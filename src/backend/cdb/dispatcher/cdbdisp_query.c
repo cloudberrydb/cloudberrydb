@@ -22,6 +22,7 @@
 #include "utils/guc.h"
 #include "utils/lsyscache.h"
 #include "utils/memutils.h"
+#include "utils/faultinjector.h"
 #include "miscadmin.h"
 
 #include "cdb/cdbdisp.h"
@@ -1286,6 +1287,8 @@ cdbdisp_dispatchX(DispatchCommandQueryParms *pQueryParms,
 			ds->primaryResults->writer_gang = primaryGang;
 
 		cdbdisp_dispatchToGang(ds, primaryGang, si, &direct);
+
+		SIMPLE_FAULT_INJECTOR(AfterOneSliceDispatched);
 	}
 
 	pfree(sliceVector);

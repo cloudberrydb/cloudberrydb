@@ -27,7 +27,6 @@
 #include "miscadmin.h"
 #include "utils/gp_atomic.h"
 
-static int getTimeout(const struct timeval* startTS);
 static Gang *createGang_async(GangType type, int gang_id, int size, int content);
 
 CreateGangFunc pCreateGangFuncAsync = createGang_async;
@@ -48,6 +47,7 @@ createGang_async(GangType type, int gang_id, int size, int content)
 	int in_recovery_mode_count = 0;
 	int successful_connections = 0;
 	bool retry = false;
+	bool timeout = false;
 
 	ELOG_DISPATCHER_DEBUG("createGang type = %d, gang_id = %d, size = %d, content = %d",
 			type, gang_id, size, content);
@@ -63,7 +63,7 @@ createGang_async(GangType type, int gang_id, int size, int content)
 	/* Check writer gang firstly*/
 	if (type != GANGTYPE_PRIMARY_WRITER && !isPrimaryWriterGangAlive())
 		ereport(ERROR, (errcode(ERRCODE_GP_INTERCONNECTION_ERROR),
-						errmsg("failed to create gang on one or more segments"),
+						errmsg("failed to acquire resources on one or more segments"),
 						errdetail("writer gang got broken before creating reader gangs")));
 
 create_gang_retry:
@@ -82,7 +82,6 @@ create_gang_retry:
 	MemoryContextSwitchTo(newGangDefinition->perGangContext);
 
 	struct pollfd *fds;
-	struct timeval startTS;
 
 	PG_TRY();
 	{
@@ -115,7 +114,7 @@ create_gang_retry:
 
 			if(cdbconn_isBadConnection(segdbDesc))
 				ereport(ERROR, (errcode(ERRCODE_GP_INTERCONNECTION_ERROR),
-										errmsg("failed to create gang on one or more segments"),
+										errmsg("failed to acquire resources on one or more segments"),
 										errdetail("%s (%s)", PQerrorMessage(segdbDesc->conn), segdbDesc->whoami)));
 		}
 
@@ -124,13 +123,11 @@ create_gang_retry:
 		 * timeout clock (= get the start timestamp), and poll until they're
 		 * all completed or we reach timeout.
 		 */
-		gettimeofday(&startTS, NULL);
 		fds = (struct pollfd *) palloc0(sizeof(struct pollfd) * size);
 
 		for(;;)
 		{
 			int nready;
-			int timeout;
 			int nfds = 0;
 
 			for (i = 0; i < size; i++)
@@ -153,7 +150,7 @@ create_gang_retry:
 									errmsg("failed to acquire resources on one or more segments"),
 									errdetail("Internal error: No motion listener port (%s)", segdbDesc->whoami)));
 						successful_connections++;
-						break;
+						continue;
 
 					case PGRES_POLLING_READING:
 						fds[nfds].fd = PQsocket(segdbDesc->conn);
@@ -176,18 +173,22 @@ create_gang_retry:
 						else
 						{
 							ereport(ERROR, (errcode(ERRCODE_GP_INTERCONNECTION_ERROR),
-											errmsg("failed to create gang on one or more segments"),
+											errmsg("failed to acquire resources on one or more segments"),
 											errdetail("%s (%s)", PQerrorMessage(segdbDesc->conn), segdbDesc->whoami)));
 						}
 						break;
 
 					default:
-
-						ereport(ERROR, (errcode(ERRCODE_GP_INTERCONNECTION_ERROR),
-										errmsg("failed to create gang on one or more segments"),
-										errdetail("unknown pollStatus")));
+							ereport(ERROR, (errcode(ERRCODE_GP_INTERCONNECTION_ERROR),
+										errmsg("failed to acquire resources on one or more segments"),
+										errdetail("unknow pollstatus (%s)", segdbDesc->whoami)));
 						break;
 				}
+
+				if (timeout)
+						ereport(ERROR, (errcode(ERRCODE_GP_INTERCONNECTION_ERROR),
+										errmsg("failed to acquire resources on one or more segments"),
+										errdetail("timeout expired\n (%s)", segdbDesc->whoami)));
 			}
 
 			if (nfds == 0)
@@ -195,10 +196,9 @@ create_gang_retry:
 
 			CHECK_FOR_INTERRUPTS();
 
-			timeout = getTimeout(&startTS);
-
 			/* Wait until something happens */
-			nready = poll(fds, nfds, timeout);
+			nready = poll(fds, nfds, gp_segment_connect_timeout ?
+									gp_segment_connect_timeout : -1);
 			if (nready < 0)
 			{
 				int	sock_errno = SOCK_ERRNO;
@@ -206,18 +206,11 @@ create_gang_retry:
 					continue;
 
 				ereport(ERROR, (errcode(ERRCODE_GP_INTERCONNECTION_ERROR),
-								errmsg("failed to create gang on one or more segments"),
+								errmsg("failed to acquire resources on one or more segments"),
 								errdetail("poll() failed: errno = %d", sock_errno)));
 			}
 			else if (nready == 0)
-			{
-				if (timeout != 0)
-					continue;
-
-				ereport(ERROR, (errcode(ERRCODE_GP_INTERCONNECTION_ERROR),
-								errmsg("failed to create gang on one or more segments"),
-								errdetail("createGang timeout after %d seconds", gp_segment_connect_timeout)));
-			}
+				timeout = true;
 		}
 
 		ELOG_DISPATCHER_DEBUG("createGang: %d processes requested; %d successful connections %d in recovery",
@@ -234,14 +227,14 @@ create_gang_retry:
 			if (isFTSEnabled() &&
 				FtsTestSegmentDBIsDown(newGangDefinition->db_descriptors, size))
 				ereport(ERROR, (errcode(ERRCODE_GP_INTERCONNECTION_ERROR),
-								errmsg("failed to create gang on one or more segments"),
+								errmsg("failed to acquire resources on one or more segments"),
 								errdetail("FTS detected one or more segments are down")));
 
 			if ( gp_gang_creation_retry_count <= 0 ||
 				create_gang_retry_counter++ >= gp_gang_creation_retry_count ||
 				type != GANGTYPE_PRIMARY_WRITER)
 				ereport(ERROR, (errcode(ERRCODE_GP_INTERCONNECTION_ERROR),
-								errmsg("failed to create gang on one or more segments"),
+								errmsg("failed to acquire resources on one or more segments"),
 								errdetail("segments is in recovery mode")));
 
 			ELOG_DISPATCHER_DEBUG("createGang: gang creation failed, but retryable.");
@@ -278,28 +271,5 @@ create_gang_retry:
 
 	setLargestGangsize(size);
 	return newGangDefinition;
-}
-
-static int getTimeout(const struct timeval* startTS)
-{
-	struct timeval now;
-	int timeout;
-	int64 diff_us;
-
-	gettimeofday(&now, NULL);
-
-	if (gp_segment_connect_timeout > 0)
-	{
-		diff_us = (now.tv_sec - startTS->tv_sec) * 1000000;
-		diff_us += (int) now.tv_usec - (int) startTS->tv_usec;
-		if (diff_us > (int64) gp_segment_connect_timeout * 1000000)
-			timeout = 0;
-		else
-			timeout = gp_segment_connect_timeout * 1000 - diff_us / 1000;
-	}
-	else
-		timeout = -1;
-
-	return timeout;
 }
 

@@ -118,6 +118,13 @@ s/Table "pg_temp_\d+.temp/Table "pg_temp_#####/
 m/^LOG.*\"Feature/
 s/^LOG.*\"Feature/\"Feature/
 
-m/^.*(seg\d.*:.*)/
-s/^.*(seg\d.*:.*)//
+m/^DETAIL:  Internal error: No motion listener port \(seg\d.*:.*\)/
+s/^DETAIL:  Internal error: No motion listener port \(seg\d.*:.*\)//
+
+# Mask out gp_debug_linger HINT message for dispatch
+m/^HINT:  Process \d+ will wait for gp_debug_linger=\d+ seconds before termination\./
+s/^HINT:  Process \d+ will wait for gp_debug_linger=\d+ seconds before termination\.//
+
+m/^ \(seg\d .*:\d+\)/
+s/^ \(seg\d .*:\d+\)//
 -- end_matchsubs

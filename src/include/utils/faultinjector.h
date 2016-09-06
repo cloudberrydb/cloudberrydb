@@ -209,6 +209,9 @@ typedef enum FaultInjectorIdentifier_e {
 	OptRelcacheTranslatorCatalogAccess,
 
 	SendQEDetailsInitBackend,
+	ProcessStartupPacketFault,
+	QuickDie,
+	AfterOneSliceDispatched,
 
 	/* INSERT has to be done before that line */
 	FaultInjectorIdMax,

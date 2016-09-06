@@ -359,7 +359,7 @@ void cdbconn_doConnect(SegmentDatabaseDescriptor *segdbDesc,
 		if (!segdbDesc->errcode)
 			segdbDesc->errcode = ERRCODE_GP_INTERCONNECTION_ERROR;
 
-		appendPQExpBuffer(&segdbDesc->error_message, "%s\n", PQerrorMessage(segdbDesc->conn));
+		appendPQExpBuffer(&segdbDesc->error_message, "%s", PQerrorMessage(segdbDesc->conn));
 
 		/* Don't use elog, it's not thread-safe */
 		if (gp_log_gang >= GPVARS_VERBOSITY_DEBUG)

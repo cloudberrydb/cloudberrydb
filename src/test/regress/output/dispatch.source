@@ -1,0 +1,324 @@
+-- Misc tests related to dispatching queries to segments.
+-- Test quoting of GUC values and databse names when they're sent to segments
+-- There used to be a bug in the quoting when the search_path setting was sent
+-- to the segment. It was not easily visible when search_path was set with a
+-- SET command, only when the setting was sent as part of the startup packet.
+-- Set search_path as a per-user setting so that we can test that.
+CREATE DATABASE "dispatch test db";
+ALTER DATABASE "dispatch test db" SET search_path="my schema",public;
+NOTICE:  schema "my schema" does not exist
+\c "dispatch test db"
+CREATE SCHEMA "my schema";
+-- Create a table with the same name in both schemas, "my schema" and public.
+CREATE TABLE "my table" (t text);
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 't' as the Greenplum Database data distribution key for this table.
+HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
+INSERT INTO "my table" VALUES ('myschema.mytable');
+CREATE TABLE public."my table" (t text);
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 't' as the Greenplum Database data distribution key for this table.
+HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
+INSERT INTO public."my table" VALUES ('public.mytable');
+SELECT t as unquoted FROM "my table";
+     unquoted     
+------------------
+ myschema.mytable
+(1 row)
+
+SELECT t as myschema FROM "my schema"."my table";
+     myschema     
+------------------
+ myschema.mytable
+(1 row)
+
+SELECT t as public FROM public."my table";
+     public     
+----------------
+ public.mytable
+(1 row)
+
+DROP TABLE "my table";
+DROP TABLE public."my table";
+-- Create another table with the same name. To make sure the DROP worked
+-- and dropped the correct table.
+CREATE TABLE "my table" (id integer);
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'id' as the Greenplum Database data distribution key for this table.
+HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
+DROP TABLE "my table";
+-- Clean up
+\c regression
+DROP DATABASE "dispatch test db";
+--
+-- test QD will report failure if QE fails to send its motion_listener back
+-- during backend initialization
+--
+-- start_ignore
+\! gpfaultinjector -q -f send_qe_details_init_backend -y reset -s 2
+-- inject a 'skip' fault before QE sends its motion_listener
+\! gpfaultinjector -q -f send_qe_details_init_backend -y skip -s 2 -o 0
+-- end_ignore
+-- terminate exiting QEs first
+\c
+-- verify failure will be reported
+SELECT 1 FROM gp_dist_random('gp_id');
+ERROR:  failed to acquire resources on one or more segments
+DETAIL:  Internal error: No motion listener port (seg0 127.0.0.1:40000)
+-- reset fault injector
+-- start_ignore
+\! gpfaultinjector -q -f send_qe_details_init_backend -y reset -s 2
+-- end_ignore
+--
+-- Test suit : test gang creation and commands dispatching 
+--
+--start_ignore
+drop table if exists dispatch_test;
+NOTICE:  table "dispatch_test" does not exist, skipping
+drop table if exists dispatch_test_t1;
+NOTICE:  table "dispatch_test_t1" does not exist, skipping
+drop table if exists dispatch_test_t2;
+NOTICE:  table "dispatch_test_t2" does not exist, skipping
+drop table if exists dispatch_test_t3;
+NOTICE:  table "dispatch_test_t3" does not exist, skipping
+--end_ignore
+create table dispatch_test as select i as c1 from generate_series(1, 10) i;
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column(s) named 'c1' as the Greenplum Database data distribution key for this table.
+HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
+create table dispatch_test_t1 (c1 int, c2 int, c3 int);
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'c1' as the Greenplum Database data distribution key for this table.
+HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
+create table dispatch_test_t2 (c1 int, c2 int, c3 int);
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'c1' as the Greenplum Database data distribution key for this table.
+HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
+create table dispatch_test_t3 (c1 int, c2 int, c3 int);
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'c1' as the Greenplum Database data distribution key for this table.
+HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
+insert into dispatch_test_t1 values (1,1,2);
+insert into dispatch_test_t2 values (2,1,2);
+insert into dispatch_test_t3 values (3,1,2);
+CREATE OR REPLACE FUNCTION cleanupAllGangs() RETURNS BOOL
+AS '@abs_builddir@/regress@DLSUFFIX@', 'cleanupAllGangs' LANGUAGE C;
+-- check if segments has backend running
+CREATE OR REPLACE FUNCTION numBackendsOnSegment() RETURNS INTEGER
+AS '@abs_builddir@/regress@DLSUFFIX@', 'numBackendsOnSegment' LANGUAGE C;
+-- check if QD has reusable gangs
+CREATE OR REPLACE FUNCTION hasGangsExist() RETURNS BOOL
+AS '@abs_builddir@/regress@DLSUFFIX@', 'hasGangsExist' LANGUAGE C;
+CREATE VIEW v_hasBackendsOnSegment as select sum(numBackendsOnSegment()) > 0 from
+gp_dist_random('gp_id');
+-- disable debug linger to get immediate feedback from FATAL errors.
+set gp_debug_linger to 0;
+-- test log debug related code within dispatch
+set gp_log_gang to debug;
+set log_min_messages to DEBUG;
+-- Case 1.1
+-- A segment in recovery mode, writer gang retry gp_gang_creation_retry_count times and finally success
+-- set maximun retry time to 60 seconds, this should be long enough for segment
+-- recovery back. otherwise it should be bug somewhere
+set gp_gang_creation_retry_count to 120;
+set gp_gang_creation_retry_timer to 500;
+select cleanupAllGangs();
+ cleanupallgangs 
+-----------------
+ t
+(1 row)
+
+-- trigger fault and put segment 0 into recovery mode
+\! gpfaultinjector -q -f process_startup_packet -y segv --seg_dbid 2
+--start_ignore
+select 'trigger fault' from gp_dist_random('gp_id');
+ERROR:  failed to acquire resources on one or more segments
+DETAIL:  server closed the connection unexpectedly
+	This probably means the server terminated abnormally
+	before or while processing the request.
+ (seg0 127.0.0.1:40000)
+--end_ignore
+-- should success after retry
+select * from dispatch_test_t1, dispatch_test_t2, dispatch_test_t3
+where dispatch_test_t1.c2 = dispatch_test_t2.c2 and dispatch_test_t2.c3 = dispatch_test_t3.c3;
+ c1 | c2 | c3 | c1 | c2 | c3 | c1 | c2 | c3 
+----+----+----+----+----+----+----+----+----
+  1 |  1 |  2 |  2 |  1 |  2 |  3 |  1 |  2
+(1 row)
+
+\! gpfaultinjector -q -f process_startup_packet -y reset --seg_dbid 2
+-- Case 1.2
+-- A segment in recovery mode for long time, writer gang retry gp_gang_creation_retry_count times and finally failed
+-- set maximun retry time to 0.4s, so we can test if gp_gang_creation_retry_count
+-- is actually work
+set gp_gang_creation_retry_count to 2;
+set gp_gang_creation_retry_timer to 200;
+select cleanupAllGangs();
+ cleanupallgangs 
+-----------------
+ t
+(1 row)
+
+-- trigger fault and put segment 0 into recovery mode
+\! gpfaultinjector -q -f process_startup_packet -y segv --seg_dbid 2
+\! gpfaultinjector -q -f quickdie -y suspend --seg_dbid 2
+--start_ignore
+select 'trigger fault' from gp_dist_random('gp_id');
+ERROR:  failed to acquire resources on one or more segments
+DETAIL:  server closed the connection unexpectedly
+	This probably means the server terminated abnormally
+	before or while processing the request.
+ (seg0 127.0.0.1:40000)
+--end_ignore
+-- should failed after 2 times
+select * from dispatch_test_t1, dispatch_test_t2, dispatch_test_t3
+where dispatch_test_t1.c2 = dispatch_test_t2.c2 and dispatch_test_t2.c3 = dispatch_test_t3.c3;
+ERROR:  failed to acquire resources on one or more segments
+DETAIL:  segments is in recovery mode
+\! gpfaultinjector -q -f quickdie -y resume --seg_dbid 2
+\! gpfaultinjector -q -f process_startup_packet -y reset --seg_dbid 2
+\! gpfaultinjector -q -f quickdie -y reset --seg_dbid 2
+--start_ignore
+-- enlarge the retry count
+set gp_gang_creation_retry_count to 128 ;
+-- this will block until segment 0 recovery back, or report an error
+-- after 24 seconds.
+select 'wait recovery finish' from gp_dist_random('gp_id');
+       ?column?       
+----------------------
+ wait recovery finish
+ wait recovery finish
+ wait recovery finish
+(3 rows)
+
+--end_ignore
+-- cleanup all reusable gangs 
+select cleanupAllGangs();
+ cleanupallgangs 
+-----------------
+ t
+(1 row)
+
+-- expect no zombie backends left on segments 
+select * from v_hasBackendsOnSegment;
+ ?column? 
+----------
+ f
+(1 row)
+
+-- should success 
+select * from dispatch_test_t1, dispatch_test_t2, dispatch_test_t3
+where dispatch_test_t1.c2 = dispatch_test_t2.c2 and dispatch_test_t2.c3 = dispatch_test_t3.c3;
+ c1 | c2 | c3 | c1 | c2 | c3 | c1 | c2 | c3 
+----+----+----+----+----+----+----+----+----
+  1 |  1 |  2 |  2 |  1 |  2 |  3 |  1 |  2
+(1 row)
+
+-- Case 1.3
+-- segment has non in-recovery-mode errors
+-- when creating writer gang, an error reported and all gangs should be cleaned.
+-- when creating reader gang, an error reported and only current gang is cleaned.
+select cleanupAllGangs();
+ cleanupallgangs 
+-----------------
+ t
+(1 row)
+
+-- segment 0 report an error when get a request 
+\! gpfaultinjector -q -f process_startup_packet -y error --seg_dbid 2
+-- expect failure
+select * from dispatch_test_t1, dispatch_test_t2, dispatch_test_t3
+where dispatch_test_t1.c2 = dispatch_test_t2.c2 and dispatch_test_t2.c3 = dispatch_test_t3.c3;
+ERROR:  failed to acquire resources on one or more segments
+DETAIL:  FATAL:  fault triggered, fault name:'process_startup_packet' fault type:'error' (faultinjector.c:683)
+HINT:  Process 8632 will wait for gp_debug_linger=120 seconds before termination.
+Note that its locks and other resources will not be released until then.
+ (seg0 127.0.0.1:40000)
+-- expect no resuable gang exist
+select * from hasGangsExist();
+ hasgangsexist 
+---------------
+ f
+(1 row)
+
+-- expect no zombie backends left on segments.
+select * from v_hasBackendsOnSegment;
+ ?column? 
+----------
+ f
+(1 row)
+
+-- cleanupAllGangs();
+select cleanupAllGangs();
+ cleanupallgangs 
+-----------------
+ t
+(1 row)
+
+\! gpfaultinjector -q -f process_startup_packet -y reset --seg_dbid 2
+-- segment 0 report an error when get the second request (reader gang creation request)
+\! gpfaultinjector -q -f process_startup_packet -y error --seg_dbid 2 -o 3
+-- expect failure
+select * from dispatch_test_t1, dispatch_test_t2, dispatch_test_t3
+where dispatch_test_t1.c2 = dispatch_test_t2.c2 and dispatch_test_t2.c3 = dispatch_test_t3.c3;
+ERROR:  failed to acquire resources on one or more segments
+DETAIL:  FATAL:  fault triggered, fault name:'process_startup_packet' fault type:'error' (faultinjector.c:683)
+HINT:  Process 8685 will wait for gp_debug_linger=120 seconds before termination.
+Note that its locks and other resources will not be released until then.
+ (seg0 127.0.0.1:40000)
+-- expect resuable gang exist
+select * from hasGangsExist();
+ hasgangsexist 
+---------------
+ t
+(1 row)
+
+-- expect QEs exist.
+select * from v_hasBackendsOnSegment;
+ ?column? 
+----------
+ t
+(1 row)
+
+\! gpfaultinjector -q -f process_startup_packet -y reset --seg_dbid 2
+-- Case 1.4
+-- Test createGang timeout.
+-- gp_segment_connect_timeout = 0 : wait forever
+-- gp_segment_connect_timeout = 1 : wait 1 second
+set gp_segment_connect_timeout to 1;
+select cleanupAllGangs();
+ cleanupallgangs 
+-----------------
+ t
+(1 row)
+
+\! gpfaultinjector -q -f process_startup_packet -y suspend --seg_dbid 2
+-- expect timeout failure
+select * from dispatch_test_t1, dispatch_test_t2, dispatch_test_t3
+where dispatch_test_t1.c2 = dispatch_test_t2.c2 and dispatch_test_t2.c3 = dispatch_test_t3.c3;
+ERROR:  failed to acquire resources on one or more segments
+DETAIL:  timeout expired 
+ (seg0 10.22.22.22:40000)
+\! gpfaultinjector -q -f process_startup_packet -y resume --seg_dbid 2
+\! gpfaultinjector -q -f process_startup_packet -y reset --seg_dbid 2
+set gp_segment_connect_timeout to 0;
+select cleanupAllGangs();
+ cleanupallgangs 
+-----------------
+ t
+(1 row)
+
+\! gpfaultinjector -q -f process_startup_packet -y sleep --seg_dbid 2 -z 1
+-- expect success 
+select * from dispatch_test_t1, dispatch_test_t2, dispatch_test_t3
+where dispatch_test_t1.c2 = dispatch_test_t2.c2 and dispatch_test_t2.c3 = dispatch_test_t3.c3;
+ c1 | c2 | c3 | c1 | c2 | c3 | c1 | c2 | c3 
+----+----+----+----+----+----+----+----+----
+  1 |  1 |  2 |  2 |  1 |  2 |  3 |  1 |  2
+(1 row)
+
+\! gpfaultinjector -q -f process_startup_packet -y reset --seg_dbid 2
+-- Case 1.5
+-- query was cancelled when dispatching commands to one gang.
+-- query should be cancelled as expected.
+-- must set log_min_messages to default when using interrupt, there is a bug in fault injection.
+set log_min_messages to default;
+\! gpfaultinjector -q -f after_one_slice_dispatched -y interrupt --seg_dbid 1 
+-- should fail and report error
+select * from dispatch_test_t1, dispatch_test_t2, dispatch_test_t3
+where dispatch_test_t1.c2 = dispatch_test_t2.c2 and dispatch_test_t2.c3 = dispatch_test_t3.c3;
+ERROR:  canceling statement due to user request
+\! gpfaultinjector -q -f after_one_slice_dispatched -y reset --seg_dbid 1
