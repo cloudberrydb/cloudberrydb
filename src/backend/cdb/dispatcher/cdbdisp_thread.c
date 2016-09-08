@@ -767,29 +767,12 @@ static bool
 dispatchCommand(CdbDispatchResult * dispatchResult,
 				const char *query_text, int query_text_len)
 {
-	SegmentDatabaseDescriptor *segdbDesc = dispatchResult->segdbDesc;
 	TimestampTz beforeSend = 0;
 	long secs;
 	int	usecs;
 
 	if (DEBUG1 >= log_min_messages)
 		beforeSend = GetCurrentTimestamp();
-
-	if (PQisBusy(segdbDesc->conn))
-		write_log("Trying to send to busy connection %s: asyncStatus %d",
-				  segdbDesc->whoami,
-				  segdbDesc->conn->asyncStatus);
-
-	if (cdbconn_isBadConnection(segdbDesc))
-	{
-		char *msg = PQerrorMessage(segdbDesc->conn);
-
-		cdbdisp_appendMessage(dispatchResult, LOG,
-							  "Error before transmit from %s: %s",
-							  dispatchResult->segdbDesc->whoami,
-							  msg ? msg : "unknown error");
-		return false;
-	}
 
 	/*
 	 * Submit the command asynchronously.

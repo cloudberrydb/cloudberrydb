@@ -309,16 +309,7 @@ checkDispatchResult(CdbDispatcherState *ds,
 			if (!dispatchResult->stillRunning)
 				continue;
 
-			if (cdbconn_isBadConnection(segdbDesc))
-			{
-				char *msg = PQerrorMessage(segdbDesc->conn);
-				dispatchResult->stillRunning = false;
-				cdbdisp_appendMessageNonThread(dispatchResult, LOG,
-									  "Connection lost during dispatch to %s: %s",
-									  dispatchResult->segdbDesc->whoami, msg ? msg : "unknown error");
-				continue;
-			}
-
+			Assert(!cdbconn_isBadConnection(segdbDesc));
 			/*
 			 * Add socket to fd_set if still connected.
 			 */
@@ -403,28 +394,12 @@ dispatchCommand(CdbDispatchResult * dispatchResult,
 				const char *query_text,
 				int query_text_len)
 {
-	SegmentDatabaseDescriptor *segdbDesc = dispatchResult->segdbDesc;
 	TimestampTz beforeSend = 0;
 	long secs;
 	int	usecs;
 
 	if (DEBUG1 >= log_min_messages)
 		beforeSend = GetCurrentTimestamp();
-
-	if (PQisBusy(segdbDesc->conn))
-		elog(LOG, "Trying to send to busy connection %s: asyncStatus %d",
-				  segdbDesc->whoami,
-				  segdbDesc->conn->asyncStatus);
-
-	if (cdbconn_isBadConnection(segdbDesc))
-	{
-		char *msg = PQerrorMessage(dispatchResult->segdbDesc->conn);
-		dispatchResult->stillRunning = false;
-		ereport(ERROR,
-				(errcode(ERRCODE_GP_INTERCONNECTION_ERROR),
-				 errmsg("Connection lost before dispatch to segment %s: %s",
-						 dispatchResult->segdbDesc->whoami, msg ? msg : "unknown error")));
-	}
 
 	/*
 	 * Submit the command asynchronously.
