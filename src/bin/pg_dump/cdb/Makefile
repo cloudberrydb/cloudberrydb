@@ -28,9 +28,9 @@ DDBOOSTLIB += -lDDBoost
 endif
 
 ifeq ($(enable_netbackup), yes)
-NETBACKUPLIB75 += -L../../../../gpAux/ext/rhel5_x86_64/Netbackup/nbu75/lib -lxbsa64 -lnbclientcST -lnbbasecST -lvxcPBXST
-NETBACKUPLIB71 += -L../../../../gpAux/ext/rhel5_x86_64/Netbackup/nbu71/lib -lxbsa64 -lnbclientcST -lnbbasecST -lvxcPBXST
-GPBSALIB += -L$(top_builddir)/src/bin/pg_dump/cdb -lgpbsa -Wl,-rpath-link,'../../../../gpAux/ext/rhel5_x86_64/Netbackup/nbu75/lib'
+NETBACKUPLIB75 += -L../../../../gpAux/ext/$(BLD_ARCH)/Netbackup/nbu75/lib -lxbsa64 -lnbclientcST -lnbbasecST -lvxcPBXST
+NETBACKUPLIB71 += -L../../../../gpAux/ext/$(BLD_ARCH)/Netbackup/nbu71/lib -lxbsa64 -lnbclientcST -lnbbasecST -lvxcPBXST
+GPBSALIB += -L$(top_builddir)/src/bin/pg_dump/cdb -lgpbsa -Wl,-rpath-link,'../../../../gpAux/ext/$(BLD_ARCH)/Netbackup/nbu75/lib'
 override CFLAGS += -I$(top_builddir)/gpAux/ext/$(BLD_ARCH)/Netbackup/nbu75/include
 endif
 
