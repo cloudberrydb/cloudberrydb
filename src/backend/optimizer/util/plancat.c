@@ -451,12 +451,20 @@ cdb_estimate_rel_size(RelOptInfo   *relOptInfo,
 
 		curpages = relpages;
 	}
+	else if (RelationIsExternal(rel))
+	{
+		/*
+		 * If the relation is an external table use default curpages
+		 */
+		curpages = DEFAULT_EXTERNAL_TABLE_PAGES;
+	}
 	else
 	{
 		/*
-		 * Put default estimates in case no statistics are available. This saves cost of asking QEs
+		 * If GUC gp_enable_relsize_collection is on, get the size of the table to derive curpages
+		 * else use the default value
 		 */
-		curpages = RelationIsExternal(rel) ? DEFAULT_EXTERNAL_TABLE_PAGES : DEFAULT_INTERNAL_TABLE_PAGES;
+		curpages = gp_enable_relsize_collection ? cdbRelMaxSegSize(rel) / BLCKSZ : DEFAULT_INTERNAL_TABLE_PAGES;
 	}
 
 	/* report estimated # pages */

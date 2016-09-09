@@ -302,6 +302,8 @@ extern bool gp_temporary_files_filespace_repair;
 extern bool gp_perfmon_print_packet_info;
 extern bool fts_diskio_check;
 
+extern bool gp_enable_relsize_collection;
+
 /* Debug DTM Action */
 typedef enum
 {
