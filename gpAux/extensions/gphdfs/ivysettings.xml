@@ -1,15 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
 <ivysettings>
-
   <!-- ====================================================================== -->
 
   <settings defaultResolver="default" />
-  
+
   <!-- ====================================================================== -->
 
   <resolvers>
     <url name="shared" m2compatible="true">
-      <ivy      pattern="https://repo.eng.pivotal.io/artifactory/gpdb-ext-release-local/[organization]/[module]/[revision]/ivys/ivy-[revision].xml" />
-      <artifact pattern="https://repo.eng.pivotal.io/artifactory/gpdb-ext-release-local/[organization]/[module]/[revision]/[type]s/[module]-[revision].[ext]" />
+      <ivy      pattern="https://repo.pivotal.io/gpdb-ext-release-local/[organization]/[module]/[revision]/ivys/ivy-[revision].xml" />
+      <artifact pattern="https://repo.pivotal.io/gpdb-ext-release-local/[organization]/[module]/[revision]/[type]s/[module]-[revision].[ext]" />
     </url>
     <filesystem name="local">
       <ivy      pattern="/opt/ivy/modules/[organisation]/[module]/ivy-[revision].xml" />

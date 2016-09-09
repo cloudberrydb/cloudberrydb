@@ -23,6 +23,10 @@
   <property name="build.ivy.lib.dir" value="${build.dir}/lib" />
   <property name="ivy.artifact.retrieve.pattern" value="[artifact]-[revision](-[classifier]).[ext]" />
   <property name="ivy.install.version" value="2.2.0" />
+  <property name="ivyrepo.host" value="dummy_host"/>
+  <property name="ivyrepo.realm" value="dummy_realm"/>
+  <property name="ivyrepo.user" value="dummy_user"/>
+  <property name="ivyrepo.passwd" value="dummy_passwd"/>
   <condition property="ivy.home" value="${env.IVY_HOME}">
     <isset property="env.IVY_HOME" />
   </condition>
@@ -110,7 +114,11 @@
 
   <target name="ivy-retrieve-hadoop" depends="ivy-init"
           description="--> Retrieve Ivy-managed artifacts for the compile configurations">
-    <ivy:settings id="basic.settings" file="ivysettings.xml"/>
+    <ivy:settings id="basic.settings" file="ivysettings.xml">
+      <credentials
+		  host="${ivyrepo.host}" realm="${ivyrepo.realm}"
+		  username="${ivyrepo.user}" passwd="${ivyrepo.passwd}" />
+    </ivy:settings>
 	<ivy:retrieve settingsRef="basic.settings" pattern="${build.ivy.lib.dir}/${ivy.artifact.retrieve.pattern}" sync="true" conf="${gpgnet.configuration}"/>
 	<ivy:cachepath pathid="ivy-classpath" conf="${gpgnet.configuration}"/>
   </target>

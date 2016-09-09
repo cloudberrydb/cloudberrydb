@@ -34,8 +34,8 @@
     </filesystem>
 
     <url name="public">
-      <ivy      pattern="https://repo.eng.pivotal.io/artifactory/gpdb-ext-release-local/[organization]/[module]/[revision]/[type]s/ivy-[revision].xml" />
-      <artifact pattern="https://repo.eng.pivotal.io/artifactory/gpdb-ext-release-local/[organization]/[module]/[revision]/[type]s/[artifact]-[revision].[ext]" />
+      <ivy      pattern="https://repo.pivotal.io/gpdb-ext-release-local/[organization]/[module]/[revision]/[type]s/ivy-[revision].xml" />
+      <artifact pattern="https://repo.pivotal.io/gpdb-ext-release-local/[organization]/[module]/[revision]/[type]s/[artifact]-[revision].[ext]" />
     </url>
 
     <chain name="chain-resolver">
