@@ -2531,6 +2531,7 @@ RelationClearRelation(Relation relation, bool rebuild)
  		Oid			save_relid = RelationGetRelid(relation);
 		bool		keep_tupdesc;
 		bool		keep_rules;
+		bool		keep_pt_info;
 
 		/* Build temporary entry, but don't link it into hashtable */
 		newrel = RelationBuildDesc(save_relid, false);
@@ -2544,6 +2545,8 @@ RelationClearRelation(Relation relation, bool rebuild)
  
 		keep_tupdesc = equalTupleDescs(relation->rd_att, newrel->rd_att, true);
 		keep_rules = equalRuleLocks(relation->rd_rules, newrel->rd_rules);
+		keep_pt_info = (relation->rd_rel->relfilenode ==
+						newrel->rd_rel->relfilenode);
 
 		/*
 		 * Perform swapping of the relcache entry contents.  Within this
@@ -2596,7 +2599,8 @@ RelationClearRelation(Relation relation, bool rebuild)
 		SWAPFIELD(struct PgStat_TableStatus *, pgstat_info);
 
 		/* preserve persistent table information for the relation  */
-		SWAPFIELD(struct RelationNodeInfo, rd_segfile0_relationnodeinfo);
+		if (keep_pt_info)
+			SWAPFIELD(struct RelationNodeInfo, rd_segfile0_relationnodeinfo);
 
 #undef SWAPFIELD
 
