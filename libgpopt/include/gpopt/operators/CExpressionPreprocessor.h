@@ -157,9 +157,18 @@ namespace gpopt
 			static
 			CExpression *PexprInferPredicates(IMemoryPool *pmp, CExpression *pexpr);
 
-			// driver for pruning unused computed columns
+			// entry for pruning unused computed columns
 			static CExpression *
 			PexprPruneUnusedComputedCols
+				(
+				IMemoryPool *pmp,
+				CExpression *pexpr,
+				CColRefSet *pcrsReqd
+				);
+
+			// driver for pruning unused computed columns
+			static CExpression *
+			PexprPruneUnusedComputedColsRecursive
 				(
 				IMemoryPool *pmp,
 				CExpression *pexpr,

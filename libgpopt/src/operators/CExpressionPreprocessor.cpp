@@ -1903,7 +1903,6 @@ CExpressionPreprocessor::PexprInferPredicates
 	return pexprWithPreds;
 }
 
-
 //---------------------------------------------------------------------------
 //	@function:
 //		CExpressionPreprocessor::PexprPruneUnusedComputedCols
@@ -1911,6 +1910,26 @@ CExpressionPreprocessor::PexprInferPredicates
 //	@doc:
 //		 Workhorse for pruning unused computed columns
 //
+//		 The required columns passed by the query is passed to this pre-processing
+//		 stage and the list of columns are copied to a new list. This driver function
+//		 calls the PexprPruneUnusedComputedColsRecursive function with the copied
+//		 required column set. The original required columns set is not modified by
+//		 this preprocessor.
+//
+//		 Extra copy of the required columns set is avoided in each recursive call by
+//		 creating a one-time copy and passing it by reference for all the recursive
+//		 calls.
+//
+//		 The functional behavior of the PruneUnusedComputedCols changed slightly
+//		 because we do not delete the required column set at the end of every
+//		 call but pass it to the next and consecutive recursive calls. However,
+//		 it is safe to add required columns by each operator we traverse, because non
+//		 of the required columns from other child of a tree will appear on the project
+//		 list of the other children.
+//
+//		 Therefore, the added columns to the required columns which is caused by
+//		 the recursive call and passing by reference will not have a bad affect
+//		 on the overall result.
 //---------------------------------------------------------------------------
 CExpression *
 CExpressionPreprocessor::PexprPruneUnusedComputedCols
@@ -1927,6 +1946,31 @@ CExpressionPreprocessor::PexprPruneUnusedComputedCols
 		pexpr->AddRef();
 		return pexpr;
 	}
+	CColRefSet *pcrsReqdNew = GPOS_NEW(pmp) CColRefSet(pmp);
+	pcrsReqdNew->Include(pcrsReqd);
+
+	CExpression *pExprNew = PexprPruneUnusedComputedColsRecursive(pmp,pexpr,pcrsReqdNew);
+	pcrsReqdNew->Release();
+	return pExprNew;
+}
+
+//---------------------------------------------------------------------------
+//	@function:
+//		CExpressionPreprocessor::PexprPruneUnusedComputedColsRecursive
+//
+//	@doc:
+//		 Workhorse for pruning unused computed columns
+//
+//---------------------------------------------------------------------------
+CExpression *
+CExpressionPreprocessor::PexprPruneUnusedComputedColsRecursive
+	(
+	IMemoryPool *pmp,
+	CExpression *pexpr,
+	CColRefSet *pcrsReqd
+	)
+{
+	GPOS_ASSERT(NULL != pexpr);
 
 	COperator *pop = pexpr->Pop();
 
@@ -1937,29 +1981,25 @@ CExpressionPreprocessor::PexprPruneUnusedComputedCols
 		return pexpr;
 	}
 
-	CColRefSet *pcrsReqdNew = GPOS_NEW(pmp) CColRefSet(pmp);
-	pcrsReqdNew->Include(pcrsReqd);
-
 	if (COperator::EopLogicalProject == pop->Eopid() || COperator::EopLogicalGbAgg == pop->Eopid())
 	{
 		CExpression *pexprProjList = (*pexpr)[1];
 		CColRefSet *pcrsDefined = CDrvdPropScalar::Pdpscalar(pexprProjList->PdpDerive())->PcrsDefined();
 		CColRefSet *pcrsSetReturningFunction = CDrvdPropScalar::Pdpscalar(pexprProjList->PdpDerive())->PcrsSetReturningFunction();
 
-		pcrsReqdNew->Include(CLogical::PopConvert(pop)->PcrsLocalUsed());
+		pcrsReqd->Include(CLogical::PopConvert(pop)->PcrsLocalUsed());
 		// columns containing set-returning functions are needed for correct query results
-		pcrsReqdNew->Union(pcrsSetReturningFunction);
+		pcrsReqd->Union(pcrsSetReturningFunction);
 
 		CColRefSet *pcrsUnusedLocal = GPOS_NEW(pmp) CColRefSet(pmp);
 		pcrsUnusedLocal->Include(pcrsDefined);
-		pcrsUnusedLocal->Difference(pcrsReqdNew);
+		pcrsUnusedLocal->Difference(pcrsReqd);
 
 		if (0 < pcrsUnusedLocal->CElements()) // need to prune
 		{
 			// actual construction of new operators without unnecessary project elements
-			CExpression *pexprResult = PexprPruneProjListProjectOrGbAgg(pmp, pexpr, pcrsUnusedLocal, pcrsDefined, pcrsReqdNew);
+			CExpression *pexprResult = PexprPruneProjListProjectOrGbAgg(pmp, pexpr, pcrsUnusedLocal, pcrsDefined, pcrsReqd);
 			pcrsUnusedLocal->Release();
-			pcrsReqdNew->Release();
 			return pexprResult;
 		}
 		pcrsUnusedLocal->Release();
@@ -1972,7 +2012,7 @@ CExpressionPreprocessor::PexprPruneUnusedComputedCols
 		CExpressionHandle exprhdl(pmp);
 		exprhdl.Attach(pexpr);
 		CColRefSet *pcrsLogicalUsed = exprhdl.PcrsUsedColumns(pmp);
-		pcrsReqdNew->Include(pcrsLogicalUsed);
+		pcrsReqd->Include(pcrsLogicalUsed);
 		pcrsLogicalUsed->Release();
 	}
 
@@ -1982,10 +2022,9 @@ CExpressionPreprocessor::PexprPruneUnusedComputedCols
 
 	for (ULONG ul = 0; ul < ulChildren; ul++)
 	{
-		CExpression *pexprChild = PexprPruneUnusedComputedCols(pmp, (*pexpr)[ul], pcrsReqdNew);
+		CExpression *pexprChild = PexprPruneUnusedComputedColsRecursive(pmp, (*pexpr)[ul], pcrsReqd);
 		pdrgpexpr->Append(pexprChild);
 	}
-	pcrsReqdNew->Release();
 
 	pop->AddRef();
 
@@ -2036,7 +2075,7 @@ CExpressionPreprocessor::PexprPruneProjListProjectOrGbAgg
 		// the entire project list needs to be pruned
 		if (COperator::EopLogicalProject == pop->Eopid())
 		{
-			pexprRelationalNew = PexprPruneUnusedComputedCols(pmp, pexprRelational, pcrsReqdNew);
+			pexprRelationalNew = PexprPruneUnusedComputedColsRecursive(pmp, pexprRelational, pcrsReqdNew);
 			pexprResult = pexprRelationalNew;
 		}
 		else
@@ -2063,7 +2102,7 @@ CExpressionPreprocessor::PexprPruneProjListProjectOrGbAgg
 				pcrsLogicalUsed->Release();
 			}
 			pop->AddRef();
-			pexprRelationalNew = PexprPruneUnusedComputedCols(pmp, pexprRelational, pcrsReqdNew);
+			pexprRelationalNew = PexprPruneUnusedComputedColsRecursive(pmp, pexprRelational, pcrsReqdNew);
 			pexprResult = GPOS_NEW(pmp) CExpression(pmp, pop, pexprRelationalNew, pexprProjectListNew);
 		}
 	}
@@ -2089,7 +2128,7 @@ CExpressionPreprocessor::PexprPruneProjListProjectOrGbAgg
 		GPOS_ASSERT(0 < pdrgpexprPrElRemain->UlLength());
 		CExpression *pexprNewProjectList = GPOS_NEW(pmp) CExpression(pmp, GPOS_NEW(pmp) CScalarProjectList(pmp), pdrgpexprPrElRemain);
 		pop->AddRef();
-		pexprRelationalNew = PexprPruneUnusedComputedCols(pmp, pexprRelational, pcrsReqdNew);
+		pexprRelationalNew = PexprPruneUnusedComputedColsRecursive(pmp, pexprRelational, pcrsReqdNew);
 		pexprResult = GPOS_NEW(pmp) CExpression(pmp, pop, pexprRelationalNew, pexprNewProjectList);
 	}
 
