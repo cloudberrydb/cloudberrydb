@@ -19,7 +19,6 @@
 
 os:
   - linux
-  - osx
 
 language: c
 sudo: false
