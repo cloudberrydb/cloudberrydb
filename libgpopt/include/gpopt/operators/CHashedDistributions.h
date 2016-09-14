@@ -37,8 +37,12 @@ namespace gpopt
 					DrgPexpr *pdrgpexpr = GPOS_NEW(pmp) DrgPexpr(pmp);
 					for (ULONG ulCol = 0; ulCol < ulCols; ulCol++)
 					{
-						CExpression *pexpr = CUtils::PexprScalarIdent(pmp, (*pdrgpcr)[ulCol]);
-						pdrgpexpr->Append(pexpr);
+						CColRef *pcr = (*pdrgpcr)[ulCol];
+						if (pcr->Pmdtype()->FHashable())
+						{
+							CExpression *pexpr = CUtils::PexprScalarIdent(pmp, pcr);
+							pdrgpexpr->Append(pexpr);
+						}
 					}
 
 					// create a hashed distribution on input columns of the current child
