@@ -317,12 +317,9 @@ typedef PageHeaderData *PageHeader;
 /*
  * BufferGetPage
  *		Returns the page associated with a buffer.
- *
- * If CDB_MOCKING is used for unit testing, the macro is replaced
- * by a function. This allows the user to mock out the behavior of
- * BufferGetPage
  */
 #define BufferGetPage(buffer) ((Page)BufferGetBlock(buffer))
+
 /*
  * PageGetMaxOffsetNumber
  *		Returns the maximum offset number used by the given page.
