@@ -90,7 +90,6 @@ resources:
 jobs:
 
 - name: compile_gpdb_centos6
-  public: true
   plan:
   - aggregate:
     - get: gpdb_src
@@ -119,7 +118,6 @@ jobs:
 # Stage 2: Packaging
 
 - name: gpdb_rc_packaging_centos
-  public: true
   plan:
   - aggregate:
     - get: gpdb_src
