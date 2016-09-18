@@ -27,6 +27,7 @@
 #include "miscadmin.h"
 #include "utils/gp_atomic.h"
 
+static int getPollTimeout(const struct timeval* startTS);
 static Gang *createGang_async(GangType type, int gang_id, int size, int content);
 
 CreateGangFunc pCreateGangFuncAsync = createGang_async;
@@ -47,7 +48,8 @@ createGang_async(GangType type, int gang_id, int size, int content)
 	int in_recovery_mode_count = 0;
 	int successful_connections = 0;
 	bool retry = false;
-	bool timeout = false;
+	int poll_timeout = 0;
+	struct timeval startTS;
 
 	ELOG_DISPATCHER_DEBUG("createGang type = %d, gang_id = %d, size = %d, content = %d",
 			type, gang_id, size, content);
@@ -123,12 +125,15 @@ create_gang_retry:
 		 * timeout clock (= get the start timestamp), and poll until they're
 		 * all completed or we reach timeout.
 		 */
+		gettimeofday(&startTS, NULL);
 		fds = (struct pollfd *) palloc0(sizeof(struct pollfd) * size);
 
 		for(;;)
 		{
 			int nready;
 			int nfds = 0;
+
+			poll_timeout = getPollTimeout(&startTS);
 
 			for (i = 0; i < size; i++)
 			{
@@ -185,7 +190,7 @@ create_gang_retry:
 						break;
 				}
 
-				if (timeout)
+				if (poll_timeout == 0)
 						ereport(ERROR, (errcode(ERRCODE_GP_INTERCONNECTION_ERROR),
 										errmsg("failed to acquire resources on one or more segments"),
 										errdetail("timeout expired\n (%s)", segdbDesc->whoami)));
@@ -197,8 +202,8 @@ create_gang_retry:
 			CHECK_FOR_INTERRUPTS();
 
 			/* Wait until something happens */
-			nready = poll(fds, nfds, gp_segment_connect_timeout ?
-									gp_segment_connect_timeout : -1);
+			nready = poll(fds, nfds, poll_timeout);
+
 			if (nready < 0)
 			{
 				int	sock_errno = SOCK_ERRNO;
@@ -209,8 +214,6 @@ create_gang_retry:
 								errmsg("failed to acquire resources on one or more segments"),
 								errdetail("poll() failed: errno = %d", sock_errno)));
 			}
-			else if (nready == 0)
-				timeout = true;
 		}
 
 		ELOG_DISPATCHER_DEBUG("createGang: %d processes requested; %d successful connections %d in recovery",
@@ -273,3 +276,26 @@ create_gang_retry:
 	return newGangDefinition;
 }
 
+static int getPollTimeout(const struct timeval* startTS)
+{
+	struct timeval now;
+	int timeout = 0;
+	int64 diff_us;
+
+	gettimeofday(&now, NULL);
+
+	if (gp_segment_connect_timeout > 0)
+	{
+		diff_us = (now.tv_sec - startTS->tv_sec) * 1000000;
+		diff_us += (int) now.tv_usec - (int) startTS->tv_usec;
+		if (diff_us >= (int64) gp_segment_connect_timeout * 1000000)
+			timeout = 0;
+		else
+			timeout = gp_segment_connect_timeout * 1000 - diff_us / 1000;
+	}
+	else
+		/* wait forever */
+		timeout = -1;
+
+	return timeout;
+}
