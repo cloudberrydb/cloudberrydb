@@ -165,7 +165,7 @@ where dispatch_test_t1.c2 = dispatch_test_t2.c2 and dispatch_test_t2.c3 = dispat
 select cleanupAllGangs();
 
 -- segment 0 report an error when get a request 
-\! gpfaultinjector -q -f process_startup_packet -y error --seg_dbid 2
+\! gpfaultinjector -q -f send_qe_details_init_backend -y error --seg_dbid 2
 
 -- expect failure
 select * from dispatch_test_t1, dispatch_test_t2, dispatch_test_t3
@@ -179,9 +179,9 @@ select * from v_hasBackendsOnSegment;
 -- cleanupAllGangs();
 select cleanupAllGangs();
 
-\! gpfaultinjector -q -f process_startup_packet -y reset --seg_dbid 2
+\! gpfaultinjector -q -f send_qe_details_init_backend -y reset --seg_dbid 2
 -- segment 0 report an error when get the second request (reader gang creation request)
-\! gpfaultinjector -q -f process_startup_packet -y error --seg_dbid 2 -o 3
+\! gpfaultinjector -q -f send_qe_details_init_backend -y error --seg_dbid 2 -o 3
 
 -- expect failure
 select * from dispatch_test_t1, dispatch_test_t2, dispatch_test_t3
@@ -192,7 +192,7 @@ select * from hasGangsExist();
 -- expect QEs exist.
 select * from v_hasBackendsOnSegment;
 
-\! gpfaultinjector -q -f process_startup_packet -y reset --seg_dbid 2
+\! gpfaultinjector -q -f send_qe_details_init_backend -y reset --seg_dbid 2
 
 -- Case 1.4
 -- Test createGang timeout.

@@ -121,10 +121,7 @@ s/^LOG.*\"Feature/\"Feature/
 m/^DETAIL:  Internal error: No motion listener port \(seg\d.*:.*\)/
 s/^DETAIL:  Internal error: No motion listener port \(seg\d.*:.*\)//
 
-# Mask out gp_debug_linger HINT message for dispatch
-m/^HINT:  Process \d+ will wait for gp_debug_linger=\d+ seconds before termination\./
-s/^HINT:  Process \d+ will wait for gp_debug_linger=\d+ seconds before termination\.//
-
+# Mask out whoami message for dispatch
 m/^ \(seg\d .*:\d+\)/
 s/^ \(seg\d .*:\d+\)//
 -- end_matchsubs
