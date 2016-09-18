@@ -1620,9 +1620,6 @@ AllocSetRealloc(MemoryContext context, void *pointer, Size size)
 		Size		blksize;
         Size        oldblksize;
 
-		/* isHeader is set to false as we should never require realloc for shared header */
-		AllocFreeInfo(set, chunk, false);
-
 		while (block != NULL)
 		{
 			if (chunk == (AllocChunk) (((char *) block) + ALLOC_BLOCKHDRSZ))
@@ -1638,16 +1635,23 @@ AllocSetRealloc(MemoryContext context, void *pointer, Size size)
 		Assert(block->freeptr == ((char *) block) +
 			   (chunk->size + ALLOC_BLOCKHDRSZ + ALLOC_CHUNKHDRSZ));
 
+		/* isHeader is set to false as we should never require realloc for shared header */
+		AllocFreeInfo(set, chunk, false);
+
 		/* Do the realloc */
         oldblksize = UserPtr_GetUserPtrSize(block);
 		chksize = MAXALIGN(size);
 		blksize = chksize + ALLOC_BLOCKHDRSZ + ALLOC_CHUNKHDRSZ;
 		block = (AllocBlock) gp_realloc(block, blksize);
 		if (block == NULL)
+		{
+			/* we need to set chunk info back*/
+			AllocAllocInfo(set, chunk, false);
             MemoryContextError(ERRCODE_OUT_OF_MEMORY,
                                &set->header, CDB_MCXT_WHERE(&set->header),
                                "Out of memory.  Failed on request of size %lu bytes.",
                                (unsigned long)size);
+		}
 		block->freeptr = UserPtr_GetEndPtr(block);
 
 		/* Update pointers since block has likely been moved */
