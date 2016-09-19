@@ -122,7 +122,7 @@ jobs:
       trigger: true
     - get: centos67-java7-gpdb-dev-image
   - task: compile_gpdb
-    file: gpdb_src/ci/concourse/compile_gpdb_custom_config.yml
+    file: gpdb_src/concourse/compile_gpdb_custom_config.yml
     image: centos67-java7-gpdb-dev-image
 
 # Stage 2: Packaging
