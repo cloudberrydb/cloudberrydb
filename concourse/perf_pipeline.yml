@@ -1,0 +1,19 @@
+resources:
+  - name: gpdb_src
+    type: git
+    source:
+      uri: https://github.com/greenplum-db/gpdb
+      branch: master
+
+jobs:
+  - name: dummy_job
+    plan:
+      - get: gpdb_src
+        params:
+          submodules: none
+        trigger: true
+      - task: dummy_task
+        config:
+          platform: linux
+          run:
+            path: true
