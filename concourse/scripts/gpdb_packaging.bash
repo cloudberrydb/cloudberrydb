@@ -15,7 +15,7 @@ function _main() {
   local installer_bin
   installer_bin=$( echo "$INSTALLER_ZIP" | sed "s/.zip/.bin/" | xargs basename)
 
-  source "${DIR}/../../../getversion"
+  source "${DIR}/../../getversion"
   sed -i \
       -e "s:\(installPath=/usr/local/GP-\).*:\1$GP_VERSION:" \
       -e "s:\(installPath=/usr/local/greenplum-db-\).*:\1$GP_VERSION:" \
