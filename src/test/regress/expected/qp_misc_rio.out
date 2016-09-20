@@ -954,16 +954,6 @@ SELECT func_multiline3_plpythonu();
 (4 rows)
 
 -- ----------------------------------------------------------------------
--- Test: 29
--- ----------------------------------------------------------------------
-SELECT * FROM pg_pltemplate WHERE tmplname LIKE '%pljava%' ORDER BY tmplname;
- tmplname | tmpltrusted | tmpldbacreate |     tmplhandler      | tmplinline | tmplvalidator |  tmpllibrary   | tmplacl 
-----------+-------------+---------------+----------------------+------------+---------------+----------------+---------
- pljava   | t           | t             | pljava_call_handler  |            |               | $libdir/pljava | 
- pljavau  | f           | f             | pljavau_call_handler |            |               | $libdir/pljava | 
-(2 rows)
-
--- ----------------------------------------------------------------------
 -- Test: 30
 -- ----------------------------------------------------------------------
 set search_path to qp_misc_rio;

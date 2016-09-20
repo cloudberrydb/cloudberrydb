@@ -1,4 +1,0 @@
-Starting with 8.2, the server reference counts some TupleDescs, so
-we need to let it know when we are done with it.
-
-Lucas Madar

@@ -1,8 +1,0 @@
-ftp://gborg.postgresql.org/pub/pljava/stable/pljava-public-@PLJAVA_VERSION@-bundle.zip
-
-http://gborg.postgresql.org/project/pljava
-http://gborg.postgresql.org/project/pljava/genpage.php?thhalcv
-
-PL/Java is a server side Java solution for PostgreSQL. The jar supplied
-in this bundle contains the interfaces and classes needed when writing
-new Java functions and triggers for PL/Java.

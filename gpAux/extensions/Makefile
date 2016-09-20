@@ -56,7 +56,7 @@ mks3ext:
 	PATH=$(INSTLOC)/bin:$(PATH) $(MAKE) -B -C gps3ext/bin/gpcheckcloud USE_PGXS=1 install
 
 # Only include include these files when running enterprise build
-ENTERPRISE_TARGETS="mkdbgen mkgphdfs mkorafce mkplr mkpljava"
+ENTERPRISE_TARGETS="mkdbgen mkgphdfs mkorafce mkplr"
 ifneq ($(findstring $(MAKECMDGOALS), $(ENTERPRISE_TARGETS)),)
 include $(BLD_TOP)/Makefile.global
 include $(BLD_TOP)/Makefile.thirdparty
@@ -88,11 +88,6 @@ JAVADOC=${JAVA_HOME}/bin/javadoc
 .PHONY:
 mkdbgen:
 	$(MAKE) -f Makefile.tpch INSTLOC=$(INSTLOC)
-
-.PHONY:
-mkpljava:
-	PATH=$(INSTLOC)/bin:$(PATH) $(MAKE) -C pljava \
-		JAVA_HOME=${JAVA_HOME} JAVA=${JAVA} JAVAC=${JAVAC} JAVAH=${JAVAH} JAR=${JAR} JAVADOC=${JAVADOC}  install
 
 .PHONY:
 mkplr:

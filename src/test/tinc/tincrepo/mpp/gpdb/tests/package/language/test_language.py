@@ -61,14 +61,12 @@ class languageTestCase(MPPTestCase):
     def setUpClass(self):
         gppkg = Gppkg()
         gppkg.gppkg_install(product_version, 'plr')
-        gppkg.gppkg_install(product_version, 'pljava')
         gppkg.gppkg_install(product_version, 'plperl')
 
 
     def setUp(self):
         global HAS_RUN_SETUP
         if not HAS_RUN_SETUP:
-            self.do_PLJAVA_setup()
             self.do_PLPERL_initialize()
             self.restartGPDB()
             HAS_RUN_SETUP = True
@@ -100,50 +98,6 @@ class languageTestCase(MPPTestCase):
            """ check application home and library """
            return os.environ.get(apphome) and os.path.isfile("%s/%s.so" % (LIBDIR, libso))
 
-    def setGPJAVACLASSPATH(self, classpath):
-        """ set pljava_classpath in gpdb for pljava and pljavau """
-        cmd = "gpconfig -c pljava_classpath -v '%s'" % (classpath)
-        res = {'rc': 0, 'stdout' : '', 'stderr': ''}
-        run_shell_command(cmd, 'set pljava_classpath', res)
-        if res['rc']:
-            raise Exception("Can not set pljava_classpath as %s" % (classpath))
-        ok = self.gpstop.run_gpstop_cmd(reload = True)
-        if not ok:
-            raise Exception("Can not reload GPDB configuration after setting pljava_classpath as %s" % (classpath))
-
-
-    def copyJARFILE(self, srcjarfile):
-        """ copy jar file to $GPHOME/lib/postgresql/java on master and all segments """
- 
-        if not os.path.isfile(srcjarfile):
-            raise Exception("Can not find jar file %s" % (srcjarfile))
-
-        hosts = config.get_hosts()
-        hoststr = ""
-        for host in hosts:
-            hoststr += " -h %s" % (host)
-
-        # set acccess permissions to existing jar file so that gpscp can overwrite it with current one
-        jarfilename = os.path.basename(srcjarfile)
-        cmd = "gpssh%s -e 'chmod -Rf 755 %s/java/%s'" % (hoststr, LIBDIR, jarfilename)
-        Command(name = 'set acccess permissions to existing jar', cmdStr = cmd).run(validateAfter=True)
-
-        # copy current jar file to all hosts using gpscp
-        cmd = "gpscp%s %s =:%s/java" % (hoststr, srcjarfile, LIBDIR)
-        res = {'rc': 0, 'stdout' : '', 'stderr': ''}
-        run_shell_command(cmd, 'copy current jar file to all hosts', res)
-
-        if res['rc']:
-            raise Exception("Can not copy jar file %s to hosts" % (srcjarfile))
-
-        # set access permissions to current jar file so that it can be accessed by applications
-        cmd = "gpssh%s -e 'chmod -Rf 755 %s/java/%s'" % (hoststr, LIBDIR, jarfilename)
-        res = {'rc': 0, 'stdout' : '', 'stderr': ''}
-        run_shell_command(cmd, 'set access permissions to current jar file', res)
-
-        if res['rc']:
-            raise Exception("Can not set access permissions of jar file %s to 755" % (jarfilename))
-
     def runCmd(self, command):
         '''
         run shell command, redirecting standard error message to standard output
@@ -163,49 +117,6 @@ class languageTestCase(MPPTestCase):
             self.doTest(num, filename, default=default)
         else:
             self.skipTest('skipping test: not plr.so found in $GPHOME/lib/postgresql')
-
-    def doPLJAVA(self, num, filename, default="-a"):
-        """ run PL/JAVA test case """
-        # If JAVA_HOME is set, then run PL/Java
-        # Also check whether pljava.so is install in $GPHOME/lib/postgresql
-        init_file_list = []
-        init_file = local_path('pljava/init_file')
-        init_file_list.append(init_file)
-        if self.checkAPPHOMEandLIB("pljava","JAVA_HOME"):
-            # If JDK is not 1.6 and up, then raise error
-            res = {'rc': 0, 'stdout' : '', 'stderr': ''}
-            run_shell_command("java -version 2>&1", 'check java version', res)
-            out = res['stdout'].split('\n')
-            if out[0].find("1.6.")>0:
-                gp_procedural_languages().installPL('pljava')
-                self.doTest(num, filename, default=default, match_sub=init_file_list)
-            else:
-                raise Exception("Requires JDK 1.6 and up, your current version is :%s" % (out[0]))
-        else:
-            # If JAVA_HOME is not set, then raise error
-            if not os.environ.get("JAVA_HOME"):
-                raise Exception("JAVA_HOME is not set")
-
-
-    def doPLJAVAU(self, num, filename, default="-a"):
-        """ run PL/JAVAU test case """
-        # If JAVA_HOME is set, then run PL/Java
-        # Also check whether pljava.so is install in $GPHOME/lib/postgresql
-
-        if self.checkAPPHOMEandLIB("pljava", "JAVA_HOME"):
-            # If JDK is not 1.6 and up, then raise error
-            res = {'rc': 0, 'stdout' : '', 'stderr': ''}
-            run_shell_command("java -version 2>&1", 'check java version', res)
-            if res['stdout'][0].find("1.6.")>0:
-                gp_procedural_languages().installPL('pljavau')
-                self.doTest(num, filename, default=default)
-            else:
-                raise Exception("Requires JDK 1.6 and up, your current version is :%s" % (out[0]))
-        else:
-            # If JAVA_HOME is not set, then raise error
-            if not os.environ.get("JAVA_HOME"):
-                raise Exception("JAVA_HOME is not set")
-
 
     def doSQL(self, num, filename, default='-a'):
         """ run SQL test case """
@@ -357,53 +268,6 @@ class languageTestCase(MPPTestCase):
     def test_PLR0012_mpp16512(self):
         """ mpp16512 - regression for pl/R: R interpreter expression evaluation error OR connection to the server lost"""
         self.doPLR(None, "plr/mpp16512", default='-e')
-
-    def do_PLJAVA_setup(self):
-        """Language: PL/Java Setup"""
-        if self.checkAPPHOMEandLIB("pljava","JAVA_HOME"):
-            sql_file = local_path("pljava/setup.sql")
-            PSQL.run_sql_file(sql_file = sql_file)
-            javahome = os.environ.get("JAVA_HOME")
-            ldpath = "LD_LIBRARY_PATH=%s/jre/lib/amd64/server:$LD_LIBRARY_PATH\nexport LD_LIBRARY_PATH" % javahome
-            if platform.machine()=="i686" or platform.machine()=="i386":
-                ldpath = "LD_LIBRARY_PATH=%s/i386/server/libjvm.so:$LD_LIBRARY_PATH\nexport LD_LIBRARY_PATH" % javahome
-            Command(name='add ldpath into greenplum_path.sh', cmdStr="echo '%s' >> $GPHOME/greenplum_path.sh"%ldpath).run()
-            self.gpstop.run_gpstop_cmd(restart=True)
-            pljava_install = os.path.join(GPHOME, "share/postgresql/pljava/install.sql") 
-            PSQL.run_sql_file(sql_file=pljava_install, dbname='gptest')
-        else:
-            self.skipTest('skipped')
-
-    @unittest.skipIf(config.is_multinode(), 'Skipping this test on multinode')
-    def test_PLJAVA002(self):
-        """Language: PL/Java Examples"""
-        # Disable this test for OSX
-        if os.path.exists("/etc/redhat-release"):
-            generateFileFromEachTemplate(local_path("pljava"), ["examples.ans.t"], [("@user@", USER)])
-            self.doPLJAVA(None, "pljava/examples", default='')
-        else:
-            self.skipTest("Not supported on this platform")
-
-
-    def test_PLJAVA003(self):
-        """Language: PL/Java Examples"""
-        self.doPLJAVA(None, "pljava/javaguc", default='')
-
-    def test_PLJAVA004_function_call_modes(self):
-        "" "Language PL/JAVA: function call modes """
-        self.skipTest('skipped')
-        self.copyJARFILE(local_path("pljava/pljavatest.jar"))
-        self.setGPJAVACLASSPATH("pljavatest.jar")
-        self.doPLJAVA(None, "pljava/test001_function_call_modes", default='-e')
-        self.setGPJAVACLASSPATH("examples.jar")
-
-    def test_PLJAVAU001_function_call_modes(self):
-        """ Language PL/JAVAU: function call modes """
-        self.skipTest('skipped')        
-        self.copyJARFILE(local_path("pljavau/pljavatest.jar"))
-        self.setGPJAVACLASSPATH("pljavatest.jar")
-        self.doPLJAVAU(None, "pljavau/test001_function_call_modes", default='-e')
-        self.setGPJAVACLASSPATH("examples.jar")
 
     def test_SQL001_function_call_modes(self):
         """ Language SQL: function call modes """

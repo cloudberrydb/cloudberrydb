@@ -47,7 +47,7 @@ class PlrMPPTestCase(MPPTestCase):
         
         """
         if self.pl.gppkg_os.find('rhel') < 0 and self.pl.gppkg_os.find('suse') < 0:
-            self.skipTest('TEST SKIPPED: pljava is only supported on RHEL and SuSE. Skipping test.')
+            self.skipTest('TEST SKIPPED: plr is only supported on RHEL and SuSE. Skipping test.')
 
     def tearDown(self):
         pass

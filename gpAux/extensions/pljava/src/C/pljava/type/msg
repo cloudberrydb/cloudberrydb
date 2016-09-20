@@ -1,6 +1,0 @@
-For a server built with integer datetimes, conversion from SQL to
-Java timestamps produced bogus results as the result of overflow.
-Prior to conversion to milliseconds, cast the difference in PG and
-Unix epochs to a 64 bit type.
-
-Lucas Madar
