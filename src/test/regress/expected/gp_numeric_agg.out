@@ -66,3 +66,7 @@ group by 1;
  05-01-2009 | 1.5000000000000000 | 1.00000000000000000000
 (2 rows)
 
+-- start_ignore
+drop view uview;
+drop table utable;
+-- end_ignore

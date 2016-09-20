@@ -1985,59 +1985,6 @@ select pg_get_partition_def('qp_misc_jiras.tbl8258'::regclass, true);
 
 drop table qp_misc_jiras.tbl8258;
 
-
--- start_ignore
-DROP FUNCTION qp_misc_jiras.tbl5032_func();
--- end_ignore
-
-
-CREATE OR REPLACE FUNCTION qp_misc_jiras.tbl5032_func() RETURNS VOID AS
-$$
-    BEGIN
-	CREATE TEMP TABLE tbl5032_tt AS SELECT 'hello world!'::text;
-	PERFORM * FROM tbl5032_tt;
-	DROP TABLE tbl5032_tt;
-    END;
-$$ LANGUAGE plpgsql;
-
-SELECT qp_misc_jiras.tbl5032_func();
-SELECT qp_misc_jiras.tbl5032_func();
-
-
--- start_ignore
-DROP FUNCTION qp_misc_jiras.tbl5032_func();
--- end_ignore
-
-
-
--- start_ignore
-DROP FUNCTION qp_misc_jiras.tbl5032_func();
--- end_ignore
-
-
-CREATE FUNCTION qp_misc_jiras.tbl5032_func() RETURNS VOID AS
-$$
-    BEGIN
-	CREATE TEMP TABLE tbl5032_tt AS SELECT 'hello world!'::text;
-	execute 'SELECT COUNT(*) FROM tbl5032_tt';
-	DROP TABLE tbl5032_tt;
-    END;
-$$ LANGUAGE plpgsql;
-
-SELECT qp_misc_jiras.tbl5032_func();
-SELECT qp_misc_jiras.tbl5032_func();
-
-
--- start_ignore
-DROP FUNCTION qp_misc_jiras.tbl5032_func();
--- end_ignore
-
-
-
--- start_ignore
-drop table utable cascade;
--- end_ignore
-
 reset statement_timeout;
 set statement_mem = '512MB';
 
@@ -2049,7 +1996,7 @@ create table qp_misc_jiras.utable (
     )
     distributed by (tstart);
 
-create view uview(period, ctxt, wsum) as
+create view qp_misc_jiras.uview(period, ctxt, wsum) as
 select
     period, 
     utxt,
@@ -2094,7 +2041,7 @@ select
 --    avg( case ctxt when 'a' then wsum end) as "a"
     avg( case ctxt when 'b' then wsum end) as "b"
 from
-    uview 
+    qp_misc_jiras.uview 
 group by 1;
 
 
@@ -2105,12 +2052,13 @@ select
     avg( case ctxt when 'a' then wsum end) as "a", 
     avg( case ctxt when 'b' then wsum end) as "b"
 from
-    uview 
+    qp_misc_jiras.uview 
 group by 1;
 
 
 -- start_ignore
-drop table qp_misc_jiras.utable cascade;
+drop view qp_misc_jiras.uview;
+drop table qp_misc_jiras.utable;
 -- end_ignore
 
 

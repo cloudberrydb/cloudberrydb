@@ -62,3 +62,8 @@ select
 from
     uview 
 group by 1;
+
+-- start_ignore
+drop view uview;
+drop table utable;
+-- end_ignore

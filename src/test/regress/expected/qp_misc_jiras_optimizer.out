@@ -3365,76 +3365,6 @@ select pg_get_partition_def('qp_misc_jiras.tbl8258'::regclass, true);
 (1 row)
 
 drop table qp_misc_jiras.tbl8258;
--- start_ignore
-DROP FUNCTION qp_misc_jiras.tbl5032_func();
-ERROR:  function qp_misc_jiras.tbl5032_func() does not exist
--- end_ignore
-CREATE OR REPLACE FUNCTION qp_misc_jiras.tbl5032_func() RETURNS VOID AS
-$$
-    BEGIN
-	CREATE TEMP TABLE tbl5032_tt AS SELECT 'hello world!'::text;
-	PERFORM * FROM tbl5032_tt;
-	DROP TABLE tbl5032_tt;
-    END;
-$$ LANGUAGE plpgsql;
-SELECT qp_misc_jiras.tbl5032_func();
-NOTICE:  Table doesn't have 'distributed by' clause. Creating a NULL policy entry.
-CONTEXT:  SQL statement "CREATE TEMP TABLE tbl5032_tt AS SELECT 'hello world!'::text"
-PL/pgSQL function "tbl5032_func" line 2 at SQL statement
- tbl5032_func 
---------------
- 
-(1 row)
-
-SELECT qp_misc_jiras.tbl5032_func();
-NOTICE:  Table doesn't have 'distributed by' clause. Creating a NULL policy entry.
-CONTEXT:  SQL statement "CREATE TEMP TABLE tbl5032_tt AS SELECT 'hello world!'::text"
-PL/pgSQL function "tbl5032_func" line 2 at SQL statement
- tbl5032_func 
---------------
- 
-(1 row)
-
--- start_ignore
-DROP FUNCTION qp_misc_jiras.tbl5032_func();
--- end_ignore
--- start_ignore
-DROP FUNCTION qp_misc_jiras.tbl5032_func();
-ERROR:  function qp_misc_jiras.tbl5032_func() does not exist
--- end_ignore
-CREATE FUNCTION qp_misc_jiras.tbl5032_func() RETURNS VOID AS
-$$
-    BEGIN
-	CREATE TEMP TABLE tbl5032_tt AS SELECT 'hello world!'::text;
-	execute 'SELECT COUNT(*) FROM tbl5032_tt';
-	DROP TABLE tbl5032_tt;
-    END;
-$$ LANGUAGE plpgsql;
-SELECT qp_misc_jiras.tbl5032_func();
-NOTICE:  Table doesn't have 'distributed by' clause. Creating a NULL policy entry.
-CONTEXT:  SQL statement "CREATE TEMP TABLE tbl5032_tt AS SELECT 'hello world!'::text"
-PL/pgSQL function "tbl5032_func" line 2 at SQL statement
- tbl5032_func 
---------------
- 
-(1 row)
-
-SELECT qp_misc_jiras.tbl5032_func();
-NOTICE:  Table doesn't have 'distributed by' clause. Creating a NULL policy entry.
-CONTEXT:  SQL statement "CREATE TEMP TABLE tbl5032_tt AS SELECT 'hello world!'::text"
-PL/pgSQL function "tbl5032_func" line 2 at SQL statement
- tbl5032_func 
---------------
- 
-(1 row)
-
--- start_ignore
-DROP FUNCTION qp_misc_jiras.tbl5032_func();
--- end_ignore
--- start_ignore
-drop table utable cascade;
-ERROR:  table "utable" does not exist
--- end_ignore
 reset statement_timeout;
 set statement_mem = '512MB';
 create table qp_misc_jiras.utable (
@@ -3444,7 +3374,7 @@ create table qp_misc_jiras.utable (
     unum numeric
     )
     distributed by (tstart);
-create view uview(period, ctxt, wsum) as
+create view qp_misc_jiras.uview(period, ctxt, wsum) as
 select
     period, 
     utxt,
@@ -3483,7 +3413,7 @@ select
 --    avg( case ctxt when 'a' then wsum end) as "a"
     avg( case ctxt when 'b' then wsum end) as "b"
 from
-    uview 
+    qp_misc_jiras.uview 
 group by 1;
    period   |           b            
 ------------+------------------------
@@ -3497,7 +3427,7 @@ select
     avg( case ctxt when 'a' then wsum end) as "a", 
     avg( case ctxt when 'b' then wsum end) as "b"
 from
-    uview 
+    qp_misc_jiras.uview 
 group by 1;
    period   |         a          |           b            
 ------------+--------------------+------------------------
@@ -3506,9 +3436,8 @@ group by 1;
 (2 rows)
 
 -- start_ignore
-drop table qp_misc_jiras.utable cascade;
-NOTICE:  drop cascades to rule _RETURN on view uview
-NOTICE:  drop cascades to view uview
+drop view qp_misc_jiras.uview;
+drop table qp_misc_jiras.utable;
 -- end_ignore
 -- start_ignore
 drop table qp_misc_jiras.foo_6325;

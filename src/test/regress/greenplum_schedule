@@ -23,7 +23,8 @@ test: zlib
 
 ignore: leastsquares
 test: opr_sanity_gp decode_expr bitmapscan bitmapscan_ao case_gp limit_gp notin percentile naivebayes join_gp union_gp gpcopy gp_create_table
-test: filter gpctas gpdist matrix toast sublink table_functions olap_setup complex opclass_ddl bitmap_index information_schema
+test: filter gpctas gpdist matrix toast sublink table_functions olap_setup complex opclass_ddl information_schema
+test: bitmap_index 
 test: indexjoin as_alias regex_gp gpparams with_clause transient_types gang_mgmt
 # dispatch should always run seperately from other cases.
 test: dispatch
@@ -65,7 +66,9 @@ test: vacuum_gp
 # ERROR:  parameter "gp_interconnect_type" cannot be set after connection start
 
 ignore: gp_portal_error
-test: external_table partition_indexing column_compression eagerfree mapred gpdtm_plpgsql alter_table_aocs alter_table_ao alter_distribution_policy ic aoco_privileges
+test: external_table column_compression eagerfree mapred gpdtm_plpgsql alter_table_aocs alter_distribution_policy ic aoco_privileges
+test: partition_indexing 
+test: alter_table_ao
 ignore: icudp_full
 test: aocs
 
