@@ -25,6 +25,7 @@ namespace gpdxl
 	enum Edxldts
 	{
 		EdxldtsIndexProjList = 0,
+		EdxldtsIndexFilter,
 		EdxldtsSentinel
 	};
 	

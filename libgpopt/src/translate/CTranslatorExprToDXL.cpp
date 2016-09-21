@@ -3424,6 +3424,30 @@ CTranslatorExprToDXL::PdxlnTblScanFromNLJoinOuter
 	return pdxlnTblScan;
 }
 
+static ULONG
+UlIndexFilter(Edxlopid edxlopid)
+{
+	switch (edxlopid)
+	{
+		case EdxlopPhysicalTableScan:
+		case EdxlopPhysicalExternalScan:
+			return EdxltsIndexFilter;
+		case EdxlopPhysicalBitmapTableScan:
+		case EdxlopPhysicalDynamicBitmapTableScan:
+			return EdxlbsIndexFilter;
+		case EdxlopPhysicalDynamicTableScan:
+			return EdxldtsIndexFilter;
+		case EdxlopPhysicalIndexScan:
+		case EdxlopPhysicalDynamicIndexScan:
+			return EdxlisIndexFilter;
+		case EdxlopPhysicalResult:
+			return EdxlresultIndexFilter;
+		default:
+			GPOS_RTL_ASSERT("Unexpected operator. Expected operators that contain a filter child");
+			return ULONG_MAX;
+	}
+}
+
 //---------------------------------------------------------------------------
 //	@function:
 //		CTranslatorExprToDXL::PdxlnResultFromNLJoinOuter
@@ -3451,16 +3475,32 @@ CTranslatorExprToDXL::PdxlnResultFromNLJoinOuter
 
 	// In case the OuterChild is a physical sequence, it will already have the filter in the partition selector and
 	// dynamic scan, thus we should not replace the filter.
-	if(EdxlopPhysicalSequence != pdxlnResult->Pdxlop()->Edxlop())
+	Edxlopid edxlopid = pdxlnResult->Pdxlop()->Edxlop();
+	switch (edxlopid)
 	{
-		// add the new filter to the result replacing its original
-		// empty filter
-		CDXLNode *pdxlnFilter = PdxlnFilter(pdxlnCond);
-		pdxlnResult->ReplaceChild(EdxltsIndexFilter /*ulPos*/, pdxlnFilter);
-	}
-	else
-	{
-		pdxlnCond->Release();
+		case EdxlopPhysicalTableScan:
+		case EdxlopPhysicalExternalScan:
+		case EdxlopPhysicalBitmapTableScan:
+		case EdxlopPhysicalDynamicTableScan:
+		case EdxlopPhysicalIndexScan:
+		case EdxlopPhysicalDynamicIndexScan:
+		case EdxlopPhysicalDynamicBitmapTableScan:
+		case EdxlopPhysicalResult:
+		{
+			ULONG ulIndexFilter = UlIndexFilter(edxlopid);
+			GPOS_ASSERT(ulIndexFilter != ULONG_MAX);
+			// add the new filter to the result replacing its original
+			// empty filter
+			CDXLNode *pdxlnFilter = PdxlnFilter(pdxlnCond);
+			pdxlnResult->ReplaceChild(ulIndexFilter /*ulPos*/, pdxlnFilter);
+		}
+			break;
+		case EdxlopPhysicalSequence:
+			pdxlnCond->Release();
+			break;
+		default:
+			pdxlnCond->Release();
+			GPOS_RTL_ASSERT(false && "Unexpected node here");
 	}
 
 	return pdxlnResult;

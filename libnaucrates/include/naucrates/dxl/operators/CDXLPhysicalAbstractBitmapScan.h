@@ -21,6 +21,15 @@ namespace gpdxl
 {
 	using namespace gpos;
 
+	enum Edxlbs
+	{
+		EdxlbsIndexProjList = 0,
+		EdxlbsIndexFilter,
+		EdxlbsIndexRecheckCond,
+		EdxlbsIndexBitmap,
+		EdxlbsSentinel
+	};
+
 	// fwd declarations
 	class CDXLTableDescr;
 	class CXMLSerializer;
