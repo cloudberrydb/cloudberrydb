@@ -2,13 +2,18 @@
 //	Copyright (C) 2016 Pivotal Software, Inc.
 
 #include "gpopt/operators/CStrictHashedDistributions.h"
+#include "gpopt/base/CDistributionSpecRandom.h"
 
 using namespace gpopt;
 
-CStrictHashedDistributions::CStrictHashedDistributions(IMemoryPool *pmp, DrgPcr *pdrgpcrOutput,
-													   DrgDrgPcr *pdrgpdrgpcrInput)
-		:
-		DrgPds(pmp)
+CStrictHashedDistributions::CStrictHashedDistributions
+(
+IMemoryPool *pmp,
+DrgPcr *pdrgpcrOutput,
+DrgDrgPcr *pdrgpdrgpcrInput
+)
+:
+DrgPds(pmp)
 {
 	const ULONG ulCols = pdrgpcrOutput->UlLength();
 	const ULONG ulArity = pdrgpdrgpcrInput->UlLength();
@@ -19,16 +24,33 @@ CStrictHashedDistributions::CStrictHashedDistributions(IMemoryPool *pmp, DrgPcr 
 		for (ULONG ulCol = 0; ulCol < ulCols; ulCol++)
 		{
 			CColRef *pcr = (*pdrgpcr)[ulCol];
-			if (pcr->Pmdtype()->FHashable())
+			if (pcr->Pmdtype()->FRedistributable())
 			{
 				CExpression *pexpr = CUtils::PexprScalarIdent(pmp, pcr);
 				pdrgpexpr->Append(pexpr);
 			}
 		}
 
-		// create a hashed distribution on input columns of the current child
-		BOOL fNullsColocated = true;
-		CDistributionSpec *pdshashed = GPOS_NEW(pmp) CDistributionSpecStrictHashed(pdrgpexpr, fNullsColocated);
+		CDistributionSpec *pdshashed;
+		ULONG ulColumnsToRedistribute = pdrgpexpr->UlLength();
+		if (0 < ulColumnsToRedistribute)
+		{
+			// create a hashed distribution on input columns of the current child
+			BOOL fNullsColocated = true;
+			pdshashed = GPOS_NEW(pmp) CDistributionSpecStrictHashed(pdrgpexpr, fNullsColocated);
+		}
+		else
+		{
+			// None of the input columns are redistributable, but we want to
+			// parallelize the relations we are concatenating, so we generate
+			// a random redistribution.
+			// When given a plan containing a "hash" redistribution on _no_ columns,
+			// Some databases actually execute it as if it's a random redistribution.
+			// We should not generate such a plan, for clarity and our own sanity
+
+			pdshashed = GPOS_NEW(pmp) CDistributionSpecRandom();
+			pdrgpexpr->Release();
+		}
 		Append(pdshashed);
 	}
 }
