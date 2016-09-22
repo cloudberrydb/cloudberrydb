@@ -592,6 +592,7 @@ SELECT user_relns() AS user_relns
  gp_stats_missing
  gp_table_indexes
  gp_workfile_entries
+ gp_workfile_mgr_used_diskspace
  gp_workfile_usage_per_query
  gp_workfile_usage_per_segment
  hash_f8_heap
@@ -655,7 +656,7 @@ SELECT user_relns() AS user_relns
  toyemp
  usr_define_type
  varchar_tbl
-(151 rows)
+(152 rows)
 
 SELECT name(equipment(hobby_construct(text 'skywalking', text 'mer')));
  name 
