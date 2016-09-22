@@ -411,7 +411,6 @@ jobs:
       passed:
       - xerces_centos5
     - get: gpdb_src
-      trigger: true
       params:
         submodules: none
   - task: build_with_orca
