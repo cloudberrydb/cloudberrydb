@@ -5,7 +5,7 @@
 #define GPOPT_CHashedDistributions_H
 
 #include "gpopt/base/CDistributionSpec.h"
-#include "gpopt/base/CDistributionSpecHashed.h"
+#include "gpopt/base/CDistributionSpecStrictHashed.h"
 #include "gpos/memory/IMemoryPool.h"
 #include "gpopt/base/CColRef.h"
 #include "gpopt/base/CUtils.h"
@@ -17,10 +17,10 @@ namespace gpopt
 	// distribution on input column of each child, and an output hashed
 	// distribution on UnionAll output columns
 
-	class CHashedDistributions : public DrgPds
+	class CStrictHashedDistributions : public DrgPds
 	{
 		public:
-			CHashedDistributions
+			CStrictHashedDistributions
 			(
 			IMemoryPool *pmp,
 			DrgPcr *pdrgpcrOutput,

@@ -5,7 +5,7 @@
 #include "gpopt/base/CDistributionSpecStrictHashed.h"
 #include "gpopt/base/CUtils.h"
 #include "gpopt/operators/CExpressionHandle.h"
-#include "gpopt/operators/CHashedDistributions.h"
+#include "gpopt/operators/CStrictHashedDistributions.h"
 
 namespace gpopt
 {
@@ -22,7 +22,7 @@ namespace gpopt
 			pdrgpdrgpcrInput,
 			ulScanIdPartialIndex
 		),
-			m_pdrgpds(GPOS_NEW(pmp) CHashedDistributions<CDistributionSpecStrictHashed>(pmp, pdrgpcrOutput, pdrgpdrgpcrInput))
+			m_pdrgpds(GPOS_NEW(pmp) CStrictHashedDistributions(pmp, pdrgpcrOutput, pdrgpdrgpcrInput))
 	{
 	}
 

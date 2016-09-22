@@ -884,6 +884,9 @@ add_library(gpopt
             include/gpopt/operators/CPhysicalUnionAllFactory.h
             src/operators/CPhysicalUnionAllFactory.cpp
             include/gpopt/operators/CHashedDistributions.h
+            src/operators/CHashedDistributions.cpp
+            include/gpopt/operators/CStrictHashedDistributions.h
+            src/operators/CStrictHashedDistributions.cpp
             include/gpopt/operators/CPhysicalParallelUnionAll.h
             src/operators/CPhysicalParallelUnionAll.cpp
             include/gpopt/base/CDistributionSpecStrictHashed.h
