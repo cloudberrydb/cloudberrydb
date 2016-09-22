@@ -2032,6 +2032,7 @@ LANGUAGE C IMMUTABLE;
 
 GRANT EXECUTE ON FUNCTION gp_toolkit.__gp_workfile_entries_f() TO public;
 
+
 --------------------------------------------------------------------------------
 -- @view:
 --        gp_toolkit.gp_workfile_entries
@@ -2132,6 +2133,55 @@ FROM gp_toolkit.gp_workfile_entries
 GROUP BY (datname, procpid, sess_id, command_cnt, usename, current_query, segid, state);
 
 GRANT SELECT ON gp_toolkit.gp_workfile_usage_per_query TO public;
+
+--------------------------------------------------------------------------------
+-- @function:
+--        gp_toolkit.__gp_workfile_mgr_used_diskspace_f
+--
+-- @in:
+--
+-- @out:
+--        int - segment id
+--        bigint - size in bytes,
+--
+-- @doc:
+--        UDF to retrieve workfile used diskspace counter in bytes per segment
+--
+--------------------------------------------------------------------------------
+
+CREATE FUNCTION gp_toolkit.__gp_workfile_mgr_used_diskspace_f()
+RETURNS SETOF record
+AS '$libdir/gp_workfile_mgr', 'gp_workfile_mgr_used_diskspace'
+LANGUAGE C IMMUTABLE;
+
+GRANT EXECUTE ON FUNCTION gp_toolkit.__gp_workfile_mgr_used_diskspace_f() TO public;
+
+--------------------------------------------------------------------------------
+-- @view:
+--        gp_toolkit.gp_workfile_mgr_used_diskspace
+--
+-- @doc:
+--        Workfile used diskspace counter in bytes per segment
+--
+--------------------------------------------------------------------------------
+CREATE VIEW gp_toolkit.gp_workfile_mgr_used_diskspace AS
+WITH all_entries AS (
+  SELECT C.*
+	FROM gp_toolkit.__gp_localid, gp_toolkit.__gp_workfile_mgr_used_diskspace_f() as C (
+	  segid int,
+	  bytes bigint
+	)
+  UNION ALL
+  SELECT C.*
+	FROM gp_toolkit.__gp_masterid, gp_toolkit.__gp_workfile_mgr_used_diskspace_f() as C (
+	  segid int,
+	  bytes bigint
+	))
+SELECT segid, bytes
+FROM all_entries
+ORDER BY segid;
+
+GRANT SELECT ON gp_toolkit.gp_workfile_mgr_used_diskspace TO public;
 
 --------------------------------------------------------------------------------
 -- @function:
