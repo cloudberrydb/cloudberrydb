@@ -15,7 +15,7 @@ namespace gpopt
 	{
 		private:
 			// array of child hashed distributions -- used locally for distribution derivation
-			DrgPds *m_pdrgpds;
+			DrgPds *const m_pdrgpds;
 
 		public:
 			CPhysicalParallelUnionAll(IMemoryPool *pmp, DrgPcr *pdrgpcrOutput, DrgDrgPcr *pdrgpdrgpcrInput,
