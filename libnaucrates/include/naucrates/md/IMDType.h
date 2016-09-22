@@ -109,7 +109,11 @@ namespace gpmd
 			// id of hash operator for type
 			virtual 
 			BOOL FHashable() const = 0;
-			
+
+			// is type redistributable
+			virtual
+			BOOL FRedistributable() const = 0;
+
 			// id of the array type for the type
 			virtual 
 			IMDId *PmdidTypeArray() const = 0;
