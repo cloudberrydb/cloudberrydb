@@ -1566,7 +1566,7 @@ setNewRelfilenodeToOid(Relation relation, TransactionId freezeXid, Oid newrelfil
 	 * updating itself is bogus; if gp_relation_node has old indexlist,
 	 * CatalogUpdateIndexes updates old index file, and is crash-unsafe.
 	 * Hence, here we skip it and count on later index_build.
-	 * (Or should we add index_build() call after CCI beflow in this case?)
+	 * (Or should we add index_build() call after CCI below in this case?)
 	 */
 	is_gp_relation_node_index = relation->rd_index &&
 								relation->rd_index->indrelid == GpRelationNodeRelationId;
