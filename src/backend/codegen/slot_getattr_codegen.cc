@@ -15,6 +15,8 @@
 
 #include "codegen/base_codegen.h"
 #include "codegen/codegen_wrapper.h"
+#include "codegen/codegen_config.h"
+#include "codegen/codegen_manager.h"
 #include "codegen/slot_getattr_codegen.h"
 #include "codegen/utils/gp_codegen_utils.h"
 #include "codegen/utils/utility.h"
@@ -50,12 +52,6 @@ using gpcodegen::SlotGetAttrCodegen;
 
 constexpr char SlotGetAttrCodegen::kSlotGetAttrPrefix[];
 
-// TODO(shardikar): Retire this GUC after performing experiments to find the
-// tradeoff of codegen-ing slot_getattr() (potentially by measuring the
-// difference in the number of instructions) when one of the first few
-// attributes is varlen.
-extern const int codegen_varlen_tolerance;
-
 std::unordered_map<
   gpcodegen::CodegenManager*, SlotGetAttrCodegen::SlotGetAttrCodegenCache>
     SlotGetAttrCodegen::codegen_cache_by_manager;
@@ -64,6 +60,13 @@ SlotGetAttrCodegen* SlotGetAttrCodegen::GetCodegenInstance(
     gpcodegen::CodegenManager* manager,
     TupleTableSlot *slot,
     int max_attr) {
+
+  // TODO(krajaraman, frahman) : Refactor so creation happens through
+  // CodegenManager::CreateAndEnrollGenerator. In that case, we don't
+  // need to do this `if` condition here.
+  if (!CodegenConfig::IsGeneratorEnabled<SlotGetAttrCodegen>()) {
+    return nullptr;
+  }
 
   // Create an cache entry for this manager if it doesn't already exist
   auto it = codegen_cache_by_manager[manager].find(slot);
@@ -74,6 +77,8 @@ SlotGetAttrCodegen* SlotGetAttrCodegen::GetCodegenInstance(
     generator = it->second;
     generator->max_attr_ = std::max(generator->max_attr_, max_attr);
   } else {
+    // TODO(krajaraman, frahman) : Refactor so creation happens through
+    // CodegenManager::CreateAndEnrollGenerator.
     // For a slot we haven't see before, create and add a new object
     generator = new SlotGetAttrCodegen(manager, slot, max_attr);
     codegen_cache_by_manager[manager].insert(std::make_pair(slot, generator));

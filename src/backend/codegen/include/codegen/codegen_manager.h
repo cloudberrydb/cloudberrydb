@@ -18,7 +18,9 @@
 #include <string>
 
 #include "codegen/utils/macros.h"
-#include "codegen/codegen_wrapper.h"
+#include "codegen/codegen_config.h"
+#include "codegen/codegen_interface.h"
+#include "codegen/base_codegen.h"
 
 namespace gpcodegen {
 /** \addtogroup gpcodegen
@@ -45,6 +47,67 @@ class CodegenManager {
   explicit CodegenManager(const std::string& module_name);
 
   ~CodegenManager() = default;
+
+  /**
+   * @brief Template function to facilitate enroll for any type of
+   *        CodegenInterface that CodegenManager wants to keep track of.
+   *
+   * @tparam ClassType Type of Code Generator class that derives from
+   *                   CodegenInterface.
+   * @tparam FuncType Type of the function pointer that CodegenManager swaps.
+   * @tparam Args Variable argument that ClassType will take in its constructor
+   *
+   * @param manager Current Codegen Manager
+   * @param regular_func_ptr Regular version of the target function.
+   * @param ptr_to_chosen_func_ptr Pointer to the function pointer that the
+   *                               caller will call.
+   * @param args Variable length argument for ClassType
+   *
+   * This function creates a new code generator object of type ClassType using
+   * the passed-in args, and enrolls it in the given codegen manager.
+   *
+   * It does not create a generator when codegen or manager is unset, or the
+   * code generator ClassType is disabled (with the appropriate GUC).
+   * It always initializes the given double function pointer
+   * (ptr_to_chosen_func_ptr) to the regular_func_ptr.
+   *
+   * This transfers the ownership of the code generator to the manager.
+   *
+   * @return Pointer to ClassType
+   **/
+  template <typename ClassType, typename FuncType, typename ...Args>
+  static ClassType* CreateAndEnrollGenerator(
+      CodegenManager* manager,
+      FuncType regular_func_ptr,
+      FuncType* ptr_to_chosen_func_ptr,
+      Args&&... args) {  // NOLINT(build/c++11)
+
+	assert(nullptr != regular_func_ptr);
+	assert(nullptr != ptr_to_chosen_func_ptr);
+
+    bool can_enroll =
+        // manager may be NULL if ExecInitNode/ExecProcNode weren't previously
+    	// called. This happens e.g during gpinitsystem.
+        (nullptr != manager) &&
+        codegen &&  // if codegen guc is false
+        // if generator is disabled
+        CodegenConfig::IsGeneratorEnabled<ClassType>();
+    if (!can_enroll) {
+      gpcodegen::BaseCodegen<FuncType>::SetToRegular(
+          regular_func_ptr, ptr_to_chosen_func_ptr);
+      return nullptr;
+    }
+
+    ClassType* generator = new ClassType(
+        manager,
+        regular_func_ptr,
+        ptr_to_chosen_func_ptr,
+        std::forward<Args>(args)...);
+    bool is_enrolled = manager->EnrollCodeGenerator(
+        CodegenFuncLifespan_Parameter_Invariant, generator);
+    assert(is_enrolled);
+    return generator;
+  }
 
   /**
    * @brief Enroll a code generator with manager

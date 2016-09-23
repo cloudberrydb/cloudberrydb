@@ -19,19 +19,21 @@ extern "C" {
 #include <string>
 #include <vector>
 #include "codegen/utils/gp_codegen_utils.h"
-#include "codegen/codegen_manager.h"
+#include "codegen/codegen_config.h"
 #include "codegen/codegen_interface.h"
 
 #include "llvm/IR/Function.h"
 #include "llvm/IR/Verifier.h"
 
-extern bool codegen_validate_functions;
 
 namespace gpcodegen {
 
 /** \addtogroup gpcodegen
  *  @{
  */
+
+// Forward declaration
+class CodegenManager;
 
 /**
  * @brief Base code generator with common implementation that other
