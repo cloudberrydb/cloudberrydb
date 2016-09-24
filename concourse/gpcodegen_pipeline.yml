@@ -72,6 +72,23 @@ jobs:
       - build_gpdb_orca
       params:
         submodules: none
+    - get: bin_orca
+      resource: orca
+      params:
+        globs:
+        - bin_orca_centos5_release.tar.gz
+      passed:
+      - build_gpdb_orca
+    - get: bin_gpos
+      resource: gpos
+      params:
+        globs:
+        - bin_gpos_centos5_release.tar.gz
+      passed:
+      - build_gpdb_orca
+    - get: bin_xerces
+      passed:
+      - build_gpdb_orca
     - get: bin_gpdb_orca
       passed:
       - build_gpdb_orca
@@ -130,13 +147,27 @@ jobs:
       - build_gpdb_orca
       params:
         submodules: none
+    - get: bin_orca
+      resource: orca
+      params:
+        globs:
+        - bin_orca_centos5_release.tar.gz
+      passed:
+      - build_gpdb_orca
+    - get: bin_gpos
+      resource: gpos
+      params:
+        globs:
+        - bin_gpos_centos5_release.tar.gz
+      passed:
+      - build_gpdb_orca
     - get: bin_gpdb_orca
       passed:
       - build_gpdb_orca
       trigger: true
     - get: bin_xerces
-  - task: prepare_orca_dependencies
-    file: gpdb_src/concourse/prepare_orca_dependencies.yml
+      passed:
+      - build_gpdb_orca
   - task: test_gpdb
     input_mapping: {bin_gpdb: bin_gpdb_orca}
     file: gpdb_src/concourse/test_with_orca_and_codegen.yml

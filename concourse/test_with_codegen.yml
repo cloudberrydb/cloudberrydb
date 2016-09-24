@@ -3,6 +3,9 @@ image: docker:///pivotaldata/gpdb-devel-gcc5#centos6
 inputs:
   - name: gpdb_src
   - name: bin_gpdb
+  - name: bin_orca
+  - name: bin_gpos
+  - name: bin_xerces
 outputs:
   - name: icg_output
 run:
@@ -10,4 +13,4 @@ run:
   args:
     - -l
     - -c
-    - gpdb_src/concourse/scripts/test_gpdb.py --mode=codegen --gpdb_name=bin_gpdb
+    - gpdb_src/concourse/scripts/test_gpdb.py --mode=codegen --gpdb_name=bin_gpdb bin_orca bin_gpos bin_xerces
