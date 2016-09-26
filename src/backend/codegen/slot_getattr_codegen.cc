@@ -445,16 +445,21 @@ bool SlotGetAttrCodegen::GenerateSlotGetAttr(
                          irb->CreateAnd(llvm_attnum,
                                         codegen_utils->GetConstant(0x07))),
                                         codegen_utils->GetType<int8>());
-      // !(Exp_1 & Expr_2)
-      llvm::Value* llvm_att_isnull = irb->CreateNot(
-          irb->CreateTrunc(irb->CreateAnd(llvm_expr_1, llvm_expr_2),
-                           codegen_utils->GetType<bool>()));
+      // (Exp_1 & Expr_2)
+      llvm::Value* llvm_expr1_and_expr2 = irb->CreateICmpNE(
+          irb->CreateAnd(llvm_expr_1, llvm_expr_2),
+          codegen_utils->GetConstant<int8>(0));
+
+      // !(Expr_1 & Expr_2)
+      llvm::Value* llvm_att_isnull = irb->CreateNot(llvm_expr1_and_expr2,
+                                                    "llvm_att_isnull");
       // }}
 
-      llvm::Value* llvm_hasnulls = irb->CreateTrunc(
+      llvm::Value* llvm_hasnulls = irb->CreateICmpNE(
           irb->CreateAnd(llvm_heaptuple_t_data_t_infomask,
                          codegen_utils->GetConstant<uint16>(HEAP_HASNULL)),
-                         codegen_utils->GetType<bool>());
+                         codegen_utils->GetConstant<uint16>(0),
+                         "llvm_hasnulls");
 
       // hasnulls && att_isnull(attnum, bp)
       llvm::Value* llvm_is_null = irb->CreateAnd(
