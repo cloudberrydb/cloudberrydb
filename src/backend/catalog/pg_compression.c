@@ -273,7 +273,7 @@ zlib_compress(PG_FUNCTION_ARGS)
 
 			case Z_BUF_ERROR:
 				/*
-				 * zlib returns this when it couldn't compressed the data
+				 * zlib returns this when it couldn't compress the data
 				 * to a size smaller than the input.
 				 *
 				 * The caller expects to detect this themselves so we set

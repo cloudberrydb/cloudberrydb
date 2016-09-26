@@ -880,7 +880,7 @@ Oid aocs_insert_values(AOCSInsertDesc idesc, Datum *d, bool * null, AOTupleId *a
 				Assert(!null[i]);
 				/*
 				 * rle_type is running on a block stream, if an object spans multiple
-				 * blocks than data will not be compressed (if rle_type is set).
+				 * blocks then data will not be compressed (if rle_type is set).
 				 */
 				if ((idesc->compType != NULL) && (pg_strcasecmp(idesc->compType, "rle_type") == 0))
 				{
