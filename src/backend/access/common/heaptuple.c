@@ -1443,6 +1443,41 @@ slot_deform_tuple(TupleTableSlot *slot, int natts)
 }
 
 /*
+ * Get an attribute from the tuple table slot.
+ */
+Datum slot_getattr(TupleTableSlot *slot, int attnum, bool *isnull)
+{
+  Assert(!TupIsNull(slot));
+  Assert(attnum <= slot->tts_tupleDescriptor->natts);
+
+  /* System attribute */
+  if(attnum <= 0)
+    return slot_getsysattr(slot, attnum, isnull);
+
+  /* fast path for virtual tuple */
+  if(TupHasVirtualTuple(slot) && slot->PRIVATE_tts_nvalid >= attnum)
+  {
+    *isnull = slot->PRIVATE_tts_isnull[attnum-1];
+    return slot->PRIVATE_tts_values[attnum-1];
+  }
+
+  /* Mem tuple: We do not even populate virtual tuple */
+  if(TupHasMemTuple(slot))
+  {
+    Assert(slot->tts_mt_bind);
+    return memtuple_getattr(slot->PRIVATE_tts_memtuple, slot->tts_mt_bind, attnum, isnull);
+  }
+
+  /* Slow: heap tuple */
+  Assert(TupHasHeapTuple(slot));
+
+  _slot_getsomeattrs(slot, attnum);
+  Assert(TupHasVirtualTuple(slot) && slot->PRIVATE_tts_nvalid >= attnum);
+  *isnull = slot->PRIVATE_tts_isnull[attnum-1];
+  return slot->PRIVATE_tts_values[attnum-1];
+}
+
+/*
  * slot_getsomeattrs
  *		This function forces the entries of the slot's Datum/isnull
  *		arrays to be valid at least up through the attnum'th entry.

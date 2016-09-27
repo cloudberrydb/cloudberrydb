@@ -104,7 +104,8 @@ class SlotGetAttrCodegen : public BaseCodegen<SlotGetAttrFn> {
   SlotGetAttrCodegen(gpcodegen::CodegenManager* manager,
                      TupleTableSlot* slot,
                      int max_attr)
-  : BaseCodegen(manager, kSlotGetAttrPrefix, slot_getattr, &dummy_func_),
+  : BaseCodegen(
+      manager, kSlotGetAttrPrefix, slot_getattr, &dummy_func_),
     slot_(slot),
     max_attr_(max_attr),
     llvm_function_(nullptr) {
