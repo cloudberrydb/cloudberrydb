@@ -118,16 +118,17 @@ bool ExecEvalExprCodegen::GenerateExecEvalExpr(
     return false;
   }
 
-  // In case the generation above either failed or was not needed,
+  // If slot_getattr_codegen_ is not set or generation fails
   // we revert to use the external slot_getattr()
-  if (nullptr == slot_getattr_codegen_) {
+  if (nullptr == slot_getattr_codegen_ ||
+      false == slot_getattr_codegen_->GenerateCode(codegen_utils)) {
     gen_info_.llvm_slot_getattr_func =
         codegen_utils->GetOrRegisterExternalFunction(slot_getattr,
                                                      "slot_getattr");
   } else {
-    slot_getattr_codegen_->GenerateCode(codegen_utils);
     gen_info_.llvm_slot_getattr_func =
-      slot_getattr_codegen_->GetGeneratedFunction();
+        slot_getattr_codegen_->GetGeneratedFunction();
+    assert(nullptr != gen_info_.llvm_slot_getattr_func);
   }
 
   llvm::Function* exec_eval_expr_func = CreateFunction<ExecEvalExprFn>(
