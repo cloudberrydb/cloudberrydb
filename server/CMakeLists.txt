@@ -64,8 +64,6 @@ add_executable(gporca_test
                src/unittest/gpopt/minidump/CAggTest.cpp
                include/unittest/gpopt/minidump/CArrayExpansionTest.h
                src/unittest/gpopt/minidump/CArrayExpansionTest.cpp
-               include/unittest/gpopt/minidump/CJoinOrderDPTest.h
-               src/unittest/gpopt/minidump/CJoinOrderDPTest.cpp
                include/unittest/gpopt/minidump/CPruneColumnsTest.h
                src/unittest/gpopt/minidump/CPruneColumnsTest.cpp
                include/unittest/gpopt/minidump/CMissingStatsTest.h
@@ -203,7 +201,6 @@ add_orca_test(CDXLUtilsTest)
 add_orca_test(CMDAccessorTest)
 add_orca_test(CMDProviderTest)
 add_orca_test(CArrayExpansionTest)
-add_orca_test(CJoinOrderDPTest)
 add_orca_test(CMiniDumperDXLTest)
 add_orca_test(CExpressionPreprocessorTest)
 add_orca_test(CWindowTest)
