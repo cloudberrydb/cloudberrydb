@@ -82,6 +82,7 @@ CDXLTokens::Init
 			{EdxltokenMinNumOfPartsToRequireSortOnInsert, GPOS_WSZ_LIT("MinNumOfPartsToRequireSortOnInsert")},
 			{EdxltokenJoinArityForAssociativityCommutativity, GPOS_WSZ_LIT("JoinArityForAssociativityCommutativity")},
 			{EdxltokenArrayExpansionThreshold, GPOS_WSZ_LIT("ArrayExpansionThreshold")},
+			{EdxltokenJoinOrderDPThreshold, GPOS_WSZ_LIT("JoinOrderDynamicProgThreshold")},
 
 			{EdxltokenPlanSamples, GPOS_WSZ_LIT("PlanSamples")},
 			

@@ -15,6 +15,8 @@
 #include "gpos/memory/IMemoryPool.h"
 #include "gpos/common/CRefCount.h"
 
+#define JOIN_ORDER_DP_THRESHOLD ULONG(10)
+
 namespace gpopt
 {
 	using namespace gpos;
@@ -38,6 +40,7 @@ namespace gpopt
 
 			ULONG m_ulArrayExpansionThreshold;
 
+			ULONG m_ulJoinOrderDPLimit;
 
 			// private copy ctor
 			CHint(const CHint &);
@@ -49,12 +52,14 @@ namespace gpopt
 				(
 				ULONG ulMinNumOfPartsToRequireSortOnInsert,
 				ULONG ulJoinArityForAssociativityCommutativity,
-				ULONG ulArrayExpansionThreshold
+				ULONG ulArrayExpansionThreshold,
+				ULONG ulJoinOrderDPLimit
 				)
 				:
 				m_ulMinNumOfPartsToRequireSortOnInsert(ulMinNumOfPartsToRequireSortOnInsert),
 				m_ulJoinArityForAssociativityCommutativity(ulJoinArityForAssociativityCommutativity),
-				m_ulArrayExpansionThreshold(ulArrayExpansionThreshold)
+				m_ulArrayExpansionThreshold(ulArrayExpansionThreshold),
+				m_ulJoinOrderDPLimit(ulJoinOrderDPLimit)
 			{
 			}
 
@@ -84,14 +89,25 @@ namespace gpopt
 				return m_ulArrayExpansionThreshold;
 			}
 
+			// Maximum number of relations in an n-ary join operator where ORCA will
+			 // explore join ordering via dynamic programming.
+			 ULONG UlJoinOrderDPLimit() const
+			 {
+				 return m_ulJoinOrderDPLimit;
+			 }
+
 			// generate default hint configurations, which disables sort during insert on
 			// append only row-oriented partitioned tables by default
 			static
 			CHint *PhintDefault(IMemoryPool *pmp)
 			{
-				return GPOS_NEW(pmp) CHint(INT_MAX /* ulMinNumOfPartsToRequireSortOnInsert */,
-										   INT_MAX /* ulJoinArityForAssociativityCommutativity */,
-										   INT_MAX /* ulArrayExpansionThreshold */);
+				return GPOS_NEW(pmp) CHint
+										(
+										INT_MAX /* ulMinNumOfPartsToRequireSortOnInsert */,
+										INT_MAX /* ulJoinArityForAssociativityCommutativity */,
+										INT_MAX, /* ulArrayExpansionThreshold */
+										JOIN_ORDER_DP_THRESHOLD /*ulJoinOrderDPLimit*/
+										);
 			}
 
 	}; // class CHint
