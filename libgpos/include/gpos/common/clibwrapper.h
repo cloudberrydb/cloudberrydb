@@ -13,10 +13,6 @@
 #ifndef GPOS_clibwrapper_H
 #define GPOS_clibwrapper_H
 
-#define ALLOW_va_start
-#define ALLOW_va_end
-#define ALLOW_va_arg
-
 #define VA_START(vaList, last)  va_start(vaList, last);
 #define VA_END(vaList)		va_end(vaList)
 #define VA_ARG(vaList, type)    va_arg(vaList,type)

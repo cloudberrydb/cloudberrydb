@@ -9,18 +9,6 @@
 //		Implementation of networking utilities
 //---------------------------------------------------------------------------
 
-#define ALLOW_accept
-#define ALLOW_bind
-#define ALLOW_connect
-#define ALLOW_fcntl
-#define ALLOW_listen
-#define ALLOW_getsockopt
-#define ALLOW_poll
-#define ALLOW_recv
-#define ALLOW_send
-#define ALLOW_setsockopt
-#define ALLOW_socket
-
 #include <unistd.h>
 #include <fcntl.h>
 

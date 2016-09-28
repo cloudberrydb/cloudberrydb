@@ -10,43 +10,6 @@
 //
 //---------------------------------------------------------------------------
 
-#define ALLOW_log2
-#define ALLOW_ceil
-#define ALLOW_fabs
-#define ALLOW_floor
-#define ALLOW_free
-#define ALLOW_getopt
-#define ALLOW_malloc
-#define ALLOW_memcmp
-#define ALLOW_memcpy
-#define ALLOW_memset
-#define ALLOW_getenv
-#define ALLOW_localtime_r
-#define ALLOW_printf
-#define ALLOW_pow
-#define ALLOW_qsort
-#define ALLOW_isnan
-#define ALLOW_rand_r
-#define ALLOW_realloc
-#define ALLOW_strcmp
-#define ALLOW_strerror_r
-#define ALLOW_strlen
-#define ALLOW_strncmp
-#define ALLOW_strncpy
-#define ALLOW_strtol
-#define ALLOW_strtoll
-#define ALLOW_strtod
-#define ALLOW_strchr
-#define ALLOW_vsnprintf
-#define ALLOW_vswprintf
-#define ALLOW_wcslen
-#define ALLOW_wcsncmp
-#define ALLOW_wcsncpy
-#define ALLOW_wcstombs
-#define ALLOW_mbstowcs
-#define ALLOW_wctomb
-#define ALLOW_wmemcpy
-
 #include <cxxabi.h>
 #include <dlfcn.h>
 #include <errno.h>
@@ -72,9 +35,6 @@ using namespace gpos;
 
 
 #ifdef GPOS_sparc
-
-#define ALLOW_getcontext
-#define ALLOW_walkcontext
 
 #include <ucontext.h>
 

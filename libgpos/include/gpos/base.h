@@ -12,8 +12,6 @@
 #ifndef GPOS_base_H
 #define GPOS_base_H
 
-#define ALLOW_memcpy
-
 #include "gpos/assert.h"
 #include "gpos/types.h"
 #include "gpos/error/CException.h"
@@ -23,10 +21,6 @@
 #include "gpos/memory/IMemoryPool.h"
 #include "gpos/task/ITask.h"
 #include "gpos/task/IWorker.h"
-
-#include "gpos/common/banned_posix_nonreentrant.h"
-#include "gpos/common/banned_posix_reentrant.h"
-#include "gpos/common/banned_gpdb.h"
 
 #endif // GPOS_base_H
 

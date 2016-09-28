@@ -10,9 +10,6 @@
 //
 //---------------------------------------------------------------------------
 
-#define ALLOW_sigaddset
-#define ALLOW_sigemptyset
-
 #include <errno.h>
 
 #include "gpos/assert.h"

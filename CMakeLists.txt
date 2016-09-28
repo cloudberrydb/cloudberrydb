@@ -4,7 +4,7 @@ cmake_minimum_required(VERSION 3.0 FATAL_ERROR)
 project(gpos LANGUAGES CXX C)
 
 set(GPOS_VERSION_MAJOR 1)
-set(GPOS_VERSION_MINOR 145)
+set(GPOS_VERSION_MINOR 146)
 set(GPOS_VERSION_STRING ${GPOS_VERSION_MAJOR}.${GPOS_VERSION_MINOR})
 
 # Whenever an ABI-breaking change is made to GPOS, this should be incremented.
@@ -166,10 +166,6 @@ configure_file(version.h.in
 add_library(gpos
             libgpos/include/gpos/assert.h
             libgpos/include/gpos/base.h
-            libgpos/include/gpos/common/banned_api.h
-            libgpos/include/gpos/common/banned_gpdb.h
-            libgpos/include/gpos/common/banned_posix_nonreentrant.h
-            libgpos/include/gpos/common/banned_posix_reentrant.h
             libgpos/include/gpos/common/CAutoP.h
             libgpos/include/gpos/common/CAutoRef.h
             libgpos/include/gpos/common/CAutoRg.h

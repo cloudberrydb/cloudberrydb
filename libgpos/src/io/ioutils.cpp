@@ -9,26 +9,6 @@
 //		Implementation of I/O utilities
 //---------------------------------------------------------------------------
 
-#define ALLOW_stat
-#define ALLOW_mkdir
-#define ALLOW_rmdir
-#define ALLOW_unlink
-#define ALLOW_rename
-#define ALLOW_S_ISDIR
-#define ALLOW_S_ISREG
-#define ALLOW_open
-#define ALLOW_close
-#define ALLOW_fstat
-#define ALLOW_write
-#define ALLOW_read
-#define ALLOW_mkdtemp
-#define ALLOW_fopen
-#define ALLOW_fread
-#define ALLOW_fclose
-#define ALLOW_feof
-#define ALLOW_ferror
-#define ALLOW_fileno
-
 #include <errno.h>
 #include <fcntl.h>
 #include <string.h>

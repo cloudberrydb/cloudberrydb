@@ -10,13 +10,6 @@
 //
 //---------------------------------------------------------------------------
 
-#define ALLOW_closelog
-#define ALLOW_gettimeofday
-#define ALLOW_getrusage
-#define ALLOW_openlog
-#define ALLOW_sched_yield
-#define ALLOW_syslog
-
 #include <syslog.h>
 
 #include <sys/time.h>
