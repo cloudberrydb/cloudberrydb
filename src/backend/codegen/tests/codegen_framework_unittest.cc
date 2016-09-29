@@ -242,15 +242,16 @@ class DatumToCppCastGenerator :
  public:
   explicit DatumToCppCastGenerator(
       gpcodegen::CodegenManager* manager,
-      DatumCastTemplateFn regular_func_ptr,
-      DatumCastTemplateFn* ptr_to_regular_func_ptr):
-      BaseCodegen<DatumCastTemplateFn>(manager,
+      DatumCastTemplateFn regular_func_ptr)
+  : BaseCodegen<DatumCastTemplateFn>(manager,
                   kDatumToCppCastFuncNamePrefix,
                   regular_func_ptr,
-                  ptr_to_regular_func_ptr) {
+                  &swappable_function_holder) {
   }
 
   virtual ~DatumToCppCastGenerator() = default;
+
+  DatumCastTemplateFn swappable_function_holder;
 
  protected:
   bool GenerateCodeInternal(gpcodegen::GpCodegenUtils* codegen_utils) final {
@@ -279,15 +280,16 @@ class CppToDatumCastGenerator :
  public:
   explicit CppToDatumCastGenerator(
       gpcodegen::CodegenManager* manager,
-      DatumCastTemplateFn regular_func_ptr,
-      DatumCastTemplateFn* ptr_to_regular_func_ptr):
-      BaseCodegen<DatumCastTemplateFn>(manager,
+      DatumCastTemplateFn regular_func_ptr)
+  : BaseCodegen<DatumCastTemplateFn>(manager,
                   kCppToDatumCastFuncNamePrefix,
                   regular_func_ptr,
-                  ptr_to_regular_func_ptr) {
+                  &swappable_function_holder) {
   }
 
   virtual ~CppToDatumCastGenerator() = default;
+
+  DatumCastTemplateFn swappable_function_holder;
 
  protected:
   bool GenerateCodeInternal(gpcodegen::GpCodegenUtils* codegen_utils) final {
@@ -354,16 +356,18 @@ class CodegenManagerTest : public ::testing::Test {
   void CheckDatumCast(DatumCastFn<Datum, CppType> CppToDatumReg,
                       DatumCastFn<CppType, Datum> DatumToCppReg,
                       const std::vector<CppType>& values) {
-    DatumCastFn<Datum, CppType> CppToDatumCgFn = CppToDatumReg;
     CppToDatumCastGenerator<CppType>* cpp_datum_gen =
         new CppToDatumCastGenerator<CppType>(
-            manager_.get(), CppToDatumReg, &CppToDatumCgFn);
+            manager_.get(), CppToDatumReg);
+    DatumCastFn<Datum, CppType>& CppToDatumCgFn =
+        cpp_datum_gen->swappable_function_holder;
 
 
-    DatumCastFn<CppType, Datum> DatumToCppCgFn = DatumToCppReg;
     DatumToCppCastGenerator<CppType>* datum_cpp_gen =
         new DatumToCppCastGenerator<CppType>(
-            manager_.get(), DatumToCppReg, &DatumToCppCgFn);
+            manager_.get(), DatumToCppReg);
+    DatumCastFn<CppType, Datum>& DatumToCppCgFn =
+        datum_cpp_gen->swappable_function_holder;
 
     ASSERT_TRUE(manager_->EnrollCodeGenerator(
         CodegenFuncLifespan_Parameter_Invariant, cpp_datum_gen));
