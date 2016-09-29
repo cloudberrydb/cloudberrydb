@@ -230,7 +230,7 @@ AppendOnlySegmentFileTruncateToEOF(Relation aorel,
 		CloseAOSegmentFile(&mirroredOpened);
 
 		elogif(Debug_appendonly_print_compaction, LOG,
-				 "Successfully truncated AO ROL relation \"%s.%s\", relation id %u, relfilenode %u (physical segment file #%d, logical EOF " INT64_FORMAT ")",
+				 "Successfully truncated AO ROW relation \"%s.%s\", relation id %u, relfilenode %u (physical segment file #%d, logical EOF " INT64_FORMAT ")",
 				 get_namespace_name(RelationGetNamespace(aorel)),
 				 relname,
 				 aorel->rd_id,
