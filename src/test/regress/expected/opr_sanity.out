@@ -862,14 +862,18 @@ ORDER BY 1, 2, 3;
  amopmethod | amopstrategy | oprname 
 ------------+--------------+---------
         403 |            1 | <
+        403 |            1 | <<
         403 |            1 | ~<~
+        403 |            2 | <<=
         403 |            2 | <=
         403 |            2 | ~<=~
         403 |            3 | =
         403 |            3 | ~=~
         403 |            4 | >=
+        403 |            4 | >>=
         403 |            4 | ~>=~
         403 |            5 | >
+        403 |            5 | >>
         403 |            5 | ~>~
         405 |            1 | =
         405 |            1 | ~=~
@@ -904,7 +908,7 @@ ORDER BY 1, 2, 3;
        3013 |            4 | ~>=~
        3013 |            5 | >
        3013 |            5 | ~>~
-(43 rows)
+(47 rows)
 
 -- Check that all operators linked to by opclass entries have selectivity
 -- estimators.  This is not absolutely required, but it seems a reasonable
