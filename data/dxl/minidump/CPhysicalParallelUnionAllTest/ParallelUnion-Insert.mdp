@@ -6,7 +6,7 @@ INSERT INTO t VALUES (11),(12),(13);
 <dxl:DXLMessage xmlns:dxl="http://greenplum.com/dxl/2010/12/">
   <dxl:Thread Id="0">
     <dxl:OptimizerConfig>
-      <dxl:EnumeratorConfig Id="0" PlanSamples="0" CostThreshold="0"/>
+      <dxl:EnumeratorConfig Id="2" PlanSamples="0" CostThreshold="0"/>
       <dxl:StatisticsConfig DampingFactorFilter="0.750000" DampingFactorJoin="0.010000" DampingFactorGroupBy="0.750000"/>
       <dxl:CTEConfig CTEInliningCutoff="0"/>
       <dxl:CostModelConfig CostModelType="1" SegmentsForCosting="3"/>
@@ -185,7 +185,7 @@ INSERT INTO t VALUES (11),(12),(13);
         </dxl:UnionAll>
       </dxl:LogicalInsert>
     </dxl:Query>
-    <dxl:Plan Id="0" SpaceSize="1">
+    <dxl:Plan Id="2" SpaceSize="2">
       <dxl:DMLInsert Columns="0" ActionCol="3" OidCol="4" CtidCol="0" SegmentIdCol="0" InputSorted="false">
         <dxl:Properties>
           <dxl:Cost StartupCost="0" TotalCost="0.046972" Rows="3.000000" Width="4"/>

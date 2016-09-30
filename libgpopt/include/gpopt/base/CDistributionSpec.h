@@ -38,7 +38,8 @@ namespace gpopt
 			enum EDistributionType
 			{
 				EdtHashed,			// data is hashed across all segments
-				EdtStrictHashed,	// same as hashed, used to force multiple slices for parallel union all
+				EdtHashedNoOp,		// same as hashed, used to force multiple slices for parallel union all. The motions always mirror the underlying distributions.
+				EdtStrictHashed,	// same as hashed, used to force multiple slices for parallel union all. The motions mirror the distribution of the output columns.
 				EdtReplicated,		// data is replicated across all segments
 				EdtAny,				// data can be anywhere on the segments (required only)
 				EdtSingleton,		// data is on a single segment or the master

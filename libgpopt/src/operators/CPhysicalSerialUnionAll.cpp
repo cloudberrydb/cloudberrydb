@@ -363,7 +363,7 @@ CPhysicalSerialUnionAll::PdsRequired
 	CDistributionSpec *pdsRequired,
 	ULONG ulChildIndex,
 	DrgPdp *pdrgpdpCtxt,
-	ULONG  ulOptReq
+	ULONG ulOptReq
 	)
 	const
 {
