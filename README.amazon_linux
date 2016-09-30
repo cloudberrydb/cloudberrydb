@@ -6,15 +6,7 @@ sudo vim /etc/hosts
 sudo vim /etc/fstab
 
 # install packages
-sudo yum install git
-sudo yum install gcc
-sudo yum install readline-devel
-sudo yum install zlib-devel
-sudo yum install libcurl-devel
-sudo yum install bzip2-devel
-sudo yum install bison
-sudo yum install flex
-sudo yum install gcc-c++
+sudo yum -y install git gcc readline-devel zlib-devel libcurl-devel bzip2-devel bison flex gcc-c++ python-devel openssl-devel libffi-devel libapr-devel libevent-devel
 
 # edit sysctl
 vm.overcommit_memory = 2
@@ -33,18 +25,15 @@ cat /sys/kernel/mm/transparent_hugepage/enabled
 # update blockdev read ahead
 /sbin/blockdev --setra 16384 GPDB_DEVICE_NAMES
 
+# pip packages
+curl https://bootstrap.pypa.io/get-pip.py | sudo python
+sudo pip install --upgrade setuptools wheel paramiko pip lockfile epydoc psutil
+
 # configure and build
 ./configure
 make
 sudo make install
 . /usr/local/gpdb/greenplum_path.sh
-
-# python update
-sudo pip install --upgrade pip
-as root
-    pip install epydoc
-    pip install psutil
-    pip install --upgrade lockfile
 
 # init GPDB
 mkdir primary
