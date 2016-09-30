@@ -94,7 +94,7 @@ class AdvanceAggregatesCodegen: public BaseCodegen<AdvanceAggregatesFn> {
       gpcodegen::GpCodegenUtils* codegen_utils,
       llvm::Value* llvm_pergroup_arg,
       int aggno,
-      gpcodegen::PGFuncGeneratorInfo& pg_func_info);
+      gpcodegen::PGFuncGeneratorInfo* pg_func_info);
 };
 
 /** @} */

@@ -49,7 +49,8 @@ bool AdvanceAggregatesCodegen::GenerateAdvanceTransitionFunction(
     gpcodegen::GpCodegenUtils* codegen_utils,
     llvm::Value* llvm_pergroup_arg,
     int aggno,
-    gpcodegen::PGFuncGeneratorInfo& pg_func_info) {
+    gpcodegen::PGFuncGeneratorInfo* pg_func_info) {
+  assert(nullptr != pg_func_info);
   auto irb = codegen_utils->ir_builder();
   AggStatePerAgg peraggstate = &aggstate_->peragg[aggno];
 
@@ -91,9 +92,10 @@ bool AdvanceAggregatesCodegen::GenerateAdvanceTransitionFunction(
   }
 
   assert(nullptr != peraggstate->aggref);
-  assert(pg_func_info.llvm_args.size() == 1 +
+  assert(pg_func_info->llvm_args.size() == 1 +
              list_length(peraggstate->aggref->args));
-  pg_func_info.llvm_args[0] = irb->CreateLoad(llvm_pergroupstate_transValue_ptr);
+  pg_func_info->llvm_args[0] = irb->CreateLoad(
+      llvm_pergroupstate_transValue_ptr);
 
   gpcodegen::PGFuncGeneratorInterface* pg_func_gen =
       gpcodegen::OpExprTreeGenerator::GetPGFuncGenerator(
@@ -106,7 +108,7 @@ bool AdvanceAggregatesCodegen::GenerateAdvanceTransitionFunction(
 
   llvm::Value *newVal = nullptr;
   bool isGenerated = pg_func_gen->GenerateCode(codegen_utils,
-                                               pg_func_info, &newVal);
+                                               *pg_func_info, &newVal);
   if (!isGenerated) {
     elog(DEBUG1, "Function with oid = %d was not generated successfully!",
          peraggstate->transfn.fn_oid);
@@ -308,7 +310,7 @@ bool AdvanceAggregatesCodegen::GenerateAdvanceAggregates(
         llvm_in_args);
 
     bool isGenerated = GenerateAdvanceTransitionFunction(
-        codegen_utils, llvm_pergroup_arg, aggno, pg_func_info);
+        codegen_utils, llvm_pergroup_arg, aggno, &pg_func_info);
     if (!isGenerated)
       return false;
   }  // End of for loop
