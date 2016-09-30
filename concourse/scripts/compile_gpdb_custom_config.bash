@@ -45,7 +45,10 @@ function install_system_deps() {
 
 function build_gpdb() {
   pushd gpdb_src
-    ./configure --enable-mapreduce --with-perl --with-libxml --with-python --disable-gpfdist --prefix=${GREENPLUM_INSTALL_DIR}
+    source /opt/gcc_env.sh
+    CC=$(which gcc) CXX=$(which g++) ./configure --enable-mapreduce --with-perl --with-libxml \
+    	--with-python --disable-gpfdist --prefix=${GREENPLUM_INSTALL_DIR} \
+	--enable-codegen --with-codegen-prefix=/opt/llvm-3.7.1
     make
     make install
   popd
