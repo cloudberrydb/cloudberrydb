@@ -122,16 +122,6 @@ static bool PersistentDatabase_ScanTupleCallback(
 									&serialNum,
 									&previousFreeTid);
 
-	if (state == PersistentFileSysState_Free)
-	{
-		if (Debug_persistent_print)
-			elog(Persistent_DebugPrintLevel(), 
-				 "PersistentDatabase_ScanTupleCallback: TID %s, serial number " INT64_FORMAT " is free",
-				 ItemPointerToString2(persistentTid),
-				 persistentSerialNum);
-		return true;	// Continue.
-	}
-	
 	addResult =
 			SharedOidSearch_Add(
 					&persistentDatabaseSharedData->databaseDirSearchTable,

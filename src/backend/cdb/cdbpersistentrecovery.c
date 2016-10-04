@@ -258,6 +258,7 @@ typedef struct FsObjEntryData
 	TransactionId				xid;
 
 	bool						updateNeeded;
+	bool foundInTable;
 
 	PersistentFileSysObjStateChangeResult stateChangeResult;
 	
@@ -383,6 +384,7 @@ static FsObjEntry PersistentRecovery_FindOrCreateFsObjEntry(
 		fsObjEntry->state = -1;
 		fsObjEntry->mirrorExistenceState = -1;
 		fsObjEntry->updateNeeded = false;
+		fsObjEntry->foundInTable = false;
 		fsObjEntry->stateChangeResult = PersistentFileSysObjStateChangeResult_StateChangeOk;
 	}
 
@@ -1125,34 +1127,6 @@ PersistentRecovery_AddScanEntry(
 	FsObjEntry fsObjEntry;
 	bool found;
 
-	if (state == PersistentFileSysState_Free)
-	{
-		fsObjEntry = 
-			PersistentRecovery_FindOrCreateFsObjEntry(fsObjType, persistentTid, &found);
-
-		if (found)
-		{
-			if (! Disable_persistent_recovery_logging)
-				elog(LOG, 
-				     "Scan REDO: Overwriting %s as free", 
-					 FsObjEntryToString(fsObjEntry));
-
-		}
-		else
-		{
-			if (Debug_persistent_recovery_print)
-				elog(PersistentRecovery_DebugPrintLevel(), 
-				     "Scan REDO: Free entry with no end transaction work: %s",
-					 FsObjEntryToString(fsObjEntry));
-		}
-		
-		fsObjEntry->state = PersistentFileSysState_Free;
-		
-		fsObjEntry->updateNeeded = false;		// Already in terminal condition.
-
-		return;
-	}
-
 	/*
 	 * Create Persistent Change entry.
 	 */
@@ -1161,6 +1135,8 @@ PersistentRecovery_AddScanEntry(
 										fsObjType,
 										persistentTid,
 										&found);
+	fsObjEntry->foundInTable = true;
+
 	if (!found)
 	{
 		fsObjEntry->fsObjName = *fsObjName;
@@ -2046,6 +2022,18 @@ PersistentRecovery_DropType(
 		if (state == PersistentFileSysState_AbortingCreate ||
 			state == PersistentFileSysState_DropPending)
 		{
+
+			if (! fsObjEntry->foundInTable)
+			{
+				if (! Disable_persistent_recovery_logging)
+				{
+					elog(LOG, "Crash recovery skipping drop %s as tuple TID %s deleted in table",
+						 FsObjEntryToString(fsObjEntry),
+						 ItemPointerToString(&fsObjEntry->key.persistentTid));
+				}
+				continue;
+			}
+
 			if (fsObjEntry->stateChangeResult != PersistentFileSysObjStateChangeResult_StateChangeOk)
 			{
 				if (fsObjEntry->stateChangeResult == PersistentFileSysObjStateChangeResult_ErrorSuppressed)

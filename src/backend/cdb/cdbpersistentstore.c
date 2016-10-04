@@ -753,55 +753,49 @@ void PersistentStore_ReadTuple(
 						&storeSharedData->maxTid) == 1 // Greater-than.
 		))
 	{
-		elog(ERROR, "TID %s for fetch persistent tuple is greater than the last known TID %s ('%s')",
-			 ItemPointerToString(readTid),
-			 ItemPointerToString2(&storeSharedData->maxTid),
-			 storeData->tableName);
+		*tupleCopy = NULL;
+		return;
 	}
 	
 	persistentRel = (*storeData->openRel)();
 
 	tuple.t_self = *readTid;
 
-	if (!heap_fetch(persistentRel, SnapshotAny,
+	if (heap_fetch(persistentRel, SnapshotAny,
 					&tuple, &buffer, false, NULL))
 	{
-		elog(ERROR, "Failed to fetch persistent tuple at %s (maximum known TID %s, '%s')",
-			 ItemPointerToString(&tuple.t_self),
-			 ItemPointerToString2(&storeSharedData->maxTid),
-			 storeData->tableName);
+		*tupleCopy = heaptuple_copy_to(&tuple, NULL, NULL);
+		ReleaseBuffer(buffer);
+		/*
+		 * In order to keep the tuples the exact same size to enable direct reuse of
+		 * free tuples, we do not use NULLs.
+		 */
+		nulls = (bool*)palloc(storeData->numAttributes * sizeof(bool));
+
+		heap_deform_tuple(*tupleCopy, persistentRel->rd_att, values, nulls);
+
+		(*storeData->closeRel)(persistentRel);
+	
+		if (Debug_persistent_store_print)
+		{
+			elog(PersistentStore_DebugPrintLevel(),
+				 "PersistentStore_ReadTuple: Successfully read tuple at TID %s ('%s')",
+				 ItemPointerToString(readTid),
+				 storeData->tableName);
+
+			(*storeData->printTupleCallback)(
+				PersistentStore_DebugPrintLevel(),
+				"STORE READ TUPLE",
+				readTid,
+				values);
+		}
+
+		pfree(nulls);
 	}
-
-	
-	*tupleCopy = heaptuple_copy_to(&tuple, NULL, NULL);
-
-	ReleaseBuffer(buffer);
-	
-	/*
-	 * In order to keep the tuples the exact same size to enable direct reuse of
-	 * free tuples, we do not use NULLs.
-	 */
-	nulls = (bool*)palloc(storeData->numAttributes * sizeof(bool));
-
-	heap_deform_tuple(*tupleCopy, persistentRel->rd_att, values, nulls);
-
-	(*storeData->closeRel)(persistentRel);
-	
-	if (Debug_persistent_store_print)
+	else
 	{
-		elog(PersistentStore_DebugPrintLevel(), 
-			 "PersistentStore_ReadTuple: Successfully read tuple at TID %s ('%s')",
-			 ItemPointerToString(readTid),
-			 storeData->tableName);
-
-		(*storeData->printTupleCallback)(
-									PersistentStore_DebugPrintLevel(),
-									"STORE READ TUPLE",
-									readTid,
-									values);
+		*tupleCopy = NULL;
 	}
-
-	pfree(nulls);
 }
 
 void PersistentStore_AddTuple(

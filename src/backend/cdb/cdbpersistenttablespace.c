@@ -257,16 +257,6 @@ static bool PersistentTablespace_ScanTupleCallback(
 									&serialNum,
 									&previousFreeTid);
 
-	if (state == PersistentFileSysState_Free)
-	{
-		if (Debug_persistent_print)
-			elog(Persistent_DebugPrintLevel(), 
-				 "PersistentTablespace_ScanTupleCallback: TID %s, serial number " INT64_FORMAT " is free",
-				 ItemPointerToString2(persistentTid),
-				 persistentSerialNum);
-		return true;	// Continue.
-	}
-	
 	tablespaceDirEntry = 
 		PersistentTablespace_CreateEntryUnderLock(filespaceOid, tablespaceOid);
 	
