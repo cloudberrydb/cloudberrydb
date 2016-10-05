@@ -62,8 +62,9 @@ function generate_build_number() {
 function make_sync_tools() {
   pushd gpdb_src/gpAux
     make IVYREPO_HOST=${IVYREPO_HOST} IVYREPO_REALM="${IVYREPO_REALM}" IVYREPO_USER=${IVYREPO_USER} IVYREPO_PASSWD=${IVYREPO_PASSWD} sync_tools
-    # Codegen fails to compile with the zlib downloaded from
-    # artifacts.  The native zlib on CentOS6 is good enough.
+    # We have compiled LLVM with native zlib on CentOS6 and not from
+    # the zlib downloaded from artifacts.  Therefore, remove the zlib
+    # downloaded from artifacts in order to use the native zlib.
     find ext -name 'libz.*' -exec rm -f {} \;
     tar -czf ../../sync_tools_gpdb/sync_tools_gpdb.tar.gz ext
   popd
