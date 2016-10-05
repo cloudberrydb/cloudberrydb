@@ -371,7 +371,7 @@ typedef PageHeaderData *PageHeader;
 )
 #define PageSetPrunable(page, xid) \
 do { \
-	Assert(TransactionIdIsNormal(xid)); \
+	Assert(TransactionIdIsNormal(xid) || xid == FrozenTransactionId); \
 	if (!TransactionIdIsValid(((PageHeader) (page))->pd_prune_xid) || \
 		TransactionIdPrecedes(xid, ((PageHeader) (page))->pd_prune_xid)) \
 		((PageHeader) (page))->pd_prune_xid = (xid); \

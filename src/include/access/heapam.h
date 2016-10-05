@@ -277,6 +277,7 @@ extern Oid	simple_heap_insert(Relation relation, HeapTuple tup);
 extern Oid frozen_heap_insert(Relation relation, HeapTuple tup);
 extern Oid frozen_heap_insert_directed(Relation relation, HeapTuple tup, BlockNumber blockNum);
 extern void simple_heap_delete(Relation relation, ItemPointer tid);
+extern void simple_heap_delete_xid(Relation relation, ItemPointer tid, TransactionId xid);
 extern void simple_heap_update(Relation relation, ItemPointer otid,
 				   HeapTuple tup);
 
