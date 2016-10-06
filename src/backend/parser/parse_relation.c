@@ -1488,6 +1488,7 @@ bool
 isSimplyUpdatableRelation(Oid relid, bool noerror)
 {
 	Relation rel;
+	bool return_value = true;
 
 	if (!OidIsValid(relid))
 	{
@@ -1500,42 +1501,47 @@ isSimplyUpdatableRelation(Oid relid, bool noerror)
 
 	rel = relation_open(relid, AccessShareLock);
 
-	/*
-	 * This should match the error message in rewriteManip.c,
-	 * so that you get the same error as in PostgreSQL.
-	 */
-	if (rel->rd_rel->relkind == RELKIND_VIEW)
+	do
 	{
-		if (!noerror)
-			ereport(ERROR,
-					(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
-					 errmsg("WHERE CURRENT OF on a view is not implemented")));
-		return false;
-	}
+		/*
+		 * This should match the error message in rewriteManip.c,
+		 * so that you get the same error as in PostgreSQL.
+		 */
+		if (rel->rd_rel->relkind == RELKIND_VIEW)
+		{
+			if (!noerror)
+				ereport(ERROR,
+						(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
+						 errmsg("WHERE CURRENT OF on a view is not implemented")));
+			return_value = false;
+			break;
+		}
 
-	if (rel->rd_rel->relkind != RELKIND_RELATION)
-	{
-		if (!noerror)
-			ereport(ERROR,
-					(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
-					 errmsg("\"%s\" is not simply updatable",
-							RelationGetRelationName(rel))));
-		return false;
-	}
+		if (rel->rd_rel->relkind != RELKIND_RELATION)
+		{
+			if (!noerror)
+				ereport(ERROR,
+						(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
+						 errmsg("\"%s\" is not simply updatable",
+								RelationGetRelationName(rel))));
+			return_value = false;
+			break;
+		}
 
-	if (rel->rd_rel->relstorage != RELSTORAGE_HEAP)
-	{
-		if (!noerror)
-			ereport(ERROR,
-					(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
-					 errmsg("\"%s\" is not simply updatable",
-							RelationGetRelationName(rel))));
-		return false;
-	}
+		if (rel->rd_rel->relstorage != RELSTORAGE_HEAP)
+		{
+			if (!noerror)
+				ereport(ERROR,
+						(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
+						 errmsg("\"%s\" is not simply updatable",
+								RelationGetRelationName(rel))));
+			return_value = false;
+			break;
+		}
+	} while (0);
 
 	relation_close(rel, NoLock);
-
-	return true;
+	return return_value;
 }
 
 /*
