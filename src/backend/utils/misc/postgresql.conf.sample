@@ -190,8 +190,8 @@ max_prepared_transactions = 250		# can be 0 or more
 
 # - Other Planner Options -
 
-#from_collapse_limit = 8
-#join_collapse_limit = 8		# 1 disables collapsing of explicit
+#from_collapse_limit = 20
+#join_collapse_limit = 20		# 1 disables collapsing of explicit
 					# JOIN clauses
 #gp_segments_for_planner = 0     # if 0, actual number of segments is used
 
