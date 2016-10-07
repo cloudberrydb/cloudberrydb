@@ -53,14 +53,6 @@ CPhysicalSequenceProject::CPhysicalSequenceProject
 	GPOS_ASSERT(NULL != pdrgpwf);
 	GPOS_ASSERT(CDistributionSpec::EdtHashed == pds->Edt() ||
 			CDistributionSpec::EdtSingleton == pds->Edt());
-
-	// When the SequenceProject does not have PARTITION BY keys, we generate two distribution
-	// request from its children:
-	// 1. Singleton distribution request
-	// 2. Replicate distribution request -- only when the Window operator is request by
-	// its parent a replicated distribution from its parent
-	SetDistrRequests(2);
-
 	CreateOrderSpec(pmp);
 	ComputeRequiredLocalColumns(pmp);
 }
@@ -328,7 +320,7 @@ CPhysicalSequenceProject::PdsRequired
 	CDistributionSpec *pdsRequired,
 	ULONG ulChildIndex,
 	DrgPdp *, // pdrgpdpCtxt
-	ULONG ulOptReq
+	ULONG // ulOptReq
 	)
 	const
 {
@@ -360,26 +352,7 @@ CPhysicalSequenceProject::PdsRequired
 		return m_pds;
 	}
 
-	if (0 == ulOptReq)
-	{
-		return GPOS_NEW(pmp) CDistributionSpecSingleton(CDistributionSpecSingleton::EstMaster);
-	}
-
-	// if the required distribution type is ANY then we check which
-	// physical operators are generating ANY distribtion and if the ANY
-	// is requested by MotionGather or Filter, we create Singleton.
-	// Otherwise we generate Replicated distribution spec.
-	if (CDistributionSpec::EdtAny == pdsRequired->Edt())
-	{
-		CDistributionSpecAny *anySpec = CDistributionSpecAny::PdsConvert(pdsRequired);
-		if (COperator::EopPhysicalMotionGather == anySpec->GetRequestedOperatorId()
-				|| COperator::EopPhysicalFilter == anySpec->GetRequestedOperatorId())
-		{
-			return GPOS_NEW(pmp) CDistributionSpecSingleton(CDistributionSpecSingleton::EstMaster);
-		}
-	}
-
-	return GPOS_NEW(pmp) CDistributionSpecReplicated();
+	return GPOS_NEW(pmp) CDistributionSpecSingleton(CDistributionSpecSingleton::EstMaster);
 }
 
 

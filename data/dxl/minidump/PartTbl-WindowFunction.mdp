@@ -692,7 +692,7 @@
         </dxl:Comparison>
       </dxl:LogicalJoin>
     </dxl:Query>
-<dxl:Plan Id="0" SpaceSize="10">
+<dxl:Plan Id="0" SpaceSize="9">
   <dxl:HashJoin JoinType="Inner">
     <dxl:Properties>
       <dxl:Cost StartupCost="0" TotalCost="116561.907440" Rows="10000.000000" Width="20"/>
@@ -793,9 +793,9 @@
         <dxl:SortingColumnList>
           <dxl:SortingColumn ColId="0" SortOperatorMdid="0.97.1.0" SortOperatorName="&lt;" SortNullsFirst="false"/>
         </dxl:SortingColumnList>
-        <dxl:Sequence>
+        <dxl:Sort SortDiscardDuplicates="false">
           <dxl:Properties>
-            <dxl:Cost StartupCost="0" TotalCost="97961.505097" Rows="100009.000000" Width="8"/>
+            <dxl:Cost StartupCost="0" TotalCost="98743.825409" Rows="100009.000000" Width="8"/>
           </dxl:Properties>
           <dxl:ProjList>
             <dxl:ProjElem ColId="0" Alias="a">
@@ -805,34 +805,15 @@
               <dxl:Ident ColId="1" ColName="b" TypeMdid="0.1082.1.0"/>
             </dxl:ProjElem>
           </dxl:ProjList>
-          <dxl:PartitionSelector RelationMdid="0.71316.1.1" PartitionLevels="1" ScanId="1">
+          <dxl:Filter/>
+          <dxl:SortingColumnList>
+            <dxl:SortingColumn ColId="0" SortOperatorMdid="0.97.1.0" SortOperatorName="&lt;" SortNullsFirst="false"/>
+          </dxl:SortingColumnList>
+          <dxl:LimitCount/>
+          <dxl:LimitOffset/>
+          <dxl:Sequence>
             <dxl:Properties>
-              <dxl:Cost StartupCost="10" TotalCost="100" Rows="100" Width="4"/>
-            </dxl:Properties>
-            <dxl:ProjList>
-              <dxl:ProjElem ColId="19" Alias="ColRef_0019">
-                <dxl:PartOid Level="0"/>
-              </dxl:ProjElem>
-            </dxl:ProjList>
-            <dxl:PartEqFilters>
-              <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
-            </dxl:PartEqFilters>
-            <dxl:PartFilters>
-              <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
-            </dxl:PartFilters>
-            <dxl:ResidualFilter>
-              <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
-            </dxl:ResidualFilter>
-            <dxl:PropagationExpression>
-              <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>
-            </dxl:PropagationExpression>
-            <dxl:PrintableFilter>
-              <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
-            </dxl:PrintableFilter>
-          </dxl:PartitionSelector>
-          <dxl:Sort SortDiscardDuplicates="false">
-            <dxl:Properties>
-              <dxl:Cost StartupCost="0" TotalCost="97961.505097" Rows="100009.000000" Width="8"/>
+              <dxl:Cost StartupCost="0" TotalCost="390.660156" Rows="100009.000000" Width="8"/>
             </dxl:Properties>
             <dxl:ProjList>
               <dxl:ProjElem ColId="0" Alias="a">
@@ -842,12 +823,31 @@
                 <dxl:Ident ColId="1" ColName="b" TypeMdid="0.1082.1.0"/>
               </dxl:ProjElem>
             </dxl:ProjList>
-            <dxl:Filter/>
-            <dxl:SortingColumnList>
-              <dxl:SortingColumn ColId="0" SortOperatorMdid="0.97.1.0" SortOperatorName="&lt;" SortNullsFirst="false"/>
-            </dxl:SortingColumnList>
-            <dxl:LimitCount/>
-            <dxl:LimitOffset/>
+            <dxl:PartitionSelector RelationMdid="0.71316.1.1" PartitionLevels="1" ScanId="1">
+              <dxl:Properties>
+                <dxl:Cost StartupCost="10" TotalCost="100" Rows="100" Width="4"/>
+              </dxl:Properties>
+              <dxl:ProjList>
+                <dxl:ProjElem ColId="19" Alias="ColRef_0019">
+                  <dxl:PartOid Level="0"/>
+                </dxl:ProjElem>
+              </dxl:ProjList>
+              <dxl:PartEqFilters>
+                <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
+              </dxl:PartEqFilters>
+              <dxl:PartFilters>
+                <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
+              </dxl:PartFilters>
+              <dxl:ResidualFilter>
+                <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
+              </dxl:ResidualFilter>
+              <dxl:PropagationExpression>
+                <dxl:ConstValue TypeMdid="0.23.1.0" IsNull="false" IsByValue="true" Value="1"/>
+              </dxl:PropagationExpression>
+              <dxl:PrintableFilter>
+                <dxl:ConstValue TypeMdid="0.16.1.0" IsNull="false" IsByValue="true" Value="true"/>
+              </dxl:PrintableFilter>
+            </dxl:PartitionSelector>
             <dxl:DynamicTableScan PartIndexId="1">
               <dxl:Properties>
                 <dxl:Cost StartupCost="0" TotalCost="390.660156" Rows="100009.000000" Width="8"/>
@@ -875,8 +875,8 @@
                 </dxl:Columns>
               </dxl:TableDescriptor>
             </dxl:DynamicTableScan>
-          </dxl:Sort>
-        </dxl:Sequence>
+          </dxl:Sequence>
+        </dxl:Sort>
       </dxl:GatherMotion>
       <dxl:WindowKeyList>
         <dxl:WindowKey>
