@@ -4422,6 +4422,12 @@ next_record_is_invalid:
 
 	failedSources |= readSource;
 
+	if (readFile >= 0)
+	{
+		close(readFile);
+		readFile = -1;
+	}
+
 	nextRecord = NULL;
 
 	/* In standby-mode, keep trying */
