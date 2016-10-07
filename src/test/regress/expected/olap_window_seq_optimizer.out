@@ -8058,16 +8058,18 @@ explain select count(*) over (order by i), count(*) over (partition by i order b
    ->  Window  (cost=0.00..431.00 rows=1 width=16)
          Partition By: i
          Order By: j
-         ->  Sort  (cost=0.00..431.00 rows=1 width=24)
+         ->  Sort  (cost=0.00..431.00 rows=1 width=16)
                Sort Key: i, j
-               ->  Window  (cost=0.00..431.00 rows=1 width=24)
+               ->  Window  (cost=0.00..431.00 rows=1 width=16)
                      Order By: i
-                     ->  Sort  (cost=0.00..431.00 rows=1 width=16)
-                           Sort Key: i
-                           ->  Gather Motion 2:1  (slice1; segments: 2)  (cost=0.00..431.00 rows=1 width=16)
-                                 ->  Table Scan on redundant_sort_check  (cost=0.00..431.00 rows=1 width=16)
- Settings:  gp_enable_sequential_window_plans=on; optimizer=on; optimizer_segments=3
-(13 rows)
+                     ->  Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..431.00 rows=1 width=8)
+                           Merge Key: i
+                           ->  Sort  (cost=0.00..431.00 rows=1 width=8)
+                                 Sort Key: i
+                                 ->  Table Scan on redundant_sort_check  (cost=0.00..431.00 rows=1 width=8)
+ Settings:  gp_enable_sequential_window_plans=on; optimizer=on
+ Optimizer status: PQO version 1.675
+(15 rows)
 
 -- End of MPP-13710
 -- MPP-13879

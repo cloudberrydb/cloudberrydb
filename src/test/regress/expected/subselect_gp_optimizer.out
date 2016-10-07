@@ -1145,12 +1145,13 @@ from
  Result  (cost=0.00..862.00 rows=1 width=16)
    ->  Window  (cost=0.00..862.00 rows=1 width=16)
          Order By: t2_mpp_24563.seq
-         ->  Sort  (cost=0.00..862.00 rows=1 width=12)
-               Sort Key: t2_mpp_24563.seq
-               ->  Gather Motion 2:1  (slice1; segments: 2)  (cost=0.00..862.00 rows=1 width=12)
+         ->  Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..862.00 rows=1 width=12)
+               Merge Key: t2_mpp_24563.seq
+               ->  Result  (cost=0.00..862.00 rows=1 width=12)
                      ->  Result  (cost=0.00..862.00 rows=1 width=12)
                            ->  Result  (cost=0.00..862.00 rows=1 width=12)
-                                 ->  Result  (cost=0.00..862.00 rows=1 width=12)
+                                 ->  Sort  (cost=0.00..862.00 rows=1 width=12)
+                                       Sort Key: t2_mpp_24563.seq
                                        ->  Hash Left Join  (cost=0.00..862.00 rows=1 width=12)
                                              Hash Cond: t2_mpp_24563.id = t1_mpp_24563.id
                                              ->  Table Scan on t2_mpp_24563  (cost=0.00..431.00 rows=1 width=8)
@@ -1162,8 +1163,8 @@ from
                                                                Sort Key: t1_mpp_24563.id
                                                                ->  Table Scan on t1_mpp_24563  (cost=0.00..431.00 rows=1 width=4)
  Settings:  optimizer=on; optimizer_segments=3
- Optimizer status: PQO version 1.621
-(21 rows)
+ Optimizer status: PQO version 1.675
+(22 rows)
 
 drop table t1_mpp_24563;
 drop table t2_mpp_24563;
