@@ -1515,6 +1515,7 @@ CMDAccessor::UlpSerializeSysid
 		
 		wszBuffer += str.UlLength();
 		ulpAllocSize -= str.UlLength();
+		ul++;
 	}
 	
 	return ulpRequiredSpace;
