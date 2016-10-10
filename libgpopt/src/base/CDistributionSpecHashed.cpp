@@ -282,7 +282,8 @@ CDistributionSpecHashed::FEqual
 	return m_fNullsColocated == pdshashed->FNullsColocated() &&
 			m_fDuplicateSensitive == pdshashed->FDuplicateSensitive() &&
 			m_fSatisfiedBySingleton == pdshashed->FSatisfiedBySingleton() &&
-			CUtils::FEqual(m_pdrgpexpr, pdshashed->m_pdrgpexpr);
+			CUtils::FEqual(m_pdrgpexpr, pdshashed->m_pdrgpexpr) &&
+			Edt() == pdshashed->Edt();
 }
 
 
