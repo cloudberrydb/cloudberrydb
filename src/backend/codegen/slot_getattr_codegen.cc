@@ -685,8 +685,8 @@ bool SlotGetAttrCodegen::GenerateSlotGetAttr(
       llvm_error);
 
   codegen_utils->CreateFallback<SlotGetAttrFn>(
-      codegen_utils->GetOrRegisterExternalFunction(slot_getattr,
-                                                   "slot_getattr"),
+      codegen_utils->GetOrRegisterExternalFunction(slot_getattr_regular,
+                                                   "slot_getattr_regular"),
       slot_getattr_func);
   return true;
 }

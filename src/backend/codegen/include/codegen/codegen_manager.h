@@ -81,13 +81,12 @@ class CodegenManager {
       FuncType regular_func_ptr,
       FuncType* ptr_to_chosen_func_ptr,
       Args&&... args) {  // NOLINT(build/c++11)
-
-	assert(nullptr != regular_func_ptr);
-	assert(nullptr != ptr_to_chosen_func_ptr);
+    assert(nullptr != regular_func_ptr);
+    assert(nullptr != ptr_to_chosen_func_ptr);
 
     bool can_enroll =
         // manager may be NULL if ExecInitNode/ExecProcNode weren't previously
-    	// called. This happens e.g during gpinitsystem.
+        // called. This happens e.g during gpinitsystem.
         (nullptr != manager) &&
         codegen &&  // if codegen guc is false
         // if generator is disabled

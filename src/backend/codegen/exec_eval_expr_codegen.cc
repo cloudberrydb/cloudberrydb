@@ -123,8 +123,8 @@ bool ExecEvalExprCodegen::GenerateExecEvalExpr(
   if (nullptr == slot_getattr_codegen_ ||
       false == slot_getattr_codegen_->GenerateCode(codegen_utils)) {
     gen_info_.llvm_slot_getattr_func =
-        codegen_utils->GetOrRegisterExternalFunction(slot_getattr,
-                                                     "slot_getattr");
+        codegen_utils->GetOrRegisterExternalFunction(slot_getattr_regular,
+                                                     "slot_getattr_regular");
   } else {
     gen_info_.llvm_slot_getattr_func =
         slot_getattr_codegen_->GetGeneratedFunction();

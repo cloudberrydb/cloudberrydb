@@ -102,6 +102,11 @@ void SetActiveCodeGeneratorManager(void* manager) {
   ActiveCodeGeneratorManager = manager;
 }
 
+Datum
+slot_getattr_regular(TupleTableSlot *slot, int attnum, bool *isnull) {
+  return slot_getattr(slot, attnum, isnull);
+}
+
 void* ExecVariableListCodegenEnroll(
     ExecVariableListFn regular_func_ptr,
     ExecVariableListFn* ptr_to_chosen_func_ptr,
