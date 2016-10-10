@@ -109,14 +109,22 @@ throughout the codebase, but a few larger additions worth noting:
   FTS is a process that runs in the master node, and periodically
   polls the segments to maintain the status of each segment.
 
-## Build GPDB with Planner
+## Building GPDB
+
+Some configure options are nominally optional, but required to pass
+all regression tests. The minimum set of options for running the
+regression tests successfully is:
+
+./configure --with-perl --with-python --with-libxml --enable-mapreduce
+
+### Build GPDB with Planner
 
 ```
 # Clean environment
 make distclean
 
 # Configure build environment to install at /usr/local/gpdb
-./configure --prefix=/usr/local/gpdb
+./configure --with-perl --with-python --with-libxml --enable-mapreduce --prefix=/usr/local/gpdb
 
 # Compile and install
 make
@@ -145,7 +153,7 @@ PGPORT=15432 make installcheck-good
 ```
 
 
-## Build GPDB with GPORCA
+### Build GPDB with GPORCA
 
 Only need to change the `configure` with additional option `--enable-orca`.
 ```
@@ -154,7 +162,7 @@ Only need to change the `configure` with additional option `--enable-orca`.
 # Build with perl module (PL/Perl)
 # Build with python module (PL/Python)
 # Build with XML support
-./configure --enable-orca --with-perl --with-python --with-libxml --prefix=/usr/local/gpdb
+./configure --with-perl --with-python --with-libxml ---enable-mapreduce --enable-orca --prefix=/usr/local/gpdb
 ```
 
 Once build and started, run `psql` and check the GPOPT (e.g. GPORCA) version:
@@ -163,7 +171,7 @@ Once build and started, run `psql` and check the GPOPT (e.g. GPORCA) version:
 select gp_opt_version();
 ```
 
-## Build GPDB with code generation enabled
+### Build GPDB with code generation enabled
 
 To build GPDB with code generation (codegen) enabled, you will need cmake 2.8 or higher
 and a recent version of llvm and clang (include headers and developer libraries). Codegen utils
@@ -176,7 +184,7 @@ your system.
 ```
 # Configure build environment to install at /usr/local/gpdb
 # Enable CODEGEN
-./configure --enable-codegen --prefix=/usr/local/gpdb --with-codegen-prefix="/path/to/llvm;/path/to/clang"
+./configure --with-perl --with-python --with-libxml ---enable-mapreduce --enable-codegen --prefix=/usr/local/gpdb --with-codegen-prefix="/path/to/llvm;/path/to/clang"
 ```
 
 ## Regression tests
