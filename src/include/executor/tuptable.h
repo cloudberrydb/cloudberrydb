@@ -316,8 +316,40 @@ static inline ItemPointer slot_get_ctid(TupleTableSlot *slot)
 	return &(slot->PRIVATE_tts_synthetic_ctid);
 }
 
-/* in access/common/heaptuple.c */
-extern Datum slot_getattr(TupleTableSlot *slot, int attnum, bool *isnull);
+/*
+ * Get an attribute from the tuple table slot.
+ */
+static inline Datum slot_getattr(TupleTableSlot *slot, int attnum, bool *isnull)
+{
+	Assert(!TupIsNull(slot));
+	Assert(attnum <= slot->tts_tupleDescriptor->natts);
+
+	/* System attribute */
+	if(attnum <= 0)
+		return slot_getsysattr(slot, attnum, isnull);
+
+	/* fast path for virtual tuple */
+	if(TupHasVirtualTuple(slot) && slot->PRIVATE_tts_nvalid >= attnum)
+	{
+		*isnull = slot->PRIVATE_tts_isnull[attnum-1];
+		return slot->PRIVATE_tts_values[attnum-1];
+	}
+
+	/* Mem tuple: We do not even populate virtual tuple */
+	if(TupHasMemTuple(slot))
+	{
+		Assert(slot->tts_mt_bind);
+		return memtuple_getattr(slot->PRIVATE_tts_memtuple, slot->tts_mt_bind, attnum, isnull);
+	}
+
+	/* Slow: heap tuple */
+	Assert(TupHasHeapTuple(slot));
+
+	_slot_getsomeattrs(slot, attnum);
+	Assert(TupHasVirtualTuple(slot) && slot->PRIVATE_tts_nvalid >= attnum);
+	*isnull = slot->PRIVATE_tts_isnull[attnum-1];
+	return slot->PRIVATE_tts_values[attnum-1];
+}
 
 static inline bool slot_attisnull(TupleTableSlot *slot, int attnum)
 {
