@@ -1078,6 +1078,17 @@ lazy_truncate_heap(Relation onerel, LVRelStats *vacrelstats)
 				j;
 	PGRUsage	ru0;
 
+	/*
+	 * Persistent table TIDs are stored in other locations like gp_relation_node
+	 * and changeTracking logs, which continue to have references to CTID even
+	 * if PT tuple is marked deleted. This TID is used to read tuple during
+	 * crash recovery or segment resyncs. Hence need to avoid truncating
+	 * persistent tables to avoid error / crash in heap_fetch using the TID
+	 * on lazy vacuum.
+	 */
+	if (GpPersistent_IsPersistentRelation(RelationGetRelid(onerel)))
+		return;
+
 	pg_rusage_init(&ru0);
 
 	/*
