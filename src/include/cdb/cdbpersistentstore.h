@@ -55,9 +55,6 @@ typedef struct PersistentStoreSharedData
 
 	int64				inUseCount;
 		/* Current number of tuples in persistent table */
-
-	ItemPointerData		maxTid;
-		/* Highest TID of tuple stored in persistent table */
 } PersistentStoreSharedData;
 
 inline static bool PersistentStoreSharedData_EyecatcherIsValid(
@@ -481,11 +478,6 @@ typedef enum PersistentTidIsKnownResult
 	PersistentTidIsKnownResult_NotKnown,
 	MaxPersistentTidIsKnownResult		/* must always be last */
 } PersistentTidIsKnownResult;
-
-extern PersistentTidIsKnownResult PersistentStore_TidIsKnown(
-	PersistentStoreSharedData 	*storeSharedData,
-	ItemPointer 				persistentTid,
-	ItemPointer 				maxTid);
 
 extern void PersistentStore_UpdateTuple(
 	PersistentStoreData 		*storeData,

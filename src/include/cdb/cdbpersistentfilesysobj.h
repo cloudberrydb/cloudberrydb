@@ -73,10 +73,13 @@ extern int64 PersistentFileSysObj_MyHighestSerialNum(
 extern int64 PersistentFileSysObj_CurrentMaxSerialNum(
 	PersistentFsObjType 	fsObjType);
 
-extern PersistentTidIsKnownResult PersistentFileSysObj_TidIsKnown(
-	PersistentFsObjType 	fsObjType,
+extern void PersistentFileSysObj_UpdateTuple(
+	PersistentFsObjType		fsObjType,
 	ItemPointer 			persistentTid,
-	ItemPointer 			maxTid);
+				/* TID of the stored tuple. */
+	Datum 					*values,
+	bool					flushToXLog);
+				/* When true, the XLOG record for this change will be flushed to disk. */
 
 extern void PersistentFileSysObj_ReplaceTuple(
 	PersistentFsObjType 	fsObjType,

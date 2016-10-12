@@ -752,35 +752,26 @@ int64 PersistentFileSysObj_CurrentMaxSerialNum(
 								&fileSysObjSharedData->storeSharedData);
 }
 
-PersistentTidIsKnownResult PersistentFileSysObj_TidIsKnown(
-	PersistentFsObjType 	fsObjType,
+void PersistentFileSysObj_UpdateTuple(
+	PersistentFsObjType		fsObjType,
 
 	ItemPointer 			persistentTid,
+				/* TID of the stored tuple. */
 
-	ItemPointer 			maxTid)
+	Datum 					*values,
+
+	bool					flushToXLog)
+				/* When true, the XLOG record for this change will be flushed to disk. */
 {
-	READ_PERSISTENT_STATE_ORDERED_LOCK_DECLARE;
+	Assert(fsObjType >= PersistentFsObjType_First);
+	Assert(fsObjType <= PersistentFsObjType_Last);
 
-	PersistentFileSysObjData 		*fileSysObjData;
-	PersistentFileSysObjSharedData 	*fileSysObjSharedData;
-
-	PersistentTidIsKnownResult result;
-
-	PersistentFileSysObj_GetDataPtrs(
-								fsObjType,
-								&fileSysObjData,
-								&fileSysObjSharedData);
-
-	READ_PERSISTENT_STATE_ORDERED_LOCK;
-
-	result = PersistentStore_TidIsKnown(
-								&fileSysObjSharedData->storeSharedData,
-								persistentTid,
-								maxTid);
-
-	READ_PERSISTENT_STATE_ORDERED_UNLOCK;
-
-	return result;
+	PersistentStore_UpdateTuple(
+							&(fileSysObjDataArray[fsObjType]->storeData),
+							&(fileSysObjSharedDataArray[fsObjType]->storeSharedData),
+							persistentTid,
+							values,
+							flushToXLog);
 }
 
 void PersistentFileSysObj_ReplaceTuple(

@@ -106,8 +106,6 @@ static void PersistentStore_DoInitScan(
 
 	values = (Datum*)palloc(storeData->numAttributes * sizeof(Datum));
 
-	MemSet(&storeSharedData->maxTid, 0, sizeof(ItemPointerData));
-
 	PersistentStore_BeginScan(
 						storeData,
 						storeSharedData,
@@ -122,15 +120,6 @@ static void PersistentStore_DoInitScan(
 		/*
 		 * We are scanning from low to high TID.
 		 */
-		Assert(
-			PersistentStore_IsZeroTid(&storeSharedData->maxTid)
-			||
-			ItemPointerCompare(
-							&storeSharedData->maxTid,
-							&persistentTid) == -1);	// Less-Than.
-
-		storeSharedData->maxTid = persistentTid;
-
 		PersistentStore_ExtractOurTupleData(
 									storeData,
 									values,
@@ -210,10 +199,9 @@ static void PersistentStore_DoInitScan(
 	if (Debug_persistent_recovery_print)
 		elog(PersistentRecovery_DebugPrintLevel(),
 			 "PersistentStore_DoInitScan ('%s'): maximum in-use serial number "
-			 INT64_FORMAT ", maximum known TID %s",
+			 INT64_FORMAT ,
 			 storeData->tableName,
-			 storeSharedData->maxInUseSerialNum,
-			 ItemPointerToString2(&storeSharedData->maxTid));
+			 storeSharedData->maxInUseSerialNum);
 }
 
 void PersistentStore_InitScanUnderLock(
@@ -374,34 +362,6 @@ int64 PersistentStore_CurrentMaxSerialNum(
 	return storeSharedData->maxInUseSerialNum;
 }
 
-PersistentTidIsKnownResult PersistentStore_TidIsKnown(
-	PersistentStoreSharedData 	*storeSharedData,
-	ItemPointer 				persistentTid,
-	ItemPointer 				maxTid)
-{
-	*maxTid = storeSharedData->maxTid;
-
-	Assert(!PersistentStore_IsZeroTid(persistentTid));
-
-	// UNDONE: I think the InRecovery test only applies to physical Master Mirroring on Standby.
-	/* Only test this outside of recovery scenarios */
-	if (Persistent_BeforePersistenceWork())
-		return PersistentTidIsKnownResult_BeforePersistenceWork;
-
-	if (storeSharedData->needToScanIntoSharedMemory)
-		return PersistentTidIsKnownResult_ScanNotPerformedYet;
-
-	if (PersistentStore_IsZeroTid(&storeSharedData->maxTid))
-		return PersistentTidIsKnownResult_MaxTidIsZero;
-
-	if (ItemPointerCompare(
-						persistentTid,
-						&storeSharedData->maxTid) <= 0) // Less-than or equal.
-		return PersistentTidIsKnownResult_Known;
-	else
-		return PersistentTidIsKnownResult_NotKnown;
-}
-
 static void PersistentStore_DoInsertTuple(
 	PersistentStoreData 		*storeData,
 	PersistentStoreSharedData 	*storeSharedData,
@@ -437,17 +397,9 @@ static void PersistentStore_DoInsertTuple(
 
 	if (Debug_persistent_store_print)
 		elog(PersistentStore_DebugPrintLevel(), 
-			 "PersistentStore_DoInsertTuple: old maximum known TID %s, new insert TID %s ('%s')",
-			 ItemPointerToString(&storeSharedData->maxTid),
+			 "PersistentStore_DoInsertTuple: new insert TID %s ('%s')",
 			 ItemPointerToString2(&persistentTuple->t_self),
 			 storeData->tableName);
-	if (ItemPointerCompare(
-						&storeSharedData->maxTid,
-						&persistentTuple->t_self) == -1)		
-	{
-		// Current max is Less-Than.
-		storeSharedData->maxTid = persistentTuple->t_self;
-	}
 	
 	/*
 	 * Return the TID of the INSERT tuple.
@@ -742,21 +694,6 @@ void PersistentStore_ReadTuple(
 		elog(ERROR, "TID for fetch persistent tuple is invalid (0,0) ('%s')",
 			 storeData->tableName);
 
-	// UNDONE: I think the InRecovery test only applies to physical Master Mirroring on Standby.
-	/* Only test this outside of recovery scenarios */
-	if (!InRecovery 
-		&& 
-		(PersistentStore_IsZeroTid(&storeSharedData->maxTid)
-		 ||
-		 ItemPointerCompare(
-						readTid,
-						&storeSharedData->maxTid) == 1 // Greater-than.
-		))
-	{
-		*tupleCopy = NULL;
-		return;
-	}
-	
 	persistentRel = (*storeData->openRel)();
 
 	tuple.t_self = *readTid;
