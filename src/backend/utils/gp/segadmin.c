@@ -1169,7 +1169,7 @@ segment_config_activate_standby(int16 standbydbid, int16 newdbid)
 	ScanKeyInit(&scankey,
 				Anum_gp_segment_configuration_dbid,
 				BTEqualStrategyNumber, F_INT2EQ,
-				Int16GetDatum(newdbid));
+				Int16GetDatum(standbydbid));
 	sscan = systable_beginscan(rel, GpSegmentConfigDbidIndexId, true,
 							   SnapshotNow, 1, &scankey);
 
