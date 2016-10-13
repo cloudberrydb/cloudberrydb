@@ -103,9 +103,6 @@ extern void PersistentFileSysObj_AddTuple(
 				/* TID of the stored tuple. */
 	int64						*persistentSerialNum);
 
-extern uint64 PersistentFileSysObj_RebuildFreeList(
-	PersistentFsObjType fsObjType);
-
 extern void PersistentFileSysObj_FreeTuple(
 	PersistentFileSysObjData		*fileSysObjData,
 	PersistentFileSysObjSharedData	*fileSysObjSharedData,

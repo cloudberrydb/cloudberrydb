@@ -206,7 +206,6 @@ bool		Debug_persistent_store_print = false;
 int			Debug_persistent_store_print_level = LOG;
 bool		Debug_persistent_bootstrap_print = false;
 bool		persistent_integrity_checks = true;
-bool		validate_previous_free_tid = true;
 bool		disable_persistent_diagnostic_dump = false;
 bool		debug_persistent_ptcat_verification = false;
 bool		debug_print_persistent_checks = false;
@@ -255,7 +254,6 @@ bool		gp_before_persistence_work = false;
 bool		gp_before_filespace_setup = false;
 bool		gp_startup_integrity_checks = true;
 bool		gp_change_tracking = true;
-bool		gp_persistent_skip_free_list = false;
 bool		gp_persistent_repair_global_sequence = false;
 bool		gp_validate_pt_info_relcache = false;
 bool		Debug_print_xlog_relation_change_info = false;
@@ -1729,16 +1727,6 @@ struct config_bool ConfigureNamesBool_gp[] =
 	},
 
 	{
-		{"validate_previous_free_tid", PGC_SUSET, UNGROUPED,
-			gettext_noop("When set checks that the previous free TID of the current free tuple is a valid free tuple."),
-			NULL,
-			GUC_SUPERUSER_ONLY | GUC_NO_SHOW_ALL | GUC_NOT_IN_SAMPLE
-		},
-		&validate_previous_free_tid,
-		true, NULL, NULL
-	},
-
-	{
 		{"disable_persistent_diagnostic_dump", PGC_SUSET, DEVELOPER_OPTIONS,
 			gettext_noop("When set disables printing full PT on erros."),
 			NULL,
@@ -2177,17 +2165,6 @@ struct config_bool ConfigureNamesBool_gp[] =
 		},
 		&gp_change_tracking,
 		true, NULL, NULL
-	},
-
-
-	{
-		{"gp_persistent_skip_free_list", PGC_SUSET, UNGROUPED,
-			gettext_noop("Avoids using the persistent free list and always allocates a new tuple."),
-			NULL,
-			GUC_NO_SHOW_ALL | GUC_NOT_IN_SAMPLE
-		},
-		&gp_persistent_skip_free_list,
-		false, NULL, NULL
 	},
 
 	{

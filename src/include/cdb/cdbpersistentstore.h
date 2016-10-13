@@ -56,12 +56,6 @@ typedef struct PersistentStoreSharedData
 	int64				inUseCount;
 		/* Current number of tuples in persistent table */
 
-	int64 				maxFreeOrderNum;
-		/* Current number of free tuples in persistent table */
-
-	ItemPointerData		freeTid;
-		/* TID of last tuple freed */
-
 	ItemPointerData		maxTid;
 		/* Highest TID of tuple stored in persistent table */
 } PersistentStoreSharedData;
@@ -435,14 +429,6 @@ extern void PersistentStore_Init(
 	int 						numAttributes,
 	int 						attNumPersistentSerialNum,
 	int 						attNumPreviousFreeTid);
-
-extern void PersistentStore_ResetFreeList(
-	PersistentStoreData 		*storeData,
-	PersistentStoreSharedData 	*storeSharedData);
-
-extern uint64 PersistentStore_RebuildFreeList(
-	PersistentStoreData 		*storeData,
-	PersistentStoreSharedData 	*storeSharedData);
 
 extern void PersistentStore_InitScanUnderLock(
 	PersistentStoreData 		*storeData,
