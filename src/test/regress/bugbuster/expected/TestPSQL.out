@@ -391,7 +391,7 @@ SELECT lanname, lanispl, lanpltrusted, lanacl FROM pg_language;
 --------Display tablespace
 \db
          List of tablespaces
-    Name    | Owner  | Filespae Name 
+    Name    | Owner  | Filespace Name 
 ------------+--------+---------------
  pg_default | jaltar | pg_system
  pg_global  | jaltar | pg_system

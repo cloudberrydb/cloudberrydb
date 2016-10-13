@@ -253,7 +253,7 @@ describeTablespaces(const char *pattern, bool verbose)
 					  "  fsname AS \"%s\"",
 					  gettext_noop("Name"),
 					  gettext_noop("Owner"),
-					  gettext_noop("Filespae Name"));
+					  gettext_noop("Filespace Name"));
     else
     printfPQExpBuffer(&buf,
 					  "SELECT spcname AS \"%s\",\n"
