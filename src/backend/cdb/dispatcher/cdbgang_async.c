@@ -50,6 +50,9 @@ createGang_async(GangType type, int gang_id, int size, int content)
 	bool retry = false;
 	int poll_timeout = 0;
 	struct timeval startTS;
+	PostgresPollingStatusType *pollingStatus = NULL;
+	/* true means connection status is confirmed, either established or in recovery mode */
+	bool *connStatusDone = NULL;
 
 	ELOG_DISPATCHER_DEBUG("createGang type = %d, gang_id = %d, size = %d, content = %d",
 			type, gang_id, size, content);
@@ -82,6 +85,10 @@ create_gang_retry:
 	Assert(newGangDefinition->size == size);
 	Assert(newGangDefinition->perGangContext != NULL);
 	MemoryContextSwitchTo(newGangDefinition->perGangContext);
+
+	/* allocate memory within perGangContext and will be freed automatically when gang is destroyed */
+	pollingStatus = palloc(sizeof(PostgresPollingStatusType) * size);
+	connStatusDone = palloc(sizeof(bool) * size);
 
 	struct pollfd *fds;
 
@@ -118,6 +125,13 @@ create_gang_retry:
 				ereport(ERROR, (errcode(ERRCODE_GP_INTERCONNECTION_ERROR),
 										errmsg("failed to acquire resources on one or more segments"),
 										errdetail("%s (%s)", PQerrorMessage(segdbDesc->conn), segdbDesc->whoami)));
+
+			connStatusDone[i] = false;
+			/*
+			 * If connection status is not CONNECTION_BAD after PQconnectStart(), we must
+			 * act as if the PQconnectPoll() had returned PGRES_POLLING_WRITING
+			 */
+			pollingStatus[i] = PGRES_POLLING_WRITING;
 		}
 
 		/*
@@ -137,16 +151,13 @@ create_gang_retry:
 
 			for (i = 0; i < size; i++)
 			{
-				PostgresPollingStatusType pollStatus;
-
 				segdbDesc = &newGangDefinition->db_descriptors[i];
 
-				/* Skip established connections and broken connections*/
-				if (cdbconn_isConnectionOk(segdbDesc) || cdbconn_isBadConnection(segdbDesc))
+				/* Skip established connections and in-recovery-mode connections*/
+				if (connStatusDone[i])
 					continue;
 
-				pollStatus = PQconnectPoll(segdbDesc->conn);
-				switch (pollStatus)
+				switch (pollingStatus[i])
 				{
 					case PGRES_POLLING_OK:
 						cdbconn_doConnectComplete(segdbDesc);
@@ -155,6 +166,7 @@ create_gang_retry:
 									errmsg("failed to acquire resources on one or more segments"),
 									errdetail("Internal error: No motion listener port (%s)", segdbDesc->whoami)));
 						successful_connections++;
+						connStatusDone[i] = true;
 						continue;
 
 					case PGRES_POLLING_READING:
@@ -173,6 +185,7 @@ create_gang_retry:
 						if (segment_failure_due_to_recovery(&segdbDesc->conn->errorMessage))
 						{
 							in_recovery_mode_count++;
+							connStatusDone[i] = true;
 							elog(LOG, "segment is in recovery mode (%s)", segdbDesc->whoami);
 						}
 						else
@@ -213,6 +226,25 @@ create_gang_retry:
 				ereport(ERROR, (errcode(ERRCODE_GP_INTERCONNECTION_ERROR),
 								errmsg("failed to acquire resources on one or more segments"),
 								errdetail("poll() failed: errno = %d", sock_errno)));
+			}
+			else if (nready > 0)
+			{
+				int currentFdNumber = 0;
+				for (i = 0; i < size; i++)
+				{
+					segdbDesc = &newGangDefinition->db_descriptors[i];
+					if (connStatusDone[i])
+						continue;
+
+					Assert(PQsocket(segdbDesc->conn) > 0);
+					Assert(PQsocket(segdbDesc->conn) == fds[currentFdNumber].fd);
+
+					if (fds[currentFdNumber].revents & fds[currentFdNumber].events)
+						pollingStatus[i] = PQconnectPoll(segdbDesc->conn);
+
+					currentFdNumber++;
+
+				}
 			}
 		}
 
