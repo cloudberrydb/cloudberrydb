@@ -995,6 +995,27 @@ _equalCreateExtensionStmt(const CreateExtensionStmt *a, const CreateExtensionStm
 }
 
 static bool
+_equalAlterExtensionStmt(AlterExtensionStmt *a, AlterExtensionStmt *b)
+{
+	COMPARE_STRING_FIELD(extname);
+	COMPARE_NODE_FIELD(options);
+
+	return true;
+}
+
+static bool
+_equalAlterExtensionContentsStmt(AlterExtensionContentsStmt *a, AlterExtensionContentsStmt *b)
+{
+	COMPARE_STRING_FIELD(extname);
+	COMPARE_SCALAR_FIELD(action);
+	COMPARE_SCALAR_FIELD(objtype);
+	COMPARE_NODE_FIELD(objname);
+	COMPARE_NODE_FIELD(objargs);
+
+	return true;
+}
+
+static bool
 _equalInheritPartitionCmd(InheritPartitionCmd *a, InheritPartitionCmd *b)
 {
 	COMPARE_NODE_FIELD(parent);
@@ -2887,6 +2908,12 @@ equal(void *a, void *b)
 			break;
 		case T_CreateExtensionStmt:
 			retval = _equalCreateExtensionStmt(a, b);
+			break;
+		case T_AlterExtensionStmt:
+			retval = _equalAlterExtensionStmt(a, b);
+			break;
+		case T_AlterExtensionContentsStmt:
+			retval = _equalAlterExtensionContentsStmt(a, b);
 			break;
 		case T_FileSpaceEntry:
 			retval = _equalFileSpaceEntry(a, b);

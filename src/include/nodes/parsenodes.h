@@ -1135,7 +1135,7 @@ typedef enum CreateExtensionState
 	CREATE_EXTENSION_INIT,		/* not start to create extension */
 	CREATE_EXTENSION_BEGIN,     /* start to create extension */
 	CREATE_EXTENSION_END		/* finish to create extension */
-}CreateExtensionState;
+} CreateExtensionState;
 
 typedef struct CreateExtensionStmt
 {

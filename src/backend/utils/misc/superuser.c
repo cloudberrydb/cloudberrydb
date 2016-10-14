@@ -21,7 +21,6 @@
 #include "postgres.h"
 
 #include "catalog/pg_authid.h"
-#include "commands/extension.h"
 #include "utils/inval.h"
 #include "utils/syscache.h"
 #include "storage/proc.h"

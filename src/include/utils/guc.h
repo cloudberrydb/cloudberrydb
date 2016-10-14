@@ -105,7 +105,7 @@ typedef struct name_value_pair
 	char       *name;
 	char       *value;
 	struct name_value_pair *next;
-}name_value_pair;
+} name_value_pair;
 
 extern bool ParseConfigFile(const char *config_file, const char *calling_file,
 							int depth, GucContext context, int elevel,

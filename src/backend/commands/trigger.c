@@ -910,6 +910,59 @@ RemoveTriggerById(Oid trigOid)
 }
 
 /*
+ * get_trigger_oid - Look up a trigger by name to find its OID.
+ *
+ * If missing_ok is false, throw an error if trigger not found.  If
+ * true, just return InvalidOid.
+ */
+Oid
+get_trigger_oid(Oid relid, const char *trigname, bool missing_ok)
+{
+	Relation	tgrel;
+	ScanKeyData skey[2];
+	SysScanDesc tgscan;
+	HeapTuple	tup;
+	Oid			oid;
+
+	/*
+	 * Find the trigger, verify permissions, set up object address
+	 */
+	tgrel = heap_open(TriggerRelationId, AccessShareLock);
+
+	ScanKeyInit(&skey[0],
+				Anum_pg_trigger_tgrelid,
+				BTEqualStrategyNumber, F_OIDEQ,
+				ObjectIdGetDatum(relid));
+	ScanKeyInit(&skey[1],
+				Anum_pg_trigger_tgname,
+				BTEqualStrategyNumber, F_NAMEEQ,
+				CStringGetDatum(trigname));
+
+	tgscan = systable_beginscan(tgrel, TriggerRelidNameIndexId, true,
+								SnapshotNow, 2, skey);
+
+	tup = systable_getnext(tgscan);
+
+	if (!HeapTupleIsValid(tup))
+	{
+		if (!missing_ok)
+			ereport(ERROR,
+					(errcode(ERRCODE_UNDEFINED_OBJECT),
+					 errmsg("trigger \"%s\" for table \"%s\" does not exist",
+							trigname, get_rel_name(relid))));
+		oid = InvalidOid;
+	}
+	else
+	{
+		oid = HeapTupleGetOid(tup);
+	}
+
+	systable_endscan(tgscan);
+	heap_close(tgrel, AccessShareLock);
+	return oid;
+}
+
+/*
  *		renametrig		- changes the name of a trigger on a relation
  *
  *		trigger name is changed in trigger catalog.

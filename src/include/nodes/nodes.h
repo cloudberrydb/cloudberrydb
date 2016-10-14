@@ -444,6 +444,8 @@ typedef enum NodeTag
 	T_DenyLoginPoint,
 	T_AlterTypeStmt,
 	T_CreateExtensionStmt,
+	T_AlterExtensionStmt,
+	T_AlterExtensionContentsStmt,
 	T_SetDistributionCmd,
 
 	/*

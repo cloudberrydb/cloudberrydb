@@ -551,12 +551,7 @@ objectNamesToOids(GrantObjectType objtype, List *objnames)
 				char	   *dbname = strVal(lfirst(cell));
 				Oid			dbid;
 
-				dbid = get_database_oid(dbname);
-				if (!OidIsValid(dbid))
-					ereport(ERROR,
-							(errcode(ERRCODE_UNDEFINED_DATABASE),
-							 errmsg("database \"%s\" does not exist",
-									dbname)));
+				dbid = get_database_oid(dbname, false);
 				objects = lappend_oid(objects, dbid);
 			}
 			break;
@@ -3035,6 +3030,37 @@ pg_extprotocol_ownercheck(Oid protOid, Oid roleid)
 	heap_close(pg_extprotocol, AccessShareLock);
 
 	return has_privs_of_role(roleid, ownerId);
+}
+
+
+/*
+ * Check whether specified role has CREATEROLE privilege (or is a superuser)
+ *
+ * Note: roles do not have owners per se; instead we use this test in
+ * places where an ownership-like permissions test is needed for a role.
+ * Be sure to apply it to the role trying to do the operation, not the
+ * role being operated on!	Also note that this generally should not be
+ * considered enough privilege if the target role is a superuser.
+ * (We don't handle that consideration here because we want to give a
+ * separate error message for such cases, so the caller has to deal with it.)
+ */
+bool
+has_createrole_privilege(Oid roleid)
+{
+	bool		result = false;
+	HeapTuple	utup;
+
+	/* Superusers bypass all permission checking. */
+	if (superuser_arg(roleid))
+		return true;
+
+	utup = SearchSysCache1(AUTHOID, ObjectIdGetDatum(roleid));
+	if (HeapTupleIsValid(utup))
+	{
+		result = ((Form_pg_authid) GETSTRUCT(utup))->rolcreaterole;
+		ReleaseSysCache(utup);
+	}
+	return result;
 }
 
 /*

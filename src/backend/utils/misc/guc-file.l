@@ -65,11 +65,6 @@ static sigjmp_buf *GUC_flex_fatal_jmp;
 /* flex fails to supply a prototype for yylex, so provide one */
 int GUC_yylex(void);
 
-static bool ParseConfigFile(const char *config_file, const char *calling_file,
-							int depth, GucContext context, int elevel,
-							struct name_value_pair **head_p,
-							struct name_value_pair **tail_p);
-static void free_name_value_list(struct name_value_pair * list);
 static int GUC_flex_fatal(const char *msg);
 static char *GUC_scanstr(const char *s);
 

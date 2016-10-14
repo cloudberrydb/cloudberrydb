@@ -110,6 +110,7 @@ typedef enum
 {
 	/* When modifying this enum, update priority tables in pg_dump_sort.c! */
 	DO_NAMESPACE,
+	DO_EXTENSION,
 	DO_TYPE,
 	DO_SHELL_TYPE,
 	DO_FUNC,
@@ -147,6 +148,7 @@ typedef struct _dumpableObject
 	char	   *name;			/* object name (should never be NULL) */
 	struct _namespaceInfo *namespace;	/* containing namespace, or NULL */
 	bool		dump;			/* true if we want to dump this object */
+	bool		ext_member;		/* true if object is member of extension */
 	DumpId	   *dependencies;	/* dumpIds of objects this one depends on */
 	int			nDeps;			/* number of valid dependencies */
 	int			allocDeps;		/* allocated size of dependencies[] */
@@ -158,6 +160,16 @@ typedef struct _namespaceInfo
 	char	   *rolname;		/* name of owner, or empty string */
 	char	   *nspacl;
 } NamespaceInfo;
+
+typedef struct _extensionInfo
+{
+	DumpableObject dobj;
+	char 	   *namespace;		/* schema containing extension's objects */
+	bool		relocatable;
+	char	   *extversion;
+	char	   *extconfig;		/* info about configuration tables */
+	char	   *extcondition;
+} ExtensionInfo;
 
 typedef struct _typeInfo
 {
@@ -308,6 +320,7 @@ typedef struct _tableInfo
 	 */
 	int			numParents;		/* number of (immediate) parent tables */
 	struct _tableInfo **parents;	/* TableInfos of immediate parents */
+	struct _tableDataInfo *dataObj;		/* TableDataInfo, if dumping its data */
 	Oid			parrelid;			/* external partition's parent oid */
 } TableInfo;
 
@@ -325,6 +338,7 @@ typedef struct _tableDataInfo
 	DumpableObject dobj;
 	TableInfo  *tdtable;		/* link to table to dump */
 	bool		oids;			/* include OIDs in data? */
+	char	   *filtercond;		/* WHERE condition to limit rows dumped */
 } TableDataInfo;
 
 typedef struct _indxInfo
@@ -445,6 +459,16 @@ typedef struct _cfgInfo
 	Oid			cfgparser;
 } TSConfigInfo;
 
+/*
+ * We build an array of these with an entry for each object that is an
+ * extension member according to pg_depend.
+ */
+typedef struct _extensionMemberId
+{
+	CatalogId	catId;			/* tableoid+oid of some member object */
+	ExtensionInfo *ext;			/* owning extension */
+} ExtensionMemberId;
+
 /* global decls */
 extern bool force_quotes;		/* double-quotes for identifiers flag */
 extern bool g_verbose;			/* verbose flag */
@@ -486,6 +510,10 @@ extern TypeInfo *findTypeByOid(Oid oid);
 extern FuncInfo *findFuncByOid(Oid oid);
 extern OprInfo *findOprByOid(Oid oid);
 extern NamespaceInfo *findNamespaceByOid(Oid oid);
+extern ExtensionInfo *findExtensionByOid(Oid oid);
+
+extern void setExtensionMembership(ExtensionMemberId *extmems, int nextmems);
+extern ExtensionInfo *findOwningExtension(CatalogId catalogId);
 
 extern void simple_oid_list_append(SimpleOidList *list, Oid val);
 extern void simple_string_list_append(SimpleStringList *list, const char *val);
@@ -512,6 +540,7 @@ extern void sortDumpableObjectsByTypeOid(DumpableObject **objs, int numObjs);
  * version specific routines
  */
 extern NamespaceInfo *getNamespaces(int *numNamespaces);
+extern ExtensionInfo *getExtensions(int *numExtensions);
 extern TypeInfo *getTypes(int *numTypes);
 extern TypeStorageOptions *getTypeStorageOptions(int *numTypes);
 extern FuncInfo *getFuncs(int *numFuncs);
@@ -536,6 +565,8 @@ extern TSParserInfo *getTSParsers(int *numTSParsers);
 extern TSDictInfo *getTSDictionaries(int *numTSDicts);
 extern TSTemplateInfo *getTSTemplates(int *numTSTemplates);
 extern TSConfigInfo *getTSConfigurations(int *numTSConfigs);
+extern void getExtensionMembership(ExtensionInfo extinfo[], int numExtensions);
+extern void processExtensionTables(ExtensionInfo extinfo[], int numExtensions);
 
 extern bool	testExtProtocolSupport(void);
 

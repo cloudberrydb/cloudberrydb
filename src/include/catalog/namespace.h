@@ -100,6 +100,8 @@ extern bool TempNamespaceOidIsValid(void);  /* GPDB only:  used by cdbgang.c */
 extern void InitTempTableNamespace(void);
 
 extern Oid	LookupCreationNamespace(const char *nspname);
+extern void CheckSetNamespace(Oid oldNspOid, Oid nspOid, Oid classid,
+				  Oid objid);
 extern Oid	QualifiedNameGetCreationNamespace(List *names, char **objname_p);
 extern RangeVar *makeRangeVarFromNameList(List *names);
 extern char *NameListToString(List *names);
@@ -117,7 +119,7 @@ extern OverrideSearchPath *GetOverrideSearchPath(MemoryContext context);
 extern void PushOverrideSearchPath(OverrideSearchPath *newpath);
 extern void PopOverrideSearchPath(void);
 
-extern Oid	FindConversionByName(List *conname);
+extern Oid	get_conversion_oid(List *name, bool missing_ok);
 extern Oid	FindDefaultConversionProc(int4 for_encoding, int4 to_encoding);
 
 /* initialization & transaction cleanup code */

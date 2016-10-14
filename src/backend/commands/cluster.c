@@ -1016,7 +1016,7 @@ changeDependencyLinks(Oid baseOid1, Oid baseOid2, Oid oid1, Oid oid2,
 	/* Delete old dependencies */
 	if (oid1)
 	{
-		count = deleteDependencyRecordsFor(RelationRelationId, oid1);
+		count = deleteDependencyRecordsFor(RelationRelationId, oid1, false);
 		if (count != 1)
 			elog(ERROR, "expected one dependency record for %s table, found %ld",
 				 tabletype, count);
@@ -1024,7 +1024,7 @@ changeDependencyLinks(Oid baseOid1, Oid baseOid2, Oid oid1, Oid oid2,
 	
 	if (oid2)
 	{
-		count = deleteDependencyRecordsFor(RelationRelationId, oid2);
+		count = deleteDependencyRecordsFor(RelationRelationId, oid2, false);
 		if (count != 1)
 			elog(ERROR, "expected one dependency record for %s table, found %ld",
 				 tabletype, count);

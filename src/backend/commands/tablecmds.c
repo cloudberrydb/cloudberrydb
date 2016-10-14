@@ -213,10 +213,10 @@ static void StoreCatalogInheritance1(Oid relationId, Oid parentOid,
 static int	findAttrByName(const char *attributeName, List *schema);
 static void setRelhassubclassInRelation(Oid relationId, bool relhassubclass);
 static void AlterIndexNamespaces(Relation classRel, Relation rel,
-					 Oid oldNspOid, Oid newNspOid);
+					 Oid oldNspOid, Oid newNspOid, ObjectAddresses *objsMoved);
 static void AlterSeqNamespaces(Relation classRel, Relation rel,
-				   Oid oldNspOid, Oid newNspOid,
-				   const char *newNspName);
+				   Oid oldNspOid, Oid newNspOid, ObjectAddresses *objsMoved,
+				   LOCKMODE lockmode);
 static int transformColumnNameList(Oid relId, List *colList,
 						int16 *attnums, Oid *atttypids);
 static int transformFkeyGetPrimaryKey(Relation pkrel, Oid *indexOid,
@@ -361,13 +361,6 @@ static bool TypeTupleExists(Oid typeId);
 
 static void ATExecPartAddInternal(Relation rel, Node *def);
 
-static void
-AlterRelationNamespaceInternalTwo(Relation rel,
-								  Oid relid,
-								  Oid oldNspOid, Oid newNspOid,
-								  bool hasDependEntry,
-								  const char *newschema);
-
 static RangeVar *make_temp_table_name(Relation rel, BackendId id);
 static bool prebuild_temp_table(Relation rel, RangeVar *tmpname, List *distro,
 								List *opts, List **hidden_types, bool isTmpTableAo,
@@ -484,12 +477,7 @@ DefineRelation(CreateStmt *stmt, char relkind, char relstorage, bool dispatch)
 		 * Tablespace specified on the command line, or was passed down by
 		 * dispatch.
 		 */
-		tablespaceId = get_tablespace_oid(stmt->tablespacename);
-		if (!OidIsValid(tablespaceId))
-			ereport(ERROR,
-					(errcode(ERRCODE_UNDEFINED_OBJECT),
-					 errmsg("tablespace \"%s\" does not exist",
-							stmt->tablespacename)));
+		tablespaceId = get_tablespace_oid(stmt->tablespacename, false);
 	}
 	else
 	{
@@ -8476,6 +8464,7 @@ ATExecAlterColumnType(AlteredTableInfo *tab, Relation rel,
 			case OCLASS_TSDICT:
 			case OCLASS_TSTEMPLATE:
 			case OCLASS_TSCONFIG:
+			case OCLASS_EXTENSION:
 
 				/*
 				 * We don't expect any of these sorts of objects to depend on
@@ -9193,12 +9182,7 @@ get_settable_tablespace_oid(char *tablespacename)
 	AclResult	aclresult;
 
 	/* Check that the tablespace exists */
-	tablespaceId = get_tablespace_oid(tablespacename);
-	if (!OidIsValid(tablespaceId))
-		ereport(ERROR,
-				(errcode(ERRCODE_UNDEFINED_OBJECT),
-				 errmsg("tablespace \"%s\" does not exist", tablespacename)));
-
+	tablespaceId = get_tablespace_oid(tablespacename, false);
 	/* Check its permissions */
 	aclresult = pg_tablespace_aclcheck(tablespaceId, GetUserId(), ACL_CREATE);
 	if (aclresult != ACLCHECK_OK)
@@ -13567,15 +13551,13 @@ ATPExecPartExchange(AlteredTableInfo *tab, Relation rel, AlterPartitionCmd *pc)
 		/* MPP-6979: if the namespaces are different, switch them */
 		if (newNspName)
 		{
+			ObjectAddresses *objsMoved = new_object_addresses();
+
 			/* move the old partition (which has a temporary name) to
 			 * the new namespace 
 			 */
 			oldrel = heap_open(oldrelid, AccessExclusiveLock);
-			AlterRelationNamespaceInternalTwo(oldrel,
-											  oldrelid,
-											  oldnspid, newnspid,
-											  true,
-											  newNspName);
+			AlterTableNamespaceInternal(oldrel, oldnspid, newnspid, objsMoved);
 			heap_close(oldrel, NoLock);
 			CommandCounterIncrement();
 			RelationForgetRelation(oldrelid);
@@ -13590,14 +13572,12 @@ ATPExecPartExchange(AlteredTableInfo *tab, Relation rel, AlterPartitionCmd *pc)
 			RelationForgetRelation(newrelid);
 
 			newrel = heap_open(newrelid, AccessExclusiveLock);
-			AlterRelationNamespaceInternalTwo(newrel,
-											  newrelid,
-											  newnspid, oldnspid,
-											  true,
-											  oldNspName);
+			AlterTableNamespaceInternal(newrel, newnspid, oldnspid, objsMoved);
 			heap_close(newrel, NoLock);
 			CommandCounterIncrement();
 			RelationForgetRelation(newrelid);
+
+			free_object_addresses(objsMoved);
 		}
 
 		renamerel(newrelid, oldname, OBJECT_TABLE, NULL);
@@ -15727,6 +15707,7 @@ AlterTableNamespace(RangeVar *relation, const char *newschema)
 	Oid			relid;
 	Oid			oldNspOid;
 	Oid			nspOid;
+	ObjectAddresses *objsMoved;
 
 	rel = relation_openrv(relation, AccessExclusiveLock);
 
@@ -15778,34 +15759,13 @@ AlterTableNamespace(RangeVar *relation, const char *newschema)
 	/* get schema OID and check its permissions */
 	nspOid = LookupCreationNamespace(newschema);
 
-	if (oldNspOid == nspOid)
-		ereport(ERROR,
-				(errcode(ERRCODE_DUPLICATE_TABLE),
-				 errmsg("relation \"%s\" is already in schema \"%s\"",
-						RelationGetRelationName(rel),
-						newschema)));
-
-	/* disallow renaming into or out of temp schemas */
-	if (isAnyTempNamespace(nspOid) || isAnyTempNamespace(oldNspOid))
-		ereport(ERROR,
-				(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
-			errmsg("cannot move objects into or out of temporary schemas")));
-
-	/* same for TOAST schema */
-	if (nspOid == PG_TOAST_NAMESPACE || oldNspOid == PG_TOAST_NAMESPACE)
-		ereport(ERROR,
-				(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
-				 errmsg("cannot move objects into or out of TOAST schema")));
-
-	/* same for AO SEGMENT schema */
-	if (nspOid == PG_AOSEGMENT_NAMESPACE || oldNspOid == PG_AOSEGMENT_NAMESPACE)
-		ereport(ERROR,
-				(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
-				 errmsg("cannot move objects into or out of AO SEGMENT schema")));
-
+	/* common checks on switching namespaces */
+	CheckSetNamespace(oldNspOid, nspOid, RelationRelationId, relid);
 
 	/* OK, modify the pg_class row and pg_depend entry */
-	AlterRelationNamespaceInternalTwo(rel, relid, oldNspOid, nspOid, true, newschema);
+	objsMoved = new_object_addresses();
+	AlterTableNamespaceInternal(rel, oldNspOid, nspOid, objsMoved);
+	free_object_addresses(objsMoved);
 
 	/* MPP-7825, MPP-6929, MPP-7600: metadata tracking */
 	if ((Gp_role == GP_ROLE_DISPATCH)
@@ -15820,30 +15780,37 @@ AlterTableNamespace(RangeVar *relation, const char *newschema)
 	relation_close(rel, NoLock);
 }
 
-static void
-AlterRelationNamespaceInternalTwo(Relation rel, Oid relid,
-								  Oid oldNspOid, Oid newNspOid,
-								  bool hasDependEntry,
-								  const char *newschema)
+/*
+ * The guts of relocating a table to another namespace: besides moving
+ * the table itself, its dependent objects are relocated to the new schema.
+ */
+void
+AlterTableNamespaceInternal(Relation rel, Oid oldNspOid, Oid nspOid,
+							ObjectAddresses *objsMoved)
 {
-	Relation classRel;
+	Relation        classRel;
+
+	Assert(objsMoved != NULL);
 
 	/* OK, modify the pg_class row and pg_depend entry */
 	classRel = heap_open(RelationRelationId, RowExclusiveLock);
 
-	AlterRelationNamespaceInternal(classRel, relid, oldNspOid, newNspOid, 
-								   hasDependEntry);
+	AlterRelationNamespaceInternal(classRel, RelationGetRelid(rel), oldNspOid,
+								   nspOid, true, objsMoved);
 
-	/* Fix the table's rowtype too */
-	AlterTypeNamespaceInternal(rel->rd_rel->reltype, newNspOid, false, false);
+	/* Fix the table's row type too */
+	AlterTypeNamespaceInternal(rel->rd_rel->reltype,
+							   nspOid, false, false, objsMoved);
 
 	/* Fix other dependent stuff */
 	if (rel->rd_rel->relkind == RELKIND_RELATION)
 	{
-		AlterIndexNamespaces(classRel, rel, oldNspOid, newNspOid);
-		AlterSeqNamespaces(classRel, rel, oldNspOid, newNspOid, newschema);
-		AlterConstraintNamespaces(relid, oldNspOid, newNspOid, false);
+		AlterIndexNamespaces(classRel, rel, oldNspOid, nspOid, objsMoved);
+		AlterSeqNamespaces(classRel, rel, oldNspOid, nspOid, objsMoved, AccessExclusiveLock);
+		AlterConstraintNamespaces(RelationGetRelid(rel), oldNspOid, nspOid,
+								  false, objsMoved);
 	}
+
 	heap_close(classRel, RowExclusiveLock);
 }
 
@@ -15855,43 +15822,52 @@ AlterRelationNamespaceInternalTwo(Relation rel, Oid relid,
 void
 AlterRelationNamespaceInternal(Relation classRel, Oid relOid,
 							   Oid oldNspOid, Oid newNspOid,
-							   bool hasDependEntry)
+							   bool hasDependEntry, ObjectAddresses *objsMoved)
 {
 	HeapTuple	classTup;
 	Form_pg_class classForm;
+	ObjectAddress	thisobj;
 
-	Assert(RelationGetRelid(classRel) == RelationRelationId);
-
-	classTup = SearchSysCacheCopy(RELOID,
-								  ObjectIdGetDatum(relOid),
-								  0, 0, 0);
+	classTup = SearchSysCacheCopy1(RELOID, ObjectIdGetDatum(relOid));
 	if (!HeapTupleIsValid(classTup))
 		elog(ERROR, "cache lookup failed for relation %u", relOid);
 	classForm = (Form_pg_class) GETSTRUCT(classTup);
 
 	Assert(classForm->relnamespace == oldNspOid);
 
-	/* check for duplicate name (more friendly than unique-index failure) */
-	if (get_relname_relid(NameStr(classForm->relname),
-						  newNspOid) != InvalidOid)
-		ereport(ERROR,
-				(errcode(ERRCODE_DUPLICATE_TABLE),
-				 errmsg("relation \"%s\" already exists in schema \"%s\"",
-						NameStr(classForm->relname),
-						get_namespace_name(newNspOid))));
+	thisobj.classId = RelationRelationId;
+	thisobj.objectId = relOid;
+	thisobj.objectSubId = 0;
 
-	/* classTup is a copy, so OK to scribble on */
-	classForm->relnamespace = newNspOid;
+	/*
+	 * Do nothing when there's nothing to do.
+	 */
+	if (!object_address_present(&thisobj, objsMoved))
+	{
+		/* check for duplicate name (more friendly than unique-index failure) */
+		if (get_relname_relid(NameStr(classForm->relname),
+							  newNspOid) != InvalidOid)
+			ereport(ERROR,
+					(errcode(ERRCODE_DUPLICATE_TABLE),
+					 errmsg("relation \"%s\" already exists in schema \"%s\"",
+							NameStr(classForm->relname),
+							get_namespace_name(newNspOid))));
 
-	simple_heap_update(classRel, &classTup->t_self, classTup);
-	CatalogUpdateIndexes(classRel, classTup);
+		/* classTup is a copy, so OK to scribble on */
+		classForm->relnamespace = newNspOid;
 
-	/* Update dependency on schema if caller said so */
-	if (hasDependEntry &&
-		changeDependencyFor(RelationRelationId, relOid,
-							NamespaceRelationId, oldNspOid, newNspOid) != 1)
-		elog(ERROR, "failed to change schema dependency for relation \"%s\"",
-			 NameStr(classForm->relname));
+		simple_heap_update(classRel, &classTup->t_self, classTup);
+		CatalogUpdateIndexes(classRel, classTup);
+
+		/* Update dependency on schema if caller said so */
+		if (hasDependEntry &&
+			changeDependencyFor(RelationRelationId, relOid,
+								NamespaceRelationId, oldNspOid, newNspOid) != 1)
+			elog(ERROR, "failed to change schema dependency for relation \"%s\"",
+				 NameStr(classForm->relname));
+
+		add_exact_object_address(&thisobj, objsMoved);
+	}
 
 	heap_freetuple(classTup);
 }
@@ -15904,7 +15880,7 @@ AlterRelationNamespaceInternal(Relation classRel, Oid relOid,
  */
 static void
 AlterIndexNamespaces(Relation classRel, Relation rel,
-					 Oid oldNspOid, Oid newNspOid)
+					 Oid oldNspOid, Oid newNspOid, ObjectAddresses *objsMoved)
 {
 	List	   *indexList;
 	ListCell   *l;
@@ -15914,15 +15890,27 @@ AlterIndexNamespaces(Relation classRel, Relation rel,
 	foreach(l, indexList)
 	{
 		Oid			indexOid = lfirst_oid(l);
+		ObjectAddress thisobj;
+
+		thisobj.classId = RelationRelationId;
+		thisobj.objectId = indexOid;
+		thisobj.objectSubId = 0;
 
 		/*
 		 * Note: currently, the index will not have its own dependency on the
 		 * namespace, so we don't need to do changeDependencyFor(). There's no
 		 * rowtype in pg_type, either.
+		 *
+		 * XXX this objsMoved test may be pointless -- surely we have a single
+		 * dependency link from a relation to each index?
 		 */
-		AlterRelationNamespaceInternal(classRel, indexOid,
-									   oldNspOid, newNspOid,
-									   false);
+		if (!object_address_present(&thisobj, objsMoved))
+		{
+			AlterRelationNamespaceInternal(classRel, indexOid,
+			                               oldNspOid, newNspOid,
+			                               false, objsMoved);
+			add_exact_object_address(&thisobj, objsMoved);
+		}
 	}
 
 	list_free(indexList);
@@ -15937,11 +15925,12 @@ AlterIndexNamespaces(Relation classRel, Relation rel,
  */
 static void
 AlterSeqNamespaces(Relation classRel, Relation rel,
-				   Oid oldNspOid, Oid newNspOid, const char *newNspName)
+				   Oid oldNspOid, Oid newNspOid, ObjectAddresses *objsMoved,
+				   LOCKMODE lockmode)
 {
 	Relation	depRel;
-	SysScanDesc scan;
-	ScanKeyData key[2];
+	SysScanDesc	scan;
+	ScanKeyData	key[2];
 	HeapTuple	tup;
 
 	/*
@@ -15976,27 +15965,27 @@ AlterSeqNamespaces(Relation classRel, Relation rel,
 			continue;
 
 		/* Use relation_open just in case it's an index */
-		seqRel = relation_open(depForm->objid, AccessExclusiveLock);
+		seqRel = relation_open(depForm->objid, lockmode);
 
 		/* skip non-sequence relations */
 		if (RelationGetForm(seqRel)->relkind != RELKIND_SEQUENCE)
 		{
 			/* No need to keep the lock */
-			relation_close(seqRel, AccessExclusiveLock);
+			relation_close(seqRel, lockmode);
 			continue;
 		}
 
 		/* Fix the pg_class and pg_depend entries */
 		AlterRelationNamespaceInternal(classRel, depForm->objid,
 									   oldNspOid, newNspOid,
-									   true);
+									   true, objsMoved);
 
 		/*
 		 * Sequences have entries in pg_type. We need to be careful to move
 		 * them to the new namespace, too.
 		 */
 		AlterTypeNamespaceInternal(RelationGetForm(seqRel)->reltype,
-								   newNspOid, false, false);
+								   newNspOid, false, false, objsMoved);
 
 		/* Now we can close it.  Keep the lock till end of transaction. */
 		relation_close(seqRel, NoLock);

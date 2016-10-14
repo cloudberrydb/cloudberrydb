@@ -235,12 +235,7 @@ DefineIndex(RangeVar *heapRelation,
 	 */
 	if (tableSpaceName)
 	{
-		tablespaceId = get_tablespace_oid(tableSpaceName);
-		if (!OidIsValid(tablespaceId))
-			ereport(ERROR,
-					(errcode(ERRCODE_UNDEFINED_OBJECT),
-					 errmsg("tablespace \"%s\" does not exist",
-							tableSpaceName)));
+		tablespaceId = get_tablespace_oid(tableSpaceName, false);
 	}
 	else
 	{

@@ -15,6 +15,7 @@
 #define DEPENDENCY_H
 
 #include "nodes/parsenodes.h"	/* for DropBehavior */
+#include "catalog/objectaddress.h"
 
 
 /*----------
@@ -48,6 +49,12 @@
  * specified or not.
  * Example: a trigger that's created to enforce a foreign-key constraint
  * is made internally dependent on the constraint's pg_constraint entry.
+ *
+ * DEPENDENCY_EXTENSION ('e'): the dependent object is a member of the
+ * extension that is the referenced object.  The dependent object can be
+ * dropped only via DROP EXTENSION on the referenced object.  Functionally
+ * this dependency type acts the same as an internal dependency, but it's
+ * kept separate for clarity and to simplify pg_dump.
  *
  * DEPENDENCY_PIN ('p'): there is no dependent object; this type of entry
  * is a signal that the system itself depends on the referenced object,
@@ -102,17 +109,6 @@ typedef enum SharedDependencyType
 	SHARED_DEPENDENCY_INVALID = 0
 } SharedDependencyType;
 
-
-/*
- * The two objects related by a dependency are identified by ObjectAddresses.
- */
-typedef struct ObjectAddress
-{
-	Oid			classId;		/* Class Id from pg_class */
-	Oid			objectId;		/* OID of the object */
-	int32		objectSubId;	/* Subitem within the object (column of table) */
-} ObjectAddress;
-
 /* expansible list of ObjectAddresses (private in dependency.c) */
 typedef struct ObjectAddresses ObjectAddresses;
 
@@ -148,7 +144,7 @@ typedef enum ObjectClass
 	OCLASS_FILESPACE,           /* pg_filespace */
 	OCLASS_EXTPROTOCOL,			/* pg_extprotocol */
 	OCLASS_COMPRESSION,			/* pg_compression */
-	OCLASS_EXTENSION,           /* pg_extension */
+	OCLASS_EXTENSION,			/* pg_extension */
 	MAX_OCLASS					/* MUST BE LAST */
 } ObjectClass;
 
@@ -176,6 +172,7 @@ extern void recordDependencyOnSingleRelExpr(const ObjectAddress *depender,
 extern ObjectClass getObjectClass(const ObjectAddress *object);
 
 extern char *getObjectDescription(const ObjectAddress *object);
+extern char *getObjectDescriptionOids(Oid classid, Oid objid);
 
 extern ObjectAddresses *new_object_addresses(void);
 
@@ -202,7 +199,11 @@ extern void recordMultipleDependencies(const ObjectAddress *depender,
 						   int nreferenced,
 						   DependencyType behavior);
 
-extern long deleteDependencyRecordsFor(Oid classId, Oid objectId);
+extern long deleteDependencyRecordsFor(Oid classId, Oid objectId,
+									   bool skipExtensionDeps);
+
+extern long deleteDependencyRecordsForClass(Oid classId, Oid objectId,
+                                Oid refclassId, char deptype);
 
 extern long changeDependencyFor(Oid classId, Oid objectId,
 					Oid refClassId, Oid oldRefObjectId,

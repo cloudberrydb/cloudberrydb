@@ -124,7 +124,8 @@ static const Oid object_classes[MAX_OCLASS] = {
 	TableSpaceRelationId,		/* OCLASS_TBLSPACE */
 	FileSpaceRelationId,		/* OCLASS_FILESPACE */
 	ExtprotocolRelationId,		/* OCLASS_EXTPROTOCOL */
-	CompressionRelationId		/* OCLASS_COMPRESSION */
+	CompressionRelationId,		/* OCLASS_COMPRESSION */
+	ExtensionRelationId			/* OCLASS_EXTENSION */
 };
 
 
@@ -2410,6 +2411,21 @@ getObjectDescription(const ObjectAddress *object)
 	}
 
 	return buffer.data;
+}
+
+/*
+ * getObjectDescriptionOids: as above, except the object is specified by Oids
+ */
+char *
+getObjectDescriptionOids(Oid classid, Oid objid)
+{
+	ObjectAddress address;
+
+	address.classId = classid;
+	address.objectId = objid;
+	address.objectSubId = 0;
+
+	return getObjectDescription(&address);
 }
 
 /*

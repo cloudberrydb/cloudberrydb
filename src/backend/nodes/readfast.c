@@ -2525,6 +2525,30 @@ _readTupleDescNode(void)
 	READ_DONE();
 }
 
+static AlterExtensionStmt *
+_readAlterExtensionStmt(void)
+{
+	READ_LOCALS(AlterExtensionStmt);
+	READ_STRING_FIELD(extname);
+	READ_NODE_FIELD(options);
+
+	READ_DONE();
+}
+
+static AlterExtensionContentsStmt *
+_readAlterExtensionContentsStmt(void)
+{
+	READ_LOCALS(AlterExtensionContentsStmt);
+
+	READ_STRING_FIELD(extname);
+	READ_INT_FIELD(action);
+	READ_ENUM_FIELD(objtype, ObjectType);
+	READ_NODE_FIELD(objname);
+	READ_NODE_FIELD(objargs);
+
+	READ_DONE();
+}
+
 static AlterTSConfigurationStmt *
 _readAlterTSConfigurationStmt(void)
 {
@@ -3375,6 +3399,12 @@ readNodeBinary(void)
 
 			case T_AlterTypeStmt:
 				return_value = _readAlterTypeStmt();
+				break;
+			case T_AlterExtensionStmt:
+				return_value = _readAlterExtensionStmt();
+				break;
+			case T_AlterExtensionContentsStmt:
+				return_value = _readAlterExtensionContentsStmt();
 				break;
 			case T_TupleDescNode:
 				return_value = _readTupleDescNode();

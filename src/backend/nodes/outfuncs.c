@@ -4184,6 +4184,27 @@ _outAlterTypeStmt(StringInfo str, AlterTypeStmt *node)
 }
 
 static void
+_outAlterExtensionStmt(StringInfo str, AlterExtensionStmt *node)
+{
+	WRITE_NODE_TYPE("ALTEREXTENSIONSTMT");
+
+	WRITE_STRING_FIELD(extname);
+	WRITE_NODE_FIELD(options);
+}
+
+static void
+_outAlterExtensionContentsStmt(StringInfo str, AlterExtensionContentsStmt *node)
+{
+	WRITE_NODE_TYPE("ALTEREXTENSIONCONTENTSSTMT");
+
+	WRITE_STRING_FIELD(extname);
+	WRITE_INT_FIELD(action);
+	WRITE_ENUM_FIELD(objtype, ObjectType);
+	WRITE_NODE_FIELD(objname);
+	WRITE_NODE_FIELD(objargs);
+}
+
+static void
 _outAlterTSConfigurationStmt(StringInfo str, AlterTSConfigurationStmt *node)
 {
 	WRITE_NODE_TYPE("ALTERTSCONFIGURATIONSTMT");
@@ -5090,6 +5111,12 @@ _outNode(StringInfo str, void *obj)
 
 			case T_AlterTypeStmt:
 				_outAlterTypeStmt(str, obj);
+				break;
+			case T_AlterExtensionStmt:
+				_outAlterExtensionStmt(str, obj);
+				break;
+			case T_AlterExtensionContentsStmt:
+				_outAlterExtensionContentsStmt(str, obj);
 				break;
 			case T_TupleDescNode:
 				_outTupleDescNode(str, obj);

@@ -454,12 +454,7 @@ ExecutorStart(QueryDesc *queryDesc, int eflags)
 			/* MPP-10329 - must always dispatch the tablespace */
 			if (intoClause->tableSpaceName)
 			{
-				reltablespace = get_tablespace_oid(intoClause->tableSpaceName);
-				if (!OidIsValid(reltablespace))
-					ereport(ERROR,
-							(errcode(ERRCODE_UNDEFINED_OBJECT),
-							 errmsg("tablespace \"%s\" does not exist",
-									intoClause->tableSpaceName)));
+				reltablespace = get_tablespace_oid(intoClause->tableSpaceName, false);
 				ddesc->intoTableSpaceName = intoClause->tableSpaceName;
 			}
 			else
@@ -4721,12 +4716,7 @@ OpenIntoRel(QueryDesc *queryDesc)
 	intoTableSpaceName = queryDesc->ddesc->intoTableSpaceName;
 	if (intoTableSpaceName)
 	{
-		tablespaceId = get_tablespace_oid(intoTableSpaceName);
-		if (!OidIsValid(tablespaceId))
-			ereport(ERROR,
-					(errcode(ERRCODE_UNDEFINED_OBJECT),
-					 errmsg("tablespace \"%s\" does not exist",
-							intoTableSpaceName)));
+		tablespaceId = get_tablespace_oid(intoTableSpaceName, false);
 	}
 	else
 	{

@@ -16,7 +16,6 @@
 
 #include "access/genam.h"
 #include "access/heapam.h"
-#include "catalog/catquery.h"
 #include "catalog/dependency.h"
 #include "catalog/indexing.h"
 #include "catalog/pg_extension.h"
@@ -182,9 +181,14 @@ recordDependencyOnCurrentExtension(const ObjectAddress *object,
  * This is used when redefining an existing object.  Links leading to the
  * object do not change, and links leading from it will be recreated
  * (possibly with some differences from before).
+ *
+ * If skipExtensionDeps is true, we do not delete any dependencies that
+ * show that the given object is a member of an extension.  This avoids
+ * needing a lot of extra logic to fetch and recreate that dependency.
  */
 long
-deleteDependencyRecordsFor(Oid classId, Oid objectId)
+deleteDependencyRecordsFor(Oid classId, Oid objectId,
+						   bool skipExtensionDeps)
 {
 	long		count = 0;
 	Relation	depRel;
@@ -208,8 +212,63 @@ deleteDependencyRecordsFor(Oid classId, Oid objectId)
 
 	while (HeapTupleIsValid(tup = systable_getnext(scan)))
 	{
+		if (skipExtensionDeps &&
+			((Form_pg_depend) GETSTRUCT(tup))->deptype == DEPENDENCY_EXTENSION)
+			continue;
+
 		simple_heap_delete(depRel, &tup->t_self);
 		count++;
+	}
+
+	systable_endscan(scan);
+
+	heap_close(depRel, RowExclusiveLock);
+
+	return count;
+}
+
+/*
+ * deleteDependencyRecordsForClass -- delete all records with given depender
+ * classId/objectId, dependee classId, and deptype.
+ * Returns the number of records deleted.
+ *
+ * This is a variant of deleteDependencyRecordsFor, useful when revoking
+ * an object property that is expressed by a dependency record (such as
+ * extension membership).
+ */
+long
+deleteDependencyRecordsForClass(Oid classId, Oid objectId,
+								Oid refclassId, char deptype)
+{
+	long		count = 0;
+	Relation	depRel;
+	ScanKeyData key[2];
+	SysScanDesc scan;
+	HeapTuple	tup;
+
+	depRel = heap_open(DependRelationId, RowExclusiveLock);
+
+	ScanKeyInit(&key[0],
+				Anum_pg_depend_classid,
+				BTEqualStrategyNumber, F_OIDEQ,
+				ObjectIdGetDatum(classId));
+	ScanKeyInit(&key[1],
+				Anum_pg_depend_objid,
+				BTEqualStrategyNumber, F_OIDEQ,
+				ObjectIdGetDatum(objectId));
+
+	scan = systable_beginscan(depRel, DependDependerIndexId, true,
+							  SnapshotNow, 2, key);
+
+	while (HeapTupleIsValid(tup = systable_getnext(scan)))
+	{
+		Form_pg_depend depform = (Form_pg_depend) GETSTRUCT(tup);
+
+		if (depform->refclassid == refclassId && depform->deptype == deptype)
+		{
+			simple_heap_delete(depRel, &tup->t_self);
+			count++;
+		}
 	}
 
 	systable_endscan(scan);

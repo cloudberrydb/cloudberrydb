@@ -34,6 +34,7 @@
 #include "commands/defrem.h"
 #include "commands/discard.h"
 #include "commands/explain.h"
+#include "commands/extension.h"
 #include "commands/extprotocolcmds.h"
 #include "commands/filespace.h"
 #include "commands/lockcmds.h"
@@ -449,6 +450,8 @@ check_xact_readonly(Node *parsetree)
 		case T_CreateRoleStmt:
 		case T_IndexStmt:
 		case T_CreateExtensionStmt:
+		case T_AlterExtensionStmt:
+		case T_AlterExtensionContentsStmt:
 		case T_CreatePLangStmt:
 		case T_CreateOpClassStmt:
 		case T_CreateOpFamilyStmt:
@@ -1357,6 +1360,14 @@ ProcessUtility(Node *parsetree,
 			CreateExtension((CreateExtensionStmt *) parsetree);
 			break;
 
+		case T_AlterExtensionStmt:
+			ExecAlterExtensionStmt((AlterExtensionStmt *) parsetree);
+			break;
+
+		case T_AlterExtensionContentsStmt:
+			ExecAlterExtensionContentsStmt((AlterExtensionContentsStmt *) parsetree);
+			break;
+
 		case T_RuleStmt:		/* CREATE RULE */
 			DefineRule((RuleStmt *) parsetree, queryString);
 			if (Gp_role == GP_ROLE_DISPATCH)
@@ -2222,6 +2233,9 @@ CreateCommandTag(Node *parsetree)
 				case OBJECT_DOMAIN:
 					tag = "ALTER DOMAIN";
 					break;
+				case OBJECT_EXTENSION:
+					tag = "ALTER EXTENSION";
+					break;
 				case OBJECT_FUNCTION:
 					tag = "ALTER FUNCTION";
 					break;
@@ -2266,6 +2280,9 @@ CreateCommandTag(Node *parsetree)
 					break;
 				case OBJECT_DOMAIN:
 					tag = "ALTER DOMAIN";
+					break;
+				case OBJECT_EXTENSION:
+					tag = "ALTER EXTENSION";
 					break;
 				case OBJECT_FUNCTION:
 					tag = "ALTER FUNCTION";
@@ -2406,6 +2423,14 @@ CreateCommandTag(Node *parsetree)
 
 		case T_CreateExtensionStmt:
 			tag = "CREATE EXTENSION";
+			break;
+
+		case T_AlterExtensionStmt:
+			tag = "ALTER EXTENSION";
+			break;
+
+		case T_AlterExtensionContentsStmt:
+			tag = "ALTER EXTENSION";
 			break;
 
 		case T_RuleStmt:
@@ -2872,6 +2897,8 @@ GetCommandLogLevel(Node *parsetree)
 			break;
 
 		case T_CreateExtensionStmt:
+		case T_AlterExtensionStmt:
+		case T_AlterExtensionContentsStmt:
 			lev = LOGSTMT_DDL;
 			break;
 

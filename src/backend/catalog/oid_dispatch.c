@@ -84,6 +84,7 @@
 #include "catalog/pg_conversion.h"
 #include "catalog/pg_database.h"
 #include "catalog/pg_enum.h"
+#include "catalog/pg_extension.h"
 #include "catalog/pg_extprotocol.h"
 #include "catalog/pg_filespace.h"
 #include "catalog/pg_language.h"
@@ -210,6 +211,14 @@ CreateKeyFromCatalogTuple(Relation catalogrel, HeapTuple tuple,
 
 				key.keyOid1 = enumForm->enumtypid;
 				key.objname = NameStr(enumForm->enumlabel);
+				break;
+			}
+		case ExtensionRelationId:
+			{
+				Form_pg_extension extForm = (Form_pg_extension) GETSTRUCT(tuple);
+
+				key.namespaceOid = extForm->extnamespace;
+				key.objname = NameStr(extForm->extname);
 				break;
 			}
 		case ExtprotocolRelationId:

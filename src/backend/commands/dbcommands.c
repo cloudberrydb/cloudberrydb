@@ -843,12 +843,7 @@ createdb(CreatedbStmt *stmt)
 		AclResult	aclresult;
 
 		tablespacename = strVal(dtablespacename->arg);
-		dst_deftablespace = get_tablespace_oid(tablespacename);
-		if (!OidIsValid(dst_deftablespace))
-			ereport(ERROR,
-					(errcode(ERRCODE_UNDEFINED_OBJECT),
-					 errmsg("tablespace \"%s\" does not exist",
-							tablespacename)));
+		dst_deftablespace = get_tablespace_oid(tablespacename, false);
 		/* check permissions */
 		aclresult = pg_tablespace_aclcheck(dst_deftablespace, GetUserId(),
 										   ACL_CREATE);
@@ -905,7 +900,7 @@ createdb(CreatedbStmt *stmt)
 	 * message than "unique index violation".  There's a race condition but
 	 * we're willing to accept the less friendly message in that case.
 	 */
-	if (OidIsValid(get_database_oid(dbname)))
+	if (OidIsValid(get_database_oid(dbname, true)))
 		ereport(ERROR,
 				(errcode(ERRCODE_DUPLICATE_DATABASE),
 				 errmsg("database \"%s\" already exists", dbname)));
@@ -1701,7 +1696,7 @@ RenameDatabase(const char *oldname, const char *newname)
 	 * Make sure the new name doesn't exist.  See notes for same error in
 	 * CREATE DATABASE.
 	 */
-	if (OidIsValid(get_database_oid(newname)))
+	if (OidIsValid(get_database_oid(newname, true)))
 		ereport(ERROR,
 				(errcode(ERRCODE_DUPLICATE_DATABASE),
 				 errmsg("database \"%s\" already exists", newname)));
@@ -2491,7 +2486,7 @@ check_db_file_conflict(Oid db_id)
  * Returns InvalidOid if database name not found.
  */
 Oid
-get_database_oid(const char *dbname)
+get_database_oid(const char *dbname, bool missing_ok)
 {
 	Relation	pg_database;
 	ScanKeyData entry[1];
@@ -2521,6 +2516,12 @@ get_database_oid(const char *dbname)
 
 	systable_endscan(scan);
 	heap_close(pg_database, AccessShareLock);
+
+	if (!OidIsValid(oid) && !missing_ok)
+		ereport(ERROR,
+				(errcode(ERRCODE_UNDEFINED_DATABASE),
+				 errmsg("database \"%s\" does not exist",
+						 dbname)));
 
 	return oid;
 }

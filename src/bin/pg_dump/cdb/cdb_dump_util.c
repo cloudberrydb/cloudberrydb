@@ -473,7 +473,7 @@ ParseCDBDumpInfo(const char *progName, char *pszCDBDumpInfo, char **ppCDBDumpKey
 		char		errbuf[1024];
 
 		regerror(rtn, &rCDBDumpInfo, errbuf, 1024);
-		mpp_err_msg_cache("Error parsing CDBDumpInfo %s: not valid : %s\n", pszCDBDumpInfo, errbuf);
+		mpp_err_msg_cache("Error", progName, "parsing CDBDumpInfo %s: not valid : %s\n", pszCDBDumpInfo, errbuf);
 		regfree(&rCDBDumpInfo);
 		return false;
 	}
