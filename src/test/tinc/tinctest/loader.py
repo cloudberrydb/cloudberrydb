@@ -358,12 +358,6 @@ class TINCTestLoader(unittest.TestLoader):
                 test_case.skip = "Filtering out test as it did not satisy tinc queries check"
                 return False
 
-        # Now do product version check
-        if not test_case.do_version_check():
-            # Do version check will set the skip message accordingly 
-            tinctest.logger.debug("Failed product version check: %s" % test_case.full_name)
-            return False
-        
         return True
     
     @staticmethod

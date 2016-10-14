@@ -291,35 +291,6 @@ class TINCTestCase(unittest.TestCase):
         """
         return None
 
-    def do_version_check(self):
-        """
-        Performs test case version compatibility against the deployed product version.
-        If no product_version metadata is specified, the test case is considered valid.
-        If get_product_version_check is not implemented or if it does not return anything,
-        version checking is skipped and the test case will be run.
-
-        If valid product_version metadata is specified, the test case is checked for compatibility
-        against the deployed product version and is skipped if the current version does not
-        fall within the range of the product versions specified through 'product_version' metadata
-        """
-        # None or empty string means all versions
-        if not self.product_version:
-            return True
-
-        # Call out to get_product_version that the model authors will implement
-        deployed_version = self.get_product_version()
-
-        if not deployed_version:
-            tinctest.logger.warning('Skipping version check as deployed version is None')
-            return True
-        if not self.product_version.match_product_version(deployed_version[0], deployed_version[1]):
-            test_name = '%s.%s.%s' %(self.__class__.__module__, self.__class__.__name__, self._testMethodName)
-            tinctest.logger.info('Skipping test %s as it does not apply to the deployed product version. ' %test_name + \
-                                     'Test case version - %s , product version - %s' %(self.product_version, deployed_version))
-            self.skip = 'Test does not apply to the deployed product version. Test case version - %s , Deployed version - %s' %(self.product_version, deployed_version)
-            return False
-        return True
-
     def match_metadata(self, key, value):
         """
         This function checks if the value of metadata 'key' matches
