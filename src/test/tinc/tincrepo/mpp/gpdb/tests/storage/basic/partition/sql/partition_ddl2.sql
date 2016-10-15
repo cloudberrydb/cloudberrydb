@@ -477,9 +477,9 @@ CREATE TABLE mpp3265 (
   partition dd start (1500) end (2000),
   default partition default_part );
 
-alter table mpp3265 drop partition for (position(100));
-alter table mpp3265 drop partition for (position(-5));
-alter table mpp3265 drop partition for (position(0));
+alter table mpp3265 drop partition for (100);
+alter table mpp3265 drop partition for (-5);
+alter table mpp3265 drop partition for (0);
 
 drop table mpp3265;
 CREATE TABLE mpp3237(a int, b int, c int, d int, e int, f int, g int, h int, i int, j int, k int, l int, m int, n int, o int, p int, q int, r int, s int, t int, u int, v int, w int, x int, y int, z int)

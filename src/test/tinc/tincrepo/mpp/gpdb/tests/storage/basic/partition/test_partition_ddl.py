@@ -33,15 +33,7 @@ class PartitionDDLTests(SQLTestCase):
 
     @classmethod
     def setUpClass(cls):
-        """
-        This test suite does a \d on tables that lists the tablespace of all the tables.
-        And was failing because some other test suite running along with this did a gpconfig -c default_tablespace.
-        Removing default_tablespace at the beginning to avoid such failures. 
-        """
         super(PartitionDDLTests, cls).setUpClass()
-        GpConfig().removeParameter('default_tablespace')
-        GpStop().run_gpstop_cmd(restart = True)
-                                
 
     def get_substitutions(self):
         substitutions = {}

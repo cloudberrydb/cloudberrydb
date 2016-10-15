@@ -1772,18 +1772,14 @@ HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sur
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 CREATE TABLE
-alter table mpp3265 drop partition for (position(100));
-ERROR:  syntax error at or near "("
-LINE 1: alter table mpp3265 drop partition for (position(100));
-                                                        ^ 
-alter table mpp3265 drop partition for (position(-5));
-ERROR:  syntax error at or near "("
-LINE 1: alter table mpp3265 drop partition for (position(-5));
-                                                        ^
-alter table mpp3265 drop partition for (position(0));
-ERROR:  syntax error at or near "("
-LINE 1: alter table mpp3265 drop partition for (position(0));
-                                                        ^
+alter table mpp3265 drop partition for (100);
+ALTER TABLE
+alter table mpp3265 drop partition for (-5);
+ERROR:  FOR expression matches DEFAULT partition "default_part" of relation "mpp3265"
+HINT:  FOR expression may only specify a non-default partition in this context.
+alter table mpp3265 drop partition for (0);
+ERROR:  FOR expression matches DEFAULT partition "default_part" of relation "mpp3265"
+HINT:  FOR expression may only specify a non-default partition in this context.
 drop table mpp3265;
 DROP TABLE
 CREATE TABLE mpp3237(a int, b int, c int, d int, e int, f int, g int, h int, i int, j int, k int, l int, m int, n int, o int, p int, q int, r int, s int, t int, u int, v int, w int, x int, y int, z int)
