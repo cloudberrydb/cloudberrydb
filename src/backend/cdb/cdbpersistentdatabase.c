@@ -105,7 +105,6 @@ static bool PersistentDatabase_ScanTupleCallback(
 	int32					reserved;
 	TransactionId			parentXid;
 	int64					serialNum;
-	ItemPointerData			previousFreeTid;
 	
 	SharedOidSearchAddResult addResult;
 	DatabaseDirEntry databaseDirEntry;
@@ -119,8 +118,7 @@ static bool PersistentDatabase_ScanTupleCallback(
 									&mirrorExistenceState,
 									&reserved,
 									&parentXid,
-									&serialNum,
-									&previousFreeTid);
+									&serialNum);
 
 	addResult =
 			SharedOidSearch_Add(
@@ -409,11 +407,7 @@ static void PersistentDatabase_AddTuple(
 	Oid tablespaceOid = databaseDirEntry->header.oid2;
 	Oid databaseOid = databaseDirEntry->header.oid1;
 
-	ItemPointerData previousFreeTid;
-
 	Datum values[Natts_gp_persistent_database_node];
-
-	MemSet(&previousFreeTid, 0, sizeof(ItemPointerData));
 
 	GpPersistentDatabaseNode_SetDatumValues(
 								values,
@@ -424,8 +418,7 @@ static void PersistentDatabase_AddTuple(
 								mirrorExistenceState,
 								reserved,
 								parentXid,
-								/* persistentSerialNum */ 0,	// This will be set by PersistentFileSysObj_AddTuple.
-								&previousFreeTid);
+								/* persistentSerialNum */ 0);	// This will be set by PersistentFileSysObj_AddTuple.
 
 	PersistentFileSysObj_AddTuple(
 							PersistentFsObjType_DatabaseDir,

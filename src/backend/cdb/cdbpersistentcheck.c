@@ -63,7 +63,6 @@ typedef struct PT_GpPersistentRelationNode
 	PersistentFileSysRelBufpoolKind     relBufpoolKind;
 	TransactionId                       parentXid;
 	int64                               persistentSerialNum;
-	ItemPointerData                     previousFreeTid;
 } PT_GpPersistentRelationNode;
 
 static inline void GpPersistentRelationNodeGetValues(Datum* values, PT_GpPersistentRelationNode *relnode)
@@ -87,8 +86,7 @@ static inline void GpPersistentRelationNodeGetValues(Datum* values, PT_GpPersist
 									&relnode->mirrorAppendOnlyNewEof,
 									&relnode->relBufpoolKind,
 									&relnode->parentXid,
-									&relnode->persistentSerialNum,
-									&relnode->previousFreeTid);
+									&relnode->persistentSerialNum);
 }
 
 typedef struct PT_GpPersistentDatabaseNode
@@ -101,7 +99,6 @@ typedef struct PT_GpPersistentDatabaseNode
 	int32                        reserved;
 	TransactionId                parentXid;
 	int64                        persistentSerialNum;
-	ItemPointerData              previousFreeTid;
 } PT_GpPersistentDatabaseNode;
 
 static inline void GpPersistentDatabaseNodeGetValues(Datum* values, PT_GpPersistentDatabaseNode *dbnode)
@@ -115,8 +112,7 @@ static inline void GpPersistentDatabaseNodeGetValues(Datum* values, PT_GpPersist
 									&dbnode->mirrorExistenceState,
 									&dbnode->reserved,
 									&dbnode->parentXid,
-									&dbnode->persistentSerialNum,
-									&dbnode->previousFreeTid);
+									&dbnode->persistentSerialNum);
 }
 
 
@@ -130,7 +126,6 @@ typedef struct PT_GpPersistentTablespaceNode
 	int32                        reserved;
 	TransactionId                parentXid;
 	int64                        persistentSerialNum;
-	ItemPointerData              previousFreeTid;
 } PT_GpPersistentTablespaceNode;
 
 
@@ -145,8 +140,7 @@ static inline void GpPersistentTablespaceNodeGetValues(Datum* values, PT_GpPersi
 									&tablenode->mirrorExistenceState,
 									&tablenode->reserved,
 									&tablenode->parentXid,
-									&tablenode->persistentSerialNum,
-									&tablenode->previousFreeTid);
+									&tablenode->persistentSerialNum);
 }
 
 

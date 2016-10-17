@@ -241,7 +241,6 @@ static bool PersistentTablespace_ScanTupleCallback(
 	int32					reserved;
 	TransactionId			parentXid;
 	int64					serialNum;
-	ItemPointerData			previousFreeTid;
 	
 	TablespaceDirEntry tablespaceDirEntry;
 
@@ -254,8 +253,7 @@ static bool PersistentTablespace_ScanTupleCallback(
 									&mirrorExistenceState,
 									&reserved,
 									&parentXid,
-									&serialNum,
-									&previousFreeTid);
+									&serialNum);
 
 	tablespaceDirEntry = 
 		PersistentTablespace_CreateEntryUnderLock(filespaceOid, tablespaceOid);
@@ -370,11 +368,7 @@ static void PersistentTablespace_AddTuple(
 	Oid filespaceOid = tablespaceDirEntry->filespaceOid;
 	Oid tablespaceOid = tablespaceDirEntry->key.tablespaceOid;
 
-	ItemPointerData previousFreeTid;
-
 	Datum values[Natts_gp_persistent_tablespace_node];
-
-	MemSet(&previousFreeTid, 0, sizeof(ItemPointerData));
 
 	GpPersistentTablespaceNode_SetDatumValues(
 								values,
@@ -385,8 +379,7 @@ static void PersistentTablespace_AddTuple(
 								mirrorExistenceState,
 								reserved,
 								parentXid,
-								/* persistentSerialNum */ 0,	// This will be set by PersistentFileSysObj_AddTuple.
-								&previousFreeTid);
+								/* persistentSerialNum */ 0);	// This will be set by PersistentFileSysObj_AddTuple.
 
 	PersistentFileSysObj_AddTuple(
 							PersistentFsObjType_TablespaceDir,

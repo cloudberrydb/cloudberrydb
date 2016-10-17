@@ -131,8 +131,7 @@ void GpPersistentRelationNode_GetValues(
 	int64									*mirrorAppendOnlyNewEof,
 	PersistentFileSysRelBufpoolKind 		*relBufpoolKind,
 	TransactionId							*parentXid,
-	int64									*persistentSerialNum,
-	ItemPointerData 						*previousFreeTid)
+	int64									*persistentSerialNum)
 {
 	*tablespaceOid = DatumGetObjectId(values[Anum_gp_persistent_relation_node_tablespace_oid - 1]);
 
@@ -169,9 +168,6 @@ void GpPersistentRelationNode_GetValues(
 	*parentXid = (TransactionId)DatumGetInt32(values[Anum_gp_persistent_relation_node_parent_xid - 1]);
 
 	*persistentSerialNum = DatumGetInt64(values[Anum_gp_persistent_relation_node_persistent_serial_num - 1]);
-
-	*previousFreeTid = *((ItemPointer) DatumGetPointer(values[Anum_gp_persistent_relation_node_previous_free_tid - 1]));
-
 }
 
 void GpPersistentRelationNode_SetDatumValues(
@@ -194,8 +190,7 @@ void GpPersistentRelationNode_SetDatumValues(
 	int64							mirrorAppendOnlyNewEof,
 	PersistentFileSysRelBufpoolKind relBufpoolKind,
 	TransactionId					parentXid,
-	int64							persistentSerialNum,
-	ItemPointerData 				*previousFreeTid)
+	int64							persistentSerialNum)
 {
 	if (persistentState != PersistentFileSysState_Free && !PersistentFileSysRelStorageMgr_IsValid(relationStorageManager))
 		elog(ERROR, "Invalid value for relation storage manager (%d)",
@@ -252,9 +247,6 @@ void GpPersistentRelationNode_SetDatumValues(
 
 	values[Anum_gp_persistent_relation_node_persistent_serial_num - 1] = 
 									Int64GetDatum(persistentSerialNum);
-
-	values[Anum_gp_persistent_relation_node_previous_free_tid - 1] =
-									PointerGetDatum(previousFreeTid);
 }
 
 void GpPersistentDatabaseNode_GetValues(
@@ -267,8 +259,7 @@ void GpPersistentDatabaseNode_GetValues(
 	MirroredObjectExistenceState	*mirrorExistenceState,
 	int32							*reserved,
 	TransactionId					*parentXid,
-	int64							*persistentSerialNum,
-	ItemPointerData 				*previousFreeTid)
+	int64							*persistentSerialNum)
 {
     *tablespaceOid = DatumGetObjectId(values[Anum_gp_persistent_database_node_tablespace_oid - 1]);
 
@@ -285,9 +276,6 @@ void GpPersistentDatabaseNode_GetValues(
 	*parentXid = (TransactionId)DatumGetInt32(values[Anum_gp_persistent_database_node_parent_xid - 1]);
 
     *persistentSerialNum = DatumGetInt64(values[Anum_gp_persistent_database_node_persistent_serial_num - 1]);
-
-    *previousFreeTid = *((ItemPointer) DatumGetPointer(values[Anum_gp_persistent_database_node_previous_free_tid - 1]));
-
 }
 
 void GpPersistentDatabaseNode_SetDatumValues(
@@ -300,8 +288,7 @@ void GpPersistentDatabaseNode_SetDatumValues(
 	MirroredObjectExistenceState	mirrorExistenceState,
 	int32							reserved,
 	TransactionId					parentXid,
-	int64							persistentSerialNum,
-	ItemPointerData 				*previousFreeTid)
+	int64							persistentSerialNum)
 {
 	values[Anum_gp_persistent_database_node_tablespace_oid - 1] = 
 									ObjectIdGetDatum(tablespaceOid);
@@ -325,9 +312,6 @@ void GpPersistentDatabaseNode_SetDatumValues(
 
 	values[Anum_gp_persistent_database_node_persistent_serial_num - 1] = 
 									Int64GetDatum(persistentSerialNum);
-
-	values[Anum_gp_persistent_database_node_previous_free_tid - 1] =
-									PointerGetDatum(previousFreeTid);
 }
 
 void GpPersistentTablespaceNode_GetValues(
@@ -340,8 +324,7 @@ void GpPersistentTablespaceNode_GetValues(
 	MirroredObjectExistenceState	*mirrorExistenceState,
 	int32							*reserved,
 	TransactionId					*parentXid,
-	int64							*persistentSerialNum,
-	ItemPointerData 				*previousFreeTid)
+	int64							*persistentSerialNum)
 {
     *filespaceOid = DatumGetObjectId(values[Anum_gp_persistent_tablespace_node_filespace_oid - 1]);
 
@@ -358,9 +341,6 @@ void GpPersistentTablespaceNode_GetValues(
 	*parentXid = (TransactionId)DatumGetInt32(values[Anum_gp_persistent_tablespace_node_parent_xid - 1]);
 
     *persistentSerialNum = DatumGetInt64(values[Anum_gp_persistent_tablespace_node_persistent_serial_num - 1]);
-
-    *previousFreeTid = *((ItemPointer) DatumGetPointer(values[Anum_gp_persistent_tablespace_node_previous_free_tid - 1]));
-
 }
 
 void GpPersistentTablespaceNode_SetDatumValues(
@@ -373,8 +353,7 @@ void GpPersistentTablespaceNode_SetDatumValues(
 	MirroredObjectExistenceState	mirrorExistenceState,
 	int32							reserved,
 	TransactionId					parentXid,
-	int64							persistentSerialNum,
-	ItemPointerData 				*previousFreeTid)
+	int64							persistentSerialNum)
 {
 	values[Anum_gp_persistent_tablespace_node_filespace_oid - 1] = 
 									ObjectIdGetDatum(filespaceOid);
@@ -399,9 +378,6 @@ void GpPersistentTablespaceNode_SetDatumValues(
 
 	values[Anum_gp_persistent_tablespace_node_persistent_serial_num - 1] = 
 									Int64GetDatum(persistentSerialNum);
-
-	values[Anum_gp_persistent_tablespace_node_previous_free_tid - 1] =
-									PointerGetDatum(previousFreeTid);
 }
 
 void GpPersistentFilespaceNode_GetValues(
@@ -417,8 +393,7 @@ void GpPersistentFilespaceNode_GetValues(
 	MirroredObjectExistenceState	*mirrorExistenceState,
 	int32							*reserved,
 	TransactionId					*parentXid,
-	int64							*persistentSerialNum,
-	ItemPointerData 				*previousFreeTid)
+	int64							*persistentSerialNum)
 {
 	char *locationPtr;
 	int locationLen;
@@ -458,9 +433,6 @@ void GpPersistentFilespaceNode_GetValues(
 	*parentXid = (TransactionId)DatumGetInt32(values[Anum_gp_persistent_filespace_node_parent_xid - 1]);
 
     *persistentSerialNum = DatumGetInt64(values[Anum_gp_persistent_filespace_node_persistent_serial_num - 1]);
-
-    *previousFreeTid = *((ItemPointer) DatumGetPointer(values[Anum_gp_persistent_filespace_node_previous_free_tid - 1]));
-
 }
 
 void GpPersistentFilespaceNode_SetDatumValues(
@@ -476,8 +448,7 @@ void GpPersistentFilespaceNode_SetDatumValues(
 	MirroredObjectExistenceState	mirrorExistenceState,
 	int32							reserved,
 	TransactionId					parentXid,
-	int64							persistentSerialNum,
-	ItemPointerData 				*previousFreeTid)
+	int64							persistentSerialNum)
 {
 	int locationLen;
 
@@ -525,9 +496,6 @@ void GpPersistentFilespaceNode_SetDatumValues(
 
 	values[Anum_gp_persistent_filespace_node_persistent_serial_num - 1] = 
 									Int64GetDatum(persistentSerialNum);
-
-	values[Anum_gp_persistent_filespace_node_previous_free_tid - 1] =
-									PointerGetDatum(previousFreeTid);
 }
 
 void GpPersistent_GetCommonValues(
@@ -542,7 +510,6 @@ void GpPersistent_GetCommonValues(
 {
 	int64 createMirrorDataLossTrackingSessionNum;
 	int32 reserved;
-	ItemPointerData previousFreeTid;
 
 	switch (fsObjType)
 	{
@@ -580,8 +547,7 @@ void GpPersistent_GetCommonValues(
 											&mirrorAppendOnlyNewEof,
 											&relBufpoolKind,
 											parentXid,
-											persistentSerialNum,
-											&previousFreeTid);
+											persistentSerialNum);
 
 			PersistentFileSysObjName_SetRelationFile(
 												fsObjName,
@@ -604,8 +570,7 @@ void GpPersistent_GetCommonValues(
 									mirrorExistenceState,
 									&reserved,
 									parentXid,
-									persistentSerialNum,
-									&previousFreeTid);
+									persistentSerialNum);
 
 			PersistentFileSysObjName_SetDatabaseDir(
 											fsObjName,
@@ -628,8 +593,7 @@ void GpPersistent_GetCommonValues(
 											mirrorExistenceState,
 											&reserved,
 											parentXid,
-											persistentSerialNum,
-											&previousFreeTid);
+											persistentSerialNum);
 
 			PersistentFileSysObjName_SetTablespaceDir(
 												fsObjName, 
@@ -657,8 +621,7 @@ void GpPersistent_GetCommonValues(
 											mirrorExistenceState,
 											&reserved,
 											parentXid,
-											persistentSerialNum,
-											&previousFreeTid);
+											persistentSerialNum);
 
 			PersistentFileSysObjName_SetFilespaceDir(
 												fsObjName, 

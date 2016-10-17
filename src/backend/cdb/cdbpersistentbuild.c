@@ -120,7 +120,6 @@ static void PersistentBuild_ScanGpPersistentRelationNodeForGlobal(
 		PersistentFileSysRelBufpoolKind relBufpoolKind;
 		TransactionId					parentXid;
 		int64							serialNum;
-		ItemPointerData					previousFreeTid;
 		
 		PersistentFileSysObjName		fsObjName;
 
@@ -143,8 +142,7 @@ static void PersistentBuild_ScanGpPersistentRelationNodeForGlobal(
 										&mirrorAppendOnlyNewEof,
 										&relBufpoolKind,
 										&parentXid,
-										&serialNum,
-										&previousFreeTid);
+										&serialNum);
 
 		if (persistentState == PersistentFileSysState_Free)
 			continue;

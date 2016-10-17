@@ -46,8 +46,7 @@ void PersistentStore_Init(
 	PersistentStoreScanKeyInitCallback  scanKeyInitCallback,
 	PersistentStoreAllowDuplicateCallback allowDuplicateCallback,
 	int 						numAttributes,
-	int 						attNumPersistentSerialNum,
-	int 						attNumPreviousFreeTid)
+	int 						attNumPersistentSerialNum)
 {
 	MemSet(storeData, 0, sizeof(PersistentStoreData));
 
@@ -61,7 +60,6 @@ void PersistentStore_Init(
 	storeData->allowDuplicateCallback = allowDuplicateCallback;
 	storeData->numAttributes = numAttributes;
 	storeData->attNumPersistentSerialNum = attNumPersistentSerialNum;
-	storeData->attNumPreviousFreeTid = attNumPreviousFreeTid;
 }
 
 void PersistentStore_DeformTuple(
@@ -86,11 +84,9 @@ void PersistentStore_DeformTuple(
 static void PersistentStore_ExtractOurTupleData(
 	PersistentStoreData 	*storeData,
 	Datum					*values,
-	int64					*persistentSerialNum,
-	ItemPointer				previousFreeTid)
+	int64					*persistentSerialNum)
 {
 	*persistentSerialNum = DatumGetInt64(values[storeData->attNumPersistentSerialNum - 1]);
-	*previousFreeTid = *((ItemPointer) DatumGetPointer(values[storeData->attNumPreviousFreeTid - 1]));
 }
 
 static void PersistentStore_DoInitScan(
@@ -100,7 +96,6 @@ static void PersistentStore_DoInitScan(
 	PersistentStoreScan 	storeScan;
 	ItemPointerData			persistentTid;
 	int64					persistentSerialNum;
-	ItemPointerData			previousFreeTid;
 	Datum					*values;
 	int64					globalSequenceNum;
 
@@ -123,8 +118,7 @@ static void PersistentStore_DoInitScan(
 		PersistentStore_ExtractOurTupleData(
 									storeData,
 									values,
-									&persistentSerialNum,
-									&previousFreeTid);
+									&persistentSerialNum);
 
 		if (Debug_persistent_recovery_print)
 			(*storeData->printTupleCallback)(
@@ -133,15 +127,12 @@ static void PersistentStore_DoInitScan(
 										&persistentTid,
 										values);
 
-		if (PersistentStore_IsZeroTid(&previousFreeTid))
-		{
-			storeSharedData->inUseCount++;
+		storeSharedData->inUseCount++;
 
-			if (storeSharedData->maxInUseSerialNum < persistentSerialNum)
-			{
-				storeSharedData->maxInUseSerialNum = persistentSerialNum;
-				storeData->myHighestSerialNum = storeSharedData->maxInUseSerialNum;
-			}
+		if (storeSharedData->maxInUseSerialNum < persistentSerialNum)
+		{
+			storeSharedData->maxInUseSerialNum = persistentSerialNum;
+			storeData->myHighestSerialNum = storeSharedData->maxInUseSerialNum;
 		}
 
 		if (storeData->scanTupleCallback != NULL)
@@ -293,8 +284,6 @@ bool PersistentStore_GetNext(
 	ItemPointer					persistentTid,
 	int64						*persistentSerialNum)
 {
-	ItemPointerData			previousFreeTid;
-
 	storeScan->tuple = heap_getnext(storeScan->scan, ForwardScanDirection);
 	if (storeScan->tuple == NULL)
 		return false;
@@ -307,8 +296,7 @@ bool PersistentStore_GetNext(
 	PersistentStore_ExtractOurTupleData(
 								storeScan->storeData,
 								values,
-								persistentSerialNum,
-								&previousFreeTid);
+								persistentSerialNum);
 
 	*persistentTid = storeScan->tuple->t_self;
 

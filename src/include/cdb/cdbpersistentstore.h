@@ -98,7 +98,6 @@ typedef struct PersistentStoreData
 	int64			myHighestSerialNum;
 	int				numAttributes;
 	int				attNumPersistentSerialNum;
-	int				attNumPreviousFreeTid;
 } PersistentStoreData;
 
 typedef struct PersistentStoreScan
@@ -424,8 +423,7 @@ extern void PersistentStore_Init(
 	PersistentStoreScanKeyInitCallback  scanKeyInitCallback,
 	PersistentStoreAllowDuplicateCallback allowDuplicateCallback,
 	int 						numAttributes,
-	int 						attNumPersistentSerialNum,
-	int 						attNumPreviousFreeTid);
+	int 						attNumPersistentSerialNum);
 
 extern void PersistentStore_InitScanUnderLock(
 	PersistentStoreData 		*storeData,

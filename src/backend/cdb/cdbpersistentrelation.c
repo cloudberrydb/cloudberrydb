@@ -149,7 +149,6 @@ static bool PersistentRelation_CheckTablespaceScanTupleCallback(
 
 	TransactionId			parentXid;
 	int64					serialNum;
-	ItemPointerData			previousFreeTid;
 
 	GpPersistentRelationNode_GetValues(
 									values,
@@ -170,8 +169,7 @@ static bool PersistentRelation_CheckTablespaceScanTupleCallback(
 									&mirrorAppendOnlyNewEof,
 									&relBufpoolKind,
 									&parentXid,
-									&serialNum,
-									&previousFreeTid);
+									&serialNum);
 
 	if (state == PersistentFileSysState_Created &&
 		relFileNode.spcNode == persistentRelationCheckTablespace)
@@ -256,14 +254,12 @@ void PersistentRelation_AddCreatePending(
 	PersistentFileSysObjName fsObjName;
 
 	XLogRecPtr mirrorBufpoolResyncCkptLoc;
-	ItemPointerData previousFreeTid;
 
 	Datum values[Natts_gp_persistent_relation_node];
 
 	if(RelFileNode_IsEmpty(relFileNode))
 		elog(ERROR, "Invalid RelFileNode (0,0,0)");
 
-	MemSet(&previousFreeTid, 0, sizeof(ItemPointerData));
 	MemSet(&mirrorBufpoolResyncCkptLoc, 0, sizeof(XLogRecPtr));
 
 	if (Persistent_BeforePersistenceWork())
@@ -312,8 +308,7 @@ void PersistentRelation_AddCreatePending(
 										/* mirrorAppendOnlyNewEof */ 0,
 										relBufpoolKind,
 										GetTopTransactionId(),
-										/* persistentSerialNum */ 0,	// This will be set by PersistentFileSysObj_AddTuple.
-										&previousFreeTid);
+										/* persistentSerialNum */ 0);	// This will be set by PersistentFileSysObj_AddTuple.
 
 	/* Add a new tuple to 'gp_persistent_relation_node' table for the new relation/segment file
 	 * we intend to create. This will also create and apply a new persistent serial number. */
@@ -393,14 +388,12 @@ void PersistentRelation_AddCreated(
 	PersistentFileSysObjName fsObjName;
 
 	XLogRecPtr mirrorBufpoolResyncCkptLoc;
-	ItemPointerData previousFreeTid;
 
 	Datum values[Natts_gp_persistent_relation_node];
 
 	if(RelFileNode_IsEmpty(relFileNode))
 		elog(ERROR, "Invalid RelFileNode (0,0,0)");
 
-	MemSet(&previousFreeTid, 0, sizeof(ItemPointerData));
 	MemSet(&mirrorBufpoolResyncCkptLoc, 0, sizeof(XLogRecPtr));
 
 	if (!Persistent_BeforePersistenceWork())
@@ -435,8 +428,7 @@ void PersistentRelation_AddCreated(
 										mirrorAppendOnlyNewEof,
 										relBufpoolKind,
 										InvalidTransactionId,
-										/* persistentSerialNum */ 0,	// This will be set by PersistentFileSysObj_AddTuple.
-										&previousFreeTid);
+										/* persistentSerialNum */ 0);	// This will be set by PersistentFileSysObj_AddTuple.
 
 	PersistentFileSysObj_AddTuple(
 							PersistentFsObjType_RelationFile,
