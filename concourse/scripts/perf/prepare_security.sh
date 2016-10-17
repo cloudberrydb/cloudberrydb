@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -x
+set -u
 
 SELINUX="
 SELINUX=disabled
@@ -33,6 +33,8 @@ apply() {
 
   generate_keys
 
+  ensure_connectivity
+
   echo "Configuration Done"
 }
 
@@ -52,6 +54,12 @@ generate_keys() {
 
     su $U -c "touch ~${U}/.ssh/authorized_keys"
     su $U -c "chmod 600 ~${U}/.ssh/authorized_keys"
+  done
+}
+
+ensure_connectivity() {
+  for U in root gpadmin; do
+    su $U -c "cat ~$U/.ssh/id_rsa.pub >> ~$U/.ssh/authorized_keys"
   done
 }
 

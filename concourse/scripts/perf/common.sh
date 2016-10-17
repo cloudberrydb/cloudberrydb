@@ -2,6 +2,30 @@ log() {
   echo -e "$@"
 }
 
+prepare_for_ssh() {
+  local IP=$1
+  local KEYFILE="${AWS_KEYPAIR}.pem"
+
+  log 'Preparing $IP for SSH'
+
+  if [[ ! -f "${KEYFILE}" ]]; then
+    echo "${AWS_KEYPAIR_VALUE}" > "${KEYFILE}"
+    chmod 0600 "${KEYFILE}"
+  fi
+
+  mkdir -p ~/.ssh
+  ssh-keyscan $IP >> ~/.ssh/known_hosts
+}
+
+remote_push() {
+  local IP=$1
+  local FROM=$2
+  local TO=$3
+  local KEYFILE="${AWS_KEYPAIR}.pem"
+
+  rsync -v --progress -e "ssh -i ${KEYFILE}" $FROM ${SSH_USER}@${IP}:$TO
+}
+
 remote_run() {
   local IP="$1"
   local KEYFILE="${AWS_KEYPAIR}.pem"
@@ -14,7 +38,12 @@ remote_run_script() {
   local USER="$2"
   local EXPORTS="$3"
   local KEYFILE="${AWS_KEYPAIR}.pem"
-  local SCRIPT_BODY=$(printf "%q" "${EXPORTS}; $(cat $4)")
+
+  if [ -z "$EXPORTS" ]; then
+    EXPORTS=echo
+  fi
+
+  local SCRIPT_BODY=$(printf "%q" "${EXPORTS}; cd ~${USER}; $(cat $4)")
 
   ssh -i "${KEYFILE}" -t -t ${SSH_USER}@${IP} "sudo -u ${USER} bash -c ${SCRIPT_BODY}"
 }

@@ -54,6 +54,9 @@ apply() {
     echo deadline > "$BLOCKDEV"
   done
 
+  # This needs to go into the AMI: Needed for starting GPDB
+  yum install -y ed
+
   echo "Kernel configuration done."
 }
 

@@ -17,6 +17,16 @@ resources:
     secret_access_key: {{aws-secret-access-key}}
     versioned_file: instance_ids.txt
 
+- name: installer_rhel5_gpdb_rc
+  type: s3
+  source:
+    access_key_id: {{aws_toolsmiths_access_key_id}}
+    bucket: gpdb-4.3-stable-concourse
+    private: true
+    region_name: us-west-2
+    secret_access_key: {{aws_toolsmiths_secret_access_key}}
+    versioned_file: deliverables/greenplum-db-4.3.9.1-build-1-rhel5-x86_64.zip
+
 ########
 # JOBS #
 ########
@@ -38,7 +48,7 @@ jobs:
       AWS_KEYPAIR_VALUE : {{aws_perf_key}}
       AWS_REGION : {{aws-region}}
       AMI : "ami-7f7ab01f"
-      INSTANCE_TYPE : "t2.micro"
+      INSTANCE_TYPE : "t2.large"
       INSTANCE_NAME : "qp-perf-test0"
       SUBNET_ID : "subnet-370a1940"
       SECURITY_GROUP_ID : "sg-d074ceb7"
@@ -50,7 +60,8 @@ jobs:
   - put: instance_ids
     params:
       file: instance_ids/instance_ids.txt
-- name: unprovision
+
+- name: perf
   max_in_flight: 1
   plan:
   - aggregate:
@@ -60,6 +71,25 @@ jobs:
         submodules: none
     - get: instance_ids
       passed: [provision]
+      trigger: true
+    - get: installer_rhel5_gpdb_rc
+  - task: setup_gpdb_remote_with_installer
+    input_mapping:
+      gpdb_installer: installer_rhel5_gpdb_rc
+    on_failure: *unprovision
+    file: gpdb_src/concourse/setup_gpdb_with_installer.yml
+    params: *aws_config
+
+- name: unprovision
+  max_in_flight: 1
+  plan:
+  - aggregate:
+    - get: gpdb_src
+      passed: [perf]
+      params:
+        submodules: none
+    - get: instance_ids
+      passed: [perf]
       trigger: true
   - &unprovision
     task: unprovision_instance

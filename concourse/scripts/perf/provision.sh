@@ -11,24 +11,28 @@ main() {
   run_instances
   print_addresses
 
+  prepare_instances
+
+  log "Provision complete\n\n"
+}
+
+prepare_instances() {
   local SCRIPTS=(prepare_kernel.sh prepare_security.sh prepare_network.sh)
 
-  local exports="HOST=perfhost PRIVATE_IP=${PRIVATE_IP}"
   local PRIVATE_IP=$(ec2-describe-instances --show-empty-fields ${INSTANCE_IDS} | grep INSTANCE | cut -f18) # Extract private IP
+  local exports="HOST=perfhost PRIVATE_IP=${PRIVATE_IP}"
   for SCRIPT in "${SCRIPTS[@]}"; do
     remote_run_script ${PRIVATE_IP} root "${exports}" "$(dirname "$0")/${SCRIPT}"
   done
 
   log "Restarting instance to apply all settings..."
-  ec2-reboot-instances ${INSTANCE_IDS}
+  ec2-reboot-instances ${INSTANCE_IDS} && sleep 30
   wait_until_sshable ${PRIVATE_IP}
 
   local exports+=" VERIFY=1"
   for SCRIPT in "${SCRIPTS[@]}"; do
     remote_run_script ${PRIVATE_IP} root "${exports}" "$(dirname "$0")/${SCRIPT}"
   done
-
-  log "Provision complete\n\n"
 }
 
 check_tools() {
@@ -77,21 +81,6 @@ run_instances() {
 
   local PRIVATE_IP=$(ec2-describe-instances --show-empty-fields ${INSTANCE_IDS} | grep INSTANCE | cut -f18) # Extract private IP
   prepare_for_ssh ${PRIVATE_IP}
-}
-
-prepare_for_ssh() {
-  local IP=$1
-  local KEYFILE="${AWS_KEYPAIR}.pem"
-
-  log 'Preparing $IP for SSH'
-
-  if [[ ! -f "${KEYFILE}" ]]; then
-    echo "${AWS_KEYPAIR_VALUE}" > "${KEYFILE}"
-    chmod 0600 "${KEYFILE}"
-  fi
-
-  mkdir -p ~/.ssh
-  ssh-keyscan $IP >> ~/.ssh/known_hosts
 }
 
 print_addresses() {
