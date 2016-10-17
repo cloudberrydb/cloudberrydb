@@ -350,7 +350,7 @@ SET
 select count(*) AS invisi_and_visi_tups_ins  from ck_sync1_uaocs_alter_part_add_col1;
  invisi_and_visi_tups_ins 
 --------------------------
-                       11
+                       13
 (1 row)
 
 set gp_select_invisible = false;
@@ -368,7 +368,7 @@ SET
 select count(*) AS invisi_and_visi_tups  from ck_sync1_uaocs_alter_part_add_col1;
  invisi_and_visi_tups 
 ----------------------
-                   13
+                   15
 (1 row)
 
 set gp_select_invisible = false;
@@ -386,7 +386,7 @@ SET
 select count(*) AS invisi_and_visi_tups  from ck_sync1_uaocs_alter_part_add_col1;
  invisi_and_visi_tups 
 ----------------------
-                   13
+                   15
 (1 row)
 
 set gp_select_invisible = false;

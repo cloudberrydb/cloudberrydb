@@ -31,8 +31,6 @@ class ReindexTestCase(ScenarioTestCase, MPPTestCase):
 
     def test_reindex_scenarios(self):
         '''
-        @product_version gpdb: [4.3.3.0-],4.3.3.0O2
-
         This test currently verifies following situations --
         1. Table dropped during reindex database should not fail. Drop table transaction will either succeed or
         block. But in any case reindex database will proceed without failure.
@@ -60,8 +58,6 @@ class ReindexTestCase(ScenarioTestCase, MPPTestCase):
 
     def test_reindex_gpFastSequence(self):
         '''
-        @product_version gpdb: [4.3.3.0-],4.3.3.0O2
-        
         This is to test gp_fastsequence reindex while insert is happening in other relations
         STEPS:
         1. Create aoco table with index (setup_gpfastseq)
@@ -94,8 +90,6 @@ class ReindexConcurrencyTestCase(SQLIsolationTestCase):
     Test for REINDEX (index/table/system/database) with various concurrent transactions.
     Includes bitmap/btree/GiST tys of indexes
     For storage type AO/AOCO/Heap Relations
-    
-    @product_version gpdb: [4.3.3.0-],4.3.3.0O2
     '''
     sql_dir = 'concurrency/sql/'
     ans_dir = 'concurrency/expected'

@@ -1,4 +1,4 @@
--- @product_version gpdb: [4.3.0.0- 4.3.2.99]
+-- @product_version gpdb: [4.3.3.0 -]
 --
 -- CK_SYNC1 CO Part Table 1
 --
