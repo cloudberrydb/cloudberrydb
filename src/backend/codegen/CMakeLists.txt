@@ -206,9 +206,9 @@ macro(CHECK_SYMBOL_DEFINED LIBRARY CSYMBOL LIBPATH VARIABLE)
                   RESULT_VARIABLE RETURN_CODE
                   OUTPUT_QUIET)
   if(${RETURN_CODE} EQUAL 0) # One or more lines were selected
-		set(VARIABLE true)
+		set(${VARIABLE} true)
   elseif(${RETURN_CODE} EQUAL 1) # No lines were selected.
-		set(VARIABLE false)
+		set(${VARIABLE} false)
 	else()
 		message(FATAL_ERROR "Attempted to determine it ${CSYMBOL} is defined in ${LIBLOCATION} "
 					  "but the execution failed. Return code = ${RETURN_CODE}")
