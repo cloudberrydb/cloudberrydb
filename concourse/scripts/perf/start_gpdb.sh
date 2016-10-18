@@ -42,6 +42,7 @@ verify() {
   source /usr/local/greenplum-db/greenplum_path.sh
   psql template1 -c 'SELECT version();'
   psql template1 -c 'SELECT gp_opt_version();'
+  psql template1 -c 'SELECT * FROM gp_segment_configuration;'
   psql template1 -c 'SET optimizer=ON'
 }
 
