@@ -85,7 +85,7 @@ The AO visiblity map works as an overlay, over the data. When a row
 is DELETEd from an AO table, the original tuple is not modified. Instead,
 the tuple is marked as dead in the visibility map.
 
-The tuples in the visility map follow the normal MVCC rules. When
+The tuples in the visibility map follow the normal MVCC rules. When
 a tuple is deleted, the visibility map tuple that covers that row
 is updated, creating a new tuple in visibility map table, and
 setting the old tuple's xmax. This implements the MVCC visibility
