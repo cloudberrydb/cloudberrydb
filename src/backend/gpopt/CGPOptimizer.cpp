@@ -25,6 +25,8 @@
 
 #include "naucrates/exception.h"
 
+extern MemoryContext MessageContext;
+
 //---------------------------------------------------------------------------
 //	@function:
 //		CGPOptimizer::TouchLibraryInitializers
@@ -57,23 +59,47 @@ CGPOptimizer::PplstmtOptimize
 	bool *pfUnexpectedFailure // output : set to true if optimizer unexpectedly failed to produce plan
 	)
 {
+	SOptContext octx;
+	PlannedStmt* plStmt = NULL;
 	GPOS_TRY
 	{
-		return COptTasks::PplstmtOptimize(pquery, pfUnexpectedFailure);
+		plStmt = COptTasks::PplstmtOptimize(pquery, &octx, pfUnexpectedFailure);
+		// clean up context
+		octx.Free(octx.epinQuery, octx.epinPlStmt);
 	}
 	GPOS_CATCH_EX(ex)
 	{
-		if (GPOS_MATCH_EX(ex, gpdxl::ExmaDXL, gpdxl::ExmiWarningAsError))
+		// clone the error message before context free.
+		CHAR* szErrorMsg = octx.CloneErrorMsg(MessageContext);
+		// clean up context
+		octx.Free(octx.epinQuery, octx.epinPlStmt);
+		if (GPOS_MATCH_EX(ex, gpdxl::ExmaDXL, gpdxl::ExmiOptimizerError) ||
+			NULL != szErrorMsg)
 		{
-		  elog(ERROR, "PQO unable to generate plan, please see the above message for details.");
+			Assert(NULL != szErrorMsg);
+			errstart(ERROR, ex.SzFilename(), ex.UlLine(), NULL, TEXTDOMAIN);
+			errfinish(errcode(ERRCODE_INTERNAL_ERROR),
+					errmsg("%s", szErrorMsg));
 		}
-		if (GPOS_MATCH_EX(ex, gpdxl::ExmaGPDB, gpdxl::ExmiGPDBError))
+		else if (GPOS_MATCH_EX(ex, gpdxl::ExmaGPDB, gpdxl::ExmiGPDBError))
 		{
-		  elog(ERROR, "GPDB exception. Aborting PQO plan generation.");
+			PG_RE_THROW();
+		}
+		else if (GPOS_MATCH_EX(ex, gpdxl::ExmaDXL, gpdxl::ExmiNoAvailableMemory))
+		{
+			errstart(ERROR, ex.SzFilename(), ex.UlLine(), NULL, TEXTDOMAIN);
+			errfinish(errcode(ERRCODE_INTERNAL_ERROR),
+					errmsg("No available memory to allocate string buffer."));
+		}
+		else if (GPOS_MATCH_EX(ex, gpdxl::ExmaDXL, gpdxl::ExmiInvalidComparisonTypeCode))
+		{
+			errstart(ERROR, ex.SzFilename(), ex.UlLine(), NULL, TEXTDOMAIN);
+			errfinish(errcode(ERRCODE_INTERNAL_ERROR),
+					errmsg("Invalid comparison type code. Valid values are Eq, NEq, LT, LEq, GT, GEq."));
 		}
 	}
 	GPOS_CATCH_END;
-	return NULL;
+	return plStmt;
 }
 
 

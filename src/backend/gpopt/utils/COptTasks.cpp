@@ -147,13 +147,13 @@ const ULONG rgulExpectedDXLErrors[] =
 
 //---------------------------------------------------------------------------
 //	@function:
-//		COptTasks::SOptContext::SOptContext
+//		SOptContext::SOptContext
 //
 //	@doc:
 //		Ctor
 //
 //---------------------------------------------------------------------------
-COptTasks::SOptContext::SOptContext()
+SOptContext::SOptContext()
 	:
 	m_szQueryDXL(NULL),
 	m_pquery(NULL),
@@ -167,7 +167,7 @@ COptTasks::SOptContext::SOptContext()
 
 //---------------------------------------------------------------------------
 //	@function:
-//		COptTasks::SOptContext::HandleError
+//		SOptContext::HandleError
 //
 //	@doc:
 //		If there is an error print as warning and throw GPOS_EXCEPTION to abort
@@ -175,31 +175,22 @@ COptTasks::SOptContext::SOptContext()
 //		a memory leak.
 //---------------------------------------------------------------------------
 void
-COptTasks::SOptContext::HandleError
+SOptContext::HandleError
 	(
 	BOOL *pfUnexpectedFailure
 	)
 {
-	BOOL bhasError = false;
+	*pfUnexpectedFailure = m_fUnexpectedFailure;
 	if (NULL != m_szErrorMsg)
 	{
-		bhasError = true;
-		elog(WARNING, "%s", m_szErrorMsg);
-	}
-	*pfUnexpectedFailure = m_fUnexpectedFailure;
-
-	// clean up context
-	Free(epinQuery, epinPlStmt);
-	if (bhasError)
-	{
-		GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiWarningAsError);
+		GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiOptimizerError);
 	}
 }
 
 
 //---------------------------------------------------------------------------
 //	@function:
-//		COptTasks::SOptContext::Free
+//		SOptContext::Free
 //
 //	@doc:
 //		Free all members except those pointed to by either epinInput or
@@ -207,10 +198,10 @@ COptTasks::SOptContext::HandleError
 //
 //---------------------------------------------------------------------------
 void
-COptTasks::SOptContext::Free
+SOptContext::Free
 	(
-	COptTasks::SOptContext::EPin epinInput,
-	COptTasks::SOptContext::EPin epinOutput
+	SOptContext::EPin epinInput,
+	SOptContext::EPin epinOutput
 	)
 {
 	if (NULL != m_szQueryDXL && epinQueryDXL != epinInput && epinQueryDXL != epinOutput)
@@ -239,17 +230,40 @@ COptTasks::SOptContext::Free
 	}
 }
 
+//---------------------------------------------------------------------------
+//	@function:
+//		SOptContext::CloneErrorMsg
+//
+//	@doc:
+//		Clone m_szErrorMsg to given memory context. Return NULL if there is no
+//		error message.
+//
+//---------------------------------------------------------------------------
+CHAR*
+SOptContext::CloneErrorMsg
+	(
+	MemoryContext context
+	)
+{
+	if (NULL == context ||
+		NULL == m_szErrorMsg)
+	{
+		return NULL;
+	}
+	return gpdb::SzMemoryContextStrdup(context, m_szErrorMsg);
+}
+
 
 //---------------------------------------------------------------------------
 //	@function:
-//		COptTasks::SOptContext::PoptctxtConvert
+//		SOptContext::PoptctxtConvert
 //
 //	@doc:
 //		Casting function
 //
 //---------------------------------------------------------------------------
-COptTasks::SOptContext *
-COptTasks::SOptContext::PoptctxtConvert
+SOptContext *
+SOptContext::PoptctxtConvert
 	(
 	void *pv
 	)
@@ -376,8 +390,7 @@ COptTasks::SzAllocate
 	}
 	GPOS_CATCH_EX(ex)
 	{
-		elog(WARNING, "no available memory to allocate string buffer");
-		GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiWarningAsError);
+		GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiNoAvailableMemory);
 	}
 	GPOS_CATCH_END;
 
@@ -1667,26 +1680,27 @@ PlannedStmt *
 COptTasks::PplstmtOptimize
 	(
 	Query *pquery,
+	SOptContext *octx,
 	BOOL *pfUnexpectedFailure // output : set to true if optimizer unexpectedly failed to produce plan
 	)
 {
 	Assert(pquery);
+	Assert(octx);
 
-	SOptContext octx;
-	octx.m_pquery = pquery;
-	octx.m_fGeneratePlStmt= true;
+	octx->m_pquery = pquery;
+	octx->m_fGeneratePlStmt= true;
 	GPOS_TRY
 	{
-		Execute(&PvOptimizeTask, &octx);
+		Execute(&PvOptimizeTask, octx);
 	}
 	GPOS_CATCH_EX(ex)
 	{
-		octx.HandleError(pfUnexpectedFailure);
+		*pfUnexpectedFailure = octx->m_fUnexpectedFailure;
 		GPOS_RETHROW(ex);
 	}
 	GPOS_CATCH_END;
-	octx.HandleError(pfUnexpectedFailure);
-	return octx.m_pplstmt;
+	octx->HandleError(pfUnexpectedFailure);
+	return octx->m_pplstmt;
 }
 
 
@@ -1898,8 +1912,7 @@ COptTasks::UlCmpt
 		}
 	}
 
-	elog(WARNING, "Invalid comparison type code. Valid values are Eq, NEq, LT, LEq, GT, GEq");
-	GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiWarningAsError);
+	GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiInvalidComparisonTypeCode);
 	return CmptOther;
 }
 

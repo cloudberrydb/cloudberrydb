@@ -51,66 +51,67 @@ using namespace gpos;
 using namespace gpdxl;
 using namespace gpopt;
 
-class COptTasks
+// context of optimizer input and output objects
+struct SOptContext
 {
 
+	// mark which pointer member should NOT be released
+	// when calling Free() function
+	enum EPin
+	{
+		epinQueryDXL, // keep m_szQueryDXL
+		epinQuery, 	 // keep m_pquery
+		epinPlanDXL, // keep m_szPlanDXL
+		epinPlStmt, // keep m_pplstmt
+		epinErrorMsg // keep m_szErrorMsg
+	};
+
+	// query object serialized to DXL
+	CHAR *m_szQueryDXL;
+
+	// query object
+	Query *m_pquery;
+
+	// plan object serialized to DXL
+	CHAR *m_szPlanDXL;
+
+	// plan object
+	PlannedStmt *m_pplstmt;
+
+	// is generating a plan object required ?
+	BOOL m_fGeneratePlStmt;
+
+	// is serializing a plan to DXL required ?
+	BOOL m_fSerializePlanDXL;
+
+	// did the optimizer fail unexpectedly?
+	BOOL m_fUnexpectedFailure;
+
+	// buffer for optimizer error messages
+	CHAR *m_szErrorMsg;
+
+	// ctor
+	SOptContext();
+
+	// If there is an error print as warning and throw exception to abort
+	// plan generation
+	void HandleError(BOOL *pfUnexpectedFailure);
+
+	// free all members except input and output pointers
+	void Free(EPin epinInput, EPin epinOutput);
+
+	// Clone the error message in given context.
+	CHAR* CloneErrorMsg(MemoryContext context);
+
+	// casting function
+	static
+	SOptContext *PoptctxtConvert(void *pv);
+
+}; // struct SOptContext
+
+class COptTasks
+{
 	private:
-
-		// context of optimizer input and output objects
-		struct SOptContext
-		{
-
-			// mark which pointer member should NOT be released
-			// when calling Free() function
-			enum EPin
-			{
-				epinQueryDXL, // keep m_szQueryDXL
-				epinQuery, 	 // keep m_pquery
-				epinPlanDXL, // keep m_szPlanDXL
-				epinPlStmt, // keep m_pplstmt
-				epinErrorMsg // keep m_szErrorMsg
-			};
-
-			// query object serialized to DXL
-			CHAR *m_szQueryDXL;
-
-			// query object
-			Query *m_pquery;
-
-			// plan object serialized to DXL
-			CHAR *m_szPlanDXL;
-
-			// plan object
-			PlannedStmt *m_pplstmt;
-
-			// is generating a plan object required ?
-			BOOL m_fGeneratePlStmt;
-
-			// is serializing a plan to DXL required ?
-			BOOL m_fSerializePlanDXL;
-
-			// did the optimizer fail unexpectedly?
-			BOOL m_fUnexpectedFailure;
-
-			// buffer for optimizer error messages
-			CHAR *m_szErrorMsg;
-
-			// ctor
-			SOptContext();
-
-			// If there is an error print as warning and throw exception to abort
-			// plan generation
-			void HandleError(BOOL *pfUnexpectedFailure);
-
-			// free all members except input and output pointers
-			void Free(EPin epinInput, EPin epinOutput);
-
-			// casting function
-			static
-			SOptContext *PoptctxtConvert(void *pv);
-
-		}; // struct SOptContext
-
 
 		// context of relcache input and output objects
 		struct SContextRelcacheToDXL
@@ -262,6 +263,7 @@ class COptTasks
 		PlannedStmt *PplstmtOptimize
 			(
 			Query *pquery,
+			SOptContext* octx,
 			BOOL *pfUnexpectedFailure // output : set to true if optimizer unexpectedly failed to produce plan
 			);
 

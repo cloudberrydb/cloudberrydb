@@ -1159,24 +1159,6 @@ Optimize(PG_FUNCTION_ARGS)
 }
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		orca
-//
-//	@doc:
-//		API for planner replacement
-//
-//---------------------------------------------------------------------------
-
-extern "C" {
-PlannedStmt *orca(Query *pquery)
-{
-	BOOL fUnexpectedFailure = false;
-
-	return COptTasks::PplstmtOptimize(pquery, &fUnexpectedFailure);
-}
-}
-
 
 //---------------------------------------------------------------------------
 //	@function:
