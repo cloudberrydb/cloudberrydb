@@ -1348,6 +1348,7 @@ ChangeTracking_GetIncrementalChangeList(void)
 		/* must be in a transaction in order to use SPI */
 		StartTransactionCommand();
 		ActiveSnapshot = CopySnapshot(GetTransactionSnapshot());
+		SetSessionUserId(BOOTSTRAP_SUPERUSERID, true);
 
 		if (SPI_OK_CONNECT != SPI_connect())
 		{
@@ -1633,6 +1634,7 @@ ChangeTrackingResult* ChangeTracking_GetChanges(ChangeTrackingRequest *request)
 		/* must be in a transaction in order to use SPI */
 		StartTransactionCommand();
 		ActiveSnapshot = CopySnapshot(GetTransactionSnapshot());
+		SetSessionUserId(BOOTSTRAP_SUPERUSERID, true);
 
 		if (SPI_OK_CONNECT != SPI_connect())
 		{
@@ -3082,6 +3084,7 @@ int ChangeTracking_CompactLogFile(CTFType source, CTFType dest, XLogRecPtr*	upto
 		/* must be in a transaction in order to use SPI */
 		StartTransactionCommand();
 		ActiveSnapshot = CopySnapshot(GetTransactionSnapshot());
+		SetSessionUserId(BOOTSTRAP_SUPERUSERID, true);
 
 		if (SPI_OK_CONNECT != SPI_connect())
 		{
