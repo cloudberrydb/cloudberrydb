@@ -1,8 +1,13 @@
+-- start_ignore
+SET gp_create_table_random_default_distribution=off;
+SET
+-- end_ignore
 -- @description : Alter  UAO tables and execute DML statements on the tables
 -- 
+set time zone PST8PDT;
+SET
 -- Create AO tables
 DROP TABLE if exists sto_alt_uao1_dropcol;
-NOTICE:  table "sto_alt_uao1_dropcol" does not exist, skipping
 DROP TABLE
 CREATE TABLE sto_alt_uao1_dropcol(
           text_col text default 'remove it',
@@ -59,7 +64,7 @@ SET
 Alter table sto_alt_uao1_dropcol Drop column float_col;
 ALTER TABLE
 insert into sto_alt_uao1_dropcol values ('3_zero', 3, '3_zero', 3, 3, 3, '{3}', 3, 3, '2006-10-19 10:23:54', '2006-10-19 10:23:54+03', '1-1-2003',3);
-ERROR:  INSERT has more expressions than target columns
+psql:/home/gpadmin/gpdb4/src/test/tinc/tincrepo/mpp/gpdb/tests/storage/uao/uao_ddl/output/alter_ao_tables_dropcol.sql:42: ERROR:  INSERT has more expressions than target columns
 select * from sto_alt_uao1_dropcol order by bigint_col;
  text_col | bigint_col | char_vary_col | numeric_col | int_col | int_array_col | before_rename_col | change_datatype_col |    a_ts_without     |       b_ts_with        | date_column | col_set_default 
 ----------+------------+---------------+-------------+---------+---------------+-------------------+---------------------+---------------------+------------------------+-------------+-----------------

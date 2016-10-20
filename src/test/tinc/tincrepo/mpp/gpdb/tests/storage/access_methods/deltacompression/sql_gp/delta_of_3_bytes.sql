@@ -1,6 +1,9 @@
 -- start_ignore
 SET gp_create_table_random_default_distribution=off;
 -- end_ignore
+
+set time zone PST8PDT;
+
 -- Insert into delta compressable data types with delta range that is less than 3 bytes
 
 -- start_ignore

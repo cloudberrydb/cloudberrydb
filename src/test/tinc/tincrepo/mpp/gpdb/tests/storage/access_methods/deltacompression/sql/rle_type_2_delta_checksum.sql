@@ -1,6 +1,8 @@
 -- @product_version gpdb: [4.3.4.0-]
 -- Insert into columns with rle_type compresslevel 2 + delta.
 
+set time zone PST8PDT;
+
 -- start_ignore
 Drop table if exists rle_type_2_delta_chkt;
 -- end_ignore

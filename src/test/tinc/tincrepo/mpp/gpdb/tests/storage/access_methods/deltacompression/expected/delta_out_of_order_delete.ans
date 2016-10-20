@@ -1,3 +1,5 @@
+set time zone PST8PDT;
+SET
 -- taken from uao test_suite
 -- start_ignore
 DROP TABLE IF EXISTS delta_one;

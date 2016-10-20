@@ -1,7 +1,14 @@
+-- start_ignore
+SET gp_create_table_random_default_distribution=off;
+SET
+-- end_ignore
 -- @description : Alter  UAO tables and execute DML statements on the tables
 -- 
+set time zone PST8PDT;
+SET
 -- Create AO tables
 DROP TABLE if exists sto_alt_uao1_default;
+psql:/home/gpadmin/gpdb4/src/test/tinc/tincrepo/mpp/gpdb/tests/storage/uao/uaocs_ddl/output/alter_ao_tables_setdefault.sql:12: NOTICE:  table "sto_alt_uao1_default" does not exist, skipping
 DROP TABLE
 CREATE TABLE sto_alt_uao1_default(
           bigint_col bigint,
@@ -145,7 +152,7 @@ SET
 Alter Table sto_alt_uao1_default ALTER COLUMN text_col SET  NOT NULL;
 ALTER TABLE
 insert into sto_alt_uao1_default values ( 5, '5_zero', 5, 5, 5, '{5}', 5, 5, '2006-10-19 10:23:54', '2006-10-19 10:23:54+02', '1-1-2002',5);
-psql:/path/sql_file:1: ERROR:  NULL value in column "text_col" violates not-null constraint  (seg0 rh55-qa03.sanmateo.greenplum.com:40000 pid=23587)
+psql:/home/gpadmin/gpdb4/src/test/tinc/tincrepo/mpp/gpdb/tests/storage/uao/uaocs_ddl/output/alter_ao_tables_setdefault.sql:63: ERROR:  null value in column "text_col" violates not-null constraint  (seg1 56b2e6740771:25433 pid=30300)
 select * from sto_alt_uao1_default order by bigint_col;
  bigint_col | char_vary_col | numeric_col | int_col | float_col | int_array_col | before_rename_col | change_datatype_col |    a_ts_without     |       b_ts_with        | date_column | col_set_default |   text_col   
 ------------+---------------+-------------+---------+-----------+---------------+-------------------+---------------------+---------------------+------------------------+-------------+-----------------+--------------
@@ -176,7 +183,7 @@ SET
 Alter Table sto_alt_uao1_default ALTER COLUMN int_col DROP NOT NULL;
 ALTER TABLE
 insert into sto_alt_uao1_default values ( 6, '6_zero', 6, 6, 6, '{6}', 6, 6, '2006-10-19 10:23:54', '2006-10-19 10:23:54+02', '1-1-2002',6);
-psql:/path/sql_file:1: ERROR:  NULL value in column "text_col" violates not-null constraint  (seg1 rh55-qa03.sanmateo.greenplum.com:40001 pid=23589)
+psql:/home/gpadmin/gpdb4/src/test/tinc/tincrepo/mpp/gpdb/tests/storage/uao/uaocs_ddl/output/alter_ao_tables_setdefault.sql:72: ERROR:  null value in column "text_col" violates not-null constraint  (seg0 56b2e6740771:25432 pid=30298)
 select * from sto_alt_uao1_default order by bigint_col;
  bigint_col | char_vary_col | numeric_col | int_col | float_col | int_array_col | before_rename_col | change_datatype_col |    a_ts_without     |       b_ts_with        | date_column | col_set_default |   text_col   
 ------------+---------------+-------------+---------+-----------+---------------+-------------------+---------------------+---------------------+------------------------+-------------+-----------------+--------------

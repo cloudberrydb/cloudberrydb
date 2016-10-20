@@ -1,3 +1,5 @@
+set time zone PST8PDT;
+SET
 -- Table with rle+ delta - create table, create bitmap index + insert data, select with index scan
 -- start_ignore
 Drop table if exists delta_bitmap_ins;

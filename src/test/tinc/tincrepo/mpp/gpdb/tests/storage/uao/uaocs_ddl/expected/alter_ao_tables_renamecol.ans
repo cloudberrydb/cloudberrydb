@@ -1,7 +1,14 @@
+-- start_ignore
+SET gp_create_table_random_default_distribution=off;
+SET
+-- end_ignore
 -- @description : Alter  UAO tables and execute DML statements on the tables
 -- 
+set time zone PST8PDT;
+SET
 -- Create AO tables
 DROP TABLE if exists sto_alt_uao1_renamecol;
+psql:/home/gpadmin/gpdb4/src/test/tinc/tincrepo/mpp/gpdb/tests/storage/uao/uaocs_ddl/output/alter_ao_tables_renamecol.sql:12: NOTICE:  table "sto_alt_uao1_renamecol" does not exist, skipping
 DROP TABLE
 CREATE TABLE sto_alt_uao1_renamecol(
           text_col text default 'remove it',
@@ -66,7 +73,7 @@ select * from sto_alt_uao1_renamecol order by bigint_col;
 (3 rows)
 
 update sto_alt_uao1_renamecol set before_rename_col= 10 where text_col = '1_zero';
-psql:/path/sql_file:1: ERROR:  column "before_rename_col" of relation "sto_alt_uao1_renamecol" does not exist
+psql:/home/gpadmin/gpdb4/src/test/tinc/tincrepo/mpp/gpdb/tests/storage/uao/uaocs_ddl/output/alter_ao_tables_renamecol.sql:43: ERROR:  column "before_rename_col" of relation "sto_alt_uao1_renamecol" does not exist
 LINE 1: update sto_alt_uao1_renamecol set before_rename_col= 10 wher...
                                           ^
 select count(*) AS only_visi_tups from sto_alt_uao1_renamecol;

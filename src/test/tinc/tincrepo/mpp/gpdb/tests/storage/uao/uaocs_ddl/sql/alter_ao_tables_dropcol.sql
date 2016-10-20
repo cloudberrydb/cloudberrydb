@@ -1,6 +1,7 @@
 
 -- start_ignore
 
+set time zone PST8PDT;
 -- end_ignore
 -- @description : Alter  UAO tables and execute DML statements on the tables
 -- 

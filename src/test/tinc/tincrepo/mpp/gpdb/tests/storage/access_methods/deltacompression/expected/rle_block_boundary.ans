@@ -1,3 +1,5 @@
+set time zone PST8PDT;
+SET
 DROP TABLE IF EXISTS rle_block_boundary;
 DROP TABLE
 CREATE TABLE rle_block_boundary (a int, b text) with (appendonly=true, orientation=column, compresstype=rle_type);

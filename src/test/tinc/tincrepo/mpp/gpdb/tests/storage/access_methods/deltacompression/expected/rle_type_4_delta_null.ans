@@ -1,3 +1,5 @@
+set time zone PST8PDT;
+SET
 -- Insert into columns with rle_type level 1 + delta + null 
 -- start_ignore
 Drop table if exists rle_type_4_delta_null;

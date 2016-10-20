@@ -1,6 +1,7 @@
 -- @description : Alter  UAO tables and execute DML statements on the tables
 -- 
 
+set time zone PST8PDT;
 
 -- Create AO tables
 DROP TABLE if exists sto_alt_uao1;

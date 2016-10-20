@@ -1,6 +1,9 @@
 -- start_ignore
 SET gp_create_table_random_default_distribution=off;
 -- end_ignore
+
+set time zone PST8PDT;
+
 -- Table with  delta + none compression on some columns
 
 -- start_ignore

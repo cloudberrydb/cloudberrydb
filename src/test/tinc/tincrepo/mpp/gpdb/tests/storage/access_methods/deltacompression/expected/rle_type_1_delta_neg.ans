@@ -1,3 +1,5 @@
+set time zone PST8PDT;
+SET
 -- Insert into columns with rle_type compresslevel 1 + positive and  negative delta .
 -- start_ignore
 Drop table if exists rle_type_1_delta_neg;

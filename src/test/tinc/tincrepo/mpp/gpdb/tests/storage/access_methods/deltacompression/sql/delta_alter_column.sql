@@ -1,6 +1,9 @@
 -- start_ignore
 SET gp_create_table_random_default_distribution=off;
 -- end_ignore
+
+set time zone PST8PDT;
+
 -- Alter a delta column to a non-supported column
 -- Alter one delta column to another delta column
 

@@ -1,7 +1,14 @@
+-- start_ignore
+SET gp_create_table_random_default_distribution=off;
+SET
+-- end_ignore
 -- @description : Alter  UAO tables and execute DML statements on the tables
 -- 
+set time zone PST8PDT;
+SET
 -- Create AO tables
 DROP TABLE if exists sto_alt_uao1;
+psql:/home/gpadmin/gpdb4/src/test/tinc/tincrepo/mpp/gpdb/tests/storage/uao/uaocs_ddl/output/alter_ao_tables_addcol.sql:12: NOTICE:  table "sto_alt_uao1" does not exist, skipping
 DROP TABLE
 CREATE TABLE sto_alt_uao1(
           text_col text default 'remove it',

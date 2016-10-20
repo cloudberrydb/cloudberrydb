@@ -1,6 +1,9 @@
 -- start_ignore
 SET gp_create_table_random_default_distribution=off;
 -- end_ignore
+
+set time zone PST8PDT;
+
 -- Insert into columns with rle_type compresslevel 3 + positive and  negative delta .
 
 -- start_ignore

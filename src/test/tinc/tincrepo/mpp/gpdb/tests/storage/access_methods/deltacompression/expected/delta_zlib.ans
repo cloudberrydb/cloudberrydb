@@ -1,3 +1,5 @@
+set time zone PST8PDT;
+SET
 -- Table with delta on one column zlib on other columns
 -- start_ignore
 Drop table if exists delta_zlib;

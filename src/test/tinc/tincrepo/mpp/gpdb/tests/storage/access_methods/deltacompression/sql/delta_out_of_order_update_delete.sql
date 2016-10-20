@@ -1,6 +1,9 @@
 -- start_ignore
 SET gp_create_table_random_default_distribution=off;
 -- end_ignore
+
+set time zone PST8PDT;
+
 -- Out of order update, delete on delta compressed columns
 -- start_ignore
 Drop table if exists delta_update_t1;

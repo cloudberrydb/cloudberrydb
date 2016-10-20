@@ -1,3 +1,5 @@
+set time zone PST8PDT;
+SET
 -- start_ignore
 -- end_ignore
 -- Insert into delta compressable data types with delta range that is less than 4 bytes

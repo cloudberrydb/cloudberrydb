@@ -53,11 +53,11 @@ PARTITION BY LIST (AGG_LEVEL)
 );
 
 
-select * from pg_partitions where tablename = 'mpp10223';
+select count(*) from pg_partitions where tablename = 'mpp10223';
 
 
 ALTER TABLE mpp10223 ALTER PARTITION min15part SPLIT PARTITION  P_FUTURE AT ('2010-06-25') INTO (PARTITION P20010101, PARTITION P_FUTURE);
 
 
-select * from pg_partitions where tablename = 'mpp10223';
+select count(*) from pg_partitions where tablename = 'mpp10223';
 

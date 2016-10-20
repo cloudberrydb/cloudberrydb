@@ -4,6 +4,8 @@
 -- @tags storage
 -- @description AOCO zlib compressed table : alter add all types of columns
 
+set time zone PST8PDT;
+
 DROP TABLE if exists aoco_allalter;
 DROP TABLE if exists aoco_allalter_uncompr; 
 CREATE TABLE aoco_allalter ( 
