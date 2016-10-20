@@ -226,10 +226,22 @@ gpdxl::EresExceptionInit
 					GPOS_WSZ_WSZLEN("DXL-to-Expr Translation: Attribute number not found in project list")),
 
 			CMessage(CException(gpdxl::ExmaDXL, gpdxl::ExmiWarningAsError),
-								CException::ExsevError,
-								GPOS_WSZ_WSZLEN("PQO unable to generate plan, please see the above message for details."),
-								1, // attno
-								GPOS_WSZ_WSZLEN("PQO unable to generate plan, please see the above message for details."))
+					CException::ExsevError,
+					GPOS_WSZ_WSZLEN("%s"),
+					1, // attno
+					GPOS_WSZ_WSZLEN("PQO unable to generate a plan, please see the above message for details.")),
+
+			CMessage(CException(gpdxl::ExmaDXL, gpdxl::ExmiNoAvailableMemory),
+					CException::ExsevError,
+					GPOS_WSZ_WSZLEN("No available memory to allocate string buffer."),
+					0,
+					GPOS_WSZ_WSZLEN("No available memory to allocate string buffer.")),
+
+			CMessage(CException(gpdxl::ExmaDXL, gpdxl::ExmiInvalidComparisonTypeCode),
+					CException::ExsevError,
+					GPOS_WSZ_WSZLEN("Invalid comparison type code. Valid values are Eq, NEq, LT, LEq, GT, GEq."),
+					0,
+					GPOS_WSZ_WSZLEN("Invalid comparison type code. Valid values are Eq, NEq, LT, LEq, GT, GEq."))
 
 	};
 

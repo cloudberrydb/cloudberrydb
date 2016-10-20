@@ -72,8 +72,10 @@ namespace gpdxl
 		// exceptions related to constant expression evaluation
 		ExmiConstExprEvalNonConst,
 
-		// Unrecoverable warning that needs to be treated as error
+		// ORCA Exceptions that need to be reported as ERROR to GPDB
 		ExmiWarningAsError,
+		ExmiNoAvailableMemory,
+		ExmiInvalidComparisonTypeCode,
 
 		ExmiDXLSentinel
 	};
