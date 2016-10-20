@@ -32,7 +32,7 @@
  *
  * ***WARNING*** STRUCT PACKING ISSUE.
  *
- *       Previously, we had the uint16 first and the uint32 second.  But on some compliers
+ *       Previously, we had the uint16 first and the uint32 second.  But on some compilers
  *       the second uint32 would get packed on a 32-bit boundary and the struct would end
  *       up with a hole between the fields...  Arranging the uint16 second is known to work
  *       correctly since the ItemPointerData has the same layout.  And, apparently putting

@@ -1529,7 +1529,7 @@ DatabaseInfo_AlignAppendOnly(
 					 dbInfoRel->relname,
 					 dbInfoRel->gpRelationNodes[g].segmentFileNum);
 			}
-			g++;	// Not reached.  Protect against overly smart compliers looking at exit conditions...
+			g++;	// Not reached.  Protect against overly smart compilers looking at exit conditions...
 		}
 	}
 
