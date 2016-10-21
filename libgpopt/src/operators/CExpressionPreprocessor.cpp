@@ -308,6 +308,18 @@ CExpressionPreprocessor::PexprUnnestScalarSubqueries
 		// recursively process scalar subquery
 		CExpression *pexprSubq = PexprUnnestScalarSubqueries(pmp, (*pexpr)[0]);
 
+		// if the scalar subquery is replaced by the CScalarIdent in the previous
+		// recursive call we simply return the CScalarIdent and stop preprocessing
+		// at this stage.
+		// +--CScalarProjectList
+		//	  +--CScalarProjectElement "?column?" (2)
+		//	     +--CScalarIdent "column1" (1)
+		if (COperator::EopScalarIdent == pexprSubq->Pop()->Eopid())
+		{
+			pop->AddRef();
+			return GPOS_NEW(pmp) CExpression(pmp, pop, pexprSubq);
+		}
+
 		// check if subquery is defined as a Project on Const Table
 		CExpression *pexprSubqChild = (*pexprSubq)[0];
 		if (CUtils::FProjectConstTableWithOneScalarSubq(pexprSubqChild))
@@ -341,6 +353,26 @@ CExpressionPreprocessor::PexprUnnestScalarSubqueries
 		// otherwise, return a Project Element with the processed outer subquery
 		pop->AddRef();
 		return GPOS_NEW(pmp) CExpression(pmp, pop, pexprSubq);
+	}
+
+	else if (CUtils::FScalarSubqWithConstTblGet(pexpr))
+	{
+		const CColRef *pcrSubq = CScalarSubquery::PopConvert(pexpr->Pop())->Pcr();
+		CColRefSet *pcrsConstTableOutput = CDrvdPropRelational::Pdprel((*pexpr)[0]->PdpDerive())->PcrsOutput();
+
+		// if the subquery has outer ref, we do not make use of the output columns of constant table get.
+		// In this scenairo, we replace the entire scalar subquery with a CScalarIdent with the outer reference.
+		// Otherwise, the subquery remains unchanged.
+		// Input:
+		//   +--CScalarSubquery["b" (8)]
+		//      +--CLogicalConstTableGet Columns: ["" (16)] Values: [(1)]
+		// Output:
+		//   +--CScalarIdent "b" (8)
+		if (!pcrsConstTableOutput->FMember(pcrSubq))
+		{
+			CScalarSubquery *pScalarSubquery = CScalarSubquery::PopConvert(pexpr->Pop());
+			return CUtils::PexprScalarIdent(pmp, pScalarSubquery->Pcr());
+		}
 	}
 
 	// recursively process children
