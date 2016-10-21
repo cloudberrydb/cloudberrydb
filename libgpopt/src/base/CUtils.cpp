@@ -1700,6 +1700,32 @@ CUtils::FProjElemWithScalarSubq
 		COperator::EopScalarSubquery == (*pexpr)[0]->Pop()->Eopid());
 }
 
+//---------------------------------------------------------------------------
+//	@function:
+//		CUtils::FScalarSubqWithConstTblGet
+//
+//	@doc:
+//		Check if given expression is a scalar subquery with a ConstTableGet
+//		as the only child
+//
+//---------------------------------------------------------------------------
+BOOL
+CUtils::FScalarSubqWithConstTblGet
+(
+	CExpression *pexpr
+	)
+{
+	GPOS_ASSERT(NULL != pexpr);
+
+	if (COperator::EopScalarSubquery == pexpr->Pop()->Eopid() &&
+		COperator::EopLogicalConstTableGet == (*pexpr)[0]->Pop()->Eopid() &&
+		1 == pexpr->UlArity())
+	{
+		return true;
+	}
+
+	return false;
+}
 
 //---------------------------------------------------------------------------
 //	@function:

@@ -654,6 +654,10 @@ namespace gpopt
 			static
 			BOOL FProjElemWithScalarSubq(CExpression *pexpr);
 
+			// check if given expression is a scalar subquery with a ConstTableGet as the only child
+			static
+			BOOL FScalarSubqWithConstTblGet(CExpression *pexpr);
+
 			// check if given expression is a Project on ConstTable with one scalar subquery in Project List
 			static
 			BOOL FProjectConstTableWithOneScalarSubq(CExpression *pexpr);
