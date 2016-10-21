@@ -145,6 +145,10 @@ const CHAR *rgszFileNames[] =
 		"../data/dxl/minidump/AntiSemiJoin2Select-2.mdp",
 		"../data/dxl/minidump/Subq-On-OuterRef.mdp",
 		"../data/dxl/minidump/Subq-With-OuterRefCol.mdp",
+		"../data/dxl/minidump/ConstTblGetUnderSubqWithOuterRef.mdp",
+		"../data/dxl/minidump/ConstTblGetUnderSubqWithNoOuterRef.mdp",
+		"../data/dxl/minidump/ConstTblGetUnderSubqUnderProjectNoOuterRef.mdp",
+		"../data/dxl/minidump/ConstTblGetUnderSubqUnderProjectWithOuterRef.mdp",
 
 		"../data/dxl/minidump/Subq-NoParams.mdp",
 		"../data/dxl/minidump/Subq-JoinWithOuterRef.mdp",
