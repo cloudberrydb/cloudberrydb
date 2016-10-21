@@ -50,7 +50,7 @@ CREATE TABLE test_schema_2.grant_test(a int) DISTRIBUTED BY (a); -- no permissio
 ERROR:  permission denied for schema test_schema_2
 SELECT * FROM test_schema_1.abc; -- no permissions on table
 ERROR:  permission denied for relation abc
-ERROR:  GPDB exception. Aborting PQO plan generation. (CGPOptimizer.cpp:70)
+ERROR:  GPDB exception. Aborting PQO plan generation. (CGPOptimizer.cpp:72)
 SELECT * FROM test_schema_2.abc; -- no permissions on schema
 ERROR:  permission denied for schema test_schema_2
 LINE 1: SELECT * FROM test_schema_2.abc;

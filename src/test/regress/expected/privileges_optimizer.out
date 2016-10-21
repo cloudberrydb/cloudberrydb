@@ -282,7 +282,7 @@ SELECT testfunc1(5); -- fail
 ERROR:  permission denied for function testfunc1
 SELECT col1 FROM atest2 WHERE col2 = true; -- fail
 ERROR:  permission denied for relation atest2
-ERROR:  GPDB exception. Aborting PQO plan generation. (CGPOptimizer.cpp:70)
+ERROR:  GPDB exception. Aborting PQO plan generation. (CGPOptimizer.cpp:72)
 SELECT testfunc4(true); -- ok
  testfunc4 
 -----------
