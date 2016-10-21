@@ -2897,22 +2897,6 @@ DESCR("linear interpolation: x, x0,y0, x1,y1");
 /* lead_lag_frame_maker(internal) => internal */ 
 DATA(insert OID = 5081 ( lead_lag_frame_maker  PGNSP PGUID 12 1 0 0 f f t f v 1 0 2281 f "2281" _null_ _null_ _null_ _null_ lead_lag_frame_maker _null_ _null_ _null_ n ));
 
-/* gp_partition_propagation(int4, oid) => void */ 
-DATA(insert OID = 6083 ( gp_partition_propagation  PGNSP PGUID 12 1 0 0 f f t f v 2 0 2278 f "23 26" _null_ _null_ _null_ _null_ gp_partition_propagation _null_ _null_ _null_ n ));
-DESCR("inserts a partition oid into specified pid-index");
-
-/* gp_partition_selection(oid, anyelement) => oid */ 
-DATA(insert OID = 6084 ( gp_partition_selection  PGNSP PGUID 12 1 0 0 f f t f s 2 0 26 f "26 2283" _null_ _null_ _null_ _null_ gp_partition_selection _null_ _null_ _null_ n ));
-DESCR("selects the child partition oid which satisfies a given partition key value");
-
-/* gp_partition_expansion(oid) => setof oid */ 
-DATA(insert OID = 6085 ( gp_partition_expansion  PGNSP PGUID 12 1 1000 0 f f t t s 1 0 26 f "26" _null_ _null_ _null_ _null_ gp_partition_expansion _null_ _null_ _null_ n ));
-DESCR("finds all child partition oids for the given parent oid");
-
-/* gp_partition_inverse(oid) => setof record */ 
-DATA(insert OID = 6086 ( gp_partition_inverse  PGNSP PGUID 12 1 1000 0 f f t t s 1 0 2249 f "26" _null_ _null_ _null_ _null_ gp_partition_inverse _null_ _null_ _null_ n ));
-DESCR("returns all child partitition oids with their constraints for a given parent oid");
-
 /* disable_xform(text) => text */ 
 DATA(insert OID = 6087 ( disable_xform  PGNSP PGUID 12 1 0 0 f f t f i 1 0 25 f "25" _null_ _null_ _null_ _null_ disable_xform _null_ _null_ _null_ n ));
 DESCR("disables transformations in the optimizer");

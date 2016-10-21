@@ -25,16 +25,6 @@
 #include "optimizer/clauses.h"
 #include "parser/parsetree.h"
 
-/*
- * OIDs of partition functions that we mark as non-memory intensive.
- * TODO caragg 03/04/2014: Revert these changes when ORCA has the new partition
- * operator (MPP-22799)
- */
-#define GP_PARTITION_PROPAGATION_OID 6083
-#define GP_PARTITION_SELECTION_OID 6084
-#define GP_PARTITION_EXPANSION_OID 6085
-#define GP_PARTITION_INVERSE_OID 6086
-
 /**
  * Policy Auto. This contains information that will be used by Policy AUTO 
  */
@@ -234,16 +224,6 @@ IsBlockingOperator(Node *node)
 static bool
 isMemoryIntensiveFunction(Oid funcid)
 {
-
-	if ((GP_PARTITION_PROPAGATION_OID == funcid) ||
-			(GP_PARTITION_SELECTION_OID == funcid) ||
-			(GP_PARTITION_EXPANSION_OID == funcid) ||
-			(GP_PARTITION_INVERSE_OID == funcid))
-
-	{
-		return false;
-	}
-
 	return true;
 }
 

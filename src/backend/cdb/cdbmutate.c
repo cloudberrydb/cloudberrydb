@@ -3194,10 +3194,6 @@ remove_subquery_in_RTEs(Node *node)
     }
 }
 
-#define GP_PARTITION_SELECTION_OID 6084
-#define GP_PARTITION_EXPANSION_OID 6085
-#define GP_PARTITION_INVERSE_OID 6086
- 
 /*
  * Let's evaluate all STABLE functions that have constant args before
  * dispatch, so we get a consistent view across QEs
@@ -3301,18 +3297,6 @@ pre_dispatch_function_evaluation_mutator(Node *node,
 				 * arguments which are themselves functions we need to mutated.
 				 * For example, select foo(now()).
 				 */
-				return (Node *)newexpr;
-			}
-
-			/* 
-			 * Ignored evaluation of gp_partition stable functions.
-			 * TODO: refactor gp_partition stable functions to be truly
-			 * stable
-			 */
-			if (funcid == GP_PARTITION_SELECTION_OID 
-				|| funcid == GP_PARTITION_EXPANSION_OID 
-				|| funcid == GP_PARTITION_INVERSE_OID)
-			{
 				return (Node *)newexpr;
 			}
 
