@@ -20,6 +20,7 @@ static const CHAR *rgszFileNames[] =
 		"../data/dxl/minidump/CPhysicalParallelUnionAllTest/ParallelUnion-Insert.mdp",
 		"../data/dxl/minidump/CPhysicalParallelUnionAllTest/ParallelUnion-ConstTable.mdp",
 		"../data/dxl/minidump/CPhysicalParallelUnionAllTest/ParallelUnionAllWithNotEqualNumOfDistrColumns.mdp",
+		"../data/dxl/minidump/CPhysicalParallelUnionAllTest/FallBackToSerialUnion.mdp",
 	};
 
 namespace gpopt
