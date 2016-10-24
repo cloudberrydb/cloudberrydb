@@ -14,12 +14,11 @@ namespace gpopt
 
 	CPhysicalUnionAllFactory::CPhysicalUnionAllFactory
 		(
-			CLogicalUnionAll *popLogicalUnionAll,
-			BOOL fParallel
+			CLogicalUnionAll *popLogicalUnionAll
 		)
-		: m_popLogicalUnionAll(popLogicalUnionAll), m_fParallel(fParallel) { }
+		: m_popLogicalUnionAll(popLogicalUnionAll) { }
 
-	CPhysicalUnionAll *CPhysicalUnionAllFactory::PopPhysicalUnionAll(IMemoryPool *pmp)
+	CPhysicalUnionAll *CPhysicalUnionAllFactory::PopPhysicalUnionAll(IMemoryPool *pmp, BOOL fParallel)
 	{
 
 		DrgPcr *pdrgpcrOutput = m_popLogicalUnionAll->PdrgpcrOutput();
@@ -34,7 +33,7 @@ namespace gpopt
 		pdrgpcrOutput->AddRef();
 		pdrgpdrgpcrInput->AddRef();
 
-		if (m_fParallel)
+		if (fParallel)
 		{
 			return GPOS_NEW(pmp) CPhysicalParallelUnionAll
 				(

@@ -16,13 +16,12 @@ namespace gpopt
 	{
 		private:
 			CLogicalUnionAll* const m_popLogicalUnionAll;
-			const BOOL m_fParallel;
 
 		public:
 
-			CPhysicalUnionAllFactory(CLogicalUnionAll* popLogicalUnionAll, BOOL fParallel);
+			CPhysicalUnionAllFactory(CLogicalUnionAll* popLogicalUnionAll);
 
-			CPhysicalUnionAll* PopPhysicalUnionAll(IMemoryPool* pmp);
+			CPhysicalUnionAll* PopPhysicalUnionAll(IMemoryPool* pmp, BOOL fParallel);
 	};
 
 }

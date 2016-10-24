@@ -72,8 +72,7 @@ CXformImplementUnionAll::Transform
 
 	// extract components
 	CLogicalUnionAll *popUnionAll = CLogicalUnionAll::PopConvert(pexpr->Pop());
-	CPhysicalUnionAllFactory factory(popUnionAll, GPOS_FTRACE(EopttraceEnableParallelAppend));
-	CPhysicalUnionAll *popPhysicalUnionAll = factory.PopPhysicalUnionAll(pmp);
+	CPhysicalUnionAllFactory factory(popUnionAll);
 
 	DrgPexpr *pdrgpexpr = GPOS_NEW(pmp) DrgPexpr(pmp);
 	const ULONG ulArity = pexpr->UlArity();
@@ -85,17 +84,41 @@ CXformImplementUnionAll::Transform
 		pdrgpexpr->Append(pexprChild);
 	}
 
-	// assemble physical operator
-	CExpression *pexprUnionAll =
+	CPhysicalUnionAll *popPhysicalSerialUnionAll = factory.PopPhysicalUnionAll(pmp, false);
+
+	// assemble serial union physical operator
+	CExpression *pexprSerialUnionAll =
 		GPOS_NEW(pmp) CExpression
 					(
 					pmp,
-					popPhysicalUnionAll,
+					popPhysicalSerialUnionAll,
 					pdrgpexpr
 					);
 
-	// add alternative to results
-	pxfres->Add(pexprUnionAll);
+	// parallel union alternative to the result if the GUC is on
+	BOOL fParallel = GPOS_FTRACE(EopttraceEnableParallelAppend);
+
+	if(fParallel)
+	{
+		CPhysicalUnionAll *popPhysicalParallelUnionAll = factory.PopPhysicalUnionAll(pmp, true);
+
+		pdrgpexpr->AddRef();
+
+		// assemble physical parallel operator
+		CExpression *pexprParallelUnionAll =
+		GPOS_NEW(pmp) CExpression
+		(
+		 pmp,
+		 popPhysicalParallelUnionAll,
+		 pdrgpexpr
+		 );
+
+		// add parallel union alternative to results
+		pxfres->Add(pexprParallelUnionAll);
+	}
+
+	// add serial union alternative to results
+	pxfres->Add(pexprSerialUnionAll);
 }
 
 // EOF
