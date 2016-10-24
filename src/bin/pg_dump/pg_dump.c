@@ -1171,22 +1171,24 @@ expand_oid_patterns(SimpleStringList *patterns, SimpleOidList *oids)
 
 	for (cell = patterns->head; cell; cell = cell->next)
 	{
-		const char *cp = cell->val;
-		const char *ch = cp;
-		while (*cp)
+		const char *seperator = ",";
+		char *oidstr = strdup(cell->val);
+		if (oidstr == NULL)
 		{
-			if (*cp < '0' || *cp > '9')
-			{
-				if (cp != ch)
-					simple_oid_list_append(oids, atooid(strndup(ch, cp - ch)));
-				ch = ++cp;
-			}
-			else
-				++cp;
+			write_msg(NULL, "memory allocation failed for function \"expand_oid_patterns\"\n");
+			exit_nicely();
 		}
 
-		if (cp != ch)
-			simple_oid_list_append(oids, atooid(strndup(ch, cp - ch)));
+		char *token = strtok(oidstr, seperator);
+		while (token)
+		{
+			if (strstr(seperator, token) == NULL)
+				simple_oid_list_append(oids, atooid(token));
+
+			token = strtok(NULL, seperator);
+		}
+
+		free(oidstr);
 	}
 }
 
