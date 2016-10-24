@@ -10,7 +10,6 @@ resources:
     private_key: {{gpdb-git-key}}
     uri: {{gpdb-git-remote}}
 
-
 - name: centos67-gpdb-gcc6-llvm-image
   type: docker-image
   source:
@@ -25,7 +24,8 @@ resources:
     bucket: {{bucket-name}}
     region_name: {{aws-region}}
     secret_access_key: {{bucket-secret-access-key}}
-    versioned_file: bin_gpdb_centos/bin_gpdb.tar.gz
+    # versioned_file: bin_gpdb_centos/bin_gpdb.tar.gz
+    versioned_file: {{bin_gpdb_centos_versioned_file}}
 
 - name: sync_tools_gpdb_centos
   type: s3
@@ -34,7 +34,8 @@ resources:
     bucket: {{bucket-name}}
     region_name: {{aws-region}}
     secret_access_key: {{bucket-secret-access-key}}
-    versioned_file: sync_tools_gpdb/sync_tools_gpdb.tar.gz
+    # versioned_file: sync_tools_gpdb/sync_tools_gpdb.tar.gz
+    versioned_file: {{sync_tools_gpdb_centos_versioned_file}}
 
 - name: installer_rhel6_gpdb_rc
   type: s3
