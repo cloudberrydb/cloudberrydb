@@ -342,6 +342,40 @@ CCostModelGPDB::CostChildren
 	return CCost(dRes);
 }
 
+//---------------------------------------------------------------------------
+//	@function:
+//		CCostModelGPDB::CostMaxChild
+//
+//	@doc:
+//		Returns cost of highest costed child
+//
+//---------------------------------------------------------------------------
+
+CCost
+CCostModelGPDB::CostMaxChild
+(
+	IMemoryPool *,
+	CExpressionHandle &,
+	const SCostingInfo *pci,
+	ICostModelParams *
+	)
+{
+	GPOS_ASSERT(NULL != pci);
+
+	DOUBLE *pdCost = pci->PdCost();
+	const ULONG ulSize = pci->UlChildren();
+
+	DOUBLE dRes = 0.0;
+	for (ULONG ul = 0; ul < ulSize; ul++)
+	{
+		if (pdCost[ul] > dRes)
+		{
+			dRes = pdCost[ul];
+		}
+	}
+
+	return CCost(dRes);
+}
 
 //---------------------------------------------------------------------------
 //	@function:
@@ -694,6 +728,11 @@ CCostModelGPDB::CostUnionAll
 	GPOS_ASSERT(NULL != pcmgpdb);
 	GPOS_ASSERT(NULL != pci);
 	GPOS_ASSERT(NULL != CPhysicalUnionAll::PopConvert(exprhdl.Pop()));
+
+	if(COperator::EopPhysicalParallelUnionAll == exprhdl.Pop()->Eopid())
+	{
+		return CostMaxChild(pmp, exprhdl, pci, pcmgpdb->Pcp());
+	}
 
 	CCost costLocal = CCost(pci->DRebinds() * CostTupleProcessing(pci->DRows(), pci->DWidth(), pcmgpdb->Pcp()).DVal());
 	CCost costChild = CostChildren(pmp, exprhdl, pci, pcmgpdb->Pcp());

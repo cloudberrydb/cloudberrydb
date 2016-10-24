@@ -95,6 +95,10 @@ namespace gpdbcost
 			static
 			CCost CostChildren(IMemoryPool *pmp, CExpressionHandle &exprhdl, const SCostingInfo *pci, ICostModelParams *pcp);
 
+			// returns cost of highest costed child
+			static
+			CCost CostMaxChild(IMemoryPool *pmp, CExpressionHandle &exprhdl, const SCostingInfo *pci, ICostModelParams *pcp);
+
 			// check if given operator is unary
 			static
 			BOOL FUnary(COperator::EOperatorId eopid);
