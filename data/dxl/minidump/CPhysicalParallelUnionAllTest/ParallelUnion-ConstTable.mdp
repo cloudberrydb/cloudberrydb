@@ -6,7 +6,7 @@ SELECT 1 UNION ALL SELECT * FROM t;
 <dxl:DXLMessage xmlns:dxl="http://greenplum.com/dxl/2010/12/">
   <dxl:Thread Id="0">
     <dxl:OptimizerConfig>
-      <dxl:EnumeratorConfig Id="0" PlanSamples="0" CostThreshold="0"/>
+      <dxl:EnumeratorConfig Id="2" PlanSamples="0" CostThreshold="0"/>
       <dxl:StatisticsConfig DampingFactorFilter="0.750000" DampingFactorJoin="0.010000" DampingFactorGroupBy="0.750000"/>
       <dxl:CTEConfig CTEInliningCutoff="0"/>
       <dxl:CostModelConfig CostModelType="1" SegmentsForCosting="3"/>
@@ -211,10 +211,10 @@ SELECT 1 UNION ALL SELECT * FROM t;
         </dxl:LogicalGet>
       </dxl:UnionAll>
     </dxl:Query>
-    <dxl:Plan Id="0" SpaceSize="1">
+    <dxl:Plan Id="2" SpaceSize="3">
       <dxl:GatherMotion InputSegments="0,1,2" OutputSegments="-1">
         <dxl:Properties>
-          <dxl:Cost StartupCost="0" TotalCost="431.000148" Rows="5.000000" Width="4"/>
+          <dxl:Cost StartupCost="0" TotalCost="431.000126" Rows="5.000000" Width="4"/>
         </dxl:Properties>
         <dxl:ProjList>
           <dxl:ProjElem ColId="1" Alias="?column?">
@@ -225,7 +225,7 @@ SELECT 1 UNION ALL SELECT * FROM t;
         <dxl:SortingColumnList/>
         <dxl:Append IsTarget="false" IsZapped="false">
           <dxl:Properties>
-            <dxl:Cost StartupCost="0" TotalCost="431.000074" Rows="5.000000" Width="4"/>
+            <dxl:Cost StartupCost="0" TotalCost="431.000052" Rows="5.000000" Width="4"/>
           </dxl:Properties>
           <dxl:ProjList>
             <dxl:ProjElem ColId="1" Alias="?column?">
