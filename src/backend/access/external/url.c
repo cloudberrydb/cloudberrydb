@@ -1901,8 +1901,12 @@ url_ferror(URL_FILE *file, int bytesread, char *ebuf, int ebuflen)
 			ret = (bytesread == -1);
 			if(ret == true && ebuflen > 0 && ebuf != NULL)
 			{
-				nread = piperead(file->u.exec.pipes[EXEC_ERR_P], ebuf, ebuflen);
-			
+				/*
+				 * Read one byte less than the maximum size to ensure zero
+				 * termination of the buffer.
+				 */
+				nread = piperead(file->u.exec.pipes[EXEC_ERR_P], ebuf, ebuflen -1);
+
 				if(nread != -1)
 					ebuf[nread] = 0;
 				else
