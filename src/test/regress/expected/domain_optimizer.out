@@ -157,8 +157,7 @@ create table nulltest
            , col5 dcheck CHECK (col5 IN ('c', 'd'))
            );
 INSERT INTO nulltest DEFAULT VALUES;
-WARNING:  null value in column "col3" violates not-null constraint
-ERROR:  PQO unable to generate plan, please see the above message for details. (CGPOptimizer.cpp:68)
+ERROR:  null value in column "col3" violates not-null constraint (CTranslatorUtils.cpp:2627)
 INSERT INTO nulltest values ('a', 'b', 'c', 'd', 'c');  -- Good
 insert into nulltest values ('a', 'b', 'c', 'd', NULL);
 ERROR:  domain dcheck does not allow null values
