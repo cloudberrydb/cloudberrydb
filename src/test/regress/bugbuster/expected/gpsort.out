@@ -386,6 +386,8 @@ order by
 	cust_nation,
 	l_year;
 ERROR:  column "shipping.supp_nation" must appear in the GROUP BY clause or be used in an aggregate function
+LINE 2:         supp_nation,
+                ^
 select
 	o_year,
 	sum(case
