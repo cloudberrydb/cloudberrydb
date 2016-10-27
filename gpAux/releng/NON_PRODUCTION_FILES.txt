@@ -22,7 +22,5 @@ bin/pgbench
 bin/postgresql_conf_gp_additions
 bin/run_operator_tests.pl
 bin/test_fsync
-bin/gp_filedump
-docs/contrib/README.gp_filedump
 lib/python/gppylib/programs/clsInjectFault.py
 

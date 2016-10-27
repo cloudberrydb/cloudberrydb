@@ -209,14 +209,8 @@ aix5_ppc_64_PTHREADS_LIB_DIR=/usr/lib/threads
 aix5_ppc_32_PTHREADS_LIB_DIR=/usr/lib/threads
 BLD_PTHREADS_LIB_DIR=$($(BLD_ARCH)_PTHREADS_LIB_DIR)
 
-ADDON_DIR=addon
-
-ifdef ADDON_DIR
-ADDON_CONFIG_INCLUDES=$(BLD_TOP)/$(ADDON_DIR)/src/include
-endif
-
 # Configure in thirdparty libraries from the ext/ directory
-CONFIG_INCLUDES=$(BLD_THIRDPARTY_INCLUDE_DIR) $(BLD_THIRDPARTY_INCLUDE_DIR)/libxml2 $(BLD_THIRDPARTY_DIR)/libgpopt/include $(BLD_THIRDPARTY_DIR)/libgpos/include $(ADDON_CONFIG_INCLUDES)
+CONFIG_INCLUDES=$(BLD_THIRDPARTY_INCLUDE_DIR) $(BLD_THIRDPARTY_INCLUDE_DIR)/libxml2 $(BLD_THIRDPARTY_DIR)/libgpopt/include $(BLD_THIRDPARTY_DIR)/libgpos/include
 CONFIG_LIBRARIES=$(strip $(BLD_THIRDPARTY_LIB_DIR) $(BLD_CXX_LIB_DIR) $(BLD_PTHREADS_LIB_DIR))
 CONFIGFLAGS+= --with-includes="$(CONFIG_INCLUDES)" --with-libraries="$(CONFIG_LIBRARIES)"
 
@@ -253,10 +247,6 @@ CONFIG_ADDITIONS=$($(BLD_ARCH)_CONFIG_ADDITIONS)
 osx105_x86_GPFDIST_LDFLAGS=-Wl,-search_paths_first
 
 CONFIGFLAGS+= $(CONFIG_ADDITIONS)
-
-ifdef ADDON_DIR
-CONFIGFLAGS+=ADDON_DIR=$(ADDON_DIR)
-endif
 
 RECONFIG :
 	rm -f Debug/GNUmakefile
@@ -381,7 +371,6 @@ define BUILD_STEPS
 	  $(MAKE) mkorafce INSTLOC=$(INSTLOC); \
 	fi
 	cd extensions/gpmapreduce/ && $(MAKE) install
-	cd extensions/gp_filedump/ && $(MAKE) install
 	@$(MAKE) copydocs INSTLOC=$(INSTLOC)
 	@$(MAKE) copylibs INSTLOC=$(INSTLOC)
 	@$(MAKE) clients INSTLOC=$(INSTLOC) CLIENTINSTLOC=$(CLIENTINSTLOC)

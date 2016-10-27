@@ -19,15 +19,9 @@ ifeq ($(enable_orca),yes)
 include $(BLD_TOP)/releng/releng.mk
 endif
 
-
-ifdef ADDON_DIR
-include $(BLD_TOP)/$(ADDON_DIR)/src/Makefile
-endif
-
 SUBDIRS = access bootstrap catalog parser commands executor \
 	fts lib libpq gp_libpq_fe main nodes optimizer port postmaster regex \
-	replication rewrite storage tcop tsearch utils $(top_builddir)/src/timezone cdb \
-	$(ADDON_SUBDIR)
+	replication rewrite storage tcop tsearch utils $(top_builddir)/src/timezone cdb
 
 ifeq ($(enable_orca),yes)
 SUBDIRS += gpopt
