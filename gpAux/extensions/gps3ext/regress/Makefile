@@ -19,6 +19,6 @@ installcheck:
 	@echo "Regression ends:" `date` ]
 
 clean:
-	rm -rf source_replaced sql expected results regression.* optimizer_status.out
+	rm -rf source_replaced sql expected results regression.*
 
 .PHONY: installcheck clean
