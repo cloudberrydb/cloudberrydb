@@ -225,7 +225,7 @@ gpdxl::EresExceptionInit
 					1, // attno
 					GPOS_WSZ_WSZLEN("DXL-to-Expr Translation: Attribute number not found in project list")),
 
-			CMessage(CException(gpdxl::ExmaDXL, gpdxl::ExmiWarningAsError),
+			CMessage(CException(gpdxl::ExmaDXL, gpdxl::ExmiOptimizerError),
 					CException::ExsevError,
 					GPOS_WSZ_WSZLEN("%s"),
 					1, // attno

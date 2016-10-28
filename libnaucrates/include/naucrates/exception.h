@@ -73,7 +73,7 @@ namespace gpdxl
 		ExmiConstExprEvalNonConst,
 
 		// ORCA Exceptions that need to be reported as ERROR to GPDB
-		ExmiWarningAsError,
+		ExmiOptimizerError,
 		ExmiNoAvailableMemory,
 		ExmiInvalidComparisonTypeCode,
 
