@@ -112,15 +112,15 @@ class ExprTreeGenerator {
    * @param codegen_utils   Utility to easy code generation.
    * @param gen_info        Information needed for generating the expression
    *                        tree.
-   * @param llvm_isnull_arg Set to true if current expr is null
    * @param llvm_out_value  Store the expression results
+   * @param llvm_isnull_ptr Set to true if current expr is null
    *
    * @return true when it generated successfully otherwise it return false.
    **/
   virtual bool GenerateCode(gpcodegen::GpCodegenUtils* codegen_utils,
                             const ExprTreeGeneratorInfo& gen_info,
-                            llvm::Value* llvm_isnull_ptr,
-                            llvm::Value** value) = 0;
+                            llvm::Value** value,
+                            llvm::Value* const llvm_isnull_ptr) = 0;
 
 
   /**

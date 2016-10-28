@@ -168,9 +168,75 @@ TEST_F(CodegenPGFuncGeneratorTest, PGFuncArgPreProcessorTest ) {
   EXPECT_EQ(nullptr, codegen_utils_->module());
 }
 
-// Test PGGenericFuncGenerator with 2 arguments
-TEST_F(CodegenPGFuncGeneratorTest, PGGenericFuncGeneratorTwoArgsTest) {
-  using DoubleFn = double (*) (Datum, Datum);
+// Test PGGenericFuncGenerator with 2 arguments in a strict function
+TEST_F(CodegenPGFuncGeneratorTest,
+       PGGenericFuncGeneratorNonStrictFuncTwoArgsTest) {
+  using AddFn = Datum (*) (Datum, Datum, bool, bool);
+
+  llvm::Function* sum_fn =
+      codegen_utils_->CreateFunction<AddFn>("sum_fn");
+
+  llvm::BasicBlock* main_block =
+      codegen_utils_->CreateBasicBlock("main", sum_fn);
+  llvm::BasicBlock* error_block =
+      codegen_utils_->CreateBasicBlock("error", sum_fn);
+
+  auto irb = codegen_utils_->ir_builder();
+
+  irb->SetInsertPoint(main_block);
+
+  auto generator = std::unique_ptr<PGFuncGeneratorInterface>(
+      new PGGenericFuncGenerator<int64_t, int64_t, int32_t>(
+          1841,
+          "int4_sum",
+          &PGArithFuncGenerator<int64_t, int64_t, int32_t>::AddWithOverflow,
+          &PGArithFuncGenerator<int64_t, int64_t, int32_t>::
+          CreateArgumentNullChecks,
+          false));
+
+  llvm::Value* result;
+  std::vector<llvm::Value*> args = {
+      ArgumentByPosition(sum_fn, 0),
+      ArgumentByPosition(sum_fn, 1)};
+  std::vector<llvm::Value*> args_isNull = {
+      ArgumentByPosition(sum_fn, 2),
+      ArgumentByPosition(sum_fn, 3)};
+  llvm::Value* llvm_isNull = irb->CreateAlloca(
+          codegen_utils_->GetType<bool>(), nullptr, "isNull");
+    irb->CreateStore(codegen_utils_->GetConstant<bool>(false), llvm_isNull);
+    PGFuncGeneratorInfo pg_gen_info(sum_fn, error_block, args,
+        args_isNull);
+
+  EXPECT_TRUE(generator->GenerateCode(codegen_utils_.get(),
+                                      pg_gen_info, &result, llvm_isNull));
+  irb->CreateRet(result);
+
+  irb->SetInsertPoint(error_block);
+  irb->CreateRet(codegen_utils_->GetConstant<Datum>(0));
+
+
+  EXPECT_FALSE(llvm::verifyFunction(*sum_fn));
+  EXPECT_FALSE(llvm::verifyModule(*codegen_utils_->module()));
+
+  // Prepare generated code for execution.
+  EXPECT_TRUE(codegen_utils_->PrepareForExecution(
+      CodegenUtils::OptimizationLevel::kNone,
+      true));
+  EXPECT_EQ(nullptr, codegen_utils_->module());
+
+  AddFn fn = codegen_utils_->GetFunctionPointer<AddFn>("sum_fn");
+
+  Datum d1 = 1, d2 = 2;
+  EXPECT_EQ(3, fn(d1, d2, false, false));
+  EXPECT_EQ(2, fn(d1, d2, true, false));
+  EXPECT_EQ(1, fn(d1, d2, false, true));
+  EXPECT_EQ(0, fn(d1, d2, true, true));
+}
+
+// Test PGGenericFuncGenerator with 2 arguments in a strict function
+TEST_F(CodegenPGFuncGeneratorTest,
+       PGGenericFuncGeneratorStrictFuncTwoArgsTest) {
+  using DoubleFn = double (*) (Datum, Datum, bool, bool);
 
   llvm::Function* double_add_fn =
       codegen_utils_->CreateFunction<DoubleFn>("double_add_fn");
@@ -188,16 +254,25 @@ TEST_F(CodegenPGFuncGeneratorTest, PGGenericFuncGeneratorTwoArgsTest) {
       new PGGenericFuncGenerator<float8, float8, float8>(
           218,
           "float8pl",
-          &PGArithFuncGenerator<float8, float8, float8>::AddWithOverflow));
+          &PGArithFuncGenerator<float8, float8, float8>::AddWithOverflow,
+          nullptr,
+          true));
 
   llvm::Value* result;
   std::vector<llvm::Value*> args = {
       ArgumentByPosition(double_add_fn, 0),
       ArgumentByPosition(double_add_fn, 1)};
-  PGFuncGeneratorInfo pg_gen_info(double_add_fn, error_block, args);
+  std::vector<llvm::Value*> args_isNull = {
+      ArgumentByPosition(double_add_fn, 2),
+      ArgumentByPosition(double_add_fn, 3)};
+  llvm::Value* llvm_isNull = irb->CreateAlloca(
+      codegen_utils_->GetType<bool>(), nullptr, "isNull");
+  irb->CreateStore(codegen_utils_->GetConstant<bool>(false), llvm_isNull);
+  PGFuncGeneratorInfo pg_gen_info(double_add_fn, error_block, args,
+                                  args_isNull);
 
   EXPECT_TRUE(generator->GenerateCode(codegen_utils_.get(),
-                                      pg_gen_info, &result));
+                                      pg_gen_info, &result, llvm_isNull));
   irb->CreateRet(result);
 
   irb->SetInsertPoint(error_block);
@@ -217,7 +292,17 @@ TEST_F(CodegenPGFuncGeneratorTest, PGGenericFuncGeneratorTwoArgsTest) {
 
   double d1 = 1.0, d2 = 2.0;
   EXPECT_EQ(3.0, fn(*reinterpret_cast<Datum*>(&d1),
-                    *reinterpret_cast<Datum*>(&d2)));
+                    *reinterpret_cast<Datum*>(&d2),
+                    false, false));
+  EXPECT_EQ(0.0, fn(*reinterpret_cast<Datum*>(&d1),
+                    *reinterpret_cast<Datum*>(&d2),
+                    true, false));
+  EXPECT_EQ(0.0, fn(*reinterpret_cast<Datum*>(&d1),
+                    *reinterpret_cast<Datum*>(&d2),
+                    false, true));
+  EXPECT_EQ(0.0, fn(*reinterpret_cast<Datum*>(&d1),
+                    *reinterpret_cast<Datum*>(&d2),
+                    true, true));
 }
 
 // A method of type PGFuncGenerator as expected by PGGenericFuncGenerator
@@ -253,15 +338,24 @@ TEST_F(CodegenPGFuncGeneratorTest, PGGenericFuncGeneratorOneArgTest) {
       new PGGenericFuncGenerator<int32_t, int32_t>(
           0,
           "",
-          &GenerateAddOne<int32_t>));
+          &GenerateAddOne<int32_t>,
+          nullptr,  // assume that this is a strict function
+          true));
 
   llvm::Value* result = nullptr;
+  llvm::Value* llvm_isNull = irb->CreateAlloca(
+        codegen_utils_->GetType<bool>(), nullptr, "isNull");
+  irb->CreateStore(codegen_utils_->GetConstant<bool>(false), llvm_isNull);
   std::vector<llvm::Value*> args = {ArgumentByPosition(add_one_fn, 0)};
-  PGFuncGeneratorInfo pg_gen_info(add_one_fn, error_block, args);
+  std::vector<llvm::Value*> args_isNull = {codegen_utils_->
+      GetConstant<bool>(false)};  // dummy
+  PGFuncGeneratorInfo pg_gen_info(add_one_fn, error_block, args,
+                                  args_isNull);
 
   EXPECT_TRUE(generator->GenerateCode(codegen_utils_.get(),
                                       pg_gen_info,
-                                      &result));
+                                      &result,
+                                      llvm_isNull));
   irb->CreateRet(result);
 
   irb->SetInsertPoint(error_block);
