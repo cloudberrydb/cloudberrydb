@@ -447,7 +447,7 @@ jobs:
       params:
         submodules: none
   - task: icg_with_orca
-    timeout: 90m
+    timeout: 120m
     file: gpdb_src/concourse/test_with_orca.yml
     input_mapping:
       bin_gpdb: bin_gpdb_centos6
@@ -485,7 +485,7 @@ jobs:
       params:
         submodules: none
   - task: icg_with_planner
-    timeout: 90m
+    timeout: 120m
     file: gpdb_src/concourse/test_with_planner.yml
     input_mapping:
       bin_gpdb: bin_gpdb_centos6
