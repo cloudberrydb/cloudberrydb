@@ -547,3 +547,21 @@ class PSQL(Command):
         if 'command_found_' + dbname in output:
             return True
         return False
+
+    @staticmethod
+    def wait_for_database_up():
+        '''
+        Wait till the system is up, as master may take some time
+        to come back after FI crash.
+        '''
+        down = True
+        results = {'rc':0, 'stdout':'', 'stderr':''}
+        for i in range(60):
+            res = PSQL.run_sql_command('select count(*) from gp_dist_random(\'gp_id\');', results=results)
+            if results['rc'] == 0:
+                down = False
+                break
+            time.sleep(1)
+
+        if down:
+            raise PSQLException('database has not come up')
