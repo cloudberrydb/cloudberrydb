@@ -609,6 +609,7 @@ CStatistics::PhmulhistApplyDisjFilter
 				// statistics operation already conducted on this column
 				CDouble dRowOutput(0.0);
 				CHistogram *phistNew = phistPrev->PhistUnionNormalized(pmp, dRowsCumulative, phistDisjChildCol, dRowsDisjChild, &dRowOutput);
+
 				dRowsCumulative = dRowOutput;
 
 				GPOS_DELETE(phistPrev);
@@ -643,6 +644,7 @@ CStatistics::PhmulhistApplyDisjFilter
 			dScaleFactorPrev = dScaleFactorChild;
 			ulColIdPrev = ulColId;
 		}
+
 
 		CRefCount::SafeRelease(phmulhistChild);
 	}
