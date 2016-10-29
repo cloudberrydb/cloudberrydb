@@ -370,8 +370,8 @@ equalTupleDescs(TupleDesc tupdesc1, TupleDesc tupdesc2, bool strict)
         }
 	}
 
-    if (!strict) 
-        return true;
+	if (!strict)
+		return true;
 
 	if (tupdesc1->constr != NULL)
 	{
