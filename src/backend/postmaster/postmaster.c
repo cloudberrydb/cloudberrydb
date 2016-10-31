@@ -1990,7 +1990,7 @@ static void SimExProcExit()
 			if (subclass == SimExESSubClass_ProcKill_BgWriter)
 			{
 				pid = BgWriterPID;
-				procname = GetServerProcessTitle(pid);
+				procName = GetServerProcessTitle(pid);
 			}
 			else
 			{
