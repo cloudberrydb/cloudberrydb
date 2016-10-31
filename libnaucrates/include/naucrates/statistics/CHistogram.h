@@ -302,10 +302,7 @@ namespace gpnaucrates
 						IMemoryPool *pmp,
 						DrgPbucket *pdrgppbucket,
 						DrgPdouble *pdrgpdouble,
-						CDouble *pdRowsOutput,
-						CDouble dNullRows,
-						CDouble dNDVRemain,
-						CDouble dNDVRemainRows
+						CDouble *pdRowsOutput
 						)
 						const;
 				
