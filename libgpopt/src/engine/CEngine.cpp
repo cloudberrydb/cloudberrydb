@@ -435,7 +435,7 @@ CEngine::DeriveStats
 {
 	CWStringDynamic str(m_pmp);
 	COstreamString oss (&str);
-	oss << "\n[OPT]: Statistics Derivation Time (stage " << m_ulCurrSearchStage <<"): ";
+	oss << "\n[OPT]: Statistics Derivation Time (stage " << m_ulCurrSearchStage <<") ";
 	CHAR *sz = CUtils::SzFromWsz(m_pmp, const_cast<WCHAR *>(str.Wsz()));
 
 	{
@@ -1567,7 +1567,7 @@ CEngine::PrintActivatedXforms
 			os
 				<< pxform->SzId() << ": "
 				<< ulCalls << " calls, "
-				<< ulTime << " ms"<< std::endl;
+				<< ulTime << "ms"<< std::endl;
 		}
 		os << "[OPT]: <End Xforms - stage " << m_ulCurrSearchStage << ">" << std::endl;
 	}
