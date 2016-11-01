@@ -124,8 +124,8 @@ MultiExecHash(HashState *node)
 		if (TupIsNull(slot))
 			break;
 
-		Gpmon_M_Incr(GpmonPktFromHashState(node), GPMON_QEXEC_M_ROWSIN); 
-                CheckSendPlanStateGpmonPkt(&node->ps);
+		Gpmon_M_Incr(GpmonPktFromHashState(node), GPMON_QEXEC_M_ROWSIN);
+		CheckSendPlanStateGpmonPkt(&node->ps);
 		/* We have to compute the hash value */
 		econtext->ecxt_innertuple = slot;
 		bool hashkeys_null = false;
@@ -223,7 +223,7 @@ ExecInitHash(Hash *node, EState *estate, int eflags)
 	ExecAssignResultTypeFromTL(&hashstate->ps);
 	hashstate->ps.ps_ProjInfo = NULL;
 
-	initGpmonPktForHash((Plan *)node, &hashstate->ps.gpmon_pkt, estate);
+	initGpmonPktForHash((Plan *) node, &hashstate->ps.gpmon_pkt, estate);
 
 	return hashstate;
 }
@@ -282,7 +282,6 @@ ExecHashTableCreate(HashState *hashState, HashJoinState *hjstate, List *hashOper
 
 	START_MEMORY_ACCOUNT(hashState->ps.plan->memoryAccountId);
 	{
-
 	Hash *node = (Hash *) hashState->ps.plan;
 
 	/*
@@ -309,7 +308,7 @@ ExecHashTableCreate(HashState *hashState, HashJoinState *hjstate, List *hashOper
 	 * The hashtable control block is just palloc'd from the executor's
 	 * per-query memory context.
 	 */
-	hashtable = (HashJoinTable)palloc0(sizeof(HashJoinTableData));
+	hashtable = (HashJoinTable) palloc0(sizeof(HashJoinTableData));
 	hashtable->nbuckets = nbuckets;
 	hashtable->log2_nbuckets = log2_nbuckets;
 	hashtable->buckets = NULL;
@@ -357,7 +356,7 @@ ExecHashTableCreate(HashState *hashState, HashJoinState *hjstate, List *hashOper
 	/*
 	 * Create temporary memory contexts in which to keep the hashtable working
 	 * storage.  See notes in executor/hashjoin.h.
-     */
+	 */
 	hashtable->hashCxt = AllocSetContextCreate(CurrentMemoryContext,
 											   "HashTableContext",
 											   ALLOCSET_DEFAULT_MINSIZE,
@@ -406,14 +405,14 @@ ExecHashTableCreate(HashState *hashState, HashJoinState *hjstate, List *hashOper
 	}
 #endif
 
-    /* array of BatchData ptrs */
-    hashtable->batches =
-        (HashJoinBatchData **)palloc(nbatch * sizeof(hashtable->batches[0]));
+	/* array of BatchData ptrs */
+	hashtable->batches =
+		(HashJoinBatchData **)palloc(nbatch * sizeof(hashtable->batches[0]));
 
-    /* one BatchData entry per initial batch */
-    for (i = 0; i < nbatch; i++)
-        hashtable->batches[i] =
-            (HashJoinBatchData *)palloc0(sizeof(HashJoinBatchData));
+	/* one BatchData entry per initial batch */
+	for (i = 0; i < nbatch; i++)
+		hashtable->batches[i] =
+			(HashJoinBatchData *)palloc0(sizeof(HashJoinBatchData));
 
 	/*
 	 * Prepare context for the first-scan space allocations; allocate the
@@ -430,6 +429,7 @@ ExecHashTableCreate(HashState *hashState, HashJoinState *hjstate, List *hashOper
 	MemoryContextSwitchTo(oldcxt);
 	}
 	END_MEMORY_ACCOUNT();
+
 	return hashtable;
 }
 
@@ -526,15 +526,19 @@ ExecChooseHashTableSize(double ntuples, int tupwidth,
 			nbatch <<= 1;
 		}
 
-		/* Check to see if we're capping the number of workfiles we allow per query */
+		/*
+		 * Check to see if we're capping the number of workfiles we allow per
+		 * query
+		 */
 		if (gp_workfile_limit_files_per_query > 0)
 		{
-			int nbatch_lower = nbatch;
+			int			nbatch_lower = nbatch;
+
 			/*
-			 * We create two files per batch during spilling - one for
-			 * outer and one of inner side. Lower the nbatch if necessary
-			 * to fit under that limit. Don't go below two batches,
-			 * because in that case we're basically disabling spilling.
+			 * We create two files per batch during spilling - one for outer
+			 * and one of inner side. Lower the nbatch if necessary to fit
+			 * under that limit. Don't go below two batches, because in that
+			 * case we're basically disabling spilling.
 			 */
 			while ((nbatch_lower * 2 > gp_workfile_limit_files_per_query) && (nbatch_lower > 2))
 			{
@@ -544,8 +548,8 @@ ExecChooseHashTableSize(double ntuples, int tupwidth,
 			Assert(nbatch_lower <= nbatch);
 			if (nbatch_lower != nbatch)
 			{
-				elog(LOG,"HashJoin: Too many batches computed: nbatch=%d. gp_workfile_limit_files_per_query=%d, using nbatch=%d instead",
-						nbatch, gp_workfile_limit_files_per_query, nbatch_lower);
+				elog(LOG, "HashJoin: Too many batches computed: nbatch=%d. gp_workfile_limit_files_per_query=%d, using nbatch=%d instead",
+					 nbatch, gp_workfile_limit_files_per_query, nbatch_lower);
 				nbatch = nbatch_lower;
 			}
 		}
@@ -562,18 +566,23 @@ ExecChooseHashTableSize(double ntuples, int tupwidth,
 
 			if (md_mem_for_batches < 0)
 			{
-				/* We are already out of metadata memory, we can't execute query. Error out */
+				/*
+				 * We are already out of metadata memory, we can't execute
+				 * query. Error out
+				 */
 				ereport(ERROR, (errcode(ERRCODE_GP_INTERNAL_ERROR),
-						errmsg(ERRMSG_GP_INSUFFICIENT_STATEMENT_MEMORY)));
+						   errmsg(ERRMSG_GP_INSUFFICIENT_STATEMENT_MEMORY)));
 			}
 
 			if (nbatch * MD_MEM_PER_BATCH > md_mem_for_batches)
 			{
 				/*
 				 * We're trying to allocate too many batches, it won't fit.
-				 * Reduce the number of batches such that it fits in available metadata memory.
+				 * Reduce the number of batches such that it fits in available
+				 * metadata memory.
 				 */
-				int nbatch_lower = nbatch;
+				int			nbatch_lower = nbatch;
+
 				while (nbatch_lower > 1 && nbatch_lower * MD_MEM_PER_BATCH > md_mem_for_batches)
 				{
 					nbatch_lower >>= 1;
@@ -651,9 +660,10 @@ void
 ExecHashTableDestroy(HashState *hashState, HashJoinTable hashtable)
 {
 	int			i;
+
 	Assert(hashtable);
 	Assert(!hashtable->eagerlyReleased);
-	
+
 	START_MEMORY_ACCOUNT(hashState->ps.plan->memoryAccountId);
 	{
 
@@ -705,14 +715,14 @@ ExecHashTableDestroy(HashState *hashState, HashJoinTable hashtable)
 static void
 ExecHashIncreaseNumBatches(HashJoinTable hashtable)
 {
-	HashJoinBatchData  *fullbatch = hashtable->batches[hashtable->curbatch];
+	HashJoinBatchData *fullbatch = hashtable->batches[hashtable->curbatch];
 	int			oldnbatch = hashtable->nbatch;
 	int			curbatch = hashtable->curbatch;
 	int			nbatch;
 	int			i;
 	long		ninmemory;
 	long		nfreed;
-	Size        spaceFreed = 0;
+	Size		spaceFreed = 0;
 	HashJoinTableStats *stats = hashtable->stats;
 
 	/* do nothing if we've decided to shut off growth */
@@ -732,18 +742,18 @@ ExecHashIncreaseNumBatches(HashJoinTable hashtable)
 
 	{
 		/* Print a warning for the extreme bad cases. */
-		unsigned mintup = hashtable->batches[0]->innertuples;
-		unsigned maxtup = mintup;
+		unsigned	mintup = hashtable->batches[0]->innertuples;
+		unsigned	maxtup = mintup;
 
-		for(i=1; i<oldnbatch; ++i)
+		for (i = 1; i < oldnbatch; ++i)
 		{
-			unsigned ntup = hashtable->batches[i]->innertuples;
+			unsigned	ntup = hashtable->batches[i]->innertuples;
 
 			maxtup = Max(ntup, maxtup);
 			mintup = Min(ntup, mintup);
 		}
 
-		if(maxtup > (mintup * 10))
+		if (maxtup > (mintup * 10))
 			elog(LOG, "Extreme skew in the innerside of Hashjoin, nbatch %d, mintuples %u, maxtuples %u", oldnbatch, mintup, maxtup);
 	}
 
@@ -760,7 +770,7 @@ ExecHashIncreaseNumBatches(HashJoinTable hashtable)
 	{
 		HashJoinTuple prevtuple;
 		HashJoinTuple tuple;
-		uint64 bloom = 0;
+		uint64		bloom = 0;
 
 		prevtuple = NULL;
 		tuple = hashtable->buckets[i];
@@ -814,18 +824,18 @@ ExecHashIncreaseNumBatches(HashJoinTable hashtable)
 			tuple = nexttuple;
 		}
 
-		if(gp_hashjoin_bloomfilter!=0)
+		if (gp_hashjoin_bloomfilter != 0)
 			hashtable->bloom[i] = bloom;
 	}
 
 #ifdef HJDEBUG
 	elog(gp_workfile_caching_loglevel, "HJ batch %d: Freed %ld of %ld tuples, %lu of %lu bytes, space now %lu",
-			curbatch,
-			nfreed,
-			ninmemory,
-			(unsigned long)spaceFreed,
-			(unsigned long)fullbatch->innerspace,
-			(unsigned long)(fullbatch->innerspace - spaceFreed));
+		 curbatch,
+		 nfreed,
+		 ninmemory,
+		 (unsigned long) spaceFreed,
+		 (unsigned long) fullbatch->innerspace,
+		 (unsigned long) (fullbatch->innerspace - spaceFreed));
 #endif
 
 	/* Update work_mem high-water mark and amount spilled. */
@@ -862,8 +872,8 @@ ExecHashIncreaseNumBatches(HashJoinTable hashtable)
 static void
 ExecHashTableReallocBatchData(HashJoinTable hashtable, int new_nbatch)
 {
-
 	MemoryContext oldcxt;
+
 	oldcxt = MemoryContextSwitchTo(hashtable->hashCxt);
 
 	/*
@@ -874,23 +884,25 @@ ExecHashTableReallocBatchData(HashJoinTable hashtable, int new_nbatch)
 	hashtable->batches = (HashJoinBatchData **)
 		repalloc(hashtable->batches, new_nbatch * sizeof(hashtable->batches[0]));
 
-	int	old_nbatch = hashtable->nbatch;
-	int	i;
+	int			old_nbatch = hashtable->nbatch;
+	int			i;
 
 	/* one BatchData entry per additional batch */
 	for (i = old_nbatch; i < new_nbatch; i++)
 	{
 		hashtable->batches[i] =
-			(HashJoinBatchData *)palloc0(sizeof(HashJoinBatchData));
+			(HashJoinBatchData *) palloc0(sizeof(HashJoinBatchData));
 	}
 
 	/* EXPLAIN ANALYZE batch statistics */
 	HashJoinTableStats *stats = hashtable->stats;
+
 	if (stats && stats->nbatchstats < new_nbatch)
 	{
-		Size sz = new_nbatch * sizeof(stats->batchstats[0]);
+		Size		sz = new_nbatch * sizeof(stats->batchstats[0]);
+
 		stats->batchstats =
-			(HashJoinBatchStats *)repalloc(stats->batchstats, sz);
+			(HashJoinBatchStats *) repalloc(stats->batchstats, sz);
 		sz = (new_nbatch - stats->nbatchstats) * sizeof(stats->batchstats[0]);
 		memset(stats->batchstats + stats->nbatchstats, 0, sz);
 		stats->nbatchstats = new_nbatch;
@@ -1148,7 +1160,7 @@ ExecHashGetBucketAndBatch(HashJoinTable hashtable,
  */
 HashJoinTuple
 ExecScanHashBucket(HashState *hashState, HashJoinState *hjstate,
-		ExprContext *econtext)
+				   ExprContext *econtext)
 {
 	List	   *hjclauses = hjstate->hashqualclauses;
 	HashJoinTable hashtable = hjstate->hj_HashTable;
@@ -1196,6 +1208,7 @@ ExecScanHashBucket(HashState *hashState, HashJoinState *hjstate,
 	}
 	}
 	END_MEMORY_ACCOUNT();
+
 	/*
 	 * no match
 	 */
@@ -1261,10 +1274,10 @@ ExecReScanHash(HashState *node, ExprContext *exprCtxt)
  */
 void
 ExecHashTableExplainInit(HashState *hashState, HashJoinState *hjstate,
-                         HashJoinTable  hashtable)
+						 HashJoinTable hashtable)
 {
-    MemoryContext   oldcxt;
-    int             nbatch = Max(hashtable->nbatch, 1);
+	MemoryContext oldcxt;
+	int			nbatch = Max(hashtable->nbatch, 1);
 
     START_MEMORY_ACCOUNT(hashState->ps.plan->memoryAccountId);
     {
@@ -1647,9 +1660,9 @@ initGpmonPktForHash(Plan *planNode, gpmon_packet_t *gpmon_pkt, EState *estate)
 	Assert(planNode != NULL && gpmon_pkt != NULL && IsA(planNode, Hash));
 
 	{
-		Assert(GPMON_HASH_TOTAL <= (int)GPMON_QEXEC_M_COUNT);
+		Assert(GPMON_HASH_TOTAL <= (int) GPMON_QEXEC_M_COUNT);
 		InitPlanNodeGpmonPkt(planNode, gpmon_pkt, estate, PMNT_Hash,
-							 (int64)planNode->plan_rows,
-							 NULL); 
+							 (int64) planNode->plan_rows,
+							 NULL);
 	}
 }

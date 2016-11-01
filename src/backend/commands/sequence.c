@@ -860,20 +860,20 @@ nextval_internal(Oid relid)
 				 errmsg("permission denied for sequence %s",
 						RelationGetRelationName(seqrel))));
 
-    /* Update the sequence object. */
-    if (Gp_role == GP_ROLE_EXECUTE)
-        cdb_sequence_nextval_proxy(seqrel,
-                                   &elm->last,
-                                   &elm->cached,
-                                   &elm->increment,
-                                   &is_overflow);
-    else
-        cdb_sequence_nextval(elm,
+	/* Update the sequence object. */
+	if (Gp_role == GP_ROLE_EXECUTE)
+		cdb_sequence_nextval_proxy(seqrel,
+								   &elm->last,
+								   &elm->cached,
+								   &elm->increment,
+								   &is_overflow);
+	else
+		cdb_sequence_nextval(elm,
 							 seqrel,
-                             &elm->last,
-                             &elm->cached,
-                             &elm->increment,
-                             &is_overflow);
+							 &elm->last,
+							 &elm->cached,
+							 &elm->increment,
+							 &is_overflow);
 	last_used_seq = elm;
 
 	if (is_overflow)

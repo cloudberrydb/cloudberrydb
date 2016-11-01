@@ -1229,20 +1229,20 @@ test_config_settings(void)
 	printf(_("selecting default max_connections ... "));
 	fflush(stdout);
 
-    status = 0;
+	status = 0;
 	for (i = 0; i < connslen; i++)
 	{
 		test_conns = trial_conns[i];
-        if (n_connections > 0)
-            test_conns = n_connections;
+		if (n_connections > 0)
+			test_conns = n_connections;
 
 		test_buffs = MIN_BUFS_FOR_CONNS(test_conns);
-        if (n_buffers > 0)
-            test_buffs = n_buffers;
+		if (n_buffers > 0)
+			test_buffs = n_buffers;
 
 		test_max_fsm = FSM_FOR_BUFS(test_buffs);
-        if (n_fsm_pages > 0)
-            test_max_fsm = n_fsm_pages;
+		if (n_fsm_pages > 0)
+			test_max_fsm = n_fsm_pages;
 
 		snprintf(cmd, sizeof(cmd),
 				 "%s\"%s\" --boot -x0 %s "
@@ -1256,16 +1256,16 @@ test_config_settings(void)
 		status = system(cmd);
 		if (status == 0)
 		{
-            n_connections = test_conns;
+			n_connections = test_conns;
 			ok_buffers = test_buffs;
 			break;
 		}
-        if (n_connections > 0 || i == connslen-1)
-        {
-            fprintf(stderr, _("%s: error %d from: %s\n"),
-                    progname, status, cmd);
-            exit_nicely();
-        }
+		if (n_connections > 0 || i == connslen - 1)
+		{
+			fprintf(stderr, _("%s: error %d from: %s\n"),
+					progname, status, cmd);
+			exit_nicely();
+		}
 	}
 	printf("%d\n", n_connections);
 
@@ -1283,8 +1283,8 @@ test_config_settings(void)
 		}
 
 		test_max_fsm = FSM_FOR_BUFS(test_buffs);
-        if (n_fsm_pages > 0)
-            test_max_fsm = n_fsm_pages;
+		if (n_fsm_pages > 0)
+			test_max_fsm = n_fsm_pages;
 
 		snprintf(cmd, sizeof(cmd),
 				 "%s\"%s\" --boot -x0 %s "
@@ -1297,20 +1297,20 @@ test_config_settings(void)
 				 DEVNULL, backend_output, SYSTEMQUOTE);
 		status = system(cmd);
 		if (status == 0)
-        {
-	        n_buffers = test_buffs;
-            break;
-        }
+		{
+			n_buffers = test_buffs;
+			break;
+		}
 	}
-    if (i == bufslen)
-    {
-        fprintf(stderr, _("%s: error %d from: %s\n"),
-                progname, status, cmd);
-        exit_nicely();
-    }
+	if (i == bufslen)
+	{
+		fprintf(stderr, _("%s: error %d from: %s\n"),
+				progname, status, cmd);
+		exit_nicely();
+	}
 
-    if (n_fsm_pages <= 0)
-        n_fsm_pages = FSM_FOR_BUFS(n_buffers);
+	if (n_fsm_pages <= 0)
+		n_fsm_pages = FSM_FOR_BUFS(n_buffers);
 
 	if ((n_buffers * (BLCKSZ / 1024)) % 1024 == 0)
 		printf("%dMB/%d\n", (n_buffers * (BLCKSZ / 1024)) / 1024, n_fsm_pages);
@@ -1335,47 +1335,47 @@ setup_config(void)
 
 	conflines = readfile(conf_file);
 
-    conflines = add_assignment(conflines, "max_connections", "%d", n_connections);
+	conflines = add_assignment(conflines, "max_connections", "%d", n_connections);
 
 	if ((n_buffers * (BLCKSZ / 1024)) % 1024 == 0)
-        conflines = add_assignment(conflines, "shared_buffers", "%dMB",
-                                   (n_buffers * (BLCKSZ / 1024)) / 1024);
+		conflines = add_assignment(conflines, "shared_buffers", "%dMB",
+								   (n_buffers * (BLCKSZ / 1024)) / 1024);
 	else
-        conflines = add_assignment(conflines, "shared_buffers", "%dkB",
-                                   n_buffers * (BLCKSZ / 1024));
+		conflines = add_assignment(conflines, "shared_buffers", "%dkB",
+								   n_buffers * (BLCKSZ / 1024));
 
 	conflines = add_assignment(conflines, "max_fsm_pages", "%d", n_fsm_pages);
 
-    /* Upd comment to document the default port configured by --with-pgport */
-    if (DEF_PGPORT != 5432)
-    {
-        snprintf(repltok, sizeof(repltok), "#port = %d", DEF_PGPORT);
-        conflines = replace_token(conflines, "#port = 5432", repltok);
-    }
+	/* Upd comment to document the default port configured by --with-pgport */
+	if (DEF_PGPORT != 5432)
+	{
+		snprintf(repltok, sizeof(repltok), "#port = %d", DEF_PGPORT);
+		conflines = replace_token(conflines, "#port = 5432", repltok);
+	}
 
 	conflines = add_assignment(conflines, "lc_messages", "'%s'",
-                               escape_quotes(lc_messages));
+							   escape_quotes(lc_messages));
 
 	conflines = add_assignment(conflines, "lc_monetary", "'%s'",
-                               escape_quotes(lc_monetary));
+							   escape_quotes(lc_monetary));
 
 	conflines = add_assignment(conflines, "lc_numeric", "'%s'",
-                               escape_quotes(lc_numeric));
+							   escape_quotes(lc_numeric));
 
 	conflines = add_assignment(conflines, "lc_time", "'%s'",
-                               escape_quotes(lc_time));
+							   escape_quotes(lc_time));
 
 	switch (locale_date_order(lc_time))
 	{
 		case DATEORDER_YMD:
-	        conflines = add_assignment(conflines, "datestyle", "'iso, ymd'");
+			conflines = add_assignment(conflines, "datestyle", "'iso, ymd'");
 			break;
 		case DATEORDER_DMY:
-	        conflines = add_assignment(conflines, "datestyle", "'iso, dmy'");
+			conflines = add_assignment(conflines, "datestyle", "'iso, dmy'");
 			break;
 		case DATEORDER_MDY:
 		default:
-	        conflines = add_assignment(conflines, "datestyle", "'iso, mdy'");
+			conflines = add_assignment(conflines, "datestyle", "'iso, mdy'");
 			break;
 	}
 

@@ -1353,17 +1353,17 @@ RelationBuildDesc(Oid targetRelId, bool insertIt)
 	relation->rd_istemp = isTempOrToastNamespace(relation->rd_rel->relnamespace);
 	relation->rd_issyscat = (strncmp(relation->rd_rel->relname.data, "pg_", 3) == 0);
 
-    /*
-     * CDB: On QEs, temp relations must use shared buffer cache so data
-     * will be visible to all segmates.  On QD, sequence objects must
-     * use shared buffer cache so data will be visible to sequence server.
-     */
-    if (relation->rd_istemp &&
-        relation->rd_rel->relkind != RELKIND_SEQUENCE &&
-        Gp_role != GP_ROLE_EXECUTE)
-        relation->rd_isLocalBuf = true;
-    else
-        relation->rd_isLocalBuf = false;
+	/*
+	 * CDB: On QEs, temp relations must use shared buffer cache so data
+	 * will be visible to all segmates.  On QD, sequence objects must
+	 * use shared buffer cache so data will be visible to sequence server.
+	 */
+	if (relation->rd_istemp &&
+		relation->rd_rel->relkind != RELKIND_SEQUENCE &&
+		Gp_role != GP_ROLE_EXECUTE)
+		relation->rd_isLocalBuf = true;
+	else
+		relation->rd_isLocalBuf = false;
 
 	/*
 	 * initialize the tuple descriptor (relation->rd_att).
@@ -3135,17 +3135,17 @@ RelationBuildLocalRelation(const char *relname,
 	/* is it a system catalog? */
 	rel->rd_issyscat = (strncmp(relname, "pg_", 3) == 0);
 
-    /*
-     * CDB: On QEs, temp relations must use shared buffer cache so data
-     * will be visible to all segmates.  On QD, sequence objects must
-     * use shared buffer cache so data will be visible to sequence server.
-     */
-    if (rel->rd_istemp &&
-        relkind != RELKIND_SEQUENCE &&
-        Gp_role != GP_ROLE_EXECUTE)
-        rel->rd_isLocalBuf = true;
-    else
-        rel->rd_isLocalBuf = false;
+	/*
+	 * CDB: On QEs, temp relations must use shared buffer cache so data
+	 * will be visible to all segmates.  On QD, sequence objects must
+	 * use shared buffer cache so data will be visible to sequence server.
+	 */
+	if (rel->rd_istemp &&
+		relkind != RELKIND_SEQUENCE &&
+		Gp_role != GP_ROLE_EXECUTE)
+		rel->rd_isLocalBuf = true;
+	else
+		rel->rd_isLocalBuf = false;
 
 	/*
 	 * create a new tuple descriptor from the one passed in.  We do this

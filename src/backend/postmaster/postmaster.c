@@ -2903,11 +2903,11 @@ retry1:
 	if (am_walsender)
 		port->database_name[0] = '\0';
 
-    /*
-     * CDB: Process "gpqeid" parameter string for qExec startup.
-     */
-    if (gpqeid)
-        cdbgang_parse_gpqeid_params(port, gpqeid);
+	/*
+	 * CDB: Process "gpqeid" parameter string for qExec startup.
+	 */
+	if (gpqeid)
+		cdbgang_parse_gpqeid_params(port, gpqeid);
 
 	/*
 	 * Done putting stuff in TopMemoryContext.

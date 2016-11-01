@@ -381,9 +381,9 @@ build_join_rel(PlannerInfo *root,
 	joinrel->index_outer_relids = NULL;
 	joinrel->index_inner_paths = NIL;
 
-    /* CDB: Join between single-row inputs produces a single-row joinrel. */
-    if (outer_rel->onerow && inner_rel->onerow)
-        joinrel->onerow = true;
+	/* CDB: Join between single-row inputs produces a single-row joinrel. */
+	if (outer_rel->onerow && inner_rel->onerow)
+		joinrel->onerow = true;
 
 	/*
 	 * Create a new tlist containing just the vars that need to be output from
@@ -410,11 +410,11 @@ build_join_rel(PlannerInfo *root,
 		*restrictlist_ptr = restrictlist;
 	build_joinrel_joinlist(joinrel, outer_rel, inner_rel);
 
-    /*
-     * CDB: Attach subquery duplicate suppression info if needed.
-     */
-    if (root->in_info_list)
-        joinrel->dedup_info = cdb_make_rel_dedup_info(root, joinrel);
+	/*
+	 * CDB: Attach subquery duplicate suppression info if needed.
+	 */
+	if (root->in_info_list)
+		joinrel->dedup_info = cdb_make_rel_dedup_info(root, joinrel);
 
 	/*
 	 * This is also the right place to check whether the joinrel has any

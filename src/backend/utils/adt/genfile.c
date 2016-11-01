@@ -490,8 +490,8 @@ pg_logdir_ls(PG_FUNCTION_ARGS)
 				(errcode(ERRCODE_INVALID_PARAMETER_VALUE),
 				 (errmsg("the log_filename parameter must equal 'gpdb-%%Y-%%m-%%d_%%H%%M%%S.csv'"))));
 
-    if (strncmp(Log_filename, "gpdb", 4) != 0)
-        prefix_is_gpdb = false;
+	if (strncmp(Log_filename, "gpdb", 4) != 0)
+		prefix_is_gpdb = false;
 
 	if (SRF_IS_FIRSTCALL())
 	{

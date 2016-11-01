@@ -2519,10 +2519,10 @@ freePGconn(PGconn *conn)
 	if (conn->keepalives_count)
 		free(conn->keepalives_count);
 
-    if (conn->gpqeid)			/* CDB */
-        free(conn->gpqeid);
-    if (conn->qe_version)		/* CDB */
-        free(conn->qe_version);
+	if (conn->gpqeid)			/* CDB */
+		free(conn->gpqeid);
+	if (conn->qe_version)		/* CDB */
+		free(conn->qe_version);
 
 	/* Note that conn->Pfdebug is not ours to close or free */
 	if (conn->last_query)

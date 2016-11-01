@@ -88,22 +88,22 @@ static const uint8 number_of_ones[256] = {
 static inline int
 num_low_order_zero_bits(bitmapword w)
 {
-    int         x = 0;
-    int         i;
-    bitmapword  m;
+	int			x = 0;
+	int			i;
+	bitmapword	m;
 
-    for (i = BITS_PER_BITMAPWORD / 2; i; i >>= 1)
-    {                           /* i = 16, 8, 4, 2, 1 */
-        m = (1 << i) - 1;       /* m = 0xffff, 0xff, 0xf, 3, 1 */
-        if ((w & m) == 0)
-        {
-            w >>= i;
-            x += i;
-        }
-    }
-    if (w == 0)                 /* all 0 => return BITS_PER_BITMAPWORD */
-        x++;
-    return x;
+	for (i = BITS_PER_BITMAPWORD / 2; i; i >>= 1)
+	{							/* i = 16, 8, 4, 2, 1 */
+		m = (1 << i) - 1;		/* m = 0xffff, 0xff, 0xf, 3, 1 */
+		if ((w & m) == 0)
+		{
+			w >>= i;
+			x += i;
+		}
+	}
+	if (w == 0)					/* all 0 => return BITS_PER_BITMAPWORD */
+		x++;
+	return x;
 }
 
 
@@ -179,7 +179,7 @@ bms_equal(const Bitmapset *a, const Bitmapset *b)
 /*
  * bms_compare -- for sort to find groups of equal bitmapsets.
  *
- * See bms_equal for note on logical vs physical.  Note that the 
+ * See bms_equal for note on logical vs physical.  Note that the
  * arguments are pointers to Bitmapset -- a variable length structure,
  * thus this function is not directly usable by, e.g, qsort.
  */
@@ -195,18 +195,18 @@ bms_compare(const Bitmapset *a, const Bitmapset *b)
 	/* Handle cases where either input is NULL */
 	if (a == NULL)
 	{
-		if ( b == NULL || bms_is_empty(b) )
+		if (b == NULL || bms_is_empty(b))
 			return 0;
 		return -1;
 	}
 	else if (b == NULL)
 	{
-		if ( bms_is_empty(a) )
+		if (bms_is_empty(a))
 			return 0;
 		else
 			return 1;
 	}
-	
+
 	/* Identify shorter and longer input */
 	if (a->nwords <= b->nwords)
 	{
@@ -227,7 +227,7 @@ bms_compare(const Bitmapset *a, const Bitmapset *b)
 	{
 		if (a->words[i] < b->words[i])
 			return -1;
-		else if ( a->words[i] > b->words[i] )
+		else if (a->words[i] > b->words[i])
 			return 1;
 	}
 	for (; i < longlen; i++)
@@ -237,6 +237,7 @@ bms_compare(const Bitmapset *a, const Bitmapset *b)
 	}
 	return 0;
 }
+
 /*
  * bms_make_singleton - build a bitmapset containing a single member
  */
@@ -499,7 +500,7 @@ bms_singleton_member(const Bitmapset *a)
 		{
 			if (result >= 0 || HAS_MULTIPLE_ONES(w))
 				elog(ERROR, "bitmapset has multiple members");
-            result = num_low_order_zero_bits(w) + wordnum * BITS_PER_BITMAPWORD;
+			result = num_low_order_zero_bits(w) + wordnum * BITS_PER_BITMAPWORD;
 		}
 	}
 	if (result < 0)
@@ -636,7 +637,8 @@ bms_add_member(Bitmapset *a, int x)
 bool
 bms_covers_member(const Bitmapset *a, int x)
 {
-	int wordnum;
+	int			wordnum;
+
 	if (x < 0)
 		elog(ERROR, "negative bitmapset member not allowed");
 	if (a == NULL)
@@ -657,10 +659,10 @@ bms_resize(Bitmapset *a, int wc)
 	{
 		result = (Bitmapset *) repalloc(a, BITMAPSET_SIZE(wc));
 		/* do not access a again */
-		MemSet(result->words + result->nwords, 0, 
-				(wc - result->nwords) * sizeof(bitmapword));
+		MemSet(result->words + result->nwords, 0,
+			   (wc - result->nwords) * sizeof(bitmapword));
 		result->nwords = wc;
-	} 
+	}
 	else
 	{
 		result = palloc0(BITMAPSET_SIZE(wc));
@@ -832,21 +834,21 @@ int
 bms_first_from(const Bitmapset *a, int x)
 {
 	int			wordnum;
-    bitmapword  w;
+	bitmapword	w;
 
 	if (a == NULL)
-        return -1;
+		return -1;
 
-    wordnum = WORDNUM(x);
+	wordnum = WORDNUM(x);
 
-    if ((unsigned)wordnum >= (unsigned)a->nwords)
+	if ((unsigned) wordnum >= (unsigned) a->nwords)
 		return -1;
 
 	w = a->words[wordnum] >> BITNUM(x);
-    if (w & 1)
-        return x;
-    if (w)
-        return  x + num_low_order_zero_bits(w);
+	if (w & 1)
+		return x;
+	if (w)
+		return x + num_low_order_zero_bits(w);
 
 	for (wordnum++; wordnum < a->nwords; wordnum++)
 	{

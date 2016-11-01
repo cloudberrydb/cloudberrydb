@@ -134,14 +134,13 @@ static Datum string_to_datum(const char *str, Oid datatype);
 static Const *string_to_const(const char *str, Oid datatype);
 static Const *string_to_bytea_const(const char *str, size_t str_len);
 
-static Selectivity 
-mcv_selectivity_cdb(VariableStatData   *vardata, 
+static Selectivity
+mcv_selectivity_cdb(VariableStatData   *vardata,
                     FmgrInfo           *opproc,
-				    Datum               constval, 
+				    Datum               constval,
                     bool                varonleft,
-				    Selectivity        *sumcommonp,     /* OUT */ 
+				    Selectivity        *sumcommonp,     /* OUT */
                     double             *nvaluesp);      /* OUT */
-
 
 
 /*
@@ -467,23 +466,23 @@ scalarineqsel(PlannerInfo *root, Oid operator, bool isgt,
  * total population is returned into *sumcommonp.  Zeroes are returned
  * if there is no MCV list.
  *
- * CDB: The number of MCVs is returned into *nvaluesp.  
+ * CDB: The number of MCVs is returned into *nvaluesp.
  */
-double 
+double
 mcv_selectivity(VariableStatData *vardata, FmgrInfo *opproc,
 				Datum constval, bool varonleft,
 				double *sumcommonp)
 {
-    return mcv_selectivity_cdb(vardata, opproc, constval, varonleft, 
+    return mcv_selectivity_cdb(vardata, opproc, constval, varonleft,
                                sumcommonp, NULL);
 }
 
-static Selectivity 
-mcv_selectivity_cdb(VariableStatData   *vardata, 
+static Selectivity
+mcv_selectivity_cdb(VariableStatData   *vardata,
                     FmgrInfo           *opproc,
-				    Datum               constval, 
+				    Datum               constval,
                     bool                varonleft,
-				    Selectivity        *sumcommonp,     /* OUT */ 
+				    Selectivity        *sumcommonp,     /* OUT */
                     double             *nvaluesp)       /* OUT */
 {
 	double		mcv_selec,
@@ -522,8 +521,8 @@ mcv_selectivity_cdb(VariableStatData   *vardata,
 	}
 
 	*sumcommonp = sumcommon;
-    if (nvaluesp)
-        *nvaluesp = nvalues;
+	if (nvaluesp)
+		*nvaluesp = nvalues;
 	return mcv_selec;
 }
 
@@ -2714,7 +2713,7 @@ estimate_num_groups(PlannerInfo *root, List *groupExprs, double input_rows)
 		 * complicated.
 		 */
 		examine_variable(root, groupexpr, 0, &vardata);
-		
+
 		if (HeapTupleIsValid(getStatsTuple(&vardata))
 			|| vardata.isunique)
 		{
@@ -3625,7 +3624,7 @@ examine_variable(PlannerInfo *root, Node *node, int varRelid,
 		 * at primary key statistics. If there exist stats on that attribute,
 		 * we utilize those. If not, continue.
 		 */
-		
+
 		if (gp_statistics_use_fkeys)
 		{
 			Oid         pkrelid = InvalidOid;
@@ -3638,7 +3637,7 @@ examine_variable(PlannerInfo *root, Node *node, int varRelid,
 				/* SELECT reltuples FROM pg_class */
 
 				pkStatsTuple = SearchSysCache1(RELOID, ObjectIdGetDatum(pkrelid));
-				if (HeapTupleIsValid(pkStatsTuple)) 
+				if (HeapTupleIsValid(pkStatsTuple))
 				{
 					Form_pg_class classForm = (Form_pg_class) GETSTRUCT(pkStatsTuple);
 					if (classForm->reltuples > 0)
@@ -4433,13 +4432,11 @@ like_selectivity(const char *patt, int pattlen, bool case_insensitive)
         }
 	}
 
-    /* CDB: If no trailing wildcard, reduce selectivity slightly. */
-    if (pos > 0 &&
-        patt[pos-1] != '%')
-        sel *= CDB_RANCHOR_SEL;
-    else if (pos >= 2 &&
-             patt[pos-2] == '\\')
-        sel *= CDB_RANCHOR_SEL;
+	/* CDB: If no trailing wildcard, reduce selectivity slightly. */
+	if (pos > 0 && patt[pos-1] != '%')
+		sel *= CDB_RANCHOR_SEL;
+	else if (pos >= 2 && patt[pos-2] == '\\')
+		sel *= CDB_RANCHOR_SEL;
 
 	return sel;
 }
@@ -5405,7 +5402,7 @@ bmcostestimate(PG_FUNCTION_ARGS)
 	List *groupExprs = NIL;
 	int i;
 	double numDistinctValues;
-	
+
 	/*
 	 * Estimate the number of index tuples. This is basically the same
 	 * as the one in genericcostestimate(), except that
@@ -5442,7 +5439,7 @@ bmcostestimate(PG_FUNCTION_ARGS)
 		if (index->indexkeys[i] > 0)
 		{
 			Var *var = find_indexkey_var(root, index->rel, (AttrNumber) index->indexkeys[i]);
-			
+
 			groupExprs = lappend(groupExprs, var);
 		}
 	}

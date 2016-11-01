@@ -2187,15 +2187,14 @@ show_motion_keys(Plan *plan, List *hashExpr, int nkeys, AttrNumber *keycols,
 			     const char *qlabel,
                  StringInfo str, int indent, ExplainState *es)
 {
-    List	   *context;
-    char	   *exprstr;
-    bool		useprefix = list_length(es->rtable) > 1;
-    int			keyno;
-    int			i;
+	List	   *context;
+	char	   *exprstr;
+	bool		useprefix = list_length(es->rtable) > 1;
+	int			keyno;
+	int			i;
 
-    if (!nkeys &&
-        !hashExpr)
-        return;
+	if (!nkeys && !hashExpr)
+		return;
 
 	/* Set up deparse context */
 	context = deparse_context_for_plan((Node *) outerPlan(plan),

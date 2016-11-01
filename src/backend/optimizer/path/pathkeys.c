@@ -32,11 +32,11 @@
 #include "parser/parsetree.h"
 #include "parser/parse_expr.h"
 #include "parser/parse_func.h"
-#include "parser/parse_oper.h" /* for compatible_oper_opid() */
+#include "parser/parse_oper.h"	/* for compatible_oper_opid() */
 #include "utils/lsyscache.h"
 
-#include "cdb/cdbdef.h"         /* CdbSwap() */
-#include "cdb/cdbpullup.h"      /* cdbpullup_expr(), cdbpullup_make_var() */
+#include "cdb/cdbdef.h"			/* CdbSwap() */
+#include "cdb/cdbpullup.h"		/* cdbpullup_expr(), cdbpullup_make_var() */
 
 static PathKey *make_canonical_pathkey(PlannerInfo *root,
 					   EquivalenceClass *eclass, Oid opfamily,
@@ -79,42 +79,44 @@ makePathKey(EquivalenceClass *eclass, Oid opfamily,
  * replace_expression_mutator
  *
  * Copy an expression tree, but replace all occurrences of one node with
- *   another.
+ *	 another.
  *
  * The replacement is passed in the context as a pointer to
- *    ReplaceExpressionMutatorReplacement
+ *	  ReplaceExpressionMutatorReplacement
  *
  * context should be ReplaceExpressionMutatorReplacement*
  */
 Node *
 replace_expression_mutator(Node *node, void *context)
 {
-    ReplaceExpressionMutatorReplacement * repl;
-    if (node == NULL)
-        return NULL;
+	ReplaceExpressionMutatorReplacement *repl;
 
-    if ( IsA(node, RestrictInfo))
-    {
-        RestrictInfo *info = (RestrictInfo *) node;
-        return replace_expression_mutator((Node*) info->clause, context);
-    }
+	if (node == NULL)
+		return NULL;
 
-    repl = (ReplaceExpressionMutatorReplacement*) context;
-    if ( equal(node, repl->replaceThis))
-    {
-        repl->numReplacementsDone++;
-        return copyObject(repl->withThis);
-    }
-    return expression_tree_mutator(node, replace_expression_mutator, (void *) context);
+	if (IsA(node, RestrictInfo))
+	{
+		RestrictInfo *info = (RestrictInfo *) node;
+
+		return replace_expression_mutator((Node *) info->clause, context);
+	}
+
+	repl = (ReplaceExpressionMutatorReplacement *) context;
+	if (equal(node, repl->replaceThis))
+	{
+		repl->numReplacementsDone++;
+		return copyObject(repl->withThis);
+	}
+	return expression_tree_mutator(node, replace_expression_mutator, (void *) context);
 }
 
 /**
  * Generate implied qual
  * Input:
- * 	root - planner information
- * 	old_rinfo - old clause to infer from
- * 	old_expr - the expression to be replaced
- * 	new_expr - new expression replacing it
+ *	root - planner information
+ *	old_rinfo - old clause to infer from
+ *	old_expr - the expression to be replaced
+ *	new_expr - new expression replacing it
  */
 static void
 gen_implied_qual(PlannerInfo *root,
@@ -131,7 +133,7 @@ gen_implied_qual(PlannerInfo *root,
 
 	/* Expression types must match */
 	Assert(exprType(old_expr) == exprType(new_expr)
-			&& exprTypmod(old_expr) == exprTypmod(new_expr));
+		   && exprTypmod(old_expr) == exprTypmod(new_expr));
 
 	/*
 	 * Clone the clause, replacing first node with the second.
@@ -139,7 +141,7 @@ gen_implied_qual(PlannerInfo *root,
 	ctx.replaceThis = old_expr;
 	ctx.withThis = new_expr;
 	ctx.numReplacementsDone = 0;
-	new_clause = (Node *) replace_expression_mutator((Node*) old_rinfo->clause, &ctx);
+	new_clause = (Node *) replace_expression_mutator((Node *) old_rinfo->clause, &ctx);
 
 	if (ctx.numReplacementsDone == 0)
 		return;
@@ -158,9 +160,10 @@ gen_implied_qual(PlannerInfo *root,
 		return;
 
 	/*
-	 * Have we seen this clause before? This is needed to avoid infinite recursion.
+	 * Have we seen this clause before? This is needed to avoid infinite
+	 * recursion.
 	 */
-	foreach (lc, root->non_eq_clauses)
+	foreach(lc, root->non_eq_clauses)
 	{
 		RestrictInfo *r = (RestrictInfo *) lfirst(lc);
 
@@ -170,9 +173,10 @@ gen_implied_qual(PlannerInfo *root,
 
 	/*
 	 * Ok, we're good to go. Construct a new RestrictInfo, and pass it to
-	 * distribute_to_rels(). This is a cut-down version of distribute_qual_to_rels():
-	 * We know the qual is not useful for the equivalence class machinery,
-	 * because it's derived from a clause that wasn't either.
+	 * distribute_to_rels(). This is a cut-down version of
+	 * distribute_qual_to_rels(): We know the qual is not useful for the
+	 * equivalence class machinery, because it's derived from a clause that
+	 * wasn't either.
 	 */
 	required_relids = bms_union(new_qualscope, old_rinfo->ojscope_relids);
 
@@ -212,7 +216,7 @@ gen_implied_qual(PlannerInfo *root,
 static void
 gen_implied_quals(PlannerInfo *root, RestrictInfo *rinfo)
 {
-	ListCell	*lcec;
+	ListCell   *lcec;
 
 	/*
 	 * Is it safe to infer from this clause?
@@ -226,8 +230,8 @@ gen_implied_quals(PlannerInfo *root, RestrictInfo *rinfo)
 	/*
 	 * Find every equivalence class that's relevant for this RestrictInfo.
 	 *
-	 * Relevant means that some member of the equivalence class appears
-	 * in the clause, that we can replace it with another member.
+	 * Relevant means that some member of the equivalence class appears in the
+	 * clause, that we can replace it with another member.
 	 */
 	foreach(lcec, root->eq_classes)
 	{
@@ -239,15 +243,16 @@ gen_implied_quals(PlannerInfo *root, RestrictInfo *rinfo)
 			continue;
 
 		if (!bms_overlap(eclass->ec_relids, rinfo->clause_relids))
-			continue; /* none of the members can appear in the clause */
+			continue;			/* none of the members can appear in the
+								 * clause */
 
 		foreach(lcem1, eclass->ec_members)
 		{
 			EquivalenceMember *em1 = (EquivalenceMember *) lfirst(lcem1);
-			ListCell *lcem2;
+			ListCell   *lcem2;
 
 			if (!bms_overlap(em1->em_relids, rinfo->clause_relids))
-				continue; /* this member cannot appear in the clause */
+				continue;		/* this member cannot appear in the clause */
 
 			/* now try to apply to others in the equivalence class */
 			foreach(lcem2, eclass->ec_members)
@@ -258,7 +263,7 @@ gen_implied_quals(PlannerInfo *root, RestrictInfo *rinfo)
 					continue;
 
 				if (exprType((Node *) em1->em_expr) == exprType((Node *) em2->em_expr)
-					&& exprTypmod((Node *)em1->em_expr) == exprTypmod((Node *)em2->em_expr))
+					&& exprTypmod((Node *) em1->em_expr) == exprTypmod((Node *) em2->em_expr))
 				{
 					gen_implied_qual(root,
 									 rinfo,
@@ -273,28 +278,28 @@ gen_implied_quals(PlannerInfo *root, RestrictInfo *rinfo)
 /* TODO:
  *
  * note that we require types to be the same.  We could try converting them
- *   (introducing relabel nodes) as long as the conversion is a widening
- *   conversion (clause on int4 can be applied to int2 type by widening the
- *   int2 to an int4 when creating the replicated clause)
- *   likewise, is varchar(10) vs varchar(50) an issue at this point?
+ * (introducing relabel nodes) as long as the conversion is a widening
+ * conversion (clause on int4 can be applied to int2 type by widening the
+ * int2 to an int4 when creating the replicated clause)
+ * likewise, is varchar(10) vs varchar(50) an issue at this point?
  */
 void
 generate_implied_quals(PlannerInfo *root)
 {
-	ListCell *lc;
+	ListCell   *lc;
 
-    if (!root->config->gp_enable_predicate_propagation)
-        return;
+	if (!root->config->gp_enable_predicate_propagation)
+		return;
 
-	foreach (lc, root->non_eq_clauses)
+	foreach(lc, root->non_eq_clauses)
 	{
 		RestrictInfo *rinfo = (RestrictInfo *) lfirst(lc);
 
 		gen_implied_quals(root, rinfo);
 
 		/*
-		 * NOTE: gen_implied_quals() can append more quals to the list!
-		 * We will process those as well, as we iterate.
+		 * NOTE: gen_implied_quals() can append more quals to the list! We
+		 * will process those as well, as we iterate.
 		 */
 	}
 }
@@ -1052,47 +1057,47 @@ build_join_pathkeys(PlannerInfo *root,
 /*
  * cdb_make_pathkey_for_expr
  *	  Returns a canonicalized PathKey which represents an equivalence
- *    class of expressions that must be equal to the given expression.
+ *	  class of expressions that must be equal to the given expression.
  *
- *    The caller specifies the name of the equality operator thus:
- *          list_make1(makeString("="))
+ *	  The caller specifies the name of the equality operator thus:
+ *			list_make1(makeString("="))
  *
- *    The 'opfamily' field of resulting PathKey is filled with the operator
- *    family that would be used for a merge join with another expr of the
- *    same data type, using the equality operator whose name is given.
- *    Partitioning doesn't itself use the sort operator, but its Oid is
- *    needed to associate the PathKey with the same equivalence class
- *    (canonical pathkey) as any other expressions to which
- *    our expr is constrained by compatible merge-joinable
- *    equality operators.  (We assume, in what may be a temporary
- *    excess of optimism, that our hashed partitioning function
- *    implements the same notion of equality as these operators.)
+ *	  The 'opfamily' field of resulting PathKey is filled with the operator
+ *	  family that would be used for a merge join with another expr of the
+ *	  same data type, using the equality operator whose name is given.
+ *	  Partitioning doesn't itself use the sort operator, but its Oid is
+ *	  needed to associate the PathKey with the same equivalence class
+ *	  (canonical pathkey) as any other expressions to which
+ *	  our expr is constrained by compatible merge-joinable
+ *	  equality operators.  (We assume, in what may be a temporary
+ *	  excess of optimism, that our hashed partitioning function
+ *	  implements the same notion of equality as these operators.)
  */
 PathKey *
-cdb_make_pathkey_for_expr(PlannerInfo    *root,
-					      Node     *expr,
-                          List     *eqopname,
-						  bool	canonical)
+cdb_make_pathkey_for_expr(PlannerInfo *root,
+						  Node *expr,
+						  List *eqopname,
+						  bool canonical)
 {
-    Oid             opfamily = InvalidOid;
-    Oid             typeoid = InvalidOid;
-    Oid	            eqopoid = InvalidOid;
-    PathKey        *pk = NULL;
-	List           *mergeopfamilies;
+	Oid			opfamily = InvalidOid;
+	Oid			typeoid = InvalidOid;
+	Oid			eqopoid = InvalidOid;
+	PathKey    *pk = NULL;
+	List	   *mergeopfamilies;
 	EquivalenceClass *eclass;
-	int             strategy;
-	ListCell       *lc;
+	int			strategy;
+	ListCell   *lc;
 
-    /* Get the expr's data type. */
-    typeoid = exprType(expr);
+	/* Get the expr's data type. */
+	typeoid = exprType(expr);
 
-    /* Get Oid of the equality operator applied to two values of that type. */
-    eqopoid = compatible_oper_opid(eqopname, typeoid, typeoid, true);
+	/* Get Oid of the equality operator applied to two values of that type. */
+	eqopoid = compatible_oper_opid(eqopname, typeoid, typeoid, true);
 
-    /*
-	 * Get Oid of the sort operator that would be used for a
-     * sort-merge equijoin on a pair of exprs of the same type.
-     */
+	/*
+	 * Get Oid of the sort operator that would be used for a sort-merge
+	 * equijoin on a pair of exprs of the same type.
+	 */
 	if (eqopoid == InvalidOid || !op_mergejoinable(eqopoid))
 		elog(ERROR, "could not find mergejoinable = operator for type %u", typeoid);
 
@@ -1135,33 +1140,33 @@ cdb_make_pathkey_for_expr(PlannerInfo    *root,
  * 'pathkey' is a List of PathKey.
  * 'relids' is the set of relids that may occur in the targetlist exprs.
  * 'targetlist' specifies the projection.  It is a List of TargetEntry
- *      or merely a List of Expr.
+ *		or merely a List of Expr.
  * 'newvarlist' is an optional List of Expr, in 1-1 correspondence with
- *      'targetlist'.  If specified, instead of creating a Var node to
- *      reference a targetlist item, we plug in a copy of the corresponding
- *      newvarlist item.
+ *		'targetlist'.  If specified, instead of creating a Var node to
+ *		reference a targetlist item, we plug in a copy of the corresponding
+ *		newvarlist item.
  * 'newrelid' is the RTE index of the projected result, for finding or
- *      building Var nodes that reference the projected columns.
- *      Ignored if 'newvarlist' is specified.
+ *		building Var nodes that reference the projected columns.
+ *		Ignored if 'newvarlist' is specified.
  *
  * NB: We ignore the presence or absence of a RelabelType node atop either
  * expr in determining whether a PathKey expr matches a targetlist expr.
  */
 PathKey *
-cdb_pull_up_pathkey(PlannerInfo    *root,
-                    PathKey        *pathkey,
-                    Relids          relids,
-                    List           *targetlist,
-                    List           *newvarlist,
-                    Index           newrelid)
+cdb_pull_up_pathkey(PlannerInfo *root,
+					PathKey *pathkey,
+					Relids relids,
+					List *targetlist,
+					List *newvarlist,
+					Index newrelid)
 {
 	Expr	   *sub_pathkeyexpr;
 	EquivalenceClass *outer_ec;
 	Expr	   *newexpr = NULL;
 
-    Assert(pathkey);
-    Assert(!newvarlist ||
-           list_length(newvarlist) == list_length(targetlist));
+	Assert(pathkey);
+	Assert(!newvarlist ||
+		   list_length(newvarlist) == list_length(targetlist));
 
 	/* Find an expr that we can rewrite to use the projected columns. */
 	sub_pathkeyexpr = cdbpullup_findPathKeyExprInTargetList(pathkey, targetlist);
@@ -1177,9 +1182,9 @@ cdb_pull_up_pathkey(PlannerInfo    *root,
 	/* If not found, see if the equiv class contains a constant expr. */
 	else if (CdbPathkeyEqualsConstant(pathkey))
 	{
-		ListCell *lc;
+		ListCell   *lc;
 
-		foreach (lc, pathkey->pk_eclass->ec_members)
+		foreach(lc, pathkey->pk_eclass->ec_members)
 		{
 			EquivalenceMember *em = lfirst(lc);
 
@@ -1190,9 +1195,9 @@ cdb_pull_up_pathkey(PlannerInfo    *root,
 			}
 		}
 	}
-    /* Fail if no usable expr. */
-    else
-        return NULL;
+	/* Fail if no usable expr. */
+	else
+		return NULL;
 
 	if (!newexpr)
 		elog(ERROR, "could not pull up path key using projected target list");
@@ -1203,8 +1208,8 @@ cdb_pull_up_pathkey(PlannerInfo    *root,
 										pathkey->pk_eclass->ec_opfamilies,
 										0);
 
-    /* Find or create the equivalence class for the transformed expr. */
-    return make_canonical_pathkey(root,
+	/* Find or create the equivalence class for the transformed expr. */
+	return make_canonical_pathkey(root,
 								  outer_ec,
 								  pathkey->pk_opfamily,
 								  pathkey->pk_strategy,
@@ -1268,13 +1273,13 @@ make_pathkeys_for_sortclauses(PlannerInfo *root,
 }
 
 /****************************************************************************
- *      PATHKEYS AND GROUPCLAUSES AND GROUPINGCLAUSE
+ *		PATHKEYS AND GROUPCLAUSES AND GROUPINGCLAUSE
  ***************************************************************************/
 
 /*
  * make_pathkeys_for_groupclause
- *   Generate a pathkeys list that represents the sort order specified by
- *   a list of GroupClauses or GroupingClauses.
+ *	 Generate a pathkeys list that represents the sort order specified by
+ *	 a list of GroupClauses or GroupingClauses.
  *
  * Note: similar to make_pathkeys_for_sortclauses, the result is NOT in
  * canonical form.
@@ -1284,45 +1289,47 @@ make_pathkeys_for_groupclause(PlannerInfo *root,
 							  List *groupclause,
 							  List *tlist)
 {
-	List *pathkeys = NIL;
-	ListCell *l;
+	List	   *pathkeys = NIL;
+	ListCell   *l;
 
-	List *sub_pathkeys = NIL;
+	List	   *sub_pathkeys = NIL;
 
 	foreach(l, groupclause)
 	{
 		Expr	   *sortkey;
 		PathKey    *pathkey;
 
-		Node *node = lfirst(l);
+		Node	   *node = lfirst(l);
 
 		if (node == NULL)
 			continue;
 
 		if (IsA(node, GroupClause))
 		{
-			GroupClause *gc = (GroupClause*) node;
+			GroupClause *gc = (GroupClause *) node;
+
 			sortkey = (Expr *) get_sortgroupclause_expr(gc, tlist);
 			pathkey = make_pathkey_from_sortinfo(root, sortkey, gc->sortop, gc->nulls_first, false, 0);
 
 			/*
-			 * Similar to SortClauses, the pathkey becomes a one-elment sublist.
-			 * canonicalize_pathkeys() might replace it with a longer sublist later.
+			 * Similar to SortClauses, the pathkey becomes a one-elment
+			 * sublist. canonicalize_pathkeys() might replace it with a longer
+			 * sublist later.
 			 */
 			pathkeys = lappend(pathkeys, pathkey);
 		}
 		else if (IsA(node, List))
 		{
 			pathkeys = list_concat(pathkeys,
-								   make_pathkeys_for_groupclause(root, (List *)node,
-																 tlist));
+						   make_pathkeys_for_groupclause(root, (List *) node,
+														 tlist));
 		}
 		else if (IsA(node, GroupingClause))
 		{
 			sub_pathkeys =
 				list_concat(sub_pathkeys,
-							make_pathkeys_for_groupclause(root, ((GroupingClause*)node)->groupsets,
-															 tlist));
+							make_pathkeys_for_groupclause(root, ((GroupingClause *) node)->groupsets,
+														  tlist));
 		}
 	}
 

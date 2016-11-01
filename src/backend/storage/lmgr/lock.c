@@ -2209,17 +2209,16 @@ PostPrepare_Locks(TransactionId xid)
 
 			lock = proclock->tag.myLock;
 
+			/* MPP change for support of temp objects in 2PC.
+			 *
+			 * The case where the releaseMask is different than the holdMask is only
+			 * for session locks.  Temp objects is the only session lock we could
+			 * have here and we DO NOT want to release this lock.  so we
+			 * skip over it.
+			 */
+			if (proclock->releaseMask != proclock->holdMask)
+				goto next_item;
 
-		/* MPP change for support of temp objects in 2PC.
-		 *
-		 * The case where the releaseMask is different than the holdMask is only
-		 * for session locks.  Temp objects is the only session lock we could 
-		 * have here and we DO NOT want to release this lock.  so we
-		 * skip over it.
-		 */
-		if (proclock->releaseMask != proclock->holdMask)
-			goto next_item;
-			
 			/* Ignore nontransactional locks */
 			if (!LockMethods[LOCK_LOCKMETHOD(*lock)]->transactional)
 				goto next_item;

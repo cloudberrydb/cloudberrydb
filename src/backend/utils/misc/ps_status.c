@@ -37,6 +37,7 @@ extern char **environ;
 extern int PostPortNumber;
 bool		update_process_title = true;
 
+
 /*
  * Alternative ways of updating ps display:
  *
@@ -77,13 +78,14 @@ bool		update_process_title = true;
 #define PS_USE_NONE
 #endif
 
-/* Different systems want the buffer padded differently */
 
+/* Different systems want the buffer padded differently */
 #if defined(_AIX) || defined(__linux__) || defined(__svr4__)
 #define PS_PADDING '\0'
 #else
 #define PS_PADDING ' '
 #endif
+
 
 #ifndef PS_USE_CLOBBER_ARGV
 /* all but one option need a buffer to write their ps line in */
@@ -93,7 +95,7 @@ static const size_t ps_buffer_size = PS_BUFFER_SIZE;
 #else							/* PS_USE_CLOBBER_ARGV */
 static char *ps_buffer;			/* will point to argv area */
 static size_t ps_buffer_size;	/* space determined at run time */
-static size_t last_status_len;  /* use to minimize length of clobber */
+static size_t last_status_len;	/* use to minimize length of clobber */
 #endif   /* PS_USE_CLOBBER_ARGV */
 
 static size_t ps_buffer_cur_len;		/* nominal strlen(ps_buffer) */
@@ -149,7 +151,7 @@ save_ps_display_args(int argc, char **argv)
 #if (defined(sun) && !defined(BSD))
 		ps_argument_size = 0;
 #endif
-		
+
 		/*
 		 * check for contiguous argv strings
 		 */
@@ -170,8 +172,8 @@ save_ps_display_args(int argc, char **argv)
 		ps_argument_size = strlen(argv[0]);
 #endif
 
-		/* 
-		 * MPP-14501: only use argv area for status to preserve environment 
+		/*
+		 * MPP-14501: only use argv area for status to preserve environment
 		 *
 		 * Prior to this change, the code here would use all of the memory with
 		 * the initial contents of argv and environ as a buffer for the process
@@ -254,39 +256,39 @@ init_ps_display(const char *username, const char *dbname,
 				const char *host_info, const char *initial_str)
 {
 	Assert(username);
-    Assert(dbname);
-    Assert(host_info);
-	
+	Assert(dbname);
+	Assert(host_info);
+
 	StrNCpy(ps_username, username, sizeof(ps_username));    /*CDB*/
 
 #ifndef PS_USE_NONE
-    /* no ps display for stand-alone backend */
-    if (!IsUnderPostmaster)
-        return;
+	/* no ps display for stand-alone backend */
+	if (!IsUnderPostmaster)
+		return;
 
 	/* no ps display if you didn't call save_ps_display_args() */
 	if (!save_argv)
 		return;
 
 #ifdef PS_USE_CLOBBER_ARGV
-    /* If ps_buffer is a pointer, it might still be null */
-    if (!ps_buffer)
-        return;
+	/* If ps_buffer is a pointer, it might still be null */
+	if (!ps_buffer)
+		return;
 #endif
 
-    /*
-     * Overwrite argv[] to point at appropriate space, if needed
-     */
+	/*
+	 * Overwrite argv[] to point at appropriate space, if needed
+	 */
 
 #ifdef PS_USE_CHANGE_ARGV
-    save_argv[0] = ps_buffer;
-    save_argv[1] = NULL;
+	save_argv[0] = ps_buffer;
+	save_argv[1] = NULL;
 #endif   /* PS_USE_CHANGE_ARGV */
 
 #ifdef PS_USE_CLOBBER_ARGV
 
 #if defined(__darwin__)
-    /* 
+	/*
 	 * MPP-14501, keep heuristic ps and other tools appear to use working
 	 */
 	if (ps_buffer_size > save_argc)
@@ -298,49 +300,48 @@ init_ps_display(const char *username, const char *dbname,
 	}
 #endif /* darwin */
 
-    {
-        int         i;
+	{
+		int			i;
 
-        /* make extra argv slots point at end_of_area (a NUL) */
-        for (i = 1; i < save_argc; i++)
-            save_argv[i] = (ps_buffer + ps_buffer_size);
-    }
-
+		/* make extra argv slots point at end_of_area (a NUL) */
+		for (i = 1; i < save_argc; i++)
+			save_argv[i] = (ps_buffer + ps_buffer_size);
+	}
 
 #endif /* PS_USE_CLOBBER_ARGV */
 
-    /*
-     * Make fixed prefix of ps display.
-     */
+	/*
+	 * Make fixed prefix of ps display.
+	 */
 
 #ifdef PS_USE_SETPROCTITLE
 
-    /*
-     * apparently setproctitle() already adds a `progname:' prefix to the ps
-     * line
-     */
-    snprintf(ps_buffer, ps_buffer_size,
-             "port %5d, %s %s %s ",
-             PostPortNumber, username, dbname, host_info);
+	/*
+	 * apparently setproctitle() already adds a `progname:' prefix to the ps
+	 * line
+	 */
+	snprintf(ps_buffer, ps_buffer_size,
+			 "port %5d, %s %s %s ",
+			 PostPortNumber, username, dbname, host_info);
 #else
-    snprintf(ps_buffer, ps_buffer_size,
-             "postgres: port %5d, %s %s %s ",
-             PostPortNumber, username, dbname, host_info);
+	snprintf(ps_buffer, ps_buffer_size,
+			 "postgres: port %5d, %s %s %s ",
+			 PostPortNumber, username, dbname, host_info);
 #endif /* not PS_USE_SETPROCTITLE */
 
-    ps_buffer_fixed_size = strlen(ps_buffer);
+	ps_buffer_fixed_size = strlen(ps_buffer);
 
 	real_act_prefix_size = ps_buffer_fixed_size;
 
-    set_ps_display(initial_str, true);
-    
-    /* CDB */
-    StrNCpy(ps_host_info, host_info, sizeof(ps_host_info));
-    ps_host_info_size = snprintf(ps_buffer + ps_buffer_fixed_size,
-                                 ps_buffer_size - ps_buffer_fixed_size,
-                                 "%s ", host_info);
-	
-	/* 
+	set_ps_display(initial_str, true);
+
+	/* CDB */
+	StrNCpy(ps_host_info, host_info, sizeof(ps_host_info));
+	ps_host_info_size = snprintf(ps_buffer + ps_buffer_fixed_size,
+								 ps_buffer_size - ps_buffer_fixed_size,
+								 "%s ", host_info);
+
+	/*
 	 * MPP-14501, don't let a NUL from snprintf mess up our padding
 	 */
 #if defined(__darwin__)
@@ -365,20 +366,20 @@ set_ps_display(const char *activity, bool force)
 {
 #ifndef PS_USE_NONE
 	/* update_process_title=off disables updates, unless force = true */
-    char   *cp = ps_buffer + ps_buffer_fixed_size;
-    char   *ep = ps_buffer + ps_buffer_size;
+	char	   *cp = ps_buffer + ps_buffer_fixed_size;
+	char	   *ep = ps_buffer + ps_buffer_size;
 
-    if (!force && !update_process_title)
-        return;
+	if (!force && !update_process_title)
+		return;
 
-    /* no ps display for stand-alone backend */
-    if (!IsUnderPostmaster)
-        return;
+	/* no ps display for stand-alone backend */
+	if (!IsUnderPostmaster)
+		return;
 
 #ifdef PS_USE_CLOBBER_ARGV
-    /* If ps_buffer is a pointer, it might still be null */
-    if (!ps_buffer)
-        return;
+	/* If ps_buffer is a pointer, it might still be null */
+	if (!ps_buffer)
+		return;
 #endif
 
 	/* Drop the remote host and port from the fixed prefix. */
@@ -427,12 +428,12 @@ set_ps_display(const char *activity, bool force)
 
     /* Transmit new setting to kernel, if necessary */
 #ifdef PS_USE_SETPROCTITLE
-    setproctitle("%s", ps_buffer);
+	setproctitle("%s", ps_buffer);
 #endif
 
 #ifdef PS_USE_PSTAT
-    {
-        union pstun pst;
+	{
+		union pstun pst;
 
 		pst.pst_command = ps_buffer;
 		pstat(PSTAT_SETCMD, pst, ps_buffer_cur_len, 0, 0);
@@ -440,8 +441,8 @@ set_ps_display(const char *activity, bool force)
 #endif   /* PS_USE_PSTAT */
 
 #ifdef PS_USE_PS_STRINGS
-    PS_STRINGS->ps_nargvstr = 1;
-    PS_STRINGS->ps_argvstr = ps_buffer;
+	PS_STRINGS->ps_nargvstr = 1;
+	PS_STRINGS->ps_argvstr = ps_buffer;
 #endif   /* PS_USE_PS_STRINGS */
 
 #ifdef PS_USE_CLOBBER_ARGV
@@ -472,6 +473,7 @@ set_ps_display(const char *activity, bool force)
 #endif   /* PS_USE_WIN32 */
 #endif   /* not PS_USE_NONE */
 }
+
 
 /*
  * Returns what's currently in the ps display with a given starting
@@ -512,8 +514,8 @@ get_ps_display(int *displen)
 const char *
 get_ps_display_username(void)
 {
-    return ps_username;
-}                               /* get_ps_display_username */
+	return ps_username;
+}
 
 /*
  * Returns the real activity string in the ps display without prefix

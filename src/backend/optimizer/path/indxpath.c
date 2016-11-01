@@ -120,18 +120,18 @@ create_bitmap_scan_path(PlannerInfo *root,
 						Path *bitmapqual,
 						RelOptInfo *outer_rel)
 {
-	Path *path = NULL;
-	
-	switch(rel->relstorage)
+	Path	   *path = NULL;
+
+	switch (rel->relstorage)
 	{
 		case RELSTORAGE_HEAP:
-			path = (Path *)create_bitmap_heap_path(root, rel, bitmapqual, outer_rel);
+			path = (Path *) create_bitmap_heap_path(root, rel, bitmapqual, outer_rel);
 			break;
 		case RELSTORAGE_AOROWS:
-			path = (Path *)create_bitmap_appendonly_path(root, rel, bitmapqual, outer_rel, true);
+			path = (Path *) create_bitmap_appendonly_path(root, rel, bitmapqual, outer_rel, true);
 			break;
 		case RELSTORAGE_AOCOLS:
-			path = (Path *)create_bitmap_appendonly_path(root, rel, bitmapqual, outer_rel, false);
+			path = (Path *) create_bitmap_appendonly_path(root, rel, bitmapqual, outer_rel, false);
 			break;
 		default:
 			elog(ERROR, "unrecognized relstorage type %d for using bitmap scan path",
@@ -177,8 +177,8 @@ create_bitmap_scan_path(PlannerInfo *root,
  * (*pindexpathlist or *pbitmappathlist) belonging to the caller.
  */
 void
-create_index_paths(PlannerInfo *root, RelOptInfo *rel, 
-                   List **pindexpathlist, List **pbitmappathlist)
+create_index_paths(PlannerInfo *root, RelOptInfo *rel,
+				   List **pindexpathlist, List **pbitmappathlist)
 {
 	List	   *indexpaths;
 	List	   *bitindexpaths;
@@ -218,14 +218,14 @@ create_index_paths(PlannerInfo *root, RelOptInfo *rel,
 	{
 		IndexPath  *ipath = (IndexPath *) lfirst(l);
 
-        /* CDB: Flag RelOptInfo if at most one row can satisfy index quals. */
-        if (ipath->num_leading_eq > 0 &&
-            ipath->num_leading_eq == ipath->indexinfo->ncolumns &&
-            ipath->indexinfo->unique)
-            rel->onerow = true;
+		/* CDB: Flag RelOptInfo if at most one row can satisfy index quals. */
+		if (ipath->num_leading_eq > 0 &&
+			ipath->num_leading_eq == ipath->indexinfo->ncolumns &&
+			ipath->indexinfo->unique)
+			rel->onerow = true;
 
-        /* Add index path to caller's list. */
-        *pindexpathlist = lappend(*pindexpathlist, ipath);
+		/* Add index path to caller's list. */
+		*pindexpathlist = lappend(*pindexpathlist, ipath);
 
 		if (!root->config->enable_seqscan ||
 			(ipath->indexselectivity < 1.0 &&
@@ -258,7 +258,7 @@ create_index_paths(PlannerInfo *root, RelOptInfo *rel,
 	if (bitindexpaths != NIL)
 	{
 		Path	   *bitmapqual;
-		Path       *path = NULL;
+		Path	   *path = NULL;
 
 		bitmapqual = choose_bitmap_and(root, rel, bitindexpaths, NULL);
 		path = create_bitmap_scan_path(root, rel, bitmapqual, NULL);
@@ -402,48 +402,49 @@ find_usable_indexes(PlannerInfo *root, RelOptInfo *rel,
 		{
 			index_pathkeys = build_index_pathkeys(root, index,
 												  ForwardScanDirection);
-            /*
-             * CDB: For appendrel child, pathkeys contain Var nodes in terms 
-             * of the child's baserel.  Transform the pathkey list to refer to 
-             * columns of the appendrel.  
-             */
-            if (rel->reloptkind == RELOPT_OTHER_MEMBER_REL)
-            {
-                AppendRelInfo  *appinfo = NULL;
-                RelOptInfo     *appendrel = NULL;
-		        ListCell       *appcell;
-                CdbPathLocus    notalocus;
 
-		        /* Find the appendrel of which this baserel is a child. */
-                foreach(appcell, root->append_rel_list)
-		        {
-			        appinfo = (AppendRelInfo *)lfirst(appcell);
-			        if (appinfo->child_relid == rel->relid)
-                        break;
-		        }
-                Assert(appinfo);
-                appendrel = find_base_rel(root, appinfo->parent_relid);
+			/*
+			 * CDB: For appendrel child, pathkeys contain Var nodes in terms
+			 * of the child's baserel.  Transform the pathkey list to refer to
+			 * columns of the appendrel.
+			 */
+			if (rel->reloptkind == RELOPT_OTHER_MEMBER_REL)
+			{
+				AppendRelInfo *appinfo = NULL;
+				RelOptInfo *appendrel = NULL;
+				ListCell   *appcell;
+				CdbPathLocus notalocus;
 
-                /*
-                 * The pathkey list happens to have the same format as the 
-                 * partitioning key of a Hashed locus, so by disguising it 
-                 * we can use cdbpathlocus_pull_above_projection() to do the 
-                 * transformation.
-                 */
-                CdbPathLocus_MakeHashed(&notalocus, index_pathkeys);
-                notalocus =
-                    cdbpathlocus_pull_above_projection(root,
-                                                       notalocus,
-                                                       rel->relids,
-                                                       rel->reltargetlist,
-                                                       appendrel->reltargetlist,
-                                                       appendrel->relid);
-                if (CdbPathLocus_IsHashed(notalocus))
-                    index_pathkeys = truncate_useless_pathkeys(root, appendrel,
-														       notalocus.partkey_h);
-                else
-                    index_pathkeys = NULL;
-            }
+				/* Find the appendrel of which this baserel is a child. */
+				foreach(appcell, root->append_rel_list)
+				{
+					appinfo = (AppendRelInfo *) lfirst(appcell);
+					if (appinfo->child_relid == rel->relid)
+						break;
+				}
+				Assert(appinfo);
+				appendrel = find_base_rel(root, appinfo->parent_relid);
+
+				/*
+				 * The pathkey list happens to have the same format as the
+				 * partitioning key of a Hashed locus, so by disguising it we
+				 * can use cdbpathlocus_pull_above_projection() to do the
+				 * transformation.
+				 */
+				CdbPathLocus_MakeHashed(&notalocus, index_pathkeys);
+				notalocus =
+					cdbpathlocus_pull_above_projection(root,
+													   notalocus,
+													   rel->relids,
+													   rel->reltargetlist,
+													appendrel->reltargetlist,
+													   appendrel->relid);
+				if (CdbPathLocus_IsHashed(notalocus))
+					index_pathkeys = truncate_useless_pathkeys(root, appendrel,
+														notalocus.partkey_h);
+				else
+					index_pathkeys = NULL;
+			}
 
 			useful_pathkeys = truncate_useless_pathkeys(root, rel,
 														index_pathkeys);
@@ -1851,9 +1852,9 @@ best_inner_indexscan(PlannerInfo *root, RelOptInfo *rel,
 	rte = rt_fetch(rel->relid, root->parse->rtable);
 	Assert(rel->relstorage != '\0');
 
-    /* Exclude plain index paths if user doesn't want them. */
-    if (!root->config->enable_indexscan && !root->config->mpp_trying_fallback_plan)
-        indexpaths = NIL;
+	/* Exclude plain index paths if user doesn't want them. */
+	if (!root->config->enable_indexscan && !root->config->mpp_trying_fallback_plan)
+		indexpaths = NIL;
 
 	/* Exclude plain index paths if the relation is an append-only relation. */
 	if (rel->relstorage == RELSTORAGE_AOROWS ||
@@ -1865,7 +1866,7 @@ best_inner_indexscan(PlannerInfo *root, RelOptInfo *rel,
 	 * promising combination of bitmap index paths.
 	 */
 	if (bitindexpaths != NIL &&
-        (root->config->enable_bitmapscan || root->config->mpp_trying_fallback_plan))
+		(root->config->enable_bitmapscan || root->config->mpp_trying_fallback_plan))
 	{
 		Path	   *bitmapqual;
 		Path	   *bpath;

@@ -2739,25 +2739,25 @@ create_hashjoin_path(PlannerInfo *root,
                      List *mergeclause_list,    /*CDB*/
 					 List *hashclauses)
 {
-    HashPath       *pathnode;
-    CdbPathLocus    join_locus;
+	HashPath       *pathnode;
+	CdbPathLocus    join_locus;
 
-    /* CDB: Change jointype to JOIN_IN from JOIN_INNER (if eligible). */
-    if (joinrel->dedup_info)
-        jointype = cdb_jointype_to_join_in(joinrel, jointype, inner_path);
+	/* CDB: Change jointype to JOIN_IN from JOIN_INNER (if eligible). */
+	if (joinrel->dedup_info)
+		jointype = cdb_jointype_to_join_in(joinrel, jointype, inner_path);
 
-    /* Add motion nodes above subpaths and decide where to join. */
-    join_locus = cdbpath_motion_for_join(root,
-                                         jointype,
-                                         &outer_path,       /* INOUT */
-                                         &inner_path,       /* INOUT */
-                                         mergeclause_list,
-                                         NIL,   /* don't care about ordering */
-                                         NIL,
-                                         false,
-                                         false);
-    if (CdbPathLocus_IsNull(join_locus))
-        return NULL;
+	/* Add motion nodes above subpaths and decide where to join. */
+	join_locus = cdbpath_motion_for_join(root,
+										 jointype,
+										 &outer_path,       /* INOUT */
+										 &inner_path,       /* INOUT */
+										 mergeclause_list,
+										 NIL,   /* don't care about ordering */
+										 NIL,
+										 false,
+										 false);
+	if (CdbPathLocus_IsNull(join_locus))
+		return NULL;
 
 	pathnode = makeNode(HashPath);
 

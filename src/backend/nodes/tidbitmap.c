@@ -32,8 +32,8 @@
 #include <limits.h>
 
 #include "access/htup.h"
-#include "access/bitmap.h"	/* XXX: remove once pull_stream is generic */
-#include "executor/instrument.h"        /* Instrumentation */
+#include "access/bitmap.h"		/* XXX: remove once pull_stream is generic */
+#include "executor/instrument.h"	/* Instrumentation */
 #include "nodes/bitmapset.h"
 #include "nodes/tidbitmap.h"
 #include "storage/bufpage.h"
@@ -43,7 +43,7 @@
 #define BITNUM(x)	((x) % TBM_BITS_PER_BITMAPWORD)
 
 static bool tbm_iterate_page(PagetableEntry *page, TBMIterateResult *output);
-static bool tbm_iterate_hash(HashBitmap *tbm,TBMIterateResult *output);
+static bool tbm_iterate_hash(HashBitmap *tbm, TBMIterateResult *output);
 static PagetableEntry *tbm_next_page(HashBitmap *tbm, bool *more);
 
 /*
@@ -59,8 +59,8 @@ static PagetableEntry *tbm_next_page(HashBitmap *tbm, bool *more);
  */
 typedef enum
 {
-	HASHBM_EMPTY,					/* no hashtable, nentries == 0 */
-	HASHBM_ONE_PAGE,				/* entry1 contains the single entry */
+	HASHBM_EMPTY,				/* no hashtable, nentries == 0 */
+	HASHBM_ONE_PAGE,			/* entry1 contains the single entry */
 	HASHBM_HASH					/* pagetable is valid, entry1 is not */
 } TBMStatus;
 
@@ -74,8 +74,8 @@ struct HashBitmap
 	TBMStatus	status;			/* see codes above */
 	HTAB	   *pagetable;		/* hash table of PagetableEntry's */
 	int			nentries;		/* number of entries in pagetable */
-    int         nentries_hwm;   /* high-water mark for number of entries */
-    int			maxentries;		/* limit on same to meet maxbytes */
+	int			nentries_hwm;	/* high-water mark for number of entries */
+	int			maxentries;		/* limit on same to meet maxbytes */
 	int			npages;			/* number of exact entries in pagetable */
 	int			nchunks;		/* number of lossy entries in pagetable */
 	bool		iterating;		/* tbm_begin_iterate called? */
@@ -87,18 +87,19 @@ struct HashBitmap
 	int			schunkptr;		/* next schunks index */
 	int			schunkbit;		/* next bit to check in current schunk */
 
-    /* CDB: Statistics for EXPLAIN ANALYZE */
-    struct Instrumentation *instrument;
-    Size        bytesperentry;
+	/* CDB: Statistics for EXPLAIN ANALYZE */
+	struct Instrumentation *instrument;
+	Size		bytesperentry;
 };
 
 /* A struct to hide away HashBitmap state for a streaming bitmap */
-typedef struct HashStreamOpaque 
+typedef struct HashStreamOpaque
 {
 	HashBitmap *tbm;
-	bool tofree;			/* flag to indicate whether this opaque owns the tbm, later used in tbm_stream_free() */
+	bool		tofree;			/* flag to indicate whether this opaque owns
+								 * the tbm, later used in tbm_stream_free() */
 	PagetableEntry *entry;
-} HashStreamOpaque;
+}	HashStreamOpaque;
 
 /* Local function prototypes */
 static void tbm_union_page(HashBitmap *a, const PagetableEntry *bpage);
@@ -112,10 +113,10 @@ static bool tbm_page_is_lossy(const HashBitmap *tbm, BlockNumber pageno);
 static void tbm_mark_page_lossy(HashBitmap *tbm, BlockNumber pageno);
 static void tbm_lossify(HashBitmap *tbm);
 static int	tbm_comparator(const void *left, const void *right);
-static bool tbm_stream_block(StreamNode *self, PagetableEntry *e);
-static void tbm_stream_free(StreamNode *self);
-static void tbm_stream_set_instrument(StreamNode *self, struct Instrumentation *instr);
-static void tbm_stream_upd_instrument(StreamNode *self);
+static bool tbm_stream_block(StreamNode * self, PagetableEntry *e);
+static void tbm_stream_free(StreamNode * self);
+static void tbm_stream_set_instrument(StreamNode * self, struct Instrumentation *instr);
+static void tbm_stream_upd_instrument(StreamNode * self);
 
 /*
  * tbm_create - create an initially-empty bitmap
@@ -127,25 +128,25 @@ static void tbm_stream_upd_instrument(StreamNode *self);
 HashBitmap *
 tbm_create(long maxbytes)
 {
-	HashBitmap  *tbm;
+	HashBitmap *tbm;
 	long		nbuckets;
 
 	/*
-	 * Ensure that we don't have heap tuple offsets going beyond
-	 * (INT16_MAX + 1) or 32768. The executor iterates only over the
-	 * first 32K tuples for lossy bitmap pages [MPP-24326].
+	 * Ensure that we don't have heap tuple offsets going beyond (INT16_MAX +
+	 * 1) or 32768. The executor iterates only over the first 32K tuples for
+	 * lossy bitmap pages [MPP-24326].
 	 */
 	COMPILE_ASSERT(MaxHeapTuplesPerPage <= (INT16_MAX + 1));
 
 	/*
 	 * Create the HashBitmap struct.
 	 */
-	tbm = (HashBitmap *)palloc0(sizeof(HashBitmap));
+	tbm = (HashBitmap *) palloc0(sizeof(HashBitmap));
 
 	tbm->type = T_HashBitmap;	/* Set NodeTag */
 	tbm->mcxt = CurrentMemoryContext;
 	tbm->status = HASHBM_EMPTY;
-    tbm->instrument = NULL;
+	tbm->instrument = NULL;
 
 	/*
 	 * Estimate number of hashtable entries we can have within maxbytes. This
@@ -154,7 +155,7 @@ tbm_create(long maxbytes)
 	 * Also count an extra Pointer per entry for the arrays created during
 	 * iteration readout.
 	 */
-    tbm->bytesperentry =
+	tbm->bytesperentry =
 		(MAXALIGN(sizeof(HASHELEMENT)) + MAXALIGN(sizeof(PagetableEntry))
 		 + sizeof(Pointer) + sizeof(Pointer));
 	nbuckets = maxbytes / tbm->bytesperentry;
@@ -210,9 +211,9 @@ tbm_create_pagetable(HashBitmap *tbm)
 void
 tbm_free(HashBitmap *tbm)
 {
-    if (tbm->instrument)
-        tbm_bitmap_upd_instrument((Node *)tbm);
-    if (tbm->pagetable)
+	if (tbm->instrument)
+		tbm_bitmap_upd_instrument((Node *) tbm);
+	if (tbm->pagetable)
 		hash_destroy(tbm->pagetable);
 	if (tbm->spages)
 		pfree(tbm->spages);
@@ -228,38 +229,38 @@ tbm_free(HashBitmap *tbm)
 static void
 tbm_upd_instrument(HashBitmap *tbm)
 {
-    Instrumentation    *instr = tbm->instrument;
-    Size                workmemused;
+	Instrumentation *instr = tbm->instrument;
+	Size		workmemused;
 
-    if (!instr)
-        return;
+	if (!instr)
+		return;
 
-    /* Update page table high-water mark. */
-    tbm->nentries_hwm = Max(tbm->nentries_hwm, tbm->nentries);
+	/* Update page table high-water mark. */
+	tbm->nentries_hwm = Max(tbm->nentries_hwm, tbm->nentries);
 
-    /* How much of our work_mem quota was actually used? */
-    workmemused = tbm->nentries_hwm * tbm->bytesperentry;
-    instr->workmemused = Max(instr->workmemused, workmemused);
-}                               /* tbm_upd_instrument */
+	/* How much of our work_mem quota was actually used? */
+	workmemused = tbm->nentries_hwm * tbm->bytesperentry;
+	instr->workmemused = Max(instr->workmemused, workmemused);
+}	/* tbm_upd_instrument */
 
 
 /*
  * tbm_set_instrument
- *  Attach caller's Instrumentation object to a HashBitmap, unless the
- *  HashBitmap already has one.  We want the statistics to be associated 
- *  with the plan node which originally created the bitmap, rather than a
- *  downstream consumer of the bitmap.
+ *	Attach caller's Instrumentation object to a HashBitmap, unless the
+ *	HashBitmap already has one.  We want the statistics to be associated
+ *	with the plan node which originally created the bitmap, rather than a
+ *	downstream consumer of the bitmap.
  */
 static void
 tbm_set_instrument(HashBitmap *tbm, struct Instrumentation *instr)
 {
-    if (instr == NULL || 
-        tbm->instrument == NULL)
-    {
-	    tbm->instrument = instr;
-	    tbm_upd_instrument(tbm);
-    } 
-}                               /* tbm_set_instrument */
+	if (instr == NULL ||
+		tbm->instrument == NULL)
+	{
+		tbm->instrument = instr;
+		tbm_upd_instrument(tbm);
+	}
+}	/* tbm_set_instrument */
 
 
 /*
@@ -281,9 +282,11 @@ tbm_add_tuples(HashBitmap *tbm, const ItemPointer tids, int ntids)
 
 		/* safety check to ensure we don't overrun bit array bounds */
 
-		// UNDONE: Turn this off until we convert this module to AO TIDs.
-//		if (off < 1 || off > MAX_TUPLES_PER_PAGE)
-//			elog(ERROR, "tuple offset out of range: %u", off);
+		/* UNDONE: Turn this off until we convert this module to AO TIDs. */
+#if 0
+		if (off < 1 || off > MAX_TUPLES_PER_PAGE)
+			elog(ERROR, "tuple offset out of range: %u", off);
+#endif
 
 		if (tbm_page_is_lossy(tbm, blk))
 			continue;			/* whole page is already marked */
@@ -347,7 +350,7 @@ tbm_union_page(HashBitmap *a, const PagetableEntry *bpage)
 		/* Scan b's chunk, mark each indicated page lossy in a */
 		for (wordnum = 0; wordnum < WORDS_PER_PAGE; wordnum++)
 		{
-			tbm_bitmapword	w = bpage->words[wordnum];
+			tbm_bitmapword w = bpage->words[wordnum];
 
 			if (w != 0)
 			{
@@ -402,7 +405,7 @@ tbm_intersect(HashBitmap *a, const HashBitmap *b)
 	if (a->nentries == 0)
 		return;
 
-    a->nentries_hwm = Max(a->nentries_hwm, a->nentries);
+	a->nentries_hwm = Max(a->nentries_hwm, a->nentries);
 
 	/* Scan through chunks and pages in a, try to match to b */
 	if (a->status == HASHBM_ONE_PAGE)
@@ -461,11 +464,11 @@ tbm_intersect_page(HashBitmap *a, PagetableEntry *apage, const HashBitmap *b)
 
 		for (wordnum = 0; wordnum < WORDS_PER_PAGE; wordnum++)
 		{
-			tbm_bitmapword	w = apage->words[wordnum];
+			tbm_bitmapword w = apage->words[wordnum];
 
 			if (w != 0)
 			{
-				tbm_bitmapword	neww = w;
+				tbm_bitmapword neww = w;
 				BlockNumber pg;
 				int			bitnum;
 
@@ -610,31 +613,32 @@ tbm_iterate(Node *tbm, TBMIterateResult *output)
 {
 	Assert(IsA(tbm, HashBitmap) || IsA(tbm, StreamBitmap));
 
-	switch(tbm->type)
+	switch (tbm->type)
 	{
 		case T_HashBitmap:
-		{
-			HashBitmap *hashBitmap = (HashBitmap*)tbm;
-			if (!hashBitmap->iterating)
-				tbm_begin_iterate(hashBitmap);
+			{
+				HashBitmap *hashBitmap = (HashBitmap *) tbm;
 
-			return tbm_iterate_hash(hashBitmap, output);
-		}
+				if (!hashBitmap->iterating)
+					tbm_begin_iterate(hashBitmap);
+
+				return tbm_iterate_hash(hashBitmap, output);
+			}
 		case T_StreamBitmap:
-		{
-			StreamBitmap *streamBitmap = (StreamBitmap*)tbm;
-			bool status;
-			StreamNode *s;
+			{
+				StreamBitmap *streamBitmap = (StreamBitmap *) tbm;
+				bool		status;
+				StreamNode *s;
 
-			s = streamBitmap->streamNode;
+				s = streamBitmap->streamNode;
 
-			status = bitmap_stream_iterate((void *)s, &(streamBitmap->entry));
+				status = bitmap_stream_iterate((void *) s, &(streamBitmap->entry));
 
-			/* XXX: perhaps we should only do this if status == true ? */
-			tbm_iterate_page(&(streamBitmap->entry), output);
+				/* XXX: perhaps we should only do this if status == true ? */
+				tbm_iterate_page(&(streamBitmap->entry), output);
 
-			return status;
-		}
+				return status;
+			}
 		default:
 			elog(ERROR, "unrecoganized node type");
 	}
@@ -651,7 +655,7 @@ tbm_iterate_page(PagetableEntry *page, TBMIterateResult *output)
 	int			ntuples;
 	int			wordnum;
 
-	if(page->ischunk)
+	if (page->ischunk)
 	{
 		ntuples = -1;
 	}
@@ -662,7 +666,7 @@ tbm_iterate_page(PagetableEntry *page, TBMIterateResult *output)
 		ntuples = 0;
 		for (wordnum = 0; wordnum < WORDS_PER_PAGE; wordnum++)
 		{
-			tbm_bitmapword	w = page->words[wordnum];
+			tbm_bitmapword w = page->words[wordnum];
 
 			if (w != 0)
 			{
@@ -678,7 +682,7 @@ tbm_iterate_page(PagetableEntry *page, TBMIterateResult *output)
 			}
 		}
 	}
-	
+
 	output->blockno = page->blockno;
 	output->ntuples = ntuples;
 
@@ -701,10 +705,10 @@ static bool
 tbm_iterate_hash(HashBitmap *tbm, TBMIterateResult *output)
 {
 	PagetableEntry *e;
-	bool more;
+	bool		more;
 
 	e = tbm_next_page(tbm, &more);
-	if(more && e)
+	if (more && e)
 	{
 		tbm_iterate_page(e, output);
 		return true;
@@ -768,7 +772,7 @@ tbm_next_page(HashBitmap *tbm, bool *more)
 			chunk_blockno < tbm->spages[tbm->spageptr]->blockno)
 		{
 			/* Return a lossy page indicator from the chunk */
-			nextpage = (PagetableEntry *)palloc(sizeof(PagetableEntry));
+			nextpage = (PagetableEntry *) palloc(sizeof(PagetableEntry));
 			nextpage->ischunk = true;
 			nextpage->blockno = chunk_blockno;
 			tbm->schunkbit++;
@@ -779,6 +783,7 @@ tbm_next_page(HashBitmap *tbm, bool *more)
 	if (tbm->spageptr < tbm->npages)
 	{
 		PagetableEntry *e;
+
 		/* In ONE_PAGE state, we don't allocate an spages[] array */
 		if (tbm->status == HASHBM_ONE_PAGE)
 			e = &tbm->entry1;
@@ -942,7 +947,7 @@ tbm_mark_page_lossy(HashBitmap *tbm, BlockNumber pageno)
 						HASH_REMOVE, NULL) != NULL)
 		{
 			/* It was present, so adjust counts */
-            tbm->nentries_hwm = Max(tbm->nentries_hwm, tbm->nentries);
+			tbm->nentries_hwm = Max(tbm->nentries_hwm, tbm->nentries);
 			tbm->nentries--;
 			tbm->npages--;		/* assume it must have been non-lossy */
 		}
@@ -1070,64 +1075,64 @@ tbm_comparator(const void *left, const void *right)
 static void
 opstream_free(StreamNode *self)
 {
-    ListCell   *cell;
+	ListCell   *cell;
 
-    foreach(cell, self->input)
-    {
-        StreamNode *inp = (StreamNode *)lfirst(cell);
+	foreach(cell, self->input)
+	{
+		StreamNode *inp = (StreamNode *) lfirst(cell);
 
-        if (inp->free)
-            inp->free(inp);
-    }
-    list_free(self->input);
-    pfree(self);
+		if (inp->free)
+			inp->free(inp);
+	}
+	list_free(self->input);
+	pfree(self);
 }
 
 static void
 opstream_set_instrument(StreamNode *self, struct Instrumentation *instr)
 {
-    ListCell   *cell;
+	ListCell   *cell;
 
-    foreach(cell, self->input)
-    {
-        StreamNode *inp = (StreamNode *)lfirst(cell);
+	foreach(cell, self->input)
+	{
+		StreamNode *inp = (StreamNode *) lfirst(cell);
 
-        if (inp->set_instrument)
-            inp->set_instrument(inp, instr);
-    }
+		if (inp->set_instrument)
+			inp->set_instrument(inp, instr);
+	}
 }
 
 static void
 opstream_upd_instrument(StreamNode *self)
 {
-    ListCell   *cell;
+	ListCell   *cell;
 
-    foreach(cell, self->input)
-    {
-        StreamNode *inp = (StreamNode *)lfirst(cell);
+	foreach(cell, self->input)
+	{
+		StreamNode *inp = (StreamNode *) lfirst(cell);
 
-        if (inp->upd_instrument)
-            inp->upd_instrument(inp);
-    }
+		if (inp->upd_instrument)
+			inp->upd_instrument(inp);
+	}
 }
 
 static OpStream *
 make_opstream(StreamType kind, StreamNode *n1, StreamNode *n2)
 {
-	OpStream *op;
+	OpStream   *op;
 
 	Assert(kind == BMS_OR || kind == BMS_AND);
 	Assert(PointerIsValid(n1));
 
-	op = (OpStream *)palloc0(sizeof(OpStream));
+	op = (OpStream *) palloc0(sizeof(OpStream));
 	op->type = kind;
 	op->pull = bitmap_stream_iterate;
 	op->nextblock = 0;
 	op->input = list_make2(n1, n2);
-    op->free = opstream_free;
-    op->set_instrument = opstream_set_instrument;
-    op->upd_instrument = opstream_upd_instrument;
-	return (void *)op;
+	op->free = opstream_free;
+	op->set_instrument = opstream_set_instrument;
+	op->upd_instrument = opstream_upd_instrument;
+	return (void *) op;
 }
 
 /*
@@ -1139,35 +1144,36 @@ make_opstream(StreamType kind, StreamNode *n1, StreamNode *n2)
 void
 stream_add_node(StreamBitmap *sbm, StreamNode *node, StreamType kind)
 {
-    /* CDB: Tell node where to put its statistics for EXPLAIN ANALYZE. */
-    if (node->set_instrument)
-        node->set_instrument(node, sbm->instrument);
+	/* CDB: Tell node where to put its statistics for EXPLAIN ANALYZE. */
+	if (node->set_instrument)
+		node->set_instrument(node, sbm->instrument);
 
 	/* initialised */
-	if(sbm->streamNode)
+	if (sbm->streamNode)
 	{
 		StreamNode *n = sbm->streamNode;
 
 		/* StreamNode is already an index, transform to OpStream */
-		if((n->type == BMS_AND && kind == BMS_AND) ||
-		   (n->type == BMS_OR && kind == BMS_OR))
+		if ((n->type == BMS_AND && kind == BMS_AND) ||
+			(n->type == BMS_OR && kind == BMS_OR))
 		{
-			OpStream *o = (OpStream *)n;
+			OpStream   *o = (OpStream *) n;
+
 			o->input = lappend(o->input, node);
 		}
-		else if((n->type == BMS_AND && kind != BMS_AND) ||
-				(n->type == BMS_OR && kind != BMS_OR) ||
-				(n->type == BMS_INDEX))
+		else if ((n->type == BMS_AND && kind != BMS_AND) ||
+				 (n->type == BMS_OR && kind != BMS_OR) ||
+				 (n->type == BMS_INDEX))
 		{
 			sbm->streamNode = make_opstream(kind, sbm->streamNode, node);
 		}
 		else
-			elog(ERROR, "unknown stream type %i", (int)n->type);
+			elog(ERROR, "unknown stream type %i", (int) n->type);
 	}
 	else
 	{
-		if(kind == BMS_INDEX)
-            sbm->streamNode = node;
+		if (kind == BMS_INDEX)
+			sbm->streamNode = node;
 		else
 			sbm->streamNode = make_opstream(kind, node, NULL);
 	}
@@ -1183,21 +1189,21 @@ tbm_create_stream_node(HashBitmap *tbm)
 	IndexStream *is;
 	HashStreamOpaque *op;
 
-	is = (IndexStream *)palloc0(sizeof(IndexStream));
-	op = (HashStreamOpaque *)palloc(sizeof(HashStreamOpaque));
+	is = (IndexStream *) palloc0(sizeof(IndexStream));
+	op = (HashStreamOpaque *) palloc(sizeof(HashStreamOpaque));
 
 	is->type = BMS_INDEX;
 	is->nextblock = 0;
 	is->pull = tbm_stream_block;
 	is->free = tbm_stream_free;
-    is->set_instrument = tbm_stream_set_instrument;
-    is->upd_instrument = tbm_stream_upd_instrument;
+	is->set_instrument = tbm_stream_set_instrument;
+	is->upd_instrument = tbm_stream_upd_instrument;
 
 	op->tbm = tbm;
 	op->tofree = true;
 	op->entry = NULL;
 
-	is->opaque = (void *)op;
+	is->opaque = (void *) op;
 
 	return is;
 }
@@ -1205,11 +1211,13 @@ tbm_create_stream_node(HashBitmap *tbm)
 StreamNode *
 tbm_create_stream_node_ref(HashBitmap *tbm)
 {
-	IndexStream* sn = tbm_create_stream_node(tbm);
+	IndexStream *sn = tbm_create_stream_node(tbm);
+
 	/*
 	 * Do not take ownership of the HashBitmap.
 	 */
-	HashStreamOpaque *op = (HashStreamOpaque*) sn->opaque;
+	HashStreamOpaque *op = (HashStreamOpaque *) sn->opaque;
+
 	op->tofree = false;
 
 	return sn;
@@ -1219,32 +1227,32 @@ tbm_create_stream_node_ref(HashBitmap *tbm)
  * tbm_stream_block() - Fetch the next block from HashBitmap stream
  *
  * Notice that the IndexStream passed in as opaque will tell us the
- * desired block to stream. If the block requrested is greater than or equal 
+ * desired block to stream. If the block requrested is greater than or equal
  * to the block we've cached inside the HashStreamOpaque, return that.
  */
 
 static bool
 tbm_stream_block(StreamNode *self, PagetableEntry *e)
 {
-    IndexStream    *is = self;
-	HashStreamOpaque *op = (HashStreamOpaque *)is->opaque;
-	HashBitmap     *tbm = op->tbm;
+	IndexStream *is = self;
+	HashStreamOpaque *op = (HashStreamOpaque *) is->opaque;
+	HashBitmap *tbm = op->tbm;
 	PagetableEntry *next = op->entry;
-	bool 			more;
+	bool		more;
 
 	/* have we already got an entry? */
-	if(next && is->nextblock <= next->blockno)
+	if (next && is->nextblock <= next->blockno)
 	{
 		memcpy(e, next, sizeof(PagetableEntry));
 		return true;
 	}
 
 	if (!tbm->iterating)
-        tbm_begin_iterate(tbm);
+		tbm_begin_iterate(tbm);
 
 	/* we need a new entry */
 	op->entry = tbm_next_page(tbm, &more);
-	if(more)
+	if (more)
 	{
 		Assert(op->entry);
 		memcpy(e, op->entry, sizeof(PagetableEntry));
@@ -1256,15 +1264,15 @@ tbm_stream_block(StreamNode *self, PagetableEntry *e)
 static void
 tbm_stream_free(StreamNode *self)
 {
-    HashStreamOpaque   *op = (HashStreamOpaque *)self->opaque;
-    HashBitmap         *tbm = op->tbm;
+	HashStreamOpaque *op = (HashStreamOpaque *) self->opaque;
+	HashBitmap *tbm = op->tbm;
 
-    /* CDB: Report statistics for EXPLAIN ANALYZE */
-    if (tbm->instrument)
-    {
-        tbm_upd_instrument(tbm);
-        tbm_set_instrument(tbm, NULL);
-    }
+	/* CDB: Report statistics for EXPLAIN ANALYZE */
+	if (tbm->instrument)
+	{
+		tbm_upd_instrument(tbm);
+		tbm_set_instrument(tbm, NULL);
+	}
 
 	/*
 	 * Only free the bitmap if we actually own it.
@@ -1280,13 +1288,13 @@ tbm_stream_free(StreamNode *self)
 static void
 tbm_stream_set_instrument(StreamNode *self, struct Instrumentation *instr)
 {
-    tbm_set_instrument(((HashStreamOpaque *)self->opaque)->tbm, instr);
+	tbm_set_instrument(((HashStreamOpaque *) self->opaque)->tbm, instr);
 }
 
 static void
 tbm_stream_upd_instrument(StreamNode *self)
 {
-    tbm_upd_instrument(((HashStreamOpaque *)self->opaque)->tbm);
+	tbm_upd_instrument(((HashStreamOpaque *) self->opaque)->tbm);
 }
 
 
@@ -1302,31 +1310,32 @@ tbm_stream_upd_instrument(StreamNode *self)
 bool
 bitmap_stream_iterate(StreamNode *n, PagetableEntry *e)
 {
-	bool res = false;
+	bool		res = false;
 
 	MemSet(e, 0, sizeof(PagetableEntry));
 
-	if(n->type == BMS_INDEX)
+	if (n->type == BMS_INDEX)
 	{
-		IndexStream    *is = (IndexStream *)n;
-		res = is->pull((void *)is, e);
+		IndexStream *is = (IndexStream *) n;
+
+		res = is->pull((void *) is, e);
 	}
-	else if(n->type == BMS_OR || n->type == BMS_AND)
+	else if (n->type == BMS_OR || n->type == BMS_AND)
 	{
 		/*
-		 * There are two ways we can do this: either, we could maintain our 
-		 * own top level BatchWords structure and pull blocks out of that OR 
+		 * There are two ways we can do this: either, we could maintain our
+		 * own top level BatchWords structure and pull blocks out of that OR
 		 * we could maintain batch words for each sub map and union/intersect
 		 * those together to get the resulting page entries.
 		 *
 		 * Now, BatchWords are specific to bitmap indexes so we'd have to
 		 * translate HashBitmaps. All the infrastructure is available to
-		 * translate bitmap indexes into the HashBitmap mechanism so
-		 * we'll do that for now.
+		 * translate bitmap indexes into the HashBitmap mechanism so we'll do
+		 * that for now.
 		 */
 		ListCell   *map;
-		OpStream   *op = (OpStream *)n;
-		BlockNumber	minblockno;
+		OpStream   *op = (OpStream *) n;
+		BlockNumber minblockno;
 		ListCell   *cell;
 		int			wordnum;
 		List	   *matches;
@@ -1334,22 +1343,22 @@ bitmap_stream_iterate(StreamNode *n, PagetableEntry *e)
 
 
 		/*
-		 * First, iterate through each input bitmap stream and save the
-		 * block which is returned. HashBitmaps are designed such that
-		 * they do not return blocks with no matches -- that is, say a 
-		 * HashBitmap has matches for block 1, 4 and 5 it store matches
-		 * only for those blocks. Therefore, we may have one stream return
-		 * a match for block 10, another for block 15 and another yet for
-		 * block 10 again. In this case, we cannot include block 15 in
-		 * the union/intersection because it represents matches on some
-		 * page later in the scan. We'll get around to it in good time.
+		 * First, iterate through each input bitmap stream and save the block
+		 * which is returned. HashBitmaps are designed such that they do not
+		 * return blocks with no matches -- that is, say a HashBitmap has
+		 * matches for block 1, 4 and 5 it store matches only for those
+		 * blocks. Therefore, we may have one stream return a match for block
+		 * 10, another for block 15 and another yet for block 10 again. In
+		 * this case, we cannot include block 15 in the union/intersection
+		 * because it represents matches on some page later in the scan. We'll
+		 * get around to it in good time.
 		 *
 		 * In this case, if we're doing a union, we perform the operation
 		 * without reference to block 15. If we're performing an intersection
-		 * we cannot perform it on block 10 because we didn't get any
-		 * matches for block 10 for one of the streams: the intersection
-		 * with fail. So, we set the desired block (op->nextblock) to
-		 * block 15 and loop around to the `restart' label.
+		 * we cannot perform it on block 10 because we didn't get any matches
+		 * for block 10 for one of the streams: the intersection with fail.
+		 * So, we set the desired block (op->nextblock) to block 15 and loop
+		 * around to the `restart' label.
 		 */
 restart:
 		e->blockno = InvalidBlockNumber;
@@ -1361,72 +1370,72 @@ restart:
 		{
 			StreamNode *in = (StreamNode *) lfirst(map);
 			PagetableEntry *new;
-			bool r;
+			bool		r;
 
-			new = (PagetableEntry *)palloc(sizeof(PagetableEntry));
+			new = (PagetableEntry *) palloc(sizeof(PagetableEntry));
 
 			/* set the desired block */
 			in->nextblock = op->nextblock;
-			r = in->pull((void *)in, new);
+			r = in->pull((void *) in, new);
 
 			/*
-			 * Let to caller know we got a result from some input
-			 * bitmap. This doesn't hold true if we're doing an
-			 * intersection, and that is handled below
+			 * Let to caller know we got a result from some input bitmap. This
+			 * doesn't hold true if we're doing an intersection, and that is
+			 * handled below
 			 */
 			res = res || r;
 
 			/* only include a match if the pull function tells us to */
-			if(r)
+			if (r)
 			{
-				if(minblockno == InvalidBlockNumber)
+				if (minblockno == InvalidBlockNumber)
 					minblockno = new->blockno;
-				else if(n->type == BMS_OR)
+				else if (n->type == BMS_OR)
 					minblockno = Min(minblockno, new->blockno);
 				else
-					 minblockno = Max(minblockno, new->blockno);
-				matches = lappend(matches, (void *)new);
+					minblockno = Max(minblockno, new->blockno);
+				matches = lappend(matches, (void *) new);
 			}
 			else
 			{
 				pfree(new);
-				
-				if(n->type == BMS_AND)
+
+				if (n->type == BMS_AND)
 				{
 					/*
-					 * No more results for this stream and since
-					 * we're doing an intersection we wont get any
-					 * valid results from now on, so tell our caller that
+					 * No more results for this stream and since we're doing
+					 * an intersection we wont get any valid results from now
+					 * on, so tell our caller that
 					 */
-					op->nextblock = minblockno + 1; /* seems safe */
+					op->nextblock = minblockno + 1;		/* seems safe */
 					return false;
 				}
-				else if(n->type == BMS_OR)
+				else if (n->type == BMS_OR)
 					continue;
 			}
 		}
 
 		/*
-		 * Now we iterate through the actual matches and perform the
-		 * desired operation on those from the same minimum block
+		 * Now we iterate through the actual matches and perform the desired
+		 * operation on those from the same minimum block
 		 */
 		foreach(cell, matches)
 		{
-			PagetableEntry *tmp = (PagetableEntry *)lfirst(cell);
-			if(tmp->blockno == minblockno)
+			PagetableEntry *tmp = (PagetableEntry *) lfirst(cell);
+
+			if (tmp->blockno == minblockno)
 			{
-				if(e->blockno == InvalidBlockNumber)
+				if (e->blockno == InvalidBlockNumber)
 				{
 					memcpy(e, tmp, sizeof(PagetableEntry));
 					continue;
 				}
 
 				/* already initialised, so OR together */
-				if(tmp->ischunk == true)
+				if (tmp->ischunk == true)
 				{
 					/*
-					 * Okay, new entry is lossy so match our
-					 * output as lossy
+					 * Okay, new entry is lossy so match our output as lossy
 					 */
 					e->ischunk = true;
 					/* XXX: we can just return now... I think :) */
@@ -1437,29 +1446,29 @@ restart:
 				/* union/intersect existing output and new matches */
 				for (wordnum = 0; wordnum < WORDS_PER_PAGE; wordnum++)
 				{
-					if(n->type == BMS_OR)
+					if (n->type == BMS_OR)
 						e->words[wordnum] |= tmp->words[wordnum];
 					else
 						e->words[wordnum] &= tmp->words[wordnum];
 				}
 			}
-			else if(n->type == BMS_AND)
+			else if (n->type == BMS_AND)
 			{
 				/*
-				 * One of our input maps didn't return a block for the
-				 * desired block number so, we loop around again.
-				 * 
-				 * Notice that we don't set the next block as minblockno
-				 * + 1. We don't know if the other streams will find a 
-				 * match for minblockno, so we cannot skip past it yet.
+				 * One of our input maps didn't return a block for the desired
+				 * block number so, we loop around again.
+				 *
+				 * Notice that we don't set the next block as minblockno + 1.
+				 * We don't know if the other streams will find a match for
+				 * minblockno, so we cannot skip past it yet.
 				 */
 
-				op->nextblock = minblockno;  
+				op->nextblock = minblockno;
 				empty = true;
 				break;
 			}
 		}
-		if(empty)
+		if (empty)
 		{
 			/* start again */
 			empty = false;
@@ -1469,14 +1478,14 @@ restart:
 		}
 		else
 			list_free_deep(matches);
-		if(res)
+		if (res)
 			op->nextblock = minblockno + 1;
 	}
 	return res;
 }
 
 
-/* 
+/*
  * --------- These functions accept either HashBitmap or StreamBitmap ---------
  */
 
@@ -1487,61 +1496,61 @@ restart:
 void
 tbm_bitmap_free(Node *bm)
 {
-    if (bm == NULL)
-        return;
+	if (bm == NULL)
+		return;
 
-    switch (bm->type)
-    {
-        case T_HashBitmap:
-            tbm_free((HashBitmap *)bm);
-            break;
-        case T_StreamBitmap:
-        {
-            StreamBitmap   *sbm = (StreamBitmap *)bm;
-            StreamNode     *sn = sbm->streamNode;
+	switch (bm->type)
+	{
+		case T_HashBitmap:
+			tbm_free((HashBitmap *) bm);
+			break;
+		case T_StreamBitmap:
+			{
+				StreamBitmap *sbm = (StreamBitmap *) bm;
+				StreamNode *sn = sbm->streamNode;
 
-            sbm->streamNode = NULL;
-            if (sn &&
-                sn->free)
-                sn->free(sn);
+				sbm->streamNode = NULL;
+				if (sn &&
+					sn->free)
+					sn->free(sn);
 
-			pfree(sbm);
-			
-            break;
-        }
-        default:
-            Assert(0);
-    }
-}                               /* tbm_bitmap_free */
+				pfree(sbm);
+
+				break;
+			}
+		default:
+			Assert(0);
+	}
+}	/* tbm_bitmap_free */
 
 
 /*
  * tbm_bitmap_set_instrument - attach caller's Instrumentation object to bitmap
  */
-void 
+void
 tbm_bitmap_set_instrument(Node *bm, struct Instrumentation *instr)
 {
-    if (bm == NULL)
-        return;
+	if (bm == NULL)
+		return;
 
-    switch (bm->type)
-    {
-        case T_HashBitmap:
-            tbm_set_instrument((HashBitmap *)bm, instr);
-            break;
-        case T_StreamBitmap:
-        {
-            StreamBitmap   *sbm = (StreamBitmap *)bm;
+	switch (bm->type)
+	{
+		case T_HashBitmap:
+			tbm_set_instrument((HashBitmap *) bm, instr);
+			break;
+		case T_StreamBitmap:
+			{
+				StreamBitmap *sbm = (StreamBitmap *) bm;
 
-            if (sbm->streamNode &&
-                sbm->streamNode->set_instrument)
-                sbm->streamNode->set_instrument(sbm->streamNode, instr);
-            break;
-        }
-        default:
-            Assert(0);
-    }
-}                               /* tbm_bitmap_set_instrument */
+				if (sbm->streamNode &&
+					sbm->streamNode->set_instrument)
+					sbm->streamNode->set_instrument(sbm->streamNode, instr);
+				break;
+			}
+		default:
+			Assert(0);
+	}
+}	/* tbm_bitmap_set_instrument */
 
 
 /*
@@ -1549,36 +1558,37 @@ tbm_bitmap_set_instrument(Node *bm, struct Instrumentation *instr)
  *
  * Some callers don't bother to tbm_free() their bitmaps, but let the storage
  * be reclaimed when the MemoryContext is reset.  Such callers should use this
- * function to make sure the statistics are transferred to the Instrumentation 
+ * function to make sure the statistics are transferred to the Instrumentation
  * object before the bitmap goes away.
  */
-void 
+void
 tbm_bitmap_upd_instrument(Node *bm)
 {
-    if (bm == NULL)
-        return;
+	if (bm == NULL)
+		return;
 
-    switch (bm->type)
-    {
-        case T_HashBitmap:
-            tbm_upd_instrument((HashBitmap *)bm);
-            break;
-        case T_StreamBitmap:
-        {
-            StreamBitmap   *sbm = (StreamBitmap *)bm;
+	switch (bm->type)
+	{
+		case T_HashBitmap:
+			tbm_upd_instrument((HashBitmap *) bm);
+			break;
+		case T_StreamBitmap:
+			{
+				StreamBitmap *sbm = (StreamBitmap *) bm;
 
-            if (sbm->streamNode &&
-                sbm->streamNode->upd_instrument)
-                sbm->streamNode->upd_instrument(sbm->streamNode);
-            break;
-        }
-        default:
-            Assert(0);
-    }
-}                               /* tbm_bitmap_upd_instrument */
+				if (sbm->streamNode &&
+					sbm->streamNode->upd_instrument)
+					sbm->streamNode->upd_instrument(sbm->streamNode);
+				break;
+			}
+		default:
+			Assert(0);
+	}
+}	/* tbm_bitmap_upd_instrument */
 
-void tbm_convert_appendonly_tid_out(ItemPointer psudeoHeapTid, AOTupleId *aoTid)
+void
+tbm_convert_appendonly_tid_out(ItemPointer psudeoHeapTid, AOTupleId *aoTid)
 {
-	// UNDONE: For now, just copy.
+	/* UNDONE: For now, just copy. */
 	memcpy(aoTid, psudeoHeapTid, SizeOfIptrData);
 }
