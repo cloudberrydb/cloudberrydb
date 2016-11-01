@@ -363,7 +363,37 @@ CPhysicalUnionAll::FMatch
 		return CEnfdProp::EpetRequired;
 	}
 
-	//---------------------------------------------------------------------------
+
+//---------------------------------------------------------------------------
+//	@function:
+//		CPhysicalUnionAll::EpetDistribution
+//
+//	@doc:
+//		Return the enforcing type for distribution property based on this operator
+//
+//---------------------------------------------------------------------------
+	CEnfdProp::EPropEnforcingType
+	CPhysicalUnionAll::EpetDistribution
+	(
+		CExpressionHandle &exprhdl,
+		const CEnfdDistribution *ped
+	)
+	const
+	{
+		GPOS_ASSERT(NULL != ped);
+
+		// get distribution delivered by the node
+		CDistributionSpec *pds = CDrvdPropPlan::Pdpplan(exprhdl.Pdp())->Pds();
+		if (ped->FCompatible(pds))
+		{
+		 // required distribution is already provided
+		 return CEnfdProp::EpetUnnecessary;
+		}
+
+		return CEnfdProp::EpetRequired;
+	}
+
+//---------------------------------------------------------------------------
 //	@function:
 //		CPhysicalUnionAll::EpetRewindability
 //

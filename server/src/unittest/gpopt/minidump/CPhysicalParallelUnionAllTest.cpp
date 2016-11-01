@@ -17,6 +17,7 @@ static const CHAR *rgszFileNames[] =
 		"../data/dxl/minidump/CPhysicalParallelUnionAllTest/ParallelUnionAllWithNoRedistributableColumns.mdp",
 		"../data/dxl/minidump/CPhysicalParallelUnionAllTest/ParallelUnionAllWithSingleNotRedistributableColumn.mdp",
 		"../data/dxl/minidump/CPhysicalParallelUnionAllTest/TwoHashedTables.mdp",
+		"../data/dxl/minidump/CPhysicalParallelUnionAllTest/ParallelUnion-Select.mdp",
 		"../data/dxl/minidump/CPhysicalParallelUnionAllTest/ParallelUnion-Insert.mdp",
 		"../data/dxl/minidump/CPhysicalParallelUnionAllTest/ParallelUnion-ConstTable.mdp",
 		"../data/dxl/minidump/CPhysicalParallelUnionAllTest/ParallelUnionAllWithNotEqualNumOfDistrColumns.mdp",

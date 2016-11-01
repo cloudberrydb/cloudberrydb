@@ -52,12 +52,6 @@ namespace gpopt
 		return GPOS_NEW(pmp) CDistributionSpecRandom();
 	}
 
-	CEnfdProp::EPropEnforcingType
-	CPhysicalParallelUnionAll::EpetDistribution(CExpressionHandle& , const CEnfdDistribution* ) const
-	{
-		return CEnfdProp::EpetRequired;
-	}
-
 	CDistributionSpec *
 	CPhysicalParallelUnionAll::PdsRequired
 		(

@@ -583,34 +583,4 @@ CPhysicalSerialUnionAll::PdsDerive
 }
 
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CPhysicalSerialUnionAll::EpetDistribution
-//
-//	@doc:
-//		Return the enforcing type for distribution property based on this operator
-//
-//---------------------------------------------------------------------------
-CEnfdProp::EPropEnforcingType
-CPhysicalSerialUnionAll::EpetDistribution
-	(
-	CExpressionHandle &exprhdl,
-	const CEnfdDistribution *ped
-	)
-	const
-{
-	GPOS_ASSERT(NULL != ped);
-
-	// get distribution delivered by the node
-	CDistributionSpec *pds = CDrvdPropPlan::Pdpplan(exprhdl.Pdp())->Pds();
-	if (ped->FCompatible(pds))
-	{
-		 // required distribution is already provided
-		 return CEnfdProp::EpetUnnecessary;
-	}
-
-	return CEnfdProp::EpetRequired;
-}
-
-
 // EOF

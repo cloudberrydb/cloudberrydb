@@ -112,15 +112,6 @@ namespace gpopt
 			virtual
 			CDistributionSpec *PdsDerive(IMemoryPool *pmp, CExpressionHandle &exprhdl) const;
 
-			// return distribution property enforcing type for this operator
-			virtual
-			CEnfdProp::EPropEnforcingType EpetDistribution
-				(
-				CExpressionHandle &exprhdl,
-				const CEnfdDistribution *ped
-				)
-				const;
-
 	}; // class CPhysicalSerialUnionAll
 
 }

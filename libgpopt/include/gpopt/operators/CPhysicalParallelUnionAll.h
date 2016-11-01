@@ -31,9 +31,6 @@ namespace gpopt
 
 			virtual CDistributionSpec *PdsDerive(IMemoryPool *pmp, CExpressionHandle &exprhdl) const;
 
-			virtual CEnfdProp::EPropEnforcingType
-			EpetDistribution(CExpressionHandle &exprhdl, const CEnfdDistribution *ped) const;
-
 			virtual
 			CEnfdDistribution::EDistributionMatching Edm
 				(
