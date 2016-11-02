@@ -494,7 +494,29 @@ VmemTracker_ReserveVmem(int64 newlyRequestedBytes)
 		 * not return
 		 */
 		trackedBytes -= newlyRequestedBytes;
+
+		/*
+		 * Detect a runaway session. Moreover, if the current session is deemed
+		 * as runaway, start cleanup.
+		 *
+		 * Caution: this method may not return as it has the potential to call
+		 * elog(ERROR, ...).
+		 */
 		RedZoneHandler_DetectRunawaySession();
+
+		/*
+		 * Before reserving further VMEM, check if the current session has a pending
+		 * query cancellation or other pending interrupts. This ensures more responsive
+		 * interrupt processing, including query cancellation requests without depending
+		 * on CHECK_FOR_INTERRUPTS(). In a sense, this is a lightweight CHECK_FOR_INTERRUPTS
+		 * as we don't execute BackoffBackendTick() and some runaway detection code.
+		 */
+		if (vmem_process_interrupt && InterruptPending)
+		{
+			/* ProcessInterrupts should check for InterruptHoldoffCount and CritSectionCount */
+			ProcessInterrupts();
+		}
+
 		/*
 		 * Redo, as we returned from VmemTracker_TerminateRunawayQuery and
 		 * we are successfully reserving this vmem
