@@ -2984,6 +2984,7 @@ StartTransaction(void)
 						QEDtxContextInfo.distributedTimeStamp,
 						QEDtxContextInfo.distributedXid,
 						&s->transactionId);
+					XactLockTableInsert(s->transactionId);
 
 					s->distribXid = QEDtxContextInfo.distributedXid;
 
@@ -2996,15 +2997,13 @@ StartTransaction(void)
 					/*
 					 * We don't use the distributed xid map since this may be one of funny
 					 * distributed queries the executor uses behind the scenes for estimation
-					 * work.  This transaction will auto-commit, and then we will follow it with the
-					 * real user command.
-					 *
-					 * Generate a new transaction id.
+					 * work.  We also don't need a local XID right now - we let it be assigned
+					 * lazily, as on a local transaction. This transaction will auto-commit, and
+					 * then we will follow it with the real user command.
 					 */
 					Assert(DistributedTransactionContext == DTX_CONTEXT_QE_AUTO_COMMIT_IMPLICIT);
-					s->transactionId = GetNewTransactionId(false, true);
 				}
-				
+
 			  	/*
 			 	 * now() and statement_timestamp() should be the same time
 			  	 */
@@ -3034,18 +3033,13 @@ StartTransaction(void)
 				 *
 				 * Generate a new transaction id
 				 */
-				s->transactionId = GetNewTransactionId(false, true);
+				AssignTransactionId(s);
 
 				elog((Debug_print_full_dtm ? LOG : DEBUG5),
 					 "Not tied to distributed transaction id, but still coordinated "
 				     "as a distributed transaction with the 2 phase protocol... local xid %u", 
 					 s->transactionId);
 			}
-
-			/*
-			 * Common.
-			 */
-			XactLockTableInsert(s->transactionId);
 
 			PG_TRACE1(transaction__start, s->transactionId);
 
