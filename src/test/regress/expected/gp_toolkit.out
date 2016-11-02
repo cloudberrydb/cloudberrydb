@@ -595,6 +595,25 @@ select * from gp_toolkit.gp_pgdatabase_invalid;
 -----------+----------------+--------------+------------+---------------------
 (0 rows)
 
+-- Test that the statistics on resource queue usage are properly updated and
+-- reflected in the pg_stat_resqueues view
+set stats_queue_level=on;
+create resource queue q with (active_statements = 10);
+create user resqueuetest with resource queue q;
+set role resqueuetest;
+select 1;
+ ?column? 
+----------
+        1
+(1 row)
+
+select n_queries_exec from pg_stat_resqueues where queuename = 'q';
+ n_queries_exec 
+----------------
+              1
+(1 row)
+
+reset role;
 -- GP Readable Data Table
 -- Check that the tables created above are present in gp_toolkit.__gp_user_data_tables_readable
 -- view.

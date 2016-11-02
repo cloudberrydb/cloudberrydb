@@ -340,6 +340,15 @@ select * from gp_toolkit.gp_resq_activity where resqrole = 'toolkit_user1';
 -- Should be empty unless there is failure in the segment, it's a view from gp_pgdatabase
 select * from gp_toolkit.gp_pgdatabase_invalid;
 
+-- Test that the statistics on resource queue usage are properly updated and
+-- reflected in the pg_stat_resqueues view
+set stats_queue_level=on;
+create resource queue q with (active_statements = 10);
+create user resqueuetest with resource queue q;
+set role resqueuetest;
+select 1;
+select n_queries_exec from pg_stat_resqueues where queuename = 'q';
+reset role;
 
 -- GP Readable Data Table
 
