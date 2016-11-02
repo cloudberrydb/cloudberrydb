@@ -10,8 +10,8 @@
  *
  *-------------------------------------------------------------------------
  */
-#ifndef APPENDONLYAM_H
-#define APPENDONLYAM_H
+#ifndef CDBAPPENDONLYAM_H
+#define CDBAPPENDONLYAM_H
 
 #include "access/htup.h"
 #include "access/relscan.h"
@@ -362,4 +362,4 @@ extern HTSU_Result appendonly_update(
 		AOTupleId* aoTupleId,
 		AOTupleId* newAoTupleId);
 extern void appendonly_update_finish(AppendOnlyUpdateDesc aoUpdateDesc);
-#endif   /* APPENDONLYAM_H */
+#endif   /* CDBAPPENDONLYAM_H */

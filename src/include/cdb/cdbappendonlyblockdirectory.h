@@ -6,8 +6,8 @@
  *
  *------------------------------------------------------------------------------
  */
-#ifndef APPENDONLYBLOCKDIRECTORY_H
-#define APPENDONLYBLOCKDIRECTORY_H
+#ifndef CDBAPPENDONLYBLOCKDIRECTORY_H
+#define CDBAPPENDONLYBLOCKDIRECTORY_H
 
 #include "access/aosegfiles.h"
 #include "access/aocssegfiles.h"

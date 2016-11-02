@@ -11,8 +11,8 @@
  *-------------------------------------------------------------------------
  */
 
-#ifndef GPVARS_H
-#define GPVARS_H
+#ifndef CDBVARS_H
+#define CDBVARS_H
 
 #include "access/xlogdefs.h"  /*XLogRecPtr*/
 #include "utils/guc.h"
@@ -1088,4 +1088,4 @@ extern char *gp_idf_deduplicate_str;
 /* default to RANDOM distribution for CREATE TABLE without DISTRIBUTED BY */
 extern bool gp_create_table_random_default_distribution;
 
-#endif   /* GPVARS_H */
+#endif   /* CDBVARS_H */
