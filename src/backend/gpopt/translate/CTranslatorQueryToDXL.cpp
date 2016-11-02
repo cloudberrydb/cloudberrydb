@@ -14,8 +14,6 @@
 //
 //---------------------------------------------------------------------------
 
-#define ALLOW_abort
-
 #include "postgres.h"
 
 #include "access/sysattr.h"

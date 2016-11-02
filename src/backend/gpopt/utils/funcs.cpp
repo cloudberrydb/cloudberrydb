@@ -13,9 +13,6 @@
 //
 //---------------------------------------------------------------------------
 
-#define ALLOW_appendStringInfo
-#define ALLOW_abort
-
 #include <sys/stat.h>
 #include "gpopt/utils/nodeutils.h"
 #include "gpopt/utils/CCatalogUtils.h"

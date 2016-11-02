@@ -13,7 +13,6 @@
 //
 //---------------------------------------------------------------------------
 
-#define ALLOW_isnan
 #include "postgres.h"
 #include "nodes/plannodes.h"
 #include "nodes/parsenodes.h"

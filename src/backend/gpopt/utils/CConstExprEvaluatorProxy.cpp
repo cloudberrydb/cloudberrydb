@@ -14,8 +14,6 @@
 //
 //---------------------------------------------------------------------------
 
-#define ALLOW_abort
-
 #include "postgres.h"
 #include "executor/executor.h"
 #include "nodes/nodes.h"

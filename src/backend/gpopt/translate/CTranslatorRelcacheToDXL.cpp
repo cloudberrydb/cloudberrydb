@@ -13,22 +13,6 @@
 //
 //---------------------------------------------------------------------------
 
-#define ALLOW_DatumGetPointer
-#define ALLOW_ntohl
-#define ALLOW_memset
-#define ALLOW_printf
-#define ALLOW_offsetof
-#define ALLOW_PointerGetDatum
-#define ALLOW_Int32GetDatum
-#define ALLOW_Int16GetDatum
-#define ALLOW_DatumGetInt32
-#define ALLOW_MemoryContextAllocImpl
-#define ALLOW_pfree
-#define ALLOW_MemoryContextFreeImpl
-#define ALLOW_CharGetDatum
-#define ALLOW_list_head
-#define ALLOW_abort
-
 #include "postgres.h"
 #include "utils/array.h"
 #include "utils/rel.h"
@@ -60,21 +44,6 @@
 #include "gpopt/translate/CTranslatorRelcacheToDXL.h"
 #include "gpopt/translate/CTranslatorScalarToDXL.h"
 #include "gpopt/mdcache/CMDAccessor.h"
-
-#undef ALLOW_DatumGetPointer
-#undef ALLOW_ntohl
-#undef ALLOW_memset
-#undef ALLOW_printf
-#undef ALLOW_offsetof
-#undef ALLOW_PointerGetDatum
-#undef ALLOW_Int32GetDatum
-#undef ALLOW_Int16GetDatum
-#undef ALLOW_DatumGetInt32
-#undef ALLOW_CharGetDatum
-#undef ALLOW_pfree
-#undef ALLOW_MemoryContextAllocImpl
-#undef ALLOW_MemoryContextFreeImpl
-#undef ALLOW_list_head
 
 #include "gpos/base.h"
 #include "gpos/error/CException.h"
