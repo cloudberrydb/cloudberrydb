@@ -5,10 +5,6 @@
  *
  * Copyright (c) 2011, Greenplum Inc.
  *
- * $Id: $
- * $Change: $
- * $DateTime: $
- * $Author: $
  *-------------------------------------------------------------------------
  */
 #ifndef PG_EXTPROTOCOL_H

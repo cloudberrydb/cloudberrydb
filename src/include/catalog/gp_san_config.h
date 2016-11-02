@@ -5,10 +5,6 @@
  *
  * Copyright (c) 2009-2011, Greenplum Inc.
  *
- * $Id: $
- * $Change: $
- * $DateTime: $
- * $Author: $
  *-------------------------------------------------------------------------
  */
 #ifndef _GP_SAN_CONFIG_H_

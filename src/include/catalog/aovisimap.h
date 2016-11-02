@@ -1,15 +1,10 @@
 /*-------------------------------------------------------------------------
  *
- * aoblkdir.h
- *
- *   This file contains some definitions to support creation of aovisimap tables.
+ * aovisimap.h
+ *   Definitions to support creation of aovisimap tables.
  *
  * Copyright (c) 2013, Pivotal Inc.
  *
- * $Id: $
- * $Change: $
- * $DateTime: $
- * $Author: $
  *-------------------------------------------------------------------------
  */
 #ifndef AOVISIMAP_H

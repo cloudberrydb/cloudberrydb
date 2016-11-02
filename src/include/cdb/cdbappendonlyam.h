@@ -1,6 +1,6 @@
 /*-------------------------------------------------------------------------
  *
- * appendonlyam.h
+ * cdbappendonlyam.h
  *	  append-only relation access method definitions.
  *
  *

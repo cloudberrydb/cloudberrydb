@@ -4,10 +4,6 @@
  *
  * Copyright (c) 2009, Greenplum Inc.
  *
- * $Id: $
- * $Change: $
- * $DateTime: $
- * $Author: $
  *------------------------------------------------------------------------------
  */
 #ifndef APPENDONLYBLOCKDIRECTORY_H

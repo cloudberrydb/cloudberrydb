@@ -6,7 +6,7 @@
  * Copyright (c) 2003-2010, Greenplum inc
  *
  * NOTES
- *	  See src/backend/utils/misc/guc.c for variable external specification.
+ *	  See src/backend/utils/misc/guc_gp.c for variable external specification.
  *
  *-------------------------------------------------------------------------
  */

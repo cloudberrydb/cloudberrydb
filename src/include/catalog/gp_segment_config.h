@@ -5,10 +5,6 @@
  *
  * Copyright (c) 2006-2011, Greenplum Inc.
  *
- * $Id: $
- * $Change: $
- * $DateTime: $
- * $Author: $
  *-------------------------------------------------------------------------
  */
 #ifndef _GP_SEGMENT_CONFIG_H_

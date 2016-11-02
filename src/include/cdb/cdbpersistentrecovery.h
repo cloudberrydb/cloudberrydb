@@ -1,6 +1,6 @@
 /*-------------------------------------------------------------------------
  *
- * persistentrecovery.h
+ * cdbpersistentrecovery.h
  *
  * Copyright (c) 2009-2010, Greenplum inc
  *

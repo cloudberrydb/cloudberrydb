@@ -7,10 +7,6 @@
  *
  * Copyright (c) 2013, Pivotal Inc.
  *
- * $Id: $
- * $Change: $
- * $DateTime: $
- * $Author: $
  *-------------------------------------------------------------------------
  */
 #include "postgres.h"

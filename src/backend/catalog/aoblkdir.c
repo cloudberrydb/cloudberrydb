@@ -7,10 +7,6 @@
  *
  * Copyright (c) 2009, Greenplum Inc.
  *
- * $Id: $
- * $Change: $
- * $DateTime: $
- * $Author: $
  *-------------------------------------------------------------------------
  */
 #include "postgres.h"

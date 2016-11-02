@@ -1,15 +1,10 @@
 /*-----------------------------------------------------------------------------
  *
- * appendonlyblockdirectory
- *    maintain the block directory to blocks in an append-only relation
- * files.
+ * appendonlyblockdirectory.c
+ *    maintain the block directory to blocks in append-only relation files.
  *
  * Copyright (c) 2009, Greenplum Inc.
  *
- * $Id: $
- * $Change: $
- * $DateTime: $
- * $Author: $
  *-----------------------------------------------------------------------------
  */
 #include "postgres.h"

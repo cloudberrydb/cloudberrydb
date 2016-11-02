@@ -1,15 +1,10 @@
 /*-------------------------------------------------------------------------
  *
  * aoblkdir.h
- *
- *   This file contains some definitions to support creation of aoblkdir tables.
+ *   Definitions to support creation of aoblkdir tables.
  *
  * Copyright (c) 2009, Greenplum Inc.
  *
- * $Id: $
- * $Change: $
- * $DateTime: $
- * $Author: $
  *-------------------------------------------------------------------------
  */
 #ifndef AOBLKDIR_H

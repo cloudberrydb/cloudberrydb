@@ -6,10 +6,6 @@
  *
  * Copyright (c) 2009-2011, Greenplum Inc.
  *
- * $Id: $
- * $Change: $
- * $DateTime: $
- * $Author: $
  *-------------------------------------------------------------------------
  */
 #ifndef GP_FASTSEQUENCE_H
