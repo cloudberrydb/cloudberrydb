@@ -29,3 +29,4 @@ qp_gist_indexes2.sql
 qp_regexp.sql
 gang_mgmt.sql
 guc_env_var.sql
+dispatch.sql

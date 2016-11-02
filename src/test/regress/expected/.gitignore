@@ -30,3 +30,4 @@ qp_gist_indexes2_optimizer.out
 qp_regexp.out
 gang_mgmt.out
 guc_env_var.out
+dispatch.out
