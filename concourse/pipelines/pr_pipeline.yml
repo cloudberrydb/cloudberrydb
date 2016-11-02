@@ -10,7 +10,7 @@ resource_types:
 
 resources:
   - name: gpdb_pr
-    type: pull_request_with_submodule 
+    type: pull_request_with_submodule
     source:
       repo: greenplum-db/gpdb
       access_token: {{gpdb-git-access-token}}
@@ -40,21 +40,25 @@ resources:
       region_name: {{aws-region}}
       secret_access_key: {{bucket-secret-access-key}}
       versioned_file: gpdb_pr/gpdb_artifacts/bin_gpdb.tar.gz
-  
+
 jobs:
   - name: compile_gpdb_centos6
     plan:
     - aggregate:
       - get: gpdb_pr
+        tags: ["worker-one"]
         trigger: true
       - get: centos67-gpdb-gcc6-llvm-image
+        tags: ["worker-one"]
     - put: gpdb_pr
+      tags: ["worker-one"]
       params:
         path: gpdb_pr
         status: pending
     - task: compile_gpdb
       file: gpdb_pr/concourse/compile_gpdb.yml
       image: centos67-gpdb-gcc6-llvm-image
+      tags: ["worker-one"]
       input_mapping:
         gpdb_src: gpdb_pr
       params:
@@ -72,9 +76,11 @@ jobs:
           status: failure
     - aggregate:
       - put: bin_gpdb_centos
+        tags: ["worker-one"]
         params:
           file: gpdb_artifacts/bin_gpdb.tar.gz
       - put: sync_tools_gpdb_centos
+        tags: ["worker-one"]
         params:
           file: sync_tools_gpdb/sync_tools_gpdb.tar.gz
 
@@ -82,18 +88,21 @@ jobs:
     public: true
     plan:
     - aggregate:
-      - get: gpdb_pr 
+      - get: gpdb_pr
+        tags: ["worker-two"]
         trigger: true
       - get: centos67-gpdb-gcc6-llvm-image
+        tags: ["worker-two"]
     - task: compile_gpdb
       file: gpdb_pr/concourse/compile_gpdb_custom_config.yml
       image: centos67-gpdb-gcc6-llvm-image
+      tags: ["worker-two"]
       input_mapping:
-        gpdb_src: gpdb_pr 
+        gpdb_src: gpdb_pr
       on_failure:
-        put: gpdb_pr 
+        put: gpdb_pr
         params:
-          path: gpdb_pr 
+          path: gpdb_pr
           status: failure
 
   # Stage 2: IC Tests
@@ -101,18 +110,23 @@ jobs:
     plan:
     - aggregate:
       - get: gpdb_pr
+        tags: ["worker-three"]
         passed: [compile_gpdb_centos6]
       - get: sync_tools_gpdb_centos
+        tags: ["worker-three"]
         resource: sync_tools_gpdb_centos
         passed: [compile_gpdb_centos6]
       - get: bin_gpdb
+        tags: ["worker-three"]
         resource: bin_gpdb_centos
         passed: [compile_gpdb_centos6]
         trigger: true
       - get: centos67-gpdb-gcc6-llvm-image
+        tags: ["worker-three"]
     - task: ic_gpdb
       file: gpdb_pr/concourse/ic_gpdb.yml
       image: centos67-gpdb-gcc6-llvm-image
+      tags: ["worker-three"]
       input_mapping:
         gpdb_src: gpdb_pr
       params:
