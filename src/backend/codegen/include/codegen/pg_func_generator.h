@@ -285,6 +285,11 @@ class PGIRBuilderFuncGenerator
     llvm::BasicBlock* func_generation_last_block = irb->GetInsertBlock();
     assert(llvm_func_tmp_value->getType() ==
         codegen_utils->GetType<ReturnType>());
+    // Explicitly set isnull to false so that we can cover the case that isnull
+    // has not been initialized to false. This is useful because in codegen
+    // we do not use temporary struct fcinfo.
+    irb->CreateStore(codegen_utils->GetConstant<bool>(false),
+                     llvm_isnull_ptr);
     irb->CreateBr(set_llvm_out_value_block);
 
     // null_argument_block
@@ -502,6 +507,11 @@ class PGGenericFuncGenerator : public  PGFuncGeneratorInterface {
     llvm::BasicBlock* func_generation_last_block = irb->GetInsertBlock();
     assert(llvm_func_generation_tmp_value->getType() ==
            codegen_utils->GetType<ReturnType>());
+    // Explicitly set isnull to false so that we can cover the case that isnull
+    // has not been initialized to false. This is useful because in codegen
+    // we do not use temporary struct fcinfo.
+    irb->CreateStore(codegen_utils->GetConstant<bool>(false),
+                     llvm_isnull_ptr);
     irb->CreateBr(set_llvm_out_value_block);
 
     // set_llvm_out_value_block
