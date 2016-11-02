@@ -9,9 +9,6 @@
 //		Implementation of the factory methods for creation of DXL elements.
 //---------------------------------------------------------------------------
 
-#define ALLOW_strncasecmp
-#define ALLOW_sscanf
-
 #include "gpos/string/CWStringConst.h"
 #include "gpos/string/CWStringDynamic.h"
 #include "gpos/common/clibwrapper.h"

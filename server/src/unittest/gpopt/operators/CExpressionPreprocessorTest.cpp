@@ -8,8 +8,6 @@
 //	@doc:
 //		Test for expression preprocessing
 //---------------------------------------------------------------------------
-#define ALLOW_strstr
-
 #include <string.h>
 
 #include "gpos/io/COstreamString.h"

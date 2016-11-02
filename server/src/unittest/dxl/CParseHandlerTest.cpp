@@ -8,8 +8,6 @@
 //	@doc:
 //		Tests parsing DXL documents into DXL trees.
 //---------------------------------------------------------------------------
-#define ALLOW_printf
-
 #include "gpos/error/CException.h"
 #include "gpos/error/CAutoTrace.h"
 #include "gpos/error/CMessage.h"

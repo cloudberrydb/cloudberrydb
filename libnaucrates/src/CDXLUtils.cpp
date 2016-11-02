@@ -9,11 +9,6 @@
 //		Implementation of the utility methods for parsing and searializing DXL.
 //---------------------------------------------------------------------------
 
-#define ALLOW_strlen
-#define ALLOW_wcslen
-#define ALLOW_wcsncmp
-#define ALLOW_wcstombs
-
 #include "gpos/base.h"
 #include "gpos/common/CAutoTimer.h"
 #include "gpos/common/CAutoRef.h"

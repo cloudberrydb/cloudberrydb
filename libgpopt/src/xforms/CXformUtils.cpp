@@ -10,10 +10,6 @@
 //---------------------------------------------------------------------------
 
 
-#define ALLOW_va_start
-#define ALLOW_va_end
-#define ALLOW_va_arg
-
 #include "gpos/base.h"
 #include "gpos/error/CMessage.h"
 #include "gpos/error/CMessageRepository.h"
