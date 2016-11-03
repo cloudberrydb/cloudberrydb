@@ -21,7 +21,8 @@ test: gp_persistent_table
 #mpp23872: Disabling gpcheckmirrorseg as it is erroring out bugbuster on some platforms.
 ignore: gpcheckmirrorseg
 test: AOCO_Compression2 schema_topology table_statistics
-test: cursor metadata_track
+#test: cursor metadata_track
+test: metadata_track
 test: memory_quota
 test: TestPSQL
 test: opperf
