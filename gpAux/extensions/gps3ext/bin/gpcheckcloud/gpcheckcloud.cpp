@@ -1,5 +1,8 @@
 #include "gpcheckcloud.h"
 
+bool hasHeader;
+char eolString[EOL_CHARS_MAX_LEN + 1];
+
 string s3extErrorMessage;
 
 volatile bool QueryCancelPending = false;

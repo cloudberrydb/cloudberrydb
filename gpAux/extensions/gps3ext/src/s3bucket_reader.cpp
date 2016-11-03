@@ -1,12 +1,13 @@
 #include "s3bucket_reader.h"
 
 S3BucketReader::S3BucketReader() : Reader() {
-    this->keyIndex = s3ext_segid;
+    this->keyIndex = 0;
 
     this->s3Interface = NULL;
     this->upstreamReader = NULL;
 
     this->needNewReader = true;
+    this->isFirstFile = true;
 }
 
 S3BucketReader::~S3BucketReader() {
@@ -16,6 +17,8 @@ S3BucketReader::~S3BucketReader() {
 void S3BucketReader::open(const S3Params& params) {
     this->params = params;
 
+    // for unit test, we may change it
+    this->keyIndex = s3ext_segid;
     S3_CHECK_OR_DIE(this->s3Interface != NULL, S3RuntimeError, "s3Interface is NULL");
 
     this->parseURL();
@@ -46,9 +49,51 @@ S3Params S3BucketReader::constructReaderParams(BucketContent& key) {
     return readerParams;
 }
 
+uint64_t S3BucketReader::readWithoutHeaderLine(char* buf, uint64_t count) {
+    char* current = NULL;
+    char* end = NULL;
+    char* currentEOL = eolString;
+    // check one char at a time
+    while (*currentEOL != '\0') {
+        if (current == end) {
+            uint64_t readCount = this->upstreamReader->read(buf, count);
+            // we have reach the end of file but found no matching EOL.
+            if (readCount == 0) {
+                S3WARN("%s", "Reach end of file before matching line terminator");
+                return 0;
+            }
+
+            current = buf;
+            end = buf + readCount;
+        }
+
+        // skip until we met next newline char
+        for (; current != end; current++) {
+            if (*current == *currentEOL) {
+                currentEOL++;
+                current++;
+                break;
+            } else {
+                currentEOL = eolString;
+            }
+        }
+    }
+
+    // move remained data to front.
+    uint64_t remain = end - current;
+    char* p = buf;
+    while (current != end) {
+        *p = *current;
+        p++;
+        current++;
+    }
+
+    return remain;
+}
+
 uint64_t S3BucketReader::read(char* buf, uint64_t count) {
     S3_CHECK_OR_DIE(this->upstreamReader != NULL, S3RuntimeError, "upstreamReader is NULL");
-
+    uint64_t readCount = 0;
     while (true) {
         if (this->needNewReader) {
             if (this->keyIndex >= this->keyList.contents.size()) {
@@ -59,10 +104,17 @@ uint64_t S3BucketReader::read(char* buf, uint64_t count) {
 
             this->upstreamReader->open(constructReaderParams(key));
             this->needNewReader = false;
+
+            // ignore header line if it is not the first file
+            if (hasHeader && !this->isFirstFile) {
+                readCount = readWithoutHeaderLine(buf, count);
+                if (readCount != 0) {
+                    return readCount;
+                }
+            }
         }
 
-        uint64_t readCount = this->upstreamReader->read(buf, count);
-
+        readCount = this->upstreamReader->read(buf, count);
         if (readCount != 0) {
             return readCount;
         }
@@ -70,6 +122,7 @@ uint64_t S3BucketReader::read(char* buf, uint64_t count) {
         // Finished one file, continue to next
         this->upstreamReader->close();
         this->needNewReader = true;
+        this->isFirstFile = false;
     }
 }
 

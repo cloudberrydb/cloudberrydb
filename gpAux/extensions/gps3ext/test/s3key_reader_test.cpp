@@ -10,6 +10,9 @@ using ::testing::Return;
 using ::testing::Throw;
 using ::testing::_;
 
+bool hasHeader = false;
+char eolString[EOL_CHARS_MAX_LEN + 1] = "\n";
+
 string s3extErrorMessage;
 
 volatile bool QueryCancelPending = false;

@@ -5,6 +5,7 @@
 
 using ::testing::AtLeast;
 using ::testing::Return;
+using ::testing::Invoke;
 using ::testing::Throw;
 using ::testing::_;
 
@@ -22,6 +23,8 @@ class S3BucketReaderTest : public testing::Test {
    protected:
     // Remember that SetUp() is run immediately before a test starts.
     virtual void SetUp() {
+        memset(buf, 0, sizeof(buf));
+
         bucketReader = new S3BucketReader();
         bucketReader->setS3InterfaceService(&s3Interface);
     }
@@ -213,13 +216,12 @@ TEST_F(S3BucketReaderTest, ReaderShouldSkipIfFileIsNotForThisSegment) {
     s3ext_segid = 10;
     s3ext_segnum = 16;
 
-    S3BucketReader reader;
     params.setBaseUrl("https://s3-us-east-2.amazonaws.com/s3test.pivotal.io/whatever");
-    reader.setUpstreamReader(&s3Reader);
-    reader.setS3InterfaceService(&s3Interface);
-    reader.open(params);
+    bucketReader->setUpstreamReader(&s3Reader);
+    bucketReader->setS3InterfaceService(&s3Interface);
+    bucketReader->open(params);
 
-    EXPECT_EQ((uint64_t)0, reader.read(buf, sizeof(buf)));
+    EXPECT_EQ((uint64_t)0, bucketReader->read(buf, sizeof(buf)));
 }
 
 TEST_F(S3BucketReaderTest, UpstreamReaderThrowException) {
@@ -241,4 +243,121 @@ TEST_F(S3BucketReaderTest, UpstreamReaderThrowException) {
 
     EXPECT_THROW(bucketReader->read(buf, sizeof(buf)), S3RuntimeError);
     EXPECT_THROW(bucketReader->read(buf, sizeof(buf)), S3RuntimeError);
+}
+
+class MockRead {
+   public:
+    MockRead(const char* ptr) : p(ptr) {
+        size = strlen(p);
+    }
+    uint64_t operator()(char* buf, uint64_t len) {
+        memcpy(buf, p, size);
+        return size;
+    }
+
+   private:
+    const char* p;
+    uint64_t size;
+};
+
+TEST_F(S3BucketReaderTest, ReadBucketFileWithHeader) {
+    hasHeader = true;
+
+    ListBucketResult result;
+    result.contents.emplace_back("foo", 4);
+    result.contents.emplace_back("bar", 8);
+
+    EXPECT_CALL(s3Interface, listBucket(_, _, _, _)).Times(1).WillOnce(Return(result));
+
+    EXPECT_CALL(s3Reader, read(_, _))
+        .WillOnce(Return(4))
+        .WillOnce(Return(0))
+        .WillOnce(Invoke(MockRead("abc\ndef\n")))
+        .WillOnce(Return(0));
+
+    EXPECT_CALL(s3Reader, open(_)).Times(2);
+
+    s3ext_segid = 0;
+    s3ext_segnum = 1;
+    params.setBaseUrl("https://s3-us-east-2.amazonaws.com/s3test.pivotal.io/whatever");
+    bucketReader->open(params);
+    bucketReader->setUpstreamReader(&s3Reader);
+
+    EXPECT_EQ((uint64_t)4, bucketReader->read(buf, sizeof(buf)));
+    EXPECT_EQ((uint64_t)4, bucketReader->read(buf, sizeof(buf)));
+    EXPECT_EQ((uint64_t)0, bucketReader->read(buf, sizeof(buf)));
+
+    // reset to test following tests
+    hasHeader = false;
+}
+
+TEST_F(S3BucketReaderTest, ReadBucketFileWithHeaderAndWrongEOL) {
+    hasHeader = true;
+    eolString[0] = '\r';
+    eolString[1] = '\n';
+    eolString[2] = '\0';
+
+    ListBucketResult result;
+    result.contents.emplace_back("foo", 4);
+    result.contents.emplace_back("bar", 8);
+
+    EXPECT_CALL(s3Interface, listBucket(_, _, _, _)).Times(1).WillOnce(Return(result));
+
+    EXPECT_CALL(s3Reader, read(_, _))
+        .WillOnce(Return(4))
+        .WillOnce(Return(0))
+        .WillOnce(Invoke(MockRead("abc\ndef\n")))
+        .WillOnce(Return(0))
+        .WillOnce(Return(0));
+
+    EXPECT_CALL(s3Reader, open(_)).Times(2);
+
+    s3ext_segid = 0;
+    s3ext_segnum = 1;
+    params.setBaseUrl("https://s3-us-east-2.amazonaws.com/s3test.pivotal.io/whatever");
+    bucketReader->open(params);
+    bucketReader->setUpstreamReader(&s3Reader);
+
+    EXPECT_EQ((uint64_t)4, bucketReader->read(buf, sizeof(buf)));
+    EXPECT_EQ((uint64_t)0, bucketReader->read(buf, sizeof(buf)));
+
+    // reset to test following tests
+    hasHeader = false;
+    eolString[0] = '\n';
+    eolString[1] = '\0';
+}
+
+TEST_F(S3BucketReaderTest, ReadBucketFileWithHeaderAndFuzyMatch) {
+    hasHeader = true;
+    eolString[0] = '\r';
+    eolString[1] = '\n';
+    eolString[2] = '\0';
+
+    ListBucketResult result;
+    result.contents.emplace_back("foo", 4);
+    result.contents.emplace_back("bar", 8);
+
+    EXPECT_CALL(s3Interface, listBucket(_, _, _, _)).Times(1).WillOnce(Return(result));
+
+    EXPECT_CALL(s3Reader, read(_, _))
+        .WillOnce(Return(4))
+        .WillOnce(Return(0))
+        .WillOnce(Invoke(MockRead("\ra\ndef\r\n")))
+        .WillOnce(Return(0));
+
+    EXPECT_CALL(s3Reader, open(_)).Times(2);
+
+    s3ext_segid = 0;
+    s3ext_segnum = 1;
+    params.setBaseUrl("https://s3-us-east-2.amazonaws.com/s3test.pivotal.io/whatever");
+    bucketReader->open(params);
+    bucketReader->setUpstreamReader(&s3Reader);
+
+    EXPECT_EQ((uint64_t)4, bucketReader->read(buf, sizeof(buf)));
+    EXPECT_EQ((uint64_t)0, bucketReader->read(buf, sizeof(buf)));
+
+    // reset to test following tests
+    hasHeader = false;
+    eolString[0] = '\n';
+    eolString[1] = '\0';
 }
