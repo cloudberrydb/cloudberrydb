@@ -136,11 +136,13 @@ jobs:
       timeout: 2h30m
       on_success:
         put: gpdb_pr
+        tags: ["worker-three"]
         params:
           path: gpdb_pr
           status: success
       on_failure:
         put: gpdb_pr
+        tags: ["worker-three"]
         params:
           path: gpdb_pr
           status: failure
