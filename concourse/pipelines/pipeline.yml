@@ -91,6 +91,7 @@ resources:
 jobs:
 
 - name: compile_gpdb_centos6
+  serial: true
   plan:
   - aggregate:
     - get: gpdb_src
@@ -117,6 +118,7 @@ jobs:
         file: sync_tools_gpdb/sync_tools_gpdb.tar.gz
 
 - name: compile_gpdb_custom_config_centos6
+  serial: true
   public: true
   plan:
   - aggregate:
@@ -130,6 +132,7 @@ jobs:
 
 # Stage 2: IC Tests
 - name: icg_planner_centos6
+  serial: true
   plan:
   - aggregate:
     - get: gpdb_src
@@ -152,6 +155,7 @@ jobs:
       TEST_OS: centos
 
 - name: icg_gporca_centos6
+  serial: true
   plan:
   - aggregate:
     - get: gpdb_src
@@ -174,6 +178,7 @@ jobs:
       TEST_OS: centos
 
 - name: icg_planner_codegen_centos6
+  serial: true
   plan:
   - aggregate:
     - get: gpdb_src
@@ -196,6 +201,7 @@ jobs:
       TEST_OS: centos
 
 - name: icg_gporca_codegen_centos6
+  serial: true
   plan:
   - aggregate:
     - get: gpdb_src
@@ -218,6 +224,7 @@ jobs:
       TEST_OS: centos
 
 - name: icb_planner_centos6
+  serial: true
   plan:
   - aggregate:
     - get: gpdb_src
@@ -240,6 +247,7 @@ jobs:
       TEST_OS: centos
 
 - name: icb_gporca_centos6
+  serial: true
   plan:
   - aggregate:
     - get: gpdb_src
@@ -262,6 +270,7 @@ jobs:
       TEST_OS: centos
 
 - name: icb_planner_codegen_centos6
+  serial: true
   plan:
   - aggregate:
     - get: gpdb_src
@@ -284,6 +293,7 @@ jobs:
       TEST_OS: centos
 
 - name: icb_gporca_codegen_centos6
+  serial: true
   plan:
   - aggregate:
     - get: gpdb_src
@@ -308,6 +318,7 @@ jobs:
 # Stage 3: Packaging
 
 - name: gpdb_rc_packaging_centos
+  serial: true
   plan:
   - aggregate:
     - get: gpdb_src
