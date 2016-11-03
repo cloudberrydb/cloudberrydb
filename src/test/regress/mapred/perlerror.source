@@ -1,7 +1,7 @@
 %YAML 1.1
 
 #
-# The quoting stlye effects how we report error messages
+# The quoting style effects how we report error messages
 # This test creates several documents all of which have the same perl
 # function with the same syntax error, but using different yaml quoting
 # conventions, we check that it get's an error pointing to the right
