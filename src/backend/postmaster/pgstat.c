@@ -1636,12 +1636,16 @@ pgstat_count_heap_delete(Relation rel)
 		/* t_tuples_deleted is nontransactional, so just advance it */
 		pgstat_info->t_counts.t_tuples_deleted++;
 
-		/* We have to log the transactional effect at the proper level */
-		if (pgstat_info->trans == NULL ||
-			pgstat_info->trans->nest_level != nest_level)
-			add_tabstat_xact_level(pgstat_info, nest_level);
+		/* Only if in transaction record the transactional effect */
+		if (nest_level > 0)
+		{
+			/* We have to log the transactional effect at the proper level */
+			if (pgstat_info->trans == NULL ||
+				pgstat_info->trans->nest_level != nest_level)
+				add_tabstat_xact_level(pgstat_info, nest_level);
 
-		pgstat_info->trans->tuples_deleted++;
+			pgstat_info->trans->tuples_deleted++;
+		}
 	}
 }
 
