@@ -89,7 +89,7 @@ createGang_thread(GangType type, int gang_id, int size, int content)
 
 	/* Writer gang is created before reader gangs. */
 	if (type == GANGTYPE_PRIMARY_WRITER)
-		Insist(!gangsExist());
+		Insist(!GangsExist());
 
 	/* Check writer gang firstly*/
 	if (type != GANGTYPE_PRIMARY_WRITER && !isPrimaryWriterGangAlive())
@@ -222,7 +222,7 @@ create_gang_retry:
 			 * Retry for non-writer gangs is meaningless because
 			 * writer gang must has gone when QE is in recovery mode
 			 */
-			disconnectAndDestroyGang(newGangDefinition);
+			DisconnectAndDestroyGang(newGangDefinition);
 			newGangDefinition = NULL;
 	
 			ELOG_DISPATCHER_DEBUG("createGang: gang creation failed, but retryable.");
@@ -239,11 +239,11 @@ create_gang_retry:
 	
 exit:
 	if(newGangDefinition != NULL)
-		disconnectAndDestroyGang(newGangDefinition);
+		DisconnectAndDestroyGang(newGangDefinition);
 
 	if (type == GANGTYPE_PRIMARY_WRITER)
 	{
-		disconnectAndDestroyAllGangs(true);
+		DisconnectAndDestroyAllGangs(true);
 		CheckForResetSession();
 	}
 

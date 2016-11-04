@@ -774,7 +774,7 @@ doNotifyingCommitPrepared(void)
 		 * at the top in PostgresMain.
 		 */
 		elog(NOTICE, "Releasing segworker group to retry broadcast.");
-		disconnectAndDestroyAllGangs(true);
+		DisconnectAndDestroyAllGangs(true);
 
 		/*
 		 * This call will at a minimum change the session id so we will
@@ -836,7 +836,7 @@ doNotifyingAbort(void)
 
 	if (currentGxact->state == DTX_STATE_NOTIFYING_ABORT_NO_PREPARED)
 	{
-		if (gangsExist())
+		if (GangsExist())
 		{
 			succeeded = doDispatchDtxProtocolCommand(DTX_PROTOCOL_COMMAND_ABORT_NO_PREPARED, /* flags */ 0,
 													 currentGxact->gid, currentGxact->gxid,
@@ -851,7 +851,7 @@ doNotifyingAbort(void)
 				 * Reset the dispatch logic and disconnect from any segment that didn't respond to our abort.
 				 */
 				elog(NOTICE, "Releasing segworker groups to finish aborting the transaction.");
-				disconnectAndDestroyAllGangs(true);
+				DisconnectAndDestroyAllGangs(true);
 
 				/*
 				 * This call will at a minimum change the session id so we will
@@ -910,7 +910,7 @@ doNotifyingAbort(void)
 			 * Reset the dispatch logic (i.e. deallocate gang) so we can attempt a retry.
 			 */
 			elog(NOTICE, "Releasing segworker groups to retry broadcast.");
-			disconnectAndDestroyAllGangs(true);
+			DisconnectAndDestroyAllGangs(true);
 
 			/*
 			 * This call will at a minimum change the session id so we will
@@ -1232,7 +1232,7 @@ rollbackDtxTransaction(void)
 			 * segments.  What's left are possibily prepared transactions.
 			 */
 			elog(WARNING, "Releasing segworker groups since one or more segment connections failed.  This will abort the transactions in the segments that did not get prepared.");
-			disconnectAndDestroyAllGangs(true);
+			DisconnectAndDestroyAllGangs(true);
 
 			/*
 			 * This call will at a minimum change the session id so we will
@@ -1257,7 +1257,7 @@ rollbackDtxTransaction(void)
 		 * segments.
 		 */
 		elog(NOTICE, "Releasing segworker groups to finish aborting the transaction.");
-		disconnectAndDestroyAllGangs(true);
+		DisconnectAndDestroyAllGangs(true);
 
 		/*
 		 * This call will at a minimum change the session id so we will
@@ -1325,7 +1325,7 @@ rollbackDtxTransaction(void)
 		 * segment instances.  And, we will abort the transactions in the
 		 * segments.
 		 */
-		disconnectAndDestroyAllGangs(true);
+		DisconnectAndDestroyAllGangs(true);
 
 		/*
 		 * This call will at a minimum change the session id so we will
@@ -2212,7 +2212,7 @@ doDispatchDtxProtocolCommand(DtxProtocolCommand dtxProtocolCommand, int flags,
 				 direct->directed_dispatch ? direct->content[0] : -1);
 
 	initStringInfo(&errbuf);
-	results = cdbdisp_dispatchDtxProtocolCommand(dtxProtocolCommand, flags,
+	results = CdbDispatchDtxProtocolCommand(dtxProtocolCommand, flags,
 												 dtxProtocolCommandStr,
 												 gid, gxid,
 												 &errbuf, &resultCount, badGangs, direct,

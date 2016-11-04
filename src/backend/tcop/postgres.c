@@ -992,8 +992,7 @@ pg_plan_queries(List *querytrees, int cursorOptions, ParamListInfo boundParams,
 /*
  * exec_mpp_query
  *
- * Called in a qExec process to read and execute a query plan sent by
- * cdbdisp_dispatchPlan().
+ * Called in a qExec process to read and execute a query plan sent by CdbDispatchPlan().
  *
  * query_string -- optional query text (C string).
  * serializedQuerytree[len]  -- Query node or (NULL,0) if plan provided.
@@ -4892,7 +4891,7 @@ PostgresMain(int argc, char *argv[],
 			 * This means giving the end user enough time to type in the next SQL statement
 			 *
 			 */
-			if (IdleSessionGangTimeout > 0 && gangsExist())
+			if (IdleSessionGangTimeout > 0 && GangsExist())
 				if (!enable_sig_alarm( IdleSessionGangTimeout /* ms */, false))
 					elog(FATAL, "could not set timer for client wait timeout");
 		}

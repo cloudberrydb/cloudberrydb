@@ -1687,7 +1687,7 @@ HandleClientWaitTimeout(void)
 	/*
 	 * Free gangs to free up resources on the segDBs.
 	 */
-	if (gangsExist())
+	if (GangsExist())
 	{
 		if (IsTransactionOrTransactionBlock() || TempNamespaceOidIsValid())
 		{
@@ -1714,7 +1714,7 @@ HandleClientWaitTimeout(void)
 			 * in the log.
 			 *
 			 */
-			disconnectAndDestroyAllGangs(false);
+			DisconnectAndDestroyAllGangs(false);
 		}
 	}
 }

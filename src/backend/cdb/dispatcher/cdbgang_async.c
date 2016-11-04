@@ -63,7 +63,7 @@ createGang_async(GangType type, int gang_id, int size, int content)
 	Assert(CurrentMemoryContext == GangContext);
 	/* Writer gang is created before reader gangs. */
 	if (type == GANGTYPE_PRIMARY_WRITER)
-		Insist(!gangsExist());
+		Insist(!GangsExist());
 
 	/* Check writer gang firstly*/
 	if (type != GANGTYPE_PRIMARY_WRITER && !isPrimaryWriterGangAlive())
@@ -274,7 +274,7 @@ create_gang_retry:
 
 			ELOG_DISPATCHER_DEBUG("createGang: gang creation failed, but retryable.");
 
-			disconnectAndDestroyGang(newGangDefinition);
+			DisconnectAndDestroyGang(newGangDefinition);
 			newGangDefinition = NULL;
 			retry = true;
 		}
@@ -282,12 +282,12 @@ create_gang_retry:
 	PG_CATCH();
 	{
 		MemoryContextSwitchTo(GangContext);
-		disconnectAndDestroyGang(newGangDefinition);
+		DisconnectAndDestroyGang(newGangDefinition);
 		newGangDefinition = NULL;
 
 		if (type == GANGTYPE_PRIMARY_WRITER)
 		{
-			disconnectAndDestroyAllGangs(true);
+			DisconnectAndDestroyAllGangs(true);
 			CheckForResetSession();
 		}
 

@@ -51,11 +51,11 @@ test__ExecSetParamPlan__Check_Dispatch_Results(void **state)
 
 	will_be_called(isCurrentDtxTwoPhase);
 
-	expect_any(cdbdisp_dispatchPlan,queryDesc);
-	expect_any(cdbdisp_dispatchPlan,planRequiresTxn);
-	expect_any(cdbdisp_dispatchPlan,cancelOnError);
-	expect_any(cdbdisp_dispatchPlan,ds);
-	will_be_called(cdbdisp_dispatchPlan);
+	expect_any(CdbDispatchPlan,queryDesc);
+	expect_any(CdbDispatchPlan,planRequiresTxn);
+	expect_any(CdbDispatchPlan,cancelOnError);
+	expect_any(CdbDispatchPlan,ds);
+	will_be_called(CdbDispatchPlan);
 
 	expect_any(SetupInterconnect,estate);
 	/* Force SetupInterconnect to fail */

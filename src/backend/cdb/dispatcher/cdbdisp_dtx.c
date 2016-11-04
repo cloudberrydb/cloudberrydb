@@ -55,7 +55,7 @@ buildGpDtxProtocolCommand(struct CdbDispatcherState *ds,
 						  int *finalLen);
 
 /*
- * cdbdisp_dispatchDtxProtocolCommand:
+ * CdbDispatchDtxProtocolCommand:
  * Sends a non-cancelable command to all segment dbs
  *
  * Returns a malloc'ed array containing the PGresult objects thus
@@ -67,7 +67,7 @@ buildGpDtxProtocolCommand(struct CdbDispatcherState *ds,
  * by the caller.
  */
 struct pg_result **
-cdbdisp_dispatchDtxProtocolCommand(DtxProtocolCommand dtxProtocolCommand,
+CdbDispatchDtxProtocolCommand(DtxProtocolCommand dtxProtocolCommand,
 								   int flags,
 								   char *dtxProtocolCommandLoggingStr,
 								   char *gid,
@@ -90,7 +90,7 @@ cdbdisp_dispatchDtxProtocolCommand(DtxProtocolCommand dtxProtocolCommand,
 	int queryTextLen = 0;
 
 	elog((Debug_print_full_dtm ? LOG : DEBUG5),
-		 "cdbdisp_dispatchDtxProtocolCommand: %s for gid = %s, direct content #: %d",
+		 "CdbDispatchDtxProtocolCommand: %s for gid = %s, direct content #: %d",
 		 dtxProtocolCommandLoggingStr, gid,
 		 direct->directed_dispatch ? direct->content[0] : -1);
 
@@ -111,13 +111,13 @@ cdbdisp_dispatchDtxProtocolCommand(DtxProtocolCommand dtxProtocolCommand,
 	/*
 	 * Allocate a primary QE for every available segDB in the system.
 	 */
-	primaryGang = allocateWriterGang();
+	primaryGang = AllocateWriterGang();
 
 	Assert(primaryGang);
 
 	if (primaryGang->dispatcherActive)
 	{
-		elog(LOG, "cdbdisp_dispatchDtxProtocolCommand: primary gang marked active re-marking");
+		elog(LOG, "CdbDispatchDtxProtocolCommand: primary gang marked active re-marking");
 		primaryGang->dispatcherActive = false;
 	}
 
@@ -139,11 +139,11 @@ cdbdisp_dispatchDtxProtocolCommand(DtxProtocolCommand dtxProtocolCommand,
 		 */
 		pr = cdbdisp_getDispatchResults(&ds, errmsgbuf);
 
-		if (!gangOK(primaryGang))
+		if (!GangOK(primaryGang))
 		{
 			*badGangs = true;
 			elog((Debug_print_full_dtm ? LOG : DEBUG5),
-					"cdbdisp_dispatchDtxProtocolCommand: Bad gang from dispatch of %s for gid = %s",
+					"CdbDispatchDtxProtocolCommand: Bad gang from dispatch of %s for gid = %s",
 					dtxProtocolCommandLoggingStr, gid);
 		}
 		/*

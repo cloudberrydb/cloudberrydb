@@ -1008,7 +1008,7 @@ ExecSetParamPlan(SubPlanState *node, ExprContext *econtext, QueryDesc *queryDesc
              * command to the appropriate segdbs.  It does not wait for them
              * to finish unless an error is detected before all are dispatched.
 			 */
-			cdbdisp_dispatchPlan(queryDesc, needDtxTwoPhase, true, queryDesc->estate->dispatcherState);
+			CdbDispatchPlan(queryDesc, needDtxTwoPhase, true, queryDesc->estate->dispatcherState);
 
 			/*
 			 * Set up the interconnect for execution of the initplan root slice.
@@ -1250,7 +1250,7 @@ ExecSetParamPlan(SubPlanState *node, ExprContext *econtext, QueryDesc *queryDesc
          * Replace current error info with QE error info if more interesting.
 		 */
         if (shouldDispatch && queryDesc && queryDesc->estate && queryDesc->estate->dispatcherState && queryDesc->estate->dispatcherState->primaryResults)
-			cdbdisp_handleError(queryDesc->estate->dispatcherState);
+			CdbDispatchHandleError(queryDesc->estate->dispatcherState);
 		
 		/* teardown the sequence server */
 		TeardownSequenceServer();

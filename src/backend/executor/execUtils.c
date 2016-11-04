@@ -1735,13 +1735,13 @@ AssignGangs(QueryDesc *queryDesc)
 		{
 			if (i == 0 && !queryDesc->extended_query)
 			{
-				inv.vecNgangs[i] = allocateWriterGang();
+				inv.vecNgangs[i] = AllocateWriterGang();
 
 				Assert(inv.vecNgangs[i] != NULL);
 			}
 			else
 			{
-				inv.vecNgangs[i] = allocateReaderGang(GANGTYPE_PRIMARY_READER, queryDesc->portal_name);
+				inv.vecNgangs[i] = AllocateReaderGang(GANGTYPE_PRIMARY_READER, queryDesc->portal_name);
 			}
 		}
 	}
@@ -1750,7 +1750,7 @@ AssignGangs(QueryDesc *queryDesc)
 		inv.vec1gangs_primary_reader = (Gang **) palloc(sizeof(Gang *) * inv.num1gangs_primary_reader);
 		for (i = 0; i < inv.num1gangs_primary_reader; i++)
 		{
-			inv.vec1gangs_primary_reader[i] = allocateReaderGang(GANGTYPE_SINGLETON_READER, queryDesc->portal_name);
+			inv.vec1gangs_primary_reader[i] = AllocateReaderGang(GANGTYPE_SINGLETON_READER, queryDesc->portal_name);
 		}
 	}
 	if (inv.num1gangs_entrydb_reader > 0)
@@ -1758,7 +1758,7 @@ AssignGangs(QueryDesc *queryDesc)
 		inv.vec1gangs_entrydb_reader = (Gang **) palloc(sizeof(Gang *) * inv.num1gangs_entrydb_reader);
 		for (i = 0; i < inv.num1gangs_entrydb_reader; i++)
 		{
-			inv.vec1gangs_entrydb_reader[i] = allocateReaderGang(GANGTYPE_ENTRYDB_READER, queryDesc->portal_name);
+			inv.vec1gangs_entrydb_reader[i] = AllocateReaderGang(GANGTYPE_ENTRYDB_READER, queryDesc->portal_name);
 		}
 	}
 
@@ -2193,7 +2193,7 @@ void mppExecutorCleanup(QueryDesc *queryDesc)
 		if (estate->es_interconnect_is_setup && !estate->es_got_eos)
 			ExecSquelchNode(queryDesc->planstate);
 
-		cdbdisp_handleError(estate->dispatcherState);
+		CdbDispatchHandleError(estate->dispatcherState);
 	}
 
 	/* Clean up the interconnect. */

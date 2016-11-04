@@ -56,20 +56,20 @@ extern int qe_gang_id;
 
 extern MemoryContext GangContext;
 
-extern Gang *allocateReaderGang(GangType type, char *portal_name);
+extern Gang *AllocateReaderGang(GangType type, char *portal_name);
 
-extern Gang *allocateWriterGang(void);
+extern Gang *AllocateWriterGang(void);
 
 extern List *getCdbProcessList(Gang *gang, int sliceIndex, struct DirectDispatchInfo *directDispatch);
 
-extern bool gangOK(Gang *gp);
+extern bool GangOK(Gang *gp);
 
 extern List *getCdbProcessesForQD(int isPrimary);
 
 extern void freeGangsForPortal(char *portal_name);
 
-extern void disconnectAndDestroyGang(Gang *gp);
-extern void disconnectAndDestroyAllGangs(bool resetSession);
+extern void DisconnectAndDestroyGang(Gang *gp);
+extern void DisconnectAndDestroyAllGangs(bool resetSession);
 
 extern void CheckForResetSession(void);
 
@@ -79,7 +79,7 @@ extern List *getAllAllocatedReaderGangs(void);
 
 extern CdbComponentDatabases *getComponentDatabases(void);
 
-extern bool gangsExist(void);
+extern bool GangsExist(void);
 
 extern struct SegmentDatabaseDescriptor *getSegmentDescriptorFromGang(const Gang *gp, int seg);
 

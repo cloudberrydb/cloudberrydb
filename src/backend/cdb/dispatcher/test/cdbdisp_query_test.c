@@ -23,7 +23,7 @@ _init_cdbdisp_buildPlanQueryParms(QueryDesc *queryDesc)
 }
 
 /*
- * Test that cdbdisp_dispatchPlan handles a plan size overflow well
+ * Test that CdbDispatchPlan handles a plan size overflow well
  */
 void
 test__cdbdisp_buildPlanQueryParms__Overflow_plan_size_in_kb(void **state)

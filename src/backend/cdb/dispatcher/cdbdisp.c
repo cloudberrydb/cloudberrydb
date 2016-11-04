@@ -237,7 +237,7 @@ cdbdisp_finishCommand(struct CdbDispatcherState *ds)
 }
 
 /*
- * cdbdisp_handleError
+ * CdbDispatchHandleError
  *
  * When caller catches an error, the PG_CATCH handler can use this
  * function instead of cdbdisp_finishCommand to wait for all QEs
@@ -251,7 +251,7 @@ cdbdisp_finishCommand(struct CdbDispatcherState *ds)
  * exit via PG_RE_THROW().
  */
 void
-cdbdisp_handleError(struct CdbDispatcherState *ds)
+CdbDispatchHandleError(struct CdbDispatcherState *ds)
 {
 	int			qderrcode;
 	bool		useQeError = false;

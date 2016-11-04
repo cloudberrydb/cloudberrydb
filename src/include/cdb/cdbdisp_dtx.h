@@ -16,7 +16,7 @@
 struct pg_result;                   /* #include "gp-libpq-fe.h" */
 struct CdbPgResults;
 /*
- * cdbdisp_dispatchDtxProtocolCommand:
+ * CdbDispatchDtxProtocolCommand:
  * Sends a non-cancelable command to all segment dbs, primary
  *
  * Returns a malloc'ed array containing the PGresult objects thus
@@ -28,7 +28,7 @@ struct CdbPgResults;
  * by the caller.
  */
 struct pg_result **
-cdbdisp_dispatchDtxProtocolCommand(DtxProtocolCommand dtxProtocolCommand,
+CdbDispatchDtxProtocolCommand(DtxProtocolCommand dtxProtocolCommand,
 								   int flags,
 								   char	*dtxProtocolCommandLoggingStr,
 								   char	*gid,

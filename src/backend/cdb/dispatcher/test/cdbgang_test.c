@@ -145,7 +145,7 @@ static void test__createWriterGang(void **state)
 
 	cdbgang_setAsync(false);
 
-	Gang * gang = allocateWriterGang();
+	Gang * gang = AllocateWriterGang();
 
 	/* validate gang */
 	assert_int_equal(gang->size, TOTOAL_SEGMENTS);
@@ -193,7 +193,7 @@ static void test__createReaderGang(void **state)
 	mockLibpq(conn, motionListener, qePid);
 
 	cdbgang_setAsync(false);
-	Gang * gang = allocateReaderGang(GANGTYPE_PRIMARY_READER, portalName);
+	Gang * gang = AllocateReaderGang(GANGTYPE_PRIMARY_READER, portalName);
 
 	/* validate gang */
 	assert_int_equal(gang->size, TOTOAL_SEGMENTS);

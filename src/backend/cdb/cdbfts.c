@@ -211,7 +211,7 @@ FtsReConfigureMPP(bool create_new_gangs)
 
 	ereport(LOG, (errmsg_internal("FTS: reconfiguration is in progress"),
 			errSendAlert(true)));
-	disconnectAndDestroyAllGangs(true);
+	DisconnectAndDestroyAllGangs(true);
 
 	/* Caller should throw an error. */
 	return;

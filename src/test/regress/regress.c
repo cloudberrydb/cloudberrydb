@@ -2452,7 +2452,7 @@ PG_FUNCTION_INFO_V1(cleanupAllGangs);
 Datum
 cleanupAllGangs(PG_FUNCTION_ARGS)
 {
-	disconnectAndDestroyAllGangs(false);
+	DisconnectAndDestroyAllGangs(false);
 	PG_RETURN_BOOL(true);
 }
 
@@ -2460,7 +2460,7 @@ PG_FUNCTION_INFO_V1(hasGangsExist);
 Datum
 hasGangsExist(PG_FUNCTION_ARGS)
 {
-	if (gangsExist())
+	if (GangsExist())
 		PG_RETURN_BOOL(true);
 	PG_RETURN_BOOL(false);
 }

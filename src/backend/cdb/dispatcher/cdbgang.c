@@ -100,14 +100,14 @@ static Gang *getAvailableGang(GangType type, int size, int content);
  * @type can be GANGTYPE_ENTRYDB_READER, GANGTYPE_SINGLETON_READER or GANGTYPE_PRIMARY_READER.
  */
 Gang *
-allocateReaderGang(GangType type, char *portal_name)
+AllocateReaderGang(GangType type, char *portal_name)
 {
 	MemoryContext oldContext = NULL;
 	Gang *gp = NULL;
 	int size = 0;
 	int content = 0;
 
-	ELOG_DISPATCHER_DEBUG("allocateReaderGang for portal %s: allocatedReaderGangsN %d, availableReaderGangsN %d, "
+	ELOG_DISPATCHER_DEBUG("AllocateReaderGang for portal %s: allocatedReaderGangsN %d, availableReaderGangsN %d, "
 			"allocatedReaderGangs1 %d, availableReaderGangs1 %d",
 			(portal_name ? portal_name : "<unnamed>"),
 			list_length(allocatedReaderGangsN),
@@ -180,7 +180,7 @@ allocateReaderGang(GangType type, char *portal_name)
 	gp->portal_name = (portal_name ? pstrdup(portal_name) : (char *) NULL);
 
 	/* sanity check the gang */
-	insist_log(gangOK(gp), "could not connect to segment: initialization of segworker group failed");
+	insist_log(GangOK(gp), "could not connect to segment: initialization of segworker group failed");
 
 	addGangToAllocated(gp);
 
@@ -200,13 +200,13 @@ allocateReaderGang(GangType type, char *portal_name)
  * Create a writer gang.
  */
 Gang *
-allocateWriterGang()
+AllocateWriterGang()
 {
 	Gang *writerGang = NULL;
 	MemoryContext oldContext = NULL;
 	int i = 0;
 
-	ELOG_DISPATCHER_DEBUG("allocateWriterGang begin.");
+	ELOG_DISPATCHER_DEBUG("AllocateWriterGang begin.");
 
 	if (Gp_role != GP_ROLE_DISPATCH)
 	{
@@ -256,10 +256,10 @@ allocateWriterGang()
 	}
 
 	/* sanity check the gang */
-	if (!gangOK(writerGang))
+	if (!GangOK(writerGang))
 		elog(ERROR, "could not connect to segment: initialization of segworker group failed");
 
-	ELOG_DISPATCHER_DEBUG("allocateWriterGang end.");
+	ELOG_DISPATCHER_DEBUG("AllocateWriterGang end.");
 
 	primaryWriterGang = writerGang;
 	return writerGang;
@@ -1027,17 +1027,17 @@ getCdbProcessesForQD(int isPrimary)
  * Caller needs to reset session id if this is a writer gang.
  */
 void
-disconnectAndDestroyGang(Gang *gp)
+DisconnectAndDestroyGang(Gang *gp)
 {
 	int i = 0;
 
 	if (gp == NULL)
 		return;
 
-	ELOG_DISPATCHER_DEBUG("disconnectAndDestroyGang entered: id = %d", gp->gang_id);
+	ELOG_DISPATCHER_DEBUG("DisconnectAndDestroyGang entered: id = %d", gp->gang_id);
 
 	if (gp->allocated)
-		ELOG_DISPATCHER_DEBUG("Warning: disconnectAndDestroyGang called on an allocated gang");
+		ELOG_DISPATCHER_DEBUG("Warning: DisconnectAndDestroyGang called on an allocated gang");
 	/*
 	 * Loop through the segment_database_descriptors array and, for each
 	 * SegmentDatabaseDescriptor:
@@ -1055,7 +1055,7 @@ disconnectAndDestroyGang(Gang *gp)
 
 	MemoryContextDelete(gp->perGangContext);
 
-	ELOG_DISPATCHER_DEBUG("disconnectAndDestroyGang done");
+	ELOG_DISPATCHER_DEBUG("DisconnectAndDestroyGang done");
 }
 
 /*
@@ -1075,14 +1075,14 @@ static void disconnectAndDestroyAllReaderGangs(bool destroyAllocated)
 	foreach(lc, availableReaderGangsN)
 	{
 		gp = (Gang*) lfirst(lc);
-		disconnectAndDestroyGang(gp);
+		DisconnectAndDestroyGang(gp);
 	}
 	availableReaderGangsN = NULL;
 
 	foreach(lc, availableReaderGangs1)
 	{
 		gp = (Gang*) lfirst(lc);
-		disconnectAndDestroyGang(gp);
+		DisconnectAndDestroyGang(gp);
 	}
 	availableReaderGangs1 = NULL;
 
@@ -1091,30 +1091,30 @@ static void disconnectAndDestroyAllReaderGangs(bool destroyAllocated)
 		foreach(lc, allocatedReaderGangsN)
 		{
 			gp = (Gang*) lfirst(lc);
-			disconnectAndDestroyGang(gp);
+			DisconnectAndDestroyGang(gp);
 		}
 		allocatedReaderGangsN = NULL;
 
 		foreach(lc, allocatedReaderGangs1)
 		{
 			gp = (Gang*) lfirst(lc);
-			disconnectAndDestroyGang(gp);
+			DisconnectAndDestroyGang(gp);
 		}
 		allocatedReaderGangs1 = NULL;
 	}
 }
 
-void disconnectAndDestroyAllGangs(bool resetSession)
+void DisconnectAndDestroyAllGangs(bool resetSession)
 {
 	if (Gp_role == GP_ROLE_UTILITY)
 		return;
 
-	ELOG_DISPATCHER_DEBUG("disconnectAndDestroyAllGangs");
+	ELOG_DISPATCHER_DEBUG("DisconnectAndDestroyAllGangs");
 
 	/* for now, destroy all readers, regardless of the portal that owns them */
 	disconnectAndDestroyAllReaderGangs(true);
 
-	disconnectAndDestroyGang(primaryWriterGang);
+	DisconnectAndDestroyGang(primaryWriterGang);
 	primaryWriterGang = NULL;
 
 	if (resetSession)
@@ -1130,7 +1130,7 @@ void disconnectAndDestroyAllGangs(bool resetSession)
 		cdb_component_dbs = NULL;
 	}
 
-	ELOG_DISPATCHER_DEBUG("disconnectAndDestroyAllGangs done");
+	ELOG_DISPATCHER_DEBUG("DisconnectAndDestroyAllGangs done");
 }
 
 /*
@@ -1157,7 +1157,7 @@ void disconnectAndDestroyIdleReaderGangs(void)
  *
  * A return value of false, means that a problem was detected and the
  * gang has been disconnected (and so should not be put back onto the
- * available list). Caller should call disconnectAndDestroyGang on it.
+ * available list). Caller should call DisconnectAndDestroyGang on it.
  */
 static bool cleanupGang(Gang *gp)
 {
@@ -1285,7 +1285,7 @@ cleanupPortalGangList(List *gplist, int cachelimit)
 		if (nLeft > cachelimit ||
 			getGangMaxVmem(gang) > gp_vmem_protect_gang_cache_limit)
 		{
-			disconnectAndDestroyGang(gang);
+			DisconnectAndDestroyGang(gang);
 			gplist = list_delete_cell(gplist, cell, prevcell);
 			nLeft--;
 
@@ -1371,7 +1371,7 @@ void freeGangsForPortal(char *portal_name)
 		primaryWriterGang != NULL &&
 		!cleanupGang(primaryWriterGang))
 	{
-		disconnectAndDestroyAllGangs(true);
+		DisconnectAndDestroyAllGangs(true);
 		return;
 	}
 
@@ -1412,7 +1412,7 @@ void freeGangsForPortal(char *portal_name)
 			if (cleanupGang(gp))
 				availableReaderGangsN = lappend(availableReaderGangsN, gp);
 			else
-				disconnectAndDestroyGang(gp);
+				DisconnectAndDestroyGang(gp);
 
 			cur_item = next_item;
 		}
@@ -1445,7 +1445,7 @@ void freeGangsForPortal(char *portal_name)
 			if (cleanupGang(gp))
 				availableReaderGangs1 = lappend(availableReaderGangs1, gp);
 			else
-				disconnectAndDestroyGang(gp);
+				DisconnectAndDestroyGang(gp);
 
 			cur_item = next_item;
 		}
@@ -1488,7 +1488,7 @@ void CheckForResetSession(void)
 	/* Do the session id change early. */
 
 	/* If we have gangs, we can't change our session ID. */
-	Assert(!gangsExist());
+	Assert(!GangsExist());
 
 	oldSessionId = gp_session_id;
 	ProcNewMppSessionId(&newSessionId);
@@ -1656,7 +1656,7 @@ static const char* gangTypeToString(GangType type)
 	return ret;
 }
 
-bool gangOK(Gang *gp)
+bool GangOK(Gang *gp)
 {
 	int i;
 
@@ -1684,7 +1684,7 @@ bool gangOK(Gang *gp)
 	return true;
 }
 
-bool gangsExist(void)
+bool GangsExist(void)
 {
 	return (primaryWriterGang != NULL ||
 			allocatedReaderGangsN != NIL ||

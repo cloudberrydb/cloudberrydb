@@ -498,7 +498,7 @@ cdb_cleanup(int code __attribute__((unused)) , Datum arg __attribute__((unused))
 {
 	elog(DEBUG1, "Cleaning up Greenplum components...");
 
-	disconnectAndDestroyAllGangs(true);
+	DisconnectAndDestroyAllGangs(true);
 
 	if (Gp_role == GP_ROLE_DISPATCH)
 	{

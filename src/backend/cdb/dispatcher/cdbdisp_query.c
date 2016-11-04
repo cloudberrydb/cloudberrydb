@@ -166,9 +166,9 @@ buildSliceIndexGangIdMap(SliceVec *sliceVec, int numSlices, int numTotalSlices);
  * The message is deserialized and processed by exec_mpp_query() in postgres.c.
  */
 void
-cdbdisp_dispatchPlan(struct QueryDesc *queryDesc,
-					 bool planRequiresTxn,
-					 bool cancelOnError, struct CdbDispatcherState *ds)
+CdbDispatchPlan(struct QueryDesc *queryDesc,
+				bool planRequiresTxn,
+				bool cancelOnError, struct CdbDispatcherState *ds)
 {
 	SliceTable *sliceTbl;
 	int oldLocalSlice;
@@ -279,17 +279,17 @@ cdbdisp_dispatchPlan(struct QueryDesc *queryDesc,
  * gangs, both reader and writer
  */
 void
-CdbSetGucOnAllGangs(const char *strCommand,
-					bool cancelOnError, bool needTwoPhase)
+CdbDispatchSetCommand(const char *strCommand,
+					  bool cancelOnError, bool needTwoPhase)
 {
 	volatile CdbDispatcherState ds = {NULL, NULL, NULL};
 	const bool	withSnapshot = true;
 
 	elog((Debug_print_full_dtm ? LOG : DEBUG5),
-		 "CdbSetGucOnAllGangs for command = '%s', needTwoPhase = %s",
+		 "CdbDispatchSetCommand for command = '%s', needTwoPhase = %s",
 		 strCommand, (needTwoPhase ? "true" : "false"));
 
-	dtmPreCommand("CdbSetGucOnAllGangs", strCommand, NULL, needTwoPhase,
+	dtmPreCommand("CdbDispatchSetCommand", strCommand, NULL, needTwoPhase,
 				  withSnapshot, false /* inCursor */ );
 
 	PG_TRY();
@@ -448,7 +448,7 @@ cdbdisp_dispatchCommandInternal(const char *strCommand,
 	/*
 	 * Allocate a primary QE for every available segDB in the system.
 	 */
-	primaryGang = allocateWriterGang();
+	primaryGang = AllocateWriterGang();
 
 	Assert(primaryGang);
 
@@ -1378,7 +1378,7 @@ cdbdisp_dispatchSetCommandToAllGangs(const char *strCommand,
 	/*
 	 * Allocate a primary QE for every available segDB in the system.
 	 */
-	primaryGang = allocateWriterGang();
+	primaryGang = AllocateWriterGang();
 
 	Assert(primaryGang);
 
