@@ -327,10 +327,22 @@ _outQueryDispatchDesc(StringInfo str, QueryDispatchDesc *node)
 	WRITE_NODE_TYPE("QUERYDISPATCHDESC");
 
 	WRITE_NODE_FIELD(transientTypeRecords);
-	WRITE_NODE_FIELD(intoOidInfo);
 	WRITE_STRING_FIELD(intoTableSpaceName);
+	WRITE_NODE_FIELD(oidAssignments);
 	WRITE_NODE_FIELD(sliceTable);
 	WRITE_NODE_FIELD(cursorPositions);
+}
+
+static void
+_outOidAssignment(StringInfo str, OidAssignment *node)
+{
+	WRITE_NODE_TYPE("OIDASSIGNMENT");
+
+	WRITE_OID_FIELD(catalog);
+	WRITE_STRING_FIELD(objname);
+	WRITE_OID_FIELD(namespaceOid);
+	WRITE_OID_FIELD(keyOid2);
+	WRITE_OID_FIELD(oid);
 }
 
 #ifndef COMPILING_BINARY_FUNCS
@@ -1138,27 +1150,6 @@ _outIntoClause(StringInfo str, IntoClause *node)
 	WRITE_NODE_FIELD(options);
 	WRITE_ENUM_FIELD(onCommit, OnCommitAction);
 	WRITE_STRING_FIELD(tableSpaceName);
-}
-
-static void
-_outTableOidInfo(StringInfo str, TableOidInfo *node)
-{
-	WRITE_NODE_TYPE("TABLEOIDINFO");
-
-	WRITE_OID_FIELD(relOid);
-	WRITE_OID_FIELD(comptypeOid);
-	WRITE_OID_FIELD(comptypeArrayOid);
-	WRITE_OID_FIELD(toastOid);
-	WRITE_OID_FIELD(toastIndexOid);
-	WRITE_OID_FIELD(toastComptypeOid);
-	WRITE_OID_FIELD(aosegOid);
-	WRITE_OID_FIELD(aosegComptypeOid);
-	WRITE_OID_FIELD(aovisimapOid);
-	WRITE_OID_FIELD(aovisimapIndexOid);
-	WRITE_OID_FIELD(aovisimapComptypeOid);
-	WRITE_OID_FIELD(aoblkdirOid);
-	WRITE_OID_FIELD(aoblkdirIndexOid);
-	WRITE_OID_FIELD(aoblkdirComptypeOid);
 }
 
 static void
@@ -2282,20 +2273,6 @@ _outCreateStmt(StringInfo str, CreateStmt *node)
 	WRITE_STRING_FIELD(tablespacename);
 	WRITE_NODE_FIELD(distributedBy);
 	WRITE_NODE_FIELD(partitionBy);
-	WRITE_OID_FIELD(oidInfo.relOid);
-	WRITE_OID_FIELD(oidInfo.comptypeOid);
-	WRITE_OID_FIELD(oidInfo.comptypeArrayOid);
-	WRITE_OID_FIELD(oidInfo.toastOid);
-	WRITE_OID_FIELD(oidInfo.toastIndexOid);
-	WRITE_OID_FIELD(oidInfo.toastComptypeOid);
-	WRITE_OID_FIELD(oidInfo.aosegOid);
-	WRITE_OID_FIELD(oidInfo.aosegComptypeOid);
-	WRITE_OID_FIELD(oidInfo.aovisimapOid);
-	WRITE_OID_FIELD(oidInfo.aovisimapIndexOid);
-	WRITE_OID_FIELD(oidInfo.aovisimapComptypeOid);
-	WRITE_OID_FIELD(oidInfo.aoblkdirOid);
-	WRITE_OID_FIELD(oidInfo.aoblkdirIndexOid);
-	WRITE_OID_FIELD(oidInfo.aoblkdirComptypeOid);
 	WRITE_CHAR_FIELD(relKind);
 	WRITE_CHAR_FIELD(relStorage);
 	/* policy omitted */
@@ -2366,9 +2343,7 @@ _outIndexStmt(StringInfo str, IndexStmt *node)
 	WRITE_BOOL_FIELD(primary);
 	WRITE_BOOL_FIELD(isconstraint);
 	WRITE_STRING_FIELD(altconname);
-	WRITE_OID_FIELD(constrOid);
 	WRITE_BOOL_FIELD(concurrent);
-	WRITE_NODE_FIELD(idxOids);
 }
 
 static void
@@ -2381,7 +2356,6 @@ _outReindexStmt(StringInfo str, ReindexStmt *node)
 	WRITE_STRING_FIELD(name);
 	WRITE_BOOL_FIELD(do_system);
 	WRITE_BOOL_FIELD(do_user);
-	WRITE_NODE_FIELD(new_ind_oids);
 	WRITE_OID_FIELD(relid);
 }
 
@@ -2395,10 +2369,6 @@ _outViewStmt(StringInfo str, ViewStmt *node)
 	WRITE_NODE_FIELD(aliases);
 	WRITE_NODE_FIELD(query);
 	WRITE_BOOL_FIELD(replace);
-	WRITE_OID_FIELD(relOid);
-	WRITE_OID_FIELD(comptypeOid);
-	WRITE_OID_FIELD(comptypeArrayOid);
-	WRITE_OID_FIELD(rewriteOid);
 }
 
 static void
@@ -2464,43 +2434,16 @@ _outTruncateStmt(StringInfo str, TruncateStmt *node)
 
 	WRITE_NODE_FIELD(relations);
 	WRITE_ENUM_FIELD(behavior, DropBehavior);
-	WRITE_NODE_FIELD(relids);
-	WRITE_NODE_FIELD(new_heap_oids);
-	WRITE_NODE_FIELD(new_toast_oids);
-	WRITE_NODE_FIELD(new_aoseg_oids);
-	WRITE_NODE_FIELD(new_aoblkdir_oids);
-	WRITE_NODE_FIELD(new_aovisimap_oids);
-	WRITE_NODE_FIELD(new_ind_oids);
 }
 
 static void
 _outAlterTableStmt(StringInfo str, AlterTableStmt *node)
 {
-	int m;
 	WRITE_NODE_TYPE("ALTERTABLESTMT");
 
 	WRITE_NODE_FIELD(relation);
 	WRITE_NODE_FIELD(cmds);
 	WRITE_ENUM_FIELD(relkind, ObjectType);
-	WRITE_NODE_FIELD(oidmap);
-	WRITE_INT_FIELD(oidInfoCount);
-	for (m = 0; m < node->oidInfoCount; m++)
-	{
-		WRITE_OID_FIELD(oidInfo[m].relOid);
-		WRITE_OID_FIELD(oidInfo[m].comptypeOid);
-		WRITE_OID_FIELD(oidInfo[m].comptypeArrayOid);
-		WRITE_OID_FIELD(oidInfo[m].toastOid);
-		WRITE_OID_FIELD(oidInfo[m].toastIndexOid);
-		WRITE_OID_FIELD(oidInfo[m].toastComptypeOid);
-		WRITE_OID_FIELD(oidInfo[m].aosegOid);
-		WRITE_OID_FIELD(oidInfo[m].aosegComptypeOid);
-		WRITE_OID_FIELD(oidInfo[m].aovisimapOid);
-		WRITE_OID_FIELD(oidInfo[m].aovisimapIndexOid);
-		WRITE_OID_FIELD(oidInfo[m].aovisimapComptypeOid);
-		WRITE_OID_FIELD(oidInfo[m].aoblkdirOid);
-		WRITE_OID_FIELD(oidInfo[m].aoblkdirIndexOid);
-		WRITE_OID_FIELD(oidInfo[m].aoblkdirComptypeOid);
-	}
 }
 
 static void
@@ -2565,7 +2508,6 @@ _outCreateRoleStmt(StringInfo str, CreateRoleStmt *node)
 	WRITE_ENUM_FIELD(stmt_type, RoleStmtType);
 	WRITE_STRING_FIELD(role);
 	WRITE_NODE_FIELD(options);
-	WRITE_OID_FIELD(roleOid);
 }
 
 static void
@@ -2663,8 +2605,6 @@ _outCreateSeqStmt(StringInfo str, CreateSeqStmt *node)
 	WRITE_NODE_TYPE("CREATESEQSTMT");
 	WRITE_NODE_FIELD(sequence);
 	WRITE_NODE_FIELD(options);
-	WRITE_OID_FIELD(relOid);
-	WRITE_OID_FIELD(comptypeOid);
 }
 
 static void
@@ -2682,21 +2622,6 @@ _outClusterStmt(StringInfo str, ClusterStmt *node)
 
 	WRITE_NODE_FIELD(relation);
 	WRITE_STRING_FIELD(indexname);
-	WRITE_OID_FIELD(oidInfo.relOid);
-	WRITE_OID_FIELD(oidInfo.comptypeOid);
-	WRITE_OID_FIELD(oidInfo.comptypeArrayOid);
-	WRITE_OID_FIELD(oidInfo.toastOid);
-	WRITE_OID_FIELD(oidInfo.toastIndexOid);
-	WRITE_OID_FIELD(oidInfo.toastComptypeOid);
-	WRITE_OID_FIELD(oidInfo.aosegOid);
-	WRITE_OID_FIELD(oidInfo.aosegComptypeOid);
-	WRITE_OID_FIELD(oidInfo.aovisimapOid);
-	WRITE_OID_FIELD(oidInfo.aovisimapIndexOid);
-	WRITE_OID_FIELD(oidInfo.aovisimapComptypeOid);
-	WRITE_OID_FIELD(oidInfo.aoblkdirOid);
-	WRITE_OID_FIELD(oidInfo.aoblkdirIndexOid);
-	WRITE_OID_FIELD(oidInfo.aoblkdirComptypeOid);
-	WRITE_NODE_FIELD(new_ind_oids);
 }
 
 static void
@@ -2705,7 +2630,6 @@ _outCreatedbStmt(StringInfo str, CreatedbStmt *node)
 	WRITE_NODE_TYPE("CREATEDBSTMT");
 	WRITE_STRING_FIELD(dbname);
 	WRITE_NODE_FIELD(options);
-	WRITE_OID_FIELD(dbOid);
 }
 
 static void
@@ -2724,7 +2648,6 @@ _outCreateDomainStmt(StringInfo str, CreateDomainStmt *node)
 	WRITE_NODE_FIELD(domainname);
 	WRITE_NODE_FIELD_AS(typname, typename);
 	WRITE_NODE_FIELD(constraints);
-	WRITE_OID_FIELD(domainOid);
 }
 #endif /* COMPILING_BINARY_FUNCS */
 
@@ -2751,8 +2674,6 @@ _outCreateFunctionStmt(StringInfo str, CreateFunctionStmt *node)
 	WRITE_NODE_FIELD(returnType);
 	WRITE_NODE_FIELD(options);
 	WRITE_NODE_FIELD(withClause);
-	WRITE_OID_FIELD(funcOid);
-	WRITE_OID_FIELD(shelltypeOid);
 }
 
 static void
@@ -2959,10 +2880,6 @@ _outDefineStmt(StringInfo str, DefineStmt *node)
 	WRITE_NODE_FIELD(definition);
 	WRITE_BOOL_FIELD(ordered);  /* CDB */
 	WRITE_BOOL_FIELD(trusted);  /* CDB */
-	WRITE_OID_FIELD(newOid);
-	WRITE_OID_FIELD(arrayOid);
-	WRITE_OID_FIELD(commutatorOid);
-	WRITE_OID_FIELD(negatorOid);
 }
 
 static void
@@ -2972,8 +2889,6 @@ _outCompositeTypeStmt(StringInfo str, CompositeTypeStmt *node)
 
 	WRITE_NODE_FIELD(typevar);
 	WRITE_NODE_FIELD(coldeflist);
-	WRITE_OID_FIELD(relOid);
-	WRITE_OID_FIELD(comptypeOid);
 }
 
 static void
@@ -2983,8 +2898,6 @@ _outCreateEnumStmt(StringInfo str, CreateEnumStmt *node)
 
 	WRITE_NODE_FIELD(typeName);
 	WRITE_NODE_FIELD(vals);
-	WRITE_OID_FIELD(enumTypeOid);
-	WRITE_OID_FIELD(enumArrayOid);
 	WRITE_NODE_FIELD(valOids);
 }
 
@@ -2996,7 +2909,6 @@ _outCreateCastStmt(StringInfo str, CreateCastStmt *node)
 	WRITE_NODE_FIELD(targettype);
 	WRITE_NODE_FIELD(func);
 	WRITE_ENUM_FIELD(context, CoercionContext);
-	WRITE_OID_FIELD(castOid);
 }
 
 static void
@@ -3019,8 +2931,6 @@ _outCreateOpClassStmt(StringInfo str, CreateOpClassStmt *node)
 	WRITE_NODE_FIELD(datatype);
 	WRITE_NODE_FIELD(items);
 	WRITE_BOOL_FIELD(isDefault);
-	WRITE_OID_FIELD(opclassOid);
-	WRITE_OID_FIELD(opfamilyOid);
 }
 
 static void
@@ -3041,7 +2951,6 @@ _outCreateOpFamilyStmt(StringInfo str, CreateOpFamilyStmt *node)
 	WRITE_NODE_TYPE("CREATEOPFAMILY");
 	WRITE_NODE_FIELD(opfamilyname);
 	WRITE_STRING_FIELD(amname);
-	WRITE_OID_FIELD(newOid);
 }
 
 static void
@@ -3083,7 +2992,6 @@ _outCreateConversionStmt(StringInfo str, CreateConversionStmt *node)
 	WRITE_STRING_FIELD(to_encoding_name);
 	WRITE_NODE_FIELD(func_name);
 	WRITE_BOOL_FIELD(def);
-	WRITE_OID_FIELD(convOid);
 }
 
 static void
@@ -3998,7 +3906,6 @@ _outConstraint(StringInfo str, Constraint *node)
 	WRITE_NODE_TYPE("CONSTRAINT");
 
 	WRITE_STRING_FIELD(name);
-	WRITE_OID_FIELD(conoid);
 
 	appendStringInfoLiteral(str, " :contype ");
 	switch (node->contype)
@@ -4046,7 +3953,6 @@ _outFkConstraint(StringInfo str, FkConstraint *node)
 	WRITE_NODE_TYPE("FKCONSTRAINT");
 
 	WRITE_STRING_FIELD(constr_name);
-	WRITE_OID_FIELD(constrOid);
 	WRITE_NODE_FIELD(pktable);
 	WRITE_NODE_FIELD(fk_attrs);
 	WRITE_NODE_FIELD(pk_attrs);
@@ -4070,8 +3976,6 @@ _outCreateSchemaStmt(StringInfo str, CreateSchemaStmt *node)
 	WRITE_STRING_FIELD(schemaname);
 	WRITE_STRING_FIELD(authid);
 	WRITE_BOOL_FIELD(istemp);
-	WRITE_OID_FIELD(schemaOid);
-	WRITE_OID_FIELD(toastSchemaOid);
 }
 
 static void
@@ -4084,10 +3988,6 @@ _outCreatePLangStmt(StringInfo str, CreatePLangStmt *node)
 	WRITE_NODE_FIELD(plinline);
 	WRITE_NODE_FIELD(plvalidator);
 	WRITE_BOOL_FIELD(pltrusted);
-	WRITE_OID_FIELD(plangOid);
-	WRITE_OID_FIELD(plhandlerOid);
-	WRITE_OID_FIELD(plinlineOid);
-	WRITE_OID_FIELD(plvalidatorOid);
 }
 
 static void
@@ -4115,7 +4015,6 @@ _outVacuumStmt(StringInfo str, VacuumStmt *node)
 	WRITE_NODE_FIELD(relation);
 	WRITE_NODE_FIELD(va_cols);
 	WRITE_NODE_FIELD(expanded_relids);
-	WRITE_NODE_FIELD(extra_oids);
 	WRITE_NODE_FIELD(appendonly_compaction_segno);
 	WRITE_NODE_FIELD(appendonly_compaction_insert_segno);
 	WRITE_BOOL_FIELD(appendonly_compaction_vacuum_cleanup);
@@ -4203,7 +4102,6 @@ _outCreateFileSpaceStmt(StringInfo str, CreateFileSpaceStmt *node)
 	WRITE_STRING_FIELD(filespacename);
 	WRITE_STRING_FIELD(owner);
 	WRITE_NODE_FIELD(locations);
-	WRITE_OID_FIELD(fsoid);
 }
 
 static void
@@ -4225,7 +4123,6 @@ _outCreateTableSpaceStmt(StringInfo str, CreateTableSpaceStmt *node)
 	WRITE_STRING_FIELD(tablespacename);
 	WRITE_STRING_FIELD(owner);
 	WRITE_STRING_FIELD(filespacename);
-	WRITE_OID_FIELD(tsoid);
 }
 
 #ifndef COMPILING_BINARY_FUNCS
@@ -4236,7 +4133,6 @@ _outCreateQueueStmt(StringInfo str, CreateQueueStmt *node)
 
 	WRITE_STRING_FIELD(queue);
 	WRITE_NODE_FIELD(options); /* List of DefElem nodes */
-	WRITE_OID_FIELD(queueOid); 
 }
 #endif /* COMPILING_BINARY_FUNCS */
 
@@ -4365,6 +4261,9 @@ _outNode(StringInfo str, void *obj)
 				break;
 			case T_QueryDispatchDesc:
 				_outQueryDispatchDesc(str, obj);
+				break;
+			case T_OidAssignment:
+				_outOidAssignment(str, obj);
 				break;
 			case T_Plan:
 				_outPlan(str, obj);
@@ -4512,9 +4411,6 @@ _outNode(StringInfo str, void *obj)
 				break;
 			case T_IntoClause:
 				_outIntoClause(str, obj);
-				break;
-			case T_TableOidInfo:
-				_outTableOidInfo(str, obj);
 				break;
 			case T_Var:
 				_outVar(str, obj);

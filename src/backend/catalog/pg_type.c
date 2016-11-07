@@ -18,6 +18,7 @@
 #include "access/xact.h"
 #include "catalog/dependency.h"
 #include "catalog/indexing.h"
+#include "catalog/oid_dispatch.h"
 #include "catalog/pg_namespace.h"
 #include "catalog/pg_proc.h"
 #include "catalog/pg_type.h"
@@ -80,8 +81,7 @@ add_type_encoding(Oid typid, Datum typoptions)
  * ----------------------------------------------------------------
  */
 Oid
-TypeShellMake(const char *typeName, Oid typeNamespace, Oid ownerId,
-			  Oid shelloid)
+TypeShellMake(const char *typeName, Oid typeNamespace, Oid ownerId)
 {
 	Relation	pg_type_desc;
 	TupleDesc	tupDesc;
@@ -151,11 +151,6 @@ TypeShellMake(const char *typeName, Oid typeNamespace, Oid ownerId,
 	 */
 	tup = heap_form_tuple(tupDesc, values, nulls);
 
-	/*
-	 * MPP: If we are on the QEs, we need to use the same Oid as the QD used
-	 */
-	if (shelloid != InvalidOid)
-		HeapTupleSetOid(tup, shelloid);
 	/*
 	 * insert the tuple in the relation and get the tuple's oid.
 	 */
@@ -389,7 +384,6 @@ TypeCreateWithOptions(Oid newTypeOid,
 		/* Force the OID if requested by caller, else heap_insert does it */
 		if (OidIsValid(newTypeOid))
 			HeapTupleSetOid(tup, newTypeOid);
-		else if (Gp_role == GP_ROLE_EXECUTE) elog(ERROR," newtypeOid NULL");
 
 		typeObjectId = simple_heap_insert(pg_type_desc, tup);
 	}

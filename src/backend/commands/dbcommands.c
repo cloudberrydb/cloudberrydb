@@ -932,33 +932,14 @@ createdb(CreatedbStmt *stmt)
 	 */
 	pg_database_rel = heap_open(DatabaseRelationId, RowExclusiveLock);
 
-	if (Gp_role == GP_ROLE_EXECUTE && stmt->dbOid != 0)
-		dboid = stmt->dbOid;
+	if (Gp_role == GP_ROLE_EXECUTE)
+		dboid = GetPreassignedOidForDatabase(dbname);
 	else
 	{
 		do
 		{
 			dboid = GetNewOid(pg_database_rel);
 		} while (check_db_file_conflict(dboid));
-	}
-
-	/* Remember this for dispatching to segDBs */
-	stmt->dbOid = dboid;
-
-	if (shouldDispatch)
-	{
-		elog(DEBUG5, "shouldDispatch = true, dbOid = %d", dboid);
-
-        /* 
-		 * Dispatch the command to all primary segments.
-		 *
-		 * Doesn't wait for the QEs to finish execution.
-		 */
-		CdbDispatchUtilityStatement((Node *)stmt,
-									DF_CANCEL_ON_ERROR |
-									DF_NEED_TWO_PHASE |
-									DF_WITH_SNAPSHOT,
-									NULL);
 	}
 
 	/*
@@ -1000,6 +981,23 @@ createdb(CreatedbStmt *stmt)
 
 	/* Update indexes */
 	CatalogUpdateIndexes(pg_database_rel, tuple);
+
+	if (shouldDispatch)
+	{
+		elog(DEBUG5, "shouldDispatch = true, dbOid = %d", dboid);
+
+        /* 
+		 * Dispatch the command to all primary segments.
+		 *
+		 * Doesn't wait for the QEs to finish execution.
+		 */
+		CdbDispatchUtilityStatement((Node *) stmt,
+									DF_CANCEL_ON_ERROR |
+									DF_NEED_TWO_PHASE |
+									DF_WITH_SNAPSHOT,
+									GetAssignedOidsForDispatch(),
+									NULL);
+	}
 
 	/*
 	 * Now generate additional catalog entries associated with the new DB

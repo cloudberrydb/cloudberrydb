@@ -1267,7 +1267,6 @@ CreateRoleStmt:
 					n->stmt_type = ROLESTMT_ROLE;
 					n->role = $3;
 					n->options = $5;
-					n->roleOid = 0;
 					$$ = (Node *)n;
 				}
 		;
@@ -1469,7 +1468,6 @@ CreateUserStmt:
 					n->stmt_type = ROLESTMT_USER;
 					n->role = $3;
 					n->options = $5;
-					n->roleOid = 0;
 					$$ = (Node *)n;
 				}
 		;
@@ -1609,7 +1607,6 @@ CreateGroupStmt:
 					n->stmt_type = ROLESTMT_GROUP;
 					n->role = $3;
 					n->options = $5;
-					n->roleOid = 0;
 					$$ = (Node *)n;
 				}
 		;
@@ -1680,7 +1677,6 @@ CreateSchemaStmt:
 						n->schemaname = $5;
 					n->authid = $5;
 					n->schemaElts = $6;
-					n->schemaOid = 0;
 					$$ = (Node *)n;
 				}
 			| CREATE SCHEMA ColId OptSchemaEltList
@@ -1690,7 +1686,6 @@ CreateSchemaStmt:
 					n->schemaname = $3;
 					n->authid = NULL;
 					n->schemaElts = $4;
-					n->schemaOid = 0;
 					$$ = (Node *)n;
 				}
 		;
@@ -3391,11 +3386,6 @@ CreateStmt:	CREATE OptTemp TABLE qualified_name '(' OptTableElementList ')'
 					n->tablespacename = $11;
 					n->distributedBy = $12;
 					n->partitionBy = $13;
-					n->oidInfo.relOid = 0;
-					n->oidInfo.comptypeOid = 0;
-					n->oidInfo.toastOid = 0;
-					n->oidInfo.toastIndexOid = 0;
-					n->oidInfo.toastComptypeOid = 0;
 					n->relKind = RELKIND_RELATION;
 					n->policy = 0;
 					n->postCreate = NULL;
@@ -3419,11 +3409,6 @@ CreateStmt:	CREATE OptTemp TABLE qualified_name '(' OptTableElementList ')'
 					n->tablespacename = $12;
 					n->distributedBy = $13;
 					n->partitionBy = $14;
-					n->oidInfo.relOid = 0;
-					n->oidInfo.comptypeOid = 0;
-					n->oidInfo.toastOid = 0;
-					n->oidInfo.toastIndexOid = 0;
-					n->oidInfo.toastComptypeOid = 0;
 					n->relKind = RELKIND_RELATION;
 					n->policy = 0;
                     n->postCreate = NULL;
@@ -4918,7 +4903,6 @@ CreateSeqStmt:
 					$4->istemp = $2;
 					n->sequence = $4;
 					n->options = $5;
-					n->relOid = 0;
 					$$ = (Node *)n;
 				}
 		;
@@ -5103,7 +5087,6 @@ CreateFileSpaceStmt:
 					n->filespacename = $3;
 					n->owner = $4;
 					n->locations = $6;
-					n->fsoid = 0;
 					$$ = (Node *) n;
 				}
 		;
@@ -5148,7 +5131,6 @@ CreateTableSpaceStmt: CREATE TABLESPACE name OptOwner FILESPACE name
 					n->tablespacename = $3;
 					n->owner = $4;
 					n->filespacename = $6;
-					n->tsoid = 0;
 					$$ = (Node *) n;
 				}
 		;
@@ -5423,7 +5405,6 @@ DefineStmt:
 					n->defnames = $4;
 					n->args = NIL;
 					n->definition = $5;
-					n->newOid = 0;
 					n->ordered = $2;
 					$$ = (Node *)n;
 				}
@@ -5435,7 +5416,6 @@ DefineStmt:
 					n->defnames = $3;
 					n->args = NIL;
 					n->definition = $4;
-					n->newOid = 0;
 					$$ = (Node *)n;
 				}
 			| CREATE TYPE_P any_name definition
@@ -5446,7 +5426,6 @@ DefineStmt:
 					n->defnames = $3;
 					n->args = NIL;
 					n->definition = $4;
-					n->newOid = 0;
 					$$ = (Node *)n;
 				}
 			| CREATE TYPE_P any_name
@@ -5495,8 +5474,6 @@ DefineStmt:
 					r->location = @3;
 					n->typevar = r;
 					n->coldeflist = $6;
-					n->relOid = 0;
-					n->comptypeOid = 0;
 					$$ = (Node *)n;
 				}
 			| CREATE opt_trusted PROTOCOL name definition
@@ -5507,7 +5484,6 @@ DefineStmt:
 					n->trusted = $2;
 					n->defnames = list_make1(makeString($4));
 					n->args = NIL;
-					n->newOid = 0;
 					n->definition = $5;
 					n->ordered = false;
 					$$ = (Node *)n;
@@ -6552,7 +6528,6 @@ IndexStmt:	CREATE index_opt_unique INDEX index_name
 					n->options = $11;
 					n->tableSpace = $12;
 					n->whereClause = $13;
-					n->idxOids = NULL;
 					$$ = (Node *)n;
 				}
 			| CREATE index_opt_unique INDEX CONCURRENTLY index_name
@@ -6670,8 +6645,6 @@ CreateFunctionStmt:
 					n->returnType = $7;
 					n->options = $8;
 					n->withClause = $9;
-					n->funcOid = 0;
-					n->shelltypeOid = 0;
 					$$ = (Node *)n;
 				}
 			| CREATE opt_or_replace FUNCTION func_name func_args_with_defaults
@@ -6686,8 +6659,6 @@ CreateFunctionStmt:
 					n->returnType->location = @7;
 					n->options = $11;
 					n->withClause = $12;
-					n->funcOid = 0;
-					n->shelltypeOid = 0;
 					$$ = (Node *)n;
 				}
 			| CREATE opt_or_replace FUNCTION func_name func_args_with_defaults
@@ -6700,8 +6671,6 @@ CreateFunctionStmt:
 					n->returnType = NULL;
 					n->options = $6;
 					n->withClause = $7;
-					n->funcOid = 0;
-					n->shelltypeOid = 0;
 					$$ = (Node *)n;
 				}
 		;
@@ -7990,7 +7959,6 @@ ViewStmt: CREATE OptTemp VIEW qualified_name opt_column_list
 				AS SelectStmt opt_check_option
 				{
 					ViewStmt *n = makeNode(ViewStmt);
-					n->relOid = 0;
 					n->view = $4;
 					n->view->istemp = $2;
 					n->aliases = $5;
@@ -8065,7 +8033,6 @@ CreatedbStmt:
 					CreatedbStmt *n = makeNode(CreatedbStmt);
 					n->dbname = $3;
 					n->options = $5;
-					n->dbOid = 0;
 					$$ = (Node *)n;
 				}
 		;
@@ -8212,7 +8179,6 @@ CreateDomainStmt:
 					n->domainname = $3;
 					n->typname = $5;
 					n->constraints = $6;
-					n->domainOid = 0;
 					$$ = (Node *)n;
 				}
 		;

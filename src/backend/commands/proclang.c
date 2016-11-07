@@ -17,6 +17,7 @@
 #include "access/heapam.h"
 #include "catalog/dependency.h"
 #include "catalog/indexing.h"
+#include "catalog/oid_dispatch.h"
 #include "catalog/pg_authid.h"
 #include "catalog/pg_language.h"
 #include "catalog/pg_namespace.h"
@@ -50,7 +51,7 @@ typedef struct
 
 static void create_proc_lang(const char *languageName,
 				 Oid languageOwner, Oid handlerOid, Oid inlineOid,
-				 Oid valOid, bool trusted, Oid *plangOid);
+				 Oid valOid, bool trusted);
 static PLTemplate *find_language_template(const char *languageName);
 static void AlterLanguageOwner_internal(HeapTuple tup, Relation rel,
 							Oid newOwnerId);
@@ -180,8 +181,7 @@ CreateProceduralLanguage(CreatePLangStmt *stmt)
 										 PointerGetDatum(NULL),
 										 1,
 										 0,
-										 PRODATAACCESS_NONE,
-										 stmt->plhandlerOid);
+										 PRODATAACCESS_NONE);
 		}
 
 		/*
@@ -218,8 +218,7 @@ CreateProceduralLanguage(CreatePLangStmt *stmt)
 										 PointerGetDatum(NULL),
 										 1,
 										 0,
-										 PRODATAACCESS_NONE,
-										 stmt->plinlineOid);
+										 PRODATAACCESS_NONE);
 
 			}
 		}
@@ -260,8 +259,7 @@ CreateProceduralLanguage(CreatePLangStmt *stmt)
 										 PointerGetDatum(NULL),
 										 1,
 										 0,
-										 PRODATAACCESS_NONE,
-										 stmt->plvalidatorOid);
+										 PRODATAACCESS_NONE);
 			}
 		}
 		else
@@ -269,7 +267,7 @@ CreateProceduralLanguage(CreatePLangStmt *stmt)
 
 		/* ok, create it */
 		create_proc_lang(languageName, GetUserId(), handlerOid, inlineOid,
-						 valOid, pltemplate->tmpltrusted, &(stmt->plangOid));
+						 valOid, pltemplate->tmpltrusted);
 	}
 	else
 	{
@@ -344,18 +342,16 @@ CreateProceduralLanguage(CreatePLangStmt *stmt)
 
 		/* ok, create it */
 		create_proc_lang(languageName, GetUserId(), handlerOid, inlineOid,
-						 valOid, stmt->pltrusted, &(stmt->plangOid));
+						 valOid, stmt->pltrusted);
 	}
 
 	if (Gp_role == GP_ROLE_DISPATCH)
 	{
-		stmt->plhandlerOid = handlerOid;
-		stmt->plinlineOid = inlineOid;
-		stmt->plvalidatorOid = valOid;
 		CdbDispatchUtilityStatement((Node *) stmt,
 									DF_CANCEL_ON_ERROR|
 									DF_WITH_SNAPSHOT|
 									DF_NEED_TWO_PHASE,
+									GetAssignedOidsForDispatch(),
 									NULL);
 	}
 }
@@ -366,7 +362,7 @@ CreateProceduralLanguage(CreatePLangStmt *stmt)
 static void
 create_proc_lang(const char *languageName,
 				 Oid languageOwner, Oid handlerOid, Oid inlineOid,
-				 Oid valOid, bool trusted, Oid *plangoid)
+				 Oid valOid, bool trusted)
 {
 	Relation	rel;
 	TupleDesc	tupDesc;
@@ -398,11 +394,7 @@ create_proc_lang(const char *languageName,
 
 	tup = heap_form_tuple(tupDesc, values, nulls);
 
-	/* Keep oids synchronized between master and segments */
-	if (OidIsValid(*plangoid))
-		HeapTupleSetOid(tup, *plangoid);
-
-	*plangoid = simple_heap_insert(rel, tup);
+	simple_heap_insert(rel, tup);
 
 	CatalogUpdateIndexes(rel, tup);
 
@@ -584,6 +576,7 @@ DropProceduralLanguage(DropPLangStmt *stmt)
 									DF_CANCEL_ON_ERROR|
 									DF_WITH_SNAPSHOT|
 									DF_NEED_TWO_PHASE,
+									NIL,
 									NULL);
 	}
 }

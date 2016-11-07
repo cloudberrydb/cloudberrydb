@@ -19,6 +19,7 @@
 #include "catalog/dependency.h"
 #include "catalog/heap.h"
 #include "catalog/indexing.h"
+#include "catalog/oid_dispatch.h"
 #include "catalog/pg_authid.h"
 #include "catalog/pg_resqueue.h"
 #include "nodes/makefuncs.h"
@@ -217,10 +218,9 @@ void ValidateResqueueCapabilityEntry(int			 resTypeInt,
  * else insert a new row.
  *
  */
-static List *
+static void
 AddUpdResqueueCapabilityEntryInternal(
 								  Relation		 resqueuecap_rel,
-								  List			*stmtOptIdList,
 								  Oid			 queueid,
 								  int			 resTypeInt,
 								  char			*pResSetting,
@@ -259,43 +259,21 @@ AddUpdResqueueCapabilityEntryInternal(
 	}
 	else
 	{
-		Oid s1;
-
 		new_tuple = heap_form_tuple(RelationGetDescr(resqueuecap_rel), values, isnull);
 
-		/* MPP-11858: synchronize the oids for CREATE/ALTER options... */
-		if ((Gp_role != GP_ROLE_DISPATCH) && list_length(stmtOptIdList))
-		{
-			Oid s2 = list_nth_oid(stmtOptIdList, 0);
-			stmtOptIdList = list_delete_first(stmtOptIdList);
-
-			if (OidIsValid(s2))
-				HeapTupleSetOid(new_tuple, s2);
-		}
-
-		s1 = simple_heap_insert(resqueuecap_rel, new_tuple);
+		simple_heap_insert(resqueuecap_rel, new_tuple);
 		CatalogUpdateIndexes(resqueuecap_rel, new_tuple);
-
-		if (Gp_role == GP_ROLE_DISPATCH)
-		{
-			stmtOptIdList = lappend_oid(stmtOptIdList, s1);
-		}
 	}
 
 	if (HeapTupleIsValid(old_tuple))
 		heap_freetuple(new_tuple);
-
-	return stmtOptIdList;
 } /* end AddUpdResqueueCapabilityEntryInternal */
 				
 /* MPP-6923: */				  
-static
-List *
-AlterResqueueCapabilityEntry(
-								  List			*stmtOptIdList,
-								  Oid			 queueid,
-								  ListCell		*initcell,
-								  bool			 bCreate)
+static void
+AlterResqueueCapabilityEntry(Oid queueid,
+							 ListCell *initcell,
+							 bool bCreate)
 {
 	ListCell	*lc;
 	List		*elems	   = NIL;
@@ -586,16 +564,12 @@ AlterResqueueCapabilityEntry(
 					((Form_pg_resqueuecapability) GETSTRUCT(tuple))->restypid)
 				{
 					/* found it -- update it */
-					stmtOptIdList = 
-							AddUpdResqueueCapabilityEntryInternal(
-									rel,
-									stmtOptIdList,
-									queueid,
-									resTypeInt,
-									pResSetting,
-									rel,
-									tuple);
-
+					AddUpdResqueueCapabilityEntryInternal(rel,
+														  queueid,
+														  resTypeInt,
+														  pResSetting,
+														  rel,
+														  tuple);
 					ii++;
 				}
 			}
@@ -606,15 +580,12 @@ AlterResqueueCapabilityEntry(
 		if (!ii)
 		{
 			/* does not exist -- add it */
-			stmtOptIdList = 
-					AddUpdResqueueCapabilityEntryInternal(
-							rel,
-							stmtOptIdList,
-							queueid,
-							resTypeInt,
-							pResSetting,
-							rel,
-							InvalidOid);
+			AddUpdResqueueCapabilityEntryInternal(rel,
+												  queueid,
+												  resTypeInt,
+												  pResSetting,
+												  rel,
+												  InvalidOid);
 		}
 
 	} /* end foreach elem */
@@ -673,9 +644,6 @@ AlterResqueueCapabilityEntry(
 	} /* end foreach elem */
 
 	heap_close(rel, RowExclusiveLock);
-
-	return stmtOptIdList;
-
 } /* end AlterResqueueCapabilityEntry */
 
 /* MPP-6923: */				  
@@ -957,10 +925,6 @@ CreateQueue(CreateQueueStmt *stmt)
 
 	tuple = heap_form_tuple(pg_resqueue_dsc, new_record, new_record_nulls);
 
-	/* Keep oids synchonized between master and segments */
-	if (OidIsValid(stmt->queueOid))
-		HeapTupleSetOid(tuple, stmt->queueOid);
-
 	/*
 	 * Insert new record in the pg_resqueue table
 	 */
@@ -969,9 +933,7 @@ CreateQueue(CreateQueueStmt *stmt)
 
 	/* process the remainder of the WITH (...) list items */
 	if (bWith)
-		stmt->optids =
-				AlterResqueueCapabilityEntry(stmt->optids, 
-											 queueid, pWithList, true);
+		AlterResqueueCapabilityEntry(queueid, pWithList, true);
 
 	/* 
 	 * We must bump the command counter to make the new entry 
@@ -1026,11 +988,11 @@ CreateQueue(CreateQueueStmt *stmt)
 	/* MPP-6929, MPP-7583: metadata tracking */
 	if (Gp_role == GP_ROLE_DISPATCH)
 	{
-		stmt->queueOid = queueid;
 		CdbDispatchUtilityStatement((Node *) stmt,
 									DF_CANCEL_ON_ERROR|
 									DF_WITH_SNAPSHOT|
 									DF_NEED_TWO_PHASE,
+									GetAssignedOidsForDispatch(),
 									NULL);
 		MetaTrackAddObject(ResQueueRelationId,
 						   queueid,
@@ -1384,9 +1346,7 @@ AlterQueue(AlterQueueStmt *stmt)
 
 	/* process the remainder of the WITH (...) list items */
 	if (bWith)
-		stmt->optids =
-				AlterResqueueCapabilityEntry(stmt->optids, 
-											 queueid, pWithList, false);
+		AlterResqueueCapabilityEntry(queueid, pWithList, false);
 
 	/* 
 	 * We must bump the command counter to make the altered memory limit 
@@ -1460,6 +1420,7 @@ AlterQueue(AlterQueueStmt *stmt)
 									DF_CANCEL_ON_ERROR|
 									DF_WITH_SNAPSHOT|
 									DF_NEED_TWO_PHASE,
+									NIL, /* FIXME */
 									NULL);
 		MetaTrackUpdObject(ResQueueRelationId,
 						   queueid,
@@ -1607,6 +1568,7 @@ DropQueue(DropQueueStmt *stmt)
 									DF_CANCEL_ON_ERROR|
 									DF_WITH_SNAPSHOT|
 									DF_NEED_TWO_PHASE,
+									NIL, /* FIXME */
 									NULL);
 	}
 	/* MPP-6929, MPP-7583: metadata tracking */

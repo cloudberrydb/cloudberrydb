@@ -98,6 +98,7 @@ CdbDispatchCommand(const char* strCommand,
 void
 CdbDispatchUtilityStatement(struct Node *stmt,
 							int flags,
+							List *oid_assignments,
 							struct CdbPgResults* cdb_pgresults);
 
 #endif   /* CDBDISP_QUERY_H */

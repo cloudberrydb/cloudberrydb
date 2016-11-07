@@ -227,17 +227,14 @@ static void validateForeignKeyConstraint(FkConstraint *fkconstraint,
 							 Relation rel, Relation pkrel, Oid constraintOid);
 static void createForeignKeyTriggers(Relation rel, FkConstraint *fkconstraint,
 						 Oid constraintOid);
-static void ATController(Relation rel, List *cmds, bool recurse, 
-						 int * oidInfoCount, TableOidInfo ** oidInfo, List **poidmap);
+static void ATController(Relation rel, List *cmds, bool recurse);
 static void ATPrepCmd(List **wqueue, Relation rel, AlterTableCmd *cmd,
 		  bool recurse, bool recursing);
 static void ATRewriteCatalogs(List **wqueue);
-static void ATAddToastIfNeeded(List **wqueue, 
-							   int oidInfoCount,TableOidInfo * oidInfo, List **poidmap);
+static void ATAddToastIfNeeded(List **wqueue);
 static void ATExecCmd(List **wqueue,
 					  AlteredTableInfo *tab, Relation *rel, AlterTableCmd *cmd);
-static void ATRewriteTables(List **wqueue, 
-							int oidInfoCount, TableOidInfo * oidInfo, List **poidmap);
+static void ATRewriteTables(List **wqueue);
 static void ATRewriteTable(AlteredTableInfo *tab, Oid OIDNewHeap);
 static void ATAocsWriteNewColumns(
 		AOCSAddColumnDesc idesc, AOCSHeaderScanDesc sdesc,
@@ -292,7 +289,7 @@ static void ATPrepAlterColumnType(List **wqueue,
 static void ATExecAlterColumnType(AlteredTableInfo *tab, Relation rel,
 					  const char *colName, TypeName *typename);
 static void ATPostAlterTypeCleanup(List **wqueue, AlteredTableInfo *tab);
-static void ATPostAlterTypeParse(char *cmd, List **wqueue, Oid constrOid);
+static void ATPostAlterTypeParse(char *cmd, List **wqueue);
 static void change_owner_recurse_to_sequences(Oid relationOid,
 								  Oid newOwnerId);
 static void ATExecClusterOn(Relation rel, const char *indexName);
@@ -301,8 +298,7 @@ static void ATPrepSetTableSpace(AlteredTableInfo *tab, Relation rel,
 					char *tablespacename);
 static void ATPartsPrepSetTableSpace(List **wqueue, Relation rel, AlterTableCmd *cmd, 
 									 List *oids);
-static void ATExecSetTableSpace(Oid tableOid, Oid newTableSpace, 
-								TableOidInfo *oidInfo);
+static void ATExecSetTableSpace(Oid tableOid, Oid newTableSpace);
 static void ATExecSetRelOptions(Relation rel, List *defList, bool isReset);
 static void ATExecEnableDisableTrigger(Relation rel, char *trigname,
 						   char fires_when, bool skip_system);
@@ -386,10 +382,14 @@ static char *alterTableCmdString(AlterTableType subtype);
  *				Creates a new relation.
  *
  * If successful, returns the OID of the new relation.
+ *
+ * If 'dispatch' is true (and we are running in QD), the statement is
+ * also dispatched to the QE nodes. Otherwise it is the caller's
+ * responsibility to dispatch.
  * ----------------------------------------------------------------
  */
 Oid
-DefineRelation(CreateStmt *stmt, char relkind, char relstorage)
+DefineRelation(CreateStmt *stmt, char relkind, char relstorage, bool dispatch)
 {
 	char		relname[NAMEDATALEN];
 	Oid			namespaceId;
@@ -408,10 +408,9 @@ DefineRelation(CreateStmt *stmt, char relkind, char relstorage)
 	ItemPointerData	persistentTid;
 	int64			persistentSerialNum;
 
-	bool		shouldDispatch = Gp_role == GP_ROLE_DISPATCH &&
-                                 IsNormalProcessingMode() &&
-                                 relkind != RELKIND_SEQUENCE &&
-                                 relkind != RELKIND_VIEW;
+	bool		shouldDispatch = dispatch &&
+								 Gp_role == GP_ROLE_DISPATCH &&
+                                 IsNormalProcessingMode();
 
 	/*
 	 * Truncate relname to appropriate length (probably a waste of time, as
@@ -574,22 +573,8 @@ DefineRelation(CreateStmt *stmt, char relkind, char relstorage)
 
 	if (shouldDispatch)
 	{
-		Oid			toastRelationId = InvalidOid;
-		Oid         toastComptypeOid = InvalidOid;
-		Oid			aosegRelationId = InvalidOid;
-		Oid			aoblkdirRelationId = InvalidOid;
 		Relation	pg_class_desc;
 		Relation	pg_type_desc;
-		Oid 		comptypeOid = InvalidOid;
-		Oid         comptypeArrayOid = InvalidOid;
-		Oid			toastIndexId = InvalidOid;
-		Oid			aoblkdirIndexId = InvalidOid;
-		Oid         aosegComptypeOid = InvalidOid;
-		Oid         aoblkdirComptypeOid = InvalidOid;
-		Oid         aovisimapRelationId = InvalidOid;
-		Oid			aovisimapIndexId = InvalidOid;
-		Oid         aovisimapComptypeOid = InvalidOid;
-
 		MemoryContext oldContext;
 
 		/*
@@ -603,44 +588,7 @@ DefineRelation(CreateStmt *stmt, char relkind, char relstorage)
 
 		cdb_sync_oid_to_segments();
 
-		/*
-		 * Pre-Allocate an OID for the relfilenode, plus one for the toast table
-		 * and another for an aoseg table (just in case).
-		 *
-		 * The OID will be the relfilenode as well, so make sure it doesn't collide
-		 * with either pg_class OIDs or existing physical files.
-		 */
-		relationId          = GetNewRelFileNode(tablespaceId, false,  pg_class_desc);
-		comptypeOid         = GetNewRelFileNode(tablespaceId, false,  pg_type_desc);
-		comptypeArrayOid    = GetNewRelFileNode(tablespaceId, false,  pg_type_desc);
-		toastRelationId     = GetNewRelFileNode(tablespaceId, false,  pg_class_desc);
-		toastIndexId        = GetNewRelFileNode(tablespaceId, false,  pg_class_desc);
-		toastComptypeOid    = GetNewRelFileNode(tablespaceId, false,  pg_type_desc);
-		aosegRelationId     = GetNewRelFileNode(tablespaceId, false,  pg_class_desc);
-		aoblkdirRelationId  = GetNewRelFileNode(tablespaceId, false,  pg_class_desc);
-		aoblkdirIndexId     = GetNewRelFileNode(tablespaceId, false,  pg_class_desc);
-		aosegComptypeOid    = GetNewRelFileNode(tablespaceId, false,  pg_type_desc);
-		aoblkdirComptypeOid = GetNewRelFileNode(tablespaceId, false,  pg_type_desc);
-		aovisimapRelationId = GetNewRelFileNode(tablespaceId, false,  pg_class_desc);
-		aovisimapIndexId    = GetNewRelFileNode(tablespaceId, false,  pg_class_desc);
-		aovisimapComptypeOid = GetNewRelFileNode(tablespaceId, false, pg_type_desc);
-
 		heap_close(pg_class_desc, NoLock);  /* gonna update, so don't unlock */
-
-		stmt->oidInfo.relOid = relationId;
-		stmt->oidInfo.comptypeOid = comptypeOid;
-		stmt->oidInfo.comptypeArrayOid = comptypeArrayOid;
-		stmt->oidInfo.toastOid = toastRelationId;
-		stmt->oidInfo.toastIndexOid = toastIndexId;
-		stmt->oidInfo.toastComptypeOid = toastComptypeOid;
-		stmt->oidInfo.aosegOid = aosegRelationId;
-		stmt->oidInfo.aosegComptypeOid = aosegComptypeOid;
-		stmt->oidInfo.aoblkdirOid = aoblkdirRelationId;
-		stmt->oidInfo.aoblkdirIndexOid = aoblkdirIndexId;
-		stmt->oidInfo.aoblkdirComptypeOid = aoblkdirComptypeOid;
-		stmt->oidInfo.aovisimapOid = aovisimapRelationId;
-		stmt->oidInfo.aovisimapIndexOid = aovisimapIndexId;
-		stmt->oidInfo.aovisimapComptypeOid = aovisimapComptypeOid;
 
 		stmt->relKind = relkind;
 		stmt->relStorage = relstorage;
@@ -656,18 +604,10 @@ DefineRelation(CreateStmt *stmt, char relkind, char relstorage)
 	}
 	else if (Gp_role == GP_ROLE_EXECUTE)
 	{
-		Assert(stmt->oidInfo.relOid != 0);
-		relationId = stmt->oidInfo.relOid;
+		Assert(stmt->ownerid != InvalidOid);
 	}
 	else
 	{
-		stmt->oidInfo.toastOid = InvalidOid;
-		stmt->oidInfo.toastIndexOid = InvalidOid;
-		stmt->oidInfo.aosegOid = InvalidOid;
-		stmt->oidInfo.aoblkdirOid = InvalidOid;
-		stmt->oidInfo.aoblkdirIndexOid = InvalidOid;
-		stmt->oidInfo.aovisimapOid = InvalidOid;
-		stmt->oidInfo.aovisimapIndexOid = InvalidOid;
 		stmt->ownerid = GetUserId();
 	}
 
@@ -684,18 +624,12 @@ DefineRelation(CreateStmt *stmt, char relkind, char relstorage)
 							 "Use OIDS=FALSE"
 							 )));
 
-    if (stmt->oidInfo.relOid)
-        elog(DEBUG4, "DefineRelation relOid=%d schemaname=%s shouldDispatch=%d",
-             stmt->oidInfo.relOid,
-             stmt->relation->schemaname ? stmt->relation->schemaname : "",
-             shouldDispatch);
-
 	bool valid_opts = (relstorage == RELSTORAGE_EXTERNAL);
 
 	relationId = heap_create_with_catalog(relname,
 										  namespaceId,
 										  tablespaceId,
-										  stmt->oidInfo.relOid,
+										  InvalidOid,
 										  stmt->ownerid,
 										  descriptor,
 										  /* relam */ InvalidOid,
@@ -710,8 +644,6 @@ DefineRelation(CreateStmt *stmt, char relkind, char relstorage)
                                           reloptions,
 										  allowSystemTableModsDDL,
 										  valid_opts,
-										  &stmt->oidInfo.comptypeOid,
-										  &stmt->oidInfo.comptypeArrayOid,
 										  &persistentTid,
 										  &persistentSerialNum);
 
@@ -781,16 +713,18 @@ DefineRelation(CreateStmt *stmt, char relkind, char relstorage)
 	/* It is now safe to dispatch */
 	if (shouldDispatch)
 	{
-
-		/* Dispatch the statement tree to all primary and mirror segdbs.
+		/*
+		 * Dispatch the statement tree to all primary and mirror segdbs.
 		 * Doesn't wait for the QEs to finish execution.
+		 *
+		 * The OIDs are carried out-of-band.
 		 */
-		CdbDispatchUtilityStatement((Node *)stmt,
+		CdbDispatchUtilityStatement((Node *) stmt,
 									DF_CANCEL_ON_ERROR |
 									DF_NEED_TWO_PHASE |
 									DF_WITH_SNAPSHOT,
+									GetAssignedOidsForDispatch(),
 									NULL);
-
 	}
 
 	/*
@@ -1084,12 +1018,6 @@ ExecuteTruncate(TruncateStmt *stmt)
 	List	   *rels = NIL;
 	List	   *relids = NIL;
 	List	   *meta_relids = NIL;
-	List	   *new_heap_oids = NIL;
-	List	   *new_toast_oids = NIL;
-	List	   *new_aoseg_oids = NIL;
-	List       *new_aoblkdir_oids = NIL;
-	List       *new_aovisimap_oids = NIL;
-	List	   *new_ind_oids = NIL;
 	ListCell   *cell;
     int partcheck = 2;
 	List *partList = NIL;
@@ -1231,252 +1159,104 @@ ExecuteTruncate(TruncateStmt *stmt)
 	/*
 	 * OK, truncate each table.
 	 */
-	if (Gp_role != GP_ROLE_EXECUTE)
-	{
+	if (Gp_role == GP_ROLE_DISPATCH)
 		cdb_sync_oid_to_segments();
 
-		foreach(cell, rels)
-		{
-			Relation	rel = (Relation) lfirst(cell);
-			Oid			heap_relid;
-			Oid			toast_relid;
-			Oid			aoseg_relid = InvalidOid;
-			Oid			aoblkdir_relid = InvalidOid;
-			Oid         aovisimap_relid = InvalidOid;
-			Oid			new_heap_oid = InvalidOid;
-			Oid			new_toast_oid = InvalidOid;
-			Oid			new_aoseg_oid = InvalidOid;
-			Oid			new_aoblkdir_oid = InvalidOid;
-			Oid         new_aovisimap_oid = InvalidOid;
-			List	   *indoids = NIL;
-
-			/*
-			 * Create a new empty storage file for the relation, and assign it
-			 * as the relfilenode value. The old storage file is scheduled for
-			 * deletion at commit.
-			 */
-			new_heap_oid = setNewRelfilenode(rel, RecentXmin);
-
-			new_heap_oids = lappend_oid(new_heap_oids, new_heap_oid);
-
-			heap_relid = RelationGetRelid(rel);
-			toast_relid = rel->rd_rel->reltoastrelid;
-			heap_close(rel, NoLock);
-
-			if (RelationIsAoRows(rel) ||
-				RelationIsAoCols(rel))
-				GetAppendOnlyEntryAuxOids(heap_relid, SnapshotNow,
-										  &aoseg_relid,
-										  &aoblkdir_relid, NULL,
-										  &aovisimap_relid, NULL);
-
-			/*
-			 * The same for the toast table, if any.
-			 */
-			if (OidIsValid(toast_relid))
-			{
-				rel = relation_open(toast_relid, AccessExclusiveLock);
-				new_toast_oid = setNewRelfilenode(rel, RecentXmin);
-				heap_close(rel, NoLock);
-			}
-
-			/*
-			 * The same for the aoseg table, if any.
-			 */
-			if (OidIsValid(aoseg_relid))
-			{
-				rel = relation_open(aoseg_relid, AccessExclusiveLock);
-				new_aoseg_oid = setNewRelfilenode(rel, RecentXmin);
-				heap_close(rel, NoLock);
-			}
-
-			if (OidIsValid(aoblkdir_relid))
-			{
-				rel = relation_open(aoblkdir_relid, AccessExclusiveLock);
-				new_aoblkdir_oid = setNewRelfilenode(rel, RecentXmin);
-				heap_close(rel, NoLock);
-			}
-	
-			if (OidIsValid(aovisimap_relid))
-			{
-				rel = relation_open(aovisimap_relid, AccessExclusiveLock);
-				new_aovisimap_oid = setNewRelfilenode(rel, RecentXmin);
-				heap_close(rel, NoLock);
-			}
-
-			new_toast_oids = lappend_oid(new_toast_oids, new_toast_oid);
-			new_aoseg_oids = lappend_oid(new_aoseg_oids, new_aoseg_oid);
-			new_aoblkdir_oids = lappend_oid(new_aoblkdir_oids, new_aoblkdir_oid);
-			new_aovisimap_oids = lappend_oid(new_aovisimap_oids, new_aovisimap_oid);
-
-			elog(DEBUG5, "Truncate in DISPATCH mode: old heap oid %u "
-				 "toast %u aoseg %u aoblkdir %u aovisimap %u" 
-				 "new heap oid %u, new toast oid %u "
-				 "aoseg oid %u aoblkdir oid %u aovisimap oid %u",
-				 heap_relid, toast_relid, aoseg_relid, aoblkdir_relid,
-				 aovisimap_relid,
-				 new_heap_oid, new_toast_oid, new_aoseg_oid, new_aoblkdir_oid,
-				 new_aovisimap_oid);
-
-			/*
-			 * Reconstruct the indexes to match, and we're done.
-			 */
-			reindex_relation(heap_relid, true, true, true, true, &indoids, true);
-			new_ind_oids = lappend(new_ind_oids, indoids);
-		}
-
-		if (Gp_role == GP_ROLE_DISPATCH)
-		{
-			ListCell	*lc;
-
-			stmt->relids = relids;
-			stmt->new_heap_oids = new_heap_oids;
-			stmt->new_toast_oids = new_toast_oids;
-			stmt->new_aoseg_oids = new_aoseg_oids;
-			stmt->new_aoblkdir_oids = new_aoblkdir_oids;
-			stmt->new_aovisimap_oids = new_aovisimap_oids;
-			stmt->new_ind_oids = new_ind_oids;
-
-			CdbDispatchUtilityStatement((Node *) stmt,
-										DF_CANCEL_ON_ERROR |
-										DF_WITH_SNAPSHOT |
-										DF_NEED_TWO_PHASE,
-										NULL);
-
-			/* MPP-6929: metadata tracking */
-			foreach(lc, meta_relids)
-			{
-				Oid			a_relid = lfirst_oid(lc);
-
-				MetaTrackUpdObject(RelationRelationId,
-								   a_relid,
-								   GetUserId(),
-								   "VACUUM", "TRUNCATE");
-
-				MetaTrackUpdObject(RelationRelationId,
-								   a_relid,
-								   GetUserId(),
-								   "TRUNCATE", "");
-			}
-
-		}
-	}
-	else /* role=execute */
+	foreach(cell, rels)
 	{
-		ListCell   *cell2;
-		ListCell   *cell3;
-		ListCell   *cell4;
-		ListCell   *cell5;
-		ListCell   *cell6;
-		ListCell   *cell7;
-		ListCell   *ind_cell;
+		Relation	rel = (Relation) lfirst(cell);
+		Oid			heap_relid;
+		Oid			toast_relid;
+		Oid			aoseg_relid = InvalidOid;
+		Oid			aoblkdir_relid = InvalidOid;
+		Oid			aovisimap_relid = InvalidOid;
 
-#ifdef USE_ASSERT_CHECKING
-		int			len = list_length(relids);
-		Assert(len == list_length(stmt->relids));
-		Assert(len == list_length(stmt->new_heap_oids));
-		Assert(len == list_length(stmt->new_toast_oids));
-		Assert(len == list_length(stmt->new_aoseg_oids));
-		Assert(len == list_length(stmt->new_aoblkdir_oids));
-		Assert(len == list_length(stmt->new_aovisimap_oids));
-		Assert(len == list_length(stmt->new_ind_oids));
-#endif /* USE_ASSERT_CHECKING */
+		/*
+		 * Create a new empty storage file for the relation, and assign it
+		 * as the relfilenode value. The old storage file is scheduled for
+		 * deletion at commit.
+		 */
+		setNewRelfilenode(rel, RecentXmin);
 
-		cell2 = list_head(stmt->relids);
-		cell3 = list_head(stmt->new_heap_oids);
-		cell4 = list_head(stmt->new_toast_oids);
-		cell5 = list_head(stmt->new_aoseg_oids);
-		cell6 = list_head(stmt->new_aoblkdir_oids);
-		cell7 = list_head(stmt->new_aovisimap_oids);
+		heap_relid = RelationGetRelid(rel);
+		toast_relid = rel->rd_rel->reltoastrelid;
 
-		ind_cell = list_head(stmt->new_ind_oids);
+		heap_close(rel, NoLock);
 
-		foreach(cell, rels)
+		if (RelationIsAoRows(rel) ||
+			RelationIsAoCols(rel))
+			GetAppendOnlyEntryAuxOids(heap_relid, SnapshotNow,
+									  &aoseg_relid,
+									  &aoblkdir_relid, NULL,
+									  &aovisimap_relid, NULL);
+
+		/*
+		 * The same for the toast table, if any.
+		 */
+		if (OidIsValid(toast_relid))
 		{
-			Relation	rel = (Relation) lfirst(cell);
-			Oid			heap_relid = lfirst_oid(cell2);
-			Oid			toast_relid;
-			Oid			aoseg_relid = InvalidOid;
-			Oid			aoblkdir_relid = InvalidOid;
-			Oid         aovisimap_relid = InvalidOid;
-			Oid			new_heap_oid = lfirst_oid(cell3);
-			Oid			new_toast_oid = lfirst_oid(cell4);
-			Oid			new_aoseg_oid = lfirst_oid(cell5);
-			Oid			new_aoblkdir_oid = lfirst_oid(cell6);
-			Oid         new_aovisimap_oid = lfirst_oid(cell7);
-			List	   *ind_oids = ind_cell ? lfirst(ind_cell) : NIL;
-
-			/*
-			 * Create a new empty storage file for the relation, and assign it
-			 * as the relfilenode value. The old storage file is scheduled for
-			 * deletion at commit.
-			 */
-			setNewRelfilenodeToOid(rel, RecentXmin, new_heap_oid);
-
-			heap_relid = RelationGetRelid(rel);
-			toast_relid = rel->rd_rel->reltoastrelid;
+			rel = relation_open(toast_relid, AccessExclusiveLock);
+			setNewRelfilenode(rel, RecentXmin);
 			heap_close(rel, NoLock);
-
-			if (RelationIsAoRows(rel) || RelationIsAoCols(rel))
-				GetAppendOnlyEntryAuxOids(heap_relid, SnapshotNow,
-										  &aoseg_relid,
-										  &aoblkdir_relid, NULL,
-										  &aovisimap_relid, NULL);
-
-			/*
-			 * The same for the toast table, if any.
-			 */
-			if (OidIsValid(toast_relid))
-			{
-				rel = relation_open(toast_relid, AccessExclusiveLock);
-				setNewRelfilenodeToOid(rel, RecentXmin, new_toast_oid);
-				heap_close(rel, NoLock);
-			}
-
-			/*
-			 * The same for the aoseg table, if any.
-			 */
-
-			if (OidIsValid(aoseg_relid))
-			{
-				rel = relation_open(aoseg_relid, AccessExclusiveLock);
-				setNewRelfilenodeToOid(rel, RecentXmin, new_aoseg_oid);
-				heap_close(rel, NoLock);
-			}
-
-			if (OidIsValid(aoblkdir_relid))
-			{
-				rel = relation_open(aoblkdir_relid, AccessExclusiveLock);
-				setNewRelfilenodeToOid(rel, RecentXmin, new_aoblkdir_oid);
-				heap_close(rel, NoLock);
-			}
-	
-			if (OidIsValid(aovisimap_relid))
-			{
-				rel = relation_open(aovisimap_relid, AccessExclusiveLock);
-				setNewRelfilenodeToOid(rel, RecentXmin, new_aovisimap_oid);
-				heap_close(rel, NoLock);
-			}
-
-			elog(DEBUG5, "Truncate in EXECUTE mode: old heap oid %u "
-				 "toast %u aoseg %u aoblkdir %u new heap oid %u, new toast oid %u "
-				 "aoseg oid %u aoblkdir oid %u",
-				 heap_relid, toast_relid, aoseg_relid, aoblkdir_relid,
-				 new_heap_oid, new_toast_oid, new_aoseg_oid, new_aoblkdir_oid);
-
-			/*
-			 * Reconstruct the indexes to match, and we're done.
-			 */
-			reindex_relation(heap_relid, true, true, true, true, &ind_oids, false);
-
-			cell2 = lnext(cell2);
-			cell3 = lnext(cell3);
-			cell4 = lnext(cell4);
-			cell5 = lnext(cell5);
-			cell6 = lnext(cell6);
-			cell7 = lnext(cell7);
-			ind_cell = ind_cell ? lnext(ind_cell) : NULL;
 		}
+
+		/*
+		 * The same for the aoseg table, if any.
+		 */
+		if (OidIsValid(aoseg_relid))
+		{
+			rel = relation_open(aoseg_relid, AccessExclusiveLock);
+			setNewRelfilenode(rel, RecentXmin);
+			heap_close(rel, NoLock);
+		}
+
+		if (OidIsValid(aoblkdir_relid))
+		{
+			rel = relation_open(aoblkdir_relid, AccessExclusiveLock);
+			setNewRelfilenode(rel, RecentXmin);
+			heap_close(rel, NoLock);
+		}
+	
+		if (OidIsValid(aovisimap_relid))
+		{
+			rel = relation_open(aovisimap_relid, AccessExclusiveLock);
+			setNewRelfilenode(rel, RecentXmin);
+			heap_close(rel, NoLock);
+		}
+
+		/*
+		 * Reconstruct the indexes to match, and we're done.
+		 */
+		reindex_relation(heap_relid, true, true, true, true);
+	}
+
+	if (Gp_role == GP_ROLE_DISPATCH)
+	{
+		ListCell	*lc;
+
+		CdbDispatchUtilityStatement((Node *) stmt,
+									DF_CANCEL_ON_ERROR |
+									DF_WITH_SNAPSHOT |
+									DF_NEED_TWO_PHASE,
+									GetAssignedOidsForDispatch(),
+									NULL);
+
+		/* MPP-6929: metadata tracking */
+		foreach(lc, meta_relids)
+		{
+			Oid			a_relid = lfirst_oid(lc);
+
+			MetaTrackUpdObject(RelationRelationId,
+							   a_relid,
+							   GetUserId(),
+							   "VACUUM", "TRUNCATE");
+
+			MetaTrackUpdObject(RelationRelationId,
+							   a_relid,
+							   GetUserId(),
+							   "TRUNCATE", "");
+		}
+
 	}
 }
 
@@ -2894,17 +2674,21 @@ AlterTable(AlterTableStmt *stmt)
 
 	ATController(rel,
 				 stmt->cmds,
-				 interpretInhOption(stmt->relation->inhOpt),
-				 &stmt->oidInfoCount,
-				 &stmt->oidInfo,
-				 &stmt->oidmap);
+				 interpretInhOption(stmt->relation->inhOpt));
 
 	if (Gp_role == GP_ROLE_DISPATCH)
+	{
+		/*
+		 * Some ALTER TABLE commands rewrite the table, and cause new OIDs
+		 * and/or relfilenodes to be assigned.
+		 */
 		CdbDispatchUtilityStatement((Node *) stmt,
 									DF_CANCEL_ON_ERROR |
 									DF_WITH_SNAPSHOT |
 									DF_NEED_TWO_PHASE,
+									GetAssignedOidsForDispatch(),
 									NULL);
+	}
 }
 
 /*
@@ -2929,22 +2713,16 @@ AlterTableInternal(Oid relid, List *cmds, bool recurse)
 {
 	Relation	rel = relation_open(relid, AccessExclusiveLock);
 
-	ATController(rel, cmds, recurse, 0, NULL, NULL);
+	ATController(rel, cmds, recurse);
 }
 
 static void
-ATController(Relation rel, List *cmds, bool recurse, 
-			 int * oidInfoCount, TableOidInfo ** oidInfo, List **poidmap)
+ATController(Relation rel, List *cmds, bool recurse)
 {
 	List	   *wqueue = NIL;
 	ListCell   *lcmd;
-	int			ocount = 0;
-	TableOidInfo * oids = NULL;
 	bool is_partition = false;
 	bool is_data_remote = RelationIsExternal(rel);
-#ifdef USE_ASSERT_CHECKING
-	Oid			relid = RelationGetRelid(rel);
-#endif
 
 	cdb_sync_oid_to_segments();
 
@@ -2968,34 +2746,23 @@ ATController(Relation rel, List *cmds, bool recurse,
 	/* Phase 2: update system catalogs */
 	ATRewriteCatalogs(&wqueue);
 
-	if (Gp_role == GP_ROLE_DISPATCH && oidInfoCount != NULL)
-	{
-		*oidInfoCount = list_length(wqueue);
-		*oidInfo = palloc0(sizeof(TableOidInfo)*(*oidInfoCount));
-	}
-
-	if (oidInfoCount != NULL)
-		ocount = *oidInfoCount;
-	if (oidInfo != NULL)
-		oids = *oidInfo;
-
 	/*
-	 * Build OID map info.
+	 * Build list of tables OIDs that we performed SET DISTRIBUTED BY on.
 	 *
 	 * If we've recursed (i.e., expanded) an ALTER TABLE SET DISTRIBUTED
 	 * command from a master table to its children, then we need to extract
-	 * the OID map (used to ensure that all segments map old index OIDs to
-	 * new index OIDs) for each of the sub commands and put them in the
-	 * master command. This is because we only dispatch the command on the
-	 * master table to the segments, not each expanded command. We expect
-	 * the segments to do the same expansion.
+	 * the list of tables that we created a temporary table for, from each of
+	 * the sub commands, and put them in the master command. This is because
+	 * we only dispatch the command on the master table to the segments, not
+	 * each expanded command. We expect the segments to do the same expansion.
 	 */
 	if (Gp_role == GP_ROLE_DISPATCH)
 	{
 		AlterTableCmd *masterCmd = NULL; /* the command which was expanded */
-		SetDistributionCmd *masterSetCmd = NULL; 
-		ListCell *lc = NULL;
-		/* 
+		SetDistributionCmd *masterSetCmd = NULL;
+		ListCell *lc;
+
+		/*
 		 * Iterate over the work queue looking for SET WITH DISTRIBUTED
 		 * statements.
 		 */
@@ -3033,14 +2800,10 @@ ATController(Relation rel, List *cmds, bool recurse,
 					if (qeBackendId != 0)
 					{
 						if(masterSetCmd->backendId == 0)
-						{
 							masterSetCmd->backendId = qeBackendId;
-						}
 
 						List *qeRelids = qeData->relids;
 						masterSetCmd->relids = list_concat(masterSetCmd->relids, qeRelids);
-						List *qeIdxOidMap = qeData->indexOidMap;
-						masterSetCmd->indexOidMap = list_concat(masterSetCmd->indexOidMap, qeIdxOidMap);
 						List *qeHiddenTypes = qeData->hiddenTypes;
 						masterSetCmd->hiddenTypes = list_concat(masterSetCmd->hiddenTypes, qeHiddenTypes);
 					}
@@ -3055,9 +2818,9 @@ ATController(Relation rel, List *cmds, bool recurse,
 	 */
 	if (!is_data_remote)
 	{
-		ATRewriteTables(&wqueue, ocount, oids, poidmap);
+		ATRewriteTables(&wqueue);
 
-		ATAddToastIfNeeded(&wqueue, ocount, oids, poidmap);		
+		ATAddToastIfNeeded(&wqueue);
 	}
 
 }
@@ -4233,8 +3996,7 @@ ATRewriteCatalogs(List **wqueue)
 }
 
 static void
-ATAddToastIfNeeded(List **wqueue, 
-				   int oidInfoCount, TableOidInfo * oidInfo, List **poidmap)
+ATAddToastIfNeeded(List **wqueue)
 {
 
 	ListCell   *ltab;
@@ -4247,8 +4009,6 @@ ATAddToastIfNeeded(List **wqueue,
 	foreach(ltab, *wqueue)
 	{
 		Oid tOid = InvalidOid;
-		Oid tiOid = InvalidOid;
-		Oid	*toastComptypeOid = NULL;
 		AlteredTableInfo *tab = (AlteredTableInfo *) lfirst(ltab);
 		bool is_part = !rel_needs_long_lock(tab->relid);
 
@@ -4278,57 +4038,12 @@ ATAddToastIfNeeded(List **wqueue,
 			heap_close(rel, NoLock);
 			
 			/* 
-			 * We do not currently have a toast table, but we need one.  If we
-			 * have not already allocated oids in the oidinfo then we need to do
-			 * so now.
+			 * We do not currently have a toast table, but we need one.
 			 */
-			if (Gp_role == GP_ROLE_DISPATCH)
-			{
-				Relation	pg_class_desc = NULL;
-				Relation    pg_type_desc = NULL;
-
-				Assert(oidInfo);
-				Assert(m < oidInfoCount);
-
-				if (oidInfo[m].toastOid == InvalidOid)
-				{
-					pg_class_desc = heap_open(RelationRelationId, RowExclusiveLock);
-					oidInfo[m].toastOid = GetNewRelFileNode(reltablespace, false, pg_class_desc);
-				}
-				if (oidInfo[m].toastIndexOid == InvalidOid)
-				{
-					if (!pg_class_desc)
-						pg_class_desc = heap_open(RelationRelationId, RowExclusiveLock);
-					oidInfo[m].toastIndexOid = GetNewRelFileNode(reltablespace, false, pg_class_desc);
-				}
-				if (oidInfo[m].toastComptypeOid == InvalidOid)
-				{
-					pg_type_desc = heap_open(RelationRelationId, RowExclusiveLock);
-					oidInfo[m].toastIndexOid = GetNewRelFileNode(reltablespace, false, pg_type_desc);
-				}
-				if (pg_class_desc)
-					heap_close(pg_class_desc, NoLock);
-				if (pg_type_desc)
-					heap_close(pg_type_desc, NoLock);
-			}
-
-			/*
-			 * Normal dispatch/execute mode will always have an oidInfo, but if
-			 * we are in utility mode or bootstrap then we might not.  In this
-			 * event we fall back to the InvalidOid as initialized above.
-			 */
-			if (oidInfo != NULL)
-			{
-				Assert(m < oidInfoCount);
-				tOid = oidInfo[m].toastOid;
-				tiOid = oidInfo[m].toastIndexOid;
-				toastComptypeOid = &oidInfo[m].toastComptypeOid;
-			}
 
 			/* Finally create the toast table */
 			elog(DEBUG2,"Create Toast %d with Oid %u", m, tOid);
-			AlterTableCreateToastTableWithOid(tab->relid, tOid, tiOid, 
-											  toastComptypeOid, is_part);
+			AlterTableCreateToastTableWithOid(tab->relid, is_part);
 			m++;
 
 		}
@@ -4546,11 +4261,9 @@ ATExecCmd(List **wqueue, AlteredTableInfo *tab, Relation *rel_p, AlterTableCmd *
  * ATRewriteTables: ALTER TABLE phase 3
  */
 static void
-ATRewriteTables(List **wqueue, 
-				int oidInfoCount, TableOidInfo * oidInfo, List **poidmap)
+ATRewriteTables(List **wqueue)
 {
 	ListCell   *ltab;
-	int			m = 0;
 	char        relstorage;
 
 	/* Go through each table that needs to be checked or rewritten */
@@ -4585,18 +4298,6 @@ ATRewriteTables(List **wqueue,
 		 */
 		if (tab->newvals != NIL || tab->newTableSpace)
 		{
-			/* 
-			 * AlterTableInternal is not allowed to execute alter table
-			 * subcommands that require allocating new relfilenodes since it is
-			 * executed in a context that doesn't dispatch the Alter Table.
-			 *
-			 * This should never occur.
-			 */
-			if (!oidInfo)
-				elog(ERROR, 
-					 "internal alter table cannot allocate new relfilenodes");
-			Assert(m < oidInfoCount);
-
 			/*
 			 * We can never allow rewriting of shared or nailed-in-cache
 			 * relations, because we can't support changing their relfilenode
@@ -4640,9 +4341,6 @@ ATRewriteTables(List **wqueue,
 		 */
 		if (tab->newvals != NIL || tab->new_dropoids)
 		{
-			/* Sanity check of oidInfoCount */
-			Insist(oidInfoCount==list_length(*wqueue));
-
 			/* Build a temporary relation and copy data */
 			char		NewHeapName[NAMEDATALEN];
 			Oid         OIDNewHeap;
@@ -4661,7 +4359,7 @@ ATRewriteTables(List **wqueue,
 
             List *indexIds = RelationGetIndexList(rel);
             OIDNewHeap = make_new_heap(tab->relid, NewHeapName, newTableSpace,
-                                       &oidInfo[m], list_length(indexIds) > 0);
+                                       list_length(indexIds) > 0);
             list_free(indexIds);
 
 			/*
@@ -4710,8 +4408,7 @@ ATRewriteTables(List **wqueue,
 			 * It is not legal to reindex without dispatch of the associated
 			 * oids!
 			 */
-			reindex_relation(tab->relid, false, false, false, false,
-							 poidmap, poidmap && Gp_role == GP_ROLE_DISPATCH);
+			reindex_relation(tab->relid, false, false, false, false);
 		}
 		else
 		{
@@ -4727,16 +4424,8 @@ ATRewriteTables(List **wqueue,
 			 * just do a block-by-block copy.
 			 */
 			if (tab->newTableSpace)
-			{
-				populate_oidInfo(&oidInfo[m], newTableSpace, relisshared, 
-								 false);
-				
-				ATExecSetTableSpace(tab->relid, tab->newTableSpace, 
-									&oidInfo[m]);
-			}
+				ATExecSetTableSpace(tab->relid, tab->newTableSpace);
 		}
-		m++;
-
 	}
 
 	/*
@@ -7223,9 +6912,7 @@ ATExecAddIndex(AlteredTableInfo *tab, Relation rel,
 
  			crel = heap_open(relid, AccessShareLock);
 			istmt = copyObject(stmt);
-			istmt->idxOids = NIL;
 			istmt->is_part_child = true;
-			istmt->constrOid = InvalidOid;
 
 			ats = makeNode(AlterTableStmt);
 			atc = makeNode(AlterTableCmd);
@@ -7422,7 +7109,6 @@ ATAddCheckConstraint(AlteredTableInfo *tab, Relation rel, Constraint *constr, bo
 
  			/* Recurse to child */
  			childconstr = copyObject(constr);
- 			childconstr->conoid = InvalidOid;
  			//Insist(childconstr->name != NULL);
 
 			rv = makeRangeVar(get_namespace_name(RelationGetNamespace(childrel)),
@@ -7711,7 +7397,6 @@ ATAddForeignKeyConstraint(AlteredTableInfo *tab, Relation rel,
 	 * Record the FK constraint in pg_constraint.
 	 */
 	constrOid = CreateConstraintEntry(fkconstraint->constr_name,
-									  fkconstraint->constrOid,
 									  RelationGetNamespace(rel),
 									  CONSTRAINT_FOREIGN,
 									  fkconstraint->deferrable,
@@ -7734,7 +7419,6 @@ ATAddForeignKeyConstraint(AlteredTableInfo *tab, Relation rel,
 									  NULL,		/* no check constraint */
 									  NULL,
 									  NULL);
-	fkconstraint->constrOid = constrOid;
 
 	/*
 	 * Create the triggers that will enforce the constraint.
@@ -8955,8 +8639,6 @@ ATPostAlterTypeCleanup(List **wqueue, AlteredTableInfo *tab)
 {
 	ObjectAddress obj;
 	ListCell   *l;
-	int 		i;
-	Oid			constrOid;
 
 	/*
 	 * Re-parse the index and constraint definitions, and attach them to the
@@ -8979,13 +8661,8 @@ ATPostAlterTypeCleanup(List **wqueue, AlteredTableInfo *tab)
 		/*ATPostAlterTypeParse((char *) lfirst(l), wqueue);*/
 	}
 
-	/* Reuse old constraint OID for new constraint */
-	i = 0;
-	foreach(l, tab->changedConstraintDefs){
-		constrOid = list_nth_oid(tab->changedConstraintOids, i);
-		ATPostAlterTypeParse((char *) lfirst(l), wqueue, constrOid);
-		i++;
-	}
+	foreach(l, tab->changedConstraintDefs)
+		ATPostAlterTypeParse((char *) lfirst(l), wqueue);
 
 	/*
 	 * Now we can drop the existing constraints and indexes --- constraints
@@ -9018,7 +8695,7 @@ ATPostAlterTypeCleanup(List **wqueue, AlteredTableInfo *tab)
 }
 
 static void
-ATPostAlterTypeParse(char *cmd, List **wqueue, Oid constrOid)
+ATPostAlterTypeParse(char *cmd, List **wqueue)
 {
 	List	   *raw_parsetree_list;
 	List	   *querytree_list;
@@ -9094,11 +8771,6 @@ ATPostAlterTypeParse(char *cmd, List **wqueue, Oid constrOid)
 									lappend(tab->subcmds[AT_PASS_OLD_INDEX], cmd);
 								break;
 							case AT_AddConstraint:
-								/* Reuse old constraint OID for new constraint */
-								if (nodeTag(cmd->def) == T_Constraint)
-									((Constraint *)cmd->def)->conoid = constrOid;
-								else if (nodeTag(cmd->def) == T_FkConstraint)
-									((FkConstraint *)cmd->def)->constrOid = constrOid;
 								tab->subcmds[AT_PASS_OLD_CONSTR] =
 									lappend(tab->subcmds[AT_PASS_OLD_CONSTR], cmd);
 								break;
@@ -10301,11 +9973,12 @@ ATExecSetTableSpace_BufferPool(
 }
 
 static bool
-ATExecSetTableSpace_Relation(Oid tableOid, Oid newTableSpace, Oid newrelfilenode)
+ATExecSetTableSpace_Relation(Oid tableOid, Oid newTableSpace)
 {
 	Relation    rel;
 	Relation	pg_class;
 	Oid			oldTableSpace;
+	Oid			newrelfilenode;
 	HeapTuple	tuple;
 	Form_pg_class rd_rel;
 	Relation	gp_relation_node;
@@ -10359,6 +10032,14 @@ ATExecSetTableSpace_Relation(Oid tableOid, Oid newTableSpace, Oid newrelfilenode
 	if (!HeapTupleIsValid(tuple))
 		elog(ERROR, "cache lookup failed for relation %u", tableOid);
 	rd_rel = (Form_pg_class) GETSTRUCT(tuple);
+
+	/*
+	 * Relfilenodes are not unique across tablespaces, so we need to allocate
+	 * a new one in the new tablespace.
+	 */
+	newrelfilenode = GetNewRelFileNode(newTableSpace,
+									   rel->rd_rel->relisshared,
+									   NULL);
 
 	gp_relation_node = heap_open(GpRelationNodeRelationId, RowExclusiveLock);
 
@@ -10416,10 +10097,9 @@ ATExecSetTableSpace_Relation(Oid tableOid, Oid newTableSpace, Oid newrelfilenode
  * rewriting to be done, so we just want to copy the data as fast as possible.
  */
 static void
-ATExecSetTableSpace(Oid tableOid, Oid newTableSpace, TableOidInfo *oidInfo)
+ATExecSetTableSpace(Oid tableOid, Oid newTableSpace)
 {
 	Relation	rel;
-	Oid         newrelfilenode;
 	Oid			reltoastrelid = InvalidOid;
 	Oid			reltoastidxid = InvalidOid;
 	Oid			relaosegrelid = InvalidOid;
@@ -10434,9 +10114,6 @@ ATExecSetTableSpace(Oid tableOid, Oid newTableSpace, TableOidInfo *oidInfo)
 	/* Ensure valid input */
 	Assert(OidIsValid(tableOid));
 	Assert(OidIsValid(newTableSpace));
-	Assert(oidInfo);
-
-	newrelfilenode = oidInfo->relOid;
 
 	/*
 	 * Need lock here in case we are recursing to toast table or index
@@ -10467,7 +10144,7 @@ ATExecSetTableSpace(Oid tableOid, Oid newTableSpace, TableOidInfo *oidInfo)
 		GetBitmapIndexAuxOids(rel, &relbmrelid, &relbmidxid);
 
 	/* Move the main table */
-	if (!ATExecSetTableSpace_Relation(tableOid, newTableSpace, newrelfilenode))
+	if (!ATExecSetTableSpace_Relation(tableOid, newTableSpace))
 	{
 		/* XXX - Why do we hold the lock if we aren't changing anything? */
 		relation_close(rel, NoLock);
@@ -10476,39 +10153,27 @@ ATExecSetTableSpace(Oid tableOid, Oid newTableSpace, TableOidInfo *oidInfo)
 
 	/* Move associated toast/toast_index/ao subobjects */
 	if (OidIsValid(reltoastrelid))
-		ATExecSetTableSpace_Relation(reltoastrelid, newTableSpace, 
-									 oidInfo->toastOid);
+		ATExecSetTableSpace_Relation(reltoastrelid, newTableSpace);
 	if (OidIsValid(reltoastidxid))
-		ATExecSetTableSpace_Relation(reltoastidxid, newTableSpace,
-									 oidInfo->toastIndexOid);
+		ATExecSetTableSpace_Relation(reltoastidxid, newTableSpace);
 	if (OidIsValid(relaosegrelid))
-		ATExecSetTableSpace_Relation(relaosegrelid, newTableSpace,
-									 oidInfo->aosegOid);
+		ATExecSetTableSpace_Relation(relaosegrelid, newTableSpace);
 	if (OidIsValid(relaoblkdirrelid))
-		ATExecSetTableSpace_Relation(relaoblkdirrelid, newTableSpace,
-									 oidInfo->aoblkdirOid);
+		ATExecSetTableSpace_Relation(relaoblkdirrelid, newTableSpace);
 	if (OidIsValid(relaoblkdiridxid))
-		ATExecSetTableSpace_Relation(relaoblkdiridxid, newTableSpace,
-									 oidInfo->aoblkdirIndexOid);
+		ATExecSetTableSpace_Relation(relaoblkdiridxid, newTableSpace);
 	if (OidIsValid(relaovisimaprelid))
-		ATExecSetTableSpace_Relation(relaovisimaprelid, newTableSpace,
-									 oidInfo->aovisimapOid);
+		ATExecSetTableSpace_Relation(relaovisimaprelid, newTableSpace);
 	if (OidIsValid(relaovisimapidxid))
-		ATExecSetTableSpace_Relation(relaovisimapidxid, newTableSpace,
-									 oidInfo->aovisimapIndexOid);
+		ATExecSetTableSpace_Relation(relaovisimapidxid, newTableSpace);
 
 	/* 
 	 * MPP-7996 - bitmap index subobjects w/Alter Table Set tablespace
-	 *
-	 * Minor hack: Bitmap indexes are never AO tables.  Rather than extending
-	 * OidInfo with yet more oids we simply overload aosegOid/aosegIndexOid
-	 * to serve double purpose as oids for the bitmap subobjects.
 	 */
 	if (OidIsValid(relbmrelid))
 	{
 		Assert(!relaosegrelid);
-		ATExecSetTableSpace_Relation(relbmrelid, newTableSpace,
-									 oidInfo->aosegOid);
+		ATExecSetTableSpace_Relation(relbmrelid, newTableSpace);
 	}
 
 	/* MPP-6929: metadata tracking */
@@ -12767,8 +12432,7 @@ ATExecSetDistributedBy(Relation rel, Node *node, AlterTableCmd *cmd)
 	}
 
 	/* now, reindex */
-	reindex_relation(tarrelid, false, false /* ao_segs ? */, false, false,
-					 &oid_map, Gp_role == GP_ROLE_DISPATCH);
+	reindex_relation(tarrelid, false, false /* ao_segs ? */, false, false);
 
 	/* Step (g) */
 	if (Gp_role == GP_ROLE_DISPATCH)

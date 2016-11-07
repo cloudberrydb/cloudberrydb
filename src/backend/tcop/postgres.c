@@ -43,6 +43,7 @@
 #include "access/distributedlog.h"
 #include "access/printtup.h"
 #include "access/xact.h"
+#include "catalog/oid_dispatch.h"
 #include "catalog/pg_type.h"
 #include "commands/async.h"
 #include "commands/prepare.h"
@@ -1120,6 +1121,9 @@ exec_mpp_query(const char *query_string,
 			/* Set global sliceid variable for elog. */
 			currentSliceId = sliceTable->localSlice;
 		}
+
+		if (ddesc->oidAssignments)
+			AddPreassignedOids(ddesc->oidAssignments);
     }
 
 	/*

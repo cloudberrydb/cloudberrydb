@@ -240,6 +240,14 @@ CreateTrigger(CreateTrigStmt *stmt, Oid constraintOid)
 	 */
 	tgrel = heap_open(TriggerRelationId, RowExclusiveLock);
 
+	/*
+	 * For RI constraint triggers, the trigger's name is derived from the
+	 * trigger OID. That creates a chicken-and-egg problem with the usual
+	 * GPDB OID dispatching mechanism. In a QE, we cannot look up the
+	 * trigger OID to use by trigger name, because the trigger name is
+	 * derived from the OID. To work around that, the trigger OID is
+	 * included directly in the CreateTrigStmt struct.
+	 */
 	if (OidIsValid(stmt->trigOid))
 		trigoid = stmt->trigOid;
 	else
@@ -3623,6 +3631,7 @@ AfterTriggerSetState(ConstraintsSetStmt *stmt)
 									DF_CANCEL_ON_ERROR|
 									DF_WITH_SNAPSHOT|
 									DF_NEED_TWO_PHASE,
+									NIL, /* FIXME */
 									NULL);
 	}
 }

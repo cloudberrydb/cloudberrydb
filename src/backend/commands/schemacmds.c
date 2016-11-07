@@ -72,11 +72,8 @@ CreateSchemaCommand(CreateSchemaStmt *stmt, const char *queryString)
 		Assert(stmt->schemaname == InvalidOid);
 		Assert(stmt->authid == NULL);
 		Assert(stmt->schemaElts == NIL);
-		Assert(stmt->schemaOid != InvalidOid);
-		Assert(stmt->toastSchemaOid != InvalidOid);
 
-		InitTempTableNamespaceWithOids(stmt->schemaOid,
-									   stmt->toastSchemaOid);
+		InitTempTableNamespace();
 		return;
 	}
 
@@ -129,14 +126,11 @@ CreateSchemaCommand(CreateSchemaStmt *stmt, const char *queryString)
 	/* Create the schema's namespace */
 	if (shouldDispatch || Gp_role != GP_ROLE_EXECUTE)
 	{
-		namespaceId = NamespaceCreate(schemaName, owner_uid, 0);
+		namespaceId = NamespaceCreate(schemaName, owner_uid);
 
 		if (shouldDispatch)
 		{
 			elog(DEBUG5, "shouldDispatch = true, namespaceOid = %d", namespaceId);
-
-			Assert(stmt->schemaOid == 0);
-			stmt->schemaOid = namespaceId;
 
 			/*
 			 * Dispatch the command to all primary and mirror segment dbs.
@@ -147,6 +141,7 @@ CreateSchemaCommand(CreateSchemaStmt *stmt, const char *queryString)
 										DF_CANCEL_ON_ERROR |
 										DF_WITH_SNAPSHOT |
 										DF_NEED_TWO_PHASE,
+										GetAssignedOidsForDispatch(),
 										NULL);
 		}
 
@@ -160,7 +155,7 @@ CreateSchemaCommand(CreateSchemaStmt *stmt, const char *queryString)
 	}
 	else
 	{
-		namespaceId = NamespaceCreate(schemaName, owner_uid, stmt->schemaOid);
+		namespaceId = NamespaceCreate(schemaName, owner_uid);
 	}
 
 	/* Advance cmd counter to make the namespace visible */

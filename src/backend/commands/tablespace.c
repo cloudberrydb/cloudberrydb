@@ -209,10 +209,6 @@ CreateTableSpace(CreateTableSpaceStmt *stmt)
 
 	tuple = heap_form_tuple(rel->rd_att, values, nulls);
 
-	/* Keep oids synchonized between master and segments */
-	if (OidIsValid(stmt->tsoid))
-		HeapTupleSetOid(tuple, stmt->tsoid);
-
 	tablespaceoid = simple_heap_insert(rel, tuple);
 
 	CatalogUpdateIndexes(rel, tuple);
@@ -251,11 +247,11 @@ CreateTableSpace(CreateTableSpaceStmt *stmt)
 
 	if (Gp_role == GP_ROLE_DISPATCH)
 	{
-		stmt->tsoid = tablespaceoid;
 		CdbDispatchUtilityStatement((Node *) stmt,
 									DF_CANCEL_ON_ERROR|
 									DF_WITH_SNAPSHOT|
 									DF_NEED_TWO_PHASE,
+									GetAssignedOidsForDispatch(),
 									NULL);
 
 		/* MPP-6929: metadata tracking */

@@ -15,6 +15,7 @@
 #include "access/heapam.h"
 #include "catalog/dependency.h"
 #include "catalog/indexing.h"
+#include "catalog/oid_dispatch.h"
 #include "catalog/pg_extprotocol.h"
 #include "catalog/pg_language.h"
 #include "catalog/pg_operator.h"
@@ -35,15 +36,14 @@ static Oid ValidateProtocolFunction(List *fnName, ExtPtcFuncType fntype);
 static char *func_type_to_name(ExtPtcFuncType ftype);
 
 /*
- * ExtProtocolCreateWithOid
+ * ExtProtocolCreate
  */
 Oid
-ExtProtocolCreateWithOid(const char		*protocolName,
-					     List			*readfuncName,
-					     List			*writefuncName,
-					     List			*validatorfuncName,					   
-					     Oid			 protOid,
-					     bool			 trusted)
+ExtProtocolCreate(const char *protocolName,
+				  List *readfuncName,
+				  List *writefuncName,
+				  List *validatorfuncName,
+				  bool trusted)
 {
 	Relation	rel;
 	HeapTuple	tup;
@@ -59,6 +59,7 @@ ExtProtocolCreateWithOid(const char		*protocolName,
 	Oid 		ownerId = GetUserId();
 	ScanKeyData skey;
 	SysScanDesc scan;
+	Oid			protOid;
 
 	/* sanity checks (caller should have caught these) */
 	if (!protocolName)
@@ -134,9 +135,6 @@ ExtProtocolCreateWithOid(const char		*protocolName,
 	nulls[Anum_pg_extprotocol_ptcacl - 1] = true;
 
 	tup = heap_form_tuple(RelationGetDescr(rel), values, nulls);
-
-	if (protOid != (Oid) 0)
-		HeapTupleSetOid(tup, protOid);
 
 	/* insert a new tuple */
 	protOid = simple_heap_insert(rel, tup);

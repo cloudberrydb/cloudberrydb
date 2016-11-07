@@ -31,6 +31,7 @@
 #include "access/xlogutils.h"
 #include "access/fileam.h"
 #include "catalog/namespace.h"
+#include "catalog/oid_dispatch.h"
 #include "commands/async.h"
 #include "commands/tablecmds.h"
 #include "commands/trigger.h"
@@ -3356,6 +3357,9 @@ CommitTransaction(void)
 	 */
 	PreCommit_on_commit_actions();
 
+	/* This can still fail */
+	AtEOXact_DispatchOids(true);
+
 	/* close large objects before lower-level cleanup */
 	AtEOXact_LargeObject(true);
 
@@ -3676,6 +3680,8 @@ PrepareTransaction(void)
 	 */
 	PreCommit_on_commit_actions();
 
+	AtEOXact_DispatchOids(true);
+
 	/* close large objects before lower-level cleanup */
 	AtEOXact_LargeObject(true);
 
@@ -3976,6 +3982,8 @@ AbortTransaction(void)
 		
 	/* Perform any AO table abort processing */
 	AtAbort_AppendOnly();
+
+	AtEOXact_DispatchOids(false);
 
 	AtEOXact_LargeObject(false);	/* 'false' means it's abort */
 	AtAbort_Notify();
@@ -6219,6 +6227,7 @@ AbortSubTransaction(void)
 		AtSubAbort_Portals(s->subTransactionId,
 						   s->parent->subTransactionId,
 						   s->parent->curTransactionOwner);
+		AtEOXact_DispatchOids(false);
 		AtEOSubXact_LargeObject(false, s->subTransactionId,
 								s->parent->subTransactionId);
 		AtSubAbort_Notify();

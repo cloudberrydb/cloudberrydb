@@ -434,7 +434,10 @@ Relation DirectOpen_Open(
 		direct->pgStat.t_id = relationId;
 		direct->pgStat.t_shared = 1;
 
-		direct->relationData.pgstat_info = &direct->pgStat;
+		if (TopTransactionContext)
+			direct->relationData.pgstat_info = &direct->pgStat;
+		else
+			direct->relationData.pgstat_info = NULL;
 
 		direct->isInit = true;
 	}

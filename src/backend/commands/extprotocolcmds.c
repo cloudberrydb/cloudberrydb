@@ -16,6 +16,7 @@
 #include "access/genam.h"
 #include "catalog/dependency.h"
 #include "catalog/indexing.h"
+#include "catalog/oid_dispatch.h"
 #include "catalog/pg_extprotocol.h"
 #include "catalog/pg_proc.h"
 #include "catalog/pg_type.h"
@@ -37,7 +38,7 @@
  *	DefineExtprotocol
  */
 void
-DefineExtProtocol(List *name, List *parameters, Oid newOid, bool trusted)
+DefineExtProtocol(List *name, List *parameters, bool trusted)
 {
 	char	   *protName;
 	List	   *readfuncName = NIL;
@@ -77,13 +78,12 @@ DefineExtProtocol(List *name, List *parameters, Oid newOid, bool trusted)
 	/*
 	 * Most of the argument-checking is done inside of ExtProtocolCreate
 	 */
-	protOid = ExtProtocolCreateWithOid(protName,			/* protocol name */
-									   readfuncName,		/* read function name */
-									   writefuncName,		/* write function name */
-									   validatorfuncName, 	/* validator function name */
-									   newOid,
-									   trusted);
-					
+	protOid = ExtProtocolCreate(protName,			/* protocol name */
+								readfuncName,		/* read function name */
+								writefuncName,		/* write function name */
+								validatorfuncName, 	/* validator function name */
+								trusted);
+
 	if (Gp_role == GP_ROLE_DISPATCH)
 	{
 		DefineStmt * stmt = makeNode(DefineStmt);
@@ -92,14 +92,13 @@ DefineExtProtocol(List *name, List *parameters, Oid newOid, bool trusted)
 		stmt->defnames = name;
 		stmt->args = NIL;
 		stmt->definition = parameters;
-		stmt->newOid = protOid;
-		stmt->arrayOid = stmt->commutatorOid = stmt->negatorOid = InvalidOid;
 		stmt->ordered = false;
 		stmt->trusted = trusted;
 		CdbDispatchUtilityStatement((Node *) stmt,
 									DF_CANCEL_ON_ERROR|
 									DF_WITH_SNAPSHOT|
 									DF_NEED_TWO_PHASE,
+									GetAssignedOidsForDispatch(),
 									NULL);
 	}
 }

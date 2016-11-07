@@ -88,7 +88,7 @@ typedef FormData_pg_conversion *Form_pg_conversion;
 extern Oid ConversionCreate(const char *conname, Oid connamespace,
 				 Oid conowner,
 				 int32 conforencoding, int32 contoencoding,
-				 Oid conproc, bool def, Oid newOid);
+				 Oid conproc, bool def);
 extern void ConversionDrop(Oid conversionOid, DropBehavior behavior);
 extern void RemoveConversionById(Oid conversionOid);
 extern Oid	FindConversion(const char *conname, Oid connamespace);

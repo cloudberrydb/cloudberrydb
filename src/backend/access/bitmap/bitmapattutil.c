@@ -42,15 +42,14 @@ static TupleDesc _bitmap_create_lov_heapTupleDesc(Relation rel);
 /*
  * _bitmap_create_lov_heapandindex() -- create a new heap relation and
  *	a btree index for the list of values (LOV).
+ *
+ * Returns the OID of the created heap and btree index.
  */
 
 void
 _bitmap_create_lov_heapandindex(Relation rel,
-								Oid lovComptypeOid,
 								Oid *lovHeapOid,
-								Oid *lovIndexOid,
-								Oid lovHeapRelfilenode,
-								Oid lovIndexRelfilenode)
+								Oid *lovIndexOid)
 {
 	char		lovHeapName[NAMEDATALEN];
 	char		lovIndexName[NAMEDATALEN];
@@ -63,7 +62,6 @@ _bitmap_create_lov_heapandindex(Relation rel,
 	Oid			idxid;
 	int			indattrs;
 	int			i;
-	Oid			unusedArrayOid = InvalidOid;
 
 	Assert(rel != NULL);
 
@@ -72,7 +70,6 @@ _bitmap_create_lov_heapandindex(Relation rel,
 			 "pg_bm_%u", RelationGetRelid(rel));
 	snprintf(lovIndexName, sizeof(lovIndexName),
 			 "pg_bm_%u_index", RelationGetRelid(rel));
-
 
 	heapid = get_relname_relid(lovHeapName, PG_BITMAPINDEX_NAMESPACE);
 
@@ -97,20 +94,11 @@ _bitmap_create_lov_heapandindex(Relation rel,
 		Assert(OidIsValid(idxid));
 		*lovIndexOid = idxid;
 
-		lovComptypeOid = get_rel_type_id(heapid);
-		Assert(OidIsValid(lovComptypeOid));
-
 		lovHeap = heap_open(heapid, AccessExclusiveLock);
 		lovIndex = index_open(idxid, AccessExclusiveLock);
 
-		if (OidIsValid(lovHeapRelfilenode))
-			setNewRelfilenodeToOid(lovHeap, RecentXmin, lovHeapRelfilenode);
-		else
-			setNewRelfilenode(lovHeap, RecentXmin);
-		if (OidIsValid(lovIndexRelfilenode))
-			setNewRelfilenodeToOid(lovIndex, RecentXmin, lovIndexRelfilenode);
-		else
-			setNewRelfilenode(lovIndex, RecentXmin);
+		setNewRelfilenode(lovHeap, RecentXmin);
+		setNewRelfilenode(lovIndex, RecentXmin);
 
 		/*
 		 * After creating the new relfilenode for a btee index, this is not
@@ -157,18 +145,16 @@ _bitmap_create_lov_heapandindex(Relation rel,
   	heapid =
 		heap_create_with_catalog(lovHeapName, PG_BITMAPINDEX_NAMESPACE,
 								 rel->rd_rel->reltablespace,
-								 *lovHeapOid, rel->rd_rel->relowner,
+								 InvalidOid, rel->rd_rel->relowner,
 								 tupDesc,
 								 /* relam */ InvalidOid, RELKIND_RELATION, RELSTORAGE_HEAP,
 								 rel->rd_rel->relisshared, false, /* bufferPoolBulkLoad */ false, 0,
 								 ONCOMMIT_NOOP, NULL /* GP Policy */,
 								 (Datum)0, true,
 								 /* valid_opts */ true,
-								 &lovComptypeOid,
-								 &unusedArrayOid,
 						 		 /* persistentTid */ NULL,
 						 		 /* persistentSerialNum */ NULL);
-	Assert(heapid == *lovHeapOid);
+	*lovHeapOid = heapid;
 
 	/*
 	 * We must bump the command counter to make the newly-created relation
@@ -177,7 +163,7 @@ _bitmap_create_lov_heapandindex(Relation rel,
 	CommandCounterIncrement();
 
 	objAddr.classId = RelationRelationId;
-	objAddr.objectId = *lovHeapOid;
+	objAddr.objectId = heapid;
 	objAddr.objectSubId = 0 ;
 
 	referenced.classId = RelationRelationId;
@@ -198,7 +184,6 @@ _bitmap_create_lov_heapandindex(Relation rel,
 	indexInfo->ii_Predicate = make_ands_implicit(NULL);
 	indexInfo->ii_PredicateState = NIL;
 	indexInfo->ii_Unique = true;
-	indexInfo->opaque = NULL;
 
 	classObjectId = (Oid *) palloc(indattrs * sizeof(Oid));
 	coloptions = (int16 *) palloc(indattrs * sizeof(int16));
@@ -211,12 +196,12 @@ _bitmap_create_lov_heapandindex(Relation rel,
 		coloptions[i] = 0;
 	}
 
-	idxid = index_create(*lovHeapOid, lovIndexName, *lovIndexOid,
+	idxid = index_create(heapid, lovIndexName, InvalidOid,
 						 indexInfo, BTREE_AM_OID,
 						 rel->rd_rel->reltablespace,
-						 classObjectId, coloptions, 0, false, false, (Oid *) NULL, true,
+						 classObjectId, coloptions, 0, false, false, true,
 						 false, false, NULL);
-	Assert(idxid == *lovIndexOid);
+	*lovIndexOid = idxid;
 }
 
 /*

@@ -32,9 +32,6 @@ CreateAOAuxiliaryTable(
 		Relation rel,
 		const char *auxiliaryNamePrefix,
 		char relkind,
-		Oid aoauxiliaryOid,
-		Oid aoauxiliaryIndexOid,
-		Oid *aoauxiliaryComptypeOid,
 		TupleDesc tupledesc,
 		IndexInfo  *indexInfo,
 		Oid	*classObjectId,
@@ -108,11 +105,10 @@ CreateAOAuxiliaryTable(
 	 * destroyed when its master is, so there is no need to handle
 	 * the aovisimap relation as temp.
 	 */
-	Oid unusedArrayOid = InvalidOid;
 	aoauxiliary_relid = heap_create_with_catalog(aoauxiliary_relname,
 											     PG_AOSEGMENT_NAMESPACE,
 											     rel->rd_rel->reltablespace,
-											     aoauxiliaryOid,
+											     InvalidOid,
 											     rel->rd_rel->relowner,
 											     tupledesc,
 											     /* relam */ InvalidOid,
@@ -127,8 +123,6 @@ CreateAOAuxiliaryTable(
 											     (Datum) 0,
 											     true,
 												 /* valid_opts */ false,
-											     aoauxiliaryComptypeOid,
-												 &unusedArrayOid,
 											     /* persistentTid */ NULL,
 											     /* persistentSerialNum */ NULL);
 
@@ -138,21 +132,21 @@ CreateAOAuxiliaryTable(
 	/* Create an index on AO auxiliary tables (like visimap) except for pg_aoseg table */
 	if (relkind != RELKIND_AOSEGMENTS)
 	{
-		aoauxiliary_idxid = index_create(aoauxiliaryOid,
+		aoauxiliary_idxid = index_create(aoauxiliary_relid,
 										 aoauxiliary_idxname,
-										 aoauxiliaryIndexOid,
+										 InvalidOid,
 										 indexInfo,
 										 BTREE_AM_OID,
 										 rel->rd_rel->reltablespace,
 										 classObjectId, coloptions, (Datum) 0,
-										 true, false, (Oid *) NULL, true, false,
+										 true, false, true, false,
 										 false, NULL);
 
 		/* Unlock target table -- no one can see it */
-		UnlockRelationOid(aoauxiliaryOid, ShareLock);
+		UnlockRelationOid(aoauxiliary_relid, ShareLock);
 
 		/* Unlock the index -- no one can see it anyway */
-		UnlockRelationOid(aoauxiliaryIndexOid, AccessExclusiveLock);
+		UnlockRelationOid(aoauxiliary_idxid, AccessExclusiveLock);
 	}
 
 	/*
@@ -189,7 +183,7 @@ CreateAOAuxiliaryTable(
 	baseobject.objectId = relOid;
 	baseobject.objectSubId = 0;
 	aoauxiliaryobject.classId = RelationRelationId;
-	aoauxiliaryobject.objectId = aoauxiliaryOid;
+	aoauxiliaryobject.objectId = aoauxiliary_relid;
 	aoauxiliaryobject.objectSubId = 0;
 
 	recordDependencyOn(&aoauxiliaryobject, &baseobject, DEPENDENCY_INTERNAL);

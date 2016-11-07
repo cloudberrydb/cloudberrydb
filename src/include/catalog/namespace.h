@@ -96,7 +96,7 @@ extern void DropTempTableNamespaceForResetSession(Oid namespaceOid);
 extern void SetTempNamespace(Oid namespaceOid, Oid toastNamespaceOid);
 extern Oid  ResetTempNamespace(void);
 extern bool TempNamespaceOidIsValid(void);  /* GPDB only:  used by cdbgang.c */
-extern void InitTempTableNamespaceWithOids(Oid tempSchema, Oid tempToastSchema);
+extern void InitTempTableNamespace(void);
 
 extern Oid	LookupCreationNamespace(const char *nspname);
 extern Oid	QualifiedNameGetCreationNamespace(List *names, char **objname_p);

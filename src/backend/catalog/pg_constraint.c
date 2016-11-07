@@ -18,9 +18,11 @@
 #include "access/heapam.h"
 #include "catalog/dependency.h"
 #include "catalog/indexing.h"
+#include "catalog/oid_dispatch.h"
 #include "catalog/pg_constraint.h"
 #include "catalog/pg_operator.h"
 #include "catalog/pg_type.h"
+#include "cdb/cdbvars.h"
 #include "commands/defrem.h"
 #include "commands/tablecmds.h"
 #include "utils/array.h"
@@ -41,7 +43,6 @@
  */
 Oid
 CreateConstraintEntry(const char *constraintName,
-					  Oid conOid,
 					  Oid constraintNamespace,
 					  char constraintType,
 					  bool isDeferrable,
@@ -65,6 +66,7 @@ CreateConstraintEntry(const char *constraintName,
 					  const char *conSrc)
 {
 	Relation	conDesc;
+	Oid			conOid;
 	HeapTuple	tup;
 	bool		nulls[Natts_pg_constraint];
 	Datum		values[Natts_pg_constraint];
@@ -192,9 +194,6 @@ CreateConstraintEntry(const char *constraintName,
 
 	tup = heap_form_tuple(RelationGetDescr(conDesc), values, nulls);
 
-	/* force tuple to have the desired OID */
-	if (OidIsValid(conOid))
-		HeapTupleSetOid(tup, conOid);
 	conOid = simple_heap_insert(conDesc, tup);
 
 	/* update catalog indexes */

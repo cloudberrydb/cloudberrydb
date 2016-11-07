@@ -834,7 +834,7 @@ GetNewOid(Relation relation)
 	 * RelationNeedsSynchronizedOIDs()).
 	 */
 	if (Gp_role == GP_ROLE_EXECUTE && RelationNeedsSynchronizedOIDs(relation))
-		elog(WARNING, "allocated OID %u for relation \"%s\" in segment",
+		elog(PANIC, "allocated OID %u for relation \"%s\" in segment",
 			 newOid, RelationGetRelationName(relation));
 
 	return newOid;

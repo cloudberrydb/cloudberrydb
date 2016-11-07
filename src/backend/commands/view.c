@@ -19,6 +19,7 @@
 #include "access/xact.h"
 #include "catalog/dependency.h"
 #include "catalog/namespace.h"
+#include "catalog/oid_dispatch.h"
 #include "catalog/pg_depend.h"
 #include "commands/defrem.h"
 #include "commands/tablecmds.h"
@@ -103,24 +104,14 @@ isViewOnTempTable_walker(Node *node, void *context)
  *---------------------------------------------------------------------
  */
 static Oid
-DefineVirtualRelation(const RangeVar *relation, List *tlist, bool replace, Oid viewOid,
-					  Oid *comptypeOid, Oid *comptypeArrayOid)
+DefineVirtualRelation(const RangeVar *relation, List *tlist, bool replace)
 {
-	Oid			namespaceId;
+	Oid			viewOid,
+				namespaceId;
 	CreateStmt *createStmt = makeNode(CreateStmt);
 	List	   *attrList;
 	ListCell   *t;
 
-	createStmt->oidInfo.relOid = viewOid;
-	createStmt->oidInfo.comptypeOid = comptypeOid ? *comptypeOid : 0;
-	createStmt->oidInfo.comptypeArrayOid = comptypeArrayOid ? *comptypeArrayOid : 0;
-	createStmt->oidInfo.toastOid = 0;
-	createStmt->oidInfo.toastIndexOid = 0;
-	createStmt->oidInfo.aosegOid = 0;
-	createStmt->oidInfo.aoblkdirOid = 0;
-	createStmt->oidInfo.aoblkdirIndexOid = 0;
-	createStmt->oidInfo.aovisimapOid = 0;
-	createStmt->oidInfo.aovisimapIndexOid = 0;
 	createStmt->ownerid = GetUserId();
 
 	/*
@@ -228,11 +219,7 @@ DefineVirtualRelation(const RangeVar *relation, List *tlist, bool replace, Oid v
 		 * existing view, so we don't need more code to complain if "replace"
 		 * is false).
 		 */
-		newviewOid =  DefineRelation(createStmt, RELKIND_VIEW, RELSTORAGE_VIRTUAL);
-		if(comptypeOid)
-			*comptypeOid = createStmt->oidInfo.comptypeOid;
-		if(comptypeArrayOid)
-			*comptypeArrayOid = createStmt->oidInfo.comptypeArrayOid;
+		newviewOid =  DefineRelation(createStmt, RELKIND_VIEW, RELSTORAGE_VIRTUAL, false);
 		return newviewOid;
 	}
 }
@@ -287,11 +274,8 @@ checkViewTupleDesc(TupleDesc newdesc, TupleDesc olddesc)
 }
 
 static void
-DefineViewRules(Oid viewOid, Query *viewParse, bool replace, Oid *rewriteOid)
+DefineViewRules(Oid viewOid, Query *viewParse, bool replace)
 {
-	/* GPDB_83_MERGE_FIXME: rewriteOid used to be set in the RuleStmt
-	 * object we constructed here. Now it's unused */
-	
 	/*
 	 * Set up the ON SELECT rule.  Since the query has already been through
 	 * parse analysis, we use DefineQueryRewrite() directly.
@@ -452,10 +436,6 @@ DefineView(ViewStmt *stmt, const char *queryString)
 							"names than columns")));
 	}
 
-	if (Gp_role != GP_ROLE_EXECUTE)
-		viewOid = 0;
-	else
-		viewOid = stmt->relOid;
 	/*
 	 * If the user didn't explicitly ask for a temporary view, check whether
 	 * we need one implicitly.	We allow TEMP to be inserted automatically as
@@ -480,11 +460,7 @@ DefineView(ViewStmt *stmt, const char *queryString)
 	 * aborted.
 	 */
 	viewOid = DefineVirtualRelation(view, viewParse->targetList,
-									stmt->replace,
-									viewOid,
-									&stmt->comptypeOid,
-									&stmt->comptypeArrayOid);
-	stmt->relOid = viewOid;
+									stmt->replace);
 
 	/*
 	 * The relation we have just created is not visible to any other commands
@@ -502,7 +478,7 @@ DefineView(ViewStmt *stmt, const char *queryString)
 	/*
 	 * Now create the rules associated with the view.
 	 */
-	DefineViewRules(viewOid, viewParse, stmt->replace, &stmt->rewriteOid);
+	DefineViewRules(viewOid, viewParse, stmt->replace);
 
 	if (Gp_role == GP_ROLE_DISPATCH)
 	{
@@ -512,6 +488,7 @@ DefineView(ViewStmt *stmt, const char *queryString)
 									DF_CANCEL_ON_ERROR|
 									DF_WITH_SNAPSHOT|
 									DF_NEED_TWO_PHASE,
+									GetAssignedOidsForDispatch(),
 									NULL);
 	}
 }

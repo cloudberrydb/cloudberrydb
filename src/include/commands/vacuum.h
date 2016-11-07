@@ -174,8 +174,6 @@ extern void vacuum_appendonly_fill_stats(Relation aorel, Snapshot snapshot,
 										 bool *relhasindex);
 extern int vacuum_appendonly_indexes(Relation aoRelation, VacuumStmt *vacstmt, List* updated_stats);
 extern void vacuum_aocs_rel(Relation aorel, void *vacrelstats, bool isVacFull);
-extern void gen_oids_for_bitmaps(VacuumStmt *vacstmt, Relation onerel);
-extern List *get_oids_for_bitmap(List *all_extra_oids, Relation Irel, Relation onerel, int occurrence);
 
 /* in commands/analyze.c */
 extern void analyze_rel(Oid relid, VacuumStmt *vacstmt,

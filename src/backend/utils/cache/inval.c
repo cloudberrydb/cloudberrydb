@@ -90,6 +90,7 @@
 #include "access/xact.h"
 #include "catalog/catalog.h"
 #include "catalog/gp_policy.h"
+#include "cdb/cdbvars.h"
 #include "miscadmin.h"
 #include "storage/sinval.h"
 #include "storage/smgr.h"

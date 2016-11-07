@@ -170,8 +170,9 @@ cdbCopyStart(CdbCopy *c, char *copyCmd)
 	
 	MemoryContextSwitchTo(oldcontext);
 
-	CdbDispatchUtilityStatement((Node *)q->utilityStmt,
+	CdbDispatchUtilityStatement((Node *) q->utilityStmt,
 								(c->copy_in ? DF_NEED_TWO_PHASE | DF_WITH_SNAPSHOT : DF_WITH_SNAPSHOT),
+								NIL, /* FIXME */
 								NULL);
 
 	SIMPLE_FAULT_INJECTOR(CdbCopyStartAfterDispatch);

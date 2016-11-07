@@ -24,6 +24,7 @@
 #include "catalog/dependency.h"
 #include "catalog/indexing.h"
 #include "catalog/namespace.h"
+#include "catalog/oid_dispatch.h"
 #include "catalog/pg_authid.h"
 #include "catalog/pg_conversion.h"
 #include "catalog/pg_namespace.h"
@@ -191,7 +192,6 @@ char	   *namespace_search_path = NULL;
 
 /* Local functions */
 static void recomputeNamespacePath(void);
-static void InitTempTableNamespace(void);
 static void RemoveTempRelations(Oid tempNamespaceId);
 static void RemoveTempRelationsCallback(int code, Datum arg);
 static void NamespaceCallback(Datum arg, int cacheid, ItemPointer tuplePtr);
@@ -3007,14 +3007,8 @@ recomputeNamespacePath(void)
  * InitTempTableNamespace
  *		Initialize temp table namespace on first use in a particular backend
  */
-static void
-InitTempTableNamespace(void)
-{
-	InitTempTableNamespaceWithOids(InvalidOid, InvalidOid);
-}
-
 void
-InitTempTableNamespaceWithOids(Oid tempSchema, Oid tempToastSchema)
+InitTempTableNamespace(void)
 {
 	char		namespaceName[NAMEDATALEN];
 	Oid			namespaceId;
@@ -3097,7 +3091,7 @@ InitTempTableNamespaceWithOids(Oid tempSchema, Oid tempToastSchema)
 	 * temp tables.  This works because the places that access the temp
 	 * namespace for my own backend skip permissions checks on it.
 	 */
-	namespaceId = NamespaceCreate(namespaceName, BOOTSTRAP_SUPERUSERID, tempSchema);
+	namespaceId = NamespaceCreate(namespaceName, BOOTSTRAP_SUPERUSERID);
 	/* Advance command counter to make namespace visible */
 	CommandCounterIncrement();
 
@@ -3122,7 +3116,7 @@ InitTempTableNamespaceWithOids(Oid tempSchema, Oid tempToastSchema)
 		toastspaceId = InvalidOid;
 		CommandCounterIncrement();
 	}
-	toastspaceId = NamespaceCreate(namespaceName, BOOTSTRAP_SUPERUSERID, tempToastSchema);
+	toastspaceId = NamespaceCreate(namespaceName, BOOTSTRAP_SUPERUSERID);
 	/* Advance command counter to make namespace visible */
 	CommandCounterIncrement();
 
@@ -3154,8 +3148,6 @@ InitTempTableNamespaceWithOids(Oid tempSchema, Oid tempToastSchema)
 
 		stmt = makeNode(CreateSchemaStmt);
 		stmt->istemp	 = true;
-		stmt->schemaOid = namespaceId;
-		stmt->toastSchemaOid = toastspaceId;
 
 		/*
 		 * Dispatch the command to all primary and mirror segment dbs.
@@ -3163,9 +3155,10 @@ InitTempTableNamespaceWithOids(Oid tempSchema, Oid tempToastSchema)
 		 * Waits for QEs to finish.  Exits via ereport(ERROR,...) if error.
 		 */
 		CdbDispatchUtilityStatement((Node *) stmt,
-									DF_CANCEL_ON_ERROR|
-									DF_WITH_SNAPSHOT|
+									DF_CANCEL_ON_ERROR |
+									DF_WITH_SNAPSHOT |
 									DF_NEED_TWO_PHASE,
+									GetAssignedOidsForDispatch(),
 									NULL);
 	}
 }

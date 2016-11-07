@@ -22,6 +22,7 @@
 #include "catalog/pg_operator.h"
 #include "catalog/pg_proc.h"
 #include "catalog/pg_type.h"
+#include "cdb/cdbvars.h"
 #include "miscadmin.h"
 #include "parser/parse_coerce.h"
 #include "parser/parse_func.h"
@@ -37,21 +38,20 @@ static Oid lookup_agg_function(List *fnName, int nargs, Oid *input_types,
 
 
 /*
- * AggregateCreateWithOid
+ * AggregateCreate
  */
 Oid
-AggregateCreateWithOid(const char		*aggName,
-					   Oid				 aggNamespace,
-					   Oid				*aggArgTypes,
-					   int				 numArgs,
-					   List				*aggtransfnName,
-					   List				*aggprelimfnName,
-					   List				*aggfinalfnName,
-					   List				*aggsortopName,
-					   Oid				 aggTransType,
-					   const char		*agginitval,
-					   bool              aggordered,
-					   Oid				 procOid)
+AggregateCreate(const char *aggName,
+				Oid aggNamespace,
+				Oid	*aggArgTypes,
+				int numArgs,
+				List *aggtransfnName,
+				List *aggprelimfnName,
+				List *aggfinalfnName,
+				List *aggsortopName,
+				Oid aggTransType,
+				const char *agginitval,
+				bool aggordered)
 {
 	Relation	aggdesc;
 	HeapTuple	tup;
@@ -75,6 +75,7 @@ AggregateCreateWithOid(const char		*aggName,
 	int			i;
 	ObjectAddress myself,
 				referenced;
+	Oid			procOid;
 
 	/* sanity checks (caller should have caught these) */
 	if (!aggName)
@@ -245,7 +246,7 @@ AggregateCreateWithOid(const char		*aggName,
 								aggArgTypes[0], aggArgTypes[0],
 								false, -1);
 	}
-
+	
 	/*
 	 * Everything looks okay.  Try to create the pg_proc entry for the
 	 * aggregate.  (This could fail if there's already a conflicting entry.)
@@ -277,8 +278,7 @@ AggregateCreateWithOid(const char		*aggName,
 							  PointerGetDatum(NULL),	/* proconfig */
 							  1,				/* procost */
 							  0,				/* prorows */
-							  PRODATAACCESS_NONE,		/* prodataaccess */
-							  procOid);
+							  PRODATAACCESS_NONE);		/* prodataaccess */
 
 	/*
 	 * Okay to create the pg_aggregate entry.

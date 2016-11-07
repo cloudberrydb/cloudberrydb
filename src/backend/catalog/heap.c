@@ -46,7 +46,9 @@
 #include "catalog/pg_attrdef.h"
 #include "catalog/pg_attribute_encoding.h"
 #include "catalog/pg_authid.h"
+#include "catalog/pg_auth_members.h"
 #include "catalog/pg_constraint.h"
+#include "catalog/pg_database.h"
 #include "catalog/pg_exttable.h"
 #include "catalog/pg_inherits.h"
 #include "catalog/pg_namespace.h"
@@ -99,15 +101,14 @@ static void AddNewRelationTuple(Relation pg_class_desc,
 					char relkind,
 					char relstorage,
 					Datum reloptions);
-static Oid AddNewRelationType(Oid new_type_oid,
-				   const char *typeName,
+static Oid AddNewRelationType(const char *typeName,
 				   Oid typeNamespace,
 				   Oid new_rel_oid,
 				   char new_rel_kind,
 				   Oid ownerid,
 				   Oid new_array_type);
 static void RelationRemoveInheritance(Oid relid);
-static Oid StoreRelCheck(Relation rel, char *ccname, char *ccbin, Oid conoid);
+static void StoreRelCheck(Relation rel, char *ccname, char *ccbin);
 static Node* cookConstraint (ParseState *pstate,
 							 Node 		*raw_constraint,
 							 char		*relname);
@@ -1190,8 +1191,7 @@ AddNewRelationTuple(Relation pg_class_desc,
  * --------------------------------
  */
 static Oid
-AddNewRelationType(Oid new_type_oid,
-				   const char *typeName,
+AddNewRelationType(const char *typeName,
 				   Oid typeNamespace,
 				   Oid new_rel_oid,
 				   char new_rel_kind,
@@ -1199,7 +1199,7 @@ AddNewRelationType(Oid new_type_oid,
 				   Oid new_array_type)
 {
 	return
-		TypeCreate(new_type_oid,	/* can have a predetermined OID in bootstrap */
+		TypeCreate(InvalidOid,	/* no predetermined OID */
 				   typeName,		/* type name */
 				   typeNamespace,	/* type namespace */
 				   new_rel_oid, 	/* relation oid */
@@ -1396,8 +1396,6 @@ heap_create_with_catalog(const char *relname,
 						 Datum reloptions,
 						 bool allow_system_table_mods,
 						 bool valid_opts,
-						 Oid *comptypeOid,
-						 Oid *comptypeArrayOid,
 						 ItemPointer persistentTid,
 						 int64 *persistentSerialNum)
 {
@@ -1410,22 +1408,61 @@ heap_create_with_catalog(const char *relname,
 	bool		appendOnlyRel;
 	StdRdOptions *stdRdOptions;
 	int			safefswritesize = gp_safefswritesize;
-	bool		rowtype_already_exists;
-
-	if (comptypeArrayOid)
-	    new_array_oid = *comptypeArrayOid;
+	Oid			existing_rowtype_oid = InvalidOid;
+	char	   *relarrayname = NULL;
 
 	/*
 	 * Don't create the row type if the bootstrapper tells us it already
 	 * knows what it is.
 	 */
-	rowtype_already_exists =
-		(IsBootstrapProcessingMode() &&
-		 (PointerIsValid(comptypeOid) && OidIsValid(*comptypeOid)));
-
-	if (PointerIsValid(comptypeArrayOid))
+	if (IsBootstrapProcessingMode())
 	{
-	    new_array_oid = *comptypeArrayOid;
+		/*
+		 * Some relations need to have a fixed relation type
+		 * OID, because it is referenced in code.
+		 *
+		 * 90MERGE_FIXME: In PostgreSQL 9.0, there's a
+		 * new BKI directive, BKI_ROWTYPE_OID(<oid>), for
+		 * doing the same. Replace this hack with that once
+		 * we merge with 9.0.
+		 */
+		switch (relid)
+		{
+			case GpPersistentRelationNodeRelationId:
+				existing_rowtype_oid = GP_PERSISTENT_RELATION_NODE_OID;
+				break;
+			case GpPersistentDatabaseNodeRelationId:
+				existing_rowtype_oid = GP_PERSISTENT_DATABASE_NODE_OID;
+				break;
+			case GpPersistentTablespaceNodeRelationId:
+				existing_rowtype_oid = GP_PERSISTENT_TABLESPACE_NODE_OID;
+				break;
+			case GpPersistentFilespaceNodeRelationId:
+				existing_rowtype_oid = GP_PERSISTENT_FILESPACE_NODE_OID;
+				break;
+			case GpRelationNodeRelationId:
+				existing_rowtype_oid = GP_RELATION_NODE_OID;
+				break;
+
+			case GpGlobalSequenceRelationId:
+				existing_rowtype_oid = GP_GLOBAL_SEQUENCE_RELTYPE_OID;
+				break;
+
+			case DatabaseRelationId:
+				existing_rowtype_oid = PG_DATABASE_RELTYPE_OID;
+				break;
+
+			case AuthIdRelationId:
+				existing_rowtype_oid = PG_AUTHID_RELTYPE_OID;
+				break;
+
+			case AuthMemRelationId:
+				existing_rowtype_oid = PG_AUTH_MEMBERS_RELTYPE_OID;
+				break;
+
+			default:
+				break;
+		}
 	}
 
 	pg_class_desc = heap_open(RelationRelationId, RowExclusiveLock);
@@ -1504,7 +1541,7 @@ heap_create_with_catalog(const char *relname,
 								  CStringGetDatum(relname),
 								  ObjectIdGetDatum(relnamespace),
 								  0, 0);
-	if (OidIsValid(old_type_oid) && !rowtype_already_exists)
+	if (OidIsValid(old_type_oid) && !OidIsValid(existing_rowtype_oid))
 	{
 		if (!moveArrayTypeName(old_type_oid, relname, relnamespace))
 			ereport(ERROR,
@@ -1540,6 +1577,9 @@ heap_create_with_catalog(const char *relname,
 	 * The OID will be the relfilenode as well, so make sure it doesn't
 	 * collide with either pg_class OIDs or existing physical files.
 	 */
+	if (!OidIsValid(relid) && Gp_role == GP_ROLE_EXECUTE)
+		relid = GetPreassignedOidForRelation(relnamespace, relname);
+
 	if (!OidIsValid(relid))
 		relid = GetNewRelFileNode(reltablespace, shared_relation,
 								  pg_class_desc);
@@ -1580,36 +1620,23 @@ heap_create_with_catalog(const char *relname,
 	 * We do not create any array types for system catalogs (ie, those made
 	 * during initdb).  We create array types for regular composite types ...
 	 * but not, eg, for toast tables or sequences.
-	 */
-	if (IsUnderPostmaster &&
-		relkind == RELKIND_COMPOSITE_TYPE &&
-		!OidIsValid(new_array_oid))
-	{
-		/* OK, so pre-assign a type OID for the array type */
-		Relation pg_type = heap_open(TypeRelationId, AccessShareLock);
-		new_array_oid = GetNewOid(pg_type);
-		heap_close(pg_type, AccessShareLock);
-	}
-
-	/*
-	 * Since defining a relation also defines a complex type, we add a new
-	 * system type corresponding to the new relation.
-	 *
-	 * NOTE: we could get a unique-index failure here, in case the same name
-	 * has already been used for a type.
 	 *
 	 * Also not for the auxiliary heaps created for bitmap indexes.
 	 */
 	if (IsUnderPostmaster && (relkind == RELKIND_RELATION ||
 							  relkind == RELKIND_VIEW ||
 							  relkind == RELKIND_COMPOSITE_TYPE) &&
-		relnamespace != PG_BITMAPINDEX_NAMESPACE &&
-		!OidIsValid(new_array_oid))
+		relnamespace != PG_BITMAPINDEX_NAMESPACE)
 	{
 		/* OK, so pre-assign a type OID for the array type */
 		Relation	pg_type = heap_open(TypeRelationId, AccessShareLock);
 
-		new_array_oid = GetNewOid(pg_type);
+		relarrayname = makeArrayTypeName(relname, relnamespace);
+
+		if (Gp_role == GP_ROLE_EXECUTE)
+			new_array_oid = GetPreassignedOidForType(relnamespace, relarrayname);
+		else
+			new_array_oid = GetNewOid(pg_type);
 		heap_close(pg_type, AccessShareLock);
 	}
 
@@ -1621,19 +1648,16 @@ heap_create_with_catalog(const char *relname,
 	 * creating the same type name in parallel but hadn't committed yet when
 	 * we checked for a duplicate name above.
 	 */
-	if (rowtype_already_exists)
-		new_type_oid = *comptypeOid;
+	if (existing_rowtype_oid != InvalidOid)
+		new_type_oid = existing_rowtype_oid;
 	else
 	{
-		new_type_oid = AddNewRelationType(comptypeOid ? *comptypeOid : InvalidOid,
-										  relname,
+		new_type_oid = AddNewRelationType(relname,
 										  relnamespace,
 										  relid,
 										  relkind,
 										  ownerid,
 										  new_array_oid);
-		if (comptypeOid)
-			*comptypeOid = new_type_oid;
 	}
 
 	/*
@@ -1641,9 +1665,8 @@ heap_create_with_catalog(const char *relname,
 	 */
 	if (OidIsValid(new_array_oid))
 	{
-		char	*relarrayname;
-
-		relarrayname = makeArrayTypeName(relname, relnamespace);
+		if (!relarrayname)
+			relarrayname = makeArrayTypeName(relname, relnamespace);
 
 		TypeCreate(new_array_oid,		/* force the type's OID to this */
 				   relarrayname,	/* Array type name */
@@ -1673,9 +1696,6 @@ heap_create_with_catalog(const char *relname,
 				   -1,			/* typmod */
 				   0,			/* array dimensions for typBaseType */
 				   false);		/* Type NOT NULL */
-
-		if (comptypeArrayOid)
-			*comptypeArrayOid = new_array_oid;
 
 		pfree(relarrayname);
 	}
@@ -2571,11 +2591,9 @@ StoreAttrDefault(Relation rel, AttrNumber attnum, Node *expr, Oid attrdefOid)
  *
  * Caller is responsible for updating the count of constraints
  * in the pg_class entry for the relation.
- *
- * Return OID of the newly created constraint entry.
  */
-static Oid
-StoreRelCheck(Relation rel, char *ccname, char *ccbin, Oid conOid)
+static void
+StoreRelCheck(Relation rel, char *ccname, char *ccbin)
 {
 	Node	   *expr;
 	char	   *ccsrc;
@@ -2631,8 +2649,7 @@ StoreRelCheck(Relation rel, char *ccname, char *ccbin, Oid conOid)
 	/*
 	 * Create the Check Constraint
 	 */
-	conOid = CreateConstraintEntry(ccname,		/* Constraint Name */
-						  conOid,		/* Constraint Oid */
+	CreateConstraintEntry(ccname,		/* Constraint Name */
 						  RelationGetNamespace(rel),	/* namespace */
 						  CONSTRAINT_CHECK,		/* Constraint Type */
 						  false,	/* Is Deferrable */
@@ -2656,7 +2673,6 @@ StoreRelCheck(Relation rel, char *ccname, char *ccbin, Oid conOid)
 						  ccsrc);		/* Source form check constraint */
 
 	pfree(ccsrc);
-	return conOid;
 }
 
 /*
@@ -2871,7 +2887,7 @@ AddRelationConstraints(Relation rel,
 		/*
 		 * OK, store it.
 		 */
-		cdef->conoid = StoreRelCheck(rel, ccname, nodeToString(expr), cdef->conoid);
+		StoreRelCheck(rel, ccname, nodeToString(expr));
 
 		numchecks++;
 

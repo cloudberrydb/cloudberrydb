@@ -23,6 +23,7 @@
 #include "catalog/dependency.h"
 #include "catalog/indexing.h"
 #include "catalog/namespace.h"
+#include "catalog/oid_dispatch.h"
 #include "catalog/pg_namespace.h"
 #include "catalog/pg_proc.h"
 #include "catalog/pg_ts_config.h"
@@ -160,7 +161,7 @@ makeParserDependencies(HeapTuple tuple)
  * CREATE TEXT SEARCH PARSER
  */
 void
-DefineTSParser(List *names, List *parameters, Oid newOid)
+DefineTSParser(List *names, List *parameters)
 {
 	char	   *prsname;
 	ListCell   *pl;
@@ -257,9 +258,6 @@ DefineTSParser(List *names, List *parameters, Oid newOid)
 
 	tup = heap_form_tuple(prsRel->rd_att, values, nulls);
 
-	if (newOid != InvalidOid)
-		HeapTupleSetOid(tup, newOid);
-
 	prsOid = simple_heap_insert(prsRel, tup);
 
 	CatalogUpdateIndexes(prsRel, tup);
@@ -279,10 +277,13 @@ DefineTSParser(List *names, List *parameters, Oid newOid)
 		stmt->defnames = names;
 		stmt->args = NIL;
 		stmt->definition = parameters;
-		stmt->newOid = prsOid;
-		stmt->arrayOid = stmt->commutatorOid = stmt->negatorOid = InvalidOid;
 
-		CdbDispatchUtilityStatement((Node *) stmt, DF_CANCEL_ON_ERROR | DF_NEED_TWO_PHASE | DF_WITH_SNAPSHOT, NULL);
+		CdbDispatchUtilityStatement((Node *) stmt,
+									DF_CANCEL_ON_ERROR |
+									DF_NEED_TWO_PHASE |
+									DF_WITH_SNAPSHOT,
+									GetAssignedOidsForDispatch(),
+									NULL);
 	}
 }
 
@@ -490,7 +491,7 @@ verify_dictoptions(Oid tmplId, List *dictoptions)
  * CREATE TEXT SEARCH DICTIONARY
  */
 void
-DefineTSDictionary(List *names, List *parameters, Oid newOid)
+DefineTSDictionary(List *names, List *parameters)
 {
 	ListCell   *pl;
 	Relation	dictRel;
@@ -563,9 +564,6 @@ DefineTSDictionary(List *names, List *parameters, Oid newOid)
 
 	tup = heap_form_tuple(dictRel->rd_att, values, nulls);
 
-	if (newOid != InvalidOid)
-		HeapTupleSetOid(tup, newOid);
-
 	dictOid = simple_heap_insert(dictRel, tup);
 
 	CatalogUpdateIndexes(dictRel, tup);
@@ -584,10 +582,13 @@ DefineTSDictionary(List *names, List *parameters, Oid newOid)
 		stmt->defnames = names;
 		stmt->args = NIL;
 		stmt->definition = parameters;
-		stmt->newOid = dictOid;
-		stmt->arrayOid = stmt->commutatorOid = stmt->negatorOid = InvalidOid;
 		stmt->ordered = false;
-		CdbDispatchUtilityStatement((Node *) stmt, DF_CANCEL_ON_ERROR | DF_NEED_TWO_PHASE | DF_WITH_SNAPSHOT, NULL);
+		CdbDispatchUtilityStatement((Node *) stmt,
+									DF_CANCEL_ON_ERROR |
+									DF_NEED_TWO_PHASE |
+									DF_WITH_SNAPSHOT,
+									GetAssignedOidsForDispatch(),
+									NULL);
 	}
 }
 
@@ -840,7 +841,12 @@ AlterTSDictionary(AlterTSDictionaryStmt *stmt)
 	heap_close(rel, RowExclusiveLock);
 
 	if (Gp_role == GP_ROLE_DISPATCH)
-		CdbDispatchUtilityStatement((Node *) stmt, DF_CANCEL_ON_ERROR | DF_NEED_TWO_PHASE | DF_WITH_SNAPSHOT, NULL);
+		CdbDispatchUtilityStatement((Node *) stmt,
+									DF_CANCEL_ON_ERROR |
+									DF_NEED_TWO_PHASE |
+									DF_WITH_SNAPSHOT,
+									NIL, /* FIXME */
+									NULL);
 }
 
 /*
@@ -990,7 +996,7 @@ makeTSTemplateDependencies(HeapTuple tuple)
  * CREATE TEXT SEARCH TEMPLATE
  */
 void
-DefineTSTemplate(List *names, List *parameters, Oid newOid)
+DefineTSTemplate(List *names, List *parameters)
 {
 	ListCell   *pl;
 	Relation	tmplRel;
@@ -999,7 +1005,7 @@ DefineTSTemplate(List *names, List *parameters, Oid newOid)
 	bool		nulls[Natts_pg_ts_template];
 	NameData	dname;
 	int			i;
-	Oid			dictOid;
+	Oid			tmplOid;
 	Oid			namespaceoid;
 	char	   *tmplname;
 
@@ -1063,10 +1069,7 @@ DefineTSTemplate(List *names, List *parameters, Oid newOid)
 
 	tup = heap_form_tuple(tmplRel->rd_att, values, nulls);
 
-	if (newOid != InvalidOid)
-		HeapTupleSetOid(tup, newOid);
-
-	dictOid = simple_heap_insert(tmplRel, tup);
+	tmplOid = simple_heap_insert(tmplRel, tup);
 
 	CatalogUpdateIndexes(tmplRel, tup);
 
@@ -1081,12 +1084,15 @@ DefineTSTemplate(List *names, List *parameters, Oid newOid)
 		DefineStmt *stmt = makeNode(DefineStmt);
 		stmt->kind = OBJECT_TSTEMPLATE;
 		stmt->oldstyle = false;
-		stmt->newOid = dictOid;
 		stmt->defnames = names;
 		stmt->args = NIL;
 		stmt->definition = parameters;
-		stmt->arrayOid = stmt->commutatorOid = stmt->negatorOid = InvalidOid;
-		CdbDispatchUtilityStatement((Node *) stmt, DF_CANCEL_ON_ERROR | DF_NEED_TWO_PHASE | DF_WITH_SNAPSHOT, NULL);
+		CdbDispatchUtilityStatement((Node *) stmt,
+									DF_CANCEL_ON_ERROR |
+									DF_NEED_TWO_PHASE |
+									DF_WITH_SNAPSHOT,
+									GetAssignedOidsForDispatch(),
+									NULL);
 	}
 }
 
@@ -1319,7 +1325,7 @@ makeConfigurationDependencies(HeapTuple tuple, bool removeOld,
  * CREATE TEXT SEARCH CONFIGURATION
  */
 void
-DefineTSConfiguration(List *names, List *parameters, Oid newOid)
+DefineTSConfiguration(List *names, List *parameters)
 {
 	Relation	cfgRel;
 	Relation	mapRel = NULL;
@@ -1413,9 +1419,6 @@ DefineTSConfiguration(List *names, List *parameters, Oid newOid)
 
 	tup = heap_form_tuple(cfgRel->rd_att, values, nulls);
 
-	if (newOid != InvalidOid)
-		HeapTupleSetOid(tup, newOid);
-
 	cfgOid = simple_heap_insert(cfgRel, tup);
 
 	CatalogUpdateIndexes(cfgRel, tup);
@@ -1482,9 +1485,12 @@ DefineTSConfiguration(List *names, List *parameters, Oid newOid)
 		stmt->defnames = names;
 		stmt->args = NIL;
 		stmt->definition = parameters;
-		stmt->newOid = cfgOid;
-		stmt->arrayOid = stmt->commutatorOid = stmt->negatorOid = InvalidOid;
-		CdbDispatchUtilityStatement((Node *) stmt, DF_CANCEL_ON_ERROR | DF_NEED_TWO_PHASE | DF_WITH_SNAPSHOT, NULL);
+		CdbDispatchUtilityStatement((Node *) stmt,
+									DF_CANCEL_ON_ERROR |
+									DF_NEED_TWO_PHASE |
+									DF_WITH_SNAPSHOT,
+									GetAssignedOidsForDispatch(),
+									NULL);
 	}
 }
 
@@ -1739,7 +1745,12 @@ AlterTSConfiguration(AlterTSConfigurationStmt *stmt)
 	ReleaseSysCache(tup);
 
 	if (Gp_role == GP_ROLE_DISPATCH)
-		CdbDispatchUtilityStatement((Node *) stmt, DF_CANCEL_ON_ERROR | DF_NEED_TWO_PHASE | DF_WITH_SNAPSHOT, NULL);
+		CdbDispatchUtilityStatement((Node *) stmt,
+									DF_CANCEL_ON_ERROR |
+									DF_NEED_TWO_PHASE |
+									DF_WITH_SNAPSHOT,
+									NIL, /* FIXME */
+									NULL);
 }
 
 /*

@@ -17,6 +17,7 @@
 #include "access/heapam.h"
 #include "catalog/dependency.h"
 #include "catalog/indexing.h"
+#include "catalog/oid_dispatch.h"
 #include "catalog/pg_conversion.h"
 #include "catalog/pg_type.h"
 #include "commands/conversioncmds.h"
@@ -114,8 +115,8 @@ CreateConversionCommand(CreateConversionStmt *stmt)
 	 * All seem ok, go ahead (possible failure would be a duplicate conversion
 	 * name)
 	 */
-	stmt->convOid = ConversionCreate(conversion_name, namespaceId, GetUserId(),
-					 from_encoding, to_encoding, funcoid, stmt->def, stmt->convOid);
+	ConversionCreate(conversion_name, namespaceId, GetUserId(),
+					 from_encoding, to_encoding, funcoid, stmt->def);
 					 
 	if (Gp_role == GP_ROLE_DISPATCH)
 	{
@@ -123,6 +124,7 @@ CreateConversionCommand(CreateConversionStmt *stmt)
 									DF_CANCEL_ON_ERROR|
 									DF_WITH_SNAPSHOT|
 									DF_NEED_TWO_PHASE,
+									GetAssignedOidsForDispatch(),
 									NULL);
 	}
 }

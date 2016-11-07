@@ -62,12 +62,7 @@ bmbuild(PG_FUNCTION_ARGS)
 	BMBuildState bmstate;
 	IndexBuildResult *result;
 	TupleDesc	tupDesc;
-	Oid comptypeOid = InvalidOid;
-	Oid indexOid = InvalidOid;
-	Oid heapOid = InvalidOid;
-	Oid indexRelfilenode = InvalidOid;
-	Oid heapRelfilenode = InvalidOid;
-	bool useWal;
+	bool		useWal;
 
 	MIRROREDLOCK_BUFMGR_VERIFY_NO_LOCK_LEAK_ENTER;
 
@@ -84,32 +79,10 @@ bmbuild(PG_FUNCTION_ARGS)
 
 	tupDesc = RelationGetDescr(index);
 
-	if (indexInfo->opaque != NULL)
-	{
-		IndexInfoOpaque *opaque = (IndexInfoOpaque*)indexInfo->opaque;
-
-		if (!(OidIsValid(opaque->comptypeOid) &&
-			  OidIsValid(opaque->heapOid) &&
-			  OidIsValid(opaque->indexOid)) &&
-			!(OidIsValid(opaque->heapRelfilenode) &&
-			  OidIsValid(opaque->indexRelfilenode)))
-			ereport(ERROR,
-					(errcode(ERRCODE_GP_INTERNAL_ERROR),
-					 errmsg("oids for bitmap index \"%s\" do not exist",
-							RelationGetRelationName(index))));
-
-		comptypeOid = opaque->comptypeOid;
-		heapOid = opaque->heapOid;
-		indexOid = opaque->indexOid;
-		heapRelfilenode = opaque->heapRelfilenode;
-		indexRelfilenode = opaque->indexRelfilenode;
-	}
-
 	useWal = (!XLog_UnconvertedCanBypassWal() && !index->rd_istemp);
 
 	/* initialize the bitmap index. */
-	_bitmap_init(index, comptypeOid, heapOid, indexOid, heapRelfilenode,
-				 indexRelfilenode, useWal);
+	_bitmap_init(index, useWal);
 
 	/* initialize the build state. */
 	_bitmap_init_buildstate(index, &bmstate);
@@ -551,25 +524,16 @@ bmbulkdelete(PG_FUNCTION_ARGS)
 	Relation	rel = info->index;
 	IndexBulkDeleteResult* volatile result =
 		(IndexBulkDeleteResult *) PG_GETARG_POINTER(1);
-	Oid new_relfilenode;
-	List *extra_oids = NIL;
+	Oid			new_relfilenode;
 
 	MIRROREDLOCK_BUFMGR_VERIFY_NO_LOCK_LEAK_ENTER;
-
-	Assert(info->extra_oids != NULL && list_length(info->extra_oids) == 3);
-	
-	new_relfilenode = linitial_oid(info->extra_oids);
-	extra_oids = lappend_oid(extra_oids, lsecond_oid(info->extra_oids));
-	extra_oids = lappend_oid(extra_oids, lthird_oid(info->extra_oids));
-
-	Assert(OidIsValid(new_relfilenode));
 
 	/* allocate stats if first time through, else re-use existing struct */
 	if (result == NULL)
 		result = (IndexBulkDeleteResult *)
 			palloc0(sizeof(IndexBulkDeleteResult));	
 
-	new_relfilenode = reindex_index(RelationGetRelid(rel), new_relfilenode, &extra_oids);
+	new_relfilenode = reindex_index(RelationGetRelid(rel));
 	CommandCounterIncrement();
 
 	rel->rd_node.relNode = new_relfilenode;
@@ -580,8 +544,6 @@ bmbulkdelete(PG_FUNCTION_ARGS)
 	result->num_index_tuples = info->num_heap_tuples;
 	result->tuples_removed = 0;
 
-	list_free(extra_oids);
-	
 	MIRROREDLOCK_BUFMGR_VERIFY_NO_LOCK_LEAK_EXIT;
 
 	PG_RETURN_POINTER(result);

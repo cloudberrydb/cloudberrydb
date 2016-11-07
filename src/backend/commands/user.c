@@ -19,6 +19,7 @@
 #include "catalog/dependency.h"
 #include "catalog/heap.h"
 #include "catalog/indexing.h"
+#include "catalog/oid_dispatch.h"
 #include "catalog/pg_auth_time_constraint.h"
 #include "catalog/pg_auth_members.h"
 #include "catalog/pg_authid.h"
@@ -497,16 +498,11 @@ CreateRole(CreateRoleStmt *stmt)
 
 	tuple = heap_form_tuple(pg_authid_dsc, new_record, new_record_nulls);
 
-	if (stmt->roleOid != InvalidOid)
-		/* force tuple to have the desired OID */
-		HeapTupleSetOid(tuple, stmt->roleOid);
-	
 	/*
 	 * Insert new record in the pg_authid table
 	 */
 	roleid = simple_heap_insert(pg_authid_rel, tuple);
 	CatalogUpdateIndexes(pg_authid_rel, tuple);
-	stmt->roleOid = roleid;
 
 	/*
 	 * Advance command counter so we can see new record; else tests in
@@ -571,6 +567,7 @@ CreateRole(CreateRoleStmt *stmt)
 									DF_CANCEL_ON_ERROR|
 									DF_WITH_SNAPSHOT|
 									DF_NEED_TWO_PHASE,
+									GetAssignedOidsForDispatch(),
 									NULL);
 
 		/* MPP-6929: metadata tracking */
@@ -1156,6 +1153,7 @@ AlterRole(AlterRoleStmt *stmt)
 									DF_CANCEL_ON_ERROR|
 									DF_WITH_SNAPSHOT|
 									DF_NEED_TWO_PHASE,
+									NIL, /* FIXME */
 									NULL);
 	}
 }
@@ -1290,6 +1288,7 @@ AlterRoleSet(AlterRoleSetStmt *stmt)
 									DF_CANCEL_ON_ERROR|
 									DF_WITH_SNAPSHOT|
 									DF_NEED_TWO_PHASE,
+									NIL, /* FIXME */
 									NULL);
 }
 
@@ -1474,6 +1473,7 @@ DropRole(DropRoleStmt *stmt)
 									DF_CANCEL_ON_ERROR|
 									DF_WITH_SNAPSHOT|
 									DF_NEED_TWO_PHASE,
+									NIL, /* FIXME */
 									NULL);
 
 	}
@@ -1681,6 +1681,7 @@ GrantRole(GrantRoleStmt *stmt)
 									DF_CANCEL_ON_ERROR|
 									DF_WITH_SNAPSHOT|
 									DF_NEED_TWO_PHASE,
+									NIL, /* FIXME */
 									NULL);
 
 }
@@ -1713,6 +1714,7 @@ DropOwnedObjects(DropOwnedStmt *stmt)
 									DF_CANCEL_ON_ERROR|
 									DF_WITH_SNAPSHOT|
 									DF_NEED_TWO_PHASE,
+									NIL, /* FIXME */
 									NULL);
     }
     
@@ -1757,6 +1759,7 @@ ReassignOwnedObjects(ReassignOwnedStmt *stmt)
 									DF_CANCEL_ON_ERROR|
 									DF_WITH_SNAPSHOT|
 									DF_NEED_TWO_PHASE,
+									NIL, /* FIXME */
 									NULL);
     }
 

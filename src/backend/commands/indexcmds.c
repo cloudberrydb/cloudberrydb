@@ -162,6 +162,7 @@ DefineIndex(RangeVar *heapRelation,
 	LOCKMODE	heap_lockmode;
 	bool		need_longlock = true;
 	bool		shouldDispatch = Gp_role == GP_ROLE_DISPATCH && !IsBootstrapProcessingMode();
+	List	   *dispatch_oids;
 	char	   *altconname = stmt ? stmt->altconname : NULL;
 
 	/*
@@ -478,7 +479,6 @@ DefineIndex(RangeVar *heapRelation,
 	indexInfo->ii_ReadyForInserts = !concurrent;
 	indexInfo->ii_Concurrent = concurrent;
 	indexInfo->ii_BrokenHotChain = false;
-	indexInfo->opaque = (void*)palloc0(sizeof(IndexInfoOpaque));
 
 	classObjectId = (Oid *) palloc(numberOfAttributes * sizeof(Oid));
 	coloptions = (int16 *) palloc(numberOfAttributes * sizeof(int16));
@@ -488,12 +488,6 @@ DefineIndex(RangeVar *heapRelation,
 
 	if (shouldDispatch)
 	{
-		if (stmt)
-		{
-			Assert(stmt->idxOids == 0);
-			stmt->idxOids = NIL;
-		}
-
 		if ((primary || unique) && rel->rd_cdbpolicy)
 			checkPolicyForUniqueIndex(rel,
 									  indexInfo->ii_KeyAttrNumbers,
@@ -514,38 +508,7 @@ DefineIndex(RangeVar *heapRelation,
 	else if (Gp_role == GP_ROLE_EXECUTE)
 	{
 		if (stmt)
-		{
-			IndexInfoOpaque *iio = (IndexInfoOpaque *)indexInfo->opaque;
-
-			/* stmt->idxOids can have 7 oids currently. */
-			Assert(list_length(stmt->idxOids) == 7);
-
- 			indexRelationId = linitial_oid(stmt->idxOids);
- 			iio->comptypeOid = lsecond_oid(stmt->idxOids);
- 			iio->heapOid = lthird_oid(stmt->idxOids);
- 			iio->indexOid = lfourth_oid(stmt->idxOids);
-			iio->blkdirRelOid = lfifth_oid(stmt->idxOids);
-			iio->blkdirIdxOid = lfirst_oid(lnext(lcfifth(stmt->idxOids)));
-			iio->blkdirComptypeOid = lfirst_oid(lnext(lnext(lcfifth(stmt->idxOids))));
-
-
-			/*
-			 * In normal operations we proactively allocate a bunch of oids to support
-			 * bitmap indexes and ao indexes, however in bootstrap mode when we
-			 * create an index using a supplied oid we do not allocate all these
-			 * additional oids. (See the "ShouldDispatch" block below). This implies that
-			 * we cannot currently support bitmap indexes or ao indexes as part of the catalog.
-			 */
-			Insist(OidIsValid(indexRelationId));
-			Insist(OidIsValid(iio->comptypeOid));
-			Insist(OidIsValid(iio->heapOid));
-			Insist(OidIsValid(iio->indexOid));
-			Insist(OidIsValid(iio->blkdirRelOid));
-			Insist(OidIsValid(iio->blkdirIdxOid));
-			Insist(OidIsValid(iio->blkdirComptypeOid));
-
 			quiet = true;
-		}
 	}
 
 	/*
@@ -568,61 +531,18 @@ DefineIndex(RangeVar *heapRelation,
 	else
 		need_longlock = false;
 
+	/* save lockrelid and locktag for below, then close rel */
+	heaprelid = rel->rd_lockInfo.lockRelId;
+	SET_LOCKTAG_RELATION(heaplocktag, heaprelid.dbId, heaprelid.relId);
+	if (need_longlock)
+		heap_close(rel, NoLock);
+	else
+		heap_close(rel, heap_lockmode);
+
+	/* create the index on the QEs first, so we can get their stats when we create on the QD */
    	if (shouldDispatch)
 	{
-		IndexInfoOpaque *iiopaque = (IndexInfoOpaque*)(indexInfo->opaque);
-
-		if (!OidIsValid(indexRelationId))
-		{
-			Relation pg_class;
-			Relation pg_type;
-
-			cdb_sync_oid_to_segments();
-
-			pg_class = heap_open(RelationRelationId, RowExclusiveLock);
-
-			indexRelationId = GetNewRelFileNode(tablespaceId, false, pg_class);
-		    iiopaque->heapOid = GetNewRelFileNode(tablespaceId, false, pg_class);
-			iiopaque->indexOid = GetNewRelFileNode(tablespaceId, false, pg_class);
-		    iiopaque->blkdirRelOid = GetNewRelFileNode(tablespaceId, false, pg_class);
-			iiopaque->blkdirIdxOid = GetNewRelFileNode(tablespaceId, false, pg_class);
-
-			/* done with pg_class */
-			heap_close(pg_class, NoLock);
-
-			pg_type = heap_open(TypeRelationId, RowExclusiveLock);
-			iiopaque->comptypeOid = GetNewOid(pg_type);
-			iiopaque->blkdirComptypeOid = GetNewOid(pg_type);
-			heap_close(pg_type, NoLock);
-
-		}
-
-		/* create the index on the QEs first, so we can get their stats when we create on the QD */
-		if (stmt)
-		{
-			Assert(stmt->idxOids == NIL);
-			stmt->idxOids = NIL;
-			stmt->idxOids = lappend_oid(stmt->idxOids, indexRelationId);
-			stmt->idxOids = lappend_oid(stmt->idxOids, iiopaque->comptypeOid);
-			stmt->idxOids = lappend_oid(stmt->idxOids, iiopaque->heapOid);
-			stmt->idxOids = lappend_oid(stmt->idxOids, iiopaque->indexOid);
-			stmt->idxOids = lappend_oid(stmt->idxOids, iiopaque->blkdirRelOid);
-			stmt->idxOids = lappend_oid(stmt->idxOids, iiopaque->blkdirIdxOid);
-			stmt->idxOids = lappend_oid(stmt->idxOids, iiopaque->blkdirComptypeOid);
-		}
-
-		/*
-		 * Lock the index relation exclusively on the QD, before dispatching,
-		 * otherwise we could get a deadlock between QEs trying to do this same work.
-		 *
-		 * MPP-4889
-		 * NOTE: we also have to do the local create before dispatching, otherwise
-		 * competing attempts to create the same index deadlock.
-		 *
-		 * Don't do this for partition children.
-		 */
-		if (need_longlock)
-			LockRelationOid(indexRelationId, AccessExclusiveLock);
+		cdb_sync_oid_to_segments();
 
 		/*
 		 * We defer the dispatch of the utility command until after
@@ -633,20 +553,12 @@ DefineIndex(RangeVar *heapRelation,
 		 */
 	}
 
-	/* save lockrelid and locktag for below, then close rel */
-	heaprelid = rel->rd_lockInfo.lockRelId;
-	SET_LOCKTAG_RELATION(heaplocktag, heaprelid.dbId, heaprelid.relId);
-	if (need_longlock)
-		heap_close(rel, NoLock);
-	else
-		heap_close(rel, heap_lockmode);
-
 	if (!concurrent)
 	{
 		indexRelationId =
 			index_create(relationId, indexRelationName, indexRelationId,
 					  indexInfo, accessMethodId, tablespaceId, classObjectId,
-						 coloptions, reloptions, primary, isconstraint, &stmt->constrOid,
+						 coloptions, reloptions, primary, isconstraint,
 						 allowSystemTableModsDDL, skip_build, concurrent, altconname);
 
 		/*
@@ -660,6 +572,7 @@ DefineIndex(RangeVar *heapRelation,
 										DF_CANCEL_ON_ERROR |
 										DF_WITH_SNAPSHOT |
 										DF_NEED_TWO_PHASE,
+										GetAssignedOidsForDispatch(),
 										NULL);
 
 		return;					/* We're done, in the standard case */
@@ -677,7 +590,7 @@ DefineIndex(RangeVar *heapRelation,
 	indexRelationId =
 		index_create(relationId, indexRelationName, indexRelationId,
 					 indexInfo, accessMethodId, tablespaceId, classObjectId,
-					 coloptions, reloptions, primary, isconstraint, &stmt->constrOid,
+					 coloptions, reloptions, primary, isconstraint,
 					 allowSystemTableModsDDL, true, concurrent, altconname);
 
 	/*
@@ -697,6 +610,22 @@ DefineIndex(RangeVar *heapRelation,
 	 */
 	LockRelationIdForSession(&heaprelid, ShareUpdateExclusiveLock);
 
+	/*
+	 * CommitTransactionCommand will throw an error, if we haven't dispatched
+	 * the assigned oids to the segments, so pick them up first. We will
+	 * dispatch them below, right after committing the transaction.
+	 *
+	 * FIXME: this has to be copied into TopMemoryContext, because the commit
+	 * releases anything else. It is currently leaked!
+	 */
+	{
+		MemoryContext old_context = MemoryContextSwitchTo(TopMemoryContext);
+
+		dispatch_oids = copyObject(GetAssignedOidsForDispatch());
+
+		MemoryContextSwitchTo(old_context);
+	}
+
 	CommitTransactionCommand();
 
 	/*
@@ -714,6 +643,7 @@ DefineIndex(RangeVar *heapRelation,
 		CdbDispatchUtilityStatement((Node *)stmt,
 									DF_CANCEL_ON_ERROR|
 									DF_WITH_SNAPSHOT,
+									dispatch_oids,
 									NULL);
 	}
 
@@ -1581,9 +1511,6 @@ ReindexIndex(ReindexStmt *stmt)
 {
 	Oid			indOid;
 	HeapTuple	tuple;
-	Oid			newOid;
-	Oid			mapoid = InvalidOid;
-	List        *extra_oids = NIL;
 
 	indOid = RangeVarGetRelid(stmt->relation, false);
 	tuple = SearchSysCache(RELOID,
@@ -1605,50 +1532,15 @@ ReindexIndex(ReindexStmt *stmt)
 
 	ReleaseSysCache(tuple);
 
-	if (Gp_role == GP_ROLE_EXECUTE)
-	{
-		if (PointerIsValid(stmt->new_ind_oids))
-		{
-			ListCell *lc;
-			foreach(lc, stmt->new_ind_oids)
-			{
-				List *map = lfirst(lc);
-				Oid ind = linitial_oid(map);
-
-				if (ind == indOid)
-				{
-					mapoid = lsecond_oid(map);
-
-					/*
-					 * The map should contain more than 2 OIDs (the OID of the
-					 * index and its new relfilenode), to support the bitmap
-					 * index, see reindex_index() for more info. Construct
-					 * the extra_oids list by skipping the first two OIDs.
-					 */
-					Assert(list_length(map) > 2);
-					extra_oids = list_copy_tail(map, 2);
-
-					break;
-				}
-			}
-			Assert(OidIsValid(mapoid));
-		}
-	}
-	newOid = reindex_index(indOid, mapoid, &extra_oids);
+	reindex_index(indOid);
 
 	if (Gp_role == GP_ROLE_DISPATCH)
 	{
-		List *map = list_make2_oid(indOid, newOid);
-
-		Assert(extra_oids != NULL);
-		map = list_concat(map, extra_oids);
-
-		stmt->new_ind_oids = lappend(stmt->new_ind_oids, map);
-
 		CdbDispatchUtilityStatement((Node *) stmt,
 									DF_CANCEL_ON_ERROR |
 									DF_WITH_SNAPSHOT |
 									DF_NEED_TWO_PHASE,
+									GetAssignedOidsForDispatch(),
 									NULL);
 	}
 }
@@ -1702,8 +1594,7 @@ ReindexRelationList(List *relids)
 			stmt->kind = OBJECT_TABLE;
 
 			/* perform reindex locally */
-			if (!reindex_relation(relid, true, true, true, true,
-								  &stmt->new_ind_oids, Gp_role == GP_ROLE_DISPATCH))
+			if (!reindex_relation(relid, true, true, true, true))
 				ereport(NOTICE,
 					(errmsg("table \"%s\" has no indexes",
 							RelationGetRelationName(rel))));
@@ -1713,6 +1604,7 @@ ReindexRelationList(List *relids)
 											DF_CANCEL_ON_ERROR |
 											DF_WITH_SNAPSHOT |
 											DF_NEED_TWO_PHASE,
+											GetAssignedOidsForDispatch(), /* FIXME */
 											NULL);
 
 			/* keep lock until end of transaction (which comes soon) */
@@ -1747,8 +1639,7 @@ ReindexTable(ReindexStmt *stmt)
 	 */
 	if (Gp_role == GP_ROLE_EXECUTE)
 	{
-		reindex_relation(stmt->relid, true, true, true, true,
-						 &stmt->new_ind_oids, false);
+		reindex_relation(stmt->relid, true, true, true, true);
 		return;
 	}
 

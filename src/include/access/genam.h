@@ -42,9 +42,6 @@ typedef struct IndexVacuumInfo
 	int			message_level;	/* ereport level for progress messages */
 	double		num_heap_tuples;	/* tuples remaining in heap */
 	BufferAccessStrategy strategy;		/* access strategy for reads */
-	List        *extra_oids;    /* For bitmap indexes: store three relfilenode oids
-								 * for reindexing a bitmap index.
-								 */
 } IndexVacuumInfo;
 
 /*

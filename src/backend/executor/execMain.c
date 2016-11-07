@@ -447,10 +447,7 @@ ExecutorStart(QueryDesc *queryDesc, int eflags)
 		if (queryDesc->plannedstmt->intoClause != NULL)
 		{
 			IntoClause *intoClause = queryDesc->plannedstmt->intoClause;
-			Relation	pg_class_desc;
-			Relation	pg_type_desc;
 			Oid         reltablespace;
-			TableOidInfo *intoOidInfo;
 
 			cdb_sync_oid_to_segments();
 
@@ -475,37 +472,6 @@ ExecutorStart(QueryDesc *queryDesc, int eflags)
 
 				ddesc->intoTableSpaceName = get_tablespace_name(reltablespace);
 			}
-
-			pg_class_desc = heap_open(RelationRelationId, RowExclusiveLock);
-			pg_type_desc = heap_open(TypeRelationId, RowExclusiveLock);
-
-			/*
-			 * GPDB_83_MERGE_FIXME: We probably shoudln't be using
-			 * GetNewrelFileNode(), but plain GetNewOid(), for those OIDs
-			 * that are not actually relfilenodes.
-			 */
-			intoOidInfo = makeNode(TableOidInfo);
-			ddesc->intoOidInfo = intoOidInfo;
-
-			intoOidInfo->relOid = GetNewRelFileNode(reltablespace, false, pg_class_desc);
-			elog(DEBUG3, "ExecutorStart assigned new intoOidInfo.relOid = %d",
-				 intoOidInfo->relOid);
-
-			intoOidInfo->comptypeOid = GetNewRelFileNode(reltablespace, false, pg_type_desc);
-			intoOidInfo->comptypeArrayOid = GetNewRelFileNode(reltablespace, false, pg_type_desc);
-			intoOidInfo->toastOid = GetNewRelFileNode(reltablespace, false, pg_class_desc);
-			intoOidInfo->toastIndexOid = GetNewRelFileNode(reltablespace, false, pg_class_desc);
-			intoOidInfo->toastComptypeOid = GetNewRelFileNode(reltablespace, false, pg_type_desc);
-			intoOidInfo->aosegOid = GetNewRelFileNode(reltablespace, false, pg_class_desc);
-			intoOidInfo->aosegComptypeOid = GetNewRelFileNode(reltablespace, false, pg_type_desc);
-			intoOidInfo->aoblkdirOid = GetNewRelFileNode(reltablespace, false, pg_class_desc);
-			intoOidInfo->aoblkdirIndexOid = GetNewRelFileNode(reltablespace, false, pg_class_desc);
-			intoOidInfo->aoblkdirComptypeOid = GetNewRelFileNode(reltablespace, false, pg_type_desc);
-			intoOidInfo->aovisimapOid = GetNewRelFileNode(reltablespace, false, pg_class_desc);
-			intoOidInfo->aovisimapIndexOid = GetNewRelFileNode(reltablespace, false, pg_class_desc);
-			intoOidInfo->aovisimapComptypeOid = GetNewRelFileNode(reltablespace, false, pg_type_desc);
-			heap_close(pg_class_desc, RowExclusiveLock);
-			heap_close(pg_type_desc, RowExclusiveLock);
 		}
 	}
 	else if (Gp_role == GP_ROLE_EXECUTE)
@@ -696,6 +662,8 @@ ExecutorStart(QueryDesc *queryDesc, int eflags)
 																   queryDesc->params,
 																   queryDesc->estate->es_param_exec_vals);
 			}
+
+			queryDesc->ddesc->oidAssignments = GetAssignedOidsForDispatch();
 
 			/*
 			 * This call returns after launching the threads that send the
@@ -4696,14 +4664,10 @@ OpenIntoRel(QueryDesc *queryDesc)
 	Oid			intoRelationId;
 	TupleDesc	tupdesc;
 	DR_intorel *myState;
-    Oid         intoOid;
-    Oid         intoComptypeOid;
-	Oid         intoComptypeArrayOid;
 	char	   *intoTableSpaceName;
     GpPolicy   *targetPolicy;
 	int			safefswritesize = gp_safefswritesize;
 	bool		bufferPoolBulkLoad;
-	TableOidInfo *intoOidInfo;
 
 	RelFileNode relFileNode;
 	
@@ -4727,11 +4691,6 @@ OpenIntoRel(QueryDesc *queryDesc)
 				(errcode(ERRCODE_INVALID_TABLE_DEFINITION),
 				 errmsg("ON COMMIT can only be used on temporary tables")));
 	
-	/* MPP specific stuff */
-	intoOidInfo = queryDesc->ddesc->intoOidInfo;
-	intoOid = intoOidInfo->relOid;
-	intoComptypeOid = intoOidInfo->comptypeOid;
-	intoComptypeArrayOid = intoOidInfo->comptypeArrayOid;
 
 	/*
 	 * Security check: disallow creating temp tables from security-restricted
@@ -4826,12 +4785,12 @@ OpenIntoRel(QueryDesc *queryDesc)
 	bufferPoolBulkLoad = 
 		(relstorage_is_buffer_pool(relstorage) ?
 									XLog_CanBypassWal() : false);
-	
+
 	/* Now we can actually create the new relation */
 	intoRelationId = heap_create_with_catalog(intoName,
 											  namespaceId,
 											  tablespaceId,
-											  intoOid,			/* MPP */
+											  InvalidOid,
 											  GetUserId(),
 											  tupdesc,
 											  /* relam */ InvalidOid,
@@ -4846,8 +4805,6 @@ OpenIntoRel(QueryDesc *queryDesc)
 											  reloptions,
 											  allowSystemTableModsDDL,
 											  /* valid_opts */false,
-											  &intoComptypeOid, 	/* MPP */
-											  &intoComptypeArrayOid, 
 						 					  &persistentTid,
 						 					  &persistentSerialNum);
 
@@ -4865,20 +4822,9 @@ OpenIntoRel(QueryDesc *queryDesc)
 	 * CommandCounterIncrement(), so that the new tables will be visible for
 	 * insertion.
 	 */
-	AlterTableCreateToastTableWithOid(intoRelationId,
-									  intoOidInfo->toastOid,
-									  intoOidInfo->toastIndexOid,
-									  &intoOidInfo->toastComptypeOid,
-									  false);
-	AlterTableCreateAoSegTableWithOid(intoRelationId,
-									  intoOidInfo->aosegOid,
-									  &intoOidInfo->aosegComptypeOid,
-									  false);
-	AlterTableCreateAoVisimapTableWithOid(intoRelationId,
-									  intoOidInfo->aovisimapOid,
-									  intoOidInfo->aovisimapIndexOid,
-									  &intoOidInfo->aovisimapComptypeOid,
-									  false);
+	AlterTableCreateToastTableWithOid(intoRelationId, false);
+	AlterTableCreateAoSegTableWithOid(intoRelationId, false);
+	AlterTableCreateAoVisimapTableWithOid(intoRelationId, false);
 
     /* don't create AO block directory here, it'll be created when needed */
 	/*

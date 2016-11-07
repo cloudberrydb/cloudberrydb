@@ -18,8 +18,7 @@
 #include "nodes/makefuncs.h"
 
 void
-AlterTableCreateAoBlkdirTableWithOid(Oid relOid, Oid newOid, Oid newIndexOid,
-									 Oid * comptypeOid, bool is_part_child)
+AlterTableCreateAoBlkdirTable(Oid relOid, bool is_part_child)
 {
 	Relation	rel;
 	TupleDesc	tupdesc;
@@ -98,7 +97,6 @@ AlterTableCreateAoBlkdirTableWithOid(Oid relOid, Oid newOid, Oid newIndexOid,
 	(void) CreateAOAuxiliaryTable(rel,
 			"pg_aoblkdir",
 			RELKIND_AOBLOCKDIR,
-			newOid, newIndexOid, comptypeOid,
 			tupdesc, indexInfo, classObjectId, coloptions);
 
 	heap_close(rel, NoLock);

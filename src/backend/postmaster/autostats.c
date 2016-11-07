@@ -202,7 +202,8 @@ autostats_get_cmdtype(QueryDesc *queryDesc, AutoStatsCmdType * pcmdType, Oid *pr
 			if (stmt->intoClause != NULL)
 			{
 				/* CTAS */
-				relationOid = queryDesc->ddesc->intoOidInfo->relOid;
+				if (queryDesc->estate->es_into_relation_descriptor)
+					relationOid = RelationGetRelid(queryDesc->estate->es_into_relation_descriptor);
 				cmdType = AUTOSTATS_CMDTYPE_CTAS;
 			}
 			break;

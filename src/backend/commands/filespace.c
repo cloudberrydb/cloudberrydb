@@ -406,10 +406,6 @@ CreateFileSpace(CreateFileSpaceStmt *stmt)
 	values[Anum_pg_filespace_fsowner - 1] = ObjectIdGetDatum(ownerId);
 	tuple = heap_form_tuple(RelationGetDescr(rel), values, nulls);
 
-	/* Keep oids synchronized between master and segments */
-	if (OidIsValid(stmt->fsoid))
-		HeapTupleSetOid(tuple, stmt->fsoid);
-
 	/* Insert a new tuple */
 	fsoid = simple_heap_insert(rel, tuple);
 	Assert(OidIsValid(fsoid));
@@ -451,11 +447,11 @@ CreateFileSpace(CreateFileSpaceStmt *stmt)
 		heap_close(rel, RowExclusiveLock);
 
 		/* Dispatch to segments */
-		stmt->fsoid = fsoid;  /* Already Asserted OidIsValid */
 		CdbDispatchUtilityStatement((Node *) stmt,
 									DF_CANCEL_ON_ERROR|
 									DF_WITH_SNAPSHOT|
 									DF_NEED_TWO_PHASE,
+									GetAssignedOidsForDispatch(),
 									NULL);
 
 		/* MPP-6929: metadata tracking */

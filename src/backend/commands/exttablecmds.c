@@ -18,6 +18,7 @@
 #include "access/extprotocol.h"
 #include "access/reloptions.h"
 #include "catalog/namespace.h"
+#include "catalog/oid_dispatch.h"
 #include "catalog/pg_exttable.h"
 #include "catalog/pg_extprotocol.h"
 #include "catalog/pg_authid.h"
@@ -365,7 +366,7 @@ DefineExternalRelation(CreateExternalStmt *createExtStmt)
 	 * QEs.
 	 */
 	if (Gp_role == GP_ROLE_DISPATCH || Gp_role == GP_ROLE_UTILITY)
-		reloid = DefineRelation(createStmt, RELKIND_RELATION, RELSTORAGE_EXTERNAL);
+		reloid = DefineRelation(createStmt, RELKIND_RELATION, RELSTORAGE_EXTERNAL, true);
 
 	/*
 	 * Now we take care of pg_exttable.
@@ -422,6 +423,7 @@ DefineExternalRelation(CreateExternalStmt *createExtStmt)
 									DF_CANCEL_ON_ERROR |
 									DF_WITH_SNAPSHOT |
 									DF_NEED_TWO_PHASE,
+									GetAssignedOidsForDispatch(),
 									NULL);
 	}
 

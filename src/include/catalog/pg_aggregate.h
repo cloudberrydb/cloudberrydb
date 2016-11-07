@@ -293,18 +293,16 @@ DATA(insert ( 6112	pg_partition_oid_transfn      - - - pg_partition_oid_finalfn 
 /*
  * prototypes for functions in pg_aggregate.c
  */
-extern Oid
-AggregateCreateWithOid(const char	*aggName,
-					   Oid			 aggNamespace,
-					   Oid			*aggArgTypes,
-					   int			 numArgs,
-					   List			*aggtransfnName,
-					   List			*aggprelimfnName,
-					   List			*aggfinalfnName,
-					   List			*aggsortopName,
-					   Oid			 aggTransType,
-					   const char	*agginitval,
-					   bool          aggordered,
-					   Oid			 procOid);
+extern Oid AggregateCreate(const char *aggName,
+				Oid aggNamespace,
+				Oid *aggArgTypes,
+				int numArgs,
+				List *aggtransfnName,
+				List *aggprelimfnName,
+				List *aggfinalfnName,
+				List *aggsortopName,
+				Oid aggTransType,
+				const char *agginitval,
+				bool aggordered);
 
 #endif   /* PG_AGGREGATE_H */

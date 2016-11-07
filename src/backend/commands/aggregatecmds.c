@@ -25,6 +25,7 @@
 #include "access/heapam.h"
 #include "catalog/dependency.h"
 #include "catalog/indexing.h"
+#include "catalog/oid_dispatch.h"
 #include "catalog/pg_aggregate.h"
 #include "catalog/pg_proc.h"
 #include "catalog/pg_type.h"
@@ -49,7 +50,7 @@
  */
 void
 DefineAggregate(List *name, List *args, bool oldstyle, List *parameters, 
-				Oid newOid, bool ordered)
+				bool ordered)
 {
 	char	   *aggName;
 	Oid			aggNamespace;
@@ -211,19 +212,18 @@ DefineAggregate(List *name, List *args, bool oldstyle, List *parameters,
 	/*
 	 * Most of the argument-checking is done inside of AggregateCreate
 	 */
-	aggOid = AggregateCreateWithOid(aggName,		/* aggregate name */
-									aggNamespace,	/* namespace */
-									aggArgTypes,	/* input data type(s) */
-									numArgs,
-									transfuncName,	/* step function name */
-									prelimfuncName,	/* prelim function name */
-									finalfuncName,	/* final function name */
-									sortoperatorName, /* sort operator name */
-									transTypeId,	/* transition data type */
-									initval,		/* initial condition */
-									ordered,		/* ordered aggregates */
-									newOid);
-					
+	aggOid = AggregateCreate(aggName,		/* aggregate name */
+							 aggNamespace,	/* namespace */
+							 aggArgTypes,	/* input data type(s) */
+							 numArgs,
+							 transfuncName,	/* step function name */
+							 prelimfuncName,	/* prelim function name */
+							 finalfuncName,	/* final function name */
+							 sortoperatorName, /* sort operator name */
+							 transTypeId,	/* transition data type */
+							 initval,		/* initial condition */
+							 ordered);		/* ordered aggregates */
+
 	if (Gp_role == GP_ROLE_DISPATCH)
 	{
 		DefineStmt * stmt = makeNode(DefineStmt);
@@ -232,13 +232,12 @@ DefineAggregate(List *name, List *args, bool oldstyle, List *parameters,
 		stmt->defnames = name;
 		stmt->args = args;
 		stmt->definition = parameters;
-		stmt->newOid = aggOid;
-		stmt->arrayOid = stmt->commutatorOid = stmt->negatorOid = InvalidOid;
 		stmt->ordered = ordered;
 		CdbDispatchUtilityStatement((Node *) stmt,
 									DF_CANCEL_ON_ERROR|
 									DF_WITH_SNAPSHOT|
 									DF_NEED_TWO_PHASE,
+									GetAssignedOidsForDispatch(),
 									NULL);
 	}
 }
@@ -303,6 +302,7 @@ RemoveAggregate(RemoveFuncStmt *stmt)
 									DF_CANCEL_ON_ERROR|
 									DF_WITH_SNAPSHOT|
 									DF_NEED_TWO_PHASE,
+									NIL,
 									NULL);
 	}
 }

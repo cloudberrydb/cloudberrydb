@@ -52,6 +52,7 @@
 #include "catalog/gp_policy.h"
 #include "catalog/gp_fastsequence.h"
 #include "catalog/namespace.h"
+#include "cdb/cdbvars.h"
 #include "miscadmin.h"
 #include "pgstat.h"
 #include "storage/procarray.h"
@@ -2389,7 +2390,17 @@ heap_insert(Relation relation, HeapTuple tup, CommandId cid,
 		 * object store (objects need to contain pointers to one another).
 		 */
 		if (!OidIsValid(HeapTupleGetOid(tup)))
-			HeapTupleSetOid(tup, GetNewOid(relation));
+		{
+			Oid			oid = InvalidOid;
+
+			if (Gp_role == GP_ROLE_EXECUTE && IsSystemRelation(relation))
+				oid = GetPreassignedOidForTuple(relation, tup);
+
+			if (!OidIsValid(oid))
+				oid = GetNewOid(relation);
+
+			HeapTupleSetOid(tup, oid);
+		}
 	}
 	else
 	{
@@ -2475,7 +2486,17 @@ heap_insert(Relation relation, HeapTuple tup, CommandId cid,
 	 * the heaptup data structure is all in local memory, not in the shared
 	 * buffer.
 	 */
-	CacheInvalidateHeapTuple(relation, heaptup);
+	if (IsSystemRelation(relation))
+	{
+		/*
+		 * Also make note of the OID we used, so that it is dispatched to the
+		 * segments, when this CREATE statement is dispatched.
+		 */
+		if (Gp_role == GP_ROLE_DISPATCH && relation->rd_rel->relhasoids)
+			AddDispatchOidFromTuple(relation, heaptup);
+
+		CacheInvalidateHeapTuple(relation, heaptup);
+	}
 
 	pgstat_count_heap_insert(relation);
 

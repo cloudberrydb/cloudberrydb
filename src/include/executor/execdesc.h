@@ -171,11 +171,15 @@ typedef struct QueryDispatchDesc
 	List	   *transientTypeRecords;
 
 	/*
-	 * For a SELECT INTO statement, this stores the OIDs to use for the
-	 * new table and related auxiliary tables and rowtypes.
+	 * For a SELECT INTO statement, this stores the tablespace to use for the
+	 * new table and related auxiliary tables.
 	 */
-	TableOidInfo *intoOidInfo;
 	char		*intoTableSpaceName;
+
+	/*
+	 * Oids to use, for new objects created in a CREATE command.
+	 */
+	List	   *oidAssignments;
 
 	/*
 	 * This allows the slice table to accompany the plan as it moves
@@ -190,6 +194,24 @@ typedef struct QueryDispatchDesc
 
 	List	   *cursorPositions;
 } QueryDispatchDesc;
+
+/*
+ * When a CREATE command is dispatched to segments, the OIDs used for the
+ * new objects are sent in a list of OidAssignments.
+ */
+typedef struct
+{
+	NodeTag		type;
+
+	/* Key data. */
+	Oid			catalog;		/* OID of the catalog table, e.g. pg_class */
+	char	   *objname;		/* object name (e.g. relation name) */
+	Oid			namespaceOid;	/* namespace OID for most objects */
+	Oid			keyOid2;		/* 2nd key OID field, meaning depends on object type */
+
+	Oid			oid;			/* OID (or relfilenode) to assign */
+
+} OidAssignment;
 
 /* ----------------
  *		query descriptor:

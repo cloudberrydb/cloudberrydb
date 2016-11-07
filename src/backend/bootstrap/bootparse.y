@@ -217,56 +217,7 @@ Boot_CreateStmt:
 					else
 					{
 						Oid id;
-						Oid typid = InvalidOid;
 
-						/*
-						 * Some relations need to have a fixed relation type
-						 * OID, because it is referenced in code.
-						 *
-						 * 90MERGE_FIXME: In PostgreSQL 9.0, there's a
-						 * new BKI directive, BKI_ROWTYPE_OID(<oid>), for
-						 * doing the same. Replace this hack with that once
-						 * we merge with 9.0.
-						 */
-						switch ($6)
-						{
-							case GpPersistentRelationNodeRelationId:
-								typid = GP_PERSISTENT_RELATION_NODE_OID;
-								break;
-							case GpPersistentDatabaseNodeRelationId:
-								typid = GP_PERSISTENT_DATABASE_NODE_OID;
-								break;
-							case GpPersistentTablespaceNodeRelationId:
-								typid = GP_PERSISTENT_TABLESPACE_NODE_OID;
-								break;
-							case GpPersistentFilespaceNodeRelationId:
-								typid = GP_PERSISTENT_FILESPACE_NODE_OID;
-								break;
-							case GpRelationNodeRelationId:
-								typid = GP_RELATION_NODE_OID;
-								break;
-
-							case GpGlobalSequenceRelationId:
-								typid = GP_GLOBAL_SEQUENCE_RELTYPE_OID;
-								break;
-
-							case DatabaseRelationId:
-								typid = PG_DATABASE_RELTYPE_OID;
-								break;
-
-							case AuthIdRelationId:
-								typid = PG_AUTHID_RELTYPE_OID;
-								break;
-
-							case AuthMemRelationId:
-								typid = PG_AUTH_MEMBERS_RELTYPE_OID;
-								break;
-
-							default:
-								break;
-						}
-
-						Oid typarrayid = InvalidOid;
 						id = heap_create_with_catalog(LexIDStr($5),
 													  PG_CATALOG_NAMESPACE,
 													  $3 ? GLOBALTABLESPACE_OID : 0,
@@ -285,8 +236,6 @@ Boot_CreateStmt:
 													  (Datum) 0,
 													  true,
 													  /* valid_opts */ false,
-													  &typid,
-													  &typarrayid,
 						 					  		  /* persistentTid */ NULL,
 						 					  		  /* persistentSerialNum */ NULL);
 						elog(DEBUG4, "relation created with oid %u", id);

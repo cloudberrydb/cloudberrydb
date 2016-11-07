@@ -953,9 +953,12 @@ ProcessUtility(Node *parsetree,
 							}
 						}
 
-						/* Create the table itself */
+						/*
+						 * Create the table itself. Don't dispatch it yet, as we haven't
+						 * created the toast and other auxiliary tables yet.
+						 */
 						relOid = DefineRelation((CreateStmt *) stmt,
-												relKind, relStorage);
+												relKind, relStorage, false);
 
 						/*
 						 * Let AlterTableCreateToastTable decide if this one
@@ -965,39 +968,28 @@ ProcessUtility(Node *parsetree,
 
 						DefinePartitionedRelation((CreateStmt *) parsetree, relOid);
 
-						elog(DEBUG2,"CreateStmt: rel Oid %d toast Oid %d AoSeg Oid %d"
-							 "AoBlkdir Oid %d AoVisimap Oid %d",
-							 relOid,
-							 ((CreateStmt *) parsetree)->oidInfo.toastOid,
-							 ((CreateStmt *) parsetree)->oidInfo.aosegOid,
-							 ((CreateStmt *) parsetree)->oidInfo.aoblkdirOid,
-							 ((CreateStmt *) parsetree)->oidInfo.aovisimapOid);
-
 						if (relKind != RELKIND_COMPOSITE_TYPE)
 						{
 							AlterTableCreateToastTableWithOid(relOid,
-															  cstmt->oidInfo.toastOid,
-															  cstmt->oidInfo.toastIndexOid,
-															  &(cstmt->oidInfo.toastComptypeOid),
 															  cstmt->is_part_child);
 							AlterTableCreateAoSegTableWithOid(relOid,
-															  cstmt->oidInfo.aosegOid,
-															  &(cstmt->oidInfo.aosegComptypeOid),
 															  cstmt->is_part_child);
 
 							if (cstmt->buildAoBlkdir)
-								AlterTableCreateAoBlkdirTableWithOid(relOid,
-																	 cstmt->oidInfo.aoblkdirOid,
-																	 cstmt->oidInfo.aoblkdirIndexOid,
-																	 &(cstmt->oidInfo.aoblkdirComptypeOid),
-																	 cstmt->is_part_child);
+								AlterTableCreateAoBlkdirTable(relOid, cstmt->is_part_child);
 
 							AlterTableCreateAoVisimapTableWithOid(relOid,
-																  cstmt->oidInfo.aovisimapOid,
-																  cstmt->oidInfo.aovisimapIndexOid,
-																  &(cstmt->oidInfo.aovisimapComptypeOid),
 																  cstmt->is_part_child);
 						}
+
+						if (Gp_role == GP_ROLE_DISPATCH)
+							CdbDispatchUtilityStatement((Node *) stmt,
+														DF_CANCEL_ON_ERROR |
+														DF_NEED_TWO_PHASE |
+														DF_WITH_SNAPSHOT,
+														GetAssignedOidsForDispatch(),
+														NULL);
+
 						CommandCounterIncrement();
 						/*
 						 * Deferred statements should be evaluated *after* AO tables
@@ -1075,6 +1067,7 @@ ProcessUtility(Node *parsetree,
 														DF_CANCEL_ON_ERROR|
 														DF_WITH_SNAPSHOT|
 														DF_NEED_TWO_PHASE,
+														NIL, /* FIXME */
 														NULL);
 						}
 					}
@@ -1220,10 +1213,12 @@ ProcessUtility(Node *parsetree,
 
 				if (Gp_role == GP_ROLE_DISPATCH)
 				{
+					/* ADD CONSTRAINT will assign a new OID for the constraint */
 					CdbDispatchUtilityStatement((Node *) stmt,
 												DF_CANCEL_ON_ERROR|
 												DF_WITH_SNAPSHOT|
 												DF_NEED_TWO_PHASE,
+												GetAssignedOidsForDispatch(),
 												NULL);
 				}
 			}
@@ -1249,36 +1244,35 @@ ProcessUtility(Node *parsetree,
 					case OBJECT_AGGREGATE:
 						DefineAggregate(stmt->defnames, stmt->args,
 										stmt->oldstyle, stmt->definition,
-										stmt->newOid, stmt->ordered);
+										stmt->ordered);
 						break;
 					case OBJECT_OPERATOR:
 						Assert(stmt->args == NIL);
-						DefineOperator(stmt->defnames, stmt->definition,
-									   stmt->newOid, stmt->commutatorOid, stmt->negatorOid);
+						DefineOperator(stmt->defnames, stmt->definition);
 						break;
 					case OBJECT_TYPE:
 						Assert(stmt->args == NIL);
-						DefineType(stmt->defnames, stmt->definition, stmt->newOid, stmt->arrayOid);
+						DefineType(stmt->defnames, stmt->definition);
 						break;
 					case OBJECT_EXTPROTOCOL:
 						Assert(stmt->args == NIL);
-						DefineExtProtocol(stmt->defnames, stmt->definition, stmt->newOid, stmt->trusted);
+						DefineExtProtocol(stmt->defnames, stmt->definition, stmt->trusted);
 						break;						
 					case OBJECT_TSPARSER:
 						Assert(stmt->args == NIL);
-						DefineTSParser(stmt->defnames, stmt->definition, stmt->newOid);
+						DefineTSParser(stmt->defnames, stmt->definition);
 						break;
 					case OBJECT_TSDICTIONARY:
 						Assert(stmt->args == NIL);
-						DefineTSDictionary(stmt->defnames, stmt->definition, stmt->newOid);
+						DefineTSDictionary(stmt->defnames, stmt->definition);
 						break;
 					case OBJECT_TSTEMPLATE:
 						Assert(stmt->args == NIL);
-						DefineTSTemplate(stmt->defnames, stmt->definition, stmt->newOid);
+						DefineTSTemplate(stmt->defnames, stmt->definition);
 						break;
 					case OBJECT_TSCONFIGURATION:
 						Assert(stmt->args == NIL);
-						DefineTSConfiguration(stmt->defnames, stmt->definition, stmt->newOid);
+						DefineTSConfiguration(stmt->defnames, stmt->definition);
 						break;
 					default:
 						elog(ERROR, "unrecognized define stmt type: %d",
@@ -1292,7 +1286,7 @@ ProcessUtility(Node *parsetree,
 			{
 				CompositeTypeStmt *stmt = (CompositeTypeStmt *) parsetree;
 
-				DefineCompositeType(stmt->typevar, stmt->coldeflist, stmt->relOid, stmt->comptypeOid);
+				DefineCompositeType(stmt->typevar, stmt->coldeflist);
 			}
 			break;
 
@@ -1361,6 +1355,7 @@ ProcessUtility(Node *parsetree,
 											DF_CANCEL_ON_ERROR|
 											DF_WITH_SNAPSHOT|
 											DF_NEED_TWO_PHASE,
+											GetAssignedOidsForDispatch(),
 											NULL);
 			}
 			break;
@@ -1610,6 +1605,7 @@ ProcessUtility(Node *parsetree,
 												DF_CANCEL_ON_ERROR|
 												DF_WITH_SNAPSHOT|
 												DF_NEED_TWO_PHASE,
+												GetAssignedOidsForDispatch(),
 												NULL);
 				}
 			}
@@ -1645,6 +1641,7 @@ ProcessUtility(Node *parsetree,
 												DF_CANCEL_ON_ERROR|
 												DF_WITH_SNAPSHOT|
 												DF_NEED_TWO_PHASE,
+												NIL, /* FIXME */
 												NULL);
 				}
 			}

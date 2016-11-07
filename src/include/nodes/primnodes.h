@@ -82,25 +82,6 @@ typedef struct RangeVar
 	int			location;		/* token location, or -1 if unknown */
 } RangeVar;
 
-typedef struct TableOidInfo
-{
-	NodeTag		type;
-	Oid         relOid;			/* If the heap is (re-)created, create  with this relOid */
-	Oid         comptypeOid;
-	Oid         comptypeArrayOid;
-	Oid		    toastOid;		/* if toast table needed, use this for the relOid of the toast */
-	Oid		    toastIndexOid;	/* if toast table needed, use this for the relOid of the index */
-	Oid			toastComptypeOid;
-	Oid		    aosegOid;		/* if ao segment table needed, use this for the relOid of the aoseg table */
-	Oid			aosegComptypeOid;
-	Oid		    aoblkdirOid;		/* if ao blkdir table needed, use this for the relOid of the aoblkdir table */
-	Oid		    aoblkdirIndexOid;	/* if ao blkdir table needed, use this for the relOid of the aoblkdir index */
-	Oid			aoblkdirComptypeOid;
-	Oid         aovisimapOid;
-	Oid         aovisimapIndexOid;
-	Oid         aovisimapComptypeOid;
-} TableOidInfo;
-
 /*
  * IntoClause - target information for SELECT INTO and CREATE TABLE AS
  */

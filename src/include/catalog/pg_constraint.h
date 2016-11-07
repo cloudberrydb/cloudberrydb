@@ -179,7 +179,6 @@ typedef enum ConstraintCategory
  * prototypes for functions in pg_constraint.c
  */
 extern Oid CreateConstraintEntry(const char *constraintName,
-								 Oid conOid,
 								 Oid constraintNamespace,
 								 char constraintType,
 								 bool isDeferrable,

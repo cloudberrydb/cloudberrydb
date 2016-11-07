@@ -34,7 +34,7 @@
 #include "utils/guc.h"
 
 static bool create_toast_table(Relation rel, Oid toastOid, Oid toastIndexOid,
-							   Oid *comptypeOid, bool is_part_child);
+							   bool is_part_child);
 
 
 /*
@@ -47,8 +47,7 @@ static bool create_toast_table(Relation rel, Oid toastOid, Oid toastIndexOid,
  * to end with CommandCounterIncrement if it makes any changes.
  */
 void
-AlterTableCreateToastTableWithOid(Oid relOid, Oid newOid, Oid newIndexOid,
-								  Oid * comptypeOid, bool is_part_child)
+AlterTableCreateToastTableWithOid(Oid relOid, bool is_part_child)
 {
 	Relation	rel;
 
@@ -63,8 +62,7 @@ AlterTableCreateToastTableWithOid(Oid relOid, Oid newOid, Oid newIndexOid,
 		rel = heap_open(relOid, AccessExclusiveLock);
 
 	/* create_toast_table does all the work */
-	(void) create_toast_table(rel, newOid, newIndexOid,
-							  comptypeOid, is_part_child);
+	(void) create_toast_table(rel, InvalidOid, InvalidOid, is_part_child);
 
 	heap_close(rel, NoLock);
 }
@@ -91,7 +89,7 @@ BootstrapToastTable(char *relName, Oid toastOid, Oid toastIndexOid)
 						relName)));
 
 	/* create_toast_table does all the work */
-	if (!create_toast_table(rel, toastOid, toastIndexOid, NULL, false))
+	if (!create_toast_table(rel, toastOid, toastIndexOid, false))
 		elog(ERROR, "\"%s\" does not require a toast table",
 			 relName);
 
@@ -108,7 +106,7 @@ BootstrapToastTable(char *relName, Oid toastOid, Oid toastIndexOid)
  */
 static bool
 create_toast_table(Relation rel, Oid toastOid, Oid toastIndexOid,
-				   Oid *comptypeOid, bool is_part_child)
+				   bool is_part_child)
 {
 	Oid			relOid = RelationGetRelid(rel);
 	HeapTuple	reltup;
@@ -195,7 +193,6 @@ create_toast_table(Relation rel, Oid toastOid, Oid toastIndexOid,
 	 * XXX would it make sense to apply the master's reloptions to the toast
 	 * table?  Or maybe some toast-specific reloptions?
 	 */
-	Oid unusedTypArrayOid = InvalidOid;
 	toast_relid = heap_create_with_catalog(toast_relname,
 										   namespaceid,
 										   rel->rd_rel->reltablespace,
@@ -214,8 +211,6 @@ create_toast_table(Relation rel, Oid toastOid, Oid toastIndexOid,
 										   (Datum) 0,
 										   true,
 										   /* valid_opts */ false,
-										   comptypeOid,
-										   &unusedTypArrayOid,
 										   /* persistentTid */ NULL,
 										   /* persistentSerialNum */ NULL);
 
@@ -258,7 +253,7 @@ create_toast_table(Relation rel, Oid toastOid, Oid toastIndexOid,
 							   BTREE_AM_OID,
 							   rel->rd_rel->reltablespace,
 							   classObjectId, coloptions, (Datum) 0,
-							   true, false, (Oid *) NULL, true, false, false, NULL);
+							   true, false, true, false, false, NULL);
 
 	/*
 	 * If this is a partitioned child, we can unlock since the master is

@@ -11,7 +11,7 @@
 
 #include "nodes/parsenodes.h"
 
-extern void DefineExtProtocol(List *name, List *parameters, Oid newOid, bool trusted);
+extern void DefineExtProtocol(List *name, List *parameters, bool trusted);
 extern void RemoveExtProtocol(List *names, DropBehavior behavior, bool missing_ok);
 extern void RemoveExtProtocolById(Oid protOid);
 extern void AlterExtProtocolOwner(const char *name, Oid newOwnerId);

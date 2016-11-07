@@ -409,7 +409,6 @@ _readConstraint(void)
 	READ_LOCALS(Constraint);
 
 	READ_STRING_FIELD(name);			/* name, or NULL if unnamed */
-	READ_OID_FIELD(conoid);
 
 	READ_ENUM_FIELD(contype,ConstrType);
 	Assert(local_node->contype <= CONSTR_ATTR_IMMEDIATE);
@@ -456,7 +455,6 @@ _readReindexStmt(void)
 	READ_STRING_FIELD(name);
 	READ_BOOL_FIELD(do_system);
 	READ_BOOL_FIELD(do_user);
-	READ_NODE_FIELD(new_ind_oids);
 	READ_OID_FIELD(relid);
 
 	READ_DONE();
@@ -521,51 +519,6 @@ _readTruncateStmt(void)
 	READ_ENUM_FIELD(behavior, DropBehavior);
 	Assert(local_node->behavior <= DROP_CASCADE);
 
-	READ_NODE_FIELD(relids);
-	READ_NODE_FIELD(new_heap_oids);
-	READ_NODE_FIELD(new_toast_oids);
-	READ_NODE_FIELD(new_aoseg_oids);
-	READ_NODE_FIELD(new_aoblkdir_oids);
-	READ_NODE_FIELD(new_aovisimap_oids);
-	READ_NODE_FIELD(new_ind_oids);
-
-	READ_DONE();
-}
-
-static AlterTableStmt *
-_readAlterTableStmt(void)
-{
-	int m;
-	READ_LOCALS(AlterTableStmt);
-
-	READ_NODE_FIELD(relation);
-	READ_NODE_FIELD(cmds);
-	READ_ENUM_FIELD(relkind, ObjectType); Assert(local_node->relkind <= OBJECT_VIEW);
-	READ_NODE_FIELD(oidmap);
-	READ_INT_FIELD(oidInfoCount);
-	local_node->oidInfo = NULL;
-	if (local_node->oidInfoCount > 0)
-	{
-		ALLOCATE_LOCAL(local_node->oidInfo, TableOidInfo, local_node->oidInfoCount);
-		for (m = 0; m < local_node->oidInfoCount; m++)
-		{
-			READ_OID_FIELD(oidInfo[m].relOid);
-			READ_OID_FIELD(oidInfo[m].comptypeOid);
-			READ_OID_FIELD(oidInfo[m].comptypeArrayOid);
-			READ_OID_FIELD(oidInfo[m].toastOid);
-			READ_OID_FIELD(oidInfo[m].toastIndexOid);
-			READ_OID_FIELD(oidInfo[m].toastComptypeOid);
-			READ_OID_FIELD(oidInfo[m].aosegOid);
-			READ_OID_FIELD(oidInfo[m].aosegComptypeOid);
-			READ_OID_FIELD(oidInfo[m].aovisimapOid);
-			READ_OID_FIELD(oidInfo[m].aovisimapIndexOid);
-			READ_OID_FIELD(oidInfo[m].aovisimapComptypeOid);
-			READ_OID_FIELD(oidInfo[m].aoblkdirOid);
-			READ_OID_FIELD(oidInfo[m].aoblkdirIndexOid);
-			READ_OID_FIELD(oidInfo[m].aoblkdirComptypeOid);
-		}
-	}
-
 	READ_DONE();
 }
 
@@ -606,7 +559,6 @@ _readAlterPartitionCmd(void)
 	READ_NODE_FIELD(partid);
 	READ_NODE_FIELD(arg1);
 	READ_NODE_FIELD(arg2);
-	READ_NODE_FIELD(newOids);
 
 	READ_DONE();
 }
@@ -1141,20 +1093,6 @@ _readCreateStmt(void)
 	READ_ENUM_FIELD(oncommit,OnCommitAction);
 	READ_STRING_FIELD(tablespacename);
 	READ_NODE_FIELD(distributedBy);
-	READ_OID_FIELD(oidInfo.relOid);
-	READ_OID_FIELD(oidInfo.comptypeOid);
-	READ_OID_FIELD(oidInfo.comptypeArrayOid);
-	READ_OID_FIELD(oidInfo.toastOid);
-	READ_OID_FIELD(oidInfo.toastIndexOid);
-	READ_OID_FIELD(oidInfo.toastComptypeOid);
-	READ_OID_FIELD(oidInfo.aosegOid);
-	READ_OID_FIELD(oidInfo.aosegComptypeOid);
-	READ_OID_FIELD(oidInfo.aovisimapOid);
-	READ_OID_FIELD(oidInfo.aovisimapIndexOid);
-	READ_OID_FIELD(oidInfo.aovisimapComptypeOid);
-	READ_OID_FIELD(oidInfo.aoblkdirOid);
-	READ_OID_FIELD(oidInfo.aoblkdirIndexOid);
-	READ_OID_FIELD(oidInfo.aoblkdirComptypeOid);
 	READ_CHAR_FIELD(relKind);
 	READ_CHAR_FIELD(relStorage);
 	/* policy omitted */
@@ -1411,10 +1349,6 @@ _readDefineStmt(void)
 	READ_NODE_FIELD(definition);
 	READ_BOOL_FIELD(ordered);   /* CDB */
 	READ_BOOL_FIELD(trusted);   /* CDB */
-	READ_OID_FIELD(newOid);
-	READ_OID_FIELD(arrayOid);
-	READ_OID_FIELD(commutatorOid);
-	READ_OID_FIELD(negatorOid);
 
 	READ_DONE();
 
@@ -1521,10 +1455,23 @@ _readQueryDispatchDesc(void)
 	READ_LOCALS(QueryDispatchDesc);
 
 	READ_NODE_FIELD(transientTypeRecords);
-	READ_NODE_FIELD(intoOidInfo);
 	READ_STRING_FIELD(intoTableSpaceName);
+	READ_NODE_FIELD(oidAssignments);
 	READ_NODE_FIELD(sliceTable);
 	READ_NODE_FIELD(cursorPositions);
+	READ_DONE();
+}
+
+static OidAssignment *
+_readOidAssignment(void)
+{
+	READ_LOCALS(OidAssignment);
+
+	READ_OID_FIELD(catalog);
+	READ_STRING_FIELD(objname);
+	READ_OID_FIELD(namespaceOid);
+	READ_OID_FIELD(keyOid2);
+	READ_OID_FIELD(oid);
 	READ_DONE();
 }
 
@@ -2456,7 +2403,6 @@ _readCreateFileSpaceStmt(void)
 	READ_STRING_FIELD(filespacename);
 	READ_STRING_FIELD(owner);
 	READ_NODE_FIELD(locations);
-	READ_OID_FIELD(fsoid);
 
 	READ_DONE();
 }
@@ -2484,7 +2430,6 @@ _readCreateTableSpaceStmt(void)
 	READ_STRING_FIELD(tablespacename);
 	READ_STRING_FIELD(owner);
 	READ_STRING_FIELD(filespacename);
-	READ_OID_FIELD(tsoid);
 
 	READ_DONE();
 }
@@ -2497,8 +2442,6 @@ _readCreateQueueStmt(void)
 
 	READ_STRING_FIELD(queue);
 	READ_NODE_FIELD(options);
-	READ_OID_FIELD(queueOid);
-	READ_NODE_FIELD(optids);
 
 	READ_DONE();
 }
@@ -2509,7 +2452,6 @@ _readAlterQueueStmt(void)
 
 	READ_STRING_FIELD(queue);
 	READ_NODE_FIELD(options);
-	READ_NODE_FIELD(optids);
 
 	READ_DONE();
 }
@@ -2719,6 +2661,9 @@ readNodeBinary(void)
 			case T_QueryDispatchDesc:
 				return_value = _readQueryDispatchDesc();
 				break;
+			case T_OidAssignment:
+				return_value = _readOidAssignment();
+				break;
 			case T_Plan:
 					return_value = _readPlan();
 					break;
@@ -2865,9 +2810,6 @@ readNodeBinary(void)
 				break;
 			case T_IntoClause:
 				return_value = _readIntoClause();
-				break;
-			case T_TableOidInfo:
-				return_value = _readTableOidInfo();
 				break;
 			case T_Var:
 				return_value = _readVar();

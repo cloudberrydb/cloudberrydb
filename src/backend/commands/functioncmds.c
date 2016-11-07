@@ -36,6 +36,7 @@
 #include "access/heapam.h"
 #include "catalog/dependency.h"
 #include "catalog/indexing.h"
+#include "catalog/oid_dispatch.h"
 #include "catalog/pg_aggregate.h"
 #include "catalog/pg_cast.h"
 #include "catalog/pg_language.h"
@@ -80,7 +81,7 @@ static void CheckForModifySystemFunc(Oid funcOid, List *funcName);
  */
 static void
 compute_return_type(TypeName *returnType, Oid languageOid,
-					Oid *prorettype_p, bool *returnsSet_p, Oid shelltypeOid)
+					Oid *prorettype_p, bool *returnsSet_p)
 {
 	Oid			rettype;
 	Type		typtup;
@@ -153,7 +154,7 @@ compute_return_type(TypeName *returnType, Oid languageOid,
 		if (aclresult != ACLCHECK_OK)
 			aclcheck_error(aclresult, ACL_KIND_NAMESPACE,
 						   get_namespace_name(namespaceId));
-		rettype = TypeShellMake(typname, namespaceId, GetUserId(), shelltypeOid);
+		rettype = TypeShellMake(typname, namespaceId, GetUserId());
 		Assert(OidIsValid(rettype));
 	}
 
@@ -744,9 +745,6 @@ compute_attributes_sql_style(List *options,
  *	 * volatility tells the optimizer whether the function's result can
  *	   be assumed to be repeatable over multiple evaluations.
  *
- *   * oid (upgrade mode only) specifies that the function should be
- *     created with the user-specified oid.
- *
  *   * describeQualName is the qualified name of a describe callback function
  *     to handle dynamic type resolution.
  *------------
@@ -755,7 +753,6 @@ static void
 compute_attributes_with_style(List *parameters, 
 							  bool *isStrict_p, 
 							  char *volatility_p, 
-							  Oid* oid_p,
 							  List **describeQualName_p)
 {
 	ListCell   *pl;
@@ -1007,6 +1004,7 @@ CreateFunction(CreateFunctionStmt *stmt, const char *queryString)
 	List       *describeQualName = NIL;
 	Oid         describeFuncOid  = InvalidOid;
 	char		dataAccess;
+	Oid			funcOid;
 
 	/* Convert list of names to a name and namespace */
 	namespaceId = QualifiedNameGetCreationNamespace(stmt->funcname,
@@ -1100,13 +1098,12 @@ CreateFunction(CreateFunctionStmt *stmt, const char *queryString)
 	{
 		/* explicit RETURNS clause */
 		compute_return_type(stmt->returnType, languageOid,
-							&prorettype, &returnsSet, stmt->shelltypeOid);
+							&prorettype, &returnsSet);
 		if (OidIsValid(requiredResultType) && prorettype != requiredResultType)
 			ereport(ERROR,
 					(errcode(ERRCODE_INVALID_FUNCTION_DEFINITION),
 					 errmsg("function result type must be %s because of OUT parameters",
 							format_type_be(requiredResultType))));
-		stmt->shelltypeOid = prorettype;
 	}
 	else if (OidIsValid(requiredResultType))
 	{
@@ -1125,7 +1122,7 @@ CreateFunction(CreateFunctionStmt *stmt, const char *queryString)
 	}
 
 	compute_attributes_with_style(stmt->withClause, &isStrict, &volatility,
-								  &stmt->funcOid, &describeQualName);
+								  &describeQualName);
 
 	interpret_AS_clause(languageOid, languageName, funcname, as_clause,
 						&prosrc_str, &probin_str);
@@ -1170,7 +1167,7 @@ CreateFunction(CreateFunctionStmt *stmt, const char *queryString)
 	 * And now that we have all the parameters, and know we're permitted to do
 	 * so, go ahead and create the function.
 	 */
-	stmt->funcOid = ProcedureCreate(funcname,
+	funcOid = ProcedureCreate(funcname,
 					namespaceId,
 					stmt->replace,
 					returnsSet,
@@ -1193,8 +1190,7 @@ CreateFunction(CreateFunctionStmt *stmt, const char *queryString)
 					PointerGetDatum(proconfig),
 					procost,
 					prorows,
-					dataAccess,
-					stmt->funcOid);
+					dataAccess);
 
 	if (Gp_role == GP_ROLE_DISPATCH)
 	{
@@ -1202,6 +1198,7 @@ CreateFunction(CreateFunctionStmt *stmt, const char *queryString)
 									DF_CANCEL_ON_ERROR|
 									DF_WITH_SNAPSHOT|
 									DF_NEED_TWO_PHASE,
+									GetAssignedOidsForDispatch(),
 									NULL);
 	}
 }
@@ -1283,6 +1280,7 @@ RemoveFunction(RemoveFuncStmt *stmt)
 									DF_CANCEL_ON_ERROR|
 									DF_WITH_SNAPSHOT|
 									DF_NEED_TWO_PHASE,
+									NIL, /* FIXME */
 									NULL);
 	}
 }
@@ -1719,6 +1717,7 @@ AlterFunction(AlterFunctionStmt *stmt)
 									DF_CANCEL_ON_ERROR|
 									DF_WITH_SNAPSHOT|
 									DF_NEED_TWO_PHASE,
+									NIL, /* FIXME */
 									NULL);
 	}
 }
@@ -1994,9 +1993,6 @@ CreateCast(CreateCastStmt *stmt)
 
 	tuple = heap_form_tuple(RelationGetDescr(relation), values, nulls);
 
-	if (stmt->castOid != 0)
-		HeapTupleSetOid(tuple, stmt->castOid);
-
 	simple_heap_insert(relation, tuple);
 
 	CatalogUpdateIndexes(relation, tuple);
@@ -2037,6 +2033,7 @@ CreateCast(CreateCastStmt *stmt)
 									DF_CANCEL_ON_ERROR|
 									DF_WITH_SNAPSHOT|
 									DF_NEED_TWO_PHASE,
+									GetAssignedOidsForDispatch(),
 									NULL);
 	}
 	
@@ -2106,6 +2103,7 @@ DropCast(DropCastStmt *stmt)
 									DF_CANCEL_ON_ERROR|
 									DF_WITH_SNAPSHOT|
 									DF_NEED_TWO_PHASE,
+									NIL, /* FIXME */
 									NULL);
 	}
 }

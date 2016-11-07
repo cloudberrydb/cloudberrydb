@@ -100,7 +100,7 @@ static void remove_type_encoding(Oid typid);
  *		Registers a new type.
  */
 void
-DefineType(List *names, List *parameters, Oid newOid, Oid newArrayOid)
+DefineType(List *names, List *parameters)
 {
 	char	   *typeName;
 	Oid			typeNamespace;
@@ -169,7 +169,7 @@ DefineType(List *names, List *parameters, Oid newOid, Oid newArrayOid)
 	 */
 	if (!OidIsValid(typoid))
 	{
-		typoid = TypeShellMake(typeName, typeNamespace, GetUserId(), newOid);
+		typoid = TypeShellMake(typeName, typeNamespace, GetUserId());
 		/* Make new shell type visible for modification below */
 		CommandCounterIncrement();
 
@@ -188,13 +188,11 @@ DefineType(List *names, List *parameters, Oid newOid, Oid newArrayOid)
 				stmt->defnames = names;
 				stmt->args = NIL;
 				stmt->definition = NIL;
-				stmt->newOid = typoid;
-				stmt->arrayOid = newArrayOid;
-				stmt->commutatorOid = stmt->negatorOid = InvalidOid;
 				CdbDispatchUtilityStatement((Node *) stmt,
 											DF_CANCEL_ON_ERROR|
 											DF_WITH_SNAPSHOT|
 											DF_NEED_TWO_PHASE,
+											GetAssignedOidsForDispatch(),
 											NULL);
 			}
 			return;
@@ -442,20 +440,23 @@ DefineType(List *names, List *parameters, Oid newOid, Oid newArrayOid)
 		aclcheck_error(ACLCHECK_NOT_OWNER, ACL_KIND_PROC,
 					   NameListToString(analyzeName));
 
+	array_type = makeArrayTypeName(typeName, typeNamespace);
+
 	/* Preassign array type OID so we can insert it in pg_type.typarray */
-	pg_type = heap_open(TypeRelationId, AccessShareLock);
-	array_oid = newArrayOid;
-	if (!OidIsValid(array_oid))
+	if (Gp_role == GP_ROLE_EXECUTE)
+		array_oid = GetPreassignedOidForType(typeNamespace, array_type);
+	else
 	{
+		pg_type = heap_open(TypeRelationId, AccessShareLock);
 		array_oid = GetNewOid(pg_type);
+		heap_close(pg_type, AccessShareLock);
 	}
-	heap_close(pg_type, AccessShareLock);
 
 	/*
 	 * now have TypeCreate do all the real work.
 	 */
 	typoid =
-		TypeCreateWithOptions(newOid,
+		TypeCreateWithOptions(InvalidOid,	/* no predetermined type OID */
 				   typeName,	/* type name */
 				   typeNamespace,		/* namespace */
 				   InvalidOid,	/* relation oid (n/a here) */
@@ -488,7 +489,6 @@ DefineType(List *names, List *parameters, Oid newOid, Oid newArrayOid)
 	/*
 	 * Create the array type that goes with it.
 	 */
-	array_type = makeArrayTypeName(typeName, typeNamespace);
 
 	/* alignment must be 'i' or 'd' for arrays */
 	alignment = (alignment == 'd') ? 'd' : 'i';
@@ -533,14 +533,12 @@ DefineType(List *names, List *parameters, Oid newOid, Oid newArrayOid)
 		stmt->defnames = names;
 		stmt->args = NIL;
 		stmt->definition = parameters;
-		stmt->newOid = typoid;
-		stmt->arrayOid = array_oid;
-		stmt->commutatorOid = stmt->negatorOid = InvalidOid;
 
 		CdbDispatchUtilityStatement((Node *) stmt,
 									DF_CANCEL_ON_ERROR|
 									DF_WITH_SNAPSHOT|
 									DF_NEED_TWO_PHASE,
+									GetAssignedOidsForDispatch(), /* FIXME */
 									NULL);
 	}
 }
@@ -941,7 +939,7 @@ DefineDomain(CreateDomainStmt *stmt)
 	 * Have TypeCreate do all the real work.
 	 */
 	domainoid =
-		TypeCreate(stmt->domainOid,
+		TypeCreate(InvalidOid,	/* no predetermined type OID */
 				   domainName,	/* type name */
 				   domainNamespace,		/* namespace */
 				   InvalidOid,	/* relation oid (n/a here) */
@@ -970,7 +968,6 @@ DefineDomain(CreateDomainStmt *stmt)
 				   typNDims,	/* Array dimensions for base type */
 				   typNotNull	/* Type NOT NULL */);
 
-	stmt->domainOid = domainoid;
 	/*
 	 * Process constraints which refer to the domain ID returned by TypeCreate
 	 */
@@ -1009,6 +1006,7 @@ DefineDomain(CreateDomainStmt *stmt)
 									DF_CANCEL_ON_ERROR|
 									DF_WITH_SNAPSHOT|
 									DF_NEED_TWO_PHASE,
+									GetAssignedOidsForDispatch(),
 									NULL);
 	}
 }
@@ -1127,17 +1125,26 @@ DefineEnum(CreateEnumStmt *stmt)
 					 errmsg("type \"%s\" already exists", enumName)));
 	}
 
+	enumArrayName = makeArrayTypeName(enumName, enumNamespace);
+
 	/* Preassign array type OID so we can insert it in pg_type.typarray */
 	pg_type = heap_open(TypeRelationId, AccessShareLock);
-	if (OidIsValid(stmt->enumArrayOid))
-		enumArrayOid = stmt->enumArrayOid;
+
+	if (Gp_role == GP_ROLE_EXECUTE)
+	{
+		enumTypeOid = GetPreassignedOidForType(enumNamespace, enumName);
+		enumArrayOid = GetPreassignedOidForType(enumNamespace, enumArrayName);
+	}
 	else
+	{
+		enumTypeOid = InvalidOid;
 		enumArrayOid = GetNewOid(pg_type);
+	}
 	heap_close(pg_type, AccessShareLock);
 
 	/* Create the pg_type entry */
 	enumTypeOid =
-		TypeCreate(stmt->enumTypeOid,
+		TypeCreate(enumTypeOid,
 				   enumName,	/* type name */
 				   enumNamespace,		/* namespace */
 				   InvalidOid,	/* relation oid (n/a here) */
@@ -1165,8 +1172,6 @@ DefineEnum(CreateEnumStmt *stmt)
 				   -1,			/* typMod (Domains only) */
 				   0,			/* Array dimensions of typbasetype */
 				   false);		/* Type NOT NULL */
-	stmt->enumTypeOid = enumTypeOid;
-	stmt->enumArrayOid = enumArrayOid;
 
 	/* Enter the enum's values into pg_enum */
 	EnumValuesCreate(enumTypeOid, stmt->vals, &stmt->valOids);
@@ -1174,8 +1179,6 @@ DefineEnum(CreateEnumStmt *stmt)
 	/*
 	 * Create the array type that goes with it.
 	 */
-	enumArrayName = makeArrayTypeName(enumName, enumNamespace);
-
 	TypeCreate(enumArrayOid,	/* force assignment of this type OID */
 			   enumArrayName,	/* type name */
 			   enumNamespace,	/* namespace */
@@ -1212,6 +1215,7 @@ DefineEnum(CreateEnumStmt *stmt)
 									DF_CANCEL_ON_ERROR|
 									DF_WITH_SNAPSHOT|
 									DF_NEED_TWO_PHASE,
+									GetAssignedOidsForDispatch(),
 									NULL);
 }
 
@@ -1492,19 +1496,10 @@ findTypeAnalyzeFunction(List *procname, Oid typeOid)
  *-------------------------------------------------------------------
  */
 Oid
-DefineCompositeType(const RangeVar *typevar, List *coldeflist, Oid relOid, Oid comptypeOid)
+DefineCompositeType(const RangeVar *typevar, List *coldeflist)
 {
 	CreateStmt *createStmt = makeNode(CreateStmt);
 
-	createStmt->oidInfo.relOid = relOid;
-	createStmt->oidInfo.comptypeOid = comptypeOid;
-	createStmt->oidInfo.toastOid = 0;
-	createStmt->oidInfo.toastIndexOid = 0;
-	createStmt->oidInfo.aosegOid = 0;
-	createStmt->oidInfo.aoblkdirOid = 0;
-	createStmt->oidInfo.aoblkdirIndexOid = 0;
-	createStmt->oidInfo.aovisimapOid = 0;
-	createStmt->oidInfo.aovisimapIndexOid = 0;
 	createStmt->ownerid = GetUserId();
 
 	if (coldeflist == NIL)
@@ -1527,7 +1522,7 @@ DefineCompositeType(const RangeVar *typevar, List *coldeflist, Oid relOid, Oid c
 	/*
 	 * finally create the relation...
 	 */
-	return  DefineRelation(createStmt, RELKIND_COMPOSITE_TYPE, RELSTORAGE_VIRTUAL);
+	return  DefineRelation(createStmt, RELKIND_COMPOSITE_TYPE, RELSTORAGE_VIRTUAL, true);
 
 	/*
 	 * DefineRelation already dispatches this.
@@ -1537,8 +1532,6 @@ DefineCompositeType(const RangeVar *typevar, List *coldeflist, Oid relOid, Oid c
 		CompositeTypeStmt *stmt = makeNode(CompositeTypeStmt);
 		stmt->typevar = (RangeVar *)typevar;
 		stmt->coldeflist = coldeflist;
-		stmt->relOid = newRelOid;
-		stmt->comptypeOid = createStmt->comptypeOid;
 
 		CdbDispatchUtilityStatement((Node *) stmt);
 	}*/
@@ -2328,29 +2321,28 @@ domainAddConstraint(Oid domainOid, Oid domainNamespace, Oid baseTypeOid,
 	/*
 	 * Store the constraint in pg_constraint
 	 */
-	constr->conoid = CreateConstraintEntry(constr->name, /* Constraint Name */
-										   constr->conoid,	/* Constraint Oid */
-										   domainNamespace,		/* namespace */
-										   CONSTRAINT_CHECK,		/* Constraint Type */
-										   false,	/* Is Deferrable */
-										   false,	/* Is Deferred */
-										   InvalidOid,	/* not a relation constraint */
-										   NULL,
-										   0,
-										   domainOid,	/* domain constraint */
-										   InvalidOid,	/* Foreign key fields */
-										   NULL,
-										   NULL,
-										   NULL,
-										   NULL,
-										   0,
-										   ' ',
-										   ' ',
-										   ' ',
-										   InvalidOid,
-										   expr, /* Tree form check constraint */
-										   ccbin,	/* Binary form check constraint */
-										   ccsrc);		/* Source form check constraint */
+	CreateConstraintEntry(constr->name, /* Constraint Name */
+						  domainNamespace,		/* namespace */
+						  CONSTRAINT_CHECK,		/* Constraint Type */
+						  false,	/* Is Deferrable */
+						  false,	/* Is Deferred */
+						  InvalidOid,	/* not a relation constraint */
+						  NULL,
+						  0,
+						  domainOid,	/* domain constraint */
+						  InvalidOid,	/* Foreign key fields */
+						  NULL,
+						  NULL,
+						  NULL,
+						  NULL,
+						  0,
+						  ' ',
+						  ' ',
+						  ' ',
+						  InvalidOid,
+						  expr, /* Tree form check constraint */
+						  ccbin,	/* Binary form check constraint */
+						  ccsrc);		/* Source form check constraint */
 
 	/*
 	 * Return the compiled constraint expression so the calling routine can
@@ -2965,6 +2957,7 @@ AlterType(AlterTypeStmt *stmt)
 									DF_CANCEL_ON_ERROR|
 									DF_WITH_SNAPSHOT|
 									DF_NEED_TWO_PHASE,
+									NIL, /* FIXME */
 									NULL);
 }
 

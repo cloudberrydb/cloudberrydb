@@ -394,27 +394,6 @@ DefineSequence(CreateSeqStmt *seq)
 	/*
 	 * Create relation (and fill *null & *value)
 	 */
-	stmt->oidInfo.relOid = 0;
-	stmt->oidInfo.comptypeOid = 0;
-	stmt->oidInfo.toastOid = 0;
-	stmt->oidInfo.toastIndexOid = 0;
-	stmt->oidInfo.aosegOid = 0;
-	stmt->oidInfo.aoblkdirOid = 0;
-	stmt->oidInfo.aoblkdirIndexOid = 0;
-	stmt->oidInfo.aovisimapOid = 0;
-	stmt->oidInfo.aovisimapIndexOid = 0;
-
-	if (shouldDispatch)
-	{
-
-			/* stmt->relOid = newOid(); */
-	}
-	else if (Gp_role == GP_ROLE_EXECUTE)
-	{
-
-			stmt->oidInfo.relOid = seq->relOid;
-
-	}
 	stmt->tableElts = NIL;
 	for (i = SEQ_COL_FIRSTCOL; i <= SEQ_COL_LASTCOL; i++)
 	{
@@ -490,10 +469,9 @@ DefineSequence(CreateSeqStmt *seq)
 	stmt->oncommit = ONCOMMIT_NOOP;
 	stmt->tablespacename = NULL;
 	stmt->relKind = RELKIND_SEQUENCE;
-	stmt->oidInfo.comptypeOid = seq->comptypeOid;
 	stmt->ownerid = GetUserId();
 
-	seqoid = DefineRelation(stmt, RELKIND_SEQUENCE, RELSTORAGE_HEAP);
+	seqoid = DefineRelation(stmt, RELKIND_SEQUENCE, RELSTORAGE_HEAP, false);
 
 	/*
 	 * Open and lock the new sequence.  (This lock is redundant; an
@@ -505,8 +483,6 @@ DefineSequence(CreateSeqStmt *seq)
 	 */
 	rel = heap_open(seqoid, AccessExclusiveLock);
 	tupDesc = RelationGetDescr(rel);
-
-	stmt->oidInfo.relOid = seq->relOid = seqoid;
 
 	/* Initialize first page of relation with special magic number */
 
@@ -631,11 +607,11 @@ DefineSequence(CreateSeqStmt *seq)
 	/* Dispatch to segments */
 	if (shouldDispatch)
 	{
-		seq->comptypeOid = stmt->oidInfo.comptypeOid;
 		CdbDispatchUtilityStatement((Node *) seq,
 									DF_CANCEL_ON_ERROR|
 									DF_WITH_SNAPSHOT|
 									DF_NEED_TWO_PHASE,
+									GetAssignedOidsForDispatch(),
 									NULL);
 	}
 }
@@ -792,6 +768,7 @@ AlterSequence(AlterSeqStmt *stmt)
 									DF_CANCEL_ON_ERROR|
 									DF_WITH_SNAPSHOT|
 									DF_NEED_TWO_PHASE,
+									NIL, /* FIXME */
 									NULL);
 
 		if (!bSeqIsTemp)

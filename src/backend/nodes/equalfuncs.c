@@ -145,27 +145,6 @@ _equalIntoClause(IntoClause *a, IntoClause *b)
 	return true;
 }
 
-static bool
-_equalTableOidInfo(TableOidInfo *a, TableOidInfo *b)
-{
-	COMPARE_SCALAR_FIELD(relOid);
-	COMPARE_SCALAR_FIELD(comptypeOid);
-	COMPARE_SCALAR_FIELD(comptypeArrayOid);
-	COMPARE_SCALAR_FIELD(toastOid);
-	COMPARE_SCALAR_FIELD(toastIndexOid);
-	COMPARE_SCALAR_FIELD(toastComptypeOid);
-	COMPARE_SCALAR_FIELD(aosegOid);
-	COMPARE_SCALAR_FIELD(aosegComptypeOid);
-	COMPARE_SCALAR_FIELD(aovisimapOid);
-	COMPARE_SCALAR_FIELD(aovisimapIndexOid);
-	COMPARE_SCALAR_FIELD(aovisimapComptypeOid);
-	COMPARE_SCALAR_FIELD(aoblkdirOid);
-	COMPARE_SCALAR_FIELD(aoblkdirIndexOid);
-	COMPARE_SCALAR_FIELD(aoblkdirComptypeOid);
-	
-	return true;
-}
-
 /*
  * We don't need an _equalExpr because Expr is an abstract supertype which
  * should never actually get instantiated.	Also, since it has no common
@@ -1111,17 +1090,6 @@ _equalClusterStmt(ClusterStmt *a, ClusterStmt *b)
 {
 	COMPARE_NODE_FIELD(relation);
 	COMPARE_STRING_FIELD(indexname);
-	COMPARE_SCALAR_FIELD(oidInfo.relOid);
-	COMPARE_SCALAR_FIELD(oidInfo.comptypeOid);
-	COMPARE_SCALAR_FIELD(oidInfo.toastOid);
-	COMPARE_SCALAR_FIELD(oidInfo.toastIndexOid);
-	COMPARE_SCALAR_FIELD(oidInfo.aosegOid);
-	COMPARE_SCALAR_FIELD(oidInfo.aoblkdirOid);
-	COMPARE_SCALAR_FIELD(oidInfo.aoblkdirIndexOid);
-	COMPARE_SCALAR_FIELD(oidInfo.aovisimapOid);
-	COMPARE_SCALAR_FIELD(oidInfo.aovisimapIndexOid);
-
-	COMPARE_NODE_FIELD(new_ind_oids);
 
 	return true;
 }
@@ -1165,10 +1133,6 @@ _equalCreateStmt(CreateStmt *a, CreateStmt *b)
 	COMPARE_SCALAR_FIELD(oncommit);
 	COMPARE_STRING_FIELD(tablespacename);
 	COMPARE_NODE_FIELD(distributedBy);
-	COMPARE_SCALAR_FIELD(oidInfo.relOid);
-	COMPARE_SCALAR_FIELD(oidInfo.comptypeOid);
-	COMPARE_SCALAR_FIELD(oidInfo.toastOid);
-	COMPARE_SCALAR_FIELD(oidInfo.toastIndexOid);
 	COMPARE_SCALAR_FIELD(relKind);
 	COMPARE_SCALAR_FIELD(relStorage);
 	/* policy omitted */
@@ -1272,12 +1236,6 @@ _equalTruncateStmt(TruncateStmt *a, TruncateStmt *b)
 {
 	COMPARE_NODE_FIELD(relations);
 	COMPARE_SCALAR_FIELD(behavior);
-	COMPARE_NODE_FIELD(new_heap_oids);
-	COMPARE_NODE_FIELD(new_toast_oids);
-	COMPARE_NODE_FIELD(new_aoseg_oids);
-	COMPARE_NODE_FIELD(new_aoblkdir_oids);
-	COMPARE_NODE_FIELD(new_aovisimap_oids);
-	COMPARE_NODE_FIELD(new_ind_oids);
 
 	return true;
 }
@@ -1318,9 +1276,7 @@ _equalIndexStmt(IndexStmt *a, IndexStmt *b)
 	COMPARE_SCALAR_FIELD(unique);
 	COMPARE_SCALAR_FIELD(primary);
 	COMPARE_SCALAR_FIELD(isconstraint);
-	COMPARE_SCALAR_FIELD(constrOid);
 	COMPARE_SCALAR_FIELD(concurrent);
-	COMPARE_NODE_FIELD(idxOids);
 	COMPARE_SCALAR_FIELD(is_split_part);
 
 	return true;
@@ -1503,8 +1459,6 @@ _equalCreateEnumStmt(CreateEnumStmt *a, CreateEnumStmt *b)
 {
 	COMPARE_NODE_FIELD(typeName);
 	COMPARE_NODE_FIELD(vals);
-	COMPARE_SCALAR_FIELD(enumTypeOid);
-	COMPARE_SCALAR_FIELD(enumArrayOid);
 	COMPARE_NODE_FIELD(valOids);
 
 	return true;
@@ -1517,10 +1471,6 @@ _equalViewStmt(ViewStmt *a, ViewStmt *b)
 	COMPARE_NODE_FIELD(aliases);
 	COMPARE_NODE_FIELD(query);
 	COMPARE_SCALAR_FIELD(replace);
-	COMPARE_SCALAR_FIELD(relOid);
-	COMPARE_SCALAR_FIELD(comptypeOid);
-	COMPARE_SCALAR_FIELD(comptypeArrayOid);
-	COMPARE_SCALAR_FIELD(rewriteOid);
 
 	return true;
 }
@@ -1552,8 +1502,6 @@ _equalCreateOpClassStmt(CreateOpClassStmt *a, CreateOpClassStmt *b)
 	COMPARE_NODE_FIELD(datatype);
 	COMPARE_NODE_FIELD(items);
 	COMPARE_SCALAR_FIELD(isDefault);
-	COMPARE_SCALAR_FIELD(opclassOid);
-	COMPARE_SCALAR_FIELD(opfamilyOid);
 
 	return true;
 }
@@ -1578,8 +1526,6 @@ _equalCreateOpFamilyStmt(CreateOpFamilyStmt *a, CreateOpFamilyStmt *b)
 	COMPARE_NODE_FIELD(opfamilyname);
 	COMPARE_STRING_FIELD(amname);
 
-	COMPARE_SCALAR_FIELD(newOid);
-
 	return true;
 }
 
@@ -1599,7 +1545,6 @@ _equalCreatedbStmt(CreatedbStmt *a, CreatedbStmt *b)
 {
 	COMPARE_STRING_FIELD(dbname);
 	COMPARE_NODE_FIELD(options);
-	COMPARE_SCALAR_FIELD(dbOid);
 	return true;
 }
 
@@ -1643,7 +1588,6 @@ _equalVacuumStmt(VacuumStmt *a, VacuumStmt *b)
 	COMPARE_NODE_FIELD(relation);
 	COMPARE_NODE_FIELD(va_cols);
 	COMPARE_NODE_FIELD(expanded_relids);
-	COMPARE_NODE_FIELD(extra_oids);
 
 	return true;
 }
@@ -1663,7 +1607,6 @@ _equalCreateSeqStmt(CreateSeqStmt *a, CreateSeqStmt *b)
 {
 	COMPARE_NODE_FIELD(sequence);
 	COMPARE_NODE_FIELD(options);
-	COMPARE_SCALAR_FIELD(relOid);
 
 	return true;
 }
@@ -1773,10 +1716,6 @@ _equalCreatePLangStmt(CreatePLangStmt *a, CreatePLangStmt *b)
 	COMPARE_NODE_FIELD(plinline);
 	COMPARE_NODE_FIELD(plvalidator);
 	COMPARE_SCALAR_FIELD(pltrusted);
-	COMPARE_SCALAR_FIELD(plangOid);
-	COMPARE_SCALAR_FIELD(plhandlerOid);
-	COMPARE_SCALAR_FIELD(plinlineOid);
-	COMPARE_SCALAR_FIELD(plvalidatorOid);
 
 	return true;
 }
@@ -1797,7 +1736,6 @@ _equalCreateRoleStmt(CreateRoleStmt *a, CreateRoleStmt *b)
 	COMPARE_SCALAR_FIELD(stmt_type);
 	COMPARE_STRING_FIELD(role);
 	COMPARE_NODE_FIELD(options);
-	COMPARE_SCALAR_FIELD(roleOid);
 
 	return true;
 }
@@ -1875,7 +1813,6 @@ _equalReindexStmt(ReindexStmt *a, ReindexStmt *b)
 	COMPARE_STRING_FIELD(name);
 	COMPARE_SCALAR_FIELD(do_system);
 	COMPARE_SCALAR_FIELD(do_user);
-	COMPARE_NODE_FIELD(new_ind_oids);
 	COMPARE_SCALAR_FIELD(relid);
 
 	return true;
@@ -1888,8 +1825,6 @@ _equalCreateSchemaStmt(CreateSchemaStmt *a, CreateSchemaStmt *b)
 	COMPARE_STRING_FIELD(authid);
 	COMPARE_NODE_FIELD(schemaElts);
 	COMPARE_SCALAR_FIELD(istemp);
-	COMPARE_SCALAR_FIELD(schemaOid);
-	COMPARE_SCALAR_FIELD(toastSchemaOid);
 
 	return true;
 }
@@ -2209,7 +2144,6 @@ static bool
 _equalConstraint(Constraint *a, Constraint *b)
 {
 	COMPARE_SCALAR_FIELD(contype);
-	COMPARE_SCALAR_FIELD(conoid);
 	COMPARE_STRING_FIELD(name);
 	COMPARE_NODE_FIELD(raw_expr);
 	COMPARE_STRING_FIELD(cooked_expr);
@@ -2406,7 +2340,6 @@ static bool
 _equalFkConstraint(FkConstraint *a, FkConstraint *b)
 {
 	COMPARE_STRING_FIELD(constr_name);
-	COMPARE_SCALAR_FIELD(constrOid);
 	COMPARE_NODE_FIELD(pktable);
 	COMPARE_NODE_FIELD(fk_attrs);
 	COMPARE_NODE_FIELD(pk_attrs);
@@ -2578,9 +2511,6 @@ equal(void *a, void *b)
 			break;
 		case T_IntoClause:
 			retval = _equalIntoClause(a, b);
-			break;
-		case T_TableOidInfo:
-			retval = _equalTableOidInfo(a, b);
 			break;
 		case T_Var:
 			retval = _equalVar(a, b);

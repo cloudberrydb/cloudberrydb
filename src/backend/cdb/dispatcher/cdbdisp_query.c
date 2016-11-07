@@ -1,4 +1,3 @@
-
 /*-------------------------------------------------------------------------
  *
  * cdbdisp_query.c
@@ -64,6 +63,12 @@ typedef struct DispatchCommandQueryParms
 	int serializedParamslen;
 
 	/*
+	 * Additional information.
+	 */
+	char	   *serializedOidAssignments;
+	int			serializedOidAssignmentslen;
+
+	/*
 	 * serialized DTX context string
 	 */
 	char *serializedDtxContextInfo;
@@ -87,6 +92,8 @@ static void
 cdbdisp_dispatchCommandInternal(const char *strCommand,
 											char *serializedQuerytree,
 											int serializedQuerytreelen,
+											char *serializedQueryDispatchDesc,
+											int serializedQueryDispatchDesclen,
 											int flags,
 											CdbPgResults *cdb_pgresults);
 
@@ -336,10 +343,12 @@ CdbDispatchCommand(const char* strCommand,
 					CdbPgResults* cdb_pgresults)
 {
 	return cdbdisp_dispatchCommandInternal(strCommand,
-											NULL,
-											0,
-											flags,
-											cdb_pgresults);
+										   NULL,
+										   0,
+										   NULL,
+										   0,
+										   flags,
+										   cdb_pgresults);
 }
 
 /*
@@ -359,16 +368,21 @@ CdbDispatchCommand(const char* strCommand,
 void
 CdbDispatchUtilityStatement(struct Node *stmt,
 							int flags,
-							CdbPgResults* cdb_pgresults)
+							List *oid_assignments,
+							CdbPgResults *cdb_pgresults)
 {
-	char *serializedQuerytree;
-	int serializedQuerytree_len;
+	char	   *serializedQuerytree;
+	int			serializedQuerytree_len;
+	char	   *serializedQueryDispatchDesc = NULL;
+	int			serializedQueryDispatchDesc_len = 0;
+	Query	   *q;
+	QueryDispatchDesc *qddesc;
 
 	Assert(stmt != NULL);
 	Assert(stmt->type < 1000);
 	Assert(stmt->type > 0);
 
-	Query *q = makeNode(Query);
+	q = makeNode(Query);
 
 	q->querySource = QSRC_ORIGINAL;
 	q->commandType = CMD_UTILITY;
@@ -387,15 +401,27 @@ CdbDispatchUtilityStatement(struct Node *stmt,
 	/*
 	 * serialized the stmt tree, and create the sql statement: mppexec ....
 	 */
-	serializedQuerytree = serializeNode((Node *) q, &serializedQuerytree_len, NULL /*uncompressed_size */);
+	serializedQuerytree = serializeNode((Node *) q, &serializedQuerytree_len,
+										NULL /*uncompressed_size */);
 
 	Assert(serializedQuerytree != NULL);
+
+	if (oid_assignments)
+	{
+		qddesc = makeNode(QueryDispatchDesc);
+		qddesc->oidAssignments = oid_assignments;
+
+		serializedQueryDispatchDesc = serializeNode((Node *) qddesc, &serializedQueryDispatchDesc_len,
+													NULL /*uncompressed_size */);
+	}
 
 	/*
 	 * Dispatch serializedQuerytree to primary writer gang.
 	 */
 	return cdbdisp_dispatchCommandInternal(debug_query_string,
-			serializedQuerytree, serializedQuerytree_len, flags, cdb_pgresults);
+										   serializedQuerytree, serializedQuerytree_len,
+										   serializedQueryDispatchDesc, serializedQueryDispatchDesc_len,
+										   flags, cdb_pgresults);
 }
 
 /*
@@ -408,6 +434,8 @@ static void
 cdbdisp_dispatchCommandInternal(const char *strCommand,
 								char *serializedQuerytree,
 								int serializedQuerytreelen,
+								char *serializedQueryDispatchDesc,
+								int serializedQueryDispatchDesclen,
 								int flags,
 								CdbPgResults *cdb_pgresults)
 {
@@ -444,6 +472,8 @@ cdbdisp_dispatchCommandInternal(const char *strCommand,
 	pQueryParms->strCommand = strCommand;
 	pQueryParms->serializedQuerytree = serializedQuerytree;
 	pQueryParms->serializedQuerytreelen = serializedQuerytreelen;
+	pQueryParms->serializedQueryDispatchDesc = serializedQueryDispatchDesc;
+	pQueryParms->serializedQueryDispatchDesclen = serializedQueryDispatchDesclen;
 
 	/*
 	 * Allocate a primary QE for every available segDB in the system.

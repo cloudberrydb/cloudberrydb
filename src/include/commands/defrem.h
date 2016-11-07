@@ -68,8 +68,7 @@ extern void AlterFunctionNamespace(List *name, List *argtypes, bool isagg,
 					   const char *newschema);
 
 /* commands/operatorcmds.c */
-extern void DefineOperator(List *names, List *parameters,
-			   Oid newOid, Oid newCommutatorOid, Oid newNegatorOid);
+extern void DefineOperator(List *names, List *parameters);
 extern void RemoveOperator(RemoveFuncStmt *stmt);
 extern void RemoveOperatorById(Oid operOid);
 extern void AlterOperatorOwner(List *name, TypeName *typeName1,
@@ -78,7 +77,7 @@ extern void AlterOperatorOwner_oid(Oid operOid, Oid newOwnerId);
 
 /* commands/aggregatecmds.c */
 extern void DefineAggregate(List *name, List *args, bool oldstyle,
-							List *parameters, Oid newOid, bool ordered);
+							List *parameters, bool ordered);
 extern void RemoveAggregate(RemoveFuncStmt *stmt);
 extern void RenameAggregate(List *name, List *args, const char *newname);
 extern void AlterAggregateOwner(List *name, List *args, Oid newOwnerId);
@@ -100,13 +99,13 @@ extern void AlterOpFamilyOwner(List *name, const char *access_method, Oid newOwn
 extern void AlterOpFamilyOwner_oid(Oid opfamilyOid, Oid newOwnerId);
 
 /* commands/tsearchcmds.c */
-extern void DefineTSParser(List *names, List *parameters, Oid newOid);
+extern void DefineTSParser(List *names, List *parameters);
 extern void RenameTSParser(List *oldname, const char *newname);
 extern void RemoveTSParser(List *names, DropBehavior behavior,
 			   bool missing_ok);
 extern void RemoveTSParserById(Oid prsId);
 
-extern void DefineTSDictionary(List *names, List *parameters, Oid newOid);
+extern void DefineTSDictionary(List *names, List *parameters);
 extern void RenameTSDictionary(List *oldname, const char *newname);
 extern void RemoveTSDictionary(List *names, DropBehavior behavior,
 				   bool missing_ok);
@@ -114,13 +113,13 @@ extern void RemoveTSDictionaryById(Oid dictId);
 extern void AlterTSDictionary(AlterTSDictionaryStmt *stmt);
 extern void AlterTSDictionaryOwner(List *name, Oid newOwnerId);
 
-extern void DefineTSTemplate(List *names, List *parameters, Oid newOid);
+extern void DefineTSTemplate(List *names, List *parameters);
 extern void RenameTSTemplate(List *oldname, const char *newname);
 extern void RemoveTSTemplate(List *names, DropBehavior behavior,
 				 bool missing_ok);
 extern void RemoveTSTemplateById(Oid tmplId);
 
-extern void DefineTSConfiguration(List *names, List *parameters, Oid newOid);
+extern void DefineTSConfiguration(List *names, List *parameters);
 extern void RenameTSConfiguration(List *oldname, const char *newname);
 extern void RemoveTSConfiguration(List *names, DropBehavior behavior,
 					  bool missing_ok);
