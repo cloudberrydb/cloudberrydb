@@ -2782,7 +2782,6 @@ ATController(Relation rel, List *cmds, bool recurse)
 				{
 					if (!masterCmd)
 					{
-						Assert(tab->relid == relid);
 						masterCmd = cmd;
 						masterSetCmd = lsecond((List *)cmd->def);
 						continue;
