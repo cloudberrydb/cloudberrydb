@@ -84,33 +84,6 @@ static Oid	find_oper_cache_entry(OprCacheKey *key);
 static void make_oper_cache_entry(OprCacheKey *key, Oid opr_oid);
 static void InvalidateOprCacheCallBack(Datum arg, int cacheid, ItemPointer tuplePtr);
 
-static HeapTuple fetch_op_tup(Oid oproid, bool bValid);
-/*
- * helper function to fetch operator tuple
- *
- * NOTE: on success, the returned object is a syscache entry.  The caller
- * must ReleaseOperator() the entry when done with it.
- */
-static HeapTuple fetch_op_tup(Oid oproid, bool bValid)
-{
-	HeapTuple	optup = NULL;
-
-	if (OidIsValid(oproid))
-	{
-		optup = SearchSysCache(OPEROID,
-							   ObjectIdGetDatum(oproid),
-							   0, 0, 0);
-		if (bValid && (!HeapTupleIsValid(optup)))		/* should not fail */
-			elog(ERROR, "cache lookup failed for operator %u", oproid);
-	}
-	else
-	{
-		if (bValid)
-			elog(ERROR, "invalid oid for cache lookup: operator %u", oproid);
-	}
-
-	return (optup);
-}
 
 /*
  * LookupOperName
@@ -232,8 +205,11 @@ equality_oper(Oid argtype, bool noError)
 
 	if (OidIsValid(oproid))
 	{
-		optup = fetch_op_tup(oproid, true);
-
+		optup = SearchSysCache(OPEROID,
+							   ObjectIdGetDatum(oproid),
+							   0, 0, 0);
+		if (optup == NULL)		/* should not fail */
+			elog(ERROR, "cache lookup failed for operator %u", oproid);
 		return optup;
 	}
 
@@ -293,8 +269,11 @@ ordering_oper(Oid argtype, bool noError)
 
 	if (OidIsValid(oproid))
 	{
-		optup = fetch_op_tup(oproid, true);
-
+		optup = SearchSysCache(OPEROID,
+							   ObjectIdGetDatum(oproid),
+							   0, 0, 0);
+		if (optup == NULL)		/* should not fail */
+			elog(ERROR, "cache lookup failed for operator %u", oproid);
 		return optup;
 	}
 
@@ -355,8 +334,11 @@ reverse_ordering_oper(Oid argtype, bool noError)
 
 	if (OidIsValid(oproid))
 	{
-		optup = fetch_op_tup(oproid, true);
-
+		optup = SearchSysCache(OPEROID,
+							   ObjectIdGetDatum(oproid),
+							   0, 0, 0);
+		if (optup == NULL)		/* should not fail */
+			elog(ERROR, "cache lookup failed for operator %u", oproid);
 		return optup;
 	}
 
@@ -616,9 +598,9 @@ oper(ParseState *pstate, List *opname, Oid ltypeId, Oid rtypeId,
 			 */
 			Oid			inputOids[2];
 
-			if (!OidIsValid(rtypeId))
+			if (rtypeId == InvalidOid)
 				rtypeId = ltypeId;
-			else if (!OidIsValid(ltypeId))
+			else if (ltypeId == InvalidOid)
 				ltypeId = rtypeId;
 			inputOids[0] = ltypeId;
 			inputOids[1] = rtypeId;
@@ -626,7 +608,10 @@ oper(ParseState *pstate, List *opname, Oid ltypeId, Oid rtypeId,
 		}
 	}
 
-	tup = fetch_op_tup(operOid, false);
+	if (OidIsValid(operOid))
+		tup = SearchSysCache(OPEROID,
+							 ObjectIdGetDatum(operOid),
+							 0, 0, 0);
 
 	if (HeapTupleIsValid(tup))
 	{
@@ -765,7 +750,10 @@ right_oper(ParseState *pstate, List *op, Oid arg, bool noError, int location)
 		}
 	}
 
-	tup = fetch_op_tup(operOid, false);
+	if (OidIsValid(operOid))
+		tup = SearchSysCache(OPEROID,
+							 ObjectIdGetDatum(operOid),
+							 0, 0, 0);
 
 	if (HeapTupleIsValid(tup))
 	{
@@ -856,7 +844,10 @@ left_oper(ParseState *pstate, List *op, Oid arg, bool noError, int location)
 		}
 	}
 
-	tup = fetch_op_tup(operOid, false);
+	if (OidIsValid(operOid))
+		tup = SearchSysCache(OPEROID,
+							 ObjectIdGetDatum(operOid),
+							 0, 0, 0);
 
 	if (HeapTupleIsValid(tup))
 	{
