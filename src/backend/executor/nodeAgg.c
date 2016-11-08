@@ -696,11 +696,7 @@ process_ordered_aggregate_single(AggState *aggstate,
 		/*
 		 * If DISTINCT mode, and not distinct from prior, skip it.
 		 */
-		if (isDistinct && *isNull ) 
-		{ 
-			/* per SQL, DISTINCT doesn't use nulls */
-		}
-		else if (isDistinct &&
+		if (isDistinct &&
 				 haveOldVal &&
 				 ((oldIsNull && *isNull) ||
 				  (!oldIsNull && !*isNull &&
