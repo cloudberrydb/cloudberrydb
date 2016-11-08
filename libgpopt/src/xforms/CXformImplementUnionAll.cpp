@@ -95,6 +95,9 @@ CXformImplementUnionAll::Transform
 					pdrgpexpr
 					);
 
+	// add serial union alternative to results
+	pxfres->Add(pexprSerialUnionAll);
+
 	// parallel union alternative to the result if the GUC is on
 	BOOL fParallel = GPOS_FTRACE(EopttraceEnableParallelAppend);
 
@@ -116,9 +119,6 @@ CXformImplementUnionAll::Transform
 		// add parallel union alternative to results
 		pxfres->Add(pexprParallelUnionAll);
 	}
-
-	// add serial union alternative to results
-	pxfres->Add(pexprSerialUnionAll);
 }
 
 // EOF
