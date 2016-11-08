@@ -1,7 +1,7 @@
 #include "s3bucket_reader.h"
 
 S3BucketReader::S3BucketReader() : Reader() {
-    this->keyIndex = 0;
+    this->keyIndex = 0;  // doesn't matter, be set in open()
 
     this->s3Interface = NULL;
     this->upstreamReader = NULL;
@@ -17,8 +17,8 @@ S3BucketReader::~S3BucketReader() {
 void S3BucketReader::open(const S3Params& params) {
     this->params = params;
 
-    // for unit test, we may change it
-    this->keyIndex = s3ext_segid;
+    this->keyIndex = s3ext_segid;  // we may change it in unit tests
+
     S3_CHECK_OR_DIE(this->s3Interface != NULL, S3RuntimeError, "s3Interface is NULL");
 
     this->parseURL();
@@ -53,6 +53,7 @@ uint64_t S3BucketReader::readWithoutHeaderLine(char* buf, uint64_t count) {
     char* current = NULL;
     char* end = NULL;
     char* currentEOL = eolString;
+
     // check one char at a time
     while (*currentEOL != '\0') {
         if (current == end) {

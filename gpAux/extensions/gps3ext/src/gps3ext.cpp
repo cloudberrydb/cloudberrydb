@@ -130,13 +130,13 @@ static void parseFormatOpts(FunctionCallInfo fcinfo) {
             hasHeader = false;
 
         // detect end-of-line terminator
-        char *newline_str = strstr(fmtopts, "newline");
+        const char *newline_str = strstr(fmtopts, "newline");
         eolString[0] = '\n';
         eolString[1] = '\0';
 
         if (newline_str != NULL) {
-            char *first = strchr(newline_str, '\'');
-            char *second = strchr(first + 1, '\'');
+            const char *first = strchr(newline_str, '\'');
+            const char *second = strchr(first + 1, '\'');
             size_t len = second - first - 1;
             char newline[EOL_STRING_MAX_LEN + 1];
             len = len > EOL_STRING_MAX_LEN ? EOL_STRING_MAX_LEN : len;  // defensive line
