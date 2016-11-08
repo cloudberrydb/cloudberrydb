@@ -113,8 +113,6 @@ static Node *substitute_actual_parameters_mutator(Node *node,
 static void sql_inline_error_callback(void *arg);
 static bool contain_grouping_clause_walker(Node *node, void *context);
 
-extern bool		optimizer; /* Enable the optimizer */
-
 /*****************************************************************************
  *		OPERATOR clause functions
  *****************************************************************************/
@@ -1802,11 +1800,10 @@ fold_constants(PlannerGlobal *glob, Query *q, ParamListInfo boundParams, Size ma
 	context.recurse_sublink_testexpr = false; /* do not recurse into sublink test expressions */
 	context.transform_saop = false; /* do not transform scalar array ops */
 	context.transform_functions_returning_composite_values = true;
-	if (optimizer)
-	{
-		/* when optimizer is on then do not fold functions that return a constant of composite values */
-		context.transform_functions_returning_composite_values = false;
-	}
+
+	/* when optimizer is on then do not fold functions that return a constant of composite values */
+	context.transform_functions_returning_composite_values = false;
+
 	context.max_size = max_size;
 	
 	return (Query *) query_or_expression_tree_mutator
@@ -1823,30 +1820,26 @@ fold_constants(PlannerGlobal *glob, Query *q, ParamListInfo boundParams, Size ma
  *
  * Fold array expression for optimizer
  */
-Node *fold_arrayexpr_constants(ArrayExpr *arrayexpr)
+Node *
+fold_arrayexpr_constants(ArrayExpr *arrayexpr)
 {
-	if (optimizer)
-	{
-		eval_const_expressions_context context;
+	eval_const_expressions_context context;
 
-		context.boundParams = NULL;
-		context.active_fns = NIL;	/* nothing being recursively simplified */
-		context.case_val = NULL;	/* no CASE being examined */
-		context.transform_stable_funcs = true;	/* safe transformations only */
-		context.recurse_queries = false; /* do not recurse into query structures */
-		context.recurse_sublink_testexpr = false; /* do not recurse into sublink test expressions */
-		context.transform_saop = true; /* transform scalar array ops */
-		context.transform_functions_returning_composite_values = true;
+	context.boundParams = NULL;
+	context.active_fns = NIL;	/* nothing being recursively simplified */
+	context.case_val = NULL;	/* no CASE being examined */
+	context.transform_stable_funcs = true;	/* safe transformations only */
+	context.recurse_queries = false; /* do not recurse into query structures */
+	context.recurse_sublink_testexpr = false; /* do not recurse into sublink test expressions */
+	context.transform_saop = true; /* transform scalar array ops */
+	context.transform_functions_returning_composite_values = true;
 
-		/* when optimizer is on then do not fold functions that return a constant of composite values */
-		context.transform_functions_returning_composite_values = false;
+	/* when optimizer is on then do not fold functions that return a constant of composite values */
+	context.transform_functions_returning_composite_values = false;
 
-		context.max_size = GPOPT_MAX_FOLDED_CONSTANT_SIZE;
+	context.max_size = GPOPT_MAX_FOLDED_CONSTANT_SIZE;
 
-		return eval_const_expressions_mutator((Node *) arrayexpr, &context);
-	}
-
-	return (Node*) arrayexpr;
+	return eval_const_expressions_mutator((Node *) arrayexpr, &context);
 }
 
 /*--------------------
