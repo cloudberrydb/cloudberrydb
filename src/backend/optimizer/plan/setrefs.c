@@ -1201,22 +1201,16 @@ fix_scan_expr(PlannerGlobal *glob, Node *node, int rtoffset)
 	context.glob = glob;
 	context.rtoffset = rtoffset;
 
-	if (rtoffset != 0)
-	{
-		return fix_scan_expr_mutator(node, &context);
-	}
-	else
-	{
-		/*
-		 * If rtoffset == 0, we don't need to change any Vars, which makes
-		 * it OK to just scribble on the input node tree instead of copying
-		 * (since the only change, filling in any unset opfuncid fields,
-		 * is harmless).  This saves just enough cycles to be noticeable on
-		 * trivial queries.
-		 */
-		(void) fix_scan_expr_walker(node, &context);
-		return node;
-	}
+	/*
+	 * Postgres has an optimization to mutate the expression tree only if
+	 * rtoffset is non-zero. However, this optimization does not work for
+	 * GPDB planner. The planner in GPDB produces plans where rtoffset
+	 * may be zero, but it uses gp_subplan_id as a pseudo column
+	 * to deduplicate all the partition scans. This pseudo var needs
+	 * to be unnested (i.e., the underlying expr needs to replace the Var)
+	 * using mutation. Therefore, in GPDB we need to unconditionally mutate the tree.
+	 */
+	return fix_scan_expr_mutator(node, &context);
 }
 
 static Node *
