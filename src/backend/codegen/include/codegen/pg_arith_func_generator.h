@@ -56,7 +56,7 @@ template <>
 class ArithOpOverFlowErrorMsg<
 double> {
  public:
-  static const char* OverFlowErrMsg() { return "float8 out of range"; }
+  static const char* OverFlowErrMsg() { return "value out of range: overflow"; }
 };
 }  // namespace gpcodegen_ArithOp_detail
 
@@ -385,30 +385,26 @@ static bool CreateOverflowCheckLogic(
   assert(nullptr != llvm_error_msg);
 
   llvm::IRBuilder<>* irb = codegen_utils->ir_builder();
-  // Check if it is a Integer type
-  if (std::is_integral<rtype>::value) {
-    llvm::BasicBlock* llvm_non_overflow_block = codegen_utils->CreateBasicBlock(
-        "arith_non_overflow_block", pg_func_info.llvm_main_func);
-    llvm::BasicBlock* llvm_overflow_block = codegen_utils->CreateBasicBlock(
-        "arith_overflow_block", pg_func_info.llvm_main_func);
 
-    *llvm_out_value = irb->CreateExtractValue(llvm_arith_output, 0);
-    llvm::Value* llvm_overflow_flag =
-        irb->CreateExtractValue(llvm_arith_output, 1);
+  llvm::BasicBlock* llvm_non_overflow_block = codegen_utils->CreateBasicBlock(
+      "arith_non_overflow_block", pg_func_info.llvm_main_func);
+  llvm::BasicBlock* llvm_overflow_block = codegen_utils->CreateBasicBlock(
+      "arith_overflow_block", pg_func_info.llvm_main_func);
 
-    irb->CreateCondBr(llvm_overflow_flag, llvm_overflow_block,
-                      llvm_non_overflow_block);
+  *llvm_out_value = irb->CreateExtractValue(llvm_arith_output, 0);
+  llvm::Value* llvm_overflow_flag =
+      irb->CreateExtractValue(llvm_arith_output, 1);
 
-    irb->SetInsertPoint(llvm_overflow_block);
-    EXPAND_CREATE_ELOG(codegen_utils,
-        ERROR,
-        "%s", llvm_error_msg);
-    irb->CreateBr(pg_func_info.llvm_error_block);
+  irb->CreateCondBr(llvm_overflow_flag, llvm_overflow_block,
+                    llvm_non_overflow_block);
 
-    irb->SetInsertPoint(llvm_non_overflow_block);
-  } else {
-    *llvm_out_value = llvm_arith_output;
-  }
+  irb->SetInsertPoint(llvm_overflow_block);
+  EXPAND_CREATE_ELOG(codegen_utils,
+      ERROR,
+      "%s", llvm_error_msg);
+  irb->CreateBr(pg_func_info.llvm_error_block);
+
+  irb->SetInsertPoint(llvm_non_overflow_block);
 
   return true;
 }
