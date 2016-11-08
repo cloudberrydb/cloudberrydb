@@ -337,8 +337,9 @@ typedef struct FaultInjectorEntry_s {
 	char					tableName[NAMEDATALEN];
 	
 	volatile	int			occurrence;
-	
+	volatile	 int	numTimesTriggered;
 	volatile	FaultInjectorState_e	faultInjectorState;
+
 		/* the state of the fault injection */
 	char					bufOutput[2500];
 	

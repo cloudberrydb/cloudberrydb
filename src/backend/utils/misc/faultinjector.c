@@ -504,6 +504,7 @@ FaultInjector_InjectFaultIfSet(
 	char					tableNameLocal[NAMEDATALEN];
 	int						ii = 0;
 	int cnt = 3600;
+	FaultInjectorType_e retvalue = FaultInjectorTypeNotSpecified;
 
 	/*
 	 * Return immediately if no fault has been injected ever.  It is
@@ -520,59 +521,58 @@ FaultInjector_InjectFaultIfSet(
 	if (faultInjectorShmem->faultInjectorSlots == 0)
 		return FALSE;
 
+	snprintf(databaseNameLocal, sizeof(databaseNameLocal), "%s", databaseName);
+	snprintf(tableNameLocal, sizeof(tableNameLocal), "%s", tableName);
 	getFileRepRoleAndState(&fileRepRole, &segmentState, &dataState, NULL, NULL);
 
 	FiLockAcquire();
 
 	entryShared = FaultInjector_LookupHashEntry(identifier);
 
-	if (entryShared != NULL)
-		memcpy(entryLocal, entryShared, sizeof(FaultInjectorEntry_s));
-
-	FiLockRelease();
-	
-	/* Verify if fault injection is set */
-	
-	if (entryShared == NULL) 
-		/* fault injection is not set */
-		return FALSE;
-	
-	if (entryLocal->ddlStatement != ddlStatement) 
-		/* fault injection is not set for the specified DDL */
-		return FALSE;
-	
-	snprintf(databaseNameLocal, sizeof(databaseNameLocal), "%s", databaseName);
-	
-	if (strcmp(entryLocal->databaseName, databaseNameLocal) != 0) 
-		/* fault injection is not set for the specified database name */
-		return FALSE;
-	
-	snprintf(tableNameLocal, sizeof(tableNameLocal), "%s", tableName);
-
-	if (strcmp(entryLocal->tableName, tableNameLocal) != 0) 
-		/* fault injection is not set for the specified table name */
-		return FALSE;
-	
-	if (entryLocal->faultInjectorState == FaultInjectorStateTriggered ||
-		entryLocal->faultInjectorState == FaultInjectorStateCompleted ||
-		entryLocal->faultInjectorState == FaultInjectorStateFailed) {
-		/* fault injection was already executed */
-		return FALSE;
-	}
-
-	/* Update the injection fault entry in hash table */
-	if (entryLocal->occurrence != FILEREP_UNDEFINED)
+	do
 	{
-		if (entryLocal->occurrence > 1) 
-		{
-			entryLocal->occurrence--;
-			FaultInjector_UpdateHashEntry(entryLocal);
-			return FALSE;
+		if (entryShared == NULL)
+			/* fault injection is not set */
+			break;
+
+		if (entryShared->ddlStatement != ddlStatement)
+			/* fault injection is not set for the specified DDL */
+			break;
+
+		if (strcmp(entryShared->databaseName, databaseNameLocal) != 0)
+			/* fault injection is not set for the specified database name */
+			break;
+	
+		if (strcmp(entryShared->tableName, tableNameLocal) != 0)
+			/* fault injection is not set for the specified table name */
+			break;
+
+		if (entryShared->faultInjectorState == FaultInjectorStateCompleted ||
+			entryShared->faultInjectorState == FaultInjectorStateFailed) {
+			/* fault injection was already executed */
+			break;
 		}
 
-		entryLocal->faultInjectorState = FaultInjectorStateTriggered;
-		FaultInjector_UpdateHashEntry(entryLocal);
-	}
+		/* Update the injection fault entry in hash table */
+		if (entryShared->occurrence != FILEREP_UNDEFINED)
+		{
+			if (entryShared->occurrence > 1)
+			{
+				entryShared->occurrence--;
+				break;
+			}
+		}
+
+		entryShared->faultInjectorState = FaultInjectorStateTriggered;
+		entryShared->numTimesTriggered++;
+		memcpy(entryLocal, entryShared, sizeof(FaultInjectorEntry_s));
+		retvalue = entryLocal->faultInjectorType;
+	} while (0);
+
+	FiLockRelease();
+
+	if (retvalue == FaultInjectorTypeNotSpecified)
+		return FaultInjectorTypeNotSpecified;
 
 	/* Inject fault */
 	
@@ -1254,6 +1254,8 @@ FaultInjector_NewHashEntry(
 	{
 		entryLocal->occurrence = FILEREP_UNDEFINED;
 	}
+
+	entryLocal->numTimesTriggered = 0;
 	strcpy(entryLocal->databaseName, entry->databaseName);
 	strcpy(entryLocal->tableName, entry->tableName);
 		
@@ -1410,7 +1412,8 @@ FaultInjector_SetFaultInjection(
 							"table name:'%s' "
 							"occurrence:'%d' "
 							"sleep time:'%d' "
-							"fault injection state:'%s' ",
+							"fault injection state:'%s' "
+							"num times hit:'%d' ",
 							FaultInjectorIdentifierEnumToString[entryLocal->faultInjectorIdentifier],
 							FaultInjectorTypeEnumToString[entryLocal->faultInjectorType],
 							FaultInjectorDDLEnumToString[entryLocal->ddlStatement],
@@ -1418,7 +1421,8 @@ FaultInjector_SetFaultInjection(
 							entryLocal->tableName,
 							entryLocal->occurrence,
 							entryLocal->sleepTime,
-							FaultInjectorStateEnumToString[entryLocal->faultInjectorState])));
+							FaultInjectorStateEnumToString[entryLocal->faultInjectorState],
+						entryLocal->numTimesTriggered)));
 				
 				if (entry->faultInjectorIdentifier == entryLocal->faultInjectorIdentifier ||
 					entry->faultInjectorIdentifier == FaultInjectorIdAll) {
@@ -1431,7 +1435,8 @@ FaultInjector_SetFaultInjection(
 								 "table name:'%s' "
 								 "occurrence:'%d' "
 								 "sleep time:'%d' "
-								 "fault injection state:'%s' ",
+								 "fault injection state:'%s' "
+								 "num times hit:'%d' ",
 								 entry->bufOutput,
 								 FaultInjectorIdentifierEnumToString[entryLocal->faultInjectorIdentifier],
 								 FaultInjectorTypeEnumToString[entryLocal->faultInjectorType],
@@ -1440,7 +1445,8 @@ FaultInjector_SetFaultInjection(
 								 entryLocal->tableName,
 								 entryLocal->occurrence,
 								 entryLocal->sleepTime,
-								 FaultInjectorStateEnumToString[entryLocal->faultInjectorState]);		
+								 FaultInjectorStateEnumToString[entryLocal->faultInjectorState],
+							entryLocal->numTimesTriggered);
 						found = TRUE;
 				}
 			}
