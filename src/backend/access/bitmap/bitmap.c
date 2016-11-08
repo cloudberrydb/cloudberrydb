@@ -524,7 +524,6 @@ bmbulkdelete(PG_FUNCTION_ARGS)
 	Relation	rel = info->index;
 	IndexBulkDeleteResult* volatile result =
 		(IndexBulkDeleteResult *) PG_GETARG_POINTER(1);
-	Oid			new_relfilenode;
 
 	MIRROREDLOCK_BUFMGR_VERIFY_NO_LOCK_LEAK_ENTER;
 
@@ -533,10 +532,9 @@ bmbulkdelete(PG_FUNCTION_ARGS)
 		result = (IndexBulkDeleteResult *)
 			palloc0(sizeof(IndexBulkDeleteResult));	
 
-	new_relfilenode = reindex_index(RelationGetRelid(rel));
-	CommandCounterIncrement();
+	reindex_index(RelationGetRelid(rel));
 
-	rel->rd_node.relNode = new_relfilenode;
+	CommandCounterIncrement();
 
 	result = (IndexBulkDeleteResult *) palloc0(sizeof(IndexBulkDeleteResult));
 	result->num_pages = RelationGetNumberOfBlocks(rel);

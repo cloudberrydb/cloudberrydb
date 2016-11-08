@@ -40,7 +40,7 @@ static Oid lookup_agg_function(List *fnName, int nargs, Oid *input_types,
 /*
  * AggregateCreate
  */
-Oid
+void
 AggregateCreate(const char *aggName,
 				Oid aggNamespace,
 				Oid *aggArgTypes,
@@ -373,8 +373,6 @@ AggregateCreate(const char *aggName,
 		referenced.objectSubId = 0;
 		recordDependencyOn(&myself, &referenced, DEPENDENCY_NORMAL);
 	}
-	
-	return procOid;
 }
 
 /*

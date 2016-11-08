@@ -79,7 +79,6 @@ DefineOperator(List *names, List *parameters)
 	List	   *restrictionName = NIL;	/* optional restrict. sel. procedure */
 	List	   *joinName = NIL; /* optional join sel. procedure */
 	ListCell   *pl;
-	Oid    opOid;
 
 	/* Convert list of names to a name and namespace */
 	oprNamespace = QualifiedNameGetCreationNamespace(names, &oprName);
@@ -160,7 +159,7 @@ DefineOperator(List *names, List *parameters)
 	/*
 	 * now have OperatorCreate do all the work..
 	 */
-	opOid = OperatorCreate(oprName,		/* operator name */
+	OperatorCreate(oprName,		/* operator name */
 				   oprNamespace,	/* namespace */
 				   typeId1,		/* left type id */
 				   typeId2,		/* right type id */

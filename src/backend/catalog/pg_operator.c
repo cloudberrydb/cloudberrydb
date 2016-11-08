@@ -355,7 +355,7 @@ OperatorShellMake(const char *operatorName,
  *	 create a tuple using heap_formtuple
  *	 call simple_heap_insert
  */
-Oid
+void
 OperatorCreate(const char *operatorName,
 			   Oid operatorNamespace,
 			   Oid leftTypeId,
@@ -613,8 +613,6 @@ OperatorCreate(const char *operatorName,
 
 	if (OidIsValid(commutatorId) || OidIsValid(negatorId))
 		OperatorUpd(operatorObjectId, commutatorId, negatorId);
-		
-	return operatorObjectId;
 }
 
 /*

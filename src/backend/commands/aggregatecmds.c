@@ -66,7 +66,6 @@ DefineAggregate(List *name, List *args, bool oldstyle, List *parameters,
 	int			numArgs;
 	Oid			transTypeId;
 	ListCell   *pl;
-	Oid			aggOid;
 
 	/* Convert list of names to a name and namespace */
 	aggNamespace = QualifiedNameGetCreationNamespace(name, &aggName);
@@ -211,17 +210,17 @@ DefineAggregate(List *name, List *args, bool oldstyle, List *parameters,
 	/*
 	 * Most of the argument-checking is done inside of AggregateCreate
 	 */
-	aggOid = AggregateCreate(aggName,		/* aggregate name */
-							 aggNamespace,	/* namespace */
-							 aggArgTypes,	/* input data type(s) */
-							 numArgs,
-							 transfuncName,	/* step function name */
-							 prelimfuncName,	/* prelim function name */
-							 finalfuncName,	/* final function name */
-							 sortoperatorName, /* sort operator name */
-							 transTypeId,	/* transition data type */
-							 initval,		/* initial condition */
-							 ordered);		/* ordered aggregates */
+	AggregateCreate(aggName,	/* aggregate name */
+					aggNamespace,		/* namespace */
+					aggArgTypes,	/* input data type(s) */
+					numArgs,
+					transfuncName,		/* step function name */
+					prelimfuncName,		/* prelim function name */
+					finalfuncName,		/* final function name */
+					sortoperatorName,	/* sort operator name */
+					transTypeId,	/* transition data type */
+					initval,		/* initial condition */
+					ordered);		/* ordered aggregates */
 
 	if (Gp_role == GP_ROLE_DISPATCH)
 	{

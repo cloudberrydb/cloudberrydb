@@ -293,7 +293,7 @@ DATA(insert ( 6112	pg_partition_oid_transfn      - - - pg_partition_oid_finalfn 
 /*
  * prototypes for functions in pg_aggregate.c
  */
-extern Oid AggregateCreate(const char *aggName,
+extern void AggregateCreate(const char *aggName,
 				Oid aggNamespace,
 				Oid *aggArgTypes,
 				int numArgs,

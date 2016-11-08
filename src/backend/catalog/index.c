@@ -1419,7 +1419,7 @@ index_update_stats(Relation rel, bool hasindex, bool isprimary,
  * If the updating relation is gp_relation_node's index, the caller
  * should rebuild the index by index_build().
  */
-Oid
+void
 setNewRelfilenode(Relation relation, TransactionId freezeXid)
 {
 	Oid			newrelfilenode = InvalidOid;
@@ -1587,8 +1587,6 @@ setNewRelfilenode(Relation relation, TransactionId freezeXid)
 
 	/* Mark the rel as having a new relfilenode in current transaction */
 	RelationCacheMarkNewRelfilenode(relation);
-
-	return newrelfilenode;
 }
 
 
@@ -2990,22 +2988,19 @@ IndexGetRelation(Oid indexId)
 }
 
 /*
- * reindex_index - This routine is used to recreate a single index.
- *
- * GPDB: we return the new relfilenode for transmission to QEs.
+ * reindex_index - This routine is used to recreate a single index
  */
-Oid
+void
 reindex_index(Oid indexId)
 {
-	Relation		iRel,
-					heapRelation,
-					pg_index;
-	Oid				heapId;
-	bool			inplace;
-	HeapTuple		indexTuple;
-	Form_pg_index	indexForm;
-	Oid				retrelfilenode;
-	Oid				namespaceId;
+	Relation	iRel,
+				heapRelation,
+				pg_index;
+	Oid			heapId;
+	bool		inplace;
+	HeapTuple	indexTuple;
+	Form_pg_index indexForm;
+	Oid			namespaceId;
 
 	Assert(OidIsValid(indexId));
 
@@ -3080,15 +3075,13 @@ reindex_index(Oid indexId)
 						iRel, 
 						0,
 						/* markPersistentAsPhysicallyTruncated */ true);
-
-			retrelfilenode = iRel->rd_rel->relfilenode;
 		}
 		else
 		{
 			/*
 			 * We'll build a new physical relation for the index.
 			 */
-			retrelfilenode = setNewRelfilenode(iRel, InvalidTransactionId);
+			setNewRelfilenode(iRel, InvalidTransactionId);
 		}
 
 		/* Initialize the index and rebuild */
@@ -3187,8 +3180,6 @@ reindex_index(Oid indexId)
 	/* Close rels, but keep locks */
 	index_close(iRel, NoLock);
 	heap_close(heapRelation, NoLock);
-
-	return retrelfilenode;
 }
 
 /*
