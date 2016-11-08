@@ -21,7 +21,6 @@ extern bool Transform_null_equals;
 
 
 extern Node *transformExpr(ParseState *pstate, Node *expr);
-extern Node *transformCaseExpr(ParseState *pstate, CaseExpr *c);
 
 extern Oid	exprType(Node *expr);
 extern int32 exprTypmod(Node *expr);

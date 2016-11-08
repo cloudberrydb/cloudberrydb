@@ -56,6 +56,7 @@ static Node *transformAExprNullIf(ParseState *pstate, A_Expr *a);
 static Node *transformAExprOf(ParseState *pstate, A_Expr *a);
 static Node *transformAExprIn(ParseState *pstate, A_Expr *a);
 static Node *transformFuncCall(ParseState *pstate, FuncCall *fn);
+static Node *transformCaseExpr(ParseState *pstate, CaseExpr *c);
 static Node *transformSubLink(ParseState *pstate, SubLink *sublink);
 static Node *transformArrayExpr(ParseState *pstate, A_ArrayExpr *a,
 				   Oid array_type, Oid element_type, int32 typmod);
@@ -1364,7 +1365,7 @@ isWhenIsNotDistinctFromExpr(Node *warg)
 	return false;
 }
 
-Node *
+static Node *
 transformCaseExpr(ParseState *pstate, CaseExpr *c)
 {
 	CaseExpr   *newc;
