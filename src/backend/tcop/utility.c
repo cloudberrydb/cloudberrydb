@@ -1341,7 +1341,6 @@ ProcessUtility(Node *parsetree,
 							false,		/* skip_build */
 							stmt->is_split_part,		/* quiet */
 							stmt->concurrent,	/* concurrent */
-							false, /* expanded from partitioning? */
 							stmt);
 			}
 			break;

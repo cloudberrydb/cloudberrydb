@@ -270,7 +270,7 @@ static void ATExecDropColumn(List **wqueue, Relation rel, const char *colName,
 				 DropBehavior behavior,
 				 bool recurse, bool recursing);
 static void ATExecAddIndex(AlteredTableInfo *tab, Relation rel,
-			   IndexStmt *stmt, bool is_rebuild, bool part_expanded);
+			   IndexStmt *stmt, bool is_rebuild);
 static void ATExecAddConstraint(AlteredTableInfo *tab, Relation rel,
 					Node *newConstraint, bool recurse);
 static void ATAddCheckConstraint(AlteredTableInfo *tab, Relation rel,
@@ -4087,12 +4087,10 @@ ATExecCmd(List **wqueue, AlteredTableInfo *tab, Relation *rel_p, AlterTableCmd *
 			ATExecDropColumn(wqueue, rel, cmd->name, cmd->behavior, true, false);
 			break;
 		case AT_AddIndex:		/* ADD INDEX */
-			ATExecAddIndex(tab, rel, (IndexStmt *) cmd->def, false,
-						   cmd->part_expanded);
+			ATExecAddIndex(tab, rel, (IndexStmt *) cmd->def, false);
 			break;
 		case AT_ReAddIndex:		/* ADD INDEX */
-			ATExecAddIndex(tab, rel, (IndexStmt *) cmd->def, true,
-						   cmd->part_expanded);
+			ATExecAddIndex(tab, rel, (IndexStmt *) cmd->def, true);
 			break;
 		case AT_AddConstraint:	/* ADD CONSTRAINT */
 			ATExecAddConstraint(tab, rel, cmd->def, false);
@@ -6830,7 +6828,7 @@ ATExecDropColumn(List **wqueue, Relation rel, const char *colName,
  */
 static void
 ATExecAddIndex(AlteredTableInfo *tab, Relation rel,
-			   IndexStmt *stmt, bool is_rebuild, bool part_expanded)
+			   IndexStmt *stmt, bool is_rebuild)
 {
 	bool		check_rights;
 	bool		skip_build;
@@ -6867,7 +6865,6 @@ ATExecAddIndex(AlteredTableInfo *tab, Relation rel,
 				skip_build,
 				quiet,
 				false,
-				part_expanded,
 				stmt);
 
 	/* 

@@ -113,8 +113,6 @@ bool gp_hash_index = false; /* hash index phase out. */
  *		it will be filled later.
  * 'quiet': suppress the NOTICE chatter ordinarily provided for constraints.
  * 'concurrent': avoid blocking writers to the table while building.
- * 'part_expanded': is this a lower-level call to index a branch or part of
- *		a partitioned table?
  * 'stmt': the IndexStmt for this index.  Many other arguments are just values
  *		of fields in here.  
  *		XXX One day it might pay to eliminate the redundancy.
@@ -136,7 +134,6 @@ DefineIndex(RangeVar *heapRelation,
 			bool skip_build,
 			bool quiet,
 			bool concurrent,
-			bool part_expanded,
 			IndexStmt *stmt)
 {
 	Oid		   *classObjectId;
