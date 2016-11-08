@@ -1972,7 +1972,7 @@ create_indexscan_plan(PlannerInfo *root,
 
 		Assert(IsA(rinfo, RestrictInfo));
 		if (rinfo->pseudoconstant)
-			continue;
+			continue;			/* we may drop pseudoconstants here */
 		if (list_member_ptr(nonlossy_indexquals, rinfo))
 			continue;
 		if (!contain_mutable_functions((Node *) rinfo->clause))

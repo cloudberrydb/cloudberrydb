@@ -43,7 +43,7 @@ static Oid lookup_agg_function(List *fnName, int nargs, Oid *input_types,
 Oid
 AggregateCreate(const char *aggName,
 				Oid aggNamespace,
-				Oid	*aggArgTypes,
+				Oid *aggArgTypes,
 				int numArgs,
 				List *aggtransfnName,
 				List *aggprelimfnName,
@@ -71,11 +71,11 @@ AggregateCreate(const char *aggName,
 	Oid			prelimrettype;
 	Oid		   *fnArgs;
 	int			nargs_transfn;
+	Oid			procOid;
 	TupleDesc	tupDesc;
 	int			i;
 	ObjectAddress myself,
 				referenced;
-	Oid			procOid;
 
 	/* sanity checks (caller should have caught these) */
 	if (!aggName)
@@ -246,7 +246,7 @@ AggregateCreate(const char *aggName,
 								aggArgTypes[0], aggArgTypes[0],
 								false, -1);
 	}
-	
+
 	/*
 	 * Everything looks okay.  Try to create the pg_proc entry for the
 	 * aggregate.  (This could fail if there's already a conflicting entry.)

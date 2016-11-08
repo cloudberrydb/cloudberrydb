@@ -1616,10 +1616,10 @@ heap_create_with_catalog(const char *relname,
 	}
 
 	/*
-	 * Decide whether to create an array type over the relation's rowtype.
-	 * We do not create any array types for system catalogs (ie, those made
-	 * during initdb).  We create array types for regular composite types ...
-	 * but not, eg, for toast tables or sequences.
+	 * Decide whether to create an array type over the relation's rowtype. We
+	 * do not create any array types for system catalogs (ie, those made
+	 * during initdb).	We create array types for regular relations, views,
+	 * and composite types ... but not, eg, for toast tables or sequences.
 	 *
 	 * Also not for the auxiliary heaps created for bitmap indexes.
 	 */
@@ -1867,7 +1867,7 @@ heap_create_with_catalog(const char *relname,
 	heap_close(pg_class_desc, RowExclusiveLock);
 
 	return relid;
-} /* end heap_create_with_catalog */
+}
 
 
 /*
@@ -2136,7 +2136,7 @@ RemoveAttributeById(Oid relid, AttrNumber attnum)
 }
 
 /*
- * RemoveAttrDefault
+ *		RemoveAttrDefault
  *
  * If the specified relation/attribute has a default, remove it and return its
  * old pg_attrdef.oid. The caller can use this oid for the new default if it

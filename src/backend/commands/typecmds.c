@@ -95,6 +95,7 @@ static char *domainAddConstraint(Oid domainOid, Oid domainNamespace,
 					char *domainName);
 static void remove_type_encoding(Oid typid);
 
+
 /*
  * DefineType
  *		Registers a new type.

@@ -347,13 +347,13 @@ DefineIndex(RangeVar *heapRelation,
 	if (unique && !accessMethodForm->amcanunique)
 		ereport(ERROR,
 				(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
-				 errmsg("access method \"%s\" does not support unique indexes",
-						accessMethodName)));
+			   errmsg("access method \"%s\" does not support unique indexes",
+					  accessMethodName)));
 	if (numberOfAttributes > 1 && !accessMethodForm->amcanmulticol)
 		ereport(ERROR,
 				(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
-				 errmsg("access method \"%s\" does not support multicolumn indexes",
-						accessMethodName)));
+		  errmsg("access method \"%s\" does not support multicolumn indexes",
+				 accessMethodName)));
 
     if  (unique && (RelationIsAoRows(rel) || RelationIsAoCols(rel)))
         ereport(ERROR,
@@ -390,8 +390,8 @@ DefineIndex(RangeVar *heapRelation,
 		{
 			ereport(ERROR,
 					(errcode(ERRCODE_INVALID_TABLE_DEFINITION),
-					 errmsg("multiple primary keys for table \"%s\" are not allowed",
-							RelationGetRelationName(rel))));
+			 errmsg("multiple primary keys for table \"%s\" are not allowed",
+					RelationGetRelationName(rel))));
 		}
 
 		/*
@@ -459,9 +459,10 @@ DefineIndex(RangeVar *heapRelation,
 	}
 
 	/*
-	 * Parse AM-specific options, convert to text array form, validate
+	 * Parse AM-specific options, convert to text array form, validate.
 	 */
 	reloptions = transformRelOptions((Datum) 0, options, false, false);
+
 	(void) index_reloptions(amoptions, reloptions, true);
 
 	/*
@@ -515,13 +516,12 @@ DefineIndex(RangeVar *heapRelation,
 	 * Report index creation if appropriate (delay this till after most of the
 	 * error checks)
 	 */
-	if (isconstraint && !quiet)
-		if (Gp_role != GP_ROLE_EXECUTE)
-			ereport(NOTICE,
-					(errmsg("%s %s will create implicit index \"%s\" for table \"%s\"",
-							is_alter_table ? "ALTER TABLE / ADD" : "CREATE TABLE /",
-							primary ? "PRIMARY KEY" : "UNIQUE",
-							indexRelationName, RelationGetRelationName(rel))));
+	if (isconstraint && !quiet && Gp_role != GP_ROLE_EXECUTE)
+		ereport(NOTICE,
+		  (errmsg("%s %s will create implicit index \"%s\" for table \"%s\"",
+				  is_alter_table ? "ALTER TABLE / ADD" : "CREATE TABLE /",
+				  primary ? "PRIMARY KEY" : "UNIQUE",
+				  indexRelationName, RelationGetRelationName(rel))));
 
 	if (rel_needs_long_lock(RelationGetRelid(rel)))
 		need_longlock = true;
@@ -851,6 +851,7 @@ CheckPredicate(Expr *predicate)
 		ereport(ERROR,
 				(errcode(ERRCODE_SYNTAX_ERROR),
 				 errmsg("cannot use window function in index predicate")));
+
 	/*
 	 * A predicate using mutable functions is probably wrong, for the same
 	 * reasons that we don't allow an index expression to use one.
@@ -897,9 +898,7 @@ ComputeIndexAttrs(IndexInfo *indexInfo,
 			Form_pg_attribute attform;
 
 			Assert(attribute->expr == NULL);
-
 			atttuple = SearchSysCacheAttName(relId, attribute->name);
-
 			if (!HeapTupleIsValid(atttuple))
 			{
 				/* difference in error message spellings is historical */
@@ -917,7 +916,6 @@ ComputeIndexAttrs(IndexInfo *indexInfo,
 			attform = (Form_pg_attribute) GETSTRUCT(atttuple);
 			indexInfo->ii_KeyAttrNumbers[attn] = attform->attnum;
 			atttype = attform->atttypid;
-
 			ReleaseSysCache(atttuple);
 		}
 		else if (attribute->expr && IsA(attribute->expr, Var))

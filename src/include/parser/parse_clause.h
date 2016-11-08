@@ -28,8 +28,8 @@ extern Node *transformWhereClause(ParseState *pstate, Node *clause,
 extern Node *transformLimitClause(ParseState *pstate, Node *clause,
 					 const char *constructName);
 extern List *transformGroupClause(ParseState *pstate, List *grouplist,
-                                  List **targetlist, List *sortClause,
-                                  bool useSQL99);
+					 List **targetlist, List *sortClause,
+					 bool useSQL99);
 extern List *transformSortClause(ParseState *pstate, List *orderlist,
                                  List **targetlist, bool resolveUnknown,
                                  bool useSQL99);

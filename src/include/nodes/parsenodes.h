@@ -175,6 +175,7 @@ typedef struct Query
 	struct GpPolicy *intoPolicy;
 } Query;
 
+
 /****************************************************************************
  *	Supporting data structures for Parse Trees
  *
@@ -218,7 +219,7 @@ typedef struct TypeName
 /*
  * ColumnRef - specifies a reference to a column, or possibly a whole tuple
  *
- * The "fields" list must be nonempty.	It can contain string Value nodes
+ * The "fields" list must be nonempty.  It can contain string Value nodes
  * (representing names) and A_Star nodes (representing occurrence of a '*').
  * Currently, A_Star must appear only as the last list element --- the grammar
  * is responsible for enforcing this!
@@ -569,11 +570,11 @@ typedef struct XmlSerialize
  *	  A range table is a List of RangeTblEntry nodes.
  *
  *	  A range table entry may represent a plain relation, a sub-select in
- *	  FROM, a common table expression, or the result of a JOIN clause. 
- *    (Only explicit JOIN syntax produces an RTE, not the implicit join
- *    resulting from multiple FROM items.  This is because we only need
- *    the RTE to deal with SQL features like outer joins and join-output-column
- *    aliasing.)  Other special RTE types also exist, as indicated by RTEKind.
+ *	  FROM, or the result of a JOIN clause.  (Only explicit JOIN syntax
+ *	  produces an RTE, not the implicit join resulting from multiple FROM
+ *	  items.  This is because we only need the RTE to deal with SQL features
+ *	  like outer joins and join-output-column aliasing.)  Other special
+ *	  RTE types also exist, as indicated by RTEKind.
  *
  *	  alias is an Alias node representing the AS alias-clause attached to the
  *	  FROM expression, or NULL if no clause.
@@ -1585,7 +1586,7 @@ typedef struct Constraint
  *
  * If skip_validation is true then we skip checking that the existing rows
  * in the table satisfy the constraint, and just install the catalog entries
- * for the constraint.	This is currently used only during CREATE TABLE
+ * for the constraint.  This is currently used only during CREATE TABLE
  * (when we know the table must be empty).
  * ----------
  */
@@ -2198,7 +2199,7 @@ typedef struct InlineCodeBlock
 	NodeTag		type;
 	char	   *source_text;	/* source text of anonymous code block */
 	Oid			langOid;		/* OID of selected language */
-	bool		langIsTrusted;  /* trusted property of the language */
+	bool		langIsTrusted;	/* trusted property of the language */
 } InlineCodeBlock;
 
 /* ----------------------

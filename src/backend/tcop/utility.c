@@ -1050,7 +1050,7 @@ ProcessUtility(Node *parsetree,
 
 				foreach(arg, objects)
 				{
-					List	   *names = (List *)lfirst(arg);
+					List	   *names = (List *) lfirst(arg);
 
 					stmt->objects = NIL;
 					stmt->objects = lappend(stmt->objects, list_copy(names));
@@ -1508,14 +1508,6 @@ ProcessUtility(Node *parsetree,
 			ExplainQuery((ExplainStmt *) parsetree, queryString, params, dest);
 			break;
 
-		case T_VariableShowStmt:
-			{
-				VariableShowStmt *n = (VariableShowStmt *) parsetree;
-
-				GetPGVariable(n->name, dest);
-			}
-			break;
-
 		case T_VariableSetStmt:
 			{
 				VariableSetStmt *n = (VariableSetStmt *) parsetree;
@@ -1586,6 +1578,14 @@ ProcessUtility(Node *parsetree,
 					else
 						SetPGVariableOptDispatch(n->name, n->args, n->is_local, /* gp_dispatch */ true);
 				}
+			}
+			break;
+
+		case T_VariableShowStmt:
+			{
+				VariableShowStmt *n = (VariableShowStmt *) parsetree;
+
+				GetPGVariable(n->name, dest);
 			}
 			break;
 
@@ -1944,7 +1944,7 @@ CreateCommandTag(Node *parsetree)
 
 	switch (nodeTag(parsetree))
 	{
-		/* raw plannable queries */
+			/* raw plannable queries */
 		case T_InsertStmt:
 			tag = "INSERT";
 			break;
@@ -1961,7 +1961,7 @@ CreateCommandTag(Node *parsetree)
 			tag = "SELECT";
 			break;
 
-		/* utility statements --- same whether raw or cooked */
+			/* utility statements --- same whether raw or cooked */
 		case T_TransactionStmt:
 			{
 				TransactionStmt *stmt = (TransactionStmt *) parsetree;
@@ -2654,10 +2654,11 @@ CreateCommandTag(Node *parsetree)
 				switch (query->commandType)
 				{
 					case CMD_SELECT:
-						
+
 						/*
-						 * We take a little extra care here so that the result will be
-						 * useful for complaints about read-only statements
+						 * We take a little extra care here so that the result
+						 * will be useful for complaints about read-only
+						 * statements
 						 */
 						if (query->intoClause != NULL)
 							tag = "SELECT INTO";
@@ -2723,7 +2724,7 @@ GetCommandLogLevel(Node *parsetree)
 
 	switch (nodeTag(parsetree))
 	{
-		/* raw plannable queries */
+			/* raw plannable queries */
 		case T_InsertStmt:
 		case T_DeleteStmt:
 		case T_UpdateStmt:
@@ -2737,7 +2738,7 @@ GetCommandLogLevel(Node *parsetree)
 				lev = LOGSTMT_ALL;
 			break;
 
-		/* utility statements --- same whether raw or cooked */
+			/* utility statements --- same whether raw or cooked */
 		case T_TransactionStmt:
 			lev = LOGSTMT_ALL;
 			break;

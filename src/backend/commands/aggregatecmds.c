@@ -187,21 +187,20 @@ DefineAggregate(List *name, List *args, bool oldstyle, List *parameters,
 	/*
 	 * look up the aggregate's transtype.
 	 *
-	 * transtype can't be a pseudo-type, (except during upgrade mode)
-	 * since we need to be able to store values of the transtype.
-	 * However, we can allow polymorphic transtype in some cases
-	 * (AggregateCreate will check). Also, we allow "internal"
+	 * transtype can't be a pseudo-type, since we need to be able to store
+	 * values of the transtype.  However, we can allow polymorphic transtype
+	 * in some cases (AggregateCreate will check).  Also, we allow "internal"
 	 * for functions that want to pass pointers to private data structures;
-	 * but allow that only to superusers, since you could crash the system
-	 * (or worse) by connecting up incompatible internal-using functions
-	 * in an aggregate.
+	 * but allow that only to superusers, since you could crash the system (or
+	 * worse) by connecting up incompatible internal-using functions in an
+	 * aggregate.
 	 */
 	transTypeId = typenameTypeId(NULL, transType, NULL);
 	if (get_typtype(transTypeId) == TYPTYPE_PSEUDO &&
 		!IsPolymorphicType(transTypeId))
 	{
 		if (transTypeId == INTERNALOID && superuser())
-			/* okay */ ;
+			 /* okay */ ;
 		else
 			ereport(ERROR,
 					(errcode(ERRCODE_INVALID_FUNCTION_DEFINITION),
@@ -338,7 +337,6 @@ RenameAggregate(List *name, List *args, const char *newname)
 							 PointerGetDatum(&procForm->proargtypes),
 							 ObjectIdGetDatum(namespaceOid),
 							 0))
-	{
 		ereport(ERROR,
 				(errcode(ERRCODE_DUPLICATE_FUNCTION),
 				 errmsg("function %s already exists in schema \"%s\"",
@@ -346,7 +344,6 @@ RenameAggregate(List *name, List *args, const char *newname)
 												  procForm->pronargs,
 											   procForm->proargtypes.values),
 						get_namespace_name(namespaceOid))));
-	}
 
 	/* must be owner */
 	if (!pg_proc_ownercheck(procOid, GetUserId()))

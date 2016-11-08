@@ -236,12 +236,12 @@ typedef struct QueryDesc
 	DestReceiver *dest;			/* the destination for tuple output */
 	ParamListInfo params;		/* param values being passed in */
 	bool		doInstrument;	/* TRUE requests runtime instrumentation */
-	
+
 	/* These fields are set by ExecutorStart */
 	TupleDesc	tupDesc;		/* descriptor for result tuples */
 	struct EState      *estate;			/* executor's query-wide state */
 	struct PlanState   *planstate;		/* tree of per-plan-node state */
-	
+
 	/* This field is set by ExecutorEnd after collecting cdbdisp results */
 	uint64		es_processed;	/* # of tuples processed */
 	Oid			es_lastoid;		/* oid of row inserted */
@@ -255,10 +255,10 @@ typedef struct QueryDesc
 
 	/* CDB: EXPLAIN ANALYZE statistics */
 	struct CdbExplain_ShowStatCtx  *showstatctx;
-	
+
 	/* Gpmon */
 	gpmon_packet_t *gpmon_pkt;
-	
+
 	/* This is always set NULL by the core system, but plugins can change it */
 	struct Instrumentation *totaltime;	/* total time spent in ExecutorRun */
 

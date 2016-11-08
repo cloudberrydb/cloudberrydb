@@ -1462,7 +1462,7 @@ getLockingClause(ParseState *pstate, char *refname)
 				ListCell	*l2;
 				foreach(l2, lc->lockedRels)
 				{
-					char	*rname = strVal(lfirst(l2));
+					char	   *rname = strVal(lfirst(l2));
 
 					if (strcmp(refname, rname) == 0)
 						return lc;         /* refname matched */

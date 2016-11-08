@@ -8,9 +8,11 @@
  * And both modules depend on utils/mmgr/portalmem.c, which controls
  * storage management for portals (but doesn't run any queries in them).
  *
+ *
  * Portions Copyright (c) 2006-2008, Greenplum inc
  * Portions Copyright (c) 1996-2008, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
+ *
  *
  * IDENTIFICATION
  *	  $PostgreSQL: pgsql/src/backend/commands/portalcmds.c,v 1.69.2.2 2008/12/01 17:06:27 tgl Exp $
@@ -453,7 +455,6 @@ PersistHoldablePortal(Portal portal)
 		ereport(ERROR,
 				(errcode(ERRCODE_OBJECT_NOT_IN_PREREQUISITE_STATE),
 				 errmsg("portal \"%s\" cannot be run", portal->name)));
-
 	portal->status = PORTAL_ACTIVE;
 
 	/*

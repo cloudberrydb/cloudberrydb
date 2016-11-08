@@ -34,7 +34,6 @@
  */
 #include "postgres.h"
 
-#include "access/genam.h"
 #include "access/heapam.h"
 #include "catalog/dependency.h"
 #include "catalog/indexing.h"

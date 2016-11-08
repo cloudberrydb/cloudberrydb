@@ -756,9 +756,9 @@ typedef struct NestLoop
 typedef struct MergeJoin
 {
 	Join		join;
-	List	   *mergeclauses;		/* mergeclauses as expression trees */
+	List	   *mergeclauses;	/* mergeclauses as expression trees */
 	/* these are arrays, but have the same length as the mergeclauses list: */
-	Oid		   *mergeFamilies;		/* per-clause OIDs of btree opfamilies */
+	Oid		   *mergeFamilies;	/* per-clause OIDs of btree opfamilies */
 	int		   *mergeStrategies;	/* per-clause ordering (ASC or DESC) */
 	bool	   *mergeNullsFirst;	/* per-clause nulls ordering */
 	bool		unique_outer; /*CDB-OLAP true => outer is unique in merge key */

@@ -6390,7 +6390,7 @@ BackendStartup(Port *port)
 	DLAddHead(BackendList, &bn->elem);
 #ifdef EXEC_BACKEND
 	if (!bn->dead_end)
-	    ShmemBackendArrayAdd(bn);
+		ShmemBackendArrayAdd(bn);
 #endif
 
 	return STATUS_OK;

@@ -632,11 +632,9 @@ RenameLanguage(const char *oldname, const char *newname)
 	if (SearchSysCacheExists(LANGNAME,
 							 CStringGetDatum(newname),
 							 0, 0, 0))
-	{
 		ereport(ERROR,
 				(errcode(ERRCODE_DUPLICATE_OBJECT),
 				 errmsg("language \"%s\" already exists", newname)));
-	}
 
 	/* must be owner of PL */
 	if (!pg_language_ownercheck(HeapTupleGetOid(tup), GetUserId()))
@@ -675,9 +673,9 @@ AlterLanguageOwner(const char *name, Oid newOwnerId)
 				 errmsg("language \"%s\" does not exist", name)));
 
 	AlterLanguageOwner_internal(tup, rel, newOwnerId);
-	
+
 	ReleaseSysCache(tup);
-	
+
 	heap_close(rel, RowExclusiveLock);
 
 }

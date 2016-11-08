@@ -465,7 +465,7 @@ build_subplan(PlannerInfo *root, Plan *plan, List *rtable,
 	SubPlan    *splan;
 	Bitmapset  *tmpset;
 	int			paramid;
-	
+
 	/*
 	 * Initialize the SubPlan node.  Note plan_id, plan_name, and cost fields
 	 * are set further down.
@@ -1291,6 +1291,12 @@ process_sublinks_mutator(Node *node, process_sublinks_context *context)
 
 /*
  * SS_finalize_plan - do final sublink processing for a completed Plan.
+ *
+ * This recursively computes the extParam and allParam sets for every Plan
+ * node in the given plan tree.  It also optionally attaches any previously
+ * generated InitPlans to the top plan node.  (Any InitPlans should already
+ * have been put through SS_finalize_plan.)
+ *
  * Input:
  * 	root - PlannerInfo structure that is necessary for walking the tree
  * 	rtable - list of rangetable entries to look at for relids
@@ -1360,7 +1366,7 @@ SS_finalize_plan(PlannerInfo *root, Plan *plan, bool attach_initplans)
 	{
 		Insist(!plan->initPlan);
 		plan->initPlan = root->init_plans;
-		root->init_plans = NIL;		/* make sure they're not attached twice */
+		root->init_plans = NIL; /* make sure they're not attached twice */
 
 		initExtParam = initSetParam = NULL;
 		initplan_cost = 0;
@@ -1480,10 +1486,11 @@ finalize_plan(PlannerInfo *root, Plan *plan, Bitmapset *valid_params)
 			break;
 
 		case T_SubqueryScan:
+
 			/*
 			 * In a SubqueryScan, SS_finalize_plan has already been run on the
 			 * subplan by the inner invocation of subquery_planner, so there's
-			 * no need to do it again.	Instead, just pull out the subplan's
+			 * no need to do it again.  Instead, just pull out the subplan's
 			 * extParams list, which represents the params it needs from my
 			 * level and higher levels.
 			 */
@@ -1610,7 +1617,6 @@ finalize_plan(PlannerInfo *root, Plan *plan, Bitmapset *valid_params)
 			break;
 
 		default:
-            Assert(false);
 			elog(ERROR, "unrecognized node type: %d",
 				 (int) nodeTag(plan));
 	}
@@ -1750,12 +1756,12 @@ SS_make_initplan_from_plan(PlannerInfo *root, Plan *plan,
 	 * be cleaner if we did extParam/allParam processing in setrefs.c instead
 	 * of here?  See notes for materialize_finished_plan.)
 	 */
-	
+
 	/*
 	 * Build extParam/allParam sets for plan nodes.
 	 */
 	SS_finalize_plan(root, plan, false);
-	
+
 	/*
 	 * Add the subplan and its rtable to the global lists.
 	 */

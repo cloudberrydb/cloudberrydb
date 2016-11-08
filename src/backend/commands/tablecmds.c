@@ -455,7 +455,7 @@ DefineRelation(CreateStmt *stmt, char relkind, char relstorage, bool dispatch)
 	}
 
 	/*
-	 * Select tablespace to use.  If not specified, use default_tablespace
+	 * Select tablespace to use.  If not specified, use default tablespace
 	 * (which may in turn default to database's default).
 	 *
 	 * Note: This code duplicates code in indexcmds.c
@@ -542,10 +542,11 @@ DefineRelation(CreateStmt *stmt, char relkind, char relstorage, bool dispatch)
 
 	/*
 	 * Create a relation descriptor from the relation schema and create the
-	 * relation.  Inherited (pre-cooked) defaults and constraints will not be
+	 * relation.
+	 *
+	 * Inherited (pre-cooked) defaults and constraints will not be
 	 * included into the new relation in heap_create_with_catalog. Instead, we
-	 * add them along with raw defaults and constraints, so that we can specify
-	 * pg_attrdef and pg_constraint oid to use on segments.
+	 * add them along with raw defaults and constraints.
 	 */
 	descriptor = BuildDescForRelation(stmt->tableElts);
 
@@ -656,12 +657,13 @@ DefineRelation(CreateStmt *stmt, char relkind, char relstorage, bool dispatch)
 	CommandCounterIncrement();
 
 	/*
-	 * Open the new relation and acquire exclusive lock on it, unless we're
-	 * doing partition.
+	 * Open the new relation and acquire exclusive lock on it.  This isn't
+	 * really necessary for locking out other backends (since they can't see
+	 * the new rel anyway until we commit), but it keeps the lock manager from
+	 * complaining about deadlock risks.
 	 *
-	 * This isn't even necessary in the case of normal relations since other
-	 * backends can't see the new rel anyway until we commit), but it keeps
-	 * the lock manager from complaining about deadlock risks.
+	 * GPDB: Don't lock it if we're creating a partition, however. Creating a
+	 * heavily-partitioned table would otherwise acquire a lot of locks.
 	 */
 	if (stmt->is_part_child)
 		rel = relation_open(relationId, NoLock);
@@ -679,13 +681,13 @@ DefineRelation(CreateStmt *stmt, char relkind, char relstorage, bool dispatch)
 	rel->rd_createDebugPersistentSerialNum = persistentSerialNum;
 
 	/*
-	 * Now add any specified column default values and CHECK constraints
+	 * Now add any newly specified column default values and CHECK constraints
 	 * to the new relation.  These are passed to us in the form of raw or cooked
-	 * parsetrees; we need to transform them if they are raw to executable
-	 * expression trees before they can be added. The most convenient way to do
-	 * that is to apply the parser's transformExpr routine, but transformExpr
-	 * doesn't work unless we have a pre-existing relation. So, the
-	 * transformation has to be postponed to this final step of CREATE TABLE.
+	 * parsetrees; we need to transform them if they are raw to executable expression
+	 * trees before they can be added. The most convenient way to do that is to
+	 * apply the parser's transformExpr routine, but transformExpr doesn't
+	 * work unless we have a pre-existing relation. So, the transformation has
+	 * to be postponed to this final step of CREATE TABLE.
 	 *
 	 * First, scan schema to find new column defaults.
 	 */
@@ -999,7 +1001,6 @@ RelationToRemoveIsTemp(const RangeVar *relation, DropBehavior behavior)
 	return isTemp;
 }
 
-
 /*
  * ExecuteTruncate
  *		Executes a TRUNCATE command.
@@ -1172,8 +1173,8 @@ ExecuteTruncate(TruncateStmt *stmt)
 		Oid			aovisimap_relid = InvalidOid;
 
 		/*
-		 * Create a new empty storage file for the relation, and assign it
-		 * as the relfilenode value. The old storage file is scheduled for
+		 * Create a new empty storage file for the relation, and assign it as
+		 * the relfilenode value.	The old storage file is scheduled for
 		 * deletion at commit.
 		 */
 		setNewRelfilenode(rel, RecentXmin);
@@ -1516,7 +1517,7 @@ MergeAttributes(List *schema, List *supers, bool istemp, bool isPartitioned,
 			 * Ignore dropped columns in the parent.
 			 */
 			if (attribute->attisdropped)
-				continue;
+				continue;		/* leave newattno entry as zero */
 
 			/*
 			 * Does it conflict with some previously inherited column?
@@ -1828,6 +1829,7 @@ add_nonduplicate_cooked_constraint(Constraint *cdef, List *stmtConstraints)
 	}
 	return true;
 }
+
 
 /*
  * StoreCatalogInheritance
@@ -2672,9 +2674,7 @@ AlterTable(AlterTableStmt *stmt)
 		LockRelationOid(DependRelationId, RowExclusiveLock);
 	}
 
-	ATController(rel,
-				 stmt->cmds,
-				 interpretInhOption(stmt->relation->inhOpt));
+	ATController(rel, stmt->cmds, interpretInhOption(stmt->relation->inhOpt));
 
 	if (Gp_role == GP_ROLE_DISPATCH)
 	{
@@ -2878,6 +2878,7 @@ ATPrepCmd(List **wqueue, Relation rel, AlterTableCmd *cmd,
 			pass = AT_PASS_ADD_COL;
 			break;
 		case AT_ColumnDefault:	/* ALTER COLUMN DEFAULT */
+
 			/*
 			 * We allow defaults on views so that INSERT into a view can have
 			 * default-ish behavior.  This works because the rewriter
@@ -5575,6 +5576,7 @@ ATOneLevelRecursion(List **wqueue, Relation rel,
 }
 #endif
 
+
 /*
  * find_composite_type_dependencies
  *
@@ -6960,6 +6962,9 @@ ATExecAddIndex(AlteredTableInfo *tab, Relation rel,
 
 }
 
+/*
+ * ALTER TABLE ADD CONSTRAINT
+ */
 
 static void
 ATExecAddConstraint(AlteredTableInfo *tab, Relation rel, Node *newConstraint, bool recurse)
@@ -6992,6 +6997,7 @@ ATExecAddConstraint(AlteredTableInfo *tab, Relation rel, Node *newConstraint, bo
 		case T_FkConstraint:
 			{
 				FkConstraint *fkconstraint = (FkConstraint *) newConstraint;
+
 				/*
 				 * Assign or validate constraint name
 				 */
@@ -7615,7 +7621,8 @@ transformFkeyCheckAttrs(Relation pkrel,
 
 		/*
 		 * Must have the right number of columns; must be unique and not a
-		 * partial index; forget it if there are any expressions, too
+		 * partial index; forget it if there are any expressions, too. Invalid
+		 * indexes are out as well.
 		 */
 		if (indexStruct->indnatts == numattrs &&
 			indexStruct->indisunique &&
@@ -8095,6 +8102,7 @@ ATPrepAlterColumnType(List **wqueue,
 	if (cmd->transform)
 	{
 		transform = transformExpr(pstate, cmd->transform);
+
 		/* It can't return a set */
 		if (expression_returns_set(transform))
 			ereport(ERROR,
@@ -8336,8 +8344,10 @@ ATExecAlterColumnType(AlteredTableInfo *tab, Relation rel,
 						if (!list_member_oid(tab->changedIndexOids, foundObject.objectId))
 						{
 							char *indexdefstring = pg_get_indexdef_string(foundObject.objectId);
-							tab->changedIndexOids = lappend_oid(tab->changedIndexOids, foundObject.objectId);
-							tab->changedIndexDefs = lappend(tab->changedIndexDefs,indexdefstring);
+							tab->changedIndexOids = lappend_oid(tab->changedIndexOids,
+													   foundObject.objectId);
+							tab->changedIndexDefs = lappend(tab->changedIndexDefs,
+															indexdefstring);
 
 							if (indexdefstring != NULL &&
 								strstr(indexdefstring," UNIQUE ") != 0 &&
@@ -10615,13 +10625,6 @@ decompile_conbin(HeapTuple contup, TupleDesc tupdesc)
 							   ObjectIdGetDatum(con->conrelid));
 	return DatumGetCString(DirectFunctionCall1(textout, expr));
 }
-/*
-	toast_idxid = index_create(toast_relid, toast_idxname, newIndexOid,
-							   indexInfo,
-							   BTREE_AM_OID,
-							   rel->rd_rel->reltablespace,
-							   classObjectId,
-							   true, false, true, false);*/
 
 /*
  * Check columns in child table match up with columns in parent, and increment

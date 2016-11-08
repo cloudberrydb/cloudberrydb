@@ -79,8 +79,8 @@ typedef struct
 	void *tuplesort;	/* for sorting the index TIDs */
 	/* statistics (for debug purposes only): */
 	double		htups,
-			itups,
-			tups_inserted;
+				itups,
+				tups_inserted;
 } v_i_state;
 
 /* non-export function prototypes */
@@ -97,7 +97,7 @@ static void UpdateIndexRelation(Oid indexoid, Oid heapoid,
 					bool primary,
 					bool isvalid);
 static void index_update_stats(Relation rel, bool hasindex, bool isprimary,
-							   Oid reltoastidxid, double reltuples);
+				   Oid reltoastidxid, double reltuples);
 static bool validate_index_callback(ItemPointer itemptr, void *opaque);
 static void validate_index_heapscan(Relation heapRelation,
 						Relation indexRelation,
@@ -235,8 +235,8 @@ ConstructTupleDescriptor(Relation heapRelation,
 			keyType = exprType(indexkey);
 
 			tuple = SearchSysCache(TYPEOID,
-								ObjectIdGetDatum(keyType),
-								0, 0, 0);
+								   ObjectIdGetDatum(keyType),
+								   0, 0, 0);
 			if (!HeapTupleIsValid(tuple))
 				elog(ERROR, "cache lookup failed for type %u", keyType);
 			typeTup = (Form_pg_type) GETSTRUCT(tuple);
@@ -500,7 +500,6 @@ UpdateIndexRelation(Oid indexoid,
  * reloptions: AM-specific options
  * isprimary: index is a PRIMARY KEY
  * isconstraint: index is owned by a PRIMARY KEY or UNIQUE constraint
- * constrOid: constraint OID to use if isconstraint is true
  * allow_system_table_mods: allow table to be a system catalog
  * skip_build: true to skip the index_build() step for the moment; caller
  *		must do it later (typically via reindex_index())
@@ -585,10 +584,9 @@ index_create(Oid heapRelationId,
 
 	/*
 	 * We cannot allow indexing a shared relation after initdb (because
-	 * there's no way to make the entry in other databases' pg_class),
-	 * except during upgrade.
+	 * there's no way to make the entry in other databases' pg_class).
 	 */
-	if (shared_relation &&  !IsBootstrapProcessingMode())
+	if (shared_relation && !IsBootstrapProcessingMode())
 		ereport(ERROR,
 				(errcode(ERRCODE_OBJECT_NOT_IN_PREREQUISITE_STATE),
 				 errmsg("shared indexes cannot be created after initdb")));
@@ -833,27 +831,27 @@ index_create(Oid heapRelationId,
 				elog(ERROR, "constraints cannot have index expressions");
 
 			conOid = CreateConstraintEntry(constraintName,
-											   namespaceId,
-											   constraintType,
-											   false,		/* isDeferrable */
-											   false,		/* isDeferred */
-											   heapRelationId,
-											   indexInfo->ii_KeyAttrNumbers,
-											   indexInfo->ii_NumIndexAttrs,
-											   InvalidOid,	/* no domain */
-											   InvalidOid,	/* no foreign key */
-											   NULL,
-											   NULL,
-											   NULL,
-											   NULL,
-											   0,
-											   ' ',
-											   ' ',
-											   ' ',
-											   InvalidOid,	/* no associated index */
-											   NULL,		/* no check constraint */
-											   NULL,
-											   NULL);
+										   namespaceId,
+										   constraintType,
+										   false,		/* isDeferrable */
+										   false,		/* isDeferred */
+										   heapRelationId,
+										   indexInfo->ii_KeyAttrNumbers,
+										   indexInfo->ii_NumIndexAttrs,
+										   InvalidOid,	/* no domain */
+										   InvalidOid,	/* no foreign key */
+										   NULL,
+										   NULL,
+										   NULL,
+										   NULL,
+										   0,
+										   ' ',
+										   ' ',
+										   ' ',
+										   InvalidOid,	/* no associated index */
+										   NULL,		/* no check constraint */
+										   NULL,
+										   NULL);
 
 			referenced.classId = ConstraintRelationId;
 			referenced.objectId = conOid;
@@ -1130,7 +1128,7 @@ index_drop(Oid indexId)
  * just once per command, and then use it for (potentially) many tuples.
  * ----------------
  */
-struct IndexInfo *
+IndexInfo *
 BuildIndexInfo(Relation index)
 {
 	IndexInfo  *ii = makeNode(IndexInfo);
@@ -1731,6 +1729,7 @@ index_build(Relation heapRelation,
 	/* Make the updated versions visible */
 	CommandCounterIncrement();
 }
+
 
 /*
  * IndexBuildScan - scan the heap, or the append-only row, or the append-only
@@ -3272,12 +3271,11 @@ reindex_relation(Oid relid,
 	foreach(indexId, indexIds)
 	{
 		Oid			indexOid = lfirst_oid(indexId);
-		Oid			newrelfilenode;
 
 		if (is_pg_class)
 			RelationSetIndexList(rel, doneIndexes, InvalidOid);
 
-		newrelfilenode = reindex_index(indexOid);
+		reindex_index(indexOid);
 
 		CommandCounterIncrement();
 

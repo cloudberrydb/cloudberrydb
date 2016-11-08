@@ -198,7 +198,6 @@ DefineVirtualRelation(const RangeVar *relation, List *tlist, bool replace)
 	}
 	else
 	{
-		Oid newviewOid;
 		/*
 		 * now set the parameters for keys/inheritance etc. All of these are
 		 * uninteresting for views...
@@ -219,8 +218,7 @@ DefineVirtualRelation(const RangeVar *relation, List *tlist, bool replace)
 		 * existing view, so we don't need more code to complain if "replace"
 		 * is false).
 		 */
-		newviewOid =  DefineRelation(createStmt, RELKIND_VIEW, RELSTORAGE_VIRTUAL, false);
-		return newviewOid;
+		return DefineRelation(createStmt, RELKIND_VIEW, RELSTORAGE_VIRTUAL, false);
 	}
 }
 

@@ -264,11 +264,7 @@ cluster(ClusterStmt *stmt, bool isTopLevel)
 
 		/* Clean up working storage */
 		MemoryContextDelete(cluster_context);
-
-
 	}
-
-
 }
 
 /*
@@ -707,7 +703,7 @@ make_new_heap(Oid OIDOldHeap, const char *NewName, Oid NewTableSpace,
 {
 	TupleDesc	OldHeapDesc,
 				tupdesc;
-	Oid			OIDNewHeap = InvalidOid;
+	Oid			OIDNewHeap;
 	Relation	OldHeap;
 	HeapTuple	tuple;
 	Datum		reloptions;
@@ -741,7 +737,7 @@ make_new_heap(Oid OIDOldHeap, const char *NewName, Oid NewTableSpace,
 	OIDNewHeap = heap_create_with_catalog(NewName,
 										  RelationGetNamespace(OldHeap),
 										  NewTableSpace,
-										  OIDNewHeap,
+										  InvalidOid,
 										  OldHeap->rd_rel->relowner,
 										  tupdesc,
 										  OldHeap->rd_rel->relam,
@@ -1072,7 +1068,7 @@ changeDependencyLinks(Oid baseOid1, Oid baseOid2, Oid oid1, Oid oid2,
  * which is the correct value.
  *
  * GPDB: also swap aoseg, aoblkdir links.
-*/
+ */
 void
 swap_relation_files(Oid r1, Oid r2, TransactionId frozenXid, bool swap_stats)
 {
@@ -1086,9 +1082,7 @@ swap_relation_files(Oid r1, Oid r2, TransactionId frozenXid, bool swap_stats)
 	CatalogIndexState indstate;
 	bool		isAO1, isAO2;
 
-	/* 
-	 * We need writable copies of both pg_class tuples.
-	 */
+	/* We need writable copies of both pg_class tuples. */
 	relRelation = heap_open(RelationRelationId, RowExclusiveLock);
 
 	reltup1 = SearchSysCacheCopy(RELOID,

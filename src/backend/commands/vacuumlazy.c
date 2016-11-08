@@ -158,6 +158,7 @@ static void lazy_update_fsm(Relation onerel, LVRelStats *vacrelstats);
 static int	vac_cmp_itemptr(const void *left, const void *right);
 static int	vac_cmp_page_spaces(const void *left, const void *right);
 
+
 /*
  *	lazy_vacuum_rel() -- perform LAZY VACUUM for one heap relation
  *

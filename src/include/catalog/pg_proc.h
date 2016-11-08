@@ -42,14 +42,14 @@ CATALOG(pg_proc,1255) BKI_BOOTSTRAP
 	Oid			prolang;		/* OID of pg_language entry */
 	float4		procost;		/* estimated execution cost */
 	float4		prorows;		/* estimated # of rows out (if proretset) */
-	Oid			provariadic;	/* pg_type.oid of variadic argument */
+	Oid			provariadic;	/* element type of variadic array, or 0 */
 	bool		proisagg;		/* is it an aggregate? */
 	bool		prosecdef;		/* security definer */
 	bool		proisstrict;	/* strict with respect to NULLs? */
 	bool		proretset;		/* returns a set? */
 	char		provolatile;	/* see PROVOLATILE_ categories below */
 	int2		pronargs;		/* number of arguments */
-	int2        pronargdefaults;        /* number of arguments with defaults */
+	int2		pronargdefaults;	/* number of arguments with defaults */
 	Oid			prorettype;		/* OID of result type */
 	bool		proiswin;		/* is it a window function? */
 
@@ -58,7 +58,7 @@ CATALOG(pg_proc,1255) BKI_BOOTSTRAP
 	Oid			proallargtypes[1];		/* all param types (NULL if IN only) */
 	char		proargmodes[1]; /* parameter modes (NULL if IN only) */
 	text		proargnames[1]; /* parameter names (NULL if no names) */
-	text        proargdefaults; /* list of expression trees for argument
+	text		proargdefaults; /* list of expression trees for argument
 								 * defaults (NULL if none) */
 	text		prosrc;			/* procedure source text */
 	bytea		probin;			/* secondary procedure definition field */

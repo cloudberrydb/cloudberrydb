@@ -257,7 +257,7 @@ OperatorShellMake(const char *operatorName,
 	 */
 	pg_operator_desc = heap_open(OperatorRelationId, RowExclusiveLock);
 	tupDesc = pg_operator_desc->rd_att;
-	
+
 	/*
 	 * create a new operator tuple
 	 */

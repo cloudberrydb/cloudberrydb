@@ -541,7 +541,7 @@ RemoveConstraintById(Oid conId)
 				elog(ERROR, "relation \"%s\" has relchecks = 0",
 					 RelationGetRelationName(rel));
 			classForm->relchecks--;
-			
+
 			simple_heap_update(pgrel, &relTup->t_self, relTup);
 
 			CatalogUpdateIndexes(pgrel, relTup);
