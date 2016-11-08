@@ -5865,25 +5865,16 @@ ATExecAddColumn(AlteredTableInfo *tab, Relation rel,
 	/*
 	 * this test is deliberately not attisdropped-aware, since if one tries to
 	 * add a column matching a dropped column name, it's gonna fail anyway.
-	 *
-	 * For GPDB upgrade, we know that some columns don't exist, so don't go to
-	 * the waste of looking them up. This could be a major cost if we're adding
-	 * 20,000 columns for AO, for example.
 	 */
-	if (!(!IsUnderPostmaster && (rel->rd_rel->relkind == RELKIND_AOSEGMENTS ||
-								 rel->rd_rel->relkind == RELKIND_AOBLOCKDIR ||
-								 rel->rd_rel->relkind == RELKIND_AOVISIMAP)))
+	if (SearchSysCacheExists(ATTNAME,
+							 ObjectIdGetDatum(myrelid),
+							 PointerGetDatum(colDef->colname),
+							 0, 0))
 	{
-		if (SearchSysCacheExists(ATTNAME,
-								 ObjectIdGetDatum(myrelid),
-								 PointerGetDatum(colDef->colname),
-								 0, 0))
-		{
-			ereport(ERROR,
-					(errcode(ERRCODE_DUPLICATE_COLUMN),
-					 errmsg("column \"%s\" of relation \"%s\" already exists",
-							colDef->colname, RelationGetRelationName(rel))));
-		}
+		ereport(ERROR,
+				(errcode(ERRCODE_DUPLICATE_COLUMN),
+				 errmsg("column \"%s\" of relation \"%s\" already exists",
+						colDef->colname, RelationGetRelationName(rel))));
 	}
 
 	minattnum = ((Form_pg_class) GETSTRUCT(reltup))->relnatts;
