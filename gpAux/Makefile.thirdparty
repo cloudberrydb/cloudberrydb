@@ -24,6 +24,7 @@ endif
 aix5_ppc_64_BLD_BITS=64
 aix5_ppc_32_BLD_BITS=32
 rhel6_x86_64_BLD_BITS=64
+rhel7_x86_64_BLD_BITS=64
 rhel5_x86_64_BLD_BITS=64
 rhel5_x86_32_BLD_BITS=32
 sol10_sparc_BLD_BITS=64

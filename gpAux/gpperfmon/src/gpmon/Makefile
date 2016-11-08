@@ -17,7 +17,7 @@ ifneq ($(CUSTOM_COPT),)
 	COPT=$(CUSTOM_COPT)
 endif
 
-ifneq "$(findstring $(BLD_ARCH),rhel5_x86_64 rhel6_x86_64)" ""
+ifneq "$(findstring $(BLD_ARCH),rhel5_x86_64 rhel6_x86_64 rhel7_x86_64)" ""
 GPMMON_SNMP_OBJ=gpmon_snmp.o
 CONNECTEMCLIB += -lemcconnect
 endif

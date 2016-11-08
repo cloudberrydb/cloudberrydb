@@ -30,6 +30,7 @@ function prep_env_for_centos() {
       export JAVA_HOME=/usr/lib/jvm/java-1.7.0-openjdk-1.7.0.111-2.6.7.2.el7_2.x86_64
       ln -sf /usr/bin/xsubpp /usr/share/perl5/ExtUtils/xsubpp
       source /opt/gcc_env.sh
+      yum install -y ant-junit
       ;;
 
     *)

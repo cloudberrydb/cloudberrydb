@@ -75,6 +75,10 @@ ifeq "$(BLD_ARCH)" "rhel6_x86_64"
 LIBSTDC++_LIBDIR = $(LIBSTDC++_BASEDIR)/lib64
 endif
 
+ifeq "$(BLD_ARCH)" "rhel7_x86_64"
+LIBSTDC++_LIBDIR = $(LIBSTDC++_BASEDIR)/lib64
+endif
+
 ifeq "$(BLD_ARCH)" "suse10_x86_64"
 LIBSTDC++_LIBDIR = $(LIBSTDC++_BASEDIR)/lib64
 endif

@@ -120,7 +120,7 @@ ISCONFIG=$(GPPGDIR)/GNUmakefile
 ## On these platforms, we do the full build including the server. On other
 ## platforms, we do a client-only build.
 ##
-SERVER_PLATFORMS=rhel5_x86_32 rhel5_x86_64 rhel6_x86_64 suse10_x86_64 suse11_x86_64 linux_x86_64 osx106_x86
+SERVER_PLATFORMS=rhel5_x86_32 rhel5_x86_64 rhel7_x86_64 rhel6_x86_64 suse10_x86_64 suse11_x86_64 linux_x86_64 osx106_x86
 
 #---------------------------------------------------------------------
 # GPPKG
@@ -130,7 +130,7 @@ SERVER_PLATFORMS=rhel5_x86_32 rhel5_x86_64 rhel6_x86_64 suse10_x86_64 suse11_x86
 ## Support gppkg platforms
 ##
 
-GPPKG_PLATFORMS=rhel5_x86_64 rhel6_x86_64 suse10_x86_64 suse11_x86_64
+GPPKG_PLATFORMS=rhel5_x86_64 rhel7_x86_64 rhel6_x86_64 suse10_x86_64 suse11_x86_64
 
 #---------------------------------------------------------------------
 # Compiler options
@@ -175,6 +175,7 @@ sol10_x86_64_CONFIGFLAGS=--enable-snmp --with-libxml $(APR_CONFIG)
 rhel5_x86_32_CONFIGFLAGS=--host=i686-pc-linux-gnu --enable-snmp --enable-ddboost --with-gssapi --enable-netbackup --with-libxml $(APR_CONFIG)
 rhel5_x86_64_CONFIGFLAGS=--enable-snmp --enable-connectemc --enable-ddboost --with-gssapi --enable-netbackup ${ORCA_CONFIG} ${CODEGEN_CONFIG} --with-libxml $(APR_CONFIG)
 rhel6_x86_64_CONFIGFLAGS=--enable-snmp --enable-connectemc --enable-ddboost --with-gssapi --enable-netbackup ${ORCA_CONFIG} ${CODEGEN_CONFIG} --with-libxml $(APR_CONFIG)
+rhel7_x86_64_CONFIGFLAGS=--enable-snmp --enable-connectemc --enable-ddboost --with-gssapi --enable-netbackup ${ORCA_CONFIG} ${CODEGEN_CONFIG} --with-libxml $(APR_CONFIG)
 suse10_x86_64_CONFIGFLAGS=--enable-snmp --enable-ddboost ${ORCA_CONFIG} ${CODEGEN_CONFIG} --with-libxml $(APR_CONFIG)
 suse11_x86_64_CONFIGFLAGS=--enable-snmp --enable-ddboost ${ORCA_CONFIG} ${CODEGEN_CONFIG} --with-libxml $(APR_CONFIG)
 linux_x86_64_CONFIGFLAGS=--enable-snmp ${ORCA_CONFIG} ${CODEGEN_CONFIG} --with-libxml $(APR_CONFIG)
@@ -688,6 +689,7 @@ sol10_sparc_64_MPP_ARCH=SOL10-sparc_64
 sol10_sparc_32_MPP_ARCH=SOL10-sparc_32
 rhel5_x86_64_MPP_ARCH=RHEL5-x86_64
 rhel6_x86_64_MPP_ARCH=RHEL6-x86_64
+rhel7_x86_64_MPP_ARCH=RHEL7-x86_64
 osx106_x86_MPP_ARCH=OSX-i386
 ifneq "$($(BLD_ARCH)_MPP_ARCH)" ""
 export MPP_ARCH=$($(BLD_ARCH)_MPP_ARCH)
@@ -1120,7 +1122,7 @@ libcopy=(cd $(1) && $(TAR) cf - $(2)) | (cd $(3) && $(TAR) xvf -)$(check_pipe_fo
 
 copy-nbu-libs:
 	#Copy NetBackup libs
-ifeq ($(BLD_ARCH),$(filter $(BLD_ARCH),rhel6_x86_64 rhel5_x86_64))
+ifeq ($(BLD_ARCH),$(filter $(BLD_ARCH),rhel7_x86_64 rhel6_x86_64 rhel5_x86_64))
 	rm -f $(INSTLOC)/lib/libxbsa64.so;
 	rm -f $(INSTLOC)/lib/libnbclientcST.so;
 	rm -f $(INSTLOC)/lib/libnbbasecST.so;
@@ -1354,7 +1356,7 @@ gccVersionCheck :
 
 ## ----------------------------------------------------------------------
 
-ifeq ($(BLD_ARCH),$(filter $(BLD_ARCH),rhel6_x86_64))
+ifeq ($(BLD_ARCH),$(filter $(BLD_ARCH),rhel7_x86_64 rhel6_x86_64))
 GPPKG_SOURCES = \
 	../src/pl/plperl \
 	$(NULL)
@@ -1418,7 +1420,7 @@ else
 endif
 endif
 
-ifeq ($(BLD_ARCH),$(filter $(BLD_ARCH),rhel6_x86_64 suse11_x86_64))
+ifeq ($(BLD_ARCH),$(filter $(BLD_ARCH),rhel7_x86_64 rhel6_x86_64 suse11_x86_64))
 GPPKG_ROOT_DIR = \
 	../src/pl/plperl \
 	$(NULL)
