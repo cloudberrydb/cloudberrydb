@@ -658,8 +658,8 @@ typedef struct
 	char		my_exec_path[MAXPGPATH];
 	char		pkglib_path[MAXPGPATH];
 	char		ExtraOptions[MAXPGPATH];
-	char		lc_collate[NAMEDATALEN];
-	char		lc_ctype[NAMEDATALEN];
+	char		lc_collate[LOCALE_NAME_BUFLEN];
+	char		lc_ctype[LOCALE_NAME_BUFLEN];
 }	BackendParameters;
 
 static void read_backend_variables(char *id, Port *port);
