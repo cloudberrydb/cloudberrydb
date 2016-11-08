@@ -3176,7 +3176,7 @@ preprocess_range_spec(partValidationState *vstate)
 
 
 						newrtypeId = ((Form_pg_operator) GETSTRUCT(optup))->oprright;
-						ReleaseOperator(optup);
+						ReleaseSysCache(optup);
 
 						if (rtypeId != newrtypeId)
 						{

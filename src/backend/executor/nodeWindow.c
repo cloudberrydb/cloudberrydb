@@ -5349,7 +5349,7 @@ init_bound_frame_edge_expr(WindowFrameEdge * edge, TupleDesc desc,
 							 false, varexpr,
 							 (Expr *)edge->val);
 		((OpExpr *) expr)->opfuncid = opr->oprcode;
-		ReleaseOperator(tup2);
+		ReleaseSysCache(tup2);
 	}
 	else
 	{

@@ -7916,7 +7916,7 @@ get_opfuncid_by_opname(List *opname, Oid lhsid, Oid rhsid)
 
 	opfuncid = ((Form_pg_operator)GETSTRUCT(op))->oprcode;
 
-	ReleaseOperator(op);
+	ReleaseSysCache(op);
 	return opfuncid;
 }
 

@@ -41,6 +41,7 @@
 #include "rewrite/rewriteManip.h"
 #include "utils/guc.h"
 #include "utils/lsyscache.h"
+#include "utils/syscache.h"
 
 #include "cdb/cdbvars.h"
 #include "cdb/cdbpartition.h"
@@ -260,7 +261,7 @@ transformWindowFrameEdge(ParseState *pstate, WindowFrameEdge *e,
 
 			oprresult = ((Form_pg_operator)GETSTRUCT(tup))->oprresult;
 			newrtype = ((Form_pg_operator)GETSTRUCT(tup))->oprright;
-			ReleaseOperator(tup);
+			ReleaseSysCache(tup);
 			list_free_deep(oprname);
 
 			if (rtype != newrtype)
@@ -339,7 +340,7 @@ transformWindowFrameEdge(ParseState *pstate, WindowFrameEdge *e,
 								 errmsg("RANGE parameter cannot be negative"),
 								 parser_errposition(pstate, con->location)));
 
-					ReleaseOperator(tup);
+					ReleaseSysCache(tup);
 					ReleaseSysCache(typ);
 				}
 			}

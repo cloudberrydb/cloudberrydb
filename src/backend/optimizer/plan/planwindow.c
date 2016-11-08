@@ -1312,7 +1312,7 @@ static bool validateBound(Node *node, bool is_rows)
 				(errcode(ERROR_INVALID_WINDOW_FRAME_PARAMETER),
 				 errmsg("%s parameter cannot be negative", is_rows ? "ROWS" : "RANGE")));
 	
-	ReleaseOperator(tup);
+	ReleaseSysCache(tup);
 	ReleaseSysCache(typ);
 	
 	return TRUE;

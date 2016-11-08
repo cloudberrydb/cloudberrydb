@@ -22,6 +22,8 @@
 #include "parser/parse_expr.h"	/* exprType() */
 #include "parser/parse_oper.h"
 
+#include "utils/syscache.h"
+
 #include "cdb/cdbdef.h"         /* CdbSwap() */
 #include "cdb/cdbllize.h"       /* makeFlow() */
 #include "cdb/cdbhash.h"        /* isGreenplumDbHashable() */
@@ -1222,7 +1224,7 @@ cdbpath_dedup_fixup_unique(UniquePath *uniquePath, CdbpathDedupFixupContext *ctx
 
 			optup = equality_oper(exprType((Node *) var), false);
 			eqop = oprid(optup);
-			ReleaseOperator(optup);
+			ReleaseSysCache(optup);
 
 			other_operators = lappend_oid(other_operators, eqop);
 		}

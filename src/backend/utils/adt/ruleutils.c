@@ -6622,7 +6622,7 @@ generate_operator_name(Oid operid, Oid arg1, Oid arg2)
 		appendStringInfoChar(&buf, ')');
 
 	if (p_result != NULL)
-		ReleaseOperator(p_result);
+		ReleaseSysCache(p_result);
 
 	ReleaseSysCache(opertup);
 

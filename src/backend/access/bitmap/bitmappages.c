@@ -215,7 +215,7 @@ _bitmap_init_buildstate(Relation index, BMBuildState *bmstate)
 		optup = equality_oper(typid, false);
 		eq_opr = oprid(optup);
 		eq_function = oprfuncid(optup);
-		ReleaseOperator(optup);
+		ReleaseSysCache(optup);
 
 		if (!get_op_hash_functions(eq_opr,
 								   &left_hash_function,

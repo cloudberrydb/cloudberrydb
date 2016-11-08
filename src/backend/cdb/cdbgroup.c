@@ -4138,7 +4138,7 @@ hash_safe_type(Oid type)
 	if (!optup)
 		return false;
 	oprcanhash = ((Form_pg_operator) GETSTRUCT(optup))->oprcanhash;
-	ReleaseOperator(optup);
+	ReleaseSysCache(optup);
 	if (!oprcanhash)
 		return false;
 
