@@ -282,7 +282,12 @@ CPhysicalLimit::PppsRequired
 	GPOS_ASSERT(0 == ulChildIndex);
 	GPOS_ASSERT(NULL != pppsRequired);
 	
-	return CPhysical::PppsRequiredPushThruUnresolvedUnary(pmp, exprhdl, pppsRequired);
+	// limit should not push predicate below it as it will generate wrong results
+	// for example, the following two queries are not equivalent.
+	// Q1: select * from (select * from foo order by a limit 1) x where x.a = 10
+	// Q2: select * from (select * from foo where a = 10 order by a limit 1) x
+
+	return CPhysical::PppsRequiredPushThruUnresolvedUnary(pmp, exprhdl, pppsRequired, CPhysical::EppcProhibited);
 }
 
 //---------------------------------------------------------------------------

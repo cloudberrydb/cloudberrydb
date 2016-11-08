@@ -934,7 +934,8 @@ CPhysical::PppsRequiredPushThruUnresolvedUnary
 	(
 	IMemoryPool *pmp,
 	CExpressionHandle &exprhdl,
-	CPartitionPropagationSpec *pppsRequired
+	CPartitionPropagationSpec *pppsRequired,
+	EPropogatePartConstraint eppcPropogate
 	)
 {
 	GPOS_ASSERT(NULL != pppsRequired);
@@ -962,7 +963,13 @@ CPhysical::PppsRequiredPushThruUnresolvedUnary
 		{
 			// push requirements to child node
 			ppimResult->AddRequiredPartPropagation(ppimReqd, ulPartIndexId, CPartIndexMap::EppraPreservePropagators);
-			(void) ppfmResult->FCopyPartFilter(pmp, ulPartIndexId, ppfmReqd);
+			if (CPhysical::EppcAllowed == eppcPropogate)
+			{
+				// for some logical operators such as limit while we push the part index map, we cannot push the constraints
+				// since they are NOT semantically equivalent. So only push the constraints when the operator asks this
+				// utility function to do so
+				(void) ppfmResult->FCopyPartFilter(pmp, ulPartIndexId, ppfmReqd);
+			}
 		}
 	}
 	

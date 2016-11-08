@@ -64,6 +64,14 @@ namespace gpopt
 				EceoSentinel
 			};
 
+			enum EPropogatePartConstraint
+			{
+				EppcAllowed,
+				EppcProhibited,
+
+				EppcSentinel
+			};
+
 		private:
 
 			//---------------------------------------------------------------------------
@@ -321,7 +329,8 @@ namespace gpopt
 				(
 				IMemoryPool *pmp,
 				CExpressionHandle &exprhdl,
-				CPartitionPropagationSpec *pppsRequired
+				CPartitionPropagationSpec *pppsRequired,
+				EPropogatePartConstraint eppcPropogate
 				);
 			
 			// pass cte requirement to the child

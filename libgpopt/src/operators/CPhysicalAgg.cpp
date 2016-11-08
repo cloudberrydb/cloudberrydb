@@ -430,7 +430,7 @@ CPhysicalAgg::PppsRequired
 	GPOS_ASSERT(0 == ulChildIndex);
 	GPOS_ASSERT(NULL != pppsRequired);
 
-	return CPhysical::PppsRequiredPushThruUnresolvedUnary(pmp, exprhdl, pppsRequired);
+	return CPhysical::PppsRequiredPushThruUnresolvedUnary(pmp, exprhdl, pppsRequired, CPhysical::EppcAllowed);
 }
 
 //---------------------------------------------------------------------------
