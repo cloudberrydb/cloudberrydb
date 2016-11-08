@@ -30,6 +30,7 @@ extern "C" {
 #include "parser/parsetree.h"
 #include "utils/inval.h"
 #include "utils/lsyscache.h"
+#include "utils/syscache.h"
 #include "utils/datum.h"
 #include "utils/array.h"
 #include "utils/builtins.h"
