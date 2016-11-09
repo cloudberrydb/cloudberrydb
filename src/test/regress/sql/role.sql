@@ -74,3 +74,26 @@ drop view t1_view;
 drop table t1;
 drop role u1;
 drop role superuser;
+
+-- Test creating user who has been renamed before.
+CREATE USER jonathan11 WITH PASSWORD 'abc1';
+CREATE USER jonathan12 WITH PASSWORD 'abc2';
+
+ALTER USER jonathan11 RENAME TO jona11;
+ALTER USER jonathan12 RENAME TO jona12;
+
+DROP USER jona11;
+DROP USER jona12;
+
+CREATE USER jonathan12 WITH PASSWORD 'abc2';
+
+ALTER USER jonathan11 RENAME TO jona11;
+ALTER USER jonathan12 RENAME TO jona12;
+
+CREATE GROUP marketing WITH USER jona11,jona12;
+
+ALTER GROUP marketing RENAME TO market;
+
+DROP GROUP market;
+DROP USER jona11;
+DROP USER jona12;
