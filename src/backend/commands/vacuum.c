@@ -194,20 +194,6 @@ typedef struct AppendOnlyIndexVacuumState
 	AppendOnlyBlockDirectoryEntry blockDirectoryEntry;
 } AppendOnlyIndexVacuumState;
 
-/*
- * Currently, vacuuming on a relation with a bitmap index is done through
- * reindex. We need to pass down OIDs to ensure that all segments use
- * the same set of OIDs. In some situations, such as vacuuming a table with
- * lots of deleted tuples and vacuum full, reindex may be called multiple
- * times. We can not really tell how many time reindex will be called
- * in advance. Here we set the maxmimal number of oids to be passed down
- * to QEs. If any more is needed, the vacuum will fail with an error.
- *
- * Note that each reindex requires 3 OIDs, so this number should be a multiply
- * of 3.
- */
-#define NUM_EXTRA_OIDS_FOR_BITMAP (3 * 10)
-
 static void
 ExecContext_Init(ExecContext ec, Relation rel)
 {
