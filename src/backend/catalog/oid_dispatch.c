@@ -76,6 +76,7 @@
 #include "postgres.h"
 
 #include "catalog/pg_amop.h"
+#include "catalog/pg_amproc.h"
 #include "catalog/pg_attrdef.h"
 #include "catalog/pg_authid.h"
 #include "catalog/pg_cast.h"
@@ -340,6 +341,7 @@ CreateKeyFromCatalogTuple(Relation catalogrel, HeapTuple tuple,
 			}
 
 		/* These tables don't need to have their OIDs synchronized. */
+		case AccessMethodProcedureRelationId:
 		case EnumRelationId:
 		case PartitionRelationId:
 		case PartitionRuleRelationId:
