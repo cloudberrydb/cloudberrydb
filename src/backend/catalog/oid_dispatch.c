@@ -78,6 +78,7 @@
 #include "catalog/pg_amop.h"
 #include "catalog/pg_attrdef.h"
 #include "catalog/pg_authid.h"
+#include "catalog/pg_cast.h"
 #include "catalog/pg_constraint.h"
 #include "catalog/pg_conversion.h"
 #include "catalog/pg_database.h"
@@ -162,6 +163,15 @@ CreateKeyFromCatalogTuple(Relation catalogrel, HeapTuple tuple,
 				Form_pg_authid rolForm = (Form_pg_authid) GETSTRUCT(tuple);
 
 				key.objname = (char *) NameStr(rolForm->rolname);
+				break;
+			}
+		case CastRelationId:
+			{
+				Form_pg_cast castForm = (Form_pg_cast) GETSTRUCT(tuple);
+
+				/* XXX: We abuse the namespaceOid field for castsource */
+				key.namespaceOid = castForm->castsource;
+				key.keyOid2 = castForm->casttarget;
 				break;
 			}
 		case ConstraintRelationId:

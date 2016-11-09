@@ -47,7 +47,7 @@ test: copy copyselect
 # ----------
 # Another group of parallel tests
 # ----------
-test: constraints create_misc create_aggregate create_operator vacuum drop_if_exists
+test: constraints create_misc create_aggregate create_operator vacuum drop_if_exists create_cast
 
 # 'inherit' test is disabled in GPDB. FIXME: why?
 #test: inherit
