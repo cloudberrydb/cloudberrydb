@@ -17,6 +17,13 @@ resources:
     username: {{docker_username}}
     password: {{docker_password}}
 
+- name: centos72-gpdb-gcc6-llvm-image
+  type: docker-image
+  source:
+    repository: pivotaldata/centos72-gpdb-gcc6-llvm-image
+    username: {{docker_username}}
+    password: {{docker_password}}
+
 - name: bin_gpdb_centos
   type: s3
   source:
@@ -135,6 +142,28 @@ jobs:
     file: gpdb_src/concourse/compile_gpdb_custom_config.yml
     image: centos67-gpdb-gcc6-llvm-image
     tags: ["worker-two"]
+
+- name: compile_gpdb_centos7
+  serial: true
+  plan:
+  - aggregate:
+    - get: gpdb_src
+      tags: ["worker-three"]
+      trigger: true
+    - get: centos72-gpdb-gcc6-llvm-image
+      tags: ["worker-three"]
+  - task: compile_gpdb
+    file: gpdb_src/concourse/compile_gpdb.yml
+    image: centos72-gpdb-gcc6-llvm-image
+    tags: ["worker-three"]
+    params:
+      IVYREPO_HOST: {{ivyrepo_host}}
+      IVYREPO_REALM: {{ivyrepo_realm}}
+      IVYREPO_USER: {{ivyrepo_user}}
+      IVYREPO_PASSWD: {{ivyrepo_passwd}}
+      TARGET_OS: centos
+      TARGET_OS_VERSION: 7
+      BLD_TARGETS: ""
 
 # Stage 2: IC Tests
 - name: icg_planner_centos6
