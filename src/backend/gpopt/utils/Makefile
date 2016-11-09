@@ -14,6 +14,6 @@ include $(BLD_TOP)/releng/releng.mk
 
 include $(top_builddir)/src/backend/gpopt/gpopt.mk
 
-OBJS = COptTasks.o CCatalogUtils.o CConstExprEvaluatorProxy.o nodeutils.o funcs.o
+OBJS = COptTasks.o CCatalogUtils.o CConstExprEvaluatorProxy.o funcs.o
 
 include $(top_srcdir)/src/backend/common.mk

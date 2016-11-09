@@ -447,10 +447,6 @@ namespace gpdxl
 			// retrieve a trigger from the relcache
 			static
 			CMDTriggerGPDB *Pmdtrigger(IMemoryPool *pmp, IMDId *pmdid);
-
-			// retrieve the id of the function with the given name
-			static
-			IMDId *PmdidFunc(IMemoryPool *pmp, const WCHAR *wszFuncName);
 			
 			// translate GPDB comparison type
 			static

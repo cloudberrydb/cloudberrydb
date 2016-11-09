@@ -23,7 +23,6 @@
 typedef struct SysScanDescData *SysScanDesc;
 typedef struct SnapshotData *Snapshot;
 typedef int LOCKMODE;
-typedef struct _FuncCandidateList *FuncCandidateList;
 struct TypeCacheEntry;
 typedef struct NumericData *Numeric;
 typedef struct HeapTupleData *HeapTuple;
@@ -204,9 +203,6 @@ namespace gpdb {
 
 	// data access property of given function
 	char CFuncDataAccess(Oid funcid);
-
-	// list of candidate functions with the given names
-	FuncCandidateList FclFuncCandidates(List *names, int nargs);
 
 	// trigger name
 	char *SzTriggerName(Oid triggerid);

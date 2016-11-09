@@ -384,7 +384,8 @@ FinalizeDirectDispatchDataForSlice(Node *node, ContentIdAssignmentData *data, bo
 
 		data->allSlices = lappend(data->allSlices, plan);
 
-		freeListAndNull(&plan->directDispatch.contentIds);
+		list_free(plan->directDispatch.contentIds);
+		plan->directDispatch.contentIds = NIL;
 
 		if ( ddcr->haveProcessedAnyCalculations)
 		{
@@ -629,7 +630,8 @@ AssignContentIdsToPlanData(Query *query, Plan *plan, PlannerInfo *root)
 		{
 			Plan *plan = (Plan *) lfirst(cell);
 			plan->directDispatch.isDirectDispatch = false;
-			freeListAndNull(&plan->directDispatch.contentIds);
+			list_free(plan->directDispatch.contentIds);
+			plan->directDispatch.contentIds = NIL;
 		}
 	}
 

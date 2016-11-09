@@ -635,22 +635,6 @@ gpdb::CFuncDataAccess
 	return '\0';
 }
 
-FuncCandidateList
-gpdb::FclFuncCandidates
-	(
-	List *plistNames,
-	int iArgs
-	)
-{
-	GP_WRAP_START;
-	{
-		/* catalog tables: pg_proc */
-		return FuncnameGetCandidates(plistNames, iArgs, false, false);
-	}
-	GP_WRAP_END;
-	return NULL;
-}
-
 bool
 gpdb::FFunctionExists
 	(
@@ -1630,20 +1614,6 @@ gpdb::FreeListDeep
 	GP_WRAP_START;
 	{
 		list_free_deep(plist);
-		return;
-	}
-	GP_WRAP_END;
-}
-
-void
-gpdb::FreeListAndNull
-	(
-	List **listPtrPtr
-	)
-{
-	GP_WRAP_START;
-	{
-		freeListAndNull(listPtrPtr);
 		return;
 	}
 	GP_WRAP_END;

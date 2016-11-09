@@ -18,7 +18,6 @@
 #include "gpopt/utils/COptTasks.h"
 #include "gpopt/relcache/CMDProviderRelcache.h"
 #include "gpopt/config/CConfigParamMapping.h"
-#include "gpopt/translate/CStateDXLToQuery.h"
 #include "gpopt/translate/CTranslatorDXLToExpr.h"
 #include "gpopt/translate/CTranslatorExprToDXL.h"
 #include "gpopt/translate/CTranslatorUtils.h"

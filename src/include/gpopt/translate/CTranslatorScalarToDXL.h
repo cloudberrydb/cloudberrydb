@@ -22,7 +22,6 @@
 #include "nodes/primnodes.h"
 
 #include "gpopt/translate/CMappingVarColId.h"
-#include "gpopt/translate/CMappingParamIdScalarId.h"
 #include "gpopt/translate/CCTEListEntry.h"
 
 #include "naucrates/dxl/operators/CDXLScalarBoolExpr.h"
@@ -49,7 +48,6 @@ struct OpExpr;
 struct Param;
 struct RelabelType;
 struct ScalarArrayOpExpr;
-struct PlannedStmt;
 
 namespace gpdxl
 {
@@ -98,13 +96,6 @@ namespace gpdxl
 
 			// is scalar being translated in query mode
 			BOOL m_fQuery;
-
-			// planned statement containing scalar expression being translated
-			// need this to access initplans
-			PlannedStmt *m_pplstmt;
-
-			// mapping from param id -> scalar id for params in subplans
-			CMappingParamIdScalarId *m_pparammapping;
 
 			// physical operator that created this translator
 			EPlStmtPhysicalOpType m_eplsphoptype;
@@ -297,9 +288,6 @@ namespace gpdxl
 				const CMappingVarColId* pmapvarcolid
 				);
 
-			// Create a DXL colid from a GPDB param
-			CDXLNode *PdxlnScIdFromParam(const Param * pparam) const;
-
 			CDXLNode *PdxlnInitPlanFromParam(const Param *pparam) const;
 
 			// create a DXL SubPlan node for a from a GPDB SubPlan
@@ -378,8 +366,6 @@ namespace gpdxl
 				CIdGenerator *pulidgtorCTE,
 				ULONG ulQueryLevel,
 				BOOL fQuery,
-				PlannedStmt *pplstmt,
-				CMappingParamIdScalarId *pmapps,
 				HMUlCTEListEntry *phmulCTEEntries,
 				DrgPdxln *pdrgpdxlnCTE
 				);

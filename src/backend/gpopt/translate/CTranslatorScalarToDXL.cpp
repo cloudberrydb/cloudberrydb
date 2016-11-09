@@ -67,8 +67,6 @@ CTranslatorScalarToDXL::CTranslatorScalarToDXL
 	CIdGenerator *pulidgtorCTE,
 	ULONG ulQueryLevel,
 	BOOL fQuery,
-	PlannedStmt *pplstmt,
-	CMappingParamIdScalarId *pmapps,
 	HMUlCTEListEntry *phmulCTEEntries,
 	DrgPdxln *pdrgpdxlnCTE
 	)
@@ -80,8 +78,6 @@ CTranslatorScalarToDXL::CTranslatorScalarToDXL
 	m_ulQueryLevel(ulQueryLevel),
 	m_fHasDistributedTables(false),
 	m_fQuery(fQuery),
-	m_pplstmt(pplstmt),
-	m_pparammapping(pmapps),
 	m_eplsphoptype(EpspotNone),
 	m_phmulCTEEntries(phmulCTEEntries),
 	m_pdrgpdxlnCTE(pdrgpdxlnCTE)
@@ -185,37 +181,6 @@ CTranslatorScalarToDXL::PdxlnScIdFromVar
 	CDXLNode *pdxln = GPOS_NEW(m_pmp) CDXLNode(m_pmp, pdxlopIdent);
 
 	return pdxln;
-}
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CTranslatorScalarToDXL::PdxlnScIdFromParam
-//
-//	@doc:
-//		Create a DXL node for a scalar ident expression from a GPDB Param expression.
-//		If no mapping can be found, return NULL
-//---------------------------------------------------------------------------
-CDXLNode *
-CTranslatorScalarToDXL::PdxlnScIdFromParam
-	(
-	const Param * pparam
-	)
-    const
-{
-	GPOS_ASSERT(IsA(pparam, Param));
-
-	if (NULL == m_pparammapping)
-	{
-		return NULL;
-	}
-
-	CDXLScalarIdent *pdxlopIdent = m_pparammapping->Pscid(pparam->paramid);
-	if (NULL == pdxlopIdent)
-	{
-		return NULL;
-	}
-
-	return GPOS_NEW(m_pmp) CDXLNode(m_pmp, pdxlopIdent);
 }
 
 //---------------------------------------------------------------------------
