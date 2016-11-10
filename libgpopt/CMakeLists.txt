@@ -895,6 +895,8 @@ add_library(gpopt
             src/base/CDatumSortedSet.cpp
             include/gpopt/base/CDistributionSpecHashedNoOp.h
             src/base/CDistributionSpecHashedNoOp.cpp
+            include/gpopt/base/CDistributionSpecStrictRandom.h
+            src/base/CDistributionSpecStrictRandom.cpp
             )
 
 target_link_libraries(gpopt

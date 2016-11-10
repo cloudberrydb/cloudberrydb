@@ -2,7 +2,7 @@
 //	Copyright (C) 2016 Pivotal Software, Inc.
 
 #include "gpopt/operators/CStrictHashedDistributions.h"
-#include "gpopt/base/CDistributionSpecRandom.h"
+#include "gpopt/base/CDistributionSpecStrictRandom.h"
 
 using namespace gpopt;
 
@@ -48,7 +48,7 @@ DrgPds(pmp)
 			// Some databases actually execute it as if it's a random redistribution.
 			// We should not generate such a plan, for clarity and our own sanity
 
-			pdshashed = GPOS_NEW(pmp) CDistributionSpecRandom();
+			pdshashed = GPOS_NEW(pmp) CDistributionSpecStrictRandom();
 			pdrgpexpr->Release();
 		}
 		Append(pdshashed);

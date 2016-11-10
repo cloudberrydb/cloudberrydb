@@ -81,7 +81,7 @@ CDistributionSpecRandom::FSatisfies
 	const CDistributionSpec *pds
 	)
 	const
-{	
+{
 	if (FMatch(pds))
 	{
 		return true;
