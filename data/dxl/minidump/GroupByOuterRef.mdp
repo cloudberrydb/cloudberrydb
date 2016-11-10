@@ -1,4 +1,19 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<!--
+create table t (a int, b int);
+create table s (i int, j int);
+
+select a, b
+from t
+where t.a in (select count(s.i) from s group by t.b)
+
+== expected to see group by outer referenced column t.b removed ==
+
+select a, b
+from t
+where t.a in (select count(s.i) from s);
+
+-->
 <dxl:DXLMessage xmlns:dxl="http://greenplum.com/dxl/2010/12/">
   <dxl:Thread Id="0">
     <dxl:OptimizerConfig>

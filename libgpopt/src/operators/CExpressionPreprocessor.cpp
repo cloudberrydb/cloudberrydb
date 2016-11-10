@@ -513,28 +513,53 @@ CExpressionPreprocessor::PexprRemoveSuperfluousOuterRefs
 
 			CLogicalGbAgg *popAgg = CLogicalGbAgg::PopConvert(pop);
 			DrgPcr *pdrgpcr = CUtils::PdrgpcrExcludeColumns(pmp, popAgg->Pdrgpcr(), pcrsOuter);
-			DrgPcr *pdrgpcrMinimal = popAgg->PdrgpcrMinimal();
-			if (NULL != pdrgpcrMinimal)
-			{
-				pdrgpcrMinimal = CUtils::PdrgpcrExcludeColumns(pmp, pdrgpcrMinimal, pcrsOuter);
-			}
 
-			DrgPcr *pdrgpcrArgDQA = popAgg->PdrgpcrArgDQA();
-			if (NULL != pdrgpcrArgDQA)
-			{
-				pdrgpcrArgDQA->AddRef();
-			}
+			CExpression *pExprProjList = (*pexpr)[1];
 
-			pop->Release();
-			pop = GPOS_NEW(pmp) CLogicalGbAgg
-							(
-							pmp,
-							pdrgpcr,
-							pdrgpcrMinimal,
-							popAgg->Egbaggtype(),
-							popAgg->FGeneratesDuplicates(),
-							pdrgpcrArgDQA
-							);
+			// It's only valid to remove the outer reference if:
+			// the projection list is NOT empty
+			// or
+			// the outer references are NOT the ONLY Group By column
+			//
+			// For example:
+			// -- Cannot remove t.b from groupby, because this will produce invalid plan
+			// select a from t where c in (select distinct t.b from s)
+			//
+			// -- remove t.b from groupby is ok, because there is at least one agg function: count()
+			// select a from t where c in (select count(s.j) from s group by t.b)
+			//
+			// -- remove t.b from groupby is ok, because there is other groupby column s.j
+			// select a from t where c in (select s.j from s group by t.b, s.j)
+			//
+			// -- remove t.b from groupby is ok, because outer reference is a
+			// -- constant for each invocation of subquery
+			// select a from t where c in (select count(s.j) from s group by s.i, t.b)
+			//
+			if (0 < pExprProjList->UlArity() || 0 < pdrgpcr->UlLength())
+			{
+				DrgPcr *pdrgpcrMinimal = popAgg->PdrgpcrMinimal();
+				if (NULL != pdrgpcrMinimal)
+				{
+					pdrgpcrMinimal = CUtils::PdrgpcrExcludeColumns(pmp, pdrgpcrMinimal, pcrsOuter);
+				}
+
+				DrgPcr *pdrgpcrArgDQA = popAgg->PdrgpcrArgDQA();
+				if (NULL != pdrgpcrArgDQA)
+				{
+					pdrgpcrArgDQA->AddRef();
+				}
+
+				pop->Release();
+				pop = GPOS_NEW(pmp) CLogicalGbAgg
+								(
+								pmp,
+								pdrgpcr,
+								pdrgpcrMinimal,
+								popAgg->Egbaggtype(),
+								popAgg->FGeneratesDuplicates(),
+								pdrgpcrArgDQA
+								);
+			}
 		}
 		else if (COperator::EopLogicalSequenceProject == eopid)
 		{
