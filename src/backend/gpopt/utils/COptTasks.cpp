@@ -166,9 +166,8 @@ SOptContext::SOptContext()
 //		SOptContext::HandleError
 //
 //	@doc:
-//		If there is an error print as warning and throw GPOS_EXCEPTION to abort
-//		plan generation. Calling elog::ERROR will result in longjump and hence
-//		a memory leak.
+//		If there is an error, throw GPOS_EXCEPTION to abort plan generation.
+//		Calling elog::ERROR would result in longjump and hence a memory leak.
 //---------------------------------------------------------------------------
 void
 SOptContext::HandleError
