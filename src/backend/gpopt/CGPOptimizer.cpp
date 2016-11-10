@@ -71,7 +71,20 @@ CGPOptimizer::PplstmtOptimize
 		CHAR* szErrorMsg = octx.CloneErrorMsg(MessageContext);
 		// clean up context
 		octx.Free(octx.epinQuery, octx.epinPlStmt);
-		if (GPOS_MATCH_EX(ex, gpdxl::ExmaDXL, gpdxl::ExmiOptimizerError) ||
+
+		// Special handler for a few common user-facing errors. In particular,
+		// we want to use the correct error code for these, in case an application
+		// tries to do something smart with them. Also, ERRCODE_INTERNAL_ERROR
+		// is handled specially in elog.c, and we don't want that for "normal"
+		// application errors.
+		if (GPOS_MATCH_EX(ex, gpdxl::ExmaDXL, gpdxl::ExmiQuery2DXLNotNullViolation))
+		{
+			errstart(ERROR, ex.SzFilename(), ex.UlLine(), NULL, TEXTDOMAIN);
+			errfinish(errcode(ERRCODE_NOT_NULL_VIOLATION),
+				  errmsg("%s", szErrorMsg));
+		}
+
+		else if (GPOS_MATCH_EX(ex, gpdxl::ExmaDXL, gpdxl::ExmiOptimizerError) ||
 			NULL != szErrorMsg)
 		{
 			Assert(NULL != szErrorMsg);
