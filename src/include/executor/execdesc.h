@@ -203,11 +203,15 @@ typedef struct
 {
 	NodeTag		type;
 
-	/* Key data. */
+	/*
+	 * Key data. Depending on the catalog table, different fields are used.
+	 * See CreateKeyFromCatalogTuple().
+	 */
 	Oid			catalog;		/* OID of the catalog table, e.g. pg_class */
-	char	   *objname;		/* object name (e.g. relation name) */
 	Oid			namespaceOid;	/* namespace OID for most objects */
-	Oid			keyOid2;		/* 2nd key OID field, meaning depends on object type */
+	char	   *objname;		/* object name (e.g. relation name) */
+	Oid			keyOid1;		/* generic OID field, meaning depends on object type */
+	Oid			keyOid2;		/* 2nd generic OID field, meaning depends on object type */
 
 	Oid			oid;			/* OID to assign */
 

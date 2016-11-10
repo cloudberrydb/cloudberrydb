@@ -1470,6 +1470,7 @@ _readOidAssignment(void)
 	READ_OID_FIELD(catalog);
 	READ_STRING_FIELD(objname);
 	READ_OID_FIELD(namespaceOid);
+	READ_OID_FIELD(keyOid1);
 	READ_OID_FIELD(keyOid2);
 	READ_OID_FIELD(oid);
 	READ_DONE();

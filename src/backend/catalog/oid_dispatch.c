@@ -155,8 +155,7 @@ CreateKeyFromCatalogTuple(Relation catalogrel, HeapTuple tuple,
 			{
 				Form_pg_amop amopForm = (Form_pg_amop) GETSTRUCT(tuple);
 
-				/* XXX: We abuse the namespaceOid field for this */
-				key.namespaceOid = amopForm->amopmethod;
+				key.keyOid1 = amopForm->amopmethod;
 				break;
 			}
 		case AuthIdRelationId:
@@ -170,8 +169,7 @@ CreateKeyFromCatalogTuple(Relation catalogrel, HeapTuple tuple,
 			{
 				Form_pg_cast castForm = (Form_pg_cast) GETSTRUCT(tuple);
 
-				/* XXX: We abuse the namespaceOid field for castsource */
-				key.namespaceOid = castForm->castsource;
+				key.keyOid1 = castForm->castsource;
 				key.keyOid2 = castForm->casttarget;
 				break;
 			}
@@ -278,8 +276,7 @@ CreateKeyFromCatalogTuple(Relation catalogrel, HeapTuple tuple,
 			{
 				Form_pg_resqueuecapability rqcForm = (Form_pg_resqueuecapability) GETSTRUCT(tuple);
 
-				/* XXX: We abuse the namespaceOid field for this */
-				key.namespaceOid = rqcForm->resqueueid;
+				key.keyOid1 = rqcForm->resqueueid;
 				key.keyOid2 = (Oid) rqcForm->restypid;
 				break;
 			}
@@ -287,8 +284,7 @@ CreateKeyFromCatalogTuple(Relation catalogrel, HeapTuple tuple,
 			{
 				Form_pg_rewrite rewriteForm = (Form_pg_rewrite) GETSTRUCT(tuple);
 
-				/* XXX: We abuse the namespaceOid field for this */
-				key.namespaceOid = rewriteForm->ev_class;
+				key.keyOid1 = rewriteForm->ev_class;
 				key.objname = NameStr(rewriteForm->rulename);
 				break;
 			}
@@ -432,6 +428,7 @@ GetPreassignedOid(OidAssignment *searchkey)
 			(searchkey->objname == NULL ||
 			 (p->objname != NULL && strcmp(searchkey->objname, p->objname) == 0)) &&
 			searchkey->namespaceOid == p->namespaceOid &&
+			searchkey->keyOid1 == p->keyOid1 &&
 			searchkey->keyOid2 == p->keyOid2)
 		{
 #ifdef OID_DISPATCH_DEBUG

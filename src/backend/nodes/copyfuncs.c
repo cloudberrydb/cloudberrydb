@@ -157,6 +157,7 @@ _copyOidAssignment(OidAssignment *from)
 	COPY_SCALAR_FIELD(catalog);
 	COPY_STRING_FIELD(objname);
 	COPY_SCALAR_FIELD(namespaceOid);
+	COPY_SCALAR_FIELD(keyOid1);
 	COPY_SCALAR_FIELD(keyOid2);
 	COPY_SCALAR_FIELD(oid);
 

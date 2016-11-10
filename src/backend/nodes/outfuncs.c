@@ -341,6 +341,7 @@ _outOidAssignment(StringInfo str, OidAssignment *node)
 	WRITE_OID_FIELD(catalog);
 	WRITE_STRING_FIELD(objname);
 	WRITE_OID_FIELD(namespaceOid);
+	WRITE_OID_FIELD(keyOid1);
 	WRITE_OID_FIELD(keyOid2);
 	WRITE_OID_FIELD(oid);
 }
