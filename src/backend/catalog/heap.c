@@ -2135,12 +2135,10 @@ RemoveAttributeById(Oid relid, AttrNumber attnum)
 /*
  *		RemoveAttrDefault
  *
- * If the specified relation/attribute has a default, remove it and return its
- * old pg_attrdef.oid. The caller can use this oid for the new default if it
- * needs to create another one. If no default, raise error if complain is true,
- * else return InvalidOid.
+ * If the specified relation/attribute has a default, remove it.
+ * (If no default, raise error if complain is true, else return quietly.)
  */
-Oid
+void
 RemoveAttrDefault(Oid relid, AttrNumber attnum,
 				  DropBehavior behavior, bool complain)
 {
@@ -2149,7 +2147,6 @@ RemoveAttrDefault(Oid relid, AttrNumber attnum,
 	SysScanDesc scan;
 	HeapTuple	tuple;
 	bool		found = false;
-	Oid			adoid = InvalidOid;
 
 	attrdef_rel = heap_open(AttrDefaultRelationId, RowExclusiveLock);
 
@@ -2177,7 +2174,6 @@ RemoveAttrDefault(Oid relid, AttrNumber attnum,
 		performDeletion(&object, behavior);
 
 		found = true;
-		adoid = object.objectId;
 	}
 
 	systable_endscan(scan);
@@ -2186,8 +2182,6 @@ RemoveAttrDefault(Oid relid, AttrNumber attnum,
 	if (complain && !found)
 		elog(ERROR, "could not find attrdef tuple for relation %u attnum %d",
 			 relid, attnum);
-
-	return adoid;
 }
 
 /*
@@ -2485,8 +2479,8 @@ heap_drop_with_catalog(Oid relid)
  * Store a default expression for column attnum of relation rel.
  * The expression must be presented as a nodeToString() string.
  */
-Oid
-StoreAttrDefault(Relation rel, AttrNumber attnum, Node *expr, Oid attrdefOid)
+void
+StoreAttrDefault(Relation rel, AttrNumber attnum, Node *expr)
 {
 	char	   *adsrc;
 	Relation	adrel;
@@ -2496,6 +2490,7 @@ StoreAttrDefault(Relation rel, AttrNumber attnum, Node *expr, Oid attrdefOid)
 	Relation	attrrel;
 	HeapTuple	atttup;
 	Form_pg_attribute attStruct;
+	Oid			attrdefOid;
 	ObjectAddress colobject,
 				defobject;
 
@@ -2522,9 +2517,6 @@ StoreAttrDefault(Relation rel, AttrNumber attnum, Node *expr, Oid attrdefOid)
 
 	tuple = heap_form_tuple(adrel->rd_att, values, nulls);
 
-	/* force tuple to have the desired OID */
-	if (OidIsValid(attrdefOid))
-		HeapTupleSetOid(tuple, attrdefOid);
 	attrdefOid = simple_heap_insert(adrel, tuple);
 
 	CatalogUpdateIndexes(adrel, tuple);
@@ -2578,8 +2570,6 @@ StoreAttrDefault(Relation rel, AttrNumber attnum, Node *expr, Oid attrdefOid)
 	 * Record dependencies on objects used in the expression, too.
 	 */
 	recordDependencyOnExpr(&defobject, expr, NIL, DEPENDENCY_NORMAL);
-
-	return attrdefOid;
 }
 
 /*
@@ -2771,8 +2761,7 @@ AddRelationConstraints(Relation rel,
 			(IsA(expr, Const) &&((Const *) expr)->constisnull))
 			continue;
 
-		colDef->default_oid = StoreAttrDefault(rel, colDef->attnum,
-											   expr, colDef->default_oid);
+		StoreAttrDefault(rel, colDef->attnum, expr);
 
 		cooked = (CookedConstraint *) palloc(sizeof(CookedConstraint));
 		cooked->contype = CONSTR_DEFAULT;

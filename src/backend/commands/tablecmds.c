@@ -8601,8 +8601,6 @@ ATExecAlterColumnType(AlteredTableInfo *tab, Relation rel,
 	 */
 	if (defaultexpr)
 	{
-		Oid adoid;
-
 		/* Must make new row visible since it will be updated again */
 		CommandCounterIncrement();
 
@@ -8610,9 +8608,9 @@ ATExecAlterColumnType(AlteredTableInfo *tab, Relation rel,
 		 * We use RESTRICT here for safety, but at present we do not expect
 		 * anything to depend on the default.
 		 */
-		adoid = RemoveAttrDefault(RelationGetRelid(rel), attnum, DROP_RESTRICT, true);
+		RemoveAttrDefault(RelationGetRelid(rel), attnum, DROP_RESTRICT, true);
 
-		StoreAttrDefault(rel, attnum, defaultexpr, adoid);
+		StoreAttrDefault(rel, attnum, defaultexpr);
 	}
 
 	/* Cleanup */

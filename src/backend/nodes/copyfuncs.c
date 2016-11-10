@@ -2610,7 +2610,6 @@ _copyColumnDef(ColumnDef *from)
 	COPY_SCALAR_FIELD(is_local);
 	COPY_SCALAR_FIELD(is_not_null);
 	COPY_SCALAR_FIELD(attnum);
-	COPY_SCALAR_FIELD(default_oid);
 	COPY_NODE_FIELD(raw_default);
 	COPY_STRING_FIELD(cooked_default);
 	COPY_NODE_FIELD(constraints);
@@ -3617,7 +3616,6 @@ _copyCreateEnumStmt(CreateEnumStmt *from)
 
 	COPY_NODE_FIELD(typeName);
 	COPY_NODE_FIELD(vals);
-	COPY_NODE_FIELD(valOids);
 
 	return newnode;
 }

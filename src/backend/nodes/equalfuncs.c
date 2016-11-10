@@ -1459,7 +1459,6 @@ _equalCreateEnumStmt(CreateEnumStmt *a, CreateEnumStmt *b)
 {
 	COMPARE_NODE_FIELD(typeName);
 	COMPARE_NODE_FIELD(vals);
-	COMPARE_NODE_FIELD(valOids);
 
 	return true;
 }
@@ -2132,7 +2131,6 @@ _equalColumnDef(ColumnDef *a, ColumnDef *b)
 	COMPARE_SCALAR_FIELD(is_local);
 	COMPARE_SCALAR_FIELD(is_not_null);
 	COMPARE_SCALAR_FIELD(attnum);
-	COMPARE_SCALAR_FIELD(default_oid);
 	COMPARE_NODE_FIELD(raw_default);
 	COMPARE_STRING_FIELD(cooked_default);
 	COMPARE_NODE_FIELD(constraints);

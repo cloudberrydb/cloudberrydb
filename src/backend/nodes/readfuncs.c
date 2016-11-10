@@ -1956,7 +1956,6 @@ _readColumnDef(void)
 	READ_BOOL_FIELD(is_local);
 	READ_BOOL_FIELD(is_not_null);
 	READ_INT_FIELD(attnum);
-	READ_OID_FIELD(default_oid);
 	READ_NODE_FIELD(raw_default);
 	READ_STRING_FIELD(cooked_default);
 	READ_NODE_FIELD(constraints);
@@ -2489,7 +2488,6 @@ _readCreateEnumStmt(void)
 
 	READ_NODE_FIELD(typeName);
 	READ_NODE_FIELD(vals);
-	READ_NODE_FIELD(valOids);
 
 	READ_DONE();
 }

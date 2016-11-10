@@ -2899,7 +2899,6 @@ _outCreateEnumStmt(StringInfo str, CreateEnumStmt *node)
 
 	WRITE_NODE_FIELD(typeName);
 	WRITE_NODE_FIELD(vals);
-	WRITE_NODE_FIELD(valOids);
 }
 
 static void
@@ -3282,7 +3281,6 @@ _outColumnDef(StringInfo str, ColumnDef *node)
 	WRITE_BOOL_FIELD(is_local);
 	WRITE_BOOL_FIELD(is_not_null);
 	WRITE_INT_FIELD(attnum);
-	WRITE_OID_FIELD(default_oid);
 	WRITE_NODE_FIELD(raw_default);
 	WRITE_STRING_FIELD(cooked_default);
 	WRITE_NODE_FIELD(constraints);

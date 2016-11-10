@@ -158,6 +158,14 @@ CreateKeyFromCatalogTuple(Relation catalogrel, HeapTuple tuple,
 				key.keyOid1 = amopForm->amopmethod;
 				break;
 			}
+		case AttrDefaultRelationId:
+			{
+				Form_pg_attrdef adForm = (Form_pg_attrdef) GETSTRUCT(tuple);
+
+				key.keyOid1 = adForm->adrelid;
+				key.keyOid2 = (Oid) adForm->adnum;
+				break;
+			}
 		case AuthIdRelationId:
 			{
 				Form_pg_authid rolForm = (Form_pg_authid) GETSTRUCT(tuple);
@@ -194,6 +202,14 @@ CreateKeyFromCatalogTuple(Relation catalogrel, HeapTuple tuple,
 				Form_pg_database datForm = (Form_pg_database) GETSTRUCT(tuple);
 
 				key.objname = (char *) NameStr(datForm->datname);
+				break;
+			}
+		case EnumRelationId:
+			{
+				Form_pg_enum enumForm = (Form_pg_enum) GETSTRUCT(tuple);
+
+				key.keyOid1 = enumForm->enumtypid;
+				key.objname = NameStr(enumForm->enumlabel);
 				break;
 			}
 		case ExtprotocolRelationId:
@@ -338,7 +354,6 @@ CreateKeyFromCatalogTuple(Relation catalogrel, HeapTuple tuple,
 
 		/* These tables don't need to have their OIDs synchronized. */
 		case AccessMethodProcedureRelationId:
-		case EnumRelationId:
 		case PartitionRelationId:
 		case PartitionRuleRelationId:
 			*exempt = true;
@@ -348,7 +363,6 @@ CreateKeyFromCatalogTuple(Relation catalogrel, HeapTuple tuple,
 		  * These objects need to have their OIDs synchronized, but there is bespoken
 		  * code to deal with it.
 		  */
-		case AttrDefaultRelationId:
 		case TriggerRelationId:
 			*exempt = true;
 			 break;

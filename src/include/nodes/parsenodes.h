@@ -452,7 +452,6 @@ typedef struct ColumnDef
 	bool		is_local;		/* column has local (non-inherited) def'n */
 	bool		is_not_null;	/* NOT NULL constraint specified? */
 	AttrNumber	attnum;			/* attribute number */
-	Oid			default_oid;	/* attrdef oid */
 	Node	   *raw_default;	/* default value (untransformed parse tree) */
 	char	   *cooked_default; /* nodeToString representation */
 	List	   *constraints;	/* other constraints on column */
@@ -2393,8 +2392,6 @@ typedef struct CreateEnumStmt
 	NodeTag		type;
 	List	   *typeName;		/* qualified name (list of Value strings) */
 	List	   *vals;			/* enum values (list of Value strings) */
-
-	List	   *valOids;		/* Oids to assign to the values */
 } CreateEnumStmt;
 
 

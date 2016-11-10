@@ -18,6 +18,7 @@
 #include "catalog/catalog.h"
 #include "catalog/indexing.h"
 #include "catalog/pg_enum.h"
+#include "cdb/cdbvars.h"
 #include "utils/builtins.h"
 #include "utils/fmgroids.h"
 
@@ -29,13 +30,9 @@ static int	oid_cmp(const void *p1, const void *p2);
  *		Create an entry in pg_enum for each of the supplied enum values.
  *
  * vals is a list of Value strings.
- *
- * GPDB: valOids is a list of Oids to assign to the values. If it's an
- * empty list on entry, new Oids are assigned, and the return Oids are
- * returned in the list.
  */
 void
-EnumValuesCreate(Oid enumTypeOid, List *vals, List **valOids)
+EnumValuesCreate(Oid enumTypeOid, List *vals)
 {
 	Relation	pg_enum;
 	TupleDesc	tupDesc;
@@ -47,8 +44,6 @@ EnumValuesCreate(Oid enumTypeOid, List *vals, List **valOids)
 	bool		nulls[Natts_pg_enum];
 	ListCell   *lc;
 	HeapTuple	tup;
-
-	Assert(*valOids == NIL || list_length(vals) == list_length(*valOids));
 
 	n = list_length(vals);
 
@@ -67,32 +62,22 @@ EnumValuesCreate(Oid enumTypeOid, List *vals, List **valOids)
 	 * table before allocating the next), trouble could only occur if the oid
 	 * counter wraps all the way around before we finish. Which seems
 	 * unlikely.
-	 *
-	 * GPDB: if the caller supplied a list of Oids, use those instead of allocating
-	 * new ones.
 	 */
 	oids = (Oid *) palloc(n * sizeof(Oid));
-	if (*valOids != NIL)
+	for (i = 0; i < n; i++)
 	{
-		i = 0;
-		foreach(lc, *valOids)
-		{
-			oids[i++] = lfirst_oid(lc);
-		}
-	}
-	else
-	{
-		for (i = 0; i < n; i++)
-		{
+		/*
+		 * In QE node, however, use the OIDs assigned by the master (they are delivered
+		 * out-of-band, see oid_dispatch.c.
+		 */
+		if (Gp_role == GP_ROLE_EXECUTE)
+			oids[i] = InvalidOid;
+		else
 			oids[i] = GetNewOid(pg_enum);
-		}
-
-		/* sort them, just in case counter wrapped from high to low */
-		qsort(oids, n, sizeof(Oid), oid_cmp);
-
-		for (i = 0; i < n; i++)
-			*valOids = lappend_oid(*valOids, oids[i]);
 	}
+
+	/* sort them, just in case counter wrapped from high to low */
+	qsort(oids, n, sizeof(Oid), oid_cmp);
 
 	/* and make the entries */
 	memset(nulls, false, sizeof(nulls));

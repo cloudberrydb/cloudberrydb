@@ -70,7 +70,7 @@ typedef FormData_pg_enum *Form_pg_enum;
 /*
  * prototypes for functions in pg_enum.c
  */
-extern void EnumValuesCreate(Oid enumTypeOid, List *vals, List **valOids);
+extern void EnumValuesCreate(Oid enumTypeOid, List *vals);
 extern void EnumValuesDelete(Oid enumTypeOid);
 
 #endif   /* PG_ENUM_H */
