@@ -572,9 +572,6 @@ set gp_interconnect_setup_timeout=4000;
 create schema tbl5352_test;
 select tablename from pg_tables where schemaname='tbl5352_test' and tablename not in( select partitiontablename from pg_partitions where partitionschemaname = 'tbl5352_test' );
 drop schema tbl5352_test;
--- start_ignore
-DROP TABLE if exists qp_misc_jiras.tbl5223_sales_fact cascade;
--- end_ignore
 
 CREATE TABLE qp_misc_jiras.tbl5223_sales_fact(
 	   time     timestamp,
@@ -808,7 +805,6 @@ select '20081225130000'::timestamp;
 select * from ( select 'a' as a) x join (select 'a' as b) y on a=b;
 select * from ( ( select 'a' as a ) xx join (select 'a' as b) yy on a = b ) x join (select 'a' as c) y on a=c;
 select x.b from ( ( select 'a' as a ) xx join (select 'a' as b) yy on a = b ) x join (select 'a' as c) y on a=c;
-drop table if exists qp_misc_jiras.tbl6027_test;
 create table qp_misc_jiras.tbl6027_test (i int, j bigint, k int, l int, m int);
 insert into qp_misc_jiras.tbl6027_test select i, i%100, i%123, i%234, i%345 from generate_series(1, 500) i;
 select j, sum(k), row_number() over (partition by j order by sum(k)) from qp_misc_jiras.tbl6027_test group by j order by j limit 10; -- order 1
@@ -1086,7 +1082,6 @@ WHERE c.relname ~ '^(qp_misc_jiras_foo)$';
 
 -- previously supported query
 
-drop table if exists qp_misc_jiras_bar;
 create table qp_misc_jiras_bar (t int, d int, g int);
 
 insert into qp_misc_jiras_bar values(1,2,3);
@@ -1094,12 +1089,6 @@ insert into qp_misc_jiras_bar values(4,5,6);
 
 select a.t from qp_misc_jiras_bar a where d in(select d from qp_misc_jiras_bar b where a.g=b.g) order by a.t;
 -- Various AO/CO util functions
-drop table if exists qp_misc_jiras.tbl7126_ao;
-drop table if exists qp_misc_jiras.tbl7126_ao_zlib3;
-drop table if exists qp_misc_jiras.tbl7126_ao_quicklz1;
-drop table if exists qp_misc_jiras.tbl7126_co;
-drop table if exists qp_misc_jiras.tbl7126_co_zlib3;
-drop table if exists qp_misc_jiras.tbl7126_co_quicklz1;
 
 -- ctas from one storage type to another
 create table qp_misc_jiras.tbl7126_ao (a int, b text, c date) with (appendonly=true);
@@ -1143,8 +1132,6 @@ drop table qp_misc_jiras.tbl7126_ao;
 drop table qp_misc_jiras.tbl7126_ao_zlib3;
 drop table qp_misc_jiras.tbl7126_co;
 drop table qp_misc_jiras.tbl7126_co_zlib3;
-drop table if exists pre_visitor_ca_event_ao;
-drop table if exists pre_visitor_ca_event_cao;
 
 create table pre_visitor_ca_event_ao(
 visitor_timestamp timestamp without time zone,
@@ -1250,14 +1237,12 @@ select count(*) from pre_visitor_ca_event_cao;
 
 drop table pre_visitor_ca_event_ao;
 drop table pre_visitor_ca_event_cao;
-drop table if exists qp_misc_jiras.tbl6701_test;
 create table qp_misc_jiras.tbl6701_test(i int[]);
 insert into qp_misc_jiras.tbl6701_test values('{1,2,3}');
 select i from qp_misc_jiras.tbl6701_test;
 select i from qp_misc_jiras.tbl6701_test group by i;
 drop table qp_misc_jiras.tbl6701_test;
 select name,category from pg_settings where name like 'gp_enable_predicate_propagation';
-drop table if exists qp_misc_jiras.tbl7161_co;
 create table qp_misc_jiras.tbl7161_co(a int, b varchar);
 insert into qp_misc_jiras.tbl7161_co (a, b) select i, 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa' || i from generate_series(0, 0) i;
 select count(*) from qp_misc_jiras.tbl7161_co;
@@ -1317,7 +1302,6 @@ select count(distinct i), count(distinct j) from qp_misc_jiras.tbl6535_table;
 set gp_enable_agg_distinct = off;
 select count(distinct i), count(distinct j) from qp_misc_jiras.tbl6535_table;
 drop table qp_misc_jiras.tbl6535_table;
-drop table if exists statement_timeout_test;
 create table statement_timeout_test(a int, b int);
 insert into statement_timeout_test select i,i+1 from generate_series(1,10000)i;
 prepare prestmt as select * from statement_timeout_test s1, statement_timeout_test s2, statement_timeout_test s3, statement_timeout_test s4, statement_timeout_test s5;
@@ -1326,12 +1310,10 @@ execute prestmt; -- should get cancelled automatically
 drop table statement_timeout_test;
 reset statement_timeout;
 set gp_autostats_mode=none;
-drop table qp_misc_jiras.tbl_6934;
 create table qp_misc_jiras.tbl_6934(x inet);
 insert into qp_misc_jiras.tbl_6934 select (i%200 || '.' || i%11 || '.' || i%11 || '.' || i%100)::inet from generate_series(1,4000000) i;
 analyze qp_misc_jiras.tbl_6934; 
 drop table qp_misc_jiras.tbl_6934;
-drop table if exists qp_misc_jiras.tbl7286_test;
 create table qp_misc_jiras.tbl7286_test (i int, d date);
 insert into qp_misc_jiras.tbl7286_test select i%10, '2009/01/01'::date + (i || ' days')::interval from generate_series(0, 99999) i;
 
@@ -1342,7 +1324,6 @@ set optimizer_prefer_scalar_dqa_multistage_agg=off;
 
 select count(distinct d) from qp_misc_jiras.tbl7286_test;
 drop table qp_misc_jiras.tbl7286_test;
-drop table if exists qp_misc_jiras.tbl7381_test;
 create table qp_misc_jiras.tbl7381_test (i int, t text, d date, ti time with time zone);
 alter table qp_misc_jiras.tbl7381_test alter column t set storage external;
 
@@ -1353,7 +1334,6 @@ insert into qp_misc_jiras.tbl7381_test select i, t||t||t||t||t||t||t||t||t||t, d
 
 select max(length(t)) from qp_misc_jiras.tbl7381_test;
 
-drop table if exists qp_misc_jiras.tbl7381_test1;
 create table qp_misc_jiras.tbl7381_test1 (i int, t text, d date, ti time with time zone);
 alter table qp_misc_jiras.tbl7381_test1 alter column t set storage extended;
 
@@ -1362,8 +1342,6 @@ select count(*) from qp_misc_jiras.tbl7381_test1;
 drop table qp_misc_jiras.tbl7381_test;
 drop table qp_misc_jiras.tbl7381_test1;
 set gp_autostats_mode=none;
-drop table if exists qp_misc_jiras.tbl7404_t1;
-drop table if exists qp_misc_jiras.tbl7404_t2;
 create table qp_misc_jiras.tbl7404_t1(x text);
 create table qp_misc_jiras.tbl7404_t2(x text);
 
@@ -1395,14 +1373,12 @@ update pg_class set reltuples=1, relpages=1 where relname='qp_misc_jiras.tbl7404
 
 select count(*) from qp_misc_jiras.tbl7404_t1 where substr(x,0,2) in (select substr(x,0,2) from qp_misc_jiras.tbl7404_t2);
 select to_char(10, '999E99');
-drop table if exists qp_misc_jiras.tbl7616_test;
 create table qp_misc_jiras.tbl7616_test (a int, b text) with (appendonly=true, orientation=column) distributed by (a);
 insert into qp_misc_jiras.tbl7616_test select generate_series(1,1000), generate_series(1,1000);
 select count(a.*) from qp_misc_jiras.tbl7616_test a inner join qp_misc_jiras.tbl7616_test b using (a);
 select count(a.b) from qp_misc_jiras.tbl7616_test a inner join qp_misc_jiras.tbl7616_test b using (a);
 -- start_ignore
 drop table qp_misc_jiras.tbl7616_test;
-drop table if exists qp_misc_jiras.tbl6874 ;
 create table qp_misc_jiras.tbl6874 ( a int, b text);
 \d+ qp_misc_jiras.tbl6874
 insert into qp_misc_jiras.tbl6874 values ( generate_series(1,1000),'test_1');
@@ -1411,7 +1387,6 @@ create index qp_misc_jiras.tbl6874_a on qp_misc_jiras.tbl6874 using bitmap(a);
 drop index qp_misc_jiras.tbl6874_a;
 \d+ qp_misc_jiras.tbl6874
 drop table qp_misc_jiras.tbl6874 ;
-drop table if exists qp_misc_jiras.tbl7740_rank;
 CREATE TABLE qp_misc_jiras.tbl7740_rank (id int, gender char(1), count char(1) )
             DISTRIBUTED BY (id)
             PARTITION BY LIST (gender,count)
@@ -1437,10 +1412,6 @@ drop table qp_misc_jiras.tbl7740_rank;
 -- worry about the original test being modified in a way that no longer 
 -- tests this scenario.
 
--- start_ignore
-DROP TABLE IF EXISTS one_of_every_data_type; 
--- end_ignore
-
 -- Create a column-oriented table.
 CREATE TABLE qp_misc_jiras.one_of_every_data_type (
     id BIGINT,
@@ -1450,7 +1421,6 @@ CREATE TABLE qp_misc_jiras.one_of_every_data_type (
  DISTRIBUTED BY (id)
  ;
 
-DROP FUNCTION IF EXISTS TO_LSEG(TEXT) CASCADE;
 CREATE FUNCTION TO_LSEG(TEXT) RETURNS LSEG AS
   $$
     SELECT lseg_in(textout($1))
@@ -1473,7 +1443,6 @@ SELECT * FROM qp_misc_jiras.one_of_every_data_type ORDER BY id,serial_col;
 -- Clean up.
 DROP TABLE IF EXISTS qp_misc_jiras.one_of_every_data_type; 
 
-drop table if exists qp_misc_jiras.tbl7553_test;
 create table qp_misc_jiras.tbl7553_test (i int, j int);
 insert into qp_misc_jiras.tbl7553_test values(1,2);
 
@@ -1486,9 +1455,6 @@ explain select j as a, j as b from qp_misc_jiras.tbl7553_test group by grouping 
 select j as a, j as b from qp_misc_jiras.tbl7553_test group by grouping sets( (a, b), (a)); 
 
 drop table qp_misc_jiras.tbl7553_test;
-
-drop table if exists qp_misc_jiras.tbl7268_foo;
-drop table if exists qp_misc_jiras.tbl7268_bar;
 
 create table qp_misc_jiras.tbl7268_foo (a varchar(15), b varchar(15)) distributed by (b);
 
@@ -1533,9 +1499,7 @@ create table qp_misc_jiras.tbl7268_bar as select * from qp_misc_jiras.tbl7268_fo
 
 drop table if exists qp_misc_jiras.tbl7268_foo;
 drop table if exists qp_misc_jiras.tbl7268_bar;
-drop table if exists qp_misc_jiras.tbl6775_foo;
-drop table if exists qp_misc_jiras.tbl6775_bar;
- 
+
 create table qp_misc_jiras.tbl6775_bar(x int) distributed randomly;        
 create table qp_misc_jiras.tbl6775_foo(like qp_misc_jiras.tbl6775_bar) distributed randomly;
 
@@ -1553,16 +1517,13 @@ drop table if exists qp_misc_jiras.tbl6775_bar;
 -- Test Set 1
 --
 set optimizer_segments=3;
-drop table if exists qp_misc_jiras.sample;
 create table qp_misc_jiras.sample as select generate_series(1,1000);
 
-drop table if exists qp_misc_jiras.fim1;
 create table qp_misc_jiras.fim1 (a int);
 insert into qp_misc_jiras.fim1 values(100);
 insert into qp_misc_jiras.fim1 values(200);
 insert into qp_misc_jiras.fim1 values(300);
 
-drop table if exists qp_misc_jiras.pg_foo;
 create table qp_misc_jiras.pg_foo(x int);
 insert into qp_misc_jiras.pg_foo values(111);
 insert into qp_misc_jiras.pg_foo values(222);
@@ -1666,8 +1627,6 @@ CREATE TABLE qp_misc_jiras.tableC (uid INT) INHERITS (qp_misc_jiras.tableA, qp_m
 SELECT * FROM qp_misc_jiras.tableC;
 
 -- start_ignore
-DROP TABLE qp_misc_jiras.tableE;
-DROP TABLE qp_misc_jiras.tableD;
 DROP TABLE qp_misc_jiras.tableC;
 DROP TABLE qp_misc_jiras.tableB;
 DROP TABLE qp_misc_jiras.tableA;
@@ -1719,7 +1678,6 @@ SELECT * FROM qp_misc_jiras.tableCC;
 
 
 -- start_ignore
-DROP TABLE IF EXISTS qp_misc_jiras.inet_ip_pairs CASCADE;
 set statement_timeout=0;
 set gp_interconnect_setup_timeout=7200;
 -- end_ignore
@@ -1752,10 +1710,6 @@ DROP TABLE IF EXISTS qp_misc_jiras.inet_ip_pairs CASCADE;
 
 set gp_autostats_mode=none;
 
--- start_ignore
-drop table if exists qp_misc_jiras.tbl_7498_t1, qp_misc_jiras.tbl_7498_t2, qp_misc_jiras.tbl_7498_t3 cascade;
--- end_ignore
-
 create table qp_misc_jiras.tbl_7498_t1(x int, y text) distributed by (x);
 insert into qp_misc_jiras.tbl_7498_t1 select x, 'foo' from generate_series(1,70000) x;
 create table qp_misc_jiras.tbl_7498_t2 as select * from qp_misc_jiras.tbl_7498_t1;
@@ -1778,10 +1732,6 @@ drop table if exists qp_misc_jiras.tbl_7498_t1, qp_misc_jiras.tbl_7498_t2, qp_mi
 
 
 
--- start_ignore
-DROP TABLE IF EXISTS qp_misc_jiras.tbl7886_foo;
--- end_ignore
-
 CREATE TABLE qp_misc_jiras.tbl7886_foo (ssn INT, lastName VARCHAR, junk INT) DISTRIBUTED BY (ssn);
 INSERT INTO qp_misc_jiras.tbl7886_foo VALUES (1, 'foo', 1);
 
@@ -1802,8 +1752,6 @@ analyze qp_misc_jiras.tbl8017;
 select relname, reltuples, relpages from pg_class where relname in ('tbl8017', 'tbl8017_x');
 drop table qp_misc_jiras.tbl8017;
 
-
-drop table qp_misc_jiras.tbl7957_foo;
 
 create table qp_misc_jiras.tbl7957_foo(x int, y int, z int) distributed by (x);
 
@@ -1826,8 +1774,6 @@ select sum(z) as c from qp_misc_jiras.tbl7957_foo group by cube(z) order by c;
 drop table qp_misc_jiras.tbl7957_foo;
 
 -- start_ignore
-DROP SCHEMA IF EXISTS mustan CASCADE;
-
 CREATE SCHEMA mustan;
 
 CREATE TABLE mustan.test(
@@ -1917,7 +1863,6 @@ select * from mustan.f7( '20080102' );--
 
 
 -- start_ignore
-drop table if exists qp_misc_jiras.tbl5994_test;
 create table qp_misc_jiras.tbl5994_test (i int, j int);
 -- end_ignore
 
@@ -2063,12 +2008,6 @@ drop table qp_misc_jiras.utable;
 
 
 
--- start_ignore
-drop table qp_misc_jiras.foo_6325;
-drop table qp_misc_jiras.bar_6325;
--- end_ignore
-
-
 CREATE TABLE qp_misc_jiras.foo_6325 (
   foo_6325_attr text
 )
@@ -2094,7 +2033,6 @@ group by 1, 2;
 -- start_ignore
 drop table qp_misc_jiras.foo_6325;
 drop table qp_misc_jiras.bar_6325;
-DROP TABLE qp_misc_jiras.abc_tbl8621;
 -- end_ignore
 
 create table qp_misc_jiras.abc_tbl8621 (a int, b int) with (appendonly=true, orientation=column) distributed by (a);
@@ -2104,11 +2042,6 @@ insert into qp_misc_jiras.abc_tbl8621 select 1, i from generate_series(1,100000)
 
 -- start_ignore
 DROP TABLE qp_misc_jiras.abc_tbl8621;
--- end_ignore
-
--- start_ignore
-drop table if exists qp_misc_jiras.tbl8860_1;
-drop table if exists qp_misc_jiras.tbl8860_2;
 -- end_ignore
 
 CREATE TABLE qp_misc_jiras.tbl8860_1 (
@@ -2158,10 +2091,6 @@ drop table qp_misc_jiras.tbl9739_unicode_test;
 --
 -- Create table qp_misc_jiras.tbl9613
 --
-
--- start_ignore
-drop table qp_misc_jiras.tbl9613;
--- end_ignore
 
 create table qp_misc_jiras.tbl9613(x int, y numeric) distributed by (x);
 
@@ -2255,11 +2184,6 @@ drop table qp_misc_jiras.tbl7285_axg;
 show autovacuum;
 set autovacuum=on;
 
--- start_ignore
-drop table if exists qp_misc_jiras.tbl9706ao;
-drop table if exists qp_misc_jiras.tbl9706aoc;
--- end_ignore
-
 create table qp_misc_jiras.tbl9706ao ( a int ) with (appendonly=true, compresslevel=5) distributed by (a);
 create table qp_misc_jiras.tbl9706aoc ( a int ) with (appendonly=true, compresslevel=5, orientation=column) distributed by (a);
 
@@ -2315,10 +2239,6 @@ else 'Unidentify' end
 ;
 DROP TABLE qp_misc_jiras.ir_voice_sms_and_data;
 -- end_ignore 
--- start_ignore
-drop table if exists qp_misc_jiras.x cascade;
-drop table if exists qp_misc_jiras.r cascade;
--- end_ignore
 create table qp_misc_jiras.x (a int, b int) distributed by (a);
 
 
@@ -2456,7 +2376,6 @@ set enable_seqscan=off;
 --
 -- Heap table. TidScan should be used.
 --
-drop table if exists qp_misc_jiras.test_heap;
 create table qp_misc_jiras.test_heap (i int, j int);
 insert into qp_misc_jiras.test_heap values (0, 0);
 explain select  * from qp_misc_jiras.test_heap where ctid='(0,1)' and gp_segment_id >= 0;
@@ -2465,7 +2384,6 @@ select  * from qp_misc_jiras.test_heap where ctid='(0,1)' and gp_segment_id >= 0
 --
 -- AO table. TidScan should not be used.
 --
-drop table if exists qp_misc_jiras.test_ao;
 create table qp_misc_jiras.test_ao (i int, j int) with (appendonly=true);
 insert into qp_misc_jiras.test_ao values (0, 0);
 explain select  * from qp_misc_jiras.test_ao where ctid='(33554432,32769)' and gp_segment_id >= 0;
@@ -2474,17 +2392,12 @@ select  * from qp_misc_jiras.test_ao where ctid='(33554432,32769)' and gp_segmen
 --
 -- CO table. TidScan should not be used.
 --
-drop table if exists qp_misc_jiras.test_co;
 create table qp_misc_jiras.test_co (i int, j int) with (appendonly=true, orientation=column);
 insert into qp_misc_jiras.test_co values (0, 0);
 explain select  * from qp_misc_jiras.test_co where ctid='(33554432,32769)' and gp_segment_id >= 0;
 select  * from qp_misc_jiras.test_co where ctid='(33554432,32769)' and gp_segment_id >= 0;
 -- start_ignore
 -- This is to verify MPP-10856: test gp_enable_explain_allstat 
--- end_ignore
-
--- start_ignore
-drop table if exists qp_misc_jiras.test_tbl10856;
 -- end_ignore
 
 set gp_enable_explain_allstat=on;
@@ -2498,12 +2411,6 @@ drop table if exists qp_misc_jiras.test_tbl10856;
 -- ramans2 : Modifying queries to add filter on schema name to remove diffs in multi-node cdbfast runs
 -- end_ignore
 
-
--- start_ignore
-drop schema schema1 cascade;
-drop schema schema2 cascade;
-drop schema schema3 cascade;
--- end_ignore
 
 create schema schema1;
 create schema schema2;
@@ -2543,7 +2450,6 @@ drop schema schema1 cascade;
 drop schema schema2 cascade;
 drop schema schema3 cascade;
 
--- start_ignore
 -- This is the to verify MPP-9167:
 --	Gather Motion shows wrong row estimate compared to 3.3
 -- 	from Lyublena: 
@@ -2560,10 +2466,6 @@ drop schema schema3 cascade;
 	motion you get "rows=500" and "Rows out:  1000 rows at destination". That
 	output should be fine.
 	*/
-
-drop table if exists qp_misc_jiras.r;
-drop table if exists qp_misc_jiras.s;
--- end_ignore
 
 create table qp_misc_jiras.r(a int, b int);
 insert into qp_misc_jiras.r select generate_series(1,1000), generate_series(1,1000);
@@ -2630,7 +2532,6 @@ select to_timestamp('15:12:02.020.001230', 'HH:MI:SS.MS.US');
 select to_timestamp('15:12:02.020.001230', 'HH24:MI:SS.MS.US');
 
 reset TIMEZONE;
-drop table if exists qp_misc_jiras.tbl13409_test;
 
 create table qp_misc_jiras.tbl13409_test (i int, j int);
 
@@ -2666,10 +2567,6 @@ alter table qp_misc_jiras.tbl13409_test set with (reorganize='FALSE');
 alter table qp_misc_jiras.tbl13409_test set with (reorganize='TRUE');
 
 alter table qp_misc_jiras.tbl13409_test set with (reorganize='true');
--- start_ignore
-drop table if exists qp_misc_jiras.tbl13879_1;
-drop table if exists qp_misc_jiras.tbl13879_2;
--- end_ignore
 create table qp_misc_jiras.tbl13879_1 (a int) distributed by (a);
 insert into qp_misc_jiras.tbl13879_1 select generate_series(1,10);
 select * from qp_misc_jiras.tbl13879_1;
@@ -2681,7 +2578,6 @@ select * from qp_misc_jiras.tbl13879_2;
 select a, max(a) over (order by a range between current row and 2 following) as max from qp_misc_jiras.tbl13879_2;
 drop table qp_misc_jiras.tbl13879_1;
 drop table qp_misc_jiras.tbl13879_2;
-drop table if exists qp_misc_jiras.esc176_1;
 create table qp_misc_jiras.esc176_1 (id integer, seq integer, val double precision, clickdate timestamp without time zone) distributed by (id);
 insert into qp_misc_jiras.esc176_1 values (1,1,0.2,CURRENT_TIMESTAMP);
 insert into qp_misc_jiras.esc176_1 values (1,2,0.1,CURRENT_TIMESTAMP);
@@ -2705,10 +2601,6 @@ select id, seq, sum (val) over (partition by id order by clickdate range between
 select id, seq, sum(val) over (partition by id order by seq::numeric range between 0 following and 10 following), val from qp_misc_jiras.esc176_1;
 select id, seq, sum(val) over (partition by id order by seq::numeric range between 10 preceding and 0 preceding), val from qp_misc_jiras.esc176_1;
 drop table qp_misc_jiras.esc176_1;
--- start_ignore
-drop table if exists qp_misc_jiras.tbl13491_h;
-drop table if exists qp_misc_jiras.tbl13491_aocol;
--- end_ignore
 create table qp_misc_jiras.tbl13491_h(a int,str varchar)distributed by (a);
 alter table qp_misc_jiras.tbl13491_h alter column str set storage external;
 insert into qp_misc_jiras.tbl13491_h values (1, lpad('a', 100000, 'b'));
@@ -2721,7 +2613,6 @@ select str = lpad('a', 100000, 'b') from qp_misc_jiras.tbl13491_aocol;
 drop table qp_misc_jiras.tbl13491_aocol;
 -- start_ignore
 drop function if exists test();
-drop table if exists qp_misc_jiras._tbl10050_test;
 create language plpgsql;
 create table qp_misc_jiras._tbl10050_test (id int) distributed randomly;
 -- end_ignore
