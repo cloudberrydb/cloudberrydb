@@ -212,6 +212,11 @@ make installcheck-bugbuster
   some tests are known to fail with Greenplum. The
   __installcheck-good__ schedule excludes those tests.
 
+* When adding a new test, please add it to one of the GPDB-specific tests,
+  in greenplum_schedule, rather than the PostgreSQL tests inherited from the
+  upstream. We try to keep the upstream tests identical to the upstream
+  versions, to make merging with newer PostgreSQL releases easier.
+
 ## Development with Docker
 
 We provide a docker image with all dependencies required to compile and test
