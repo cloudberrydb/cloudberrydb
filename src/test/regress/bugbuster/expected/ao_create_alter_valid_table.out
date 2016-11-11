@@ -1,2 +1,0 @@
-\c ao_db
-\connect: FATAL:  database "ao_db" does not exist

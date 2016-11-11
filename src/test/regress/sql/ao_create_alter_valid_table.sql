@@ -1,37 +1,34 @@
-\c ao_db
-
 --Tables with storage Parameters
 
-    CREATE TABLE table_storage_parameters (
+CREATE TABLE table_storage_parameters (
     text_col text,
     bigint_col bigint,
     char_vary_col character varying(30),
     numeric_col numeric
-    ) WITH ( APPENDONLY=TRUE , COMPRESSLEVEL= 5 , FILLFACTOR= 50) DISTRIBUTED RANDOMLY;
+) WITH ( APPENDONLY=TRUE , COMPRESSLEVEL= 5 , FILLFACTOR= 50) DISTRIBUTED RANDOMLY;
 
 
 -- create a table and load some data
 
---drop table if exists test;
-create table test (a int, b int, c int, d int) WITH (appendonly=true,compresslevel=3);
+create table aocomptest (a int, b int, c int, d int) WITH (appendonly=true,compresslevel=3);
 -- start_ignore
-\d test
+\d aocomptest
 -- end_ignore
-insert into test select i, i%1, i%2, i%3 from generate_series(1,100)i;
+insert into aocomptest select i, i%1, i%2, i%3 from generate_series(1,100)i;
 
 -- vacuum analyze the table
 
-vacuum analyze test;
+vacuum analyze aocomptest;
 
 -- rename the table
 
-alter table test rename to new_test;
+alter table aocomptest rename to new_test;
 -- start_ignore
 \d new_test
 -- end_ignore
-alter table new_test rename to test;
+alter table new_test rename to aocomptest;
 -- start_ignore
-\d test
+\d aocomptest
 -- end_ignore
 
 
@@ -56,9 +53,6 @@ create table mpp2865_ao_syntax_test (a int, b int) with (compresslevel=5);
 create table mpp2865_ao_syntax_test (a int, b int) with (blocksize=8192);
 create table mpp2865_ao_sytax_text(a int, b int) with (appendonly=false,blocksize=8192);
 -- end_ignore
-
---drop table foo_ao cascade;
---drop table bar_ao cascade;
 
 -- AO tables with partitions
 
