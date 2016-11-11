@@ -1,8 +1,8 @@
 ##
 ## TODO: list test sequence and test dependencies.
 ##
-test: executor subquery world
-test: with_clause spilltodisk
+test: executor subquery
+test: spilltodisk
 test: tiny
 test: wrkloadadmin
 ignore: jdbc

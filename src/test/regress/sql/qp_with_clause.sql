@@ -6612,12 +6612,11 @@ group by FOO.region order by FOO.region
 ) FOO1
 order by FOO1.lang_cnt,FOO1.identifier;
 
---queries with a single CTE used more than once in different parts of the main query
+-- queries with a single CTE used more than once in different parts of the main query
 
 -- query1
--- Similar to genetech query 'dxAcctMonthlyTrending_Avastin_WITH_Clause.sql'
--- This kind of query is their only use case for CTE. We dont error, we give correct results,use shared scan here and we are good ! 
-
+-- This kind of query is their only use case for CTE. We don't error, we give correct
+-- results,use shared scan here and we are good!
 select count(*) from
 ( select r.* from
   ( with fact as 
