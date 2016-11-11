@@ -1342,8 +1342,16 @@ RecordTransactionCommit(void)
 		}
 	}
 
-	SIMPLE_FAULT_INJECTOR(DtmXLogDistributedCommit);
-
+#ifdef FAULT_INJECTOR
+	if (isDtxPrepared)
+	{
+		FaultInjector_InjectFaultIfSet(DtmXLogDistributedCommit,
+									   DDLNotSpecified,
+									   "",  // databaseName
+									   ""); // tableName
+	}
+#endif
+	
 	/*
 	 * If we entered a commit critical section, leave it now, and let
 	 * checkpoints proceed.
