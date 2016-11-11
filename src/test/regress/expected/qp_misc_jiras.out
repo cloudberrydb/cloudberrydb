@@ -4072,26 +4072,6 @@ explain analyze select * from qp_misc_jiras.r,qp_misc_jiras.s where r.a=s.b;
 
 drop table qp_misc_jiras.r;
 drop table qp_misc_jiras.s;
--- COPY command to return proper error message when extra data in the file
-create table qp_misc_jiras.eloginfo0118
-  (
-    sev          text,
-    msg          text,
-    filename     text,
-    linenum      int
-)
-distributed by (sev);
-create table qp_misc_jiras.eloginfo0118_int
-  (
-    id           int,
-    sev          text,
-    msg          text,
-    filename     text,
-    linenum      int
-)
-distributed by (id);
-drop table qp_misc_jiras.eloginfo0118;
-drop table qp_misc_jiras.eloginfo0118_int;
 --to_date had issues when there were padding(space) in front of the string
 select to_date ('20010101','YYYYMMDD');
   to_date   
