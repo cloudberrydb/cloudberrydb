@@ -1490,22 +1490,6 @@ CLUSTER clusterindex on table2;
 \echo -- start_ignore
 select oid, relname, relfilenode from pg_class where relname = 'table2';
 \echo -- end_ignore
---RE-INDEXING: changes the relfilenode of the indexes
-
-create table bm_test (i int, j int);
-insert into bm_test values (0, 0), (0, 0), (0, 1), (1,0), (1,0), (1,1);
-create index bm_test_j on bm_test using bitmap(j);
-delete from bm_test where j =1;
-insert into bm_test values (0, 0), (1,0);
-insert into bm_test values (generate_series(2,100),generate_series(2,100));
-
-\echo -- start_ignore
-select relname, relfilenode from pg_class where relname = 'bm_test';
-\echo -- end_ignore
-REINDEX index "public"."bm_test_j";
-\echo -- start_ignore
-select relname, relfilenode from pg_class where relname = 'bm_test';
-\echo -- end_ignore
 
 --The relfilenode should stay the same before and after the delete from tablename
 
