@@ -560,6 +560,11 @@ CExpressionPreprocessor::PexprRemoveSuperfluousOuterRefs
 								pdrgpcrArgDQA
 								);
 			}
+			else
+			{
+				// clean up
+				pdrgpcr->Release();
+			}
 		}
 		else if (COperator::EopLogicalSequenceProject == eopid)
 		{
