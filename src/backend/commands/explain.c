@@ -2299,7 +2299,9 @@ show_sort_info(SortState *sortstate,
 {
 	Assert(IsA(sortstate, SortState));
 	if (es->printAnalyze && sortstate->sort_Done &&
-		sortstate->tuplesortstate != NULL)
+		sortstate->tuplesortstate != NULL &&
+		(gp_enable_mk_sort ?
+		 (void *) sortstate->tuplesortstate->sortstore_mk : (void *) sortstate->tuplesortstate->sortstore) != NULL)
 	{
 		char	   *sortinfo;
 		int			i;
