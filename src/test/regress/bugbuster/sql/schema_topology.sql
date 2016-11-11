@@ -5,7 +5,6 @@ drop database db_tobe_vacuum_analyze;
 drop database db_test;
 drop database ao_db;
 drop database partition_db;
-drop database check_oid_relfilenode_db;
 drop database vacuum_data_db;
 drop database unvacuum_data_db;
 drop database "TEST_DB";
@@ -1470,45 +1469,6 @@ CREATE EXTERNAL TABLE ext_table1 (
 ENCODING 'UTF8';
 DROP EXTERNAL TABLE ext_table1;
 
---CHANGING OIDS and RELFILENODES (OS FILES)
-
-
-create database check_oid_relfilenode_db;
-\c check_oid_relfilenode_db
-
---CLUSTER TABLE: reorders the entire table by b-tree index and rebuilds the index
-
-create table table2 (col1 int,col2 int) distributed randomly;
-
-insert into table2 values (generate_series(1,100),generate_series(1,100));
-
-create index clusterindex on table2(col1);
-\echo -- start_ignore
-select oid,relname, relfilenode from pg_class where relname = 'table2';
-\echo -- end_ignore
-CLUSTER clusterindex on table2;
-\echo -- start_ignore
-select oid, relname, relfilenode from pg_class where relname = 'table2';
-\echo -- end_ignore
-
---The relfilenode should stay the same before and after the delete from tablename
-
-create table foo (a int, b text) distributed randomly;
-insert into foo values (1, '1_one'), (2, '2_two');
-insert into foo select i,i||'_'||repeat('text',100) from generate_series(3,100)i;
-\echo -- start_ignore
-select relname, relfilenode from pg_class where relname = 'foo';
-\echo -- end_ignore
-delete from foo where a = 1;
-\echo -- start_ignore
-select relname, relfilenode from pg_class where relname = 'foo';
-\echo -- end_ignore
---the relfilenode should have stayed the same.
-delete from foo;
-\echo -- start_ignore
-select relname, relfilenode from pg_class where relname = 'foo';
-\echo -- end_ignore
---the relfilenode should still have stayed the same.
 CREATE DATABASE cancel_trans;
 \c cancel_trans
 

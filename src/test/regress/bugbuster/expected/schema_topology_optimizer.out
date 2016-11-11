@@ -12,8 +12,6 @@ drop database ao_db;
 ERROR:  database "ao_db" does not exist
 drop database partition_db;
 ERROR:  database "partition_db" does not exist
-drop database check_oid_relfilenode_db;
-ERROR:  database "check_oid_relfilenode_db" does not exist
 drop database vacuum_data_db;
 ERROR:  database "vacuum_data_db" does not exist
 drop database unvacuum_data_db;
@@ -1766,72 +1764,6 @@ CREATE EXTERNAL TABLE ext_table1 (
 ) FORMAT 'text' (delimiter ',' null '' )
 ENCODING 'UTF8';
 DROP EXTERNAL TABLE ext_table1;
---CHANGING OIDS and RELFILENODES (OS FILES)
-create database check_oid_relfilenode_db;
-\c check_oid_relfilenode_db
---CLUSTER TABLE: reorders the entire table by b-tree index and rebuilds the index
-create table table2 (col1 int,col2 int) distributed randomly;
-insert into table2 values (generate_series(1,100),generate_series(1,100));
-create index clusterindex on table2(col1);
-\echo -- start_ignore
--- start_ignore
-select oid,relname, relfilenode from pg_class where relname = 'table2';
-  oid   | relname | relfilenode 
---------+---------+-------------
- 201347 | table2  |      201347
-(1 row)
-
-\echo -- end_ignore
--- end_ignore
-CLUSTER clusterindex on table2;
-\echo -- start_ignore
--- start_ignore
-select oid, relname, relfilenode from pg_class where relname = 'table2';
-  oid   | relname | relfilenode 
---------+---------+-------------
- 201347 | table2  |      201449
-(1 row)
-
-\echo -- end_ignore
--- end_ignore
---The relfilenode should stay the same before and after the delete from tablename
-create table foo (a int, b text) distributed randomly;
-insert into foo values (1, '1_one'), (2, '2_two');
-insert into foo select i,i||'_'||repeat('text',100) from generate_series(3,100)i;
-\echo -- start_ignore
--- start_ignore
-select relname, relfilenode from pg_class where relname = 'foo';
- relname | relfilenode 
----------+-------------
- foo     |      201729
-(1 row)
-
-\echo -- end_ignore
--- end_ignore
-delete from foo where a = 1;
-\echo -- start_ignore
--- start_ignore
-select relname, relfilenode from pg_class where relname = 'foo';
- relname | relfilenode 
----------+-------------
- foo     |      201729
-(1 row)
-
-\echo -- end_ignore
--- end_ignore
---the relfilenode should have stayed the same.
-delete from foo;
-\echo -- start_ignore
--- start_ignore
-select relname, relfilenode from pg_class where relname = 'foo';
- relname | relfilenode 
----------+-------------
- foo     |      201729
-(1 row)
-
-\echo -- end_ignore
--- end_ignore
---the relfilenode should still have stayed the same.
 CREATE DATABASE cancel_trans;
 \c cancel_trans
 CREATE TABLE employee(ID int,name varchar(10),salary real,start_date date,city varchar(10),region char(1));
