@@ -131,7 +131,7 @@ jobs:
         gpdb_src: gpdb_pr
       params:
         MAKE_TEST_COMMAND: PGOPTIONS='-c optimizer=off -c codegen=off' installcheck-good
-        BLDWRAP_POSTGRES_CONF_ADDONS: ""
+        BLDWRAP_POSTGRES_CONF_ADDONS: "fsync=off"
         TEST_OS: centos
       timeout: 2h30m
       on_success:
