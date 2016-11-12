@@ -601,7 +601,7 @@ static struct config_bool ConfigureNamesBool[] =
 			"sure that updates are physically written to disk. This insures "
 						 "that a database cluster will recover to a consistent state after "
 						 "an operating system or hardware crash."),
-		  GUC_NOT_IN_SAMPLE | GUC_NO_SHOW_ALL | GUC_DISALLOW_USER_SET
+		  GUC_NOT_IN_SAMPLE | GUC_NO_SHOW_ALL
 		},
 		&enableFsync,
 		true, NULL, NULL
