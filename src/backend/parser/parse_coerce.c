@@ -342,7 +342,7 @@ coerce_type(ParseState *pstate, Node *node,
 	}
 
 	/*
-	 * GPDB_MERGE83_FIXME: This is still required but should be on the list
+	 * GPDB_83_MERGE_FIXME: This is still required but should be on the list
 	 * for cleaning up. Can we do this more efficiently?
 	 */
 	if (pstate != NULL && inputTypeId == UNKNOWNOID && IsA(node, Var))

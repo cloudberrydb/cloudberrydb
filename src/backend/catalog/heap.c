@@ -1421,7 +1421,7 @@ heap_create_with_catalog(const char *relname,
 		 * Some relations need to have a fixed relation type
 		 * OID, because it is referenced in code.
 		 *
-		 * 90MERGE_FIXME: In PostgreSQL 9.0, there's a
+		 * GPDB_90_MERGE_FIXME: In PostgreSQL 9.0, there's a
 		 * new BKI directive, BKI_ROWTYPE_OID(<oid>), for
 		 * doing the same. Replace this hack with that once
 		 * we merge with 9.0.

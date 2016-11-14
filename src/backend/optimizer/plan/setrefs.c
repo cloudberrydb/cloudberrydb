@@ -2461,7 +2461,7 @@ cdb_insert_result_node(PlannerGlobal *glob, Plan *plan, int rtoffset)
 
     /* Build a Result node to take over the targetlist from the given Plan. */
 	/*
-	 * GPDB_83MERGE_FIXME: We don't have a PlannerInfo struct at hand here,
+	 * GPDB_83_MERGE_FIXME: We don't have a PlannerInfo struct at hand here,
 	 * so we pass NULL and hope that make_result doesn't really need it.
 	 * It's really too late to insert Result nodes at this late stage in the
 	 * planner, we should eliminate the need for this

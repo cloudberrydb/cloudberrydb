@@ -2299,7 +2299,7 @@ typedef struct SortState
 	GenericTupStore *tuplesortstate; /* private state of tuplesort.c */
 	/* CDB */ /* limit state */
 
-	/* GPDB_83MERGE_FIXME: Are these redundant with the "bound" fields? */
+	/* GPDB_83_MERGE_FIXME: Are these redundant with the "bound" fields? */
 	ExprState  *limitOffset;	/* OFFSET parameter, or NULL if none */
 	ExprState  *limitCount;		/* COUNT parameter, or NULL if none */
 	bool		noduplicates;	/* true if discard duplicate rows */

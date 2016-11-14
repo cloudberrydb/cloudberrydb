@@ -2054,7 +2054,7 @@ IndexBuildHeapScan(Relation heapRelation,
 								  HeapTupleHeaderGetXmax(heapTuple->t_data)))
 					{
 						/*
-						 * GPDB_83MERGE_FIXME:
+						 * GPDB_83_MERGE_FIXME:
 						 *
 						 * Before the 8.3 merge, we also didn't throw an error if
 						 * it was a bitmap index. The old comment didn't explain why,

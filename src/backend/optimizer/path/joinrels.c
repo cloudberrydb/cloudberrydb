@@ -572,7 +572,7 @@ make_join_rel(PlannerInfo *root, RelOptInfo *rel1, RelOptInfo *rel2)
 			/*
 			 * For antijoins, the outer and inner rel are fixed.
 			 */
-			/* GPDB_83MERGE_FIXME: What do about dummy_rels here? */
+			/* GPDB_83_MERGE_FIXME: What do about dummy_rels here? */
 			add_paths_to_joinrel(root, joinrel, rel1, rel2, jointype, restrictlist);
 			break;
 
