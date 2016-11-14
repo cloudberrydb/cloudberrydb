@@ -101,6 +101,18 @@ cdbdisp_dispatchToGang(struct CdbDispatcherState *ds,
 }
 
 /*
+ * For asynchronous dispatcher, we have to wait all dispatch to finish before we move on to query execution,
+ * otherwise we may get into a deadlock situation, e.g, gather motion node waiting for data,
+ * while segments waiting for plan. This is skipped in threaded dispatcher as data is sent in blocking style.
+ */
+void
+cdbdisp_waitDispatchFinish(struct CdbDispatcherState *ds)
+{
+	if (pDispatchFuncs->waitDispatchFinish != NULL)
+		(pDispatchFuncs->waitDispatchFinish)(ds);
+}
+
+/*
  * CdbCheckDispatchResult:
  *
  * Waits for completion of threads launched by cdbdisp_dispatchToGang().

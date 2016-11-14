@@ -515,6 +515,8 @@ cdbdisp_dispatchCommandInternal(const char *strCommand,
 	{
 		cdbdisp_dispatchToGang(&ds, primaryGang, -1, DEFAULT_DISP_DIRECT);
 
+		cdbdisp_waitDispatchFinish(&ds);
+
 		/*
 		 * Block until valid results is available or one or more QEs got errors.
 		 */
@@ -1323,6 +1325,8 @@ cdbdisp_dispatchX(DispatchCommandQueryParms *pQueryParms,
 
 	pfree(sliceVector);
 
+	cdbdisp_waitDispatchFinish(ds);
+
 	/*
 	 * If bailed before completely dispatched, stop QEs and throw error.
 	 */
@@ -1467,6 +1471,8 @@ cdbdisp_dispatchSetCommandToAllGangs(const char *strCommand,
 			cdbdisp_dispatchToGang(ds, rg, -1, DEFAULT_DISP_DIRECT);
 		}
 	}
+
+	cdbdisp_waitDispatchFinish(ds);
 }
 
 static int *

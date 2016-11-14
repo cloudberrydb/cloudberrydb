@@ -134,6 +134,8 @@ CdbDispatchDtxProtocolCommand(DtxProtocolCommand dtxProtocolCommand,
 	{
 		cdbdisp_dispatchToGang(&ds, primaryGang, -1, direct);
 
+		cdbdisp_waitDispatchFinish(&ds);
+
 		/*
 		 * Wait for all QEs to finish.	Don't cancel.
 		 */
