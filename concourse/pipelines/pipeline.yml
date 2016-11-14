@@ -31,7 +31,6 @@ resources:
     bucket: {{bucket-name}}
     region_name: {{aws-region}}
     secret_access_key: {{bucket-secret-access-key}}
-    # versioned_file: bin_gpdb_centos/bin_gpdb.tar.gz
     versioned_file: {{bin_gpdb_centos_versioned_file}}
 
 - name: sync_tools_gpdb_centos
@@ -41,7 +40,6 @@ resources:
     bucket: {{bucket-name}}
     region_name: {{aws-region}}
     secret_access_key: {{bucket-secret-access-key}}
-    # versioned_file: sync_tools_gpdb/sync_tools_gpdb.tar.gz
     versioned_file: {{sync_tools_gpdb_centos_versioned_file}}
 
 - name: installer_rhel6_gpdb_rc
