@@ -156,6 +156,12 @@ select 'wait recovery finish' from gp_dist_random('gp_id');
 -- cleanup all reusable gangs 
 select cleanupAllGangs();
 
+-- sleep 1 second to wait all QEs to exit, since QE exit in this situation is an
+-- asynchronous procedure, 1 second may not guarantee they have exited in
+-- extreme poor performant machines, but we have no better solution now, and this
+-- test case is pretty necessary, so...
+select pg_sleep(1);
+
 -- expect no zombie backends left on segments 
 select * from v_hasBackendsOnSegment;
 
@@ -178,6 +184,13 @@ where dispatch_test_t1.c2 = dispatch_test_t2.c2 and dispatch_test_t2.c3 = dispat
 
 -- expect no resuable gang exist
 select * from hasGangsExist();
+
+-- sleep 1 second to wait all QEs to exit, since QE exit in this situation is an
+-- asynchronous procedure, 1 second may not guarantee they have exited in
+-- extreme poor performant machines, but we have no better solution now, and this
+-- test case is pretty necessary, so...
+select pg_sleep(1);
+
 -- expect no zombie backends left on segments.
 select * from v_hasBackendsOnSegment;
 
@@ -194,6 +207,13 @@ where dispatch_test_t1.c2 = dispatch_test_t2.c2 and dispatch_test_t2.c3 = dispat
 
 -- expect resuable gang exist
 select * from hasGangsExist();
+
+-- sleep 1 second to wait all QEs to exit, since QE exit in this situation is an
+-- asynchronous procedure, 1 second may not guarantee they have exited in
+-- extreme poor performant machines, but we have no better solution now, and this
+-- test case is pretty necessary, so...
+select pg_sleep(1);
+
 -- expect QEs exist.
 select * from v_hasBackendsOnSegment;
 

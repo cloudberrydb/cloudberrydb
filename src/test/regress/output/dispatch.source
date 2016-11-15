@@ -200,6 +200,16 @@ select cleanupAllGangs();
  t
 (1 row)
 
+-- sleep 1 second to wait all QEs to exit, since QE exit in this situation is an
+-- asynchronous procedure, 1 second may not guarantee they have exited in
+-- extreme poor performant machines, but we have no better solution now, and this
+-- test case is pretty necessary, so...
+select pg_sleep(1);
+ pg_sleep 
+----------
+ 
+(1 row)
+
 -- expect no zombie backends left on segments 
 select * from v_hasBackendsOnSegment;
  ?column? 
@@ -240,6 +250,16 @@ select * from hasGangsExist();
  f
 (1 row)
 
+-- sleep 1 second to wait all QEs to exit, since QE exit in this situation is an
+-- asynchronous procedure, 1 second may not guarantee they have exited in
+-- extreme poor performant machines, but we have no better solution now, and this
+-- test case is pretty necessary, so...
+select pg_sleep(1);
+ pg_sleep 
+----------
+ 
+(1 row)
+
 -- expect no zombie backends left on segments.
 select * from v_hasBackendsOnSegment;
  ?column? 
@@ -268,6 +288,16 @@ select * from hasGangsExist();
  hasgangsexist 
 ---------------
  t
+(1 row)
+
+-- sleep 1 second to wait all QEs to exit, since QE exit in this situation is an
+-- asynchronous procedure, 1 second may not guarantee they have exited in
+-- extreme poor performant machines, but we have no better solution now, and this
+-- test case is pretty necessary, so...
+select pg_sleep(1);
+ pg_sleep 
+----------
+ 
 (1 row)
 
 -- expect QEs exist.
