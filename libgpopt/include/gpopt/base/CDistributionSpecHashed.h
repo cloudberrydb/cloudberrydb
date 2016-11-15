@@ -88,7 +88,13 @@ namespace gpopt
 			{
 				return CDistributionSpec::EdtHashed;
 			}
-			
+
+			virtual
+			const CHAR *SzId() const
+			{
+				return "HASHED";
+			}
+
 			// expression array accessor
 			DrgPexpr *Pdrgpexpr() const
 			{

@@ -160,7 +160,7 @@ CDistributionSpecRandom::OsPrint
 	)
 	const
 {
-	return os << "RANDOM ";
+	return os << this->SzId();
 }
 
 // EOF

@@ -21,6 +21,11 @@ namespace gpopt
 
 			virtual BOOL FMatch(const CDistributionSpec *pds) const;
 
+			virtual const CHAR *SzId() const
+			{
+				return "HASHED NO-OP";
+			}
+
 			virtual void
 			AppendEnforcers
 			(

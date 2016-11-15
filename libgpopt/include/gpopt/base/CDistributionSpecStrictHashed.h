@@ -18,6 +18,11 @@ namespace gpopt
 
 			virtual EDistributionType Edt() const;
 
+			virtual
+			const CHAR *SzId() const
+			{
+				return "STRICT HASHED";
+			}
 	};
 }
 

@@ -57,6 +57,12 @@ namespace gpopt
 				return CDistributionSpec::EdtRandom;
 			}
 			
+			virtual
+			const CHAR *SzId() const
+			{
+				return "RANDOM";
+			}
+
 			// is distribution duplicate sensitive
 			BOOL FDuplicateSensitive() const
 			{

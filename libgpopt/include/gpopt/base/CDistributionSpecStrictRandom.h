@@ -6,13 +6,12 @@
 
 #include "gpos/base.h"
 
-#include "gpopt/base/CDistributionSpec.h"
 #include "gpopt/base/CDistributionSpecRandom.h"
 
 namespace gpopt
 {
     using namespace gpos;
-    
+
     //---------------------------------------------------------------------------
     //	@class:
     //		CDistributionSpecStrictRandom
@@ -24,26 +23,31 @@ namespace gpopt
     class CDistributionSpecStrictRandom : public CDistributionSpecRandom
     {
     public:
-        
+
         //ctor
         CDistributionSpecStrictRandom();
-        
+
         // accessor
         virtual
         EDistributionType Edt() const
         {
             return CDistributionSpec::EdtStrictRandom;
         }
-        
+
+        virtual
+        const CHAR *SzId() const
+        {
+            return "STRICT RANDOM";
+        }
+
         // does this distribution match the given one
         virtual
         BOOL FMatch(const CDistributionSpec *pds) const;
-        
+
         // does this distribution satisfy the given one
         virtual
         BOOL FSatisfies(const CDistributionSpec *pds) const;
     }; // class CDistributionSpecStrictRandom
-    
 }
 
 #endif // !GPOPT_CDistributionSpecStrictRandom_H

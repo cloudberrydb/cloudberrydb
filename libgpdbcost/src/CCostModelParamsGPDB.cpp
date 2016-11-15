@@ -72,6 +72,9 @@ const CDouble CCostModelParamsGPDB::DBroadcastSendCostUnitVal = 4.965e-05;
 // receiving tuple cost unit in broadcast motion
 const CDouble CCostModelParamsGPDB::DBroadcastRecvCostUnitVal = 1.35e-06;
 
+// tuple cost unit in No-Op motion
+const CDouble CCostModelParamsGPDB::DNoOpCostUnitVal = 0;
+
 // feeding cost per tuple per column in join operator
 const CDouble CCostModelParamsGPDB::DJoinFeedingTupColumnCostUnitVal = 8.69e-05;
 
@@ -186,6 +189,7 @@ const CHAR rgszCostParamNames[CCostModelParamsGPDB::EcpSentinel][GPOPT_COSTPARAM
 	"RedistributeRecvCostUnit",
 	"BroadcastSendCostUnit",
 	"BroadcastRecvCostUnit",
+	"NoOpCostUnit",
 	"JoinFeedingTupColumnCostUnit",
 	"JoinFeedingTupWidthCostUnit",
 	"JoinOutputTupCostUnit",
@@ -260,6 +264,7 @@ CCostModelParamsGPDB::CCostModelParamsGPDB
 	m_rgpcp[EcpRedistributeRecvCostUnit] = GPOS_NEW(pmp) SCostParam(EcpRedistributeRecvCostUnit, DRedistributeRecvCostUnitVal, DRedistributeRecvCostUnitVal - 0.0, DRedistributeRecvCostUnitVal + 0.0);
 	m_rgpcp[EcpBroadcastSendCostUnit] = GPOS_NEW(pmp) SCostParam(EcpBroadcastSendCostUnit, DBroadcastSendCostUnitVal, DBroadcastSendCostUnitVal - 0.0, DBroadcastSendCostUnitVal + 0.0);
 	m_rgpcp[EcpBroadcastRecvCostUnit] = GPOS_NEW(pmp) SCostParam(EcpBroadcastRecvCostUnit, DBroadcastRecvCostUnitVal, DBroadcastRecvCostUnitVal - 0.0, DBroadcastRecvCostUnitVal + 0.0);
+	m_rgpcp[EcpNoOpCostUnit] = GPOS_NEW(pmp) SCostParam(EcpNoOpCostUnit, DNoOpCostUnitVal, DNoOpCostUnitVal - 0.0, DNoOpCostUnitVal + 0.0);
 	m_rgpcp[EcpJoinFeedingTupColumnCostUnit] = GPOS_NEW(pmp) SCostParam(EcpJoinFeedingTupColumnCostUnit, DJoinFeedingTupColumnCostUnitVal, DJoinFeedingTupColumnCostUnitVal - 0.0, DJoinFeedingTupColumnCostUnitVal + 0.0);
 	m_rgpcp[EcpJoinFeedingTupWidthCostUnit] = GPOS_NEW(pmp) SCostParam(EcpJoinFeedingTupWidthCostUnit, DJoinFeedingTupWidthCostUnitVal, DJoinFeedingTupWidthCostUnitVal - 0.0, DJoinFeedingTupWidthCostUnitVal + 0.0);
 	m_rgpcp[EcpJoinOutputTupCostUnit] = GPOS_NEW(pmp) SCostParam(EcpJoinOutputTupCostUnit, DJoinOutputTupCostUnitVal, DJoinOutputTupCostUnitVal - 0.0, DJoinOutputTupCostUnitVal + 0.0);

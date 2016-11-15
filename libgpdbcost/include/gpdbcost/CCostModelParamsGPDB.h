@@ -62,6 +62,7 @@ namespace gpopt
 				EcpRedistributeRecvCostUnit,          // receiving cost per tuple in redistribute motion
 				EcpBroadcastSendCostUnit,             // sending cost per tuple in broadcast motion
 				EcpBroadcastRecvCostUnit,             // receiving cost per tuple in broadcast motion
+				EcpNoOpCostUnit,                      // cost per tuple in No-Op motion
 				// general join params
 				EcpJoinFeedingTupColumnCostUnit,      // feeding cost per tuple per column in join operator
 				EcpJoinFeedingTupWidthCostUnit,       // feeding cost per tuple per width in join operator
@@ -188,6 +189,10 @@ namespace gpopt
 			// default value of receiving tuple cost unit for broadcast motion
 			static
 			const CDouble DBroadcastRecvCostUnitVal;
+
+			// default value of tuple cost unit for No-Op motion
+			static
+			const CDouble DNoOpCostUnitVal;
 
 			// default value of feeding cost per tuple per column in join operator
 			static

@@ -502,7 +502,7 @@ CDistributionSpecHashed::OsPrint
 	)
 	const
 {
-	os << "HASHED: [ ";
+	os << this->SzId() << ": [ ";
 	const ULONG ulLen = m_pdrgpexpr->UlLength();
 	for (ULONG ul = 0; ul < ulLen; ul++)
 	{

@@ -19,6 +19,7 @@
 #include "gpopt/operators/CPhysicalDynamicIndexScan.h"
 #include "gpopt/operators/CPhysicalHashAgg.h"
 #include "gpopt/operators/CPhysicalUnionAll.h"
+#include "gpopt/operators/CPhysicalMotion.h"
 #include "gpopt/operators/CPredicateUtils.h"
 #include "naucrates/statistics/CStatisticsUtils.h"
 #include "gpopt/operators/CExpression.h"
@@ -1139,49 +1140,55 @@ CCostModelGPDB::CostMotion
 	// Once we calibrate the cost model with different number of segments, I will update
 	// the function.
 
+	CDouble dSendCostUnit(0);
+	CDouble dRecvCostUnit(0);
+	CDouble recvCost(0);
+
 	CCost costLocal(0);
 	if (COperator::EopPhysicalMotionBroadcast == eopid)
 	{
 		// broadcast cost is amplified by the number of segments
-		const CDouble dBroadcastSendCostUnit = pcmgpdb->Pcp()->PcpLookup(CCostModelParamsGPDB::EcpBroadcastSendCostUnit)->DVal();
-		const CDouble dBroadcastRecvCostUnit = pcmgpdb->Pcp()->PcpLookup(CCostModelParamsGPDB::EcpBroadcastRecvCostUnit)->DVal();
-		GPOS_ASSERT(0 < dBroadcastSendCostUnit);
-		GPOS_ASSERT(0 < dBroadcastRecvCostUnit);
-		
-		costLocal = CCost(pci->DRebinds() * (
-			dRowsOuter * dWidthOuter * dBroadcastSendCostUnit
-			+
-			dRowsOuter * dWidthOuter * pcmgpdb->UlHosts() * dBroadcastRecvCostUnit
-		));
+		dSendCostUnit = pcmgpdb->Pcp()->PcpLookup(CCostModelParamsGPDB::EcpBroadcastSendCostUnit)->DVal();
+		dRecvCostUnit = pcmgpdb->Pcp()->PcpLookup(CCostModelParamsGPDB::EcpBroadcastRecvCostUnit)->DVal();
+
+		recvCost = dRowsOuter * dWidthOuter * pcmgpdb->UlHosts() * dRecvCostUnit;
 	}
 	else if (COperator::EopPhysicalMotionHashDistribute == eopid ||
 			COperator::EopPhysicalMotionRandom == eopid ||
 			COperator::EopPhysicalMotionRoutedDistribute == eopid)
 	{
-		const CDouble dRedistributeSendCostUnit = pcmgpdb->Pcp()->PcpLookup(CCostModelParamsGPDB::EcpRedistributeSendCostUnit)->DVal();
-		const CDouble dRedistributeRecvCostUnit = pcmgpdb->Pcp()->PcpLookup(CCostModelParamsGPDB::EcpRedistributeRecvCostUnit)->DVal();
-		GPOS_ASSERT(0 < dRedistributeSendCostUnit);
-		GPOS_ASSERT(0 < dRedistributeRecvCostUnit);
+		dSendCostUnit = pcmgpdb->Pcp()->PcpLookup(CCostModelParamsGPDB::EcpRedistributeSendCostUnit)->DVal();
+		dRecvCostUnit = pcmgpdb->Pcp()->PcpLookup(CCostModelParamsGPDB::EcpRedistributeRecvCostUnit)->DVal();
 
-		costLocal = CCost(pci->DRebinds() * (
-			dRowsOuter * dWidthOuter * dRedistributeSendCostUnit
-			+
-			pci->DRows() * pci->DWidth() * dRedistributeRecvCostUnit
-		));
+		// Adjust the cost of no-op hashed distribution to correctly reflect that no tuple movement is needed
+		CPhysicalMotion *pMotion = CPhysicalMotion::PopConvert(exprhdl.Pop());
+		CDistributionSpec *pds = pMotion->Pds();
+		if (CDistributionSpec::EdtHashedNoOp == pds->Edt())
+		{
+			// promote the plan with redistribution on same distributed columns of base table for parallel append
+			dSendCostUnit = pcmgpdb->Pcp()->PcpLookup(CCostModelParamsGPDB::EcpNoOpCostUnit)->DVal();
+			dRecvCostUnit = pcmgpdb->Pcp()->PcpLookup(CCostModelParamsGPDB::EcpNoOpCostUnit)->DVal();
+		}
+
+		recvCost = pci->DRows() * pci->DWidth() * dRecvCostUnit;
 	}
 	else if (COperator::EopPhysicalMotionGather == eopid)
 	{
-		const CDouble dGatherSendCostUnit = pcmgpdb->Pcp()->PcpLookup(CCostModelParamsGPDB::EcpGatherSendCostUnit)->DVal();
-		const CDouble dGatherRecvCostUnit = pcmgpdb->Pcp()->PcpLookup(CCostModelParamsGPDB::EcpGatherRecvCostUnit)->DVal();
-		GPOS_ASSERT(0 < dGatherSendCostUnit);
-		GPOS_ASSERT(0 < dGatherRecvCostUnit);
+		dSendCostUnit = pcmgpdb->Pcp()->PcpLookup(CCostModelParamsGPDB::EcpGatherSendCostUnit)->DVal();
+		dRecvCostUnit = pcmgpdb->Pcp()->PcpLookup(CCostModelParamsGPDB::EcpGatherRecvCostUnit)->DVal();
 
-		costLocal = CCost(pci->DRebinds() * (
-			dRowsOuter * dWidthOuter * dGatherSendCostUnit
-			+
-			dRowsOuter * dWidthOuter * pcmgpdb->UlHosts() * dGatherRecvCostUnit
-		));
+		recvCost = dRowsOuter * dWidthOuter * pcmgpdb->UlHosts() * dRecvCostUnit;
 	}
+
+	GPOS_ASSERT(0 <= dSendCostUnit);
+	GPOS_ASSERT(0 <= dRecvCostUnit);
+
+	costLocal = CCost(pci->DRebinds() * (
+		dRowsOuter * dWidthOuter * dSendCostUnit
+		+
+		recvCost
+	));
+
 	CCost costChild = CostChildren(pmp, exprhdl, pci, pcmgpdb->Pcp());
 
 	return costLocal + costChild;
