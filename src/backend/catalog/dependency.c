@@ -1962,6 +1962,7 @@ getObjectDescription(const ObjectAddress *object)
 				appendStringInfo(&buffer, _("cast from %s to %s"),
 								 format_type_be(castForm->castsource),
 								 format_type_be(castForm->casttarget));
+
 				systable_endscan(rcscan);
 				heap_close(castDesc, AccessShareLock);
 				break;
@@ -2366,7 +2367,7 @@ getObjectDescription(const ObjectAddress *object)
 				appendStringInfo(&buffer, _("tablespace %s"), tblspace);
 				break;
 			}
-			
+
 		case OCLASS_FILESPACE:
 			{
 				char       *fsname;
