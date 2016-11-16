@@ -8,9 +8,10 @@ The Concourse directory should contain this README and three sub-directories onl
 * scripts
 
 ##### Pipelines Directory
-There should be four pipelines in this directory:
+There should be five pipelines in this directory:
 
 * `pipeline.yml` the pipeline that compiles, tests, and produces installers from the master branch of gpdb.
+* `dev_pipeline.yml` a safe-to-duplicate version of `pipeline.yml` which saves artifacts to dev buckets.
 * `pr_pipeline.yml` which compiles and tests pull requests.
 * `concourse-upgrade.yml` which uses Concourse to upgrade itself.
 * `pipeline_tinc.yml` run TINC tests against gpdb master branch.
@@ -43,6 +44,24 @@ Please do not create any more exceptions, and remove these as the occasion arise
 ### The Concourse Deployment
 There is a `gpdb` team in the [Concourse instance](http://gpdb.ci.pivotalci.info/).
 This team should only have the `gpdb_master`, `gpdb_pr`, `gpdb_master_tinc_native`, and `concourse_upgrade` pipelines.
+
+There is a `dev` team which is where developer pipelines should live.
+This team should have one permanent template pipeline `gpdb_master_dev` which should remain paused.
+
+### Creating Your Own Pipeline
+Many developers want to create their own copies of the master pipeline.
+To accommodate this without naming confusion, workload instability, and artifact collision we have the following solution:
+
+1. All developer pipelines should live in the `dev` team.
+1. Duplicate and update the `gpdb_master_dev` so that the artifacts are placed in a safe bucket.
+
+To duplicate the pipeline do something like the following:
+``` bash
+fly -t gpdb login -n dev
+fly -t gpdb get-pipeline -p dev_pipeline > /tmp/pipeline.yml
+# update gpdb_src with your desired source
+fly -t gpdb set-pipeline -c /tmp/pipeline.yml -p NEW_PIPELINE_NAME
+```
 
 ### Updating This README
 Changes should be proposed to this contract with a PR.

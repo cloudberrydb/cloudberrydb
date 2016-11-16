@@ -1,0 +1,458 @@
+## ======================================================================
+## resources
+## ======================================================================
+
+resources:
+- name: gpdb_src
+  type: git
+  source:
+    branch: {{gpdb-git-branch}}
+    private_key: {{gpdb-git-key}}
+    uri: {{gpdb-git-remote}}
+
+- name: gpaddon_src
+  type: git
+  source:
+    branch: {{gpaddon-git-branch}}
+    private_key: {{gpdb-git-key}}
+    uri: {{gpaddon-git-remote}}
+
+- name: centos67-gpdb-gcc6-llvm-image
+  type: docker-image
+  source:
+    repository: pivotaldata/centos67-gpdb-gcc6-llvm-image
+    username: {{docker_username}}
+    password: {{docker_password}}
+
+- name: centos72-gpdb-gcc6-llvm-image
+  type: docker-image
+  source:
+    repository: pivotaldata/centos72-gpdb-gcc6-llvm-image
+    username: {{docker_username}}
+    password: {{docker_password}}
+
+- name: bin_gpdb_centos
+  type: s3
+  source:
+    access_key_id: {{bucket-access-key-id}}
+    bucket: {{dev-bucket-name}}
+    region_name: {{aws-region}}
+    secret_access_key: {{bucket-secret-access-key}}
+    versioned_file: {{bin_gpdb_centos_versioned_file}}
+
+- name: sync_tools_gpdb_centos
+  type: s3
+  source:
+    access_key_id: {{bucket-access-key-id}}
+    bucket: {{dev-bucket-name}}
+    region_name: {{aws-region}}
+    secret_access_key: {{bucket-secret-access-key}}
+    versioned_file: {{sync_tools_gpdb_centos_versioned_file}}
+
+- name: installer_rhel6_gpdb_rc
+  type: s3
+  source:
+    access_key_id: {{bucket-access-key-id}}
+    bucket: {{dev-bucket-name}}
+    region_name: {{aws-region}}
+    secret_access_key: {{bucket-secret-access-key}}
+    versioned_file: deliverables/greenplum-db-4.3.99.0-build-1-rhel6-x86_64.zip
+
+- name: installer_rhel6_gpdb_rc_md5
+  type: s3
+  source:
+    access_key_id: {{bucket-access-key-id}}
+    bucket: {{dev-bucket-name}}
+    region_name: {{aws-region}}
+    secret_access_key: {{bucket-secret-access-key}}
+    versioned_file: deliverables/greenplum-db-4.3.99.0-build-1-rhel6-x86_64.zip.md5
+
+- name: installer_appliance_rhel6_gpdb_rc
+  type: s3
+  source:
+    access_key_id: {{bucket-access-key-id}}
+    bucket: {{dev-bucket-name}}
+    region_name: {{aws-region}}
+    secret_access_key: {{bucket-secret-access-key}}
+    versioned_file: deliverables/greenplum-db-appliance-4.3.99.0-build-1-rhel6-x86_64.zip
+
+- name: installer_appliance_rhel6_gpdb_rc_md5
+  type: s3
+  source:
+    access_key_id: {{bucket-access-key-id}}
+    bucket: {{dev-bucket-name}}
+    region_name: {{aws-region}}
+    secret_access_key: {{bucket-secret-access-key}}
+    versioned_file: deliverables/greenplum-db-appliance-4.3.99.0-build-1-rhel6-x86_64.zip.md5
+
+- name: qautils_rhel6_tarball
+  type: s3
+  source:
+    access_key_id: {{bucket-access-key-id}}
+    bucket: {{dev-bucket-name}}
+    region_name: {{aws-region}}
+    secret_access_key: {{bucket-secret-access-key}}
+    versioned_file: deliverables/QAUtils-rhel6-x86_64.tar.gz
+
+## ======================================================================
+## jobs
+## ======================================================================
+
+# Stage 1: Build and C Unit Tests
+
+jobs:
+
+- name: compile_gpdb_centos6
+  serial: true
+  plan:
+  - aggregate:
+    - get: gpdb_src
+      tags: ["worker-one"]
+      trigger: true
+    - get: centos67-gpdb-gcc6-llvm-image
+      tags: ["worker-one"]
+  - task: compile_gpdb
+    file: gpdb_src/concourse/compile_gpdb.yml
+    image: centos67-gpdb-gcc6-llvm-image
+    tags: ["worker-one"]
+    params:
+      IVYREPO_HOST: {{ivyrepo_host}}
+      IVYREPO_REALM: {{ivyrepo_realm}}
+      IVYREPO_USER: {{ivyrepo_user}}
+      IVYREPO_PASSWD: {{ivyrepo_passwd}}
+      TARGET_OS: centos
+      TARGET_OS_VERSION: 6
+      BLD_TARGETS: ""
+  - aggregate:
+    - put: bin_gpdb_centos
+      tags: ["worker-one"]
+      params:
+        file: gpdb_artifacts/bin_gpdb.tar.gz
+    - put: sync_tools_gpdb_centos
+      tags: ["worker-one"]
+      params:
+        file: sync_tools_gpdb/sync_tools_gpdb.tar.gz
+
+- name: compile_gpdb_custom_config_centos6
+  serial: true
+  public: true
+  plan:
+  - aggregate:
+    - get: gpdb_src
+      trigger: true
+      tags: ["worker-two"]
+    - get: centos67-gpdb-gcc6-llvm-image
+      tags: ["worker-two"]
+  - task: compile_gpdb
+    file: gpdb_src/concourse/compile_gpdb_custom_config.yml
+    image: centos67-gpdb-gcc6-llvm-image
+    tags: ["worker-two"]
+
+- name: compile_gpdb_centos7
+  serial: true
+  plan:
+  - aggregate:
+    - get: gpdb_src
+      tags: ["worker-three"]
+      trigger: true
+    - get: centos72-gpdb-gcc6-llvm-image
+      tags: ["worker-three"]
+  - task: compile_gpdb
+    file: gpdb_src/concourse/compile_gpdb.yml
+    image: centos72-gpdb-gcc6-llvm-image
+    tags: ["worker-three"]
+    params:
+      IVYREPO_HOST: {{ivyrepo_host}}
+      IVYREPO_REALM: {{ivyrepo_realm}}
+      IVYREPO_USER: {{ivyrepo_user}}
+      IVYREPO_PASSWD: {{ivyrepo_passwd}}
+      TARGET_OS: centos
+      TARGET_OS_VERSION: 7
+      BLD_TARGETS: ""
+
+# Stage 2: IC Tests
+- name: icg_planner_centos6
+  serial: true
+  plan:
+  - aggregate:
+    - get: gpdb_src
+      tags: ["worker-one"]
+      passed: [compile_gpdb_centos6]
+    - get: sync_tools_gpdb_centos
+      tags: ["worker-one"]
+      resource: sync_tools_gpdb_centos
+      passed: [compile_gpdb_centos6]
+    - get: bin_gpdb
+      tags: ["worker-one"]
+      resource: bin_gpdb_centos
+      passed: [compile_gpdb_centos6]
+      trigger: true
+    - get: centos67-gpdb-gcc6-llvm-image
+      tags: ["worker-one"]
+  - task: ic_gpdb
+    file: gpdb_src/concourse/ic_gpdb.yml
+    image: centos67-gpdb-gcc6-llvm-image
+    tags: ["worker-one"]
+    params:
+      MAKE_TEST_COMMAND: PGOPTIONS='-c optimizer=off -c codegen=off' installcheck-good
+      BLDWRAP_POSTGRES_CONF_ADDONS: "fsync=off"
+      TEST_OS: centos
+
+- name: icg_gporca_centos6
+  serial: true
+  plan:
+  - aggregate:
+    - get: gpdb_src
+      tags: ["worker-two"]
+      passed: [compile_gpdb_centos6]
+    - get: sync_tools_gpdb_centos
+      tags: ["worker-two"]
+      resource: sync_tools_gpdb_centos
+      passed: [compile_gpdb_centos6]
+    - get: bin_gpdb
+      tags: ["worker-two"]
+      resource: bin_gpdb_centos
+      passed: [compile_gpdb_centos6]
+      trigger: true
+    - get: centos67-gpdb-gcc6-llvm-image
+      tags: ["worker-two"]
+  - task: ic_gpdb
+    file: gpdb_src/concourse/ic_gpdb.yml
+    image: centos67-gpdb-gcc6-llvm-image
+    tags: ["worker-two"]
+    params:
+      MAKE_TEST_COMMAND: PGOPTIONS='-c optimizer=on -c codegen=off' installcheck-good
+      BLDWRAP_POSTGRES_CONF_ADDONS: "fsync=off"
+      TEST_OS: centos
+
+- name: icg_planner_codegen_centos6
+  serial: true
+  plan:
+  - aggregate:
+    - get: gpdb_src
+      tags: ["worker-three"]
+      passed: [compile_gpdb_centos6]
+    - get: sync_tools_gpdb_centos
+      tags: ["worker-three"]
+      resource: sync_tools_gpdb_centos
+      passed: [compile_gpdb_centos6]
+    - get: bin_gpdb
+      tags: ["worker-three"]
+      resource: bin_gpdb_centos
+      passed: [compile_gpdb_centos6]
+      trigger: true
+    - get: centos67-gpdb-gcc6-llvm-image
+      tags: ["worker-three"]
+  - task: ic_gpdb
+    file: gpdb_src/concourse/ic_gpdb.yml
+    image: centos67-gpdb-gcc6-llvm-image
+    tags: ["worker-three"]
+    params:
+      MAKE_TEST_COMMAND: PGOPTIONS='-c optimizer=off -c codegen=on' installcheck-good
+      BLDWRAP_POSTGRES_CONF_ADDONS: "fsync=off"
+      TEST_OS: centos
+
+- name: icg_gporca_codegen_centos6
+  serial: true
+  plan:
+  - aggregate:
+    - get: gpdb_src
+      tags: ["worker-four"]
+      passed: [compile_gpdb_centos6]
+    - get: sync_tools_gpdb_centos
+      tags: ["worker-four"]
+      resource: sync_tools_gpdb_centos
+      passed: [compile_gpdb_centos6]
+    - get: bin_gpdb
+      tags: ["worker-four"]
+      resource: bin_gpdb_centos
+      passed: [compile_gpdb_centos6]
+      trigger: true
+    - get: centos67-gpdb-gcc6-llvm-image
+      tags: ["worker-four"]
+  - task: ic_gpdb
+    file: gpdb_src/concourse/ic_gpdb.yml
+    image: centos67-gpdb-gcc6-llvm-image
+    tags: ["worker-four"]
+    params:
+      MAKE_TEST_COMMAND: PGOPTIONS='-c optimizer=on -c codegen=on' installcheck-good
+      BLDWRAP_POSTGRES_CONF_ADDONS: "fsync=off"
+      TEST_OS: centos
+
+- name: icb_planner_centos6
+  serial: true
+  plan:
+  - aggregate:
+    - get: gpdb_src
+      tags: ["worker-one"]
+      passed: [icg_planner_centos6]
+    - get: sync_tools_gpdb_centos
+      tags: ["worker-one"]
+      resource: sync_tools_gpdb_centos
+      passed: [icg_planner_centos6]
+    - get: bin_gpdb
+      tags: ["worker-one"]
+      resource: bin_gpdb_centos
+      passed: [icg_planner_centos6]
+      trigger: true
+    - get: centos67-gpdb-gcc6-llvm-image
+      tags: ["worker-one"]
+  - task: ic_gpdb
+    file: gpdb_src/concourse/ic_gpdb.yml
+    image: centos67-gpdb-gcc6-llvm-image
+    tags: ["worker-one"]
+    params:
+      MAKE_TEST_COMMAND: PGOPTIONS='-c optimizer=off -c codegen=off' installcheck-bugbuster
+      BLDWRAP_POSTGRES_CONF_ADDONS: "fsync=off"
+      TEST_OS: centos
+
+- name: icb_gporca_centos6
+  serial: true
+  plan:
+  - aggregate:
+    - get: gpdb_src
+      tags: ["worker-two"]
+      passed: [icg_gporca_centos6]
+    - get: sync_tools_gpdb_centos
+      tags: ["worker-two"]
+      resource: sync_tools_gpdb_centos
+      passed: [icg_gporca_centos6]
+    - get: bin_gpdb
+      tags: ["worker-two"]
+      resource: bin_gpdb_centos
+      passed: [icg_gporca_centos6]
+      trigger: true
+    - get: centos67-gpdb-gcc6-llvm-image
+      tags: ["worker-two"]
+  - task: ic_gpdb
+    file: gpdb_src/concourse/ic_gpdb.yml
+    image: centos67-gpdb-gcc6-llvm-image
+    tags: ["worker-two"]
+    params:
+      MAKE_TEST_COMMAND: PGOPTIONS='-c optimizer=on -c codegen=off' installcheck-bugbuster
+      BLDWRAP_POSTGRES_CONF_ADDONS: "fsync=off"
+      TEST_OS: centos
+
+- name: icb_planner_codegen_centos6
+  serial: true
+  plan:
+  - aggregate:
+    - get: gpdb_src
+      tags: ["worker-three"]
+      passed: [icg_planner_codegen_centos6]
+    - get: sync_tools_gpdb_centos
+      tags: ["worker-three"]
+      resource: sync_tools_gpdb_centos
+      passed: [icg_planner_codegen_centos6]
+    - get: bin_gpdb
+      tags: ["worker-three"]
+      resource: bin_gpdb_centos
+      passed: [icg_planner_codegen_centos6]
+      trigger: true
+    - get: centos67-gpdb-gcc6-llvm-image
+      tags: ["worker-three"]
+  - task: ic_gpdb
+    file: gpdb_src/concourse/ic_gpdb.yml
+    image: centos67-gpdb-gcc6-llvm-image
+    tags: ["worker-three"]
+    params:
+      MAKE_TEST_COMMAND: PGOPTIONS='-c optimizer=off -c codegen=on' installcheck-bugbuster
+      BLDWRAP_POSTGRES_CONF_ADDONS: "fsync=off"
+      TEST_OS: centos
+
+- name: icb_gporca_codegen_centos6
+  serial: true
+  plan:
+  - aggregate:
+    - get: gpdb_src
+      tags: ["worker-four"]
+      passed: [icg_gporca_codegen_centos6]
+    - get: sync_tools_gpdb_centos
+      tags: ["worker-four"]
+      resource: sync_tools_gpdb_centos
+      passed: [icg_gporca_codegen_centos6]
+    - get: bin_gpdb
+      tags: ["worker-four"]
+      resource: bin_gpdb_centos
+      passed: [icg_gporca_codegen_centos6]
+      trigger: true
+    - get: centos67-gpdb-gcc6-llvm-image
+      tags: ["worker-four"]
+  - task: ic_gpdb
+    file: gpdb_src/concourse/ic_gpdb.yml
+    image: centos67-gpdb-gcc6-llvm-image
+    tags: ["worker-four"]
+    params:
+      MAKE_TEST_COMMAND: PGOPTIONS='-c optimizer=on -c codegen=on' installcheck-bugbuster
+      BLDWRAP_POSTGRES_CONF_ADDONS: "fsync=off"
+      TEST_OS: centos
+
+# Stage 3: Packaging
+
+- name: gpdb_rc_packaging_centos
+  serial: true
+  plan:
+  - aggregate:
+    - get: gpdb_src
+      tags: ["worker-three"]
+      passed: [icb_planner_centos6, icb_gporca_centos6, icb_planner_codegen_centos6, icb_gporca_codegen_centos6]
+    - get: gpaddon_src
+      tags: ["worker-three"]
+    - get: bin_gpdb
+      tags: ["worker-three"]
+      resource: bin_gpdb_centos
+      passed: [icb_planner_centos6, icb_gporca_centos6, icb_planner_codegen_centos6, icb_gporca_codegen_centos6]
+      trigger: true
+    - get: centos67-gpdb-gcc6-llvm-image
+      tags: ["worker-three"]
+  - task: separate_qautils_files_for_rc
+    file: gpdb_src/concourse/separate_qautils_files_for_rc.yml
+    image: centos67-gpdb-gcc6-llvm-image
+    tags: ["worker-three"]
+    params:
+      QAUTILS_TARBALL: rc_bin_gpdb/QAUtils-rhel6-x86_64.tar.gz
+  - aggregate:
+    - task: gpdb_rc_packaging_centos
+      file: gpdb_src/concourse/gpdb_packaging.yml
+      image: centos67-gpdb-gcc6-llvm-image
+      tags: ["worker-three"]
+      input_mapping:
+        bin_gpdb: rc_bin_gpdb
+      output_mapping:
+        packaged_gpdb: packaged_gpdb_rc
+      params:
+        INSTALL_SCRIPT_SRC: gpdb_src/gpAux/addon/license/installer-header-rhel-gpdb.sh
+        INSTALLER_ZIP: packaged_gpdb/greenplum-db-4.3.99.0-build-1-rhel6-x86_64.zip
+        ADD_README_INSTALL: true
+    - task: gpdb_appliance_rhel6_rc_packaging
+      file: gpdb_src/concourse/gpdb_packaging.yml
+      image: centos67-gpdb-gcc6-llvm-image
+      tags: ["worker-three"]
+      input_mapping:
+        bin_gpdb: rc_bin_gpdb
+      output_mapping:
+        packaged_gpdb: packaged_gpdb_appliance_rc
+      params:
+        INSTALL_SCRIPT_SRC: gpdb_src/gpAux/addon/license/installer-appliance-header-rhel-gpdb.sh
+        INSTALLER_ZIP: packaged_gpdb/greenplum-db-appliance-4.3.99.0-build-1-rhel6-x86_64.zip
+  - aggregate:
+    - put: installer_rhel6_gpdb_rc
+      tags: ["worker-three"]
+      params:
+        file: packaged_gpdb_rc/greenplum-db-4.3.99.0-build-1-rhel6-x86_64.zip
+    - put: installer_rhel6_gpdb_rc_md5
+      tags: ["worker-three"]
+      params:
+        file: packaged_gpdb_rc/greenplum-db-4.3.99.0-build-1-rhel6-x86_64.zip.md5
+    - put: installer_appliance_rhel6_gpdb_rc
+      tags: ["worker-three"]
+      params:
+        file: packaged_gpdb_appliance_rc/greenplum-db-appliance-4.3.99.0-build-1-rhel6-x86_64.zip
+    - put: installer_appliance_rhel6_gpdb_rc_md5
+      tags: ["worker-three"]
+      params:
+        file: packaged_gpdb_appliance_rc/greenplum-db-appliance-4.3.99.0-build-1-rhel6-x86_64.zip.md5
+    - put: qautils_rhel6_tarball
+      tags: ["worker-three"]
+      params:
+        file: rc_bin_gpdb/QAUtils-rhel6-x86_64.tar.gz
