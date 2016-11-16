@@ -557,6 +557,7 @@ ErrorLogWrite(CdbSreh *cdbsreh)
 	char		filename[MAXPGPATH];
 	FILE	   *fp;
 	pg_crc32	crc;
+	int			ret;
 
 	Assert(OidIsValid(cdbsreh->relid));
 	ErrorLogFileName(filename, MyDatabaseId, cdbsreh->relid);
@@ -568,15 +569,20 @@ ErrorLogWrite(CdbSreh *cdbsreh)
 
 	LWLockAcquire(ErrorLogLock, LW_EXCLUSIVE);
 	fp = AllocateFile(filename, "a");
-	if (!fp)
-	{
-		mkdir(ErrorLogDir, S_IRWXU);
 
-		fp = AllocateFile(filename, "a");
+	if (!fp && (errno == EMFILE || errno == ENFILE))
+		ereport(ERROR, (errmsg("could not open \"%s\", too many open files: %m", filename)));
+
+	if (!fp && errno == ENOENT)
+	{
+		ret = mkdir(ErrorLogDir, S_IRWXU);
+		if (ret == 0)
+			fp = AllocateFile(filename, "a");
+		else
+			ereport(ERROR, (errmsg("could not create directory for errorlog \"%s\": %m", ErrorLogDir)));
 	}
 	if (!fp)
-		ereport(ERROR,
-				(errmsg("could not open \"%s\": %m", filename)));
+		ereport(ERROR, (errmsg("could not open \"%s\": %m", filename)));
 
 	/*
 	 * format:
