@@ -25,9 +25,12 @@ class MockGPReader : public GPReader {
 class GPReaderTest : public testing::Test {
    protected:
     virtual void SetUp() {
+        eolString[0] = '\0';
         InitConfig(this->params, "data/s3test.conf", "default");
     }
     virtual void TearDown() {
+        eolString[0] = '\n';
+        eolString[1] = '\0';
     }
 
     S3Params params;

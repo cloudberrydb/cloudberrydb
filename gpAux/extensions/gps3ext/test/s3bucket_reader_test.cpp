@@ -31,6 +31,9 @@ class S3BucketReaderTest : public testing::Test {
 
     // TearDown() is invoked immediately after a test finishes.
     virtual void TearDown() {
+        eolString[0] = '\n';
+        eolString[1] = '\0';
+
         delete bucketReader;
 
         s3ext_segid = 0;

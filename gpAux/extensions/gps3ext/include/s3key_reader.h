@@ -73,7 +73,9 @@ class S3KeyReader : public Reader {
           numOfChunks(0),
           curReadingChunk(0),
           transferredKeyLen(0),
-          s3Interface(NULL) {
+          s3Interface(NULL),
+          hasEol(false),
+          eolAppended(false) {
         pthread_mutex_init(&this->mutexErrorMessage, NULL);
     }
     virtual ~S3KeyReader() {
@@ -159,6 +161,9 @@ class S3KeyReader : public Reader {
     S3Interface* s3Interface;
 
     void reset();
+
+    bool hasEol;
+    bool eolAppended;
 };
 
 class ChunkBuffer {

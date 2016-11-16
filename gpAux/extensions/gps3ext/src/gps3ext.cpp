@@ -113,6 +113,7 @@ static const char *getFormatStr(FunctionCallInfo fcinfo) {
 }
 
 bool hasHeader = false;
+
 char eolString[EOL_CHARS_MAX_LEN + 1] = "\n";  // LF by default
 
 static void parseFormatOpts(FunctionCallInfo fcinfo) {
@@ -124,10 +125,11 @@ static void parseFormatOpts(FunctionCallInfo fcinfo) {
 
     // only TEXT and CSV have detailed options
     if (fmttype_is_csv(fmtcode) || fmttype_is_text(fmtcode)) {
-        if (strstr(fmtopts, "header") != NULL)
+        if (strstr(fmtopts, "header") != NULL) {
             hasHeader = true;
-        else
+        } else {
             hasHeader = false;
+        }
 
         // detect end-of-line terminator
         const char *newline_str = strstr(fmtopts, "newline");

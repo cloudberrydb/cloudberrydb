@@ -1,7 +1,8 @@
 #include "gpcheckcloud.h"
 
 bool hasHeader;
-char eolString[EOL_CHARS_MAX_LEN + 1];
+
+char eolString[EOL_CHARS_MAX_LEN + 1] = "";  // meaningless for gpcheckcloud
 
 string s3extErrorMessage;
 

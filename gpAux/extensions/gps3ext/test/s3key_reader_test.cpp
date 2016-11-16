@@ -11,7 +11,8 @@ using ::testing::Throw;
 using ::testing::_;
 
 bool hasHeader = false;
-char eolString[EOL_CHARS_MAX_LEN + 1] = "\n";
+
+char eolString[EOL_CHARS_MAX_LEN + 1] = "\n";  // LF by default
 
 string s3extErrorMessage;
 
@@ -38,13 +39,20 @@ class S3KeyReaderTest : public testing::Test, public S3KeyReader {
    protected:
     // Remember that SetUp() is run immediately before a test starts.
     virtual void SetUp() {
+        memset(buffer, 0, 256);
+
+        eolString[0] = '\n';
+        eolString[1] = '\0';
+
         QueryCancelPending = false;
+
         this->setS3InterfaceService(&s3Interface);
     }
 
     // TearDown() is invoked immediately after a test finishes.
     virtual void TearDown() {
         this->close();
+
         QueryCancelPending = false;
     }
 
@@ -250,6 +258,7 @@ TEST_F(S3KeyReaderTest, ReadWithSingleChunk) {
     this->open(params);
 
     EXPECT_EQ((uint64_t)255, this->read(buffer, 64 * 1024));
+    EXPECT_EQ((uint64_t)1, this->read(buffer, 64 * 1024));
     EXPECT_EQ((uint64_t)0, this->read(buffer, 64 * 1024));
 }
 
@@ -276,6 +285,7 @@ TEST_F(S3KeyReaderTest, ReadWithSingleChunkNormalCase) {
     EXPECT_EQ((uint64_t)32, this->read(buffer, 32));
     EXPECT_EQ((uint64_t)32, this->read(buffer, 32));
     EXPECT_EQ((uint64_t)31, this->read(buffer, 32));
+    EXPECT_EQ((uint64_t)1, this->read(buffer, 32));
     EXPECT_EQ((uint64_t)0, this->read(buffer, 32));
 }
 
@@ -293,6 +303,7 @@ TEST_F(S3KeyReaderTest, ReadWithSmallBuffer) {
     EXPECT_EQ((uint64_t)64, this->read(buffer, 64));
     EXPECT_EQ((uint64_t)64, this->read(buffer, 64));
     EXPECT_EQ((uint64_t)63, this->read(buffer, 64));
+    EXPECT_EQ((uint64_t)1, this->read(buffer, 64));
     EXPECT_EQ((uint64_t)0, this->read(buffer, 64));
 }
 
@@ -326,6 +337,7 @@ TEST_F(S3KeyReaderTest, ResetByInvokingClose) {
     EXPECT_EQ((uint64_t)64, this->read(buffer, 64));
     EXPECT_EQ((uint64_t)64, this->read(buffer, 64));
     EXPECT_EQ((uint64_t)63, this->read(buffer, 64));
+    EXPECT_EQ((uint64_t)1, this->read(buffer, 64));
     EXPECT_EQ((uint64_t)0, this->read(buffer, 64));
 
     this->close();
@@ -349,6 +361,7 @@ TEST_F(S3KeyReaderTest, ReadWithSmallKeySize) {
     this->open(params);
 
     EXPECT_EQ((uint64_t)2, this->read(buffer, 64));
+    EXPECT_EQ((uint64_t)1, this->read(buffer, 64));
     EXPECT_EQ((uint64_t)0, this->read(buffer, 64));
 }
 
@@ -370,6 +383,7 @@ TEST_F(S3KeyReaderTest, ReadWithSmallChunk) {
     EXPECT_EQ((uint64_t)64, this->read(buffer, 64));
     EXPECT_EQ((uint64_t)64, this->read(buffer, 64));
     EXPECT_EQ((uint64_t)63, this->read(buffer, 64));
+    EXPECT_EQ((uint64_t)1, this->read(buffer, 64));
     EXPECT_EQ((uint64_t)0, this->read(buffer, 64));
 }
 
@@ -391,6 +405,7 @@ TEST_F(S3KeyReaderTest, ReadWithSmallChunkDividedKeySize) {
     EXPECT_EQ((uint64_t)64, this->read(buffer, 64));
     EXPECT_EQ((uint64_t)64, this->read(buffer, 64));
     EXPECT_EQ((uint64_t)64, this->read(buffer, 64));
+    EXPECT_EQ((uint64_t)1, this->read(buffer, 64));
     EXPECT_EQ((uint64_t)0, this->read(buffer, 64));
 }
 
@@ -405,6 +420,7 @@ TEST_F(S3KeyReaderTest, ReadWithChunkLargerThanReadBufferAndKeySize) {
     this->open(params);
 
     EXPECT_EQ((uint64_t)255, this->read(buffer, 255));
+    EXPECT_EQ((uint64_t)1, this->read(buffer, 255));
     EXPECT_EQ((uint64_t)0, this->read(buffer, 255));
 }
 
@@ -428,6 +444,7 @@ TEST_F(S3KeyReaderTest, ReadWithKeyLargerThanChunkSize) {
     EXPECT_EQ((uint64_t)255, this->read(buffer, 255));
     EXPECT_EQ((uint64_t)255, this->read(buffer, 255));
     EXPECT_EQ((uint64_t)4, this->read(buffer, 255));
+    EXPECT_EQ((uint64_t)1, this->read(buffer, 255));
     EXPECT_EQ((uint64_t)0, this->read(buffer, 255));
 }
 
@@ -442,6 +459,7 @@ TEST_F(S3KeyReaderTest, ReadWithSameKeyChunkReadSize) {
     this->open(params);
 
     EXPECT_EQ((uint64_t)255, this->read(buffer, 255));
+    EXPECT_EQ((uint64_t)1, this->read(buffer, 255));
     EXPECT_EQ((uint64_t)0, this->read(buffer, 255));
 }
 
@@ -466,6 +484,7 @@ TEST_F(S3KeyReaderTest, MTReadWith2Chunks) {
     EXPECT_EQ((uint64_t)32, this->read(buffer, 32));
     EXPECT_EQ((uint64_t)32, this->read(buffer, 32));
     EXPECT_EQ((uint64_t)31, this->read(buffer, 32));
+    EXPECT_EQ((uint64_t)1, this->read(buffer, 32));
     EXPECT_EQ((uint64_t)0, this->read(buffer, 32));
 }
 
@@ -490,6 +509,7 @@ TEST_F(S3KeyReaderTest, MTReadWithRedundantChunks) {
     EXPECT_EQ((uint64_t)32, this->read(buffer, 32));
     EXPECT_EQ((uint64_t)32, this->read(buffer, 32));
     EXPECT_EQ((uint64_t)31, this->read(buffer, 32));
+    EXPECT_EQ((uint64_t)1, this->read(buffer, 32));
     EXPECT_EQ((uint64_t)0, this->read(buffer, 32));
 }
 
@@ -514,6 +534,7 @@ TEST_F(S3KeyReaderTest, MTReadWithReusedAndUnreusedChunks) {
     EXPECT_EQ((uint64_t)32, this->read(buffer, 32));
     EXPECT_EQ((uint64_t)32, this->read(buffer, 32));
     EXPECT_EQ((uint64_t)31, this->read(buffer, 32));
+    EXPECT_EQ((uint64_t)1, this->read(buffer, 32));
     EXPECT_EQ((uint64_t)0, this->read(buffer, 32));
 }
 
@@ -534,6 +555,7 @@ TEST_F(S3KeyReaderTest, MTReadWithChunksSmallerThanReadBuffer) {
     EXPECT_EQ((uint64_t)64, this->read(buffer, 127));
     EXPECT_EQ((uint64_t)64, this->read(buffer, 127));
     EXPECT_EQ((uint64_t)63, this->read(buffer, 127));
+    EXPECT_EQ((uint64_t)1, this->read(buffer, 127));
     EXPECT_EQ((uint64_t)0, this->read(buffer, 127));
 }
 
@@ -561,6 +583,7 @@ TEST_F(S3KeyReaderTest, MTReadWithFragmentalReadRequests) {
     EXPECT_EQ((uint64_t)2, this->read(buffer, 31));
     EXPECT_EQ((uint64_t)31, this->read(buffer, 31));
     EXPECT_EQ((uint64_t)31, this->read(buffer, 31));
+    EXPECT_EQ((uint64_t)1, this->read(buffer, 31));
     EXPECT_EQ((uint64_t)1, this->read(buffer, 31));
     EXPECT_EQ((uint64_t)0, this->read(buffer, 31));
 }
@@ -624,6 +647,7 @@ TEST_F(S3KeyReaderTest, MTReadWithHundredsOfThreads) {
     EXPECT_EQ((uint64_t)31, this->read(buffer, 31));
     EXPECT_EQ((uint64_t)31, this->read(buffer, 31));
     EXPECT_EQ((uint64_t)2, this->read(buffer, 31));
+    EXPECT_EQ((uint64_t)1, this->read(buffer, 31));
     EXPECT_EQ((uint64_t)0, this->read(buffer, 31));
 }
 

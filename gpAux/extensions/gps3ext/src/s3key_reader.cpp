@@ -221,6 +221,15 @@ uint64_t S3KeyReader::read(char* buf, uint64_t count) {
     do {
         // confirm there is no more available data, done with this file
         if (this->transferredKeyLen >= fileLen) {
+            if (!this->hasEol && !this->eolAppended) {
+                uint64_t eolLen = strlen(eolString);
+                strncpy(buf, eolString, eolLen);
+
+                this->eolAppended = true;
+
+                return eolLen;
+            }
+
             return 0;
         }
 
@@ -237,15 +246,19 @@ uint64_t S3KeyReader::read(char* buf, uint64_t count) {
         }
 
         this->transferredKeyLen += readLen;
+        if (this->transferredKeyLen == fileLen) {
+            if (buf[readLen - 1] == '\r' || buf[readLen - 1] == '\n') {
+                this->hasEol = true;
+            }
+        }
 
         if (readLen < count) {
             this->curReadingChunk++;
         }
 
         count -= readLen;
-        // retry to confirm whether thread reading is finished or chunk size is
-        // divisible by get()'s buffer size
-    } while (readLen == 0);
+    } while (readLen == 0);  // retry to confirm whether thread reading is finished or chunk size is
+                             // divisible by get()'s buffer size
 
     return readLen;
 }
@@ -260,6 +273,9 @@ void S3KeyReader::reset() {
 
     this->chunkBuffers.clear();
     this->threads.clear();
+
+    this->hasEol = false;
+    this->eolAppended = false;
 }
 
 void S3KeyReader::close() {
