@@ -115,7 +115,7 @@ Some configure options are nominally optional, but required to pass
 all regression tests. The minimum set of options for running the
 regression tests successfully is:
 
-./configure --with-perl --with-python --with-libxml --enable-mapreduce
+`./configure --with-perl --with-python --with-libxml --enable-mapreduce`
 
 ### Build GPDB with Planner
 
@@ -154,8 +154,13 @@ PGPORT=15432 make installcheck-good
 
 
 ### Build GPDB with GPORCA
+You must first install the below libraries in the below order (see the READMEs on each repository):
 
-Only need to change the `configure` with additional option `--enable-orca`.
+1. https://github.com/greenplum-db/gp-xerces
+2. https://github.com/greenplum-db/gpos
+3. https://github.com/greenplum-db/gporca
+
+Next, change your `configure` command to have the additional option `--enable-orca`.
 ```
 # Configure build environment to install at /usr/local/gpdb
 # Enable GPORCA
