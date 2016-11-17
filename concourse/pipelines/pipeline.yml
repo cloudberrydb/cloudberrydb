@@ -423,7 +423,7 @@ jobs:
       QAUTILS_TARBALL: rc_bin_gpdb/QAUtils-rhel6-x86_64.tar.gz
 
   - task: gpdb_src_tinc_packaging
-    file: gpdb_src/concourse/gpdb_src_tinc_packaging.yml
+    file: gpdb_src/concourse/tasks/gpdb_src_tinc_packaging.yml
     image: centos67-gpdb-gcc6-llvm-image
     tags: ["worker-three"]
     output_mapping:
