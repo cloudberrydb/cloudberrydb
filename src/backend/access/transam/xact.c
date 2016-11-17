@@ -1663,15 +1663,6 @@ RecordTransactionAbort(bool isSubXact)
 	else
 		xid = GetCurrentTransactionIdIfAny();
 
-	/* Get data needed for abort record */
-	persistentAbortSerializeLen =
-			PersistentEndXactRec_FetchObjectsFromSmgr(
-										&persistentAbortObjects,
-										EndXactRecKind_Abort,
-										&persistentAbortObjectCount);
-
-	nchildren = xactGetCommittedChildren(&children);
-
 	/*
 	 * If we haven't been assigned an XID, nobody will care whether we aborted
 	 * or not.	Hence, we're done in that case.  It does not matter if we have
@@ -1701,6 +1692,15 @@ RecordTransactionAbort(bool isSubXact)
 	if (TransactionIdDidCommit(xid))
 		elog(PANIC, "cannot abort transaction %u, it was already committed",
 			 xid);
+
+	/* Get data needed for abort record */
+	persistentAbortSerializeLen =
+			PersistentEndXactRec_FetchObjectsFromSmgr(
+										&persistentAbortObjects,
+										EndXactRecKind_Abort,
+										&persistentAbortObjectCount);
+
+	nchildren = xactGetCommittedChildren(&children);
 
 	/* XXX do we really need a critical section here? */
 	START_CRIT_SECTION();
@@ -1783,7 +1783,7 @@ RecordTransactionAbort(bool isSubXact)
 	 * subxacts, because we already have the child XID array at hand.  For
 	 * main xacts, the equivalent happens just after this function returns.
 	 */
-	if (isSubXact && isQEReader)
+	if (isSubXact)
 		XidCacheRemoveRunningXids(xid, nchildren, children, latestXid);
 
 	/* Reset XactLastRecEnd until the next transaction writes something */
