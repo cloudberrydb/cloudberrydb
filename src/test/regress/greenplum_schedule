@@ -85,7 +85,19 @@ test: filespace trig auth_constraint role rle portals_updatable plpgsql_cache ti
 # direct dispatch tests
 test: bfv_dd bfv_dd_multicolumn bfv_dd_types
 
-test: catalog bfv_catalog bfv_index bfv_olap bfv_aggregate bfv_partition DML_over_joins gp_optimizer bfv_statistic
+# catalog test uses pg_get_constraintdef which may report ERROR when executed
+# concurrently with other tests. Cause pg_get_constraintdef() looks up
+# information on the constraint from the syscache, which uses SnapshotNow to
+# fetch the information. But the query itself uses an MVCC snapshot. If the
+# query's MVCC snapshot sees a constraint that is concurrently dropped so that
+# it's not visible to SnapshotNow, you get error.
+#
+# This has been fixed in PostgreSQL 9.4, as part of a larger patch that relaxed
+# locking requirements of ALTER TABLE
+# (https://git.postgresql.org/gitweb/?p=postgresql.git;a=commitdiff;h=e5550d5fec66aa74caad1f79b79826ec64898688)
+test: catalog
+
+test: bfv_catalog bfv_index bfv_olap bfv_aggregate bfv_partition DML_over_joins gp_optimizer bfv_statistic
  
 test: aggregate_with_groupingsets 
 
