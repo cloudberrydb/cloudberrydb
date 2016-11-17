@@ -12,6 +12,7 @@ There should be five pipelines in this directory:
 
 * `pipeline.yml` the pipeline that compiles, tests, and produces installers from the master branch of gpdb.
 * `dev_pipeline.yml` a safe-to-duplicate version of `pipeline.yml` which saves artifacts to dev buckets.
+* `dev_generate_installer.yml` which compiles and generates an installer for the given source and saves it to dev buckets.
 * `pr_pipeline.yml` which compiles and tests pull requests.
 * `concourse-upgrade.yml` which uses Concourse to upgrade itself.
 * `pipeline_tinc.yml` run TINC tests against gpdb master branch.
