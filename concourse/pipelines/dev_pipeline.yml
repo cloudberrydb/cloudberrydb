@@ -107,14 +107,11 @@ jobs:
   plan:
   - aggregate:
     - get: gpdb_src
-      tags: ["worker-one"]
       trigger: true
     - get: centos67-gpdb-gcc6-llvm-image
-      tags: ["worker-one"]
   - task: compile_gpdb
     file: gpdb_src/concourse/compile_gpdb.yml
     image: centos67-gpdb-gcc6-llvm-image
-    tags: ["worker-one"]
     params:
       IVYREPO_HOST: {{ivyrepo_host}}
       IVYREPO_REALM: {{ivyrepo_realm}}
@@ -125,11 +122,9 @@ jobs:
       BLD_TARGETS: ""
   - aggregate:
     - put: bin_gpdb_centos
-      tags: ["worker-one"]
       params:
         file: gpdb_artifacts/bin_gpdb.tar.gz
     - put: sync_tools_gpdb_centos
-      tags: ["worker-one"]
       params:
         file: sync_tools_gpdb/sync_tools_gpdb.tar.gz
 
@@ -140,27 +135,21 @@ jobs:
   - aggregate:
     - get: gpdb_src
       trigger: true
-      tags: ["worker-two"]
     - get: centos67-gpdb-gcc6-llvm-image
-      tags: ["worker-two"]
   - task: compile_gpdb
     file: gpdb_src/concourse/compile_gpdb_custom_config.yml
     image: centos67-gpdb-gcc6-llvm-image
-    tags: ["worker-two"]
 
 - name: compile_gpdb_centos7
   serial: true
   plan:
   - aggregate:
     - get: gpdb_src
-      tags: ["worker-three"]
       trigger: true
     - get: centos72-gpdb-gcc6-llvm-image
-      tags: ["worker-three"]
   - task: compile_gpdb
     file: gpdb_src/concourse/compile_gpdb.yml
     image: centos72-gpdb-gcc6-llvm-image
-    tags: ["worker-three"]
     params:
       IVYREPO_HOST: {{ivyrepo_host}}
       IVYREPO_REALM: {{ivyrepo_realm}}
@@ -176,23 +165,18 @@ jobs:
   plan:
   - aggregate:
     - get: gpdb_src
-      tags: ["worker-one"]
       passed: [compile_gpdb_centos6]
     - get: sync_tools_gpdb_centos
-      tags: ["worker-one"]
       resource: sync_tools_gpdb_centos
       passed: [compile_gpdb_centos6]
     - get: bin_gpdb
-      tags: ["worker-one"]
       resource: bin_gpdb_centos
       passed: [compile_gpdb_centos6]
       trigger: true
     - get: centos67-gpdb-gcc6-llvm-image
-      tags: ["worker-one"]
   - task: ic_gpdb
     file: gpdb_src/concourse/ic_gpdb.yml
     image: centos67-gpdb-gcc6-llvm-image
-    tags: ["worker-one"]
     params:
       MAKE_TEST_COMMAND: PGOPTIONS='-c optimizer=off -c codegen=off' installcheck-good
       BLDWRAP_POSTGRES_CONF_ADDONS: "fsync=off"
@@ -203,23 +187,18 @@ jobs:
   plan:
   - aggregate:
     - get: gpdb_src
-      tags: ["worker-two"]
       passed: [compile_gpdb_centos6]
     - get: sync_tools_gpdb_centos
-      tags: ["worker-two"]
       resource: sync_tools_gpdb_centos
       passed: [compile_gpdb_centos6]
     - get: bin_gpdb
-      tags: ["worker-two"]
       resource: bin_gpdb_centos
       passed: [compile_gpdb_centos6]
       trigger: true
     - get: centos67-gpdb-gcc6-llvm-image
-      tags: ["worker-two"]
   - task: ic_gpdb
     file: gpdb_src/concourse/ic_gpdb.yml
     image: centos67-gpdb-gcc6-llvm-image
-    tags: ["worker-two"]
     params:
       MAKE_TEST_COMMAND: PGOPTIONS='-c optimizer=on -c codegen=off' installcheck-good
       BLDWRAP_POSTGRES_CONF_ADDONS: "fsync=off"
@@ -230,23 +209,18 @@ jobs:
   plan:
   - aggregate:
     - get: gpdb_src
-      tags: ["worker-three"]
       passed: [compile_gpdb_centos6]
     - get: sync_tools_gpdb_centos
-      tags: ["worker-three"]
       resource: sync_tools_gpdb_centos
       passed: [compile_gpdb_centos6]
     - get: bin_gpdb
-      tags: ["worker-three"]
       resource: bin_gpdb_centos
       passed: [compile_gpdb_centos6]
       trigger: true
     - get: centos67-gpdb-gcc6-llvm-image
-      tags: ["worker-three"]
   - task: ic_gpdb
     file: gpdb_src/concourse/ic_gpdb.yml
     image: centos67-gpdb-gcc6-llvm-image
-    tags: ["worker-three"]
     params:
       MAKE_TEST_COMMAND: PGOPTIONS='-c optimizer=off -c codegen=on' installcheck-good
       BLDWRAP_POSTGRES_CONF_ADDONS: "fsync=off"
@@ -257,23 +231,18 @@ jobs:
   plan:
   - aggregate:
     - get: gpdb_src
-      tags: ["worker-four"]
       passed: [compile_gpdb_centos6]
     - get: sync_tools_gpdb_centos
-      tags: ["worker-four"]
       resource: sync_tools_gpdb_centos
       passed: [compile_gpdb_centos6]
     - get: bin_gpdb
-      tags: ["worker-four"]
       resource: bin_gpdb_centos
       passed: [compile_gpdb_centos6]
       trigger: true
     - get: centos67-gpdb-gcc6-llvm-image
-      tags: ["worker-four"]
   - task: ic_gpdb
     file: gpdb_src/concourse/ic_gpdb.yml
     image: centos67-gpdb-gcc6-llvm-image
-    tags: ["worker-four"]
     params:
       MAKE_TEST_COMMAND: PGOPTIONS='-c optimizer=on -c codegen=on' installcheck-good
       BLDWRAP_POSTGRES_CONF_ADDONS: "fsync=off"
@@ -284,23 +253,18 @@ jobs:
   plan:
   - aggregate:
     - get: gpdb_src
-      tags: ["worker-one"]
       passed: [icg_planner_centos6]
     - get: sync_tools_gpdb_centos
-      tags: ["worker-one"]
       resource: sync_tools_gpdb_centos
       passed: [icg_planner_centos6]
     - get: bin_gpdb
-      tags: ["worker-one"]
       resource: bin_gpdb_centos
       passed: [icg_planner_centos6]
       trigger: true
     - get: centos67-gpdb-gcc6-llvm-image
-      tags: ["worker-one"]
   - task: ic_gpdb
     file: gpdb_src/concourse/ic_gpdb.yml
     image: centos67-gpdb-gcc6-llvm-image
-    tags: ["worker-one"]
     params:
       MAKE_TEST_COMMAND: PGOPTIONS='-c optimizer=off -c codegen=off' installcheck-bugbuster
       BLDWRAP_POSTGRES_CONF_ADDONS: "fsync=off"
@@ -311,23 +275,18 @@ jobs:
   plan:
   - aggregate:
     - get: gpdb_src
-      tags: ["worker-two"]
       passed: [icg_gporca_centos6]
     - get: sync_tools_gpdb_centos
-      tags: ["worker-two"]
       resource: sync_tools_gpdb_centos
       passed: [icg_gporca_centos6]
     - get: bin_gpdb
-      tags: ["worker-two"]
       resource: bin_gpdb_centos
       passed: [icg_gporca_centos6]
       trigger: true
     - get: centos67-gpdb-gcc6-llvm-image
-      tags: ["worker-two"]
   - task: ic_gpdb
     file: gpdb_src/concourse/ic_gpdb.yml
     image: centos67-gpdb-gcc6-llvm-image
-    tags: ["worker-two"]
     params:
       MAKE_TEST_COMMAND: PGOPTIONS='-c optimizer=on -c codegen=off' installcheck-bugbuster
       BLDWRAP_POSTGRES_CONF_ADDONS: "fsync=off"
@@ -338,23 +297,18 @@ jobs:
   plan:
   - aggregate:
     - get: gpdb_src
-      tags: ["worker-three"]
       passed: [icg_planner_codegen_centos6]
     - get: sync_tools_gpdb_centos
-      tags: ["worker-three"]
       resource: sync_tools_gpdb_centos
       passed: [icg_planner_codegen_centos6]
     - get: bin_gpdb
-      tags: ["worker-three"]
       resource: bin_gpdb_centos
       passed: [icg_planner_codegen_centos6]
       trigger: true
     - get: centos67-gpdb-gcc6-llvm-image
-      tags: ["worker-three"]
   - task: ic_gpdb
     file: gpdb_src/concourse/ic_gpdb.yml
     image: centos67-gpdb-gcc6-llvm-image
-    tags: ["worker-three"]
     params:
       MAKE_TEST_COMMAND: PGOPTIONS='-c optimizer=off -c codegen=on' installcheck-bugbuster
       BLDWRAP_POSTGRES_CONF_ADDONS: "fsync=off"
@@ -365,23 +319,18 @@ jobs:
   plan:
   - aggregate:
     - get: gpdb_src
-      tags: ["worker-four"]
       passed: [icg_gporca_codegen_centos6]
     - get: sync_tools_gpdb_centos
-      tags: ["worker-four"]
       resource: sync_tools_gpdb_centos
       passed: [icg_gporca_codegen_centos6]
     - get: bin_gpdb
-      tags: ["worker-four"]
       resource: bin_gpdb_centos
       passed: [icg_gporca_codegen_centos6]
       trigger: true
     - get: centos67-gpdb-gcc6-llvm-image
-      tags: ["worker-four"]
   - task: ic_gpdb
     file: gpdb_src/concourse/ic_gpdb.yml
     image: centos67-gpdb-gcc6-llvm-image
-    tags: ["worker-four"]
     params:
       MAKE_TEST_COMMAND: PGOPTIONS='-c optimizer=on -c codegen=on' installcheck-bugbuster
       BLDWRAP_POSTGRES_CONF_ADDONS: "fsync=off"
@@ -394,28 +343,22 @@ jobs:
   plan:
   - aggregate:
     - get: gpdb_src
-      tags: ["worker-three"]
       passed: [icb_planner_centos6, icb_gporca_centos6, icb_planner_codegen_centos6, icb_gporca_codegen_centos6]
     - get: gpaddon_src
-      tags: ["worker-three"]
     - get: bin_gpdb
-      tags: ["worker-three"]
       resource: bin_gpdb_centos
       passed: [icb_planner_centos6, icb_gporca_centos6, icb_planner_codegen_centos6, icb_gporca_codegen_centos6]
       trigger: true
     - get: centos67-gpdb-gcc6-llvm-image
-      tags: ["worker-three"]
   - task: separate_qautils_files_for_rc
     file: gpdb_src/concourse/separate_qautils_files_for_rc.yml
     image: centos67-gpdb-gcc6-llvm-image
-    tags: ["worker-three"]
     params:
       QAUTILS_TARBALL: rc_bin_gpdb/QAUtils-rhel6-x86_64.tar.gz
   - aggregate:
     - task: gpdb_rc_packaging_centos
       file: gpdb_src/concourse/gpdb_packaging.yml
       image: centos67-gpdb-gcc6-llvm-image
-      tags: ["worker-three"]
       input_mapping:
         bin_gpdb: rc_bin_gpdb
       output_mapping:
@@ -427,7 +370,6 @@ jobs:
     - task: gpdb_appliance_rhel6_rc_packaging
       file: gpdb_src/concourse/gpdb_packaging.yml
       image: centos67-gpdb-gcc6-llvm-image
-      tags: ["worker-three"]
       input_mapping:
         bin_gpdb: rc_bin_gpdb
       output_mapping:
@@ -437,22 +379,17 @@ jobs:
         INSTALLER_ZIP: packaged_gpdb/greenplum-db-appliance-4.3.99.0-build-1-rhel6-x86_64.zip
   - aggregate:
     - put: installer_rhel6_gpdb_rc
-      tags: ["worker-three"]
       params:
         file: packaged_gpdb_rc/greenplum-db-4.3.99.0-build-1-rhel6-x86_64.zip
     - put: installer_rhel6_gpdb_rc_md5
-      tags: ["worker-three"]
       params:
         file: packaged_gpdb_rc/greenplum-db-4.3.99.0-build-1-rhel6-x86_64.zip.md5
     - put: installer_appliance_rhel6_gpdb_rc
-      tags: ["worker-three"]
       params:
         file: packaged_gpdb_appliance_rc/greenplum-db-appliance-4.3.99.0-build-1-rhel6-x86_64.zip
     - put: installer_appliance_rhel6_gpdb_rc_md5
-      tags: ["worker-three"]
       params:
         file: packaged_gpdb_appliance_rc/greenplum-db-appliance-4.3.99.0-build-1-rhel6-x86_64.zip.md5
     - put: qautils_rhel6_tarball
-      tags: ["worker-three"]
       params:
         file: rc_bin_gpdb/QAUtils-rhel6-x86_64.tar.gz
