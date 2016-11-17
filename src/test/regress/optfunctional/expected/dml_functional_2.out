@@ -4162,7 +4162,7 @@ SELECT COUNT(*) FROM dml_heap_check_s;
 (1 row)
 
 INSERT INTO dml_heap_check_s values(default,1,'nn',1.0000);
-ERROR:  null value in column "a" violates not-null constraint (COptTasks.cpp:1628)
+ERROR:  null value in column "a" violates not-null constraint
 SELECT COUNT(*) FROM dml_heap_check_s;
  count 
 -------
