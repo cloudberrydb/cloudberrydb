@@ -8,12 +8,13 @@ The Concourse directory should contain this README and three sub-directories onl
 * scripts
 
 ##### Pipelines Directory
-There should be five pipelines in this directory:
+There should be seven pipelines in this directory:
 
 * `pipeline.yml` the pipeline that compiles, tests, and produces installers from the master branch of gpdb.
-* `dev_pipeline.yml` a safe-to-duplicate version of `pipeline.yml` which saves artifacts to dev buckets.
-* `dev_generate_installer.yml` which compiles and generates an installer for the given source and saves it to dev buckets.
+* `dev_pipeline.yml` a safe-to-duplicate version of `pipeline.yml` which saves artifacts to a dev bucket.
+* `dev_generate_installer.yml` which compiles and generates an installer for the given source and saves it to a dev bucket.
 * `pr_pipeline.yml` which compiles and tests pull requests.
+* `dev_pr_pipeline.yml` which safely mimics the `pr_pipeline.yml`, and saves an installer to the dev bucket.
 * `concourse-upgrade.yml` which uses Concourse to upgrade itself.
 * `pipeline_tinc.yml` run TINC tests against gpdb master branch.
 
