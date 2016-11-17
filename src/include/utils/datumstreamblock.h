@@ -1177,7 +1177,6 @@ DatumStreamBlockRead_Get(DatumStreamBlockRead * dsr, Datum *datum, bool *null)
 							"(nth %d)",
 						  DatumStreamVersion_String(dsr->datumStreamVersion),
 							dsr->nth),
-					 errOmitLocation(true),
 					 errdetail_datumstreamblockread(dsr),
 					 errcontext_datumstreamblockread(dsr)));
 		}
@@ -1221,7 +1220,6 @@ DatumStreamBlockRead_Get(DatumStreamBlockRead * dsr, Datum *datum, bool *null)
 							dsr->physical_data_size,
 							dsr->datump,
 							dsr->datum_afterp),
-					 errOmitLocation(false),
 					 errdetail_datumstreamblockread(dsr),
 					 errcontext_datumstreamblockread(dsr)));
 		}
@@ -1240,7 +1238,6 @@ DatumStreamBlockRead_Get(DatumStreamBlockRead * dsr, Datum *datum, bool *null)
 							varLen,
 							dsr->datump,
 							dsr->datum_afterp),
-					 errOmitLocation(false),
 					 errdetail_datumstreamblockread(dsr),
 					 errcontext_datumstreamblockread(dsr)));
 		}
@@ -1262,7 +1259,6 @@ DatumStreamBlockRead_Get(DatumStreamBlockRead * dsr, Datum *datum, bool *null)
 							dsr->nth,
 							dsr->datump,
 							(int64) (dsr->datump - dsr->datum_beginp)),
-					 errOmitLocation(true),
 					 errdetail_datumstreamblockread(dsr),
 					 errcontext_datumstreamblockread(dsr)));
 		}
@@ -1290,7 +1286,6 @@ DatumStreamBlockRead_Get(DatumStreamBlockRead * dsr, Datum *datum, bool *null)
 							dsr->typeInfo.datumlen,
 							dsr->datump,
 							(int64) (dsr->datump - dsr->datum_beginp)),
-					 errOmitLocation(true),
 					 errdetail_datumstreamblockread(dsr),
 					 errcontext_datumstreamblockread(dsr)));
 		}
@@ -1346,7 +1341,6 @@ DatumStreamBlockRead_Get(DatumStreamBlockRead * dsr, Datum *datum, bool *null)
 								dsr->datump,
 								(int64) (dsr->datump - dsr->datum_beginp),
 								(int64) * datum),
-						 errOmitLocation(true),
 						 errdetail_datumstreamblockread(dsr),
 						 errcontext_datumstreamblockread(dsr)));
 			}
@@ -1401,7 +1395,6 @@ DatumStreamBlockRead_AdvanceOrig(DatumStreamBlockRead * dsr)
 					 (errmsg("Datum stream block read is positioned to NULL "
 							 "(nth %d)",
 							 dsr->nth),
-					  errOmitLocation(true),
 					  errdetail_datumstreamblockread(dsr),
 					  errcontext_datumstreamblockread(dsr)));
 			}
@@ -1435,7 +1428,6 @@ DatumStreamBlockRead_AdvanceOrig(DatumStreamBlockRead * dsr)
 							dsr->logical_row_count,
 							dsr->datump,
 							(int64) (dsr->datump - dsr->datum_beginp)),
-					 errOmitLocation(true),
 					 errdetail_datumstreamblockread(dsr),
 					 errcontext_datumstreamblockread(dsr)));
 		}
@@ -1490,7 +1482,6 @@ DatumStreamBlockRead_AdvanceOrig(DatumStreamBlockRead * dsr)
 								item_beginp,
 								dsr->datump,
 								dsr->datum_afterp),
-						 errOmitLocation(false),
 						 errdetail_datumstreamblockread(dsr),
 						 errcontext_datumstreamblockread(dsr)));
 			}
@@ -1507,7 +1498,6 @@ DatumStreamBlockRead_AdvanceOrig(DatumStreamBlockRead * dsr)
 								item_beginp,
 								(int64) (item_beginp - dsr->datum_beginp),
 								dsr->datump),
-						 errOmitLocation(true),
 						 errdetail_datumstreamblockread(dsr),
 						 errcontext_datumstreamblockread(dsr)));
 			}
@@ -1539,7 +1529,6 @@ DatumStreamBlockRead_AdvanceOrig(DatumStreamBlockRead * dsr)
 								item_beginp,
 								(int64) (item_beginp - dsr->datum_beginp),
 								dsr->datump),
-						 errOmitLocation(true),
 						 errdetail_datumstreamblockread(dsr),
 						 errcontext_datumstreamblockread(dsr)));
 			}
@@ -1651,7 +1640,6 @@ DatumStreamBlockRead_AdvanceDenseDelta(DatumStreamBlockRead * dsr)
 						dsr->logical_row_count,
 						delta,
 						sign),
-				 errOmitLocation(true),
 				 errdetail_datumstreamblockread(dsr),
 				 errcontext_datumstreamblockread(dsr)));
 	}
@@ -1712,7 +1700,6 @@ DatumStreamBlockRead_AdvanceDense(DatumStreamBlockRead * dsr)
 									dsr->nth,
 									dsr->logical_row_count,
 							 DatumStreamBitMapRead_Count(&dsr->null_bitmap)),
-							 errOmitLocation(true),
 							 errdetail_datumstreamblockread(dsr),
 							 errcontext_datumstreamblockread(dsr)));
 				}
@@ -1724,7 +1711,6 @@ DatumStreamBlockRead_AdvanceDense(DatumStreamBlockRead * dsr)
 									dsr->nth,
 									dsr->logical_row_count,
 							 DatumStreamBitMapRead_Count(&dsr->null_bitmap)),
-							 errOmitLocation(true),
 							 errdetail_datumstreamblockread(dsr),
 							 errcontext_datumstreamblockread(dsr)));
 				}
@@ -1738,7 +1724,6 @@ DatumStreamBlockRead_AdvanceDense(DatumStreamBlockRead * dsr)
 								dsr->nth,
 								dsr->logical_row_count,
 					 DatumStreamBitMapRead_Count(&dsr->rle_compress_bitmap)),
-						 errOmitLocation(true),
 						 errdetail_datumstreamblockread(dsr),
 						 errcontext_datumstreamblockread(dsr)));
 			}
@@ -1750,7 +1735,6 @@ DatumStreamBlockRead_AdvanceDense(DatumStreamBlockRead * dsr)
 								dsr->nth,
 								dsr->logical_row_count,
 					 DatumStreamBitMapRead_Count(&dsr->rle_compress_bitmap)),
-						 errOmitLocation(true),
 						 errdetail_datumstreamblockread(dsr),
 						 errcontext_datumstreamblockread(dsr)));
 			}
@@ -1799,7 +1783,6 @@ DatumStreamBlockRead_AdvanceDense(DatumStreamBlockRead * dsr)
 							  DatumStreamBitMapRead_Count(&dsr->null_bitmap),
 								dsr->physical_datum_count,
 					 DatumStreamBitMapRead_Count(&dsr->rle_compress_bitmap)),
-						 errOmitLocation(true),
 						 errdetail_datumstreamblockread(dsr),
 						 errcontext_datumstreamblockread(dsr)));
 			}
@@ -1827,7 +1810,6 @@ DatumStreamBlockRead_AdvanceDense(DatumStreamBlockRead * dsr)
 							dsr->nth,
 							dsr->logical_row_count,
 					 DatumStreamBitMapRead_Count(&dsr->rle_compress_bitmap)),
-					 errOmitLocation(true),
 					 errdetail_datumstreamblockread(dsr),
 					 errcontext_datumstreamblockread(dsr)));
 		}
@@ -1890,7 +1872,6 @@ DatumStreamBlockRead_AdvanceDense(DatumStreamBlockRead * dsr)
 							dsr->logical_row_count,
 							dsr->datump,
 							(int64) (dsr->datump - dsr->datum_beginp)),
-					 errOmitLocation(true),
 					 errdetail_datumstreamblockread(dsr),
 					 errcontext_datumstreamblockread(dsr)));
 		}
@@ -1947,7 +1928,6 @@ DatumStreamBlockRead_AdvanceDense(DatumStreamBlockRead * dsr)
 								item_beginp,
 								dsr->datump,
 								dsr->datum_afterp),
-						 errOmitLocation(false),
 						 errdetail_datumstreamblockread(dsr),
 						 errcontext_datumstreamblockread(dsr)));
 			}
@@ -1964,7 +1944,6 @@ DatumStreamBlockRead_AdvanceDense(DatumStreamBlockRead * dsr)
 								item_beginp,
 								(int64) (item_beginp - dsr->datum_beginp),
 								dsr->datump),
-						 errOmitLocation(true),
 						 errdetail_datumstreamblockread(dsr),
 						 errcontext_datumstreamblockread(dsr)));
 			}

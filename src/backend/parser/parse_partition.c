@@ -3974,7 +3974,6 @@ validate_range_partition(partValidationState *vstate)
 							"specification in partition clause",
 							specTName),
 			/* MPP-4249: use value spec location if have one */
-					 errOmitLocation(true),
 					 parser_errposition(vstate->pstate,
 								 ((PartitionValuesSpec *) spec)->location)));
 		}

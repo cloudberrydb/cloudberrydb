@@ -653,10 +653,15 @@ check_ntile_argument(List *args, WindowSpec *win_spec, List *tlist)
 			}
 
 			if (tlist_lc == NULL)
+			{
+				/*
+				 * XXX: Can this happen? If it can, this should be a syntax error, rather than
+				 * internal error.
+				 */
 				ereport(ERROR,
 						(errcode(ERRCODE_INTERNAL_ERROR),
-						 errmsg("PARTITION BY expression does not appear in the targetlist."),
-								   errOmitLocation(true)));
+						 errmsg("PARTITION BY expression does not appear in the targetlist.")));
+			}
 		}
 	}
 

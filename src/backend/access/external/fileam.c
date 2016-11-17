@@ -1578,8 +1578,7 @@ open_external_readable_source(FileScanDesc scan)
 		ereport(ERROR,
 				(errcode_for_file_access(),
 				 errmsg("could not open \"%s\" for reading: %d %s",
-						scan->fs_uri, response_code, response_string),
-				 errOmitLocation(true)));
+						scan->fs_uri, response_code, response_string)));
 	}
 	else
 	{

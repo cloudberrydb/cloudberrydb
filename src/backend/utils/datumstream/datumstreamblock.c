@@ -184,7 +184,6 @@ DatumStreamBlockRead_GetReadyOrig(
 				(errmsg("Bad datum stream Original block header size.  Found %d and expected the size to be at least %d",
 						bufferSize,
 						minHeaderSize),
-				 errOmitLocation(false),
 				 errdetail_datumstreamblockread(dsr),
 				 errcontext_datumstreamblockread(dsr)));
 	}
@@ -196,7 +195,6 @@ DatumStreamBlockRead_GetReadyOrig(
 				(errmsg("Bad datum stream Original block version.  Found %d and expected %d",
 						blockOrig->version,
 						DatumStreamVersion_Original),
-				 errOmitLocation(false),
 				 errdetail_datumstreamblockread(dsr),
 				 errcontext_datumstreamblockread(dsr)));
 	}
@@ -423,7 +421,6 @@ DatumStreamBlockRead_CheckDenseGetInvariant(
 								currentDeltaBitMapOnCount,
 								dsr->logical_row_count,
 								dsr->physical_datum_count),
-						 errOmitLocation(false),
 						 errdetail_datumstreamblockread(dsr),
 						 errcontext_datumstreamblockread(dsr)));
 			}
@@ -443,7 +440,6 @@ DatumStreamBlockRead_CheckDenseGetInvariant(
 						(errmsg("NULL bit-map ON count does not match when Dense block does not have RLE_TYPE compression.	Found %d, expected %d",
 								currentNullOnCount,
 								expectedNullOnCount),
-						 errOmitLocation(false),
 						 errdetail_datumstreamblockread(dsr),
 						 errcontext_datumstreamblockread(dsr)));
 			}
@@ -466,7 +462,6 @@ DatumStreamBlockRead_CheckDenseGetInvariant(
 							currentDeltaBitMapOnCount,
 							dsr->logical_row_count,
 							dsr->physical_datum_count),
-					 errOmitLocation(false),
 					 errdetail_datumstreamblockread(dsr),
 					 errcontext_datumstreamblockread(dsr)));
 		}
@@ -489,7 +484,6 @@ DatumStreamBlockRead_CheckDenseGetInvariant(
 								dsr->rle_total_repeat_items_read,
 								dsr->logical_row_count,
 								dsr->physical_datum_count),
-						 errOmitLocation(false),
 						 errdetail_datumstreamblockread(dsr),
 						 errcontext_datumstreamblockread(dsr)));
 			}
@@ -513,7 +507,6 @@ DatumStreamBlockRead_CheckDenseGetInvariant(
 								dsr->rle_total_repeat_items_read,
 								dsr->logical_row_count,
 								dsr->physical_datum_count),
-						 errOmitLocation(false),
 						 errdetail_datumstreamblockread(dsr),
 						 errcontext_datumstreamblockread(dsr)));
 			}
@@ -535,7 +528,6 @@ DatumStreamBlockRead_CheckDenseGetInvariant(
 							currentDeltaBitMapOnCount,
 							dsr->logical_row_count,
 							dsr->physical_datum_count),
-					 errOmitLocation(false),
 					 errdetail_datumstreamblockread(dsr),
 					 errcontext_datumstreamblockread(dsr)));
 		}
@@ -1015,7 +1007,6 @@ DatumStreamBlockWrite_CheckDenseInvariant(
 								dsw->nth,
 								dsw->physical_datum_count,
 								currentDeltaBitMapOnCount),
-						 errOmitLocation(false),
 						 errdetail_datumstreamblockwrite(dsw),
 						 errcontext_datumstreamblockwrite(dsw)));
 			}
@@ -1035,7 +1026,6 @@ DatumStreamBlockWrite_CheckDenseInvariant(
 						(errmsg("NULL bit-map ON count does not match when Dense block does not have RLE_TYPE compression.  Found %d, expected %d",
 								currentNullOnCount,
 								expectedNullOnCount),
-						 errOmitLocation(false),
 						 errdetail_datumstreamblockwrite(dsw),
 						 errcontext_datumstreamblockwrite(dsw)));
 			}
@@ -1057,7 +1047,6 @@ DatumStreamBlockWrite_CheckDenseInvariant(
 							currentCompressBitMapPosition,
 							dsw->physical_datum_count,
 							dsw->nth),
-					 errOmitLocation(false),
 					 errdetail_datumstreamblockwrite(dsw),
 					 errcontext_datumstreamblockwrite(dsw)));
 		}
@@ -1075,7 +1064,6 @@ DatumStreamBlockWrite_CheckDenseInvariant(
 								currentCompressBitMapOffCount,
 								dsw->rle_total_repeat_items_written,
 								dsw->physical_datum_count),
-						 errOmitLocation(false),
 						 errdetail_datumstreamblockwrite(dsw),
 						 errcontext_datumstreamblockwrite(dsw)));
 			}
@@ -1100,7 +1088,6 @@ DatumStreamBlockWrite_CheckDenseInvariant(
 								currentCompressBitMapOffCount,
 								dsw->rle_total_repeat_items_written,
 								dsw->physical_datum_count),
-						 errOmitLocation(false),
 						 errdetail_datumstreamblockwrite(dsw),
 						 errcontext_datumstreamblockwrite(dsw)));
 			}
@@ -1118,7 +1105,6 @@ DatumStreamBlockWrite_CheckDenseInvariant(
 								currentCompressBitMapCount,
 								dsw->rle_total_repeat_items_written,
 								dsw->physical_datum_count),
-						 errOmitLocation(false),
 						 errdetail_datumstreamblockwrite(dsw),
 						 errcontext_datumstreamblockwrite(dsw)));
 			}
@@ -1137,7 +1123,6 @@ DatumStreamBlockWrite_CheckDenseInvariant(
 							dsw->physical_datum_count,
 							currentDeltaBitMapOnCount,
 							dsw->nth),
-					 errOmitLocation(false),
 					 errdetail_datumstreamblockwrite(dsw),
 					 errcontext_datumstreamblockwrite(dsw)));
 		}
@@ -1153,7 +1138,6 @@ DatumStreamBlockWrite_CheckDenseInvariant(
 								currentCompressBitMapCount,
 								dsw->rle_total_repeat_items_written,
 								dsw->physical_datum_count),
-						 errOmitLocation(false),
 						 errdetail_datumstreamblockwrite(dsw),
 						 errcontext_datumstreamblockwrite(dsw)));
 			}
@@ -1239,7 +1223,6 @@ DatumStreamBlockWrite_PutFixedLengthTrace(
 				ereport(FATAL,
 						(errmsg("fixed length type has unexpected length %d",
 								dsw->typeInfo->datumlen),
-						 errOmitLocation(false),
 						 errdetail_datumstreamblockwrite(dsw),
 						 errcontext_datumstreamblockwrite(dsw)));
 				readDatum = 0;
@@ -1299,7 +1282,6 @@ DatumStreamBlockWrite_PutFixedLength(
 				ereport(FATAL,
 						(errmsg("fixed length type has unexpected length %d",
 								dsw->typeInfo->datumlen),
-						 errOmitLocation(false),
 						 errdetail_datumstreamblockwrite(dsw),
 						 errcontext_datumstreamblockwrite(dsw)));
 				break;
@@ -1332,7 +1314,6 @@ DatumStreamBlockWrite_MakeNullBitMapSpace(
 							dsw->physical_datum_count,
 							DatumStreamBitMapWrite_Count(&dsw->null_bitmap),
 							dsw->always_null_bitmap_count),
-					 errOmitLocation(true),
 					 errdetail_datumstreamblockwrite(dsw),
 					 errcontext_datumstreamblockwrite(dsw)));
 		}
@@ -2801,7 +2782,6 @@ DatumStreamBlockWrite_DeltaMaintain(
 			ereport(FATAL,
 					(errmsg("DELTA Compression maintain, fixed length type has unexpected length %d",
 							dsw->typeInfo->datumlen),
-					 errOmitLocation(false),
 					 errdetail_datumstreamblockwrite(dsw),
 					 errcontext_datumstreamblockwrite(dsw)));
 			break;
@@ -3013,7 +2993,6 @@ DatumStreamBlockWrite_PerformDeltaCompression(
 			ereport(FATAL,
 					(errmsg("DELTA compression fixed length type has unexpected length %d",
 							dsw->typeInfo->datumlen),
-					 errOmitLocation(false),
 					 errdetail_datumstreamblockwrite(dsw),
 					 errcontext_datumstreamblockwrite(dsw)));
 			break;
@@ -3042,7 +3021,6 @@ DatumStreamBlockWrite_PerformDeltaCompression(
 			ereport(FATAL,
 					(errmsg("DELTA Compression fixed length type has unexpected length %d",
 							dsw->typeInfo->datumlen),
-					 errOmitLocation(false),
 					 errdetail_datumstreamblockwrite(dsw),
 					 errcontext_datumstreamblockwrite(dsw)));
 			break;
@@ -3391,7 +3369,6 @@ DatumStreamBlockWrite_PutDense(
 					ereport(FATAL,
 							(errmsg("fixed length type has strange length %d",
 									dsw->typeInfo->datumlen),
-							 errOmitLocation(false),
 							 errdetail_datumstreamblockwrite(dsw),
 							 errcontext_datumstreamblockwrite(dsw)));
 					isEqual = false;
@@ -3526,7 +3503,6 @@ DatumStreamBlockWrite_Put(
 			ereport(FATAL,
 					(errmsg("Unexpected datum stream version %d",
 							dsw->datumStreamVersion),
-					 errOmitLocation(false),
 					 errdetail_datumstreamblockwrite(dsw),
 					 errcontext_datumstreamblockwrite(dsw)));
 			return 0;
@@ -3617,7 +3593,6 @@ DatumStreamBlockWrite_GetReady(
 			ereport(FATAL,
 					(errmsg("Unexpected datum stream version %d",
 							dsw->datumStreamVersion),
-					 errOmitLocation(false),
 					 errdetail_datumstreamblockwrite(dsw),
 					 errcontext_datumstreamblockwrite(dsw)));
 			break;
@@ -3994,7 +3969,6 @@ DatumStreamBlockWrite_BlockDense(
 				(errmsg("Formatted datum stream write metasize size different (expected %d, found " INT64_FORMAT ")",
 						metadataSize,
 						formattedMetadataSize),
-				 errOmitLocation(false),
 				 errdetail_datumstreamblockwrite(dsw),
 				 errcontext_datumstreamblockwrite(dsw)));
 	}
@@ -4022,7 +3996,6 @@ DatumStreamBlockWrite_BlockDense(
 						nullSize,
 						rleSize,
 						dsw->maxDataBlockSize),
-				 errOmitLocation(false),
 				 errdetail_datumstreamblockwrite(dsw),
 				 errcontext_datumstreamblockwrite(dsw)));
 	}
@@ -4207,7 +4180,6 @@ DatumStreamBlockWrite_Block(
 			ereport(FATAL,
 					(errmsg("Unexpected datum stream version %d",
 							dsw->datumStreamVersion),
-					 errOmitLocation(false),
 					 errdetail_datumstreamblockwrite(dsw),
 					 errcontext_datumstreamblockwrite(dsw)));
 			return 0;
@@ -4407,7 +4379,6 @@ DatumStreamBlockWrite_Init(
 			ereport(FATAL,
 					(errmsg("Unexpected datum stream version %d",
 							dsw->datumStreamVersion),
-					 errOmitLocation(false),
 					 errdetail_datumstreamblockwrite(dsw),
 					 errcontext_datumstreamblockwrite(dsw)));
 			return;
@@ -4514,7 +4485,6 @@ DatumStreamBlock_IntegrityCheckVarlena(
 									currentOffset,
 									saveBeginOffset,
 									count),
-							 errOmitLocation(false),
 							 errdetailCallback(errdetailArg),
 							 errcontextCallback(errcontextArg)));
 				}
@@ -4543,7 +4513,6 @@ DatumStreamBlock_IntegrityCheckVarlena(
 							DatumStreamVersion_String(datumStreamVersion),
 							currentOffset,
 							count),
-					 errOmitLocation(false),
 					 errdetailCallback(errdetailArg),
 					 errcontextCallback(errcontextArg)));
 			varLen = 0;
@@ -4569,7 +4538,6 @@ DatumStreamBlock_IntegrityCheckVarlena(
 								physicalDataSize,
 								count,
 								VarlenaInfoToString(p)),
-						 errOmitLocation(false),
 						 errdetailCallback(errdetailArg),
 						 errcontextCallback(errcontextArg)));
 			}
@@ -4584,7 +4552,6 @@ DatumStreamBlock_IntegrityCheckVarlena(
 								physicalDataSize,
 								count,
 								VarlenaInfoToString(p)),
-						 errOmitLocation(false),
 						 errdetailCallback(errdetailArg),
 						 errcontextCallback(errcontextArg)));
 			}
@@ -4599,7 +4566,6 @@ DatumStreamBlock_IntegrityCheckVarlena(
 								currentOffset,
 								remainingSize,
 								count),
-						 errOmitLocation(false),
 						 errdetailCallback(errdetailArg),
 						 errcontextCallback(errcontextArg)));
 			}
@@ -4611,7 +4577,6 @@ DatumStreamBlock_IntegrityCheckVarlena(
 								DatumStreamVersion_String(datumStreamVersion),
 								currentOffset,
 								count),
-						 errOmitLocation(false),
 						 errdetailCallback(errdetailArg),
 						 errcontextCallback(errcontextArg)));
 			}
@@ -4629,7 +4594,6 @@ DatumStreamBlock_IntegrityCheckVarlena(
 								physicalDataSize,
 								count,
 								VarlenaInfoToString(p)),
-						 errOmitLocation(false),
 						 errdetailCallback(errdetailArg),
 						 errcontextCallback(errcontextArg)));
 			}
@@ -4644,7 +4608,6 @@ DatumStreamBlock_IntegrityCheckVarlena(
 								physicalDataSize,
 								count,
 								VarlenaInfoToString(p)),
-						 errOmitLocation(false),
 						 errdetailCallback(errdetailArg),
 						 errcontextCallback(errcontextArg)));
 			}
@@ -4692,7 +4655,6 @@ DatumStreamBlock_IntegrityCheckOrig(
 				(errmsg("Bad datum stream Original block header size.  Found %d and expected the size to be at least %d",
 						bufferSize,
 						minHeaderSize),
-				 errOmitLocation(false),
 				 errdetailCallback(errdetailArg),
 				 errcontextCallback(errcontextArg)));
 	}
@@ -4707,7 +4669,6 @@ DatumStreamBlock_IntegrityCheckOrig(
 				(errmsg("Bad datum stream Original block version.  Found %d and expected %d",
 						blockOrig->version,
 						DatumStreamVersion_Original),
-				 errOmitLocation(false),
 				 errdetailCallback(errdetailArg),
 				 errcontextCallback(errcontextArg)));
 	}
@@ -4774,7 +4735,6 @@ DatumStreamBlock_IntegrityCheckDenseDelta(
 		ereport(ERROR,
 				(errmsg("DELTA bit-map count is negative or 0 and is expected to be greater than 0. (%d)",
 						deltaExtension->delta_bitmap_count),
-				 errOmitLocation(false),
 				 errdetailCallback(errdetailArg),
 				 errcontextCallback(errcontextArg)));
 	}
@@ -4784,7 +4744,6 @@ DatumStreamBlock_IntegrityCheckDenseDelta(
 		ereport(ERROR,
 				(errmsg("DELTA deltas count is negative or 0 and is expected to be greater than 0. (%d)",
 						deltaExtension->deltas_count),
-				 errOmitLocation(false),
 				 errdetailCallback(errdetailArg),
 				 errcontextCallback(errcontextArg)));
 	}
@@ -4794,7 +4753,6 @@ DatumStreamBlock_IntegrityCheckDenseDelta(
 		ereport(ERROR,
 				(errmsg("DELTA deltas size is negative or 0 and is expected to be greater than 0. (%d)",
 						deltaExtension->deltas_size),
-				 errOmitLocation(false),
 				 errdetailCallback(errdetailArg),
 				 errcontextCallback(errcontextArg)));
 	}
@@ -4807,7 +4765,6 @@ DatumStreamBlock_IntegrityCheckDenseDelta(
 					(errmsg("DELTA delta_bitmap count (%d) is expected to equal to RLE_TYPE compress bitmap count (%d)",
 							deltaExtension->delta_bitmap_count,
 							rleExtension->compress_bitmap_count),
-					 errOmitLocation(false),
 					 errdetailCallback(errdetailArg),
 					 errcontextCallback(errcontextArg)));
 		}
@@ -4822,7 +4779,6 @@ DatumStreamBlock_IntegrityCheckDenseDelta(
 				(errmsg("Expected RLE_TYPE header with DELTA size %d including NULL bit-map is larger than buffer size %d",
 						headerSize,
 						bufferSize),
-				 errOmitLocation(false),
 				 errdetailCallback(errdetailArg),
 				 errcontextCallback(errcontextArg)));
 	}
@@ -4835,7 +4791,6 @@ DatumStreamBlock_IntegrityCheckDenseDelta(
 				(errmsg("DELTA extension header bit-map ON count does not match DELTA bit-map ON count.  Found %d, expected %d",
 						actualDeltasOnCount,
 						deltaExtension->deltas_count),
-				 errOmitLocation(false),
 				 errdetailCallback(errdetailArg),
 				 errcontextCallback(errcontextArg)));
 	}
@@ -4852,7 +4807,6 @@ DatumStreamBlock_IntegrityCheckDenseDelta(
 				(errmsg("Expected RLE_TYPE DELTA header size %d including deltas size is larger than buffer size %d",
 						alignedHeaderSize,
 						bufferSize),
-				 errOmitLocation(false),
 				 errdetailCallback(errdetailArg),
 				 errcontextCallback(errcontextArg)));
 	}
@@ -4877,7 +4831,6 @@ DatumStreamBlock_IntegrityCheckDenseDelta(
 				(errmsg("Bad DELTA type deltas size.  Found %d, expected %d",
 						totalDeltasSize,
 						deltaExtension->deltas_size),
-				 errOmitLocation(false),
 				 errdetailCallback(errdetailArg),
 				 errcontextCallback(errcontextArg)));
 	}
@@ -4922,7 +4875,6 @@ DatumStreamBlock_IntegrityCheckDense(
 				(errmsg("Bad datum stream Dense block header size.  Found %d and expected the size to be at least %d",
 						bufferSize,
 						minHeaderSize),
-				 errOmitLocation(false),
 				 errdetailCallback(errdetailArg),
 				 errcontextCallback(errcontextArg)));
 	}
@@ -4938,7 +4890,6 @@ DatumStreamBlock_IntegrityCheckDense(
 				(errmsg("Bad datum stream Dense block version.  Found %d and expected %d",
 						blockDense->orig_4_bytes.version,
 						DatumStreamVersion_Dense_Enhanced),
-				 errOmitLocation(false),
 				 errdetailCallback(errdetailArg),
 				 errcontextCallback(errcontextArg)));
 	}
@@ -4962,7 +4913,6 @@ DatumStreamBlock_IntegrityCheckDense(
 		ereport(ERROR,
 				(errmsg("Logical row count is negative and is expected to be greater than 0. (%d)",
 						blockDense->logical_row_count),
-				 errOmitLocation(false),
 				 errdetailCallback(errdetailArg),
 				 errcontextCallback(errcontextArg)));
 	}
@@ -4970,7 +4920,6 @@ DatumStreamBlock_IntegrityCheckDense(
 	{
 		ereport(ERROR,
 				(errmsg("Logical row count is zero and is expected to be at greater than 0"),
-				 errOmitLocation(false),
 				 errdetailCallback(errdetailArg),
 				 errcontextCallback(errcontextArg)));
 	}
@@ -4980,7 +4929,6 @@ DatumStreamBlock_IntegrityCheckDense(
 				(errmsg("Logical row count does not match expected value (found %d, expected %d)",
 						blockDense->logical_row_count,
 						expectedRowCount),
-				 errOmitLocation(false),
 				 errdetailCallback(errdetailArg),
 				 errcontextCallback(errcontextArg)));
 	}
@@ -4993,7 +4941,6 @@ DatumStreamBlock_IntegrityCheckDense(
 		ereport(ERROR,
 				(errmsg("Physical datum count is negative and is expected to be at least greater than or equal to 0. (%d)",
 						blockDense->physical_datum_count),
-				 errOmitLocation(false),
 				 errdetailCallback(errdetailArg),
 				 errcontextCallback(errcontextArg)));
 	}
@@ -5006,7 +4953,6 @@ DatumStreamBlock_IntegrityCheckDense(
 		ereport(ERROR,
 				(errmsg("Physical data size is negative and is expected to be at least greater than or equal to 0. (%d)",
 						blockDense->physical_data_size),
-				 errOmitLocation(false),
 				 errdetailCallback(errdetailArg),
 				 errcontextCallback(errcontextArg)));
 	}
@@ -5018,7 +4964,6 @@ DatumStreamBlock_IntegrityCheckDense(
 			ereport(ERROR,
 					(errmsg("Physical data size is zero and is expected to be at least greater than 0 since physical datum count is %d",
 							blockDense->physical_datum_count),
-					 errOmitLocation(false),
 					 errdetailCallback(errdetailArg),
 					 errcontextCallback(errcontextArg)));
 		}
@@ -5029,7 +4974,6 @@ DatumStreamBlock_IntegrityCheckDense(
 			  (errmsg("Physical data size %d is greater than buffer size %d",
 					  blockDense->physical_data_size,
 					  bufferSize),
-			   errOmitLocation(false),
 			   errdetailCallback(errdetailArg),
 			   errcontextCallback(errcontextArg)));
 		}
@@ -5043,7 +4987,6 @@ DatumStreamBlock_IntegrityCheckDense(
 					(errmsg("More physical items %d than physical bytes %d",
 							blockDense->physical_datum_count,
 							blockDense->physical_data_size),
-					 errOmitLocation(false),
 					 errdetailCallback(errdetailArg),
 					 errcontextCallback(errcontextArg)));
 		}
@@ -5066,7 +5009,6 @@ DatumStreamBlock_IntegrityCheckDense(
 								typeInfo->datumlen,
 								calculatedDataSize,
 								blockDense->physical_data_size),
-						 errOmitLocation(false),
 						 errdetailCallback(errdetailArg),
 						 errcontextCallback(errcontextArg)));
 			}
@@ -5080,7 +5022,6 @@ DatumStreamBlock_IntegrityCheckDense(
 			ereport(ERROR,
 					(errmsg("Physical data size %d is expected to be at 0 since physical datum count is 0",
 							blockDense->physical_data_size),
-					 errOmitLocation(false),
 					 errdetailCallback(errdetailArg),
 					 errcontextCallback(errcontextArg)));
 		}
@@ -5100,7 +5041,6 @@ DatumStreamBlock_IntegrityCheckDense(
 						(errmsg("Bad datum stream DELTA block header extension size. Found %d and expected the size to be at least %d",
 								bufferSize,
 								headerSize),
-						 errOmitLocation(false),
 						 errdetailCallback(errdetailArg),
 						 errcontextCallback(errcontextArg)));
 			}
@@ -5127,7 +5067,6 @@ DatumStreamBlock_IntegrityCheckDense(
 								blockDense->logical_row_count,
 								blockDense->physical_datum_count,
 								deltaOnCount),
-						 errOmitLocation(false),
 						 errdetailCallback(errdetailArg),
 						 errcontextCallback(errcontextArg)));
 			}
@@ -5152,7 +5091,6 @@ DatumStreamBlock_IntegrityCheckDense(
 							(errmsg("Expected header size %d including NULL bit-map is larger than buffer size %d",
 									alignedHeaderSize,
 									bufferSize),
-							 errOmitLocation(false),
 							 errdetailCallback(errdetailArg),
 							 errcontextCallback(errcontextArg)));
 				}
@@ -5165,7 +5103,6 @@ DatumStreamBlock_IntegrityCheckDense(
 							(errmsg("Expected header size %d including NULL bit-map is larger than buffer size %d",
 									headerSize,
 									bufferSize),
-							 errOmitLocation(false),
 							 errdetailCallback(errdetailArg),
 							 errcontextCallback(errcontextArg)));
 				}
@@ -5181,7 +5118,6 @@ DatumStreamBlock_IntegrityCheckDense(
 						(errmsg("NULL bit-map ON count does not match.  Found %d, expected %d",
 								actualNullOnCount,
 								expectedNullOnCount),
-						 errOmitLocation(false),
 						 errdetailCallback(errdetailArg),
 						 errcontextCallback(errcontextArg)));
 			}
@@ -5216,7 +5152,6 @@ DatumStreamBlock_IntegrityCheckDense(
 					(errmsg("Bad datum stream RLE_TYPE block header extension size.	Found %d and expected the size to be at least %d",
 							bufferSize,
 							headerSize),
-					 errOmitLocation(false),
 					 errdetailCallback(errdetailArg),
 					 errcontextCallback(errcontextArg)));
 		}
@@ -5230,7 +5165,6 @@ DatumStreamBlock_IntegrityCheckDense(
 				ereport(ERROR,
 						(errmsg("RLE_TYPE NULL bit-map count is expected to be 0 when there are no NULLs. (%d)",
 								rleExtension->norepeats_null_bitmap_count),
-						 errOmitLocation(false),
 						 errdetailCallback(errdetailArg),
 						 errcontextCallback(errcontextArg)));
 			}
@@ -5242,7 +5176,6 @@ DatumStreamBlock_IntegrityCheckDense(
 				ereport(ERROR,
 						(errmsg("RLE_TYPE NULL bit-map count is negative or 0 and is expected to be greater than 0 when there are NULLs. (%d)",
 								rleExtension->norepeats_null_bitmap_count),
-						 errOmitLocation(false),
 						 errdetailCallback(errdetailArg),
 						 errcontextCallback(errcontextArg)));
 			}
@@ -5253,7 +5186,6 @@ DatumStreamBlock_IntegrityCheckDense(
 			ereport(ERROR,
 					(errmsg("RLE_TYPE COMPRESS bit-map count is negative or 0 and is expected to be greater than 0. (%d)",
 							rleExtension->compress_bitmap_count),
-					 errOmitLocation(false),
 					 errdetailCallback(errdetailArg),
 					 errcontextCallback(errcontextArg)));
 		}
@@ -5263,7 +5195,6 @@ DatumStreamBlock_IntegrityCheckDense(
 			ereport(ERROR,
 					(errmsg("RLE_TYPE repeats count is negative or 0 and is expected to be greater than 0. (%d)",
 							rleExtension->repeatcounts_count),
-					 errOmitLocation(false),
 					 errdetailCallback(errdetailArg),
 					 errcontextCallback(errcontextArg)));
 		}
@@ -5273,7 +5204,6 @@ DatumStreamBlock_IntegrityCheckDense(
 			ereport(ERROR,
 					(errmsg("RLE_TYPE repeats size is negative or 0 and is expected to be greater than 0. (%d)",
 							rleExtension->repeatcounts_size),
-					 errOmitLocation(false),
 					 errdetailCallback(errdetailArg),
 					 errcontextCallback(errcontextArg)));
 		}
@@ -5290,7 +5220,6 @@ DatumStreamBlock_IntegrityCheckDense(
 						(errmsg("Bad datum stream RLE_TYPE DELTA block header extension size. Found %d and expected the size to be at least %d",
 								bufferSize,
 								headerSize),
-						 errOmitLocation(false),
 						 errdetailCallback(errdetailArg),
 						 errcontextCallback(errcontextArg)));
 			}
@@ -5316,7 +5245,6 @@ DatumStreamBlock_IntegrityCheckDense(
 						(errmsg("Bad NULL bit-map size %d with RLE_TYPE compression extension header is larger than buffer size %d",
 								headerSize,
 								bufferSize),
-						 errOmitLocation(false),
 						 errdetailCallback(errdetailArg),
 						 errcontextCallback(errcontextArg)));
 			}
@@ -5335,7 +5263,6 @@ DatumStreamBlock_IntegrityCheckDense(
 					(errmsg("Expected RLE_TYPE header size %d including NULL bit-map is larger than buffer size %d",
 							headerSize,
 							bufferSize),
-					 errOmitLocation(false),
 					 errdetailCallback(errdetailArg),
 					 errcontextCallback(errcontextArg)));
 		}
@@ -5348,7 +5275,6 @@ DatumStreamBlock_IntegrityCheckDense(
 					(errmsg("RLE_TYPE COMPRESS bit-map ON count does not match COMPRESS bit-map ON count.  Found %d, expected %d",
 							actualCompressOnCount,
 							rleExtension->repeatcounts_count),
-					 errOmitLocation(false),
 					 errdetailCallback(errdetailArg),
 					 errcontextCallback(errcontextArg)));
 		}
@@ -5367,7 +5293,6 @@ DatumStreamBlock_IntegrityCheckDense(
 						(errmsg("Expected RLE_TYPE header size %d including repeat counts is larger than buffer size %d",
 								alignedHeaderSize,
 								bufferSize),
-						 errOmitLocation(false),
 						 errdetailCallback(errdetailArg),
 						 errcontextCallback(errcontextArg)));
 			}
@@ -5380,7 +5305,6 @@ DatumStreamBlock_IntegrityCheckDense(
 						(errmsg("Expected RLE_TYPE header size %d including repeat counts is larger than buffer size %d",
 								headerSize,
 								bufferSize),
-						 errOmitLocation(false),
 						 errdetailCallback(errdetailArg),
 						 errcontextCallback(errcontextArg)));
 			}
@@ -5408,7 +5332,6 @@ DatumStreamBlock_IntegrityCheckDense(
 			(errmsg("Bad RLE_TYPE repeats count size.  Found %d, expected %d",
 					totalRepeatCountsSize,
 					rleExtension->repeatcounts_size),
-			 errOmitLocation(false),
 			 errdetailCallback(errdetailArg),
 			 errcontextCallback(errcontextArg)));
 		}
@@ -5431,7 +5354,6 @@ DatumStreamBlock_IntegrityCheckDense(
 								blockDense->logical_row_count,
 								rleExtension->compress_bitmap_count,
 								totalRepeatCount),
-						 errOmitLocation(false),
 						 errdetailCallback(errdetailArg),
 						 errcontextCallback(errcontextArg)));
 			}
@@ -5448,7 +5370,6 @@ DatumStreamBlock_IntegrityCheckDense(
 								blockDense->logical_row_count,
 								rleExtension->compress_bitmap_count,
 								totalRepeatCount),
-						 errOmitLocation(false),
 						 errdetailCallback(errdetailArg),
 						 errcontextCallback(errcontextArg)));
 			}

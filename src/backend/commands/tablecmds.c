@@ -3135,15 +3135,9 @@ ATPrepCmd(List **wqueue, Relation rel, AlterTableCmd *cmd,
 							/*Reject interior branches of partitioned tables.*/
 							ereport(ERROR,
 									(errcode(ERRCODE_WRONG_OBJECT_TYPE),
-									 errmsg("can't set the distribution"
-											" policy of \"%s\"",
+									 errmsg("can't set the distribution policy of \"%s\"",
 											RelationGetRelationName(rel)),
-									 errhint("Distribution policy may be set"
-											 " for an entire partitioned table"
-											 " or one of its leaf parts;"
-											 " not for an interior branch."
-											 ),
-									 errOmitLocation(true)));
+									 errhint("Distribution policy may be set for an entire partitioned table or one of its leaf parts; not for an interior branch.")));
 							break; /* tidy */
 					}
 				}
@@ -5367,8 +5361,7 @@ ATPartitionCheck(AlterTableType subtype, Relation rel, bool rejectroot, bool rec
 				(errcode(ERRCODE_WRONG_OBJECT_TYPE),
 				 errmsg("can't %s \"%s\"; it is a partitioned table or part thereof",
 						alterTableCmdString(subtype),
-						RelationGetRelationName(rel)),
-				 errOmitLocation(true)));
+						RelationGetRelationName(rel))));
 	}
 	else if (rel_is_child_partition(RelationGetRelid(rel)))
 	{
@@ -5377,8 +5370,7 @@ ATPartitionCheck(AlterTableType subtype, Relation rel, bool rejectroot, bool rec
 				 errmsg("can't %s \"%s\"; it is part of a partitioned table",
 						alterTableCmdString(subtype),
 						RelationGetRelationName(rel)),
-				 errhint("You may be able to perform the operation on the partitioned table as a whole."),
-				 errOmitLocation(true)));
+				 errhint("You may be able to perform the operation on the partitioned table as a whole.")));
 	}
 }
 
@@ -5401,8 +5393,7 @@ ATExternalPartitionCheck(AlterTableType subtype, Relation rel, bool recursing)
 				(errcode(ERRCODE_WRONG_OBJECT_TYPE),
 				 errmsg("Cannot %s \"%s\"; it has external partition(s)",
 						alterTableCmdString(subtype),
-						RelationGetRelationName(rel)),
-				 errOmitLocation(true)));
+						RelationGetRelationName(rel))));
 	}
 }
 

@@ -998,9 +998,7 @@ parse_validate_reloptions(StdRdOptions *result, Datum reloptions,
 		if (relkind != RELKIND_RELATION)
 			ereport(ERROR,
 					(errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-					 errmsg("usage of parameter \"appendonly\" in a non "
-							"relation object is not supported"),
-					 errOmitLocation(false)));
+					 errmsg("usage of parameter \"appendonly\" in a non relation object is not supported")));
 
 		if (!parse_bool(values[1], &result->appendonly))
 		{
@@ -1017,9 +1015,7 @@ parse_validate_reloptions(StdRdOptions *result, Datum reloptions,
 		if (relkind != RELKIND_RELATION && validate)
 			ereport(ERROR,
 					(errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-					 errmsg("usage of parameter \"blocksize\" in a non "
-							"relation object is not supported"),
-					 errOmitLocation(false)));
+					 errmsg("usage of parameter \"blocksize\" in a non relation object is not supported")));
 
 		if (!result->appendonly && validate)
 			ereport(ERROR,
@@ -1050,9 +1046,7 @@ parse_validate_reloptions(StdRdOptions *result, Datum reloptions,
 		if (relkind != RELKIND_RELATION && validate)
 			ereport(ERROR,
 					(errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-					 errmsg("usage of parameter \"compresstype\" in a non "
-							"relation object is not supported"),
-					 errOmitLocation(false)));
+					 errmsg("usage of parameter \"compresstype\" in a non relation object is not supported")));
 
 		if (!result->appendonly && validate)
 			ereport(ERROR,
@@ -1076,9 +1070,7 @@ parse_validate_reloptions(StdRdOptions *result, Datum reloptions,
 		if (relkind != RELKIND_RELATION && validate)
 			ereport(ERROR,
 					(errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-					 errmsg("usage of parameter \"compresslevel\" in a non "
-							"relation object is not supported"),
-					 errOmitLocation(false)));
+					 errmsg("usage of parameter \"compresslevel\" in a non relation object is not supported")));
 
 		if (!result->appendonly && validate)
 			ereport(ERROR,
@@ -1124,8 +1116,7 @@ parse_validate_reloptions(StdRdOptions *result, Datum reloptions,
 						(errcode(ERRCODE_INVALID_PARAMETER_VALUE),
 						 errmsg("compresslevel=%d is out of range for "
 								"quicklz (should be 1)",
-								result->compresslevel),
-						 errOmitLocation(true)));
+								result->compresslevel)));
 
 			result->compresslevel = setDefaultCompressionLevel(
 					result->compresstype);
@@ -1154,8 +1145,7 @@ parse_validate_reloptions(StdRdOptions *result, Datum reloptions,
 			ereport(ERROR,
 					(errcode(ERRCODE_INVALID_PARAMETER_VALUE),
 					 errmsg("usage of parameter \"checksum\" in a non relation "
-							"object is not supported"),
-					 errOmitLocation(false)));
+							"object is not supported")));
 
 		if (!result->appendonly && validate)
 			ereport(ERROR,
@@ -1182,8 +1172,7 @@ parse_validate_reloptions(StdRdOptions *result, Datum reloptions,
 			ereport(ERROR,
 					(errcode(ERRCODE_INVALID_PARAMETER_VALUE),
 					 errmsg("usage of parameter \"orientation\" in a non "
-							"relation object is not supported"),
-					 errOmitLocation(false)));
+							"relation object is not supported")));
 
 		if (!result->appendonly && validate)
 			ereport(ERROR,

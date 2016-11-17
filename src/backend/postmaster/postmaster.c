@@ -1515,8 +1515,8 @@ PostmasterMain(int argc, char *argv[])
 		 * since there is no way to connect to the database in this case.
 		 */
 		ereport(FATAL,
-				(errmsg("could not load pg_hba.conf"),
-				 errOmitLocation(true)));
+				(errcode(ERRCODE_CONFIG_FILE_ERROR),
+				 (errmsg("could not load pg_hba.conf"))));
 	}
 	load_ident();
 

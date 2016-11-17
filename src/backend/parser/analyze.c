@@ -1400,8 +1400,7 @@ generate_positional_name(AttrNumber attrno)
 	{
 		ereport(ERROR,
 				(errcode(ERRCODE_INTERNAL_ERROR),
-				 errmsg("can't generate internal attribute name"),
-				 errOmitLocation(true)));
+				 errmsg("can't generate internal attribute name")));
 	}
 	return pstrdup(buf);
 }

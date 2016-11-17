@@ -1351,23 +1351,6 @@ getinternalerrposition(void)
 	return edata->internalpos;
 }
 
-
-/*
- * GPDB: errOmitLocation -- set flag indicating the error was reported by a qExec
- */
-int
-errOmitLocation(bool omitLocation)
-{
-	ErrorData  *edata = &errordata[errordata_stack_depth];
-
-	/* we don't bother incrementing recursion_depth */
-	CHECK_STACK_DEPTH();
-
-	edata->omit_location = omitLocation;
-
-	return 0;					/* return value does not matter */
-}
-
 /*
  * GPDB: errSendAlert -- set flag indicating the error should trigger an alert via e-mail or SNMP
  */

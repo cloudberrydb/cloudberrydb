@@ -287,8 +287,6 @@ extern int	geterrcode(void);
 extern int	geterrposition(void);
 extern int	getinternalerrposition(void);
 
-extern int errOmitLocation(bool omitLocation);   /* GPDB */
-
 extern int errFatalReturn(bool fatalReturn); /* GPDB: true => return on FATAL error */
 
 extern int errSendAlert(bool sendAlert);		/* GPDB: Send alert via e-mail or SNMP */
