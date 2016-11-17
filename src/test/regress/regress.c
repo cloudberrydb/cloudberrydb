@@ -2204,10 +2204,14 @@ project_describe(PG_FUNCTION_ARGS)
 	 */
 	avalue = DatumGetInt32(ExecEvalFunctionArgToConst(fexpr, 1, &isnull));
 	if (isnull)
-		elog(ERROR, "unable to resolve type for function");
+		ereport(ERROR,
+				(errcode(ERRCODE_INVALID_PARAMETER_VALUE),
+				 errmsg("unable to resolve type for function")));
 
 	if (avalue < 1 || avalue > tdesc->natts)
-		elog(ERROR, "invalid column position %d", avalue);
+		ereport(ERROR,
+				(errcode(ERRCODE_INVALID_PARAMETER_VALUE),
+				 errmsg("invalid column position %d", avalue)));
 
 	/* Build an output tuple a single column based on the column number above */
 	odesc = CreateTemplateTupleDesc(1, false);

@@ -84,7 +84,7 @@ cdbdisp_dispatchToGang(struct CdbDispatcherState *ds,
 			if (dispatchResults->writer_gang->dispatcherActive)
 			{
 				ereport(ERROR,
-						(errcode(ERRCODE_INTERNAL_ERROR),
+						(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
 						 errmsg("query plan with multiple segworker groups is not supported"),
 						 errhint("likely caused by a function that reads or modifies data in a distributed table")));
 			}

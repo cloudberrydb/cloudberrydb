@@ -178,7 +178,7 @@ update foo set j=m.cc1 from (
   select t1.i1 as cc1, t1.i2 as cc2
   from ctesisc as t1, ctesisc as t2
   where t1.i1 = t2.i2 ) as m;
-ERROR:  fault triggered, fault name:'workfile_write_failure' fault type:'error' (faultinjector.c:685)  (seg0 slice3 127.0.0.1:25432 pid=26908)
+ERROR:  fault triggered, fault name:'workfile_write_failure' fault type:'error'  (seg0 slice3 127.0.0.1:25432 pid=26908)
 select max(bytes) as max, min(bytes) as min from gp_toolkit.gp_workfile_mgr_used_diskspace;
  max | min 
 -----+-----
@@ -230,7 +230,7 @@ delete from testsisc using (
   select *
   from foo
 ) src  where testsisc.i1 = src.i;
-ERROR:  fault triggered, fault name:'workfile_write_failure' fault type:'error' (faultinjector.c:685)  (seg0 127.0.0.1:25432 pid=26876)
+ERROR:  fault triggered, fault name:'workfile_write_failure' fault type:'error'  (seg0 127.0.0.1:25432 pid=26876)
 select max(bytes) as max, min(bytes) as min from gp_toolkit.gp_workfile_mgr_used_diskspace;
  max | min 
 -----+-----
@@ -270,7 +270,7 @@ HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sur
 --end_ignore
 -- expect to see leak if we hit error
 update foo set d = i1 from (select i1,i2 from testsort order by i2) x;
-ERROR:  fault triggered, fault name:'workfile_write_failure' fault type:'error' (faultinjector.c:685)  (seg0 slice1 127.0.0.1:25432 pid=27014)
+ERROR:  fault triggered, fault name:'workfile_write_failure' fault type:'error'  (seg0 slice1 127.0.0.1:25432 pid=27014)
 -- check counter leak
 select max(bytes) as max, min(bytes) as min from gp_toolkit.gp_workfile_mgr_used_diskspace;
  max | min 
@@ -311,7 +311,7 @@ update foo set d = i1 from (with ctesisc as (select * from testsisc order by i2)
 select * from
 (select count(*) from ctesisc) x(a), ctesisc
 where x.a = ctesisc.i1) y;
-ERROR:  fault triggered, fault name:'workfile_write_failure' fault type:'error' (faultinjector.c:685)  (seg0 slice1 127.0.0.1:25432 pid=26908)
+ERROR:  fault triggered, fault name:'workfile_write_failure' fault type:'error'  (seg0 slice1 127.0.0.1:25432 pid=26908)
 -- check counter leak
 select max(bytes) as max, min(bytes) as min from gp_toolkit.gp_workfile_mgr_used_diskspace;
  max | min 

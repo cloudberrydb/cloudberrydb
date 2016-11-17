@@ -67,7 +67,9 @@ bmbuild(PG_FUNCTION_ARGS)
 	MIRROREDLOCK_BUFMGR_VERIFY_NO_LOCK_LEAK_ENTER;
 
 	if (indexInfo->ii_Concurrent)
-		elog(ERROR, "CONCURRENTLY is not supported when creating bitmap indexes");
+		ereport(ERROR,
+				(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
+				 errmsg("CONCURRENTLY is not supported when creating bitmap indexes")));
 
 	/* We expect this to be called exactly once. */
 	if (RelationGetNumberOfBlocks(index) != 0)

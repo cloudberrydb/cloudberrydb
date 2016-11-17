@@ -3068,7 +3068,8 @@ transformAlterTableStmt(AlterTableStmt *stmt, const char *queryString)
 					Assert(IsA(cmd->def, ColumnDef));
 
 					/*
-					 * Disallow adding a column with primary key constraint
+					 * Adding a column with a primary key or unique constraint
+					 * is not supported in GPDB.
 					 */
 					if (Gp_role == GP_ROLE_DISPATCH)
 					{
@@ -3077,11 +3078,13 @@ transformAlterTableStmt(AlterTableStmt *stmt, const char *queryString)
 						{
 							Constraint *cons = (Constraint *) lfirst(c);
 							if (cons->contype == CONSTR_PRIMARY)
-								elog(ERROR, "Cannot add column with primary "
-									 "key constraint");
+								ereport(ERROR,
+										(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
+										 errmsg("cannot add column with primary key constraint")));
 							if (cons->contype == CONSTR_UNIQUE)
-								elog(ERROR, "Cannot add column with unique "
-									 "constraint");
+								ereport(ERROR,
+										(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
+										 errmsg("cannot add column with unique constraint")));
 						}
 					}
 					transformColumnDefinition(pstate, &cxt,

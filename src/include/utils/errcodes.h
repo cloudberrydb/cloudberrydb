@@ -381,6 +381,12 @@
 #define ERRCODE_DATA_CORRUPTED				MAKE_SQLSTATE('X','X', '0','0','1')
 #define ERRCODE_INDEX_CORRUPTED				MAKE_SQLSTATE('X','X', '0','0','2')
 
+/*
+ * This is used for ERRORs induced on purpose for testing purposes. Shouldn't
+ * appear in production, only in regression tests.
+ */
+#define ERRCODE_FAULT_INJECT				MAKE_SQLSTATE('X','X', '0','0','9')
+
 /* deprecated... */
 #define ERRCODE_CDB_FEATURE_NOT_SUPPORTED	ERRCODE_GP_FEATURE_NOT_SUPPORTED
 #define ERRCODE_CDB_FEATURE_NOT_YET			ERRCODE_GP_FEATURE_NOT_YET

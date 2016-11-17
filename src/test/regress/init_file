@@ -82,19 +82,6 @@ m/^WARNING:  could not close temporary file .*: No such file or directory/
 m/\s+\(entry db(.*)+\spid=\d+\)/
 s/\s+\(entry db(.*)+\spid=\d+\)//
 
-#remove unecessary diffs due to SOMEFILE:SOMEFUNC
-m/\(SOMEFILE:SOMEFUNC\)/
-s/\(SOMEFILE:SOMEFUNC\)//
-
-m/\(cdbdisp\.c:\d+\)/
-s/\(cdbdisp\.c:\d+\)//
-
-m/\(plpython\.c:\d+\)/
-s/\(plpython\.c:\d+\)//
-
-m/\(functions\.c:\d+\)/
-s/\(functions\.c:\d+\)//
-
 #In alter_table_distribution_policy tests, some test cases emit NOTICE message
 #like the following
 #drop cascades to function pg_atsdb_211851_2_4_out.

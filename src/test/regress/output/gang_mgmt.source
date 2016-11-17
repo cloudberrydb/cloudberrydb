@@ -27,7 +27,7 @@ CREATE FUNCTION
 BEGIN
 DECLARE CURSOR
 SET
-psql:@abs_srcdir@/sql/gang_mgmt_helper.sql:18: FATAL:  User fault injection raised fatal (faultinject.c:130)
+psql:@abs_srcdir@/sql/gang_mgmt_helper.sql:18: FATAL:  User fault injection raised fatal
 server closed the connection unexpectedly
 	This probably means the server terminated abnormally
 	before or while processing the request.

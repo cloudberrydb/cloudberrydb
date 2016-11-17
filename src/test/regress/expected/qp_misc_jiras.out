@@ -2605,7 +2605,7 @@ end;
 $$
 language plpgsql;
 select gp_segment_id, a, func2(a) from qp_misc_jiras.fim1; -- we should disallow this
-ERROR:  function cannot execute on segment because it accesses relation "qp_misc_jiras.pg_foo" (functions.c:155)  (seg2 slice1 nikos-mac:25434 pid=94008)
+ERROR:  function cannot execute on segment because it accesses relation "qp_misc_jiras.pg_foo"  (seg2 slice1 nikos-mac:25434 pid=94008)
 DETAIL:  
 SQL statement "select count(*) from qp_misc_jiras.pg_foo"
 PL/pgSQL function "func2" line 4 at EXECUTE statement
@@ -2869,7 +2869,7 @@ drop table if exists qp_misc_jiras.tbl_7498_t1, qp_misc_jiras.tbl_7498_t2, qp_mi
 CREATE TABLE qp_misc_jiras.tbl7886_foo (ssn INT, lastName VARCHAR, junk INT) DISTRIBUTED BY (ssn);
 INSERT INTO qp_misc_jiras.tbl7886_foo VALUES (1, 'foo', 1);
 select currtid2('t'::text, '(0,1)'::tid);
-ERROR:  Function currtid2 is not supported by GPDB (tid.c:419)
+ERROR:  function currtid2 is not supported by GPDB
 -- start_ignore
 DROP TABLE qp_misc_jiras.tbl7886_foo;
 -- end_ignore
@@ -3507,7 +3507,7 @@ explain select x, median2(y) from qp_misc_jiras.tbl9613 group by x; -- this shou
 (8 rows)
 
 select x, median2(y) from qp_misc_jiras.tbl9613 group by x; -- this should be disallowed
-ERROR:  function cannot execute on segment because it accesses relation "qp_misc_jiras.tbl9613" (functions.c:155)  (seg0 slice1 nikos-mac:25432 pid=94006)
+ERROR:  function cannot execute on segment because it accesses relation "qp_misc_jiras.tbl9613"  (seg0 slice1 nikos-mac:25432 pid=94006)
 DETAIL:  SQL function "_final_median2" during startup
 -- start_ignore
 drop table qp_misc_jiras.tbl9613;

@@ -133,7 +133,9 @@ bool querytree_safe_for_segment_walker(Node *expr, void *context)
 					 || q->intoClause != NULL
 					 || q->resultRelation > 0))
 				{
-					elog(ERROR, "function cannot execute on segment because it issues a non-SELECT statement");
+					ereport(ERROR,
+							(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
+							 errmsg("function cannot execute on segment because it issues a non-SELECT statement")));
 				}
 				
 				ListCell * f = NULL;
@@ -153,8 +155,11 @@ bool querytree_safe_for_segment_walker(Node *expr, void *context)
 							  IsToastNamespace(namespaceId) ||
 							  IsAoSegmentNamespace(namespaceId)))
 						{
-							elog(ERROR, "function cannot execute on segment because it accesses relation \"%s.%s\"", 
-									quote_identifier(get_namespace_name(namespaceId)), quote_identifier(get_rel_name(rte->relid)));
+							ereport(ERROR,
+									(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
+									 errmsg("function cannot execute on segment because it accesses relation \"%s.%s\"",
+											quote_identifier(get_namespace_name(namespaceId)),
+											quote_identifier(get_rel_name(rte->relid)))));
 						}
 					}
 				}

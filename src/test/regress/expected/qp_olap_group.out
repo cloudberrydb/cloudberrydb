@@ -2229,7 +2229,7 @@ SELECT DISTINCT sale.qty,sale.qty,sale.cn,sale.cn,GROUP_ID(), TO_CHAR(COALESCE(C
 FROM sale,product,vendor,customer
 WHERE sale.pn=product.pn AND sale.vn=vendor.vn AND sale.cn=customer.cn
 GROUP BY ROLLUP((sale.vn),(sale.vn,sale.cn)),sale.qty;
-ERROR:  ORDER/GROUP BY expression not found in targetlist (tlist.c:205)
+ERROR:  ORDER/GROUP BY expression not found in targetlist
 -- ###### Queries involving REGR_AVGX() function ###### --
 SELECT DISTINCT sale.pn,sale.qty,GROUPING(sale.qty,sale.qty), TO_CHAR(COALESCE(REGR_AVGX(floor(sale.cn*sale.vn),floor(sale.vn)),0),'99999999.9999999'),TO_CHAR(COALESCE(VAR_POP(floor(sale.qty-sale.pn)),0),'99999999.9999999'),TO_CHAR(COALESCE(STDDEV_POP(floor(sale.prc/sale.cn)),0),'99999999.9999999'),TO_CHAR(COALESCE(AVG(DISTINCT floor(sale.pn+sale.cn)),0),'99999999.9999999'),TO_CHAR(COALESCE(AVG(DISTINCT floor(sale.vn)),0),'99999999.9999999'),TO_CHAR(COALESCE(VAR_POP(floor(sale.pn)),0),'99999999.9999999') 
 FROM sale,customer
@@ -2287,7 +2287,7 @@ SELECT DISTINCT sale.prc,sale.vn,sale.prc,GROUPING(sale.prc), TO_CHAR(COALESCE(R
 FROM sale,customer,product
 WHERE sale.cn=customer.cn AND sale.pn=product.pn
 GROUP BY ROLLUP((sale.qty,sale.dt,sale.qty)),sale.prc,sale.vn;
-ERROR:  ORDER/GROUP BY expression not found in targetlist (tlist.c:205)
+ERROR:  ORDER/GROUP BY expression not found in targetlist
 -- ###### Queries involving REGR_INTERCEPT() function ###### --
 SELECT DISTINCT sale.pn, TO_CHAR(COALESCE(REGR_INTERCEPT(floor(sale.pn),floor(sale.prc)),0),'99999999.9999999'),TO_CHAR(COALESCE(SUM(floor(sale.pn)),0),'99999999.9999999'),TO_CHAR(COALESCE(STDDEV_SAMP(floor(sale.prc)),0),'99999999.9999999'),TO_CHAR(COALESCE(AVG(DISTINCT floor(sale.pn)),0),'99999999.9999999'),TO_CHAR(COALESCE(VAR_SAMP(floor(sale.pn)),0),'99999999.9999999'),TO_CHAR(COALESCE(MIN(floor(sale.qty)),0),'99999999.9999999'),TO_CHAR(COALESCE(VAR_POP(floor(sale.qty)),0),'99999999.9999999'),TO_CHAR(COALESCE(SUM(DISTINCT floor(sale.vn)),0),'99999999.9999999'),TO_CHAR(COALESCE(MAX(floor(sale.cn/sale.cn)),0),'99999999.9999999') 
 FROM sale

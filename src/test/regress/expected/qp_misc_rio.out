@@ -1083,7 +1083,7 @@ AS $$
         return plpy.execute(sqlstm);
 $$ LANGUAGE plpythonu;
 INSERT INTO testdata_out SELECT * FROM func_plpythonu(10);
-ERROR:  plpy.SPIError: function cannot execute on segment because it accesses relation "qp_misc_rio.testdata_in" (plpython.c:4648)  (entry db krajaraman:15432 pid=63091)
+ERROR:  plpy.SPIError: function cannot execute on segment because it accesses relation "qp_misc_rio.testdata_in"  (entry db krajaraman:15432 pid=63091)
 DETAIL:  
 Traceback (most recent call last):
   PL/Python function "func_plpythonu", line 3, in <module>

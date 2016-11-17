@@ -25,7 +25,7 @@ SET statement_mem=5000;
 20160527:09:53:04:034985 gpfaultinjector:nikos-mac:narmenatzoglou-[INFO]:-DONE
 --end_ignore
 SELECT COUNT(t1.*) FROM test_zlib_hashjoin AS t1, test_zlib_hashjoin AS t2 WHERE t1.i1=t2.i2;
-ERROR:  fault triggered, fault name:'workfile_creation_failure' fault type:'error' (faultinjector.c:673)  (seg0 slice2 127.0.0.1:25432 pid=34971)
+ERROR:  fault triggered, fault name:'workfile_creation_failure' fault type:'error'  (seg0 slice2 127.0.0.1:25432 pid=34971)
 RESET statement_mem;
 DROP TABLE IF EXISTS test_zlib_hagg; 
 NOTICE:  table "test_zlib_hagg" does not exist, skipping
@@ -54,7 +54,7 @@ SET statement_mem=2000;
 20160527:09:53:05:035012 gpfaultinjector:nikos-mac:narmenatzoglou-[INFO]:-DONE
 --end_ignore
 SELECT MAX(i1) FROM test_zlib_hagg GROUP BY i2;
-ERROR:  fault triggered, fault name:'workfile_creation_failure' fault type:'error' (faultinjector.c:673)  (seg0 slice2 127.0.0.1:25432 pid=34971)
+ERROR:  fault triggered, fault name:'workfile_creation_failure' fault type:'error'  (seg0 slice2 127.0.0.1:25432 pid=34971)
 -- Reset faultinjectors
 --start_ignore
 \! gpfaultinjector -f workfile_creation_failure -y reset --seg_dbid 2

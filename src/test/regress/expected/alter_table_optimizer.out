@@ -612,10 +612,10 @@ create table atacc1 ( test int );
 insert into atacc1 (test) values (0);
 -- add a primary key column without a default (fails).
 alter table atacc1 add column test2 int primary key;
-ERROR:  Cannot add column with primary key constraint (analyze.c:11406)
+ERROR:  cannot add column with primary key constraint
 -- now add a primary key column with a default (succeeds).
 alter table atacc1 add column test2 int default 0 primary key;
-ERROR:  Cannot add column with primary key constraint (analyze.c:11406)
+ERROR:  cannot add column with primary key constraint
 drop table atacc1;
 -- something a little more complicated
 create table atacc1 ( test int, test2 int) distributed by (test);

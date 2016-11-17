@@ -3401,7 +3401,9 @@ CommitTransaction(void)
 	if (Debug_abort_after_distributed_prepared &&
 		isPreparedDtxTransaction())
 	{
-		elog(ERROR,"Raise an error as directed by Debug_abort_after_distributed_prepared");
+		ereport(ERROR,
+				(errcode(ERRCODE_FAULT_INJECT),
+				 errmsg("Raise an error as directed by Debug_abort_after_distributed_prepared")));
 	}
 
 	willHaveObjectsFromSmgr =

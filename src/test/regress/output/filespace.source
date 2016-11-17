@@ -1104,7 +1104,7 @@ drop tablespace funky.regressionts1;
 ERROR:  tablespace name may not be qualified
 -- don't do this!
 drop filespace pg_system;
-ERROR:  cannot drop filespace pg_system because it is required by the database system (filespace.c:554)
+ERROR:  cannot drop filespace pg_system because it is required by the database system
 drop tablespace pg_default;
 ERROR:  permission denied for tablespace pg_default
 drop tablespace pg_global;

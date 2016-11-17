@@ -535,7 +535,7 @@ select * from A where A.j = any (select C.j from C,B where C.j = A.j and B.i = a
 (4 rows)
 
 select * from A,B where A.j = any (select C.j from C where C.j = A.j and B.i = any (select C.i from C where C.i != 10 and C.i = A.i)) order by 1,2,3,4; -- Not supported, should fail
-ERROR:  correlated subquery with skip-level correlations is not supported (subselect.c:395)
+ERROR:  correlated subquery with skip-level correlations is not supported
 select A.i, B.i, C.j from A, B, C where A.j = (select C.j from C where C.j = A.j and C.i = any (select B.i from B where C.i = B.i and B.i !=10)) order by A.i, B.i, C.j limit 10;
  i  | i  |  j  
 ----+----+-----
@@ -693,7 +693,7 @@ select * from A,B where exists (select * from C where C.j = A.j and B.i = all (s
 (8 rows)
 
 select * from A,B where exists (select * from C where C.j = A.j and B.i = all (select min(C.j) from C where C.j = B.j)) order by 1,2,3,4; -- Should fail. Skip-level correlations are not supported
-ERROR:  correlated subquery with skip-level correlations is not supported (subselect.c:395)
+ERROR:  correlated subquery with skip-level correlations is not supported
 select A.i, B.i, C.j from A, B, C where A.j = (select C.j from C where C.j = A.j and C.i = all (select B.i from B where C.i = B.i and B.i !=10)) order by A.i, B.i, C.j limit 10; -- Should fail (Sub-query returns more than one row)
 ERROR:  more than one row returned by a subquery used as an expression  (seg2 slice5 vraghavan.local:25434 pid=51919)
 select A.i, B.i, C.j from A, B, C where A.j = (select sum(C.j) from C where C.j = A.j and C.i = all (select B.i from B where C.i = B.i and B.i !=10)) order by A.i, B.i, C.j limit 10;
@@ -829,7 +829,7 @@ select * from A where exists (select * from C,B where C.j = A.j and exists (sele
 (4 rows)
 
 select * from A,B where exists (select * from C where C.j = A.j and exists (select * from C where C.i = B.i));
-ERROR:  correlated subquery with skip-level correlations is not supported (subselect.c:395)
+ERROR:  correlated subquery with skip-level correlations is not supported
 -- Not supported select A.i, B.i, C.j from A, B, C where exists (select C.j from C where C.j = A.j and exists (select sum(C.i) from C where C.i = A.i and C.i !=10)) order by A.i, B.i, C.j limit 20;
 select * from A where exists (select * from B, C where C.j = A.j and exists (select sum(C.i) from C where C.i != 10 and C.i = B.i)) order by 1, 2;
  i  | j  
@@ -841,7 +841,7 @@ select * from A where exists (select * from B, C where C.j = A.j and exists (sel
 (4 rows)
 
 select * from A where exists (select * from C where C.j = A.j and exists (select sum(C.i) from C where C.i !=10 and C.i = A.i)) order by 1, 2; -- Should fail, not supported
-ERROR:  correlated subquery with skip-level correlations is not supported (subselect.c:395)
+ERROR:  correlated subquery with skip-level correlations is not supported
 select A.i, B.i, C.j from A, B, C where A.j = (select C.j from C where C.j = A.j and exists (select B.i from B where C.i = B.i and B.i !=10)) order by A.i, B.i, C.j limit 20;
  i  | i  |  j  
 ----+----+-----
@@ -906,7 +906,7 @@ select * from A where exists (select * from C where C.i = A.i and exists (select
 (1 row)
 
 select * from A where exists (select * from C where C.i = A.i and exists (select * from B where C.j = B.j and A.j < 10));
-ERROR:  correlated subquery with skip-level correlations is not supported (subselect.c:395)
+ERROR:  correlated subquery with skip-level correlations is not supported
 select * from A where exists (select * from C where C.i = A.i and not exists (select * from B where C.j = B.j and B.j < 10)) order by 1,2;
  i  | j  
 ----+----

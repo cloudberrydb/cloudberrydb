@@ -223,7 +223,7 @@ select cleanupAllGangs();
 select * from dispatch_test_t1, dispatch_test_t2, dispatch_test_t3
 where dispatch_test_t1.c2 = dispatch_test_t2.c2 and dispatch_test_t2.c3 = dispatch_test_t3.c3;
 ERROR:  failed to acquire resources on one or more segments
-DETAIL:  FATAL:  fault triggered, fault name:'send_qe_details_init_backend' fault type:'error' (faultinjector.c:683)
+DETAIL:  FATAL:  fault triggered, fault name:'send_qe_details_init_backend' fault type:'error'
  (seg0 127.0.0.1:40000)
 -- expect no resuable gang exist
 select * from hasGangsExist();
@@ -253,7 +253,7 @@ select cleanupAllGangs();
 select * from dispatch_test_t1, dispatch_test_t2, dispatch_test_t3
 where dispatch_test_t1.c2 = dispatch_test_t2.c2 and dispatch_test_t2.c3 = dispatch_test_t3.c3;
 ERROR:  failed to acquire resources on one or more segments
-DETAIL:  FATAL:  fault triggered, fault name:'send_qe_details_init_backend' fault type:'error' (faultinjector.c:683)
+DETAIL:  FATAL:  fault triggered, fault name:'send_qe_details_init_backend' fault type:'error'
  (seg0 127.0.0.1:40000)
 -- expect resuable gang exist
 select * from hasGangsExist();

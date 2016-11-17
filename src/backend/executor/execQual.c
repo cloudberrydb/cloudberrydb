@@ -6294,13 +6294,15 @@ ExecEvalFunctionArgToConst(FuncExpr *fexpr, int argno, bool *isnull)
 	 */
 	if (ExecIsExprUnsafeToConst((Node *) aexpr))
 		ereport(ERROR,
-				(errmsg("unable to resolve function argument"),
+				(errcode(ERRCODE_DATA_EXCEPTION),
+				 errmsg("unable to resolve function argument"),
 				 errposition(exprLocation((Node *) aexpr))));
 
 	argtype = exprType((Node *) aexpr);
 	if (!OidIsValid(argtype))
 		ereport(ERROR,
-				(errmsg("unable to resolve function argument type"),
+				(errcode(ERRCODE_INDETERMINATE_DATATYPE),
+				 errmsg("unable to resolve function argument type"),
 				 errposition(exprLocation((Node *) aexpr))));
 	argtypmod = exprTypmod((Node *) aexpr);
 

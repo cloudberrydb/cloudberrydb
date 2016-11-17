@@ -581,8 +581,9 @@ FaultInjector_InjectFaultIfSet(
 			
 			break;
 		case FaultInjectorTypeSleep:
-			ereport(LOG, 
-					(errmsg("fault triggered, fault name:'%s' fault type:'%s' ",
+			ereport(LOG,
+					(errcode(ERRCODE_FAULT_INJECT),
+					 errmsg("fault triggered, fault name:'%s' fault type:'%s' ",
 							FaultInjectorIdentifierEnumToString[entryLocal->faultInjectorIdentifier],
 							FaultInjectorTypeEnumToString[entryLocal->faultInjectorType])));	
 			
@@ -623,7 +624,8 @@ FaultInjector_InjectFaultIfSet(
 					break;
 			}
 			ereport(LOG, 
-					(errmsg("fault triggered, fault name:'%s' fault type:'%s' ",
+					(errcode(ERRCODE_FAULT_INJECT),
+					 errmsg("fault triggered, fault name:'%s' fault type:'%s' ",
 							FaultInjectorIdentifierEnumToString[entryLocal->faultInjectorIdentifier],
 							FaultInjectorTypeEnumToString[entryLocal->faultInjectorType])));	
 			
@@ -642,7 +644,8 @@ FaultInjector_InjectFaultIfSet(
 			}
 			
 			ereport(FATAL, 
-					(errmsg("fault triggered, fault name:'%s' fault type:'%s' ",
+					(errcode(ERRCODE_FAULT_INJECT),
+					 errmsg("fault triggered, fault name:'%s' fault type:'%s' ",
 							FaultInjectorIdentifierEnumToString[entryLocal->faultInjectorIdentifier],
 							FaultInjectorTypeEnumToString[entryLocal->faultInjectorType])));	
 
@@ -661,7 +664,8 @@ FaultInjector_InjectFaultIfSet(
 			}
 			
 			ereport(PANIC, 
-					(errmsg("fault triggered, fault name:'%s' fault type:'%s' ",
+					(errcode(ERRCODE_FAULT_INJECT),
+					 errmsg("fault triggered, fault name:'%s' fault type:'%s' ",
 							FaultInjectorIdentifierEnumToString[entryLocal->faultInjectorIdentifier],
 							FaultInjectorTypeEnumToString[entryLocal->faultInjectorType])));	
 
@@ -680,13 +684,15 @@ FaultInjector_InjectFaultIfSet(
 			}
 
 			ereport(ERROR, 
-					(errmsg("fault triggered, fault name:'%s' fault type:'%s' ",
+					(errcode(ERRCODE_FAULT_INJECT),
+					 errmsg("fault triggered, fault name:'%s' fault type:'%s' ",
 							FaultInjectorIdentifierEnumToString[entryLocal->faultInjectorIdentifier],
 							FaultInjectorTypeEnumToString[entryLocal->faultInjectorType])));	
 			break;
 		case FaultInjectorTypeInfiniteLoop:
 			ereport(LOG, 
-					(errmsg("fault triggered, fault name:'%s' fault type:'%s' ",
+					(errcode(ERRCODE_FAULT_INJECT),
+					 errmsg("fault triggered, fault name:'%s' fault type:'%s' ",
 							FaultInjectorIdentifierEnumToString[entryLocal->faultInjectorIdentifier],
 							FaultInjectorTypeEnumToString[entryLocal->faultInjectorType])));
 			if (entryLocal->faultInjectorIdentifier == FileRepImmediateShutdownRequested)
@@ -710,7 +716,8 @@ FaultInjector_InjectFaultIfSet(
 			break;
 		case FaultInjectorTypeDataCorruption:
 			ereport(LOG, 
-					(errmsg("fault triggered, fault name:'%s' fault type:'%s' ",
+					(errcode(ERRCODE_FAULT_INJECT),
+					 errmsg("fault triggered, fault name:'%s' fault type:'%s' ",
 							FaultInjectorIdentifierEnumToString[entryLocal->faultInjectorIdentifier],
 							FaultInjectorTypeEnumToString[entryLocal->faultInjectorType])));							
 			break;
@@ -720,7 +727,8 @@ FaultInjector_InjectFaultIfSet(
 			FaultInjectorEntry_s	*entry;
 			
 			ereport(LOG, 
-					(errmsg("fault triggered, fault name:'%s' fault type:'%s' ",
+					(errcode(ERRCODE_FAULT_INJECT),
+					 errmsg("fault triggered, fault name:'%s' fault type:'%s' ",
 							FaultInjectorIdentifierEnumToString[entryLocal->faultInjectorIdentifier],
 							FaultInjectorTypeEnumToString[entryLocal->faultInjectorType])));	
 			
@@ -733,14 +741,16 @@ FaultInjector_InjectFaultIfSet(
 			if (entry != NULL)
 			{
 				ereport(LOG, 
-					(errmsg("fault triggered, fault name:'%s' fault type:'%s' ",
+						(errcode(ERRCODE_FAULT_INJECT),
+						 errmsg("fault triggered, fault name:'%s' fault type:'%s' ",
 							FaultInjectorIdentifierEnumToString[entryLocal->faultInjectorIdentifier],
 							FaultInjectorTypeEnumToString[entry->faultInjectorType])));	
 			}
 			else
 			{
 				ereport(LOG, 
-						(errmsg("fault 'NULL', fault name:'%s'  ",
+						(errcode(ERRCODE_FAULT_INJECT),
+						 errmsg("fault 'NULL', fault name:'%s'  ",
 								FaultInjectorIdentifierEnumToString[entryLocal->faultInjectorIdentifier])));				
 
 				/*
@@ -755,7 +765,8 @@ FaultInjector_InjectFaultIfSet(
 		}
 		case FaultInjectorTypeSkip:
 			ereport(LOG, 
-					(errmsg("fault triggered, fault name:'%s' fault type:'%s' ",
+					(errcode(ERRCODE_FAULT_INJECT),
+					 errmsg("fault triggered, fault name:'%s' fault type:'%s' ",
 							FaultInjectorIdentifierEnumToString[entryLocal->faultInjectorIdentifier],
 							FaultInjectorTypeEnumToString[entryLocal->faultInjectorType])));							
 			break;
@@ -765,7 +776,8 @@ FaultInjector_InjectFaultIfSet(
 			char	*buffer = NULL;
 			
 			ereport(LOG, 
-					(errmsg("fault triggered, fault name:'%s' fault type:'%s' ",
+					(errcode(ERRCODE_FAULT_INJECT),
+					 errmsg("fault triggered, fault name:'%s' fault type:'%s' ",
 							FaultInjectorIdentifierEnumToString[entryLocal->faultInjectorIdentifier],
 							FaultInjectorTypeEnumToString[entryLocal->faultInjectorType])));	
 
@@ -782,7 +794,8 @@ FaultInjector_InjectFaultIfSet(
 		case FaultInjectorTypeStatus:
 			
 			ereport(LOG, 
-					(errmsg("unexpected error, fault triggered, fault name:'%s' fault type:'%s' ",
+					(errcode(ERRCODE_FAULT_INJECT),
+					 errmsg("unexpected error, fault triggered, fault name:'%s' fault type:'%s' ",
 							FaultInjectorIdentifierEnumToString[entryLocal->faultInjectorIdentifier],
 							FaultInjectorTypeEnumToString[entryLocal->faultInjectorType])));	
 			
@@ -805,7 +818,8 @@ FaultInjector_InjectFaultIfSet(
 			 * the interrupt could be handled inside the fault injector itself
 			 */
 			ereport(LOG,
-					(errmsg("fault triggered, fault name:'%s' fault type:'%s' ",
+					(errcode(ERRCODE_FAULT_INJECT),
+					 errmsg("fault triggered, fault name:'%s' fault type:'%s' ",
 							FaultInjectorIdentifierEnumToString[entryLocal->faultInjectorIdentifier],
 							FaultInjectorTypeEnumToString[entryLocal->faultInjectorType])));
 
@@ -817,7 +831,8 @@ FaultInjector_InjectFaultIfSet(
 		case FaultInjectorTypeFinishPending:
 		{
 			ereport(LOG,
-					(errmsg("fault triggered, fault name:'%s' fault type:'%s' ",
+					(errcode(ERRCODE_FAULT_INJECT),
+					 errmsg("fault triggered, fault name:'%s' fault type:'%s' ",
 							FaultInjectorIdentifierEnumToString[entryLocal->faultInjectorIdentifier],
 							FaultInjectorTypeEnumToString[entryLocal->faultInjectorType])));
 			QueryFinishPending = true;
@@ -834,7 +849,8 @@ FaultInjector_InjectFaultIfSet(
 
 			RequestCheckpoint(CHECKPOINT_WAIT | CHECKPOINT_IMMEDIATE);
 			ereport(PANIC,
-					(errmsg("fault triggered, fault name:'%s' fault type:'%s' ",
+					(errcode(ERRCODE_FAULT_INJECT),
+					 errmsg("fault triggered, fault name:'%s' fault type:'%s' ",
 							FaultInjectorIdentifierEnumToString[entryLocal->faultInjectorIdentifier],
 							FaultInjectorTypeEnumToString[entryLocal->faultInjectorType])));
 			break;
@@ -843,7 +859,8 @@ FaultInjector_InjectFaultIfSet(
 		default:
 			
 			ereport(LOG, 
-					(errmsg("unexpected error, fault triggered, fault name:'%s' fault type:'%s' ",
+					(errcode(ERRCODE_FAULT_INJECT),
+					 errmsg("unexpected error, fault triggered, fault name:'%s' fault type:'%s' ",
 							FaultInjectorIdentifierEnumToString[entryLocal->faultInjectorIdentifier],
 							FaultInjectorTypeEnumToString[entryLocal->faultInjectorType])));	
 			
@@ -1436,7 +1453,8 @@ FaultInjector_SetFaultInjection(
 		}
 		case FaultInjectorTypeResume:
 			ereport(LOG, 
-					(errmsg("fault triggered, fault name:'%s' fault type:'%s' ",
+					(errcode(ERRCODE_FAULT_INJECT),
+					 errmsg("fault triggered, fault name:'%s' fault type:'%s' ",
 							FaultInjectorIdentifierEnumToString[entry->faultInjectorIdentifier],
 							FaultInjectorTypeEnumToString[entry->faultInjectorType])));	
 			

@@ -1294,8 +1294,10 @@ exec_mpp_query(const char *query_string,
 		if (Debug_dtm_action == DEBUG_DTM_ACTION_FAIL_BEGIN_COMMAND &&
 			CheckDebugDtmActionSqlCommandTag(commandTag))
 		{
-			elog(ERROR,"Raise ERROR for debug_dtm_action = %d, commandTag = %s",
-				 Debug_dtm_action, commandTag);
+			ereport(ERROR,
+					(errcode(ERRCODE_FAULT_INJECT),
+					 errmsg("Raise ERROR for debug_dtm_action = %d, commandTag = %s",
+							Debug_dtm_action, commandTag)));
 		}
 		
 		/*
@@ -1399,8 +1401,10 @@ exec_mpp_query(const char *query_string,
 		if (Debug_dtm_action == DEBUG_DTM_ACTION_FAIL_END_COMMAND &&
 			CheckDebugDtmActionSqlCommandTag(commandTag))
 		{
-			elog(ERROR,"Raise ERROR for debug_dtm_action = %d, commandTag = %s",
-				 Debug_dtm_action, commandTag);
+			ereport(ERROR,
+					(errcode(ERRCODE_FAULT_INJECT),
+					 errmsg("Raise ERROR for debug_dtm_action = %d, commandTag = %s",
+							Debug_dtm_action, commandTag)));
 		}
 		
 		/*
@@ -1489,8 +1493,10 @@ exec_mpp_dtx_protocol_command(DtxProtocolCommand dtxProtocolCommand,
 	if (Debug_dtm_action == DEBUG_DTM_ACTION_FAIL_BEGIN_COMMAND &&
 		CheckDebugDtmActionProtocol(dtxProtocolCommand, contextInfo))
 	{
-		elog(ERROR,"Raise ERROR for debug_dtm_action = %d, debug_dtm_action_protocol = %s",
-			 Debug_dtm_action, DtxProtocolCommandToString(dtxProtocolCommand));
+		ereport(ERROR,
+				(errcode(ERRCODE_FAULT_INJECT),
+				 errmsg("Raise ERROR for debug_dtm_action = %d, debug_dtm_action_protocol = %s",
+						Debug_dtm_action, DtxProtocolCommandToString(dtxProtocolCommand))));
 	}
 	if (Debug_dtm_action == DEBUG_DTM_ACTION_PANIC_BEGIN_COMMAND &&
 		CheckDebugDtmActionProtocol(dtxProtocolCommand, contextInfo))
@@ -1509,8 +1515,10 @@ exec_mpp_dtx_protocol_command(DtxProtocolCommand dtxProtocolCommand,
 	if (Debug_dtm_action == DEBUG_DTM_ACTION_FAIL_END_COMMAND && 
 		CheckDebugDtmActionProtocol(dtxProtocolCommand, contextInfo))
 	{
-		elog(ERROR,"Raise error for debug_dtm_action = %d, debug_dtm_action_protocol = %s",
-			 Debug_dtm_action, DtxProtocolCommandToString(dtxProtocolCommand));
+		ereport(ERROR,
+				(errcode(ERRCODE_FAULT_INJECT),
+				 errmsg("Raise error for debug_dtm_action = %d, debug_dtm_action_protocol = %s",
+						Debug_dtm_action, DtxProtocolCommandToString(dtxProtocolCommand))));
 	}
 
 	EndCommand(commandTag, dest);
@@ -1659,8 +1667,10 @@ exec_simple_query(const char *query_string, const char *seqServerHost, int seqSe
 		if (Debug_dtm_action == DEBUG_DTM_ACTION_FAIL_BEGIN_COMMAND &&
 			CheckDebugDtmActionSqlCommandTag(commandTag))
 		{
-			elog(ERROR,"Raise ERROR for debug_dtm_action = %d, commandTag = %s",
-				 Debug_dtm_action, commandTag);
+			ereport(ERROR,
+					(errcode(ERRCODE_FAULT_INJECT),
+					 errmsg("Raise ERROR for debug_dtm_action = %d, commandTag = %s",
+							Debug_dtm_action, commandTag)));
 		}
 
 		/*
@@ -1833,8 +1843,10 @@ exec_simple_query(const char *query_string, const char *seqServerHost, int seqSe
 		if (Debug_dtm_action == DEBUG_DTM_ACTION_FAIL_END_COMMAND &&
 			CheckDebugDtmActionSqlCommandTag(commandTag))
 		{
-			elog(ERROR,"Raise ERROR for debug_dtm_action = %d, commandTag = %s",
-				 Debug_dtm_action, commandTag);
+			ereport(ERROR,
+					(errcode(ERRCODE_FAULT_INJECT),
+					 errmsg("Raise ERROR for debug_dtm_action = %d, commandTag = %s",
+							Debug_dtm_action, commandTag)));
 		}
 
 		SIMPLE_FAULT_INJECTOR(ExecSimpleQueryEndCommand);

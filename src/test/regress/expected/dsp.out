@@ -469,15 +469,15 @@ ERROR:  compresslevel=5 is out of range for rle_type (should be in the range 1 t
 set gp_default_storage_options="compresslevel=1,compresstype=rle";
 ERROR:  unknown compresstype "rle"
 set gp_default_storage_options="checksum=1234";
-ERROR:  invalid bool value "1234" for storage option "checksum" (reloptions.c:124)
+ERROR:  invalid bool value "1234" for storage option "checksum"
 set gp_default_storage_options="blocksize=true";
-ERROR:  invalid integer value "true" for storage option "blocksize" (reloptions.c:90)
+ERROR:  invalid integer value "true" for storage option "blocksize"
 set gp_default_storage_options="compresstype = rle_type";
 ERROR:  rle_type cannot be used with Append Only relations row orientation
 set gp_default_storage_options='blocksize=8192,checksumblah=true';
-ERROR:  invalid storage option "checksumblah" (reloptions.c:149)
+ERROR:  invalid storage option "checksumblah"
 set gp_default_storage_options='orientation=columnblah';
-ERROR:  invalid value "columnblah" for storage option "orientation" (reloptions.c:138)
+ERROR:  invalid value "columnblah" for storage option "orientation"
 show gp_default_storage_options;
                                      gp_default_storage_options                                     
 ----------------------------------------------------------------------------------------------------
@@ -486,10 +486,10 @@ show gp_default_storage_options;
 
 -- negative tests - database level
 alter database dsp1 set gp_default_storage_options="compresslevel=-12";
-ERROR:  invalid value for option "compresslevel" (reloptions.c:485)
+ERROR:  invalid value for option "compresslevel"
 alter database dsp1 set
 	gp_default_storage_options="appendonly=false,checksum=invalid";
-ERROR:  invalid bool value "invalid" for storage option "checksum" (reloptions.c:124)
+ERROR:  invalid bool value "invalid" for storage option "checksum"
 alter database dsp1 set	gp_default_storage_options=
 	"compresstype=zlib,compresslevel=0";
 ERROR:  compresstype can't be used with compresslevel 0

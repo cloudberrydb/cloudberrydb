@@ -544,7 +544,8 @@ CreateRole(CreateRoleStmt *stmt)
 	{
 		if (issuper)
 			ereport(ERROR,
-					(errmsg("cannot create superuser with DENY rules")));
+					(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
+					 errmsg("cannot create superuser with DENY rules")));
 		AddRoleDenials(stmt->role, roleid, addintervals);
 	}
 
@@ -1092,7 +1093,8 @@ AlterRole(AlterRoleStmt *stmt)
 	{
 		if (addintervals)
 			ereport(ERROR,
-					(errmsg("cannot alter superuser with DENY rules")));
+					(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
+					 errmsg("cannot alter superuser with DENY rules")));
 		else
 			DelRoleDenials(stmt->role, roleid, NIL);	/* drop all preexisting constraints, if any. */
 	}
@@ -2572,7 +2574,8 @@ DelRoleDenials(const char *rolename, Oid roleid, List *dropintervals)
 	/* if intervals were specified and none was found, raise error */
 	if (dropintervals && !dropped_matching_interval)
 		ereport(ERROR, 
-				(errmsg("cannot find matching DENY rules for \"%s\"", rolename)));
+				(errcode(ERRCODE_UNDEFINED_OBJECT),
+				 errmsg("cannot find matching DENY rules for \"%s\"", rolename)));
 
 	systable_endscan(sscan);
 
