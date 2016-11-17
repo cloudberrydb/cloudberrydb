@@ -15,11 +15,8 @@
 //---------------------------------------------------------------------------
 
 #include "postgres.h"
-#include "executor/executor.h"
-#include "nodes/nodes.h"
 
-#include "gpos/error/CAutoTrace.h"
-#include "gpos/memory/IMemoryPool.h"
+#include "executor/executor.h"
 
 #include "gpopt/utils/CConstExprEvaluatorProxy.h"
 
@@ -28,11 +25,6 @@
 
 #include "naucrates/exception.h"
 #include "naucrates/dxl/operators/CDXLNode.h"
-
-#include "naucrates/md/CMDIdGPDB.h"
-#include "naucrates/md/IMDType.h"
-
-#include "utils/guc.h"
 
 using namespace gpdxl;
 using namespace gpmd;

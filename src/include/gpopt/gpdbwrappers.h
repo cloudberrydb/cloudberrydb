@@ -51,6 +51,9 @@ struct GpPolicy;
 struct PartitionSelector;
 struct SelectedParts;
 struct Motion;
+struct Var;
+struct Const;
+struct ArrayExpr;
 
 namespace gpdb {
 

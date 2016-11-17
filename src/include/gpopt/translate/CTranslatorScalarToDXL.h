@@ -24,7 +24,6 @@
 #include "gpopt/translate/CMappingVarColId.h"
 #include "gpopt/translate/CCTEListEntry.h"
 
-#include "naucrates/dxl/operators/CDXLScalarBoolExpr.h"
 #include "naucrates/dxl/CIdGenerator.h"
 
 #include "naucrates/base/IDatum.h"

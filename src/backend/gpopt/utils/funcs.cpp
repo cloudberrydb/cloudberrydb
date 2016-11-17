@@ -15,9 +15,13 @@
 
 #include <sys/stat.h>
 
-#include "gpopt/utils/CCatalogUtils.h"
+extern "C" {
+#include "postgres.h"
+#include "fmgr.h"
+#include "utils/builtins.h"
+}
+
 #include "gpopt/utils/COptTasks.h"
-#include "utils/guc.h"
 
 #include "gpos/_api.h"
 #include "gpopt/gpdbwrappers.h"
