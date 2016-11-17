@@ -1,5 +1,5 @@
 #include "s3utils.h"
-
+#include <iomanip>
 #ifndef S3_STANDALONE
 extern "C" {
 void write_log(const char *fmt, ...) __attribute__((format(printf, 1, 2)));
