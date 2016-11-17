@@ -273,6 +273,28 @@ Feature: gpcheckcat tests
         Then gpcheckcat should return a return code of 3
         And the user runs "dropdb fkey_ta"
 
+    @tt
+    @extra
+    Scenario: gpcheckcat should report and repair extra entries with non-oid primary keys
+        Given database "extra_pk_db" is dropped and recreated
+        And the path "gpcheckcat.repair.*" is removed from current working directory
+        And the user runs "psql extra_pk_db -c 'CREATE SCHEMA my_pk_schema' "
+        And the user runs "psql extra_pk_db -f gppylib/test/behave/mgmt_utils/steps/data/gpcheckcat/add_operator.sql "
+        Then psql should return a return code of 0
+        And the user runs "psql extra_pk_db -c "set allow_system_table_mods=DML;DELETE FROM pg_catalog.pg_operator where oprname='!#'" "
+        Then psql should return a return code of 0
+        When the user runs "gpcheckcat -R missing_extraneous extra_pk_db"
+        Then gpcheckcat should return a return code of 3
+        And the path "gpcheckcat.repair.*" is found in cwd "0" times
+        When the user runs "gpcheckcat -R missing_extraneous -E extra_pk_db"
+        Then gpcheckcat should return a return code of 1
+        And validate and run gpcheckcat repair
+        When the user runs "gpcheckcat -R missing_extraneous -E extra_pk_db"
+        Then gpcheckcat should return a return code of 0
+        And the user runs "dropdb extra_pk_db"
+        And the path "gpcheckcat.repair.*" is removed from current working directory
+
+
     @extra
     Scenario: gpcheckcat should report and repair extra entries in master as well as all the segments
         Given database "extra_db" is dropped and recreated
