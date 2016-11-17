@@ -2444,8 +2444,13 @@ cdb_expr_requires_full_eval(Node *node)
  * Adjusts the tree so that the target list of the given Plan node
  * will contain only Var nodes.  The old target list is moved onto
  * a new Result node which will be inserted above the given node.
- * This is so the executor can use a faster path to evaluate the
- * given node's targetlist.  Returns the new Result node.
+ * Returns the new result node.
+ *
+ * This is needed, because we have gutted out the support for evaluating
+ * set-returning-functions in targetlists in the executor, in all
+ * nodes except the Result node. That gives a marginal performance
+ * gain when there are no set-returning-functions in the target list,
+ * which is the common case.
  */
 Plan *
 cdb_insert_result_node(PlannerGlobal *glob, Plan *plan, int rtoffset)
@@ -2460,12 +2465,13 @@ cdb_insert_result_node(PlannerGlobal *glob, Plan *plan, int rtoffset)
     flow = plan->flow;
 	plan->flow = NULL;
 
-    /* Build a Result node to take over the targetlist from the given Plan. */
 	/*
-	 * GPDB_83_MERGE_FIXME: We don't have a PlannerInfo struct at hand here,
-	 * so we pass NULL and hope that make_result doesn't really need it.
-	 * It's really too late to insert Result nodes at this late stage in the
-	 * planner, we should eliminate the need for this
+	 * Build a Result node to take over the targetlist from the given Plan.
+	 *
+	 * XXX: We don't have a PlannerInfo struct at hand here, so we pass NULL
+	 * and hope that make_result doesn't really need it. It's really too late
+	 * to insert Result nodes at this late stage in the planner, we should
+	 * eliminate the need for this.
 	 */
     resultplan = (Plan *) make_result(NULL, plan->targetlist, NULL, plan);
 
