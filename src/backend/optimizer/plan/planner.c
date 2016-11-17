@@ -476,7 +476,6 @@ standard_planner(Query *parse, int cursorOptions, ParamListInfo boundParams)
 	}
 	else
 	{
-
 		/* Default assumption is we need all the tuples */
 		tuple_fraction = 0.0;
 	}

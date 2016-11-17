@@ -2988,6 +2988,7 @@ transformExplainStmt(ParseState *pstate, ExplainStmt *stmt)
 	return result;
 }
 
+
 /* exported so planner can check again after rewriting, query pullup, etc */
 void
 CheckSelectLocking(Query *qry)
@@ -3188,7 +3189,6 @@ applyLockingClause(Query *qry, Index rtindex, bool forUpdate, bool noWait)
 	rc->noWait = noWait;
 	qry->rowMarks = lappend(qry->rowMarks, rc);
 }
-
 
 
 /*

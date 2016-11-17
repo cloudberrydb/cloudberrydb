@@ -103,7 +103,7 @@ static Node *fix_scan_expr_mutator(Node *node, fix_scan_expr_context *context);
 static bool fix_scan_expr_walker(Node *node, fix_scan_expr_context *context);
 static void set_join_references(PlannerGlobal *glob, Join *join, int rtoffset);
 static void set_inner_join_references(PlannerGlobal *glob, Plan *inner_plan,
-									  indexed_tlist *outer_itlist);
+						  indexed_tlist *outer_itlist);
 static void set_upper_references(PlannerGlobal *glob, Plan *plan, int rtoffset);
 static void set_dummy_tlist_references(Plan *plan, int rtoffset);
 static indexed_tlist *build_tlist_index(List *tlist);
@@ -703,6 +703,7 @@ set_plan_refs(PlannerGlobal *glob, Plan *plan, int rtoffset)
 		case T_Material:
 		case T_Unique:
 		case T_SetOp:
+
 			/*
 			 * These plan types don't actually bother to evaluate their
 			 * targetlists, because they just return their unmodified input
