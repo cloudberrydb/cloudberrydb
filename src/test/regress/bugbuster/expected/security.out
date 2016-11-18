@@ -42,7 +42,7 @@ WHERE r.rolname in ('testuser1');
 (1 row)
 
 ALTER USER testuser1 DROP DENY FOR DAY 'Tuesday';
-ERROR:  cannot find matching DENY rules for "testuser1" (user.c:2636)
+ERROR:  cannot find matching DENY rules for "testuser1"
 --start_ignore
 DROP USER testuser1;
 --end_ignore

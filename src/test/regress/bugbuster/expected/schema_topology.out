@@ -4001,7 +4001,7 @@ SELECT a, (SELECT d FROM csq_t3 WHERE a=c) FROM csq_t1 GROUP BY a order by a;
 
 -- CSQ Q8
 SELECT a, (SELECT (SELECT d FROM csq_t3 WHERE a=c)) FROM csq_t1 GROUP BY a order by a;
-ERROR:  correlated subquery with skip-level correlations is not supported (subselect.c:394)
+ERROR:  correlated subquery with skip-level correlations is not supported
 \echo -- start_ignore
 -- start_ignore
     drop table if exists t5;
