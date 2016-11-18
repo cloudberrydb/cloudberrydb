@@ -138,10 +138,6 @@ typedef struct AppendOnlyExecutorReadBlock
 	
 	uint8			*singleRow;
 	int32			singleRowLen;
-
-	/* synthetic system attributes */
-	ItemPointerData cdb_fake_ctid;
-	MemTupleBinding *mt_bind;
 } AppendOnlyExecutorReadBlock;
 
 /*
