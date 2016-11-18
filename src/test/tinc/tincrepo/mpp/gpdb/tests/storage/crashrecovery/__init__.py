@@ -238,7 +238,7 @@ class SuspendCheckpointCrashRecovery(MPPTestCase):
         self.stop_start_validate(cluster_state)
  
     def stop_start_validate(self, cluster_state):
-        ''' Do gpstop immediate, gpstart and see if all segments come back up fine '''   
+        ''' Do gpstop immediate, gpstart and see if all segments come back up fine '''
         if cluster_state == 'sync' :
             self.stop_db()
             self.switch_primary_mirror_role_in_utility_mode()
@@ -246,7 +246,7 @@ class SuspendCheckpointCrashRecovery(MPPTestCase):
             self.start_db(down_segments=True)
             rc = self.gprecover.incremental()
             if not rc:
-                raise Exception('Gprecvoerseg failed')
+                raise Exception('Gprecoverseg failed')
             if not self.gprecover.wait_till_insync_transition():
                 raise Exception('Segments not in sync')
         if cluster_state == 'change_tracking':
@@ -260,21 +260,22 @@ class SuspendCheckpointCrashRecovery(MPPTestCase):
             self.start_db()
             if not self.gprecover.wait_till_insync_transition():
                 raise Exception('Segments not in sync')
-        self.dbstate.check_catalog()
+        self.dbstate.check_catalog(alldb=False)
+
     def cluster_in_change_tracking(self):
         '''
-        Put Cluster into change_tracking 
+        Put Cluster into change_tracking
         '''
         self.base.invoke_fault('filerep_consumer', 'fault', role='primary')
         self.fileutil.wait_till_change_tracking_transition()
         tinctest.logger.info('Change_tracking transition complete')
 
-        
+
     def validate_system(self, cluster_state):
-        # Validate the system's integrity 
+        # Validate the system's integrity
         if (cluster_state == 'change_tracking'):
             if not self.gprecover.incremental():
-                raise Exception('Gprecvoerseg failed')
+                raise Exception('Gprecoverseg failed')
             if not self.gprecover.wait_till_insync_transition():
                 raise Exception('Segments not in sync')
             tinctest.logger.info('Segments recovered and back in sync')
@@ -312,7 +313,7 @@ class SuspendCheckpointCrashRecovery(MPPTestCase):
 
     def do_post_run_checks(self):
         self.stop_start_validate('sync')
-        
+
         rc = self.gprecover.incremental()
         if not rc:
             raise Exception('Gprecvoerseg failed')
@@ -320,7 +321,7 @@ class SuspendCheckpointCrashRecovery(MPPTestCase):
         self.gprecover.wait_till_insync_transition()
 
         tinctest.logger.info("Done going from resync to insync")
-        self.dbstate.check_catalog() ##
+        self.dbstate.check_catalog(alldb=False)
         self.dbstate.check_mirrorintegrity()
 
         if self.config.has_master_mirror():
