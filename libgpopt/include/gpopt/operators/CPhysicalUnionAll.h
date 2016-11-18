@@ -4,9 +4,12 @@
 #ifndef GPOPT_CPhysicalUnionAll_H
 #define GPOPT_CPhysicalUnionAll_H
 
+#include "gpopt/base/CColRefSet.h"
+#include "gpopt/base/CDistributionSpecHashed.h"
+
 #include "gpopt/operators/CPhysical.h"
 #include "gpopt/operators/COperator.h"
-#include "gpopt/base/CColRefSet.h"
+
 
 namespace gpopt
 {
@@ -15,10 +18,10 @@ namespace gpopt
 		private:
 
 			// output column array
-			DrgPcr * const m_pdrgpcrOutput;
+			DrgPcr *const m_pdrgpcrOutput;
 
 			// input column array
-			DrgDrgPcr * const m_pdrgpdrgpcrInput;
+			DrgDrgPcr *const m_pdrgpdrgpcrInput;
 
 			// if this union is needed for partial indexes then store the scan
 			// id, otherwise this will be ULONG_MAX
@@ -27,18 +30,37 @@ namespace gpopt
 			// set representation of input columns
 			DrgPcrs *m_pdrgpcrsInput;
 
+			// array of child hashed distributions -- used locally for distribution derivation
+			DrgPds *const m_pdrgpds;
+
+			// map given array of scalar ident expressions to positions of UnionAll input columns in the given child;
+			DrgPul *PdrgpulMap(IMemoryPool *pmp, DrgPexpr *pdrgpexpr, ULONG ulChildIndex) const;
+
+			// derive hashed distribution from child operators
+			CDistributionSpecHashed *PdshashedDerive(IMemoryPool *pmp, CExpressionHandle &exprhdl) const;
+
+			// compute output hashed distribution matching the outer child's hashed distribution
+			CDistributionSpecHashed *PdsMatching(IMemoryPool *pmp, const DrgPul *pdrgpulOuter) const;
+
+			// derive output distribution based on child distribution
+			CDistributionSpec *PdsDeriveFromChildren(IMemoryPool *pmp, CExpressionHandle &exprhdl) const;
+
 		protected:
 
 			CColRefSet *PcrsInput(ULONG ulChildIndex);
+
+			// compute required hashed distribution of the n-th child
+			CDistributionSpecHashed *
+			PdshashedPassThru(IMemoryPool *pmp, CDistributionSpecHashed *pdshashedRequired, ULONG ulChildIndex) const;
 
 		public:
 
 			CPhysicalUnionAll
 				(
-				IMemoryPool *pmp,
-				DrgPcr *pdrgpcrOutput,
-				DrgDrgPcr *pdrgpdrgpcrInput,
-				ULONG ulScanIdPartialIndex
+					IMemoryPool *pmp,
+					DrgPcr *pdrgpcrOutput,
+					DrgDrgPcr *pdrgpdrgpcrInput,
+					ULONG ulScanIdPartialIndex
 				);
 
 			virtual
@@ -104,7 +126,7 @@ namespace gpopt
 					DrgPdp *pdrgpdpCtxt,
 					ULONG ulOptReq
 				)
-				const;
+			const;
 
 			// compute required sort order of the n-th child
 			virtual
@@ -117,7 +139,7 @@ namespace gpopt
 					DrgPdp *pdrgpdpCtxt,
 					ULONG ulOptReq
 				)
-				const;
+			const;
 
 			// compute required rewindability of the n-th child
 			virtual
@@ -130,7 +152,7 @@ namespace gpopt
 					DrgPdp *pdrgpdpCtxt,
 					ULONG ulOptReq
 				)
-				const;
+			const;
 
 			// compute required partition propagation of the n-th child
 			virtual
@@ -148,7 +170,7 @@ namespace gpopt
 			static
 			CPhysicalUnionAll *PopConvert
 				(
-				COperator *pop
+					COperator *pop
 				);
 
 
@@ -164,6 +186,9 @@ namespace gpopt
 			virtual
 			COrderSpec *PosDerive(IMemoryPool *pmp, CExpressionHandle &exprhdl) const;
 
+			// derive distribution
+			virtual
+			CDistributionSpec *PdsDerive(IMemoryPool *pmp, CExpressionHandle &exprhdl) const;
 
 			// derive partition index map
 			virtual
@@ -193,7 +218,7 @@ namespace gpopt
 					CExpressionHandle &exprhdl,
 					const CEnfdDistribution *ped
 				)
-				const;
+			const;
 
 			// return order property enforcing type for this operator
 			virtual
@@ -202,7 +227,7 @@ namespace gpopt
 					CExpressionHandle &exprhdl,
 					const CEnfdOrder *peo
 				)
-				const;
+			const;
 
 			// return rewindability property enforcing type for this operator
 			virtual
@@ -211,7 +236,7 @@ namespace gpopt
 					CExpressionHandle &, // exprhdl
 					const CEnfdRewindability * // per
 				)
-				const;
+			const;
 
 			// return partition propagation property enforcing type for this operator
 			virtual
@@ -220,7 +245,7 @@ namespace gpopt
 					CExpressionHandle &exprhdl,
 					const CEnfdPartitionPropagation *pepp
 				)
-				const;
+			const;
 	};
 }
 

@@ -45,13 +45,6 @@ namespace gpopt
 		return "CPhysicalParallelUnionAll";
 	}
 
-	CDistributionSpec *CPhysicalParallelUnionAll::PdsDerive(IMemoryPool *pmp, CExpressionHandle&) const
-	{
-		// This is not necessarily the optimal thing to do, but it's the safest, un-wrong thing to return
-		// We will work harder at providing a better-effort answer here, à la CPhysicalSerialUnionAll::PdsDerive
-		return GPOS_NEW(pmp) CDistributionSpecRandom();
-	}
-
 	CDistributionSpec *
 	CPhysicalParallelUnionAll::PdsRequired
 		(
