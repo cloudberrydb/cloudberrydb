@@ -1497,8 +1497,8 @@ ALTER DATABASE db_name1  RENAME TO new_db_name1;
 ALTER DATABASE new_db_name1  OWNER TO db_owner2;
 ALTER DATABASE new_db_name1 RENAME TO db_name1;
 
-CREATE SCHEMA myschema;
-ALTER DATABASE db_name1 SET search_path TO myschema, public, pg_catalog;
+CREATE SCHEMA st_myschema;
+ALTER DATABASE db_name1 SET search_path TO st_myschema, public, pg_catalog;
 ALTER DATABASE db_name1 RESET search_path;
 
 CREATE USER db_user13;
@@ -1622,23 +1622,23 @@ CREATE ROLE ron;
 CREATE ROLE ken;
 CREATE ROLE admin;
 
-CREATE TABLE foo1 (i int, j int) DISTRIBUTED  RANDOMLY;
-ALTER TABLE foo1 OWNER TO sally;
-CREATE TABLE foo2 (i int, j int) DISTRIBUTED  RANDOMLY;
-ALTER TABLE foo2 OWNER TO ron;
-CREATE TABLE foo3 (i int, j int) DISTRIBUTED  RANDOMLY;
-ALTER TABLE foo3 OWNER TO ken;
+CREATE TABLE st_foo1 (i int, j int) DISTRIBUTED  RANDOMLY;
+ALTER TABLE st_foo1 OWNER TO sally;
+CREATE TABLE st_foo2 (i int, j int) DISTRIBUTED  RANDOMLY;
+ALTER TABLE st_foo2 OWNER TO ron;
+CREATE TABLE st_foo3 (i int, j int) DISTRIBUTED  RANDOMLY;
+ALTER TABLE st_foo3 OWNER TO ken;
 
 DROP OWNED by sally CASCADE;
 DROP OWNED by ron RESTRICT;
 DROP OWNED by ken;
 
-CREATE TABLE foo1 (i int, j int) DISTRIBUTED  RANDOMLY;
-ALTER TABLE foo1 OWNER TO sally;
-CREATE TABLE foo2 (i int, j int) DISTRIBUTED  RANDOMLY;
-ALTER TABLE foo2 OWNER TO ron;
-CREATE TABLE foo3 (i int, j int) DISTRIBUTED  RANDOMLY;
-ALTER TABLE foo3 OWNER TO ken;
+CREATE TABLE st_foo1 (i int, j int) DISTRIBUTED  RANDOMLY;
+ALTER TABLE st_foo1 OWNER TO sally;
+CREATE TABLE st_foo2 (i int, j int) DISTRIBUTED  RANDOMLY;
+ALTER TABLE st_foo2 OWNER TO ron;
+CREATE TABLE st_foo3 (i int, j int) DISTRIBUTED  RANDOMLY;
+ALTER TABLE st_foo3 OWNER TO ken;
 
 REASSIGN OWNED BY sally,ron,ken to admin;
     CREATE TABLE test_table(
@@ -3153,24 +3153,25 @@ insert into t5 values(5, '2003-4');
     where vsum < 45 order by period, vsum;
 
 \echo -- start_ignore
-DROP TABLE IF EXISTS foo1;
+DROP TABLE IF EXISTS st_foo1;
 
-DROP TABLE IF EXISTS foo2;
+DROP TABLE IF EXISTS st_foo2;
 
 \echo -- end_ignore
 
-create table foo1 (i int, j varchar(10)) 
+create table st_foo1 (i int, j varchar(10))
 partition by list(j)
 (partition p1 values('1'), partition p2 values('2'), partition p3 values('3'), partition p4 values('4'), partition p5 values('5'),partition p0 values('0'));
 
-insert into foo1 select i , i%5 || '' from generate_series(1,100) i;
+insert into st_foo1 select i , i%5 || '' from generate_series(1,100) i;
 
-create table foo2 (i int, j varchar(10));
-insert into foo2 select i , i ||'' from generate_series(1,5) i;
+create table st_foo2 (i int, j varchar(10));
+insert into st_foo2 select i , i ||'' from generate_series(1,5) i;
 
-analyze foo1;
-analyze foo2;
-select count(*) from foo1,foo2 where foo1.j = foo2.j;DROP USER IF EXISTS testuser;
+analyze st_foo1;
+analyze st_foo2;
+select count(*) from st_foo1,st_foo2 where st_foo1.j = st_foo2.j;
+DROP USER IF EXISTS testuser;
 CREATE USER testuser WITH LOGIN DENY BETWEEN DAY 'Monday' TIME '01:00:00' AND DAY 'Monday' TIME '01:30:00';;
 
 SELECT r.rolname, d.start_day, d.start_time, d.end_day, d.end_time
