@@ -188,24 +188,26 @@ jobs:
     - aggregate:
       - get: gpdb_pr
         tags: ["worker-three"]
+        passed: [icg_planner_centos6]
       - get: bin_gpdb
         tags: ["worker-three"]
         resource: bin_gpdb_centos
+        passed: [icg_planner_centos6]
         trigger: true
       - get: centos67-gpdb-gcc6-llvm-image
         tags: ["worker-three"]
       - get: gpaddon_src
         tags: ["worker-three"]
     - task: separate_qautils_files_for_rc
-      file: gpdb_pr/concourse/separate_qautils_files_for_rc.yml
+      file: gpdb_pr/concourse/tasks/separate_qautils_files_for_rc.yml
       image: centos67-gpdb-gcc6-llvm-image
       input_mapping:
-        gpdb_pr: gpdb_pr
+        gpdb_src: gpdb_pr
       tags: ["worker-three"]
       params:
         QAUTILS_TARBALL: rc_bin_gpdb/QAUtils-rhel6-x86_64.tar.gz
     - task: gpdb_rc_packaging_centos
-      file: gpdb_pr/concourse/gpdb_packaging.yml
+      file: gpdb_pr/concourse/tasks/gpdb_packaging.yml
       image: centos67-gpdb-gcc6-llvm-image
       tags: ["worker-three"]
       input_mapping:
@@ -214,9 +216,8 @@ jobs:
       output_mapping:
         packaged_gpdb: packaged_gpdb_rc
       params:
-        INSTALL_SCRIPT_SRC: gpdb_pr/gpAux/addon/license/installer-header-rhel-gpdb.sh
+        INSTALL_SCRIPT_SRC: gpdb_src/gpAux/addon/license/installer-header-rhel-gpdb.sh
         INSTALLER_ZIP: packaged_gpdb/greenplum-db-4.3.99.0-build-1-rhel6-x86_64.zip
-        GPDB_SRC: gpdb_pr
         ADD_README_INSTALL: true
     - aggregate:
       - put: installer_rhel6_gpdb_rc

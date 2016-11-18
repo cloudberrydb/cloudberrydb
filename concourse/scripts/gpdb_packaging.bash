@@ -15,12 +15,7 @@ function _main() {
   echo_expected_env_variables
 
   # Copy gpaddon into addon to ensure the availability of all the installer scripts
-  if [ -z "$GPDB_SRC" ]
-  then
-	  cp -R gpaddon_src gpdb_src/gpAux/addon
-  else
-	  cp -R gpaddon_src $GPDB_SRC/gpAux/addon
-  fi
+  cp -R gpaddon_src gpdb_src/gpAux/addon
 
   local installer_bin
   installer_bin=$( echo "$INSTALLER_ZIP" | sed "s/.zip/.bin/" | xargs basename)
