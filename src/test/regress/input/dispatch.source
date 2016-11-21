@@ -36,6 +36,11 @@ DROP TABLE "my table";
 \c regression
 DROP DATABASE "dispatch test db";
 
+-- Test gp_max_plan_size limit
+set gp_max_plan_size='10 kB';
+create table dispatchtesttab(t text);
+select * from dispatchtesttab where t = repeat('x', 1024*11);
+
 --
 -- test QD will report failure if QE fails to send its motion_listener back
 -- during backend initialization
