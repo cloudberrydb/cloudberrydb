@@ -1079,15 +1079,6 @@ extern Datum txid_snapshot_xmax(PG_FUNCTION_ARGS);
 extern Datum txid_snapshot_xip(PG_FUNCTION_ARGS);
 extern Datum txid_visible_in_snapshot(PG_FUNCTION_ARGS);
 
-/* access/transam/twophase.c */
-extern Datum pg_prepared_xact(PG_FUNCTION_ARGS);
-
-/* commands/prepare.c */
-extern Datum pg_prepared_statement(PG_FUNCTION_ARGS);
-
-/* utils/mmgr/portalmem.c */
-extern Datum pg_cursor(PG_FUNCTION_ARGS);
-
 /* uuid.c */
 extern Datum uuid_in(PG_FUNCTION_ARGS);
 extern Datum uuid_out(PG_FUNCTION_ARGS);
