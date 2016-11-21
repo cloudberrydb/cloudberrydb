@@ -134,16 +134,16 @@ typedef struct AggHashEntryData
 } AggHashEntryData;				/* VARIABLE LENGTH STRUCT */
 
 static void advance_transition_function(AggState *aggstate,
-										AggStatePerAgg peraggstate,
-										AggStatePerGroup pergroupstate,
-										FunctionCallInfoData *fcinfo,
-										MemoryManagerContainer *mem_manager);
+							AggStatePerAgg peraggstate,
+							AggStatePerGroup pergroupstate,
+							FunctionCallInfoData *fcinfo,
+							MemoryManagerContainer *mem_manager);
 static void process_ordered_aggregate_single(AggState *aggstate,
-											 AggStatePerAgg peraggstate,
-											 AggStatePerGroup pergroupstate);
+								 AggStatePerAgg peraggstate,
+								 AggStatePerGroup pergroupstate);
 static void process_ordered_aggregate_multi(AggState *aggstate,
-											 AggStatePerAgg peraggstate,
-											 AggStatePerGroup pergroupstate);
+								AggStatePerAgg peraggstate,
+								AggStatePerGroup pergroupstate);
 static void finalize_aggregate(AggState *aggstate,
 				   AggStatePerAgg peraggstate,
 				   AggStatePerGroup pergroupstate,
@@ -519,11 +519,11 @@ advance_aggregates(AggState *aggstate, AggStatePerGroup pergroup,
 		bool isnull;
 		AggStatePerAgg peraggstate = &aggstate->peragg[aggno];
 		AggStatePerGroup pergroupstate = &pergroup[aggno];
+		int			nargs;
 		Aggref	   *aggref = peraggstate->aggref;
 		PercentileExpr *perc = peraggstate->perc;
 		int			i;
 		TupleTableSlot *slot;
-		int nargs;
 
 		if (aggref)
 			nargs = list_length(aggref->args);
@@ -535,8 +535,8 @@ advance_aggregates(AggState *aggstate, AggStatePerGroup pergroup,
 
 		/* Evaluate the current input expressions for this aggregate */
 		slot = ExecProject(peraggstate->evalproj, NULL);
-		slot_getallattrs(slot);	
-		
+		slot_getallattrs(slot);
+
 		if (peraggstate->numSortCols > 0)
 		{
 			/* DISTINCT and/or ORDER BY case */
@@ -591,7 +591,7 @@ advance_aggregates(AggState *aggstate, AggStatePerGroup pergroup,
 		{
 			/* We can apply the transition function immediately */
 			FunctionCallInfoData fcinfo;
-			
+
 			/* Load values into fcinfo */
 			/* Start from 1, since the 0th arg will be the transition value */
 			Assert(slot->PRIVATE_tts_nvalid >= nargs);
@@ -630,7 +630,7 @@ advance_aggregates(AggState *aggstate, AggStatePerGroup pergroup,
 /*
  * Run the transition function for a DISTINCT or ORDER BY aggregate
  * with only one input.  This is called after we have completed
- * entering all the input values into the sort object.	We complete the
+ * entering all the input values into the sort object.  We complete the
  * sort, read out the values in sorted order, and run the transition
  * function on each value (applying DISTINCT if appropriate).
  *
@@ -669,7 +669,6 @@ process_ordered_aggregate_single(AggState *aggstate,
 		tuplesort_performsort((Tuplesortstate *) peraggstate->sortstate);
 
 	/* Load the column into argument 1 (arg 0 will be transition value) */
-
 	newVal = fcinfo.arg + 1;
 	isNull = fcinfo.argnull + 1;
 
@@ -692,16 +691,16 @@ process_ordered_aggregate_single(AggState *aggstate,
 		 */
 		MemoryContextReset(workcontext);
 		oldContext = MemoryContextSwitchTo(workcontext);
-		
+
 		/*
 		 * If DISTINCT mode, and not distinct from prior, skip it.
 		 */
 		if (isDistinct &&
-				 haveOldVal &&
-				 ((oldIsNull && *isNull) ||
-				  (!oldIsNull && !*isNull &&
-				   DatumGetBool(FunctionCall2(&peraggstate->equalfn,
-											  oldVal, *newVal)))))
+			haveOldVal &&
+			((oldIsNull && *isNull) ||
+			 (!oldIsNull && !*isNull &&
+			  DatumGetBool(FunctionCall2(&peraggstate->equalfn,
+										 oldVal, *newVal)))))
 		{
 			/* equal to prior, so forget this one */
 			if (!peraggstate->inputtypeByVal && !*isNull)
@@ -722,25 +721,25 @@ process_ordered_aggregate_single(AggState *aggstate,
 
 		MemoryContextSwitchTo(oldContext);
 	}
-	
+
 	if (!oldIsNull && !peraggstate->inputtypeByVal)
 		pfree(DatumGetPointer(oldVal));
-	
+
 	if(gp_enable_mk_sort)
 		tuplesort_end_mk((Tuplesortstate_mk *) peraggstate->sortstate);
 	else
 		tuplesort_end((Tuplesortstate *) peraggstate->sortstate);
-	
+
 	peraggstate->sortstate = NULL;
 }
 
 /*
- * Run the transition function for an ORDER BY aggregate with more than 
- * one input.  In PG DISTINCT aggregates may also have multiple columns,
- * but in GPDB, only ORDER BY aggregates do.  This is called after we have 
- * completed  entering all the input values into the sort object.	We 
- * complete the sort, read out the values in sorted order, and run the 
- * transition function on each value.
+ * Run the transition function for an ORDER BY aggregate with more than one
+ * input.  In PG DISTINCT aggregates may also have multiple columns, but in
+ * GPDB, only ORDER BY aggregates do.  This is called after we have completed
+ * entering all the input values into the sort object.  We complete the
+ * sort, read out the values in sorted order, and run the transition
+ * function on each value.
  *
  * When called, CurrentMemoryContext should be the per-query context.
  */
@@ -1241,7 +1240,7 @@ agg_retrieve_direct(AggState *aggstate)
 			{
 				/* outer plan produced no tuples at all */
 				aggstate->agg_done = true;
-				/* if we are grouping, we should produce no tuples too */
+				/* If we are grouping, we should produce no tuples too */
 				if (node->aggstrategy != AGG_PLAIN)
 					return NULL;
 			}
@@ -1463,9 +1462,13 @@ agg_retrieve_direct(AggState *aggstate)
 			if (peraggstate->numSortCols > 0)
 			{
 				if (peraggstate->numInputs == 1)
-					process_ordered_aggregate_single(aggstate, peraggstate, pergroupstate);
+					process_ordered_aggregate_single(aggstate,
+													 peraggstate,
+													 pergroupstate);
 				else
-					process_ordered_aggregate_multi(aggstate, peraggstate, pergroupstate);
+					process_ordered_aggregate_multi(aggstate,
+													peraggstate,
+													pergroupstate);
 
 			}
 

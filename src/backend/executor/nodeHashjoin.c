@@ -27,12 +27,11 @@
 #include "cdb/cdbvars.h"
 #include "miscadmin.h"			/* work_mem */
 
-#define EMPTY_WORKFILE_NAME "empty_workfile"
-
 static TupleTableSlot *ExecHashJoinOuterGetTuple(PlanState *outerNode,
 						  HashJoinState *hjstate,
 						  uint32 *hashvalue);
-static TupleTableSlot *ExecHashJoinGetSavedTuple(HashJoinBatchSide *side,
+static TupleTableSlot *ExecHashJoinGetSavedTuple(HashJoinState *hjstate,
+						  HashJoinBatchSide *side,
 						  uint32 *hashvalue,
 						  TupleTableSlot *tupleSlot);
 static int	ExecHashJoinNewBatch(HashJoinState *hjstate);
@@ -354,8 +353,8 @@ ExecHashJoin(HashJoinState *node)
 			 * we've got a match, but still need to test non-hashed quals
 			 */
 			inntuple = ExecStoreMinimalTuple(HJTUPLE_MINTUPLE(curtuple),
-										 node->hj_HashTupleSlot,
-										 false);	/* don't pfree */
+											 node->hj_HashTupleSlot,
+											 false);	/* don't pfree */
 			econtext->ecxt_innertuple = inntuple;
 
 			/* reset temp memory each time to avoid leaks from qual expr */
@@ -369,7 +368,7 @@ ExecHashJoin(HashJoinState *node)
 			 * Only the joinquals determine MatchedOuter status, but all quals
 			 * must pass to actually return the tuple.
 			 */
-			if (joinqual == NIL || ExecQual(joinqual, econtext, false /* resultForNull */))
+			if (joinqual == NIL || ExecQual(joinqual, econtext, false))
 			{
 				node->hj_MatchedOuter = true;
 
@@ -782,7 +781,8 @@ ExecHashJoinOuterGetTuple(PlanState *outerNode,
 		if (QueryFinishPending)
 			return NULL;
 
-		slot = ExecHashJoinGetSavedTuple(&hashtable->batches[curbatch]->outerside,
+		slot = ExecHashJoinGetSavedTuple(hjstate,
+										 &hashtable->batches[curbatch]->outerside,
 										 hashvalue,
 										 hjstate->hj_OuterTupleSlot);
 		if (!TupIsNull(slot))
@@ -929,7 +929,8 @@ start_over:
 			if (QueryFinishPending)
 				return nbatch;
 
-			slot = ExecHashJoinGetSavedTuple(&batch->innerside,
+			slot = ExecHashJoinGetSavedTuple(hjstate,
+											 &batch->innerside,
 											 &hashvalue,
 											 hjstate->hj_HashTupleSlot);
 			if (!slot)
@@ -945,8 +946,7 @@ start_over:
 
 		/*
 		 * after we build the hash table, the inner batch file is no longer
-		 * needed.
-		 *
+		 * needed
 		 */
 		if (hjstate->js.ps.instrument)
 		{
@@ -971,8 +971,9 @@ start_over:
 
 	if (!result)
 	{
-		ereport(ERROR, (errcode_for_file_access(),
-						errmsg("could not access temporary file")));
+		ereport(ERROR,
+				(errcode_for_file_access(),
+				 errmsg("could not access temporary file")));
 	}
 
 	return curbatch;
@@ -1065,7 +1066,8 @@ ExecHashJoinSaveTuple(PlanState *ps, MemTuple tuple, uint32 hashvalue,
  * itself is stored in the given slot.
  */
 static TupleTableSlot *
-ExecHashJoinGetSavedTuple(HashJoinBatchSide *batchside,
+ExecHashJoinGetSavedTuple(HashJoinState *hjstate,
+						  HashJoinBatchSide *batchside,
 						  uint32 *hashvalue,
 						  TupleTableSlot *tupleSlot)
 {
