@@ -447,6 +447,7 @@ extern int	optimizer_samples_number;
 extern int optimizer_log_failure;
 extern double optimizer_cost_threshold;
 extern double optimizer_nestloop_factor;
+extern double optimizer_sort_factor;
 extern bool optimizer_cte_inlining;
 extern int optimizer_cte_inlining_bound;
 extern double optimizer_damping_factor_filter;

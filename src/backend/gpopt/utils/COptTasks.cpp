@@ -906,6 +906,19 @@ COptTasks::SetCostModelParams
 		CDouble dNLJFactor(optimizer_nestloop_factor);
 		pcm->Pcp()->SetParam(pcp->UlId(), dNLJFactor, dNLJFactor - 0.5, dNLJFactor + 0.5);
 	}
+
+	if (optimizer_sort_factor > 1.0 || optimizer_sort_factor < 1.0)
+	{
+		// change sort cost factor
+		ICostModelParams::SCostParam *pcp = NULL;
+		if (OPTIMIZER_GPDB_CALIBRATED == optimizer_cost_model)
+		{
+			pcp = pcm->Pcp()->PcpLookup(CCostModelParamsGPDB::EcpSortTupWidthCostUnit);
+
+			CDouble dSortFactor(optimizer_sort_factor);
+			pcm->Pcp()->SetParam(pcp->UlId(), pcp->DVal() * optimizer_sort_factor, pcp->DLowerBound() * optimizer_sort_factor, pcp->DUpperBound() * optimizer_sort_factor);
+		}
+	}
 }
 
 

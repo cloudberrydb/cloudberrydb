@@ -537,6 +537,7 @@ int			optimizer_samples_number;
 int			optimizer_log_failure;
 double		optimizer_cost_threshold;
 double		optimizer_nestloop_factor;
+double		optimizer_sort_factor;
 bool		optimizer_cte_inlining;
 int			optimizer_cte_inlining_bound;
 double		optimizer_damping_factor_filter;
@@ -4946,6 +4947,16 @@ struct config_real ConfigureNamesReal_gp[] =
 		},
 		&optimizer_nestloop_factor,
 		1024.0, 1.0, DBL_MAX, NULL, NULL
+	},
+
+	{
+		{"optimizer_sort_factor",PGC_USERSET, DEVELOPER_OPTIONS,
+			gettext_noop("set the sort cost factor in the optimizer, 1.0 means same as default, > 1.0 means more costly than default, < 1.0 means means less costly than default"),
+			NULL,
+			GUC_NO_SHOW_ALL | GUC_NOT_IN_SAMPLE
+		},
+		&optimizer_sort_factor,
+		1.0, 0.0, DBL_MAX, NULL, NULL
 	},
 
 	/* End-of-list marker */
