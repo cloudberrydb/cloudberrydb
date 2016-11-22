@@ -205,9 +205,6 @@ installcheck-bugbuster: all
 	@grep memory_quota ./bugbuster/known_good_schedule > /dev/null; \
 	if [ $$? = 0 ]; then bugbuster/bugbuster_cleanup.sh; fi
 
-$(srcdir)/sql/orca_udfs.sql: $(srcdir)/sql/orca_udfs.sql.in
-	sed -e 's,%%GPOPTUTILS_NAMESPACE%%,orcaudftest,g; s,%%EXT%%,$(LDSFX),g' $(srcdir)/sql/orca_udfs.sql.in > $(srcdir)/sql/orca_udfs.sql
-
 # old interfaces follow...
 
 runcheck: check
