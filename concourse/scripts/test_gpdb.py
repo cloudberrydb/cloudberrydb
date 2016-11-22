@@ -39,9 +39,6 @@ def main():
     elif options.mode == 'planner':
         ciCommon = GpBuild(options.mode)
 
-    status = ciCommon.install_system_deps()
-    if status:
-        return status
     for dependency in args:
         status = ciCommon.install_dependency(dependency)
         if status:
