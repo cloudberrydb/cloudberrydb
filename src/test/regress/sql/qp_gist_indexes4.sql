@@ -6,35 +6,6 @@ create schema qp_gist_indexes4;
 set search_path to qp_gist_indexes4;
 
 -- ----------------------------------------------------------------------
--- Test: test01_createConversionFunctions.sql
--- ----------------------------------------------------------------------
-
--- ----------------------------------------------------------------------------
--- PURPOSE:
---     These functions help convert TEXT data to geometric data types (box, 
---     circle, and polygon).
--- ----------------------------------------------------------------------------
-
-CREATE FUNCTION TO_BOX(TEXT) RETURNS BOX AS
-  $$
-    SELECT box_in(textout($1))
-  $$ LANGUAGE SQL
-  IMMUTABLE;
-
-CREATE FUNCTION TO_CIRCLE(TEXT) RETURNS CIRCLE AS
-  $$
-    SELECT circle_in(textout($1))
-  $$ LANGUAGE SQL
-  IMMUTABLE;
-
-CREATE FUNCTION TO_POLY(TEXT) RETURNS POLYGON AS
-  $$
-    SELECT poly_in(textout($1))
-  $$ LANGUAGE SQL
-  IMMUTABLE;
-
-
--- ----------------------------------------------------------------------
 -- Test: test02_createSeedToMangledIntegerFunctions.sql
 -- ----------------------------------------------------------------------
 
@@ -198,7 +169,7 @@ DECLARE
    s TEXT;
 BEGIN
    s = SeedToBoxAsText(seed);
-   RETURN TO_BOX(s);
+   RETURN s::box;
 END;
 $$
 LANGUAGE PLPGSQL
@@ -222,7 +193,7 @@ BEGIN
    y1 = f2(seed);
    r  = f3(seed);
    s = '((' || x1 || ', ' || y1 || '), ' || r || ')';
-   RETURN TO_CIRCLE(s);
+   RETURN s::circle;
 END;
 $$
 LANGUAGE PLPGSQL
@@ -242,7 +213,7 @@ DECLARE
    s TEXT;
 BEGIN
    s = SeedToBoxAsText(seed);
-   RETURN TO_POLY(s);
+   RETURN s::polygon;
 END;
 $$
 LANGUAGE PLPGSQL
