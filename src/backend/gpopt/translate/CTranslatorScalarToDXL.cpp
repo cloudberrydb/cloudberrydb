@@ -82,7 +82,6 @@ CTranslatorScalarToDXL::CTranslatorScalarToDXL
 	m_phmulCTEEntries(phmulCTEEntries),
 	m_pdrgpdxlnCTE(pdrgpdxlnCTE)
 {
-	GPOS_ASSERT_IMP(!fQuery, pplstmt);
 }
 
 //---------------------------------------------------------------------------
