@@ -165,7 +165,6 @@ includecheck:
 
 pg_regress_call = ./pg_regress --inputdir=$(srcdir) --multibyte=$(MULTIBYTE) $(MAXCONNOPT) $(NOLOCALE) --init-file=$(srcdir)/init_file
 pg_regress_call_bb = ./pg_regress --inputdir=$(srcdir)/bugbuster --outputdir=$(srcdir)/bugbuster --multibyte=$(MULTIBYTE) $(MAXCONNOPT) $(NOLOCALE) --init-file=$(srcdir)/init_file
-pg_regress_call_opt = ./pg_regress --inputdir=$(srcdir)/optfunctional --outputdir=$(srcdir)/optfunctional --multibyte=$(MULTIBYTE) $(MAXCONNOPT) $(NOLOCALE) --init-file=$(srcdir)/optfunctional/init_file
 
 check: all
 	$(pg_regress_call) --temp-install=./tmp_check --top-builddir=$(top_builddir) --srcdir=$(abs_srcdir) --temp-port=$(TEMP_PORT) --schedule=$(srcdir)/parallel_schedule 
@@ -180,13 +179,6 @@ installcheck-good: all
 	bash kerberos/setup_test.sh; \
 	PGUSER="gpadmin/kerberos-test" $(pg_regress_call)  --psqldir=$(PSQLDIR) --schedule=$(srcdir)/parallel_schedule --schedule=$(srcdir)/greenplum_schedule --srcdir=$(abs_srcdir) --host=`hostname`; \
 	fi
-
-installcheck-optfunctional: all
-	@echo "================================"
-	@echo "Installcheck-optfunctional starting ... "
-	@echo "================================"
-	export PGOPTIONS='-c optimizer=on' && \
-	$(pg_regress_call_opt) --psqldir=$(PSQLDIR) --schedule=$(srcdir)/optfunctional/optfunctional_schedule --srcdir=$(abs_srcdir)/optfunctional
 
 testbouncer: all
 	bash -c "bouncer/setup.sh"
