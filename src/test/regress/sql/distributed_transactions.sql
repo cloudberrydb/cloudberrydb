@@ -279,3 +279,6 @@ end;
 
 drop table if exists dtmcurse_foo;
 drop table if exists dtmcurse_bar;
+
+-- Test distribute transaction if 'COMMIT/END' is included in a multi-queries command.
+\! psql postgres -c "begin;end; create table dtx_test1(c1 int); drop table dtx_test1;"

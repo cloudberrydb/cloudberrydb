@@ -1700,6 +1700,13 @@ exec_simple_query(const char *query_string, const char *seqServerHost, int seqSe
 					 errmsg("current transaction is aborted, "
 						"commands ignored until end of transaction block")));
 
+		/*
+		 * If the last statement in the parsetree is 'COMMIT', the dtx context
+		 * is already destroyed, and the transaction context is set to 'DTX_CONTEXT_LOCAL_ONLY'
+		 */
+		if (Gp_role == GP_ROLE_DISPATCH)
+			setupRegularDtxContext();
+
 		/* Make sure we are in a transaction command */
 		start_xact_command();
 
