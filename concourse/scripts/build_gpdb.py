@@ -6,7 +6,11 @@ import sys
 from builds.GpBuild import GpBuild
 
 def make(num_cpus):
-    return subprocess.call("make -j %d" % (num_cpus), cwd="gpdb_src", shell=True)
+    return subprocess.call(["make",
+        "-j" + str(num_cpus),
+        "-l" + str(2 * num_cpus),
+        ],
+        cwd="gpdb_src")
 
 def install(output_dir):
     subprocess.call("make install", cwd="gpdb_src", shell=True)
