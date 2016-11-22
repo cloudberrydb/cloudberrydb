@@ -8,7 +8,6 @@ function echo_expected_env_variables() {
   echo "$INSTALL_SCRIPT_SRC"
   echo "$GPDB_TARGZ"
   echo "$INSTALLER_ZIP"
-  echo "$GPDB_SRC"
 }
 
 function _main() {
