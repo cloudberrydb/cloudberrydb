@@ -3,7 +3,7 @@
 import optparse
 import subprocess
 import sys
-from builds import GpBuild, GpcodegenBuild, GporcacodegenBuild
+from builds.GpBuild import GpBuild
 
 def make(num_cpus):
     return subprocess.call("make -j %d" % (num_cpus), cwd="gpdb_src", shell=True)
@@ -28,10 +28,6 @@ def main():
         ciCommon = GpBuild(options.mode)
     elif options.mode == 'planner':
         ciCommon = GpBuild(options.mode)
-    elif options.mode == 'codegen':
-        ciCommon = GpcodegenBuild()
-    elif options.mode == 'orca_codegen':
-        ciCommon = GporcacodegenBuild()
 
     status = ciCommon.install_system_deps()
     if status:
