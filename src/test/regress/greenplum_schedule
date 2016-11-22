@@ -21,7 +21,7 @@ test: variadic_parameters default_parameters
 # 'zlib' utilizes fault injectors so it needs to be in a group by itself
 test: zlib
 
-ignore: leastsquares
+test: leastsquares
 test: opr_sanity_gp decode_expr bitmapscan bitmapscan_ao case_gp limit_gp notin percentile naivebayes join_gp union_gp gpcopy gp_create_table
 test: filter gpctas gpdist matrix toast sublink table_functions olap_setup complex opclass_ddl information_schema guc_env_var
 test: bitmap_index gp_dump_query_oids
