@@ -41,7 +41,11 @@ def cmake_configure(src_dir, build_type, output_dir, cxx_compiler = None, cxxfla
     return subprocess.call(cmake_args, cwd="build")
 
 def make():
-    return subprocess.call(["make", "-j" + str(num_cpus())], cwd="build")
+    return subprocess.call(["make",
+        "-j" + str(num_cpus()),
+        "-l" + str(2 * num_cpus()),
+        ],
+        cwd="build")
 
 def run_tests():
     return subprocess.call(["ctest",
