@@ -1683,7 +1683,7 @@ InitPlan(QueryDesc *queryDesc, int eflags)
 
 			/*
 			 * Ignore access rights check on pg_statistic and pg_class, so
-			 * the QD can retreive the statistics from the QEs.
+			 * the QD can retrieve the statistics from the QEs.
 			 */
 			if (rte->relid != StatisticRelationId && rte->relid != RelationRelationId)
 			{
