@@ -1,32 +1,19 @@
-
 -- ----------------------------------------------------------------------
 -- Test: setup.sql
 -- ----------------------------------------------------------------------
 
--- start_ignore
 create schema qp_gist_indexes4;
 set search_path to qp_gist_indexes4;
--- end_ignore
 
 -- ----------------------------------------------------------------------
 -- Test: test01_createConversionFunctions.sql
 -- ----------------------------------------------------------------------
 
-------------------------------------------------------------------------------
--- start_ignore
+-- ----------------------------------------------------------------------------
 -- PURPOSE:
 --     These functions help convert TEXT data to geometric data types (box, 
 --     circle, and polygon).
--- AUTHOR: mgilkey
--- end_ignore
-------------------------------------------------------------------------------
-
--- start_ignore
-DROP FUNCTION IF EXISTS TO_BOX(TEXT) CASCADE;
-DROP FUNCTION IF EXISTS TO_CIRCLE(TEXT) CASCADE;
-DROP FUNCTION IF EXISTS TO_POLY(TEXT) CASCADE;
--- end_ignore
-
+-- ----------------------------------------------------------------------------
 
 CREATE FUNCTION TO_BOX(TEXT) RETURNS BOX AS
   $$
@@ -51,8 +38,7 @@ CREATE FUNCTION TO_POLY(TEXT) RETURNS POLYGON AS
 -- Test: test02_createSeedToMangledIntegerFunctions.sql
 -- ----------------------------------------------------------------------
 
-------------------------------------------------------------------------------
--- start_ignore
+-- ----------------------------------------------------------------------------
 -- PURPOSE:
 --     These functions generate data that "jumps around a lot", i.e. 
 --         is not in ascending or descending order; 
@@ -64,18 +50,7 @@ CREATE FUNCTION TO_POLY(TEXT) RETURNS POLYGON AS
 --     they jump around enough to give an index operation some real work to 
 --     do, which wouldn't be the case if we simply generated an 
 --     ascending sequence like 1, 2, 3, ...
--- AUTHOR: mgilkey
--- end_ignore
-------------------------------------------------------------------------------
-
--- start_ignore
-DROP FUNCTION IF EXISTS SeedToMangledInteger(INTEGER, VARCHAR, VARCHAR);
-DROP FUNCTION IF EXISTS f1(INTEGER);
-DROP FUNCTION IF EXISTS f2(INTEGER);
-DROP FUNCTION IF EXISTS f3(INTEGER);
-DROP FUNCTION IF EXISTS f4(INTEGER);
--- end_ignore
-
+-- ----------------------------------------------------------------------------
 
 CREATE FUNCTION SeedToMangledInteger(seed INTEGER, v1 VARCHAR, v2 VARCHAR) 
 RETURNS INTEGER
@@ -182,25 +157,11 @@ IMMUTABLE
 -- Test: test03_createSeedToGeometricDataTypes.sql
 -- ----------------------------------------------------------------------
 
-------------------------------------------------------------------------------
--- start_ignore
+-- ----------------------------------------------------------------------------
 -- PURPOSE:
 --     These functions generate geometric data types given an integer "seed" 
 --     value as a starting point.
--- AUTHOR: mgilkey
--- end_ignore
-------------------------------------------------------------------------------
-
--- start_ignore
-DROP FUNCTION IF EXISTS SeedToBoxAsText(INTEGER);
-DROP FUNCTION IF EXISTS SeedToBox(INTEGER);
-DROP FUNCTION IF EXISTS SeedToCircle(INTEGER);
-DROP FUNCTION IF EXISTS SeedToPolygon(INTEGER);
--- end_ignore
-
-
-
-
+-- ----------------------------------------------------------------------------
 
 -- A box is defined by a pair of points.
 -- A box looks like:
@@ -293,17 +254,6 @@ IMMUTABLE
 -- Test: test04_createTableAndData.sql
 -- ----------------------------------------------------------------------
 
-------------------------------------------------------------------------------
--- start_ignore
--- PURPOSE:
--- AUTHOR: mgilkey
--- end_ignore
-------------------------------------------------------------------------------
-
--- start_ignore
-DROP TABLE IF EXISTS geometricTypes;
--- end_ignore
-
 CREATE TABLE geometricTypes (seed INTEGER, c CIRCLE, b BOX, p POLYGON) 
  DISTRIBUTED BY (seed);
 
@@ -321,8 +271,7 @@ INSERT INTO geometricTypes (seed, c, b, p)
 -- Test: test05_select.sql
 -- ----------------------------------------------------------------------
 
-------------------------------------------------------------------------------
--- start_ignore
+-- ----------------------------------------------------------------------------
 -- PURPOSE:
 --     This does a few SELECT statements as a brief sanity check that the 
 --     indexes are working correctly.  Furthermore, we request EXPLAIN info
@@ -330,8 +279,7 @@ INSERT INTO geometricTypes (seed, c, b, p)
 --     commands, but a later part of the test checks that we used an index 
 --     scan rather than a sequential scan when executing the SELECT 
 --     statements.
--- end_ignore
-------------------------------------------------------------------------------
+-- ----------------------------------------------------------------------------
 SET enable_seqscan = False;
 
 SELECT * FROM geometricTypes 
@@ -360,19 +308,6 @@ EXPLAIN SELECT * FROM geometricTypes
 -- Test: test06_createIndexes.sql
 -- ----------------------------------------------------------------------
 
-------------------------------------------------------------------------------
--- start_ignore
--- PURPOSE:
--- AUTHOR: mgilkey
--- end_ignore
-------------------------------------------------------------------------------
-
--- start_ignore
-DROP INDEX IF EXISTS gt_index_c;
-DROP INDEX IF EXISTS gt_index_b;
-DROP INDEX IF EXISTS gt_index_p;
--- end_ignore
-
 CREATE INDEX gt_index_c ON geometricTypes USING GIST (c);
 CREATE INDEX gt_index_b ON geometricTypes USING GIST (b);
 CREATE INDEX gt_index_p ON geometricTypes USING GIST (p);
@@ -382,8 +317,7 @@ CREATE INDEX gt_index_p ON geometricTypes USING GIST (p);
 -- Test: test07_select.sql
 -- ----------------------------------------------------------------------
 
-------------------------------------------------------------------------------
--- start_ignore
+-- ----------------------------------------------------------------------------
 -- PURPOSE:
 --     This does a few SELECT statements as a brief sanity check that the 
 --     indexes are working correctly.  Furthermore, we request EXPLAIN info
@@ -391,8 +325,7 @@ CREATE INDEX gt_index_p ON geometricTypes USING GIST (p);
 --     commands, but a later part of the test checks that we used an index 
 --     scan rather than a sequential scan when executing the SELECT 
 --     statements.
--- end_ignore
-------------------------------------------------------------------------------
+-- ----------------------------------------------------------------------------
 SET enable_seqscan = False;
 
 SELECT * FROM geometricTypes 
@@ -421,14 +354,11 @@ EXPLAIN SELECT * FROM geometricTypes
 -- Test: test08_reindex.sql
 -- ----------------------------------------------------------------------
 
-------------------------------------------------------------------------------
--- start_ignore
+-- ----------------------------------------------------------------------------
 -- PURPOSE:
 --     This can be run manually to give the user the option of 
 --     interrupting the REINDEX operation with ctrl-C or another kill method.
--- AUTHOR: mgilkey
--- end_ignore
-------------------------------------------------------------------------------
+-- ----------------------------------------------------------------------------
 
 ALTER INDEX gt_index_c SET (FILLFACTOR = 20);
 ALTER INDEX gt_index_b SET (FILLFACTOR = 20);
@@ -450,21 +380,14 @@ REINDEX TABLE geometricTypes;
 -- Test: test10_rollback.sql
 -- ----------------------------------------------------------------------
 
-------------------------------------------------------------------------------
--- start_ignore
+-- ----------------------------------------------------------------------------
 -- PURPOSE:
 --     This tests ROLLBACK on the following index-related operations
 --     with GiST indexes:
 --         CREATE INDEX
 --         REINDEX
 --         ALTER INDEX
--- AUTHOR: mgilkey
--- end_ignore
-------------------------------------------------------------------------------
-
--- start_ignore
-DROP TABLE IF EXISTS gone;
--- end_ignore
+-- ----------------------------------------------------------------------------
 
 CREATE TABLE gone (seed INTEGER, already_gone CIRCLE, too_far_gone BOX, 
   paragon POLYGON)
@@ -572,8 +495,7 @@ DROP TABLE IF EXISTS gone;
 -- Test: test09_select.sql
 -- ----------------------------------------------------------------------
 
-------------------------------------------------------------------------------
--- start_ignore
+-- ----------------------------------------------------------------------------
 -- PURPOSE:
 --     This does a few SELECT statements as a brief sanity check that the 
 --     indexes are working correctly.  Furthermore, we request EXPLAIN info
@@ -581,8 +503,7 @@ DROP TABLE IF EXISTS gone;
 --     commands, but a later part of the test checks that we used an index 
 --     scan rather than a sequential scan when executing the SELECT 
 --     statements.
--- end_ignore
-------------------------------------------------------------------------------
+-- ----------------------------------------------------------------------------
 SET enable_seqscan = False;
 
 SELECT * FROM geometricTypes 
@@ -605,28 +526,6 @@ SELECT * FROM geometricTypes
 EXPLAIN SELECT * FROM geometricTypes 
  WHERE p ~= SeedToPolygon(3456);
 -- end_ignore
-
-
--- ----------------------------------------------------------------------
--- Test: test99_cleanup.sql
--- ----------------------------------------------------------------------
-
-------------------------------------------------------------------------------
--- start_ignore
--- PURPOSE:
--- AUTHOR: mgilkey
--- end_ignore
-------------------------------------------------------------------------------
-
--- start_ignore
-DROP TABLE IF EXISTS geometricTypes;
-DROP FUNCTION IF EXISTS SeedToMangledInteger(INTEGER, VARCHAR, VARCHAR);
-DROP FUNCTION IF EXISTS f1(INTEGER);
-DROP FUNCTION IF EXISTS f2(INTEGER);
-DROP FUNCTION IF EXISTS f3(INTEGER);
-DROP FUNCTION IF EXISTS f4(INTEGER);
--- end_ignore
-
 
 -- ----------------------------------------------------------------------
 -- Test: teardown.sql
