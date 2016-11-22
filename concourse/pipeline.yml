@@ -417,7 +417,8 @@ jobs:
       passed:
       - orca_publish_tag
       trigger: true
-    - get: bin_xerces_centos5
+    - get: bin_xerces
+      resource: bin_xerces_centos5
       passed:
       - xerces_centos5
     - get: gpdb_src
@@ -425,8 +426,6 @@ jobs:
         submodules: none
   - task: build_with_orca
     file: gpdb_src/concourse/tasks/build_with_orca.yml
-    input_mapping:
-      bin_xerces: bin_xerces_centos5
   - task: package_tarball
     file: gpdb_src/concourse/tasks/package_tarball.yml
   - put: bin_gpdb_centos6
@@ -442,10 +441,12 @@ jobs:
     - <<: *get_released_orca
       passed:
       - build_gpdb
-    - get: bin_xerces_centos5
+    - get: bin_xerces
+      resource: bin_xerces_centos5
       passed:
       - build_gpdb
-    - get: bin_gpdb_centos6
+    - get: bin_gpdb
+      resource: bin_gpdb_centos6
       passed:
       - build_gpdb
       trigger: true
@@ -457,9 +458,6 @@ jobs:
   - task: icg_with_orca
     timeout: 120m
     file: gpdb_src/concourse/tasks/test_with_orca.yml
-    input_mapping:
-      bin_gpdb: bin_gpdb_centos6
-      bin_xerces: bin_xerces_centos5
     on_failure:
       aggregate:
       - put: regression_diffs
@@ -478,10 +476,12 @@ jobs:
     - <<: *get_released_orca
       passed:
       - build_gpdb
-    - get: bin_xerces_centos5
+    - get: bin_xerces
+      resource: bin_xerces_centos5
       passed:
       - build_gpdb
-    - get: bin_gpdb_centos6
+    - get: bin_gpdb
+      resource: bin_gpdb_centos6
       passed:
       - build_gpdb
       trigger: true
@@ -493,9 +493,6 @@ jobs:
   - task: icg_with_planner
     timeout: 120m
     file: gpdb_src/concourse/tasks/test_with_planner.yml
-    input_mapping:
-      bin_gpdb: bin_gpdb_centos6
-      bin_xerces: bin_xerces_centos5
     on_failure:
       aggregate:
       - put: regression_diffs
