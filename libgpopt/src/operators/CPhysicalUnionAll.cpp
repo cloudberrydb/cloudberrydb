@@ -672,7 +672,8 @@ const
 	{
 		CDistributionSpec *pdsChild = exprhdl.Pdpplan(ulChild)->Pds();
 		CDistributionSpec::EDistributionType edtChild = pdsChild->Edt();
-		fSuccess = (CDistributionSpec::EdtHashed == edtChild) && pdsChild->FSatisfies((*m_pdrgpds)[ulChild]);
+		fSuccess = (CDistributionSpec::EdtHashed == edtChild || CDistributionSpec::EdtHashedNoOp == edtChild || CDistributionSpec::EdtStrictHashed == edtChild)
+				&& pdsChild->FSatisfies((*m_pdrgpds)[ulChild]);
 	}
 
 	if (!fSuccess)
