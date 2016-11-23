@@ -53,7 +53,10 @@ def make():
 def run_tests():
     return subprocess.call(["ctest",
                             "--output-on-failure",
-                            "-j" + str(num_cpus())], cwd="build")
+                            "-j" + str(num_cpus()),
+                            "--test-load", str(4 * num_cpus()),
+                            ],
+                            cwd="build")
 
 def install():
     return subprocess.call(["make", "install"], cwd="build")
