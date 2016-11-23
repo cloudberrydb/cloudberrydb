@@ -433,6 +433,8 @@ jobs:
       file: package_tarball/bin_gpdb.tar.gz
 
 - name: gpdb_icg_with_orca
+  serial_groups:
+    - icg
   plan:
   - aggregate:
     - <<: *get_released_gpos
@@ -468,6 +470,8 @@ jobs:
           file: icg_output/regression.out
 
 - name: gpdb_icg_with_planner
+  serial_groups:
+    - icg
   plan:
   - aggregate:
     - <<: *get_released_gpos
