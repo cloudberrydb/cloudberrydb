@@ -29,6 +29,8 @@ namespace gpopt
 			PdsRequired(IMemoryPool *pmp, CExpressionHandle &exprhdl, CDistributionSpec *pdsRequired,
 						ULONG ulChildIndex, DrgPdp *pdrgpdpCtxt, ULONG ulOptReq) const;
 
+			virtual CDistributionSpec *PdsDerive(IMemoryPool *pmp, CExpressionHandle &exprhdl) const;
+
 			virtual
 			CEnfdDistribution::EDistributionMatching Edm
 				(

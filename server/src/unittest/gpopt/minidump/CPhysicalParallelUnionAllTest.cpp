@@ -14,7 +14,6 @@ static ULONG ulCounter = 0;
 
 static const CHAR *rgszFileNames[] =
 	{
-		"../data/dxl/minidump/CPhysicalParallelUnionAllTest/RedundantMotionParallelUnionAll.mdp",
 		"../data/dxl/minidump/CPhysicalParallelUnionAllTest/ParallelUnionAllWithNoRedistributableColumns.mdp",
 		"../data/dxl/minidump/CPhysicalParallelUnionAllTest/ParallelUnionAllWithSingleNotRedistributableColumn.mdp",
 		"../data/dxl/minidump/CPhysicalParallelUnionAllTest/TwoHashedTables.mdp",

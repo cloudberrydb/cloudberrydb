@@ -25,6 +25,24 @@ namespace gpopt
 
 		private:
 
+			// array of child hashed distributions -- used locally for distribution derivation
+			DrgPds * const m_pdrgpds;
+
+			// map given array of scalar ident expressions to positions of UnionAll input columns in the given child;
+			DrgPul *PdrgpulMap(IMemoryPool *pmp, DrgPexpr *pdrgpexpr, ULONG ulChildIndex) const;
+
+			// compute required hashed distribution of the n-th child
+			CDistributionSpecHashed *PdshashedPassThru(IMemoryPool *pmp, CDistributionSpecHashed *pdshashedRequired, ULONG ulChildIndex) const;
+
+			// derive hashed distribution from child operators
+			CDistributionSpecHashed *PdshashedDerive(IMemoryPool *pmp, CExpressionHandle &exprhdl) const;
+
+			// compute output hashed distribution matching the outer child's hashed distribution
+			CDistributionSpecHashed *PdsMatching(IMemoryPool *pmp, const DrgPul *pdrgpulOuter) const;
+
+			// derive output distribution based on child distribution
+			CDistributionSpec *PdsDeriveFromChildren(IMemoryPool *pmp, CExpressionHandle &exprhdl) const;
+
 			// private copy ctor
 			CPhysicalSerialUnionAll(const CPhysicalSerialUnionAll &);
 
@@ -89,6 +107,10 @@ namespace gpopt
 					ULONG ulOptReq
 				)
 				const;
+
+			// derive distribution
+			virtual
+			CDistributionSpec *PdsDerive(IMemoryPool *pmp, CExpressionHandle &exprhdl) const;
 
 	}; // class CPhysicalSerialUnionAll
 
