@@ -15,12 +15,6 @@ ifneq (${ENV_JAVA_HOME},)
 	JAVA_HOME=${ENV_JAVA_HOME}
 endif
 
-ifneq ($(with_apr_config),)
-ifneq ($(with_apr_config),yes)
-	GPFDIST_FLAG='--with-apr-config=$(with_apr_config)'
-endif
-endif
-
 all: mkgphdfs mkgpcloud
 
 .PHONY:
@@ -36,12 +30,10 @@ install: mapreduce
 	fi
 
 clean:
-	@if [ -f gpfdist/GNUmakefile ]; then $(MAKE) -C gpfdist clean; fi; \
 	if [ "$(enable_mapreduce)" = "yes" ]; then $(MAKE) -C gpmapreduce clean; fi
 
 
 distclean:
-	@if [ -f gpfdist/GNUmakefile ]; then $(MAKE) -C gpfdist clean; fi; \
 	if [ "$(enable_mapreduce)" = "yes" ]; then $(MAKE) -C gpmapreduce distclean; fi
 
 .PHONY:
@@ -98,9 +90,4 @@ installcheck:
 	if [ -d "$(ext_dir)" ]; then \
 		PATH=$(INSTLOC)/bin:$(PATH) $(MAKE) -C orafce installcheck USE_PGXS=1 && \
 		PATH=$(INSTLOC)/bin:$(PATH) $(MAKE) -C gphdfs installcheck USE_PGXS=1 ; \
-	fi
-
-installcheck-good: installcheck
-	if [ "$(enable_gpfdist)" = "yes" ]; then \
-		PATH=$(prefix)/bin:$(PATH) $(MAKE) -C gpfdist installcheck USE_PGXS=1 prefix=$(prefix) ; \
 	fi
