@@ -1,5 +1,4 @@
 DROP TABLE if exists lu_customer;
-NOTICE:  table "lu_customer" does not exist, skipping
 CREATE TABLE lu_customer (
     customer_id numeric(28,0),
     cust_first_name character varying(50),
@@ -10,13 +9,7 @@ CREATE TABLE lu_customer (
     email character varying(50),
     cust_city_id numeric(28,0)
 );
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'customer_id' as the Greenplum Database data distribution key for this table.
-HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
--- QA-838 or MPP-8622
--- Added the following GUC + tables are created without random distribution
--- Test case might be still intermittently failed
--- Ngoc
-set GP_ENABLE_SLOW_CURSOR_TESTMODE=ON;
+
 BEGIN; 
  SET TRANSACTION ISOLATION LEVEL SERIALIZABLE; 
  CREATE TABLE cursor (a int, b int) distributed by (b); 
@@ -24,14 +17,10 @@ BEGIN;
 DECLARE c1 NO SCROLL CURSOR FOR SELECT * FROM cursor;
 UPDATE cursor SET a = 2; 
  FETCH ALL FROM c1;
- a | b 
----+---
- 1 |  
-(1 row)
-
  
  COMMIT; 
  DROP TABLE cursor;
+
 begin;
 savepoint x;
 create table abc (a int) distributed randomly;
@@ -40,14 +29,8 @@ insert into abc values (10);
  --order 1
 declare foo  no scroll cursor for select * from abc order by 1;
 fetch from foo;
- a 
----
- 5
-(1 row)
-
 rollback to x;
 fetch from foo;
-ERROR:  cursor "foo" does not exist
 commit;
 begin;
 create table abc (a int) distributed randomly;
@@ -57,26 +40,29 @@ insert into abc values (15);
 --order 1
  declare foo  no scroll cursor for select * from abc order by 1;
 fetch from foo;
- a 
----
- 5
-(1 row)
-
 savepoint x;
 fetch from foo;
- a  
-----
- 10
-(1 row)
-
 rollback to x;
 fetch from foo;
- a  
-----
- 15
-(1 row)
-
 abort;
+
+-- Test to validate cursor QE reader is correctly able to perform visibility in
+-- subtransaction, even after QE writer has moved ahead and updated the tuple
+CREATE TABLE cursor_writer_reader (a int, b int) DISTRIBUTED BY (a);
+\! gpfaultinjector -q -f cursor_qe_reader_after_snapshot -y suspend --seg_dbid 2
+BEGIN;
+INSERT INTO cursor_writer_reader VALUES(1, 666);
+DECLARE cursor_c2 CURSOR FOR SELECT * FROM cursor_writer_reader WHERE b=666 ORDER BY 1;
+SAVEPOINT x;
+UPDATE cursor_writer_reader SET b=333 WHERE b=666;
+\! gpfaultinjector -f cursor_qe_reader_after_snapshot -y status --seg_dbid 2 | grep triggered | uniq | wc -l
+\! gpfaultinjector -q -f cursor_qe_reader_after_snapshot -y resume --seg_dbid 2
+FETCH cursor_c2;
+SELECT * FROM cursor_writer_reader WHERE b=666 ORDER BY 1;
+END;
+\! gpfaultinjector -q -f cursor_qe_reader_after_snapshot -y reset --seg_dbid 2
+
+
 -- start_ignore
 ------------------------------------------------------------------------------
 -- LAST MODIFIED:
@@ -97,11 +83,9 @@ abort;
 -- end_ignore
 --start_ignore
 drop table if exists y_schema.y;
-ERROR:  schema "y_schema" does not exist
 drop schema if exists y_schema;
-NOTICE:  schema "y_schema" does not exist, skipping
 --end_ignore
-set GP_ENABLE_SLOW_CURSOR_TESTMODE=ON;
+
 create schema y_schema;
 create table y_schema.y (a int, b int) distributed by (a); 
 Begin;
@@ -115,100 +99,36 @@ declare c0 cursor for select * from y_schema.y where b =333 order by 1;
 savepoint x;
 update y_schema.y set b =666 where b =333;
 fetch c0;
- a  |  b  
-----+-----
- 10 | 333
-(1 row)
-
 fetch c0;
- a  |  b  
-----+-----
- 20 | 333
-(1 row)
-
 fetch c0;
- a  |  b  
-----+-----
- 30 | 333
-(1 row)
-
 fetch c0;
- a  |  b  
-----+-----
- 40 | 333
-(1 row)
-
 --order 1
 declare c1 cursor for select * from y_schema.y where b =333 order by 1;
 --order 1
 declare c2 cursor for select * from y_schema.y where b =666 order by 1;
 fetch c2;
- a  |  b  
-----+-----
- 10 | 666
-(1 row)
-
 fetch c2;
- a  |  b  
-----+-----
- 20 | 666
-(1 row)
-
 fetch c2;
- a  |  b  
-----+-----
- 30 | 666
-(1 row)
-
 fetch c2;
- a  |  b  
-----+-----
- 40 | 666
-(1 row)
-
 savepoint y;
 fetch c1;
- a | b 
----+---
-(0 rows)
-
 fetch c1;
- a | b 
----+---
-(0 rows)
-
 rollback to y;
 fetch c2;
- a | b 
----+---
-(0 rows)
-
 fetch c2;
- a | b 
----+---
-(0 rows)
-
 rollback to x;
 fetch c0;
- a | b 
----+---
-(0 rows)
-
 fetch c0;
- a | b 
----+---
-(0 rows)
-
 commit;
 --start_ignore
 drop table if exists y_schema.y;
 drop schema if exists y_schema;
 --end_ignore
+
+
 --start_ignore
 drop table if exists x_schema.y;
-ERROR:  schema "x_schema" does not exist
 drop schema if exists x_schema;
-NOTICE:  schema "x_schema" does not exist, skipping
 --end_ignore
 create schema x_schema;
  create table x_schema.y (a int, b int) distributed randomly;
@@ -221,64 +141,32 @@ insert into x_schema.y values(30, 666);
 insert into x_schema.y values(40, 666);
 update x_schema.y set b =333 where b =666;
 fetch c1;
- a | b 
----+---
-(0 rows)
-
 --order 1
 declare c2 cursor for select * from x_schema.y where b =666 order by 1;
 fetch c2;
- a | b 
----+---
-(0 rows)
-
 --order 1
 declare c3 cursor for select * from x_schema.y where b =333 order by 1;
 fetch c3;
- a  |  b  
-----+-----
- 10 | 333
-(1 row)
-
 fetch c3;
- a  |  b  
-----+-----
- 20 | 333
-(1 row)
-
 fetch c3;
- a  |  b  
-----+-----
- 30 | 333
-(1 row)
-
 fetch c3;
- a  |  b  
-----+-----
- 40 | 333
-(1 row)
-
 fetch c3;
- a | b 
----+---
-(0 rows)
-
 commit;
 --start_ignore
 drop table if exists x_schema.y;
 drop schema if exists x_schema;
 --end_ignore
+
 -- QA-838 or MPP-8622
 -- Added the following GUC + tables are created without random distribution
 -- Test case might be still intermittently failed
 -- Ngoc
+
 --start_ignore
 drop table if exists z_schema.y;
-ERROR:  schema "z_schema" does not exist
 drop schema if exists z_schema;
-NOTICE:  schema "z_schema" does not exist, skipping
 --end_ignore
-set GP_ENABLE_SLOW_CURSOR_TESTMODE=ON;
+
 create schema z_schema;
  --create table z_schema.y (a int, b int) distributed randomly;
  create table z_schema.y (a int, b int) distributed by (a);
@@ -293,34 +181,10 @@ savepoint x;
 update z_schema.y set b =333 where b =666 ;
 rollback to x;
 fetch c1;
- a  |  b  
-----+-----
- 10 | 666
-(1 row)
-
 fetch c1;
- a  |  b  
-----+-----
- 20 | 666
-(1 row)
-
 fetch c1;
- a  |  b  
-----+-----
- 30 | 666
-(1 row)
-
 fetch c1;
- a  |  b  
-----+-----
- 40 | 666
-(1 row)
-
 fetch c1;
- a | b 
----+---
-(0 rows)
-
 commit;
 --start_ignore
 drop table if exists z_schema.y;
@@ -328,7 +192,6 @@ drop schema if exists z_schema;
 --end_ignore
 --start_ignore
 DROP TABLE films;
-ERROR:  table "films" does not exist
 --end_ignore
 CREATE TABLE films (
     code        char(5) CONSTRAINT firstkey PRIMARY KEY,
@@ -338,92 +201,63 @@ CREATE TABLE films (
     kind        varchar(10),
     len         interval hour to minute
 ) distributed by (code);
-NOTICE:  CREATE TABLE / PRIMARY KEY will create implicit index "films_pkey" for table "films"
 INSERT INTO films VALUES
     ('UA502', 'Bananas', 105, '1971-07-13', 'Comedy', '82 minutes');
 INSERT INTO films (code, title, did, date_prod, kind)
     VALUES ('T_601', 'Yojimbo', 106, '1961-06-16', 'Drama');
+
 INSERT INTO films (code, title, did, date_prod, kind) VALUES
     ('B6717', 'Tampopo', 110, '1985-02-10', 'Comedy'),
     ('HG120', 'The Dinner Game', 140, DEFAULT, 'Comedy');
+
 BEGIN;
 --order
 DECLARE liahona SCROLL CURSOR FOR SELECT * FROM films order by 1;
 FETCH FORWARD 3 FROM liahona;
- code  |      title      | did | date_prod  |  kind  | len 
--------+-----------------+-----+------------+--------+-----
- B6717 | Tampopo         | 110 | 02-10-1985 | Comedy | 
- HG120 | The Dinner Game | 140 |            | Comedy | 
- T_601 | Yojimbo         | 106 | 06-16-1961 | Drama  | 
-(3 rows)
-
 MOVE liahona; 
 FETCH liahona;
- code | title | did | date_prod | kind | len 
-------+-------+-----+-----------+------+-----
-(0 rows)
-
 CLOSE liahona;
 COMMIT;
 --start_ignore
 DROP TABLE films;
 --end_ignore
+
+
 --start_ignore
 DROP TABLE refcur1;
-ERROR:  table "refcur1" does not exist
 --end_ignore
+
 CREATE FUNCTION reffunc(refcursor) RETURNS refcursor AS '
 BEGIN
     OPEN $1 FOR SELECT col FROM refcur1;
     RETURN $1;
 END;
 ' LANGUAGE plpgsql READS SQL DATA;
+
 CREATE TABLE refcur1 (col text) distributed randomly;
+
 INSERT INTO refcur1 VALUES ('123');
 BEGIN;
 SELECT reffunc('funccursor');
-  reffunc   
-------------
- funccursor
-(1 row)
-
 FETCH ALL IN funccursor;
- col 
------
- 123
-(1 row)
-
 INSERT INTO refcur1 VALUES ('123');
 INSERT INTO refcur1 VALUES ('123');
 INSERT INTO refcur1 VALUES ('123');
 INSERT INTO refcur1 VALUES ('123');
 FETCH ALL IN funccursor;
- col 
------
-(0 rows)
 
 SELECT reffunc('funccursor2');
-   reffunc   
--------------
- funccursor2
-(1 row)
-
 COMMIT;
 SELECT reffunc('funccursor2');
-   reffunc   
--------------
- funccursor2
-(1 row)
-
 --start_ignore
 DROP TABLE refcur1;
 --end_ignore
+
 --start_ignore
 DROP TABLE table_1;
-ERROR:  table "table_1" does not exist
 DROP TABLE table_2;
-ERROR:  table "table_2" does not exist
 --end_ignore
+
 CREATE FUNCTION myfunc(refcursor, refcursor) RETURNS SETOF refcursor AS $$
 BEGIN
     OPEN $1 FOR SELECT * FROM table_1;
@@ -439,36 +273,22 @@ INSERT INTO table_2 VALUES ('abcde',110);
 BEGIN;
 --order 1
 SELECT * FROM myfunc('a', 'b'); 
- myfunc 
---------
- a
- b
-(2 rows)
-
 --order 1
 FETCH ALL FROM a;
-  a1  | b1 
-------+----
- abcd | 10
-(1 row)
-
 --order 1
 FETCH ALL FROM b;
-  a1   | b1  
--------+-----
- abcde | 110
-(1 row)
-
 COMMIT;
 --start_ignore
 DROP TABLE table_1;
 DROP TABLE table_2;
 --end_ignore
+
 --start_ignore
 DROP TABLE if exists mpp_1389; 
-NOTICE:  table "mpp_1389" does not exist, skipping
 --end_ignore
+
 CREATE TABLE mpp_1389(num int, letter text) distributed randomly;
+
 insert into mpp_1389 values('1', 'a');
 insert into mpp_1389 values('2', 'b');
 insert into mpp_1389 values('3', 'c');
@@ -476,6 +296,7 @@ insert into mpp_1389 values('4', 'd');
 insert into mpp_1389 values('5', 'e');
 insert into mpp_1389 values('6', 'f');
 insert into mpp_1389 values('7', 'g');
+
 begin;
 --order 1
 DECLARE f CURSOR WITH HOLD FOR
@@ -483,117 +304,79 @@ select * from mpp_1389
 ORDER BY num, letter;
 commit;
 FETCH FROM f;
- num | letter 
------+--------
-   1 | a
-(1 row)
-
 --start_ignore
 DROP TABLE if exists mpp_1389; 
 --end_ignore
 --start_ignore
 DROP INDEX if exists ctest_id_idx;
-NOTICE:  index "ctest_id_idx" does not exist, skipping
 DROP TABLE if exists ctest;
-NOTICE:  table "ctest" does not exist, skipping
 --end_ignore
+
 CREATE TABLE ctest (
 	id int8,
 	name varchar
  ) distributed randomly;
+
 INSERT INTO ctest (id, name) SELECT id, 'Test' || id FROM generate_series(1, 1000) AS id;
+
 CREATE INDEX ctest_id_idx ON ctest(id);
+
 \d ctest;
-          Table "public.ctest"
- Column |       Type        | Modifiers 
---------+-------------------+-----------
- id     | bigint            | 
- name   | character varying | 
-Indexes:
-    "ctest_id_idx" btree (id)
-Distributed randomly
 
 --
 -- Return absolute cursor records using sequential scan & index
 --
+
 BEGIN;
+
 SET enable_seqscan =on;
 --order 1
 DECLARE CUR SCROLL CURSOR FOR SELECT * FROM ctest WHERE id >= 990 order by 1;
 FETCH ABSOLUTE 1 IN CUR;
- id  |  name   
------+---------
- 990 | Test990
-(1 row)
-
 FETCH ABSOLUTE 3 IN CUR;
- id  |  name   
------+---------
- 992 | Test992
-(1 row)
-
 CLOSE CUR;
+
 SET enable_seqscan = off;
 --order 1
 DECLARE CUR SCROLL CURSOR FOR SELECT * FROM ctest WHERE id >= 990 order by 1; 
 FETCH ABSOLUTE 1 IN CUR;
- id  |  name   
------+---------
- 990 | Test990
-(1 row)
-
 FETCH ABSOLUTE 3 IN CUR;
- id  |  name   
------+---------
- 992 | Test992
-(1 row)
-
 CLOSE CUR;
+
 COMMIT;
+
+
 --
 -- Rebuild with btree or bitmap
 --
+
 DROP INDEX ctest_id_idx;
 CREATE INDEX ctest_id_gist_idx ON ctest USING bitmap(id);
+
+
 --
 -- Now try again... and check if results returned are correct using seq scan. 
 --
+
 BEGIN;
+
 SET enable_seqscan =on;
 --order 1
 DECLARE CUR SCROLL CURSOR FOR SELECT * FROM ctest WHERE id >= 990::bigint order by 1;
 FETCH ABSOLUTE 1 IN CUR;
- id  |  name   
------+---------
- 990 | Test990
-(1 row)
-
 FETCH ABSOLUTE 3 IN CUR;
- id  |  name   
------+---------
- 992 | Test992
-(1 row)
-
 CLOSE CUR;
+
 SET enable_seqscan = off;
 --order 1
 DECLARE CUR SCROLL CURSOR FOR SELECT * FROM ctest WHERE id >= 990::bigint order by 1;
 FETCH ABSOLUTE 1 IN CUR;
- id  |  name   
------+---------
- 990 | Test990
-(1 row)
-
 FETCH ABSOLUTE 3 IN CUR;
- id  |  name   
------+---------
- 992 | Test992
-(1 row)
-
 CLOSE CUR;
+
 COMMIT;
 --start_ignore
 DROP INDEX if exists ctest_id_idx;
-NOTICE:  index "ctest_id_idx" does not exist, skipping
 DROP TABLE if exists ctest;
 --end_ignore
+

@@ -324,6 +324,11 @@ static void DispatchRollbackToSavepoint(char *name);
 
 static bool search_binary_xids(TransactionId *ids, uint32 size,
 			       TransactionId xid, int32 *index);
+static void
+AddSubtransactionsToSharedSnapshot(DistributedTransactionId dxid,
+								   volatile SharedSnapshotSlot *shared_snapshot,
+								   TransactionId *subxids,
+								   uint32 subcnt);
 
 extern void FtsCondSetTxnReadOnly(bool *);
 
@@ -535,6 +540,19 @@ AssignTransactionId(TransactionState s)
 	{
 		Assert(TransactionIdPrecedes(s->parent->transactionId, s->transactionId));
 		SubTransSetParent(s->transactionId, s->parent->transactionId);
+		elog((Debug_print_full_dtm ? LOG : DEBUG5),
+			 "adding subtransaction xid %u to Shared Local Snapshot",
+			 s->transactionId);
+		if (SharedLocalSnapshotSlot)
+		{
+			TransactionId temp_subxids[1];
+			temp_subxids[0] = s->transactionId;
+			AddSubtransactionsToSharedSnapshot(
+						SharedLocalSnapshotSlot->QDxid,
+						SharedLocalSnapshotSlot,
+						&temp_subxids,
+						1);
+		}
 	}
 
 	/*
@@ -771,14 +789,11 @@ TransactionIdIsCurrentTransactionId(TransactionId xid)
 		isCurrentTransactionId = false;		/* Assume. */
 
 		/*
-		 * Cursor readers cannot directly access the writer shared
-		 * snapshot -- since it may have been modified by the writer
-		 * since we were declared. But for normal reader if sub-transactions
-		 * fit in-memory can leverage the writers array instead of subxbuf.
+		 * For readers if sub-transactions fit in-memory can leverage the
+		 * writers array instead of subxbuf.
 		 */
-		if ( (!QEDtxContextInfo.cursorContext) &&
-			(SharedLocalSnapshotSlot->inmemory_subcnt ==
-				SharedLocalSnapshotSlot->total_subcnt))
+		if (SharedLocalSnapshotSlot->inmemory_subcnt ==
+				SharedLocalSnapshotSlot->total_subcnt)
 		{
 			for (sub = 0; sub < SharedLocalSnapshotSlot->total_subcnt; sub++)
 			{
@@ -2151,12 +2166,12 @@ SetSharedTransactionId_reader(TransactionId xid, CommandId cid)
 		   DistributedTransactionContext == DTX_CONTEXT_QE_ENTRY_DB_SINGLETON);
 
 	/*
-	 * GPDB_83_MERGE_FIXME: I don't understand how the top-level XID
-	 * can ever be different here from what it was in StartTransaction().
-	 * And usually it isn't, but when I tried adding the below assertion, it was
-	 * tripped.
+	 * For DTX_CONTEXT_QE_READER or DTX_CONTEXT_QE_ENTRY_DB_SINGLETON, during
+	 * StartTransaction(), currently we temporarily set the
+	 * TopTransactionStateData.transactionId to what we find that time in
+	 * SharedLocalSnapshot slot. Since, then QE writer could have moved-on and
+	 * hence we reset the same to update to corrct value here.
 	 */
-	//Assert(TopTransactionStateData.transactionId == xid);
 	TopTransactionStateData.transactionId = xid;
 	currentCommandId = cid;
 }
@@ -6300,6 +6315,7 @@ static void
 CleanupSubTransaction(void)
 {
 	TransactionState s = CurrentTransactionState;
+	TransactionId localXid = s->transactionId;
 
 	ShowTransactionState("CleanupSubTransaction");
 
@@ -6320,6 +6336,19 @@ CleanupSubTransaction(void)
 	s->state = TRANS_DEFAULT;
 
 	PopTransaction();
+
+	/*
+	 * While aborting the subtransaction and if we are writer, lets deregister
+	 * ourselves from the SharedLocalSnapshot, so that calls to
+	 * TransactionIdIsCurrentTransaction return FALSE for this transaction for
+	 * QE readers.
+	 */
+	if (SharedLocalSnapshotSlot && TransactionIdIsValid(localXid) &&
+		(DistributedTransactionContext != DTX_CONTEXT_QE_READER &&
+		  DistributedTransactionContext != DTX_CONTEXT_QE_ENTRY_DB_SINGLETON))
+	{
+		UpdateSubtransactionsInSharedSnapshot(SharedLocalSnapshotSlot->QDxid);
+	}
 }
 
 /*

@@ -325,6 +325,8 @@ FaultInjectorIdentifierEnumToString[] = {
 		/* inject fault in cdbdisp_dispatchX*/
 	_("interconnect_stop_ack_is_lost"),
 		/* inject fault in interconnect to skip sending the stop ack */
+	_("cursor_qe_reader_after_snapshot"),
+	/* inject fault after QE READER has populated snashot for cursor */
 	_("not recognized"),
 };
 

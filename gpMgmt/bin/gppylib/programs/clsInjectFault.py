@@ -417,6 +417,7 @@ class GpInjectFaultProgram:
                   "process_startup_packet (inject fault when processing startup packet during backend initialization), " \
                   "quickdie (inject fault when auxiliary processes quitting), " \
                   "after_one_slice_dispatched (inject fault after one slice was dispatched when dispatching plan), " \
+                  "cursor_qe_reader_after_snapshot (inject fault after QE READER has populated snashot for cursor)" \
 			      "all (affects all faults injected, used for 'status' and 'reset'), ") 
         addTo.add_option("-c", "--ddl_statement", dest="ddlStatement", type="string",
                          metavar="ddlStatement",

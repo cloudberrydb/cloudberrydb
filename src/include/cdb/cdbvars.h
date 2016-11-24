@@ -201,14 +201,6 @@ extern int			pgstat_track_activity_query_size;
  */
 extern bool           gp_enable_slow_writer_testmode;
 
-
-/*
- * MPP-8622:
- * In order to facilitate testing of reader-gang/writer-gang synchronization
- * it is very handy to slow down the cursor (opens important race-window).
- */
-extern bool           gp_enable_slow_cursor_testmode;
-
 /*
  * MPP-6926: Resource Queues on by default
  */

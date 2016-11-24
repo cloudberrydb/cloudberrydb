@@ -216,7 +216,7 @@ typedef enum FaultInjectorIdentifier_e {
 	AfterOneSliceDispatched,
 
 	InterconnectStopAckIsLost,
-
+	CursorQEReaderAfterSnapshot,
 	/* INSERT has to be done before that line */
 	FaultInjectorIdMax,
 	

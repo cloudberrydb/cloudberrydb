@@ -205,8 +205,10 @@ abort;
 
 DROP TABLE dtm_plpg_foo;
 
--- try to guarantee race-condition failures on the tests below.
-SET GP_ENABLE_SLOW_CURSOR_TESTMODE=on;
+-- Need to check what these tests wish to validate, better to use more
+-- deterministic way than sleep. GP_ENABLE_SLOW_CURSOR_TESTMODE GUC was used
+-- here to slow down reader gangs, removed the same as its not good way to write
+-- the tests.
 
 BEGIN;
 SET TRANSACTION ISOLATION LEVEL SERIALIZABLE;

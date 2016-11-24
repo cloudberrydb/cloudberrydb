@@ -1088,16 +1088,6 @@ struct config_bool ConfigureNamesBool_gp[] =
 	},
 
 	{
-		{"gp_enable_slow_cursor_testmode", PGC_USERSET, DEVELOPER_OPTIONS,
-			gettext_noop("Slow down cursor gangs -- to facilitate race-condition testing."),
-			NULL,
-			GUC_NO_SHOW_ALL | GUC_NOT_IN_SAMPLE
-		},
-		&gp_enable_slow_cursor_testmode,
-		false, NULL, NULL
-	},
-
-	{
 		{"gp_fts_probe_pause", PGC_SUSET, DEVELOPER_OPTIONS,
 			gettext_noop("Stop active probes."),
 			NULL,

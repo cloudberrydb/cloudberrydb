@@ -34,6 +34,7 @@ test: dispatch
 test: segspace_setup
 test: segspace
 test: segspace_cleanup
+test: cursor
 
 # 'query_finish_pending' sets QueryFinishPending flag to true during query execution using fault injectors
 # so it needs to be in a group by itself
