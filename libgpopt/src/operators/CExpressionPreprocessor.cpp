@@ -1644,7 +1644,15 @@ CExpressionPreprocessor::PexprFromConstraints
 
 		CColRefSet *pcrsOutChild = GPOS_NEW(pmp) CColRefSet(pmp);
 		pcrsOutChild->Include(pdprelChild->PcrsOutput());
-		pcrsOutChild->Exclude(pcrsProcessed);
+		// Duplicated predicates will not be generated if parent operators already contains the predicates.
+		// if pexpr is a logical limit operator, the pcrsProcessed may contain columns that
+		// we still need to infer predicates on these columns. so don't exclude these columns.
+		// In other words, if we see a limit operator, then always generate all the predicates based on its constraint, since there won't
+		// be any predicates pushed down through limit.
+		if (COperator::EopLogicalLimit != pexpr->Pop()->Eopid())
+		{
+			pcrsOutChild->Exclude(pcrsProcessed);
+		}
 
 		// generate predicates for the output columns of child
 		CExpression *pexprPred = PexprScalarPredicates(pmp, ppc, pcrsNotNull, pcrsOutChild, pcrsProcessed);
