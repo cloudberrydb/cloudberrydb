@@ -1,5 +1,5 @@
 /*
- *  cdbfilerepprimaryresync.c  
+ *	cdbfilerepresyncworker.c
  *
  *  Copyright 2009-2010 Greenplum Inc. All rights reserved.
  *
@@ -693,7 +693,7 @@ FileRepPrimary_ResyncBufferPoolIncrementalWrite(ChangeTrackingRequest *request)
 					 * It's safe and better to perform write of the page to mirror,
 					 * for this case, as primary and mirror data pages should always
 					 * be same. So, we might do some extra work but definitely won't
-					 * loose out blocks, or error out and need to perform full recovery.
+					 * lose out blocks, or error out and need to perform full recovery.
 					 * Need to cover for this case as there are some known scenarios where
 					 * CT file can have extra records which should have been discarded,
 					 * but as we loose out information of xlog LSN cannot be discarded.

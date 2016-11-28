@@ -622,7 +622,7 @@ ErrorLogRead(FILE *fp, pg_crc32 *crc)
 
 		/*
 		 * The tuple is "in-memory" format of HeapTuple.  Allocate
-		 * the whole chunk consectively.
+		 * the whole chunk consecutively.
 		 */
 		tuple = palloc(HEAPTUPLESIZE + t_len);
 		tuple->t_len = t_len;

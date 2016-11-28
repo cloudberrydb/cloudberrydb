@@ -1297,7 +1297,7 @@ AppendOnlyStorageWrite_CompressAppend(AppendOnlyStorageWrite *storageWrite,
 							  storageWrite->compressionState);
 
 	/*
-	 * We always store the data compressed if the comprssed length is less
+	 * We always store the data compressed if the compressed length is less
 	 * than the uncompressed length.
 	 *
 	 * TODO: this is a weak assumption. It doesn't account for the fact that
