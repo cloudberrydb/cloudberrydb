@@ -281,6 +281,11 @@ Known issues:
     Alternatively you can use the (beta) Native macOS docker client now available
     in docker 1.12.
 
+## Contributing
+
+If you have not previously done so, please fill out and
+submit the [Contributor License Agreement](https://cla.pivotal.io/sign/greenplum).
+
 ## Glossary
 
 * __QD__
