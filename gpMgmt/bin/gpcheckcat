@@ -2137,7 +2137,6 @@ def checkOwners():
     from gp_dist_random('pg_class') r
       join pg_class c on (c.oid = r.oid)
       left join pg_appendonly ao on (c.oid = ao.segrelid or
-                                     c.oid = ao.segidxid or
                                      c.oid = ao.blkdirrelid or
                                      c.oid = ao.blkdiridxid)
       left join pg_class t on (t.reltoastidxid = c.oid)
