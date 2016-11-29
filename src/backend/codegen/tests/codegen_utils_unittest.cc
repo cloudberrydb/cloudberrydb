@@ -832,6 +832,44 @@ class CodegenUtilsTest : public ::testing::Test {
     }
   }
 
+  // Helper method for CreateCastTest. Tests
+  // CodegenUtils::CreateCast() from an 'IntegerType' to 64-bit float
+  template <typename IntegerSrcType>
+  void CheckIntegerTo64FloatCast(const double double_constant) {
+    llvm::Constant* constant = codegen_utils_->GetConstant<IntegerSrcType>(
+        static_cast<IntegerSrcType>(double_constant));
+    llvm::Constant* casted_constant =
+        llvm::dyn_cast<llvm::Constant>(
+            codegen_utils_->CreateCast<double, IntegerSrcType>(
+                constant));
+    CheckGetSingleFloatingPointConstant(double_constant, casted_constant);
+  }
+
+  // Helper method for CreateCastTest. Tests
+  // CodegenUtils::CreateCast() for an 'IntegerType' with several values
+  // of the specified integer type (0, 1, 123, the maximum, and if signed,
+  // -1, -123, and the minimum) to 64-bit float.
+  template <typename IntegerSrcType>
+  void CheckIntegerTo64FloatCast() {
+    CheckIntegerTo64FloatCast<IntegerSrcType>(static_cast<double>(0));
+    CheckIntegerTo64FloatCast<IntegerSrcType>(static_cast<double>(1));
+    CheckIntegerTo64FloatCast<IntegerSrcType>(static_cast<double>(123));
+    CheckIntegerTo64FloatCast<IntegerSrcType>(
+        static_cast<double>(
+            std::numeric_limits<IntegerSrcType>::max()));
+    if (std::is_signed<IntegerSrcType>::value) {
+      IntegerSrcType src_value = -1;
+      CheckIntegerTo64FloatCast<IntegerSrcType>(
+          static_cast<double>(src_value));
+      src_value = -123;
+      CheckIntegerTo64FloatCast<IntegerSrcType>(
+          static_cast<double>(src_value));
+      src_value = std::numeric_limits<IntegerSrcType>::min();
+      CheckIntegerTo64FloatCast<IntegerSrcType>(
+          static_cast<double>(src_value));
+    }
+  }
+
   // Helper method for GetScalarConstantTest. Tests
   // CodegenUtils::GetConstant() for a single 'enum_constant'.
   template <typename EnumType>
@@ -1944,6 +1982,14 @@ TEST_F(CodegenUtilsTest, CreateCastTest) {
   // Floating type of same size
   CheckFloatingPointCast<float, float>();
   CheckFloatingPointCast<double, double>();
+
+  // signed integer to 64-bit float
+  CheckIntegerTo64FloatCast<std::int8_t>();
+  CheckIntegerTo64FloatCast<std::int16_t>();
+
+  // unsigned integer to 64-bit float
+  CheckIntegerTo64FloatCast<std::uint8_t>();
+  CheckIntegerTo64FloatCast<std::uint16_t>();
 }
 
 TEST_F(CodegenUtilsTest, GetPointerConstantTest) {

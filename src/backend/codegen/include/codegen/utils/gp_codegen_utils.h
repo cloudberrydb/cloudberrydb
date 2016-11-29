@@ -23,6 +23,8 @@
 
 extern "C" {
 #include "utils/elog.h"
+#include "utils/palloc.h"
+#include "nodes/memnodes.h"
 }
 
 #define EXPAND_CREATE_ELOG(codegen_utils, elevel, ...)  \
@@ -33,6 +35,9 @@ extern "C" {
   codegen_utils->CreateEreport(__FILE__, __LINE__, PG_FUNCNAME_MACRO, \
                                TEXTDOMAIN, elevel, ecode, errmsg_fmt, \
                                ##__VA_ARGS__)
+
+#define EXPAND_CREATE_PALLOC(codegen_utils, sz) \
+  codegen_utils->CreatePalloc(sz, __FILE__, PG_FUNCNAME_MACRO, __LINE__)
 
 namespace gpcodegen {
 
@@ -302,6 +307,22 @@ class GpCodegenUtils : public CodegenUtils {
 
     return llvm_casted_value;
   }
+
+  /**
+   * @brief Create instructions to call MemoryContextAllocImpl in the
+   *        CurrentMemoryContext. Use the macro EXPAND_CREATE_PALLOC to get the
+   *        line number, function name and file name.
+   *
+   * @param size  Size to allocate in the CurrentMemoryContext
+   * @param file  File name
+   * @param func  Function name
+   * @param line  Line number
+   * @return LLVM::Value pointer to the allocated memory
+   */
+  llvm::Value* CreatePalloc(Size size,
+                            const char* file,
+                            const char *func,
+                            int line);
 
   /**
    * @brief Create a Cast instruction to convert given llvm::Value of any type

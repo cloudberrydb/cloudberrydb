@@ -13,7 +13,7 @@
 
 #ifdef CODEGEN_GPDB_ASSERT_HANDLING
 extern "C" {
-#include "postgres.h"
+#include "postgres.h"  // NOLINT(build/include)
 
 // Overload assert handling from LLVM, and pass any error messages to GPDB.
 // LLVM has a custom implementation of __assert_rtn, only compiled

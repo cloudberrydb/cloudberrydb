@@ -174,6 +174,18 @@ int
 att_align_nominal_regular(int cur_offset, char attalign);
 
 /*
+ * Wrapper function for SET_VARSIZE.
+ */
+void
+SET_VARSIZE_regular(void* ptr, size_t len);
+
+/*
+ * Wrapper function for VARSIZE.
+ */
+uint32
+VARSIZE_regular(void* ptr);
+
+/*
  * returns the pointer to the ExecVariableList
  */
 void*

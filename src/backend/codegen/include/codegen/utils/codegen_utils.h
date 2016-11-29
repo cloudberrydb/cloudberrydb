@@ -1659,6 +1659,64 @@ class CastMaker<
   }
 };
 
+// Partial specialization for any signed integer to 64-bit float
+template <typename SignedIntType>
+class CastMaker<
+    double,
+    SignedIntType,
+    typename std::enable_if<
+        std::is_integral<SignedIntType>::value &&
+        std::is_signed<SignedIntType>::value>::type> {
+ public:
+  static llvm::Value* CreateCast(llvm::Value* value,
+                                 CodegenUtils* codegen_utils) {
+    assert(nullptr != codegen_utils);
+
+    llvm::Type* llvm_dest_type = codegen_utils->GetType<double>();
+    Checker(value, llvm_dest_type);
+    return codegen_utils->ir_builder()->CreateSIToFP(
+        value, llvm_dest_type);
+  }
+ private:
+  static void Checker(llvm::Value* value,
+                      llvm::Type* llvm_dest_type) {
+    assert(nullptr != value);
+    assert(nullptr != value->getType());
+    assert(value->getType()->isIntegerTy());
+    assert(nullptr != llvm_dest_type);
+    assert(llvm_dest_type->isDoubleTy());
+  }
+};
+
+// Partial specialization for any unsigned integer to 64-bit float
+template <typename UnsignedIntType>
+class CastMaker<
+    double,
+    UnsignedIntType,
+    typename std::enable_if<
+        std::is_integral<UnsignedIntType>::value &&
+        std::is_unsigned<UnsignedIntType>::value>::type> {
+ public:
+  static llvm::Value* CreateCast(llvm::Value* value,
+                                 CodegenUtils* codegen_utils) {
+    assert(nullptr != codegen_utils);
+
+    llvm::Type* llvm_dest_type = codegen_utils->GetType<double>();
+    Checker(value, llvm_dest_type);
+    return codegen_utils->ir_builder()->CreateUIToFP(
+        value, llvm_dest_type);
+  }
+ private:
+  static void Checker(llvm::Value* value,
+                      llvm::Type* llvm_dest_type) {
+    assert(nullptr != value);
+    assert(nullptr != value->getType());
+    assert(value->getType()->isIntegerTy());
+    assert(nullptr != llvm_dest_type);
+    assert(llvm_dest_type->isDoubleTy());
+  }
+};
+
 }  // namespace codegen_utils_detail
 
 template <typename DestType, typename SrcType>
