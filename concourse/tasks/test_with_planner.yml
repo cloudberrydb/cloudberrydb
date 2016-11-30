@@ -16,3 +16,5 @@ run:
     - bin_orca
     - bin_gpos
     - bin_xerces
+params:
+  BLDWRAP_POSTGRES_CONF_ADDONS: "fsync=off"
