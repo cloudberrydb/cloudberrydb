@@ -1,5 +1,9 @@
 platform: linux
-image: docker:///yolo/gpdbdev#centos6
+image_resource:
+  type: docker-image
+  source:
+    repository: yolo/gpdbdev
+    tag: centos6
 inputs:
   - name: gpdb_src
   - name: bin_orca
