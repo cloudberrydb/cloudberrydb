@@ -455,7 +455,7 @@ jobs:
       params:
         submodules: none
   - task: icg_with_orca
-    timeout: 120m
+    timeout: 45m
     file: gpdb_src/concourse/tasks/test_with_orca.yml
     on_failure:
       aggregate:
@@ -492,7 +492,7 @@ jobs:
       params:
         submodules: none
   - task: icg_with_planner
-    timeout: 120m
+    timeout: 45m
     file: gpdb_src/concourse/tasks/test_with_planner.yml
     on_failure:
       aggregate:
