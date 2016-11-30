@@ -226,7 +226,7 @@ class GpTransfer(GpTestCase):
         options = self.setup_partition_validation()
 
         additional = {
-            "select parkind, parlevel, parnatts, paratts": [["my_parkind", 1, "my_parnatts", "3 4"]],
+            "select parkind, parlevel, parnatts, paratts": [["my_parkind", 1, 1, "3 4"]],
         }
         self.cursor.side_effect = CursorSideEffect(additional).cursor_side_effect
 
@@ -241,7 +241,7 @@ class GpTransfer(GpTestCase):
         options = self.setup_partition_validation()
 
         additional = {
-            "select parkind, parlevel, parnatts, paratts": [["different_parkind", 1, "my_parnatts", "my_paratts"]],
+            "select parkind, parlevel, parnatts, paratts": [["different_parkind", 1, 1, "1"]],
         }
         self.cursor.side_effect = CursorSideEffect(additional).cursor_side_effect
 
@@ -256,7 +256,7 @@ class GpTransfer(GpTestCase):
         options = self.setup_partition_validation()
 
         additional = {
-            "select parkind, parlevel, parnatts, paratts": [["my_parkind", 1, 2, "my_paratts"]],
+            "select parkind, parlevel, parnatts, paratts": [["my_parkind", 1, 2, "1"]],
         }
         self.cursor.side_effect = CursorSideEffect(additional).cursor_side_effect
 
@@ -384,8 +384,9 @@ class CursorSideEffect:
             "n.nspname, c.relname, c.relstorage": [["public", "my_table", ""]],
             "select relname from pg_class r": ["my_relname"],
             "select is_nullable, data_type, character_maximum_length,": [["t", "my_data_type", 255, 16, 1024, 1024, 1, 1024, "my_interval_type", "my_udt_name"]],
-            "select parkind, parlevel, parnatts, paratts": [["my_parkind", 1, "my_parnatts", "my_paratts"]],
+            "select parkind, parlevel, parnatts, paratts": [["my_parkind", 1, 1, "1"]],
             "SELECT fsname FROM pg_catalog.pg_filespace": ["public"],
+            "select ordinal_position from": [[1]],
         }
         self.counters = dict((key, 0) for key in self.first_values.keys())
         self.second_values = self.first_values.copy()

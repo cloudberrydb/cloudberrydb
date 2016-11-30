@@ -3814,7 +3814,7 @@ class GpTransfer(object):
 
         source_and_dest_paratts = zip(sorted(source_paratts), sorted(dest_paratts))
         for source_paratt, dest_paratt in source_and_dest_paratts:
-            if source_ordinal_positions.index(source_paratt) != dest_ordinal_positions.index(dest_paratt):
+            if source_paratt not in source_ordinal_positions or dest_paratt not in dest_ordinal_positions or source_ordinal_positions.index(source_paratt) != dest_ordinal_positions.index(dest_paratt):
                 return False
         return True
 
