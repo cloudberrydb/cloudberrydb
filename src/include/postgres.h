@@ -280,7 +280,7 @@ typedef struct
  *	sizeof(short) == 2
  *
  *  Greenplum CDB:
- *     Datum is alway 8 bytes, regardless if it is 32bit or 64bit machine.
+ *     Datum is always 8 bytes, regardless if it is 32bit or 64bit machine.
  *  so may be > sizeof(long).
  *
  * When a type narrower than Datum is stored in a Datum, we place it in the

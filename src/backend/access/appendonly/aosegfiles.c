@@ -2174,7 +2174,7 @@ CheckAOConsistencyWithGpRelationNode( Snapshot snapshot, Relation rel, int total
 	}
 
 	/* 
-	 * gp_relation_node alway has a zero. Hence we use Max segment file number plus 1 in order
+	 * gp_relation_node always has a zero. Hence we use Max segment file number plus 1 in order
 	 * to accomodate the zero
 	 */
 	const int num_gp_relation_node_entries = AOTupleId_MaxSegmentFileNum + 1;
