@@ -262,7 +262,7 @@ class GpStart:
             controldata = PgControlData("Latest checkpoint's TimeLineID", data_dir_path, REMOTE, remoteHost)
 
         controldata.run(validateAfter=True)
-        return controldata.get_value("Latest checkpoint's TimeLineID")
+        return int(controldata.get_value("Latest checkpoint's TimeLineID"))
 
     def _check_standby_activated(self):
         logger.debug("Checking if standby has been activated...")
@@ -273,8 +273,8 @@ class GpStart:
             primary_tli = self.fetch_tli(self.master_datadir)
             standby_tli = self.fetch_tli(self.gparray.standbyMaster.getSegmentDataDirectory(), self.gparray.standbyMaster.getSegmentHostName())
 
-            logger.debug("Primary TLI = " + primary_tli)
-            logger.debug("Standby TLI = " + standby_tli)
+            logger.debug("Primary TLI = %d" % primary_tli)
+            logger.debug("Standby TLI = %d" % standby_tli)
 
             if primary_tli < standby_tli:
                 # stop the master we've started up.
