@@ -138,6 +138,9 @@ test: uaocs_compaction/index_stats
 test: uaocs_compaction/index
 test: uaocs_compaction/drop_column
 
+# Tests for uao and uaocs catalog tables
+test: uao_catalog_tables uaocs_catalog_tables
+
 # Test psql \du output
 test: psql_gpdb_du
 
