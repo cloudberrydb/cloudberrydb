@@ -1924,24 +1924,6 @@ agg_hash_next_pass(AggState *aggstate)
 	return more;
 }
 
-/* Resets all gpmon states for this agg and sends an updated gpmon packet */
-static void
-Gpmon_ResetAggHashTable(AggState* aggstate)
-{
-	Gpmon_M_Incr(GpmonPktFromAggState(aggstate), GPMON_AGG_SPILLPASS);
-	/* Reset current pass read tuples must be before current pass spill tuples */
-	Gpmon_M_Reset(GpmonPktFromAggState(aggstate),
-			GPMON_AGG_CURRSPILLPASS_READTUPLE);
-	Gpmon_M_Reset(GpmonPktFromAggState(aggstate),
-			GPMON_AGG_CURRSPILLPASS_READBYTE);
-	Gpmon_M_Reset(GpmonPktFromAggState(aggstate),
-			GPMON_AGG_CURRSPILLPASS_TUPLE);
-	Gpmon_M_Reset(GpmonPktFromAggState(aggstate), GPMON_AGG_CURRSPILLPASS_BYTE);
-	Gpmon_M_Reset(GpmonPktFromAggState(aggstate),
-			GPMON_AGG_CURRSPILLPASS_BATCH);
-	CheckSendPlanStateGpmonPkt(&aggstate->ss.ps);
-}
-
 /* Function: reset_agg_hash_table
  *
  * Clear the hash table content anchored by the bucket array.
@@ -1963,7 +1945,15 @@ void reset_agg_hash_table(AggState *aggstate)
 
 	init_agg_hash_iter(hashtable);
 
-	Gpmon_ResetAggHashTable(aggstate);
+	Gpmon_M_Incr(GpmonPktFromAggState(aggstate), GPMON_AGG_SPILLPASS);
+	/* Reset current pass read tuples much be before currentpass spill tuples */
+	Gpmon_M_Reset(GpmonPktFromAggState(aggstate), GPMON_AGG_CURRSPILLPASS_READTUPLE);
+	Gpmon_M_Reset(GpmonPktFromAggState(aggstate), GPMON_AGG_CURRSPILLPASS_READBYTE); 
+	Gpmon_M_Reset(GpmonPktFromAggState(aggstate), GPMON_AGG_CURRSPILLPASS_TUPLE);
+	Gpmon_M_Reset(GpmonPktFromAggState(aggstate), GPMON_AGG_CURRSPILLPASS_BYTE);
+	Gpmon_M_Reset(GpmonPktFromAggState(aggstate), GPMON_AGG_CURRSPILLPASS_BATCH);
+
+	CheckSendPlanStateGpmonPkt(&aggstate->ss.ps);
 }
 
 /* Function: destroy_agg_hash_table
@@ -1982,8 +1972,7 @@ void destroy_agg_hash_table(AggState *aggstate)
 			aggstate->hhashtable->num_ht_groups,
 			aggstate->hhashtable->num_tuples);
 		
-		Gpmon_ResetAggHashTable(aggstate);
-		CdbCellBuf_Reset(&(aggstate->hhashtable->entry_buf));
+		reset_agg_hash_table(aggstate);
 
 		/* destroy_batches(aggstate->hhashtable); */
 		pfree(aggstate->hhashtable->buckets);
@@ -1992,12 +1981,6 @@ void destroy_agg_hash_table(AggState *aggstate)
 			pfree(aggstate->hhashtable->hashkey_buf);
 
 		closeSpillFiles(aggstate, aggstate->hhashtable->spill_set);
-
-		if (NULL != aggstate->hhashtable->spill_set)
-		{
-			pfree(aggstate->hhashtable->spill_set);
-			aggstate->hhashtable->spill_set = NULL;
-		}
 
 		if (NULL != aggstate->hhashtable->work_set)
 		{
