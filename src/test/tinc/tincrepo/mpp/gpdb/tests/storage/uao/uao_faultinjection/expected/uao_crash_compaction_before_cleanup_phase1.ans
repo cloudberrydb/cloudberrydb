@@ -1,3 +1,5 @@
+CHECKPOINT;
+CHECKPOINT
 VACUUM foo;
 NOTICE:  Releasing segworker groups to finish aborting the transaction.
 ERROR:  fault triggered, fault name:'compaction_before_cleanup_phase' fault type:'panic'  (seg0 127.0.0.1:25432 pid=42599)
