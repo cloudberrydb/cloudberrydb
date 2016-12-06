@@ -909,7 +909,7 @@ GetNewRelFileNode(Oid reltablespace, bool relisshared, Relation pg_class)
 	RelFileNode rnode;
 	char	   *rpath;
 	int			fd;
-	bool		collides;
+	bool		collides = true;
 
 	/* This should match RelationInitPhysicalAddr */
 	rnode.spcNode = reltablespace ? reltablespace : MyDatabaseTableSpace;
