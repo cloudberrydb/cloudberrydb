@@ -5,6 +5,14 @@ CREATE READABLE EXTERNAL TABLE s3regress_all_regions (date text, time text, open
 
 SELECT round(sum(open)) FROM s3regress_all_regions;
 
+DROP EXTERNAL TABLE s3regress_all_regions;
+
+CREATE READABLE EXTERNAL TABLE s3regress_all_regions (date text, time text, open float, high float,
+        low float, volume int) LOCATION('s3://s3-us-east-2.amazonaws.com/us-east-2.@read_prefix@/small17/data0000 config=@config_file@') FORMAT 'csv';
+
+\d s3regress_all_regions
+
+SELECT round(sum(open)) FROM s3regress_all_regions;
 
 DROP EXTERNAL TABLE s3regress_all_regions;
 
@@ -15,7 +23,6 @@ CREATE READABLE EXTERNAL TABLE s3regress_all_regions (date text, time text, open
 
 SELECT round(sum(open)) FROM s3regress_all_regions;
 
-
 DROP EXTERNAL TABLE s3regress_all_regions;
 
 CREATE READABLE EXTERNAL TABLE s3regress_all_regions (date text, time text, open float, high float,
@@ -24,7 +31,6 @@ CREATE READABLE EXTERNAL TABLE s3regress_all_regions (date text, time text, open
 \d s3regress_all_regions
 
 SELECT round(sum(open)) FROM s3regress_all_regions;
-
 
 DROP EXTERNAL TABLE s3regress_all_regions;
 
@@ -35,7 +41,6 @@ CREATE READABLE EXTERNAL TABLE s3regress_all_regions (date text, time text, open
 
 SELECT round(sum(open)) FROM s3regress_all_regions;
 
-
 DROP EXTERNAL TABLE s3regress_all_regions;
 
 CREATE READABLE EXTERNAL TABLE s3regress_all_regions (date text, time text, open float, high float,
@@ -44,7 +49,6 @@ CREATE READABLE EXTERNAL TABLE s3regress_all_regions (date text, time text, open
 \d s3regress_all_regions
 
 SELECT round(sum(open)) FROM s3regress_all_regions;
-
 
 DROP EXTERNAL TABLE s3regress_all_regions;
 
@@ -55,7 +59,6 @@ CREATE READABLE EXTERNAL TABLE s3regress_all_regions (date text, time text, open
 
 SELECT round(sum(open)) FROM s3regress_all_regions;
 
-
 DROP EXTERNAL TABLE s3regress_all_regions;
 
 CREATE READABLE EXTERNAL TABLE s3regress_all_regions (date text, time text, open float, high float,
@@ -64,7 +67,6 @@ CREATE READABLE EXTERNAL TABLE s3regress_all_regions (date text, time text, open
 \d s3regress_all_regions
 
 SELECT round(sum(open)) FROM s3regress_all_regions;
-
 
 DROP EXTERNAL TABLE s3regress_all_regions;
 
@@ -75,7 +77,6 @@ CREATE READABLE EXTERNAL TABLE s3regress_all_regions (date text, time text, open
 
 SELECT round(sum(open)) FROM s3regress_all_regions;
 
-
 DROP EXTERNAL TABLE s3regress_all_regions;
 
 CREATE READABLE EXTERNAL TABLE s3regress_all_regions (date text, time text, open float, high float,
@@ -84,7 +85,6 @@ CREATE READABLE EXTERNAL TABLE s3regress_all_regions (date text, time text, open
 \d s3regress_all_regions
 
 SELECT round(sum(open)) FROM s3regress_all_regions;
-
 
 DROP EXTERNAL TABLE s3regress_all_regions;
 

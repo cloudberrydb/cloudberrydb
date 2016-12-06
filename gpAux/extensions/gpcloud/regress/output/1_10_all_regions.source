@@ -24,6 +24,31 @@ SELECT round(sum(open)) FROM s3regress_all_regions;
 
 DROP EXTERNAL TABLE s3regress_all_regions;
 CREATE READABLE EXTERNAL TABLE s3regress_all_regions (date text, time text, open float, high float,
+        low float, volume int) LOCATION('s3://s3-us-east-2.amazonaws.com/us-east-2.@read_prefix@/small17/data0000 config=@config_file@') FORMAT 'csv';
+\d s3regress_all_regions
+   External table "public.s3regress_all_regions"
+ Column |       Type       | Modifiers 
+--------+------------------+-----------
+ date   | text             | 
+ time   | text             | 
+ open   | double precision | 
+ high   | double precision | 
+ low    | double precision | 
+ volume | integer          | 
+Type: readable
+Encoding: UTF8
+Format type: csv
+Format options: delimiter ',' null '' escape '"' quote '"'
+External location: "s3://s3-us-east-2.amazonaws.com/us-east-2.@read_prefix@/small17/data0000 config=@config_file@"
+
+SELECT round(sum(open)) FROM s3regress_all_regions;
+  round  
+---------
+ 4239338
+(1 row)
+
+DROP EXTERNAL TABLE s3regress_all_regions;
+CREATE READABLE EXTERNAL TABLE s3regress_all_regions (date text, time text, open float, high float,
         low float, volume int) LOCATION('s3://s3-us-west-1.amazonaws.com/us-west-1.@read_prefix@/small17/data0000 config=@config_file@') FORMAT 'csv';
 \d s3regress_all_regions
    External table "public.s3regress_all_regions"
