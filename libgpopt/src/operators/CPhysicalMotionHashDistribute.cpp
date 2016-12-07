@@ -74,10 +74,10 @@ CPhysicalMotionHashDistribute::FMatch
 	{
 		return false;
 	}
-	
-	CPhysicalMotionHashDistribute *popHashDistribute = 
+
+	CPhysicalMotionHashDistribute *popHashDistribute =
 			CPhysicalMotionHashDistribute::PopConvert(pop);
-	
+
 	return m_pdsHashed->FEqual(popHashDistribute->m_pdsHashed);
 }
 
@@ -164,7 +164,7 @@ CPhysicalMotionHashDistribute::PosRequired
 	IMemoryPool *pmp,
 	CExpressionHandle &, // exprhdl
 	COrderSpec *,//posInput
-	ULONG 
+	ULONG
 #ifdef GPOS_DEBUG
 	ulChildIndex
 #endif // GPOS_DEBUG
