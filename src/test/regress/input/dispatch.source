@@ -251,13 +251,3 @@ CREATE OR REPLACE FUNCTION udf_raise_info() RETURNS BOOL
 AS '@abs_builddir@/regress@DLSUFFIX@', 'gangRaiseInfo' LANGUAGE C;
 
 SELECT udf_raise_info() FROM gp_dist_random('gp_id') WHERE gp_segment_id = 0;
-
--- terminate connections to all segments
-\c
-
--- test brutal exit of session can correctly clean up all QEs
--- start and finish a new session
-\! psql regression -f @abs_builddir@/sql/dispatch_test_helper.sql
-
--- verify all QEs of the exited session have gone, expect to return false
-select * from v_hasBackendsOnSegment;

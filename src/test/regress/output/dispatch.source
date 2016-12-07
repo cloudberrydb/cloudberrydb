@@ -341,23 +341,3 @@ CONTEXT:  PL/C function defined in regress.c
  t
 (1 row)
 
--- terminate connections to all segments
-\c
--- test brutal exit of session can correctly clean up all QEs
--- start and finish a new session
-\! psql regression -f @abs_builddir@/sql/dispatch_test_helper.sql
-BEGIN
-DECLARE CURSOR
-SET
-psql:@abs_builddir@/sql/dispatch_test_helper.sql:10: FATAL:  User fault injection raised fatal
-server closed the connection unexpectedly
-	This probably means the server terminated abnormally
-	before or while processing the request.
-psql:@abs_builddir@/sql/dispatch_test_helper.sql:10: connection to server was lost
--- verify all QEs of the exited session have gone, expect to return false
-select * from v_hasBackendsOnSegment;
- ?column? 
-----------
- f
-(1 row)
-
