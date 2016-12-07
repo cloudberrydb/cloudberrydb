@@ -138,7 +138,10 @@ test: uaocs_compaction/index_stats
 test: uaocs_compaction/index
 test: uaocs_compaction/drop_column
 
-# Tests for uao and uaocs catalog tables
+# Tests for updatable ao and aocs catalog tables.  Do not add them to
+# a group that runs serializable transactions.  These tests run VACUUM
+# FULL on append-optimized tables and assume that no AWAITING_DROP
+# segfiles exist at the end of VACUUM FULL.
 test: uao_catalog_tables uaocs_catalog_tables
 
 # Test psql \du output
