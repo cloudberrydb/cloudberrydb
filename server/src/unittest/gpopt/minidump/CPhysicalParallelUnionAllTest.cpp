@@ -30,12 +30,16 @@ namespace gpopt
 {
 	GPOS_RESULT CPhysicalParallelUnionAllTest::EresUnittest()
 	{
+		BOOL fMatchPlans = true;
+		BOOL fTestSpacePruning = true;
 		CAutoTraceFlag atfParallelAppend(gpos::EopttraceEnableParallelAppend, true);
-		return CTestUtils::EresUnittest_RunTests
+		return CTestUtils::EresUnittest_RunTestsWithoutAdditionalTraceFlags
 			(
 				rgszFileNames,
 				&ulCounter,
-				GPOS_ARRAY_SIZE(rgszFileNames)
+				GPOS_ARRAY_SIZE(rgszFileNames),
+				fMatchPlans,
+				fTestSpacePruning
 			);
 	}
 
