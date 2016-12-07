@@ -149,8 +149,19 @@ namespace gpopt
 			
 			// conversion function
 			static
-			CPhysicalMotionHashDistribute *PopConvert(COperator *pop);			
-					
+			CPhysicalMotionHashDistribute *PopConvert(COperator *pop);
+
+			virtual
+			CDistributionSpec *PdsRequired
+				(
+				IMemoryPool *pmp,
+				CExpressionHandle &exprhdl,
+				CDistributionSpec *pdsRequired,
+				ULONG ulChildIndex,
+				DrgPdp *pdrgpdpCtxt,
+				ULONG ulOptReq
+				) const;
+
 	}; // class CPhysicalMotionHashDistribute
 
 }

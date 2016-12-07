@@ -39,11 +39,12 @@ CDistributionSpecHashedNoOp::AppendEnforcers
 	CDrvdProp *pdp = exprhdl.Pdp();
 	CDistributionSpec *pdsChild = CDrvdPropPlan::Pdpplan(pdp)->Pds();
 	CDistributionSpecHashed *pdsChildHashed = dynamic_cast<CDistributionSpecHashed *>(pdsChild);
+
 	if (NULL == pdsChildHashed)
 	{
 		return;
 	}
-	
+
 	DrgPexpr *pdrgpexprNoOpRedistributionColumns = pdsChildHashed->Pdrgpexpr();
 	pdrgpexprNoOpRedistributionColumns->AddRef();
 	CDistributionSpecHashedNoOp* pdsNoOp = GPOS_NEW(pmp) CDistributionSpecHashedNoOp(pdrgpexprNoOpRedistributionColumns);

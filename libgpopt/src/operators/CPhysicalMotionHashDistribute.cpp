@@ -13,6 +13,7 @@
 
 #include "gpopt/operators/CExpressionHandle.h"
 #include "gpopt/operators/CPhysicalMotionHashDistribute.h"
+#include "gpopt/base/CDistributionSpecHashedNoOp.h"
 
 using namespace gpopt;
 
@@ -236,9 +237,34 @@ CPhysicalMotionHashDistribute::PopConvert
 {
 	GPOS_ASSERT(NULL != pop);
 	GPOS_ASSERT(EopPhysicalMotionHashDistribute == pop->Eopid());
-	
+
 	return dynamic_cast<CPhysicalMotionHashDistribute*>(pop);
 }			
+
+CDistributionSpec *
+CPhysicalMotionHashDistribute::PdsRequired
+	(
+		IMemoryPool *pmp,
+		CExpressionHandle &exprhdl,
+		CDistributionSpec *pdsRequired,
+		ULONG ulChildIndex,
+		DrgPdp *pdrgpdpCtxt,
+		ULONG ulOptReq
+	) const
+{
+	CDistributionSpecHashedNoOp* pdsNoOp = dynamic_cast<CDistributionSpecHashedNoOp*>(m_pdsHashed);
+	if (NULL == pdsNoOp)
+	{
+		return CPhysicalMotion::PdsRequired(pmp, exprhdl, pdsRequired, ulChildIndex, pdrgpdpCtxt, ulOptReq);
+	}
+	else
+	{
+		DrgPexpr *pdrgpexpr = pdsNoOp->Pdrgpexpr();
+		pdrgpexpr->AddRef();
+		CDistributionSpecHashed* pdsHashed = GPOS_NEW(pmp) CDistributionSpecHashed(pdrgpexpr, pdsNoOp->FNullsColocated());
+		return pdsHashed;
+	}
+}
 
 // EOF
 
