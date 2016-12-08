@@ -2058,7 +2058,6 @@ pgstat_fetch_stat_beentry(int beid)
 	return &localBackendStatusTable[beid - 1];
 }
 
-
 /* ----------
  * pgstat_fetch_stat_numbackends() -
  *

@@ -83,8 +83,8 @@ CREATE OR REPLACE FUNCTION cleanupAllGangs() RETURNS BOOL
 AS '@abs_builddir@/regress@DLSUFFIX@', 'cleanupAllGangs' LANGUAGE C;
 
 -- check if segments has backend running
-CREATE OR REPLACE FUNCTION numBackendsOnSegment(int) RETURNS INTEGER
-AS '@abs_builddir@/regress@DLSUFFIX@', 'numBackendsOnSegment' LANGUAGE C;
+CREATE OR REPLACE FUNCTION hasBackendsExist(int) RETURNS BOOL 
+AS '@abs_builddir@/regress@DLSUFFIX@', 'hasBackendsExist' LANGUAGE C;
 
 -- check if QD has reusable gangs
 CREATE OR REPLACE FUNCTION hasGangsExist() RETURNS BOOL
@@ -154,7 +154,7 @@ select 'wait recovery finish' from gp_dist_random('gp_id');
 select cleanupAllGangs();
 
 -- expect no zombie backends left on segments 
-select sum(numBackendsOnSegment(30)) > 0 from gp_dist_random('gp_id');
+select sum(case when hasBackendsExist(30)='t' then 1 else 0 end) > 0 as hasbackends from gp_dist_random('gp_id');
 
 -- should success 
 select * from dispatch_test_t1, dispatch_test_t2, dispatch_test_t3
@@ -177,7 +177,7 @@ where dispatch_test_t1.c2 = dispatch_test_t2.c2 and dispatch_test_t2.c3 = dispat
 select * from hasGangsExist();
 
 -- expect no zombie backends left on segments.
-select sum(numBackendsOnSegment(30)) > 0 from gp_dist_random('gp_id');
+select sum(case when hasBackendsExist(30)='t' then 1 else 0 end) > 0 as hasbackends from gp_dist_random('gp_id');
 
 -- cleanupAllGangs();
 select cleanupAllGangs();
@@ -194,7 +194,7 @@ where dispatch_test_t1.c2 = dispatch_test_t2.c2 and dispatch_test_t2.c3 = dispat
 select * from hasGangsExist();
 
 -- expect QEs exist.
-select sum(numBackendsOnSegment(0)) > 0 from gp_dist_random('gp_id');
+select sum(case when hasBackendsExist(0)='t' then 1 else 0 end) > 0 as hasbackends from gp_dist_random('gp_id');
 
 \! gpfaultinjector -q -f send_qe_details_init_backend -y reset --seg_dbid 2
 
