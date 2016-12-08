@@ -3277,7 +3277,7 @@ struct config_bool ConfigureNamesBool_gp[] =
 		{"optimizer_parallel_union", PGC_USERSET, DEVELOPER_OPTIONS,
 			gettext_noop("Enable parallel execution for UNION/UNION ALL queries."),
 			NULL,
-			GUC_NO_SHOW_ALL | GUC_NOT_IN_SAMPLE
+			GUC_NOT_IN_SAMPLE
 		},
 		&optimizer_parallel_union,
 		false, NULL, NULL
