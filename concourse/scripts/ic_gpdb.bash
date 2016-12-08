@@ -11,7 +11,7 @@ function gen_env(){
 
 		function look4diffs() {
 
-		    diff_files=`find .. -name regression.diffs`
+		    diff_files=\`find .. -name regression.diffs\`
 
 		    for diff_file in \${diff_files}; do
 			if [ -f "\${diff_file}" ]; then
