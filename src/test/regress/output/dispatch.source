@@ -110,8 +110,6 @@ AS '@abs_builddir@/regress@DLSUFFIX@', 'numBackendsOnSegment' LANGUAGE C;
 -- check if QD has reusable gangs
 CREATE OR REPLACE FUNCTION hasGangsExist() RETURNS BOOL
 AS '@abs_builddir@/regress@DLSUFFIX@', 'hasGangsExist' LANGUAGE C;
-CREATE VIEW v_hasBackendsOnSegment as select sum(numBackendsOnSegment(30)) > 0 from
-gp_dist_random('gp_id');
 -- disable debug linger to get immediate feedback from FATAL errors.
 set gp_debug_linger to 0;
 -- test log debug related code within dispatch
@@ -201,7 +199,7 @@ select cleanupAllGangs();
 (1 row)
 
 -- expect no zombie backends left on segments 
-select * from v_hasBackendsOnSegment;
+select sum(numBackendsOnSegment(30)) > 0 from gp_dist_random('gp_id');
  ?column? 
 ----------
  f
@@ -241,7 +239,7 @@ select * from hasGangsExist();
 (1 row)
 
 -- expect no zombie backends left on segments.
-select * from v_hasBackendsOnSegment;
+select sum(numBackendsOnSegment(30)) > 0 from gp_dist_random('gp_id');
  ?column? 
 ----------
  f
@@ -271,7 +269,7 @@ select * from hasGangsExist();
 (1 row)
 
 -- expect QEs exist.
-select * from v_hasBackendsOnSegment;
+select sum(numBackendsOnSegment(0)) > 0 from gp_dist_random('gp_id');
  ?column? 
 ----------
  t
