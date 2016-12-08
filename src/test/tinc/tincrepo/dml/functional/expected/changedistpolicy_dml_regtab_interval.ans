@@ -1,0 +1,49 @@
+DROP TABLE IF EXISTS changedistpolicy_dml_regtab_interval;
+psql:/data/prabhd/test/tincrepo/main/dml/functional/output/changedistpolicy_dml_regtab_interval_opt.sql:14: NOTICE:  table "changedistpolicy_dml_regtab_interval" does not exist, skipping
+DROP TABLE
+CREATE TABLE changedistpolicy_dml_regtab_interval
+(
+    col1 interval,
+    col2 interval,
+    col3 char,
+    col4 interval,
+    col5 int
+) DISTRIBUTED by (col1);
+CREATE TABLE
+INSERT INTO changedistpolicy_dml_regtab_interval VALUES('10 secs','10 secs','a','10 secs',0);
+INSERT 0 1
+SELECT * FROM changedistpolicy_dml_regtab_interval ORDER BY 1,2,3,4;
+   col1   |   col2   | col3 |   col4   | col5 
+----------+----------+------+----------+------
+ 00:00:10 | 00:00:10 | a    | 00:00:10 |    0
+(1 row)
+
+ALTER TABLE changedistpolicy_dml_regtab_interval SET DISTRIBUTED BY (col3);
+ALTER TABLE
+INSERT INTO changedistpolicy_dml_regtab_interval SELECT '12 hours', '12 hours','b', '12 hours', 1;
+INSERT 0 1
+SELECT * FROM changedistpolicy_dml_regtab_interval ORDER BY 1,2,3;
+   col1   |   col2   | col3 |   col4   | col5 
+----------+----------+------+----------+------
+ 00:00:10 | 00:00:10 | a    | 00:00:10 |    0
+ 12:00:00 | 12:00:00 | b    | 12:00:00 |    1
+(2 rows)
+
+-- Update distribution key
+UPDATE changedistpolicy_dml_regtab_interval SET col3 ='c' WHERE col3 ='b' AND col5 = 1;
+UPDATE 1
+SELECT * FROM changedistpolicy_dml_regtab_interval ORDER BY 1,2,3;
+   col1   |   col2   | col3 |   col4   | col5 
+----------+----------+------+----------+------
+ 00:00:10 | 00:00:10 | a    | 00:00:10 |    0
+ 12:00:00 | 12:00:00 | c    | 12:00:00 |    1
+(2 rows)
+
+DELETE FROM changedistpolicy_dml_regtab_interval WHERE col3 ='c';
+DELETE 1
+SELECT * FROM changedistpolicy_dml_regtab_interval ORDER BY 1,2,3;
+   col1   |   col2   | col3 |   col4   | col5 
+----------+----------+------+----------+------
+ 00:00:10 | 00:00:10 | a    | 00:00:10 |    0
+(1 row)
+

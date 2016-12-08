@@ -1,0 +1,89 @@
+-- @author prabhd
+-- @created 2012-12-05 12:00:00
+-- @modified 2012-12-05 12:00:00
+-- @tags dml
+-- @db_name dmldb
+-- @description test: Alter table alter column
+-- start_ignore
+SET gp_optimizer=on;SET gp_log_optimizer=on;
+SET
+SET
+-- end_ignore
+-- ADD COLUMN
+SELECT COUNT(*) FROM dml_tab;
+ count 
+-------
+    10
+(1 row)
+
+ALTER TABLE dml_tab add column addcol1 decimal default 10.00 ;
+ALTER TABLE
+SELECT COUNT(*) FROM dml_tab WHERE addcol1 = 10.00;
+ count 
+-------
+    10
+(1 row)
+
+UPDATE dml_tab SET addcol1 = 1.00;
+UPDATE 10
+SELECT COUNT(*) FROM dml_tab WHERE addcol1 = 1.00;
+ count 
+-------
+    10
+(1 row)
+
+INSERT INTO dml_tab VALUES(generate_series(11,12),'dml_tab','b','alter operations','01-01-2013',1,'01-01-2013 10:10:00', '01-01-2013 10:10:54+02');
+INSERT 0 2
+SELECT COUNT(*) FROM dml_tab;
+ count 
+-------
+    12
+(1 row)
+
+-- CHANGE COLUMN DATA TYPE
+SELECT COUNT(*) FROM dml_tab;
+ count 
+-------
+    12
+(1 row)
+
+ALTER TABLE dml_tab ALTER COLUMN addcol1 type numeric ;
+ALTER TABLE
+INSERT INTO dml_tab VALUES(generate_series(1,12),'dml_tab','c','alter operations','01-01-2013',1,'01-01-2013 10:10:00', '01-01-2013 10:10:54+02', 10.10);
+INSERT 0 12
+SELECT COUNT(*) FROM dml_tab;
+ count 
+-------
+    24
+(1 row)
+
+-- RENAME COLUMN
+ALTER TABLE dml_tab RENAME COLUMN addcol1 to newaddcol1 ;
+ALTER TABLE
+UPDATE dml_tab SET newaddcol1 = 1.11 , i = 1;
+UPDATE 24
+SELECT COUNT(*) FROM dml_tab WHERE i = 1;
+ count 
+-------
+    24
+(1 row)
+
+-- DROP COLUMN
+DELETE FROM dml_tab;
+DELETE 24
+SELECT COUNT(*) FROM dml_tab;
+ count 
+-------
+     0
+(1 row)
+
+ALTER TABLE dml_tab DROP COLUMN newaddcol1;
+ALTER TABLE
+INSERT INTO dml_tab VALUES(generate_series(1,12),'dml_tab','e','alter operations','01-01-2013',1,'01-01-2013 10:10:00', '01-01-2013 10:10:54+02');
+INSERT 0 12
+SELECT COUNT(*) FROM dml_tab;
+ count 
+-------
+    12
+(1 row)
+

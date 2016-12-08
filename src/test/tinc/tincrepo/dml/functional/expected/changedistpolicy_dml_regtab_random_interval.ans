@@ -1,0 +1,49 @@
+DROP TABLE IF EXISTS changedistpolicy_dml_regtab_random_interval;
+psql:/data/prabhd/test/tincrepo/main/dml/functional/output/changedistpolicy_dml_regtab_random_interval_opt.sql:14: NOTICE:  table "changedistpolicy_dml_regtab_random_interval" does not exist, skipping
+DROP TABLE
+CREATE TABLE changedistpolicy_dml_regtab_random_interval
+(
+    col1 interval,
+    col2 interval,
+    col3 char,
+    col4 interval,
+    col5 int
+) DISTRIBUTED by (col1);
+CREATE TABLE
+INSERT INTO changedistpolicy_dml_regtab_random_interval VALUES('10 secs','10 secs','a','10 secs',0);
+INSERT 0 1
+SELECT * FROM changedistpolicy_dml_regtab_random_interval ORDER BY 1,2,3,4;
+   col1   |   col2   | col3 |   col4   | col5 
+----------+----------+------+----------+------
+ 00:00:10 | 00:00:10 | a    | 00:00:10 |    0
+(1 row)
+
+ALTER TABLE changedistpolicy_dml_regtab_random_interval SET DISTRIBUTED randomly;
+ALTER TABLE
+INSERT INTO changedistpolicy_dml_regtab_random_interval SELECT '11 hours', '11 hours','b', '11 hours', 1;
+INSERT 0 1
+SELECT * FROM changedistpolicy_dml_regtab_random_interval ORDER BY 1,2,3;
+   col1   |   col2   | col3 |   col4   | col5 
+----------+----------+------+----------+------
+ 00:00:10 | 00:00:10 | a    | 00:00:10 |    0
+ 11:00:00 | 11:00:00 | b    | 11:00:00 |    1
+(2 rows)
+
+-- Update distribution key
+UPDATE changedistpolicy_dml_regtab_random_interval SET col3 ='c' WHERE col3 ='b' AND col5 = 1;
+UPDATE 1
+SELECT * FROM changedistpolicy_dml_regtab_random_interval ORDER BY 1,2,3;
+   col1   |   col2   | col3 |   col4   | col5 
+----------+----------+------+----------+------
+ 00:00:10 | 00:00:10 | a    | 00:00:10 |    0
+ 11:00:00 | 11:00:00 | c    | 11:00:00 |    1
+(2 rows)
+
+DELETE FROM changedistpolicy_dml_regtab_random_interval WHERE col3 ='c';
+DELETE 1
+SELECT * FROM changedistpolicy_dml_regtab_random_interval ORDER BY 1,2,3;
+   col1   |   col2   | col3 |   col4   | col5 
+----------+----------+------+----------+------
+ 00:00:10 | 00:00:10 | a    | 00:00:10 |    0
+(1 row)
+

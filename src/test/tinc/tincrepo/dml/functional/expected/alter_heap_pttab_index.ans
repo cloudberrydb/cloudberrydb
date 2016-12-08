@@ -1,0 +1,66 @@
+-- @author prabhd
+-- @created 2012-12-05 12:00:00
+-- @modified 2012-12-05 12:00:00
+-- @tags dml
+-- @db_name dmldb
+-- @description test: Alter table alter index
+-- start_ignore
+SET gp_optimizer=on;SET gp_log_optimizer=on;
+SET
+SET
+-- end_ignore
+-- CREATE INDEX
+SELECT COUNT(*) FROM dml_pt_tab;
+ count 
+-------
+    10
+(1 row)
+
+CREATE INDEX dml_pt_tab_idx1 on dml_pt_tab (i);
+psql:/data2/prabhd/test/tincrepo/main/main/dml/functional/sql/../output/alter_heap_pttab_index_gucs.sql:13: NOTICE:  building index for child partition "dml_pt_tab_1_prt_p1"
+psql:/data2/prabhd/test/tincrepo/main/main/dml/functional/sql/../output/alter_heap_pttab_index_gucs.sql:13: NOTICE:  building index for child partition "dml_pt_tab_1_prt_p2"
+psql:/data2/prabhd/test/tincrepo/main/main/dml/functional/sql/../output/alter_heap_pttab_index_gucs.sql:13: NOTICE:  building index for child partition "dml_pt_tab_1_prt_p3"
+CREATE INDEX
+INSERT INTO dml_pt_tab VALUES(generate_series(12,22),'dml_pt_tab','j','alter operations','01-01-2013',1,'01-01-2013 10:10:00', '01-01-2013 10:10:54+02');
+INSERT 0 11
+SELECT COUNT(*) FROM dml_pt_tab;
+ count 
+-------
+    21
+(1 row)
+
+CREATE INDEX dml_pt_tab_idx2 on dml_pt_tab using bitmap (n);
+psql:/data2/prabhd/test/tincrepo/main/main/dml/functional/sql/../output/alter_heap_pttab_index_gucs.sql:17: NOTICE:  building index for child partition "dml_pt_tab_1_prt_p1"
+psql:/data2/prabhd/test/tincrepo/main/main/dml/functional/sql/../output/alter_heap_pttab_index_gucs.sql:17: NOTICE:  building index for child partition "dml_pt_tab_1_prt_p2"
+psql:/data2/prabhd/test/tincrepo/main/main/dml/functional/sql/../output/alter_heap_pttab_index_gucs.sql:17: NOTICE:  building index for child partition "dml_pt_tab_1_prt_p3"
+CREATE INDEX
+INSERT INTO dml_pt_tab VALUES(generate_series(12,22),'dml_pt_tab','k','alter operations','01-01-2013',1,'01-01-2013 10:10:00', '01-01-2013 10:10:54+02');
+INSERT 0 11
+INSERT INTO dml_pt_tab VALUES(generate_series(12,22),'dml_pt_tab','l','alter operations','01-01-2013',1,'01-01-2013 10:10:00', '01-01-2013 10:10:54+02');
+INSERT 0 11
+SELECT COUNT(*) FROM dml_pt_tab;
+ count 
+-------
+    43
+(1 row)
+
+DELETE FROM dml_pt_tab;
+DELETE 43
+SELECT COUNT(*) FROM dml_pt_tab;
+ count 
+-------
+     0
+(1 row)
+
+ALTER INDEX dml_pt_tab_idx1 RENAME TO dml_pt_tab_idx1_new;
+ALTER INDEX
+ALTER INDEX dml_pt_tab_idx2 RENAME TO dml_pt_tab_idx2_new;
+ALTER INDEX
+INSERT INTO dml_pt_tab VALUES(generate_series(12,22),'dml_pt_tab','m','alter operations','01-01-2013',1,'01-01-2013 10:10:00', '01-01-2013 10:10:54+02');
+INSERT 0 11
+SELECT COUNT(*) FROM dml_pt_tab;
+ count 
+-------
+    11
+(1 row)
+

@@ -16,6 +16,9 @@ limitations under the License.
 """
 
 from mpp.lib.datagen import TINCTestDatabase
+from mpp.lib.datagen.functionproperty.db import FunctionPropertyTestDatabase
+from mpp.lib.datagen.functionproperty.db_builtin import BuiltinFunctionPropertyTestDatabase
+from mpp.lib.datagen.groupingfunction.db import GroupingFunctionTestDatabase
 from mpp.lib.datagen import TINCDatagenException
 from mpp.lib.datagen.dispatch.db import DispatchSkewDatabase
 
@@ -27,6 +30,13 @@ TINC_TEST_DATABASE = 'gptest'
 __databases__ = {}
 
 __databases__[TINC_TEST_DATABASE] = TINCTestDatabase(database_name=TINC_TEST_DATABASE)
+
+#Databases for function property tests
+__databases__['functionproperty'] = FunctionPropertyTestDatabase(database_name = 'functionproperty')
+__databases__['builtin_functionproperty'] = BuiltinFunctionPropertyTestDatabase(database_name = 'builtin_functionproperty')
+
+#Database for grouping functions
+__databases__['groupingfunction'] = GroupingFunctionTestDatabase(database_name = 'groupingfunction')
 
 # Database for query-finish
 __databases__['queryfinish'] = DispatchSkewDatabase()

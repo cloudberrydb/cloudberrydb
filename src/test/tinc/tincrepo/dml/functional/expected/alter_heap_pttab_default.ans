@@ -1,0 +1,45 @@
+-- @author prabhd
+-- @created 2012-12-05 12:00:00
+-- @modified 2012-12-05 12:00:00
+-- @tags dml
+-- @db_name dmldb
+-- @description test: Alter table set/drop default values
+-- start_ignore
+SET gp_optimizer=on;SET gp_log_optimizer=on;
+SET
+SET
+-- end_ignore
+-- SET DEFAULT
+SELECT COUNT(*) FROM dml_pt_tab WHERE x = 'abcdefghijklmnopqrstuvwxyz';
+ count 
+-------
+     0
+(1 row)
+
+ALTER TABLE dml_pt_tab ALTER COLUMN x SET DEFAULT 'abcdefghijklmnopqrstuvwxyz';
+ALTER TABLE
+INSERT INTO dml_pt_tab(i,c,v,d,n,t,tz) VALUES(13,'d','alter operations','01-01-2013',1,'01-01-2013 10:10:00', '01-01-2013 10:10:54+02');
+INSERT 0 1
+SELECT COUNT(*) FROM dml_pt_tab WHERE x = 'abcdefghijklmnopqrstuvwxyz';
+ count 
+-------
+     1
+(1 row)
+
+-- DROP DEFAULT
+SELECT COUNT(*) FROM dml_pt_tab;
+ count 
+-------
+    11
+(1 row)
+
+ALTER TABLE dml_pt_tab ALTER COLUMN x DROP DEFAULT;
+ALTER TABLE
+INSERT INTO dml_pt_tab(i,c,v,d,n,t,tz) VALUES(13,'i','alter operations','01-01-2013',1,'01-01-2013 10:10:00', '01-01-2013 10:10:54+02');
+INSERT 0 1
+SELECT COUNT(*) FROM dml_pt_tab;
+ count 
+-------
+    12
+(1 row)
+

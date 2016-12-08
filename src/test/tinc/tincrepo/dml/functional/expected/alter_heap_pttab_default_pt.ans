@@ -1,0 +1,107 @@
+-- @author prabhd
+-- @created 2012-12-05 12:00:00
+-- @modified 2012-12-05 12:00:00
+-- @tags dml
+-- @db_name dmldb
+-- @description test: Alter default partition
+-- start_ignore
+SET gp_optimizer=on;SET gp_log_optimizer=on;
+SET
+SET
+-- end_ignore
+-- ADD DEFAULT PARTITION
+SELECT COUNT(*) FROM dml_pt_tab;
+ count 
+-------
+    10
+(1 row)
+
+ALTER TABLE dml_pt_tab ADD DEFAULT PARTITION def_part;
+psql:/data2/prabhd/test/tincrepo/main/main/dml/functional/sql/../output/alter_heap_pttab_default_pt_gucs.sql:13: NOTICE:  CREATE TABLE will create partition "dml_pt_tab_1_prt_def_part" for table "dml_pt_tab"
+ALTER TABLE
+INSERT INTO dml_pt_tab VALUES(NULL,'dml_pt_tab','q','alter operations','01-01-2013',1,'01-01-2013 10:10:00', '01-01-2013 10:10:54+02');
+INSERT 0 1
+SELECT COUNT(*) FROM dml_pt_tab;
+ count 
+-------
+    11
+(1 row)
+
+UPDATE dml_pt_tab SET i = NULL WHERE c = 'a';
+UPDATE 10
+SELECT DISTINCT(i) FROM dml_pt_tab WHERE c = 'a';
+ i 
+---
+  
+(1 row)
+
+SELECT COUNT(*) FROM dml_pt_tab_1_prt_def_part;
+ count 
+-------
+    11
+(1 row)
+
+-- SPLIT DEFAULT PARTITION
+ALTER TABLE dml_pt_tab SPLIT DEFAULT PARTITION start(41) end(51) into (partition p5, partition def_part);
+psql:/data2/prabhd/test/tincrepo/main/main/dml/functional/sql/../output/alter_heap_pttab_default_pt_gucs.sql:21: NOTICE:  exchanged partition "def_part" of relation "dml_pt_tab" with relation "pg_temp_467834"
+psql:/data2/prabhd/test/tincrepo/main/main/dml/functional/sql/../output/alter_heap_pttab_default_pt_gucs.sql:21: NOTICE:  dropped partition "def_part" for relation "dml_pt_tab"
+psql:/data2/prabhd/test/tincrepo/main/main/dml/functional/sql/../output/alter_heap_pttab_default_pt_gucs.sql:21: NOTICE:  CREATE TABLE will create partition "dml_pt_tab_1_prt_p5" for table "dml_pt_tab"
+psql:/data2/prabhd/test/tincrepo/main/main/dml/functional/sql/../output/alter_heap_pttab_default_pt_gucs.sql:21: NOTICE:  CREATE TABLE will create partition "dml_pt_tab_1_prt_def_part" for table "dml_pt_tab"
+ALTER TABLE
+INSERT INTO dml_pt_tab VALUES(NULL,'dml_pt_tab','r','alter operations','01-01-2013',1,'01-01-2013 10:10:00', '01-01-2013 10:10:54+02');
+INSERT 0 1
+INSERT INTO dml_pt_tab VALUES(generate_series(40,50),'dml_pt_tab','s','alter operations','01-01-2013',1,'01-01-2013 10:10:00', '01-01-2013 10:10:54+02');
+INSERT 0 11
+SELECT COUNT(*) FROM dml_pt_tab_1_prt_def_part;
+ count 
+-------
+    13
+(1 row)
+
+SELECT COUNT(*) FROM dml_pt_tab_1_prt_p5;
+ count 
+-------
+    10
+(1 row)
+
+SELECT COUNT(*) FROM dml_pt_tab;
+ count 
+-------
+    23
+(1 row)
+
+-- DROP DEFAULT PARTITION
+ALTER TABLE dml_pt_tab DROP DEFAULT PARTITION ;
+psql:/data2/prabhd/test/tincrepo/main/main/dml/functional/sql/../output/alter_heap_pttab_default_pt_gucs.sql:29: NOTICE:  dropped partition "def_part" for relation "dml_pt_tab"
+ALTER TABLE
+UPDATE dml_pt_tab SET i = NULL;
+psql:/data2/prabhd/test/tincrepo/main/main/dml/functional/sql/../output/alter_heap_pttab_default_pt_gucs.sql:30: ERROR:  no partition for partitioning key  (seg0 sdw1:35511 pid=15107)
+SELECT DISTINCT(i) FROM dml_pt_tab;
+ i  
+----
+ 41
+ 42
+ 43
+ 44
+ 45
+ 46
+ 47
+ 48
+ 49
+ 50
+(10 rows)
+
+SELECT COUNT(*) FROM dml_pt_tab WHERE i is NULL;
+ count 
+-------
+     0
+(1 row)
+
+DELETE FROM dml_pt_tab WHERE i is NULL;
+DELETE 0
+SELECT COUNT(*) FROM dml_pt_tab WHERE i is NULL;
+ count 
+-------
+     0
+(1 row)
+

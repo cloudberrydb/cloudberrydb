@@ -1,0 +1,49 @@
+DROP TABLE IF EXISTS changedistpolicy_dml_regtab_random_timestamptz;
+psql:/data/prabhd/test/tincrepo/main/dml/functional/output/changedistpolicy_dml_regtab_random_timestamptz_opt.sql:14: NOTICE:  table "changedistpolicy_dml_regtab_random_timestamptz" does not exist, skipping
+DROP TABLE
+CREATE TABLE changedistpolicy_dml_regtab_random_timestamptz
+(
+    col1 timestamptz,
+    col2 timestamptz,
+    col3 char,
+    col4 timestamptz,
+    col5 int
+) DISTRIBUTED by (col1);
+CREATE TABLE
+INSERT INTO changedistpolicy_dml_regtab_random_timestamptz VALUES('2013-12-30 12:00:00 PST','2013-12-30 12:00:00 PST','a','2013-12-30 12:00:00 PST',0);
+INSERT 0 1
+SELECT * FROM changedistpolicy_dml_regtab_random_timestamptz ORDER BY 1,2,3,4;
+          col1          |          col2          | col3 |          col4          | col5 
+------------------------+------------------------+------+------------------------+------
+ 2013-12-30 12:00:00-08 | 2013-12-30 12:00:00-08 | a    | 2013-12-30 12:00:00-08 |    0
+(1 row)
+
+ALTER TABLE changedistpolicy_dml_regtab_random_timestamptz SET DISTRIBUTED randomly;
+ALTER TABLE
+INSERT INTO changedistpolicy_dml_regtab_random_timestamptz SELECT '2014-01-01 12:00:00 PST', '2014-01-01 12:00:00 PST','b', '2014-01-01 12:00:00 PST', 1;
+INSERT 0 1
+SELECT * FROM changedistpolicy_dml_regtab_random_timestamptz ORDER BY 1,2,3;
+          col1          |          col2          | col3 |          col4          | col5 
+------------------------+------------------------+------+------------------------+------
+ 2013-12-30 12:00:00-08 | 2013-12-30 12:00:00-08 | a    | 2013-12-30 12:00:00-08 |    0
+ 2014-01-01 12:00:00-08 | 2014-01-01 12:00:00-08 | b    | 2014-01-01 12:00:00-08 |    1
+(2 rows)
+
+-- Update distribution key
+UPDATE changedistpolicy_dml_regtab_random_timestamptz SET col3 ='c' WHERE col3 ='b' AND col5 = 1;
+UPDATE 1
+SELECT * FROM changedistpolicy_dml_regtab_random_timestamptz ORDER BY 1,2,3;
+          col1          |          col2          | col3 |          col4          | col5 
+------------------------+------------------------+------+------------------------+------
+ 2013-12-30 12:00:00-08 | 2013-12-30 12:00:00-08 | a    | 2013-12-30 12:00:00-08 |    0
+ 2014-01-01 12:00:00-08 | 2014-01-01 12:00:00-08 | c    | 2014-01-01 12:00:00-08 |    1
+(2 rows)
+
+DELETE FROM changedistpolicy_dml_regtab_random_timestamptz WHERE col3 ='c';
+DELETE 1
+SELECT * FROM changedistpolicy_dml_regtab_random_timestamptz ORDER BY 1,2,3;
+          col1          |          col2          | col3 |          col4          | col5 
+------------------------+------------------------+------+------------------------+------
+ 2013-12-30 12:00:00-08 | 2013-12-30 12:00:00-08 | a    | 2013-12-30 12:00:00-08 |    0
+(1 row)
+

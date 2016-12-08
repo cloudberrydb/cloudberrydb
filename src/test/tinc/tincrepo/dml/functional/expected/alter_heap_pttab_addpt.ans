@@ -1,0 +1,48 @@
+-- @author prabhd
+-- @created 2012-12-05 12:00:00
+-- @modified 2012-12-05 12:00:00
+-- @tags dml
+-- @db_name dmldb
+-- @description test: Alter table add/drop partition
+-- start_ignore
+SET gp_optimizer=on;SET gp_log_optimizer=on;
+SET
+SET
+-- end_ignore
+-- ALTER TABLE ADD PARTITION
+SELECT COUNT(*) FROM dml_pt_tab;
+ count 
+-------
+    10
+(1 row)
+
+ALTER TABLE dml_pt_tab ADD PARTITION padd start(61) end(71) ;
+psql:/data2/prabhd/test/tincrepo/main/main/dml/functional/sql/../output/alter_heap_pttab_addpt_gucs.sql:13: NOTICE:  CREATE TABLE will create partition "dml_pt_tab_1_prt_padd" for table "dml_pt_tab"
+ALTER TABLE
+INSERT INTO dml_pt_tab VALUES(generate_series(61,70),'dml_pt_tab','u','alter operations','01-01-2013',1,'01-01-2013 10:10:00', '01-01-2013 10:10:54+02');
+INSERT 0 10
+SELECT COUNT(*) FROM dml_pt_tab;
+ count 
+-------
+    20
+(1 row)
+
+UPDATE dml_pt_tab SET x = 'split partition';
+UPDATE 20
+SELECT DISTINCT(x) FROM dml_pt_tab;
+        x        
+-----------------
+ split partition
+(1 row)
+
+-- DROP PARTITION( DML should fail )
+ALTER TABLE dml_pt_tab DROP PARTITION padd;
+ALTER TABLE
+INSERT INTO dml_pt_tab VALUES(generate_series(61,71),'dml_pt_tab','u','alter operations','01-01-2013',1,'01-01-2013 10:10:00', '01-01-2013 10:10:54+02');
+psql:/data2/prabhd/test/tincrepo/main/main/dml/functional/sql/../output/alter_heap_pttab_addpt_gucs.sql:21: ERROR:  no partition for partitioning key  (seg0 sdw1:35511 pid=14779)
+SELECT COUNT(*) FROM dml_pt_tab;
+ count 
+-------
+    10
+(1 row)
+
