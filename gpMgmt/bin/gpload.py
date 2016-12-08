@@ -2163,7 +2163,7 @@ class gpload:
                 formatOpts += "escape %s " % quote(self.getconfig('gpload:input:quote', 
                     unicode, extraStuff='for csv formatted data'))
             else:
-                formatOpts += "escape %s " % quote("\\")
+                formatOpts += "escape '\\'"
 
         if formatType=='csv':
             formatOpts += "quote %s " % quote(self.getconfig('gpload:input:quote', 
