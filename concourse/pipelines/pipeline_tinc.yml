@@ -10,10 +10,11 @@ resources:
     private_key: {{gpdb-git-key}}
     uri: {{gpdb-git-remote}}
 
-- name: centos67-gpdb-gcc6-llvm-image
+- name: centos-gpdb-dev-6
   type: docker-image
   source:
-    repository: pivotaldata/centos67-gpdb-gcc6-llvm-image
+    repository: pivotaldata/centos-gpdb-dev
+    tag: '6'
     username: {{docker_username}}
     password: {{docker_password}}
 
@@ -48,10 +49,10 @@ jobs:
   - aggregate:
     - get: gpdb_src
       trigger: true
-    - get: centos67-gpdb-gcc6-llvm-image
+    - get: centos-gpdb-dev-6
   - task: compile_gpdb
     file: gpdb_src/concourse/tasks/compile_gpdb.yml
-    image: centos67-gpdb-gcc6-llvm-image
+    image: centos-gpdb-dev-6
     params:
       IVYREPO_HOST: {{ivyrepo_host}}
       IVYREPO_REALM: {{ivyrepo_realm}}
@@ -82,10 +83,10 @@ jobs:
       resource: bin_gpdb_centos
       passed: [compile_gpdb_centos6]
       trigger: true
-    - get: centos67-gpdb-gcc6-llvm-image
+    - get: centos-gpdb-dev-6
   - task: uao_orca_both_regression
     file: gpdb_src/concourse/tasks/tinc_gpdb.yml
-    image: centos67-gpdb-gcc6-llvm-image
+    image: centos-gpdb-dev-6
     params:
       MAKE_TEST_COMMAND: uao_orca_both_regression
       TEST_OS: centos
@@ -103,10 +104,10 @@ jobs:
       resource: bin_gpdb_centos
       passed: [compile_gpdb_centos6]
       trigger: true
-    - get: centos67-gpdb-gcc6-llvm-image
+    - get: centos-gpdb-dev-6
   - task: sub_transaction_limit_removal
     file: gpdb_src/concourse/tasks/tinc_gpdb.yml
-    image: centos67-gpdb-gcc6-llvm-image
+    image: centos-gpdb-dev-6
     params:
       MAKE_TEST_COMMAND: sub_transaction_limit_removal
       TEST_OS: centos
@@ -125,23 +126,23 @@ jobs:
       resource: bin_gpdb_centos
       passed: [compile_gpdb_centos6]
       trigger: true
-    - get: centos67-gpdb-gcc6-llvm-image
+    - get: centos-gpdb-dev-6
   - aggregate:
     - task: fts_transitions_part01
       file: gpdb_src/concourse/tasks/tinc_gpdb.yml
-      image: centos67-gpdb-gcc6-llvm-image
+      image: centos-gpdb-dev-6
       params:
         MAKE_TEST_COMMAND: fts_transitions_part01
         TEST_OS: centos
     - task: fts_transitions_part02
       file: gpdb_src/concourse/tasks/tinc_gpdb.yml
-      image: centos67-gpdb-gcc6-llvm-image
+      image: centos-gpdb-dev-6
       params:
         MAKE_TEST_COMMAND: fts_transitions_part02
         TEST_OS: centos
     - task: fts_transitions_part03
       file: gpdb_src/concourse/tasks/tinc_gpdb.yml
-      image: centos67-gpdb-gcc6-llvm-image
+      image: centos-gpdb-dev-6
       params:
         MAKE_TEST_COMMAND: fts_transitions_part03
         TEST_OS: centos

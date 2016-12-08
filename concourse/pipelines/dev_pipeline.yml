@@ -17,17 +17,19 @@ resources:
     private_key: {{gpdb-git-key}}
     uri: {{gpaddon-git-remote}}
 
-- name: centos67-gpdb-gcc6-llvm-image
+- name: centos-gpdb-dev-6
   type: docker-image
   source:
-    repository: pivotaldata/centos67-gpdb-gcc6-llvm-image
+    repository: pivotaldata/centos-gpdb-dev
+    tag: '6'
     username: {{docker_username}}
     password: {{docker_password}}
 
-- name: centos72-gpdb-gcc6-llvm-image
+- name: centos-gpdb-dev-7
   type: docker-image
   source:
-    repository: pivotaldata/centos72-gpdb-gcc6-llvm-image
+    repository: pivotaldata/centos-gpdb-dev
+    tag: '7'
     username: {{docker_username}}
     password: {{docker_password}}
 
@@ -118,10 +120,10 @@ jobs:
   - aggregate:
     - get: gpdb_src
       trigger: true
-    - get: centos67-gpdb-gcc6-llvm-image
+    - get: centos-gpdb-dev-6
   - task: compile_gpdb
     file: gpdb_src/concourse/tasks/compile_gpdb.yml
-    image: centos67-gpdb-gcc6-llvm-image
+    image: centos-gpdb-dev-6
     params:
       IVYREPO_HOST: {{ivyrepo_host}}
       IVYREPO_REALM: {{ivyrepo_realm}}
@@ -145,10 +147,10 @@ jobs:
   - aggregate:
     - get: gpdb_src
       trigger: true
-    - get: centos67-gpdb-gcc6-llvm-image
+    - get: centos-gpdb-dev-6
   - task: compile_gpdb
     file: gpdb_src/concourse/tasks/compile_gpdb_custom_config.yml
-    image: centos67-gpdb-gcc6-llvm-image
+    image: centos-gpdb-dev-6
 
 - name: compile_gpdb_centos7
   serial: true
@@ -156,10 +158,10 @@ jobs:
   - aggregate:
     - get: gpdb_src
       trigger: true
-    - get: centos72-gpdb-gcc6-llvm-image
+    - get: centos-gpdb-dev-7
   - task: compile_gpdb
     file: gpdb_src/concourse/tasks/compile_gpdb.yml
-    image: centos72-gpdb-gcc6-llvm-image
+    image: centos-gpdb-dev-7
     params:
       IVYREPO_HOST: {{ivyrepo_host}}
       IVYREPO_REALM: {{ivyrepo_realm}}
@@ -183,10 +185,10 @@ jobs:
       resource: bin_gpdb_centos
       passed: [compile_gpdb_centos6]
       trigger: true
-    - get: centos67-gpdb-gcc6-llvm-image
+    - get: centos-gpdb-dev-6
   - task: ic_gpdb
     file: gpdb_src/concourse/tasks/ic_gpdb.yml
-    image: centos67-gpdb-gcc6-llvm-image
+    image: centos-gpdb-dev-6
     params:
       MAKE_TEST_COMMAND: PGOPTIONS='-c optimizer=off -c codegen=off' installcheck-world
       BLDWRAP_POSTGRES_CONF_ADDONS: "fsync=off"
@@ -205,10 +207,10 @@ jobs:
       resource: bin_gpdb_centos
       passed: [compile_gpdb_centos6]
       trigger: true
-    - get: centos67-gpdb-gcc6-llvm-image
+    - get: centos-gpdb-dev-6
   - task: ic_gpdb
     file: gpdb_src/concourse/tasks/ic_gpdb.yml
-    image: centos67-gpdb-gcc6-llvm-image
+    image: centos-gpdb-dev-6
     params:
       MAKE_TEST_COMMAND: PGOPTIONS='-c optimizer=on -c codegen=off' installcheck-world
       BLDWRAP_POSTGRES_CONF_ADDONS: "fsync=off"
@@ -227,10 +229,10 @@ jobs:
       resource: bin_gpdb_centos
       passed: [compile_gpdb_centos6]
       trigger: true
-    - get: centos67-gpdb-gcc6-llvm-image
+    - get: centos-gpdb-dev-6
   - task: ic_gpdb
     file: gpdb_src/concourse/tasks/ic_gpdb.yml
-    image: centos67-gpdb-gcc6-llvm-image
+    image: centos-gpdb-dev-6
     params:
       MAKE_TEST_COMMAND: PGOPTIONS='-c optimizer=off -c codegen=on' installcheck-world
       BLDWRAP_POSTGRES_CONF_ADDONS: "fsync=off"
@@ -249,10 +251,10 @@ jobs:
       resource: bin_gpdb_centos
       passed: [compile_gpdb_centos6]
       trigger: true
-    - get: centos67-gpdb-gcc6-llvm-image
+    - get: centos-gpdb-dev-6
   - task: ic_gpdb
     file: gpdb_src/concourse/tasks/ic_gpdb.yml
-    image: centos67-gpdb-gcc6-llvm-image
+    image: centos-gpdb-dev-6
     params:
       MAKE_TEST_COMMAND: PGOPTIONS='-c optimizer=on -c codegen=on' installcheck-world
       BLDWRAP_POSTGRES_CONF_ADDONS: "fsync=off"
@@ -271,16 +273,16 @@ jobs:
       resource: bin_gpdb_centos
       passed: [icw_planner_centos6, icw_gporca_centos6, icw_planner_codegen_centos6, icw_gporca_codegen_centos6]
       trigger: true
-    - get: centos67-gpdb-gcc6-llvm-image
+    - get: centos-gpdb-dev-6
   - task: separate_qautils_files_for_rc
     file: gpdb_src/concourse/tasks/separate_qautils_files_for_rc.yml
-    image: centos67-gpdb-gcc6-llvm-image
+    image: centos-gpdb-dev-6
     params:
       QAUTILS_TARBALL: rc_bin_gpdb/QAUtils-rhel6-x86_64.tar.gz
 
   - task: gpdb_src_tinc_packaging
     file: gpdb_src/concourse/tasks/gpdb_src_tinc_packaging.yml
-    image: centos67-gpdb-gcc6-llvm-image
+    image: centos-gpdb-dev-6
     output_mapping:
       rc_bin_gpdb: packaged_gpdb_src_tinc
     params:
@@ -289,7 +291,7 @@ jobs:
   - aggregate:
     - task: gpdb_rc_packaging_centos
       file: gpdb_src/concourse/tasks/gpdb_packaging.yml
-      image: centos67-gpdb-gcc6-llvm-image
+      image: centos-gpdb-dev-6
       input_mapping:
         bin_gpdb: rc_bin_gpdb
       output_mapping:
@@ -300,7 +302,7 @@ jobs:
         ADD_README_INSTALL: true
     - task: gpdb_appliance_rhel6_rc_packaging
       file: gpdb_src/concourse/tasks/gpdb_packaging.yml
-      image: centos67-gpdb-gcc6-llvm-image
+      image: centos-gpdb-dev-6
       input_mapping:
         bin_gpdb: rc_bin_gpdb
       output_mapping:

@@ -17,10 +17,11 @@ resources:
       private_key: {{gpdb-git-key}}
       uri: {{gpaddon-git-remote}}
 
-  - name: centos67-gpdb-gcc6-llvm-image
+  - name: centos-gpdb-dev-6
     type: docker-image
     source:
-      repository: pivotaldata/centos67-gpdb-gcc6-llvm-image
+      repository: pivotaldata/centos-gpdb-dev
+      tag: '6'
       username: {{docker_username}}
       password: {{docker_password}}
 
@@ -75,10 +76,10 @@ jobs:
     - aggregate:
       - get: gpdb_pr
         trigger: true
-      - get: centos67-gpdb-gcc6-llvm-image
+      - get: centos-gpdb-dev-6
     - task: compile_gpdb
       file: gpdb_pr/concourse/tasks/compile_gpdb.yml
-      image: centos67-gpdb-gcc6-llvm-image
+      image: centos-gpdb-dev-6
       input_mapping:
         gpdb_src: gpdb_pr
       params:
@@ -103,10 +104,10 @@ jobs:
     - aggregate:
       - get: gpdb_pr
         trigger: true
-      - get: centos67-gpdb-gcc6-llvm-image
+      - get: centos-gpdb-dev-6
     - task: compile_gpdb
       file: gpdb_pr/concourse/tasks/compile_gpdb_custom_config.yml
-      image: centos67-gpdb-gcc6-llvm-image
+      image: centos-gpdb-dev-6
       input_mapping:
         gpdb_src: gpdb_pr
 
@@ -123,10 +124,10 @@ jobs:
         resource: bin_gpdb_centos
         passed: [compile_gpdb_centos6]
         trigger: true
-      - get: centos67-gpdb-gcc6-llvm-image
+      - get: centos-gpdb-dev-6
     - task: ic_gpdb
       file: gpdb_pr/concourse/tasks/ic_gpdb.yml
-      image: centos67-gpdb-gcc6-llvm-image
+      image: centos-gpdb-dev-6
       input_mapping:
         gpdb_src: gpdb_pr
       params:
@@ -148,10 +149,10 @@ jobs:
         resource: bin_gpdb_centos
         passed: [icw_planner_centos6]
         trigger: true
-      - get: centos67-gpdb-gcc6-llvm-image
+      - get: centos-gpdb-dev-6
     - task: separate_qautils_files_for_rc
       file: gpdb_src/concourse/separate_qautils_files_for_rc.yml
-      image: centos67-gpdb-gcc6-llvm-image
+      image: centos-gpdb-dev-6
       params:
         QAUTILS_TARBALL: rc_bin_gpdb/QAUtils-rhel6-x86_64.tar.gz
     - aggregate:
@@ -159,7 +160,7 @@ jobs:
         file: gpdb_src/concourse/gpdb_packaging.yml
         input_mapping:
           gpdb_src: gpdb_pr
-        image: centos67-gpdb-gcc6-llvm-image
+        image: centos-gpdb-dev-6
         input_mapping:
           bin_gpdb: rc_bin_gpdb
         output_mapping:
