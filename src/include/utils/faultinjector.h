@@ -214,6 +214,8 @@ typedef enum FaultInjectorIdentifier_e {
 	QuickDie,
 	AfterOneSliceDispatched,
 
+	InterconnectStopAckIsLost,
+
 	/* INSERT has to be done before that line */
 	FaultInjectorIdMax,
 	

@@ -33,6 +33,7 @@
 #include "utils/gp_atomic.h"
 #include "utils/builtins.h"
 #include "utils/debugbreak.h"
+#include "utils/faultinjector.h"
 #include "utils/pg_crc.h"
 #include "port/pg_crc32c.h"
 
@@ -5479,6 +5480,18 @@ doSendStopMessageUDPIFC(ChunkTransportState *transportStates, int16 motNodeID)
 				 * We will skip sending ACKs to those connections.
 				 */
 
+#ifdef FAULT_INJECTOR
+				if (FaultInjector_InjectFaultIfSet(
+												   InterconnectStopAckIsLost,
+												   DDLNotSpecified,
+												   "" /* databaseName */,
+												   "" /* tableName */) == FaultInjectorTypeSkip)
+				{
+					pthread_mutex_unlock(&ic_control_info.lock);
+					continue;
+				}
+#endif
+
 				if (conn->peer.ss_family == AF_INET || conn->peer.ss_family == AF_INET6)
 				{
 					uint32 seq = conn->conn_info.seq > 0 ? conn->conn_info.seq - 1 : 0;
@@ -5720,7 +5733,9 @@ handleDataPacket(MotionConn *conn, icpkthdr *pkt, struct sockaddr_storage *peer,
 	#ifdef AMS_VERBOSE_LOGGING
 		logPkt("STATUS QUERY MESSAGE", pkt);
 	#endif
-		setAckSendParam(param, conn, UDPIC_FLAGS_CAPACITY | UDPIC_FLAGS_ACK | conn->conn_info.flags, conn->conn_info.seq - 1, conn->conn_info.extraSeq);
+		uint32 seq = conn->conn_info.seq > 0 ? conn->conn_info.seq - 1 : 0;
+		uint32 extraSeq = conn->stopRequested ? seq : conn->conn_info.extraSeq;
+		setAckSendParam(param, conn, UDPIC_FLAGS_CAPACITY | UDPIC_FLAGS_ACK | conn->conn_info.flags, seq, extraSeq);
 
 		return false;
 	}
