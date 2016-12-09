@@ -22,6 +22,7 @@ from mpp.lib.datagen.functionproperty.db import FunctionPropertyTestDatabase
 from mpp.lib.datagen.functionproperty.db_builtin import BuiltinFunctionPropertyTestDatabase
 from mpp.lib.datagen.groupingfunction.db import GroupingFunctionTestDatabase
 from mpp.lib.datagen import TINCDatagenException
+from mpp.lib.datagen.dataset import DataSetDatabase
 from mpp.lib.datagen.dispatch.db import DispatchSkewDatabase
 
 # Global database dict for supported databases. Each test case will be associated with a
@@ -53,3 +54,6 @@ __databases__['ptidx'] = TINCTestDatabase(database_name='ptidx')
 
 # Database for query-finish
 __databases__['queryfinish'] = DispatchSkewDatabase()
+
+# Database for Memory Accounting Tests
+__databases__['memory_accounting'] = DataSetDatabase(database_name='memory_accounting')
