@@ -21,15 +21,14 @@ resources:
   type: docker-image
   source:
     repository: pivotaldata/centos-gpdb-dev
-    tag: '6'
+    tag: '6-gcc6.2-llvm3.7'
     username: {{docker_username}}
     password: {{docker_password}}
 
 - name: centos-gpdb-dev-7
   type: docker-image
   source:
-    repository: pivotaldata/centos-gpdb-dev
-    tag: '7'
+    repository: pivotaldata/centos72-gpdb-gcc6-llvm-image
     username: {{docker_username}}
     password: {{docker_password}}
 
