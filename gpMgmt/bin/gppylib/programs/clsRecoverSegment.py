@@ -786,15 +786,15 @@ class GpRecoverSegmentProgram:
         # The design decision here is to squash any exceptions resulting from the
         # synchronization of packages. We should *not* disturb the user's attempts to recover.
         try:
-            self.logger.info('Syncing Greenplum Database extensions')
+            logger.info('Syncing Greenplum Database extensions')
             operations = [SyncPackages(host) for host in new_hosts]
             ParallelOperation(operations, self.__options.parallelDegree).run()
             # introspect outcomes
             for operation in operations:
                 operation.get_ret()
         except:
-            self.logger.exception('Syncing of Greenplum Database extensions has failed.')
-            self.logger.warning('Please run gppkg --clean after successful segment recovery.')
+            logger.exception('Syncing of Greenplum Database extensions has failed.')
+            logger.warning('Please run gppkg --clean after successful segment recovery.')
 
     def displayRecovery(self, mirrorBuilder, gpArray):
         self.logger.info('Greenplum instance recovery parameters')
@@ -1211,8 +1211,8 @@ class GpRecoverSegmentProgram:
         for item in self.__pool.getCompletedItems():
             res = item.get_results()
             if res:
-                self.logger.error('Persistent table check %s failed on host %s:%s.' % (item.qname, item.hostname, item.port))
-                self.logger.debug('Result = %s' % res)
+                logger.error('Persistent table check %s failed on host %s:%s.' % (item.qname, item.hostname, item.port))
+                logger.debug('Result = %s' % res)
                 persistent_check_failed = True
 
         if persistent_check_failed:
@@ -1226,7 +1226,7 @@ class GpRecoverSegmentProgram:
     """
 
     def _check_segment_state_for_connection(self, confProvider):
-        self.logger.info('Checking if segments are ready to connect')
+        logger.info('Checking if segments are ready to connect')
         gpArray = confProvider.loadSystemConfig(useUtilityMode=True)
         segments = [seg for seg in gpArray.getDbList() if
                     seg.isSegmentUp() and not seg.isSegmentMaster() and not seg.isSegmentStandby()]
@@ -1260,8 +1260,8 @@ class GpRecoverSegmentProgram:
             try:
                 self._check_segment_state_for_connection(confProvider)
             except Exception as e:
-                self.logger.debug('Encountered error %s' % str(e))
-                self.logger.info('Unable to connect to database. Retrying %s' % (retry + 1))
+                logger.debug('Encountered error %s' % str(e))
+                logger.info('Unable to connect to database. Retrying %s' % (retry + 1))
             else:
                 return True
             retry += 1
@@ -1300,7 +1300,7 @@ class GpRecoverSegmentProgram:
             try:
                 lines = str(cmd.get_results().stderr).split("\n")
                 while not lines[0].startswith('mode: '):
-                    self.logger.info(lines.pop(0))
+                    logger.info(lines.pop(0))
                 mode = lines[0].split(": ")[1].strip()
                 segmentState = lines[1].split(": ")[1].strip()
                 dataState = lines[2].split(": ")[1].strip()
@@ -1477,8 +1477,7 @@ class GpRecoverSegmentProgram:
         pidfile = os.path.join(gpEnv.getMasterDataDir(), 'gprecoverseg.pid')
         if os.path.exists(pidfile):
             os.remove(pidfile)
-        sys.exit(0)
-
+        os._exit(0)
 
     def cleanup(self):
         if self.__pool:
