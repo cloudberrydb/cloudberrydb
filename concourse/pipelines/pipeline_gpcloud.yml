@@ -34,7 +34,6 @@ resources:
 
 jobs:
 - name: unit_tests_gpcloud_centos
-  public: true
   plan:
   - aggregate:
     - get: gpdb_src
@@ -48,7 +47,6 @@ jobs:
       TARGET_OS_VERSION: 6
 
 - name: regression_tests_gpcloud_centos
-  public: true
   plan:
   - aggregate:
     - get: gpdb_src
@@ -69,7 +67,6 @@ jobs:
       TARGET_OS_VERSION: 6
 
 - name: gpcheckcloud_tests_gpcloud_centos
-  public: true
   plan:
   - aggregate:
     - get: gpdb_src
