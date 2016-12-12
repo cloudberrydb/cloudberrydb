@@ -125,11 +125,11 @@ class Filerepe2e_Util():
             poll +=1
             for line in out.splitlines():
                 if line.find(fault_name) > 0 and line.find(status) > 0 :
-                    tinctest.logger.info('check_fault_status (%d): %s ' % (num_times_hit,line))
                     if num_times_hit and line.find("num times hit:'%d'" % num_times_hit) < 0 :
                         tinctest.logger.info('Fault not hit num of times %d line %s ' % (num_times_hit,line))
                         continue
-                    tinctest.logger.info('Fault %s is %s num_times_hit %d' % (fault_name,status, num_times_hit))
+                    if num_times_hit:
+                        tinctest.logger.info('Fault %s is %s num_times_hit %d' % (fault_name,status, num_times_hit))
                     poll = 0 
                     return True
             #sleep a while before start polling again
