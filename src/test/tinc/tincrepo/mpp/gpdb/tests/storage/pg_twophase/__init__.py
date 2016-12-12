@@ -262,19 +262,13 @@ class PgtwoPhaseClass(MPPTestCase):
     
     def gprecover_rebalance(self):
         '''
-        @description: Run gprecoverseg -r. If rc is not '0' rerun gprecoverseg -a/This is due to known open issues
+        @description: Run rebalance through gpstop -air is much faster than gprecoverseg -r for test purpose.
         '''
-        cmd = Command(name='Run gprecoverseg', cmdStr='gprecoverseg -r -a')
-        tinctest.logger.info('Running %s' % cmd.cmdStr)
-        cmd.run(validateAfter=False)
-        result = cmd.get_results()
-        if result.rc != 0:
-            rc = self.gprecover.incremental()
-            if rc:
-                return True
-        else:
-            return True
-        return False
+        rc = self.gpstop.run_gpstop_cmd(immediate = True)
+        if not rc:
+           raise Exception('Failed to stop the cluster')
+        tinctest.logger.info('Stopped cluster immediately')
+        self.start_db()
 
     def run_gprecover(self, crash_type, cluster_state='sync'):
         '''Recover the cluster if required. '''
@@ -286,15 +280,8 @@ class PgtwoPhaseClass(MPPTestCase):
                 raise Exception('Segments not in sync')                        
             tinctest.logger.info('Cluster in sync state')
             if crash_type == 'failover_to_mirror' :
-                #rc = self.gprecover.rebalance()
-                # -r has issues occasionally, may need another gprecoverseg, so using a local function
-                rc = self.gprecover_rebalance()
-                if not rc:
-                    raise Exception('Rebalance failed')
-                if not self.gprecover.wait_till_insync_transition():
-                    raise Exception('Segments not in sync')                        
+                self.gprecover_rebalance()
                 tinctest.logger.info('Successfully Rebalanced the cluster')
-    
         else:
             tinctest.logger.info('No need to run gprecoverseg. The cluster should be already in sync')
 
