@@ -412,7 +412,10 @@ class GpInjectFaultProgram:
                   "opt_task_allocate_string_buffer (inject fault while allocating string buffer), " \
                   "opt_relcache_translator_catalog_access (inject fault while translating relcache entries), " \
 			      "interconnect_stop_ack_is_lost (inject fault in interconnect to skip sending the stop ack), " \
-                  "send_qe_details_init_backend (inject fault before sending QE details during backend initialization)" \
+                  "send_qe_details_init_backend (inject fault before sending QE details during backend initialization), " \
+                  "process_startup_packet (inject fault when processing startup packet during backend initialization), " \
+                  "quickdie (inject fault when auxiliary processes quitting), " \
+                  "after_one_slice_dispatched (inject fault after one slice was dispatched when dispatching plan), " \
 			      "all (affects all faults injected, used for 'status' and 'reset'), ") 
         addTo.add_option("-c", "--ddl_statement", dest="ddlStatement", type="string",
                          metavar="ddlStatement",
