@@ -1199,7 +1199,8 @@ CCostModelGPDB::CostMotion
 
 		if(dRowsOuter > ulBroadcastThreshold)
 		{
-			costLocal = CCost(100000000000000);
+			DOUBLE ulPenalizationFactor = 100000000000000.0;
+			costLocal = CCost(ulPenalizationFactor);
 		}
 	}
 
