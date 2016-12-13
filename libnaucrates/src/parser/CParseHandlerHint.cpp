@@ -86,13 +86,15 @@ CParseHandlerHint::StartElement
 	ULONG ulJoinArityForAssociativityCommutativity = CDXLOperatorFactory::UlValueFromAttrs(m_pphm->Pmm(), attrs, EdxltokenJoinArityForAssociativityCommutativity, EdxltokenHint, true, INT_MAX);
 	ULONG ulArrayExpansionThreshold = CDXLOperatorFactory::UlValueFromAttrs(m_pphm->Pmm(), attrs, EdxltokenArrayExpansionThreshold, EdxltokenHint, true, INT_MAX);
 	ULONG ulJoinOrderDPThreshold = CDXLOperatorFactory::UlValueFromAttrs(m_pphm->Pmm(), attrs, EdxltokenJoinOrderDPThreshold, EdxltokenHint, true, JOIN_ORDER_DP_THRESHOLD);
+	ULONG ulBroadcastThreshold = CDXLOperatorFactory::UlValueFromAttrs(m_pphm->Pmm(), attrs, EdxltokenBroadcastThreshold, EdxltokenHint, true, BROADCAST_THRESHOLD);
 
 	m_phint = GPOS_NEW(m_pmp) CHint
 								(
 								ulMinNumOfPartsToRequireSortOnInsert,
 								ulJoinArityForAssociativityCommutativity,
 								ulArrayExpansionThreshold,
-								ulJoinOrderDPThreshold
+								ulJoinOrderDPThreshold,
+								ulBroadcastThreshold
 								);
 }
 

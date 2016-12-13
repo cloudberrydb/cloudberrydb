@@ -24,6 +24,8 @@
 #include "naucrates/statistics/CStatisticsUtils.h"
 #include "gpopt/operators/CExpression.h"
 #include "gpdbcost/CCostModelGPDB.h"
+#include "gpopt/optimizer/COptimizerConfig.h"
+#include "gpopt/engine/CHint.h"
 
 using namespace gpos;
 using namespace gpdbcost;
@@ -1188,6 +1190,19 @@ CCostModelGPDB::CostMotion
 		+
 		recvCost
 	));
+
+
+	if(COperator::EopPhysicalMotionBroadcast == eopid)
+	{
+		COptimizerConfig *poconf = COptCtxt::PoctxtFromTLS()->Poconf();
+		ULONG ulBroadcastThreshold = poconf->Phint()->UlBroadcastThreshold();
+
+		if(dRowsOuter > ulBroadcastThreshold)
+		{
+			costLocal = CCost(100000000000000);
+		}
+	}
+
 
 	CCost costChild = CostChildren(pmp, exprhdl, pci, pcmgpdb->Pcp());
 

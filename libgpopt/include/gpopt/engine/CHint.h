@@ -16,6 +16,7 @@
 #include "gpos/common/CRefCount.h"
 
 #define JOIN_ORDER_DP_THRESHOLD ULONG(10)
+#define BROADCAST_THRESHOLD ULONG(10000000)
 
 namespace gpopt
 {
@@ -42,6 +43,8 @@ namespace gpopt
 
 			ULONG m_ulJoinOrderDPLimit;
 
+			ULONG m_ulBroadcastThreshold;
+
 			// private copy ctor
 			CHint(const CHint &);
 
@@ -53,13 +56,15 @@ namespace gpopt
 				ULONG ulMinNumOfPartsToRequireSortOnInsert,
 				ULONG ulJoinArityForAssociativityCommutativity,
 				ULONG ulArrayExpansionThreshold,
-				ULONG ulJoinOrderDPLimit
+				ULONG ulJoinOrderDPLimit,
+				ULONG ulBroadcastThreshold
 				)
 				:
 				m_ulMinNumOfPartsToRequireSortOnInsert(ulMinNumOfPartsToRequireSortOnInsert),
 				m_ulJoinArityForAssociativityCommutativity(ulJoinArityForAssociativityCommutativity),
 				m_ulArrayExpansionThreshold(ulArrayExpansionThreshold),
-				m_ulJoinOrderDPLimit(ulJoinOrderDPLimit)
+				m_ulJoinOrderDPLimit(ulJoinOrderDPLimit),
+				m_ulBroadcastThreshold(ulBroadcastThreshold)
 			{
 			}
 
@@ -90,11 +95,17 @@ namespace gpopt
 			}
 
 			// Maximum number of relations in an n-ary join operator where ORCA will
-			 // explore join ordering via dynamic programming.
-			 ULONG UlJoinOrderDPLimit() const
-			 {
-				 return m_ulJoinOrderDPLimit;
-			 }
+			// explore join ordering via dynamic programming.
+			ULONG UlJoinOrderDPLimit() const
+			{
+				return m_ulJoinOrderDPLimit;
+			}
+
+			// Maximum number of rows ORCA will broadcast
+			ULONG UlBroadcastThreshold() const
+			{
+				return m_ulBroadcastThreshold;
+			}
 
 			// generate default hint configurations, which disables sort during insert on
 			// append only row-oriented partitioned tables by default
@@ -103,10 +114,11 @@ namespace gpopt
 			{
 				return GPOS_NEW(pmp) CHint
 										(
-										INT_MAX /* ulMinNumOfPartsToRequireSortOnInsert */,
-										INT_MAX /* ulJoinArityForAssociativityCommutativity */,
+										INT_MAX, /* ulMinNumOfPartsToRequireSortOnInsert */
+										INT_MAX, /* ulJoinArityForAssociativityCommutativity */
 										INT_MAX, /* ulArrayExpansionThreshold */
-										JOIN_ORDER_DP_THRESHOLD /*ulJoinOrderDPLimit*/
+										JOIN_ORDER_DP_THRESHOLD, /*ulJoinOrderDPLimit*/
+										BROADCAST_THRESHOLD /*ulBroadcastThreshold*/
 										);
 			}
 

@@ -60,6 +60,7 @@ namespace gpdxl
 		EdxltokenJoinArityForAssociativityCommutativity,
 		EdxltokenArrayExpansionThreshold,
 		EdxltokenJoinOrderDPThreshold,
+		EdxltokenBroadcastThreshold,
 
 		EdxltokenPlanSamples,
 

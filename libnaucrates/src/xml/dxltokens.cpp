@@ -83,6 +83,7 @@ CDXLTokens::Init
 			{EdxltokenJoinArityForAssociativityCommutativity, GPOS_WSZ_LIT("JoinArityForAssociativityCommutativity")},
 			{EdxltokenArrayExpansionThreshold, GPOS_WSZ_LIT("ArrayExpansionThreshold")},
 			{EdxltokenJoinOrderDPThreshold, GPOS_WSZ_LIT("JoinOrderDynamicProgThreshold")},
+			{EdxltokenBroadcastThreshold, GPOS_WSZ_LIT("BroadcastThreshold")},
 
 			{EdxltokenPlanSamples, GPOS_WSZ_LIT("PlanSamples")},
 			
