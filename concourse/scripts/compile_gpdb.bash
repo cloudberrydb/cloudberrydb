@@ -19,9 +19,6 @@ function prep_env_for_centos() {
       BLDARCH=rhel6_x86_64
       export JAVA_HOME=/usr/lib/jvm/java-1.7.0-openjdk.x86_64
       source /opt/gcc_env.sh
-      # This is necessesary to build gphdfs.
-      # It should be removed once the build image has this included.
-      yum install -y ant-junit
       ;;
 
     7)
@@ -33,7 +30,6 @@ function prep_env_for_centos() {
       export JAVA_HOME="${java7_bin/jre\/bin\/java/}"
       ln -sf /usr/bin/xsubpp /usr/share/perl5/ExtUtils/xsubpp
       source /opt/gcc_env.sh
-      yum install -y ant-junit
       ;;
 
     *)
