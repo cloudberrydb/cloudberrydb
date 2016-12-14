@@ -26,8 +26,11 @@ function prep_env_for_centos() {
 
     7)
       BLDARCH=rhel7_x86_64
-      alternatives --set java /usr/lib/jvm/java-1.7.0-openjdk-1.7.0.111-2.6.7.2.el7_2.x86_64/jre/bin/java
-      export JAVA_HOME=/usr/lib/jvm/java-1.7.0-openjdk-1.7.0.111-2.6.7.2.el7_2.x86_64
+      echo "Detecting java7 path ..."
+      java7_packages=$(rpm -qa | grep -F java-1.7)
+      java7_bin="$(rpm -ql $java7_packages | grep /jre/bin/java$)"
+      alternatives --set java "$java7_bin"
+      export JAVA_HOME="${java7_bin/jre\/bin\/java/}"
       ln -sf /usr/bin/xsubpp /usr/share/perl5/ExtUtils/xsubpp
       source /opt/gcc_env.sh
       yum install -y ant-junit
