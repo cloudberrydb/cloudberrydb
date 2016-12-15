@@ -89,6 +89,7 @@
 #include "unittest/gpopt/minidump/CPartTblTest.h"
 #include "unittest/gpopt/minidump/CBitmapTest.h"
 #include "unittest/gpopt/minidump/CCTETest.h"
+#include "unittest/gpopt/minidump/CExternalTableTest.h"
 #include "unittest/gpopt/minidump/CEscapeMechanismTest.h"
 #include "unittest/gpopt/minidump/CDirectDispatchTest.h"
 
@@ -152,6 +153,7 @@ static gpos::CUnittest rgut[] =
 	GPOS_UNITTEST_STD(CPartTblTest),
 	GPOS_UNITTEST_STD(CBitmapTest),
 	GPOS_UNITTEST_STD(CCTETest),
+  GPOS_UNITTEST_STD(CExternalTableTest),
 	GPOS_UNITTEST_STD(CEscapeMechanismTest),
 
 	GPOS_UNITTEST_STD(CMinidumpWithConstExprEvaluatorTest),

@@ -86,6 +86,8 @@ add_executable(gporca_test
                src/unittest/gpopt/minidump/CDirectDispatchTest.cpp
                include/unittest/gpopt/minidump/CCTETest.h
                src/unittest/gpopt/minidump/CCTETest.cpp
+               include/unittest/gpopt/minidump/CExternalTableTest.h
+               src/unittest/gpopt/minidump/CExternalTableTest.cpp
                include/unittest/gpopt/minidump/CEscapeMechanismTest.h
                src/unittest/gpopt/minidump/CEscapeMechanismTest.cpp
                include/unittest/gpopt/minidump/CWindowTest.h
