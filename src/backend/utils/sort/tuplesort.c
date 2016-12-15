@@ -1370,34 +1370,33 @@ tuplesort_performsort(Tuplesortstate *state)
 		elog(LOG, "performsort starting: %s",
 			 pg_rusage_show(&state->ru_start));
 
+	/*
+	 * If we the output needs to be shared by other readers, we need to
+	 * materialize it on a tape, even if it fit in memory.
+	 */
+	if (state->status == TSS_INITIAL && is_sortstate_rwfile(state))
+		inittapes(state, state->pfile_rwfile_prefix);
+
 	switch (state->status)
 	{
 		case TSS_INITIAL:
-			if(!is_sortstate_rwfile(state))
-			{
-				/*
-				 * We were able to accumulate all the tuples within the allowed
-				 * amount of memory.  Just qsort 'em and we're done.
-				 */
-				if ((state->memtupcount > 1)
-						&& state->standardsort)
-					qsort_arg((void *) state->memtuples,
-							state->memtupcount,
-							sizeof(SortTuple),
-							(qsort_arg_comparator) state->comparetup,
-							(void *) state);
-				state->pos.current = 0;
-				state->pos.eof_reached = false;
-				state->pos.markpos.mempos = 0;
-				state->pos.markpos_eof = false;
-				state->status = TSS_SORTEDINMEM;
-				break;
-			}
-			else
-			{
-				inittapes(state, state->pfile_rwfile_prefix);
-				/* fall through */
-			}
+			/*
+			 * We were able to accumulate all the tuples within the allowed
+			 * amount of memory.  Just qsort 'em and we're done.
+			 */
+			if ((state->memtupcount > 1)
+				&& state->standardsort)
+				qsort_arg((void *) state->memtuples,
+						  state->memtupcount,
+						  sizeof(SortTuple),
+						  (qsort_arg_comparator) state->comparetup,
+						  (void *) state);
+			state->pos.current = 0;
+			state->pos.eof_reached = false;
+			state->pos.markpos.mempos = 0;
+			state->pos.markpos_eof = false;
+			state->status = TSS_SORTEDINMEM;
+			break;
 
 		case TSS_BOUNDED:
 
