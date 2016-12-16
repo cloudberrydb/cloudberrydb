@@ -631,7 +631,7 @@ pg_logdir_ls(PG_FUNCTION_ARGS)
 
             }
 		    /* extract timestamp portion of filename */
-		    strcpy(timestampbuf, de->d_name + 5);
+		    snprintf(timestampbuf, sizeof(timestampbuf), "%s", de->d_name + 5);
 		    timestampbuf[end] = '\0';
         }
         else
@@ -646,7 +646,7 @@ pg_logdir_ls(PG_FUNCTION_ARGS)
 			    continue;
 
 		    /* extract timestamp portion of filename */
-		    strcpy(timestampbuf, de->d_name + 11);
+			snprintf(timestampbuf, sizeof(timestampbuf), "%s", de->d_name + 11);
 		    timestampbuf[17] = '\0';
         }
 
