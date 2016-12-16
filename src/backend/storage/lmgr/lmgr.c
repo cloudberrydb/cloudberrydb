@@ -374,7 +374,7 @@ LockRelationForResynchronize(RelFileNode *relFileNode, LOCKMODE lockmode)
 						 relFileNode->dbNode,
 						 relFileNode->relNode);
 
-	LockAcquire(&tag, lockmode, false, false);
+	(void) LockAcquire(&tag, lockmode, false, false);
 }
 
 void
