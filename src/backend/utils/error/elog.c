@@ -3294,8 +3294,7 @@ write_syslogger_in_csv(ErrorData *edata, bool amsyslogger)
 	if ((edata->printstack ||
 			(edata->elevel >= ERROR &&
 			(edata->elevel == PANIC || !edata->omit_location))) &&
-		edata->stacktracesize > 0 &&
-		edata->stacktracearray != NULL)
+		edata->stacktracesize > 0)
 	{
 		append_stacktrace(NULL /*PipeProtoChunk*/, NULL /*StringInfo*/, edata->stacktracearray,
 						  edata->stacktracesize, amsyslogger);
@@ -3637,8 +3636,7 @@ send_message_to_server_log(ErrorData *edata)
 
 	if (edata->elevel >= ERROR &&
 		(edata->elevel == PANIC || !edata->omit_location) &&
-		edata->stacktracesize > 0 &&
-		edata->stacktracearray != NULL)
+		edata->stacktracesize > 0)
 	{
 #ifndef WIN32
 		char	  **strings;
