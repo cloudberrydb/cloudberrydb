@@ -120,6 +120,7 @@ select * from t1;
 
 drop function FuncA();
 drop table t;
+drop table t1;
 --start_ignore
 \! gpfaultinjector -f workfile_hashjoin_failure -y reset --seg_dbid 2
 20161206:08:28:59:047553 gpfaultinjector:krajaraman:krajaraman-[INFO]:-Starting gpfaultinjector with args: -f workfile_hashjoin_failure -y reset --seg_dbid 2

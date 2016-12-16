@@ -69,6 +69,7 @@ select * from t1;
 
 drop function FuncA();
 drop table t;
+drop table t1;
 
 --start_ignore
 \! gpfaultinjector -f workfile_hashjoin_failure -y reset --seg_dbid 2
