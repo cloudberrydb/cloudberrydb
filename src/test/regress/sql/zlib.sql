@@ -40,6 +40,7 @@ SELECT MAX(i1) FROM test_zlib_hagg GROUP BY i2;
 
 create table t (i int, j text);
 insert into t select i, i from generate_series(1,1000000) as i;
+create table t1(i int, j int);
 
 set gp_workfile_compress_algorithm ='zlib';
 set statement_mem='10MB';
@@ -48,11 +49,12 @@ create or replace function FuncA()
 returns void as
 $body$
 begin
+ 	insert into t values(2387283, 'a');
+ 	insert into t1 values(1, 2);
     CREATE TEMP table TMP_Q_QR_INSTM_ANL_01 WITH(APPENDONLY=true,COMPRESSLEVEL=5,ORIENTATION=row,COMPRESSTYPE=zlib) on commit drop as
     SELECT t1.i from t as t1 join t as t2 on t1.i = t2.i;
 EXCEPTION WHEN others THEN
  -- do nothing
- insert into t values(2387283, 'a');
 end
 $body$ language plpgsql;
 
@@ -63,6 +65,7 @@ $body$ language plpgsql;
 --end_ignore
 
 select FuncA();
+select * from t1;
 
 drop function FuncA();
 drop table t;
