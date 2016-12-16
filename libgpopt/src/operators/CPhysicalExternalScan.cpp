@@ -11,6 +11,7 @@
 
 #include "gpos/base.h"
 #include "gpopt/base/CUtils.h"
+#include "gpopt/base/CDistributionSpecExternal.h"
 
 #include "gpopt/operators/CExpressionHandle.h"
 #include "gpopt/operators/CPhysicalExternalScan.h"
@@ -37,7 +38,21 @@ CPhysicalExternalScan::CPhysicalExternalScan
 	)
 	:
 	CPhysicalTableScan(pmp, pnameAlias, ptabdesc, pdrgpcrOutput)
-{}
+{
+	// if this table is master only, then keep the original distribution spec.
+	if (IMDRelation::EreldistrMasterOnly == ptabdesc->Ereldistribution())
+	{
+		return;
+	}
+
+	// otherwise, override the distribution spec for external table
+	if (m_pds)
+	{
+		m_pds->Release();
+	}
+
+	m_pds = GPOS_NEW(pmp) CDistributionSpecExternal();
+}
 
 //---------------------------------------------------------------------------
 //	@function:
@@ -86,7 +101,7 @@ CPhysicalExternalScan::EpetRewindability
 		return CEnfdProp::EpetUnnecessary;
 	}
 
-	return CEnfdProp::EpetRequired;
+    return CEnfdProp::EpetRequired;
 }
 
 // EOF

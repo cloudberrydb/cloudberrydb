@@ -45,10 +45,11 @@ namespace gpopt
 				EdtSingleton,		// data is on a single segment or the master
 				EdtStrictSingleton,	// data is on a single segment or the master (derived only, only compatible with other singleton distributions)
 				EdtRandom,			// data is randomly distributed across all segments
-				EdtStrictRandom,    // same as random, used to force multiple slices for parallel union all.
+				EdtStrictRandom,	// same as random, used to force multiple slices for parallel union all.
 				EdtRouted,			// data is routed to a segment explicitly specified in the tuple,
 				EdtUniversal,		// data is available everywhere (derived only)
 				EdtNonSingleton,	// data can have any distribution except singleton (required only)
+				EdtExternal,		// data is stored on external storage (derived only)
 
 				EdtSentinel
 			};
@@ -56,7 +57,7 @@ namespace gpopt
 			// description of distribution spec in terms of partitioning data across segments
 			enum EDistributionPartitioningType
 			{
-				EdptPartitioned,		// data partitioned on multiple segments, e.g., hashed/random distribution
+				EdptPartitioned,	// data partitioned on multiple segments, e.g., hashed/random distribution
 				EdptNonPartitioned,	// data on a single segment, or replicated to all segments
 				EdptUnknown,		// unknown behavior
 

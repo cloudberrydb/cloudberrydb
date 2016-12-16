@@ -124,6 +124,8 @@ add_library(gpopt
             src/base/CCTEReq.cpp
             include/gpopt/base/CDefaultComparator.h
             src/base/CDefaultComparator.cpp
+            include/gpopt/base/CDistributionSpecExternal.h
+            src/base/CDistributionSpecExternal.cpp
             include/gpopt/base/CDistributionSpecHashed.h
             src/base/CDistributionSpecHashed.cpp
             include/gpopt/base/CDistributionSpecNonSingleton.h
