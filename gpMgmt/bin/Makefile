@@ -276,6 +276,7 @@ docs: epydoc
 	@echo "Running epydoc on management scripts..."
 	@PYTHONPATH=$(PYTHONPATH):$(EPYDOC_PYTHONPATH) $(PYLIB_SRC_EXT)/$(EPYDOC_DIR)/build/scripts-2.6/epydoc --config=.epydoc.config
 
+.PHONY: clean
 clean :
 	@rm -rf $(PYLIB_SRC_EXT)/$(LOCKFILE_DIR)
 	@rm -rf $(PYLIB_SRC_EXT)/$(PARAMIKO_DIR)
@@ -285,3 +286,6 @@ clean :
 	@rm -rf $(PYLIB_SRC_EXT)/$(LOGILAB_ASTNG_DIR)
 	@rm -rf $(STREAM_DIR)/stream lib/stream  
 	@rm -rf *.pyc lib/*.pyc
+
+.PHONY: disclean
+distclean: clean

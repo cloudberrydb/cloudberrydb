@@ -53,10 +53,10 @@ function build_gpdb_and_scan_with_coverity() {
 }
 
 function _main() {
-  prep_env_for_centos
-
-  generate_build_number
-  make_sync_tools
+  # TODO: determine if these are needed
+  # prep_env_for_centos
+  # generate_build_number
+  # make_sync_tools
 
   /opt/prepare-coverity.bash
   build_gpdb_and_scan_with_coverity "$OUTPUT_ARTIFACT_DIR"
