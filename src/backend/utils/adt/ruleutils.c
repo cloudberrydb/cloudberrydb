@@ -6266,7 +6266,7 @@ quote_literal_internal(const char *literal)
 
 	len = strlen(literal);
 	/* We make a worst-case result area; wasting a little space is OK */
-	result = (char *) palloc(len * 2 + 3);
+	result = (char *) palloc(len * 2 + 3 + 1);
 
 	cp1 = literal;
 	cp2 = result;
