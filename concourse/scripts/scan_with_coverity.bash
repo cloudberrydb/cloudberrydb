@@ -45,10 +45,11 @@ function make_sync_tools() {
 
 function build_gpdb_and_scan_with_coverity() {
   pushd gpdb_src/gpAux
-    make distclean
-    ./configure && \
-      cov-build  --dir "$1" make BLD_TARGETS="gpdb" \
-      GPROOT=/usr/local
+    make distclean 
+  popd
+  pushd gpdb_src
+    ./configure
+    cov-build --dir "$1" make BLD_TARGETS="gpdb" GPROOT=/usr/local
   popd
 }
 
