@@ -1292,7 +1292,6 @@ pg_get_expr_worker(text *expr, Oid relid, char *relname, int prettyFlags)
 		context = NIL;
 
 	/* Deparse */
-	context = deparse_context_for(relname, relid);
 	str = deparse_expression_pretty(node, context, false, false,
 									prettyFlags, 0);
 
