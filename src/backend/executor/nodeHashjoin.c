@@ -954,6 +954,9 @@ start_over:
 			hashtable->stats->batchstats[curbatch].innerfilesize =
 				ExecWorkFile_Tell64(hashtable->batches[curbatch]->innerside.workfile);
 		}
+
+		SIMPLE_FAULT_INJECTOR(WorkfileHashJoinFailure);
+
 		workfile_mgr_close_file(hashtable->work_set, batch->innerside.workfile);
 		batch->innerside.workfile = NULL;
 	}
