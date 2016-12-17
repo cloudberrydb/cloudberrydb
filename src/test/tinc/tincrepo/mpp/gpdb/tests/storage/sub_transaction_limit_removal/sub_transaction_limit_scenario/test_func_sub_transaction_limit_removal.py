@@ -93,7 +93,6 @@ class SubTransactionLimitRemovalScenarioTestCase(ScenarioTestCase):
         validation.append((path_to_init+"_validation"))
         self.test_case_scenario.append(validation) 
 
-
     def run_tests(self, fault_name, trans_state, skip_ckpt=False):
 
         path_to_init="mpp.gpdb.tests.storage.sub_transaction_limit_removal.sub_transaction_limit_scenario.SubTransactionLimitRemovalTestCase."
@@ -124,17 +123,9 @@ class SubTransactionLimitRemovalScenarioTestCase(ScenarioTestCase):
         run_post_sqls.append((path_to_init+"run_post_sqls", [fault_name, trans_state]))
         self.test_case_scenario.append(run_post_sqls) 
 
-        run_restart_database = []
-        run_restart_database.append((path_to_init+"run_restart_database"))
-        self.test_case_scenario.append(run_restart_database)  
-
         run_gprecoverseg = []
         run_gprecoverseg.append((path_to_init+"run_gprecoverseg", ['incr']))
         self.test_case_scenario.append(run_gprecoverseg)  
-
-        reset_all_faults = []
-        reset_all_faults.append((path_to_init+"reset_all_faults"))
-        self.test_case_scenario.append(reset_all_faults)
 
         if trans_state =='failover_to_mirror':
             run_restart_database = []
