@@ -46,7 +46,7 @@ select count(*) from sto_altap3;
 Alter table sto_alt_ao_part rename default partition to new_others;
 Insert into sto_alt_ao_part values(1,10,3,4);
 Update sto_alt_ao_part set d = -a where b = 10;
-select * from sto_alt_ao_part order by b,c;
+select * from sto_alt_ao_part;
 
 -- Alter table rename partition
 Alter table sto_altap3 RENAME PARTITION FOR ('2008-01-01') TO jan08;
@@ -56,18 +56,18 @@ select count(*) from sto_altap3;
 -- Alter table drop default partition
 Alter table sto_alt_ao_part drop default partition;
 Update sto_alt_ao_part set d = 5 where b = 4;
-select * from sto_alt_ao_part order by b,c;
+select * from sto_alt_ao_part;
 
 -- Alter table drop partition
 Alter table sto_alt_ao_part drop partition for (rank(1));
 Update sto_alt_ao_part set d = 4 where b = 4;
-select * from sto_alt_ao_part order by b,c;
+select * from sto_alt_ao_part;
 
 -- Alter table add heap partition
 Alter table sto_alt_ao_part add partition new_p start(6) end(8);
 Insert into sto_alt_ao_part values(1,7,3,4);
 Update sto_alt_ao_part set d = -a where b = 4 or b = 7;
-select * from sto_alt_ao_part order by b,c;
+select * from sto_alt_ao_part;
 
 -- Alter table add ao partition
 
@@ -75,7 +75,7 @@ Alter table sto_alt_ao_part add partition p1 start(9) end(13)
 with(appendonly=true);
 Insert into sto_alt_ao_part values(1,10,3,4);
 Update sto_alt_ao_part set d = -a where b = 10;
-select * from sto_alt_ao_part order by b,c;
+select * from sto_alt_ao_part;
 
 -- Alter table add co partition
 
@@ -89,7 +89,7 @@ select * from sto_alt_ao_part order by b,c ;
 Alter table sto_alt_ao_part add default partition part_others;
 Insert into sto_alt_ao_part values(1,25,3,4);
 Update sto_alt_ao_part set d = -a where b = 25;
-select * from sto_alt_ao_part order by b,c;
+select * from sto_alt_ao_part;
 
 -- Alter table split partition
 Alter table sto_altap2 split partition p1 at(3) into
@@ -104,7 +104,7 @@ Alter table sto_alt_ao_part alter partition p1 split partition
 -- partition ... to partition ... is not supported".  Enable the
 -- update statement after this bug is fixed.
 -- Update sto_alt_ao_part set d = 0 where b = 10;
-select * from sto_alt_ao_part order by b,c;
+select * from sto_alt_ao_part;
 
 -- Alter table split default partition
 Alter table sto_altap2 split default partition

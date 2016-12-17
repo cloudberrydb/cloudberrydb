@@ -89,7 +89,7 @@ Alter table sto_alt_ao_part rename default partition to new_others;
 NOTICE:  renamed partition "others" to "new_others" for relation "sto_alt_ao_part"
 Insert into sto_alt_ao_part values(1,10,3,4);
 Update sto_alt_ao_part set d = -a where b = 10;
-select * from sto_alt_ao_part order by b,c;
+select * from sto_alt_ao_part;
  a | b  | c | d  
 ---+----+---+----
  1 |  1 | 3 |  4
@@ -125,7 +125,7 @@ select count(*) from sto_altap3;
 Alter table sto_alt_ao_part drop default partition;
 NOTICE:  dropped partition "new_others" for relation "sto_alt_ao_part" and its children
 Update sto_alt_ao_part set d = 5 where b = 4;
-select * from sto_alt_ao_part order by b,c;
+select * from sto_alt_ao_part;
  a | b | c | d 
 ---+---+---+---
  1 | 1 | 3 | 4
@@ -147,7 +147,7 @@ select * from sto_alt_ao_part order by b,c;
 Alter table sto_alt_ao_part drop partition for (rank(1));
 NOTICE:  dropped partition for rank 1 for relation "sto_alt_ao_part" and its children
 Update sto_alt_ao_part set d = 4 where b = 4;
-select * from sto_alt_ao_part order by b,c;
+select * from sto_alt_ao_part;
  a | b | c | d 
 ---+---+---+---
  1 | 4 | 3 | 4
@@ -161,7 +161,7 @@ NOTICE:  CREATE TABLE will create partition "sto_alt_ao_part_1_prt_new_p_2_prt_2
 NOTICE:  CREATE TABLE will create partition "sto_alt_ao_part_1_prt_new_p_2_prt_3" for table "sto_alt_ao_part_1_prt_new_p"
 Insert into sto_alt_ao_part values(1,7,3,4);
 Update sto_alt_ao_part set d = -a where b = 4 or b = 7;
-select * from sto_alt_ao_part order by b,c;
+select * from sto_alt_ao_part;
  a | b | c | d  
 ---+---+---+----
  1 | 4 | 3 | -1
@@ -177,7 +177,7 @@ NOTICE:  CREATE TABLE will create partition "sto_alt_ao_part_1_prt_p1_2_prt_2" f
 NOTICE:  CREATE TABLE will create partition "sto_alt_ao_part_1_prt_p1_2_prt_3" for table "sto_alt_ao_part_1_prt_p1"
 Insert into sto_alt_ao_part values(1,10,3,4);
 Update sto_alt_ao_part set d = -a where b = 10;
-select * from sto_alt_ao_part order by b,c;
+select * from sto_alt_ao_part;
  a | b  | c | d  
 ---+----+---+----
  1 |  4 | 3 | -1
@@ -211,7 +211,7 @@ NOTICE:  CREATE TABLE will create partition "sto_alt_ao_part_1_prt_part_others_2
 NOTICE:  CREATE TABLE will create partition "sto_alt_ao_part_1_prt_part_others_2_prt_3" for table "sto_alt_ao_part_1_prt_part_others"
 Insert into sto_alt_ao_part values(1,25,3,4);
 Update sto_alt_ao_part set d = -a where b = 25;
-select * from sto_alt_ao_part order by b,c;
+select * from sto_alt_ao_part;
  a | b  | c | d  
 ---+----+---+----
  1 |  4 | 3 | -1
@@ -262,7 +262,7 @@ NOTICE:  CREATE TABLE will create partition "sto_alt_ao_part_1_prt_p1_2_prt_spli
 -- partition ... to partition ... is not supported".  Enable the
 -- update statement after this bug is fixed.
 -- Update sto_alt_ao_part set d = 0 where b = 10;
-select * from sto_alt_ao_part order by b,c;
+select * from sto_alt_ao_part;
  a | b  | c | d  
 ---+----+---+----
  1 |  4 | 3 | -1
