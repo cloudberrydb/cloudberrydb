@@ -444,7 +444,7 @@ Indexes:
     "concur_index5" btree (f2) WHERE f1 = 'x'::text
     "concur_index6" btree ((f2 || f1))
     "std_index" btree (f2)
-Distributed by: (f1)
+Distributed by: (dk)
 
 DROP TABLE concur_heap;
 --

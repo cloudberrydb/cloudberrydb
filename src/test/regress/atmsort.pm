@@ -410,9 +410,6 @@ m/^HINT:  The \'DISTRIBUTED BY\' clause determines the distribution of data/
 
 m/^WARNING:  Referential integrity \(.*\) constraints are not supported in Greenplum Database/
 
-
-m/^\s*Distributed by:\s+\(.*\)\s*$/
-
         # ignore notices for DROP sqlobject IF EXISTS "objectname"
         # eg NOTICE:  table "foo" does not exist, skipping
         #
