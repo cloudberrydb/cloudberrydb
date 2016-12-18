@@ -268,8 +268,8 @@ sub init_match_subs
     $here_matchsubs = << 'EOF_matchsubs';
 
 # some cleanup of greenplum-specific messages
-m/\s+(?:\W)?(?:\W)?\(seg.*pid.*\)/
-s/\s+(\W)?(\W)?\(seg.*pid.*\)//
+m/\s+\(seg.*pid.*\)/
+s/\s+\(seg.*pid.*\)//
 
 # distributed transactions
 m/^(?:ERROR|WARNING|CONTEXT|NOTICE):.*gid\s+=\s+(?:\d+)/
