@@ -137,7 +137,7 @@ NOTICE:  table "dcl_candidate" does not exist, skipping
 DROP TABLE
 --end_ignore
 create table dcl_candidate(like dcl_messaging_test) with (appendonly=true);
-NOTICE:  Table doesn't have 'distributed by' clause, defaulting to distribution columns from LIKE table
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause, defaulting to distribution columns from LIKE table
 CREATE TABLE
 insert into dcl_candidate(message_create_date) values (timestamp '2011-09-06');
 INSERT 0 1

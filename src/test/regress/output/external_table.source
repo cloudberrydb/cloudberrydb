@@ -633,7 +633,7 @@ CREATE EXTERNAL TABLE exttab_basic_4( i int, j text )
 LOCATION ('file://@hostname@@abs_srcdir@/data/exttab_more_errors.data') FORMAT 'TEXT' (DELIMITER '|') 
 LOG ERRORS SEGMENT REJECT LIMIT 100;
 CREATE TABLE exttab_insert_1 (LIKE exttab_basic_4);
-NOTICE:  Table doesn't have 'distributed by' clause, defaulting to distribution columns from LIKE table
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause, defaulting to distribution columns from LIKE table
 -- Insert should go through fine
 INSERT INTO exttab_insert_1 SELECT * FROM exttab_basic_4;
 NOTICE:  Found 6 data formatting errors (6 or more input rows). Rejected related input data.
@@ -1900,7 +1900,7 @@ SELECT * FROM gp_read_error_log('exttab_udfs_2')
 DROP TABLE IF EXISTS exttab_udfs_insert_2;
 NOTICE:  table "exttab_udfs_insert_2" does not exist, skipping
 CREATE TABLE exttab_udfs_insert_2 (LIKE exttab_udfs_1);
-NOTICE:  Table doesn't have 'distributed by' clause, defaulting to distribution columns from LIKE table
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause, defaulting to distribution columns from LIKE table
 CREATE OR REPLACE FUNCTION exttab_udfs_func2 ()
 RETURNS boolean
 AS $$
@@ -2112,7 +2112,7 @@ SELECT * FROM gp_read_error_log('exttab_union_2')
 DROP TABLE IF EXISTS exttab_union_insert_1;
 NOTICE:  table "exttab_union_insert_1" does not exist, skipping
 CREATE TABLE exttab_union_insert_1 (LIKE exttab_union_1);
-NOTICE:  Table doesn't have 'distributed by' clause, defaulting to distribution columns from LIKE table
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause, defaulting to distribution columns from LIKE table
 SELECT gp_truncate_error_log('exttab_union_1');
  gp_truncate_error_log 
 -----------------------

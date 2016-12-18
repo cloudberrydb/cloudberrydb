@@ -1195,7 +1195,7 @@ CREATE AGGREGATE agg_point_add1(
                                 STYPE=point
                         );
 create table agg_point_tbl (p point);
-NOTICE:  Table doesn't have 'distributed by' clause, and no column type is suitable for a distribution key. Creating a NULL policy entry.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause, and no column type is suitable for a distribution key. Creating a NULL policy entry.
 insert into agg_point_tbl values (POINT(3,5));
 insert into agg_point_tbl values (POINT(30,50));
 -- end_ignore

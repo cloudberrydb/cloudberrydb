@@ -106,7 +106,7 @@ CREATE FUNCTION error(a anytable DEFAULT TABLE(select 1,'test')) RETURNS TABLE(a
 ERROR:  anytable parameter cannot have default value
 /* Negative test cases around the "anytable" type */
 CREATE TABLE fail(x anytable);
-NOTICE:  Table doesn't have 'distributed by' clause, and no column type is suitable for a distribution key. Creating a NULL policy entry.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause, and no column type is suitable for a distribution key. Creating a NULL policy entry.
 ERROR:  column "x" has pseudo-type anytable
 CREATE TYPE  fail AS (x anytable);
 ERROR:  column "x" has pseudo-type anytable

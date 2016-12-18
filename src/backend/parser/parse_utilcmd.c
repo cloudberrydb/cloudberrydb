@@ -1505,7 +1505,7 @@ transformDistributedBy(ParseState *pstate, CreateStmtContext *cxt,
 	{
 		distributedBy = likeDistributedBy;
 		if (!bQuiet)
-			elog(NOTICE, "Table doesn't have 'distributed by' clause, "
+			elog(NOTICE, "Table doesn't have 'DISTRIBUTED BY' clause, "
 				 "defaulting to distribution columns from LIKE table");
 	}
 
@@ -1638,7 +1638,7 @@ transformDistributedBy(ParseState *pstate, CreateStmtContext *cxt,
 			 */
 			policy->nattrs = 0;
 			if (!bQuiet)
-				elog(NOTICE, "Table doesn't have 'distributed by' clause, and no column type is suitable for a distribution key. Creating a NULL policy entry.");
+				elog(NOTICE, "Table doesn't have 'DISTRIBUTED BY' clause, and no column type is suitable for a distribution key. Creating a NULL policy entry.");
 		}
 
 	}
@@ -1839,7 +1839,7 @@ transformDistributedBy(ParseState *pstate, CreateStmtContext *cxt,
 						heap_close(rel, NoLock);
 
 						if (found)
-							elog(DEBUG1, "'distributed by' clause refers to "
+							elog(DEBUG1, "'DISTRIBUTED BY' clause refers to "
 								 "columns of inherited table");
 
 						if (found)
@@ -1937,7 +1937,7 @@ transformDistributedBy(ParseState *pstate, CreateStmtContext *cxt,
 						}
 						heap_close(rel, NoLock);
 						if (found)
-							elog(NOTICE, "'distributed by' clause refers to columns of inherited table");
+							elog(NOTICE, "'DISTRIBUTED BY' clause refers to columns of inherited table");
 
 						if (found)
 							break;

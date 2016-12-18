@@ -66,7 +66,7 @@ psql:/path/sql_file:1: NOTICE:  table "exh_co_ao" does not exist, skipping
 DROP TABLE
 --end_ignore
 create table exh_co_ao (like sto_co_ao) with (appendonly=true);
-psql:/path/sql_file:1: NOTICE:  Table doesn't have 'distributed by' clause, defaulting to distribution columns from LIKE table
+psql:/path/sql_file:1: NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause, defaulting to distribution columns from LIKE table
 CREATE TABLE
 insert into exh_co_ao values (1, '2008-03-20', 'two'),  (2, '2008-03-21', 'two');
 INSERT 0 2

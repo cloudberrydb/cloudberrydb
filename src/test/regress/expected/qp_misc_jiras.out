@@ -1294,7 +1294,7 @@ select * from qp_misc_jiras.tbl_694_1;
 (0 rows)
 
 create table qp_misc_jiras.tbl_694_2 (like qp_misc_jiras.tbl_694_1);
-NOTICE:  Table doesn't have 'distributed by' clause, defaulting to distribution columns from LIKE table
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause, defaulting to distribution columns from LIKE table
 select * from qp_misc_jiras.tbl_694_2;
  c1 | b1 
 ----+----

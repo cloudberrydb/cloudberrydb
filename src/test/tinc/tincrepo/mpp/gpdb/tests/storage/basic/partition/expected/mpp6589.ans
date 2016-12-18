@@ -13,12 +13,12 @@ PARTITION BY RANGE(day_dt)
 NOTICE:  CREATE TABLE will create partition "mpp6589_1_prt_p20090312" for table "mpp6589"
 CREATE TABLE
 ALTER TABLE mpp6589.mpp6589 SPLIT PARTITION p20090312 AT( '20090310' ) INTO( PARTITION p20090309, PARTITION p20090312_tmp);
-NOTICE:  Table doesn't have 'distributed by' clause, defaulting to distribution columns from LIKE table
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause, defaulting to distribution columns from LIKE table
 NOTICE:  exchanged partition "p20090312" of relation "mpp6589" with relation "pg_temp_21969"
 NOTICE:  dropped partition "p20090312" for relation "mpp6589"
-NOTICE:  Table doesn't have 'distributed by' clause, defaulting to distribution columns from LIKE table
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause, defaulting to distribution columns from LIKE table
 NOTICE:  CREATE TABLE will create partition "mpp6589_1_prt_p20090309" for table "mpp6589"
-NOTICE:  Table doesn't have 'distributed by' clause, defaulting to distribution columns from LIKE table
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause, defaulting to distribution columns from LIKE table
 NOTICE:  CREATE TABLE will create partition "mpp6589_1_prt_p20090312_tmp" for table "mpp6589"
 ALTER TABLE
 drop schema mpp6589 cascade;

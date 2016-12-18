@@ -267,7 +267,7 @@ LINE 2:  FROM carpe_diem
 -- without specifying whether the table should be column-oriented.  
 -- Should it automatically acquire the column-orientedness of the parent?
 CREATE TABLE like1 (LIKE carp_die);
-psql:/path/sql_file:1: NOTICE:  Table doesn't have 'distributed by' clause, defaulting to distribution columns from LIKE table
+psql:/path/sql_file:1: NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause, defaulting to distribution columns from LIKE table
 CREATE TABLE
 INSERT INTO like1 SELECT * FROM carp_die;
 INSERT 0 5
@@ -305,7 +305,7 @@ SELECT id, wealth
 -- Create a table with the same structure as carp_die, using the LIKE clause, 
 -- but this time specify that the table should be column-oriented.  
 CREATE TABLE like2 (LIKE carp_die) WITH (appendonly=True, orientation='column');
-psql:/path/sql_file:1: NOTICE:  Table doesn't have 'distributed by' clause, defaulting to distribution columns from LIKE table
+psql:/path/sql_file:1: NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause, defaulting to distribution columns from LIKE table
 CREATE TABLE
 INSERT INTO like2 SELECT * FROM carp_die;
 INSERT 0 5

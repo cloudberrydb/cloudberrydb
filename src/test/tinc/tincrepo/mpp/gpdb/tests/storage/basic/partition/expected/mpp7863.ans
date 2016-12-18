@@ -47,12 +47,12 @@ select count(*) from mpp7863;
 (1 row)
 
 alter table mpp7863 split default partition start (201001) inclusive end (201002) exclusive into (partition jan10,default partition);
-NOTICE:  Table doesn't have 'distributed by' clause, defaulting to distribution columns from LIKE table
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause, defaulting to distribution columns from LIKE table
 NOTICE:  exchanged partition "extra" of relation "mpp7863" with relation "pg_temp_17362"
 NOTICE:  dropped partition "extra" for relation "mpp7863"
-NOTICE:  Table doesn't have 'distributed by' clause, defaulting to distribution columns from LIKE table
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause, defaulting to distribution columns from LIKE table
 NOTICE:  CREATE TABLE will create partition "mpp7863_1_prt_jan10" for table "mpp7863"
-NOTICE:  Table doesn't have 'distributed by' clause, defaulting to distribution columns from LIKE table
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause, defaulting to distribution columns from LIKE table
 NOTICE:  CREATE TABLE will create partition "mpp7863_1_prt_extra" for table "mpp7863"
 ALTER TABLE
 select count(*) from mpp7863_1_prt_extra where dat is null;

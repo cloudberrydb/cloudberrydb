@@ -8138,7 +8138,7 @@ group by region ) OUTERMOST_FOO,bad_headofstates,country
 where country.code = bad_headofstates.code and country.region = OUTERMOST_FOO.region
 order by OUTERMOST_FOO.region,bad_headofstates.headofstate LIMIT 40
 );
-NOTICE:  Table doesn't have 'distributed by' clause. Creating a NULL policy entry.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause. Creating a NULL policy entry.
 select * from bad_headofstates order by region,headofstate;
        avg        |          region           |           headofstate            
 ------------------+---------------------------+----------------------------------

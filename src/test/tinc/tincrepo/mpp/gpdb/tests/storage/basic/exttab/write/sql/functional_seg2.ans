@@ -18,7 +18,7 @@ CREATE EXTERNAL TABLE E_LINEITEM ( L_ORDERKEY    INT8 ,
                               FORMAT 'CSV' (DELIMITER '|');
 CREATE EXTERNAL TABLE
 CREATE WRITABLE EXTERNAL TABLE tbl_wet_lineitem1 ( like e_lineitem) LOCATION ('gpfdist://@hostname@:@gp_port@/output/new_lineitem.tbl') FORMAT 'TEXT' (DELIMITER AS '|');
-psql:/path/sql_file:1: NOTICE:  Table doesn't have 'distributed by' clause, defaulting to distribution columns from LIKE table
+psql:/path/sql_file:1: NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause, defaulting to distribution columns from LIKE table
 CREATE EXTERNAL TABLE
 INSERT INTO tbl_wet_lineitem1 SELECT * FROM e_lineitem limit 1000;
 INSERT 0 1000
@@ -68,7 +68,7 @@ CREATE EXTERNAL TABLE
 INSERT INTO lineitem SELECT * FROM e_lineitem limit 1000; 
 INSERT 0 1000
 CREATE WRITABLE EXTERNAL TABLE tbl_wet_lineitem2 ( like lineitem) location ('gpfdist://@hostname@:@gp_port@/output/new_lineitem.tbl') FORMAT 'TEXT' (DELIMITER AS '|');
-psql:/path/sql_file:1: NOTICE:  Table doesn't have 'distributed by' clause, defaulting to distribution columns from LIKE table
+psql:/path/sql_file:1: NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause, defaulting to distribution columns from LIKE table
 CREATE EXTERNAL TABLE
 INSERT INTO tbl_wet_lineitem2 SELECT * FROM lineitem limit 1000;
 INSERT 0 1000

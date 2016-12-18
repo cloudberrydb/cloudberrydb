@@ -44,7 +44,7 @@ drop table if exists t_like;
 psql:/path/sql_file:1: NOTICE:  table "t_like" does not exist, skipping
 DROP TABLE
 create table t_like (like t including defaults);
-psql:/path/sql_file:1: NOTICE:  Table doesn't have 'distributed by' clause, defaulting to distribution columns from LIKE table
+psql:/path/sql_file:1: NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause, defaulting to distribution columns from LIKE table
 CREATE TABLE
 select verify('t_like');
  verify 

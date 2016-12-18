@@ -24,9 +24,9 @@ NOTICE:  table "ctas_bar" does not exist, skipping
 drop table if exists ctas_baz;
 NOTICE:  table "ctas_baz" does not exist, skipping
 create table ctas_foo as select * from generate_series(1, 100);
-NOTICE:  Table doesn't have 'distributed by' clause. Creating a NULL policy entry.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause. Creating a NULL policy entry.
 create table ctas_bar as select a.generate_series as a, b.generate_series as b from ctas_foo a, ctas_foo b;
-NOTICE:  Table doesn't have 'distributed by' clause. Creating a NULL policy entry.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause. Creating a NULL policy entry.
 create table ctas_baz as select 'delete me' as action, * from ctas_bar distributed by (a);
 WARNING:  column "action" has type "unknown"
 DETAIL:  Proceeding with relation creation anyway.

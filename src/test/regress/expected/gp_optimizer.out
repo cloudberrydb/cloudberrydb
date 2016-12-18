@@ -14,7 +14,7 @@ set optimizer_enable_master_only_queries = on;
 -- master only tables
 create schema orca;
 create table orca.r();
-NOTICE:  Table doesn't have 'distributed by' clause, and no column type is suitable for a distribution key. Creating a NULL policy entry.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause, and no column type is suitable for a distribution key. Creating a NULL policy entry.
 set allow_system_table_mods='DML';
 delete from gp_distribution_policy where localoid='orca.r'::regclass;
 reset allow_system_table_mods;
@@ -22,7 +22,7 @@ alter table orca.r add column a int;
 alter table orca.r add column b int;
 insert into orca.r select i, i/3 from generate_series(1,20) i;
 create table orca.s();
-NOTICE:  Table doesn't have 'distributed by' clause, and no column type is suitable for a distribution key. Creating a NULL policy entry.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause, and no column type is suitable for a distribution key. Creating a NULL policy entry.
 set allow_system_table_mods='DML';
 delete from gp_distribution_policy where localoid='orca.s'::regclass;
 reset allow_system_table_mods;
@@ -3145,11 +3145,11 @@ select r.* from orca.r, orca.s where s.c=2;
 ----------------------------------------------------------------------
 set optimizer=off;
 create table orca.m();
-NOTICE:  Table doesn't have 'distributed by' clause, and no column type is suitable for a distribution key. Creating a NULL policy entry.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause, and no column type is suitable for a distribution key. Creating a NULL policy entry.
 alter table orca.m add column a int;
 alter table orca.m add column b int;
 create table orca.m1();
-NOTICE:  Table doesn't have 'distributed by' clause, and no column type is suitable for a distribution key. Creating a NULL policy entry.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause, and no column type is suitable for a distribution key. Creating a NULL policy entry.
 alter table orca.m1 add column a int;
 alter table orca.m1 add column b int;
 insert into orca.m select i-1, i%2 from generate_series(1,35) i;
@@ -8704,9 +8704,9 @@ select * from (select 2.2 AS two UNION select 1) x(a), (select 1.0 AS two UNION 
 
 -- window functions inside inline CTE
 CREATE TABLE orca.twf1 AS SELECT i as a, i+1 as b from generate_series(1,10)i;
-NOTICE:  Table doesn't have 'distributed by' clause. Creating a NULL policy entry.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause. Creating a NULL policy entry.
 CREATE TABLE orca.twf2 AS SELECT i as c, i+1 as d from generate_series(1,10)i;
-NOTICE:  Table doesn't have 'distributed by' clause. Creating a NULL policy entry.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause. Creating a NULL policy entry.
 SET optimizer_cte_inlining_bound=1000;
 SET optimizer_cte_inlining = on;
 WITH CTE(a,b) AS
@@ -8741,9 +8741,9 @@ drop table if exists orca.tab1;
 drop table if exists orca.tab2;
 NOTICE:  table "tab2" does not exist, skipping
 create table orca.tab1 (i, j) as select i,i%2 from generate_series(1,10) i;
-NOTICE:  Table doesn't have 'distributed by' clause. Creating a NULL policy entry.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause. Creating a NULL policy entry.
 create table orca.tab2 (a, b) as select 1, 2;
-NOTICE:  Table doesn't have 'distributed by' clause. Creating a NULL policy entry.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause. Creating a NULL policy entry.
 select * from orca.tab1 where 0 < (select count(*) from generate_series(1,i)) order by 1;
  i  | j 
 ----+---

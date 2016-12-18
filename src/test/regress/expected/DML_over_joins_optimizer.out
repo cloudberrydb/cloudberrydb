@@ -1139,7 +1139,7 @@ ERROR:  function insertmanyintosales(integer, character varying) does not exist
 create table r (a int, b int) distributed by (a);
 create table s (a int, b int) distributed by (a);
 create table m ();
-NOTICE:  Table doesn't have 'distributed by' clause, and no column type is suitable for a distribution key. Creating a NULL policy entry.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause, and no column type is suitable for a distribution key. Creating a NULL policy entry.
 	alter table m add column a int;
 	alter table m add column b int;
 create table t (region text, id int) distributed by (region);

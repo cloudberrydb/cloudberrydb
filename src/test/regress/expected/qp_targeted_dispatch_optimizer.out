@@ -917,7 +917,7 @@ insert into mpp7620 values (200, 'horse');
 -- enable printing of printing info
 set test_print_direct_dispatch_info=on;
 Create table zoompp7620 as select * from mpp7620 where key=200;
-NOTICE:  Table doesn't have 'distributed by' clause. Creating a NULL policy entry.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause. Creating a NULL policy entry.
 INFO:  Dispatch command to ALL contents
 INFO:  Dispatch command to ALL contents
 INFO:  Dispatch command to ALL contents

@@ -702,7 +702,7 @@ NOTICE:  CREATE TABLE will create partition "d_1_prt_abc" for table "d"
 NOTICE:  CREATE TABLE will create partition "d_1_prt_a" for table "d"
 NOTICE:  CREATE TABLE will create partition "d_1_prt_b" for table "d"
 create table exh_abc (like d);
-NOTICE:  Table doesn't have 'distributed by' clause, defaulting to distribution columns from LIKE table
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause, defaulting to distribution columns from LIKE table
 alter table d exchange default partition with table exh_abc;
 ERROR:  cannot exchange DEFAULT partition
 set gp_enable_exchange_default_partition = on;
@@ -745,7 +745,7 @@ NOTICE:  CREATE TABLE will create partition "sto_ao_ao_1_prt_5_2_prt_subothers" 
 NOTICE:  CREATE TABLE will create partition "sto_ao_ao_1_prt_5_2_prt_sub1" for table "sto_ao_ao_1_prt_5"
 NOTICE:  CREATE TABLE will create partition "sto_ao_ao_1_prt_5_2_prt_sub2" for table "sto_ao_ao_1_prt_5"
 create table exh_ao_ao (like sto_ao_ao) with (appendonly=true);
-NOTICE:  Table doesn't have 'distributed by' clause, defaulting to distribution columns from LIKE table
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause, defaulting to distribution columns from LIKE table
 -- Exchange default sub-partition, should fail
 alter table sto_ao_ao alter partition for (rank(3)) exchange default partition with table exh_ao_ao;
 ERROR:  cannot exchange DEFAULT partition
@@ -3073,7 +3073,7 @@ select * from rank;
 
 --exchange test
 create table r (like rank);
-NOTICE:  Table doesn't have 'distributed by' clause, defaulting to distribution columns from LIKE table
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause, defaulting to distribution columns from LIKE table
 insert into rank values(3, 3, 2004, 'F', 100);
 insert into r values(3, 3, 2004, 'F', 100000);
 alter table rank alter partition girls exchange partition year4 with table r;
@@ -3406,7 +3406,7 @@ NOTICE:  CREATE TABLE will create partition "rank_1_prt_9" for table "rank"
 alter table rank_1_prt_1 no inherit rank;
 ERROR:  can't alter inheritance on "rank_1_prt_1"; it is a partitioned table or part thereof
 create table rank2(like rank);
-NOTICE:  Table doesn't have 'distributed by' clause, defaulting to distribution columns from LIKE table
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause, defaulting to distribution columns from LIKE table
 alter table rank_1_prt_1 inherit rank2;
 ERROR:  can't alter inheritance on "rank_1_prt_1"; it is a partitioned table or part thereof
 alter table rank_1_prt_1 alter column i type bigint;
@@ -6098,7 +6098,7 @@ NOTICE:  CREATE TABLE will create partition "mpp6979part_1_prt_8" for table "mpp
 NOTICE:  CREATE TABLE will create partition "mpp6979part_1_prt_9" for table "mpp6979part"
 -- append-only table in new schema 
 create table mpp6979dummy.mpp6979tab(like mpp6979part) with (appendonly=true);
-NOTICE:  Table doesn't have 'distributed by' clause, defaulting to distribution columns from LIKE table
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause, defaulting to distribution columns from LIKE table
 -- check that table and all parts in public schema
 select schemaname, tablename, partitionschemaname, partitiontablename
 from pg_partitions 

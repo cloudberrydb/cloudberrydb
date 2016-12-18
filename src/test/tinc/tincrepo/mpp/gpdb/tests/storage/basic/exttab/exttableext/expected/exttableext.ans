@@ -909,7 +909,7 @@ DROP EXTERNAL TABLE
     CREATE WRITABLE EXTERNAL TABLE exttabtest_w_invalid(like exttabtest)
         LOCATION('demoprot://exttabtest_invalid.txt') 
     FORMAT 'text';
-psql:/path/sql_file:1: NOTICE:  Table doesn't have 'distributed by' clause, defaulting to distribution columns from LIKE table
+psql:/path/sql_file:1: NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause, defaulting to distribution columns from LIKE table
 CREATE EXTERNAL TABLE
     -- Drop a column (id) from WET
     ALTER EXTERNAL TABLE exttabtest_w_invalid DROP COLUMN id;
@@ -1012,7 +1012,7 @@ DROP EXTERNAL TABLE
     CREATE WRITABLE EXTERNAL TABLE format_w(like formatsource) 
     LOCATION ('demoprot://exttabtest_test63') 
     FORMAT 'CUSTOM' (FORMATTER='formatter_export_i');
-psql:/path/sql_file:1: NOTICE:  Table doesn't have 'distributed by' clause, defaulting to distribution columns from LIKE table
+psql:/path/sql_file:1: NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause, defaulting to distribution columns from LIKE table
 CREATE EXTERNAL TABLE
     DROP EXTERNAL TABLE IF EXISTS format_r;
 psql:/path/sql_file:1: NOTICE:  table "format_r" does not exist, skipping
@@ -1030,7 +1030,7 @@ DROP EXTERNAL TABLE
     CREATE WRITABLE EXTERNAL TABLE format_w(like formatsource) 
     LOCATION ('demoprot://exttabtest_test63') 
     FORMAT 'CUSTOM' (FORMATTER='formatter_export_s');
-psql:/path/sql_file:1: NOTICE:  Table doesn't have 'distributed by' clause, defaulting to distribution columns from LIKE table
+psql:/path/sql_file:1: NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause, defaulting to distribution columns from LIKE table
 CREATE EXTERNAL TABLE
     DROP EXTERNAL TABLE IF EXISTS format_r;
 DROP EXTERNAL TABLE
@@ -1217,7 +1217,7 @@ DROP EXTERNAL TABLE
     CREATE WRITABLE EXTERNAL TABLE format_w_s1(like formatsource) 
         LOCATION ('demoprot://exttabtest_test67_s1') 
         FORMAT 'CUSTOM' (FORMATTER='formatter_export_s');
-psql:/path/sql_file:1: NOTICE:  Table doesn't have 'distributed by' clause, defaulting to distribution columns from LIKE table
+psql:/path/sql_file:1: NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause, defaulting to distribution columns from LIKE table
 CREATE EXTERNAL TABLE
     DROP EXTERNAL TABLE IF EXISTS format_r_s1;
 psql:/path/sql_file:1: NOTICE:  table "format_r_s1" does not exist, skipping
@@ -1234,7 +1234,7 @@ DROP EXTERNAL TABLE
     CREATE WRITABLE EXTERNAL TABLE format_w_s2(like formatsource) 
         LOCATION ('demoprot://exttabtest_test67_s2') 
     FORMAT 'CUSTOM' (FORMATTER='formatter_export_s');
-psql:/path/sql_file:1: NOTICE:  Table doesn't have 'distributed by' clause, defaulting to distribution columns from LIKE table
+psql:/path/sql_file:1: NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause, defaulting to distribution columns from LIKE table
 CREATE EXTERNAL TABLE
     DROP EXTERNAL TABLE IF EXISTS format_r_s2;
 psql:/path/sql_file:1: NOTICE:  table "format_r_s2" does not exist, skipping
@@ -1319,7 +1319,7 @@ DROP EXTERNAL TABLE
     CREATE WRITABLE EXTERNAL TABLE format_long_w(like format_long) 
     LOCATION ('demoprot://exttabtest_test71.txt') 
     FORMAT 'CUSTOM' (FORMATTER='formatter_export_s');
-psql:/path/sql_file:1: NOTICE:  Table doesn't have 'distributed by' clause, defaulting to distribution columns from LIKE table
+psql:/path/sql_file:1: NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause, defaulting to distribution columns from LIKE table
 CREATE EXTERNAL TABLE
     DROP EXTERNAL TABLE IF EXISTS format_long_r;
 psql:/path/sql_file:1: NOTICE:  table "format_long_r" does not exist, skipping
@@ -1404,7 +1404,7 @@ DROP EXTERNAL TABLE
     CREATE WRITABLE EXTERNAL TABLE format_long_w(like format_long) 
     LOCATION ('demoprot://exttabtest_test72.txt') 
     FORMAT 'CUSTOM' (FORMATTER='formatter_export_s');
-psql:/path/sql_file:1: NOTICE:  Table doesn't have 'distributed by' clause, defaulting to distribution columns from LIKE table
+psql:/path/sql_file:1: NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause, defaulting to distribution columns from LIKE table
 CREATE EXTERNAL TABLE
     DROP EXTERNAL TABLE IF EXISTS format_long_r;
 DROP EXTERNAL TABLE
@@ -1463,7 +1463,7 @@ DROP EXTERNAL TABLE
     CREATE WRITABLE EXTERNAL TABLE format_long_w(like format_long) 
     LOCATION ('demoprot://exttabtest_test73.txt') 
     FORMAT 'CUSTOM' (FORMATTER='formatter_export_s');
-psql:/path/sql_file:1: NOTICE:  Table doesn't have 'distributed by' clause, defaulting to distribution columns from LIKE table
+psql:/path/sql_file:1: NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause, defaulting to distribution columns from LIKE table
 CREATE EXTERNAL TABLE
     DROP EXTERNAL TABLE IF EXISTS format_long_r;
 DROP EXTERNAL TABLE
@@ -1521,7 +1521,7 @@ DROP EXTERNAL TABLE
     CREATE WRITABLE EXTERNAL TABLE format_long_w(like format_long) 
     LOCATION ('demoprot://format_long_test14') 
     FORMAT 'CUSTOM' (FORMATTER='formatter_export_s');
-psql:/path/sql_file:1: NOTICE:  Table doesn't have 'distributed by' clause, defaulting to distribution columns from LIKE table
+psql:/path/sql_file:1: NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause, defaulting to distribution columns from LIKE table
 CREATE EXTERNAL TABLE
     DROP EXTERNAL TABLE IF EXISTS format_long_r;
 DROP EXTERNAL TABLE
@@ -1570,7 +1570,7 @@ DROP EXTERNAL TABLE
     CREATE WRITABLE EXTERNAL TABLE format_w(like formatsource) 
     LOCATION ('demoprot://format_test15') 
     FORMAT 'CUSTOM' (FORMATTER='formatter_export_s');
-psql:/path/sql_file:1: NOTICE:  Table doesn't have 'distributed by' clause, defaulting to distribution columns from LIKE table
+psql:/path/sql_file:1: NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause, defaulting to distribution columns from LIKE table
 CREATE EXTERNAL TABLE
     DROP EXTERNAL TABLE IF EXISTS format_r;
 DROP EXTERNAL TABLE
@@ -1625,7 +1625,7 @@ DROP EXTERNAL TABLE
     CREATE WRITABLE EXTERNAL TABLE format_w(like formatsource) 
     LOCATION ('demoprot://exttabtest_test76.txt') 
     FORMAT 'CUSTOM' (FORMATTER='formatter_export_s');
-psql:/path/sql_file:1: NOTICE:  Table doesn't have 'distributed by' clause, defaulting to distribution columns from LIKE table
+psql:/path/sql_file:1: NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause, defaulting to distribution columns from LIKE table
 CREATE EXTERNAL TABLE
     DROP EXTERNAL TABLE IF EXISTS format_r;
 DROP EXTERNAL TABLE
@@ -1683,7 +1683,7 @@ DROP EXTERNAL TABLE
     CREATE WRITABLE EXTERNAL TABLE format_w(like formatsource) 
     LOCATION ('demoprot://exttabtest_test77.txt') 
     FORMAT 'CUSTOM' (FORMATTER='formatter_export_s');
-psql:/path/sql_file:1: NOTICE:  Table doesn't have 'distributed by' clause, defaulting to distribution columns from LIKE table
+psql:/path/sql_file:1: NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause, defaulting to distribution columns from LIKE table
 CREATE EXTERNAL TABLE
     DROP EXTERNAL TABLE IF EXISTS format_r;
 DROP EXTERNAL TABLE

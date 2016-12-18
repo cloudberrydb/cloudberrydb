@@ -897,7 +897,7 @@ PARTITION BY RANGE (date)
 ( START (date '2008-01-01') INCLUSIVE 
    END (date '2009-01-01') EXCLUSIVE 
    EVERY (INTERVAL '1 month') );
-NOTICE:  Table doesn't have 'distributed by' clause, defaulting to distribution columns from LIKE table
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause, defaulting to distribution columns from LIKE table
 NOTICE:  CREATE TABLE will create partition "sales1_1_prt_1" for table "sales1"
 NOTICE:  CREATE TABLE will create partition "sales1_1_prt_2" for table "sales1"
 NOTICE:  CREATE TABLE will create partition "sales1_1_prt_3" for table "sales1"
@@ -1131,7 +1131,7 @@ PARTITION BY RANGE (date)
    END (date '2009-01-01') EXCLUSIVE 
    EVERY (INTERVAL '1 month')
    WITH (appendonly=true, compresslevel=5));
-NOTICE:  Table doesn't have 'distributed by' clause, defaulting to distribution columns from LIKE table
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause, defaulting to distribution columns from LIKE table
 NOTICE:  CREATE TABLE will create partition "sales_ao1_1_prt_1" for table "sales_ao1"
 NOTICE:  CREATE TABLE will create partition "sales_ao1_1_prt_2" for table "sales_ao1"
 NOTICE:  CREATE TABLE will create partition "sales_ao1_1_prt_3" for table "sales_ao1"
@@ -1363,7 +1363,7 @@ PARTITION BY RANGE (date)
 ( START (date '2008-01-01') INCLUSIVE 
    END (date '2009-01-01') EXCLUSIVE 
    EVERY (INTERVAL '1 month'));
-NOTICE:  Table doesn't have 'distributed by' clause, defaulting to distribution columns from LIKE table
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause, defaulting to distribution columns from LIKE table
 NOTICE:  CREATE TABLE will create partition "sales_hybrid1_1_prt_1" for table "sales_hybrid1"
 NOTICE:  CREATE TABLE will create partition "sales_hybrid1_1_prt_2" for table "sales_hybrid1"
 NOTICE:  CREATE TABLE will create partition "sales_hybrid1_1_prt_3" for table "sales_hybrid1"

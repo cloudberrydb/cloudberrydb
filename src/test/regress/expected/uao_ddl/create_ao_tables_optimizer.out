@@ -436,7 +436,7 @@ select count(*) from sto_uao_1;
 set gp_select_invisible=false;
 -- Select into
 select * into sto_heap_10 from sto_uao_8;
-NOTICE:  Table doesn't have 'distributed by' clause. Creating a NULL policy entry.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause. Creating a NULL policy entry.
 select count(*) from sto_heap_10;
  count 
 -------

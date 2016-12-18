@@ -397,16 +397,9 @@ sub init_matchignores
 
     $here_matchignores = << 'EOF_matchignores';
 
-        # XXX XXX: note the discrepancy in the NOTICE messages
-        # 'distributed by' vs 'DISTRIBUTED BY'
-m/^NOTICE:  Table doesn\'t have \'distributed by\' clause/
-m/^NOTICE:  Table doesn\'t have \'DISTRIBUTED BY\' clause/
-
 m/^NOTICE:  Dropping a column that is part of the distribution policy/
 
 m/^NOTICE:  Table has parent\, setting distribution columns to match parent table/
-
-m/^HINT:  The \'DISTRIBUTED BY\' clause determines the distribution of data/
 
 m/^WARNING:  Referential integrity \(.*\) constraints are not supported in Greenplum Database/
 
