@@ -2,9 +2,6 @@
 # match ignore the gpmon WARNING message
 m/^WARNING:  gpmon:.*Connection refused.*/
 
-# MPP-20400
-m/^WARNING:  gpmon:.*No buffer space available socket.*/
-
 m/^ Optimizer status:.*/
 
 # There are a number of NOTICE and HINT messages around table distribution,
