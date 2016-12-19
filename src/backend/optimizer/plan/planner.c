@@ -1274,11 +1274,16 @@ inheritance_planner(PlannerInfo *root)
 		root->resultRelations = list_make1_int(parentRTindex);
 		/* although dummy, it must have a valid tlist for executor */
 		tlist = preprocess_targetlist(root, parse->targetList);
-		return (Plan *) make_result(root,
+		plan = (Plan *) make_result(root,
 									tlist,
 									(Node *) list_make1(makeBoolConst(false,
 																	  false)),
 									NULL);
+
+		if (Gp_role == GP_ROLE_DISPATCH)
+			mark_plan_general(plan);
+
+		return plan;
 	}
 
 	/* Suppress Append if there's only one surviving child rel */
