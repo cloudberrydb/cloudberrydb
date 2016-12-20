@@ -34,7 +34,6 @@
 static void ExecMaterialExplainEnd(PlanState *planstate, struct StringInfoData *buf);
 static void ExecChildRescan(MaterialState *node, ExprContext *exprCtxt);
 static void DestroyTupleStore(MaterialState *node);
-static void ExecMaterialResetWorkfileState(MaterialState *node);
 
 
 /* ----------------------------------------------------------------
@@ -134,14 +133,6 @@ ExecMaterial(MaterialState *node)
 		while (((Material *) node->ss.ps.plan)->cdb_strict
 				|| ma->share_type != SHARE_NOTSHARED)
 		{
-			/*
-			 * When reusing cached workfiles, we already have all the tuples,
-			 * and we don't need to read anything from subplan.
-			 */
-			if (node->cached_workfiles_found)
-			{
-				break;
-			}
 			TupleTableSlot *outerslot = ExecProcNode(outerPlanState(node));
 
 			if (TupIsNull(outerslot))
@@ -223,8 +214,6 @@ ExecMaterial(MaterialState *node)
 		PlanState  *outerNode;
 		TupleTableSlot *outerslot;
 
-		Assert(!node->cached_workfiles_found && "we shouldn't get here when using cached workfiles");
-
 		/*
 		 * We can only get here with forward==true, so no need to worry about
 		 * which direction the subplan will go.
@@ -304,7 +293,6 @@ ExecInitMaterial(Material *node, EState *estate, int eflags)
 	matstate->ts_markpos = NULL;
 	matstate->share_lk_ctxt = NULL;
 	matstate->ts_destroyed = false;
-	ExecMaterialResetWorkfileState(matstate);
 
 	/*
 	 * Miscellaneous initialization
@@ -542,16 +530,6 @@ DestroyTupleStore(MaterialState *node)
 	node->ts_markpos = NULL;
 	node->eof_underlying = false;
 	node->ts_destroyed = true;
-	ExecMaterialResetWorkfileState(node);
-}
-
-/*
- * Reset workfile caching state
- */
-static void
-ExecMaterialResetWorkfileState(MaterialState *node)
-{
-	node->cached_workfiles_found = false;
 }
 
 /*

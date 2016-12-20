@@ -2251,8 +2251,6 @@ typedef struct MaterialState
 	void	   *ts_pos;
 	void	   *ts_markpos;
 	void	   *share_lk_ctxt;
-
-	bool		cached_workfiles_found;  /* true if found matching and usable cached workfiles */
 } MaterialState;
 
 /* ----------------
