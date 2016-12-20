@@ -137,7 +137,8 @@ typedef enum
 	DO_BLOBS,
 	DO_BLOB_COMMENTS,
 	DO_EXTPROTOCOL,
-	DO_TYPE_STORAGE_OPTIONS
+	DO_TYPE_STORAGE_OPTIONS,
+	DO_TYPE_CACHE
 } DumpableObjectType;
 
 typedef struct _dumpableObject
@@ -193,6 +194,16 @@ typedef struct _typeInfo
 	struct _constraintInfo *domChecks;
 } TypeInfo;
 
+typedef struct _typeCache
+{
+	DumpableObject dobj;
+
+	Oid			typnsp;
+
+	Oid			arraytypoid;
+	char	   *arraytypname;
+	Oid			arraytypnsp;
+} TypeCache;
 
 typedef struct _typeStorageOptions
 {
@@ -506,6 +517,9 @@ extern void getDumpableObjects(DumpableObject ***objs, int *numObjs);
 
 extern void addObjectDependency(DumpableObject *dobj, DumpId refId);
 extern void removeObjectDependency(DumpableObject *dobj, DumpId refId);
+
+extern DumpableObject **buildIndexArray(void *objArray, int numObjs, Size objSize);
+extern DumpableObject *findObjectByOid(Oid oid, DumpableObject **indexArray, int numObjs);
 
 extern TableInfo *findTableByOid(Oid oid);
 extern TypeInfo *findTypeByOid(Oid oid);

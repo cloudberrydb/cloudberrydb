@@ -72,8 +72,6 @@ static void flagInhTables(TableInfo *tbinfo, int numTables,
 			  InhInfo *inhinfo, int numInherits);
 static void flagInhAttrs(TableInfo *tbinfo, int numTables,
 			 InhInfo *inhinfo, int numInherits);
-static DumpableObject **buildIndexArray(void *objArray, int numObjs,
-				Size objSize);
 static int	DOCatalogIdCompare(const void *p1, const void *p2);
 static int	ExtensionMemberIdCompare(const void *p1, const void *p2);
 static void findParentsByOid(TableInfo *self,
@@ -663,7 +661,7 @@ findObjectByCatalogId(CatalogId catalogId)
  *
  * Returns NULL for unknown OID
  */
-static DumpableObject *
+DumpableObject *
 findObjectByOid(Oid oid, DumpableObject **indexArray, int numObjs)
 {
 	DumpableObject **low;
@@ -701,7 +699,7 @@ findObjectByOid(Oid oid, DumpableObject **indexArray, int numObjs)
 /*
  * Build an index array of DumpableObject pointers, sorted by OID
  */
-static DumpableObject **
+DumpableObject **
 buildIndexArray(void *objArray, int numObjs, Size objSize)
 {
 	DumpableObject **ptrs;

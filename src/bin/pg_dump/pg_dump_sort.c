@@ -1126,6 +1126,8 @@ describeDumpableObject(DumpableObject *obj, char *buf, int bufsize)
 					 "BLOB COMMENTS  (ID %d)",
 					 obj->dumpId);
 			return;
+		case DO_TYPE_CACHE:
+			return;
 	}
 	/* shouldn't get here */
 	snprintf(buf, bufsize,

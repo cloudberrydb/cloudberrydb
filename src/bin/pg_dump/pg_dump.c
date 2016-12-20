@@ -99,6 +99,11 @@ int			postDataSchemaOnly;
 
 /* END MPP ADDITION */
 
+/* Cache for array types during binary_upgrade dumping */
+static TypeCache  	   *typecache;
+static DumpableObject **typecacheindex;
+static int				numtypecache;
+
 /* subquery used to convert user ID (eg, datdba) to user name */
 static const char *username_subquery;
 
@@ -2345,111 +2350,122 @@ binary_upgrade_set_type_oids_by_type_oid(Archive *fout, PQExpBuffer upgrade_buff
 	PQExpBuffer upgrade_query = createPQExpBuffer();
 	int			ntups;
 	PGresult   *upgrade_res;
-	Oid			pg_type_array_oid;
-	Oid			typnamespace;
-	char		arrtypname[NAMEDATALEN + 1];
+	int			i;
+	int			i_arr_oid;
+	int			i_arr_name;
+	int			i_arr_nsp;
+	int			i_oid;
+	int			i_name;
+	int			i_nsp;
+	TypeCache  *type;
 
-	/*
-	 * Query for the typnamespace oid. This can be refactored into the below
-	 * query for array type but for now this seems what will cause the least
-	 * amount of merge conflicts so it's kept separate.
-	 */
-	appendPQExpBuffer(upgrade_query,
-					  "SELECT typnamespace, typname "
-					  "FROM pg_catalog.pg_type "
-					  "WHERE pg_type.oid = '%u'::pg_catalog.oid;",
-					  pg_type_oid);
-	upgrade_res = PQexec(g_conn, upgrade_query->data);
-	check_sql_result(upgrade_res, g_conn, upgrade_query->data, PGRES_TUPLES_OK);
-
-	ntups = PQntuples(upgrade_res);
-	if (ntups != 1)
+	if (typecache == NULL)
 	{
-		write_msg(NULL, "ERROR: type %u doesn't have a namespace set", pg_type_oid);
+		if (g_fout->remoteVersion >= 80300)
+		{
+			appendPQExpBuffer(upgrade_query,
+							  "SELECT typ.oid as typoid, typ.typname, typ.typnamespace, "
+							  "       typ.typarray as arr_typoid, arr.typname as arr_typname, arr.typnamespace as arr_typnamespace "
+							  "FROM pg_catalog.pg_type typ "
+							  "  LEFT OUTER JOIN pg_catalog.pg_type arr ON typ.typarray = arr.oid "
+							  "WHERE typ.oid NOT IN (SELECT typarray FROM pg_type)");
+		}
+		else
+		{
+			/*
+			 * Query to get the array type of a base type in GPDB 4.3, should we
+			 * need to support older versions then this would have to be extended.
+			 */
+			appendPQExpBuffer(upgrade_query,
+							  "SELECT typ.oid as typoid, typ.typname, typ.typnamespace, "
+							  "       arr.oid as arr_typoid, arr.typname as arr_typname, arr.typnamespace as arr_typnamespace "
+							  "FROM pg_catalog.pg_type typ "
+							  "  LEFT OUTER JOIN pg_catalog.pg_type arr ON arr.typname = '_' || typ.typname "
+							  "WHERE typ.oid NOT IN (SELECT oid FROM pg_type WHERE substring(typname, 1, 1) = '_')");
+		}
+
+		upgrade_res = PQexec(g_conn, upgrade_query->data);
+		check_sql_result(upgrade_res, g_conn, upgrade_query->data, PGRES_TUPLES_OK);
+
+		ntups = PQntuples(upgrade_res);
+
+		if (ntups > 0)
+		{
+			i_oid = PQfnumber(upgrade_res, "typoid");
+			i_name = PQfnumber(upgrade_res, "typname");
+			i_nsp = PQfnumber(upgrade_res, "typnamespace");
+			i_arr_oid = PQfnumber(upgrade_res, "arr_typoid");
+			i_arr_name = PQfnumber(upgrade_res, "arr_typname");
+			i_arr_nsp = PQfnumber(upgrade_res, "arr_typnamespace");
+
+			typecache = calloc(ntups, sizeof(TypeCache));
+			numtypecache = ntups;
+
+			for (i = 0; i < ntups; i++)
+			{
+				typecache[i].dobj.objType = DO_TYPE_CACHE;
+				typecache[i].dobj.catId.oid = atooid(PQgetvalue(upgrade_res, i, i_oid));
+				typecache[i].dobj.name = strdup(PQgetvalue(upgrade_res, i, i_name));
+
+				typecache[i].typnsp = atooid(PQgetvalue(upgrade_res, i, i_nsp));
+
+				/*
+				 * Before PostgreSQL 8.3 arrays for composite types weren't supported
+				 * and base relation types didn't automatically have an array type
+				 * counterpart. If an array type isn't found we need to force a new
+				 * Oid to be allocated even in binary_upgrade mode which otherwise
+				 * work by preassigning Oids. Inject InvalidOid in the preassign call
+				 * to ensure we get a new Oid.
+				 */
+				if (PQgetisnull(upgrade_res, i, i_arr_name))
+				{
+					char array_name[NAMEDATALEN];
+
+					typecache[i].arraytypoid = InvalidOid,
+					typecache[i].arraytypnsp = atooid(PQgetvalue(upgrade_res, i, i_nsp));
+
+					snprintf(array_name, NAMEDATALEN, "_%s", PQgetvalue(upgrade_res, i, i_name));
+					typecache[i].arraytypname = strdup(array_name);
+				}
+				else
+				{
+					typecache[i].arraytypoid = atooid(PQgetvalue(upgrade_res, i, i_arr_oid));
+					typecache[i].arraytypname = strdup(PQgetvalue(upgrade_res, i, i_arr_name));
+					typecache[i].arraytypnsp = atooid(PQgetvalue(upgrade_res, i, i_arr_nsp));
+				}
+			}
+
+			typecacheindex = buildIndexArray(typecache, ntups, sizeof(TypeCache));
+		}
+
+		PQclear(upgrade_res);
+		destroyPQExpBuffer(upgrade_query);
+	}
+
+	/* Query the cached type information */
+	type = (TypeCache *) findObjectByOid(pg_type_oid, typecacheindex, numtypecache);
+
+	/* This shouldn't happen.. */
+	if (!type)
+	{
+		write_msg(NULL, "ERROR: didn't find in cache\n");
 		exit_nicely();
 	}
-	typnamespace = atooid(PQgetvalue(upgrade_res, 0, PQfnumber(upgrade_res, "typnamespace")));
-	snprintf(arrtypname, NAMEDATALEN + 1, "_%s",
-			 PQgetvalue(upgrade_res, 0, PQfnumber(upgrade_res, "typname")));
-
-	resetPQExpBuffer(upgrade_query);
-	PQclear(upgrade_res);
 
 	appendPQExpBuffer(upgrade_buffer, "\n-- For binary upgrade, must preserve pg_type oid\n");
 	appendPQExpBuffer(upgrade_buffer,
 					  "SELECT binary_upgrade.preassign_type_oid('%u'::pg_catalog.oid, "
 															   "'%s'::text, "
 															   "'%u'::pg_catalog.oid);\n\n",
-					  pg_type_oid, objname, typnamespace);
+					  pg_type_oid, type->dobj.name, type->typnsp);
 
-	if (g_fout->remoteVersion >= 80300)
-	{
-		appendPQExpBuffer(upgrade_query,
-						  "SELECT typarray "
-						  "FROM pg_catalog.pg_type "
-						  "WHERE pg_type.oid = '%u'::pg_catalog.oid;",
-						  pg_type_oid);
-	}
-	else
-	{
-		/* 
-		 * Query to get the array type of a base type in GPDB 4.3, should we
-		 * need to support older versions then this would have to be extended.
-		 */
-		appendPQExpBuffer(upgrade_query,
-						  "SELECT arr.oid as typarray "
-						  "FROM pg_catalog.pg_type arr "
-						  "WHERE arr.typelem = '%u'::pg_catalog.oid "
-						  "AND arr.typnamespace = '%u'::pg_catalog.oid "
-						  "AND arr.typname = ",
-						  pg_type_oid,
-						  typnamespace);
-		appendStringLiteralAH(upgrade_query, arrtypname, fout);
-	}
-
-	upgrade_res = PQexec(g_conn, upgrade_query->data);
-	check_sql_result(upgrade_res, g_conn, upgrade_query->data, PGRES_TUPLES_OK);
-
-	/* Expecting a single result only */
-	ntups = PQntuples(upgrade_res);
-	if (ntups == 0 && g_fout->remoteVersion < 80300)
-	{
-		appendPQExpBuffer(upgrade_buffer,
-						  "\n-- No array type found for type %u, injecting InvalidOid to force new OID assignment\n",
-						  pg_type_oid);
-		appendPQExpBuffer(upgrade_buffer,
-						  "SELECT binary_upgrade.preassign_arraytype_oid('%u'::pg_catalog.oid, "
-																		"'_%s'::text, "
-																		"'%u'::pg_catalog.oid);\n\n",
-						  InvalidOid, objname, typnamespace);
-		PQclear(upgrade_res);
-		destroyPQExpBuffer(upgrade_query);
-		return;
-	}
-	if (ntups != 1)
-	{
-		write_msg(NULL, ngettext("query returned %d row instead of one: %s\n",
-							   "query returned %d rows instead of one: %s\n",
-								 ntups),
-				  ntups, upgrade_query->data);
-		exit_nicely();
-	}
-
-	pg_type_array_oid = atooid(PQgetvalue(upgrade_res, 0, PQfnumber(upgrade_res, "typarray")));
-
-	if (OidIsValid(pg_type_array_oid))
-	{
-		appendPQExpBuffer(upgrade_buffer,
-			   "\n-- For binary upgrade, must preserve pg_type array oid\n");
-		appendPQExpBuffer(upgrade_buffer,
-						  "SELECT binary_upgrade.preassign_arraytype_oid('%u'::pg_catalog.oid, "
-																		"'_%s'::text, "
-																		"'%u'::pg_catalog.oid);\n\n",
-						  pg_type_array_oid, objname, typnamespace);
-	}
-
-	PQclear(upgrade_res);
-	destroyPQExpBuffer(upgrade_query);
+	appendPQExpBuffer(upgrade_buffer,
+		   "\n-- For binary upgrade, must preserve pg_type array oid\n");
+	appendPQExpBuffer(upgrade_buffer,
+					  "SELECT binary_upgrade.preassign_arraytype_oid('%u'::pg_catalog.oid, "
+																	"'%s'::text, "
+																	"'%u'::pg_catalog.oid);\n\n",
+					  type->arraytypoid, type->arraytypname, type->arraytypnsp);
 }
 
 static bool
@@ -6185,6 +6201,8 @@ dumpDumpableObject(Archive *fout, DumpableObject *dobj)
 						 false, "BLOB COMMENTS", "", "", NULL,
 						 NULL, 0,
 						 dumpBlobComments, NULL);
+			break;
+		case DO_TYPE_CACHE:
 			break;
 	}
 }
