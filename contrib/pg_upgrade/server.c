@@ -36,7 +36,7 @@ connectToServer(migratorContext *ctx, const char *db_name,
 	PGconn	   *conn;
 
 	snprintf(connectString, sizeof(connectString),
-			 "dbname = '%s' user = '%s' port = %d", db_name, ctx->user, port);
+			 "dbname = '%s' user = '%s' port = %d options='-c gp_session_role=utility'", db_name, ctx->user, port);
 
 	conn = PQconnectdb(connectString);
 
@@ -268,7 +268,7 @@ test_server_conn(migratorContext *ctx, int timeout, Cluster whichCluster)
 	bool		ret = false;
 
 	snprintf(con_opts, sizeof(con_opts),
-			 "dbname = 'template1' user = '%s' port = %d ", ctx->user, port);
+			 "dbname = 'template1' user = '%s' port = %d options='-c gp_session_role=utility'", ctx->user, port);
 
 	for (tries = 0; tries < timeout; tries++)
 	{

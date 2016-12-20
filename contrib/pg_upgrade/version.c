@@ -91,3 +91,51 @@ new_9_0_populate_pg_largeobject_metadata(migratorContext *ctx, bool check_mode,
 	else
 		check_ok(ctx);
 }
+
+
+/*
+ * new_gpdb5_0_invalidate_indexes()
+ *	new >= GPDB 5.0, old <= GPDB 4.3
+ *
+ * GPDB 5.0 follows the PostgreSQL 8.3 page format, while GPDB 4.3 used
+ * the 8.2 format. A new field was added to the page header, so we need
+ * mark all indexes as invalid.
+ */
+void
+new_gpdb5_0_invalidate_indexes(migratorContext *ctx, bool check_mode,
+							   Cluster whichCluster)
+{
+	int			dbnum;
+
+	prep_status(ctx, "Invalidating indexes in new cluster");
+
+	for (dbnum = 0; dbnum < ctx->old.dbarr.ndbs; dbnum++)
+	{
+		DbInfo	   *olddb = &ctx->old.dbarr.dbs[dbnum];
+		PGconn	   *conn = connectToServer(ctx, olddb->db_name, CLUSTER_NEW);
+		char		query[QUERY_ALLOC];
+
+		/*
+		 * GPDB doesn't allow hacking the catalogs without setting
+		 * allow_system_table_mods first.
+		 */
+		PQclear(executeQueryOrDie(ctx, conn,
+								  "set allow_system_table_mods='dml'"));
+
+		/*
+		 * check_mode doesn't do much interesting for this but at least
+		 * we'll know we are alloewed to change allow_system_table_mods
+		 * which is required
+		 */
+		if (!check_mode)
+		{
+			snprintf(query, sizeof(query),
+					 "UPDATE pg_index SET indisvalid = false WHERE indexrelid >= %u",
+					 FirstNormalObjectId);
+			PQclear(executeQueryOrDie(ctx, conn, query));
+		}
+		PQfinish(conn);
+	}
+
+	check_ok(ctx);
+}

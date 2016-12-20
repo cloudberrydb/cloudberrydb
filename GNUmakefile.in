@@ -24,6 +24,8 @@ all:
 	$(MAKE) -C contrib/gp_internal_tools all
 	$(MAKE) -C contrib/gp_cancel_query all
 	$(MAKE) -C contrib/indexscan all
+	$(MAKE) -C contrib/pg_upgrade_support all
+	$(MAKE) -C contrib/pg_upgrade all
 	$(MAKE) -C gpAux/extensions mapreduce
 	@echo "All of Greenplum Database successfully made. Ready to install."
 
@@ -42,6 +44,8 @@ install:
 	$(MAKE) -C contrib/gp_internal_tools $@
 	$(MAKE) -C contrib/gp_cancel_query $@
 	$(MAKE) -C contrib/indexscan $@ 
+	$(MAKE) -C contrib/pg_upgrade_support $@
+	$(MAKE) -C contrib/pg_upgrade $@
 	$(MAKE) -C gpMgmt $@
 	$(MAKE) -C gpAux/extensions $@
 
@@ -62,6 +66,8 @@ installdirs uninstall:
 	$(MAKE) -C contrib/gp_internal_tools $@
 	$(MAKE) -C contrib/gp_cancel_query $@
 	$(MAKE) -C contrib/indexscan $@ 
+	$(MAKE) -C contrib/pg_upgrade_support $@
+	$(MAKE) -C contrib/pg_upgrade $@
 
 distprep:
 #	$(MAKE) -C doc $@
@@ -87,6 +93,8 @@ clean:
 	$(MAKE) -C contrib/gp_internal_tools $@
 	$(MAKE) -C contrib/gp_cancel_query $@
 	$(MAKE) -C contrib/indexscan $@
+	$(MAKE) -C contrib/pg_upgrade_support $@
+	$(MAKE) -C contrib/pg_upgrade $@
 	$(MAKE) -C gpAux/extensions $@
 # Garbage from autoconf:
 	@rm -rf autom4te.cache/

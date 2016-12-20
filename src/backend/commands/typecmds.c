@@ -442,16 +442,20 @@ DefineType(List *names, List *parameters)
 					   NameListToString(analyzeName));
 
 	array_type = makeArrayTypeName(typeName, typeNamespace);
+	pg_type = heap_open(TypeRelationId, AccessShareLock);
 
 	/* Preassign array type OID so we can insert it in pg_type.typarray */
 	if (Gp_role == GP_ROLE_EXECUTE || IsBinaryUpgrade)
-		array_oid = GetPreassignedOidForType(typeNamespace, array_type);
-	else
 	{
-		pg_type = heap_open(TypeRelationId, AccessShareLock);
-		array_oid = GetNewOid(pg_type);
-		heap_close(pg_type, AccessShareLock);
+		array_oid = GetPreassignedOidForType(typeNamespace, array_type);
+
+		if (array_oid == InvalidOid && IsBinaryUpgrade)
+			array_oid = GetNewOid(pg_type);
 	}
+	else
+		array_oid = GetNewOid(pg_type);
+
+	heap_close(pg_type, AccessShareLock);
 
 	/*
 	 * now have TypeCreate do all the real work.

@@ -1618,7 +1618,8 @@ heap_create_with_catalog(const char *relname,
 	 * during initdb).	We create array types for regular relations, views,
 	 * and composite types ... but not, eg, for toast tables or sequences.
 	 *
-	 * Also not for the auxiliary heaps created for bitmap indexes.
+	 * Also not for the auxiliary heaps created for bitmap indexes or append-
+	 * only tables.
 	 */
 	if (IsUnderPostmaster && ((relkind == RELKIND_RELATION && !appendOnlyRel) ||
 							  relkind == RELKIND_VIEW ||
@@ -1630,8 +1631,19 @@ heap_create_with_catalog(const char *relname,
 
 		relarrayname = makeArrayTypeName(relname, relnamespace);
 
+		/*
+		 * If we are expected to get a preassigned Oid but receive InvalidOid,
+		 * get a new Oid. This can happen during upgrades from GPDB4 to 5 where
+		 * array types over relation rowtypes were introduced so there are no
+		 * pre-existing array types to dump from the old cluster
+		 */
 		if (Gp_role == GP_ROLE_EXECUTE || IsBinaryUpgrade)
+		{
 			new_array_oid = GetPreassignedOidForType(relnamespace, relarrayname);
+
+			if (new_array_oid == InvalidOid && IsBinaryUpgrade)
+				new_array_oid = GetNewOid(pg_type);
+		}
 		else
 			new_array_oid = GetNewOid(pg_type);
 		heap_close(pg_type, AccessShareLock);

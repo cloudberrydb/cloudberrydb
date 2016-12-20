@@ -3,11 +3,14 @@
  *
  *	main source file
  *
- *	Copyright (c) 2010, PostgreSQL Global Development Group
+ *	Portions Copyright (c) 2016, Pivotal Software Inc
+ *	Portions Copyright (c) 2010, PostgreSQL Global Development Group
  *	$PostgreSQL: pgsql/contrib/pg_upgrade/pg_upgrade.c,v 1.10.2.1 2010/07/13 20:15:51 momjian Exp $
  */
 
 #include "pg_upgrade.h"
+
+#include "catalog/pg_magic_oid.h"
 
 #ifdef HAVE_LANGINFO_H
 #include <langinfo.h>
@@ -17,7 +20,9 @@ static void disable_old_cluster(migratorContext *ctx);
 static void prepare_new_cluster(migratorContext *ctx);
 static void prepare_new_databases(migratorContext *ctx);
 static void create_new_objects(migratorContext *ctx);
+static void rebuild_persistent(migratorContext *ctx);
 static void copy_clog_xlog_xid(migratorContext *ctx);
+static void copy_distributedlog(migratorContext *ctx);
 static void set_frozenxids(migratorContext *ctx);
 static void setup(migratorContext *ctx, char *argv0, bool live_check);
 static void cleanup(migratorContext *ctx);
@@ -75,6 +80,7 @@ main(int argc, char **argv)
 	 */
 
 	copy_clog_xlog_xid(&ctx);
+	copy_distributedlog(&ctx);
 
 	/* New now using xids of the old system */
 
@@ -84,6 +90,8 @@ main(int argc, char **argv)
 
 	transfer_all_new_dbs(&ctx, &ctx.old.dbarr, &ctx.new.dbarr,
 						 ctx.old.pgdata, ctx.new.pgdata);
+
+	rebuild_persistent(&ctx);
 
 	/*
 	 * Assuming OIDs are only used in system tables, there is no need to
@@ -327,7 +335,7 @@ prepare_new_cluster(migratorContext *ctx)
 	 */
 	prep_status(ctx, "Analyzing all rows in the new cluster");
 	exec_prog(ctx, true,
-			  SYSTEMQUOTE "\"%s/vacuumdb\" --port %d --username \"%s\" "
+			  SYSTEMQUOTE "PGOPTIONS='-c gp_session_role=utility' \"%s/vacuumdb\" --port %d --username \"%s\" "
 			  "--all --analyze >> \"%s\" 2>&1" SYSTEMQUOTE,
 			  ctx->new.bindir, ctx->new.port, ctx->user,
 #ifndef WIN32
@@ -346,7 +354,7 @@ prepare_new_cluster(migratorContext *ctx)
 	 */
 	prep_status(ctx, "Freezing all rows on the new cluster");
 	exec_prog(ctx, true,
-			  SYSTEMQUOTE "\"%s/vacuumdb\" --port %d --username \"%s\" "
+			  SYSTEMQUOTE "PGOPTIONS='-c gp_session_role=utility' \"%s/vacuumdb\" --port %d --username \"%s\" "
 			  "--all --freeze >> \"%s\" 2>&1" SYSTEMQUOTE,
 			  ctx->new.bindir, ctx->new.port, ctx->user,
 #ifndef WIN32
@@ -382,7 +390,7 @@ prepare_new_databases(migratorContext *ctx)
 	install_system_support_functions(ctx);
 	prep_status(ctx, "Creating databases in the new cluster");
 	exec_prog(ctx, true,
-			  SYSTEMQUOTE "\"%s/psql\" --set ON_ERROR_STOP=on "
+			  SYSTEMQUOTE "PGOPTIONS='-c gp_session_role=utility' \"%s/psql\" --set ON_ERROR_STOP=on "
 			  /* --no-psqlrc prevents AUTOCOMMIT=off */
 			  "--no-psqlrc --port %d --username \"%s\" "
 			  "-f \"%s/%s\" --dbname template1 >> \"%s\"" SYSTEMQUOTE,
@@ -401,6 +409,15 @@ prepare_new_databases(migratorContext *ctx)
 	stop_postmaster(ctx, false, false);
 }
 
+static void
+rebuild_persistent(migratorContext *ctx)
+{
+	start_postmaster(ctx, CLUSTER_NEW, false);
+
+	restore_persistent_tables(ctx);
+
+	stop_postmaster(ctx, false, false);
+}
 
 static void
 create_new_objects(migratorContext *ctx)
@@ -412,7 +429,7 @@ create_new_objects(migratorContext *ctx)
 
 	prep_status(ctx, "Restoring database schema to new cluster");
 	exec_prog(ctx, true,
-			  SYSTEMQUOTE "\"%s/psql\" --set ON_ERROR_STOP=on "
+			  SYSTEMQUOTE "PGOPTIONS='-c gp_session_role=utility' \"%s/psql\" --set ON_ERROR_STOP=on "
 			  "--no-psqlrc --port %d --username \"%s\" "
 			  "-f \"%s/%s\" --dbname template1 >> \"%s\"" SYSTEMQUOTE,
 			  ctx->new.bindir, ctx->new.port, ctx->user, ctx->cwd,
@@ -425,15 +442,67 @@ create_new_objects(migratorContext *ctx)
 			  );
 	check_ok(ctx);
 
+	/* Restore contents of AO auxiliary tables */
+	restore_aosegment_tables(ctx);
+
 	/* regenerate now that we have db schemas */
 	dbarr_free(&ctx->new.dbarr);
 	get_db_and_rel_infos(ctx, &ctx->new.dbarr, CLUSTER_NEW);
 
+	/*
+	 * When upgrading from GPDB4, dump the OIDs of the created array types
+	 * before shutting down the new cluster
+	 */
+	if (GET_MAJOR_VERSION(ctx->old.major_version) <= 802)
+		old_GPDB4_dump_array_types(ctx, CLUSTER_NEW);
+
 	uninstall_support_functions(ctx);
+
+	/*
+	 * If we're upgrading from GPDB4, mark all indexes as invalid.
+	 * The page format is incompatible, and while convert heap
+	 * and AO tables automatically, we don't have similar code for
+	 * indexes. Also, the heap conversion relocates tuples, so
+	 * any indexes on heaps would need to be rebuilt for that
+	 * reason, anyway.
+	 */
+	if (GET_MAJOR_VERSION(ctx->old.major_version) <= 802)
+		new_gpdb5_0_invalidate_indexes(ctx, ctx->check, CLUSTER_NEW);
 
 	stop_postmaster(ctx, false, false);
 }
 
+/*
+ * In upgrading from GPDB4, copy the pg_distributedlog over in
+ * vanilla. The assumption that this works needs to be verified
+ */
+static void
+copy_distributedlog(migratorContext *ctx)
+{
+	char		old_dlog_path[MAXPGPATH];
+	char		new_dlog_path[MAXPGPATH];
+
+	prep_status(ctx, "Deleting new distributedlog");
+
+	snprintf(old_dlog_path, sizeof(old_dlog_path), "%s/pg_distributedlog", ctx->old.pgdata);
+	snprintf(new_dlog_path, sizeof(new_dlog_path), "%s/pg_distributedlog", ctx->new.pgdata);
+	if (rmtree(new_dlog_path, true) != true)
+		pg_log(ctx, PG_FATAL, "Unable to delete directory %s\n", new_dlog_path);
+	check_ok(ctx);
+
+	prep_status(ctx, "Copying old distributedlog to new server");
+	/* libpgport's copydir() doesn't work in FRONTEND code */
+#ifndef WIN32
+	exec_prog(ctx, true, SYSTEMQUOTE "%s \"%s\" \"%s\"" SYSTEMQUOTE,
+			  "cp -Rf",
+#else
+	/* flags: everything, no confirm, quiet, overwrite read-only */
+	exec_prog(ctx, true, SYSTEMQUOTE "%s \"%s\" \"%s\\\"" SYSTEMQUOTE,
+			  "xcopy /e /y /q /r",
+#endif
+			  old_dlog_path, new_dlog_path);
+	check_ok(ctx);
+}
 
 static void
 copy_clog_xlog_xid(migratorContext *ctx)
@@ -510,6 +579,14 @@ set_frozenxids(migratorContext *ctx)
 
 	conn_template1 = connectToServer(ctx, "template1", CLUSTER_NEW);
 
+	/*
+	 * GPDB doesn't allow hacking the catalogs without setting
+	 * allow_system_table_mods first.
+	 */
+	PQclear(executeQueryOrDie(ctx, conn_template1,
+							  "set allow_system_table_mods='dml'"));
+
+
 	/* set pg_database.datfrozenxid */
 	PQclear(executeQueryOrDie(ctx, conn_template1,
 							  "UPDATE pg_catalog.pg_database "
@@ -544,6 +621,13 @@ set_frozenxids(migratorContext *ctx)
 									  "WHERE datname = '%s'", datname));
 
 		conn = connectToServer(ctx, datname, CLUSTER_NEW);
+
+		/*
+		 * GPDB doesn't allow hacking the catalogs without setting
+		 * allow_system_table_mods first.
+		 */
+		PQclear(executeQueryOrDie(ctx, conn,
+								  "set allow_system_table_mods='dml'"));
 
 		/* set pg_class.relfrozenxid */
 		PQclear(executeQueryOrDie(ctx, conn,
@@ -603,6 +687,9 @@ cleanup(migratorContext *ctx)
 
 	if (ctx->debug_fd)
 		fclose(ctx->debug_fd);
+
+	if (ctx->debug)
+		return;
 
 	snprintf(filename, sizeof(filename), "%s/%s", ctx->cwd, ALL_DUMP_FILE);
 	unlink(filename);

@@ -100,7 +100,24 @@ check_old_cluster(migratorContext *ctx, bool live_check,
 	check_for_isn_and_int8_passing_mismatch(ctx, CLUSTER_OLD);
 
 	/* old = PG 8.3 checks? */
-	if (GET_MAJOR_VERSION(ctx->old.major_version) <= 803)
+	/*
+	 * All of these checks have been disabled in GPDB, since we're using
+	 * this to upgrade only to 8.3. Needs to be removed when we merge
+	 * with PostgreSQL 8.4.
+	 *
+	 * The change to name datatype's alignment was backported to GPDB 5.0,
+	 * so we need to check even when upgradeing to GPDB 5.0.
+	 */
+	if (GET_MAJOR_VERSION(ctx->old.major_version) <= 802)
+	{
+		old_8_3_check_for_name_data_type_usage(ctx, CLUSTER_OLD);
+
+		old_GPDB4_check_for_money_data_type_usage(ctx, CLUSTER_OLD);
+		old_GPDB4_check_no_free_aoseg(ctx, CLUSTER_OLD);
+	}
+
+	if (GET_MAJOR_VERSION(ctx->old.major_version) <= 803 &&
+		GET_MAJOR_VERSION(ctx->new.major_version) >= 804)
 	{
 		old_8_3_check_for_name_data_type_usage(ctx, CLUSTER_OLD);
 		old_8_3_check_for_tsquery_usage(ctx, CLUSTER_OLD);
@@ -122,9 +139,11 @@ check_old_cluster(migratorContext *ctx, bool live_check,
 				old_8_3_create_sequence_script(ctx, CLUSTER_OLD);
 	}
 
+#ifdef GPDB_90MERGE_FIXME
 	/* Pre-PG 9.0 had no large object permissions */
 	if (GET_MAJOR_VERSION(ctx->old.major_version) <= 804)
 		new_9_0_populate_pg_largeobject_metadata(ctx, true, CLUSTER_OLD);
+#endif
 
 	/*
 	 * While not a check option, we do this now because this is the only time
@@ -179,19 +198,26 @@ report_clusters_compatible(migratorContext *ctx)
 void
 issue_warnings(migratorContext *ctx, char *sequence_script_file_name)
 {
-	/* old = PG 8.3 warnings? */
-	if (GET_MAJOR_VERSION(ctx->old.major_version) <= 803)
-	{
-		start_postmaster(ctx, CLUSTER_NEW, true);
+	start_postmaster(ctx, CLUSTER_NEW, true);
 
+	/* old == GPDB4 warnings */
+	if (GET_MAJOR_VERSION(ctx->old.major_version) <= 802)
+	{
+		new_gpdb5_0_invalidate_indexes(ctx, false, CLUSTER_NEW);
+	}
+
+	/* old = PG 8.3 warnings? */
+	if (GET_MAJOR_VERSION(ctx->old.major_version) <= 803 &&
+		GET_MAJOR_VERSION(ctx->new.major_version) >= 804)
+	{
 		/* restore proper sequence values using file created from old server */
 		if (sequence_script_file_name)
 		{
 			prep_status(ctx, "Adjusting sequences");
 			exec_prog(ctx, true,
-				  SYSTEMQUOTE "\"%s/psql\" --set ON_ERROR_STOP=on "
-				  "--no-psqlrc --port %d --username \"%s\" "
-				  "-f \"%s\" --dbname template1 >> \"%s\"" SYSTEMQUOTE,
+					  SYSTEMQUOTE "\"%s/psql\" --set ON_ERROR_STOP=on "
+					  "--no-psqlrc --port %d --username \"%s\" "
+					  "-f \"%s\" --dbname template1 >> \"%s\"" SYSTEMQUOTE,
 					  ctx->new.bindir, ctx->new.port, ctx->user,
 					  sequence_script_file_name, ctx->logfile);
 			unlink(sequence_script_file_name);
@@ -201,16 +227,17 @@ issue_warnings(migratorContext *ctx, char *sequence_script_file_name)
 		old_8_3_rebuild_tsvector_tables(ctx, false, CLUSTER_NEW);
 		old_8_3_invalidate_hash_gin_indexes(ctx, false, CLUSTER_NEW);
 		old_8_3_invalidate_bpchar_pattern_ops_indexes(ctx, false, CLUSTER_NEW);
-		stop_postmaster(ctx, false, true);
 	}
 
+#ifdef GPDB_90MERGE_FIXME
 	/* Create dummy large object permissions for old < PG 9.0? */
 	if (GET_MAJOR_VERSION(ctx->old.major_version) <= 804)
 	{
-		start_postmaster(ctx, CLUSTER_NEW, true);
 		new_9_0_populate_pg_largeobject_metadata(ctx, false, CLUSTER_NEW);
-		stop_postmaster(ctx, false, true);
 	}
+#endif
+
+	stop_postmaster(ctx, false, true);
 }
 
 
@@ -248,8 +275,8 @@ check_cluster_versions(migratorContext *ctx)
 
 	/* We allow migration from/to the same major version for beta upgrades */
 
-	if (GET_MAJOR_VERSION(ctx->old.major_version) < 803)
-		pg_log(ctx, PG_FATAL, "This utility can only upgrade from PostgreSQL version 8.3 and later.\n");
+	if (GET_MAJOR_VERSION(ctx->old.major_version) < 802)
+		pg_log(ctx, PG_FATAL, "This utility can only upgrade from Greenplum version 4.3.XX and later.\n");
 
 	/* Only current PG version is supported as a target */
 	if (GET_MAJOR_VERSION(ctx->new.major_version) != GET_MAJOR_VERSION(PG_VERSION_NUM))
@@ -668,8 +695,16 @@ check_for_reg_data_type_usage(migratorContext *ctx, Cluster whichCluster)
 					i_attname;
 		DbInfo	   *active_db = &active_cluster->dbarr.dbs[dbnum];
 		PGconn	   *conn = connectToServer(ctx, active_db->db_name, whichCluster);
+		char		query[QUERY_ALLOC];
+		char	   *pg83_atts_str;
 
-		res = executeQueryOrDie(ctx, conn,
+		if (GET_MAJOR_VERSION(ctx->old.major_version) <= 802)
+			pg83_atts_str = "0";
+		else
+			pg83_atts_str =		"'pg_catalog.regconfig'::pg_catalog.regtype, "
+								"			'pg_catalog.regdictionary'::pg_catalog.regtype) AND ";
+
+		snprintf(query, sizeof(query),
 								"SELECT n.nspname, c.relname, a.attname "
 								"FROM	pg_catalog.pg_class c, "
 								"		pg_catalog.pg_namespace n, "
@@ -683,11 +718,15 @@ check_for_reg_data_type_usage(migratorContext *ctx, Cluster whichCluster)
 								"			'pg_catalog.regoperator'::pg_catalog.regtype, "
 /*	allow						"			'pg_catalog.regclass'::pg_catalog.regtype, " */
 								/* regtype.oid is preserved, so 'regtype' is OK */
-								"			'pg_catalog.regconfig'::pg_catalog.regtype, "
-								"			'pg_catalog.regdictionary'::pg_catalog.regtype) AND "
+								"			%s "
+								"			) AND "
 								"		c.relnamespace = n.oid AND "
 							  "		n.nspname != 'pg_catalog' AND "
-						 "		n.nspname != 'information_schema'");
+								"		n.nspname != 'information_schema'",
+				 pg83_atts_str);
+
+		
+		res = executeQueryOrDie(ctx, conn, query);
 
 		ntups = PQntuples(res);
 		i_nspname = PQfnumber(res, "nspname");

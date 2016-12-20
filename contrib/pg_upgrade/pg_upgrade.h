@@ -1,7 +1,8 @@
 /*
  *	pg_upgrade.h
  *
- *	Copyright (c) 2010, PostgreSQL Global Development Group
+ *	Portions Copyright (c) 2016, Pivotal Software Inc
+ *	Portions Copyright (c) 2010, PostgreSQL Global Development Group
  *	$PostgreSQL: pgsql/contrib/pg_upgrade/pg_upgrade.h,v 1.15.2.1 2010/07/25 03:47:33 momjian Exp $
  */
 
@@ -22,6 +23,8 @@
 #define LINE_ALLOC			4096
 #define QUERY_ALLOC			8192
 
+#define NUMERIC_ALLOC 100
+
 #define MIGRATOR_API_VERSION	1
 
 #define MESSAGE_WIDTH		"60"
@@ -33,6 +36,7 @@
 /* contains both global db information and CREATE DATABASE commands */
 #define GLOBALS_DUMP_FILE	"pg_upgrade_dump_globals.sql"
 #define DB_DUMP_FILE		"pg_upgrade_dump_db.sql"
+#define ARRAY_DUMP_FILE		"pg_upgrade_dump_arraytypes.sql"
 
 #ifndef WIN32
 #define pg_copy_file		copy_file
@@ -73,6 +77,61 @@
 #define TABLE_SPACE_SUBDIRS 201001111
 
 /*
+ * Extra information stored for each Append-only table.
+ * This is used to transfer the information from the auxiliary
+ * AO table to the new cluster.
+ */
+
+/* To hold contents of pg_visimap_<oid> */
+typedef struct
+{
+	int			segno;
+	int64		first_row_no;
+	char	   *visimap;		/* text representation of the "bit varying" field */
+} AOVisiMapInfo;
+
+typedef struct
+{
+	int			segno;
+	int			columngroup_no;
+	int64		first_row_no;
+	int64		minipage;		/* representation of the "bit varying" field */
+
+} AOBlkDir;
+
+/* To hold contents of pg_aoseg_<oid> */
+typedef struct
+{
+	int			segno;
+	int64		eof;
+	int64		tupcount;
+	int64		varblockcount;
+	int64		eofuncompressed;
+	int64		modcount;
+	int16		version;
+	int16		state;
+} AOSegInfo;
+
+/* To hold contents of pf_aocsseg_<oid> */
+typedef struct
+{
+	int         segno;
+	int64		tupcount;
+	int64		varblockcount;
+	char       *vpinfo;
+	int64		modcount;
+	int16		state;
+	int16		version;
+} AOCSSegInfo;
+
+typedef struct
+{
+	int16		attlen;
+	char		attalign;
+	bool		is_numeric;
+} AttInfo;
+
+/*
  * Each relation is represented by a relinfo structure.
  */
 typedef struct
@@ -80,10 +139,26 @@ typedef struct
 	char		nspname[NAMEDATALEN];	/* namespace name */
 	char		relname[NAMEDATALEN];	/* relation name */
 	Oid			reloid;			/* relation oid				 */
+	char		relstorage;
 	Oid			relfilenode;	/* relation relfile node	 */
 	Oid			toastrelid;		/* oid of the toast relation */
 	/* relation tablespace path, or "" for the cluster default */
-	char		tablespace[MAXPGPATH];	
+	char		tablespace[MAXPGPATH];
+
+	/* Extra information for append-only tables */
+	AOSegInfo  *aosegments;
+	AOCSSegInfo *aocssegments;
+	int			naosegments;
+	AOVisiMapInfo *aovisimaps;
+	int			naovisimaps;
+	AOBlkDir   *aoblkdirs;
+	int			naoblkdirs;
+
+	/* Extra information for heap tables */
+	bool		gpdb4_heap_conversion_needed;
+	bool		has_numerics;
+	AttInfo	   *atts;
+	int			natts;
 } RelInfo;
 
 typedef struct
@@ -105,6 +180,12 @@ typedef struct
 	char		old_relname[NAMEDATALEN];		/* old name of the relation */
 	char		new_nspname[NAMEDATALEN];		/* new name of the namespace */
 	char		new_relname[NAMEDATALEN];		/* new name of the relation */
+
+	/* Extra information for heap tables */
+	bool		gpdb4_heap_conversion_needed;
+	bool		has_numerics;
+	AttInfo	   *atts;
+	int			natts;
 } FileNameMap;
 
 /*
@@ -358,6 +439,15 @@ void		get_pg_database_relfilenode(migratorContext *ctx, Cluster whichCluster);
 const char *transfer_all_new_dbs(migratorContext *ctx, DbInfoArr *olddb_arr,
 				   DbInfoArr *newdb_arr, char *old_pgdata, char *new_pgdata);
 
+/* aotable.c */
+void		restore_aosegment_tables(migratorContext *ctx);
+void		restore_persistent_tables(migratorContext *ctx);
+
+/* gpdb4_heap_convert.c */
+const char *convert_gpdb4_heap_file(migratorContext *ctx,
+									const char *src, const char *dst,
+									bool has_numerics, AttInfo *atts, int natts);
+void		finish_gpdb4_page_converter(migratorContext *ctx);
 
 /* tablespace.c */
 
@@ -402,6 +492,8 @@ unsigned int str2uint(const char *str);
 
 void new_9_0_populate_pg_largeobject_metadata(migratorContext *ctx,
 									  bool check_mode, Cluster whichCluster);
+void new_gpdb5_0_invalidate_indexes(migratorContext *ctx, bool check_mode,
+									Cluster whichCluster);
 
 /* version_old_8_3.c */
 
@@ -419,3 +511,8 @@ void old_8_3_invalidate_bpchar_pattern_ops_indexes(migratorContext *ctx,
 									  bool check_mode, Cluster whichCluster);
 char *old_8_3_create_sequence_script(migratorContext *ctx,
 							   Cluster whichCluster);
+
+/* version_old_gpdb4.c */
+void old_GPDB4_dump_array_types(migratorContext *ctx, Cluster whichCluster);
+void old_GPDB4_check_for_money_data_type_usage(migratorContext *ctx, Cluster whichCluster);
+void old_GPDB4_check_no_free_aoseg(migratorContext *ctx, Cluster whichCluster);

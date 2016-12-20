@@ -939,7 +939,6 @@ AppendOnlyExecutorReadBlock_Init(
 	executorReadBlock->storageRead = storageRead;
 
 	MemoryContextSwitchTo(oldcontext);
-
 }
 
 /*
@@ -953,6 +952,12 @@ AppendOnlyExecutorReadBlock_Finish(
 	{
 		pfree(executorReadBlock->uncompressedBuffer);
 		executorReadBlock->uncompressedBuffer = NULL;
+	}
+
+	if (executorReadBlock->numericAtts)
+	{
+		pfree(executorReadBlock->numericAtts);
+		executorReadBlock->numericAtts = NULL;
 	}
 }
 
@@ -968,17 +973,20 @@ AppendOnlyExecutorReadBlock_ResetCounts(
  * understood by the rest of the system.
  */
 static MemTuple
-upgrade_tuple(MemTuple mtup, MemTupleBinding *pbind, int formatversion, bool *shouldFree)
+upgrade_tuple(AppendOnlyExecutorReadBlock *executorReadBlock,
+			  MemTuple mtup, MemTupleBinding *pbind, int formatversion, bool *shouldFree)
 {
 	TupleDesc	tupdesc = pbind->tupdesc;
 	const int	natts = tupdesc->natts;
 	MemTuple	newtuple;
+	int			i;
 
 	static Datum *values = NULL;
 	static bool *isnull = NULL;
 	static int nallocated = 0;
 
 	bool		convert_alignment = false;
+	bool		convert_numerics = false;
 
 	/*
 	 * MPP-7372: If the AO table was created before the fix for this issue, it may
@@ -990,7 +998,36 @@ upgrade_tuple(MemTuple mtup, MemTupleBinding *pbind, int formatversion, bool *sh
 		memtuple_has_misaligned_attribute(mtup, pbind))
 		convert_alignment = true;
 
-	if (!convert_alignment)
+	if (PG82NumericConversionNeeded(formatversion))
+	{
+		/*
+		 * On first call, figure out which columns are numerics, or domains
+		 * over numerics.
+		 */
+		if (executorReadBlock->numericAtts == NULL)
+		{
+			int			n;
+
+			executorReadBlock->numericAtts = (int *) palloc(natts * sizeof(int));
+
+			n = 0;
+			for (i = 0; i < natts; i++)
+			{
+				Oid			typeoid;
+
+				typeoid = getBaseType(tupdesc->attrs[i]->atttypid);
+				if (typeoid == NUMERICOID)
+					executorReadBlock->numericAtts[n++] = i;
+			}
+			executorReadBlock->numNumericAtts = n;
+		}
+
+		/* If there were any numeric columns, we need to conver them. */
+		if (executorReadBlock->numNumericAtts > 0)
+			convert_numerics = true;
+	}
+
+	if (!convert_alignment && !convert_numerics)
 	{
 		/* No conversion required. Return the original tuple unmodified. */
 		*shouldFree = false;
@@ -1026,6 +1063,41 @@ upgrade_tuple(MemTuple mtup, MemTupleBinding *pbind, int formatversion, bool *sh
 		newtuple = memtuple_copy_to(mtup, pbind, NULL, NULL);
 	}
 
+	/*
+	 * NOTE: we do this *after* creating the new tuple, so that we can
+	 * modify the new, copied, tuple in-place.
+	 */
+	if (convert_numerics)
+	{
+		int			i;
+
+		/*
+		 * Get pointers to the datums within the tuple
+		 */
+		memtuple_deform(newtuple, pbind, values, isnull);
+
+		for (i = 0; i < executorReadBlock->numNumericAtts; i++)
+		{
+			/*
+			 * Before PostgreSQL 8.3, the n_weight and n_sign_dscale fields
+			 * were the other way 'round. Swap them.
+			 */
+			Datum		datum;
+			char	   *numericdata;
+			uint16		tmp;
+
+			if (isnull[executorReadBlock->numericAtts[i]])
+				continue;
+
+			datum = values[executorReadBlock->numericAtts[i]];
+			numericdata = VARDATA_ANY(DatumGetPointer(datum));
+
+			memcpy(&tmp, &numericdata[0], 2);
+			memcpy(&numericdata[0], &numericdata[2], 2);
+			memcpy(&numericdata[2], &tmp, 2);
+		}
+	}
+
 	*shouldFree = true;
 	return newtuple;
 }
@@ -1057,7 +1129,7 @@ AppendOnlyExecutorReadBlock_ProcessTuple(
 
 		/* If the tuple is not in the latest format, convert it */
 		if (formatVersion < AORelationVersion_GetLatest())
-			tuple = upgrade_tuple(tuple, slot->tts_mt_bind, formatVersion, &shouldFree);
+			tuple = upgrade_tuple(executorReadBlock, tuple, slot->tts_mt_bind, formatVersion, &shouldFree);
 		ExecStoreMinimalTuple(tuple, slot, shouldFree);
 		slot_set_ctid(slot, &fake_ctid);
 	}

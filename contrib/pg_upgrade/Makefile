@@ -11,6 +11,8 @@ OBJS = check.o controldata.o dump.o exec.o file.o function.o info.o \
        option.o page.o pg_upgrade.o relfilenode.o server.o \
        tablespace.o util.o version.o version_old_8_3.o $(WIN32RES)
 
+OBJS += aotable.o gpdb4_heap_convert.o version_old_gpdb4.o
+
 PG_CPPFLAGS  = -DFRONTEND -DDLSUFFIX=\"$(DLSUFFIX)\" -I$(srcdir) -I$(libpq_srcdir)
 PG_LIBS = $(libpq_pgport)
 

@@ -41,6 +41,7 @@
 #include "utils/syscache.h"
 #include "storage/bufpage.h"
 #include "utils/faultinjector.h"
+#include "postmaster/bgwriter.h"
 
 static void
 PersistentBuild_NonTransactionTruncate(RelFileNode *relFileNode)
@@ -615,10 +616,10 @@ PersistentBuild_BuildDb(
 	/* 
 	 * Since we have written XLOG records with <persistentTid,
 	 * persistentSerialNum> of zeroes because of the gp_before_persistence_work
-	 * GUC, lets do a checkpoint to force out all buffer pool pages so we never
-	 * try to redo those XLOG records in Crash Recovery.
+	 * GUC, lets request a checkpoint to force out all buffer pool pages so we
+	 * never try to redo those XLOG records in Crash Recovery.
 	 */
-	CreateCheckPoint(CHECKPOINT_IMMEDIATE | CHECKPOINT_FORCE | CHECKPOINT_WAIT);
+	RequestCheckpoint(CHECKPOINT_IMMEDIATE | CHECKPOINT_FORCE | CHECKPOINT_WAIT);
 
 	return count;
 }

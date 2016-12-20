@@ -189,6 +189,30 @@ get_control_data(migratorContext *ctx, ClusterInfo *cluster, bool live_check)
 			cluster->controldata.nxtlogseg = str2uint(p);
 			got_log_seg = true;
 		}
+		/* GPDB 4.3 (and PostgreSQL 8.2) wording of the above two. */
+		else if ((p = strstr(bufin, "Current log file ID:")) != NULL)
+		{
+			p = strchr(p, ':');
+
+			if (p == NULL || strlen(p) <= 1)
+				pg_log(ctx, PG_FATAL, "%d: controldata retrieval problem\n", __LINE__);
+
+			p++;				/* removing ':' char */
+			cluster->controldata.logid = str2uint(p);
+			got_log_id = true;
+		}
+		else if ((p = strstr(bufin, "Next log file segment:")) != NULL)
+		{
+			p = strchr(p, ':');
+
+			if (p == NULL || strlen(p) <= 1)
+				pg_log(ctx, PG_FATAL, "%d: controldata retrieval problem\n", __LINE__);
+
+			p++;				/* removing ':' char */
+			cluster->controldata.nxtlogseg = str2uint(p);
+			got_log_seg = true;
+		}
+		/*---*/
 		else if ((p = strstr(bufin, "Latest checkpoint's TimeLineID:")) != NULL)
 		{
 			p = strchr(p, ':');
@@ -400,7 +424,7 @@ get_control_data(migratorContext *ctx, ClusterInfo *cluster, bool live_check)
 		(!live_check && !got_log_seg) ||
 		!got_tli ||
 		!got_align || !got_blocksz || !got_largesz || !got_walsz ||
-		!got_walseg || !got_ident || !got_index || !got_toast ||
+		!got_walseg || !got_ident || !got_index || /* !got_toast || */
 		!got_date_is_int || !got_float8_pass_by_value)
 	{
 		pg_log(ctx, PG_REPORT,
@@ -442,8 +466,10 @@ get_control_data(migratorContext *ctx, ClusterInfo *cluster, bool live_check)
 		if (!got_index)
 			pg_log(ctx, PG_REPORT, "  maximum number of indexed columns\n");
 
+#if 0	/* not mandatory in GPDB, see above */
 		if (!got_toast)
 			pg_log(ctx, PG_REPORT, "  maximum TOAST chunk size\n");
+#endif
 
 		if (!got_date_is_int)
 			pg_log(ctx, PG_REPORT, "  dates/times are integers?\n");
@@ -495,8 +521,16 @@ check_control_data(migratorContext *ctx, ControlData *oldctrl,
 		pg_log(ctx, PG_FATAL,
 			   "old and new pg_controldata maximum indexed columns are invalid or do not match\n");
 
+	/*
+	 * PostgreSQL's pg_upgrade checks for the maximum TOAST chunk size, because
+	 * the tuptoaster code assumes all chunks to have the same size. GPDB's
+	 * tuptoaster code has been modified to work with any chunk size, to support
+	 * upgrading from GPDB 4.3 to 5.0, because the chunk size was changed between
+	 * those releases (that is, between PostgreSQL 8.2 and 8.3). Hence,
+	 * 'got_toast' is not mandatory in GPDB.
+	 */
 	if (oldctrl->toast == 0 || oldctrl->toast != newctrl->toast)
-		pg_log(ctx, PG_FATAL,
+		pg_log(ctx, PG_WARNING,
 			   "old and new pg_controldata maximum TOAST chunk sizes are invalid or do not match\n");
 
 	if (oldctrl->date_is_int != newctrl->date_is_int)

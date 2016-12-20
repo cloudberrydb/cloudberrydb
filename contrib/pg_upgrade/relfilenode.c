@@ -18,7 +18,9 @@ static void transfer_single_new_db(migratorContext *ctx, pageCnvCtx *pageConvert
 static void transfer_relfile(migratorContext *ctx, pageCnvCtx *pageConverter,
 				 const char *fromfile, const char *tofile,
 				 const char *oldnspname, const char *oldrelname,
-				 const char *newnspname, const char *newrelname);
+				 const char *newnspname, const char *newrelname,
+				 bool gpdb4_heap_conversion_needed,
+				 bool has_numerics, AttInfo *atts, int natts);
 
 /* used by scandir(), must be global */
 char		scandir_file_pattern[MAXPGPATH];
@@ -36,7 +38,7 @@ transfer_all_new_dbs(migratorContext *ctx, DbInfoArr *olddb_arr,
 	int			dbnum;
 	const char *msg = NULL;
 
-	prep_status(ctx, "Restoring user relation files\n");
+	prep_status(ctx, "Restoring user relation files");
 
 	for (dbnum = 0; dbnum < newdb_arr->ndbs; dbnum++)
 	{
@@ -137,7 +139,9 @@ transfer_single_new_db(migratorContext *ctx, pageCnvCtx *pageConverter,
 		unlink(new_file);
 		transfer_relfile(ctx, pageConverter, old_file, new_file,
 						 maps[mapnum].old_nspname, maps[mapnum].old_relname,
-						 maps[mapnum].new_nspname, maps[mapnum].new_relname);
+						 maps[mapnum].new_nspname, maps[mapnum].new_relname,
+						 maps[mapnum].gpdb4_heap_conversion_needed,
+						 maps[mapnum].has_numerics, maps[mapnum].atts, maps[mapnum].natts);
 
 		/* fsm/vm files added in PG 8.4 */
 		if (GET_MAJOR_VERSION(ctx->old.major_version) >= 804)
@@ -158,7 +162,8 @@ transfer_single_new_db(migratorContext *ctx, pageCnvCtx *pageConverter,
 				unlink(new_file);
 				transfer_relfile(ctx, pageConverter, old_file, new_file,
 						  maps[mapnum].old_nspname, maps[mapnum].old_relname,
-						 maps[mapnum].new_nspname, maps[mapnum].new_relname);
+								 maps[mapnum].new_nspname, maps[mapnum].new_relname,
+								 false, false, NULL, 0);
 
 				pg_free(namelist[numFiles]);
 			}
@@ -186,7 +191,9 @@ transfer_single_new_db(migratorContext *ctx, pageCnvCtx *pageConverter,
 			unlink(new_file);
 			transfer_relfile(ctx, pageConverter, old_file, new_file,
 						  maps[mapnum].old_nspname, maps[mapnum].old_relname,
-						 maps[mapnum].new_nspname, maps[mapnum].new_relname);
+							 maps[mapnum].new_nspname, maps[mapnum].new_relname,
+							 maps[mapnum].gpdb4_heap_conversion_needed,
+							 maps[mapnum].has_numerics, maps[mapnum].atts, maps[mapnum].natts);
 
 			pg_free(namelist[numFiles]);
 		}
@@ -204,9 +211,23 @@ transfer_single_new_db(migratorContext *ctx, pageCnvCtx *pageConverter,
 static void
 transfer_relfile(migratorContext *ctx, pageCnvCtx *pageConverter, const char *oldfile,
 		 const char *newfile, const char *oldnspname, const char *oldrelname,
-				 const char *newnspname, const char *newrelname)
+				 const char *newnspname, const char *newrelname,
+				 bool gpdb4_heap_conversion_needed,
+				 bool has_numerics, AttInfo *atts, int natts)
 {
 	const char *msg;
+
+	if (gpdb4_heap_conversion_needed)
+	{
+		pg_log(ctx, PG_INFO, "copying and converting %s to %s\n", oldfile, newfile);
+
+		if ((msg = convert_gpdb4_heap_file(ctx, oldfile, newfile,
+										   has_numerics, atts, natts)) != NULL)
+			pg_log(ctx, PG_FATAL, "error while copying %s.%s(%s) to %s.%s(%s): %s\n",
+				   oldnspname, oldrelname, oldfile, newnspname, newrelname, newfile, msg);
+
+		return;
+	}
 
 	if ((ctx->transfer_mode == TRANSFER_MODE_LINK) && (pageConverter != NULL))
 		pg_log(ctx, PG_FATAL, "this migration requires page-by-page conversion, "

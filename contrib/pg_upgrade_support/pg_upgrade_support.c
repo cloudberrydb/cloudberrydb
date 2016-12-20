@@ -106,10 +106,13 @@ preassign_arraytype_oid(PG_FUNCTION_ARGS)
 	Oid			typnamespace = PG_GETARG_OID(2);
 
 	if (Gp_role == GP_ROLE_UTILITY)
-	{
-		AddPreassignedOidFromBinaryUpgrade(typoid, TypeRelationId, objname,
-						typnamespace, InvalidOid, InvalidOid);
-	}
+		PG_RETURN_VOID();
+
+	if (typoid == InvalidOid && GpIdentity.dbid != MASTER_DBID)
+		PG_RETURN_VOID();
+
+	AddPreassignedOidFromBinaryUpgrade(typoid, TypeRelationId, objname,
+								typnamespace, InvalidOid, InvalidOid);
 
 	PG_RETURN_VOID();
 }
