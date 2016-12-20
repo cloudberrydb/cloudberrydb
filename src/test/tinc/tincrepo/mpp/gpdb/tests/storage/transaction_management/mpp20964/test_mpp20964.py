@@ -25,9 +25,10 @@ class test_mpp20964(MPPTestCase):
 
     def check_lock_corruption(self):
         """
-        Check if pg_locks has records with transaction = 0, which is corrupted.
+        Check if pg_locks has records with NULL pid or mppsessionid = 0.
+        These must be corrupted lock entries.
         """
-        sql = "SELECT count(*) FROM pg_locks WHERE transaction = 0"
+        sql = "SELECT count(*) FROM pg_locks WHERE pid IS NULL OR mppsessionid = 0"
         # Use -A and -t, suppress -a, to get only the number.
         psql = PSQL(sql_cmd=sql, flags='-A -t')
         psql.run()
@@ -37,7 +38,7 @@ class test_mpp20964(MPPTestCase):
 
     def test_mpp20964(self):
         """
-        
+
         @description Test MPP-20964, uncleaned lock table by pg_terminate_backend
         @created 2013-08-21 00:00:00
         @modified 2013-08-21 00:00:00
@@ -75,11 +76,11 @@ class test_mpp20964(MPPTestCase):
             FROM gp_dist_random('gp_id')
             WHERE gp_segment_id = 0
           )s
-          WHERE sess_id <> current_setting('gp_session_id')
+          WHERE sess_id <> current_setting('gp_session_id')::int
           UNION
           SELECT pg_terminate_backend(procpid)
           FROM pg_stat_activity
-          WHERE sess_id <> current_setting('gp_session_id')
+          WHERE sess_id <> current_setting('gp_session_id')::int
         """
         PSQL.run_sql_command(sql)
 
