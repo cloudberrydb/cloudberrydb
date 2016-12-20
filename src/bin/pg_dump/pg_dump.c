@@ -27,6 +27,7 @@
  *
  * IDENTIFICATION
  *	  $PostgreSQL: pgsql/src/bin/pg_dump/pg_dump.c,v 1.482.2.2 2009/04/01 18:54:33 tgl Exp $
+e
  *
  *-------------------------------------------------------------------------
  */
@@ -131,6 +132,8 @@ static int	use_setsessauth = 0;
 
 /* default, if no "inclusion" switches appear, is to dump everything */
 static bool include_everything = true;
+
+static int	binary_upgrade = 0;
 
 char		g_opaque_type[10];	/* name for the opaque type */
 
@@ -383,7 +386,8 @@ main(int argc, char **argv)
 	/* static int	outputNoTablespaces = 0; */
 	static int	use_setsessauth = 0;
 
-	static struct option long_options[] = {
+	struct option long_options[] = {
+		{"binary-upgrade", no_argument, &binary_upgrade, 1},	/* not documented */
 		{"data-only", no_argument, NULL, 'a'},
 		{"blobs", no_argument, NULL, 'b'},
 		{"clean", no_argument, NULL, 'c'},
@@ -4393,11 +4397,11 @@ getTableAttrs(TableInfo *tblinfo, int numTables)
 	int			i_attnotnull;
 	int			i_atthasdef;
 	int			i_attisdropped;
-	int			i_attislocal;
 	int			i_attlen;
+	int			i_attalign;
+	int			i_attislocal;
 	int			i_attndims;
 	int			i_attbyval;
-	int			i_attalign;
 	int			i_attencoding;
 	PGresult   *res;
 	int			ntups;
@@ -4440,7 +4444,8 @@ getTableAttrs(TableInfo *tblinfo, int numTables)
 		appendPQExpBuffer(q, "SELECT a.attnum, a.attname, a.atttypmod, a.attstattarget, a.attstorage, t.typstorage, "
 						  "a.attlen, a.attndims, a.attbyval, a.attalign, "		/* Added for dropped
 																				 * column reconstruction */
-				  "a.attnotnull, a.atthasdef, a.attisdropped, a.attislocal, "
+				  "a.attnotnull, a.atthasdef, a.attisdropped, "
+						  "a.attlen, a.attalign, a.attislocal, "
 				   "pg_catalog.format_type(t.oid,a.atttypmod) as atttypname ");
 		if (gp_attribute_encoding_available)
 			appendPQExpBuffer(q, ", pg_catalog.array_to_string(e.attoptions, ',') as attencoding ");
@@ -4468,6 +4473,8 @@ getTableAttrs(TableInfo *tblinfo, int numTables)
 		i_attnotnull = PQfnumber(res, "attnotnull");
 		i_atthasdef = PQfnumber(res, "atthasdef");
 		i_attisdropped = PQfnumber(res, "attisdropped");
+		i_attlen = PQfnumber(res, "attlen");
+		i_attalign = PQfnumber(res, "attalign");
 		i_attislocal = PQfnumber(res, "attislocal");
 		i_attlen = PQfnumber(res, "attlen");
 		i_attndims = PQfnumber(res, "attndims");
@@ -4483,6 +4490,8 @@ getTableAttrs(TableInfo *tblinfo, int numTables)
 		tbinfo->attstorage = (char *) malloc(ntups * sizeof(char));
 		tbinfo->typstorage = (char *) malloc(ntups * sizeof(char));
 		tbinfo->attisdropped = (bool *) malloc(ntups * sizeof(bool));
+		tbinfo->attlen = (int *) malloc(ntups * sizeof(int));
+		tbinfo->attalign = (char *) malloc(ntups * sizeof(char));
 		tbinfo->attislocal = (bool *) malloc(ntups * sizeof(bool));
 		tbinfo->notnull = (bool *) malloc(ntups * sizeof(bool));
 		tbinfo->inhNotNull = (bool *) malloc(ntups * sizeof(bool));
@@ -4505,6 +4514,8 @@ getTableAttrs(TableInfo *tblinfo, int numTables)
 			tbinfo->attstorage[j] = *(PQgetvalue(res, j, i_attstorage));
 			tbinfo->typstorage[j] = *(PQgetvalue(res, j, i_typstorage));
 			tbinfo->attisdropped[j] = (PQgetvalue(res, j, i_attisdropped)[0] == 't');
+			tbinfo->attlen[j] = atoi(PQgetvalue(res, j, i_attlen));
+			tbinfo->attalign[j] = *(PQgetvalue(res, j, i_attalign));
 			tbinfo->attislocal[j] = (PQgetvalue(res, j, i_attislocal)[0] == 't');
 			tbinfo->notnull[j] = (PQgetvalue(res, j, i_attnotnull)[0] == 't');
 			tbinfo->attrdefs[j] = NULL; /* fix below */
@@ -4523,6 +4534,21 @@ getTableAttrs(TableInfo *tblinfo, int numTables)
 
 		PQclear(res);
 
+
+		/*
+		 *	ALTER TABLE DROP COLUMN clears pg_attribute.atttypid, so we
+		 *	set the column data type to 'TEXT;  we will later drop the
+		 *	column.
+		 */
+		if (binary_upgrade)
+		{
+			for (j = 0; j < ntups; j++)
+			{
+				if (tbinfo->attisdropped[j])
+					tbinfo->atttypnames[j] = strdup("TEXT");
+			}
+		}
+			
 		/*
 		 * Get info about column defaults
 		 */
@@ -4712,7 +4738,8 @@ getTableAttrs(TableInfo *tblinfo, int numTables)
 bool
 shouldPrintColumn(TableInfo *tbinfo, int colno)
 {
-	return (tbinfo->attislocal[colno] && !tbinfo->attisdropped[colno]);
+	return (tbinfo->attislocal[colno] &&
+			(!tbinfo->attisdropped[colno] || binary_upgrade));
 }
 
 
@@ -9788,9 +9815,57 @@ dumpTableSchema(Archive *fout, TableInfo *tbinfo)
 		}
 
 		/*
+		 * For binary-compatible heap files, we create dropped columns
+		 * above and drop them here.
+		 */
+		if (binary_upgrade)
+		{
+			for (j = 0; j < tbinfo->numatts; j++)
+			{
+				if (tbinfo->attisdropped[j])
+				{
+					appendPQExpBuffer(q, "ALTER TABLE ONLY %s ",
+									  fmtId(tbinfo->dobj.name));
+					appendPQExpBuffer(q, "DROP COLUMN %s;\n",
+									  fmtId(tbinfo->attnames[j]));
+
+					/*
+					 *	ALTER TABLE DROP COLUMN clears pg_attribute.atttypid,
+					 *	so we have to set pg_attribute.attlen and
+					 *	pg_attribute.attalign values because that is what
+					 *	is used to skip over dropped columns in the heap tuples.
+					 *	We have atttypmod, but it seems impossible to know the
+					 *	correct data type that will yield pg_attribute values
+					 *	that match the old installation.
+					 *	See comment in backend/catalog/heap.c::RemoveAttributeById()
+					 */
+					appendPQExpBuffer(q, "\n-- For binary upgrade, recreate dropped column's length and alignment.\n");
+					appendPQExpBuffer(q, "UPDATE pg_attribute\n"
+										 "SET attlen = %d, "
+										 "attalign = '%c'\n"
+										 "WHERE	attname = '%s'\n"
+										 "	AND attrelid = \n"
+										 "	(\n"
+										 "		SELECT oid\n"
+										 "		FROM pg_class\n"
+										 "		WHERE	relnamespace = "
+										 "(SELECT oid FROM pg_namespace "
+										 "WHERE nspname = CURRENT_SCHEMA)\n"
+										 "			AND relname = '%s'\n"
+										 "	);",
+										 tbinfo->attlen[j],
+										 tbinfo->attalign[j],
+										 tbinfo->attnames[j],
+										 tbinfo->dobj.name);
+				}
+			}
+		}
+	
+		/*
 		 * Dump additional per-column properties that we can't handle in the
 		 * main CREATE TABLE command.
 		 */
+		/* Loop dumping statistics and storage statements */
 		for (j = 0; j < tbinfo->numatts; j++)
 		{
 			/* None of this applies to dropped columns */
