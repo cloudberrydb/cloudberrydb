@@ -103,6 +103,7 @@
 #include "catalog/pg_ts_dict.h"
 #include "catalog/pg_ts_parser.h"
 #include "catalog/pg_ts_template.h"
+#include "catalog/pg_type.h"
 #include "catalog/oid_dispatch.h"
 #include "cdb/cdbvars.h"
 #include "nodes/pg_list.h"
@@ -559,6 +560,65 @@ GetPreassignedOidForType(Oid namespaceOid, const char *typname)
 	return oid;
 }
 
+/* ----------------------------------------------------------------
+ * Functions for use in binary-upgrade mode
+ * ----------------------------------------------------------------
+ */
+
+/*
+ * Remember an OID which is set from loading a database dump performed
+ * using the binary-upgrade flag.
+ */
+void
+AddPreassignedOidFromBinaryUpgrade(Oid oid, Oid catalog, char *objname,
+								   Oid namespaceOid, Oid keyOid1, Oid keyOid2)
+{
+	OidAssignment assignment;
+	MemoryContext oldcontext;
+
+	if (!IsBinaryUpgrade)
+		elog(ERROR, "AddPreassignedOidFromBinaryUpgrade called, but not in binary upgrade mode");
+
+	if (Gp_role != GP_ROLE_UTILITY)
+	{
+		/* Perhaps we should error out and shut down here? */
+		return;
+	}
+
+	memset(&assignment, 0, sizeof(OidAssignment));
+	assignment.type = T_OidAssignment;
+
+	/*
+	 * This is essentially mimicking CreateKeyFromCatalogTuple except we set
+	 * the members directly from the binary_upgrade function
+	 */
+	if (oid != InvalidOid)
+		assignment.oid = oid;
+	if (catalog != InvalidOid)
+		assignment.catalog = catalog;
+	if (objname != NULL)
+		assignment.objname = objname;
+	if (namespaceOid != InvalidOid)
+		assignment.namespaceOid = namespaceOid;
+	if (keyOid1)
+		assignment.keyOid1 = keyOid1;
+	if (keyOid2)
+		assignment.keyOid2 = keyOid2;
+
+	oldcontext = MemoryContextSwitchTo(TopTransactionContext);
+
+	preassigned_oids = lappend(preassigned_oids, copyObject(&assignment));
+
+	MemoryContextSwitchTo(oldcontext);
+
+#ifdef OID_DISPATCH_DEBUG
+	elog(WARNING, "adding OID assignment: catalog \"%u\", namespace: %u, name: \"%s\": %u",
+		 assignment.catalog,
+		 assignment.namespaceOid,
+		 assignment.objname ? assignment.objname : "",
+		 assignment.oid);
+#endif
+}
 
 /* ----------------------------------------------------------------
  * Functions for use in the master node.

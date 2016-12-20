@@ -379,6 +379,7 @@ prepare_new_databases(migratorContext *ctx)
 	 * We have to create the databases first so we can create the toast table
 	 * placeholder relfiles.
 	 */
+	install_system_support_functions(ctx);
 	prep_status(ctx, "Creating databases in the new cluster");
 	exec_prog(ctx, true,
 			  SYSTEMQUOTE "\"%s/psql\" --set ON_ERROR_STOP=on "

@@ -1580,7 +1580,7 @@ heap_create_with_catalog(const char *relname,
 	 * (In GPDB, heap_create can choose a different relfilenode, in a QE node,
 	 * if the one we choose is already in use.)
 	 */
-	if (!OidIsValid(relid) && Gp_role == GP_ROLE_EXECUTE)
+	if (!OidIsValid(relid) && (Gp_role == GP_ROLE_EXECUTE || IsBinaryUpgrade))
 		relid = GetPreassignedOidForRelation(relnamespace, relname);
 
 	if (!OidIsValid(relid))
@@ -1620,7 +1620,7 @@ heap_create_with_catalog(const char *relname,
 	 *
 	 * Also not for the auxiliary heaps created for bitmap indexes.
 	 */
-	if (IsUnderPostmaster && (relkind == RELKIND_RELATION ||
+	if (IsUnderPostmaster && ((relkind == RELKIND_RELATION && !appendOnlyRel) ||
 							  relkind == RELKIND_VIEW ||
 							  relkind == RELKIND_COMPOSITE_TYPE) &&
 		relnamespace != PG_BITMAPINDEX_NAMESPACE)
@@ -1630,7 +1630,7 @@ heap_create_with_catalog(const char *relname,
 
 		relarrayname = makeArrayTypeName(relname, relnamespace);
 
-		if (Gp_role == GP_ROLE_EXECUTE)
+		if (Gp_role == GP_ROLE_EXECUTE || IsBinaryUpgrade)
 			new_array_oid = GetPreassignedOidForType(relnamespace, relarrayname);
 		else
 			new_array_oid = GetNewOid(pg_type);

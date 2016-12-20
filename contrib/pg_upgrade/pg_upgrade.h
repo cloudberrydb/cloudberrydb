@@ -331,6 +331,7 @@ void		check_hard_link(migratorContext *ctx);
 /* function.c */
 
 void		install_support_functions(migratorContext *ctx);
+void		install_system_support_functions(migratorContext *ctx);
 void		uninstall_support_functions(migratorContext *ctx);
 void		get_loadable_libraries(migratorContext *ctx);
 void		check_loadable_libraries(migratorContext *ctx);

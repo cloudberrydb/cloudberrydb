@@ -12,113 +12,384 @@
 
 #include "fmgr.h"
 #include "catalog/dependency.h"
+#include "catalog/oid_dispatch.h"
+#include "catalog/pg_attrdef.h"
+#include "catalog/pg_authid.h"
+#include "catalog/pg_cast.h"
 #include "catalog/pg_class.h"
-
-/* THIS IS USED ONLY FOR PG >= 9.0 */
-
-/*
- * Cannot include "catalog/pg_enum.h" here because we might
- * not be compiling against PG 9.0.
- */
-extern void EnumValuesCreate(Oid enumTypeOid, List *vals,
-				 Oid binary_upgrade_next_pg_enum_oid);
+#include "catalog/pg_constraint.h"
+#include "catalog/pg_conversion.h"
+#include "catalog/pg_database.h"
+#include "catalog/pg_extprotocol.h"
+#include "catalog/pg_filespace.h"
+#include "catalog/pg_language.h"
+#include "catalog/pg_namespace.h"
+#include "catalog/pg_opclass.h"
+#include "catalog/pg_opfamily.h"
+#include "catalog/pg_proc.h"
+#include "catalog/pg_resqueue.h"
+#include "catalog/pg_rewrite.h"
+#include "catalog/pg_tablespace.h"
+#include "catalog/pg_type.h"
+#include "cdb/cdbvars.h"
+#include "utils/builtins.h"
 
 #ifdef PG_MODULE_MAGIC
 PG_MODULE_MAGIC;
 #endif
 
-extern PGDLLIMPORT Oid binary_upgrade_next_pg_type_oid;
-extern PGDLLIMPORT Oid binary_upgrade_next_pg_type_array_oid;
-extern PGDLLIMPORT Oid binary_upgrade_next_pg_type_toast_oid;
-extern PGDLLIMPORT Oid binary_upgrade_next_heap_relfilenode;
-extern PGDLLIMPORT Oid binary_upgrade_next_toast_relfilenode;
-extern PGDLLIMPORT Oid binary_upgrade_next_index_relfilenode;
+#define GET_STR(textp) DatumGetCString(DirectFunctionCall1(textout, PointerGetDatum(textp)))
 
-Datum		set_next_pg_type_oid(PG_FUNCTION_ARGS);
-Datum		set_next_pg_type_array_oid(PG_FUNCTION_ARGS);
-Datum		set_next_pg_type_toast_oid(PG_FUNCTION_ARGS);
-Datum		set_next_heap_relfilenode(PG_FUNCTION_ARGS);
-Datum		set_next_toast_relfilenode(PG_FUNCTION_ARGS);
-Datum		set_next_index_relfilenode(PG_FUNCTION_ARGS);
-Datum		add_pg_enum_label(PG_FUNCTION_ARGS);
+Datum		preassign_type_oid(PG_FUNCTION_ARGS);
+Datum		preassign_arraytype_oid(PG_FUNCTION_ARGS);
+Datum		preassign_extprotocol_oid(PG_FUNCTION_ARGS);
+Datum		preassign_filespace_oid(PG_FUNCTION_ARGS);
+Datum		preassign_tablespace_oid(PG_FUNCTION_ARGS);
+Datum		preassign_opclass_oid(PG_FUNCTION_ARGS);
+Datum		preassign_conversion_oid(PG_FUNCTION_ARGS);
+Datum		preassign_resqueue_oid(PG_FUNCTION_ARGS);
+Datum		preassign_resqueuecb_oid(PG_FUNCTION_ARGS);
+Datum		preassign_cast_oid(PG_FUNCTION_ARGS);
+Datum		preassign_opfam_oid(PG_FUNCTION_ARGS);
+Datum		preassign_authid_oid(PG_FUNCTION_ARGS);
+Datum		preassign_database_oid(PG_FUNCTION_ARGS);
+Datum		preassign_language_oid(PG_FUNCTION_ARGS);
+Datum		preassign_relation_oid(PG_FUNCTION_ARGS);
+Datum		preassign_procedure_oid(PG_FUNCTION_ARGS);
+Datum		preassign_namespace_oid(PG_FUNCTION_ARGS);
+Datum		preassign_attrdef_oid(PG_FUNCTION_ARGS);
+Datum		preassign_constraint_oid(PG_FUNCTION_ARGS);
+Datum		preassign_rule_oid(PG_FUNCTION_ARGS);
 
-PG_FUNCTION_INFO_V1(set_next_pg_type_oid);
-PG_FUNCTION_INFO_V1(set_next_pg_type_array_oid);
-PG_FUNCTION_INFO_V1(set_next_pg_type_toast_oid);
-PG_FUNCTION_INFO_V1(set_next_heap_relfilenode);
-PG_FUNCTION_INFO_V1(set_next_toast_relfilenode);
-PG_FUNCTION_INFO_V1(set_next_index_relfilenode);
-PG_FUNCTION_INFO_V1(add_pg_enum_label);
+PG_FUNCTION_INFO_V1(preassign_type_oid);
+PG_FUNCTION_INFO_V1(preassign_arraytype_oid);
+PG_FUNCTION_INFO_V1(preassign_extprotocol_oid);
+PG_FUNCTION_INFO_V1(preassign_filespace_oid);
+PG_FUNCTION_INFO_V1(preassign_tablespace_oid);
+PG_FUNCTION_INFO_V1(preassign_opclass_oid);
+PG_FUNCTION_INFO_V1(preassign_conversion_oid);
+PG_FUNCTION_INFO_V1(preassign_resqueue_oid);
+PG_FUNCTION_INFO_V1(preassign_resqueuecb_oid);
+PG_FUNCTION_INFO_V1(preassign_cast_oid);
+PG_FUNCTION_INFO_V1(preassign_opfam_oid);
+PG_FUNCTION_INFO_V1(preassign_authid_oid);
+PG_FUNCTION_INFO_V1(preassign_database_oid);
+PG_FUNCTION_INFO_V1(preassign_language_oid);
+PG_FUNCTION_INFO_V1(preassign_relation_oid);
+PG_FUNCTION_INFO_V1(preassign_procedure_oid);
+PG_FUNCTION_INFO_V1(preassign_namespace_oid);
+PG_FUNCTION_INFO_V1(preassign_attrdef_oid);
+PG_FUNCTION_INFO_V1(preassign_constraint_oid);
+PG_FUNCTION_INFO_V1(preassign_rule_oid);
 
 Datum
-set_next_pg_type_oid(PG_FUNCTION_ARGS)
+preassign_type_oid(PG_FUNCTION_ARGS)
 {
 	Oid			typoid = PG_GETARG_OID(0);
+	char	   *objname = GET_STR(PG_GETARG_TEXT_P(1));
+	Oid			typnamespace = PG_GETARG_OID(2);
 
-	binary_upgrade_next_pg_type_oid = typoid;
+	if (Gp_role == GP_ROLE_UTILITY)
+	{
+		AddPreassignedOidFromBinaryUpgrade(typoid, TypeRelationId,
+						objname, typnamespace, InvalidOid, InvalidOid);
+	}
 
 	PG_RETURN_VOID();
 }
 
 Datum
-set_next_pg_type_array_oid(PG_FUNCTION_ARGS)
+preassign_arraytype_oid(PG_FUNCTION_ARGS)
 {
 	Oid			typoid = PG_GETARG_OID(0);
+	char	   *objname = GET_STR(PG_GETARG_TEXT_P(1));
+	Oid			typnamespace = PG_GETARG_OID(2);
 
-	binary_upgrade_next_pg_type_array_oid = typoid;
-
-	PG_RETURN_VOID();
-}
-
-Datum
-set_next_pg_type_toast_oid(PG_FUNCTION_ARGS)
-{
-	Oid			typoid = PG_GETARG_OID(0);
-
-	binary_upgrade_next_pg_type_toast_oid = typoid;
+	if (Gp_role == GP_ROLE_UTILITY)
+	{
+		AddPreassignedOidFromBinaryUpgrade(typoid, TypeRelationId, objname,
+						typnamespace, InvalidOid, InvalidOid);
+	}
 
 	PG_RETURN_VOID();
 }
 
 Datum
-set_next_heap_relfilenode(PG_FUNCTION_ARGS)
+preassign_extprotocol_oid(PG_FUNCTION_ARGS)
 {
-	Oid			relfilenode = PG_GETARG_OID(0);
+	Oid			extprotoid = PG_GETARG_OID(0);
+	char	   *objname = GET_STR(PG_GETARG_TEXT_P(1));
 
-	binary_upgrade_next_heap_relfilenode = relfilenode;
+	if (Gp_role == GP_ROLE_UTILITY)
+	{
+		AddPreassignedOidFromBinaryUpgrade(extprotoid, ExtprotocolRelationId, objname,
+									InvalidOid, InvalidOid, InvalidOid);
+	}
 
 	PG_RETURN_VOID();
 }
 
 Datum
-set_next_toast_relfilenode(PG_FUNCTION_ARGS)
+preassign_filespace_oid(PG_FUNCTION_ARGS)
 {
-	Oid			relfilenode = PG_GETARG_OID(0);
+	Oid			fsoid = PG_GETARG_OID(0);
+	char	   *objname = GET_STR(PG_GETARG_TEXT_P(1));
 
-	binary_upgrade_next_toast_relfilenode = relfilenode;
+	if (Gp_role == GP_ROLE_UTILITY)
+	{
+		AddPreassignedOidFromBinaryUpgrade(fsoid, FileSpaceRelationId, objname,
+									InvalidOid, InvalidOid, InvalidOid);
+	}
 
 	PG_RETURN_VOID();
 }
 
 Datum
-set_next_index_relfilenode(PG_FUNCTION_ARGS)
+preassign_tablespace_oid(PG_FUNCTION_ARGS)
 {
-	Oid			relfilenode = PG_GETARG_OID(0);
+	Oid			tsoid = PG_GETARG_OID(0);
+	char	   *objname = GET_STR(PG_GETARG_TEXT_P(1));
 
-	binary_upgrade_next_index_relfilenode = relfilenode;
+	if (Gp_role == GP_ROLE_UTILITY)
+	{
+		AddPreassignedOidFromBinaryUpgrade(tsoid, TableSpaceRelationId, objname,
+									InvalidOid, InvalidOid, InvalidOid);
+	}
 
 	PG_RETURN_VOID();
 }
 
 Datum
-add_pg_enum_label(PG_FUNCTION_ARGS)
+preassign_opclass_oid(PG_FUNCTION_ARGS)
 {
-	Oid			enumoid = PG_GETARG_OID(0);
-	Oid			typoid = PG_GETARG_OID(1);
-	Name		label = PG_GETARG_NAME(2);
+	Oid			opcoid = PG_GETARG_OID(0);
+	char	   *objname = GET_STR(PG_GETARG_TEXT_P(1));
+	Oid			opcnamespace = PG_GETARG_OID(1);
 
-	EnumValuesCreate(typoid, list_make1(makeString(NameStr(*label))),
-					 enumoid);
+	if (Gp_role == GP_ROLE_UTILITY)
+	{
+		AddPreassignedOidFromBinaryUpgrade(opcoid, OperatorClassRelationId,
+									objname, opcnamespace, InvalidOid, InvalidOid);
+	}
+
+	PG_RETURN_VOID();
+}
+
+Datum
+preassign_opfam_oid(PG_FUNCTION_ARGS)
+{
+	Oid			opfoid = PG_GETARG_OID(0);
+	char	   *objname = GET_STR(PG_GETARG_TEXT_P(1));
+	Oid			opfnamespace = PG_GETARG_OID(2);
+
+	if (Gp_role == GP_ROLE_UTILITY)
+	{
+		AddPreassignedOidFromBinaryUpgrade(opfoid, OperatorFamilyRelationId,
+									objname, opfnamespace, InvalidOid, InvalidOid);
+	}
+
+	PG_RETURN_VOID();
+}
+
+Datum
+preassign_conversion_oid(PG_FUNCTION_ARGS)
+{
+	Oid			conoid = PG_GETARG_OID(0);
+	char	   *objname = GET_STR(PG_GETARG_TEXT_P(1));
+	Oid			connamespace = PG_GETARG_OID(2);
+
+	if (Gp_role == GP_ROLE_UTILITY)
+	{
+		AddPreassignedOidFromBinaryUpgrade(conoid, ConversionRelationId,
+									objname, connamespace, InvalidOid, InvalidOid);
+	}
+
+	PG_RETURN_VOID();
+}
+
+Datum
+preassign_resqueue_oid(PG_FUNCTION_ARGS)
+{
+	Oid			resqueueid = PG_GETARG_OID(0);
+	char	   *objname = GET_STR(PG_GETARG_TEXT_P(1));
+
+	if (Gp_role == GP_ROLE_UTILITY)
+	{
+		AddPreassignedOidFromBinaryUpgrade(resqueueid, ResQueueRelationId,
+									objname, InvalidOid, InvalidOid, InvalidOid);
+	}
+
+	PG_RETURN_VOID();
+}
+
+Datum
+preassign_resqueuecb_oid(PG_FUNCTION_ARGS)
+{
+	Oid			resqueuecapabilityid = PG_GETARG_OID(0);
+	Oid			resqueueid = PG_GETARG_OID(1);
+	Oid			restypeid = PG_GETARG_OID(2);
+
+	if (Gp_role == GP_ROLE_UTILITY)
+	{
+		AddPreassignedOidFromBinaryUpgrade(resqueuecapabilityid, ResQueueCapabilityRelationId,
+									NULL, InvalidOid, resqueueid, restypeid);
+	}
+
+	PG_RETURN_VOID();
+}
+
+Datum
+preassign_cast_oid(PG_FUNCTION_ARGS)
+{
+	Oid			castoid = PG_GETARG_OID(0);
+	Oid			castsource = PG_GETARG_OID(1);
+	Oid			casttarget = PG_GETARG_OID(2);
+
+	if (Gp_role == GP_ROLE_UTILITY)
+	{
+		AddPreassignedOidFromBinaryUpgrade(castoid, CastRelationId, NULL, InvalidOid,
+										   castsource, casttarget);
+	}
+
+	PG_RETURN_VOID();
+}
+
+Datum
+preassign_authid_oid(PG_FUNCTION_ARGS)
+{
+	Oid			roleid = PG_GETARG_OID(0);
+	char	   *rolename = GET_STR(PG_GETARG_TEXT_P(1));
+
+	if (Gp_role == GP_ROLE_UTILITY)
+	{
+		AddPreassignedOidFromBinaryUpgrade(roleid, AuthIdRelationId, rolename,
+										   InvalidOid, InvalidOid, InvalidOid);
+	}
+
+	PG_RETURN_VOID();
+}
+
+Datum
+preassign_database_oid(PG_FUNCTION_ARGS)
+{
+	Oid			dboid = PG_GETARG_OID(0);
+	char	   *dbname = GET_STR(PG_GETARG_TEXT_P(1));
+
+	if (Gp_role == GP_ROLE_UTILITY)
+	{
+		AddPreassignedOidFromBinaryUpgrade(dboid, DatabaseRelationId, dbname,
+										   InvalidOid, InvalidOid, InvalidOid);
+	}
+
+	PG_RETURN_VOID();
+}
+
+Datum
+preassign_language_oid(PG_FUNCTION_ARGS)
+{
+	Oid			lanoid = PG_GETARG_OID(0);
+	char	   *lanname = GET_STR(PG_GETARG_TEXT_P(1));
+
+	if (Gp_role == GP_ROLE_UTILITY)
+	{
+		AddPreassignedOidFromBinaryUpgrade(lanoid, LanguageRelationId, lanname,
+										   InvalidOid, InvalidOid, InvalidOid);
+	}
+
+	PG_RETURN_VOID();
+}
+
+Datum
+preassign_relation_oid(PG_FUNCTION_ARGS)
+{
+	Oid			reloid = PG_GETARG_OID(0);
+	char	   *relname = GET_STR(PG_GETARG_TEXT_P(1));
+	Oid			relnamespace = PG_GETARG_OID(2);
+
+	if (Gp_role == GP_ROLE_UTILITY)
+	{
+		AddPreassignedOidFromBinaryUpgrade(reloid, RelationRelationId, relname,
+										   relnamespace, InvalidOid, InvalidOid);
+	}
+
+	PG_RETURN_VOID();
+}
+
+Datum
+preassign_procedure_oid(PG_FUNCTION_ARGS)
+{
+	Oid			procoid = PG_GETARG_OID(0);
+	char	   *procname = GET_STR(PG_GETARG_TEXT_P(1));
+	Oid			procnamespace = PG_GETARG_OID(2);
+
+	if (Gp_role == GP_ROLE_UTILITY)
+	{
+		AddPreassignedOidFromBinaryUpgrade(procoid, ProcedureRelationId, procname,
+										   procnamespace, InvalidOid, InvalidOid);
+	}
+
+	PG_RETURN_VOID();
+}
+
+Datum
+preassign_namespace_oid(PG_FUNCTION_ARGS)
+{
+	Oid			nspoid = PG_GETARG_OID(0);
+	char	   *nspname = GET_STR(PG_GETARG_TEXT_P(1));
+
+	if (Gp_role == GP_ROLE_UTILITY)
+	{
+		AddPreassignedOidFromBinaryUpgrade(nspoid, NamespaceRelationId, nspname,
+										   InvalidOid, InvalidOid, InvalidOid);
+	}
+
+	PG_RETURN_VOID();
+}
+
+Datum
+preassign_attrdef_oid(PG_FUNCTION_ARGS)
+{
+	Oid			attdefoid = PG_GETARG_OID(0);
+	Oid			attrelid = PG_GETARG_OID(1);
+	Oid			adnum = PG_GETARG_OID(2);
+
+	if (Gp_role == GP_ROLE_UTILITY)
+	{
+		AddPreassignedOidFromBinaryUpgrade(attdefoid, AttrDefaultRelationId, NULL,
+										   InvalidOid, attrelid, adnum);
+	}
+
+	PG_RETURN_VOID();
+}
+
+Datum
+preassign_constraint_oid(PG_FUNCTION_ARGS)
+{
+	Oid			constoid = PG_GETARG_OID(0);
+	Oid			nsoid = PG_GETARG_OID(1);
+	char	   *constname = GET_STR(PG_GETARG_TEXT_P(2));
+
+	if (Gp_role == GP_ROLE_UTILITY)
+	{
+		AddPreassignedOidFromBinaryUpgrade(constoid, ConstraintRelationId, constname,
+										   nsoid, InvalidOid, InvalidOid);
+	}
+
+	PG_RETURN_VOID();
+}
+
+Datum
+preassign_rule_oid(PG_FUNCTION_ARGS)
+{
+	Oid			ruleoid = PG_GETARG_OID(0);
+	Oid			tableoid = PG_GETARG_OID(1);
+	char	   *rulename = GET_STR(PG_GETARG_TEXT_P(2));
+
+	if (Gp_role == GP_ROLE_UTILITY)
+	{
+		AddPreassignedOidFromBinaryUpgrade(ruleoid, RewriteRelationId, rulename,
+										   InvalidOid, tableoid, InvalidOid);
+	}
 
 	PG_RETURN_VOID();
 }

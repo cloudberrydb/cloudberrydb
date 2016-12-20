@@ -2320,7 +2320,7 @@ heap_insert(Relation relation, HeapTuple tup, CommandId cid,
 		{
 			Oid			oid = InvalidOid;
 
-			if (Gp_role == GP_ROLE_EXECUTE && IsSystemRelation(relation))
+			if ((Gp_role == GP_ROLE_EXECUTE || IsBinaryUpgrade) && IsSystemRelation(relation))
 				oid = GetPreassignedOidForTuple(relation, tup);
 
 			if (!OidIsValid(oid))

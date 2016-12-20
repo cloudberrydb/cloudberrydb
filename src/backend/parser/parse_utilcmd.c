@@ -1456,9 +1456,15 @@ transformDistributedBy(ParseState *pstate, CreateStmtContext *cxt,
 			GpPolicy  *oldTablePolicy =
 				GpPolicyFetch(CurrentMemoryContext, relId);
 
-			/* Partitioned child must have partitioned parents. */
-			if (oldTablePolicy == NULL ||
-				 oldTablePolicy->ptype != POLICYTYPE_PARTITIONED)
+			/*
+			 * Partitioned child must have partitioned parents. During binary
+			 * upgrade we allow to skip this check since that runs against a
+			 * segment in utility mode and the distribution policy isn't stored
+			 * in the segments.
+			 */
+			if ((oldTablePolicy == NULL ||
+					oldTablePolicy->ptype != POLICYTYPE_PARTITIONED) &&
+					!IsBinaryUpgrade)
 			{
 				ereport(ERROR, (errcode(ERRCODE_GP_FEATURE_NOT_SUPPORTED),
 						errmsg("cannot inherit from catalog table \"%s\" "

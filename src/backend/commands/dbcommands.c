@@ -927,7 +927,7 @@ createdb(CreatedbStmt *stmt)
 	 */
 	pg_database_rel = heap_open(DatabaseRelationId, RowExclusiveLock);
 
-	if (Gp_role == GP_ROLE_EXECUTE)
+	if (Gp_role == GP_ROLE_EXECUTE || IsBinaryUpgrade)
 		dboid = GetPreassignedOidForDatabase(dbname);
 	else
 	{
