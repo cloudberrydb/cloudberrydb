@@ -30,11 +30,6 @@ static void map_rel_by_id(migratorContext *ctx, Oid oldid, Oid newid,
 			  const char *old_tablespace, const char *new_tablespace, const DbInfo *old_db,
 			  const DbInfo *new_db, const char *olddata,
 			  const char *newdata, FileNameMap *map);
-static RelInfo *relarr_lookup_reloid(migratorContext *ctx,
-					 RelInfoArr *rel_arr, Oid oid, Cluster whichCluster);
-static RelInfo *relarr_lookup_rel(migratorContext *ctx, RelInfoArr *rel_arr,
-				  const char *nspname, const char *relname,
-				  Cluster whichCluster);
 
 /*
  * gen_db_file_maps()
@@ -53,83 +48,29 @@ gen_db_file_maps(migratorContext *ctx, DbInfo *old_db, DbInfo *new_db,
 	int			relnum;
 	int			num_maps = 0;
 
+	if (old_db->rel_arr.nrels != new_db->rel_arr.nrels)
+		pg_log(ctx, PG_FATAL, "old and new databases \"%s\" have a different number of relations\n",
+			   old_db->db_name);
+
 	maps = (FileNameMap *) pg_malloc(ctx, sizeof(FileNameMap) *
 									 new_db->rel_arr.nrels);
 
 	for (relnum = 0; relnum < new_db->rel_arr.nrels; relnum++)
 	{
-		RelInfo    *newrel = &new_db->rel_arr.rels[relnum];
-		RelInfo    *oldrel;
+		RelInfo    *old_rel = &old_db->rel_arr.rels[relnum];
+		RelInfo    *new_rel = &new_db->rel_arr.rels[relnum];
 
-		/* toast tables are handled by their parent */
-		if (strcmp(newrel->nspname, "pg_toast") == 0)
-			continue;
+		if (old_rel->reloid != new_rel->reloid)
+			pg_log(ctx, PG_FATAL, "Mismatch of relation id: database \"%s\", old relid %d, new relid %d\n",
+				   old_db->db_name, old_rel->reloid, new_rel->reloid);
 
 		/* aoseg tables are handled by their AO table */
-		if (strcmp(newrel->nspname, "pg_aoseg") == 0)
+		if (strcmp(new_rel->nspname, "pg_aoseg") == 0)
 			continue;
 
-		oldrel = relarr_lookup_rel(ctx, &(old_db->rel_arr), newrel->nspname,
-								   newrel->relname, CLUSTER_OLD);
-
-		map_rel(ctx, oldrel, newrel, old_db, new_db, old_pgdata, new_pgdata,
+		map_rel(ctx, old_rel, new_rel, old_db, new_db, old_pgdata, new_pgdata,
 				maps + num_maps);
 		num_maps++;
-
-		/*
-		 * so much for the mapping of this relation. Now we need a mapping for
-		 * its corresponding toast relation if any.
-		 */
-		if (oldrel->toastrelid > 0)
-		{
-			RelInfo    *new_toast;
-			RelInfo    *old_toast;
-			char		new_name[MAXPGPATH];
-			char		old_name[MAXPGPATH];
-
-			/* construct the new and old relnames for the toast relation */
-			snprintf(old_name, sizeof(old_name), "pg_toast_%u",
-					 oldrel->reloid);
-			snprintf(new_name, sizeof(new_name), "pg_toast_%u",
-					 newrel->reloid);
-
-			/* look them up in their respective arrays */
-			old_toast = relarr_lookup_reloid(ctx, &old_db->rel_arr,
-											 oldrel->toastrelid, CLUSTER_OLD);
-			new_toast = relarr_lookup_rel(ctx, &new_db->rel_arr,
-										  "pg_toast", new_name, CLUSTER_NEW);
-
-			/* finally create a mapping for them */
-			map_rel(ctx, old_toast, new_toast, old_db, new_db, old_pgdata, new_pgdata,
-					maps + num_maps);
-			num_maps++;
-
-			/*
-			 * also need to provide a mapping for the index of this toast
-			 * relation. The procedure is similar to what we did above for
-			 * toast relation itself, the only difference being that the
-			 * relnames need to be appended with _index.
-			 */
-
-			/*
-			 * construct the new and old relnames for the toast index
-			 * relations
-			 */
-			snprintf(old_name, sizeof(old_name), "%s_index", old_toast->relname);
-			snprintf(new_name, sizeof(new_name), "pg_toast_%u_index",
-					 newrel->reloid);
-
-			/* look them up in their respective arrays */
-			old_toast = relarr_lookup_rel(ctx, &old_db->rel_arr,
-										  "pg_toast", old_name, CLUSTER_OLD);
-			new_toast = relarr_lookup_rel(ctx, &new_db->rel_arr,
-										  "pg_toast", new_name, CLUSTER_NEW);
-
-			/* finally create a mapping for them */
-			map_rel(ctx, old_toast, new_toast, old_db, new_db, old_pgdata,
-					new_pgdata, maps + num_maps);
-			num_maps++;
-		}
 	}
 
 	*nmaps = num_maps;
@@ -256,7 +197,9 @@ get_db_infos(migratorContext *ctx, DbInfoArr *dbinfs_arr, Cluster whichCluster)
 							"FROM pg_catalog.pg_database d "
 							" LEFT OUTER JOIN pg_catalog.pg_tablespace t "
 							" ON d.dattablespace = t.oid "
-							"WHERE d.datallowconn = true");
+							"WHERE d.datallowconn = true "
+	/* we don't preserve pg_database.oid so we sort by name */
+							"ORDER BY 2");
 
 	i_datname = PQfnumber(res, "datname");
 	i_oid = PQfnumber(res, "oid");
@@ -474,14 +417,12 @@ get_rel_infos(migratorContext *ctx, const DbInfo *dbinfo,
 			 "	   ON c.oid = i.indexrelid "
 			 "   LEFT OUTER JOIN pg_catalog.pg_tablespace t "
 			 "	ON c.reltablespace = t.oid "
-			 "WHERE (( "
-			 /* exclude pg_catalog and pg_temp_ (could be orphaned tables) */
-			 "    n.nspname != 'pg_catalog' "
-			 "    AND n.nspname !~ '^pg_temp_' "
-			 "    AND n.nspname !~ '^pg_toast_temp_' "
-			 "	  AND n.nspname != 'information_schema' "
-			 "	  AND n.nspname != 'pg_aoseg' "
-			 "	  AND c.oid >= %u "
+			 "WHERE "
+			 /* exclude possible orphaned temp tables */
+			 "  (((n.nspname !~ '^pg_temp_' AND "
+			 "    n.nspname !~ '^pg_toast_temp_' AND "
+			 "    n.nspname NOT IN ('gp_toolkit', 'pg_catalog', 'information_schema', 'binary_upgrade', 'pg_aoseg') AND "
+			 "	  c.oid >= %u) "
 			 "	) OR ( "
 			 "	n.nspname = 'pg_catalog' "
 			 "	AND relname IN "
@@ -497,7 +438,8 @@ get_rel_infos(migratorContext *ctx, const DbInfo *dbinfo,
 			 "GROUP BY  c.oid, n.nspname, c.relname, c.relfilenode, c.relstorage, c.relkind, "
 			 "			c.reltoastrelid, c.reltablespace, t.spclocation, "
 			 "			n.nspname "
-			 "ORDER BY n.nspname, c.relname;",
+	/* we preserve pg_class.oid so we sort by it to match old/new */
+			 "ORDER BY 1;",
 			 FirstNormalObjectId,
 	/* does pg_largeobject_metadata need to be migrated? */
 			 (GET_MAJOR_VERSION(ctx->old.major_version) <= 804) ?
@@ -877,61 +819,6 @@ dbarr_lookup_db(DbInfoArr *db_arr, const char *db_name)
 			return &db_arr->dbs[dbnum];
 	}
 
-	return NULL;
-}
-
-
-/*
- * relarr_lookup_rel()
- *
- * Searches "relname" in rel_arr. Returns the *real* pointer to the
- * RelInfo structure.
- */
-static RelInfo *
-relarr_lookup_rel(migratorContext *ctx, RelInfoArr *rel_arr,
-				  const char *nspname, const char *relname,
-				  Cluster whichCluster)
-{
-	int			relnum;
-
-	if (!rel_arr || !relname)
-		return NULL;
-
-	for (relnum = 0; relnum < rel_arr->nrels; relnum++)
-	{
-		if (strcmp(rel_arr->rels[relnum].nspname, nspname) == 0 &&
-			strcmp(rel_arr->rels[relnum].relname, relname) == 0)
-			return &rel_arr->rels[relnum];
-	}
-	pg_log(ctx, PG_FATAL, "Could not find %s.%s in %s cluster\n",
-		   nspname, relname, CLUSTERNAME(whichCluster));
-	return NULL;
-}
-
-
-/*
- * relarr_lookup_reloid()
- *
- *	Returns a pointer to the RelInfo structure for the
- *	given oid or NULL if the desired entry cannot be
- *	found.
- */
-static RelInfo *
-relarr_lookup_reloid(migratorContext *ctx, RelInfoArr *rel_arr, Oid oid,
-					 Cluster whichCluster)
-{
-	int			relnum;
-
-	if (!rel_arr || !oid)
-		return NULL;
-
-	for (relnum = 0; relnum < rel_arr->nrels; relnum++)
-	{
-		if (rel_arr->rels[relnum].reloid == oid)
-			return &rel_arr->rels[relnum];
-	}
-	pg_log(ctx, PG_FATAL, "Could not find %d in %s cluster\n",
-		   oid, CLUSTERNAME(whichCluster));
 	return NULL;
 }
 
