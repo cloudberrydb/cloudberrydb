@@ -166,18 +166,26 @@ start_postmaster(migratorContext *ctx, Cluster whichCluster, bool quiet)
 	const char *bindir;
 	const char *datadir;
 	unsigned short port;
+	ClusterInfo *cluster;
+#ifndef WIN32
+	char		*output_filename = ctx->logfile;
+#else
+	char		*output_filename = DEVNULL;
+#endif
 
 	if (whichCluster == CLUSTER_OLD)
 	{
 		bindir = ctx->old.bindir;
 		datadir = ctx->old.pgdata;
 		port = ctx->old.port;
+		cluster = &ctx->old;
 	}
 	else
 	{
 		bindir = ctx->new.bindir;
 		datadir = ctx->new.pgdata;
 		port = ctx->new.port;
+		cluster = &ctx->new;
 	}
 
 	/*
@@ -188,15 +196,12 @@ start_postmaster(migratorContext *ctx, Cluster whichCluster, bool quiet)
 	 */
 	snprintf(cmd, sizeof(cmd),
 			 SYSTEMQUOTE "\"%s/pg_ctl\" -l \"%s\" -D \"%s\" "
-			 "-o \"-p %d -c autovacuum=off "
-			 "-c autovacuum_freeze_max_age=2000000000\" "
-			 "start >> \"%s\" 2>&1" SYSTEMQUOTE,
-			 bindir,
-#ifndef WIN32
-			 ctx->logfile, datadir, port, ctx->logfile);
-#else
-			 DEVNULL, datadir, port, DEVNULL);
-#endif
+			 "-o \"-p %d %s\" start >> \"%s\" 2>&1" SYSTEMQUOTE,
+			 bindir, output_filename, datadir, port,
+			 (cluster->controldata.cat_ver >=
+				BINARY_UPGRADE_SERVER_FLAG_CAT_VER) ? "-b --gp_dbid=1 --gp_num_contents_in_cluster=0 --gp_contentid=-1" :
+				"--gp_dbid=1 --gp_num_contents_in_cluster=0 --gp_contentid=-1 -c autovacuum=off -c autovacuum_freeze_max_age=2000000000",
+			 output_filename);
 	exec_prog(ctx, true, "%s", cmd);
 
 	/* wait for the server to start properly */

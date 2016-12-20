@@ -318,7 +318,7 @@ check_cluster_compatibility(migratorContext *ctx, bool live_check)
 
 	/* Is it 9.0 but without tablespace directories? */
 	if (GET_MAJOR_VERSION(ctx->new.major_version) == 900 &&
-		ctx->new.controldata.cat_ver < TABLE_SPACE_SUBDIRS)
+		ctx->new.controldata.cat_ver < TABLE_SPACE_SUBDIRS_CAT_VER)
 		pg_log(ctx, PG_FATAL, "This utility can only upgrade to PostgreSQL version 9.0 after 2010-01-11\n"
 			   "because of backend API changes made during development.\n");
 }

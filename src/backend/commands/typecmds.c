@@ -1135,7 +1135,7 @@ DefineEnum(CreateEnumStmt *stmt)
 	/* Preassign array type OID so we can insert it in pg_type.typarray */
 	pg_type = heap_open(TypeRelationId, AccessShareLock);
 
-	if (Gp_role == GP_ROLE_EXECUTE || IsBinaryUpgrade)
+	if (Gp_role == GP_ROLE_EXECUTE || IsBinaryUpgrade)
 	{
 		enumTypeOid = GetPreassignedOidForType(enumNamespace, enumName);
 		enumArrayOid = GetPreassignedOidForType(enumNamespace, enumArrayName);
@@ -1570,7 +1570,7 @@ AlterDomainDefault(List *names, Node *defaultRaw)
 
 	/* Look up the domain in the type table */
 	rel = heap_open(TypeRelationId, RowExclusiveLock);
-	
+
 	tup = SearchSysCacheCopy(TYPEOID,
 							 ObjectIdGetDatum(domainoid),
 							 0, 0, 0);

@@ -399,6 +399,9 @@ AddPreassignedOids(List *l)
 	ListCell *lc;
 	MemoryContext old_context;
 
+	if (IsBinaryUpgrade)
+		elog(ERROR, "AddPreassignedOids called during binary upgrade");
+
 	/*
 	 * In the master, the OID-assignment-list is usually included in the next
 	 * command that is dispatched, after an OID was assigned. In almost all
@@ -428,6 +431,28 @@ AddPreassignedOids(List *l)
 }
 
 /*
+ * For pg_upgrade_support functions, created during a binary upgrade, use OIDs
+ * from a special reserved block of OIDs. We cannot use "normal" OIDs for these,
+ * as they may collide with actual user objects restored later in the upgrade
+ * process.
+ */
+static Oid BinaryUpgradeSchemaReservedOid = FirstBinaryUpgradeReservedObjectId;
+static Oid NextBinaryUpgradeReservedOid = FirstBinaryUpgradeReservedObjectId + 1;
+
+static Oid
+AssignBinaryUpgradeReservedOid()
+{
+	Oid		result = NextBinaryUpgradeReservedOid;
+
+	if (result > LastBinaryUpgradeReservedObjectId)
+		elog(ERROR, "out of OIDs reserved for binary-upgrade");
+
+	NextBinaryUpgradeReservedOid++;
+
+	return result;
+}
+
+/*
  * Helper routine for GetPreassignedOidFor*() functions. Finds an entry in the
  * 'preassigned_oids' list with the given search key.
  *
@@ -440,6 +465,20 @@ GetPreassignedOid(OidAssignment *searchkey)
 	ListCell   *cur_item;
 	ListCell   *prev_item;
 	Oid			oid;
+
+	/*
+	 * For binary_upgrade schema, and any functions in it, use OIDs
+	 * from the reserved block.
+	 */
+	if (IsBinaryUpgrade)
+	{
+		if (searchkey->catalog == NamespaceRelationId &&
+			strcmp(searchkey->objname, "binary_upgrade") == 0)
+			return BinaryUpgradeSchemaReservedOid;
+		if (searchkey->catalog == ProcedureRelationId &&
+			searchkey->namespaceOid == BinaryUpgradeSchemaReservedOid)
+			return AssignBinaryUpgradeReservedOid();
+	}
 
 	prev_item = NULL;
 	cur_item = list_head(preassigned_oids);
@@ -555,7 +594,12 @@ GetPreassignedOidForType(Oid namespaceOid, const char *typname)
 	searchkey.namespaceOid = namespaceOid;
 	searchkey.objname = (char *) typname;
 
-	if ((oid = GetPreassignedOid(&searchkey)) == InvalidOid)
+	/*
+	 * We allow InvalidOid during binary upgrades as a way to signal that a new
+	 * oid is to be allocated for a new catalog object not present in the old
+	 * version during an upgrade
+	 */
+	if ((oid = GetPreassignedOid(&searchkey)) == InvalidOid && !IsBinaryUpgrade)
 		elog(ERROR, "no pre-assigned OID for type \"%s\"", typname);
 	return oid;
 }
@@ -592,8 +636,7 @@ AddPreassignedOidFromBinaryUpgrade(Oid oid, Oid catalog, char *objname,
 	 * This is essentially mimicking CreateKeyFromCatalogTuple except we set
 	 * the members directly from the binary_upgrade function
 	 */
-	if (oid != InvalidOid)
-		assignment.oid = oid;
+	assignment.oid = oid;
 	if (catalog != InvalidOid)
 		assignment.catalog = catalog;
 	if (objname != NULL)
@@ -605,7 +648,12 @@ AddPreassignedOidFromBinaryUpgrade(Oid oid, Oid catalog, char *objname,
 	if (keyOid2)
 		assignment.keyOid2 = keyOid2;
 
-	oldcontext = MemoryContextSwitchTo(TopTransactionContext);
+	/*
+	 * Note that in binary-upgrade mode, the OID pre-assign calls are not done in
+	 * the same transactions as the DDL commands that consume the OIDs. Hence they
+	 * need to survive end-of-xact.
+	 */
+	oldcontext = MemoryContextSwitchTo(TopMemoryContext);
 
 	preassigned_oids = lappend(preassigned_oids, copyObject(&assignment));
 
@@ -719,16 +767,23 @@ AtEOXact_DispatchOids(bool isCommit)
 	 * might be dispatched to multiple slices, but only the QE writer
 	 * processes create the table. In the other processes, the OIDs will
 	 * go unused.
+	 *
+	 * In binary-upgrade mode, however, the OID pre-assign calls are not
+	 * done in the same transactions as the DDL commands that consume
+	 * the OIDs. Hence they need to survive end-of-xact.
 	 */
-#ifdef OID_DISPATCH_DEBUG
-	while (preassigned_oids)
+	if (!IsBinaryUpgrade)
 	{
-		OidAssignment *p = (OidAssignment *) linitial(preassigned_oids);
+#ifdef OID_DISPATCH_DEBUG
+		while (preassigned_oids)
+		{
+			OidAssignment *p = (OidAssignment *) linitial(preassigned_oids);
 
-		elog(NOTICE, "unused pre-assigned OID: catalog %u, namespace: %u, name: \"%s\"",
-			 p->catalog, p->namespaceOid, p->objname);
-		preassigned_oids = list_delete_first(preassigned_oids);
-	}
+			elog(NOTICE, "unused pre-assigned OID: catalog %u, namespace: %u, name: \"%s\"",
+				 p->catalog, p->namespaceOid, p->objname);
+			preassigned_oids = list_delete_first(preassigned_oids);
+		}
 #endif
-	preassigned_oids = NIL;
+		preassigned_oids = NIL;
+	}
 }

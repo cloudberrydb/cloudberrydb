@@ -10542,7 +10542,7 @@ dumpTableSchema(Archive *fout, TableInfo *tbinfo)
 		 * because that runs against a single segment server, and we don't
 		 * store the distribution policy information in segments.
 		 */
-		if (dumpPolicy && !binary_upgrade)
+		if (dumpPolicy)
 			addDistributedBy(q, tbinfo, actual_atts);
 
 		/*
@@ -12324,12 +12324,9 @@ addDistributedBy(PQExpBuffer q, TableInfo *tbinfo, int actual_atts)
 	char	   *policycol = NULL;
 
 	appendPQExpBuffer(query,
-					  "SELECT attrnums from pg_namespace as n, pg_class as c, gp_distribution_policy as p "
-					  "WHERE c.relname = '%s' "
-					  "AND n.nspname='%s' "
-					  "AND c.relnamespace=n.oid "
-					  "AND c.oid = p.localoid",
-					  tbinfo->dobj.name, (tbinfo->dobj.namespace->dobj.name != NULL ? tbinfo->dobj.namespace->dobj.name : "public"));
+					  "SELECT attrnums FROM gp_distribution_policy as p "
+					  "WHERE p.localoid = %u",
+					  tbinfo->dobj.catId.oid);
 
 	res = PQexec(g_conn, query->data);
 	check_sql_result(res, g_conn, query->data, PGRES_TUPLES_OK);
@@ -12339,8 +12336,11 @@ addDistributedBy(PQExpBuffer q, TableInfo *tbinfo, int actual_atts)
 		/*
 		 * There is no entry in the policy table for this table. Report an
 		 * error unless this is a zero attribute table (actual_atts == 0).
+		 *
+		 * In binary_upgrade mode, we run directly against segments, and there
+		 * are no gp_distribution_policy rows in segments.
 		 */
-		if (PQntuples(res) < 1 && actual_atts > 0)
+		if (PQntuples(res) < 1 && actual_atts > 0 && !binary_upgrade)
 		{
 			/* if this is a catalog table we allow dumping it, skip the error */
 			if (strncmp(tbinfo->dobj.namespace->dobj.name, "pg_", 3) != 0)

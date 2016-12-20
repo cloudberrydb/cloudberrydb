@@ -1808,8 +1808,7 @@ heap_create_with_catalog(const char *relname,
      * key column list in the gp_distribution_policy catalog and attach a
      * copy to the relcache entry.
      */
-    if (policy &&
-        Gp_role == GP_ROLE_DISPATCH)
+    if (policy && (Gp_role == GP_ROLE_DISPATCH || IsBinaryUpgrade))
     {
         Assert(relkind == RELKIND_RELATION);
         new_rel_desc->rd_cdbpolicy = GpPolicyCopy(GetMemoryChunkContext(new_rel_desc), policy);
