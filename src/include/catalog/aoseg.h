@@ -1,6 +1,6 @@
 /*-------------------------------------------------------------------------
  *
- * toasting.h
+ * aoseg.h
  *	  This file provides some definitions to support creation of aoseg tables
  *
  *
