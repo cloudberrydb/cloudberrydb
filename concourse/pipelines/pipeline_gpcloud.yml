@@ -62,7 +62,6 @@ jobs:
     image: centos67-gpdb-gcc6-llvm-image
     params:
       s3conf: {{s3_configuration_file}}
-      TEST_OS: centos
       TARGET_OS: centos
       TARGET_OS_VERSION: 6
 

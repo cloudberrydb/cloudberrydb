@@ -12,6 +12,5 @@ inputs:
   - name: sync_tools_gpdb_centos
 params:
   s3conf:
-  TEST_OS:
 run:
   path: gpdb_src/concourse/scripts/regression_tests_gpcloud.bash
