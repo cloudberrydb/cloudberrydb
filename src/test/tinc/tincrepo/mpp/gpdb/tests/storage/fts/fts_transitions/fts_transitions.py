@@ -163,22 +163,13 @@ class FTSTestCase(ScenarioTestCase, MPPTestCase):
 
         self.check_system()
 
-        test_case_list01 = []
-        test_case_list01.append(('mpp.gpdb.tests.storage.fts.fts_transitions.FtsTransitions.set_gpconfig', ['gp_segment_connect_timeout','10s']))
-        self.test_case_scenario.append(test_case_list01)
-
         test_case_list0 = []
-        test_case_list0.append(('mpp.gpdb.tests.storage.fts.fts_transitions.FtsTransitions.set_faults', ['filerep_receiver', 'suspend', 'primary']))
+        test_case_list0.append(('mpp.gpdb.tests.storage.fts.fts_transitions.FtsTransitions.set_faults', ['filerep_receiver', 'sleep', 'primary'], {'sleeptime':150}))
         self.test_case_scenario.append(test_case_list0)
 
         test_case_list1 = []
         test_case_list1.append('mpp.gpdb.tests.storage.fts.fts_transitions.FtsTransitions.run_sql_in_background')
-        test_case_list1.append('mpp.gpdb.tests.storage.fts.fts_transitions.FtsTransitions.sleep_for_transition')
         self.test_case_scenario.append(test_case_list1, serial=True)
-
-        test_case_list2 = []
-        test_case_list2.append(('mpp.gpdb.tests.storage.fts.fts_transitions.FtsTransitions.resume_faults', ['filerep_receiver', 'primary']))
-        self.test_case_scenario.append(test_case_list2)
 
         test_case_list3 = []
         test_case_list3.append('mpp.gpdb.tests.storage.fts.fts_transitions.FtsTransitions.wait_till_change_tracking')
@@ -190,10 +181,6 @@ class FTSTestCase(ScenarioTestCase, MPPTestCase):
         self.test_case_scenario.append(test_case_list4)
 
         self.run_gprecover_and_validation()
-
-        test_case_list5 = []
-        test_case_list5.append(('mpp.gpdb.tests.storage.fts.fts_transitions.FtsTransitions.set_gpconfig', ['gp_segment_connect_timeout','600']))
-        self.test_case_scenario.append(test_case_list5)
 
     def change_tracking_transition_failover(self):
 
@@ -314,9 +301,14 @@ class FTSTestCase(ScenarioTestCase, MPPTestCase):
             test_case_list5_2 = []
             test_case_list5_2.append(('mpp.gpdb.tests.storage.fts.fts_transitions.FtsTransitions.resume_faults', ['filerep_resync', 'primary']))
             self.test_case_scenario.append(test_case_list5_2)
+
+        if filerep_fault == 'postmaster' and filerep_role == 'primary' :
+            wait_for_db = False
+        else:
+            wait_for_db = True
     
         test_case_list6 = []
-        test_case_list6.append('mpp.gpdb.tests.storage.fts.fts_transitions.FtsTransitions.run_trigger_sql')
+        test_case_list6.append(('mpp.gpdb.tests.storage.fts.fts_transitions.FtsTransitions.run_trigger_sql', [wait_for_db]))
         self.test_case_scenario.append(test_case_list6)
 
         if filerep_fault == 'postmaster' and filerep_role == 'primary' :

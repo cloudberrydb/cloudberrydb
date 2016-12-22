@@ -30,7 +30,6 @@ from gppylib.commands.base import Command
 from storage.fts.fts_transitions import FTSUtil
 from mpp.lib.filerep_util import Filerepe2e_Util
 from mpp.gpdb.tests.storage.lib.common_utils import Gpstate
-from mpp.gpdb.tests.storage.lib.common_utils import checkDBUp
 from mpp.lib.gprecoverseg import GpRecover
 from mpp.lib.gpstart import GpStart
 from mpp.lib.gpstop import GpStop
@@ -879,7 +878,7 @@ class Fts_transition(MPPTestCase):
         self.filerepUtil.wait_till_change_tracking_transition()
         # Kill Master "writer" process
         self.ftsUtil.killMastersProcess(ProcName='writer process')
-        checkDBUp()
+        PSQL.wait_for_database_up()
         self.gpstate.run_gpstate('primary','ct')
         self.gprecover.incremental()
         self.gprecover.wait_till_insync_transition()
