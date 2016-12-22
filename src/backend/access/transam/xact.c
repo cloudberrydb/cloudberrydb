@@ -545,12 +545,12 @@ AssignTransactionId(TransactionState s)
 			 s->transactionId);
 		if (SharedLocalSnapshotSlot)
 		{
-			TransactionId temp_subxids[1];
-			temp_subxids[0] = s->transactionId;
+			TransactionId temp_subxid = s->transactionId;
+
 			AddSubtransactionsToSharedSnapshot(
 						SharedLocalSnapshotSlot->QDxid,
 						SharedLocalSnapshotSlot,
-						&temp_subxids,
+						&temp_subxid,
 						1);
 		}
 	}
