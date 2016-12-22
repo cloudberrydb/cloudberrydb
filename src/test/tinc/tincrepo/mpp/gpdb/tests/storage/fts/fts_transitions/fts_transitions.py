@@ -124,41 +124,6 @@ class FTSTestCase(ScenarioTestCase, MPPTestCase):
         test_case_list4.append('mpp.gpdb.tests.storage.fts.fts_transitions.FtsTransitions.run_validation')
         self.test_case_scenario.append(test_case_list4)
     
-
-    def gpconfig_alter(self, filerep_role):
-        '''
-        fts transitions after gpconfig alter
-        '''
-        self.check_system()
-
-        test_case_list0 = []
-        test_case_list0.append(('mpp.gpdb.tests.storage.fts.fts_transitions.FtsTransitions.gpconfig_alter', [filerep_role, 'true']))
-        test_case_list0.append('mpp.gpdb.tests.storage.fts.fts_transitions.FtsTransitions.restart_db_with_no_rc_check')
-        self.test_case_scenario.append(test_case_list0, serial=True)
-
-        test_case_list1 = []
-        test_case_list1.append('mpp.gpdb.tests.storage.fts.fts_transitions.FtsTransitions.wait_till_change_tracking')
-        self.test_case_scenario.append(test_case_list1)
-
-        test_case_list2 = []
-        test_case_list2.append('mpp.gpdb.tests.storage.fts.fts_transitions.FtsTransitions.run_fts_test_ddl_dml')
-        self.test_case_scenario.append(test_case_list2)
-
-        test_case_list3 = []
-        test_case_list3.append(('mpp.gpdb.tests.storage.fts.fts_transitions.FtsTransitions.run_gpstate', [filerep_role, 'ct']))
-        self.test_case_scenario.append(test_case_list3)
-
-        test_case_list4 = []
-        test_case_list4.append('mpp.gpdb.tests.storage.fts.fts_transitions.FtsTransitions.incremental_recoverseg')
-        self.test_case_scenario.append(test_case_list4)
-
-        test_case_list5 = []
-        test_case_list5.append(('mpp.gpdb.tests.storage.fts.fts_transitions.FtsTransitions.gpconfig_alter', [filerep_role, 'false']))
-        test_case_list5.append('mpp.gpdb.tests.storage.fts.fts_transitions.FtsTransitions.restart_db')
-        self.test_case_scenario.append(test_case_list5, serial=True)
-
-        self.run_gprecover_and_validation()
-
     def primary_sync_mirror_cannot_keepup_failover(self):
 
         self.check_system()

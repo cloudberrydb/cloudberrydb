@@ -74,27 +74,6 @@ class FtsTransitions(MPPTestCase):
         filespace_loc = result.split('\n')
         return filespace_loc[0]
   
-    def gpconfig_alter(self,type,bool):
-        ''' Alter postgres configuration '''
-        if bool == 'true':
-            fault_string = "filerep_inject_listener_fault=true"
-        elif bool == 'false':
-            fault_string = "filerep_inject_listener_fault=false"
-        for record in self.gpconfig.record:
-            if type == 'primary':
-                if record.role and record.content != -1:
-                    fse_location = record.datadir
-                else:
-                    continue
-            if type == 'mirror':
-                if (not record.role) and record.content != -1:
-                    fse_location = record.datadir
-                else:
-                    continue
-            run_shell_command('ssh ' + record.hostname + ' \'echo '+fault_string + ' >> ' + fse_location +'/postgresql.conf\'')
-            tinctest.logger.info( "\n ssh   %s   'echo %s  >>   %s/postgresql.conf'" % (record.hostname, fault_string,  fse_location))
-            tinctest.logger.info( "\n  Done set %s in postgresql.conf on all primary segments" % fault_string)
-
     def set_faults(self,fault_name, type, role='mirror', port=None, occurence=None, sleeptime=None, seg_id=None):
         ''' Reset the fault and then issue the fault with the given type'''
         self.fileutil.inject_fault(f=fault_name, y=type, r=role, p=port , o=occurence, sleeptime=sleeptime, seg_id=seg_id)

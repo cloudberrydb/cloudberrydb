@@ -11881,20 +11881,6 @@ int XLogAddRecordsToChangeTracking(
 
 		SIMPLE_FAULT_INJECTOR(FileRepTransitionToChangeTracking);
 
-		if (filerep_inject_change_tracking_recovery_fault)
-		{
-			if (isDatabaseRunning() == FALSE)
-			{
-				filerep_inject_change_tracking_recovery_fault = FALSE;
-
-				ereport(PANIC,
-					(errmsg("change tracking failure, "
-					"injected fault by guc filerep_inject_change_tracking_recovery_fault, "
-					"postmaster reset requested"),
-					FileRep_errcontext()));
-			}
-		}
-
 		if (lastChangeTrackingEndLoc != NULL)
 		{
 			if (XLByteEQ(EndRecPtr, *lastChangeTrackingEndLoc))
