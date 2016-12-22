@@ -92,6 +92,7 @@ COptimizationJobsTest::EresUnittest_StateMachine()
 		pqc->Prpp()->AddRef();
 		COptimizationContext *poc = GPOS_NEW(pmp) COptimizationContext
 							(
+							pmp,
 							pgroup,
 							pqc->Prpp(),
 							GPOS_NEW(pmp) CReqdPropRelational(GPOS_NEW(pmp) CColRefSet(pmp)),

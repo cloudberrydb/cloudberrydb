@@ -421,6 +421,7 @@ CJobGroupExpressionOptimization::ScheduleChildGroupsJobs
 	// schedule optimization job for current child group
 	COptimizationContext *pocChild = GPOS_NEW(psc->PmpGlobal()) COptimizationContext
 									(
+									psc->PmpGlobal(),
 									pgroupChild,
 									m_pexprhdlPlan->Prpp(m_ulChildIndex),
 									prprel,

@@ -33,6 +33,7 @@ const COptimizationContext COptimizationContext::m_ocInvalid;
 const OPTCTXT_PTR COptimizationContext::m_pocInvalid = NULL;
 
 
+
 //---------------------------------------------------------------------------
 //	@function:
 //		COptimizationContext::~COptimizationContext
@@ -475,6 +476,7 @@ COptimizationContext::OsPrint
 	)
 	const
 {
+
 	os << szPrefix << m_ulId << " (stage " << m_ulSearchStageIndex << "): (" << *m_prpp <<  ") => Best Expr:";
 	if (NULL != PgexprBest())
 	{
@@ -484,6 +486,16 @@ COptimizationContext::OsPrint
 
 	return os;
 }
+
+#ifdef GPOS_DEBUG
+void
+COptimizationContext::DbgPrint()
+{
+	CAutoTraceFlag atf(EopttracePrintOptCtxt, true);
+	CAutoTrace at(m_pmp);
+	(void) this->OsPrint(at.Os(), " ");
+}
+#endif // GPOS_DEBUG
 
 // EOF
 
