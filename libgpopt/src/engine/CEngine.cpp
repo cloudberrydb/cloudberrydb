@@ -691,6 +691,7 @@ CEngine::Pmemotmap()
 		m_pqc->Prpp()->AddRef();
 		COptimizationContext *poc = GPOS_NEW(m_pmp) COptimizationContext
 						(
+						m_pmp,
 						PgroupRoot(),
 						m_pqc->Prpp(),
 						GPOS_NEW(m_pmp) CReqdPropRelational(GPOS_NEW(m_pmp) CColRefSet(m_pmp)), // pass empty required relational properties initially
@@ -961,6 +962,7 @@ CEngine::PocChild
 	COptimizationContext *pocChild =
 			GPOS_NEW(m_pmp) COptimizationContext
 				(
+				m_pmp,
 				pgroupChild,
 				exprhdlPlan.Prpp(ulChildIndex),
 				prprel,
@@ -1343,6 +1345,7 @@ CEngine::RecursiveOptimize()
 		COptimizationContext *poc =
 			GPOS_NEW(m_pmp) COptimizationContext
 				(
+				m_pmp,
 				PgroupRoot(),
 				m_pqc->Prpp(),
 				GPOS_NEW(m_pmp) CReqdPropRelational(GPOS_NEW(m_pmp) CColRefSet(m_pmp)), // pass empty required relational properties initially
@@ -1727,6 +1730,7 @@ CEngine::MainThreadOptimize()
 		m_pqc->Prpp()->AddRef();
 		COptimizationContext *poc = GPOS_NEW(m_pmp) COptimizationContext
 							(
+							m_pmp,
 							PgroupRoot(),
 							m_pqc->Prpp(),
 							GPOS_NEW(m_pmp) CReqdPropRelational(GPOS_NEW(m_pmp) CColRefSet(m_pmp)), // pass empty required relational properties initially
@@ -1791,6 +1795,7 @@ CEngine::MultiThreadedOptimize
 		m_pqc->Prpp()->AddRef();
 		COptimizationContext *poc = GPOS_NEW(m_pmp) COptimizationContext
 								(
+								m_pmp,
 								PgroupRoot(),
 								m_pqc->Prpp(),
 								GPOS_NEW(m_pmp) CReqdPropRelational(GPOS_NEW(m_pmp) CColRefSet(m_pmp)), // pass empty required relational properties initially

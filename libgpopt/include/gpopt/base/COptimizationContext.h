@@ -18,6 +18,7 @@
 #include "gpopt/base/CReqdPropPlan.h"
 #include "gpopt/search/CJobQueue.h"
 #include "naucrates/statistics/IStatistics.h"
+#include "gpos/task/CAutoTraceFlag.h"
 
 #define GPOPT_INVALID_OPTCTXT_ID	ULONG_MAX
 
@@ -64,6 +65,9 @@ namespace gpopt
 
 		private:
 
+			// memory pool
+			IMemoryPool *m_pmp;
+
 			// private copy ctor
 			COptimizationContext(const COptimizationContext &);
 
@@ -103,6 +107,7 @@ namespace gpopt
 			// private dummy ctor; used for creating invalid context
 			COptimizationContext()
 				:
+				m_pmp(NULL),
 				m_ulId(GPOPT_INVALID_OPTCTXT_ID),
 				m_pgroup(NULL),
 				m_prpp(NULL),
@@ -135,6 +140,7 @@ namespace gpopt
 			// ctor
 			COptimizationContext
 				(
+				IMemoryPool *pmp,
 				CGroup *pgroup,
 				CReqdPropPlan *prpp,
 				CReqdPropRelational *prprel, // required relational props -- used during stats derivation
@@ -142,6 +148,7 @@ namespace gpopt
 				ULONG ulSearchStageIndex
 				)
 				:
+				m_pmp(pmp),
 				m_ulId(GPOPT_INVALID_OPTCTXT_ID),
 				m_pgroup(pgroup),
 				m_prpp(prpp),
@@ -265,7 +272,8 @@ namespace gpopt
 
 			// debug print
 			virtual
-			IOstream &OsPrint(IOstream &os, const CHAR *szPrefix) const;
+			IOstream &OsPrint(IOstream &os,
+					const CHAR *szPrefix) const;
 
 			// check equality of optimization contexts
 			static
@@ -360,6 +368,11 @@ namespace gpopt
 			// invalid optimization context pointer, needed for cost contexts hash table iteration
 			static
 			const OPTCTXT_PTR m_pocInvalid;
+
+#ifdef GPOS_DEBUG
+			// debug print; for interactive debugging sessions only
+			void DbgPrint();
+#endif // GPOS_DEBUG
 
 
 	}; // class COptimizationContext

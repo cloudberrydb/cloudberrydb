@@ -11,8 +11,8 @@
 
 #include "gpos/base.h"
 #include "gpos/task/CAutoSuspendAbort.h"
+#include "gpos/task/CAutoTraceFlag.h"
 #include "gpos/task/CWorker.h"
-
 
 #include "gpopt/base/CDrvdProp.h"
 #include "gpopt/base/CDrvdPropCtxtPlan.h"
@@ -288,7 +288,7 @@ CGroup::CleanupContexts()
 	}
 
 #ifdef GPOS_DEBUG
-    CWorker::PwrkrSelf()->ResetTimeSlice();
+	CWorker::PwrkrSelf()->ResetTimeSlice();
 #endif // GPOS_DEBUG
 }
 
@@ -353,6 +353,7 @@ CGroup::PocLookup
 	prpp->AddRef();
 	COptimizationContext *poc = GPOS_NEW(pmp) COptimizationContext
 								(
+								pmp,
 								this,
 								prpp,
 								GPOS_NEW(pmp) CReqdPropRelational(GPOS_NEW(pmp) CColRefSet(pmp)), // required relational props is not used when looking up contexts
@@ -1111,6 +1112,7 @@ CGroup::CreateDummyCostContext()
 
 	COptimizationContext *poc = GPOS_NEW(m_pmp) COptimizationContext
 						(
+						m_pmp,
 						this,
 						CReqdPropPlan::PrppEmpty(m_pmp),
 						GPOS_NEW(m_pmp) CReqdPropRelational(GPOS_NEW(m_pmp) CColRefSet(m_pmp)),
@@ -2186,6 +2188,24 @@ CGroup::CostLowerBound
 	return costLowerBound;
 }
 
+#ifdef GPOS_DEBUG
+//---------------------------------------------------------------------------
+//	@function:
+//		CGroup::DbgPrint
+//
+//	@doc:
+//		Print driving function for use in interactive debugging;
+//		always prints to stderr;
+//
+//---------------------------------------------------------------------------
+void
+CGroup::DbgPrint()
+{
+	CAutoTraceFlag atf(EopttracePrintGrpProps, true);
+	CAutoTrace at(m_pmp);
+	(void) this->OsPrint(at.Os());
+}
+#endif
 
 // EOF
 

@@ -54,6 +54,7 @@ CGroupExpression::CGroupExpression
 	BOOL fIntermediate
 	)
 	:
+	m_pmp(pmp),
 	m_ulId(GPOPT_INVALID_GEXPR_ID),
 	m_pgexprDuplicate(NULL),
 	m_pop(pop),
@@ -1186,5 +1187,23 @@ CGroupExpression::OsPrint
 	return os;
 }
 
+#ifdef GPOS_DEBUG
+//---------------------------------------------------------------------------
+//	@function:
+//		CGroupExpression::DbgPrint
+//
+//	@doc:
+//		Print driving function for use in interactive debugging;
+//		always prints to stderr;
+//
+//---------------------------------------------------------------------------
+void
+CGroupExpression::DbgPrint()
+{
+	CAutoTraceFlag atf(EopttracePrintGrpProps, true);
+	CAutoTrace at(m_pmp);
+	(void) this->OsPrint(at.Os());
+}
+#endif // GPOS_DEBUG
 
 // EOF

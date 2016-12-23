@@ -625,6 +625,10 @@ namespace gpopt
 			// slink for group list in memo
 			SLink m_link;
 
+#ifdef GPOS_DEBUG
+			// debug print; for interactive debugging sessions only
+			void DbgPrint();
+#endif
 
 	}; // class CGroup
 	

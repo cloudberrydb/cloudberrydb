@@ -44,6 +44,11 @@ namespace gpopt
 
 		public:
 
+#ifdef GPOS_DEBUG
+			// debug print; for interactive debugging sessions only
+			void DbgPrint();
+#endif 		// GPOS_DEBUG
+
 			// states of a group expression
 			enum EState
 			{
@@ -66,6 +71,9 @@ namespace gpopt
 					CSpinlockCC> ShtCC;
 
 		private:
+
+			// memory pool
+			IMemoryPool *m_pmp;
 
 			// definition of context hash table accessor
 			typedef
@@ -189,6 +197,7 @@ namespace gpopt
 			//private dummy ctor; used for creating invalid gexpr
 			CGroupExpression()
 				:
+				m_pmp(NULL),
 				m_ulId(GPOPT_INVALID_GEXPR_ID),
 				m_pop(NULL),
 				m_pdrgpgroup(NULL),
