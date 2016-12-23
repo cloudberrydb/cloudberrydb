@@ -24,7 +24,6 @@ from mpp.lib.config import GPDBConfig
 from tinctest.lib import local_path, run_shell_command
 from mpp.lib.filerep_util import Filerepe2e_Util
 from mpp.lib.gprecoverseg import GpRecover
-from mpp.gpdb.tests.storage.lib.dbstate import DbStateClass
 from mpp.gpdb.tests.storage.lib.common_utils import Gpstate
 from mpp.gpdb.tests.storage.lib.common_utils import Gpprimarymirror
 from gppylib.commands.base import Command
@@ -81,11 +80,6 @@ class FtsTransitions(MPPTestCase):
     def resume_faults(self,fault_name, role='mirror'):
         ''' Resume the fault issues '''
         self.fileutil.inject_fault(f=fault_name, y='resume', r=role)
-
-    def run_validation(self):
-        tinctest.logger.info('Veriy the integrity between primary and mirror ...')
-        self.dbstate = DbStateClass('run_validation')
-        self.dbstate.check_mirrorintegrity()
 
     def incremental_recoverseg(self, workerPool=False):
         gprecover = GpRecover(GPDBConfig())

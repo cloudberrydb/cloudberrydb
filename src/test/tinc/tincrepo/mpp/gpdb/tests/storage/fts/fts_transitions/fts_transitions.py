@@ -52,10 +52,6 @@ class FTSTestCase(ScenarioTestCase, MPPTestCase):
         test_case_list0.append('mpp.gpdb.tests.storage.fts.fts_transitions.FtsTransitions.wait_till_insync')
         self.test_case_scenario.append(test_case_list0, serial=True)
 
-        test_case_list1 = []
-        test_case_list1.append('mpp.gpdb.tests.storage.fts.fts_transitions.FtsTransitions.run_validation')
-        self.test_case_scenario.append(test_case_list1)
-
     def fts_test_run(self, filerep_role, filerep_state):
 
         test_case_list1 = []
@@ -120,10 +116,6 @@ class FTSTestCase(ScenarioTestCase, MPPTestCase):
                 test_case_list3_1.append(('mpp.gpdb.tests.storage.fts.fts_transitions.FtsTransitions.set_faults', [fault_name, 'reset', fault_role]))
                 self.test_case_scenario.append(test_case_list3_1)
 
-        test_case_list4 = []
-        test_case_list4.append('mpp.gpdb.tests.storage.fts.fts_transitions.FtsTransitions.run_validation')
-        self.test_case_scenario.append(test_case_list4)
-    
     def primary_sync_mirror_cannot_keepup_failover(self):
 
         self.check_system()
@@ -298,10 +290,6 @@ class FTSTestCase(ScenarioTestCase, MPPTestCase):
         test_case_list9 = []
         test_case_list9.append('mpp.gpdb.tests.storage.fts.fts_transitions.FtsTransitions.wait_till_insync')
         self.test_case_scenario.append(test_case_list9)
-
-        test_case_list10 = []
-        test_case_list10.append('mpp.gpdb.tests.storage.fts.fts_transitions.FtsTransitions.run_validation')
-        self.test_case_scenario.append(test_case_list10)
 
     def mirror_resync_postmaster_reset_with_faults(self):
              
