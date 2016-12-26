@@ -1,6 +1,6 @@
 /*-------------------------------------------------------------------------
  *
- * readfuncs.c
+ * readfast.c
  *	  Binary Reader functions for Postgres tree nodes.
  *
  * Portions Copyright (c) 2005-2010, Greenplum inc

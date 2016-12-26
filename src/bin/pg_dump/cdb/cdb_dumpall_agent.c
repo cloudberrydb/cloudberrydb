@@ -1,6 +1,6 @@
 /*-------------------------------------------------------------------------
  *
- * pg_dumpall.c
+ * cdb_dumpall_agent.c
  *
  * Copyright (c) 2006-2010, Greenplum inc.
  * Portions Copyright (c) 1996-2010, PostgreSQL Global Development Group

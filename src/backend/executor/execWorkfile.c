@@ -1,6 +1,6 @@
 /*-------------------------------------------------------------------------
  *
- * execworkfile.c
+ * execWorkfile.c
  *    Management of temporary work files used by the executor nodes.
  *
  * Copyright (c) 2010. Greenplum Inc.

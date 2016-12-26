@@ -1,6 +1,6 @@
 /*-------------------------------------------------------------------------
  *
- * pg_backup_archiver.c
+ * cdb_backup_archiver.c
  *
  *	Private implementation of the archiver routines.
  *

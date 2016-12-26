@@ -1,6 +1,6 @@
 /*-------------------------------------------------------------------------
  *
- * gpddboost.c
+ * cdb_ddboost_util.c
  *	  gpddboost is a utility for accessing Data Domain's ddboost
  *		  interfaces.
  *

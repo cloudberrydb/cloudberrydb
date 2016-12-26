@@ -1,6 +1,6 @@
 /*-------------------------------------------------------------------------
  *
- * parse_node.c
+ * parse_partition.c
  *	  handle partition clauses in parser
  *
  * Portions Copyright (c) 2005-2010, Greenplum inc

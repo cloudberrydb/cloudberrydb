@@ -1,6 +1,6 @@
 /*-------------------------------------------------------------------------
  *
- * pg_dump.c
+ * cdb_dump_agent.c
  *	  pg_dump is a utility for dumping out a postgres database
  *	  into a script file.
  *

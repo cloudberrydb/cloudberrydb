@@ -1,6 +1,6 @@
 /*-------------------------------------------------------------------------
  *
- * pg_restore.c
+ * cdb_restore_agent.c
  *	pg_restore is an utility extracting postgres database definitions
  *	from a backup archive created by pg_dump using the archiver
  *	interface.

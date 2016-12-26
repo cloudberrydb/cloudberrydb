@@ -1,6 +1,6 @@
 /*-------------------------------------------------------------------------
  *
- * meminstrumentation.h
+ * memaccounting.h
  *	  This file contains declarations for memory instrumentation utility
  *	  functions.
  *
