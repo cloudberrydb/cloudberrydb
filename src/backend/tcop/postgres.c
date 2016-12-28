@@ -4733,7 +4733,11 @@ PostgresMain(int argc, char *argv[],
 		 * Make sure debug_query_string gets reset before we possibly clobber
 		 * the storage it points at.
 		 */
-		debug_query_string = NULL;
+		if (debug_query_string != NULL)
+		{
+			write_stderr("An exception was encountered during the execution of statement: %s", debug_query_string);
+			debug_query_string = NULL;
+		}
 
 		/* No active snapshot any more either */
 		ActiveSnapshot = NULL;
