@@ -29,16 +29,8 @@ cd gporca
 
 ## Pre-Requisites
 
-GPORCA uses the following libraries:
-1) GPOS - Greenplum's OS Abstraction Layer
-2) GP-Xerces - Greenplum's patched version of Xerces-C 3.1.X
-
-### Installing GPOS
-
-[GPOS is available here](https://github.com/greenplum-db/gpos). The GPOS README
-gives instructions for building and installing GPOS. Note that the build type
-(e.g. DEBUG vs. RELEASE) for GPOS and GPORCA should match (mixing and matching
-can lead to errors).
+GPORCA uses the following library:
+* GP-Xerces - Greenplum's patched version of Xerces-C 3.1.X
 
 ### Installing GP-Xerces
 
@@ -169,10 +161,6 @@ ready for use in production-level CI environments.
 
 ## How to generate make files with different options
 
-Please ensure that build type of GPOS matches the version of Optimizer libraries
-you are trying to build. Mixing and matching a DEBUG GPOS with a RELEASE Orca or
-vice-versa may cause problems.
-
 Here are few build flavors:
 
 ```
@@ -190,20 +178,7 @@ cmake -D CMAKE_BUILD_TYPE=RelWithDebInfo ../
 cmake -D CMAKE_BUILD_TYPE=RELEASE ../
 ```
 
-## Explicitly Specifying GPOS and GP-Xerces For Build
-
-### GPOS
-
-If GPOS was installed to the default location, the cmake build system for
-GPORCA should find it automatically. Otherwise, cmake can be pointed to your
-GPOS installation with the `GPOS_INCLUDE_DIR` and `GPOS_LIBRARY` options like
-so:
-
-```
-cmake -D GPOS_INCLUDE_DIR=/opt/gpos/include -D GPOS_LIBRARY=/opt/gpos/lib/libgpos.so ..
-```
-
-Note that on Mac OS X, the library name will end with `.dylib` instead of `.so`.
+## Explicitly Specifying GP-Xerces For Build
 
 ### GP-XERCES
 
@@ -225,20 +200,6 @@ cmake -D XERCES_INCLUDE_DIR=/opt/gp_xerces/include -D XERCES_LIBRARY=/opt/gp_xer
 ```
 
 Again, on Mac OS X, the library name will end with `.dylib` instead of `.so`.
-
-### GPORCA
-
-As noted in the prerequisites section above, you may specify the
-`GPOS_INCLUDE_DIR` and `GPOS_LIBRARY` options to tell cmake where to find
-GPOS (or similarly with `XERCES_INCLUDE_DIR` and `XERCES_LIBRARY` for
-GP-Xerces). These options are useful if GPOS/GP-Xerces is installed in a
-nonstandard place, or if multiple versions are installed in different locations
-(for instance DEBUG vs. RELEASE, or 32 vs. 64-bit builds).
-
-For example:
-```
-cmake -D XERCES_INCLUDE_DIR=/opt/gp_xerces/include -D XERCES_LIBRARY=/opt/gp_xerces/lib/libxerces-c.so ../
-```
 
 ## Cross-Compiling 32-bit or 64-bit libraries
 
@@ -262,7 +223,7 @@ build a 32-bit version of Optimizer libraries on a 64-bit machine, you can do
 so as described below. Note that you will need a "multilib" C++ compiler that
 supports the -m32/-m64 switches, and you may also need to install 32-bit ("i386")
 versions of the C and C++ standard libraries for your OS. Finally, you will need
-to build 32-bit or 64-bit versions of GPOS and GP-Xerces as appropriate.
+to build 32-bit or 64-bit versions of GP-Xerces as appropriate.
 
 Toolchain files for building 32 or 64-bit x86 libraries are located in the cmake
 directory. Here is an example of building for 32-bit x86:
@@ -301,12 +262,13 @@ arguments `-D ENABLE_EXTENDED_TESTS=1`.
 
 ## Installation Details
 
-GPORCA has three libraries:
+GPORCA has four libraries:
 
 1. libnaucrates --- has all DXL related classes, and statistics related classes
 2. libgpopt     --- has all the code related to the optimization engine, meta-data accessor, logical / physical operators,
                     transformation rules, and translators (DXL to expression and vice versa).
 3. libgpdbcost  --- cost model for GPDB.
+4. libgpos	--- abstraction of memory allocation, scheduling, error handling, and testing framework.
 
 By default, GPORCA will be installed under /usr/local. You can change this by
 setting CMAKE_INSTALL_PREFIX when running cmake, for example:
@@ -319,6 +281,7 @@ By default, the header files are located in:
 /usr/local/include/naucrates
 /usr/local/include/gpdbcost
 /usr/local/include/gpopt
+/usr/local/include/gpos
 ```
 the library is located at:
 
@@ -326,6 +289,7 @@ the library is located at:
 /usr/local/lib/libnaucrates.so*
 /usr/local/lib/libgpdbcost.so*
 /usr/local/lib/libgpopt.so*
+/usr/local/lib/libgpos.so*
 ```
 
 Build and install:
@@ -352,7 +316,9 @@ Remove gporca header files and library, (assuming the default install prefix /us
 rm -rf /usr/local/include/naucrates
 rm -rf /usr/local/include/gpdbcost
 rm -rf /usr/local/include/gpopt
+rm -rf /usr/local/include/gpos
 rm -rf /usr/local/lib/libnaucrates.so*
 rm -rf /usr/local/lib/libgpdbcost.so*
 rm -rf /usr/local/lib/libgpopt.so*
+rm -rf /usr/local/lib/libgpos.so*
 ```
