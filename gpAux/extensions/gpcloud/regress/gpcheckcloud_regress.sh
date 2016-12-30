@@ -12,22 +12,21 @@ MD5SUM_SMALL=`cat /tmp/gpcheckcloud.small |openssl md5 |cut -d ' ' -f 2`
 MD5SUM_LARGE=`cat /tmp/gpcheckcloud.large |openssl md5 |cut -d ' ' -f 2`
 
 startTimer() {
-    startTime=`date +%s`
+	startTime=`date +%s`
 }
 
 printTimer() {
-    currentTime=`date +%s`
-    echo \($(($currentTime - $startTime))sec\)
-    startTime=$currentTime
+	currentTime=`date +%s`
+	echo \($(($currentTime - $startTime))sec\)
+	startTime=$currentTime
 }
 
 startTimer
-
 echo "Uploading data..."
 $GPCHECKCLOUD -u /tmp/gpcheckcloud.small "s3://s3-us-west-2.amazonaws.com/s3test.pivotal.io/regress/s3write/$RANDOM_PREFIX/small/ config=/home/gpadmin/s3.conf" \
-        && echo upload small file ... ok `printTimer` || { EXIT_CODE=1; echo upload small file ... failed `printTimer`; }
+	&& echo upload small file ... ok `printTimer` || { EXIT_CODE=1; echo upload small file ... failed `printTimer`; }
 $GPCHECKCLOUD -u /tmp/gpcheckcloud.large "s3://s3-us-west-2.amazonaws.com/s3test.pivotal.io/regress/s3write/$RANDOM_PREFIX/large/ config=/home/gpadmin/s3.conf" \
-        && echo upload large file ... ok `printTimer` || { EXIT_CODE=1; echo upload large file ... failed `printTimer`; }
+	&& echo upload large file ... ok `printTimer` || { EXIT_CODE=1; echo upload large file ... failed `printTimer`; }
 
 echo "Downloading and checking hashsum..."
 CHECK_CASES=(
@@ -52,6 +51,18 @@ do
 	DIGEST=`echo ${CHECK_CASES[$i]} |cut -d' ' -f 2`
 	[ `$GPCHECKCLOUD -d "$PREFIX config=/home/gpadmin/s3.conf" 2>/dev/null |openssl md5 |cut -d ' ' -f 2` = "$DIGEST" ] \
 		&& echo test $PREFIX ... ok `printTimer` || { EXIT_CODE=1; echo test $PREFIX ... failed `printTimer`; }
+done
+
+echo "Testing expected failures..."
+FAILED_CASES=(
+"https://s3-us-external-1.amazonaws.com/us-east-1.s3test.pivotal.io/"
+)
+
+startTimer
+for ((i=0; i<${#FAILED_CASES[@]}; i++))
+do
+	$GPCHECKCLOUD -d "${FAILED_CASES[$i]} config=/home/gpadmin/s3.conf" 2>/dev/null
+	[ "$?" -lt "128" ] && echo test ${FAILED_CASES[$i]} ... ok `printTimer` || { EXIT_CODE=1; echo test ${FAILED_CASES[$i]} ... failed `printTimer`; }
 done
 
 exit $EXIT_CODE
