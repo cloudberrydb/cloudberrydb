@@ -2347,7 +2347,7 @@ static void
 binary_upgrade_set_type_oids_by_type_oid(Archive *fout, PQExpBuffer upgrade_buffer,
 										 Oid pg_type_oid, char *objname)
 {
-	PQExpBuffer upgrade_query = createPQExpBuffer();
+	PQExpBuffer upgrade_query;
 	int			ntups;
 	PGresult   *upgrade_res;
 	int			i;
@@ -2361,6 +2361,8 @@ binary_upgrade_set_type_oids_by_type_oid(Archive *fout, PQExpBuffer upgrade_buff
 
 	if (typecache == NULL)
 	{
+		upgrade_query = createPQExpBuffer();
+
 		if (g_fout->remoteVersion >= 80300)
 		{
 			appendPQExpBuffer(upgrade_query,
@@ -2466,8 +2468,6 @@ binary_upgrade_set_type_oids_by_type_oid(Archive *fout, PQExpBuffer upgrade_buff
 																	"'%s'::text, "
 																	"'%u'::pg_catalog.oid);\n\n",
 					  type->arraytypoid, type->arraytypname, type->arraytypnsp);
-
-	destroyPQExpBuffer(upgrade_query);
 }
 
 static bool
