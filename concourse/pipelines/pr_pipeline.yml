@@ -136,23 +136,18 @@ jobs:
     plan:
     - aggregate:
       - get: gpdb_pr
-        tags: ["worker-pr"]
         passed: [compile_gpdb_centos6]
       - get: sync_tools_gpdb_centos
-        tags: ["worker-pr"]
         resource: sync_tools_gpdb_centos
         passed: [compile_gpdb_centos6]
       - get: bin_gpdb
-        tags: ["worker-pr"]
         resource: bin_gpdb_centos
         passed: [compile_gpdb_centos6]
         trigger: true
       - get: centos-gpdb-dev-6
-        tags: ["worker-pr"]
     - task: ic_gpdb
       file: gpdb_pr/concourse/tasks/ic_gpdb.yml
       image: centos-gpdb-dev-6
-      tags: ["worker-pr"]
       input_mapping:
         gpdb_src: gpdb_pr
       params:
@@ -162,13 +157,11 @@ jobs:
       timeout: 2h30m
       on_success:
         put: gpdb_pr
-        tags: ["worker-pr"]
         params:
           path: gpdb_pr
           status: success
       on_failure:
         put: gpdb_pr
-        tags: ["worker-pr"]
         params:
           path: gpdb_pr
           status: failure
