@@ -81,19 +81,15 @@ jobs:
     plan:
     - aggregate:
       - get: gpdb_pr
-        tags: ["worker-one"]
         trigger: true
       - get: centos-gpdb-dev-6
-        tags: ["worker-one"]
     - put: gpdb_pr
-      tags: ["worker-one"]
       params:
         path: gpdb_pr
         status: pending
     - task: compile_gpdb
       file: gpdb_pr/concourse/tasks/compile_gpdb.yml
       image: centos-gpdb-dev-6
-      tags: ["worker-one"]
       input_mapping:
         gpdb_src: gpdb_pr
       params:
@@ -111,11 +107,9 @@ jobs:
           status: failure
     - aggregate:
       - put: bin_gpdb_centos
-        tags: ["worker-one"]
         params:
           file: gpdb_artifacts/bin_gpdb.tar.gz
       - put: sync_tools_gpdb_centos
-        tags: ["worker-one"]
         params:
           file: sync_tools_gpdb/sync_tools_gpdb.tar.gz
 
@@ -124,14 +118,11 @@ jobs:
     plan:
     - aggregate:
       - get: gpdb_pr
-        tags: ["worker-two"]
         trigger: true
       - get: centos-gpdb-dev-6
-        tags: ["worker-two"]
     - task: compile_gpdb
       file: gpdb_pr/concourse/tasks/compile_gpdb_custom_config.yml
       image: centos-gpdb-dev-6
-      tags: ["worker-two"]
       input_mapping:
         gpdb_src: gpdb_pr
       on_failure:
@@ -188,29 +179,23 @@ jobs:
     plan:
     - aggregate:
       - get: gpdb_pr
-        tags: ["worker-three"]
         passed: [icw_planner_centos6]
       - get: bin_gpdb
-        tags: ["worker-three"]
         resource: bin_gpdb_centos
         passed: [icw_planner_centos6]
         trigger: true
       - get: centos-gpdb-dev-6
-        tags: ["worker-three"]
       - get: gpaddon_src
-        tags: ["worker-three"]
     - task: separate_qautils_files_for_rc
       file: gpdb_pr/concourse/tasks/separate_qautils_files_for_rc.yml
       image: centos-gpdb-dev-6
       input_mapping:
         gpdb_src: gpdb_pr
-      tags: ["worker-three"]
       params:
         QAUTILS_TARBALL: rc_bin_gpdb/QAUtils-rhel6-x86_64.tar.gz
     - task: gpdb_rc_packaging_centos
       file: gpdb_pr/concourse/tasks/gpdb_packaging.yml
       image: centos-gpdb-dev-6
-      tags: ["worker-three"]
       input_mapping:
         bin_gpdb: rc_bin_gpdb
         gpdb_src: gpdb_pr
@@ -222,14 +207,11 @@ jobs:
         ADD_README_INSTALL: true
     - aggregate:
       - put: installer_rhel6_gpdb_rc
-        tags: ["worker-three"]
         params:
           file: packaged_gpdb_rc/greenplum-db-4.3.99.0-build-1-rhel6-x86_64.zip
       - put: installer_rhel6_gpdb_rc_md5
-        tags: ["worker-three"]
         params:
           file: packaged_gpdb_rc/greenplum-db-4.3.99.0-build-1-rhel6-x86_64.zip.md5
       - put: qautils_rhel6_tarball
-        tags: ["worker-three"]
         params:
           file: rc_bin_gpdb/QAUtils-rhel6-x86_64.tar.gz
