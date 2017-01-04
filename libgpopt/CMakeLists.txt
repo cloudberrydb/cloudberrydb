@@ -905,7 +905,7 @@ target_link_libraries(gpopt
                       gpdbcost
                       naucrates
                       ${CMAKE_THREAD_LIBS_INIT} ${CMAKE_DL_LIBS}
-                      ${GPOS_LIBRARIES}
+                      gpos
                       ${XERCES_LIBRARIES}
                       ${GPORCA_SOLARIS_EXTRA_LIBS})
 

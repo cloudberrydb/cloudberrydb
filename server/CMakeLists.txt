@@ -177,7 +177,7 @@ target_link_libraries(gporca_test
                       gpdbcost
                       gpopt
                       naucrates
-                      ${GPOS_LIBRARIES})
+                      gpos)
 
 option(ENABLE_EXTENDED_TESTS
        "Enable extended tests for fault-injection and timing that may take a long time to run."

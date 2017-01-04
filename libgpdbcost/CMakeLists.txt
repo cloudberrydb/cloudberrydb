@@ -17,7 +17,7 @@ add_library(gpdbcost
 
 target_link_libraries(gpdbcost  
                       ${CMAKE_THREAD_LIBS_INIT} ${CMAKE_DL_LIBS}
-                      ${GPOS_LIBRARIES}
+                      gpos
                       ${XERCES_LIBRARIES}
                       ${GPORCA_SOLARIS_EXTRA_LIBS})
 
