@@ -121,7 +121,6 @@ jobs:
     - get: gpdb_src
       trigger: true
     - get: gpaddon_src 
-      tags: ["worker-one"]
     - get: centos-gpdb-dev-6
   - task: compile_gpdb
     file: gpdb_src/concourse/tasks/compile_gpdb.yml
@@ -161,7 +160,6 @@ jobs:
     - get: gpdb_src
       trigger: true
     - get: gpaddon_src 
-      tags: ["worker-three"]
     - get: centos-gpdb-dev-7
   - task: compile_gpdb
     file: gpdb_src/concourse/tasks/compile_gpdb.yml
@@ -268,21 +266,16 @@ jobs:
   plan:
   - aggregate:
     - get: gpdb_src
-      tags: ["worker-three"]
       passed: [compile_gpdb_centos6]
     - get: sync_tools_gpdb_centos
-      tags: ["worker-three"]
       resource: sync_tools_gpdb_centos
       passed: [compile_gpdb_centos6]
     - get: bin_gpdb
-      tags: ["worker-three"]
       resource: bin_gpdb_centos
       passed: [compile_gpdb_centos6]
       trigger: true
     - get: centos-gpdb-dev-6
-      tags: ["worker-three"]
   - task: MU_check_centos
-    tags: ["worker-three"]
     file: gpdb_src/concourse/tasks/gpMgmt_check_gpdb.yml
     image: centos-gpdb-dev-6
     params:
