@@ -1,0 +1,19 @@
+//---------------------------------------------------------------------------
+//	Greenplum Database
+//	Copyright (C) 2015 Pivotal Software, Inc.
+//
+//	@filename:
+//		version.h
+//
+//	@doc:
+//		GPOS version number
+//
+//---------------------------------------------------------------------------
+#ifndef GPOS_version_H
+#define GPOS_version_H
+
+#cmakedefine GPOS_VERSION_MAJOR ${GPOS_VERSION_MAJOR}
+#cmakedefine GPOS_VERSION_MINOR ${GPOS_VERSION_MINOR}
+
+#endif  // GPOS_version_H
+// EOF
