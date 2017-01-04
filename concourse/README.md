@@ -8,13 +8,11 @@ The Concourse directory should contain this README and three sub-directories onl
 * scripts
 
 ##### Pipelines Directory
-There should be eight pipelines in this directory:
+There should be seven pipelines in this directory:
 
 * `pipeline.yml` the pipeline that compiles, tests, and produces installers from the master branch of gpdb.
-* `dev_pipeline.yml` a safe-to-duplicate version of `pipeline.yml` which saves artifacts to a dev bucket.
 * `dev_generate_installer.yml` which compiles and generates an installer for the given source and saves it to a dev bucket.
 * `pr_pipeline.yml` which compiles and tests pull requests.
-* `dev_pr_pipeline.yml` which safely mimics the `pr_pipeline.yml`, and saves an installer to the dev bucket.
 * `concourse-upgrade.yml` which uses Concourse to upgrade itself.
 * `pipeline_tinc.yml` run TINC tests against gpdb master branch.
 * `pipeline_gpcloud.yml` run gpcloud tests against developers specified branch.
@@ -68,9 +66,10 @@ To accommodate this without naming confusion, workload instability, and artifact
 1. Duplicate and update the `gpdb_master_dev` so that the artifacts are placed in a safe bucket.
 
 To duplicate the pipeline do something like the following:
-``` bash
+
+```bash
 fly -t gpdb login -n dev
-fly -t gpdb get-pipeline -p dev_pipeline > /tmp/pipeline.yml
+fly -t gpdb get-pipeline -p gpdb_master_dev > /tmp/pipeline.yml
 # update gpdb_src with your desired source
 fly -t gpdb set-pipeline -c /tmp/pipeline.yml -p NEW_PIPELINE_NAME
 ```
