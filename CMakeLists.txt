@@ -138,30 +138,10 @@ set_property(
     APPEND PROPERTY COMPILE_DEFINITIONS
         GPOS_${GPOS_ARCH_BITS}BIT)
 
-# Need pthreads.
-find_package(Threads REQUIRED)
-if (NOT CMAKE_USE_PTHREADS_INIT)
-  message(FATAL_ERROR "Found a threading library, but it is not pthreads.")
-endif()
+set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
 
-# Try to find atomic operations.
-include(FindAtomics.cmake)
-
-if ((NOT (COMPILER_HAS_FETCH_ADD_32 AND COMPILER_HAS_FETCH_ADD_64
-          AND COMPILER_HAS_CAS_32 AND COMPILER_HAS_CAS_64))
-    AND (NOT (${CMAKE_SYSTEM_NAME} MATCHES "SunOS")))
-  message(FATAL_ERROR "Could not find GCC-style atomic built-ins or Solaris "
-                      "atomic headers. GPOS will fail to build. Please try "
-                      "using a recent g++ or clang++ compiler.")
-endif()
-
-
-include_directories(libgpos/include)
-
-add_subdirectory(libgpos)
-# Tests reside in the 'server' subdirectory.
 enable_testing()
-add_subdirectory(server)
+add_subdirectory(libgpos)
 
 # Mac OS X handles searching for dynamic libraries differently from other
 # unices. It does not merely search for the leaf filename of a .dylib in a list

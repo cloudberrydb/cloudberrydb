@@ -1,3 +1,21 @@
+# Need pthreads.
+find_package(Threads REQUIRED)
+if (NOT CMAKE_USE_PTHREADS_INIT)
+  message(FATAL_ERROR "Found a threading library, but it is not pthreads.")
+endif()
+
+# Try to find atomic operations.
+include(FindAtomics)
+
+if ((NOT (COMPILER_HAS_FETCH_ADD_32 AND COMPILER_HAS_FETCH_ADD_64
+          AND COMPILER_HAS_CAS_32 AND COMPILER_HAS_CAS_64))
+    AND (NOT (${CMAKE_SYSTEM_NAME} MATCHES "SunOS")))
+  message(FATAL_ERROR "Could not find GCC-style atomic built-ins or Solaris "
+                      "atomic headers. GPOS will fail to build. Please try "
+                      "using a recent g++ or clang++ compiler.")
+endif()
+
+include_directories(include)
 
 # Generate version-number header.
 configure_file(version.h.in
@@ -254,6 +272,9 @@ endif()
 set_target_properties(gpos PROPERTIES
                       SOVERSION ${GPOS_ABI_VERSION}
                       VERSION ${GPOS_VERSION_STRING})
+
+# Tests reside in the 'server' subdirectory.
+add_subdirectory(server)
 
 # Installation.
 option(VERBOSE_INSTALL_PATH "Install in a subdirectory path that includes GPOS version, CPU architecture, and bit width" OFF)
