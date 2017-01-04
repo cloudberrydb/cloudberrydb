@@ -82,6 +82,7 @@ jobs:
     - aggregate:
       - get: gpdb_pr
         trigger: true
+      - get: gpaddon_src 
       - get: centos-gpdb-dev-6
     - put: gpdb_pr
       params:
