@@ -14,7 +14,7 @@ Feature: gpaddmirrors tests
     Scenario: gpaddmirrors sanity test
         Given the database is running
         And there are no backup files
-        When the user runs "gpdeletesystem -d $MASTER_DATA_DIRECTORY < gppylib/test/behave/mgmt_utils/steps/data/yes.txt"
+        When the user runs "gpdeletesystem -d $MASTER_DATA_DIRECTORY < test/behave/mgmt_utils/steps/data/yes.txt"
         Then gpdeletesystem should return a return code of 0
         Given the user creates an init config file "/tmp/initsystem_config_primaries.out" without mirrors
         When the user runs "gpinitsystem -c /tmp/initsystem_config_primaries.out -h $BLDWRAP_TOP/sys_mgmt_test/test/general/hostlist.out -p $BLDWRAP_TOP/sys_mgmt_test/test/general/postgresql_param.conf -a"
@@ -22,7 +22,7 @@ Feature: gpaddmirrors tests
         When the user runs "gpaddmirrors -m /tmp/config_mirrors -a" 
         Then gpaddmirrors should return a return code of 0
         And the segments are synchronized
-        When the user runs "gpdeletesystem -d $MASTER_DATA_DIRECTORY < gppylib/test/behave/mgmt_utils/steps/data/yes.txt"
+        When the user runs "gpdeletesystem -d $MASTER_DATA_DIRECTORY < test/behave/mgmt_utils/steps/data/yes.txt"
         Then gpdeletesystem should return a return code of 0
         When the user runs "gpinitsystem -c $BLDWRAP_TOP/sys_mgmt_test/test/general/cluster_conf.out -h $BLDWRAP_TOP/sys_mgmt_test/test/general/hostlist.out -p $BLDWRAP_TOP/sys_mgmt_test/test/general/postgresql_param.conf -a"
         Then database "testdb" health check should pass on table "t1"

@@ -7,8 +7,8 @@ Feature: behave test for gpdb segment
         Given the "gpfdist" process is killed
         And database "testdb" exists
         Given the "-f python.*fake_gpfdist.py.*-p.*8088" process is killed
-        Given the client program "fake_gpfdist.py" is present under CWD in "gppylib/test/behave/mgmt_utils/steps/data"
-        When the user runs client program "fake_gpfdist.py -p 8088 -m NoResponse &" from "gppylib/test/behave/mgmt_utils/steps/data" under CWD
+        Given the client program "fake_gpfdist.py" is present under CWD in "test/behave/mgmt_utils/steps/data"
+        When the user runs client program "fake_gpfdist.py -p 8088 -m NoResponse &" from "test/behave/mgmt_utils/steps/data" under CWD
         And a "writable" external table "wrt" is created on file "test" in "testdb"
         And the user runs command "psql -d testdb -c 'insert into wrt values(1)'"
         Then the client program should print failed to send request error message
@@ -22,8 +22,8 @@ Feature: behave test for gpdb segment
         And database "testdb" exists
         Given the "-f python.*fake_gpfdist.py.*-p.*8088" process is killed
         Given the directory "extdata" exists in current working directory
-        Given the client program "fake_gpfdist.py" is present under CWD in "gppylib/test/behave/mgmt_utils/steps/data"
-        When the user runs client program "fake_gpfdist.py -p 8088 -m TestSequenceNumber 1> extdata/fake_gpfdist.log 2>&1 &" from "gppylib/test/behave/mgmt_utils/steps/data" under CWD
+        Given the client program "fake_gpfdist.py" is present under CWD in "test/behave/mgmt_utils/steps/data"
+        When the user runs client program "fake_gpfdist.py -p 8088 -m TestSequenceNumber 1> extdata/fake_gpfdist.log 2>&1 &" from "test/behave/mgmt_utils/steps/data" under CWD
         And a "writable" external table "wrt" is created on file "test" in "testdb"
         And the user runs command "psql -d testdb -c 'insert into wrt values(1)'"
         And the user runs command "cat ./extdata/fake_gpfdist.log"
@@ -37,8 +37,8 @@ Feature: behave test for gpdb segment
         And database "testdb" exists
         Given the "-f python.*fake_gpfdist.py.*-p.*8088" process is killed
         Given the directory "extdata" exists in current working directory
-        Given the client program "fake_gpfdist.py" is present under CWD in "gppylib/test/behave/mgmt_utils/steps/data"
-        When the user runs client program "fake_gpfdist.py -p 8088 -m TestBadResponse 1> extdata/fake_gpfdist.log 2>&1 &" from "gppylib/test/behave/mgmt_utils/steps/data" under CWD
+        Given the client program "fake_gpfdist.py" is present under CWD in "test/behave/mgmt_utils/steps/data"
+        When the user runs client program "fake_gpfdist.py -p 8088 -m TestBadResponse 1> extdata/fake_gpfdist.log 2>&1 &" from "test/behave/mgmt_utils/steps/data" under CWD
         And a "writable" external table "wrt" is created on file "test" in "testdb"
         And the user runs command "psql -d testdb -c 'insert into wrt values(1)'"
         And the user runs command "cat ./extdata/fake_gpfdist.log"
@@ -53,8 +53,8 @@ Feature: behave test for gpdb segment
         Given the directory "extdata" exists in current working directory
         Given the "gpfdist" process is killed
         Given the "-f python.*fake_gpfdist.py.*-p.*8088" process is killed
-        Given the client program "fake_gpfdist.py" is present under CWD in "gppylib/test/behave/mgmt_utils/steps/data"
-        When the user runs client program "fake_gpfdist.py -p 8088 -m NoResponse &" from "gppylib/test/behave/mgmt_utils/steps/data" under CWD
+        Given the client program "fake_gpfdist.py" is present under CWD in "test/behave/mgmt_utils/steps/data"
+        When the user runs client program "fake_gpfdist.py -p 8088 -m NoResponse &" from "test/behave/mgmt_utils/steps/data" under CWD
         And a "readable" external table "ret" is created on file "test" in "testdb"
         And the user runs command "psql -d testdb -c 'select * from ret' & echo $! > extdata/psql.pid"
         And the user runs command "sleep 70"
@@ -71,8 +71,8 @@ Feature: behave test for gpdb segment
         Given the directory "extdata" exists in current working directory
         Given the "gpfdist" process is killed
         Given the "-f python.*fake_gpfdist.py.*-p.*8088" process is killed
-        Given the client program "fake_gpfdist.py" is present under CWD in "gppylib/test/behave/mgmt_utils/steps/data"
-        When the user runs client program "fake_gpfdist.py -p 8088 -m NoResponse &" from "gppylib/test/behave/mgmt_utils/steps/data" under CWD
+        Given the client program "fake_gpfdist.py" is present under CWD in "test/behave/mgmt_utils/steps/data"
+        When the user runs client program "fake_gpfdist.py -p 8088 -m NoResponse &" from "test/behave/mgmt_utils/steps/data" under CWD
         And a "readable" external table "ret" is created on file "test" in "testdb"
         And the user runs command "psql -d testdb -c 'select * from ret' & echo $! > extdata/psql.pid"
         And the user runs command "sleep 70"

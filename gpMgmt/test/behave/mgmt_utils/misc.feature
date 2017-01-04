@@ -65,9 +65,9 @@ Feature: Miscellaneous tests which do not belong to mgmt utilities
         Then psql should print 10000 to stdout 
         When the user runs the query "create table aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa (i int)" on "testdb"
         And the user runs the query "insert into aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa select * from generate_series(1, 1000)" on "testdb"
-        And the user runs query from the file "gppylib/test/behave/mgmt_utils/steps/data/long_query1.sql" on "testdb" without fetching results 
+        And the user runs query from the file "test/behave/mgmt_utils/steps/data/long_query1.sql" on "testdb" without fetching results 
         When the user runs "psql -c 'select current_query from pg_stat_activity' template1"
-        Then the text in the file "gppylib/test/behave/mgmt_utils/steps/data/long_query1.out" should be printed to stdout
+        Then the text in the file "test/behave/mgmt_utils/steps/data/long_query1.out" should be printed to stdout
         And the user runs "gpstop -M fast -a"
 
     Scenario: Large query with number of chars lesser than current_query size in pgstat_activity

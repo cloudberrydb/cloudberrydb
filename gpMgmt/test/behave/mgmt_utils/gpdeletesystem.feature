@@ -14,7 +14,7 @@ Feature: gpdeletesystem tests
         Given the database is running
         And there are no backup files
         And the environment variable "PGPORT" is not set
-        When the user runs "gpdeletesystem -d $MASTER_DATA_DIRECTORY < gppylib/test/behave/mgmt_utils/steps/data/yes.txt"
+        When the user runs "gpdeletesystem -d $MASTER_DATA_DIRECTORY < test/behave/mgmt_utils/steps/data/yes.txt"
         Then gpdeletesystem should return a return code of 0
         And the environment variable "PGPORT" is reset
         And the user runs "gpinitsystem -c $BLDWRAP_TOP/sys_mgmt_test/cluster_conf.out -h $BLDWRAP_TOP/sys_mgmt_test/hostlist.out -p $BLDWRAP_TOP/sys_mgmt_test/postgresql_param.conf -a"
@@ -24,7 +24,7 @@ Feature: gpdeletesystem tests
         Given the database is running
         And there are no backup files
         And the environment variable "PGPORT" is set to "1234567890"
-        When the user runs "gpdeletesystem -d $MASTER_DATA_DIRECTORY < gppylib/test/behave/mgmt_utils/steps/data/yes.txt"
+        When the user runs "gpdeletesystem -d $MASTER_DATA_DIRECTORY < test/behave/mgmt_utils/steps/data/yes.txt"
         Then gpdeletesystem should return a return code of 1
         And gpdeletesystem should print PGPORT value in .*/postgresql.conf does not match PGPORT environment variable error message 
         And the environment variable "PGPORT" is reset
@@ -32,7 +32,7 @@ Feature: gpdeletesystem tests
     Scenario: gpdeletesystem with PGPORT set
         Given the database is running
         And there are no backup files
-        When the user runs "gpdeletesystem -d $MASTER_DATA_DIRECTORY < gppylib/test/behave/mgmt_utils/steps/data/yes.txt"
+        When the user runs "gpdeletesystem -d $MASTER_DATA_DIRECTORY < test/behave/mgmt_utils/steps/data/yes.txt"
         Then gpdeletesystem should return a return code of 0
         And the user runs "gpinitsystem -c $BLDWRAP_TOP/sys_mgmt_test/cluster_conf.out -h $BLDWRAP_TOP/sys_mgmt_test/hostlist.out -p $BLDWRAP_TOP/sys_mgmt_test/postgresql_param.conf -a"
         And database "testdb" health check should pass on table "t1"
@@ -43,7 +43,7 @@ Feature: gpdeletesystem tests
         Given the database is running
         And there are no backup files
         And the standby hostname is saved
-        When the user runs "gpdeletesystem -d $MASTER_DATA_DIRECTORY < gppylib/test/behave/mgmt_utils/steps/data/yes.txt"
+        When the user runs "gpdeletesystem -d $MASTER_DATA_DIRECTORY < test/behave/mgmt_utils/steps/data/yes.txt"
         Then gpdeletesystem should return a return code of 0
         And user runs the init command "gpinitsystem -c $BLDWRAP_TOP/sys_mgmt_test/cluster_conf.out -h $BLDWRAP_TOP/sys_mgmt_test/hostlist.out -p $BLDWRAP_TOP/sys_mgmt_test/postgresql_param.conf -a" with the saved standby host
         And database "testdb" health check should pass on table "t1"

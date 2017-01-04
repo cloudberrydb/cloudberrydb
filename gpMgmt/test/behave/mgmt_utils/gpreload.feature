@@ -11,7 +11,7 @@ Feature: gpreload feature to reload data based on columns to sort
         And there is a "co" partition table "co_part_table_comp" with compression "quicklz" in "testdb" with data
         And all the data from "testdb" is saved for verification
         And all the compression data from "testdb" is saved for verification
-        When the user runs "gpreload -t gppylib/test/behave/mgmt_utils/steps/data/gpreload_table_file1 -d testdb"
+        When the user runs "gpreload -t test/behave/mgmt_utils/steps/data/gpreload_table_file1 -d testdb"
         Then gpreload should return a return code of 0
         And verify that the compression ratio of "public.ao_table_comp" in "testdb" is good
         And verify that the compression ratio of "public.ao_part_table_comp" in "testdb" is good
@@ -29,7 +29,7 @@ Feature: gpreload feature to reload data based on columns to sort
         And there is a "co" partition table "co_part_table_comp" with compression "zlib" in "testdb" with data
         And all the data from "testdb" is saved for verification
         And all the compression data from "testdb" is saved for verification
-        When the user runs "gpreload -t gppylib/test/behave/mgmt_utils/steps/data/gpreload_table_file1 -d testdb"
+        When the user runs "gpreload -t test/behave/mgmt_utils/steps/data/gpreload_table_file1 -d testdb"
         Then gpreload should return a return code of 0
         And verify that the compression ratio of "public.ao_table_comp" in "testdb" is good
         And verify that the compression ratio of "public.ao_part_table_comp" in "testdb" is good
@@ -48,7 +48,7 @@ Feature: gpreload feature to reload data based on columns to sort
         And there is a "heap" table "heap_table" with compression "None" in "testdb" with data
         And all the data from "testdb" is saved for verification
         And all the compression data from "testdb" is saved for verification
-        When the user runs "gpreload -t gppylib/test/behave/mgmt_utils/steps/data/gpreload_table_file2 -d testdb"
+        When the user runs "gpreload -t test/behave/mgmt_utils/steps/data/gpreload_table_file2 -d testdb"
         Then gpreload should return a return code of 0
         And verify that the compression ratio of "public.ao_table" in "testdb" is good
         And verify that the compression ratio of "public.ao_part_table" in "testdb" is good
@@ -64,7 +64,7 @@ Feature: gpreload feature to reload data based on columns to sort
         And there is a "co" table "co_index_table" with index "co_index" compression "quicklz" in "testdb" with data
         And all the data from "testdb" is saved for verification
         And all the compression data from "testdb" is saved for verification
-        When the user runs "gpreload -t gppylib/test/behave/mgmt_utils/steps/data/gpreload_table_file_index -d testdb -a"
+        When the user runs "gpreload -t test/behave/mgmt_utils/steps/data/gpreload_table_file_index -d testdb -a"
         Then gpreload should return a return code of 0
         And gpreload should not print Table public.ao_table_index has indexes. This might slow down table reload. Do you still want to continue ? to stdout
         And gpreload should not print Table public.co_table_index has indexes. This might slow down table reload. Do you still want to continue ? to stdout
@@ -82,16 +82,16 @@ Feature: gpreload feature to reload data based on columns to sort
         And there is a "co" partition table "co_part_table_comp" with compression "quicklz" in "testdb" with data
         And all the data from "testdb" is saved for verification
         And all the compression data from "testdb" is saved for verification
-        When the user runs "gpreload -t gppylib/test/behave/mgmt_utils/steps/data/gpreload_table_file_index -d testdb"
+        When the user runs "gpreload -t test/behave/mgmt_utils/steps/data/gpreload_table_file_index -d testdb"
         Then gpreload should return a return code of 2
         And gpreload should print Table public.ao_index_table does not exist to stdout
-        When the user runs "gpreload -t gppylib/test/behave/mgmt_utils/steps/data/gpreload_table_file_invalid_columns -d testdb"
+        When the user runs "gpreload -t test/behave/mgmt_utils/steps/data/gpreload_table_file_invalid_columns -d testdb"
         Then gpreload should return a return code of 2
         And gpreload should print Table public.ao_table_comp does not have column column10 to stdout
-        When the user runs "gpreload -t gppylib/test/behave/mgmt_utils/steps/data/gpreload_table_file_invalid_sort_order -d testdb"
+        When the user runs "gpreload -t test/behave/mgmt_utils/steps/data/gpreload_table_file_invalid_sort_order -d testdb"
         Then gpreload should return a return code of 2
         And gpreload should print Line .* is not formatted correctly: Invalid sort order foo to stdout
-        When the user runs "gpreload -t gppylib/test/behave/mgmt_utils/steps/data/gpreload_table_file_invalid -d testdb"
+        When the user runs "gpreload -t test/behave/mgmt_utils/steps/data/gpreload_table_file_invalid -d testdb"
         Then gpreload should return a return code of 2
         And gpreload should print Line .* is not formatted correctly: Empty column to stdout
         And verify that the compression ratio of "public.ao_table_comp" in "testdb" is good
@@ -110,7 +110,7 @@ Feature: gpreload feature to reload data based on columns to sort
         And there is a "co" partition table "co_part_table_comp" with compression "quicklz" in "testdb" with data
         And all the data from "testdb" is saved for verification
         And all the compression data from "testdb" is saved for verification
-        When the user runs "gpreload -t gppylib/test/behave/mgmt_utils/steps/data/gpreload_table_file_leaf_partitions -d testdb"
+        When the user runs "gpreload -t test/behave/mgmt_utils/steps/data/gpreload_table_file_leaf_partitions -d testdb"
         Then gpreload should return a return code of 0
         And verify that the compression ratio of "public.ao_table_comp" in "testdb" is good
         And verify that the compression ratio of "public.ao_part_table_comp" in "testdb" is good
@@ -128,6 +128,6 @@ Feature: gpreload feature to reload data based on columns to sort
         And there is a "co" partition table "co_part_table_comp" with compression "quicklz" in "testdb" with data
         And all the data from "testdb" is saved for verification
         And all the compression data from "testdb" is saved for verification
-        When the user runs "gpreload -t gppylib/test/behave/mgmt_utils/steps/data/gpreload_table_file_mid_partitions -d testdb"
+        When the user runs "gpreload -t test/behave/mgmt_utils/steps/data/gpreload_table_file_mid_partitions -d testdb"
         Then gpreload should return a return code of 2
         And gpreload should print Please specify only leaf partitions or parent table name to stdout

@@ -63,7 +63,7 @@ Feature: NetBackup Integration with GPDB
         And there is a "heap" table "public.heap_table" in "bkdb" with data
         And there is a "ao" table "public.ao_table" in "bkdb" with data
         And there is a "ao" partition table "public.ao_part_table" in "bkdb" with data
-        When the user runs valgrind with "./gppylib/test/behave/mgmt_utils/steps/scripts/valgrind_nbu_test_1.sh" and options " " and suppressions file "netbackup_suppressions.txt" using netbackup
+        When the user runs valgrind with "./test/behave/mgmt_utils/steps/scripts/valgrind_nbu_test_1.sh" and options " " and suppressions file "netbackup_suppressions.txt" using netbackup
 
     @nbupartI
     Scenario: Valgrind test of gp_bsa_dump_agent and gp_bsa_restore_agent
@@ -73,8 +73,8 @@ Feature: NetBackup Integration with GPDB
         And there is a "ao" table "public.ao_table" in "bkdb" with data
         And there is a "ao" partition table "public.ao_part_table" in "bkdb" with data
         And the tables "public.heap_table" are in dirty hack file "/tmp/dirty_hack.txt"
-        When the user runs backup command "cat /tmp/dirty_hack.txt | valgrind --suppressions=gppylib/test/behave/mgmt_utils/steps/netbackup_suppressions.txt gp_bsa_dump_agent --netbackup-filename /tmp/dirty_hack.txt" using netbackup
-        And the user runs restore command "valgrind --suppressions=gppylib/test/behave/mgmt_utils/steps/netbackup_suppressions.txt gp_bsa_restore_agent --netbackup-filename /tmp/dirty_hack.txt" using netbackup
+        When the user runs backup command "cat /tmp/dirty_hack.txt | valgrind --suppressions=test/behave/mgmt_utils/steps/netbackup_suppressions.txt gp_bsa_dump_agent --netbackup-filename /tmp/dirty_hack.txt" using netbackup
+        And the user runs restore command "valgrind --suppressions=test/behave/mgmt_utils/steps/netbackup_suppressions.txt gp_bsa_restore_agent --netbackup-filename /tmp/dirty_hack.txt" using netbackup
 
     @nbusmoke
     @nbupartI
@@ -763,13 +763,13 @@ Feature: NetBackup Integration with GPDB
     Scenario: Full backup and restore for table names with multibyte (chinese) characters
         Given the test is initialized
         And the netbackup params have been parsed
-        And the user runs "psql -f gppylib/test/behave/mgmt_utils/steps/data/create_multi_byte_char_table_name.sql bkdb"
+        And the user runs "psql -f test/behave/mgmt_utils/steps/data/create_multi_byte_char_table_name.sql bkdb"
         When the user runs "gpcrondump -a -x bkdb --netbackup-block-size 1024" using netbackup
         Then gpcrondump should return a return code of 0
         And the timestamp from gpcrondump is stored
         When the user runs gpdbrestore with the stored timestamp using netbackup
         Then gpdbrestore should return a return code of 0
-        When the user runs "psql -f gppylib/test/behave/mgmt_utils/steps/data/select_multi_byte_char.sql bkdb"
+        When the user runs "psql -f test/behave/mgmt_utils/steps/data/select_multi_byte_char.sql bkdb"
         Then psql should print 1000 to stdout
 
     @nbupartI
@@ -838,25 +838,25 @@ Feature: NetBackup Integration with GPDB
         And there is a "co" table "public.co_index_table" with index "co_index" compression "None" in "bkdb" with data
         And there is a "heap" table "public.heap_index_table" with index "heap_index" compression "None" in "bkdb" with data
         And the user runs "psql -c 'ALTER TABLE ONLY public.heap_index_table ADD CONSTRAINT heap_index_table_pkey PRIMARY KEY (column1, column2, column3);' bkdb"
-        And the user runs "psql -f gppylib/test/behave/mgmt_utils/steps/data/create_multi_byte_char_tables.sql bkdb"
-        And the user runs "psql -f gppylib/test/behave/mgmt_utils/steps/data/primary_key_multi_byte_char_table_name.sql bkdb"
-        And the user runs "psql -f gppylib/test/behave/mgmt_utils/steps/data/index_multi_byte_char_table_name.sql bkdb"
+        And the user runs "psql -f test/behave/mgmt_utils/steps/data/create_multi_byte_char_tables.sql bkdb"
+        And the user runs "psql -f test/behave/mgmt_utils/steps/data/primary_key_multi_byte_char_table_name.sql bkdb"
+        And the user runs "psql -f test/behave/mgmt_utils/steps/data/index_multi_byte_char_table_name.sql bkdb"
         When the user runs "gpcrondump -a -x bkdb --netbackup-block-size 4096" using netbackup
         Then gpcrondump should return a return code of 0
         And the timestamp from gpcrondump is stored
-        And the user runs "psql -f gppylib/test/behave/mgmt_utils/steps/data/describe_multi_byte_char.sql bkdb > /tmp/describe_multi_byte_char_before"
+        And the user runs "psql -f test/behave/mgmt_utils/steps/data/describe_multi_byte_char.sql bkdb > /tmp/describe_multi_byte_char_before"
         And the user runs "psql -c '\d public.ao_index_table' bkdb > /tmp/describe_ao_index_table_before"
         When there is a backupfile of tables "ao_index_table, co_index_table, heap_index_table" in "bkdb" exists for validation
         And table "public.ao_index_table" is dropped in "bkdb"
-        And the user runs "psql -f gppylib/test/behave/mgmt_utils/steps/data/drop_table_with_multi_byte_char.sql bkdb"
-        When the user runs gpdbrestore with the stored timestamp and options "--table-file gppylib/test/behave/mgmt_utils/steps/data/include_tables_with_metadata_postdata --netbackup-block-size 4096" without -e option using netbackup
+        And the user runs "psql -f test/behave/mgmt_utils/steps/data/drop_table_with_multi_byte_char.sql bkdb"
+        When the user runs gpdbrestore with the stored timestamp and options "--table-file test/behave/mgmt_utils/steps/data/include_tables_with_metadata_postdata --netbackup-block-size 4096" without -e option using netbackup
         Then gpdbrestore should return a return code of 0
-        When the user runs "psql -f gppylib/test/behave/mgmt_utils/steps/data/select_multi_byte_char_tables.sql bkdb"
+        When the user runs "psql -f test/behave/mgmt_utils/steps/data/select_multi_byte_char_tables.sql bkdb"
         Then psql should print 1000 to stdout 4 times
         And verify that there is a "ao" table "ao_index_table" in "bkdb" with data
         And verify that there is a "co" table "co_index_table" in "bkdb" with data
         And verify that there is a "heap" table "heap_index_table" in "bkdb" with data
-        When the user runs "psql -f gppylib/test/behave/mgmt_utils/steps/data/describe_multi_byte_char.sql bkdb > /tmp/describe_multi_byte_char_after"
+        When the user runs "psql -f test/behave/mgmt_utils/steps/data/describe_multi_byte_char.sql bkdb > /tmp/describe_multi_byte_char_after"
         And the user runs "psql -c '\d public.ao_index_table' bkdb > /tmp/describe_ao_index_table_after"
         Then verify that the contents of the files "/tmp/describe_multi_byte_char_before" and "/tmp/describe_multi_byte_char_after" are identical
         And verify that the contents of the files "/tmp/describe_ao_index_table_before" and "/tmp/describe_ao_index_table_after" are identical
@@ -1435,29 +1435,29 @@ Feature: NetBackup Integration with GPDB
         And there is a "co" table "public.co_index_table" with index "co_index" compression "None" in "bkdb" with data
         And there is a "heap" table "public.heap_index_table" with index "heap_index" compression "None" in "bkdb" with data
         And the user runs "psql -c 'ALTER TABLE ONLY public.heap_index_table ADD CONSTRAINT heap_index_table_pkey PRIMARY KEY (column1, column2, column3);' bkdb"
-        And the user runs "psql -f gppylib/test/behave/mgmt_utils/steps/data/create_multi_byte_char_tables.sql bkdb"
-        And the user runs "psql -f gppylib/test/behave/mgmt_utils/steps/data/primary_key_multi_byte_char_table_name.sql bkdb"
-        And the user runs "psql -f gppylib/test/behave/mgmt_utils/steps/data/index_multi_byte_char_table_name.sql bkdb"
+        And the user runs "psql -f test/behave/mgmt_utils/steps/data/create_multi_byte_char_tables.sql bkdb"
+        And the user runs "psql -f test/behave/mgmt_utils/steps/data/primary_key_multi_byte_char_table_name.sql bkdb"
+        And the user runs "psql -f test/behave/mgmt_utils/steps/data/index_multi_byte_char_table_name.sql bkdb"
         When the user runs "gpcrondump -a -x bkdb --netbackup-block-size 4096" using netbackup
         Then gpcrondump should return a return code of 0
         And table "public.ao_index_table" is assumed to be in dirty state in "bkdb"
-        And the user runs "psql -f gppylib/test/behave/mgmt_utils/steps/data/dirty_table_multi_byte_char.sql bkdb"
+        And the user runs "psql -f test/behave/mgmt_utils/steps/data/dirty_table_multi_byte_char.sql bkdb"
         When the user runs "gpcrondump --incremental -a -x bkdb --netbackup-block-size 4096" using netbackup
         Then gpcrondump should return a return code of 0
         And the timestamp from gpcrondump is stored
-        And the user runs "psql -f gppylib/test/behave/mgmt_utils/steps/data/describe_multi_byte_char.sql bkdb > /tmp/describe_multi_byte_char_before"
+        And the user runs "psql -f test/behave/mgmt_utils/steps/data/describe_multi_byte_char.sql bkdb > /tmp/describe_multi_byte_char_before"
         And the user runs "psql -c '\d public.ao_index_table' bkdb > /tmp/describe_ao_index_table_before"
         When there is a backupfile of tables "ao_index_table, co_index_table, heap_index_table" in "bkdb" exists for validation
         And table "public.ao_index_table" is dropped in "bkdb"
-        And the user runs "psql -f gppylib/test/behave/mgmt_utils/steps/data/drop_table_with_multi_byte_char.sql bkdb"
-        When the user runs gpdbrestore with the stored timestamp and options "--table-file gppylib/test/behave/mgmt_utils/steps/data/include_tables_with_metadata_postdata --netbackup-block-size 4096" without -e option using netbackup
+        And the user runs "psql -f test/behave/mgmt_utils/steps/data/drop_table_with_multi_byte_char.sql bkdb"
+        When the user runs gpdbrestore with the stored timestamp and options "--table-file test/behave/mgmt_utils/steps/data/include_tables_with_metadata_postdata --netbackup-block-size 4096" without -e option using netbackup
         Then gpdbrestore should return a return code of 0
-        When the user runs "psql -f gppylib/test/behave/mgmt_utils/steps/data/select_multi_byte_char_tables.sql bkdb"
+        When the user runs "psql -f test/behave/mgmt_utils/steps/data/select_multi_byte_char_tables.sql bkdb"
         Then psql should print 2000 to stdout 4 times
         And verify that there is a "ao" table "ao_index_table" in "bkdb" with data
         And verify that there is a "co" table "co_index_table" in "bkdb" with data
         And verify that there is a "heap" table "heap_index_table" in "bkdb" with data
-        When the user runs "psql -f gppylib/test/behave/mgmt_utils/steps/data/describe_multi_byte_char.sql bkdb > /tmp/describe_multi_byte_char_after"
+        When the user runs "psql -f test/behave/mgmt_utils/steps/data/describe_multi_byte_char.sql bkdb > /tmp/describe_multi_byte_char_after"
         And the user runs "psql -c '\d public.ao_index_table' bkdb > /tmp/describe_ao_index_table_after"
         Then verify that the contents of the files "/tmp/describe_multi_byte_char_before" and "/tmp/describe_multi_byte_char_after" are identical
         And verify that the contents of the files "/tmp/describe_ao_index_table_before" and "/tmp/describe_ao_index_table_after" are identical

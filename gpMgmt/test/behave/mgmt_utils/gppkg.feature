@@ -15,7 +15,7 @@ Feature: gppkg tests
 
     Scenario: gppkg -u should prompt user when package is updated with yes as input
         Given the database is running
-        When the user runs "gppkg -u foo.gppkg < gppylib/test/behave/mgmt_utils/steps/data/yes.txt"
+        When the user runs "gppkg -u foo.gppkg < test/behave/mgmt_utils/steps/data/yes.txt"
         Then gppkg should return a return code of 2
         And gppkg should print WARNING: The process of updating a package includes removing all to stdout
         And gppkg should print previous versions of the system objects related to the package. For to stdout
@@ -28,7 +28,7 @@ Feature: gppkg tests
 
     Scenario: gppkg -u should prompt user when package is updated with no as input
         Given the database is running
-        When the user runs "gppkg -u foo.gppkg < gppylib/test/behave/mgmt_utils/steps/data/no.txt"
+        When the user runs "gppkg -u foo.gppkg < test/behave/mgmt_utils/steps/data/no.txt"
         Then gppkg should return a return code of 0
         And gppkg should print WARNING: The process of updating a package includes removing all to stdout
         And gppkg should print previous versions of the system objects related to the package. For to stdout

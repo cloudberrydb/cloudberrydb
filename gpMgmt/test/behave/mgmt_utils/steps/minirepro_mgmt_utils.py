@@ -1,5 +1,5 @@
 import os, mmap
-from gppylib.test.behave_utils.utils import drop_database_if_exists, drop_table_if_exists
+from test.behave_utils.utils import drop_database_if_exists, drop_table_if_exists
 
 @given('database "{dbname}" does not exist')
 def impl(context, dbname):

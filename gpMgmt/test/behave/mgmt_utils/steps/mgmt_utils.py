@@ -20,8 +20,8 @@ from gppylib.operations.backup_utils import Context
 from gppylib.operations.dump import get_partition_state
 from gppylib.operations.startSegments import MIRROR_MODE_MIRRORLESS
 from gppylib.operations.unix import ListRemoteFilesByPattern, CheckRemoteFile
-from gppylib.test.behave_utils.gpfdist_utils.gpfdist_mgmt import Gpfdist
-from gppylib.test.behave_utils.utils import *
+from test.behave_utils.gpfdist_utils.gpfdist_mgmt import Gpfdist
+from test.behave_utils.utils import *
 
 master_data_dir = os.environ.get('MASTER_DATA_DIRECTORY')
 if master_data_dir is None:
@@ -645,7 +645,7 @@ def impl(context, dbname, dir):
             command = '%s -f %s > %s' % (dbconn_dest, os.path.join(dir, file), out_file_path)
             run_command(context, command)
 
-            gpdiff_cmd = 'gpdiff.pl -w -I NOTICE: -I HINT: -I CONTEXT: -I GP_IGNORE: --gpd_init=gppylib/test/behave/mgmt_utils/steps/data/global_init_file %s %s > %s' % (ans_file_path, out_file_path, diff_file_path)
+            gpdiff_cmd = 'gpdiff.pl -w -I NOTICE: -I HINT: -I CONTEXT: -I GP_IGNORE: --gpd_init=test/behave/mgmt_utils/steps/data/global_init_file %s %s > %s' % (ans_file_path, out_file_path, diff_file_path)
             run_command(context, gpdiff_cmd)
             if context.ret_code != 0:
                 raise Exception ("Found difference between source and destination system, see %s" % file)
@@ -664,7 +664,7 @@ def impl(context, dir):
             command = '%s -f %s > %s'%(dbconn, os.path.join(dir,file), out_file_path)
             run_command(context, command)
 
-            gpdiff_cmd = 'gpdiff.pl -w  -I NOTICE: -I HINT: -I CONTEXT: -I GP_IGNORE: --gpd_init=gppylib/test/behave/mgmt_utils/steps/data/global_init_file %s %s > %s'%(ans_file_path, out_file_path, diff_file_path)
+            gpdiff_cmd = 'gpdiff.pl -w  -I NOTICE: -I HINT: -I CONTEXT: -I GP_IGNORE: --gpd_init=test/behave/mgmt_utils/steps/data/global_init_file %s %s > %s'%(ans_file_path, out_file_path, diff_file_path)
             run_command(context, gpdiff_cmd)
     for file in os.listdir(dir):
         if file.endswith('.diff') and os.path.getsize(os.path.join(dir,file)) > 0:
@@ -1059,7 +1059,7 @@ def impl(context, filename):
 
 @then('the temporary table file "{filename}" is removed')
 def impl(context, filename):
-    table_file = 'gppylib/test/behave/mgmt_utils/steps/data/gptransfer/%s' % filename
+    table_file = 'test/behave/mgmt_utils/steps/data/gptransfer/%s' % filename
     if os.path.exists(table_file):
         os.remove(table_file)
 
@@ -2546,7 +2546,7 @@ def open_named_pipes(context, operation, timestamp, dump_dir):
     sleeptime = 5
     pipes_filename = '%s/db_dumps/%s/gp_dump_%s_pipes' % (dump_dir, timestamp[0:8], timestamp)
 
-    filename = os.path.join(os.getcwd(), './gppylib/test/data/%s_pipe.py' % operation)
+    filename = os.path.join(os.getcwd(), './test/data/%s_pipe.py' % operation)
 
     segs = get_all_hostnames_as_list(context, 'template1')
 
@@ -3101,7 +3101,7 @@ def impl(context, seg):
             raise Exception("Standby host is not saved in the context")
         hostname = context.standby_host
 
-    filename = os.path.join(os.getcwd(), './gppylib/test/behave/mgmt_utils/steps/data/pid_background_script.py')
+    filename = os.path.join(os.getcwd(), './test/behave/mgmt_utils/steps/data/pid_background_script.py')
 
     cmd = Command(name="Remove background script on remote host", cmdStr='rm -f /tmp/pid_background_script.py', remoteHost=hostname, ctxt=REMOTE)
     cmd.run(validateAfter=True)
@@ -3481,7 +3481,7 @@ def impl(context, can_ssh):
 @given('all the compression data from "{dbname}" is saved for verification')
 def impl(context, dbname):
     partitions = get_partition_list('ao', dbname) + get_partition_list('co', dbname)
-    with open('gppylib/test/data/compression_{db}_backup'.format(db=dbname), 'w') as fp:
+    with open('test/data/compression_{db}_backup'.format(db=dbname), 'w') as fp:
         with dbconn.connect(dbconn.DbURL(dbname=dbname)) as conn:
             for p in partitions:
                 query = """SELECT get_ao_compression_ratio('{schema}.{table}')""".format(schema=p[1], table=p[2])
@@ -3495,7 +3495,7 @@ def impl(context, table, dbname):
         compression_rate = dbconn.execSQLForSingleton(conn, query)
 
     found = False
-    with open('gppylib/test/data/compression_{db}_backup'.format(db=dbname)) as fp:
+    with open('test/data/compression_{db}_backup'.format(db=dbname)) as fp:
         for line in fp:
             t, c = line.split(':')
             if t == table:
@@ -3511,7 +3511,7 @@ def impl(context, dbname):
     backed_up_data = []
     reloaded_data = []
     for t in tbls:
-        with open('gppylib/test/data/%s.%s_backup' % (t[0], t[1])) as fp:
+        with open('test/data/%s.%s_backup' % (t[0], t[1])) as fp:
             for line in fp:
                 toks = line.split()
                 backed_up_data.append(' '.join(toks[1:])) #Ignore the gp_segment_id value since it changes after reload
@@ -3560,7 +3560,7 @@ def impl(context, utilname, dirname):
 @given('a table is created containing rows of length "{length}" with connection "{dbconn}"')
 def impl(context, length, dbconn):
     length = int(length)
-    wide_row_file = 'gppylib/test/behave/mgmt_utils/steps/data/gptransfer/wide_row_%s.sql' % length
+    wide_row_file = 'test/behave/mgmt_utils/steps/data/gptransfer/wide_row_%s.sql' % length
     tablename = 'public.wide_row_%s' % length
     entry = "x" * length
     with open (wide_row_file, 'w') as sql_file:

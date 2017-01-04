@@ -6,7 +6,7 @@ GPLOAD:
     - SOURCE:
         PORT_RANGE: [20000, 30000]
         FILE:
-          - gppylib/test/behave/mgmt_utils/steps/data/gpload_ctrl_delimiter.txt
+          - test/behave/mgmt_utils/steps/data/gpload_ctrl_delimiter.txt
     - COLUMNS:
         - col1: int
         - col2: int 

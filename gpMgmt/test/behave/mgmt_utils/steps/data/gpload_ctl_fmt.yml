@@ -5,7 +5,7 @@ GPLOAD:
     - SOURCE:
          PORT_RANGE: [20000, 30000]
          FILE: 
-           - gppylib/test/behave/mgmt_utils/steps/data/data1
+           - test/behave/mgmt_utils/steps/data/data1
     - COLUMNS:
            - column1: int
            - column2: varchar(20)

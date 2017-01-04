@@ -1,7 +1,7 @@
 from gppylib.commands.base import Command, ExecutionError, REMOTE, WorkerPool
 from gppylib.db import dbconn
 from gppylib.gparray import GpArray
-from gppylib.test.behave_utils.utils import run_gpcommand, getRows
+from test.behave_utils.utils import run_gpcommand, getRows
 from time import gmtime, strftime
 import subprocess
 from socket import gethostname

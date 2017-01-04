@@ -11,21 +11,21 @@ Feature: gpcheckcat tests
     @leak
     Scenario: gpcheckcat should drop leaked schemas
         Given database "leak_db" is dropped and recreated
-        And the user runs the command "psql leak_db -f 'gppylib/test/behave/mgmt_utils/steps/data/gpcheckcat/create_temp_schema_leak.sql'" in the background without sleep
+        And the user runs the command "psql leak_db -f 'test/behave/mgmt_utils/steps/data/gpcheckcat/create_temp_schema_leak.sql'" in the background without sleep
         And waiting "1" seconds
-        Then read pid from file "gppylib/test/behave/mgmt_utils/steps/data/gpcheckcat/pid_leak" and kill the process
-        And the temporary file "gppylib/test/behave/mgmt_utils/steps/data/gpcheckcat/pid_leak" is removed
+        Then read pid from file "test/behave/mgmt_utils/steps/data/gpcheckcat/pid_leak" and kill the process
+        And the temporary file "test/behave/mgmt_utils/steps/data/gpcheckcat/pid_leak" is removed
         And waiting "2" seconds
         When the user runs "gpstop -ar"
         Then gpstart should return a return code of 0
-        When the user runs "psql leak_db -f gppylib/test/behave/mgmt_utils/steps/data/gpcheckcat/leaked_schema.sql"
+        When the user runs "psql leak_db -f test/behave/mgmt_utils/steps/data/gpcheckcat/leaked_schema.sql"
         Then psql should return a return code of 0
         And psql should print pg_temp_ to stdout
         And psql should print (1 row) to stdout
         When the user runs "gpcheckcat leak_db"
         Then gpchekcat should return a return code of 0
         Then gpcheckcat should print Found and dropped 1 unbound temporary schemas to stdout
-        And the user runs "psql leak_db -f gppylib/test/behave/mgmt_utils/steps/data/gpcheckcat/leaked_schema.sql"
+        And the user runs "psql leak_db -f test/behave/mgmt_utils/steps/data/gpcheckcat/leaked_schema.sql"
         Then psql should return a return code of 0
         And psql should print (0 rows) to stdout
         And verify that the schema "good_schema" exists in "leak_db"
@@ -35,7 +35,7 @@ Feature: gpcheckcat tests
     @unique_index
     Scenario: gpcheckcat should report unique index violations
         Given database "unique_index_db" is dropped and recreated
-        And the user runs "psql unique_index_db -f 'gppylib/test/behave/mgmt_utils/steps/data/gpcheckcat/create_unique_index_violation.sql'"
+        And the user runs "psql unique_index_db -f 'test/behave/mgmt_utils/steps/data/gpcheckcat/create_unique_index_violation.sql'"
         Then psql should return a return code of 0
         And psql should not print (0 rows) to stdout
         When the user runs "gpcheckcat unique_index_db"
@@ -158,7 +158,7 @@ Feature: gpcheckcat tests
         And the path "gpcheckcat.repair.*" is removed from current working directory
         And there is a "heap" table "gpadmin_tbl" in "owner_db1" with data
         And there is a "heap" table "gpadmin_tbl" in "owner_db2" with data
-        And the user runs "psql owner_db1 -f gppylib/test/behave/mgmt_utils/steps/data/gpcheckcat/create_user_wolf.sql"
+        And the user runs "psql owner_db1 -f test/behave/mgmt_utils/steps/data/gpcheckcat/create_user_wolf.sql"
         Then psql should return a return code of 0
         Given the user runs sql "alter table gpadmin_tbl OWNER TO wolf" in "owner_db1" on first primary segment
         When the user runs "gpcheckcat -R owner owner_db1"
@@ -186,7 +186,7 @@ Feature: gpcheckcat tests
     Scenario: gpcheckcat should report and repair invalid constraints
         Given database "constraint_db" is dropped and recreated
         And the path "gpcheckcat.repair.*" is removed from current working directory
-        And the user runs "psql constraint_db -f gppylib/test/behave/mgmt_utils/steps/data/gpcheckcat/create_invalid_constraint.sql"
+        And the user runs "psql constraint_db -f test/behave/mgmt_utils/steps/data/gpcheckcat/create_invalid_constraint.sql"
         Then psql should return a return code of 0
         When the user runs "gpcheckcat -R distribution_policy constraint_db"
         Then gpcheckcat should return a return code of 1
@@ -200,7 +200,7 @@ Feature: gpcheckcat tests
     Scenario: gpcheckcat should report and repair invalid policy issues
         Given database "policy_db" is dropped and recreated
         And the path "gpcheckcat.repair.*" is removed from current working directory
-        And the user runs "psql policy_db -f gppylib/test/behave/mgmt_utils/steps/data/gpcheckcat/create_inconsistent_policy.sql"
+        And the user runs "psql policy_db -f test/behave/mgmt_utils/steps/data/gpcheckcat/create_inconsistent_policy.sql"
         Then psql should return a return code of 0
         When the user runs "gpcheckcat -R part_integrity policy_db"
         Then gpcheckcat should return a return code of 1
@@ -279,7 +279,7 @@ Feature: gpcheckcat tests
         Given database "extra_pk_db" is dropped and recreated
         And the path "gpcheckcat.repair.*" is removed from current working directory
         And the user runs "psql extra_pk_db -c 'CREATE SCHEMA my_pk_schema' "
-        And the user runs "psql extra_pk_db -f gppylib/test/behave/mgmt_utils/steps/data/gpcheckcat/add_operator.sql "
+        And the user runs "psql extra_pk_db -f test/behave/mgmt_utils/steps/data/gpcheckcat/add_operator.sql "
         Then psql should return a return code of 0
         And the user runs "psql extra_pk_db -c "set allow_system_table_mods=DML;DELETE FROM pg_catalog.pg_operator where oprname='!#'" "
         Then psql should return a return code of 0
@@ -318,8 +318,8 @@ Feature: gpcheckcat tests
     Scenario: gpcheckcat should report inconsistency between gp_fastsequence and pg_class
         Given database "fkey2_db" is dropped and recreated
         And the path "gpcheckcat.repair.*" is removed from current working directory
-        And the user runs "psql fkey2_db -f gppylib/test/behave/mgmt_utils/steps/data/gpcheckcat/create_aoco_table.sql"
-        And the user runs sql file "gppylib/test/behave/mgmt_utils/steps/data/gpcheckcat/create_inconsistent_gpfastsequence.sql" in "fkey2_db" on all the segments
+        And the user runs "psql fkey2_db -f test/behave/mgmt_utils/steps/data/gpcheckcat/create_aoco_table.sql"
+        And the user runs sql file "test/behave/mgmt_utils/steps/data/gpcheckcat/create_inconsistent_gpfastsequence.sql" in "fkey2_db" on all the segments
         Then the user runs "gpcheckcat fkey2_db"
         Then gpcheckcat should return a return code of 3
         Then gpcheckcat should print No pg_class {.*} entry for gp_fastsequence {.*} to stdout
@@ -352,7 +352,7 @@ Feature: gpcheckcat tests
     @constraint_g
     Scenario: gpcheckcat should generate repair scripts when only -g option is provided
         Given database "constraint_g_db" is dropped and recreated
-        And the user runs "psql constraint_g_db -f gppylib/test/behave/mgmt_utils/steps/data/gpcheckcat/create_invalid_constraint.sql"
+        And the user runs "psql constraint_g_db -f test/behave/mgmt_utils/steps/data/gpcheckcat/create_invalid_constraint.sql"
         Then psql should return a return code of 0
         When the user runs "gpcheckcat -g repair_dir constraint_g_db"
         Then gpcheckcat should return a return code of 3
@@ -370,8 +370,8 @@ Feature: gpcheckcat tests
     Scenario: gpcheckcat should use the same timestamp for creating repair dir and scripts
         Given database "timestamp_db" is dropped and recreated
         And the path "gpcheckcat.repair.*" is removed from current working directory
-        And the user runs "psql timestamp_db -f gppylib/test/behave/mgmt_utils/steps/data/gpcheckcat/create_aoco_table.sql"
-        And the user runs sql file "gppylib/test/behave/mgmt_utils/steps/data/gpcheckcat/create_inconsistent_gpfastsequence.sql" in "timestamp_db" on all the segments
+        And the user runs "psql timestamp_db -f test/behave/mgmt_utils/steps/data/gpcheckcat/create_aoco_table.sql"
+        And the user runs sql file "test/behave/mgmt_utils/steps/data/gpcheckcat/create_inconsistent_gpfastsequence.sql" in "timestamp_db" on all the segments
         And the user runs "psql timestamp_db -c "CREATE TABLE foo(i int)""
         Then The user runs sql "set allow_system_table_mods=DML;delete from pg_class where relname='foo'" in "timestamp_db" on first primary segment
         And the user runs "psql timestamp_db -c "drop table if exists foo""

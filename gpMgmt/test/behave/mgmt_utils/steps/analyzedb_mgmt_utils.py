@@ -1,7 +1,7 @@
 import os
 import shutil
 from gppylib.db import dbconn
-from gppylib.test.behave_utils.utils import check_schema_exists, check_table_exists, drop_table_if_exists
+from test.behave_utils.utils import check_schema_exists, check_table_exists, drop_table_if_exists
 from gppylib.operations.backup_utils import get_lines_from_file
 
 CREATE_MULTI_PARTITION_TABLE_SQL = """

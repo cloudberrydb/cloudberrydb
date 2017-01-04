@@ -1,5 +1,6 @@
 top_builddir = ..
 include $(top_builddir)/src/Makefile.global
+include $(top_builddir)/gpMgmt/Makefile.behave
 
 #---------------------------------------------------------------------
 # Set Version

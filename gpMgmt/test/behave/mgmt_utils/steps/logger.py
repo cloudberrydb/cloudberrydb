@@ -1,7 +1,7 @@
 import os
 import glob
 
-from gppylib.test.behave_utils.utils import execute_sql_singleton
+from test.behave_utils.utils import execute_sql_singleton
 
 master_data_dir = os.environ.get('MASTER_DATA_DIRECTORY')
 if master_data_dir is None:

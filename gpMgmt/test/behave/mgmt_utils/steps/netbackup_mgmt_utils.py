@@ -2,9 +2,9 @@
 
 import os
 from gppylib.db import dbconn
-from gppylib.test.behave_utils.utils import run_gpcommand
+from test.behave_utils.utils import run_gpcommand
 from gppylib.gparray import GpArray
-from gppylib.test.behave_utils.utils import get_all_hostnames_as_list
+from test.behave_utils.utils import get_all_hostnames_as_list
 from gppylib.operations.backup_utils import Context
 
 master_data_dir = os.environ.get('MASTER_DATA_DIRECTORY')

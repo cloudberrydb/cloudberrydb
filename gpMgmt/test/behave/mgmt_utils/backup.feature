@@ -414,7 +414,7 @@ Feature: Validate command line arguments
         And there is a "heap" table "public.heap_table" in "bkdb" with data
         And there is a "ao" partition table "public.ao_part_table" in "bkdb" with data
         And there is a backupfile of tables "public.heap_table, public.ao_part_table" in "bkdb" exists for validation
-        And the user runs "psql -f gppylib/test/behave/mgmt_utils/steps/data/add_rules_indexes_constraints_triggers.sql bkdb"
+        And the user runs "psql -f test/behave/mgmt_utils/steps/data/add_rules_indexes_constraints_triggers.sql bkdb"
         Then psql should return a return code of 0
         When the user runs "gpcrondump -a -x bkdb"
         Then gpcrondump should return a return code of 0
@@ -1458,7 +1458,7 @@ Feature: Validate command line arguments
         Given the test is initialized
         And there is a "heap" table "public.heap_table" in "bkdb" with data
         And there is a "ao" table "public.ao_index_table" in "bkdb" with data
-        And the user runs "psql -f gppylib/test/behave/mgmt_utils/steps/data/create_function_with_drop_table.sql bkdb"
+        And the user runs "psql -f test/behave/mgmt_utils/steps/data/create_function_with_drop_table.sql bkdb"
         When the user runs "gpcrondump -a -x bkdb"
         Then gpcrondump should return a return code of 0
         And the timestamp from gpcrondump is stored
@@ -1879,7 +1879,7 @@ Feature: Validate command line arguments
         And verify that the "filter" file in " " dir contains "public.ao_index_table"
         And verify that the "filter" file in " " dir contains "public.heap_table"
         And table "public.ao_index_table" is assumed to be in dirty state in "bkdb"
-        When the user runs "gpcrondump -x bkdb --prefix=foo --incremental  < gppylib/test/behave/mgmt_utils/steps/data/yes.txt"
+        When the user runs "gpcrondump -x bkdb --prefix=foo --incremental  < test/behave/mgmt_utils/steps/data/yes.txt"
         Then gpcrondump should return a return code of 0
         And gpcrondump should print Filtering tables using: to stdout
         And gpcrondump should print Prefix                        = foo to stdout
@@ -2046,7 +2046,7 @@ Feature: Validate command line arguments
 
     Scenario: Dump and Restore metadata
         Given the test is initialized
-        When the user runs "psql -f gppylib/test/behave/mgmt_utils/steps/data/create_metadata.sql bkdb"
+        When the user runs "psql -f test/behave/mgmt_utils/steps/data/create_metadata.sql bkdb"
         And the user runs "gpcrondump -a -x bkdb -K 30160101010101 -u /tmp"
         Then gpcrondump should return a return code of 0
         And the full backup timestamp from gpcrondump is stored
@@ -2056,8 +2056,8 @@ Feature: Validate command line arguments
         Given database "bkdb" is dropped and recreated
         When the user runs "gpdbrestore -a -t 30160101010101 -u /tmp"
         Then gpdbrestore should return a return code of 0
-        And the user runs "psql -f gppylib/test/behave/mgmt_utils/steps/data/check_metadata.sql bkdb > /tmp/check_metadata.out"
-        And verify that the contents of the files "/tmp/check_metadata.out" and "gppylib/test/behave/mgmt_utils/steps/data/check_metadata.ans" are identical
+        And the user runs "psql -f test/behave/mgmt_utils/steps/data/check_metadata.sql bkdb > /tmp/check_metadata.out"
+        And verify that the contents of the files "/tmp/check_metadata.out" and "test/behave/mgmt_utils/steps/data/check_metadata.ans" are identical
         And the directory "/tmp/db_dumps" is removed or does not exist
         And the directory "/tmp/check_metadata.out" is removed or does not exist
 
@@ -2069,29 +2069,29 @@ Feature: Validate command line arguments
         And there is a "co" table "public.co_index_table" with index "co_index" compression "None" in "bkdb" with data
         And there is a "heap" table "public.heap_index_table" with index "heap_index" compression "None" in "bkdb" with data
         And the user runs "psql -c 'ALTER TABLE ONLY public.heap_index_table ADD CONSTRAINT heap_index_table_pkey PRIMARY KEY (column1, column2, column3);' bkdb"
-        And the user runs "psql -f gppylib/test/behave/mgmt_utils/steps/data/create_multi_byte_char_tables.sql bkdb"
-        And the user runs "psql -f gppylib/test/behave/mgmt_utils/steps/data/primary_key_multi_byte_char_table_name.sql bkdb"
-        And the user runs "psql -f gppylib/test/behave/mgmt_utils/steps/data/index_multi_byte_char_table_name.sql bkdb"
+        And the user runs "psql -f test/behave/mgmt_utils/steps/data/create_multi_byte_char_tables.sql bkdb"
+        And the user runs "psql -f test/behave/mgmt_utils/steps/data/primary_key_multi_byte_char_table_name.sql bkdb"
+        And the user runs "psql -f test/behave/mgmt_utils/steps/data/index_multi_byte_char_table_name.sql bkdb"
         When the user runs "gpcrondump -a -x bkdb"
         Then gpcrondump should return a return code of 0
         And table "public.ao_index_table" is assumed to be in dirty state in "bkdb"
-        And the user runs "psql -f gppylib/test/behave/mgmt_utils/steps/data/dirty_table_multi_byte_char.sql bkdb"
+        And the user runs "psql -f test/behave/mgmt_utils/steps/data/dirty_table_multi_byte_char.sql bkdb"
         When the user runs "gpcrondump --incremental -a -x bkdb"
         Then gpcrondump should return a return code of 0
         And the timestamp from gpcrondump is stored
-        And the user runs "psql -f gppylib/test/behave/mgmt_utils/steps/data/describe_multi_byte_char.sql bkdb > /tmp/describe_multi_byte_char_before"
+        And the user runs "psql -f test/behave/mgmt_utils/steps/data/describe_multi_byte_char.sql bkdb > /tmp/describe_multi_byte_char_before"
         And the user runs "psql -c '\d public.ao_index_table' bkdb > /tmp/describe_ao_index_table_before"
         When there is a backupfile of tables "ao_index_table, co_index_table, heap_index_table" in "bkdb" exists for validation
         And table "public.ao_index_table" is dropped in "bkdb"
-        And the user runs "psql -f gppylib/test/behave/mgmt_utils/steps/data/drop_table_with_multi_byte_char.sql bkdb"
-        When the user runs "gpdbrestore --table-file gppylib/test/behave/mgmt_utils/steps/data/include_tables_with_metadata_postdata -a" with the stored timestamp
+        And the user runs "psql -f test/behave/mgmt_utils/steps/data/drop_table_with_multi_byte_char.sql bkdb"
+        When the user runs "gpdbrestore --table-file test/behave/mgmt_utils/steps/data/include_tables_with_metadata_postdata -a" with the stored timestamp
         Then gpdbrestore should return a return code of 0
-        When the user runs "psql -f gppylib/test/behave/mgmt_utils/steps/data/select_multi_byte_char_tables.sql bkdb"
+        When the user runs "psql -f test/behave/mgmt_utils/steps/data/select_multi_byte_char_tables.sql bkdb"
         Then psql should print 2000 to stdout 4 times
         And verify that there is a "ao" table "public.ao_index_table" in "bkdb" with data
         And verify that there is a "co" table "public.co_index_table" in "bkdb" with data
         And verify that there is a "heap" table "public.heap_index_table" in "bkdb" with data
-        When the user runs "psql -f gppylib/test/behave/mgmt_utils/steps/data/describe_multi_byte_char.sql bkdb > /tmp/describe_multi_byte_char_after"
+        When the user runs "psql -f test/behave/mgmt_utils/steps/data/describe_multi_byte_char.sql bkdb > /tmp/describe_multi_byte_char_after"
         And the user runs "psql -c '\d public.ao_index_table' bkdb > /tmp/describe_ao_index_table_after"
         Then verify that the contents of the files "/tmp/describe_multi_byte_char_before" and "/tmp/describe_multi_byte_char_after" are identical
         And verify that the contents of the files "/tmp/describe_ao_index_table_before" and "/tmp/describe_ao_index_table_after" are identical
@@ -2106,26 +2106,26 @@ Feature: Validate command line arguments
         And there is a "co" table "public.co_index_table" with index "co_index" compression "None" in "bkdb" with data
         And there is a "heap" table "public.heap_index_table" with index "heap_index" compression "None" in "bkdb" with data
         And the user runs "psql -c 'ALTER TABLE ONLY public.heap_index_table ADD CONSTRAINT heap_index_table_pkey PRIMARY KEY (column1, column2, column3);' bkdb"
-        And the user runs "psql -f gppylib/test/behave/mgmt_utils/steps/data/create_multi_byte_char_tables.sql bkdb"
-        And the user runs "psql -f gppylib/test/behave/mgmt_utils/steps/data/primary_key_multi_byte_char_table_name.sql bkdb"
-        And the user runs "psql -f gppylib/test/behave/mgmt_utils/steps/data/index_multi_byte_char_table_name.sql bkdb"
+        And the user runs "psql -f test/behave/mgmt_utils/steps/data/create_multi_byte_char_tables.sql bkdb"
+        And the user runs "psql -f test/behave/mgmt_utils/steps/data/primary_key_multi_byte_char_table_name.sql bkdb"
+        And the user runs "psql -f test/behave/mgmt_utils/steps/data/index_multi_byte_char_table_name.sql bkdb"
         When the user runs "gpcrondump -a -x bkdb"
         Then gpcrondump should return a return code of 0
         And the timestamp from gpcrondump is stored
         And verify the metadata dump file syntax under " " for comments and types
-        And the user runs "psql -f gppylib/test/behave/mgmt_utils/steps/data/describe_multi_byte_char.sql bkdb > /tmp/describe_multi_byte_char_before"
+        And the user runs "psql -f test/behave/mgmt_utils/steps/data/describe_multi_byte_char.sql bkdb > /tmp/describe_multi_byte_char_before"
         And the user runs "psql -c '\d public.ao_index_table' bkdb > /tmp/describe_ao_index_table_before"
         When there is a backupfile of tables "public.ao_index_table, public.co_index_table, public.heap_index_table" in "bkdb" exists for validation
         And table "public.ao_index_table" is dropped in "bkdb"
-        And the user runs "psql -f gppylib/test/behave/mgmt_utils/steps/data/drop_table_with_multi_byte_char.sql bkdb"
-        When the user runs "gpdbrestore --table-file gppylib/test/behave/mgmt_utils/steps/data/include_tables_with_metadata_postdata -a" with the stored timestamp
+        And the user runs "psql -f test/behave/mgmt_utils/steps/data/drop_table_with_multi_byte_char.sql bkdb"
+        When the user runs "gpdbrestore --table-file test/behave/mgmt_utils/steps/data/include_tables_with_metadata_postdata -a" with the stored timestamp
         Then gpdbrestore should return a return code of 0
-        When the user runs "psql -f gppylib/test/behave/mgmt_utils/steps/data/select_multi_byte_char_tables.sql bkdb"
+        When the user runs "psql -f test/behave/mgmt_utils/steps/data/select_multi_byte_char_tables.sql bkdb"
         Then psql should print 1000 to stdout 4 times
         And verify that there is a "ao" table "public.ao_index_table" in "bkdb" with data
         And verify that there is a "co" table "public.co_index_table" in "bkdb" with data
         And verify that there is a "heap" table "public.heap_index_table" in "bkdb" with data
-        When the user runs "psql -f gppylib/test/behave/mgmt_utils/steps/data/describe_multi_byte_char.sql bkdb > /tmp/describe_multi_byte_char_after"
+        When the user runs "psql -f test/behave/mgmt_utils/steps/data/describe_multi_byte_char.sql bkdb > /tmp/describe_multi_byte_char_after"
         And the user runs "psql -c '\d public.ao_index_table' bkdb > /tmp/describe_ao_index_table_after"
         Then verify that the contents of the files "/tmp/describe_multi_byte_char_before" and "/tmp/describe_multi_byte_char_after" are identical
         And verify that the contents of the files "/tmp/describe_ao_index_table_before" and "/tmp/describe_ao_index_table_after" are identical
@@ -2136,10 +2136,10 @@ Feature: Validate command line arguments
 
     Scenario: Restore -T for full dump should restore GRANT privileges for tablenames with English and multibyte (chinese) characters
         Given the test is initialized
-        And the user runs "psql -f gppylib/test/behave/mgmt_utils/steps/data/create_multi_byte_char_tables.sql bkdb"
-        And the user runs "psql -f gppylib/test/behave/mgmt_utils/steps/data/primary_key_multi_byte_char_table_name.sql bkdb"
-        And the user runs "psql -f gppylib/test/behave/mgmt_utils/steps/data/index_multi_byte_char_table_name.sql bkdb"
-        And the user runs "psql -f gppylib/test/behave/mgmt_utils/steps/data/grant_multi_byte_char_table_name.sql bkdb"
+        And the user runs "psql -f test/behave/mgmt_utils/steps/data/create_multi_byte_char_tables.sql bkdb"
+        And the user runs "psql -f test/behave/mgmt_utils/steps/data/primary_key_multi_byte_char_table_name.sql bkdb"
+        And the user runs "psql -f test/behave/mgmt_utils/steps/data/index_multi_byte_char_table_name.sql bkdb"
+        And the user runs "psql -f test/behave/mgmt_utils/steps/data/grant_multi_byte_char_table_name.sql bkdb"
         And the user runs """psql -c "CREATE ROLE test_gpadmin LOGIN ENCRYPTED PASSWORD 'changeme' SUPERUSER INHERIT CREATEDB CREATEROLE RESOURCE QUEUE pg_default;" bkdb"""
         And the user runs """psql -c "CREATE ROLE customer LOGIN ENCRYPTED PASSWORD 'changeme' NOSUPERUSER INHERIT NOCREATEDB NOCREATEROLE RESOURCE QUEUE pg_default;" bkdb"""
         And the user runs """psql -c "CREATE ROLE select_group NOSUPERUSER INHERIT NOCREATEDB NOCREATEROLE RESOURCE QUEUE pg_default;" bkdb"""
@@ -2169,17 +2169,17 @@ Feature: Validate command line arguments
         And the user runs "psql -c '\dp customer.heap_index_table_1' bkdb > /tmp/privileges_heap_index_table_1_before"
         And the user runs "psql -c '\d customer.heap_index_table_2' bkdb > /tmp/describe_heap_index_table_2_before"
         And the user runs "psql -c '\dp customer.heap_index_table_2' bkdb > /tmp/privileges_heap_index_table_2_before"
-        And the user runs "psql -f gppylib/test/behave/mgmt_utils/steps/data/describe_multi_byte_char.sql bkdb > /tmp/describe_multi_byte_char_before"
+        And the user runs "psql -f test/behave/mgmt_utils/steps/data/describe_multi_byte_char.sql bkdb > /tmp/describe_multi_byte_char_before"
         When the user runs "gpcrondump -x bkdb -g -G -a -b -v -u /tmp --rsyncable"
         Then gpcrondump should return a return code of 0
         And the timestamp from gpcrondump is stored
         When there is a backupfile of tables "customer.heap_index_table_1, customer.heap_index_table_2, customer.heap_index_table_3" in "bkdb" exists for validation
         And table "customer.heap_index_table_1" is dropped in "bkdb"
         And table "customer.heap_index_table_2" is dropped in "bkdb"
-        And the user runs "psql -f gppylib/test/behave/mgmt_utils/steps/data/drop_table_with_multi_byte_char.sql bkdb"
-        And the user runs "gpdbrestore --table-file gppylib/test/behave/mgmt_utils/steps/data/include_tables_with_grant_permissions -u /tmp -a" with the stored timestamp
+        And the user runs "psql -f test/behave/mgmt_utils/steps/data/drop_table_with_multi_byte_char.sql bkdb"
+        And the user runs "gpdbrestore --table-file test/behave/mgmt_utils/steps/data/include_tables_with_grant_permissions -u /tmp -a" with the stored timestamp
         Then gpdbrestore should return a return code of 0
-        When the user runs "psql -f gppylib/test/behave/mgmt_utils/steps/data/select_multi_byte_char_tables.sql bkdb"
+        When the user runs "psql -f test/behave/mgmt_utils/steps/data/select_multi_byte_char_tables.sql bkdb"
         Then psql should print 1000 to stdout 4 times
         And verify that there is a "heap" table "customer.heap_index_table_1" in "bkdb" with data
         And verify that there is a "heap" table "customer.heap_index_table_2" in "bkdb" with data
@@ -2188,7 +2188,7 @@ Feature: Validate command line arguments
         And the user runs "psql -c '\dp customer.heap_index_table_1' bkdb > /tmp/privileges_heap_index_table_1_after"
         And the user runs "psql -c '\d customer.heap_index_table_2' bkdb > /tmp/describe_heap_index_table_2_after"
         And the user runs "psql -c '\dp customer.heap_index_table_2' bkdb > /tmp/privileges_heap_index_table_2_after"
-        And the user runs "psql -f gppylib/test/behave/mgmt_utils/steps/data/describe_multi_byte_char.sql bkdb > /tmp/describe_multi_byte_char_after"
+        And the user runs "psql -f test/behave/mgmt_utils/steps/data/describe_multi_byte_char.sql bkdb > /tmp/describe_multi_byte_char_after"
         Then verify that the contents of the files "/tmp/describe_heap_index_table_1_before" and "/tmp/describe_heap_index_table_1_after" are identical
         And verify that the contents of the files "/tmp/describe_heap_index_table_2_before" and "/tmp/describe_heap_index_table_2_after" are identical
         And verify that the contents of the files "/tmp/privileges_heap_index_table_1_before" and "/tmp/privileges_heap_index_table_1_after" are identical
@@ -2207,10 +2207,10 @@ Feature: Validate command line arguments
 
     Scenario: Restore -T for incremental dump should restore GRANT privileges for tablenames with English and multibyte (chinese) characters
         Given the test is initialized
-        And the user runs "psql -f gppylib/test/behave/mgmt_utils/steps/data/create_multi_byte_char_tables.sql bkdb"
-        And the user runs "psql -f gppylib/test/behave/mgmt_utils/steps/data/primary_key_multi_byte_char_table_name.sql bkdb"
-        And the user runs "psql -f gppylib/test/behave/mgmt_utils/steps/data/index_multi_byte_char_table_name.sql bkdb"
-        And the user runs "psql -f gppylib/test/behave/mgmt_utils/steps/data/grant_multi_byte_char_table_name.sql bkdb"
+        And the user runs "psql -f test/behave/mgmt_utils/steps/data/create_multi_byte_char_tables.sql bkdb"
+        And the user runs "psql -f test/behave/mgmt_utils/steps/data/primary_key_multi_byte_char_table_name.sql bkdb"
+        And the user runs "psql -f test/behave/mgmt_utils/steps/data/index_multi_byte_char_table_name.sql bkdb"
+        And the user runs "psql -f test/behave/mgmt_utils/steps/data/grant_multi_byte_char_table_name.sql bkdb"
         And the user runs """psql -c "CREATE ROLE test_gpadmin LOGIN ENCRYPTED PASSWORD 'changeme' SUPERUSER INHERIT CREATEDB CREATEROLE RESOURCE QUEUE pg_default;" bkdb"""
         And the user runs """psql -c "CREATE ROLE customer LOGIN ENCRYPTED PASSWORD 'changeme' NOSUPERUSER INHERIT NOCREATEDB NOCREATEROLE RESOURCE QUEUE pg_default;" bkdb"""
         And the user runs """psql -c "CREATE ROLE select_group NOSUPERUSER INHERIT NOCREATEDB NOCREATEROLE RESOURCE QUEUE pg_default;" bkdb"""
@@ -2240,22 +2240,22 @@ Feature: Validate command line arguments
         And the user runs "psql -c '\dp customer.heap_index_table_1' bkdb > /tmp/privileges_heap_index_table_1_before"
         And the user runs "psql -c '\d customer.heap_index_table_2' bkdb > /tmp/describe_heap_index_table_2_before"
         And the user runs "psql -c '\dp customer.heap_index_table_2' bkdb > /tmp/privileges_heap_index_table_2_before"
-        And the user runs "psql -f gppylib/test/behave/mgmt_utils/steps/data/describe_multi_byte_char.sql bkdb > /tmp/describe_multi_byte_char_before"
+        And the user runs "psql -f test/behave/mgmt_utils/steps/data/describe_multi_byte_char.sql bkdb > /tmp/describe_multi_byte_char_before"
         When the user runs "gpcrondump -x bkdb -g -G -a -b -v -u /tmp --rsyncable"
         Then gpcrondump should return a return code of 0
         And table "customer.heap_index_table_1" is assumed to be in dirty state in "bkdb"
         And table "customer.heap_index_table_2" is assumed to be in dirty state in "bkdb"
-        And the user runs "psql -f gppylib/test/behave/mgmt_utils/steps/data/dirty_table_multi_byte_char.sql bkdb"
+        And the user runs "psql -f test/behave/mgmt_utils/steps/data/dirty_table_multi_byte_char.sql bkdb"
         When the user runs "gpcrondump --incremental -x bkdb -g -G -a -b -v -u /tmp --rsyncable"
         Then gpcrondump should return a return code of 0
         And the timestamp from gpcrondump is stored
         When there is a backupfile of tables "customer.heap_index_table_1, customer.heap_index_table_2, customer.heap_index_table_3" in "bkdb" exists for validation
         And table "customer.heap_index_table_1" is dropped in "bkdb"
         And table "customer.heap_index_table_2" is dropped in "bkdb"
-        And the user runs "psql -f gppylib/test/behave/mgmt_utils/steps/data/drop_table_with_multi_byte_char.sql bkdb"
-        And the user runs "gpdbrestore --table-file gppylib/test/behave/mgmt_utils/steps/data/include_tables_with_grant_permissions -u /tmp -a" with the stored timestamp
+        And the user runs "psql -f test/behave/mgmt_utils/steps/data/drop_table_with_multi_byte_char.sql bkdb"
+        And the user runs "gpdbrestore --table-file test/behave/mgmt_utils/steps/data/include_tables_with_grant_permissions -u /tmp -a" with the stored timestamp
         Then gpdbrestore should return a return code of 0
-        When the user runs "psql -f gppylib/test/behave/mgmt_utils/steps/data/select_multi_byte_char_tables.sql bkdb"
+        When the user runs "psql -f test/behave/mgmt_utils/steps/data/select_multi_byte_char_tables.sql bkdb"
         Then psql should print 2000 to stdout 4 times
         And verify that there is a "heap" table "customer.heap_index_table_1" in "bkdb" with data
         And verify that there is a "heap" table "customer.heap_index_table_2" in "bkdb" with data
@@ -2264,7 +2264,7 @@ Feature: Validate command line arguments
         And the user runs "psql -c '\dp customer.heap_index_table_1' bkdb > /tmp/privileges_heap_index_table_1_after"
         And the user runs "psql -c '\d customer.heap_index_table_2' bkdb > /tmp/describe_heap_index_table_2_after"
         And the user runs "psql -c '\dp customer.heap_index_table_2' bkdb > /tmp/privileges_heap_index_table_2_after"
-        And the user runs "psql -f gppylib/test/behave/mgmt_utils/steps/data/describe_multi_byte_char.sql bkdb > /tmp/describe_multi_byte_char_after"
+        And the user runs "psql -f test/behave/mgmt_utils/steps/data/describe_multi_byte_char.sql bkdb > /tmp/describe_multi_byte_char_after"
         Then verify that the contents of the files "/tmp/describe_heap_index_table_1_before" and "/tmp/describe_heap_index_table_1_after" are identical
         And verify that the contents of the files "/tmp/describe_heap_index_table_2_before" and "/tmp/describe_heap_index_table_2_after" are identical
         And verify that the contents of the files "/tmp/privileges_heap_index_table_1_before" and "/tmp/privileges_heap_index_table_1_after" are identical
@@ -2704,8 +2704,8 @@ Feature: Validate command line arguments
         And there is a "heap" table "public.heap_table" in "testdb2" with data
         And the mail_contacts file does not exist
         And the mail_contacts file exists
-        And the yaml file "gppylib/test/behave/mgmt_utils/steps/data/test_email_details.yaml" stores email details is in proper format
-        When the user runs "gpcrondump -a -x testdb1 -x testdb2 --email-file gppylib/test/behave/mgmt_utils/steps/data/test_email_details.yaml --verbose"
+        And the yaml file "test/behave/mgmt_utils/steps/data/test_email_details.yaml" stores email details is in proper format
+        When the user runs "gpcrondump -a -x testdb1 -x testdb2 --email-file test/behave/mgmt_utils/steps/data/test_email_details.yaml --verbose"
         Then gpcrondump should return a return code of 0
         And verify that emails are sent to the given contacts with appropriate messages after backup of "testdb1,testdb2"
         And the mail_contacts file does not exist
@@ -2723,8 +2723,8 @@ Feature: Validate command line arguments
         And there is a "heap" table "public.heap_table" in "bkdb" with data
         And the mail_contacts file does not exist
         And the mail_contacts file exists
-        And the yaml file "gppylib/test/behave/mgmt_utils/steps/data/test_email_details_wrong_format.yaml" stores email details is not in proper format
-        When the user runs "gpcrondump -a -x bkdb --email-file gppylib/test/behave/mgmt_utils/steps/data/test_email_details_wrong_format.yaml --verbose"
+        And the yaml file "test/behave/mgmt_utils/steps/data/test_email_details_wrong_format.yaml" stores email details is not in proper format
+        When the user runs "gpcrondump -a -x bkdb --email-file test/behave/mgmt_utils/steps/data/test_email_details_wrong_format.yaml --verbose"
         Then gpcrondump should return a return code of 2
         And gpcrondump should print file is not formatted properly to stdout
         And the mail_contacts file does not exist
@@ -3020,17 +3020,17 @@ Feature: Validate command line arguments
 
     Scenario: Simple full backup and restore with special character
         Given the test is initialized
-        And the user runs "psql -f gppylib/test/behave/mgmt_utils/steps/data/special_chars/create_special_database.sql template1"
-        And the user runs "psql -f gppylib/test/behave/mgmt_utils/steps/data/special_chars/create_special_schema.sql template1"
-        And the user runs "psql -f gppylib/test/behave/mgmt_utils/steps/data/special_chars/create_special_table.sql template1"
-        And the user runs "psql -f gppylib/test/behave/mgmt_utils/steps/data/special_chars/insert_into_special_table.sql template1"
+        And the user runs "psql -f test/behave/mgmt_utils/steps/data/special_chars/create_special_database.sql template1"
+        And the user runs "psql -f test/behave/mgmt_utils/steps/data/special_chars/create_special_schema.sql template1"
+        And the user runs "psql -f test/behave/mgmt_utils/steps/data/special_chars/create_special_table.sql template1"
+        And the user runs "psql -f test/behave/mgmt_utils/steps/data/special_chars/insert_into_special_table.sql template1"
         When the user runs command "gpcrondump -a -x " DB\`~@#\$%^&*()_-+[{]}|\\;: \\'/?><;1 ""
         And the timestamp from gpcrondump is stored
         Then gpcrondump should return a return code of 0
-        When the user runs command "psql -f gppylib/test/behave/mgmt_utils/steps/data/special_chars/select_from_special_table.sql " DB\`~@#\$%^&*()_-+[{]}|\\;: \\'/?><;1 " > /tmp/special_table_data.ans"
+        When the user runs command "psql -f test/behave/mgmt_utils/steps/data/special_chars/select_from_special_table.sql " DB\`~@#\$%^&*()_-+[{]}|\\;: \\'/?><;1 " > /tmp/special_table_data.ans"
         When the user runs gpdbrestore with the stored timestamp
         Then gpdbrestore should return a return code of 0
-        And the user runs command "psql -f gppylib/test/behave/mgmt_utils/steps/data/special_chars/select_from_special_table.sql " DB\`~@#\$%^&*()_-+[{]}|\\;: \\'/?><;1 " > /tmp/special_table_data.out"
+        And the user runs command "psql -f test/behave/mgmt_utils/steps/data/special_chars/select_from_special_table.sql " DB\`~@#\$%^&*()_-+[{]}|\\;: \\'/?><;1 " > /tmp/special_table_data.out"
         And the directory "/tmp/special_table_data.ans" is removed or does not exist
         And the directory "/tmp/special_table_data.out" is removed or does not exist
         And the user runs command "dropdb " DB\`~@#\$%^&*()_-+[{]}|\\;: \\'/?><;1 ""
@@ -3039,7 +3039,7 @@ Feature: Validate command line arguments
         Given the test is initialized
         And the database "testdb" does not exist
         And database "testdb" exists
-        And the user runs "psql -f gppylib/test/behave/mgmt_utils/steps/data/special_chars/funny_char.sql testdb"
+        And the user runs "psql -f test/behave/mgmt_utils/steps/data/special_chars/funny_char.sql testdb"
         When the user runs command "gpcrondump -a -x testdb"
         Then gpcrondump should return a return code of 2
         And gpcrondump should print Name has an invalid character "\\t" "\\n" "!" "," "." to stdout
@@ -3055,16 +3055,16 @@ Feature: Validate command line arguments
         When the user runs command "gpcrondump -a -x testdb -S Schema\\t,1"
         Then gpcrondump should return a return code of 2
         And gpcrondump should print Name has an invalid character "\\t" "\\n" "!" "," "." to stdout
-        When the user runs command "gpcrondump -a -x testdb --table-file gppylib/test/behave/mgmt_utils/steps/data/special_chars/funny_char_table.txt"
+        When the user runs command "gpcrondump -a -x testdb --table-file test/behave/mgmt_utils/steps/data/special_chars/funny_char_table.txt"
         Then gpcrondump should return a return code of 2
         And gpcrondump should print Name has an invalid character "\\t" "\\n" "!" "," "." to stdout
-        When the user runs command "gpcrondump -a -x testdb --exclude-table-file gppylib/test/behave/mgmt_utils/steps/data/special_chars/funny_char_table.txt"
+        When the user runs command "gpcrondump -a -x testdb --exclude-table-file test/behave/mgmt_utils/steps/data/special_chars/funny_char_table.txt"
         Then gpcrondump should return a return code of 2
         And gpcrondump should print Name has an invalid character "\\t" "\\n" "!" "," "." to stdout
-        When the user runs command "gpcrondump -a -x testdb --schema-file gppylib/test/behave/mgmt_utils/steps/data/special_chars/funny_char_schema.txt"
+        When the user runs command "gpcrondump -a -x testdb --schema-file test/behave/mgmt_utils/steps/data/special_chars/funny_char_schema.txt"
         Then gpcrondump should return a return code of 2
         And gpcrondump should print Name has an invalid character "\\t" "\\n" "!" "," "." to stdout
-        When the user runs command "gpcrondump -a -x testdb --exclude-schema-file gppylib/test/behave/mgmt_utils/steps/data/special_chars/funny_char_schema.txt"
+        When the user runs command "gpcrondump -a -x testdb --exclude-schema-file test/behave/mgmt_utils/steps/data/special_chars/funny_char_schema.txt"
         Then gpcrondump should return a return code of 2
         And gpcrondump should print Name has an invalid character "\\t" "\\n" "!" "," "." to stdout
 
@@ -3074,7 +3074,7 @@ Feature: Validate command line arguments
         And there is a "heap" table "public.table1" in "testdb" with data
         When the user runs command "gpcrondump -a -x testdb"
         And the timestamp from gpcrondump is stored
-        When the user runs gpdbrestore with the stored timestamp and options "--table-file gppylib/test/behave/mgmt_utils/steps/data/special_chars/funny_char_table.txt"
+        When the user runs gpdbrestore with the stored timestamp and options "--table-file test/behave/mgmt_utils/steps/data/special_chars/funny_char_table.txt"
         Then gpdbrestore should return a return code of 2
         And gpdbrestore should print Name has an invalid character to stdout
         When the user runs gpdbrestore with the stored timestamp and options "-T pub\\t\\nlic.!,\\t\\n.1"
@@ -3095,11 +3095,11 @@ Feature: Validate command line arguments
 
     Scenario: gpcrondump with -T option where table name, schema name and database name contains special character
         Given the test is initialized
-        And the user runs "psql -f gppylib/test/behave/mgmt_utils/steps/data/special_chars/create_special_database.sql template1"
-        And the user runs "psql -f gppylib/test/behave/mgmt_utils/steps/data/special_chars/create_special_schema.sql template1"
-        And the user runs "psql -f gppylib/test/behave/mgmt_utils/steps/data/special_chars/create_special_table.sql template1"
-        And the user runs "psql -f gppylib/test/behave/mgmt_utils/steps/data/special_chars/insert_into_special_table.sql template1"
-        #And the user runs "psql -f gppylib/test/behave/mgmt_utils/steps/data/special_chars/filter_test.sql template1"
+        And the user runs "psql -f test/behave/mgmt_utils/steps/data/special_chars/create_special_database.sql template1"
+        And the user runs "psql -f test/behave/mgmt_utils/steps/data/special_chars/create_special_schema.sql template1"
+        And the user runs "psql -f test/behave/mgmt_utils/steps/data/special_chars/create_special_table.sql template1"
+        And the user runs "psql -f test/behave/mgmt_utils/steps/data/special_chars/insert_into_special_table.sql template1"
+        #And the user runs "psql -f test/behave/mgmt_utils/steps/data/special_chars/filter_test.sql template1"
         And there is a list of files "ao,heap" of tables " S`~@#$%^&*()-+[{]}|\;: \'"/?><1 . ao_T`~@#$%^&*()-+[{]}|\;: \'"/?><1 , S`~@#$%^&*()-+[{]}|\;: \'"/?><1 . heap_T`~@#$%^&*()-+[{]}|\;: \'"/?><1 " in " DB`~@#$%^&*()_-+[{]}|\;: \'/?><;1 " exists for validation
 
         When the user runs command "gpcrondump -a -x " DB\`~@#\$%^&*()_-+[{]}|\\;: \\'/?><;1 " -T " S\`~@#\$%^&*()-+[{]}|\\;: \\'\"/?><1 "." co_T\`~@#\$%^&*()-+[{]}|\\;: \\'\"/?><1 ""
@@ -3114,12 +3114,12 @@ Feature: Validate command line arguments
 
     Scenario: gpcrondump with --exclude-table-file option where table name, schema name and database name contains special character
         Given the test is initialized
-        And the user runs "psql -f gppylib/test/behave/mgmt_utils/steps/data/special_chars/create_special_database.sql template1"
-        And the user runs "psql -f gppylib/test/behave/mgmt_utils/steps/data/special_chars/create_special_schema.sql template1"
-        And the user runs "psql -f gppylib/test/behave/mgmt_utils/steps/data/special_chars/create_special_table.sql template1"
-        And the user runs "psql -f gppylib/test/behave/mgmt_utils/steps/data/special_chars/insert_into_special_table.sql template1"
+        And the user runs "psql -f test/behave/mgmt_utils/steps/data/special_chars/create_special_database.sql template1"
+        And the user runs "psql -f test/behave/mgmt_utils/steps/data/special_chars/create_special_schema.sql template1"
+        And the user runs "psql -f test/behave/mgmt_utils/steps/data/special_chars/create_special_table.sql template1"
+        And the user runs "psql -f test/behave/mgmt_utils/steps/data/special_chars/insert_into_special_table.sql template1"
         And there is a list of files "ao,heap" of tables " S`~@#$%^&*()-+[{]}|\;: \'"/?><1 . ao_T`~@#$%^&*()-+[{]}|\;: \'"/?><1 , S`~@#$%^&*()-+[{]}|\;: \'"/?><1 . heap_T`~@#$%^&*()-+[{]}|\;: \'"/?><1 " in " DB`~@#$%^&*()_-+[{]}|\;: \'/?><;1 " exists for validation
-        When the user runs command "gpcrondump -a -x " DB\`~@#\$%^&*()_-+[{]}|\\;: \\'/?><;1 " --exclude-table-file gppylib/test/behave/mgmt_utils/steps/data/special_chars/exclude-table-file.txt"
+        When the user runs command "gpcrondump -a -x " DB\`~@#\$%^&*()_-+[{]}|\\;: \\'/?><;1 " --exclude-table-file test/behave/mgmt_utils/steps/data/special_chars/exclude-table-file.txt"
         Then gpcrondump should return a return code of 0
         And the timestamp from gpcrondump is stored
         And the user runs gpdbrestore with the stored timestamp
@@ -3131,16 +3131,16 @@ Feature: Validate command line arguments
 
     Scenario: gpcrondump with --table-file option where table name, schema name and database name contains special character
         Given the test is initialized
-        And the user runs "psql -f gppylib/test/behave/mgmt_utils/steps/data/special_chars/create_special_database.sql template1"
-        And the user runs "psql -f gppylib/test/behave/mgmt_utils/steps/data/special_chars/create_special_schema.sql template1"
-        And the user runs "psql -f gppylib/test/behave/mgmt_utils/steps/data/special_chars/create_special_table.sql template1"
-        And the user runs "psql -f gppylib/test/behave/mgmt_utils/steps/data/special_chars/insert_into_special_table.sql template1"
+        And the user runs "psql -f test/behave/mgmt_utils/steps/data/special_chars/create_special_database.sql template1"
+        And the user runs "psql -f test/behave/mgmt_utils/steps/data/special_chars/create_special_schema.sql template1"
+        And the user runs "psql -f test/behave/mgmt_utils/steps/data/special_chars/create_special_table.sql template1"
+        And the user runs "psql -f test/behave/mgmt_utils/steps/data/special_chars/insert_into_special_table.sql template1"
         And there is a list of files "ao,heap" of tables " S`~@#$%^&*()-+[{]}|\;: \'"/?><1 . ao_T`~@#$%^&*()-+[{]}|\;: \'"/?><1 , S`~@#$%^&*()-+[{]}|\;: \'"/?><1 . heap_T`~@#$%^&*()-+[{]}|\;: \'"/?><1 " in " DB`~@#$%^&*()_-+[{]}|\;: \'/?><;1 " exists for validation
-        When the user runs command "gpcrondump -a -x " DB\`~@#\$%^&*()_-+[{]}|\\;: \\'/?><;1 " --table-file gppylib/test/behave/mgmt_utils/steps/data/special_chars/table-file.txt"
+        When the user runs command "gpcrondump -a -x " DB\`~@#\$%^&*()_-+[{]}|\\;: \\'/?><;1 " --table-file test/behave/mgmt_utils/steps/data/special_chars/table-file.txt"
         Then gpcrondump should return a return code of 0
         And the timestamp from gpcrondump is stored
-        Given the user runs "psql -f gppylib/test/behave/mgmt_utils/steps/data/special_chars/create_special_database.sql template1"
-        And the user runs "psql -f gppylib/test/behave/mgmt_utils/steps/data/special_chars/create_special_schema.sql template1"
+        Given the user runs "psql -f test/behave/mgmt_utils/steps/data/special_chars/create_special_database.sql template1"
+        And the user runs "psql -f test/behave/mgmt_utils/steps/data/special_chars/create_special_schema.sql template1"
         When the user runs gpdbrestore with the stored timestamp and options " " without -e option
         Then gpdbrestore should return a return code of 0
         And verify with backedup file "ao" that there is a "ao" table " S`~@#$%^&*()-+[{]}|\;: \'"/?><1 . ao_T`~@#$%^&*()-+[{]}|\;: \'"/?><1 " in " DB`~@#$%^&*()_-+[{]}|\;: \'/?><;1 " with data
@@ -3150,16 +3150,16 @@ Feature: Validate command line arguments
 
     Scenario: gpcrondump with -t option where table name, schema name and database name contains special character
         Given the test is initialized
-        And the user runs "psql -f gppylib/test/behave/mgmt_utils/steps/data/special_chars/create_special_database.sql template1"
-        And the user runs "psql -f gppylib/test/behave/mgmt_utils/steps/data/special_chars/create_special_schema.sql template1"
-        And the user runs "psql -f gppylib/test/behave/mgmt_utils/steps/data/special_chars/create_special_table.sql template1"
-        And the user runs "psql -f gppylib/test/behave/mgmt_utils/steps/data/special_chars/insert_into_special_table.sql template1"
+        And the user runs "psql -f test/behave/mgmt_utils/steps/data/special_chars/create_special_database.sql template1"
+        And the user runs "psql -f test/behave/mgmt_utils/steps/data/special_chars/create_special_schema.sql template1"
+        And the user runs "psql -f test/behave/mgmt_utils/steps/data/special_chars/create_special_table.sql template1"
+        And the user runs "psql -f test/behave/mgmt_utils/steps/data/special_chars/insert_into_special_table.sql template1"
         And there is a list of files "ao" of tables " S`~@#$%^&*()-+[{]}|\;: \'"/?><1 . ao_T`~@#$%^&*()-+[{]}|\;: \'"/?><1 " in " DB`~@#$%^&*()_-+[{]}|\;: \'/?><;1 " exists for validation
         When the user runs command "gpcrondump -a -x " DB\`~@#\$%^&*()_-+[{]}|\\;: \\'/?><;1 " -t " S\`~@#\$%^&*()-+[{]}|\\;: \\'\"/?><1 "." ao_T\`~@#\$%^&*()-+[{]}|\\;: \\'\"/?><1 ""
         Then gpcrondump should return a return code of 0
         And the timestamp from gpcrondump is stored
-        Given the user runs "psql -f gppylib/test/behave/mgmt_utils/steps/data/special_chars/create_special_database.sql template1"
-        And the user runs "psql -f gppylib/test/behave/mgmt_utils/steps/data/special_chars/create_special_schema.sql template1"
+        Given the user runs "psql -f test/behave/mgmt_utils/steps/data/special_chars/create_special_database.sql template1"
+        And the user runs "psql -f test/behave/mgmt_utils/steps/data/special_chars/create_special_schema.sql template1"
         When the user runs gpdbrestore with the stored timestamp and options " " without -e option
         Then gpdbrestore should return a return code of 0
         And verify with backedup file "ao" that there is a "ao" table " S`~@#$%^&*()-+[{]}|\;: \'"/?><1 . ao_T`~@#$%^&*()-+[{]}|\;: \'"/?><1 " in " DB`~@#$%^&*()_-+[{]}|\;: \'/?><;1 " with data
@@ -3168,31 +3168,31 @@ Feature: Validate command line arguments
 
     Scenario: gpcrondump with --schema-file, --exclude-schema-file, -s and -S option when schema name and database name contains special character
         Given the test is initialized
-        And the user runs "psql -f gppylib/test/behave/mgmt_utils/steps/data/special_chars/create_special_database.sql template1"
-        And the user runs "psql -f gppylib/test/behave/mgmt_utils/steps/data/special_chars/create_special_schema.sql template1"
-        And the user runs "psql -f gppylib/test/behave/mgmt_utils/steps/data/special_chars/create_special_table.sql template1"
-        And the user runs "psql -f gppylib/test/behave/mgmt_utils/steps/data/special_chars/insert_into_special_table.sql template1"
+        And the user runs "psql -f test/behave/mgmt_utils/steps/data/special_chars/create_special_database.sql template1"
+        And the user runs "psql -f test/behave/mgmt_utils/steps/data/special_chars/create_special_schema.sql template1"
+        And the user runs "psql -f test/behave/mgmt_utils/steps/data/special_chars/create_special_table.sql template1"
+        And the user runs "psql -f test/behave/mgmt_utils/steps/data/special_chars/insert_into_special_table.sql template1"
 
         # --schema-file option
-        When the user runs command "gpcrondump -a -x " DB\`~@#\$%^&*()_-+[{]}|\\;: \\'/?><;1 " --schema-file gppylib/test/behave/mgmt_utils/steps/data/special_chars/schema-file.txt"
+        When the user runs command "gpcrondump -a -x " DB\`~@#\$%^&*()_-+[{]}|\\;: \\'/?><;1 " --schema-file test/behave/mgmt_utils/steps/data/special_chars/schema-file.txt"
         Then gpcrondump should return a return code of 0
         And the timestamp from gpcrondump is stored
-        And the user runs command "psql -f gppylib/test/behave/mgmt_utils/steps/data/special_chars/select_from_special_table.sql " DB\`~@#\$%^&*()_-+[{]}|\\;: \\'/?><;1 " > /tmp/special_table_data.ans"
+        And the user runs command "psql -f test/behave/mgmt_utils/steps/data/special_chars/select_from_special_table.sql " DB\`~@#\$%^&*()_-+[{]}|\\;: \\'/?><;1 " > /tmp/special_table_data.ans"
         And the user runs gpdbrestore with the stored timestamp
-        And the user runs command "psql -f gppylib/test/behave/mgmt_utils/steps/data/special_chars/select_from_special_table.sql " DB\`~@#\$%^&*()_-+[{]}|\\;: \\'/?><;1 " > /tmp/special_table_data.out"
+        And the user runs command "psql -f test/behave/mgmt_utils/steps/data/special_chars/select_from_special_table.sql " DB\`~@#\$%^&*()_-+[{]}|\\;: \\'/?><;1 " > /tmp/special_table_data.out"
         And verify that the contents of the files "/tmp/special_table_data.out" and "/tmp/special_table_data.ans" are identical
 
         # -s option
         When the user runs command "gpcrondump -a -x " DB\`~@#\$%^&*()_-+[{]}|\\;: \\'/?><;1 " -s " S\`~@#\$%^&*()-+[{]}|\\;: \\'\"/?><1 ""
         Then gpcrondump should return a return code of 0
         And the timestamp from gpcrondump is stored
-        And the user runs command "psql -f gppylib/test/behave/mgmt_utils/steps/data/special_chars/select_from_special_table.sql " DB\`~@#\$%^&*()_-+[{]}|\\;: \\'/?><;1 " > /tmp/special_table_data.ans"
+        And the user runs command "psql -f test/behave/mgmt_utils/steps/data/special_chars/select_from_special_table.sql " DB\`~@#\$%^&*()_-+[{]}|\\;: \\'/?><;1 " > /tmp/special_table_data.ans"
         And the user runs gpdbrestore with the stored timestamp
-        And the user runs command "psql -f gppylib/test/behave/mgmt_utils/steps/data/special_chars/select_from_special_table.sql " DB\`~@#\$%^&*()_-+[{]}|\\;: \\'/?><;1 " > /tmp/special_table_data.out"
+        And the user runs command "psql -f test/behave/mgmt_utils/steps/data/special_chars/select_from_special_table.sql " DB\`~@#\$%^&*()_-+[{]}|\\;: \\'/?><;1 " > /tmp/special_table_data.out"
         And verify that the contents of the files "/tmp/special_table_data.out" and "/tmp/special_table_data.ans" are identical
 
         # --exclude-schema-file option
-        When the user runs command "gpcrondump -a -x " DB\`~@#\$%^&*()_-+[{]}|\\;: \\'/?><;1 " --exclude-schema-file gppylib/test/behave/mgmt_utils/steps/data/special_chars/schema-file.txt"
+        When the user runs command "gpcrondump -a -x " DB\`~@#\$%^&*()_-+[{]}|\\;: \\'/?><;1 " --exclude-schema-file test/behave/mgmt_utils/steps/data/special_chars/schema-file.txt"
         Then gpcrondump should return a return code of 0
         And the timestamp from gpcrondump is stored
         And the user runs gpdbrestore with the stored timestamp
@@ -3201,7 +3201,7 @@ Feature: Validate command line arguments
         And verify that there is no table " heap_T`~@#$%^&*()-+[{]}|\;: \'"/?><1 " in " DB`~@#$%^&*()_-+[{]}|\;: \'/?><;1 "
 
         # -S option
-        Given the user runs "psql -f gppylib/test/behave/mgmt_utils/steps/data/special_chars/create_special_schema.sql template1"
+        Given the user runs "psql -f test/behave/mgmt_utils/steps/data/special_chars/create_special_schema.sql template1"
         When the user runs command "gpcrondump -a -x " DB\`~@#\$%^&*()_-+[{]}|\\;: \\'/?><;1 " -S " S\`~@#\$%^&*()-+[{]}|\\;: \\'\"/?><1 ""
         Then gpcrondump should return a return code of 0
         And the timestamp from gpcrondump is stored
@@ -3211,38 +3211,38 @@ Feature: Validate command line arguments
         And verify that there is no table " heap_T`~@#$%^&*()-+[{]}|\;: \'"/?><1 " in " DB`~@#$%^&*()_-+[{]}|\;: \'/?><;1 "
 
         # cleanup
-        And the user runs "psql -f gppylib/test/behave/mgmt_utils/steps/data/special_chars/drop_special_database.sql template1"
+        And the user runs "psql -f test/behave/mgmt_utils/steps/data/special_chars/drop_special_database.sql template1"
         And the directory "/tmp/specail_schema_data.out" is removed or does not exist
         And the directory "/tmp/specail_schema_data.ans" is removed or does not exist
 
     Scenario: Gpcrondump, --table-file, --exclude-table-file, --schema-file and --exclude-schema-file if file contains double quoted table and schema name then gpcrondump should error out finding table does not exists
         Given the test is initialized
-        And the user runs "psql -f gppylib/test/behave/mgmt_utils/steps/data/special_chars/create_special_database.sql template1"
-        And the user runs "psql -f gppylib/test/behave/mgmt_utils/steps/data/special_chars/create_special_schema.sql template1"
-        And the user runs "psql -f gppylib/test/behave/mgmt_utils/steps/data/special_chars/create_special_table.sql template1"
+        And the user runs "psql -f test/behave/mgmt_utils/steps/data/special_chars/create_special_database.sql template1"
+        And the user runs "psql -f test/behave/mgmt_utils/steps/data/special_chars/create_special_schema.sql template1"
+        And the user runs "psql -f test/behave/mgmt_utils/steps/data/special_chars/create_special_table.sql template1"
         # --table-file=<filename> option
-        When the user runs command "gpcrondump -a -x " DB\`~@#\$%^&*()_-+[{]}|\\;: \\'/?><;1 " --table-file gppylib/test/behave/mgmt_utils/steps/data/special_chars/table-file-double-quote.txt"
+        When the user runs command "gpcrondump -a -x " DB\`~@#\$%^&*()_-+[{]}|\\;: \\'/?><;1 " --table-file test/behave/mgmt_utils/steps/data/special_chars/table-file-double-quote.txt"
         Then gpcrondump should return a return code of 2
         And gpcrondump should print does not exist to stdout
         # --exclude-table-file=<filename> option
-        When the user runs command "gpcrondump -a -x " DB\`~@#\$%^&*()_-+[{]}|\\;: \\'/?><;1 " --exclude-table-file gppylib/test/behave/mgmt_utils/steps/data/special_chars/table-file-double-quote.txt"
+        When the user runs command "gpcrondump -a -x " DB\`~@#\$%^&*()_-+[{]}|\\;: \\'/?><;1 " --exclude-table-file test/behave/mgmt_utils/steps/data/special_chars/table-file-double-quote.txt"
         Then gpcrondump should return a return code of 0
         And gpcrondump should print does not exist to stdout
         And gpcrondump should print All exclude table names have been removed due to issues to stdout
         # --schema-file
-        When the user runs command "gpcrondump -a -x " DB\`~@#\$%^&*()_-+[{]}|\\;: \\'/?><;1 " --schema-file gppylib/test/behave/mgmt_utils/steps/data/special_chars/schema-file-double-quote.txt"
+        When the user runs command "gpcrondump -a -x " DB\`~@#\$%^&*()_-+[{]}|\\;: \\'/?><;1 " --schema-file test/behave/mgmt_utils/steps/data/special_chars/schema-file-double-quote.txt"
         Then gpcrondump should return a return code of 2
         And gpcrondump should print does not exist to stdout
         # --exclude-schema-file
-        When the user runs command "gpcrondump -a -x " DB\`~@#\$%^&*()_-+[{]}|\\;: \\'/?><;1 " --exclude-schema-file gppylib/test/behave/mgmt_utils/steps/data/special_chars/schema-file-double-quote.txt"
+        When the user runs command "gpcrondump -a -x " DB\`~@#\$%^&*()_-+[{]}|\\;: \\'/?><;1 " --exclude-schema-file test/behave/mgmt_utils/steps/data/special_chars/schema-file-double-quote.txt"
         Then gpcrondump should return a return code of 0
-        And the user runs "psql -f gppylib/test/behave/mgmt_utils/steps/data/special_chars/drop_special_database.sql template1"
+        And the user runs "psql -f test/behave/mgmt_utils/steps/data/special_chars/drop_special_database.sql template1"
 
     Scenario: Gpdbrestore, --change-schema option does not work with -S schema level restore option
         Given the test is initialized
-        And the user runs "psql -f gppylib/test/behave/mgmt_utils/steps/data/special_chars/create_special_database.sql template1"
-        And the user runs "psql -f gppylib/test/behave/mgmt_utils/steps/data/special_chars/create_special_schema.sql template1"
-        And the user runs "psql -f gppylib/test/behave/mgmt_utils/steps/data/special_chars/create_special_table.sql template1"
+        And the user runs "psql -f test/behave/mgmt_utils/steps/data/special_chars/create_special_database.sql template1"
+        And the user runs "psql -f test/behave/mgmt_utils/steps/data/special_chars/create_special_schema.sql template1"
+        And the user runs "psql -f test/behave/mgmt_utils/steps/data/special_chars/create_special_table.sql template1"
         When the user runs command "gpcrondump -a -x " DB\`~@#\$%^&*()_-+[{]}|\\;: \\'/?><;1 ""
         Then gpcrondump should return a return code of 0
         And the timestamp from gpcrondump is stored
@@ -3252,24 +3252,24 @@ Feature: Validate command line arguments
 
     Scenario: Gpdbrestore with --table-file, -T, --truncate and --change-schema options when table name, schema name and database name contains special character
         Given the test is initialized
-        And the user runs "psql -f gppylib/test/behave/mgmt_utils/steps/data/special_chars/create_special_database.sql template1"
-        And the user runs "psql -f gppylib/test/behave/mgmt_utils/steps/data/special_chars/create_special_schema.sql template1"
-        And the user runs "psql -f gppylib/test/behave/mgmt_utils/steps/data/special_chars/create_special_table.sql template1"
-        And the user runs "psql -f gppylib/test/behave/mgmt_utils/steps/data/special_chars/insert_into_special_table.sql template1"
+        And the user runs "psql -f test/behave/mgmt_utils/steps/data/special_chars/create_special_database.sql template1"
+        And the user runs "psql -f test/behave/mgmt_utils/steps/data/special_chars/create_special_schema.sql template1"
+        And the user runs "psql -f test/behave/mgmt_utils/steps/data/special_chars/create_special_table.sql template1"
+        And the user runs "psql -f test/behave/mgmt_utils/steps/data/special_chars/insert_into_special_table.sql template1"
         And there is a list of files "ao,heap" of tables " S`~@#$%^&*()-+[{]}|\;: \'"/?><1 . ao_T`~@#$%^&*()-+[{]}|\;: \'"/?><1 , S`~@#$%^&*()-+[{]}|\;: \'"/?><1 . heap_T`~@#$%^&*()-+[{]}|\;: \'"/?><1 " in " DB`~@#$%^&*()_-+[{]}|\;: \'/?><;1 " exists for validation
 
         # --table-file=<filename> option
         When the user runs command "gpcrondump -a -x " DB\`~@#\$%^&*()_-+[{]}|\\;: \\'/?><;1 ""
         Then gpcrondump should return a return code of 0
         And the timestamp from gpcrondump is stored
-        When the user runs gpdbrestore with the stored timestamp and options "--table-file gppylib/test/behave/mgmt_utils/steps/data/special_chars/table-file.txt"
+        When the user runs gpdbrestore with the stored timestamp and options "--table-file test/behave/mgmt_utils/steps/data/special_chars/table-file.txt"
         Then gpdbrestore should return a return code of 0
         And verify with backedup file "ao" that there is a "ao" table " S`~@#$%^&*()-+[{]}|\;: \'"/?><1 . ao_T`~@#$%^&*()-+[{]}|\;: \'"/?><1 " in " DB`~@#$%^&*()_-+[{]}|\;: \'/?><;1 " with data
         And verify with backedup file "heap" that there is a "heap" table " S`~@#$%^&*()-+[{]}|\;: \'"/?><1 . heap_T`~@#$%^&*()-+[{]}|\;: \'"/?><1 " in " DB`~@#$%^&*()_-+[{]}|\;: \'/?><;1 " with data
         And verify that there is no table " co_T`~@#$%^&*()-+[{]}|\;: \'"/?><1 " in " DB`~@#$%^&*()_-+[{]}|\;: \'/?><;1 "
 
         # -T, --change-schema options
-        Given the user runs "psql -f gppylib/test/behave/mgmt_utils/steps/data/special_chars/add_schema.sql template1"
+        Given the user runs "psql -f test/behave/mgmt_utils/steps/data/special_chars/add_schema.sql template1"
         And the user runs command "psql -f  psql -c """select * from \" S\`~@#\$%^&*()-+[{]}|\\;: \\'\"\"/?><1 \".\" ao_T\`~@#\$%^&*()-+[{]}|\\;: \\'\"\"/?><1 \" order by 1""" -d " DB\`~@#\$%^&*()_-+[{]}|\\;: \\'/?><;1 "  > /tmp/table_data.ans"
         And the user runs command "gpcrondump -a -x " DB\`~@#\$%^&*()_-+[{]}|\\;: \\'/?><;1 ""
         Then gpcrondump should return a return code of 0
@@ -3291,41 +3291,41 @@ Feature: Validate command line arguments
 
     Scenario: gpcrondump with --incremental option when table name, schema name and database name contains special character
         Given the test is initialized
-        And the user runs "psql -f gppylib/test/behave/mgmt_utils/steps/data/special_chars/create_special_database.sql template1"
-        And the user runs "psql -f gppylib/test/behave/mgmt_utils/steps/data/special_chars/create_special_schema.sql template1"
-        And the user runs "psql -f gppylib/test/behave/mgmt_utils/steps/data/special_chars/create_special_table.sql template1"
-        And the user runs "psql -f gppylib/test/behave/mgmt_utils/steps/data/special_chars/insert_into_special_table.sql template1"
+        And the user runs "psql -f test/behave/mgmt_utils/steps/data/special_chars/create_special_database.sql template1"
+        And the user runs "psql -f test/behave/mgmt_utils/steps/data/special_chars/create_special_schema.sql template1"
+        And the user runs "psql -f test/behave/mgmt_utils/steps/data/special_chars/create_special_table.sql template1"
+        And the user runs "psql -f test/behave/mgmt_utils/steps/data/special_chars/insert_into_special_table.sql template1"
 
         # --incremental dump whole database
         When the user runs command "gpcrondump -a -x " DB\`~@#\$%^&*()_-+[{]}|\\;: \\'/?><;1 ""
         Then gpcrondump should return a return code of 0
-        Given the user runs "psql -f gppylib/test/behave/mgmt_utils/steps/data/special_chars/insert_into_special_table.sql template1"
+        Given the user runs "psql -f test/behave/mgmt_utils/steps/data/special_chars/insert_into_special_table.sql template1"
         When the user runs command "gpcrondump -a -x " DB\`~@#\$%^&*()_-+[{]}|\\;: \\'/?><;1 " --incremental"
         Then gpcrondump should return a return code of 0
         And the timestamp from gpcrondump is stored
-        When the user runs command "psql -f gppylib/test/behave/mgmt_utils/steps/data/special_chars/select_from_special_table.sql " DB\`~@#\$%^&*()_-+[{]}|\\;: \\'/?><;1 " > /tmp/special_table_data.ans"
+        When the user runs command "psql -f test/behave/mgmt_utils/steps/data/special_chars/select_from_special_table.sql " DB\`~@#\$%^&*()_-+[{]}|\\;: \\'/?><;1 " > /tmp/special_table_data.ans"
         And the user runs gpdbrestore with the stored timestamp
-        And the user runs command "psql -f gppylib/test/behave/mgmt_utils/steps/data/special_chars/select_from_special_table.sql " DB\`~@#\$%^&*()_-+[{]}|\\;: \\'/?><;1 " > /tmp/special_table_data.out"
+        And the user runs command "psql -f test/behave/mgmt_utils/steps/data/special_chars/select_from_special_table.sql " DB\`~@#\$%^&*()_-+[{]}|\\;: \\'/?><;1 " > /tmp/special_table_data.out"
         Then verify that the contents of the files "/tmp/special_table_data.out" and "/tmp/special_table_data.ans" are identical
 
         # cleanup
-        And the user runs "psql -f gppylib/test/behave/mgmt_utils/steps/data/special_chars/drop_special_database.sql template1"
+        And the user runs "psql -f test/behave/mgmt_utils/steps/data/special_chars/drop_special_database.sql template1"
         And the directory "/tmp/special_table_data.out" is removed or does not exist
         And the directory "/tmp/special_table_data.ans" is removed or does not exist
 
     Scenario: gpdbrestore, --redirect option with special db name, and all table name, schema name and database name contain special character
         Given the test is initialized
-        And the user runs "psql -f gppylib/test/behave/mgmt_utils/steps/data/special_chars/create_special_database.sql template1"
-        And the user runs "psql -f gppylib/test/behave/mgmt_utils/steps/data/special_chars/create_special_schema.sql template1"
-        And the user runs "psql -f gppylib/test/behave/mgmt_utils/steps/data/special_chars/create_special_table.sql template1"
-        And the user runs "psql -f gppylib/test/behave/mgmt_utils/steps/data/special_chars/insert_into_special_table.sql template1"
+        And the user runs "psql -f test/behave/mgmt_utils/steps/data/special_chars/create_special_database.sql template1"
+        And the user runs "psql -f test/behave/mgmt_utils/steps/data/special_chars/create_special_schema.sql template1"
+        And the user runs "psql -f test/behave/mgmt_utils/steps/data/special_chars/create_special_table.sql template1"
+        And the user runs "psql -f test/behave/mgmt_utils/steps/data/special_chars/insert_into_special_table.sql template1"
 
         When the user runs command "gpcrondump -a -x " DB\`~@#\$%^&*()_-+[{]}|\\;: \\'/?><;1 ""
         Then gpcrondump should return a return code of 0
         And the timestamp from gpcrondump is stored
-        When the user runs command "psql -f gppylib/test/behave/mgmt_utils/steps/data/special_chars/select_from_special_table.sql " DB\`~@#\$%^&*()_-+[{]}|\\;: \\'/?><;1 " > /tmp/special_table_data.ans"
+        When the user runs command "psql -f test/behave/mgmt_utils/steps/data/special_chars/select_from_special_table.sql " DB\`~@#\$%^&*()_-+[{]}|\\;: \\'/?><;1 " > /tmp/special_table_data.ans"
         When the user runs gpdbrestore with the stored timestamp and options "--redirect " DB\`~@#\$%^&*()_-+[{]}|\\;: \\'/?><;2 "" without -e option
-        And the user runs command "psql -f gppylib/test/behave/mgmt_utils/steps/data/special_chars/select_from_special_table.sql " DB\`~@#\$%^&*()_-+[{]}|\\;: \\'/?><;2 " > /tmp/special_table_data.out"
+        And the user runs command "psql -f test/behave/mgmt_utils/steps/data/special_chars/select_from_special_table.sql " DB\`~@#\$%^&*()_-+[{]}|\\;: \\'/?><;2 " > /tmp/special_table_data.out"
         Then verify that the contents of the files "/tmp/special_table_data.out" and "/tmp/special_table_data.ans" are identical
 
         # cleanup
@@ -3341,23 +3341,23 @@ Feature: Validate command line arguments
 
     Scenario: gpdbrestore, -S option, -S truncate option schema level restore with special chars in schema name
         Given the test is initialized
-        And the user runs "psql -f gppylib/test/behave/mgmt_utils/steps/data/special_chars/create_special_database.sql template1"
-        And the user runs "psql -f gppylib/test/behave/mgmt_utils/steps/data/special_chars/create_special_schema.sql template1"
-        And the user runs "psql -f gppylib/test/behave/mgmt_utils/steps/data/special_chars/create_special_table.sql template1"
-        And the user runs "psql -f gppylib/test/behave/mgmt_utils/steps/data/special_chars/insert_into_special_table.sql template1"
+        And the user runs "psql -f test/behave/mgmt_utils/steps/data/special_chars/create_special_database.sql template1"
+        And the user runs "psql -f test/behave/mgmt_utils/steps/data/special_chars/create_special_schema.sql template1"
+        And the user runs "psql -f test/behave/mgmt_utils/steps/data/special_chars/create_special_table.sql template1"
+        And the user runs "psql -f test/behave/mgmt_utils/steps/data/special_chars/insert_into_special_table.sql template1"
 
         When the user runs command "gpcrondump -a -x " DB\`~@#\$%^&*()_-+[{]}|\\;: \\'/?><;1 ""
         Then gpcrondump should return a return code of 0
         And the timestamp from gpcrondump is stored
-        When the user runs command "psql -f gppylib/test/behave/mgmt_utils/steps/data/special_chars/select_from_special_table.sql " DB\`~@#\$%^&*()_-+[{]}|\\;: \\'/?><;1 " > /tmp/special_table_data.ans"
+        When the user runs command "psql -f test/behave/mgmt_utils/steps/data/special_chars/select_from_special_table.sql " DB\`~@#\$%^&*()_-+[{]}|\\;: \\'/?><;1 " > /tmp/special_table_data.ans"
         When the user runs gpdbrestore with the stored timestamp and options "-S " S\`~@#\$%^&*()-+[{]}|\\;: \\'\"/?><1 ""
-        And the user runs command "psql -f gppylib/test/behave/mgmt_utils/steps/data/special_chars/select_from_special_table.sql " DB\`~@#\$%^&*()_-+[{]}|\\;: \\'/?><;1 " > /tmp/special_table_data.out"
+        And the user runs command "psql -f test/behave/mgmt_utils/steps/data/special_chars/select_from_special_table.sql " DB\`~@#\$%^&*()_-+[{]}|\\;: \\'/?><;1 " > /tmp/special_table_data.out"
         Then verify that the contents of the files "/tmp/special_table_data.out" and "/tmp/special_table_data.ans" are identical
 
         # -S with truncate option
         When the user runs "gpdbrestore -S " S\`~@#\$%^&*()-+[{]}|\\;: \\'\"/?><1 " -a --truncate" with the stored timestamp
         Then gpdbrestore should return a return code of 0
-        And the user runs command "psql -f gppylib/test/behave/mgmt_utils/steps/data/special_chars/select_from_special_table.sql " DB\`~@#\$%^&*()_-+[{]}|\\;: \\'/?><;1 " > /tmp/special_table_data.out"
+        And the user runs command "psql -f test/behave/mgmt_utils/steps/data/special_chars/select_from_special_table.sql " DB\`~@#\$%^&*()_-+[{]}|\\;: \\'/?><;1 " > /tmp/special_table_data.out"
         Then verify that the contents of the files "/tmp/special_table_data.out" and "/tmp/special_table_data.ans" are identical
 
         # cleanup
@@ -3367,21 +3367,21 @@ Feature: Validate command line arguments
 
     Scenario: gpdbrestore, --noplan option with special chars in database name, schema name, and table name
         Given the test is initialized
-        And the user runs "psql -f gppylib/test/behave/mgmt_utils/steps/data/special_chars/create_special_database.sql template1"
-        And the user runs "psql -f gppylib/test/behave/mgmt_utils/steps/data/special_chars/create_special_schema.sql template1"
-        And the user runs "psql -f gppylib/test/behave/mgmt_utils/steps/data/special_chars/create_special_table.sql template1"
-        And the user runs "psql -f gppylib/test/behave/mgmt_utils/steps/data/special_chars/insert_into_special_table.sql template1"
+        And the user runs "psql -f test/behave/mgmt_utils/steps/data/special_chars/create_special_database.sql template1"
+        And the user runs "psql -f test/behave/mgmt_utils/steps/data/special_chars/create_special_schema.sql template1"
+        And the user runs "psql -f test/behave/mgmt_utils/steps/data/special_chars/create_special_table.sql template1"
+        And the user runs "psql -f test/behave/mgmt_utils/steps/data/special_chars/insert_into_special_table.sql template1"
 
         When the user runs command "gpcrondump -a -x " DB\`~@#\$%^&*()_-+[{]}|\\;: \\'/?><;1 ""
         Then gpcrondump should return a return code of 0
-        Given the user runs "psql -f gppylib/test/behave/mgmt_utils/steps/data/special_chars/insert_into_special_ao_table.sql template1"
+        Given the user runs "psql -f test/behave/mgmt_utils/steps/data/special_chars/insert_into_special_ao_table.sql template1"
         When the user runs command "gpcrondump -a -x " DB\`~@#\$%^&*()_-+[{]}|\\;: \\'/?><;1 " --incremental"
         Then gpcrondump should return a return code of 0
         And the timestamp from gpcrondump is stored
-        When the user runs command "psql -f gppylib/test/behave/mgmt_utils/steps/data/special_chars/select_from_special_ao_table.sql " DB\`~@#\$%^&*()_-+[{]}|\\;: \\'/?><;1 " > /tmp/special_ao_table_data.ans"
-        And the user runs "psql -f gppylib/test/behave/mgmt_utils/steps/data/special_chars/truncate_special_ao_table.sql template1"
+        When the user runs command "psql -f test/behave/mgmt_utils/steps/data/special_chars/select_from_special_ao_table.sql " DB\`~@#\$%^&*()_-+[{]}|\\;: \\'/?><;1 " > /tmp/special_ao_table_data.ans"
+        And the user runs "psql -f test/behave/mgmt_utils/steps/data/special_chars/truncate_special_ao_table.sql template1"
         And the user runs gpdbrestore with the stored timestamp and options "--noplan" without -e option
-        And the user runs command "psql -f gppylib/test/behave/mgmt_utils/steps/data/special_chars/select_from_special_ao_table.sql " DB\`~@#\$%^&*()_-+[{]}|\\;: \\'/?><;1 " > /tmp/special_ao_table_data.out"
+        And the user runs command "psql -f test/behave/mgmt_utils/steps/data/special_chars/select_from_special_ao_table.sql " DB\`~@#\$%^&*()_-+[{]}|\\;: \\'/?><;1 " > /tmp/special_ao_table_data.out"
         Then verify that the contents of the files "/tmp/special_ao_table_data.out" and "/tmp/special_ao_table_data.ans" are identical
 
         # cleanup
@@ -3538,12 +3538,12 @@ Feature: Validate command line arguments
     @exclude_schema
     Scenario: Exclude schema (-S) should not dump pg_temp schemas
         Given the test is initialized
-        And the user runs the command "psql bkdb -f 'gppylib/test/behave/mgmt_utils/steps/data/gpcrondump/create_temp_schema_in_transaction.sql'" in the background without sleep
+        And the user runs the command "psql bkdb -f 'test/behave/mgmt_utils/steps/data/gpcrondump/create_temp_schema_in_transaction.sql'" in the background without sleep
         When the user runs "gpcrondump -a -S good_schema -x bkdb"
         Then gpcrondump should return a return code of 0
         And the timestamp from gpcrondump is stored
-        Then read pid from file "gppylib/test/behave/mgmt_utils/steps/data/gpcrondump/pid_leak" and kill the process
-        And the temporary file "gppylib/test/behave/mgmt_utils/steps/data/gpcrondump/pid_leak" is removed
+        Then read pid from file "test/behave/mgmt_utils/steps/data/gpcrondump/pid_leak" and kill the process
+        And the temporary file "test/behave/mgmt_utils/steps/data/gpcrondump/pid_leak" is removed
         And waiting "2" seconds
         And verify that the "dump" file in " " dir does not contain "pg_temp"
         And the user runs command "dropdb bkdb"
@@ -3571,7 +3571,7 @@ Feature: Validate command line arguments
         And verify that there are "2190" tuples in "bkdb" for table "public.foo4"
 
     Scenario: Schema level restore with gpdbrestore -S option for views, sequences, and functions
-        Given the user runs "psql -f gppylib/test/behave/mgmt_utils/steps/data/schema_level_test_workload.sql template1"
+        Given the user runs "psql -f test/behave/mgmt_utils/steps/data/schema_level_test_workload.sql template1"
         When the user runs command "gpcrondump -a -x schema_level_test_db"
         Then gpcrondump should return a return code of 0
         And the timestamp from gpcrondump is stored

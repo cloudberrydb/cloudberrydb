@@ -6,7 +6,7 @@ GPLOAD:
     - SOURCE:
         PORT_RANGE: [20000, 30000]
         FILE:
-          - gppylib/test/behave/mgmt_utils/steps/data/gpload_staging_data_2.csv 
+          - test/behave/mgmt_utils/steps/data/gpload_staging_data_2.csv 
     - COLUMNS:
         - id: int
         - msg: text

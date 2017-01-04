@@ -26,7 +26,7 @@ subpartition sp3 start('4685')  WITH (checksum=false,appendonly=true, blocksize=
 subpartition sp4 start('5675') )
 );
 
-COPY hybrid_part1 FROM 'gppylib/test/behave/mgmt_utils/steps/data/hybrid_part.data' delimiter as '|';
+COPY hybrid_part1 FROM 'test/behave/mgmt_utils/steps/data/hybrid_part.data' delimiter as '|';
 
 
 CREATE TABLE hybrid_part2 (
@@ -57,4 +57,4 @@ subpartition sp3 start('4685')  WITH (checksum=false,appendonly=true, blocksize=
 subpartition sp4 start('5675') )
 );
 
-COPY hybrid_part2 FROM 'gppylib/test/behave/mgmt_utils/steps/data/hybrid_part.data' delimiter as '|';
+COPY hybrid_part2 FROM 'test/behave/mgmt_utils/steps/data/hybrid_part.data' delimiter as '|';

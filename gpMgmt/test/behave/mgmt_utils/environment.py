@@ -1,7 +1,7 @@
 import os
 import shutil
 
-from gppylib.test.behave_utils.utils import drop_database_if_exists, start_database_if_not_started,\
+from test.behave_utils.utils import drop_database_if_exists, start_database_if_not_started,\
                                             create_database, enable_postgis_and_load_test_data,    \
                                             enable_postgis_and_load_test_data_for_postgis_1,       \
                                             run_command, check_user_permissions, run_gpcommand
