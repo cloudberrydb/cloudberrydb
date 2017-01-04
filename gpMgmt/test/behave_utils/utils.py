@@ -21,23 +21,23 @@ PARTITION_START_DATE = '2010-01-01'
 PARTITION_END_DATE = '2013-01-01'
 
 GET_APPENDONLY_DATA_TABLE_INFO_SQL ="""SELECT ALL_DATA_TABLES.oid, ALL_DATA_TABLES.schemaname, ALL_DATA_TABLES.tablename, OUTER_PG_CLASS.relname as tupletable FROM(
-SELECT ALLTABLES.oid, ALLTABLES.schemaname, ALLTABLES.tablename FROM 
-    (SELECT c.oid, n.nspname AS schemaname, c.relname AS tablename FROM pg_class c, pg_namespace n 
+SELECT ALLTABLES.oid, ALLTABLES.schemaname, ALLTABLES.tablename FROM
+    (SELECT c.oid, n.nspname AS schemaname, c.relname AS tablename FROM pg_class c, pg_namespace n
     WHERE n.oid = c.relnamespace) as ALLTABLES,
     (SELECT n.nspname AS schemaname, c.relname AS tablename
     FROM pg_class c LEFT JOIN pg_namespace n ON n.oid = c.relnamespace
     LEFT JOIN pg_tablespace t ON t.oid = c.reltablespace
-    WHERE c.relkind = 'r'::"char" AND c.oid > 16384 AND (c.relnamespace > 16384 or n.nspname = 'public') 
+    WHERE c.relkind = 'r'::"char" AND c.oid > 16384 AND (c.relnamespace > 16384 or n.nspname = 'public')
     EXCEPT
-    ((SELECT x.schemaname, x.partitiontablename FROM 
+    ((SELECT x.schemaname, x.partitiontablename FROM
     (SELECT distinct schemaname, tablename, partitiontablename, partitionlevel FROM pg_partitions) as X,
     (SELECT schemaname, tablename maxtable, max(partitionlevel) maxlevel FROM pg_partitions group by (tablename, schemaname))
- as Y    
-    WHERE x.schemaname = y.schemaname and x.tablename = Y.maxtable and x.partitionlevel != Y.maxlevel) 
-    UNION (SELECT distinct schemaname, tablename FROM pg_partitions))) as DATATABLES 
+ as Y
+    WHERE x.schemaname = y.schemaname and x.tablename = Y.maxtable and x.partitionlevel != Y.maxlevel)
+    UNION (SELECT distinct schemaname, tablename FROM pg_partitions))) as DATATABLES
 WHERE ALLTABLES.schemaname = DATATABLES.schemaname and ALLTABLES.tablename = DATATABLES.tablename AND ALLTABLES.oid not in (select reloid from pg_exttable)
 ) as ALL_DATA_TABLES, pg_appendonly, pg_class OUTER_PG_CLASS
-    WHERE ALL_DATA_TABLES.oid = pg_appendonly.relid 
+    WHERE ALL_DATA_TABLES.oid = pg_appendonly.relid
     AND OUTER_PG_CLASS.oid = pg_appendonly.segrelid
 """
 
@@ -86,13 +86,13 @@ def run_command(context, command):
         context.exception = e
 
     result = cmd.get_results()
-    context.ret_code = result.rc 
+    context.ret_code = result.rc
     context.stdout_message = result.stdout
-    context.error_message = result.stderr 
+    context.error_message = result.stderr
 
 def run_cmd(command):
     cmd = Command(name='run %s' % command, cmdStr='%s' % command)
-    try: 
+    try:
         cmd.run(validateAfter=True)
     except ExecutionError, e:
         print 'caught exception %s'%e
@@ -118,9 +118,9 @@ def run_gpcommand(context, command):
         context.exception = e
 
     result = cmd.get_results()
-    context.ret_code = result.rc 
+    context.ret_code = result.rc
     context.stdout_message = result.stdout
-    context.error_message = result.stderr 
+    context.error_message = result.stderr
 
 def check_stdout_msg(context, msg):
     pat = re.compile(msg)
@@ -162,9 +162,9 @@ def check_database_is_running(context):
 
     pgport = int(os.environ['PGPORT'])
 
-    running_status = chk_local_db_running(master_data_dir, pgport) 
+    running_status = chk_local_db_running(master_data_dir, pgport)
     gpdb_running = running_status[0] and running_status[1] and running_status[2] and running_status[3]
-    
+
     return gpdb_running
 
 def start_database_if_not_started(context):
@@ -199,9 +199,9 @@ def getRow(dbname, exec_sql):
 
 
 def check_db_exists(dbname, host=None, port=0, user=None):
-    LIST_DATABASE_SQL = 'select datname from pg_database'  
-  
-    results = [] 
+    LIST_DATABASE_SQL = 'select datname from pg_database'
+
+    results = []
     with dbconn.connect(dbconn.DbURL(hostname=host, username=user, port=port, dbname='template1')) as conn:
         curs = dbconn.execSQL(conn, LIST_DATABASE_SQL)
         results = curs.fetchall()
@@ -209,7 +209,7 @@ def check_db_exists(dbname, host=None, port=0, user=None):
     for result in results:
         if result[0] == dbname:
             return True
- 
+
     return False
 
 def create_database_if_not_exists(context, dbname, host=None, port=0, user=None):
@@ -320,7 +320,7 @@ def validate_db_data(context, dbname, expected_table_count):
 
 def get_segment_hostnames(context, dbname):
     sql = "select distinct(hostname) from gp_segment_configuration where content != -1;"
-    return getRows(dbname, sql)     
+    return getRows(dbname, sql)
 
 def backup_db_data(context, dbname):
     tbls = get_table_names(dbname)
@@ -340,7 +340,7 @@ def check_partition_table_exists(context, dbname, schemaname, table_name, table_
     partitions = get_partition_names(schemaname, table_name, dbname, part_level, part_number)
     if not partitions:
         return False
-    return check_table_exists(context, dbname, partitions[0][0].strip(), table_type) 
+    return check_table_exists(context, dbname, partitions[0][0].strip(), table_type)
 
 def check_table_exists(context, dbname, table_name, table_type=None, host=None, port=0, user=None):
     if '.' in table_name:
@@ -357,10 +357,10 @@ def check_table_exists(context, dbname, table_name, table_type=None, host=None, 
               where relname = E'%s'; \
               """ % pg.escape_string(table_name)
 
-    table_row = None 
+    table_row = None
     with dbconn.connect(dbconn.DbURL(hostname=host, port=port, username=user, dbname=dbname)) as conn:
         try:
-            table_row = dbconn.execSQLForSingletonRow(conn, SQL) 
+            table_row = dbconn.execSQLForSingletonRow(conn, SQL)
         except Exception as e:
             context.exception = e
             return False
@@ -379,7 +379,7 @@ def check_table_exists(context, dbname, table_name, table_type=None, host=None, 
     elif table_row[2] == 'v':
         original_table_type = 'view'
     else:
-        raise Exception('Unknown table type %s' % table_row[2]) 
+        raise Exception('Unknown table type %s' % table_row[2])
 
     if original_table_type != table_type.strip():
         return False
@@ -430,7 +430,7 @@ def drop_external_table(context, table_name, dbname, host=None, port=0, user=Non
         conn.commit()
 
     if check_table_exists(context, table_name=table_name, dbname=dbname, table_type='external', host=host, port=port, user=user):
-        raise Exception('Unable to successfully drop the table %s' % table_name) 
+        raise Exception('Unable to successfully drop the table %s' % table_name)
 
 def drop_table(context, table_name, dbname, host=None, port=0, user=None):
     SQL = 'drop table %s' % table_name
@@ -439,8 +439,8 @@ def drop_table(context, table_name, dbname, host=None, port=0, user=None):
         conn.commit()
 
     if check_table_exists(context, table_name=table_name, dbname=dbname, host=host, port=port, user=user):
-        raise Exception('Unable to successfully drop the table %s' % table_name) 
- 
+        raise Exception('Unable to successfully drop the table %s' % table_name)
+
 def check_schema_exists(context, schema_name, dbname):
     schema_check_sql = "select * from pg_namespace where nspname='%s';" % schema_name
     if len(getRows(dbname, schema_check_sql)) < 1:
@@ -457,17 +457,17 @@ def drop_schema(context, schema_name, dbname):
         dbconn.execSQL(conn, SQL)
         conn.commit()
     if check_schema_exists(context, schema_name, dbname):
-        raise Exception('Unable to successfully drop the schema %s' % schema_name) 
- 
+        raise Exception('Unable to successfully drop the schema %s' % schema_name)
+
 def validate_table_data_on_segments(context, tablename, dbname):
 
     seg_data_sql = "select gp_segment_id, count(*) from gp_dist_random('%s') group by gp_segment_id;" % tablename
-    
-    rows = getRows(dbname, seg_data_sql)     
+
+    rows = getRows(dbname, seg_data_sql)
     for row in rows:
         if row[1] == '0' :
-           raise Exception('Data not present in segment %s' % row[0]) 
-   
+           raise Exception('Data not present in segment %s' % row[0])
+
 def get_table_names(dbname):
     sql = """
             SELECT n.nspname AS schemaname, c.relname AS tablename\
@@ -481,42 +481,42 @@ def get_table_names(dbname):
     return getRows(dbname, sql)
 
 def get_partition_tablenames(tablename, dbname, part_level = 1):
- 
+
     child_part_sql = "select partitiontablename from pg_partitions where tablename='%s' and partitionlevel=%s;" % (tablename, part_level)
     rows = getRows(dbname, child_part_sql)
     return rows
-     
+
 def get_partition_names(schemaname, tablename, dbname, part_level, part_number):
-    part_num_sql = """select partitionschemaname || '.' || partitiontablename from pg_partitions 
+    part_num_sql = """select partitionschemaname || '.' || partitiontablename from pg_partitions
                              where schemaname='%s' and tablename='%s'
                              and partitionlevel=%s and partitionposition=%s;""" % (schemaname, tablename, part_level, part_number)
     rows = getRows(dbname, part_num_sql)
     return rows
-     
+
 def validate_part_table_data_on_segments(context, tablename, part_level, dbname):
-    
+
     rows = get_partition_tablenames(tablename, dbname, part_level)
     for part_tablename in rows :
         seg_data_sql = "select gp_segment_id, count(*) from gp_dist_random('%s') group by gp_segment_id;" % part_tablename[0]
-        rows = getRows(dbname, seg_data_sql)        
+        rows = getRows(dbname, seg_data_sql)
         for row in rows:
             if row[1] == '0' :
-               raise Exception('Data not present in segment %s' % row[0]) 
+               raise Exception('Data not present in segment %s' % row[0])
 
 def validate_mixed_partition_storage_types(context, tablename, dbname):
     partition_names = get_partition_tablenames(tablename, dbname, part_level = 1)
     for position, partname in enumerate(partition_names):
-        if position in(0, 2, 5, 7): 
-            storage_type = 'c' 
-        elif position in(1, 3, 6, 8): 
-            storage_type = 'a' 
+        if position in(0, 2, 5, 7):
+            storage_type = 'c'
+        elif position in(1, 3, 6, 8):
+            storage_type = 'a'
         else:
-            storage_type = 'h' 
+            storage_type = 'h'
         for part in partname:
             validate_storage_type(context, part, storage_type, dbname)
-    
+
 def validate_storage_type(context, partname, storage_type, dbname):
-    
+
     storage_type_sql = "select oid::regclass, relstorage from pg_class where oid = '%s'::regclass;" % (partname)
     rows = getRows(dbname, storage_type_sql)
     for row in rows:
@@ -524,7 +524,7 @@ def validate_storage_type(context, partname, storage_type, dbname):
             raise Exception("The storage type of the partition %s is not as expected %s "% (row[1], storage_type))
 
 def create_mixed_storage_partition(context, tablename, dbname):
-    
+
     table_definition = 'Column1 int, Column2 varchar(20), Column3 date'
     create_table_str = "Create table %s (%s) Distributed randomly \
                         Partition by list(Column2)  \
@@ -536,7 +536,7 @@ def create_mixed_storage_partition(context, tablename, dbname):
                         subpartition s_5  start(date '2014-01-01') end(date '2015-01-01') ) \
                         (partition p1 values('backup') , partition p2 values('restore')) \
                         ;" % (tablename, table_definition)
-    
+
     with dbconn.connect(dbconn.DbURL(dbname=dbname)) as conn:
         dbconn.execSQL(conn, create_table_str)
         conn.commit()
@@ -544,7 +544,7 @@ def create_mixed_storage_partition(context, tablename, dbname):
     populate_partition(tablename, '2010-01-01', dbname, 0)
 
 def create_external_partition(context, tablename, dbname, port, filename):
-    
+
     table_definition = 'Column1 int, Column2 varchar(20), Column3 date'
     create_table_str = "Create table %s (%s) Distributed randomly \
                         Partition by range(Column3) ( \
@@ -554,7 +554,7 @@ def create_external_partition(context, tablename, dbname, port, filename):
                         partition s_4  start(date '2013-01-01') end(date '2014-01-01') with (appendonly=true, orientation=row), \
                         partition s_5  start(date '2014-01-01') end(date '2015-01-01') ) \
                         ;" % (tablename, table_definition)
-    
+
     master_hostname = get_master_hostname();
     create_ext_table_str = "Create readable external table %s_ret (%s) \
                             location ('gpfdist://%s:%s/%s') \
@@ -590,15 +590,15 @@ def modify_partition_data(context, tablename, dbname, partitionnum):
     else:
         raise Exception("BAD PARAM to modify_partition_data %s" % partitionnum)
 
-    cmdStr = """ echo "90,backup,%s-12-30" | psql -d %s -c "copy %s from stdin delimiter ',';" """ % (year, dbname, tablename)    
+    cmdStr = """ echo "90,backup,%s-12-30" | psql -d %s -c "copy %s from stdin delimiter ',';" """ % (year, dbname, tablename)
     for i in range(10):
         cmd = Command(name='insert data into %s' % tablename, cmdStr=cmdStr)
-        cmd.run(validateAfter=True) 
+        cmd.run(validateAfter=True)
 
 def modify_data(context, tablename, dbname):
     cmdStr = 'psql -d %s -c "copy %s to stdout;" | psql -d %s -c "copy %s from stdin;"' % (dbname, tablename, dbname, tablename)
     cmd = Command(name='insert data into %s' % tablename, cmdStr=cmdStr)
-    cmd.run(validateAfter=True) 
+    cmd.run(validateAfter=True)
 
 def add_partition(context, partitionnum, tablename, dbname):
     alter_table_str = "alter table %s add default partition p%s; insert into %s select i+%d, 'update', i + date '%s' from generate_series(0,1094) as i" \
@@ -639,7 +639,7 @@ def create_partition(context, tablename, storage_type, dbname, compression_type=
         if partition:
             create_table_str = create_table_str + part_table
 
-    create_table_str = create_table_str + ";" 
+    create_table_str = create_table_str + ";"
 
     with dbconn.connect(dbconn.DbURL(hostname=host, port=port, username=user, dbname=dbname)) as conn:
         dbconn.execSQL(conn, create_table_str)
@@ -679,19 +679,19 @@ def validate_index(context, table_name, dbname):
     rows = getRows(dbname, index_sql)
     if len(rows) != 2:
         raise Exception('Index creation was not successful. Expected 2 rows does not match %d rows' % result)
-   
+
 def create_schema(context, schema_name, dbname):
     if not check_schema_exists(context, schema_name, dbname):
         schema_sql = "create schema %s" % schema_name
         with dbconn.connect(dbconn.DbURL(dbname=dbname)) as conn:
             dbconn.execSQL(conn, schema_sql)
             conn.commit()
-     
+
 def create_int_table(context, table_name, table_type='heap', dbname='testdb'):
     CREATE_TABLE_SQL = None
     NROW = 1000
 
-    table_type = table_type.upper() 
+    table_type = table_type.upper()
     if table_type == 'AO':
         CREATE_TABLE_SQL = 'create table %s WITH(APPENDONLY=TRUE) as select generate_series(1,%d) as c1' % (table_name, NROW)
     elif table_type == 'CO':
@@ -701,16 +701,16 @@ def create_int_table(context, table_name, table_type='heap', dbname='testdb'):
 
     if CREATE_TABLE_SQL is None:
         raise Exception('Invalid table type specified')
-  
-    SELECT_TABLE_SQL = 'select count(*) from %s' % table_name 
+
+    SELECT_TABLE_SQL = 'select count(*) from %s' % table_name
     with dbconn.connect(dbconn.DbURL(dbname=dbname)) as conn:
         dbconn.execSQL(conn, CREATE_TABLE_SQL)
         conn.commit()
-         
+
         result = dbconn.execSQLForSingleton(conn, SELECT_TABLE_SQL)
         if result != NROW:
             raise Exception('Integer table creation was not successful. Expected %d does not match %d' %(NROW, result))
-       
+
 def drop_database(context, dbname, host=None, port=0, user=None):
 
     LOOPS = 10
@@ -747,8 +747,8 @@ def run_on_all_segs(context, dbname, query):
     primary_segs = [seg for seg in gparray.getDbList() if seg.isSegmentPrimary()]
 
     for seg in primary_segs:
-        with dbconn.connect(dbconn.DbURL(dbname=dbname, hostname=seg.getSegmentHostName(), port=seg.getSegmentPort()), utility=True) as conn: 
-            dbconn.execSQL(conn, query)  
+        with dbconn.connect(dbconn.DbURL(dbname=dbname, hostname=seg.getSegmentHostName(), port=seg.getSegmentPort()), utility=True) as conn:
+            dbconn.execSQL(conn, query)
             conn.commit()
 
 def get_nic_up(hostname, nic):
@@ -757,12 +757,12 @@ def get_nic_up(hostname, nic):
     cmd.run(validateAfter=True)
 
     return 'UP' in cmd.get_results().stdout
-   
+
 def bring_nic_down(hostname, nic):
     address = hostname + '-cm'
     cmd = Command(name='bring down nic', cmdStr='sudo /sbin/ifdown %s' % nic, remoteHost=address, ctxt=REMOTE)
     cmd.run(validateAfter=True)
-    
+
     if get_nic_up(hostname, nic):
         raise Exception('Unable to bring down nic %s on host %s' % (nic, hostname))
 
@@ -770,7 +770,7 @@ def bring_nic_up(hostname, nic):
     address = hostname + '-cm'
     cmd = Command(name='bring up nic', cmdStr='sudo /sbin/ifup %s' % nic, remoteHost=address, ctxt=REMOTE)
     cmd.run(validateAfter=True)
-    
+
     if not get_nic_up(hostname, nic):
         raise Exception('Unable to bring up nic %s on host %s' % (nic, hostname))
 
@@ -779,7 +779,7 @@ def are_segments_synchronized():
     segments = gparray.getDbList()
     for seg in segments:
         if seg.mode != MODE_SYNCHRONIZED:
-            return False 
+            return False
     return True
 
 def is_any_segment_resynchronized():
@@ -830,10 +830,10 @@ def check_row_count(tablename, dbname, nrows):
         result = dbconn.execSQLForSingleton(conn, NUM_ROWS_QUERY)
     if result != nrows:
         raise Exception('%d rows in table %s.%s, expected row count = %d' % (result, dbname, tablename, nrows))
- 
+
 def check_empty_table(tablename, dbname):
     check_row_count(tablename, dbname, 0)
-     
+
 def match_table_select(context, src_tablename, src_dbname, dest_tablename, dest_dbname, orderby=None, options=''):
     if orderby != None :
         dest_tbl_qry = 'psql -d %s -c \'select * from %s order by %s\' %s' % (dest_dbname, dest_tablename, orderby, options)
@@ -931,7 +931,7 @@ def verify_truncate_not_in_pg_stat_last_operation(context, dbname, oid):
             raise Exception("Found %s rows from query '%s' should be 0" % (thecount, VERIFY_TRUNCATE_SQL))
 
 def get_table_oid(context, dbname, schema, tablename):
-    OID_SQL = """SELECT c.oid 
+    OID_SQL = """SELECT c.oid
                  FROM pg_class c, pg_namespace n
                  WHERE c.relnamespace = n.oid AND c.relname = '%s' AND n.nspname = '%s'""" % (tablename, schema)
 
@@ -948,11 +948,11 @@ def verify_integer_tuple_counts(context, filename):
     with open(filename, 'r') as fp:
         for line in fp:
             tupcount = line.split(',')[-1].strip()
-            if re.match("^\d+?\.\d+?$", tupcount) is not None: 
+            if re.match("^\d+?\.\d+?$", tupcount) is not None:
                 raise Exception('Expected an integer tuplecount in file %s found float' % filename)
 
 def create_fake_pg_aoseg_table(context, table, dbname):
-    sql = """CREATE TABLE %s(segno int, 
+    sql = """CREATE TABLE %s(segno int,
                              eof double precision,
                              tupcount double precision,
                              modcount bigint,
@@ -972,11 +972,11 @@ def copy_file_to_all_db_hosts(context, filename):
         if seg.isSegmentPrimary():
             hosts_set.add(seg.getSegmentAddress())
 
-    hostfile = '/tmp/copy_host_file.behave' 
+    hostfile = '/tmp/copy_host_file.behave'
     with open(hostfile, 'w') as fd:
         for h in hosts_set:
             fd.write('%s\n' % h)
-    
+
     cmd = 'gpscp -f %s %s =:%s' % (hostfile, filename, filename)
     run_command(context, cmd)
     if context.exception:
@@ -998,7 +998,7 @@ def create_large_num_partitions(table_type, table_name, db_name, num_partitions=
                                       """ % (table_name, condition)
     else:
         create_large_partitions_sql = """
-                                        create table %s (column1 int, column2 int) %s partition by range(column1) (start(1) end(%d) every(1)) 
+                                        create table %s (column1 int, column2 int) %s partition by range(column1) (start(1) end(%d) every(1))
                                       """ % (table_name, condition, num_partitions)
     execute_sql(db_name, create_large_partitions_sql)
 
@@ -1010,7 +1010,7 @@ def create_large_num_partitions(table_type, table_name, db_name, num_partitions=
     else:
         verify_table_exists_sql = """select count(*) from pg_class where relname = E'%s'""" % table_name
 
-    num_rows = getRows(db_name, verify_table_exists_sql)[0][0] 
+    num_rows = getRows(db_name, verify_table_exists_sql)[0][0]
     if num_rows != 1:
         raise Exception('Creation of table "%s:%s" failed. Num rows in pg_class = %s' % (db_name, table_name, num_rows))
 
@@ -1029,7 +1029,7 @@ def validate_num_restored_tables(context, num_tables, dbname):
             num_validate_tables += 1
 
     if num_validate_tables != int(num_tables.strip()):
-        raise Exception('Invalid number of tables were restored. Expected "%s", Actual "%s"' % (num_tables, num_validate_tables)) 
+        raise Exception('Invalid number of tables were restored. Expected "%s", Actual "%s"' % (num_tables, num_validate_tables))
 
 def get_partition_list(partition_type, dbname):
     if partition_type == 'ao':
@@ -1037,7 +1037,7 @@ def get_partition_list(partition_type, dbname):
     elif partition_type == 'co':
         sql = GET_ALL_CO_DATATABLES_SQL
 
-    partition_list = getRows(dbname, sql) 
+    partition_list = getRows(dbname, sql)
     for line in partition_list:
         if len(line) != 4:
             raise Exception('Invalid results from query to get all AO tables: [%s]' % (','.join(line)))
@@ -1054,7 +1054,7 @@ def verify_stats(dbname, partition_info):
             tuple_count = '0'
         validate_tuple_count(dbname, schemaname, partition_name, tuple_count)
 
-def validate_tuple_count(dbname, schemaname, partition_name, tuple_count):    
+def validate_tuple_count(dbname, schemaname, partition_name, tuple_count):
     sql = 'select count(*) from %s.%s' % (schemaname, partition_name)
     row_count = getRows(dbname, sql)[0][0]
     if int(row_count) != int(tuple_count):
@@ -1074,7 +1074,7 @@ def validate_aoco_stats(context, dbname, table, expected_tupcount):
         tupcount = int(rows[0][0])
         if tupcount != int(expected_tupcount):
             raise Exception("%s has stats of %d rows in %s table and should have %s" % (table, tupcount, tname, expected_tupcount))
-    
+
 def validate_no_aoco_stats(context, dbname, table):
 
     with dbconn.connect(dbconn.DbURL(dbname=dbname)) as conn:
@@ -1085,7 +1085,7 @@ def validate_no_aoco_stats(context, dbname, table):
         rows = getRows(dbname, sql)
         if len(rows) != 0:
             raise Exception("%s has stats of %d rows in %s table and should be 0" % (table, int(rows[0][0]), tname))
- 
+
 def get_all_hostnames_as_list(context, dbname):
     hosts = []
     segs = get_segment_hostnames(context, dbname)
@@ -1097,7 +1097,7 @@ def get_all_hostnames_as_list(context, dbname):
         hosts.append(master[0].strip())
 
     return hosts
-   
+
 def get_pid_for_segment(seg_data_dir, seg_host):
     cmd = Command(name='get list of postmaster processes',
                   cmdStr='ps -eaf | grep %s' % seg_data_dir,
@@ -1105,16 +1105,16 @@ def get_pid_for_segment(seg_data_dir, seg_host):
                   remoteHost=seg_host)
     cmd.run(validateAfter=True)
 
-    pid = None 
+    pid = None
     results = cmd.get_results().stdout.strip().split('\n')
     for res in results:
-        if 'grep' not in res: 
+        if 'grep' not in res:
             pid = res.split()[1]
-  
+
     if pid is None:
         return None
 
-    return int(pid) 
+    return int(pid)
 
 def install_gppkg(context):
     if 'GPPKG_PATH' not in os.environ:
@@ -1128,80 +1128,20 @@ def install_gppkg(context):
     run_command(context, command)
     print "Install gppkg command: '%s', stdout: '%s', stderr: '%s'" % (command, context.stdout_message, context.error_message)
 
-def enable_postgis_and_load_test_data_for_postgis_1(context):
-    if 'GPHOME' not in os.environ:
-        raise Exception('GPHOME needs to be set in the environment')
-
-    install_gppkg(context)
-
-    gphome = os.environ['GPHOME']
-    path = "%s/share/postgresql/contrib" % gphome
-    command = "psql -d opengeo -f %s/postgis.sql" % path
-    run_command(context, command)
-
-    command = "psql -d opengeo -f %s/spatial_ref_sys.sql" % path
-    run_command(context, command)
-
-    current_path = os.path.realpath(__file__)
-    current_dir = os.path.dirname(current_path)
-    postgis_data_dir = "%s/../behave/mgmt_utils/steps/data/postgis" % current_dir
-
-    command = "psql -d opengeo -f %s/nyc_census_blocks_1.sql" % postgis_data_dir
-    run_command(context, command)
-    command = "psql -d opengeo -f %s/nyc_neighborhoods_1.sql" % postgis_data_dir
-    run_command(context, command)
-    command = "psql -d opengeo -f %s/nyc_subway_stations_1.sql" % postgis_data_dir
-    run_command(context, command)
-    command = "psql -d opengeo -f %s/nyc_census_sociodata.sql" % postgis_data_dir
-    run_command(context, command)
-    command = "psql -d opengeo -f %s/nyc_streets_1.sql" % postgis_data_dir
-    run_command(context, command)
-
-def enable_postgis_and_load_test_data(context):
-    if 'GPHOME' not in os.environ:
-        raise Exception('GPHOME needs to be set in the environment')
-
-    install_gppkg(context)
-
-    gphome = os.environ['GPHOME']
-    path = "%s/share/postgresql/contrib/postgis-2.0" % gphome
-
-    command = "psql -d opengeo -f %s/postgis.sql" % path
-    run_command(context, command)
-
-    command = "psql -d opengeo -f %s/spatial_ref_sys.sql" % path
-    run_command(context, command)
-
-    current_path = os.path.realpath(__file__)
-    current_dir = os.path.dirname(current_path)
-    postgis_data_dir = "%s/../behave/mgmt_utils/steps/data/postgis" % current_dir
-
-    command = "psql -d opengeo -f %s/nyc_census_blocks.sql" % postgis_data_dir
-    run_command(context, command)
-    command = "psql -d opengeo -f %s/nyc_neighborhoods.sql" % postgis_data_dir
-    run_command(context, command)
-    command = "psql -d opengeo -f %s/nyc_subway_stations.sql" % postgis_data_dir
-    run_command(context, command)
-    command = "psql -d opengeo -f %s/nyc_census_sociodata.sql" % postgis_data_dir
-    run_command(context, command)
-    command = "psql -d opengeo -f %s/nyc_streets.sql" % postgis_data_dir
-    run_command(context, command)
-
-
 def kill_process(pid, host=None, sig=signal.SIGTERM):
     if host is not None:
         cmd = Command('kill process on a given host',
                       cmdStr='kill -%d %d' % (sig, pid),
                       ctxt=REMOTE,
-                      remoteHost=host) 
-        cmd.run(validateAfter=True) 
+                      remoteHost=host)
+        cmd.run(validateAfter=True)
     else:
         os.kill(pid, sig)
 
 def get_num_segments(primary=True, mirror=True, master=True, standby=True):
     gparray = GpArray.initFromCatalog(dbconn.DbURL())
-     
-    primary_segments = [seg for seg in gparray.getDbList() if seg.isSegmentPrimary()] 
+
+    primary_segments = [seg for seg in gparray.getDbList() if seg.isSegmentPrimary()]
     mirror_segments = [seg for seg in gparray.getDbList() if seg.isSegmentMirror()]
 
     num_segments = 0
@@ -1212,7 +1152,7 @@ def get_num_segments(primary=True, mirror=True, master=True, standby=True):
     if master and gparray.master is not None:
         num_segments += 1
     if standby and gparray.standbyMaster is not None:
-        num_segments += 1  
+        num_segments += 1
 
     return num_segments
 
@@ -1238,7 +1178,7 @@ def are_segments_running():
     segments = gparray.getDbList()
     for seg in segments:
         if seg.status != 'u':
-            return False 
+            return False
     return True
 
 def modify_sql_file(file, hostport):
@@ -1306,7 +1246,7 @@ def create_gpfilespace_config(host, port, user,fs_name, config_file, working_dir
         for line in result:
             if line.strip():
                 row = line.strip().split('|')
-                row = [col.strip() for col in row] 
+                row = [col.strip() for col in row]
                 hostname = row[0]
                 primary_hosts.append(hostname)
                 dbid = row[1]
@@ -1325,7 +1265,7 @@ def create_gpfilespace_config(host, port, user,fs_name, config_file, working_dir
         for line in result:
             if line.strip():
                 row = line.strip().split('|')
-                row = [col.strip() for col in row] 
+                row = [col.strip() for col in row]
                 hostname = row[0]
                 mirror_hosts.append(hostname)
                 dbid = row[1]
@@ -1346,7 +1286,7 @@ def create_gpfilespace_config(host, port, user,fs_name, config_file, working_dir
     create_dir(standby_host,fspath_standby)
 
 def remove_dir(host, directory):
-    cmd = 'gpssh -h %s -e \'rm -rf %s\''%(host, directory) 
+    cmd = 'gpssh -h %s -e \'rm -rf %s\''%(host, directory)
     run_cmd(cmd)
 
 def create_dir(host, directory):
@@ -1368,7 +1308,7 @@ def wait_till_change_tracking_transition(host='localhost', port=os.environ.get('
             count = count + 1
             if (count > 80):
                 raise Exception("Timed out: cluster not in change tracking")
-        return (True,num_cl)            
+        return (True,num_cl)
 
 
 def wait_till_insync_transition(host='localhost', port=os.environ.get('PGPORT'), user=os.environ.get('USER')):
@@ -1384,9 +1324,9 @@ def wait_till_insync_transition(host='localhost', port=os.environ.get('PGPORT'),
             (rc, out, err) = run_cmd(num_unsync_nodes)
             num_unsync = int(out.strip())
             count = count + 1
-            if (count > 80): 
+            if (count > 80):
                 raise Exception("Timed out: cluster not in sync transition")
-        return True    
+        return True
 
 def wait_till_resync_transition(host='localhost', port=os.environ.get('PGPORT'), user=os.environ.get('USER')):
     num_resync_nodes = 'psql -t -h %s -p %s -U %s -d template1 -c "select count(*) from gp_segment_configuration where mode =\'r\';"'%(host, port, user)
@@ -1406,9 +1346,9 @@ def wait_till_resync_transition(host='localhost', port=os.environ.get('PGPORT'),
             num_resync = int(out1.strip())
             num_insync = int(out2.strip())
             count = count + 1
-            if (count > 80): 
+            if (count > 80):
                 raise Exception("Timed out: cluster not in sync transition")
-        return True 
+        return True
 
 def check_dump_dir_exists(context, dbname):
     dir_map = get_backup_dirs_for_hosts(dbname)
