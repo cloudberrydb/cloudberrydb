@@ -1029,11 +1029,41 @@ ProcessUtility(Node *parsetree,
 
 		case T_CreateExternalStmt:
 			{
-				CreateExternalStmt *stmt = (CreateExternalStmt *) parsetree;
+				List *stmts;
+				ListCell   *l;
 
 				/* Run parse analysis ... */
-				stmt = transformCreateExternalStmt(stmt, queryString);
-				DefineExternalRelation(stmt);
+				/*
+				 * GPDB: Only do parse analysis in the Query Dispatcher. The Executor
+				 * nodes receive an already-transformed statement from the QD. We only
+				 * want to process the main CreateExternalStmt here, other such
+				 * statements that would be created from the main
+				 * CreateExternalStmt by parse analysis. The QD will dispatch
+				 * those other statements separately.
+				 */
+				if (Gp_role == GP_ROLE_EXECUTE)
+					stmts = list_make1(parsetree);
+				else
+					stmts = transformCreateExternalStmt((CreateExternalStmt *) parsetree, queryString);
+
+				/* ... and do it */
+				foreach(l, stmts)
+				{
+					Node	   *stmt = (Node *) lfirst(l);
+
+					if (IsA(stmt, CreateExternalStmt))
+						DefineExternalRelation((CreateExternalStmt *) stmt);
+					else
+					{
+						/* Recurse for anything else */
+						ProcessUtility(stmt,
+									   queryString,
+									   params,
+									   false,
+									   None_Receiver,
+									   NULL);
+					}
+				}
 			}
 			break;
 
