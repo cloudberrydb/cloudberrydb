@@ -17,10 +17,6 @@ endif()
 
 include_directories(include)
 
-# Generate version-number header.
-configure_file(version.h.in
-               ${PROJECT_BINARY_DIR}/libgpos/include/gpos/version.h)
-
 # Compile .cpp source files under libgpos/src into monolithic gpos library.
 add_library(gpos
             include/gpos/assert.h
@@ -270,8 +266,8 @@ if (${CMAKE_SYSTEM_NAME} MATCHES "SunOS")
 endif()
 
 set_target_properties(gpos PROPERTIES
-                      SOVERSION ${GPOS_ABI_VERSION}
-                      VERSION ${GPOS_VERSION_STRING})
+                      SOVERSION ${GPORCA_ABI_VERSION}
+                      VERSION ${GPORCA_VERSION_STRING})
 
 # Tests reside in the 'server' subdirectory.
 add_subdirectory(server)
@@ -279,18 +275,14 @@ add_subdirectory(server)
 # Installation.
 option(VERBOSE_INSTALL_PATH "Install in a subdirectory path that includes GPOS version, CPU architecture, and bit width" OFF)
 if (VERBOSE_INSTALL_PATH)
-  set(installpath "libgpos/${GPOS_VERSION_STRING}/${CMAKE_SYSTEM_NAME}-${CMAKE_SYSTEM_PROCESSOR}/${CMAKE_BUILD_TYPE}")
+  set(installpath "libgpos/${GPORCA_VERSION_VERSION}/${CMAKE_SYSTEM_NAME}-${CMAKE_SYSTEM_PROCESSOR}/${CMAKE_BUILD_TYPE}")
   string(TOLOWER ${installpath} installpath)
   get_filename_component(full_install_name_dir "${installpath}/lib" ABSOLUTE)
   install(TARGETS gpos DESTINATION "${installpath}/lib")
   install(DIRECTORY include/gpos DESTINATION "${installpath}/include")
-  install(FILES "${PROJECT_BINARY_DIR}/libgpos/include/gpos/version.h"
-          DESTINATION "${installpath}/include/gpos")
 else()
   get_filename_component(full_install_name_dir "${CMAKE_INSTALL_PREFIX}/lib" ABSOLUTE)
   install(TARGETS gpos DESTINATION lib)
   install(DIRECTORY include/gpos DESTINATION include)
-  install(FILES "${PROJECT_BINARY_DIR}/libgpos/include/gpos/version.h"
-          DESTINATION include/gpos)
 endif()
 
