@@ -176,8 +176,7 @@ static Node *replace_grouping_columns(Node *node,
 									  List *sub_tlist,
 									  AttrNumber *grpColIdx,
 									  int start_colno,
-									  int end_colno,
-									  bool is_targetList);
+									  int end_colno);
 static bool contain_groupingfunc(Node *node);
 static void checkGroupExtensionQuery(CanonicalGroupingSets *cgs, List *targetList);
 
@@ -1149,14 +1148,14 @@ generate_dqa_plan(PlannerInfo *root,
 													 context->sub_tlist,
 													 context->grpColIdx,
 													 context->numGroupCols - rollup_level,
-													 context->numGroupCols - 1, true);
+													 context->numGroupCols - 1);
 		Assert(IsA(new_tlist, List));
 		
 		new_qual = (List *)replace_grouping_columns((Node *)new_qual,
 													context->sub_tlist,
 													context->grpColIdx,
 													context->numGroupCols - rollup_level,
-													context->numGroupCols - 1, false);
+													context->numGroupCols - 1);
 		Assert(new_qual == NULL || IsA(new_qual, List));
 		
 		root->group_pathkeys =
@@ -2313,70 +2312,90 @@ plan_list_rollup_plans(PlannerInfo *root,
 	return result_plan;
 }
 
-static Node *
-replace_grouping_columns_quals(Node *node, void *grpcols)
+/*
+ * The context for replacing grouping columns for a given Node
+ * with a NULL constant.
+ */
+typedef struct ReplaceGroupColsContext
 {
-	ListCell *lc = NULL;
-	
-	if (node == NULL || IsA(node, Const))
-		return node;
+	/* the grouping columns to be replaced */
+	List *grpcols;
 
-	Assert(IsA(grpcols, List));
+	/*
+	 * A temporary variable to indicate if we are currently
+	 * inside an Aggref.
+	 *
+	 * We don't want to replace the grouping columns which
+	 * appear inside an Aggref.
+	 */
+	bool in_aggref;
+} ReplaceGroupColsContext;
 
-	foreach (lc, (List*)grpcols)
-	{
-		Node *grpcol = lfirst(lc);
-		if (equal(node, grpcol)) {
-
-			/* Generate a NULL constant to replace the node. */
-			Const *null = makeNullConst(exprType((Node *)grpcol), -1);
-			return (Node *)null;
-		}
-	}
-
-	return expression_tree_mutator(node, replace_grouping_columns_quals, grpcols);
-}
 
 static Node *
-replace_grouping_columns_targetlist(Node *node, void *grpcols)
+replace_grouping_columns_mutator(Node *node, void *v_cxt)
 {
+	ReplaceGroupColsContext *cxt = (ReplaceGroupColsContext *)v_cxt;
 	ListCell *lc = NULL;
 	
 	if (node == NULL)
 		return NULL;
 
-	Assert(IsA(grpcols, List));
+	Assert(IsA(cxt->grpcols, List));	
 
-	foreach (lc, (List*)grpcols)
+	foreach (lc, cxt->grpcols)
 	{
 		Node *grpcol = lfirst(lc);
-		if (equal(node, grpcol)) {
+		if (equal(node, grpcol))
+			break;
+	}
 
-			/* Generate a NULL constant to replace the node. */
-			Const *null = makeNullConst(exprType((Node *)grpcol), -1);
+	if (IsA(node, Aggref))
+	{
+		Aggref *aggref = (Aggref *)node;
+		Aggref *new_aggref = makeNode(Aggref);
+		memcpy(new_aggref, aggref, sizeof(Aggref));
+
+		cxt->in_aggref = true;
+		new_aggref->args =
+			(List *)replace_grouping_columns_mutator((Node *)new_aggref->args, v_cxt);
+		Assert(IsA(new_aggref->args, List));
+		
+		cxt->in_aggref = false;
+
+		return (Node *)new_aggref;
+	}
+	
+	if (lc != NULL)
+	{
+		/* Generate a NULL constant to replace the node. */
+		Const *null;
+		Node *grpcol = lfirst(lc);
+
+		if (!cxt->in_aggref)
+		{
+			null = makeNullConst(exprType((Node *)grpcol), -1);
 			return (Node *)null;
 		}
 	}
-
-	return node;
+	
+	return expression_tree_mutator(node, replace_grouping_columns_mutator, v_cxt);
 }
 
-
 /*
- * Replace grouping columns with NULL constants in the given targetlist/quals
+ * Replace grouping columns with NULL constants in the given targetlist.
  */
 static Node *
 replace_grouping_columns(Node *node,
 						 List *sub_tlist,
 						 AttrNumber *grpColIdx,
 						 int start_colno,
-						 int end_colno,
-						 bool is_targetlist)
+						 int end_colno)
 {
+	Node *new_node = NULL;
 	int attno;
 	List *grpcols = NIL;
-	List* new_node = NIL;
-	ListCell* lc;
+	ReplaceGroupColsContext cxt;
 
 	Assert(start_colno <= end_colno);
 
@@ -2384,7 +2403,7 @@ replace_grouping_columns(Node *node,
 		return NULL;
 	
 	/*
-	 * Compute a list of grouping columns to be replaced
+	 * Compute a list of grouping columns to be replaces.
 	 */
 	for (attno = start_colno; attno <= end_colno; attno++)
 	{
@@ -2393,24 +2412,13 @@ replace_grouping_columns(Node *node,
 		grpcols = lappend(grpcols, te->expr);
 	}
 
-	if(is_targetlist)
-	{
-		foreach(lc, (List*)node)
-		{
-			TargetEntry *te;
-			te = copyObject(lfirst(lc));
-			te->expr = (Expr *)replace_grouping_columns_targetlist((Node *)te->expr, grpcols);
-			new_node = lappend(new_node, te);
-		}
-	}
-	else
-	{
-		new_node = (List*)replace_grouping_columns_quals((Node *)node, grpcols);
-	}
-
+	cxt.grpcols = grpcols;
+	cxt.in_aggref = false;
+	
+	new_node = replace_grouping_columns_mutator((Node *)node, (void *)&cxt);
 	list_free(grpcols);
 
-	return (Node*)new_node;
+	return new_node;
 }
 
 typedef struct qual_context
