@@ -1,6 +1,5 @@
 platform: darwin
 inputs:
-  - name: bin_gpos_osx32_debug
   - name: bin_xerces_osx32
   - name: orca_src
 outputs:
@@ -11,5 +10,4 @@ run:
     - --build_type=DEBUG
     - --output_dir=build_and_test_osx32_debug/install
     - --32=True
-    - bin_gpos_osx32_debug
     - bin_xerces_osx32

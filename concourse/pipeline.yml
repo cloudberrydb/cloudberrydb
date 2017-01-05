@@ -9,25 +9,12 @@ resources:
     branch: master
     uri: https://github.com/greenplum-db/gpdb
 
-- name: gpos_github_release
-  type: github-release
-  source:
-    user: greenplum-db
-    repository: gpos
-    access_token: {{gposbot_access_token}}
-
 - name: orca_github_release
   type: github-release
   source:
     user: greenplum-db
     repository: gporca
     access_token: {{gporcabot_access_token}}
-
-- name: gpos_src
-  type: git
-  source:
-    branch: master
-    uri: https://github.com/greenplum-db/gpos
 
 - name: xerces_patch
   type: git
@@ -62,42 +49,6 @@ resources:
     region_name: {{aws-region}}
     secret_access_key: {{s3_secret_access_key}}
     versioned_file: bin_xerces_osx32.tar.gz
-
-- name: bin_gpos_centos5_debug
-  type: s3
-  source:
-    access_key_id: {{s3_access_key_id}}
-    bucket: {{bucket-name}}
-    region_name: {{aws-region}}
-    secret_access_key: {{s3_secret_access_key}}
-    versioned_file: bin_gpos_centos5_debug.tar.gz
-
-- name: bin_gpos_osx32_debug
-  type: s3
-  source:
-    access_key_id: {{s3_access_key_id}}
-    bucket: {{bucket-name}}
-    region_name: {{aws-region}}
-    secret_access_key: {{s3_secret_access_key}}
-    versioned_file: bin_gpos_osx32_debug.tar.gz
-
-- name: bin_gpos_osx32_release
-  type: s3
-  source:
-    access_key_id: {{s3_access_key_id}}
-    bucket: {{bucket-name}}
-    region_name: {{aws-region}}
-    secret_access_key: {{s3_secret_access_key}}
-    versioned_file: bin_gpos_osx32_release.tar.gz
-
-- name: bin_gpos_centos5_release
-  type: s3
-  source:
-    access_key_id: {{s3_access_key_id}}
-    bucket: {{bucket-name}}
-    region_name: {{aws-region}}
-    secret_access_key: {{s3_secret_access_key}}
-    versioned_file: bin_gpos_centos5_release.tar.gz
 
 - name: bin_orca_centos5_debug
   type: s3
@@ -166,42 +117,6 @@ resources:
 # JOBS #
 ########
 jobs:
-- name: gpos_publish_tag
-  max_in_flight: 1
-  plan:
-  - aggregate:
-    - get: gpos_src
-      passed:
-      - gpos_centos5_release
-      - gpos_centos5_debug
-      - gpos_osx32_release
-      - gpos_osx32_debug
-      trigger: true
-    - get: bin_gpos_centos5_release
-      passed:
-      - gpos_centos5_release
-    - get: bin_gpos_centos5_debug
-      passed:
-      - gpos_centos5_debug
-    - get: bin_gpos_osx32_release
-      passed:
-      - gpos_osx32_release
-    - get: bin_gpos_osx32_debug
-      passed:
-      - gpos_osx32_debug
-  - task: gpos_publish_tag
-    file: gpos_src/concourse/publish_tag.yml
-  - put: gpos_github_release
-    params:
-      name: gpos_github_release_stage/tag.txt
-      tag: gpos_github_release_stage/tag.txt
-      commitish: gpos_github_release_stage/commit.txt
-      globs:
-        - gpos_github_release_stage/bin_gpos_centos5_release.tar.gz
-        - gpos_github_release_stage/bin_gpos_centos5_debug.tar.gz
-        - gpos_github_release_stage/bin_gpos_osx32_release.tar.gz
-        - gpos_github_release_stage/bin_gpos_osx32_debug.tar.gz
-
 - name: orca_publish_tag
   max_in_flight: 1
   plan:
@@ -266,64 +181,11 @@ jobs:
       params:
         from: package_tarball_osx32/bin_xerces_osx32.tar.gz
 
-- name: gpos_centos5_release
-  max_in_flight: 2
-  plan:
-  - get: gpos_src
-    trigger: true
-  - task: build_and_test_release
-    file: gpos_src/concourse/build_centos5_release.yml
-  - task: package_tarball_release
-    file: gpos_src/concourse/package_tarball_centos5_release.yml
-  - put: bin_gpos_centos5_release
-    params:
-      from: package_tarball_release/bin_gpos_centos5_release.tar.gz
-
-- name: gpos_centos5_debug
-  max_in_flight: 2
-  plan:
-  - get: gpos_src
-    trigger: true
-  - task: build_and_test_debug
-    file: gpos_src/concourse/build_centos5_debug.yml
-  - task: package_tarball_debug
-    file: gpos_src/concourse/package_tarball_centos5_debug.yml
-  - put: bin_gpos_centos5_debug
-    params:
-      from: package_tarball_debug/bin_gpos_centos5_debug.tar.gz
-
-- name: gpos_osx32_release
-  plan:
-  - get: gpos_src
-    trigger: true
-  - task: build_and_test_release
-    file: gpos_src/concourse/build_osx32_release.yml
-  - task: package_tarball_release
-    file: gpos_src/concourse/package_tarball_osx32_release.yml
-  - put: bin_gpos_osx32_release
-    params:
-      from: package_tarball_osx32_release/bin_gpos_osx32_release.tar.gz
-
-- name: gpos_osx32_debug
-  plan:
-  - get: gpos_src
-    trigger: true
-  - task: build_and_test_debug
-    file: gpos_src/concourse/build_osx32_debug.yml
-  - task: package_tarball_debug
-    file: gpos_src/concourse/package_tarball_osx32_debug.yml
-  - put: bin_gpos_osx32_debug
-    params:
-      from: package_tarball_osx32_debug/bin_gpos_osx32_debug.tar.gz
-
 - name: orca_centos5_release
   max_in_flight: 2
   plan:
   - get: orca_src
     trigger: true
-  - get: bin_gpos_centos5_release
-    passed:
-    - gpos_publish_tag
   - get: bin_xerces_centos5
     passed:
     - xerces_centos5
@@ -340,9 +202,6 @@ jobs:
   plan:
   - get: orca_src
     trigger: true
-  - get: bin_gpos_centos5_debug
-    passed:
-    - gpos_publish_tag
   - get: bin_xerces_centos5
     passed:
     - xerces_centos5
@@ -360,9 +219,6 @@ jobs:
   plan:
   - get: orca_src
     trigger: true
-  - get: bin_gpos_osx32_release
-    passed:
-    - gpos_publish_tag
   - get: bin_xerces_osx32
     passed:
     - xerces_osx32
@@ -380,9 +236,6 @@ jobs:
   plan:
   - get: orca_src
     trigger: true
-  - get: bin_gpos_osx32_debug
-    passed:
-    - gpos_publish_tag
   - get: bin_xerces_osx32
     passed:
     - xerces_osx32
@@ -397,14 +250,6 @@ jobs:
 - name: build_gpdb
   plan:
   - aggregate:
-    - &get_released_gpos
-      get: bin_gpos
-      resource: gpos_github_release
-      params:
-        globs:
-          - bin_gpos_centos5_release.tar.gz
-      passed:
-      - gpos_publish_tag
     - &get_released_orca
       get: bin_orca
       resource: orca_github_release
@@ -432,9 +277,6 @@ jobs:
 - name: gpdb_icg_with_orca
   plan:
   - aggregate:
-    - <<: *get_released_gpos
-      passed:
-      - build_gpdb
     - <<: *get_released_orca
       passed:
       - build_gpdb
@@ -467,9 +309,6 @@ jobs:
 - name: gpdb_icg_with_planner
   plan:
   - aggregate:
-    - <<: *get_released_gpos
-      passed:
-      - build_gpdb
     - <<: *get_released_orca
       passed:
       - build_gpdb

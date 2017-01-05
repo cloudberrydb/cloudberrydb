@@ -5,7 +5,6 @@ image_resource:
     repository: yolo/orcadev
     tag: centos5
 inputs:
-  - name: bin_gpos_centos5_release
   - name: bin_xerces_centos5
   - name: orca_src
 outputs:
@@ -15,5 +14,4 @@ run:
   args:
     - --build_type=RelWithDebInfo
     - --output_dir=build_and_test_release/install
-    - bin_gpos_centos5_release
     - bin_xerces_centos5
