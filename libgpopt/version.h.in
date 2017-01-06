@@ -12,8 +12,7 @@
 #ifndef GPORCA_version_H
 #define GPORCA_version_H
 
-#cmakedefine GPORCA_VERSION_MAJOR ${GPORCA_VERSION_MAJOR}
-#cmakedefine GPORCA_VERSION_MINOR ${GPORCA_VERSION_MINOR}
+#cmakedefine GPORCA_VERSION_STRING "${GPORCA_VERSION_STRING}"
 
 #endif  // GPORCA_version_H
 // EOF
