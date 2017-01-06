@@ -16,6 +16,7 @@
 .obj.*
 
 # Local excludes in root directory
+.idea
 .autotools
 .cproject
 .project
@@ -23,3 +24,4 @@ build
 server/minidumps/
 ivy-*.xml
 concourse/gporca_vars.yml
+xcode_build
