@@ -106,47 +106,6 @@ filerep_end_to_end_xlog_ctlog_cons:
 	$(TESTER) $(DISCOVER) -t tincrepo \
 	-s tincrepo/mpp/gpdb/tests/storage/filerep/mpp23631
 
-
-# GPDB-O2-TINC-Persistent-Tables-no-scm 
-# The following targets are pulled from:
-# http://pulse-cloud.gopivotal.com/admin/projects/GPDB-O2-TINC-Persistent-Tables-no-scm
-#
-# Refer to the properties of the pulse project and individual build
-# stages for configuration requirements.
-
-persistent_tables: crash_recovery_part_1 crash_recovery_part_2 \
-	crash_recovery_part_3 crash_recovery_part_4 drop_db oom
-
-crash_recovery_part_1:
-	$(TESTER) $(DISCOVER) \
-	-s tincrepo/mpp/gpdb/tests/storage/persistent_tables \
-	-q "method=test_postmaster_reset*"
-
-crash_recovery_part_2:
-	$(TESTER) $(DISCOVER) \
-	-s tincrepo/mpp/gpdb/tests/storage/persistent_tables \
-	-q "method=test_periodic_failover*"
-
-crash_recovery_part_3:
-	$(TESTER) $(DISCOVER) \
-	-s tincrepo/mpp/gpdb/tests/storage/persistent_tables \
-	-q "method=test_crash_system*"
-
-crash_recovery_part_4:
-	$(TESTER) $(DISCOVER) \
-	-s tincrepo/mpp/gpdb/tests/storage/persistent_tables \
-	-q "method=test_kill_primaries*ORmethod=test_partition_table_scenario"
-
-drop_db:
-	$(TESTER) $(DISCOVER) \
-	-s tincrepo/mpp/gpdb/tests/storage/persistent_tables \
-	-p test_PT_DropDB.py -p test_PT_freeTID.py
-
-oom:
-	$(TESTER) $(DISCOVER) \
-	-s tincrepo/mpp/gpdb/tests/storage/persistent_tables -p test_PT_OOM.py
-
-
 # GPDB-O2-Walrepl-multinode-no-scm 
 # The following targets are pulled from:
 # http://pulse-cloud.gopivotal.com/admin/projects/GPDB-O2-Walrepl-multinode-no-scm
