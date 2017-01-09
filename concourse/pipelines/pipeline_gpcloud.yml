@@ -85,3 +85,23 @@ jobs:
       TARGET_OS: centos
       TARGET_OS_VERSION: 6
 
+- name: staging_server_gpcloud_centos
+  plan:
+  - aggregate:
+    - get: gpdb_src
+      trigger: false
+      params: {submodules: none}
+      passed:
+            - regression_tests_gpcloud_centos
+            - gpcheckcloud_tests_gpcloud_centos
+    - get: sync_tools_gpdb
+      resource: sync_tools_gpdb_centos
+    - get: bin_gpdb
+      resource: bin_gpdb_centos
+    - get: centos-gpdb-dev-6
+  - task: staging_server_gpcloud
+    file: gpdb_src/concourse/tasks/staging_server_gpcloud.yml
+    image: centos-gpdb-dev-6
+    params:
+      EC2_PRIVATE_KEY: {{ec2_private_key}}
+      EC2_INSTANCE_IP: {{ec2_instance_ip}}
