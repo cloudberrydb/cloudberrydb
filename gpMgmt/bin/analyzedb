@@ -563,7 +563,7 @@ class AnalyzeDb(Operation):
             ret.append(tup)
         return ret
 
-    
+
 
     def _write_back(self, curr_ao_state, curr_last_op, prev_ao_state, prev_last_op, heap_partitions,
                    input_col_dict, prev_col_dict, root_partition_col_dict, is_full, dirty_partitions, target_list):
@@ -1158,10 +1158,9 @@ class AnalyzeWorker(Thread):
     name=None
     logger=None
 
-    def __init__(self,name,pool,timeout=0.05):
+    def __init__(self,name,pool):
         self.name=name
         self.pool=pool
-        self.timeout=timeout
         self.logger=logger
         self.stoprequest = threading.Event()
         Thread.__init__(self)
@@ -1169,7 +1168,7 @@ class AnalyzeWorker(Thread):
     def run(self):
         while not self.stoprequest.isSet():
             try:
-                self.cmd = self.pool.getNextWorkItem(timeout=self.timeout)
+                self.cmd = self.pool.getNextWorkItem()
 
                 if self.cmd is not None:
                     # tablename = self.cmd.cmdStr.split()[-1][:-1]
