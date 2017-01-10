@@ -3004,12 +3004,12 @@ append_stacktrace(PipeProtoChunk *buffer, StringInfo append, void *const *stacka
 
 		cmdresult[0][0] = '\0';
 		fd = popen(cmd,"r");
-		if (fd != NULL && errno == 0)
+		if (fd != NULL)
 			fd_ok = true;
 
 		if (fd_ok)
 		{
-			for (stack_no = 0; stack_no < stacksize && stack_no < STACK_DEPTH_MAX && errno == 0; stack_no++)
+			for (stack_no = 0; stack_no < stacksize && stack_no < STACK_DEPTH_MAX; stack_no++)
 			{
 				/* initialize the string */
 				cmdresult[stack_no][0] = '\0';
@@ -3072,8 +3072,11 @@ append_stacktrace(PipeProtoChunk *buffer, StringInfo append, void *const *stacka
 				function = "<symbol not found>";
 			}
 
-			/* check if lineInfo was retrieved */
-			if (strchr(lineInfo, ':') == NULL)
+			// check if lineInfo was retrieved
+			// if lineinfo does not contain symbol ':' then the output of cmd contains the input address
+			// if lineinfo contains symbol '?' then the filename and line number cannot be determined (the output is ??:0)
+			if (strchr(lineInfo, ':') == NULL ||
+			    strchr(lineInfo, '?') != NULL)
 			{
 				/* no line info, print offset in function */
 				symbol_len = snprintf(symbol,
