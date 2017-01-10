@@ -160,6 +160,7 @@ class PgtwoPhaseClass(MPPTestCase):
             self.invoke_fault('postmaster', 'panic', role='primary')
             if fault_type in ('dtm_broadcast_prepare', 'dtm_broadcast_commit_prepared', 'dtm_xlog_distributed_commit') :
                 self.resume_faults(fault_type, cluster_state)
+            PSQL.wait_for_database_up()
             (rc, num) = self.filereputil.wait_till_change_tracking_transition()
             tinctest.logger.info('Value of rc and num_down %s, %s' % (rc, num))
             if fault_type == 'abort' :
@@ -240,7 +241,7 @@ class PgtwoPhaseClass(MPPTestCase):
         if cluster_state == 'resync':
             self.filereputil.inject_fault(f='filerep_resync', y='resume', r='primary')
 
-        PSQL.wait_for_database_up();
+        PSQL.wait_for_database_up()
 
     def run_crash_and_recover(self, crash_type, fault_type, test_dir, cluster_state='sync', checkpoint='noskip'):
         '''
