@@ -7,7 +7,8 @@ class PulseOptions
   DEFAULT_BUILD_REQUEST_TIME_IN_SECONDS = 60 * 15
   CONCOURSE_URL = "https://gpdb.ci.pivotalci.info/"
 
-  attr_reader :url, :project_name, :username, :password, :input_dir, :output_dir, :build_artifact_url, :build_src_code_url, :qautil_url, :start_time
+  attr_reader :url, :project_name, :username, :password, :input_dir, :output_dir, :build_artifact_url,
+              :build_src_code_url, :qautil_url, :gpdb_src_behave_url, :start_time
 
   def self.forTriggerJob
     PulseOptions.new(needs_output_dir: true)
@@ -38,21 +39,20 @@ class PulseOptions
   end
 
   # read the s3 signed URLs from Concourse
-  def read_from_concourse_urls(artifact_url, src_code_url, qa_util_url)
-    build_artifact_url_file = artifact_url
-    @build_artifact_url = File.read(build_artifact_url_file).strip
-    build_src_code_url_file = src_code_url
-    @build_src_code_url = File.read(build_src_code_url_file).strip
-    qautil_url_file = qa_util_url
-    @qautil_url = File.read(qautil_url_file).strip
+  def read_from_concourse_urls(artifact_url, src_code_url, qa_util_url, behave_url)
+    @build_artifact_url = File.read(artifact_url).strip
+    @build_src_code_url = File.read(src_code_url).strip
+    @qautil_url = File.read(qa_util_url).strip
+    @gpdb_src_behave_url = File.read(behave_url).strip
   end
 
   def print_environment_settings
     puts "PULSE_URL is #{url}"
     puts "PULSE_PROJECT_NAME is #{project_name}"
-    puts "BUILD_ARTIFACT_URL:\n#{build_artifact_url}\n" if !build_artifact_url.nil?
-    puts "BUILD_SRC_CODE_URL:\n#{build_src_code_url}\n" if !build_src_code_url.nil?
-    puts "QAUTIL_URL:\n#{qautil_url}\n" if !qautil_url.nil?
+    puts "BUILD_ARTIFACT_URL:\n#{build_artifact_url}\n" unless build_artifact_url.nil?
+    puts "BUILD_SRC_CODE_URL:\n#{build_src_code_url}\n" unless build_src_code_url.nil?
+    puts "QAUTIL_URL:\n#{qautil_url}\n" unless qautil_url.nil?
+    puts "GPDB_SRC_BEHAVE_URL:\n#{gpdb_src_behave_url}\n" unless gpdb_src_behave_url.nil?
   end
 
   def validate_options
@@ -78,13 +78,14 @@ class PulseOptions
 
   def trigger_options
     {
-      :force => true,
-      :properties => {
-        :BUILD_ARTIFACT_URL => build_artifact_url,
-        :BUILD_SRC_CODE_URL => build_src_code_url,
-        :QAUTIL_URL => qautil_url,
-      },
-      :reason => "Triggered via Concourse #{CONCOURSE_URL}"
+        force: true,
+        properties: {
+            BUILD_ARTIFACT_URL: build_artifact_url,
+            BUILD_SRC_CODE_URL: build_src_code_url,
+            QAUTIL_URL: qautil_url,
+            GPDB_SRC_BEHAVE_URL: gpdb_src_behave_url,
+        },
+        reason: "Triggered via Concourse #{CONCOURSE_URL}"
     }
   end
 

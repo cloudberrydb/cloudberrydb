@@ -5,7 +5,7 @@ require_relative '../lib/pulse_options'
 
 options = PulseOptions.forTriggerJob
 options.read_from_environment
-options.read_from_concourse_urls("installer_gpdb_rc/url", "gpdb_src_archive/url", "qautils_tarball/url")
+options.read_from_concourse_urls("installer_gpdb_rc/url", "gpdb_src_archive/url", "qautils_tarball/url", "gpdb_src_behave_tarball/url")
 options.print_environment_settings
 options.validate_options
 
