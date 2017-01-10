@@ -389,8 +389,7 @@ DefineExternalRelation(CreateExternalStmt *createExtStmt)
 				if (getgpsegmentCount() < list_length(exttypeDesc->location_list))
 					ereport(WARNING,
 							(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
-							 errmsg("number of locations (%) exceeds the number "
-									"of segments (%d)",
+							 errmsg("number of locations (%d) exceeds the number of segments (%d)",
 									list_length(exttypeDesc->location_list),
 									getgpsegmentCount()),
 							 errhint("The table cannot be queried until cluster "
