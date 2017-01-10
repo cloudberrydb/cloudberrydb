@@ -1379,6 +1379,13 @@ reset client_min_messages;
 drop table foo;
 -- end_ignore
 
+-- Test GPDB Expr (T_ArrayCoerceExpr) conversion to Scalar Array Coerce Expr
+-- start_ignore
+create table foo (a int, b character varying(10));
+-- end_ignore
+-- Query should not fallback to planner
+explain select * from foo where b in ('1', '2');
+
 -- clean up
 drop schema orca cascade;
 reset optimizer_segments;
