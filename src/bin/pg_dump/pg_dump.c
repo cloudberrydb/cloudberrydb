@@ -10267,13 +10267,28 @@ dumpExternal(TableInfo *tbinfo, PQExpBuffer query, PQExpBuffer q, PQExpBuffer de
 		}
 		else
 		{
-			/* add LOCATION clause */
+			/* add LOCATION clause, remove '{"' and '"}' */
+
 			locations[strlen(locations) - 1] = '\0';
 			locations++;
+
+			/* the URI of custom protocol will contains \"\" and need to be removed */
+
 			location = nextToken(&locations, ",");
+
+			if (location[0] == '\"')
+			{
+				location++;
+				location[strlen(location) - 1] = '\0';
+			}
 			appendPQExpBuffer(q, " LOCATION (\n    '%s'", location);
 			for (; (location = nextToken(&locations, ",")) != NULL;)
 			{
+				if (location[0] == '\"')
+				{
+					location++;
+					location[strlen(location) - 1] = '\0';
+				}
 				appendPQExpBuffer(q, ",\n    '%s'", location);
 			}
 			appendPQExpBuffer(q, "\n) ");
@@ -10455,7 +10470,8 @@ dumpTableSchema(Archive *fout, TableInfo *tbinfo)
 	/* START MPP ADDITION */
 	else if (tbinfo->relstorage == RELSTORAGE_EXTERNAL)
 	{
-		binary_upgrade_set_pg_class_oids(fout, q, tbinfo->dobj.catId.oid, false);
+		if (binary_upgrade)
+			binary_upgrade_set_pg_class_oids(fout, q, tbinfo->dobj.catId.oid, false);
 
 		reltypename = "EXTERNAL TABLE";
 		dumpExternal(tbinfo, query, q, delq);

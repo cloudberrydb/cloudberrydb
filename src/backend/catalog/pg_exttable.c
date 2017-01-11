@@ -13,6 +13,7 @@
 #include "postgres.h"
 
 #include "catalog/pg_exttable.h"
+#include "catalog/pg_extprotocol.h"
 #include "catalog/pg_type.h"
 #include "catalog/pg_proc.h"
 #include "access/genam.h"
@@ -62,12 +63,12 @@ InsertExtTableEntry(Oid 	tbloid,
 	bool		nulls[Natts_pg_exttable];
 	Datum		values[Natts_pg_exttable];
 
- 	MemSet(values, 0, sizeof(values));
+	MemSet(values, 0, sizeof(values));
 	MemSet(nulls, false, sizeof(nulls));
 
-    /*
-     * Open and lock the pg_exttable catalog.
-     */
+	/*
+	 * Open and lock the pg_exttable catalog.
+	 */
 	pg_exttable_rel = heap_open(ExtTableRelationId, RowExclusiveLock);
 
 	values[Anum_pg_exttable_reloid - 1] = ObjectIdGetDatum(tbloid);
@@ -127,6 +128,44 @@ InsertExtTableEntry(Oid 	tbloid,
      * end of transaction.
      */
     heap_close(pg_exttable_rel, NoLock);
+
+	/*
+	 * Add the dependency of custom external table
+	 */
+
+	if (locationUris != (Datum) 0)
+	{
+		Datum	   *elems;
+		int			nelems;
+
+		deconstruct_array(DatumGetArrayTypeP(locationUris),
+						  TEXTOID, -1, false, 'i',
+						  &elems, NULL, &nelems);
+
+
+		for (int i = 0; i < nelems; i++)
+		{
+			ObjectAddress	myself, referenced;
+			char	   *location;
+			char	   *protocol;
+			Size		position;
+
+			location = DatumGetCString(DirectFunctionCall1(textout, elems[i]));
+			position = strchr(location, ':') - location;
+			protocol = pnstrdup(location, position);
+
+			myself.classId = RelationRelationId;
+			myself.objectId = tbloid;
+			myself.objectSubId = 0;
+
+			referenced.classId = ExtprotocolRelationId;
+			referenced.objectId = LookupExtProtocolOid(protocol, true);
+			referenced.objectSubId = 0;
+
+			recordDependencyOn(&myself, &referenced, DEPENDENCY_NORMAL);
+		}
+
+	}
 }
 
 /*
