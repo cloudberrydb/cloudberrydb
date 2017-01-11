@@ -2896,7 +2896,7 @@ rel_get_leaf_relids_from_rule(Oid ruleOid)
 	ScanKeyData	scankey;
 	Relation	part_rule_rel;
 	SysScanDesc sscan;
-	bool		hasChildren;
+	bool		hasChildren = false;
 	List	   *lChildrenOid = NIL;
 	HeapTuple	tuple;
 
