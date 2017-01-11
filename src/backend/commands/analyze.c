@@ -95,7 +95,7 @@ static VacAttrStats *examine_attribute(Relation onerel, int attnum);
 static int acquire_sample_rows(Relation onerel, HeapTuple *rows,
 					int targrows, double *totalrows, double *totaldeadrows);
 static int acquire_sample_rows_by_query(Relation onerel, int nattrs, VacAttrStats **attrstats, HeapTuple **rows,
-										int targrows, double *totalrows, double *totaldeadrows, BlockNumber *totalpages);
+										int targrows, double *totalrows, double *totaldeadrows, BlockNumber *totalpages, bool rootonly);
 static double random_fract(void);
 static double init_selection_state(int n);
 static double get_next_S(double t, int n, double *stateptr);
@@ -390,7 +390,7 @@ analyze_rel(Oid relid, VacuumStmt *vacstmt,
 	 * Acquire the sample rows
 	 */
 	numrows = acquire_sample_rows_by_query(onerel, attr_cnt, vacattrstats, &rows, targrows,
-										   &totalrows, &totaldeadrows, &totalpages);
+										   &totalrows, &totaldeadrows, &totalpages, vacstmt->rootonly);
 
 	/*
 	 * Compute the statistics.	Temporary results during the calculations for
@@ -1307,7 +1307,7 @@ compare_rows(const void *a, const void *b)
 static int
 acquire_sample_rows_by_query(Relation onerel, int nattrs, VacAttrStats **attrstats,
 							 HeapTuple **rows, int targrows,
-							 double *totalrows, double *totaldeadrows, BlockNumber *totalblocks)
+							 double *totalrows, double *totaldeadrows, BlockNumber *totalblocks, bool rootonly)
 {
 	StringInfoData str;
 	StringInfoData columnStr;
@@ -1327,7 +1327,7 @@ acquire_sample_rows_by_query(Relation onerel, int nattrs, VacAttrStats **attrsta
 	Assert(targrows > 0.0);
 
 	analyzeEstimateReltuplesRelpages(RelationGetRelid(onerel), &relTuples, &relPages,
-									 false);
+									 rootonly);
 	*totalrows = relTuples;
 	*totaldeadrows = 0;
 	*totalblocks = relPages;
