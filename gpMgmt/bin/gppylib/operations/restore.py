@@ -1090,6 +1090,7 @@ class RecoverRemoteDumps(Operation):
                                      dstFile=self.context.generate_filename("global")))
         self.pool.join()
         self.pool.check_results()
+        self.pool.haltWork()
 
 class GetDumpTablesOperation(Operation):
     def __init__(self, context):

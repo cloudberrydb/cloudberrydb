@@ -47,11 +47,11 @@ SSH_MAX_RETRY=10
 # Delay before retrying ssh connection, in seconds
 SSH_RETRY_DELAY=.5
 
-halt_command='halt command'
 
 class WorkerPool(object):
     """TODO:"""
     
+    halt_command='halt command'
     def __init__(self,numWorkers=16,items=None):        
         self.workers=[]
         self.should_stop=False
@@ -160,7 +160,7 @@ class WorkerPool(object):
         self.should_stop=True
         for w in self.workers:
             w.haltWork()    
-            self.work_queue.put(halt_command)
+            self.work_queue.put(self.halt_command)
 
 class OperationWorkerPool(WorkerPool):
     """ TODO: This is a hack! In reality, the WorkerPool should work with Operations, and
@@ -204,7 +204,7 @@ class Worker(Thread):
                 if self.cmd is None:
                     self.logger.debug("[%s] got a None cmd" % self.name)
                     self.pool.markTaskDone()
-                elif self.cmd is halt_command:
+                elif self.cmd is self.pool.halt_command:
                     self.logger.debug("[%s] got a halt cmd" % self.name)
                     self.pool.markTaskDone()
                     self.cmd=None

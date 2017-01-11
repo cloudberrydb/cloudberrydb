@@ -43,7 +43,8 @@ class GpRecoverseg():
 
         pool = WorkerPool()
         pool.addCommand(cmd)
-        
+        pool.join()
+        pool.haltWork()
 
     def run(self,option=' ', validate=True, results=True):
         '''
