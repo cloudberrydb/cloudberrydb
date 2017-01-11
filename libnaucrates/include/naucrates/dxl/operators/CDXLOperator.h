@@ -99,6 +99,7 @@ namespace gpdxl
 		EdxlopScalarCast,
 		EdxlopScalarCoerceToDomain,
 		EdxlopScalarCoerceViaIO,
+		EdxlopScalarArrayCoerceExpr,
 		EdxlopScalarAggref,
 		EdxlopScalarArrayComp,
 		EdxlopScalarBooleanTest,

@@ -155,6 +155,7 @@ CTranslatorExprToDXL::InitScalarTranslators()
 			{COperator::EopScalarCast, &gpopt::CTranslatorExprToDXL::PdxlnScCast},
 			{COperator::EopScalarCoerceToDomain, &gpopt::CTranslatorExprToDXL::PdxlnScCoerceToDomain},
 			{COperator::EopScalarCoerceViaIO, &gpopt::CTranslatorExprToDXL::PdxlnScCoerceViaIO},
+			{COperator::EopScalarArrayCoerceExpr, &gpopt::CTranslatorExprToDXL::PdxlnScArrayCoerceExpr},
 			{COperator::EopScalarArray, &gpopt::CTranslatorExprToDXL::PdxlnArray},
 			{COperator::EopScalarArrayCmp, &gpopt::CTranslatorExprToDXL::PdxlnArrayCmp},
 			{COperator::EopScalarArrayRef, &gpopt::CTranslatorExprToDXL::PdxlnArrayRef},
@@ -6430,6 +6431,52 @@ CTranslatorExprToDXL::PdxlnScCoerceViaIO
 	return pdxlnCoerce;
 }
 
+//---------------------------------------------------------------------------
+//	@function:
+//		CTranslatorExprToDXL::PdxlnScArrayCoerceExpr
+//
+//	@doc:
+//		Create a DXL node from an optimizer scalar array coerce expr.
+//
+//---------------------------------------------------------------------------
+CDXLNode *
+CTranslatorExprToDXL::PdxlnScArrayCoerceExpr
+	(
+	CExpression *pexprArrayCoerceExpr
+	)
+{
+	GPOS_ASSERT(NULL != pexprArrayCoerceExpr);
+	CScalarArrayCoerceExpr *popScArrayCoerceExpr = CScalarArrayCoerceExpr::PopConvert(pexprArrayCoerceExpr->Pop());
+
+	IMDId *pmdidElemFunc = popScArrayCoerceExpr->PmdidElementFunc();
+	pmdidElemFunc->AddRef();
+	IMDId *pmdid = popScArrayCoerceExpr->PmdidType();
+	pmdid->AddRef();
+
+	CDXLNode *pdxlnArrayCoerceExpr =
+		GPOS_NEW(m_pmp) CDXLNode
+			(
+			m_pmp,
+			GPOS_NEW(m_pmp) CDXLScalarArrayCoerceExpr
+					(
+					m_pmp,
+					pmdidElemFunc,
+					pmdid,
+					popScArrayCoerceExpr->IMod(),
+					popScArrayCoerceExpr->FIsExplicit(),
+					(EdxlCoercionForm) popScArrayCoerceExpr->Ecf(), // map Coercion Form directly based on position in enum
+					popScArrayCoerceExpr->ILoc()
+					)
+			);
+
+	// translate child
+	GPOS_ASSERT(1 == pexprArrayCoerceExpr->UlArity());
+	CExpression *pexprChild = (*pexprArrayCoerceExpr)[0];
+	CDXLNode *pdxlnChild = PdxlnScalar(pexprChild);
+	pdxlnArrayCoerceExpr->AddChild(pdxlnChild);
+
+	return pdxlnArrayCoerceExpr;
+}
 
 //---------------------------------------------------------------------------
 //	@function:

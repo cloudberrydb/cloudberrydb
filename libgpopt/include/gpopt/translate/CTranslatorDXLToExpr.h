@@ -332,6 +332,9 @@ namespace gpopt
 			// translate a DXL scalar coerce a scalar coerce using I/O functions
 			CExpression *PexprScalarCoerceViaIO(const CDXLNode *pdxlnCoerce);
 
+			// translate a DXL scalar array coerce expression using given element coerce function
+			CExpression *PexprScalarArrayCoerceExpr(const CDXLNode *pdxlnArrayCoerceExpr);
+
 			// translate a DXL scalar subquery operator into a scalar subquery expression
 			CExpression *PexprScalarSubquery(const CDXLNode *pdxlnSubquery);
 			

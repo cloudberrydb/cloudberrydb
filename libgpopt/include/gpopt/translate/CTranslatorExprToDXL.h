@@ -597,6 +597,9 @@ namespace gpopt
 			// translate a scalar coerce using I/O functions
 			CDXLNode *PdxlnScCoerceViaIO(CExpression *pexprScCoerce);
 
+			// translate a scalar array coerce expr with element coerce function
+			CDXLNode *PdxlnScArrayCoerceExpr(CExpression *pexprScArrayCoerceExpr);
+
 			// translate an array
 			CDXLNode *PdxlnArray(CExpression *pexpr);
 

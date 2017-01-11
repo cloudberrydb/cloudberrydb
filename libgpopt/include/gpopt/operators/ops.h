@@ -37,6 +37,7 @@
 #include "gpopt/operators/CScalarCast.h"
 #include "gpopt/operators/CScalarCoerceToDomain.h"
 #include "gpopt/operators/CScalarCoerceViaIO.h"
+#include "gpopt/operators/CScalarArrayCoerceExpr.h"
 #include "gpopt/operators/CScalarCoalesce.h"
 #include "gpopt/operators/CScalarMinMax.h"
 #include "gpopt/operators/CScalarSubquery.h"

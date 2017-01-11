@@ -547,6 +547,8 @@ add_library(gpopt
             src/operators/CScalarCoerceToDomain.cpp
             include/gpopt/operators/CScalarCoerceViaIO.h
             src/operators/CScalarCoerceViaIO.cpp
+            include/gpopt/operators/CScalarArrayCoerceExpr.h
+            src/operators/CScalarArrayCoerceExpr.cpp
             include/gpopt/operators/CScalarConst.h
             src/operators/CScalarConst.cpp
             include/gpopt/operators/CScalarDMLAction.h

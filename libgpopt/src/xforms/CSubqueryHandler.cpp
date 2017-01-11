@@ -57,6 +57,7 @@ const CSubqueryHandler::SOperatorHandler CSubqueryHandler::m_rgophdlr[] =
 	{COperator::EopScalarCast, FRecursiveHandler},
 	{COperator::EopScalarCoerceToDomain, FRecursiveHandler},
 	{COperator::EopScalarCoerceViaIO, FRecursiveHandler},
+	{COperator::EopScalarArrayCoerceExpr, FRecursiveHandler},
 	{COperator::EopScalarAggFunc, FRecursiveHandler},
 	{COperator::EopScalarWindowFunc, FRecursiveHandler},
 	{COperator::EopScalarArray, FRecursiveHandler},

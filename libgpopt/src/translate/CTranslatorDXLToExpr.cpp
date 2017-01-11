@@ -172,6 +172,7 @@ CTranslatorDXLToExpr::InitTranslators()
 		{EdxlopScalarSwitchCase,	&gpopt::CTranslatorDXLToExpr::PexprScalarSwitchCase},
 		{EdxlopScalarCaseTest,		&gpopt::CTranslatorDXLToExpr::PexprScalarCaseTest},
 		{EdxlopScalarCoalesce, 		&gpopt::CTranslatorDXLToExpr::PexprScalarCoalesce},
+		{EdxlopScalarArrayCoerceExpr,	&gpopt::CTranslatorDXLToExpr::PexprScalarArrayCoerceExpr},
 		{EdxlopScalarCast, 			&gpopt::CTranslatorDXLToExpr::PexprScalarCast},
 		{EdxlopScalarCoerceToDomain,&gpopt::CTranslatorDXLToExpr::PexprScalarCoerceToDomain},
 		{EdxlopScalarCoerceViaIO,	&gpopt::CTranslatorDXLToExpr::PexprScalarCoerceViaIO},
@@ -3665,6 +3666,52 @@ CTranslatorDXLToExpr::PexprScalarCoerceViaIO
 				);
 }
 
+//---------------------------------------------------------------------------
+//	@function:
+//		CTranslatorDXLToExpr::PexprScalarArrayCoerceExpr
+//
+//	@doc:
+// 		Create a scalar array coerce expr from a DXL scalar array coerce expr
+//
+//---------------------------------------------------------------------------
+CExpression *
+CTranslatorDXLToExpr::PexprScalarArrayCoerceExpr
+	(
+	const CDXLNode *pdxlnArrayCoerceExpr
+	)
+{
+	GPOS_ASSERT(NULL != pdxlnArrayCoerceExpr);
+	
+	CDXLScalarArrayCoerceExpr *pdxlop = CDXLScalarArrayCoerceExpr::PdxlopConvert(pdxlnArrayCoerceExpr->Pdxlop());
+	
+	GPOS_ASSERT(1 == pdxlnArrayCoerceExpr->UlArity());
+	CDXLNode *pdxlnChild = (*pdxlnArrayCoerceExpr)[0];
+	CExpression *pexprChild = Pexpr(pdxlnChild);
+
+	IMDId *pmdidElementFunc = pdxlop->PmdidElementFunc();
+	pmdidElementFunc->AddRef();
+	
+	IMDId *pmdidResultType = pdxlop->PmdidResultType();
+	pmdidResultType->AddRef();
+	
+	EdxlCoercionForm edxlcf = pdxlop->Edxlcf();
+	
+	return GPOS_NEW(m_pmp) CExpression
+				(
+				m_pmp,
+				GPOS_NEW(m_pmp) CScalarArrayCoerceExpr
+						(
+						m_pmp,
+						pmdidElementFunc,
+						pmdidResultType,
+						pdxlop->IMod(),
+						pdxlop->FIsExplicit(),
+						(COperator::ECoercionForm) edxlcf, // map Coercion Form directly based on position in enum
+						pdxlop->ILoc()
+						),
+				pexprChild
+				);
+}
 
 //---------------------------------------------------------------------------
 //	@function:

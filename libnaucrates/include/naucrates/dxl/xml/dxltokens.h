@@ -163,6 +163,7 @@ namespace gpdxl
 		EdxltokenScalarCast,
 		EdxltokenScalarCoerceToDomain,
 		EdxltokenScalarCoerceViaIO,
+		EdxltokenScalarArrayCoerceExpr,
 		EdxltokenScalarSortCol,
 		EdxltokenScalarSortColList,
 		EdxltokenScalarGroupingColList,
@@ -260,10 +261,12 @@ namespace gpdxl
 		EdxltokenConstTuple,
 		EdxltokenDatum,
 
-		// CoerceToDomain and CoerceViaIO related tokens
+		// CoerceToDomain and CoerceViaIO and ArrayCoerceExpr related tokens
 		EdxltokenTypeMod,
 		EdxltokenCoercionForm,
 		EdxltokenLocation,
+		EdxltokenElementFunc,
+		EdxltokenIsExplicit,
 
 		EdxltokenJoinType,
 		EdxltokenJoinInner,

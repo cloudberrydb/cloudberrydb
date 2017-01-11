@@ -345,6 +345,8 @@ add_library(naucrates
             src/operators/CDXLScalarCoerceToDomain.cpp
             include/naucrates/dxl/operators/CDXLScalarCoerceViaIO.h
             src/operators/CDXLScalarCoerceViaIO.cpp
+            include/naucrates/dxl/operators/CDXLScalarArrayCoerceExpr.h
+            src/operators/CDXLScalarArrayCoerceExpr.cpp
             include/naucrates/dxl/operators/CDXLScalarComp.h
             src/operators/CDXLScalarComp.cpp
             include/naucrates/dxl/operators/CDXLScalarConstValue.h
@@ -683,6 +685,8 @@ add_library(naucrates
             src/parser/CParseHandlerScalarCoerceToDomain.cpp
             include/naucrates/dxl/parser/CParseHandlerScalarCoerceViaIO.h
             src/parser/CParseHandlerScalarCoerceViaIO.cpp
+            include/naucrates/dxl/parser/CParseHandlerScalarArrayCoerceExpr.h
+            src/parser/CParseHandlerScalarArrayCoerceExpr.cpp
             include/naucrates/dxl/parser/CParseHandlerScalarComp.h
             src/parser/CParseHandlerScalarComp.cpp
             include/naucrates/dxl/parser/CParseHandlerScalarConstValue.h

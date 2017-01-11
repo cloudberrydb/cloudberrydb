@@ -40,6 +40,7 @@ ULONG CICGTest::m_ulNegativeIndexApplyTestCounter = 0;
 // minidump files
 const CHAR *rgszFileNames[] =
 	{
+		"../data/dxl/minidump/ArrayCoerceExpr.mdp",
 		"../data/dxl/minidump/DisableLargeTableBroadcast.mdp",
 		"../data/dxl/minidump/InferPredicatesForLimit.mdp",
 		"../data/dxl/minidump/OR-WithIsNullPred.mdp",

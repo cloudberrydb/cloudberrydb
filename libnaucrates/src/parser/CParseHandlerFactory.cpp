@@ -185,6 +185,7 @@ CParseHandlerFactory::Init
 			{EdxltokenScalarCast, &PphScalarCast},
 			{EdxltokenScalarCoerceToDomain, PphScalarCoerceToDomain},
 			{EdxltokenScalarCoerceViaIO, PphScalarCoerceViaIO},
+			{EdxltokenScalarArrayCoerceExpr, PphScalarArrayCoerceExpr},
 			{EdxltokenScalarHashExpr, &PphHashExpr},
 			{EdxltokenScalarHashCondList, &PphCondList},
 			{EdxltokenScalarMergeCondList, &PphCondList},
@@ -2030,6 +2031,25 @@ CParseHandlerFactory::PphScalarCoerceViaIO
 	)
 {
 	return GPOS_NEW(pmp) CParseHandlerScalarCoerceViaIO(pmp, pphm, pphRoot);
+}
+
+//---------------------------------------------------------------------------
+//	@function:
+//		CParseHandlerFactory::PphScalarArrayCoerceExpr
+//
+//	@doc:
+//		Creates a parse handler for parsing an array coerce expression operator
+//
+//---------------------------------------------------------------------------
+CParseHandlerBase *
+CParseHandlerFactory::PphScalarArrayCoerceExpr
+	(
+	IMemoryPool *pmp,
+	CParseHandlerManager *pphm,
+	CParseHandlerBase *pphRoot
+	)
+{
+	return GPOS_NEW(pmp) CParseHandlerScalarArrayCoerceExpr(pmp, pphm, pphRoot);
 }
 
 //---------------------------------------------------------------------------

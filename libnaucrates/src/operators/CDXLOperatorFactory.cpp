@@ -1085,6 +1085,33 @@ CDXLOperatorFactory::PdxlopCoerceViaIO
 
 //---------------------------------------------------------------------------
 //	@function:
+//		CDXLOperatorFactory::PdxlopArrayCoerceExpr
+//
+//	@doc:
+//		Construct a scalar array coerce expression
+//
+//---------------------------------------------------------------------------
+CDXLScalar *
+CDXLOperatorFactory::PdxlopArrayCoerceExpr
+	(
+	CDXLMemoryManager *pmm,
+	const Attributes &attrs
+	)
+{
+	IMemoryPool *pmp = pmm->Pmp();
+
+	IMDId *pmdidElementFunc = PmdidFromAttrs(pmm, attrs, EdxltokenElementFunc, EdxltokenScalarArrayCoerceExpr);
+	IMDId *pmdidType = PmdidFromAttrs(pmm, attrs, EdxltokenTypeId, EdxltokenScalarArrayCoerceExpr);
+	INT iMod = IValueFromAttrs(pmm, attrs, EdxltokenTypeMod, EdxltokenScalarArrayCoerceExpr);
+	BOOL fIsExplicit = FValueFromAttrs(pmm, attrs, EdxltokenIsExplicit, EdxltokenScalarArrayCoerceExpr);
+	ULONG ulCoercionForm = UlValueFromAttrs(pmm, attrs, EdxltokenCoercionForm, EdxltokenScalarArrayCoerceExpr);
+	INT iLoc = IValueFromAttrs(pmm, attrs, EdxltokenLocation, EdxltokenScalarArrayCoerceExpr);
+
+	return GPOS_NEW(pmp) CDXLScalarArrayCoerceExpr(pmp, pmdidElementFunc, pmdidType, iMod, fIsExplicit, (EdxlCoercionForm) ulCoercionForm, iLoc);
+}
+
+//---------------------------------------------------------------------------
+//	@function:
 //		CDXLOperatorFactory::PdxlopConstValue
 //
 //	@doc:

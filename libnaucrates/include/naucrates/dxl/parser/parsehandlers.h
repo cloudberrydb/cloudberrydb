@@ -83,6 +83,7 @@
 #include "naucrates/dxl/parser/CParseHandlerScalarCast.h"
 #include "naucrates/dxl/parser/CParseHandlerScalarCoerceToDomain.h"
 #include "naucrates/dxl/parser/CParseHandlerScalarCoerceViaIO.h"
+#include "naucrates/dxl/parser/CParseHandlerScalarArrayCoerceExpr.h"
 #include "naucrates/dxl/parser/CParseHandlerScalarSubquery.h"
 #include "naucrates/dxl/parser/CParseHandlerScalarBitmapBoolOp.h"
 

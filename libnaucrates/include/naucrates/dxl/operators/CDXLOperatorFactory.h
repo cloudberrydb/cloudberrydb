@@ -322,6 +322,10 @@ namespace gpdxl
 			static
 			CDXLScalar *PdxlopCoerceViaIO(CDXLMemoryManager *pmm, const Attributes &attrs);
 
+			// create a ArrayCoerceExpr
+			static
+			CDXLScalar *PdxlopArrayCoerceExpr(CDXLMemoryManager *pmm, const Attributes &attrs);
+
 			// create a scalar identifier operator
 			static
 			CDXLScalar *PdxlopScalarIdent(CDXLMemoryManager *pmm, const Attributes &attrs);

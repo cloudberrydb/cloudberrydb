@@ -205,6 +205,7 @@ CDXLTokens::Init
 			{EdxltokenScalarCast, GPOS_WSZ_LIT("Cast")},
 			{EdxltokenScalarCoerceToDomain, GPOS_WSZ_LIT("CoerceToDomain")},
 			{EdxltokenScalarCoerceViaIO, GPOS_WSZ_LIT("CoerceViaIO")},
+			{EdxltokenScalarArrayCoerceExpr, GPOS_WSZ_LIT("ArrayCoerceExpr")},
 			{EdxltokenScalarSortCol, GPOS_WSZ_LIT("SortingColumn")},
 			{EdxltokenScalarSortColList, GPOS_WSZ_LIT("SortingColumnList")},
 			{EdxltokenScalarGroupingColList, GPOS_WSZ_LIT("GroupingColumns")},
@@ -267,6 +268,8 @@ CDXLTokens::Init
 			{EdxltokenTypeMod, GPOS_WSZ_LIT("TypeModification")},
 			{EdxltokenCoercionForm, GPOS_WSZ_LIT("CoercionForm")},
 			{EdxltokenLocation, GPOS_WSZ_LIT("Location")},
+			{EdxltokenElementFunc, GPOS_WSZ_LIT("ElementFunc")},
+			{EdxltokenIsExplicit, GPOS_WSZ_LIT("IsExplicit")},
 
 			{EdxltokenJoinType, GPOS_WSZ_LIT("JoinType")},
 			{EdxltokenJoinInner, GPOS_WSZ_LIT("Inner")},
