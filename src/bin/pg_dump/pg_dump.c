@@ -262,7 +262,8 @@ static void binary_upgrade_preassign_cast_oid(PQExpBuffer upgrade_buffer, Oid ca
 								  Oid castsource, Oid casttarget);
 static void binary_upgrade_preassign_constraint_oid(PQExpBuffer upgrade_buffer,
 										Oid constroid, Oid nsoid,
-										char *objname);
+										char *objname, Oid conrelid,
+										Oid contypid);
 static const char *getAttrName(int attrnum, TableInfo *tblInfo);
 static const char *fmtCopyColumnList(const TableInfo *ti);
 static void do_sql_command(PGconn *conn, const char *query);
@@ -2562,6 +2563,8 @@ binary_upgrade_set_type_oids_by_rel_oid(Archive *fout, PQExpBuffer upgrade_buffe
 		char		name[NAMEDATALEN];
 		Oid			part_oid;
 		Oid			conns_oid;
+		Oid			conrel_oid;
+		Oid			contyp_oid;
 		Oid			con_oid;
 		Oid			prev_oid = InvalidOid;
 
@@ -2570,7 +2573,9 @@ binary_upgrade_set_type_oids_by_rel_oid(Archive *fout, PQExpBuffer upgrade_buffe
 						  "       p.partitiontablename AS name, "
 						  "       co.oid AS conoid, "
 						  "       co.conname, "
-						  "       co.connamespace "
+						  "       co.connamespace, "
+						  "       co.conrelid, "
+						  "       co.contypid "
 						  "FROM pg_partitions p "
 						  "JOIN pg_catalog.pg_class c ON "
 						  "  (p.tablename = c.relname AND c.oid = '%u'::pg_catalog.oid) "
@@ -2609,8 +2614,10 @@ binary_upgrade_set_type_oids_by_rel_oid(Archive *fout, PQExpBuffer upgrade_buffe
 					strlcpy(name, PQgetvalue(par_res, i, PQfnumber(par_res, "conname")), sizeof(name));
 					con_oid = atooid(PQgetvalue(par_res, i, PQfnumber(par_res, "conoid")));
 					conns_oid = atooid(PQgetvalue(par_res, i, PQfnumber(par_res, "connamespace")));
+					conrel_oid = atooid(PQgetvalue(par_res, i, PQfnumber(par_res, "conrelid")));
+					contyp_oid = atooid(PQgetvalue(par_res, i, PQfnumber(par_res, "contypid")));
 
-					binary_upgrade_preassign_constraint_oid(upgrade_buffer, con_oid, conns_oid, name);
+					binary_upgrade_preassign_constraint_oid(upgrade_buffer, con_oid, conns_oid, name, conrel_oid, contyp_oid);
 				}
 
 				prev_oid = part_oid;
@@ -2679,14 +2686,17 @@ binary_upgrade_set_type_oids_by_rel_oid(Archive *fout, PQExpBuffer upgrade_buffe
 static void
 binary_upgrade_preassign_constraint_oid(PQExpBuffer upgrade_buffer,
 										Oid constroid, Oid nsoid,
-										char *objname)
+										char *objname, Oid conrelid,
+										Oid contypid)
 {
 	appendPQExpBuffer(upgrade_buffer, "\n-- For binary upgrade, must preserve pg_constraint oid\n");
 	appendPQExpBuffer(upgrade_buffer,
 					  "SELECT binary_upgrade.preassign_constraint_oid('%u'::pg_catalog.oid, "
 																	 "'%u'::pg_catalog.oid, "
-																	 "'%s'::text);\n",
-					  constroid, nsoid, objname);
+																	 "'%s'::text, "
+																	 "'%u'::pg_catalog.oid, "
+																	 "'%u'::pg_catalog.oid);\n",
+					  constroid, nsoid, objname, conrelid, contypid);
 }
 
 /*
@@ -6877,7 +6887,9 @@ dumpDomain(Archive *fout, TypeInfo *tinfo)
 
 			binary_upgrade_preassign_constraint_oid(q, c->dobj.catId.oid,
 													c->dobj.namespace->dobj.catId.oid,
-													c->dobj.name);
+													c->dobj.name,
+													c->contable ? c->contable->dobj.catId.oid : InvalidOid,
+													c->condomain ? c->condomain->dobj.catId.oid : InvalidOid);
 		}
 	}
 
@@ -10511,7 +10523,9 @@ dumpTableSchema(Archive *fout, TableInfo *tbinfo)
 
 				binary_upgrade_preassign_constraint_oid(q, c->dobj.catId.oid,
 														c->dobj.namespace->dobj.catId.oid,
-														c->dobj.name);
+														c->dobj.name,
+														c->contable ? c->contable->dobj.catId.oid : InvalidOid,
+														c->condomain ? c->condomain->dobj.catId.oid : InvalidOid);
 			}
 		}
 
@@ -11119,7 +11133,9 @@ dumpConstraint(Archive *fout, ConstraintInfo *coninfo)
 			binary_upgrade_set_pg_class_oids(fout, q, indxinfo->dobj.catId.oid, true);
 			binary_upgrade_preassign_constraint_oid(q, coninfo->dobj.catId.oid,
 													coninfo->dobj.namespace->dobj.catId.oid,
-													coninfo->dobj.name);
+													coninfo->dobj.name,
+													coninfo->contable ? coninfo->contable->dobj.catId.oid : InvalidOid,
+													coninfo->condomain ? coninfo->condomain->dobj.catId.oid : InvalidOid);
 		}
 
 		appendPQExpBuffer(q, "ALTER TABLE ONLY %s\n",

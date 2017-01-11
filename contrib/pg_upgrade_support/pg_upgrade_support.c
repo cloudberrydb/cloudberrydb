@@ -371,11 +371,13 @@ preassign_constraint_oid(PG_FUNCTION_ARGS)
 	Oid			constoid = PG_GETARG_OID(0);
 	Oid			nsoid = PG_GETARG_OID(1);
 	char	   *constname = GET_STR(PG_GETARG_TEXT_P(2));
+	Oid			conrelid = PG_GETARG_OID(3);
+	Oid			contypid = PG_GETARG_OID(4);
 
 	if (Gp_role == GP_ROLE_UTILITY)
 	{
 		AddPreassignedOidFromBinaryUpgrade(constoid, ConstraintRelationId, constname,
-										   nsoid, InvalidOid, InvalidOid);
+										   nsoid, conrelid, contypid);
 	}
 
 	PG_RETURN_VOID();

@@ -189,6 +189,8 @@ CreateKeyFromCatalogTuple(Relation catalogrel, HeapTuple tuple,
 
 				key.namespaceOid = conForm->connamespace;
 				key.objname = NameStr(conForm->conname);
+				key.keyOid1 = conForm->conrelid;
+				key.keyOid2 = conForm->contypid;
 				break;
 			}
 		case ConversionRelationId:
