@@ -383,6 +383,13 @@ DefineQueryRewrite(char *rulename,
 		{
 			HeapScanDesc scanDesc;
 
+			/* In GPDB, also forbid turning AO tables or external tables into views. */
+			if (!RelationIsHeap(event_relation))
+				ereport(ERROR,
+						(errcode(ERRCODE_OBJECT_NOT_IN_PREREQUISITE_STATE),
+						 errmsg("cannot convert non-heap table \"%s\" to a view",
+								RelationGetRelationName(event_relation))));
+
 			scanDesc = heap_beginscan(event_relation, SnapshotNow, 0, NULL);
 			if (heap_getnext(scanDesc, ForwardScanDirection) != NULL)
 				ereport(ERROR,
