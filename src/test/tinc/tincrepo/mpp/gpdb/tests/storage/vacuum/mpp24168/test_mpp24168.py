@@ -37,7 +37,7 @@ class RelfrozenxidUpdateTestCase(MPPTestCase):
 
         #doing multiple selects to increase the age of the table
         for x in range(0, 150):
-            PSQL.run_sql_command("select * from test_table", flags ='-q -t')
+            PSQL.run_sql_command("select age(relfrozenxid) from gp_dist_random('pg_class') where relname = 'test_table'", flags ='-q -t')
 
 
         PSQL.run_sql_command("drop table if exists table_master; \
