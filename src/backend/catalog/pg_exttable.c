@@ -162,7 +162,12 @@ InsertExtTableEntry(Oid 	tbloid,
 			referenced.objectId = LookupExtProtocolOid(protocol, true);
 			referenced.objectSubId = 0;
 
-			recordDependencyOn(&myself, &referenced, DEPENDENCY_NORMAL);
+			/*
+			 * Only tables with custom protocol should create dependency, for
+			 * internal protocols will get referenced.objectId as 0.
+			 */
+			if (referenced.objectId)
+				recordDependencyOn(&myself, &referenced, DEPENDENCY_NORMAL);
 		}
 
 	}

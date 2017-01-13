@@ -42,6 +42,10 @@ CREATE EXTERNAL TABLE EXT_REGION  (LIKE REG_REGION)
 location ('file://@hostname@@abs_srcdir@/data/region.tbl' )
 FORMAT 'text' (delimiter '|');
 
+-- Only tables with custom protocol should create dependency, due to a bug there
+-- used to be entries created for non custom protocol tables with refobjid=0.
+SELECT * FROM pg_depend WHERE refclassid = 'pg_extprotocol'::regclass and refobjid = 0;
+
 -- drop tables
 
 DROP EXTERNAL TABLE EXT_NATION;
@@ -157,7 +161,13 @@ GRANT INSERT ON PROTOCOL demoprot TO extprotu;
 SET SESSION AUTHORIZATION extprotu;
 
 CREATE WRITABLE EXTERNAL TABLE ext_w(a int) location('demoprot://demoprotfile.txt') format 'text'; -- should succeed
+-- For tables using custom protocol should have dependency
+SELECT count(*) FROM pg_depend WHERE refclassid = 'pg_extprotocol'::regclass and objid = 'ext_w'::regclass;
+
 CREATE READABLE EXTERNAL TABLE ext_r(a int) location('demoprot://demoprotfile.txt') format 'text'; -- should succeed
+-- For tables using custom protocol should have dependency
+SELECT count(*) FROM pg_depend WHERE refclassid = 'pg_extprotocol'::regclass and objid = 'ext_r'::regclass;
+
 DROP EXTERNAL TABLE IF EXISTS ext_w;
 DROP EXTERNAL TABLE IF EXISTS ext_r;
 
