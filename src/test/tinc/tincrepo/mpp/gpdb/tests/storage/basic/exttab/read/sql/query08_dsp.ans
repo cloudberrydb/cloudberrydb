@@ -24,6 +24,7 @@ Type: readable
 Encoding: UTF8
 Format type: text
 Format options: delimiter ',' null '\N' escape '\'
+External options: {}
 External location: file://@hostname@@gpfdist_datadir@/lines?
 Segment reject limit: 40 rows
 Error Log in File
