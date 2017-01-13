@@ -167,7 +167,7 @@ Next, change your `configure` command to have the additional option `--enable-or
 # Build with perl module (PL/Perl)
 # Build with python module (PL/Python)
 # Build with XML support
-./configure --with-perl --with-python --with-libxml ---enable-mapreduce --enable-orca --prefix=/usr/local/gpdb
+./configure --with-perl --with-python --with-libxml --enable-mapreduce --enable-orca --prefix=/usr/local/gpdb
 ```
 
 Once build and started, run `psql` and check the GPOPT (e.g. GPORCA) version:
