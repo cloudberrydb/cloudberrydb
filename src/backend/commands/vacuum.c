@@ -4207,31 +4207,12 @@ repair_frag(VRelStats *vacrelstats, Relation onerel,
 		ReleaseBuffer(dst_buffer);
 	}
 
-	if (num_moved > 0)
-	{
-		/*
-		 * We have to commit our tuple movings before we truncate the
-		 * relation.  Ideally we should do Commit/StartTransactionCommand
-		 * here, relying on the session-level table lock to protect our
-		 * exclusive access to the relation.  However, that would require a
-		 * lot of extra code to close and re-open the relation, indexes, etc.
-		 * For now, a quick hack: record status of current transaction as
-		 * committed, and continue.  We force the commit to be synchronous so
-		 * that it's down to disk before we truncate.  (Note: tqual.c knows
-		 * that VACUUM FULL always uses sync commit, too.)	The transaction
-		 * continues to be shown as running in the ProcArray.
-		 *
-		 * XXX This desperately needs to be revisited.	Any failure after this
-		 * point will result in a PANIC "cannot abort transaction nnn, it was
-		 * already committed"!  As a precaution, we prevent cancel interrupts
-		 * after this point to mitigate this problem; caller is responsible for
-		 * re-enabling them after committing the transaction.
-		 */
-		HOLD_INTERRUPTS();
-		heldoff = true;
-		ForceSyncCommit();
-		(void) RecordTransactionCommit();
-	}
+	/*
+	 * In GPDB, the moving of relation tuples and truncating the relation is
+	 * performed in two separate transactions one after the other so we don't
+	 * need to commit the transaction here unlike the upstream code. The
+	 * transactions are started and ended in vacuumStatement_Relation().
+	 */
 
 	/*
 	 * We are not going to move any more tuples across pages, but we still
