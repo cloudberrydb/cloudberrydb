@@ -19,9 +19,7 @@
 #define GPOPT_CScalarCoerceToDomain_H
 
 #include "gpos/base.h"
-#include "gpopt/base/COptCtxt.h"
-#include "gpopt/operators/CScalar.h"
-#include "gpopt/base/CDrvdProp.h"
+#include "gpopt/operators/CScalarCoerceBase.h"
 
 namespace gpopt
 {
@@ -35,23 +33,10 @@ namespace gpopt
 	//		Scalar CoerceToDomain operator
 	//
 	//---------------------------------------------------------------------------
-	class CScalarCoerceToDomain : public CScalar
+	class CScalarCoerceToDomain : public CScalarCoerceBase
 	{
 
 		private:
-
-			// catalog MDId of the result type
-			IMDId *m_pmdidResultType;
-
-			// output type modifications
-			INT m_iMod;
-
-			// coercion form
-			ECoercionForm m_ecf;
-
-			// location of token to be coerced
-			INT m_iLoc;
-
 			// does operator return NULL on NULL input?
 			BOOL m_fReturnsNullOnNullInput;
 
@@ -74,32 +59,6 @@ namespace gpopt
 			virtual
 			~CScalarCoerceToDomain()
 			{
-				m_pmdidResultType->Release();
-			}
-
-			// the type of the scalar expression
-			virtual
-			IMDId *PmdidType() const
-			{
-				return m_pmdidResultType;
-			}
-
-			// return type modification
-			INT IMod() const
-			{
-				return m_iMod;
-			}
-
-			// return coercion form
-			ECoercionForm Ecf() const
-			{
-				return m_ecf;
-			}
-
-			// return token location
-			INT ILoc() const
-			{
-				return m_iLoc;
 			}
 
 			virtual
@@ -113,29 +72,6 @@ namespace gpopt
 			const CHAR *SzId() const
 			{
 				return "CScalarCoerceToDomain";
-			}
-
-			// match function
-			virtual
-			BOOL FMatch(COperator *) const;
-
-			// sensitivity to order of inputs
-			virtual
-			BOOL FInputOrderSensitive() const
-			{
-				return false;
-			}
-
-			// return a copy of the operator with remapped columns
-			virtual
-			COperator *PopCopyWithRemappedColumns
-				(
-				IMemoryPool *, //pmp,
-				HMUlCr *, //phmulcr,
-				BOOL //fMustExist
-				)
-			{
-				return PopCopyDefault();
 			}
 
 			// boolean expression evaluation

@@ -16,16 +16,7 @@
 //---------------------------------------------------------------------------
 
 #include "gpos/base.h"
-
-#include "gpopt/base/CDrvdPropScalar.h"
-#include "gpopt/base/CColRefSet.h"
-
-#include "gpopt/mdcache/CMDAccessorUtils.h"
-
 #include "gpopt/operators/CScalarArrayCoerceExpr.h"
-#include "gpopt/operators/CExpressionHandle.h"
-
-#include "naucrates/md/IMDTypeBool.h"
 
 using namespace gpopt;
 using namespace gpmd;
@@ -50,18 +41,11 @@ CScalarArrayCoerceExpr::CScalarArrayCoerceExpr
 	INT iLoc
 	)
 	:
-	CScalar(pmp),
+	CScalarCoerceBase(pmp, pmdidResultType, iMod, ecf, iLoc),
 	m_pmdidElementFunc(pmdidElementFunc),
-	m_pmdidResultType(pmdidResultType),
-	m_iMod(iMod),
-	m_fIsExplicit(fIsExplicit),
-	m_ecf(ecf),
-	m_iLoc(iLoc)
+	m_fIsExplicit(fIsExplicit)
 {
 	GPOS_ASSERT(NULL != pmdidElementFunc);
-	
-	GPOS_ASSERT(NULL != pmdidResultType);
-	GPOS_ASSERT(pmdidResultType->FValid());
 }
 
 
@@ -88,11 +72,11 @@ CScalarArrayCoerceExpr::FMatch
 	CScalarArrayCoerceExpr *popCoerce = CScalarArrayCoerceExpr::PopConvert(pop);
 
 	return popCoerce->PmdidElementFunc()->FEquals(m_pmdidElementFunc) &&
-			popCoerce->PmdidType()->FEquals(m_pmdidResultType) &&
-			popCoerce->IMod() == m_iMod &&
+			popCoerce->PmdidType()->FEquals(PmdidType()) &&
+			popCoerce->IMod() == IMod() &&
 			popCoerce->FIsExplicit() == m_fIsExplicit &&
-			popCoerce->Ecf() == m_ecf &&
-			popCoerce->ILoc() == m_iLoc;
+			popCoerce->Ecf() == Ecf() &&
+			popCoerce->ILoc() == ILoc();
 }
 
 // EOF

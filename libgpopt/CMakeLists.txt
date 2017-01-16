@@ -543,6 +543,8 @@ add_library(gpopt
             src/operators/CScalarCmp.cpp
             include/gpopt/operators/CScalarCoalesce.h
             src/operators/CScalarCoalesce.cpp
+            include/gpopt/operators/CScalarCoerceBase.h
+            src/operators/CScalarCoerceBase.cpp
             include/gpopt/operators/CScalarCoerceToDomain.h
             src/operators/CScalarCoerceToDomain.cpp
             include/gpopt/operators/CScalarCoerceViaIO.h
