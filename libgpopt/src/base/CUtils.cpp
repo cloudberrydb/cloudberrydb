@@ -5853,10 +5853,14 @@ CUtils::PexprCollapseProjects
 										*CDrvdPropScalar::Pdpscalar(pexprChildScalar->PdpDerive())->PcrsDefined()
 										);
 
-	BOOL fChildProjElHasSetReturn = CDrvdPropScalar::Pdpscalar(pexprChildScalar->PdpDerive())->FHasNonScalarFunction();
-
 	// array of project elements for the new child project node
 	DrgPexpr *pdrgpexprPrElChild = GPOS_NEW(pmp) DrgPexpr(pmp);
+
+	// array of project elements that have set returning scalar functions that can be collapsed
+	DrgPexpr *pdrgpexprSetReturnFunc = GPOS_NEW(pmp) DrgPexpr(pmp);
+	ULONG ulCollapsableSetReturnFunc = 0;
+
+	BOOL fChildProjElHasSetReturn = CDrvdPropScalar::Pdpscalar(pexprChildScalar->PdpDerive())->FHasNonScalarFunction();
 
 	// iterate over the parent project elements and see if we can add it to the child's project node
 	DrgPexpr *pdrgpexprPrEl = GPOS_NEW(pmp) DrgPexpr(pmp);
@@ -5873,16 +5877,22 @@ CUtils::PexprCollapseProjects
 
 		pexprPrE->AddRef();
 
-
-		BOOL fParentProjElHasSetReturn = CDrvdPropScalar::Pdpscalar(pexprPrE->PdpDerive())->FHasNonScalarFunction();
-
-		// if both pexprPrE and pexprChildScalar have set returning functions we should not collapse
-		BOOL fBothHasSetReturningFunc = fChildProjElHasSetReturn && fParentProjElHasSetReturn;
+		BOOL fHasSetReturn = CDrvdPropScalar::Pdpscalar(pexprPrE->PdpDerive())->FHasNonScalarFunction();
 
 		pcrsUsed->Intersection(pcrsDefinedChild);
 		ULONG ulIntersect = pcrsUsed->CElements();
 
-		if (0 == ulIntersect && !fBothHasSetReturningFunc)
+		if (fHasSetReturn)
+		{
+			pdrgpexprSetReturnFunc->Append(pexprPrE);
+
+			if (0 == ulIntersect)
+			{
+				// there are no columns from the relational child that this project element uses
+				ulCollapsableSetReturnFunc++;
+			}
+		}
+		else if (0 == ulIntersect)
 		{
 			pdrgpexprPrElChild->Append(pexprPrE);
 		}
@@ -5894,8 +5904,30 @@ CUtils::PexprCollapseProjects
 		pcrsUsed->Release();
 	}
 
+	const ULONG ulTotalSetRetFunc = pdrgpexprSetReturnFunc->UlLength();
+
+	if (!fChildProjElHasSetReturn && ulCollapsableSetReturnFunc == ulTotalSetRetFunc)
+	{
+		// there are set returning functions and
+		// all of the set returning functions are collapsabile
+		AppendArrayExpr(pdrgpexprSetReturnFunc, pdrgpexprPrElChild);
+	}
+	else
+	{
+		// We come here when either
+		// 1. None of the parent's project element use a set retuning function
+		// 2. Both parent's and relation child's project list has atleast one project element using set
+		//    returning functions. In this case we should not collapsed into one project to ensure for correctness.
+		// 3. In the parent's project list there exists a project element with set returning functions that
+		//    cannot be collapsed. If the parent's project list has more than one project element with
+		//    set returning functions we should either collapse all of them or none of them for correctness.
+
+		AppendArrayExpr(pdrgpexprSetReturnFunc, pdrgpexprPrEl);
+	}
+
 	// clean up
 	pcrsDefinedChild->Release();
+	pdrgpexprSetReturnFunc->Release();
 
 	// add all project elements of the origin child project node
 	ULONG ulLenChild = pexprChildScalar->UlArity();
@@ -5939,6 +5971,32 @@ CUtils::PexprCollapseProjects
 						pexprProject,
 						GPOS_NEW(pmp) CExpression(pmp, GPOS_NEW(pmp) CScalarProjectList(pmp), pdrgpexprPrEl)
 						);
+}
+
+//---------------------------------------------------------------------------
+//	@function:
+//		CUtils::AppendArrayExpr
+//
+//	@doc:
+//		Append expressions in the source array to destination array
+//
+//---------------------------------------------------------------------------
+void CUtils::AppendArrayExpr
+		(
+		DrgPexpr *pdrgpexprSrc,
+		DrgPexpr *pdrgpexprDest
+		)
+{
+	GPOS_ASSERT(NULL != pdrgpexprSrc);
+	GPOS_ASSERT(NULL != pdrgpexprDest);
+
+	ULONG ulLen = pdrgpexprSrc->UlLength();
+	for (ULONG ul = 0; ul < ulLen; ul++)
+	{
+		CExpression *pexprPrE = (*pdrgpexprSrc)[ul];
+		pexprPrE->AddRef();
+		pdrgpexprDest->Append(pexprPrE);
+	}
 }
 
 //---------------------------------------------------------------------------

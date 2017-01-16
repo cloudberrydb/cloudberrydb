@@ -64,6 +64,8 @@ add_executable(gporca_test
                src/unittest/gpopt/search/CSearchStrategyTest.cpp
                include/unittest/gpopt/minidump/CAggTest.h
                src/unittest/gpopt/minidump/CAggTest.cpp
+               include/unittest/gpopt/minidump/CCollapseProjectTest.h
+               src/unittest/gpopt/minidump/CCollapseProjectTest.cpp
                include/unittest/gpopt/minidump/CArrayExpansionTest.h
                src/unittest/gpopt/minidump/CArrayExpansionTest.cpp
                include/unittest/gpopt/minidump/CJoinOrderDPTest.h
@@ -219,6 +221,7 @@ add_orca_test(CDirectDispatchTest)
 add_orca_test(CTVFTest)
 add_orca_test(CPullUpProjectElementTest)
 add_orca_test(CAggTest)
+add_orca_test(CCollapseProjectTest)
 add_orca_test(CPruneColumnsTest)
 add_orca_test(CMissingStatsTest)
 add_orca_test(CIndexTest)

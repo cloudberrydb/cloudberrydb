@@ -74,6 +74,10 @@ namespace gpopt
 			static
 			BOOL FHasAllDefaultComparisons(const IMDType *pmdtype);
 
+			//	append the expressions in the source array to destination array
+			static
+			void AppendArrayExpr(DrgPexpr *pdrgpexprSrc, DrgPexpr *pdrgpexprDest);
+
 		public:
 
 #ifdef GPOS_DEBUG

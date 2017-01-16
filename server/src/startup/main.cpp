@@ -82,6 +82,7 @@
 #include "unittest/gpopt/minidump/CTVFTest.h"
 #include "unittest/gpopt/minidump/CDMLTest.h"
 #include "unittest/gpopt/minidump/CAggTest.h"
+#include "unittest/gpopt/minidump/CCollapseProjectTest.h"
 #include "unittest/gpopt/minidump/CPhysicalParallelUnionAllTest.h"
 #include "unittest/gpopt/minidump/CPruneColumnsTest.h"
 #include "unittest/gpopt/minidump/CMissingStatsTest.h"
@@ -146,6 +147,7 @@ static gpos::CUnittest rgut[] =
 	GPOS_UNITTEST_STD(CDirectDispatchTest),
 	GPOS_UNITTEST_STD(CTVFTest),
 	GPOS_UNITTEST_STD(CAggTest),
+	GPOS_UNITTEST_STD(CCollapseProjectTest),
 	GPOS_UNITTEST_STD(CPruneColumnsTest),
 	GPOS_UNITTEST_STD(CPhysicalParallelUnionAllTest),
 	GPOS_UNITTEST_STD(CMissingStatsTest),

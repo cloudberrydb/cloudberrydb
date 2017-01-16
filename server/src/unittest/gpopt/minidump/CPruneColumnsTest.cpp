@@ -28,6 +28,8 @@ ULONG CPruneColumnsTest::m_ulPruneColumnsTestCounter = 0;  // start from first t
 // minidump files
 const CHAR *rgszPruneColumnsFileNames[] =
 {
+	"../data/dxl/minidump/RemoveUnusedProjElementsInGbAgg.mdp",
+	"../data/dxl/minidump/RemoveUnusedProjElements.mdp",
 	"../data/dxl/minidump/CPruneColumnsTest/PruneIntermediateUnusedColumns.mdp", // prune all unused columns
 	"../data/dxl/minidump/CPruneColumnsTest/AggTopOfSingleSetRetFuncs.mdp", // no pruning done
 	"../data/dxl/minidump/CPruneColumnsTest/AggTopOfSetRetFuncsAndUnusedScalar.mdp", // partial pruning
