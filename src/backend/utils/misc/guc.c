@@ -612,7 +612,7 @@ static struct config_bool ConfigureNamesBool[] =
 		true, NULL, NULL
 	},
 	{
-		{"synchronous_commit", PGC_USERSET, WAL_SETTINGS,
+		{"synchronous_commit", PGC_USERSET, DEFUNCT_OPTIONS,
 			gettext_noop("Sets immediate fsync at commit."),
 			NULL
 		},

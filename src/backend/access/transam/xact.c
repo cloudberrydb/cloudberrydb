@@ -1054,7 +1054,6 @@ RecordTransactionCommit(void)
 	int16						persistentCommitObjectCount;
 	char						*persistentCommitBuffer = NULL;
 
-	bool		haveNonTemp;
 	int			nchildren;
 	TransactionId *children;
 	bool		isDtxPrepared = 0;
@@ -1078,11 +1077,6 @@ RecordTransactionCommit(void)
 										&persistentCommitObjects,
 										EndXactRecKind_Commit,
 										&persistentCommitObjectCount);
-	/* GPDB_83_MERGE_FIXME: smgrGetPendingDeletes() in upstream returns
-	 * the haveNonTemp boolean too. PersistentEndXactRec_FetchObjectsFromSmgr()
-	 * doesn't do that.
-	 */
-	haveNonTemp = (persistentCommitObjectCount > 0);
 
 	nchildren = xactGetCommittedChildren(&children);
 
@@ -1260,17 +1254,18 @@ RecordTransactionCommit(void)
 		}
 	}
 
+#ifdef IMPLEMENT_ASYNC_COMMIT
 	/*
-	 * Check if we want to commit asynchronously.  If the user has set
+	 * In PostgreSQL, we can defer flushing XLOG, if the user has set
 	 * synchronous_commit = off, and we're not doing cleanup of any non-temp
-	 * rels nor committing any command that wanted to force sync commit, then
-	 * we can defer flushing XLOG.	(We must not allow asynchronous commit if
-	 * there are any non-temp tables to be deleted, because we might delete
-	 * the files before the COMMIT record is flushed to disk.  We do allow
-	 * asynchronous commit if all to-be-deleted tables are temporary though,
-	 * since they are lost anyway if we crash.)
+	 * rels nor committing any command that wanted to force sync commit.
+	 *
+	 * In GPDB, however, all user transactions need to be committed synchronously,
+	 * because we use two-phase commit across the nodes. In order to make GPDB support
+	 * async-commit, we also need to implement the temp table detection.
 	 */
 	if (XactSyncCommit || forceSyncCommit || haveNonTemp)
+#endif
 	{
 		/*
 		 * Synchronous commit case.
@@ -1334,6 +1329,7 @@ RecordTransactionCommit(void)
 			TransactionIdCommitTree(nchildren, children);
 		}
 	}
+#ifdef IMPLEMENT_ASYNC_COMMIT
 	else
 	{
 		/*
@@ -1356,6 +1352,7 @@ RecordTransactionCommit(void)
 			TransactionIdAsyncCommitTree(nchildren, children, XactLastRecEnd);
 		}
 	}
+#endif
 
 #ifdef FAULT_INJECTOR
 	if (isDtxPrepared)
