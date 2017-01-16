@@ -3681,21 +3681,21 @@ CTranslatorDXLToExpr::PexprScalarArrayCoerceExpr
 	)
 {
 	GPOS_ASSERT(NULL != pdxlnArrayCoerceExpr);
-	
+
 	CDXLScalarArrayCoerceExpr *pdxlop = CDXLScalarArrayCoerceExpr::PdxlopConvert(pdxlnArrayCoerceExpr->Pdxlop());
-	
+
 	GPOS_ASSERT(1 == pdxlnArrayCoerceExpr->UlArity());
 	CDXLNode *pdxlnChild = (*pdxlnArrayCoerceExpr)[0];
 	CExpression *pexprChild = Pexpr(pdxlnChild);
 
 	IMDId *pmdidElementFunc = pdxlop->PmdidElementFunc();
 	pmdidElementFunc->AddRef();
-	
+
 	IMDId *pmdidResultType = pdxlop->PmdidResultType();
 	pmdidResultType->AddRef();
-	
+
 	EdxlCoercionForm edxlcf = pdxlop->Edxlcf();
-	
+
 	return GPOS_NEW(m_pmp) CExpression
 				(
 				m_pmp,

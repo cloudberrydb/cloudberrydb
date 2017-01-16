@@ -74,6 +74,17 @@ namespace gpopt
 				return "CScalarCoerceToDomain";
 			}
 
+			// match function
+			virtual
+			BOOL FMatch(COperator *) const;
+
+			// sensitivity to order of inputs
+			virtual
+			BOOL FInputOrderSensitive() const
+			{
+				return false;
+			}
+
 			// boolean expression evaluation
 			virtual
 			EBoolEvalResult Eber(DrgPul *pdrgpulChildren) const;

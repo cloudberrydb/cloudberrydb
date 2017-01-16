@@ -341,6 +341,8 @@ add_library(naucrates
             src/operators/CDXLScalarCast.cpp
             include/naucrates/dxl/operators/CDXLScalarCoalesce.h
             src/operators/CDXLScalarCoalesce.cpp
+            include/naucrates/dxl/operators/CDXLScalarCoerceBase.h
+            src/operators/CDXLScalarCoerceBase.cpp
             include/naucrates/dxl/operators/CDXLScalarCoerceToDomain.h
             src/operators/CDXLScalarCoerceToDomain.cpp
             include/naucrates/dxl/operators/CDXLScalarCoerceViaIO.h

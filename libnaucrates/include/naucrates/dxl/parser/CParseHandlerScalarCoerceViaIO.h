@@ -36,7 +36,7 @@ namespace gpdxl
 	//		CParseHandlerScalarCoerceViaIO
 	//
 	//	@doc:
-	//		Parse handler for parsing  parsing CoerceViaIO operator
+	//		Parse handler for parsing CoerceViaIO operator
 	//
 	//---------------------------------------------------------------------------
 	class CParseHandlerScalarCoerceViaIO : public CParseHandlerScalarOp

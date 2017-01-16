@@ -40,10 +40,10 @@ namespace gpopt
 		private:
 			// catalog MDId of the element function
 			IMDId *m_pmdidElementFunc;
-		
+
 			// conversion semantics flag to pass to func
 			BOOL m_fIsExplicit;
-		
+
 			// private copy ctor
 			CScalarArrayCoerceExpr(const CScalarArrayCoerceExpr &);
 
@@ -63,51 +63,37 @@ namespace gpopt
 
 			// dtor
 			virtual
-			~CScalarArrayCoerceExpr()
-			{
-				m_pmdidElementFunc->Release();
-			}
+			~CScalarArrayCoerceExpr();
 		
 			// return metadata id of element coerce function
-			IMDId *PmdidElementFunc() const
-			{
-				return m_pmdidElementFunc;
-			}
+			IMDId *PmdidElementFunc() const;
 
-			BOOL FIsExplicit() const
-			{
-				return m_fIsExplicit;
-			}
+			BOOL FIsExplicit() const;
 
 			virtual
-			EOperatorId Eopid() const
-			{
-				return EopScalarArrayCoerceExpr;
-			}
+			EOperatorId Eopid() const;
 
 			// return a string for operator name
 			virtual
-			const CHAR *SzId() const
-			{
-				return "CScalarArrayCoerceExpr";
-			}
+			const CHAR *SzId() const;
 
 			// match function
 			virtual
-			BOOL FMatch(COperator *) const;
+			BOOL FMatch
+				(
+				COperator *pop
+				) const;
+
+			// sensitivity to order of inputs
+			virtual
+			BOOL FInputOrderSensitive() const;
 
 			// conversion function
 			static
 			CScalarArrayCoerceExpr *PopConvert
 				(
 				COperator *pop
-				)
-			{
-				GPOS_ASSERT(NULL != pop);
-				GPOS_ASSERT(EopScalarArrayCoerceExpr == pop->Eopid());
-
-				return dynamic_cast<CScalarArrayCoerceExpr*>(pop);
-			}
+				);
 
 	}; // class CScalarArrayCoerceExpr
 

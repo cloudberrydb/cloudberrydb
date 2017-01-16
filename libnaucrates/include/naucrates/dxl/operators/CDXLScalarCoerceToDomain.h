@@ -25,7 +25,7 @@
 #define GPDXL_CDXLScalarCoerceToDomain_H
 
 #include "gpos/base.h"
-#include "naucrates/dxl/operators/CDXLScalar.h"
+#include "naucrates/dxl/operators/CDXLScalarCoerceBase.h"
 #include "naucrates/md/IMDId.h"
 
 namespace gpdxl
@@ -41,23 +41,10 @@ namespace gpdxl
 	//		Class for representing DXL casting operator
 	//
 	//---------------------------------------------------------------------------
-	class CDXLScalarCoerceToDomain : public CDXLScalar
+	class CDXLScalarCoerceToDomain : public CDXLScalarCoerceBase
 	{
 
 		private:
-
-			// catalog MDId of the result type
-			IMDId *m_pmdidResultType;
-
-			// output type modifications
-			INT m_iMod;
-
-			// coercion form
-			EdxlCoercionForm m_edxlcf;
-
-			// location of token to be coerced
-			INT m_iLoc;
-
 			// private copy ctor
 			CDXLScalarCoerceToDomain(const CDXLScalarCoerceToDomain&);
 
@@ -73,7 +60,9 @@ namespace gpdxl
 				);
 
 			virtual
-			~CDXLScalarCoerceToDomain();
+			~CDXLScalarCoerceToDomain()
+			{
+			}
 
 			// ident accessor
 			virtual
@@ -81,35 +70,6 @@ namespace gpdxl
 			{
 				return EdxlopScalarCoerceToDomain;
 			}
-
-			// return result type
-			IMDId *PmdidResultType() const
-			{
-				return m_pmdidResultType;
-			}
-
-			// return type modification
-			INT IMod() const
-			{
-				return m_iMod;
-			}
-
-			// return coercion form
-			EdxlCoercionForm Edxlcf() const
-			{
-				return m_edxlcf;
-			}
-
-			// return token location
-			INT ILoc() const
-			{
-				return m_iLoc;
-			}
-
-			// does the operator return a boolean result
-			virtual
-			BOOL FBoolean(CMDAccessor *pmda) const;
-
 
 			// name of the DXL operator name
 			virtual
@@ -127,17 +87,6 @@ namespace gpdxl
 
 				return dynamic_cast<CDXLScalarCoerceToDomain*>(pdxlop);
 			}
-
-#ifdef GPOS_DEBUG
-			// checks whether the operator has valid structure, i.e. number and
-			// types of child nodes
-			virtual
-			void AssertValid(const CDXLNode *pdxln, BOOL fValidateChildren) const;
-#endif // GPOS_DEBUG
-
-			// serialize operator in DXL format
-			virtual
-			void SerializeToDXL(CXMLSerializer *pxmlser, const CDXLNode *pdxln) const;
 	};
 }
 

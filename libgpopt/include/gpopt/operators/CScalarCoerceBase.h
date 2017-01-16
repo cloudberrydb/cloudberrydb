@@ -66,58 +66,29 @@ namespace gpopt
 
 			// dtor
 			virtual
-			~CScalarCoerceBase()
-			{
-				m_pmdidResultType->Release();
-			}
+			~CScalarCoerceBase();
 
 			// the type of the scalar expression
 			virtual
-			IMDId *PmdidType() const
-			{
-				return m_pmdidResultType;
-			}
+			IMDId *PmdidType() const;
 
 			// return type modification
-			INT IMod() const
-			{
-				return m_iMod;
-			}
+			INT IMod() const;
 
 			// return coercion form
-			ECoercionForm Ecf() const
-			{
-				return m_ecf;
-			}
+			ECoercionForm Ecf() const;
 
 			// return token location
-			INT ILoc() const
-			{
-				return m_iLoc;
-			}
-
-			// match function
-			virtual
-			BOOL FMatch(COperator *) const;
-
-			// sensitivity to order of inputs
-			virtual
-			BOOL FInputOrderSensitive() const
-			{
-				return false;
-			}
+			INT ILoc() const;
 
 			// return a copy of the operator with remapped columns
 			virtual
 			COperator *PopCopyWithRemappedColumns
 				(
-				IMemoryPool *, //pmp,
-				HMUlCr *, //phmulcr,
-				BOOL //fMustExist
-				)
-			{
-				return PopCopyDefault();
-			}
+				IMemoryPool *pmp,
+				HMUlCr *phmulcr,
+				BOOL fMustExist
+				);
 
 	}; // class CScalarCoerceBase
 

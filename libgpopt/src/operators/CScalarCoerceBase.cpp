@@ -47,38 +47,101 @@ CScalarCoerceBase::CScalarCoerceBase
 {
 	GPOS_ASSERT(NULL != pmdidType);
 	GPOS_ASSERT(pmdidType->FValid());
-
 }
 
 
 //---------------------------------------------------------------------------
 //	@function:
-//		CScalarCoerceBase::FMatch
+//		CScalarCoerceBase::~CScalarCoerceBase
 //
 //	@doc:
-//		Match function on operator level
+//		Dtor
 //
 //---------------------------------------------------------------------------
-BOOL
-CScalarCoerceBase::FMatch
-	(
-	COperator *pop
-	)
-	const
+CScalarCoerceBase::~CScalarCoerceBase()
 {
-	if (pop->Eopid() == Eopid())
-	{
-		CScalarCoerceBase *popCoerce = dynamic_cast<CScalarCoerceBase*>(pop);
-
-		return popCoerce->PmdidType()->FEquals(m_pmdidResultType) &&
-				popCoerce->IMod() == m_iMod &&
-				popCoerce->Ecf() == m_ecf &&
-				popCoerce->ILoc() == m_iLoc;
-	}
-
-	return false;
+	m_pmdidResultType->Release();
 }
 
+
+//---------------------------------------------------------------------------
+//	@function:
+//		CScalarCoerceBase::PmdidType
+//
+//	@doc:
+//		Return type of the scalar expression
+//
+//---------------------------------------------------------------------------
+IMDId*
+CScalarCoerceBase::PmdidType() const
+{
+	return m_pmdidResultType;
+}
+
+
+//---------------------------------------------------------------------------
+//	@function:
+//		CScalarCoerceBase::IMod
+//
+//	@doc:
+//		Return type modification
+//
+//---------------------------------------------------------------------------
+INT
+CScalarCoerceBase::IMod() const
+{
+	return m_iMod;
+}
+
+
+//---------------------------------------------------------------------------
+//	@function:
+//		CScalarCoerceBase::Ecf
+//
+//	@doc:
+//		Return coercion form
+//
+//---------------------------------------------------------------------------
+CScalar::ECoercionForm
+CScalarCoerceBase::Ecf() const
+{
+	return m_ecf;
+}
+
+
+//---------------------------------------------------------------------------
+//	@function:
+//		CScalarCoerceBase::ILoc
+//
+//	@doc:
+//		Return token location
+//
+//---------------------------------------------------------------------------
+INT
+CScalarCoerceBase::ILoc() const
+{
+	return m_iLoc;
+}
+
+
+//---------------------------------------------------------------------------
+//	@function:
+//		CScalarCoerceBase::PopCopyWithRemappedColumns
+//
+//	@doc:
+//		return a copy of the operator with remapped columns
+//
+//---------------------------------------------------------------------------
+COperator*
+CScalarCoerceBase::PopCopyWithRemappedColumns
+	(
+	IMemoryPool *, //pmp,
+	HMUlCr *, //phmulcr,
+	BOOL //fMustExist
+	)
+{
+	return PopCopyDefault();
+}
 
 // EOF
 

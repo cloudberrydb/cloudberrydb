@@ -30,7 +30,7 @@ namespace gpdxl
 	//		CParseHandlerScalarCoerceToDomain
 	//
 	//	@doc:
-	//		Parse handler for parsing  parsing CoerceToDomain operator
+	//		Parse handler for parsing CoerceToDomain operator
 	//
 	//---------------------------------------------------------------------------
 	class CParseHandlerScalarCoerceToDomain : public CParseHandlerScalarOp

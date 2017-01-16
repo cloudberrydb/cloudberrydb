@@ -41,6 +41,35 @@ CScalarCoerceToDomain::CScalarCoerceToDomain
 
 //---------------------------------------------------------------------------
 //	@function:
+//		CScalarCoerceToDomain::FMatch
+//
+//	@doc:
+//		Match function on operator level
+//
+//---------------------------------------------------------------------------
+BOOL
+CScalarCoerceToDomain::FMatch
+	(
+	COperator *pop
+	)
+	const
+{
+	if (pop->Eopid() == Eopid())
+	{
+		CScalarCoerceToDomain *popCoerce = CScalarCoerceToDomain::PopConvert(pop);
+
+		return popCoerce->PmdidType()->FEquals(PmdidType()) &&
+				popCoerce->IMod() == IMod() &&
+				popCoerce->Ecf() == Ecf() &&
+				popCoerce->ILoc() == ILoc();
+	}
+
+	return false;
+}
+
+
+//---------------------------------------------------------------------------
+//	@function:
 //		CScalarCoerceToDomain::Eber
 //
 //	@doc:

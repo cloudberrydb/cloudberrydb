@@ -1,6 +1,6 @@
 //---------------------------------------------------------------------------
 //	Greenplum Database
-//	Copyright (C) 2014 Pivotal Inc.
+//	Copyright (C) 2017 Pivotal Inc.
 //
 //	@filename:
 //		CParseHandlerScalarArrayCoerceExpr.h
@@ -36,7 +36,7 @@ namespace gpdxl
 	//		CParseHandlerScalarArrayCoerceExpr
 	//
 	//	@doc:
-	//		Parse handler for parsing  parsing ArrayCoerceExpr operator
+	//		Parse handler for parsing ArrayCoerceExpr operator
 	//
 	//---------------------------------------------------------------------------
 	class CParseHandlerScalarArrayCoerceExpr : public CParseHandlerScalarOp

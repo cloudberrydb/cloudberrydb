@@ -73,6 +73,17 @@ namespace gpopt
 				return "CScalarCoerceViaIO";
 			}
 
+			// match function
+			virtual
+			BOOL FMatch(COperator *) const;
+
+			// sensitivity to order of inputs
+			virtual
+			BOOL FInputOrderSensitive() const
+			{
+				return false;
+			}
+
 			// conversion function
 			static
 			CScalarCoerceViaIO *PopConvert
