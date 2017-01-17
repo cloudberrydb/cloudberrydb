@@ -3432,16 +3432,8 @@ CommitTransaction(void)
 	if (willHaveObjectsFromSmgr)
 	{
 		/*
-		 * We need to ensure the recording of the [distributed-]commit record and the
-		 * persistent post-commit work will be done either before or after a checkpoint.
-		 *
-		 * When we use CheckpointStartLock, we make sure we already have the
-		 * MirroredLock first.
-		 *
-		 * GPDB_83_MERGE_FIXME: we no longer need to worry about deadlock between
-		 * CheckpointStartLock and MirroredLock, as CheckpointStartLock is no longer
-		 * a lwlock but just a flag,  MyProc->inCommit. Do we still need to grab
-		 * MirroredLock?
+		 * This is to protect access to counter fileRepResyncShmem->appendOnlyCommitCount
+		 * and FileRepResyncManager_InResyncTransition()
 		 */
 		MIRRORED_LOCK;
 	}
@@ -4018,13 +4010,8 @@ AbortTransaction(void)
 	if (willHaveObjectsFromSmgr)
 	{
 		/*
-		 * We need to ensure the recording of the abort record and the
-		 * persistent post-abort work will be done either before or after a checkpoint.
-		 *
-		 * When we use CheckpointStartLock, we make sure we already have the
-		 * MirroredLock first.
-		 *
-		 * GPDB_83_MERGE_FIXME: see comments in CommitTransaction()
+		 * This is to protect access to counter fileRepResyncShmem->appendOnlyCommitCount
+		 * and FileRepResyncManager_InResyncTransition()
 		 */
 		MIRRORED_LOCK;
 	}
