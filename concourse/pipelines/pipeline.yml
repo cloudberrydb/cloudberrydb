@@ -113,6 +113,14 @@ resources:
     region_name: {{aws-region}}
     secret_access_key: {{bucket-secret-access-key}}
     versioned_file: deliverables/greenplum-db-4.3.99.0-behave.tar.gz
+
+- name: centos-coverity
+  type: docker-image
+  source:
+    repository: pivotaldata/centos-coverity
+    username: {{docker_username}}
+    password: {{docker_password}}
+
 ## ======================================================================
 ## jobs
 ## ======================================================================
@@ -179,6 +187,20 @@ jobs:
       TARGET_OS: centos
       TARGET_OS_VERSION: 7
       BLD_TARGETS: ""
+
+- name: coverity_scan
+  plan:
+  - aggregate:
+    - get: gpdb_src
+    - get: centos-coverity
+  - task: scan_with_coverity
+    file: gpdb_src/concourse/tasks/scan_with_coverity.yml
+    image: centos-coverity
+    params:
+      IVYREPO_HOST: {{ivyrepo_host}}
+      IVYREPO_REALM: {{ivyrepo_realm}}
+      IVYREPO_USER: {{ivyrepo_user}}
+      IVYREPO_PASSWD: {{ivyrepo_passwd}}
 
 # Stage 2: Run regression tests (make installcheck-world)
 - name: icw_planner_centos6
