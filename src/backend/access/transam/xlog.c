@@ -3197,7 +3197,7 @@ RemoveOldXlogFiles(uint32 log, uint32 seg, XLogRecPtr endptr)
 				else
 				{
 					/* No need for any more future segments... */
-					//int rc;
+					int rc = 0;
 
 					ereport(DEBUG2,
 							(errmsg("removing transaction log file \"%s\"",
@@ -3227,22 +3227,19 @@ RemoveOldXlogFiles(uint32 log, uint32 seg, XLogRecPtr endptr)
 						continue;
 					}
 					snprintf(newfilename, MAXPGPATH, "%s.deleted", xlde->d_name);
-					MirroredFlatFile_Drop(
+					rc = MirroredFlatFile_Drop(
 										  XLOGDIR,
 										  newfilename,
 										  /* suppressError */ true,
 										  /*isMirrorRecovery */ false);
 #else
-					MirroredFlatFile_Drop(
+					rc = MirroredFlatFile_Drop(
 										  XLOGDIR,
 										  xlde->d_name,
 										  /* suppressError */ true,
 										  /*isMirrorRecovery */ false);
 #endif
 
-					/* GPDB_83_MERGE_FIXME: MirroredFlatFile_Drop doesn't return a return
-					 * code */
-#if 0
 					if (rc != 0)
 					{
 						ereport(LOG,
@@ -3251,7 +3248,7 @@ RemoveOldXlogFiles(uint32 log, uint32 seg, XLogRecPtr endptr)
 										path)));
 						continue;
 					}
-#endif
+
 					CheckpointStats.ckpt_segs_removed++;
 				}
 
