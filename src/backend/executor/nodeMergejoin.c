@@ -1540,6 +1540,7 @@ ExecInitMergeJoin(MergeJoin *node, EState *estate, int eflags)
 {
 	MergeJoinState *mergestate;
 	int markflag;
+	int rewindflag;
 
 	/* check for unsupported flags */
 	Assert(!(eflags & (EXEC_FLAG_BACKWARD | EXEC_FLAG_MARK)));
@@ -1585,6 +1586,8 @@ ExecInitMergeJoin(MergeJoin *node, EState *estate, int eflags)
 
 	mergestate->prefetch_inner = node->join.prefetch_inner;
 	mergestate->mj_squelchInner = true;
+	/* Prepare inner operators for rewind after the prefetch */
+	rewindflag = mergestate->prefetch_inner ? EXEC_FLAG_REWIND : 0;
 
 	/* mergeclauses are handled below */
 
@@ -1597,7 +1600,7 @@ ExecInitMergeJoin(MergeJoin *node, EState *estate, int eflags)
 	markflag = node->unique_outer ? 0 : EXEC_FLAG_MARK;
 	outerPlanState(mergestate) = ExecInitNode(outerPlan(node), estate, eflags);
 	innerPlanState(mergestate) = ExecInitNode(innerPlan(node), estate,
-											  eflags | markflag);
+											  eflags | markflag | rewindflag);
 
 	/*
 	 * For certain types of inner child nodes, it is advantageous to issue
