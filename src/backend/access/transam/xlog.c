@@ -8754,6 +8754,7 @@ void
 CreateCheckPoint(int flags)
 {
 	MIRRORED_LOCK_DECLARE;
+	READ_PERSISTENT_STATE_ORDERED_LOCK_DECLARE;
 
 	bool		shutdown = (flags & CHECKPOINT_IS_SHUTDOWN) != 0;
 	CheckPoint	checkPoint;
@@ -8865,8 +8866,8 @@ CreateCheckPoint(int flags)
 	/*
 	 * The WRITE_PERSISTENT_STATE_ORDERED_LOCK gets these locks:
 	 *    MirroredLock SHARED, and
-	 *    CheckpointStartLock SHARED,
 	 *    PersistentObjLock EXCLUSIVE.
+	 * as well as set MyProc->inCommit = true.
 	 *
 	 * The READ_PERSISTENT_STATE_ORDERED_LOCK gets this lock:
 	 *    PersistentObjLock SHARED.
@@ -8874,19 +8875,6 @@ CreateCheckPoint(int flags)
 	 * They do this to prevent Persistent object changes during checkpoint and
 	 * prevent persistent object reads while writing.  And acquire the MirroredLock
 	 * at a level that blocks DDL during FileRep statechanges...
-	 *
-	 * GPDB_83_MERGE_FIXME: CheckpointStartLock is no more. Do we need to hold something
-	 * else instead?
-	 * 
-	 * We get the CheckpointStartLock to prevent Persistent object writers as
-	 * we collect the Master Mirroring information from mmxlog_append_checkpoint_data
-	 * until finally after the checkpoint record is inserted into the XLOG to prevent the
-	 * persistent information from changing, and all buffers have been flushed to disk..
-	 *
-	 * We must hold CheckpointStartLock while determining the checkpoint REDO
-	 * pointer.  This ensures that any concurrent transaction commits will be
-	 * either not yet logged, or logged and recorded in pg_clog. See notes in
-	 * RecordTransactionCommit().
 	 */
 
 	/*
@@ -9076,6 +9064,32 @@ CreateCheckPoint(int flags)
 
 	/*
 	 * Now insert the checkpoint record into XLOG.
+	 *
+	 * Here is the locking order and scope:
+	 *
+	 * getDtxCheckPointInfoAndLock (i.e. shmControlLock)
+	 * 	READ_PERSISTENT_STATE_ORDERED_LOCK (i.e. PersistentObjLock)
+	 * 		mmxlog_append_checkpoint_data
+	 * 		XLogInsert
+	 * 	READ_PERSISTENT_STATE_ORDERED_UNLOCK
+	 * freeDtxCheckPointInfoAndUnlock
+	 * XLogFlush
+	 *
+	 * We get the PersistentObjLock to prevent Persistent Object writers as
+	 * we collect the Master Mirroring information from mmxlog_append_checkpoint_data()
+	 * until finally after the checkpoint record is inserted into the XLOG to prevent the
+	 * persistent information from changing.
+	 *
+	 * For example, if we don't hold the PersistentObjLock across mmxlog_append_checkpoint_data()
+	 * and XLogInsert(), another xlog activity like drop tablespace could happen in between, which
+	 * might caused wrong behavior when master standby replay checkpoint record.
+	 *
+	 * Master standby replay (mmxlog_read_checkpoint_data) the mmxlog information stored in the checkpoint
+	 * record to recreate those persistent objects like filespace, tablespace, database dir, etc. If those
+	 * objects dropped after checkpoint collected persistent objects information, but before checkpoint
+	 * record write to XLOG, then the standby replay would first drop the object based on mmxlog record,
+	 * then recreated based on the checkpoint record. That will ends-up left behind the directories already
+	 * dropped on the master, break the consistency between the master and the standby.
 	 */
 
 	getDtxCheckPointInfoAndLock(&dtxCheckPointInfo, &dtxCheckPointInfoSize);
@@ -9095,6 +9109,7 @@ CreateCheckPoint(int flags)
 	 * meta data to keep the standby consistent. Safe to call on segments
 	 * as this is a NOOP if we're not the master.
 	 */
+	READ_PERSISTENT_STATE_ORDERED_LOCK;
 	mmxlog_append_checkpoint_data(rdata);
 
 	prepared_transaction_agg_state *p = NULL;
@@ -9155,6 +9170,8 @@ CreateCheckPoint(int flags)
 	recptr = XLogInsert(RM_XLOG_ID,
 			            shutdown ? XLOG_CHECKPOINT_SHUTDOWN : XLOG_CHECKPOINT_ONLINE,
 			            rdata);
+
+	READ_PERSISTENT_STATE_ORDERED_UNLOCK;
 
 	if (Debug_persistent_recovery_print)
 	{
