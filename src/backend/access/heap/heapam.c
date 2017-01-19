@@ -947,11 +947,11 @@ relation_open(Oid relationId, LOCKMODE lockmode)
 				 errmsg("relation not found (OID %u)", relationId),
 				 errdetail("This can be validly caused by a concurrent delete operation on this object.")));
 	}
-
+#if 0 /* Upstream code not applicable to GPBD */
 	/* Make note that we've accessed a temporary relation */
 	if (r->rd_istemp)
 		MyXactAccessedTempRel = true;
-
+#endif
 	pgstat_initstats(r);
 
 	return r;
@@ -1031,11 +1031,11 @@ try_relation_open(Oid relationId, LOCKMODE lockmode, bool noWait)
 				 errmsg("relation not found (OID %u)", relationId),
 				 errdetail("This can be validly caused by a concurrent delete operation on this object.")));
 	}
-
+#if 0 /* Upstream code not applicable to GPBD */
 	/* Make note that we've accessed a temporary relation */
 	if (r->rd_istemp)
 		MyXactAccessedTempRel = true;
-
+#endif
 	pgstat_initstats(r);
 
 	return r;
@@ -1224,11 +1224,11 @@ relation_open_nowait(Oid relationId, LOCKMODE lockmode)
 				 errmsg("relation not found (OID %u)", relationId),
 				 errdetail("This can be validly caused by a concurrent delete operation on this object.")));
 	}
-
+#if 0 /* Upstream code not applicable to GPBD */
 	/* Make note that we've accessed a temporary relation */
 	if (r->rd_istemp)
 		MyXactAccessedTempRel = true;
-
+#endif
 	pgstat_initstats(r);
 
 	return r;

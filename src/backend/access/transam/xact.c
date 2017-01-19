@@ -79,14 +79,14 @@ bool		XactSyncCommit = true;
 
 int			CommitDelay = 0;	/* precommit delay in microseconds */
 int			CommitSiblings = 5; /* # concurrent xacts needed to sleep */
-
+#if 0 /* Upstream code not applicable to GPBD */
 /*
  * MyXactAccessedTempRel is set when a temporary relation is accessed.
  * We don't allow PREPARE TRANSACTION in that case.  (This is global
  * so that it can be set from heapam.c.)
  */
 bool		MyXactAccessedTempRel = false;
-
+#endif
 XidBuffer subxbuf;
 int32 gp_subtrans_warn_limit = 16777216; /* 16 million */
 
@@ -2879,7 +2879,9 @@ StartTransaction(void)
 	XactIsoLevel = DefaultXactIsoLevel;
 	XactReadOnly = DefaultXactReadOnly;
 	forceSyncCommit = false;
+#if 0 /* Upstream code not applicable to GPBD */
 	MyXactAccessedTempRel = false;
+#endif
 	seqXlogWrite = false;
 
 	/* set read only by fts, if any fts action is read only */
@@ -3702,6 +3704,22 @@ PrepareTransaction(void)
 	/* NOTIFY and flatfiles will be handled below */
 
 	/*
+	 * In Postgres, MyXactAccessedTempRel is used to error out if PREPARE TRANSACTION
+	 * operated on temp table.
+	 *
+	 * In GPDB, MyXactAccessedTempRel is removed.
+	 *
+	 * GPDB treat temporary table like a regular table, e.g. stored in shared buffer
+	 * instead of keep it in local buffer. The temporary table just have a shorter life
+	 * cycle either tie to the session or tie to the transaction if ON COMMIT clause is
+	 * used.
+	 *
+	 * Every transaction in GPDB is 2PC, so PREPARE TRANSACTION is used even for temp table
+	 * creation. GPDB cannot error out, otherwise, it won't be able to handle temp table
+	 * at all.
+	 */
+#if 0 /* Upstream code not applicable to GPBD */
+	/*
 	 * Don't allow PREPARE TRANSACTION if we've accessed a temporary table
 	 * in this transaction.  Having the prepared xact hold locks on another
 	 * backend's temp table seems a bad idea --- for instance it would prevent
@@ -3716,8 +3734,6 @@ PrepareTransaction(void)
 	 * cases, such as a temp table created and dropped all within the
 	 * transaction.  That seems to require much more bookkeeping though.
 	 */
-	/* In GPDB, we allow this, however. GPDB_83_MERGE_FIXME: Is it really safe? */
-#if 0
 	if (MyXactAccessedTempRel)
 		ereport(ERROR,
 				(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
