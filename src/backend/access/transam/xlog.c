@@ -8770,12 +8770,6 @@ CreateCheckPoint(int flags)
 	int			nInCommit;
 	bool resync_to_sync_transition = (flags & CHECKPOINT_RESYNC_TO_INSYNC_TRANSITION) != 0;
 
-	if (Debug_persistent_recovery_print)
-	  {
-	    elog(PersistentRecovery_DebugPrintLevel(),
-                         "CreateCheckPoint: entering..."
-		 );
-	  }
 	if (shutdown && ControlFile->state == DB_STARTUP)
 	{
 		return;
@@ -9125,20 +9119,21 @@ CreateCheckPoint(int flags)
 	if (Debug_persistent_recovery_print)
 	{
 		elog(PersistentRecovery_DebugPrintLevel(),
-	        "CreateCheckPoint: Regular checkpoint length = %u"
-	        ", DTX checkpoint length %u (rdata[1].next is NULL %s)"
-	        ", Master mirroring filespace length = %u (rdata[2].next is NULL %s)"
-	        ", Master mirroring tablespace length = %u (rdata[3].next is NULL %s)"
-	       ", Master mirroring database directory length = %u",
-	       rdata[0].len,
-	       rdata[1].len,
-	       (rdata[1].next == NULL ? "true" : "false"),
-	       rdata[2].len,
-	       (rdata[2].next == NULL ? "true" : "false"),
-	       rdata[3].len,
-	       (rdata[3].next == NULL ? "true" : "false"),
-	       rdata[4].len);
-		elog(PersistentRecovery_DebugPrintLevel(), "CreateCheckPoint; Prepared Transaction length = %u", rdata[5].len);
+			"CreateCheckPoint: Regular checkpoint length = %u"
+			", DTX checkpoint length %u (rdata[1].next is NULL %s)"
+			", Master mirroring filespace length = %u (rdata[2].next is NULL %s)"
+			", Master mirroring tablespace length = %u (rdata[3].next is NULL %s)"
+			", Master mirroring database directory length = %u"
+			", Prepared Transaction length = %u",
+			rdata[0].len,
+			rdata[1].len,
+			(rdata[1].next == NULL ? "true" : "false"),
+			rdata[2].len,
+			(rdata[2].next == NULL ? "true" : "false"),
+			rdata[3].len,
+			(rdata[3].next == NULL ? "true" : "false"),
+			rdata[4].len,
+			rdata[5].len);
 	}
 
 
@@ -9156,11 +9151,8 @@ CreateCheckPoint(int flags)
 
 	if (Debug_persistent_recovery_print)
 	{
-		if (ptrd_oldest_ptr == NULL)
-			elog(PersistentRecovery_DebugPrintLevel(), "Oldest Prepared Record = NULL");
-		else
-			elog(PersistentRecovery_DebugPrintLevel(), "CreateCheckPoint: Oldest Prepared Record = %s",
-					XLogLocationToString(ptrd_oldest_ptr));
+		elog(PersistentRecovery_DebugPrintLevel(), "CreateCheckPoint: Oldest Prepared Record = %s",
+				ptrd_oldest_ptr ? XLogLocationToString(ptrd_oldest_ptr) : "NULL");
 	}
 
 
@@ -9203,10 +9195,13 @@ CreateCheckPoint(int flags)
 	else
 		XLByteToSeg(ControlFile->checkPointCopy.redo, _logId, _logSeg);
 
-	elog((Debug_print_qd_mirroring ? LOG : DEBUG1),
-		 "CreateCheckPoint: previous checkpoint's earliest info (copy redo location %s, previous checkpoint location %s)",
-		 XLogLocationToString(&ControlFile->checkPointCopy.redo),
-		 XLogLocationToString2(&ControlFile->prevCheckPoint));
+	if (Debug_persistent_recovery_print)
+	{
+		elog(PersistentRecovery_DebugPrintLevel(),
+			 "CreateCheckPoint: previous checkpoint's earliest info (copy redo location %s, previous checkpoint location %s)",
+			 XLogLocationToString(&ControlFile->checkPointCopy.redo),
+			 XLogLocationToString2(&ControlFile->prevCheckPoint));
+	}
 
 	/*
 	 * Update the control file.
@@ -9312,18 +9307,17 @@ CreateCheckPoint(int flags)
 	if (!InRecovery)
 		TruncateSUBTRANS(GetOldestXmin(true, false));
 
+	if (Debug_persistent_recovery_print)
+	{
+		elog(PersistentRecovery_DebugPrintLevel(),
+			 "CreateCheckPoint: checkpoint location %s, redo location %s",
+			 XLogLocationToString(&ControlFile->checkPoint),
+			 XLogLocationToString2(&checkPoint.redo));
+	}
+
 	/* All real work is done, but log before releasing lock. */
 	if (log_checkpoints)
 		LogCheckpointEnd();
-
-	/* GPDB_83_MERGE_FIXME: Isn't this redundant with log_checkpoints? */
-	if (Debug_persistent_recovery_print)
-		elog(PersistentRecovery_DebugPrintLevel(),
-			 "CreateCheckPoint: shutdown %s, force %s, checkpoint location %s, redo location %s",
-			 (shutdown ? "true" : "false"),
-			 ((flags & CHECKPOINT_FORCE) ? "true" : "false"),
-			 XLogLocationToString(&ControlFile->checkPoint),
-			 XLogLocationToString2(&checkPoint.redo));
 
 	if (resync_to_sync_transition)
 	{
