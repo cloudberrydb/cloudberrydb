@@ -25,5 +25,5 @@
 #cmakedefine GPOS_32BIT
 #cmakedefine GPOS_64BIT
 
-#endif  // GPOS_config_Hve
+#endif  // GPOS_config_H
 // EOF
