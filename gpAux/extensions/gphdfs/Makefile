@@ -24,10 +24,10 @@ JAR_FILES = dist/gphd-1.0-gnet-1.0.0.1.jar \
 
 JAVADOC_TARS = gnet-1.1-javadoc.tar gnet-1.0-javadoc.tar
 
-IVY_HTTPAUTH = -Divyrepo.host=$(IVYREPO_HOST) \
+IVY_HTTPAUTH = -Divyrepo.host="$(IVYREPO_HOST)" \
 	-Divyrepo.realm="$(IVYREPO_REALM)" \
-	-Divyrepo.user=$(IVYREPO_USER) \
-	-Divyrepo.passwd=$(IVYREPO_PASSWD)
+	-Divyrepo.user="$(IVYREPO_USER)" \
+	-Divyrepo.passwd="$(IVYREPO_PASSWD)"
 
 all: $(JAR_FILES) unittest $(JAVADOC_TARS)
 

@@ -121,7 +121,7 @@ sync_tools: opt_write_test /opt/releng/apache-ant
 	 (umask 002; ANT_OPTS="-Djavax.net.ssl.trustStore=$(BLD_TOP)/releng/make/dependencies/cacerts" \
 	/opt/releng/apache-ant/bin/ant -DBLD_ARCH=$(BLD_ARCH) \
 	-Divyrepo.host=$(IVYREPO_HOST) -Divyrepo.realm="$(IVYREPO_REALM)" \
-	-Divyrepo.user=$(IVYREPO_USER) -Divyrepo.passwd=$(IVYREPO_PASSWD) resolve);
+	-Divyrepo.user=$(IVYREPO_USER) -Divyrepo.passwd="$(IVYREPO_PASSWD)" resolve);
 	@echo "Resolve finished";
 
 	wget -O - https://github.com/greenplum-db/gporca/releases/download/v2.1/bin_orca_centos5_release.tar.gz | tar zxf - -C $(BLD_TOP)/ext/$(BLD_ARCH)
