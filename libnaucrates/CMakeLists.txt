@@ -3,6 +3,9 @@
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../libgpopt/include)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../libgpdbcost/include)
+# for the generated config.h file.
+include_directories(${PROJECT_BINARY_DIR}/libgpos/include/)
+
 add_library(naucrates
             include/naucrates/base/IDatum.h
             include/naucrates/base/IDatumBool.h

@@ -8,6 +8,9 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../libnaucrates/include)
 configure_file(version.h.in
         ${PROJECT_BINARY_DIR}/libgpopt/include/libgpopt/version.h)
 
+# for the generated config.h file.
+include_directories(${PROJECT_BINARY_DIR}/libgpos/include/)
+
 add_library(gpopt
             include/gpopt/base/CDistributionSpec.h
             include/gpopt/base/CDistributionSpecAny.h

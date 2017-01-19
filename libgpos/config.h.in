@@ -1,0 +1,29 @@
+//---------------------------------------------------------------------------
+//	Greenplum Database
+//	Copyright (C) 2016 Greenplum, Inc.
+//
+//	@filename:
+//		config.h
+//
+//	@doc:
+//		Various compile-time options that affect binary
+//		compatibility.
+//
+//---------------------------------------------------------------------------
+#ifndef GPOS_config_H
+#define GPOS_config_H
+
+#cmakedefine GPOS_DEBUG
+
+// These come from CMAKE_SYSTEM_PROCESSOR
+#cmakedefine GPOS_i386
+#cmakedefine GPOS_i686
+#cmakedefine GPOS_x86_64
+#cmakedefine GPOS_sparc
+
+// These come from CMAKE_ARCH_BITS (based on CMAKE_SIZEOF_VOID_P)
+#cmakedefine GPOS_32BIT
+#cmakedefine GPOS_64BIT
+
+#endif  // GPOS_config_Hve
+// EOF

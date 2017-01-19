@@ -17,6 +17,12 @@ endif()
 
 include_directories(include)
 
+configure_file(config.h.in
+        ${PROJECT_BINARY_DIR}/libgpos/include/gpos/config.h)
+
+# for the generated config.h file.
+include_directories(${PROJECT_BINARY_DIR}/libgpos/include/)
+
 # Compile .cpp source files under libgpos/src into monolithic gpos library.
 add_library(gpos
             include/gpos/assert.h
@@ -280,9 +286,11 @@ if (VERBOSE_INSTALL_PATH)
   get_filename_component(full_install_name_dir "${installpath}/lib" ABSOLUTE)
   install(TARGETS gpos DESTINATION "${installpath}/lib")
   install(DIRECTORY include/gpos DESTINATION "${installpath}/include")
+  install(FILES "${PROJECT_BINARY_DIR}/libgpos/include/gpos/config.h" DESTINATION "${installpath}/include/gpos")
 else()
   get_filename_component(full_install_name_dir "${CMAKE_INSTALL_PREFIX}/lib" ABSOLUTE)
   install(TARGETS gpos DESTINATION lib)
   install(DIRECTORY include/gpos DESTINATION include)
+  install(FILES "${PROJECT_BINARY_DIR}/libgpos/include/gpos/config.h" DESTINATION include/gpos)
 endif()
 

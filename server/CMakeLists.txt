@@ -4,6 +4,8 @@ include_directories("${CMAKE_CURRENT_SOURCE_DIR}/include"
                     "${CMAKE_SOURCE_DIR}/libgpdbcost/include"
                     "${CMAKE_SOURCE_DIR}/libgpopt/include"
                     "${CMAKE_SOURCE_DIR}/libnaucrates/include")
+# for the generated config.h file.
+include_directories(${PROJECT_BINARY_DIR}/libgpos/include/)
 
 # Some tests use C99 long long integer constants, but the C++ dialect may not
 # explicitly include C99. We supress such errors here.
