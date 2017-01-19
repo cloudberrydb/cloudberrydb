@@ -10158,7 +10158,8 @@ do_pg_start_backup(const char *backupidstr, bool fast, char **labelfile)
 			 * We use CHECKPOINT_IMMEDIATE only if requested by user (via
 			 * passing fast = true).  Otherwise this can take awhile.
 			 */
-			RequestCheckpoint(CHECKPOINT_FORCE | CHECKPOINT_WAIT);
+			RequestCheckpoint(CHECKPOINT_FORCE | CHECKPOINT_WAIT |
+							  (fast ? CHECKPOINT_IMMEDIATE : 0));
 
 			/*
 			 * Now we need to fetch the checkpoint record location, and also
