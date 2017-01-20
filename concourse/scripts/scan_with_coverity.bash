@@ -33,34 +33,29 @@ function generate_build_number() {
 
 function make_sync_tools() {
   pushd gpdb_src/gpAux
-    make IVYREPO_HOST=${IVYREPO_HOST} IVYREPO_REALM="${IVYREPO_REALM}" IVYREPO_USER=${IVYREPO_USER} IVYREPO_PASSWD=${IVYREPO_PASSWD} sync_tools
+    make IVYREPO_HOST="${IVYREPO_HOST}" IVYREPO_REALM="${IVYREPO_REALM}" IVYREPO_USER="${IVYREPO_USER}" IVYREPO_PASSWD="${IVYREPO_PASSWD}" sync_tools
     # We have compiled LLVM with native zlib on CentOS6 and not from
     # the zlib downloaded from artifacts.  Therefore, remove the zlib
     # downloaded from artifacts in order to use the native zlib.
     find ext -name 'libz.*' -exec rm -f {} \;
-    tar -czf ../../sync_tools_gpdb/sync_tools_gpdb.tar.gz ext
-
   popd
 }
 
 function build_gpdb_and_scan_with_coverity() {
   pushd gpdb_src/gpAux
-    make distclean 
-  popd
-  pushd gpdb_src
-    ./configure
+    make distclean
     cov-build --dir "$1" make BLD_TARGETS="gpdb" GPROOT=/usr/local
   popd
 }
 
 function _main() {
   # TODO: determine if these are needed
-  # prep_env_for_centos
-  # generate_build_number
-  # make_sync_tools
+  prep_env_for_centos
+  generate_build_number
+  make_sync_tools
 
   /opt/prepare-coverity.bash
   build_gpdb_and_scan_with_coverity "$OUTPUT_ARTIFACT_DIR"
 }
 
-_main
+_main "$@"
