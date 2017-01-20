@@ -25,6 +25,11 @@
 #cmakedefine GPOS_32BIT 1
 #cmakedefine GPOS_64BIT 1
 
+// These come from CMAKE_SYSTEM_NAME
+#cmakedefine GPOS_Linux
+#cmakedefine GPOS_Darwin
+#cmakedefine GPOS_SunOS
+
 // Atomics, detected by cmake/FindAtomics.cmake
 #cmakedefine GPOS_GCC_FETCH_ADD_32
 #cmakedefine GPOS_GCC_FETCH_ADD_64
