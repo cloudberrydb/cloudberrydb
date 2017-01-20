@@ -85,8 +85,17 @@
 
 /* GUC variables */
 char	   *default_tablespace = NULL;
-/* GPDB_83_MERGE_FIXME: this is NULL in upstream, but because I removed this from guc.c,
- * the guc machinery isn't initializing it to "".
+/* In Postgres, this GUC was originally introduced by commit acfce502.
+ * This GUC applied on both locations of temp files as well as temp tables.
+ *
+ * In GPDB, we already provide `filespace` to specify a different location
+ * for temp files, e.g. `gpfilespace --movetempfilespace`. As well as the
+ * temp tables can be created on tablespaces with different filespaces.
+ * Hence we don't have this GUC and it is initialized to "".
+ *
+ * In future, it's valuable to add this GUC back to let GPDB provide
+ * easy way for users to randomly put the temp table on the `temp_tablespaces`
+ * through GUC instead of specifying for each temp table.
  */
 char	   *temp_tablespaces = "";
 
