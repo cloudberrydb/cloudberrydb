@@ -94,16 +94,15 @@ endif()
 
 # Turn on GPOS_DEBUG define for DEBUG builds.
 cmake_policy(SET CMP0043 NEW)
-set_property(
-    DIRECTORY
-    APPEND PROPERTY COMPILE_DEFINITIONS $<$<CONFIG:Debug>:GPOS_DEBUG>)
+
+STRING(TOLOWER "${CMAKE_BUILD_TYPE}" CMAKE_BUILD_TYPE_LOWER)
+if (CMAKE_BUILD_TYPE_LOWER STREQUAL  "debug")
+  set(GPOS_DEBUG 1)
+endif()
 
 # Turn on platform-specific defines.
-set_property(
-    DIRECTORY
-    APPEND PROPERTY COMPILE_DEFINITIONS
-        GPOS_${CMAKE_SYSTEM_NAME}
-        GPOS_${CMAKE_SYSTEM_PROCESSOR})
+set(GPOS_${CMAKE_SYSTEM_NAME} 1)
+set(GPOS_${CMAKE_SYSTEM_PROCESSOR} 1)
 
 # Autodetect bit-width if not already set by toolchain file.
 if (NOT GPOS_ARCH_BITS)
@@ -117,10 +116,7 @@ if (NOT GPOS_ARCH_BITS)
   endif()
 endif()
 
-set_property(
-    DIRECTORY
-    APPEND PROPERTY COMPILE_DEFINITIONS
-        GPOS_${GPOS_ARCH_BITS}BIT)
+set (GPOS_${GPOS_ARCH_BITS}BIT 1)
 
 # Library dependencies for optimizer.
 set(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake")

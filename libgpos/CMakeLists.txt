@@ -7,8 +7,8 @@ endif()
 # Try to find atomic operations.
 include(FindAtomics)
 
-if ((NOT (COMPILER_HAS_FETCH_ADD_32 AND COMPILER_HAS_FETCH_ADD_64
-          AND COMPILER_HAS_CAS_32 AND COMPILER_HAS_CAS_64))
+if ((NOT (GPOS_GCC_FETCH_ADD_32 AND GPOS_GCC_FETCH_ADD_64
+          AND GPOS_GCC_CAS_32 AND GPOS_GCC_CAS_64))
     AND (NOT (${CMAKE_SYSTEM_NAME} MATCHES "SunOS")))
   message(FATAL_ERROR "Could not find GCC-style atomic built-ins or Solaris "
                       "atomic headers. GPOS will fail to build. Please try "

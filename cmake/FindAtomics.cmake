@@ -16,13 +16,7 @@ int main() {
 
   return static_cast<int>(prev);
 }
-" COMPILER_HAS_FETCH_ADD_32)
-if (COMPILER_HAS_FETCH_ADD_32)
-  set_property(
-      DIRECTORY
-      APPEND PROPERTY COMPILE_DEFINITIONS
-          GPOS_GCC_FETCH_ADD_32)
-endif()
+" GPOS_GCC_FETCH_ADD_32)
 
 CHECK_CXX_SOURCE_COMPILES("
 #include <stdint.h>
@@ -34,13 +28,7 @@ int main() {
 
   return static_cast<int>(prev);
 }
-" COMPILER_HAS_FETCH_ADD_64)
-if (COMPILER_HAS_FETCH_ADD_64)
-  set_property(
-      DIRECTORY
-      APPEND PROPERTY COMPILE_DEFINITIONS
-          GPOS_GCC_FETCH_ADD_64)
-endif()
+" GPOS_GCC_FETCH_ADD_64)
 
 CHECK_CXX_SOURCE_COMPILES("
 #include <stdint.h>
@@ -53,13 +41,7 @@ int main() {
 
   return success ? 0 : 1;
 }
-" COMPILER_HAS_CAS_32)
-if (COMPILER_HAS_CAS_32)
-  set_property(
-      DIRECTORY
-      APPEND PROPERTY COMPILE_DEFINITIONS
-          GPOS_GCC_CAS_32)
-endif()
+" GPOS_GCC_CAS_32)
 
 CHECK_CXX_SOURCE_COMPILES("
 #include <stdint.h>
@@ -72,10 +54,4 @@ int main() {
 
   return success ? 0 : 1;
 }
-" COMPILER_HAS_CAS_64)
-if (COMPILER_HAS_CAS_64)
-  set_property(
-      DIRECTORY
-      APPEND PROPERTY COMPILE_DEFINITIONS
-          GPOS_GCC_CAS_64)
-endif()
+" GPOS_GCC_CAS_64)
