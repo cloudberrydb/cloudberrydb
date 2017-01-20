@@ -79,7 +79,7 @@ bool		XactSyncCommit = true;
 
 int			CommitDelay = 0;	/* precommit delay in microseconds */
 int			CommitSiblings = 5; /* # concurrent xacts needed to sleep */
-#if 0 /* Upstream code not applicable to GPBD */
+#if 0 /* Upstream code not applicable to GPDB */
 /*
  * MyXactAccessedTempRel is set when a temporary relation is accessed.
  * We don't allow PREPARE TRANSACTION in that case.  (This is global
@@ -2879,7 +2879,7 @@ StartTransaction(void)
 	XactIsoLevel = DefaultXactIsoLevel;
 	XactReadOnly = DefaultXactReadOnly;
 	forceSyncCommit = false;
-#if 0 /* Upstream code not applicable to GPBD */
+#if 0 /* Upstream code not applicable to GPDB */
 	MyXactAccessedTempRel = false;
 #endif
 	seqXlogWrite = false;
@@ -3718,7 +3718,7 @@ PrepareTransaction(void)
 	 * creation. GPDB cannot error out, otherwise, it won't be able to handle temp table
 	 * at all.
 	 */
-#if 0 /* Upstream code not applicable to GPBD */
+#if 0 /* Upstream code not applicable to GPDB */
 	/*
 	 * Don't allow PREPARE TRANSACTION if we've accessed a temporary table
 	 * in this transaction.  Having the prepared xact hold locks on another
