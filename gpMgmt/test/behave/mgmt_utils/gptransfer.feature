@@ -394,7 +394,7 @@ Feature: gptransfer tests
         And the database "gptransfer_testdb3" does not exist
         And the database "gptransfer_testdb4" does not exist
         And the database "gptransfer_testdb5" does not exist
-        And the user runs "gptransfer --source-port $GPTRANSFER_SOURCE_PORT --source-host $GPTRANSFER_SOURCE_HOST --source-user $GPTRANSFER_SOURCE_USER --dest-user $GPTRANSFER_DEST_USER --dest-port $GPTRANSFER_DEST_PORT --dest-host $GPTRANSFER_DEST_HOST --source-map-file $GPTRANSFER_MAP_FILE --validate md5 -f gppylib/test/behave/mgmt_utils/steps/data/gptransfer_infile --batch-size=1 --batch-size=10"
+        And the user runs "gptransfer --source-port $GPTRANSFER_SOURCE_PORT --source-host $GPTRANSFER_SOURCE_HOST --source-user $GPTRANSFER_SOURCE_USER --dest-user $GPTRANSFER_DEST_USER --dest-port $GPTRANSFER_DEST_PORT --dest-host $GPTRANSFER_DEST_HOST --source-map-file $GPTRANSFER_MAP_FILE --validate md5 -f gppylib/test/behave/mgmt_utils/steps/data/gptransfer_infile --batch-size=1"
         Then gptransfer should return a return code of 0
         And verify that gptransfer is in order of "gppylib/test/behave/mgmt_utils/steps/data/gptransfer_infile" when partition transfer is "None"
         And verify that table "t0" in "gptransfer_testdb1" has "100" rows
