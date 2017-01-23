@@ -2085,10 +2085,8 @@ logfile_rotate(bool time_based_rotation, bool size_based_rotation,
 /*
  * construct logfile name using timestamp information
  *
- * In Postgres, if suffix isn't NULL, append it to the name, replacing any ".log"
+ * If suffix isn't NULL, append it to the name, replacing any ".log"
  * that may be in the pattern.
- *
- * In GPDB, parameter suffix is not used. A separate refactor is needed for the API change.
  *
  * Result is palloc'd.
  */
@@ -2098,7 +2096,6 @@ logfile_getname(pg_time_t timestamp, const char *suffix, const char *log_directo
     char	   *filename;
     int			len;
 #define CSV_SUFFIX ".csv"
-#define LOG_SUFFIX ".log"
 
     filename = palloc(MAXPGPATH);
 
@@ -2119,6 +2116,10 @@ logfile_getname(pg_time_t timestamp, const char *suffix, const char *log_directo
                  log_file_pattern, (unsigned long) timestamp);
     }
 
+	/* GPDB_83_MERGE_FIXME: The upstream code does the ".log" -> ".csv" transformation,
+	 * but not the other one. I doubt we really need that, so I think we should revert
+	 * this to the way it is in upstream, but will need to double-check. */
+#if 0
 	/*
 	 * If the logging format is 'TEXT' and the filename ends with ".csv",
 	 * replace ".csv" with ".log".
@@ -2126,12 +2127,10 @@ logfile_getname(pg_time_t timestamp, const char *suffix, const char *log_directo
 	 * If the logging format is 'CSV' and the filename does not end with ".csv",
 	 * replace the last four characters in the filename with ".cvs".
 	 */
+	{
 	if (strlen(filename) - sizeof(CSV_SUFFIX) + 1 > 0)
-	{
 		suffix = filename + (strlen(filename) - sizeof(CSV_SUFFIX) + 1);
-	}
 	else
-	{
 		/*
 		 * Point the suffix to the end of string if the length of
 		 * the filename is less than ".csv".
@@ -2139,14 +2138,23 @@ logfile_getname(pg_time_t timestamp, const char *suffix, const char *log_directo
 		suffix = filename + strlen(filename);
 	}
 	
-	if (gp_log_format == 0 && pg_strcasecmp(suffix, LOG_SUFFIX) != 0)
+	if (gp_log_format == 0 && pg_strcasecmp(suffix, CSV_SUFFIX) == 0)
 	{
-		snprintf(suffix, sizeof(LOG_SUFFIX), LOG_SUFFIX);
+		snprintf(suffix, sizeof(CSV_SUFFIX), ".log");
 	}
 	
 	if (gp_log_format == 1 && pg_strcasecmp(suffix, CSV_SUFFIX) != 0)
 	{
 		snprintf(suffix, sizeof(CSV_SUFFIX), CSV_SUFFIX);
+	}
+#endif
+
+	if (suffix != NULL)
+	{
+		len = strlen(filename);
+		if (len > 4 && (strcmp(filename + (len - 4), ".log") == 0))
+			len -= 4;
+		strlcpy(filename + len, suffix, MAXPGPATH - len);
 	}
 
     return filename;
