@@ -7,7 +7,7 @@
 
 class S3Params {
    public:
-    S3Params(const string& sourceUrl, bool useHttps = true, const string& version = "",
+    S3Params(const string& sourceUrl = "", bool useHttps = true, const string& version = "",
              const string& region = "")
         : s3Url(sourceUrl, useHttps, version, region), keySize(0), chunkSize(0), numOfChunks(0) {
     }

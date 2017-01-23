@@ -15,13 +15,13 @@ S3BucketReader::~S3BucketReader() {
 }
 
 void S3BucketReader::open(const S3Params& params) {
-    this->params.reset(new S3Params(params));
+    this->params = params;
 
     this->keyIndex = s3ext_segid;  // we may change it in unit tests
 
     S3_CHECK_OR_DIE(this->s3Interface != NULL, S3RuntimeError, "s3Interface is NULL");
 
-    const S3Url& s3Url = this->params->getS3Url();
+    const S3Url& s3Url = this->params.getS3Url();
 
     S3_CHECK_OR_DIE(s3Url.isValidUrl(), S3ConfigError, s3Url.getFullUrlForCurl() + " is not valid",
                     s3Url.getFullUrlForCurl());
@@ -41,7 +41,7 @@ S3Params S3BucketReader::constructReaderParams(BucketContent& key) {
     string keyEncoded = UriEncode(key.getName());
     FindAndReplace(keyEncoded, "%2F", "/");
 
-    S3Params readerParams = this->params->setPrefix(keyEncoded);
+    S3Params readerParams = this->params.setPrefix(keyEncoded);
 
     readerParams.setKeySize(key.getSize());
 

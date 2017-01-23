@@ -25,7 +25,6 @@ void GPWriter::close() {
 }
 
 string GPWriter::genUniqueKeyName(const S3Url& s3Url) {
-    string randomStr;
     string fullUrl = s3Url.getFullUrlForCurl();
 
     while (true) {

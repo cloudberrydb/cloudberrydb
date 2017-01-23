@@ -50,7 +50,7 @@ S3Params InitConfig(const string& urlWithOptions) {
     // read configurations from file
     Config s3Cfg(configPath);
 
-    S3_CHECK_OR_DIE(s3Cfg.Handle() != nullptr, S3RuntimeError,
+    S3_CHECK_OR_DIE(s3Cfg.Handle() != NULL, S3RuntimeError,
                     "Failed to parse config file '" + configPath + "', or it doesn't exist");
 
     S3_CHECK_OR_DIE(s3Cfg.SectionExist(configSection), S3ConfigError,

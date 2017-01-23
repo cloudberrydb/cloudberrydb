@@ -29,7 +29,7 @@ class S3BucketReader : public Reader {
     }
 
    private:
-    std::unique_ptr<S3Params> params;
+    S3Params params;
 
     S3Interface *s3Interface;
 
