@@ -1417,9 +1417,11 @@ GetSnapshotData(Snapshot snapshot, bool serializable)
 		volatile PGPROC *proc = arrayP->procs[index];
 		TransactionId xid;
 
+#if 0 /* Upstream code not applicable to GPDB, why explained in vacuumStatement_Relation */
 		/* Ignore procs running LAZY VACUUM */
 		if (proc->vacuumFlags & PROC_IN_VACUUM)
 			continue;
+#endif
 
 		/* Update globalxmin to be the smallest valid xmin */
 		xid = proc->xmin;               /* fetch just once */

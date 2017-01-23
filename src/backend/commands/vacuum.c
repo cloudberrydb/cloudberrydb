@@ -1028,6 +1028,7 @@ vacuumStatement_Relation(VacuumStmt *vacstmt, Oid relid,
 		if (!vacstmt->full)
 		{
 			/*
+			 * PostgreSQL does this:
 			 * During a lazy VACUUM we can set the PROC_IN_VACUUM flag, which lets other
 			 * concurrent VACUUMs know that they can ignore this one while
 			 * determining their OldestXmin.  (The reason we don't set it during a
@@ -1037,6 +1038,10 @@ vacuumStatement_Relation(VacuumStmt *vacstmt, Oid relid,
 			 * removed from other tables.  An index function that depends on the
 			 * contents of other tables is arguably broken, but we won't break it
 			 * here by violating transaction semantics.)
+			 *
+			 * GPDB doesn't use PROC_IN_VACUUM, as lazy vacuum for bitmap
+			 * indexed tables performs reindex causing updates to pg_class
+			 * tuples for index entries.
 			 *
 			 * We also set the VACUUM_FOR_WRAPAROUND flag, which is passed down
 			 * by autovacuum; it's used to avoid cancelling a vacuum that was
@@ -1048,7 +1053,9 @@ vacuumStatement_Relation(VacuumStmt *vacstmt, Oid relid,
 			 * which is probably Not Good.
 			 */
 			LWLockAcquire(ProcArrayLock, LW_EXCLUSIVE);
+#if 0 /* Upstream code not applicable to GPDB */
 			MyProc->vacuumFlags |= PROC_IN_VACUUM;
+#endif
 			if (for_wraparound)
 				MyProc->vacuumFlags |= PROC_VACUUM_FOR_WRAPAROUND;
 			LWLockRelease(ProcArrayLock);
@@ -1671,11 +1678,6 @@ vac_update_relstats_from_list(Relation rel,
  *		by the time we got done with a vacuum cycle, most of the tuples in
  *		pg_class would've been obsoleted.  Of course, this only works for
  *		fixed-size never-null columns, but these are.
- *
- *		Another reason for doing it this way is that when we are in a lazy
- *		VACUUM and have PROC_IN_VACUUM set, we mustn't do any updates ---
- *		somebody vacuuming pg_class might think they could delete a tuple
- *		marked with xmin = our xid.
  *
  *		This routine is shared by full VACUUM, lazy VACUUM, and stand-alone
  *		ANALYZE.
