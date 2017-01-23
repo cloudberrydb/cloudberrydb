@@ -3093,41 +3093,6 @@ CTranslatorDXLToPlStmt::PsortFromDXLSort
 
 	TranslateSortCols(pdxlnSortColList, &dxltrctxChild, psort->sortColIdx, psort->sortOperators, psort->nullsFirst);
 
-	// translate limit information
-	if (0 < pdxlnLimitCount->UlArity())
-	{
-		GPOS_ASSERT(1 == pdxlnLimitCount->UlArity());
-		const CDXLNode *pdxlnLimitCountExpr = (*pdxlnLimitCount)[0];
-		CMappingColIdVarPlStmt mapcidvarplstmt = CMappingColIdVarPlStmt
-																(
-																m_pmp,
-																NULL,
-																pdrgpdxltrctx,
-																pdxltrctxOut,
-																m_pctxdxltoplstmt,
-																pplan
-																);
-
-		psort->limitCount = (Node *) m_pdxlsctranslator->PexprFromDXLNodeScalar(pdxlnLimitCountExpr, &mapcidvarplstmt);
-	}
-
-	if (0 < pdxlnLimitOffset->UlArity())
-	{
-		GPOS_ASSERT(1 == pdxlnLimitOffset->UlArity());
-		const CDXLNode *pdxlnLimitOffsetExpr = (*pdxlnLimitOffset)[0];
-
-		CMappingColIdVarPlStmt mapcidvarplstmt = CMappingColIdVarPlStmt
-																(
-																m_pmp,
-																NULL,
-																pdrgpdxltrctx,
-																pdxltrctxOut,
-																m_pctxdxltoplstmt,
-																pplan
-																);
-
-		psort->limitOffset = (Node *) m_pdxlsctranslator->PexprFromDXLNodeScalar(pdxlnLimitOffsetExpr, &mapcidvarplstmt);
-	}
 	SetParamIds(pplan);
 
 	// cleanup

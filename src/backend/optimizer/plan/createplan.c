@@ -4286,8 +4286,6 @@ make_sort(PlannerInfo *root, Plan *lefttree, int numCols,
 
 	Assert(sortColIdx[0] != 0);
 
-	node->limitOffset = NULL;	/* CDB */
-	node->limitCount = NULL;	/* CDB */
 	node->noduplicates = false; /* CDB */
 
 	node->share_type = SHARE_NOTSHARED;
@@ -5367,15 +5365,6 @@ make_limit(Plan *lefttree, Node *limitOffset, Node *limitCount,
 
 	node->limitOffset = limitOffset;
 	node->limitCount = limitCount;
-
-	/* CDB */	/* pass limit struct to sort */
-	if (IsA(lefttree, Sort) &&gp_enable_sort_limit)
-	{
-		Sort	   *pSort = (Sort *) lefttree;
-
-		pSort->limitOffset = copyObject(limitOffset);
-		pSort->limitCount = copyObject(limitCount);
-	}
 
 	return node;
 }

@@ -299,7 +299,6 @@ struct Tuplesortstate
 	SortTuple  *memtuples;		/* array of SortTuple structs */
 	int			memtupcount;	/* number of tuples currently present */
 	int			memtupsize;		/* allocated length of memtuples array */
-	int64		memtupLIMIT;	/* LIMIT of memtuples array */ /*CDB*/
 	bool		memtupblimited; /* true when hit the limit */
 	int64  		discardcount;   /* count of discards */ /*CDB*/
 	int64  		totalNumTuples;    /* count of all input tuples */ /*CDB*/
@@ -590,7 +589,6 @@ tuplesort_begin_common(int workMem, bool randomAccess, bool allocmemtuple)
 
 	state->memtupcount = 0;
 	state->memtupsize = 1024;	/* initial guess */
-	state->memtupLIMIT = 0; /*CDB*/
 	state->memtupblimited = false;
 	state->discardcount = 0; /*CDB*/
 	state->totalNumTuples  = 0; /*CDB*/
@@ -636,16 +634,9 @@ tuplesort_begin_common(int workMem, bool randomAccess, bool allocmemtuple)
  * and uniqueness.  Should do this after begin_heap.
  */
 void
-cdb_tuplesort_init(Tuplesortstate *state, 
-				   int64 offset, int64 limit, int unique, int sort_flags,
+cdb_tuplesort_init(Tuplesortstate *state, int unique, int sort_flags,
 				   int64 maxdistinct)
 {
-	/* set a limit to internal sorts. If the offset is non-zero but
-	 * the limit is not set, then no limit */
-	if (limit)
-	{
-		state->memtupLIMIT = offset + limit;
-	}
 	if (unique)
 		state->noduplicates = true;
 
@@ -658,7 +649,7 @@ cdb_tuplesort_init(Tuplesortstate *state,
 
 	state->standardsort = 
 			(state->mppsortflags == 0) ||
-			((state->memtupLIMIT == 0) 
+			((!state->bounded)
 			 && (!state->noduplicates)); 
 }
 
@@ -2942,8 +2933,8 @@ tuplesort_sorted_insert(Tuplesortstate *state, SortTuple *tuple,
 	/* CDB: always add new value if never dumped or no limit, else
 	 * drop the last value if it exceeds the limit 
 	 */
-	if ((state->memtupLIMIT) 
-		&& (state->memtupcount > state->memtupLIMIT))
+	if ((state->bounded)
+		&& (state->memtupcount > state->bound))
 	{
 		/* set blimited true if have limit and memtuples are sorted */
 		state->memtupblimited = true;			

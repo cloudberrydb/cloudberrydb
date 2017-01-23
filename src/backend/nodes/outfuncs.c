@@ -893,8 +893,6 @@ _outSort(StringInfo str, Sort *node)
 		appendStringInfo(str, " %s", booltostr(node->nullsFirst[i]));
 
 	/* CDB */
-	WRITE_NODE_FIELD(limitOffset);
-	WRITE_NODE_FIELD(limitCount);
     WRITE_BOOL_FIELD(noduplicates);
 
 	WRITE_ENUM_FIELD(share_type, ShareType);

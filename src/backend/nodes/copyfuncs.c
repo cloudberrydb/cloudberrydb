@@ -878,8 +878,6 @@ _copySort(Sort *from)
 	COPY_POINTER_FIELD(nullsFirst, from->numCols * sizeof(bool));
 
     /* CDB */
-	COPY_NODE_FIELD(limitOffset);
-	COPY_NODE_FIELD(limitCount);
 	COPY_SCALAR_FIELD(noduplicates);
 
 	COPY_SCALAR_FIELD(share_type);

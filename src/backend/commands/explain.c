@@ -1630,18 +1630,11 @@ explain_outNode(StringInfo str,
 			break;
 		case T_Sort:
 		{
-			bool bLimit = (((Sort *) plan)->limitCount
-						   || ((Sort *) plan)->limitOffset);
-
 			bool bNoDup = ((Sort *) plan)->noduplicates;
 
 			char *SortKeystr = "Sort Key";
 
-			if ((bLimit && bNoDup))
-				SortKeystr = "Sort Key (Limit Distinct)";
-			else if (bLimit)
-				SortKeystr = "Sort Key (Limit)";
-			else if (bNoDup)
+			if (bNoDup)
 				SortKeystr = "Sort Key (Distinct)";
 
 			show_sort_keys(plan,

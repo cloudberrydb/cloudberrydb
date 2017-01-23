@@ -575,6 +575,8 @@ tuplesort_begin_common(ScanState *ss, int workMem, bool randomAccess, bool alloc
 
 	state->status = TSS_INITIAL;
 	state->randomAccess = randomAccess;
+	state->mkctxt.bounded = false;
+	state->mkctxt.boundUsed = false;
 	state->memAllowed = workMem * 1024L;
 
 	state->work_set = NULL;
@@ -615,24 +617,11 @@ tuplesort_begin_common(ScanState *ss, int workMem, bool randomAccess, bool alloc
  *
  */
 void
-cdb_tuplesort_init_mk(Tuplesortstate_mk *state,
-					  int64 offset, int64 limit, int unique, int sort_flags,
+cdb_tuplesort_init_mk(Tuplesortstate_mk *state, int unique, int sort_flags,
 					  int64 maxdistinct)
 {
 	UnusedArg(sort_flags);
 	UnusedArg(maxdistinct);
-
-	if (limit)
-	{
-		int64		uselimit = offset + limit;
-
-		/* Only use limit for less than 10 million */
-		if (uselimit < 10000000)
-		{
-			state->mkctxt.limit = (int32) uselimit;
-			state->mkctxt.limitmask = -1;
-		}
-	}
 
 	if (unique)
 		state->mkctxt.unique = true;
@@ -992,18 +981,21 @@ tuplesort_begin_datum_mk(ScanState *ss,
 void
 tuplesort_set_bound_mk(Tuplesortstate_mk *state, int64 bound)
 {
-	/*
-	 * GPDB_83_MERGE_FIXME: bounded sort not implemented for tuplesort_mk.
-	 * The top-N feature was added to tuplesort.c in PostgreSQL 8.3, but it
-	 * hasn't been ported over to tuplesort_mk.c yet. Or perhaps we should just
-	 * pick the valuable parts of tuplesort_mk.c into tuplesort.c, and get
-	 * rid of the separate tuplesort_mk.c?
-	 *
-	 * Until we do something about this, everything's still going to work,
-	 * but the top-N optimization won't apply when tuplesort_mk is used.
-	 * Note that the planner doesn't know about that, so cost estimates
-	 * involving sorting with tuplesort_mk and LIMIT might be way off.
-	 */
+	Assert(!state->mkctxt.bounded);
+
+#ifdef DEBUG_BOUNDED_SORT
+	/* Honor GUC setting that disables the feature (for easy testing) */
+	if (!optimize_bounded_sort)
+		return;
+#endif
+
+	/* We want to be able to compute bound * 2, so limit the setting */
+	if (bound > (int64) (INT_MAX / 2))
+		return;
+
+	state->mkctxt.bounded = true;
+	state->mkctxt.bound = (int) bound;
+	state->mkctxt.limitmask = -1;
 }
 
 /*
@@ -1279,7 +1271,7 @@ puttuple_common(Tuplesortstate_mk *state, MKEntry *e)
 			}
 
 			/* full sort? */
-			if (state->mkctxt.limit == 0)
+			if (!state->mkctxt.bounded)
 			{
 				tuplesort_inmem_nolimit_insert(state, e);
 			}
@@ -1300,7 +1292,7 @@ puttuple_common(Tuplesortstate_mk *state, MKEntry *e)
 					 * the heap. No need to spill in this case, we'll just use
 					 * the in-memory heap.
 					 */
-					Assert(state->mkctxt.limit != 0);
+					Assert(state->mkctxt.bounded);
 					Assert(state->numTuplesInMem == state->mkheap->count);
 				}
 				else
@@ -1354,7 +1346,7 @@ tuplesort_performsort_mk(Tuplesortstate_mk *state)
 			 * We were able to accumulate all the tuples within the allowed
 			 * amount of memory.  Just qsort 'em and we're done.
 			 */
-			if (state->mkctxt.limit == 0)
+			if (!state->mkctxt.bounded)
 				mk_qsort(state->entries, state->entry_count, &state->mkctxt);
 			else
 				tuplesort_limit_sort(state);
@@ -1364,6 +1356,10 @@ tuplesort_performsort_mk(Tuplesortstate_mk *state)
 			state->pos.markpos.mempos = 0;
 			state->pos.markpos_eof = false;
 			state->status = TSS_SORTEDINMEM;
+			if (state->mkctxt.bounded)
+			{
+				state->mkctxt.boundUsed = true;
+			}
 
 			/* Not shareinput sort, we are done. */
 			if (!is_sortstate_rwfile(state))
@@ -2663,9 +2659,14 @@ tuplesort_explain_mk(Tuplesortstate_mk *state)
 	switch (state->status)
 	{
 		case TSS_SORTEDINMEM:
-			snprintf(result, 100,
-					 "Sort Method:  quicksort  Memory: %ldkB",
-					 spaceUsed);
+			if (state->mkctxt.boundUsed)
+				snprintf(result, 100,
+						"Sort Method:  top-N heapsort  Memory: %ldkB",
+						spaceUsed);
+			else
+				snprintf(result, 100,
+						"Sort Method:  quicksort  Memory: %ldkB",
+						spaceUsed);
 			break;
 		case TSS_SORTEDONTAPE:
 			snprintf(result, 100,
@@ -3577,7 +3578,7 @@ tupsort_prepare_char(MKEntry *a, bool isCHAR)
 static void
 tuplesort_inmem_limit_insert(Tuplesortstate_mk *state, MKEntry *entry)
 {
-	Assert(state->mkctxt.limit > 0);
+	Assert(state->mkctxt.bounded);
 	Assert(is_under_sort_or_exec_ctxt(state));
 	Assert(!mke_is_empty(entry));
 
@@ -3597,7 +3598,7 @@ tuplesort_inmem_limit_insert(Tuplesortstate_mk *state, MKEntry *entry)
 		state->entries[state->entry_count++] = *entry;
 		state->numTuplesInMem++;
 
-		if (state->entry_count == state->mkctxt.limit)
+		if (state->entry_count == state->mkctxt.bound)
 		{
 			/* B: just hit limit. Create heap from array */
 			state->mkheap = mkheap_from_array(state->entries,
@@ -3637,7 +3638,7 @@ static void
 tuplesort_inmem_nolimit_insert(Tuplesortstate_mk *state, MKEntry *entry)
 {
 	Assert(state->status == TSS_INITIAL);
-	Assert(state->mkctxt.limit == 0);
+	Assert(!state->mkctxt.bounded);
 	Assert(is_under_sort_or_exec_ctxt(state));
 	Assert(!mke_is_empty(entry));
 	Assert(state->entry_count < state->entry_allocsize);
@@ -3686,12 +3687,12 @@ tuplesort_heap_insert(Tuplesortstate_mk *state, MKEntry *e)
 static void
 tuplesort_limit_sort(Tuplesortstate_mk *state)
 {
-	Assert(state->mkctxt.limit > 0);
+	Assert(state->mkctxt.bounded);
 	Assert(is_under_sort_or_exec_ctxt(state));
 
 	if (!state->mkheap)
 	{
-		Assert(state->entry_count <= state->mkctxt.limit);
+		Assert(state->entry_count <= state->mkctxt.bound);
 		mk_qsort(state->entries, state->entry_count, &state->mkctxt);
 		return;
 	}
