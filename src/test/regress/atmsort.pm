@@ -275,12 +275,6 @@ s/\s+\(seg.*pid.*\)//
 m/^(?:ERROR|WARNING|CONTEXT|NOTICE):.*gid\s+=\s+(?:\d+)/
 s/gid.*/gid DUMMY/
 
-m/^(?:ERROR|WARNING|CONTEXT|NOTICE):.*DTM error.*gathered (?:\d+) results from cmd.*/
-s/gathered.*results/gathered SOME_NUMBER_OF results/
-
-m/^(?:ERROR|WARNING|CONTEXT|NOTICE):\s+Could not .* savepoint/
-s/\.c\:\d+\)/\.c\:SOME_LINE\)/
-
 m/^(?:ERROR|WARNING|CONTEXT|NOTICE):.*connection.*failed.*(?:http|gpfdist)/
 s/connection.*failed.*(http|gpfdist).*/connection failed dummy_protocol\:\/\/DUMMY_LOCATION/
 

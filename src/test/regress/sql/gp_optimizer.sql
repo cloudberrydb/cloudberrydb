@@ -5,6 +5,12 @@
 -- show version
 SELECT count(*) from gp_opt_version();
 
+-- Mask out Log & timestamp for orca message that has feature not supported.
+-- start_matchsubs
+-- m/^LOG.*\"Feature/
+-- s/^LOG.*\"Feature/\"Feature/
+-- end_matchsubs
+
 -- fix the number of segments for Orca
 set optimizer_segments = 3;
 

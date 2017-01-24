@@ -1,4 +1,11 @@
 -- Misc tests related to dispatching queries to segments.
+-- Mask out the whoami message
+-- start_matchsubs
+-- m/^ \(seg\d .*:\d+\)/
+-- s/^ \(seg\d .*:\d+\)//
+-- m/^DETAIL:  Internal error: No motion listener port \(seg\d.*:.*\)/
+-- s/^DETAIL:  Internal error: No motion listener port \(seg\d.*:.*\)/DETAIL:  Internal error: No motion listener port/
+-- end_matchsubs
 -- Test quoting of GUC values and databse names when they're sent to segments
 -- There used to be a bug in the quoting when the search_path setting was sent
 -- to the segment. It was not easily visible when search_path was set with a

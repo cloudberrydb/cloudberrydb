@@ -1,3 +1,7 @@
+-- This file contains global patterns of messages that should be ignored or
+-- masked out, when comparing test results with the expected output.
+-- Individual tests can contain additional patterns specific to the test.
+
 -- start_matchignore
 # match ignore the gpmon WARNING message
 m/^WARNING:  gpmon:.*Connection refused.*/
@@ -78,14 +82,4 @@ s/overlaps existing partition "r\d+"/partition "r##########"/
 m/Table "pg_temp_\d+.temp/
 s/Table "pg_temp_\d+.temp/Table "pg_temp_#####/
 
-# Mask out Log & timestamp for orca message that has feature not supported.
-m/^LOG.*\"Feature/
-s/^LOG.*\"Feature/\"Feature/
-
-m/^DETAIL:  Internal error: No motion listener port \(seg\d.*:.*\)/
-s/^DETAIL:  Internal error: No motion listener port \(seg\d.*:.*\)//
-
-# Mask out whoami message for dispatch
-m/^ \(seg\d .*:\d+\)/
-s/^ \(seg\d .*:\d+\)//
 -- end_matchsubs
