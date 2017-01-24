@@ -1,9 +1,7 @@
---Generate 
-
 --start_ignore
-drop database if exists tpch_heap;
-create database tpch_heap;
-\c tpch_heap
+drop database if exists mpph_ao;
+create database mpph_ao;
+\c mpph_ao
 drop table if exists customer;
 drop table if exists lineitem;
 drop table if exists nation;
@@ -12,7 +10,7 @@ drop table if exists part;
 drop table if exists partsupp;
 drop table if exists region;
 drop table if exists supplier;
---end_ignore 
+--end_ignore
 
 CREATE TABLE customer (
     c_custkey integer NOT NULL,
@@ -24,7 +22,7 @@ CREATE TABLE customer (
     c_mktsegment character(10) NOT NULL,
     c_comment character varying(117) NOT NULL
 )
-WITH (appendonly=false) DISTRIBUTED BY (c_custkey);
+WITH (appendonly=true) DISTRIBUTED BY (c_custkey);
 
 CREATE TABLE lineitem (
     l_orderkey bigint NOT NULL,
@@ -44,7 +42,7 @@ CREATE TABLE lineitem (
     l_shipmode character(10) NOT NULL,
     l_comment character varying(44) NOT NULL
 )
-WITH (appendonly=false) DISTRIBUTED BY (l_orderkey);
+WITH (appendonly=true) DISTRIBUTED BY (l_orderkey);
 
 CREATE TABLE nation (
     n_nationkey integer,
@@ -65,7 +63,7 @@ CREATE TABLE orders (
     o_shippriority integer NOT NULL,
     o_comment character varying(79) NOT NULL
 )
-WITH (appendonly=false) DISTRIBUTED BY (o_orderkey);
+WITH (appendonly=true) DISTRIBUTED BY (o_orderkey);
 
 CREATE TABLE part (
     p_partkey integer NOT NULL,
@@ -78,7 +76,7 @@ CREATE TABLE part (
     p_retailprice numeric(15,2) NOT NULL,
     p_comment character varying(23) NOT NULL
 )
-WITH (appendonly=false) DISTRIBUTED BY (p_partkey);
+WITH (appendonly=true) DISTRIBUTED BY (p_partkey);
 
 
 CREATE TABLE partsupp (
@@ -88,7 +86,7 @@ CREATE TABLE partsupp (
     ps_supplycost numeric(15,2) NOT NULL,
     ps_comment character varying(199) NOT NULL
 )
-WITH (appendonly=false) DISTRIBUTED BY (ps_partkey);
+WITH (appendonly=true) DISTRIBUTED BY (ps_partkey);
 
 
 CREATE TABLE region (
@@ -96,7 +94,7 @@ CREATE TABLE region (
     r_name character(25) NOT NULL,
     r_comment character varying(152)
 )
-WITH (appendonly=false) DISTRIBUTED BY (r_regionkey);
+WITH (appendonly=true) DISTRIBUTED BY (r_regionkey);
 
 CREATE TABLE supplier (
     s_suppkey integer NOT NULL,
@@ -107,23 +105,17 @@ CREATE TABLE supplier (
     s_acctbal numeric(15,2) NOT NULL,
     s_comment character varying(101) NOT NULL
 )
-WITH (appendonly=false) DISTRIBUTED BY (s_suppkey);
-
-
+WITH (appendonly=true) DISTRIBUTED BY (s_suppkey);
 
 \copy customer (C_CUSTKEY,C_NAME,C_ADDRESS,C_NATIONKEY,C_PHONE,C_ACCTBAL,C_MKTSEGMENT,C_COMMENT) from 'data/customer.csv' with delimiter '|';
 
-\copy lineitem ( L_ORDERKEY, L_PARTKEY, L_SUPPKEY,L_LINENUMBER,L_QUANTITY, L_EXTENDEDPRICE,L_DISCOUNT,L_TAX,L_RETURNFLAG,L_LINESTATUS,L_SHIPDATE,L_COMMITDATE,L_RECEIPTDATE,L_SHIPINSTRUCT,L_SHIPMODE,L_COMMENT) from 'data/lineitem.csv' with delimiter '|'; 
-
+\copy lineitem ( L_ORDERKEY, L_PARTKEY, L_SUPPKEY,L_LINENUMBER,L_QUANTITY, L_EXTENDEDPRICE,L_DISCOUNT,L_TAX,L_RETURNFLAG,L_LINESTATUS,L_SHIPDATE,L_COMMITDATE,L_RECEIPTDATE,L_SHIPINSTRUCT,L_SHIPMODE,L_COMMENT) from 'data/lineitem.csv' with delimiter '|';
+  
 \copy nation (N_NATIONKEY ,N_NAME, N_REGIONKEY,N_COMMENT) from 'data/nation.csv' with delimiter '|';
 
-\copy orders ( O_ORDERKEY,O_CUSTKEY,O_ORDERSTATUS,O_TOTALPRICE,O_ORDERDATE,O_ORDERPRIORITY,O_CLERK,O_SHIPPRIORITY,O_COMMENT) from 'data/order.csv' with delimiter '|'; 
+\copy orders ( O_ORDERKEY,O_CUSTKEY,O_ORDERSTATUS,O_TOTALPRICE,O_ORDERDATE,O_ORDERPRIORITY,O_CLERK,O_SHIPPRIORITY,O_COMMENT) from 'data/order.csv' with delimiter '|';
 
-\copy part (P_PARTKEY,P_NAME,P_MFGR,P_BRAND,P_TYPE,P_SIZE,P_CONTAINER,P_RETAILPRICE,P_COMMENT)from 'data/part.csv' with delimiter '|'; 
-
-\copy partsupp (PS_PARTKEY,PS_SUPPKEY,PS_AVAILQTY,PS_SUPPLYCOST,PS_COMMENT ) from 'data/partsupp.csv' with delimiter '|';
-
+\copy part (P_PARTKEY,P_NAME,P_MFGR,P_BRAND,P_TYPE,P_SIZE,P_CONTAINER,P_RETAILPRICE,P_COMMENT)from 'data/part.csv' with delimiter '|';
+     \copy partsupp (PS_PARTKEY,PS_SUPPKEY,PS_AVAILQTY,PS_SUPPLYCOST,PS_COMMENT ) from 'data/partsupp.csv' with delimiter '|';
 \copy region ( R_REGIONKEY,R_NAME,R_COMMENT) from 'data/region.csv' with delimiter '|';
-
 \copy supplier (S_SUPPKEY,S_NAME,S_ADDRESS,S_NATIONKEY,S_PHONE,S_ACCTBAL,S_COMMENT) from 'data/supplier.csv' with delimiter '|';
-

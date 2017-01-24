@@ -1,4 +1,4 @@
-\c tpch_heap
+\c mpph_heap
 drop table if exists olap_customer;
 drop table if exists olap_product;
 drop table if exists olap_vendor;

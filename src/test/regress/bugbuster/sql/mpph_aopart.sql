@@ -1,4 +1,4 @@
-\c tpch_heap
+\c mpph_heap
 
 -- Create table region
 CREATE TABLE aopart_REGION (
@@ -156,13 +156,13 @@ create view revenue (supplier_no, total_revenue) as
     group by l_suppkey;
 ANALYZE aopart_LINEITEM;
 
-select 'TPCH QUERY 01', l_returnflag, l_linestatus, sum(l_quantity) as sum_qty, sum(l_extendedprice) as sum_base_price,
+select 'MPPH QUERY 01', l_returnflag, l_linestatus, sum(l_quantity) as sum_qty, sum(l_extendedprice) as sum_base_price,
     sum(l_extendedprice*(1-l_discount)) as sum_disc_price, sum(l_extendedprice*(1-l_discount)*(1+l_tax)) as sum_charge,
     avg(l_quantity) as avg_qty, avg(l_extendedprice) as avg_price, avg(l_discount) as avg_disc, count(*) as count_order
     from aopart_lineitem where l_shipdate <= date '1998-12-01' - interval '90 day' group by l_returnflag, l_linestatus
     order by l_returnflag, l_linestatus;
 
-select 'TPCH QUERY 02', s.s_acctbal,s.s_name,n.n_name,p.p_partkey,p.p_mfgr,s.s_address,s.s_phone,s.s_comment
+select 'MPPH QUERY 02', s.s_acctbal,s.s_name,n.n_name,p.p_partkey,p.p_mfgr,s.s_address,s.s_phone,s.s_comment
     from aopart_supplier s, aopart_partsupp ps, aopart_nation n, aopart_region r, aopart_part p,
         (select p_partkey, min(ps_supplycost) as min_ps_cost
             from aopart_part, aopart_partsupp , aopart_supplier,aopart_nation, aopart_region
@@ -173,30 +173,30 @@ select 'TPCH QUERY 02', s.s_acctbal,s.s_name,n.n_name,p.p_partkey,p.p_mfgr,s.s_a
           s.s_suppkey = ps.ps_suppkey and p.p_size = 15 and p.p_type like '%BRASS' and s.s_nationkey = n.n_nationkey and
           n.n_regionkey = r.r_regionkey and r.r_name = 'EUROPE' order by s. s_acctbal desc,n.n_name,s.s_name,p.p_partkey limit 100;
 
-select 'TPCH QUERY 03', l_orderkey,sum(l_extendedprice*(1-l_discount)) as revenue,o_orderdate, o_shippriority
+select 'MPPH QUERY 03', l_orderkey,sum(l_extendedprice*(1-l_discount)) as revenue,o_orderdate, o_shippriority
     from aopart_customer,aopart_orders,aopart_lineitem
     where c_mktsegment = 'BUILDING' and c_custkey = o_custkey and l_orderkey = o_orderkey and
           o_orderdate < date '15-mar-1995' and l_shipdate > date '15-mar-1995'
     group by l_orderkey,o_orderdate,o_shippriority order by revenue desc,o_orderdate limit 10;
 
-select 'TPCH QUERY 04',o_orderpriority,count (distinct o_orderkey) as order_count
+select 'MPPH QUERY 04',o_orderpriority,count (distinct o_orderkey) as order_count
     from aopart_orders left join aopart_lineitem on l_orderkey = o_orderkey
     where o_orderdate >= date '1-jul-1993' and o_orderdate < date '1-jul-1993' + interval '3 month' and
           l_commitdate < l_receiptdate and l_orderkey is not null
     group by o_orderpriority order by o_orderpriority;
 
-select 'TPCH QUERY 05',n_name, sum(l_extendedprice * (1 - l_discount)) as revenue
+select 'MPPH QUERY 05',n_name, sum(l_extendedprice * (1 - l_discount)) as revenue
     from aopart_customer, aopart_orders, aopart_lineitem, aopart_supplier, aopart_nation, aopart_region
     where c_custkey = o_custkey and l_orderkey = o_orderkey and l_suppkey = s_suppkey and c_nationkey = s_nationkey and
           s_nationkey = n_nationkey and n_regionkey = r_regionkey and r_name = 'ASIA' and o_orderdate >= date '1-jan-1994' and
           o_orderdate < date '1-jan-1994' + interval '1 year'
     group by n_name order by revenue desc;
 
-select 'TPCH QUERY 06',sum(l_extendedprice*l_discount) as revenue
+select 'MPPH QUERY 06',sum(l_extendedprice*l_discount) as revenue
     from aopart_lineitem where l_shipdate >= date '1-jan-1994' and l_shipdate < date '1-jan-1994' + interval '1 year' and
          l_discount between 0.06 - 0.01 and 0.06 + 0.01 and l_quantity < 24;
 
-select 'TPCH QUERY 07',supp_nation,cust_nation,l_year, sum(volume) as revenue
+select 'MPPH QUERY 07',supp_nation,cust_nation,l_year, sum(volume) as revenue
     from (
         select n1.n_name as supp_nation,n2.n_name as cust_nation, extract(year from l_shipdate) as l_year,
                l_extendedprice * (1 - l_discount) as volume
@@ -206,7 +206,7 @@ select 'TPCH QUERY 07',supp_nation,cust_nation,l_year, sum(volume) as revenue
               n2.n_name = 'FRANCE')) and l_shipdate between date '1995-01-01' and date '1996-12-31') as shipping
     group by supp_nation,cust_nation,l_year order by supp_nation,cust_nation,l_year;
 
-select 'TPCH QUERY 08',o_year, sum(case when nation = 'BRAZIL' then volume else 0 end) / sum(volume) as mkt_share
+select 'MPPH QUERY 08',o_year, sum(case when nation = 'BRAZIL' then volume else 0 end) / sum(volume) as mkt_share
     from (
         select extract(year from o_orderdate) as o_year, l_extendedprice * (1-l_discount) as volume, n2.n_name as nation
             from aopart_part,aopart_supplier,aopart_lineitem,aopart_orders,aopart_customer,aopart_nation n1,aopart_nation n2,aopart_region
@@ -215,7 +215,7 @@ select 'TPCH QUERY 08',o_year, sum(case when nation = 'BRAZIL' then volume else 
                   and o_orderdate between date '1995-01-01' and date '1996-12-31' and p_type = 'ECONOMY ANODIZED STEEL') as all_nations
     group by o_year order by o_year;
 
-select 'TPCH QUERY 09',nation,o_year,sum(amount) as sum_profit
+select 'MPPH QUERY 09',nation,o_year,sum(amount) as sum_profit
     from (
         select n_name as nation,extract(year from o_orderdate) as o_year,
                l_extendedprice * (1 - l_discount) - ps_supplycost * l_quantity as amount
@@ -224,13 +224,13 @@ select 'TPCH QUERY 09',nation,o_year,sum(amount) as sum_profit
             o_orderkey = l_orderkey and s_nationkey = n_nationkey and p_name like '%green%') as profit
     group by nation,o_year order by nation,o_year desc;
 
-select 'TPCH QUERY 10', c_custkey,c_name,sum(l_extendedprice * (1 - l_discount)) as revenue, c_acctbal,n_name,c_address,c_phone,c_comment
+select 'MPPH QUERY 10', c_custkey,c_name,sum(l_extendedprice * (1 - l_discount)) as revenue, c_acctbal,n_name,c_address,c_phone,c_comment
     from aopart_customer,aopart_orders,aopart_lineitem,aopart_nation
     where c_custkey = o_custkey and l_orderkey = o_orderkey and o_orderdate >= date '1-oct-1993' and o_orderdate < date '1-oct-1993' +
           interval '3 month' and l_returnflag = 'R' and c_nationkey = n_nationkey
     group by c_custkey,c_name,c_acctbal,c_phone,n_name,c_address,c_comment order by revenue desc limit 20;
 
-select 'TPCH QUERY 11', ps_partkey,sum(ps_supplycost * ps_availqty) as value
+select 'MPPH QUERY 11', ps_partkey,sum(ps_supplycost * ps_availqty) as value
     from aopart_partsupp,aopart_supplier,aopart_nation
     where ps_suppkey = s_suppkey and s_nationkey = n_nationkey and n_name = 'GERMANY'
     group by ps_partkey having sum(ps_supplycost * ps_availqty) > (
@@ -239,47 +239,47 @@ select 'TPCH QUERY 11', ps_partkey,sum(ps_supplycost * ps_availqty) as value
             where ps_suppkey = s_suppkey and s_nationkey = n_nationkey and n_name = 'GERMANY')
     order by value desc;
 
-select 'TPCH QUERY 12', l_shipmode, sum(case when o_orderpriority ='1-URGENT' or o_orderpriority ='2-HIGH' then 1 else 0 end) as
+select 'MPPH QUERY 12', l_shipmode, sum(case when o_orderpriority ='1-URGENT' or o_orderpriority ='2-HIGH' then 1 else 0 end) as
        high_line_count, sum(case when o_orderpriority <> '1-URGENT' and o_orderpriority <> '2-HIGH' then 1 else 0 end) as low_line_count
     from aopart_orders, aopart_lineitem
     where o_orderkey = l_orderkey and l_shipmode in ('MAIL', 'SHIP') and l_commitdate < l_receiptdate and l_shipdate < l_commitdate and
           l_receiptdate >= date '1-jan-1994' and l_receiptdate < date '1-jan-1994' + interval '1 year'
     group by l_shipmode order by l_shipmode;
 
-select 'TPCH QUERY 13', c_count, count(*) as custdist
+select 'MPPH QUERY 13', c_count, count(*) as custdist
     from (
         select c_custkey, count(o_orderkey)
             from aopart_customer left outer join aopart_orders on c_custkey = o_custkey and o_comment not like '%special%requests%'
             group by c_custkey ) as c_orders (c_custkey, c_count)
     group by c_count order by custdist desc,c_count desc;
 
-select 'TPCH QUERY 14', 100.00 * sum(case when p_type like 'PROMO%' then l_extendedprice*(1-l_discount) else 0 end) /
+select 'MPPH QUERY 14', 100.00 * sum(case when p_type like 'PROMO%' then l_extendedprice*(1-l_discount) else 0 end) /
        sum(l_extendedprice * (1 - l_discount)) as promo_revenue 
     from aopart_lineitem,aopart_part
     where l_partkey = p_partkey and l_shipdate >= date '1-sep-1995' and l_shipdate < date '1-sep-1995' + interval '1 month';
 
-select 'TPCH QUERY 15',s_suppkey, s_name, s_address, s_phone, total_revenue
+select 'MPPH QUERY 15',s_suppkey, s_name, s_address, s_phone, total_revenue
     from aopart_supplier,revenue
     where s_suppkey = supplier_no and total_revenue = ( select max(total_revenue) from revenue ) order by s_suppkey;
 
-select 'TPCH QUERY 16a', p_brand, p_type, p_size, count(distinct ps_suppkey) as supplier_cnt
+select 'MPPH QUERY 16a', p_brand, p_type, p_size, count(distinct ps_suppkey) as supplier_cnt
     from aopart_part, aopart_partsupp left join aopart_supplier on (ps_suppkey=s_suppkey and s_comment like '%Customer%Complaints%' )
     where p_partkey = ps_partkey and p_brand <> 'Brand#45' and p_type not like 'MEDIUM POLISHED%' and
           p_size in (49, 14, 23, 45, 19, 3, 36, 9) and s_suppkey is null
     group by p_brand, p_type, p_size order by supplier_cnt desc, p_brand, p_type, p_size;
 
-select 'TPCH QUERY 17a', sum(l_extendedprice) / 7.0 as avg_yearly
+select 'MPPH QUERY 17a', sum(l_extendedprice) / 7.0 as avg_yearly
     from aopart_lineitem l, aopart_part, ( select l_partkey, avg(l_quantity) as avg_qty from aopart_lineitem group by l_partkey ) g
     where p_partkey = l.l_partkey and p_partkey = g.l_partkey and l.l_quantity < 0.2* g.avg_qty and p_brand = 'Brand#23' and
           p_container = 'JUMBO PACK';
 
-select c_name, c_custkey, o_orderkey,'TPCH QUERY 18', o_orderdate, o_totalprice, sum(l_quantity)
+select c_name, c_custkey, o_orderkey,'MPPH QUERY 18', o_orderdate, o_totalprice, sum(l_quantity)
     from aopart_customer, aopart_orders, aopart_lineitem
     where o_orderkey in ( select l_orderkey from aopart_lineitem group by l_orderkey having sum(l_quantity) > 300 ) and
           c_custkey = o_custkey and o_orderkey = l_orderkey
     group by c_name,c_custkey,o_orderkey,o_orderdate,o_totalprice order by o_totalprice desc,o_orderdate;
 
-select 'TPCH QUERY 19',sum(l_extendedprice* (1 - l_discount)) as revenue
+select 'MPPH QUERY 19',sum(l_extendedprice* (1 - l_discount)) as revenue
     from aopart_lineitem, aopart_part
     where p_partkey = l_partkey and l_shipmode in ('AIR', 'AIR REG') and l_shipinstruct = 'DELIVER IN PERSON' and
           ( ( p_brand = 'Brand#12' and p_container in ('SM CASE', 'SM BOX', 'SM PACK', 'SM PKG') and l_quantity >= 1 and
@@ -288,7 +288,7 @@ select 'TPCH QUERY 19',sum(l_extendedprice* (1 - l_discount)) as revenue
           and p_container in ('LG CASE', 'LG BOX', 'LG PACK', 'LG PKG') and l_quantity >= 20 and l_quantity <= 20 + 10 and
           p_size between 1 and 15 ) );
 
-select 'TPCH QUERY 20',s_name,s_address
+select 'MPPH QUERY 20',s_name,s_address
     from aopart_supplier, aopart_nation
     where s_suppkey in (
         select ps_suppkey from aopart_partsupp, (
@@ -299,7 +299,7 @@ select 'TPCH QUERY 20',s_name,s_address
         where g.l_partkey = ps_partkey and g.l_suppkey = ps_suppkey and ps_availqty > 0.5*g.qty_sum and ps_partkey in (select p_partkey
               from aopart_part where p_name like 'forest%' )) and s_nationkey = n_nationkey and n_name = 'CANADA' order by s_name;
 
-select 'TPCH QUERY 21',s_name, count( distinct (l1.l_orderkey::text || l1.l_linenumber::text)) as numwait
+select 'MPPH QUERY 21',s_name, count( distinct (l1.l_orderkey::text || l1.l_linenumber::text)) as numwait
     from aopart_supplier, aopart_orders, aopart_nation, aopart_lineitem l1 left join aopart_lineitem l2 on (l2.l_orderkey = l1.l_orderkey
          and l2.l_suppkey <> l1.l_suppkey) left join (
         select l3.l_orderkey,l3.l_suppkey
@@ -310,7 +310,7 @@ select 'TPCH QUERY 21',s_name, count( distinct (l1.l_orderkey::text || l1.l_line
           l2.l_orderkey is not null and l4.l_orderkey is null and s_nationkey = n_nationkey and n_name = 'SAUDI ARABIA'
     group by s_name order by numwait desc, s_name limit 100;
 
-select 'TPCH QUERY 22',cntrycode, count(*) as numcust, sum(c_acctbal) as totacctbal
+select 'MPPH QUERY 22',cntrycode, count(*) as numcust, sum(c_acctbal) as totacctbal
     from (
         select substring(c_phone from 1 for 2) as cntrycode, c_acctbal
             from aopart_customer left join aopart_orders on c_custkey = o_custkey

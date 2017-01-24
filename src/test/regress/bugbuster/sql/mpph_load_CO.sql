@@ -1,7 +1,7 @@
 --start_ignore
-drop database if exists tpch_co;
-create database tpch_co;
-\c tpch_co
+drop database if exists mpph_co;
+create database mpph_co;
+\c mpph_co
 drop table if exists customer;
 drop table if exists lineitem;
 drop table if exists nation;

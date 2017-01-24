@@ -1,13 +1,13 @@
-\c tpch_ao
-select 'tpch00-1',count(*), sum(n_nationkey), min(n_nationkey), max(n_nationkey) from nation;
-select 'tpch00-2',count(*), sum(r_regionkey), min(r_regionkey), max(r_regionkey) from region;
-select 'tpch00-3',count(*), sum(p_partkey), min(p_partkey), max(p_partkey) from part;
-select 'tpch00-4',count(*), sum(s_suppkey), min(s_suppkey), max(s_suppkey) from supplier;
-select 'tpch00-5',count(*), sum(ps_partkey + ps_suppkey), min(ps_partkey + ps_suppkey), max(ps_partkey + ps_suppkey) from partsupp;
-select 'tpch00-6',count(*), sum(c_custkey), min(c_custkey), max(c_custkey) from customer;
-select 'tpch00-7',count(*), sum(o_orderkey), min(o_orderkey), max(o_orderkey) from orders;
-select 'tpch00-8',count(*), sum(l_linenumber), min(l_linenumber), max(l_linenumber) from lineitem;
-select  'tpch1',
+\c mpph_co
+select 'mpph00-1',count(*), sum(n_nationkey), min(n_nationkey), max(n_nationkey) from nation;
+select 'mpph00-2',count(*), sum(r_regionkey), min(r_regionkey), max(r_regionkey) from region;
+select 'mpph00-3',count(*), sum(p_partkey), min(p_partkey), max(p_partkey) from part;
+select 'mpph00-4',count(*), sum(s_suppkey), min(s_suppkey), max(s_suppkey) from supplier;
+select 'mpph00-5',count(*), sum(ps_partkey + ps_suppkey), min(ps_partkey + ps_suppkey), max(ps_partkey + ps_suppkey) from partsupp;
+select 'mpph00-6',count(*), sum(c_custkey), min(c_custkey), max(c_custkey) from customer;
+select 'mpph00-7',count(*), sum(o_orderkey), min(o_orderkey), max(o_orderkey) from orders;
+select 'mpph00-8',count(*), sum(l_linenumber), min(l_linenumber), max(l_linenumber) from lineitem;
+select  'mpph1',
 	l_returnflag,
 	l_linestatus,
 	sum(l_quantity) as sum_qty,
@@ -28,7 +28,7 @@ group by
 order by
 	l_returnflag,
 	l_linestatus;
-select  'tpch2',
+select  'mpph2',
 	s.s_acctbal,
 	s.s_name,
 	n.n_name,
@@ -117,7 +117,7 @@ order by
 	s_name,
 	p_partkey
 LIMIT 100;
-select  'tpch3',
+select  'mpph3',
 	l_orderkey,
 	sum(l_extendedprice * (1 - l_discount)) as revenue,
 	o_orderdate,
@@ -140,7 +140,7 @@ order by
 	revenue desc,
 	o_orderdate
 LIMIT 10;
-select  'tpch4',
+select  'mpph4',
         o_orderpriority,
         count(*) as order_count
 from
@@ -161,7 +161,7 @@ group by
         o_orderpriority
 order by
         o_orderpriority;
-select  'tpch5',
+select  'mpph5',
 	n_name,
 	sum(l_extendedprice * (1 - l_discount)) as revenue
 from
@@ -185,7 +185,7 @@ group by
 	n_name
 order by
 	revenue desc;
-select  'tpch6',
+select  'mpph6',
 	sum(l_extendedprice * l_discount) as revenue
 from
 	lineitem
@@ -194,7 +194,7 @@ where
 	and l_shipdate < date '1996-01-01' + interval '1 year'
 	and l_discount between 0.04 - 0.01 and 0.04 + 0.01
 	and l_quantity < 24;
-select  'tpch7',
+select  'mpph7',
 	supp_nation,
 	cust_nation,
 	l_year,
@@ -233,7 +233,7 @@ order by
 	supp_nation,
 	cust_nation,
 	l_year;
-select  'tpch8',
+select  'mpph8',
 	o_year,
 	sum(case
 		when nation = 'PERU' then volume
@@ -270,7 +270,7 @@ group by
 	o_year
 order by
 	o_year;
-select  'tpch9',
+select  'mpph9',
 	nation,
 	o_year,
 	sum(amount) as sum_profit
@@ -302,7 +302,7 @@ group by
 order by
 	nation,
 	o_year desc;
-select  'tpch10',
+select  'mpph10',
 	c_custkey,
 	c_name,
 	sum(l_extendedprice * (1 - l_discount)) as revenue,
@@ -334,7 +334,7 @@ group by
 order by
 	revenue desc
 LIMIT 20;
-select  'tpch11',
+select  'mpph11',
 	ps_partkey,
 	sum(ps_supplycost * ps_availqty) as value
 from
@@ -361,7 +361,7 @@ group by
 		)
 order by
 	value desc;
-select  'tpch12',
+select  'mpph12',
 	l_shipmode,
 	sum(case
 		when o_orderpriority = '1-URGENT'
@@ -389,7 +389,7 @@ group by
 	l_shipmode
 order by
 	l_shipmode;
-select  'tpch13',
+select  'mpph13',
 	c_count,
 	count(*) as custdist
 from
@@ -409,7 +409,7 @@ group by
 order by
 	custdist desc,
 	c_count desc;
-select  'tpch14',
+select  'mpph14',
 	100.00 * sum(case
 		when p_type like 'PROMO%'
 			then l_extendedprice * (1 - l_discount)
@@ -436,7 +436,7 @@ create view revenue0 (supplier_no, total_revenue) as
 
 
 
-select  'tpch15',
+select  'mpph15',
 	s_suppkey,
 	s_name,
 	s_address,
@@ -457,7 +457,7 @@ order by
 	s_suppkey;
 
 drop view revenue0;
-select 'tpch16',
+select 'mpph16',
 	p_brand, 
 	p_type, 
 	p_size, 
@@ -509,7 +509,7 @@ order by
 	supplier_cnt desc,
 	p_brand,
 	p_type,
-	p_size;select 'tpch17',
+	p_size;select 'mpph17',
       sum(l_extendedprice) / 7.0 as avg_yearly
 from
       lineitem,
@@ -547,7 +547,7 @@ where
 		where
 			l_partkey = p_partkey
 	);
-select  'tpch18',
+select  'mpph18',
 	c_name,
 	c_custkey,
 	o_orderkey,
@@ -580,7 +580,7 @@ order by
 	o_totalprice desc,
 	o_orderdate
 LIMIT 100;
-select  'tpch19',
+select  'mpph19',
 	sum(l_extendedprice* (1 - l_discount)) as revenue
 from
 	lineitem,
@@ -614,7 +614,7 @@ where
 		and p_size between 1 and 15
 		and l_shipmode in ('AIR', 'AIR REG')
 		and l_shipinstruct = 'DELIVER IN PERSON'
-	);select  'tpch20',
+	);select  'mpph20',
 	s_name,
 	s_address 
 from 
@@ -682,7 +682,7 @@ where
 	and s_nationkey = n_nationkey
 	and n_name = 'UNITED STATES'
 order by
-	s_name;select  'tpch21',
+	s_name;select  'mpph21',
 	s_name, 
 	count(distinct(l1.l_orderkey||l1.l_linenumber)) as numwait 
 from 
@@ -716,7 +716,7 @@ order by
 	numwait desc, 
 	s_name
 LIMIT 100;
-select  'tpch22',
+select  'mpph22',
 	cntrycode, 
 	count(*) as numcust, 
 	sum(c_acctbal) as totacctbal 
