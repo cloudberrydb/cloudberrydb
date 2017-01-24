@@ -239,7 +239,8 @@ create_gang_retry:
 					Assert(PQsocket(segdbDesc->conn) > 0);
 					Assert(PQsocket(segdbDesc->conn) == fds[currentFdNumber].fd);
 
-					if (fds[currentFdNumber].revents & fds[currentFdNumber].events)
+					if (fds[currentFdNumber].revents & fds[currentFdNumber].events ||
+						fds[currentFdNumber].revents & (POLLERR | POLLHUP | POLLNVAL))
 						pollingStatus[i] = PQconnectPoll(segdbDesc->conn);
 
 					currentFdNumber++;
