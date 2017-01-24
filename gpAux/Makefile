@@ -1240,7 +1240,6 @@ gccVersionCheck :
 
 ifeq ($(BLD_ARCH),$(filter $(BLD_ARCH),rhel7_x86_64 rhel6_x86_64))
 GPPKG_SOURCES = \
-	../src/pl/plperl \
 	$(NULL)
 else
 # Removed filtering logic for building gppkg as on suse11. It was only building
@@ -1250,7 +1249,6 @@ else
 # TODO: As we build for centos6 we can add filtering logic if necessary
 GPPKG_SOURCES = \
 	../contrib/pgcrypto \
-	../src/pl/plperl \
 	../src/bin/pg_dump/cdb/ddboost \
 	extensions/postgis-2.0.3 \
 	extensions/plr \
@@ -1304,12 +1302,10 @@ endif
 
 ifeq ($(BLD_ARCH),$(filter $(BLD_ARCH),rhel7_x86_64 rhel6_x86_64 suse11_x86_64))
 GPPKG_ROOT_DIR = \
-	../src/pl/plperl \
 	$(NULL)
 else
 GPPKG_ROOT_DIR = \
 	../contrib/pgcrypto \
-	../src/pl/plperl \
 	$(NULL)
 endif
 
