@@ -587,10 +587,14 @@ btgetmulti(PG_FUNCTION_ARGS)
 
 	MIRROREDLOCK_BUFMGR_VERIFY_NO_LOCK_LEAK_ENTER;
 
-	if (n == NULL || IsA(n, StreamBitmap))
+	if (n == NULL)
 	{
 		/* XXX should we use less than work_mem for this? */
 		hashBitmap = tbm_create(work_mem * 1024L);
+	}
+	else if (!IsA(n, HashBitmap))
+	{
+		elog(ERROR, "non hash bitmap");
 	}
 	else
 	{
@@ -625,13 +629,6 @@ btgetmulti(PG_FUNCTION_ARGS)
 		tbm_add_tuples(hashBitmap,
 					   &(so->currPos.items[so->currPos.itemIndex].heapTid),
 					   1);
-	}
-
-	if(n && IsA(n, StreamBitmap))
-	{
-		stream_add_node((StreamBitmap *)n,
-			tbm_create_stream_node(hashBitmap), BMS_OR);
-		PG_RETURN_POINTER(n);
 	}
 
 	MIRROREDLOCK_BUFMGR_VERIFY_NO_LOCK_LEAK_EXIT;
