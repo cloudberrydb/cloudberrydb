@@ -20,6 +20,16 @@ insert into rle_runtest select 1, 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa' FROM generate
 select * from rle_runtest;
 drop table rle_runtest;
 
+-- This tests the delta compression's delta computation arithmetic. The bigint
+-- column is used for the same and values inserted are INT64_MIN to INT64_MAX
+-- to check extreme overflow case.
+CREATE TABLE rle_overflowtest (a INT, b BIGINT, c char) WITH (appendonly=true, compresstype=rle_type, orientation=column, compresslevel=1);
+INSERT INTO rle_overflowtest VALUES (1,9223372036854775807,'a'), (1,-9,'b');
+INSERT INTO rle_overflowtest VALUES (1,-9,'c'), (1,9223372036854775807,'d');
+INSERT INTO rle_overflowtest VALUES (1,-9223372036854775808,'e'), (1,9223372036854775807,'f');
+INSERT INTO rle_overflowtest VALUES (1,9223372036854775807,'g'), (1,-9223372036854775808,'h');
+SELECT * FROM rle_overflowtest;
+
 DROP TABLE if exists CO_1_create_table_storage_directive_RLE_TYPE_8192_1;
 
 --

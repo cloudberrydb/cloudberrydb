@@ -3005,7 +3005,13 @@ DatumStreamBlockWrite_PerformDeltaCompression(
 			break;
 	}
 
-	if (delta > MAX_DELTA_SUPPORTED_DELTA_COMPRESSION)
+	/*
+	 * Check if delta value fits the storage reserved for it. Important is to
+	 * also check for overflow case, where delta goes negative. As logic above
+	 * always subtracts smaller number from larger, delta must be positive
+	 * except overflow case.
+	 */
+	if (delta < 0 || delta > MAX_DELTA_SUPPORTED_DELTA_COMPRESSION)
 	{
 		return DELTA_COMPRESSION_NOT_APPLIED;
 	}
