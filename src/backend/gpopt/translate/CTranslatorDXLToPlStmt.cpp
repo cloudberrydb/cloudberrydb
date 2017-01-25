@@ -3052,8 +3052,6 @@ CTranslatorDXLToPlStmt::PsortFromDXLSort
 	CDXLNode *pdxlnChild = (*pdxlnSort)[EdxlsortIndexChild];
 	CDXLNode *pdxlnPrL = (*pdxlnSort)[EdxlsortIndexProjList];
 	CDXLNode *pdxlnFilter = (*pdxlnSort)[EdxlsortIndexFilter];
-	CDXLNode *pdxlnLimitCount = (*pdxlnSort)[EdxlsortIndexLimitCount];
-	CDXLNode *pdxlnLimitOffset = (*pdxlnSort)[EdxlsortIndexLimitOffset];
 
 	CDXLTranslateContext dxltrctxChild(m_pmp, false, pdxltrctxOut->PhmColParam());
 
