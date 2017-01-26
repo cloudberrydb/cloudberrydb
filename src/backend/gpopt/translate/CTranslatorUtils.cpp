@@ -352,9 +352,10 @@ CTranslatorUtils::PdrgpmdidResolvePolymorphicTypes
 	char argModes[ulTotalArgs];
 
 	// copy function argument types
-	for (ULONG ul = 0; ul < ulNumArgs; ul++)
+	ListCell *plcArgType = NULL;
+	ForEach (plcArgType, plArgTypes)
 	{
-		argTypes[ulArgIndex] = gpdb::OidListNth(plArgTypes, ul);
+		argTypes[ulArgIndex] = lfirst_oid(plcArgType);
 		argModes[ulArgIndex++] = PROARGMODE_IN;
 	}
 
