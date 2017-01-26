@@ -2055,21 +2055,6 @@ IndexBuildHeapScan(Relation heapRelation,
 					if (!TransactionIdIsCurrentTransactionId(
 								  HeapTupleHeaderGetXmax(heapTuple->t_data)))
 					{
-						/*
-						 * GPDB_83_MERGE_FIXME:
-						 *
-						 * Before the 8.3 merge, we also didn't throw an error if
-						 * it was a bitmap index. The old comment didn't explain why,
-						 * however. I don't understand why bitmap indexes would behave
-						 * differently here; indexes contain no visibility information,
-						 * this is all about how the heap works.
-						 *
-						 * I'm leaving this as it's in upstream, with no special handling
-						 * for bitmap indexes, to see what breaks. But if someone reports
-						 * a "concurrent delete in progress" error while creating a bitmap
-						 * index on a heap table, then we possibly need to put that
-						 * exception back.
-						 */
 						if (!IsSystemRelation(heapRelation))
 							elog(ERROR, "concurrent delete in progress");
 						else
