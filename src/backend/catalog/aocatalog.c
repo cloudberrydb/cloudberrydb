@@ -166,6 +166,9 @@ CreateAOAuxiliaryTable(
 								 InvalidOid, InvalidOid);
 			break;
 		case RELKIND_AOSEGMENTS:
+			/* Add initial entries in gp_fastsequence */
+			InsertInitialFastSequenceEntries(aoauxiliary_relid);
+
 			UpdateAppendOnlyEntryAuxOids(relOid,
 								 aoauxiliary_relid,
 								 InvalidOid, InvalidOid,
