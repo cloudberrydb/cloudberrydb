@@ -1983,7 +1983,6 @@ REASSIGN OWNED BY sally,ron,ken to admin;
     b_ts_with timestamp with time zone,
     date_column date,
     col_set_default numeric)DISTRIBUTED RANDOMLY;
-CREATE TABLE err_table1 (cmdtime timestamp with time zone, relname text, filename text, linenum integer, bytenum integer, errmsg text, rawdata text, rawbytes bytea) DISTRIBUTED RANDOMLY;    
     insert into test_table1 values ('0_zero', 0, '0_zero', 0, 0, 0, '{0}', 0, 0, '2004-10-19 10:23:54', '2004-10-19 10:23:54+02', '1-1-2000',0);
     insert into test_table1 values ('1_zero', 1, '1_zero', 1, 1, 1, '{1}', 1, 1, '2005-10-19 10:23:54', '2005-10-19 10:23:54+02', '1-1-2001',1);
     insert into test_table1 values ('2_zero', 2, '2_zero', 2, 2, 2, '{2}', 2, 2, '2006-10-19 10:23:54', '2006-10-19 10:23:54+02', '1-1-2002',2);
