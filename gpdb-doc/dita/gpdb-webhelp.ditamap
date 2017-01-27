@@ -9,11 +9,9 @@
 	</frontmatter>
 	<chapter href="common/welcome.xml" navtitle="Welcome"/>
 	<chapter href="common/pivotal-gpdb-features.xml"/>
-	<chapter href="common/server-docs.xml">
-	  <topicref href="admin_guide/admin_guide.ditamap" format="ditamap"/>
-	  <topicref href="ref_guide/ref_guide.ditamap" format="ditamap"/>
-	  <topicref href="utility_guide/utility_guide.ditamap" format="ditamap"/>
-	</chapter>
+	<chapter href="admin_guide/admin_guide.ditamap" format="ditamap"/>
+	<chapter href="utility_guide/utility_guide.ditamap" format="ditamap"/>
+	<chapter href="ref_guide/ref_guide.ditamap" format="ditamap"/>
 	<chapter href="common/client-docs-unix.xml">
 		<topicref href="client_tool_guides/client_tools_unix.ditamap" format="ditamap"/>
 		<topicref href="client_tool_guides/load_tools_unix.ditamap" format="ditamap"/>
