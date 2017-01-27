@@ -1,9 +1,7 @@
 ##
 ## TODO: list test sequence and test dependencies.
 ##
-test: executor subquery
 test: spilltodisk
-test: tiny
 test: wrkloadadmin
 ignore: jdbc
 test: spi
