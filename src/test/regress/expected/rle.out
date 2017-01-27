@@ -11274,5 +11274,6 @@ insert into sml_rle_hdr values (1),(1),(1),(1),(1),(1),(2),(2),(2),(2),(2),(2),(
 alter table sml_rle_hdr add column b float default random();
 -- update / insert / select after this operation
 insert into sml_rle_hdr values (-1,-1.1);
+set client_min_messages=warning;
 update sml_rle_hdr set b = b + 10 where a = -1;
 commit;
