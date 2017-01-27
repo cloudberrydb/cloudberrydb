@@ -29,6 +29,9 @@ test: indexjoin as_alias regex_gp gpparams with_clause transient_types gp_rules
 # dispatch should always run seperately from other cases.
 test: dispatch
 
+# deadlock tests run separately - because we don't know which one gets stuck.
+test: deadlock
+
 # This test will change the gp_workfile_limit_per_segment and will need to restart the DB.
 # It will also use faultinjector - so it needs to be in a group by itself.
 test: segspace_setup

@@ -2980,6 +2980,8 @@ create_mergejoin_plan(PlannerInfo *root,
 	 * We need some kind of strict slackening operator (something which consumes all of its
 	 * input before producing a row of output) for our inner. And we need to prefetch that side
 	 * first.
+	 *
+	 * See motion_sanity_walker() for details on how a deadlock may occur.
 	 */
 	if (best_path->jpath.outerjoinpath->motionHazard && best_path->jpath.innerjoinpath->motionHazard)
 	{

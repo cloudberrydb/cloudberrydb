@@ -1396,6 +1396,8 @@ motion_sanity_walker(Node *node, sanity_result_t *result)
 	 * We avoid this by pre-fetching all the inner tuples in such cases and
 	 * materializing them in some fashion, before moving on to outer_tuples.
 	 * This effectively breaks the cycle and prevents deadlock.
+	 *
+	 * Details: https://groups.google.com/a/greenplum.org/forum/#!msg/gpdb-dev/gMa1tW0x_fk/wuzvGXBaBAAJ
 	 */
 	switch (nodeTag(node))
 	{
