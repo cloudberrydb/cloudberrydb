@@ -69,4 +69,7 @@ s/\.c:\d+/\.c:LINENUMBER/
 m/Checksum: \w+/
 s/Checksum: \w+//
 
+m/External options: {}\n/
+s/External options: {}\n//
+
 -- end_matchsubs

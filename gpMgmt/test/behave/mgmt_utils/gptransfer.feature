@@ -1258,7 +1258,8 @@ Feature: gptransfer tests
         And the database "gptransfer_testdb3" does not exist
         And the database "gptransfer_testdb4" does not exist
         And the database "gptransfer_testdb5" does not exist
-        And the database "gptest" does not exist
+        And the user runs "psql -p $GPTRANSFER_SOURCE_PORT -h $GPTRANSFER_SOURCE_HOST -U $GPTRANSFER_SOURCE_USER -f test/behave/mgmt_utils/steps/data/gptransfer/teardown.sql -d template1"
+        And the user runs "psql -p $GPTRANSFER_DEST_PORT -h $GPTRANSFER_DEST_HOST -U $GPTRANSFER_DEST_USER -f test/behave/mgmt_utils/steps/data/gptransfer/teardown.sql -d template1"
         And the user runs "psql -p $GPTRANSFER_SOURCE_PORT -h $GPTRANSFER_SOURCE_HOST -U $GPTRANSFER_SOURCE_USER -f test/behave/mgmt_utils/steps/data/gptransfer/setup.sql -d template1"
         And the user "GPTRANSFER_SOURCE_USER" creates filespace_config file for "fs" on host "GPTRANSFER_SOURCE_HOST" with gpdb port "GPTRANSFER_SOURCE_PORT" and config "gpfilespace_config_src" in "HOME" directory
         And the user "GPTRANSFER_DEST_USER" creates filespace_config file for "fs" on host "GPTRANSFER_DEST_HOST" with gpdb port "GPTRANSFER_DEST_PORT" and config "gpfilespace_config_dest" in "HOME" directory
