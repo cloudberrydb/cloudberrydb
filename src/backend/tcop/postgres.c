@@ -3492,8 +3492,17 @@ die(SIGNAL_ARGS)
 }
 
 /*
- * Timeout or shutdown signal from postmaster during client authentication.
- * Simply exit(1).
+ * Timeout or shutdown signal from postmaster during client
+ * authentication.  Run proc_exit(1) if one is not already in
+ * progress.  In GPDB, we check for proc_exit_inprogress here in case
+ * a SIGQUIT triggering an authdie happens in the middle of another
+ * proc_exit which can cause a self-deadlock as exit() is not
+ * re-entrant.  Some scenarios where we have seen an opportunity for
+ * double exit() are during filerep postmaster reset (postmaster
+ * sending SIGQUIT to backend process while the backend process is in
+ * proc_exit) and during a bad ProcessStartupPacket (status not
+ * resulting in STATUS_OK triggers proc_exit and a user sends SIGQUIT
+ * to the process).
  *
  * XXX: possible future improvement: try to send a message indicating
  * why we are disconnecting.  Problem is to be sure we don't block while
@@ -3502,7 +3511,8 @@ die(SIGNAL_ARGS)
 void
 authdie(SIGNAL_ARGS)
 {
-	exit(1);
+	if (!proc_exit_inprogress)
+		proc_exit(1);
 }
 
 /*
