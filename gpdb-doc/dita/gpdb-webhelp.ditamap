@@ -8,6 +8,7 @@
 	<frontmatter>
 	</frontmatter>
 	<chapter href="common/welcome.xml" navtitle="Welcome"/>
+	<chapter href="relnotes/GPDB_500_README.xml"/>
 	<chapter href="common/pivotal-gpdb-features.xml"/>
 	<chapter href="admin_guide/admin_guide.ditamap" format="ditamap"/>
 	<chapter href="utility_guide/utility_guide.ditamap" format="ditamap"/>
