@@ -1,7 +1,3 @@
-/*
- * GPDB_83_MERGE_FIXME: PostgreSQL 8.3 added "bounded" sort support to
- * tuplesort.c. It has not been ported to tuplesort_mk.c yet
- */
 /*-------------------------------------------------------------------------
  *
  * tuplesort.c
