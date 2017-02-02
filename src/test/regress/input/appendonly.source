@@ -221,11 +221,11 @@ DROP TABLE tenk_ao4;
 CREATE TABLE tenk_ao1 with(appendonly=true, checksum=true) AS SELECT * FROM tenk_heap;
 -- Incase of CTAS also, gp_fastsequence entries must get created and use segfile 0
 
--- With and without ORCA last_sequence fluctuates bit and hence using > 3300 as
--- inserting 10k tuples to 3 node system must atleast have last_sequence > 3300
+-- With and without ORCA last_sequence fluctuates bit and hence using >= 3300 as
+-- inserting 10k tuples to 3 node system must atleast have last_sequence >= 3300
 -- on each node.
 SELECT CASE WHEN xmin = 2 THEN 'FrozenXid' ELSE 'NormalXid' END, objmod, CASE
-WHEN objmod = 0 THEN last_sequence > 3300 WHEN objmod = 1 THEN last_sequence =
+WHEN objmod = 0 THEN last_sequence >= 3300 WHEN objmod = 1 THEN last_sequence =
 0 END, gp_segment_id from gp_dist_random('gp_fastsequence') WHERE objid IN (SELECT
 segrelid FROM pg_appendonly WHERE relid IN (SELECT oid FROM pg_class WHERE
 relname='tenk_ao1'));
@@ -456,7 +456,7 @@ ALTER TABLE tenk_ao1 RENAME TO tenk_renamed;
 ALTER TABLE tenk_renamed ADD COLUMN newcol int default 10;
 -- Validate post alter gp_fastsequence reflects correctly
 SELECT CASE WHEN xmin = 2 THEN 'FrozenXid' ELSE 'NormalXid' END, objmod, CASE
-WHEN objmod = 0 THEN last_sequence > 3300 WHEN objmod = 1 THEN last_sequence =
+WHEN objmod = 0 THEN last_sequence >= 3300 WHEN objmod = 1 THEN last_sequence =
 0 END, gp_segment_id from gp_dist_random('gp_fastsequence') WHERE objid IN (SELECT
 segrelid FROM pg_appendonly WHERE relid IN (SELECT oid FROM pg_class WHERE
 relname='tenk_renamed'));
