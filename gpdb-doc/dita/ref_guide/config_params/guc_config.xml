@@ -95,7 +95,7 @@
             </row>
             <row>
               <entry colname="col1">restart or reload</entry>
-              <entry colname="col2">When changing parameter values in the postgrsql.conf file(s),
+              <entry colname="col2">When changing parameter values in the postgresql.conf file(s),
                 some require a <i>restart</i> of Greenplum Database for the change to
                 take effect. Other parameter values can be refreshed by just reloading the server
                 configuration file (using <codeph>gpstop -u</codeph>), and do not require stopping

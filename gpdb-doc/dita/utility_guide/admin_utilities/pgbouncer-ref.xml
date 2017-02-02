@@ -1573,7 +1573,7 @@ DETAIL:
                     <entry>Pid of backend server process. If the connection is made over Unix socket
                       and the OS supports getting process ID info, it is the OS pid. Otherwise it is
                       extracted from the cancel packet the server sent, which should be PID in case
-                      server is PostgresSQL, but it is a random number in case server is another
+                      server is PostgreSQL, but it is a random number in case server is another
                       PgBouncer.</entry>
                   </row>
                 </tbody>

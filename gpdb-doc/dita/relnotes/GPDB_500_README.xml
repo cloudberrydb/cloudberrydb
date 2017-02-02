@@ -24,7 +24,7 @@
     <title class="- topic/title ">About Greenplum Database 5.0.0</title>
     <body class="- topic/body ">
       <p>Greenplum Database 5.0.0 is a major new release that includes product changes and
-        integrates many features from PosgreSQL 8.3. Please refer to the following sections for more
+        integrates many features from PostgreSQL 8.3. Please refer to the following sections for more
         information about this release.</p>
       <ul class="- topic/ul " id="ul_j1t_psl_fp">
         <li><xref href="#topic_yxx_bq2_lx" format="dita"/></li>
@@ -48,7 +48,7 @@
   <topic id="topic_yxx_bq2_lx">
     <title>New Features</title>
     <body>
-      <p>Greenplum Database 5.0.0 includes these newfeatures:</p>
+      <p>Greenplum Database 5.0.0 includes these new features:</p>
       <ul id="ul_t5j_wbz_my">
         <li>
           <p>&lt;new features here></p>
