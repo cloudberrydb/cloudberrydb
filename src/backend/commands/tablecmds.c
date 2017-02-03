@@ -9076,6 +9076,15 @@ ATExecClusterOn(Relation rel, const char *indexName)
 {
 	Oid			indexOid;
 
+	if (RelationIsAoRows(rel) || RelationIsAoCols(rel))
+	{
+		ereport(ERROR,
+				(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
+				 errmsg("cannot cluster append-only table \"%s\": not supported",
+						RelationGetRelationName(rel))));
+		return;
+	}
+
 	indexOid = get_relname_relid(indexName, rel->rd_rel->relnamespace);
 
 	if (!OidIsValid(indexOid))
