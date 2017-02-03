@@ -1004,6 +1004,22 @@ gpdb::PnodePartConstraintRel
 }
 
 bool
+gpdb::FHasExternalPartition
+	(
+	Oid oid
+	)
+{
+	GP_WRAP_START;
+	{
+		/* catalog tables: pg_partition, pg_partition_rule */
+		return rel_has_external_partition(oid);
+	}
+	GP_WRAP_END;
+	return false;
+}
+
+
+bool
 gpdb::FLeafPartition
 	(
 	Oid oid

@@ -284,7 +284,10 @@ namespace gpdb {
 
 	// parts of a partitioned table
 	bool FLeafPartition(Oid oid);
-	
+
+	// partition table has an external parition
+	bool FHasExternalPartition(Oid oid);
+
 	// find the oid of the root partition given partition oid belongs to
 	Oid OidRootPartition(Oid oid);
 	
