@@ -37,8 +37,12 @@ insert into testsiscm select i, i % 1000, i % 100000, i % 75 from
 set statement_mem="3MB";
 set gp_resqueue_print_operator_memory_limits=on;
 set gp_cte_sharing=on;
-
 set gp_enable_mk_sort=on;
+-- The expected output is very sensitive to the kind of plan this produces.
+-- We're testing the executor, not the planner, so force ORCA off, to get
+-- the particular plan
+set optimizer=off;
+
 select count(*) from (with ctesisc as
   (select count(i1) as c1,i3 as c2 from testsiscm group by i3)
 select *

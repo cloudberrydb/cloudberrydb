@@ -34,19 +34,19 @@ insert into test_hj_spill SELECT i,i,i%1000,i,i,i,i,i from
 SET statement_mem=1024;
 set gp_resqueue_print_operator_memory_limits=on;
 set gp_workfile_type_hashjoin=buffile;
-select avg(i3) from (SELECT t1.* FROM test_hj_spill AS t1, test_hj_spill AS t2 WHERE t1.i1=t2.i2) foo;
+select avg(i3) from (SELECT t1.* FROM test_hj_spill AS t1 RIGHT JOIN test_hj_spill AS t2 ON t1.i1=t2.i2) foo;
   avg  
 -------
  499.5
 (1 row)
 
-select * from hashjoin_spill.is_workfile_created('explain analyze SELECT t1.* FROM test_hj_spill AS t1, test_hj_spill AS t2 WHERE t1.i1=t2.i2;');
+select * from hashjoin_spill.is_workfile_created('explain analyze SELECT t1.* FROM test_hj_spill AS t1 RIGHT JOIN test_hj_spill AS t2 ON t1.i1=t2.i2;');
  is_workfile_created 
 ---------------------
                    1
 (1 row)
 
-select * from hashjoin_spill.is_workfile_created('explain analyze SELECT t1.* FROM test_hj_spill AS t1, test_hj_spill AS t2 WHERE t1.i1=t2.i2 limit 15000;');
+select * from hashjoin_spill.is_workfile_created('explain analyze SELECT t1.* FROM test_hj_spill AS t1 RIGHT JOIN test_hj_spill AS t2 ON t1.i1=t2.i2 LIMIT 15000;');
  is_workfile_created 
 ---------------------
                    1
@@ -54,38 +54,38 @@ select * from hashjoin_spill.is_workfile_created('explain analyze SELECT t1.* FR
 
 set gp_workfile_type_hashjoin=bfz;
 set gp_workfile_compress_algorithm=zlib;
-select avg(i3) from (SELECT t1.* FROM test_hj_spill AS t1, test_hj_spill AS t2 WHERE t1.i1=t2.i2) foo;
+select avg(i3) from (SELECT t1.* FROM test_hj_spill AS t1 RIGHT JOIN test_hj_spill AS t2 ON t1.i1=t2.i2) foo;
   avg  
 -------
  499.5
 (1 row)
 
-select * from hashjoin_spill.is_workfile_created('explain analyze SELECT t1.* FROM test_hj_spill AS t1, test_hj_spill AS t2 WHERE t1.i1=t2.i2');
+select * from hashjoin_spill.is_workfile_created('explain analyze SELECT t1.* FROM test_hj_spill AS t1 RIGHT JOIN test_hj_spill AS t2 ON t1.i1=t2.i2');
  is_workfile_created 
 ---------------------
                    1
 (1 row)
 
-select * from hashjoin_spill.is_workfile_created('explain analyze SELECT t1.* FROM test_hj_spill AS t1, test_hj_spill AS t2 WHERE t1.i1=t2.i2 limit 15000;');
+select * from hashjoin_spill.is_workfile_created('explain analyze SELECT t1.* FROM test_hj_spill AS t1 RIGHT JOIN test_hj_spill AS t2 ON t1.i1=t2.i2 LIMIT 15000;');
  is_workfile_created 
 ---------------------
                    1
 (1 row)
 
 set gp_workfile_compress_algorithm=NONE;
-select avg(i3) from (SELECT t1.* FROM test_hj_spill AS t1, test_hj_spill AS t2 WHERE t1.i1=t2.i2) foo;
+select avg(i3) from (SELECT t1.* FROM test_hj_spill AS t1 RIGHT JOIN test_hj_spill AS t2 ON t1.i1=t2.i2) foo;
   avg  
 -------
  499.5
 (1 row)
 
-select * from hashjoin_spill.is_workfile_created('explain analyze SELECT t1.* FROM test_hj_spill AS t1, test_hj_spill AS t2 WHERE t1.i1=t2.i2');
+select * from hashjoin_spill.is_workfile_created('explain analyze SELECT t1.* FROM test_hj_spill AS t1 RIGHT JOIN test_hj_spill AS t2 ON t1.i1=t2.i2');
  is_workfile_created 
 ---------------------
                    1
 (1 row)
 
-select * from hashjoin_spill.is_workfile_created('explain analyze SELECT t1.* FROM test_hj_spill AS t1, test_hj_spill AS t2 WHERE t1.i1=t2.i2 limit 15000;');
+select * from hashjoin_spill.is_workfile_created('explain analyze SELECT t1.* FROM test_hj_spill AS t1 RIGHT JOIN test_hj_spill AS t2 ON t1.i1=t2.i2 LIMIT 15000;');
  is_workfile_created 
 ---------------------
                    1

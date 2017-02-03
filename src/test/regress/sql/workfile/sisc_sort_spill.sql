@@ -33,9 +33,12 @@ insert into testsisc select i, i % 1000, i % 100000, i % 75 from
 	(select generate_series(1, nsegments * 50000) as i from
 	(select count(*) as nsegments from gp_segment_configuration where role='p' and content >= 0) foo) bar;
 
-set statement_mem="1MB";
+set statement_mem="2MB";
 set gp_resqueue_print_operator_memory_limits=on;
 set gp_cte_sharing=on;
+-- ORCA optimizes away the ORDER BY in our test query, and therefore doesn't exercise
+-- a Sort that spills.
+set optimizer=off;
 
 set gp_enable_mk_sort=on;
 select avg(i3) from (

@@ -56,6 +56,9 @@ SET statement_mem=1024;
 set gp_resqueue_print_operator_memory_limits=on;
 set enable_hashjoin = false;
 set enable_nestloop = true;
+-- ORCA doesn't honor enable_nestloop/enable_hashjoin, so this won't produce
+-- the kind of plan we're looking for.
+set optimizer=off;
 -- This is the actual test query.
 select * FROM test_mat_small as t1 left outer join test_mat_large AS t2 on t1.i1=t2.i2;
  i1 | i1 | i2 | i3 | i4 | i5 | i6 | i7 | i8 
