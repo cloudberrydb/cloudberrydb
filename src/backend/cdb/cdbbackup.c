@@ -1207,7 +1207,6 @@ gp_restore_launch__(PG_FUNCTION_ARGS)
 	len_name = strlen(pszBackupFileName);
 
 	PQExpBuffer escapeBuf = NULL;
-	PQExpBuffer aclNameBuf = NULL;
 	pszDBName = NULL;
 	pszUserName = NULL;
 	if (MyProcPort != NULL)
@@ -1226,7 +1225,6 @@ gp_restore_launch__(PG_FUNCTION_ARGS)
 		 * escapeBuf buffer until the end of the function.
 		 */
 		escapeBuf = createPQExpBuffer();
-		aclNameBuf = createPQExpBuffer();
 		pszDBName = shellEscape(pszDBName, escapeBuf, true);
 	}
 
@@ -1451,7 +1449,6 @@ gp_restore_launch__(PG_FUNCTION_ARGS)
 	assert(pszBackupFileName != NULL && pszBackupFileName[0] != '\0');
 
 	destroyPQExpBuffer(escapeBuf);
-	destroyPQExpBuffer(aclNameBuf);
 
 	return DirectFunctionCall1(textin, CStringGetDatum(pszBackupFileName));
 }
