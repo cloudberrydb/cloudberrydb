@@ -42,15 +42,6 @@ resources:
     secret_access_key: {{bucket-secret-access-key}}
     versioned_file: {{bin_gpdb_centos_versioned_file}}
 
-- name: sync_tools_gpdb_centos
-  type: s3
-  source:
-    access_key_id: {{bucket-access-key-id}}
-    bucket: {{bucket-name}}
-    region_name: {{aws-region}}
-    secret_access_key: {{bucket-secret-access-key}}
-    versioned_file: {{sync_tools_gpdb_centos_versioned_file}}
-
 - name: installer_rhel6_gpdb_rc
   type: s3
   source:
@@ -159,9 +150,6 @@ jobs:
     - put: bin_gpdb_centos
       params:
         file: gpdb_artifacts/bin_gpdb.tar.gz
-    - put: sync_tools_gpdb_centos
-      params:
-        file: sync_tools_gpdb/sync_tools_gpdb.tar.gz
 
 - name: compile_gpdb_custom_config_centos6
   public: true
@@ -217,9 +205,6 @@ jobs:
   - aggregate:
     - get: gpdb_src
       passed: [compile_gpdb_centos6]
-    - get: sync_tools_gpdb
-      resource: sync_tools_gpdb_centos
-      passed: [compile_gpdb_centos6]
     - get: bin_gpdb
       resource: bin_gpdb_centos
       passed: [compile_gpdb_centos6]
@@ -237,9 +222,6 @@ jobs:
   plan:
   - aggregate:
     - get: gpdb_src
-      passed: [compile_gpdb_centos6]
-    - get: sync_tools_gpdb
-      resource: sync_tools_gpdb_centos
       passed: [compile_gpdb_centos6]
     - get: bin_gpdb
       resource: bin_gpdb_centos
@@ -259,9 +241,6 @@ jobs:
   - aggregate:
     - get: gpdb_src
       passed: [compile_gpdb_centos6]
-    - get: sync_tools_gpdb
-      resource: sync_tools_gpdb_centos
-      passed: [compile_gpdb_centos6]
     - get: bin_gpdb
       resource: bin_gpdb_centos
       passed: [compile_gpdb_centos6]
@@ -279,9 +258,6 @@ jobs:
   plan:
   - aggregate:
     - get: gpdb_src
-      passed: [compile_gpdb_centos6]
-    - get: sync_tools_gpdb
-      resource: sync_tools_gpdb_centos
       passed: [compile_gpdb_centos6]
     - get: bin_gpdb
       resource: bin_gpdb_centos
@@ -301,9 +277,6 @@ jobs:
   - aggregate:
     - get: gpdb_src
       passed: [compile_gpdb_centos6]
-    - get: sync_tools_gpdb
-      resource: sync_tools_gpdb_centos
-      passed: [compile_gpdb_centos6]
     - get: bin_gpdb
       resource: bin_gpdb_centos
       passed: [compile_gpdb_centos6]
@@ -319,9 +292,6 @@ jobs:
   plan:
   - aggregate:
     - get: gpdb_src
-      passed: [compile_gpdb_centos6]
-    - get: sync_tools_gpdb
-      resource: sync_tools_gpdb_centos
       passed: [compile_gpdb_centos6]
     - get: bin_gpdb
       resource: bin_gpdb_centos
@@ -687,9 +657,6 @@ jobs:
     - get: gpdb_src
       passed: [gpdb_rc_packaging_centos]
       trigger: true
-    - get: sync_tools_gpdb
-      passed: [compile_gpdb_centos6]
-      resource: sync_tools_gpdb_centos
     - get: bin_gpdb
       passed: [gpdb_rc_packaging_centos]
       resource: bin_gpdb_centos
