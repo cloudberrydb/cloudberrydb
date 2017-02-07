@@ -45,7 +45,7 @@
 #endif
 
 /*
- * These contants are copied from guc.c. They should not bitrot when we
+ * These constants are copied from guc.c. They should not bitrot when we
  * merge guc.c with upstream, as these are natural constants that never
  * change. guc.c might acquire more of these, though. In that case, we'll
  * just copy the new ones too, as needed.
