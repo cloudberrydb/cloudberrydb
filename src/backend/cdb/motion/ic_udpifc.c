@@ -2741,7 +2741,6 @@ setupOutgoingUDPConnection(ChunkTransportState *transportStates, ChunkTransportS
 	Assert(conn->state == mcsSetupOutgoingConnection);
 	Assert(conn->cdbProc);
 
-	conn->wakeup_ms = 0;
 	conn->remoteContentId = cdbProc->contentid;
 	conn->stat_min_ack_time = ~((uint64)0);
 
@@ -3004,7 +3003,6 @@ SetupUDPIFCInterconnect_Internal(EState *estate)
 
 	estate->interconnect_context->teardownActive = false;
 	estate->interconnect_context->activated = false;
-	estate->interconnect_context->incompleteConns = NIL;
 	estate->interconnect_context->sliceTable = NULL;
 	estate->interconnect_context->sliceId = -1;
 
