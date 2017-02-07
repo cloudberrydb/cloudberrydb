@@ -10998,7 +10998,6 @@ reloptions_list(Oid relid)
 static void
 change_dropped_col_datatypes(Relation rel)
 {
-	int			natts = RelationGetNumberOfAttributes(rel);
 	Relation	catalogRelation;
 	SysScanDesc scan;
 	ScanKeyData key;
@@ -11021,7 +11020,7 @@ change_dropped_col_datatypes(Relation rel)
 
 		if (att->attisdropped)
 		{
-			Assert(att->attnum > 0 && att->attnum <= natts);
+			Assert(att->attnum > 0 && att->attnum <= RelationGetNumberOfAttributes(rel));
 
 			copyTuple = heap_copytuple(tuple);
 			att = (Form_pg_attribute) GETSTRUCT(copyTuple);
