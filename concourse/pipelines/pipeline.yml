@@ -120,6 +120,14 @@ resources:
     start: 4:00 AM
     stop: 5:00 AM
 
+- name: nightly-trigger-pulse
+  type: time
+  source:
+    location: America/Los_Angeles
+    days: [Sunday, Monday, Tuesday, Wednesday, Thursday]
+    start: 6:00 AM
+    stop: 7:00 AM
+
 ## ======================================================================
 ## jobs
 ## ======================================================================
@@ -599,6 +607,25 @@ jobs:
     params:
       <<: *pulse_properties
       PULSE_PROJECT_NAME: "cs-storage"
+
+- name: cs-aoco-compression
+  plan:
+  - get: nightly-trigger-pulse
+    trigger: true
+  - aggregate: *pulse_trigger_resource
+  - task: trigger_pulse
+    tags: ["gpdb5-pulse-worker"]
+    file: gpdb_src/ci/pulse/api/trigger_pulse.yml
+    input_mapping: *input_mappings
+    params:
+      <<: *pulse_properties
+      PULSE_PROJECT_NAME: "cs-aoco-compression"
+  - task: monitor_pulse
+    tags: ["gpdb5-pulse-worker"]
+    file: gpdb_src/ci/pulse/api/monitor_pulse.yml
+    params:
+      <<: *pulse_properties
+      PULSE_PROJECT_NAME: "cs-aoco-compression"
 
 - name: mpp_interconnect
   plan:
