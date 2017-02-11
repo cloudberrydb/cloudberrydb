@@ -298,6 +298,3 @@ WITH (APPENDONLY=ON) DISTRIBUTED BY (c)
 PARTITION BY RANGE(d) (START(1) END (100) EVERY(1));
 ANALYZE T25289_T4;
 
--- CLEANUP
-set client_min_messages='warning';
-drop schema bfv_statistic cascade;

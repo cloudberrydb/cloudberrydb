@@ -296,6 +296,3 @@ select pg_get_constraintdef(pg_constraint.oid) from pg_constraint, pg_class wher
  PRIMARY KEY (a)
 (1 row)
 
--- CLEANUP
-set client_min_messages='warning';
-drop schema bfv_catalog cascade;

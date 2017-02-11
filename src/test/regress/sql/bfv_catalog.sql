@@ -559,6 +559,3 @@ explain select pg_lock_status();
 
 select pg_get_constraintdef(pg_constraint.oid) from pg_constraint, pg_class where conrelid=pg_class.oid and pg_class.relname='mpp_bfv_2';
 
--- CLEANUP
-set client_min_messages='warning';
-drop schema bfv_catalog cascade;

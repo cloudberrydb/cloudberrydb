@@ -475,6 +475,3 @@ NOTICE:  CREATE TABLE will create partition "t25289_t4_1_prt_97" for table "t252
 NOTICE:  CREATE TABLE will create partition "t25289_t4_1_prt_98" for table "t25289_t4"
 NOTICE:  CREATE TABLE will create partition "t25289_t4_1_prt_99" for table "t25289_t4"
 ANALYZE T25289_T4;
--- CLEANUP
-set client_min_messages='warning';
-drop schema bfv_statistic cascade;
