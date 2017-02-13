@@ -4,8 +4,6 @@
 -- MPP-15479: ALTER ROLE SET statement
 DROP ROLE IF EXISTS role_112911;
 NOTICE:  role "role_112911" does not exist, skipping
-NOTICE:  role "role_112911" does not exist, skipping  (seg0 localhost:12001 pid=20806)
-NOTICE:  role "role_112911" does not exist, skipping  (seg1 localhost:12002 pid=20807)
 CREATE ROLE role_112911 WITH LOGIN;
 NOTICE:  resource queue required -- using default resource queue "pg_default"
 CREATE SCHEMA common_schema;
