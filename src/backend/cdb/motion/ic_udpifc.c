@@ -2583,7 +2583,7 @@ getSndBuffer(MotionConn *conn)
  * RETURNS
  *	 Initialized ChunkTransportState for the Sending Motion Node Id.
  */
-ChunkTransportStateEntry *
+static ChunkTransportStateEntry *
 startOutgoingUDPConnections(ChunkTransportState *transportStates,
 							Slice		*sendSlice,
 							int			*pOutgoingCount)
@@ -3217,12 +3217,12 @@ SetupUDPIFCInterconnect(EState *estate)
 static void
 freeDisorderedPackets(MotionConn *conn)
 {
-	int k = 0;
+	int			k;
 
 	if (conn->pkt_q == NULL)
 		return;
 
-	for(; k < Gp_interconnect_queue_depth; k++)
+	for(k = 0; k < Gp_interconnect_queue_depth; k++)
 	{
 		icpkthdr *buf = (icpkthdr *)conn->pkt_q[k];
 		if (buf != NULL)
@@ -3611,7 +3611,6 @@ TeardownUDPIFCInterconnect(ChunkTransportState *transportStates,
 static void
 prepareRxConnForRead(MotionConn *conn)
 {
-
 	elog(DEBUG3, "In prepareRxConnForRead: conn %p, q_head %d q_tail %d q_size %d", conn, conn->pkt_q_head, conn->pkt_q_tail, conn->pkt_q_size);
 
 	Assert(conn->pkt_q[conn->pkt_q_head] != NULL);
@@ -6396,7 +6395,7 @@ handleMismatch(icpkthdr *pkt, struct sockaddr_storage *peer, int peer_len)
 static bool
 cacheFuturePacket(icpkthdr *pkt, struct sockaddr_storage *peer, int peer_len)
 {
-	MotionConn *conn = NULL;
+	MotionConn *conn;
 
 	conn = findConnByHeader(&ic_control_info.startupCacheHtab, pkt);
 
