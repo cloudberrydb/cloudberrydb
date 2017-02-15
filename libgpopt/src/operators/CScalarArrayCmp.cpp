@@ -220,6 +220,11 @@ CScalarArrayCmp::PexprExpand
 	CExpression *pexprLeft = (*pexprArrayCmp)[0];
 	CExpression *pexprRight = (*pexprArrayCmp)[1];
 	CScalarArrayCmp *popArrayCmp = CScalarArrayCmp::PopConvert(pexprArrayCmp->Pop());
+
+	if (CUtils::FScalarArrayCoerce(pexprRight))
+	{
+		pexprRight = (*pexprRight)[0];
+	}
 	const ULONG ulArrayElems = pexprRight->UlArity();
 	if (!CUtils::FScalarArray(pexprRight) || 0 == ulArrayElems)
 	{

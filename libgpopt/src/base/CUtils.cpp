@@ -3958,6 +3958,23 @@ CUtils::FScalarArray
 	return (COperator::EopScalarArray == pexpr->Pop()->Eopid());
 }
 
+//---------------------------------------------------------------------------
+//	@function:
+//		CUtils::FScalarArrayCoerce
+//
+//	@doc:
+//		 Check if given expression is a scalar array coerce
+//
+//---------------------------------------------------------------------------
+BOOL
+CUtils::FScalarArrayCoerce
+	(
+	CExpression *pexpr
+	)
+{
+	return (COperator::EopScalarArrayCoerceExpr == pexpr->Pop()->Eopid());
+}
+
 
 //---------------------------------------------------------------------------
 //	@function:

@@ -76,6 +76,7 @@ const CHAR *rgszPartTblFileNames[] =
 	"../data/dxl/minidump/PartTbl-JoinOverExcept.mdp",
 	"../data/dxl/minidump/PartTbl-RangeJoinPred.mdp",
 	"../data/dxl/minidump/PartTbl-ArrayIn.mdp",
+	"../data/dxl/minidump/PartTbl-ArrayCoerce.mdp",
 	"../data/dxl/minidump/PartTbl-Disjunction.mdp",
 	"../data/dxl/minidump/PartTbl-ComplexPredicate1.mdp",
 	"../data/dxl/minidump/PartTbl-ComplexPredicate2.mdp",

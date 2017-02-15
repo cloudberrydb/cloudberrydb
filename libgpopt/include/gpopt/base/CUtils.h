@@ -730,6 +730,10 @@ namespace gpopt
 			static
 			BOOL FScalarArray(CExpression *pexpr);
 
+			// check if expression is scalar array coerce
+			static
+			BOOL FScalarArrayCoerce(CExpression *pexpr);
+
 			// is the given expression a scalar identifier with the given column reference
 			static
 			BOOL FScalarIdent(CExpression *pexpr, CColRef *pcr);
