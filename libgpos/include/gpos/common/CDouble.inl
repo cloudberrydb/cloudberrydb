@@ -28,14 +28,10 @@ namespace gpos
 inline 
 CDouble::CDouble
 	(
-	DOUBLE d,
-	DOUBLE dMinAbs,
-	DOUBLE dMaxAbs
+	DOUBLE d
 	)
 	:
-	m_d(d),
-	m_dMinAbs(dMinAbs),
-	m_dMaxAbs(dMaxAbs)
+	m_d(d)
 {
 	CheckValidity();
 }
@@ -52,14 +48,10 @@ CDouble::CDouble
 inline 
 CDouble::CDouble
 	(
-	ULLONG ull,
-	DOUBLE dMinAbs,
-	DOUBLE dMaxAbs
+	ULLONG ull
 	)
 	:
-	m_d(DOUBLE(ull)),
-	m_dMinAbs(dMinAbs),
-	m_dMaxAbs(dMaxAbs)
+	m_d(DOUBLE(ull))
 {
 	CheckValidity();
 }
@@ -76,14 +68,10 @@ CDouble::CDouble
 inline 
 CDouble::CDouble
 	(
-	ULONG ul,
-	DOUBLE dMinAbs,
-	DOUBLE dMaxAbs
+	ULONG ul
 	)
 	:
-	m_d(DOUBLE(ul)),
-	m_dMinAbs(dMinAbs),
-	m_dMaxAbs(dMaxAbs)
+	m_d(DOUBLE(ul))
 {
 	CheckValidity();
 }
@@ -100,14 +88,10 @@ CDouble::CDouble
 inline 
 CDouble::CDouble
 	(
-	LINT li,
-	DOUBLE dMinAbs,
-	DOUBLE dMaxAbs
+	LINT li
 	)
 	:
-	m_d(DOUBLE(li)),
-	m_dMinAbs(dMinAbs),
-	m_dMaxAbs(dMaxAbs)
+	m_d(DOUBLE(li))
 {
 	CheckValidity();
 }
@@ -124,14 +108,10 @@ CDouble::CDouble
 inline 
 CDouble::CDouble
 	(
-	INT i,
-	DOUBLE dMinAbs,
-	DOUBLE dMaxAbs
+	INT i
 	)
 	:
-	m_d(DOUBLE(i)),
-	m_dMinAbs(dMinAbs),
-	m_dMaxAbs(dMaxAbs)
+	m_d(DOUBLE(i))
 {
 	CheckValidity();
 }
@@ -149,19 +129,19 @@ inline
 void
 CDouble::CheckValidity()
 {
-	GPOS_ASSERT(0.0 < m_dMinAbs);
-	GPOS_ASSERT(m_dMinAbs < m_dMaxAbs);
+	GPOS_ASSERT(0.0 < GPOS_FP_ABS_MIN);
+	GPOS_ASSERT(GPOS_FP_ABS_MIN < GPOS_FP_ABS_MAX);
 
 	double dAbs = clib::DAbs(m_d);
 
-	if (m_dMaxAbs < dAbs)
+	if (GPOS_FP_ABS_MAX < dAbs)
 	{
-		SetSignedVal(m_dMaxAbs);
+		SetSignedVal(GPOS_FP_ABS_MAX);
 	}
 
-	if (m_dMinAbs > dAbs)
+	if (GPOS_FP_ABS_MIN > dAbs)
 	{
-		SetSignedVal(m_dMinAbs);
+		SetSignedVal(GPOS_FP_ABS_MIN);
 	}
 }
 
@@ -189,31 +169,6 @@ CDouble::SetSignedVal(DOUBLE dVal)
 }
 
 
-#ifdef GPOS_DEBUG
-
-//---------------------------------------------------------------------------
-//	@function:
-//		CDouble::FCompat
-//
-//	@doc:
-//		Check if two instances are compatible
-//
-//---------------------------------------------------------------------------
-inline 
-BOOL
-CDouble::FCompat
-	(
-	const CDouble &fp
-	)
-	const
-{
-	return (CDouble::FEqual(this->m_dMinAbs, fp.m_dMinAbs) &&
-	        CDouble::FEqual(this->m_dMaxAbs, fp.m_dMaxAbs));
-}
-
-#endif // GPOS_DEBUG
-
-
 //---------------------------------------------------------------------------
 //	@function:
 //		operator +
@@ -230,9 +185,7 @@ operator +
 	const CDouble &fpRight
 	)
 {
-	GPOS_ASSERT(fpLeft.FCompat(fpRight));
-
-	return CDouble(fpLeft.m_d + fpRight.m_d, fpLeft.m_dMinAbs, fpLeft.m_dMaxAbs);
+	return CDouble(fpLeft.m_d + fpRight.m_d);
 }
 
 
@@ -252,9 +205,7 @@ operator -
 	const CDouble &fpRight
 	)
 {
-	GPOS_ASSERT(fpLeft.FCompat(fpRight));
-
-	return CDouble(fpLeft.m_d - fpRight.m_d, fpLeft.m_dMinAbs, fpLeft.m_dMaxAbs);
+	return CDouble(fpLeft.m_d - fpRight.m_d);
 }
 
 
@@ -274,9 +225,7 @@ operator *
 	const CDouble &fpRight
 	)
 {
-	GPOS_ASSERT(fpLeft.FCompat(fpRight));
-
-	return CDouble(fpLeft.m_d * fpRight.m_d, fpLeft.m_dMinAbs, fpLeft.m_dMaxAbs);
+	return CDouble(fpLeft.m_d * fpRight.m_d);
 }
 
 
@@ -296,9 +245,7 @@ operator /
 	const CDouble &fpRight
 	)
 {
-	GPOS_ASSERT(fpLeft.FCompat(fpRight));
-
-	return CDouble(fpLeft.m_d / fpRight.m_d, fpLeft.m_dMinAbs, fpLeft.m_dMaxAbs);
+	return CDouble(fpLeft.m_d / fpRight.m_d);
 }
 
 
@@ -314,7 +261,7 @@ inline
 CDouble
 operator - (const CDouble &fp)
 {
-	return CDouble(-fp.m_d, fp.m_dMinAbs, fp.m_dMaxAbs);
+	return CDouble(-fp.m_d);
 }
 
 
@@ -334,11 +281,9 @@ operator ==
 	const CDouble &fpRight
 	)
 {
-	GPOS_ASSERT(fpLeft.FCompat(fpRight));
+	CDouble fpCompare(fpLeft.m_d - fpRight.m_d);
 
-	CDouble fpCompare(fpLeft.m_d - fpRight.m_d, fpRight.m_dMinAbs, fpRight.m_dMaxAbs);
-
-	return (clib::DAbs(fpCompare.m_d) == fpCompare.m_dMinAbs);
+	return (clib::DAbs(fpCompare.m_d) == GPOS_FP_ABS_MIN);
 }
 
 
@@ -358,11 +303,9 @@ operator >
 	const CDouble &fpRight
 	)
 {
-	GPOS_ASSERT(fpLeft.FCompat(fpRight));
+	CDouble fpCompare(fpLeft.m_d - fpRight.m_d);
 
-	CDouble fpCompare(fpLeft.m_d - fpRight.m_d, fpRight.m_dMinAbs, fpRight.m_dMaxAbs);
-
-	return (fpCompare.m_d > fpCompare.m_dMinAbs);
+	return (fpCompare.m_d > GPOS_FP_ABS_MIN);
 }
 
 
@@ -378,7 +321,7 @@ inline
 CDouble
 CDouble::FpAbs() const
 {
-	return CDouble(clib::DAbs(m_d), m_dMinAbs, m_dMaxAbs);
+	return CDouble(clib::DAbs(m_d));
 }
 
 //---------------------------------------------------------------------------
@@ -393,7 +336,7 @@ inline
 CDouble
 CDouble::FpLog2() const
 {
-	return CDouble(clib::DLog2(m_d), m_dMinAbs, m_dMaxAbs);
+	return CDouble(clib::DLog2(m_d));
 }
 
 //---------------------------------------------------------------------------
@@ -408,7 +351,7 @@ inline
 CDouble
 CDouble::FpFloor() const
 {
-	return CDouble(clib::DFloor(m_d), m_dMinAbs, m_dMaxAbs);
+	return CDouble(clib::DFloor(m_d));
 }
 
 
@@ -424,7 +367,7 @@ inline
 CDouble
 CDouble::FpCeil() const
 {
-	return CDouble(clib::DCeil(m_d), m_dMinAbs, m_dMaxAbs);
+	return CDouble(clib::DCeil(m_d));
 }
 
 
@@ -444,9 +387,7 @@ CDouble::FpPow
 	)
 	const
 {
-	GPOS_ASSERT(FCompat(fp));
-
-	return CDouble(clib::DPow(m_d, fp.m_d), m_dMinAbs, m_dMaxAbs);
+	return CDouble(clib::DPow(m_d, fp.m_d));
 }
 
 
@@ -485,8 +426,6 @@ CDouble::operator =
 	const CDouble &fpRight
 	)
 {
-	GPOS_ASSERT(this->FCompat(fpRight));
-
 	this->m_d = fpRight.m_d;
 
 	return (*this);

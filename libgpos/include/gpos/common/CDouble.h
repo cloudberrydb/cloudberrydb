@@ -33,32 +33,21 @@ namespace gpos
 			// double-precision value
 			DOUBLE m_d;
 
-			// min absolute value allowed
-			DOUBLE m_dMinAbs;
-
-			// max absolute value allowed
-			DOUBLE m_dMaxAbs;
-
 			// check validity in ctor
 			inline void CheckValidity();
 
 			// assign value while maintaining current sign
 			inline void SetSignedVal(DOUBLE dVal);
 
-#ifdef GPOS_DEBUG
-			// check if two instances are compatible
-			inline BOOL FCompat(const CDouble &fp) const;
-#endif // GPOS_DEBUG
-
 
 		public:
 
 			// ctors
-			inline CDouble(DOUBLE d, DOUBLE dMinAbs = GPOS_FP_ABS_MIN, DOUBLE dMaxAbs = GPOS_FP_ABS_MAX);
-			inline CDouble(ULLONG ul, DOUBLE dMinAbs = GPOS_FP_ABS_MIN, DOUBLE dMaxAbs = GPOS_FP_ABS_MAX);
-			inline CDouble(ULONG ul, DOUBLE dMinAbs = GPOS_FP_ABS_MIN, DOUBLE dMaxAbs = GPOS_FP_ABS_MAX);
-			inline CDouble(LINT ul, DOUBLE dMinAbs = GPOS_FP_ABS_MIN, DOUBLE dMaxAbs = GPOS_FP_ABS_MAX);
-			inline CDouble(INT ul, DOUBLE dMinAbs = GPOS_FP_ABS_MIN, DOUBLE dMaxAbs = GPOS_FP_ABS_MAX);
+			inline CDouble(DOUBLE d);
+			inline CDouble(ULLONG ul);
+			inline CDouble(ULONG ul);
+			inline CDouble(LINT ul);
+			inline CDouble(INT ul);
 
 			// dtor
 			inline ~CDouble()
