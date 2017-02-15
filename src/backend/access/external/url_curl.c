@@ -196,16 +196,13 @@ write_callback(char *buffer, size_t size, size_t nitems, void *userp)
 			curl->in.top = n;
 		}
 
-		/* if still insufficient space in buffer, then do realloc */
+		/* if still insufficient space in buffer, enlarge it */
 		if (curl->in.top + nbytes >= curl->in.max)
 		{
 			char *newbuf;
 
 			n = curl->in.top - curl->in.bot + nbytes + 1024;
-			newbuf = realloc(curl->in.ptr, n);
-
-			if (!newbuf)
-				elog(ERROR, "out of memory (curl write_callback)");
+			newbuf = repalloc(curl->in.ptr, n);
 
 			curl->in.ptr = newbuf;
 			curl->in.max = n;
@@ -616,7 +613,12 @@ replace_httpheader(URL_FILE *fcurl, const char *name, const char *value)
 	{
 		if (!strncmp(name, p->data, strlen(name)))
 		{
-			char *dupdata = strdup(tmp);			
+			/*
+			 * NOTE: p->data is not palloc'd! It is originally allocated
+			 * by curl_slist_append, so use plain malloc/free here as well.
+			 */
+			char	   *dupdata = strdup(tmp);
+
 			if (dupdata == NULL)
 			{
 				elog(WARNING, "replace_httpheader duplicate string name/value failed. name = %s, value=%s", name, value);
@@ -885,15 +887,11 @@ url_curl_fopen(char *url, bool forwrite, extvar_t *ev, CopyState pstate, int *re
 
 	if (!IS_GPFDISTS_URI(url))
 	{
-		file->u.curl.curl_url = (char *)calloc(sz + 1, 1);
-		if (file->u.curl.curl_url == NULL)
-		{
-			url_fclose(file, false, pstate->cur_relname);
-			elog(ERROR, "out of memory");
-		}
+		file->u.curl.curl_url = (char *) palloc0(sz + 1);
 		file->u.curl.for_write = forwrite;
-			
+
 		make_url(file->url, file->u.curl.curl_url, is_ipv6);
+
 		/*
 		 * We need to call is_url_ipv6 for the case where inside make_url function
 		 * a domain name was transformed to an IPv6 address.
@@ -911,14 +909,8 @@ url_curl_fopen(char *url, bool forwrite, extvar_t *ev, CopyState pstate, int *re
 		 * to not resolve it anyway and let libcurl do the work.
 		 */
 		char* tmp_resolved;
-		int url_len = strlen(file->url);
-		file->u.curl.curl_url = (char*)calloc(url_len + 1, 1);
-		if (file->u.curl.curl_url == NULL)
-		{
-			url_fclose(file, false, pstate->cur_relname);
-			elog(ERROR, "out of memory");
-		}
-		memcpy(file->u.curl.curl_url, file->url, url_len);
+
+		file->u.curl.curl_url = pstrdup(file->url);
 		file->u.curl.for_write = forwrite;
 
 		tmp_resolved = palloc0(sz + 1);
@@ -1247,6 +1239,20 @@ url_curl_fopen(char *url, bool forwrite, extvar_t *ev, CopyState pstate, int *re
 		}
 	}
 
+	/* Allocate input and output buffers. */
+	file->u.curl.in.ptr = palloc(1024);		/* 1 kB buffer initially */
+	file->u.curl.in.max = 1024;
+	file->u.curl.in.bot = file->u.curl.in.top = 0;
+
+	if (forwrite)
+	{
+		int			bufsize = writable_external_table_bufsize * 1024;
+
+		file->u.curl.out.ptr = (char *) palloc(bufsize);
+		file->u.curl.out.max = bufsize;
+		file->u.curl.out.bot = file->u.curl.out.top = 0;
+	}
+
 	/*
 	 * lets check our connection.
 	 * start the fetch if we're SELECTing (GET request), or write an
@@ -1374,13 +1380,13 @@ url_curl_fclose(URL_FILE *file, bool failOnError, const char *relname)
 	/* free any allocated buffer space */
 	if (file->u.curl.in.ptr)
 	{
-		free(file->u.curl.in.ptr);
+		pfree(file->u.curl.in.ptr);
 		file->u.curl.in.ptr = NULL;
 	}
 
 	if (file->u.curl.curl_url)
 	{
-		free(file->u.curl.curl_url);
+		pfree(file->u.curl.curl_url);
 		file->u.curl.curl_url = NULL;
 	}
 
@@ -1396,7 +1402,7 @@ url_curl_fclose(URL_FILE *file, bool failOnError, const char *relname)
 	memset(&file->u.curl.in, 0, sizeof(file->u.curl.in));
 	memset(&file->u.curl.block, 0, sizeof(file->u.curl.block));
 
-	free(file);
+	pfree(file);
 	if (!retVal)
 		elog(ERROR, "Error when closing writable external table");
 }
@@ -1773,25 +1779,13 @@ curl_fwrite(char *buf, int nbytes, URL_FILE* file, CopyState pstate)
 {
 	curlctl_t*	curl = &file->u.curl;
 
+	if (!curl->for_write)
+		elog(ERROR, "cannot write to a read-mode external table");
+
 	if (curl->gp_proto != 0 && curl->gp_proto != 1)
 	{
 		elog(ERROR, "unknown gp protocol %d", curl->gp_proto);
 		return 0;
-	}
-
-	/*
-	 * allocate data buffer if not done already
-	 */
-	if (!curl->out.ptr)
-	{
-		const int bufsize = writable_external_table_bufsize * 1024 * sizeof(char);
-		MemoryContext oldcontext = CurrentMemoryContext;
-		
-		MemoryContextSwitchTo(CurTransactionContext); /* TODO: is there a better cxt to use? */
-		curl->out.ptr = (char *)palloc(bufsize);
-		curl->out.max = bufsize;
-		curl->out.bot = curl->out.top = 0;
-		MemoryContextSwitchTo(oldcontext);
 	}
 	
 	/*
@@ -1814,11 +1808,8 @@ curl_fwrite(char *buf, int nbytes, URL_FILE* file, CopyState pstate)
 		{
 			int 	n = nbytes + 1024;
 			char*	newbuf;
-			MemoryContext oldcontext = CurrentMemoryContext;
 
-			MemoryContextSwitchTo(CurTransactionContext); /* TODO: is there a better cxt to use? */
 			newbuf = repalloc(curl->out.ptr, n);
-			MemoryContextSwitchTo(oldcontext);
 
 			if (!newbuf)
 				elog(ERROR, "out of memory (curl_fwrite)");

@@ -57,7 +57,7 @@ url_file_fopen(char *url, bool forwrite, extvar_t *ev, CopyState pstate, int *re
 	/* couldn't open local file. return NULL to display proper error */
 	if (!file->u.file.fp)
 	{
-		free(file);
+		pfree(file);
 		return NULL;
 	}
 
@@ -70,7 +70,7 @@ url_file_fclose(URL_FILE *file, bool failOnError, const char *relname)
 	fstream_close(file->u.file.fp);
 	/* fstream_close() returns no error indication. */
 
-	free(file);
+	pfree(file);
 }
 
 

@@ -131,7 +131,7 @@ url_execute_fopen(char *url, bool forwrite, extvar_t *ev, CopyState pstate, int 
 	if (file->u.exec.pid == -1)
 	{
 		errno = save_errno;
-		free(file);
+		pfree(file);
 		ereport(ERROR,
 				(errcode(ERRCODE_EXTERNAL_ROUTINE_EXCEPTION),
 						errmsg("cannot start external table command: %m"),
@@ -163,7 +163,7 @@ url_execute_fclose(URL_FILE *file, bool failOnError, const char *relname)
 	{
 		/* pclose()/wait4() ended with an error; errno should be valid */
 		if (failOnError)
-			free(file);
+			pfree(file);
 		ereport((failOnError ? ERROR : LOG),
 				(errcode(ERRCODE_EXTERNAL_ROUTINE_EXCEPTION),
 				 errmsg("cannot close external table %s command: %m",
@@ -179,7 +179,7 @@ url_execute_fclose(URL_FILE *file, bool failOnError, const char *relname)
 		char buf[512];
 
 		if (failOnError)
-			free(file);
+			pfree(file);
 		ereport((failOnError ? ERROR : LOG),
 				(errcode(ERRCODE_EXTERNAL_ROUTINE_EXCEPTION),
 				 errmsg("external table %s command ended with %s",
@@ -190,7 +190,7 @@ url_execute_fclose(URL_FILE *file, bool failOnError, const char *relname)
 	pfree(url);
 	pfree(sinfo.data);
 
-	free(file);
+	pfree(file);
 }
 
 bool

@@ -90,7 +90,7 @@ url_custom_fclose(URL_FILE *file, bool failOnError, const char *relname)
 	/* now clean up everything not cleaned by user */
 	MemoryContextDelete(file->u.custom.protcxt);
 
-	free(file);
+	pfree(file);
 }
 
 bool

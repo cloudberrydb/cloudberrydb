@@ -28,11 +28,8 @@ URL_FILE *
 alloc_url_file(const char *url)
 {
 	int sz = sizeof(URL_FILE) + strlen(url) + 1;
-	URL_FILE *file = (URL_FILE *) calloc(sz, 1);
-	if (file == NULL)
-	{
-		elog(ERROR, "out of memory");
-	}
+	URL_FILE *file = (URL_FILE *) palloc0(sz);
+
 	file->url = ((char *) file) + sizeof(URL_FILE);
 	strcpy(file->url, url);
 	return file;
@@ -112,10 +109,9 @@ url_fclose(URL_FILE *file, bool failOnError, const char *relname)
 			break;
 			
 		default: /* unknown or unsupported type - oh dear */
-			free(file);
 			ereport(ERROR,
 					(errcode(ERRCODE_INTERNAL_ERROR),
-					 errmsg_internal("external table type not implemented: %d",
+					 errmsg_internal("unrecognized external table type: %d",
 									 file->type)));
 			break;
     }

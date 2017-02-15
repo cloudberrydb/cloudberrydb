@@ -39,14 +39,14 @@ typedef struct curlctl_t {
 	
 	struct 
 	{
-		char* ptr;	   /* malloc-ed buffer */
+		char* ptr;	   /* palloc-ed buffer */
 		int   max;
 		int   bot, top;
 	} in;
 
 	struct 
 	{
-		char* ptr;	   /* malloc-ed buffer */
+		char* ptr;	   /* palloc-ed buffer */
 		int   max;
 		int   bot, top;
 	} out;
