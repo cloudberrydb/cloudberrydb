@@ -25,6 +25,23 @@
 #define EXEC_DATA_P 0 /* index to data pipe */
 #define EXEC_ERR_P 1 /* index to error pipe  */
 
+/*
+ * Private state for an EXECUTE external table.
+ */
+typedef struct URL_EXECUTE_FILE
+{
+	URL_FILE	common;
+
+	char	   *shexec;			/* shell command-line */
+
+	/*
+	 * PID of the open sub-process, and pipe FDs to communicate with it.
+	 */
+	int			pid;
+	int			pipes[2];		/* only out and err needed */
+
+} URL_EXECUTE_FILE;
+
 static int popen_with_stderr(int *rwepipe, const char *exe, bool forwrite);
 static int pclose_with_stderr(int pid, int *rwepipe, StringInfo sinfo);
 static char *interpretError(int exitCode, char *buf, size_t buflen, char *err, size_t errlen);
@@ -92,19 +109,20 @@ make_command(const char *cmd, extvar_t *ev)
 URL_FILE *
 url_execute_fopen(char *url, bool forwrite, extvar_t *ev, CopyState pstate, int *response_code, const char **response_string)
 {
-	int		save_errno;
-	struct itimers	savetimers;
+	URL_EXECUTE_FILE *file;
+	int			save_errno;
+	struct itimers savetimers;
 	pqsigfunc	save_SIGPIPE;
-	char* cmd;
+	char	   *cmd;
 
 	/* Execute command */
 	Assert(strncmp(url, EXEC_URL_PREFIX, strlen(EXEC_URL_PREFIX)) == 0);
 	cmd  = url + strlen(EXEC_URL_PREFIX);
-	
-	URL_FILE *file = alloc_url_file(url);
 
-	file->type = CFTYPE_EXEC; /* marked as a EXEC */
-	file->u.exec.shexec = make_command(cmd, ev);	/* Execute command */
+	file = palloc0(sizeof(URL_EXECUTE_FILE));
+	file->common.type = CFTYPE_EXEC;	/* marked as a EXEC */
+	file->common.url = pstrdup(url);
+	file->shexec = make_command(cmd, ev);		/* Execute command */
 
 	/* Clear process interval timers */
 	resetTimers(&savetimers);
@@ -117,9 +135,9 @@ url_execute_fopen(char *url, bool forwrite, extvar_t *ev, CopyState pstate, int 
 	save_SIGPIPE = pqsignal(SIGPIPE, SIG_DFL);
 
 	/* execute the user command */
-	file->u.exec.pid = popen_with_stderr(file->u.exec.pipes,
-										 file->u.exec.shexec,
-										 forwrite);
+	file->pid = popen_with_stderr(file->pipes,
+								  file->shexec,
+								  forwrite);
 	save_errno = errno;
 
 	/* Restore the SIGPIPE handler */
@@ -128,9 +146,10 @@ url_execute_fopen(char *url, bool forwrite, extvar_t *ev, CopyState pstate, int 
 	/* Restore process interval timers */
 	restoreTimers(&savetimers);
 
-	if (file->u.exec.pid == -1)
+	if (file->pid == -1)
 	{
 		errno = save_errno;
+		pfree(file->common.url);
 		pfree(file);
 		ereport(ERROR,
 				(errcode(ERRCODE_EXTERNAL_ROUTINE_EXCEPTION),
@@ -139,12 +158,13 @@ url_execute_fopen(char *url, bool forwrite, extvar_t *ev, CopyState pstate, int 
 
 	}
 
-	return file;
+	return (URL_FILE *) file;
 }
 
 void
 url_execute_fclose(URL_FILE *file, bool failOnError, const char *relname)
 {
+	URL_EXECUTE_FILE *efile = (URL_EXECUTE_FILE *) file;
 	StringInfoData sinfo;
 	char	   *url;
 	int			ret;
@@ -152,7 +172,7 @@ url_execute_fclose(URL_FILE *file, bool failOnError, const char *relname)
 	initStringInfo(&sinfo);
 
 	/* close the child process and related pipes */
-	ret = pclose_with_stderr(file->u.exec.pid, file->u.exec.pipes, &sinfo);
+	ret = pclose_with_stderr(efile->pid, efile->pipes, &sinfo);
 	url = pstrdup(file->url);	
 	if (ret == 0)
 	{
@@ -202,6 +222,7 @@ url_execute_feof(URL_FILE *file, int bytesread)
 bool
 url_execute_ferror(URL_FILE *file, int bytesread, char *ebuf, int ebuflen)
 {
+	URL_EXECUTE_FILE *efile = (URL_EXECUTE_FILE *) file;
 	int			ret;
 	int			nread;
 
@@ -212,7 +233,7 @@ url_execute_ferror(URL_FILE *file, int bytesread, char *ebuf, int ebuflen)
 		 * Read one byte less than the maximum size to ensure zero
 		 * termination of the buffer.
 		 */
-		nread = piperead(file->u.exec.pipes[EXEC_ERR_P], ebuf, ebuflen -1);
+		nread = piperead(efile->pipes[EXEC_ERR_P], ebuf, ebuflen -1);
 
 		if(nread != -1)
 			ebuf[nread] = 0;
@@ -226,16 +247,18 @@ url_execute_ferror(URL_FILE *file, int bytesread, char *ebuf, int ebuflen)
 size_t
 url_execute_fread(void *ptr, size_t size, URL_FILE *file, CopyState pstate)
 {
-	return piperead(file->u.exec.pipes[EXEC_DATA_P], ptr, size);
+	URL_EXECUTE_FILE *efile = (URL_EXECUTE_FILE *) file;
+
+	return piperead(efile->pipes[EXEC_DATA_P], ptr, size);
 }
 
 size_t
 url_execute_fwrite(void *ptr, size_t size, URL_FILE *file, CopyState pstate)
 {
-	return pipewrite(file->u.exec.pipes[EXEC_DATA_P], ptr, size);
+	URL_EXECUTE_FILE *efile = (URL_EXECUTE_FILE *) file;
+
+	return pipewrite(efile->pipes[EXEC_DATA_P], ptr, size);
 }
-
-
 
 /*
  * interpretError - formats a brief message and/or the exit code from pclose()

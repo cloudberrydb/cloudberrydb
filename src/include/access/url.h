@@ -13,14 +13,11 @@
 #ifndef URL_H
 #define URL_H
 
-#ifdef USE_CURL
-#include <curl/curl.h>
-#endif
-
-#include "access/extprotocol.h"
-
 #include "commands/copy.h"
 
+/*
+ * Different "flavors", or implementations, of external tables.
+ */
 enum fcurl_type_e 
 { 
 	CFTYPE_NONE = 0, 
@@ -30,68 +27,18 @@ enum fcurl_type_e
 	CFTYPE_CUSTOM = 4 
 };
 
-#ifdef USE_CURL
-typedef struct curlctl_t {
-	
-	CURL *handle;
-	char *curl_url;
-	struct curl_slist *x_httpheader;
-	
-	struct 
-	{
-		char* ptr;	   /* palloc-ed buffer */
-		int   max;
-		int   bot, top;
-	} in;
-
-	struct 
-	{
-		char* ptr;	   /* palloc-ed buffer */
-		int   max;
-		int   bot, top;
-	} out;
-
-	int still_running;          /* Is background url fetch still in progress */
-	int for_write;				/* 'f' when we SELECT, 't' when we INSERT    */
-	int error, eof;				/* error & eof flags */
-	int gp_proto;
-	char *http_response;
-	
-	struct 
-	{
-		int   datalen;  /* remaining datablock length */
-	} block;
-} curlctl_t;
-#endif
-
+/*
+ * Common state of all different implementations external tables. The
+ * implementation-specific url_*_fopen() function returns a palloc'd
+ * struct that begins with this common part.
+ */
 typedef struct URL_FILE
 {
 	enum fcurl_type_e type;     /* type of handle */
 	char *url;
-	int64 seq_number;
 
-	union {
-		struct {
-			struct fstream_t*fp;
-		} file;
+	/* implementation-specific fields follow. */
 
-#ifdef USE_CURL
-		curlctl_t curl;
-#endif
-
-		struct {
-			int 	pid;
-			int 	pipes[2]; /* only out and err needed */
-			char*	shexec;
-		} exec;
-		
-		struct {
-			FmgrInfo   *protocol_udf;
-			ExtProtocol extprotocol;
-			MemoryContext protcxt;
-		} custom;
-		
-	} u;
 } URL_FILE;
 
 typedef struct extvar_t
@@ -136,7 +83,7 @@ extern size_t url_fread(void *ptr, size_t size, URL_FILE *file, CopyState pstate
 extern size_t url_fwrite(void *ptr, size_t size, URL_FILE *file, CopyState pstate);
 extern void url_fflush(URL_FILE *file, CopyState pstate);
 
-
+/* implementation-specific functions. */
 extern URL_FILE *url_curl_fopen(char *url, bool forwrite, extvar_t *ev, CopyState pstate, int *response_code, const char **response_string);
 extern void url_curl_fclose(URL_FILE *file, bool failOnError, const char *relname);
 extern bool url_curl_feof(URL_FILE *file, int bytesread);
@@ -165,9 +112,7 @@ extern bool url_custom_ferror(URL_FILE *file, int bytesread, char *ebuf, int ebu
 extern size_t url_custom_fread(void *ptr, size_t size, URL_FILE *file, CopyState pstate);
 extern size_t url_custom_fwrite(void *ptr, size_t size, URL_FILE *file, CopyState pstate);
 
-
-extern URL_FILE *alloc_url_file(const char *url);
-
-
+/* GUC */
 extern int readable_external_table_timeout;
+
 #endif

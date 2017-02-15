@@ -19,22 +19,6 @@
 /* GUC */
 int readable_external_table_timeout = 0;
 
-/**
- * alloc_url_file()
- *
- * alloc URL_FILE struct and assign url field
- */
-URL_FILE *
-alloc_url_file(const char *url)
-{
-	int sz = sizeof(URL_FILE) + strlen(url) + 1;
-	URL_FILE *file = (URL_FILE *) palloc0(sz);
-
-	file->url = ((char *) file) + sizeof(URL_FILE);
-	strcpy(file->url, url);
-	return file;
-}
-
 /*
  * url_fopen
  *
