@@ -26,6 +26,29 @@
 #define EXEC_ERR_P 1 /* index to error pipe  */
 
 /*
+ * This struct encapsulates the resources that need to be explicitly cleaned up
+ * on error. We use the resource owner mechanism to make sure
+ * these are not leaked. When a ResourceOwner is released, our hook will
+ * walk the list of open curlhandles, and releases any that were owned by
+ * the released resource owner.
+ *
+ * On abort, we need to close the pipe FDs, and wait for the subprocess to
+ * exit.
+ */
+typedef struct execute_handle_t
+{
+	/*
+	 * PID of the open sub-process, and pipe FDs to communicate with it.
+	 */
+	int			pid;
+	int			pipes[2];		/* only out and err needed */
+
+	ResourceOwner owner;	/* owner of this handle */
+	struct execute_handle_t *next;
+	struct execute_handle_t *prev;
+} execute_handle_t;
+
+/*
  * Private state for an EXECUTE external table.
  */
 typedef struct URL_EXECUTE_FILE
@@ -34,12 +57,7 @@ typedef struct URL_EXECUTE_FILE
 
 	char	   *shexec;			/* shell command-line */
 
-	/*
-	 * PID of the open sub-process, and pipe FDs to communicate with it.
-	 */
-	int			pid;
-	int			pipes[2];		/* only out and err needed */
-
+	execute_handle_t *handle;	/* ResourceOwner-tracked stuff */
 } URL_EXECUTE_FILE;
 
 static int popen_with_stderr(int *rwepipe, const char *exe, bool forwrite);
@@ -47,6 +65,97 @@ static int pclose_with_stderr(int pid, int *rwepipe, StringInfo sinfo);
 static char *interpretError(int exitCode, char *buf, size_t buflen, char *err, size_t errlen);
 static const char *getSignalNameFromCode(int signo);
 static void read_err_msg(int fid, StringInfo sinfo);
+
+
+/*
+ * Linked list of open "handles". These are allocated in TopMemoryContext,
+ * and tracked by resource owners.
+ */
+static execute_handle_t *open_execute_handles;
+
+static bool execute_resowner_callback_registered;
+
+static execute_handle_t *
+create_execute_handle(void)
+{
+	execute_handle_t *h;
+
+	h = MemoryContextAlloc(TopMemoryContext, sizeof(execute_handle_t));
+	h->pid = -1;
+	h->pipes[EXEC_DATA_P] = -1;
+	h->pipes[EXEC_ERR_P] = -1;
+
+	h->owner = CurrentResourceOwner;
+	h->next = open_execute_handles;
+	h->prev = NULL;
+	if (open_execute_handles)
+		open_execute_handles->prev = h;
+	open_execute_handles = h;
+
+	return h;
+}
+
+static void
+destroy_execute_handle(execute_handle_t *h)
+{
+	/* unlink from linked list first */
+	if (h->prev)
+		h->prev->next = h->next;
+	else
+		open_execute_handles = h->next;
+	if (h->next)
+		h->next->prev = h->prev;
+
+	if (h->pipes[EXEC_DATA_P] != -1)
+		close(h->pipes[EXEC_DATA_P]);
+
+	/* We don't bother reading possible error message from the pipe */
+	if (h->pipes[EXEC_ERR_P] != -1)
+		close(h->pipes[EXEC_ERR_P]);
+
+	if (h->pid != -1)
+	{
+#ifndef WIN32
+		int			status;
+
+		waitpid(h->pid, &status, 0);
+#endif
+	}
+
+	pfree(h);
+}
+
+/*
+ * Close any open handles on abort.
+ */
+static void
+execute_abort_callback(ResourceReleasePhase phase,
+					   bool isCommit,
+					   bool isTopLevel,
+					   void *arg)
+{
+	execute_handle_t *curr;
+	execute_handle_t *next;
+
+	if (phase != RESOURCE_RELEASE_AFTER_LOCKS)
+		return;
+
+	next = open_execute_handles;
+	while (next)
+	{
+		curr = next;
+		next = curr->next;
+
+		if (curr->owner == CurrentResourceOwner)
+		{
+			if (isCommit)
+				elog(WARNING, "execute-type external table reference leak: %p still referenced", curr);
+
+			destroy_execute_handle(curr);
+		}
+	}
+}
+
 
 static void
 make_export(char *name, const char *value, StringInfo buf)
@@ -107,7 +216,7 @@ make_command(const char *cmd, extvar_t *ev)
  * refactor the fopen code for execute into this routine
  */
 URL_FILE *
-url_execute_fopen(char *url, bool forwrite, extvar_t *ev, CopyState pstate, int *response_code, const char **response_string)
+url_execute_fopen(char *url, bool forwrite, extvar_t *ev, CopyState pstate)
 {
 	URL_EXECUTE_FILE *file;
 	int			save_errno;
@@ -127,6 +236,14 @@ url_execute_fopen(char *url, bool forwrite, extvar_t *ev, CopyState pstate, int 
 	/* Clear process interval timers */
 	resetTimers(&savetimers);
 
+	if (!execute_resowner_callback_registered)
+	{
+		RegisterResourceReleaseCallback(execute_abort_callback, NULL);
+		execute_resowner_callback_registered = true;
+	}
+
+	file->handle = create_execute_handle();
+
 	/*
 	 * Preserve the SIGPIPE handler and set to default handling.  This
 	 * allows "normal" SIGPIPE handling in the command pipeline.  Normal
@@ -135,9 +252,9 @@ url_execute_fopen(char *url, bool forwrite, extvar_t *ev, CopyState pstate, int 
 	save_SIGPIPE = pqsignal(SIGPIPE, SIG_DFL);
 
 	/* execute the user command */
-	file->pid = popen_with_stderr(file->pipes,
-								  file->shexec,
-								  forwrite);
+	file->handle->pid = popen_with_stderr(file->handle->pipes,
+										  file->shexec,
+										  forwrite);
 	save_errno = errno;
 
 	/* Restore the SIGPIPE handler */
@@ -146,7 +263,7 @@ url_execute_fopen(char *url, bool forwrite, extvar_t *ev, CopyState pstate, int 
 	/* Restore process interval timers */
 	restoreTimers(&savetimers);
 
-	if (file->pid == -1)
+	if (file->handle->pid == -1)
 	{
 		errno = save_errno;
 		pfree(file->common.url);
@@ -172,7 +289,11 @@ url_execute_fclose(URL_FILE *file, bool failOnError, const char *relname)
 	initStringInfo(&sinfo);
 
 	/* close the child process and related pipes */
-	ret = pclose_with_stderr(efile->pid, efile->pipes, &sinfo);
+	ret = pclose_with_stderr(efile->handle->pid, efile->handle->pipes, &sinfo);
+
+	destroy_execute_handle(efile->handle);
+	efile->handle = NULL;
+	
 	url = pstrdup(file->url);	
 	if (ret == 0)
 	{
@@ -233,7 +354,7 @@ url_execute_ferror(URL_FILE *file, int bytesread, char *ebuf, int ebuflen)
 		 * Read one byte less than the maximum size to ensure zero
 		 * termination of the buffer.
 		 */
-		nread = piperead(efile->pipes[EXEC_ERR_P], ebuf, ebuflen -1);
+		nread = piperead(efile->handle->pipes[EXEC_ERR_P], ebuf, ebuflen -1);
 
 		if(nread != -1)
 			ebuf[nread] = 0;
@@ -249,7 +370,7 @@ url_execute_fread(void *ptr, size_t size, URL_FILE *file, CopyState pstate)
 {
 	URL_EXECUTE_FILE *efile = (URL_EXECUTE_FILE *) file;
 
-	return piperead(efile->pipes[EXEC_DATA_P], ptr, size);
+	return piperead(efile->handle->pipes[EXEC_DATA_P], ptr, size);
 }
 
 size_t
@@ -257,7 +378,7 @@ url_execute_fwrite(void *ptr, size_t size, URL_FILE *file, CopyState pstate)
 {
 	URL_EXECUTE_FILE *efile = (URL_EXECUTE_FILE *) file;
 
-	return pipewrite(efile->pipes[EXEC_DATA_P], ptr, size);
+	return pipewrite(efile->handle->pipes[EXEC_DATA_P], ptr, size);
 }
 
 /*

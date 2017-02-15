@@ -16,6 +16,7 @@
 #include "access/extprotocol.h"
 #include "access/fileam.h"
 #include "catalog/pg_extprotocol.h"
+#include "commands/copy.h"
 #include "utils/memutils.h"
 
 /*
@@ -36,7 +37,7 @@ static int32 InvokeExtProtocol(void *ptr, size_t nbytes, URL_CUSTOM_FILE *file, 
 								bool last_call);
 
 URL_FILE *
-url_custom_fopen(char *url, bool forwrite, extvar_t *ev, CopyState pstate, int *response_code, const char **response_string)
+url_custom_fopen(char *url, bool forwrite, extvar_t *ev, CopyState pstate)
 {
 	/* we're using a custom protocol */
 	URL_CUSTOM_FILE   *file;

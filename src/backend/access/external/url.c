@@ -26,32 +26,23 @@ int readable_external_table_timeout = 0;
  * standard files, or if the url happens to be a command to execute it uses
  * popen to execute it.
  *
- * Note that we need to clean up (with url_fclose) upon an error in this function.
- * This is the only function that should use url_fclose() directly. Run time errors
- * (e.g in url_fread) will invoke a cleanup via the ABORT handler (AtAbort_ExtTable),
- * which will internally call url_fclose().
+ * On error, ereport()s
  */
 URL_FILE *
-url_fopen(char *url, bool forwrite, extvar_t *ev, CopyState pstate, int *response_code, const char **response_string)
+url_fopen(char *url, bool forwrite, extvar_t *ev, CopyState pstate)
 {
 	/*
 	 * if 'url' starts with "execute:" then it's a command to execute and
 	 * not a url (the command specified in CREATE EXTERNAL TABLE .. EXECUTE)
 	 */
 	if (pg_strncasecmp(url, EXEC_URL_PREFIX, strlen(EXEC_URL_PREFIX)) == 0)
-		return url_execute_fopen(url, forwrite, ev, pstate, response_code, response_string);
+		return url_execute_fopen(url, forwrite, ev, pstate);
 	else if (IS_FILE_URI(url))
-	{
-		return url_file_fopen(url, forwrite, ev, pstate, response_code, response_string);
-	}
+		return url_file_fopen(url, forwrite, ev, pstate);
 	else if (IS_HTTP_URI(url) || IS_GPFDIST_URI(url) || IS_GPFDISTS_URI(url))
-	{
-		return url_curl_fopen(url, forwrite, ev, pstate, response_code, response_string);
-	}
+		return url_curl_fopen(url, forwrite, ev, pstate);
 	else
-	{
-		return url_custom_fopen(url, forwrite, ev, pstate, response_code, response_string);
-	}
+		return url_custom_fopen(url, forwrite, ev, pstate);
 }
 
 /*

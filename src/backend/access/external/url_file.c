@@ -15,6 +15,7 @@
 
 #include "access/url.h"
 #include "cdb/cdbsreh.h"
+#include "commands/copy.h"
 #include "fstream/gfile.h"
 #include "fstream/fstream.h"
 #include "utils/uri.h"
@@ -28,15 +29,16 @@ typedef struct URL_FSTREAM_FILE
 	URL_FILE	common;
 
 	fstream_t  *fp;
-
 } URL_FSTREAM_FILE;
 
 URL_FILE *
-url_file_fopen(char *url, bool forwrite, extvar_t *ev, CopyState pstate, int *response_code, const char **response_string)
+url_file_fopen(char *url, bool forwrite, extvar_t *ev, CopyState pstate)
 {
 	URL_FSTREAM_FILE *file;
 	char	   *path = strchr(url + strlen(PROTOCOL_FILE), '/');
 	struct fstream_options fo;
+	int			response_code;
+	const char *response_string;
 
 	if (forwrite)
 		elog(ERROR, "cannot change a readable external table \"%s\"", pstate->cur_relname);
@@ -64,15 +66,14 @@ url_file_fopen(char *url, bool forwrite, extvar_t *ev, CopyState pstate, int *re
 	 * wildcard or directory is used). In addition we check ahead of time
 	 * that all the involved files exists and have proper read permissions.
 	 */
-	file->fp = fstream_open(path, &fo, response_code, response_string);
+	file->fp = fstream_open(path, &fo, &response_code, &response_string);
 
-	/* couldn't open local file. return NULL to display proper error */
+	/* Couldn't open local file. Report error. */
 	if (!file->fp)
-	{
-		pfree(file->common.url);
-		pfree(file);
-		return NULL;
-	}
+		ereport(ERROR,
+				(errcode_for_file_access(),
+				 errmsg("could not open file \"%s\": %d %s",
+						path, response_code, response_string)));
 
 	return (URL_FILE *) file;
 }
@@ -83,7 +84,6 @@ url_file_fclose(URL_FILE *file, bool failOnError, const char *relname)
 	URL_FSTREAM_FILE *ffile = (URL_FSTREAM_FILE *) file;
 
 	fstream_close(ffile->fp);
-	/* fstream_close() returns no error indication. */
 
 	pfree(ffile->common.url);
 	pfree(ffile);
