@@ -2269,14 +2269,14 @@ CHistogram::ComputeSkew()
 	DOUBLE d3 = 0;
 	for (ULONG ul = 0; ul < GPOPT_SKEW_SAMPLE_SIZE; ul++)
 	{
-		d2 = d2 + clib::DPow((rgdSamples[ul] - dSampleMean) , 2.0);
-		d3 = d3 + clib::DPow((rgdSamples[ul] - dSampleMean) , 3.0);
+		d2 = d2 + pow((rgdSamples[ul] - dSampleMean) , 2.0);
+		d3 = d3 + pow((rgdSamples[ul] - dSampleMean) , 3.0);
 	}
 	DOUBLE dm2 = (DOUBLE)(d2 / GPOPT_SKEW_SAMPLE_SIZE);
 	DOUBLE dm3 = (DOUBLE)(d3 / GPOPT_SKEW_SAMPLE_SIZE);
 
 	// set skew measure
-	m_dSkew =  CDouble(1.0 + clib::DAbs(dm3 / clib::DPow(dm2, 1.5)));
+	m_dSkew =  CDouble(1.0 + fabs(dm3 / pow(dm2, 1.5)));
 }
 
 

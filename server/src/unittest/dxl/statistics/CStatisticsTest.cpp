@@ -17,7 +17,6 @@
 
 #include "gpos/io/COstreamString.h"
 #include "gpos/string/CWStringDynamic.h"
-#include "gpos/common/clibwrapper.h"
 
 #include "naucrates/statistics/CPoint.h"
 #include "naucrates/statistics/CBucket.h"
@@ -438,9 +437,9 @@ CStatisticsTest::EresUnittest_JoinNDVRemain()
 		CDouble dNDVRemainJoin = elem.m_dNDVRemainJoin;
 		CDouble dFreqRemainJoin = elem.m_dFreqRemainJoin;
 
-		CDouble dDiffNDVJoin(clib::DAbs((dNDVBucketsJoin - CStatisticsUtils::DDistinct(phistJoin->Pdrgpbucket())).DVal()));
-		CDouble dDiffNDVRemainJoin(clib::DAbs((dNDVRemainJoin - phistJoin->DDistinctRemain()).DVal()));
-		CDouble dDiffFreqRemainJoin(clib::DAbs((dFreqRemainJoin - phistJoin->DFreqRemain()).DVal()));
+		CDouble dDiffNDVJoin(fabs((dNDVBucketsJoin - CStatisticsUtils::DDistinct(phistJoin->Pdrgpbucket())).DVal()));
+		CDouble dDiffNDVRemainJoin(fabs((dNDVRemainJoin - phistJoin->DDistinctRemain()).DVal()));
+		CDouble dDiffFreqRemainJoin(fabs((dFreqRemainJoin - phistJoin->DFreqRemain()).DVal()));
 
 		if (phistJoin->UlBuckets() != ulBucketsJoin || (dDiffNDVJoin > CStatistics::DEpsilon)
 			|| (dDiffNDVRemainJoin > CStatistics::DEpsilon) || (dDiffFreqRemainJoin > CStatistics::DEpsilon))
@@ -1329,20 +1328,20 @@ CStatisticsTest::EresUnittest_CHistogramInt4()
 
 	// equality check, hitting remaining tuples
 	CHistogram *phist8 = phist7->PhistFilter(pmp, CStatsPred::EstatscmptEq, ppoint3);
-	GPOS_RTL_ASSERT(clib::DAbs((phist8->DFrequency() - 0.2).DVal()) < CStatistics::DEpsilon);
-	GPOS_RTL_ASSERT(clib::DAbs((phist8->DDistinct() - 1.0).DVal()) < CStatistics::DEpsilon);
+	GPOS_RTL_ASSERT(fabs((phist8->DFrequency() - 0.2).DVal()) < CStatistics::DEpsilon);
+	GPOS_RTL_ASSERT(fabs((phist8->DDistinct() - 1.0).DVal()) < CStatistics::DEpsilon);
 
 	// greater than, hitting remaining tuples
 	CHistogram *phist9 = phist7->PhistFilter(pmp, CStatsPred::EstatscmptG, ppoint1);
 	Print(pmp, "phist9", phist9);
-	GPOS_RTL_ASSERT(clib::DAbs((phist9->DFrequency() - 0.26).DVal()) < CStatistics::DEpsilon);
-	GPOS_RTL_ASSERT(clib::DAbs((phist9->DDistinct() - 1.8).DVal()) < CStatistics::DEpsilon);
+	GPOS_RTL_ASSERT(fabs((phist9->DFrequency() - 0.26).DVal()) < CStatistics::DEpsilon);
+	GPOS_RTL_ASSERT(fabs((phist9->DDistinct() - 1.8).DVal()) < CStatistics::DEpsilon);
 
 	// equality join, hitting remaining tuples
 	CHistogram *phist10 = phist7->PhistJoin(pmp, CStatsPred::EstatscmptEq, phist7);
 	GPOS_RTL_ASSERT(phist10->UlBuckets() == 5);
-	GPOS_RTL_ASSERT(clib::DAbs((phist10->DDistinctRemain() - 2.0).DVal()) < CStatistics::DEpsilon);
-	GPOS_RTL_ASSERT(clib::DAbs((phist10->DFreqRemain() - 0.08).DVal()) < CStatistics::DEpsilon);
+	GPOS_RTL_ASSERT(fabs((phist10->DDistinctRemain() - 2.0).DVal()) < CStatistics::DEpsilon);
+	GPOS_RTL_ASSERT(fabs((phist10->DFreqRemain() - 0.08).DVal()) < CStatistics::DEpsilon);
 
 	// clean up
 	ppoint0->Release();

@@ -136,21 +136,6 @@ namespace gpos
 		// resolve symbol information from its address
 		void DlAddr(void *pvAddr, DL_INFO *pdlInfo);
 
-		// absolute
-		DOUBLE DAbs(DOUBLE d);
-
-		// floor
-		DOUBLE DFloor(DOUBLE d);
-
-		// ceiling
-		DOUBLE DCeil(DOUBLE d);
-
-		// power
-		DOUBLE DPow(DOUBLE dBase, DOUBLE dExp);
-
-		// log to the base 2
-		DOUBLE DLog2(DOUBLE d);
-
 	} //namespace clib
 }
 

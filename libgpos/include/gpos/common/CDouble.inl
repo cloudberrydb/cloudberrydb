@@ -9,9 +9,9 @@
 //		Implementation of floating point operations.
 //---------------------------------------------------------------------------
 
+#include <math.h>
 
 #include "gpos/base.h"
-#include "gpos/common/clibwrapper.h"
 
 namespace gpos
 {
@@ -132,7 +132,7 @@ CDouble::CheckValidity()
 	GPOS_ASSERT(0.0 < GPOS_FP_ABS_MIN);
 	GPOS_ASSERT(GPOS_FP_ABS_MIN < GPOS_FP_ABS_MAX);
 
-	double dAbs = clib::DAbs(m_d);
+	double dAbs = fabs(m_d);
 
 	if (GPOS_FP_ABS_MAX < dAbs)
 	{
@@ -283,7 +283,7 @@ operator ==
 {
 	CDouble fpCompare(fpLeft.m_d - fpRight.m_d);
 
-	return (clib::DAbs(fpCompare.m_d) == GPOS_FP_ABS_MIN);
+	return (fabs(fpCompare.m_d) == GPOS_FP_ABS_MIN);
 }
 
 
@@ -321,7 +321,7 @@ inline
 CDouble
 CDouble::FpAbs() const
 {
-	return CDouble(clib::DAbs(m_d));
+	return CDouble(fabs(m_d));
 }
 
 //---------------------------------------------------------------------------
@@ -336,7 +336,7 @@ inline
 CDouble
 CDouble::FpLog2() const
 {
-	return CDouble(clib::DLog2(m_d));
+	return CDouble(log2(m_d));
 }
 
 //---------------------------------------------------------------------------
@@ -351,7 +351,7 @@ inline
 CDouble
 CDouble::FpFloor() const
 {
-	return CDouble(clib::DFloor(m_d));
+	return CDouble(floor(m_d));
 }
 
 
@@ -367,7 +367,7 @@ inline
 CDouble
 CDouble::FpCeil() const
 {
-	return CDouble(clib::DCeil(m_d));
+	return CDouble(ceil(m_d));
 }
 
 
@@ -387,7 +387,7 @@ CDouble::FpPow
 	)
 	const
 {
-	return CDouble(clib::DPow(m_d, fp.m_d));
+	return CDouble(pow(m_d, fp.m_d));
 }
 
 
@@ -408,7 +408,7 @@ CDouble::FEqual
 	DOUBLE dPrecision
 	)
 {
-	return clib::DAbs(dRight - dLeft) <= dPrecision;
+	return fabs(dRight - dLeft) <= dPrecision;
 }
 
 //---------------------------------------------------------------------------

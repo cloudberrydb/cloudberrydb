@@ -189,11 +189,11 @@ CEnumeratorConfig::DGaussian
 {
 	const DOUBLE dE = 2.71828182846; // e: natural logarithm base
 	const DOUBLE dSqrt2pi = 2.50662827463; // sqrt(2*pi)
-	DOUBLE diff = clib::DPow( (d - dMean) / dStd, 2.0);
+	DOUBLE diff = pow( (d - dMean) / dStd, 2.0);
 
 	// compute Gaussian probability:
 	// G(x) = \frac{1}{\sigma * \sqrt{2 \pi}} e^{-0.5 * (\frac{x-\mu}{\sigma})^2}
-	return (1.0 / (dStd * dSqrt2pi)) * clib::DPow(dE, -0.5 * diff);
+	return (1.0 / (dStd * dSqrt2pi)) * pow(dE, -0.5 * diff);
 }
 
 
@@ -209,13 +209,13 @@ void
 CEnumeratorConfig::InitCostDistrSize()
 {
 	//  bound estimated distribution using relative cost of most expensive plan
-	DOUBLE dMax = clib::DLog2(CDouble((m_costMax / CostBest())).DVal());
+	DOUBLE dMax = log2(CDouble((m_costMax / CostBest())).DVal());
 
 	// fix number of points in estimated distribution to 100
 	m_dStep = CDouble(dMax / 100.0);
 
 	// compute target distribution size
-	m_ulDistrSize = (ULONG) (clib::DFloor(dMax / m_dStep.DVal()) + 1.0);
+	m_ulDistrSize = (ULONG) (floor(dMax / m_dStep.DVal()) + 1.0);
 }
 
 
@@ -303,7 +303,7 @@ CEnumeratorConfig::FitCostDistribution()
 
 	for (ULONG ul = 0; ul < ulCreatedSamples; ul++)
 	{
-		pdObervationX[ul] = clib::DLog2(CDouble((CostPlanSample(ul) / CostBest())).DVal());
+		pdObervationX[ul] = log2(CDouble((CostPlanSample(ul) / CostBest())).DVal());
 		pdObervationY[ul] = 1.0;
 	}
 

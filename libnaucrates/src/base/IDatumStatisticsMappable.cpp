@@ -176,7 +176,7 @@ IDatumStatisticsMappable::DStatsDistance
 		LINT l1 = this->LStatsMapping();
 		LINT l2 = pdatumsm->LStatsMapping();
 
-		return clib::DAbs(CDouble(l1 - l2).DVal());
+		return fabs(CDouble(l1 - l2).DVal());
 	}
 
 	if (fLintComparison)
