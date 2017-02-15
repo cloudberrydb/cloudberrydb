@@ -7,7 +7,7 @@ REGRESS = exttab1 custom_format
 PSQLDIR = $(prefix)/bin
 
 installcheck:
-	$(top_builddir)/src/test/regress/pg_regress --psqldir=$(PSQLDIR) $(REGRESS)
+	$(top_builddir)/src/test/regress/pg_regress --psqldir=$(PSQLDIR) --dbname=gpfdist_regression $(REGRESS)
 
 clean:
 	rm -rf regression.* sql results expected
