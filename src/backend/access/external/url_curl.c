@@ -147,6 +147,17 @@ static void extract_http_domain(char* i_path, char* o_domain, int dlen);
 /* we use a global one for convenience */
 static CURLM *multi_handle = 0;
 
+/*
+ * A helper macro, to call curl_easy_setopt(), and ereport() if it fails.
+ */
+#define CURL_EASY_SETOPT(h, opt, val) \
+	do { \
+		int			e; \
+\
+		if ((e = curl_easy_setopt(h, opt, val)) != CURLE_OK) \
+			elog(ERROR, "internal error: curl_easy_setopt \"%s\" error (%d - %s)", \
+				 CppAsString(opt), e, curl_easy_strerror(e)); \
+	} while(0)
 
 /*
  * Linked list of open curl handles. These are allocated in TopMemoryContext,
@@ -1080,41 +1091,27 @@ url_curl_fopen(char *url, bool forwrite, extvar_t *ev, CopyState pstate)
 	if (! (file->curl->handle = curl_easy_init()))
 		elog(ERROR, "internal error: curl_easy_init failed");
 
-	if (CURLE_OK != (e = curl_easy_setopt(file->curl->handle, CURLOPT_URL, file->curl_url)))
-		elog(ERROR, "internal error: curl_easy_setopt CURLOPT_URL error (%d - %s)",
-			 e, curl_easy_strerror(e));
+	CURL_EASY_SETOPT(file->curl->handle, CURLOPT_URL, file->curl_url);
 
-	if (CURLE_OK != (e = curl_easy_setopt(file->curl->handle, CURLOPT_VERBOSE, 0L /* FALSE */)))
-		elog(ERROR, "internal error: curl_easy_setopt CURLOPT_VERBOSE error (%d - %s)",
-			 e, curl_easy_strerror(e));
+	CURL_EASY_SETOPT(file->curl->handle, CURLOPT_VERBOSE, 0L /* FALSE */);
 
 	/* set callback for each header received from server */
-	if (CURLE_OK != (e = curl_easy_setopt(file->curl->handle, CURLOPT_HEADERFUNCTION, header_callback)))
-		elog(ERROR, "internal error: curl_easy_setopt CURLOPT_HEADERFUNCTION error (%d - %s)",
-			 e, curl_easy_strerror(e));
+	CURL_EASY_SETOPT(file->curl->handle, CURLOPT_HEADERFUNCTION, header_callback);
 
 	/* 'file' is the application variable that gets passed to header_callback */
-	if (CURLE_OK != (e = curl_easy_setopt(file->curl->handle, CURLOPT_WRITEHEADER, file)))
-		elog(ERROR, "internal error: curl_easy_setopt CURLOPT_WRITEHEADER error (%d - %s)",
-			 e, curl_easy_strerror(e));
+	CURL_EASY_SETOPT(file->curl->handle, CURLOPT_WRITEHEADER, file);
 
 	/* set callback for each data block arriving from server to be written to application */
-	if (CURLE_OK != (e = curl_easy_setopt(file->curl->handle, CURLOPT_WRITEFUNCTION, write_callback)))
-		elog(ERROR, "internal error: curl_easy_setopt CURLOPT_WRITEFUNCTION error (%d - %s)",
-			 e, curl_easy_strerror(e));
+	CURL_EASY_SETOPT(file->curl->handle, CURLOPT_WRITEFUNCTION, write_callback);
 
 	/* 'file' is the application variable that gets passed to write_callback */
-	if (CURLE_OK != (e = curl_easy_setopt(file->curl->handle, CURLOPT_WRITEDATA, file)))
-		elog(ERROR, "internal error: curl_easy_setopt CURLOPT_WRITEDATA error (%d - %s)",
-			 e, curl_easy_strerror(e));
+	CURL_EASY_SETOPT(file->curl->handle, CURLOPT_WRITEDATA, file);
 
 	if ( !is_ipv6 )
 		ip_mode = CURL_IPRESOLVE_V4;
 	else
 		ip_mode = CURL_IPRESOLVE_V6;
-	if (CURLE_OK != (e = curl_easy_setopt(file->curl->handle, CURLOPT_IPRESOLVE, ip_mode)))
-		elog(ERROR, "internal error: curl_easy_setopt CURLOPT_IPRESOLVE error (%d - %s)",
-			 e, curl_easy_strerror(e));
+	CURL_EASY_SETOPT(file->curl->handle, CURLOPT_IPRESOLVE, ip_mode);
 
 	/*
 	 * set up a linked list of http headers. start with common headers
@@ -1146,9 +1143,7 @@ url_curl_fopen(char *url, bool forwrite, extvar_t *ev, CopyState pstate)
 	{
 		// TIMEOUT for POST only, GET is single HTTP request,
 		// probablity take long time.
-		if (CURLE_OK != (e = curl_easy_setopt(file->curl->handle, CURLOPT_TIMEOUT, 300L)))
-			elog(ERROR, "internal error: curl_easy_setopt CURLOPT_TIMEOUT error (%d - %s)",
-				 e, curl_easy_strerror(e));
+		CURL_EASY_SETOPT(file->curl->handle, CURLOPT_TIMEOUT, 300L);
 
 		/*init sequence number*/
 		file->seq_number = 1;
@@ -1183,9 +1178,7 @@ url_curl_fopen(char *url, bool forwrite, extvar_t *ev, CopyState pstate)
 			set_httpheader(file, "X-GP-TRANSFORM", p + 11);
 	}
 
-	if (CURLE_OK != (e = curl_easy_setopt(file->curl->handle, CURLOPT_HTTPHEADER, file->curl->x_httpheader)))
-		elog(ERROR, "internal error: curl_easy_setopt CURLOPT_HTTPHEADER error (%d - %s)",
-			 e, curl_easy_strerror(e));
+	CURL_EASY_SETOPT(file->curl->handle, CURLOPT_HTTPHEADER, file->curl->x_httpheader);
 
 	if (!multi_handle)
 	{
@@ -1202,14 +1195,10 @@ url_curl_fopen(char *url, bool forwrite, extvar_t *ev, CopyState pstate)
 		elog(LOG,"trying to load certificates from %s", DataDir);
 
 		/* curl will save its last error in curlErrorBuffer */
-		if (CURLE_OK != (e = curl_easy_setopt(file->curl->handle, CURLOPT_ERRORBUFFER, curl_Error_Buffer)))
-			elog(ERROR, "internal error: curl_easy_setopt CURLOPT_ERRORBUFFER error (%d - %s)",
-				 e, curl_easy_strerror(e));
+		CURL_EASY_SETOPT(file->curl->handle, CURLOPT_ERRORBUFFER, curl_Error_Buffer);
 
 		/* cert is stored PEM coded in file... */
-		if (CURLE_OK != (e = curl_easy_setopt(file->curl->handle, CURLOPT_SSLCERTTYPE, "PEM")))
-			elog(ERROR, "internal error: curl_easy_setopt CURLOPT_SSLCERTTYPE error (%d - %s)",
-				 e, curl_easy_strerror(e));
+		CURL_EASY_SETOPT(file->curl->handle, CURLOPT_SSLCERTTYPE, "PEM");
 
 		/* set the cert for client authentication */
 		if (extssl_cert != NULL)
@@ -1220,22 +1209,14 @@ url_curl_fopen(char *url, bool forwrite, extvar_t *ev, CopyState pstate)
 			if (!is_file_exists(extssl_cer_full))
 				elog(ERROR, "file %s doesn't exists", extssl_cer_full);
 
-			if (CURLE_OK != (e = curl_easy_setopt(file->curl->handle, CURLOPT_SSLCERT, extssl_cer_full)))
-				elog(ERROR, "internal error: curl_easy_setopt CURLOPT_SSLKEY error (%d - %s)",
-					 e, curl_easy_strerror(e));
+			CURL_EASY_SETOPT(file->curl->handle, CURLOPT_SSLCERT, extssl_cer_full);
 		}
 
 		/* set the key passphrase */
 		if (extssl_pass != NULL)
-		{
-			if (CURLE_OK != (e = curl_easy_setopt(file->curl->handle, CURLOPT_KEYPASSWD, extssl_pass)))
-				elog(ERROR, "internal error: curl_easy_setopt CURLOPT_KEYPASSWD error (%d - %s)",
-					 e, curl_easy_strerror(e));
-		}
+			CURL_EASY_SETOPT(file->curl->handle, CURLOPT_KEYPASSWD, extssl_pass);
 
-		if (CURLE_OK != (e = curl_easy_setopt(file->curl->handle, CURLOPT_SSLKEYTYPE,"PEM")))
-			elog(ERROR, "internal error: curl_easy_setopt CURLOPT_SSLKEYTYPE error (%d - %s)",
-				 e, curl_easy_strerror(e));
+		CURL_EASY_SETOPT(file->curl->handle, CURLOPT_SSLKEYTYPE,"PEM");
 
 		/* set the private key (file or ID in engine) */
 		if (extssl_key != NULL)
@@ -1246,9 +1227,7 @@ url_curl_fopen(char *url, bool forwrite, extvar_t *ev, CopyState pstate)
 			if (!is_file_exists(extssl_key_full))
 				elog(ERROR, "file %s doesn't exists", extssl_cer_full);
 
-			if (CURLE_OK != (e = curl_easy_setopt(file->curl->handle, CURLOPT_SSLKEY, extssl_key_full)))
-				elog(ERROR, "internal error: curl_easy_setopt CURLOPT_SSLKEY error (%d - %s)",
-					 e, curl_easy_strerror(e));
+			CURL_EASY_SETOPT(file->curl->handle, CURLOPT_SSLKEY, extssl_key_full);
 		}
 
 		/* set the file with the certs vaildating the server */
@@ -1260,30 +1239,20 @@ url_curl_fopen(char *url, bool forwrite, extvar_t *ev, CopyState pstate)
 			if (!is_file_exists(extssl_cas_full))
 				elog(ERROR, "file %s doesn't exists", extssl_cer_full);
 
-			if (CURLE_OK != (e = curl_easy_setopt(file->curl->handle, CURLOPT_CAINFO, extssl_cas_full)))
-				elog(ERROR, "internal error: curl_easy_setopt CURLOPT_CAINFO error (%d - %s)",
-					 e, curl_easy_strerror(e));
+			CURL_EASY_SETOPT(file->curl->handle, CURLOPT_CAINFO, extssl_cas_full);
 		}
 
 		/* set cert verification */
-		if (CURLE_OK != (e = curl_easy_setopt(file->curl->handle, CURLOPT_SSL_VERIFYPEER, (long)extssl_verifycert)))
-			elog(ERROR, "internal error: curl_easy_setopt CURLOPT_SSL_VERIFYPEER error (%d - %s)",
-				 e, curl_easy_strerror(e));
+		CURL_EASY_SETOPT(file->curl->handle, CURLOPT_SSL_VERIFYPEER, (long)extssl_verifycert);
 
 		/* set host verification */
-		if (CURLE_OK != (e = curl_easy_setopt(file->curl->handle, CURLOPT_SSL_VERIFYHOST, (long)extssl_verifyhost)))
-			elog(ERROR, "internal error: curl_easy_setopt CURLOPT_SSL_VERIFYHOST error (%d - %s)",
-				 e, curl_easy_strerror(e));
+		CURL_EASY_SETOPT(file->curl->handle, CURLOPT_SSL_VERIFYHOST, (long)extssl_verifyhost);
 
 		/* set ciphersuite */
-		if (CURLE_OK != (e = curl_easy_setopt(file->curl->handle, CURLOPT_SSL_CIPHER_LIST, extssl_cipher)))
-			elog(ERROR, "internal error: curl_easy_setopt CURLOPT_SSL_CIPHER_LIST error (%d - %s)",
-				 e, curl_easy_strerror(e));
+		CURL_EASY_SETOPT(file->curl->handle, CURLOPT_SSL_CIPHER_LIST, extssl_cipher);
 
 		/* set protocol */
-		if (CURLE_OK != (e = curl_easy_setopt(file->curl->handle, CURLOPT_SSLVERSION, extssl_protocol)))
-			elog(ERROR, "internal error: curl_easy_setopt CURLOPT_SSLVERSION error (%d - %s)",
-				 e, curl_easy_strerror(e));
+		CURL_EASY_SETOPT(file->curl->handle, CURLOPT_SSLVERSION, extssl_protocol);
 
 		/* set debug */
 		if (CURLE_OK != (e = curl_easy_setopt(file->curl->handle, CURLOPT_VERBOSE, (long)extssl_libcurldebug)))
@@ -1349,14 +1318,8 @@ url_curl_fopen(char *url, bool forwrite, extvar_t *ev, CopyState pstate)
 	else
 	{
 		/* use empty message */
-		if (CURLE_OK != (e = curl_easy_setopt(file->curl->handle, CURLOPT_POSTFIELDS, "")))
-			elog(ERROR, "internal error: curl_easy_setopt CURLOPT_POSTFIELDS error (%d - %s)",
-				 e, curl_easy_strerror(e));
-
-		if (CURLE_OK != (e = curl_easy_setopt(file->curl->handle, CURLOPT_POSTFIELDSIZE, 0)))
-			elog(ERROR, "internal error: curl_easy_setopt CURLOPT_POSTFIELDSIZE %s error (%d - %s)",
-				 file->curl_url,
-				 e, curl_easy_strerror(e));
+		CURL_EASY_SETOPT(file->curl->handle, CURLOPT_POSTFIELDS, "");
+		CURL_EASY_SETOPT(file->curl->handle, CURLOPT_POSTFIELDSIZE, 0);
 
 		/* post away and check response, retry if failed (timeout or * connect error) */
 		gp_curl_easy_perform_backoff_and_check_response(file);
@@ -1670,20 +1633,15 @@ gp_proto0_write(URL_CURL_FILE *file, CopyState pstate)
 {
 	char*		buf = file->out.ptr;
 	int		nbytes = file->out.top;
-	int 		e;
 
 	if (nbytes == 0)
 		return;
 	
 	/* post binary data */
-	if (CURLE_OK != (e = curl_easy_setopt(file->curl->handle, CURLOPT_POSTFIELDS, buf)))
-		elog(ERROR, "internal error: curl_easy_setopt CURLOPT_POSTFIELDS error (%d - %s)",
-			 e, curl_easy_strerror(e));
+	CURL_EASY_SETOPT(file->curl->handle, CURLOPT_POSTFIELDS, buf);
 
-	 /* set the size of the postfields data */
-	if (CURLE_OK != (e = curl_easy_setopt(file->curl->handle, CURLOPT_POSTFIELDSIZE, nbytes)))
-		elog(ERROR, "internal error: curl_easy_setopt CURLOPT_POSTFIELDSIZE error (%d - %s)",
-			 e, curl_easy_strerror(e));
+	/* set the size of the postfields data */
+	CURL_EASY_SETOPT(file->curl->handle, CURLOPT_POSTFIELDSIZE, nbytes);
 
 	/* set sequence number */
 	char seq[128] = {0};
@@ -1702,20 +1660,11 @@ gp_proto0_write(URL_CURL_FILE *file, CopyState pstate)
 static void
 gp_proto0_write_done(URL_CURL_FILE *file)
 {
-	int 	e;
-
 	set_httpheader(file, "X-GP-DONE", "1");
 
 	/* use empty message */
-	if (CURLE_OK != (e = curl_easy_setopt(file->curl->handle, CURLOPT_POSTFIELDS, "")))
-		elog(ERROR, "internal error: curl_easy_setopt CURLOPT_POSTFIELDS %s error (%d - %s)",
-			 file->curl_url,
-			 e, curl_easy_strerror(e));
-
-	if (CURLE_OK != (e = curl_easy_setopt(file->curl->handle, CURLOPT_POSTFIELDSIZE, 0)))
-		elog(ERROR, "internal error: curl_easy_setopt CURLOPT_POSTFIELDSIZE %s error (%d - %s)",
-			 file->curl_url,
-			 e, curl_easy_strerror(e));
+	CURL_EASY_SETOPT(file->curl->handle, CURLOPT_POSTFIELDS, "");
+	CURL_EASY_SETOPT(file->curl->handle, CURLOPT_POSTFIELDSIZE, 0);
 
 	/* post away! */
 	gp_curl_easy_perform_backoff_and_check_response(file);
@@ -1756,11 +1705,8 @@ curl_fwrite(char *buf, int nbytes, URL_CURL_FILE *file, CopyState pstate)
 		elog(ERROR, "cannot write to a read-mode external table");
 
 	if (file->gp_proto != 0 && file->gp_proto != 1)
-	{
 		elog(ERROR, "unknown gp protocol %d", file->gp_proto);
-		return 0;
-	}
-	
+
 	/*
 	 * if buffer is full (current item can't fit) - write it out to
 	 * the server. if item still doesn't fit after we emptied the
