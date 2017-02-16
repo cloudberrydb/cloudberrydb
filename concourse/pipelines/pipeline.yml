@@ -402,7 +402,7 @@ jobs:
       params: {submodules: none}
       passed: [compile_gpdb_centos6]
     - get: bin_gpdb
-      resource: bin_gpdb_centos
+      resource: bin_gpdb_centos6
       passed: [compile_gpdb_centos6]
       trigger: true
     - get: centos-gpdb-dev-6
@@ -420,7 +420,7 @@ jobs:
       params: {submodules: none}
       passed: [compile_gpdb_centos6]
     - get: bin_gpdb
-      resource: bin_gpdb_centos
+      resource: bin_gpdb_centos6
       passed: [compile_gpdb_centos6]
       trigger: true
     - get: centos-gpdb-dev-6
