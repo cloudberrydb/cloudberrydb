@@ -44,7 +44,8 @@
     <body>
       <p>Greenplum Database 5.0.0 includes these new features:</p>
       <ul>
-        <li>Add new features here.</li>
+        <li>Enumerated data types (ENUM), introduced in PostgreSQL release 8.3. 
+       </li> 
       </ul>
     </body>
   </topic>
