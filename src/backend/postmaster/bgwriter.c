@@ -114,7 +114,6 @@ static volatile sig_atomic_t shutdown_requested = false;
 /*
  * Private state
  */
-static bool am_bg_writer = false;
 static time_t last_xlog_switch_time;
 
 /* Prototypes for private functions */
@@ -142,7 +141,6 @@ BackgroundWriterMain(void)
 	MemoryContext bgwriter_context;
 
 	BgWriterShmem->bgwriter_pid = MyProcPid;
-	am_bg_writer = true;
 
 	/*
 	 * If possible, make this process a group leader, so that the postmaster
@@ -301,11 +299,6 @@ BackgroundWriterMain(void)
 #ifdef USE_ASSERT_CHECKING
 		SIMPLE_FAULT_INJECTOR(FaultInBackgroundWriterMain);
 #endif
-		/*
-		 * Process any requests or signals received recently.
-		 */
-		AbsorbFsyncRequests();
-
 		if (got_SIGHUP)
 		{
 			got_SIGHUP = false;
@@ -338,10 +331,6 @@ BackgroundWriterMain(void)
 			proc_exit(0);		/* done */
 		}
 
-		/*
-		 * Do a checkpoint smgrcloseall if requested, otherwise do one cycle of
-		 * dirty-buffer writing.
-		 */
 		if (do_checkpoint_smgrcloseall)
 		{
 			/*
@@ -350,8 +339,9 @@ BackgroundWriterMain(void)
 			 */
 			smgrcloseall();
 		}
-		else
-			BgBufferSync();
+
+		/* Perform a cycle of dirty buffer writing. */
+		BgBufferSync();
 
 		/* Check for archive_timeout and switch xlog files if necessary. */
 		CheckArchiveTimeout();
@@ -449,7 +439,6 @@ BgWriterNap(void)
 		if (got_SIGHUP || shutdown_requested)
 			break;
 		pg_usleep(1000000L);
-		AbsorbFsyncRequests();
 		udelay -= 1000000L;
 	}
 
@@ -590,9 +579,6 @@ ForwardFsyncRequest(RelFileNode rnode, BlockNumber segno)
 
 	if (!IsUnderPostmaster)
 		return false;			/* probably shouldn't even get here */
-
-	if (am_bg_writer)
-		elog(ERROR, "ForwardFsyncRequest must not be called in bgwriter");
 
 	LWLockAcquire(BgWriterCommLock, LW_EXCLUSIVE);
 
@@ -751,8 +737,9 @@ AbsorbFsyncRequests(void)
 	BgWriterRequest *request;
 	int			n;
 
-	if (!am_bg_writer)
-		return;
+	if (IsUnderPostmaster && !AmStartupProcess() && !AmCheckpointerProcess())
+		elog(ERROR, "AbsorbFsyncRequests() called in process %d (type %d)",
+			 MyProcPid, MyAuxProcType);
 
 	/*
 	 * We have to PANIC if we fail to absorb all the pending requests (eg,
@@ -790,9 +777,4 @@ AbsorbFsyncRequests(void)
 		pfree(requests);
 
 	END_CRIT_SECTION();
-}
-
-bool AmBackgroundWriterProcess()
-{
-	return am_bg_writer;
 }

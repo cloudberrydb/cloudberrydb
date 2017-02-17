@@ -489,12 +489,11 @@ typedef enum
 } AuxProcType;
 
 extern AuxProcType MyAuxProcType; /* bootstrap.c */
-
-#define AmStartupProcess()          (MyAuxProcType == StartupProcess || \
-										MyAuxProcType == StartupPass2Process || \
-										MyAuxProcType == StartupPass3Process || \
-										MyAuxProcType == StartupPass4Process)
+#define AmBootstrapProcess()        (MyAuxProcType == BootstrapProcess)
+#define AmStartupProcess()          (MyAuxProcType >= StartupProcess && MyAuxProcType <= StartupPass4Process)
+#define AmBackgroundWriterProcess() (MyAuxProcType == BgWriterProcess)
 #define AmCheckpointerProcess()     (MyAuxProcType == CheckpointProcess)
-#define AmBgWriterProcess()			(MyAuxProcType == BgWriterProcess)
+#define AmWalWriterProcess()        (MyAuxProcType == WalWriterProcess)
+#define AmWalReceiverProcess()      (MyAuxProcType == WalReceiverProcess)
 
 #endif   /* MISCADMIN_H */

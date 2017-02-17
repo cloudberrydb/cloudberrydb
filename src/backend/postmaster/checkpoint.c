@@ -338,6 +338,11 @@ CheckpointMain(void)
 		if (!PostmasterIsAlive(true))
 			exit(1);
 
+		/*
+		 * Process any requests or signals received recently.
+		 */
+		AbsorbFsyncRequests();
+
 		if (got_SIGHUP)
 		{
 			got_SIGHUP = false;

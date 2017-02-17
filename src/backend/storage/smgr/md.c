@@ -201,7 +201,7 @@ mdinit(void)
 	 * it if we are standalone (not under a postmaster) or if we are a startup
 	 * or checkpointer auxiliary process.
 	 */
-	if (!IsUnderPostmaster || AmStartupProcess() || AmCheckpointerProcess() || AmBgWriterProcess())
+	if (!IsUnderPostmaster || AmStartupProcess() || AmCheckpointerProcess())
 	{
 		HASHCTL		hash_ctl;
 
@@ -2267,13 +2267,6 @@ void
 RememberFsyncRequest(RelFileNode rnode, BlockNumber segno)
 {
 	Assert(pendingOpsTable);
-
-	/*
-	 * bgwriter don't do fsync after we import checkpointer process,
-	 * so we don't add anything into it's hash table.
-	 */
-	if (AmBackgroundWriterProcess())
-		return;
 
 	if (segno == FORGET_RELATION_FSYNC)
 	{
