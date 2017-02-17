@@ -218,15 +218,15 @@ static void PersistentBuild_PopulateGpRelationNode(
 		ItemPointerData persistentTid;
 		int64 persistentSerialNum;
 
-		if (dbInfoRel->reltablespace == GLOBALTABLESPACE_OID &&
+		if (dbInfoRel->dbInfoRelKey.reltablespace == GLOBALTABLESPACE_OID &&
 			info->database != TemplateDbOid)
 			continue;
 
-		relFileNode.spcNode = dbInfoRel->reltablespace;
+		relFileNode.spcNode = dbInfoRel->dbInfoRelKey.reltablespace;
 		relFileNode.dbNode = 
-				(dbInfoRel->reltablespace == GLOBALTABLESPACE_OID ?
+				(dbInfoRel->dbInfoRelKey.reltablespace == GLOBALTABLESPACE_OID ?
 														0 : info->database);
-		relFileNode.relNode = dbInfoRel->relfilenodeOid;
+		relFileNode.relNode = dbInfoRel->dbInfoRelKey.relfilenode;
 
 		if (dbInfoRel->relationOid == GpRelationNodeOidIndexId)
 		{
@@ -280,7 +280,7 @@ static void PersistentBuild_PopulateGpRelationNode(
 							gp_relation_node,
 							dbInfoRel->relationOid,	// pg_class OID
 							dbInfoRel->relname,
-							(dbInfoRel->reltablespace == MyDatabaseTableSpace) ? 0:dbInfoRel->reltablespace,
+							(dbInfoRel->dbInfoRelKey.reltablespace == MyDatabaseTableSpace) ? 0:dbInfoRel->dbInfoRelKey.reltablespace,
 							relFileNode.relNode,	// pg_class relfilenode
 							/* segmentFileNum */ 0,
 							/* updateIndex */ false,
@@ -400,7 +400,7 @@ static void PersistentBuild_PopulateGpRelationNode(
 								gp_relation_node,
 								dbInfoRel->relationOid, // pg_class OID
 								dbInfoRel->relname,
-								(dbInfoRel->reltablespace == MyDatabaseTableSpace) ? 0:dbInfoRel->reltablespace,
+								(dbInfoRel->dbInfoRelKey.reltablespace == MyDatabaseTableSpace) ? 0:dbInfoRel->dbInfoRelKey.reltablespace,
 								relFileNode.relNode,	// pg_class relfilenode
 								physicalSegmentFileNum,
 								/* updateIndex */ false,

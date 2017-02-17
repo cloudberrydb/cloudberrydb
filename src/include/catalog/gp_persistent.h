@@ -605,7 +605,7 @@ extern void GpPersistent_GetCommonValues(
 
 extern void GpRelationNode_GetValues(
 	Datum							*values,
-
+	Oid 							*tablespaceOid,
 	Oid 							*relfilenodeOid,
 	int32							*segmentFileNum,
 	int64							*createMirrorDataLossTrackingSessionNum,

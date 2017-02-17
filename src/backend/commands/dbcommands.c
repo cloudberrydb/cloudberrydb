@@ -1140,13 +1140,13 @@ createdb(CreatedbStmt *stmt)
 
 			PersistentFileSysRelStorageMgr relStorageMgr;
 
-			tablespace = dbInfoRel->reltablespace;
+			tablespace = dbInfoRel->dbInfoRelKey.reltablespace;
 			if (tablespace == GLOBALTABLESPACE_OID)
 				continue;
 
 			CHECK_FOR_INTERRUPTS();
 
-			relfilenode = dbInfoRel->relfilenodeOid;
+			relfilenode = dbInfoRel->dbInfoRelKey.relfilenode;
 			
 			srcRelFileNode.spcNode = tablespace;
 			srcRelFileNode.dbNode = info->database;
@@ -1290,7 +1290,7 @@ createdb(CreatedbStmt *stmt)
 							dst_deftablespace,
 							dboid,
 							&dbInfoGpRelationNode->gpRelationNodeTid,
-							dbInfoRel->relfilenodeOid,
+							dbInfoRel->dbInfoRelKey.relfilenode,
 							dbInfoGpRelationNode->segmentFileNum,
 							&dbInfoGpRelationNode->persistentTid,		// INPUT
 							dbInfoGpRelationNode->persistentSerialNum);	// INPUT
@@ -1560,12 +1560,12 @@ dropdb(const char *dbname, bool missing_ok)
 			PersistentFileSysRelStorageMgr relStorageMgr;
 
 			int g;
-			if (dbInfoRel->reltablespace == GLOBALTABLESPACE_OID)
+			if (dbInfoRel->dbInfoRelKey.reltablespace == GLOBALTABLESPACE_OID)
 				continue;
 			
-			relFileNode.spcNode = dbInfoRel->reltablespace;
+			relFileNode.spcNode = dbInfoRel->dbInfoRelKey.reltablespace;
 			relFileNode.dbNode = db_id;
-			relFileNode.relNode = dbInfoRel->relfilenodeOid;
+			relFileNode.relNode = dbInfoRel->dbInfoRelKey.relfilenode;
 
 			CHECK_FOR_INTERRUPTS();
 

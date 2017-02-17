@@ -361,12 +361,13 @@ GpRelationNodeGetNext(
 	int64				*persistentSerialNum)
 {
 	HeapTuple tuple;
-	
+
 	bool			nulls[Natts_gp_relation_node];
 	Datum			values[Natts_gp_relation_node];
-	
+
+	Oid tablespace;
 	Oid actualRelationNode;
-	
+
 	int64 createMirrorDataLossTrackingSessionNum;
 
 	tuple = systable_getnext((SysScanDesc)gpRelationNodeScan->scan);
@@ -385,6 +386,7 @@ GpRelationNodeGetNext(
 		
 	GpRelationNode_GetValues(
 						values,
+						&tablespace,
 						&actualRelationNode,
 						segmentFileNum,
 						&createMirrorDataLossTrackingSessionNum,
@@ -478,7 +480,8 @@ FetchGpRelationNodeTuple(
 	
 	bool			nulls[Natts_gp_relation_node];
 	Datum			values[Natts_gp_relation_node];
-	
+
+	Oid tablespace;
 	Oid actualRelationNode;
 	int32 actualSegmentFileNum;
 
@@ -511,6 +514,7 @@ FetchGpRelationNodeTuple(
 		
 	GpRelationNode_GetValues(
 						values,
+						&tablespace,
 						&actualRelationNode,
 						&actualSegmentFileNum,
 						&createMirrorDataLossTrackingSessionNum,
