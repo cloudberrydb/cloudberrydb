@@ -123,7 +123,6 @@ walrep_1:
 	-s gpstart \
 	-s gpstate \
 	-s gpstop \
-	-s onlinehelp \
 	-s run
 
 walrep_2:
