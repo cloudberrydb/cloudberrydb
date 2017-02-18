@@ -269,8 +269,15 @@ FileRepPrimary_IsMirroringRequired(
 						primaryMirrorSetIOSuspended(TRUE);
 					}
 
-					if (!PostmasterIsAlive(true))
+					/*
+					 * This code path can be reached from backends which are
+					 * not directly spawned from PostMaster.  For e.g the
+					 * FileRepResyncWorker process is spawned by FileRepMain.
+					 * Hence PostmasterIsAlive() needs to be called with false.
+					 */
+					if (!PostmasterIsAlive(false))
 					{
+						LockReleaseAll(DEFAULT_LOCKMETHOD, false);
 						LWLockReleaseAll();
 						proc_exit(0);
 					}
