@@ -395,7 +395,7 @@ jobs:
       TARGET_OS: centos
       TARGET_OS_VERSION: 6
 
-- name: cs-uao
+- name: uao
   plan:
   - aggregate:
     - get: gpdb_src
@@ -413,7 +413,7 @@ jobs:
       MAKE_TEST_COMMAND: uao_orca_both_regression
       TEST_OS: centos
 
-- name: cs-subtransaction
+- name: subtransaction
   plan:
   - aggregate:
     - get: gpdb_src
@@ -430,6 +430,40 @@ jobs:
     params:
       MAKE_TEST_COMMAND: sub_transaction_limit_removal
       TEST_OS: centos
+
+- name: fts
+  plan:
+  - aggregate:
+    - get: gpdb_src
+      params: {submodules: none}
+      passed: [compile_gpdb_centos6]
+    - get: bin_gpdb
+      resource: bin_gpdb_centos6
+      passed: [compile_gpdb_centos6]
+      trigger: true
+    - get: centos-gpdb-dev-6
+  - aggregate:
+    - task: fts_transitions_part01
+      file: gpdb_src/concourse/tasks/tinc_gpdb.yml
+      image: centos-gpdb-dev-6
+      params:
+        MAKE_TEST_COMMAND: fts_transitions_part01
+        BLDWRAP_POSTGRES_CONF_ADDONS: gp_segment_connect_timeout=10 gp_fts_probe_interval=20
+        TEST_OS: centos
+    - task: fts_transitions_part02
+      file: gpdb_src/concourse/tasks/tinc_gpdb.yml
+      image: centos-gpdb-dev-6
+      params:
+        MAKE_TEST_COMMAND: fts_transitions_part02
+        BLDWRAP_POSTGRES_CONF_ADDONS: gp_segment_connect_timeout=10 gp_fts_probe_interval=20
+        TEST_OS: centos
+    - task: fts_transitions_part03
+      file: gpdb_src/concourse/tasks/tinc_gpdb.yml
+      image: centos-gpdb-dev-6
+      params:
+        MAKE_TEST_COMMAND: fts_transitions_part03
+        BLDWRAP_POSTGRES_CONF_ADDONS: gp_segment_connect_timeout=10 gp_fts_probe_interval=20
+        TEST_OS: centos
 
 # Stage 3: Packaging
 
@@ -781,23 +815,6 @@ jobs:
     params:
       <<: *pulse_properties
       PULSE_PROJECT_NAME: "cs-walrepl-multinode"
-
-- name: cs-fts
-  plan:
-  - aggregate: *pulse_trigger_resource
-  - task: trigger_pulse
-    tags: ["gpdb5-pulse-worker"]
-    file: gpdb_src/ci/pulse/api/trigger_pulse.yml
-    input_mapping: *input_mappings
-    params:
-      <<: *pulse_properties
-      PULSE_PROJECT_NAME: "cs-fts"
-  - task: monitor_pulse
-    tags: ["gpdb5-pulse-worker"]
-    file: gpdb_src/ci/pulse/api/monitor_pulse.yml
-    params:
-      <<: *pulse_properties
-      PULSE_PROJECT_NAME: "cs-fts"
 
 - name: cs-storage
   plan:
