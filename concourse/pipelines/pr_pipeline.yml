@@ -149,6 +149,34 @@ jobs:
           path: gpdb_pr
           status: failure
 
+  - name: icw_gporca_codegen_centos6
+    plan:
+    - aggregate:
+      - get: gpdb_pr
+        passed:
+        - compile_gpdb_centos6
+        - compile_gpdb_custom_config_centos6
+      - get: bin_gpdb
+        resource: bin_gpdb_centos
+        passed: [compile_gpdb_centos6]
+        trigger: true
+      - get: centos-gpdb-dev-6
+    - task: ic_gpdb
+      file: gpdb_pr/concourse/tasks/ic_gpdb.yml
+      image: centos-gpdb-dev-6
+      input_mapping:
+        gpdb_src: gpdb_pr
+      params:
+        MAKE_TEST_COMMAND: PGOPTIONS='-c optimizer=on -c codegen=on' installcheck-world
+        BLDWRAP_POSTGRES_CONF_ADDONS: "fsync=off"
+        TEST_OS: centos
+      timeout: 2h30m
+      on_failure:
+        put: gpdb_pr
+        params:
+          path: gpdb_pr
+          status: failure
+
   - name: MU_check_centos
     plan:
     - aggregate:
@@ -180,6 +208,7 @@ jobs:
       - get: gpdb_pr
         passed:
         - icw_planner_centos6
+        - icw_gporca_codegen_centos6
         - MU_check_centos
         trigger: true
     - put: gpdb_pr
