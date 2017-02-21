@@ -45,7 +45,7 @@ POSTGRES_BKI_SRCS := $(addprefix $(top_srcdir)/src/include/catalog/, \
 	pg_rewrite.h pg_trigger.h pg_listener.h pg_description.h pg_cast.h \
 	pg_enum.h pg_namespace.h pg_conversion.h pg_depend.h \
 	pg_database.h pg_tablespace.h pg_pltemplate.h \
-	pg_authid.h pg_auth_members.h pg_shdepend.h pg_shdescription.h pg_resqueue.h \
+	pg_authid.h pg_auth_members.h pg_shdepend.h pg_shdescription.h pg_resqueue.h pg_resgroup.h\
 	pg_ts_config.h pg_ts_config_map.h pg_ts_dict.h \
 	pg_ts_parser.h pg_ts_template.h pg_extension.h \
 	gp_configuration.h gp_id.h gp_policy.h gp_version.h \

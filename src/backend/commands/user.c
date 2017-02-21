@@ -23,6 +23,7 @@
 #include "catalog/pg_auth_time_constraint.h"
 #include "catalog/pg_auth_members.h"
 #include "catalog/pg_authid.h"
+#include "catalog/pg_resgroup.h"
 #include "commands/comment.h"
 #include "commands/user.h"
 #include "libpq/auth.h"
@@ -493,6 +494,14 @@ CreateRole(CreateRoleStmt *stmt)
 	}
 	else
 		new_record_nulls[Anum_pg_authid_rolresqueue - 1] = true;
+
+	/* hard code the resource group of the user now */
+	if (issuper)
+		new_record[Anum_pg_authid_rolresgroup - 1] = ObjectIdGetDatum(ADMINRESGROUP_OID);
+	else
+		new_record[Anum_pg_authid_rolresgroup - 1] = ObjectIdGetDatum(DEFAULTRESGROUP_OID);
+
+	new_record_nulls[Anum_pg_authid_rolresgroup - 1] = false;
 
 	new_record_nulls[Anum_pg_authid_rolconfig - 1] = true;
 
