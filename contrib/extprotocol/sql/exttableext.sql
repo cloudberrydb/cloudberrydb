@@ -14,7 +14,7 @@ SET search_path TO 'exttableext';
     FORMAT 'text';
 
     -- Checking pg_exttable for new created RET and WET
-    select location,fmttype,fmtopts,encoding,writable from pg_exttable 
+    select urilocation,fmttype,fmtopts,encoding,writable from pg_exttable 
     where reloid='exttabtest_r'::regclass 
        or reloid='exttabtest_w'::regclass;
 

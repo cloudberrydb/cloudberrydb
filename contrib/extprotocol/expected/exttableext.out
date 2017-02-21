@@ -13,10 +13,10 @@ NOTICE:  table "exttabtest_r" does not exist, skipping
         LOCATION('demoprot://exttabtest.txt') 
     FORMAT 'text';
     -- Checking pg_exttable for new created RET and WET
-    select location,fmttype,fmtopts,encoding,writable from pg_exttable 
+    select urilocation,fmttype,fmtopts,encoding,writable from pg_exttable 
     where reloid='exttabtest_r'::regclass 
        or reloid='exttabtest_w'::regclass;
-          location           | fmttype |                fmtopts                 | encoding | writable 
+         urilocation         | fmttype |                fmtopts                 | encoding | writable
 -----------------------------+---------+----------------------------------------+----------+----------
  {demoprot://exttabtest.txt} | t       | delimiter '     ' null '\N' escape '\' |        6 | t
  {demoprot://exttabtest.txt} | t       | delimiter '     ' null '\N' escape '\' |        6 | f
@@ -674,6 +674,7 @@ Encoding: UTF8
 Format type: text
 Format options: delimiter '	' null '\N' escape '\'
 External location: demoprot://exttabtest.txt
+Execute on: all segments
 External options: {}
 
     select count(*) from pg_class where relname = 'exttabtest_r_newname';
@@ -847,6 +848,7 @@ Format type: custom
 Format options: formatter 'formatter_export_s' 
 External options: {}
 External location: demoprot://exttabtest_test63
+Execute on: all segments
 
     \d format_r
    External table "exttableext.format_r"
@@ -862,6 +864,7 @@ Format type: custom
 Format options: formatter 'formatter_import_s' 
 External options: {}
 External location: demoprot://exttabtest_test63
+Execute on: all segments
 
     -- Checking pg_exttable 
     select pg_class.relname, fmttype,
@@ -1593,6 +1596,7 @@ Format type: text
 Format options: delimiter '	' null '\N' escape '\'
 External options: {}
 External location: demoprot://exttabtest.txt
+Execute on: all segments
 
     -- Create a new ext table using the new protocol name
     DROP EXTERNAL TABLE IF EXISTS exttabtest_w_new;
