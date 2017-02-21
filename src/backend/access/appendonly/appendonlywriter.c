@@ -1349,7 +1349,7 @@ GetTotalTupleCountFromSegments(Relation parentrel,
 					if (PQgetisnull(pgresult, j, 0) == 1)
 						elog(ERROR, "unexpected NULL in tupcount in results[%d]: %s",
 									i, sqlstmt.data);
-					if (PQgetisnull(pgresult, j, 0) == 1)
+					if (PQgetisnull(pgresult, j, 1) == 1)
 						elog(ERROR, "unexpected NULL in segno in results[%d]: %s",
 								i, sqlstmt.data);
 
