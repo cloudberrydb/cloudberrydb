@@ -1,13 +1,9 @@
 drop table if exists vfheap;
-DROP TABLE
 create table vfheap (a, b, c) as
 select 1, i, repeat('x', 1000) from generate_series(1, 100)i distributed by (a);
-SELECT 100
 create index ivfheap on vfheap(b, c);
-CREATE INDEX
 -- delete half of table
 delete from vfheap where b between 0 and (select count(*) / 2 from vfheap);
-DELETE 50
 select pg_relation_size('vfheap') from gp_dist_random('gp_id') where gp_segment_id = 0;
  pg_relation_size 
 ------------------
@@ -22,7 +18,6 @@ select pg_relation_size('ivfheap') from gp_dist_random('gp_id') where gp_segment
 
 -- show pages are truncated
 vacuum full freeze vfheap;
-VACUUM
 select pg_relation_size('vfheap') from gp_dist_random('gp_id') where gp_segment_id = 0;
  pg_relation_size 
 ------------------

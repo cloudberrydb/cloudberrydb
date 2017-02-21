@@ -1,6 +1,3 @@
--- start_ignore
-SET gp_create_table_random_default_distribution=off;
--- end_ignore
 drop table if exists vfheap;
 create table vfheap (a, b, c) as
 select 1, i, repeat('x', 1000) from generate_series(1, 100)i distributed by (a);

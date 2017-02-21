@@ -1,13 +1,9 @@
 drop table if exists vfheap;
-DROP TABLE
 create table vfheap (a, b, c) as
 select 1, i, repeat('x', 1000) from generate_series(1, 100)i distributed by (a);
-SELECT 100
 create index ivfheap on vfheap(b, c);
-CREATE INDEX
 -- delete half of table
 delete from vfheap where b between 0 and (select count(*) / 2 from vfheap);
-DELETE 50
 select pg_relation_size('vfheap') from gp_dist_random('gp_id') where gp_segment_id = 0;
  pg_relation_size 
 ------------------
@@ -22,7 +18,6 @@ select pg_relation_size('ivfheap') from gp_dist_random('gp_id') where gp_segment
 
 -- show pages are truncated
 vacuum full vfheap;
-VACUUM
 select pg_relation_size('vfheap') from gp_dist_random('gp_id') where gp_segment_id = 0;
  pg_relation_size 
 ------------------
@@ -51,12 +46,9 @@ select relname, relpages, reltuples from gp_dist_random('pg_class') where (oid =
 
 -- just for the sake of code coverage, one more shot of vacuum full
 vacuum full vfheap;
-VACUUM
 -- delete completely, size becomes 0, reducing index too
 delete from vfheap;
-DELETE 50
 vacuum full vfheap;
-VACUUM
 select pg_relation_size('vfheap') from gp_dist_random('gp_id') where gp_segment_id = 0;
  pg_relation_size 
 ------------------
@@ -79,9 +71,7 @@ select relname, relpages, reltuples from gp_dist_random('pg_class') where (oid =
 
 -- again, but delete second half
 insert into vfheap select 1, i, repeat('x', 1000) from generate_series(1, 100)i;
-INSERT 0 100
 delete from vfheap where b between (select count(*) / 2 from vfheap) and (select count(*) from vfheap);
-DELETE 51
 select pg_relation_size('vfheap') from gp_dist_random('gp_id') where gp_segment_id = 0;
  pg_relation_size 
 ------------------
@@ -96,7 +86,6 @@ select pg_relation_size('ivfheap') from gp_dist_random('gp_id') where gp_segment
 
 -- show pages are truncated
 vacuum full vfheap;
-VACUUM
 select pg_relation_size('vfheap') from gp_dist_random('gp_id') where gp_segment_id = 0;
  pg_relation_size 
 ------------------
@@ -117,10 +106,8 @@ select max(b), min(length(c)) from vfheap;
 
 -- also make sure toast is truncated
 drop table if exists vfheaptoast;
-DROP TABLE
 create table vfheaptoast (a, b, c) as
 select 1, i, array(select generate_series(1, 10000)) from generate_series(1, 100)i;
-SELECT 100
 select pg_relation_size((select reltoastrelid from pg_class where oid = 'vfheaptoast'::regclass)) from gp_dist_random('gp_id') where gp_segment_id = 0;
  pg_relation_size 
 ------------------
@@ -128,9 +115,7 @@ select pg_relation_size((select reltoastrelid from pg_class where oid = 'vfheapt
 (1 row)
 
 delete from vfheaptoast where b between 0 and (select count(*) / 2 from vfheaptoast);
-DELETE 50
 vacuum full vfheaptoast;
-VACUUM
 select pg_relation_size((select reltoastrelid from pg_class where oid = 'vfheaptoast'::regclass)) from gp_dist_random('gp_id') where gp_segment_id = 0;
  pg_relation_size 
 ------------------
@@ -151,9 +136,7 @@ select relpages, reltuples from gp_dist_random('pg_class')
 (1 row)
 
 delete from vfheaptoast;
-DELETE 50
 vacuum full vfheaptoast;
-VACUUM
 select pg_relation_size((select reltoastrelid from pg_class where oid = 'vfheaptoast'::regclass)) from gp_dist_random('gp_id') where gp_segment_id = 0;
  pg_relation_size 
 ------------------
