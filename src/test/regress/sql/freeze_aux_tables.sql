@@ -25,9 +25,9 @@ $$ language 'plpgsql';
 CREATE FUNCTION classify_age(age integer) RETURNS text AS $$
   SELECT CASE WHEN $1 < 0 THEN 'negative'
               WHEN $1 = 0 THEN 'zero'
-	      WHEN $1 < 100 THEN 'very young'
-	      WHEN $1 < 150 THEN 'young'
-	      ELSE 'old' END;
+	      WHEN $1 < 50 THEN 'very young' -- less than vacuum_freeze_min_age=50 that we use below
+	      WHEN $1 < 100 THEN 'young' -- recently processed by vacuum freeze
+	      ELSE 'old' END; -- not frozen
 $$ LANGUAGE SQL IMMUTABLE STRICT;
 
 CREATE TYPE rel_ages AS (segid integer, relname text, age integer);
@@ -66,7 +66,7 @@ $$ language plpgsql;
 -- 3. VACUUM
 -- 4. Verify that the relfrozenxid was advanced by the vacuum
 --
-set vacuum_freeze_min_age = 100;
+set vacuum_freeze_min_age = 50;
 
 create table test_table_heap (id int, col1 int) with (appendonly=false);
 create table test_table_heap_with_toast (id int, col1 int, col2 text) with (appendonly=false);
@@ -140,7 +140,7 @@ INSERT INTO test_table_heap select i, i*2 from generate_series(1, 20)i;
 INSERT INTO test_table_heap_with_toast select i, i*2, i*5 from generate_series(1, 20)i;
 INSERT INTO test_table_ao select i, i*2 from generate_series(1, 20)i;
 INSERT INTO test_table_ao_with_toast select i, i*2, i*5 from generate_series(1, 20)i;
-INSERT INTO test_table_co select i, i*2, i*5 from generate_series(1, 20)i;
+INSERT INTO test_table_co select i, i*2 from generate_series(1, 20)i;
 INSERT INTO test_table_co_with_toast select i, i*2 from generate_series(1, 20)i;
 
 delete from test_table_heap;
@@ -156,6 +156,8 @@ select count(*) from test_table_ao;
 select count(*) from test_table_ao_with_toast;
 select count(*) from test_table_co;
 select count(*) from test_table_co_with_toast;
+
+select advance_xid_counter(500);
 
 vacuum freeze test_table_heap;
 vacuum freeze test_table_heap_with_toast;
