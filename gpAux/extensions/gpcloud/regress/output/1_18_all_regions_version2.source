@@ -16,6 +16,7 @@ Format type: csv
 Format options: delimiter ',' null '' escape '"' quote '"'
 External options: {}
 External location: "s3://s3.amazonaws.com/us-east-1.@read_prefix@/small17/data0000 config=@config_file@ section=version2 region=us-east-1"
+Execute on: all segments
 
 SELECT round(sum(open)) FROM s3regress_all_regions_version2;
   round  
@@ -42,6 +43,7 @@ Format type: csv
 Format options: delimiter ',' null '' escape '"' quote '"'
 External options: {}
 External location: "s3://s3-us-east-2.amazonaws.com/us-east-2.@read_prefix@/small17/data0000 config=@config_file@ section=version2 region=us-east-2"
+Execute on: all segments
 
 SELECT round(sum(open)) FROM s3regress_all_regions_version2;
   round  
@@ -68,6 +70,7 @@ Format type: csv
 Format options: delimiter ',' null '' escape '"' quote '"'
 External options: {}
 External location: "s3://s3-us-west-1.amazonaws.com/us-west-1.@read_prefix@/small17/data0000 config=@config_file@ section=version2 region=us-west-1"
+Execute on: all segments
 
 SELECT round(sum(open)) FROM s3regress_all_regions_version2;
   round  
@@ -94,6 +97,7 @@ Format type: csv
 Format options: delimiter ',' null '' escape '"' quote '"'
 External options: {}
 External location: "s3://s3-ap-south-1.amazonaws.com/ap-south-1.@read_prefix@/small17/data0000 config=@config_file@ section=version2 region=ap-south-1"
+Execute on: all segments
 
 SELECT round(sum(open)) FROM s3regress_all_regions_version2;
   round  
@@ -120,6 +124,7 @@ Format type: csv
 Format options: delimiter ',' null '' escape '"' quote '"'
 External options: {}
 External location: "s3://s3-ap-northeast-2.amazonaws.com/ap-northeast-2.@read_prefix@/small17/data0000 config=@config_file@ section=version2 region=ap-northeast-2"
+Execute on: all segments
 
 SELECT round(sum(open)) FROM s3regress_all_regions_version2;
   round  
@@ -146,6 +151,7 @@ Format type: csv
 Format options: delimiter ',' null '' escape '"' quote '"'
 External options: {}
 External location: "s3://s3-ap-southeast-1.amazonaws.com/ap-southeast-1.@read_prefix@/small17/data0000 config=@config_file@ section=version2 region=ap-southeast-1"
+Execute on: all segments
 
 SELECT round(sum(open)) FROM s3regress_all_regions_version2;
   round  
@@ -172,6 +178,7 @@ Format type: csv
 Format options: delimiter ',' null '' escape '"' quote '"'
 External options: {}
 External location: "s3://s3-ap-southeast-2.amazonaws.com/ap-southeast-2.@read_prefix@/small17/data0000 config=@config_file@ section=version2 region=ap-southeast-2"
+Execute on: all segments
 
 SELECT round(sum(open)) FROM s3regress_all_regions_version2;
   round  
@@ -198,6 +205,7 @@ Format type: csv
 Format options: delimiter ',' null '' escape '"' quote '"'
 External options: {}
 External location: "s3://s3-ap-northeast-1.amazonaws.com/ap-northeast-1.@read_prefix@/small17/data0000 config=@config_file@ section=version2 region=ap-northeast-1"
+Execute on: all segments
 
 SELECT round(sum(open)) FROM s3regress_all_regions_version2;
   round  
@@ -224,6 +232,7 @@ Format type: csv
 Format options: delimiter ',' null '' escape '"' quote '"'
 External options: {}
 External location: "s3://s3-eu-central-1.amazonaws.com/eu-central-1.@read_prefix@/small17/data0000 config=@config_file@ section=version2 region=eu-central-1"
+Execute on: all segments
 
 SELECT round(sum(open)) FROM s3regress_all_regions_version2;
   round  
@@ -250,6 +259,7 @@ Format type: csv
 Format options: delimiter ',' null '' escape '"' quote '"'
 External options: {}
 External location: "s3://s3-eu-west-1.amazonaws.com/eu-west-1.@read_prefix@/small17/data0000 config=@config_file@ section=version2 region=eu-west-1"
+Execute on: all segments
 
 SELECT round(sum(open)) FROM s3regress_all_regions_version2;
   round  
@@ -276,6 +286,7 @@ Format type: csv
 Format options: delimiter ',' null '' escape '"' quote '"'
 External options: {}
 External location: "s3://s3-sa-east-1.amazonaws.com/sa-east-1.@read_prefix@/small17/data0000 config=@config_file@ section=version2 region=sa-east-1"
+Execute on: all segments
 
 SELECT round(sum(open)) FROM s3regress_all_regions_version2;
   round  
