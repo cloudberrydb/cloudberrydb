@@ -361,6 +361,8 @@ CheckpointMain(void)
 			 * control back to the sigsetjmp block above
 			 */
 			ExitOnAnyError = true;
+			/* Close down the database */
+			ShutdownXLOG(0, 0);
 
 			/* Normal exit from the checkpoint server is here */
 			if (Debug_print_server_processes ||
