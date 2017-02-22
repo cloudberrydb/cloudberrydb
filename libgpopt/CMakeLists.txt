@@ -95,6 +95,10 @@ add_library(gpopt
 
             include/gpopt/base/CAutoOptCtxt.h
             src/base/CAutoOptCtxt.cpp
+            include/gpopt/base/CColConstraintsArrayMapper.h
+            src/base/CColConstraintsArrayMapper.cpp
+            include/gpopt/base/CColConstraintsHashMapper.h
+            src/base/CColConstraintsHashMapper.cpp
             include/gpopt/base/CColRef.h
             src/base/CColRef.cpp
             include/gpopt/base/CColRefComputed.h
@@ -211,6 +215,8 @@ add_library(gpopt
             src/base/CUtils.cpp
             include/gpopt/base/CWindowFrame.h
             src/base/CWindowFrame.cpp
+            include/gpopt/base/IColConstraintsMapper.h
+            src/base/IColConstraintsMapper.cpp
             include/gpopt/engine/CEngine.h
             src/engine/CEngine.cpp
             include/gpopt/engine/CEnumeratorConfig.h

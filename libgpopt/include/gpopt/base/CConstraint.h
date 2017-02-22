@@ -153,10 +153,6 @@ namespace gpopt
 							)
 							const;
 
-			// subset of the given constraints, which reference the given column
-			static
-			DrgPcnstr *PdrgpcnstrOnColumn(IMemoryPool *pmp, DrgPcnstr *pdrgpcnstr, CColRef *pcr, BOOL fExclusive);
-
 			// create constraint from scalar array comparison expression
 			static
 			CConstraint *PcnstrFromScalarArrayCmp(IMemoryPool *pmp, CExpression *pexpr, CColRef *pcr);
@@ -268,6 +264,10 @@ namespace gpopt
 			// merge equivalence classes coming from children of a bool op
 			static
 			DrgPcrs *PdrgpcrsMergeFromBoolOp(IMemoryPool *pmp, CExpression *pexpr, DrgPcrs *pdrgpcrsFst, DrgPcrs *pdrgpcrsSnd);
+
+			// subset of the given constraints, which reference the given column
+			static
+			DrgPcnstr *PdrgpcnstrOnColumn(IMemoryPool *pmp, DrgPcnstr *pdrgpcnstr, CColRef *pcr, BOOL fExclusive);
 
 	}; // class CConstraint
 
