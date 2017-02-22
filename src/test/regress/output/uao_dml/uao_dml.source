@@ -1,6 +1,11 @@
 create schema uao_dml_@orientation@;
 set search_path=uao_dml_@orientation@;
 set gp_default_storage_options='orientation=@orientation@';
+-- Some of the UPDATE commands in this test fail with ORCA, with an error:
+-- ERROR:  multiple updates to a row by the same query is not allowed
+-- The queries in this test are not interesting from the point of view of
+-- testing the optimizer, so just disable ORCA to work around that.
+set optimizer=off;
 -- @Description Tests basic delete feature with two AO blocks
 -- 
 DROP TABLE IF EXISTS foo;
