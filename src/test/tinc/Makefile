@@ -77,7 +77,6 @@ storage_vacuum_xidlimits:
 aocoalter_catalog_loaders:
 	$(TESTER) $(DISCOVER) -t tincrepo/mpp/gpdb/tests \
 	-s storage/aoco_alter \
-	-s catalog/gpcheckcat \
 	-s catalog/mpp24606 \
 	-s catalog/mpp25160 \
 	-s catalog/mpp25256 \
