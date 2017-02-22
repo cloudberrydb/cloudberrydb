@@ -56,6 +56,7 @@ Format type: text
 Format options: delimiter '|' null '\N' escape '\'
 External options: {}
 External location: gpfdist://@hostname@:@gp_port@/output/wet_ao_dsp.tbl
+Execute on: all segments
 
 INSERT INTO tbl_wet_ao SELECT * FROM ao_table;
 INSERT 0 3
