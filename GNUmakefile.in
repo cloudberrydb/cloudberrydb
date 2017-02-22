@@ -117,6 +117,7 @@ distclean maintainer-clean:
 installcheck-world:
 	$(MAKE) -C src/test installcheck-good
 	$(MAKE) -C src/test installcheck-bugbuster
+	$(MAKE) -C src/test/fsync install && $(MAKE) -C src/test/fsync installcheck
 	$(MAKE) -C src/test/isolation installcheck
 	$(MAKE) -C src/test/isolation2 installcheck
 	$(MAKE) -C src/pl installcheck

@@ -217,6 +217,10 @@ typedef enum FaultInjectorIdentifier_e {
 
 	InterconnectStopAckIsLost,
 	CursorQEReaderAfterSnapshot,
+
+	FsyncCounter,
+	BgBufferSyncDefaultLogic,
+
 	/* INSERT has to be done before that line */
 	FaultInjectorIdMax,
 	

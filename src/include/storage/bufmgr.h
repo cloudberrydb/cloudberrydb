@@ -43,6 +43,7 @@ extern bool memory_protect_buffer_pool;
 extern bool zero_damaged_pages;
 extern int	bgwriter_lru_maxpages;
 extern double bgwriter_lru_multiplier;
+extern bool bgwriter_flush_all_buffers;
 
 extern PGDLLIMPORT bool IsUnderPostmaster; /* from utils/init/globals.c */
 #define ShouldMemoryProtectBufferPool() (memory_protect_buffer_pool && IsUnderPostmaster)

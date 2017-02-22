@@ -26,6 +26,7 @@
 #include "storage/fd.h"
 #include "storage/bufmgr.h"
 #include "storage/smgr.h"
+#include "utils/faultinjector.h"
 #include "utils/hsearch.h"
 #include "utils/memutils.h"
 #include "cdb/cdbmirroredbufferpool.h"
@@ -1960,6 +1961,21 @@ mdsync(void)
 		/* Else assert we haven't missed it */
 		Assert((CycleCtr) (entry->cycle_ctr + 1) == mdsync_cycle_ctr);
 
+#ifdef FAULT_INJECTOR
+		if (!entry->canceled &&
+			SIMPLE_FAULT_INJECTOR(FsyncCounter) == FaultInjectorTypeSkip)
+		{
+			if (MyAuxProcType == CheckpointProcess)
+				elog(LOG, "checkpoint performing fsync for %d/%d/%d",
+					 entry->tag.rnode.spcNode, entry->tag.rnode.dbNode,
+					 entry->tag.rnode.relNode);
+			else
+				elog(ERROR, "non checkpoint process trying to fsync "
+					 "%d/%d/%d when fsync_counter fault is set",
+					 entry->tag.rnode.spcNode, entry->tag.rnode.dbNode,
+					 entry->tag.rnode.relNode);
+		}
+#endif
 		/*
 		 * If fsync is off then we don't have to bother opening the file at
 		 * all.  (We delay checking until this point so that changing fsync on

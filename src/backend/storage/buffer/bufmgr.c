@@ -44,6 +44,7 @@
 #include "storage/proc.h"
 #include "storage/smgr.h"
 #include "utils/resowner.h"
+#include "utils/faultinjector.h"
 #include "pgstat.h"
 #include "access/heapam.h"
 #include "cdb/cdbpersistentrelation.h"
@@ -72,7 +73,6 @@ bool        memory_protect_buffer_pool = true;
 bool		zero_damaged_pages = false;
 int			bgwriter_lru_maxpages = 100;
 double		bgwriter_lru_multiplier = 2.0;
-
 
 long		NDirectFileRead;	/* some I/O's are direct file access. bypass
 								 * bufmgr */
@@ -1334,6 +1334,7 @@ BgBufferSync(void)
 	int			num_to_scan;
 	int			num_written;
 	int			reusable_buffers;
+	bool		skip_recently_used;
 
 	/*
 	 * Find out where the freelist clock sweep currently is, and how many
@@ -1491,6 +1492,12 @@ BgBufferSync(void)
 	 */
 	min_scan_buffers = (int) (NBuffers / (scan_whole_pool_milliseconds / BgWriterDelay));
 
+#ifdef FAULT_INJECTOR
+	/* flush all buffers. */
+	if (SIMPLE_FAULT_INJECTOR(BgBufferSyncDefaultLogic) == FaultInjectorTypeSkip)
+		min_scan_buffers = NBuffers;
+#endif
+
 	if (upcoming_alloc_est < (min_scan_buffers + reusable_buffers_est))
 	{
 #ifdef BGW_DEBUG
@@ -1511,13 +1518,29 @@ BgBufferSync(void)
 	ResourceOwnerEnlargeBuffers(CurrentResourceOwner);
 
 	num_to_scan = bufs_to_lap;
+
+#ifdef FAULT_INJECTOR
+	/* Flush all buffers. */
+	if (SIMPLE_FAULT_INJECTOR(BgBufferSyncDefaultLogic) == FaultInjectorTypeSkip)
+		num_to_scan = NBuffers;
+#endif
+
 	num_written = 0;
 	reusable_buffers = reusable_buffers_est;
+
+	skip_recently_used = true;
+
+#ifdef FAULT_INJECTOR
+		if (SIMPLE_FAULT_INJECTOR(BgBufferSyncDefaultLogic) == FaultInjectorTypeSkip)
+			skip_recently_used= false;
+#endif
 
 	/* Execute the LRU scan */
 	while (num_to_scan > 0 && reusable_buffers < upcoming_alloc_est)
 	{
-		int			buffer_state = SyncOneBuffer(next_to_clean, true);
+		int		buffer_state = 0;
+
+		buffer_state = SyncOneBuffer(next_to_clean, skip_recently_used);
 
 		if (++next_to_clean >= NBuffers)
 		{
