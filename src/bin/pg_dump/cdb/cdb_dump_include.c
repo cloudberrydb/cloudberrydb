@@ -3423,7 +3423,8 @@ getTableAttrs(TableInfo *tblinfo, int numTables)
 bool
 shouldPrintColumn(TableInfo *tbinfo, int colno)
 {
-	return (tbinfo->attislocal[colno] && !tbinfo->attisdropped[colno]);
+	return ((tbinfo->attislocal[colno] || tbinfo->relstorage == RELSTORAGE_EXTERNAL) &&
+			(!tbinfo->attisdropped[colno] /* || binary_upgrade */));
 }
 
 /*
