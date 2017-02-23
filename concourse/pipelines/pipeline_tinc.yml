@@ -70,27 +70,6 @@ jobs:
         file: sync_tools_gpdb/sync_tools_gpdb.tar.gz
 
 # Stage 2: CS Tests
-- name: cs-uao
-  plan:
-  - aggregate:
-    - get: gpdb_src
-      params: {submodules: none}
-      passed: [compile_gpdb_centos6]
-    - get: sync_tools_gpdb
-      resource: sync_tools_gpdb_centos
-      passed: [compile_gpdb_centos6]
-    - get: bin_gpdb
-      resource: bin_gpdb_centos
-      passed: [compile_gpdb_centos6]
-      trigger: true
-    - get: centos-gpdb-dev-6
-  - task: uao_orca_both_regression
-    file: gpdb_src/concourse/tasks/tinc_gpdb.yml
-    image: centos-gpdb-dev-6
-    params:
-      MAKE_TEST_COMMAND: uao_orca_both_regression
-      TEST_OS: centos
-
 - name: cs-subtransaction
   plan:
   - aggregate:

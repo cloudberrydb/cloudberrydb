@@ -51,7 +51,7 @@ DISCOVER=discover
 storage_targets: discover_targets non_discover_targets
 
 discover_targets: storage walrep_multinode \
-	uao_orca_both_regression upgrade pgtwophase \
+	upgrade pgtwophase \
 	sub_transaction_limit_removal filerep_schematopology_crashrecov
 
 non_discover_targets: aoco_compression filerep_end_to_end fts
@@ -90,6 +90,7 @@ storage_queryfinish_and_transactionmanagement:
 	-s dispatch/queryfinish \
 	-s storage/transaction_management \
 	-s storage/basic
+	-s storage/uao
 
 storage_persistent_filerep_accessmethods_and_vacuum:
 	$(TESTER) $(DISCOVER) -t tincrepo/mpp/gpdb/tests/storage \
@@ -138,16 +139,6 @@ walrep_2:
 	-s xact \
 	-q "class!=DDLTestCase" \
 	-q "class!=DMLTestCase"
-
-# cs-uao-regression
-# The following targets are pulled from:
-# http://pulse-cloud.gopivotal.com/admin/projects/cs-uao-regression
-#
-# Refer to the properties of the pulse project and individual build
-# stages for configuration requirements.
-
-uao_orca_both_regression:
-	$(TESTER) $(DISCOVER) -s tincrepo/mpp/gpdb/tests/storage/uao
 
 
 # cs-aoco-compression
