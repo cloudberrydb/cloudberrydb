@@ -89,7 +89,7 @@ storage_queryfinish_and_transactionmanagement:
 	$(TESTER) $(DISCOVER) -t tincrepo/mpp/gpdb/tests \
 	-s dispatch/queryfinish \
 	-s storage/transaction_management \
-	-s storage/basic
+	-s storage/basic \
 	-s storage/uao
 
 storage_persistent_filerep_accessmethods_and_vacuum:
