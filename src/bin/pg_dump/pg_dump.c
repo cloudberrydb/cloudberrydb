@@ -9391,7 +9391,7 @@ dumpExternal(TableInfo *tbinfo, PQExpBuffer query, PQExpBuffer q, PQExpBuffer de
 		bool		isweb = false;
 		bool		iswritable = false;
 		char	   *options;
-		bool		gpdb5 = isGPDB5000OrLater();
+		bool		gpdb5OrLater = isGPDB5000OrLater();
 
 		/*
 		 * DROP must be fully qualified in case same name appears in
@@ -9403,7 +9403,7 @@ dumpExternal(TableInfo *tbinfo, PQExpBuffer query, PQExpBuffer q, PQExpBuffer de
 						  fmtId(tbinfo->dobj.name));
 
 		/* Now get required information from pg_exttable */
-		if (gpdb5)
+		if (gpdb5OrLater)
 		{
 			appendPQExpBuffer(query,
 						  "SELECT x.urilocation, x.execlocation, x.fmttype, x.fmtopts, x.command, "
@@ -9483,7 +9483,7 @@ dumpExternal(TableInfo *tbinfo, PQExpBuffer query, PQExpBuffer q, PQExpBuffer de
 		}
 
 
-		if (gpdb5)
+		if (gpdb5OrLater)
 		{
 			urilocations = PQgetvalue(res, 0, 0);
 			execlocations = PQgetvalue(res, 0, 1);
@@ -9508,6 +9508,8 @@ dumpExternal(TableInfo *tbinfo, PQExpBuffer query, PQExpBuffer q, PQExpBuffer de
 			errtblname = PQgetvalue(res, 0, 7);
 			extencoding = PQgetvalue(res, 0, 8);
 			writable = PQgetvalue(res, 0, 9);
+			execlocations = "";
+			options = "";
 		}
 
 		if ((command && strlen(command) > 0) ||
@@ -9551,7 +9553,7 @@ dumpExternal(TableInfo *tbinfo, PQExpBuffer query, PQExpBuffer q, PQExpBuffer de
 		PQExpBufferData tmpbuf;
 		initPQExpBuffer(&tmpbuf);
 
-		char	   *on_clause = execlocations;
+		char	   *on_clause = gpdb5OrLater ? execlocations : urilocations;
 
 		/* remove curly braces */
 		on_clause[strlen(on_clause) - 1] = '\0';
@@ -9659,7 +9661,7 @@ dumpExternal(TableInfo *tbinfo, PQExpBuffer query, PQExpBuffer q, PQExpBuffer de
 			customfmt = NULL;
 		}
 
-		if (gpdb5)
+		if (gpdb5OrLater)
 		{
 			appendPQExpBuffer(q, "OPTIONS (\n %s\n )\n", options);
 		}
