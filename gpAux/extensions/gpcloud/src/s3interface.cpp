@@ -433,7 +433,7 @@ string S3InterfaceService::uploadPartOfData(S3VectorUInt8 &data, const S3Url &s3
     headers.Add(X_AMZ_CONTENT_SHA256, contentSha256);
 
     headers.Add(CONTENTTYPE, "text/plain");
-    headers.Add(CONTENTLENGTH, std::to_string((unsigned long long)data.size()));
+    // headers.Add(CONTENTLENGTH, std::to_string((unsigned long long)data.size()));
 
     queryString << "partNumber=" << partNumber << "&uploadId=" << uploadId;
 
