@@ -1330,6 +1330,8 @@ do_text_output_multiline(TupOutputState *tstate, char *text)
 		else
 			eol = text +strlen(text);
 
+		/* &text yields a singleton pointer - make sure only one is read */
+		Assert(1 == tstate->metadata->tupdesc->natts);
 		do_tup_output(tstate, &text);
 		text = eol;
 	}
