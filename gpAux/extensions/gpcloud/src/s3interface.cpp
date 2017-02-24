@@ -548,6 +548,14 @@ bool S3InterfaceService::abortUpload(const S3Url &s3Url, const string &uploadId)
 }
 
 S3MessageParser::S3MessageParser(const Response &resp) {
+    // Compatible S3 services don't always return XML
+    if (resp.getRawData().data() == NULL) {
+        message = "Unknown error";
+        code = "Unknown error code";
+
+        return;
+    }
+
     xmlptr = xmlCreatePushParserCtxt(NULL, NULL, (const char *)(resp.getRawData().data()),
                                      resp.getRawData().size(), "resp.xml");
     if (xmlptr != NULL) {
