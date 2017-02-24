@@ -46,7 +46,7 @@ mkgphdfs:
 mkgpcloud:
 	PATH=$(INSTLOC)/bin:$(PATH) $(MAKE) -C gpcloud USE_PGXS=1 install
 	PATH=$(INSTLOC)/bin:$(PATH) $(MAKE) -C gpcloud/bin/gpcheckcloud USE_PGXS=1 install
-	ln -sf $(pkglibdir)/gpcloud.so $(pkglibdir)/gps3ext.so
+	ln -sf gpcloud.so $(pkglibdir)/gps3ext.so
 
 # Only include include these files when running enterprise build
 ENTERPRISE_TARGETS="mkgphdfs mkorafce mkplr"
