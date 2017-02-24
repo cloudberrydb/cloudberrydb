@@ -955,8 +955,8 @@ cdb_exchange_part_constraints(Relation table,
 			/* The regular constraint should ultimately appear on the candidate
 			 * part the same number of times and with the same name as it appears
 			 * on the partitioned table. The call to constraint_diff will find
-			 * matching names and we'll be left with occurances of the constraint
-			 * that must be added to the candidate (missing) and occurances that
+			 * matching names and we'll be left with occurrences of the constraint
+			 * that must be added to the candidate (missing) and occurrences that
 			 * must be dropped from the candidate (extra).
 			 */
 			constraint_diffs(entry->table_cons, entry->cand_cons, true, &missing, &extra);

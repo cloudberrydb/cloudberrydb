@@ -709,7 +709,7 @@ i = i + 1# increment i (the index)
 
         # Check for the term in the terms list:
         # if stem word already exists, append the i value to the array entry 
-        # corresponding to the term. This counts multiple occurances of the word.
+        # corresponding to the term. This counts multiple occurrences of the word.
         # If stem word does not exist, add it to the dictionary with position i.
         # For example:
  # data: "a computer is a machine that manipulates data" 
