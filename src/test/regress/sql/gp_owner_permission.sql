@@ -33,9 +33,7 @@ COMMIT;
 SET role = test2;
 SET client_min_messages=WARNING;
 REINDEX DATABASE  reindexdb2;
+
 select usename as user_for_reindex_heap from pg_stat_operations where objname = 'idx_mytab1_heap' and subtype = 'REINDEX' ;
 select usename as user_for_reindex_ao from pg_stat_operations where objname = 'idx_mytab1_ao' and subtype = 'REINDEX' ;
 select usename as user_for_reindex_aoco from pg_stat_operations where objname = 'idx_mytab1_aoco' and subtype = 'REINDEX' ;
-SELECT 1 AS relfilenode_same_on_all_segs_heap from gp_dist_random('pg_class')   WHERE relname = 'idx_mytab1_heap' GROUP BY relfilenode having count(*) = (SELECT count(*) FROM gp_segment_configuration WHERE role='p' AND content > -1);
-SELECT 1 AS relfilenode_same_on_all_segs_ao from gp_dist_random('pg_class')   WHERE relname = 'idx_mytab1_ao' GROUP BY relfilenode having count(*) = (SELECT count(*) FROM gp_segment_configuration WHERE role='p' AND content > -1);
-SELECT 1 AS relfilenode_same_on_all_segs_aoco from gp_dist_random('pg_class')   WHERE relname = 'idx_mytab1_aoco' GROUP BY relfilenode having count(*) = (SELECT count(*) FROM gp_segment_configuration WHERE role='p' AND content > -1);

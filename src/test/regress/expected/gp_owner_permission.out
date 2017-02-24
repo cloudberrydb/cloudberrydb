@@ -51,21 +51,3 @@ select usename as user_for_reindex_aoco from pg_stat_operations where objname = 
  test2
 (1 row)
 
-SELECT 1 AS relfilenode_same_on_all_segs_heap from gp_dist_random('pg_class')   WHERE relname = 'idx_mytab1_heap' GROUP BY relfilenode having count(*) = (SELECT count(*) FROM gp_segment_configuration WHERE role='p' AND content > -1);
- relfilenode_same_on_all_segs_heap 
------------------------------------
-                                 1
-(1 row)
-
-SELECT 1 AS relfilenode_same_on_all_segs_ao from gp_dist_random('pg_class')   WHERE relname = 'idx_mytab1_ao' GROUP BY relfilenode having count(*) = (SELECT count(*) FROM gp_segment_configuration WHERE role='p' AND content > -1);
- relfilenode_same_on_all_segs_ao 
----------------------------------
-                               1
-(1 row)
-
-SELECT 1 AS relfilenode_same_on_all_segs_aoco from gp_dist_random('pg_class')   WHERE relname = 'idx_mytab1_aoco' GROUP BY relfilenode having count(*) = (SELECT count(*) FROM gp_segment_configuration WHERE role='p' AND content > -1);
- relfilenode_same_on_all_segs_aoco 
------------------------------------
-                                 1
-(1 row)
-
