@@ -78,7 +78,8 @@ test: partition_indexing parruleord
 test: alter_table_ao ao_create_alter_valid_table subtransaction_limit oid_consistency udf_exception_blocks
 ignore: icudp_full
 
-test: resource_queue resource_queue_function
+test: resource_queue
+test: resource_queue_function
 test: wrkloadadmin
 
 # gp_toolkit performs a vacuum and checks that it truncated the relation. That
