@@ -284,9 +284,6 @@
               <xref href="#gp_external_enable_exec"/>
             </li>
             <li>
-              <xref href="#gp_external_grant_privileges"/>
-            </li>
-            <li>
               <xref href="#gp_external_max_segs"/>
             </li>
             <li>
@@ -3595,39 +3592,6 @@
             <row>
               <entry colname="col1">Boolean</entry>
               <entry colname="col2">on</entry>
-              <entry colname="col3">master<p>system</p><p>restart</p></entry>
-            </row>
-          </tbody>
-        </tgroup>
-      </table>
-    </body>
-  </topic>
-  <topic id="gp_external_grant_privileges">
-    <title>gp_external_grant_privileges</title>
-    <body>
-      <p>In releases prior to 4.0, enables or disables non-superusers to issue a <codeph>CREATE
-          EXTERNAL [WEB] TABLE</codeph> command in cases where the <codeph>LOCATION</codeph> clause
-        specifies <codeph>http</codeph> or <codeph>gpfdist</codeph>. In releases after 4.0, the
-        ability to create an external table can be granted to a role using <codeph>CREATE
-          ROLE</codeph> or <codeph>ALTER ROLE</codeph>.</p>
-      <note>This server configuration parameter is deprecated and will be removed in a future
-        release. </note>
-      <table id="gp_external_grant_privileges_table">
-        <tgroup cols="3">
-          <colspec colnum="1" colname="col1" colwidth="1*"/>
-          <colspec colnum="2" colname="col2" colwidth="1*"/>
-          <colspec colnum="3" colname="col3" colwidth="1*"/>
-          <thead>
-            <row>
-              <entry colname="col1">Value Range</entry>
-              <entry colname="col2">Default</entry>
-              <entry colname="col3">Set Classifications</entry>
-            </row>
-          </thead>
-          <tbody>
-            <row>
-              <entry colname="col1">Boolean</entry>
-              <entry colname="col2">off</entry>
               <entry colname="col3">master<p>system</p><p>restart</p></entry>
             </row>
           </tbody>

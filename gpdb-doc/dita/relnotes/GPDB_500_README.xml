@@ -84,6 +84,10 @@
             configurations, were removed: <codeph>gp_hashagg_compress_spill_files</codeph>, <codeph>
             gp_eager_hashtable_release</codeph>, <codeph>max_work_mem</codeph>, <codeph>gp_hash_index
             </codeph>.</p>
+          <!-- PR 1484 -->
+          <p>The previously deprecated <codeph>gp_external_grant_privileges</codeph> GUC has
+            been removed. Rights management for creating external gphdfs and http tables is
+            performed using GRANT/REVOKE.</p>
         </li>
       </ul>
       <p>Greenplum Database 5.0.0 has deprecated these features:</p>
