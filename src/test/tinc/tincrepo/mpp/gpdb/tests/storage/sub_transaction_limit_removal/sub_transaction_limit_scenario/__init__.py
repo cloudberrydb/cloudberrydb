@@ -31,6 +31,10 @@ from mpp.lib.gpstart import GpStart
 from mpp.lib.gpstop import GpStop
 
 from mpp.gpdb.tests.storage.lib.dbstate import DbStateClass
+from mpp.gpdb.tests.storage.lib import Database
+
+from mpp.lib.gpfilespace import Gpfilespace
+
 
 class SubTransactionLimitRemovalTestCase(MPPTestCase):
 
@@ -394,3 +398,12 @@ class SubTransactionLimitRemovalTestCase(MPPTestCase):
         if not ok1:
             raise Exception("[STLRTest]Fault injection failed")
         tinctest.logger.info("[STLRTest]Done skipping the checkpoint fault")
+
+    def method_setup(self):
+        tinctest.logger.info("Performing setup tasks")
+        gpfs=Gpfilespace()
+        gpfs.create_filespace('subt_filespace_a')
+
+    def cleandb(self):
+        db = Database()
+        db.setupDatabase('gptest')
