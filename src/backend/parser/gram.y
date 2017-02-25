@@ -288,7 +288,6 @@ static Node *makeIsNotDistinctFromNode(Node *expr, int position);
 				cdb_string_list
 				opt_column_list columnList opt_name_list
 				exttab_auth_list keyvalue_list
-				opt_inherited_column_list
 				sort_clause opt_sort_clause sortby_list index_params
 				name_list from_clause from_list opt_array_bounds
 				qualified_name_list any_name any_name_list
@@ -2347,12 +2346,12 @@ alter_table_cmd:
 					n->name = $3;
 					$$ = (Node *)n;
 				}
-			/* ALTER TABLE <name> INHERIT <parent> [( column_list )] */
-			| INHERIT qualified_name opt_inherited_column_list
+			/* ALTER TABLE <name> INHERIT <parent> */
+			| INHERIT qualified_name
 				{
 					AlterTableCmd *n = makeNode(AlterTableCmd);
 					n->subtype = AT_AddInherit;
-					n->def = (Node *)list_make2($2, $3);
+					n->def = (Node *) $2;
 					$$ = (Node *)n;
 				}
 			/* ALTER TABLE <name> NO INHERIT <parent> */
@@ -3791,21 +3790,6 @@ opt_column_list:
 			| /*EMPTY*/								{ $$ = NIL; }
 		;
 		
-opt_inherited_column_list:
-			'('
-				{
-					/* Allowed only when
-					 * gp_enable_alter_table_inherit_cols is true 
-					 */
-					if (!gp_enable_alter_table_inherit_cols)
-					{
-						yyerror("syntax error");
-					}
-				}
-				columnList ')'						{ $$ = $3; }
-			| /*EMPTY*/								{ $$ = NIL; }
-		;
-
 columnList:
 			columnElem								{ $$ = list_make1($1); }
 			| columnList ',' columnElem				{ $$ = lappend($1, $3); }

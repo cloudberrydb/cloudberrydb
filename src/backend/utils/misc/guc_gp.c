@@ -2063,17 +2063,6 @@ struct config_bool ConfigureNamesBool_gp[] =
 	},
 
 	{
-		{"gp_enable_alter_table_inherit_cols", PGC_USERSET, UNGROUPED,
-			gettext_noop("Enable extended 'ALTER TABLE child INHERIT parent' syntax."),
-			gettext_noop("The extended syntax adds an optional '( column_list )' identifying columns "
-						 "to be marked as fully-inherited from parent."),
-			GUC_NO_SHOW_ALL | GUC_NO_RESET_ALL | GUC_NOT_IN_SAMPLE | GUC_DISALLOW_IN_FILE
-		},
-		&gp_enable_alter_table_inherit_cols,
-		false, NULL, NULL
-	},
-
-	{
 		{"gp_mapreduce_define", PGC_USERSET, DEVELOPER_OPTIONS,
 			gettext_noop("Prepare mapreduce object creation"),	/* turn off statement
 																 * logging */

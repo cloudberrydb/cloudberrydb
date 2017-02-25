@@ -661,19 +661,6 @@ extern double gp_selectivity_damping_factor;
 extern bool gp_selectivity_damping_sigsort;
 
 
-/* ----- Internal Features ----- */
-
-/*
- * gp_enable_alter_table_inherit_cols
- *
- * Allows the use of the ALTER TABLE client INHERIT parent [( column_list )]
- * optional column_list.  If this variable is false (the default), use of
- * the optional column_list.  This variable is used by pg_dump --gp-migrator
- * to enable use of the extended syntax.
- */
-extern bool gp_enable_alter_table_inherit_cols;
-
-
 /* ----- Experimental Features ----- */
 
 /*

@@ -92,7 +92,6 @@ main(int argc, char *argv[])
 	bool		globals_only = false;
 	bool		tablespaces_only = false;
 	bool		schema_only = false;
-	static int	gp_migrator = 0;
 	bool		gp_syntax = false;
 	bool		no_gp_syntax = false;
 	PGconn	   *conn;
@@ -139,7 +138,6 @@ main(int argc, char *argv[])
 		/* START MPP ADDITION */
 		{"gp-syntax", no_argument, NULL, 1},
 		{"no-gp-syntax", no_argument, NULL, 2},
-		{"gp-migrator", no_argument, &gp_migrator, 1},
 		/* END MPP ADDITION */
 
 		{NULL, 0, NULL, 0}

@@ -263,9 +263,6 @@ int			gp_motion_slice_noop = 0;
 int			gp_ltrace_flag = 0;
 #endif
 
-/* Internal Features */
-bool		gp_enable_alter_table_inherit_cols = false;
-
 /* During insertion in a table with parquet partitions, require tuples to be sorted by partition key */
 bool		gp_parquet_insert_sort = true;
 

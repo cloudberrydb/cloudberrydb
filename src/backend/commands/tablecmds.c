@@ -10466,21 +10466,12 @@ ATExecAddInherit(Relation child_rel, Node *node)
 
 	if (IsA(node, InheritPartitionCmd))
 	{
-		parent = ((InheritPartitionCmd *)node)->parent;
+		parent = ((InheritPartitionCmd *) node)->parent;
 		is_partition = true;
 	}
 	else
 	{
-		List *inhParms;
-		Assert(IsA(node, List));
-		inhParms = (List *)node;
-
-		Insist(list_length(inhParms) == 2);
-		Assert(IsA(linitial(inhParms), RangeVar));
-		Assert(lsecond(inhParms) == NIL || IsA(lsecond(inhParms), List));
-
-		parent = (RangeVar *)linitial(inhParms);
-		inhAttrNameList = (List *)lsecond(inhParms);
+		parent = (RangeVar *) node;
 		is_partition = false;
 	}
 
