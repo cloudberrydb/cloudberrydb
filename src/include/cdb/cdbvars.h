@@ -934,7 +934,6 @@ extern const char *gpvars_assign_gp_gpperfmon_log_alert_level(const char *newval
 extern const char *gpvars_show_gp_gpperfmon_log_alert_level(void);
 
 
-extern int gp_hashagg_compress_spill_files;
 extern int gp_workfile_compress_algorithm;
 extern bool gp_workfile_checksumming;
 extern double gp_workfile_limit_per_segment;

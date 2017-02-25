@@ -69,7 +69,6 @@ static double defunct_double = 0;
 /*
  * Assign/Show hook functions defined in this module
  */
-static const char *assign_hashagg_compress_spill_files(const char *newval, bool doit, GucSource source);
 static const char *assign_gp_workfile_compress_algorithm(const char *newval, bool doit, GucSource source);
 static const char *assign_gp_workfile_type_hashjoin(const char *newval, bool doit, GucSource source);
 static const char *assign_debug_persistent_print_level(const char *newval,
@@ -354,7 +353,6 @@ static char *gp_interconnect_fc_method_str;
  * cases provide the value for SHOW to display.  The real state is elsewhere
  * and is kept in sync by assign_hooks.
  */
-static char *gp_hashagg_compress_spill_files_str;
 static char *gp_workfile_compress_algorithm_str;
 static char *gp_workfile_type_hashjoin_str;
 static char *optimizer_log_failure_str;
@@ -4958,16 +4956,6 @@ struct config_real ConfigureNamesReal_gp[] =
 struct config_string ConfigureNamesString_gp[] =
 {
 	{
-		{"gp_hashagg_compress_spill_files", PGC_USERSET, DEPRECATED_OPTIONS,
-			gettext_noop("Specify if spill files in HashAggregate should be compressed."),
-			gettext_noop("Valid values are \"NONE\"(or \"NOTHING\"), \"ZLIB\"."),
-			GUC_GPDB_ADDOPT | GUC_NOT_IN_SAMPLE | GUC_NO_SHOW_ALL
-		},
-		&gp_hashagg_compress_spill_files_str,
-		"none", assign_hashagg_compress_spill_files, NULL
-	},
-
-	{
 		{"gp_workfile_compress_algorithm", PGC_USERSET, DEVELOPER_OPTIONS,
 			gettext_noop("Specify the compression algorithm that work files in the query executor use."),
 			gettext_noop("Valid values are \"NONE\", \"ZLIB\"."),
@@ -5895,24 +5883,6 @@ assign_gp_idf_deduplicate(const char *newval, bool doit, GucSource source)
 		return newval;
 	}
 	return NULL;
-}
-
-
-static const char *
-assign_hashagg_compress_spill_files(const char *newval, bool doit, GucSource source)
-{
-	int			i;
-	const char *val = newval;
-
-	if (pg_strcasecmp(newval, "nothing") == 0)
-		val = "none";
-
-	i = bfz_string_to_compression(val);
-	if (i == -1)
-		return NULL;			/* fail */
-	if (doit)
-		gp_hashagg_compress_spill_files = i;
-	return newval;				/* OK */
 }
 
 static const char *

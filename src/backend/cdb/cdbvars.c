@@ -310,7 +310,6 @@ int			gp_max_plan_size = 0;
 
 /* Disable setting of tuple hints while reading */
 bool		gp_disable_tuple_hints = false;
-int			gp_hashagg_compress_spill_files = 0;
 
 int			gp_workfile_compress_algorithm = 0;
 bool		gp_workfile_checksumming = false;
