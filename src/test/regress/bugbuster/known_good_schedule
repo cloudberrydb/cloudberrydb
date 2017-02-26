@@ -4,7 +4,7 @@
 ignore: jdbc
 test: load_mpph
 # these tests depend on load_mpph
-test: mpph_query mpph_aopart hashagg gpsort
+test: mpph_query mpph_aopart hashagg
 ignore: failover
 #mpp23872: Disabling gpcheckmirrorseg as it is erroring out bugbuster on some platforms.
 ignore: gpcheckmirrorseg
