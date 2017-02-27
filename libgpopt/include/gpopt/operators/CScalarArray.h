@@ -15,13 +15,16 @@
 #include "naucrates/md/IMDId.h"
 
 #include "gpopt/operators/CScalar.h"
+#include "gpopt/operators/CScalarConst.h"
 
 namespace gpopt
 {
 
 	using namespace gpos;
 	using namespace gpmd;
-	
+
+	typedef CDynamicPtrArray<CScalarConst, CleanupRelease> DrgPconst;
+
 	//---------------------------------------------------------------------------
 	//	@class:
 	//		CScalarArray
@@ -42,7 +45,10 @@ namespace gpopt
 			
 			// is array multidimensional
 			BOOL m_fMultiDimensional;
-	
+
+			// const values
+			DrgPconst *m_pdrgPconst;
+
 			// private copy ctor
 			CScalarArray(const CScalarArray &);
 		
@@ -50,7 +56,10 @@ namespace gpopt
 		
 			// ctor
 			CScalarArray(IMemoryPool *pmp, IMDId *pmdidElem, IMDId *pmdidArray, BOOL fMultiDimensional);
-			
+
+			// ctor
+			CScalarArray(IMemoryPool *pmp, IMDId *pmdidElem, IMDId *pmdidArray, BOOL fMultiDimensional, DrgPconst *pdrgPconst);
+
 			// dtor
 			virtual 
 			~CScalarArray();
@@ -119,6 +128,9 @@ namespace gpopt
 			// type of expression's result
 			virtual 
 			IMDId *PmdidType() const;
+
+			// CScalarConst array
+			DrgPconst *PdrgPconst() const;
 
 			// print
 			IOstream &OsPrint(IOstream &os) const;

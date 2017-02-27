@@ -23,14 +23,7 @@
 using namespace gpopt;
 using namespace gpmd;
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CScalarArray::CScalarArray
-//
-//	@doc:
-//		Ctor
-//
-//---------------------------------------------------------------------------
+// Ctor
 CScalarArray::CScalarArray
 	(
 	IMemoryPool *pmp, 
@@ -46,20 +39,36 @@ CScalarArray::CScalarArray
 {
 	GPOS_ASSERT(pmdidElem->FValid());
 	GPOS_ASSERT(pmdidArray->FValid());
+	m_pdrgPconst = GPOS_NEW(pmp) DrgPconst(pmp);
 }
 
-//---------------------------------------------------------------------------
-//	@function:
-//		CScalarArray::~CScalarArray
-//
-//	@doc:
-//		Dtor
-//
-//---------------------------------------------------------------------------
+
+// Ctor
+CScalarArray::CScalarArray
+	(
+	IMemoryPool *pmp,
+	IMDId *pmdidElem,
+	IMDId *pmdidArray,
+	BOOL fMultiDimensional,
+	DrgPconst *pdrgPconst
+	)
+:
+CScalar(pmp),
+m_pmdidElem(pmdidElem),
+m_pmdidArray(pmdidArray),
+m_fMultiDimensional(fMultiDimensional),
+m_pdrgPconst(pdrgPconst)
+{
+	GPOS_ASSERT(pmdidElem->FValid());
+	GPOS_ASSERT(pmdidArray->FValid());
+}
+
+// Dtor
 CScalarArray::~CScalarArray()
 {
 	m_pmdidElem->Release();
 	m_pmdidArray->Release();
+	m_pdrgPconst->Release();
 }
 
 //---------------------------------------------------------------------------
@@ -143,9 +152,22 @@ CScalarArray::FMatch
 		CScalarArray *popArray = CScalarArray::PopConvert(pop);
 		
 		// match if components are identical
-		return popArray->FMultiDimensional() ==  m_fMultiDimensional && 
-				m_pmdidElem->FEquals(popArray->PmdidElem()) &&
-				m_pmdidArray->FEquals(popArray->PmdidArray());
+		if (popArray->FMultiDimensional() == FMultiDimensional() &&
+			PmdidElem()->FEquals(popArray->PmdidElem()) &&
+			PmdidArray()->FEquals(popArray->PmdidArray()) &&
+			m_pdrgPconst->UlLength() == popArray->PdrgPconst()->UlLength())
+		{
+			for (ULONG ul = 0; ul < m_pdrgPconst->UlLength(); ul++)
+			{
+				CScalarConst *popConst1 = (*m_pdrgPconst)[ul];
+				CScalarConst *popConst2 = (*popArray->PdrgPconst())[ul];
+				if (!popConst1->FMatch(popConst2))
+				{
+					return false;
+				}
+			}
+			return true;
+		}
 	}
 	
 	return false;
@@ -165,6 +187,12 @@ CScalarArray::PmdidType() const
 	return m_pmdidArray;
 }
 
+DrgPconst *
+CScalarArray::PdrgPconst() const
+{
+	return m_pdrgPconst;
+}
+
 IOstream &
 CScalarArray::OsPrint(IOstream &os) const
 {
@@ -175,6 +203,11 @@ CScalarArray::OsPrint(IOstream &os) const
 	if (m_fMultiDimensional)
 	{
 		os << ", multidimensional";
+	}
+	for (ULONG ul = 0; ul < m_pdrgPconst->UlLength(); ul++)
+	{
+		os << " ";
+		(*m_pdrgPconst)[ul]->OsPrint(os);
 	}
 	os << "}";
 	return os;
