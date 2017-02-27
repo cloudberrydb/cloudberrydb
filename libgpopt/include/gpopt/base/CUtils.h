@@ -730,6 +730,35 @@ namespace gpopt
 			static
 			BOOL FScalarArray(CExpression *pexpr);
 
+			// returns number of children or constants of it is all constants
+			static
+			ULONG UlScalarArrayArity(CExpression *pexpr);
+
+			// returns constant operator of a scalar array expression
+			static
+			CScalarConst *PScalarArrayConstChildAt(CExpression *pexprArray, ULONG ul);
+
+			// returns constant expression of a scalar array expression
+			static
+			CExpression *PScalarArrayExprChildAt(IMemoryPool *pmp, CExpression *pexprArray, ULONG ul);
+
+			// returns the scalar array expression child of CScalarArrayComp
+			static
+			CExpression *PexprScalarArrayChild(CExpression *pexpr);
+
+			// returns if the scalar array has all constant elements or children
+			static
+			BOOL FScalarConstArray(CExpression *pexpr);
+
+			// returns if the scalar constant array has already been collapased
+			static
+			BOOL FScalarArrayCollapsed(CExpression *pexprArray);
+
+			// If it's a scalar array of all CScalarConst, collapse it into a single
+			// expression but keep the constants in the operator.
+			static
+			CExpression *PexprCollapseConstArray(IMemoryPool *pmp, CExpression *pexprArray);
+
 			// check if expression is scalar array coerce
 			static
 			BOOL FScalarArrayCoerce(CExpression *pexpr);
