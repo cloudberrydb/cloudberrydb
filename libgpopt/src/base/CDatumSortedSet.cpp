@@ -19,15 +19,15 @@ CDatumSortedSet::CDatumSortedSet
 	DrgPdatum(pmp),
 	m_fIncludesNull(false)
 {
-	GPOS_ASSERT(0 < pexprArray->UlArity());
 	GPOS_ASSERT(COperator::EopScalarArray == pexprArray->Pop()->Eopid());
 
-	const ULONG ulArrayExprArity = pexprArray->UlArity();
+	const ULONG ulArrayExprArity = CUtils::UlScalarArrayArity(pexprArray);
+	GPOS_ASSERT(0 < ulArrayExprArity);
 
 	gpos::CAutoRef<DrgPdatum> aprngdatum(GPOS_NEW(pmp) DrgPdatum(pmp));
 	for (ULONG ul = 0; ul < ulArrayExprArity; ul++)
 	{
-		CScalarConst *popScConst = CScalarConst::PopConvert((*pexprArray)[ul]->Pop());
+		CScalarConst *popScConst = CUtils::PScalarArrayConstChildAt(pexprArray, ul);
 		IDatum *pdatum = popScConst->Pdatum();
 		if (pdatum->FNull())
 		{

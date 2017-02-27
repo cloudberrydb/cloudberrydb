@@ -217,16 +217,18 @@ CScalarArrayCmp::PexprExpand
 	GPOS_ASSERT(NULL != pexprArrayCmp);
 	GPOS_ASSERT(EopScalarArrayCmp == pexprArrayCmp->Pop()->Eopid());
 
-	CExpression *pexprLeft = (*pexprArrayCmp)[0];
-	CExpression *pexprRight = (*pexprArrayCmp)[1];
+	CExpression *pexprIdent = (*pexprArrayCmp)[0];
+	CExpression *pexprArray = CUtils::PexprScalarArrayChild(pexprArrayCmp);
 	CScalarArrayCmp *popArrayCmp = CScalarArrayCmp::PopConvert(pexprArrayCmp->Pop());
+	ULONG ulArrayElems = 0;
 
-	if (CUtils::FScalarArrayCoerce(pexprRight))
+	if (CUtils::FScalarArray(pexprArray))
 	{
-		pexprRight = (*pexprRight)[0];
+		ulArrayElems = CUtils::UlScalarArrayArity(pexprArray);
 	}
-	const ULONG ulArrayElems = pexprRight->UlArity();
-	if (!CUtils::FScalarArray(pexprRight) || 0 == ulArrayElems)
+
+	// if this condition is true, we know the right child of ArrayCmp is a constant.
+	if (0 == ulArrayElems)
 	{
 		// if right child is not an actual array (e.g., Const of type array), return input
 		// expression without expansion
@@ -237,16 +239,15 @@ CScalarArrayCmp::PexprExpand
 	DrgPexpr *pdrgpexpr = GPOS_NEW(pmp) DrgPexpr(pmp);
 	for (ULONG ul = 0; ul < ulArrayElems; ul++)
 	{
-		CExpression *pexprArrayElem = (*pexprRight)[ul];
-		pexprLeft->AddRef();
-		pexprArrayElem->AddRef();
+		CExpression *pexprArrayElem = CUtils::PScalarArrayExprChildAt(pmp, pexprArray, ul);
+		pexprIdent->AddRef();
 		const CWStringConst *pstrOpName = popArrayCmp->Pstr();
 		IMDId *pmdidOp = popArrayCmp->PmdidOp();
 		GPOS_ASSERT(IMDId::FValid(pmdidOp));
 
 		pmdidOp->AddRef();
 
-		CExpression *pexprCmp = CUtils::PexprScalarCmp(pmp, pexprLeft, pexprArrayElem, *pstrOpName, pmdidOp);
+		CExpression *pexprCmp = CUtils::PexprScalarCmp(pmp, pexprIdent, pexprArrayElem, *pstrOpName, pmdidOp);
 		pdrgpexpr->Append(pexprCmp);
 	}
 	GPOS_ASSERT(0 < pdrgpexpr->UlLength());

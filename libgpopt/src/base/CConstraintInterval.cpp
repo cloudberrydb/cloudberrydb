@@ -213,8 +213,8 @@ CConstraintInterval::PcnstrIntervalFromScalarArrayCmp
 	IMDType::ECmpType ecmpt = CUtils::Ecmpt(popScArrayCmp->PmdidOp());
 
 
-	CExpression *pexprArray = (*pexpr)[1];
-	const ULONG ulArrayExprArity = pexprArray->UlArity();
+	CExpression *pexprArray = CUtils::PexprScalarArrayChild(pexpr);
+	const ULONG ulArrayExprArity = CUtils::UlScalarArrayArity(pexprArray);
 	if (0 == ulArrayExprArity)
 	{
 		return NULL;

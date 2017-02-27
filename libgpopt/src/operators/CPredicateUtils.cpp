@@ -1549,16 +1549,8 @@ CPredicateUtils::FCompareIdentToConstArray
 		return false;
 	}
 
-	CExpression *pexprArray = (*pexpr)[1];
-	const ULONG ulArity = pexprArray->UlArity();
-
-	BOOL fAllConsts = true;
-	for (ULONG ul = 0; fAllConsts && ul < ulArity; ul++)
-	{
-		fAllConsts = CUtils::FScalarConst((*pexprArray)[ul]);
-	}
-
-	return fAllConsts;
+	CExpression *pexprArray = CUtils::PexprScalarArrayChild(pexpr);
+	return CUtils::FScalarConstArray(pexprArray);
 }
 
 
