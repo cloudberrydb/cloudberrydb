@@ -1823,6 +1823,44 @@ AS
 GRANT SELECT ON gp_toolkit.gp_resqueue_status TO public;
 
 --------------------------------------------------------------------------------
+-- @view:
+--              gp_toolkit.gp_resgroup_config
+--
+-- @doc:
+--              Resource group configuration
+--
+--------------------------------------------------------------------------------
+
+CREATE VIEW gp_toolkit.gp_resgroup_config AS
+    SELECT
+        G.oid       AS groupid,
+        G.rsgname   AS groupname,
+        T1.value    AS concurrency,
+        T1.proposed AS proposed_concurrency,
+        T2.value    AS cpu_rate_limit,
+        T3.value    AS memory_limit,
+        T3.proposed AS proposed_memory_limit,
+        T4.value    AS memory_redzone_limit
+    FROM
+        pg_resgroup G,
+        pg_resgroupcapability T1,
+        pg_resgroupcapability T2,
+        pg_resgroupcapability T3,
+        pg_resgroupcapability T4
+    WHERE
+        G.oid = T1.resgroupid
+    AND G.oid = T2.resgroupid
+    AND G.oid = T3.resgroupid
+    AND G.oid = T4.resgroupid
+    AND T1.reslimittype = 1
+    AND T2.reslimittype = 2
+    AND T3.reslimittype = 3
+    AND T4.reslimittype = 4
+    ;
+
+GRANT SELECT ON gp_toolkit.gp_resgroup_config TO public;
+
+--------------------------------------------------------------------------------
 -- AO/CO diagnostics functions
 --------------------------------------------------------------------------------
 

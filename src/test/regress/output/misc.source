@@ -570,6 +570,7 @@ SELECT user_relns() AS user_relns
  gp_param_setting_t
  gp_param_settings_seg_value_diffs
  gp_pgdatabase_invalid
+ gp_resgroup_config
  gp_resq_activity
  gp_resq_activity_by_queue
  gp_resq_priority_backend
@@ -659,7 +660,7 @@ SELECT user_relns() AS user_relns
  toyemp
  usr_define_type
  varchar_tbl
-(156 rows)
+(157 rows)
 
 SELECT name(equipment(hobby_construct(text 'skywalking', text 'mer')));
  name 
