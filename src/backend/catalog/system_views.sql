@@ -376,7 +376,10 @@ CREATE VIEW pg_stat_activity AS
             S.client_port,
             S.application_name,
             S.xact_start,
-            S.waiting_reason
+            S.waiting_reason,
+            S.rsgid,
+            S.rsgname,
+            S.rsgqueueduration
     FROM pg_database D, pg_stat_get_activity(NULL) AS S, pg_authid U
     WHERE S.datid = D.oid AND 
             S.usesysid = U.oid;
