@@ -4322,6 +4322,17 @@ _copyDropQueueStmt(DropQueueStmt *from)
 	return newnode;
 }
 
+static CreateResourceGroupStmt *
+_copyCreateResourceGroupStmt(CreateResourceGroupStmt *from)
+{
+	CreateResourceGroupStmt *newnode = makeNode(CreateResourceGroupStmt);
+
+	COPY_STRING_FIELD(name);
+	COPY_NODE_FIELD(options);
+
+	return newnode;
+}
+
 static TableValueExpr *
 _copyTableValueExpr(TableValueExpr *from)
 {
@@ -5099,6 +5110,11 @@ copyObject(void *from)
 		case T_DropQueueStmt:
 			retval = _copyDropQueueStmt(from);
 			break;
+
+		case T_CreateResourceGroupStmt:
+			retval = _copyCreateResourceGroupStmt(from);
+			break;
+
 		case T_A_Expr:
 			retval = _copyAExpr(from);
 			break;

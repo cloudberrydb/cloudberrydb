@@ -1874,6 +1874,17 @@ typedef struct DropQueueStmt
 } DropQueueStmt;
 
 /* ----------------------
+ *	Create/Alter/Drop Resource Group Statements
+ * ----------------------
+ */
+typedef struct CreateResourceGroupStmt
+{
+	NodeTag		type;
+	char	   *name;			/* resource group name */
+	List	   *options;		/* List of DefElem nodes */
+} CreateResourceGroupStmt;
+
+/* ----------------------
  *	Create/Alter/Drop Role Statements
  *
  * Note: these node types are also used for the backwards-compatible

@@ -183,7 +183,7 @@ static Node *makeIsNotDistinctFromNode(Node *expr, int position);
 		CreateDomainStmt CreateExtensionStmt CreateExternalStmt CreateFileSpaceStmt CreateGroupStmt
 		CreateOpClassStmt
 		CreateOpFamilyStmt AlterOpFamilyStmt CreatePLangStmt
-		CreateQueueStmt CreateSchemaStmt CreateSeqStmt CreateStmt 
+		CreateQueueStmt CreateResourceGroupStmt CreateSchemaStmt CreateSeqStmt CreateStmt
 		CreateTableSpaceStmt
 		CreateAssertStmt CreateTrigStmt 
 		CreateUserStmt CreateRoleStmt
@@ -1058,6 +1058,7 @@ stmt :
 			| AlterOpFamilyStmt
 			| CreatePLangStmt
 			| CreateQueueStmt
+			| CreateResourceGroupStmt
 			| CreateSchemaStmt
 			| CreateSeqStmt
 			| CreateStmt
@@ -1258,6 +1259,22 @@ DropQueueStmt:
 					n->queue = $4;
 					$$ = (Node *)n;
 				 }
+		;
+
+/*****************************************************************************
+ *
+ * Create a new GPDB Resource Group
+ *
+ *****************************************************************************/
+
+CreateResourceGroupStmt:
+			CREATE RESOURCE GROUP_P name WITH definition
+				{
+					CreateResourceGroupStmt *n = makeNode(CreateResourceGroupStmt);
+					n->name = $4;
+					n->options = $6;
+					$$ = (Node *)n;
+				}
 		;
 
 /*****************************************************************************

@@ -1957,6 +1957,14 @@ _equalDropQueueStmt(DropQueueStmt *a, DropQueueStmt *b)
 	return true;
 }
 
+static bool
+_equalCreateResourceGroupStmt(CreateResourceGroupStmt *a, CreateResourceGroupStmt *b)
+{
+	COMPARE_STRING_FIELD(name);
+	COMPARE_NODE_FIELD(options);
+	return true;
+}
+
 /*
  * stuff from parsenodes.h
  */
@@ -3001,6 +3009,11 @@ equal(void *a, void *b)
 		case T_DropQueueStmt:
 			retval = _equalDropQueueStmt(a, b);
 			break;
+
+		case T_CreateResourceGroupStmt:
+			retval = _equalCreateResourceGroupStmt(a, b);
+			break;
+
 		case T_A_Expr:
 			retval = _equalAExpr(a, b);
 			break;
