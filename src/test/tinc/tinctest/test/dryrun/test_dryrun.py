@@ -144,7 +144,6 @@ class TINCDryRunTests(unittest.TestCase):
             test_instance = tinc_test_result.errors[0][0]
             traceback_msg = tinc_test_result.errors[0][1]
             self.assertEquals(test_instance.__class__.__name__, "TINCTestCaseLoadFailure")
-            self.assertTrue("Invalid product version" in traceback_msg)
 
 
     def test_filtered_tests_with_dryrun(self):

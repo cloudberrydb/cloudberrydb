@@ -9,8 +9,3 @@ class MockTINCTestCaseForLoaderPass(tinctest.TINCTestCase):
 class MockTINCTestCaseForLoaderFailure(tinctest.TINCTestCase):
     def test_0(self):
         pass
-    def test_1(self):
-        """
-        @product_version kwhat?
-        """
-        pass

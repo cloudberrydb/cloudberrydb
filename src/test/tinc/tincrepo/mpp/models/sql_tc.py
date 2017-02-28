@@ -26,7 +26,6 @@ from fnmatch import fnmatch
 import tinctest
 
 from tinctest import TINCTestLoader
-from tinctest.case import _TINCProductVersion
 from tinctest.lib import Gpdiff
 from tinctest.lib.system import TINCSystem
 
@@ -53,7 +52,7 @@ class SQLTestCase(MPPTestCase):
     @metadata: gucs: gucs in the form of key=value pairs separated by ';'
     @metadata: orcagucs: ORCA specific gucs
     @metadata: optimizer_mode: Optimizer mode to run the sql test case with. Valid values are on, off, both, None.
-    @metadata: gpdiff: If set to true, the output is matched with expected output and the test is failed if there 
+    @metadata: gpdiff: If set to true, the output is matched with expected output and the test is failed if there
                        is a difference. If set to false, the output is not matched with expected output (default: True)
     """
 
@@ -76,13 +75,13 @@ class SQLTestCase(MPPTestCase):
 
     #: Class variable dictionary to store substitution. Key is the original. Value is the substitution string.
     template_subs = dict()
-    
+
     # Class variable (hidden) to determine if there are sql template. This is determined automatically.
     _template_exist = False
 
     # global optimizer mode, as set in postgresql.conf
     _global_optimizer_mode = None
-    
+
     @classmethod
     def setUpClass(cls):
         """
@@ -114,8 +113,6 @@ class SQLTestCase(MPPTestCase):
     def get_global_optimizer_mode(cls):
         # TODO: May be , do all this once in MPPTestCase instead of for every test class
         # if we expect tests to not change certain configurations in postgresql.conf
-        if cls.__product__ == 'gpdb' and _TINCProductVersion(cls.__version_string__) < _TINCProductVersion('4.3.0.0'):
-            return None
         gpconfig = GpConfig()
         try:
             (master, segment) = gpconfig.getParameter('optimizer')
@@ -129,19 +126,19 @@ class SQLTestCase(MPPTestCase):
     def get_sql_dir(cls):
         """
         Returns the absolute directory path for the sql directory configured for this class.
-        Computed relative to where the test class exists. 
+        Computed relative to where the test class exists.
 
         @rtype: string
         @return: Absolute directory path of the class' sql directory, if template are not found. Else, return out_dir/sql_dir
         """
         tinctest.logger.trace_in()
-        
+
         source_dir = os.path.dirname(sys.modules[cls.__module__].__file__)
         return_sql_dir = os.path.join(source_dir, cls.sql_dir)
         if cls._template_exist:
             out_dir = cls.get_out_dir()
             return_sql_dir = os.path.join(out_dir, cls.__name__, cls.sql_dir)
-  
+
         tinctest.logger.trace_out("return_sql_dir: %s" % return_sql_dir)
         return return_sql_dir
 
@@ -149,22 +146,22 @@ class SQLTestCase(MPPTestCase):
     def get_ans_dir(cls):
         """
         Returns the absolute directory path for the ans directory configured for this class.
-        Computed relative to where the test class exists. 
+        Computed relative to where the test class exists.
 
         @rtype: string
         @return: Absolute directory path of the class' ans directory, if template are not found. Else, return out_dir/ans_dir
         """
         tinctest.logger.trace_in()
-        
+
         source_dir = os.path.dirname(sys.modules[cls.__module__].__file__)
         return_ans_dir = os.path.join(source_dir, cls.ans_dir)
         if cls._template_exist:
             out_dir = cls.get_out_dir()
             return_ans_dir = os.path.join(out_dir, cls.__name__, cls.ans_dir)
-  
+
         tinctest.logger.trace_out("return_ans_dir: %s" % return_ans_dir)
         return return_ans_dir
-        
+
     @classmethod
     def tearDownClass(cls):
         """
@@ -195,7 +192,7 @@ class SQLTestCase(MPPTestCase):
         """
         This definition finds the sql files in the directory specified.
         Then, it calls init of the object that creates the implicit test method.
-        
+
         Following are the sqls that will belong to one test case for which we generate a test
         method dynamically: (from within the SQLTestCase constructor)
 
@@ -216,7 +213,7 @@ class SQLTestCase(MPPTestCase):
         for filename in os.listdir(directory):
             if not fnmatch(filename, "*.sql"):
                 continue
-            
+
             sql_file = os.path.join(directory, filename)
 
             # Ignore setup and teardown sqls
@@ -237,12 +234,12 @@ class SQLTestCase(MPPTestCase):
                 continue
 
             partial_test_name = filename[:-4]
-	
+
             # Test name is test_<name of the sql file without the extension>
             # query01.sql will be test_query91
             # template_query01.sql will be test_template_query01
             test_name = TINCTestLoader.testMethodPrefix + partial_test_name
-            
+
             # The constructor is responsible for generating this test method dynamically if it doesn't exist
             tinctest.logger.debug("Trying to add test %s to dynamic tests list" %test_name)
             try:
@@ -254,14 +251,14 @@ class SQLTestCase(MPPTestCase):
                 test_instance = tinctest.loader.make_failed_test(None, cls.__module__ + "." + cls.__name__ + "." + test_name, e)
             finally:
                 tests.append(test_instance)
-        
+
         tinctest.logger.trace_out("tests: (as reported above)")
         return tests
 
     @classmethod
     def handle_templates(cls):
         """
-        This class method checks if any template directory exists. 
+        This class method checks if any template directory exists.
         If they do, copy/parse all the sql and ans directories to out_dir.
 
         @rtype: boolean
@@ -274,7 +271,7 @@ class SQLTestCase(MPPTestCase):
         ans_dir = cls.get_ans_dir()
         ans_setup_dir = os.path.join(ans_dir, "setup")
         ans_teardown_dir = os.path.join(ans_dir, "teardown")
-        
+
         # Variables to store template directories
         sql_template_dir = os.path.join(sql_dir, cls.template_dir)
         sql_setup_template_dir = os.path.join(sql_setup_dir, cls.template_dir)
@@ -282,7 +279,7 @@ class SQLTestCase(MPPTestCase):
         ans_template_dir = os.path.join(ans_dir, cls.template_dir)
         ans_setup_template_dir = os.path.join(ans_setup_dir, cls.template_dir)
         ans_teardown_template_dir = os.path.join(ans_teardown_dir, cls.template_dir)
-        
+
         # Define a set for all template dir
         # Check if any exists, while creating a set.
         template_dir_set = set([sql_template_dir, sql_setup_template_dir, sql_teardown_template_dir, ans_template_dir, ans_setup_template_dir, ans_teardown_template_dir])
@@ -292,16 +289,16 @@ class SQLTestCase(MPPTestCase):
             if os.path.exists(each_dir):
                 cls._template_exist = True
                 break
-        
+
         if not cls._template_exist:
             # Nothing to do
             tinctest.logger.debug("No template directories found.")
             return False
-        
+
         ####################################################
         # If here, we have at least one template directory #
         ####################################################
-        
+
         # Define local variables to store all the out directories
         # SQL files go in out/sql directory, and ans file go in out/ans directory
         out_dir = cls.get_out_dir()
@@ -312,36 +309,36 @@ class SQLTestCase(MPPTestCase):
         out_ans_setup_dir = os.path.join(out_dir, cls.__name__, cls.ans_dir, "setup")
         out_ans_teardown_dir = os.path.join(out_dir, cls.__name__, cls.ans_dir, "teardown")
         out_dir_set = sorted(set([out_sql_dir, out_sql_setup_dir, out_sql_teardown_dir, out_ans_dir, out_ans_setup_dir, out_ans_teardown_dir]))
-        
+
         tinctest.logger.debug("Templates are found. Copy or parse sql files/dirs to directory %s. Copy or parse ans files/dirs to directory %s" % (out_sql_dir, out_ans_dir))
-        
+
         for each_dir in out_dir_set:
             if os.path.exists(each_dir):
                 tinctest.logger.warning("Directory %s already exists. Deleting it to start from scratch. Use different output directory to avoid this behavior!" % each_dir)
                 shutil.rmtree(each_dir, ignore_errors = True)
             TINCSystem.make_dirs(each_dir, ignore_exists_error = True)
-            
+
         # Define several sets to store all the sql dirs, ans dirs, setup dirs, etc.
-        
+
         # Define sets for all sql and ans dirs
         sql_dir_set = set([sql_dir, sql_setup_dir, sql_teardown_dir, sql_template_dir, sql_setup_template_dir, sql_teardown_template_dir])
         ans_dir_set = set([ans_dir, ans_setup_dir, ans_teardown_dir, ans_template_dir, ans_setup_template_dir, ans_teardown_template_dir])
-        
+
         # Define sets for all setup and teardown dirs
         setup_dir_set = set([sql_setup_dir, ans_setup_dir, sql_setup_template_dir, ans_setup_template_dir])
         teardown_dir_set = set([sql_teardown_dir, ans_teardown_dir, sql_teardown_template_dir, ans_teardown_template_dir])
-        
+
         # Define a set for all dirs as union of sql and ans dir
         dir_set = sql_dir_set.union(ans_dir_set)
-        
+
         # Type of files that will be copied or parsed
         file_types = ["*.sql", "*.ans", "*.ans.orca", "*.ans.planner"]
-        
+
         # Go through each directory to either copy it or parse it
         for each_dir in dir_set:
             if not os.path.exists(each_dir):
                 continue
-            
+
             # SQL dir goes to out_dir/sql; ANS dir goes to out_dir/ans
             destination_dir = out_sql_dir
             if each_dir in ans_dir_set:
@@ -360,16 +357,16 @@ class SQLTestCase(MPPTestCase):
             else:
                 tinctest.logger.debug("Directory %s is not a template directory. Copy its sql and ans files as is in %s." % (each_dir, destination_dir))
                 TINCSystem.copy_directory(each_dir, destination_dir, file_types)
-        
+
         return True
-    
+
     @classmethod
     def _check_generate_ans(cls):
         cls.generate_ans = cls.generate_ans.lower()
         # Check that generate_ans value is valid: 'yes', 'no', or 'force'
         if cls.generate_ans not in cls._valid_generate_ans_values:
             raise SQLTestCaseException("Invalid value for generate_ans specified: %s. It should be one of the following: %s" % (cls.generate_ans, ', '.join(cls._valid_generate_ans_values)))
-    
+
     @classmethod
     def loadTestsFromTestCase(cls):
         """
@@ -387,14 +384,14 @@ class SQLTestCase(MPPTestCase):
 
         # If template exists, copy/parse all the directories to out_dir
         cls.handle_templates()
-        
+
         # Call get_sql_dir only after handling templates. It could point to out_dir, if templates exist.
         sql_dir = cls.get_sql_dir()
 
         # Time to browse directory and find tests
         tinctest.logger.debug("Finding tests in sql_dir %s..." %(sql_dir))
         tests = cls._find_tests(sql_dir)
-        
+
         tinctest.logger.trace_out("tests: (as reported above)")
         return tests
 
@@ -412,11 +409,11 @@ class SQLTestCase(MPPTestCase):
         self.orcagucs = None
         self.optimizer_mode = None
         self.gpdiff = True
-        
+
         self._optimizer_mode_values = ['on', 'off', 'both']
         # To track the current execution mode
         self._current_optimizer_mode = None
-        
+
         # Default gucs to be added when optimizer is on
         self._optimizer_gucs = ['optimizer_log=on']
         self.sql_file = sql_file
@@ -425,20 +422,20 @@ class SQLTestCase(MPPTestCase):
         # Paths to original sql file and ans file of the test.
         # When a test is generated from a template, self.sql_file and self.ans_file will point
         # to the generated sql and ans file through out this class. This maintains a ref to
-        # the original sql file and ans file of the test case. 
+        # the original sql file and ans file of the test case.
         self._original_sql_file = self.sql_file
         self._original_ans_file = self.ans_file
-        
+
         # if the test method is explicit and already defined, construction is trivial
         if methodName.startswith(tinctest.TINCTestLoader.testMethodPrefix) and \
            hasattr(self.__class__, methodName) and \
            hasattr(getattr(self.__class__, methodName), '__call__'):
             super(SQLTestCase, self).__init__(methodName)
             return
-            
+
         # otherwise, do dynamic test generation
         self._generate_test_method_dynamically(methodName, sql_file)
-        
+
         super(SQLTestCase, self).__init__(methodName, baseline_result)
 
     def _generate_test_method_dynamically(self, methodName, sql_file):
@@ -451,9 +448,9 @@ class SQLTestCase(MPPTestCase):
 
         TODO: This should also be provided as a service at TINCTestCase level so that sub-classes
         can leverage dynamic test method construction if they are customizing the loading of
-        tests. 
+        tests.
         """
-        
+
         assert methodName.startswith(tinctest.TINCTestLoader.testMethodPrefix)
         partial_test_name = methodName[len(tinctest.TINCTestLoader.testMethodPrefix):]
 
@@ -486,7 +483,7 @@ class SQLTestCase(MPPTestCase):
             else:
                 self._original_sql_file = os.path.join(os.path.dirname(sys.modules[self.__class__.__module__].__file__), self.__class__.sql_dir, "%s.sql" % partial_test_name)
                 self._original_ans_file = os.path.join(os.path.dirname(sys.modules[self.__class__.__module__].__file__), self.__class__.ans_dir, "%s.ans" % partial_test_name)
-            
+
             # At this point, regular non-template sql files would assume that the sql file is the one in sql_dir
             # For template sql file, get_sql_dir will automatically point to the one in out_dir
             self.sql_file = os.path.join(self.get_sql_dir(), "%s.sql" % partial_test_name)
@@ -495,7 +492,7 @@ class SQLTestCase(MPPTestCase):
         tinctest.logger.debug("sql_file: %s", self.sql_file)
         tinctest.logger.debug("ans_file: %s", self.ans_file)
         intended_docstring = self._read_metadata_as_docstring()
-        
+
         # this is the dynamic test function we will bind into the
         # generated test intance. (note the use of closures!)
         def implied_test_function(my_self):
@@ -506,7 +503,7 @@ class SQLTestCase(MPPTestCase):
             result = my_self.run_test()
             if result is not None:
                 my_self.assertTrue(result)
-                
+
         implied_test_function.__doc__ = intended_docstring
 
         method = new.instancemethod(implied_test_function,
@@ -522,10 +519,10 @@ class SQLTestCase(MPPTestCase):
         Assumptions: Assume that the metadata is given as comments in the sql file at the top.
 
         TODO: Provide this as an API at TINCTestCase level so that every class can implement
-        a custom way of reading metadata. 
+        a custom way of reading metadata.
         """
         intended_docstring = ""
-        
+
         with open(self.sql_file, 'r') as f:
             for line in f:
                 line = line.strip()
@@ -536,40 +533,40 @@ class SQLTestCase(MPPTestCase):
         return intended_docstring
 
     def handle_optimizer_mode_metadata(self):
-        
+
         # metadata optimizer_mode
         if self._metadata.get('optimizer_mode', None):
             if not self._metadata.get('optimizer_mode').lower() in self._optimizer_mode_values:
                 self.load_fail(SQLTestCaseException, "Invalid metadata specified for optimizer_mode: %s. Valid values are %s" %(self._metadata.get('optimizer_mode'), self._optimizer_mode_values))
             self.optimizer_mode = self._metadata.get('optimizer_mode').lower()
-        
+
         if self.optimizer_mode == "both":
             if self.data_provider:
                 self.data_provider += " optimizer_handling"
             else:
                 self.data_provider = "optimizer_handling"
-        
+
     def _infer_metadata(self):
         super(SQLTestCase, self)._infer_metadata()
-        
+
         # metadata gpdiff
         if self._metadata.get('gpdiff') and self._metadata.get('gpdiff').lower() == 'false':
             self.gpdiff = False
-        
+
         # metadata gucs
         if self._metadata.get('gucs', None) == None:
             self.gucs = set()
         else:
             self.gucs = set(self._metadata['gucs'].split(';'))
-        
+
         # add metadata orcagucs for orca related gucs 'select disable_xform(XXXX)'
         if self._metadata.get('orcagucs', None) == None:
             self.orcagucs = set()
         else:
             self.orcagucs = set(self._metadata['orcagucs'].split(';'))
-        
+
         self.handle_optimizer_mode_metadata()
-    
+
     def setUp(self):
         """
         Runs the setup sql for the test case.
@@ -614,7 +611,7 @@ class SQLTestCase(MPPTestCase):
         if self.sql_file is not None:
             self._run_teardown_sql()
         tinctest.logger.trace_out()
-            
+
     def _run_teardown_sql(self):
         """
         Run test specific teardown sql. If 'teardown.sql' exists in the same location
@@ -637,7 +634,7 @@ class SQLTestCase(MPPTestCase):
         """
         The method that subclasses should override to execute a sql test case differently.
         This encapsulates the execution mechanism of SQLTestCase.
-        Runs all the sql files that belong to this test case and compare with ans files. 
+        Runs all the sql files that belong to this test case and compare with ans files.
 
         Note that this also runs the other part sqls that make up the test case. For eg: if the
         base sql is query1.sql, the part sqls are of the form query1_part*.sql in the same location
@@ -648,7 +645,7 @@ class SQLTestCase(MPPTestCase):
         """
         tinctest.logger.trace_in()
 
-        
+
         optimizer_mode = self.optimizer_mode
         if optimizer_mode == 'both':
             # test_data will have the real value
@@ -661,15 +658,15 @@ class SQLTestCase(MPPTestCase):
                         break
         if optimizer_mode == 'both':
             raise SQLTestCaseException("Data provider for optimizer_handling didn't work as expected")
-            
+
         if not os.path.exists(self.sql_file):
             raise SQLTestCaseException('sql file for this test case does not exist - %s' %self.sql_file )
         if (self.__class__.generate_ans == 'no' and not os.path.exists(self.ans_file)) and self.gpdiff:
             tinctest.logger.error('ans file for this test case does not exist - %s' %self.ans_file )
             raise SQLTestCaseException('ans file for this test case does not exist - %s' %self.ans_file )
-        
+
         sql_file_list = self.form_sql_file_list()
-        
+
         if optimizer_mode == 'on':
             self._current_optimizer_mode = True
             tinctest.logger.info("Running sql files for the test with optimizer on")
@@ -682,9 +679,9 @@ class SQLTestCase(MPPTestCase):
         for sql_file in sql_file_list:
             tinctest.logger.info("Running sql file %s" %sql_file)
             self._run_and_verify_sql_file(sql_file, self._current_optimizer_mode)
-        
+
         tinctest.logger.trace_out()
-            
+
     def _optimizer_suffix(self, optimizer):
         return 'orca' if optimizer else 'planner'
 
@@ -716,7 +713,7 @@ class SQLTestCase(MPPTestCase):
                 ans_file = os.path.join(self.get_ans_dir(), base_sql_file.replace('.sql', '.ans'))
 
         return ans_file
-            
+
     def _run_and_verify_sql_file(self, sql_file, optimizer = None):
         ans_file = self._which_ans_file(sql_file, optimizer)
 
@@ -761,7 +758,7 @@ class SQLTestCase(MPPTestCase):
                 raise SQLTestCaseException("Cannot copy %s to %s. Permission denied. Verify that %s is writeable!" % (out_file, ans_file, ans_file))
         else:
             raise SQLTestCaseException("Invalid value for generate_ans specified: %s. It should be one of the following: %s" % (self.__class__.generate_ans, ', '.join(self.__class__._valid_generate_ans_values)))
-        
+
     def form_sql_file_list(self, sql_dir = None):
         """
         Forms a list of all sql files belonging to this test case.
@@ -770,23 +767,23 @@ class SQLTestCase(MPPTestCase):
         @rtype: list
         """
         tinctest.logger.trace_in("sql_dir: %s" % str(sql_dir))
-        
+
         if sql_dir is None:
             sql_dir = self.get_sql_dir()
         file_pattern = os.path.splitext(os.path.basename(self.sql_file))[0]
-        
+
         tinctest.logger.debug("Forming sql file list from sql_dir %s, with file_pattern %s" % (sql_dir, file_pattern))
-        
+
         # Find out the list of sqls to be run for this test case.
         sql_file_list = []
-        
+
         # Look for additional parts to run
         for f in os.listdir(sql_dir):
             part_sql_file = os.path.join(sql_dir, f)
             if not fnmatch(f, file_pattern + "_part*.sql") and not fnmatch(f, file_pattern + ".sql"):
                 continue
             sql_file_list.append(os.path.join(sql_dir, f))
-        
+
         tinctest.logger.trace_out("sql_file_list: %s" % str(sql_file_list))
         return sql_file_list
 
@@ -799,7 +796,7 @@ class SQLTestCase(MPPTestCase):
         """
         if not gucs_sql_file:
             gucs_sql_file = os.path.join(self.get_out_dir(), os.path.basename(sql_file))
-            
+
         with open(gucs_sql_file, 'w') as o:
             o.write('\n-- start_ignore\n')
             for guc_string in self.gucs:
@@ -837,7 +834,7 @@ class SQLTestCase(MPPTestCase):
         """
         substitutions = {}
         return substitutions
-        
+
     def run_sql_file(self, sql_file, out_file = None, out_dir = None, optimizer = None):
         """
         Given a sql file and an out file, runs the sql file against the test database (self.db_name)
@@ -857,7 +854,7 @@ class SQLTestCase(MPPTestCase):
 
         @type optimizer: boolean
         @param optimizer: Flag that determines if optimizer should be on or off while running the sql.
-                          Defaults to None which means that the sql will be run as is. 
+                          Defaults to None which means that the sql will be run as is.
         """
         tinctest.logger.trace_in("sql_file: " + str(sql_file) + "; out_file: " + str(out_file) + "; out_dir: " + str(out_dir) + "; optimizer: " + str(optimizer) + ";")
 
@@ -870,7 +867,7 @@ class SQLTestCase(MPPTestCase):
         # First generate the actual sql file to be run, by adding gucs, doing transformations etc
         generated_sql_file = self._get_sql_file_name(sql_file, optimizer, out_dir)
         self._generate_sql_file(sql_file, optimizer, generated_sql_file)
-        
+
         if not out_file:
             out_file = self._get_out_file_name(sql_file, optimizer, out_dir)
 
@@ -885,7 +882,7 @@ class SQLTestCase(MPPTestCase):
         """
         if not out_dir:
             out_dir = self.get_out_dir()
-            
+
         out_file = None
         if optimizer is None:
             out_file = os.path.join(out_dir, os.path.basename(sql_file).replace('.sql', '.out'))
@@ -920,7 +917,7 @@ class SQLTestCase(MPPTestCase):
         # Add gucs to the test sql and form the actual sql file to be run
         if not generated_sql_file:
             generated_sql_file = self._get_sql_file_name(sql_file, optimizer)
-        
+
         self._add_gucs_to_sql_file(sql_file, generated_sql_file, optimizer)
 
         # Perform substitutions if there are any
@@ -936,7 +933,7 @@ class SQLTestCase(MPPTestCase):
         if not substitutions:
             return False
         return TINCSystem.substitute_strings_in_file(filename, outfile, substitutions)
-        
+
 
     def psql_run(self, sql_file, dbname, out_file):
         """
@@ -995,13 +992,13 @@ class SQLTestCase(MPPTestCase):
 
     def gather_mini_dump(self, sql_file=None, out_dir=None, minidump_file=None):
         """
-        Utility method to gather mini dumps for test queries. 
+        Utility method to gather mini dumps for test queries.
         Set gp_opt_minidump to on, explain test query and gather mini-dump to out_dir
         """
         tinctest.logger.trace_in("sql_file: " + str(sql_file) + "; out_dir: " + str(out_dir) + "; minidump_file: " + str(minidump_file) + ";")
         if not sql_file:
             sql_file = self.sql_file
-        
+
         if not out_dir:
             out_dir = self.get_out_dir()
 
@@ -1015,10 +1012,10 @@ class SQLTestCase(MPPTestCase):
             tinctest.logger.warning("SQL file %s does not exist." %sql_file)
             tinctest.logger.trace_out()
             return None
-        
+
         if not os.path.exists(out_dir):
             TINCSystem.make_dirs(out_dir, ignore_exists_error = True)
-            
+
         opt_md_sql_file = os.path.join(out_dir, os.path.basename(sql_file).replace('.sql', '_opt_md.sql'))
         with open(opt_md_sql_file, 'w') as mini_dump_sql:
             with open(sql_file, 'r') as original_sql:
@@ -1037,7 +1034,7 @@ class SQLTestCase(MPPTestCase):
                         opt_write = True
                     else:
                         mini_dump_sql.write(line)
-        
+
 
         # Remove existing minidumps in $MASTER_DATA_DIRECTORY. Would be nice to have a GUC
         # to control location , name of the Mini-dump that gets generated.
@@ -1065,7 +1062,7 @@ class SQLTestCase(MPPTestCase):
             tinctest.logger.warning("Minidump does not seem to be generated. Check %s for more information." %out_file)
             tinctest.logger.trace_out()
             return None
-        
+
         for f in os.listdir(mini_dump_directory):
             if fnmatch(f, 'Minidump_*.mdp'):
                 if not minidump_file:
@@ -1080,7 +1077,7 @@ class SQLTestCase(MPPTestCase):
         tinctest.logger.warning("Minidump does not seem to be generated. Check %s for more information." %out_file)
         tinctest.logger.trace_out()
         return None
-        
+
     def _restart_cluster(self, refresh_cache=False):
         """
         restart the cluster possibly refreshing cache
@@ -1145,13 +1142,9 @@ class __gpdbSQLTestCase__(SQLTestCase):
     """
     Overwrite handle_optimizer_mode_metadata to check if GPDB version is less than 4.3. If it is, force it off
     """
-    
+
     def handle_optimizer_mode_metadata(self):
-        current_product_version_object = _TINCProductVersion(self.__class__.__version_string__)
-        optimizer_introduction_version_object = _TINCProductVersion("4.3")
         overwrite_optimizer_mode = False
-        if current_product_version_object < optimizer_introduction_version_object:
-            overwrite_optimizer_mode = True
 
         # metadata optimizer_mode
         if self._metadata.get('optimizer_mode', None):
@@ -1160,7 +1153,7 @@ class __gpdbSQLTestCase__(SQLTestCase):
             self.optimizer_mode = self._metadata.get('optimizer_mode').lower()
             if overwrite_optimizer_mode:
                 self.optimizer_mode = None
-        
+
         if self.optimizer_mode == "both":
             if self.data_provider:
                 self.data_provider += " optimizer_handling"

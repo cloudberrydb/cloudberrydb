@@ -17,7 +17,6 @@ limitations under the License.
 
 from mpp.models import SQLTestCase
 from tinctest import logger
-from tinctest.case import _TINCProductVersion
 
 class CkSync1TestCase(SQLTestCase):
     """

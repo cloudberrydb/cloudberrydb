@@ -291,11 +291,11 @@ class TINCTestLoader(unittest.TestLoader):
         """
         expanded_filtered = TINCTestSuite(dryrun=dryrun)
 
-        # QAINF-920, all the filtered tests (test not satisfying product_version checks and tinc queries)
+        # QAINF-920, all the filtered tests (test not satisfying tinc queries)
         # will not be added to the resulting test suite during normal execution. This is to avoid having the runner execute
         # setUpClass fixtures for test classes that are completely filtered. These tests will not show in test reports
         # as there may be schedules filtering out a lot of tests. Users are expected to do a dryrun to figure out which tests
-        # are filtered out because of product_version checks and tinc queries check.
+        # are filtered out because of tinc queries check.
         # TODO: May be show all these tests in normal execution as well in a verbose reporting mode. 
         # Note that the skip flag will be handled in TINCTestCase.setUp() since these tests are explicitly skipped by users
         # and we might want to show them out in test reports. 

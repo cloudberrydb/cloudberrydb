@@ -20,7 +20,6 @@ from datetime import datetime
 import unittest2 as unittest
 
 from tinctest import TINCTestLoader
-from tinctest.case import _TINCProductVersion
 
 from mpp.models import SQLPerformanceTestCase
 

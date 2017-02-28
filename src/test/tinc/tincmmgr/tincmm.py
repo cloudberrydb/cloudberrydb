@@ -24,7 +24,6 @@ import shutil
 import tinctest
 
 from tinctest.suite import TINCTestSuite
-from tinctest.case import _TINCProductVersionMetadata
 from mpp.models import SQLTestCase
 
 from tincmmgr import TINCMMException
@@ -830,9 +829,7 @@ class TINCTestCaseMM(object):
         """
         changed = True
         if metadata_key in self.method_metadata:
-            if metadata_key == 'product_version':
-                metadata_value, changed = self._insert_product_version(self.method_metadata['product_version'], metadata_value)
-            elif metadata_key == 'tags':
+            if metadata_key == 'tags':
                 metadata_value, changed = self._insert_tags(self.method_metadata['tags'], metadata_value)
             else:
                 self.error_message = "Cannot insert method metadata %s for test %s. Metadata already exists with value %s!" % (metadata_key, self.name, self.method_metadata[metadata_key])
@@ -845,9 +842,7 @@ class TINCTestCaseMM(object):
         
         if self.change_class and self.check_if_class_needs_update():
             if metadata_key in self.class_metadata:
-                if metadata_key == 'product_version':
-                    metadata_value, changed = self._insert_product_version(self.class_metadata['product_version'], metadata_value)
-                elif metadata_key == 'tags':
+                if metadata_key == 'tags':
                     metadata_value, changed = self._insert_tags(self.class_metadata['tags'], metadata_value)
                 else:
                     self.error_message = "Cannot insert class metadata %s for test %s. Metadata already exists with value %s!" % (metadata_key, self.name, self.class_metadata[metadata_key])
@@ -858,20 +853,8 @@ class TINCTestCaseMM(object):
                 self.class_metadata[metadata_key] = metadata_value
                 self.class_metadata['__changed__'] = True
                 self.updated_classes.append(self.full_class_name)
-        
-        self.select_metadata(metadata_key)
 
-    def _insert_product_version(self, value1, value2):
-        """
-        Adds two product_version metadata strings and returns a string representing the result
-        """
-        product_version1 = _TINCProductVersionMetadata(value1)
-        product_version2 = _TINCProductVersionMetadata(value2)
-        result = product_version1 + product_version2
-        # See if it changed
-        if result == product_version1:
-            return (str(product_version1), False)
-        return (str(result), True)
+        self.select_metadata(metadata_key)
 
     def _insert_tags(self, value1, value2):
         """
@@ -893,9 +876,7 @@ class TINCTestCaseMM(object):
         
         """
         if metadata_key in self.method_metadata:
-            if metadata_key == 'product_version':
-                metadata_value = self._delete_product_version(self.method_metadata['product_version'], metadata_value)
-            elif metadata_key == 'tags':
+            if metadata_key == 'tags':
                 metadata_value = self._delete_tags(self.method_metadata['tags'], metadata_value)
             if not metadata_value:
                 self.method_metadata.pop(metadata_key)
@@ -912,9 +893,7 @@ class TINCTestCaseMM(object):
         if self.change_class and self.check_if_class_needs_update():
             if metadata_key in self.class_metadata:
                 changed = True
-                if metadata_key == 'product_version':
-                    metadata_value, changed = self._delete_product_version(self.class_metadata['product_version'], metadata_value)
-                elif metadata_key == 'tags':
+                if metadata_key == 'tags':
                     metadata_value, changed = self._delete_tags(self.class_metadata['tags'], metadata_value)
                 
                 if changed:
@@ -929,18 +908,6 @@ class TINCTestCaseMM(object):
                 self.error_message = "Cannot remove class metadata %s for test %s. Metadata doesn't exist!" % (metadata_key, self.name)
                 self._print_error_message(metadata_key)
                 return
-
-    def _delete_product_version(self, value1, value2):
-        """
-        Removes product_version represented by string value2 from product_version represented by string value1
-        """
-        product_version1 = _TINCProductVersionMetadata(value1)
-        product_version2 = _TINCProductVersionMetadata(value2)
-        result = product_version1 - product_version2
-        # See if it changed
-        if result == product_version1:
-            return (str(product_version1), False)
-        return (str(result), True)
 
     def _delete_tags(self, value1, value2):
         """

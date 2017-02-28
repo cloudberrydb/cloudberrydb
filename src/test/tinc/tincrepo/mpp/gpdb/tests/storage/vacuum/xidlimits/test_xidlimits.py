@@ -31,7 +31,6 @@ from os.path import abspath, dirname, isdir
 import sys
 import unittest2 as unittest
 from tinctest import logger
-from tinctest.case import _TINCProductVersion
 from tinctest.lib import Gpdiff, local_path
 from mpp.lib.PSQL import PSQL, PSQLException
 from mpp.gpdb.lib.models.sql.template import SQLTemplateTestCase
@@ -78,7 +77,6 @@ class XidlimitsTests(MPPTestCase):
     @modified 2013-02-12 00:00:00
     @tags vacuum xidlimits echo
     @gucs gp_create_table_random_default_distribution=off
-    @product_version gpdb: [4.2.5.1- main]
     """
     # Constants identifying the limit to exceed.
     WARN_LIMIT = 0
@@ -94,8 +92,6 @@ class XidlimitsTests(MPPTestCase):
                                                               {'@source@' : local_path('xidhelper.so')})
         PSQL.run_sql_file(sql_file=local_path('load_xidhelper.sql.t'),
                           out_file=local_path('load_xidhelper.out.t'))
-        versionstr = self.get_product_version()[1]
-        self.use42x_ans = (_TINCProductVersion(versionstr) == _TINCProductVersion('4.2.x'))
         self.gparray = GpArray.initFromCatalog(dbconn.DbURL(), utility=True)
 
     def _basic_sanity_check(self, suffix, kwargs=None):
@@ -106,10 +102,7 @@ class XidlimitsTests(MPPTestCase):
         names and values as their values.
         """
         out_file = local_path('sanity_%s.out' % suffix)
-        if self.use42x_ans and suffix == 'warn':
-			ans_file = local_path('sanity_%s_42x.ans' % suffix)
-        else:
-            ans_file = local_path('sanity_%s.ans' % suffix)
+        ans_file = local_path('sanity_%s.ans' % suffix)
         if kwargs is None:
             kwargs = {}
         kwargs["sql_file"] = local_path('sanity_%s.sql' % suffix)

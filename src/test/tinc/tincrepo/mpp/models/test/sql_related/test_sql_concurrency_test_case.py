@@ -24,7 +24,6 @@ from unittest2.runner import _WritelnDecorator
 
 from tinctest import TINCTestLoader
 from tinctest import TINCTextTestResult
-from tinctest.case import _TINCProductVersion
 
 from mpp.models import SQLConcurrencyTestCase
 

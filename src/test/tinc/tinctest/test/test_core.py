@@ -360,9 +360,6 @@ class TINCTestLoaderTests(unittest.TestCase):
 
 @unittest.skip('mock')
 class MockTINCTestCaseForLoaderDiscovery(tinctest.TINCTestCase):
-    def get_product_version(self):
-        return('test', 'main')
-
     def test_lacking_product_version(self):
         """
         
@@ -373,53 +370,6 @@ class MockTINCTestCaseForLoaderDiscovery(tinctest.TINCTestCase):
         @tags storage executor
         """
         pass
-    def test_containing_product_version(self):
-        """
-        
-        @maintainer balasr3
-        @description test stuff
-        @created 2012-07-05 12:00:00
-        @modified 2012-07-05 12:00:02
-        @tags storage
-        @product_version test: main
-        """
-        pass
-    def test_main_product_version(self):
-        """
-        
-        @maintainer balasr3
-        @description test stuff
-        @created 2012-07-05 12:00:00
-        @modified 2012-07-05 12:00:02
-        @tags storage
-        @product_version gpdb: main
-        """
-        pass
-
-    def test_containing_product_version_exclusive_range(self):
-        """
-        
-        @maintainer balasr3
-        @description test stuff
-        @created 2012-07-05 12:00:00
-        @modified 2012-07-05 12:00:02
-        @tags storage
-        @product_version gpdb: (4.1.0.0-main)
-        """
-        pass
-
-    def test_containing_product_version_inclusive_range(self):
-        """
-        
-        @maintainer balasr3
-        @description test stuff
-        @created 2012-07-05 12:00:00
-        @modified 2012-07-05 12:00:02
-        @tags storage
-        @product_version gpdb: [4.2.0.0-main]
-        """
-        pass
-
 
 class TINCTestLoaderDiscoveryTests(unittest.TestCase):
     def test_matching_author(self):

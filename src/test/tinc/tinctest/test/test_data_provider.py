@@ -123,7 +123,6 @@ def data_provider_returning_non_dict():
 class TINCTestCaseWithDataProviderTests(unittest.TestCase):
     def test_with_data_provider_construction(self):
         tinc_test_case = MockTINCTestCaseWithDataProvider('test_with_data_provider')
-        self.assertIsNone(tinc_test_case.product_version)
         self.assertEquals(tinc_test_case.data_provider, 'data_types_provider')
 
 
