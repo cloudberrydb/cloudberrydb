@@ -1052,7 +1052,8 @@ RecordTransactionCommit(void)
 	TransactionId xid;
 	bool		markXidCommitted;
 	TransactionId latestXid = InvalidTransactionId;
-	bool save_inCommit;
+	/* Initializing just to make compiler happy */
+	bool save_inCommit = MyProc->inCommit;
 	MIRRORED_LOCK_DECLARE;
 
 	int32						persistentCommitSerializeLen;
