@@ -1861,6 +1861,44 @@ CREATE VIEW gp_toolkit.gp_resgroup_config AS
 GRANT SELECT ON gp_toolkit.gp_resgroup_config TO public;
 
 --------------------------------------------------------------------------------
+-- @view:
+--              gp_toolkit.gp_resgroup_status
+--
+-- @doc:
+--              Resource group runtime status information
+--
+--------------------------------------------------------------------------------
+
+CREATE VIEW gp_toolkit.gp_resgroup_status AS
+    SELECT
+        T1.rsgid AS groupid,
+        T1.value AS num_running,
+        T2.value AS num_queueing,
+        T3.value AS cpu_usage,
+        T4.value AS memory_usage,
+        T5.value AS total_queue_duration,
+        T6.value AS num_queued,
+        T7.value AS num_executed
+    FROM
+        pg_resgroup_get_status_kv('num_running') AS T1,
+        pg_resgroup_get_status_kv('num_queueing') AS T2,
+        pg_resgroup_get_status_kv('cpu_usage') AS T3,
+        pg_resgroup_get_status_kv('memory_usage') AS T4,
+        pg_resgroup_get_status_kv('total_queue_duration') AS T5,
+        pg_resgroup_get_status_kv('num_queued') AS T6,
+        pg_resgroup_get_status_kv('num_executed') AS T7
+    WHERE
+        T1.rsgid = T2.rsgid
+    AND T1.rsgid = T3.rsgid
+    AND T1.rsgid = T4.rsgid
+    AND T1.rsgid = T5.rsgid
+    AND T1.rsgid = T6.rsgid
+    AND T1.rsgid = T7.rsgid
+    ;
+
+GRANT SELECT ON gp_toolkit.gp_resgroup_status TO public;
+
+--------------------------------------------------------------------------------
 -- AO/CO diagnostics functions
 --------------------------------------------------------------------------------
 
