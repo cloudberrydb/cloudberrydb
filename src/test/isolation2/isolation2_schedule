@@ -1,5 +1,6 @@
-test: setup
+test: commit_transaction_block_checkpoint
 
+test: setup
 # Tests on Append-Optimized tables (row-oriented).
 test: uao/alter_while_vacuum_row
 test: uao/alter_while_vacuum2_row

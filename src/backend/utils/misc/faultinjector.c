@@ -1074,15 +1074,6 @@ FaultInjector_NewHashEntry(
 		case FileRepTransitionToChangeTracking:
 		case FileRepIsOperationCompleted:
 		case FileRepImmediateShutdownRequested:
-		case TransactionCommitPass1FromCreatePendingToCreated:
-		case TransactionCommitPass1FromDropInMemoryToDropPending:
-		case TransactionCommitPass1FromAbortingCreateNeededToAbortingCreate:
-		case TransactionAbortPass1FromCreatePendingToAbortingCreate:
-		case TransactionAbortPass1FromAbortingCreateNeededToAbortingCreate:
-		case TransactionCommitPass2FromDropInMemoryToDropPending:
-		case TransactionCommitPass2FromAbortingCreateNeededToAbortingCreate:
-		case TransactionAbortPass2FromCreatePendingToAbortingCreate:
-		case TransactionAbortPass2FromAbortingCreateNeededToAbortingCreate:
 			
 		case FinishPreparedTransactionCommitPass1FromCreatePendingToCreated:
 		case FinishPreparedTransactionCommitPass2FromCreatePendingToCreated:
