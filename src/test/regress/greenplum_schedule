@@ -79,6 +79,8 @@ test: resource_queue
 test: resource_queue_function
 test: wrkloadadmin
 
+test: resource_group
+
 # gp_toolkit performs a vacuum and checks that it truncated the relation. That
 # might not happen if other backends are holding transactions open, preventing
 # vacuum from removing dead tuples.

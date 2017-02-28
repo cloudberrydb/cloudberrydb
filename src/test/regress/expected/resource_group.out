@@ -1,0 +1,31 @@
+-- ----------------------------------------------------------------------
+-- Test: assign a role to a resource group
+-- ----------------------------------------------------------------------
+--start_ignore
+DROP ROLE IF EXISTS rg_test_role;
+NOTICE:  role "rg_test_role" does not exist, skipping
+--end_ignore
+CREATE ROLE rg_test_role;
+NOTICE:  resource queue required -- using default resource queue "pg_default"
+SELECT rolresgroup FROM pg_authid WHERE rolname = 'rg_test_role';
+ rolresgroup 
+-------------
+        6437
+(1 row)
+
+DROP ROLE rg_test_role;
+CREATE ROLE rg_test_role SUPERUSER;
+SELECT rolresgroup FROM pg_authid WHERE rolname = 'rg_test_role';
+ rolresgroup 
+-------------
+        6438
+(1 row)
+
+DROP ROLE rg_test_role;
+CREATE ROLE rg_test_role RESOURCE GROUP non_exist_group;
+NOTICE:  resource queue required -- using default resource queue "pg_default"
+ERROR:  resource group "non_exist_group" does not exist
+-- nonsuper user should not be assigned to admin group
+CREATE ROLE rg_test_role RESOURCE GROUP admin_group;
+NOTICE:  resource queue required -- using default resource queue "pg_default"
+ERROR:  only super user can be assigned to admin resgroup

@@ -1373,6 +1373,10 @@ OptRoleElem:
 				{
 					$$ = makeDefElem("resourceQueue", (Node *)$3);
 				}
+			| RESOURCE GROUP_P any_name
+				{
+					$$ = makeDefElem("resourceGroup", (Node *)$3);
+				}
 		/*	Supported but not documented for roles, for use by ALTER GROUP. */
 			| USER name_list
 				{
