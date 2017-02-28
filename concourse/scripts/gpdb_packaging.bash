@@ -2,7 +2,12 @@
 
 set -euxo pipefail
 
-DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+substitute_GP_VERSION() {
+  GP_VERSION=$("$DIR/../../getversion" --short)
+  INSTALLER_ZIP=${INSTALLER_ZIP//@GP_VERSION@/${GP_VERSION}}
+}
 
 function echo_expected_env_variables() {
   echo "$INSTALL_SCRIPT_SRC"
@@ -11,6 +16,7 @@ function echo_expected_env_variables() {
 }
 
 function _main() {
+  substitute_GP_VERSION
   echo_expected_env_variables
 
   # Copy gpaddon into addon to ensure the availability of all the installer scripts
@@ -19,7 +25,7 @@ function _main() {
   local installer_bin
   installer_bin=$( echo "$INSTALLER_ZIP" | sed "s/.zip/.bin/" | xargs basename)
 
-  source "${DIR}/../../getversion"
+  GP_VERSION=$("${DIR}/../../getversion" --short)
   sed -i \
       -e "s:\(installPath=/usr/local/GP-\).*:\1$GP_VERSION:" \
       -e "s:\(installPath=/usr/local/greenplum-db-\).*:\1$GP_VERSION:" \

@@ -1,10 +1,17 @@
 #!/bin/bash
 
-GP_VERSION=5.0.0
+# Make sure we're running from the root git repository, not whatever submodule
+# we could have been called from.
+GP_VERSION=$(cd "$(dirname "$0")"; git describe)
 
 GP_BUILDNUMBER=dev
 if [ -f BUILD_NUMBER ] ; then
     GP_BUILDNUMBER=`cat BUILD_NUMBER`
 fi
 
-echo "${GP_VERSION} build ${GP_BUILDNUMBER}"
+FLAG="${1:-noflag}"
+if [ "$FLAG" = '--short' ] ; then
+    echo "${GP_VERSION}"
+else
+    echo "${GP_VERSION} build ${GP_BUILDNUMBER}"
+fi
