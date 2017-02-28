@@ -1069,7 +1069,7 @@ ExecAgg(AggState *node)
 					}
 					node->hhashtable->state = HASHAGG_END_OF_PASSES;
 					/*
-					 * pass through. Be sure that the next case statment
+					 * pass through. Be sure that the next case statement
 					 * is HASHAGG_END_OF_PASSES.
 					 */
 

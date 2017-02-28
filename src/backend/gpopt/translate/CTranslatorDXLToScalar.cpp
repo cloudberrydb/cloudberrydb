@@ -168,8 +168,8 @@ CTranslatorDXLToScalar::PcaseexprFromDXLNodeScIfStmt
 	CDXLNode *pdxlnCurr = const_cast<CDXLNode*>(pdxlnIfStmt);
 	Expr *pexprElse = NULL;
 
-	// An If statment is of the format: IF <condition> <then> <else>
-	// The leaf else statment is the def result of the case statement
+	// An If statement is of the format: IF <condition> <then> <else>
+	// The leaf else statement is the def result of the case statement
 	BOOL fLeafElseStatement = false;
 
 	while (!fLeafElseStatement)
