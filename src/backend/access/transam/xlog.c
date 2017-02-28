@@ -9044,6 +9044,17 @@ CreateCheckPoint(int flags)
 	{
 		do
 		{
+			/*
+			 * GPDB needs to AbsorbFsyncRequests() here to avoid deadlock when
+			 * fsync request queue is full while backend is in commit and
+			 * performing ForgetRelationFsyncRequests() or
+			 * ForgetDatabaseFsyncRequests(). Since for GPDB the mdlink
+			 * happens through persistent tables cleanup, during which
+			 * inCommit flag is set to avoid checkpoint from happening.
+			 * PostgreSQL doesn't need this as ForgetRelationFsyncRequests()
+			 * or ForgetDatabaseFsyncRequests() are not under inCommit=true.
+			 */
+			AbsorbFsyncRequests();
 			pg_usleep(10000L);	/* wait for 10 msec */
 		} while (HaveVirtualXIDsDelayingChkpt(vxids, nvxids));
 	}
