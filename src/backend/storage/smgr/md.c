@@ -962,9 +962,16 @@ mdunlink(
 		}
 	}
 
+	/*
+	 * In PostgreSQL, register_unlink is called to let the checkpoint process to clean up the files.
+	 * In GPDB, the cleanup is handled by persistent table. Hence, we don't need to register the
+	 * unlink request.
+	 */
+#if 0 /* Upstream code not applicable to GPDB */
 	/* Register request to unlink first segment later */
 	if (!isRedo)
 		register_unlink(rnode);
+#endif
 }
 
 static void mdsetupdropobjmirroraccess(	
