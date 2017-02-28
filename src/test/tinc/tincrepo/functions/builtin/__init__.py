@@ -44,10 +44,11 @@ class BuiltinFunctionTestCase(SQLTestCase):
             PSQL.run_sql_file(guc_off_sql_file, dbname = self.db_name, out_file = new_ans_file)
             PSQL.run_sql_file(guc_sql_file, dbname = self.db_name, out_file = out_file)
 
-            sedcmd = "sed -i -e 's/transactionid,,,,,[[:digit:]]\+,,,,[[:digit:]]\+,[[:digit:]]\+,ExclusiveLock,t,[[:digit:]]\+,/transactionid,,,,,XXXXX,,,,XXXXX,XXXXX,ExclusiveLock,t,XXXXX,/' " +new_ans_file
-            sedcmd2 = "sed -i -e 's/transactionid,,,,,[[:digit:]]\+,,,,[[:digit:]]\+,[[:digit:]]\+,ExclusiveLock,t,[[:digit:]]\+,/transactionid,,,,,XXXXX,,,,XXXXX,XXXXX,ExclusiveLock,t,XXXXX,/' " +out_file
-            sedcmd3 = "sed -i -e 's/pg_aoseg_[[:digit:]]\+/pg_aoseg_XXXXX/' " +new_ans_file
-            sedcmd4 = "sed -i -e 's/pg_aoseg_[[:digit:]]\+/pg_aoseg_XXXXX/' " +out_file
+            pattern = 's/transactionid,,,,,,[[:digit:]]\+,,,,[[:digit:]]\+\/[[:digit:]]\+,[[:digit:]]\+,ExclusiveLock,t,[[:digit:]]\+,/transactionid,,,,,,TRANSACTIONID,,,,VIRTUAL\/XID,PID,ExclusiveLock,t,SESSIONID,/;s/virtualxid,,,,,[[:digit:]]\+\/[[:digit:]]\+,,,,,[[:digit:]]\+\/[[:digit:]]\+,[[:digit:]]\+,ExclusiveLock,t,[[:digit:]]\+,/virtualxid,,,,,VIRTUAL\/XID,,,,,VIRTUAL\/XID,PID,ExclusiveLock,t,SESSIONID,/'
+            sedcmd = "sed -i '' -e '%(pattern)s' %(answer_file)s" % {"answer_file": new_ans_file, "pattern": pattern}
+            sedcmd2 = "sed -i '' -e '%(pattern)s' %(answer_file)s" % {"answer_file" :out_file, "pattern": pattern}
+            sedcmd3 = "sed -i '' -e 's/pg_aoseg_[[:digit:]]\+/pg_aoseg_XXXXX/' " +new_ans_file
+            sedcmd4 = "sed -i '' -e 's/pg_aoseg_[[:digit:]]\+/pg_aoseg_XXXXX/' " +out_file
             run_shell_command(sedcmd, "replace dynamic values in planner output with XXXXX")
             run_shell_command(sedcmd2, "replace dynamic values in ORCA output with XXXXX")
             run_shell_command(sedcmd3, "replace dynamic values in pg_aoseg.pg_aoseg_")
