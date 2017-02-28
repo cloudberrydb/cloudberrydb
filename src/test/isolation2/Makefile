@@ -44,4 +44,4 @@ clean distclean:
 	rm -rf $(pg_regress_clean_files)
 
 installcheck: all gpdiff.pl gpstringsubs.pl
-	./pg_isolation2_regress --psqldir='$(PSQLDIR)' --inputdir=$(srcdir) --ao-dir=uao --schedule=$(srcdir)/isolation2_schedule
+	./pg_isolation2_regress --init-file=$(top_builddir)/src/test/regress/init_file --psqldir='$(PSQLDIR)' --inputdir=$(srcdir) --ao-dir=uao --schedule=$(srcdir)/isolation2_schedule

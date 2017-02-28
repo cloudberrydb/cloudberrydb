@@ -29,7 +29,7 @@ import traceback
 class SQLIsolationExecutor(object):
     def __init__(self, dbname=''):
         self.processes = {}
-        self.command_pattern = re.compile(r"^(\d+)([&\\<\\>Uq]?)\:(.*)")
+        self.command_pattern = re.compile(r"^(\d+)([&\\<\\>Uq]*?)\:(.*)")
         if dbname:
             self.dbname = dbname
         else:
@@ -78,7 +78,7 @@ class SQLIsolationExecutor(object):
             self.pipe.send((command, True))
 
             if blocking:
-                time.sleep(0.2)
+                time.sleep(0.5)
                 if self.pipe.poll(0):
                     raise Exception("Forked command is not blocking")
             self.has_open = True
@@ -249,7 +249,12 @@ class SQLIsolationExecutor(object):
                     raise Exception("Invalid syntax with dbname, should be of the form 1:@db_name <db_name>: <sql>")
                 sql = sql_parts[1]
         if not flag:
-            self.get_process(output_file, process_name, dbname=dbname).query(sql.strip())
+            if sql.startswith('!'):
+                cmd_output = subprocess.Popen(sql[1:].strip(), stderr=subprocess.STDOUT, stdout=subprocess.PIPE, shell=True)
+                print >> output_file
+                print >> output_file, cmd_output.stdout.read()
+            else:
+                self.get_process(output_file, process_name, dbname=dbname).query(sql.strip())
         elif flag == "&":
             self.get_process(output_file, process_name, dbname=dbname).fork(sql.strip(), True)
         elif flag == ">":
@@ -260,6 +265,12 @@ class SQLIsolationExecutor(object):
             self.get_process(output_file, process_name, dbname=dbname).join()
         elif flag == "U":
             self.get_process(output_file, process_name, utility_mode=True, dbname=dbname).query(sql.strip())
+        elif flag == "U&":
+            self.get_process(output_file, process_name, utility_mode=True, dbname=dbname).fork(sql.strip(), True)
+        elif flag == "U<":
+            if len(sql) > 0:
+                raise Exception("No query should be given on join")
+            self.get_process(output_file, process_name, utility_mode=True, dbname=dbname).join()
         elif flag == "q":
             if len(sql) > 0:
                 raise Exception("No query should be given on quit")
@@ -280,10 +291,12 @@ class SQLIsolationExecutor(object):
                 (command_part, dummy, comment) = line.partition("--")
                 if command_part == "" or command_part == "\n":
                     print >>output_file 
-                elif command_part.endswith(";\n") or re.match(r"^\d+[q\\<]:$", line):
+                elif command_part.endswith(";\n") or re.match(r"^\d+[q\\<]:$", line) or re.match(r"^\d+U[\\<]:$", line):
                     command += command_part
-                    #tinctest.logger.info("Processing command: %s" %command)
-                    self.process_command(command, output_file)
+                    try:
+                        self.process_command(command, output_file)
+                    except Exception as e:
+                        print >>output_file, "FAILED: ", e
                     command = ""
                 else:
                     command += command_part
@@ -302,7 +315,21 @@ class SQLIsolationTestCase:
     """
         The isolation test case allows a fine grained control of interleaved
         executing transactions. This is mainly used to test isolation behavior.
+
+        [<#>[flag]:] <sql> | ! <shell scripts or command>
+        #: just any integer indicating an unique session or dbid if followed by U
+        flag:
+            &: expect blocking behavior
+            >: running in background without blocking
+            <: join an existing session
+            q: quit the given session
+
+            U: connect in utility mode to dbid from gp_segment_configuration
+            U&: expect blocking behavior in utility mode
+            U<: join an existing utility mode session
+
         An example is:
+
         Execute BEGIN in transaction 1
         Execute BEGIN in transaction 2
         Execute INSERT in transaction 2
@@ -326,7 +353,7 @@ class SQLIsolationTestCase:
         2: BEGIN;
         1: DELETE FROM foo WHERE a = 4;
         2&: DELETE FROM foo WHERE a = 4;
-    1: COMMIT;
+        1: COMMIT;
         2<:
         2: COMMIT;
 
