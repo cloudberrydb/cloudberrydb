@@ -2,7 +2,6 @@
 -- @author Zhongxian Gu
 -- @vlimMB 1000 
 -- @slimMB 0
--- @skip FATAL handling from UDFs has changed since older version. Renable after fixing that.
 -- @redzone 80
 
 -- Check that only one session is running

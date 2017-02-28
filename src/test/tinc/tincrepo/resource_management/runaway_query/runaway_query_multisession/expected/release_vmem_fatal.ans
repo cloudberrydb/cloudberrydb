@@ -69,7 +69,6 @@ t
 2: select gp_inject_fault_test_all_segs(0, 2, 0);
 ERROR:  User fault injection raised fatal (runaway_test.c:250)  (seg0 slice2 gcaragea-mbp.local:40090 pid=26904) (cdbdisp.c:1526)
 CONTEXT:  SQL function "gp_inject_fault_test_all_segs" statement 1
-ERROR:  could not temporarily connect to one or more segments (cdbgang.c:2433)
 
 -- make sure session 2 is still around and accepting queries
 2: select 1;

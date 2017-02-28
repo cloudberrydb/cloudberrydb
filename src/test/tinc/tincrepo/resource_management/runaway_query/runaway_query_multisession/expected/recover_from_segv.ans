@@ -72,7 +72,6 @@ DETAIL:
 	This probably means the server terminated abnormally
 	before or while processing the request.
 CONTEXT:  SQL function "gp_inject_fault_test_all_segs" statement 1
-ERROR:  could not temporarily connect to one or more segments (cdbgang.c:2433)
 
 -- only one active session on segment 0 should be left
 3: select count(*) from session_state.session_level_memory_consumption where segid = 0;
