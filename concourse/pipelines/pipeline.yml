@@ -215,7 +215,7 @@ jobs:
       params:
         file: gpdb_artifacts/bin_gpdb.tar.gz
 
-- name: compile_gpdb_custom_config_centos6
+- name: compile_gpdb_open_source_centos6
   public: true
   plan:
   - aggregate:
@@ -223,7 +223,7 @@ jobs:
       trigger: true
     - get: centos-gpdb-dev-6
   - task: compile_gpdb
-    file: gpdb_src/concourse/tasks/compile_gpdb_custom_config.yml
+    file: gpdb_src/concourse/tasks/compile_gpdb_open_source.yml
     image: centos-gpdb-dev-6
 
 - name: compile_gpdb_centos7
